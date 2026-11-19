@@ -1,8 +1,9 @@
 #include "World/BlastModelEffects.h"
 
 #include "Core/Expected.h"
+#include "Data/Terrain/TerrainAttributes.h"
+#include "Data/Terrain/TerrainGrid.h"
 #include "Render/Models/Cloth.h"
-#include "Render/Models/OriginalRetainedMath.h"
 #include "Render/Models/OriginalRotation.h"
 #include "World/GameModelEffects.h"
 #include "World/IFishStepServices.h"
@@ -287,9 +288,9 @@ TEST(BlastModelEffectsTest, TheRidingSpearTakesItsVelocityFromTheYaw)
         Client::World::CreateBlastModelEffect(*harness.effects, Arguments(0x10f, 0), {}, random, harness.Services());
     ASSERT_TRUE(made.HasValue()) << made.Error();
     const ModelEffect& spear = harness.effects->Effects()[*made.Value()];
-    const double argument = 90.0 * static_cast<double>(std::bit_cast<float>(0x3c8efa35u));
-    EXPECT_EQ(spear.velocity.x, F32(*Client::Render::Models::Detail::SineProductPC53(argument, 5.0f)));
-    EXPECT_EQ(spear.velocity.y, F32(*Client::Render::Models::Detail::CosineDoubleProductPC53(argument, -5.0)));
+    // Calculados aparte para el rumbo 90: FSIN · 5 y FCOS · −5 en double, guardados en float.
+    EXPECT_EQ(spear.velocity.x, std::bit_cast<float>(0x40a00000u));
+    EXPECT_EQ(spear.velocity.y, std::bit_cast<float>(0xb382a70cu));
     EXPECT_EQ(spear.life, 20);
     EXPECT_EQ(spear.transform.scale, 1.5f);
 }
@@ -333,7 +334,11 @@ struct StepHarness
     std::unique_ptr<Client::World::Particles> particles = std::make_unique<Client::World::Particles>();
     std::unique_ptr<Client::World::TerrainLighting> lighting = std::make_unique<Client::World::TerrainLighting>();
     std::unique_ptr<Client::World::FrameSprites> sprites = std::make_unique<Client::World::FrameSprites>();
+    std::unique_ptr<Client::Data::Terrain::TerrainAttributes> attributes =
+        std::make_unique<Client::Data::Terrain::TerrainAttributes>();
     std::int32_t map = 0;
+    float shake = 0.0f;
+    bool withShake = true;
     std::uint8_t depth = 0;
     std::uint8_t count = 4;
     float ground = 0.0f;
@@ -346,7 +351,9 @@ struct StepHarness
                 .sprites = sprites.get(),
                 .effects = effects.get(),
                 .lighting = lighting.get(),
+                .terrainAttributes = attributes.get(),
                 .map = &map,
+                .cameraShake = withShake ? &shake : nullptr,
                 .sound = [this](std::int32_t id) { sounds.push_back(id); },
                 .joint = [this](const FishEffectRequest& request) -> Client::Core::Expected<void, std::string>
                 {
@@ -382,6 +389,7 @@ TEST(BlastModelEffectsTest, TheBlastOnTheGroundDropsSixChipsAndCutsAtTheUnported
 {
     StepHarness harness;
     CrtRandom random(2);
+    CrtRandom replay(2);
     ModelEffect& blast = Alive(*harness.effects, 0, 0xf5, 0, 30);
     harness.ground = 400.0f;
     const auto stepped = harness.Step(blast, random);
@@ -392,6 +400,9 @@ TEST(BlastModelEffectsTest, TheBlastOnTheGroundDropsSixChipsAndCutsAtTheUnported
     const auto chips = std::ranges::count_if(harness.effects->Effects(), [](const ModelEffect& effect)
                                              { return effect.alive && (effect.type == 0xc8 || effect.type == 0xc9); });
     EXPECT_EQ(chips, 6);
+    // La luz, y por piedrita el rand() % 2 del tipo (0x52115e) y los cinco del alta (0x51b72b).
+    Skip(replay, 1 + 6 * (1 + 5));
+    EXPECT_EQ(random.State(), replay.State());
 }
 
 TEST(BlastModelEffectsTest, TheBlastInTheAirKeepsFallingWithItsLight)
@@ -489,6 +500,7 @@ TEST(BlastModelEffectsTest, TheFlameRingLightsEighteenFlames)
 {
     StepHarness harness;
     CrtRandom random(2);
+    CrtRandom replay(2);
     ModelEffect& ring = Alive(*harness.effects, 0, 0x5de, 1, 10);
     const auto stepped = harness.Step(ring, random);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
@@ -496,6 +508,18 @@ TEST(BlastModelEffectsTest, TheFlameRingLightsEighteenFlames)
                                               { return particle.alive && particle.type == 0x5de; });
     EXPECT_EQ(flames, 18);
     EXPECT_EQ(ring.life, 9);
+    // La luz (1) y, por llama, los dos corrimientos (& 63) − 32 (36 en total) antes del alta de la 5de/0 (0x54150e),
+    // que saca cinco o seis más.
+    Skip(replay, 1);
+    auto twin = std::make_unique<Client::World::Particles>();
+    for (int flame = 0; flame < 18; ++flame)
+    {
+        Skip(replay, 2);
+        const auto made =
+            twin->CreateChecked(0x5de, {}, {}, glm::vec3(1.0f), 0, std::bit_cast<float>(0x3f99999au), 0.0f, replay);
+        ASSERT_TRUE(made.HasValue());
+    }
+    EXPECT_EQ(random.State(), replay.State());
 }
 
 TEST(BlastModelEffectsTest, TheBlizzardShardSoundsOnlyAtLifeEighteenWithKeyOne)
@@ -557,7 +581,7 @@ TEST(BlastModelEffectsTest, ThePiercingChildDiesWithItsOwner)
     EXPECT_EQ(child.life, -2);
 }
 
-TEST(BlastModelEffectsTest, ThePiercingChildCutsAtTheJointsBatchJoint)
+TEST(BlastModelEffectsTest, ThePiercingChildFollowsItsOwnerAndAsksForItsJoint)
 {
     StepHarness harness;
     CrtRandom random(2);
@@ -570,5 +594,367 @@ TEST(BlastModelEffectsTest, ThePiercingChildCutsAtTheJointsBatchJoint)
     EXPECT_EQ(child.transform.position, stab.transform.position);
     EXPECT_EQ(child.start, glm::vec3(1000, 2000, 300));
     EXPECT_EQ(child.copiedAngles.y, 90.0f);
+}
+
+// La primera semilla desde 1 con rand() % `modulo` == `value` después de `skipped` rand().
+std::uint32_t SeedWhere(int skipped, int modulo, int value)
+{
+    for (std::uint32_t seed = 1;; ++seed)
+    {
+        CrtRandom probe(seed);
+        Skip(probe, skipped);
+        if (probe.Next() % modulo == value)
+            return seed;
+    }
+}
+
+// 0x5215a5..0x5216d6: la roca 0xe7 toca el terreno fuera de las celdas con el bit 0x08: queda en la altura, muerta, con
+// el temblor de 0x521619 y cinco pedazos 0xea/0xeb por el camino de las piedritas (0x51b72b, no el del 0xca): el
+// subtipo 0, +0x64 en −1, +0x68 en 1, la z del terreno, la luz de la roca y cinco rand() cada uno. El polvo 5f2/3 corta
+// en 0x5216d6, con el giro ya sumado.
+TEST(BlastModelEffectsTest, TheIceRockLandsShakingTheCameraAndDropsFiveShards)
+{
+    StepHarness harness;
+    harness.ground = 400.0f;
+    CrtRandom random(7);
+    CrtRandom replay(7);
+    constexpr std::size_t RockSlot = 10;
+    constexpr std::size_t Shards = 5;
+    ModelEffect& rock = Alive(*harness.effects, RockSlot, 0xe7, 0, 30);
+    rock.transform.scale = 1.0f;
+    rock.light = glm::vec3(0.5f);
+    const auto stepped = harness.Step(rock, random);
+    ASSERT_FALSE(stepped.HasValue());
+    EXPECT_NE(stepped.Error().find("0x5216d6"), std::string::npos) << stepped.Error();
+    EXPECT_FALSE(rock.alive);
+    EXPECT_EQ(rock.transform.position, glm::vec3(1000, 2000, 400));
+    EXPECT_EQ(rock.transform.angles.x, 10.0f);
+    Skip(replay, 1);
+    EXPECT_EQ(harness.shake, F32(static_cast<double>(replay.Next() % 8 - 8) * static_cast<double>(0.1f)));
+    for (std::size_t slot = 0; slot < Shards; ++slot)
+    {
+        SCOPED_TRACE(slot);
+        const ModelEffect& shard = harness.effects->Effects()[slot];
+        ASSERT_TRUE(shard.alive);
+        EXPECT_EQ(shard.type, 0xea + replay.Next() % 2);
+        EXPECT_EQ(shard.subtype, 0);
+        EXPECT_EQ(shard.objectState.blendMesh, -1);
+        EXPECT_EQ(shard.objectState.light, 1.0f);
+        EXPECT_EQ(shard.transform.position, glm::vec3(1000, 2000, 400));
+        EXPECT_EQ(shard.light, glm::vec3(0.5f));
+        Skip(replay, 1);
+        EXPECT_EQ(shard.life, (replay.Next() & 15) + 32);
+        Skip(replay, 3);
+    }
+    EXPECT_FALSE(harness.effects->Effects()[Shards].alive);
+    EXPECT_EQ(random.State(), replay.State());
+
+    // Sin el temblor, el corte de 0x52163e llega después del rand() de 0x521619.
+    StepHarness still;
+    still.ground = 400.0f;
+    still.withShake = false;
+    CrtRandom stillRandom(7);
+    CrtRandom stillReplay(7);
+    ModelEffect& stillRock = Alive(*still.effects, RockSlot, 0xe7, 0, 30);
+    stillRock.transform.scale = 1.0f;
+    const auto cut = still.Step(stillRock, stillRandom);
+    ASSERT_FALSE(cut.HasValue());
+    EXPECT_NE(cut.Error().find("0x52163e"), std::string::npos) << cut.Error();
+    Skip(stillReplay, 2);
+    EXPECT_EQ(stillRandom.State(), stillReplay.State());
+}
+
+// 0x521616 apaga la roca antes de 0x521675: si su lugar es el primero libre, el primer pedazo cae en él, y
+// 0x521684..0x5216d4 mueven y giran ese pedazo con su velocidad y su escala.
+TEST(BlastModelEffectsTest, TheFirstShardTakesTheRockSlotWhenItIsTheFirstFree)
+{
+    StepHarness harness;
+    harness.ground = 400.0f;
+    CrtRandom random(7);
+    ModelEffect& rock = Alive(*harness.effects, 0, 0xe8, 0, 30);
+    rock.transform.scale = 1.0f;
+    const auto stepped = harness.Step(rock, random);
+    ASSERT_FALSE(stepped.HasValue());
+    EXPECT_NE(stepped.Error().find("0x5216d6"), std::string::npos) << stepped.Error();
+    ASSERT_TRUE(rock.alive);
+    EXPECT_TRUE(rock.type == 0xea || rock.type == 0xeb);
+    EXPECT_EQ(rock.transform.position.x, F32(static_cast<double>(rock.velocity.x) + 1000.0));
+    EXPECT_EQ(rock.transform.position.y, F32(static_cast<double>(rock.velocity.y) + 2000.0));
+    EXPECT_EQ(rock.transform.position.z, 400.0f);
+    EXPECT_EQ(rock.transform.angles.x, F32(10.0 / static_cast<double>(rock.transform.scale)));
+    EXPECT_TRUE(harness.effects->Effects()[4].alive);
+    EXPECT_FALSE(harness.effects->Effects()[5].alive);
+}
+
+// En el aire, o sobre una celda con el bit 0x08 (0x5215f4), la roca sigue cayendo sin temblor ni pedazos: sólo el
+// rand() de la luz antes del polvo de 0x5216d6.
+TEST(BlastModelEffectsTest, TheIceRockKeepsFallingInTheAirOrOverAnOpenCell)
+{
+    for (const bool open : {false, true})
+    {
+        SCOPED_TRACE(open);
+        StepHarness harness;
+        harness.ground = open ? 400.0f : 0.0f;
+        if (open)
+            harness.attributes->cells[Client::Data::Terrain::CellIndex(10, 20)] = 0x08;
+        CrtRandom random(7);
+        CrtRandom replay(7);
+        ModelEffect& rock = Alive(*harness.effects, 0, open ? 0xe8 : 0xe9, 0, 30);
+        rock.transform.scale = 2.0f;
+        rock.velocity = {0, 0, -40};
+        const auto stepped = harness.Step(rock, random);
+        ASSERT_FALSE(stepped.HasValue());
+        EXPECT_NE(stepped.Error().find("0x5216d6"), std::string::npos) << stepped.Error();
+        EXPECT_TRUE(rock.alive);
+        EXPECT_EQ(rock.transform.position, glm::vec3(1000, 2000, 260));
+        EXPECT_EQ(rock.transform.angles.x, 5.0f);
+        EXPECT_EQ(harness.shake, 0.0f);
+        EXPECT_FALSE(harness.effects->Effects()[1].alive);
+        Skip(replay, 1);
+        EXPECT_EQ(random.State(), replay.State());
+    }
+}
+
+// 0x52186e..0x521960: el 0xf4/2 de un ítem largo (0x650) queda 180 detrás de su dueño, con el alfa 0,5 y 18 menos de
+// giro; el polvo 5f2/3 corta en 0x521960, antes de mirar Kalima: sólo el rand() de la luz.
+TEST(BlastModelEffectsTest, TheSpinningItemStaysBehindItsOwnerAndCutsAtItsDust)
+{
+    StepHarness harness;
+    CrtRandom random(7);
+    CrtRandom replay(7);
+    const glm::vec3 owner{500, 600, 70};
+    const std::int16_t itemType = 0x650;
+    ModelEffect& item = Alive(*harness.effects, 0, 0xf4, 2, 25);
+    item.owner.position = &owner;
+    item.itemType = &itemType;
+    const auto stepped = harness.Step(item, random);
+    ASSERT_FALSE(stepped.HasValue());
+    EXPECT_NE(stepped.Error().find("0x521960"), std::string::npos) << stepped.Error();
+    EXPECT_EQ(item.alpha, 0.5f);
+    EXPECT_EQ(item.transform.position, glm::vec3(500, 420, 70));
+    EXPECT_EQ(item.transform.angles.z, -18.0f);
+    EXPECT_EQ(item.life, 25);
+    Skip(replay, 1);
+    EXPECT_EQ(random.State(), replay.State());
+}
+
+// 0x52552d..0x5255fd: el 0x108/0 se hamaca (los dos rand() del seno y el de la caída), suelta el aliento 5f2/0 y sortea
+// entre la 5ca/1 y la 5db/7, que MuRet no crea.
+TEST(BlastModelEffectsTest, TheIceStormSwaysBreathesAndCutsAtItsIceParticle)
+{
+    StepHarness harness;
+    CrtRandom random(7);
+    CrtRandom replay(7);
+    ModelEffect& storm = Alive(*harness.effects, 0, 0x108, 0, 20);
+    storm.start = {1000, 2000, 300};
+    storm.transform.scale = 1.0f;
+    const auto stepped = harness.Step(storm, random);
+    ASSERT_FALSE(stepped.HasValue());
+    EXPECT_NE(stepped.Error().find("0x5255fd"), std::string::npos) << stepped.Error();
+    Skip(replay, 3);
+    EXPECT_EQ(storm.turnDirection, F32(-static_cast<double>(replay.Next() % 5)));
+    EXPECT_EQ(storm.start.x, 990.0f);
+    EXPECT_EQ(storm.transform.position.z, 300.0f);
+    auto twin = std::make_unique<Client::World::Particles>();
+    const auto breath = twin->CreateChecked(0x5f2, storm.transform.position, storm.transform.angles, glm::vec3(1.0f), 0,
+                                            1.5f, 0.0f, replay);
+    ASSERT_TRUE(breath.HasValue());
+    Skip(replay, 1);
+    EXPECT_EQ(random.State(), replay.State());
+}
+
+// 0x5257e8..0x52bfc6: el 0x108/2 se hamaca con 50; en el terreno o debajo no hace más (cuatro rand()); en el aire, el
+// rand() % 2 en 0 pide la 5db/7, que corta en 0x5258ab, y si no la luz sube 0,1f con los sprites 0x5fd y 0x5ac (tres
+// rand() más).
+TEST(BlastModelEffectsTest, TheFallingIceStormOnlyBrightensInTheAir)
+{
+    {
+        StepHarness harness;
+        harness.ground = 400.0f;
+        CrtRandom random(7);
+        CrtRandom replay(7);
+        ModelEffect& storm = Alive(*harness.effects, 0, 0x108, 2, 20);
+        storm.start = {1000, 2000, 300};
+        ASSERT_TRUE(harness.Step(storm, random).HasValue());
+        EXPECT_EQ(storm.start.x, 990.0f);
+        EXPECT_EQ(storm.light, glm::vec3(1.0f));
+        EXPECT_EQ(storm.life, 19);
+        Skip(replay, 4);
+        EXPECT_EQ(random.State(), replay.State());
+    }
+    for (const int parity : {0, 1})
+    {
+        SCOPED_TRACE(parity);
+        const std::uint32_t seed = SeedWhere(4, 2, parity);
+        StepHarness harness;
+        CrtRandom random(seed);
+        CrtRandom replay(seed);
+        ModelEffect& storm = Alive(*harness.effects, 0, 0x108, 2, 20);
+        storm.start = {1000, 2000, 300};
+        storm.transform.scale = 1.0f;
+        const auto stepped = harness.Step(storm, random);
+        if (parity == 0)
+        {
+            ASSERT_FALSE(stepped.HasValue());
+            EXPECT_NE(stepped.Error().find("0x5258ab"), std::string::npos) << stepped.Error();
+            Skip(replay, 5);
+        }
+        else
+        {
+            ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+            EXPECT_EQ(storm.light, glm::vec3(F32(1.0 + static_cast<double>(0.1f))));
+            EXPECT_EQ(storm.life, 19);
+            Skip(replay, 8);
+        }
+        EXPECT_EQ(random.State(), replay.State());
+    }
+}
+
+// 0x5251df..0x525318: la piedra de la puerta avanza, frena 0,9f (la 0x10c/1 vuelve a acelerar 1,1f), cae 4 y, en el
+// terreno, rebota a la mitad, pierde 5 de vida y se inclina 128 por la escala. El rand() % 10 del polvo corta sólo con
+// un lugar libre en las partículas (0x5252e6).
+TEST(BlastModelEffectsTest, TheGateDebrisBouncesOnTheGround)
+{
+    for (const int kind : {0x10c, 0x10d})
+    {
+        SCOPED_TRACE(kind);
+        StepHarness harness;
+        harness.ground = 400.0f;
+        for (Client::World::Particle& particle : harness.particles->All())
+            particle.alive = true;
+        CrtRandom random(7);
+        CrtRandom replay(7);
+        ModelEffect& debris = Alive(*harness.effects, 0, static_cast<std::int16_t>(kind), kind == 0x10c ? 1 : 0, 30);
+        debris.transform.scale = 1.0f;
+        debris.velocity = {10, 0, 0};
+        debris.turnDirection = 5.0f;
+        ASSERT_TRUE(harness.Step(debris, random).HasValue());
+        const float braked = F32(10.0 * static_cast<double>(0.9f));
+        const float speed = kind == 0x10c ? F32(static_cast<double>(braked) * static_cast<double>(1.1f)) : braked;
+        EXPECT_EQ(debris.velocity, glm::vec3(speed, 0, 0));
+        EXPECT_EQ(debris.transform.position.z, 400.0f);
+        EXPECT_EQ(debris.turnDirection, -0.5f);
+        EXPECT_EQ(debris.life, 24);
+        EXPECT_EQ(debris.transform.angles.x, -128.0f);
+        Skip(replay, 2);
+        EXPECT_EQ(random.State(), replay.State());
+    }
+    StepHarness harness;
+    CrtRandom random(SeedWhere(1, 10, 0));
+    ModelEffect& debris = Alive(*harness.effects, 0, 0x10d, 0, 30);
+    debris.transform.scale = 1.0f;
+    const auto stepped = harness.Step(debris, random);
+    ASSERT_FALSE(stepped.HasValue());
+    EXPECT_NE(stepped.Error().find("0x5252e6"), std::string::npos) << stepped.Error();
+}
+
+// 0x5214ea..0x521570: el círculo 0xec/1 crece 0,01f con su luz; el /0 toma la posición de su dueño y crece igual. Sólo
+// el rand() de la luz.
+TEST(BlastModelEffectsTest, TheMagicCircleGrowsAndTheFirstFollowsItsOwner)
+{
+    for (const int subtype : {0, 1})
+    {
+        SCOPED_TRACE(subtype);
+        StepHarness harness;
+        CrtRandom random(7);
+        CrtRandom replay(7);
+        const glm::vec3 owner{10, 20, 30};
+        ModelEffect& circle = Alive(*harness.effects, 0, 0xec, subtype, 20);
+        circle.transform.scale = 1.0f;
+        circle.owner.position = &owner;
+        ASSERT_TRUE(harness.Step(circle, random).HasValue());
+        EXPECT_EQ(circle.transform.scale, F32(1.0 + static_cast<double>(0.01f)));
+        EXPECT_EQ(circle.transform.position, subtype == 0 ? owner : glm::vec3(1000, 2000, 300));
+        EXPECT_EQ(circle.life, 19);
+        Skip(replay, 1);
+        EXPECT_EQ(random.State(), replay.State());
+    }
+}
+
+// 0x5212b6..0x521316: la onda 0x107 deja +0x68 en la vida por 0,05f y prende su luz; sólo el rand() de la luz.
+TEST(BlastModelEffectsTest, TheWaveForceFadesWithItsLife)
+{
+    StepHarness harness;
+    CrtRandom random(7);
+    CrtRandom replay(7);
+    ModelEffect& wave = Alive(*harness.effects, 0, 0x107, 0, 10);
+    ASSERT_TRUE(harness.Step(wave, random).HasValue());
+    EXPECT_EQ(wave.objectState.light, F32(10.0 * static_cast<double>(0.05f)));
+    EXPECT_EQ(wave.life, 9);
+    Skip(replay, 1);
+    EXPECT_EQ(random.State(), replay.State());
+}
+
+// 0x5210a1..0x5210e0: el escudo 0x109 toma la posición de su dueño y, con menos de 10 de vida, deja +0x68 en la vida
+// por 0,1f; sólo el rand() de la luz.
+TEST(BlastModelEffectsTest, TheShieldFollowsItsOwnerAndFadesInItsLastSteps)
+{
+    for (const std::int32_t life : {12, 5})
+    {
+        SCOPED_TRACE(life);
+        StepHarness harness;
+        CrtRandom random(7);
+        CrtRandom replay(7);
+        const glm::vec3 owner{10, 20, 30};
+        ModelEffect& shield = Alive(*harness.effects, 0, 0x109, 0, life);
+        shield.owner.position = &owner;
+        ASSERT_TRUE(harness.Step(shield, random).HasValue());
+        EXPECT_EQ(shield.transform.position, owner);
+        EXPECT_EQ(shield.objectState.light,
+                  life < 10 ? F32(static_cast<double>(life) * static_cast<double>(0.1f)) : 1.0f);
+        Skip(replay, 1);
+        EXPECT_EQ(random.State(), replay.State());
+    }
+}
+
+// 0x523974..0x523b3a: la piedra 0xf2/0 cae 3; en el terreno rebota a la mitad, pierde 4 de vida y se inclina 128 por la
+// escala; el rand() % 10 de 0x523adb sale sin partícula.
+TEST(BlastModelEffectsTest, TheFallingRockBouncesAndDrawsItsUnusedTenth)
+{
+    StepHarness harness;
+    harness.ground = 400.0f;
+    CrtRandom random(7);
+    CrtRandom replay(7);
+    ModelEffect& rock = Alive(*harness.effects, 0, 0xf2, 0, 20);
+    rock.transform.scale = 1.0f;
+    ASSERT_TRUE(harness.Step(rock, random).HasValue());
+    EXPECT_EQ(rock.transform.position.z, 400.0f);
+    EXPECT_EQ(rock.turnDirection, 1.5f);
+    EXPECT_EQ(rock.life, 15);
+    EXPECT_EQ(rock.transform.angles.x, -128.0f);
+    Skip(replay, 2);
+    EXPECT_EQ(random.State(), replay.State());
+}
+
+// 0x523d3a..0x523dd4: la puñalada 0x106 suelta el aliento 5f2/0 con el rand() % 2 en 0, dos fuegos 5d9/5 y su luz.
+TEST(BlastModelEffectsTest, TheDeathStabBreathesHalfTheTimeAndLightsTwoFires)
+{
+    for (const int parity : {0, 1})
+    {
+        SCOPED_TRACE(parity);
+        const std::uint32_t seed = SeedWhere(1, 2, parity);
+        StepHarness harness;
+        CrtRandom random(seed);
+        CrtRandom replay(seed);
+        ModelEffect& stab = Alive(*harness.effects, 0, 0x106, 0, 30);
+        ASSERT_TRUE(harness.Step(stab, random).HasValue());
+        EXPECT_EQ(stab.life, 29);
+        const glm::vec3 white(1.0f);
+        const glm::vec3 at{1000, 2000, 300};
+        auto twin = std::make_unique<Client::World::Particles>();
+        Skip(replay, 2);
+        if (parity == 0)
+        {
+            ASSERT_TRUE(twin->CreateChecked(0x5f2, at, {}, white, 0, 1.0f, 0.0f, replay).HasValue());
+        }
+        for (int fire = 0; fire < 2; ++fire)
+        {
+            ASSERT_TRUE(twin->CreateChecked(0x5d9, at, {}, white, 5, 1.0f, 0.0f, replay).HasValue());
+        }
+        EXPECT_EQ(random.State(), replay.State());
+        const auto made = std::ranges::count_if(harness.particles->All(),
+                                                [](const Client::World::Particle& particle) { return particle.alive; });
+        EXPECT_EQ(made, parity == 0 ? 3 : 2);
+    }
 }
 } // namespace

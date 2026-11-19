@@ -14727,7 +14727,9 @@ lote (ADR 0020).
   matriz de `0x74374ec`) y `0x4f852d` (el hueso 11 con (−50, 100, 0) y 45 más en x). En `0x4fd5f0`: el `0xf3` de la
   0x29 (`0x4fec9a`, con `0x59fb80(0x29)` en `+0x89`) antes del sonido `0x73`; los diez `0x108/0` de la 0x27
   (`0x4ffd5c..0x4ffdaf`: la celda de la skill con su altura y, por vuelta, `rand() % 50` por la vuelta sobre la altura,
-  la luz (1, 1, 1) de `0x4fd81e`, sin dueño y la key en la vuelta + 1; el `rand()` sale aun con la tabla llena); los
+  la luz local (la (1, 1, 1) de `0x4fd81e`, o la (0,3; 0,5; 1) de `0x4fdb3f` con las acciones `0x4d`, `0x4f` y `0x5a`
+  pasado el frame 5,5; el alta del `0x108/0` la pone en 0 igual, `0x51bd37`), sin dueño y la key en la vuelta + 1; el
+  `rand()` sale aun con la tabla llena); los
   dos `0xf5/0` de la 0x0d en la celda (`0x500d7b`, `0x500dba`) y el `0xf6/0` de la 0x0e tras el estallido (`0x5014da`),
   con o de dueño. En `0x4f97b0`, los tres `0x10f` de la 0x2f (`0x4f9d44..0x4f9e52`): la posición 145 por delante por
   el rumbo (`+0x24` · π/180 en float, el perfil PC53) y 110 más arriba, tres `rand() % 60` − 30 sumados con FILD +
@@ -14735,6 +14737,15 @@ lote (ADR 0020).
 - **El paso** (Q-C1547): el primer `rand()` es la luz local; la cola común (`0x52cb98`) publica la acción y anima los
   BMD de `[0xad, 0x151)`, mueve con `0x51fc80` por los ángulos salvo el `0x10f`, que va derecho (la tabla de
   `0x52d1a4`); el `0xf3` y el `0xf4` solo pierden la vida, y los `0xe7..0xe9` y el `0x113` sin dueño salen sin cola.
+- **Las rocas y sus pedazos** (Q-C1550): al tocar el terreno fuera de las celdas con el bit `0x08`, la roca
+  `0xe7..0xe9` se apaga (`0x521616`), saca el `rand()` del temblor (`0x521619`) y crea cinco `0xea + rand() % 2`
+  (`0x52165e..0x521675`). En `0x51b659` el `0xea` y el `0xeb` no son el `0xca` (`0x51b6d9`): van por el camino de las
+  piedritas `0xc8`/`0xc9` (`0x51b72b..0x51b805`, `ModelEffects::CreateStoneChip` con el subtipo 0), sin `+0x64`,
+  `+0x68` ni los 50 más en z, con cinco `rand()`. Como la roca ya está apagada, si su lugar es el primero libre el
+  primer pedazo cae en él, y `0x521684..0x5216d4` mueven y giran ese pedazo. Cada `rand()` sale antes del corte de
+  MuRet que le sigue: el del temblor antes de `0x52163e`, el del tipo antes de `0x521675` (y de `0x521175` en el
+  `0xf5`), el `rand() % 5` del `0x108/0` antes de `0x525750`, y el `0xf4` en Kalima saca sus cuatro (`0x5219cc`,
+  `0x5219ec`, `0x521a30` y `0x521a4c`) antes de la `0x6f4/3` (`0x521aa3`).
 - **El dibujo** (Q-C1548): el `0xf3` no se dibuja (`0x52d620`), el `0xf4` es el ítem del dueño (`DrawItemModelEffect`),
   el `0x10f` va por `DrawBloodCastleModelEffect` y los demás por el cuerpo común de `0x6002e0`. El `0x112/0` pasa
   `+0x74 | 2`, que es 2 porque nadie escribe `+0x74`. El `0x109/0` agrega antes del pase común uno con

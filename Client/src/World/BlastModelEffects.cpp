@@ -718,12 +718,12 @@ Core::Expected<void, std::string> StepTheBlast(ModelEffect& effect, float lumino
         position.z = F32(height);
         effect.velocity = glm::vec3(0.0f);
         const glm::vec3 point{position.x, position.y, F32(D(position.z) + 80.0)}; // 0x6b9ffc
-        if (auto table = NeedTheEffects(services, "0x521175"); !table.HasValue())
-            return table;
         constexpr int Chips = 6;
         for (int chip = 0; chip < Chips; ++chip)
         {
             const auto type = static_cast<std::int16_t>(FirstStoneChipEffect + random.Next() % 2);
+            if (auto table = NeedTheEffects(services, "0x521175"); !table.HasValue())
+                return table;
             static_cast<void>(
                 services.effects->CreateStoneChip(type, position, effect.transform.angles, effect.light, random));
         }
@@ -864,20 +864,22 @@ Core::Expected<void, std::string> StepTheIceRock(ModelEffect& effect, Particles&
         {
             position.z = F32(height);
             effect.alive = false;
+            // 0x521619: el rand() del temblor sale antes de escribirlo.
+            const int shake = random.Next() % 8 - 8;
             if (services.cameraShake == nullptr)
                 return Core::Unexpected(Cut("0x52163e", "la roca escribe el temblor de la cámara (0x7d325c8)"));
-            *services.cameraShake = F32(static_cast<double>(random.Next() % 8 - 8) * static_cast<double>(0.1f));
-            if (auto table = NeedTheEffects(services, "0x521675"); !table.HasValue())
-                return table;
+            *services.cameraShake = F32(static_cast<double>(shake) * static_cast<double>(0.1f));
             constexpr int Shards = 5;
             for (int shard = 0; shard < Shards; ++shard)
             {
-                // 0xea y 0xeb comparten el caso del 0xca (0x51b659): el mismo lugar, con su tipo.
+                // 0x52165e..0x521675: 0x518cf0(0xea + rand() % 2, posición, ángulos, luz, 0, nadie, −1, 0, 0, 0, 0).
+                // En 0x51b659 los 0xea y 0xeb no son el 0xca (0x51b6d9): van por el camino de las piedritas
+                // (0x51b72b..0x51b805), sin +0x64, +0x68 ni los 50 más en z, con cinco rand().
                 const auto type = static_cast<std::int16_t>(0xea + random.Next() % 2);
-                const auto slot =
-                    services.effects->CreateIceShard(position, effect.transform.angles, effect.light, random);
-                if (slot)
-                    services.effects->Effects()[*slot].type = type;
+                if (auto table = NeedTheEffects(services, "0x521675"); !table.HasValue())
+                    return table;
+                static_cast<void>(
+                    services.effects->CreateStoneChip(type, position, effect.transform.angles, effect.light, random));
             }
         }
     }
@@ -930,12 +932,12 @@ Core::Expected<void, std::string> StepTheSpinningItem(ModelEffect& effect, float
         return lit;
     if (services.map == nullptr)
         return Core::Unexpected(Cut("0x52198e", "el 0xf4 lee el mapa (0x6c9dd0)"));
-    // 0x521996..0x521aab: en Kalima la chispa sube 60 (0x42700000) y suelta la 0x6f4/3, que MuRet no crea.
-    if (IsKalimaMap(*services.map))
-        return Core::Unexpected(Cut("0x521aa3", "la partícula 0x6f4/3 (0x53fe70) del 0xf4 en Kalima no está portada"));
+    // 0x521996..0x521aab: en Kalima, una sola chispa con sus cuatro rand() (0x5219cc, 0x5219ec, 0x521a30 y 0x521a4c),
+    // 120 más arriba (0x6b86c8), y la 0x6f4/3 (0x521aa3), que MuRet no crea; el sprite sube 60 (0x42700000).
+    const bool kalima = IsKalimaMap(*services.map);
     constexpr double Lift = 20.0; // 0x41a00000
-    constexpr int Sparks = 4;
-    for (int spark = 0; spark < Sparks; ++spark)
+    const int sparks = kalima ? 1 : 4;
+    for (int spark = 0; spark < sparks; ++spark)
     {
         glm::vec3 angles{static_cast<float>(random.Next() % 60 - 30), 0.0f, 0.0f};
         angles.z = static_cast<float>(random.Next() % 30 + 90);
@@ -945,6 +947,14 @@ Core::Expected<void, std::string> StepTheSpinningItem(ModelEffect& effect, float
         glm::vec3 point = position;
         point.x = F32(static_cast<double>(random.Next() % 20 - 10) + D(point.x));
         point.y = F32(static_cast<double>(random.Next() % 20 - 10) + D(point.y));
+        if (kalima)
+        {
+            point.z = F32(D(point.z) + 120.0);
+            return Core::Unexpected(
+                Cut("0x521aa3", std::format("la partícula 0x6f4/3 (0x53fe70) del 0xf4 en Kalima, en "
+                                            "({}, {}, {}) con el giro {}, no está portada",
+                                            point.x, point.y, point.z, angles.z)));
+        }
         if (!services.joint)
             return Core::Unexpected(Cut("0x521b75", "el joint 0x617/0 (0x530860) no tiene la tabla"));
         const FishEffectRequest request{0x617, point, point, angles, 0, nullptr, 10.0f, -1, 0, 0, -1};
@@ -1209,9 +1219,11 @@ Core::Expected<void, std::string> StepTheBlizzard(ModelEffect& effect, Particles
                          "0x525721");
         !made.HasValue())
         return made;
-    if (auto table = NeedTheEffects(services, "0x525750"); !table.HasValue())
+    // 0x525729: el rand() % 5 sale antes de 0x518cf0(0xca) (0x525750) y del 0x108/1 (0x52577a).
+    const bool shard = random.Next() % 5 == 0;
+    if (auto table = NeedTheEffects(services, shard ? "0x525750" : "0x52577a"); !table.HasValue())
         return table;
-    if (random.Next() % 5 == 0)
+    if (shard)
         static_cast<void>(services.effects->CreateIceShard(point, angles, effect.light, random));
     const ModelEffectArguments shatter{.type = BlizzardEffect,
                                        .position = point,

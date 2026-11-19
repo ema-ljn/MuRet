@@ -931,6 +931,7 @@ TEST(AttackSkillCasesTest, Skill0eRunsTheBurstBeforeTheNextCapability)
     tested.withParticles = true;
     const auto used = tested.Head(0x0e);
     ASSERT_TRUE(used.HasValue()) << used.Error();
+    const int plainDraws = DrawsSince(Seed, tested.random);
     EXPECT_TRUE(std::ranges::any_of(tested.world.Particles().All(), [](const auto& p) { return p.alive; }));
     EXPECT_EQ(
         std::ranges::count_if(tested.world.Map().effects.Effects(), [](const auto& effect) { return effect.alive; }),
@@ -949,6 +950,23 @@ TEST(AttackSkillCasesTest, Skill0eRunsTheBurstBeforeTheNextCapability)
     const auto full = tested.Head(0x0e);
     ASSERT_TRUE(full.HasValue()) << full.Error();
     EXPECT_EQ(DrawsSince(before, tested.random), 8 * (20 * 2 + 2) + OwnRecord);
+
+    // Con o de héroe y la tabla libre, el 0xf6/0 copia la cuenta en su registro propio (0x519a66) y pide los blancos a
+    // 0x517a20, que lee la skill en el suyo; después la tanda del héroe (0x5014e5) cierra el tercero: tres cierres más
+    // que sin el héroe, con el mismo estallido.
+    SkillWorld hero;
+    hero.withParticles = true;
+    hero.world.Runtime().hero = StrikerSlot;
+    hero.world.Runtime().heroSlot = static_cast<std::int32_t>(StrikerSlot);
+    hero.world.OwnCharacter().bytef04 = 0x41;
+    const auto heroUsed = hero.Head(0x0e);
+    ASSERT_TRUE(heroUsed.HasValue()) << heroUsed.Error();
+    EXPECT_EQ(DrawsSince(Seed, hero.random), plainDraws + 3 * OwnRecord);
+    const auto heroInferno = std::ranges::find_if(hero.world.Map().effects.Effects(), [](const auto& effect)
+                                                  { return effect.alive && effect.type == 0xf6; });
+    ASSERT_NE(heroInferno, hero.world.Map().effects.Effects().end());
+    EXPECT_EQ(heroInferno->word8c, 0x41);
+    EXPECT_EQ(hero.world.OwnCharacter().bytef04, 0x42);
 }
 
 // 0x4fec30..0x4fecb0 (la 0x29), 0x4ffcbe..0x4ffdb7 (la 0x27) y 0x500cd4..0x500dba (la 0x0d), del lote switch de la

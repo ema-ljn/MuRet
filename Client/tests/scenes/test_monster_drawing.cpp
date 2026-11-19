@@ -564,7 +564,7 @@ TEST_F(MonsterDrawingTest, UnportedBranchesCutWithTheirAddress)
     // lo que cuelga y de su rand() % 30, en el primer hueso con nombre que su alta no registró (0x427291); lo de
     // 0x50bf45, después de la sombra.
     constexpr std::array cases{Case{Spider, 0x59, "0x50bb96", 0, 0}, Case{HelperType, 0x20, "0x427291", 6, 4},
-                               Case{Spider, 0x49, "0x50c36b", 6, 0}, Case{0x18e, 0x21, "0x4ee770", 0, 4}};
+                               Case{Spider, 0x49, "0x50c595", 9, 0}, Case{0x18e, 0x21, "0x4ee770", 0, 4}};
     for (const Case& value : cases)
     {
         SCOPED_TRACE(value.address);
@@ -1151,6 +1151,67 @@ TEST_F(MonsterDrawingTest, The0x45LightsItsNineFlaresAndCutsAtItsFirstSpark)
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
     EXPECT_EQ(LiveSprites().size(), 9u);
     EXPECT_EQ(m_clothWorld.random.State(), 1u);
+}
+
+// 0x50c3ed..0x50c50e: el +0x376 0x49 pone catorce flare01 de 0,8 con (0,1; 0,1; 1) en los huesos 13 a 26 y siete en
+// los 52 a 58, y une los huesos 13 a 16 y 22 a 23 con cuatro joints 0x614/7 de ancho 20 sin rand(); su pase 0x44 y
+// después corta en 0x60b300 (0x50c595). 0x50c37e..0x50c3e8: el 0x4b suelta la 0x5d9/0 de 0,3 en su hueso 18 y sigue.
+TEST_F(MonsterDrawingTest, The0x49ChainsItsBonesAndThe0x4bSparksItsEighteenth)
+{
+    Monster(0, Spider, 0x49);
+    const auto chained = Draw(Pass());
+    ASSERT_FALSE(chained.HasValue());
+    EXPECT_NE(chained.Error().find("0x50c595"), std::string::npos) << chained.Error();
+    const auto sprites = LiveSprites();
+    ASSERT_EQ(sprites.size(), 21u);
+    EXPECT_EQ(sprites[0].texture, 0x5ac);
+    EXPECT_FLOAT_EQ(sprites[0].scale, 0.8f);
+    EXPECT_EQ(sprites[0].light, glm::vec3(std::bit_cast<float>(0x3dcccccdu), std::bit_cast<float>(0x3dcccccdu), 1.0f));
+    EXPECT_EQ(sprites[0].position, glm::vec3(150.0f, 150.0f, 23.0f));
+    EXPECT_EQ(sprites[13].position, glm::vec3(150.0f, 150.0f, 36.0f));
+    // Los huesos 52 a 58 quedan fuera de la pose de prueba: la matriz en cero, la posición.
+    EXPECT_EQ(sprites[14].position, glm::vec3(150.0f, 150.0f, 10.0f));
+    std::vector<const Client::Scenes::JointState*> links;
+    for (const auto& joint : m_joints)
+    {
+        if (joint.alive)
+            links.push_back(&joint);
+    }
+    ASSERT_EQ(links.size(), 4u);
+    for (const auto* link : links)
+    {
+        EXPECT_EQ(link->type, 0x614);
+        EXPECT_EQ(link->subtype, 7);
+        EXPECT_EQ(link->width, 20.0f);
+        EXPECT_EQ(link->ownerContext, nullptr);
+    }
+    EXPECT_EQ(links[0]->position, glm::vec3(150.0f, 150.0f, 23.0f));
+    EXPECT_EQ(links[0]->targetPosition, glm::vec3(150.0f, 150.0f, 24.0f));
+    EXPECT_EQ(links[3]->position, glm::vec3(150.0f, 150.0f, 32.0f));
+    EXPECT_EQ(links[3]->targetPosition, glm::vec3(150.0f, 150.0f, 33.0f));
+    EXPECT_EQ(m_clothWorld.random.State(), AfterRandoms(0));
+
+    m_world = std::make_unique<Client::Scenes::WorldState>();
+    TearDown();
+    SetUp();
+    m_sprites.Clear();
+    Monster(0, Spider, 0x4b);
+    auto particles = std::make_unique<Client::World::Particles>();
+    GameCharacterPass pass = Pass();
+    pass.particles = particles.get();
+    const auto sparked = Draw(pass);
+    ASSERT_TRUE(sparked.HasValue()) << sparked.Error();
+    std::vector<const Client::World::Particle*> fires;
+    for (const auto& particle : particles->All())
+    {
+        if (particle.alive && particle.type == Client::World::FireParticle)
+            fires.push_back(&particle);
+    }
+    ASSERT_EQ(fires.size(), 1u);
+    // La escala de 0,3 la pisa el alta de la 0x5d9/0 (0x541197) con la suya.
+    EXPECT_EQ(fires[0]->position, glm::vec3(150.0f, 150.0f, 28.0f));
+    EXPECT_EQ(fires[0]->light, glm::vec3(1.0f));
+    EXPECT_TRUE(LiveSprites().empty());
 }
 
 // 0x50c0fb: el +0x376 0x46 pone un flare01 de 0,8 en blanco en su hueso 20, sin rand(), y sigue.

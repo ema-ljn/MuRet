@@ -306,6 +306,14 @@ TEST(NoriaParticlesTest, TheOwnedFairySparkDrawsSevenTimesAndKeepsItsOwner)
                                                                Client::Render::Models::OriginalAngleMatrix(angles)));
         EXPECT_EQ(particle.typedOwner, owner);
         EXPECT_EQ(random.State(), draws.State());
+        if (seed == 1)
+        {
+            // Valores fijos, calculados aparte del RNG de la CRT: vida 4, giro 214, adelante 7,6f.
+            EXPECT_EQ(particle.life, 4);
+            EXPECT_EQ(particle.angles.z, 214.0f);
+            EXPECT_EQ(std::bit_cast<std::uint32_t>(forward), 0x40f33333u);
+            EXPECT_EQ(random.State(), 752224798u);
+        }
     }
 }
 
@@ -350,6 +358,16 @@ TEST(NoriaParticlesTest, TheOwnedFairySparkMovesWithItsOwner)
     EXPECT_EQ(particle.verticalSpeed, static_cast<float>(4.0 - fall));
     EXPECT_EQ(particle.position, glm::vec3(12.5f, 24.25f, 110.0f));
     EXPECT_EQ(particle.start, moved);
+
+    // La x queda retenida en la x87 entre la suma y la resta: 2^24 + 1 no entra en un float, pero 2^24 + 2 sí. Por un
+    // float daría 2^24.
+    particle = initial;
+    particle.position.x = 16777216.0f;
+    ASSERT_TRUE(
+        step([&](const Client::World::ParticleOwner&) -> std::optional<Client::World::ParticleOwnerState>
+             { return Client::World::ParticleOwnerState{.alive = true, .position = moved, .start = std::nullopt}; })
+            .HasValue());
+    EXPECT_EQ(std::bit_cast<std::uint32_t>(particle.position.x), 0x4b800001u);
 
     particle = initial;
     const auto lost = step({});

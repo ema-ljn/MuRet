@@ -1078,9 +1078,11 @@ TEST(Cl11Particles, TheDropsBubbleFloatRiseAndStop)
             EXPECT_EQ(drop.scale, F32(static_cast<double>(before.scale) + D(0x3ba3d70au)));
             if (subtype == 4)
             {
+                // 0x54714a: pasada la z 350 la deja en 350 y la vida en 0, sin tocar el byte vivo.
                 ASSERT_GT(risen, 350.0f);
                 EXPECT_EQ(drop.position.z, 350.0f);
                 EXPECT_EQ(drop.life, 0);
+                EXPECT_TRUE(drop.alive);
             }
             else
             {
@@ -1101,6 +1103,25 @@ TEST(Cl11Particles, TheDropsBubbleFloatRiseAndStop)
         }
         }
         EXPECT_EQ(random.State(), draws.random.State());
+    }
+    {
+        // La /4 que no pasa de 350 sube y pierde uno de vida, como la /2.
+        auto low = std::make_unique<Particles>();
+        CrtRandom lowRandom(Seed);
+        const auto made = low->CreateChecked(0x607, {10, 20, 30}, {}, glm::vec3(0.25f), 4, 0.1f, 0.0f, lowRandom);
+        ASSERT_TRUE(made.HasValue() && made.Value().has_value());
+        const Particle& drop = low->All()[*made.Value()];
+        const Particle before = drop;
+        CrtRandom replay = lowRandom;
+        ASSERT_TRUE(Step(*low, lowRandom, 0.0f).HasValue());
+        static_cast<void>(replay.Next());
+        static_cast<void>(replay.Next());
+        const float risen = walk(replay.Next() % 20 + 10, D(0x3e99999au), before.position.z);
+        ASSERT_LE(risen, 350.0f);
+        EXPECT_EQ(drop.position.z, risen);
+        EXPECT_EQ(drop.life, before.life - 1);
+        EXPECT_TRUE(drop.alive);
+        EXPECT_EQ(lowRandom.State(), replay.State());
     }
     auto particles = std::make_unique<Particles>();
     CrtRandom random(Seed);
@@ -1191,7 +1212,7 @@ TEST(Cl11Particles, TheFallingShineDriftsDownAndLeavesAFlareEachStep)
     EXPECT_TRUE(flare.alive);
     EXPECT_EQ(flare.texture, 0x5ac);
     EXPECT_EQ(flare.position, shine.position);
-    EXPECT_EQ(flare.scale, F32(static_cast<double>(asked) * D(0x3f2aaaabu)));
+    EXPECT_EQ(std::bit_cast<std::uint32_t>(flare.scale), 0x3eccccceu); // 0,6f · 0x3f2aaaab, calculado aparte
     EXPECT_EQ(flare.light, shine.light);
     EXPECT_EQ(flare.rotation, 0.0f);
     EXPECT_EQ(flare.blend, 0);

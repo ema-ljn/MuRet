@@ -1704,6 +1704,14 @@ DrawnCharacter LoginScene::TheCharacterToDraw(float alpha)
                                    : LoginCharacterTransform();
     // La cabeza del paso: el original no la interpola.
     character.headAngles = actor.headTurn.angles;
+    if (actor.alive)
+    {
+        // 0x50bbff..0x50bc71: las guardas de la sombra del mismo 0x50ba30 (0x635206 → 0x510d00 → 0x510ea1): el alpha
+        // desde 0,5, sin +0x3e4, fuera de los mapas sin sombra y, con las mascotas que se montan, en la zona segura
+        // (+0x3e2, 0x50bc52).
+        character.safeZone = actor.safeZone != 0;
+        character.castsShadow = CastsShadow(actor, CharacterWorld().Runtime().map);
+    }
     character.light = TerrainLightAt(character.object.position) + actor.light;
     character.cloth = &m_characterCloth;
     character.clothWorld = m_context.cloth;
@@ -1753,6 +1761,10 @@ void LoginScene::DrawTheModels(SceneCanvas& canvas, float alpha)
         if (m_context.cloth != nullptr && skeleton != nullptr && !skeleton->actions.empty())
         {
             DrawCharacter(canvas.models, m_models, character, canvas.frameClock, CharacterDrawPass::Body);
+            // 0x50bcec: la sombra le copia la escala y la posición al 0x20b (WorldState::PlaceShadowModel), sólo en un
+            // frame del original.
+            if (nativeFrames > 0 && DrawsTheShadow(character))
+                CharacterWorld().PlaceShadowModel(actor);
             DrawTheTail(canvas, actor, character, carry, scan, nativeFrames);
         }
         else

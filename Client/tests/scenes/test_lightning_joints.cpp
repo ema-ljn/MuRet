@@ -268,14 +268,17 @@ TEST(LightningJointsTest, TheRedBoltSitsOnTheSharedModelOfItsOwner)
     auto world = std::make_unique<Client::Scenes::WorldState>();
     const glm::vec3 origin{700.25f, 800.5f, 900.75f};
     world->PlaceModel(owner.type, {.scale = 1.5f, .origin = origin});
-    // y de partida menos y del destino: 40 (< 50 · 1,5, llega), −500 (llega: no hay valor absoluto) y 80 (no llega).
-    for (const float startY : {40.0f, -500.0f, 80.0f})
+    // y de partida menos y del destino: 40 (< 50 · 1,5, llega), −500 (llega: no hay valor absoluto), 75 (50 · 1,5 = 75
+    // exacto: con el > estricto de 0x536d71 no llega en ese tramo) y 80 (no llega). Con dueño, el alta no copia el
+    // segundo punto (0x530967): el destino es el que tenía el lugar, (0, 0, 0), y no el (0, 1000, 0) que se pasa.
+    for (const float startY : {40.0f, -500.0f, 75.0f, 80.0f})
     {
         SCOPED_TRACE(startY);
         Pool pool;
         ASSERT_TRUE(
-            pool.Create(0x614, 0xc, {10.0f, startY, 30.0f}, {0.0f, 0.0f, 0.0f}, 30.0f, &owner, JointOwnerKind::Actor)
+            pool.Create(0x614, 0xc, {10.0f, startY, 30.0f}, {0.0f, 1000.0f, 0.0f}, 30.0f, &owner, JointOwnerKind::Actor)
                 .HasValue());
+        EXPECT_EQ(pool.joints[0].targetPosition, glm::vec3(0.0f));
         const JointState& joint = pool.joints[0];
         EXPECT_EQ(joint.light, (glm::vec3{1.0f, Tenth, Tenth}));
         EXPECT_EQ(joint.life, 10);

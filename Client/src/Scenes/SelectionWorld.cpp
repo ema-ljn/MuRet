@@ -12,6 +12,7 @@
 #include "Render/Models/Skinning.h"
 #include "Render/Pass3D.h"
 #include "Render/TextureSlot.h"
+#include "Scenes/ActorState.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/DynamicWorldLight.h"
 #include "Scenes/ObjectCollapse.h"
@@ -46,6 +47,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cstddef>
 #include <cstdint>
 #include <filesystem>
 #include <functional>
@@ -268,8 +270,17 @@ Core::Expected<void, std::string> SelectionWorld::StepEffects(WorldState& world,
             return Core::Unexpected(stepped.Error() + ", en la selección (0x52d220)");
         }
     }
-    if (auto stepped =
-            StepJoints(world.DrawTail().joints, cloth.random, &cloth, &world.Particles(), worldClock, &m_sprites);
+    // 0x634310 → 0x53c670: el mismo paso de los joints que el juego (0x637123), con los mismos globales: la luz
+    // dinámica (0x7b4ccc4), la altura del terreno (0x5f93c0), los 400 personajes (0x743a16c), la tabla de efectos
+    // (0x7491fd8), el héroe ([0x743a170]) y los modelos compartidos (0x5769ad8). El choque de la flecha dueña
+    // (0x520170, que piden el 0x60f/0xb y /0x19 con skill 1) queda sin servicio: sin él, corta en 0x53ae6d.
+    const auto actors = world.Actors();
+    const std::size_t heroSlot = world.Runtime().hero;
+    const ActorState* hero = heroSlot < actors.size() ? &actors[heroSlot] : nullptr;
+    if (auto stepped = StepJoints(
+            world.DrawTail().joints, cloth.random, &cloth, &world.Particles(), worldClock, &m_sprites,
+            &world.DynamicLighting().Lighting(), [&world](std::int32_t id) { world.Runtime().RequestSound(id); },
+            height, actors, {}, &world.Map().effects, hero, &world);
         !stepped.HasValue())
     {
         return Core::Unexpected(stepped.Error() + ", en la selección (0x53c670)");

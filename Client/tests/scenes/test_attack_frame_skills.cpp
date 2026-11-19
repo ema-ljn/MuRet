@@ -432,21 +432,18 @@ TEST(AttackFrameSkillsTest, TheBoltsOf2bLeaveFromTheHand)
         const auto stepped = tested.Step(hero, 0x2b);
 
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
-        const double angle = 30.0 * static_cast<double>(std::bit_cast<float>(0x3c8efa35u));
-        const auto sine = Client::Render::Models::Detail::SineProductPC53(angle, 1400.0f);
-        const auto cosine = Client::Render::Models::Detail::CosineProductPC53(angle, 1400.0f);
-        ASSERT_TRUE(sine.has_value() && cosine.has_value());
-        CrtRandom expected{Seed};
+        // Los bits de (x, y, z) de cada joint en el orden de alta, calculados aparte (x87 con FSIN y FCOS de 64 bits y
+        // redondeo a 53 en el FMUL y a 24 en cada FSTP) con la semilla 0x2468ace1.
+        constexpr std::array<std::array<std::uint32_t, 3>, 3> Points{{{0x423c0001u, 0x4550f6f8u, 0x439e4000u},
+                                                                      {0x4408c000u, 0x455986f8u, 0x439c4000u},
+                                                                      {0x41f80003u, 0x454206f8u, 0x429d0000u}}};
         const auto bolts = AliveJoints(tested.joints);
-        ASSERT_EQ(bolts.size(), 3u);
-        for (const JointState* bolt : bolts)
+        ASSERT_EQ(bolts.size(), Points.size());
+        for (std::size_t i = 0; i < bolts.size(); ++i)
         {
-            const double x = static_cast<double>(expected.Next() % 601 - 300) + 1000.0;
-            const double y = static_cast<double>(expected.Next() % 601 - 300) + 2000.0;
-            const auto z =
-                static_cast<float>(static_cast<double>(expected.Next() % 601 - 300) + static_cast<double>(153.5f));
-            const glm::vec3 point{static_cast<float>(static_cast<double>(static_cast<float>(x)) - *sine),
-                                  static_cast<float>(*cosine + static_cast<double>(static_cast<float>(y))), z};
+            const JointState* bolt = bolts[i];
+            const glm::vec3 point{std::bit_cast<float>(Points[i][0]), std::bit_cast<float>(Points[i][1]),
+                                  std::bit_cast<float>(Points[i][2])};
             EXPECT_EQ(bolt->type, 0x10f);
             EXPECT_EQ(bolt->subtype, 2);
             EXPECT_EQ(bolt->position, point);
@@ -457,7 +454,7 @@ TEST(AttackFrameSkillsTest, TheBoltsOf2bLeaveFromTheHand)
             EXPECT_EQ(bolt->ownerKind, Client::Scenes::JointOwnerKind::Actor);
             EXPECT_EQ(bolt->texture, 0x62c);
         }
-        EXPECT_EQ(tested.random.State(), expected.State());
+        EXPECT_EQ(DrawsSince(Seed, tested.random), 9);
 
         FrameWorld full(map);
         for (JointState& joint : full.joints)

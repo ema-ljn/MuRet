@@ -2,15 +2,25 @@
 
 #include "Core/Expected.h"
 #include "Render/Models/Cloth.h"
+#include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/OriginalAngles.h"
+#include "Render/Models/OriginalRetainedMath.h"
+#include "Render/Models/OriginalRotation.h"
+#include "Render/Models/Pose.h"
+#include "Render/Models/Skeleton.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/FaunaDrawing.h"
 #include "Scenes/GameDrawTail.h"
+#include "Scenes/HighEffectEmitters.h"
 #include "Scenes/WorldMap.h"
 #include "Scenes/WorldState.h"
 #include "World/GameModelEffects.h"
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
 #include "World/TerrainLighting.h"
+#include "World/WorldObjectStepServices.h"
+
+#include "support/SyntheticModels.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -22,12 +32,15 @@
 #include <cstdint>
 #include <memory>
 #include <optional>
+#include <span>
 #include <string>
 #include <string_view>
+#include <utility>
+#include <vector>
 
 // Las familias de los tipos altos de la CL11 que viven en su propio archivo y entran por CreateHighModelEffect y
-// StepHighModelEffect: el 0x114 de Scenes/WaveEffects y el 0x11b de Scenes/RingEffects. 06, "Los efectos con modelo de
-// los tipos altos".
+// StepHighModelEffect: el 0x114 de Scenes/WaveEffects, el 0x11b de Scenes/RingEffects y el 0x13d..0x13f de
+// Scenes/MeteorEffects. 06, "Los efectos con modelo de los tipos altos".
 namespace
 {
 using Client::Render::Models::CrtRandom;
@@ -297,5 +310,256 @@ TEST(HighEffectFamiliesTest, TheRingSparkLivesOneStep)
     EXPECT_EQ(tested.Effect(0).life, 1);
     EXPECT_EQ(std::bit_cast<std::uint32_t>(tested.Effect(0).transform.scale), 0x40133333u);
     EXPECT_EQ(tested.Draws(), 0);
+}
+
+// 0x525f6a..0x52603d: con vida 8, el 0x13f suelta dieciséis joints 0x60f/0x18 sin dueño, de ancho 90, en su posición
+// con la z 100 más, la x más rand() % 600 − 200 y la y más rand() % 600 − 400, con los ángulos (−10, 0, i · 10); con
+// los joints llenos, sólo esos treinta y dos rand().
+TEST(HighEffectFamiliesTest, TheMeteorCallRainsSixteenDropsAtLifeEight)
+{
+    for (const bool full : {false, true})
+    {
+        SCOPED_TRACE(full);
+        FamilyWorld tested;
+        if (full)
+            tested.FillTheJoints();
+        const glm::vec3 origin{1000.0f, 2000.0f, 300.0f};
+        ASSERT_TRUE(CreateHighModelEffect({.type = 0x13f, .position = origin}, tested.Context()).HasValue());
+        ModelEffect& call = tested.Effect(0);
+        EXPECT_EQ(call.life, 20);
+        call.life = 8;
+        const auto stepped = Client::Scenes::StepHighModelEffect(call, nullptr, tested.StepContext());
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        FamilyWorld twin;
+        static_cast<void>(twin.random.Next()); // la luz local (0x5208c5)
+        const auto& joints = tested.world->DrawTail().joints;
+        for (int drop = 0; drop < 16; ++drop)
+        {
+            const int x = twin.random.Next() % 600 - 200;
+            const int y = twin.random.Next() % 600 - 400;
+            const glm::vec3 point{static_cast<float>(static_cast<double>(x) + 1000.0),
+                                  static_cast<float>(static_cast<double>(y) + 2000.0), 400.0f};
+            const glm::vec3 angles{-10.0f, 0.0f, static_cast<float>(drop * 10.0)};
+            if (full)
+                continue;
+            ASSERT_TRUE(Client::Scenes::CreateHighJoint(*twin.world, twin.random, 0x60f, point, point, angles, 0x18,
+                                                        nullptr, 90.0f, 0)
+                            .HasValue());
+            const auto& rain = joints[static_cast<std::size_t>(drop)];
+            ASSERT_TRUE(rain.alive);
+            EXPECT_EQ(rain.type, 0x60f);
+            EXPECT_EQ(rain.subtype, 0x18);
+            EXPECT_EQ(rain.width, 90.0f);
+            EXPECT_EQ(rain.targetPosition, point);
+            EXPECT_EQ(rain.ownerContext, nullptr);
+        }
+        EXPECT_EQ(tested.random.State(), twin.random.State());
+        EXPECT_EQ(call.life, 7);
+        EXPECT_TRUE(call.alive);
+    }
+}
+
+// 0x526042..0x5260b8: con vida 2, el 0x13f saca el giro (rand() % 360) y deja el 0x13d (0x526090) y el 0x13e (0x5260ad)
+// en su posición, con su luz y él de dueño (vida 120, escala 0,8f), y se apaga; con la tabla llena, sólo el giro.
+TEST(HighEffectFamiliesTest, TheMeteorCallLeavesTheRockAndItsShellAtLifeTwo)
+{
+    for (const bool full : {false, true})
+    {
+        SCOPED_TRACE(full);
+        FamilyWorld tested;
+        const glm::vec3 origin{1000.0f, 2000.0f, 300.0f};
+        const glm::vec3 light{0.25f, 0.5f, 0.75f};
+        ASSERT_TRUE(
+            CreateHighModelEffect({.type = 0x13f, .position = origin, .light = light}, tested.Context()).HasValue());
+        if (full)
+            tested.FillTheEffects();
+        ModelEffect& call = tested.Effect(0);
+        call.life = 2;
+        const auto stepped = Client::Scenes::StepHighModelEffect(call, nullptr, tested.StepContext());
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        CrtRandom replay(Seed);
+        static_cast<void>(replay.Next());
+        const int turn = replay.Next() % 360;
+        EXPECT_EQ(tested.random.State(), replay.State());
+        EXPECT_FALSE(call.alive);
+        EXPECT_EQ(call.life, 1);
+        if (full)
+            continue;
+        for (const auto& [slot, type] :
+             {std::pair{std::size_t{1}, std::int16_t{0x13d}}, std::pair{std::size_t{2}, std::int16_t{0x13e}}})
+        {
+            const ModelEffect& left = tested.Effect(slot);
+            ASSERT_TRUE(left.alive);
+            EXPECT_EQ(left.type, type);
+            EXPECT_EQ(left.life, 120);
+            EXPECT_EQ(std::bit_cast<std::uint32_t>(left.transform.scale), 0x3f4ccccdu);
+            EXPECT_EQ(left.transform.position, origin);
+            EXPECT_EQ(left.transform.angles, (glm::vec3{0.0f, 0.0f, static_cast<float>(turn)}));
+            EXPECT_EQ(left.light, light);
+            EXPECT_EQ(left.ownerContext, &call);
+        }
+    }
+}
+
+// Una semilla que da `coin` en el tercer rand() (0x52612c): la luz local y el temblor van antes.
+std::uint32_t SeedWithCoin(int coin)
+{
+    for (std::uint32_t seed = 1;; ++seed)
+    {
+        CrtRandom probe(seed);
+        static_cast<void>(probe.Next());
+        static_cast<void>(probe.Next());
+        if ((probe.Next() & 1) == coin)
+            return seed;
+    }
+}
+
+// 0x5260bd..0x526207, el 0x13d sin BMD: la luz (v, v, v + 0,1) de radio 10 con v = FSIN(vida · π/120) · −0,5, el
+// temblor ((rand() & 3) − 2) · 0,1f y, con rand() & 1 en 0, la piedrita 0xc8 o 0xc9 a rand() % 150 + 300 girada
+// rand() % 360 en z, con sus cinco rand().
+TEST(HighEffectFamiliesTest, TheMeteorPulsesShakesAndDropsAStone)
+{
+    for (const int coin : {0, 1})
+    {
+        SCOPED_TRACE(coin);
+        const std::uint32_t seed = SeedWithCoin(coin);
+        FamilyWorld tested;
+        tested.random = CrtRandom(seed);
+        float shake = 99.0f;
+        tested.services.cameraShake = &shake;
+        const glm::vec3 origin{12800.0f, 12800.0f, 100.0f};
+        const glm::vec3 angles{0.0f, 0.0f, 30.0f};
+        const glm::vec3 light{0.5f, 0.5f, 0.5f};
+        ASSERT_TRUE(CreateHighModelEffect({.type = 0x13d, .position = origin, .angles = angles, .light = light},
+                                          tested.Context())
+                        .HasValue());
+        ModelEffect& rock = tested.Effect(0);
+        rock.life = 40;
+        const auto stepped = Client::Scenes::StepHighModelEffect(rock, nullptr, tested.StepContext());
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        CrtRandom replay(seed);
+        static_cast<void>(replay.Next());
+        const int shaken = (replay.Next() & 3) - 2;
+        EXPECT_EQ(shake, static_cast<float>(shaken * static_cast<double>(std::bit_cast<float>(0x3dcccccdu))));
+        ASSERT_EQ(replay.Next() & 1, coin);
+        if (coin == 0)
+        {
+            const int reach = replay.Next() % 150;
+            const int turn = replay.Next() % 360;
+            const auto type = static_cast<std::int16_t>(0xc8 + (replay.Next() & 1));
+            const glm::vec3 offset = Client::Render::Models::OriginalVectorRotate(
+                {0.0f, static_cast<float>(reach + 300.0), 0.0f},
+                Client::Render::Models::OriginalAngleMatrix({0.0f, 0.0f, static_cast<float>(turn)}));
+            const glm::vec3 point{static_cast<float>(static_cast<double>(offset.x) + origin.x),
+                                  static_cast<float>(static_cast<double>(offset.y) + origin.y),
+                                  static_cast<float>(static_cast<double>(offset.z) + origin.z)};
+            auto twin = std::make_unique<Client::World::ModelEffects>();
+            ASSERT_TRUE(twin->CreateStoneChip(type, point, angles, light, replay).has_value());
+            const ModelEffect& stone = tested.Effect(1);
+            ASSERT_TRUE(stone.alive);
+            EXPECT_EQ(stone.type, type);
+            EXPECT_EQ(stone.transform.position, point);
+        }
+        else
+        {
+            EXPECT_FALSE(tested.Effect(1).alive);
+        }
+        EXPECT_EQ(tested.random.State(), replay.State());
+        const auto wave = Client::Render::Models::Detail::SineDoubleProductPC53(40.0 * 0.02617993950843811, -0.5);
+        ASSERT_TRUE(wave.has_value());
+        const glm::vec3 color{static_cast<float>(*wave), static_cast<float>(*wave),
+                              static_cast<float>(*wave + 0.10000000149011612)};
+        auto lit = std::make_unique<Client::World::TerrainLighting>();
+        ASSERT_TRUE(Client::World::AddDynamicLight(lit.get(), origin, color, 10, "prueba").HasValue());
+        EXPECT_TRUE(lit->cells == tested.lighting->cells);
+        EXPECT_EQ(rock.life, 39);
+    }
+}
+
+// Sin la luz dinámica el 0x13d corta antes del temblor (0x5260fe); sin el temblor, después de su rand() (0x526126).
+TEST(HighEffectFamiliesTest, TheMeteorAsksForTheLightAndTheShake)
+{
+    for (const bool lit : {false, true})
+    {
+        SCOPED_TRACE(lit);
+        FamilyWorld tested;
+        if (!lit)
+            tested.services.lighting = nullptr;
+        ASSERT_TRUE(CreateHighModelEffect({.type = 0x13d}, tested.Context()).HasValue());
+        const auto stepped = Client::Scenes::StepHighModelEffect(tested.Effect(0), nullptr, tested.StepContext());
+        EXPECT_TRUE(HasError(stepped, lit ? "0x526126" : "0x5260fe"));
+        EXPECT_EQ(tested.Draws(), lit ? 2 : 1);
+    }
+}
+
+// Los rand() del 0x13d antes de sus huesos: la luz local, el temblor, la moneda y, con 0, los tres de la piedrita y
+// sus cinco.
+void ReplayTheMeteorPrefix(CrtRandom& replay)
+{
+    static_cast<void>(replay.Next());
+    static_cast<void>(replay.Next());
+    if ((replay.Next() & 1) != 0)
+        return;
+    for (int draw = 0; draw < 8; ++draw)
+        static_cast<void>(replay.Next());
+}
+
+// 0x52620f..0x526331: con el BMD, la pose del 0x13d en el buffer global (la acción publicada que se pasa de las del
+// modelo vuelve a 0) y un rand() % 12 por cada hueso que no es dummy; con 0, la 0x6ec/3 (de otro lote) corta con lugar
+// (0x5262e8); con las partículas llenas, sólo los rand().
+TEST(HighEffectFamiliesTest, TheMeteorSparksOverItsPosedBones)
+{
+    auto loaded = Client::Render::Models::MakeSkeleton(Client::Tests::SampleModel());
+    ASSERT_TRUE(loaded.HasValue());
+    const Client::Render::Models::Skeleton skeleton = loaded.Value();
+    ASSERT_EQ(skeleton.bones.size(), 3u);
+    std::uint32_t hit = 1;
+    for (;; ++hit)
+    {
+        CrtRandom probe(hit);
+        ReplayTheMeteorPrefix(probe);
+        if (probe.Next() % 12 == 0)
+            break;
+    }
+    {
+        FamilyWorld tested;
+        tested.random = CrtRandom(hit);
+        float shake = 0.0f;
+        tested.services.cameraShake = &shake;
+        ASSERT_TRUE(CreateHighModelEffect({.type = 0x13d, .position = {12800.0f, 12800.0f, 0.0f}}, tested.Context())
+                        .HasValue());
+        const auto cut = Client::Scenes::StepHighModelEffect(tested.Effect(0), &skeleton, tested.StepContext());
+        EXPECT_TRUE(HasError(cut, "0x5262e8")) << (cut.HasValue() ? std::string() : cut.Error());
+        CrtRandom replay(hit);
+        ReplayTheMeteorPrefix(replay);
+        static_cast<void>(replay.Next());
+        EXPECT_EQ(tested.random.State(), replay.State());
+    }
+    FamilyWorld tested;
+    tested.FillTheParticles();
+    float shake = 0.0f;
+    tested.services.cameraShake = &shake;
+    tested.world->PlaceModel(0x13d, {.action = 7});
+    const glm::vec3 angles{0.0f, 0.0f, 60.0f};
+    ASSERT_TRUE(CreateHighModelEffect({.type = 0x13d, .position = {12800.0f, 12800.0f, 0.0f}, .angles = angles},
+                                      tested.Context())
+                    .HasValue());
+    ModelEffect& rock = tested.Effect(0);
+    rock.animation.frame = 1.5f;
+    const auto stepped = Client::Scenes::StepHighModelEffect(rock, &skeleton, tested.StepContext());
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    CrtRandom replay(Seed);
+    ReplayTheMeteorPrefix(replay);
+    static_cast<void>(replay.Next());
+    static_cast<void>(replay.Next());
+    EXPECT_EQ(tested.random.State(), replay.State());
+    EXPECT_EQ(tested.world->ModelPlacement(0x13d).action, 0);
+    std::vector<Client::Render::Models::BoneTransform> expected(3, Client::Render::Models::BoneTransform(0.0f));
+    ASSERT_TRUE(
+        Client::Render::Models::PoseSkeleton(skeleton, {.action = 0, .frame = 1.5f}, {.angles = angles}, {}, expected));
+    const auto& carry = tested.world->PoseCarry().bones;
+    ASSERT_GE(carry.size(), 3u);
+    EXPECT_EQ(carry[0], expected[0]);
+    EXPECT_EQ(carry[1], expected[1]);
 }
 } // namespace

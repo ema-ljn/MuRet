@@ -61,7 +61,11 @@ CreateFaunaJoint(std::span<JointState> joints, const World::FishEffectRequest& r
 // El 618/0 y /1 piden además la luz dinámica (`lighting`, 0x7b4ccc4) y el sonido 0x23 (0x41ed10) al llegar; el
 // 613/0 y el /5, la altura del terreno (`terrainHeight`, 0x5f93c0); el 0x10f/4 y el /9, los 400 personajes
 // (`actors`, 0x743a16c); el 0x60f/0xb y el /0x19 con skill 1, el choque de la flecha dueña (`effectHit`, 0x520170);
-// el 0x613/0x13, la tabla de efectos con modelo (`effects`, 0x7491fd8).
+// el 0x613/0x13, la tabla de efectos con modelo (`effects`, 0x7491fd8). De la CL11: el 0x610/6 del 0x95 de Kalima pide
+// la luz dinámica; el 0x615/6 del pulso del asedio, la altura del terreno y las partículas; el 0x632/5, los sprites, la
+// altura del terreno y la tabla de efectos (la onda 0x6eb/4 al llegar al suelo); el 0x60f/4, /0xc y el 0x62b/4, /0xc
+// dan otro paso entero mientras la vida no sea múltiplo de 12 (0x53c3c6); el 0x6e8/0 y /1 no se mueven (la lista de
+// 0x53585e) y el 0x61c/1 sigue a su efecto de dueño.
 [[nodiscard]] Core::Expected<void, std::string>
 StepJoints(std::span<JointState> joints, Render::Models::CrtRandom& random, Render::Models::ClothWorld* cloth = nullptr,
            World::Particles* particles = nullptr, float worldClock = 0, World::FrameSprites* sprites = nullptr,

@@ -366,24 +366,6 @@ jobs:
         if: matrix.kind == 'build'
         run: cmake --build --preset ${{ matrix.build-preset }}
 
-      # Los 25 archivos que más tardaron en compilar o enlazar (de .ninja_log), para saber dónde se va
-      # el tiempo. Con la caché llena aparece solo lo que se recompiló. /usr/bin/sort: en Windows,
-      # sort a secas puede ser el de System32. awk y no head: head cortaría el pipe antes de que sort
-      # termine de escribir, y con pipefail el paso fallaría.
-      - name: Lo más lento del build
-        if: always() && matrix.kind == 'build'
-        shell: bash
-        run: |
-          log="build/${{ matrix.configure-preset }}/.ninja_log"
-          [ -f "$log" ] || exit 0
-          awk -F'\t' '!/^#/ { printf "%8.1f s  %s\n", ($2 - $1) / 1000, $4 }' "$log" \
-            | LC_ALL=C /usr/bin/sort -rn | awk 'NR <= 25'
-
-      # Cuántos archivos salieron de la caché y cuántos se compilaron, también si el build falló.
-      - name: Estadísticas de ccache
-        if: always() && steps.ccache.outcome == 'success'
-        run: ccache --show-stats --verbose
-
       # Se guarda también si el build falló: el push que lo arregla encuentra compilado todo lo
       # que llegó a compilar esta corrida.
       - name: Guardar la caché de ccache
@@ -460,3 +442,29 @@ jobs:
             -checks='-*,misc-include-cleaner' 'Client/(src|tests)/'
           git ls-files -z -- 'Client/src/*.h' 'Client/tests/*.h' \
             | xargs -0 -P "$(nproc)" -n 8 clang-tidy-18 -p "$build" -quiet -checks='-*,misc-include-cleaner'
+
+      # Al final del job, porque por la API se leen solo las últimas 5000 líneas del log y CTest escribe
+      # más de 20 000. También van al resumen de la corrida, para verlos sin abrir el log.
+      # Los 25 archivos que más tardaron en compilar o enlazar (de .ninja_log), para saber dónde se va
+      # el tiempo. Con la caché llena aparece solo lo que se recompiló. /usr/bin/sort: en Windows,
+      # sort a secas puede ser el de System32. awk y no head: head cortaría el pipe antes de que sort
+      # termine de escribir, y con pipefail el paso fallaría.
+      - name: Lo más lento del build
+        if: always() && matrix.kind == 'build'
+        shell: bash
+        run: |
+          log="build/${{ matrix.configure-preset }}/.ninja_log"
+          [ -f "$log" ] || exit 0
+          lento="$(awk -F'\t' '!/^#/ { printf "%8.1f s  %s\n", ($2 - $1) / 1000, $4 }' "$log" \
+            | LC_ALL=C /usr/bin/sort -rn | awk 'NR <= 25')"
+          printf '%s\n' "$lento"
+          { echo '### Lo más lento del build'; echo '```'; printf '%s\n' "$lento"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+
+      # Cuántos archivos salieron de la caché y cuántos se compilaron, también si el build falló.
+      - name: Estadísticas de ccache
+        if: always() && steps.ccache.outcome == 'success'
+        shell: bash
+        run: |
+          stats="$(ccache --show-stats --verbose)"
+          printf '%s\n' "$stats"
+          { echo '### ccache'; echo '```'; printf '%s\n' "$stats"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"

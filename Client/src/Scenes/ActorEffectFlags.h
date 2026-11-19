@@ -18,9 +18,11 @@ struct WorldEntryResources;
 // 0x80000 (que apaga el 0x40000) y 0x100000, que con los tipos 0x204 a 0x208 pisan +0x7c entero en vez de prender su
 // bit. 0x400 y 0x10 apagan el 0x5ac/2 o /1 de `actor` en `effects` (0x518ac0) y crean otro con él de dueño
 // (0x518cf0, `CreateSkillFlare`; con la tabla llena, ninguno), siempre, y prenden su bit (CL9 hito 4; en el hito 1
-// cortaban). Los que crean efectos que faltan cortan con su dirección, con lo de antes ya hecho: 0x100 en un 0x20a sin
-// el bit (el sonido 0x84 queda en `lastSound`; 0x534f90 y los cinco joints 0x10f son de la CL11), 0x1000 (con su bit
-// prendido; los tres joints 0x10f), 0x20 y 0x40 sin su bit (0xc1/1 y /2; 0x628/0 y el sonido 0x85).
+// cortaban). 0x20 sin su bit apaga los 0xc1/1 del personaje (0x518ac0) y crea el 0xc1/1 y el /2 con él de dueño
+// (World::CreateWizardModelEffect, que pisa su luz +0xf4). Los que crean efectos que faltan cortan con su dirección,
+// con lo de antes ya hecho: 0x100 en un 0x20a sin el bit (el sonido 0x84 queda en `lastSound`; 0x534f90 y los cinco
+// joints 0x10f son de la CL11), 0x1000 (con su bit prendido; los tres joints 0x10f) y 0x40 sin su bit (0x628/0 y el
+// sonido 0x85).
 // Con 0x2000000 y el héroe publicado, 0x555190 añade Text[1828] con nombre vacío y tipo 1 antes de prender el bit,
 // incluso si ya estaba puesto. Necesita Text.bmd y el medidor; sin el bit no los consulta.
 [[nodiscard]] Core::Expected<void, std::string>

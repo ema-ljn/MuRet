@@ -26,6 +26,7 @@
 #include "Scenes/WorldTransitionSupport.h"
 #include "World/GameCamera.h"
 #include "World/ModelEffects.h"
+#include "World/WizardModelEffects.h"
 
 #include "support/PlayerActors.h"
 #include "support/Bytes.h"
@@ -33,6 +34,7 @@
 #include "support/RecordingSink.h"
 #include "support/TableFiles.h"
 
+#include <glm/ext/vector_float3.hpp>
 #include <gtest/gtest.h>
 
 #include <algorithm>
@@ -905,6 +907,52 @@ TEST(SkillRepliesTest, TheActorStateOfTypeOneKnowsThePublishedHero)
                                                 tested->Resources())
                     .HasValue());
     EXPECT_EQ(tested->Actor(CasterIndex).flags78, 0x2000000u);
+}
+
+// 0x4e67a6..0x4e6835: la bandera 0x20 sin su bit apaga los 0xc1/1 del personaje (0x518ac0) y crea el 0xc1/1 y el /2
+// (0x4e67fc, 0x4e6825) en su posición, con sus ángulos (el segundo con la z 180 más) y él de dueño. Cada alta pisa la
+// luz del personaje con (0,4f; 0,3f; 0,2f). Con el bit ya prendido, nada.
+TEST(SkillRepliesTest, TheIceFlagFreezesTheActor)
+{
+    constexpr std::size_t OldIce = 5;
+    auto tested = std::make_unique<Replies>();
+    ActorState& caster = tested->Actor(CasterIndex);
+    caster.angles = {0.0f, 0.0f, 30.0f};
+    const auto effects = tested->world.Map().effects.Effects();
+    effects[OldIce].alive = true;
+    effects[OldIce].type = Client::World::IceEffect;
+    effects[OldIce].subtype = 1;
+    effects[OldIce].ownerContext = &caster;
+
+    ASSERT_TRUE(
+        Client::Scenes::ApplyActorState(Client::Protocol::Skill::ActorState{1, 0x20, CasterKey}, tested->Resources())
+            .HasValue());
+
+    EXPECT_EQ(caster.flags78, 0x20u);
+    EXPECT_FALSE(effects[OldIce].alive);
+    for (const auto& [slot, subtype, heading] :
+         {std::tuple{std::size_t{0}, 1, 30.0f}, std::tuple{std::size_t{1}, 2, 210.0f}})
+    {
+        SCOPED_TRACE(subtype);
+        const auto& ice = effects[slot];
+        EXPECT_TRUE(ice.alive);
+        EXPECT_EQ(ice.type, Client::World::IceEffect);
+        EXPECT_EQ(ice.subtype, subtype);
+        EXPECT_EQ(ice.ownerContext, &caster);
+        EXPECT_EQ(ice.transform.position, caster.position);
+        EXPECT_FLOAT_EQ(ice.transform.angles.x, -20.0f);
+        EXPECT_FLOAT_EQ(ice.transform.angles.z, heading);
+    }
+    EXPECT_EQ(caster.light, glm::vec3(0.4f, 0.3f, 0.2f));
+
+    // Con el bit prendido, ni apaga ni crea.
+    const auto alive = std::ranges::count_if(effects, [](const auto& effect) { return effect.alive; });
+    const auto state = tested->cloth.random.State();
+    ASSERT_TRUE(
+        Client::Scenes::ApplyActorState(Client::Protocol::Skill::ActorState{1, 0x20, CasterKey}, tested->Resources())
+            .HasValue());
+    EXPECT_EQ(std::ranges::count_if(effects, [](const auto& effect) { return effect.alive; }), alive);
+    EXPECT_EQ(tested->cloth.random.State(), state);
 }
 
 TEST(SkillRepliesTest, TheActorStateOfAnotherTypeLowersTheLitFlag)

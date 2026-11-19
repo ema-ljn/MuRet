@@ -14326,11 +14326,14 @@ original, como los creadores de la tormenta: `KundunFallsOnlyInTheOriginalFrame`
 del `0x1a4` (`0x441b33`: en la mano derecha con su z y en cada uno de los primeros 400 jugadores (`0x441c60`) visto y vivo a
 más de 200 y menos de 1.100 en el plano, el cráter `0x636/2`, el joint `0x61c/6` (ancho 200, sin dueño) y la columna
 `0x5de/3`, `World::ModelEffects::CreateFlameColumn`: vida 15; su paso, `0x52ae7f..0x52b011`, deja tres `0x5de/6` y tres
-`0x6ec/0` de 2,8f a ±5, el humo `0x5f2/0x15` de 0,8f y la luz (L; L · 0,4f; 0) de radio 3; después, el sonido `0x207`).
+`0x6ec/0` de 2,8f a ±5, el humo `0x5f2/0x15` de 0,8f, la piedrita `0xc8 + rand() % 2` con el subtipo `0xc` (`0x52afe1`,
+en su posición, con sus ángulos y su luz `+0xf4`; `World::ModelEffects::CreateStoneChip` con `ColumnStoneChipSubtype`:
+`0x51b426` → `0x51b509..0x51b5d6`, los cinco `rand()` de la /0 con la escala ((& 3) + 15) · 0,1f; cae y se prende como
+la /0, `0x523980`, `0x523a3a`, `0x523ad2`) y la luz (L; L · 0,4f; 0) de radio 3; después, el sonido `0x207`).
 El 0x61c/0 de la 0x37 nace sin tipo de dueño (`JointOwnerKind::ByType`): su paso solo compara el dueño con el héroe.
 Cortan, con lugar y después de sus `rand()`: la `0x6f4/2` del golpe de un pedazo (`0x52a37d`, la primera de las cien;
-con las partículas llenas, los trescientos `rand()`), la piedrita `0xc8`/`0xc9` (subtipo `0xc`) de la columna
-`0x5de/3` (`0x52afe1`) y ~~los joints `0x632/2` y `/3` del `0x13a` (`0x529eca`; su `0x632/4` del alta, `0x51e01a`, es
+con las partículas llenas, los trescientos `rand()`), ~~la piedrita `0xc8`/`0xc9` (subtipo `0xc`) de la columna
+`0x5de/3` (`0x52afe1`)~~ (décima vuelta, con la integración de los magos) y ~~los joints `0x632/2` y `/3` del `0x13a` (`0x529eca`; su `0x632/4` del alta, `0x51e01a`, es
 de otro lote)~~ (décima vuelta, con el alta y el paso de la `0x632` del lote de los joints: se crean los tres). El `0x127` sin el héroe publicado en el pool corta (`0x527919`, no pasa en el original) y el `0x5be` de
 un héroe corta en el paso de su joint `0x61c/0` (`0x53b569`, lote joints). Tests: `test_high_effect_families.cpp`, `test_model_effects.cpp`,
 `test_game_model_effects.cpp`, `test_attack_skill_cases.cpp`, `test_attack_frame_skills.cpp`,

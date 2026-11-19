@@ -739,10 +739,13 @@ std::optional<std::size_t> ModelEffects::CreateStoneChip(std::int16_t type, cons
     const bool chip = type == FirstStoneChipEffect || type == SecondStoneChipEffect;
     const bool shard = (type == FirstRockShard || type == SecondRockShard) && subtype == 0;
     const bool splinter = (type == FirstSplinterEffect || type == SecondSplinterEffect) && subtype == 0;
+    // 0x51b426 → 0x51b509: la /0xc del 0xc8 y el 0xc9 (la de la columna 0x5de/3).
+    const bool column = chip && subtype == ColumnStoneChipSubtype;
     if ((!chip && !shard && !splinter) ||
-        (subtype != 0 && subtype != RisingStoneChipSubtype && subtype != SpinningStoneChipSubtype))
+        (subtype != 0 && subtype != RisingStoneChipSubtype && subtype != SpinningStoneChipSubtype && !column))
         return std::nullopt;
     constexpr int PushMask = 255, PushBase = 64, LifeMask = 15, LifeBase = 32, ScaleMask = 3, ScaleBase = 8;
+    constexpr int ColumnScaleBase = 15; // 0x51b564: la escala de la /0xc, ((& 3) + 15) · 0,1f.
     constexpr int Degrees = 360, FallMask = 15, FallBase = 8;
     for (std::size_t slot = 0; slot < m_effects.size(); ++slot)
     {
@@ -768,7 +771,8 @@ std::optional<std::size_t> ModelEffects::CreateStoneChip(std::int16_t type, cons
                                   : F32(static_cast<double>((random.Next() & PushMask) + PushBase) * StoneTenth);
         const glm::vec3 push{0.0f, impulse, 0.0f};
         effect.life = (random.Next() & LifeMask) + LifeBase;
-        effect.transform.scale = F32(static_cast<double>((random.Next() & ScaleMask) + ScaleBase) * StoneTenth);
+        effect.transform.scale =
+            F32(static_cast<double>((random.Next() & ScaleMask) + (column ? ColumnScaleBase : ScaleBase)) * StoneTenth);
         effect.transform.angles.z = static_cast<float>(random.Next() % Degrees);
         effect.velocity =
             Render::Models::OriginalVectorRotate(push, Render::Models::OriginalAngleMatrix(effect.transform.angles));

@@ -646,7 +646,8 @@ TEST(ModelEffectsTest, TheStoneChipsArePushedAlongTheirDrawnYaw)
 
 // 0x518cf0(0xc8 o 0xc9, …, 0xc, 0, −1, …) → 0x51b426 → 0x51b509..0x51b5d6: la piedrita de la columna 0x5de/3
 // (0x52afe1) saca los cinco rand() de la /0 en su orden, con la escala ((& 3) + 15) · 0,1f; con la tabla llena,
-// ninguno.
+// ninguno. Conserva la x y la y de los ángulos que recibe y pisa la z con el rand() % 360, y el empuje gira con los
+// tres.
 TEST(ModelEffectsTest, TheColumnChipIsBornLikeTheFirstOneButBigger)
 {
     constexpr double Tenth = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));
@@ -656,7 +657,7 @@ TEST(ModelEffectsTest, TheColumnChipIsBornLikeTheFirstOneButBigger)
         ModelEffects effects;
         Client::Render::Models::CrtRandom random(9);
         Client::Render::Models::CrtRandom draws(9);
-        const glm::vec3 angles{0.0f, 0.0f, 30.0f};
+        const glm::vec3 angles{12.0f, 34.0f, 30.0f};
         const auto slot = effects.CreateStoneChip(type, {10.0f, 20.0f, 30.0f}, angles, {0.5f, 0.6f, 0.7f}, random,
                                                   Client::World::ColumnStoneChipSubtype);
         ASSERT_EQ(slot, std::optional<std::size_t>(0));
@@ -670,10 +671,11 @@ TEST(ModelEffectsTest, TheColumnChipIsBornLikeTheFirstOneButBigger)
         EXPECT_EQ(effect.subtype, 0xc);
         EXPECT_EQ(effect.life, life);
         EXPECT_EQ(effect.transform.scale, scale);
-        EXPECT_EQ(effect.transform.angles, glm::vec3(0.0f, 0.0f, yaw));
+        EXPECT_EQ(effect.transform.angles, glm::vec3(12.0f, 34.0f, yaw));
         EXPECT_EQ(effect.velocity,
                   Client::Render::Models::OriginalVectorRotate(
-                      {0.0f, push, 0.0f}, Client::Render::Models::OriginalAngleMatrix({0.0f, 0.0f, yaw})));
+                      {0.0f, push, 0.0f}, Client::Render::Models::OriginalAngleMatrix({12.0f, 34.0f, yaw})));
+        EXPECT_NE(effect.velocity.z, 0.0f);
         EXPECT_EQ(effect.turnDirection, fall);
         EXPECT_EQ(effect.transform.position, glm::vec3(10.0f, 20.0f, 30.0f));
         EXPECT_EQ(effect.light, glm::vec3(0.5f, 0.6f, 0.7f));

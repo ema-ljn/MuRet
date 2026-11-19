@@ -1096,6 +1096,43 @@ TEST_F(GameCharacterEffectsTest, TheMageSkinOffsetAlsoMovesTheFullSetFlares)
     EXPECT_EQ(sprites[7].position, At(0x2a - 7, {-4.0f, 11.0f, 0.0f}));
 }
 
+// Q-C350 también en las acciones: la piel del mago (0x50ea86) deja (−4, 11, 0) en [ebp−0x50] y 0x4ec110 lo usa en la
+// mano (+0x2bd, 0x21) de los rayos de la 0x94 (0x50f89b) y de los 0x117/2 de la 0x51 y la 0x5b (0x50fb16).
+TEST_F(GameCharacterEffectsTest, TheMageSkinOffsetAlsoMovesTheHandOfTheActions)
+{
+    m_actor.skin = 8;
+    const glm::vec3 hand = At(0x21, {-4.0f, 11.0f, 0.0f});
+    m_actor.animation.action = 0x94;
+    m_actor.animation.frame = 3.0f;
+    ASSERT_TRUE(Client::Scenes::DrawGameCharacterEffects(m_actor, Pass()).HasValue());
+    const auto sprites = LiveSprites(m_sprites);
+    ASSERT_EQ(sprites.size(), 5u);
+    for (std::size_t index = 2; index < sprites.size(); ++index)
+    {
+        EXPECT_EQ(sprites[index].texture, 0x5d5) << index;
+        EXPECT_EQ(sprites[index].position, hand) << index;
+    }
+    for (const std::uint8_t action : {std::uint8_t{0x51}, std::uint8_t{0x5b}})
+    {
+        SCOPED_TRACE(int{action});
+        m_sprites = {};
+        m_actor.animation.action = action;
+        m_actor.animation.frame = 7.5f;
+        auto world = std::make_unique<Client::Scenes::WorldState>();
+        GameCharacterEffectsPass pass = Pass();
+        pass.world = world.get();
+        const auto result = Client::Scenes::DrawGameCharacterEffects(m_actor, pass);
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        const auto& effects = world->Map().effects.Effects();
+        for (std::size_t index = 0; index < 2; ++index)
+        {
+            ASSERT_TRUE(effects[index].alive) << index;
+            EXPECT_EQ(effects[index].type, 0x117) << index;
+            EXPECT_EQ(effects[index].transform.position, hand) << index;
+        }
+    }
+}
+
 TEST_F(GameCharacterEffectsTest, HiddenAttachmentsDropTheFlaresButKeepTheRandomOfTheSparkles)
 {
     m_actor.flags78 = 0x4000;

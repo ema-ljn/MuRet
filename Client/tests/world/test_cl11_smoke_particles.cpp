@@ -311,6 +311,67 @@ TEST(Cl11SmokeParticles, TheBackTrailTakesTheLightAsItsDirection)
     EXPECT_EQ(trail.light, glm::vec3(F32(D(0x3f788b30u))));
 }
 
+// 0x542a01 (/0, vida 55), 0x5429a2 (/1, vida 30) y 0x542943 (/2, vida 55): la 0x5f5 guarda la luz, saca el ángulo x
+// (rand() & 3) − 2 y gira _ftol(reloj) % 360. 0x546a9f, 0x546a54 y 0x546a13: la /0 baja el rojo guardado (0,015f y
+// 0,005f más con el verde arriba de 0,1f), la /2 el verde y el azul; la luz es vida · 0,0181818f por la guardada, la
+// subida suma 0,2f (la /1, 0,1f), la escala 0,03f y el giro el ángulo x.
+TEST(Cl11SmokeParticles, ThePuffKeepsItsLightTiltsAndRises)
+{
+    constexpr std::int32_t Puff = 0x5f5;
+    struct Case
+    {
+        std::int32_t subtype;
+        std::int32_t life;
+        glm::vec3 kept;
+        double rise;
+    };
+    const glm::vec3 light{0.5f, 0.4f, 0.3f};
+    for (const Case& value :
+         {Case{0, 55, {F32(D(F32(D(0.5f) - D(0x3c75c28fu))) - D(0x3ba3d70au)), 0.4f, 0.3f}, D(0x3e4ccccdu)},
+          Case{1, 30, light, D(0x3dcccccdu)},
+          Case{2, 55, {0.5f, F32(D(0.4f) - D(0x3ba3d70au)), F32(D(0.3f) - D(0x3c75c28fu))}, D(0x3e4ccccdu)}})
+    {
+        auto particles = std::make_unique<Particles>();
+        CrtRandom random(Seed);
+        ASSERT_TRUE(
+            particles->CreateChecked(Puff, {0, 0, 10}, {}, light, value.subtype, 1.0f, 1000.0f, random).HasValue());
+        Draws draws;
+        Particle& puff = Only(*particles, 0);
+        EXPECT_EQ(puff.life, value.life) << value.subtype;
+        EXPECT_EQ(puff.rotationFactor, 0.5f) << value.subtype;
+        EXPECT_EQ(puff.field64, glm::vec2(0.4f, 0.3f)) << value.subtype;
+        const float tilt = F32(static_cast<double>(draws.Next() & 3) - 2.0);
+        EXPECT_EQ(puff.angles.x, tilt) << value.subtype;
+        EXPECT_EQ(puff.rotation, 280.0f) << value.subtype;
+        EXPECT_EQ(random.State(), AfterDraws(Seed, 1).State()) << value.subtype;
+
+        ASSERT_TRUE(Step(*particles, random).HasValue()) << value.subtype;
+        const double fade = static_cast<double>(value.life - 1) * D(0x3c94f209u);
+        EXPECT_EQ(puff.rotationFactor, value.kept.x) << value.subtype;
+        EXPECT_EQ(puff.field64, glm::vec2(value.kept.y, value.kept.z)) << value.subtype;
+        EXPECT_EQ(puff.light,
+                  glm::vec3(F32(fade * D(value.kept.x)), F32(fade * D(value.kept.y)), F32(fade * D(value.kept.z))))
+            << value.subtype;
+        EXPECT_EQ(puff.verticalSpeed, F32(value.rise)) << value.subtype;
+        EXPECT_EQ(puff.position.z, F32(value.rise + 10.0)) << value.subtype;
+        EXPECT_EQ(puff.scale, F32(1.0 + D(0x3cf5c28fu))) << value.subtype;
+        EXPECT_EQ(puff.rotation, F32(D(tilt) + 280.0)) << value.subtype;
+    }
+
+    // Fuera de 0..2, el prefijo solo: vida 2, sin rand(), y un paso que no hace nada.
+    auto particles = std::make_unique<Particles>();
+    CrtRandom random(Seed);
+    ASSERT_TRUE(particles->CreateChecked(Puff, {}, {}, light, 3, 1.0f, 1000.0f, random).HasValue());
+    EXPECT_EQ(Only(*particles, 0).life, 2);
+    EXPECT_EQ(random.State(), CrtRandom(Seed).State());
+    ASSERT_TRUE(Step(*particles, random).HasValue());
+    EXPECT_EQ(Only(*particles, 0).light, light);
+    Particle drawn{.alive = true, .type = Puff, .texture = Puff, .subtype = 0, .scale = 1.0f, .light = light};
+    const auto made = Client::Tests::DrawOneParticle(drawn, glm::vec2(64, 64), std::uint8_t{4});
+    ASSERT_TRUE(made.HasValue());
+    EXPECT_TRUE(made.Value().has_value());
+}
+
 // Los humos nuevos van al billboard del humo (0x54874c; la /20 y la /37 restando). La /28..30 leen el terreno al nacer
 // (0x5425f9) y siguen sin portar.
 TEST(Cl11SmokeParticles, TheNewSmokesDrawAndTheGroundedOnesStayCut)

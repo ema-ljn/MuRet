@@ -8610,7 +8610,11 @@ de dueño) sigue a su dueño más la partida al azar mientras su vida es 23 o m�
 `0x5249a0`) toma la luz del pedido como dirección y retrocede por ella. La /17, /19, /20, /23 y /24 giran
 `_ftol(reloj) % 360`, con el reloj del pedido (`CreateChecked` con el reloj por valor también). La /28, /29 y /30
 (`0x5425c7`, `0x54261b`, `0x542668`) leen el terreno al nacer (`0x5f93c0`; la /30 además `fsin` del reloj) y siguen
-cortadas.
+cortadas. En el mismo archivo, **la `0x5f5`** (alta `0x542943..0x542a5f`, paso `0x546a13..0x546aff`): la /0, /1 y /2
+guardan la luz, viven 55, 30 y 55, sacan el ángulo x `(rand() & 3) − 2` (que el paso le suma al giro) y giran
+`_ftol(reloj) % 360`; su paso baja el rojo guardado (la /0; 0,005f más mientras el verde pasa de 0,1f, otra vez sobre
+el rojo) o el verde y el azul (la /2), apaga la luz con vida · 0,0181818f, sube 0,2f (la /1, 0,1f) y crece 0,03f. Los
+demás subtipos sólo tienen el prefijo; `0x548895` la dibuja con `0x620c10` y el billboard común.
 
 **El fuego `0x5da`** (`World/MissileFireParticleKernels.h`; la /8 y la /9 siguen en `Particles.cpp`): el alta
 (`0x540d13..0x54109e`) es una cadena de `cmp` y todos terminan con el giro `rand() % 360` de `0x54107f` (los subtipos

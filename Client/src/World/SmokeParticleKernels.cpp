@@ -155,10 +155,71 @@ void StepTheShrinking(Particle& particle)
     if (!(shrunk > 0.0) && !(particle.light.z > 0.0f))
         particle.alive = false;
 }
+// 0x542943..0x542a5f: la /0..2 guardan la luz, viven 55 (la /1, 30), el ángulo x (rand() & 3) − 2 y el giro
+// _ftol(reloj) % 360; los demás subtipos salen por 0x54304c con el prefijo.
+void CreateThePuff(Particle& particle, Render::Models::CrtRandom& random, float clock)
+{
+    constexpr std::int32_t LongLife = 55, ShortLife = 30, ShortSubtype = 1, LastSubtype = 2;
+    constexpr int TiltMask = 3;
+    constexpr double TiltCenter = 2.0; // 0x6b8818
+    if (particle.subtype < 0 || particle.subtype > LastSubtype)
+        return;
+    KeepTheLight(particle);
+    particle.life = particle.subtype == ShortSubtype ? ShortLife : LongLife;
+    particle.angles.x = F32(static_cast<double>(random.Next() & TiltMask) - TiltCenter);
+    particle.rotation = static_cast<float>(FtolLow(static_cast<double>(clock)) % FullTurn);
+}
+
+// 0x546a13..0x546aff: la /0 baja el rojo guardado 0,015f mientras pasa de 0,1f y otros 0,005f mientras el verde pasa
+// de 0,1f; la /2 baja el verde 0,005f y el azul 0,015f con el mismo límite. Después la luz es vida · 0,0181818f por la
+// guardada, la subida suma 0,2f (la /1, 0,1f) y la z la suma sin redondear, la escala crece 0,03f y el giro suma el
+// ángulo x. Los demás subtipos no hacen nada.
+void StepThePuff(Particle& particle)
+{
+    constexpr float Floor = std::bit_cast<float>(0x3dcccccdu);                           // 0x6b87b8, 0,1f
+    constexpr double Drop = static_cast<double>(std::bit_cast<float>(0x3c75c28fu));      // 0x6b8a24, 0,015f
+    constexpr double SmallDrop = static_cast<double>(std::bit_cast<float>(0x3ba3d70au)); // 0x6b89d8, 0,005f
+    constexpr double Fade = static_cast<double>(std::bit_cast<float>(0x3c94f209u));      // 0x6ba374
+    constexpr double Growth = static_cast<double>(std::bit_cast<float>(0x3cf5c28fu));    // 0x6b8bd4, 0,03f
+    float& red = particle.rotationFactor;
+    float& green = particle.field64.x;
+    float& blue = particle.field64.y;
+    double rise = Fifth;
+    switch (particle.subtype)
+    {
+    case 0:
+        if (red > Floor)
+            red = F32(static_cast<double>(red) - Drop);
+        if (green > Floor)
+            red = F32(static_cast<double>(red) - SmallDrop);
+        break;
+    case 1:
+        rise = Tenth;
+        break;
+    case 2:
+        if (green > Floor)
+            green = F32(static_cast<double>(green) - SmallDrop);
+        if (blue > Floor)
+            blue = F32(static_cast<double>(blue) - Drop);
+        break;
+    default:
+        return;
+    }
+    const double fade = static_cast<double>(particle.life) * Fade;
+    particle.light = glm::vec3(F32(fade * static_cast<double>(red)), F32(fade * static_cast<double>(green)),
+                               F32(fade * static_cast<double>(blue)));
+    const double speed = static_cast<double>(particle.verticalSpeed) + rise;
+    particle.verticalSpeed = F32(speed);
+    particle.position.z = F32(speed + static_cast<double>(particle.position.z));
+    particle.scale = F32(static_cast<double>(particle.scale) + Growth);
+    particle.rotation = F32(static_cast<double>(particle.angles.x) + static_cast<double>(particle.rotation));
+}
 } // namespace
 
 bool IsSmokeParticle(std::int32_t type, std::int32_t subtype)
 {
+    if (type == RisingPuffParticle)
+        return true;
     if (type != BreathParticle)
         return false;
     switch (subtype)
@@ -185,6 +246,11 @@ void CreateSmokeParticle(Particle& particle, Render::Models::CrtRandom& random, 
     constexpr int BreathMask = 31, BreathBase = 48, FadingMask = 63, FadingBase = 64;
     constexpr float Ember = std::bit_cast<float>(0x3e99999au); // 0x541973, 0,3f
     constexpr double BackStep = 15.0;                          // 0x6b87bc
+    if (particle.type == RisingPuffParticle)
+    {
+        CreateThePuff(particle, random, clock);
+        return;
+    }
     switch (particle.subtype)
     {
     case GlowSmokeSubtype:
@@ -270,6 +336,11 @@ Core::Expected<void, ParticleError> StepSmokeParticle(Particle& particle, Render
     constexpr double Ash = static_cast<double>(std::bit_cast<float>(0x3eb33333u));          // 0x6b8bc4, 0,35f
     constexpr double FadingGrowth = static_cast<double>(std::bit_cast<float>(0x3e19999au)); // 0x6b8ae8, 0,15f
     constexpr double BreathRise = Fifth;                                                    // 0x6b8854
+    if (particle.type == RisingPuffParticle)
+    {
+        StepThePuff(particle);
+        return {};
+    }
     switch (particle.subtype)
     {
     case GlowSmokeSubtype:

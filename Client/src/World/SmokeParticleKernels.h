@@ -31,11 +31,16 @@ inline constexpr std::int32_t ShrinkingSmokeSubtype = 31;
 // posición los dos primeros pasos; la /37 toma la luz del pedido como dirección y retrocede por ella.
 inline constexpr std::int32_t TrailSmokeSubtype = 36;
 inline constexpr std::int32_t BackTrailSmokeSubtype = 37;
+// La 0x5f5 (alta 0x542943..0x542a5f, paso 0x546a13..0x546aff): un humo que guarda la luz del pedido en +0x60..+0x68,
+// sube acelerando, crece 0,03f y gira con su ángulo x ((rand() & 3) − 2). La /0 (vida 55, la del joint de 0x539058)
+// baja el rojo guardado; la /1 (vida 30) sube más lento; la /2 (vida 55, la del efecto de 0x52a5f1) baja el verde y el
+// azul. Los demás subtipos sólo tienen el prefijo. 0x548895 la dibuja mezclada (0x620c10) en el billboard común.
+inline constexpr std::int32_t RisingPuffParticle = 0x5f5;
 
 [[nodiscard]] bool IsSmokeParticle(std::int32_t type, std::int32_t subtype);
 
 // Después del prefijo de 0x53fe70 (Initialize, con la escala del pedido en +0x10). `clock` es el reloj del mundo
-// (0x5767b88) que la /17, /19, /20, /23 y /24 pasan por _ftol para el giro.
+// (0x5767b88) que la /17, /19, /20, /23 y /24 y la 0x5f5 pasan por _ftol para el giro.
 void CreateSmokeParticle(Particle& particle, Render::Models::CrtRandom& random, float clock);
 // Después de la vida y el movimiento comunes de 0x5446e0. La /36 pide la posición de su dueño mientras su vida es 23 o
 // más; sin él, MissingOwner.

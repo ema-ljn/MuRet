@@ -1010,7 +1010,8 @@ void CreateTheFire(Particle& particle, Render::Models::CrtRandom& random)
     case FireLongSwaySubtype:
         // 0x5412d2 (/7) y 0x54132c (/11, que vuelve a poner la vida 24): la velocidad (0; ((rand() & 31) − 16) ·
         // −0,1f; 0) y la escala ((rand() & 63) + 128) · 0,008f más la del pedido.
-        particle.life = FireLife;
+        if (subtype == FireLongSwaySubtype)
+            particle.life = FireLife;
         particle.velocity.x = 0.0f;
         {
             const int sway = random.Next() % SwaySpan - SwayCenter;
@@ -1354,7 +1355,7 @@ Core::Expected<void, ParticleError> StepTheFire(Particle& particle, Render::Mode
     {
     case 0:
     case FireSwaySubtype:
-        // 0x545894 (/0) y 0x54587c (/7, que antes deja un cuadro que lo común pisa).
+        // 0x545894 (/0) y 0x54587c (/7, que antes deja un cuadro que 0x54597f pisa: no se ve).
         if (particle.subtype == FireSwaySubtype)
             particle.field48 = std::bit_cast<float>(WrapSubtract(SwayLife, particle.life) / SwaySteps);
         particle.scale = F32(static_cast<double>(particle.scale) - FireShrink);
@@ -1390,7 +1391,7 @@ Core::Expected<void, ParticleError> StepTheFire(Particle& particle, Render::Mode
         particle.scale = F32(static_cast<double>(particle.scale) * Damp); // 0x545831
         break;
     case FireLongSwaySubtype:
-        // 0x5458a5: el cuadro de la /11, que lo común pisa, y la escala crece 0,04f.
+        // 0x5458a5: el cuadro de la /11, que 0x54597f pisa (no se ve), y la escala crece 0,04f.
         if (particle.life > LongSwayStart)
             particle.field48 = std::bit_cast<float>(WrapSubtract(LongSwayLife, particle.life) / LongSwaySteps);
         particle.scale = F32(static_cast<double>(particle.scale) + FireShrink);

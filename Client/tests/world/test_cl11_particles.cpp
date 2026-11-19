@@ -224,6 +224,64 @@ TEST(Cl11Particles, EveryFireSubtypeIsCreatedAndStepped)
         }
 }
 
+// 0x5412d2 y 0x54132c: la /7 y la /11 se mecen de costado y crecen sobre la escala del pedido; sólo la /11 vuelve a
+// escribir la vida (24, la misma). Cuatro rand(): la velocidad común (que pisan), el vaivén, la escala y el giro.
+TEST(Cl11Particles, TheSwayingFiresDrawTheirSwayAndTheirScale)
+{
+    for (const std::int32_t subtype : {7, 11})
+    {
+        auto particles = std::make_unique<Particles>();
+        CrtRandom random(Seed);
+        ASSERT_TRUE(particles->CreateChecked(0x5d9, {}, {}, glm::vec3(1.0f), subtype, 0.5f, 0.0f, random).HasValue());
+        Draws draws;
+        const Particle& fire = Only(*particles, 0);
+        static_cast<void>(draws.Next());
+        EXPECT_EQ(fire.life, 24) << subtype;
+        EXPECT_EQ(fire.velocity,
+                  glm::vec3(0.0f, F32(static_cast<double>((draws.Next() & 31) - 16) * D(0xbdcccccdu)), 0.0f))
+            << subtype;
+        EXPECT_EQ(fire.scale, F32(static_cast<double>((draws.Next() & 63) + 128) * D(0x3c03126fu) + 0.5)) << subtype;
+        EXPECT_EQ(fire.rotation, static_cast<float>(draws.Next() % 360)) << subtype;
+        EXPECT_EQ(random.State(), AfterDraws(Seed, 4).State()) << subtype;
+    }
+}
+
+// 0x5457a5: la subida + 0,004f y el caso del subtipo (0x548270): /5 y /6 bajan 0,04f y giran 5; /8 por 0,95f y gira 5;
+// /10 por 0,95f; /11 crece 0,04f. Lo común: z + subida · 10 y el cuadro (23 − vida) / 6.
+TEST(Cl11Particles, TheFireStepFollowsItsSubtypeTable)
+{
+    struct Case
+    {
+        std::int32_t subtype;
+        double scale;
+        double turn;
+    };
+    const double shrunk = 1.0 - D(0x3d23d70au);
+    const double damped = 1.0 * D(0x3f733333u);
+    for (const Case& value : {Case{5, shrunk, 5.0}, Case{6, shrunk, 5.0}, Case{8, damped, 5.0}, Case{10, damped, 0.0},
+                              Case{11, 1.0 + D(0x3d23d70au), 0.0}})
+    {
+        auto particles = std::make_unique<Particles>();
+        CrtRandom random(Seed);
+        ASSERT_TRUE(
+            particles->CreateChecked(0x5db, {}, {}, glm::vec3(1.0f), value.subtype, 1.0f, 0.0f, random).HasValue());
+        Particle& fire = Only(*particles, 0);
+        fire.scale = 1.0f;
+        fire.rotation = 10.0f;
+        fire.verticalSpeed = 0.5f;
+        fire.velocity = glm::vec3(0.0f);
+        fire.position = glm::vec3(0.0f, 0.0f, 100.0f);
+        fire.life = 20;
+        ASSERT_TRUE(Step(*particles, random, 0.0f).HasValue()) << value.subtype;
+        const float rise = F32(0.5 + D(0x3b83126fu));
+        EXPECT_EQ(fire.verticalSpeed, rise) << value.subtype;
+        EXPECT_EQ(fire.scale, F32(value.scale)) << value.subtype;
+        EXPECT_EQ(fire.rotation, F32(10.0 + value.turn)) << value.subtype;
+        EXPECT_EQ(fire.position.z, F32(static_cast<double>(rise) * 10.0 + 100.0)) << value.subtype;
+        EXPECT_EQ(std::bit_cast<std::int32_t>(fire.field48), (23 - 19) / 6) << value.subtype;
+    }
+}
+
 // 0x5410ea y 0x545750: la 5ca/1 vive 10 con la luz 0,5 y su paso la apaga con la vida y la agranda 0,1f.
 TEST(Cl11Particles, TheGrayThunderFadesWithItsLife)
 {

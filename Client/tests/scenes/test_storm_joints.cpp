@@ -205,21 +205,24 @@ TEST(StormJointsTest, TheFallingStarIsBornWithItsSpeed)
     EXPECT_EQ(star.random.State(), before.State());
 }
 
-// 0x53590e y 0x53c0c9..0x53c38b: en el aire avanza con la velocidad (el movimiento común), sube 10, agrega la cola,
-// sube otros 10 y avanza de nuevo girado por +0x3c; el sprite 0x60f de escala 2,5 con la luz y rand() % 360. La cola
-// común agrega otro tramo.
+// 0x53590e y 0x53c0c9..0x53c38b: en el aire avanza con la velocidad girada por los ángulos (el movimiento común), sube
+// 10, agrega la cola, sube otros 10 y avanza de nuevo girado por +0x3c, que no son los ángulos; el sprite 0x60f de
+// escala 2,5 con la luz y rand() % 360. La cola común agrega otro tramo.
 TEST(StormJointsTest, TheFallingStarSpeedsUpInTheAir)
 {
     FallingStar star;
     ASSERT_TRUE(star.Create().HasValue());
     JointState& joint = star.joints[0];
+    const glm::vec3 heading{30.0f, 0.0f, 45.0f};
+    joint.angles = heading;
     const float speed = joint.speed;
     CrtRandom expected = star.random;
 
     ASSERT_TRUE(star.Step().HasValue());
 
+    const auto first = Client::Render::Models::OriginalVectorRotate(
+        {0, -speed, 0}, Client::Render::Models::OriginalAngleMatrix(heading));
     const auto matrix = Client::Render::Models::OriginalAngleMatrix(star.angles);
-    const auto first = Client::Render::Models::OriginalVectorRotate({0, -speed, 0}, matrix);
     const glm::vec3 moved{F32(D(star.start.x) + D(first.x)), F32(D(star.start.y) + D(first.y)),
                           F32(D(star.start.z) + D(first.z))};
     const float faster = F32(D(F32(D(speed) + 10.0)) + 10.0);
@@ -276,6 +279,8 @@ TEST(StormJointsTest, TheFallingStarBouncesOnTheGround)
             EXPECT_EQ(wave.transform.position, joint.position);
             EXPECT_EQ(wave.transform.angles, joint.angles);
             EXPECT_EQ(wave.life, 10);
+            EXPECT_EQ(wave.light,
+                      glm::vec3(1.0f, std::bit_cast<float>(0x3f4ccccdu), std::bit_cast<float>(0x3e99999au)));
             EXPECT_EQ(wave.transform.scale,
                       F32((static_cast<double>(expected.Next() % 6) + 6.0) * D(std::bit_cast<float>(0x3dcccccdu))));
         }
@@ -284,6 +289,29 @@ TEST(StormJointsTest, TheFallingStarBouncesOnTheGround)
         static_cast<void>(expected.Next());
         EXPECT_EQ(star.random.State(), expected.State());
     }
+}
+
+// 0x53c190..0x53c19b: con la cola apagada (+0x9f2), la clave en 0 no suelta la onda (ni su rand()); el rebote sigue
+// igual.
+TEST(StormJointsTest, TheFallingStarWithoutItsTailBouncesWithoutAWave)
+{
+    FallingStar star;
+    star.ground = 5000.0;
+    ASSERT_TRUE(star.Create().HasValue());
+    JointState& joint = star.joints[0];
+    joint.tailEnabled = false;
+    joint.key = 0;
+    CrtRandom expected = star.random;
+
+    const auto stepped = star.Step();
+
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_EQ(joint.position.z, 4850.0f);
+    EXPECT_EQ(joint.key, 1);
+    EXPECT_EQ(joint.speed, -20.0f);
+    EXPECT_EQ(std::ranges::count_if(star.effects->Effects(), [](const auto& effect) { return effect.alive; }), 0);
+    static_cast<void>(expected.Next());
+    EXPECT_EQ(star.random.State(), expected.State());
 }
 
 // 0x53c295: sin la tabla de efectos, la onda corta; con la tabla llena, no hay onda ni su rand().

@@ -18,6 +18,7 @@
 #include "Scenes/HighEffectEmitters.h"
 #include "Scenes/JavelinEffect.h"
 #include "Scenes/KalimaMonsterEffects.h"
+#include "Scenes/RingEffects.h"
 #include "Scenes/SkullEffects.h"
 #include "Scenes/SkillHits.h"
 #include "Scenes/WaveEffects.h"
@@ -1225,7 +1226,8 @@ bool IsHighModelEffect(std::int16_t type)
            type == FallingStarEffect || type == PierPartEffect || type == DarkLordSkillEffect ||
            type == ManaRuneEffect || type == SparkEmitterEffect || type == BoltEmitterEffect ||
            type == PiercingGlowEffect || type == SkullEffect || type == SeamanEffect || type == FireBreathEffect ||
-           type == JavelinEffect || type == ThunderEffect || type == WaveEffect || type == PiercingEffect;
+           type == JavelinEffect || type == ThunderEffect || type == WaveEffect || type == PiercingEffect ||
+           type == RingEffect;
 }
 
 Core::Expected<std::optional<std::size_t>, std::string>
@@ -1311,6 +1313,9 @@ CreateHighModelEffect(const World::ModelEffectArguments& arguments, const HighEf
         break;
     case WaveEffect:
         begun = BeginTheWave(effect, arguments, context);
+        break;
+    case RingEffect:
+        begun = BeginTheRing(effect, context);
         break;
     default:
         break;
@@ -1411,6 +1416,9 @@ Core::Expected<void, std::string> StepHighModelEffect(World::ModelEffect& effect
         break;
     case ThunderEffect:
         stepped = StepTheThunder(effect, context);
+        break;
+    case RingEffect:
+        stepped = StepTheRing(effect, World::StepLuminosity(lightDraw, effect.life), context);
         break;
     default:
         break;

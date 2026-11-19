@@ -397,7 +397,7 @@ protected:
 // después de la lectura de +0x38e y de los rand() de su ayudante. Los de los magos se crean: el 0xcb/3 y el 0xcc/4 de
 // 0x439cd0 sin rand(), los tres 0xc2/7 de 0x43b18f con dos rand() % 200 y los cinco del alta cada uno; el anillo 0xc2/8
 // de 0x439bd0 (rand() % 360) corta en el joint 0x5f2/0 de su primer fuego (0x51b268, CL11 de los joints), después de
-// sus cuatro rand(). Afuera, los mismos tipos van a la cola.
+// sus cuatro rand(); los tres anillos 0x11b/1 de 0x439b20 se crean sin rand(). Afuera, los mismos tipos van a la cola.
 TEST_F(MonsterAttackCasesTest, TheKalimaMonstersLeaveWithoutTheTail)
 {
     constexpr int FireRingDraws = 4;
@@ -412,7 +412,7 @@ TEST_F(MonsterAttackCasesTest, TheKalimaMonstersLeaveWithoutTheTail)
          .skill = 1,
          .cut = "0x439ca6",
          .draws = SkillRead + 1 + FireRingDraws},
-        {.name = "0x91 con 0x37 en 13", .type = 0x91, .step = 13, .skill = 0x37, .cut = "0x439ba5", .draws = SkillRead},
+        {.name = "0x91 con 0x37 en 13", .type = 0x91, .step = 13, .skill = 0x37, .draws = SkillRead, .sounds = {0x1df}},
         {.name = "0x91 con 0xc8 en 13", .type = 0x91, .step = 13, .skill = 0xc8, .draws = SkillRead},
         {.name = "0x91 con 1 en 12", .type = 0x91, .step = 12, .skill = 1, .draws = SkillRead},
         {.name = "0x91 en la 4 y en 14", .type = 0x91, .step = 14, .action = 4, .draws = SkillRead + 1 + 0xf08},

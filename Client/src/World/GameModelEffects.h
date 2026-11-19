@@ -66,9 +66,11 @@ struct ModelEffectStepServices
     std::uint8_t* ownRecordDepth = nullptr;
     std::uint8_t* ownRecordCount = nullptr;
 };
-// 0x52bbf6..0x52bd9c: las tres emisiones del brillo 0x621 de cualquier subtipo (el /0 desde aquí, los demás desde
-// Scenes/HighModelEffects): dos rand() % 360 de los ángulos, el sprite 0x5fd con dos rand() más y la chispa 0x5c6/2 con
-// otro. Sin la tabla de sprites o de efectos, corta.
+// 0x52bbf6..0x52be6d: las tres emisiones del brillo 0x621 de cualquier subtipo (el /0 desde aquí, los demás desde
+// Scenes/HighModelEffects): dos rand() % 360 de los ángulos y, fuera del /1 y el /2, el sprite 0x5fd con dos rand() más
+// (escala · 0,3f) y la chispa 0x5c6/2 con otro (0x52be64). El /1 y el /2, con la vida par, el joint 0x614/3 del punto a
+// la posición (0x52bcc4, 0x52bd80) y, el /1 con la vida impar, la chispa (0x52bd02); después los dos, el sprite con
+// escala · 0,2f. Sin la tabla de sprites o de efectos, o sin el servicio de joints cuando lo pide, corta.
 [[nodiscard]] Core::Expected<void, std::string> EmitPiercingShotGlow(ModelEffect& effect, Particles& particles,
                                                                      Render::Models::CrtRandom& random,
                                                                      const ModelEffectStepServices& services);

@@ -52,8 +52,12 @@ Core::Expected<void, std::string> EmitPiercingShotGlow(ModelEffect& effect, Part
     constexpr int Emissions = 3;
     constexpr int FullCircle = 360;
     constexpr glm::vec3 Radius{0, 120, 0};
-    constexpr double SpriteScale = static_cast<double>(0.3f);
+    constexpr double SpriteScale = static_cast<double>(0.3f);                                  // 0x6b89dc
+    constexpr double HeldSpriteScale = static_cast<double>(std::bit_cast<float>(0x3e4ccccdu)); // 0x6b8854: 0,2f
     constexpr double ParticleScale = static_cast<double>(0.01f);
+    constexpr std::int32_t HeldSubtype = 1, ThrownSubtype = 2;
+    constexpr std::int32_t SparkJoint = 0x614, SparkJointSubtype = 3, JointKey = 10, NoJointTarget = -1;
+    constexpr float SparkJointSize = 10.0f; // 0x41200000
     if (services.sprites == nullptr || services.effects == nullptr)
         return Core::Unexpected(std::string("0x52bbf6: faltan los pools del brillo621/0"));
     const auto pool = services.effects->Effects();
@@ -71,12 +75,48 @@ Core::Expected<void, std::string> EmitPiercingShotGlow(ModelEffect& effect, Part
         glm::vec3 point{};
         for (int axis = 0; axis < 3; ++axis)
             point[axis] = F32(static_cast<double>(offset[axis]) + effect.transform.position[axis]);
-        const float rotation = static_cast<float>(random.Next() % FullCircle);
-        const float spriteScale = F32(static_cast<double>((random.Next() & 7) + 8) * SpriteScale);
-        static_cast<void>(
-            services.sprites->Create(0x5fd, effect.transform.position, spriteScale, effect.light, rotation, 0));
-        const float scale = F32(static_cast<double>(random.Next() % 50 + 10) * ParticleScale);
-        static_cast<void>(particles.CreatePiercingSpark(point, scale, owner, effect.transform.position));
+        const auto spark = [&]
+        {
+            const float scale = F32(static_cast<double>(random.Next() % 50 + 10) * ParticleScale);
+            static_cast<void>(particles.CreatePiercingSpark(point, scale, owner, effect.transform.position));
+        };
+        const auto sprite = [&](double step)
+        {
+            const float rotation = static_cast<float>(random.Next() % FullCircle);
+            const float spriteScale = F32(static_cast<double>((random.Next() & 7) + 8) * step);
+            static_cast<void>(
+                services.sprites->Create(0x5fd, effect.transform.position, spriteScale, effect.light, rotation, 0));
+        };
+        if (effect.subtype != HeldSubtype && effect.subtype != ThrownSubtype)
+        {
+            // 0x52bddd..0x52be64: el sprite y después la chispa.
+            sprite(SpriteScale);
+            spark();
+            continue;
+        }
+        if (effect.life % 2 == 0)
+        {
+            // 0x52bca5..0x52bcc4 y 0x52bd61..0x52bd80: con la vida par, 0x530860(0x614, punto, posición, ángulos, 3,
+            // 0, 10,0f, 10, 10, 0, −1), sin rand().
+            if (!services.joint)
+                return Core::Unexpected(std::format("{}: el brillo 0x621/{} pide el servicio de joints 0x614/3",
+                                                    effect.subtype == HeldSubtype ? "0x52bcc4" : "0x52bd80",
+                                                    effect.subtype));
+            glm::vec3 first = point;
+            glm::vec3 second = effect.transform.position;
+            const FishEffectRequest request{SparkJoint,     first,    second,   angles, SparkJointSubtype, nullptr,
+                                            SparkJointSize, JointKey, JointKey, 0,      NoJointTarget};
+            if (auto created = services.joint(request); !created.HasValue())
+                return Core::Unexpected(
+                    std::format("{}: {}", effect.subtype == HeldSubtype ? "0x52bcc4" : "0x52bd80", created.Error()));
+        }
+        else if (effect.subtype == HeldSubtype)
+        {
+            // 0x52bcce..0x52bd02: el /1 con la vida impar, la chispa antes que el sprite.
+            spark();
+        }
+        // 0x52bd0a..0x52bdd3: el sprite de los dos, con ((rand() & 7) + 8) · 0,2f (0x6b8854).
+        sprite(HeldSpriteScale);
     }
     return {};
 }

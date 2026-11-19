@@ -18,6 +18,7 @@
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "World/GameModelEffects.h"
+#include "World/IFishStepServices.h"
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
 #include "World/Sprites.h"
@@ -37,6 +38,8 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <tuple>
+#include <vector>
 
 // Client::Scenes::CreateHighModelEffect y StepHighModelEffect: las altas de 0x518cf0 y los pasos de 0x5208a0 de los
 // tipos altos de la CL11 (0x134, 0x13b, 0x141, 0x19f, 0x61c y 0xc1a). 06, "Los efectos con modelo de los tipos altos".
@@ -1918,14 +1921,25 @@ TEST(HighModelEffectsTest, TheThunderShiftsOverItsOwnerAndDropsBoltsAtTheEnd)
 }
 
 // 0x51efa5 y 0x52bb79: el 0x621/1 guarda la posición como partida y vive 20; su paso pone el origen del modelo de su
-// dueño en la partida, va al punto (0, 0, 10) del hueso 33 del dueño y hace las tres emisiones del /0 (cinco rand()
-// cada una). El /0 nace en World (vida 10) y su paso es de World.
+// dueño en la partida, va al punto (0, 0, 10) del hueso 33 del dueño y hace sus tres emisiones (0x52bbf6): con la vida
+// par (20, se resta después), dos rand() de los ángulos, el joint 0x614/3 (escala 10, clave 10) del punto a la posición
+// y el sprite 0x5fd de escala ((rand() & 7) + 8) · 0,2f, sin la chispa 0x5c6/2; con la vida impar, la chispa antes que
+// el sprite. Sin el servicio de joints corta en 0x52bcc4. El /0 nace en World (vida 10) y su paso es de World.
 TEST(HighModelEffectsTest, TheHeldPiercingGlowFollowsTheOwnersBone)
 {
     HighWorld tested;
     auto sprites = std::make_unique<Client::World::FrameSprites>();
     tested.services.sprites = sprites.get();
     tested.services.effects = &tested.world->Map().effects;
+    std::vector<std::tuple<std::int32_t, std::int32_t, float, std::int32_t, std::int32_t, std::int32_t, glm::vec3>>
+        joints;
+    tested.services.joint =
+        [&joints](const Client::World::FishEffectRequest& request) -> Client::Core::Expected<void, std::string>
+    {
+        joints.emplace_back(request.type, request.subtype, request.scale, request.key, request.skill, request.target,
+                            request.secondPosition);
+        return {};
+    };
     ActorState& owner = tested.world->Actors()[3];
     owner.type = 0x4a2;
     owner.bodyPose.assign(34, Client::Render::Models::BoneTransform(1.0f));
@@ -1942,8 +1956,32 @@ TEST(HighModelEffectsTest, TheHeldPiercingGlowFollowsTheOwnersBone)
     EXPECT_EQ(tested.world->ModelPlacement(0x4a2).origin, (glm::vec3{100, 200, 300}));
     EXPECT_EQ(glow.transform.position, Client::Scenes::ActorBonePoint(owner, 33, {0.0f, 0.0f, 10.0f}, *tested.world));
     EXPECT_EQ(glow.life, 19);
-    EXPECT_EQ(tested.Draws(), 1 + 3 * 5);
-    EXPECT_TRUE(sprites->Sprites()[2].alive);
+    EXPECT_EQ(tested.Draws(), 1 + 3 * 4);
+    ASSERT_TRUE(sprites->Sprites()[2].alive);
+    EXPECT_FALSE(sprites->Sprites()[3].alive);
+    ASSERT_EQ(joints.size(), 3u);
+    for (const auto& [type, subtype, scale, key, skill, target, second] : joints)
+    {
+        EXPECT_EQ(type, 0x614);
+        EXPECT_EQ(subtype, 3);
+        EXPECT_EQ(scale, 10.0f);
+        EXPECT_EQ(key, 10);
+        EXPECT_EQ(skill, 10);
+        EXPECT_EQ(target, -1);
+        EXPECT_EQ(second, glow.transform.position);
+    }
+    EXPECT_FALSE(std::ranges::any_of(tested.world->Particles().All(),
+                                     [](const Client::World::Particle& particle) { return particle.alive; }));
+    // Con la vida impar, la chispa 0x5c6/2 antes del sprite: un rand() más por emisión.
+    const int before = tested.Draws();
+    ASSERT_TRUE(StepHighModelEffect(glow, nullptr, tested.StepContext()).HasValue());
+    EXPECT_EQ(tested.Draws() - before, 1 + 3 * 5);
+    EXPECT_EQ(joints.size(), 3u);
+    EXPECT_EQ(std::ranges::count_if(tested.world->Particles().All(),
+                                    [](const Client::World::Particle& particle) { return particle.alive; }),
+              3);
+    tested.services.joint = {};
+    ASSERT_FALSE(StepHighModelEffect(glow, nullptr, tested.StepContext()).HasValue());
 
     ASSERT_TRUE(CreateHighModelEffect({.type = 0x621}, tested.Context()).HasValue());
     EXPECT_EQ(tested.Effect(1).life, 10);

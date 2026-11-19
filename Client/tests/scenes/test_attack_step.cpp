@@ -503,7 +503,8 @@ TEST(AttackStepTest, TheSparkOf0x39LeavesItsParticles)
     };
     EXPECT_EQ(count(0x5c6), 1);
     EXPECT_EQ(count(0x5c5), 20);
-    EXPECT_GE(DrawsSince(Seed, tested.random), CountingStep + SkillRead + 40);
+    // Los 140 de 0x52e740 (veinte vueltas de dos rand() y los cinco de la 0x5c5/0) y lo que sigue del paso.
+    EXPECT_GE(DrawsSince(Seed, tested.random), CountingStep + SkillRead + 20 * (2 + 5));
 }
 
 TEST(AttackStepTest, TheCutsAfterTheirDraws)

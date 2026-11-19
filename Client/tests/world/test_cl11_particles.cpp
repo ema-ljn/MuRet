@@ -324,6 +324,58 @@ TEST(Cl11Particles, TheThunderBoltTakesItsTextureAndAThirdRand)
     EXPECT_EQ(bolt.light, glm::vec3(F32(0.5 - D(0x3c23d70au))));
 }
 
+// 0x541693..0x54174b: la 5de/2 salta hacia adelante con 0x4e98d0 (ángulos 0: la y) t = rand() % 80 · rojo · 0,01f y
+// queda con la velocidad (0; (rojo − t) · 0,0666667f; 0). 0x5414a5: la /6 sube recta y escala con la del pedido.
+// 0x545d21: el paso de la /1 en la vida 10 suma 6,4f a la velocidad y baja la escala 0,15f; gira y apaga la luz 0,05f.
+TEST(Cl11Particles, TheFlameJumpsGrowsAndKicks)
+{
+    PortableParticleTrigonometry trigonometry;
+    const float clock = 0.0f;
+    {
+        auto particles = std::make_unique<Particles>();
+        CrtRandom random(Seed);
+        ASSERT_TRUE(particles
+                        ->CreateChecked(0x5de, {0, 0, 0}, {0, 0, 0}, glm::vec3(0.8f, 1, 1), 2, 1.0f, std::cref(clock),
+                                        random, 0, trigonometry)
+                        .HasValue());
+        Draws draws;
+        const Particle& flame = Only(*particles, 0);
+        EXPECT_EQ(flame.scale, F32(static_cast<double>((draws.Next() & 31) + 32) * D(0x3c23d70au) + 1.0));
+        const float jump = F32(static_cast<double>(draws.Next() % 80) * D(0x3f4ccccdu) * D(0x3c23d70au));
+        EXPECT_EQ(flame.position, glm::vec3(0.0f, jump, 0.0f));
+        EXPECT_EQ(flame.velocity,
+                  glm::vec3(0.0f, F32((D(0x3f4ccccdu) - static_cast<double>(jump)) * D(0x3d888889u)), 0.0f));
+    }
+    {
+        auto particles = std::make_unique<Particles>();
+        CrtRandom random(Seed);
+        ASSERT_TRUE(particles->CreateChecked(0x5de, {}, {}, glm::vec3(1.0f), 6, 2.0f, 0.0f, random).HasValue());
+        Draws draws;
+        const Particle& jet = Only(*particles, 0);
+        EXPECT_EQ(jet.velocity,
+                  glm::vec3(0.0f, 0.0f, F32(static_cast<double>((draws.Next() & 127) + 256) * D(0x3df5c28fu))));
+        EXPECT_EQ(jet.scale, F32(static_cast<double>((draws.Next() & 63) + 64) * 2.0 * D(0x3c23d70au)));
+    }
+    {
+        auto particles = std::make_unique<Particles>();
+        CrtRandom random(Seed);
+        ASSERT_TRUE(particles->CreateChecked(0x5de, {}, {}, glm::vec3(1.0f), 1, 1.0f, 0.0f, random).HasValue());
+        Particle& flame = Only(*particles, 0);
+        flame.life = 11;
+        flame.scale = 1.0f;
+        flame.velocity = glm::vec3(0.0f, 1.0f, 0.0f);
+        CrtRandom step(Seed);
+        ASSERT_TRUE(Step(*particles, step, 0.0f).HasValue());
+        Draws draws;
+        static_cast<void>(draws.Next());
+        static_cast<void>(draws.Next()); // el viento
+        EXPECT_EQ(flame.velocity.y, F32(1.0 + D(0x40cccccdu)));
+        EXPECT_EQ(flame.scale, F32(1.0 - D(0x3e19999au)));
+        EXPECT_EQ(flame.rotation, static_cast<float>(draws.Next() % 360));
+        EXPECT_EQ(flame.light, glm::vec3(F32(1.0 - D(0x3d4ccccdu))));
+    }
+}
+
 TEST(Cl11Particles, TheRingFireFollowsItsOwner)
 {
     auto particles = std::make_unique<Particles>();

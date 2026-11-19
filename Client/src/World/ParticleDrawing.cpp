@@ -198,6 +198,11 @@ Core::Expected<DrawSelection, ParticleDrawingError> SelectBranch(Particle& p, st
     case SparkParticle:
     case Particle67:
     case Particle68:
+    case FirstFlowerParticle:     // 0x5488f6 → 0x54889a (los bytes 0x12..0x14 de 0x548cf0), sin leer el subtipo.
+    case FirstFlowerParticle + 1: // 0x609
+    case LastFlowerParticle:
+    case FlareColumnParticle: // 0x5488f6 → 0x54889a, sin leer el subtipo.
+    case HoleParticle:        // 0x5488f6 → 0x54889a, sin leer el subtipo.
         // Destinos directos cerrados: no hay lectura de subtype en estas ramas.
         return DrawSelection{ParticleDrawKind::Common, false};
     default:

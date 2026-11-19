@@ -242,8 +242,9 @@ TEST_F(KalimaSiegeHelperTest, OtherTypesAndTheCastleOnesOutsideTheCastleGoOn)
     ExpectCut(Draw(24), "0x510a1e", "0x193");
 }
 
-// 0x43c17f..0x43c22a, el 0xc5: en la acción 1, con +0x60 en 0, la partícula 0x6ae del hueso 8 (CL11); +0x60 cuenta
-// de 0 a 4. Sin rand(), en Kalima y en Lorencia.
+// 0x43c17f..0x43c22a, el 0xc5: en la acción 1, con +0x60 en 0, el agujero 0x6ae del hueso 8 con sus ángulos, escala 3
+// y un rand() (0x543bf1: vida 30, luz 0,1f y giro rand() % 360); +0x60 cuenta de 0 a 4. Con la tabla llena, sin rand().
+// En Kalima y en Lorencia.
 TEST_F(KalimaSiegeHelperTest, TheKalimaGateCountsItsParticle)
 {
     for (const std::int32_t map : {24, 0})
@@ -257,17 +258,32 @@ TEST_F(KalimaSiegeHelperTest, TheKalimaGateCountsItsParticle)
         EXPECT_EQ(gate.dword60, 0);
 
         gate.animation.action = 1;
-        ExpectCut(Draw(map), "0x43c20d", "0x6ae");
-        EXPECT_EQ(gate.dword60, 0);
+        gate.angles = {0.0f, 0.0f, 90.0f};
+        result = Draw(map);
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        EXPECT_EQ(gate.dword60, 1);
+        CrtRandom draws{Seed};
+        const int turn = draws.Next() % 360;
+        EXPECT_EQ(m_random.State(), draws.State());
+        const Client::World::Particle& hole = m_particles->All()[0];
+        ASSERT_TRUE(hole.alive);
+        EXPECT_EQ(hole.type, 0x6ae);
+        EXPECT_EQ(hole.position, Bone(8));
+        EXPECT_EQ(hole.angles, gate.angles);
+        EXPECT_EQ(hole.scale, 3.0f);
+        EXPECT_EQ(hole.life, 30);
+        EXPECT_EQ(hole.light, glm::vec3(0.1f));
+        EXPECT_EQ(hole.rotation, static_cast<float>(turn));
+        EXPECT_FALSE(m_particles->All()[1].alive);
 
         FillParticles();
-        for (const std::int32_t next : {1, 2, 3, 4, 0, 1})
+        for (const std::int32_t next : {2, 3, 4, 0, 1})
         {
             result = Draw(map);
             ASSERT_TRUE(result.HasValue()) << result.Error();
             EXPECT_EQ(gate.dword60, next);
         }
-        EXPECT_EQ(m_random.State(), Seed);
+        EXPECT_EQ(m_random.State(), draws.State());
         EXPECT_TRUE(Sprites().empty());
     }
 }

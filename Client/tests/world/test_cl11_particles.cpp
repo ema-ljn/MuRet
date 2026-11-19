@@ -19,6 +19,7 @@
 
 #include <gtest/gtest.h>
 
+#include <array>
 #include <bit>
 #include <cmath>
 #include <cstddef>
@@ -643,6 +644,187 @@ TEST(Cl11Particles, TheKundunDebrisRisesAndWanders)
     ASSERT_TRUE(none.HasValue());
     EXPECT_FALSE(none.Value().has_value());
     EXPECT_EQ(full.State(), CrtRandom(Seed).State());
+}
+
+// 0x5446e0 con la altura del terreno (0x5f93c0) fija en `ground`.
+Client::Core::Expected<void, ParticleError> StepOverGround(Particles& particles, CrtRandom& random, double ground)
+{
+    PortableParticleTrigonometry trigonometry;
+    const float clock = 0.0f;
+    const std::int32_t map = 0;
+    const Client::World::ParticleTerrainHeight height = [ground](float, float) { return ground; };
+    return Client::World::StepParticlesChecked(particles, random, std::cref(clock), &map, trigonometry, height, {}, {},
+                                               {}, nullptr, {}, {}, {});
+}
+
+glm::vec3 Vec(std::uint32_t x, std::uint32_t y, std::uint32_t z)
+{
+    return {std::bit_cast<float>(x), std::bit_cast<float>(y), std::bit_cast<float>(z)};
+}
+
+// 0x542c4b..0x542d00 y 0x546da6..0x546f08: las flores 608..60a de la flecha 0xe1 (0x526a8b). Al nacer, cinco rand():
+// vida 21, escala 9 · 0,03f (pisa la del pedido), luz 1 y la velocidad (0,5; −0,9; −1,2). Su paso, después del
+// movimiento común (con ángulos en 0, la velocidad tal cual), suma a la velocidad tres derivas con la /0, o dos
+// vaivenes y una caída con la /1, la vuelve a sumar a la posición y gira con otro rand(). Los bits salen de x87.py,
+// aparte.
+TEST(Cl11Particles, TheNatureArrowFlowersDriftAndSway)
+{
+    struct Case
+    {
+        std::int32_t type;
+        std::int32_t subtype;
+        glm::vec3 velocity;
+        glm::vec3 position;
+    };
+    const std::array cases{
+        Case{0x608, 0, Vec(0x3f000000u, 0x3eccccccu, 0xc0000000u), Vec(0x447a4000u, 0x44f9f000u, 0x43946666u)},
+        Case{0x60a, 1, Vec(0x3e99999au, 0xbf59999au, 0xbf99999au), Vec(0x447a3333u, 0x44f9c800u, 0x4394ccccu)}};
+    for (const Case& probe : cases)
+    {
+        SCOPED_TRACE(probe.subtype);
+        auto particles = std::make_unique<Particles>();
+        CrtRandom random(Seed);
+        const auto made = particles->CreateChecked(probe.type, {1000.0f, 2000.0f, 300.0f}, {}, glm::vec3(0.5f),
+                                                   probe.subtype, 2.0f, 0.0f, random);
+        ASSERT_TRUE(made.HasValue());
+        ASSERT_EQ(made.Value(), std::optional<std::size_t>(0));
+        Particle& flower = Only(*particles, 0);
+        EXPECT_EQ(flower.texture, probe.type);
+        EXPECT_EQ(flower.life, 21);
+        EXPECT_EQ(std::bit_cast<std::uint32_t>(flower.scale), 0x3e8a3d70u);
+        EXPECT_EQ(flower.light, glm::vec3(1.0f));
+        EXPECT_EQ(flower.velocity, Vec(0x3f000000u, 0xbf666667u, 0xbf99999au));
+        EXPECT_EQ(std::bit_cast<std::uint32_t>(flower.field48), 0u);
+        EXPECT_EQ(random.State(), AfterDraws(Seed, 5).State());
+
+        ASSERT_TRUE(StepOverGround(*particles, random, 0.0).HasValue());
+        EXPECT_EQ(flower.life, 20);
+        EXPECT_EQ(flower.velocity, probe.velocity);
+        EXPECT_EQ(flower.position, probe.position);
+        EXPECT_EQ(flower.rotation, 2.0f);
+        EXPECT_EQ(std::bit_cast<std::uint32_t>(flower.field48), 0u);
+        EXPECT_EQ(random.State(), AfterDraws(Seed, 11).State());
+        // 0x548550: 0x5488f6 → 0x54889a, el billboard común con la textura del tipo.
+        const auto drawn = DrawOneParticle(flower, glm::vec2(32.0f), std::uint8_t{3});
+        ASSERT_TRUE(drawn.HasValue());
+        ASSERT_TRUE(drawn.Value().has_value());
+        EXPECT_EQ(drawn.Value()->texture, probe.type);
+    }
+}
+
+// 0x546eb8..0x546ee7: con el terreno por encima de la z, la flor se posa: la z en la altura, +0x48 en el entero 1 y la
+// velocidad en 0. Posada, ni deriva ni se mueve: sólo el viento y el rand() del giro; con el terreno a la par, nada.
+// Sin la altura corta (MissingTerrainHeight). Llena, nada ni rand().
+TEST(Cl11Particles, TheNatureArrowFlowerLandsOnTheGround)
+{
+    auto particles = std::make_unique<Particles>();
+    CrtRandom random(Seed);
+    ASSERT_TRUE(particles->CreateChecked(0x609, {1000.0f, 2000.0f, 300.0f}, {}, glm::vec3(1.0f), 0, 1.0f, 0.0f, random)
+                    .HasValue());
+    Particle& flower = Only(*particles, 0);
+    ASSERT_TRUE(StepOverGround(*particles, random, 500.0).HasValue());
+    EXPECT_EQ(flower.position, Vec(0x447a4000u, 0x44f9f000u, 0x43fa0000u));
+    EXPECT_EQ(std::bit_cast<std::uint32_t>(flower.field48), 1u);
+    EXPECT_EQ(flower.velocity, glm::vec3(0.0f));
+    EXPECT_EQ(flower.rotation, 2.0f);
+    EXPECT_EQ(random.State(), AfterDraws(Seed, 11).State());
+    ASSERT_TRUE(StepOverGround(*particles, random, 500.0).HasValue());
+    EXPECT_EQ(flower.position, Vec(0x447a4000u, 0x44f9f000u, 0x43fa0000u));
+    EXPECT_EQ(flower.rotation, 2.0f);
+    EXPECT_EQ(flower.life, 19);
+    EXPECT_EQ(random.State(), AfterDraws(Seed, 14).State());
+    const auto cut = Step(*particles, random, 0.0f);
+    ASSERT_FALSE(cut.HasValue());
+    EXPECT_EQ(cut.Error(), ParticleError::MissingTerrainHeight);
+
+    for (auto& particle : particles->All())
+        particle.alive = true;
+    CrtRandom full(Seed);
+    const auto none = particles->CreateChecked(0x608, {}, {}, glm::vec3(1.0f), 0, 1.0f, 0.0f, full);
+    ASSERT_TRUE(none.HasValue());
+    EXPECT_FALSE(none.Value().has_value());
+    EXPECT_EQ(full.State(), CrtRandom(Seed).State());
+}
+
+// 0x542d01..0x542d5f y 0x546f0d..0x546f51: la columna 62b/0 del círculo 0xc3 (0x523677 y 0x52384c). Nace con dos
+// rand(): vida 36, luz 1 y la velocidad (0; 0; 89 · 0,02f). Su paso la sube con la velocidad (movimiento común), deja
+// la escala en 0,2f y acelera 0,4f hasta 8; con menos de 5 de vida, la luz por 0,8333333f. Los demás subtipos sólo
+// tienen el prefijo (0x54304c) y ningún paso propio, sin rand(). Bits de x87.py.
+TEST(Cl11Particles, TheFlareColumnRisesFasterUpToEight)
+{
+    auto particles = std::make_unique<Particles>();
+    CrtRandom random(Seed);
+    ASSERT_TRUE(
+        particles->CreateChecked(0x62b, {10.0f, 20.0f, 100.0f}, {}, glm::vec3(0.5f), 0, 1.0f, 0.0f, random).HasValue());
+    Particle& column = Only(*particles, 0);
+    EXPECT_EQ(column.life, 36);
+    EXPECT_EQ(column.light, glm::vec3(1.0f));
+    EXPECT_EQ(column.scale, 1.0f);
+    EXPECT_EQ(column.velocity, Vec(0, 0, 0x3fe3d70au));
+    EXPECT_EQ(random.State(), AfterDraws(Seed, 2).State());
+    ASSERT_TRUE(Step(*particles, random, 0.0f).HasValue());
+    EXPECT_EQ(column.position, Vec(0x41200000u, 0x41a00000u, 0x42cb8f5cu));
+    EXPECT_EQ(std::bit_cast<std::uint32_t>(column.velocity.z), 0x400b851fu);
+    EXPECT_EQ(std::bit_cast<std::uint32_t>(column.scale), 0x3e4ccccdu);
+    EXPECT_EQ(column.light, glm::vec3(1.0f));
+    EXPECT_EQ(random.State(), AfterDraws(Seed, 4).State());
+    column.velocity.z = 7.9f;
+    column.life = 5;
+    ASSERT_TRUE(Step(*particles, random, 0.0f).HasValue());
+    EXPECT_EQ(column.velocity.z, 8.0f);
+    EXPECT_EQ(column.light, glm::vec3(std::bit_cast<float>(0x3f555555u)));
+    const auto drawn = DrawOneParticle(column, glm::vec2(32.0f), std::uint8_t{3});
+    ASSERT_TRUE(drawn.HasValue());
+    ASSERT_TRUE(drawn.Value().has_value());
+    EXPECT_EQ(drawn.Value()->texture, 0x62b);
+
+    auto others = std::make_unique<Particles>();
+    CrtRandom quiet(Seed);
+    ASSERT_TRUE(others->CreateChecked(0x62b, {1, 2, 3}, {}, glm::vec3(0.5f), 3, 1.5f, 0.0f, quiet).HasValue());
+    EXPECT_EQ(quiet.State(), CrtRandom(Seed).State());
+    const Particle& plain = Only(*others, 0);
+    EXPECT_EQ(plain.life, 2); // 0x53ff05: la vida del prefijo.
+    EXPECT_EQ(plain.scale, 1.5f);
+    EXPECT_EQ(plain.light, glm::vec3(0.5f));
+    ASSERT_TRUE(Step(*others, quiet, 0.0f).HasValue());
+    EXPECT_EQ(plain.scale, 1.5f);
+    EXPECT_EQ(plain.light, glm::vec3(0.5f));
+    EXPECT_EQ(quiet.State(), AfterDraws(Seed, 2).State());
+}
+
+// 0x543bf1..0x543c25 y 0x547d42..0x547dc1: el agujero 6ae de la puerta 0xc5 de Kalima (0x43c20d), de cualquier
+// subtipo. Nace con un rand(): vida 30, luz 0,1f y giro 136. Su paso gira 5; de 29 a 20 de vida la luz por 1,1f; debajo
+// de 20 la escala menos 0,08f y, debajo de 10, además la luz por 0,7692308f. Bits de x87.py.
+TEST(Cl11Particles, TheKalimaGateHoleTurnsGlowsAndShrinks)
+{
+    auto particles = std::make_unique<Particles>();
+    CrtRandom random(Seed);
+    ASSERT_TRUE(particles->CreateChecked(0x6ae, {1, 2, 3}, {}, glm::vec3(1.0f), 4, 3.0f, 0.0f, random).HasValue());
+    Particle& hole = Only(*particles, 0);
+    EXPECT_EQ(hole.life, 30);
+    EXPECT_EQ(hole.rotation, 136.0f);
+    EXPECT_EQ(hole.light, glm::vec3(std::bit_cast<float>(0x3dcccccdu)));
+    EXPECT_EQ(hole.scale, 3.0f);
+    EXPECT_EQ(random.State(), AfterDraws(Seed, 1).State());
+    ASSERT_TRUE(Step(*particles, random, 0.0f).HasValue());
+    EXPECT_EQ(hole.life, 29);
+    EXPECT_EQ(hole.rotation, 141.0f);
+    EXPECT_EQ(hole.light, glm::vec3(std::bit_cast<float>(0x3de147afu)));
+    EXPECT_EQ(hole.scale, 3.0f);
+    EXPECT_EQ(random.State(), AfterDraws(Seed, 3).State());
+    hole.life = 20;
+    hole.light = glm::vec3(std::bit_cast<float>(0x3dcccccdu));
+    ASSERT_TRUE(Step(*particles, random, 0.0f).HasValue());
+    EXPECT_EQ(std::bit_cast<std::uint32_t>(hole.scale), 0x403ae148u);
+    EXPECT_EQ(hole.light, glm::vec3(std::bit_cast<float>(0x3dcccccdu)));
+    hole.life = 10;
+    ASSERT_TRUE(Step(*particles, random, 0.0f).HasValue());
+    EXPECT_EQ(std::bit_cast<std::uint32_t>(hole.scale), 0x4035c290u);
+    EXPECT_EQ(hole.light, glm::vec3(std::bit_cast<float>(0x3d9d89d9u)));
+    const auto drawn = DrawOneParticle(hole, glm::vec2(32.0f), std::uint8_t{3});
+    ASSERT_TRUE(drawn.HasValue());
+    ASSERT_TRUE(drawn.Value().has_value());
+    EXPECT_EQ(drawn.Value()->texture, 0x6ae);
 }
 
 // 0x543b82..0x543be5: la fanta 0x6ec/0x6ed de cualquier subtipo nace como la /0 (vida 24, la /6 vida

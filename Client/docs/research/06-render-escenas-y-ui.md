@@ -12066,8 +12066,14 @@ menos), que no mira el byte vivo: corre también si el choque la apagó.
   ángulos, (0,4f; 1; 0,2f), 5, 0,2f, 0)` (corta en la primera, `0x526961`, CL11); después, el choque.
 - `0xe1` (`0x52697e`): dos sprites `0x5d5` (`0x5491e0`, escalas 0,5 y 1, la luz
   `+0xf4`, el giro ±`ftol(reloj)` · 0,1f), cuatro veces tres `rand()` del punto ((& 31) − 16; (& 63) − 32;
-  (& 31) − 16) y `0x608 + rand() % 3` (corta en `0x526a8b`, CL11), la y de los ángulos + 30, la luz (luz · 0,6f;
-  · 0,8f; · 0,8f) y el choque.
+  (& 31) − 16) y la flor `0x608 + rand() % 3` (`Skill\flower1..3.tga`) de 1 con los ángulos y la luz `+0xf4`
+  (`0x526a8b`; CL11, lote de las partículas, quinta vuelta: nace en `0x542c4b` sin leer el subtipo, con cinco `rand()`:
+  vida `rand() % 10 + 15`, luz 1, escala `(rand() % 8 + 4)` · 0,03f y la velocidad ((r % 32 − 16) · 0,1f; ídem;
+  (r % 32 − 32) · 0,1f); su paso, `0x546da6`, después del movimiento común: mientras `+0x48` está en 0, la /0 suma
+  tres derivas (r % 32 − 16) · 0,1f a la velocidad y la /1 dos vaivenes (r % 8 − 4) · 0,05f y resta (r % 8) · 0,05f
+  a la z, y la posición vuelve a sumar la velocidad sin girar; con la altura del terreno (`0x5f93c0`) por encima de
+  la z, se posa: la z en la altura, `+0x48` en el entero 1 y la velocidad en 0; siempre gira `rand() % 16`; al
+  billboard común, `0x54889a`), la y de los ángulos + 30, la luz (luz · 0,6f; · 0,8f; · 0,8f) y el choque.
 - `0xe3` (`0x526c56`): los dos sprites, cuatro veces el punto (& 15) − 8 y la burbuja `0x607`/1 de 1 (`0x526d5f`,
   tercera vuelta del lote de partículas), la `0x5f2`/0, la luz verde y el choque.
 - `0xe2` (`0x524237`): dos sprites `0x5ac` con (1; 0,6f; 0,4f) y escalas 1 y 2, cuatro veces el punto y la
@@ -14169,7 +14175,7 @@ la acción 6.
 
 | Tipo | Qué hace, en orden |
 | --- | --- |
-| `0xc5` (la puerta de Kalima) | en la acción 1: con `+0x60` en 0, la partícula `0x6ae/0` a 3 con (1; 0,1; 0,1) del hueso 8 (`0x43c20d`, Q-C878); `+0x60` sube 1 y desde 5 vuelve a 0 |
+| `0xc5` (la puerta de Kalima) | en la acción 1: con `+0x60` en 0, la partícula `0x6ae/0` a 3 con (1; 0,1; 0,1) del hueso 8 (`0x43c20d`, Q-C878; CL11, lote de las partículas, quinta vuelta: `0x543bf1` le da vida 30, la luz 0,1f y el giro `rand() % 360` sin leer el subtipo; su paso, `0x547d42`, gira 5, de 29 a 20 de vida aclara × 1,1f, debajo de 20 se achica 0,08f y debajo de 10 además se apaga × 0,7692308f; al billboard común); `+0x60` sube 1 y desde 5 vuelve a 0 |
 | `0x191` | fuera de la 6, cinco vueltas por los huesos 74..78 y 62..66 (la luz sube 0,25 por vuelta y la escala baja 0,2 desde 1,5): dos `0x5ac` por hueso y `rand() & 1` en 0 da la burbuja `0x607/1` de 1 en el hueso (`0x43c332`, `0x43c3bf`, tercera vuelta del lote de partículas); después, con `+0x68`, el `0x5ca` (0,2) y el `0x5fd` (1) del punto (2, 2, 0) del hueso 8 y de los huesos 22 y 15. Siempre, los `0x5ac` de los huesos 51..55 (2) y 29..33 (1,5) |
 | `0x192` (Kundun) | muerto, la mano izquierda sin ítem; si no, dos `0x5ca` rojos (huesos 8 y 9), el `0x62b` del hueso 100 (en la acción 5, también el `0x62d` con el pulso de `+0x8a` y `+0x89`, Q-C879) y `rand() & 1` en 0 da el humo `0x5f2/13` en el hueso 100 con la luz 1 y la escala del pulso (1 fuera de la 5; `0x43c9cb`, tercera vuelta del lote de partículas). En la 5: con el frame debajo de 2 y `+0x60` distinto de 100, `+0x60` en 100 y el sonido `0x1db`; con `+0x60` en 100 pasado el 4, `+0x60` en `0x65` y, en Kalima, `0x437860` en su celda lógica (`+0x420` y después `+0x41c`, con sus `rand()`; radio 2 y 2.000); pasado el 3, el temblor `0x7d325c8 = ((rand() & 7) − 8) · 0,2`; en Kalima entre el 3 y el 14, dos efectos 9 (`0x518cf0`) a `rand() % 360` grados y `rand() % 600 + 200` de distancia, 800 más arriba. En la 3 y la 4 (`0x43cfb8..0x43dc81`), con `+0x60` de 100 a `0x67`: el efecto `0x128` (`Scenes::CreateTheKundunCall`: el /0 en la x y la y del objeto con la z del hueso 49, `0x43d051`; el /1 en el hueso 49 a 400 de altura, `0x43d0fd`; los dos con los ángulos y la luz del objeto, sin dueño, clave −1), los 24 joints `0x6ee/14` (`0x43d19f`), `0x437860` en Kalima y, en la 4 pasado el 6, el temblor `((rand() & 15) − 16) · 0,1` |
 | `0x193` | fuera de la 6, los `0x5ca`, `0x5fd` y `0x5ac` de los huesos 6, 13, 19, 23, 25, 31 y 33 |
@@ -15620,6 +15626,13 @@ Los llamadores portados (cada alta con su dirección en el error):
   meteoro de dueño (`+0x108`), la clave 30, los ángulos en 0 y la luz `(0; 0,5; 0)`, sin `rand()` propio; después el
   polvo y las piedritas de su subtipo. `Scenes::WizardEffectServicesOf` lo da (`otherEffect`) con
   `World::CreateBlastModelEffect` sobre la tabla del mundo, y el dueño tiene que ser un lugar de esa tabla.
+- Las columnas del círculo `0xcc/3` y `/4`: el /3 con más de 30 de vida y `rand() & 1` en 0, el /4 con `rand() % 5`
+  en 0 y más de 5 de vida, sacan el alcance y el giro y dejan la columna `0x62b/0` (`Effect\flareBlue.jpg`) de 1 con
+  sus ángulos y su luz (`0x523677`, `0x52384c`; CL11, lote de las partículas, quinta vuelta: `0x542d01` le da vida
+  `rand() % 10 + 30`, luz 1 y la velocidad (0; 0; (`rand() % 100`) · 0,02f); su paso, `0x546f0d`, después del
+  movimiento común, deja la escala en 0,2f y acelera 0,4f hasta 8 (`fcomp`: más de 8 o NaN, 8) y, con menos de 5 de
+  vida, apaga × 0,8333333f (`0x547fc9`); los demás subtipos del `0x62b` sólo tienen el prefijo, `0x54304c`, y ningún
+  paso propio; al billboard común), y después el joint `0x62b/0x13` 600 más arriba (`0x5236ce`, `0x523898`).
 - El círculo oculto (`0xcb/1`, `0x5231be..0x5232f8`): con la vida por encima de 44 − `+0x1bc` del dueño suelta 36
   joints `0x613/6` en abanico (`0x52328c`), cada uno después de su `rand() % 10` (`0x52321f`): los ángulos
   `(−10, 0, (r + 10) · i)`, el punto `(x, y, z + 100)` en las dos posiciones, el efecto de dueño, ancho 60, la clave 0,

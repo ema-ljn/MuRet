@@ -925,6 +925,53 @@ TEST(WizardModelEffectsTest, TheOuterCircleShakesTheCameraAndGlows)
     EXPECT_EQ(world.AliveOf(0xc8) + world.AliveOf(0xc9), chip ? 1U : 0U);
 }
 
+// 0x523640..0x52384c: el círculo 0xcc/3 (con más de 30 de vida y rand() & 1 en 0) y el /4 (rand() % 5 en 0 y más de 5
+// de vida) sacan el alcance y el giro y dejan la columna 0x62b/0 de 1 con sus ángulos y su luz (0x523677, 0x52384c;
+// 0x542d01: dos rand() más, vida rand() % 10 + 30, luz 1 y la velocidad (0; 0; (rand() % 100) · 0,02f)); después el
+// joint 0x62b/0x13 600 más arriba. Se repite en un pool gemelo con el mismo CrtRandom.
+TEST(WizardModelEffectsTest, TheOuterCircleRaisesFlareColumns)
+{
+    for (const std::int32_t subtype : {3, 4})
+    {
+        SCOPED_TRACE(subtype);
+        bool found = false;
+        for (std::uint32_t seed = 1; seed < 64 && !found; ++seed)
+        {
+            Harness world;
+            CrtRandom random(seed);
+            ModelEffect& circle = world.At(Create(world, Arguments(0xcc, subtype), random));
+            circle.life = 100;
+            CrtRandom oracle = random;
+            static_cast<void>(oracle.Next());
+            const bool column = subtype == 3 ? (oracle.Next() & 1) == 0 : oracle.Next() % 5 == 0;
+            if (!column)
+                continue;
+            found = true;
+            static_cast<void>(oracle.Next());
+            static_cast<void>(oracle.Next());
+            auto twin = std::make_unique<Client::World::Particles>();
+            const auto replayed = twin->CreateChecked(0x62b, circle.transform.position, circle.transform.angles,
+                                                      circle.light, 0, 1.0f, 1000.0f, oracle);
+            ASSERT_TRUE(replayed.HasValue() && replayed.Value() == std::optional<std::size_t>{0});
+            ASSERT_TRUE(Client::World::StepWizardModelEffect(circle, nullptr, random, world.Services()).HasValue());
+            EXPECT_EQ(random.State(), oracle.State());
+            EXPECT_EQ(world.ParticlesOf(0x62b, 0), 1U);
+            const Client::World::Particle& flare = world.particles->All()[0];
+            const Client::World::Particle& reference = twin->All()[0];
+            EXPECT_EQ(flare.angles, reference.angles);
+            EXPECT_EQ(flare.light, glm::vec3(1.0f));
+            EXPECT_EQ(flare.life, reference.life);
+            EXPECT_EQ(flare.velocity, reference.velocity);
+            EXPECT_EQ(flare.scale, 1.0f);
+            ASSERT_EQ(world.joints.size(), 1U);
+            EXPECT_EQ(world.joints[0].type, 0x62b);
+            EXPECT_EQ(world.joints[0].subtype, 0x13);
+            EXPECT_EQ(world.joints[0].first.z, F32(static_cast<double>(flare.position.z) + 600.0));
+        }
+        EXPECT_TRUE(found);
+    }
+}
+
 TEST(WizardModelEffectsTest, TheLightningCircleBrightensAndDims)
 {
     Harness world;

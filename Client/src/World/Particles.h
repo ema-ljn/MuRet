@@ -107,6 +107,16 @@ inline constexpr std::int32_t Particle68 = 0x68;
 // /3; con su personaje en ciertas acciones pasa a ser la /1, que sólo se apaga (0x54735c).
 inline constexpr std::int32_t OrbitParticle = 0x60f;
 inline constexpr std::int32_t OrbitLife = 60;
+// Las flores 608, 609 y 60a (Skill\flower1..3.tga) de la flecha 0xe1 (0x526a8b): nacen en 0x542c4b sin leer el
+// subtipo y su paso (0x546da6) las deja caer, la /0 y la /1 con su deriva, hasta el terreno (0x5f93c0), girando.
+inline constexpr std::int32_t FirstFlowerParticle = 0x608;
+inline constexpr std::int32_t LastFlowerParticle = 0x60a;
+// La columna 62b/0 (Effect\flareBlue.jpg) del círculo 0xc3 (0x523677 y 0x52384c): nace en 0x542d01 y sube cada vez
+// más rápido (0x546f0d). Las demás de 0x53fe70 (0x54304c) no se portan.
+inline constexpr std::int32_t FlareColumnParticle = 0x62b;
+// El agujero 6ae (Effect\Hole.jpg) de la puerta 0xc5 de Kalima (0x43c20d): nace en 0x543bf1 y gira, se achica y se
+// apaga con la vida (0x547d42), sin leer el subtipo.
+inline constexpr std::int32_t HoleParticle = 0x6ae;
 // Las de los objetos y el agua de Crywolf (el mapa 34): el humo 5f2/21 (0x542370, que pasa por el paso de la 5f2/2,
 // 0x5466c3), la nube 622/9 (0x54330a, con el paso de la 622/8, 0x5476a8), la órbita 60f/10 del efecto 0x61d/3
 // (0x542ed0, que se queda en su partida, 0x547297) y la burbuja 698/0 (Effect\coll.jpg) del agua (0x543152 y
@@ -265,7 +275,8 @@ public:
     // 0x53fe70(tipo, posición, ángulos, luz, subtipo, escala, dueño) en el primer lugar libre, con el reloj
     // del mundo (DAT_05767b88, en ms) y el rand() de la CRT. Con los 3.000 llenos no se crea ni saca
     // rand(). Se aceptan5ca/0, 5e4 (cualquier subtipo), 5f2/0,2,11,21,33, 5f3/0,1, 5f6/0,1, 5ed/0, 5c6/1,5,9,11,
-    // 622/6,8,9,10, 5d9/0..3,5,8, 5dc/12, 607/0, 67/0, 68/0, 698/0, 6ab/0,1 y 6ac/0,1; la órbita 60f/0,3,4,10 pide el
+    // 622/6,8,9,10, 5d9/0..3,5,8, 5dc/12, 607/0, 67/0, 68/0, 698/0, 6ab/0,1, 6ac/0,1, 608..60a y 6ae (cualquier
+    // subtipo) y 62b/0; la órbita 60f/0,3,4,10 pide el
     // overload con la trigonometría. Create es la compatibilidad login; Core usa CreateChecked para distinguir errores
     // de pool lleno. La neblina consume cinco rand() y conserva +0x60 del uso anterior del lugar. 622/8 consume siete
     // rand().

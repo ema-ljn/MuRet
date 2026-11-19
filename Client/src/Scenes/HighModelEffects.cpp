@@ -1224,7 +1224,7 @@ bool IsHighModelEffect(std::int16_t type)
            type == FallingStarEffect || type == PierPartEffect || type == DarkLordSkillEffect ||
            type == ManaRuneEffect || type == SparkEmitterEffect || type == BoltEmitterEffect ||
            type == PiercingGlowEffect || type == SkullEffect || type == SeamanEffect || type == FireBreathEffect ||
-           type == JavelinEffect;
+           type == JavelinEffect || type == ThunderEffect;
 }
 
 Core::Expected<std::optional<std::size_t>, std::string>
@@ -1298,6 +1298,9 @@ CreateHighModelEffect(const World::ModelEffectArguments& arguments, const HighEf
         break;
     case JavelinEffect:
         begun = BeginTheJavelin(effect, context);
+        break;
+    case ThunderEffect:
+        BeginTheThunder(effect);
         break;
     default:
         break;
@@ -1392,6 +1395,9 @@ Core::Expected<void, std::string> StepHighModelEffect(World::ModelEffect& effect
         break;
     case JavelinEffect:
         stepped = StepTheJavelin(effect, context);
+        break;
+    case ThunderEffect:
+        stepped = StepTheThunder(effect, context);
         break;
     default:
         break;

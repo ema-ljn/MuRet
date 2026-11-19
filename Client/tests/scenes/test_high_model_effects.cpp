@@ -1563,6 +1563,51 @@ TEST(HighModelEffectsTest, TheJavelinHuntsItsOwnerAndTrailsFire)
     EXPECT_EQ(tested.Draws(), 1 + 1 + 2);
 }
 
+// 0x51ed79 y 0x52b4a7: el 0x615 vive 10 y, con dueño y el subtipo 0, se corre (−25, −80, 0) girado por los ángulos del
+// dueño. Su paso no hace nada hasta que le quedan menos de 5 pasos; con la vida par, tres rand() (x e y de rand() % 64
+// − 32 y la escala rand() % 10 + 50) y el joint 0x615/5, que MuRet no tiene: con lugar corta (0x52b560); con los joints
+// llenos sigue. La cola no lo mueve (sin velocidad) ni lo dibuja.
+TEST(HighModelEffectsTest, TheThunderShiftsOverItsOwnerAndDropsBoltsAtTheEnd)
+{
+    HighWorld tested;
+    ActorState& owner = tested.world->Actors()[3];
+    owner.angles = {0, 0, 90};
+    const glm::vec3 origin{100, 200, 300};
+    ASSERT_TRUE(
+        CreateHighModelEffect({.type = 0x615, .position = origin, .owner = &owner}, tested.Context()).HasValue());
+    ModelEffect& thunder = tested.Effect(0);
+    const glm::vec3 shifted = SumOf(TurnedBy({-25, -80, 0}, owner.angles), origin);
+    EXPECT_EQ(thunder.life, 10);
+    EXPECT_EQ(thunder.transform.position, shifted);
+    EXPECT_EQ(tested.Draws(), 0);
+    for (const std::int32_t subtype : {1, 2})
+    {
+        HighWorld other;
+        ASSERT_TRUE(CreateHighModelEffect({.type = 0x615, .position = origin, .subtype = subtype, .owner = &owner},
+                                          other.Context())
+                        .HasValue());
+        EXPECT_EQ(other.Effect(0).transform.position, origin);
+    }
+    HighWorld lonely;
+    ASSERT_TRUE(CreateHighModelEffect({.type = 0x615, .position = origin}, lonely.Context()).HasValue());
+    EXPECT_EQ(lonely.Effect(0).transform.position, origin);
+    EXPECT_EQ(lonely.Effect(0).life, 10);
+
+    for (int step = 0; step < 6; ++step)
+        ASSERT_TRUE(StepHighModelEffect(thunder, nullptr, tested.StepContext()).HasValue());
+    EXPECT_EQ(thunder.life, 4);
+    EXPECT_EQ(thunder.transform.position, shifted);
+    EXPECT_EQ(tested.Draws(), 6);
+    EXPECT_TRUE(HasError(StepHighModelEffect(thunder, nullptr, tested.StepContext()), "0x52b560"));
+    EXPECT_EQ(tested.Draws(), 6 + 1 + 3);
+    tested.FillTheJoints();
+    ASSERT_TRUE(StepHighModelEffect(thunder, nullptr, tested.StepContext()).HasValue());
+    EXPECT_EQ(tested.Draws(), 6 + 4 + 4);
+    ASSERT_TRUE(StepHighModelEffect(thunder, nullptr, tested.StepContext()).HasValue());
+    EXPECT_EQ(tested.Draws(), 6 + 4 + 4 + 1);
+    EXPECT_EQ(thunder.life, 2);
+}
+
 // 0x51efa5 y 0x52bb79: el 0x621/1 guarda la posición como partida y vive 20; su paso pone el origen del modelo de su
 // dueño en la partida, va al punto (0, 0, 10) del hueso 33 del dueño y hace las tres emisiones del /0 (cinco rand()
 // cada una). El /0 nace en World (vida 10) y su paso es de World.

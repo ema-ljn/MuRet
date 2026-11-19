@@ -1,6 +1,9 @@
 #include "Scenes/KalimaMonsterEffects.h"
 
 #include "Core/Expected.h"
+#include "Render/Models/Cloth.h"
+#include "Render/Models/OriginalRotation.h"
+#include "Scenes/ActorState.h"
 #include "Scenes/HighEffectEmitters.h"
 #include "Scenes/HighModelEffects.h"
 #include "World/GameModelEffects.h"
@@ -13,7 +16,8 @@
 #include <cstdint>
 #include <string>
 
-// Cotejado con el PE c32bbd5f: 0x51c884 (el alta del 0x11a) y 0x5266ea (su paso).
+// Cotejado con el PE c32bbd5f: 0x51c884 (el alta del 0x11a), 0x5266ea (su paso), 0x51ed79 (el alta del 0x615) y
+// 0x52b4a7 (su paso).
 namespace Client::Scenes
 {
 namespace
@@ -79,5 +83,37 @@ Core::Expected<void, std::string> StepTheSeaman(World::ModelEffect& effect, floa
             return Core::Unexpected(made.Error());
     }
     return World::AddDynamicLight(context.services.lighting, effect.transform.position, color, LightRadius, "0x5267ba");
+}
+
+void BeginTheThunder(World::ModelEffect& effect)
+{
+    constexpr std::int32_t Life = 10;                 // 0x51ed79
+    constexpr glm::vec3 Offset{-25.0f, -80.0f, 0.0f}; // 0x51eda2..0x51edb0
+    effect.life = Life;
+    const auto* owner = static_cast<const ActorState*>(effect.ownerContext);
+    if (owner == nullptr || effect.subtype != 0)
+        return;
+    const glm::vec3 step =
+        Render::Models::OriginalVectorRotate(Offset, Render::Models::OriginalAngleMatrix(owner->angles));
+    glm::vec3& position = effect.transform.position;
+    position = {F32(D(step.x) + D(position.x)), F32(D(step.y) + D(position.y)), F32(D(step.z) + D(position.z))};
+}
+
+Core::Expected<void, std::string> StepTheThunder(World::ModelEffect& effect, const HighEffectStepContext& context)
+{
+    constexpr std::int32_t BoltLife = 5; // edi, 0x5208df
+    constexpr int Spread = 64;
+    constexpr double Centre = 32.0; // 0x6b883c
+    constexpr int ScaleSpan = 10;
+    constexpr double ScaleBase = 50.0; // 0x6b86b0
+    constexpr std::int32_t Bolt = 0x615, BoltSubtype = 5;
+    if (effect.life >= BoltLife || effect.life % 2 != 0 || effect.subtype != 0)
+        return {};
+    glm::vec3 point = effect.transform.position;
+    point.x = F32(static_cast<double>(context.random.Next() % Spread) - Centre + D(point.x));
+    point.y = F32(static_cast<double>(context.random.Next() % Spread) - Centre + D(point.y));
+    const float scale = F32(static_cast<double>(context.random.Next() % ScaleSpan) + ScaleBase);
+    return CreateHighJoint(context.world, context.random, Bolt, point, point, effect.transform.angles, BoltSubtype,
+                           nullptr, scale, 0x52b560);
 }
 } // namespace Client::Scenes

@@ -374,12 +374,21 @@ Core::Expected<Helped, std::string> StepKalima(ActorState& actor, const KindCase
         const std::uint8_t skill = ReadTheSkill(actor, context.random);
         if (auto stepped = StepTheKalimaSkill(actor, skill, slot, context); !stepped.HasValue())
             return Core::Unexpected(stepped.Error());
-        // 0x43ab04..0x43ab42: en la 4 y en 14 (+0x381 después del switch), el terremoto 0xfa y el 0x615 sobre c.
+        // 0x43ab04..0x43ab6b: en la 4 y en 14 (+0x381 después del switch), el terremoto 0xfa y 0x518cf0(0x615, c +
+        // 0x10, c + 0x1c, c + 0xf4, 0, c, −1, 0, 1, 0, 0), el que suelta rayos sobre c (Scenes::KalimaMonsterEffects);
+        // con la tabla llena, sin él. Después, +0x381 en 15.
         if (found.address == 0x43a872 && action == SecondAttack && actor.byte381 == FourteenthStep)
         {
             static_cast<void>(CreateKalimaEarthquake(actor, 1, context));
-            if (HasFreeModelEffect(context))
-                return CutAt(0x43ab5f, "el efecto 0x615 tras el terremoto 0xfa (CL11)", actor, slot);
+            if (auto created = CreateHighModelEffect({.type = ThunderEffect,
+                                                      .position = actor.position,
+                                                      .angles = actor.angles,
+                                                      .light = actor.light,
+                                                      .owner = &actor,
+                                                      .byte88 = 1},
+                                                     HighContextOf(context));
+                !created.HasValue())
+                return Core::Unexpected(std::format("0x43ab5f: {}", created.Error()));
             actor.byte381 = FifteenthStep;
             return Helped::Exit;
         }

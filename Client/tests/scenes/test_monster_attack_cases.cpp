@@ -382,12 +382,7 @@ TEST_F(MonsterAttackCasesTest, TheKalimaMonstersLeaveWithoutTheTail)
         {.name = "0x91 con 0x37 en 13", .type = 0x91, .step = 13, .skill = 0x37, .cut = "0x439ba5", .draws = SkillRead},
         {.name = "0x91 con 0xc8 en 13", .type = 0x91, .step = 13, .skill = 0xc8, .cut = "0x439d09", .draws = SkillRead},
         {.name = "0x91 con 1 en 12", .type = 0x91, .step = 12, .skill = 1, .draws = SkillRead},
-        {.name = "0x91 en la 4 y en 14",
-         .type = 0x91,
-         .step = 14,
-         .action = 4,
-         .cut = "0x43ab5f",
-         .draws = SkillRead + 1 + 0xf08},
+        {.name = "0x91 en la 4 y en 14", .type = 0x91, .step = 14, .action = 4, .draws = SkillRead + 1 + 0xf08},
         {.name = "0x93 en la 4 y en 14", .type = 0x93, .step = 14, .action = 4},
         {.name = "0x93 en la 3 y en 14", .type = 0x93, .step = 14},
         {.name = "0x94 con 0x11 en 14", .type = 0x94, .step = 14, .skill = 0x11, .draws = SkillRead + 1 + 0xf08},
@@ -449,7 +444,9 @@ TEST_F(MonsterAttackCasesTest, TheKalimaSeamenRaiseTheSeamanEffectOverThemselves
     }
 }
 
-TEST_F(MonsterAttackCasesTest, Kalima91CreatesTheStateOneEarthquakeBeforeThe615Boundary)
+// 0x43ab04..0x43ab6b: el 0x91 en la 4 y en 14 crea el terremoto 0xfa/1 y, con otro lugar, el 0x615 sobre sí (vida 10,
+// +0x88 en 1, la posición corrida (−25, −80, 0) girado por sus ángulos), sin rand() propios; después, +0x381 en 15.
+TEST_F(MonsterAttackCasesTest, Kalima91CreatesTheStateOneEarthquakeAndTheThunder)
 {
     constexpr std::uint8_t InitialStep = 14;
     constexpr std::uint8_t StoredStep = 15;
@@ -472,17 +469,33 @@ TEST_F(MonsterAttackCasesTest, Kalima91CreatesTheStateOneEarthquakeBeforeThe615B
             const auto expectedSubtype = expectedRandom.Next() % 100;
             const auto stepped = Step(monster);
 
-            if (freeSlots == 2)
-                EXPECT_TRUE(!stepped.HasValue() && stepped.Error().starts_with("0x43ab5f")) << stepped.Error();
-            else
-                EXPECT_TRUE(stepped.HasValue()) << stepped.Error();
-            EXPECT_EQ(monster.byte381, freeSlots == 2 ? InitialStep : StoredStep);
+            ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+            EXPECT_EQ(monster.byte381, StoredStep);
             EXPECT_EQ(game->world.Runtime().ownRecordDepth, initialDepth);
             EXPECT_EQ(game->world.OwnCharacter().bytef04,
                       static_cast<std::uint8_t>(InitialOwnCount + (freeSlots == 0 ? 0 : 1)));
             EXPECT_EQ(Draws(), SkillRead + (freeSlots == 0 ? 0 : 1 + (initialDepth == 0 ? 0xf08 : 0)));
 
             const auto effects = game->world.Map().effects.Effects();
+            const auto thunder = std::find_if(effects.begin(), effects.end(),
+                                              [](const auto& effect) { return effect.alive && effect.type == 0x615; });
+            if (freeSlots == 2)
+            {
+                ASSERT_NE(thunder, effects.end());
+                EXPECT_EQ(thunder->life, 10);
+                EXPECT_EQ(thunder->state, 1);
+                EXPECT_EQ(thunder->ownerContext, &monster);
+                const glm::vec3 offset = Client::Render::Models::OriginalVectorRotate(
+                    {-25.0f, -80.0f, 0.0f}, Client::Render::Models::OriginalAngleMatrix(monster.angles));
+                EXPECT_EQ(thunder->transform.position,
+                          (glm::vec3{static_cast<float>(static_cast<double>(offset.x) + monster.position.x),
+                                     static_cast<float>(static_cast<double>(offset.y) + monster.position.y),
+                                     static_cast<float>(static_cast<double>(offset.z) + monster.position.z)}));
+            }
+            else
+            {
+                EXPECT_EQ(thunder, effects.end());
+            }
             const auto earthquake = std::find_if(effects.begin(), effects.end(), [](const auto& effect)
                                                  { return effect.alive && effect.type == 0xfa; });
             if (freeSlots == 0)

@@ -61,7 +61,8 @@ inline constexpr std::size_t GuildMarkBone = 20;
 // a la mitad si no. Con la vida entre 40 y 59: el giro rand() % 360, dos radios rand() % 26 − 13 y rand() % 5, y la
 // chispa 0x5c5/5 (escala 2, 0x52a16e) en (FSIN(giro) · r + x, FCOS(giro) · r2 + y, z + 48 − vida + k). Las 0x5c5/5 y
 // /6 guardan la marca de dueño (su lugar en la tabla, el ebx de 0x52a134 y 0x529f5b); la /5 lee su posición al nacer
-// (0x5403ad) y las dos la siguen en su paso. Con las partículas llenas, sin chispas ni sus rand().
+// (0x5403ad) y las dos la siguen en su paso. Con las partículas llenas, sin chispas ni los rand() de su alta; los
+// cuatro de 0x52a0c2..0x52a12c salen igual.
 [[nodiscard]] Core::Expected<void, std::string> StepTheGuildMark(World::ModelEffect& effect,
                                                                  const HighEffectStepContext& context);
 } // namespace Client::Scenes

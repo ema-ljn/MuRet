@@ -478,6 +478,20 @@ TEST(Cl11SmokeParticles, TheStormMistsAreBornOnTheGround)
         ASSERT_EQ(asked.size(), 1U);
         EXPECT_EQ(asked.front(), glm::vec2(1000.0f, 2000.0f));
 
+        // La altura queda en la x87 hasta sumar 15 (0x5425fe): un terreno que no entra en un float da la z de arriba;
+        // redondeado antes, daría 0x430a4000.
+        {
+            auto fine = std::make_unique<Particles>();
+            CrtRandom fineRandom(Seed);
+            const Client::World::ParticleTerrainHeight retained = [](float, float)
+            { return std::bit_cast<double>(0x405ed00023333333ULL); };
+            const auto made = fine->CreateOnGroundChecked(Smoke, position, glm::vec3(1.0f, 2.0f, 3.0f), glm::vec3(0.5f),
+                                                          expected.subtype, 0.75f, std::cref(clock), fineRandom,
+                                                          trigonometry, retained);
+            ASSERT_TRUE(made.HasValue());
+            EXPECT_EQ(std::bit_cast<std::uint32_t>(Only(*fine, 0).position.z), 0x430a4001u);
+        }
+
         // Sin la altura del terreno no hay de dónde: nada antes de tocar el lugar, ni el rand().
         auto bare = std::make_unique<Particles>();
         CrtRandom untouched(Seed);

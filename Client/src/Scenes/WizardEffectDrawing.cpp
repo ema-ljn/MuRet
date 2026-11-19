@@ -2,18 +2,13 @@
 
 #include "Core/Expected.h"
 #include "Core/IClock.h"
-#include "Data/Models/Model.h"
 #include "Render/ModelBatch.h"
-#include "Render/Models/HalfLifeMath.h"
-#include "Render/Models/Pose.h"
-#include "Render/Models/Skeleton.h"
 #include "Render/Models/Skinning.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/CharacterDrawing.h"
 #include "World/ModelEffects.h"
 #include "World/WizardModelEffects.h"
 
-#include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
 
 #include <bit>
@@ -42,14 +37,13 @@ Core::Expected<bool, std::string> DrawTheDarkBody(Render::ModelBatch& batch, con
     std::span<const Render::Models::SkinnedMesh> meshes = object.retainedMeshes;
     if (meshes.empty())
     {
-        const Data::Models::Model* model = models.Find(object.model);
-        const Render::Models::Skeleton* skeleton = models.SkeletonOf(object.model);
-        if (object.alpha < VisibleAlpha || model == nullptr || skeleton == nullptr)
+        // Sin el scratch publicado, el de 0x5ffdf0 con el segundo argumento en 0 (0x52da99 → 0x602e90(efecto, 0, …)):
+        // WorldScratchOf, la normal girada por R · s. Nada sin el modelo, su esqueleto o la pose.
+        if (object.alpha < VisibleAlpha)
             return true;
-        std::vector<Render::Models::BoneTransform> bones(skeleton->bones.size(), Render::Models::BoneTransform(1.0f));
-        if (!Render::Models::PoseSkeleton(*skeleton, object.animation, object.transform, glm::vec2{}, bones))
+        posed = WorldScratchOf(models, object);
+        if (posed.empty())
             return true;
-        posed = SkinObjectMeshes(models, object, bones);
         meshes = posed;
     }
     if (auto drawn = DrawItemMeshPass(batch, models, object, frameClock, meshes, -1, DarkBodyFlags); !drawn.HasValue())

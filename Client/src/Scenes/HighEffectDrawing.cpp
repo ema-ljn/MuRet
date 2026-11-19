@@ -2,20 +2,16 @@
 
 #include "Core/Expected.h"
 #include "Core/IClock.h"
-#include "Data/Models/Model.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/OriginalRetainedMath.h"
 #include "Render/Models/OriginalRotation.h"
-#include "Render/Models/Pose.h"
-#include "Render/Models/Skeleton.h"
 #include "Render/Models/Skinning.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/CharacterDrawing.h"
 #include "World/ModelEffects.h"
 #include "World/Sprites.h"
 
-#include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
 
 #include <bit>
@@ -59,21 +55,17 @@ glm::vec3 BonePoint(std::span<const Render::Models::BoneTransform> bones, std::s
     return Render::Models::OriginalVectorTransform(glm::vec3(0.0f), Render::Models::OriginalMatrixOf(matrix));
 }
 
-// Las mallas posadas de `object`: las que publicó la pose del caller o, sin ellas, las que posa acá como 0x5ffdf0
-// (ninguna con el alpha por debajo de 0,01 o sin orden, 0x5ffe2a..0x5ffe3d, o sin el modelo o su esqueleto).
+// Las mallas posadas de `object`: las que publicó la pose del caller o, sin ellas, las que posa acá como 0x5ffdf0 con
+// el segundo argumento en 0 (0x52da99 → 0x602e90(efecto, 0, …): WorldScratchOf, la normal girada por R · s); ninguna
+// con el alpha por debajo de 0,01 o sin orden (0x5ffe2a..0x5ffe3d), o sin el modelo, su esqueleto o la pose.
 std::span<const Render::Models::SkinnedMesh> MeshesOf(const IModelLibrary& models, const DrawnObject& object,
                                                       std::vector<Render::Models::SkinnedMesh>& posed)
 {
     if (!object.retainedMeshes.empty())
         return object.retainedMeshes;
-    const Data::Models::Model* model = models.Find(object.model);
-    const Render::Models::Skeleton* skeleton = models.SkeletonOf(object.model);
-    if (!(object.alpha >= VisibleAlpha) || model == nullptr || skeleton == nullptr)
+    if (!(object.alpha >= VisibleAlpha))
         return {};
-    std::vector<Render::Models::BoneTransform> bones(skeleton->bones.size(), Render::Models::BoneTransform(1.0f));
-    if (!Render::Models::PoseSkeleton(*skeleton, object.animation, object.transform, glm::vec2{}, bones))
-        return {};
-    posed = SkinObjectMeshes(models, object, bones);
+    posed = WorldScratchOf(models, object);
     return posed;
 }
 

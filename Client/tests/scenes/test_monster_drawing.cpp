@@ -37,6 +37,7 @@
 #include "World/TerrainLighting.h"
 #include "World/WorldTerrain.h"
 
+#include "support/PlayerActors.h"
 #include "support/RecordingSink.h"
 
 #include <gtest/gtest.h>
@@ -1680,7 +1681,10 @@ TEST_F(MonsterDrawingTest, KundunFallingBetweenOriginalFramesLeavesTheJointTable
     EXPECT_TRUE(std::ranges::none_of(m_joints, alive));
     EXPECT_EQ(kundun.dword60, 0x5a);
     EXPECT_NE(shake, 0.0f);
-    EXPECT_NE(m_clothWorld.random.State(), before.State());
+    // Los 0x56 de 0x43f1b4 (uno por vuelta), el del temblor (0x43f249) y los de la cola: uno de 0x50db57 y dos de
+    // 0x50e68a.
+    constexpr int FallingDraws = 0x56 + 1 + 1 + 2;
+    EXPECT_EQ(m_clothWorld.random.State(), Client::Tests::AfterDraws(before.State(), FallingDraws).State());
 }
 
 // De punta a punta: el 1B con 0xc9 (0x4cbfc9) pasa por 0x439d40, que en el 0x197 con 0x100 lo baja y pone +0x110 en

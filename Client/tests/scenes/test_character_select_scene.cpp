@@ -4,6 +4,7 @@
 #include "App/WindowState.h"
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
+#include "Data/Models/Bmd.h"
 #include "Data/Models/Model.h"
 #include "Data/Models/PlayerModels.h"
 #include "Data/Text/FilterWords.h"
@@ -18,6 +19,7 @@
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/Animation.h"
 #include "Render/Models/Skeleton.h"
+#include "Render/Models/Skinning.h"
 #include "Render/ModelVertex.h"
 #include "Render/Pass3D.h"
 #include "Render/SpriteBatch.h"
@@ -92,6 +94,8 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <fstream>
+#include <ios>
 #include <iterator>
 #include <limits>
 #include <memory>
@@ -2754,6 +2758,62 @@ TEST(CharacterSelectSceneTest, ThePreviewGoesToItsOwnBonesAndNeverToTheGlobalPos
     EXPECT_EQ(preview.bodyPose[0][3], glm::vec3(7, 8, 9));
     EXPECT_FALSE(world.PoseCarry().models.contains(preview.type));
     EXPECT_EQ(tested.scene->Failure(), std::nullopt);
+}
+
+// 0x63e637 → 0x50ba30 → 0x5ffdf0 (0x50baed) y 0x602e90 (0x50bd81), siempre con el segundo argumento en 1: 0x4eb860
+// con la bandera en 0 deja en +0x120 los huesos en el modelo, sin la escala de la clase (6,05 con la 1) ni la posición,
+// y 0x4ebc80 corre con Translate en 1: la luz por vértice (0x4ecc30 con +0x44) toma cada normal solo girada por su
+// hueso, sin escalar.
+TEST(CharacterSelectSceneTest, ThePreviewPosesInItsModelAndLightsItsUnscaledNormals)
+{
+    Client::Scenes::WorldState world;
+    Client::Scenes::SelectionState selection(world);
+    Client::Render::Models::ClothWorld cloth;
+    ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
+    Harness tested(true, false, false, &selection, &world, &cloth);
+    ASSERT_NO_FATAL_FAILURE(WriteNewFace(tested, 1));
+    ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoiceWith({}));
+    tested.ClickAt(CreateButton);
+    Client::Scenes::ActorState& preview = selection.PreviewActor();
+    preview.bodyPose.clear();
+
+    const std::vector<FrameEvent> passes = ModelPasses(tested.Frame());
+
+    ASSERT_EQ(tested.scene->Failure(), std::nullopt);
+    ASSERT_EQ(preview.scale, 6.05f);
+    const auto drawn = std::ranges::find_if(passes, [](const FrameEvent& pass)
+                                            { return pass.pass.has_value() && pass.pass->viewport.z == 410; });
+    ASSERT_NE(drawn, passes.end());
+    // Los dos huesos del NewFace que no son dummy, sin la escala: cada columna del giro, de largo 1.
+    ASSERT_GE(preview.bodyPose.size(), 3u);
+    for (std::size_t bone = 0; bone < 2; ++bone)
+        for (int column = 0; column < 3; ++column)
+            EXPECT_NEAR(glm::length(glm::vec3(preview.bodyPose[bone][column])), 1.0f, 1e-5f) << bone << ", " << column;
+    // La selección dibuja el NewFace02.bmd de la Data del repo. Cada esquina de su malla 0 va con el color del modelo
+    // por la luz de su normal girada por esos huesos (SkinMesh, sin la escala): la misma base en todas.
+    std::ifstream file(Client::Tests::RepoDataDir() / "Logo" / "NewFace02.bmd", std::ios::binary);
+    const std::vector<char> raw{std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>()};
+    const auto face = Client::Data::Models::LoadBmd(std::as_bytes(std::span(raw)));
+    ASSERT_TRUE(face.HasValue());
+    ASSERT_FALSE(face.Value().meshes.empty());
+    const Client::Data::Models::Mesh& mesh = face.Value().meshes[0];
+    Client::Render::Models::SkinnedMesh unscaled;
+    ASSERT_TRUE(Client::Render::Models::SkinMesh(mesh, preview.bodyPose, {}, unscaled));
+    ASSERT_FALSE(mesh.triangles.empty());
+    ASSERT_GE(drawn->modelVertices.size(), 3 * mesh.triangles.size());
+    const auto lightOf = [&](std::size_t triangle, std::size_t corner)
+    {
+        const auto normal = static_cast<std::size_t>(mesh.triangles[triangle].normals[corner]);
+        return Client::Render::Models::NormalLight(unscaled.normals[normal]);
+    };
+    const float base = drawn->modelVertices[0].color.red / lightOf(0, 0);
+    for (std::size_t triangle = 0; triangle < mesh.triangles.size(); ++triangle)
+        for (std::size_t corner = 0; corner < 3; ++corner)
+        {
+            const float expected = base * lightOf(triangle, corner);
+            EXPECT_NEAR(drawn->modelVertices[3 * triangle + corner].color.red, expected, 1e-5f * expected)
+                << triangle << ", " << corner;
+        }
 }
 
 // 0x6347e9..0x6348dc: con el mundo 54, el elegido vivo lleva su luz a 1 y la suma al buffer dinámico en su

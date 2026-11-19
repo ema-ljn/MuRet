@@ -1205,11 +1205,8 @@ std::vector<MeshDraw> RetainedObjectMeshDraws(const IModelLibrary& models, const
     }
     return draws;
 }
-// El scratch de 0x5ffdf0 con el segundo argumento en 0 (0x602e90 de un objeto del mundo en 0x604a47, de un efecto en
-// 0x52da99, de un ayudante en 0x44532e o del cuervo en 0x41834e) cuando nadie lo publicó: 0x4eb860 con la bandera en 1
-// (PoseWorldSkeleton, los dummy con la identidad) y 0x4ebc80 con Translate en 0 (SkinMeshInWorld, 0x6001a1), todas las
-// mallas del modelo, las normales con la escala dentro. La que no se puede posar queda vacía. Sin el modelo, el
-// esqueleto o la pose, ninguna.
+} // namespace
+
 std::vector<Render::Models::SkinnedMesh> WorldScratchOf(const IModelLibrary& models, const DrawnObject& object)
 {
     const Data::Models::Model* model = models.Find(object.model);
@@ -1228,6 +1225,8 @@ std::vector<Render::Models::SkinnedMesh> WorldScratchOf(const IModelLibrary& mod
     return skinned;
 }
 
+namespace
+{
 // Las mallas de un objeto del mundo posado como 0x5ffdf0 con el segundo argumento en 0, con su alpha y su luz por
 // vértice, o ninguna si 0x5ffdf0 no lo dibuja (el alpha por debajo de 0,01, 0x6b88d4) o falta su modelo. Sin el scratch
 // publicado, lo arma WorldScratchOf en `skinned`.

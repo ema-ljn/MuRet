@@ -1752,10 +1752,12 @@ void CharacterSelectScene::DrawTheCreateWindow(SceneCanvas& canvas, float alpha)
     {
         // Q-C410: 0x63e3e0 la arma con 0x511290 (0x63e409), que le pone +0x11c en 1 y le da su buffer (+0x120);
         // 0x63e637 → 0x50ba30 → 0x602e90 → 0x5ffdf0 la posa ahí (0x5fff13..0x5fff4c) y no en el global. Sólo un
-        // frame del original guarda la pose en el buffer propio.
+        // frame del original guarda la pose en el buffer propio. 0x50ba30 llama con el segundo argumento en 1
+        // (0x5ffdf0 en 0x50baed, 0x602e90 en 0x50bd81): los huesos quedan en el modelo (0x4eb860 con la bandera en 0)
+        // y 0x4ebc80 corre con Translate en 1, la normal sin la escala de la clase (5,9 a 9,1) para la luz por vértice.
         FaunaDrawCarry own;
         own.bones = Preview().bodyPose;
-        if (auto result = PublishFaunaPose(own, m_selectionModels, drawn, true); !result.HasValue())
+        if (auto result = PublishFaunaPose(own, m_selectionModels, drawn, false); !result.HasValue())
         {
             m_failure = result.Error();
             return;

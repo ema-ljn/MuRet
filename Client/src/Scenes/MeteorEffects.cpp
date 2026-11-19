@@ -272,13 +272,13 @@ Core::Expected<bool, std::string> DrawTheMeteorBody(Render::ModelBatch& batch, c
     std::span<const Render::Models::SkinnedMesh> meshes = object.retainedMeshes;
     if (meshes.empty())
     {
-        const auto* skeleton = models.SkeletonOf(object.model);
-        if (object.alpha < VisibleAlpha || models.Find(object.model) == nullptr || skeleton == nullptr)
+        // Sin el scratch publicado, el de 0x5ffdf0 con el segundo argumento en 0 (0x52da99 → 0x602e90(efecto, 0, …)):
+        // WorldScratchOf, la normal girada por R · s. Nada sin el modelo, su esqueleto o la pose.
+        if (object.alpha < VisibleAlpha)
             return true;
-        std::vector<Render::Models::BoneTransform> bones(skeleton->bones.size(), Render::Models::BoneTransform(1.0f));
-        if (!Render::Models::PoseSkeleton(*skeleton, object.animation, object.transform, glm::vec2{}, bones))
+        posed = WorldScratchOf(models, object);
+        if (posed.empty())
             return true;
-        posed = SkinObjectMeshes(models, object, bones);
         meshes = posed;
     }
     DrawnObject pass = object;

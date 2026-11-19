@@ -115,23 +115,18 @@ Core::Expected<void, std::string> Orbit(World::ModelEffect& effect, const ActorS
 }
 
 // 0x52b78d..0x52b853, el /5: tres partículas 0x5ac/5 con los ángulos del efecto, la luz (0,6f; 0,6f; 1) y escala 0,7f,
-// en el ángulo i · 2π/3 + vida · 0,17f + T · 0,003f a 50 del dueño y a (i + 1) · su escala · 50 sobre su z.
+// en SkullStackPoint.
 Core::Expected<void, std::string> Stack(World::ModelEffect& effect, const ActorState& owner,
                                         const HighEffectStepContext& context)
 {
     const glm::vec3 light{Pale, Pale, 1.0f};
     for (int turn = 0; turn < Turns; ++turn)
     {
-        const double angle = static_cast<double>(turn) * TurnStep + static_cast<double>(effect.life) * LifeTurn +
-                             D(context.worldClock) * StackClock;
-        const auto x = Render::Models::Detail::SineProductPC53(angle, StackRadius);
-        const auto y = Render::Models::Detail::CosineProductPC53(angle, StackRadius);
-        if (!x || !y)
-            return Core::Unexpected(std::string("0x52b7ce: la vuelta del 0x628/5 no cabe en el perfil PC53"));
-        const glm::vec3 point{F32(*x + D(owner.position.x)), F32(*y + D(owner.position.y)),
-                              F32(static_cast<double>(turn + 1) * D(owner.scale) * StackSpacing + D(owner.position.z))};
+        const auto point = SkullStackPoint(turn, effect.life, context.worldClock, owner);
+        if (!point.HasValue())
+            return Core::Unexpected(point.Error());
         if (auto made =
-                CreateHighParticle(context.world, context.random, context.worldClock, StackParticle, point,
+                CreateHighParticle(context.world, context.random, context.worldClock, StackParticle, point.Value(),
                                    effect.transform.angles, light, StackParticleSubtype, StackParticleScale, 0x52b843);
             !made.HasValue())
             return Core::Unexpected(made.Error());
@@ -139,6 +134,19 @@ Core::Expected<void, std::string> Stack(World::ModelEffect& effect, const ActorS
     return {};
 }
 } // namespace
+
+Core::Expected<glm::vec3, std::string> SkullStackPoint(int turn, std::int32_t life, float worldClock,
+                                                       const ActorState& owner)
+{
+    const double angle =
+        static_cast<double>(turn) * TurnStep + static_cast<double>(life) * LifeTurn + D(worldClock) * StackClock;
+    const auto x = Render::Models::Detail::SineProductPC53(angle, StackRadius);
+    const auto y = Render::Models::Detail::CosineProductPC53(angle, StackRadius);
+    if (!x || !y)
+        return Core::Unexpected(std::string("0x52b7ce: la vuelta del 0x628/5 no cabe en el perfil PC53"));
+    return glm::vec3{F32(*x + D(owner.position.x)), F32(*y + D(owner.position.y)),
+                     F32(static_cast<double>(turn + 1) * D(owner.scale) * StackSpacing + D(owner.position.z))};
+}
 
 void BeginTheSkull(World::ModelEffect& effect)
 {

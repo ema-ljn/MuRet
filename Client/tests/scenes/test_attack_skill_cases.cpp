@@ -208,7 +208,8 @@ std::vector<const Client::World::ModelEffect*> AliveEffects(const WorldState& wo
 // Los casos de la cabeza que crean lo que MuRet no tiene (CL11): cortan en su alta, con los rand() de antes (0x59fb80
 // con el registro propio cerrado y los dos de 0x51fe10 de la 0x0e, que corta en su primera chispa). La 0x29, la 0x27 y
 // la 0x0d, del lote switch, en TheSwitchHeadCasesCreateTheirEffects; la 0x35 y la 0x41, del lote joints, en
-// TheEnergyCaseHangsFourJointsAroundItsCaster y TheSpiralCaseRaisesFiveJointsFromItsEffect.
+// TheEnergyCaseHangsFourJointsAroundItsCaster y TheSpiralCaseRaisesFiveJointsFromItsEffect; la 0x31, del lote altos,
+// en TheBreathCaseRaisesTheFireBreathOverTheStriker.
 TEST(AttackSkillCasesTest, TheHeadCasesCutAfterTheirDraws)
 {
     struct Case
@@ -218,7 +219,6 @@ TEST(AttackSkillCasesTest, TheHeadCasesCutAfterTheirDraws)
         int draws;
     };
     const std::array cases{
-        Case{0x31, "0x4fec15", 0},
         Case{0x0e, "0x51fe9e", 2},
     };
     for (const std::int32_t map : Maps)
@@ -401,6 +401,39 @@ TEST(AttackSkillCasesTest, TheEvilSpiritsThrowEightJointsWithTheVolley)
     }
     EXPECT_FALSE(tested.joints[8].alive);
     EXPECT_EQ(tested.sounds, std::vector<std::int32_t>{0x75});
+}
+
+// 0x31 (0x4febdb..0x4fec2b): el 0x6ac sobre o, con o de dueño, su clave (+0x8a) y el byte bajo de [0x5767948], sin
+// 0x59fb80 antes; sus cuarenta joints 0x617/1 sacan tres rand() cada uno (el de su alta y los dos de 0x530860).
+// Después, el sonido 0x72. Con la tabla de efectos llena, ni efecto ni rand(), y el sonido igual.
+TEST(AttackSkillCasesTest, TheBreathCaseRaisesTheFireBreathOverTheStriker)
+{
+    SkillWorld tested;
+    ActorState& striker = tested.Striker();
+    striker.word8a = 0x1234;
+    tested.world.Runtime().lastShotSkill = 0x1f31;
+
+    ASSERT_TRUE(tested.Head(0x31).HasValue());
+
+    const auto alive = AliveEffects(tested.world);
+    ASSERT_EQ(alive.size(), 1u);
+    const Client::World::ModelEffect& breath = *alive.front();
+    EXPECT_EQ(breath.type, 0x6ac);
+    EXPECT_EQ(breath.subtype, 0);
+    EXPECT_EQ(breath.ownerContext, &striker);
+    EXPECT_EQ(breath.disturbanceState, 0x1234);
+    EXPECT_EQ(breath.byte89, 0x31);
+    EXPECT_EQ(breath.light, striker.light);
+    EXPECT_EQ(breath.life, 10);
+    EXPECT_EQ(DrawsSince(Seed, tested.random), 40 * 3);
+    EXPECT_EQ(tested.sounds, std::vector<std::int32_t>{0x72});
+
+    SkillWorld full;
+    for (Client::World::ModelEffect& effect : full.world.Map().effects.Effects())
+        effect.alive = true;
+    ASSERT_TRUE(full.Head(0x31).HasValue());
+    EXPECT_EQ(DrawsSince(Seed, full.random), 0);
+    EXPECT_EQ(full.sounds, std::vector<std::int32_t>{0x72});
 }
 
 // 0x0c (0x500c64..0x500ccf): el rayo 0x5e8 en el punto (−20, −90, 100) de o girado, con o de dueño, su clave (+0x8a)
@@ -945,8 +978,8 @@ TEST(AttackSkillCasesTest, TheTargetCasesCutWithoutDraws)
         std::string_view cut;
     };
     const std::array cases{
-        Case{0x01, 0x20a, "0x50497e"}, Case{0x01, 0x0e, "0x50497e"},  Case{0x2d, 0x20a, "0x504a3a"},
-        Case{0x49, 0x20a, "0x504b33"}, Case{0x3c, 0x20a, "0x504d05"}, Case{0x11, 0x20a, "0x505053"},
+        Case{0x01, 0x20a, "0x50497e"}, Case{0x01, 0x0e, "0x50497e"},  Case{0x49, 0x20a, "0x504b33"},
+        Case{0x3c, 0x20a, "0x504d05"}, Case{0x11, 0x20a, "0x505053"},
     };
     for (const std::int32_t map : Maps)
     {
@@ -962,6 +995,31 @@ TEST(AttackSkillCasesTest, TheTargetCasesCutWithoutDraws)
             EXPECT_EQ(DrawsSince(Seed, tested.random), 0);
         }
     }
+}
+
+// 0x504a0a..0x504abf, la 0x2d: tres 0x139 sobre o, con los subtipos 0, 1 y 2, el blanco de dueño (la partida en su
+// posición), la clave en −1 y un rand() cada uno (la z de +0x28); después el sonido 0x26d.
+TEST(AttackSkillCasesTest, TheJavelinCaseThrowsThreeJavelinsAtTheTarget)
+{
+    SkillWorld tested;
+    tested.Striker().position = glm::vec3(100.0f, 200.0f, 300.0f);
+    tested.Victim().position = glm::vec3(400.0f, 500.0f, 600.0f);
+    ASSERT_TRUE(tested.WithTarget(0x2d).HasValue());
+    const auto alive = AliveEffects(tested.world);
+    ASSERT_EQ(alive.size(), 3u);
+    for (std::size_t index = 0; index < alive.size(); ++index)
+    {
+        SCOPED_TRACE(index);
+        EXPECT_EQ(alive[index]->type, 0x139);
+        EXPECT_EQ(alive[index]->subtype, static_cast<std::int32_t>(index));
+        EXPECT_EQ(alive[index]->ownerContext, &tested.Victim());
+        EXPECT_EQ(alive[index]->start, tested.Victim().position);
+        EXPECT_EQ(alive[index]->transform.position, glm::vec3(100.0f, 200.0f, 450.0f));
+        EXPECT_EQ(alive[index]->disturbanceState, 0xffff);
+        EXPECT_EQ(alive[index]->life, 35);
+    }
+    EXPECT_EQ(DrawsSince(Seed, tested.random), 3);
+    EXPECT_EQ(tested.sounds, std::vector<std::int32_t>{0x26d});
 }
 
 // 0x504b51..0x504b99, la 0x4a: el 0x116/2 sobre o con el blanco de dueño (vida 20, la z 20 menos) y el sonido 0x271,

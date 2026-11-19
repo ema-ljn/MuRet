@@ -13,11 +13,13 @@
 #include "Scenes/BlastEffectCalls.h"
 #include "Scenes/CharacterStep.h"
 #include "Scenes/FaunaJointCreation.h"
+#include "Scenes/FireBreathEffect.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/HeroAttack.h"
 #include "Scenes/HeroSkillCasts.h"
 #include "Scenes/HeroSkills.h"
 #include "Scenes/HighModelEffects.h"
+#include "Scenes/JavelinEffect.h"
 #include "Scenes/JointFamilies.h"
 #include "Scenes/JointKernels.h"
 #include "Scenes/OwnCharacterRecord.h"
@@ -962,7 +964,24 @@ Core::Expected<void, std::string> StepTheHeadSkill(ActorState& actor, std::size_
     case 0x41:
         return RaiseTheSpirals(actor, context);
     case 0x31:
-        return EffectThenSound(0x4fec15, "el efecto 0x6ac sobre o (0x518cf0)", skill, slot, 0x72, context);
+    {
+        // 0x4febdb..0x4fec2b: 0x518cf0(0x6ac, o+0x10, o+0x1c, o+0xf4, 0, o, o+0x8a, [0x5767948], 0, 0, 0) sin
+        // 0x59fb80 antes (Scenes::FireBreathEffect: sus cuarenta joints 0x617/1) y el sonido 0x72.
+        constexpr std::int32_t BreathSound = 0x72;
+        if (auto made =
+                CreateHighEffect({.type = FireBreathEffect,
+                                  .position = actor.position,
+                                  .angles = actor.angles,
+                                  .light = actor.light,
+                                  .owner = &actor,
+                                  .key = static_cast<std::uint16_t>(actor.word8a),
+                                  .byte89 = static_cast<std::uint8_t>(context.world.Runtime().lastShotSkill & 0xffu)},
+                                 skill, slot, context);
+            !made.HasValue())
+            return made;
+        RequestTheSound(context, BreathSound);
+        return {};
+    }
     case 0x29:
     {
         // 0x4fec30: el arma, 0x59fb80(0x29), el 0xf3 sobre o (0x4fec9a) y el sonido 0x73.
@@ -1357,8 +1376,27 @@ Core::Expected<void, std::string> StepTheTargetSkill(ActorState& actor, ActorSta
         RequestTheSound(context, FireSound);
         return {};
     case 0x2d:
-        return EffectThenSound(0x504a3a, "el primero de los tres efectos 0x139 (0x518cf0)", skill, slot, 0x26d,
-                               context);
+    {
+        // 0x504a0a..0x504abf: tres 0x518cf0(0x139, o+0x10, o+0x1c, o+0xf4, subtipo, blanco, −1, 0, 0, 0, 0), con los
+        // subtipos 0, 1 y 2 (Scenes::JavelinEffect, un rand() cada uno), y el sonido 0x26d.
+        constexpr std::int32_t JavelinSound = 0x26d;
+        constexpr std::array<std::int32_t, 3> Subtypes{0, 1, 2};
+        constexpr std::array<std::uint32_t, 3> Addresses{0x504a3a, 0x504a72, 0x504aa9};
+        for (std::size_t index = 0; index < Subtypes.size(); ++index)
+        {
+            if (auto made = CreateHighEffect({.type = JavelinEffect,
+                                              .position = actor.position,
+                                              .angles = actor.angles,
+                                              .light = actor.light,
+                                              .subtype = Subtypes[index],
+                                              .owner = &victim},
+                                             skill, slot, context);
+                !made.HasValue())
+                return Core::Unexpected(std::format("{:#x}: {}", Addresses[index], made.Error()));
+        }
+        RequestTheSound(context, JavelinSound);
+        return {};
+    }
     case 0x49:
         return JointThenSound(0x504b33, "el joint 0x61c/4 (0x530860)", skill, slot, 0x26f, context);
     case 0x4a:

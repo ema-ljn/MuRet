@@ -229,7 +229,8 @@ TEST(SkullEffectsTest, TheSkullCirclesOverItsOwner)
 }
 
 // 0x52b612..0x52b63b: el /0 mira su propio +0x78. Con 0x40, la vida en 10 (la cola la deja en 9) y da sus vueltas;
-// con 0x40 y 0x4000, además +0x16c en 0 y nada más. Sin los bits, gira como el /1.
+// con 0x40 y 0x4000, además +0x16c en 0 y nada más. Sin los bits, gira como el /1. Nadie escribe +0x78 en un efecto
+// (Q-C1582): el test lo pone a mano, en un estado al que el original no llega.
 TEST(SkullEffectsTest, ThePlainSkullReadsItsOwnFlags)
 {
     for (const std::uint32_t flags : {0x0u, 0x40u, 0x4040u, 0x4000u})
@@ -252,6 +253,49 @@ TEST(SkullEffectsTest, ThePlainSkullReadsItsOwnFlags)
                       OrbitPoint(0, held ? 10 : 1000, false, tested.clock, tested.Owner()));
         }
     }
+}
+
+// 0x52b648..0x52b773, la vuelta 1 del /3 con la vida 1.000 y T = 98.765,5f, calculada a mano fuera de MuRet (sin y cos
+// exactos, el retenido de 64 bits, un R53 por producto y por suma, un FSTP por eje): el radio FSIN(15,37f +
+// T · 0,0031f) · 20 + 50 en float (0x4287a8c9) y el punto (0x4538ca82, 0x4576bd33, 562,5). Con la tabla de partículas
+// llena, el sprite 0x628 queda ahí.
+TEST(SkullEffectsTest, TheReversedSkullsSecondTurnMatchesTheHandMadePoint)
+{
+    SkullWorld tested;
+    tested.FillTheParticles();
+    ModelEffect& skull = tested.Create(3);
+    ASSERT_EQ(skull.life, 1000);
+    ASSERT_TRUE(tested.Step(skull).HasValue());
+    const auto& sprite = tested.sprites->Sprites()[1];
+    ASSERT_TRUE(sprite.alive);
+    EXPECT_EQ(std::bit_cast<std::uint32_t>(sprite.position.x), 0x4538ca82u);
+    EXPECT_EQ(std::bit_cast<std::uint32_t>(sprite.position.y), 0x4576bd33u);
+    EXPECT_EQ(sprite.position.z, 562.5f);
+    EXPECT_EQ(DrawsSince(tested.random), 1);
+}
+
+// 0x52b795..0x52b829: los tres puntos del /5 con la vida 1.000 y T = 98.765,5f, calculados a mano como el de arriba.
+// Con la tabla de partículas llena, sus 0x5ac/5 no nacen y el paso sigue sin rand() de más.
+TEST(SkullEffectsTest, TheStackedSkullPointsMatchTheHandMadeOnes)
+{
+    SkullWorld tested;
+    constexpr std::uint32_t Points[3][2] = {
+        {0x453e8aefu, 0x457ab663u}, {0x453a987cu, 0x4577023bu}, {0x45395c95u, 0x457c4762u}};
+    constexpr float Heights[3] = {312.5f, 375.0f, 437.5f};
+    for (int turn = 0; turn < 3; ++turn)
+    {
+        SCOPED_TRACE(turn);
+        const auto point = Client::Scenes::SkullStackPoint(turn, 1000, tested.clock, tested.Owner());
+        ASSERT_TRUE(point.HasValue()) << point.Error();
+        EXPECT_EQ(std::bit_cast<std::uint32_t>(point.Value().x), Points[turn][0]);
+        EXPECT_EQ(std::bit_cast<std::uint32_t>(point.Value().y), Points[turn][1]);
+        EXPECT_EQ(point.Value().z, Heights[turn]);
+    }
+    tested.FillTheParticles();
+    ModelEffect& stacked = tested.Create(5);
+    ASSERT_TRUE(tested.Step(stacked).HasValue());
+    EXPECT_EQ(stacked.life, 999);
+    EXPECT_EQ(DrawsSince(tested.random), 1);
 }
 
 // 0x52b85e..0x52b899: el /2 deja el sprite 0x628 de escala 1,5f en su lugar con la luz vida · 0,1f.

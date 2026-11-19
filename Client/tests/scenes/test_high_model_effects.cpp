@@ -28,6 +28,7 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
+#include <array>
 #include <bit>
 #include <cstddef>
 #include <cstdint>
@@ -782,15 +783,30 @@ TEST(HighModelEffectsTest, TheSeamanEffectRisesAndSpeedsUp)
     EXPECT_EQ(seaman.life, 16);
     EXPECT_EQ(tested.Draws(), 4);
 
-    // Con lugar, las cuatro 0x6f4/1 (las de la cascada de Kalima) en su lugar.
+    // Con lugar, las cuatro 0x6f4/1 (las de la cascada de Kalima) en su lugar, con la luz local (0x5208c5, sin la resta
+    // de las últimas 5 vidas) por (0,1f; 0,3f; 0,6f) (0x526740..0x526783) y un rand() cada una (0x543d30); después, la
+    // luz dinámica de radio 3 con esa misma luz (0x5267ba).
     HighWorld roomy;
     ASSERT_TRUE(CreateHighModelEffect({.type = 0x11a, .position = {100, 200, 300}}, roomy.Context()).HasValue());
     const auto stepped = StepHighModelEffect(roomy.Effect(0), nullptr, roomy.StepContext());
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
-    const auto sprays =
-        std::ranges::count_if(roomy.world->Particles().All(), [](const auto& particle)
-                              { return particle.alive && particle.type == 0x6f4 && particle.subtype == 1; });
+    CrtRandom expected{Seed};
+    const auto luminosity =
+        static_cast<float>(static_cast<double>((expected.Next() & 3) + 7) * static_cast<double>(0.1f));
+    const glm::vec3 color{static_cast<float>(static_cast<double>(luminosity) * static_cast<double>(0.1f)),
+                          static_cast<float>(static_cast<double>(luminosity) * static_cast<double>(0.3f)),
+                          static_cast<float>(static_cast<double>(luminosity) * static_cast<double>(0.6f))};
+    int sprays = 0;
+    for (const auto& particle : roomy.world->Particles().All())
+    {
+        if (!particle.alive || particle.type != 0x6f4 || particle.subtype != 1)
+            continue;
+        ++sprays;
+        EXPECT_EQ(particle.light, color);
+    }
     EXPECT_EQ(sprays, 4);
+    EXPECT_EQ(roomy.Draws(), 1 + 4);
+    EXPECT_TRUE(std::ranges::any_of(roomy.lighting->cells, [](const auto& cell) { return cell[0] > 0; }));
 }
 
 // 0x52bb29..0x52bb74: el 0x61e/9 crece 0,3f y su luz baja a 0,909f; los /4, /7, /8 y /0xa solo pierden una vida.
@@ -1348,6 +1364,292 @@ TEST(HighModelEffectsTest, TheEmittersLeaveJointsEveryStep)
     EXPECT_EQ(bolt.life, 4);
     EXPECT_EQ(tested.Draws(), 3 + 7);
 }
+// El fld/fadd/fstp de cada eje, como Sum de HighModelEffects.
+glm::vec3 SumOf(const glm::vec3& a, const glm::vec3& b)
+{
+    return {static_cast<float>(static_cast<double>(a.x) + static_cast<double>(b.x)),
+            static_cast<float>(static_cast<double>(a.y) + static_cast<double>(b.y)),
+            static_cast<float>(static_cast<double>(a.z) + static_cast<double>(b.z))};
+}
+
+glm::vec3 TurnedBy(const glm::vec3& vector, const glm::vec3& angles)
+{
+    return Client::Render::Models::OriginalVectorRotate(vector, Client::Render::Models::OriginalAngleMatrix(angles));
+}
+
+// 0x51f5fe..0x51f7f8: el 0x6ac vive 10, con +0xd8 en 1 y la velocidad (0, −30, 0), corrido (0, −20, 50) girado. Sus dos
+// bocas, (−20, −20, 60) y (30, −20, 60) giradas desde la posición que recibe (no la corrida), sueltan veinte 0x617/1
+// cada una: rand() % 20 + x + 5 en la x de los ángulos y la y que suma las vueltas de 18; dos rand() más por joint
+// (0x5320a4). Con los joints llenos, solo los cuarenta rand() del alta; con la tabla de efectos llena, nada.
+TEST(HighModelEffectsTest, TheFireBreathRaisesFortyJointsFromTwoMouths)
+{
+    const glm::vec3 origin{1000, 2000, 300};
+    const glm::vec3 angles{10, 20, 30};
+    HighWorld tested;
+    const auto made = CreateHighModelEffect({.type = 0x6ac, .position = origin, .angles = angles}, tested.Context());
+    ASSERT_TRUE(made.HasValue()) << made.Error();
+    ASSERT_EQ(made.Value(), std::optional<std::size_t>{0});
+    const ModelEffect& breath = tested.Effect(0);
+    EXPECT_EQ(breath.life, 10);
+    EXPECT_EQ(breath.speed, 1.0f);
+    EXPECT_EQ(breath.velocity, (glm::vec3{0, -30, 0}));
+    EXPECT_EQ(breath.transform.position, SumOf(TurnedBy({0, -20, 50}, angles), origin));
+    CrtRandom expected{Seed};
+    const std::array<glm::vec3, 2> mouths{SumOf(TurnedBy({-20, -20, 60}, angles), origin),
+                                          SumOf(TurnedBy({30, -20, 60}, angles), origin)};
+    std::size_t index = 0;
+    for (const glm::vec3& mouth : mouths)
+    {
+        float yaw = angles.y;
+        for (int turn = 0; turn < 360; turn += 18, ++index)
+        {
+            SCOPED_TRACE(index);
+            const int tilt = expected.Next() % 20;
+            static_cast<void>(expected.Next());
+            static_cast<void>(expected.Next());
+            yaw = static_cast<float>(static_cast<double>(turn) + static_cast<double>(yaw));
+            const auto& joint = tested.world->DrawTail().joints[index];
+            ASSERT_TRUE(joint.alive);
+            EXPECT_EQ(joint.type, 0x617);
+            EXPECT_EQ(joint.subtype, 1);
+            EXPECT_EQ(joint.position, mouth);
+            EXPECT_EQ(joint.angles,
+                      (glm::vec3{static_cast<float>(static_cast<double>(tilt) + static_cast<double>(angles.x) + 5.0),
+                                 yaw, angles.z}));
+            EXPECT_EQ(joint.width, 2.0f);
+        }
+    }
+    EXPECT_FALSE(tested.world->DrawTail().joints[40].alive);
+    EXPECT_EQ(tested.random.State(), expected.State());
+    EXPECT_EQ(tested.Draws(), 40 * 3);
+
+    HighWorld crowded;
+    crowded.FillTheJoints();
+    ASSERT_TRUE(
+        CreateHighModelEffect({.type = 0x6ac, .position = origin, .angles = angles}, crowded.Context()).HasValue());
+    EXPECT_EQ(crowded.Effect(0).transform.position, breath.transform.position);
+    EXPECT_EQ(crowded.Draws(), 40);
+
+    HighWorld full;
+    full.FillTheEffects();
+    const auto none = CreateHighModelEffect({.type = 0x6ac}, full.Context());
+    ASSERT_TRUE(none.HasValue());
+    EXPECT_FALSE(none.Value().has_value());
+    EXPECT_EQ(full.Draws(), 0);
+}
+
+// 0x52c7f0..0x52c97c: el paso del 0x6ac prende la luz dinámica de radio 2, saca rand() % 3 + 2 para la escala
+// (· (15 − vida) · 0,05f) y pone la partida a 20 de cada lado (los ángulos con la z 90 más) con el fuego 0x5db/0xa, que
+// MuRet no tiene: con lugar corta en el primero (0x52c8f7) después de sus dos rand(); con las partículas llenas, sigue,
+// se mueve (0, −30, 0) girado y, con la vida en 1, 0x51fef0 saca los cuarenta rand() de sus veinte chispas 0x5c5/2 (sin
+// lugar, ni ellas ni la 0x5ee/0) y se apaga.
+TEST(HighModelEffectsTest, TheFireBreathBurnsAtItsSidesAndSparksAtTheEnd)
+{
+    const glm::vec3 angles{10, 20, 30};
+    HighWorld tested;
+    tested.FillTheJoints();
+    ASSERT_TRUE(
+        CreateHighModelEffect({.type = 0x6ac, .position = {1000, 2000, 300}, .angles = angles}, tested.Context())
+            .HasValue());
+    ModelEffect& breath = tested.Effect(0);
+    ASSERT_EQ(tested.Draws(), 40);
+    EXPECT_TRUE(HasError(StepHighModelEffect(breath, nullptr, tested.StepContext()), "0x52c8f7"));
+    EXPECT_EQ(tested.Draws(), 40 + 2);
+    EXPECT_TRUE(std::ranges::any_of(tested.lighting->cells, [](const auto& cell) { return cell[0] > 0; }));
+
+    HighWorld full;
+    full.FillTheJoints();
+    full.FillTheParticles();
+    ASSERT_TRUE(CreateHighModelEffect({.type = 0x6ac, .position = {1000, 2000, 300}, .angles = angles}, full.Context())
+                    .HasValue());
+    ModelEffect& burning = full.Effect(0);
+    CrtRandom expected{Seed};
+    for (int draw = 0; draw < 40; ++draw)
+        static_cast<void>(expected.Next());
+    const glm::vec3 turned{angles.x, angles.y, 120.0f};
+    for (std::int32_t life = 10; life >= 1; --life)
+    {
+        SCOPED_TRACE(life);
+        const glm::vec3 before = burning.transform.position;
+        ASSERT_TRUE(StepHighModelEffect(burning, nullptr, full.StepContext()).HasValue());
+        static_cast<void>(expected.Next());
+        const int size = expected.Next() % 3 + 2;
+        EXPECT_EQ(burning.transform.scale,
+                  static_cast<float>(static_cast<double>(size) *
+                                     (static_cast<double>(15 - life) * static_cast<double>(0.05f))));
+        EXPECT_EQ(burning.start, SumOf(TurnedBy({0, -20, 0}, turned), before));
+        EXPECT_EQ(burning.transform.position, SumOf(TurnedBy({0, -30, 0}, angles), before));
+        if (life == 1)
+        {
+            for (int draw = 0; draw < 40; ++draw)
+                static_cast<void>(expected.Next());
+        }
+        EXPECT_EQ(full.random.State(), expected.State());
+    }
+    EXPECT_FALSE(burning.alive);
+    EXPECT_EQ(full.Draws(), 40 + 10 * 2 + 40);
+}
+// 0x51dacb..0x51db6e: el 0x139 vive 35, con +0xe4 en 2, +0xd8 en 10, escala 1,2f y la velocidad (0, −5, 0); copia sus
+// ángulos en +0x28, toma la partida de la posición de su dueño y sube 150. Un rand() % 80 + 10 (r) mueve la z de
+// +0x28 subtipo · r − r. Sin dueño corta (el original lee la dirección 0x10); con la tabla llena, nada.
+TEST(HighModelEffectsTest, TheJavelinStartsOverItsThrowerAimingAtItsOwner)
+{
+    for (const std::int32_t subtype : {0, 1, 2})
+    {
+        SCOPED_TRACE(subtype);
+        HighWorld tested;
+        ActorState& owner = tested.world->Actors()[3];
+        owner.position = {500, 600, 700};
+        const auto made = CreateHighModelEffect({.type = 0x139,
+                                                 .position = {100, 200, 300},
+                                                 .angles = {1, 2, 3},
+                                                 .light = {0.5f, 0.6f, 0.7f},
+                                                 .subtype = subtype,
+                                                 .owner = &owner},
+                                                tested.Context());
+        ASSERT_TRUE(made.HasValue()) << made.Error();
+        const ModelEffect& javelin = tested.Effect(0);
+        CrtRandom expected{Seed};
+        const double spread = static_cast<double>(expected.Next() % 80 + 10);
+        EXPECT_EQ(javelin.life, 35);
+        EXPECT_EQ(javelin.turnDirection, 2.0f);
+        EXPECT_EQ(javelin.speed, 10.0f);
+        EXPECT_EQ(std::bit_cast<std::uint32_t>(javelin.transform.scale), 0x3f99999au);
+        EXPECT_EQ(javelin.velocity, (glm::vec3{0, -5, 0}));
+        EXPECT_EQ(javelin.start, owner.position);
+        EXPECT_EQ(javelin.transform.position, (glm::vec3{100, 200, 450}));
+        EXPECT_EQ(javelin.copiedAngles,
+                  (glm::vec3{1, 2, static_cast<float>(static_cast<double>(subtype) * spread - spread + 3.0)}));
+        EXPECT_EQ(tested.Draws(), 1);
+    }
+    HighWorld lonely;
+    EXPECT_TRUE(HasError(CreateHighModelEffect({.type = 0x139}, lonely.Context()), "0x51db1b"));
+    HighWorld full;
+    full.FillTheEffects();
+    const auto none = CreateHighModelEffect({.type = 0x139}, full.Context());
+    ASSERT_TRUE(none.HasValue());
+    EXPECT_FALSE(none.Value().has_value());
+    EXPECT_EQ(full.Draws(), 0);
+}
+
+// 0x529b86..0x529de9 y la cola (0x52ccb0 → 0x52cd94, sin moverse): con 25 o más de vida el 0x139 sube +0xe4 de a 10 y
+// avanza con +0x28; de 24 a 20, +0xd8 1,5 más, avanza, +0xe4 en rand() % 30 + 30 y la velocidad y 8 menos. Siempre
+// la partida sobre su dueño, la escala 0,015f más, la z de los ángulos más +0xe4, +0x68 y el alpha en vida · 0,1f, la
+// z del /1 en la partida más FSIN(vida · 0,1f) · 30 y la luz dinámica.
+TEST(HighModelEffectsTest, TheJavelinClimbsSpinsAndBrakes)
+{
+    HighWorld tested;
+    ActorState& owner = tested.world->Actors()[3];
+    owner.position = {500, 600, 700};
+    ASSERT_TRUE(CreateHighModelEffect(
+                    {.type = 0x139, .position = {100, 200, 300}, .angles = {1, 2, 3}, .subtype = 1, .owner = &owner},
+                    tested.Context())
+                    .HasValue());
+    ModelEffect& javelin = tested.Effect(0);
+    const glm::vec3 aim = javelin.copiedAngles;
+    ASSERT_TRUE(StepHighModelEffect(javelin, nullptr, tested.StepContext()).HasValue());
+    const glm::vec3 start{500, 600, 850};
+    EXPECT_EQ(javelin.start, start);
+    EXPECT_EQ(javelin.transform.scale,
+              static_cast<float>(static_cast<double>(std::bit_cast<float>(0x3f99999au)) + static_cast<double>(0.015f)));
+    EXPECT_EQ(javelin.turnDirection, 12.0f);
+    const glm::vec3 advanced = SumOf(TurnedBy({0, -5, 0}, aim), {100, 200, 450});
+    EXPECT_EQ(javelin.transform.position.x, advanced.x);
+    EXPECT_EQ(javelin.transform.position.y, advanced.y);
+    const auto wave = Client::Render::Models::Detail::SineProductPC53(35.0 * static_cast<double>(0.1f), 30.0f);
+    ASSERT_TRUE(wave.has_value());
+    EXPECT_EQ(javelin.transform.position.z, static_cast<float>(*wave + 850.0));
+    EXPECT_EQ(javelin.transform.angles.z, 15.0f);
+    EXPECT_EQ(javelin.objectState.light, static_cast<float>(35.0 * static_cast<double>(0.1f)));
+    EXPECT_EQ(javelin.alpha, javelin.objectState.light);
+    EXPECT_EQ(javelin.life, 34);
+    EXPECT_TRUE(std::ranges::any_of(tested.lighting->cells, [](const auto& cell) { return cell[0] > 0; }));
+    EXPECT_EQ(tested.Draws(), 1 + 1);
+
+    javelin.life = 22;
+    ASSERT_TRUE(StepHighModelEffect(javelin, nullptr, tested.StepContext()).HasValue());
+    CrtRandom expected{Seed};
+    for (int draw = 0; draw < 3; ++draw)
+        static_cast<void>(expected.Next());
+    EXPECT_EQ(javelin.speed, 11.5f);
+    EXPECT_EQ(javelin.turnDirection, static_cast<float>(expected.Next() % 30 + 30));
+    EXPECT_EQ(javelin.velocity, (glm::vec3{0, -13, 0}));
+    EXPECT_EQ(javelin.life, 21);
+    EXPECT_EQ(tested.random.State(), expected.State());
+}
+
+// 0x529bde..0x529c69: por debajo de 20, 0x4e9810 gira +0x28 hacia la partida. Lejos (100 o más), la partícula 0x6ad/1,
+// que MuRet no tiene: con lugar corta. Con las partículas llenas sigue; cerca, va a la partida y crece 0,04f más.
+TEST(HighModelEffectsTest, TheJavelinHuntsItsOwnerAndTrailsFire)
+{
+    HighWorld tested;
+    ActorState& owner = tested.world->Actors()[3];
+    owner.position = {500, 600, 700};
+    ASSERT_TRUE(CreateHighModelEffect({.type = 0x139, .position = {100, 200, 300}, .owner = &owner}, tested.Context())
+                    .HasValue());
+    ModelEffect& javelin = tested.Effect(0);
+    javelin.life = 19;
+    EXPECT_TRUE(HasError(StepHighModelEffect(javelin, nullptr, tested.StepContext()), "0x529c69"));
+    EXPECT_EQ(tested.Draws(), 1 + 1);
+
+    tested.FillTheParticles();
+    javelin.life = 18;
+    javelin.transform.position = {500, 600, 860};
+    const float scale = javelin.transform.scale;
+    ASSERT_TRUE(StepHighModelEffect(javelin, nullptr, tested.StepContext()).HasValue());
+    EXPECT_EQ(javelin.transform.scale,
+              static_cast<float>(
+                  static_cast<double>(static_cast<float>(static_cast<double>(scale) + static_cast<double>(0.015f))) +
+                  static_cast<double>(0.04f)));
+    EXPECT_EQ(javelin.life, 17);
+    EXPECT_EQ(tested.Draws(), 1 + 1 + 2);
+}
+
+// 0x51ed79 y 0x52b4a7: el 0x615 vive 10 y, con dueño y el subtipo 0, se corre (−25, −80, 0) girado por los ángulos del
+// dueño. Su paso no hace nada hasta que le quedan menos de 5 pasos; con la vida par, tres rand() (x e y de rand() % 64
+// − 32 y la escala rand() % 10 + 50) y el joint 0x615/5, que MuRet no tiene: con lugar corta (0x52b560); con los joints
+// llenos sigue. La cola no lo mueve (sin velocidad) ni lo dibuja.
+TEST(HighModelEffectsTest, TheThunderShiftsOverItsOwnerAndDropsBoltsAtTheEnd)
+{
+    HighWorld tested;
+    ActorState& owner = tested.world->Actors()[3];
+    owner.angles = {0, 0, 90};
+    const glm::vec3 origin{100, 200, 300};
+    ASSERT_TRUE(
+        CreateHighModelEffect({.type = 0x615, .position = origin, .owner = &owner}, tested.Context()).HasValue());
+    ModelEffect& thunder = tested.Effect(0);
+    const glm::vec3 shifted = SumOf(TurnedBy({-25, -80, 0}, owner.angles), origin);
+    EXPECT_EQ(thunder.life, 10);
+    EXPECT_EQ(thunder.transform.position, shifted);
+    EXPECT_EQ(tested.Draws(), 0);
+    for (const std::int32_t subtype : {1, 2})
+    {
+        HighWorld other;
+        ASSERT_TRUE(CreateHighModelEffect({.type = 0x615, .position = origin, .subtype = subtype, .owner = &owner},
+                                          other.Context())
+                        .HasValue());
+        EXPECT_EQ(other.Effect(0).transform.position, origin);
+    }
+    HighWorld lonely;
+    ASSERT_TRUE(CreateHighModelEffect({.type = 0x615, .position = origin}, lonely.Context()).HasValue());
+    EXPECT_EQ(lonely.Effect(0).transform.position, origin);
+    EXPECT_EQ(lonely.Effect(0).life, 10);
+
+    for (int step = 0; step < 6; ++step)
+        ASSERT_TRUE(StepHighModelEffect(thunder, nullptr, tested.StepContext()).HasValue());
+    EXPECT_EQ(thunder.life, 4);
+    EXPECT_EQ(thunder.transform.position, shifted);
+    EXPECT_EQ(tested.Draws(), 6);
+    EXPECT_TRUE(HasError(StepHighModelEffect(thunder, nullptr, tested.StepContext()), "0x52b560"));
+    EXPECT_EQ(tested.Draws(), 6 + 1 + 3);
+    tested.FillTheJoints();
+    ASSERT_TRUE(StepHighModelEffect(thunder, nullptr, tested.StepContext()).HasValue());
+    EXPECT_EQ(tested.Draws(), 6 + 4 + 4);
+    ASSERT_TRUE(StepHighModelEffect(thunder, nullptr, tested.StepContext()).HasValue());
+    EXPECT_EQ(tested.Draws(), 6 + 4 + 4 + 1);
+    EXPECT_EQ(thunder.life, 2);
+}
+
 // 0x51efa5 y 0x52bb79: el 0x621/1 guarda la posición como partida y vive 20; su paso pone el origen del modelo de su
 // dueño en la partida, va al punto (0, 0, 10) del hueso 33 del dueño y hace las tres emisiones del /0 (cinco rand()
 // cada una). El /0 nace en World (vida 10) y su paso es de World.

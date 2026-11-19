@@ -14089,6 +14089,26 @@ en un lugar de más adelante pasa en la misma vuelta de `0x53c670`.
 - **`0x60f/2` y `0x60f/0x18`** (`DropJoints.cpp`): alta `0x533677` y `0x5340dc` (la /0x18 con la textura `0x62d`; vz
   en `rand() % 20 + 35`, la luz blanca, vida `rand() % 50 + 25` y el destino en el segundo punto) y paso `0x53b156`
   (con vida de 25 o menos cae sobre el destino con vz + 5; con menos de 10, la luz por 0,7692308f).
+- **`0x10f` con un personaje de dueño** (`AuraJoints.cpp`, segunda vuelta): alta `0x530edd..0x531214` (tabla
+  `0x534e38`; el destino es el `+0x10` del dueño). /0: luz entera, vida 999.999, 30 puntos, textura `0x62b`. /4 y /9:
+  luz (0,4; 0,8; 0,2), vida 10.000; el prefijo (`0x53098d`) guarda su blanco en `+0xa0c` si no es −1 (si no, queda el
+  del uso anterior). /2: el segundo punto, luz (1; 0,3; 0,3), vida 20, 5 puntos, `0x62c`. /5..7: sin el primer tramo
+  (`0x530c5d`), sin cola común, dibujo 1, vida 60, tanda 0, luz con 0,8 en el canal de su subtipo, `0x610`, velocidad
+  (0, 800, 0) girada desde el segundo punto, cuenta −1 y la cola **antes** del ancho (con el del uso anterior). /8:
+  `0x5ac`, luz 0,5, velocidad (0, −40, 0), vida 40. Paso: con `+0xa0c` ≠ −1 el /4 pasa a /9 si ese personaje monta a
+  Fenrir (`+0x318` en `0x1c37`) fuera de la zona segura (`+0x3e2`) y el /9 vuelve a /4 si no (`0x535d4f`). /0, /4, /9
+  (`0x536073`): dueño muerto, vida 0; el /4 y el /9 sin 8 ni `0x2000000` en `+0x78` se apagan, y si no la vida vuelve
+  a 100; los tramos se corren con el destino (restando el viejo y sumando el nuevo, dos stores), el destino es el
+  dueño + 10 en z, el mismo acceso al contador que el hada y el punto `0x53d1a0` con escala 1 (frecuencia 0,048): x e
+  y · 80, z · 120 + 110 (la /9, + 140). /8 (`0x536005`): z + 25, la cola con su matriz y el `+0x24` sube 15. /5..7
+  (`0x536526`): tres vueltas de z + 10 y cola; con la tanda en 0 la y por 0,95 (bajo 10, −10); pasada la 40, y − 20,
+  z − 5 y ancho + 15; con y negativa, la tanda 40 de la /5 y la /6 suelta el efecto `0x6eb` (`0x518cf0`, corta en
+  `0x536626`) y la tanda sube: hasta 20, y = −30 y ancho 40, después el `+0x24` sube 5; al final, con vida < 10 la luz
+  por 0,8333333f, y el ancho − 5. La /2 con dueño vivo pone el ancho en vida · 3 y corta en `0x53d1a0` con escala 1,4
+  (`0x535e66`); sin él, suelta el dueño. Los crean `0x5048db` (cinco /0 de ancho 20 tras `0x534f90`), `0x5045f9` y
+  `0x5046b0` (cinco /4 con el `+0x3a4` de c, con signo), `0x4e644f` (cinco /0 de ancho 50) y `0x4e662d` (tres /8 de
+  ancho 30, ángulos z 90/180/270, la copia del `+0x10` 10 más abajo cada vez). La luz por tramo del dibujo lee la altura del
+  personaje dueño.
 
 La matriz de la cola común (`0x53c393`, `[ebp−0xe8]`) es la que calculó `0x53590e` en el paso del joint; los de la
 lista `0x53585e..0x53590c` no la calculan y usan la del último joint de la vuelta que la calculó (Q-C1623). El paso

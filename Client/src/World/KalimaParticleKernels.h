@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/Expected.h"
+#include "World/Particles.h"
 
 #include <glm/ext/vector_float2.hpp>
 
@@ -28,7 +29,9 @@ inline constexpr std::int32_t KalimaFanta = 0x6ed;
 inline constexpr std::int32_t CrywolfFanta = 0x6ec;
 inline constexpr std::int32_t ShortFantaSubtype = 5;
 // 0x543be5: la /6 (la de 0x428adc y 0x428c52) vive 32. 0x543aed: la /7 nace corrida y más grande, y su paso (0x547cc2)
-// se achica 0,1f y sube 2 más. La /1..4 leen a su dueño (0x547a4d, 0x547a73) y no están; los demás subtipos son la /0.
+// se achica 0,1f y sube 2 más. La /1..4 nacen como la /0 y, con dueño (CreateOwnedChecked), leen su acción (la /1 y la
+// /2, 0x547a4d) o la mano del Monster82 (la /3 del 0x1a4 y del 0x1a9 y la /4 del 0x1a4, 0x547a73); los demás subtipos
+// son la /0.
 inline constexpr std::int32_t LongFantaSubtype = 6;
 inline constexpr std::int32_t SwirlFantaSubtype = 7;
 inline constexpr std::int32_t LastOwnedFantaSubtype = 4;
@@ -53,8 +56,10 @@ inline constexpr std::int32_t KundunSplashLastSubtype = 4;
 [[nodiscard]] Core::Expected<void, ParticleError>
 CreateKalimaParticle(Particle& particle, Render::Models::CrtRandom& random, std::optional<std::int32_t> scene);
 // Después de vida/movimiento5446e0, incluso en el tick que apaga alive. `wind` es el viento de este paso
-// (0x7609bb8/bbc), ya movido; sólo lo lee el 5ac/0.
+// (0x7609bb8/bbc), ya movido; sólo lo lee el 5ac/0. `ownerStates` lo lee la fanta 6ec/1..4 con dueño: sin él,
+// MissingOwner.
 [[nodiscard]] Core::Expected<void, ParticleError>
 StepKalimaParticle(Particle& particle, Render::Models::CrtRandom& random, const float* clock,
-                   IParticleTrigonometry* trigonometry, const glm::vec2& wind);
+                   IParticleTrigonometry* trigonometry, const glm::vec2& wind,
+                   const ParticleOwnerStates& ownerStates = {});
 } // namespace Client::World

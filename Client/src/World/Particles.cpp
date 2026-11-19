@@ -2327,7 +2327,8 @@ StepParticlesImpl(Particles& particles, Render::Models::CrtRandom& random, const
         }
         if (IsKalimaParticle(particle.type, particle.subtype))
         {
-            const auto stepped = StepKalimaParticle(particle, random, worldClock, trigonometry, particles.Wind().wind);
+            const auto stepped =
+                StepKalimaParticle(particle, random, worldClock, trigonometry, particles.Wind().wind, ownerStates);
             if (!stepped.HasValue())
                 return stepped;
             continue;

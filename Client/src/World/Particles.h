@@ -11,6 +11,7 @@
 #include <functional>
 #include <optional>
 #include <span>
+#include <string_view>
 #include <vector>
 
 namespace Client::Render::Models
@@ -229,12 +230,17 @@ using ParticleOwnerBones = std::function<std::optional<glm::vec3>(const Particle
 using ParticleActorHands = std::function<std::optional<glm::vec3>(std::uint64_t, std::int32_t)>;
 
 // Lo que el paso lee por el puntero +0x40 de las partículas que siguen a su dueño (5c6/4, 5d5/2, el fuego /9 y
-// 5de/4): el byte vivo (+0x0), la posición (+0x10) y, sólo de un efecto con modelo, su partida (+0x17c).
+// 5de/4): el byte vivo (+0x0), la posición (+0x10) y, sólo de un efecto con modelo, su partida (+0x17c). De un
+// personaje, también la acción (+0x111), que lee la fanta 6ec/1 y /2 (0x547a54), y sus huesos con nombre:
+// 0x4010b0(dueño, nombre, punto), sin corrimiento, que lee la 6ec/3 y /4 (0x547c1e); nullopt si 0x4016c0 no lo
+// encuentra (o el dueño no es un personaje).
 struct ParticleOwnerState
 {
     bool alive = false;
     glm::vec3 position{};
     std::optional<glm::vec3> start;
+    std::uint8_t action = 0;
+    std::function<std::optional<glm::vec3>(std::string_view)> namedBone{};
 };
 // El estado del dueño de una identidad (Particle::typedOwner); nullopt si no está.
 using ParticleOwnerStates = std::function<std::optional<ParticleOwnerState>(const ParticleOwner&)>;

@@ -3,6 +3,7 @@
 
 #include "World/Ftol.h"
 #include "World/IParticleTrigonometry.h"
+#include "World/ParticleOwner.h"
 #include "World/Particles.h"
 #include "Render/Models/Cloth.h"
 
@@ -10,8 +11,10 @@
 #include <glm/ext/vector_float3.hpp>
 
 #include <bit>
+#include <cmath>
 #include <cstdint>
 #include <optional>
+#include <string_view>
 
 namespace Client::World
 {
@@ -268,6 +271,41 @@ Core::Expected<void, ParticleError> StepFlareSeven(Particle& p, const float* clo
     }
     return {};
 }
+// 0x547a40..0x547cb4, la fanta con el dueño (+0x40) que no es nulo: la /1 y la /2 pierden dos de vida con su acción
+// (+0x111) en 1 (0x547a4d); la /3 y la /4 buscan la mano izquierda o la derecha del Monster82 (0x547c1e, 0x4010b0) y,
+// si está, la distancia d (las restas, los cuadrados y la raíz en la x87, ((dz² + dy²) + dx²)) achica la escala d ·
+// 0,003f (0x6b89cc) y apaga la luz d · 0,08f (0x6ba1ac), que el paso común pisa después con la vida.
+Core::Expected<void, ParticleError> StepOwnedFanta(Particle& p, const ParticleOwnerStates& ownerStates)
+{
+    if (p.subtype < 1 || p.subtype > LastOwnedFantaSubtype || p.typedOwner.kind == ParticleOwnerKind::None)
+        return {};
+    const auto owner = ownerStates ? ownerStates(p.typedOwner) : std::nullopt;
+    if (!owner)
+        return Core::Unexpected(ParticleError::MissingOwner);
+    constexpr std::int32_t ShakenSubtype = 2, ShakingAction = 1, ShakenLife = 2;
+    if (p.subtype <= ShakenSubtype)
+    {
+        if (owner->action == ShakingAction)
+            p.life -= ShakenLife;
+        return {};
+    }
+    constexpr std::int32_t LeftHandSubtype = 3;
+    const std::string_view hand = p.subtype == LeftHandSubtype ? "Monster82_LHand" : "Monster82_RHand";
+    const auto bone = owner->namedBone ? owner->namedBone(hand) : std::nullopt;
+    if (!bone)
+        return {};
+    constexpr double Shrink = static_cast<double>(std::bit_cast<float>(0x3b449ba6u));
+    constexpr double Dim = static_cast<double>(std::bit_cast<float>(0x3da3d70au));
+    const double dx = static_cast<double>(p.position.x) - static_cast<double>(bone->x);
+    const double dy = static_cast<double>(p.position.y) - static_cast<double>(bone->y);
+    const double dz = static_cast<double>(p.position.z) - static_cast<double>(bone->z);
+    const double distance = std::sqrt((dz * dz + dy * dy) + dx * dx);
+    p.scale = F32(static_cast<double>(p.scale) - distance * Shrink);
+    const double dim = distance * Dim;
+    for (int axis = 0; axis < 3; ++axis)
+        p.light[axis] = F32(static_cast<double>(p.light[axis]) - dim);
+    return {};
+}
 // 0x547cba..0x547d3d: la escala baja 0,02f (la /7, 0,1f y además sube 2), sin bajar de 0; la velocidad x e y por 0,95f,
 // la z sube 1 y la luz es vida · 0,04f.
 void StepFanta(Particle& p)
@@ -353,9 +391,8 @@ bool IsKalimaParticle(std::int32_t type, std::int32_t subtype)
     const bool objectWaterfall =
         ((type == KalimaWaterfallFirst || type == KalimaWaterfallMist) && subtype == ObjectSubtype) ||
         ((type == WaterfallSplash || type == WaterfallSplash + 1) && subtype == SplashObjectSubtype);
-    // 0x543b82 y 0x547cba: todos los subtipos menos la /1..4 (que leen a su dueño en 0x547a4d y 0x547a73, CL11).
-    const bool fanta =
-        (type == KalimaFanta || type == CrywolfFanta) && (subtype < 1 || subtype > LastOwnedFantaSubtype);
+    // 0x543b82 y 0x547a40: todos los subtipos; la /1..4 leen a su dueño en el paso (0x547a4d y 0x547a73).
+    const bool fanta = type == KalimaFanta || type == CrywolfFanta;
     return objectWaterfall || fanta ||
            (type == KalimaWaterfallLast && (subtype == 1 || subtype == KundunFallSubtype ||
                                             subtype == KundunSplashLastSubtype || subtype == BrazierFallSubtype)) ||
@@ -458,7 +495,7 @@ Core::Expected<void, ParticleError> CreateKalimaParticle(Particle& p, Render::Mo
 }
 Core::Expected<void, ParticleError> StepKalimaParticle(Particle& p, Render::Models::CrtRandom& random,
                                                        const float* clock, IParticleTrigonometry* trigonometry,
-                                                       const glm::vec2& wind)
+                                                       const glm::vec2& wind, const ParticleOwnerStates& ownerStates)
 {
     if (p.type == KalimaFlare)
     {
@@ -489,7 +526,11 @@ Core::Expected<void, ParticleError> StepKalimaParticle(Particle& p, Render::Mode
             return StepFlareSeven(p, clock, trigonometry);
     }
     else if (p.type == KalimaFanta || p.type == CrywolfFanta)
+    {
+        if (auto owned = StepOwnedFanta(p, ownerStates); !owned.HasValue())
+            return owned;
         StepFanta(p);
+    }
     else if ((p.type == KalimaWaterfallLast && p.subtype == KundunSplashLastSubtype) ||
              (p.subtype == KundunSplashSubtype && (p.type == WaterfallSplash || p.type == WaterfallSplash + 1)))
         return StepKundunSplash(p, trigonometry);

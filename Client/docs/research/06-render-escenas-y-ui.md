@@ -8626,11 +8626,17 @@ la /6 sube y gira 4; la /0 y la /3 suben 0,02f por paso, se agrandan con la subi
 (`0x5456a6`); la /1, /2 y /7 se apagan con vida · 0,2f. El `0x197` de `0x43eb65` ya crea sus doce `0x5da/1`.
 
 **La fanta `0x6ec`/`0x6ed`** (en los kernels de Kalima): el alta `0x543b82` y el paso `0x547cba` son los de cualquier
-subtipo menos la /1..4: la /5 vive 20 y la /6 (la de `0x428adc` y `0x428c52`) 32 (`0x543be5`); la /7 (`0x543aed`)
+subtipo: la /5 vive 20 y la /6 (la de `0x428adc` y `0x428c52`) 32 (`0x543be5`); la /7 (`0x543aed`)
 vive 15, con la escala `rand() % 30 · 0,01f` más la del pedido y la posición corrida `(rand() % 10) · 0,1f − 0,5`, y
-su paso se achica 0,1f y sube 2 antes de lo común (`0x547cc2`). La /1 y la /2 (`0x547a4d`) le restan 2 a la vida con
-el byte `+0x111` de su dueño en 1, y la /3 y la /4 (`0x547a73`) buscan huesos de su dueño por nombre (`0x6c7608`):
-siguen sin portar.
+su paso se achica 0,1f y sube 2 antes de lo común (`0x547cc2`). Con el dueño (`+0x40`) que no es nulo, antes de lo
+común: la /1 y la /2 (`0x547a4d`) le restan 2 a la vida con la acción (`+0x111`) de su dueño en 1, y la /3 y la /4
+(`0x547a73`) buscan con `0x4010b0` la mano `Monster82_LHand` (`0x6c75f8`) o `Monster82_RHand` (`0x6c7608`) de su dueño
+y, si está, la distancia d (las restas, `((dz² + dy²) + dx²)` y `fsqrt` en la x87) achica la escala d · 0,003f
+(`0x6b89cc`) y apaga la luz d · 0,08f (`0x6ba1ac`), que el paso común pisa con la vida · 0,04f. MuRet guarda el dueño
+con `CreateOwnedChecked` (un personaje del pool) y lo lee con `ParticleOwnerStatesOf`, que da la acción y los huesos
+con nombre (`WorldRuntime::namedBones`); sin el resolvedor, `MissingOwner`. La crean con dueño el 0x1a4 (la /3 y la
+/4, `0x441774` y `0x441846`) y el 0x1a9 (la /3, `0x442da1`); el `0x5262e8` (la /3 de un efecto con modelo) no está
+portado y nadie crea la /1 ni la /2 en este `main.exe` (tercera vuelta del lote de partículas).
 
 **La chispa `0x5c5`** (`World/NoriaParticleKernels`, tercera vuelta del lote): el alta (`0x540333..0x54055a`) trata
 cualquier subtipo. Todas sortean la escala `((rand() & 3) + 4) · 0,1f`; la /0, /2, /3, /4 y /6 siguen con la vida
@@ -14140,11 +14146,11 @@ Los puntos salen de los huesos con nombre que registró el alta (`0x401000`): `0
 | Tipo | Qué hace, en orden |
 | --- | --- |
 | `0x1a3` (Monster81) | `0x5ac` a 0,5 con (0,9; 0,2; 0,1) en `EyeRight` y en `EyeLeft`; ocioso, `rand() % 15` en 0: `0x1f5 + rand() % 2`; en la 3 y la 4, una vez, `0x1f7 + rand() % 2`; en la 6, una vez, `0x1f9` |
-| `0x1a4` (Monster82) | en la 6, `0x4ee770` (`0x441696`); si no, el punto (5, 10, 5) de `LHand` y la partícula `0x6ec/3` (`0x441774`); llena la tabla, las `0x5f2/21`, `0x6ec/4` y `0x6ec/0` que siguen no crean nada, `rand() % 20` en 0 pide `0x205 + rand() % 2` y, con `+4` en 0, la 3 con el frame de 8,4 a 10,2 y la 4 de 5 a 5,7 ponen `+4 = 1` y cortan en sus efectos (`0x441b33`) y en `0x51fe10` (`0x441d7d`) |
+| `0x1a4` (Monster82) | en la 6, `0x4ee770` (`0x441696`); si no, con la luz (1, 1, 1): el punto (5, 10, 5) de `LHand`, la fanta `0x6ec/3` de 3,4f con él de dueño (`0x441774`) y la `0x5f2/21` de 2,5f; `RHand`, la `0x6ec/4` con dueño (`0x441846`) y la `0x5f2/21`; el punto (−20, −2, −10) de `Eye`, la `0x6ec/0` y la `0x5f2/21` de 0,8f; `Back`, otra `0x5f2/21` de 0,8f (con la tabla llena, ninguna crea nada); después `rand() % 20` en 0 pide `0x205 + rand() % 2` y, con `+4` en 0, la 3 con el frame de 8,4 a 10,2 y la 4 de 5 a 5,7 ponen `+4 = 1` y cortan en sus efectos (`0x441b33`) y en `0x51fe10` (`0x441d7d`) |
 | `0x1a5` (Monster83) | una vez, ocioso `0x200 + rand() % 2` (sin el `% 15`), en la 3 y la 4 `0x202 + rand() % 2` y en la 6 `0x1f4`; en la 4, tres `rand() % 12 − 6` (x, y, z) desplazan el punto de `Tail`: un `0x5fd` a 2,5 con mezcla 1 y un `0x61e` a 0,8, los dos con la luz propia (`+0xf4`), y dos `0x5ca/0` con (1; 0,3; 0) (`0x441f7f`, `0x441f9c`); después doce vueltas de `rand() % 40 − 20`, `rand() % 40 − 20` y `rand() % 48 − 24` para el punto de `Belly`, con los mismos dos sprites y una `0x5ca/0` (`0x4420dd`) |
 | `0x1a6` (Monster84) | `timeGetTime()` sin usar; ocioso, una vez, `0x1fa + rand() % 2`; en la 6, `0x4ee770` (`0x442165`); en la 3, una vez `0x1fe`, y `rand() % 2` en 1 es el efecto `0x12e` (`0x442397`); en 0, otro `rand() % 2` elige `PoisonRight` (0) o `PoisonLeft` y `(rand() % 32 + 50) · 0,025f` es la escala de su `0x5f2/11` con (0,4; 1; 0,7) (`0x442370`), antes del mismo efecto; en la 4 con el frame de 3,5 a 4,2, una vez `0x1fc + rand() % 2` y, en `RightHand` y `LeftHand` con la z del objeto, `(rand() % 32 + 50) · 0,05f` para su `0x5f2/11` (`0x4424d7`, `0x4425b3`); después (y en las demás), tres `rand() % 10` (`PoisonTop`, `PoisonRight`, `PoisonLeft`): cada uno en 0 es su `0x5f2/0x17` en el punto del hueso, con los ángulos del objeto, (0,4; 1; 0,7) y escala 1 (`0x44267f`, `0x44274b`, `0x442817`, CL11) |
 | `0x1a7` (Monster85) | `0x5ac` a 0,7 rojo en `LeftEye` y `RightEye`; ocioso, `rand() % 10` en 0 es la partícula `0x5f3/0` en la posición con la luz de los ojos (`0x4429d8`), y después `0x1f0 + rand() % 2`; en la 3 y la 4, una vez, `0x1f2 + rand() % 2`; en la 6, una vez, `0x1f4` |
-| `0x1a9` (Monster87) | dos `0x5ac` a 0,5 rojos en el punto (0, −2, 0) de `LeftEye` y dos en el de `RightEye`; en la 3, una vez, `0x20b + rand() % 2`; en la 6, una vez, `0x20e`; en la 4, con `+4` en 0, `+4 = 1` y el efecto `0x13f` (`0x442cb9`, y después `0x20d`); si no, el punto (0, 0, −10) de `LeftHand` y su `0x6ec/3` (`0x442da1`; llena, la `0x5f2/21` que sigue tampoco crea nada) |
+| `0x1a9` (Monster87) | dos `0x5ac` a 0,5 rojos en el punto (0, −2, 0) de `LeftEye` y dos en el de `RightEye`; en la 3, una vez, `0x20b + rand() % 2`; en la 6, una vez, `0x20e`; en la 4, con `+4` en 0, `+4 = 1` y el efecto `0x13f` (`0x442cb9`, y después `0x20d`); si no, el punto (0, 0, −10) de `LeftHand`, la fanta `0x6ec/3` de 3 con él de dueño (`0x442da1`) y la `0x5f2/21` de 2, con la luz de los ojos |
 
 **`0x434180`** (solo en el mapa 34, `0x4303c0`; la tabla de bytes `0x43559c` sobre la de saltos `0x43556c`). Los
 sonidos van por un solo `if`/`else`: ocioso, `rand() % 15` en 0 pide el primero más `rand() % 2`; si no, la acción

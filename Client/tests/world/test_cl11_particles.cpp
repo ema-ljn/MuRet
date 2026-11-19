@@ -25,6 +25,7 @@
 #include <initializer_list>
 #include <memory>
 #include <optional>
+#include <string_view>
 #include <tuple>
 #include <utility>
 
@@ -589,10 +590,10 @@ TEST(Cl11Particles, TheKundunFallKeepsTheRequestedLightAndTurns)
     EXPECT_EQ(fall.scale, F32(D(0x3fcccccdu) - static_cast<double>(0.005f)));
 }
 
-// 0x543b82..0x543be5: la fanta 0x6ec/0x6ed de cualquier subtipo menos la /1..4 nace como la /0 (vida 24, la /6 vida
+// 0x543b82..0x543be5: la fanta 0x6ec/0x6ed de cualquier subtipo nace como la /0 (vida 24, la /6 vida
 // 32); 0x543aed: la /7 vive 15, con la escala rand() % 30 · 0,01f más la del pedido y la posición corrida. 0x547cc2: su
 // paso se achica 0,1f y sube 2 antes de lo común (la z sube 1 y la luz es vida · 0,04f).
-TEST(Cl11Particles, TheFantaTakesEverySubtypeButTheOwnedOnes)
+TEST(Cl11Particles, TheFantaTakesEverySubtype)
 {
     for (const std::int32_t subtype : {6, 12})
     {
@@ -629,12 +630,77 @@ TEST(Cl11Particles, TheFantaTakesEverySubtypeButTheOwnedOnes)
     EXPECT_EQ(swirl.scale, F32(1.0 - D(0x3dcccccdu)));
     EXPECT_EQ(swirl.position.z, F32(static_cast<double>(F32(static_cast<double>(shifted.z) + 2.0)) + 1.0));
     EXPECT_EQ(swirl.light, glm::vec3(F32(14.0 * D(0x3d23d70au))));
+}
 
-    for (const std::int32_t owned : {1, 2, 3, 4})
+// 0x543b82 y 0x547a40..0x547cb4: la fanta 0x6ec/1..4 nace como la /0, también sin dueño (que el paso no lee). Con
+// dueño, la /1 y la /2 pierden dos de vida con su acción (+0x111) en 1; la /3 y la /4 achican la escala la distancia a
+// la mano izquierda o derecha del Monster82 (0x4010b0) por 0,003f, en la x87 hasta la raíz, antes del paso común (la
+// luz, que restan d · 0,08f, la pisa la vida · 0,04f); sin la mano, nada. Sin los estados de los dueños, MissingOwner.
+TEST(Cl11Particles, TheOwnedFantasReadTheActionAndTheHandsOfTheirOwner)
+{
+    const ParticleOwner owner{ParticleOwnerKind::Actor, 7};
+    const glm::vec3 left{4, 6, 15};
+    const glm::vec3 right{-2, 5, 6};
+    for (const std::int32_t subtype : {1, 2, 3, 4})
     {
-        CrtRandom other(Seed);
-        EXPECT_FALSE(particles->CreateChecked(0x6ec, {}, {}, glm::vec3(1.0f), owned, 1.0f, 0.0f, other).HasValue())
-            << owned;
+        for (const std::uint8_t action : {std::uint8_t{0}, std::uint8_t{1}})
+        {
+            for (const bool hands : {true, false})
+            {
+                SCOPED_TRACE(testing::Message() << subtype << "/" << int{action} << "/" << hands);
+                auto particles = std::make_unique<Particles>();
+                CrtRandom random(Seed);
+                const auto created = particles->CreateOwnedChecked(0x6ec, {1, 2, 3}, {}, glm::vec3(1.0f), subtype, 3.4f,
+                                                                   0.0f, random, 0, owner);
+                ASSERT_TRUE(created.HasValue() && created.Value().has_value());
+                EXPECT_EQ(random.State(), AfterDraws(Seed, 2).State());
+                Particle& fanta = Only(*particles, *created.Value());
+                EXPECT_EQ(fanta.life, 24);
+                EXPECT_EQ(fanta.typedOwner, owner);
+                fanta.velocity = glm::vec3(0.0f);
+                const auto owners = [&](const ParticleOwner& asked) -> std::optional<ParticleOwnerState>
+                {
+                    if (asked != owner)
+                        return std::nullopt;
+                    ParticleOwnerState state{.alive = true, .start = std::nullopt, .action = action};
+                    if (hands)
+                        state.namedBone = [&](std::string_view name) -> std::optional<glm::vec3>
+                        {
+                            if (name == "Monster82_LHand")
+                                return left;
+                            if (name == "Monster82_RHand")
+                                return right;
+                            return std::nullopt;
+                        };
+                    return state;
+                };
+                ASSERT_TRUE(Step(*particles, random, 0.0f, owners).HasValue());
+                const std::int32_t life = subtype <= 2 && action == 1 ? 21 : 23;
+                EXPECT_EQ(fanta.life, life);
+                double scale = 3.4f;
+                if (subtype >= 3 && hands)
+                {
+                    const glm::vec3& hand = subtype == 3 ? left : right;
+                    const double dx = 1.0 - hand.x, dy = 2.0 - hand.y, dz = 3.0 - hand.z;
+                    const double distance = std::sqrt((dz * dz + dy * dy) + dx * dx);
+                    scale = F32(scale - distance * D(0x3b449ba6u));
+                }
+                EXPECT_EQ(fanta.scale, F32(scale - D(0x3ca3d70au)));
+                EXPECT_EQ(fanta.position, glm::vec3(1, 2, 4));
+                EXPECT_EQ(fanta.light, glm::vec3(F32(static_cast<double>(life) * D(0x3d23d70au))));
+            }
+        }
+        auto lost = std::make_unique<Particles>();
+        CrtRandom random(Seed);
+        ASSERT_TRUE(
+            lost->CreateOwnedChecked(0x6ec, {}, {}, glm::vec3(1.0f), subtype, 1.0f, 0.0f, random, 0, owner).HasValue());
+        const auto stepped = Step(*lost, random, 0.0f);
+        ASSERT_FALSE(stepped.HasValue());
+        EXPECT_EQ(stepped.Error(), ParticleError::MissingOwner);
+        auto free = std::make_unique<Particles>();
+        ASSERT_TRUE(free->CreateChecked(0x6ec, {}, {}, glm::vec3(1.0f), subtype, 1.0f, 0.0f, random).HasValue());
+        EXPECT_EQ(Only(*free, 0).typedOwner, ParticleOwner{});
+        EXPECT_TRUE(Step(*free, random, 0.0f).HasValue());
     }
 }
 

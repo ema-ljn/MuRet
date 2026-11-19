@@ -221,6 +221,88 @@ TEST(WanderingJointsTest, TheWandererCirclesItsOwner)
     EXPECT_TRUE(pool.sounds.empty());
 }
 
+// 0x53aaa2..0x53acd7 con el radio sin recortar a 150 y la mezcla de la rama "· 4": con t = vida · 4/3, la /0x19 con
+// vida 5 (t debajo de 20: la mezcla t · 4 y el radio 0, recortado desde t − 10 < 0), la /7 con vida 29 y +0x9ec 3 (el
+// radio (40 − t) · 15 ≈ 20) y la /0xb con vida 20 (el radio (t − 10) · 5 ≈ 83), con 77 pasos y el reloj sin cerrar.
+// Los bits los dio una emulación x87 independiente de MuRet (la revisión ASM de la cuarta vuelta).
+TEST(WanderingJointsTest, TheWanderersOutsideTheWidestRadius)
+{
+    struct Probe
+    {
+        std::int32_t subtype;
+        std::size_t slot;
+        std::int32_t life;
+        std::int32_t delay;
+        glm::vec3 to;
+        glm::vec3 expected;
+    };
+    const auto bits = [](std::uint32_t x, std::uint32_t y, std::uint32_t z)
+    { return glm::vec3(std::bit_cast<float>(x), std::bit_cast<float>(y), std::bit_cast<float>(z)); };
+    for (const Probe& probe : {Probe{0x19, 2, 5, 0, {1000, 2000, 150}, bits(0x44875a61u, 0x45029f09u, 0x432f74d5u)},
+                               Probe{7, 1, 29, 3, {500, 600, 70}, bits(0x43fa232au, 0x44135cf0u, 0x43280d68u)},
+                               Probe{0xb, 0, 20, 0, {1000, 2000, 150}, bits(0x4482aa50u, 0x4500b5c2u, 0x42cc8c48u)}})
+    {
+        SCOPED_TRACE(probe.subtype);
+        Pool pool;
+        for (std::size_t slot = 0; slot < probe.slot; ++slot)
+        {
+            pool.joints[slot].alive = true;
+            pool.joints[slot].type = 0x617; // un lugar ocupado que no se mueve
+            pool.joints[slot].subtype = 0;
+            pool.joints[slot].life = 1000;
+            pool.joints[slot].tailEnabled = false;
+        }
+        const auto created = pool.Create(probe.subtype, 0, probe.to);
+        ASSERT_TRUE(created.HasValue());
+        ASSERT_EQ(created.Value(), std::optional<std::size_t>(probe.slot));
+        JointState& joint = pool.joints[probe.slot];
+        joint.life = probe.life;
+        joint.field9ec = probe.delay;
+        const CrtRandom before = pool.cloth->random;
+
+        ASSERT_TRUE(pool.Step().HasValue());
+
+        EXPECT_EQ(joint.position, probe.expected);
+        EXPECT_EQ(DrawsBetween(before, pool.cloth->random), 6u);
+        EXPECT_TRUE(pool.sounds.empty());
+    }
+}
+
+// 0x53afc0..0x53b017: la /7 en su última vida también suelta la 0x5ed/1 (escala 0,6f) en su posición, sin rand() ni
+// apagarse (0x53b318); con las 3.000 partículas llenas, no la crea y sigue igual.
+TEST(WanderingJointsTest, TheWandererBurstsAtTheEndUnlessTheParticlesAreFull)
+{
+    for (const bool full : {false, true})
+    {
+        SCOPED_TRACE(full);
+        Pool pool;
+        ASSERT_TRUE(pool.Create(7).HasValue());
+        JointState& joint = pool.joints[0];
+        joint.life = 1;
+        const glm::vec3 light = joint.light;
+        if (full)
+            for (auto& particle : pool.particles->All())
+                particle.alive = true;
+        const CrtRandom before = pool.cloth->random;
+
+        ASSERT_TRUE(pool.Step().HasValue());
+
+        EXPECT_EQ(DrawsBetween(before, pool.cloth->random), 6u);
+        EXPECT_EQ(joint.light, light);
+        EXPECT_EQ(joint.life, 0);
+        EXPECT_TRUE(joint.alive);
+        if (full)
+            continue;
+        const auto bursts = std::ranges::count_if(pool.particles->All(), [](const auto& particle)
+                                                  { return particle.alive && particle.type == 0x5ed; });
+        ASSERT_EQ(bursts, 1);
+        const auto& burst = pool.particles->All().front();
+        EXPECT_EQ(burst.subtype, 1);
+        EXPECT_EQ(burst.position, joint.position);
+        EXPECT_EQ(burst.scale, std::bit_cast<float>(0x3f19999au));
+    }
+}
+
 // 0x53ae2f..0x53ae72: con el skill 1, la flecha queda en la posición del joint y choca (0x520170).
 // 0x53a884..0x53a899: con la flecha apagada, el joint se apaga con la vida en −1 y pasa por la cola (−2), sin rand().
 TEST(WanderingJointsTest, TheSecondArrowWandererDrivesTheArrow)

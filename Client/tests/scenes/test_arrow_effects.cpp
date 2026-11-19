@@ -613,6 +613,24 @@ TEST(ArrowEffectsTest, TheCelestialArrowLeavesFourWanderingJoints)
         EXPECT_EQ(joint.maximumCount, 15);
     }
     EXPECT_FALSE(joints[4].alive);
+
+    // El alta sola (0x51a2bd..0x51a417, sin el ataque): los cuatro rand() % 3000 de vx (0x533c06), en orden, antes de
+    // los de 0x51a1b0.
+    auto alone = std::make_unique<ArrowWorld>(0);
+    glm::vec3 angles{15.0f, 25.0f, 35.0f};
+    const Client::World::ModelEffectArguments args{
+        .type = 0xf8, .position = {10.0f, 20.0f, 30.0f}, .angles = angles, .light = {1.0f, 1.0f, 1.0f}, .subtype = 0};
+    const auto made = Client::Scenes::CreateTheArrowEffect(args, alone->world, alone->random, &angles);
+    ASSERT_TRUE(made.HasValue()) << ErrorOf(made);
+    EXPECT_EQ(DrawsSince(Seed, alone->random), 4 + OwnRecord);
+    CrtRandom expected(Seed);
+    for (std::size_t slot = 0; slot < 4; ++slot)
+    {
+        SCOPED_TRACE(slot);
+        const auto& joint = alone->world.DrawTail().joints[slot];
+        EXPECT_EQ(joint.subtype, 0xb);
+        EXPECT_EQ(joint.velocity, glm::vec3(static_cast<float>(expected.Next() % 3000), 0.0f, 0.0f));
+    }
 }
 
 TEST(ArrowEffectsTest, TheArrowRainCountsTheVolley)

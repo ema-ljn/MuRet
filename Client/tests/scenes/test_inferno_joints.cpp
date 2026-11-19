@@ -191,6 +191,30 @@ TEST(InfernoJointsTest, TheHoleSlowsAndFadesAtTheEnd)
     EXPECT_EQ(LiveSprites(*pool.sprites).size(), 2u);
 }
 
+// 0x53b709..0x53b732 con +0x9ec en 5 (la /2, la /5 y la /6): con vida 9 no se apagan (con el 10 de la /3 y la /4 sí)
+// y con vida 4, la luz por 0,7692308f.
+TEST(InfernoJointsTest, TheLavaFadesBelowFive)
+{
+    const double fade = D(std::bit_cast<float>(0x3f44ec4fu));
+    for (const std::int32_t subtype : {2, 5, 6})
+    {
+        for (const std::int32_t life : {9, 4})
+        {
+            SCOPED_TRACE(testing::Message() << "subtipo " << subtype << ", vida " << life);
+            Pool pool;
+            ASSERT_TRUE(pool.Create(subtype).HasValue());
+            JointState& joint = pool.joints[0];
+            ASSERT_EQ(joint.field9ec, 5);
+            joint.life = life;
+
+            ASSERT_TRUE(pool.Step().HasValue());
+
+            EXPECT_EQ(joint.light, glm::vec3(life < 5 ? F32(D(1.0f) * fade) : 1.0f));
+            EXPECT_EQ(pool.random.State(), CrtRandom{Seed}.State());
+        }
+    }
+}
+
 // 0x53b6f2..0x53b702: la /6 (la lava rápida) deja de agregar tramos con la cola llena y no suelta nada.
 TEST(InfernoJointsTest, TheLavaStopsWithAFullTail)
 {

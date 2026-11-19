@@ -1113,6 +1113,15 @@ TEST(AttackSkillCasesTest, TheInfernoRisesFromTheStriker)
         EXPECT_EQ(inferno.count, -1);
         EXPECT_EQ(inferno.field9ec, 10);
         EXPECT_FALSE(tested.joints[1].alive);
+
+        // Con la tabla de joints llena, nada ni rand(), y el sonido igual.
+        SkillWorld full(map);
+        for (auto& joint : full.joints)
+            joint.alive = true;
+        ASSERT_TRUE(full.WithTarget(0x49).HasValue());
+        EXPECT_EQ(DrawsSince(Seed, full.random), 0);
+        EXPECT_EQ(full.sounds, std::vector<std::int32_t>{0x26f});
+        EXPECT_TRUE(std::ranges::none_of(full.joints, [](const JointState& joint) { return joint.type == 0x61c; }));
     }
 }
 

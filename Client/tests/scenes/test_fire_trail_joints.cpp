@@ -68,8 +68,9 @@ struct TrailWorld
 } // namespace
 
 // 0x531229..0x53128f y 0x532073: el ancho, la luz en 1; la /0 con velocidad 0, 20 puntos, vida 20 y la textura 0x60f,
-// la /1 con 15 y 15, y las demás (la 0x24 del 0xc2/9) con los puntos y la vida del lugar, los puntos con el tope de 50
-// (0x534cb6). Pasa por el primer tramo (0x530afa), sin rand().
+// la /1 con 15 y 15, y las demás con los puntos y la vida del lugar, los puntos con el tope de 50 (0x534cb6). Los
+// únicos que piden un 0x5f2 (0x51b098 y 0x51b268) lo piden con el subtipo 0: la 0x24 de acá no tiene llamador. Pasa
+// por el primer tramo (0x530afa), sin rand().
 TEST(FireTrailJointsTest, EachSubtypeBornsWithItsPointsAndLife)
 {
     struct Probe
@@ -112,7 +113,8 @@ TEST(FireTrailJointsTest, EachSubtypeBornsWithItsPointsAndLife)
 }
 
 // 0x5366bd..0x5366ee: con el meteoro vivo y de tipo 0xc2, la estela toma su posición; muerto o de otro tipo, se queda
-// (velocidad 0, sin el movimiento común). Cada paso suma un tramo y resta una vida; muere en el paso 21. Sin rand().
+// (pasa por el movimiento común de 0x53590e, pero con la velocidad en 0). Cada paso suma un tramo y resta una vida;
+// muere en el paso 21. Sin rand().
 TEST(FireTrailJointsTest, TheTrailFollowsItsMeteorWhileItLives)
 {
     for (const JointOwnerKind kind : {JointOwnerKind::ByType, JointOwnerKind::ModelEffect})

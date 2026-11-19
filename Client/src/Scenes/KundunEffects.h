@@ -50,8 +50,8 @@ CreateTheKundunCall(World::ModelEffects& effects, const World::ModelEffectArgume
 
 // 0x51cebf..0x51cf6c, el 0x126: +0xd8 en 0,34f, vida 20, +0x64 en −2, escala 0,7f, la luz en 0,5 y el alpha en 0; el
 // joint 0x613/0xf con el efecto de dueño, de ancho 100 y clave 0 (0x51cf45), en su posición, con los ángulos (0, 0,
-// z · 0,01745329f); después el frame (+0x114) en rand() % 5. Cualquier subtipo. El 0x613/0xf con un efecto de dueño es
-// del lote de joints: con lugar corta ahí, antes del rand(); con los joints llenos sigue.
+// z · 0,01745329f); después el frame (+0x114) en rand() % 5. Cualquier subtipo. El 0x613/0xf (SpiritJoints.cpp) no saca
+// rand() al nacer; en su paso le escribe al 0x126 los ángulos, el alpha y la posición (0x539249).
 [[nodiscard]] Core::Expected<void, std::string> BeginTheKundunPhoenix(World::ModelEffect& effect,
                                                                       const HighEffectContext& context);
 

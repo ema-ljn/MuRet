@@ -127,6 +127,17 @@ void ReplayParticle(CrtRandom& replay, std::int32_t type, std::int32_t subtype, 
     ASSERT_TRUE(made.HasValue());
 }
 
+// La partícula que pide un paso, repetida en un pool gemelo con `replay` (el mismo CrtRandom del original).
+Client::World::Particle TwinParticle(CrtRandom& replay, std::int32_t type, std::int32_t subtype,
+                                     const glm::vec3& position, const glm::vec3& angles, const glm::vec3& light,
+                                     float scale)
+{
+    auto twin = std::make_unique<Client::World::Particles>();
+    const auto made = twin->CreateChecked(type, position, angles, light, subtype, scale, 0.0f, replay);
+    EXPECT_TRUE(made.HasValue() && made.Value().has_value());
+    return twin->All()[0];
+}
+
 std::ptrdiff_t AliveParticles(WorldState& world, std::int32_t type, std::int32_t subtype)
 {
     return std::ranges::count_if(world.Particles().All(), [type, subtype](const Client::World::Particle& particle)
@@ -818,8 +829,9 @@ TEST(HighEffectFamiliesTest, TheKundunJointLandsOnTheBitsOfTheOrbit)
 }
 
 // 0x539494..0x5394bb: el paso del 0x6ee/0x12 (después del movimiento común de 50 por sus ángulos y de su giro) le pone
-// al 0x125 el alpha en 1 con vida de más de 5 (con 5, no) y le copia su posición; después corta en la partícula
-// 0x5f2/0x13 (0x5394fb), del lote de partículas.
+// al 0x125 el alpha en 1 con vida de más de 5 (con 5, no) y le copia su posición; después (0x5394be..0x5394fb) deja la
+// partícula 0x5f2/0x13 de escala 7 con la luz 1 en su posición y sigue a la cola (la vida, de 39 a 38). La partícula se
+// repite en un pool gemelo con el mismo CrtRandom.
 TEST(HighEffectFamiliesTest, TheKundunJointShowsAndCarriesItsSpirit)
 {
     for (const std::int32_t life : {6, 5})
@@ -832,14 +844,91 @@ TEST(HighEffectFamiliesTest, TheKundunJointShowsAndCarriesItsSpirit)
         spirit.life = life;
         auto& joints = tested.world->DrawTail().joints;
         const glm::vec3 born = joints[0].position;
-        const auto stepped = Client::Scenes::StepJoints(joints, tested.random, nullptr, nullptr, 0.0f, nullptr);
-        EXPECT_TRUE(HasError(stepped, "0x5394fb")) << (stepped.HasValue() ? std::string() : stepped.Error());
+        CrtRandom replay = tested.random;
+        const auto stepped =
+            Client::Scenes::StepJoints(joints, tested.random, nullptr, &tested.world->Particles(), 0.0f, nullptr);
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         EXPECT_EQ(spirit.alpha, life > 5 ? 1.0f : 0.0f);
         EXPECT_EQ(spirit.transform.position, joints[0].position);
         // Con los ángulos del pedido en 0, el movimiento común es (0, −50, 0).
         EXPECT_EQ(joints[0].position, (glm::vec3{born.x, born.y - 50.0f, 0.0f}));
         EXPECT_EQ(joints[0].speed, 53.0f);
+        EXPECT_EQ(joints[0].life, 38);
+        const auto twin =
+            TwinParticle(replay, 0x5f2, 0x13, joints[0].position, joints[0].angles, glm::vec3(1.0f), 7.0f);
+        const auto& flame = tested.world->Particles().All()[0];
+        ASSERT_TRUE(flame.alive);
+        EXPECT_EQ(flame.type, 0x5f2);
+        EXPECT_EQ(flame.subtype, 0x13);
+        // La escala del pedido es 7; la de la partícula la sortea su alta (el gemelo la repite).
+        EXPECT_EQ(flame.scale, twin.scale);
+        EXPECT_EQ(flame.light, glm::vec3(1.0f));
+        EXPECT_EQ(flame.position, twin.position);
+        EXPECT_EQ(flame.angles, twin.angles);
+        EXPECT_EQ(flame.life, twin.life);
+        EXPECT_EQ(flame.velocity, twin.velocity);
+        EXPECT_EQ(flame.rotation, twin.rotation);
+        EXPECT_EQ(AliveParticles(*tested.world, 0x5f2, 0x13), 1);
+        EXPECT_EQ(tested.random.State(), replay.State());
     }
+}
+
+// 0x539249..0x5392e6: el 0x613/0xf del 0x126 (vida 20, menos de 35) deja la 0x5d9/7 y, con rand() & 1 en 1, no suelta
+// nada; con dueño le pone al 0x126 la x y la y de los ángulos en 0, el alpha en 1 (vida de más de 5) y la posición del
+// joint más (FSIN(z) · k, −FCOS(z) · k, 0) con k = 30 · 0,1f + 30 en float; después el joint avanza con k retenido. Con
+// los ángulos (0, 0, 75) del 0x126, z = 75 · 0,01745329f; los bits salen de una cuenta aparte (seno y coseno exactos a
+// 64 bits).
+TEST(HighEffectFamiliesTest, TheKundunPhoenixJointCarriesItsPhoenix)
+{
+    std::uint32_t seed = 0;
+    for (std::uint32_t candidate = 1; candidate < 100000 && seed == 0; ++candidate)
+    {
+        CrtRandom probe(candidate);
+        static_cast<void>(TwinParticle(probe, 0x5d9, 7, glm::vec3(0.0f), glm::vec3(0.0f), glm::vec3(1.0f), 1.0f));
+        if ((probe.Next() & 1) != 0)
+            seed = candidate;
+    }
+    ASSERT_NE(seed, 0U);
+    FamilyWorld tested;
+    ASSERT_TRUE(
+        CreateHighModelEffect({.type = 0x126, .position = {1000.0f, 2000.0f, 300.0f}, .angles = {12.0f, 34.0f, 75.0f}},
+                              tested.Context())
+            .HasValue());
+    ModelEffect& phoenix = tested.Effect(0);
+    auto& joints = tested.world->DrawTail().joints;
+    ASSERT_TRUE(joints[0].alive);
+    EXPECT_EQ(joints[0].type, 0x613);
+    EXPECT_EQ(joints[0].subtype, 0xf);
+    EXPECT_EQ(joints[0].ownerContext, &phoenix);
+    EXPECT_EQ(std::bit_cast<std::uint32_t>(joints[0].angles.z), 0x3fa78d36u);
+    tested.random = CrtRandom(seed);
+
+    const auto stepped =
+        Client::Scenes::StepJoints(joints, tested.random, nullptr, &tested.world->Particles(), 0.0f, nullptr);
+
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_EQ(joints[0].key, 30);
+    EXPECT_EQ(phoenix.transform.angles, (glm::vec3{0.0f, 0.0f, 75.0f}));
+    EXPECT_EQ(phoenix.alpha, 1.0f);
+    EXPECT_EQ(std::bit_cast<std::uint32_t>(phoenix.transform.position.x), 0x4480fc05u);
+    EXPECT_EQ(std::bit_cast<std::uint32_t>(phoenix.transform.position.y), 0x44f8eeb0u);
+    EXPECT_EQ(phoenix.transform.position.z, 300.0f);
+    EXPECT_EQ(std::bit_cast<std::uint32_t>(joints[0].position.x), 0x4480fc05u);
+    EXPECT_EQ(std::bit_cast<std::uint32_t>(joints[0].position.y), 0x44f8eeb0u);
+    EXPECT_FALSE(joints[1].alive);
+    EXPECT_EQ(AliveParticles(*tested.world, 0x5d9, 7), 1);
+    CrtRandom replay(seed);
+    static_cast<void>(
+        TwinParticle(replay, 0x5d9, 7, {1000.0f, 2000.0f, 300.0f}, joints[0].angles, glm::vec3(1.0f), 1.0f));
+    static_cast<void>(replay.Next());
+    EXPECT_EQ(tested.random.State(), replay.State());
+
+    // Con la vida del 0x126 en 5, el alpha no cambia.
+    phoenix.life = 5;
+    phoenix.alpha = 0.25f;
+    ASSERT_TRUE(Client::Scenes::StepJoints(joints, tested.random, nullptr, &tested.world->Particles(), 0.0f, nullptr)
+                    .HasValue());
+    EXPECT_EQ(phoenix.alpha, 0.25f);
 }
 
 // 0x5276b7..0x527787: el paso del 0x125 gira rand() % 10 + 10; entre 300 y 600 de z, con rand() & 1 en 0, el joint
@@ -928,8 +1017,8 @@ TEST(HighEffectFamiliesTest, TheKundunCallLivesThirtyStepsOrCallsItsEcho)
 
 // 0x527ad6..0x527b4a: el paso del 0x128/0 con la vida en 30 suelta diez 0x126 (i = 0, 8, …, 72) en su posición, de
 // ángulos (0, 0, i + z + 320) con un solo fstp; cada 0x126 (0x51cebf) pone sus campos y, con los joints llenos, saca
-// rand() % 5 para el frame. Once rand() con el de la luz local. Con un joint libre, el 0x613/0xf con el efecto de
-// dueño corta en 0x51cf45, antes del rand() del frame. Con la vida en 29, nada.
+// rand() % 5 para el frame. Once rand() con el de la luz local. Con los joints libres, cada uno deja antes del frame su
+// 0x613/0xf con él de dueño (0x51cf45), sin rand(). Con la vida en 29, nada.
 TEST(HighEffectFamiliesTest, TheKundunCallSendsTenPhoenixesAtLifeThirty)
 {
     for (const bool full : {true, false})
@@ -946,18 +1035,24 @@ TEST(HighEffectFamiliesTest, TheKundunCallSendsTenPhoenixesAtLifeThirty)
                         .HasValue());
         ModelEffect& call = tested.Effect(0);
         const auto stepped = Client::Scenes::StepHighModelEffect(call, nullptr, tested.StepContext());
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         if (!full)
         {
-            EXPECT_TRUE(HasError(stepped, "0x527b37")) << (stepped.HasValue() ? std::string() : stepped.Error());
-            ASSERT_FALSE(stepped.HasValue());
-            EXPECT_NE(stepped.Error().find("0x51cf45"), std::string::npos) << stepped.Error();
-            EXPECT_EQ(tested.Draws(), 1);
-            EXPECT_EQ(tested.Effect(1).type, 0x126);
-            EXPECT_EQ(tested.Effect(1).life, 20);
-            EXPECT_FALSE(tested.Effect(2).alive);
-            continue;
+            // Cada 0x126 deja su 0x613/0xf con él de dueño, sin rand() (0x5334c7), antes del rand() del frame.
+            for (std::size_t phoenix = 0; phoenix < 10; ++phoenix)
+            {
+                SCOPED_TRACE(phoenix);
+                const auto& trail = tested.world->DrawTail().joints[phoenix];
+                ASSERT_TRUE(trail.alive);
+                EXPECT_EQ(trail.type, 0x613);
+                EXPECT_EQ(trail.subtype, 0xf);
+                EXPECT_EQ(trail.ownerContext, &tested.Effect(phoenix + 1));
+                EXPECT_EQ(trail.life, 20);
+                EXPECT_EQ(trail.key, 0);
+                EXPECT_EQ(trail.width, 100.0f);
+            }
+            EXPECT_FALSE(tested.world->DrawTail().joints[10].alive);
         }
-        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         EXPECT_EQ(tested.Draws(), 11);
         EXPECT_EQ(call.life, 29);
         CrtRandom replay(Seed);
@@ -990,7 +1085,7 @@ TEST(HighEffectFamiliesTest, TheKundunCallSendsTenPhoenixesAtLifeThirty)
 
 // 0x527b4f..0x527c22: el 0x128/1 con la vida en 30 suelta veinte 0x125 y, con la clave (+0x8a, MOVSX) entre 6 y 9,
 // uno más por paso; la clave sube una por paso desde el −1 del alta. Con los joints llenos cada 0x125 saca tres rand();
-// en los pasos 8 a 11 (clave 6 a 9), cuatro más. Con un joint libre, el primero corta en 0x527bb8 (0x51ce91).
+// en los pasos 8 a 11 (clave 6 a 9), cuatro más. Con los joints libres, los mismos rand() y un 0x6ee/0x12 por 0x125.
 TEST(HighEffectFamiliesTest, TheKundunCallSendsTwentySpiritsAndFourMore)
 {
     FamilyWorld tested;
@@ -1020,13 +1115,21 @@ TEST(HighEffectFamiliesTest, TheKundunCallSendsTwentySpiritsAndFourMore)
     EXPECT_EQ(spirits(), 24);
     EXPECT_FALSE(call.alive);
 
-    FamilyWorld cut;
-    ASSERT_TRUE(CreateHighModelEffect({.type = 0x128, .subtype = 1}, cut.Context()).HasValue());
-    const auto stepped = Client::Scenes::StepHighModelEffect(cut.Effect(0), nullptr, cut.StepContext());
-    EXPECT_TRUE(HasError(stepped, "0x527bb8")) << (stepped.HasValue() ? std::string() : stepped.Error());
-    ASSERT_FALSE(stepped.HasValue());
-    EXPECT_NE(stepped.Error().find("0x51ce91"), std::string::npos) << stepped.Error();
-    EXPECT_EQ(cut.Draws(), 3);
+    // Con los joints libres, cada 0x125 deja su 0x6ee/0x12 con él de dueño (0x51ce91), sin rand() de más.
+    FamilyWorld free;
+    ASSERT_TRUE(CreateHighModelEffect({.type = 0x128, .subtype = 1}, free.Context()).HasValue());
+    ASSERT_TRUE(Client::Scenes::StepHighModelEffect(free.Effect(0), nullptr, free.StepContext()).HasValue());
+    EXPECT_EQ(free.Draws(), 1 + 20 * 3);
+    for (std::size_t spirit = 0; spirit < 20; ++spirit)
+    {
+        SCOPED_TRACE(spirit);
+        const auto& orbit = free.world->DrawTail().joints[spirit];
+        ASSERT_TRUE(orbit.alive);
+        EXPECT_EQ(orbit.type, 0x6ee);
+        EXPECT_EQ(orbit.subtype, 0x12);
+        EXPECT_EQ(orbit.ownerContext, &free.Effect(spirit + 1));
+    }
+    EXPECT_FALSE(free.world->DrawTail().joints[20].alive);
 }
 
 // 0x527c27..0x527c51: el 0x128/2 con la clave en 0 y la vida debajo de 10 pone la clave en 1.

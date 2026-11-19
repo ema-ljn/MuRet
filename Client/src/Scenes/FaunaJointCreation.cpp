@@ -1019,8 +1019,10 @@ Core::Expected<std::optional<std::size_t>, std::string> CreateFaunaJoint(std::sp
     const bool pulseJoint =
         (request.type == JointFamilies::StormJoint && request.subtype == JointFamilies::FallingStarSubtype) ||
         (request.type == 0x615 && request.subtype == 6) || JointFamilies::IsHelix(request.type, request.subtype);
-    // El 0x6ee/0x12 del 0x125 de Kundun (0x51ce91), que le escribe el alpha y la posición en su paso (0x539494).
-    const bool kundunSpirit = request.type == JointFamilies::SecondSpiritJoint && request.subtype == 0x12;
+    // El 0x6ee/0x12 del 0x125 de Kundun (0x51ce91), que le escribe el alpha y la posición en su paso (0x539494), y el
+    // 0x613/0xf del 0x126 (0x51cf45), que le escribe los ángulos, el alpha y la posición (0x539249).
+    const bool kundunSpirit = (request.type == JointFamilies::SecondSpiritJoint && request.subtype == 0x12) ||
+                              (request.type == JointFamilies::SpiritJoint && request.subtype == 0xf);
     // El 0x62b/0xe y /0xf del efecto 0x60f (0x52b408, 0x52b42b), que sólo miran si hay dueño (0x53b18a).
     const bool whirl =
         JointFamilies::IsOrbit(request.type, request.subtype) && request.subtype != JointFamilies::ColumnSubtype;

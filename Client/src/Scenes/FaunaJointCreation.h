@@ -68,7 +68,9 @@ CreateFaunaJoint(std::span<JointState> joints, const World::FishEffectRequest& r
 // 0x53585e) y el 0x61c/1 sigue a su efecto de dueño. De la sexta vuelta: el 0x5ac agrega sus tramos sin moverse con
 // el paso común; el 0x6ee/0x12 le escribe al 0x125 dueño el alpha y la posición (0x539494); la /0xe y la /0xf del
 // 0x60f y del 0x62b con dueño piden el RNG; el 0x61c/0, el RNG y las partículas (y corta con dueño donde busca al
-// héroe, 0x53b548); el 0x14f, el RNG, la luz dinámica con ancho de 50 o más y las partículas al llegar con 50.
+// héroe, 0x53b548); el 0x14f, el RNG, la luz dinámica con ancho de 50 o más y las partículas al llegar con 50. De la
+// séptima: el 0x613 y el 0x6ee /0xb, /0xc, /0xe, /0xf, /0x10 y /0x12 piden el RNG y las partículas y el 0x613/0xf le
+// escribe al 0x126 dueño los ángulos, el alpha y la posición (0x539249).
 [[nodiscard]] Core::Expected<void, std::string>
 StepJoints(std::span<JointState> joints, Render::Models::CrtRandom& random, Render::Models::ClothWorld* cloth = nullptr,
            World::Particles* particles = nullptr, float worldClock = 0, World::FrameSprites* sprites = nullptr,

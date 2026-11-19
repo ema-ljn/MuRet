@@ -42,6 +42,42 @@ float F32(double value)
 {
     return static_cast<float>(value);
 }
+Core::Expected<void, std::string> StepPiercingShot(ModelEffect& effect, Particles& particles,
+                                                   Render::Models::CrtRandom& random,
+                                                   const ModelEffectStepServices& services)
+{
+    constexpr int Emissions = 3;
+    constexpr int FullCircle = 360;
+    constexpr glm::vec3 Radius{0, 120, 0};
+    constexpr double SpriteScale = static_cast<double>(0.3f);
+    constexpr double ParticleScale = static_cast<double>(0.01f);
+    if (services.sprites == nullptr || services.effects == nullptr)
+        return Core::Unexpected(std::string("0x52bbf6: faltan los pools del brillo621/0"));
+    const auto pool = services.effects->Effects();
+    const auto found = std::ranges::find_if(pool, [&](const ModelEffect& candidate) { return &candidate == &effect; });
+    if (found == pool.end())
+        return Core::Unexpected(std::string("0x52bbf6: brillo621/0 fuera de su pool durable"));
+    const ParticleOwner owner{ParticleOwnerKind::ModelEffect, static_cast<std::uint64_t>(found - pool.begin())};
+    for (int emission = 0; emission < Emissions; ++emission)
+    {
+        glm::vec3 angles{};
+        angles.x = static_cast<float>(random.Next() % FullCircle);
+        angles.z = static_cast<float>(random.Next() % FullCircle);
+        const glm::vec3 offset =
+            Render::Models::OriginalVectorRotate(Radius, Render::Models::OriginalAngleMatrix(angles));
+        glm::vec3 point{};
+        for (int axis = 0; axis < 3; ++axis)
+            point[axis] = F32(static_cast<double>(offset[axis]) + effect.transform.position[axis]);
+        const float rotation = static_cast<float>(random.Next() % FullCircle);
+        const float spriteScale = F32(static_cast<double>((random.Next() & 7) + 8) * SpriteScale);
+        static_cast<void>(
+            services.sprites->Create(0x5fd, effect.transform.position, spriteScale, effect.light, rotation, 0));
+        const float scale = F32(static_cast<double>(random.Next() % 50 + 10) * ParticleScale);
+        static_cast<void>(particles.CreatePiercingSpark(point, scale, owner, effect.transform.position));
+    }
+    return {};
+}
+
 Core::Expected<void, std::string> StepKalimaEffect(ModelEffect& effect, KalimaWorld* kalima,
                                                    Render::Models::CrtRandom& random)
 {
@@ -1540,6 +1576,41 @@ Core::Expected<void, std::string> StepGameModelEffect(ModelEffect& effect, const
             effect.alive = false;
         return {};
     }
+    if (effect.type == CrywolfPulseEffect && effect.subtype == 0)
+    {
+        // 0x523b8b..0x523d2c: el puntero retiene el lugar, sin filtrar su tipo ni su generación.
+        const ModelEffect* arrow = effect.owner.effect;
+        if (arrow == nullptr || !arrow->alive)
+            effect.life = -1;
+        else
+        {
+            constexpr double Turn = 90;
+            effect.turnDirection = F32(static_cast<double>(effect.turnDirection) + Turn);
+            effect.transform.angles = arrow->transform.angles;
+            effect.copiedAngles = arrow->transform.angles;
+            effect.start = effect.transform.position;
+            effect.transform.position = arrow->transform.position;
+            if (services.map == nullptr)
+                return Core::Unexpected(std::string("0x523cd0: la estela 105/0 necesita el mapa"));
+            if (IsKalimaMap(*services.map) && arrow->ownerContext != nullptr && arrow->ownerContext == services.hero)
+            {
+                if (kalima == nullptr)
+                    return Core::Unexpected(std::string("0x523d24: la estela 105/0 necesita las ondas de Kalima"));
+                constexpr double TileFactor = static_cast<double>(0.01f);
+                constexpr std::int32_t Radius = 2, Amplitude = -200;
+                const auto tileX = FtolLow(static_cast<double>(effect.transform.position.x) * TileFactor);
+                const auto tileY = FtolLow(static_cast<double>(effect.transform.position.y) * TileFactor);
+                if (auto disturbed = kalima->Disturb(tileX, tileY, Radius, Amplitude, random); !disturbed.HasValue())
+                    return disturbed;
+            }
+            effect.copiedAngles.y = effect.turnDirection; // 0x523d2c, después de la perturbación.
+        }
+        if (services.publishAction)
+            services.publishAction(CrywolfPulseEffect, effect.animation.action);
+        StepModelEffect(effect, skeleton);
+        effect.previousPosition = before;
+        return {};
+    }
     if (effect.type == CrywolfPulseEffect && effect.subtype == CrywolfPulseSubtype)
     {
         const auto* arrow = effect.owner.effect;
@@ -1565,7 +1636,12 @@ Core::Expected<void, std::string> StepGameModelEffect(ModelEffect& effect, const
         StepModelEffect(effect, nullptr);
         return {};
     }
-    if (effect.type == KalimaType)
+    if (effect.type == PiercingShotGlowEffect && effect.subtype == 0)
+    {
+        if (auto emitted = StepPiercingShot(effect, particles, random, services); !emitted.HasValue())
+            return emitted;
+    }
+    else if (effect.type == KalimaType)
     {
         if (auto stepped = StepKalimaEffect(effect, kalima, random); !stepped.HasValue())
             return stepped;

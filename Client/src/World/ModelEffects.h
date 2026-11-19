@@ -40,6 +40,7 @@ inline constexpr float DragonScale = 1.6f;
 // El efecto de llegada: lo crea dos veces la respuesta del F3 03 sobre el héroe (06, "El héroe").
 inline constexpr std::int16_t ArrivalEffect = 0x61f;
 inline constexpr std::int16_t TeleportEffect = 0x5c6;
+inline constexpr std::int16_t PiercingShotGlowEffect = 0x621;
 // La mariposa (0x51913a): la emite el 0x3c del mapa 54 y del 33 (0x425790), con el objeto de dueño.
 inline constexpr std::int16_t ButterflyEffect = 0xae;
 // Los del Dungeon y de Lost Tower: la piedra que cae del 0x34 del mapa 1 (DungeonStone), el chorro de fuego
@@ -246,6 +247,8 @@ public:
     std::optional<std::size_t> CreateCrywolfTideEffect(const ModelEffectArguments& arguments);
     // 0x51c129: ondas114/2 y/6, key firmado como escala, sinRNG; 0x51c8e8:115/1.
     std::optional<std::size_t> CreateWaveEffect(const ModelEffectArguments& arguments);
+    // 0x51efa5: brillo621/0 de Piercing Shot, vida10 y corrimiento girado, sinCRT.
+    std::optional<std::size_t> CreatePiercingShot(const ModelEffectArguments& arguments);
     std::optional<std::size_t> CreatePiercingEffect(const ModelEffectArguments& arguments);
     // 0x51c06c: proyectil0xee de BD0C, sinCRT; +1b0 recibe los ángulos como destino.
     std::optional<std::size_t> CreateCrywolfMissile(const ModelEffectArguments& arguments);

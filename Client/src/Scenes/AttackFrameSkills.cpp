@@ -320,7 +320,7 @@ Core::Expected<void, std::string> StepTheSkill2f(const ActorState& actor, std::u
 // 0x4f9e61..0x4f9ef2: la 0x34. El 0x20a de la 0x22 a la 0x97, desde el frame 5, vuelve al 5 (+0x114) con la key
 // anterior en 4 (+0x118, que MuRet guarda truncada); en 3, el efecto 0x621/0 y el sonido 0x81; [0x6c88ac] en 5, que
 // adelanta la habilidad (0x4fdbda) a cuando +0x381 llega a 5.
-Core::Expected<void, std::string> StepTheSkill34(ActorState& actor, std::uint8_t skill, std::size_t slot,
+Core::Expected<void, std::string> StepTheSkill34(ActorState& actor, std::uint8_t, std::size_t,
                                                  const CharacterStepContext& context)
 {
     constexpr std::uint8_t FirstAction = 0x22;
@@ -336,10 +336,11 @@ Core::Expected<void, std::string> StepTheSkill34(ActorState& actor, std::uint8_t
     constexpr std::uint8_t GlowStep = 3;
     if (actor.byte381 == GlowStep)
     {
-        if (HasFreeEffect(context))
-            return CutAt(0x4f9ecb,
-                         "el efecto 0x621/0 sobre el que tira (CL11); detrás, el sonido 0x81 y [0x6c88ac] en 5", skill,
-                         actor, slot);
+        static_cast<void>(context.world.Map().effects.CreatePiercingShot({.type = World::PiercingShotGlowEffect,
+                                                                          .position = actor.position,
+                                                                          .angles = actor.angles,
+                                                                          .light = actor.light,
+                                                                          .owner = &actor}));
         if (context.soundAt)
             context.soundAt(0x81, actor.position);
         else

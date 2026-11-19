@@ -1,4 +1,5 @@
 #include "World/Particles.h"
+#include "World/ParticleOwner.h"
 #include "World/PortableParticleTrigonometry.h"
 #include "World/ParticleDrawing.h"
 #include "World/IParticleDrawingServices.h"
@@ -11,6 +12,7 @@
 #include <gtest/gtest.h>
 #include <cstdint>
 #include <functional>
+#include <optional>
 #include <vector>
 namespace
 {
@@ -21,6 +23,7 @@ class TraceServices final : public World::IParticleDrawingServices
 public:
     std::vector<int> trace;
     std::vector<glm::vec3> positions;
+    std::vector<glm::vec3> lights;
     Core::Expected<glm::vec2, World::ParticleError> Dimensions(std::int32_t) override
     {
         trace.push_back(1);
@@ -66,6 +69,7 @@ public:
     {
         trace.push_back(7);
         positions.push_back(request.position.get());
+        lights.push_back(request.light.get());
         return {};
     }
 };
@@ -115,3 +119,61 @@ TEST(ParticleLifecycleCompositionTest, LegacyStillDeniesBothNewFamilies)
     EXPECT_EQ(random.State(), 7u);
 }
 } // namespace
+
+TEST(ParticleLifecycleCompositionTest, PiercingSparkRetainsItsPhysicalParentAndMovesThroughDeath)
+{
+    World::Particles particles;
+    auto& retained = particles.All()[0];
+    retained.rotationFactor = 7;
+    retained.field64 = {8, 9};
+    retained.field38 = 0x12345678;
+    const World::ParticleOwner owner{World::ParticleOwnerKind::ModelEffect, 37};
+    const auto slot = particles.CreatePiercingSpark({10, 20, 30}, 0.4f, owner, {110, 220, 330});
+    ASSERT_TRUE(slot);
+    auto& particle = particles.All()[*slot];
+    EXPECT_EQ(particle.velocity, (glm::vec3{10, 20, 30}));
+    EXPECT_EQ(particle.field38, 0x12345678u);
+    EXPECT_FLOAT_EQ(particle.rotationFactor, 7);
+    EXPECT_EQ(particle.field64, (glm::vec2{8, 9}));
+    float clock = 0;
+    World::PortableParticleTrigonometry trig;
+    Render::Models::CrtRandom random(3);
+    int calls = 0;
+    bool parentAlive = true;
+    const World::ParticleOwnerBones parent = [&](const World::Particle& child) -> std::optional<glm::vec3>
+    {
+        ++calls;
+        EXPECT_EQ(child.typedOwner, owner);
+        return parentAlive ? std::optional(glm::vec3{999, 888, 777}) : std::nullopt;
+    };
+    const auto step = [&]
+    {
+        return World::StepParticlesChecked(particles, random, std::cref(clock), nullptr, trig, {}, {}, {}, {}, nullptr,
+                                           {}, parent);
+    };
+    ASSERT_TRUE(step().HasValue());
+    EXPECT_EQ(particle.life, 14);
+    EXPECT_EQ(particle.position, (glm::vec3{20, 40, 60}));
+    EXPECT_EQ(particle.start, particle.position);
+    TraceServices draw;
+    ASSERT_TRUE(World::DrawParticlesChecked(particles, 0, std::cref(clock), draw).HasValue());
+    ASSERT_EQ(draw.positions.size(), 1u);
+    EXPECT_EQ(draw.positions.front(), particle.position);
+    ASSERT_EQ(draw.lights.size(), 1u);
+    EXPECT_EQ(draw.lights.front(), particle.light);
+    parentAlive = false;
+    ASSERT_TRUE(step().HasValue());
+    EXPECT_EQ(particle.life, 5);
+    EXPECT_EQ(particle.light, glm::vec3(1));
+    EXPECT_EQ(particle.position, (glm::vec3{30, 60, 90}));
+    parentAlive = true;
+    for (int tick = 0; tick < 5; ++tick)
+        ASSERT_TRUE(step().HasValue());
+    EXPECT_EQ(calls, 2);
+    EXPECT_FALSE(particle.alive);
+    EXPECT_EQ(particle.life, 0);
+    EXPECT_EQ(particle.position, (glm::vec3{80, 160, 240}));
+    EXPECT_EQ(particle.start, particle.position);
+    EXPECT_EQ(particle.light, glm::vec3(0));
+    EXPECT_FLOAT_EQ(particle.scale, 0.75f);
+}

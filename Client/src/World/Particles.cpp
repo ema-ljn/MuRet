@@ -17,6 +17,7 @@
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
 
+#include <algorithm>
 #include <bit>
 #include <cmath>
 #include <cstddef>
@@ -29,6 +30,13 @@ namespace Client::World
 {
 namespace
 {
+// 0x53fe70: sin lugar libre no se consulta el binding ni se consume rand().
+// Las entradas compatibles hacen la búsqueda en CreateImpl; sólo se anticipa si se rechazaría el tipo.
+bool IsParticlePoolFull(std::span<const Particle> particles)
+{
+    return std::ranges::all_of(particles, [](const Particle& particle) { return particle.alive; });
+}
+
 constexpr std::int32_t BreathSubtype = 0;
 // Extensiones 53fe70/5446e0/548550 para 67/0 y 68/0 (los tipos, en Particles.h); recursos y backend
 // se validan por separado. La 68 nace como la 67 y después corre la posición.
@@ -1568,7 +1576,11 @@ Particles::CreateKalimaChecked(std::int32_t type, const glm::vec3& position, con
                                Render::Models::CrtRandom& random, std::int32_t scene, ParticleOwner owner)
 {
     if (!IsKalimaParticle(type, subtype))
+    {
+        if (IsParticlePoolFull(m_particles))
+            return std::optional<std::size_t>{};
         return Core::Unexpected(ParticleError::UnsupportedSubtype);
+    }
     return CreateImpl(type, position, angles, light, subtype, scale, worldClock, nullptr, random, 0, nullptr, scene,
                       owner);
 }
@@ -1580,9 +1592,33 @@ Particles::CreateOwnedChecked(std::int32_t type, const glm::vec3& position, cons
 {
     if (!IsKalimaParticle(type, subtype) && !IsSelectionParticle(type, subtype) && !IsTrialsParticle(type, subtype) &&
         !IsHandShine(type, subtype) && !IsSwellLifeParticle(type, subtype))
+    {
+        if (IsParticlePoolFull(m_particles))
+            return std::optional<std::size_t>{};
         return Core::Unexpected(ParticleError::UnsupportedSubtype);
+    }
     return CreateImpl(type, position, angles, light, subtype, scale, worldClock, nullptr, random, 0, nullptr, scene,
                       owner);
+}
+
+std::optional<std::size_t> Particles::CreatePiercingSpark(const glm::vec3& position, float scale, ParticleOwner owner,
+                                                          const glm::vec3& center)
+{
+    constexpr std::int32_t PiercingLife = 15;
+    constexpr double Approach = static_cast<double>(0.1f);
+    for (std::size_t index = 0; index < m_particles.size(); ++index)
+    {
+        auto& particle = m_particles[index];
+        if (particle.alive)
+            continue;
+        Initialize(particle, SparkParticle, position, {}, glm::vec3(1), PiercingSparkSubtype, scale, 0);
+        particle.typedOwner = owner;
+        particle.life = PiercingLife;
+        for (int axis = 0; axis < 3; ++axis)
+            particle.velocity[axis] = F32((static_cast<double>(center[axis]) - position[axis]) * Approach);
+        return index;
+    }
+    return std::nullopt;
 }
 
 Core::Expected<std::optional<std::size_t>, ParticleError>
@@ -1591,13 +1627,13 @@ Particles::CreateFollowingChecked(std::int32_t type, const glm::vec3& position, 
                                   const ParticleOwnerBones& bones)
 {
     constexpr std::int32_t SkillShineLife = 0x12; // 0x542c00
-    if (type != SkillShineParticle)
-        return Core::Unexpected(ParticleError::UnsupportedType);
     for (std::size_t index = 0; index < m_particles.size(); ++index)
     {
         Particle& particle = m_particles[index];
         if (particle.alive)
             continue;
+        if (type != SkillShineParticle)
+            return Core::Unexpected(ParticleError::UnsupportedType);
         Initialize(particle, type, position, angles, light, subtype, scale, 0);
         particle.typedOwner = owner;
         particle.life = SkillShineLife;
@@ -2100,7 +2136,8 @@ StepParticlesImpl(Particles& particles, Render::Models::CrtRandom& random, const
                 StepTheMap8Eight(particle);
             continue;
         }
-        if (particle.type != Particle67 && particle.type != Particle68 && !IsCloud8(particle))
+        if (particle.type != Particle67 && particle.type != Particle68 && !IsCloud8(particle) &&
+            !(particle.type == SparkParticle && particle.subtype == PiercingSparkSubtype))
         {
             if (const auto error = BindingError(particle.type, particle.subtype))
             {
@@ -2243,6 +2280,28 @@ StepParticlesImpl(Particles& particles, Render::Models::CrtRandom& random, const
         else if (IsMapSpark(particle))
         {
             StepTheMapSpark(particle);
+        }
+        else if (particle.type == SparkParticle && particle.subtype == PiercingSparkSubtype)
+        {
+            // 0x5450ce: la partida guardada manda incluso tras el movimiento y la muerte comunes.
+            constexpr std::int32_t DetachedLife = 5;
+            constexpr double Brightness = static_cast<double>(0.2f);
+            constexpr double Growth = static_cast<double>(0.05f);
+            if (particle.life > DetachedLife)
+            {
+                if (!ownerBones)
+                    return Core::Unexpected(ParticleError::MissingOwner);
+                if (!ownerBones(particle))
+                    particle.life = DetachedLife;
+            }
+            particle.light = glm::vec3(F32(static_cast<double>(particle.life) * Brightness));
+            particle.scale = F32(static_cast<double>(particle.scale) + Growth);
+            for (int axis = 0; axis < 3; ++axis)
+            {
+                const float position = F32(static_cast<double>(particle.start[axis]) + particle.velocity[axis]);
+                particle.position[axis] = position;
+                particle.start[axis] = position;
+            }
         }
         else if (particle.type == SparkParticle && particle.subtype == BowSparkSubtype)
         {

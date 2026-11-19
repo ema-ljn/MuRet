@@ -12,6 +12,8 @@
 #include "Scenes/FaunaDrawing.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "Scenes/WorldMap.h"
+#include "World/ModelEffects.h"
 #include "Scenes/WorldObjectsDrawing.h"
 #include "World/OriginalFtol.h"
 #include "World/ParticleDrawing.h"
@@ -234,6 +236,15 @@ std::optional<glm::vec3> OwnerBonePointOf(WorldState& world, const World::Partic
 {
     constexpr std::int32_t ShineOwnerType = 0x62d;
     constexpr glm::vec3 ShineOffset{0.0f, -120.0f, 0.0f}; // 0x53fdfd: 0xc2f00000
+    if (particle.type == World::SparkParticle && particle.subtype == World::PiercingSparkSubtype &&
+        particle.typedOwner.kind == World::ParticleOwnerKind::ModelEffect)
+    {
+        const auto effects = world.Map().effects.Effects();
+        if (particle.typedOwner.identity >= effects.size())
+            return std::nullopt;
+        const auto& owner = effects[static_cast<std::size_t>(particle.typedOwner.identity)];
+        return owner.alive ? std::optional(owner.transform.position) : std::nullopt;
+    }
     const auto actors = world.Actors();
     if (particle.typedOwner.kind != World::ParticleOwnerKind::Actor || particle.typedOwner.identity >= actors.size())
         return std::nullopt;

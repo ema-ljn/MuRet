@@ -50,6 +50,9 @@ inline constexpr std::int32_t FireworkParticle = 0x60d;
 inline constexpr std::int32_t PoundingBallParticle = 0x640;
 inline constexpr std::int32_t ShinyParticle = 0x5fc;
 inline constexpr std::int32_t ThunderParticle = 0x5ca;
+// 0x5410d9: la /1 (la de 0x53fd42) gris que se apaga con la vida; la /2 (la de 0x51df52) con la textura 0x61e.
+inline constexpr std::int32_t ThunderGraySubtype = 1;
+inline constexpr std::int32_t ThunderBoltSubtype = 2;
 inline constexpr std::int32_t FairySparkParticle = 0x5c5;
 inline constexpr std::int32_t FireParticle = 0x5d9;
 // 0x4fd580/0x43ebb7: la llama azul de la estela de Kalima, con su textura Effect\Fire05.jpg (0x61ddac).

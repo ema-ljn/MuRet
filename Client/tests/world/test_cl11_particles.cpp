@@ -224,6 +224,48 @@ TEST(Cl11Particles, EveryFireSubtypeIsCreatedAndStepped)
         }
 }
 
+// 0x5410ea y 0x545750: la 5ca/1 vive 10 con la luz 0,5 y su paso la apaga con la vida y la agranda 0,1f.
+TEST(Cl11Particles, TheGrayThunderFadesWithItsLife)
+{
+    auto particles = std::make_unique<Particles>();
+    CrtRandom random(Seed);
+    ASSERT_TRUE(particles->CreateChecked(0x5ca, {}, {}, glm::vec3(1.0f), 1, 2.0f, 0.0f, random).HasValue());
+    Draws draws;
+    Particle& thunder = Only(*particles, 0);
+    const float scale = F32(static_cast<double>((draws.Next() & 7) + 6) * 2.0 * D(0x3dcccccdu));
+    EXPECT_EQ(thunder.scale, scale);
+    EXPECT_EQ(thunder.rotation, static_cast<float>(draws.Next() % 360));
+    EXPECT_EQ(thunder.verticalSpeed, 20.0f);
+    EXPECT_EQ(thunder.life, 10);
+    EXPECT_EQ(thunder.light, glm::vec3(0.5f));
+    EXPECT_EQ(random.State(), AfterDraws(Seed, 2).State());
+    ASSERT_TRUE(Step(*particles, random, 0.0f).HasValue());
+    EXPECT_EQ(thunder.light, glm::vec3(F32(9.0 * D(0x3d888889u))));
+    EXPECT_EQ(thunder.scale, F32(static_cast<double>(scale) + D(0x3dcccccdu)));
+}
+
+// 0x541112..0x541167 y 0x54577c: la 5ca/2 cambia la textura a 0x61e, vive 10, saca un tercer rand() para la escala
+// (+ 0,3f) y queda sin giro; su paso baja la luz 0,01f por canal.
+TEST(Cl11Particles, TheThunderBoltTakesItsTextureAndAThirdRand)
+{
+    auto particles = std::make_unique<Particles>();
+    CrtRandom random(Seed);
+    ASSERT_TRUE(particles->CreateChecked(0x5ca, {}, {}, glm::vec3(0.5f), 2, 2.0f, 0.0f, random).HasValue());
+    Draws draws;
+    Particle& bolt = Only(*particles, 0);
+    static_cast<void>(draws.Next());
+    static_cast<void>(draws.Next());
+    EXPECT_EQ(bolt.texture, 0x61e);
+    EXPECT_EQ(bolt.life, 10);
+    EXPECT_EQ(bolt.scale, F32(static_cast<double>((draws.Next() & 7) + 6) * 2.0 * D(0x3dcccccdu) + D(0x3e99999au)));
+    EXPECT_EQ(bolt.rotation, 0.0f);
+    EXPECT_EQ(bolt.verticalSpeed, 0.0f);
+    EXPECT_EQ(bolt.light, glm::vec3(0.5f));
+    EXPECT_EQ(random.State(), AfterDraws(Seed, 3).State());
+    ASSERT_TRUE(Step(*particles, random, 0.0f).HasValue());
+    EXPECT_EQ(bolt.light, glm::vec3(F32(0.5 - D(0x3c23d70au))));
+}
+
 TEST(Cl11Particles, TheRingFireFollowsItsOwner)
 {
     auto particles = std::make_unique<Particles>();

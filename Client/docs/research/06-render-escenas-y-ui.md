@@ -8583,7 +8583,12 @@ En `Particles.cpp`: **el fuego** (`0x541172` y `0x5457a5`, el mismo caso para `0
 subtipos (la /7 y la /11 se mecen, la /9 sigue a su dueño desde una partida en anillo, la /12 y la /13 suben y giran) y
 `0x548803` manda la 5, 7, 8, 11, 12 y 13 al atlas girado por `+0x44` (`0x548850`) y las demás al de los ángulos
 (`0x548821`), en los tres tipos; **el rayo `0x5d5`** (tabla de `0x544428`) trata todos los subtipos, y la /2 (vida 20, la de
-`0x4c965c`) sigue a su dueño 80 más arriba (`0x54548f`); **la `0x5ca`** no lee el subtipo. En los kernels de Kalima, las
+`0x4c965c`) sigue a su dueño 80 más arriba (`0x54548f`); **la `0x5ca`** (`0x54109f`, `0x54573f`) trata cualquier
+subtipo con sus dos `rand()` (la escala y el giro), y además la /1 (`0x5410ea`, la de `0x53fd42`) nace con vida 10 y luz
+0,5 y su paso le da la luz vida · 0,0666667f y crece 0,1f (`0x545750`), y la /2 (`0x541112`, la de `0x51df52`) toma la
+textura `0x61e`, vida 10, un tercer `rand()` para la escala (`((rand() & 7) + 6) · escala · 0,1f + 0,3f`) y el giro en 0,
+y su paso baja la luz 0,01f por canal (`0x54577c`); la /0 de los demás llamadores conserva la vida 2 y la luz del
+prefijo. En los kernels de Kalima, las
 de Kundun: la caída `0x6f4`/3 (`0x543dc0`, gira 4 en `0x547f4c`) y las salpicaduras `0x6f2`/2, `0x6f3`/2 (`0x544295`) y
 `0x6f4`/4 (`0x543e14`), que avanzan 20 hacia su ángulo z con `fcos`/`fsin` del ángulo crudo (`0x5480fd`, `0x547f6b`).
 

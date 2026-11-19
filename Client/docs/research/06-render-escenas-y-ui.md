@@ -14130,7 +14130,9 @@ en un lugar de más adelante pasa en la misma vuelta de `0x53c670`.
   (z + 120) o a su destino (la /6 y la /9), y a 35 o menos mueren con la `0x5d5/1` y el sonido `0x23`. Los que siguen
   al dueño (vida 999.999.999) se ponen en su `+0x40` (o `+0x4c` la /3, /0xb y /0xf); con el dueño muerto salen de
   `0x535840` sin la cola (`0x538216`). La /7 no tiene paso. La 0x10 la crea el `0x1b7` (`0x427a8d`); la /0xc y la /0xd,
-  la party de las acciones del Dark Lord (`0x50fa74`).
+  la party de las acciones del Dark Lord (`0x50fa74`). La /0xa, /0xb, /0xe y /0xf (como el `0x697`) nacen con la
+  cuenta en −1 y saltan a la tabla de `0x530a5c` sin el primer tramo (`0x530a32..0x530a55`): el punto 0 queda con lo
+  que tenía el lugar y el primer paso las deja en 0.
 - **`0x62c`** (`SpiralJoints.cpp`, tercera vuelta): alta `0x5346d8..0x534954` (sin cola, velocidad −3, z + 150, vida
   20, 30 puntos, luz (1; 0,8; 1), `+0x9ec` en 1 y el camino `+0x24` en la posición) y paso `0x53b93f..0x53be71`, sin
   el movimiento común (`0x5358a3`). La /0 sube derecho con `+0x9ec` − 1 tramos por paso (`+0x9ec` crece de a 2): en
@@ -14151,6 +14153,38 @@ en un lugar de más adelante pasa en la misma vuelta de `0x53c670`.
   y si no baja 2, y la luz por 0,9090909f bajo 40 y por 1,2f sobre 68). La `0x35` (`0x4fe795..0x4fe981`) cuelga de o
   cuatro de ancho 15 con los ángulos (−45, 0, 45 / 405 / 225 / 450) desde (sen 4,5; cos 4,5) · 80 y (cos 22,5;
   sen 22,5) · 80 más o, 300 más arriba (`0x6a1a90` es el seno de la CRT y `0x6a19e0` el coseno), y suena `0x7f`.
+- **`0x60f/7`, `/0xb` y `/0x19`** (`WanderingJoints.cpp`, cuarta vuelta): la luz que vaga alrededor de su dueño. Alta
+  `0x533bbd`, `0x533d5f` y `0x533db8` sobre lo común del `0x60f` (`0x533677`: vida 100, 20 puntos, ancho 10): la /7 con
+  la luz (0,2; 0,2; 1), 15 puntos y `rand() % 10` en `+0x9ec` y en la vida (+ 30); la /0xb azul y la /0x19 rosa, vida
+  30, 15 puntos y `+0x9ec` en 0; después ancho 30, vx en `rand() % 3000` y el destino en el segundo punto (`0x5342be`).
+  Paso `0x53a87a..0x53b01f`, sin velocidad: la flecha muerta apaga el joint con la vida en −1; el acceso al contador de
+  pasos (`0x7d3a0f0`, como el hada); la fase es el contador (negado en los lugares pares) más el lugar · 53731; la
+  dirección (`0x53a9d5..0x53aa84`) con tres frecuencias (0,048f; 0,0613f; 0,1113f, una vez y media en la /0xb) y los
+  senos y cosenos guardados en float; t = vida · 4/3 da la mezcla con el punto del dueño y el radio (la /7 se aleja
+  hasta 150 al final, (40 − t) · 15; la flecha al principio, (t − 10) · 5); con la vida en 30, el sonido `0x42`; la
+  posición es el destino más la dirección por el radio, mezclada por eje con el punto del dueño (el `+0x10` del
+  personaje en la /7, la partida `+0x17c` de la flecha en las otras) corrido por cos(arg · 0,01f) · 25; la /7, 100 más
+  arriba. Con el skill 1 la flecha sigue al joint y choca (`0x520170`); después el sprite `0x5fd` (0,1f) y dos `0x5ac`
+  (0,18f), cada uno con `rand() % 360` y `(rand() & 1) + 8`; la /7 y la /0x19 en su última vida, la partícula `0x5ed/1`
+  de escala 0,6f; la /0x19 se apaga con menos de 10. La flecha `0xf8` (salvo la /1, del lote altos) suelta cuatro
+  `0x60f/0xb` de ancho 50 desde su partida con ella de dueño (`0x51a405`).
+- **`0x61c/2..6`** (`InfernoJoints.cpp`, cuarta vuelta): alta `0x534444..0x53463b`: velocidad 8, vx 3,5, vz 1, vida
+  20, 12 puntos, la cuenta en −1, `+0x9ec` en 5 y el giro (0, 0, z) en `+0x3c`; la /2 10 más arriba con
+  `Effect\Inferno.jpg` (`0x633`), vida 15 y vx y vz en 5; la /3 `0x60f`, velocidad 10, vx 10,5 y vz 2; la /4
+  `Effect\Hole.jpg` (`0x6ae`), 13 puntos, vx 15,5 y vz 3; la /5 y la /6 `Effect\Lava.jpg` (`0x634`), la /6 con
+  velocidad 20 y vida 16; el camino `+0x24` en la posición. Paso `0x53b6a0..0x53b7ec`: la velocidad suma vz y vz suma
+  vx (0,5 con menos de 15 de vida); salvo la /4, con la cola llena deja de agregar tramos; bajo `+0x9ec`, la luz por
+  0,7692308f; la /2 con la vida múltiplo de 5 pide el efecto `0xf6/6` (`0x53b760`, corta); la /4 suelta un `0x62b/6`
+  sin dueño de ancho 30 desde su posición y con sus ángulos, el sprite `0x5ac` (1,6f) y el `0x5fd` (1,5f, girado el
+  reloj · 0,1f), con la luz (0,1; 0,6; 1). El `0x62b/6` comparte alta y paso con el `0x60f/6` (vida y puntos 15 en vez
+  de 20 y 30, `0x533faf..0x5340d7`; el paso `0x53b029` multiplica la vida por 0,8f en vez de 0,5). La skill `0x49`
+  (`0x504ac7..0x504b49`) crea el `0x61c/4` desde o 130 más arriba, con (0, 0, z de o), ancho 40 y sin dueño, y suena
+  `0x26f` aunque la tabla esté llena.
+- **`0x5f2`** (`FireTrailJoints.cpp`, cuarta vuelta): la estela de los meteoros `0xc2/6` y `/8` de los magos
+  (`0x51b098`, `0x51b268`, con el efecto de dueño). Alta `0x531229..0x53128f` y `0x532073`: el ancho y la luz en 1; la
+  /0 con velocidad 0, 20 puntos, vida 20 y la textura del `0x60f`; la /1 con 15 y 15; las demás conservan los puntos y
+  la vida del lugar (tope 50, `0x534cb6`). Paso `0x5366bd..0x5366ee`: con el dueño vivo y de tipo `0xc2`, la posición
+  es la suya (`+0x10`). El dibujo de la /0 salta el tramo 0 y lleva la luz por min(vida, 20) · 0,1f.
 
 La matriz de la cola común (`0x53c393`, `[ebp−0xe8]`) es la que calculó `0x53590e` en el paso del joint; los de la
 lista `0x53585e..0x53590c` no la calculan y usan la del último joint de la vuelta que la calculó (Q-C1623). El paso

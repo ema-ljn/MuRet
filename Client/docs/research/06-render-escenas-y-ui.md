@@ -14109,7 +14109,15 @@ en un lugar de más adelante pasa en la misma vuelta de `0x53c670`.
   `0x5046b0` (cinco /4 con el `+0x3a4` de c, con signo), `0x4e644f` (cinco /0 de ancho 50) y `0x4e662d` (tres /8 de
   ancho 30, ángulos z 90/180/270, la copia del `+0x10` 10 más abajo cada vez) y la `0x48` (`0x4fe505..0x4fe790`: `+0x78`
   de o en 0 y seis /5..7 de ancho 170 desde o + 100 en z, girados 45, 135, 225, 90, 180 y 270, la copia 10 más abajo
-  salvo después de los /7, y el sonido `0x26b`). La luz por tramo del dibujo lee la altura del
+  salvo después de los /7, y el sonido `0x26b`).
+- **`0x632/7` y `0x632/6`** (`StormJoints.cpp`, segunda vuelta): la skill `0x43` (`0x4fe147..0x4fe18b`) crea un
+  `0x632/7` sobre o sin dueño (ancho 10) y suena `0x266` aunque el pool esté lleno. Su alta (`0x534b27`) lo deja sin
+  cola y con vida 0 y crea tres `0x632/6` (`0x534b3f..0x534bc0`) desde (k, −50, 0) girado por sus ángulos más su
+  posición, k en −100, 0 y 100, ancho 40. La /6 salta el primer tramo; alta `0x534a16`: vida 25 y tanda 25, velocidad
+  `(rand() % 3 + 70) · 0,01745329f`, luz (0,8; 0,8; 1), vy = −(`rand() & 3` + 40), vz = sen(velocidad) · 10, y − 20,
+  z + 130, el `+0x24` en la posición, la cara 3 y `0x535020` cruzado con la cuenta en 0 después. Paso `0x53bec2`: vy
+  + `rand() % 5` − 2, vz − 10, se mueve por sus ángulos y, con la tanda menos la vida bajo 10 (los diez primeros
+  pasos), corta en la partícula `0x5ee` (`0x53bf6e`, lote de partículas). La /7 sólo pasa por la cola y muere. La luz por tramo del dibujo lee la altura del
   personaje dueño.
 
 La matriz de la cola común (`0x53c393`, `[ebp−0xe8]`) es la que calculó `0x53590e` en el paso del joint; los de la

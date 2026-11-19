@@ -184,6 +184,30 @@ Core::Expected<void, std::string> CreateFiveAuras(std::uint32_t address, ActorSt
     return {};
 }
 
+// 0x4fe147..0x4fe18b (la 0x43): 0x530860(0x632, o+0x10, o+0x10, o+0x1c, 7, nulo, 10, −1, 0, 0, −1), que suelta tres
+// 0x632/6 (StormJoints.cpp), y el sonido 0x266 aunque el pool esté lleno.
+Core::Expected<void, std::string> CallTheStorm(ActorState& actor, const CharacterStepContext& context)
+{
+    constexpr std::int32_t StormSound = 0x266;
+    if (context.joints.empty())
+        return Core::Unexpected(std::string("0x4fe172: faltan los joints del frame (0x530860)"));
+    const World::FishEffectRequest request{.type = JointFamilies::StormJoint,
+                                           .firstPosition = actor.position,
+                                           .secondPosition = actor.position,
+                                           .angles = actor.angles,
+                                           .subtype = JointFamilies::StormSubtype,
+                                           .ownerContext = nullptr,
+                                           .scale = 10,
+                                           .key = -1,
+                                           .skill = 0,
+                                           .skillSerial = 0,
+                                           .target = -1};
+    if (auto created = CreateFaunaJoint(context.joints, request, context.random); !created.HasValue())
+        return Core::Unexpected(std::format("0x4fe172: {}", created.Error()));
+    RequestTheSound(context, StormSound);
+    return {};
+}
+
 // 0x4fe505..0x4fe790 (la 0x48): +0x78 de o en 0 y seis 0x10f/5..7 de ancho 170 desde o + 100 en z, girados 45, 135 y
 // 225 y después 90, 180 y 270; la copia baja 10 después de cada uno salvo los /7. Al final, el sonido 0x26b.
 Core::Expected<void, std::string> RaiseTheAuras(ActorState& actor, const CharacterStepContext& context)
@@ -530,7 +554,7 @@ Core::Expected<void, std::string> StepTheHeadSkill(ActorState& actor, std::size_
                                .effect = "el calco 0x61e/4 entre los joints 0x613/2",
                                .sound = 0x7f});
     case 0x43:
-        return JointThenSound(0x4fe172, "el joint 0x632/7 sobre o (0x530860)", skill, slot, 0x266, context);
+        return CallTheStorm(actor, context);
     case 0x44:
         return BindTheTarget(actor, slot, skill, context, 0x4fe1a6, 0x4fe235);
     case 0x45:

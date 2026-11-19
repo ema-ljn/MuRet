@@ -9,6 +9,7 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/ArrowEffects.h"
 #include "Scenes/CharacterStep.h"
+#include "Scenes/FaunaJointCreation.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/WorldMap.h"
@@ -211,12 +212,12 @@ TEST(AttackSkillCasesTest, TheHeadCasesCutAfterTheirDraws)
         int draws;
     };
     const std::array cases{
-        Case{0x30, "0x4fe127", 0},         Case{0x43, "0x4fe172", 0},         Case{0x45, "0x4fe360", 0},
-        Case{0x35, "0x4fe856", 0},         Case{0x3f, "0x4feae8", 0},         Case{0x41, "0x4febbb", 0},
-        Case{0x31, "0x4fec15", 0},         Case{0x29, "0x4fec9a", OwnRecord}, Case{0x0a, "0x4fecf3", OwnRecord},
-        Case{0x28, "0x4ff4ef", 0},         Case{0x26, "0x4ff5b2", 0},         Case{0x27, "0x4ffdaf", 1},
-        Case{0x08, "0x500c49", OwnRecord}, Case{0x0c, "0x500cb9", OwnRecord}, Case{0x0d, "0x500d7b", OwnRecord},
-        Case{0x0e, "0x51fe9e", 2},         Case{0x2c, "0x502975", 0},
+        Case{0x30, "0x4fe127", 0},         Case{0x45, "0x4fe360", 0},         Case{0x35, "0x4fe856", 0},
+        Case{0x3f, "0x4feae8", 0},         Case{0x41, "0x4febbb", 0},         Case{0x31, "0x4fec15", 0},
+        Case{0x29, "0x4fec9a", OwnRecord}, Case{0x0a, "0x4fecf3", OwnRecord}, Case{0x28, "0x4ff4ef", 0},
+        Case{0x26, "0x4ff5b2", 0},         Case{0x27, "0x4ffdaf", 1},         Case{0x08, "0x500c49", OwnRecord},
+        Case{0x0c, "0x500cb9", OwnRecord}, Case{0x0d, "0x500d7b", OwnRecord}, Case{0x0e, "0x51fe9e", 2},
+        Case{0x2c, "0x502975", 0},
     };
     for (const std::int32_t map : Maps)
     {
@@ -1216,6 +1217,41 @@ TEST(AttackSkillCasesTest, TheRisingAurasLeaveFromAboveTheCaster)
     EXPECT_FALSE(tested.joints[6].alive);
     EXPECT_EQ(tested.sounds, (std::vector<std::int32_t>{0x26b}));
     EXPECT_EQ(DrawsSince(Seed, tested.random), 0);
+}
+
+// 0x4fe147..0x4fe18b: la 0x43 crea el 0x632/7 sobre o, que suelta tres 0x632/6 con dos rand() cada uno, y suena
+// 0x266. El paso de los /6 corta en su partícula 0x5ee (0x53bf6e) después de su rand().
+TEST(AttackSkillCasesTest, TheStormDropsThreeBolts)
+{
+    SkillWorld tested;
+    tested.Striker().angles = {0, 0, 90};
+    ASSERT_TRUE(tested.Head(0x43).HasValue());
+    EXPECT_EQ(tested.sounds, (std::vector<std::int32_t>{0x266}));
+    const JointState& storm = tested.joints[0];
+    ASSERT_TRUE(storm.alive);
+    EXPECT_EQ(storm.subtype, 7);
+    EXPECT_EQ(storm.life, 0);
+    EXPECT_FALSE(storm.tailEnabled);
+    for (std::size_t i = 1; i <= 3; ++i)
+    {
+        SCOPED_TRACE(i);
+        const JointState& bolt = tested.joints[i];
+        ASSERT_TRUE(bolt.alive);
+        EXPECT_EQ(bolt.type, 0x632);
+        EXPECT_EQ(bolt.subtype, 6);
+        EXPECT_EQ(bolt.life, 25);
+        EXPECT_EQ(bolt.volley, 25);
+        EXPECT_EQ(bolt.width, 40.0f);
+        EXPECT_EQ(bolt.orientation, 3);
+        EXPECT_EQ(bolt.count, 0);
+        EXPECT_EQ(bolt.ownerContext, nullptr);
+        EXPECT_EQ(bolt.pathIncrement, bolt.position);
+    }
+    EXPECT_EQ(DrawsSince(Seed, tested.random), 6);
+    const auto stepped = Client::Scenes::StepJoints(tested.joints, tested.random);
+    ASSERT_FALSE(stepped.HasValue());
+    EXPECT_NE(stepped.Error().find("0x53bf6e"), std::string::npos) << stepped.Error();
+    EXPECT_EQ(DrawsSince(Seed, tested.random), 7);
 }
 
 TEST(AttackSkillCasesTest, FullJointsKeepAllStrikeAroundSelectors)

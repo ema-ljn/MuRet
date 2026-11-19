@@ -686,9 +686,11 @@ Core::Expected<void, std::string> CreateCase(JointState& joint, const World::Fis
         joint.targetPosition = request.secondPosition;
         return {};
     }
-    // 0x530c5d..0x530c71: el 10f/5..7 salta el primer tramo.
+    // 0x530c5d..0x530c71: el 10f/5..7 salta el primer tramo; 0x530a46, el 632/6.
     if (request.type == JointFamilies::AuraJoint && request.subtype >= 5 && request.subtype <= 7)
         return JointFamilies::CreateAuraJoint(joint, request);
+    if (request.type == JointFamilies::StormJoint && request.subtype == JointFamilies::BoltSubtype)
+        return JointFamilies::CreateStormJoint(joint, request, random);
     FirstQuad(joint);
     if (request.type == SparkleJoint && request.subtype == 0x17)
     {
@@ -731,6 +733,8 @@ Core::Expected<void, std::string> CreateCase(JointState& joint, const World::Fis
     }
     if (request.type == JointFamilies::AuraJoint && request.subtype != 1 && request.subtype != 3)
         return JointFamilies::CreateAuraJoint(joint, request);
+    if (request.type == JointFamilies::StormJoint)
+        return JointFamilies::CreateStormJoint(joint, request, random);
     if (request.type == 0x617 && request.subtype >= 0 && request.subtype <= 3)
     {
         // 534e9c: /0→53202f,/1→5320a4,/2→5320dd,/3→532085.
@@ -830,6 +834,40 @@ Core::Expected<void, std::string> CreateCase(JointState& joint, const World::Fis
 }
 } // namespace
 
+namespace
+{
+// 0x534b3f..0x534bc0: los tres 632/6 del 632/7, desde (k, −50, 0) girado por sus ángulos y sumado a su posición, con
+// k en −100, 0 y 100; sin dueño, ancho 40, key −1. Con el pool lleno, los que no entran no están.
+Core::Expected<void, std::string> CreateStormBolts(std::span<JointState> joints, const JointState& storm,
+                                                   Render::Models::CrtRandom& random)
+{
+    constexpr float Down = std::bit_cast<float>(0xc2480000u); // 0x534b5e, −50
+    constexpr float Width = 40;
+    glm::vec3 angles = storm.angles;
+    const glm::vec3 origin = storm.position;
+    for (std::int32_t offset = -100; offset < 200; offset += 100)
+    {
+        const auto matrix = Render::Models::OriginalAngleMatrix(angles);
+        const auto turned = Render::Models::OriginalVectorRotate({static_cast<float>(offset), Down, 0}, matrix);
+        glm::vec3 from{F32(D(turned.x) + D(origin.x)), F32(D(turned.y) + D(origin.y)), F32(D(turned.z) + D(origin.z))};
+        const World::FishEffectRequest request{.type = JointFamilies::StormJoint,
+                                               .firstPosition = from,
+                                               .secondPosition = from,
+                                               .angles = angles,
+                                               .subtype = JointFamilies::BoltSubtype,
+                                               .ownerContext = nullptr,
+                                               .scale = Width,
+                                               .key = -1,
+                                               .skill = 0,
+                                               .skillSerial = 0,
+                                               .target = -1};
+        if (auto created = CreateFaunaJoint(joints, request, random); !created.HasValue())
+            return Core::Unexpected(std::format("0x534baa: {}", created.Error()));
+    }
+    return {};
+}
+} // namespace
+
 Core::Expected<std::optional<std::size_t>, std::string> CreateFaunaJoint(std::span<JointState> joints,
                                                                          const World::FishEffectRequest& request,
                                                                          Render::Models::CrtRandom& random,
@@ -869,6 +907,9 @@ Core::Expected<std::optional<std::size_t>, std::string> CreateFaunaJoint(std::sp
         Prefix(joints[i], request, ownerKind);
         if (auto created = CreateCase(joints[i], request, random, services); !created.HasValue())
             return Core::Unexpected(created.Error());
+        if (request.type == JointFamilies::StormJoint && request.subtype == JointFamilies::StormSubtype)
+            if (auto bolts = CreateStormBolts(joints, joints[i], random); !bolts.HasValue())
+                return Core::Unexpected(bolts.Error());
         return std::optional<std::size_t>(i);
     }
     return std::optional<std::size_t>{};
@@ -1565,6 +1606,7 @@ enum class Family : std::uint8_t
     Spirit,
     Drop,
     Aura,
+    Storm,
 };
 
 std::optional<Family> FamilyStep(const JointState& joint)
@@ -1583,6 +1625,8 @@ std::optional<Family> FamilyStep(const JointState& joint)
     // La /1 (el hada) y la /3 (Blood Castle) siguen en el paso de abajo, con el FaunaObject de dueño.
     if (joint.type == JointFamilies::AuraJoint && joint.subtype != 1 && joint.subtype != 3)
         return Family::Aura;
+    if (joint.type == JointFamilies::StormJoint)
+        return Family::Storm;
     return std::nullopt;
 }
 
@@ -1656,6 +1700,8 @@ Core::Expected<void, std::string> RunFamily(JointState& joint, Family family,
         return {};
     case Family::Aura:
         return JointFamilies::StepAuraJoint(joint, services);
+    case Family::Storm:
+        return JointFamilies::StepStormJoint(joint, services);
     }
     return {};
 }

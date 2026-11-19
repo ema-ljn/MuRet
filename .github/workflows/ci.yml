@@ -103,8 +103,9 @@ jobs:
               -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
             # Ninja corre por defecto núcleos + 2 = 6 compilaciones a la vez: con 6 cl de Scenes/
             # juntos el runner se quedó sin memoria (C1060, "compiler is out of heap space", #379).
-            # De a 4, una por núcleo.
-            build-jobs: '4'
+            # De a 4, cada test de tests/scenes tardó 3 a 4 min en compilar y todo el build tardó más
+            # que MSBuild de a 2 proyectos (71 min, main con el #378). Se prueba de a 2.
+            build-jobs: '2'
             font-file: 'C:\Windows\Fonts\arial.ttf'
           # Que cada archivo del cliente incluya lo que usa (docs/CODING_RULES.md § 7). Antes iba al
           # final del job de Linux y le sumaba 12 a 18 minutos; clang-tidy solo lee el

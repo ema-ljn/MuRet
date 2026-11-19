@@ -52,4 +52,23 @@ inline constexpr std::int32_t DropSubtype = 2;
 inline constexpr std::int32_t DarkDropSubtype = 0x18;
 void CreateDropJoint(JointState& joint, const World::FishEffectRequest& request, Render::Models::CrtRandom& random);
 void StepDropJoint(JointState& joint);
+
+// El 0x10f con un personaje (ActorState) de dueño (AuraJoints.cpp): alta 0x530edd..0x531214 y paso 0x535d4f..0x5366a7.
+// La /1 (el hada) y la /3 (Blood Castle) llevan un FaunaObject y siguen en FaunaJointCreation.cpp. Las /5..7 no hacen
+// el primer tramo (0x530a5c): FaunaJointCreation.cpp las llama antes.
+inline constexpr std::int32_t AuraJoint = 0x10f;
+[[nodiscard]] Core::Expected<void, std::string> CreateAuraJoint(JointState& joint,
+                                                                const World::FishEffectRequest& request);
+[[nodiscard]] Core::Expected<void, std::string> StepAuraJoint(JointState& joint,
+                                                              const JointKernels::StepServices& services);
+
+// El 0x632/7 y sus tres 0x632/6 (StormJoints.cpp): alta 0x534b27 y 0x534a16 y paso 0x53bec2. La /6 salta el primer
+// tramo (0x530a5c); FaunaJointCreation.cpp crea los tres /6 al final del alta de la /7 (0x534b3f..0x534bc0).
+inline constexpr std::int32_t StormJoint = 0x632;
+inline constexpr std::int32_t BoltSubtype = 6;
+inline constexpr std::int32_t StormSubtype = 7;
+[[nodiscard]] Core::Expected<void, std::string>
+CreateStormJoint(JointState& joint, const World::FishEffectRequest& request, Render::Models::CrtRandom& random);
+[[nodiscard]] Core::Expected<void, std::string> StepStormJoint(JointState& joint,
+                                                               const JointKernels::StepServices& services);
 } // namespace Client::Scenes::JointFamilies

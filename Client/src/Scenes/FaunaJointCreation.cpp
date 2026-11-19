@@ -62,7 +62,15 @@ void Prefix(JointState& joint, const World::FishEffectRequest& request, JointOwn
     if (request.ownerContext == nullptr)
         joint.targetPosition = request.secondPosition;
     else
+    {
+        // 0x530967..0x530995: con dueño, el 0x10f/2 toma el segundo punto y el /4 y el /9 su blanco.
+        if (request.type == JointFamilies::AuraJoint && request.subtype == 2)
+            joint.targetPosition = request.secondPosition;
+        else if (request.type == JointFamilies::AuraJoint && (request.subtype == 4 || request.subtype == 9) &&
+                 request.target != -1)
+            joint.target = request.target;
         joint.ownerContext = request.ownerContext;
+    }
     joint.count = 0;
     joint.icarusRotations.reset();
 }
@@ -678,6 +686,11 @@ Core::Expected<void, std::string> CreateCase(JointState& joint, const World::Fis
         joint.targetPosition = request.secondPosition;
         return {};
     }
+    // 0x530c5d..0x530c71: el 10f/5..7 salta el primer tramo; 0x530a46, el 632/6.
+    if (request.type == JointFamilies::AuraJoint && request.subtype >= 5 && request.subtype <= 7)
+        return JointFamilies::CreateAuraJoint(joint, request);
+    if (request.type == JointFamilies::StormJoint && request.subtype == JointFamilies::BoltSubtype)
+        return JointFamilies::CreateStormJoint(joint, request, random);
     FirstQuad(joint);
     if (request.type == SparkleJoint && request.subtype == 0x17)
     {
@@ -688,7 +701,9 @@ Core::Expected<void, std::string> CreateCase(JointState& joint, const World::Fis
         return CreatePiercingImpact(joint, request, random);
     if (request.type == 0x610 && request.subtype >= 0 && request.subtype <= 3)
         return CreatePiercingTrailJoint(joint, request);
-    if ((request.type == 0x613 && request.subtype == 4) || (request.type == 0x614 && request.subtype == 14))
+    // 0x5332b8: el 613/4 y el 6ee/4 (la misma tabla 0x534f18) y 0x531813, el 614/14.
+    if (((request.type == 0x613 || request.type == 0x6ee) && request.subtype == 4) ||
+        (request.type == 0x614 && request.subtype == 14))
         return CreateHelperBeam(joint, request);
     if (request.type == 0x614 && request.subtype == 10)
         return CreateSwordBeam(joint, request, random);
@@ -703,7 +718,7 @@ Core::Expected<void, std::string> CreateCase(JointState& joint, const World::Fis
         return CreateSkyBolt(joint, request, random);
     if (request.type == 0x615 && (request.subtype == 2 || request.subtype == 7))
         return CreateTrapBolt(joint, request, random);
-    if (request.type == 0x6ee && request.subtype == 9)
+    if ((request.type == 0x6ee || request.type == 0x613) && request.subtype == 9) // 0x5333f6, la misma tabla.
     {
         CreateMeteor(joint, request);
         return {};
@@ -716,6 +731,10 @@ Core::Expected<void, std::string> CreateCase(JointState& joint, const World::Fis
         JointFamilies::CreateDropJoint(joint, request, random);
         return {};
     }
+    if (request.type == JointFamilies::AuraJoint && request.subtype != 1 && request.subtype != 3)
+        return JointFamilies::CreateAuraJoint(joint, request);
+    if (request.type == JointFamilies::StormJoint)
+        return JointFamilies::CreateStormJoint(joint, request, random);
     if (request.type == 0x617 && request.subtype >= 0 && request.subtype <= 3)
     {
         // 534e9c: /0→53202f,/1→5320a4,/2→5320dd,/3→532085.
@@ -815,6 +834,40 @@ Core::Expected<void, std::string> CreateCase(JointState& joint, const World::Fis
 }
 } // namespace
 
+namespace
+{
+// 0x534b3f..0x534bc0: los tres 632/6 del 632/7, desde (k, −50, 0) girado por sus ángulos y sumado a su posición, con
+// k en −100, 0 y 100; sin dueño, ancho 40, key −1. Con el pool lleno, los que no entran no están.
+Core::Expected<void, std::string> CreateStormBolts(std::span<JointState> joints, const JointState& storm,
+                                                   Render::Models::CrtRandom& random)
+{
+    constexpr float Down = std::bit_cast<float>(0xc2480000u); // 0x534b5e, −50
+    constexpr float Width = 40;
+    glm::vec3 angles = storm.angles;
+    const glm::vec3 origin = storm.position;
+    for (std::int32_t offset = -100; offset < 200; offset += 100)
+    {
+        const auto matrix = Render::Models::OriginalAngleMatrix(angles);
+        const auto turned = Render::Models::OriginalVectorRotate({static_cast<float>(offset), Down, 0}, matrix);
+        glm::vec3 from{F32(D(turned.x) + D(origin.x)), F32(D(turned.y) + D(origin.y)), F32(D(turned.z) + D(origin.z))};
+        const World::FishEffectRequest request{.type = JointFamilies::StormJoint,
+                                               .firstPosition = from,
+                                               .secondPosition = from,
+                                               .angles = angles,
+                                               .subtype = JointFamilies::BoltSubtype,
+                                               .ownerContext = nullptr,
+                                               .scale = Width,
+                                               .key = -1,
+                                               .skill = 0,
+                                               .skillSerial = 0,
+                                               .target = -1};
+        if (auto created = CreateFaunaJoint(joints, request, random); !created.HasValue())
+            return Core::Unexpected(std::format("0x534baa: {}", created.Error()));
+    }
+    return {};
+}
+} // namespace
+
 Core::Expected<std::optional<std::size_t>, std::string> CreateFaunaJoint(std::span<JointState> joints,
                                                                          const World::FishEffectRequest& request,
                                                                          Render::Models::CrtRandom& random,
@@ -831,7 +884,8 @@ Core::Expected<std::optional<std::size_t>, std::string> CreateFaunaJoint(std::sp
     const bool familyJoint =
         request.type == JointFamilies::LightningJoint || request.type == JointFamilies::RedHandBoltJoint ||
         request.type == JointFamilies::BlueHandBoltJoint || request.type == JointFamilies::SpiritJoint ||
-        request.type == JointFamilies::SecondSpiritJoint;
+        request.type == JointFamilies::SecondSpiritJoint ||
+        (request.type == JointFamilies::AuraJoint && request.subtype != 1 && request.subtype != 3);
     for (std::size_t i = 0; i < joints.size(); ++i)
     {
         if (joints[i].alive)
@@ -853,6 +907,9 @@ Core::Expected<std::optional<std::size_t>, std::string> CreateFaunaJoint(std::sp
         Prefix(joints[i], request, ownerKind);
         if (auto created = CreateCase(joints[i], request, random, services); !created.HasValue())
             return Core::Unexpected(created.Error());
+        if (request.type == JointFamilies::StormJoint && request.subtype == JointFamilies::StormSubtype)
+            if (auto bolts = CreateStormBolts(joints, joints[i], random); !bolts.HasValue())
+                return Core::Unexpected(bolts.Error());
         return std::optional<std::size_t>(i);
     }
     return std::optional<std::size_t>{};
@@ -1548,6 +1605,8 @@ enum class Family : std::uint8_t
     HandBolt,
     Spirit,
     Drop,
+    Aura,
+    Storm,
 };
 
 std::optional<Family> FamilyStep(const JointState& joint)
@@ -1556,19 +1615,51 @@ std::optional<Family> FamilyStep(const JointState& joint)
         return Family::Lightning;
     if (joint.type == JointFamilies::RedHandBoltJoint || joint.type == JointFamilies::BlueHandBoltJoint)
         return Family::HandBolt;
-    // El 613/4 y el 6ee/9 siguen en el paso de abajo.
-    if ((joint.type == JointFamilies::SpiritJoint && joint.subtype != 4) ||
-        (joint.type == JointFamilies::SecondSpiritJoint && joint.subtype != 9))
+    // La /4 y la /9 del 613 y del 6ee siguen en el paso de abajo.
+    if ((joint.type == JointFamilies::SpiritJoint || joint.type == JointFamilies::SecondSpiritJoint) &&
+        joint.subtype != 4 && joint.subtype != 9)
         return Family::Spirit;
     if (joint.type == JointFamilies::DropJoint &&
         (joint.subtype == JointFamilies::DropSubtype || joint.subtype == JointFamilies::DarkDropSubtype))
         return Family::Drop;
+    // La /1 (el hada) y la /3 (Blood Castle) siguen en el paso de abajo, con el FaunaObject de dueño.
+    if (joint.type == JointFamilies::AuraJoint && joint.subtype != 1 && joint.subtype != 3)
+        return Family::Aura;
+    if (joint.type == JointFamilies::StormJoint)
+        return Family::Storm;
     return std::nullopt;
 }
 
+// 0x53585e..0x53590c: los que no se mueven ni calculan la matriz de 0x53590e.
+bool SkipsTheCommonMove(const JointState& joint)
+{
+    const std::int32_t type = joint.type;
+    const std::int32_t subtype = joint.subtype;
+    return (type == 0x61c && subtype == 0) || (type == 0x614 && subtype == 0xf) || type == 0x5ac || type == 0x6e8 ||
+           type == 0x62c || ((type == 0x60f || type == 0x62b) && subtype == 1) ||
+           (type == 0x10f && subtype >= 5 && subtype <= 8) || (type == 0x60f && subtype == 0x2a) ||
+           (type == 0x632 && subtype == 6);
+}
+
+// 0x53c393..0x53c3aa: la cola con la matriz de [ebp−0xe8]. Los de la lista de 0x53585e no la calculan y usan la del
+// último joint de esta vuelta de 0x53c670 que la calculó (el marco es el mismo); sin ninguno antes, la que haya en la
+// pila (indefinida, Q-C1623): sin dibujo (+0x11 en 0) no se ve y sólo corre la cuenta; si no, corta.
+Core::Expected<void, std::string> AppendWithFrameMatrix(JointState& joint,
+                                                        const std::optional<Render::Models::OriginalMatrix>& matrix)
+{
+    if (!joint.tailEnabled)
+        return {};
+    if (matrix)
+        return AppendJointTail(joint, *matrix);
+    if (joint.drawEnabled == 0)
+        return JointKernels::AdvanceJointTail(joint);
+    return Core::Unexpected(std::format("0x53c3a5: la cola del joint {:#x}/{:#x} usa la matriz que quedó en la pila "
+                                        "(indefinido, Q-C1623)",
+                                        joint.type, joint.subtype));
+}
+
 // 0x53590e..0x53597a: el movimiento común, con la matriz de los ángulos de antes del caso (la que usa la cola de
-// 0x53c393). Salvo los de la lista de 0x53585e..0x53590c, que no la calculan; ninguna de estas familias está ahí
-// (el 614/0xf sí, pero su alta corta).
+// 0x53c393). Salvo los de la lista de 0x53585e..0x53590c (SkipsTheCommonMove), que no la calculan.
 Render::Models::OriginalMatrix MoveCommonly(JointState& joint)
 {
     const auto matrix = Render::Models::OriginalAngleMatrix(joint.angles);
@@ -1582,11 +1673,11 @@ Render::Models::OriginalMatrix MoveCommonly(JointState& joint)
 }
 
 // 0x53c393..0x53c3ba: la cola con la matriz del principio del paso y la vida.
-Core::Expected<void, std::string> CommonTail(JointState& joint, const Render::Models::OriginalMatrix& matrix)
+Core::Expected<void, std::string> CommonTail(JointState& joint,
+                                             const std::optional<Render::Models::OriginalMatrix>& matrix)
 {
-    if (joint.tailEnabled)
-        if (auto appended = AppendJointTail(joint, matrix); !appended.HasValue())
-            return appended;
+    if (auto appended = AppendWithFrameMatrix(joint, matrix); !appended.HasValue())
+        return appended;
     joint.life = std::bit_cast<std::int32_t>(std::bit_cast<std::uint32_t>(joint.life) - 1u);
     if (joint.life < 0)
         joint.alive = false;
@@ -1607,25 +1698,35 @@ Core::Expected<void, std::string> RunFamily(JointState& joint, Family family,
     case Family::Drop:
         JointFamilies::StepDropJoint(joint);
         return {};
+    case Family::Aura:
+        return JointFamilies::StepAuraJoint(joint, services);
+    case Family::Storm:
+        return JointFamilies::StepStormJoint(joint, services);
     }
     return {};
 }
 
-Core::Expected<void, std::string> StepFamilyJoint(JointState& joint, Family family,
-                                                  const JointKernels::StepServices& services)
+Core::Expected<void, std::string> StepFamilyJoint(JointState& joint, Family family, JointKernels::StepServices services,
+                                                  std::optional<Render::Models::OriginalMatrix>& frameMatrix)
 {
-    const auto matrix = MoveCommonly(joint);
+    // 0x53584f..0x53586c: la posición menos el destino en x y en y, en float, antes de moverse.
+    services.startDeltaX = F32(D(joint.position.x) - D(joint.targetPosition.x));
+    services.startDeltaY = F32(D(joint.position.y) - D(joint.targetPosition.y));
+    if (!SkipsTheCommonMove(joint))
+        frameMatrix = MoveCommonly(joint);
     if (auto stepped = RunFamily(joint, family, services); !stepped.HasValue())
         return stepped;
-    return CommonTail(joint, matrix);
+    return CommonTail(joint, frameMatrix);
 }
 
-Core::Expected<void, std::string> StepJointsChecked(std::span<JointState> joints, Render::Models::CrtRandom* random,
-                                                    Render::Models::ClothWorld* cloth, World::Particles* particles,
-                                                    float worldClock, World::FrameSprites* sprites,
-                                                    World::TerrainLighting* lighting,
-                                                    const std::function<void(std::int32_t)>& soundRequest)
+Core::Expected<void, std::string>
+StepJointsChecked(std::span<JointState> joints, Render::Models::CrtRandom* random, Render::Models::ClothWorld* cloth,
+                  World::Particles* particles, float worldClock, World::FrameSprites* sprites,
+                  World::TerrainLighting* lighting, const std::function<void(std::int32_t)>& soundRequest,
+                  const std::function<double(float, float)>& terrainHeight, std::span<const ActorState> actors)
 {
+    // [ebp−0xe8]: la matriz del último joint de esta vuelta que la calculó (0x53590e).
+    std::optional<Render::Models::OriginalMatrix> frameMatrix;
     for (std::size_t i = 0; i < joints.size(); ++i)
     {
         auto& joint = joints[i];
@@ -1641,8 +1742,10 @@ Core::Expected<void, std::string> StepJointsChecked(std::span<JointState> joints
                                                       .sprites = sprites,
                                                       .lighting = lighting,
                                                       .worldClock = worldClock,
-                                                      .soundRequest = &soundRequest};
-            if (auto stepped = StepFamilyJoint(joint, *family, services); !stepped.HasValue())
+                                                      .soundRequest = &soundRequest,
+                                                      .terrainHeight = terrainHeight ? &terrainHeight : nullptr,
+                                                      .actors = actors};
+            if (auto stepped = StepFamilyJoint(joint, *family, services, frameMatrix); !stepped.HasValue())
                 return stepped;
             continue;
         }
@@ -1652,14 +1755,14 @@ Core::Expected<void, std::string> StepJointsChecked(std::span<JointState> joints
         const bool tarkan = joint.type == 0x618 && joint.subtype == 4;
         const bool bloodCastle = joint.type == 0x10f && joint.subtype == 3;
         const bool fairy = joint.type == 0x10f && joint.subtype == 1;
-        const bool spiritBeam = joint.type == 0x613 && joint.subtype == 4;
+        const bool spiritBeam = (joint.type == 0x613 || joint.type == 0x6ee) && joint.subtype == 4;
         const bool icarus = joint.type == 0x610 && joint.subtype == 8;
         const bool piercingTrail = joint.type == 0x610 && joint.subtype >= 0 && joint.subtype <= 3;
         const bool crywolfArrowTrail = joint.type == 0x610 && joint.subtype == 13;
         const bool noria = joint.type == 0x617 && joint.subtype >= 0 && joint.subtype <= 3;
         const bool skyBolt = joint.type == 0x615 && joint.subtype == 0;
         const bool trapBolt = joint.type == 0x615 && (joint.subtype == 2 || joint.subtype == 7);
-        const bool meteor = joint.type == 0x6ee && joint.subtype == 9;
+        const bool meteor = (joint.type == 0x6ee || joint.type == 0x613) && joint.subtype == 9;
         // Los de lo que cuelga de un jugador, con el ActorState del personaje como dueño.
         const bool staffBeam = joint.type == 0x618 && joint.subtype == 0x11;
         const bool barrierBeam = joint.type == 0x618 && (joint.subtype == 2 || joint.subtype == 3);
@@ -1682,17 +1785,15 @@ Core::Expected<void, std::string> StepJointsChecked(std::span<JointState> joints
             !barrierBeam && !crywolfArrowTrail && !piercingTrail && !piercingImpact && !skill39)
             return Core::Unexpected(
                 std::format("0x535840: el paso del joint {} ({:#x}/{}) no está portado", i, joint.type, joint.subtype));
-        // 0x5358bc: el 60f/1 no se mueve ni calcula la matriz de 0x53590e; con la cola, 0x53c393 usaría la que dejó el
-        // joint anterior en [ebp−0xe8].
-        if (fallenSparkle && joint.tailEnabled)
-            return Core::Unexpected(std::format(
-                "0x53c393: el joint {} (0x60f/1) con cola usa la matriz del joint anterior, no está portado", i));
+        // 0x5358bc: el 60f/1 no se mueve ni calcula la matriz de 0x53590e; con la cola, 0x53c393 usa la que dejó el
+        // joint anterior en [ebp−0xe8] (AppendWithFrameMatrix).
         // 53590e..53597a: el movimiento común precede la lectura del dueño, incluso si muere.
-        const auto matrix = Render::Models::OriginalAngleMatrix(joint.angles);
+        if (!fallenSparkle)
+            frameMatrix = Render::Models::OriginalAngleMatrix(joint.angles);
         // 535932 también omite las sumas para unordered, conservando ceros con signo y posición.
         if (!fallenSparkle && (joint.speed < 0 || joint.speed > 0))
         {
-            const auto moved = Render::Models::OriginalVectorRotate({0, -joint.speed, 0}, matrix);
+            const auto moved = Render::Models::OriginalVectorRotate({0, -joint.speed, 0}, *frameMatrix);
             joint.position = {static_cast<float>(static_cast<double>(joint.position.x) + moved.x),
                               static_cast<float>(static_cast<double>(joint.position.y) + moved.y),
                               static_cast<float>(static_cast<double>(joint.position.z) + moved.z)};
@@ -1828,10 +1929,9 @@ Core::Expected<void, std::string> StepJointsChecked(std::span<JointState> joints
                                                   static_cast<double>(joint.subtype == 1 ? FirstFade : ThirdFade));
             joint.light = glm::vec3(faded);
         }
-        if (joint.tailEnabled)
-            // 0x53c393: 535520 con la matriz de 0x53590e, la del principio del paso, aunque el caso haya girado.
-            if (auto appended = AppendJointTail(joint, matrix); !appended.HasValue())
-                return appended;
+        // 0x53c393: 535520 con la matriz de 0x53590e, la del principio del paso, aunque el caso haya girado.
+        if (auto appended = AppendWithFrameMatrix(joint, frameMatrix); !appended.HasValue())
+            return appended;
         joint.life = std::bit_cast<std::int32_t>(std::bit_cast<std::uint32_t>(joint.life) - 1u);
         if (joint.life < 0)
             joint.alive = false;
@@ -1842,15 +1942,16 @@ Core::Expected<void, std::string> StepJointsChecked(std::span<JointState> joints
 
 Core::Expected<void, std::string> StepJoints(std::span<JointState> joints)
 {
-    return StepJointsChecked(joints, nullptr, nullptr, nullptr, 0, nullptr, nullptr, {});
+    return StepJointsChecked(joints, nullptr, nullptr, nullptr, 0, nullptr, nullptr, {}, {}, {});
 }
 
-Core::Expected<void, std::string> StepJoints(std::span<JointState> joints, Render::Models::CrtRandom& random,
-                                             Render::Models::ClothWorld* cloth, World::Particles* particles,
-                                             float worldClock, World::FrameSprites* sprites,
-                                             World::TerrainLighting* lighting,
-                                             const std::function<void(std::int32_t)>& soundRequest)
+Core::Expected<void, std::string>
+StepJoints(std::span<JointState> joints, Render::Models::CrtRandom& random, Render::Models::ClothWorld* cloth,
+           World::Particles* particles, float worldClock, World::FrameSprites* sprites,
+           World::TerrainLighting* lighting, const std::function<void(std::int32_t)>& soundRequest,
+           const std::function<double(float, float)>& terrainHeight, std::span<const ActorState> actors)
 {
-    return StepJointsChecked(joints, &random, cloth, particles, worldClock, sprites, lighting, soundRequest);
+    return StepJointsChecked(joints, &random, cloth, particles, worldClock, sprites, lighting, soundRequest,
+                             terrainHeight, actors);
 }
 } // namespace Client::Scenes

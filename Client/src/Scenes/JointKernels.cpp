@@ -75,6 +75,11 @@ Core::Expected<void, std::string> AppendJointTail(JointState& joint, const Rende
     return {};
 }
 
+Core::Expected<void, std::string> AdvanceJointTail(JointState& joint)
+{
+    return ShiftTail(joint);
+}
+
 Core::Expected<void, std::string> AppendJointTail(JointState& joint)
 {
     return AppendJointTail(joint, Render::Models::OriginalAngleMatrix(joint.angles));

@@ -7,6 +7,10 @@
 #include "Scenes/ActorFlags.h"
 #include "Scenes/ActorState.h"
 #include "World/GameCamera.h"
+#include "Scenes/FaunaJointCreation.h"
+#include "Scenes/GameDrawTail.h"
+#include "Scenes/JointFamilies.h"
+#include "World/IFishStepServices.h"
 #include "World/ModelEffects.h"
 #include "World/WizardModelEffects.h"
 #include "Data/Text/TextTable.h"
@@ -18,6 +22,7 @@
 
 #include <glm/ext/vector_float3.hpp>
 
+#include <bit>
 #include <cstddef>
 #include <cstdint>
 #include <format>
@@ -84,6 +89,28 @@ Core::Expected<void, std::string> ShowTheBlessingNotice(const WorldEntryResource
     return AddGameMessage(resources.world.Runtime(), *resources.textMeasure, screen, {}, *text, SystemMessage);
 }
 
+// 0x530860(0x10f, desde, desde, ángulos, subtipo, el personaje, ancho, −1, 0, 0, −1) (AuraJoints.cpp). Con el pool
+// lleno, nada.
+Core::Expected<void, std::string> CreateAura(ActorState& actor, glm::vec3& from, glm::vec3& angles,
+                                             std::int32_t subtype, float width, const WorldEntryResources& resources)
+{
+    const World::FishEffectRequest request{.type = JointFamilies::AuraJoint,
+                                           .firstPosition = from,
+                                           .secondPosition = from,
+                                           .angles = angles,
+                                           .subtype = subtype,
+                                           .ownerContext = &actor,
+                                           .scale = width,
+                                           .key = -1,
+                                           .skill = 0,
+                                           .skillSerial = 0,
+                                           .target = -1};
+    const auto created =
+        CreateFaunaJoint(resources.world.DrawTail().joints, request, resources.cloth.random, JointOwnerKind::Actor);
+    if (!created.HasValue())
+        return Core::Unexpected(created.Error());
+    return {};
+}
 } // namespace
 
 // 0x518ac0(0xc1, personaje, 1) apaga sus 0xc1/1 y dos 0x518cf0(0xc1, +0x10, ángulos, +0xf4, 1 y 2, personaje, −1, …)
@@ -145,7 +172,13 @@ Core::Expected<void, std::string> ApplyEffectFlags(ActorState& actor, std::uint3
         {
             constexpr std::int32_t Bit100Sound = 0x84;
             requestSound(Bit100Sound);
-            return Cut("0x4e644f: 0x534f90 y los cinco joints 0x10f (0x530860) de la bandera 0x100 son de la CL11");
+            // 0x4e6447..0x4e6483: apaga sus 0x10f/0 (0x534f90) y crea cinco, de ancho 50, que giran a su alrededor.
+            auto& joints = resources.world.DrawTail().joints;
+            KillJointsOf(joints, JointFamilies::AuraJoint, &actor, 0);
+            for (int ring = 0; ring < 5; ++ring)
+                if (auto created = CreateAura(actor, actor.position, actor.angles, 0, 50, resources);
+                    !created.HasValue())
+                    return created;
         }
         actor.flags78 |= Bit100;
     }
@@ -200,7 +233,16 @@ Core::Expected<void, std::string> ApplyEffectFlags(ActorState& actor, std::uint3
     if (Has(flags, Bit1000))
     {
         actor.flags78 |= Bit1000;
-        return Cut("0x4e662d: los tres joints 0x10f/8 (0x530860) de la bandera 0x1000 son de la CL11");
+        // 0x4e65df..0x4e66c3: tres 0x10f/8 de ancho 30 desde una copia de su +0x10, girados 90, 180 y 270 en z, la
+        // copia 10 más abajo después de cada uno.
+        glm::vec3 from = actor.position;
+        for (const std::uint32_t turn : {0x42b40000u, 0x43340000u, 0x43870000u})
+        {
+            glm::vec3 angles{0, 0, std::bit_cast<float>(turn)};
+            if (auto created = CreateAura(actor, from, angles, 8, 30, resources); !created.HasValue())
+                return created;
+            from.z = static_cast<float>(static_cast<double>(from.z) - 10);
+        }
     }
     // 0x4e66c6..0x4e6709.
     for (const std::uint32_t bit : {0x4000u, 0x200u, 0x8000u})

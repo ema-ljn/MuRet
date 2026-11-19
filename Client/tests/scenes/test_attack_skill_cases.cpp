@@ -10,6 +10,7 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/ArrowEffects.h"
 #include "Scenes/CharacterStep.h"
+#include "Scenes/FaunaJointCreation.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/WorldMap.h"
@@ -213,9 +214,9 @@ TEST(AttackSkillCasesTest, TheHeadCasesCutAfterTheirDraws)
         int draws;
     };
     const std::array cases{
-        Case{0x30, "0x4fe127", 0}, Case{0x43, "0x4fe172", 0},         Case{0x45, "0x4fe360", 0},
-        Case{0x48, "0x4fe590", 0}, Case{0x35, "0x4fe856", 0},         Case{0x41, "0x4febbb", 0},
-        Case{0x31, "0x4fec15", 0}, Case{0x0c, "0x500cb9", OwnRecord}, Case{0x0e, "0x51fe9e", 2},
+        Case{0x30, "0x4fe127", 0}, Case{0x45, "0x4fe360", 0}, Case{0x35, "0x4fe856", 0},
+        Case{0x41, "0x4febbb", 0}, Case{0x31, "0x4fec15", 0}, Case{0x0c, "0x500cb9", OwnRecord},
+        Case{0x0e, "0x51fe9e", 2},
         Case{0x2c, "0x502975", 0},
     };
     for (const std::int32_t map : Maps)
@@ -230,7 +231,7 @@ TEST(AttackSkillCasesTest, TheHeadCasesCutAfterTheirDraws)
 
             EXPECT_TRUE(HasError(stepped, probe.cut)) << ErrorOf(stepped);
             EXPECT_EQ(DrawsSince(Seed, tested.random), probe.draws);
-            EXPECT_EQ(tested.Striker().flags78, probe.skill == 0x48 ? 0u : 0x4000u);
+            EXPECT_EQ(tested.Striker().flags78, 0x4000u);
             EXPECT_TRUE(tested.sounds.empty());
         }
     }
@@ -872,12 +873,20 @@ TEST(AttackSkillCasesTest, TheGuardMarksTheTarget)
             joint.ownerContext = &tested.Victim();
         }
 
-        EXPECT_TRUE(HasError(tested.WithTarget(0x10), "0x5048db"));
+        // 0x5048db: apaga el 10f/0 del blanco y crea cinco, de ancho 20, el primero en su lugar.
+        ASSERT_TRUE(tested.WithTarget(0x10).HasValue());
 
         EXPECT_EQ(tested.Victim().flags78, 0x100u);
         EXPECT_EQ(tested.sounds, (std::vector<std::int32_t>{0x84}));
-        EXPECT_FALSE(tested.joints[0].alive);
-        EXPECT_TRUE(tested.joints[1].alive);
+        EXPECT_EQ(tested.joints[1].subtype, 1);
+        EXPECT_EQ(std::ranges::count_if(tested.joints,
+                                        [&tested](const JointState& joint)
+                                        {
+                                            return joint.alive && joint.type == 0x10f && joint.subtype == 0 &&
+                                                   joint.ownerContext == &tested.Victim() && joint.width == 20.0f;
+                                        }),
+                  5);
+        EXPECT_EQ(tested.joints[0].subtype, 0);
         EXPECT_EQ(DrawsSince(Seed, tested.random), 0);
     }
     SkillWorld unjointed;
@@ -1289,8 +1298,11 @@ TEST(AttackSkillCasesTest, KillingABuffJointRestoresTheConstructorFrontier)
     killed.type = 0x10f;
     killed.subtype = 0;
     killed.ownerContext = &tested.Victim();
-    EXPECT_TRUE(HasError(tested.WithTarget(0x10), "0x5048db"));
-    EXPECT_FALSE(killed.alive);
+    // El único lugar que queda es el que apagó: lo toma el primero de los cinco y los demás no entran.
+    ASSERT_TRUE(tested.WithTarget(0x10).HasValue());
+    EXPECT_TRUE(killed.alive);
+    EXPECT_EQ(killed.life, 999999);
+    EXPECT_EQ(killed.width, 20.0f);
     EXPECT_EQ(tested.Victim().flags78, 0x100u);
     EXPECT_EQ(tested.sounds, (std::vector<std::int32_t>{0x84}));
 }
@@ -1301,15 +1313,93 @@ TEST(AttackSkillCasesTest, BindingFlagsPrecedeTheJointAndExistingBindingsSkipIt)
     tested.Striker().skillSucceeded = 1;
     for (auto& effect : tested.world.Map().effects.Effects())
         effect.alive = true;
-    EXPECT_TRUE(HasError(tested.WithTarget(0x1b), "0x5045f9"));
+    tested.Striker().attackTarget = 0xfffe;
+    ASSERT_TRUE(tested.WithTarget(0x1b).HasValue());
     EXPECT_EQ(tested.Victim().flags78, 8u);
+    // 0x5045f9: cinco 10f/4 de ancho 20 con el +0x3a4 de c, con signo, en +0xa0c.
+    const auto bindings = [&tested]
+    {
+        return std::ranges::count_if(tested.joints,
+                                     [&tested](const JointState& joint)
+                                     {
+                                         return joint.alive && joint.type == 0x10f && joint.subtype == 4 &&
+                                                joint.ownerContext == &tested.Victim() && joint.target == -2;
+                                     });
+    };
+    EXPECT_EQ(bindings(), 5);
+    for (auto& joint : tested.joints)
+        joint.alive = false;
     auto& binding = tested.joints.front();
     binding.alive = true;
     binding.type = 0x10f;
     binding.subtype = 9;
     binding.ownerContext = &tested.Victim();
     EXPECT_TRUE(tested.WithTarget(0x1b).HasValue());
+    EXPECT_EQ(bindings(), 0);
     EXPECT_EQ(DrawsSince(Seed, tested.random), 0);
+}
+
+// 0x4fe505..0x4fe790: la 0x48 apaga +0x78 de o y crea seis 0x10f/5..7 de ancho 170 desde o + 100 en z (la copia
+// baja 10 salvo después de los /7), girados 45, 135, 225, 90, 180 y 270; después el sonido 0x26b. Sin rand().
+TEST(AttackSkillCasesTest, TheRisingAurasLeaveFromAboveTheCaster)
+{
+    SkillWorld tested;
+    tested.Striker().flags78 = 0x30;
+    tested.Striker().position.z = 40;
+    ASSERT_TRUE(tested.Head(0x48).HasValue());
+    EXPECT_EQ(tested.Striker().flags78, 0u);
+    constexpr std::array<float, 6> Turns{45, 135, 225, 90, 180, 270};
+    constexpr std::array<float, 6> Heights{140, 130, 120, 120, 110, 100};
+    for (std::size_t i = 0; i < Turns.size(); ++i)
+    {
+        SCOPED_TRACE(i);
+        const JointState& rise = tested.joints[i];
+        ASSERT_TRUE(rise.alive);
+        EXPECT_EQ(rise.type, 0x10f);
+        EXPECT_EQ(rise.subtype, static_cast<std::int32_t>(5 + i % 3));
+        EXPECT_EQ(rise.width, 170.0f);
+        EXPECT_EQ(rise.angles.z, Turns[i]);
+        EXPECT_EQ(rise.pathIncrement.z, Heights[i]);
+        EXPECT_EQ(rise.ownerContext, &tested.Striker());
+    }
+    EXPECT_FALSE(tested.joints[6].alive);
+    EXPECT_EQ(tested.sounds, (std::vector<std::int32_t>{0x26b}));
+    EXPECT_EQ(DrawsSince(Seed, tested.random), 0);
+}
+
+// 0x4fe147..0x4fe18b: la 0x43 crea el 0x632/7 sobre o, que suelta tres 0x632/6 con dos rand() cada uno, y suena
+// 0x266. El paso de los /6 corta en su partícula 0x5ee (0x53bf6e) después de su rand().
+TEST(AttackSkillCasesTest, TheStormDropsThreeBolts)
+{
+    SkillWorld tested;
+    tested.Striker().angles = {0, 0, 90};
+    ASSERT_TRUE(tested.Head(0x43).HasValue());
+    EXPECT_EQ(tested.sounds, (std::vector<std::int32_t>{0x266}));
+    const JointState& storm = tested.joints[0];
+    ASSERT_TRUE(storm.alive);
+    EXPECT_EQ(storm.subtype, 7);
+    EXPECT_EQ(storm.life, 0);
+    EXPECT_FALSE(storm.tailEnabled);
+    for (std::size_t i = 1; i <= 3; ++i)
+    {
+        SCOPED_TRACE(i);
+        const JointState& bolt = tested.joints[i];
+        ASSERT_TRUE(bolt.alive);
+        EXPECT_EQ(bolt.type, 0x632);
+        EXPECT_EQ(bolt.subtype, 6);
+        EXPECT_EQ(bolt.life, 25);
+        EXPECT_EQ(bolt.volley, 25);
+        EXPECT_EQ(bolt.width, 40.0f);
+        EXPECT_EQ(bolt.orientation, 3);
+        EXPECT_EQ(bolt.count, 0);
+        EXPECT_EQ(bolt.ownerContext, nullptr);
+        EXPECT_EQ(bolt.pathIncrement, bolt.position);
+    }
+    EXPECT_EQ(DrawsSince(Seed, tested.random), 6);
+    const auto stepped = Client::Scenes::StepJoints(tested.joints, tested.random);
+    ASSERT_FALSE(stepped.HasValue());
+    EXPECT_NE(stepped.Error().find("0x53bf6e"), std::string::npos) << stepped.Error();
+    EXPECT_EQ(DrawsSince(Seed, tested.random), 7);
 }
 
 TEST(AttackSkillCasesTest, FullJointsKeepAllStrikeAroundSelectors)

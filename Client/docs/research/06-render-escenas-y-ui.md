@@ -14073,8 +14073,20 @@ con el ancho retenido del uso anterior del lugar) y a su paso después del movim
 a la cola común (`0x53c393`: `0x535520` con la matriz del principio del paso y la vida − 1). Un joint que el paso crea
 en un lugar de más adelante pasa en la misma vuelta de `0x53c670`.
 
-- **`0x614`** (`LightningJoints.cpp`): alta `0x5309d6` (subtipos 0 a 0x11 salvo 0xc y 0xf, que cortan) y paso
-  `0x53683e..0x537278`, con la rama /1 de `0x53703d`. **`0x61b` y `0x5bc`** (`HandBoltJoints.cpp`): alta
+- **`0x614`** (`LightningJoints.cpp`): alta `0x5309d6` (subtipos 0 a 0x11) y paso `0x53683e..0x537278`, con la rama
+  /1 de `0x53703d`. La /0xc (`0x531356`) nace roja ((1; 0,1; 0,1), vida 10) y su paso pone la posición en un hueso del
+  modelo del tipo del dueño con `0x4ec110` y los huesos de `0x743751c` (`0x536adf`, sin leer: corta en `0x536b1d`); ese
+  camino salta `0x4e9810` y la llegada lee el `[ebp+8]` que quedó. La /0xf (`0x531907`) no se dibuja (`+0x11` en 0),
+  vive 80, no tiene puntos y guarda en `+0x9f4` los lugares de hasta seis personajes a 400 o menos en el plano (con NaN
+  también), vivos, sin `+0x389`, de clase 2 (`+0x88`), visibles (`+0x16c`) y que no son el dueño (el sexto pisa el
+  DWORD de `+0xa08`, el serial); `+0x9eb` es la cuenta · 15, `+0x9ec` vuelve a 0 y `+0x24` es el segundo punto 150 más
+  arriba. Su paso no se mueve (lista de `0x53585e`) ni gira (`0x536964`): con la vida par suelta dos `0x614/0` sin dueño
+  de ancho 50 y 10 desde la posición hasta `+0x24` (`0x5370a8`, `0x5370c9`) y la partícula `0x5ca/0` con la luz de
+  `[ebp−0x18]`, que nadie escribió en ese camino (Q-C1622: MuRet corta en `0x5370e8`). Lo que sigue, para quien lo
+  destrabe: con `+0x9ec` > 0, cada 15 de `i < +0x9ec` toma el personaje `+0x9f4[i / 15]` y, si sigue vivo, sin
+  `+0x389`, de clase 2 y visible, pone el destino en él 100 más arriba, el rumbo de `0x4e93f0` desde la posición en la z
+  de los ángulos y suelta dos `0x614/0` de ancho 50 y 10 desde el destino anterior (`[ebp−0xc]`, al principio `+0x24`
+  100 más arriba) hasta él; después, con `+0x9ec` menor que `+0x9eb` y la vida par, `+0x9ec` sube uno. **`0x61b` y `0x5bc`** (`HandBoltJoints.cpp`): alta
   `0x5335cf`/`0x5335d6` y paso `0x539ccc..0x539f16`. El dibujo de los dos es el común: en `0x53c6a0` solo el `0x614`
   tiene caso propio.
 - **`0x613` y `0x6ee`** (`SpiritJoints.cpp`): alta `0x53265e` (la mezcla en 3 y la tabla `0x534f18`). La /0 y la /5
@@ -14088,11 +14100,65 @@ en un lugar de más adelante pasa en la misma vuelta de `0x53c670`.
   dir, 1)` (el contador con su acceso: 4 `rand()` al cerrarlo en 0; la fase es lugar + contador) o, la /0xd con vida de
   28 o menos y dueño, buscan al dueño con `0x4e9810`; el `fcomp` de `0x5398ab` compara con 50 la distancia que
   `0x4e9810` dejó en la x87, y más cerca la vida baja una más. Después, los sprites `0x5ac` y `0x5fd` (a media escala).
-  La /8 sube con la x en 110 hasta la vida 42 y después va de 180 a 360 de a `rand() % 3 + 2`; la /0xa gira 50 en z.
-  La luz local sin escribir de la /6 y la /7 con otra skill que 0 o 1, y de la /0xd sin dueño, corta (Q-C1620).
+  La /8 y la /0x14 (`0x53950e`) suben con la x en 110 hasta la vida 42 y después van de 180 a 360 de a
+  `rand() % 3 + 2`; la /0xa gira 50 en z. La luz local sin escribir de la /6 y la /7 con otra skill que 0 o 1, y de la
+  /0xd sin dueño, corta (Q-C1620).
+  (Segunda vuelta.) La /4 y la /9 comparten la tabla con el 6ee: la 6ee/4 nace como la 613/4 (`0x5332b8`, la viga sin
+  velocidad) y la 613/9 como el meteoro 6ee/9 (`0x5333f6`, paso `0x538ea4`); la /4 no tiene caso en el paso. La /0 y
+  la /5 con el ancho en 80 (los bits `0x42a00000`) piden el efecto `0xd0` (`0x539a48`, otro lote) y después el asedio
+  de `0x4294b0`/`0x5f82c0` (con el bit `0x100` del atributo, la vida a `ftol(vida · 0,2f)` y la velocidad 0) o, con la
+  vida múltiplo de 15 y el héroe de dueño, los blancos de `0x517a20(skill, posición, 150, +0x9eb, +0x9e8, +0xa08)`;
+  la /0x13 de otro ancho pide el efecto `0x11b` (`0x539b08`). La /0 y la /5 de otro ancho (`0x539b10..0x539cc7`; los
+  `0x613/0` de ancho 20 de la `0x09`) van hacia el dueño 80 más arriba: la distancia en el plano es la de antes del
+  movimiento común (`[ebp+8]` y `[ebp−0x30]`, `0x53584f`), `0x4e9810` gira de a 10 (la /5, de a 2) y con el doble de la
+  velocidad no menor que esa distancia prende `+0x9d4`; la /0 se sacude con dos `(rand() & 31) − 16` (vx + r1 · 0,2f,
+  la x de los ángulos + vx, la z + r2 · 0,8f + vz, vx · 0,6f, vz el sacudón · 0,8f); con `0x5f93c0` a menos de 100 del
+  terreno sube (x en −5) y a más de 400 baja (x en 5), con vx en 0; la luz es la vida · 0,1f y la luz dinámica de radio
+  4 resta `((rand() & 3) + 4) · 0,01f`. La /0xb y la /0x10 ponen la vida en la x de los ángulos y la /0xc saca su
+  `rand() & 31`; las tres cortan en su partícula (`0x538f8e` 0x5da/5, `0x539058` 0x5f5/0, `0x53935c` 0x6f4/4, lote de
+  partículas). La /0xf suma 30 a la key (WORD); con menos de 35 de vida corta en la `0x5d9/7` (`0x53918a`) y si no
+  avanza k = key · 0,1f + 30 (sin redondear) en x por el seno y en −y por el coseno de la z de los ángulos. La /0x11
+  con vida 100 suelta 120 `0x613/0x10` de ancho 0,9f con los ángulos (0, 0, 3 · i) (`0x53940d`). La /0x12 sube la
+  velocidad 3, mueve la key de a ±6 según vida % 12 y apunta −90 − key en x y 10 más en z; con dueño corta en
+  `0x539494` (le pone el alpha +0x174 y la posición; nadie conocido la crea) y si no en su partícula `0x5f2/0x13`
+  (`0x5394fb`).
 - **`0x60f/2` y `0x60f/0x18`** (`DropJoints.cpp`): alta `0x533677` y `0x5340dc` (la /0x18 con la textura `0x62d`; vz
   en `rand() % 20 + 35`, la luz blanca, vida `rand() % 50 + 25` y el destino en el segundo punto) y paso `0x53b156`
   (con vida de 25 o menos cae sobre el destino con vz + 5; con menos de 10, la luz por 0,7692308f).
+- **`0x10f` con un personaje de dueño** (`AuraJoints.cpp`, segunda vuelta): alta `0x530edd..0x531214` (tabla
+  `0x534e38`; el destino es el `+0x10` del dueño). /0: luz entera, vida 999.999, 30 puntos, textura `0x62b`. /4 y /9:
+  luz (0,4; 0,8; 0,2), vida 10.000; el prefijo (`0x53098d`) guarda su blanco en `+0xa0c` si no es −1 (si no, queda el
+  del uso anterior). /2: el segundo punto, luz (1; 0,3; 0,3), vida 20, 5 puntos, `0x62c`. /5..7: sin el primer tramo
+  (`0x530c5d`), sin cola común, dibujo 1, vida 60, tanda 0, luz con 0,8 en el canal de su subtipo, `0x610`, velocidad
+  (0, 800, 0) girada desde el segundo punto, cuenta −1 y la cola **antes** del ancho (con el del uso anterior). /8:
+  `0x5ac`, luz 0,5, velocidad (0, −40, 0), vida 40. Paso: con `+0xa0c` ≠ −1 el /4 pasa a /9 si ese personaje monta a
+  Fenrir (`+0x318` en `0x1c37`) fuera de la zona segura (`+0x3e2`) y el /9 vuelve a /4 si no (`0x535d4f`). /0, /4, /9
+  (`0x536073`): dueño muerto, vida 0; el /4 y el /9 sin 8 ni `0x2000000` en `+0x78` se apagan, y si no la vida vuelve
+  a 100; los tramos se corren con el destino (restando el viejo y sumando el nuevo, dos stores), el destino es el
+  dueño + 10 en z, el mismo acceso al contador que el hada y el punto `0x53d1a0` con escala 1 (frecuencia 0,048): x e
+  y · 80, z · 120 + 110 (la /9, + 140). /8 (`0x536005`): z + 25, la cola con su matriz y el `+0x24` sube 15. /5..7
+  (`0x536526`): tres vueltas de z + 10 y cola; con la tanda en 0 la y por 0,95 (bajo 10, −10); pasada la 40, y − 20,
+  z − 5 y ancho + 15; con y negativa, la tanda 40 de la /5 y la /6 suelta el efecto `0x6eb` (`0x518cf0`, corta en
+  `0x536626`) y la tanda sube: hasta 20, y = −30 y ancho 40, después el `+0x24` sube 5; al final, con vida < 10 la luz
+  por 0,8333333f, y el ancho − 5. La /2 con dueño vivo pone el ancho en vida · 3 y corta en `0x53d1a0` con escala 1,4
+  (`0x535e66`); sin él, suelta el dueño. Los crean `0x5048db` (cinco /0 de ancho 20 tras `0x534f90`), `0x5045f9` y
+  `0x5046b0` (cinco /4 con el `+0x3a4` de c, con signo), `0x4e644f` (cinco /0 de ancho 50) y `0x4e662d` (tres /8 de
+  ancho 30, ángulos z 90/180/270, la copia del `+0x10` 10 más abajo cada vez) y la `0x48` (`0x4fe505..0x4fe790`: `+0x78`
+  de o en 0 y seis /5..7 de ancho 170 desde o + 100 en z, girados 45, 135, 225, 90, 180 y 270, la copia 10 más abajo
+  salvo después de los /7, y el sonido `0x26b`).
+- **`0x632/7` y `0x632/6`** (`StormJoints.cpp`, segunda vuelta): la skill `0x43` (`0x4fe147..0x4fe18b`) crea un
+  `0x632/7` sobre o sin dueño (ancho 10) y suena `0x266` aunque el pool esté lleno. Su alta (`0x534b27`) lo deja sin
+  cola y con vida 0 y crea tres `0x632/6` (`0x534b3f..0x534bc0`) desde (k, −50, 0) girado por sus ángulos más su
+  posición, k en −100, 0 y 100, ancho 40. La /6 salta el primer tramo; alta `0x534a16`: vida 25 y tanda 25, velocidad
+  `(rand() % 3 + 70) · 0,01745329f`, luz (0,8; 0,8; 1), vy = −(`rand() & 3` + 40), vz = sen(velocidad) · 10, y − 20,
+  z + 130, el `+0x24` en la posición, la cara 3 y `0x535020` cruzado con la cuenta en 0 después. Paso `0x53bec2`: vy
+  + `rand() % 5` − 2, vz − 10, se mueve por sus ángulos y, con la tanda menos la vida bajo 10 (los diez primeros
+  pasos), corta en la partícula `0x5ee` (`0x53bf6e`, lote de partículas). La /7 sólo pasa por la cola y muere. La luz por tramo del dibujo lee la altura del
+  personaje dueño.
+
+La matriz de la cola común (`0x53c393`, `[ebp−0xe8]`) es la que calculó `0x53590e` en el paso del joint; los de la
+lista `0x53585e..0x53590c` no la calculan y usan la del último joint de la vuelta que la calculó (Q-C1623). El paso
+común lee también `[ebp−0x30]` y `[ebp+8]`, la posición menos el destino en x y en y antes de moverse (`0x53584f`).
 
 Los que los crean: la cola de `0x4f5b70` (los `0x614`, `0x61b` y `0x5bc` colgados del blanco, ESI), el `0x1b6`
 (`0x427a8d`), las cadenas del `0x49` y el `0x4b` (`0x50c36b`), los treinta y seis `0x613/1` de `0x4f756a` y los cuarenta

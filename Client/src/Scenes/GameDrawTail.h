@@ -157,6 +157,12 @@ struct JointState
     // D-C4: dos giros del último dibujo original; no forman parte del registro nativo.
     std::optional<std::array<float, 2>> icarusRotations{};
     glm::vec3 pathIncrement{}; // +24;531851/5332fa guardan el delta de las cintas Helper07.
+    // +0x9f4..+0xa08: los lugares de los personajes que el 614/0xf encadena (0x531981, a lo sumo seis). El sexto pisa
+    // el DWORD de +0xa08, cuyo primer byte es skillSerial: el alta escribe los dos (ver CreateLightningJoint).
+    std::array<std::int32_t, 6> chainTargets{};
+    // +0xa0c: el lugar del personaje que el 0x10f/4 y el /9 miran en su paso (0x535d4f). Sólo lo escribe el alta de
+    // esos dos con un blanco ≠ −1 (0x53098d); si no, queda el del uso anterior (el BSS arranca en 0).
+    std::int32_t target = 0;
 };
 
 struct JointDrawResources

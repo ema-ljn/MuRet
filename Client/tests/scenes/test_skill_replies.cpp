@@ -933,12 +933,28 @@ TEST(SkillRepliesTest, TheActorStateOfTypeOneRewritesTheSecondFlags)
             .HasValue());
     EXPECT_EQ(caster.flags78, 0x34u);
     EXPECT_EQ(caster.flags7c, 0u);
-    // El 0x1000 prende su bit y corta en los joints (CL11).
-    const auto joints =
-        Client::Scenes::ApplyActorState(Client::Protocol::Skill::ActorState{1, 0x1000, CasterKey}, tested->Resources());
-    ASSERT_FALSE(joints.HasValue());
-    EXPECT_NE(joints.Error().find("0x4e662d"), std::string::npos) << joints.Error();
+    // El 0x1000 prende su bit y crea tres 0x10f/8 (0x4e662d) desde su +0x10, girados 90, 180 y 270, cada uno 10 más
+    // abajo.
+    caster.position = {1000, 2000, 300};
+    ASSERT_TRUE(
+        Client::Scenes::ApplyActorState(Client::Protocol::Skill::ActorState{1, 0x1000, CasterKey}, tested->Resources())
+            .HasValue());
     EXPECT_EQ(caster.flags78, 0x1034u);
+    const auto& joints = tested->world.DrawTail().joints;
+    for (std::size_t i = 0; i < 3; ++i)
+    {
+        ASSERT_TRUE(joints[i].alive);
+        EXPECT_EQ(joints[i].type, 0x10f);
+        EXPECT_EQ(joints[i].subtype, 8);
+        EXPECT_EQ(joints[i].texture, 0x5ac);
+        EXPECT_EQ(joints[i].ownerContext, &caster);
+        EXPECT_EQ(joints[i].width, 30.0f);
+        EXPECT_EQ(joints[i].life, 40);
+        EXPECT_EQ(joints[i].angles.z, 90.0f * static_cast<float>(i + 1));
+        EXPECT_EQ(joints[i].pathIncrement.z, 300.0f - 10.0f * static_cast<float>(i));
+        EXPECT_EQ(joints[i].targetPosition, caster.position);
+    }
+    EXPECT_FALSE(joints[3].alive);
     // El 0x400 (CL9 hito 4): el 0x5ac/2 del personaje, y sigue.
     ASSERT_TRUE(
         Client::Scenes::ApplyActorState(Client::Protocol::Skill::ActorState{1, 0x400, CasterKey}, tested->Resources())
@@ -948,6 +964,40 @@ TEST(SkillRepliesTest, TheActorStateOfTypeOneRewritesTheSecondFlags)
     EXPECT_TRUE(flare.alive);
     EXPECT_EQ(flare.subtype, 2);
     EXPECT_EQ(flare.ownerContext, &caster);
+}
+
+// 0x4e6430..0x4e6491: el 0x100 en un jugador que no lo tenía apaga sus 10f/0 (0x534f90) y crea cinco de ancho 50
+// alrededor de él (0x4e644f); con el bit ya prendido, nada.
+TEST(SkillRepliesTest, TheActorStateHundredRingsAPlayer)
+{
+    auto tested = std::make_unique<Replies>();
+    ActorState& caster = tested->Actor(CasterIndex);
+    auto& joints = tested->world.DrawTail().joints;
+    joints[0].alive = true;
+    joints[0].type = 0x10f;
+    joints[0].subtype = 0;
+    joints[0].ownerContext = &caster;
+    joints[0].life = 5;
+    const auto rings = [&]
+    {
+        return std::ranges::count_if(joints,
+                                     [&caster](const Client::Scenes::JointState& joint)
+                                     {
+                                         return joint.alive && joint.type == 0x10f && joint.subtype == 0 &&
+                                                joint.ownerContext == &caster && joint.width == 50.0f &&
+                                                joint.life == 999999;
+                                     });
+    };
+    ASSERT_TRUE(
+        Client::Scenes::ApplyActorState(Client::Protocol::Skill::ActorState{1, 0x100, CasterKey}, tested->Resources())
+            .HasValue());
+    EXPECT_EQ(caster.flags78 & 0x100u, 0x100u);
+    EXPECT_EQ(rings(), 5);
+    joints[1].alive = false;
+    ASSERT_TRUE(
+        Client::Scenes::ApplyActorState(Client::Protocol::Skill::ActorState{1, 0x100, CasterKey}, tested->Resources())
+            .HasValue());
+    EXPECT_EQ(rings(), 4);
 }
 
 // 0x4cbe45: 0x4e6380 sabe si es el héroe publicado ([0x743a170]): el 0x2000000 corta en él y en otro se prende.

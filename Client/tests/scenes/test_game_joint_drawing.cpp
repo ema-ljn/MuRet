@@ -1,6 +1,7 @@
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/FaunaJointCreation.h"
 #include "World/IFishStepServices.h"
+#include "Scenes/ActorState.h"
 #include "Scenes/FaunaObject.h"
 #include "Render/ModelBatch.h"
 #include "Render/Models/Cloth.h"
@@ -200,6 +201,19 @@ TEST(GameJointDrawingTest, OwnerHeightUsesFiftyForTheFirstFamilyAndOneEightyForN
         EXPECT_FLOAT_EQ(batch.Vertices()[0].color.red, 0.25f);
         EXPECT_FLOAT_EQ(batch.Vertices()[0].color.green, 0.35f);
     }
+    // Con un personaje de dueño (AuraJoints.cpp, 0x4e644f), la misma altura sale de su +0x18.
+    Client::Scenes::ActorState actor;
+    actor.alive = true;
+    actor.position.z = 10;
+    auto joint = Joint(0x10f, 9);
+    joint.ownerContext = &actor;
+    joint.ownerKind = Client::Scenes::JointOwnerKind::Actor;
+    joint.points[0][0].z = 215.0f;
+    Client::Render::Models::CrtRandom random(1);
+    Client::World::FrameSprites sprites;
+    Client::Render::ModelBatch batch;
+    ASSERT_TRUE(Client::Scenes::DrawJoints(batch, std::span(&joint, 1), 0, {random, sprites}).HasValue());
+    EXPECT_FLOAT_EQ(batch.Vertices()[0].color.red, 0.25f);
 }
 
 TEST(GameJointDrawingTest, EnergyArrowMutatesItsLightAndEmitsOneSpritePerAdmittedSegment)

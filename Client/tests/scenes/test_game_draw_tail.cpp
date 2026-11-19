@@ -79,9 +79,9 @@ public:
         skeleton.bones = {bone};
         skeleton.actions = {Client::Render::Models::ActionInfo{.keyCount = 1}};
     }
-    const Client::Data::Models::Model* Find(std::uint16_t) const override
+    const Client::Data::Models::Model* Find(std::uint16_t id) const override
     {
-        return &model;
+        return missingModel == id ? nullptr : &model;
     }
     const Client::Render::Models::Skeleton* SkeletonOf(std::uint16_t) const override
     {
@@ -94,6 +94,7 @@ public:
     Client::Data::Models::Model model;
     Client::Render::Models::Skeleton skeleton;
     std::array<Client::Render::TextureSlot, 1> textures{Client::Render::TextureSlot{0x400}};
+    std::optional<std::uint16_t> missingModel;
 };
 class RetainedDummyModels final : public Client::Scenes::IModelLibrary
 {
@@ -1179,14 +1180,39 @@ TEST(GameDrawTailTest, ModelEffectNonzeroModeFiltersBlendMeshBeforeDispatchingIt
                     .HasValue());
     EXPECT_EQ(missing.lookups, 0);
     effect.objectState.blendMesh = 2;
-    const auto failed =
+    const auto withoutMeshes =
         Client::Scenes::DrawGameModelEffects(batch, missing, std::span(&effect, 1), frustum, nullptr, {}, 0, 1);
-    ASSERT_FALSE(failed.HasValue());
-    EXPECT_NE(failed.Error().find("0x52d68c"), std::string::npos);
+    ASSERT_TRUE(withoutMeshes.HasValue()) << withoutMeshes.Error();
     TriangleModels oneMesh;
     ASSERT_TRUE(Client::Scenes::DrawGameModelEffects(batch, oneMesh, std::span(&effect, 1), frustum, nullptr, {}, 0, 1)
                     .HasValue());
     EXPECT_TRUE(batch.Commands().empty());
+    effect.type = -1;
+    const auto invalid =
+        Client::Scenes::DrawGameModelEffects(batch, missing, std::span(&effect, 1), frustum, nullptr, {}, 0, 1);
+    ASSERT_FALSE(invalid.HasValue());
+    EXPECT_NE(invalid.Error().find("0x52d68c"), std::string::npos);
+}
+
+TEST(GameDrawTailTest, AnUnloadedModelDoesNotAbortTheRestOfTheSecondPass)
+{
+    Client::Render::ModelBatch batch;
+    TriangleModels models;
+    models.missingModel = 0x14e;
+    Client::World::SphereFrustum frustum;
+    std::array<Client::World::ModelEffect, 2> effects{};
+    effects[0].alive = true;
+    effects[0].type = 0x14e;
+    effects[0].objectState.blendMesh = 1;
+    effects[1].alive = true;
+    effects[1].type = 0xdb;
+    effects[1].objectState.blendMesh = 1;
+    effects[1].transform.scale = 1;
+
+    const auto drawn = Client::Scenes::DrawGameModelEffects(batch, models, effects, frustum, nullptr, {}, 0, 1);
+    ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+    EXPECT_TRUE(effects[1].seen);
+    EXPECT_EQ(batch.Vertices().size(), 3u);
 }
 
 TEST(GameDrawTailTest, MirroredModelEffectDrawsTwiceAndRetainsItsSecondHeight)

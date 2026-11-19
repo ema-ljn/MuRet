@@ -13185,9 +13185,11 @@ del CHARACTER (`Scenes::DarkSpirit`):
 **MuRet**: `Scenes::StepDarkSpirit` porta el paso con `DarkSpiritTargets` (lo que lee del pool, que arma
 `CharacterStep`) y devuelve el aviso (`DarkSpiritStepped::stopsTheAttack`), que `CharacterStep` manda por
 `CharacterStepContext::send` (el `A7`, `Protocol::Pet::WritePetCommand`) y el grito, que va a
-`WorldRuntime::lastSoundId` (CL10). `DrawGameRaven` corre `0x418920` en los frames del original: las juntas, los
-efectos y las partículas son de la CL11 y cortan con su dirección (`0x418aff`, `0x418c0a`, `0x418a8c`)
-después de los `rand()` que sacan antes; las `0x5ac`/6 del grito (`0x418a26`) se crean (`Particles::CreateChecked`,
+`WorldRuntime::lastSoundId` (CL10). `DrawGameRaven` corre `0x418920` en los frames del original: las juntas y los
+efectos del 5 son de la CL11 y cortan con su dirección (`0x418aff`, `0x418c0a`) después de los `rand()` que sacan
+antes; el final del grito (`EndTheShout`, décima vuelta de los tipos altos) suelta los `0x613/0xd` de los vértices de
+la malla 1 del cuervo recién posado hacia el personaje de `+0x3b0` (`0x4ee770`, *Los efectos por vértice*) y deja el
+estado y el contador de lejanía en 0 (sin el cuervo posado en ese dibujo corta, P-C480 (b)); las `0x5ac`/6 del grito (`0x418a26`) se crean (`Particles::CreateChecked`,
 con el pool lleno ninguna) (`test_raven_attack.cpp`, `test_character_step.cpp`,
 `test_game_character_effects.cpp`).
 
@@ -13879,7 +13881,7 @@ con el modelo de `0x5769ad8 + tipo · 0xe0` (sin acciones, nada: `0x50ba82`), en
      `RenderBody(2)` con alpha 0,3 y la textura `0x41 + 0x7d2d360`;
    - `0x43ed20` (desde `0x438fe0`, en todos los mapas; fase 8): del `0x191` al `0x197`, los monstruos de Kalima de
      `0x439df0`. Los pases de `0x4ecc30` llevan `+0x58` de textura. Salvo el `0x192`, al morir con el alpha por debajo
-     de 0,5 (`FCOMP`, también un NaN), `0x4ee770(0, 0x607)` (CL11). El `0x191`: `RenderBody(2)` sin la malla oculta y
+     de 0,5 (`FCOMP`, también un NaN), `0x4ee770(0, 0x607, 0, 0, 0)` (en los frames del original; décima vuelta). El `0x191`: `RenderBody(2)` sin la malla oculta y
      la malla 0 con `0x48` y Chrome01. El `0x192` (Kundun, `+0x60` en 100 desde `0x43a155`): muriendo pasado el frame
      14,8 con `+0x60` en `0x5a`, el sonido `0x1dd`, `+0x60` en 10, la malla 0, el temblor (`0x7d325c8`) en
      `(rand() % 8 − 8) · 0,1f` y las partículas `0x124`, `0x11d` y `0x11e` de `0x518cf0` (CL11); si no, muriendo desde el
@@ -13896,7 +13898,7 @@ con el modelo de `0x5769ad8 + tipo · 0xe0` (sin acciones, nada: `0x50ba82`), en
      4 en `0x440` (aditivas y con la onda de `0x4ed775`, fase 8) con su blendMesh; con el 9, 1 y las 0, 1 y 3 en `0x48`; si no, las 2 y 4 en 2 con su
      blendMesh y la luz en `sin(T · 0,002f) · 0,3f + 0,7f`; la malla 6 en 2 con blendMesh 6 y la luz en
      `sin(T · 0,002f) · 0,1f + 0,05f`, que queda en `+0x68`, y `0x439d90`. `0x439d90`: con `+0x110` en `0x21` o
-     `0x22`, `0x4ee770(6, 0x10a, 1 o 2)` (CL11), `+0x110` en 0 y el sonido `0x88`. Después de todos, `0x43fc04`: con
+     `0x22`, `0x4ee770(6, 0x10a, 1 o 2, 0, 0)` (en los frames del original; décima vuelta), `+0x110` en 0 y el sonido `0x88`. Después de todos, `0x43fc04`: con
      `+0x78 & 0x100` o `& 8`, v = sin(T · 0,001f) · 0,2f + 0,5f en la x87, el color (v · 0,1; v · 0,3; v · 0,6) o
      (v · 0,1; v · 0,6; v · 0,3) y `0x60cd60(modelo, objeto, 0x44, 1, 1,3f)`: sin `+0x78 & 0x4000`, `+0x44` del modelo
      en 0, `0x4ebc80` a 1,3 alrededor de los huesos propios y `RenderBody(0x44)`; esas mallas quedan en `0x5786f9c`
@@ -13949,14 +13951,16 @@ con el modelo de `0x5769ad8 + tipo · 0xe0` (sin acciones, nada: `0x50ba82`), en
      (`IndexTexture[6]`, `[model+0x38]+0xc`) y blendMesh 0, y la malla 3 con `0x44`, blendMesh 3 y la V en
      `−((ftol(T) % 100) · 0,01f)` (el resto con el signo del dividendo); `0x60243e`: el `0x1f3` y el `0x1f4`, la malla 0
      con `0x42`, U y V en 0.
-   Cortan con su dirección (P-C332): el `0x18e` muriéndose o antes de los 25 pasos y el `0x18f` muriéndose
-   (`0x4ee770`, CL11, después de `+0x0` en 0 si muere y del sonido `0x87`), la clase de los bordes del `0x183`
+   Cortan con su dirección (P-C332): ~~el `0x18e` muriéndose o antes de los 25 pasos y el `0x18f` muriéndose
+   (`0x4ee770`, CL11, después de `+0x0` en 0 si muere y del sonido `0x87`)~~ (décima vuelta: `0x4ee770(0, 0x10a)` y
+   `0x4ee770(0, 0x10c)` en los frames del original y la cola de `0x602365`), la clase de los bordes del `0x183`
    (`0x6011f1`, después de la malla 0 y solo cuando `0x457e00` llega a `0x457740`: con el alpha desde 0,01f, sin
    `+0x58` ni `+0x64` en −2 o en 1, con la malla 1 de tres componentes y con triángulos; si no, no se ve nada y sigue
-   en `0x602365`), lo de la CL11 de `0x43ed20` (`0x4ee770` al morir del `0x191`, el `0x193` al
-   `0x197`, `0x43ed6c` y sus copias; ~~las partículas de Kundun en `0x43eeb9`, después del temblor~~ (los pedazos de la caída, novena vuelta de los tipos
+   en `0x602365`), lo de la CL11 de `0x43ed20` (~~`0x4ee770` al morir del `0x191`, el `0x193` al
+   `0x197`, `0x43ed6c` y sus copias~~, décima vuelta; ~~las partículas de Kundun en `0x43eeb9`, después del temblor~~ (los pedazos de la caída, novena vuelta de los tipos
    altos); sus joints en
-   `0x43f20d`, después del primer `rand()`; `0x439dc5`, que MuRet no alcanza: solo pone 0 y 1 en `+0x110`), y el
+   `0x43f20d`, después del primer `rand()`; ~~`0x439dc5`, que MuRet no alcanza: solo pone 0 y 1 en `+0x110`~~, décima
+   vuelta), y el
    helper de la cadena con tipos de monstruo `0x42e3d0` (el `0x19b`, el `0x19c`, el `0x1a8`, el `0x1f8` y el `0x1ff`
    en el 30).
 3. **La sombra** (`0x50bd89..0x50bf3e`): sin `+0x88` en 8, sin los `+0x376` `0x19`, `0x16`, `0x2a`, `0xf2`, `0x3b`,
@@ -14309,6 +14313,48 @@ de otro lote)~~ (décima vuelta, con el alta y el paso de la `0x632` del lote de
 un héroe corta en el paso de su joint `0x61c/0` (`0x53b569`, lote joints). Tests: `test_high_effect_families.cpp`, `test_model_effects.cpp`,
 `test_game_model_effects.cpp`, `test_attack_skill_cases.cpp`, `test_attack_frame_skills.cpp`,
 `test_combat_replies.cpp`, `test_action_reply.cpp`, `test_monster_body.cpp` y `test_monster_helpers.cpp`.
+
+### Los efectos por vértice (`0x4ee770`)
+
+(CL11, lote de los tipos altos, décima vuelta, 2026-11-19.) `0x4ee770(malla, tipo, subtipo, ángulos, personaje)`,
+`thiscall` sobre el modelo (`ret 0x14`): con la malla entre 0 y `+0x24` (MOVSX) y `+0xa` (sus triángulos) por encima
+de 0, recorre cada triángulo (`0x24` B) y cada esquina hasta su byte de cuenta (con signo: `0x80..0xff`, ninguna), sin
+deduplicar, sobre el scratch que dejó el último `0x4ebc80` (`0x5786f9c + (malla · 15.000 + vértice) · 12`). Los
+ángulos (0, 0, 0) y la luz (1, 1, 1) se ponen una vez por llamada; la cuenta del `0x13c` (`[ebp+8]`) tampoco vuelve a
+0 entre triángulos. Por tipo (todas las altas sin dueño y con la clave en −1; con la tabla llena, ninguna y sin sus
+`rand()`, pero los de `0x4ee770` salen igual):
+
+| Tipo | Subtipo | Por esquina |
+|---|---|---|
+| `0x10a` | 0 | `rand() & 1` con signo y con 0 el `0x10b/0` (`0x4ee888`); `rand() % 10` y con 0 el `0x10a/0` (`0x4ee8d7`) |
+| `0x10a` | 1, 2 | el `0x10b/2` y el `0x10b/3` (`0x4ee921`, `0x4ee96b`), sin `rand()` propios (los ocho de su alta, `0x51bafb`, que no toca el subtipo) |
+| `0x10a` | 3 | el `0x10a + (rand() & 1)` con el subtipo 4 (`0x4ee9cb`; los argumentos ya en la pila) |
+| `0x10c` | 0, 1 | la luz en 0,2f; el /0, `rand() % 12` (`0x10d/0`, `0x4eeaf7`) y `rand() % 50` (`0x10c/0`, `0x4eeb46`); el /1, `rand() % 5` (`0x10d/2`, `0x4eea3a`) y `rand() % 10` (`0x10c/2`, `0x4eea8a`) |
+| `0x12d`, `0x12e`, `0x12f` | — | `rand() % 3` y con 0 el `0x12d` (el `0x12f`, el `0x12f`) más `rand() & 1`, con el subtipo 1 el del `0x12d` y 0 los otros |
+| `0x131` | — | la luz en 0,2f; `rand() % 12` (`0x132`), `rand() % 40` (`0x131`), `rand() % 40` (`0x133`) |
+| `0x137` | el suyo | `rand() & 7` con signo y con 0 el `0x137` del subtipo (`0x4eeeb9`; MuRet corta con lugar, P-C480 (a)) |
+| `0x13c` | 0, 1, otro | `rand() % 45`; con 0 y menos de 20 contados, el /0 el `0x13c/0`, el /1 el `0x12d/2` y el `0x12e/2`; cualquier subtipo cuenta uno |
+| `0x5ac` | 0 | la luz en 0,08f; el sprite `0x5ac` con la escala del modelo (`+0x68`), sin dueño ni giro (`0x4eef0f`) |
+| `0x5ac` | 1 | la luz en (1; 0,8f; 0,2f); en los triángulos de índice múltiplo de 22, la y de los ángulos en 0, la x en −(`rand() % 90`) (`FILD`, `FCHS`: −0 con 0), la z en (`rand() % 120` − 60) + la z del cuarto argumento (`FILD`, `FADD`, `FSTP`) y `0x530860(0x613, punto, personaje+0x10, ángulos, 0xd, personaje, 20, 0, 0, 0, −1)` (`0x4eefc5`) |
+| `0x607` | — | la luz en 1; `rand() % 30` y con 0 `0x53fe70(0x607, punto, ángulos, luz, 2, 1,0f, 0)` (`0x4ef02e`) |
+
+Otro tipo o subtipo no hace nada ni saca `rand()`. Los que llaman: el cuervo al final del grito (`0x418a8c`,
+`0x4ee770(1, 0x5ac, 1, cuervo+0x1c, personaje)` sobre su malla 1, después de su `0x602e90`), las puertas del asedio
+(`0x42cfcb`, `0x12f`), sus monstruos (`0x42e6f3` el `0x131`, `0x42e76b` el `0x10a`), `0x439d90` (`0x439dc5`, la malla
+6), los `0x191`, `0x193..0x197` al morir (`0x43ed6c`, `0x43f514`, `0x43f5b9`, `0x43f682`, `0x43f87d`, `0x43f933`, el
+`0x607`), el `0x1a4` y el `0x1a6` al morir (`0x441696`, `0x442165`, el `0x13c`), la `0x632/0` y `/1` en el suelo
+(`0x53c227`, `0x53c241`, el `0x137`, P-C470), el `0x18e` y el `0x18f` (`0x601c08` el `0x10a`, `0x601c44` el `0x10c`)
+y los impactos de las armas del asedio (`0x601c92`, `0x601d28`).
+
+**MuRet**: `Scenes::EmitVertexEffectsOf` (`VertexEffects.h`) con `VertexEffectCall` (malla, tipo, subtipo, ángulos,
+personaje) y `VertexEffectTables` (efectos, partículas con su reloj, sprites, joints); `EmitVertexEffects` es la de
+siempre, con el modelo del objeto y sólo los efectos. `ModelEffects::CreateDebris` toma el subtipo (el `0x10b/2..4` y
+el `0x10a/4`). Los que dibujan (`MonsterBody`, `MonsterBodyChain`, el cuervo) lo piden sólo en los frames del original
+(los demás dibujan copias, ADR 0005) sobre las mallas posadas de ese dibujo (`MonsterBodyModel::meshes`, el buffer de la
+pose del cuervo). Tests: `test_vertex_effects.cpp`, `test_monster_body.cpp` (`The18eBeforeTwentyFiveSteps…`,
+`TheDying18eAnd18f…`, `TheFadingDeathOf43ed20…`, `TheStruckGlowLeavesItsStonesOnMeshSix`),
+`test_monster_drawing.cpp` (`TheSpiritStatueLeavesItsStonesInTheFrameTable`) y `test_game_character_effects.cpp`
+(`TheEndOfTheShoutLooksAtTheAttackTarget`).
 
 ### Los helpers de los monstruos
 

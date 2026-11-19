@@ -5,8 +5,14 @@
 #include "Render/Models/Skeleton.h"
 #include "Render/Models/Skinning.h"
 #include "Render/TextureSlot.h"
+#include "Scenes/ActorState.h"
 #include "Scenes/CharacterDrawing.h"
+#include "Scenes/FaunaJointCreation.h"
+#include "Scenes/GameDrawTail.h"
+#include "World/BlastModelEffects.h"
 #include "World/ModelEffects.h"
+#include "World/Particles.h"
+#include "World/Sprites.h"
 
 #include <gtest/gtest.h>
 
@@ -14,10 +20,14 @@
 
 #include <algorithm>
 #include <array>
+#include <bit>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <span>
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace
 {
@@ -163,6 +173,239 @@ TEST(VertexEffectsTest, TheGolemStonesComeOneInFortyFiveUpToTwenty)
             EXPECT_EQ(effects->Effects()[0].transform.position, (glm::vec3{11, 22, 83}));
             EXPECT_EQ(effects->Effects()[0].light, glm::vec3(1));
         }
+    }
+}
+
+using Client::Render::Models::CrtRandom;
+using Client::Render::Models::SkinnedMesh;
+using Client::Scenes::EmitVertexEffectsOf;
+
+// Un modelo con `count` triángulos de una esquina (el vértice 0) en la malla 0.
+Client::Data::Models::Model OneCornerModel(std::size_t count)
+{
+    Client::Data::Models::Model model;
+    Client::Data::Models::Mesh mesh;
+    mesh.triangles.assign(count, {1, {0, 0, 0, 0}});
+    model.meshes.push_back(mesh);
+    return model;
+}
+
+std::size_t Alive(const Client::World::ModelEffects& effects)
+{
+    return static_cast<std::size_t>(
+        std::ranges::count_if(effects.Effects(), [](const auto& effect) { return effect.alive; }));
+}
+
+// 0x4ee8e4..0x4ee9d3: el 0x10a/1 y /2 sueltan el 0x10b/2 y /3 sin rand() propios (los ocho de su alta); el /3, el 0x10a
+// + (rand() & 1) con el subtipo 4. Otro subtipo, nada.
+TEST(VertexEffectsTest, TheStonesOfTheStruckGlowTakeTheirSubtypes)
+{
+    const auto model = OneCornerModel(1);
+    const std::array meshes{SkinnedMesh{{glm::vec3{11, 22, 33}}, {}}};
+    struct Case
+    {
+        std::int32_t subtype;
+        std::int32_t childSubtype;
+    };
+    for (const Case probe : {Case{1, 2}, Case{2, 3}, Case{3, 4}, Case{4, -1}})
+    {
+        SCOPED_TRACE(probe.subtype);
+        auto effects = std::make_unique<Client::World::ModelEffects>();
+        CrtRandom random(5), expected(5);
+        std::int16_t type = 0x10b;
+        if (probe.subtype == 3)
+            type = static_cast<std::int16_t>(0x10a + (expected.Next() & 1));
+        if (probe.childSubtype >= 0)
+            expected.Discard(8);
+        ASSERT_TRUE(EmitVertexEffectsOf(model, 1.0f, meshes, {.type = 0x10a, .subtype = probe.subtype},
+                                        {.effects = effects.get()}, random)
+                        .HasValue());
+        EXPECT_EQ(random.State(), expected.State());
+        ASSERT_EQ(Alive(*effects), probe.childSubtype >= 0 ? 1u : 0u);
+        if (probe.childSubtype < 0)
+            continue;
+        const auto& made = effects->Effects()[0];
+        EXPECT_EQ(made.type, type);
+        EXPECT_EQ(made.subtype, probe.childSubtype);
+        EXPECT_EQ(made.transform.position, (glm::vec3{11, 22, 83}));
+        EXPECT_EQ(made.light, glm::vec3(1));
+    }
+}
+
+// 0x4ee9d8..0x4eeb3b: el 0x10c con la luz en 0,2f: el /0, rand() % 12 (0x10d/0) y rand() % 50 (0x10c/0); el /1,
+// rand() % 5 (0x10d/2) y rand() % 10 (0x10c/2); cada alta antes del rand() siguiente. Otro subtipo, sin rand().
+TEST(VertexEffectsTest, TheGateStonesComeWithADimLight)
+{
+    const auto model = OneCornerModel(300);
+    const std::array meshes{SkinnedMesh{{glm::vec3{11, 22, 33}}, {}}};
+    const float dim = std::bit_cast<float>(0x3e4ccccdu);
+    for (const std::int32_t subtype : {0, 1, 2})
+    {
+        SCOPED_TRACE(subtype);
+        auto effects = std::make_unique<Client::World::ModelEffects>();
+        auto twin = std::make_unique<Client::World::ModelEffects>();
+        CrtRandom random(6), expected(6);
+        const int shardChance = subtype == 0 ? 12 : 5, stoneChance = subtype == 0 ? 50 : 10;
+        const std::int32_t childSubtype = subtype == 0 ? 0 : 2;
+        for (std::size_t corner = 0; subtype != 2 && corner < 300; ++corner)
+        {
+            for (const auto& [chance, type] :
+                 {std::pair{shardChance, std::int16_t{0x10d}}, std::pair{stoneChance, std::int16_t{0x10c}}})
+            {
+                if (expected.Next() % chance != 0)
+                    continue;
+                ASSERT_TRUE(
+                    Client::World::CreateBlastModelEffect(
+                        *twin,
+                        {.type = type, .position = {11, 22, 33}, .light = glm::vec3(dim), .subtype = childSubtype}, {},
+                        expected, {})
+                        .HasValue());
+            }
+        }
+        ASSERT_TRUE(EmitVertexEffectsOf(model, 1.0f, meshes, {.type = 0x10c, .subtype = subtype},
+                                        {.effects = effects.get()}, random)
+                        .HasValue());
+        EXPECT_EQ(random.State(), expected.State());
+        EXPECT_EQ(Alive(*effects), Alive(*twin));
+        EXPECT_EQ(Alive(*effects) > 0, subtype != 2);
+        for (std::size_t slot = 0; slot < Alive(*twin); ++slot)
+        {
+            EXPECT_EQ(effects->Effects()[slot].type, twin->Effects()[slot].type);
+            EXPECT_EQ(effects->Effects()[slot].subtype, twin->Effects()[slot].subtype);
+            EXPECT_EQ(effects->Effects()[slot].light, glm::vec3(dim));
+        }
+    }
+}
+
+// 0x4eee6b..0x4eeec1: el 0x137, rand() & 7 por esquina; con 0 y lugar en la tabla, su alta (que MuRet no tiene) corta;
+// con la tabla llena, sólo los rand().
+TEST(VertexEffectsTest, TheRocksCutOnlyWithRoomInTheTable)
+{
+    const auto model = OneCornerModel(64);
+    const std::array meshes{SkinnedMesh{{glm::vec3{11, 22, 33}}, {}}};
+    auto effects = std::make_unique<Client::World::ModelEffects>();
+    CrtRandom random(7), expected(7);
+    while (expected.Next() % 8 != 0)
+    {
+    }
+    const auto cut =
+        EmitVertexEffectsOf(model, 1.0f, meshes, {.type = 0x137, .subtype = 2}, {.effects = effects.get()}, random);
+    ASSERT_FALSE(cut.HasValue());
+    EXPECT_NE(cut.Error().find("0x4eeeb9"), std::string::npos) << cut.Error();
+    EXPECT_EQ(random.State(), expected.State());
+    for (auto& effect : effects->Effects())
+        effect.alive = true;
+    CrtRandom full(7), fullExpected(7);
+    fullExpected.Discard(64);
+    ASSERT_TRUE(EmitVertexEffectsOf(model, 1.0f, meshes, {.type = 0x137}, {.effects = effects.get()}, full).HasValue());
+    EXPECT_EQ(full.State(), fullExpected.State());
+}
+
+// 0x4eeec6..0x4eef14: el 0x5ac/0, un sprite 0x5ac por esquina con la escala del modelo (+0x68) y la luz en 0,08f, sin
+// rand(). 0x4eef19..0x4eefca: el /1, en los triángulos 0 y 22, dos rand() y el joint 0x613/0xd; sin el personaje del
+// quinto argumento, corta en la llamada a 0x530860.
+TEST(VertexEffectsTest, TheRavenShoutLeavesSpritesOrJointsEveryTwentyTwoTriangles)
+{
+    const auto model = OneCornerModel(23);
+    const std::array meshes{SkinnedMesh{{glm::vec3{11, 22, 33}}, {}}};
+    auto sprites = std::make_unique<Client::World::FrameSprites>();
+    CrtRandom random(8);
+    ASSERT_TRUE(
+        EmitVertexEffectsOf(model, 0.7f, meshes, {.type = 0x5ac}, {.sprites = sprites.get()}, random).HasValue());
+    EXPECT_EQ(random.State(), 8u);
+    const auto created = static_cast<std::size_t>(
+        std::ranges::count_if(sprites->Sprites(), [](const auto& sprite) { return sprite.alive; }));
+    EXPECT_EQ(created, 23u);
+    EXPECT_EQ(sprites->Sprites()[0].texture, 0x5ac);
+    EXPECT_EQ(sprites->Sprites()[0].scale, 0.7f);
+    EXPECT_EQ(sprites->Sprites()[0].light, glm::vec3(std::bit_cast<float>(0x3da3d70au)));
+    EXPECT_EQ(sprites->Sprites()[0].position, (glm::vec3{11, 22, 33}));
+
+    Client::Scenes::ActorState target;
+    target.position = {100.0f, 200.0f, 300.0f};
+    std::vector<Client::Scenes::JointState> joints(4);
+    CrtRandom shout(9), expected(9);
+    for (int joint = 0; joint < 2; ++joint)
+    {
+        const auto pitch = static_cast<double>(expected.Next() % 90);
+        const auto turn = static_cast<double>((expected.Next() % 120) - 60);
+        glm::vec3 first{11, 22, 33};
+        glm::vec3 second = target.position;
+        glm::vec3 angles{static_cast<float>(-pitch), 0.0f, static_cast<float>(turn + 45.0)};
+        std::vector<Client::Scenes::JointState> twin(1);
+        ASSERT_TRUE(Client::Scenes::CreateFaunaJoint(twin,
+                                                     {.type = 0x613,
+                                                      .firstPosition = first,
+                                                      .secondPosition = second,
+                                                      .angles = angles,
+                                                      .subtype = 0xd,
+                                                      .ownerContext = &target,
+                                                      .scale = 20.0f,
+                                                      .key = 0,
+                                                      .skill = 0,
+                                                      .skillSerial = 0,
+                                                      .target = -1},
+                                                     expected, Client::Scenes::JointOwnerKind::Actor)
+                        .HasValue());
+    }
+    ASSERT_TRUE(EmitVertexEffectsOf(model, 1.0f, meshes,
+                                    {.type = 0x5ac, .subtype = 1, .angles = {0.0f, 0.0f, 45.0f}, .target = &target},
+                                    {.joints = joints}, shout)
+                    .HasValue());
+    EXPECT_EQ(shout.State(), expected.State());
+    EXPECT_TRUE(joints[0].alive);
+    EXPECT_TRUE(joints[1].alive);
+    EXPECT_FALSE(joints[2].alive);
+    EXPECT_EQ(joints[1].type, 0x613);
+    EXPECT_EQ(joints[1].ownerContext, &target);
+
+    CrtRandom orphan(9);
+    const auto cut =
+        EmitVertexEffectsOf(model, 1.0f, meshes, {.type = 0x5ac, .subtype = 1}, {.joints = joints}, orphan);
+    ASSERT_FALSE(cut.HasValue());
+    EXPECT_NE(cut.Error().find("0x4eefc5"), std::string::npos) << cut.Error();
+}
+
+// 0x4eefd6..0x4ef02e: el 0x607, rand() % 30 por esquina y con 0 la partícula 0x607/2 de escala 1 con la luz en 1. Otro
+// tipo (el 0x10b, el 0x5ad) no saca rand().
+TEST(VertexEffectsTest, TheFadingParticlesComeOneInThirty)
+{
+    const auto model = OneCornerModel(200);
+    const std::array meshes{SkinnedMesh{{glm::vec3{11, 22, 33}}, {}}};
+    auto particles = std::make_unique<Client::World::Particles>();
+    auto twin = std::make_unique<Client::World::Particles>();
+    CrtRandom random(10), expected(10);
+    constexpr float Clock = 1500.0f;
+    for (std::size_t corner = 0; corner < 200; ++corner)
+    {
+        if (expected.Next() % 30 != 0)
+            continue;
+        ASSERT_TRUE(twin->CreateChecked(0x607, {11, 22, 33}, glm::vec3(0.0f), glm::vec3(1.0f), 2, 1.0f, Clock, expected)
+                        .HasValue());
+    }
+    ASSERT_TRUE(EmitVertexEffectsOf(model, 1.0f, meshes, {.type = 0x607},
+                                    {.particles = particles.get(), .worldClock = Clock}, random)
+                    .HasValue());
+    EXPECT_EQ(random.State(), expected.State());
+    std::size_t made = 0;
+    for (std::size_t slot = 0; slot < particles->All().size(); ++slot)
+    {
+        const auto& real = particles->All()[slot];
+        EXPECT_EQ(real.alive, twin->All()[slot].alive);
+        if (!real.alive)
+            continue;
+        ++made;
+        EXPECT_EQ(real.type, 0x607);
+        EXPECT_EQ(real.subtype, 2);
+        EXPECT_EQ(real.position, twin->All()[slot].position);
+        EXPECT_EQ(real.light, twin->All()[slot].light);
+    }
+    EXPECT_GT(made, 0u);
+    for (const std::int32_t other : {0x10b, 0x5ad, 0x138})
+    {
+        CrtRandom quiet(11);
+        ASSERT_TRUE(EmitVertexEffectsOf(model, 1.0f, meshes, {.type = other}, {}, quiet).HasValue());
+        EXPECT_EQ(quiet.State(), 11u);
     }
 }
 } // namespace

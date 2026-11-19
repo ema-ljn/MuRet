@@ -18,6 +18,7 @@
 #include "Scenes/PartyActors.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/SocialState.h"
+#include "Scenes/VertexEffects.h"
 #include "World/ChaosCastle.h"
 #include "World/Ftol.h"
 #include "World/ModelEffects.h"
@@ -889,9 +890,9 @@ Core::Expected<void, std::string> StepPetSummon(World::ModelEffect& effect, std:
 }
 
 // 0x418920(CHARACTER, CHARACTER), desde 0x41835a después de 0x602e90, con el cuervo en el trapecio: en el 5 y el 6, los
-// efectos del ataque. Los del 5 (0x530860, 0x518cf0) y el final del 6 (0x4ee770) son de la CL11: cortan con su
-// dirección después de los rand() que saca antes. El grito del 6 suelta las partículas 0x5ac/6 (0x418a26), que MuRet
-// crea. Sin la pose (+0x120 en 0 hasta el primer dibujo), el 6 no hace nada.
+// efectos del ataque. Los del 5 (0x530860, 0x518cf0) son de la CL11: cortan con su dirección después de los rand() que
+// saca antes. El grito del 6 suelta las partículas 0x5ac/6 (0x418a26), que MuRet crea. Sin la pose (+0x120 en 0 hasta
+// el primer dibujo), el 6 no hace nada. El final del grito (+0x38d en 15) es EndTheShout.
 Core::Expected<void, std::string> DrawTheRavenAttack(DarkSpirit& spirit, const ActorState& owner,
                                                      const Render::Models::Skeleton* skeleton,
                                                      Render::Models::CrtRandom& random, World::Particles* particles,
@@ -949,16 +950,46 @@ Core::Expected<void, std::string> DrawTheRavenAttack(DarkSpirit& spirit, const A
         }
         return {};
     }
-    if (spirit.byte38d == ShoutEnd)
+    return {};
+}
+
+// 0x418a51..0x418a9b: el final del grito (el estado 6 con +0x38d en 15). Con el personaje de +0x3b0 (MOVSX; 0xffff no),
+// 0x4ee770(1, 0x5ac, 1, cuervo+0x1c, el personaje) con el modelo del cuervo (ECX, 0x5769ad8 + 0xc0 · 0xe0) sobre la
+// malla 1 del scratch que dejó su 0x602e90 en este dibujo (Scenes/VertexEffects.h: los joints 0x613/0xd de los
+// vértices hacia el personaje, con él de dueño) y 0x4164f0(0), el estado y el contador de lejanía en 0. Siempre,
+// +0x38d en 0. `meshes` es el scratch del cuervo si se dibujó (`drawn`); si no, 0x4ee770 leería el del último modelo
+// posado y corta.
+Core::Expected<void, std::string> EndTheShout(DarkSpirit& spirit, std::span<const Render::Models::SkinnedMesh> meshes,
+                                              bool drawn, const GameRavenPass& pass)
+{
+    constexpr std::int32_t ShoutMesh = 1, ShoutEffects = 0x5ac, ShoutJoints = 1;
+    constexpr std::uint8_t Released = 0;
+    if (spirit.target3b0 != NoAttackTarget)
     {
-        // 0x418a59..0x418a9b: después de 0x4ee770, 0x4164f0(0); sin el personaje, sólo +0x38d en 0.
-        if (spirit.target3b0 != NoAttackTarget)
+        const auto slot = static_cast<std::int16_t>(spirit.target3b0);
+        if (slot < 0 || static_cast<std::size_t>(slot) >= pass.actors.size())
             return Core::Unexpected(
-                std::format("0x418a8c: 0x4ee770 sobre el personaje {} del grito del cuervo es de la "
-                            "CL11",
-                            static_cast<std::int16_t>(spirit.target3b0)));
-        spirit.byte38d = 0;
+                std::format("0x418a77: el personaje {} de +0x3b0 del grito del cuervo no está en el pool", slot));
+        if (!drawn)
+            return Core::Unexpected(std::string("0x418a8c: sin el cuervo dibujado en este frame, 0x4ee770 lee el "
+                                                "scratch (0x5786f9c) del último modelo posado"));
+        if (const Data::Models::Model* model = pass.models.Find(DarkSpiritModel); model != nullptr)
+        {
+            const VertexEffectCall call{.mesh = ShoutMesh,
+                                        .type = ShoutEffects,
+                                        .subtype = ShoutJoints,
+                                        .angles = spirit.angles,
+                                        .target = &pass.actors[static_cast<std::size_t>(slot)]};
+            if (auto emitted =
+                    EmitVertexEffectsOf(*model, spirit.scale, meshes, call, {.joints = pass.joints}, *pass.random);
+                !emitted.HasValue())
+                return Core::Unexpected(std::format("0x418a8c: {}", emitted.Error()));
+        }
+        // 0x418a91: 0x4164f0(0) sobre el cuervo.
+        spirit.state = Released;
+        spirit.far = 0;
     }
+    spirit.byte38d = 0;
     return {};
 }
 
@@ -976,6 +1007,8 @@ Core::Expected<void, std::string> DrawGameRaven(ActorState& owner, const GameRav
     // 0x5ffdff..0x5ffe3b: en los mapas 18 a 23, con +0x1a1 del héroe, el alpha baja 0,15f y queda guardado.
     if (pass.originalFrame)
         spirit.alpha = World::ChaosCastlePoseAlpha(pass.map, pass.heroByte1a1, spirit.alpha);
+    // Si 0x602e90 posó al cuervo en este dibujo: su scratch (0x5786f9c) es el del buffer de la pose.
+    bool ravenPosed = false;
     if (spirit.alpha >= DrawnAlpha)
     {
         if (pass.lighting == nullptr)
@@ -998,6 +1031,7 @@ Core::Expected<void, std::string> DrawGameRaven(ActorState& owner, const GameRav
         // +0x120: la pose de 0x5ffdf0, antes del camino de 0x6002e0 que sea.
         if (pass.originalFrame)
             spirit.pose = PosedWorldBones(pass.models, drawn);
+        ravenPosed = true;
         if (shell)
         {
             // 0x60033c: el +0x108 del cuervo lo deja en 0 el rep stos de 0x415c1e y nadie lo escribe, así que el lazo
@@ -1023,6 +1057,13 @@ Core::Expected<void, std::string> DrawGameRaven(ActorState& owner, const GameRav
     {
         if (pass.random == nullptr)
             return Core::Unexpected(std::string("0x41835a: falta el rand() para el ataque del cuervo"));
+        if (spirit.state == SecondOrderState && spirit.byte38d == ShoutEnd)
+        {
+            std::span<const Render::Models::SkinnedMesh> scratch{};
+            if (pass.carry != nullptr)
+                scratch = pass.carry->meshes;
+            return EndTheShout(spirit, scratch, ravenPosed, pass);
+        }
         return DrawTheRavenAttack(spirit, owner, pass.models.SkeletonOf(DarkSpiritModel), *pass.random, pass.particles,
                                   pass.worldClock);
     }

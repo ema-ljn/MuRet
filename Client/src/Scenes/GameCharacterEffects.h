@@ -148,6 +148,10 @@ struct GameRavenPass
     // el grito corta en su primera partícula.
     World::Particles* particles = nullptr;
     float worldClock = 0.0f;
+    // Los joints del frame (0x530860) y los 400 personajes (0x743a16c), para el final del grito (0x418a8c): los
+    // 0x613/0xd de los vértices del cuervo hacia el personaje de +0x3b0. Sin ellos, ese final corta.
+    std::span<JointState> joints{};
+    std::span<ActorState> actors{};
 };
 
 // 0x420df0: con un cuervo en +0x430, 0x4182f0. Sin pasar el trapecio (su (x, y) por 0,01f, con −20),

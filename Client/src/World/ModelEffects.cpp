@@ -605,7 +605,7 @@ ModelEffects::CreateGroundStone(std::int16_t type, const glm::vec3& position, co
 
 std::optional<std::size_t> ModelEffects::CreateDebris(std::int16_t type, const glm::vec3& position,
                                                       const glm::vec3& angles, const glm::vec3& light,
-                                                      Render::Models::CrtRandom& random)
+                                                      Render::Models::CrtRandom& random, std::int32_t subtype)
 {
     constexpr int PushMask = 127, PushBase = 32, LifeMask = 15, LifeBase = 32, ScaleMask = 3, ScaleBase = 8;
     constexpr int Turn = 360, FallSpan = 5, FallBase = 2;
@@ -616,6 +616,7 @@ std::optional<std::size_t> ModelEffects::CreateDebris(std::int16_t type, const g
         if (effect.alive)
             continue;
         InitializeOwnerlessEffect(effect, type, position, angles, light);
+        effect.subtype = subtype; // 0x518d36: el quinto argumento en +0x4.
         // 0x51bafb..0x51bb35: el empuje en un local y la z 50 más.
         const glm::vec3 push{0.0f, F32(static_cast<double>((random.Next() & PushMask) + PushBase) * StoneTenth), 0.0f};
         glm::vec3& place = effect.transform.position;

@@ -643,7 +643,7 @@ TEST_F(MonsterDrawingTest, UnportedBranchesCutWithTheirAddress)
     // lo que cuelga y de su rand() % 30, en el primer hueso con nombre que su alta no registró (0x427291); lo de
     // 0x50bf45, después de la sombra.
     constexpr std::array cases{Case{Spider, 0x59, "0x50bb96", 0, 0}, Case{HelperType, 0x20, "0x427291", 6, 4},
-                               Case{Spider, 0x49, "0x50c595", 9, 0}, Case{0x18e, 0x21, "0x4ee770", 0, 4}};
+                               Case{Spider, 0x49, "0x50c595", 9, 0}};
     for (const Case& value : cases)
     {
         SCOPED_TRACE(value.address);
@@ -658,6 +658,35 @@ TEST_F(MonsterDrawingTest, UnportedBranchesCutWithTheirAddress)
         EXPECT_EQ(m_clothWorld.random.State(), AfterRandoms(value.randoms));
         TearDown();
     }
+}
+
+// 0x601bd3..0x601c0d por el dibujo del juego: el 0x18e con menos de 25 pasos no se dibuja y pide 0x4ee770(0, 0x10a, 0,
+// 0, 0) sobre las mallas que posó 0x5ffdf0, después de los cuatro rand() del contador: sus piedras van a la tabla del
+// frame. Sin la tabla, corta.
+TEST_F(MonsterDrawingTest, TheSpiritStatueLeavesItsStonesInTheFrameTable)
+{
+    m_clothWorld.random = Client::Render::Models::CrtRandom{1};
+    Monster(0, 0x18e, 0x21);
+    const auto cut = Draw(Pass());
+    ASSERT_FALSE(cut.HasValue());
+    EXPECT_NE(cut.Error().find("0x4ee770: faltan los efectos"), std::string::npos) << cut.Error();
+    EXPECT_EQ(m_clothWorld.random.State(), AfterRandoms(4));
+
+    TearDown();
+    SetUp();
+    m_clothWorld.random = Client::Render::Models::CrtRandom{1};
+    Monster(0, 0x18e, 0x21);
+    GameCharacterPass pass = Pass();
+    pass.effects = &m_world->Map().effects;
+    const auto drawn = Draw(pass);
+    ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+    EXPECT_TRUE(m_batch.Vertices().empty());
+    const auto effects = m_world->Map().effects.Effects();
+    const auto stones =
+        std::ranges::count_if(effects, [](const Client::World::ModelEffect& effect)
+                              { return effect.alive && (effect.type == 0x10a || effect.type == 0x10b); });
+    EXPECT_GT(stones, 0);
+    EXPECT_NE(m_clothWorld.random.State(), AfterRandoms(4));
 }
 
 // 0x50c671, 0x50c71b y 0x50c8ce: después de la sombra, los pases de brillo de 0x60b130 sobre la pose del cuerpo, con

@@ -13,7 +13,9 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/MonsterBodyPasses.h"
+#include "Scenes/VertexEffects.h"
 #include "World/ModelEffects.h"
+#include "World/Particles.h"
 
 #include <gtest/gtest.h>
 
@@ -150,10 +152,58 @@ protected:
                                                .originalFrame = originalFrame,
                                                .cameraShake = &m_shake,
                                                .effects = m_effects.get(),
+                                               .particles = m_particles.get(),
                                                .terrainHeight = m_terrainHeight};
         auto result = Client::Scenes::DrawMonsterBody(frame);
         m_color = model.object.color;
         return result;
+    }
+
+    // 0x4ee770 repetido sobre las mallas de este dibujo en tablas gemelas, con el rand() desde `state`: las mismas
+    // altas, los mismos rand(). Devuelve cuántos creó.
+    std::size_t ExpectTheTwinVertexEffects(std::uint32_t state, std::int32_t mesh, std::int32_t type,
+                                           std::int32_t subtype)
+    {
+        auto effects = std::make_unique<Client::World::ModelEffects>();
+        auto particles = std::make_unique<Client::World::Particles>();
+        Client::Render::Models::CrtRandom random{state};
+        const auto emitted =
+            Client::Scenes::EmitVertexEffectsOf(*m_models.Find(m_actor->type), m_transform.scale, m_meshes,
+                                                {.mesh = mesh, .type = type, .subtype = subtype},
+                                                {.effects = effects.get(), .particles = particles.get()}, random);
+        EXPECT_TRUE(emitted.HasValue()) << emitted.Error();
+        EXPECT_EQ(m_cloth.random.State(), random.State());
+        std::size_t made = 0;
+        for (std::size_t slot = 0; slot < effects->Effects().size(); ++slot)
+        {
+            const auto& twin = effects->Effects()[slot];
+            const auto& real = m_effects->Effects()[slot];
+            EXPECT_EQ(real.alive, twin.alive) << slot;
+            if (!twin.alive || !real.alive)
+                continue;
+            ++made;
+            EXPECT_EQ(real.type, twin.type) << slot;
+            EXPECT_EQ(real.subtype, twin.subtype) << slot;
+            EXPECT_EQ(real.transform.position, twin.transform.position) << slot;
+            EXPECT_EQ(real.transform.angles, twin.transform.angles) << slot;
+            EXPECT_EQ(real.velocity, twin.velocity) << slot;
+            EXPECT_EQ(real.light, twin.light) << slot;
+            EXPECT_EQ(real.life, twin.life) << slot;
+        }
+        for (std::size_t slot = 0; slot < particles->All().size(); ++slot)
+        {
+            const auto& twin = particles->All()[slot];
+            const auto& real = m_particles->All()[slot];
+            EXPECT_EQ(real.alive, twin.alive) << slot;
+            if (!twin.alive || !real.alive)
+                continue;
+            ++made;
+            EXPECT_EQ(real.type, twin.type) << slot;
+            EXPECT_EQ(real.subtype, twin.subtype) << slot;
+            EXPECT_EQ(real.position, twin.position) << slot;
+            EXPECT_EQ(real.light, twin.light) << slot;
+        }
+        return made;
     }
 
     const Client::Render::ModelDrawCommand& CommandAt(std::size_t vertex) const
@@ -196,6 +246,7 @@ protected:
     // La escala y la posición que 0x5ffdf0 copió al modelo (+0x68 y +0x6c): las del objeto del dibujo.
     Client::Render::Models::ObjectTransform m_transform{};
     std::unique_ptr<Client::World::ModelEffects> m_effects = std::make_unique<Client::World::ModelEffects>();
+    std::unique_ptr<Client::World::Particles> m_particles = std::make_unique<Client::World::Particles>();
     std::vector<Client::Render::Models::BoneTransform> m_bones{Client::Render::Models::BoneTransform(1.0f)};
     std::function<double(float, float)> m_terrainHeight{};
     std::vector<Client::Render::Models::SkinnedMesh> m_meshes;
@@ -404,21 +455,27 @@ TEST_F(MonsterBodyTest, The18eDrawsAfterTwentyFiveStepsAndDrawsTheCounterRandoms
     EXPECT_FALSE(m_sound.has_value());
 }
 
-TEST_F(MonsterBodyTest, The18eBeforeTwentyFiveStepsAsksItsSoundAndCutsTheEffect)
+// 0x601bd3..0x601c0d: con menos de 25 pasos, el 0x18e no se dibuja: pide el sonido 0x87 y 0x4ee770(0, 0x10a, 0, 0, 0)
+// sobre las mallas del dibujo (la malla 0: rand() & 1 y el 0x10b/0, rand() % 10 y el 0x10a/0 en cada esquina), y sigue
+// en la cola.
+TEST_F(MonsterBodyTest, The18eBeforeTwentyFiveStepsAsksItsSoundAndLeavesItsStones)
 {
     m_cloth.logicSteps = 100;
     m_actor->stepStamp = 76;
+    m_transform.position = {100.0f, 200.0f, 30.0f};
 
     const auto result = Draw(0x18e, 2);
 
-    ASSERT_FALSE(result.HasValue());
-    EXPECT_NE(result.Error().find("0x4ee770"), std::string::npos);
+    ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_TRUE(m_batch.Vertices().empty());
     EXPECT_EQ(m_sound, 0x87);
     EXPECT_TRUE(m_actor->alive);
-    EXPECT_EQ(m_cloth.random.State(), AfterRandoms(4));
+    EXPECT_GT(ExpectTheTwinVertexEffects(AfterRandoms(4), 0, 0x10a, 0), 0u);
 }
 
+// 0x601be5 y 0x601c21: al morir, el 0x18e y el 0x18f dejan el byte vivo en 0, piden el 0x87 y 0x4ee770 con el 0x10a y
+// el 0x10c (el /0: la luz en 0,2f, rand() % 12 y el 0x10d/0, rand() % 50 y el 0x10c/0), sin el contador. Entre frames
+// del original, ni el sonido ni los efectos.
 TEST_F(MonsterBodyTest, TheDying18eAnd18fDieWithoutTheCounter)
 {
     m_cloth.openCounterAccesses = 0;
@@ -428,18 +485,22 @@ TEST_F(MonsterBodyTest, TheDying18eAnd18fDieWithoutTheCounter)
         m_actor->alive = true;
         m_actor->animation.action = 6;
         m_sound.reset();
+        m_effects = std::make_unique<Client::World::ModelEffects>();
+        const auto before = m_cloth.random.State();
         const auto result = Draw(type, 0);
-        ASSERT_FALSE(result.HasValue());
-        EXPECT_NE(result.Error().find("0x4ee770"), std::string::npos);
+        ASSERT_TRUE(result.HasValue()) << result.Error();
         EXPECT_FALSE(m_actor->alive);
         EXPECT_EQ(m_sound, 0x87);
+        ExpectTheTwinVertexEffects(before, 0, type == 0x18e ? 0x10a : 0x10c, 0);
     }
-    EXPECT_EQ(m_cloth.random.State(), AfterRandoms(0));
-    // Entre frames del original, sin el sonido.
     m_sound.reset();
     m_actor->alive = true;
-    ASSERT_FALSE(Draw(0x18f, 0, 0, 0.0f, false).HasValue());
+    m_effects = std::make_unique<Client::World::ModelEffects>();
+    const auto before = m_cloth.random.State();
+    ASSERT_TRUE(Draw(0x18f, 0, 0, 0.0f, false).HasValue());
     EXPECT_FALSE(m_sound.has_value());
+    EXPECT_EQ(m_cloth.random.State(), before);
+    EXPECT_TRUE(std::ranges::none_of(m_effects->Effects(), [](const auto& effect) { return effect.alive; }));
 }
 
 TEST_F(MonsterBodyTest, The177AddsTheMesh6TextureAndTheScrollingChrome)
@@ -806,24 +867,81 @@ TEST_F(MonsterBodyTest, The185WavesItsMesh1AlongItsNormals)
     }
 }
 
-TEST_F(MonsterBodyTest, TheFadingDeathOf43ed20CutsBeforeDrawing)
+// 0x43ed4a..0x43ed6c y sus copias: al morir con el alpha por debajo de 0,5 (o NaN), los 0x191..0x197 piden
+// 0x4ee770(0, 0x607, 0, 0, 0) antes de dibujarse: rand() % 30 por esquina de la malla 0 y, con 0, la partícula 0x607/2.
+// Con el alpha en 0,5, o entre frames del original, nada.
+TEST_F(MonsterBodyTest, TheFadingDeathOf43ed20LeavesItsParticlesBeforeDrawing)
 {
     m_actor->animation.action = 6;
-    m_actor->alpha = 0.25f;
-    for (const std::uint16_t type : {std::uint16_t{0x191}, std::uint16_t{0x195}, std::uint16_t{0x197}})
+    m_transform.position = {500.0f, 600.0f, 70.0f};
+    // Con la semilla 16, el primer rand() es 90: la primera esquina suelta su partícula.
+    m_cloth.random = Client::Render::Models::CrtRandom{16};
+    std::size_t made = 0;
+    for (const float alpha : {0.25f, std::numeric_limits<float>::quiet_NaN()})
     {
-        SCOPED_TRACE(type);
-        m_batch.Begin(Client::Render::Pass3D{});
-        const auto result = Draw(type, 2);
-        ASSERT_FALSE(result.HasValue());
-        EXPECT_NE(result.Error().find("0x4ee770(0, 0x607)"), std::string::npos) << result.Error();
-        EXPECT_TRUE(m_batch.Vertices().empty());
+        m_actor->alpha = alpha;
+        for (const std::uint16_t type : {std::uint16_t{0x191}, std::uint16_t{0x193}, std::uint16_t{0x194},
+                                         std::uint16_t{0x195}, std::uint16_t{0x196}, std::uint16_t{0x197}})
+        {
+            SCOPED_TRACE(type);
+            m_batch.Begin(Client::Render::Pass3D{});
+            m_particles = std::make_unique<Client::World::Particles>();
+            const auto before = m_cloth.random.State();
+            const auto result = Draw(type, 2);
+            ASSERT_TRUE(result.HasValue()) << result.Error();
+            made += ExpectTheTwinVertexEffects(before, 0, 0x607, 0);
+        }
     }
-    // Con el alpha en 0,5, dibuja.
-    m_actor->alpha = 0.5f;
-    m_batch.Begin(Client::Render::Pass3D{});
-    ASSERT_TRUE(Draw(0x193, 0).HasValue());
-    EXPECT_EQ(m_batch.Vertices().size(), WholeBody + Triangle);
+    EXPECT_GT(made, 0u);
+    // Con el alpha en 0,5 o fuera de los frames del original, sin rand().
+    m_particles = std::make_unique<Client::World::Particles>();
+    for (const bool original : {true, false})
+    {
+        m_actor->alpha = original ? 0.5f : 0.25f;
+        m_batch.Begin(Client::Render::Pass3D{});
+        const auto before = m_cloth.random.State();
+        ASSERT_TRUE(Draw(0x193, 0, 0, 0.0f, original).HasValue());
+        EXPECT_EQ(m_batch.Vertices().size(), WholeBody + Triangle);
+        EXPECT_EQ(m_cloth.random.State(), before);
+    }
+    EXPECT_TRUE(std::ranges::none_of(m_particles->All(), [](const auto& particle) { return particle.alive; }));
+}
+
+// 0x439d90 al final del 0x197 y del 0x195/9: con +0x110 en 0x21 o 0x22, 0x4ee770(6, 0x10a, 1 o 2, 0, 0) sobre la malla
+// 6 del dibujo (el 0x10b/2 o /3 en cada esquina, sin rand() propios: los ocho de cada alta), +0x110 en 0 y el sonido
+// 0x88. Entre frames del original, sólo +0x110 en 0.
+TEST_F(MonsterBodyTest, TheStruckGlowLeavesItsStonesOnMeshSix)
+{
+    m_transform.position = {300.0f, 400.0f, 50.0f};
+    for (const std::uint16_t type : {std::uint16_t{0x197}, std::uint16_t{0x195}})
+    {
+        for (const std::uint8_t strike : {std::uint8_t{0x21}, std::uint8_t{0x22}})
+        {
+            SCOPED_TRACE(::testing::Message() << type << ", " << int{strike});
+            m_actor->subtype = 9;
+            m_actor->byte110 = strike;
+            m_sound.reset();
+            m_effects = std::make_unique<Client::World::ModelEffects>();
+            m_batch.Begin(Client::Render::Pass3D{});
+            const auto before = m_cloth.random.State();
+            ASSERT_TRUE(Draw(type, 2).HasValue());
+            EXPECT_EQ(m_actor->byte110, 0);
+            EXPECT_EQ(m_sound, 0x88);
+            EXPECT_EQ(ExpectTheTwinVertexEffects(before, 6, 0x10a, strike == 0x21 ? 1 : 2), Triangle);
+            EXPECT_EQ(m_effects->Effects()[0].type, 0x10b);
+            EXPECT_EQ(m_effects->Effects()[0].subtype, strike == 0x21 ? 2 : 3);
+            EXPECT_EQ(m_effects->Effects()[0].transform.position.x, m_meshes[6].positions[0].x);
+        }
+    }
+    m_actor->byte110 = 0x21;
+    m_sound.reset();
+    m_effects = std::make_unique<Client::World::ModelEffects>();
+    const auto before = m_cloth.random.State();
+    ASSERT_TRUE(Draw(0x197, 2, 0, 0.0f, false).HasValue());
+    EXPECT_EQ(m_actor->byte110, 0);
+    EXPECT_FALSE(m_sound.has_value());
+    EXPECT_EQ(m_cloth.random.State(), before);
+    EXPECT_FALSE(m_effects->Effects()[0].alive);
 }
 
 TEST_F(MonsterBodyTest, KundunDrawsItsChromeUntilItFalls)

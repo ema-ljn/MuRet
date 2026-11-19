@@ -105,13 +105,23 @@ Chained Drawn(const Core::Expected<void, std::string>& drawn)
 }
 
 // 0x43ed4a..0x43ed6c y sus copias del 0x193 al 0x197: al morir (+0x111 en 6) con el alpha por debajo de 0,5 (FCOMP con
-// C0: también un NaN), 0x4ee770(0, 0x607), los efectos por vértice de la CL11.
-Result CutWhenFading(const ActorState& actor, std::string_view address)
+// C0: también un NaN), 0x4ee770(0, 0x607, 0, 0, 0) con el modelo del tipo sobre las mallas de 0x5ffdf0 de este dibujo:
+// los 0x607/2 (Scenes/VertexEffects.h), en los frames del original.
+Result EmitWhenFading(MonsterBodyFrame& frame, std::uint32_t address)
 {
-    if (actor.animation.action == DeathAction && !(actor.alpha >= Half))
-        return Core::Unexpected(std::format("{}: los efectos por vértice del tipo {:#x} al morir (0x4ee770(0, 0x607), "
-                                            "CL11) no están portados",
-                                            address, actor.type));
+    constexpr std::int32_t FadingParticles = 0x607;
+    const ActorState& actor = frame.actor;
+    if (actor.animation.action != DeathAction || actor.alpha >= Half || !frame.originalFrame)
+        return {};
+    const MonsterBodyModel& model = frame.model;
+    const auto* found = model.models.Find(model.object.model);
+    if (found == nullptr)
+        return {};
+    if (auto emitted =
+            EmitVertexEffectsOf(*found, model.object.transform.scale, model.meshes, {.type = FadingParticles},
+                                {.particles = frame.particles, .worldClock = frame.worldClock}, frame.random);
+        !emitted.HasValue())
+        return Core::Unexpected(std::format("{:#x}: {}", address, emitted.Error()));
     return {};
 }
 
@@ -151,14 +161,38 @@ Result Shake(MonsterBodyFrame& frame, std::string_view address)
     return {};
 }
 
-// 0x439d90 con un monstruo (el tipo no es el 0x20a): con +0x110 en 0x21 o 0x22, 0x4ee770(6, 0x10a, 1 o 2) (CL11) y
-// después +0x110 en 0 y el sonido 0x88. MuRet solo pone 0 y 1 en +0x110 (las puertas del 30, MonsterStepCases.h).
-Result CutTheStruckGlow(const ActorState& actor)
+// 0x439d90 con un monstruo (el tipo no es el 0x20a): con +0x110 en 0x21 o 0x22, 0x4ee770(6, 0x10a, 1 o 2, 0, 0) con
+// el modelo del tipo sobre las mallas de este dibujo (las piedras 0x10b/2 o /3 de cada esquina de la malla 6, en los
+// frames del original) y después +0x110 en 0 y el sonido 0x88. MuRet solo pone 0 y 1 en +0x110 (las puertas del 30,
+// MonsterStepCases.h).
+Result StrikeTheGlow(MonsterBodyFrame& frame)
 {
-    if (actor.byte110 == 0x21 || actor.byte110 == 0x22)
-        return Core::Unexpected(std::format("0x439dc5: los efectos por vértice del tipo {:#x} con +0x110 en {:#x} "
-                                            "(0x4ee770(6, 0x10a), CL11) no están portados",
-                                            actor.type, actor.byte110));
+    constexpr std::uint8_t BlueStrike = 0x21, GreenStrike = 0x22;
+    constexpr std::int32_t StruckMesh = 6, Stones = 0x10a, BlueStones = 1, GreenStones = 2;
+    constexpr std::int32_t StruckSound = 0x88;
+    ActorState& actor = frame.actor;
+    if (actor.byte110 != BlueStrike && actor.byte110 != GreenStrike)
+        return {};
+    if (frame.originalFrame)
+    {
+        if (frame.effects == nullptr)
+            return Core::Unexpected(std::format("0x439dc5: faltan los efectos con modelo para los vértices del tipo "
+                                                "{:#x}",
+                                                actor.type));
+        MonsterBodyModel& model = frame.model;
+        const auto* found = model.models.Find(model.object.model);
+        if (found != nullptr)
+        {
+            const VertexEffectCall call{
+                .mesh = StruckMesh, .type = Stones, .subtype = actor.byte110 == BlueStrike ? BlueStones : GreenStones};
+            if (auto emitted = EmitVertexEffectsOf(*found, model.object.transform.scale, model.meshes, call,
+                                                   {.effects = frame.effects}, frame.random);
+                !emitted.HasValue())
+                return Core::Unexpected(std::format("0x439dc5: {}", emitted.Error()));
+        }
+    }
+    actor.byte110 = 0;
+    RequestBodySound(frame, StruckSound);
     return {};
 }
 
@@ -355,7 +389,7 @@ Result DrawThe197(MonsterBodyFrame& frame)
     if (auto drawn = DrawMeshPass(model, 6, BaseFlags, last); !drawn.HasValue())
         return drawn;
     // 0x43fb97: 0x439d90.
-    return CutTheStruckGlow(actor);
+    return StrikeTheGlow(frame);
 }
 
 // 0x43ed20 con los tipos de 0x191 a 0x197, hasta 0x43fc04.
@@ -367,7 +401,7 @@ Result DrawTheLateChainBody(MonsterBodyFrame& frame)
     {
     case 0x191:
     {
-        if (auto cut = CutWhenFading(actor, "0x43ed6c"); !cut.HasValue())
+        if (auto cut = EmitWhenFading(frame, 0x43ed6c); !cut.HasValue())
             return cut;
         // 0x43ed71..0x43edb7: RenderBody(2) sin la malla oculta y la malla 0 con 0x48 y Chrome01.
         BodyPassArgs args = ActorPassArgs(actor);
@@ -379,7 +413,7 @@ Result DrawTheLateChainBody(MonsterBodyFrame& frame)
     case 0x192:
         return DrawKundun(frame);
     case 0x193:
-        if (auto cut = CutWhenFading(actor, "0x43f514"); !cut.HasValue())
+        if (auto cut = EmitWhenFading(frame, 0x43f514); !cut.HasValue())
             return cut;
         // 0x43f519..0x43f575: RenderBody(2) y (0,5; 0,1; 0) con la malla 0 cromada.
         if (auto drawn = DrawBodyPass(model, BaseFlags, ActorPassArgs(actor)); !drawn.HasValue())
@@ -388,7 +422,7 @@ Result DrawTheLateChainBody(MonsterBodyFrame& frame)
         return DrawMeshPass(model, 0, ChromeFlags, MeshArgsOf(actor));
     case 0x194:
     {
-        if (auto cut = CutWhenFading(actor, "0x43f5b9"); !cut.HasValue())
+        if (auto cut = EmitWhenFading(frame, 0x43f5b9); !cut.HasValue())
             return cut;
         // 0x43f5be..0x43f63e: RenderBody(2) sin la malla oculta y (0,25; 0,2; 0,1) con las mallas 0 y 2 cromadas.
         BodyPassArgs args = ActorPassArgs(actor);
@@ -400,7 +434,7 @@ Result DrawTheLateChainBody(MonsterBodyFrame& frame)
     }
     case 0x195:
     {
-        if (auto cut = CutWhenFading(actor, "0x43f682"); !cut.HasValue())
+        if (auto cut = EmitWhenFading(frame, 0x43f682); !cut.HasValue())
             return cut;
         // 0x43f687..0x43f738: con el subtipo 9, (0,3; 0,1; 0,1); la malla 0 aditiva y las 1 a 3 con 2.
         const bool dark = actor.subtype == 9;
@@ -433,11 +467,11 @@ Result DrawTheLateChainBody(MonsterBodyFrame& frame)
         // 0x43f7df..0x43f836: las mallas 0 y 2 cromadas y, con el subtipo 9, 0x439d90.
         if (auto drawn = DrawMeshes(model, {0, 2}, ChromeFlags, args); !drawn.HasValue())
             return drawn;
-        return dark ? CutTheStruckGlow(actor) : Result{};
+        return dark ? StrikeTheGlow(frame) : Result{};
     }
     case 0x196:
     {
-        if (auto cut = CutWhenFading(actor, "0x43f87d"); !cut.HasValue())
+        if (auto cut = EmitWhenFading(frame, 0x43f87d); !cut.HasValue())
             return cut;
         // 0x43f882..0x43f8ef: RenderBody(2) y (0,5; sin(T · 0,002f) · 0,3f + 0,7f; 0,5) con la malla 0 cromada al
         // alpha 0,8.
@@ -452,7 +486,7 @@ Result DrawTheLateChainBody(MonsterBodyFrame& frame)
         return DrawMeshPass(model, 0, ChromeFlags, args);
     }
     default:
-        if (auto cut = CutWhenFading(actor, "0x43f933"); !cut.HasValue())
+        if (auto cut = EmitWhenFading(frame, 0x43f933); !cut.HasValue())
             return cut;
         return DrawThe197(frame);
     }

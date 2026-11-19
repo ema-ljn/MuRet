@@ -61,6 +61,10 @@ struct ModelEffectStepServices
     // ahí.
     const void* hero = nullptr;
     std::function<Core::Expected<void, std::string>(const ModelEffect&, float)> skillHits{};
+    // CL11 (World/BlastModelEffects): el registro propio (0x7681eb4) que abre y cierra el alta del 0xf4 que suelta el
+    // paso del 0xf3: su profundidad (el cierre en 0 gasta 3.848 rand()) y su cuenta +0xf04.
+    std::uint8_t* ownRecordDepth = nullptr;
+    std::uint8_t* ownRecordCount = nullptr;
 };
 // 0x5208c5..0x52091a: la luz local del paso, del primer rand(): ((r & 3) + 7) · 0,1f (0x6b87b8); con menos de 5 de
 // vida, menos (5 − vida) · 0,2f (0x6b8854), guardada en float y comparada sin redondear con 0.

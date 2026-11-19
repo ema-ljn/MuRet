@@ -14373,7 +14373,11 @@ deduplicar, sobre el scratch que dejó el último `0x4ebc80` (`0x5786f9c + (mall
 | `0x607` | — | la luz en 1; `rand() % 30` y con 0 `0x53fe70(0x607, punto, ángulos, luz, 2, 1,0f, 0)` (`0x4ef02e`) |
 
 Otro tipo o subtipo no hace nada ni saca `rand()`. Los que llaman: el cuervo al final del grito (`0x418a8c`,
-`0x4ee770(1, 0x5ac, 1, cuervo+0x1c, personaje)` sobre su malla 1, después de su `0x602e90`), las puertas del asedio
+`0x4ee770(1, 0x5ac, 1, cuervo+0x1c, personaje)` sobre su malla 1, después de su `0x602e90(cuervo, 0, 0, …)`: en
+`0x5ffdf0`, `0x4eb860` con la bandera en 1 arma los huesos en el mundo, con la escala y el origen en la raíz
+(`0x4ebbda..0x4ebc14`, R · s en float y la traslación en el origen) y sin tocar los dummy, y `0x4ebc80` corre con
+Translate en 0 (`0x600154`, `0x6001a1`): el scratch es hueso · v. MuRet: `PublishFaunaPose` con `translated`, con
+`PoseWorldSkeleton` y `Render::Models::SkinMeshInWorld`; las normales del scratch, con los huesos sin escala), las puertas del asedio
 (`0x42cfcb`, `0x12f`), sus monstruos (`0x42e6f3` el `0x131`, `0x42e76b` el `0x10a`), `0x439d90` (`0x439dc5`, la malla
 6), los `0x191`, `0x193..0x197` al morir (`0x43ed6c`, `0x43f514`, `0x43f5b9`, `0x43f682`, `0x43f87d`, `0x43f933`, el
 `0x607`), el `0x1a4` y el `0x1a6` al morir (`0x441696`, `0x442165`, el `0x13c`), la `0x632/0` y `/1` en el suelo

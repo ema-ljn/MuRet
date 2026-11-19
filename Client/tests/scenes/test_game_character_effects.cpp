@@ -1931,7 +1931,10 @@ TEST_F(GameRavenTest, TheShoutSparksFromEveryOtherBone)
 // 0x418a51: con +0x38d en 15, sin personaje en +0x3b0 solo vuelve el contador a 0; con uno, 0x4ee770(1, 0x5ac, 1,
 // cuervo+0x1c, el personaje) sobre la malla 1 del cuervo recién posado (en cada esquina del triángulo 0, rand() % 90 y
 // rand() % 120 y el joint 0x613/0xd hacia el personaje, ancho 20) y 0x4164f0(0). Fuera de los frames del original,
-// 0x418920 no corre.
+// 0x418920 no corre. Las esquinas, del scratch que deja 0x602e90(cuervo, 0, 0, …): el hueso 0 en el origen sin giro,
+// la raíz de 0x4eb860 con la bandera en 1 (el giro de (0, 0, 90) por 0,75 y el origen (1050, 1060, 300)) y 0x4ebc80
+// con Translate en 0: (0, 0, 10) → (1050; 1060; 307,5), (1, 0, 10) → (1050; 1060,75; 307,5) y (0, 1, 10) →
+// (1049,25; 1060; 307,5); el coseno de 90 en float (−4,4e−8) no llega a mover 1050.
 TEST_F(GameRavenTest, TheEndOfTheShoutLooksAtTheAttackTarget)
 {
     m_owner.darkSpirit->state = 6;
@@ -1944,7 +1947,8 @@ TEST_F(GameRavenTest, TheEndOfTheShoutLooksAtTheAttackTarget)
     m_owner.darkSpirit->byte38d = 15;
     m_owner.darkSpirit->target3b0 = 3;
     m_owner.darkSpirit->far = 7;
-    m_owner.darkSpirit->angles = {-10.0f, 0.0f, 30.0f};
+    m_owner.darkSpirit->angles = {0.0f, 0.0f, 90.0f};
+    m_owner.darkSpirit->scale = 0.75f;
     GameRavenPass projected = Pass();
     projected.originalFrame = false;
     ASSERT_TRUE(Client::Scenes::DrawGameRaven(m_owner, projected).HasValue());
@@ -1964,15 +1968,19 @@ TEST_F(GameRavenTest, TheEndOfTheShoutLooksAtTheAttackTarget)
     EXPECT_EQ(m_owner.darkSpirit->state, 0);
     EXPECT_EQ(m_owner.darkSpirit->far, 0);
     ASSERT_GE(carry.meshes.size(), 2u);
+    ASSERT_GE(carry.meshes[1].positions.size(), 3u);
+    const std::array<glm::vec3, 3> corners{glm::vec3(1050.0f, 1060.0f, 307.5f), glm::vec3(1050.0f, 1060.75f, 307.5f),
+                                           glm::vec3(1049.25f, 1060.0f, 307.5f)};
     Client::Render::Models::CrtRandom replay;
     std::vector<Client::Scenes::JointState> twin(joints.size());
     for (std::size_t corner = 0; corner < 3; ++corner)
     {
         SCOPED_TRACE(corner);
+        EXPECT_EQ(carry.meshes[1].positions[corner], corners[corner]);
         const auto pitch = static_cast<double>(replay.Next() % 90);
         const auto turn = static_cast<double>((replay.Next() % 120) - 60);
-        glm::vec3 angles{static_cast<float>(-pitch), 0.0f, static_cast<float>(turn + 30.0)};
-        glm::vec3 first = carry.meshes[1].positions[corner];
+        glm::vec3 angles{static_cast<float>(-pitch), 0.0f, static_cast<float>(turn + 90.0)};
+        glm::vec3 first = corners[corner];
         glm::vec3 second = actors[3].position;
         ASSERT_TRUE(Client::Scenes::CreateFaunaJoint(twin,
                                                      {.type = 0x613,
@@ -1995,6 +2003,7 @@ TEST_F(GameRavenTest, TheEndOfTheShoutLooksAtTheAttackTarget)
         EXPECT_EQ(joint.ownerContext, &actors[3]);
         EXPECT_EQ(joint.width, 20.0f);
         EXPECT_EQ(joint.position, twin[corner].position);
+        EXPECT_EQ(joint.position, corners[corner]);
         EXPECT_EQ(joint.angles, twin[corner].angles);
         EXPECT_EQ(joint.angles, angles);
     }

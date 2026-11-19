@@ -29,6 +29,14 @@ struct SkinnedMesh
 [[nodiscard]] bool SkinMesh(const Data::Models::Mesh& mesh, std::span<const BoneTransform> bones,
                             const ObjectTransform& object, SkinnedMesh& out);
 
+// 0x4ebc80 con su último argumento en 0, como lo corre 0x5ffdf0 (0x600154 y 0x6001a1) después de un 0x4eb860 con la
+// bandera en 1 (PoseWorldSkeleton): cada vértice solo por la matriz de su hueso en `worldBones` (0x5fccc0), que ya trae
+// la escala y el origen del objeto. Las normales, giradas por `rotationBones` (los huesos sin la escala ni el origen):
+// MuRet las guarda sin la escala, que agrega quien las dibuja. Devuelve false como SkinMesh si un vértice o una normal
+// nombra un hueso que falta en alguno de los dos.
+[[nodiscard]] bool SkinMeshInWorld(const Data::Models::Mesh& mesh, std::span<const BoneTransform> worldBones,
+                                   std::span<const BoneTransform> rotationBones, SkinnedMesh& out);
+
 // 0x4ebc80 con DAT_006c881c en `boneScale`, como lo pone 0x60cd60 para el contorno de 0x60cf70: cada
 // vértice girado por su hueso (0x5fcbd0), por `boneScale` y más la traslación del hueso, y después
 // por la escala del objeto y más su posición. Las normales, como SkinMesh. Con `boneScale` en 1

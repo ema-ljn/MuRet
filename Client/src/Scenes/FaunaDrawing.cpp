@@ -276,6 +276,39 @@ Core::Expected<void, std::string> DrawPool(Render::ModelBatch& batch, std::span<
     }
     return {};
 }
+// 0x4ebc80 sobre el scratch (0x5786f9c): sin `world`, por la escala y más el origen del objeto (Translate en 1); con
+// él, `bones` ya en el mundo y sin escala ni origen (Translate en 0), y las normales giradas por `rotationBones`, sin
+// la escala (la agrega quien dibuja el scratch).
+void SkinTheScratch(FaunaDrawCarry& carry, const Data::Models::Model& model,
+                    std::span<const Render::Models::BoneTransform> bones,
+                    const Render::Models::ObjectTransform& transform, bool world = false,
+                    std::span<const Render::Models::BoneTransform> rotationBones = {})
+{
+    if (carry.meshes.size() < model.meshes.size())
+        carry.meshes.resize(model.meshes.size());
+    for (std::size_t i = 0; i < model.meshes.size(); ++i)
+    {
+        Render::Models::SkinnedMesh mesh;
+        auto& output = carry.meshes[i];
+        const bool skinned = world ? Render::Models::SkinMeshInWorld(model.meshes[i], bones, rotationBones, mesh)
+                                   : Render::Models::SkinMesh(model.meshes[i], bones, transform, mesh);
+        if (!skinned)
+        {
+            // Q-C347: un vértice o una normal en un hueso que la malla no tiene (la 1 de Object36.bmd de
+            // Crywolf nombra el −8888) hace leer a 0x4ebc80 fuera de las matrices. Como MeshDrawsOf con las
+            // mallas rotas, esa no queda posada y no se dibuja.
+            output.positions.clear();
+            output.normals.clear();
+            continue;
+        }
+        if (output.positions.size() < mesh.positions.size())
+            output.positions.resize(mesh.positions.size());
+        std::copy(mesh.positions.begin(), mesh.positions.end(), output.positions.begin());
+        if (output.normals.size() < mesh.normals.size())
+            output.normals.resize(mesh.normals.size());
+        std::copy(mesh.normals.begin(), mesh.normals.end(), output.normals.begin());
+    }
+}
 } // namespace
 Core::Expected<void, std::string> PublishFaunaPose(FaunaDrawCarry& carry, const IModelLibrary& models,
                                                    const DrawnObject& object, bool translated)
@@ -291,9 +324,22 @@ Core::Expected<void, std::string> PublishFaunaPose(FaunaDrawCarry& carry, const 
     if (carry.bones.size() < count)
         carry.bones.resize(count, Render::Models::BoneTransform(0));
     auto bones = std::span(carry.bones).first(count);
-    if (!Render::Models::PoseSkeleton(*skeleton, object.animation, object.transform, glm::vec2{}, bones))
+    if (!translated)
+    {
+        if (!Render::Models::PoseSkeleton(*skeleton, object.animation, object.transform, glm::vec2{}, bones))
+            return Core::Unexpected(std::string("5ffdf0: pose de fauna inválida"));
+        return PublishFaunaPoseRaw(carry, models, object.model, bones, object.transform, false);
+    }
+    // 0x5ffdf0 con el segundo argumento en 0: 0x4eb860 con la bandera en 1 (0x4ebbda..0x4ebc14) mete la escala (R · s,
+    // en float) y el origen (la traslación) en la raíz y arma los huesos en el mundo, sin tocar los dummy; 0x4ebc80
+    // corre con Translate en 0 (0x600154, 0x6001a1): solo hueso · v. Las normales del scratch, con los huesos sin la
+    // escala ni el origen (la pose de siempre, sobre una copia con los mismos dummy).
+    std::vector<Render::Models::BoneTransform> rotation(bones.begin(), bones.end());
+    if (!Render::Models::PoseSkeleton(*skeleton, object.animation, object.transform, glm::vec2{}, rotation) ||
+        !Render::Models::PoseWorldSkeleton(*skeleton, object.animation, object.transform, glm::vec2{}, bones))
         return Core::Unexpected(std::string("5ffdf0: pose de fauna inválida"));
-    return PublishFaunaPoseRaw(carry, models, object.model, bones, object.transform, translated);
+    SkinTheScratch(carry, *model, bones, object.transform, true, rotation);
+    return {};
 }
 Core::Expected<void, std::string> PublishFaunaFloorPose(FaunaDrawCarry& carry, const IModelLibrary& models,
                                                         const DrawnObject& object)
@@ -334,33 +380,11 @@ Core::Expected<void, std::string> PublishFaunaPoseRaw(FaunaDrawCarry& carry, con
         return {};
     bones = std::span(carry.bones).first(count);
     if (skin)
-    {
-        if (carry.meshes.size() < model->meshes.size())
-            carry.meshes.resize(model->meshes.size());
-        for (std::size_t i = 0; i < model->meshes.size(); ++i)
-        {
-            Render::Models::SkinnedMesh mesh;
-            auto& output = carry.meshes[i];
-            if (!Render::Models::SkinMesh(model->meshes[i], bones, transform, mesh))
-            {
-                // Q-C347: un vértice o una normal en un hueso que la malla no tiene (la 1 de Object36.bmd de
-                // Crywolf nombra el −8888) hace leer a 0x4ebc80 fuera de las matrices. Como MeshDrawsOf con las
-                // mallas rotas, esa no queda posada y no se dibuja.
-                output.positions.clear();
-                output.normals.clear();
-                continue;
-            }
-            if (output.positions.size() < mesh.positions.size())
-                output.positions.resize(mesh.positions.size());
-            std::copy(mesh.positions.begin(), mesh.positions.end(), output.positions.begin());
-            if (output.normals.size() < mesh.normals.size())
-                output.normals.resize(mesh.normals.size());
-            std::copy(mesh.normals.begin(), mesh.normals.end(), output.normals.begin());
-        }
-    }
+        SkinTheScratch(carry, *model, bones, transform);
     if (!translated)
         return {};
-    // 5ffdf0 con argumento0 posa matrices en el mundo; los dummy no se vuelven a escribir.
+    // 5ffdf0 con argumento0 posa matrices en el mundo; los dummy no se vuelven a escribir. Con huesos ya posados en el
+    // modelo, MuRet los lleva al mundo después (PublishFaunaPose los arma en el mundo desde la raíz, como 0x4eb860).
     for (std::size_t i = 0; i < count; ++i)
     {
         if (skeleton != nullptr && i < skeleton->bones.size() && skeleton->bones[i].dummy)

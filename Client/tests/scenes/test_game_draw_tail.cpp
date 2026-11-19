@@ -1598,7 +1598,9 @@ TEST(GameDrawTailTest, ModelEffectBodyUsesTheDummyBonePublishedByThePrecedingMod
     ASSERT_TRUE(
         Client::Scenes::DrawGameModelEffects(batch, models, effects, frustum, nullptr, {}, 0, resources).HasValue());
     ASSERT_EQ(batch.Vertices().size(), 6u);
-    EXPECT_EQ(batch.Vertices()[3].position, glm::vec3(1007, 1008, 309));
+    // 0x4eb860 con la bandera en 1 no reescribe el dummy (0x4eb973): queda la matriz del anterior ya en el mundo (su
+    // origen es 0), y 0x4ebc80 con Translate en 0 no le suma el origen del segundo.
+    EXPECT_EQ(batch.Vertices()[3].position, glm::vec3(7, 8, 9));
 }
 
 TEST(GameDrawTailTest, LegacyModelEffectsConsumeTheSamePublishedDummyBone)
@@ -1622,7 +1624,7 @@ TEST(GameDrawTailTest, LegacyModelEffectsConsumeTheSamePublishedDummyBone)
     ASSERT_TRUE(Client::Scenes::DrawModelEffects(batch, models, effects, frustum, nullptr, {}, 0, onPose, posedMeshes)
                     .HasValue());
     ASSERT_EQ(batch.Vertices().size(), 6u);
-    EXPECT_EQ(batch.Vertices()[3].position, glm::vec3(1007, 1008, 309));
+    EXPECT_EQ(batch.Vertices()[3].position, glm::vec3(7, 8, 9)); // La matriz del anterior, sin el origen (0x4ebc80).
 }
 
 TEST(GameDrawTailTest, PublishedFloorBodyReportsMissingAndIncompleteScratchBeforeProjection)

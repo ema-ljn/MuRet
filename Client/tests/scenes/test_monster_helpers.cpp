@@ -1427,15 +1427,27 @@ TEST_F(MonsterHelpersTest, The1b1And1b2DrawTheirSprites)
 
 // El original dibuja una vez por cuadro, después de 0 a N pasos (ADR 0005): entre frames del original el personaje es
 // una copia proyectada y las tablas del mundo no se tocan. El golpe del 0x1a4 (0x441b33..0x441c4c: el cráter 0x636/2,
-// el joint 0x61c/6 y la columna 0x5de/3), el 0x115/1 del 0x1b3 (0x434eb0) y el 0x618/0x10 del 0x1b7 (0x427fd3) solo
-// nacen en un frame del original.
+// el joint 0x61c/6 y la columna 0x5de/3, en ese orden, sin otro jugador cerca), el 0x115/1 del 0x1b3 (0x434eb0) y el
+// 0x618/0x10 del 0x1b7 (0x427fd3) solo nacen en un frame del original, y nada más.
 TEST_F(MonsterHelpersTest, BetweenOriginalFramesTheHelpersLeaveTheWorldTablesAlone)
 {
-    const auto alive = [this]
+    struct Born
     {
-        return std::ranges::count_if(m_world->Map().effects.Effects(),
-                                     [](const auto& effect) { return effect.alive; }) +
-               std::ranges::count_if(m_world->DrawTail().joints, [](const auto& joint) { return joint.alive; });
+        bool joint = false;
+        std::int32_t type = 0;
+        std::int32_t subtype = 0;
+        bool operator==(const Born&) const = default;
+    };
+    const auto born = [this]
+    {
+        std::vector<Born> made;
+        for (const auto& effect : m_world->Map().effects.Effects())
+            if (effect.alive)
+                made.push_back(Born{false, effect.type, effect.subtype});
+        for (const auto& joint : m_world->DrawTail().joints)
+            if (joint.alive)
+                made.push_back(Born{true, joint.type, joint.subtype});
+        return made;
     };
     const auto clear = [this]
     {
@@ -1444,6 +1456,7 @@ TEST_F(MonsterHelpersTest, BetweenOriginalFramesTheHelpersLeaveTheWorldTablesAlo
         for (auto& joint : m_world->DrawTail().joints)
             joint.alive = false;
     };
+    const auto expected = [](bool original, std::vector<Born> made) { return original ? made : std::vector<Born>{}; };
     Name("Monster82_LHand", 34);
     Name("Monster82_RHand", 45);
     Name("Monster82_Eye", 48);
@@ -1463,14 +1476,14 @@ TEST_F(MonsterHelpersTest, BetweenOriginalFramesTheHelpersLeaveTheWorldTablesAlo
         MonsterHelperPass striking = Pass(Devias, attack, original);
         const auto struck = Client::Scenes::DrawTheEffectsOf1a3To1a9(striking);
         ASSERT_TRUE(struck.HasValue()) << struck.Error();
-        EXPECT_EQ(alive() > 0, original);
+        EXPECT_EQ(born(), expected(original, {Born{false, 0x636, 2}, Born{false, 0x5de, 3}, Born{true, 0x61c, 6}}));
 
         clear();
         Monster(0x1b3, 4, 6.0f);
         CrtRandom piercing(1);
         MonsterHelperPass crywolf = Pass(Crywolf, piercing, original);
         ASSERT_TRUE(Client::Scenes::DrawTheCrywolfEffectsOf1abTo208(crywolf).HasValue());
-        EXPECT_EQ(alive() > 0, original);
+        EXPECT_EQ(born(), expected(original, {Born{false, 0x115, 1}}));
 
         clear();
         ActorState& caster = Monster(0x1b7, 3, 6.9f);
@@ -1480,7 +1493,7 @@ TEST_F(MonsterHelpersTest, BetweenOriginalFramesTheHelpersLeaveTheWorldTablesAlo
         MonsterHelperPass lorencia = Pass(Lorencia, beam, original);
         const auto beamed = Client::Scenes::DrawTheMonsterHelpers(lorencia);
         ASSERT_TRUE(beamed.HasValue()) << beamed.Error();
-        EXPECT_EQ(alive() > 0, original);
+        EXPECT_EQ(born(), expected(original, {Born{true, 0x618, 0x10}}));
     }
 }
 

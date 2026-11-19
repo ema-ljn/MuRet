@@ -18,7 +18,9 @@ struct SkinnedMesh
 {
     // En el mundo, uno por vértice de la malla.
     std::vector<glm::vec3> positions;
-    // Giradas, una por normal: sin la escala ni la posición del objeto.
+    // Giradas, una por normal, como las deja 0x4ebc80 en 0x68c53bc: solo por la matriz de su hueso (0x5fcbd0), sin la
+    // posición del objeto. Con la escala dentro solo si el hueso la trae: los huesos del mundo de 0x4eb860 con la
+    // bandera en 1 (SkinMeshInWorld); con Translate en 1 (SkinMesh), sin ella. Quien las dibuja no les agrega nada.
     std::vector<glm::vec3> normals;
 };
 
@@ -31,11 +33,11 @@ struct SkinnedMesh
 
 // 0x4ebc80 con su último argumento en 0, como lo corre 0x5ffdf0 (0x600154 y 0x6001a1) después de un 0x4eb860 con la
 // bandera en 1 (PoseWorldSkeleton): cada vértice solo por la matriz de su hueso en `worldBones` (0x5fccc0), que ya trae
-// la escala y el origen del objeto. Las normales, giradas por `rotationBones` (los huesos sin la escala ni el origen):
-// MuRet las guarda sin la escala, que agrega quien las dibuja. Devuelve false como SkinMesh si un vértice o una normal
-// nombra un hueso que falta en alguno de los dos.
+// la escala y el origen del objeto, y cada normal girada por esa misma matriz (0x5fcbd0), con la escala dentro. Las dos
+// con los redondeos de la x87 (OriginalVectorTransform y OriginalVectorRotate). Devuelve false como SkinMesh si un
+// vértice o una normal nombra un hueso que falta.
 [[nodiscard]] bool SkinMeshInWorld(const Data::Models::Mesh& mesh, std::span<const BoneTransform> worldBones,
-                                   std::span<const BoneTransform> rotationBones, SkinnedMesh& out);
+                                   SkinnedMesh& out);
 
 // 0x4ebc80 con DAT_006c881c en `boneScale`, como lo pone 0x60cd60 para el contorno de 0x60cf70: cada
 // vértice girado por su hueso (0x5fcbd0), por `boneScale` y más la traslación del hueso, y después

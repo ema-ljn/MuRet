@@ -1507,7 +1507,8 @@ TEST_F(MonsterDrawingTest, BetweenOriginalFramesNothingIsStored)
 // 0x43f182..0x43f269: Kundun cayendo (+0x60 desde 100, la acción 6 desde el frame 8) suelta sus 0x56 vueltas del
 // 0x613/3 y el 0x6ee/3 en la tabla de joints real (0x74a8d78) y tiembla una vez por cuadro del original (ADR 0005).
 // Entre frames del original dibuja el cuerpo de la copia proyectada, pero no toca ninguna tabla de joints, ni la real
-// ni la proyectada, ni saca los rand() de la rama.
+// ni la proyectada, ni saca ningún rand(): el CRT queda como estaba (los de la cola del dibujo, 0x50db57.., también van
+// sobre la copia). En el cuadro del original sí los saca.
 TEST_F(MonsterDrawingTest, KundunFallingBetweenOriginalFramesLeavesTheJointTablesAlone)
 {
     constexpr std::uint16_t Kundun = 0x192;
@@ -1521,6 +1522,7 @@ TEST_F(MonsterDrawingTest, KundunFallingBetweenOriginalFramesLeavesTheJointTable
     GameCharacterPass pass = Pass();
     pass.cameraShake = &shake;
     pass.originalFrames = 0;
+    const Client::Render::Models::CrtRandom before = m_clothWorld.random;
 
     const auto between = Draw(pass);
 
@@ -1530,6 +1532,7 @@ TEST_F(MonsterDrawingTest, KundunFallingBetweenOriginalFramesLeavesTheJointTable
     EXPECT_TRUE(std::ranges::none_of(m_joints, alive));
     EXPECT_EQ(kundun.dword60, 100);
     EXPECT_EQ(shake, 0.0f);
+    EXPECT_EQ(m_clothWorld.random.State(), before.State());
 
     pass.originalFrames = 1;
     m_batch.Begin(Client::Render::Pass3D{});
@@ -1540,6 +1543,7 @@ TEST_F(MonsterDrawingTest, KundunFallingBetweenOriginalFramesLeavesTheJointTable
     EXPECT_TRUE(std::ranges::none_of(m_joints, alive));
     EXPECT_EQ(kundun.dword60, 0x5a);
     EXPECT_NE(shake, 0.0f);
+    EXPECT_NE(m_clothWorld.random.State(), before.State());
 }
 
 // De punta a punta: el 1B con 0xc9 (0x4cbfc9) pasa por 0x439d40, que en el 0x197 con 0x100 lo baja y pone +0x110 en

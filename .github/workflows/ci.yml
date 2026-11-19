@@ -101,6 +101,10 @@ jobs:
             extra-configure: >-
               -DCMAKE_MSVC_DEBUG_INFORMATION_FORMAT= -DCMAKE_EXE_LINKER_FLAGS_DEBUG=/INCREMENTAL:NO
               -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+            # Ninja corre por defecto núcleos + 2 = 6 compilaciones a la vez: con 6 cl de Scenes/
+            # juntos el runner se quedó sin memoria (C1060, "compiler is out of heap space", #379).
+            # De a 4, una por núcleo.
+            build-jobs: '4'
             font-file: 'C:\Windows\Fonts\arial.ttf'
           # Que cada archivo del cliente incluya lo que usa (docs/CODING_RULES.md § 7). Antes iba al
           # final del job de Linux y le sumaba 12 a 18 minutos; clang-tidy solo lee el
@@ -132,6 +136,8 @@ jobs:
       MURET_CLIENT_FONT_FILE: ${{ matrix.font-file }}
       # Los cuatro núcleos del runner, para CTest (Ninja ya los usa todos).
       MURET_CI_JOBS: 4
+      # Cuántas compilaciones a la vez en cmake --build; vacía, lo que elija Ninja.
+      CMAKE_BUILD_PARALLEL_LEVEL: ${{ matrix.build-jobs }}
 
     steps:
       # Dos commits: en un PR, HEAD es el merge con la base y HEAD^1 la base, así el paso de lo que
@@ -228,7 +234,9 @@ jobs:
 
       # cl, link y los headers y bibliotecas de Windows en el PATH, INCLUDE y LIB, como en una
       # consola "x64 Native Tools" de Visual Studio: lo que necesita Ninja, que no los busca solo como
-      # MSBuild. Pasa a los pasos siguientes solo lo que vcvars64.bat agrega o cambia. Las carpetas
+      # MSBuild. Pasa a los pasos siguientes solo lo que vcvars64.bat agrega o cambia, menos
+      # VCPKG_ROOT: vcvars64.bat lo apunta al vcpkg de Visual Studio, y el build usa el clonado en la
+      # baseline (paso "vcpkg en la baseline de vcpkg.json"). Las carpetas
       # nuevas del PATH van en el mismo orden que les da vcvars64.bat (GITHUB_PATH antepone cada
       # línea a las anteriores, por eso se escriben al revés).
       - name: Entorno de MSVC (Windows)
@@ -255,7 +263,7 @@ jobs:
             $value = $Matches[2]
             if ($name -eq 'Path') {
               $newPath = @($value -split ';' | Where-Object { $_ -and ($oldPath -notcontains $_) })
-            } elseif ($before[$name] -ne $value) {
+            } elseif ($name -ne 'VCPKG_ROOT' -and $before[$name] -ne $value) {
               "$name=$value" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
             }
           }

@@ -28,6 +28,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <vector>
 
 // El 0x613 y el 0x6ee (SpiritJoints.cpp) y la gota 0x60f/2 (DropJoints.cpp): el alta de 0x53265e y 0x5340dc, el paso
@@ -449,6 +450,24 @@ TEST(SpiritJointsTest, TheThirteenthSeeksItsOwner)
     const auto stepped = ownerless.Step();
     ASSERT_FALSE(stepped.HasValue());
     EXPECT_TRUE(stepped.Error().starts_with("0x5399cd")) << stepped.Error();
+}
+
+// 0x53909f..0x539125: el 0x6ee/0xe (los 24 de Kundun, 0x43d19f) baja 2 la x de los ángulos y saca rand() % 5 antes de
+// su partícula 0x6f2/2, 0x6f3/2 o 0x6f4/4, que corta (CL11).
+TEST(SpiritJointsTest, TheKundunSparkTiltsAndDrawsBeforeItsParticle)
+{
+    Pool pool;
+    ASSERT_TRUE(pool.Create(0x6ee, 0xe, {}, 30.0f).HasValue());
+    pool.joints[0].angles.x = 20.0f;
+    const auto before = pool.random.State();
+    const auto stepped = pool.Step();
+    ASSERT_FALSE(stepped.HasValue());
+    CrtRandom expected(before);
+    const std::int32_t pick = expected.Next() % 5;
+    const std::string_view address = pick == 0 ? "0x5390e6" : (pick <= 2 ? "0x539109" : "0x539120");
+    EXPECT_TRUE(stepped.Error().starts_with(address)) << stepped.Error();
+    EXPECT_EQ(pool.joints[0].angles.x, 18.0f);
+    EXPECT_EQ(pool.random.State(), expected.State());
 }
 
 // 0x538e1e..0x538e7f: la /8 sube con la x en 110 y velocidad 10 hasta la vida 42; después va con velocidad 50 desde 180

@@ -191,7 +191,7 @@ TEST(SkillRepliesTest, TheMagicAttackOfAnotherTurnsTowardsTheTargetAndActs)
     EXPECT_EQ(caster.animation.action, 0x38);
     EXPECT_EQ(caster.byte381, 1);
     EXPECT_EQ(tested->world.Runtime().lastSoundId, 0x70);
-    EXPECT_EQ(tested->world.Runtime().skillSource, static_cast<std::int32_t>(CasterIndex));
+    EXPECT_EQ(tested->world.Runtime().lastAttacker, static_cast<std::int32_t>(CasterIndex));
     EXPECT_EQ(tested->cloth.random.State(), expected.State());
 }
 
@@ -208,19 +208,19 @@ TEST(SkillRepliesTest, TheMagicAttackOfTheHeroKeepsItsDirection)
     EXPECT_EQ(hero.byte38e, 0x10);
     EXPECT_EQ(hero.animation.action, action);
     EXPECT_EQ(hero.byte381, 1);
-    EXPECT_EQ(tested->world.Runtime().skillSource, static_cast<std::int32_t>(HeroIndex));
+    EXPECT_EQ(tested->world.Runtime().lastAttacker, static_cast<std::int32_t>(HeroIndex));
 }
 
 // Sin el blanco (o con su bit 15, que el lector ya sacó y queda en el éxito), nada.
 TEST(SkillRepliesTest, TheMagicAttackWithoutTheTargetDoesNothing)
 {
     auto tested = std::make_unique<Replies>();
-    tested->world.Runtime().skillSource = -5;
+    tested->world.Runtime().lastAttacker = -5;
     const auto applied =
         Client::Scenes::ApplyMagicAttack(MagicAttack{0x13, CasterKey, 0x0999, true}, tested->Resources());
     ASSERT_TRUE(applied.HasValue());
     EXPECT_EQ(tested->Actor(CasterIndex).byte38e, 0);
-    EXPECT_EQ(tested->world.Runtime().skillSource, -5);
+    EXPECT_EQ(tested->world.Runtime().lastAttacker, -5);
     EXPECT_EQ(tested->cloth.random.State(), 1u);
 }
 
@@ -243,7 +243,7 @@ TEST(SkillRepliesTest, AnUnknownSourceIsTheLastActor)
             const std::uint8_t action = tested->Actor(400).animation.action;
             ASSERT_TRUE(tested->Attack(skill, 0x0777).HasValue());
             const ActorState& phantom = tested->Actor(400);
-            EXPECT_EQ(tested->world.Runtime().skillSource, 400);
+            EXPECT_EQ(tested->world.Runtime().lastAttacker, 400);
             EXPECT_EQ(phantom.byte38e, head ? skill : 0);
             EXPECT_EQ(phantom.attackTarget, head ? TargetIndex : 0);
             EXPECT_EQ(phantom.skillSucceeded, head ? 1 : 0);
@@ -1251,7 +1251,7 @@ TEST(SkillRepliesTest, TheSkillTargetKeepsTheSkillAndTheTarget)
     EXPECT_EQ(caster.byte42e, 0x20);
     EXPECT_EQ(caster.attackTarget, TargetIndex);
     EXPECT_EQ(caster.skillSucceeded, 0);
-    EXPECT_EQ(tested->world.Runtime().skillSource, static_cast<std::int32_t>(CasterIndex));
+    EXPECT_EQ(tested->world.Runtime().lastAttacker, static_cast<std::int32_t>(CasterIndex));
     EXPECT_EQ(tested->cloth.random.State(), expected.State());
 
     // Con el bit 15, 0x5110d0 no lo encuentra: nada.
@@ -1306,7 +1306,7 @@ TEST(SkillRepliesTest, TheSkillTargetOfAnUnknownSourceWritesTheLastActor)
         const CrtRandom expected = Advanced(tested->cloth.random, ActorByteRandoms);
         ASSERT_TRUE(
             Client::Scenes::ApplySkillTarget(SkillTarget{1, 0x0777, TargetKey}, tested->Resources()).HasValue());
-        EXPECT_EQ(tested->world.Runtime().skillSource, 400);
+        EXPECT_EQ(tested->world.Runtime().lastAttacker, 400);
         EXPECT_EQ(phantom.byte42e, 1);
         EXPECT_EQ(phantom.attackTarget, TargetIndex);
         EXPECT_EQ(phantom.skillSucceeded, 0);

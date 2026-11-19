@@ -540,9 +540,6 @@ struct WorldRuntime
     // lo escribe nadie más: en una segunda respuesta, hasta ahí es el héroe anterior, y después de la vuelta
     // a la selección sigue en el lugar del juego (Q-C213).
     std::size_t hero = 0;
-    // 0x5767964: el lugar del pool de la fuente del último 19 (0x4cce7d) o 69 (0x4cc2e1), el 400 si no está. Quién lo
-    // lee, sin leer (CL9 hito 4).
-    std::int32_t skillSource = 0;
     // [0x743a178] y [0x743a17c], lo que dejó el último 0x505820 (06, "El conjunto completo de 0x505820"): en
     // la .bss, 0 al arrancar. Lo escriben 0x512a30 con el héroe publicado y el dibujo de los personajes
     // (0x50ba30 en 0x50c91e), el del login y el de la selección (ScanTheDrawnCharacter). nullopt después de un
@@ -583,9 +580,8 @@ struct WorldRuntime
     // Estado durable de 0x530490 para el futuro binder de hojas; recibir 0F no crea lluvia.
     World::LeafWeather leafWeather{.firstWave = InitialLeafCount};
     // [0x5767964] (.bss, 0): el lugar del último que pegó. Lo escriben el 18 con las acciones 0x78 y 0x79 (0x4cb849),
-    // el 0x19 (0x4cce7d), el 0x69 (0x4cc2e1) y el 0x1A (0x4cedf7, también con el 400 fantasma), y lo lee el D7 que
-    // llega con el efecto defensivo (0x4cb32f, que corta). MuRet escribe el del 18 (CL9 hito 3, fase 2a) y el del 1A
-    // (CL9 hito 2).
+    // el 0x19 (0x4cce7d) y el 0x69 (0x4cc2e1) con la fuente, y el 0x1A (0x4cedf7); los tres últimos, con el 400 si no
+    // la encuentran. Lo lee sólo el D7 que le pega al héroe con el escudo (0x4cb32f, Scenes::RaiseTheShield).
     std::int32_t lastAttacker = 0;
     // [0x6c88ac] (.data, 15): desde cuántos pasos de +0x381 corre la habilidad de 0x4fd5f0 (0x4fdbe5, con signo). Lo
     // escribe solo 0x4f97b0: 15 en 0x4f987d, antes de su switch, y 5 en 0x4f9ee2, un caso de habilidad (hito 4).

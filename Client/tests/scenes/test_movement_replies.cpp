@@ -352,7 +352,7 @@ TEST(MovementRepliesTest, ShockSoundClassesPreserveTheirDistinctRandomCounts)
     }
 }
 // 0x4cb30b..0x4cb3b0: el héroe 0x20a con +0x78 & 0x100 que recibe un golpe sin sacudida, después de restar la vida y
-// antes de los números. El que pega es el personaje del lugar [0x5767964] (WorldRuntime::skillSource); 0x4e93f0 da el
+// antes de los números. El que pega es el personaje del lugar [0x5767964] (WorldRuntime::lastAttacker); 0x4e93f0 da el
 // rumbo desde (1000, 1000) hasta el héroe en (1300, 1400): atan(4/3) · 57,2957763671875f + 90 = 143,1300994…, a menos
 // de 10 de su 140, así que 0x518cf0(0x109, +0x10 del héroe, (0, 0, rumbo + 180), +0xf4, 0, héroe, −1, 0, 0, 0, 0): el
 // escudo 0x109/0 con la z de los ángulos en 0x43a190a7 (calculado aparte del port), la vida 20 (0x51921a) y el héroe de
@@ -373,7 +373,7 @@ struct ShieldReplies
         auto& striker = tested.world.Actors()[static_cast<std::size_t>(source)];
         striker.position = strikerAt;
         striker.angles.z = strikerYaw;
-        tested.world.Runtime().skillSource = source;
+        tested.world.Runtime().lastAttacker = source;
     }
     Client::Core::Expected<void, std::string> Hit()
     {
@@ -434,10 +434,11 @@ TEST(MovementRepliesTest, TheHeroShieldNeedsTheStrikerFacingItAndTheBodyOfAPlaye
     EXPECT_EQ(transformed->Shields(), 0);
 }
 
-// Sin atacante: 0x4cb32f no mira nada, lee el lugar que diga [0x5767964]. El 19 y el 69 sin la fuente dejan el 400, el
-// lugar que sigue a los 400 de la tabla (el registro 401 que WinMain deja en cero, 0x4bafa6), y antes del primero está
-// el 0 de la .bss. Con el lugar 400 en (0, 0) y rumbo 0, el héroe en (0, −500) queda a rumbo 0 (0x4e93f0 sin x y con y
-// negativa) y saca el escudo con la z en 180; en (500, 0) queda a 90 y no. Con la tabla de efectos llena, nada.
+// Sin atacante: 0x4cb32f no mira nada, lee el lugar que diga [0x5767964]. El 19, el 69 y el 1A sin la fuente dejan el
+// 400, el lugar que sigue a los 400 de la tabla (el registro 401 que WinMain deja en cero, 0x4bafa6), y antes del
+// primero está el 0 de la .bss. Con el lugar 400 en (0, 0) y rumbo 0, el héroe en (0, −500) queda a rumbo 0 (0x4e93f0
+// sin x y con y negativa) y saca el escudo con la z en 180; en (500, 0) queda a 90 y no. Con la tabla de efectos llena,
+// nada.
 TEST(MovementRepliesTest, WithoutAStrikerTheHeroShieldReadsTheSlotLeftInTheGlobal)
 {
     constexpr glm::vec3 Below{0.0f, -500.0f, 0.0f};

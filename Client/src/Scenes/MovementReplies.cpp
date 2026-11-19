@@ -170,18 +170,19 @@ glm::vec3 DamageLight(std::uint8_t type, bool hero)
     }
 }
 // 0x4cb30b..0x4cb3b0: el héroe 0x20a con +0x78 & 0x100 (el escudo de la skill del mago, 0x4e641a) que recibe un golpe
-// sin sacudida. El personaje del lugar [0x5767964] (WorldRuntime::skillSource: la fuente del último 19 o 69, o el 400,
-// el lugar que sigue a los 400 de la tabla, si no estaba; 0 antes del primero) es el que pega: 0x4e93f0 da el rumbo
-// desde él hasta el héroe y, si difiere del suyo (+0x24) en menos de 10 (0x6b8d30, un double; también sin orden, con
-// NaN), 0x518cf0(0x109, +0x10 del héroe, (0, 0, rumbo + 180), +0xf4, 0, héroe, −1, 0, 0, 0, 0): el escudo, que mira al
-// que pega. El original no mira si ese lugar está vivo: lee el que haya. Sin rand(); con la tabla llena, nada.
+// sin sacudida. El personaje del lugar [0x5767964] (WorldRuntime::lastAttacker: el del último 18 con 0x78 o 0x79, o la
+// fuente del último 19, 69 o 1A, con el 400, el lugar que sigue a los 400 de la tabla, si no estaba; 0 antes del
+// primero) es el que pega: 0x4e93f0 da el rumbo desde él hasta el héroe y, si difiere del suyo (+0x24) en menos de 10
+// (0x6b8d30, un double; también sin orden, con NaN), 0x518cf0(0x109, +0x10 del héroe, (0, 0, rumbo + 180), +0xf4, 0,
+// héroe, −1, 0, 0, 0, 0): el escudo, que mira al que pega. El original no mira si ese lugar está vivo: lee el que haya.
+// Sin rand(); con la tabla llena, nada.
 Core::Expected<void, std::string> RaiseTheShield(ActorState& hero, const WorldEntryResources& resources)
 {
     constexpr std::int16_t ShieldEffect = 0x109;
     constexpr double FacingSpan = 10.0; // 0x6b8d30
     constexpr double Behind = 180.0;    // 0x6b86bc
     WorldState& world = resources.world;
-    const std::int32_t source = world.Runtime().skillSource;
+    const std::int32_t source = world.Runtime().lastAttacker;
     const auto actors = world.Actors();
     if (source < 0 || static_cast<std::size_t>(source) >= actors.size())
         return Core::Unexpected(

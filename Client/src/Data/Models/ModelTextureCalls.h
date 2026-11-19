@@ -31,8 +31,8 @@ inline constexpr Textures::Sampling ModelTextureSampling{Textures::Filter::Neare
 [[nodiscard]] std::span<const ModelTextureCall> PlayerTextureCalls();
 
 // Las 291 de 0x611850, después de su 0x60d530(0x25a): con Item\, salvo 0x1c16, 0x1c17 y 0x1c15
-// (Skill\), 0x224c (Monster\), 0x1c2f (Npc\) y 0xdb (Item\Bow\, un modelo que no carga ninguna de
-// las dos tablas). 26 modelos se piden dos veces, y la segunda encuentra los nombres de la primera.
+// (Skill\), 0x224c (Monster\), 0x1c2f (Npc\) y 0xdb (Item\Bow\, antes de cargar el BMD de 0x616095).
+// 26 modelos se piden dos veces, y la segunda encuentra los nombres de la primera.
 [[nodiscard]] std::span<const ModelTextureCall> ItemTextureCalls();
 
 // Las siete primeras de 0x615700 después de su 0x60d530(0x3b8), con Skill\: las de 0x145, 0x146 y 0x147, las del
@@ -40,8 +40,8 @@ inline constexpr Textures::Sampling ModelTextureSampling{Textures::Filter::Neare
 // Data::Models::SkillModelFiles). Las otras, que van antes y después, cuando entren las habilidades y los efectos.
 [[nodiscard]] std::span<const ModelTextureCall> SkillTextureCalls();
 
-// Las cuatro primeras de 0x615700, antes de su 0x60d530(0x3b8): los Fenrir (0x14a a 0x14c), con Skill\, y su rayo
-// (0x14d), con Effect\, desde el slot donde las dejó 0x611850 (0x371).
+// Los Fenrir (0x14a a 0x14c), su rayo (0x14d) y la flecha eléctrica (0xf9) en el bloque que sigue a
+// 0x611850 (0x371), antes de los cambios de slot de 0x615700.
 [[nodiscard]] std::span<const ModelTextureCall> FenrirTextureCalls();
 
 // Lo que 0x60f7d0 sube a mano con 0x63b870 y 0x63bd00, sin filtro y sin repetir, en slots fijos que

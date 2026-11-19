@@ -148,12 +148,13 @@ constexpr std::array<ModelTextureCall, 7> SkillCalls{{
 }};
 
 // 0x615f77, 0x615fab y 0x615fdc: los tres Fenrir, las primeras de 0x615700, donde dejó 0x611850; 0x616010: el rayo
-// 0x14d de su dibujo, con Effect\.
-constexpr std::array<ModelTextureCall, 4> FenrirCalls{{
+// 0x14d de su dibujo, con Effect\. 0x616181 consulta la flecha eléctrica con Skill\ en el mismo bloque.
+constexpr std::array<ModelTextureCall, 5> FenrirCalls{{
     {0x14a, SkillFolder},
     {0x14b, SkillFolder},
     {0x14c, SkillFolder},
     {0x14d, EffectFolder},
+    {0xf9, SkillFolder},
 }};
 
 // 0x2600 y 0x2900 en las trece.

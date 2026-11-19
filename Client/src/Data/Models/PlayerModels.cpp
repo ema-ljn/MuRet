@@ -482,10 +482,9 @@ constexpr std::array<ModelFile, 243> ItemFiles = {{
     {0xc1e, ItemFolder, "HDK_Staff", -1},         // 0x6117f8
 }};
 
-// Las llamadas a 0x60da30 de 0x615700 que MuRet ya hace, en su orden: las monturas de las mascotas (el Uniria, el
-// Dinorant y los tres Fenrir), el caballo, el rayo de los Fenrir (0x14d, de Data\Effect\), el cuervo y HellGate
-// (0xc5), que pide texturas antes que el Dinorant.
-constexpr std::array<ModelFile, 15> SkillFiles = {{
+// Llamadas a 0x60da30 de 0x615700 en orden del binario. Las flechas también se consultan en el filtro de
+// 0x52d68c durante el segundo pase de Kalima.
+constexpr std::array<ModelFile, 29> SkillFiles = {{
     {0xc2, SkillFolder, "Fire", 1},                // 0x615d4c; fire01.jpg queda disponible antes del login
     {0xc6, SkillFolder, "Rider", 1},               // 0x615eca
     {0x110, SkillFolder, "Rider", 2},              // 0x615f30, sin el .smd de 0x615f17 (0x6c9e0c en 1)
@@ -496,8 +495,22 @@ constexpr std::array<ModelFile, 15> SkillFiles = {{
     {0x14d, EffectFolder, "lightning_type01", -1}, // 0x615ff5
     {0xc0, SkillFolder, "DarkSpirit", -1},         // 0x616026
     {0xc5, SkillFolder, "HellGate", -1},           // 0x61605c
+    {0xdb, SkillFolder, "Arrow", 1},               // 0x616095
+    {0xdc, SkillFolder, "ArrowSteel", 1},          // 0x6160ab
+    {0xdd, SkillFolder, "ArrowThunder", 1},        // 0x6160c1
+    {0xde, SkillFolder, "ArrowLaser", 1},          // 0x6160da
+    {0xdf, SkillFolder, "ArrowV", 1},              // 0x6160f0
+    {0xe0, SkillFolder, "ArrowSaw", 1},            // 0x616106
+    {0xe1, SkillFolder, "ArrowNature", 1},         // 0x61611c
+    {0xf9, SkillFolder, "Arrow_Spark", -1},        // 0x616166
+    {0xe3, SkillFolder, "ArrowWing", 1},           // 0x616225
+    {0xe2, SkillFolder, "ArrowBomb", 1},           // 0x61623b
+    {0xf7, SkillFolder, "ArrowDouble", 1},         // 0x6162a9
+    {0x10e, SkillFolder, "KCross", -1},            // 0x6162bf
+    {0x111, SkillFolder, "Carow", -1},             // 0x6162d8
     {0x10c, BloodCastleFolder, "Gate", 1},         // 0x616304
     {0x10d, BloodCastleFolder, "Gate", 2},         // 0x61631a
+    {0x11c, SkillFolder, "LaceArrow", -1},         // 0x616496
     {0x145, SkillFolder, "elf_skill", -1},         // 0x6168f4
     {0x146, SkillFolder, "WaveForce", -1},         // 0x61690a
     {0x147, SkillFolder, "deathsp_eff", -1},       // 0x616920

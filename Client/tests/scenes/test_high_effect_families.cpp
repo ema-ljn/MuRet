@@ -766,6 +766,18 @@ TEST(HighEffectFamiliesTest, TheGuildMarkSparksAtBirthAndBeforeFading)
                 const glm::vec3 point{static_cast<float>(*sine + static_cast<double>(at.x)),
                                       static_cast<float>(*cosine + static_cast<double>(at.y)),
                                       static_cast<float>(((static_cast<double>(at.z) + 48.0) - 45.0) + lift)};
+                // Con la semilla (treinta rand() del alta y el de la luz antes): giro 132, radios −4 y 6 y altura 1,
+                // con el 0x140 en (1100, 2100, 180). Los bits, calculados aparte con el emulador de la x87 (sin y cos
+                // exactos redondeados a 64 bits, producto por el radio y suma con RN a 53, fstp a 24): x =
+                // FSIN(132) · −4 + 1100, y = FCOS(132) · 6 + 2100 y z = ((180 + 48) − 45) + 1.
+                EXPECT_EQ(turn, 132.0f);
+                EXPECT_EQ(side, -4);
+                EXPECT_EQ(depth, 6);
+                EXPECT_EQ(lift, 1);
+                EXPECT_EQ(at, (glm::vec3{1100.0f, 2100.0f, 180.0f}));
+                EXPECT_EQ(std::bit_cast<std::uint32_t>(point.x), 0x44897935u);
+                EXPECT_EQ(std::bit_cast<std::uint32_t>(point.y), 0x45039fddu);
+                EXPECT_EQ(std::bit_cast<std::uint32_t>(point.z), 0x43380000u);
                 Client::World::PortableParticleTrigonometry trigonometry;
                 ASSERT_TRUE(twin->CreateTowardChecked(0x5c5, point, mark.transform.angles, mark.light, 5, 2.0f,
                                                       std::cref(tested.clock), replay, trigonometry, markOwner, at)

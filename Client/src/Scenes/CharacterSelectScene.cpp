@@ -39,6 +39,7 @@
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/CharacterSlots.h"
 #include "Scenes/CreatePreview.h"
+#include "Scenes/GameModels.h"
 #include "Scenes/FullSetScan.h"
 #include "Scenes/GameCharacters.h"
 #include "Scenes/GameData.h"
@@ -195,6 +196,20 @@ CharacterSelectScene::CharacterSelectScene(const SceneContext& context, const Ga
 {
 }
 
+CharacterSelectScene::CharacterSelectScene(const SceneContext& context, const GameData& data, GameModels& models,
+                                           App::ServerSession* session)
+    : CharacterSelectScene(context, data, models, session, &models.TextureSlots())
+{
+}
+
+CharacterSelectScene::CharacterSelectScene(const SceneContext& context, const GameData& data, GameModels& models,
+                                           App::ServerSession* session,
+                                           const Render::Models::ModelTextureSlots* gameSlots)
+    : CharacterSelectScene(context, data, static_cast<const IModelLibrary&>(models), session, gameSlots)
+{
+    m_startupModels = &models;
+}
+
 Scenes::TextureBufferSize CharacterSelectScene::BufferSize(Render::TextureSlot slot) const
 {
     const bool inTheWindows = std::ranges::any_of(WindowTextureSet, [slot](const Data::Textures::TextureSetEntry& entry)
@@ -249,7 +264,10 @@ Core::Expected<void, std::string> CharacterSelectScene::Enter()
         return loaded;
     }
     // Una textura de los NewFace que falta cierra el original (0x60d5f0 con su quinto argumento en 1).
-    if (auto loaded = m_selectionModels.Load(m_context.dataRoot, m_context.textures, m_context.log, m_gameSlots);
+    const auto startupTexture =
+        m_startupModels != nullptr ? m_startupModels->TakeStartupSelectionTexture(m_context.textures) : std::nullopt;
+    if (auto loaded =
+            m_selectionModels.Load(m_context.dataRoot, m_context.textures, m_context.log, m_gameSlots, startupTexture);
         !loaded.HasValue())
     {
         return loaded;
@@ -1630,6 +1648,8 @@ void CharacterSelectScene::Leave()
     m_windowTextures.Release();
     // 0x61cc50 suelta los slots de 0x6f8 a 0x71d.
     m_selectionModels.Release();
+    if (m_startupModels != nullptr && m_startupModels->TakeStartupSelectionTexture(m_context.textures))
+        m_context.textures.Release(Render::TextureSlot{StartupSelectionTextureSlot});
 }
 
 void CharacterSelectScene::StepThePreview()

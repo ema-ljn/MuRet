@@ -796,9 +796,10 @@ archivo y su lector están en [05](05-formatos-de-datos.md#modelos-bmd); acá, l
   velocidad 0,15. `0x616276` pone 0,5 en la acción 0 de Ball01 (`0xf1`). El cargador
   aplica esos valores al esqueleto. Los slots fijos `0x608..0x60a` y `0x6f7` se suben
   fuera de la asignación de mallas. `0x635` se comparte con el login, que vuelve a subir el
-  mismo archivo y conserva la textura común al salir. El slot `0x716` se reutiliza en la
-  selección y la salida lo libera (`0x61cc65..0x61cc7a`); la carga común de MuRet deja
-  esa entrada a cargo de las escenas.
+  mismo archivo y conserva la textura común al salir. `0x61d83c` sube `Effect\Impack03.jpg`
+  a `0x716` con GL_LINEAR/GL_CLAMP. La selección recibe ese slot, sustituye su contenido
+  cuando carga la última malla de NewFace05 y lo libera al salir (`0x61cc65..0x61cc7a`).
+  Tarkan lo vuelve a subir desde `Object9\Impack03.jpg` en `0x61784b`.
 
   En esa carga, 29 nombres se encuentran en un slot que cargó otra carpeta y su modelo **no
   tiene** ese archivo en la suya (4 de `0x611850` y 25 de `0x615700`: anda porque otro lo cargó

@@ -44,9 +44,9 @@ constexpr Render::TextureSlot FenrirTexturesStart{0x371};
 // 0x61634e..0x616370: Gate02 antes del bloque 0x3b8; Blood Castle reasigna ambos Gate en el mapa.
 constexpr Render::TextureSlot GateTexturesStart{0x69};
 // Sube las de `entries` de a una: la que no carga deja su línea en el log, y las demás siguen.
-void UploadEach(const std::filesystem::path& dataRoot, std::span<const Data::Textures::TextureSetEntry> entries,
-                Render::ITextureStore& textures, Core::Log& log,
-                std::map<std::uint32_t, TextureMetadata>* metadata = nullptr)
+std::size_t UploadEach(const std::filesystem::path& dataRoot, std::span<const Data::Textures::TextureSetEntry> entries,
+                       Render::ITextureStore& textures, Core::Log& log,
+                       std::map<std::uint32_t, TextureMetadata>* metadata = nullptr)
 {
     std::size_t skipped = 0;
     for (const Data::Textures::TextureSetEntry& entry : entries)
@@ -71,7 +71,9 @@ void UploadEach(const std::filesystem::path& dataRoot, std::span<const Data::Tex
             metadata->insert_or_assign(static_cast<std::uint32_t>(entry.slot), TextureMetadata(texture));
         }
     }
-    log.Info("las texturas de los modelos: {} subidas y {} salteadas", entries.size() - skipped, skipped);
+    const auto uploaded = entries.size() - skipped;
+    log.Info("las texturas de los modelos: {} subidas y {} salteadas", uploaded, skipped);
+    return uploaded;
 }
 } // namespace
 
@@ -81,6 +83,10 @@ Core::Expected<void, std::string> GameModels::Load(const std::filesystem::path& 
     // En una recarga, los modelos de la fase de skills aún deben estar ausentes durante 0x611850.
     GameModels staged;
     staged.m_textureMetadata = m_textureMetadata;
+    if (m_startupTextureStore == &textures)
+        staged.m_startupTextureStore = m_startupTextureStore;
+    else
+        staged.m_textureMetadata.erase(StartupSelectionTextureSlot);
     auto loaded = staged.LoadResources(dataRoot, textures, log);
     if (loaded.HasValue())
         *this = std::move(staged);
@@ -168,6 +174,8 @@ Core::Expected<void, std::string> GameModels::LoadResources(const std::filesyste
     UploadEach(dataRoot, GlowTextureSet, textures, log, &m_textureMetadata);
     UploadEach(dataRoot, ClothTextureSet, textures, log);
     UploadEach(dataRoot, EffectTextureSet, textures, log, &m_textureMetadata);
+    if (UploadEach(dataRoot, StartupSelectionTextureSet, textures, log, &m_textureMetadata) != 0)
+        m_startupTextureStore = &textures;
     UploadEach(dataRoot, FaunaJointTextureSet, textures, log, &m_textureMetadata);
     UploadEach(dataRoot, GameTailTextureSet, textures, log, &m_textureMetadata);
     UploadEach(dataRoot, Data::Models::PlayerFixedTextures(), textures, log);
@@ -229,6 +237,15 @@ std::optional<glm::vec2> GameModels::TextureSize(Render::TextureSlot slot) const
 {
     const auto metadata = TextureMetadataOf(slot.value);
     return metadata ? std::optional(metadata->size) : std::nullopt;
+}
+
+std::optional<TextureMetadata> GameModels::TakeStartupSelectionTexture(Render::ITextureStore& store)
+{
+    if (m_startupTextureStore != &store)
+        return std::nullopt;
+    m_startupTextureStore = nullptr;
+    const auto entry = m_textureMetadata.extract(StartupSelectionTextureSlot);
+    return entry.empty() ? std::nullopt : std::optional(entry.mapped());
 }
 
 std::size_t GameModels::Count() const

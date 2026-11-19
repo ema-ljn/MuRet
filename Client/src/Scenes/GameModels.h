@@ -44,6 +44,8 @@ public:
     [[nodiscard]] std::optional<Render::TextureSlot> TextureSlotOf(std::uint32_t selector) const override;
     // El tamaño de una textura que subió.
     [[nodiscard]] std::optional<glm::vec2> TextureSize(Render::TextureSlot slot) const override;
+    // Transfiere la textura temporal a la selección, que pasa a ser dueña del slot físico.
+    [[nodiscard]] std::optional<TextureMetadata> TakeStartupSelectionTexture(Render::ITextureStore& store);
 
     // Cuántos modelos se leyeron.
     [[nodiscard]] std::size_t Count() const;
@@ -60,6 +62,7 @@ private:
     std::map<std::uint16_t, std::vector<Render::TextureSlot>> m_meshTextures;
     // La metadata de las texturas que efectivamente subió.
     std::map<std::uint32_t, TextureMetadata> m_textureMetadata;
+    Render::ITextureStore* m_startupTextureStore = nullptr;
     // Desde 0x138 (0x60f7d0); Load le corre el próximo a cada cargador.
     Render::Models::ModelTextureSlots m_slots{Render::TextureSlot{0x138}};
 };

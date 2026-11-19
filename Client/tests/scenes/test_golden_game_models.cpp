@@ -16,8 +16,13 @@
 #include "Data/Textures/TextureSet.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/ArrowEffects.h"
+#include "Scenes/CharacterSelectScene.h"
 #include "Scenes/CreatePreview.h"
+#include "Scenes/GameData.h"
 #include "Scenes/GameDrawTail.h"
+#include "Scenes/ModelTextureTable.h"
+#include "Scenes/SceneContext.h"
+#include "Scenes/TerrainTiles.h"
 #include "Scenes/TextureSets.h"
 #include "Scenes/WorldMap.h"
 #include "Scenes/WorldState.h"
@@ -28,6 +33,7 @@
 #include "support/FileBytes.h"
 #include "support/GoldenDir.h"
 #include "support/RecordingSink.h"
+#include "support/TemporaryFolder.h"
 
 #include <gtest/gtest.h>
 
@@ -352,6 +358,120 @@ TEST_F(GoldenGameModels, ReloadKeepsTheSameModelTextureOrder)
         EXPECT_FALSE(entry.path.starts_with("Item\\Bow\\")) << entry.path;
 }
 
+TEST_F(GoldenGameModels, SelectionReplacesAndReleasesTheTemporaryStartupTexture)
+{
+    constexpr TextureSlot temporary{0x716};
+    FakeTextureStore textures;
+    RecordingSink sink;
+    Log log(sink, LogLevel::Debug);
+    GameModels models;
+    ASSERT_TRUE(models.Load(m_dataRoot, textures, log).HasValue());
+    const auto startup = textures.Find(temporary);
+    ASSERT_TRUE(startup.has_value());
+    EXPECT_EQ(models.TextureSlotOf(temporary.value), temporary);
+    FakeTextureStore unrelated;
+    EXPECT_FALSE(models.TakeStartupSelectionTexture(unrelated).has_value());
+    EXPECT_EQ(startup->texture.textureWidth, 64);
+    EXPECT_EQ(startup->texture.textureHeight, 64);
+    EXPECT_EQ(startup->sampling.filter, Client::Data::Textures::Filter::Linear);
+    EXPECT_EQ(startup->sampling.wrap, Client::Data::Textures::Wrap::Clamp);
+
+    Client::Scenes::SelectionModels selection;
+    ASSERT_TRUE(
+        selection.Load(m_dataRoot, textures, log, &models.TextureSlots(), models.TakeStartupSelectionTexture(textures))
+            .HasValue());
+    const auto preview = textures.Find(temporary);
+    ASSERT_TRUE(preview.has_value());
+    EXPECT_EQ(preview->texture.textureWidth, 256);
+    EXPECT_EQ(preview->texture.textureHeight, 256);
+    EXPECT_EQ(preview->sampling.filter, Client::Data::Textures::Filter::Nearest);
+    EXPECT_EQ(preview->sampling.wrap, Client::Data::Textures::Wrap::Repeat);
+    EXPECT_EQ(selection.TextureSlotOf(temporary.value), temporary);
+    const auto selected = selection.TextureMetadataOf(temporary.value);
+    ASSERT_TRUE(selected.has_value());
+    EXPECT_EQ(selected->size.x, 256.0f);
+    EXPECT_FALSE(models.TextureSlotOf(temporary.value).has_value());
+
+    selection.Release();
+    selection.Release();
+    EXPECT_FALSE(textures.Find(temporary).has_value());
+    EXPECT_FALSE(selection.TextureSlotOf(temporary.value).has_value());
+    EXPECT_FALSE(models.TextureSlotOf(temporary.value).has_value());
+    EXPECT_FALSE(models.TextureMetadataOf(temporary.value).has_value());
+    EXPECT_EQ(std::ranges::count(textures.released, temporary.value), 1);
+
+    // 0x61784b: Tarkan vuelve a publicar el slot desde la carpeta del mapa.
+    Client::Scenes::ModelTextureTable mapTextures;
+    Client::Scenes::TerrainTiles terrain(textures);
+    terrain.BindTextureTable(mapTextures);
+    std::vector<std::string> skipped;
+    const auto loaded = terrain.Load(m_dataRoot, 8, skipped);
+    ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
+    const auto mapped = mapTextures.Metadata(temporary.value);
+    ASSERT_TRUE(mapped.has_value());
+    EXPECT_EQ(mapped->size.x, 64.0f);
+    EXPECT_EQ(mapped->size.y, 64.0f);
+    EXPECT_FALSE(models.TextureMetadataOf(temporary.value).has_value());
+    terrain.Release();
+    EXPECT_FALSE(textures.Find(temporary).has_value());
+    EXPECT_FALSE(mapTextures.Metadata(temporary.value).has_value());
+}
+
+TEST_F(GoldenGameModels, SelectionReleasesTheTemporaryStartupSlotWithoutAReplacementModel)
+{
+    constexpr TextureSlot temporary{0x716};
+    FakeTextureStore textures;
+    RecordingSink sink;
+    Log log(sink, LogLevel::Debug);
+    GameModels models;
+    ASSERT_TRUE(models.Load(m_dataRoot, textures, log).HasValue());
+
+    const Client::Tests::TemporaryFolder noPreviewModels("selection-without-preview-models");
+    Client::Scenes::SelectionModels selection;
+    ASSERT_TRUE(selection
+                    .Load(noPreviewModels.Path(), textures, log, &models.TextureSlots(),
+                          models.TakeStartupSelectionTexture(textures))
+                    .HasValue());
+    EXPECT_EQ(selection.TextureSlotOf(temporary.value), temporary);
+    const auto inherited = selection.TextureMetadataOf(temporary.value);
+    ASSERT_TRUE(inherited.has_value());
+    EXPECT_EQ(inherited->size.x, 64.0f);
+    EXPECT_FALSE(models.TextureMetadataOf(temporary.value).has_value());
+    selection.Release();
+    EXPECT_FALSE(textures.Find(temporary).has_value());
+    EXPECT_FALSE(selection.TextureMetadataOf(temporary.value).has_value());
+    EXPECT_EQ(std::ranges::count(textures.released, temporary.value), 1);
+}
+
+TEST_F(GoldenGameModels, AnEnteredOrFailedSelectionReleasesTheStartupTexture)
+{
+    constexpr TextureSlot temporary{0x716};
+    const Client::Tests::TemporaryFolder missingUi("selection-without-ui");
+    const Client::Scenes::GameData data;
+    for (const bool success : {true, false})
+    {
+        SCOPED_TRACE(success);
+        FakeTextureStore textures;
+        RecordingSink sink;
+        Log log(sink, LogLevel::Debug);
+        GameModels models;
+        ASSERT_TRUE(models.Load(m_dataRoot, textures, log).HasValue());
+        EXPECT_EQ(models.TextureSlotOf(temporary.value), temporary);
+
+        const Client::Scenes::SceneContext context{success ? m_dataRoot : missingUi.Path(), textures, log};
+        auto scene = std::make_unique<Client::Scenes::CharacterSelectScene>(context, data, models, nullptr,
+                                                                            &models.TextureSlots());
+        const auto entered = scene->Enter();
+        ASSERT_EQ(entered.HasValue(), success);
+        scene->Leave();
+        scene->Leave();
+
+        EXPECT_FALSE(models.TextureMetadataOf(temporary.value).has_value());
+        EXPECT_FALSE(textures.Find(temporary).has_value());
+        EXPECT_EQ(std::ranges::count(textures.released, temporary.value), 1);
+    }
+}
+
 // 0x616304/0x61631a cargan Gate01/02 de Object12; 0x61634e..0x616370 asigna solo Gate02 desde
 // Monster, en 0x69, antes de volver a 0x3b8. El barrido616e46 también asigna Gate01: los dos BMD reales
 // usan doorc01.jpg y reutilizan el mismo recurso sin pedirlo desde Skill.
@@ -570,9 +690,9 @@ TEST_F(GoldenGameModels, EveryTextureTheLoadersAskForIsThere)
     EXPECT_EQ(textures.loaded.size(),
               models.TextureSlots().ToLoad().size() + PlayerFixedTextures().size() + GlowTextureSet.size() +
                   ClothTextureSet.size() + Client::Scenes::EffectTextureSet.size() +
-                  Client::Scenes::DamageTextureSet.size() + Client::Scenes::HudTextureSet.size() +
-                  Client::Scenes::CrywolfTextureSet.size() + Client::Scenes::FaunaJointTextureSet.size() +
-                  Client::Scenes::GameTailTextureSet.size());
+                  Client::Scenes::StartupSelectionTextureSet.size() + Client::Scenes::DamageTextureSet.size() +
+                  Client::Scenes::HudTextureSet.size() + Client::Scenes::CrywolfTextureSet.size() +
+                  Client::Scenes::FaunaJointTextureSet.size() + Client::Scenes::GameTailTextureSet.size());
     for (const std::string& line : sink.lines)
     {
         EXPECT_EQ(line.find("una textura de un modelo"), std::string::npos) << line;

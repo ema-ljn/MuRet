@@ -4,6 +4,7 @@
 #include "Data/Textures/TextureSet.h"
 
 #include <array>
+#include <cstdint>
 
 // Las texturas que sube cada escena al entrar, como datos: la ruta como la pide el original, el
 // slot de su tabla y el tercer y cuarto argumento del cargador, en el orden de las llamadas
@@ -370,6 +371,12 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 81> EffectTextureSe
     {"Skill\\flower1.tga", 0x608, TextureSetsDetail::NearestClamp},       // 0x616e6f
     {"Skill\\flower2.tga", 0x609, TextureSetsDetail::NearestClamp},       // 0x616e8c
     {"Skill\\flower3.tga", 0x60a, TextureSetsDetail::NearestClamp},       // 0x616ea9
+}};
+
+// 0x61d83c: la carga común sube el slot y la selección lo libera al salir.
+inline constexpr std::uint16_t StartupSelectionTextureSlot = 0x716;
+inline constexpr std::array<Data::Textures::TextureSetEntry, 1> StartupSelectionTextureSet{{
+    {"Effect\\Impack03.jpg", StartupSelectionTextureSlot, TextureSetsDetail::LinearClamp},
 }};
 
 // Recursos de los joints que ya crean los peces y pájaros: 61d858/61dab9/61dad8/61dce2. 61d5db sube

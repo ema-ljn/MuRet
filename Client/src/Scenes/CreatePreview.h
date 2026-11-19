@@ -13,7 +13,10 @@
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/SceneTextures.h"
+#include "Scenes/TextureMetadata.h"
 #include "UI/Widget.h"
+
+#include <glm/ext/vector_float2.hpp>
 
 #include <array>
 #include <cstddef>
@@ -55,16 +58,20 @@ public:
     // Lee los seis desde `dataRoot` y les da sus texturas siguiendo a `gameSlots` (la tabla de la
     // carga, que es global en el original) desde 0x6f8, o una tabla vacía sin ella, y las sube. Uno
     // que falta se saltea con una línea en el log; una textura que no carga corta, como el original,
-    // que se cierra.
+    // que se cierra. Recibe también los metadatos del slot temporal que ya reside en este backend.
     [[nodiscard]] Core::Expected<void, std::string> Load(const std::filesystem::path& dataRoot,
                                                          Render::ITextureStore& textures, Core::Log& log,
-                                                         const Render::Models::ModelTextureSlots* gameSlots);
+                                                         const Render::Models::ModelTextureSlots* gameSlots,
+                                                         std::optional<TextureMetadata> startupTexture = std::nullopt);
     // 0x61cc50: suelta las texturas.
     void Release();
 
     [[nodiscard]] const Data::Models::Model* Find(std::uint16_t model) const override;
     [[nodiscard]] const Render::Models::Skeleton* SkeletonOf(std::uint16_t model) const override;
     [[nodiscard]] std::span<const Render::TextureSlot> MeshTextures(std::uint16_t model) const override;
+    [[nodiscard]] std::optional<TextureMetadata> TextureMetadataOf(std::uint32_t selector) const override;
+    [[nodiscard]] std::optional<Render::TextureSlot> TextureSlotOf(std::uint32_t selector) const override;
+    [[nodiscard]] std::optional<glm::vec2> TextureSize(Render::TextureSlot slot) const override;
     // Los slots que repartió Load, si cargó.
     [[nodiscard]] const Render::Models::ModelTextureSlots* TextureSlots() const;
 
@@ -74,6 +81,9 @@ private:
     std::map<std::uint16_t, std::vector<Render::TextureSlot>> m_meshTextures;
     std::optional<Render::Models::ModelTextureSlots> m_slots;
     std::optional<SceneTextures> m_textures;
+    // La carga común deja este slot a la selección cuando entra.
+    Render::ITextureStore* m_startupStore = nullptr;
+    std::optional<TextureMetadata> m_startupTexture;
 };
 
 // El objeto de la vista previa: la clase (+0x1d4, la de la ventana) y su animación.

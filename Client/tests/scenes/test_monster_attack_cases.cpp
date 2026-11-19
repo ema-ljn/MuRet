@@ -1092,9 +1092,9 @@ TEST_F(MonsterAttackCasesTest, TheSiegeTrialAndFortressHelpersExitWhenTheirModel
         std::uint8_t action;
         std::string_view cut;
     };
-    const std::array cases{Case{30, 30, 0x120, 1, 3, ""},          Case{30, 30, 0x68, 5, 3, ""},
-                           Case{33, 33, 0x135, 10, 3, ""},         Case{54, 54, 0x134, 10, 4, ""},
-                           Case{33, 33, 0x130, 10, 4, ""},         Case{35, 0, 0x136, 14, 3, ""},
+    const std::array cases{Case{30, 30, 0x120, 1, 3, ""},  Case{30, 30, 0x68, 5, 3, ""},
+                           Case{33, 33, 0x135, 10, 3, ""}, Case{54, 54, 0x134, 10, 4, ""},
+                           Case{33, 33, 0x130, 10, 4, ""}, Case{35, 0, 0x136, 14, 3, ""},
                            Case{35, 0, 0x13c, 14, 3, ""}};
     withParticles = false;
     for (const Case& probe : cases)
@@ -1460,12 +1460,12 @@ TEST_F(MonsterAttackCasesTest, TheKindCasesCutAfterTheirDrawsOrGoOnToTheTail)
          .draws = 1208 + SkillRead + Tail,
          .sounds = std::vector<std::int32_t>(8, 0x40),
          .kind = std::uint16_t{0x3f}},
+        // El 0xf5 cuelga su joint 0x618/5 (0x5193d6, lote joints) y lee el registro propio antes de la cola.
         {.name = "0x3f con '2'",
          .type = 3,
          .step = 2,
          .skill = CaseSkill,
-         .cut = "0x5193d6",
-         .draws = SkillRead + 2 + BlastDraws,
+         .draws = SkillRead + 2 + BlastDraws + OwnRecord + Tail,
          .kind = std::uint16_t{0x3f},
          .joints = JointTable},
         {.name = "0x3f en 2", .type = 3, .step = 2, .draws = SkillRead + Tail, .kind = std::uint16_t{0x3f}},
@@ -2926,9 +2926,9 @@ TEST_F(MonsterAttackCasesTest, TheSkill0x11CasesLeaveAfterTheirEffect)
         game->world.Runtime().hero = HeroAway;
         for (const Probe& probe : probes)
             Expect(probe);
-        // Sin el arco 0xa25, en la 4 y en 8: rand() & 1 elige 0xf5 (0x4f8227), que corta en su joint 0x618/5
-        // (0x5193d6), o dos 0xc2/6 (0x4f8287), el primero de los cuales corta en su joint 0x5f2/0 (0x51b098) después de
-        // los cinco rand() de su alta; los dos joints son del lote joints (CL11).
+        // Sin el arco 0xa25, en la 4 y en 8: rand() & 1 elige dos 0xf5 (0x4f8227), cada uno con su joint 0x618/5
+        // (0x5193d6) y el registro propio, o dos 0xc2/6 (0x4f8287), el primero de los cuales corta en su joint 0x5f2/0
+        // (0x51b098) después de los cinco rand() de su alta; ese joint sigue sin portar (CL11).
         for (const std::int32_t type : {0xa5, 0xa7, 0xad, 0xa3})
         {
             ActorState& monster = Prepare(Probe{.name = "sin el arco",
@@ -2942,10 +2942,20 @@ TEST_F(MonsterAttackCasesTest, TheSkill0x11CasesLeaveAfterTheirEffect)
             expected.Discard(SkillRead);
             const bool odd = (expected.Next() & 1) != 0;
             const auto stepped = Step(monster);
-            EXPECT_TRUE(!stepped.HasValue() && stepped.Error().starts_with(odd ? "0x4f8287" : "0x5193d6"))
-                << (stepped.HasValue() ? std::string("sin corte") : stepped.Error());
             constexpr int MeteorDraws = 5;
-            EXPECT_EQ(Draws(), SkillRead + 1 + (odd ? MeteorDraws : BlastDraws));
+            if (odd)
+            {
+                EXPECT_TRUE(!stepped.HasValue() && stepped.Error().starts_with("0x4f8287"))
+                    << (stepped.HasValue() ? std::string("sin corte") : stepped.Error());
+                EXPECT_EQ(Draws(), SkillRead + 1 + MeteorDraws);
+                continue;
+            }
+            ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+            EXPECT_EQ(Draws(), SkillRead + 1 + 2 * (BlastDraws + OwnRecord));
+            const auto beams =
+                std::ranges::count_if(game->joints, [](const Client::Scenes::JointState& joint)
+                                      { return joint.alive && joint.type == 0x618 && joint.subtype == 5; });
+            EXPECT_EQ(beams, 2);
         }
     }
 }

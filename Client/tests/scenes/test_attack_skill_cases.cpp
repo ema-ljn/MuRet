@@ -945,7 +945,7 @@ TEST(AttackSkillCasesTest, TheTargetCasesCutWithoutDraws)
         std::string_view cut;
     };
     const std::array cases{
-        Case{0x01, 0x20a, "0x50497e"}, Case{0x01, 0x0e, "0x50497e"}, Case{0x2d, 0x20a, "0x504a3a"},
+        Case{0x01, 0x20a, "0x50497e"}, Case{0x01, 0x0e, "0x50497e"},  Case{0x2d, 0x20a, "0x504a3a"},
         Case{0x49, 0x20a, "0x504b33"}, Case{0x3c, 0x20a, "0x504d05"}, Case{0x11, 0x20a, "0x505053"},
     };
     for (const std::int32_t map : Maps)
@@ -1394,14 +1394,13 @@ TEST(AttackSkillCasesTest, TheSwitchHeadCasesCreateTheirEffects)
             joint.alive = jointsFull;
         const auto stepped = tested.Head(0x0d);
         constexpr int BlastDraws = 5;
-        if (!jointsFull)
-        {
-            EXPECT_TRUE(HasError(stepped, "0x5193d6")) << ErrorOf(stepped);
-            EXPECT_EQ(DrawsSince(Seed, tested.random), OwnRecord + BlastDraws);
-            continue;
-        }
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         EXPECT_EQ(DrawsSince(Seed, tested.random), OwnRecord + 2 * (BlastDraws + OwnRecord));
+        // 0x5193d6: con lugar, cada 0xf5 cuelga su joint 0x618/5 de ancho 100, sin rand() (lote joints); con el pool
+        // lleno, ninguno.
+        const auto beams = std::ranges::count_if(tested.joints, [](const JointState& joint)
+                                                 { return joint.alive && joint.type == 0x618 && joint.subtype == 5; });
+        EXPECT_EQ(beams, jointsFull ? 0 : 2);
         const auto blasts = alive(tested, 0xf5);
         ASSERT_EQ(blasts.size(), 2u);
         for (const Client::World::ModelEffect* blast : blasts)

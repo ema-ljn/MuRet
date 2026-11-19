@@ -8640,8 +8640,18 @@ muere con la escala y el azul en 0 o menos (`0x546938`); la /36 (`0x54196c`, la 
 de dueño) sigue a su dueño más la partida al azar mientras su vida es 23 o más (`0x545f39`) y la /37 (`0x541932`, la de
 `0x5249a0`) toma la luz del pedido como dirección y retrocede por ella. La /17, /19, /20, /23 y /24 giran
 `_ftol(reloj) % 360`, con el reloj del pedido (`CreateChecked` con el reloj por valor también). La /28, /29 y /30
-(`0x5425c7`, `0x54261b`, `0x542668`) leen el terreno al nacer (`0x5f93c0`; la /30 además `fsin` del reloj) y siguen
-cortadas. En el mismo archivo, **la `0x5f5`** (alta `0x542943..0x542a5f`, paso `0x546a13..0x546aff`): la /0, /1 y /2
+(`0x5425c7`, `0x54261b`, `0x542668`; cuarta vuelta) son la niebla de la tormenta chica `0xcf/3..7` (`0x523144`,
+`0x52315d`, `0x523176`): sacan el giro `rand() % 360` y piden la altura del terreno (`0x5f93c0`, en `0x5425f9`,
+`0x54264d` y `0x54269a`) en la x y la y de la partícula (`edi` es `+0x14` desde `0x53feb8`, no el vector del llamador),
+retenida hasta sumarle 15 (`0x6b87bc`) en la z. La /28 vive 12, con la escala 2,3f, la subida (`+0x50`) 33 y la textura
+`0x6ad` (`0x54260a`); la /29, igual con la del tipo; la /30 vive 4, con la escala 1,8f y la subida 15, y después corre la
+x y la y con `s = fsin(reloj) · 5` en PC53, retenido para las dos sumas (`0x5426ae..0x5426c7`). El paso de la /28 y la /29
+(`0x546852`, `0x54689e`) suma la subida a la z y, con la vida (ya descontada) en 9 o más, baja la escala 0,4f
+(`0x6b87b4`; si no, la multiplica por 1,2f, `0x6b8bb0`); la /28 apaga la luz por 0,92f (`0x6ba3cc`) y la /29 la deja en
+1 (el `ecx` que `0x54486e` recarga). El de la /30 (`0x5468de`) la agranda 0,15f con la luz (1; 3; 1) y la sube. El
+dibujo: la /29 resta (`0x54872d` → `0x620b10`) y las tres van al billboard del humo (`0x54874c`). Piden
+`Particles::CreateOnGroundChecked` (el reloj, la trigonometría y la altura del terreno, como `EffectParticleBirth`);
+`CreateChecked` las rechaza con `MissingTerrainHeight` antes de tocar el lugar. `StepStorm` ya no corta en ellas. En el mismo archivo, **la `0x5f5`** (alta `0x542943..0x542a5f`, paso `0x546a13..0x546aff`): la /0, /1 y /2
 guardan la luz, viven 55, 30 y 55, sacan el ángulo x `(rand() & 3) − 2` (que el paso le suma al giro) y giran
 `_ftol(reloj) % 360`; su paso baja el rojo guardado (la /0; 0,005f más mientras el verde pasa de 0,1f, otra vez sobre
 el rojo) o el verde y el azul (la /2), apaga la luz con vida · 0,0181818f, sube 0,2f (la /1, 0,1f) y crece 0,03f. Los
@@ -8678,10 +8688,14 @@ cualquier subtipo. Todas sortean la escala `((rand() & 3) + 4) · 0,1f`; la /0, 
 por 3 y por 10, y la /6 (`0x5404f9`, la de `0x529f71`, que le pasa el efecto de dueño) vive `(rand() & 3) + 4`, toma la
 escala del pedido, la textura `0x5c6`, la subida en 0 y el vector `(0; (rand() % 20 + 20) · 0,2f; 0)`: siete `rand()`.
 La /7 sólo sortea su vida y las demás (la /1 y las de fuera de la tabla) van por `0x5403eb`, `(rand() & 7) + 8`. La /5
-lee a su dueño al nacer (`0x5403ad`) y sigue sin portar. En el paso (`0x544f29`) la /6 cae 0,3f, su luz es el 0,9f que
-dejó `edx` (`0x544807`) y, después de moverse, resta lo que su dueño se corrió desde la partida (`0x544fef..0x545040`,
-la x retenida y la y y la z guardadas), que pasa a ser la posición del dueño (`CreateOwnedChecked`; sin dueño,
-`MissingOwner`).
+(`0x5403ad..0x5403e9`, cuarta vuelta; la del paso del `0x140`, `0x52a16e`, con él de dueño) saca la escala de la tabla,
+que pisa con la del pedido, lee la posición de su dueño (`+0x40` → `+0x10`, sin mirar si vive) para su partida
+(`+0x6c`), vive `(rand() & 3) + 12` y sale con la subida en 0, la textura `0x5c6` y la velocidad del prefijo (cero): dos
+`rand()`. Pide `CreateTowardChecked` con la posición del dueño, como la `0x5c6/4`; `CreateChecked` la rechaza con
+`MissingOwner` antes de tocar el lugar. En el paso (`0x544f29`) la /5 y la /6 caen 0,3f (`0x544f4c`, `0x544f5c`); la /5
+conserva la luz de la vida · 0,0625 y la /6 la pisa con el 0,9f que dejó `edx` (`0x544807`); las dos, después de
+moverse, restan lo que su dueño se corrió desde la partida (`0x544fe4` → `0x544fef..0x545040`, la x retenida y la y y la
+z guardadas), que pasa a ser la posición del dueño (sin dueño, `MissingOwner`).
 
 **La llamarada `0x5ee`** (`Effect\DinoE.jpg`, en `Particles.cpp`, tercera vuelta): nace en `0x542a94` con vida 12 y la
 escala del pedido, de cualquier subtipo y sin `rand()`, y su alta pide el sonido 0x40 (`0x542aa7`, lo pide quien la
@@ -14205,9 +14219,10 @@ Quinta vuelta: las familias nuevas están en `WaveEffects`, `RingEffects`, `Kund
 `0x613/0x13` (`0x539b08`), el `0x13f` del `0x1a9` con el sonido `0x20d` (`0x442cb9`, solo en el frame del original),
 la marca `0x140` de `+0x369` (`0x510f4d`, en `MonsterDrawing` y en `GameCharacterEffects`) y la onda `0x6eb/3` del
 joint `0x10f/5` y `/6` (`0x536626`). Los dos `0x6e8/0` del `0x114/1` (`0x51c25f`) los crea el lote joints. Cortan, con un lugar libre y después de sus
-`rand()`: los joints `0x5ac/0` del `0x114/0` (`0x51c1b8`) y el `0x6ee/0x12` con dueño del `0x125` (`0x51ce91`) (08, P-C420); la
-partícula `0x5c5/5` del `0x140` (`0x52a16e`; la `0x6ec/3` del `0x13d`, `0x5262e8`, con él de dueño, y las cinco `0x5c5/6`
-del `0x140`, `0x529f71`, ya nacen con el efecto de dueño) y la órbita
+`rand()`: los joints `0x5ac/0` del `0x114/0` (`0x51c1b8`) y el `0x6ee/0x12` con dueño del `0x125` (`0x51ce91`) (08, P-C420); ~~la
+partícula `0x5c5/5` del `0x140` (`0x52a16e`)~~ (lote de partículas, cuarta vuelta: nace con la marca de dueño, el `ebx`
+de `0x52a134`, y lee su posición para su partida; la `0x6ec/3` del `0x13d`, `0x5262e8`, con él de dueño, y las cinco
+`0x5c5/6` del `0x140`, `0x529f71`, ya nacían con el efecto de dueño) y la órbita
 `0x60f/0` con el `0x61d` de dueño (`0x52b8ff`, `0x52b977`; su paso lee `+0x111` del efecto como la acción de un
 personaje) (08, P-C422). Del `0x145` el original solo crea el /2 (`0x433339`, ya en
 World); el `0x146` no tiene quien lo cree (solo su carga, `0x61b66a`), así que no se porta. El `0x636/2` del `0x1a4`

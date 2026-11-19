@@ -23,6 +23,7 @@
 #include <format>
 #include <functional>
 #include <string>
+#include <string_view>
 
 // Cotejado con el PE c32bbd5f: 0x510ef0 (el llamador), 0x51e0cb (el alta del 0x140) y 0x529f0c (su paso).
 namespace Client::Scenes
@@ -46,8 +47,22 @@ double MarkHeight(const glm::vec3& bonePoint, const ActorState& owner)
     return ((D(bonePoint.z) + D(owner.position.z)) - D(owner.position.z)) + Above;
 }
 
+// El lugar del 0x140 en la tabla de los efectos con modelo, que sus chispas guardan de dueño (+0x40): el ebx que
+// empujan 0x529f5b y 0x52a134.
+Core::Expected<World::ParticleOwner, std::string>
+MarkAsOwner(const World::ModelEffect& effect, const HighEffectStepContext& context, std::string_view address)
+{
+    const auto pool = context.world.Map().effects.Effects();
+    const auto found =
+        std::ranges::find_if(pool, [&](const World::ModelEffect& candidate) { return &candidate == &effect; });
+    if (found == pool.end())
+        return Core::Unexpected(std::format("{}: el 0x140 fuera de su pool durable", address));
+    return World::ParticleOwner{World::ParticleOwnerKind::ModelEffect,
+                                static_cast<std::uint64_t>(found - pool.begin())};
+}
+
 // 0x52a0c2..0x52a16e: la chispa 0x5c5/5 de la vida 40..59, con el 5 que 0x5208a0 dejó en edi (0x5208df) de divisor y
-// de subtipo.
+// de subtipo, y la marca de dueño (0x52a134: push ebx), cuya posición lee al nacer (0x5403ad) para su partida.
 Core::Expected<void, std::string> SparkTheMark(const World::ModelEffect& effect, const HighEffectStepContext& context)
 {
     constexpr int FullTurn = 360;                    // 0x168
@@ -71,10 +86,16 @@ Core::Expected<void, std::string> SparkTheMark(const World::ModelEffect& effect,
     point.y = F32(*cosine + D(position.y));
     const int lift = context.random.Next() % LiftSpan;
     point.z = F32(((D(position.z) + Base) - static_cast<double>(effect.life)) + static_cast<double>(lift));
-    if (auto made = CreateHighParticle(context.world, context.random, context.worldClock, Spark, point,
-                                       effect.transform.angles, effect.light, SparkSubtype, SparkScale, 0x52a16e);
-        !made.HasValue())
-        return Core::Unexpected(made.Error());
+    const auto owner = MarkAsOwner(effect, context, "0x52a134");
+    if (!owner.HasValue())
+        return Core::Unexpected(owner.Error());
+    World::PortableParticleTrigonometry trigonometry;
+    const auto made = context.world.Particles().CreateTowardChecked(
+        Spark, point, effect.transform.angles, effect.light, SparkSubtype, SparkScale, std::cref(context.worldClock),
+        context.random, trigonometry, owner.Value(), position);
+    if (!made.HasValue())
+        return Core::Unexpected(std::format("0x52a16e: la chispa 0x5c5/5 del 0x140 falla con el error {} (CL11)",
+                                            static_cast<unsigned>(made.Error())));
     return {};
 }
 } // namespace
@@ -183,17 +204,13 @@ Core::Expected<void, std::string> StepTheGuildMark(World::ModelEffect& effect, c
             constexpr std::int32_t Burst = 0x5c5, BurstSubtype = 6;
             constexpr float BurstScale = 1.5f; // 0x3fc00000
             // 0x529f5b: push ebx, la marca de dueño; el paso de la 0x5c5/6 resta lo que se corrió desde su partida.
-            const auto pool = context.world.Map().effects.Effects();
-            const auto found =
-                std::ranges::find_if(pool, [&](const World::ModelEffect& candidate) { return &candidate == &effect; });
-            if (found == pool.end())
-                return Core::Unexpected(std::string("0x529f5b: el 0x140 fuera de su pool durable"));
-            const World::ParticleOwner burstOwner{World::ParticleOwnerKind::ModelEffect,
-                                                  static_cast<std::uint64_t>(found - pool.begin())};
+            const auto burstOwner = MarkAsOwner(effect, context, "0x529f5b");
+            if (!burstOwner.HasValue())
+                return Core::Unexpected(burstOwner.Error());
             for (int burst = 0; burst < Bursts; ++burst)
                 if (auto made = CreateHighParticle(context.world, context.random, context.worldClock, Burst,
                                                    effect.transform.position, effect.transform.angles, effect.light,
-                                                   BurstSubtype, BurstScale, 0x529f71, burstOwner);
+                                                   BurstSubtype, BurstScale, 0x529f71, burstOwner.Value());
                     !made.HasValue())
                     return Core::Unexpected(made.Error());
         }

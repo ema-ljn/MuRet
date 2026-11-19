@@ -9,6 +9,7 @@
 #include "World/ModelEffects.h"
 #include "World/ParticleOwner.h"
 #include "World/Particles.h"
+#include "World/PortableParticleTrigonometry.h"
 #include "World/Sprites.h"
 #include "World/TerrainLighting.h"
 #include "Data/Terrain/TerrainAttributes.h"
@@ -25,6 +26,7 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <optional>
 #include <string>
@@ -683,6 +685,87 @@ TEST(WizardModelEffectsTest, TheTwistingStormDropsARisingDrop)
     EXPECT_GT(drop->scale, std::bit_cast<float>(0x3dcccccdu));
     EXPECT_EQ(drop->verticalSpeed, reference.verticalSpeed);
     EXPECT_GT(drop->verticalSpeed, 0.0f);
+}
+
+// 0x523101..0x52318f: el 0xcf/3..7 tiembla la cámara ((rand() & 7) − 4) · 0,1f y suelta en su punto la niebla 5f2/28,
+// /29 y /30 (0x523144, 0x52315d, 0x523176), con sus ángulos, su luz y la escala 1, que piden la altura del terreno y,
+// la /30, el seno del reloj. Después, con rand() & 1 en 0, la piedrita 0xc8 + (rand() & 1) con el subtipo 2 (0x52b14d),
+// que es de otro lote y corta. Con la tabla de partículas llena, la niebla no saca nada. Réplica en un pool gemelo con
+// el mismo CrtRandom.
+TEST(WizardModelEffectsTest, TheLittleStormsLeaveTheirMistOnTheGround)
+{
+    bool calm = false, chipped = false;
+    for (const std::int32_t subtype : {3, 7})
+        for (const bool full : {false, true})
+            for (std::uint32_t seed = 20; seed < 24; ++seed)
+            {
+                SCOPED_TRACE(testing::Message() << subtype << ' ' << full << ' ' << seed);
+                Harness world;
+                world.ground = 123.25;
+                CrtRandom random(seed);
+                ModelEffect& storm = world.At(Create(world, Arguments(0xcf, subtype), random));
+                if (full)
+                    for (auto& particle : world.particles->All())
+                        particle.alive = true;
+                const glm::vec3 at = storm.transform.position;
+                const glm::vec3 angles = storm.transform.angles;
+                const glm::vec3 light = storm.light;
+                CrtRandom oracle = random;
+                static_cast<void>(oracle.Next()); // 0x5208c5, la luz del paso.
+                const float shake = F32(static_cast<double>((oracle.Next() & 7) - 4) * Tenth);
+                auto twin = std::make_unique<Client::World::Particles>();
+                if (full)
+                    for (auto& particle : twin->All())
+                        particle.alive = true;
+                Client::World::PortableParticleTrigonometry trigonometry;
+                const float clock = 1000.0f;
+                const Client::World::ParticleTerrainHeight ground = [](float, float) { return 123.25; };
+                for (const std::int32_t mist : {28, 29, 30})
+                    ASSERT_TRUE(twin->CreateOnGroundChecked(0x5f2, at, angles, light, mist, 1.0f, std::cref(clock),
+                                                            oracle, trigonometry, ground)
+                                    .HasValue());
+                const bool chip = (oracle.Next() & 1) == 0;
+                if (chip)
+                    static_cast<void>(oracle.Next()); // 0x5231a9, el tipo de la piedrita.
+                const auto stepped = Client::World::StepWizardModelEffect(storm, nullptr, random, world.Services());
+                EXPECT_EQ(world.shake, shake);
+                if (chip)
+                {
+                    ASSERT_FALSE(stepped.HasValue());
+                    EXPECT_NE(stepped.Error().find("0x52b14d"), std::string::npos) << stepped.Error();
+                    chipped = true;
+                }
+                else
+                {
+                    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+                    calm = true;
+                }
+                // Con la piedrita, el corte llega después de sus dos rand(); sin ella, los de la niebla y el último.
+                EXPECT_EQ(random.State(), oracle.State());
+                if (full)
+                    continue;
+                for (const std::int32_t mist : {28, 29, 30})
+                {
+                    ASSERT_EQ(world.ParticlesOf(0x5f2, mist), 1U) << mist;
+                    const auto found = std::ranges::find_if(
+                        std::as_const(*world.particles).All(), [mist](const Client::World::Particle& particle)
+                        { return particle.alive && particle.type == 0x5f2 && particle.subtype == mist; });
+                    const auto reference =
+                        std::ranges::find_if(std::as_const(*twin).All(), [mist](const Client::World::Particle& particle)
+                                             { return particle.alive && particle.subtype == mist; });
+                    EXPECT_EQ(found->start, at);
+                    EXPECT_EQ(found->angles, angles);
+                    EXPECT_EQ(found->position, reference->position);
+                    EXPECT_EQ(found->position.z, 138.25f);
+                    EXPECT_EQ(found->rotation, reference->rotation);
+                    EXPECT_EQ(found->life, reference->life);
+                    EXPECT_EQ(found->scale, reference->scale);
+                    EXPECT_EQ(found->texture, mist == 28 ? 0x6ad : 0x5f2);
+                    EXPECT_EQ(found->light, light);
+                }
+            }
+    EXPECT_TRUE(calm);
+    EXPECT_TRUE(chipped);
 }
 
 // 0x5231f6..0x52328c: el 0xcb/1 con vida 45 suelta sus joints 613/6; el primero saca su rand() % 10 (0x52321f) antes

@@ -300,13 +300,23 @@ public:
                            const glm::vec3& light, std::int32_t subtype, float scale, ParticleOwner owner,
                            const ParticleOwnerBones& bones);
     // 0x53fe70 con las que leen la posición de su dueño al nacer (+0x40 → +0x10): la 5c6/4 (0x540686, la velocidad
-    // hacia él) y la 5de/4 (0x5417ba, la partida). Las demás la ignoran; el dueño queda en typedOwner para su paso. Sin
-    // ella, CreateChecked rechaza esas dos con MissingOwner antes de tocar el lugar.
+    // hacia él), la 5de/4 (0x5417ba, la partida) y la 5c5/5 (0x5403ad, la partida). Las demás la ignoran; el dueño
+    // queda en typedOwner para su paso. Sin ella, CreateChecked y CreateOwnedChecked rechazan esas tres con
+    // MissingOwner o UnsupportedSubtype antes de tocar el lugar.
     [[nodiscard]] Core::Expected<std::optional<std::size_t>, ParticleError>
     CreateTowardChecked(std::int32_t type, const glm::vec3& position, const glm::vec3& angles, const glm::vec3& light,
                         std::int32_t subtype, float scale, std::reference_wrapper<const float> worldClock,
                         Render::Models::CrtRandom& random, IParticleTrigonometry& trigonometry, ParticleOwner owner,
                         const glm::vec3& ownerPosition);
+    // 0x53fe70 con las que piden la altura del terreno (0x5f93c0) en su punto al nacer: la niebla 5f2/28, /29 y /30 de
+    // la tormenta 0xcf/3..7 (0x5425f9, 0x54264d y 0x54269a). La /30 además corre la x y la y con el seno del reloj
+    // (0x5426ae, `trigonometry`). Las demás la ignoran. Sin ella, CreateChecked rechaza esas tres con
+    // MissingTerrainHeight antes de tocar el lugar.
+    [[nodiscard]] Core::Expected<std::optional<std::size_t>, ParticleError>
+    CreateOnGroundChecked(std::int32_t type, const glm::vec3& position, const glm::vec3& angles, const glm::vec3& light,
+                          std::int32_t subtype, float scale, std::reference_wrapper<const float> worldClock,
+                          Render::Models::CrtRandom& random, IParticleTrigonometry& trigonometry,
+                          const ParticleTerrainHeight& terrainHeight);
     // 0x54061d: chispa5c6/2 hacia el centro de su lugar físico621, sinCRT.
     std::optional<std::size_t> CreatePiercingSpark(const glm::vec3& position, float scale, ParticleOwner owner,
                                                    const glm::vec3& center);
@@ -325,7 +335,7 @@ private:
                std::int32_t subtype, float scale, float legacyClock, const float* worldClock,
                Render::Models::CrtRandom& random, std::uint32_t owner, IParticleTrigonometry* trigonometry,
                std::optional<std::int32_t> scene = std::nullopt, ParticleOwner typedOwner = {},
-               const glm::vec3* ownerPosition = nullptr);
+               const glm::vec3* ownerPosition = nullptr, const ParticleTerrainHeight* terrainHeight = nullptr);
     // En el heap: la escena que la lleva tiene que caber en la pila.
     std::vector<Particle> m_particles = std::vector<Particle>(ParticleCount);
     ParticleWind m_wind;

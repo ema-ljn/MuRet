@@ -126,7 +126,8 @@ inline constexpr std::int32_t BubbleParticle = 0x698;
 // 0x54271f y su paso (0x546b66) lo deja sobre el terreno con el alto de su textura.
 inline constexpr std::int32_t DustParticle = 0x5f3;
 // El polvo 5f6/1 del recorrido de Crywolf (0x403c0c): comparte el paso de 5f3, pero nace con vida40, velocidad0
-// y seis rand() en 0x54271f..0x542897.
+// y seis rand() en 0x54271f..0x542897. El alta no separa los dos tipos: la 5f3/1 del freno de +0x3e5 (0x506a73) nace
+// como la 5f6/1, y la 5f6/0 de las piedras de Chaos Castle (0x405630 y 0x405e00), como la 5f3/0.
 inline constexpr std::int32_t ArrivalDustParticle = 0x5f6;
 // La explosión 5ed/0 (Effect\Explotion01.jpg, cuatro por cuatro cuadros) que suelta el terremoto 0xfa en su vida 11
 // (0x521dfd): nace en 0x542a60 con vida 20 y su paso (0x5459a4) avanza el cuadro (+0x48) con la vida y prende la luz
@@ -261,11 +262,11 @@ class Particles
 public:
     // 0x53fe70(tipo, posición, ángulos, luz, subtipo, escala, dueño) en el primer lugar libre, con el reloj
     // del mundo (DAT_05767b88, en ms) y el rand() de la CRT. Con los 3.000 llenos no se crea ni saca
-    // rand(). Se aceptan5ca/0, 5e4 (cualquier subtipo), 5f2/0,2,11,21,33, 5f3/0, 5ed/0, 5c6/1,5,9,11, 622/6,8,9,10,
-    // 5d9/0..3,5,8, 5dc/12, 607/0, 67/0,
-    // 68/0, 698/0, 6ab/0,1 y 6ac/0,1; la órbita 60f/0,3,4,10 pide el overload con la trigonometría. Create es la
-    // compatibilidad login; Core usa CreateChecked para distinguir errores de pool lleno. La neblina consume cinco
-    // rand() y conserva +0x60 del uso anterior del lugar. 622/8 consume siete rand().
+    // rand(). Se aceptan5ca/0, 5e4 (cualquier subtipo), 5f2/0,2,11,21,33, 5f3/0,1, 5f6/0,1, 5ed/0, 5c6/1,5,9,11,
+    // 622/6,8,9,10, 5d9/0..3,5,8, 5dc/12, 607/0, 67/0, 68/0, 698/0, 6ab/0,1 y 6ac/0,1; la órbita 60f/0,3,4,10 pide el
+    // overload con la trigonometría. Create es la compatibilidad login; Core usa CreateChecked para distinguir errores
+    // de pool lleno. La neblina consume cinco rand() y conserva +0x60 del uso anterior del lugar. 622/8 consume siete
+    // rand().
     std::optional<std::size_t> Create(std::int32_t type, const glm::vec3& position, const glm::vec3& angles,
                                       const glm::vec3& light, std::int32_t subtype, float scale, float worldClock,
                                       Render::Models::CrtRandom& random);

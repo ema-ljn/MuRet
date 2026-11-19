@@ -7967,7 +7967,12 @@ escenas 2, 4 y 5: todo *estático*. Es la misma función para todos: el héroe y
    `+0xf4..+0xfc` en 1 y, en cada una, una posición de tres `rand()` (`% 64 − 32`, `% 64 − 32` y `% 32 − 16`, en
    `0x5069e4`, `0x506a06` y `0x506a26`), `rand() % 10` en 0 (`0x506a46`) para una partícula `0x5f3`, y `rand() % 10` en
    0 (`0x506a7b`) para un efecto `0xc8` o `0xc9` (`rand() & 1` en `0x506aa0`, `0x518cf0`). Solo lo sube `0x4c9790`
-   (`0x4c982b`).
+   (`0x4c982b`). La partícula es `0x53fe70(0x5f3, local, +0x1c, +0xf4, 1, 1, 0)` (`0x506a73`), que nace como la `0x5f6/1`
+   (`0x54271f`: la rama de `0x542761` no separa los tipos; seis `rand()`), y el efecto
+   `0x518cf0(0xc8 + r, +0x10, +0x1c, +0xf4, 0, 0, −1, 0, 0, 0, 0)` (`0x506ab7`), la piedrita de cinco `rand()`. MuRet
+   (CL11, lote de las partículas): `Scenes::StepActorCooldown` con `Scenes::CharacterCooldownServices` (el pool del
+   paso y `WorldMap::effects`); el `0x35` y el `0x36` recién llegados ya no cortan (`0x4c9828..0x4c984f`: `+0x3e5` en
+   `0x3c` antes de la acción 1, sin sonido). Tests: `ActorCooldownTest`, `MonsterViewportTest`.
 7. Con `+0x375` debajo de 6, sin signo (`0x506acf`): la luz de cada mano, la derecha (`+0x2b8`) y la izquierda
    (`+0x2d8`): `0x21e` con un 3 y `0x225`, `0xa24`, `0xc1c` y `0x61f` con un 2, por `0x5f9780` al buffer dinámico
    `0x7b4ccc4`, sin `rand()`.
@@ -8016,7 +8021,7 @@ escenas 2, 4 y 5: todo *estático*. Es la misma función para todos: el héroe y
 | `0x183`, `0x184`, `0x188` | `0x50862f` | — | nada |
 | los demás | `0x5085db` | — | `0x43bdd0`, `0x42de90`, `0x441210`, `0x42f550`, `0x431470` y `0x426ce0`, en ese orden, hasta que uno devuelva verdadero: cada uno mira el tipo o el mapa |
 
-MuRet (revisión B, 2026-11-14): `Scenes::StepTheModelEffects` (`ModelEffects.h`), desde `CharacterStep` con otro modelo que el `0x20a`, saca el `& 7` y corre el caso o los helpers con lo que escriben (la U y la V de `+0x6c` y `+0x70`, `+0x68`, `+0x64`, `+0x58`, el ángulo z, `+0x84`, la acción, los puntos de `0x505bc0` en `+0x4c` y `+0x40`), sus luces (`World::AddDynamicLight`), sus sonidos (`lastSoundId`), las partículas que el pool conoce (`0x5f2/0`, `0x5f3/0`, `0x5d9/0` y `/1`, `0x5ca/0`, `0x5c5/0` y, desde el lote de partículas, las `0x5de/1..3` del `0x17e`), los joints `0x617/0`, el sprite del `0x166` (la tabla del paso de los efectos, `CharacterStepContext::sprites`), la marca del `0x182` y las poses de `0x431470` (el `0x1ab` y el `0x1b4`, en `WorldState::PoseCarry`). Cortan con su dirección, después de sus `rand()`: el joint `0x614/7` del `0x185` (con un lugar libre), ~~el `0x5de` del `0x17e` (`0x50758a` o `0x50780d`, también con el pool lleno)~~ (portado en el lote de partículas, P-C440; abajo, **El `0x17e`**), el `0x5f3/1` de `0x505c50` (`0x505d2c`), ~~el `0x5f2/0x11` del `0x192` y el `0x197` (`0x43bf75`, `0x43c04b`)~~ (hecho en el lote de partículas, P-C440), los efectos de `0x518cf0` (el `0xc5` en la 0, `0x43bea5`; el `0x1b3` en la 4 con el frame en [4, 6], `0x42f63b` o `0x431f37`; el `0x1ab`, el `0x1b0` y el `0x1b4` en su ventana de ataque, `0x43195f`, `0x4316db` y `0x4315b4`; el `0x1b5` en la 3 con `+0x84` en 1 desde el frame 5, `0x432460`), los huesos por nombre de `0x4292e0` con sus sprites (el `0x1b2` después de su `rand() % 360`, `0x42f6ce` o `0x431fa4`; el `0x1b1` fuera de la 6, `0x42f946` o `0x431d5c`) y el polvo del `0x1ab` y del `0x1b4` en la 2 y la `0xa`, que lee una luz que ese camino no escribe (`0x431e86`, comportamiento indefinido). El `0x1ae` mira además `[0x723bec]`, que MuRet no modela (en 0): no hace nada. Tests: `ModelEffectsTest` (`test_monster_effect_cases.cpp`, en los mapas 0 y 2 y los del caso: 30, 34, 35, 24).
+MuRet (revisión B, 2026-11-14): `Scenes::StepTheModelEffects` (`ModelEffects.h`), desde `CharacterStep` con otro modelo que el `0x20a`, saca el `& 7` y corre el caso o los helpers con lo que escriben (la U y la V de `+0x6c` y `+0x70`, `+0x68`, `+0x64`, `+0x58`, el ángulo z, `+0x84`, la acción, los puntos de `0x505bc0` en `+0x4c` y `+0x40`), sus luces (`World::AddDynamicLight`), sus sonidos (`lastSoundId`), las partículas que el pool conoce (`0x5f2/0`, `0x5f3/0`, `0x5d9/0` y `/1`, `0x5ca/0`, `0x5c5/0` y, desde el lote de partículas, las `0x5de/1..3` del `0x17e`), los joints `0x617/0`, el sprite del `0x166` (la tabla del paso de los efectos, `CharacterStepContext::sprites`), la marca del `0x182` y las poses de `0x431470` (el `0x1ab` y el `0x1b4`, en `WorldState::PoseCarry`). Cortan con su dirección, después de sus `rand()`: el joint `0x614/7` del `0x185` (con un lugar libre), ~~el `0x5de` del `0x17e` (`0x50758a` o `0x50780d`, también con el pool lleno)~~ (portado en el lote de partículas, P-C440; abajo, **El `0x17e`**), ~~el `0x5f3/1` de `0x505c50` (`0x505d2c`)~~ (CL11, lote de las partículas: veinte, con la luz propia en 1), ~~el `0x5f2/0x11` del `0x192` y el `0x197` (`0x43bf75`, `0x43c04b`)~~ (hecho en el lote de partículas, P-C440), los efectos de `0x518cf0` (el `0xc5` en la 0, `0x43bea5`; el `0x1b3` en la 4 con el frame en [4, 6], `0x42f63b` o `0x431f37`; el `0x1ab`, el `0x1b0` y el `0x1b4` en su ventana de ataque, `0x43195f`, `0x4316db` y `0x4315b4`; el `0x1b5` en la 3 con `+0x84` en 1 desde el frame 5, `0x432460`), los huesos por nombre de `0x4292e0` con sus sprites (el `0x1b2` después de su `rand() % 360`, `0x42f6ce` o `0x431fa4`; el `0x1b1` fuera de la 6, `0x42f946` o `0x431d5c`) y el polvo del `0x1ab` y del `0x1b4` en la 2 y la `0xa`, que lee una luz que ese camino no escribe (`0x431e86`, comportamiento indefinido). El `0x1ae` mira además `[0x723bec]`, que MuRet no modela (en 0): no hace nada. Tests: `ModelEffectsTest` (`test_monster_effect_cases.cpp`, en los mapas 0 y 2 y los del caso: 30, 34, 35, 24).
 
 **El `0x17e`** (`0x50749c..0x507897`, *estático*; `StepThe17e` en `Scenes/ModelEffects.cpp`, lote de partículas de
 la CL11). `0x505bc0(c, o, 8, 9)` y el `WORD` `+0x376` contra `0x3f`:
@@ -9833,10 +9838,10 @@ nada. Con el área esperada:
 `SelectionWorld::StepObjects`; `Scenes::CountDownTheObjectCollapse` al final. El byte del sector va en cada objeto
 (`WorldObject::sectorPassed`, el mismo para todos los de un sector), escrito por los dos dibujos de los objetos.
 `0x5f8750`, `0x5f8710` y `0x5f8730` son `Scenes::MarkTheTerrainArea` y `MarkTheTerrainCell` (`Scenes/TerrainMarks`),
-que comparten con los paquetes. El sonido `0x89` queda en `WorldRuntime::lastSoundId` (CL10). La piedra `0x5f6/0` no
-está en el pool de MuRet: corta donde la crea cada caso (`0x405899`, `0x4056e5` y `0x4057bf`; la escena de la selección, sin el temblor, cortaría después en `0x4058bf`, `0x40570b` o `0x4057e5`);
-como el pedido de Chaos Castle empieza en 40, el derrumbe de Chaos Castle corta en su primer paso hasta que la CL11
-porte la partícula (P-C297). Tests: `ObjectCollapseTest`, en Lorencia, Devias, Blood Castle (11 y 14) y Chaos Castle
+que comparten con los paquetes. El sonido `0x89` queda en `WorldRuntime::lastSoundId` (CL10). La piedra `0x5f6/0` está en
+el pool desde la CL11 (lote de las partículas): nace en `0x54271f` como la `0x5f3/0` (cuatro `rand()` y el empuje
+(0; 3; 0) girado), con el paso de la `0x5f3` (`0x546b66`) y su dibujo (`0x548a51`); la escena de la selección, sin el
+temblor, corta después en `0x4058bf`, `0x40570b` o `0x4057e5` (P-C297). Tests: `ObjectCollapseTest`, en Lorencia, Devias, Blood Castle (11 y 14) y Chaos Castle
 (18, 20 y 23).
 
 ### Los objetos de Castle Siege

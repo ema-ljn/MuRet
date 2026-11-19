@@ -26,6 +26,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <functional>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -193,6 +194,65 @@ TEST(ChaosCastleTest, EachCellDrawsOnceWithoutItsArea)
     const auto cut = Client::World::StepChaosCastleCell(30, 80, noRandom);
     ASSERT_FALSE(cut.HasValue());
     EXPECT_NE(cut.Error().find("0x405e1e"), std::string::npos) << cut.Error();
+}
+
+// 0x405e00 con el área 0 y una celda del primer rectángulo: con rand() % 8 en 0, la piedra 0x5f6/0 (0x405f24, que nace
+// como la 5f3/0 en 0x54271f) en (x · 100 + rand() % 30 − 15; y · 100 + rand() % 30 − 15; z del héroe), con ángulos en
+// 0, luz 1, escala 1,5 y sin dueño, y con rand() % 5 en 0 el temblor. Réplica en un pool gemelo con el mismo CrtRandom.
+TEST(ChaosCastleTest, ACellOfTheAreaDropsItsStone)
+{
+    const float clock = 0.0f;
+    int stones = 0, shakes = 0;
+    for (std::uint32_t seed = 1; seed < 4; ++seed)
+    {
+        SCOPED_TRACE(seed);
+        auto particles = std::make_unique<Client::World::Particles>();
+        auto twin = std::make_unique<Client::World::Particles>();
+        float shake = 0.0f;
+        CrtRandom random(seed);
+        CrtRandom oracle(seed);
+        float twinShake = 0.0f;
+        const Client::World::ChaosCastleCellContext context{.area = 0,
+                                                            .heroZ = 125.5f,
+                                                            .random = &random,
+                                                            .particles = particles.get(),
+                                                            .worldClock = std::cref(clock),
+                                                            .cameraShake = &shake};
+        for (std::uint8_t x = 23; x <= 44; ++x)
+        {
+            ASSERT_TRUE(Client::World::StepChaosCastleCell(x, 75, context).HasValue());
+            if (oracle.Next() % 8 != 0)
+                continue;
+            const auto stoneX = F32((static_cast<double>(oracle.Next() % 30) - 15.0) + static_cast<double>(x) * 100.0);
+            const auto stoneY = F32((static_cast<double>(oracle.Next() % 30) - 15.0) + 75.0 * 100.0);
+            ASSERT_TRUE(twin->CreateChecked(0x5f6, {stoneX, stoneY, 125.5f}, glm::vec3(0.0f), glm::vec3(1.0f), 0, 1.5f,
+                                            clock, oracle, 0)
+                            .HasValue());
+            ++stones;
+            if (oracle.Next() % 5 != 0)
+                continue;
+            twinShake = F32(static_cast<double>(oracle.Next() % 3 - 3) * D(std::bit_cast<float>(0x3dcccccdu)));
+            ++shakes;
+        }
+        EXPECT_EQ(random.State(), oracle.State());
+        EXPECT_EQ(shake, twinShake);
+        for (std::size_t slot = 0; slot < 8; ++slot)
+        {
+            const auto& made = particles->All()[slot];
+            const auto& reference = twin->All()[slot];
+            ASSERT_EQ(made.alive, reference.alive);
+            if (!made.alive)
+                continue;
+            EXPECT_EQ(made.type, 0x5f6);
+            EXPECT_EQ(made.life, 32);
+            EXPECT_EQ(made.position, reference.position);
+            EXPECT_EQ(made.scale, reference.scale);
+            EXPECT_EQ(made.angles, reference.angles);
+            EXPECT_EQ(made.velocity, reference.velocity);
+        }
+    }
+    EXPECT_GT(stones, 0);
+    EXPECT_GT(shakes, 0);
 }
 
 // Fuera de los cuatro rectángulos del área no hay piedra, aunque el rand() % 8 dé 0.

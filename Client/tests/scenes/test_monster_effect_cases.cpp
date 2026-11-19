@@ -441,23 +441,43 @@ TEST_F(ModelEffectsTest, TheWalkersKickDustByTheirMap)
     m_actor.dying = 0;
 }
 
-// 0x505c50: el 0x157 en la 6 con el frame en [8, 9) pone la luz propia en 1 y, después de sus tres rand(), corta en el
-// 0x5f3/1, que el pool no conoce.
-TEST_F(ModelEffectsTest, TheDyingBurstCutsAtItsUnknownDust)
+// 0x505c50: el 0x157 en la 6 con el frame en [8, 9), después del rand() & 7, veinte vueltas: la luz propia en 1, tres
+// rand() alrededor de la posición ((& 63) − 32, (& 63) − 32 y (& 31) − 16) y el polvo 0x5f3/1 (0x505d2c, que nace
+// como la 5f6/1: seis rand()) con los ángulos y la luz propios, escala 1 y sin dueño. Réplica en un pool gemelo con el
+// mismo CrtRandom. Con el frame en 9, nada.
+TEST_F(ModelEffectsTest, TheDyingBurstLeavesTwentyDusts)
 {
     for (const std::int32_t map : {0, 2})
     {
         SCOPED_TRACE(map);
+        Clear();
         m_actor.animation.action = 6;
         m_actor.animation.frame = 8.0f;
         m_actor.light = {};
         CrtRandom random(Seed);
-        EXPECT_TRUE(CutAt(Step(0x157, map, random), "0x505d2c"));
+        const auto stepped = Step(0x157, map, random);
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         EXPECT_EQ(m_actor.light, glm::vec3(1.0f));
-        EXPECT_EQ(random.State(), AfterDraws(Seed, 4).State());
+        EXPECT_EQ(Alive(Client::World::DustParticle, 1), 20);
+        auto reference = std::make_unique<Client::World::Particles>();
+        CrtRandom replay = AfterDraws(Seed, 1);
+        for (int burst = 0; burst < 20; ++burst)
+        {
+            const glm::vec3& at = m_actor.position;
+            const auto x = static_cast<float>(static_cast<double>(replay.Next() % 64 - 32) + static_cast<double>(at.x));
+            const auto y = static_cast<float>(static_cast<double>(replay.Next() % 64 - 32) + static_cast<double>(at.y));
+            const auto z = static_cast<float>(static_cast<double>(replay.Next() % 32 - 16) + static_cast<double>(at.z));
+            ASSERT_TRUE(reference
+                            ->CreateChecked(Client::World::DustParticle, {x, y, z}, m_actor.angles, glm::vec3(1.0f), 1,
+                                            1.0f, Clock, replay, 0)
+                            .HasValue());
+        }
+        EXPECT_EQ(random.State(), replay.State());
+        ExpectTheSameParticles(*reference);
         m_actor.animation.frame = 9.0f;
         CrtRandom late(Seed);
         EXPECT_TRUE(Step(0x157, map, late).HasValue());
+        EXPECT_EQ(late.State(), AfterDraws(Seed, 1).State());
     }
 }
 
@@ -559,8 +579,8 @@ TEST_F(ModelEffectsTest, TheFlamingMonsterBurnsAlongItsLimbs)
 
 // 0x507761..0x507897: el 0x17e sin el 0x3f. La luz (L; L · 0,5; L · 0,5) con L = sen(reloj · 0,002f) · 0,3f + 0,7f, la
 // 0x5de/1 de 0,2f en el hueso 62 mirada desde el 55 y en el 77 desde el 70 (los ángulos siguen de una a la otra) y
-// después 0x505d50 (en la 2, sus dos rand() y el polvo 0x5f3/0) y 0x505c50 (en la 6 con el frame en [8, 9), que corta
-// en su 0x5f3/1, 0x505d2c).
+// después 0x505d50 (en la 2, sus dos rand() y el polvo 0x5f3/0) y 0x505c50 (en la 6 con el frame en [8, 9), con sus
+// veinte 0x5f3/1, 0x505d2c).
 TEST_F(ModelEffectsTest, TheMonsterWithoutFlamesBurnsItsHands)
 {
     PoseEveryBone();
@@ -612,8 +632,10 @@ TEST_F(ModelEffectsTest, TheMonsterWithoutFlamesBurnsItsHands)
         m_actor.animation.action = 6;
         m_actor.animation.frame = 8.0f;
         CrtRandom burst(Seed);
-        EXPECT_TRUE(CutAt(Step(0x17e, map, burst), "0x505d2c"));
+        const auto burnt = Step(0x17e, map, burst);
+        ASSERT_TRUE(burnt.HasValue()) << burnt.Error();
         EXPECT_EQ(Alive(0x5de, 1), 2);
+        EXPECT_EQ(Alive(Client::World::DustParticle, 1), 20);
     }
 }
 

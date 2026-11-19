@@ -13,6 +13,7 @@
 #include <glm/ext/vector_float3.hpp>
 #include <gtest/gtest.h>
 
+#include <bit>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
@@ -398,41 +399,63 @@ TEST_F(ObjectCollapseTest, TheChaosCastleStepEndsInTheNextArea)
     }
 }
 
-// 0x40567d..0x4056e5 (y sus copias): con la cuenta en 30 o más, un rand() y la piedra 5f6/0, que el pool de MuRet no
-// tiene (CL11): corta donde la crea cada caso, antes del temblor, con el rand() del alta que el pool saca antes de
-// fallar.
-TEST_F(ObjectCollapseTest, TheChaosCastleStoneIsCutInThePool)
+// 0x40567d..0x40570b (y sus copias): con la cuenta en 30 o más, un rand() y la piedra 5f6/0 (0x54271f, como la 5f3/0:
+// cuatro rand()) con los ángulos del objeto, luz 1, escala 1,5 y sin dueño, y el temblor (rand() % 3 − 3) · 0,1f.
+// Réplica en un pool gemelo con el mismo CrtRandom; con los 3.000 llenos, la piedra no saca nada y el temblor sigue.
+TEST_F(ObjectCollapseTest, TheChaosCastleStoneFallsWithItsShake)
 {
     struct Case
     {
         std::int16_t type;
         std::uint8_t area;
-        const char* where;
     };
     Runtime().map = FirstChaosCastle;
-    for (const Case step : {Case{2, 1, "0x405899"}, Case{25, 7, "0x4056e5"}, Case{31, 4, "0x4057bf"}})
-    {
-        SCOPED_TRACE(step.type);
-        Runtime().chaosCastleArea = step.area;
-        Request() = {.map = FirstChaosCastle, .type = 0x10, .counter = 40, .delay = 2.0f};
-        CrtRandom mirror{m_random.State()};
-        WorldObject object = Object(step.type);
-        const auto cut = Collapse(object);
-        ASSERT_FALSE(cut.HasValue());
-        EXPECT_NE(cut.Error().find(step.where), std::string::npos) << cut.Error();
-        const int spread = mirror.Next() % 300;
-        auto pool = std::make_unique<Client::World::Particles>();
-        EXPECT_FALSE(pool->CreateChecked(0x5f6,
-                                         glm::vec3(static_cast<float>(static_cast<double>(spread) - 150.0 + 1000.0),
-                                                   2000.0f, 170.0f),
-                                         object.transform.angles, glm::vec3(1.0f), 0, 1.5f, WorldClock, mirror, 0)
-                         .HasValue());
-        EXPECT_EQ(m_random.State(), mirror.State());
-        EXPECT_EQ(m_shake, 0.0f);
-        EXPECT_EQ(object.transform.position.z, 300.0f);
-        EXPECT_EQ(Request().delay, 2.0f);
-        EXPECT_EQ(Runtime().chaosCastleArea, step.area);
-    }
+    for (const bool full : {false, true})
+        for (const Case step : {Case{2, 1}, Case{25, 7}, Case{31, 4}})
+        {
+            SCOPED_TRACE(testing::Message() << step.type << ' ' << full);
+            m_particles = std::make_unique<Client::World::Particles>();
+            auto twin = std::make_unique<Client::World::Particles>();
+            if (full)
+            {
+                for (auto& particle : m_particles->All())
+                    particle.alive = true;
+                for (auto& particle : twin->All())
+                    particle.alive = true;
+            }
+            Runtime().chaosCastleArea = step.area;
+            Request() = {.map = FirstChaosCastle, .type = 0x10, .counter = 40, .delay = 2.0f};
+            CrtRandom mirror{m_random.State()};
+            WorldObject object = Object(step.type);
+            const auto fell = Collapse(object);
+            ASSERT_TRUE(fell.HasValue()) << fell.Error();
+            const int spread = mirror.Next() % 300;
+            const auto stone = twin->CreateChecked(
+                0x5f6, glm::vec3(static_cast<float>(static_cast<double>(spread) - 150.0 + 1000.0), 2000.0f, 170.0f),
+                object.transform.angles, glm::vec3(1.0f), 0, 1.5f, WorldClock, mirror, 0);
+            ASSERT_TRUE(stone.HasValue());
+            const auto shake = static_cast<float>(static_cast<double>(mirror.Next() % 3 - 3) *
+                                                  static_cast<double>(std::bit_cast<float>(0x3dcccccdu)));
+            EXPECT_EQ(m_random.State(), mirror.State());
+            EXPECT_EQ(m_shake, shake);
+            if (!full)
+            {
+                const auto& made = m_particles->All()[0];
+                const auto& reference = twin->All()[0];
+                ASSERT_TRUE(made.alive);
+                EXPECT_EQ(made.type, 0x5f6);
+                EXPECT_EQ(made.subtype, 0);
+                EXPECT_EQ(made.life, 32);
+                EXPECT_EQ(made.position, reference.position);
+                EXPECT_EQ(made.scale, reference.scale);
+                EXPECT_EQ(made.angles, reference.angles);
+                EXPECT_EQ(made.velocity, reference.velocity);
+                EXPECT_EQ(AliveParticles(*m_particles), 1u);
+            }
+            EXPECT_EQ(object.transform.position.z, 300.0f);
+            EXPECT_EQ(Request().delay, 2.0f);
+            EXPECT_EQ(Runtime().chaosCastleArea, step.area);
+        }
 }
 
 // 0x606560: en un sector que pasó, el paso y el derrumbe con cada vivo visto; en uno que no pasó, el derrumbe con cada

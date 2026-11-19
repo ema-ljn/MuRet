@@ -237,10 +237,15 @@ bool IsBreath(const Particle& particle)
     return particle.type == BreathParticle && particle.subtype == BreathSubtype;
 }
 
+// 0x54271f y 0x546b66: la 5f3 y la 5f6 comparten alta y paso; MuRet acepta las dos con la /0 y la /1.
+bool IsDustType(std::int32_t type)
+{
+    return type == DustParticle || type == ArrivalDustParticle;
+}
+
 bool IsDust(const Particle& particle)
 {
-    return (particle.type == DustParticle && particle.subtype == 0) ||
-           (particle.type == ArrivalDustParticle && particle.subtype == 1);
+    return IsDustType(particle.type) && (particle.subtype == 0 || particle.subtype == 1);
 }
 
 // 0x542a60..0x542a75 con el subtipo 0: vida 20 (la /2 tiene 30) y la escala del pedido otra vez en +0x10. Sin rand().
@@ -389,9 +394,11 @@ void StepTheCinder(Particle& particle)
         particle.light = glm::vec3(F32(static_cast<double>(life) * Tenth));
 }
 
-// 0x54271f..0x542838 con el subtipo 0: la vida, la posición corrida en x y en y, la escala en la x87 (fild, por la
-// escala del pedido y por 0,01f), la velocidad girada por AngleMatrix de los ángulos del pedido (0x5fc8f0 y
-// 0x5fcbd0) y el giro x en rand() % 360. Cuatro rand().
+// 0x54271f..0x542838: la vida, la posición corrida en x y en y, la escala en la x87 (fild, por la escala del pedido y
+// por 0,01f; 0x542761 separa la 5f6 de la 5f3 en dos ramas iguales), la velocidad girada por AngleMatrix (0x5fc8f0 y
+// 0x5fcbd0) y el giro x en rand() % 360. Con el subtipo 0 (0x5427aa), el empuje (0; 3; 0) y los ángulos del pedido:
+// cuatro rand(). Con otro, antes el giro z en rand() % 360, el empuje (0; 15; 0) y los ángulos del lugar; la /1
+// (0x54282c, la 5f6 del recorrido y la 5f3 del freno de +0x3e5) además vive 40, queda quieta y corre la z: seis.
 void CreateTheDust(Particle& particle, const glm::vec3& angles, float scale, Render::Models::CrtRandom& random)
 {
     particle.life = DustLife;
@@ -401,14 +408,14 @@ void CreateTheDust(Particle& particle, const glm::vec3& angles, float scale, Ren
     particle.position.y = F32(static_cast<double>(y) + static_cast<double>(particle.position.y));
     const int size = (random.Next() % DustScaleSpan) + DustScaleBase;
     particle.scale = F32((static_cast<double>(size) * static_cast<double>(scale)) * BreathScaleStep);
-    const bool arrival = particle.type == ArrivalDustParticle && particle.subtype == 1;
-    if (arrival)
+    const bool turned = particle.subtype != 0;
+    if (turned)
         particle.angles.z = static_cast<float>(random.Next() % FullTurn);
     constexpr glm::vec3 ArrivalPush{0, 15, 0};
     particle.velocity = Render::Models::OriginalVectorRotate(
-        arrival ? ArrivalPush : DustPush, Render::Models::OriginalAngleMatrix(arrival ? particle.angles : angles));
+        turned ? ArrivalPush : DustPush, Render::Models::OriginalAngleMatrix(turned ? particle.angles : angles));
     particle.angles.x = static_cast<float>(random.Next() % FullTurn);
-    if (arrival)
+    if (particle.subtype == 1)
     {
         constexpr std::int32_t ArrivalLife = 40;
         particle.life = ArrivalLife;
@@ -983,8 +990,12 @@ std::optional<ParticleError> BindingError(std::int32_t type, std::int32_t subtyp
                    ? std::nullopt
                    : std::optional(ParticleError::UnsupportedSubtype);
     }
-    if (type == BubbleParticle || type == DustParticle)
+    if (type == BubbleParticle)
         return subtype == 0 ? std::nullopt : std::optional(ParticleError::UnsupportedSubtype);
+    // 0x54271f: la 5f3 y la 5f6 con la /0 (las piedras de Chaos Castle, 0x405630 y 0x405e00) y la /1 (el recorrido,
+    // 0x403c0c, y el freno de +0x3e5, 0x506a73).
+    if (IsDustType(type))
+        return subtype == 0 || subtype == 1 ? std::nullopt : std::optional(ParticleError::UnsupportedSubtype);
     if (type == FireworkParticle)
         return subtype >= -1 && subtype <= 29 ? std::nullopt : std::optional(ParticleError::UnsupportedSubtype);
     if (type == PoundingBallParticle)
@@ -1000,8 +1011,6 @@ std::optional<ParticleError> BindingError(std::int32_t type, std::int32_t subtyp
     // 0x5443ae y 0x5481ab: la 6eb tampoco.
     if (type == ShockWaveParticle)
         return std::nullopt;
-    if (type == ArrivalDustParticle)
-        return subtype == 1 ? std::nullopt : std::optional(ParticleError::UnsupportedSubtype);
     // 0x542b3b y 0x546b04: la 5e4 no lee el subtipo.
     if (type == BloodParticle || type == SiegeBlessingParticle)
         return std::nullopt;
@@ -2304,7 +2313,7 @@ Particles::CreateImpl(std::int32_t type, const glm::vec3& position, const glm::v
             }
             return std::optional(index);
         }
-        if (type == DustParticle || type == ArrivalDustParticle)
+        if (IsDustType(type))
         {
             CreateTheDust(particle, angles, scale, random);
             return std::optional(index);

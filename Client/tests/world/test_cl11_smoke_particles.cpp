@@ -27,6 +27,7 @@
 namespace
 {
 using Client::Render::Models::CrtRandom;
+using Blend = Client::Tests::RecordedParticleDraw::Blend;
 using Client::Tests::AfterDraws;
 using Client::World::Particle;
 using Client::World::ParticleError;
@@ -369,11 +370,14 @@ TEST(Cl11SmokeParticles, ThePuffKeepsItsLightTiltsAndRises)
     Particle drawn{.alive = true, .type = Puff, .texture = Puff, .subtype = 0, .scale = 1.0f, .light = light};
     const auto made = Client::Tests::DrawOneParticle(drawn, glm::vec2(64, 64), std::uint8_t{4});
     ASSERT_TRUE(made.HasValue());
-    EXPECT_TRUE(made.Value().has_value());
+    ASSERT_TRUE(made.Value().has_value());
+    // 0x548895: mezclada con 0x620c10 después del material.
+    EXPECT_EQ(made.Value()->blend, Blend::Blended);
 }
 
-// Los humos nuevos van al billboard del humo (0x54874c; la /20 y la /37 restando). La /28..30 leen el terreno al nacer
-// (0x5425f9) y siguen sin portar.
+// Los humos nuevos van al billboard del humo (0x54874c) con la mezcla que deja el material (con el byte 4,
+// 0x620a00(0)), salvo la /20 (0x548723) y la /37 (0x54873a), que restan con 0x620b10. La /28..30 leen el terreno al
+// nacer (0x5425f9) y siguen sin portar.
 TEST(Cl11SmokeParticles, TheNewSmokesDrawAndTheGroundedOnesStayCut)
 {
     for (const std::int32_t subtype : {17, 19, 20, 23, 24, 26, 31, 36, 37})
@@ -386,7 +390,9 @@ TEST(Cl11SmokeParticles, TheNewSmokesDrawAndTheGroundedOnesStayCut)
                           .light = glm::vec3(1.0f)};
         const auto drawn = Client::Tests::DrawOneParticle(particle, glm::vec2(64, 64), std::uint8_t{4});
         ASSERT_TRUE(drawn.HasValue()) << subtype;
-        EXPECT_TRUE(drawn.Value().has_value()) << subtype;
+        ASSERT_TRUE(drawn.Value().has_value()) << subtype;
+        const bool subtracts = subtype == 20 || subtype == 37;
+        EXPECT_EQ(drawn.Value()->blend, subtracts ? Blend::Subtractive : Blend::Alpha) << subtype;
     }
     for (const std::int32_t subtype : {28, 29, 30})
     {

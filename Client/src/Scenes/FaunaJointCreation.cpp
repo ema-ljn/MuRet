@@ -587,6 +587,49 @@ void CreateSummonEnergy(JointState& joint, const World::FishEffectRequest& reque
     joint.maximumCount = SharedPoints;
 }
 
+// 0x533e60..0x533f9e: el abanico de la habilidad39, después del quad con el ancho retenido.
+void CreateSkill39Bolt(JointState& joint, const World::FishEffectRequest& request)
+{
+    constexpr std::int32_t BoltLife = 24, BoltPoints = 15;
+    joint.bendAngles = joint.angles;
+    joint.speed = 0;
+    joint.velocity = {1, 5, 1};
+    joint.count = -1;
+    joint.maximumCount = BoltPoints;
+    joint.tailEnabled = false;
+    joint.width = request.scale;
+    joint.life = BoltLife - joint.key;
+    joint.field9ec = joint.key;
+    switch (joint.key)
+    {
+    case 0:
+    case 1:
+        joint.bendAngles.z = F32(D(joint.bendAngles.z) + 90.0);
+        joint.position.z = F32(D(joint.position.z) + (joint.key == 0 ? 200.0 : 10.0));
+        break;
+    case 2:
+    case 3:
+        joint.bendAngles.z = F32(D(joint.bendAngles.z) - 90.0);
+        joint.position.z = F32(D(joint.position.z) + (joint.key == 2 ? 200.0 : 10.0));
+        break;
+    case 4:
+        joint.bendAngles.z = F32(D(joint.bendAngles.z) + 180.0);
+        joint.position.z = F32(D(joint.position.z) + 100.0);
+        break;
+    case 5:
+        joint.bendAngles.x = 90.0f;
+        joint.position.z = F32(D(joint.position.z) + 100.0);
+        joint.life = 10;
+        joint.maximumCount = 20;
+        joint.drawEnabled = 2;
+        break;
+    default:
+        break;
+    }
+    joint.pathIncrement = joint.position;
+    joint.targetPosition = request.secondPosition;
+}
+
 Core::Expected<void, std::string> CreateCase(JointState& joint, const World::FishEffectRequest& request,
                                              Render::Models::CrtRandom& random)
 {
@@ -646,6 +689,11 @@ Core::Expected<void, std::string> CreateCase(JointState& joint, const World::Fis
         return {};
     }
     FirstQuad(joint);
+    if (request.type == SparkleJoint && request.subtype == 0x17)
+    {
+        CreateSkill39Bolt(joint, request);
+        return {};
+    }
     if ((request.type == 0x613 && request.subtype == 4) || (request.type == 0x614 && request.subtype == 14))
         return CreateHelperBeam(joint, request);
     if (request.type == 0x614 && request.subtype == 6)
@@ -1456,6 +1504,74 @@ Core::Expected<void, std::string> StepKillBeam(JointState& joint, std::size_t in
     return {};
 }
 
+// 0x53a73b..0x53a7cc: el delta queda retenido hasta después de girar, antes del límite persistente.
+void AdvanceSkill39Bend(JointState& joint)
+{
+    constexpr double BendStep = 1.5, BendLimit = 15.0, PitchStep = 3.0;
+    const double bend = D(joint.velocity.y) + BendStep;
+    joint.velocity.y = F32(bend);
+    switch (joint.field9ec)
+    {
+    case 0:
+    case 2:
+        joint.bendAngles.x = F32(D(joint.bendAngles.x) + PitchStep);
+        break;
+    case 1:
+    case 3:
+        joint.bendAngles.x = F32(D(joint.bendAngles.x) - PitchStep);
+        break;
+    case 5:
+        joint.bendAngles.x = F32(D(joint.bendAngles.x) - bend);
+        break;
+    default:
+        break;
+    }
+    if (joint.field9ec == 0 || joint.field9ec == 1 || joint.field9ec == 4)
+        joint.bendAngles.z = F32(D(joint.bendAngles.z) - bend);
+    if (joint.field9ec == 2 || joint.field9ec == 3)
+        joint.bendAngles.z = F32(D(joint.bendAngles.z) + bend);
+    if (bend > BendLimit)
+        joint.velocity.y = static_cast<float>(BendLimit);
+}
+
+// 0x53a6b3..0x53a875: cada muestra se coloca sobre el ancla, sin acumular la posición anterior.
+Core::Expected<void, std::string> StepSkill39Bolt(JointState& joint)
+{
+    constexpr std::int32_t OpeningLife = 20, LastBendLife = 8, FadeLife = 10;
+    constexpr double SampleStep = 4.0;
+    constexpr float BoltSpeed = 200.0f;
+    if (joint.life < LastBendLife)
+    {
+        joint.speed = 0;
+        if (auto appended = AppendJointTail(joint, Render::Models::OriginalAngleMatrix(joint.bendAngles));
+            !appended.HasValue())
+            return appended;
+    }
+    else if (joint.life < OpeningLife)
+    {
+        joint.speed = BoltSpeed;
+        for (int sample = 0; static_cast<double>(sample) < D(joint.velocity.z); ++sample)
+        {
+            AdvanceSkill39Bend(joint);
+            const auto matrix = Render::Models::OriginalAngleMatrix(joint.bendAngles);
+            const auto offset = Render::Models::OriginalVectorRotate({0, -joint.speed, 0}, matrix);
+            joint.position = {F32(D(joint.pathIncrement.x) + offset.x), F32(D(joint.pathIncrement.y) + offset.y),
+                              F32(D(joint.pathIncrement.z) + offset.z)};
+            if (auto appended = AppendJointTail(joint, matrix); !appended.HasValue())
+                return appended;
+            if (joint.count >= joint.maximumCount - 1)
+            {
+                joint.speed = 0;
+                break;
+            }
+        }
+        joint.velocity.z = F32(D(joint.velocity.z) + SampleStep);
+    }
+    if (joint.life < FadeLife)
+        FadeJointLight(joint, 0x3f44ec4fu);
+    return {};
+}
+
 Core::Expected<void, std::string> StepJointsChecked(std::span<JointState> joints, Render::Models::CrtRandom* random,
                                                     Render::Models::ClothWorld* cloth, World::Particles* particles,
                                                     float worldClock, World::FrameSprites* sprites,
@@ -1467,6 +1583,7 @@ Core::Expected<void, std::string> StepJointsChecked(std::span<JointState> joints
         auto& joint = joints[i];
         if (!joint.alive)
             continue;
+        const bool skill39 = joint.type == SparkleJoint && joint.subtype == 0x17;
         const bool crywolf = joint.type == 0x697 && joint.subtype == 0;
         const bool tarkan = joint.type == 0x618 && joint.subtype == 4;
         const bool bloodCastle = joint.type == 0x10f && joint.subtype == 3;
@@ -1502,7 +1619,7 @@ Core::Expected<void, std::string> StepJointsChecked(std::span<JointState> joints
         const bool killBeam = joint.type == KillBeamJoint && (joint.subtype == 0 || joint.subtype == 1);
         if (!crywolf && !tarkan && !bloodCastle && !fairy && !spiritBeam && !flareBeam && !icarus && !noria &&
             !skyBolt && !objectBolt && !trapBolt && !meteor && !staffBeam && !swordTrail && !fullSet && !summonEnergy &&
-            !killBeam && !barrierBeam && !crywolfArrowTrail)
+            !killBeam && !barrierBeam && !crywolfArrowTrail && !skill39)
             return Core::Unexpected(
                 std::format("0x535840: el paso del joint {} ({:#x}/{}) no está portado", i, joint.type, joint.subtype));
         // 0x5358bc: el 60f/1 no se mueve ni calcula la matriz de 0x53590e; con la cola, 0x53c393 usaría la que dejó el
@@ -1520,6 +1637,9 @@ Core::Expected<void, std::string> StepJointsChecked(std::span<JointState> joints
                               static_cast<float>(static_cast<double>(joint.position.y) + moved.y),
                               static_cast<float>(static_cast<double>(joint.position.z) + moved.z)};
         }
+        if (skill39)
+            if (auto result = StepSkill39Bolt(joint); !result.HasValue())
+                return result;
         if (flareBeam)
             if (auto result = StepHelperBeam(joint, random, particles, worldClock); !result.HasValue())
                 return result;
@@ -1561,8 +1681,8 @@ Core::Expected<void, std::string> StepJointsChecked(std::span<JointState> joints
         const auto* owner = (joint.type == 0x613 || joint.type == 0x614 || joint.type == 0x615 || meteor || actorOwned)
                                 ? nullptr
                                 : static_cast<const FaunaObject*>(joint.ownerContext);
-        const bool ownerless =
-            spiritBeam || flareBeam || icarus || noria || skyBolt || objectBolt || trapBolt || meteor || actorOwned;
+        const bool ownerless = spiritBeam || flareBeam || icarus || noria || skyBolt || objectBolt || trapBolt ||
+                               meteor || actorOwned || skill39;
         if (owner == nullptr && !ownerless)
             return Core::Unexpected(std::format("{}: falta el dueño durable del joint {:#x}/{}",
                                                 fairy         ? "0x536076"

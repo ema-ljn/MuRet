@@ -6,6 +6,7 @@
 #include "Scenes/GameItemGlowEffects.h"
 #include "Scenes/GameItemSpecialDrawing.h"
 #include "Render/Models/HalfLifeMath.h"
+#include "Render/Models/OriginalRotation.h"
 #include "World/Sprites.h"
 #include "World/Particles.h"
 #include "World/IParticleDrawingServices.h"
@@ -28,6 +29,165 @@
 #include <span>
 #include <string>
 #include <vector>
+
+TEST(GameJointStepTest, Skill39BoltsConstructAndAdvanceWithoutRandomDraws)
+{
+    std::array<Client::Scenes::JointState, 1> joints{};
+    glm::vec3 position{100, 200, 300};
+    glm::vec3 target{400, 500, 600};
+    glm::vec3 angles{10, 20, 30};
+    Client::Render::Models::CrtRandom random(1);
+    const Client::World::FishEffectRequest request{0x60f, position, target, angles, 0x17, nullptr, 40, 0, 0, 0, -1};
+    const auto created = Client::Scenes::CreateFaunaJoint(joints, request, random);
+    ASSERT_TRUE(created.HasValue()) << created.Error();
+    ASSERT_EQ(created.Value(), 0u);
+    const auto& joint = joints[0];
+    EXPECT_EQ(joint.position, (glm::vec3{100, 200, 500}));
+    EXPECT_EQ(joint.targetPosition, target);
+    EXPECT_EQ(joint.angles, angles);
+    EXPECT_EQ(joint.speed, 0);
+    EXPECT_EQ(joint.velocity, (glm::vec3{1, 5, 1}));
+    EXPECT_EQ(joint.count, -1);
+    EXPECT_EQ(joint.maximumCount, 15);
+    EXPECT_FALSE(joint.tailEnabled);
+    EXPECT_EQ(joint.width, 40);
+    EXPECT_EQ(joint.life, 24);
+    const auto stepped = Client::Scenes::StepJoints(joints, random);
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_EQ(joint.life, 23);
+    EXPECT_EQ(random.State(), 1u);
+}
+
+TEST(GameJointStepTest, Skill39ConstructionPreservesTheRetainedQuadAndSeparatesItsBendAngles)
+{
+    for (const int key : {-1, 0, 1, 2, 3, 4, 5, 6, 0xffff})
+    {
+        SCOPED_TRACE(key);
+        std::array<Client::Scenes::JointState, 1> joints{};
+        auto& joint = joints[0];
+        joint.width = 8;
+        joint.count = 49;
+        joint.maximumCount = 50;
+        joint.pathIncrement = {999, 888, 777};
+        joint.tailEnabled = true;
+        glm::vec3 point{100, 200, 300}, target{400, 500, 600}, angles{};
+        int opaqueOwner = 7;
+        Client::Render::Models::CrtRandom random(1);
+        const Client::World::FishEffectRequest request{0x60f, point, target, angles, 0x17, &opaqueOwner,
+                                                       40,    key,   0,      0,      -1};
+        const auto created = Client::Scenes::CreateFaunaJoint(joints, request, random);
+        ASSERT_TRUE(created.HasValue()) << created.Error();
+        EXPECT_EQ(joint.points[0][0], (glm::vec3{96, 200, 300}));
+        EXPECT_EQ(joint.points[0][3], (glm::vec3{100, 200, 304}));
+        EXPECT_EQ(joint.width, 40);
+        EXPECT_EQ(joint.count, -1);
+        EXPECT_FALSE(joint.tailEnabled);
+        EXPECT_EQ(joint.ownerContext, &opaqueOwner);
+        EXPECT_EQ(joint.angles, angles);
+        const auto signedKey = std::bit_cast<std::int16_t>(static_cast<std::uint16_t>(key));
+        EXPECT_EQ(joint.field9ec, signedKey);
+        EXPECT_EQ(joint.life, key == 5 ? 10 : 24 - signedKey);
+        EXPECT_EQ(joint.maximumCount, key == 5 ? 20 : 15);
+        EXPECT_EQ(joint.drawEnabled, key == 5 ? 2 : 3);
+        EXPECT_EQ(joint.targetPosition, target);
+        const float lift = key == 0 || key == 2   ? 200.0f
+                           : key == 1 || key == 3 ? 10.0f
+                           : key == 4 || key == 5 ? 100.0f
+                                                  : 0.0f;
+        EXPECT_EQ(joint.position, point + glm::vec3(0, 0, lift));
+        EXPECT_EQ(joint.pathIncrement, joint.position);
+        const float yaw = key == 0 || key == 1 ? 90.0f : key == 2 || key == 3 ? -90.0f : key == 4 ? 180.0f : 0.0f;
+        EXPECT_EQ(joint.bendAngles, (glm::vec3{key == 5 ? 90.0f : 0.0f, 0, yaw}));
+        EXPECT_EQ(random.State(), 1u);
+    }
+}
+
+TEST(GameJointStepTest, Skill39BoltsWaitGrowToTheirCapFadeAndExpireAtMinusOne)
+{
+    for (const int key : {0, 1, 2, 3, 4})
+    {
+        SCOPED_TRACE(key);
+        std::array<Client::Scenes::JointState, 1> joints{};
+        glm::vec3 point{100, 200, 300}, angles{10, 20, 30};
+        Client::Render::Models::CrtRandom random(1);
+        const Client::World::FishEffectRequest request{0x60f, point, point, angles, 0x17, nullptr, 40, key, 0, 0, -1};
+        ASSERT_TRUE(Client::Scenes::CreateFaunaJoint(joints, request, random).HasValue());
+        auto& joint = joints[0];
+        const auto anchor = joint.pathIncrement;
+        while (joint.life >= 20)
+        {
+            ASSERT_TRUE(Client::Scenes::StepJoints(joints, random).HasValue());
+            EXPECT_EQ(joint.count, -1);
+            EXPECT_EQ(joint.position, anchor);
+            EXPECT_EQ(joint.speed, 0);
+        }
+        for (const int count : {0, 5, 14})
+        {
+            ASSERT_TRUE(Client::Scenes::StepJoints(joints, random).HasValue());
+            EXPECT_EQ(joint.count, count);
+        }
+        EXPECT_EQ(joint.velocity.z, 13);
+        EXPECT_EQ(joint.velocity.y, 15);
+        EXPECT_EQ(joint.speed, 0);
+        EXPECT_EQ(joint.bendAngles.x, key == 0 || key == 2 ? 55.0f : key == 1 || key == 3 ? -35.0f : 10.0f);
+        // Siete incrementos6,5..15,5, luego ocho de16,5:209, sin usar el15 almacenado como delta.
+        EXPECT_EQ(joint.bendAngles.z, key == 0 || key == 1 ? -89.0f : key == 2 || key == 3 ? 149.0f : 1.0f);
+        EXPECT_EQ(joint.angles, angles);
+        EXPECT_EQ(joint.pathIncrement, anchor);
+        while (joint.life >= 0)
+        {
+            const auto light = joint.light;
+            const int life = joint.life;
+            ASSERT_TRUE(Client::Scenes::StepJoints(joints, random).HasValue());
+            EXPECT_EQ(joint.count, 14);
+            const auto factor = std::bit_cast<float>(0x3f44ec4fu);
+            for (int axis = 0; axis < 3; ++axis)
+                EXPECT_EQ(joint.light[axis],
+                          life < 10 ? static_cast<float>(static_cast<double>(light[axis]) * factor) : light[axis]);
+            EXPECT_EQ(joint.alive, joint.life >= 0);
+        }
+        EXPECT_EQ(joint.life, -1);
+        EXPECT_EQ(random.State(), 1u);
+    }
+}
+
+TEST(GameJointStepTest, Skill39KeyFiveKeepsThePriorSpeedForTheLowLifeCommonMotion)
+{
+    std::array<Client::Scenes::JointState, 1> joints{};
+    glm::vec3 point{100, 200, 300}, angles{10, 20, 30};
+    Client::Render::Models::CrtRandom random(1);
+    const Client::World::FishEffectRequest request{0x60f, point, point, angles, 0x17, nullptr, 40, 5, 0, 0, -1};
+    ASSERT_TRUE(Client::Scenes::CreateFaunaJoint(joints, request, random).HasValue());
+    auto& joint = joints[0];
+    for (const int count : {0, 5, 14})
+    {
+        ASSERT_TRUE(Client::Scenes::StepJoints(joints, random).HasValue());
+        EXPECT_EQ(joint.count, count);
+        EXPECT_EQ(joint.speed, 200);
+    }
+    ASSERT_EQ(joint.life, 7);
+    const auto before = joint.position;
+    const auto offset =
+        Client::Render::Models::OriginalVectorRotate({0, -200, 0}, Client::Render::Models::OriginalAngleMatrix(angles));
+    const glm::vec3 moved{static_cast<float>(static_cast<double>(before.x) + offset.x),
+                          static_cast<float>(static_cast<double>(before.y) + offset.y),
+                          static_cast<float>(static_cast<double>(before.z) + offset.z)};
+    ASSERT_TRUE(Client::Scenes::StepJoints(joints, random).HasValue());
+    EXPECT_EQ(joint.position, moved);
+    const auto cross = Client::Render::Models::OriginalVectorRotate(
+        {0, 0, -20}, Client::Render::Models::OriginalAngleMatrix(joint.bendAngles));
+    const glm::vec3 face{static_cast<float>(static_cast<double>(moved.x) + cross.x),
+                         static_cast<float>(static_cast<double>(moved.y) + cross.y),
+                         static_cast<float>(static_cast<double>(moved.z) + cross.z)};
+    EXPECT_EQ(joint.points[0][2], face);
+    EXPECT_EQ(joint.speed, 0);
+    EXPECT_EQ(joint.count, 15);
+    EXPECT_EQ(joint.bendAngles.z, angles.z);
+    EXPECT_EQ(joint.bendAngles.x, -119.0f);
+    EXPECT_EQ(joint.angles, angles);
+    EXPECT_EQ(joint.velocity.z, 13);
+    EXPECT_EQ(random.State(), 1u);
+}
 
 TEST(GameJointStepTest, MissingCounterFailsAfterTheOwnerTargetWasCopied)
 {

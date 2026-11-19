@@ -14,6 +14,7 @@ struct ActorEffect;
 struct SkillTarget;
 struct SkillList;
 struct SummonLife;
+struct LevelUp;
 } // namespace Client::Protocol::Skill
 
 // Las skills que llegan (CL9 hito 4), ya cifradas: lo que los handlers de 0x4e2b10 hacen con el mundo. Contrato:
@@ -65,6 +66,10 @@ void ApplyMagicCancel(const Protocol::Skill::MagicCancel& cancel, const WorldEnt
 // +0x425 del héroe y lo cierra.
 [[nodiscard]] Core::Expected<void, std::string> ApplySkillList(const Protocol::Skill::SkillList& list,
                                                                const WorldEntryResources& resources);
+
+// 0x4d30d0: stats propios en una apertura, cierre y efecto del héroe sin filtros.
+[[nodiscard]] Core::Expected<void, std::string> ApplyLevelUp(const Protocol::Skill::LevelUp& reply,
+                                                             const WorldEntryResources& resources);
 
 // 0x4e31e1: la vida del invocado, 0x5767960 (HudState::summonLife).
 void ApplySummonLife(const Protocol::Skill::SummonLife& summon, const WorldEntryResources& resources);

@@ -1096,6 +1096,61 @@ TEST(SkillRepliesTest, TheLevelUpEffectRespectsBothPoolsAndContinuesToItsSound)
     }
 }
 
+TEST(SkillRepliesTest, LevelUpUpdatesTheOwnRecordBeforeEffectsWithoutActorGuards)
+{
+    for (const std::uint16_t level : {std::uint16_t{255}, std::uint16_t{256}, std::uint16_t{65535}})
+    {
+        for (const bool full : {false, true})
+        {
+            auto tested = std::make_unique<Replies>();
+            auto& own = tested->world.OwnCharacter();
+            own.experience = 123;
+            own.bp = 13;
+            own.word48 = 99;
+            own.word4a = 99;
+            own.level = level;
+            auto& actor = tested->Actor(HeroIndex);
+            actor.byte88 = 2;
+            actor.alive = false;
+            for (auto& joint : tested->world.DrawTail().joints)
+                joint.alive = full;
+            for (auto& effect : tested->world.Map().effects.Effects())
+                effect.alive = full;
+            auto expected = Advanced(tested->cloth.random, OwnRecordRandoms);
+            if (!full)
+                expected = Advanced(expected, 45);
+            const auto applied = Client::Scenes::ApplyLevelUp(Client::Protocol::Skill::LevelUp{level, 2, 3, 4, 5, 6, 7},
+                                                              tested->Resources());
+            ASSERT_TRUE(applied.HasValue()) << applied.Error();
+            EXPECT_EQ(own.level, level);
+            EXPECT_EQ(own.levelUpPoints, 2);
+            EXPECT_EQ(own.life, 3);
+            EXPECT_EQ(own.maxLife, 3);
+            EXPECT_EQ(own.mana, 4);
+            EXPECT_EQ(own.maxMana, 4);
+            EXPECT_EQ(own.maxBp, 5);
+            EXPECT_EQ(own.addedPoints, 6);
+            EXPECT_EQ(own.maxAddedPoints, 7);
+            EXPECT_EQ(own.word48, 0);
+            EXPECT_EQ(own.word4a, 0);
+            EXPECT_EQ(own.bp, 13);
+            EXPECT_EQ(own.experience, 123u);
+            const std::uint64_t value = level;
+            const std::uint64_t extra = level > 255 ? value - 255 : 0;
+            EXPECT_EQ(own.nextExperience, static_cast<std::uint32_t>(10 * (value + 9) * value * value +
+                                                                     1000 * (extra + 9) * extra * extra));
+            EXPECT_EQ(tested->world.Runtime().ownRecordDepth, 0);
+            EXPECT_EQ(tested->cloth.random.State(), expected.State());
+            EXPECT_EQ(tested->world.Runtime().lastSoundId, 0x98);
+            if (!full)
+            {
+                EXPECT_EQ(tested->world.DrawTail().joints.front().ownerContext, &actor);
+                EXPECT_EQ(tested->world.Map().effects.Effects().front().ownerContext, &actor);
+            }
+        }
+    }
+}
+
 TEST(SkillRepliesTest, TheLevelUpEffectChecksItsActorAndKindBeforeEitherPool)
 {
     auto tested = std::make_unique<Replies>();

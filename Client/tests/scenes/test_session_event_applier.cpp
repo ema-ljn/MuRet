@@ -89,6 +89,30 @@ struct Applier
     Client::Scenes::SessionEventApplier applier;
 };
 
+TEST(SessionEventApplierTest, TheLevelUpWireReachesTheWorldThroughTheRealSession)
+{
+    auto tested = std::make_unique<Applier>();
+    Client::Tests::LoggedInSession online(&tested->applier);
+    ASSERT_NO_FATAL_FAILURE(online.LogIn());
+    tested->world.Runtime().hero = 7;
+    auto& own = tested->world.OwnCharacter();
+    own.bp = 81;
+    own.experience = 123;
+    online.socket.reads = {Client::Tests::Bytes({0xc1, 18, 0xf3, 5, 0, 1, 2, 0, 3, 0, 4, 0, 5, 0, 6, 0, 7, 0})};
+    static_cast<void>(online.session.Poll());
+    EXPECT_EQ(own.level, 256);
+    EXPECT_EQ(own.levelUpPoints, 2);
+    EXPECT_EQ(own.life, 3);
+    EXPECT_EQ(own.mana, 4);
+    EXPECT_EQ(own.maxBp, 5);
+    EXPECT_EQ(own.bp, 81);
+    EXPECT_EQ(own.experience, 123u);
+    EXPECT_EQ(own.nextExperience, 173680400u);
+    EXPECT_EQ(tested->world.Runtime().lastSoundId, 0x98);
+    EXPECT_EQ(tested->world.DrawTail().joints.front().ownerContext, &tested->world.Actors()[7]);
+    EXPECT_EQ(online.session.State(), Client::App::SessionState::LoggedIn);
+}
+
 TEST(SessionEventApplierTest, AppliesAnEmptyCharacterListImmediately)
 {
     auto owned = std::make_unique<Applier>();

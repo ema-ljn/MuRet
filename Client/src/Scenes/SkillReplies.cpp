@@ -668,6 +668,25 @@ Core::Expected<void, std::string> DurationAction(ActorState& actor, std::uint8_t
         return HitAction(actor, resources);
     }
 }
+
+Core::Expected<void, std::string> LevelUpEffect(ActorState& actor, const WorldEntryResources& resources)
+{
+    // 0x4dbfad..0x4dc004 y 0x4d319d..0x4d31f4: quince intentos, el calco /0 y el sonido aun con los pools llenos.
+    constexpr int Sparkles = 15;
+    for (int sparkle = 0; sparkle < Sparkles; ++sparkle)
+    {
+        const auto created =
+            CreateFaunaJoint(resources.world.DrawTail().joints,
+                             {0x60f, actor.position, actor.position, actor.angles, 0, &actor, 40.0f, 2, 0, 0, -1},
+                             resources.cloth.random);
+        if (!created.HasValue())
+            return Core::Unexpected(std::format("0x4dbfc5: {}", created.Error()));
+    }
+    static_cast<void>(resources.world.Map().effects.CreatePetSummon(actor.position, actor.angles, actor.light, &actor,
+                                                                    World::LevelUpDecalSubtype));
+    Sound(resources, 0x98);
+    return {};
+}
 } // namespace
 
 Core::Expected<void, std::string> ApplyMagicAttack(const MagicAttack& attack, const WorldEntryResources& resources)
@@ -885,22 +904,39 @@ Core::Expected<void, std::string> ApplyActorEffect(const ActorEffect& effect, co
     constexpr std::uint8_t LevelUpKind = 0x10;
     if (resources.world.Actors()[index].byte88 != PlayerObject || effect.kind != LevelUpKind)
         return {};
-    // 0x4dbfad..0x4dc004: quince intentos de alta, el calco /0 y el sonido. Los pools llenos omiten sólo el alta.
-    ActorState& actor = resources.world.Actors()[index];
-    constexpr int Sparkles = 15;
-    for (int sparkle = 0; sparkle < Sparkles; ++sparkle)
+    return LevelUpEffect(resources.world.Actors()[index], resources);
+}
+
+Core::Expected<void, std::string> ApplyLevelUp(const Protocol::Skill::LevelUp& reply,
+                                               const WorldEntryResources& resources)
+{
+    WorldState& world = resources.world;
+    WorldRuntime& runtime = world.Runtime();
     {
-        const auto created =
-            CreateFaunaJoint(resources.world.DrawTail().joints,
-                             {0x60f, actor.position, actor.position, actor.angles, 0, &actor, 40.0f, 2, 0, 0, -1},
-                             resources.cloth.random);
-        if (!created.HasValue())
-            return Core::Unexpected(std::format("0x4dbfc5: {}", created.Error()));
+        const Render::Models::LogicalAccess access(runtime.ownRecordDepth, resources.cloth.random,
+                                                   Render::Models::OwnRecordCloseRandoms);
+        OwnCharacterRecord& own = world.OwnCharacter();
+        own.level = reply.level;
+        own.levelUpPoints = reply.levelUpPoints;
+        own.life = reply.maxLife;
+        own.maxLife = reply.maxLife;
+        own.mana = reply.maxMana;
+        own.maxMana = reply.maxMana;
+        own.maxBp = reply.maxBp;
+        own.addedPoints = reply.addedPoints;
+        own.maxAddedPoints = reply.maxAddedPoints;
+        own.word48 = reply.word48;
+        own.word4a = reply.word4a;
+        // 0x550ca0: aritmética de DWORD, incluido el desborde.
+        const std::uint32_t level = reply.level;
+        own.nextExperience = 10u * (level + 9u) * level * level;
+        if (level > 255u)
+        {
+            const std::uint32_t extra = level - 255u;
+            own.nextExperience += 1000u * (extra + 9u) * extra * extra;
+        }
     }
-    static_cast<void>(resources.world.Map().effects.CreatePetSummon(actor.position, actor.angles, actor.light, &actor,
-                                                                    World::LevelUpDecalSubtype));
-    Sound(resources, 0x98);
-    return {};
+    return LevelUpEffect(world.Actors()[runtime.hero], resources);
 }
 
 Core::Expected<void, std::string> ApplySkillList(const SkillList& list, const WorldEntryResources& resources)

@@ -11,6 +11,7 @@
 
 #include <gtest/gtest.h>
 
+#include <array>
 #include <bit>
 #include <cstddef>
 #include <cstdint>
@@ -32,7 +33,6 @@ using Client::Scenes::JointState;
 constexpr std::uint32_t Seed = 0x60fu;
 constexpr float Tenth = std::bit_cast<float>(0x3dcccccdu);           // 0x6b87b8
 constexpr float NegativeRadians = std::bit_cast<float>(0xbc8efa35u); // 0x6ba2c4
-constexpr float Radians = std::bit_cast<float>(0x3c8efa35u);         // 0x6b8cf8
 
 double D(float value)
 {
@@ -51,7 +51,7 @@ struct Helix
     {
         glm::vec3 from = start;
         glm::vec3 to = target;
-        glm::vec3 turn{0.0f, 0.0f, 30.0f};
+        glm::vec3 turn{0.0f, 0.0f, facing};
         const Client::World::FishEffectRequest request{.type = type,
                                                        .firstPosition = from,
                                                        .secondPosition = to,
@@ -77,38 +77,19 @@ struct Helix
     Client::World::ModelEffect owner{};
     glm::vec3 start{1000.0f, 2000.0f, 300.0f};
     glm::vec3 target{1100.0f, 2100.0f, 320.0f};
+    float facing = 30.0f;
 };
 
-// 0x53b08a..0x53b14c y 0x53b318..0x53b363: una vuelta del paso, con la vida de antes de restarla.
-void TurnOnce(JointState& joint)
+float Bits(std::uint32_t bits)
 {
-    const double turn = (static_cast<double>(joint.life) + D(joint.velocity.x)) * D(Tenth);
-    double horizontal = 0;
-    double vertical = 0;
-    if (joint.subtype == 0xc)
-    {
-        horizontal = *CosineDoubleProductPC53(turn, -26.0);
-        vertical = *SineDoubleProductPC53(D(F32(turn)), 26.0) -
-                   static_cast<double>(0x5a - joint.life) * D(std::bit_cast<float>(0x3e99999au));
-    }
-    else
-    {
-        const int grown = joint.life + 0x28;
-        const double radius = static_cast<double>(grown > 0xa ? grown : 0xa) * D(std::bit_cast<float>(0x3f266666u));
-        horizontal = -*CosineDoubleProductPC53(D(F32(turn)), radius);
-        vertical = *SineDoubleProductPC53(D(F32(turn)), radius);
-    }
-    joint.targetPosition.x = F32(D(joint.velocity.y) + D(joint.targetPosition.x));
-    joint.targetPosition.y = F32(D(joint.velocity.z) + D(joint.targetPosition.y));
-    const double facing = (90.0 - D(joint.angles.z)) * D(Radians);
-    joint.position = {F32(*SineDoubleProductPC53(facing, horizontal) + D(joint.targetPosition.x)),
-                      F32(*CosineDoubleProductPC53(facing, horizontal) + D(joint.targetPosition.y)),
-                      F32(vertical + D(joint.targetPosition.z))};
-    if (joint.life < 10)
-        for (int channel = 0; channel < 3; ++channel)
-            joint.light[channel] = F32(D(joint.light[channel]) * D(std::bit_cast<float>(0x3f44ec4fu)));
-    --joint.life;
+    return std::bit_cast<float>(bits);
 }
+
+glm::vec3 Bits(std::uint32_t x, std::uint32_t y, std::uint32_t z)
+{
+    return {Bits(x), Bits(y), Bits(z)};
+}
+
 } // namespace
 
 // 0x533677..0x53368e y 0x533faf..0x5340d7: el ancho de la escala, el destino en el segundo punto y vx en rand() % 360
@@ -148,8 +129,8 @@ TEST(HelixJointsTest, EachHelixIsBornAroundItsTarget)
     }
 }
 
-// 0x534070: la /4 lee la luz de su dueño; sin dueño, el original lee de 0 y MuRet corta antes del rand(). Con la tabla
-// llena, el alta no hace nada ni saca rand().
+// 0x534070: la /4 lee la luz de su dueño (+0xf4); sin dueño, el original desreferencia el puntero nulo y revienta, y
+// MuRet corta antes del rand(). Con la tabla llena, el alta no hace nada ni saca rand().
 TEST(HelixJointsTest, TheNarrowHelixNeedsItsOwnerAndAFreePlace)
 {
     Helix lonely;
@@ -169,9 +150,8 @@ TEST(HelixJointsTest, TheNarrowHelixNeedsItsOwnerAndAFreePlace)
     EXPECT_EQ(full.random.State(), CrtRandom{Seed}.State());
 }
 
-// 0x53b08a..0x53b14c: el destino avanza (vy, vz) y la posición gira alrededor de él; 0x53c393 resta la vida y agrega
-// el tramo, y 0x53c3c6 repite el paso mientras la vida que queda no sea múltiplo de 12. Con vida 110 son dos vueltas
-// (110 y 109); con 108, doce (108..97). Sin rand().
+// 0x53c393 resta la vida y agrega el tramo, y 0x53c3c6 repite el paso mientras la vida que queda no sea múltiplo de 12.
+// Con vida 110 son dos vueltas (110 y 109); con 108, doce (108..97). Sin rand().
 TEST(HelixJointsTest, TheHelixTurnsUntilItsLifeIsAMultipleOfTwelve)
 {
     for (const std::int32_t subtype : {4, 0xc})
@@ -184,43 +164,126 @@ TEST(HelixJointsTest, TheHelixTurnsUntilItsLifeIsAMultipleOfTwelve)
         for (const int turns : {2, 12})
         {
             SCOPED_TRACE(turns);
-            JointState expected = joint;
-            for (int turn = 0; turn < turns; ++turn)
-                TurnOnce(expected);
+            const std::int32_t life = joint.life;
             const auto state = helix.random.State();
             const std::int32_t count = joint.count;
 
             const auto stepped = helix.Step();
             ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
 
-            EXPECT_EQ(joint.life, expected.life);
+            EXPECT_EQ(joint.life, life - turns);
             EXPECT_EQ(joint.life % 12, 0);
-            EXPECT_EQ(joint.targetPosition, expected.targetPosition);
-            EXPECT_EQ(joint.position, expected.position);
             EXPECT_EQ(joint.count, count + turns);
             EXPECT_EQ(helix.random.State(), state);
         }
     }
 }
 
-// 0x53b318..0x53b363: con menos de 10 de vida, cada vuelta multiplica la luz por 0,7692308f. Con 9, el cuadro da nueve
-// vueltas hasta 0; el siguiente da una y el joint muere (0x53c3bd).
-TEST(HelixJointsTest, TheHelixFadesInItsLastTurns)
+// Los bits de una corrida aparte de 0x53b08a..0x53b14c, 0x53b318..0x53b363 y 0x53c3c6 con la x87 de 53 bits (FSIN y
+// FCOS con el giro sin redondear o guardado según el ASM), desde el segundo punto (1100,5; 2100,25; 320,125) y la
+// luz del dueño (0,25; 0,5; 0,75). La /4 con el radio (vida + 40, no menos de 10) · 0,65f: con 0x7ffffff0 la suma da
+// la vuelta y el radio queda en 10. La 0x62b/4 con 8 de vida se apaga en cada una de sus ocho vueltas.
+TEST(HelixJointsTest, TheHelixLandsOnTheBitsOfTheOriginal)
+{
+    struct Case
+    {
+        std::int32_t type;
+        std::int32_t subtype;
+        std::int32_t life;
+        glm::vec3 velocity;
+        float facing;
+        std::int32_t turns;
+        glm::vec3 position;
+        glm::vec3 target;
+        glm::vec3 light;
+    };
+    const glm::vec3 owned{0.25f, 0.5f, 0.75f};
+    const glm::vec3 dim{Tenth, Tenth, 1.0f};
+    const std::array<Case, 5> cases{{
+        {0x60f,
+         4,
+         110,
+         {123.0f, Bits(0x3f9e3779u), Bits(0xbfb504f3u)},
+         30.0f,
+         2,
+         Bits(0x448d957du, 0x45042918u, 0x43658cc6u),
+         Bits(0x4489df1cu, 0x450316beu, 0x43a01000u),
+         owned},
+        {0x60f,
+         0xc,
+         70,
+         {359.0f, Bits(0x40400001u), Bits(0xc0000003u)},
+         77.7f,
+         10,
+         Bits(0x448d96e5u, 0x4502a693u, 0x438fcc37u),
+         Bits(0x448d5000u, 0x45020400u, 0x43a01000u),
+         dim},
+        {0x62b,
+         4,
+         8,
+         {5.0f, 1.5f, -2.25f},
+         200.0f,
+         8,
+         Bits(0x448da566u, 0x45029c5du, 0x43a7961cu),
+         Bits(0x448b1000u, 0x45022400u, 0x43a01000u),
+         Bits(0x3cfb1033u, 0x3d7b1033u, 0x3dbc4c26u)},
+        {0x62b,
+         0xc,
+         13,
+         {200.0f, 0.1f, 0.2f},
+         -45.0f,
+         1,
+         Bits(0x448b5881u, 0x4502648cu, 0x439ccc8au),
+         Bits(0x44899333u, 0x45034733u, 0x43a01000u),
+         dim},
+        {0x60f,
+         4,
+         0x7ffffff0,
+         {1.0f, 2.0f, 3.0f},
+         10.0f,
+         4,
+         Bits(0x448ac097u, 0x45040849u, 0x43a33841u),
+         Bits(0x448a9000u, 0x45040400u, 0x43a01000u),
+         owned},
+    }};
+    for (const Case& tested : cases)
+    {
+        SCOPED_TRACE(tested.type);
+        SCOPED_TRACE(tested.subtype);
+        SCOPED_TRACE(tested.life);
+        Helix helix;
+        helix.owner.light = owned;
+        helix.target = {1100.5f, 2100.25f, 320.125f};
+        helix.facing = tested.facing;
+        ASSERT_TRUE(helix.Create(tested.type, tested.subtype).HasValue());
+        JointState& joint = helix.joints[0];
+        joint.life = tested.life;
+        joint.velocity = tested.velocity;
+        const std::int32_t count = joint.count;
+
+        const auto stepped = helix.Step();
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+
+        EXPECT_EQ(joint.life, tested.life - tested.turns);
+        EXPECT_EQ(joint.count, count + tested.turns);
+        EXPECT_EQ(joint.position, tested.position);
+        EXPECT_EQ(joint.targetPosition, tested.target);
+        EXPECT_EQ(joint.light, tested.light);
+        EXPECT_TRUE(joint.alive);
+    }
+}
+
+// 0x53c3bd: con 9 de vida, el cuadro da nueve vueltas hasta 0; el siguiente da una y el joint muere.
+TEST(HelixJointsTest, TheHelixDiesAfterItsLastTurn)
 {
     Helix helix;
-    helix.owner.light = {0.25f, 0.5f, 0.75f};
     ASSERT_TRUE(helix.Create(0x60f, 4).HasValue());
     JointState& joint = helix.joints[0];
     joint.life = 9;
-    JointState expected = joint;
-    for (int turn = 0; turn < 9; ++turn)
-        TurnOnce(expected);
 
     ASSERT_TRUE(helix.Step().HasValue());
 
     EXPECT_EQ(joint.life, 0);
-    EXPECT_EQ(joint.light, expected.light);
-    EXPECT_EQ(joint.position, expected.position);
     EXPECT_TRUE(joint.alive);
 
     ASSERT_TRUE(helix.Step().HasValue());

@@ -606,30 +606,52 @@ Core::Expected<void, std::string> StepCrywolfTide(ModelEffect& effect, Particles
     return AddDynamicLight(services.lighting, point, light, 3, "0x5264fa");
 }
 
+// 0x526dd0..0x526f9b: el paso de las ondas 0x114, sin rand(). La escala suma +0xe4 y +0xe4 crece (la /0 sólo con más
+// de 4 de vida); la /1..6 topan la escala (2; 1,5; 1,5; 2,5; 2,5; 2,5); +0x68 baja por un factor y la /3..6 giran 45 en
+// la y. Otro subtipo, nada.
 Core::Expected<void, std::string> StepWaveEffect(ModelEffect& effect)
 {
-    if (effect.subtype != 2 && effect.subtype != 6)
-        return Core::Unexpected(std::string("0x526de4: subtipo de114 fuera de2/6"));
-    const bool second = effect.subtype == 2;
-    effect.transform.scale =
-        F32(static_cast<double>(effect.transform.scale) + static_cast<double>(effect.turnDirection));
-    effect.turnDirection =
-        F32(static_cast<double>(effect.turnDirection) + static_cast<double>(second ? 0.01f : 0.015f));
-    const float limit = second ? 1.5f : 2.5f;
-    if (effect.transform.scale > limit)
-        effect.transform.scale = limit;
-    const float fade = std::bit_cast<float>(second ? 0x3f2aaaabu : 0x3f44ec4fu);
-    effect.objectState.light = F32(static_cast<double>(effect.objectState.light) * static_cast<double>(fade));
-    if (!second)
+    struct Wave
+    {
+        std::uint32_t growth; // lo que suma +0xe4
+        std::optional<float> limit;
+        std::uint32_t fade; // el factor de +0x68
+        bool turns;
+    };
+    constexpr std::array<Wave, 7> Waves{{
+        {0x3dcccccdu, std::nullopt, 0x3f36db6eu, false}, // 0x526dd7: 0,1f y 0,714f (0x6ba268)
+        {0x3d8f5c29u, 2.0f, 0x3f2aaaabu, false},         // 0x526e11: 0,07f y 0,667f (0x6b8c64)
+        {0x3c23d70au, 1.5f, 0x3f2aaaabu, false},         // 0x526e5c: 0,01f
+        {0x3ba3d70au, 1.5f, 0x3f44ec4fu, true},          // 0x526ea7: 0,005f y 0,769f (0x6ba240)
+        {0x3b03126fu, 2.5f, 0x3f555555u, true},          // 0x526eea: 0,002f y 0,833f (0x6b8b98)
+        {0x3c75c28fu, 2.5f, 0x3f44ec4fu, true},          // 0x526f40: 0,015f
+        {0x3c75c28fu, 2.5f, 0x3f44ec4fu, true},          // 0x526f9b: la /6 salta a la /5
+    }};
+    if (effect.subtype < 0 || effect.subtype >= static_cast<std::int32_t>(Waves.size()))
+        return {};
+    const Wave& wave = Waves[static_cast<std::size_t>(effect.subtype)];
+    constexpr std::int32_t GrowingLife = 4;
+    if (effect.subtype != 0 || effect.life > GrowingLife)
+    {
+        effect.transform.scale =
+            F32(static_cast<double>(effect.transform.scale) + static_cast<double>(effect.turnDirection));
+        effect.turnDirection =
+            F32(static_cast<double>(effect.turnDirection) + static_cast<double>(std::bit_cast<float>(wave.growth)));
+    }
+    if (wave.limit && effect.transform.scale > *wave.limit)
+        effect.transform.scale = *wave.limit;
+    effect.objectState.light =
+        F32(static_cast<double>(effect.objectState.light) * static_cast<double>(std::bit_cast<float>(wave.fade)));
+    if (wave.turns)
         effect.transform.angles.y = F32(static_cast<double>(effect.transform.angles.y) + 45.0);
     return {};
 }
 
+// 0x526f9d..0x527096: el 0x115. Se mueve antes de la cola (la velocidad girada por los ángulos), la y de la velocidad
+// + 12 hasta 0 y, con más de 1 de vida (el /1) o de 5 (los demás), +0x68 por 0,625 y la onda 0x114/2 con la vida de
+// clave (0x52704d y 0x52708e).
 Core::Expected<void, std::string> StepPiercingEffect(ModelEffect& effect, const ModelEffectStepServices& services)
 {
-    if (effect.subtype != 1)
-        return Core::Unexpected(std::string("0x527010: subtipo de115 fuera de1"));
-    // 0x526f9d: hay un movimiento explícito ANTES del común de0x51fc80.
     const auto offset = Render::Models::OriginalVectorRotate(
         effect.velocity, Render::Models::OriginalAngleMatrix(effect.transform.angles));
     for (int axis = 0; axis < 3; ++axis)
@@ -637,11 +659,14 @@ Core::Expected<void, std::string> StepPiercingEffect(ModelEffect& effect, const 
             F32(static_cast<double>(offset[axis]) + static_cast<double>(effect.transform.position[axis]));
     const double next = static_cast<double>(effect.velocity.y) + 12.0;
     effect.velocity.y = next >= 0.0 ? 0.0f : F32(next);
-    if (effect.life <= 1)
+    constexpr std::int32_t ShortSubtype = 1, ShortWaveLife = 1, LongWaveLife = 5;
+    const bool shortOne = effect.subtype == ShortSubtype;
+    if (effect.life <= (shortOne ? ShortWaveLife : LongWaveLife))
         return {};
     effect.objectState.light = F32(static_cast<double>(effect.objectState.light) * 0.625);
     if (services.effects == nullptr)
-        return Core::Unexpected(std::string("0x52704d: falta el pool de114/2 del115"));
+        return Core::Unexpected(std::string(shortOne ? "0x52704d: falta la tabla de efectos para la onda 0x114/2"
+                                                     : "0x52708e: falta la tabla de efectos para la onda 0x114/2"));
     static_cast<void>(services.effects->CreateWaveEffect({.type = 0x114,
                                                           .position = effect.transform.position,
                                                           .angles = effect.transform.angles,

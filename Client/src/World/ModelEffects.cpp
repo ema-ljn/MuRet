@@ -1128,24 +1128,27 @@ std::optional<std::size_t> ModelEffects::CreateCrywolfTideEffect(const ModelEffe
 
 std::optional<std::size_t> ModelEffects::CreateWaveEffect(const ModelEffectArguments& arguments)
 {
-    if (arguments.type != 0x114 || (arguments.subtype != 2 && arguments.subtype != 6))
+    constexpr std::int32_t FirstWave = 2, LastSlowWave = 4, LastWave = 6;
+    if (arguments.type != 0x114 || arguments.subtype < FirstWave || arguments.subtype > LastWave)
         return std::nullopt;
     const auto slot = Begin(arguments);
     if (!slot)
         return std::nullopt;
     auto& effect = m_effects[*slot];
+    constexpr double Lift = 50.0;                                                          // 0x6b86b0
+    constexpr double ScalePerKey = static_cast<double>(std::bit_cast<float>(0x3d4ccccdu)); // 0x6b8a48, 0,05f
     effect.start = arguments.position;
-    // El store del prefijo +50 precede el−50 del subtipo, incluso si redondea una z grande.
+    // 0x51c173: el +50 de lo común y el −50 del subtipo, cada uno con su fstp.
     effect.transform.position.z =
-        F32(static_cast<double>(F32(static_cast<double>(arguments.position.z) + 50.0)) - 50.0);
+        F32(static_cast<double>(F32(static_cast<double>(arguments.position.z) + Lift)) - Lift);
     effect.objectState.blendMesh = Render::Models::EveryMeshBlends;
     effect.objectState.light = 1;
-    effect.life = effect.subtype == 2 ? 15 : 10;
-    effect.transform.scale =
-        F32(static_cast<double>(std::bit_cast<std::int16_t>(arguments.key)) * static_cast<double>(0.05f));
+    const bool slow = effect.subtype <= LastSlowWave;
+    effect.life = slow ? 15 : 10;
+    effect.transform.scale = F32(static_cast<double>(std::bit_cast<std::int16_t>(arguments.key)) * ScalePerKey);
     effect.disturbanceState = 0xffff;
-    effect.turnDirection = effect.subtype == 2 ? 0.01f : 0.08f;
-    effect.transform.angles = {effect.subtype == 2 ? 90.0f : -90.0f, 0, arguments.angles.z};
+    effect.turnDirection = std::bit_cast<float>(slow ? 0x3c23d70au : 0x3da3d70au); // 0,01f y 0,08f
+    effect.transform.angles = {slow ? 90.0f : -90.0f, 0, arguments.angles.z};
     return slot;
 }
 
@@ -1171,18 +1174,20 @@ std::optional<std::size_t> ModelEffects::CreatePiercingShot(const ModelEffectArg
 
 std::optional<std::size_t> ModelEffects::CreatePiercingEffect(const ModelEffectArguments& arguments)
 {
-    if (arguments.type != 0x115 || arguments.subtype != 1)
+    if (arguments.type != 0x115)
         return std::nullopt;
     const auto slot = Begin(arguments);
     if (!slot)
         return std::nullopt;
     auto& effect = m_effects[*slot];
+    constexpr std::int32_t ShortSubtype = 1, ShortLife = 6, LongLife = 10;
+    constexpr double Lift = 130.0; // 0x6ba194
     effect.transform.scale = 2;
-    effect.life = 6;
+    effect.life = effect.subtype == ShortSubtype ? ShortLife : LongLife;
     effect.objectState.blendMesh = Render::Models::EveryMeshBlends;
     effect.velocity = {0, -60, 0};
     effect.start = arguments.position;
-    effect.transform.position.z = F32(static_cast<double>(effect.transform.position.z) + 130.0);
+    effect.transform.position.z = F32(static_cast<double>(effect.transform.position.z) + Lift);
     return slot;
 }
 

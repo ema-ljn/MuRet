@@ -20,6 +20,7 @@
 #include "Scenes/KalimaMonsterEffects.h"
 #include "Scenes/SkullEffects.h"
 #include "Scenes/SkillHits.h"
+#include "Scenes/WaveEffects.h"
 #include "Scenes/WorldMap.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
@@ -1224,7 +1225,7 @@ bool IsHighModelEffect(std::int16_t type)
            type == FallingStarEffect || type == PierPartEffect || type == DarkLordSkillEffect ||
            type == ManaRuneEffect || type == SparkEmitterEffect || type == BoltEmitterEffect ||
            type == PiercingGlowEffect || type == SkullEffect || type == SeamanEffect || type == FireBreathEffect ||
-           type == JavelinEffect || type == ThunderEffect;
+           type == JavelinEffect || type == ThunderEffect || type == WaveEffect || type == PiercingEffect;
 }
 
 Core::Expected<std::optional<std::size_t>, std::string>
@@ -1235,6 +1236,12 @@ CreateHighModelEffect(const World::ModelEffectArguments& arguments, const HighEf
     // 0x51efea: el /0, el de World.
     if (arguments.type == PiercingGlowEffect && arguments.subtype == 0)
         return context.world.Map().effects.CreatePiercingShot(arguments);
+    // 0x51c2b3..0x51c36d: las ondas 0x114/2..6 y el 0x115 (0x51c8e8), sin rand() ni nada de afuera: los de World.
+    constexpr std::int32_t FirstWorldWave = 2, LastWorldWave = 6;
+    if (arguments.type == WaveEffect && arguments.subtype >= FirstWorldWave && arguments.subtype <= LastWorldWave)
+        return context.world.Map().effects.CreateWaveEffect(arguments);
+    if (arguments.type == PiercingEffect)
+        return context.world.Map().effects.CreatePiercingEffect(arguments);
     const auto slot = context.world.Map().effects.Begin(arguments);
     if (!slot.has_value())
         return slot;
@@ -1302,6 +1309,9 @@ CreateHighModelEffect(const World::ModelEffectArguments& arguments, const HighEf
     case ThunderEffect:
         BeginTheThunder(effect);
         break;
+    case WaveEffect:
+        begun = BeginTheWave(effect, arguments, context);
+        break;
     default:
         break;
     }
@@ -1320,6 +1330,9 @@ bool StepsAsHighModelEffect(const World::ModelEffect& effect)
     // El 0x621/0 da su paso en World (StepGameModelEffect).
     if (effect.type == PiercingGlowEffect)
         return effect.subtype != 0;
+    // El 0x114 y el 0x115 nacen aquí y dan su paso en World (0x526dd0 y 0x526f9d).
+    if (effect.type == WaveEffect || effect.type == PiercingEffect)
+        return false;
     return IsHighModelEffect(effect.type);
 }
 

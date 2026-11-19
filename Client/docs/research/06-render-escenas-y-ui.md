@@ -14111,8 +14111,8 @@ Quinta vuelta: las familias nuevas están en `WaveEffects`, `RingEffects`, `Kund
 (`0x504cdb`), la flecha `0x11c` (`0x526c05`), los anillos de la 0x37 de Kalima (`0x439ba5`) y el `0x11b/0` del joint
 `0x613/0x13` (`0x539b08`), el `0x13f` del `0x1a9` con el sonido `0x20d` (`0x442cb9`, solo en el frame del original),
 la marca `0x140` de `+0x369` (`0x510f4d`, en `MonsterDrawing` y en `GameCharacterEffects`) y la onda `0x6eb/3` del
-joint `0x10f/5` y `/6` (`0x536626`). Los dos `0x6e8/0` del `0x114/1` (`0x51c25f`) los crea el lote joints. Cortan, con un lugar libre y después de sus
-`rand()`: los joints `0x5ac/0` del `0x114/0` (`0x51c1b8`) y el `0x6ee/0x12` con dueño del `0x125` (`0x51ce91`) (08, P-C420); las
+joint `0x10f/5` y `/6` (`0x536626`). Los dos `0x6e8/0` del `0x114/1` (`0x51c25f`), los sesenta `0x5ac/0` del `0x114/0` (`0x51c1b8`) y el `0x6ee/0x12` con
+dueño del `0x125` (`0x51ce91`) los crea el lote joints. Cortan, con un lugar libre y después de sus `rand()`: las
 partículas `0x6ec/3` del `0x13d` (`0x5262e8`), `0x5c5/6` y `0x5c5/5` del `0x140` (`0x529f71`, `0x52a16e`) y la órbita
 `0x60f/0` con el `0x61d` de dueño (`0x52b8ff`, `0x52b977`; su paso lee `+0x111` del efecto como la acción de un
 personaje) (08, P-C422). El `0x125` todavía no sale en el juego: el `0x128` que lo suelta no está (`0x43d051`,
@@ -14272,9 +14272,10 @@ en un lugar de más adelante pasa en la misma vuelta de `0x53c670`.
   partículas). La /0xf suma 30 a la key (WORD); con menos de 35 de vida corta en la `0x5d9/7` (`0x53918a`) y si no
   avanza k = key · 0,1f + 30 (sin redondear) en x por el seno y en −y por el coseno de la z de los ángulos. La /0x11
   con vida 100 suelta 120 `0x613/0x10` de ancho 0,9f con los ángulos (0, 0, 3 · i) (`0x53940d`). La /0x12 sube la
-  velocidad 3, mueve la key de a ±6 según vida % 12 y apunta −90 − key en x y 10 más en z; con dueño corta en
-  `0x539494` (le pone el alpha +0x174 y la posición; nadie conocido la crea) y si no en su partícula `0x5f2/0x13`
-  (`0x5394fb`).
+  velocidad 3, mueve la key de a ±6 según vida % 12 y apunta −90 − key en x y 10 más en z; con dueño (el `0x6ee/0x12`
+  del `0x125` de Kundun, `0x51ce91`, con el efecto de dueño) le pone el alpha (+0x174) en 1 si su vida (+0x60) pasa de 5
+  y le copia la posición (`0x539494`; otro dueño corta ahí) y después corta en su partícula `0x5f2/0x13` (`0x5394fb`,
+  lote de partículas).
 - **`0x60f/2` y `0x60f/0x18`** (`DropJoints.cpp`): alta `0x533677` y `0x5340dc` (la /0x18 con la textura `0x62d`; vz
   en `rand() % 20 + 35`, la luz blanca, vida `rand() % 50 + 25` y el destino en el segundo punto) y paso `0x53b156`
   (con vida de 25 o menos cae sobre el destino con vz + 5; con menos de 10, la luz por 0,7692308f).

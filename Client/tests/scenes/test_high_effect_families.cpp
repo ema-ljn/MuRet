@@ -9,6 +9,7 @@
 #include "Render/Models/Pose.h"
 #include "Render/Models/Skeleton.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/FaunaJointCreation.h"
 #include "Scenes/FaunaDrawing.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/HighEffectEmitters.h"
@@ -695,8 +696,7 @@ TEST(HighEffectFamiliesTest, TheGuildMarkSparksAtBirthAndBeforeFading)
 
 // 0x51cdc9..0x51cebe: el 0x125 sube 100, sortea el giro y el radio y deja el joint 0x6ee/0x12 con él de dueño y la
 // clave 0 en (FSIN(giro) · radio + x, FCOS(giro) · radio + y, 0); después los ángulos en (−30, 0, rand() % 360). El
-// 0x6ee/0x12 con un efecto de dueño es del lote de joints: con lugar corta en 0x51ce91, después de los dos rand(). Con
-// los joints llenos, sin el joint y con el tercer rand().
+// 0x6ee/0x12 (SpiritJoints.cpp, 0x533539) no saca rand(): con lugar o con los joints llenos, tres rand().
 TEST(HighEffectFamiliesTest, TheKundunSpiritLeavesItsOrbitingJoint)
 {
     for (const bool full : {false, true})
@@ -716,20 +716,64 @@ TEST(HighEffectFamiliesTest, TheKundunSpiritLeavesItsOrbitingJoint)
         EXPECT_EQ(spirit.light, glm::vec3(0.5f));
         EXPECT_EQ(spirit.alpha, 0.0f);
         EXPECT_EQ(spirit.transform.position, (glm::vec3{1000.0f, 2000.0f, 400.0f}));
+        ASSERT_TRUE(made.HasValue()) << made.Error();
         if (!full)
         {
-            EXPECT_TRUE(HasError(made, "0x51ce91")) << (made.HasValue() ? std::string() : made.Error());
-            EXPECT_EQ(tested.Draws(), 2);
-            EXPECT_EQ(spirit.transform.angles, angles);
-            continue;
+            const auto& joint = tested.world->DrawTail().joints[0];
+            EXPECT_TRUE(joint.alive);
+            EXPECT_EQ(joint.type, 0x6ee);
+            EXPECT_EQ(joint.subtype, 0x12);
+            EXPECT_EQ(joint.ownerContext, &spirit);
+            EXPECT_EQ(joint.key, 0);
+            EXPECT_EQ(joint.width, 100.0f);
+            EXPECT_EQ(joint.angles, angles);
         }
-        ASSERT_TRUE(made.HasValue()) << made.Error();
         CrtRandom replay(Seed);
         static_cast<void>(replay.Next());
         static_cast<void>(replay.Next());
         const auto yaw = static_cast<float>(replay.Next() % 360);
         EXPECT_EQ(spirit.transform.angles, (glm::vec3{-30.0f, 0.0f, yaw}));
         EXPECT_EQ(tested.random.State(), replay.State());
+    }
+}
+
+// 0x51ce4f..0x51ce7d: con la semilla, el giro 211 y el radio 645. FSIN y FCOS de 211 (radianes, no grados) con la
+// precisión de la x87, por el radio y más la x y la y en doble, guardados en float: los bits que da otra corrida
+// (Fraction exacta y el seno con 80 dígitos), no los de SineProductPC53. La z es 0.
+TEST(HighEffectFamiliesTest, TheKundunJointLandsOnTheBitsOfTheOrbit)
+{
+    FamilyWorld tested;
+    const auto made = CreateHighModelEffect({.type = 0x125, .position = {1000.0f, 2000.0f, 300.0f}}, tested.Context());
+    ASSERT_TRUE(made.HasValue()) << made.Error();
+    const auto& joint = tested.world->DrawTail().joints[0];
+    ASSERT_TRUE(joint.alive);
+    EXPECT_EQ(std::bit_cast<std::uint32_t>(joint.position.x), 0x442ad18bu);
+    EXPECT_EQ(std::bit_cast<std::uint32_t>(joint.position.y), 0x44b3c3d3u);
+    EXPECT_EQ(joint.position.z, 0.0f);
+}
+
+// 0x539494..0x5394bb: el paso del 0x6ee/0x12 (después del movimiento común de 50 por sus ángulos y de su giro) le pone
+// al 0x125 el alpha en 1 con vida de más de 5 (con 5, no) y le copia su posición; después corta en la partícula
+// 0x5f2/0x13 (0x5394fb), del lote de partículas.
+TEST(HighEffectFamiliesTest, TheKundunJointShowsAndCarriesItsSpirit)
+{
+    for (const std::int32_t life : {6, 5})
+    {
+        SCOPED_TRACE(life);
+        FamilyWorld tested;
+        ASSERT_TRUE(CreateHighModelEffect({.type = 0x125, .position = {1000.0f, 2000.0f, 300.0f}}, tested.Context())
+                        .HasValue());
+        ModelEffect& spirit = tested.Effect(0);
+        spirit.life = life;
+        auto& joints = tested.world->DrawTail().joints;
+        const glm::vec3 born = joints[0].position;
+        const auto stepped = Client::Scenes::StepJoints(joints, tested.random, nullptr, nullptr, 0.0f, nullptr);
+        EXPECT_TRUE(HasError(stepped, "0x5394fb")) << (stepped.HasValue() ? std::string() : stepped.Error());
+        EXPECT_EQ(spirit.alpha, life > 5 ? 1.0f : 0.0f);
+        EXPECT_EQ(spirit.transform.position, joints[0].position);
+        // Con los ángulos del pedido en 0, el movimiento común es (0, −50, 0).
+        EXPECT_EQ(joints[0].position, (glm::vec3{born.x, born.y - 50.0f, 0.0f}));
+        EXPECT_EQ(joints[0].speed, 53.0f);
     }
 }
 

@@ -1004,6 +1004,8 @@ Core::Expected<std::optional<std::size_t>, std::string> CreateFaunaJoint(std::sp
     const bool pulseJoint =
         (request.type == JointFamilies::StormJoint && request.subtype == JointFamilies::FallingStarSubtype) ||
         (request.type == 0x615 && request.subtype == 6) || JointFamilies::IsHelix(request.type, request.subtype);
+    // El 0x6ee/0x12 del 0x125 de Kundun (0x51ce91), que le escribe el alpha y la posición en su paso (0x539494).
+    const bool kundunSpirit = request.type == JointFamilies::SecondSpiritJoint && request.subtype == 0x12;
     for (std::size_t i = 0; i < joints.size(); ++i)
     {
         if (joints[i].alive)
@@ -1020,7 +1022,7 @@ Core::Expected<std::optional<std::size_t>, std::string> CreateFaunaJoint(std::sp
             !((request.type == EnergyJoint &&
                (request.subtype == SummonEnergySubtype || request.subtype == SummonDecalEnergySubtype)) ||
               (request.type == 0x610 && (request.subtype == 13 || (request.subtype >= 0 && request.subtype <= 3))) ||
-              (request.type == SparkleJoint && request.subtype == 6) || effectBeam || pulseJoint ||
+              (request.type == SparkleJoint && request.subtype == 6) || effectBeam || pulseJoint || kundunSpirit ||
               request.type == JointFamilies::FireTrailJoint))
             return Core::Unexpected(
                 std::string("0x530860: el dueño ModelEffect no está portado para este tipo y subtipo"));

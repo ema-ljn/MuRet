@@ -10,6 +10,7 @@
 #include "Scenes/JointKernels.h"
 #include "Scenes/RingEffects.h"
 #include "World/IFishStepServices.h"
+#include "World/ModelEffects.h"
 #include "World/Sprites.h"
 #include "World/WorldObjectStepServices.h"
 
@@ -519,8 +520,9 @@ Core::Expected<void, std::string> StepTheBurst(JointState& joint, const JointKer
 }
 
 // 0x53942c..0x5394fb: la /0x12. La velocidad + 3; la key (WORD) + 6 con vida % 12 de 5 o menos y − 6 si no; la x de los
-// ángulos −90 − key y la z + 10. Con dueño, el original le pone el alpha (+0x174) en 1 si su +0x60 pasa de 5 y le
-// copia la posición (0x539494, sin portar: no se conoce quién crea la /0x12); después, la partícula 0x5f2/0x13.
+// ángulos −90 − key y la z + 10. Con dueño (el 0x125 de Kundun, 0x51ce91: JointOwnerKind::ModelEffect), le pone el
+// alpha (+0x174) en 1 si su vida (+0x60) pasa de 5 y le copia la posición (+0x10, 0x539494); otro dueño corta ahí.
+// Después, la partícula 0x5f2/0x13, del lote de partículas.
 Core::Expected<void, std::string> StepTheSwing(JointState& joint)
 {
     constexpr std::int32_t SwingPeriod = 12, RisingHalf = 5;
@@ -533,9 +535,17 @@ Core::Expected<void, std::string> StepTheSwing(JointState& joint)
     joint.angles.x = F32(Down - static_cast<double>(joint.key));
     joint.angles.z = F32(D(joint.angles.z) + 10.0);
     if (joint.ownerContext != nullptr)
-        return Core::Unexpected(std::format(
-            "0x539494: el dueño del joint {:#x}/0x12 (+0x60, el alpha +0x174 y la posición) no está portado (CL11)",
-            joint.type));
+    {
+        if (joint.ownerKind != JointOwnerKind::ModelEffect)
+            return Core::Unexpected(std::format(
+                "0x539494: el dueño del joint {:#x}/0x12 que no es un efecto con modelo no está portado (CL11)",
+                joint.type));
+        auto& owner = *static_cast<World::ModelEffect*>(joint.ownerContext);
+        constexpr std::int32_t ShownLife = 5;
+        if (owner.life > ShownLife)
+            owner.alpha = 1.0f;
+        owner.transform.position = joint.position;
+    }
     return ParticleCut(joint, 0x5394fb, 0x5f2, 0x13);
 }
 

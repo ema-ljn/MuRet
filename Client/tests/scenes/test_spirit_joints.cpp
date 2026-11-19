@@ -717,7 +717,8 @@ TEST(SpiritJointsTest, TheBurstReleasesItsPieces)
 }
 
 // 0x53942c..0x5394fb: la /0x12 sube 3 la velocidad, mueve la key de a 6 y apunta −90 − key en x y 10 más en z; sin
-// dueño corta en su partícula 0x5f2/0x13 y con dueño antes, en 0x539494. La /0x14 sube como la /8.
+// dueño corta en su partícula 0x5f2/0x13 y con un personaje de dueño antes, en 0x539494 (sólo el efecto con modelo del
+// 0x125 está portado, test_high_effect_families). La /0x14 sube como la /8.
 TEST(SpiritJointsTest, TheSwingAndTheTwentiethStep)
 {
     Pool pool;

@@ -23,8 +23,8 @@ inline constexpr std::int16_t KundunSpiritEffect = 0x125;
 // 0x51cdc9..0x51cebe: vida 30, +0x64 en −2, escala 1, la luz en 0,5, el alpha en 0 y la z 100 más; el giro rand() % 360
 // y el radio rand() % 600 + 200, y el joint 0x6ee/0x12 con el efecto de dueño, de ancho 100 y clave 0 (0x51ce91), en
 // (FSIN(giro) · radio + x, FCOS(giro) · radio + y, 0) con la x y la y de antes; después los ángulos en (−30, 0,
-// rand() % 360). Cualquier subtipo. El 0x6ee/0x12 con un efecto de dueño es del lote de joints: con lugar corta ahí,
-// después de los dos rand(); con los joints llenos sigue.
+// rand() % 360). Cualquier subtipo. El 0x6ee/0x12 (SpiritJoints.cpp) no saca rand(); en su paso le pone al 0x125 el
+// alpha y la posición (0x539494).
 [[nodiscard]] Core::Expected<void, std::string> BeginTheKundunSpirit(World::ModelEffect& effect,
                                                                      const HighEffectContext& context);
 

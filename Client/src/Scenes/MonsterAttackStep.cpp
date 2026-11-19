@@ -1297,12 +1297,12 @@ Core::Expected<void, std::string> StepTheKindSkill(ActorState& actor, ActorState
             if ((context.random.Next() & 1) == 0)
             {
                 // 0x4f8227 y 0x4f8244: en la posición del blanco (+0x3a4, ya en [0, 400)), con c de dueño.
-                ActorState& target =
+                ActorState& blasted =
                     context.world.Actors()[static_cast<std::size_t>(std::bit_cast<std::int16_t>(actor.attackTarget))];
                 for (int blast = 0; blast < 2; ++blast)
                 {
                     if (auto made =
-                            CreateTheBlastEffect(0xf5, 0, target.position, actor.angles, actor.light, &actor, context);
+                            CreateTheBlastEffect(0xf5, 0, blasted.position, actor.angles, actor.light, &actor, context);
                         !made.HasValue())
                         return made;
                 }

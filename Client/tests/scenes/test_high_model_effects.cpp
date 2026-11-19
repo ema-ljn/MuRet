@@ -18,6 +18,7 @@
 #include "World/GameModelEffects.h"
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
+#include "World/Sprites.h"
 #include "World/TerrainLighting.h"
 
 #include <glm/ext/vector_float3.hpp>
@@ -777,5 +778,187 @@ TEST(HighModelEffectsTest, TheHerosMovingLightLooksForTargetsFourTimes)
             .HasValue());
     EXPECT_EQ(tested.Draws(), 4 * Client::Render::Models::OwnRecordCloseRandoms);
     EXPECT_EQ(sent, 0);
+}
+// 0x51f048..0x51f153: el 0x625 con su vida, +0xe4, +0xd8, la luz en 0, la escala y el reparto del subtipo, la z 500
+// más, la x 100 más, la partida en la posición y el sonido 0x42; con la tabla llena, nada y sin rand().
+TEST(HighModelEffectsTest, TheFallingStarSpreadsAboveItsTarget)
+{
+    for (const std::int32_t subtype : {0, 1})
+    {
+        SCOPED_TRACE(subtype);
+        HighWorld tested;
+        const ModelEffectArguments arguments{.type = 0x625,
+                                             .position = {1000, 2000, 30},
+                                             .angles = {0, 0, 45},
+                                             .light = glm::vec3(1.0f),
+                                             .subtype = subtype};
+        const auto made = CreateHighModelEffect(arguments, tested.Context());
+        ASSERT_TRUE(made.HasValue()) << made.Error();
+        ASSERT_EQ(made.Value(), std::optional<std::size_t>{0});
+        CrtRandom expected(Seed);
+        const int life = expected.Next() % 15 + 15;
+        const auto speed = static_cast<float>(expected.Next() % 360);
+        float rise = -20.0f;
+        const int spread = subtype == 1 ? 300 : 200;
+        const double half = subtype == 1 ? 150.0 : 100.0;
+        if (subtype == 1)
+            rise = static_cast<float>(-20.0 - static_cast<double>(expected.Next() % 20 + 10));
+        const auto x = static_cast<float>(static_cast<double>(expected.Next() % spread) + 1000.0 - half);
+        const auto y = static_cast<float>(static_cast<double>(expected.Next() % spread) + 2000.0 - half);
+        const glm::vec3 position{static_cast<float>(static_cast<double>(x) + 100.0), y, 530.0f};
+        const ModelEffect& star = tested.Effect(0);
+        EXPECT_EQ(star.type, 0x625);
+        EXPECT_EQ(star.life, life);
+        EXPECT_EQ(star.speed, speed);
+        EXPECT_EQ(star.turnDirection, rise);
+        EXPECT_EQ(star.light, glm::vec3(0.0f));
+        EXPECT_EQ(star.transform.scale, subtype == 1 ? 0.5f : 0.0f);
+        EXPECT_EQ(star.transform.position, position);
+        EXPECT_EQ(star.start, position);
+        EXPECT_EQ(tested.Draws(), subtype == 1 ? 5 : 4);
+        EXPECT_EQ(tested.world->Runtime().lastSoundId, 0x42);
+    }
+    HighWorld full;
+    full.FillTheEffects();
+    const auto none = CreateHighModelEffect({.type = 0x625}, full.Context());
+    ASSERT_TRUE(none.HasValue()) << none.Error();
+    EXPECT_FALSE(none.Value().has_value());
+    EXPECT_EQ(full.Draws(), 0);
+    EXPECT_NE(full.world->Runtime().lastSoundId, 0x42);
+}
+
+// Un 0x625 vivo en el lugar 0, con todo lo demás como recién construido.
+ModelEffect& FallingStarAt(HighWorld& tested, std::int32_t subtype, std::int32_t life)
+{
+    ModelEffect& star = tested.Effect(0);
+    star = ModelEffect{};
+    star.alive = true;
+    star.type = 0x625;
+    star.subtype = subtype;
+    star.life = life;
+    return star;
+}
+
+// 0x52be78: con más de 15 de vida, el 0x625 sólo saca la luz local y pierde una vida.
+TEST(HighModelEffectsTest, TheFallingStarWaitsUntilLifeFifteen)
+{
+    HighWorld tested;
+    ModelEffect& star = FallingStarAt(tested, 0, 16);
+    star.transform.position = {10, 20, 30};
+    star.turnDirection = -20.0f;
+    ASSERT_TRUE(StepHighModelEffect(star, nullptr, tested.StepContext()).HasValue());
+    EXPECT_EQ(star.life, 15);
+    EXPECT_EQ(star.transform.position, glm::vec3(10, 20, 30));
+    EXPECT_EQ(star.turnDirection, -20.0f);
+    EXPECT_EQ(tested.Draws(), 1);
+}
+
+// 0x52be8d..0x52bfce: el /0 tiembla alrededor de la partida, baja +0xe4, corre la partida, suelta el fuego 0x5db/7 (con
+// la tabla de partículas llena, nada y sin rand()), sube la luz 0,1f y deja los sprites 0x5fd y 0x5ac; con lugar para
+// el fuego, corta en 0x52bf29 después de los dos rand() del temblor.
+TEST(HighModelEffectsTest, TheWobblyFallingStarLeavesItsFireAndTwoSprites)
+{
+    HighWorld tested;
+    auto sprites = std::make_unique<Client::World::FrameSprites>();
+    tested.services.sprites = sprites.get();
+    tested.FillTheParticles();
+    ModelEffect& star = FallingStarAt(tested, 0, 15);
+    star.transform.position = {10, 20, 30};
+    star.transform.scale = 0.0f;
+    star.start = {500, 600, 700};
+    star.turnDirection = -20.0f;
+    star.light = glm::vec3(0.0f);
+    ASSERT_TRUE(StepHighModelEffect(star, nullptr, tested.StepContext()).HasValue());
+    CrtRandom expected(Seed);
+    static_cast<void>(expected.Next());
+    const double rate = static_cast<double>(std::bit_cast<float>(0x3c23d70au));
+    glm::vec3 position{0.0f, 0.0f, 10.0f};
+    for (int axis = 0; axis < 2; ++axis)
+    {
+        const auto wobble =
+            Client::Render::Models::Detail::SineProductPC53(static_cast<double>(expected.Next() % 1000) * rate, 10.0f);
+        ASSERT_TRUE(wobble.has_value());
+        position[axis] = static_cast<float>(*wobble + (axis == 0 ? 500.0 : 600.0));
+    }
+    const auto shineTurn = static_cast<float>(expected.Next() % 360);
+    const auto shineScale = static_cast<float>(static_cast<double>((expected.Next() & 3) + 4) *
+                                               static_cast<double>(std::bit_cast<float>(0x3e4ccccdu)));
+    const auto flareTurn = static_cast<float>(expected.Next() % 360);
+    EXPECT_EQ(star.transform.position, position);
+    EXPECT_EQ(star.turnDirection, -22.0f);
+    EXPECT_EQ(star.start, glm::vec3(490, 600, 700));
+    const float glow = std::bit_cast<float>(0x3dcccccdu);
+    EXPECT_EQ(star.light, glm::vec3(glow));
+    EXPECT_EQ(star.life, 14);
+    EXPECT_EQ(tested.Draws(), 6);
+    const auto made = sprites->Sprites();
+    ASSERT_TRUE(made[0].alive);
+    EXPECT_EQ(made[0].texture, 0x5fd);
+    EXPECT_EQ(made[0].position, position);
+    EXPECT_EQ(made[0].scale, shineScale);
+    EXPECT_EQ(made[0].rotation, shineTurn);
+    EXPECT_EQ(made[0].light, glm::vec3(glow));
+    ASSERT_TRUE(made[1].alive);
+    EXPECT_EQ(made[1].texture, 0x5ac);
+    EXPECT_EQ(made[1].scale, 1.0f);
+    EXPECT_EQ(made[1].rotation, flareTurn);
+    EXPECT_FALSE(made[2].alive);
+
+    HighWorld room;
+    room.services.sprites = sprites.get();
+    ModelEffect& next = FallingStarAt(room, 0, 3);
+    const auto cut = StepHighModelEffect(next, nullptr, room.StepContext());
+    EXPECT_TRUE(HasError(cut, "0x52bf29")) << (cut.HasValue() ? std::string("sin corte") : cut.Error());
+    EXPECT_EQ(room.Draws(), 3);
+}
+
+// 0x52bfdc..0x52c195: el /1 se queda en la partida y, con el terreno por encima, saca la escala del humo 0x5f2/0xb y
+// el rand() % 5 que, en 0, suelta el pedazo de hielo 0xca 50 más arriba; con el terreno por debajo, nada de eso. Con
+// lugar para el fuego 0x5db/0xb, corta en 0x52c036 sin rand() propios.
+TEST(HighModelEffectsTest, TheStraightFallingStarSmokesAndDropsIceBelowTheTerrain)
+{
+    for (const double ground : {-1000.0, 1000.0})
+    {
+        SCOPED_TRACE(ground);
+        HighWorld tested;
+        auto sprites = std::make_unique<Client::World::FrameSprites>();
+        tested.services.sprites = sprites.get();
+        tested.services.terrainHeight = [ground](float, float) { return ground; };
+        tested.FillTheParticles();
+        ModelEffect& star = FallingStarAt(tested, 1, 10);
+        star.transform.scale = 0.5f;
+        star.start = {500, 600, 700};
+        star.transform.position = {1, 2, 100};
+        star.turnDirection = -30.0f;
+        ASSERT_TRUE(StepHighModelEffect(star, nullptr, tested.StepContext()).HasValue());
+        EXPECT_EQ(star.transform.position, glm::vec3(500, 600, 70));
+        EXPECT_EQ(star.turnDirection, -32.0f);
+        EXPECT_EQ(star.start.x, 490.0f);
+        CrtRandom expected(Seed);
+        for (int draw = 0; draw < 4; ++draw)
+            static_cast<void>(expected.Next());
+        if (ground < 0)
+        {
+            EXPECT_EQ(tested.Draws(), 4);
+            EXPECT_FALSE(tested.Effect(1).alive);
+            continue;
+        }
+        static_cast<void>(expected.Next());
+        const bool shard = expected.Next() % 5 == 0;
+        const ModelEffect& ice = tested.Effect(1);
+        EXPECT_EQ(ice.alive, shard);
+        if (shard)
+        {
+            EXPECT_EQ(ice.type, 0xca);
+            EXPECT_EQ(ice.transform.position.x, 500.0f);
+            EXPECT_EQ(ice.transform.position.y, 600.0f);
+        }
+        EXPECT_EQ(tested.Draws(), DrawsSince(Seed, expected) + (shard ? 5 : 0));
+    }
+    HighWorld room;
+    ModelEffect& star = FallingStarAt(room, 1, 10);
+    const auto cut = StepHighModelEffect(star, nullptr, room.StepContext());
+    EXPECT_TRUE(HasError(cut, "0x52c036")) << (cut.HasValue() ? std::string("sin corte") : cut.Error());
+    EXPECT_EQ(room.Draws(), 1);
 }
 } // namespace

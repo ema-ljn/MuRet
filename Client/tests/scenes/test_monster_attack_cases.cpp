@@ -1374,7 +1374,7 @@ TEST_F(MonsterAttackCasesTest, CrywolfAttacksSkipTheirFullModelEffectAndExit)
 TEST_F(MonsterAttackCasesTest, TheKindCasesCutAfterTheirDrawsOrGoOnToTheTail)
 {
     const std::vector<Probe> probes{
-        {.name = "0x46 en 5", .type = 0x46, .step = 5, .cut = "0x4f5d13"},
+        {.name = "0x46 en 5", .type = 0x46, .step = 5, .draws = 20 * 4 + Tail},
         {.name = "0x46 en 5 sin blanco", .type = 0x46, .step = 5, .target = NoTarget},
         {.name = "0x46 en 4", .type = 0x46, .step = 4, .draws = Tail},
         {.name = "0x3d en 1", .type = 3, .step = 1, .cut = "0x4f6145", .kind = std::uint16_t{0x3d}},
@@ -1515,6 +1515,39 @@ TEST_F(MonsterAttackCasesTest, TheKindCasesCutAfterTheirDrawsOrGoOnToTheTail)
         for (const Probe& probe : probes)
             Expect(probe);
     }
+}
+
+// 0x4f5cb6..0x4f5d1e: el 0x46 en 5 suelta veinte 0x625 en la posición y con los ángulos de su blanco (+0x3a4), con
+// la luz local (1, 1, 1), y sigue a la cola; con el blanco fuera de la tabla de personajes, MuRet corta.
+TEST_F(MonsterAttackCasesTest, TheKind46DropsTwentyFallingStarsOnItsTarget)
+{
+    Load(0);
+    ActorState& monster = Prepare({.type = 0x46, .step = 5, .target = 7});
+    ActorState& target = game->world.Actors()[7];
+    target.position = {3000, 4000, 120};
+    target.angles = {0, 0, 30};
+    game->world.Map().effects.Clear();
+    const auto stepped = Step(monster);
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    const auto effects = game->world.Map().effects.Effects();
+    for (std::size_t star = 0; star < 20; ++star)
+    {
+        SCOPED_TRACE(star);
+        EXPECT_TRUE(effects[star].alive);
+        EXPECT_EQ(effects[star].type, 0x625);
+        EXPECT_EQ(effects[star].subtype, 0);
+        EXPECT_EQ(effects[star].transform.angles, target.angles);
+        EXPECT_EQ(effects[star].transform.position.z, 620.0f);
+        EXPECT_EQ(effects[star].disturbanceState, 0xffff);
+    }
+    EXPECT_FALSE(effects[20].alive);
+    EXPECT_EQ(Draws(), 20 * 4 + Tail);
+    EXPECT_EQ(game->world.Runtime().lastSoundId, 0x42);
+
+    ActorState& far = Prepare({.type = 0x46, .step = 5, .target = 400});
+    const auto cut = Step(far);
+    EXPECT_TRUE(!cut.HasValue() && cut.Error().starts_with("0x4f5cd4"))
+        << (cut.HasValue() ? std::string("sin corte") : cut.Error());
 }
 
 TEST_F(MonsterAttackCasesTest, SaturatedPoolsPreserveTheCallersOfTheKindAndSkillCases)

@@ -788,10 +788,29 @@ Core::Expected<void, std::string> StepTheKindCase(ActorState& actor, const KindC
     switch (found.address)
     {
     case 0x4f5cb6:
-        // En 5 y con +0x3a4 distinto de 0xffff, veinte 0x625; el primer slot libre conserva el corte.
-        if (step == FifthStep && actor.attackTarget != 0xffff && HasFreeModelEffect(context))
-            return CutAt(0x4f5d13, "el primero de los veinte efectos 0x625 sobre el blanco (CL11)", actor, slot);
+    {
+        // 0x4f5cb6..0x4f5d1e: en 5 y con +0x3a4 distinto de 0xffff, veinte 0x518cf0(0x625, la posición del personaje
+        // +0x3a4 (MOVSX, sin mirar si vive), sus ángulos, la luz local, 0, 0, −1, 0, 0, 0, 0). El original no acota el
+        // índice: fuera de [0, 400) lee fuera de la tabla, y MuRet corta.
+        if (step != FifthStep || actor.attackTarget == 0xffff)
+            return {};
+        const auto target = std::bit_cast<std::int16_t>(actor.attackTarget);
+        if (target < 0 || target >= PoolSlots)
+            return Core::Unexpected(
+                std::format("0x4f5cd4: el blanco {} del lugar {} está fuera de la tabla de personajes", target, slot));
+        const ActorState& victim = context.world.Actors()[static_cast<std::size_t>(target)];
+        constexpr int FallingStars = 20;
+        constexpr std::int16_t FallingStar = 0x625;
+        for (int star = 0; star < FallingStars; ++star)
+        {
+            if (auto created = CreateHighModelEffect(
+                    {.type = FallingStar, .position = victim.position, .angles = victim.angles, .light = localLight},
+                    HighContextOf(context));
+                !created.HasValue())
+                return Core::Unexpected("0x4f5d13: " + created.Error());
+        }
         return {};
+    }
     case 0x4f5d23:
     {
         constexpr std::uint16_t RockKind = 0x3f;

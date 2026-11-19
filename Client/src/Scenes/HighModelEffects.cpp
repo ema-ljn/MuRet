@@ -23,6 +23,7 @@
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
 #include "World/SiegeStoneEffects.h"
+#include "World/Sprites.h"
 #include "World/WorldObjectStepServices.h"
 
 #include <glm/ext/vector_float3.hpp>
@@ -56,6 +57,8 @@ constexpr std::int16_t GrowingFlashEffect = 0x141;
 constexpr std::uint8_t NoAction = 0xff;
 // Los rayos de luz que se dibujan como sprites a lo largo de su velocidad (0x52d941): no se mueven ni tienen paso.
 constexpr std::int16_t MovingLightFirst = 0x5e8, MovingLightSecond = 0x5e9, MovingLightLast = 0x5ea;
+// Los que caen sobre el blanco del 0x46 (+0x376) en su paso 5 (0x4f5cb6): sin dibujo, sólo su fuego y sus sprites.
+constexpr std::int16_t FallingStarEffect = 0x625;
 
 float F32(double value)
 {
@@ -294,6 +297,50 @@ Core::Expected<void, std::string> BeginTheMovingLight(World::ModelEffect& effect
             return Core::Unexpected(std::format("0x51e75b: {}", hits.Error()));
     }
     return {};
+}
+
+// 0x51f048..0x51f153, el 0x625 (los veinte que caen sobre el blanco de 0x4f5cb6): vida rand() % 15 + 15, +0xe4 (la
+// subida por paso) en −20, +0xd8 en rand() % 360 y la luz en 0. El /1 pone la escala en 0,5f y baja +0xe4 rand() % 20 +
+// 10 más (fsubr), y reparte en 300; los demás, la escala en 0 y reparten en 200. La x y la y más rand() % reparto menos
+// la mitad (fild, fadd, fsub en la x87), la z 500 más y la x 100 más, y la partida (+0x17c) en la posición. Termina con
+// el sonido 0x41ed10(0x42, 0, 0). Cuatro rand() (cinco con el /1): la vida, +0xd8, [+0xe4], la x y la y.
+void BeginTheFallingStar(World::ModelEffect& effect, const HighEffectContext& context)
+{
+    constexpr int LifeSpan = 15, LifeBase = 15, FullTurn = 360;
+    constexpr float InitialRise = -20.0f; // 0xc1a00000
+    constexpr std::int32_t WideSubtype = 1;
+    constexpr int WideSpread = 300, NarrowSpread = 200;    // 0x12c y 0xc8
+    constexpr double WideHalf = 150.0, NarrowHalf = 100.0; // 0x96 y 0x64, por fild y fstp
+    constexpr float WideScale = 0.5f;                      // 0x3f000000
+    constexpr int ExtraFallSpan = 20, ExtraFallBase = 10;  // 0x14 y 0xa
+    constexpr double Height = 500.0, Lead = 100.0;         // 0x6b8a98 y 0x6b86b4
+    constexpr std::int32_t FallingSound = 0x42;
+    CrtRandom& random = context.random;
+    effect.life = random.Next() % LifeSpan + LifeBase;
+    effect.turnDirection = InitialRise;
+    effect.speed = static_cast<float>(random.Next() % FullTurn);
+    effect.light = glm::vec3(0.0f);
+    int spread = NarrowSpread;
+    double half = NarrowHalf;
+    if (effect.subtype == WideSubtype)
+    {
+        spread = WideSpread;
+        half = WideHalf;
+        effect.transform.scale = WideScale;
+        const int extra = random.Next() % ExtraFallSpan + ExtraFallBase;
+        effect.turnDirection = F32(D(effect.turnDirection) - static_cast<double>(extra));
+    }
+    else
+    {
+        effect.transform.scale = 0.0f;
+    }
+    glm::vec3& position = effect.transform.position;
+    position.x = F32(static_cast<double>(random.Next() % spread) + D(position.x) - half);
+    position.y = F32(static_cast<double>(random.Next() % spread) + D(position.y) - half);
+    position.z = F32(D(position.z) + Height);
+    position.x = F32(D(position.x) + Lead);
+    effect.start = position;
+    context.world.Runtime().RequestSound(FallingSound);
 }
 
 // ---- Los pasos ----
@@ -544,6 +591,107 @@ void StepTheGrowingFlash(World::ModelEffect& effect)
     effect.transform.scale = 1.0f;
 }
 
+// 0x5491e0 de este archivo: el sprite con la luz y la rotación, en el lugar libre (el dueño, que MuRet no guarda).
+Core::Expected<void, std::string> CreateSprite(const HighEffectStepContext& context, std::uint16_t texture,
+                                               const glm::vec3& position, float scale, const glm::vec3& light,
+                                               float rotation, std::uint32_t address)
+{
+    if (context.services.sprites == nullptr)
+        return Core::Unexpected(std::format("{:#x}: el sprite {:#x} pide la tabla de sprites", address, texture));
+    static_cast<void>(context.services.sprites->Create(texture, position, scale, light, rotation, 0));
+    return {};
+}
+
+// 0x52be78..0x52c195, el 0x625: nada hasta la vida 15. Desde ahí, el /0 tiembla alrededor de la partida (x e y en
+// FSIN(rand() % 1.000 · 0,01f) · 10 más la partida) y el /1 se queda en ella; los dos suben +0xe4 (que empieza
+// negativo: caen), +0xe4 baja 2 y la x de la partida 10, y sueltan el fuego 0x5db (/7 el /0, /0xb el /1) con su escala
+// y la luz local (1, 1, 1), la luz +0xf4..+0xfc 0,1f más (FST) y dos sprites con esa luz y el efecto de dueño: el 0x5fd
+// con la rotación rand() % 360 y la escala ((rand() & 3) + 4) · 0,2f, y el 0x5ac de escala 1 con otra rotación. El /1,
+// con el terreno (0x5f93c0) por encima de su z, el humo 0x5f2/0xb 50 más arriba con la luz (0,24; 0,28; 0,8) y la
+// escala
+// ((rand() & 31) + 80) · 0,025f, y una de cinco veces (rand() % 5) el pedazo de hielo 0xca ahí con su luz. Otro
+// subtipo, nada.
+Core::Expected<void, std::string> StepTheFallingStar(World::ModelEffect& effect, const HighEffectStepContext& context)
+{
+    constexpr std::int32_t QuietLife = 15;
+    constexpr std::int32_t WobblySubtype = 0, StraightSubtype = 1;
+    if (effect.life > QuietLife || (effect.subtype != WobblySubtype && effect.subtype != StraightSubtype))
+        return {};
+    CrtRandom& random = context.random;
+    glm::vec3& position = effect.transform.position;
+    if (effect.subtype == WobblySubtype)
+    {
+        constexpr int WobbleSpan = 1000;                                                      // 0x3e8
+        constexpr double WobbleRate = static_cast<double>(std::bit_cast<float>(0x3c23d70au)); // 0x6b88d4, 0,01f
+        constexpr float WobbleSize = 10.0f;                                                   // 0x6b87a8
+        for (int axis = 0; axis < 2; ++axis)
+        {
+            const int draw = random.Next() % WobbleSpan;
+            const auto wobble =
+                Render::Models::Detail::SineProductPC53(static_cast<double>(draw) * WobbleRate, WobbleSize);
+            if (!wobble)
+                return Core::Unexpected(std::string("0x52bea9: el temblor del 0x625 no cabe en el perfil PC53"));
+            position[axis] = F32(*wobble + D(effect.start[axis]));
+        }
+    }
+    else
+    {
+        position.x = effect.start.x;
+        position.y = effect.start.y;
+    }
+    constexpr double RiseLoss = 2.0, Drift = 10.0; // 0x6b8818 y 0x6b87a8
+    position.z = F32(D(position.z) + D(effect.turnDirection));
+    effect.turnDirection = F32(D(effect.turnDirection) - RiseLoss);
+    effect.start.x = F32(D(effect.start.x) - Drift);
+    const bool wobbly = effect.subtype == WobblySubtype;
+    constexpr std::int32_t WobblyFire = 7, StraightFire = 0xb;
+    const glm::vec3 localLight{1.0f};
+    if (auto fire = CreateParticle(context.world, random, context.worldClock, World::DeathSpiritFireParticle, position,
+                                   effect.transform.angles, localLight, wobbly ? WobblyFire : StraightFire,
+                                   effect.transform.scale, wobbly ? 0x52bf29u : 0x52c036u);
+        !fire.HasValue())
+        return Core::Unexpected(fire.Error() + " (CL11)");
+    constexpr double Glow = static_cast<double>(std::bit_cast<float>(0x3dcccccdu)); // 0x6b87b8, 0,1f
+    const float glow = F32(D(effect.light.x) + Glow);
+    effect.light = glm::vec3(glow);
+    constexpr std::uint16_t ShineSprite = 0x5fd, FlareSprite = 0x5ac; // Effect\Shiny02.jpg y Effect\flare01.jpg
+    constexpr int FullTurn = 360, ShineSizes = 3, ShineBase = 4;
+    constexpr double ShineStep = static_cast<double>(std::bit_cast<float>(0x3e4ccccdu)); // 0x6b8854, 0,2f
+    const auto shineTurn = static_cast<float>(random.Next() % FullTurn);
+    const float shineScale = F32(static_cast<double>((random.Next() & ShineSizes) + ShineBase) * ShineStep);
+    if (auto shine = CreateSprite(context, ShineSprite, position, shineScale, effect.light, shineTurn,
+                                  wobbly ? 0x52bf98u : 0x52c0a5u);
+        !shine.HasValue())
+        return shine;
+    const auto flareTurn = static_cast<float>(random.Next() % FullTurn);
+    if (auto flare =
+            CreateSprite(context, FlareSprite, position, 1.0f, effect.light, flareTurn, wobbly ? 0x52bfc6u : 0x52c0d3u);
+        !flare.HasValue())
+        return flare;
+    if (wobbly)
+        return {};
+    if (!context.services.terrainHeight)
+        return Core::Unexpected(std::string("0x52c0df: el 0x625/1 pide la altura del terreno (0x5f93c0)"));
+    if (!(context.services.terrainHeight(position.x, position.y) > D(position.z)))
+        return {};
+    constexpr glm::vec3 SmokeLight{std::bit_cast<float>(0x3e75c28fu), std::bit_cast<float>(0x3e8f5c29u),
+                                   std::bit_cast<float>(0x3f4ccccdu)}; // (0,24; 0,28; 0,8)
+    constexpr double SmokeLift = 50.0;                                 // 0x6b86b0
+    const glm::vec3 point{position.x, position.y, F32(D(position.z) + SmokeLift)};
+    constexpr int SmokeSizes = 31, SmokeBase = 0x50;
+    constexpr double SmokeStep = static_cast<double>(std::bit_cast<float>(0x3ccccccdu)); // 0x6b8bd0, 0,025f
+    const float smokeScale = F32(static_cast<double>((random.Next() & SmokeSizes) + SmokeBase) * SmokeStep);
+    if (auto smoke = CreateParticle(context.world, random, context.worldClock, World::BreathParticle, point,
+                                    effect.transform.angles, SmokeLight, World::StoneDustSubtype, smokeScale, 0x52c15a);
+        !smoke.HasValue())
+        return Core::Unexpected(smoke.Error());
+    constexpr int ShardOdds = 5;
+    if (random.Next() % ShardOdds != 0)
+        return {};
+    static_cast<void>(context.world.Map().effects.CreateIceShard(point, effect.transform.angles, effect.light, random));
+    return {};
+}
+
 // 0x52c9fd..0x52caa0 y 0x521216, el 0xc1a: con el terreno (0x5f93c0) por encima de su z, la explosión 0x5ed/0 80 más
 // arriba (con su sonido 0x40), seis piedritas 0xc8 o 0xc9 (rand() & 1) con el subtipo 0 y el lugar libre; siempre, la
 // luz dinámica (luz · 0,2f; luz · 0,4f; luz) de radio 2 con la luz local del primer rand().
@@ -659,7 +807,8 @@ bool IsHighModelEffect(std::int16_t type)
 {
     return type == SiegeAuraEffect || type == SiegeFlareEffect || type == SiegeSpearmanEffect ||
            type == SiegePulseEffect || type == RadialShardEffect || type == GrowingFlashEffect ||
-           type == World::ColoredDecalEffect || (type >= MovingLightFirst && type <= MovingLightLast);
+           type == World::ColoredDecalEffect || (type >= MovingLightFirst && type <= MovingLightLast) ||
+           type == FallingStarEffect;
 }
 
 Core::Expected<std::optional<std::size_t>, std::string>
@@ -699,6 +848,9 @@ CreateHighModelEffect(const World::ModelEffectArguments& arguments, const HighEf
     case MovingLightSecond:
     case MovingLightLast:
         begun = BeginTheMovingLight(effect, context);
+        break;
+    case FallingStarEffect:
+        BeginTheFallingStar(effect, context);
         break;
     default:
         break;
@@ -757,6 +909,9 @@ Core::Expected<void, std::string> StepHighModelEffect(World::ModelEffect& effect
             stepped = StepTheBindingDecal(effect, context);
         else if (effect.subtype == World::GrowingDecalSubtype)
             StepTheGrowingDecal(effect);
+        break;
+    case FallingStarEffect:
+        stepped = StepTheFallingStar(effect, context);
         break;
     default:
         break;

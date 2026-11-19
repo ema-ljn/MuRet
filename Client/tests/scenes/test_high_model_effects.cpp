@@ -1439,8 +1439,8 @@ TEST(HighModelEffectsTest, TheFireBreathRaisesFortyJointsFromTwoMouths)
 }
 
 // 0x52c7f0..0x52c97c: el paso del 0x6ac prende la luz dinámica de radio 2, saca rand() % 3 + 2 para la escala
-// (· (15 − vida) · 0,05f) y pone la partida a 20 de cada lado (los ángulos con la z 90 más) con el fuego 0x5db/0xa, que
-// MuRet no tiene: con lugar corta en el primero (0x52c8f7) después de sus dos rand(); con las partículas llenas, sigue,
+// (· (15 − vida) · 0,05f) y pone la partida a 20 de cada lado (los ángulos con la z 90 más) con el fuego 0x5db/0xa
+// (0x52c8f7, 0x52c95d; lote de partículas), que con lugar saca sus rand(); con las partículas llenas, sigue sin ellos,
 // se mueve (0, −30, 0) girado y, con la vida en 1, 0x51fef0 saca los cuarenta rand() de sus veinte chispas 0x5c5/2 (sin
 // lugar, ni ellas ni la 0x5ee/0) y se apaga.
 TEST(HighModelEffectsTest, TheFireBreathBurnsAtItsSidesAndSparksAtTheEnd)
@@ -1453,8 +1453,14 @@ TEST(HighModelEffectsTest, TheFireBreathBurnsAtItsSidesAndSparksAtTheEnd)
             .HasValue());
     ModelEffect& breath = tested.Effect(0);
     ASSERT_EQ(tested.Draws(), 40);
-    EXPECT_TRUE(HasError(StepHighModelEffect(breath, nullptr, tested.StepContext()), "0x52c8f7"));
-    EXPECT_EQ(tested.Draws(), 40 + 2);
+    const auto stepped = StepHighModelEffect(breath, nullptr, tested.StepContext());
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    CrtRandom replay{Seed};
+    Skip(replay, 40 + 2);
+    ReplayParticle(replay, Client::World::DeathSpiritFireParticle, 0xa, breath.transform.scale);
+    ReplayParticle(replay, Client::World::DeathSpiritFireParticle, 0xa, breath.transform.scale);
+    EXPECT_EQ(tested.random.State(), replay.State());
+    EXPECT_EQ(AliveParticles(*tested.world, Client::World::DeathSpiritFireParticle, 0xa), 2);
     EXPECT_TRUE(std::ranges::any_of(tested.lighting->cells, [](const auto& cell) { return cell[0] > 0; }));
 
     HighWorld full;

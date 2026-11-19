@@ -213,11 +213,10 @@ TEST(AttackSkillCasesTest, TheHeadCasesCutAfterTheirDraws)
     };
     const std::array cases{
         Case{0x30, "0x4fe127", 0},         Case{0x45, "0x4fe360", 0},         Case{0x35, "0x4fe856", 0},
-        Case{0x3f, "0x4feae8", 0},         Case{0x41, "0x4febbb", 0},         Case{0x31, "0x4fec15", 0},
-        Case{0x29, "0x4fec9a", OwnRecord}, Case{0x0a, "0x4fecf3", OwnRecord}, Case{0x28, "0x4ff4ef", 0},
-        Case{0x26, "0x4ff5b2", 0},         Case{0x27, "0x4ffdaf", 1},         Case{0x08, "0x500c49", OwnRecord},
-        Case{0x0c, "0x500cb9", OwnRecord}, Case{0x0d, "0x500d7b", OwnRecord}, Case{0x0e, "0x51fe9e", 2},
-        Case{0x2c, "0x502975", 0},
+        Case{0x3f, "0x4feae8", 0},         Case{0x31, "0x4fec15", 0},         Case{0x29, "0x4fec9a", OwnRecord},
+        Case{0x0a, "0x4fecf3", OwnRecord}, Case{0x28, "0x4ff4ef", 0},         Case{0x26, "0x4ff5b2", 0},
+        Case{0x27, "0x4ffdaf", 1},         Case{0x08, "0x500c49", OwnRecord}, Case{0x0c, "0x500cb9", OwnRecord},
+        Case{0x0d, "0x500d7b", OwnRecord}, Case{0x0e, "0x51fe9e", 2},         Case{0x2c, "0x502975", 0},
     };
     for (const std::int32_t map : Maps)
     {
@@ -234,6 +233,46 @@ TEST(AttackSkillCasesTest, TheHeadCasesCutAfterTheirDraws)
             EXPECT_EQ(tested.Striker().flags78, 0x4000u);
             EXPECT_TRUE(tested.sounds.empty());
         }
+    }
+}
+
+// 0x4feb3b..0x4febd3: la 0x41 crea el efecto 0x62c en el punto (0, −90, −50) de o (80 más alto en la acción 0x51), con
+// vida 0, y su caso (0x51f25e) los cinco 0x62c: /1, /0 de ancho 250, /2, /3 y /4. Cuatro rand(), los de la tanda de la
+// /1..4 (0x53479d). Suena 0x1cd.
+TEST(AttackSkillCasesTest, TheSpiralCaseRaisesFiveJointsFromItsEffect)
+{
+    for (const std::uint8_t action : {std::uint8_t{0}, std::uint8_t{0x51}, std::uint8_t{0x5b}})
+    {
+        SCOPED_TRACE(int{action});
+        SkillWorld tested;
+        tested.Striker().position = {1000.0f, 2000.0f, 50.0f};
+        tested.Striker().animation.action = action;
+        const float z = action == 0x51 ? 80.0f : action == 0x5b ? 40.0f : 0.0f;
+
+        const auto stepped = tested.Head(0x41);
+
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        EXPECT_EQ(DrawsSince(Seed, tested.random), 4);
+        const auto effects = AliveEffects(tested.world);
+        ASSERT_EQ(effects.size(), 1u);
+        EXPECT_EQ(effects.front()->type, 0x62c);
+        EXPECT_EQ(effects.front()->life, 0);
+        EXPECT_EQ(effects.front()->transform.position, glm::vec3(1000.0f, 1910.0f, z));
+        constexpr std::array<std::pair<std::int32_t, float>, 5> Spirals{
+            {{1, 100.0f}, {0, 250.0f}, {2, 100.0f}, {3, 100.0f}, {4, 100.0f}}};
+        for (std::size_t index = 0; index < Spirals.size(); ++index)
+        {
+            SCOPED_TRACE(index);
+            const JointState& joint = tested.joints[index];
+            ASSERT_TRUE(joint.alive);
+            EXPECT_EQ(joint.type, 0x62c);
+            EXPECT_EQ(joint.subtype, Spirals[index].first);
+            EXPECT_EQ(joint.width, Spirals[index].second);
+            EXPECT_EQ(joint.pathIncrement, glm::vec3(1000.0f, 1910.0f, z + 150.0f));
+            EXPECT_EQ(joint.ownerContext, &tested.Striker());
+        }
+        EXPECT_FALSE(tested.joints[5].alive);
+        EXPECT_EQ(tested.sounds, std::vector<std::int32_t>{0x1cd});
     }
 }
 

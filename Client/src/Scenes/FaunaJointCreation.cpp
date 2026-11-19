@@ -653,6 +653,9 @@ Core::Expected<void, std::string> CreateCase(JointState& joint, const World::Fis
         return JointFamilies::CreateAuraJoint(joint, request);
     if (request.type == JointFamilies::StormJoint && request.subtype == JointFamilies::BoltSubtype)
         return JointFamilies::CreateStormJoint(joint, request, random);
+    // 0x530aa5..0x530abf: el 62c/5..7 también.
+    if (request.type == JointFamilies::SpiralJoint && request.subtype >= 5 && request.subtype <= 7)
+        return JointFamilies::CreateSpiralJoint(joint, request, random);
     FirstQuad(joint);
     if (request.type == SparkleJoint && request.subtype == 0x17)
     {
@@ -711,6 +714,8 @@ Core::Expected<void, std::string> CreateCase(JointState& joint, const World::Fis
     }
     if (request.type == JointFamilies::BeamJoint)
         return JointFamilies::CreateBeamJoint(joint, request, random);
+    if (request.type == JointFamilies::SpiralJoint)
+        return JointFamilies::CreateSpiralJoint(joint, request, random);
     // 531c43..531cc7 y531fc3..53200e: la estela del misilE1/1 de Crywolf.
     if (request.type == 0x610 && request.subtype == 13)
     {
@@ -815,6 +820,7 @@ Core::Expected<std::optional<std::size_t>, std::string> CreateFaunaJoint(std::sp
         request.type == JointFamilies::LightningJoint || request.type == JointFamilies::RedHandBoltJoint ||
         request.type == JointFamilies::BlueHandBoltJoint || request.type == JointFamilies::SpiritJoint ||
         request.type == JointFamilies::SecondSpiritJoint || request.type == JointFamilies::BeamJoint ||
+        request.type == JointFamilies::SpiralJoint ||
         (request.type == JointFamilies::AuraJoint && request.subtype != 1 && request.subtype != 3);
     // El 0x618 que sigue a un efecto con modelo: la /5 de las flechas y la /0xa y /0xb del 0x11b/1.
     const bool effectBeam = request.type == JointFamilies::BeamJoint &&
@@ -1463,6 +1469,7 @@ enum class Family : std::uint8_t
     Aura,
     Storm,
     Beam,
+    Spiral,
 };
 
 std::optional<Family> FamilyStep(const JointState& joint)
@@ -1485,6 +1492,8 @@ std::optional<Family> FamilyStep(const JointState& joint)
         return Family::Storm;
     if (joint.type == JointFamilies::BeamJoint)
         return Family::Beam;
+    if (joint.type == JointFamilies::SpiralJoint)
+        return Family::Spiral;
     return std::nullopt;
 }
 
@@ -1562,6 +1571,8 @@ Core::Expected<void, std::string> RunFamily(JointState& joint, Family family,
         return JointFamilies::StepStormJoint(joint, services);
     case Family::Beam:
         return JointFamilies::StepBeamJoint(joint, services);
+    case Family::Spiral:
+        return JointFamilies::StepSpiralJoint(joint, services);
     }
     return {};
 }

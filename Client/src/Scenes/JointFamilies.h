@@ -80,4 +80,13 @@ inline constexpr std::int32_t StormSubtype = 7;
 CreateStormJoint(JointState& joint, const World::FishEffectRequest& request, Render::Models::CrtRandom& random);
 [[nodiscard]] Core::Expected<void, std::string> StepStormJoint(JointState& joint,
                                                                const JointKernels::StepServices& services);
+
+// El 0x62c (SpiralJoints.cpp): alta 0x5346d8..0x534954 y paso 0x53b93f..0x53be71, sin el movimiento común (0x5358a3).
+// La /0 sube derecho; la /1..4 y la /0xb..0xd suben dando la vuelta (el efecto 0x62c/0 de la 0x41, 0x51f25e, y los
+// seis de la 0x4c, 0x50293c); la /5..7 (el efecto 0x62c/1, 0x51f32e) siguen un hueso del dueño, que corta.
+inline constexpr std::int32_t SpiralJoint = 0x62c;
+[[nodiscard]] Core::Expected<void, std::string>
+CreateSpiralJoint(JointState& joint, const World::FishEffectRequest& request, Render::Models::CrtRandom& random);
+[[nodiscard]] Core::Expected<void, std::string> StepSpiralJoint(JointState& joint,
+                                                                const JointKernels::StepServices& services);
 } // namespace Client::Scenes::JointFamilies

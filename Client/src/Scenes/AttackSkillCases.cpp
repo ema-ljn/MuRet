@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
+#include "Render/Models/OriginalRotation.h"
 #include "Scenes/ActorFlags.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/ArrowEffects.h"
@@ -45,6 +46,8 @@ namespace Client::Scenes
 {
 namespace
 {
+using JointKernels::D;
+using JointKernels::F32;
 constexpr std::int16_t NoTarget = -1;
 constexpr std::size_t PoolSlots = 400;
 // +0x78 & 0x4000: los casos 0x1b, 0x1c y 0x10 con blanco no hacen nada (0x50451c, 0x5046ca, 0x504836).
@@ -205,6 +208,78 @@ Core::Expected<void, std::string> CallTheStorm(ActorState& actor, const Characte
     if (auto created = CreateFaunaJoint(context.joints, request, context.random); !created.HasValue())
         return Core::Unexpected(std::format("0x4fe172: {}", created.Error()));
     RequestTheSound(context, StormSound);
+    return {};
+}
+
+// 0x4f5b10(o, x, y, z, punto): (x, y, z) girado por los ángulos de o (0x5fc8f0 y 0x5fcbd0) y sumado a su posición,
+// sin rand().
+glm::vec3 TurnedPoint(const ActorState& actor, const glm::vec3& offset)
+{
+    const auto turned = Render::Models::OriginalVectorRotate(offset, Render::Models::OriginalAngleMatrix(actor.angles));
+    return {F32(D(actor.position.x) + D(turned.x)), F32(D(actor.position.y) + D(turned.y)),
+            F32(D(actor.position.z) + D(turned.z))};
+}
+
+// 0x4feb3b..0x4febd3 (la 0x41): el punto de 0x4f5b10(o, 0, −90, −50), 80 más alto en la acción 0x51 y 40 en la 0x5b,
+// y 0x518cf0(0x62c, punto, o+0x1c, o+0xf4, 0, o, −1, 0, 0, 0, 0). Su caso (0x51f25e) deja la vida en 0 y, con dueño,
+// suelta los cinco 0x62c (SpiralJoints.cpp): /1, /0 de ancho 250, /2, /3 y /4, los demás de ancho 100, desde el punto
+// y con los ángulos de o. Después, el sonido 0x1cd aunque la tabla esté llena.
+Core::Expected<void, std::string> RaiseTheSpirals(ActorState& actor, const CharacterStepContext& context)
+{
+    constexpr std::int16_t SpiralEffect = 0x62c;
+    constexpr std::int32_t SpiralSound = 0x1cd;
+    constexpr std::uint8_t HighAction = 0x51, LowAction = 0x5b;
+    glm::vec3 point = TurnedPoint(actor, {0.0f, -90.0f, -50.0f});
+    if (actor.animation.action == HighAction)
+        point.z = F32(D(point.z) + 80.0); // 0x6b9ffc
+    else if (actor.animation.action == LowAction)
+        point.z = F32(D(point.z) + 40.0); // 0x6b8bf4
+    const World::ModelEffectArguments arguments{.type = SpiralEffect,
+                                                .position = point,
+                                                .angles = actor.angles,
+                                                .light = actor.light,
+                                                .subtype = 0,
+                                                .owner = &actor,
+                                                .key = 0xffff,
+                                                .byte89 = 0,
+                                                .byte88 = 0,
+                                                .byte1bd = 0,
+                                                .scale = 0.0f};
+    if (const auto slot = context.world.Map().effects.Begin(arguments))
+    {
+        context.world.Map().effects.Effects()[*slot].life = 0;
+        if (context.joints.empty())
+            return Core::Unexpected(std::string("0x51f293: faltan los joints del frame (0x530860)"));
+        struct Spiral
+        {
+            std::uint32_t address;
+            std::int32_t subtype;
+            float width;
+        };
+        constexpr std::array<Spiral, 5> Spirals{{{0x51f293, 1, 100.0f},
+                                                 {0x51f2b6, 0, 250.0f},
+                                                 {0x51f2dd, 2, 100.0f},
+                                                 {0x51f301, 3, 100.0f},
+                                                 {0x51f3ad, 4, 100.0f}}};
+        for (const Spiral& spiral : Spirals)
+        {
+            const World::FishEffectRequest request{.type = JointFamilies::SpiralJoint,
+                                                   .firstPosition = point,
+                                                   .secondPosition = point,
+                                                   .angles = actor.angles,
+                                                   .subtype = spiral.subtype,
+                                                   .ownerContext = &actor,
+                                                   .scale = spiral.width,
+                                                   .key = -1,
+                                                   .skill = 0,
+                                                   .skillSerial = 0,
+                                                   .target = -1};
+            if (auto created = CreateFaunaJoint(context.joints, request, context.random, JointOwnerKind::Actor);
+                !created.HasValue())
+                return Core::Unexpected(std::format("{:#x}: {}", spiral.address, created.Error()));
+        }
+    }
+    RequestTheSound(context, SpiralSound, &actor);
     return {};
 }
 
@@ -579,8 +654,7 @@ Core::Expected<void, std::string> StepTheHeadSkill(ActorState& actor, std::size_
     case 0x3f:
         return EffectThenSound(0x4feae8, "el efecto 0xcb/2 sobre o (0x518cf0)", skill, slot, 0x1cb, context, &actor);
     case 0x41:
-        // 0x4feb3b: el punto de 0x4f5b10(o, 0, −90, −50), más alto en las acciones 0x51 y 0x5b, sin rand().
-        return EffectThenSound(0x4febbb, "el efecto 0x62c (0x518cf0)", skill, slot, 0x1cd, context, &actor);
+        return RaiseTheSpirals(actor, context);
     case 0x31:
         return EffectThenSound(0x4fec15, "el efecto 0x6ac sobre o (0x518cf0)", skill, slot, 0x72, context);
     case 0x29:

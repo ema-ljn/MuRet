@@ -7995,7 +7995,7 @@ escenas 2, 4 y 5: todo *estático*. Es la misma función para todos: el héroe y
 | `0x185` | `0x507006` | — | catorce joints `0x614/7` de ancho 14 (`0x530860`) entre pares de huesos |
 | `0x186`, `0x189`, `0x16d`, `0x16c`, `0x161` | `0x5073c6`, `0x5073ed`, `0x507ab7`, `0x507ade`, `0x507e63` | — | escriben campos con el reloj (`ftol`) |
 | `0x182` | `0x507414` | `0x507414`, `0x507429` y `0x50744b` | `rand() % 5` en 0: dos `rand() % 21 − 10` y una marca del suelo `0x5e3` (`0x548fe0`, que saca uno más) |
-| `0x17e` | `0x50749c` | — | partículas, luces (`0x5f9780`) y `0x505bc0`, `0x505c50` (3 `rand()`) y `0x505d50` (2) |
+| `0x17e` | `0x50749c` | — | `0x505bc0(8, 9)`; con `+0x376` en `0x3f` (el monstruo 63), las llamas `0x5de`/2 entre los huesos de las tablas de bytes `0x6c882c..0x6c889f`, con `ftol(T)` par una `/2` y una `/3` más, y la luz (−1,3) × 3 (`0x5f9780`); si no, dos `0x5de`/1 de las manos con la luz del reloj, `0x505d50` (2 `rand()`) y `0x505c50` (3 por vuelta). Abajo, **El `0x17e`** |
 | `0x17f`, `0x1aa` | `0x507493` | — | siguen en el del `0x17d` (`0x5078a0`) |
 | `0x17d`, `0x17c`, `0x17b`, `0x179` | `0x50789c`, `0x5078b5`, `0x50798e`, `0x5079ad` | — | `0x505bc0`, `0x505c50` y `0x505d50`, y en el `0x17c` partículas y una luz |
 | `0x177` | `0x5079c0` | — | escribe campos |
@@ -8014,7 +8014,34 @@ escenas 2, 4 y 5: todo *estático*. Es la misma función para todos: el héroe y
 | `0x183`, `0x184`, `0x188` | `0x50862f` | — | nada |
 | los demás | `0x5085db` | — | `0x43bdd0`, `0x42de90`, `0x441210`, `0x42f550`, `0x431470` y `0x426ce0`, en ese orden, hasta que uno devuelva verdadero: cada uno mira el tipo o el mapa |
 
-MuRet (revisión B, 2026-11-14): `Scenes::StepTheModelEffects` (`ModelEffects.h`), desde `CharacterStep` con otro modelo que el `0x20a`, saca el `& 7` y corre el caso o los helpers con lo que escriben (la U y la V de `+0x6c` y `+0x70`, `+0x68`, `+0x64`, `+0x58`, el ángulo z, `+0x84`, la acción, los puntos de `0x505bc0` en `+0x4c` y `+0x40`), sus luces (`World::AddDynamicLight`), sus sonidos (`lastSoundId`), las partículas que el pool conoce (`0x5f2/0`, `0x5f3/0`, `0x5d9/0` y `/1`, `0x5ca/0`, `0x5c5/0`), los joints `0x617/0`, el sprite del `0x166` (la tabla del paso de los efectos, `CharacterStepContext::sprites`), la marca del `0x182` y las poses de `0x431470` (el `0x1ab` y el `0x1b4`, en `WorldState::PoseCarry`). Cortan con su dirección, después de sus `rand()`: el joint `0x614/7` del `0x185` (con un lugar libre), el `0x5de` del `0x17e` (`0x50758a` o `0x50780d`, también con el pool lleno), el `0x5f3/1` de `0x505c50` (`0x505d2c`), ~~el `0x5f2/0x11` del `0x192` y el `0x197` (`0x43bf75`, `0x43c04b`)~~ (hecho en el lote de partículas, P-C440), los efectos de `0x518cf0` (el `0xc5` en la 0, `0x43bea5`; el `0x1b3` en la 4 con el frame en [4, 6], `0x42f63b` o `0x431f37`; el `0x1ab`, el `0x1b0` y el `0x1b4` en su ventana de ataque, `0x43195f`, `0x4316db` y `0x4315b4`; el `0x1b5` en la 3 con `+0x84` en 1 desde el frame 5, `0x432460`), los huesos por nombre de `0x4292e0` con sus sprites (el `0x1b2` después de su `rand() % 360`, `0x42f6ce` o `0x431fa4`; el `0x1b1` fuera de la 6, `0x42f946` o `0x431d5c`) y el polvo del `0x1ab` y del `0x1b4` en la 2 y la `0xa`, que lee una luz que ese camino no escribe (`0x431e86`, comportamiento indefinido). El `0x1ae` mira además `[0x723bec]`, que MuRet no modela (en 0): no hace nada. Tests: `ModelEffectsTest` (`test_monster_effect_cases.cpp`, en los mapas 0 y 2 y los del caso: 30, 34, 35, 24).
+MuRet (revisión B, 2026-11-14): `Scenes::StepTheModelEffects` (`ModelEffects.h`), desde `CharacterStep` con otro modelo que el `0x20a`, saca el `& 7` y corre el caso o los helpers con lo que escriben (la U y la V de `+0x6c` y `+0x70`, `+0x68`, `+0x64`, `+0x58`, el ángulo z, `+0x84`, la acción, los puntos de `0x505bc0` en `+0x4c` y `+0x40`), sus luces (`World::AddDynamicLight`), sus sonidos (`lastSoundId`), las partículas que el pool conoce (`0x5f2/0`, `0x5f3/0`, `0x5d9/0` y `/1`, `0x5ca/0`, `0x5c5/0` y, desde el lote de partículas, las `0x5de/1..3` del `0x17e`), los joints `0x617/0`, el sprite del `0x166` (la tabla del paso de los efectos, `CharacterStepContext::sprites`), la marca del `0x182` y las poses de `0x431470` (el `0x1ab` y el `0x1b4`, en `WorldState::PoseCarry`). Cortan con su dirección, después de sus `rand()`: el joint `0x614/7` del `0x185` (con un lugar libre), ~~el `0x5de` del `0x17e` (`0x50758a` o `0x50780d`, también con el pool lleno)~~ (portado en el lote de partículas, P-C440; abajo, **El `0x17e`**), el `0x5f3/1` de `0x505c50` (`0x505d2c`), ~~el `0x5f2/0x11` del `0x192` y el `0x197` (`0x43bf75`, `0x43c04b`)~~ (hecho en el lote de partículas, P-C440), los efectos de `0x518cf0` (el `0xc5` en la 0, `0x43bea5`; el `0x1b3` en la 4 con el frame en [4, 6], `0x42f63b` o `0x431f37`; el `0x1ab`, el `0x1b0` y el `0x1b4` en su ventana de ataque, `0x43195f`, `0x4316db` y `0x4315b4`; el `0x1b5` en la 3 con `+0x84` en 1 desde el frame 5, `0x432460`), los huesos por nombre de `0x4292e0` con sus sprites (el `0x1b2` después de su `rand() % 360`, `0x42f6ce` o `0x431fa4`; el `0x1b1` fuera de la 6, `0x42f946` o `0x431d5c`) y el polvo del `0x1ab` y del `0x1b4` en la 2 y la `0xa`, que lee una luz que ese camino no escribe (`0x431e86`, comportamiento indefinido). El `0x1ae` mira además `[0x723bec]`, que MuRet no modela (en 0): no hace nada. Tests: `ModelEffectsTest` (`test_monster_effect_cases.cpp`, en los mapas 0 y 2 y los del caso: 30, 34, 35, 24).
+
+**El `0x17e`** (`0x50749c..0x507897`, *estático*; `StepThe17e` en `Scenes/ModelEffects.cpp`, lote de partículas de
+la CL11). `0x505bc0(c, o, 8, 9)` y el `WORD` `+0x376` contra `0x3f`:
+
+- Con `0x3f` (el monstruo 63; `0x514bd1` le da el modelo `0x17e` también al 61, que va por la otra rama), 35 veces
+  `0x4ec110` sin offset (`[EBP − 0x60]` en 0) con los huesos de `0x6c882c` (5, 6, 33, 53, 35, 49, 50, 45, 46, 41, 42,
+  37, 38, 11, 31, 13, 27, 28, 23, 24, 19, 20, 15, 16, 54, 55, 62, 69, 70, 77, 2, 79, 81, 84 y 86; `MOVSX` de cada byte
+  por `0x30` sobre `+0x120`) a un arreglo local (`[EBP − 0x234]`). Con los ángulos locales en 0 (`0x5074c1`), por cada
+  par (a, b) de bytes de `0x6c8850` y de `0x6c8870` (quince en cada una, alternadas): `0x4e9810(punto b, ángulos, punto
+  a, 360,0f)`, el `fstp` de la distancia a la x de la luz (`[EBP − 0x50]`) y `0x53fe70(0x5de, punto a, ángulos, luz, 2,
+  escala, 0)`, con la escala en 1,0f hasta el byte `0x16` y en 0,5f desde ahí (`0x50758a`, `0x5075de`); lo mismo con los
+  cuatro pares de `0x6c8890` y de `0x6c8898` y 0,6f (`0x507644`, `0x507699`); con `ftol(T)` par (el resto con signo de
+  `0x5076b8`), la `/2` del punto 30 mirada desde el 0 con 1,3f (`0x507702`) y la `/3` del punto 1 con 0,5f y la misma
+  luz (`0x507724`); al final, la luz (−1,3) × 3 de radio 3 (`0x507754`). Los ángulos pasan de un `0x4e9810` al
+  siguiente. La y y la z de la luz (`[EBP − 0x4c]` y `[EBP − 0x48]`) no las escribe nadie en `0x505de0`, pero no llegan a
+  nada: la `/2` sólo lee la x del pedido (`0x5416dc`, `0x541702`) y la `/2` y la `/3` pisan las tres con la luz del reloj
+  (`0x54173c..0x541748`, `0x5417a6..0x5417b2`). MuRet las deja en 0.
+- Sin el `0x3f`, la luz (L; L · 0,5; L · 0,5) con L = sen(T · 0,002f) · 0,3f + 0,7f (`fsin` en `0x50777b`, PC53; el
+  `fmul` de 0,5 sobre la suma sin redondear). Con los ángulos en 0, de los huesos 55 a 62 y 70 a 77 (las manos de
+  `0x51255c`; el offset `[EBP − 0x28]` está en 0 desde `0x506c97`), `0x4e9810` de 360,0f sin guardar la distancia
+  (`fstp st(0)`) y la `0x5de`/1 de 0,2f en el segundo hueso (`0x50780d`, `0x507883`); después, `0x505d50` y
+  `0x505c50`.
+
+Los `rand()` del caso son los de `0x53fe70`: dos por cada `/1` y `/2` y uno por la `/3`. Con la tabla de partículas
+llena no crea nada ni saca, y el caso sigue. Tests: `TheFlamingMonsterBurnsAlongItsLimbs`,
+`TheMonsterWithoutFlamesBurnsItsHands` y `TheFlamingMonsterGoesOnWithTheParticlesFull` (`test_monster_effect_cases.cpp`,
+contra un pool gemelo con los mismos pedidos y el mismo `rand()`).
 
 **Los `rand()`.** 46 llamadas directas a `0x69fd70`. Con el `0x20a`, que es lo que MuRet tiene:
 
@@ -8051,8 +8078,8 @@ lectura de la celda. Los tamaños van desde la entrada hasta el último `ret` (*
 | `0x4ec110` | 120 | un punto de un hueso | `Render::Models::OriginalRotation`; el del `0x20a` (`0x506ffc`) va a un local que nadie lee |
 | `0x5189f0` | 206 | los efectos de las `0x44` y `0x45` | corta en `0x506e5d` |
 | `0x548fe0` | 168 | llena una marca del suelo ([Las marcas del suelo](#las-marcas-del-suelo)) | solo el `0x182`; no se llega |
-| `0x505bc0`, `0x505c50`, `0x505d50` | 132, 242, 129 | luces y partículas de los `0x157` y `0x179` a `0x17e` | no se llega |
-| `0x4e9810` | 186 | un rumbo (`0x4e93f0` y `0x4e9560`) | no se llega |
+| `0x505bc0`, `0x505c50`, `0x505d50` | 132, 242, 129 | luces y partículas de los `0x157` y `0x179` a `0x17e` | `MarkTheBones`, `BurstTheDust` y `RaiseTheDust` (`Scenes/ModelEffects.cpp`) |
+| `0x4e9810` | 186 | un rumbo (`0x4e93f0` y `0x4e9560`) | `Render::Models::MoveToward` (el `0x17e`) |
 | `0x5491e0` | 161 | un sprite del frame | no se llega |
 | `0x41ed10` | 156 | el sonido | — (CL10) |
 | `0x505770` | 161 | los pasos del héroe | corta en `0x508668` |

@@ -529,9 +529,27 @@ Core::Expected<void, std::string> StepTheHeadSkill(ActorState& actor, std::size_
         static_cast<void>(OwnSkillIndex(context, skill));
         return EffectThenSound(0x500c49, "el efecto 0xcf sobre o (0x518cf0)", skill, slot, 0x74, context);
     case 0x0c:
-        // 0x500c64: el punto de 0x4f5b10(o, −20, −90, 100), sin rand(), y 0x59fb80(0xc).
-        static_cast<void>(OwnSkillIndex(context, skill));
-        return EffectThenSound(0x500cb9, "el efecto 0x5e8 (0x518cf0)", skill, slot, 0x7a, context);
+    {
+        // 0x500c64..0x500ccf: el punto de 0x4f5b10(o, −20, −90, 100), sin rand(), 0x59fb80(0xc) y 0x518cf0(0x5e8,
+        // punto, o+0x1c, la luz del paso, 0, o, o+0x8a, lugar, 0, 0, 0): el rayo y, con el héroe de dueño, sus cuatro
+        // 0x517a20. Después, el sonido 0x7a.
+        constexpr std::int16_t LightningRay = 0x5e8;
+        constexpr glm::vec3 RayOffset{-20.0f, -90.0f, 100.0f};
+        const glm::vec3 point = PointAround(actor, RayOffset);
+        const std::int32_t index = OwnSkillIndex(context, skill);
+        if (auto made = CreateHighEffect({.type = LightningRay,
+                                          .position = point,
+                                          .angles = actor.angles,
+                                          .light = CaseLight(actor),
+                                          .owner = &actor,
+                                          .key = static_cast<std::uint16_t>(actor.word8a),
+                                          .byte89 = static_cast<std::uint8_t>(index)},
+                                         skill, slot, context);
+            !made.HasValue())
+            return made;
+        RequestTheSound(context, 0x7a);
+        return {};
+    }
     case 0x0d:
         // 0x500cd4: la celda con su altura y 0x59fb80(0xd).
         static_cast<void>(OwnSkillIndex(context, skill));

@@ -14,6 +14,7 @@
 #include "Scenes/FaunaModels.h"
 #include "Scenes/GameRibbonCreation.h"
 #include "Scenes/GameDrawTail.h"
+#include "Scenes/HighModelEffects.h"
 #include "Scenes/WorldModelPose.h"
 #include "Scenes/WorldRuntime.h"
 #include "Render/TextureSlot.h"
@@ -995,13 +996,28 @@ Result DrawThe1bb(MonsterHelperPass& pass)
     PlayTheSounds(pass, 0x25b, Sounds);
     const ActorState& actor = pass.actor;
     const bool attacking = actor.animation.action == 4;
-    if (const auto hand = PointOf(pass, "Monster105_L_Hand", attacking ? 0x428a78 : 0x428bee); !hand.HasValue())
+    const auto hand = PointOf(pass, "Monster105_L_Hand", attacking ? 0x428a78 : 0x428bee);
+    if (!hand.HasValue())
         return Core::Unexpected(hand.Error());
     if (auto made = Unported(pass, 0x6ec, 6, attacking ? 0x428adc : 0x428c52); !made.HasValue())
         return made;
     const float frame = actor.animation.frame;
-    if (attacking && frame >= 9.0f && frame <= 10.0f)
-        return Cut(0x428da7, "el efecto 0x5e8 (0x518cf0) de la mano izquierda", actor);
+    // 0x428d5b..0x428da7: 0x518cf0(0x5e8, la mano, c+0x1c, la luz roja, 1, sin dueño, −1, 0, 0, 0, 0), el rayo blanco,
+    // sin rand(). Solo en un frame del original, como sus sonidos.
+    if (attacking && frame >= 9.0f && frame <= 10.0f && pass.originalFrame)
+    {
+        constexpr std::int16_t WhiteRay = 0x5e8;
+        constexpr std::int32_t WhiteRaySubtype = 1;
+        const auto made =
+            CreateHighModelEffect({.type = WhiteRay,
+                                   .position = hand.Value(),
+                                   .angles = actor.angles,
+                                   .light = light,
+                                   .subtype = WhiteRaySubtype},
+                                  {.world = pass.world, .random = pass.random, .worldClock = pass.worldClock});
+        if (!made.HasValue())
+            return Core::Unexpected(made.Error());
+    }
     return {};
 }
 

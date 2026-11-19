@@ -10,6 +10,7 @@
 #include "Scenes/ArrowEffects.h"
 #include "Scenes/CharacterStep.h"
 #include "Scenes/GameDrawTail.h"
+#include "Scenes/HighModelEffects.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/WorldMap.h"
 #include "Scenes/WorldRuntime.h"
@@ -216,9 +217,8 @@ TEST(AttackSkillCasesTest, TheHeadCasesCutAfterTheirDraws)
         Case{0x48, "0x4fe590", 0},         Case{0x35, "0x4fe856", 0},         Case{0x3f, "0x4feae8", 0},
         Case{0x41, "0x4febbb", 0},         Case{0x31, "0x4fec15", 0},         Case{0x29, "0x4fec9a", OwnRecord},
         Case{0x0a, "0x4fecf3", OwnRecord}, Case{0x28, "0x4ff4ef", 0},         Case{0x26, "0x4ff5b2", 0},
-        Case{0x27, "0x4ffdaf", 1},         Case{0x08, "0x500c49", OwnRecord}, Case{0x0c, "0x500cb9", OwnRecord},
-        Case{0x0d, "0x500d7b", OwnRecord}, Case{0x0e, "0x51fe9e", 2},         Case{0x09, "0x501c67", OwnRecord},
-        Case{0x2c, "0x502975", 0},
+        Case{0x27, "0x4ffdaf", 1},         Case{0x08, "0x500c49", OwnRecord}, Case{0x0d, "0x500d7b", OwnRecord},
+        Case{0x0e, "0x51fe9e", 2},         Case{0x09, "0x501c67", OwnRecord}, Case{0x2c, "0x502975", 0},
     };
     for (const std::int32_t map : Maps)
     {
@@ -236,6 +236,33 @@ TEST(AttackSkillCasesTest, TheHeadCasesCutAfterTheirDraws)
             EXPECT_TRUE(tested.sounds.empty());
         }
     }
+}
+
+// 0x0c (0x500c64..0x500ccf): el rayo 0x5e8 en el punto (−20, −90, 100) de o girado, con o de dueño, su clave (+0x8a)
+// y el lugar de la skill (0x59fb80, con el registro propio cerrado); el sonido 0x7a. Sin ser el héroe, el alta no busca
+// blancos.
+TEST(AttackSkillCasesTest, TheLightningRayLeavesFromTheHand)
+{
+    SkillWorld tested;
+    ActorState& striker = tested.Striker();
+    striker.angles = {0.0f, 0.0f, 90.0f};
+    striker.word8a = 0x1234;
+    tested.world.Runtime().hero = VictimSlot;
+
+    ASSERT_TRUE(tested.Head(0x0c).HasValue());
+
+    const auto alive = AliveEffects(tested.world);
+    ASSERT_EQ(alive.size(), 1u);
+    const Client::World::ModelEffect& ray = *alive.front();
+    EXPECT_EQ(ray.type, 0x5e8);
+    EXPECT_EQ(ray.subtype, 0);
+    EXPECT_EQ(ray.transform.position, Client::Scenes::PointAround(striker, {-20.0f, -90.0f, 100.0f}));
+    EXPECT_EQ(ray.ownerContext, &striker);
+    EXPECT_EQ(ray.disturbanceState, 0x1234);
+    EXPECT_EQ(ray.life, 20);
+    EXPECT_EQ(ray.transform.scale, 16.0f);
+    EXPECT_EQ(DrawsSince(Seed, tested.random), OwnRecord);
+    EXPECT_EQ(tested.sounds, std::vector<std::int32_t>{0x7a});
 }
 
 // Con el registro propio abierto (+0x38e de 0x40ad90 en uso), 0x59fb80 no saca rand().

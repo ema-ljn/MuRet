@@ -2,7 +2,10 @@
 
 #include "Core/Expected.h"
 #include "Data/Models/Model.h"
+#include "Protocol/Outgoing.h"
 #include "Render/Models/Cloth.h"
+#include "Render/Models/LogicalAccess.h"
+#include "Render/Models/OriginalRotation.h"
 #include "Render/Models/OriginalRetainedMath.h"
 #include "Render/Models/Skeleton.h"
 #include "Render/TextureSlot.h"
@@ -705,5 +708,74 @@ TEST(HighModelEffectsTest, TheGrowingDecalWidensAndDims)
         EXPECT_EQ(plain.Effect(0).transform.scale, scale);
         EXPECT_EQ(plain.Draws(), before + 1);
     }
+}
+} // namespace
+
+namespace
+{
+// 0x51e596..0x51e69e: los rayos 0x5e8 (azul; el /1 blanco y de escala 3), 0x5e9 y 0x5ea (naranjas): vida 20, la luz,
+// la escala y la velocidad girada. Sin rand() sin el héroe de dueño; la tabla llena, nada. El paso solo les quita vida:
+// no se mueven (0x52cd1d).
+TEST(HighModelEffectsTest, TheMovingLightsTakeTheirColorScaleAndRush)
+{
+    struct Probe
+    {
+        std::int16_t type;
+        std::int32_t subtype;
+        glm::vec3 light;
+        float scale;
+        float rush;
+    };
+    const float orange = std::bit_cast<float>(0x3ecccccdu), ember = std::bit_cast<float>(0x3e4ccccdu);
+    for (const Probe& probe :
+         {Probe{0x5e8, 0, {0.5f, std::bit_cast<float>(0x3f333333u), 1.0f}, 16.0f, -50.0f},
+          Probe{0x5e8, 1, glm::vec3(1.0f), 3.0f, -50.0f}, Probe{0x5e9, 0, {1.0f, orange, ember}, 16.0f, -50.0f},
+          Probe{0x5ea, 1, {1.0f, orange, ember}, 5.0f, -15.0f}})
+    {
+        SCOPED_TRACE(probe.type);
+        HighWorld tested;
+        const ModelEffectArguments arguments{.type = probe.type,
+                                             .position = {300, 400, 50},
+                                             .angles = {0, 0, 90},
+                                             .light = glm::vec3(0.25f),
+                                             .subtype = probe.subtype,
+                                             .owner = &tested.world->Actors()[2]};
+        ASSERT_TRUE(CreateHighModelEffect(arguments, tested.Context()).HasValue());
+        ModelEffect& ray = tested.Effect(0);
+        EXPECT_EQ(ray.life, 20);
+        EXPECT_EQ(ray.light, probe.light);
+        EXPECT_EQ(ray.transform.scale, probe.scale);
+        EXPECT_EQ(ray.velocity,
+                  Client::Render::Models::OriginalVectorRotate(
+                      {0.0f, probe.rush, 0.0f}, Client::Render::Models::OriginalAngleMatrix(arguments.angles)));
+        EXPECT_EQ(tested.Draws(), 0);
+        ASSERT_TRUE(StepHighModelEffect(ray, nullptr, tested.StepContext()).HasValue());
+        EXPECT_EQ(ray.transform.position, arguments.position);
+        EXPECT_EQ(ray.life, 19);
+        EXPECT_EQ(tested.Draws(), 1);
+    }
+    HighWorld full;
+    full.FillTheEffects();
+    const auto none =
+        CreateHighModelEffect({.type = 0x5e8, .owner = &full.world->Actors()[HighWorld::HeroSlot]}, full.Context());
+    ASSERT_TRUE(none.HasValue()) << none.Error();
+    EXPECT_FALSE(none.Value().has_value());
+    EXPECT_EQ(full.Draws(), 0);
+}
+
+// 0x51e6bf..0x51e76a: con el héroe de dueño, cuatro 0x517a20 a 150, 300, 450 y 600 delante del rayo; cada uno abre y
+// cierra el registro propio (sus rand()) y, sin blancos, no manda nada.
+TEST(HighModelEffectsTest, TheHerosMovingLightLooksForTargetsFourTimes)
+{
+    HighWorld tested;
+    int sent = 0;
+    HighEffectContext context = tested.Context();
+    context.send = [&sent](Client::Protocol::Outgoing) { ++sent; };
+    ASSERT_TRUE(
+        CreateHighModelEffect(
+            {.type = 0x5e8, .position = {300, 400, 50}, .owner = &tested.world->Actors()[HighWorld::HeroSlot]}, context)
+            .HasValue());
+    EXPECT_EQ(tested.Draws(), 4 * Client::Render::Models::OwnRecordCloseRandoms);
+    EXPECT_EQ(sent, 0);
 }
 } // namespace

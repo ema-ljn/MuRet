@@ -13,6 +13,7 @@
 #include "Scenes/FaunaModels.h"
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/GameDrawTail.h"
+#include "Scenes/SkillHits.h"
 #include "Scenes/WorldMap.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
@@ -53,6 +54,8 @@ constexpr std::int16_t RadialShardEffect = 0xc1a;   // el fragmento de la descar
 // El destello que crece del 0x134 de 0x429110 (0x429202): sin BMD en la tabla de las skills.
 constexpr std::int16_t GrowingFlashEffect = 0x141;
 constexpr std::uint8_t NoAction = 0xff;
+// Los rayos de luz que se dibujan como sprites a lo largo de su velocidad (0x52d941): no se mueven ni tienen paso.
+constexpr std::int16_t MovingLightFirst = 0x5e8, MovingLightSecond = 0x5e9, MovingLightLast = 0x5ea;
 
 float F32(double value)
 {
@@ -234,6 +237,65 @@ void BeginTheGrowingFlash(World::ModelEffect& effect)
     effect.transform.scale = FlashScale;
 }
 
+// 0x51e596..0x51e772, el 0x5e8 (el rayo azul; con el subtipo 1, blanco y de escala 3), el 0x5e9 y el 0x5ea (los
+// naranjas): vida 20, la luz, la escala y la velocidad (0, −50, 0) (el 0x5ea, (0, −15, 0)) girada por los ángulos.
+// Con el héroe ([0x743a170]) de dueño, cuatro veces: el punto 150 más adelante (girado) y 0x517a20(+0x89, punto, 150,
+// +0x8c, +0x8a, 0), los blancos alrededor y el C1 10. Sin rand() propios (los de 0x517a20, sí).
+Core::Expected<void, std::string> BeginTheMovingLight(World::ModelEffect& effect, const HighEffectContext& context)
+{
+    constexpr std::int32_t LightLife = 20;
+    constexpr float Orange = std::bit_cast<float>(0x3ecccccdu), Ember = std::bit_cast<float>(0x3e4ccccdu);
+    constexpr float BlueGreen = std::bit_cast<float>(0x3f333333u);
+    constexpr float WideScale = 16.0f, NarrowScale = 5.0f, WhiteScale = 3.0f; // 0x41800000, 0x40a00000, 0x40400000
+    constexpr float Rush = -50.0f, SlowRush = -15.0f;                         // 0xc2480000, 0xc1700000
+    constexpr std::int32_t WhiteSubtype = 1;
+    effect.life = LightLife;
+    glm::vec3 rush{0.0f, Rush, 0.0f};
+    if (effect.type == MovingLightLast)
+    {
+        effect.light = {1.0f, Orange, Ember};
+        rush.y = SlowRush;
+        effect.transform.scale = NarrowScale;
+    }
+    else if (effect.type == MovingLightSecond)
+    {
+        effect.light = {1.0f, Orange, Ember};
+        effect.transform.scale = WideScale;
+    }
+    else
+    {
+        effect.light = {0.5f, BlueGreen, 1.0f};
+        effect.transform.scale = WideScale;
+        if (effect.subtype == WhiteSubtype)
+        {
+            effect.transform.scale = WhiteScale;
+            effect.light = glm::vec3(1.0f);
+        }
+    }
+    effect.velocity = Rotated(rush, effect.transform.angles);
+    WorldState& world = context.world;
+    if (effect.ownerContext != &world.Actors()[world.Runtime().hero])
+        return {};
+    constexpr float Reach = -150.0f; // 0xc3160000
+    constexpr float HitRadius = 150.0f;
+    constexpr int Hits = 4;
+    const glm::vec3 step = Rotated({0.0f, Reach, 0.0f}, effect.transform.angles);
+    glm::vec3 point = effect.transform.position;
+    for (int hit = 0; hit < Hits; ++hit)
+    {
+        point = Sum(step, point);
+        const SkillHitsRequest request{.skillIndex = effect.byte89,
+                                       .point = point,
+                                       .radius = HitRadius,
+                                       .volley = static_cast<std::uint8_t>(effect.word8c & 0xff),
+                                       .key = effect.disturbanceState,
+                                       .extra = 0};
+        if (auto hits = HitTheTargetsAround(request, world, context.random, context.send); !hits.HasValue())
+            return Core::Unexpected(std::format("0x51e75b: {}", hits.Error()));
+    }
+    return {};
+}
+
 // ---- Los pasos ----
 
 // 0x52cbf4..0x52cc7b: la acción publicada en el modelo (+0xa0) y 0x4ec200 con +0xd8. Si la acción termina, el frame
@@ -274,7 +336,7 @@ Core::Expected<void, std::string> CommonTail(World::ModelEffect& effect, const R
     {
         if (type >= FirstAnimated && type < PastAnimated)
             Animate(effect, skeleton, services);
-        if (!(type >= 0x5e8 && type <= 0x5ea))
+        if (!(type >= MovingLightFirst && type <= MovingLightLast))
         {
             if (type == SiegeFlareEffect)
             {
@@ -579,6 +641,11 @@ void StepTheGrowingDecal(World::ModelEffect& effect)
 }
 } // namespace
 
+glm::vec3 PointAround(const ActorState& actor, const glm::vec3& offset)
+{
+    return Sum(actor.position, Rotated(offset, actor.angles));
+}
+
 HighEffectContext HighContextOf(const CharacterStepContext& context)
 {
     return {.world = context.world,
@@ -592,7 +659,7 @@ bool IsHighModelEffect(std::int16_t type)
 {
     return type == SiegeAuraEffect || type == SiegeFlareEffect || type == SiegeSpearmanEffect ||
            type == SiegePulseEffect || type == RadialShardEffect || type == GrowingFlashEffect ||
-           type == World::ColoredDecalEffect;
+           type == World::ColoredDecalEffect || (type >= MovingLightFirst && type <= MovingLightLast);
 }
 
 Core::Expected<std::optional<std::size_t>, std::string>
@@ -627,6 +694,11 @@ CreateHighModelEffect(const World::ModelEffectArguments& arguments, const HighEf
         break;
     case World::ColoredDecalEffect:
         World::BeginColoredDecal(effect, context.random);
+        break;
+    case MovingLightFirst:
+    case MovingLightSecond:
+    case MovingLightLast:
+        begun = BeginTheMovingLight(effect, context);
         break;
     default:
         break;

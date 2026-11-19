@@ -33,6 +33,7 @@ namespace Client::Scenes
 {
 class IModelLibrary;
 class WorldState;
+struct ActorState;
 struct CharacterStepContext;
 
 // Lo que las altas de estos tipos leen y escriben fuera de su lugar: la tabla de efectos (World::ModelEffects), los
@@ -51,6 +52,10 @@ struct HighEffectContext
 
 // El contexto de las altas desde el paso de un personaje (0x4f5b70, 0x4fd5f0, 0x4f97b0 y sus helpers).
 [[nodiscard]] HighEffectContext HighContextOf(const CharacterStepContext& context);
+
+// 0x4f5b10(personaje, x, y, z, punto): `offset` girado por los ángulos del personaje (+0x1c) más su posición, un fstp
+// por eje.
+[[nodiscard]] glm::vec3 PointAround(const ActorState& actor, const glm::vec3& offset);
 
 // Los tipos cuya alta está en este archivo.
 [[nodiscard]] bool IsHighModelEffect(std::int16_t type);

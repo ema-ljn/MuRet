@@ -1213,7 +1213,7 @@ TEST_F(MonsterHelpersTest, The1b7To1bbCutInTheirParticles)
 
 // Con la tabla llena, sus partículas no crean nada y siguen: el 0x1b7 suena y en la 3 desde el frame 6,9 con el blanco
 // en el pool corta en el joint 0x618 (0x428036 salta a 0x427a8d); el 0x1b8 suena; el 0x1ba da sus seis cuernos, cada
-// uno con su rand() % 10; el 0x1bb en la 4 de 9 a 10 corta en el efecto 0x5e8.
+// uno con su rand() % 10; el 0x1bb en la 4 de 9 a 10 crea el rayo blanco 0x5e8/1 en la mano, sin rand().
 TEST_F(MonsterHelpersTest, The1b7To1bbFollowTheirTailWithAFullTable)
 {
     Name("Monster101_L_Arm", 12);
@@ -1237,7 +1237,7 @@ TEST_F(MonsterHelpersTest, The1b7To1bbFollowTheirTailWithAFullTable)
     for (const Case& value :
          {Case{0x1b7, 3, 6.9f, "0x427a8d", 0, 0, 0x249}, Case{0x1b7, 3, 6.8f, std::nullopt, 0, 0, 0x249},
           Case{0x1b8, 4, 0.0f, std::nullopt, 1, 1, 0x24f}, Case{0x1ba, 4, 0.0f, std::nullopt, 6, 6, 0x254},
-          Case{0x1bb, 4, 9.0f, "0x428da7", 5, 1, 0x25e}, Case{0x1bb, 4, 10.0f, "0x428da7", 5, 1, 0x25e},
+          Case{0x1bb, 4, 9.0f, std::nullopt, 5, 1, 0x25e}, Case{0x1bb, 4, 10.0f, std::nullopt, 5, 1, 0x25e},
           Case{0x1bb, 4, 10.5f, std::nullopt, 5, 1, 0x25e}, Case{0x1bb, 8, 9.5f, std::nullopt, 5, 1, 0x25d}})
     {
         for (const std::int32_t map : {Lorencia, Devias})
@@ -1252,12 +1252,27 @@ TEST_F(MonsterHelpersTest, The1b7To1bbFollowTheirTailWithAFullTable)
             MonsterHelperPass pass = Pass(map, random);
             const auto drawn = Client::Scenes::DrawTheMonsterHelpers(pass);
             if (value.address)
+            {
                 EXPECT_TRUE(CutAt(drawn, *value.address)) << (drawn.HasValue() ? "" : drawn.Error());
+            }
             else
+            {
                 EXPECT_TRUE(drawn.HasValue()) << drawn.Error();
+            }
             EXPECT_EQ(LiveSprites().size(), value.sprites);
             EXPECT_EQ(random.State(), AfterDraws(21, value.draws).State());
             EXPECT_EQ(Sound(), value.sound);
+            if (value.type == 0x1bb && value.action == 4 && value.frame <= 10.0f)
+            {
+                const auto& ray = m_world->Map().effects.Effects()[0];
+                EXPECT_TRUE(ray.alive);
+                EXPECT_EQ(ray.type, 0x5e8);
+                EXPECT_EQ(ray.subtype, 1);
+                EXPECT_EQ(ray.transform.scale, 3.0f);
+                EXPECT_EQ(ray.light, glm::vec3(1.0f));
+                EXPECT_EQ(ray.transform.position, At(20));
+                m_world->Map().effects.Effects()[0].alive = false;
+            }
         }
     }
     // Los cuernos del 0x1ba, en orden: (0,4; rand() % 10 · 0,01f + 0,8f; 0,5) a 0,4; en la 0, sin sonido ni sorteo.

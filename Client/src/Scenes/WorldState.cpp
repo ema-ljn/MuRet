@@ -173,6 +173,14 @@ void WorldState::PlacePlayerModel(const ActorState& actor)
     m_playerModel.action = actor.animation.action;
 }
 
+void WorldState::PlaceShadowModel(const ActorState& actor)
+{
+    SharedModelPlacement placement = ModelPlacement(Data::Models::PlayerShadowModel);
+    placement.scale = actor.scale;
+    placement.origin = actor.position;
+    PlaceModel(Data::Models::PlayerShadowModel, placement);
+}
+
 void WorldState::PlaceModel(const ActorState& actor)
 {
     PlaceModel(actor.type,

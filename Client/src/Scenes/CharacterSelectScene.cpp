@@ -1573,6 +1573,9 @@ void CharacterSelectScene::DrawTheCharacters(SceneCanvas& canvas, float alpha, s
             actor->bodyPose = PoseCharacterBody(m_models, drawn);
             if (actor->alpha >= PlayerModelAlpha)
                 m_context.world->PlacePlayerModel(*actor);
+            // 0x50bcec: la sombra le copia la escala y la posición al 0x20b (WorldState::PlaceShadowModel).
+            if (DrawsTheShadow(drawn))
+                m_context.world->PlaceShadowModel(*actor);
         }
     }
 }

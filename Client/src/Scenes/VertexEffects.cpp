@@ -7,6 +7,7 @@
 #include "Scenes/CharacterDrawing.h"
 #include "World/ModelEffects.h"
 #include "World/SiegeVertexEffects.h"
+#include "World/SkinShellEffects.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -89,6 +90,22 @@ void ScatterGolemStones(const glm::vec3& position, std::int32_t subtype, int& co
     }
     ++counted;
 }
+
+// 0x4eee6b..0x4eeec1, el 0x137: con rand() % 8 en 0, la cáscara 0x137 del subtipo pedido en la esquina, con los ángulos
+// en 0 y la luz (1; 1; 1), sin dueño (World::CreateSkinShell; con la tabla llena, nada).
+void ShedASkinShell(const glm::vec3& position, std::int32_t subtype, World::ModelEffects& effects,
+                    Render::Models::CrtRandom& random)
+{
+    constexpr int Chance = 8;
+    if (random.Next() % Chance != 0)
+        return;
+    static_cast<void>(World::CreateSkinShell({.type = World::SkinShellEffect,
+                                              .position = position,
+                                              .angles = glm::vec3(0.0f),
+                                              .light = glm::vec3(1.0f),
+                                              .subtype = subtype},
+                                             effects, random));
+}
 } // namespace
 
 Core::Expected<void, std::string> EmitVertexEffects(const IModelLibrary& models, const DrawnObject& object,
@@ -104,7 +121,9 @@ Core::Expected<void, std::string> EmitVertexEffects(const IModelLibrary& models,
     if (triangles.empty())
         return {};
     const bool golem = type == GolemStones;
-    if (!golem && ((type != 0x10a && type != 0x12d && type != 0x12e && type != 0x12f && type != 0x131) || subtype != 0))
+    const bool shell = type == World::SkinShellEffect;
+    if (!golem && !shell &&
+        ((type != 0x10a && type != 0x12d && type != 0x12e && type != 0x12f && type != 0x131) || subtype != 0))
         return Core::Unexpected(std::format("0x4ee770: falta la familia {:#x}/{}", type, subtype));
     int counted = 0;
     if (index >= meshes.size())
@@ -125,6 +144,8 @@ Core::Expected<void, std::string> EmitVertexEffects(const IModelLibrary& models,
             const glm::vec3& position = meshes[index].positions[static_cast<std::size_t>(vertex)];
             if (golem)
                 ScatterGolemStones(position, subtype, counted, effects, random);
+            else if (shell)
+                ShedASkinShell(position, subtype, effects, random);
             else
                 EmitAt(position, type, effects, random);
         }

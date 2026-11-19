@@ -1,4 +1,5 @@
 #include "Core/Expected.h"
+#include "Scenes/ActorState.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/OriginalRetainedMath.h"
 #include "Render/Models/OriginalRotation.h"
@@ -6,6 +7,7 @@
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/JointFamilies.h"
 #include "Scenes/JointKernels.h"
+#include "Scenes/SkinShells.h"
 #include "World/IFishStepServices.h"
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
@@ -29,10 +31,10 @@ using JointKernels::F32;
 // 0x53c0a5..0x53c390 con la /0..3 y la /5, después del movimiento común. La /2 gira su z rand() % 10 + 10 (en la x87,
 // rand + z + 10). La velocidad sube 10, la cola con la matriz de los ángulos (0x535520, si está prendida), sube otros
 // 10 y avanza (0, −velocidad, 0) girado por +0x3c. Debajo de la altura del terreno menos +0x9ec (150, o 300 la /2 y la
-// /3), la z queda ahí y, con la cola y la clave distinta de 1: la /0 y la /1 con dueño posan su modelo y sueltan sus
-// efectos por vértice (corta, CL11); la /2, la /3 y la /5, la onda 0x6eb/4 (0x53c295: 0x518cf0(0x6eb, posición,
-// ángulos, luz, 4, 0, −1, 0, 0, 0, 0), con su rand() si hay lugar) con la luz (1; 0,8f; 0,3f) la /5 y (0,3f; 0,8f; 1)
-// las otras; después la /5 pone la clave en 1 y la velocidad en −20, las otras apagan la cola, y la luz por
+// /3), la z queda ahí y, con la cola y la clave distinta de 1: la /0 y la /1 con dueño posan el 0x20b y sueltan las
+// cáscaras 0x137 de sus vértices (ShedTheSkinShells); la /2, la /3 y la /5, la onda 0x6eb/4 (0x53c295: 0x518cf0(0x6eb,
+// posición, ángulos, luz, 4, 0, −1, 0, 0, 0, 0), con su rand() si hay lugar) con la luz (1; 0,8f; 0,3f) la /5 y (0,3f;
+// 0,8f; 1) las otras; después la /5 pone la clave en 1 y la velocidad en −20, las otras apagan la cola, y la luz por
 // 0,8333333f. Siempre, el sprite con el giro rand() % 360: el 0x60f de escala 1 con la luz la /0 y la /1, de 2,5 la /5
 // y el 0x5fe de 1,6f con (0; 1; 1) la /2 y la /3.
 Core::Expected<void, std::string> StepFallingJoint(JointState& joint, const JointKernels::StepServices& services)
@@ -70,13 +72,23 @@ Core::Expected<void, std::string> StepFallingJoint(JointState& joint, const Join
         {
             if (joint.subtype < FirstGlowSubtype)
             {
-                // 0x53c1bb..0x53c246: con dueño, 0x4eb860 y 0x4ebc80 posan el modelo 0x20b (0x5769ad8 + 0x1c9a0) con
-                // los ángulos y la posición del dueño y 0x4ee770(0, 0x137, subtipo, 0, 0) suelta los 0x137 de sus
-                // vértices; los efectos por vértice del 0x137 no están portados.
+                // 0x53c1bb..0x53c246: con dueño (el personaje blanco de la 0x44 o la 0x47), el 0x20b posado con sus
+                // ángulos y las cáscaras 0x137 de sus vértices (Scenes/SkinShells.h); sin dueño, nada.
                 if (joint.ownerContext != nullptr)
-                    return Core::Unexpected(std::format("0x53c1c6: el joint 0x632/{} en el suelo con dueño pide los "
-                                                        "efectos por vértice 0x137 (0x4ee770), sin portar (CL11)",
-                                                        joint.subtype));
+                {
+                    if (joint.ownerKind != JointOwnerKind::Actor && joint.ownerKind != JointOwnerKind::ByType)
+                        return Core::Unexpected(
+                            std::format("0x53c1bb: el dueño del joint 0x632/{} no es un personaje", joint.subtype));
+                    if (services.models == nullptr || services.world == nullptr || services.effects == nullptr)
+                        return Core::Unexpected(std::format("0x53c1c6: el joint 0x632/{} en el suelo pide los modelos, "
+                                                            "los modelos compartidos y la tabla de efectos",
+                                                            joint.subtype));
+                    auto& owner = *static_cast<ActorState*>(joint.ownerContext);
+                    if (auto shed = ShedTheSkinShells(owner, joint.subtype, *services.models, *services.world,
+                                                      *services.effects, *services.random);
+                        !shed.HasValue())
+                        return shed;
+                }
             }
             else
             {

@@ -1592,6 +1592,9 @@ void LoginScene::DrawTheModels(SceneCanvas& canvas, float alpha)
                 actor.bodyPose = PoseCharacterBody(m_models, character);
                 if (actor.alpha >= PlayerModelAlpha)
                     CharacterWorld().PlacePlayerModel(actor);
+                // 0x50bcec: la sombra le copia la escala y la posición al 0x20b (WorldState::PlaceShadowModel).
+                if (DrawsTheShadow(character))
+                    CharacterWorld().PlaceShadowModel(actor);
             }
         }
     }

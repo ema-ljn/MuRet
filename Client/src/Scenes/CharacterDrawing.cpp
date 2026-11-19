@@ -656,18 +656,25 @@ bool SkippedInTheHand(std::uint16_t model)
     return std::ranges::find(NotInTheHand, model) != NotInTheHand.end();
 }
 
+} // namespace
+
+bool DrawsTheShadow(const DrawnCharacter& character)
+{
+    if (!character.castsShadow)
+        return false;
+    const std::optional<std::uint16_t>& pet = character.appearance.pet;
+    return character.safeZone || !pet || std::ranges::find(PetsWithoutShadow, *pet) == PetsWithoutShadow.end();
+}
+
+namespace
+{
 // La sombra de 0x50ba30 (0x20b con las matrices del cuerpo), antes de las partes: cada malla, pasada
 // a los vértices del cuerpo y aplastada sobre el piso (0x4eff40). Sin ella con una de las mascotas
 // que se montan.
 void DrawShadow(const CharacterFrame& frame, std::span<const BoneTransform> body)
 {
     const DrawnCharacter& character = frame.character;
-    if (!character.castsShadow)
-    {
-        return;
-    }
-    const std::optional<std::uint16_t>& pet = character.appearance.pet;
-    if (!character.safeZone && pet && std::ranges::find(PetsWithoutShadow, *pet) != PetsWithoutShadow.end())
+    if (!DrawsTheShadow(character))
     {
         return;
     }

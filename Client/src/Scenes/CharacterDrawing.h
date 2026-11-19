@@ -193,6 +193,11 @@ inline constexpr Render::TextureSlot MetalTextureSlot{0x620};
 void DrawCharacter(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnCharacter& character,
                    Core::Duration frameClock, CharacterDrawPass pass = CharacterDrawPass::All);
 
+// Las guardas de la sombra de 0x50ba30 (0x50bc05..0x50bc71: castsShadow y, fuera de la zona segura, sin las mascotas
+// que se montan): con ellas, 0x50bcec llama a 0x60cf70 con el 0x20b, que le copia la escala y la posición del personaje
+// aunque no lo dibuje (WorldState::PlaceShadowModel).
+[[nodiscard]] bool DrawsTheShadow(const DrawnCharacter& character);
+
 // 0x50d374..0x50d3d7: en Chaos Castle (18 a 23), un jugador (+0x88 en 1) no lleva sus seis partes sino el Angel
 // (0x1f7, Player\Angel), sobre el cuerpo posado, con 0x60cf70: el contorno de esos mapas si está marcado, y
 // 0x60b3d0 con el nivel 0, que le pone la luz (+0x3b4) y llama a 0x609640 (caso 0x1f7) con `flags`: 2, o 6 el

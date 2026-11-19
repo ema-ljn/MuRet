@@ -7,6 +7,7 @@
 #include "Render/TextureSlot.h"
 #include "Scenes/CharacterDrawing.h"
 #include "World/ModelEffects.h"
+#include "World/SkinShellEffects.h"
 
 #include <gtest/gtest.h>
 
@@ -163,6 +164,67 @@ TEST(VertexEffectsTest, TheGolemStonesComeOneInFortyFiveUpToTwenty)
             EXPECT_EQ(effects->Effects()[0].transform.position, (glm::vec3{11, 22, 83}));
             EXPECT_EQ(effects->Effects()[0].light, glm::vec3(1));
         }
+    }
+}
+
+// 0x4eee6b..0x4eeec1: el 0x137 saca un rand() % 8 por esquina; con 0, la cáscara 0x137 del subtipo pedido (el del joint
+// 0x632, también el 1) en la esquina, con los ángulos en 0 y la luz 1, y los nueve rand() de su alta. Con la tabla
+// llena, sólo el de cada esquina.
+TEST(VertexEffectsTest, TheSkinShellsComeOneInEightWithTheJointSubtype)
+{
+    VertexModels models;
+    models.model.meshes[0].triangles.assign(40, {3, {0, 1, 2, 0}});
+    const Client::Scenes::DrawnObject object;
+    const std::array meshes{
+        Client::Render::Models::SkinnedMesh{{glm::vec3{11, 22, 33}, glm::vec3{44, 55, 66}, glm::vec3{77, 88, 99}}, {}}};
+    for (const std::int32_t subtype : {0, 1})
+    {
+        SCOPED_TRACE(subtype);
+        auto effects = std::make_unique<Client::World::ModelEffects>();
+        auto twin = std::make_unique<Client::World::ModelEffects>();
+        Client::Render::Models::CrtRandom random(4), expected(4);
+        for (std::size_t corner = 0; corner < 3 * models.model.meshes[0].triangles.size(); ++corner)
+        {
+            if (expected.Next() % 8 != 0)
+                continue;
+            ASSERT_TRUE(Client::World::CreateSkinShell({.type = Client::World::SkinShellEffect,
+                                                        .position = meshes[0].positions[corner % 3],
+                                                        .angles = glm::vec3(0.0f),
+                                                        .light = glm::vec3(1.0f),
+                                                        .subtype = subtype},
+                                                       *twin, expected)
+                            .has_value());
+        }
+        const auto result = Client::Scenes::EmitVertexEffects(models, object, meshes, 0, Client::World::SkinShellEffect,
+                                                              subtype, *effects, random);
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        EXPECT_EQ(random.State(), expected.State());
+        std::size_t made = 0;
+        for (std::size_t slot = 0; slot < effects->Effects().size(); ++slot)
+        {
+            const auto& effect = effects->Effects()[slot];
+            const auto& replica = twin->Effects()[slot];
+            ASSERT_EQ(effect.alive, replica.alive);
+            if (!effect.alive)
+                continue;
+            ++made;
+            EXPECT_EQ(effect.type, Client::World::SkinShellEffect);
+            EXPECT_EQ(effect.subtype, subtype);
+            EXPECT_EQ(effect.transform.position, replica.transform.position);
+            EXPECT_EQ(effect.transform.angles, replica.transform.angles);
+            EXPECT_EQ(effect.velocity, replica.velocity);
+            EXPECT_EQ(effect.light, replica.light);
+        }
+        EXPECT_GT(made, 0U);
+
+        for (auto& effect : effects->Effects())
+            effect.alive = true;
+        Client::Render::Models::CrtRandom full(4), corners(4);
+        corners.Discard(static_cast<std::uint32_t>(3 * models.model.meshes[0].triangles.size()));
+        ASSERT_TRUE(Client::Scenes::EmitVertexEffects(models, object, meshes, 0, Client::World::SkinShellEffect,
+                                                      subtype, *effects, full)
+                        .HasValue());
+        EXPECT_EQ(full.State(), corners.State());
     }
 }
 } // namespace

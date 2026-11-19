@@ -230,7 +230,8 @@ using ParticleTextureHeight = std::function<std::optional<float>(std::int32_t)>;
 // +0x40. nullptr si no está.
 using ParticleObjectOwners = std::function<WorldObject*(std::uint64_t)>;
 // La acción (+0x111) del personaje de una identidad (ParticleOwnerKind::Actor, el lugar del pool): lo que el paso de
-// la órbita 60f/0 lee por el puntero +0x40 (0x54735f). nullopt si no está.
+// la órbita 60f/0 lee por el puntero +0x40 (0x54735f). nullopt si no está. Con un efecto con modelo de dueño, el paso
+// la lee de ParticleOwnerStates.
 using ParticleActorActions = std::function<std::optional<std::uint8_t>(std::uint64_t)>;
 // 0x53fdb0(partícula): el punto en el mundo del hueso que sigue la 5fe, el de su dueño (+0x40, ParticleOwner del pool
 // de personajes) que elige el héroe publicado con el subtipo. También resuelve la 5ac/4 por rotation y pose propia,
@@ -242,8 +243,9 @@ using ParticleOwnerBones = std::function<std::optional<glm::vec3>(const Particle
 using ParticleActorHands = std::function<std::optional<glm::vec3>(std::uint64_t, std::int32_t)>;
 
 // Lo que el paso lee por el puntero +0x40 de las partículas que siguen a su dueño (5c6/4, 5d5/2, el fuego /9 y
-// 5de/4): el byte vivo (+0x0), la posición (+0x10) y, sólo de un efecto con modelo, su partida (+0x17c). De un
-// personaje, también la acción (+0x111), que lee la fanta 6ec/1 y /2 (0x547a54), y sus huesos con nombre:
+// 5de/4): el byte vivo (+0x0), la posición (+0x10) y, sólo de un efecto con modelo, su partida (+0x17c). La acción
+// (+0x111): de un personaje la lee la fanta 6ec/1 y /2 (0x547a54) y la órbita 60f/0 (0x54735f), que también la lee del
+// efecto con modelo 0x61d que la suelta (0x52b8ff, 0x52b977). De un personaje, además, sus huesos con nombre:
 // 0x4010b0(dueño, nombre, punto), sin corrimiento, que lee la 6ec/3 y /4 (0x547c1e); nullopt si 0x4016c0 no lo
 // encuentra (o el dueño no es un personaje).
 struct ParticleOwnerState

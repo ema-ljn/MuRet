@@ -10,6 +10,7 @@
 #include "World/KalimaParticleKernels.h"
 #include "World/ModelEffects.h"
 #include "World/ParticleDrawParameters.h"
+#include "World/ParticleOwner.h"
 #include "World/Particles.h"
 #include "World/PortableParticleTrigonometry.h"
 #include "World/TerrainCells.h"
@@ -516,8 +517,8 @@ TEST(CrywolfParticlesTest, TheAnchoredOrbStaysOverItsShiftedStart)
 
 // 0x51ee96..0x51eeae: el calco 0x61d nace con vida 20 (15 con el subtipo 0) y escala 0,5, sin rand().
 // 0x52b91f..0x52b954: el /3, con la vida entre 6 y 9 antes del paso común, suelta una 60f/10 con su luz y la
-// escala 0,19; el /0, el /2 y el /7 cortan en su 60f/0 con lugar (y, llena, siguen), y los demás solo tienen el paso
-// común.
+// escala 0,19; el /0, el /2 y el /7 sueltan la 60f/0 con el efecto de dueño (0x52b8ff, 0x52b977), y los demás solo
+// tienen el paso común.
 TEST(CrywolfDecalTest, TheBannerDecalReleasesFourOrbsBeforeItFades)
 {
     auto effects = std::make_unique<Client::World::ModelEffects>();
@@ -573,24 +574,75 @@ TEST(CrywolfDecalTest, TheBannerDecalReleasesFourOrbsBeforeItFades)
     }
     EXPECT_EQ(orbs, 4);
 
+    // 0x52b8ff y 0x52b977: el /0, el /2 y el /7 sueltan la órbita 60f/0 con su posición, sus ángulos, su luz, la escala
+    // 0,19 y el efecto de dueño (su lugar en la tabla), después del rand() de la luz del paso; llena, nada. Sin la
+    // tabla de efectos (de donde sale el lugar del dueño) cortan con su dirección.
     for (const std::int32_t subtype : {0, 2, 7})
     {
         SCOPED_TRACE(subtype);
-        Client::World::ModelEffect other = effects->Effects()[*first];
-        other.subtype = subtype;
-        other.life = 8;
-        const Client::World::ModelEffectStepServices services{.effects = effects.get()};
-        const auto cut =
-            Client::World::StepGameModelEffect(other, nullptr, *particles, 2500.0f, random, nullptr, services);
-        ASSERT_FALSE(cut.HasValue());
-        EXPECT_NE(cut.Error().find(subtype == 0 ? "0x52b8ff" : "0x52b977"), std::string::npos) << cut.Error();
+        auto table = std::make_unique<Client::World::ModelEffects>();
+        static_cast<void>(table->CreateFadingDecal(position, angles, light, 4, 4));
+        const auto made = table->CreateFadingDecal(position, angles, light, subtype, 4);
+        ASSERT_EQ(made, std::optional<std::size_t>(1));
+        Client::World::ModelEffect& owner = table->Effects()[*made];
+        owner.life = 8;
+        const Client::World::ModelEffect before = owner;
+        const Client::World::ModelEffectStepServices services{.effects = table.get()};
+        auto spawned = std::make_unique<Particles>();
+        auto twin = std::make_unique<Particles>();
+        CrtRandom orbRandom(29);
+        CrtRandom twinRandom(29);
+        ASSERT_TRUE(Client::World::StepGameModelEffect(owner, nullptr, *spawned, 2500.0f, orbRandom, nullptr, services)
+                        .HasValue());
+        static_cast<void>(twinRandom.Next());
+        const float clock = 2500.0f;
+        Client::World::PortableParticleTrigonometry trigonometry;
+        constexpr Client::World::ParticleOwner DecalOwner{Client::World::ParticleOwnerKind::ModelEffect, 1};
+        const auto replayed = twin->CreateChecked(
+            Client::World::OrbitParticle, before.transform.position, before.transform.angles, before.light, 0,
+            std::bit_cast<float>(0x3e428f5cu), std::cref(clock), twinRandom, 0, trigonometry, DecalOwner);
+        ASSERT_TRUE(replayed.HasValue());
+        ASSERT_EQ(replayed.Value(), std::optional<std::size_t>(0));
+        EXPECT_EQ(orbRandom.State(), twinRandom.State());
+        EXPECT_EQ(orbRandom.State(), Client::Tests::AfterDraws(29, 5).State());
+        const Particle& orb = spawned->All()[0];
+        const Particle& expected = twin->All()[0];
+        ASSERT_TRUE(orb.alive);
+        EXPECT_EQ(orb.type, Client::World::OrbitParticle);
+        EXPECT_EQ(orb.subtype, 0);
+        EXPECT_EQ(orb.typedOwner, DecalOwner);
+        EXPECT_EQ(orb.light, light);
+        EXPECT_EQ(orb.position, expected.position);
+        EXPECT_EQ(orb.scale, expected.scale);
+        EXPECT_EQ(orb.rotation, expected.rotation);
+        EXPECT_EQ(orb.verticalSpeed, expected.verticalSpeed);
+        EXPECT_EQ(orb.velocity, expected.velocity);
+        EXPECT_EQ(orb.start, expected.start);
+        EXPECT_EQ(orb.life, expected.life);
+        EXPECT_FALSE(spawned->All()[1].alive);
+
         auto full = std::make_unique<Particles>();
         for (Particle& particle : full->All())
             particle.alive = true;
+        Client::World::ModelEffect again = before;
         CrtRandom fullRandom(29);
-        ASSERT_TRUE(Client::World::StepGameModelEffect(other, nullptr, *full, 2500.0f, fullRandom, nullptr, services)
+        auto fullTable = std::make_unique<Client::World::ModelEffects>();
+        static_cast<void>(fullTable->CreateFadingDecal(position, angles, light, 4, 4));
+        const auto fullMade = fullTable->CreateFadingDecal(position, angles, light, subtype, 4);
+        ASSERT_TRUE(fullMade.has_value());
+        fullTable->Effects()[*fullMade].life = 8;
+        const Client::World::ModelEffectStepServices fullServices{.effects = fullTable.get()};
+        ASSERT_TRUE(Client::World::StepGameModelEffect(fullTable->Effects()[*fullMade], nullptr, *full, 2500.0f,
+                                                       fullRandom, nullptr, fullServices)
                         .HasValue());
         EXPECT_EQ(fullRandom.State(), Client::Tests::AfterDraws(29, 1).State());
+
+        if (subtype == 0)
+            continue;
+        CrtRandom loneRandom(29);
+        const auto lone = Client::World::StepGameModelEffect(again, nullptr, *spawned, 2500.0f, loneRandom);
+        ASSERT_FALSE(lone.HasValue());
+        EXPECT_NE(lone.Error().find("0x52b977"), std::string::npos) << lone.Error();
     }
     for (const std::int32_t subtype : {1, 4})
     {

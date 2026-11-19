@@ -624,9 +624,9 @@ Core::Expected<void, std::string> StepAidaWisp(ModelEffect& effect, Particles& p
 
 // 0x52b8a6..0x52b97f: el 0x61d. El /0 deja en cada paso el /1 (0x52b8cf: 0x518cf0(0x61d, posición, ángulos, luz, 1,
 // 0, −1, 0, 0, 0, 0), sin rand(); llena, nada). El /0, el /2, el /3 y el /7, con la vida entre 6 y 9, sueltan la
-// órbita 60f con la escala 0,19 y el efecto de dueño: el /3 (el del 0x38 de Crywolf) la /10 con la luz del efecto, que
-// no lee al dueño (Q-C346); los otros la /0 (0x52b8ff, 0x52b977), cuyo paso lee la acción (+0x111) del dueño como la de
-// un personaje: con lugar en la tabla de partículas cortan (CL11); llena, nada.
+// órbita 60f con la escala 0,19, la luz del efecto y el efecto de dueño (+0x40): el /3 (el del 0x38 de Crywolf) la /10,
+// que no lee al dueño (Q-C346); los otros la /0 (0x52b8ff, 0x52b977), cuyo paso lee la acción (+0x111) del 0x61d como
+// la de un personaje (0x54735f): el prefijo de 0x518cf0 la deja en 0 y sólo un lugar reusado conserva otra.
 Core::Expected<void, std::string> StepFadingDecal(const ModelEffect& effect, Particles& particles,
                                                   const float& worldClock, Render::Models::CrtRandom& random,
                                                   const ModelEffectStepServices& services)
@@ -634,6 +634,7 @@ Core::Expected<void, std::string> StepFadingDecal(const ModelEffect& effect, Par
     constexpr std::int32_t TrailSubtype = 0, FadingSubtype = 1, FirstOrbSubtype = 2, LastOrbSubtype = 7;
     constexpr std::int32_t OrbAfterLife = 5, OrbBeforeLife = 10;
     constexpr float OrbScale = std::bit_cast<float>(0x3e428f5cu); // 0x52b937: 0,19.
+    constexpr std::int32_t OwnerOrbitSubtype = 0;                 // 0x52b8f2 y 0x52b967: la órbita /0.
     if (effect.subtype == TrailSubtype)
     {
         if (services.effects == nullptr)
@@ -649,22 +650,31 @@ Core::Expected<void, std::string> StepFadingDecal(const ModelEffect& effect, Par
     }
     if (effect.life <= OrbAfterLife || effect.life >= OrbBeforeLife)
         return {};
-    if (effect.subtype != CrywolfDecalSubtype)
-    {
-        if (std::ranges::none_of(particles.All(), [](const Particle& particle) { return !particle.alive; }))
-            return {};
-        return Core::Unexpected(
-            std::format("{}: la órbita 0x60f/0 con el 0x61d/{} de dueño lee su +0x111 como la acción de un personaje "
-                        "(CL11)",
-                        effect.subtype == TrailSubtype ? "0x52b8ff" : "0x52b977", effect.subtype));
-    }
     PortableParticleTrigonometry trigonometry;
+    if (effect.subtype == CrywolfDecalSubtype)
+    {
+        const auto created =
+            particles.CreateChecked(OrbitParticle, effect.transform.position, effect.transform.angles, effect.light,
+                                    AnchoredOrbitSubtype, OrbScale, std::cref(worldClock), random, 0, trigonometry);
+        if (!created.HasValue())
+            return Core::Unexpected(std::format("0x52b954: el alta de 0x60f/10 falla con error {}",
+                                                static_cast<unsigned>(created.Error())));
+        return {};
+    }
+    const char* const caller = effect.subtype == TrailSubtype ? "0x52b8ff" : "0x52b977";
+    if (services.effects == nullptr)
+        return Core::Unexpected(std::format("{}: la órbita 0x60f/0 pide la tabla de efectos de su dueño", caller));
+    const auto pool = services.effects->Effects();
+    const auto found = std::ranges::find_if(pool, [&](const ModelEffect& candidate) { return &candidate == &effect; });
+    if (found == pool.end())
+        return Core::Unexpected(std::format("{}: el 0x61d dueño de la órbita está fuera de su tabla", caller));
+    const ParticleOwner owner{ParticleOwnerKind::ModelEffect, static_cast<std::uint64_t>(found - pool.begin())};
     const auto created =
         particles.CreateChecked(OrbitParticle, effect.transform.position, effect.transform.angles, effect.light,
-                                AnchoredOrbitSubtype, OrbScale, std::cref(worldClock), random, 0, trigonometry);
+                                OwnerOrbitSubtype, OrbScale, std::cref(worldClock), random, 0, trigonometry, owner);
     if (!created.HasValue())
         return Core::Unexpected(
-            std::format("0x52b954: el alta de 0x60f/10 falla con error {}", static_cast<unsigned>(created.Error())));
+            std::format("{}: el alta de 0x60f/0 falla con error {}", caller, static_cast<unsigned>(created.Error())));
     return {};
 }
 

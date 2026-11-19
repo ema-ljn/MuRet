@@ -246,7 +246,8 @@ ParticleOwnerStatesOf(WorldState& world)
             if (owner.identity >= effects.size())
                 return std::nullopt;
             const auto& effect = effects[static_cast<std::size_t>(owner.identity)];
-            return World::ParticleOwnerState{effect.alive, effect.transform.position, effect.start};
+            return World::ParticleOwnerState{effect.alive, effect.transform.position, effect.start,
+                                             effect.animation.action};
         }
         const auto actors = world.Actors();
         if (owner.kind != World::ParticleOwnerKind::Actor || owner.identity >= actors.size())

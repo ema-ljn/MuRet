@@ -1730,13 +1730,26 @@ bool IsSteppedOrbitSubtype(std::int32_t subtype)
     return IsOrbitSubtype(subtype) || subtype == FallenOrbitSubtype;
 }
 
-// 0x547354..0x5473a9: la /0 lee la acción (+0x111) del personaje dueño (+0x40). En [0xd, 0x21] o [0x38, 0x3c] pasa a
-// la /1, con la vida en 20 si tenía más, la velocidad (+0x54, donde estaba la fase) en 0 y la partida en la posición.
-Core::Expected<void, ParticleError> FallTheSetOrbit(Particle& particle, const ParticleActorActions& actorActions)
+// La acción (+0x111) del dueño (+0x40) que lee 0x54735f: la del personaje del pool o, cuando el dueño es un efecto con
+// modelo (el 0x61d, 0x52b8ff y 0x52b977), la del lugar de la tabla de efectos, viva o no, como el byte que el original
+// lee por el puntero. nullopt si el dueño no es ninguno de los dos o falta el resolvedor.
+std::optional<std::uint8_t> SetOrbitOwnerAction(const ParticleOwner& owner, const ParticleActorActions& actorActions,
+                                                const ParticleOwnerStates& ownerStates)
 {
-    if (particle.typedOwner.kind != ParticleOwnerKind::Actor || !actorActions)
-        return Core::Unexpected(ParticleError::MissingOwner);
-    const std::optional<std::uint8_t> action = actorActions(particle.typedOwner.identity);
+    if (owner.kind == ParticleOwnerKind::Actor)
+        return actorActions ? actorActions(owner.identity) : std::nullopt;
+    if (owner.kind != ParticleOwnerKind::ModelEffect || !ownerStates)
+        return std::nullopt;
+    const std::optional<ParticleOwnerState> state = ownerStates(owner);
+    return state ? std::optional<std::uint8_t>(state->action) : std::nullopt;
+}
+
+// 0x547354..0x5473a9: la /0 lee la acción (+0x111) del dueño (+0x40). En [0xd, 0x21] o [0x38, 0x3c] pasa a la /1,
+// con la vida en 20 si tenía más, la velocidad (+0x54, donde estaba la fase) en 0 y la partida en la posición.
+Core::Expected<void, ParticleError> FallTheSetOrbit(Particle& particle, const ParticleActorActions& actorActions,
+                                                    const ParticleOwnerStates& ownerStates)
+{
+    const std::optional<std::uint8_t> action = SetOrbitOwnerAction(particle.typedOwner, actorActions, ownerStates);
     if (!action)
         return Core::Unexpected(ParticleError::MissingOwner);
     constexpr std::uint8_t FirstFall = 0xd, LastFall = 0x21, SecondFirstFall = 0x38, SecondLastFall = 0x3c;
@@ -1814,7 +1827,8 @@ Core::Expected<void, ParticleError> CreateTheOrbit(Particle& particle, float inp
 
 // Step5446e0 §60f/3: leídos los selectores tras el helper; sin cargas de reloj nuevas.
 Core::Expected<void, ParticleError> StepTheOrbit(Particle& particle, IParticleTrigonometry& trigonometry,
-                                                 const ParticleActorActions& actorActions)
+                                                 const ParticleActorActions& actorActions,
+                                                 const ParticleOwnerStates& ownerStates)
 {
     if (particle.subtype == FallenOrbitSubtype)
     {
@@ -1867,7 +1881,7 @@ Core::Expected<void, ParticleError> StepTheOrbit(Particle& particle, IParticleTr
         particle.light.z = F32(static_cast<double>(particle.light.z) * static_cast<double>(OrbitFade));
     }
     if (particle.subtype == SetOrbitSubtype)
-        return FallTheSetOrbit(particle, actorActions);
+        return FallTheSetOrbit(particle, actorActions, ownerStates);
     return {};
 }
 } // namespace
@@ -2536,7 +2550,7 @@ Core::Expected<void, ParticleError> StepParticlesImpl(
             {
                 return Core::Unexpected(ParticleError::UnsupportedSubtype);
             }
-            const auto stepped = StepTheOrbit(particle, *trigonometry, actorActions);
+            const auto stepped = StepTheOrbit(particle, *trigonometry, actorActions, ownerStates);
             if (!stepped.HasValue())
             {
                 return stepped;

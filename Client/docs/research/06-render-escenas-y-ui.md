@@ -14286,9 +14286,11 @@ joint `0x10f/5` y `/6` (`0x536626`). Los dos `0x6e8/0` del `0x114/1` (`0x51c25f`
 dueño del `0x125` (`0x51ce91`) los crea el lote joints. Cortan, con un lugar libre y después de sus `rand()`: ~~la
 partícula `0x5c5/5` del `0x140` (`0x52a16e`)~~ (lote de partículas, cuarta vuelta: nace con la marca de dueño, el `ebx`
 de `0x52a134`, y lee su posición para su partida; la `0x6ec/3` del `0x13d`, `0x5262e8`, con él de dueño, y las cinco
-`0x5c5/6` del `0x140`, `0x529f71`, ya nacían con el efecto de dueño) y la órbita
+`0x5c5/6` del `0x140`, `0x529f71`, ya nacían con el efecto de dueño) y ~~la órbita
 `0x60f/0` con el `0x61d` de dueño (`0x52b8ff`, `0x52b977`; su paso lee `+0x111` del efecto como la acción de un
-personaje) (08, P-C422). Del `0x145` el original solo crea el /2 (`0x433339`, ya en
+personaje)~~ (08, P-C422; quinta vuelta del lote de partículas: nace con el lugar del `0x61d` en la tabla de efectos
+de dueño, `ParticleOwnerKind::ModelEffect`, y `0x54735f` lee la acción de ese lugar, viva o no, por
+`ParticleOwnerStates`: el prefijo de `0x518cf0` la deja en 0 y sólo un lugar reusado conserva otra). Del `0x145` el original solo crea el /2 (`0x433339`, ya en
 World); el `0x146` no tiene quien lo cree (solo su carga, `0x61b66a`), así que no se porta. El `0x636/2` del `0x1a4`
 ~~(`0x441b33`) sigue cortando por lo que viene después: el joint `0x61c/6` (`0x441b57`) y el `0x5de/3` (`0x441b7c`)~~ (novena vuelta).
 Tests: `HighModelEffectsTest` (`test_high_model_effects.cpp`), los del asedio, de Crywolf y del 0x46 en

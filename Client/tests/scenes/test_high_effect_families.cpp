@@ -1473,7 +1473,7 @@ ModelEffect& ArrowBlast(FamilyWorld& tested, void* target, std::int32_t subtype,
 
 // 0x529dee..0x529f07: el 0x13a baja 5 la x de los ángulos y 8 la y de la velocidad. Con la vida debajo de 2, el /0 y el
 // blanco de dueño: la x de los ángulos en 90, el /1 y los joints 0x632/2 y /3 sobre el blanco (rand() % 100 − 50 en x
-// y en y); con los joints llenos, esos dos rand() y la cola lo apaga. Con lugar, corta en el primero (0x529eca, CL11).
+// y en y); con los joints llenos, esos dos rand() y la cola lo apaga; con lugar, los dos joints.
 // Con el /1, el lugar libre; un dueño fuera de los personajes del mundo corta (0x529e3e).
 TEST(HighEffectFamiliesTest, TheArrowBlastFallsAndCallsTheRainOverItsTarget)
 {
@@ -1498,17 +1498,63 @@ TEST(HighEffectFamiliesTest, TheArrowBlastFallsAndCallsTheRainOverItsTarget)
         target.position = {500.0f, 600.0f, 70.0f};
         ModelEffect& blast = ArrowBlast(tested, &target, 0, 1);
         const auto stepped = Client::Scenes::StepHighModelEffect(blast, nullptr, tested.StepContext());
-        EXPECT_EQ(tested.Draws(), 3);
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         EXPECT_EQ(blast.transform.angles.x, 90.0f);
         EXPECT_EQ(blast.subtype, 1);
-        if (room)
-        {
-            EXPECT_TRUE(HasError(stepped, "0x529eca"));
-            continue;
-        }
-        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         EXPECT_FALSE(blast.alive);
         EXPECT_EQ(blast.life, 0);
+        if (!room)
+        {
+            EXPECT_EQ(tested.Draws(), 3);
+            continue;
+        }
+        // 0x529e62..0x529eed: la luz local, rand() % 100 − 50 en x, en y, la z 1200 más y los dos 0x632 (/2 y /3) con
+        // el 0x13a de dueño, ancho 50 y clave −1, repetidos en un pool gemelo con el mismo CrtRandom (un rand() cada
+        // uno).
+        CrtRandom replay(Seed);
+        static_cast<void>(replay.Next());
+        const auto dx = static_cast<double>(replay.Next() % 100) - 50.0;
+        const auto dy = static_cast<double>(replay.Next() % 100) - 50.0;
+        const glm::vec3 point{static_cast<float>(dx + 500.0), static_cast<float>(dy + 600.0), 1270.0f};
+        std::vector<Client::Scenes::JointState> twin(tested.world->DrawTail().joints.size());
+        for (const std::int32_t subtype : {2, 3})
+        {
+            glm::vec3 first = point, second = point, angles{90.0f, 0.0f, 0.0f};
+            ASSERT_TRUE(Client::Scenes::CreateFaunaJoint(twin,
+                                                         {.type = 0x632,
+                                                          .firstPosition = first,
+                                                          .secondPosition = second,
+                                                          .angles = angles,
+                                                          .subtype = subtype,
+                                                          .ownerContext = &blast,
+                                                          .scale = 50.0f,
+                                                          .key = -1,
+                                                          .skill = 0,
+                                                          .skillSerial = 0,
+                                                          .target = -1},
+                                                         replay, Client::Scenes::JointOwnerKind::ModelEffect)
+                            .HasValue());
+        }
+        EXPECT_EQ(tested.random.State(), replay.State());
+        EXPECT_EQ(tested.Draws(), 5);
+        const auto& joints = tested.world->DrawTail().joints;
+        for (std::size_t slot = 0; slot < 2; ++slot)
+        {
+            SCOPED_TRACE(slot);
+            const auto& joint = joints[slot];
+            ASSERT_TRUE(joint.alive);
+            EXPECT_EQ(joint.type, 0x632);
+            EXPECT_EQ(joint.subtype, static_cast<std::int32_t>(2 + slot));
+            EXPECT_EQ(joint.position, point);
+            EXPECT_EQ(joint.position, twin[slot].position);
+            EXPECT_EQ(joint.angles, twin[slot].angles);
+            EXPECT_EQ(joint.width, 50.0f);
+            EXPECT_EQ(joint.texture, twin[slot].texture);
+            EXPECT_EQ(joint.speed, 30.0f);
+            EXPECT_EQ(joint.orientation, twin[slot].orientation);
+            EXPECT_EQ(joint.ownerContext, &blast);
+        }
+        EXPECT_FALSE(joints[2].alive);
     }
     {
         FamilyWorld tested;

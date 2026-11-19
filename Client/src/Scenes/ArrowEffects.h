@@ -58,8 +58,9 @@ class WorldState;
 // a − 15, con 0xa24 o 0xa25 en +0x2b8: +0x24 queda en a + 15, Q-C1218) y la cuenta de la tanda. Si no, un tiro. Cada
 // tiro de 0x53d9a0: las armas (con el héroe, las del registro propio, que abre y cierra; con otro, las de +0x2b8 y
 // +0x2d8), la skill en [0x5767948] (WorldRuntime::lastShotSkill) y una flecha por mano con arco o ballesta, cada
-// una con su alta; con la 0x2e, solo el efecto 0x13a, que corta en su joint (0x51e01a, CL11). Después de la bandera en
-// 1 o de un tiro, con 0xa25 en +0x2b8, corta (0x53e642). Lo que hizo antes de un corte queda, con sus rand().
+// una con su alta; con la 0x2e, solo el efecto 0x13a, con su joint 0x632/4 (0x51e01a). Después de la bandera en 1 o
+// de un tiro, con 0xa25 en +0x2b8, el brillo de la mano (0x53e642). Lo que hizo antes de un corte queda, con sus
+// rand().
 [[nodiscard]] Core::Expected<void, std::string> FireTheArrow(ActorState& actor, ActorState* target, std::size_t slot,
                                                              std::int32_t skillIndex, std::uint8_t flag,
                                                              std::uint8_t skill, const CharacterStepContext& context);

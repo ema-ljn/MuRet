@@ -1533,17 +1533,42 @@ TEST(AttackSkillCasesTest, TheArrowCasesReadTheSkillBeforeShooting)
     }
 }
 
-// 0x2e: lo mismo con el blanco; 0x53e2b0 crea el 0x13a, que corta en su joint (CL11), antes del sonido 0x26e.
-TEST(AttackSkillCasesTest, TheBlastCutsInItsJointBeforeItsSound)
+// 0x2e: lo mismo con el blanco; 0x53e2b0 crea el 0x13a con su joint 0x632/4 (0x51e01a, el efecto de dueño) y su cuenta,
+// suma la tanda y después suena el 0x26e (0x5044ad). Los rand() y el resto son los de 0x53e2b0 con el blanco en un
+// mundo gemelo.
+TEST(AttackSkillCasesTest, TheBlastLeavesItsJointBeforeItsSound)
 {
     SkillWorld tested;
-    tested.Striker().byte38e = 0x2e;
+    SkillWorld twin;
+    for (SkillWorld* each : {&tested, &twin})
+    {
+        each->Striker().byte38e = 0x2e;
+        each->world.OwnCharacter().SetSkillAt(2, 0x2e);
+    }
 
     const auto stepped = tested.WithTarget(0x2e);
 
-    EXPECT_TRUE(HasError(stepped, "0x51e01a")) << ErrorOf(stepped);
-    EXPECT_TRUE(tested.sounds.empty());
-    EXPECT_GE(DrawsSince(Seed, tested.random), 2 * SkillRead + OwnRecord);
+    ASSERT_TRUE(stepped.HasValue()) << ErrorOf(stepped);
+    twin.random.Discard(static_cast<std::uint32_t>(2 * SkillRead + OwnRecord));
+    ASSERT_TRUE(Client::Scenes::FireTheArrow(twin.Striker(), &twin.Victim(), StrikerSlot, 2, 0, 0x2e, twin.Context())
+                    .HasValue());
+    EXPECT_EQ(tested.random.State(), twin.random.State());
+    EXPECT_EQ(tested.sounds, std::vector<std::int32_t>{0x26e});
+    EXPECT_EQ(tested.world.OwnCharacter().bytef04, twin.world.OwnCharacter().bytef04);
+    const auto alive = AliveEffects(tested.world);
+    ASSERT_EQ(alive.size(), 1u);
+    const Client::World::ModelEffect& blast = *alive.front();
+    EXPECT_EQ(blast.type, 0x13a);
+    EXPECT_EQ(blast.ownerContext, &tested.Victim());
+    const auto& joints = tested.world.DrawTail().joints;
+    ASSERT_TRUE(joints[0].alive);
+    EXPECT_EQ(joints[0].type, 0x632);
+    EXPECT_EQ(joints[0].subtype, 4);
+    EXPECT_EQ(joints[0].ownerContext, &blast);
+    EXPECT_EQ(joints[0].width, 40.0f);
+    EXPECT_EQ(joints[0].key, 0x32);
+    EXPECT_EQ(joints[0].position, blast.transform.position);
+    EXPECT_FALSE(joints[1].alive);
 }
 
 // 0x5042ce: 0x52e740 con las acciones 0x38 a 0x3c: la chispa 0x5c6/0 en el blanco, sin rand(), y veinte veces dos

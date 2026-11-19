@@ -847,14 +847,17 @@ TEST(ArrowEffectsTest, TheArrowRainCountsTheVolley)
     }
 }
 
-// La skill 0x2e (0x53df2a), con blanco y sin él, en Lorencia y en Devias: no sale flecha sino el efecto 0x13a con el
-// blanco de dueño, +0x8a del que tira, el lugar y la bandera; vida 20, escala 1,8f, +0x64 en −2, la velocidad (0; −30;
-// 0), la luz (0,3f; 0,8f; 1), la boca (−10; −80; 200) girada y la x de los ángulos en −30. Su joint 0x632/4 corta
-// (0x51e01a, CL11), antes de la cuenta de la tanda.
+// La skill 0x2e (0x53df2a), con blanco y sin él, en Lorencia, en Devias y en Icarus (10): no sale flecha sino el efecto
+// 0x13a con el blanco de dueño, +0x8a del que tira, el lugar y la bandera; vida 20, escala 1,8f, +0x64 en −2, la
+// velocidad (0; −30; 0), la luz (0,3f; 0,8f; 1), la boca (−10; −80; 200) girada y la x de los ángulos en −30. Después,
+// su joint 0x632/4 (0x51e01a: la posición y los ángulos del 0x13a, el efecto de dueño, ancho 40, clave 0x32, sin
+// rand()), la cuenta de la tanda en +0x8c (0x51e01f, con el registro propio) y, de vuelta en 0x53e75b, la tanda uno
+// más. Con blanco, el paso tira dos veces (0x504060 y el caso 0x2e de 0x504453, con el sonido 0x26e): dos 0x13a, cada
+// uno con su joint.
 
-TEST(ArrowEffectsTest, TheBlastSkillLeavesItsEffectAndCuts)
+TEST(ArrowEffectsTest, TheBlastSkillLeavesItsEffectAndItsJoint)
 {
-    for (const std::int32_t map : {0, 2})
+    for (const std::int32_t map : {0, 2, 10})
     {
         for (const bool withTarget : {true, false})
         {
@@ -867,14 +870,44 @@ TEST(ArrowEffectsTest, TheBlastSkillLeavesItsEffectAndCuts)
 
             const auto struck = StepTheAttack(hero, HeroSlot, tested.Context());
 
-            EXPECT_TRUE(HasError(struck, "0x51e01a")) << ErrorOf(struck);
-            const int beforeTheShot =
-                withTarget ? CountingWithTarget + SkillRead : CountingWithoutTarget + 2 * SkillRead;
-            EXPECT_EQ(DrawsSince(Seed, tested.random), beforeTheShot + ShotReads + OwnRecord);
-            EXPECT_EQ(tested.world.OwnCharacter().bytef04, 9);
+            ASSERT_TRUE(struck.HasValue()) << ErrorOf(struck);
+            // Cada tiro: las lecturas, el registro propio de 0x53d9a0, el de la cuenta del 0x13a y el de la tanda.
+            constexpr int BlastShot = ShotReads + OwnRecord + OwnRecord + OwnRecord;
+            const int draws = withTarget ? CountingWithTarget + SkillRead + 2 * BlastShot + AfterTheArrow
+                                         : CountingWithoutTarget + 2 * SkillRead + BlastShot + SkillRead;
+            EXPECT_EQ(DrawsSince(Seed, tested.random), draws);
+            const std::size_t shots = withTarget ? 2 : 1;
+            EXPECT_EQ(tested.world.OwnCharacter().bytef04, static_cast<std::uint8_t>(9 + shots));
             EXPECT_EQ(tested.world.Runtime().lastShotSkill, 0x2eu);
             EXPECT_TRUE(tested.Arrows().empty());
+            // Con blanco, el 0x26e del caso 0x2e (0x5044ad) y el de pegar (0x505224, 0x46 más rand() & 3).
+            ASSERT_EQ(tested.sounds.size(), withTarget ? 2u : 0u);
+            if (withTarget)
+            {
+                EXPECT_EQ(tested.sounds.front(), 0x26e);
+            }
             const auto effects = tested.world.Map().effects.Effects();
+            const auto& joints = tested.world.DrawTail().joints;
+            std::size_t blasts = 0;
+            for (const ModelEffect& effect : effects)
+            {
+                if (!effect.alive || effect.type != 0x13a)
+                    continue;
+                SCOPED_TRACE(blasts);
+                EXPECT_EQ(effect.word8c, static_cast<std::uint16_t>(9 + blasts));
+                const auto& joint = joints[blasts];
+                ASSERT_TRUE(joint.alive);
+                EXPECT_EQ(joint.type, 0x632);
+                EXPECT_EQ(joint.subtype, 4);
+                EXPECT_EQ(joint.ownerContext, &effect);
+                EXPECT_EQ(joint.width, 40.0f);
+                EXPECT_EQ(joint.key, 0x32);
+                EXPECT_EQ(joint.position, effect.transform.position);
+                EXPECT_EQ(joint.angles, effect.transform.angles);
+                ++blasts;
+            }
+            EXPECT_EQ(blasts, shots);
+            EXPECT_FALSE(joints[shots].alive);
             const auto blast = std::ranges::find_if(effects, [](const ModelEffect& effect)
                                                     { return effect.alive && effect.type == 0x13a; });
             ASSERT_NE(blast, effects.end());
@@ -1609,12 +1642,13 @@ TEST(ArrowEffectsTest, TheAquagoldArrowFallsAndBounces)
 
 // Las skills de tiro (0x34, 0x33 y 0x2e) van a 0x53e741: el tiro de 0x53d9a0 (el registro propio del héroe, la skill en
 // [0x5767948], el sonido 0x82 de la 0x33 y una flecha con su alta, que abre y cierra el registro propio otra vez) y
-// cortan en el registro propio de 0x53e75b (hito 4); la 0x2e corta antes, en el efecto 0x13a de 0x53df2a (hito 4), y la
-// 0x34 no llega: corta en 0x4f9899. La bandera de la 0x18 sin blanco tira el abanico de 0x53e2e0: tres flechas con la z
-// de los ángulos del héroe en 0, 15 y −15, que vuelve a 0, y corta en 0x53e365; con la 0xa24 o la 0xa25 en +0x2b8,
-// cuatro en 5, 15, −5 y −15, que queda en 15 (Q-C1181), y corta en 0x53e4dd. Cada tiro saca los 3.848 rand() del
-// registro propio de 0x53d9a0 y otros tantos en la salida del alta. El brillo 0x53e642 de la 0xa25 se cubre con el
-// cuerpo, los pools y el RNG intercalado abajo. En Lorencia, en Devias y en Icarus (10).
+// cortan en el registro propio de 0x53e75b (hito 4); la 0x2e (el efecto 0x13a de 0x53df2a) está en
+// TheBlastSkillLeavesItsEffectAndItsJoint, y la 0x34 no llega: corta en 0x4f9899. La bandera de la 0x18 sin blanco tira
+// el abanico de 0x53e2e0: tres flechas con la z de los ángulos del héroe en 0, 15 y −15, que vuelve a 0, y corta en
+// 0x53e365; con la 0xa24 o la 0xa25 en +0x2b8, cuatro en 5, 15, −5 y −15, que queda en 15 (Q-C1181), y corta en
+// 0x53e4dd. Cada tiro saca los 3.848 rand() del registro propio de 0x53d9a0 y otros tantos en la salida del alta. El
+// brillo 0x53e642 de la 0xa25 se cubre con el cuerpo, los pools y el RNG intercalado abajo. En Lorencia, en Devias y en
+// Icarus (10).
 
 TEST(ArrowEffectsTest, TheSkillShotsAndTheFanContinueAfterShooting)
 {
@@ -1633,7 +1667,6 @@ TEST(ArrowEffectsTest, TheSkillShotsAndTheFanContinueAfterShooting)
     const int withTarget = CountingWithTarget + SkillRead + ShotReads;
     const int withoutTarget = CountingWithoutTarget + 2 * SkillRead + ShotReads;
     const std::array cases{
-        Case{"la 0x2e", 0x2e, VictimSlot, 0xffff, "0x51e01a", {}, 0.0f},
         Case{"la 0x33", 0x33, NoTarget, 0xffff, "", {0.0f}, 0.0f},
         Case{"la 0x18 sin blanco", 0x18, NoTarget, 0xffff, "", {0.0f, 15.0f, -15.0f}, 0.0f},
         Case{"la 0x18 con la 0xa24", 0x18, NoTarget, 0xa24, "", {5.0f, 15.0f, -5.0f, -15.0f}, 15.0f},

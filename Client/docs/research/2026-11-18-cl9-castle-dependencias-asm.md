@@ -2,9 +2,11 @@
 
 Fecha: 2026-11-18. Revisión estática de MuRet `f5e8fc45` y del cliente C32 (`c32bbd5f16ca400c7cfc71fa5f4cd573c57f146dd19a6da52fdd1007abaca26a`). No se editó el código, no se ejecutó el original ni se lanzaron builds. Este informe no certifica implementación, pruebas ni cierre de CL11.
 
-La implementación posterior conecta los tres llamadores con señales propias de
-MuRet. Este informe conserva el análisis estático del original como referencia
-del contrato. [Decisión de implementación](../../../docs/adr/0019-senales-del-asedio.md).
+La implementación posterior conectó los tres llamadores con señales propias de
+MuRet (el ADR 0019, retirado). Desde la CL11 (2026-11-19) MuRet porta los efectos
+originales `134/0`, `61c/0` y `19f/0` con sus modelos y texturas
+[06](06-render-escenas-y-ui.md#los-efectos-con-modelo-de-los-tipos-altos). Este informe conserva el análisis estático del original como
+referencia del contrato.
 
 ## Decisión
 

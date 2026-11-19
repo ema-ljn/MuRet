@@ -77,9 +77,10 @@ merecen un ADR propio y cuáles alcanzan con la fila de 07; hasta entonces, la f
 | [0015](0015-colisiones-de-ids-de-ventanas.md) | Identidad de asignación de las ventanas con ID repetido | propuesto e implementado en la rama de cierre H1/H9; Q-C1364 |
 | [0017](0017-viewport-truncado.md) | Registros de viewport incompletos conservan TooShort, sin inventar los campos faltantes | documenta el lector existente y la prueba de frontera de H1 (2026-11-15) |
 | [0018](0018-macros-en-cambio-de-servidor.md) | El cambio de servidor continúa si falla el guardado de macros | propuesto en H13 (2026-11-18) |
-| [0019](0019-senales-del-asedio.md) | Señales propias para las altas y los ataques del asedio | propuesto en H13 (2026-11-18) |
-| [0020](0020-senales-crywolf.md) | Señales propias para el proyectil y la descarga radial de Crywolf | propuesto en H11 (2026-11-18) |
 | [0022](0022-subida-de-nivel.md) | Campos de subida de nivel en el wire | propuesto para el complemento de CL9 (2026-11-18) |
+
+Los números 0019 y 0020 no tienen archivo: eran las señales propias del asedio y de Crywolf, que la CL11 reemplazó
+por los efectos originales (2026-11-19, decisión de Emanuel).
 
 ## Los de la CL10
 

@@ -13939,6 +13939,39 @@ P-C334). En esta rama se llega a algunos de Kalima y del asedio solo con un dibu
 Tests: `KalimaSiegeHelperTest` (`test_kalima_siege_helpers.cpp`: cada tipo en Lorencia, Devias, Kalima o el 30, con sus
 `rand()` contados y el mundo de Kalima perturbado) y `MonsterDrawingTest.TheBoneSparksOf0x16eGoOverEachBoneOutsideTheTwoGaps`.
 
+### Los efectos con modelo de los tipos altos
+
+(CL11, lote de los tipos altos, 2026-11-19, *estático*, ASM c32bbd5f.) Los tipos que `0x518cf0` no despacha por el
+switch de 9..`0x113` (salen por las comparaciones de `0x518e3c..0x518f31`, `0x51e349` y `0x51f47f`) y sus pasos en
+`0x5208a0` (`0x525e6e`, `0x52a688`, `0x52b56d`). El alta empieza siempre con el prefijo de `0x518d28..0x518e36`
+(`World::ModelEffects::Begin`): con los 200 lugares ocupados no hace nada ni saca `rand()`. El paso de todo efecto vivo
+saca primero el `rand()` de la luz local (`0x5208c5`) y termina en la cola `0x52cb98`: los BMD de [`0xad`, `0x151`)
+publican su acción y animan (`0x52cbf4..0x52cc7b`; si la acción termina, el frame queda en sus keys y la acción en
+`0xff`), salvo el `0x116` y el `0x147`, que solo pierden una vida; los `0x5e8..0x5ea` no se mueven; el `0x13b` publica
+y anima otra vez sin mirar el resultado (`0x52cd41..0x52cd84`) y después, como el resto, `0x51fc80(efecto, 1)` (la
+velocidad girada por los ángulos, sumada a la posición, un `fstp` por eje) y una vida menos.
+
+| Tipo | Alta (`0x518cf0`) | Paso (`0x5208a0`) | Dibujo (`0x52d620`) |
+| --- | --- | --- | --- |
+| `0x134` (la llegada del asedio, `0x42d513` y `0x42d5af`) | `0x51d714..0x51d73a`: vida 100, la escala en la clave (`+0x8a`, `MOVSX`) · 0,01f, `+0x64` y `+0x68` en 0; sin `rand()` | `0x52952d..0x52959f`: con el dueño (`+0x108`) vivo, `+0x58` en −1 con el asedio (`0x4294b0`) o −2 sin él, la vida en 2 y `+0x68` en `FSIN(T · 0,001f) · 0,1f + 0,2f` (PC53); si no, el lugar libre. Las dos ramas, `+0x6c` en `T · 0,0005f` | el genérico (`0x52da92` → `0x602e90`, Aurora) |
+| `0x13b` (la llama, de `0x61c` y de `0x4fd5f0`) | `0x51e059..0x51e0ca`: `+0xd8` en 0,25f. El /0: vida 15, escala 0, la z 100 más, la velocidad (0, −10, 0). El /1: vida 5, escala 3,5f. Los dos, `+0x64` en 0 y `+0x68` en 1 | `0x52c34e..0x52c4f1`: el /1 pone la luz, `+0x68` y la luz del objeto en vida · 0,1f. El /0 con vida > 12 crece 0,9f, la velocidad y baja 2 y crea el `0x13b`/1 con el efecto de dueño; si no, la escala baja 0,05f, la luz en vida · (1/18), y cuatro vueltas de ángulos (`rand() % 60 + 150`, 0, z) con el joint `0x617/0` (escala 10, `0x52c4a2`) y la partícula `0x5d9/2` (1,5, `0x52c4be`) desde el punto (`rand() % 30 − 15` dos veces, z − 100). El /0 suma la luz dinámica (1; 0,8f; 0,6f) de radio 1 | el genérico (SwordForce) |
+| `0x141` (de `0x429110`, `0x429202`) | `0x51c410..0x51c437`: la z 20 más, vida 20, `+0xe8` en 0, escala 0,05f; sin `rand()` | `0x525f1a`: la escala sube 0,1f; desde 1, `+0x68` baja 0,07f y la escala vuelve a 1 | genérico; el modelo `0x141` no está en la tabla de las skills, así que no dibuja nada |
+| `0x19f` (el lancero, `0x42dd9c`) | `0x51e4ba..0x51e4f5`: vida 20, `+0x58` en 3, `+0xd8` en 0,33f, `0x4ea030(efecto, 2)` con el BMD de Monster78 de la tabla de modelos | `0x52aa6a..0x52aaff` y `0x52725b`: con el subtipo 0 y la vida múltiplo de 5, el fragmento `0x12b/2` (que mira la posición del héroe) en la posición corrida `rand() % 100 − 50` en x y `−(rand() % 30 + 15)` en y; con vida < 5, `+0x68` por 0,769f | sin caso: no se dibuja |
+| `0x61c` (el pulso, `0x42dd48` con el /0 y `0x42925a` con el /1) | `0x51f154..0x51f25d`: vida 20, la velocidad (0, −550, 0) o (0, −250, 0), los ángulos (−90, 0, z del llamador), `+0x16c` girado (0, 0, `rand() % 360`); el /0 crea el joint `0x61c/3` (escala 80, `0x51f1c5`) y el punto de partida queda en la posición | `0x52c19a..0x52c34a`: con la vida en 10 o menos y par, ángulos (90, 0, 0), el giro sube 72 y el punto es la velocidad girada más el punto de partida; el /0 sube `rand() % 400 + 700` y crea el joint `0x632/5` (escala 110, `0x52c266`) con el efecto de dueño; el /1 sube 100 y crea dos `0x615/6` (escala 80, `0x52c31e`, `0x52c342`). Después sigue con el paso del `0x13b` | sin caso: no se dibuja |
+| `0xc1a` (el fragmento radial de Crywolf, `0x4329db` y `0x4f6780`) | `0x51f85a..0x51f8a7`: vida 30, `+0x64` en −2, escala 1, la z 280 más, la x de los ángulos 20 más, la velocidad (0, −80, −10) | `0x52c9fd..0x52ca6c`: con el terreno por encima de la z, la partícula `0x5ed/0` 80 más arriba (con el sonido `0x40` si se crea), seis piedras `0xc8 + (rand() & 1)` y el lugar libre; siempre, la luz dinámica (luz · 0,2; luz · 0,4; luz) de radio 2 (`0x521246`) | el genérico |
+| `0xf8`/1 (la flecha de Crywolf, `0x43257a` y `0x42fd76`) | los ángulos del llamador y tres joints `0x60f/0x19` (`0x51a3b7`) o cuatro `0x60f/0xb` (`0x51a405`) con el efecto de dueño y escala 50 | en vida 13, el `0x105/3` (`0x51a08a`: escala 10 y la luz (0,9f; 0,4f; 0,6f)) con sus joints `0x610`; la cola mueve el punto de partida y no la posición (`0x52ccbe`) | sin caso |
+| `0x105` (la estela) | — | todos los subtipos: la chispa del /1 (`0x523c78`: el joint `0x614/3`, escala 20, clave 7; el sprite `0x5fd` girado `rand() % 360` a `((rand() & 7) + 8) · 0,2f`) | el genérico (Piercing) |
+
+MuRet: `Scenes::CreateHighModelEffect` y `StepHighModelEffect` (`HighModelEffects.h`), desde los llamadores del asedio
+(`MonsterCreation`, `StepTheSiege`, `StepTheDoppelganger`), de Crywolf (`LaunchTheRadialVolley`) y desde
+`GameSceneLogic`; la flecha y la estela en `ArrowEffects.cpp` y `World/GameModelEffects.cpp`. El BMD del `0x19f` sale de
+`WorldState::FaunaResources()` y, si no está, de los modelos del contexto, como `MonsterSkeletonOf`. Cortan con su
+dirección los joints que todavía no están (`0x61c/3`, `0x632/5`, `0x615/6`, `0x60f/0x19`, `0x60f/0xb`, `0x614/3`; 08,
+P-C420) y la segunda animación del `0x13b` cuando la primera dejó la acción en `0xff` (`0x52cd84`: el original lee la
+acción 255 fuera de la tabla del modelo, P-C421). Las señales propias de los ADR 0019 y 0020 ya no existen.
+Tests: `HighModelEffectsTest` (`test_high_model_effects.cpp`), los del asedio y de Crywolf en
+`test_monster_attack_cases.cpp`, `test_arrow_effects.cpp`, `test_monster_viewport.cpp` y `test_game_draw_tail.cpp`.
+
 ### Los helpers de los monstruos
 
 (CL9 hito 2, fase 6d, 2026-11-13, *estático*.) Cuatro funciones por tipo que el grafo había dejado en la CL7: tres de

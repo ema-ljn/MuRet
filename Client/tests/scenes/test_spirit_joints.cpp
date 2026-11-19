@@ -909,7 +909,7 @@ TEST(SpiritJointsTest, TheSpiralSometimesReleasesTwoSplashes)
 }
 
 // 0x539392..0x53941e: la /0x11 con vida 100 suelta 120 joints 0x613/0x10 de ancho 0,9f con los ángulos (0, 0, 3 · i).
-// Los que caen en lugares de más adelante pasan en la misma vuelta (y cortan en su partícula).
+// Los que caen en lugares de más adelante pasan en la misma vuelta (y dejan su 0x6f4/4); acá caen todos antes.
 TEST(SpiritJointsTest, TheBurstReleasesItsPieces)
 {
     Pool pool;

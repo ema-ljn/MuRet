@@ -9677,11 +9677,11 @@ Devil Square: `World::StepDevilSquarePrelude` (`EventMapObjectStep`), `Scenes::S
 (`CharacterDrawing`) con `GameObjectPass::terrainHeight`, las familias de `World::BloodCastleParticleKernels` y el
 modo 6 en `IParticleDrawingServices::Blended` y `ModelBatchParticleBackend`. La `6ac/2`: `GL_ADD` con
 `IParticleDrawingServices::TextureEnv` y `Render::TextureEnvMode`, que cada tramo del lote lleva aparte del material
-(`ModelBatch::SetTextureEnv`) y `GlModelRenderer` aplica en el fragment shader; nadie la crea todavía, porque el joint
-`0x632/6` no está portado ([08](08-pendientes.md) P-C53). Las texturas, `EffectTextureSet`. Con
-la Data del repo, el 9 (y el 32) y los siete Blood Castle llegan a un cuadro completo y caminan (`GameT16SceneMatrix`;
-`GameT16MapWalk`, en (122, 174) con 38 del 2 cerca y en (12, 90) con cuatro `0xd` y cuatro `0x25`;
-`GameT16SafeZoneWalk`, en (12, 3) de los Blood Castle; Devil Square no tiene zona segura). Tests:
+(`ModelBatch::SetTextureEnv`) y `GlModelRenderer` aplica en el fragment shader; la crea el joint `0x632/6` al llegar al
+suelo (`0x53c042`, `Scenes::JointFamilies` en `StormJoints.cpp`, séptima vuelta del lote joints). Las texturas,
+`EffectTextureSet`. Con la Data del repo, el 9 (y el 32) y los siete Blood Castle llegan a un cuadro completo y caminan
+(`GameT16SceneMatrix`; `GameT16MapWalk`, en (122, 174) con 38 del 2 cerca y en (12, 90) con cuatro `0xd` y cuatro
+`0x25`; `GameT16SafeZoneWalk`, en (12, 3) de los Blood Castle; Devil Square no tiene zona segura). Tests:
 `MapLoadEventTest`, `EventMapObjectsTest`, `EventMapObjectFrameTest`, `BloodCastleParticlesTest` (la `6ac/2` creada,
 con su paso y su dibujo, en `TheBrightFlameIsCreatedSteppedAndDrawnWithAdd`),
 `ParticleDrawingTest.TheBrightFlameDrawsItsBillboardBetweenAddAndModulate`,
@@ -14224,9 +14224,10 @@ Los cuatro van después a `0x602365`, cuya repetición con `+0x78 & 2` no corre 
 entre `0x518cf0` y `0x52ce13`. Tests: `test_high_effect_drawing.cpp`. El `0x128` de Kundun nace en las acciones 3 y 4
 (`0x43d051`, `0x43d0fd`) con `Scenes::CreateTheKundunCall`, que solo pide la tabla de efectos del pase de los helpers
 (el /0 y el /1 no sacan `rand()` ni leen más), y su paso suelta los diez `0x126` del /0 y los `0x125` del /1
-(`KundunEffects`). Cortan, con un lugar libre: el joint `0x613/0xf` con el `0x126` de dueño (`0x51cf45`, antes del
-`rand() % 5` del frame; 08, P-C420), el `0x6ee/0x12` del `0x125` (`0x51ce91`) y el `0x127` del `0x128/2`
-(`0x518f90`). Tests: `test_high_effect_families.cpp` y `test_kalima_siege_helpers.cpp`.
+(`KundunEffects`), con el joint `0x613/0xf` de cada `0x126` (`0x51cf45`, antes del `rand() % 5` del frame) y el
+`0x6ee/0x12` de cada `0x125` (`0x51ce91`), que en su paso les escriben la posición y el alpha (`0x539249`, `0x539494`;
+séptima vuelta del lote joints). Corta, con un lugar libre, el `0x127` del `0x128/2` (`0x518f90`). Tests:
+`test_high_effect_families.cpp` y `test_kalima_siege_helpers.cpp`.
 
 ### Los helpers de los monstruos
 
@@ -14369,15 +14370,34 @@ en un lugar de más adelante pasa en la misma vuelta de `0x53c670`.
   velocidad no menor que esa distancia prende `+0x9d4`; la /0 se sacude con dos `(rand() & 31) − 16` (vx + r1 · 0,2f,
   la x de los ángulos + vx, la z + r2 · 0,8f + vz, vx · 0,6f, vz el sacudón · 0,8f); con `0x5f93c0` a menos de 100 del
   terreno sube (x en −5) y a más de 400 baja (x en 5), con vx en 0; la luz es la vida · 0,1f y la luz dinámica de radio
-  4 resta `((rand() & 3) + 4) · 0,01f`. La /0xb y la /0x10 ponen la vida en la x de los ángulos y la /0xc saca su
-  `rand() & 31`; las tres cortan en su partícula (`0x538f8e` 0x5da/5, `0x539058` 0x5f5/0, `0x53935c` 0x6f4/4, lote de
-  partículas). La /0xf suma 30 a la key (WORD); con menos de 35 de vida corta en la `0x5d9/7` (`0x53918a`) y si no
-  avanza k = key · 0,1f + 30 (sin redondear) en x por el seno y en −y por el coseno de la z de los ángulos. La /0x11
-  con vida 100 suelta 120 `0x613/0x10` de ancho 0,9f con los ángulos (0, 0, 3 · i) (`0x53940d`). La /0x12 sube la
-  velocidad 3, mueve la key de a ±6 según vida % 12 y apunta −90 − key en x y 10 más en z; con dueño (el `0x6ee/0x12`
-  del `0x125` de Kundun, `0x51ce91`, con el efecto de dueño) le pone el alpha (+0x174) en 1 si su vida (+0x60) pasa de 5
-  y le copia la posición (`0x539494`; otro dueño corta ahí) y después corta en su partícula `0x5f2/0x13` (`0x5394fb`,
-  lote de partículas).
+  4 resta `((rand() & 3) + 4) · 0,01f`. Las partículas del paso (séptima vuelta, todas con `0x53fe70(tipo, posición,
+  +0x30, luz, subtipo, escala, 0)`; los tests las repiten en un pool gemelo con el mismo CrtRandom):
+  - La /0xb (`0x538f45..0x538feb`) pone la vida (fild) en la x de los ángulos, deja la `0x5da/5` de 0,9f
+    (`0x3f666666`) con la luz 1 en una copia de la posición (`0x538f8e`), saca `rand() % 200` y con 0 suelta el joint
+    `0x613/0xc` (siempre `0x613`, también desde un `0x6ee`) desde esa copia con sus ángulos, sin dueño, de ancho 0,9f y
+    clave −1 (`0x538fc3`); después x + FCOS(z) · 20 y y + FSIN(z) · 20 (`0x6b86d0`; la z de los ángulos tal cual, sin
+    pasar a radianes; el FCOS retenido en 64 bits hasta el fmul).
+  - La /0xc (`0x538ff9..0x539091`): en una copia de la posición, la `0x5f5/0` de escala `((rand() & 31) + 48) ·
+    0,01f` (`0x6b88d4`) con la luz (1; 0,2f; 0,1f) y la `0x5da/6` de 0,6f (`0x3f19999a`) con la luz 1.
+  - La /0xe (`0x53909f..0x539125`): la x de los ángulos − 2 y `rand() % 5`: con 0 la `0x6f2/2`, con 1 o 2 la
+    `0x6f3/2` y si no la `0x6f4/4`, de escala 1 en la posición con la luz del joint (`+0x48`), y a la cola
+    (`0x53c390`).
+  - La /0xf (`0x539133..0x53931e`) suma 30 a la key (WORD). Con menos de 35 de vida (la del alta es 20): la
+    `0x5d9/7` de escala 1 con la luz 1 en una copia (`0x53918a`); con `rand() & 1` en 0, la copia pasa a (x − FSIN(z)
+    · k, FCOS(z) · k + y, 350) con k = 40 − key · 0,1f retenido y suelta dos `0x613/0xe` desde ella con los ángulos
+    (0, 0, 0) y (0, 0, 3), de ancho 0,9f (`0x539228`); con dueño (el `0x126` de Kundun, `0x51cf45`, un efecto con
+    modelo; otro dueño corta en `0x539249`), la x de sus ángulos en 0 si no es cero (fcomp con C3), el alpha en 1 con
+    su vida de más de 5, su posición en (x + FSIN(z) · k, y − FCOS(z) · k, z) con k = key · 0,1f + 30 guardado en float
+    (`0x53929a`) y otra vez la x y la y de sus ángulos en 0. Siempre (`0x5392e9`): avanza k = key · 0,1f + 30 (sin
+    redondear) en x por el seno y en −y por el coseno de la z.
+  - La /0x10 (`0x539328..0x539384`): la vida en la x de los ángulos, la `0x6f4/4` de escala 1 en la posición con la
+    luz del joint y x + FCOS(z) · 30, y + FSIN(z) · 30.
+  - La /0x11 con vida 100 suelta 120 `0x613/0x10` de ancho 0,9f con los ángulos (0, 0, 3 · i) (`0x53940d`).
+  - La /0x12 sube la velocidad 3, mueve la key de a ±6 según vida % 12 y apunta −90 − key en x y 10 más en z; con
+    dueño (el `0x6ee/0x12` del `0x125` de Kundun, `0x51ce91`, con el efecto de dueño) le pone el alpha (+0x174) en 1
+    si su vida (+0x60) pasa de 5 y le copia la posición (`0x539494`; otro dueño corta ahí); después, en una copia de la
+    posición, la `0x5f2/0x13` de escala 7 (`0x40e00000`) con la luz 1 (`0x5394fb`) y a la cola (`0x53c390`). Hasta la
+    séptima vuelta MuRet cortaba ahí, y cada `0x125` de Kundun cerraba el cliente en el primer paso de su joint.
 - **`0x60f/2` y `0x60f/0x18`** (`DropJoints.cpp`): alta `0x533677` y `0x5340dc` (la /0x18 con la textura `0x62d`; vz
   en `rand() % 20 + 35`, la luz blanca, vida `rand() % 50 + 25` y el destino en el segundo punto) y paso `0x53b156`
   (con vida de 25 o menos cae sobre el destino con vz + 5; con menos de 10, la luz por 0,7692308f). La /0x13 (sexta
@@ -14409,11 +14429,15 @@ en un lugar de más adelante pasa en la misma vuelta de `0x53c670`.
   `0x632/7` sobre o sin dueño (ancho 10) y suena `0x266` aunque el pool esté lleno. Su alta (`0x534b27`) lo deja sin
   cola y con vida 0 y crea tres `0x632/6` (`0x534b3f..0x534bc0`) desde (k, −50, 0) girado por sus ángulos más su
   posición, k en −100, 0 y 100, ancho 40. La /6 salta el primer tramo; alta `0x534a16`: vida 25 y tanda 25, velocidad
-  `(rand() % 3 + 70) · 0,01745329f`, luz (0,8; 0,8; 1), vy = −(`rand() & 3` + 40), vz = sen(velocidad) · 10, y − 20,
-  z + 130, el `+0x24` en la posición, la cara 3 y `0x535020` cruzado con la cuenta en 0 después. Paso `0x53bec2`: vy
-  + `rand() % 5` − 2, vz − 10, se mueve por sus ángulos y, con la tanda menos la vida bajo 10 (los diez primeros
-  pasos), la llamarada `0x5ee/0` en `+0x24` con sus ángulos, su luz y escala 3 (`0x53bf6e`, con el sonido 0x40 de su alta) y el ancho 100. La /7 sólo pasa por la cola y muere. La luz por tramo del dibujo lee la altura del
-  personaje dueño.
+  `(rand() % 3 + 70) · 0,01745329f`, luz (0,8; 0,8; 1), vy = −(`rand() & 3` + 40), vz = sen(velocidad) · 10, y − 20, z +
+  130, el `+0x24` en la posición, la cara 3 y `0x535020` cruzado con la cuenta en 0 después. Paso `0x53bec2`: vy +
+  `rand() % 5` − 2, vz − 10, se mueve por sus ángulos y, con la tanda menos la vida bajo 10 (los diez primeros pasos),
+  la llamarada `0x5ee/0` en `+0x24` con sus ángulos, su luz y escala 3 (`0x53bf6e`, con el sonido 0x40 de su alta) y el
+  ancho 100. Con la z en el terreno (`0x5f93c0`, en float) o debajo (séptima vuelta, `0x53bfa9..0x53c04f`), antes de la
+  cola: el joint `0x614/4` desde su posición con sus ángulos, de escala 60 y sin dueño (`0x53bfd3`); con la z de la
+  velocidad (`+0x9e4`) en 0 o menos, FSIN(velocidad) · 20 (`0x52e3a0`, retenido hasta el fmul); la z en el suelo + 5
+  (fst) y la `0x6ac/2` de escala 3 en una copia 30 más arriba, con sus ángulos y su luz (`0x53c04a`). La /7 sólo pasa
+  por la cola y muere. La luz por tramo del dibujo lee la altura del personaje dueño.
 - **`0x618`** (`BeamJoints.cpp`, tercera vuelta): alta `0x532125..0x5323ce` y paso `0x5381f3..0x538704`. El dueño
   (`+0x54`) es un personaje en la /0..3, /0xc, /0xd, /0x10 y /0x11, el `FaunaObject` en la /4 y el efecto con modelo
   en la /5 (las flechas, `0x51a173`, `0x51a24a`, `0x51bf35`) y la /0xa y /0xb (el `0x11b/1`, `0x51c782`, que sigue
@@ -14568,10 +14592,12 @@ en un lugar de más adelante pasa en la misma vuelta de `0x53c670`.
   `0x53b3e1..0x53b623`, sin el movimiento común: ocho vueltas; mientras la cuenta sea menor que los puntos − 1, la
   posición es el destino más (0, −180, 0) girado por `+0x9dc`, un tramo con la matriz de los ángulos, vz − 11, con
   `rand() & 1` en 0 la partícula `0x5d9` y dos `0x614/3` sin dueño desde la posición de antes, key 5 y skill 0xa, de
-  ancho `rand() % 10 + 5` y `(rand() & 7) + 4`. Con el dueño en el héroe (`[0x743a170]`), vida de más de 18 y la vuelta
-  múltiplo de 5, el asedio (`0x4294b0` y el `0x100` de `0x5f82c0`: la vida · 0,2f y velocidad 0) o `0x517a20(skill,
-  posición, 150, tanda, clave, 0)`: MuRet corta ahí con dueño (`0x53b548`). Después la luz: bajo 10 de vida, la x por
-  0,6666667f en los tres canales; si no, la vida · 0,033333335f.
+  ancho `rand() % 10 + 5` y `(rand() & 7) + 4`. En la /0 (`+0xc`, `0x53b53e`) con el dueño (`+0x54`) igual al héroe
+  (`[0x743a170]`, `0x53b548`), vida de más de 18 y la vuelta múltiplo de 5, el asedio (`0x4294b0` y el `0x100` de
+  `0x5f82c0`: la vida · 0,2f, velocidad 0 y fuera de las vueltas, `0x53b5cb`) o `0x517a20(skill, posición, 150, tanda,
+  clave, 0)`: MuRet corta ahí (`0x53b569`); con otro dueño sigue como sin dueño (séptima vuelta: `StepJoints` recibe el
+  héroe, `StepServices::hero`; sin él, con dueño y esa vida y vuelta, corta en `0x53b548`). Después la luz: bajo 10 de
+  vida, la x por 0,6666667f en los tres canales; si no, la vida · 0,033333335f.
 - **`0x14f`** (`PlasmaJoints.cpp`, sexta vuelta): alta `0x530ddd..0x530ed8`: velocidad 50, la textura repetida
   (`+0x9f0`), el ancho, 50 puntos, vida 20 y por subtipo la textura y la luz (/0..2 la `0x614` con (0,7; 1; 0,7), (1;
   0,6; 0,6) y (0,7; 0,7; 1); /3..5 la `0x632` con (0,1; 0,8; 0,1), (1; 0,3; 0,2) y (0,2; 0,3; 1)). Paso
@@ -14579,11 +14605,14 @@ en un lugar de más adelante pasa en la misma vuelta de `0x53c670`.
   arriba; `0x4e9810` de a 50; vx y vz `((rand() & 0x3ff) − 512) / ancho` (la z de los ángulos del tramo con el cociente
   sin redondear); un tramo; llega con la velocidad · 1,5 mayor que la distancia (con ancho 50 justo, la `0x5ca/0` y con
   `rand() % 8` en 0 tres `rand()` sin usar y la `0x5f2/0`); si no, con el ancho de 50 o más la luz dinámica de radio 2
-  `((rand() & 3) + 4) · 0,04f · 0,4f`, y avanza. Lo pide la `0x4c` (`0x5026a4`, con el blanco de dueño y ancho 100),
-  que sigue cortada: el subtipo es `0x4f2230(o)` (el `+0x31b` de Fenrir).
+  `((rand() & 3) + 4) · 0,04f · 0,4f`, y avanza. Lo pide la `0x4c` con el blanco de dueño: `0x5026a4` y `0x5027f0` de
+  ancho 100 (`0x42c80000`) con el subtipo `0x4f2230(o)`, y `0x5026ed` y `0x502841` de ancho 80 (`0x42a00000`) con ese
+  subtipo + 3; sigue cortada: el subtipo es el `+0x31b` de Fenrir. Séptima vuelta: el avance gira en otro vector
+  (`[ebp−0xc]` a `[ebp−0x2c]`, `0x535c85..0x535ca7`), así que `OriginalVectorRotate` es el del original, y el test
+  compara las celdas de la luz dinámica.
 - **`0x697`** (sexta vuelta): el alta (`0x530a2a`) y el paso (`0x5381cb`) no leen el subtipo; el único llamador
-  (`0x4473f9`) pide el /0. **`0x6ee/0x12`** (sexta vuelta, `SpiritJoints.cpp`): con el `0x125` de Kundun de dueño
-  (`0x51ce91`), arriba.
+  (la llamada en `0x44741e`; `0x4473f9` es el `push 0x697`) pide el /0. **`0x6ee/0x12`** (sexta vuelta,
+  `SpiritJoints.cpp`): con el `0x125` de Kundun de dueño (`0x51ce91`), arriba.
 La matriz de la cola común (`0x53c393`, `[ebp−0xe8]`) es la que calculó `0x53590e` en el paso del joint; los de la
 lista `0x53585e..0x53590c` no la calculan y usan la del último joint de la vuelta que la calculó (Q-C1623). El paso
 común lee también `[ebp−0x30]` y `[ebp+8]`, la posición menos el destino en x y en y antes de moverse (`0x53584f`).

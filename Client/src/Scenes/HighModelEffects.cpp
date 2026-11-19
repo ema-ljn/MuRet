@@ -14,17 +14,16 @@
 #include "Scenes/FaunaModels.h"
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/GameDrawTail.h"
+#include "Scenes/HighEffectEmitters.h"
 #include "Scenes/SkillHits.h"
 #include "Scenes/WorldMap.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "World/GameModelEffects.h"
 #include "World/ColoredDecals.h"
-#include "World/IFishStepServices.h"
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
 #include "World/SiegeStoneEffects.h"
-#include "World/Sprites.h"
 #include "World/WorldObjectStepServices.h"
 
 #include <glm/ext/vector_float3.hpp>
@@ -92,36 +91,6 @@ glm::vec3 Rotated(const glm::vec3& vector, const glm::vec3& angles)
 glm::vec3 Sum(const glm::vec3& a, const glm::vec3& b)
 {
     return {F32(D(a.x) + D(b.x)), F32(D(a.y) + D(b.y)), F32(D(a.z) + D(b.z))};
-}
-
-// 0x530860(tipo, punto, punto2, ángulos, subtipo, dueño, escala, clave, 0, 0, −1): el joint, con la dirección del que
-// lo pide delante del error de un joint que MuRet no tiene (el lote de los joints de la CL11) y "(CL11)" detrás.
-Core::Expected<void, std::string> CreateJoint(WorldState& world, CrtRandom& random, std::int32_t type, glm::vec3 first,
-                                              glm::vec3 second, glm::vec3 angles, std::int32_t subtype,
-                                              World::ModelEffect* owner, float scale, std::uint32_t address)
-{
-    constexpr std::int32_t NoKey = -1, NoTarget = -1;
-    const auto made = CreateFaunaJoint(
-        world.DrawTail().joints,
-        World::FishEffectRequest{type, first, second, angles, subtype, owner, scale, NoKey, 0, 0, NoTarget}, random,
-        owner != nullptr ? JointOwnerKind::ModelEffect : JointOwnerKind::ByType);
-    if (!made.HasValue())
-        return Core::Unexpected(std::format("{:#x}: {} (CL11)", address, made.Error()));
-    return {};
-}
-
-// 0x53fe70 de una partícula, con el error del pool como texto y la dirección del que la pide.
-Core::Expected<std::optional<std::size_t>, std::string>
-CreateParticle(WorldState& world, CrtRandom& random, float worldClock, std::int32_t type, const glm::vec3& position,
-               const glm::vec3& angles, const glm::vec3& light, std::int32_t subtype, float scale,
-               std::uint32_t address)
-{
-    const auto created =
-        world.Particles().CreateChecked(type, position, angles, light, subtype, scale, worldClock, random, 0);
-    if (!created.HasValue())
-        return Core::Unexpected(std::format("{:#x}: la partícula {:#x}/{} falla con el error {} (CL11)", address, type,
-                                            subtype, static_cast<unsigned>(created.Error())));
-    return created.Value();
 }
 
 // El BMD de la tabla global (0x5769ad8 + tipo · 0xe0): el de FaunaResources, que sigue con los modelos del mapa, y si
@@ -196,9 +165,9 @@ Core::Expected<void, std::string> BeginTheSiegePulse(World::ModelEffect& effect,
     {
         constexpr std::int32_t PulseJoint = 0x61c, PulseJointSubtype = 3;
         constexpr float PulseJointScale = 80.0f; // 0x42a00000
-        if (auto joint = CreateJoint(context.world, context.random, PulseJoint, effect.transform.position,
-                                     effect.transform.position, effect.transform.angles, PulseJointSubtype, nullptr,
-                                     PulseJointScale, 0x51f1c5);
+        if (auto joint = CreateHighJoint(context.world, context.random, PulseJoint, effect.transform.position,
+                                         effect.transform.position, effect.transform.angles, PulseJointSubtype, nullptr,
+                                         PulseJointScale, 0x51f1c5);
             !joint.HasValue())
             return joint;
     }
@@ -406,9 +375,9 @@ Core::Expected<void, std::string> BeginThePierPart(World::ModelEffect& effect,
         effect.alpha = F32(static_cast<double>(PartLife - effect.life) * FadeStep);
         effect.velocity = glm::vec3(0.0f);
         constexpr std::int32_t TrailFire = World::MissileFireParticle, TrailFireSubtype = 0;
-        if (auto fire =
-                CreateParticle(context.world, context.random, context.worldClock, TrailFire, effect.transform.position,
-                               effect.transform.angles, effect.light, TrailFireSubtype, 1.0f, 0x51cb38);
+        if (auto fire = CreateHighParticle(context.world, context.random, context.worldClock, TrailFire,
+                                           effect.transform.position, effect.transform.angles, effect.light,
+                                           TrailFireSubtype, 1.0f, 0x51cb38);
             !fire.HasValue())
             return Core::Unexpected(fire.Error());
         return {};
@@ -669,18 +638,18 @@ Core::Expected<void, std::string> StepTheSiegePulseJoints(World::ModelEffect& ef
         constexpr double RiseBase = 700.0;
         constexpr float BeamScale = 110.0f; // 0x42dc0000
         point.z = F32(static_cast<double>(context.random.Next() % RiseSpan) + D(point.z) + RiseBase);
-        return CreateJoint(context.world, context.random, 0x632, point, point, effect.transform.angles, 5, &effect,
-                           BeamScale, 0x52c266);
+        return CreateHighJoint(context.world, context.random, 0x632, point, point, effect.transform.angles, 5, &effect,
+                               BeamScale, 0x52c266);
     }
     // 0x52c307..0x52c31b: la z de la partida y los 100 en la x87, guardados una vez.
     point.z = F32(D(reach.z) + D(effect.start.z) + 100.0);
     constexpr float BoltScale = 80.0f; // 0x42a00000
-    if (auto first = CreateJoint(context.world, context.random, 0x615, point, point, effect.transform.angles, 6,
-                                 &effect, BoltScale, 0x52c31e);
+    if (auto first = CreateHighJoint(context.world, context.random, 0x615, point, point, effect.transform.angles, 6,
+                                     &effect, BoltScale, 0x52c31e);
         !first.HasValue())
         return first;
-    return CreateJoint(context.world, context.random, 0x615, point, point, effect.transform.angles, 6, &effect,
-                       BoltScale, 0x52c342);
+    return CreateHighJoint(context.world, context.random, 0x615, point, point, effect.transform.angles, 6, &effect,
+                           BoltScale, 0x52c342);
 }
 
 // 0x52c34e..0x52c537, la parte que comparten el 0x13b y el 0x61c (el 0x61c entra después de sus joints). Con el /0 y
@@ -743,12 +712,12 @@ Core::Expected<void, std::string> StepTheSiegeFlare(World::ModelEffect& effect, 
         {
             glm::vec3 angles{static_cast<float>(context.random.Next() % PitchSpan + PitchBase), 0.0f,
                              effect.transform.angles.z};
-            if (auto joint = CreateJoint(context.world, context.random, 0x617, point, point, angles, 0, nullptr,
-                                         SparkJointScale, 0x52c4a2);
+            if (auto joint = CreateHighJoint(context.world, context.random, 0x617, point, point, angles, 0, nullptr,
+                                             SparkJointScale, 0x52c4a2);
                 !joint.HasValue())
                 return joint;
-            if (auto made = CreateParticle(context.world, context.random, context.worldClock, World::FireParticle,
-                                           point, angles, effect.light, SparkSubtype, SparkScale, 0x52c4be);
+            if (auto made = CreateHighParticle(context.world, context.random, context.worldClock, World::FireParticle,
+                                               point, angles, effect.light, SparkSubtype, SparkScale, 0x52c4be);
                 !made.HasValue())
                 return Core::Unexpected(made.Error());
         }
@@ -769,17 +738,6 @@ void StepTheGrowingFlash(World::ModelEffect& effect)
         return;
     effect.alpha = F32(D(effect.alpha) - Fade);
     effect.transform.scale = 1.0f;
-}
-
-// 0x5491e0 de este archivo: el sprite con la luz y la rotación, en el lugar libre (el dueño, que MuRet no guarda).
-Core::Expected<void, std::string> CreateSprite(const HighEffectStepContext& context, std::uint16_t texture,
-                                               const glm::vec3& position, float scale, const glm::vec3& light,
-                                               float rotation, std::uint32_t address)
-{
-    if (context.services.sprites == nullptr)
-        return Core::Unexpected(std::format("{:#x}: el sprite {:#x} pide la tabla de sprites", address, texture));
-    static_cast<void>(context.services.sprites->Create(texture, position, scale, light, rotation, 0));
-    return {};
 }
 
 // 0x52be78..0x52c195, el 0x625: nada hasta la vida 15. Desde ahí, el /0 tiembla alrededor de la partida (x e y en
@@ -826,9 +784,10 @@ Core::Expected<void, std::string> StepTheFallingStar(World::ModelEffect& effect,
     const bool wobbly = effect.subtype == WobblySubtype;
     constexpr std::int32_t WobblyFire = 7, StraightFire = 0xb;
     const glm::vec3 localLight{1.0f};
-    if (auto fire = CreateParticle(context.world, random, context.worldClock, World::DeathSpiritFireParticle, position,
-                                   effect.transform.angles, localLight, wobbly ? WobblyFire : StraightFire,
-                                   effect.transform.scale, wobbly ? 0x52bf29u : 0x52c036u);
+    if (auto fire =
+            CreateHighParticle(context.world, random, context.worldClock, World::DeathSpiritFireParticle, position,
+                               effect.transform.angles, localLight, wobbly ? WobblyFire : StraightFire,
+                               effect.transform.scale, wobbly ? 0x52bf29u : 0x52c036u);
         !fire.HasValue())
         return Core::Unexpected(fire.Error());
     constexpr double Glow = static_cast<double>(std::bit_cast<float>(0x3dcccccdu)); // 0x6b87b8, 0,1f
@@ -839,13 +798,13 @@ Core::Expected<void, std::string> StepTheFallingStar(World::ModelEffect& effect,
     constexpr double ShineStep = static_cast<double>(std::bit_cast<float>(0x3e4ccccdu)); // 0x6b8854, 0,2f
     const auto shineTurn = static_cast<float>(random.Next() % FullTurn);
     const float shineScale = F32(static_cast<double>((random.Next() & ShineSizes) + ShineBase) * ShineStep);
-    if (auto shine = CreateSprite(context, ShineSprite, position, shineScale, effect.light, shineTurn,
-                                  wobbly ? 0x52bf98u : 0x52c0a5u);
+    if (auto shine = CreateHighSprite(context, ShineSprite, position, shineScale, effect.light, shineTurn,
+                                      wobbly ? 0x52bf98u : 0x52c0a5u);
         !shine.HasValue())
         return shine;
     const auto flareTurn = static_cast<float>(random.Next() % FullTurn);
-    if (auto flare =
-            CreateSprite(context, FlareSprite, position, 1.0f, effect.light, flareTurn, wobbly ? 0x52bfc6u : 0x52c0d3u);
+    if (auto flare = CreateHighSprite(context, FlareSprite, position, 1.0f, effect.light, flareTurn,
+                                      wobbly ? 0x52bfc6u : 0x52c0d3u);
         !flare.HasValue())
         return flare;
     if (wobbly)
@@ -861,8 +820,9 @@ Core::Expected<void, std::string> StepTheFallingStar(World::ModelEffect& effect,
     constexpr int SmokeSizes = 31, SmokeBase = 0x50;
     constexpr double SmokeStep = static_cast<double>(std::bit_cast<float>(0x3ccccccdu)); // 0x6b8bd0, 0,025f
     const float smokeScale = F32(static_cast<double>((random.Next() & SmokeSizes) + SmokeBase) * SmokeStep);
-    if (auto smoke = CreateParticle(context.world, random, context.worldClock, World::BreathParticle, point,
-                                    effect.transform.angles, SmokeLight, World::StoneDustSubtype, smokeScale, 0x52c15a);
+    if (auto smoke =
+            CreateHighParticle(context.world, random, context.worldClock, World::BreathParticle, point,
+                               effect.transform.angles, SmokeLight, World::StoneDustSubtype, smokeScale, 0x52c15a);
         !smoke.HasValue())
         return Core::Unexpected(smoke.Error());
     constexpr int ShardOdds = 5;
@@ -946,9 +906,9 @@ Core::Expected<void, std::string> StepTheDivingPart(World::ModelEffect& effect, 
     constexpr float DiveJointScale = 150.0f; // 0x43160000
     constexpr float DivePitch = -90.0f;      // 0xc2b40000
     const glm::vec3& position = effect.transform.position;
-    return CreateJoint(context.world, context.random, DiveJoint, position, position,
-                       {DivePitch, 0.0f, effect.transform.angles.z}, DiveJointSubtype, nullptr, DiveJointScale,
-                       0x52752c);
+    return CreateHighJoint(context.world, context.random, DiveJoint, position, position,
+                           {DivePitch, 0.0f, effect.transform.angles.z}, DiveJointSubtype, nullptr, DiveJointScale,
+                           0x52752c);
 }
 
 // 0x52727b..0x527276, el 0x116: el /0 y el /2 buscan a su dueño; el /1, con menos de 5 de vida (edi, 5 desde
@@ -1099,9 +1059,9 @@ Core::Expected<void, std::string> StepTheSparkEmitter(World::ModelEffect& effect
         return {};
     const bool wide = effect.subtype == 1;
     const glm::vec3& position = effect.transform.position;
-    return CreateJoint(context.world, context.random, SparkJoint, position, position, effect.transform.angles,
-                       wide ? WideSubtype : NarrowSubtype, &effect, wide ? WideScale : NarrowScale,
-                       wide ? 0x52c9a7u : 0x52c9dau);
+    return CreateHighJoint(context.world, context.random, SparkJoint, position, position, effect.transform.angles,
+                           wide ? WideSubtype : NarrowSubtype, &effect, wide ? WideScale : NarrowScale,
+                           wide ? 0x52c9a7u : 0x52c9dau);
 }
 
 // 0x52caa5..0x52cb94, el 0x813: tres veces, los ángulos (rand() % 90, 0, rand() % 360), el punto 100 hacia atrás
@@ -1122,8 +1082,8 @@ Core::Expected<void, std::string> StepTheBoltEmitter(World::ModelEffect& effect,
         const glm::vec3 back = Rotated(Reach, angles);
         const glm::vec3 from{F32(D(position.x) - D(back.x)), F32(D(position.y) - D(back.y)),
                              F32(D(position.z) - D(back.z))};
-        if (auto joint = CreateJoint(context.world, context.random, BoltJoint, from, position, angles, BoltJointSubtype,
-                                     nullptr, BoltJointScale, 0x52cb85);
+        if (auto joint = CreateHighJoint(context.world, context.random, BoltJoint, from, position, angles,
+                                         BoltJointSubtype, nullptr, BoltJointScale, 0x52cb85);
             !joint.HasValue())
             return joint;
     }
@@ -1143,8 +1103,9 @@ Core::Expected<void, std::string> StepTheRadialShard(World::ModelEffect& effect,
     {
         constexpr double BlastLift = 80.0;
         const glm::vec3 blast{position.x, position.y, F32(D(position.z) + BlastLift)};
-        const auto made = CreateParticle(context.world, context.random, context.worldClock, World::ExplosionParticle,
-                                         blast, effect.transform.angles, glm::vec3(1.0f), 0, 1.0f, 0x52ca4f);
+        const auto made =
+            CreateHighParticle(context.world, context.random, context.worldClock, World::ExplosionParticle, blast,
+                               effect.transform.angles, glm::vec3(1.0f), 0, 1.0f, 0x52ca4f);
         if (!made.HasValue())
             return Core::Unexpected(made.Error());
         constexpr std::int32_t BlastSound = 0x40;
@@ -1207,8 +1168,8 @@ Core::Expected<void, std::string> StepTheBindingDecal(World::ModelEffect& effect
             bone < owner->bodyPose.size() ? owner->bodyPose[bone] : Render::Models::BoneTransform(0.0f);
         const glm::vec3 point = Render::Models::OriginalTransformPosition(Render::Models::OriginalMatrixOf(matrix),
                                                                           offset, placement.scale, placement.origin);
-        if (auto made = CreateParticle(context.world, context.random, context.worldClock, World::SwellLifeParticle,
-                                       point, owner->angles, glm::vec3(1.0f), SparkSubtype, SparkScale, 0x52baf5);
+        if (auto made = CreateHighParticle(context.world, context.random, context.worldClock, World::SwellLifeParticle,
+                                           point, owner->angles, glm::vec3(1.0f), SparkSubtype, SparkScale, 0x52baf5);
             !made.HasValue())
             return Core::Unexpected(made.Error());
     }

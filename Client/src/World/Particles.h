@@ -126,6 +126,11 @@ inline constexpr std::int32_t ArrivalDustParticle = 0x5f6;
 // (0x521dfd): nace en 0x542a60 con vida 20 y su paso (0x5459a4) avanza el cuadro (+0x48) con la vida y prende la luz
 // dinámica. El alta termina con el sonido 0x41ed10(0x40, 0, 0), que Particles no hace: lo hace quien la crea.
 inline constexpr std::int32_t ExplosionParticle = 0x5ed;
+// La llamarada 5ee (Effect\DinoE.jpg, cuatro cuadros en una fila) del 0x6ac (0x51ffd5) y del joint 0x632/6
+// (0x53bf6e): nace en 0x542a94 con vida 12 y la escala del pedido, de cualquier subtipo y sin rand(), su paso
+// (0x545ce3) pone el cuadro (+0x48) en (12 − vida) / 3 y 0x5486b6 la dibuja como el fuego (un cuarto del ancho, el
+// cuadro % 4 y el giro de +0x20). El alta termina con el sonido 0x41ed10(0x40, 0, 0): lo hace quien la crea.
+inline constexpr std::int32_t BlazeParticle = 0x5ee;
 // La sangre 5e4 (Effect\blood.tga, 0x61d7c9) que suelta el golpe con daño del paso del ataque (0x50419c, diez sobre el
 // blanco): nace en 0x542b3b con cuatro rand() y la velocidad girada por los ángulos del que pega, su paso (0x546b04)
 // la frena y avanza el cuadro (+0x48), y 548550 la dibuja con los cuadros de dos por dos (0x5487b9). No lee el subtipo.

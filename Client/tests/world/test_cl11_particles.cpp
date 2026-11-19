@@ -638,6 +638,50 @@ TEST(Cl11Particles, TheFantaTakesEverySubtypeButTheOwnedOnes)
     }
 }
 
+// 0x542a94 y 0x545ce3: la llamarada 0x5ee nace con vida 12 y la escala del pedido, de cualquier subtipo y sin rand();
+// su paso pone el cuadro (+0x48) en (12 − vida) / 3 y 0x5486b6 la dibuja con los argumentos del fuego de 0x548821: un
+// cuarto del ancho, el cuadro % 4 y el giro de +0x20.
+TEST(Cl11Particles, TheBlazeLivesTwelveAndWalksItsFourFrames)
+{
+    for (const std::int32_t subtype : {0, 5})
+    {
+        SCOPED_TRACE(subtype);
+        auto particles = std::make_unique<Particles>();
+        CrtRandom random(Seed);
+        const auto created =
+            particles->CreateChecked(0x5ee, {1, 2, 3}, {40, 0, 0}, glm::vec3(1.0f), subtype, 3.0f, 0.0f, random);
+        ASSERT_TRUE(created.HasValue());
+        ASSERT_TRUE(created.Value().has_value());
+        Particle& blaze = Only(*particles, *created.Value());
+        EXPECT_EQ(blaze.life, 12);
+        EXPECT_EQ(blaze.scale, 3.0f);
+        EXPECT_EQ(random.State(), CrtRandom(Seed).State());
+        for (int step = 1; step <= 11; ++step)
+        {
+            SCOPED_TRACE(step);
+            ASSERT_TRUE(Step(*particles, random, 0.0f).HasValue());
+            EXPECT_EQ(blaze.life, 12 - step);
+            EXPECT_EQ(std::bit_cast<std::int32_t>(blaze.field48), step / 3);
+            Particle fire = blaze;
+            fire.type = fire.texture = 0x5d9;
+            fire.subtype = 0;
+            const auto drawn = DrawOneParticle(blaze, glm::vec2(64, 64), std::uint8_t{4});
+            const auto reference = DrawOneParticle(fire, glm::vec2(64, 64), std::uint8_t{4});
+            ASSERT_TRUE(drawn.HasValue());
+            ASSERT_TRUE(drawn.Value().has_value());
+            ASSERT_TRUE(reference.HasValue());
+            ASSERT_TRUE(reference.Value().has_value());
+            EXPECT_EQ(drawn.Value()->texture, 0x5ee);
+            EXPECT_EQ(drawn.Value()->width, reference.Value()->width);
+            EXPECT_EQ(drawn.Value()->height, reference.Value()->height);
+            EXPECT_EQ(drawn.Value()->rotation, 40.0f);
+            EXPECT_EQ(drawn.Value()->uv, glm::vec2(static_cast<float>((step / 3) % 4) * 0.25f, 0.0f));
+            EXPECT_EQ(drawn.Value()->uvSize, glm::vec2(0.25f, 1.0f));
+            EXPECT_EQ(drawn.Value()->uvSize, reference.Value()->uvSize);
+        }
+    }
+}
+
 TEST(Cl11Particles, TheNewTypesGoToTheirBillboards)
 {
     using Kind = std::tuple<std::int32_t, std::int32_t, bool>;

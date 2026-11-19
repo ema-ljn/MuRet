@@ -5,6 +5,8 @@
 #include "Render/Models/OriginalRotation.h"
 #include "Scenes/HighEffectEmitters.h"
 #include "Scenes/HighModelEffects.h"
+#include "Scenes/WorldRuntime.h"
+#include "Scenes/WorldState.h"
 #include "World/GameModelEffects.h"
 #include "World/ModelEffects.h"
 #include "World/WorldObjectStepServices.h"
@@ -65,10 +67,14 @@ Core::Expected<void, std::string> SparkAndBlast(const glm::vec3& position, const
             !made.HasValue())
             return Core::Unexpected(made.Error());
     }
-    if (auto made = CreateHighParticle(context.world, context.random, context.worldClock, Blast, point, glm::vec3(0.0f),
-                                       glm::vec3(1.0f), 0, BlastScale, 0x51ffd5);
-        !made.HasValue())
+    // 0x542aa7: el alta de la 0x5ee pide el sonido 0x40 cuando encuentra lugar.
+    constexpr std::int32_t BlastSound = 0x40;
+    const auto made = CreateHighParticle(context.world, context.random, context.worldClock, Blast, point,
+                                         glm::vec3(0.0f), glm::vec3(1.0f), 0, BlastScale, 0x51ffd5);
+    if (!made.HasValue())
         return Core::Unexpected(made.Error());
+    if (made.Value().has_value())
+        context.world.Runtime().RequestSound(BlastSound);
     return {};
 }
 } // namespace

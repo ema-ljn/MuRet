@@ -8644,6 +8644,12 @@ dejó `edx` (`0x544807`) y, después de moverse, resta lo que su dueño se corri
 la x retenida y la y y la z guardadas), que pasa a ser la posición del dueño (`CreateOwnedChecked`; sin dueño,
 `MissingOwner`).
 
+**La llamarada `0x5ee`** (`Effect\DinoE.jpg`, en `Particles.cpp`, tercera vuelta): nace en `0x542a94` con vida 12 y la
+escala del pedido, de cualquier subtipo y sin `rand()`, y su alta pide el sonido 0x40 (`0x542aa7`, lo pide quien la
+crea); su paso (`0x545ce3`) pone el cuadro `+0x48` en `(12 − vida) / 3` y `0x5486b6` la dibuja con los argumentos del
+fuego (un cuarto del ancho, el cuadro `% 4` y el giro de `+0x20`). La piden el fin del `0x6ac` (`0x51ffd5`, escala 4) y
+el joint `0x632/6` en sus diez primeros pasos (`0x53bf6e`, escala 3).
+
 ### Las partículas de la fuente en el juego
 
 **Estático**, `0x603011..0x60313f`: después del rand común del objeto, luz1 y V calculada con NEG
@@ -14268,7 +14274,7 @@ en un lugar de más adelante pasa en la misma vuelta de `0x53c670`.
   `(rand() % 3 + 70) · 0,01745329f`, luz (0,8; 0,8; 1), vy = −(`rand() & 3` + 40), vz = sen(velocidad) · 10, y − 20,
   z + 130, el `+0x24` en la posición, la cara 3 y `0x535020` cruzado con la cuenta en 0 después. Paso `0x53bec2`: vy
   + `rand() % 5` − 2, vz − 10, se mueve por sus ángulos y, con la tanda menos la vida bajo 10 (los diez primeros
-  pasos), corta en la partícula `0x5ee` (`0x53bf6e`, lote de partículas). La /7 sólo pasa por la cola y muere. La luz por tramo del dibujo lee la altura del
+  pasos), la llamarada `0x5ee/0` en `+0x24` con sus ángulos, su luz y escala 3 (`0x53bf6e`, con el sonido 0x40 de su alta) y el ancho 100. La /7 sólo pasa por la cola y muere. La luz por tramo del dibujo lee la altura del
   personaje dueño.
 - **`0x618`** (`BeamJoints.cpp`, tercera vuelta): alta `0x532125..0x5323ce` y paso `0x5381f3..0x538704`. El dueño
   (`+0x54`) es un personaje en la /0..3, /0xc, /0xd, /0x10 y /0x11, el `FaunaObject` en la /4 y el efecto con modelo

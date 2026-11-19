@@ -1495,6 +1495,52 @@ TEST(HighModelEffectsTest, TheFireBreathBurnsAtItsSidesAndSparksAtTheEnd)
     EXPECT_FALSE(burning.alive);
     EXPECT_EQ(full.Draws(), 40 + 10 * 2 + 40);
 }
+// 0x51fef0(punto, 1) con lugar: las veinte 0x5c5/2 (0x51ff7e) y la llamarada 0x5ee/0 (0x51ffd5) en el mismo punto, con
+// los ángulos en 0, la luz (1, 1, 1) y escala 4, y el sonido 0x40 de su alta (0x542aa7). Con la tabla llena, ni la
+// llamarada ni el sonido.
+TEST(HighModelEffectsTest, TheFireBreathEndsInABlaze)
+{
+    const glm::vec3 angles{10, 20, 30};
+    for (const bool full : {false, true})
+    {
+        SCOPED_TRACE(full);
+        HighWorld tested;
+        tested.FillTheJoints();
+        ASSERT_TRUE(
+            CreateHighModelEffect({.type = 0x6ac, .position = {1000, 2000, 300}, .angles = angles}, tested.Context())
+                .HasValue());
+        if (full)
+            tested.FillTheParticles();
+        ModelEffect& breath = tested.Effect(0);
+        for (int step = 0; step < 10 && breath.alive; ++step)
+        {
+            const auto stepped = StepHighModelEffect(breath, nullptr, tested.StepContext());
+            ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        }
+        EXPECT_FALSE(breath.alive);
+        if (full)
+        {
+            EXPECT_NE(tested.world->Runtime().lastSoundId, std::optional<std::int32_t>{0x40});
+            continue;
+        }
+        EXPECT_EQ(AliveParticles(*tested.world, Client::World::FairySparkParticle, 2), 20);
+        ASSERT_EQ(AliveParticles(*tested.world, 0x5ee, 0), 1);
+        const auto& all = tested.world->Particles().All();
+        const auto blaze = std::ranges::find_if(all, [](const Client::World::Particle& particle)
+                                                { return particle.alive && particle.type == 0x5ee; });
+        const auto spark = std::ranges::find_if(all, [](const Client::World::Particle& particle)
+                                                { return particle.alive && particle.type == 0x5c5; });
+        ASSERT_NE(blaze, all.end());
+        ASSERT_NE(spark, all.end());
+        EXPECT_EQ(blaze->position, spark->start);
+        EXPECT_EQ(blaze->angles, glm::vec3(0.0f));
+        EXPECT_EQ(blaze->light, glm::vec3(1.0f));
+        EXPECT_EQ(blaze->scale, 4.0f);
+        EXPECT_EQ(blaze->life, 12);
+        EXPECT_EQ(tested.world->Runtime().lastSoundId, std::optional<std::int32_t>{0x40});
+    }
+}
+
 // 0x51dacb..0x51db6e: el 0x139 vive 35, con +0xe4 en 2, +0xd8 en 10, escala 1,2f y la velocidad (0, −5, 0); copia sus
 // ángulos en +0x28, toma la partida de la posición de su dueño y sube 150. Un rand() % 80 + 10 (r) mueve la z de
 // +0x28 subtipo · r − r. Sin dueño corta (el original lee la dirección 0x10); con la tabla llena, nada.

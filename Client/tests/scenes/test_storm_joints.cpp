@@ -10,6 +10,7 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <bit>
 #include <cstdint>
 #include <cstddef>
@@ -48,14 +49,16 @@ struct Storm
 
     Client::Core::Expected<void, std::string> Step()
     {
-        return Client::Scenes::StepJoints(joints, random, nullptr, &particles, 0.0f, nullptr, nullptr, {},
-                                          [this](float, float) { return ground; });
+        return Client::Scenes::StepJoints(
+            joints, random, nullptr, &particles, 0.0f, nullptr, nullptr,
+            [this](std::int32_t sound) { sounds.push_back(sound); }, [this](float, float) { return ground; });
     }
 
     std::vector<JointState> joints = std::vector<JointState>(8);
     CrtRandom random{Seed};
     Client::World::Particles particles;
     double ground = -1000.0;
+    std::vector<std::int32_t> sounds;
 };
 
 // 0x53bf7f..0x53c0a0: desde el décimo paso, con la z por encima del suelo (0x5f93c0), el ancho 40, la cola cruzada
@@ -94,6 +97,55 @@ TEST(StormJointsTest, TheBoltFallsUntilItTouchesTheGround)
     const auto touched = storm.Step();
     ASSERT_FALSE(touched.HasValue());
     EXPECT_TRUE(touched.Error().starts_with("0x53bfd3")) << touched.Error();
+}
+
+// 0x53bf3c..0x53bf76: en los diez primeros pasos de la tanda, la llamarada 0x5ee/0 (0x53bf6e) en +0x24, con los
+// ángulos (+0x30), la luz (+0x48) y escala 3, sin rand(), y el sonido 0x40 de su alta (0x542aa7); el ancho 100. Con la
+// tabla llena, ni la llamarada ni el sonido.
+TEST(StormJointsTest, TheBoltBlazesInItsFirstTenSteps)
+{
+    for (const bool full : {false, true})
+    {
+        SCOPED_TRACE(full);
+        Storm storm;
+        ASSERT_TRUE(storm.Create(7).HasValue());
+        for (std::size_t slot : {0u, 2u, 3u})
+            storm.joints[slot].alive = false;
+        JointState& bolt = storm.joints[1];
+        ASSERT_EQ(bolt.subtype, 6);
+        bolt.life = 20;
+        if (full)
+        {
+            for (auto& particle : storm.particles.All())
+                particle.alive = true;
+        }
+        const glm::vec3 point = bolt.pathIncrement;
+        const glm::vec3 angles = bolt.angles;
+        const glm::vec3 light = bolt.light;
+        CrtRandom expected = storm.random;
+
+        ASSERT_TRUE(storm.Step().HasValue());
+
+        static_cast<void>(expected.Next()); // el temblor de la y
+        EXPECT_EQ(storm.random.State(), expected.State());
+        EXPECT_EQ(bolt.width, 100.0f);
+        if (full)
+        {
+            EXPECT_TRUE(storm.sounds.empty());
+            continue;
+        }
+        EXPECT_EQ(storm.sounds, std::vector<std::int32_t>{0x40});
+        const auto& all = storm.particles.All();
+        const auto blaze = std::ranges::find_if(all, [](const Client::World::Particle& particle)
+                                                { return particle.alive && particle.type == 0x5ee; });
+        ASSERT_NE(blaze, all.end());
+        EXPECT_EQ(blaze->subtype, 0);
+        EXPECT_EQ(blaze->position, point);
+        EXPECT_EQ(blaze->angles, angles);
+        EXPECT_EQ(blaze->light, light);
+        EXPECT_EQ(blaze->scale, 3.0f);
+        EXPECT_EQ(blaze->life, 12);
+    }
 }
 
 // 0x534b1e y 0x53bec5: los de más de 7 sólo hacen el primer tramo y el tope de 50 puntos, y su paso va a la cola.

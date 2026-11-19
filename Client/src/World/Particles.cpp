@@ -891,6 +891,9 @@ std::optional<ParticleError> BindingError(std::int32_t type, std::int32_t subtyp
         return subtype == 0 || subtype == 1 ? std::nullopt : std::optional(ParticleError::UnsupportedSubtype);
     if (type == ExplosionParticle)
         return subtype >= 0 && subtype <= 2 ? std::nullopt : std::optional(ParticleError::UnsupportedSubtype);
+    // 0x542a94 y 0x545ce3: la 5ee no lee el subtipo.
+    if (type == BlazeParticle)
+        return std::nullopt;
     if (type == ArrivalDustParticle)
         return subtype == 1 ? std::nullopt : std::optional(ParticleError::UnsupportedSubtype);
     // 0x542b3b y 0x546b04: la 5e4 no lee el subtipo.
@@ -2116,6 +2119,15 @@ Particles::CreateImpl(std::int32_t type, const glm::vec3& position, const glm::v
             CreateTheExplosion(particle, scale);
             return std::optional(index);
         }
+        if (type == BlazeParticle)
+        {
+            // 0x542a94..0x542aa4: vida 12 y la escala del pedido otra vez en +0x10. El sonido de 0x542aa7, quien la
+            // crea.
+            constexpr std::int32_t BlazeLife = 12;
+            particle.life = BlazeLife;
+            particle.scale = scale;
+            return std::optional(index);
+        }
         if (type == BloodParticle)
         {
             CreateTheBlood(particle, angles, random);
@@ -2488,6 +2500,12 @@ StepParticlesImpl(Particles& particles, Render::Models::CrtRandom& random, const
             const auto stepped = StepTheExplosion(particle, particles, random, worldClock, lighting, sound);
             if (!stepped.HasValue())
                 return stepped;
+        }
+        else if (particle.type == BlazeParticle)
+        {
+            // 0x545ce3..0x545cfb: el cuadro (+0x48) es (12 − vida) / 3, el cociente de imul por 0x55555556 (hacia 0).
+            constexpr std::int32_t BlazeLife = 12, BlazeFrameLength = 3;
+            particle.field48 = std::bit_cast<float>((BlazeLife - particle.life) / BlazeFrameLength);
         }
         else if (particle.type == BloodParticle)
         {

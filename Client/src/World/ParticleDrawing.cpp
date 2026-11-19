@@ -126,6 +126,8 @@ Core::Expected<DrawSelection, ParticleDrawingError> SelectBranch(Particle& p, st
         default:
             return DrawSelection{ParticleDrawKind::Fire, false};
         }
+    case BlazeParticle: // 0x5486b6: los argumentos del fuego de 0x548821 (un cuarto del ancho, el cuadro % 4, +0x20).
+        return DrawSelection{ParticleDrawKind::Fire, false};
     case BreathParticle:
     {
         const auto kind = PrepareSmoke(p, services);

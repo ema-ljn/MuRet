@@ -241,7 +241,8 @@ TEST(AttackSkillCasesTest, TheHeadCasesCutAfterTheirDraws)
 
 // 0x4fe795..0x4fe981: la 0x35 cuelga de o cuatro 0x619/0xa de ancho 15 con los ángulos (−45, 0, 45, 405, 225 y 450),
 // que nacen en o; su primer tramo queda en el punto (sen 4,5 · 80; cos 4,5 · 80; 300) o (cos 22,5 · 80; sen 22,5 · 80;
-// 300) más o. Suena 0x7f, sin rand().
+// 300) más o. Suena 0x7f, sin rand(). Los puntos, por sus bits: FSIN/FCOS a 64 bits, el producto por 80 y la suma con
+// o en PC53 y el fstp a float. Con el lugar nuevo (ancho 0 en 0x530afa), las cuatro esquinas caen justo en el punto.
 TEST(AttackSkillCasesTest, TheEnergyCaseHangsFourJointsAroundItsCaster)
 {
     SkillWorld tested;
@@ -263,15 +264,12 @@ TEST(AttackSkillCasesTest, TheEnergyCaseHangsFourJointsAroundItsCaster)
         EXPECT_EQ(joint.angles, glm::vec3(-45.0f, 0.0f, turns[index]));
         EXPECT_EQ(joint.position, tested.Striker().position);
         EXPECT_EQ(joint.ownerContext, &tested.Striker());
-        const bool near = index < 2;
-        const double argument = near ? 4.5 : 22.5;
-        const glm::vec3 from{1000.0f + 80.0f * static_cast<float>(near ? std::sin(argument) : std::cos(argument)),
-                             2000.0f + 80.0f * static_cast<float>(near ? std::cos(argument) : std::sin(argument)),
-                             350.0f};
-        const glm::vec3 center = (joint.points[0][0] + joint.points[0][1]) * 0.5f;
-        EXPECT_NEAR(center.x, from.x, 1e-3f);
-        EXPECT_NEAR(center.y, from.y, 1e-3f);
-        EXPECT_NEAR(center.z, from.z, 1e-3f);
+        // 921,7976 y 1983,1364 (4,5 rad); 930,1356 y 1961,0260 (22,5 rad).
+        const glm::vec3 from =
+            index < 2 ? glm::vec3(std::bit_cast<float>(0x4466730cu), std::bit_cast<float>(0x44f7e45du), 350.0f)
+                      : glm::vec3(std::bit_cast<float>(0x446888aeu), std::bit_cast<float>(0x44f520d5u), 350.0f);
+        for (const glm::vec3& corner : joint.points[0])
+            EXPECT_EQ(corner, from);
     }
     EXPECT_FALSE(tested.joints[4].alive);
     EXPECT_EQ(tested.sounds, std::vector<std::int32_t>{0x7f});
@@ -978,8 +976,10 @@ TEST(AttackSkillCasesTest, TheTargetCasesCutWithoutDraws)
         std::string_view cut;
     };
     const std::array cases{
-        Case{0x01, 0x20a, "0x50497e"}, Case{0x01, 0x0e, "0x50497e"},  Case{0x49, 0x20a, "0x504b33"},
-        Case{0x3c, 0x20a, "0x504d05"}, Case{0x11, 0x20a, "0x505053"},
+        Case{0x01, 0x20a, "0x50497e"},
+        Case{0x01, 0x0e, "0x50497e"},
+        Case{0x3c, 0x20a, "0x504d05"},
+        Case{0x11, 0x20a, "0x505053"},
     };
     for (const std::int32_t map : Maps)
     {
@@ -1078,6 +1078,42 @@ TEST(AttackSkillCasesTest, TheLaunchedPartsAimAtTheTargetsTop)
     EXPECT_EQ(alive[4]->transform.position, alive[0]->transform.position);
     EXPECT_EQ(DrawsSince(Seed, tested.random), 2);
     EXPECT_TRUE(tested.sounds.empty());
+}
+
+// 0x504ac7..0x504b49, la 0x49: un 0x61c/4 sin dueño desde o 130 más arriba, con los ángulos (0, 0, z de o) y ancho 40
+// (InfernoJoints.cpp: Effect\Hole.jpg, velocidad 8, vx 15,5, vz 3, 13 puntos, vida 20), sin rand(), y el sonido 0x26f.
+TEST(AttackSkillCasesTest, TheInfernoRisesFromTheStriker)
+{
+    for (const std::int32_t map : Maps)
+    {
+        SCOPED_TRACE(testing::Message() << "mapa " << map);
+        SkillWorld tested(map);
+        tested.Striker().position = {1500.0f, 1600.0f, 40.0f};
+        tested.Striker().angles = {10.0f, 20.0f, 135.0f};
+
+        ASSERT_TRUE(tested.WithTarget(0x49).HasValue());
+
+        EXPECT_EQ(DrawsSince(Seed, tested.random), 0);
+        EXPECT_EQ(tested.sounds, std::vector<std::int32_t>{0x26f});
+        const JointState& inferno = tested.joints[0];
+        ASSERT_TRUE(inferno.alive);
+        EXPECT_EQ(inferno.type, 0x61c);
+        EXPECT_EQ(inferno.subtype, 4);
+        EXPECT_EQ(inferno.ownerContext, nullptr);
+        EXPECT_EQ(inferno.position, glm::vec3(1500.0f, 1600.0f, 170.0f));
+        EXPECT_EQ(inferno.pathIncrement, inferno.position);
+        EXPECT_EQ(inferno.angles, glm::vec3(0.0f, 0.0f, 135.0f));
+        EXPECT_EQ(inferno.bendAngles, glm::vec3(0.0f, 0.0f, 135.0f));
+        EXPECT_EQ(inferno.width, 40.0f);
+        EXPECT_EQ(inferno.texture, 0x6ae);
+        EXPECT_EQ(inferno.speed, 8.0f);
+        EXPECT_EQ(inferno.velocity, glm::vec3(15.5f, 0.0f, 3.0f));
+        EXPECT_EQ(inferno.life, 20);
+        EXPECT_EQ(inferno.maximumCount, 13);
+        EXPECT_EQ(inferno.count, -1);
+        EXPECT_EQ(inferno.field9ec, 10);
+        EXPECT_FALSE(tested.joints[1].alive);
+    }
 }
 
 // 0x5046bf..0x50473b, la 0x1c: sin 0x4000 en o, el calco 0x61e/3 sobre el blanco, con él de dueño, y con +0x38d de o
@@ -1879,10 +1915,10 @@ TEST(AttackSkillCasesTest, TheHiddenCircleGoesWithTheStriker)
 }
 
 // 0x4ff51c..0x4ff5f2, la 0x26: dos 0xc2/6 en el centro de la celda de la skill a la altura del terreno, con la luz
-// (0,8f; 0,5; 0,1f), sin dueño y la clave 0 (+0xd8 en 0), cada uno 500 a 799 más alto; después el sonido 0x8e y, con
-// el héroe, la tanda en +0xf04. El joint 0x5f2/0 de cada uno (0x51b098) es de la CL11: corta en el del primero,
-// después de sus cinco rand(). Sin las alturas, corta antes del primero y sin rand().
-TEST(AttackSkillCasesTest, TheMeteorsCutInTheirFirstTrail)
+// (0,8f; 0,5; 0,1f), sin dueño y la clave 0 (+0xd8 en 0), cada uno 500 a 799 más alto y con su estela 0x5f2/0 de dueño
+// (0x51b098, ancho 100, sin rand()); después el sonido 0x8e y, con el héroe, la tanda en +0xf04. Sin las alturas,
+// corta antes del primero y sin rand().
+TEST(AttackSkillCasesTest, TheMeteorsFallWithTheirTrails)
 {
     SkillWorld tested;
     Flatten(tested.world);
@@ -1891,22 +1927,36 @@ TEST(AttackSkillCasesTest, TheMeteorsCutInTheirFirstTrail)
     striker.skillCellY = 33;
 
     const auto stepped = tested.Head(0x26);
-    EXPECT_TRUE(HasError(stepped, "0x4ff5b2")) << ErrorOf(stepped);
-    EXPECT_TRUE(HasError(stepped, "0x51b098")) << ErrorOf(stepped);
+    ASSERT_TRUE(stepped.HasValue()) << ErrorOf(stepped);
 
     const auto meteors = AliveOfType(tested.world, Client::World::FireEffect);
-    ASSERT_EQ(meteors.size(), 1u);
-    const Client::World::ModelEffect& meteor = *meteors.front();
-    EXPECT_EQ(meteor.subtype, 6);
-    EXPECT_EQ(meteor.ownerContext, nullptr);
-    EXPECT_EQ(meteor.speed, 0.0f);
-    EXPECT_EQ(meteor.light, glm::vec3(0.8f, 0.5f, 0.1f));
-    EXPECT_GE(meteor.transform.position.x, 12050.0f + 200.0f);
-    EXPECT_LT(meteor.transform.position.x, 12050.0f + 300.0f);
-    EXPECT_GE(meteor.transform.position.z, 150.0f + 500.0f);
-    EXPECT_LT(meteor.transform.position.z, 150.0f + 800.0f);
-    EXPECT_EQ(DrawsSince(Seed, tested.random), 5);
-    EXPECT_TRUE(tested.sounds.empty());
+    ASSERT_EQ(meteors.size(), 2u);
+    const auto& joints = tested.joints;
+    for (std::size_t index = 0; index < meteors.size(); ++index)
+    {
+        SCOPED_TRACE(index);
+        const Client::World::ModelEffect& meteor = *meteors[index];
+        EXPECT_EQ(meteor.subtype, 6);
+        EXPECT_EQ(meteor.ownerContext, nullptr);
+        EXPECT_EQ(meteor.speed, 0.0f);
+        EXPECT_EQ(meteor.light, glm::vec3(0.8f, 0.5f, 0.1f));
+        EXPECT_GE(meteor.transform.position.x, 12050.0f + 200.0f);
+        EXPECT_LT(meteor.transform.position.x, 12050.0f + 300.0f);
+        EXPECT_GE(meteor.transform.position.z, 150.0f + 500.0f);
+        EXPECT_LT(meteor.transform.position.z, 150.0f + 800.0f);
+        const auto& trail = joints[index];
+        ASSERT_TRUE(trail.alive);
+        EXPECT_EQ(trail.type, 0x5f2);
+        EXPECT_EQ(trail.subtype, 0);
+        EXPECT_EQ(trail.ownerContext, &meteor);
+        EXPECT_EQ(trail.position, meteor.transform.position);
+        EXPECT_EQ(trail.width, 100.0f);
+        EXPECT_EQ(trail.life, 20);
+        EXPECT_EQ(trail.texture, 0x60f);
+    }
+    EXPECT_FALSE(joints[2].alive);
+    EXPECT_EQ(DrawsSince(Seed, tested.random), 10);
+    EXPECT_EQ(tested.sounds, (std::vector<std::int32_t>{0x8e}));
 
     SkillWorld bare;
     EXPECT_TRUE(HasError(bare.Head(0x26), "0x4ff570"));

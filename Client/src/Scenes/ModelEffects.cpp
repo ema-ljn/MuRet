@@ -4,6 +4,7 @@
 #include "Render/Models/Animation.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/HalfLifeMath.h"
+#include "Render/Models/OriginalAngles.h"
 #include "Render/Models/OriginalRetainedMath.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Render/Models/Pose.h"
@@ -24,6 +25,8 @@
 #include "World/IFishStepServices.h"
 #include "World/OriginalFtol.h"
 #include "World/Particles.h"
+#include "World/PortableParticleTrigonometry.h"
+#include "World/SelectionParticleKernels.h"
 #include "World/Sprites.h"
 #include "World/WorldObjectStepServices.h"
 
@@ -35,6 +38,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <format>
+#include <functional>
 #include <optional>
 #include <span>
 #include <string>
@@ -68,12 +72,6 @@ float Bits(std::uint32_t bits)
 constexpr float Tenth = 0.1f;
 const glm::vec3 White{1.0f, 1.0f, 1.0f};
 const glm::vec3 NoOffset{0.0f, 0.0f, 0.0f};
-
-Core::Unexpected<std::string> Cut(const ModelEffectsPass& pass, std::uint32_t address, std::string_view what)
-{
-    return Core::Unexpected(std::format("{:#x}: {} del modelo {:#x} (lugar {}, mapa {}) no está portado", address, what,
-                                        pass.actor.type, pass.slot, pass.map));
-}
 
 // 0x4ec110(modelo, +0x120 + hueso · 0x30, offset, salida, 1): los huesos propios con la escala (+0x68) y la posición
 // (+0x6c) que 0x505ec6 copió del personaje al modelo. Antes del primer dibujo, una matriz en cero (Q-C318).
@@ -633,6 +631,179 @@ Result StepThe17c(ModelEffectsPass& pass)
     return Light(pass, "0x507970", {dark, dark, dark}, 3);
 }
 
+// 0x53fe70(0x5de, punto, ángulos, luz, subtipo, escala, 0): la llama con el reloj del mundo y su seno, que la /2 y la
+// /3 leen al nacer (0x541722, 0x54178c). Con el pool lleno no crea nada ni saca rand().
+Result Flame(ModelEffectsPass& pass, std::uint32_t address, std::int32_t subtype, const glm::vec3& position,
+             const glm::vec3& angles, const glm::vec3& light, float scale)
+{
+    if (pass.particles == nullptr)
+        return Core::Unexpected(std::format("{:#x}: faltan las partículas del modelo {:#x} (lugar {})", address,
+                                            pass.actor.type, pass.slot));
+    World::PortableParticleTrigonometry trigonometry;
+    const auto created = pass.particles->CreateChecked(World::FlameParticle, position, angles, light, subtype, scale,
+                                                       std::cref(pass.worldClock), pass.random, 0, trigonometry);
+    if (!created.HasValue())
+        return Core::Unexpected(std::format("{:#x}: la llama 0x5de/{} del modelo {:#x} (lugar {}) falla (error {})",
+                                            address, subtype, pass.actor.type, pass.slot,
+                                            static_cast<unsigned>(created.Error())));
+    return {};
+}
+
+// Un par de las tablas de bytes del 0x17e: el byte par es el punto de la llama y el destino de 0x4e9810; el impar,
+// desde dónde mira.
+struct FlamePair
+{
+    std::uint8_t point;
+    std::uint8_t from;
+};
+
+// 0x6c882c..0x6c884e: los 35 huesos que 0x5074f0 lleva al arreglo local [EBP − 0x234] (MOVSX de cada byte).
+constexpr std::array<std::uint8_t, 35> FlameBones{5,  6,  33, 53, 35, 49, 50, 45, 46, 41, 42, 37,
+                                                  38, 11, 31, 13, 27, 28, 23, 24, 19, 20, 15, 16,
+                                                  54, 55, 62, 69, 70, 77, 2,  79, 81, 84, 86};
+// 0x6c8850..0x6c886d y 0x6c8870..0x6c888d: los quince pares de cada tabla que el bucle de 0x50752f lee de a dos.
+constexpr std::array<FlamePair, 15> FirstFlamePairs{{{0, 2},
+                                                     {2, 3},
+                                                     {2, 4},
+                                                     {4, 5},
+                                                     {5, 6},
+                                                     {4, 7},
+                                                     {7, 8},
+                                                     {4, 9},
+                                                     {9, 10},
+                                                     {4, 11},
+                                                     {11, 12},
+                                                     {6, 5},
+                                                     {8, 7},
+                                                     {10, 9},
+                                                     {12, 11}}};
+constexpr std::array<FlamePair, 15> SecondFlamePairs{{{0, 13},
+                                                      {13, 14},
+                                                      {13, 15},
+                                                      {15, 16},
+                                                      {16, 17},
+                                                      {15, 18},
+                                                      {18, 19},
+                                                      {15, 20},
+                                                      {20, 21},
+                                                      {15, 22},
+                                                      {22, 23},
+                                                      {17, 16},
+                                                      {19, 18},
+                                                      {21, 20},
+                                                      {23, 22}}};
+// 0x6c8890..0x6c8897 y 0x6c8898..0x6c889f: los cuatro pares de cada tabla del bucle de 0x5075f4.
+constexpr std::array<FlamePair, 4> ThirdFlamePairs{{{29, 28}, {28, 27}, {34, 33}, {33, 30}}};
+constexpr std::array<FlamePair, 4> FourthFlamePairs{{{26, 25}, {25, 24}, {32, 31}, {31, 30}}};
+
+// 0x4e9810(desde, ángulos, punto, 360,0f) con el fstp de la distancia a [EBP − 0x50], la x de la luz, y 0x53fe70(0x5de,
+// punto, ángulos, [EBP − 0x50], 2, escala, 0).
+Result FlameAlong(ModelEffectsPass& pass, std::uint32_t address, const std::array<glm::vec3, FlameBones.size()>& points,
+                  const FlamePair& pair, glm::vec3& angles, glm::vec3& light, float scale)
+{
+    const glm::vec3& point = points[pair.point];
+    light.x = F32(Render::Models::MoveToward(points[pair.from], angles, point, 360.0f));
+    return Flame(pass, address, 2, point, angles, light, scale);
+}
+
+// 0x5074bb..0x50775c: el 0x17e con +0x376 en 0x3f (el monstruo 63; 0x514bd1 le da el modelo 0x17e también al 61, que
+// va por la otra rama). Los 35 puntos de los huesos de 0x6c882c sin offset ([EBP − 0x60] en
+// 0); con los ángulos locales en 0 (0x5074c1), una 0x5de/2 por par de 0x6c8850 y de 0x6c8870 con escala 1,0f hasta el
+// par 11 (ESI desde 0x16) y 0,5f después, y por par de 0x6c8890 y de 0x6c8898 con 0,6f; con ftol(reloj) par (el resto
+// con signo de 0x5076b8), la 0x5de/2 del punto 30 mirado desde el 0 con 1,3f y la 0x5de/3 del punto 1 con 0,5f y la
+// misma luz; al final, la luz (−1,3) × 3 de radio 3. Los ángulos pasan de un 0x4e9810 al siguiente. La y y la z de la
+// luz ([EBP − 0x4c] y [EBP − 0x48]) no las escribe nadie en 0x505de0: la /2 sólo lee la x del pedido (0x5416dc,
+// 0x541702), la /3 no lee la luz del pedido (0x541750..0x5417b2), y las dos pisan las tres con la luz del reloj
+// (0x54173c..0x541748, 0x5417a6..0x5417b2), así que MuRet las deja en 0.
+Result StepTheFlamingLimbs(ModelEffectsPass& pass)
+{
+    ActorState& actor = pass.actor;
+    std::array<glm::vec3, FlameBones.size()> points{};
+    for (std::size_t index = 0; index < FlameBones.size(); ++index)
+        points[index] = BonePoint(actor, FlameBones[index], NoOffset);
+    glm::vec3 angles{0.0f, 0.0f, 0.0f};
+    glm::vec3 light{0.0f, 0.0f, 0.0f};
+    constexpr std::size_t SmallFrom = 0x16 / 2;
+    for (std::size_t index = 0; index < FirstFlamePairs.size(); ++index)
+    {
+        const float scale = index < SmallFrom ? 1.0f : 0.5f;
+        if (auto flamed = FlameAlong(pass, 0x50758a, points, FirstFlamePairs[index], angles, light, scale);
+            !flamed.HasValue())
+            return flamed;
+        if (auto flamed = FlameAlong(pass, 0x5075de, points, SecondFlamePairs[index], angles, light, scale);
+            !flamed.HasValue())
+            return flamed;
+    }
+    const float tail = Bits(0x3f19999au); // 0,6f
+    for (std::size_t index = 0; index < ThirdFlamePairs.size(); ++index)
+    {
+        if (auto flamed = FlameAlong(pass, 0x507644, points, ThirdFlamePairs[index], angles, light, tail);
+            !flamed.HasValue())
+            return flamed;
+        if (auto flamed = FlameAlong(pass, 0x507699, points, FourthFlamePairs[index], angles, light, tail);
+            !flamed.HasValue())
+            return flamed;
+    }
+    const auto parity = ClockRemainder(pass, 0x5076b3, 2);
+    if (!parity.HasValue())
+        return Core::Unexpected(parity.Error());
+    if (parity.Value() == 0)
+    {
+        if (auto flamed = FlameAlong(pass, 0x507702, points, FlamePair{30, 0}, angles, light, Bits(0x3fa66666u));
+            !flamed.HasValue())
+            return flamed;
+        if (auto flamed = Flame(pass, 0x507724, 3, points[1], angles, light, 0.5f); !flamed.HasValue())
+            return flamed;
+    }
+    const float dark = Bits(0xbfa66666u);
+    return Light(pass, "0x507754", {dark, dark, dark}, 3);
+}
+
+// 0x507761..0x507897: el 0x17e sin el 0x3f, desde las manos (los huesos 55 y 70 de 0x51255c). La luz (L; L · 0,5; L ·
+// 0,5) con L = sen(reloj · 0,002f) · 0,3f + 0,7f (FSIN en PC53, fst de L y fmul 0,5 de la suma sin redondear); con los
+// ángulos locales en 0, del hueso 55 al 62 y del 70 al 77 (sin offset: [EBP − 0x28] en 0 desde 0x506c97), 0x4e9810 de
+// 360,0f, cuya distancia se tira (fstp st(0)), y la 0x5de/1 en el segundo con 0,2f; después, 0x505d50 y 0x505c50.
+Result StepTheBurningHands(ModelEffectsPass& pass)
+{
+    ActorState& actor = pass.actor;
+    const double rate = D(Bits(0x3b03126fu)); // 0,002f (0x6b89bc)
+    const auto sine = Render::Models::Detail::SineProductPC53(D(pass.worldClock) * rate, Bits(0x3e99999au));
+    if (!sine)
+        return Core::Unexpected(std::string("0x50777b: el reloj del mundo está fuera del dominio de FSIN"));
+    const double glow = *sine + D(Bits(0x3f333333u)); // 0,7f (0x6b8a5c)
+    const glm::vec3 light{F32(glow), F32(glow * 0.5), F32(glow * 0.5)};
+    glm::vec3 angles{0.0f, 0.0f, 0.0f};
+    struct Hand
+    {
+        std::size_t from;
+        std::size_t to;
+        std::uint32_t address;
+    };
+    constexpr std::array<Hand, 2> Hands{{{55, 62, 0x50780d}, {70, 77, 0x507883}}};
+    const float scale = Bits(0x3e4ccccdu); // 0,2f
+    for (const Hand& hand : Hands)
+    {
+        const glm::vec3 start = BonePoint(actor, hand.from, NoOffset);
+        const glm::vec3 point = BonePoint(actor, hand.to, NoOffset);
+        static_cast<void>(Render::Models::MoveToward(start, angles, point, 360.0f));
+        if (auto flamed = Flame(pass, hand.address, 1, point, angles, light, scale); !flamed.HasValue())
+            return flamed;
+    }
+    if (auto dust = RaiseTheDust(pass); !dust.HasValue())
+        return dust;
+    return BurstTheDust(pass);
+}
+
+// 0x50749c..0x507897: el 0x17e, 0x505bc0(8, 9) y la rama de +0x376.
+Result StepThe17e(ModelEffectsPass& pass)
+{
+    MarkTheBones(pass, 8, 9);
+    constexpr std::uint16_t Flaming = 0x3f;
+    if (pass.actor.word376 == Flaming)
+        return StepTheFlamingLimbs(pass);
+    return StepTheBurningHands(pass);
+}
+
 // El caso del tipo − 0x152 (0x506ccc..0x50862f).
 CaseResult StepTheTypeCase(ModelEffectsPass& pass, float brightness)
 {
@@ -658,11 +829,8 @@ CaseResult StepTheTypeCase(ModelEffectsPass& pass, float brightness)
         stepped = RaiseTheDust(pass);
         break;
     case 0x17e:
-        // 0x50749c..0x507897: 0x505bc0(8, 9) y, con +0x376 en 0x3f, el 0x5de de los huesos 22 a 29 (0x50758a); si no,
-        // del 55 y el 62 (0x50780d). El 0x5de no lo conoce el pool (CL11), con lo que viene después: las luces, los
-        // demás 0x5de y, sin el 0x3f, 0x505d50 y 0x505c50. Con el pool lleno el original sigue; MuRet corta igual.
-        MarkTheBones(pass, 8, 9);
-        return Cut(pass, pass.actor.word376 == 0x3f ? 0x50758a : 0x50780d, "el 0x5de (0x53fe70) y lo que le sigue");
+        stepped = StepThe17e(pass);
+        break;
     case 0x17c:
         stepped = StepThe17c(pass);
         break;

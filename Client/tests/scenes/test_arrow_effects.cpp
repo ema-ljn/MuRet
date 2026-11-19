@@ -467,7 +467,7 @@ TEST(ArrowEffectsTest, TheMountedBowsShootLikeOnFoot)
 }
 
 // Las armas cuyas flechas piden algo sin portar cortan en su dirección, con lo de antes: en el alta, los joints de
-// la 0xf8 (4/17), la 0x11c (4/20, después de su rand() % 360) y la 0xf9 (4/21); en el paso, la 0xe1 (4/6) en sus
+// la 0x11c (4/20, después de su rand() % 360) y la 0xf9 (4/21); en el paso, la 0xe1 (4/6) en sus
 // partículas 0x608..0x60a, la 0xe2 (4/14) y la 0xe3 (4/13) en las 0x607/1, después de sus dos sprites y de los rand()
 // del punto.
 
@@ -484,9 +484,9 @@ TEST(ArrowEffectsTest, TheArrowsOfUnportedEffectsCut)
         int stepDraws;
     };
     const std::array cases{
-        Case{"4/17", 0xffff, 0x811, "0x51a405", 0, "", 0},     Case{"4/20", 0xffff, 0x814, "0x51c713", 1, "", 0},
-        Case{"4/21", 0xffff, 0x815, "0x51c56c", 0, "", 0},     Case{"4/6", 0xffff, 0x806, "", 0, "0x526a8b", 1 + 4},
-        Case{"4/14", 0x80e, 0xffff, "", 0, "0x52434e", 1 + 3}, Case{"4/13", 0x80d, 0xffff, "", 0, "0x526d5f", 1 + 3}};
+        Case{"4/20", 0xffff, 0x814, "0x51c713", 1, "", 0}, Case{"4/21", 0xffff, 0x815, "0x51c56c", 0, "", 0},
+        Case{"4/6", 0xffff, 0x806, "", 0, "0x526a8b", 1 + 4}, Case{"4/14", 0x80e, 0xffff, "", 0, "0x52434e", 1 + 3},
+        Case{"4/13", 0x80d, 0xffff, "", 0, "0x526d5f", 1 + 3}};
     for (const Case& probe : cases)
     {
         SCOPED_TRACE(probe.name);
@@ -570,6 +570,49 @@ TEST(ArrowEffectsTest, TheAdvancedArrowsLeaveTheirBeam)
         EXPECT_EQ(beam->life, 999999998);
         EXPECT_EQ(beam->count, 1);
     }
+}
+
+// 0x51a3d0..0x51a417: la flecha 0xf8 de la 4/17 deja cuatro 0x60f/0xb con ella de dueño, desde su partida (+0x17c),
+// con los ángulos (0, 0, z), ancho 50 de pedido (el alta pone 30) y el skill 1 en el segundo; cada uno saca su
+// rand() % 3000 (vx). Con el pool lleno, ninguno y sin rand().
+TEST(ArrowEffectsTest, TheCelestialArrowLeavesFourWanderingJoints)
+{
+    const Weapon weapon{"4/17", 0xffff, 0x811, 0x2e, 0};
+    auto full = std::make_unique<ArrowWorld>(0);
+    for (auto& joint : full->world.DrawTail().joints)
+        joint.alive = true;
+    ActorState& fullHero = full->Archer(weapon, weapon.action, NoTarget);
+    ASSERT_TRUE(StepTheAttack(fullHero, HeroSlot, full->Context()).HasValue());
+
+    auto tested = std::make_unique<ArrowWorld>(0);
+    ActorState& hero = tested->Archer(weapon, weapon.action, NoTarget);
+
+    const auto struck = StepTheAttack(hero, HeroSlot, tested->Context());
+
+    ASSERT_TRUE(struck.HasValue()) << struck.Error();
+    EXPECT_EQ(DrawsSince(Seed, tested->random), DrawsSince(Seed, full->random) + 4);
+    const auto arrows = tested->Arrows();
+    ASSERT_EQ(arrows.size(), 1u);
+    const ModelEffect& arrow = *arrows.front();
+    const auto& joints = tested->world.DrawTail().joints;
+    for (std::size_t slot = 0; slot < 4; ++slot)
+    {
+        SCOPED_TRACE(slot);
+        const auto& joint = joints[slot];
+        ASSERT_TRUE(joint.alive);
+        EXPECT_EQ(joint.type, 0x60f);
+        EXPECT_EQ(joint.subtype, 0xb);
+        EXPECT_EQ(joint.ownerContext, &arrow);
+        EXPECT_EQ(joint.ownerKind, Client::Scenes::JointOwnerKind::ModelEffect);
+        EXPECT_EQ(joint.position, arrow.start);
+        EXPECT_EQ(joint.targetPosition, arrow.start);
+        EXPECT_EQ(joint.angles, glm::vec3(0.0f, 0.0f, arrow.transform.angles.z));
+        EXPECT_EQ(joint.skill, slot == 1 ? 1 : 0);
+        EXPECT_EQ(joint.width, 30.0f);
+        EXPECT_EQ(joint.life, 30);
+        EXPECT_EQ(joint.maximumCount, 15);
+    }
+    EXPECT_FALSE(joints[4].alive);
 }
 
 TEST(ArrowEffectsTest, TheArrowRainCountsTheVolley)
@@ -1712,8 +1755,8 @@ TEST(ArrowEffectsTest, FullPoolsPreserveTheNewlyReachableArrowSteps)
     }
 }
 
-// 0x51a347..0x51a3b7: la 0xf8/1 escribe los ángulos del caller (0, 0, z) antes de sus tres joints 0x60f/0x19, que son
-// del lote de los joints de la CL11: con lugar, corta en el primero; con la tabla llena, sigue a 0x51a1b0.
+// 0x51a347..0x51a3b7: la 0xf8/1 escribe los ángulos del caller (0, 0, z) antes de sus tres joints 0x60f/0x19 (alta
+// 0x533db8, un rand() % 3000 cada uno, con la flecha de dueño) y sigue a 0x51a1b0; con la tabla llena, no hay joints.
 TEST(ArrowEffectsTest, CelestialWritesTheCallerAnglesBeforeItsJoints)
 {
     for (const bool full : {false, true})
@@ -1736,19 +1779,29 @@ TEST(ArrowEffectsTest, CelestialWritesTheCallerAnglesBeforeItsJoints)
         EXPECT_EQ(effect.transform.angles, (glm::vec3{15.0f, 25.0f, 35.0f}));
         EXPECT_EQ(effect.transform.position, (glm::vec3{10.0f, 20.0f, 160.0f}));
         EXPECT_EQ(effect.velocity, (glm::vec3{0.0f, -60.0f, 0.0f}));
+        ASSERT_TRUE(made.HasValue()) << ErrorOf(made);
+        EXPECT_EQ(effect.word8c, 9);
+        EXPECT_EQ(DrawsSince(Seed, tested.random), (full ? 0 : 3) + OwnRecord);
         if (full)
+            continue;
+        CrtRandom expected(Seed);
+        const auto& joints = tested.world.DrawTail().joints;
+        for (std::size_t slot = 0; slot < 3; ++slot)
         {
-            ASSERT_TRUE(made.HasValue()) << ErrorOf(made);
-            EXPECT_EQ(effect.word8c, 9);
-            EXPECT_EQ(DrawsSince(Seed, tested.random), OwnRecord);
+            SCOPED_TRACE(slot);
+            const auto& joint = joints[slot];
+            ASSERT_TRUE(joint.alive);
+            EXPECT_EQ(joint.type, 0x60f);
+            EXPECT_EQ(joint.subtype, 0x19);
+            EXPECT_EQ(joint.ownerKind, Client::Scenes::JointOwnerKind::ModelEffect);
+            EXPECT_EQ(joint.ownerContext, &effect);
+            EXPECT_EQ(joint.life, 30);
+            EXPECT_EQ(joint.maximumCount, 15);
+            EXPECT_EQ(joint.width, 30.0f);
+            EXPECT_EQ(joint.velocity.x, static_cast<float>(expected.Next() % 3000));
+            EXPECT_EQ(joint.position, effect.start);
         }
-        else
-        {
-            EXPECT_TRUE(HasError(made, "0x51a3b7"));
-            EXPECT_EQ(DrawsSince(Seed, tested.random), 0);
-            EXPECT_TRUE(
-                std::ranges::none_of(tested.world.DrawTail().joints, [](const auto& joint) { return joint.alive; }));
-        }
+        EXPECT_FALSE(joints[3].alive);
     }
 }
 

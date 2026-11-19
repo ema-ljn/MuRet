@@ -396,11 +396,12 @@ protected:
 // 0x43abd9, sobre el blanco o el héroe, con el rand() % 360 de su giro en 0x5431a1) y los efectos de otros lotes cortan
 // después de la lectura de +0x38e y de los rand() de su ayudante. Los de los magos se crean: el 0xcb/3 y el 0xcc/4 de
 // 0x439cd0 sin rand(), los tres 0xc2/7 de 0x43b18f con dos rand() % 200 y los cinco del alta cada uno; el anillo 0xc2/8
-// de 0x439bd0 (rand() % 360) corta en el joint 0x5f2/0 de su primer fuego (0x51b268, CL11 de los joints), después de
-// sus cuatro rand(). Afuera, los mismos tipos van a la cola.
+// de 0x439bd0 (rand() % 360) crea sus cinco fuegos, con cuatro rand() y el joint 0x5f2/0 (0x51b268, sin rand()) cada
+// uno, y pide el sonido 0x1e0. Afuera, los mismos tipos van a la cola.
 TEST_F(MonsterAttackCasesTest, TheKalimaMonstersLeaveWithoutTheTail)
 {
-    constexpr int FireRingDraws = 4;
+    constexpr int Fires = 5, FireDraws = 4;
+    constexpr std::int32_t BurstSound = 0x1e0;
     constexpr int RingDraws = 1;
     const std::vector<Probe> probes{
         {.name = "0x90 en 13", .type = 0x90, .step = 13},
@@ -410,8 +411,8 @@ TEST_F(MonsterAttackCasesTest, TheKalimaMonstersLeaveWithoutTheTail)
          .type = 0x91,
          .step = 13,
          .skill = 1,
-         .cut = "0x439ca6",
-         .draws = SkillRead + 1 + FireRingDraws},
+         .draws = SkillRead + 1 + Fires * FireDraws,
+         .sounds = {BurstSound}},
         {.name = "0x91 con 0x37 en 13", .type = 0x91, .step = 13, .skill = 0x37, .cut = "0x439ba5", .draws = SkillRead},
         {.name = "0x91 con 0xc8 en 13", .type = 0x91, .step = 13, .skill = 0xc8, .draws = SkillRead},
         {.name = "0x91 con 1 en 12", .type = 0x91, .step = 12, .skill = 1, .draws = SkillRead},
@@ -437,8 +438,8 @@ TEST_F(MonsterAttackCasesTest, TheKalimaMonstersLeaveWithoutTheTail)
          .type = 0x113,
          .step = 13,
          .skill = 1,
-         .cut = "0x439ca6",
-         .draws = SkillRead + 1 + FireRingDraws},
+         .draws = SkillRead + 1 + Fires * FireDraws,
+         .sounds = {BurstSound}},
         {.name = "0x113 en la 3 y en 13", .type = 0x113, .step = 13, .draws = SkillRead}};
     for (const std::uint8_t map : {std::uint8_t{24}, std::uint8_t{36}})
     {
@@ -803,15 +804,14 @@ TEST_F(MonsterAttackCasesTest, TheKalimaWardsSetTheFlagsAndEndTheCount)
 }
 
 // 0x42dcf0 en el 30: el 0x68 suelta el lancero 0x19f/0 sólo en 5 y el 0x120 el pulso 0x61c/0 siempre; el alta del pulso
-// saca su rand() % 360 y corta en su joint 0x61c/3 (0x51f1c5, del lote de los joints de la CL11) si hay lugar.
+// saca su rand() % 360 y crea su joint 0x61c/3 (0x51f1c5, sin rand()).
 // 0x429110 en el 33 y el 54: en 10, el 0x134 suelta el 0x141 y el 0x130 el 0x61c/1 (con su rand() % 360) en la 4.
 TEST_F(MonsterAttackCasesTest, TheSiegeAndTheTrialMonstersLeaveOrCut)
 {
     Load(30);
-    for (const Probe& probe :
-         std::vector<Probe>{{.name = "0x68 en 4", .type = 0x68, .step = 4},
-                            {.name = "0x68 en 5", .type = 0x68, .step = 5},
-                            {.name = "0x120", .type = 0x120, .step = 1, .cut = "0x51f1c5", .draws = 1}})
+    for (const Probe& probe : std::vector<Probe>{{.name = "0x68 en 4", .type = 0x68, .step = 4},
+                                                 {.name = "0x68 en 5", .type = 0x68, .step = 5},
+                                                 {.name = "0x120", .type = 0x120, .step = 1, .draws = 1}})
         Expect(probe);
     const std::vector<Probe> trials{
         {.name = "0x135 en la 3 y en 10", .type = 0x135, .step = 10},
@@ -983,8 +983,8 @@ TEST_F(MonsterAttackCasesTest, CrywolfRunsItsRadialVolleyBeforeTheCommonVolley)
 }
 
 // 0x43257a y 0x42fd76: la 0xf8/1 con el actor de dueño y su +0x8a de clave. Su alta escribe los ángulos del actor
-// (0x51a347) antes de los tres joints 0x60f/0x19 (0x51a3b7), que son del lote de los joints de la CL11: con lugar para
-// ellos corta ahí, sin el rand() del registro propio (0x51a1b0).
+// (0x51a347) antes de los tres joints 0x60f/0x19 (0x51a3b7, un rand() cada uno si hay lugar) y del registro propio
+// (0x51a1b0).
 TEST_F(MonsterAttackCasesTest, CrywolfAndFortressLaunchF8AtFrameFourteenAndPreserveTheOwnerAndKey)
 {
     withParticles = false;
@@ -1004,13 +1004,8 @@ TEST_F(MonsterAttackCasesTest, CrywolfAndFortressLaunchF8AtFrameFourteenAndPrese
                 actor.word8a = 0x1234;
                 FillModelEffectPoolExceptLast(free);
                 const auto result = Step(actor);
-                const bool cut = jointRoom && free != 0;
-                EXPECT_EQ(result.HasValue(), !cut);
-                if (cut)
-                {
-                    EXPECT_TRUE(!result.HasValue() && result.Error().starts_with("0x51a3b7"));
-                }
-                EXPECT_EQ(Draws(), free == 0 || cut ? 0 : OwnRecord);
+                ASSERT_TRUE(result.HasValue()) << result.Error();
+                EXPECT_EQ(Draws(), free == 0 ? 0 : (jointRoom ? 3 : 0) + OwnRecord);
                 EXPECT_EQ(actor.angles, (free == 0 ? glm::vec3{15, 25, 35} : glm::vec3{0, 0, 35}));
                 if (free == 0)
                     continue;
@@ -1022,6 +1017,10 @@ TEST_F(MonsterAttackCasesTest, CrywolfAndFortressLaunchF8AtFrameFourteenAndPrese
                 EXPECT_EQ(arrow.ownerContext, &actor);
                 EXPECT_EQ(arrow.disturbanceState, 0x1234u);
                 EXPECT_EQ(arrow.transform.angles, (glm::vec3{15, 25, 35}));
+                const auto& joints = game->world.DrawTail().joints;
+                EXPECT_EQ(std::ranges::count_if(joints, [&arrow](const auto& joint)
+                                                { return joint.alive && joint.ownerContext == &arrow; }),
+                          jointRoom ? 3 : 0);
             }
     }
 }
@@ -1035,7 +1034,7 @@ TEST_F(MonsterAttackCasesTest, TheFortressAndCrywolfLookAtTheModel)
     EXPECT_EQ(Create(0x136).type, 0x1ad);
     EXPECT_EQ(Create(0x13c).type, 0x1b2);
     for (const Probe& probe :
-         std::vector<Probe>{{.name = "0x1ad en 14", .type = 0x136, .step = 14, .cut = "0x51a3b7"},
+         std::vector<Probe>{{.name = "0x1ad en 14", .type = 0x136, .step = 14, .draws = 3 + OwnRecord},
                             {.name = "0x1ad en 13", .type = 0x136, .step = 13, .draws = Tail},
                             {.name = "0x1b2 en 14", .type = 0x13c, .step = 14, .draws = OwnRecord}})
         Expect(probe);
@@ -1046,7 +1045,7 @@ TEST_F(MonsterAttackCasesTest, TheFortressAndCrywolfLookAtTheModel)
     EXPECT_EQ(Create(0x15c).type, 0x1b5);
     const std::vector<Probe> crywolf{{.name = "0x1b2 en 14", .type = 0x138, .step = 14, .draws = OwnRecord},
                                      {.name = "0x1b2 en 13", .type = 0x138, .step = 13, .draws = Tail},
-                                     {.name = "0x1ad en 14", .type = 0x13c, .step = 14, .cut = "0x51a3b7"},
+                                     {.name = "0x1ad en 14", .type = 0x13c, .step = 14, .draws = 3 + OwnRecord},
                                      {.name = "0x1b5 en 15", .type = 0x15c, .step = 15, .draws = OwnRecord},
                                      {.name = "0x1b5 en 14", .type = 0x15c, .step = 14, .draws = Tail},
                                      {.name = "0x17c en 1",
@@ -2850,10 +2849,12 @@ TEST_F(MonsterAttackCasesTest, TheTrailStartsAtTheEleventhBone)
 // llega al 0x4f8493 después del 0x106/1 de su caso de +0x376 (0x4f80cf) y su sonido 0x42. Los impares de 0xa3 a 0xad
 // sacan en el alta (0x51443f) la derecha: 0xa25 (el arco) o 0xc17; acá va escrita. Con el arco, en 8, la flecha de
 // 0x4f816f (0x53e2b0 → 0x53d9a0 con las manos) da el 0x111 con su joint 0x618/5 (0x51bf35), el cierre del registro
-// propio y los quince giros de la mano del arco 0xa25 (0x53e630..0x53e73a, 105 rand() en esta semilla).
+// propio y los quince giros de la mano del arco 0xa25 (0x53e630..0x53e73a): en cada uno, el rand() % 360 de 0x53e6b0,
+// la moneda de 0x53e6d4 y los cinco de la 0x5c5/0 (0x540333, 0x54041f, 0x540436, 0x54045c y 0x540480). El 0x617/3 de la
+// moneda par no saca nada: acá el pool de joints está vacío.
 TEST_F(MonsterAttackCasesTest, TheSkill0x11CasesLeaveAfterTheirEffect)
 {
-    constexpr int ReignShine = 105;
+    constexpr int ReignShine = 15 * (2 + 5);
     constexpr std::uint16_t Bow = 0xa25;
     constexpr std::uint16_t Staff = 0xc17;
     const std::vector<Probe> probes{
@@ -2948,8 +2949,8 @@ TEST_F(MonsterAttackCasesTest, TheSkill0x11CasesLeaveAfterTheirEffect)
         for (const Probe& probe : probes)
             Expect(probe);
         // Sin el arco 0xa25, en la 4 y en 8: rand() & 1 elige dos 0xf5 (0x4f8227), cada uno con su joint 0x618/5
-        // (0x5193d6) y el registro propio, o dos 0xc2/6 (0x4f8287), el primero de los cuales corta en su joint 0x5f2/0
-        // (0x51b098) después de los cinco rand() de su alta; ese joint sigue sin portar (CL11).
+        // (0x5193d6) y el registro propio, o dos 0xc2/6 (0x4f8287 y 0x4f82a5), cada uno con los cinco rand() de su alta
+        // y su joint 0x5f2/0 (0x51b098, sin rand()).
         for (const std::int32_t type : {0xa5, 0xa7, 0xad, 0xa3})
         {
             ActorState& monster = Prepare(Probe{.name = "sin el arco",
@@ -2964,14 +2965,16 @@ TEST_F(MonsterAttackCasesTest, TheSkill0x11CasesLeaveAfterTheirEffect)
             const bool odd = (expected.Next() & 1) != 0;
             const auto stepped = Step(monster);
             constexpr int MeteorDraws = 5;
+            ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
             if (odd)
             {
-                EXPECT_TRUE(!stepped.HasValue() && stepped.Error().starts_with("0x4f8287"))
-                    << (stepped.HasValue() ? std::string("sin corte") : stepped.Error());
-                EXPECT_EQ(Draws(), SkillRead + 1 + MeteorDraws);
+                EXPECT_EQ(Draws(), SkillRead + 1 + 2 * MeteorDraws);
+                const auto trails =
+                    std::ranges::count_if(game->joints, [](const Client::Scenes::JointState& joint)
+                                          { return joint.alive && joint.type == 0x5f2 && joint.subtype == 0; });
+                EXPECT_EQ(trails, 2);
                 continue;
             }
-            ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
             EXPECT_EQ(Draws(), SkillRead + 1 + 2 * (BlastDraws + OwnRecord));
             const auto beams =
                 std::ranges::count_if(game->joints, [](const Client::Scenes::JointState& joint)

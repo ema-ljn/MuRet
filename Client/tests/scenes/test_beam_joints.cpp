@@ -91,7 +91,8 @@ struct BeamWorld
 };
 
 // 0x532238..0x5322c9 y 0x5322cc..0x5323ce: los que siguen al dueño nacen quietos, con vida 999.999.999, en su +0x40 o
-// su +0x4c, con los puntos y la luz de su subtipo, sin rand().
+// su +0x4c, con los puntos y la luz de su subtipo, sin rand(). 0x530a32..0x530a55: la /0xa, /0xb, /0xe y /0xf nacen
+// con la cuenta en −1 y sin el primer tramo (0x530afa), así que el punto 0 conserva lo del lugar; las otras, en 0.
 TEST(BeamJointsTest, TheFollowersBornOnTheirOwnersPoint)
 {
     struct Case
@@ -114,6 +115,8 @@ TEST(BeamJointsTest, TheFollowersBornOnTheirOwnersPoint)
     {
         SCOPED_TRACE(value.subtype);
         BeamWorld tested;
+        const glm::vec3 stale{7.0f, 8.0f, 9.0f};
+        tested.joints[0].points[0].fill(stale);
         const auto created = value.effectOwner
                                  ? tested.Create(value.subtype, &tested.effect, JointOwnerKind::ModelEffect)
                                  : tested.Create(value.subtype, &tested.actor);
@@ -125,6 +128,11 @@ TEST(BeamJointsTest, TheFollowersBornOnTheirOwnersPoint)
         EXPECT_EQ(joint.maximumCount, value.points);
         EXPECT_EQ(joint.light, value.light);
         EXPECT_EQ(joint.width, 20.0f);
+        const bool skipsTheQuad =
+            value.subtype == 0xa || value.subtype == 0xb || value.subtype == 0xe || value.subtype == 0xf;
+        EXPECT_EQ(joint.count, skipsTheQuad ? -1 : 0);
+        for (const glm::vec3& corner : joint.points[0])
+            EXPECT_EQ(corner == stale, skipsTheQuad);
         EXPECT_EQ(tested.random.State(), CrtRandom(Seed).State());
     }
 }
@@ -145,21 +153,22 @@ TEST(BeamJointsTest, TheFollowersTrackTheirOwnerUntilItDies)
     EXPECT_EQ(tested.joints[0].width, static_cast<float>(20.0 + static_cast<double>(10.1f)));
     EXPECT_EQ(tested.joints[1].position, glm::vec3(4.0f, 5.0f, 6.0f));
     EXPECT_EQ(tested.joints[1].width, 20.0f);
+    // La /8 nació en 0 y la /0xb en −1 (0x530a55): tras un paso, 1 y 0.
+    EXPECT_EQ(tested.joints[0].count, 1);
+    EXPECT_EQ(tested.joints[1].count, 0);
     for (const JointState& joint : {tested.joints[0], tested.joints[1]})
-    {
         EXPECT_EQ(joint.life, 999999998);
-        EXPECT_EQ(joint.count, 1);
-    }
     tested.actor.alive = false;
     tested.effect.alive = false;
 
     ASSERT_TRUE(tested.Step().HasValue());
 
+    EXPECT_EQ(tested.joints[0].count, 1);
+    EXPECT_EQ(tested.joints[1].count, 0);
     for (const JointState& joint : {tested.joints[0], tested.joints[1]})
     {
         EXPECT_FALSE(joint.alive);
         EXPECT_EQ(joint.life, 999999998);
-        EXPECT_EQ(joint.count, 1);
     }
     EXPECT_EQ(tested.random.State(), CrtRandom(Seed).State());
 }

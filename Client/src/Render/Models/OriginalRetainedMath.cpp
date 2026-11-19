@@ -963,5 +963,17 @@ std::optional<std::array<float, 4>> JointDirectionPC53(std::int32_t phase)
 {
     return DirectionPC53(phase, 0.5f);
 }
+std::optional<float> SineSpillF32(double argument)
+{
+    return SineSpill(argument);
+}
+std::optional<float> CosineSpillF32(double argument)
+{
+    if (!ValidParticleInputs(argument, 1))
+        return std::nullopt;
+    if (argument == 0)
+        return 1.0f;
+    return NearestFloat(RetainedSineOrCosine(argument, true));
+}
 
 } // namespace Client::Render::Models::Detail

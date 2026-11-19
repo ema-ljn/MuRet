@@ -342,9 +342,8 @@ TEST(AttackStepTest, TheMapHelpersOfTheMonstersExitOrCut)
         Case{"Kalima fuera de Kalima", 0, 0x160, 0x91, 1, "", CountingStep},
         Case{"el 31", 0x1f, 0x160, 0x123, 1, "", Helper},
         Case{"el 31 con otro", 0x1f, 0x160, 0x126, 1, "", CountingStep},
-        // El alta del pulso 0x61c/0 saca su rand() % 360 y corta en su joint 0x61c/3 (0x51f1c5, del lote de los
-        // joints).
-        Case{"el pulso del asedio", 0x1e, 0x160, 0x120, 1, "0x51f1c5", Helper + 1},
+        // El alta del pulso 0x61c/0 saca su rand() % 360 y crea su joint 0x61c/3 (0x51f1c5, sin rand()).
+        Case{"el pulso del asedio", 0x1e, 0x160, 0x120, 1, "", Helper + 1},
         Case{"la piedra del asedio en5", 0x1e, 0x160, 0x68, 5, "", Helper},
         Case{"el 54", 0x36, 0x160, 0x134, 1, "", Helper},
         Case{"el 35 en 14", 0x23, 0x1b2, 3, 14, "", Helper + OwnRecord + SkillWithTarget, {0x47}, true},

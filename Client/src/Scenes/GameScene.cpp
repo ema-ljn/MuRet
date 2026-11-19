@@ -62,6 +62,7 @@
 #include "Scenes/GameCharacters.h"
 #include "Scenes/GuildState.h"
 #include "Scenes/HelperTable.h"
+#include "Scenes/HighModelEffects.h"
 #include "Scenes/ModelTextureTable.h"
 #include "Scenes/SceneCanvas.h"
 #include "Scenes/TextureSets.h"
@@ -1178,7 +1179,8 @@ Core::Expected<void, std::string> GameScene::DrawTheWorldPass(SceneCanvas& canva
                 .worldClock = static_cast<float>(
                     std::chrono::duration_cast<std::chrono::milliseconds>(canvas.frameClock).count()),
                 .map = static_cast<std::uint8_t>(map),
-                .kalima = FrameKalima()},
+                .kalima = FrameKalima(),
+                .ownerPosition = ActorPositionOf(world)},
             frames > 0);
         !ground.HasValue())
     {

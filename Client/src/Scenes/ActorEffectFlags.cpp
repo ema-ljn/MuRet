@@ -3,17 +3,30 @@
 #include "Core/Expected.h"
 #include "App/WindowState.h"
 #include "Data/Models/PlayerModels.h"
+#include "Render/Models/Cloth.h"
 #include "Scenes/ActorFlags.h"
 #include "Scenes/ActorState.h"
+#include "World/GameCamera.h"
+#include "Scenes/FaunaJointCreation.h"
+#include "Scenes/GameDrawTail.h"
+#include "Scenes/JointFamilies.h"
+#include "World/IFishStepServices.h"
 #include "World/ModelEffects.h"
+#include "World/WizardModelEffects.h"
 #include "Data/Text/TextTable.h"
 #include "Scenes/GameMessages.h"
+#include "Scenes/SkullEffects.h"
+#include "Scenes/WizardEffects.h"
 #include "Scenes/WorldEntry.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 
+#include <glm/ext/vector_float3.hpp>
+
+#include <bit>
 #include <cstddef>
 #include <cstdint>
+#include <format>
 #include <string>
 #include <utility>
 
@@ -76,7 +89,64 @@ Core::Expected<void, std::string> ShowTheBlessingNotice(const WorldEntryResource
     // 0x5767b6c es una ancla de nombre vacía. Incluso un Text1828 vacío debe envejecer el log y añadir su fila.
     return AddGameMessage(resources.world.Runtime(), *resources.textMeasure, screen, {}, *text, SystemMessage);
 }
+
+// 0x530860(0x10f, desde, desde, ángulos, subtipo, el personaje, ancho, −1, 0, 0, −1) (AuraJoints.cpp). Con el pool
+// lleno, nada.
+Core::Expected<void, std::string> CreateAura(ActorState& actor, glm::vec3& from, glm::vec3& angles,
+                                             std::int32_t subtype, float width, const WorldEntryResources& resources)
+{
+    const World::FishEffectRequest request{.type = JointFamilies::AuraJoint,
+                                           .firstPosition = from,
+                                           .secondPosition = from,
+                                           .angles = angles,
+                                           .subtype = subtype,
+                                           .ownerContext = &actor,
+                                           .scale = width,
+                                           .key = -1,
+                                           .skill = 0,
+                                           .skillSerial = 0,
+                                           .target = -1};
+    const auto created =
+        CreateFaunaJoint(resources.world.DrawTail().joints, request, resources.cloth.random, JointOwnerKind::Actor);
+    if (!created.HasValue())
+        return Core::Unexpected(created.Error());
+    return {};
+}
 } // namespace
+
+// 0x518ac0(0xc1, personaje, 1) apaga sus 0xc1/1 y dos 0x518cf0(0xc1, +0x10, ángulos, +0xf4, 1 y 2, personaje, −1, …)
+// crean el hielo con los ángulos del personaje y, en el segundo, la z 180 más (fld, fadd y fstp). La luz es la del
+// personaje (+0xf4), que cada alta pisa con (0,4f; 0,3f; 0,2f) (0x51acd2): el segundo ya la lee pisada. Sus humos 5f2/0
+// no leen el reloj del mundo.
+Core::Expected<void, std::string> WrapInIce(ActorState& actor, const WorldEntryResources& resources,
+                                            const IceCalls& calls)
+{
+    constexpr std::int32_t FirstIce = 1;
+    constexpr std::int32_t SecondIce = 2;
+    constexpr double HalfTurn = 180.0; // 0x6b86bc
+    WorldState& world = resources.world;
+    static_cast<void>(KillModelEffectsOf(world.Map().effects, World::IceEffect, &actor, FirstIce));
+    const World::WizardEffectServices services =
+        WizardEffectServicesOf(world, resources.cloth.random,
+                               WizardSceneParts{.particles = &world.Particles(),
+                                                .terrain = &world.Map().terrain,
+                                                .fixedHeight = resources.camera.fixedHeight});
+    glm::vec3 angles = actor.angles;
+    for (const std::int32_t subtype : {FirstIce, SecondIce})
+    {
+        if (subtype == SecondIce)
+            angles.z = static_cast<float>(static_cast<double>(angles.z) + HalfTurn);
+        const auto created = World::CreateWizardModelEffect(
+            world.Map().effects,
+            WizardArguments(World::IceEffect, actor.position, angles, actor.light, subtype, &actor),
+            resources.cloth.random, services, &actor.light);
+        if (!created.HasValue())
+            return Core::Unexpected(std::format("{:#x}: el 0xc1/{} del hielo: {}",
+                                                subtype == FirstIce ? calls.first : calls.second, subtype,
+                                                created.Error()));
+    }
+    return {};
+}
 
 Core::Expected<void, std::string> ApplyEffectFlags(ActorState& actor, std::uint32_t flags, bool publishedHero,
                                                    const WorldEntryResources& resources)
@@ -103,7 +173,13 @@ Core::Expected<void, std::string> ApplyEffectFlags(ActorState& actor, std::uint3
         {
             constexpr std::int32_t Bit100Sound = 0x84;
             requestSound(Bit100Sound);
-            return Cut("0x4e644f: 0x534f90 y los cinco joints 0x10f (0x530860) de la bandera 0x100 son de la CL11");
+            // 0x4e6447..0x4e6483: apaga sus 0x10f/0 (0x534f90) y crea cinco, de ancho 50, que giran a su alrededor.
+            auto& joints = resources.world.DrawTail().joints;
+            KillJointsOf(joints, JointFamilies::AuraJoint, &actor, 0);
+            for (int ring = 0; ring < 5; ++ring)
+                if (auto created = CreateAura(actor, actor.position, actor.angles, 0, 50, resources);
+                    !created.HasValue())
+                    return created;
         }
         actor.flags78 |= Bit100;
     }
@@ -158,7 +234,16 @@ Core::Expected<void, std::string> ApplyEffectFlags(ActorState& actor, std::uint3
     if (Has(flags, Bit1000))
     {
         actor.flags78 |= Bit1000;
-        return Cut("0x4e662d: los tres joints 0x10f/8 (0x530860) de la bandera 0x1000 son de la CL11");
+        // 0x4e65df..0x4e66c3: tres 0x10f/8 de ancho 30 desde una copia de su +0x10, girados 90, 180 y 270 en z, la
+        // copia 10 más abajo después de cada uno.
+        glm::vec3 from = actor.position;
+        for (const std::uint32_t turn : {0x42b40000u, 0x43340000u, 0x43870000u})
+        {
+            glm::vec3 angles{0, 0, std::bit_cast<float>(turn)};
+            if (auto created = CreateAura(actor, from, angles, 8, 30, resources); !created.HasValue())
+                return created;
+            from.z = static_cast<float>(static_cast<double>(from.z) - 10);
+        }
     }
     // 0x4e66c6..0x4e6709.
     for (const std::uint32_t bit : {0x4000u, 0x200u, 0x8000u})
@@ -183,15 +268,25 @@ Core::Expected<void, std::string> ApplyEffectFlags(ActorState& actor, std::uint3
     if (Has(flags, Bit20))
     {
         if (!Has(actor.flags78, Bit20))
-            return Cut("0x4e67d6: 0x518ac0 y los efectos 0xc1/1 y 0xc1/2 (0x518cf0) de la bandera 0x20 son de la CL11");
+        {
+            // 0x4e67bc..0x4e682a.
+            if (auto frozen = WrapInIce(actor, resources, IceCalls{.first = 0x4e67fc, .second = 0x4e6825});
+                !frozen.HasValue())
+                return frozen;
+        }
         actor.flags78 |= Bit20;
     }
     constexpr std::uint32_t Bit40 = 0x40;
     if (Has(flags, Bit40))
     {
         if (!Has(actor.flags78, Bit40))
-            return Cut("0x4e6869: 0x518ac0, el efecto 0x628/0 (0x518cf0) y el sonido 0x85 de la bandera 0x40 son de la "
-                       "CL11 y la CL10");
+        {
+            // 0x4e6842..0x4e6899: la calavera 0x628/0 sobre el personaje (la de antes, apagada) y el sonido 0x85 en él.
+            constexpr std::int32_t SkullSound = 0x85;
+            if (auto skull = PutTheSkullOn(actor, resources.world, resources.cloth.random, 0x4e688c); !skull.HasValue())
+                return skull;
+            resources.world.Runtime().RequestSound(SkullSound, actor.position);
+        }
         actor.flags78 |= Bit40;
     }
     // 0x4e68a7..0x4e68cc.

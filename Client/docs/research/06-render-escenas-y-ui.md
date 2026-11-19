@@ -4272,7 +4272,7 @@ de `0x443d70` en el mapa 55 y la escena 2; los slots, **verificados** en `lor_sl
     luz de las mallas, se hunden 0,5f, la `0xfb` hace temblar la cámara, la `0xfc` y la `0xff` sueltan piedritas
     `0xc8`/`0xc9`, y prenden la luz dinámica roja con un dueño que no es `0x1b1`, azul con él y blanca sin dueño
     (Q-C427); la `0x102` saca un `rand()` que nadie usa (Q-C428). Se dibujan con el genérico; con el subtipo 1,
-    `0xfc`, `0xff` y `0x102` ponen `+0x74` en `0x80` y su dibujo corta en `0x6004aa` (no lo alcanza el caballo).
+    `0xfc`, `0xff` y `0x102` ponen `+0x74` en `0x80` y se dibujan por `RenderBody(0x82)` (`0x6004aa`, CL11 lote magos; no lo alcanza el caballo).
   - **Las piedras** `0x118` y `0x119` (`Skill\groundStone` y `groundStone2`, que `0x615700` carga en
     `0x61641d` y `0x616442`: 2 mallas, `DhorSS.jpg` y `DhorSS_R.jpg`, 3 huesos y una acción de 5 keys).
     Su alta (`0x51cc6b` y `0x51cd1b`), después del prefijo común, lee el atributo de su celda con
@@ -8014,7 +8014,7 @@ escenas 2, 4 y 5: todo *estático*. Es la misma función para todos: el héroe y
 | `0x183`, `0x184`, `0x188` | `0x50862f` | — | nada |
 | los demás | `0x5085db` | — | `0x43bdd0`, `0x42de90`, `0x441210`, `0x42f550`, `0x431470` y `0x426ce0`, en ese orden, hasta que uno devuelva verdadero: cada uno mira el tipo o el mapa |
 
-MuRet (revisión B, 2026-11-14): `Scenes::StepTheModelEffects` (`ModelEffects.h`), desde `CharacterStep` con otro modelo que el `0x20a`, saca el `& 7` y corre el caso o los helpers con lo que escriben (la U y la V de `+0x6c` y `+0x70`, `+0x68`, `+0x64`, `+0x58`, el ángulo z, `+0x84`, la acción, los puntos de `0x505bc0` en `+0x4c` y `+0x40`), sus luces (`World::AddDynamicLight`), sus sonidos (`lastSoundId`), las partículas que el pool conoce (`0x5f2/0`, `0x5f3/0`, `0x5d9/0` y `/1`, `0x5ca/0`, `0x5c5/0`), los joints `0x617/0`, el sprite del `0x166` (la tabla del paso de los efectos, `CharacterStepContext::sprites`), la marca del `0x182` y las poses de `0x431470` (el `0x1ab` y el `0x1b4`, en `WorldState::PoseCarry`). Cortan con su dirección, después de sus `rand()`: el joint `0x614/7` del `0x185` (con un lugar libre), el `0x5de` del `0x17e` (`0x50758a` o `0x50780d`, también con el pool lleno), el `0x5f3/1` de `0x505c50` (`0x505d2c`), el `0x5f2/0x11` del `0x192` y el `0x197` (`0x43bf75`, `0x43c04b`), los efectos de `0x518cf0` (el `0xc5` en la 0, `0x43bea5`; el `0x1b3` en la 4 con el frame en [4, 6], `0x42f63b` o `0x431f37`; el `0x1ab`, el `0x1b0` y el `0x1b4` en su ventana de ataque, `0x43195f`, `0x4316db` y `0x4315b4`; el `0x1b5` en la 3 con `+0x84` en 1 desde el frame 5, `0x432460`), los huesos por nombre de `0x4292e0` con sus sprites (el `0x1b2` después de su `rand() % 360`, `0x42f6ce` o `0x431fa4`; el `0x1b1` fuera de la 6, `0x42f946` o `0x431d5c`) y el polvo del `0x1ab` y del `0x1b4` en la 2 y la `0xa`, que lee una luz que ese camino no escribe (`0x431e86`, comportamiento indefinido). El `0x1ae` mira además `[0x723bec]`, que MuRet no modela (en 0): no hace nada. Tests: `ModelEffectsTest` (`test_monster_effect_cases.cpp`, en los mapas 0 y 2 y los del caso: 30, 34, 35, 24).
+MuRet (revisión B, 2026-11-14): `Scenes::StepTheModelEffects` (`ModelEffects.h`), desde `CharacterStep` con otro modelo que el `0x20a`, saca el `& 7` y corre el caso o los helpers con lo que escriben (la U y la V de `+0x6c` y `+0x70`, `+0x68`, `+0x64`, `+0x58`, el ángulo z, `+0x84`, la acción, los puntos de `0x505bc0` en `+0x4c` y `+0x40`), sus luces (`World::AddDynamicLight`), sus sonidos (`lastSoundId`), las partículas que el pool conoce (`0x5f2/0`, `0x5f3/0`, `0x5d9/0` y `/1`, `0x5ca/0`, `0x5c5/0`), los joints `0x617/0`, el sprite del `0x166` (la tabla del paso de los efectos, `CharacterStepContext::sprites`), la marca del `0x182` y las poses de `0x431470` (el `0x1ab` y el `0x1b4`, en `WorldState::PoseCarry`). Cortan con su dirección, después de sus `rand()`: el joint `0x614/7` del `0x185` (con un lugar libre), el `0x5de` del `0x17e` (`0x50758a` o `0x50780d`, también con el pool lleno), el `0x5f3/1` de `0x505c50` (`0x505d2c`), ~~el `0x5f2/0x11` del `0x192` y el `0x197` (`0x43bf75`, `0x43c04b`)~~ (hecho en el lote de partículas, P-C440), los efectos de `0x518cf0` (el `0xc5` en la 0, `0x43bea5`; el `0x1b3` en la 4 con el frame en [4, 6], `0x42f63b` o `0x431f37`; el `0x1ab`, el `0x1b0` y el `0x1b4` en su ventana de ataque, `0x43195f`, `0x4316db` y `0x4315b4`; el `0x1b5` en la 3 con `+0x84` en 1 desde el frame 5, `0x432460`), los huesos por nombre de `0x4292e0` con sus sprites (el `0x1b2` después de su `rand() % 360`, `0x42f6ce` o `0x431fa4`; el `0x1b1` fuera de la 6, `0x42f946` o `0x431d5c`) y el polvo del `0x1ab` y del `0x1b4` en la 2 y la `0xa`, que lee una luz que ese camino no escribe (`0x431e86`, comportamiento indefinido). El `0x1ae` mira además `[0x723bec]`, que MuRet no modela (en 0): no hace nada. Tests: `ModelEffectsTest` (`test_monster_effect_cases.cpp`, en los mapas 0 y 2 y los del caso: 30, 34, 35, 24).
 
 **Los `rand()`.** 46 llamadas directas a `0x69fd70`. Con el `0x20a`, que es lo que MuRet tiene:
 
@@ -8512,7 +8512,7 @@ de estado aunque no produzca vértices o corte después. Los tipos sin caso no d
 | `0x61d` | Solo /1: calco con scale, luz propia, giro −z y lift5; después luz por `0x3f68ba2e` y scale+0,05f. |
 | `0x5de` | Salvo /3: otro rand; gris `R32((r%4+8)*0,1f)`, lado2, giro −z. No se sustituye por un literal0,9f. |
 | `0x5d5` | scale+0,2f antes del calco; gris `R32(life*0,1f)`. |
-| `0x61e` | Brillo1 o `1−(5−life)*0,2f` con life<5; lado `(20−life)*0,15f`, salvo /4,/9,/10 que usan scale. Colores por la tabla original. /7 corta en `0x52ded0` por dueño ausente; los nacimientos de /6 y /8, en `0x52e04c` y `0x52e0a2`; subtipo fuera de tabla, en `0x52dfdc` por scratch retenido sin representar. |
+| `0x61e` | Brillo1 o `1−(5−life)*0,2f` con life<5; lado `(20−life)*0,15f`, salvo /4,/9,/10 que usan scale. Colores por la tabla original. /7 lee la posición de su dueño en cada dibujo (`0x52ded0`; corta si el dueño no es un personaje); el /6 suelta un /7 cada 25 vidas (`0x52e04c`) y el /8 un /9 en las vidas pares (`0x52e0a2`), en la tabla que recorre el pase (CL11); subtipo fuera de tabla, en `0x52dfdc` por scratch retenido sin representar. |
 | `0x61f` | Repite aditiva. Ángulo = low32 firmado de ftol(reloj), resto3600, por0,1f. /0: anillos ±ángulo y calco `0x61e` naranja. /2 no tiene anillos; con life≤10 corta en `0x52e312` por lado local no escrito; con life>10, lado `(20−life)*0,55f`. |
 | `0x636` | Mezcla alfa; ancho/alto de `+0x17c/+0x180`, luz propia, sin giro. |
 | `0x6eb` | Calco con scale y luz propia; en24..29/36, salvo /6, conserva depthWrite=false y corta en `0x52e12f` antes de `0x437940`. |
@@ -8556,6 +8556,81 @@ sin afirmar todos los casos del switch ni precisión nativa CW/FSIN.
 `GameModelEffectsTest`, `MapModelEffectServicesTest`, `MapLoadTest` y los tests de partículas
 comprueban creación, retención, orden/pool lleno y presupuestos CRT. No son una captura nativa
 ni una validación visual de la torre o del teleport.
+
+### Las partículas de los efectos de la CL11
+
+El lote de partículas de la CL11 (2026-11-19, *estático*, P-C440) agrega a `0x53fe70`, `0x5446e0` y `0x548550` los casos
+que pedían los efectos. Todos van al billboard común (`0x54889a`; el `0x5f2` pasando por `0x54874c`), salvo el fuego.
+`World/EffectParticleKernels` tiene los que no tenían kernel:
+
+- **El anillo `0x600`** (`Effect\ring.jpg`): nace en `0x543183` con vida 20; la /1, con vida 15, `+0x50` en 0 y el giro
+  `rand() % 360`. Su paso (`0x5473b1`): la /0 late con la vida (escala `sin(vida · 0,17453292f) · 3 + 2` con `fsin`, luz
+  `vida · 0,2f`); la /1 crece con `+0x50` (escala `sin(+0x50 · 0,017453292f) · 3 + 1,5`, `+0x50` suma `(15 − vida) · 6`
+  con tope 90 si la suma sin redondear lo pasa) y con vida menor que 6 apaga la luz a la mitad. La pide `0x43a7a0` en 14
+  (`0x43a861` y `0x43abd9`): sobre el blanco de `+0x3a4` en [0, 400) o el héroe, 150 más arriba, con los ángulos de c.
+- **El humo `0x5f2`/1 y /3**: la /1 (`0x541eb6`, siete `rand()`) es el veneno de la skill 1 (`0x50492e..0x504986`, diez
+  sobre el blanco con la luz (0,4f; 0,6f; 1)); la /3 (`0x541cf2`, cuatro) la piden `0x5216d6` y `0x521960`. Sus pasos
+  (`0x546250`, `0x5460c2`) apagan la luz con la vida, frenan la velocidad por 0,4f y crecen 0,05f o 0,1f.
+- **La llama `0x5de`/1..6** (tabla de `0x54448c` y de `0x5482f4`): la /2 da un salto con `0x4e98d0` al nacer, y la /2, /3
+  y /4 toman la luz del reloj `sin(reloj · 0,002f) · 0,3f + 0,7f`; la /4 sigue a su dueño (`+0x40`) desde su posición al
+  nacer (`Particles::CreateTowardChecked`).
+- **Las chispas `0x5c6`** sin kernel (tabla de `0x5443c0` y de `0x548204`): la /0 y la /8 (`0x545084`, bajan 0,5 y mueren
+  bajo 0,2f) del golpe de `0x52e740`, la /3 de las luces del `0x45` (`0x50c0db`), la /4 que va hacia su dueño y lo sigue con
+  su partida `+0x17c`, la /6 que sólo nace una de cada 50 veces (las demás quedan con vida 0 y su paso corre igual), la /7
+  verde y la /10 (con la cuenta de `+0x38`). La /13 comparte el kernel del arco (`0x540977`, `0x545368`).
+
+En `Particles.cpp`: **el fuego** (`0x541172` y `0x5457a5`, el mismo caso para `0x5d9`, `0x5db` y `0x5dc`) trata todos los
+subtipos (la /7 y la /11 se mecen, la /9 sigue a su dueño desde una partida en anillo, la /12 y la /13 suben y giran) y
+`0x548803` manda la 5, 7, 8, 11, 12 y 13 al atlas girado por `+0x44` (`0x548850`) y las demás al de los ángulos
+(`0x548821`), en los tres tipos; **el rayo `0x5d5`** (tabla de `0x544428`) trata todos los subtipos, y la /2 (vida 20, la de
+`0x4c965c`) sigue a su dueño 80 más arriba (`0x54548f`); **la `0x5ca`** (`0x54109f`, `0x54573f`) trata cualquier
+subtipo con sus dos `rand()` (la escala y el giro), y además la /1 (`0x5410ea`, la de `0x53fd42`) nace con vida 10 y luz
+0,5 y su paso le da la luz vida · 0,0666667f y crece 0,1f (`0x545750`), y la /2 (`0x541112`, la de `0x51df52`) toma la
+textura `0x61e`, vida 10, un tercer `rand()` para la escala (`((rand() & 7) + 6) · escala · 0,1f + 0,3f`) y el giro en 0,
+y su paso baja la luz 0,01f por canal (`0x54577c`); la /0 de los demás llamadores conserva la vida 2 y la luz del
+prefijo. En los kernels de Kalima, las
+de Kundun: la caída `0x6f4`/3 (`0x543dc0`, gira 4 en `0x547f4c`) y las salpicaduras `0x6f2`/2, `0x6f3`/2 (`0x544295`) y
+`0x6f4`/4 (`0x543e14`), que avanzan 20 hacia su ángulo z con `fcos`/`fsin` del ángulo crudo (`0x5480fd`, `0x547f6b`).
+
+Las que siguen a su dueño (`0x5c6`/4, `0x5d5`/2, el fuego /9 y `0x5de`/4) guardan el `ParticleOwner` y su paso lee
+`ParticleOwnerStates` (`Scenes::ParticleOwnerStatesOf`: el byte vivo y la posición de un personaje, y además la partida de
+un efecto con modelo); sin él cortan con `MissingOwner`. El `0x4b` de `0x50bf45` (`0x50c37e`) deja el fuego `0x5d9/0` de
+0,3 en el hueso 18 y sigue con su brillo `0x144`; el `0x49` (`0x50c3ed`) tiene sus flare01 y sus joints `0x614/7` del lote
+de los joints y corta en `0x60b300` (`0x50c595`).
+
+**Los humos `0x5f2` de la CL11** (`World/SmokeParticleKernels.h`, por la misma puerta que los de arriba): la /17
+(`0x5418b1`, la del `0x192` y el `0x197`) guarda la luz del pedido en `+0x60..+0x68`, vive 12 y su paso (`0x546171`) le
+da esa luz por `l = vida · 0,125` (pasado 1, `1 − l`) y sube como el aliento; la /19 (`0x54228c`, la que el paso
+de los joints crea en `0x5394fb`) y la /20 (`0x542307`) viven 40 y su paso (`0x546573`, `0x54661e`) saca cuatro `rand()` (la subida, la x, la
+y y la escala, que también queda en el giro); la /23 (`0x54184b`, el alta del aliento) se ilumina (l · 0,1f; l; l ·
+0,6f) (`0x5460a0`); la /24 (`0x542450`, la de la piedra `0x12e/3`) vive 32 y sube 0,1f con la luz (l · 0,2f; l · 0,5;
+l · 0,35f), `l = vida · 0,03125`; la /26 (`0x54252c`) se apaga por vida · 0,05f; la /31 (`0x5426cf`) se achica 0,05f y
+muere con la escala y el azul en 0 o menos (`0x546938`); la /36 (`0x54196c`, la de `0x52497d`, que le pasa el efecto
+de dueño) sigue a su dueño más la partida al azar mientras su vida es 23 o más (`0x545f39`) y la /37 (`0x541932`, la de
+`0x5249a0`) toma la luz del pedido como dirección y retrocede por ella. La /17, /19, /20, /23 y /24 giran
+`_ftol(reloj) % 360`, con el reloj del pedido (`CreateChecked` con el reloj por valor también). La /28, /29 y /30
+(`0x5425c7`, `0x54261b`, `0x542668`) leen el terreno al nacer (`0x5f93c0`; la /30 además `fsin` del reloj) y siguen
+cortadas. En el mismo archivo, **la `0x5f5`** (alta `0x542943..0x542a5f`, paso `0x546a13..0x546aff`): la /0, /1 y /2
+guardan la luz, viven 55, 30 y 55, sacan el ángulo x `(rand() & 3) − 2` (que el paso le suma al giro) y giran
+`_ftol(reloj) % 360`; su paso baja el rojo guardado (la /0; 0,005f más mientras el verde pasa de 0,1f, otra vez sobre
+el rojo) o el verde y el azul (la /2), apaga la luz con vida · 0,0181818f, sube 0,2f (la /1, 0,1f) y crece 0,03f. Los
+demás subtipos sólo tienen el prefijo; `0x548895` la dibuja con `0x620c10` y el billboard común.
+
+**El fuego `0x5da`** (`World/MissileFireParticleKernels.h`; la /8 y la /9 siguen en `Particles.cpp`): el alta
+(`0x540d13..0x54109e`) es una cadena de `cmp` y todos terminan con el giro `rand() % 360` de `0x54107f` (los subtipos
+de fuera de 0..9, sólo eso). La /0 (vida 12, escala 0,8f), la /1 (3), la /2 (5) y la /3 (7) salen empujadas
+`((rand() & 7) + 32)` por −0,3f o −0,1f en y; la /4 (`0x540dcf`, vida 100) guarda la fase `rand() % 300 − 150` en la
+velocidad x y su paso (`0x5455b0`) da vueltas de radio 120 alrededor de su partida con `a = (vida + fase) · 0,1f`; la
+/5 (`0x540e74`, la de `0x538f8e`) avanza 20 hacia su ángulo z crudo (`0x5455f9`, como las salpicaduras de Kundun);
+la /6 sube y gira 4; la /0 y la /3 suben 0,02f por paso, se agrandan con la subida y la z suma la subida · 20
+(`0x5456a6`); la /1, /2 y /7 se apagan con vida · 0,2f. El `0x197` de `0x43eb65` ya crea sus doce `0x5da/1`.
+
+**La fanta `0x6ec`/`0x6ed`** (en los kernels de Kalima): el alta `0x543b82` y el paso `0x547cba` son los de cualquier
+subtipo menos la /1..4: la /5 vive 20 y la /6 (la de `0x428adc` y `0x428c52`) 32 (`0x543be5`); la /7 (`0x543aed`)
+vive 15, con la escala `rand() % 30 · 0,01f` más la del pedido y la posición corrida `(rand() % 10) · 0,1f − 0,5`, y
+su paso se achica 0,1f y sube 2 antes de lo común (`0x547cc2`). La /1 y la /2 (`0x547a4d`) le restan 2 a la vida con
+el byte `+0x111` de su dueño en 1, y la /3 y la /4 (`0x547a73`) buscan huesos de su dueño por nombre (`0x6c7608`):
+siguen sin portar.
 
 ### Las partículas de la fuente en el juego
 
@@ -8738,7 +8813,8 @@ frame del original:
   (`Scenes::IsInTheParty`): fuera de la party `0x50f9f8` salta a `0x510a7a`, sin las banderas, el contador ni
   el conjunto, también entre frames; en la party, por cada lugar con `+0x1c` en 0 o más que no es él, dos
   joints `0x618` (`/0xc` y `/0xd`, de ancho 20) de la posición del miembro con 150 más de z (`0x6b87ac`) al
-  personaje, que corta en un frame del original (`0x50fa74`, 08 P-C55 d). En [7, 8), dos `117/2` en la mano
+  personaje, con el personaje de dueño y sus ángulos, sólo en un frame del original (`0x50fa74` y `0x50fa97`, CL11:
+  `BeamJoints.cpp`). En [7, 8), dos `117/2` en la mano
   derecha (corta en `0x50fb64`). (CL9 hito 7, al armar la cadena.)
 - **Las banderas** `+0x78 & 4` o `0x2000000`, sin `0x4000` (`0x50fba4`): un `rand() % 30` por mano, los
   sprites con ese color y los cinco joints `10f/4` si no hay uno. `+0x78` sólo lo escriben los paquetes:
@@ -11693,13 +11769,13 @@ registro propio abierto y cerrado: 3.848 en 0) y los de las lecturas de `+0x38e`
 | `0x43` | `0x4fe147` | el joint `0x632`/7 sobre o | `0x4fe172` (CL11) |
 | `0x44`, `0x47` | `0x4fe190`, `0x4fe442` | con el blanco de `+0x3a4` (`MOVSX`, sin rango, Q-C1113) que no es o, el joint `0x632` y el sonido `0x267` | `0x4fe235`, `0x4fe4e7` (CL11) |
 | `0x45` | `0x4fe253` | 36 joints `0x613`/`0x15` | `0x4fe322` (CL11) |
-| `0x46` | `0x4fe383` | con blanco, `0x534f90(0x10f, blanco, 4)` y `(…, 9)`, el calco `0x61e`/6 sobre él y el sonido `0x269` | `0x4fe424` (CL11) |
+| `0x46` | `0x4fe383` | con blanco, `0x534f90(0x10f, blanco, 4)` y `(…, 9)`, el calco `0x61e`/6 sobre él y el sonido `0x269` | ~~`0x4fe424` (CL11)~~ (portado: el calco de colores, [Los efectos con modelo de los tipos altos](#los-efectos-con-modelo-de-los-tipos-altos)) |
 | `0x48` | `0x4fe505` | `o+0x78` en 0 entero (Q-C1118) y seis joints `0x10f` | `0x4fe590` (CL11) |
-| `0x35` | `0x4fe795` | cuatro joints `0x619`/`0xa` | `0x4fe856` (CL11) |
+| `0x35` | `0x4fe795` | cuatro joints `0x619`/`0xa` | — (CL11: `SpinTheEnergy`) |
 | `0x40`, `0x4b` | `0x4fe986`, `0x502993` | sin `0xa21` en la derecha, el `0x117`/0 en su hueso; sin `0xa19` ni un escudo (`0xe12..0x1011`) en la izquierda, el `0x117`/1; después la `0x40` suena (`0x1cf`) y la `0x4b` crea el `0x138` | la `0x40`, el final con las dos manos; si no, `0x4fea10`/`0x4fea9b`, `0x502a23`/`0x502ab4` y `0x502ae6` (CL11) |
 | `0x3f` | `0x4feabb` | el `0xcb`/2 sobre o | `0x4feae8` (CL11) |
-| `0x41` | `0x4feb3b` | el punto de `0x4f5b10(o, 0, −90, −50)` y el `0x62c` | `0x4febbb` (CL11) |
-| `0x31` | `0x4febdb` | el `0x6ac` sobre o | `0x4fec15` (CL11) |
+| `0x41` | `0x4feb3b` | el punto de `0x4f5b10(o, 0, −90, −50)` y el `0x62c` | — (CL11: `RaiseTheSpirals`) |
+| `0x31` | `0x4febdb` | el `0x6ac` sobre o (con su clave y el byte de `0x5767948`, sin `0x59fb80`) y el sonido `0x72` | ~~`0x4fec15` (CL11)~~ (portado: [Los efectos con modelo de los tipos altos](#los-efectos-con-modelo-de-los-tipos-altos)) |
 | `0x29` | `0x4fec30` | `o+0x8c`, `o+0x8e`, `0x59fb80(0x29)` y el `0xf3` | `0x4fec9a` (CL11) |
 | `0xa` | `0x4fecb5` | `0x59fb80(0xa)` y el `0xcb` | `0x4fecf3` (CL11) |
 | `0x28` | `0x4ff4c3` | el `0xcb`/1 sobre o | `0x4ff4ef` (CL11) |
@@ -11736,7 +11812,7 @@ blanco de `+0x434`: corta en el primero (`0x5026a4`). La lista de los diez la le
 | 7 | `0x504740` | el `0xc1` | `0x504768` (CL11) |
 | `0x10` | `0x504808` | el `0x189` prende `0x100` en su `+0x78`; con `0x4000`, nada; si no, `0x100` en `+0x78` del blanco, el sonido `0x84`, `0x534f90(0x10f, blanco, 0)` y cinco joints `0x10f`/0 | `0x5048db` (CL11) |
 | 1 | `0x5048ea` | el `0x20a`, el `0xc3`; los demás, diez partículas `0x5f2`/1 | `0x504926`, `0x50497e` (CL11) |
-| 2, `0x2d`, 4 | `0x5049bf`, `0x504a0a`, `0x504b9e` | el `0xc2`, tres `0x139` o el `0xc2`/1 | `0x5049ef`, `0x504a3a`, `0x504bce` (CL11) |
+| 2, `0x2d`, 4 | `0x5049bf`, `0x504a0a`, `0x504b9e` | el `0xc2`, tres `0x139` (los subtipos 0, 1 y 2 sobre o con el blanco de dueño) o el `0xc2`/1 | `0x5049ef`, ~~`0x504a3a`~~ (portado: [Los efectos con modelo de los tipos altos](#los-efectos-con-modelo-de-los-tipos-altos)), `0x504bce` (CL11) |
 | `0x49`, `0x4a` | `0x504ac7`, `0x504b51` | el joint `0x61c`/4 o el `0x116`/2 | `0x504b33`, `0x504b80` (CL11) |
 | `0xb` | `0x504be9` | el `0xce` (el `0x164`, tres) | `0x504c38`, `0x504cc0` (CL11) |
 | `0x3c`, `0x3d` | `0x504cdb`, `0x504d87` | los `0x114`/1 o los `0x116` | `0x504d05`, `0x504e40` (CL11) |
@@ -11890,10 +11966,10 @@ y las partículas que MuRet ya crea; los efectos (`0x518cf0`), los joints (`0x53
     tablas de `0x43b9a0`, `0x43ba84` y `0x43bb68`): con 1, `rand() % 360` y cinco `0xc2`/8 de `0x439bd0`
     (`0x439ca6`); con `0x37`, tres `0x11b`/1 de `0x439b20` (`0x439ba5`); con `0xc8`, `0xcb`/3 y `0xcc`/4 de
     `0x439cd0` (`0x439d09`); con `0xc9` y `0xca`, `+0x78 |= 0x100` o `0x8`, `+0x381 = 15` y el sonido `0x1e1`
-    (`0x43aabf..0x43aaf7`, portado). Después, el `0x43a872` en la 4 y en 14 corta en el terremoto `0xfa` y el
-    `0x615` (`0x43ab42`); el `0x43b279` en la 3, en 7 en el terremoto (`0x43b570`) y desde 13 en `0xf6`/0 y
+    (`0x43aabf..0x43aaf7`, portado). Después, el `0x43a872` en la 4 y en 14 crea el terremoto `0xfa`/1 (`0x43ab42`) y el
+    `0x615` sobre c con c de dueño (`0x43ab5f`; CL11, `Scenes::KalimaMonsterEffects`) y pone `+0x381` en 15; el `0x43b279` en la 3, en 7 en el terremoto (`0x43b570`) y desde 13 en `0xf6`/0 y
     `0x5de`/1 (`0x43b5ac`).
-  - `0x43abea`: en la 4 y en 14, `0x11a` (`0x43ac29`).
+  - `0x43abea` (`0x93`, `0xb1`, `0xb9`, `0xc1`, `0x107`, `0x10f` y `0x117`): en la 4 y en 14, `0x11a` (`0x43ac29`; CL11, el seamanFX sobre c con sus ángulos, `Scenes::KalimaMonsterEffects`; la luz de c que recibe, el alta la pisa con (1, 1, 1)).
   - `0x43ac3a`: lee `+0x38e`; con `0x11` y en 14, el terremoto `0xfa`/1 (`0x43ae45`).
   - `0x43ae56`: lee `+0x38e`; en 14, con 1, dos `rand() % 200` y el primero de tres `0xc2`/7 alrededor del héroe
     (`0x43b1f4`), y con `0x11` y el blanco en `[0, 400)`, tres joints `0x610`/6 (`0x43b0ed`).
@@ -12266,10 +12342,11 @@ el mismo pool, así que mueven y lastiman a los que da de alta el `12`.
 lleno). `0x401040` saca los huesos con nombre (`WorldRuntime::namedBones`, desde la hito 2); `0x4fb1a0` reinicializa las telas del slot,
 propiedad de `WorldState`, también en cleanup de mapa; reconstruir una clave viva las conserva
 ([contraste del ciclo](13-h1-actores-y-picking.md#el-dueño-de-las-telas), P-C161 resuelto). El efecto `0x61f` va sin el dueño, como el de la entrada del héroe. Cortan con su
-dirección, después de lo que el original hace antes: el recién llegado del `45` en `0x4c965c` (CL11; el alta de
-`0x4c934c` es `CreateMonster` desde el hito 2, [Los monstruos y los NPC en el
-viewport](#los-monstruos-y-los-npc-en-el-viewport)), y las banderas que crean efectos (`0x4e644f`, `0x4e662d`,
-`0x4e6725`, `0x4e676e`, `0x4e67d6` y `0x4e6869`, CL11 y CL10). La ráfaga DF ya está conectada mediante
+dirección, después de lo que el original hace antes: ~~el recién llegado del `45` en `0x4c965c`~~ (CL11: el círculo
+`0xec` de `0x518cf0` y el rayo `0x5d5/2` de `0x53fe70`, los dos con el personaje de dueño y sin `rand()`, y después el
+nombre sin el camino de `0x4eac00`; el alta de `0x4c934c` es `CreateMonster` desde el hito 2, [Los monstruos y los NPC
+en el viewport](#los-monstruos-y-los-npc-en-el-viewport)), y las banderas que crean efectos (`0x4e644f`, `0x4e662d`,
+`0x4e6725`, `0x4e676e`, `0x4e67d6` y ~~`0x4e6869`~~, CL11 y CL10; la del `0x40`, el `0x628/0` y el sonido `0x85`, portada en la CL11 con `Scenes::PutTheSkullOn`). La ráfaga DF ya está conectada mediante
 `World::CreatePushBurst` y el subtipo de `NoriaParticleKernels`: duplica escala y triplica el vector local antes de
 girarlo (`0x5404ad..0x5404ca`); comparte paso y dibujo con la familia ya portada. `GameModels` carga su textura
 `Effect\Spark02.jpg` en el slot `0x5c5` mediante `EffectTextureSet`. Los sonidos (`0x76`, `0x84`) quedan en el último sonido, sin
@@ -12428,7 +12505,7 @@ la rama de la skill:
 | `0x17` | `0x3c` o `0x29` alternadas con `+0x38f` |
 | `0x3c`, `0x3d`, `0x4a` | `0x4e` con un pegaso (en la `0x4a`, solo el Dark Horse), `0x58` con Fenrir, si no `0x4c` |
 | `0x18`, `0x34`, `0x36`, `0x33`, `0x2e` | la acción por las manos (`0x4cc110`, y `0x4cc1d0` en la `0x2e`); la `0x33` salida apaga el `0xc1/1` del blanco y crea otro (CL11, `0x4cd6ff`) |
-| `0x37` | salida: apaga el `0x628/0` del blanco y crea otro (CL11, `0x4cd664`); si no, un monstruo va a `0x4f4a10` con el frame en 0 (`0x4cd68e`) |
+| `0x37` | salida: apaga el `0x628/0` del blanco y crea otro (`0x4cd664`, `Scenes::PutTheSkullOn`, CL11), el sonido `0x85` en él y su `0x40`; si no, un monstruo va a `0x4f4a10` con el frame en 0 (`0x4cd68e`) |
 | `0x43`..`0x48` | la acción por la montura (Dark Horse `0x52`, Uniria `0x40`, Dinorant `0x41`, Fenrir `0x5d`; si no `0x3f` o `0x87`); salidas, la `0x44` baja el `0x1000` del blanco, la `0x46` le prende `0x4000` (si no es la fuente), la `0x47` le baja `0x4000`, la `0x48` le baja seis y la `0x45` prende `0x2000` en la fuente y crea su `0x138` (CL11, `0x4cdb72`) |
 | `0x4b`, `0x40` | `0x200` (`0x800` con `0x4f3f80` antes) en el blanco; la acción del Dark Horse, Fenrir o `0x8e` |
 | `0x35`, `0x30` | sin `0x400` (`0x10`) en el blanco, apaga su `0x5ac/2` y sus joints `0x619/9` (su `0x5ac/1`) y crea otro con él de dueño (`0x4cdc88`, `0x4cdd84`; `World::ModelEffects::CreateSkillFlare`, vida 1000); después, el bit. El paso (`0x52a7b7`, `Scenes::StepSkillFlare`): el /2 gira alrededor del dueño y cada 50 suelta un joint `0x619/9`; el /1 emite `0x5ac/4` en dos huesos opuestos (`0x52a866`, `0x52a89a`, CL11.3) |
@@ -13939,6 +14016,66 @@ P-C334). En esta rama se llega a algunos de Kalima y del asedio solo con un dibu
 Tests: `KalimaSiegeHelperTest` (`test_kalima_siege_helpers.cpp`: cada tipo en Lorencia, Devias, Kalima o el 30, con sus
 `rand()` contados y el mundo de Kalima perturbado) y `MonsterDrawingTest.TheBoneSparksOf0x16eGoOverEachBoneOutsideTheTwoGaps`.
 
+### Los efectos con modelo de los tipos altos
+
+(CL11, lote de los tipos altos, 2026-11-19, *estático*, ASM c32bbd5f.) Los tipos que `0x518cf0` no despacha por el
+switch de 9..`0x113` (salen por las comparaciones de `0x518e3c..0x518f31`, `0x51e349` y `0x51f47f`) y sus pasos en
+`0x5208a0` (`0x525e6e`, `0x52a688`, `0x52b56d`). El alta empieza siempre con el prefijo de `0x518d28..0x518e36`
+(`World::ModelEffects::Begin`): con los 200 lugares ocupados no hace nada ni saca `rand()`. El paso de todo efecto vivo
+saca primero el `rand()` de la luz local (`0x5208c5`) y termina en la cola `0x52cb98`: los BMD de [`0xad`, `0x151`)
+publican su acción y animan (`0x52cbf4..0x52cc7b`; si la acción termina, el frame queda en sus keys y la acción en
+`0xff`), salvo el `0x116` y el `0x147`, que solo pierden una vida; los `0x5e8..0x5ea` no se mueven; el `0x13b` publica
+y anima otra vez sin mirar el resultado (`0x52cd41..0x52cd84`) y después, como el resto, `0x51fc80(efecto, 1)` (la
+velocidad girada por los ángulos, sumada a la posición, un `fstp` por eje) y una vida menos.
+
+| Tipo | Alta (`0x518cf0`) | Paso (`0x5208a0`) | Dibujo (`0x52d620`) |
+| --- | --- | --- | --- |
+| `0x134` (la llegada del asedio, `0x42d513` y `0x42d5af`) | `0x51d714..0x51d73a`: vida 100, la escala en la clave (`+0x8a`, `MOVSX`) · 0,01f, `+0x64` y `+0x68` en 0; sin `rand()` | `0x52952d..0x52959f`: con el dueño (`+0x108`) vivo, `+0x58` en −1 con el asedio (`0x4294b0`) o −2 sin él, la vida en 2 y `+0x68` en `FSIN(T · 0,001f) · 0,1f + 0,2f` (PC53); si no, el lugar libre. Las dos ramas, `+0x6c` en `T · 0,0005f` | el genérico (`0x52da92` → `0x602e90`, Aurora) |
+| `0x13b` (la llama, de `0x61c` y de `0x4fd5f0`) | `0x51e059..0x51e0ca`: `+0xd8` en 0,25f. El /0: vida 15, escala 0, la z 100 más, la velocidad (0, −10, 0). El /1: vida 5, escala 3,5f. Los dos, `+0x64` en 0 y `+0x68` en 1 | `0x52c34e..0x52c4f1`: el /1 pone la luz, `+0x68` y la luz del objeto en vida · 0,1f. El /0 con vida > 12 crece 0,9f, la velocidad y baja 2 y crea el `0x13b`/1 con el efecto de dueño; si no, la escala baja 0,05f, la luz en vida · (1/18), y cuatro vueltas de ángulos (`rand() % 60 + 150`, 0, z) con el joint `0x617/0` (escala 10, `0x52c4a2`) y la partícula `0x5d9/2` (1,5, `0x52c4be`) desde el punto (`rand() % 30 − 15` dos veces, z − 100). El /0 suma la luz dinámica (1; 0,8f; 0,6f) de radio 1 | el genérico (SwordForce) |
+| `0x141` (de `0x429110`, `0x429202`) | `0x51c410..0x51c437`: la z 20 más, vida 20, `+0xe8` en 0, escala 0,05f; sin `rand()` | `0x525f1a`: la escala sube 0,1f; desde 1, `+0x68` baja 0,07f y la escala vuelve a 1 | genérico; `0x615700` no carga el modelo `0x141`: lo carga `0x616ec0` solo en el mapa `0x21` (`0x618592`, `0x6185ad`, `Object34\tree_eff`; `WorldSpecialModels.cpp`), así que fuera de ese mapa no dibuja nada |
+| `0x19f` (el lancero, `0x42dd9c`) | `0x51e4ba..0x51e4f5`: vida 20, `+0x58` en 3, `+0xd8` en 0,33f, `0x4ea030(efecto, 2)` con el BMD de Monster78 de la tabla de modelos | `0x52aa6a..0x52aaff` y `0x52725b`: con el subtipo 0 y la vida múltiplo de 5, el fragmento `0x12b/2` (que mira la posición del héroe) en la posición corrida `rand() % 100 − 50` en x y `−(rand() % 30 + 15)` en y; con vida < 5, `+0x68` por 0,769f | sin caso: no se dibuja |
+| `0x61c` (el pulso, `0x42dd48` con el /0 y `0x42925a` con el /1) | `0x51f154..0x51f25d`: vida 20, la velocidad (0, −550, 0) o (0, −250, 0), los ángulos (−90, 0, z del llamador), `+0x16c` girado (0, 0, `rand() % 360`); el /0 crea el joint `0x61c/3` (escala 80, `0x51f1c5`) y el punto de partida queda en la posición | `0x52c19a..0x52c34a`: con la vida en 10 o menos y par, ángulos (90, 0, 0), el giro sube 72 y el punto es la velocidad girada más el punto de partida; el /0 sube `rand() % 400 + 700` y crea el joint `0x632/5` (escala 110, `0x52c266`) con el efecto de dueño; el /1 sube 100 y crea dos `0x615/6` (escala 80, `0x52c31e`, `0x52c342`). Después sigue con el paso del `0x13b` | sin caso: no se dibuja |
+| `0xc1a` (el fragmento radial de Crywolf, `0x4329db` y `0x4f6780`) | `0x51f85a..0x51f8a7`: vida 30, `+0x64` en −2, escala 1, la z 280 más, la x de los ángulos 20 más, la velocidad (0, −80, −10) | `0x52c9fd..0x52ca6c`: con el terreno por encima de la z, la partícula `0x5ed/0` 80 más arriba (con el sonido `0x40` si se crea), seis piedras `0xc8 + (rand() & 1)` y el lugar libre; siempre, la luz dinámica (luz · 0,2; luz · 0,4; luz) de radio 2 (`0x521246`) | el genérico |
+| `0xf8`/1 (la flecha de Crywolf, `0x43257a` y `0x42fd76`) | los ángulos del llamador y tres joints `0x60f/0x19` (`0x51a3b7`) o cuatro `0x60f/0xb` (`0x51a405`) con el efecto de dueño y escala 50 | en vida 13, el `0x105/3` (`0x51a08a`: escala 10 y la luz (0,9f; 0,4f; 0,6f)) con sus joints `0x610`; la cola mueve el punto de partida y no la posición (`0x52ccbe`) | sin caso |
+| `0x105` (la estela) | — | todos los subtipos: la chispa del /1 (`0x523c78`: el joint `0x614/3`, escala 20, clave 7; el sprite `0x5fd` girado `rand() % 360` a `((rand() & 7) + 8) · 0,2f`) | el genérico (Piercing) |
+| `0x61e` (el calco de colores, `Effect\Magic_Ground2`, de `0x4fd5f0` y del pase del suelo) | `0x51eebb..0x51efa4`: vida 20; el /4 y el /0xa, vida 40 y la escala `(rand() % 50 + 50) · 0,04f`; el /6, vida 60, esa escala y la partida en la posición; el /7, vida 40 y el ángulo z en `rand() % 360`; el /8, vida 20; el /9, vida 10 y la escala en 0,1f | `0x52b984..0x52bb74`: el /6 (`0x52b9c1`): el modelo del dueño toma la partida como origen, `+0x68` en `(rand() % 10) · 0,1f` y, tantas vueltas como vida, un hueso al azar que, si no es un dummy, da tres `rand()` de corrimiento (± 50, ± 10, ± 10) y la partícula `0x5ac/8` en su punto; después, el alpha del dueño en vida · 0,0125f. El /9 (`0x52bb29`): la escala 0,3f más y la luz por 0,909f. Los demás, la cola | el pase del suelo (`0x52dc20`): el /6 suelta cada 25 vidas un `0x61e/7` (`0x52e04c`) y el /8 un /9 en las vidas pares (`0x52e0a2`), en la tabla que recorre; el /7 sigue a su dueño (`0x52ded0`) |
+| `0x5e8..0x5ea` (los rayos: el azul, y con el /1 blanco y de escala 3; los naranjas) | `0x51e596..0x51e772`: vida 20, la luz, la escala y la velocidad (0, −50, 0) (el `0x5ea`, (0, −15, 0)) girada por los ángulos. Con el héroe de dueño, cuatro `0x517a20(+0x89, punto, 150, +0x8c, +0x8a, 0)` con el punto 150 más adelante (los blancos alrededor y el C1 10, con sus `rand()`) | solo la cola, sin moverse | su caso de `0x52d620` (la luz que se mueve) |
+| `0x625` (las estrellas que caen, los veinte de `0x4f5cb6`) | `0x51f048..0x51f153`: vida `rand() % 15 + 15`, `+0xe4` en −20, `+0xd8` en `rand() % 360`, la luz en 0; el /1, escala 0,5f, `+0xe4` `rand() % 20 + 10` más abajo y reparto 300; los demás, escala 0 y reparto 200. La x y la y `rand() % reparto` menos la mitad, la z 500 y la x 100 más, la partida en la posición y el sonido `0x42` | `0x52be78..0x52c195`: nada hasta la vida 15; desde ahí el /0 tiembla alrededor de la partida (`FSIN(rand() % 1000 · 0,01f) · 10`) y el /1 se queda; suben `+0xe4`, que baja 2, la x de la partida 10 menos, el fuego `0x5db` (/7 o /0xb), la luz 0,1f más y los sprites `0x5fd` y `0x5ac`; el /1 sobre el terreno suelta el humo `0x5f2/0xb` y, una de cinco veces, el hielo `0xca` | sin caso (≥ `0x151`) |
+| `0x116` (`Skill\PierPart`: el /0 de la 0x3d, `0x504e40`; el /1 de su paso; el /2 de la 0x4a, `0x504b80`) | `0x51ca31..0x51cb46`: el /0, vida 20, `+0xe4` en 2, `+0xd8` en 10, `+0x58` en 1, escala 1,2f, luz 1, la velocidad (0, −26, 0), la partida en la luz que recibió (el `ecx` del prefijo) y los ángulos (0, 0, z). El /1, la vida del dueño, escala 0,5f, alpha `(20 − vida) · 0,2f` y la llama `0x5da/0`. El /2, vida 20, `+0xd8` en 50, `+0x58` en −2, la z 20 menos, la velocidad (0, −40, 0) | `0x52727b..0x527534`: el /0 gira hacia el dueño más la partida (`0x4e9810`) con un `rand() & 1` del cabeceo, acelera, avanza y suelta un /1 por vuelta, después `+0xe4` 0,1f más y el sonido `0x1ca`; el /2 gira hacia el dueño de a `+0xd8`, acelera 2,4f y con la vida múltiplo de 3 deja el joint `0x61c/2` (escala 150); el /1 con vida < 5, el alpha por 0,7692308f | el genérico |
+| `0x117` (`Skill\DarkLordSkill`, las manos de la 0x40, la 0x4b y la 0x3d) | `0x51cbb2..0x51cc6a`: vida 10, escala 0,2f, `+0xd8` en 0,1f; con el subtipo ≤ 1, los ángulos (45, y, 0) con un `rand() % 2`; el /2, vida 12 y `+0xd8` 0,4f | `0x527539..0x5275c8`: la escala crece `+0xd8`, que sube 0,02f (≤ 1), baja 0,06f (/2) o sube 0,04f, y el alpha se apaga al final | el genérico |
+| `0x138` (`Skill\ManaRune`, la 0x4b, `0x502ae6`) | `0x51da46..0x51daca`: el /0, vida 50, escala 0, `+0xe4` 0,1f, alpha 0,3f, la z 300 más y los ángulos (0, 0, 45); el /1, vida 10, escala 1,1f, `+0x58` −1, `+0x64` −2 y `+0x68` 0,4f | `0x529a4f..0x529b81`: el /0 crece hasta 1 y suelta el /1, se achica desde la vida 15 y baja 10 por paso; el /1 se achica 0,02f (piso 1) | el genérico |
+| `0x812` y `0x813` (los emisores de la 0x2b y la 0x2f, `0x4f97b0`) | `0x51e4f6`: vida 10 (también el `0x5c6`). `0x51f8a8`: los ángulos en 0 y vida 5 | `0x52c981`: el joint `0x60f/0xc` (escala 100) o `0x60f/4` (escala 50) con él de dueño. `0x52caa5`: tres joints `0x619/6` (escala 5) desde 100 hacia atrás con ángulos `(rand() % 90, 0, rand() % 360)` | sin caso |
+| `0x13c` (`Skill\golem_stone`) y las piedritas `0x12d/2` y `0x12e/2` (`0x4ee770` al morir el `0x1a4` y el `0x1a6`, `0x441696` y `0x442165`) | `0x51d32c` y `0x51d3b1`: el empuje `((r & 127) + 32) · 0,1f`, la escala `((r & 1) + 10) · 0,25` (el `0x13c`) o `((r & 1) + 4) · 0,12f + 0,6f` (las piedritas) y la caída `r % 5 + 2`; después la cola de las piedras (`0x51d50d`: vida, yaw, tres ángulos, 50 más arriba). `0x4ee770` saca un `rand() % 45` por esquina de la malla 0 y, con 0 y menos de 20 contados, el /0 crea el `0x13c` y el /1 las dos piedritas | `0x5291ce`: el de las piedras (caen de a 3 y rebotan en el terreno, alpha vida · 0,1f); el `0x13c`, con `rand() & 3` en 0, la `0x6ec/5` y el humo `0x5f2/0x15` y, con `rand() % 10` en 0, el polvo `0x5f3/0`; el `0x12d/2`, con `rand() % 10` en 0, la z en el terreno y el humo `0x5f2/0xb` | el genérico |
+| `0x12e/3` (la piedra del `0x1a6` en la 3, `0x442397`) | `0x51d438..0x51d4a4`: vida `(r & 15) + 32`, la escala `(r % 3 + 2) · 0,12f + 1,2f`, la velocidad z `−20 − r % 5`, `+0xd8` en 1,8f; sin la cola de las piedras | `0x5290df..0x5291c9`: la velocidad z baja `+0xd8`, que sube 0,3f; con el terreno por encima, ahí, quieta y derecha, y con `rand() % 10` en 0 el humo `0x5f2/0x18`; si no, con `rand() & 1` en 0, el mismo humo a 0,2f | el genérico |
+| `0x621`/1 y /2 (el brillo de la 0x37 en la mano, `0x4f9f3e`) | `0x51efa5..0x51efe9`: vida 20 y la partida en la posición (los demás salvo el /0, vida 10) | `0x52bb79..0x52bbf1`: el origen del modelo del dueño pasa a ser la partida y la posición es el punto (0, 0, 10) de su hueso 33; después las emisiones del /0 (`0x52bbf6`) | sin caso |
+| `0x11a` (`Skill\seamanFX`, los `+0x376` `0x93`, `0xb1`, `0xb9`, `0xc1`, `0x107`, `0x10f` y `0x117` de Kalima, que la tabla de `0x43b8fc` manda a `0x43abea`, en la 4 y en 14, `0x43ac29`) | `0x51c884..0x51c8e3` y `0x51e3ca`: `+0x64` en −2, `+0x68` en 0,2f, escala 0,4f, vida 20, `+0xe4` en 120, `+0xd8` en −40, la velocidad (0, −40, 0), la luz en (1, 1, 1) y la partida en la posición; sin `rand()` | `0x5266ea..0x5267c2`: la escala 0,02f más, la z en la de la partida más `+0xe4`, `+0xd8` 10 menos y `+0xe4` 20 menos (FCOMP del valor sin redondear: por debajo de 60, 60); la velocidad (0, `+0xd8`, 0); con la luz local por (0,1f; 0,3f; 0,6f), cuatro `0x6f4/1` en su lugar con sus ángulos y escala 1 y la luz dinámica de radio 3. La cola lo anima y lo mueve | el genérico |
+| `0x628` (la calavera, sin modelo: el sprite `0x628`, `Skill\Skull.jpg`; el /0 de la bandera `0x40`, `0x4e688c` y `0x4cd664`) | `0x51ee23..0x51ee95`: vida 1.000; el /1, 940; el /2, 8 y la z 150 más; el /4, 20, `+0xd8` en 2 y la velocidad (0, −10, 0) | `0x52b59b..0x52b8a1`: el /4 baja la velocidad y en `+0xd8` y la x de los ángulos en 1 y deja el sprite `0x628` de escala 10 con su luz. Los demás, con el dueño (`+0x108`) muerto, la vida y el byte vivo en 0; vivo, la tabla de `0x52d18c`: el /0 mira su **propio** `+0x78` (no el del dueño; nadie lo escribe en un efecto): con `0x40` la vida en 10 y, con `0x4000` también, `+0x16c` en 0 y nada más; si no, como el /1 y el /3, tres vueltas en el ángulo vida · 0,17f + i · 2π/3 (negado en el /3) y el radio FSIN(i · 15,37f + T · 0,0031f) · 20 + 50 sobre el dueño, a 200 (250) por su escala sobre su z, con la partícula `0x5de/5` (luz 0,65f, o (0,1f; 1; 1) el /3; escala 0,4f) y el sprite `0x628` de escala 1 con la luz local; el /2, el sprite `0x628` de escala 1,5f con la luz vida · 0,1f; el /5, tres `0x5ac/5` (luz (0,6f; 0,6f; 1), escala 0,7f) a 50 del dueño en el ángulo i · 2π/3 + vida · 0,17f + T · 0,003f y a (i + 1) · su escala · 50 sobre su z. Sin `rand()` | sin caso |
+| `0x139` (`Skill\Javelin`, los tres de la 0x2d con el blanco de dueño, `0x504a3a`, `0x504a72`, `0x504aa9`) | `0x51dacb..0x51db6e`: vida 35, `+0xe4` en 2, `+0xd8` en 10, escala 1,2f, la velocidad (0, −5, 0), los ángulos copiados en `+0x28`, la partida en la posición del dueño (`+0x108`, que lee sin mirar si hay) y la z 150 más; `rand() % 80 + 10` (r) suma subtipo · r − r a la z de `+0x28` | `0x529b86..0x529de9`: con dueño, la partida en su posición con la z 150 más; la escala 0,015f más. Con 25 o más de vida, `+0xe4` 10 más y avanza con `+0x28`; si no, por debajo de 20, `0x4e9810` gira `+0x28` hacia la partida de a `+0xd8`: a menos de 100 (FCOMP, C0), a la partida, la escala 0,04f más y, con la vida múltiplo de 3, la `0x6ad/1` (con sus ángulos y su luz, escala 1); más lejos, la `0x6ad/1` siempre; después `+0xd8` 1,5 más, avanza con `+0x28`, `+0xe4` en `rand() % 30 + 30` y, por encima de −50, la velocidad y 8 menos. Siempre, la z de los ángulos más `+0xe4`, `+0x68` y el alpha en vida · 0,1f (FST y FSTP), la z del /1 en la de la partida más FSIN(vida · 0,1f) · 30 y la del /2 menos, y la luz dinámica (1; 0,6f; 0,3f) de radio 2. La cola lo anima y no lo mueve (`0x52ccb0` → `0x52cd94`, como al `0x12b` y el `0x12c`) | el genérico |
+| `0x615` (sin dibujo; el `0x43a872` de Kalima en la 4 y en 14, `0x43ab5f`, sobre c con c de dueño) | `0x51ed79..0x51edf4`: vida 10; con dueño y el subtipo 0, la posición corrida (−25, −80, 0) girado por los ángulos del dueño (`+0x108` → `+0x1c`); sin `rand()` | `0x52b4a7..0x52b568`: con menos de 5 de vida (`edi`), par y el subtipo 0, un punto corrido `rand() % 64` − 32 en x y en y y el joint `0x615/5` ahí con sus ángulos, sin dueño y escala `rand() % 10` + 50. La cola, sin velocidad, no lo mueve | sin caso |
+| `0x6ac` (sin modelo ni dibujo; la 0x31 de `0x4fd5f0`, `0x4fec15`) | `0x51f5fe..0x51f7f8`: vida 10, `+0xd8` en 1, la velocidad (0, −30, 0) y la posición corrida (0, −20, 50) girado por sus ángulos. Dos bocas, (−20, −20, 60) y (30, −20, 60) giradas y sumadas a la posición que **recibe** el alta (`edi`, no la corrida): en cada una, veinte vueltas de 18 con `rand() % 20` y el joint `0x617/1` (escala 10, sin dueño) con los ángulos (`rand() % 20` + x + 5; la y, que suma las vueltas sin volver a la del efecto; z) | `0x52c7f0..0x52c97c`: la luz dinámica de radio 2 con la luz local por (0,5; 0,5; 0,8f); la escala (`rand() % 3` + 2) · (15 − vida) · 0,05f; la partida a (0, 20, 0) y después a (0, −20, 0) girados por los ángulos con la z 90 más, y en cada una el fuego `0x5db/0xa` con los ángulos del efecto, luz (1, 1, 1) y su escala; con la vida en 1, `0x51fef0(posición, 1)`: veinte `0x5c5/2` con la z 30 más (dos `rand()` cada una, con lugar o sin él) y la `0x5ee/0` de escala 4. La cola lo mueve | sin caso |
+
+MuRet: `Scenes::CreateHighModelEffect` y `StepHighModelEffect` (`HighModelEffects.h`), desde los llamadores del asedio
+(`MonsterCreation`, `StepTheSiege`, `StepTheDoppelganger`), de Crywolf (`LaunchTheRadialVolley`) y desde
+`GameSceneLogic`; la flecha y la estela en `ArrowEffects.cpp` y `World/GameModelEffects.cpp`; el alta del `0x61e` en
+`World/ColoredDecals` y su dibujo en `World/GroundEffectDrawing`. El BMD del `0x19f` sale de
+`WorldState::FaunaResources()` y, si no está, de los modelos del contexto, como `MonsterSkeletonOf`. Los llamadores
+destrabados: de `0x4fd5f0` la 0x30 y la 0x45 (`0x4fe015`, `0x4fe253`, el anillo de calcos hasta su primer joint
+`0x613`), la 0x46 (`0x4fe424`), la 0x2c (el `0x13b` sobre o), la 0x31 (el `0x6ac`, `0x4fec15`, `Scenes::FireBreathEffect`), la 0x2d (los tres `0x139`, `0x504a3a`, `Scenes::JavelinEffect`), la 0x0c (`0x500cb9`), las manos de la 0x40 y
+la 0x4b (con el `0x138`), la 0x4a y la 0x3d; de `0x4f97b0` la 0x2b, la 0x2f y la 0x37 (`0x4f9f3e`); de `0x4f5b70` el
+0x46 (`0x4f5cb6`: un blanco fuera de la tabla corta en `0x4f5cd4`), `0x4f67fb`, `0x4f6b51` y `0x4f81cc`; el rayo
+blanco del `0x1bb` (`0x428da7`); el `0x615` del `0x43a872` de Kalima (`0x43ab5f`, `KalimaMonsterEffects`); la calavera `0x628/0` de la bandera `0x40` (`0x4e688c`, `Scenes::ApplyEffectFlags`) y de la 0x37 que llega (`0x4cd664`, `CastTheSkill`), las dos por `Scenes::PutTheSkullOn` (`SkullEffects`); y de `0x441400` las muertes del `0x1a4` y el `0x1a6` (`0x4ee770` sobre las mallas
+de su cuerpo posado, `Scenes::EmitVertexEffects`, Q-C1581) y la piedra del `0x1a6` (`0x442397`; con el primer
+`rand() % 2` en 1 el punto no está escrito y corta, Q-C1580). Las piedras están en `World/SiegeVertexEffects`. Cortan con su dirección los joints que todavía no están (`0x61c/3`, `0x632/5`,
+`0x615/6`, `0x60f/0x19`, `0x60f/0xb`, `0x614/3`, `0x61c/2`, `0x60f/4`, `0x60f/0xc`, `0x619/6`; 08, P-C420), las
+partículas sin portar (`0x5ac/8`, `0x5db/7`, `0x5db/0xb`, `0x5da/0`, `0x5f2/0x18`, `0x5de/5` y `0x5ac/5` del `0x628`; 08, P-C422) y la segunda animación del `0x13b`
+cuando la primera dejó la acción en `0xff` (`0x52cd84`: el original lee la acción 255 fuera de la tabla del modelo,
+P-C421). La comprobación de distancia del `0x116/0` (la vida en 5, `0x5f93c0` en una variable que nadie lee) no se
+porta: no cambia nada. Las señales propias de los ADR 0019 y 0020 ya no existen.
+Tests: `HighModelEffectsTest` (`test_high_model_effects.cpp`), los del asedio, de Crywolf y del 0x46 en
+`test_monster_attack_cases.cpp`, `test_attack_skill_cases.cpp`, `test_attack_frame_skills.cpp`,
+`test_character_step.cpp`, `test_arrow_effects.cpp`, `test_monster_viewport.cpp`, `test_monster_helpers.cpp` y
+`test_game_draw_tail.cpp`.
+
 ### Los helpers de los monstruos
 
 (CL9 hito 2, fase 6d, 2026-11-13, *estático*.) Cuatro funciones por tipo que el grafo había dejado en la CL7: tres de
@@ -13947,8 +14084,9 @@ una del paso desde el frame 3 (`0x4fd5d7`). Lo que es estado, sonido o `rand()` 
 (`0x53fe70`) que `World::Particles` crea (`0x5ca/0`, `0x5f2/11`, `0x5f3/0`, `0x5d9/0`, `0x729/0` y `/1`) salen con sus
 `rand()` (revisión C, 2026-11-14). Las demás partículas cortan con la dirección de la llamada solo con lugar en la
 tabla: llena, `0x53fe70` no crea nada ni saca `rand()` y el helper sigue, y como la tabla no se vacía mientras se
-dibuja, las que siguen tampoco crean nada. Los efectos (`0x518cf0`), los joints (`0x530860`), la estela (`0x52e470`),
-`0x51fe10` y `0x4ee770` (un `rand()` por vértice y sus efectos) cortan siempre (08, P-C336). Las marcas del piso
+dibuja, las que siguen tampoco crean nada. Los efectos (`0x518cf0`), los joints (`0x530860`), la estela (`0x52e470`) y
+`0x51fe10` que no están portados cortan siempre (08, P-C336); `0x4ee770` al morir el `0x1a4` y el `0x1a6` y la piedra
+`0x12e/3` del `0x1a6` ya están (CL11, [Los efectos con modelo de los tipos altos](#los-efectos-con-modelo-de-los-tipos-altos)). Las marcas del piso
 (`0x5fb2f0`) se dibujan, salvo la que lee la pila (Q-C1100). Los
 sprites son de `0x5491e0` sin dueño, rotación 0 y mezcla 0 salvo donde se dice. Los sonidos son `0x41ed10(id, 0, 0)`
 (CL10). El `+4` del objeto (el subtipo, Q-C1098) hace de "ya sonó": con `+4` en 0, `+4 = 1` y el sonido, y al final
@@ -13967,7 +14105,7 @@ Los puntos salen de los huesos con nombre que registró el alta (`0x401000`): `0
 | `0x1a3` (Monster81) | `0x5ac` a 0,5 con (0,9; 0,2; 0,1) en `EyeRight` y en `EyeLeft`; ocioso, `rand() % 15` en 0: `0x1f5 + rand() % 2`; en la 3 y la 4, una vez, `0x1f7 + rand() % 2`; en la 6, una vez, `0x1f9` |
 | `0x1a4` (Monster82) | en la 6, `0x4ee770` (`0x441696`); si no, el punto (5, 10, 5) de `LHand` y la partícula `0x6ec/3` (`0x441774`); llena la tabla, las `0x5f2/21`, `0x6ec/4` y `0x6ec/0` que siguen no crean nada, `rand() % 20` en 0 pide `0x205 + rand() % 2` y, con `+4` en 0, la 3 con el frame de 8,4 a 10,2 y la 4 de 5 a 5,7 ponen `+4 = 1` y cortan en sus efectos (`0x441b33`) y en `0x51fe10` (`0x441d7d`) |
 | `0x1a5` (Monster83) | una vez, ocioso `0x200 + rand() % 2` (sin el `% 15`), en la 3 y la 4 `0x202 + rand() % 2` y en la 6 `0x1f4`; en la 4, tres `rand() % 12 − 6` (x, y, z) desplazan el punto de `Tail`: un `0x5fd` a 2,5 con mezcla 1 y un `0x61e` a 0,8, los dos con la luz propia (`+0xf4`), y dos `0x5ca/0` con (1; 0,3; 0) (`0x441f7f`, `0x441f9c`); después doce vueltas de `rand() % 40 − 20`, `rand() % 40 − 20` y `rand() % 48 − 24` para el punto de `Belly`, con los mismos dos sprites y una `0x5ca/0` (`0x4420dd`) |
-| `0x1a6` (Monster84) | `timeGetTime()` sin usar; ocioso, una vez, `0x1fa + rand() % 2`; en la 6, `0x4ee770` (`0x442165`); en la 3, una vez `0x1fe`, y `rand() % 2` en 1 es el efecto `0x12e` (`0x442397`); en 0, otro `rand() % 2` elige `PoisonRight` (0) o `PoisonLeft` y `(rand() % 32 + 50) · 0,025f` es la escala de su `0x5f2/11` con (0,4; 1; 0,7) (`0x442370`), antes del mismo efecto; en la 4 con el frame de 3,5 a 4,2, una vez `0x1fc + rand() % 2` y, en `RightHand` y `LeftHand` con la z del objeto, `(rand() % 32 + 50) · 0,05f` para su `0x5f2/11` (`0x4424d7`, `0x4425b3`); después (y en las demás), tres `rand() % 10` (`PoisonTop`, `PoisonRight`, `PoisonLeft`): cada uno en 0 es su `0x5f2/0x17`, que corta con lugar (`0x44267f`, `0x44274b`, `0x442817`) |
+| `0x1a6` (Monster84) | `timeGetTime()` sin usar; ocioso, una vez, `0x1fa + rand() % 2`; en la 6, `0x4ee770` (`0x442165`); en la 3, una vez `0x1fe`, y `rand() % 2` en 1 es el efecto `0x12e` (`0x442397`); en 0, otro `rand() % 2` elige `PoisonRight` (0) o `PoisonLeft` y `(rand() % 32 + 50) · 0,025f` es la escala de su `0x5f2/11` con (0,4; 1; 0,7) (`0x442370`), antes del mismo efecto; en la 4 con el frame de 3,5 a 4,2, una vez `0x1fc + rand() % 2` y, en `RightHand` y `LeftHand` con la z del objeto, `(rand() % 32 + 50) · 0,05f` para su `0x5f2/11` (`0x4424d7`, `0x4425b3`); después (y en las demás), tres `rand() % 10` (`PoisonTop`, `PoisonRight`, `PoisonLeft`): cada uno en 0 es su `0x5f2/0x17` en el punto del hueso, con los ángulos del objeto, (0,4; 1; 0,7) y escala 1 (`0x44267f`, `0x44274b`, `0x442817`, CL11) |
 | `0x1a7` (Monster85) | `0x5ac` a 0,7 rojo en `LeftEye` y `RightEye`; ocioso, `rand() % 10` en 0 es la partícula `0x5f3/0` en la posición con la luz de los ojos (`0x4429d8`), y después `0x1f0 + rand() % 2`; en la 3 y la 4, una vez, `0x1f2 + rand() % 2`; en la 6, una vez, `0x1f4` |
 | `0x1a9` (Monster87) | dos `0x5ac` a 0,5 rojos en el punto (0, −2, 0) de `LeftEye` y dos en el de `RightEye`; en la 3, una vez, `0x20b + rand() % 2`; en la 6, una vez, `0x20e`; en la 4, con `+4` en 0, `+4 = 1` y el efecto `0x13f` (`0x442cb9`, y después `0x20d`); si no, el punto (0, 0, −10) de `LeftHand` y su `0x6ec/3` (`0x442da1`; llena, la `0x5f2/21` que sigue tampoco crea nada) |
 
@@ -13995,10 +14133,10 @@ de la lista pide el suyo una vez. Devuelve 1 (corta la cadena) con el `0x1ad` y 
 | --- | --- |
 | `0x1b6` (Monster100) | `v = rand() % 30 · 0,01f + 0,6f` (en la x87) y la luz (`v + 0,5`; `v − 0,05f`; `v + 0,5`); `0x5ad` en `L_Hand` (0,8), `z02` (1,1), `z03` (1), `z04` (1,7) y `z05` (0,8); el punto (0, 0, −65) de `Footstepst` y la partícula `0x5ad/4` (`0x42769f`); llena la tabla, los sonidos (ocioso `rand() % 15` en 0: `0x261 + rand() % 2`; una vez, `0x264` en la 3, `0x9c + rand() % 2` y `0x263` en la 4, `0x265` en la 6) y, en la 3 y la 4, las `0x5f2/0x1b` y `0x5ad` del pie y del blanco, que no crean nada; con el blanco `+0x3a4` (WORD con signo) en el pool, en la 4 desde el frame 6 el joint `0x614` (`0x427a8d`) |
 | `0x1b7` (Monster101) | el punto de `L_Arm` y su `0x6f1/1` (`0x427b8b`); llena, las de `R_Arm` y `Head` no crean nada, los sonidos (ocioso `0x247`; `0x249`, `0x24a`, `0x24b`) y, en la 3, las `0x5f2/0x19` (desde el frame 4) y `0x6eb/3` (de 5 a 5,5), que no crean nada, y con el blanco en el pool desde el frame 6,9 el joint `0x618` (`0x428036` salta a `0x427a8d`) |
-| `0x1b8` (Monster102) | `rand() % 10`, un `0x5ad` a 3 con (0; `r · 0,01f + 0,2f`; 0) en el punto (60, −30, 0) de `Head` y la partícula `0x5c6/7` (`0x428164`); llena, sus sonidos (ocioso `0x24c`; `0x24e`, `0x24f`, `0x250`) |
+| `0x1b8` (Monster102) | `rand() % 10`, un `0x5ad` a 3 con (0; `r · 0,01f + 0,2f`; 0) en el punto (60, −30, 0) de `Head` y, en el mismo punto, la partícula `0x5c6/7` con ángulos (0, 0, 0), esa luz y escala 1 (`0x428164`, CL11); después, sus sonidos (ocioso `0x24c`; `0x24e`, `0x24f`, `0x250`) |
 | `0x1b9` | solo sonidos: ocioso `0x256`; `0x258`, `0x259`, `0x25a` |
-| `0x1ba` (Monster104) | sonidos (ocioso `0x251`; `0x253`, `0x254`, `0x255`); seis cuernos (`Monster104_Horn%d`): `rand() % 10`, un `0x5ad` a 0,4 con (0,4; `r · 0,01f + 0,8f`; 0,5) y la partícula `0x5c6/6` (`0x42849c`, que corta en el primero con lugar); llena, las seis vueltas y, en la 4, la `0x5f2/0x1a` de `Footsteps`, que no crea nada |
-| `0x1bb` (Monster105) | `rand() % 8`, la luz (`r · 0,1f + 0,6f`; 0; 0); `0x5ad` en `R_Eye` y `L_Eye` (0,3) y `L_Arm00` a `L_Arm02` (1); sonidos (ocioso `0x25b`; 3 `0x25f`, 4 `0x25e`, 8 `0x25d`, 6 `0x260`); la partícula `0x6ec/6` de `L_Hand` (`0x428adc` en la 4, `0x428c52` en las demás); llena, la de `R_Hand` no crea nada y en la 4 con el frame de 9 a 10, el efecto `0x5e8` (`0x428da7`) |
+| `0x1ba` (Monster104) | sonidos (ocioso `0x251`; `0x253`, `0x254`, `0x255`); seis cuernos (`Monster104_Horn%d`): `rand() % 10`, un `0x5ad` a 0,4 con (0,4; `r · 0,01f + 0,8f`; 0,5) y, en el mismo punto, la partícula `0x5c6/6` con ángulos (0, 0, 0), esa luz y escala 1 (`0x42849c`, CL11); en la 4, la `0x5f2/0x1a` en el punto (0, −100, 20) de `Footsteps` (`0x428540`), con los ángulos del objeto, (0,5; 0,7f; 0,5) y escala 1 (`0x4285a4`, CL11) |
+| `0x1bb` (Monster105) | `rand() % 8`, la luz (`r · 0,1f + 0,6f`; 0; 0); `0x5ad` en `R_Eye` y `L_Eye` (0,3) y `L_Arm00` a `L_Arm02` (1); sonidos (ocioso `0x25b`; 3 `0x25f`, 4 `0x25e`, 8 `0x25d`, 6 `0x260`); una `0x6ec/6` en cada mano, `L_Hand` primero, con ángulos (0, 0, 0) y esa luz (CL11): en la 4, las dos a 5 en el punto de la mano (`0x428adc`, `0x428d56`); en las demás, la izquierda a 2,5 (`0x428c52`) y la derecha a 2,1f (`0x40066666`) en el punto (0, 0, −10) de `R_Hand` (`0x428cf8`, `0x428d56`); en la 4 con el frame de 9 a 10, el efecto `0x5e8` en el punto de `R_Hand` (`0x428da7`) |
 
 **`0x432bd0`** (desde `0x4fcee0`, con cualquier tipo, `c`, el objeto y el modelo). Primero un `rand()` sin condición
 (`0x432bf1`); después, por tipo (la tabla de `0x4339a8`, del `0x1ab` al `0x1b4`; el `0x1ac`, el `0x1ad` y el `0x1b2`
@@ -14028,6 +14166,139 @@ y la key a `FaunaModels::RecordPoseKey`; la acción, la escala y la posición de
 (Q-C1102). Un hueso con nombre que falta corta en su llamada. Tests: `MonsterHelpersTest` (`test_monster_helpers.cpp`:
 cada tipo en Lorencia, Devias o Crywolf, con sus `rand()` contados) y
 `MonsterStep.TheSwingOfThe1b0DrawsItsRandomsBeforeItsEffects` (`test_model_body.cpp`).
+
+### Los joints de las familias (CL11)
+
+(CL11, lote joints, 2026-11-19, *estático*, ASM c32bbd5f.) Las familias de joints con archivo propio
+(`Scenes/JointFamilies.h`): `FaunaJointCreation.cpp` llama a su alta después del primer tramo (`0x530afa..0x530c38`,
+con el ancho retenido del uso anterior del lugar) y a su paso después del movimiento común (`0x53590e`); el paso vuelve
+a la cola común (`0x53c393`: `0x535520` con la matriz del principio del paso y la vida − 1). Un joint que el paso crea
+en un lugar de más adelante pasa en la misma vuelta de `0x53c670`.
+
+- **`0x614`** (`LightningJoints.cpp`): alta `0x5309d6` (subtipos 0 a 0x11) y paso `0x53683e..0x537278`, con la rama
+  /1 de `0x53703d`. La /0xc (`0x531356`) nace roja ((1; 0,1; 0,1), vida 10) y su paso pone la posición en un hueso del
+  modelo del tipo del dueño con `0x4ec110` y los huesos de `0x743751c` (`0x536adf`, sin leer: corta en `0x536b1d`); ese
+  camino salta `0x4e9810` y la llegada lee el `[ebp+8]` que quedó. La /0xf (`0x531907`) no se dibuja (`+0x11` en 0),
+  vive 80, no tiene puntos y guarda en `+0x9f4` los lugares de hasta seis personajes a 400 o menos en el plano (con NaN
+  también), vivos, sin `+0x389`, de clase 2 (`+0x88`), visibles (`+0x16c`) y que no son el dueño (el sexto pisa el
+  DWORD de `+0xa08`, el serial); `+0x9eb` es la cuenta · 15, `+0x9ec` vuelve a 0 y `+0x24` es el segundo punto 150 más
+  arriba. Su paso no se mueve (lista de `0x53585e`) ni gira (`0x536964`): con la vida par suelta dos `0x614/0` sin dueño
+  de ancho 50 y 10 desde la posición hasta `+0x24` (`0x5370a8`, `0x5370c9`) y la partícula `0x5ca/0` con la luz de
+  `[ebp−0x18]`, que ese camino no escribe: es la última que dejó el paso de un joint anterior de la misma vuelta de
+  `0x53c670` (p. ej. `0x539cb6` del `0x613/0`; Q-C1622: MuRet corta en `0x5370e8`). Lo que sigue, para quien lo
+  destrabe: con `+0x9ec` > 0, cada 15 de `i < +0x9ec` toma el personaje `+0x9f4[i / 15]` y, si sigue vivo, sin
+  `+0x389`, de clase 2 y visible, pone el destino en él 100 más arriba, el rumbo de `0x4e93f0` desde la posición en la z
+  de los ángulos y suelta dos `0x614/0` de ancho 50 y 10 desde el destino anterior (`[ebp−0xc]`, al principio `+0x24`
+  100 más arriba) hasta él; después, con `+0x9ec` menor que `+0x9eb` y la vida par, `+0x9ec` sube uno. **`0x61b` y `0x5bc`** (`HandBoltJoints.cpp`): alta
+  `0x5335cf`/`0x5335d6` y paso `0x539ccc..0x539f16`. El dibujo de los dos es el común: en `0x53c6a0` solo el `0x614`
+  tiene caso propio.
+- **`0x613` y `0x6ee`** (`SpiritJoints.cpp`): alta `0x53265e` (la mezcla en 3 y la tabla `0x534f18`). La /0 y la /5
+  copian a `+0x9eb` el `+0xf04` del registro propio con un acceso abierto y cerrado (`0x532675`, `0x532bab`; 3.848
+  `rand()` al cerrarlo en 0); `+0x9eb` no lo escribe `0x530860` y en los demás queda el de antes (Q-C1621). La /1 pide
+  el sonido `0x3e` al nacer (`0x5330c5`); la /6 sortea la key con `rand() % 5` y sin 0 pierde la cola; la /2, la /6,
+  la /7 y la /0x15 guardan la partida en `+0x24`. Paso `0x538d77`: la /1 suelta el sprite `0x5ac` (escala 4, luz
+  (0,8; 0,4; 1)); la /2, /6, /7 y /0x15 (`0x539586`) el `0x5ac` de escala (20 − vida) / 5 + 4 con su luz local, se
+  apagan por 0,8333333f con menos de 10 de vida y suben la velocidad 5; con vida 19 la /2 y la /0x15 sortean tres
+  `rand()` y la /2 suelta la gota `0x60f/2` (`0x5396ff`). La /3 y la /0xd (`0x53977a`) se desvían con `0x53d1a0(lugar,
+  dir, 1)` (el contador con su acceso: 4 `rand()` al cerrarlo en 0; la fase es lugar + contador) o, la /0xd con vida de
+  28 o menos y dueño, buscan al dueño con `0x4e9810`; el `fcomp` de `0x5398ab` compara con 50 la distancia que
+  `0x4e9810` dejó en la x87, y más cerca la vida baja una más. Después, los sprites `0x5ac` y `0x5fd` (a media escala).
+  La /8 y la /0x14 (`0x53950e`) suben con la x en 110 hasta la vida 42 y después van de 180 a 360 de a
+  `rand() % 3 + 2`; la /0xa gira 50 en z. La luz local sin escribir de la /6 y la /7 con otra skill que 0 o 1, y de la
+  /0xd sin dueño, corta (Q-C1620).
+  (Segunda vuelta.) La /4 y la /9 comparten la tabla con el 6ee: la 6ee/4 nace como la 613/4 (`0x5332b8`, la viga sin
+  velocidad) y la 613/9 como el meteoro 6ee/9 (`0x5333f6`, paso `0x538ea4`); la /4 no tiene caso en el paso. La /0 y
+  la /5 con el ancho en 80 (los bits `0x42a00000`) piden el efecto `0xd0` (`0x539a48`, otro lote) y después el asedio
+  de `0x4294b0`/`0x5f82c0` (con el bit `0x100` del atributo, la vida a `ftol(vida · 0,2f)` y la velocidad 0) o, con la
+  vida múltiplo de 15 y el héroe de dueño, los blancos de `0x517a20(skill, posición, 150, +0x9eb, +0x9e8, +0xa08)`;
+  la /0x13 de otro ancho pide el efecto `0x11b` (`0x539b08`). La /0 y la /5 de otro ancho (`0x539b10..0x539cc7`; los
+  `0x613/0` de ancho 20 de la `0x09`) van hacia el dueño 80 más arriba: la distancia en el plano es la de antes del
+  movimiento común (`[ebp+8]` y `[ebp−0x30]`, `0x53584f`), `0x4e9810` gira de a 10 (la /5, de a 2) y con el doble de la
+  velocidad no menor que esa distancia prende `+0x9d4`; la /0 se sacude con dos `(rand() & 31) − 16` (vx + r1 · 0,2f,
+  la x de los ángulos + vx, la z + r2 · 0,8f + vz, vx · 0,6f, vz el sacudón · 0,8f); con `0x5f93c0` a menos de 100 del
+  terreno sube (x en −5) y a más de 400 baja (x en 5), con vx en 0; la luz es la vida · 0,1f y la luz dinámica de radio
+  4 resta `((rand() & 3) + 4) · 0,01f`. La /0xb y la /0x10 ponen la vida en la x de los ángulos y la /0xc saca su
+  `rand() & 31`; las tres cortan en su partícula (`0x538f8e` 0x5da/5, `0x539058` 0x5f5/0, `0x53935c` 0x6f4/4, lote de
+  partículas). La /0xf suma 30 a la key (WORD); con menos de 35 de vida corta en la `0x5d9/7` (`0x53918a`) y si no
+  avanza k = key · 0,1f + 30 (sin redondear) en x por el seno y en −y por el coseno de la z de los ángulos. La /0x11
+  con vida 100 suelta 120 `0x613/0x10` de ancho 0,9f con los ángulos (0, 0, 3 · i) (`0x53940d`). La /0x12 sube la
+  velocidad 3, mueve la key de a ±6 según vida % 12 y apunta −90 − key en x y 10 más en z; con dueño corta en
+  `0x539494` (le pone el alpha +0x174 y la posición; nadie conocido la crea) y si no en su partícula `0x5f2/0x13`
+  (`0x5394fb`).
+- **`0x60f/2` y `0x60f/0x18`** (`DropJoints.cpp`): alta `0x533677` y `0x5340dc` (la /0x18 con la textura `0x62d`; vz
+  en `rand() % 20 + 35`, la luz blanca, vida `rand() % 50 + 25` y el destino en el segundo punto) y paso `0x53b156`
+  (con vida de 25 o menos cae sobre el destino con vz + 5; con menos de 10, la luz por 0,7692308f).
+- **`0x10f` con un personaje de dueño** (`AuraJoints.cpp`, segunda vuelta): alta `0x530edd..0x531214` (tabla
+  `0x534e38`; el destino es el `+0x10` del dueño). /0: luz entera, vida 999.999, 30 puntos, textura `0x62b`. /4 y /9:
+  luz (0,4; 0,8; 0,2), vida 10.000; el prefijo (`0x53098d`) guarda su blanco en `+0xa0c` si no es −1 (si no, queda el
+  del uso anterior). /2: el segundo punto, luz (1; 0,3; 0,3), vida 20, 5 puntos, `0x62c`. /5..7: sin el primer tramo
+  (`0x530c5d`), sin cola común, dibujo 1, vida 60, tanda 0, luz con 0,8 en el canal de su subtipo, `0x610`, velocidad
+  (0, 800, 0) girada desde el segundo punto, cuenta −1 y la cola **antes** del ancho (con el del uso anterior). /8:
+  `0x5ac`, luz 0,5, velocidad (0, −40, 0), vida 40. Paso: con `+0xa0c` ≠ −1 el /4 pasa a /9 si ese personaje monta a
+  Fenrir (`+0x318` en `0x1c37`) fuera de la zona segura (`+0x3e2`) y el /9 vuelve a /4 si no (`0x535d4f`). /0, /4, /9
+  (`0x536073`): dueño muerto, vida 0; el /4 y el /9 sin 8 ni `0x2000000` en `+0x78` se apagan, y si no la vida vuelve
+  a 100; los tramos se corren con el destino (restando el viejo y sumando el nuevo, dos stores), el destino es el
+  dueño + 10 en z, el mismo acceso al contador que el hada y el punto `0x53d1a0` con escala 1 (frecuencia 0,048): x e
+  y · 80, z · 120 + 110 (la /9, + 140). /8 (`0x536005`): z + 25, la cola con su matriz y el `+0x24` sube 15. /5..7
+  (`0x536526`): tres vueltas de z + 10 y cola; con la tanda en 0 la y por 0,95 (bajo 10, −10); pasada la 40, y − 20,
+  z − 5 y ancho + 15; con y negativa, la tanda 40 de la /5 y la /6 suelta el efecto `0x6eb` (`0x518cf0`, corta en
+  `0x536626`) y la tanda sube: hasta 20, y = −30 y ancho 40, después el `+0x24` sube 5; al final, con vida < 10 la luz
+  por 0,8333333f, y el ancho − 5. La /2 con dueño vivo pone el ancho en vida · 3 y corta en `0x53d1a0` con escala 1,4
+  (`0x535e66`); sin él, suelta el dueño. Los crean `0x5048db` (cinco /0 de ancho 20 tras `0x534f90`), `0x5045f9` y
+  `0x5046b0` (cinco /4 con el `+0x3a4` de c, con signo), `0x4e644f` (cinco /0 de ancho 50) y `0x4e662d` (tres /8 de
+  ancho 30, ángulos z 90/180/270, la copia del `+0x10` 10 más abajo cada vez) y la `0x48` (`0x4fe505..0x4fe790`: `+0x78`
+  de o en 0 y seis /5..7 de ancho 170 desde o + 100 en z, girados 45, 135, 225, 90, 180 y 270, la copia 10 más abajo
+  salvo después de los /7, y el sonido `0x26b`).
+- **`0x632/7` y `0x632/6`** (`StormJoints.cpp`, segunda vuelta): la skill `0x43` (`0x4fe147..0x4fe18b`) crea un
+  `0x632/7` sobre o sin dueño (ancho 10) y suena `0x266` aunque el pool esté lleno. Su alta (`0x534b27`) lo deja sin
+  cola y con vida 0 y crea tres `0x632/6` (`0x534b3f..0x534bc0`) desde (k, −50, 0) girado por sus ángulos más su
+  posición, k en −100, 0 y 100, ancho 40. La /6 salta el primer tramo; alta `0x534a16`: vida 25 y tanda 25, velocidad
+  `(rand() % 3 + 70) · 0,01745329f`, luz (0,8; 0,8; 1), vy = −(`rand() & 3` + 40), vz = sen(velocidad) · 10, y − 20,
+  z + 130, el `+0x24` en la posición, la cara 3 y `0x535020` cruzado con la cuenta en 0 después. Paso `0x53bec2`: vy
+  + `rand() % 5` − 2, vz − 10, se mueve por sus ángulos y, con la tanda menos la vida bajo 10 (los diez primeros
+  pasos), corta en la partícula `0x5ee` (`0x53bf6e`, lote de partículas). La /7 sólo pasa por la cola y muere. La luz por tramo del dibujo lee la altura del
+  personaje dueño.
+- **`0x618`** (`BeamJoints.cpp`, tercera vuelta): alta `0x532125..0x5323ce` y paso `0x5381f3..0x538704`. El dueño
+  (`+0x54`) es un personaje en la /0..3, /0xc, /0xd, /0x10 y /0x11, el `FaunaObject` en la /4 y el efecto con modelo
+  en la /5 (las flechas, `0x51a173`, `0x51a24a`, `0x51bf35`) y la /0xa y /0xb (el `0x11b/1`, `0x51c782`, que sigue
+  cortado por el lote altos); la /6 y la /9 no lo leen. Los que vuelven (/0, /1, /6, /7, /9, /0xc, /0xd, /0x10) nacen
+  con velocidad 3, vida 120 y 8 puntos (la /0xc, /0xd y /0x10 además se desvían: `+0x9ec` en ±1 con un `rand()`,
+  velocidad 10 y la x y la y de los ángulos con `rand() % 45`); con vida 100 o más giran y después vuelven al dueño
+  (z + 120) o a su destino (la /6 y la /9), y a 35 o menos mueren con la `0x5d5/1` y el sonido `0x23`. Los que siguen
+  al dueño (vida 999.999.999) se ponen en su `+0x40` (o `+0x4c` la /3, /0xb y /0xf); con el dueño muerto salen de
+  `0x535840` sin la cola (`0x538216`). La /7 no tiene paso. La 0x10 la crea el `0x1b7` (`0x427a8d`); la /0xc y la /0xd,
+  la party de las acciones del Dark Lord (`0x50fa74`).
+- **`0x62c`** (`SpiralJoints.cpp`, tercera vuelta): alta `0x5346d8..0x534954` (sin cola, velocidad −3, z + 150, vida
+  20, 30 puntos, luz (1; 0,8; 1), `+0x9ec` en 1 y el camino `+0x24` en la posición) y paso `0x53b93f..0x53be71`, sin
+  el movimiento común (`0x5358a3`). La /0 sube derecho con `+0x9ec` − 1 tramos por paso (`+0x9ec` crece de a 2): en
+  cada uno la cola con la matriz de los ángulos, (0, velocidad, 0) girado sobre el camino y la velocidad 2 menos. La
+  /1..4 y la /0xb..0xd esperan su tanda (`rand() % 3 + 2`, sumada a la vida; 0 en la /3 y la /4) y suben igual,
+  corridas por (0, 0, `+0x58`) girado por (0, `+0x5c`, la z de los ángulos): radio 80 que baja 2,5 y giro 180 (−180
+  en la /2, /4 y /0xb..0xd, con los colores (0,7; 1; 0,7), (1; 0,6; 0,6) y (0,7; 0,7; 1)) que baja 20 por tramo
+  (siempre: Q-C1624); la /3 y la /4 restan el corrimiento. Con la cola llena sólo se apagan (por 0,7692308f bajo 10
+  de vida). La /5..7 (del efecto `0x62c/1`, `0x51f32e`, detrás de un corte) salta el primer tramo, con el hueso del
+  dueño en `+0x9ec` (el skill), textura `0x60d`, vida 15, la tanda 30 y (30, 0, subtipo · 90) en `+0x58`; sin dueño
+  muere y con dueño corta en su hueso (`0x53bc71`). La `0x41` (`0x4feb3b..0x4febd3`) crea el efecto `0x62c/0` en
+  `0x4f5b10(o, 0, −90, −50)` (80 más alto en la acción `0x51`, 40 en la `0x5b`) con vida 0 y sus cinco joints (/1,
+  /0 de ancho 250, /2, /3 y /4 de ancho 100; `0x51f25e`); el efecto no tiene caso en el paso (`0x52b57e`) ni en el
+  dibujo. Los seis `0x62c/0xb..0xd` de la `0x4c` (`0x50293c`) siguen detrás del `0x14f`.
+- **`0x619/0xa`** (`FaunaJointCreation.cpp`, junto al `0x619/9`): alta `0x5325c7..0x532659` (vida 80, 20 puntos, vx 80,
+  `+0x9ec` en `ftol` del giro z y `+0x9d4` en 1 con 225 o 405; la posición y el destino en el dueño) y paso
+  `0x5388e7..0x538a4d` (como la /9, con la z en el destino más vida · 0,0125f · 300, `+0x9ec` que sube 2 con `+0x9d4`
+  y si no baja 2, y la luz por 0,9090909f bajo 40 y por 1,2f sobre 68). La `0x35` (`0x4fe795..0x4fe981`) cuelga de o
+  cuatro de ancho 15 con los ángulos (−45, 0, 45 / 405 / 225 / 450) desde (sen 4,5; cos 4,5) · 80 y (cos 22,5;
+  sen 22,5) · 80 más o, 300 más arriba (`0x6a1a90` es el seno de la CRT y `0x6a19e0` el coseno), y suena `0x7f`.
+
+La matriz de la cola común (`0x53c393`, `[ebp−0xe8]`) es la que calculó `0x53590e` en el paso del joint; los de la
+lista `0x53585e..0x53590c` no la calculan y usan la del último joint de la vuelta que la calculó (Q-C1623). El paso
+común lee también `[ebp−0x30]` y `[ebp+8]`, la posición menos el destino en x y en y antes de moverse (`0x53584f`).
+
+Los que los crean: la cola de `0x4f5b70` (los `0x614`, `0x61b` y `0x5bc` colgados del blanco, ESI), el `0x1b6`
+(`0x427a8d`), las cadenas del `0x49` y el `0x4b` (`0x50c36b`), los treinta y seis `0x613/1` de `0x4f756a` y los cuarenta
+`0x613/3` de `0x4f7f3c` (sin dueño, con los ángulos de tres `rand() % 360` cada uno), los treinta y seis `0x613/2` y
+`0x613/0x15` de las skills `0x30` y `0x45` (`0x4fe0e4`, `0x4fe322`; cortan en el calco `0x61e` de la vuelta 0) y los ocho
+`0x613/0` de la `0x09` (`0x501c67` y `0x501c9c`), y los veinticuatro `0x6ee/0xe` de Kundun (`0x43d19f`). Lo que sigue
+cortado está en [08](08-pendientes.md) (P-C430).
 
 ### Los restos (0x52e810)
 
@@ -14693,6 +14964,114 @@ intermedio dibuja una copia del retrato con la copia del `rand()` del frame, sin
 `SetActorAttack` (`0x4f4a10`) con el mapa en 0, como `0x495b00..0x495b33` (P-C219). `UI::OldWindowStepView::portrait` es `Scenes::LetterPortraitHook` con los
 recursos del mundo (`GameUiContext::worldEntry`, `ChatReceiveContext::worldEntry`): el primer pedido crea el
 `LetterPortrait`.
+
+### Los efectos con modelo del lote switch (CL11)
+
+(CL11, lote switch, 2026-11-19, *estático*, ASM c32bbd5f.) `World/BlastModelEffects` porta el alta (`0x518cf0`) y el
+paso (`0x5208a0`) de los efectos con modelo `0xe4`, `0xe5`/`0xe6` con el subtipo 5, `0xe7` a `0xe9`, `0xec`, `0xf2` a
+`0xf6`, `0x105/1` (el hijo del `0x106`), `0x106` a `0x109`, `0x10c`, `0x10d`, `0x10f`, `0x112`, `0x113` y `0x5de` con
+los subtipos 1 y 2; `Scenes/BlastEffectCalls` arma desde el paso de los personajes lo que piden afuera (el registro
+propio, el héroe publicado, los blancos de `0x517a20`, los joints y el sonido). El `0xf8` y el `0x105/3` no son de este
+lote (ADR 0020).
+
+- **El prefijo** (Q-C1540): cada alta empieza por el de `ModelEffects::Begin` (el primer lugar libre de los 200, el
+  dueño en `+0x108`, la key en `+0x8a`, `+0x88`, `+0x89` y `+0x1bd`); con la tabla llena no hay alta ni `rand()`, ni
+  el registro propio ni los joints de su caso. El paso lee en vivo de `+0x108` el tipo, los ángulos, la posición, el
+  byte vivo y `+0x16c` del dueño (`World::ModelEffectOwner`).
+- **El registro propio** (Q-C1541): el `0xf3` (`0x51a625`) lo abre, suma uno a `+0xf04` (envuelve) y lo cierra; el
+  `0xf4` (`0x51a65a`, `0x51a1b6`) y el `0xf5` (`0x5193db`) copian `+0xf04` a `+0x8c`. Cada cierre en profundidad 0
+  saca 3.848 `rand()` (`0x40b4d0`). El `0xf6` con el subtipo 0 o 1 y el héroe publicado de dueño (`0x519a49`) copia la
+  cuenta con el registro abierto y **lo cierra antes** de `0x517a20(+0x89, la posición, 400, +0x8c, +0x8a, 0)`
+  (`0x519e67..0x519e9e`), que abre otro: con el héroe de dueño son dos cierres.
+- **El `0x106` y su hijo** (Q-C1543): `0x518e66` corre el punto (−10, −60, 135) por los ángulos, escala 0,8 y la y de la
+  velocidad en −70, y vuelve a `0x518d0a` con el `0x105` de su subtipo y el `0x106` de dueño (`+0x108` del hijo es el
+  efecto). El `0x105/1` (`0x519fc9..0x51a101`): vida 100, la escala 24 durante los cuatro joints `0x610/0..3` (key
+  `0x1e`, la skill en el subtipo, el efecto de dueño), el sonido `0x7a` y la escala 1, aun con la tabla de joints
+  llena. El alta devuelve el lugar del `0x106`, no el de su hijo.
+- **Los llamadores** (Q-C1546 a Q-C1549): `0x43b5ac`/`0x43b5cc` (el `0xa1` en la 3 desde 13: `0xf6/0` y `0x5de/1` sobre
+  c con c de dueño) y `0x43b241`/`0x43b25e` (el `0xa0`: `0xf6/5` y `0x5de/2`), los dos antes de `+0x381` en 15; en
+  `0x4f5b70`, los `0xf6` sin dueño de `0x4f6145`, `0x4f5d5a`, `0x4f6422`, `0x4f789b`, `0x4f7980` y `0x4f79d3`; el
+  `0xf5/0` sin dueño de `0x4f609d` en (`rand() % 800` + x − 400, `rand() % 800` + y − 400, z); los cinco `0x106/1` de
+  `0x4f79db..0x4f7aae` (cada punto con dos `rand() % 1001` − 500 y 500 más arriba, en `+0x17c`, los ángulos con 45 más
+  en x y c de dueño); el de `0x4f80cf` desde `+0x17c`; los dos `0xf5/0` de `0x4f8227`/`0x4f8244` en la posición del
+  blanco (`+0x3a4`) con c de dueño; los `0x106/1` sin dueño de `0x4f8326` (el hueso 33, la luz local), `0x4f845e` (la
+  matriz de `0x74374ec`) y `0x4f852d` (el hueso 11 con (−50, 100, 0) y 45 más en x). En `0x4fd5f0`: el `0xf3` de la
+  0x29 (`0x4fec9a`, con `0x59fb80(0x29)` en `+0x89`) antes del sonido `0x73`; los diez `0x108/0` de la 0x27
+  (`0x4ffd5c..0x4ffdaf`: la celda de la skill con su altura y, por vuelta, `rand() % 50` por la vuelta sobre la altura,
+  la luz local (la (1, 1, 1) de `0x4fd81e`, o la (0,3; 0,5; 1) de `0x4fdb3f` con las acciones `0x4d`, `0x4f` y `0x5a`
+  pasado el frame 5,5; el alta del `0x108/0` la pone en 0 igual, `0x51bd37`), sin dueño y la key en la vuelta + 1; el
+  `rand()` sale aun con la tabla llena); los
+  dos `0xf5/0` de la 0x0d en la celda (`0x500d7b`, `0x500dba`) y el `0xf6/0` de la 0x0e tras el estallido (`0x5014da`),
+  con o de dueño. En `0x4f97b0`, los tres `0x10f` de la 0x2f (`0x4f9d44..0x4f9e52`): la posición 145 por delante por
+  el rumbo (`+0x24` · π/180 en float, el perfil PC53) y 110 más arriba, tres `rand() % 60` − 30 sumados con FILD +
+  FADD, la luz 0,3, el modelo de la mano de subtipo y o de dueño.
+- **El paso** (Q-C1547): el primer `rand()` es la luz local; la cola común (`0x52cb98`) publica la acción y anima los
+  BMD de `[0xad, 0x151)`, mueve con `0x51fc80` por los ángulos salvo el `0x10f`, que va derecho (la tabla de
+  `0x52d1a4`); el `0xf3` y el `0xf4` solo pierden la vida, y los `0xe7..0xe9` y el `0x113` sin dueño salen sin cola.
+- **Las rocas y sus pedazos** (Q-C1550): al tocar el terreno fuera de las celdas con el bit `0x08`, la roca
+  `0xe7..0xe9` se apaga (`0x521616`), saca el `rand()` del temblor (`0x521619`) y crea cinco `0xea + rand() % 2`
+  (`0x52165e..0x521675`). En `0x51b659` el `0xea` y el `0xeb` no son el `0xca` (`0x51b6d9`): van por el camino de las
+  piedritas `0xc8`/`0xc9` (`0x51b72b..0x51b805`, `ModelEffects::CreateStoneChip` con el subtipo 0), sin `+0x64`,
+  `+0x68` ni los 50 más en z, con cinco `rand()`. Como la roca ya está apagada, si su lugar es el primero libre el
+  primer pedazo cae en él, y `0x521684..0x5216d4` mueven y giran ese pedazo. Cada `rand()` sale antes del corte de
+  MuRet que le sigue: el del temblor antes de `0x52163e`, el del tipo antes de `0x521675` (y de `0x521175` en el
+  `0xf5`), el `rand() % 5` del `0x108/0` antes de `0x525750`. El `0xf4` en Kalima (mapas `0x18..0x1d` y `0x24`) da una sola
+  chispa con sus cuatro `rand()` (`0x5219cc`, `0x5219ec`, `0x521a30` y `0x521a4c`) y, en vez del joint y la `0x5c5/0`,
+  la `0x6f4/3` 120 más arriba con la luz (0,5; 0,5; 0,5) y escala 1 (`0x521aa3`); su sprite `0x5ac` sube 60
+  (`0x42700000`) en vez de 20 (`0x5219ae..0x5219c5`).
+- **El dibujo** (Q-C1548): el `0xf3` no se dibuja (`0x52d620`), el `0xf4` es el ítem del dueño (`DrawItemModelEffect`),
+  el `0x10f` va por `DrawBloodCastleModelEffect` y los demás por el cuerpo común de `0x6002e0`. El `0x112/0` pasa
+  `+0x74 | 2`, que es 2 porque nadie escribe `+0x74`. El `0x109/0` agrega antes del pase común uno con
+  `0x4ef0c0(0x1040, +0x174, +0x64, +0x68, +0x6c, +0x70, 1, −1)` (`0x60213e`), que MuRet no hace (P-C412).
+
+Lo que corta (P-C410 a P-C413): las partículas que este lote no crea, los joints del lote joints y lo que el dueño
+tiene y MuRet no.
+
+### Los efectos con modelo de los magos
+
+CL11, lote magos (2026-11-19). *Estático*: leído en el binario, sin una corrida del original.
+
+`World::WizardModelEffects` porta los tipos `0xbd`, `0xc1`, `0xc2`, `0xc3`, `0xc5`, `0xc7`, `0xcb`, `0xcc`, `0xcd`,
+`0xce`, `0xcf`, `0xd0`, `0xd4`, `0xd5`, `0xd6` y `0xd7` (con sus piedritas `0xd8` y `0xd9`): el alta de `0x518cf0`, el
+paso de `0x5208a0` con la cola `0x52cb98`, sus `rand()`, partículas, sprites, luces y el registro propio. Con la tabla
+llena, `0x518cf0` vuelve antes del caso, sin `rand()`. `Scenes/WizardEffects` arma los servicios desde el mundo: el
+dueño (`+0x108`) es un personaje del pool, el héroe es `[0x743a170]`, el asedio es `WorldRuntime::siegeActive` y
+`0x517a20` es `Scenes::HitTheTargetsAround`.
+
+Los llamadores portados (cada alta con su dirección en el error):
+
+- `0x4fd5f0`, los casos de habilidad del jugador: la luz local `[ebp-0x30]` es `(1, 1, 1)` (`0x4fd81e`) o
+  `(0,3f; 0,5; 1)` con el destello (`0x4fdb3f`), y la leen el `0x08` (`0x500c49`, `0xcf/0`) y el `0x07` (`0x504768`,
+  `0xc1/0`). También el `0x3f` (`0x4feae8`, `0x4feb1b`), el `0x0a` (`0x4fecf3`, `0x4fed25`), el `0x26` (`0x4ff5b2`,
+  `0x4ff5dc`), el `0x28` (`0x4ff4ef`), el `0x01` del `0x20a` (`0x504926`), el `0x02` (`0x5049ef`), el `0x04`
+  (`0x504bce`), el `0x0b` (`0x504c38`, `0x504c7c`, `0x504cc0`) y el `0x11`/`0x15e` (`0x50501a`).
+- `0x4f5b70` y sus ayudantes, los monstruos: los fuegos `0xc2/0`, `/1`, `/2`, `/5` y `/6` (`0x4f6ec5` a `0x4f83e5`), los
+  círculos `0xcb/0` y `0xcc/0` (`0x4f70b8`), el anillo de Kalima (`0x439ca6`, `0xc2/8`), su escudo (`0x439d09`,
+  `0x439d24`), los meteoros del `0x43a7a0` (`0x43b1f4`, `0xc2/7`) y las cinco tormentas del `0x429110` (`0x42919a`).
+- `0x4f97b0`: la `0x38` del `0x20a` en la acción `0x8d` tira cinco `0xce/2` (`0x4fa4fa..0x4fa5a4`) de 20 en 20 desde
+  z − 40, contadas en el registro propio.
+- El hielo (`Scenes::WrapInIce`): `0x518ac0(0xc1, personaje, 1)` y el `0xc1/1` y el `/2` (z + 180) con el personaje de
+  dueño, cuya luz `+0xf4` pisa cada alta con `(0,4f; 0,3f; 0,2f)`. Lo piden la bandera `0x20` sin su bit
+  (`0x4e67fc`, `0x4e6825`) y la respuesta de la `0x33` (`0x4cd6ff`, `0x4cd72b`), antes de parar al blanco.
+- `0x4f4a10`: el `0x27` crea la sierra `0xd4/0` sin dueño (`0x4f4f5b`) antes del sonido `0x10`.
+- `0x602ed0` en el mapa 55: el objeto `0x59` con `ftol(reloj del mundo) % 8000 >= 7950` suelta un meteoro `0xc2/9`
+  (`0x604427..0x6044b2`); el login no tiene la tabla de los efectos con modelo y corta en `0x604427` (P-C401 a).
+- `0x4f5660`: el jugador de subtipo `0xd1..0xd3` y el `0x170` sueltan un `0xd5/0` y diez `0xd6/0` sin dueño (`0x4f58c2`,
+  `0x4f58e7`; `0x4f595d`, `0x4f5982`), cinco `rand()` cada uno, antes del sonido `0x7c`.
+
+El dibujo (`Scenes/WizardEffectDrawing`, desde `DrawPlainModelEffect`): `0x52d620` manda estos tipos a `0x602e90` (el
+`0xcf/3..7` es una calcomanía del piso y el `0xbd` no se dibuja). En `0x6002e0`, después de la malla oculta −2:
+
+- `0x6004aa`: con `+0x74` en `0x80` (el `0xd0`, el `0xcc/1` y las grietas de subtipo 1), `RenderBody(0x82, …)` y sale:
+  el pase de cada malla con la mezcla que oscurece (`ZERO / ONE_MINUS_SRC_COLOR`, `0x620b10`), también la del blendMesh:
+  la rama del blendMesh de `0x4ecc30` (`0x4ed014`) sólo mira la `0x80`, y la `0x40` es de la otra (`0x4ecf57`). Sin la
+  pose publicada, la posa como `0x5ffdf0`.
+- `0x601da8`: el `0xcc/3` y `/4` con el color del modelo en `(0,1f; 0,1f; 10)` y el pase común.
+- `0x601df6`: el `0xcb/2` y `/3` con `(0,5; 0,5; 1)` y `RenderBody(2, …, 0x6e9)`, `Effect\Magic_b.jpg` en cada malla.
+  Después (`0x6021fe`) el color del modelo vuelve a `(1, 1, 1)`.
+
+Lo que queda cortado y por qué está en P-C400 y P-C401, y lo que pide la VM en P-C402 ([08](08-pendientes.md)); los
+quirks, en Q-C1500 a Q-C1502 ([07](07-quirks-y-bugs.md)).
 
 ## Lo que no se sabe
 

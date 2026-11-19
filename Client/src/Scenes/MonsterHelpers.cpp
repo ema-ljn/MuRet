@@ -11,17 +11,25 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/CrywolfDeathSpiritEffects.h"
 #include "Scenes/FaunaDrawing.h"
+#include "Scenes/FaunaJointCreation.h"
 #include "Scenes/FaunaModels.h"
 #include "Scenes/GameRibbonCreation.h"
 #include "Scenes/GameDrawTail.h"
+#include "Scenes/HighModelEffects.h"
+#include "Scenes/JointFamilies.h"
 #include "Scenes/WorldModelPose.h"
 #include "Scenes/WorldRuntime.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/WorldState.h"
 #include "Scenes/WorldMap.h"
+#include "World/EffectParticleKernels.h"
+#include "World/IFishStepServices.h"
+#include "World/KalimaParticleKernels.h"
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
 #include "World/ParticleBurst.h"
+#include "World/SiegeVertexEffects.h"
+#include "World/SmokeParticleKernels.h"
 #include "World/TerrainDecal.h"
 #include "World/Sprites.h"
 
@@ -321,18 +329,40 @@ Result DrawThe1a3(MonsterHelperPass& pass)
     return {};
 }
 
-// 0x441669..0x441d91: en la 6, 0x4ee770(modelo, 0, 0x13c, 0, 0, 0) (un rand() por vértice y los efectos 0x518cf0); si
-// no, el punto (5, 10, 5) de la mano izquierda y la partícula 0x6ec/3 (CL11). Con la tabla llena siguen, sin crear
-// nada, la 0x5f2/21, la 0x6ec/4 de la mano derecha, la 0x5f2/21, la 0x6ec/0 y la 0x5f2/21 del ojo y la 0x5f2/21 de la
-// espalda (sus puntos no los lee nadie más); después rand() % 20 en 0 pide 0x205 más rand() % 2 sin mirar +4, y con
-// +4 en 0, la 3 con el frame de 8,4 a 10,2 corta en sus efectos; la 4 de 5 a 5,7 pone +4 = 1, crea
-// la ráfaga 0x51fe10 desde LHand + (80, 40, −25) y pide 0x208 incluso con el pool lleno.
+// 0x4ee770(modelo, 0, 0x13c, `subtype`, 0, 0) desde `call` y +0 en 0 (el personaje deja de estar). Los efectos solo
+// en un frame del original: entre frames el personaje es una copia y la tabla de efectos, la del mundo.
+Result DieInStones(MonsterHelperPass& pass, std::int32_t subtype, std::uint32_t call)
+{
+    constexpr std::int32_t GolemStones = 0x13c;
+    if (pass.originalFrame)
+    {
+        if (!pass.vertexEffects)
+            return Cut(call, "0x4ee770 sin las mallas del cuerpo", pass.actor);
+        if (auto emitted = pass.vertexEffects(GolemStones, subtype); !emitted.HasValue())
+            return Core::Unexpected(std::format("{:#x}: {}", call, emitted.Error()));
+    }
+    pass.actor.alive = false;
+    return {};
+}
+
+// 0x441669..0x441d91: en la 6, 0x4ee770(modelo, 0, 0x13c, 0, 0, 0) (DieInStones: un rand() por vértice y las piedras
+// 0x13c), +0 en 0 y el sonido 0x209; si no, el punto (5, 10, 5) de la mano izquierda y la partícula 0x6ec/3 (CL11). Con
+// la tabla llena siguen, sin crear nada, la 0x5f2/21, la 0x6ec/4 de la mano derecha, la 0x5f2/21, la 0x6ec/0 y la
+// 0x5f2/21 del ojo y la 0x5f2/21 de la espalda (sus puntos no los lee nadie más); después rand() % 20 en 0 pide 0x205
+// más rand() % 2 sin mirar +4, y con +4 en 0, la 3 con el frame de 8,4 a 10,2 corta en sus efectos; la 4 de 5 a 5,7
+// pone +4 = 1, crea la ráfaga 0x51fe10 desde LHand + (80, 40, −25) y pide 0x208 incluso con el pool lleno.
 Result DrawThe1a4(MonsterHelperPass& pass)
 {
     ActorState& actor = pass.actor;
     if (actor.animation.action == 6)
-        return Cut(0x441696,
-                   "0x4ee770 al morir (sus rand() y sus efectos 0x518cf0), y después +0 en 0 y el sonido 0x209", actor);
+    {
+        constexpr std::int32_t Stones = 0, DeathSound = 0x209;
+        if (auto died = DieInStones(pass, Stones, 0x441696); !died.HasValue())
+            return died;
+        Sound(pass, DeathSound);
+        // 0x441a34 → 0x441a3c: las ramas de la 3 y la 4 no corren.
+        return {};
+    }
     if (const auto point = PointOf(pass, "Monster82_LHand", 0x441713, {5.0f, 10.0f, 5.0f}); !point.HasValue())
         return Core::Unexpected(point.Error());
     if (auto made = Unported(pass, 0x6ec, 3, 0x441774); !made.HasValue())
@@ -428,16 +458,31 @@ Result DrawThe1a6(MonsterHelperPass& pass)
     if (Idling(actor))
         SoundOnce(pass, 0x1fa, true);
     if (action == 6)
-        return Cut(0x442165,
-                   "0x4ee770 al morir (sus rand() y sus efectos 0x518cf0), y después +0 en 0 y el sonido 0x1ff", actor);
+    {
+        // 0x442159..0x442179: 0x4ee770(modelo, 0, 0x13c, 1, 0, 0) (las piedritas 0x12d/2 y 0x12e/2), +0 en 0 y el
+        // sonido 0x1ff; sigue en 0x44217c, con los venenos.
+        constexpr std::int32_t Shower = 1, DeathSound = 0x1ff;
+        if (auto died = DieInStones(pass, Shower, 0x442165); !died.HasValue())
+            return died;
+        Sound(pass, DeathSound);
+    }
     // [ebp−0x18] (0x442107): la luz de las partículas, (0,4; 1; 0,7).
     constexpr glm::vec3 PoisonLight{0.4f, 1.0f, 0.7f};
     if (action == 3)
     {
-        // 0x44217c: con +4 en 0, +4 = 1 y 0x1fe; rand() % 2 en 0 elige con otro rand() % 2 el veneno derecho (0) o el
-        // izquierdo y rand() % 32 + 50 por 0,025f (0x6b8bd0) es la escala de su 0x5f2/11; los dos caminos siguen en
-        // el efecto 0x12e.
+        // 0x44217c: con +4 en 0, +4 = 1 y 0x1fe; los ángulos de la piedra (−55, FSIN(T · 0,03f) · 45, z del objeto)
+        // en [ebp−0x30] (0x4421a0..0x4421c1); rand() % 2 en 0 elige con otro rand() % 2 el veneno derecho (0) o el
+        // izquierdo, su punto en [ebp−0x24], y rand() % 32 + 50 por 0,025f (0x6b8bd0) es la escala de su 0x5f2/11;
+        // los dos caminos siguen en la piedra 0x12e/3 (0x442397) en [ebp−0x24].
         SoundOnce(pass, 0x1fe, false);
+        constexpr float StonePitch = -55.0f;                           // 0x4421af, 0xc25c0000
+        constexpr float StoneRate = std::bit_cast<float>(0x3cf5c28fu); // 0x6b8bd4, 0,03f
+        constexpr float StoneSwing = 45.0f;                            // 0x6b8848
+        const auto swing = ClockSine(pass, StoneRate, StoneSwing, 0x4421b9);
+        if (!swing.HasValue())
+            return Core::Unexpected(swing.Error());
+        const glm::vec3 stoneAngles{StonePitch, F32(swing.Value()), actor.angles.z};
+        std::optional<glm::vec3> stonePoint;
         if (Coin(pass.random) == 0)
         {
             const bool right = Coin(pass.random) == 0;
@@ -450,8 +495,23 @@ Result DrawThe1a6(MonsterHelperPass& pass)
                     Particle(pass, Breath, StoneDust, point.Value(), actor.angles, PoisonLight, scale, 0x442370);
                 !made.HasValue())
                 return made;
+            stonePoint = point.Value();
         }
-        return Cut(0x442397, "el efecto 0x12e (0x518cf0) del ataque", actor);
+        // Con el primer rand() % 2 en 1, [ebp−0x24] no se escribió en esta llamada: es lo que quedó en la pila
+        // (Q-C1580).
+        if (!stonePoint)
+            return Cut(0x442397, "la piedra 0x12e/3 en un punto que esta llamada no escribió (Q-C1580)", actor);
+        // 0x518cf0(0x12e, punto, ángulos, la luz del veneno, 3, sin dueño, −1, 0, 0, 0, 0). Solo en un frame del
+        // original: entre frames la tabla de efectos sigue siendo la del mundo.
+        constexpr std::int16_t ThrownStone = 0x12e;
+        constexpr std::int32_t ThrownSubtype = 3;
+        if (pass.originalFrame)
+            static_cast<void>(World::CreateSiegeVertexEffect({.type = ThrownStone,
+                                                              .position = *stonePoint,
+                                                              .angles = stoneAngles,
+                                                              .light = PoisonLight,
+                                                              .subtype = ThrownSubtype},
+                                                             pass.world.Map().effects, pass.random));
     }
     // 0x44239f..0x4425b8: en la 4 con el frame de 3,5 a 4,2 (0x6b8bcc), con +4 en 0, +4 = 1 y 0x1fc más rand() % 2;
     // después, en cada mano, el punto con la z del objeto (0x44249d y 0x442579) y rand() % 32 + 50 por 0,05f (0x6b8a48)
@@ -481,7 +541,8 @@ Result DrawThe1a6(MonsterHelperPass& pass)
                 return made;
         }
     }
-    // 0x4425bb..0x442817: tres rand() % 10, cada uno con su veneno 0x5f2/23 (CL11).
+    // 0x4425bb..0x442817: tres rand() % 10, cada uno en 0 con su veneno 0x5f2/23 (World::WarmBreathSubtype) en el punto
+    // del hueso, con los ángulos del objeto (+0x1c), la luz de 0x442107, escala 1 y sin dueño.
     struct Poison
     {
         std::string_view bone;
@@ -495,9 +556,12 @@ Result DrawThe1a6(MonsterHelperPass& pass)
     {
         if (pass.random.Next() % 10 != 0)
             continue;
-        if (const auto point = PointOf(pass, poison.bone, poison.call); !point.HasValue())
+        const auto point = PointOf(pass, poison.bone, poison.call);
+        if (!point.HasValue())
             return Core::Unexpected(point.Error());
-        if (auto made = Unported(pass, Breath, 0x17, poison.particle); !made.HasValue())
+        if (auto made = Particle(pass, Breath, World::WarmBreathSubtype, point.Value(), actor.angles, PoisonLight, 1.0f,
+                                 poison.particle);
+            !made.HasValue())
             return made;
     }
     return {};
@@ -844,7 +908,7 @@ bool HasTarget(const ActorState& actor)
 // 0x261 más rand() % 2; con +4 en 0, +4 = 1 y 0x264 en la 3, 0x9c más rand() % 2 y 0x263 en la 4 y 0x265 en la 6.
 // Después, en la 3 y la 4, las partículas 0x5f2/0x1b y 0x5ad del pie (desde el frame 4, 0x6b8a44) y del blanco (desde
 // 6, 0x6b87f4), que con la tabla llena no crean nada, y con el blanco +0x3a4 en el pool, en la 4 desde el frame 6, el
-// joint 0x614.
+// joint 0x614/0x10.
 Result DrawThe1b6(MonsterHelperPass& pass)
 {
     if (auto ready = NeedTheSprites(pass, 0x4272ee); !ready.HasValue())
@@ -894,17 +958,38 @@ Result DrawThe1b6(MonsterHelperPass& pass)
     }
     else if (action == 6)
         SoundOnce(pass, 0x265, false);
-    // 0x427767..0x427a8d: 6 (0x6b87f4).
+    // 0x4279cc..0x427a8d: 6 (0x6b87f4). El 0x614/0x10 sin dueño desde el blanco hasta 100 (0x6b86b4) sobre él, con los
+    // ángulos del actor y ancho 10.
     if (action == 4 && HasTarget(actor) && actor.animation.frame >= 6.0f)
-        return Cut(0x427a8d, "el joint 0x614 (0x530860) hacia el blanco +0x3a4", actor);
+    {
+        const ActorState& target = pass.world.Actors()[static_cast<std::size_t>(actor.attackTarget)];
+        glm::vec3 from = target.position;
+        glm::vec3 to{target.position.x, target.position.y, F32(D(target.position.z) + 100.0)};
+        glm::vec3 angles = actor.angles;
+        constexpr float Width = 10.0f; // 0x41200000
+        const World::FishEffectRequest request{.type = 0x614,
+                                               .firstPosition = from,
+                                               .secondPosition = to,
+                                               .angles = angles,
+                                               .subtype = 0x10,
+                                               .ownerContext = nullptr,
+                                               .scale = Width,
+                                               .key = -1,
+                                               .skill = 0,
+                                               .skillSerial = 0,
+                                               .target = -1};
+        if (auto made = CreateFaunaJoint(pass.world.DrawTail().joints, request, pass.random); !made.HasValue())
+            return Core::Unexpected(std::format("0x427a8d: {}", made.Error()));
+    }
     return {};
 }
 
 // 0x427ab0..0x428036, el 0x1b7: el punto del brazo izquierdo y su partícula 0x6f1/1 (CL11). Con la tabla llena, las
 // 0x6f1/1 del brazo derecho y de la cabeza tampoco crean nada; siguen sus sonidos (0x247, y 0x249, 0x24a y 0x24b en la
 // 3, la 4 y la 6) y, en la 3, las partículas 0x5f2/0x19 (desde el frame 4) y 0x6eb/3 (de 5 a 5,5), que no crean
-// nada, y con el blanco +0x3a4 en el pool, desde el frame 6,9 (0x6b8a3c), el joint 0x618 (0x428036 salta a
-// 0x427a8d).
+// nada, y con el blanco +0x3a4 en el pool, desde el frame 6,9 (0x6b8a3c), el joint 0x618/0x10 (0x427fea..0x428036
+// salta a 0x427a8d): desde el blanco, 100 (0x6b86b4) más arriba, hacia el actor, con los ángulos del blanco, el actor
+// de dueño y ancho 20; vuelve a él (BeamJoints.cpp).
 Result DrawThe1b7(MonsterHelperPass& pass)
 {
     if (const auto arm = PointOf(pass, "Monster101_L_Arm", 0x427b2a); !arm.HasValue())
@@ -916,13 +1001,32 @@ Result DrawThe1b7(MonsterHelperPass& pass)
     const ActorState& actor = pass.actor;
     // 0x427fd3: 6,9 (0x6b8a3c).
     if (actor.animation.action == 3 && HasTarget(actor) && actor.animation.frame >= 6.9f)
-        return Cut(0x427a8d, "el joint 0x618 (0x530860) hacia el blanco +0x3a4", actor);
+    {
+        ActorState& target = pass.world.Actors()[static_cast<std::size_t>(actor.attackTarget)];
+        glm::vec3 from{target.position.x, target.position.y, F32(D(target.position.z) + 100.0)};
+        glm::vec3 to = pass.actor.position;
+        constexpr std::int32_t BeamSubtype = 0x10;
+        constexpr float Width = 20.0f; // 0x41a00000
+        const World::FishEffectRequest request{.type = JointFamilies::BeamJoint,
+                                               .firstPosition = from,
+                                               .secondPosition = to,
+                                               .angles = target.angles,
+                                               .subtype = BeamSubtype,
+                                               .ownerContext = &pass.actor,
+                                               .scale = Width,
+                                               .key = -1,
+                                               .skill = 0,
+                                               .skillSerial = 0,
+                                               .target = -1};
+        if (auto made = CreateFaunaJoint(pass.world.DrawTail().joints, request, pass.random); !made.HasValue())
+            return Core::Unexpected(std::format("0x427a8d: {}", made.Error()));
+    }
     return {};
 }
 
 // 0x42803b..0x428222, el 0x1b8: r = rand() % 10, un 0x5ad a 3 con (0; r · 0,01f + 0,2f; 0) en el punto (60, −30, 0) de
-// la cabeza y su partícula 0x5c6/7 (CL11); con la tabla llena, sus sonidos (0x24c, y 0x24e, 0x24f y 0x250 en la 3, la
-// 4 y la 6).
+// la cabeza y, en el mismo punto, la chispa verde 0x5c6/7 (0x428164) con ángulos (0, 0, 0), esa luz, escala 1 y sin
+// dueño; después, sus sonidos (0x24c, y 0x24e, 0x24f y 0x250 en la 3, la 4 y la 6).
 Result DrawThe1b8(MonsterHelperPass& pass)
 {
     if (auto ready = NeedTheSprites(pass, 0x428146); !ready.HasValue())
@@ -931,8 +1035,11 @@ Result DrawThe1b8(MonsterHelperPass& pass)
     const auto head = PointOf(pass, "Monster102_Head", 0x4280e9, {60.0f, -30.0f, 0.0f});
     if (!head.HasValue())
         return Core::Unexpected(head.Error());
-    Sprite(pass, Spark, head.Value(), 3.0f, {0.0f, green, 0.0f});
-    if (auto made = Unported(pass, 0x5c6, 7, 0x428164); !made.HasValue())
+    const glm::vec3 light{0.0f, green, 0.0f};
+    Sprite(pass, Spark, head.Value(), 3.0f, light);
+    if (auto made =
+            Particle(pass, World::SparkParticle, World::GreenSparkSubtype, head.Value(), {}, light, 1.0f, 0x428164);
+        !made.HasValue())
         return made;
     constexpr std::array<ActionSound, 3> Sounds{{{3, 0x24e}, {4, 0x24f}, {6, 0x250}}};
     PlayTheSounds(pass, 0x24c, Sounds);
@@ -940,8 +1047,10 @@ Result DrawThe1b8(MonsterHelperPass& pass)
 }
 
 // 0x4282ea..0x4285a9, el 0x1ba: sus sonidos y, en cada cuerno (Monster104_Horn0 a Horn5, el formato de 0x6c72a8),
-// r = rand() % 10, un 0x5ad a 0,4 con (0,4; r · 0,01f + 0,8f; 0,5) y la partícula 0x5c6/6 (CL11). Con la tabla
-// llena, las seis vueltas y, en la 4, la 0x5f2/0x1a del punto (0, −100, 20) del pie, que tampoco crea nada.
+// r = rand() % 10, un 0x5ad a 0,4 con (0,4; r · 0,01f + 0,8f; 0,5) y, en el mismo punto, la chispa 0x5c6/6
+// (0x42849c) con ángulos (0, 0, 0), esa luz, escala 1 y sin dueño. En la 4 (0x4284b4), el humo 0x5f2/26 (0x4285a4) en
+// el punto (0, −100, 20) de Monster104_Footsteps (0x428540), con los ángulos del objeto, (0,5; 0,7f; 0,5), escala 1 y
+// sin dueño.
 Result DrawThe1ba(MonsterHelperPass& pass)
 {
     constexpr std::array<ActionSound, 3> Sounds{{{3, 0x253}, {4, 0x254}, {6, 0x255}}};
@@ -956,17 +1065,30 @@ Result DrawThe1ba(MonsterHelperPass& pass)
         const auto point = PointOf(pass, name, 0x428421);
         if (!point.HasValue())
             return Core::Unexpected(point.Error());
-        Sprite(pass, Spark, point.Value(), 0.4f, {0.4f, green, 0.5f});
-        if (auto made = Unported(pass, 0x5c6, 6, 0x42849c); !made.HasValue())
+        const glm::vec3 light{0.4f, green, 0.5f};
+        Sprite(pass, Spark, point.Value(), 0.4f, light);
+        if (auto made =
+                Particle(pass, World::SparkParticle, World::RareSparkSubtype, point.Value(), {}, light, 1.0f, 0x42849c);
+            !made.HasValue())
             return made;
     }
-    return {};
+    if (pass.actor.animation.action != 4)
+        return {};
+    // 0x4284f4: la luz (0,5; 0,7f; 0,5); 0x3f333333 es 0,7f.
+    constexpr glm::vec3 FootLight{0.5f, std::bit_cast<float>(0x3f333333u), 0.5f};
+    const auto foot = PointOf(pass, "Monster104_Footsteps", 0x428540, {0.0f, -100.0f, 20.0f});
+    if (!foot.HasValue())
+        return Core::Unexpected(foot.Error());
+    return Particle(pass, Breath, World::FadingSmokeSubtype, foot.Value(), pass.actor.angles, FootLight, 1.0f,
+                    0x4285a4);
 }
 
 // 0x4285b1..0x428daf, el 0x1bb: r = rand() % 8, la luz (r · 0,1f + 0,6f; 0; 0) para cinco 0x5ad (los ojos a 0,3 y
-// L_Arm00 a L_Arm02 a 1), sus sonidos y la partícula 0x6ec/6 de la mano izquierda (CL11). Con la tabla llena, la
-// 0x6ec/6 de la mano derecha tampoco crea nada, y en la 4 con el frame de 9 (0x6b887c) a 10 (0x6b87a8) sigue el
-// efecto 0x5e8.
+// L_Arm00 a L_Arm02 a 1), sus sonidos y una fanta 0x6ec/6 en cada mano, la izquierda primero, con ángulos (0, 0, 0)
+// (0x4285b1), esa luz y sin dueño. En la 4 (0x428a1d), las dos a 5 (0x40a00000) en el punto de la mano (0x428adc y
+// 0x428d56); en las demás, la izquierda a 2,5 (0x40200000, 0x428c52) y la derecha a 2,1f (0x40066666, 0x428d56) en el
+// punto (0, 0, −10) de la mano (0x428cf8). En la 4 con el frame de 9 (0x6b887c) a 10 (0x6b87a8) sigue el efecto 0x5e8
+// en el punto de la mano derecha.
 Result DrawThe1bb(MonsterHelperPass& pass)
 {
     if (auto ready = NeedTheSprites(pass, 0x4286b0); !ready.HasValue())
@@ -995,13 +1117,42 @@ Result DrawThe1bb(MonsterHelperPass& pass)
     PlayTheSounds(pass, 0x25b, Sounds);
     const ActorState& actor = pass.actor;
     const bool attacking = actor.animation.action == 4;
-    if (const auto hand = PointOf(pass, "Monster105_L_Hand", attacking ? 0x428a78 : 0x428bee); !hand.HasValue())
-        return Core::Unexpected(hand.Error());
-    if (auto made = Unported(pass, 0x6ec, 6, attacking ? 0x428adc : 0x428c52); !made.HasValue())
+    constexpr float AttackScale = 5.0f;                             // 0x428aaf y 0x428b70: 0x40a00000.
+    constexpr float LeftScale = 2.5f;                               // 0x428c25: 0x40200000.
+    constexpr float RightScale = std::bit_cast<float>(0x40066666u); // 0x428d3b: 2,1f.
+    const auto left = PointOf(pass, "Monster105_L_Hand", attacking ? 0x428a78 : 0x428bee);
+    if (!left.HasValue())
+        return Core::Unexpected(left.Error());
+    if (auto made = Particle(pass, World::CrywolfFanta, World::LongFantaSubtype, left.Value(), {}, light,
+                             attacking ? AttackScale : LeftScale, attacking ? 0x428adc : 0x428c52);
+        !made.HasValue())
+        return made;
+    const auto right = attacking ? PointOf(pass, "Monster105_R_Hand", 0x428b32)
+                                 : PointOf(pass, "Monster105_R_Hand", 0x428cf8, {0.0f, 0.0f, -10.0f});
+    if (!right.HasValue())
+        return Core::Unexpected(right.Error());
+    if (auto made = Particle(pass, World::CrywolfFanta, World::LongFantaSubtype, right.Value(), {}, light,
+                             attacking ? AttackScale : RightScale, 0x428d56);
+        !made.HasValue())
         return made;
     const float frame = actor.animation.frame;
-    if (attacking && frame >= 9.0f && frame <= 10.0f)
-        return Cut(0x428da7, "el efecto 0x5e8 (0x518cf0) de la mano izquierda", actor);
+    // 0x428d5b..0x428da7: 0x518cf0(0x5e8, [ebp−0x48], c+0x1c, la luz roja, 1, sin dueño, −1, 0, 0, 0, 0), el rayo blanco,
+    // sin rand(), en el último punto que escribió 0x4010b0: el de la mano derecha. Solo en un frame del original, como
+    // sus sonidos.
+    if (attacking && frame >= 9.0f && frame <= 10.0f && pass.originalFrame)
+    {
+        constexpr std::int16_t WhiteRay = 0x5e8;
+        constexpr std::int32_t WhiteRaySubtype = 1;
+        const auto made =
+            CreateHighModelEffect({.type = WhiteRay,
+                                   .position = right.Value(),
+                                   .angles = actor.angles,
+                                   .light = light,
+                                   .subtype = WhiteRaySubtype},
+                                  {.world = pass.world, .random = pass.random, .worldClock = pass.worldClock});
+        if (!made.HasValue())
+            return Core::Unexpected(made.Error());
+    }
     return {};
 }
 

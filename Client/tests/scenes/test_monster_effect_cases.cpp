@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Render/Models/Cloth.h"
+#include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/OriginalRetainedMath.h"
 #include "Render/Models/Skeleton.h"
 #include "Scenes/ActorState.h"
@@ -22,6 +23,7 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <bit>
 #include <cstddef>
 #include <cstdint>
@@ -377,14 +379,17 @@ TEST_F(ModelEffectsTest, TheDyingBurstCutsAtItsUnknownDust)
     }
 }
 
-// 0x507006 y 0x50749c: el 0x185 corta en su primer joint 0x614/7 y el 0x17e en su primer 0x5de, después del & 7.
-TEST_F(ModelEffectsTest, TheUnknownJointsAndParticlesCut)
+// 0x507006 y 0x50749c: el 0x185 crea sus catorce joints 0x614/7 (0x5315b7, sin rand()) y el 0x17e corta en su
+// primer 0x5de, después del & 7.
+TEST_F(ModelEffectsTest, TheBoneJointsAreCreatedAndTheUnknownParticlesCut)
 {
     for (const std::int32_t map : {0, 2})
     {
         SCOPED_TRACE(map);
+        Clear();
         CrtRandom random(Seed);
-        EXPECT_TRUE(CutAt(Step(0x185, map, random), "0x50706f"));
+        ASSERT_TRUE(Step(0x185, map, random).HasValue());
+        EXPECT_EQ(Joints(0x614), 14);
         EXPECT_EQ(random.State(), AfterDraws(Seed, 1).State());
         m_actor.word376 = 0x3f;
         CrtRandom other(Seed);
@@ -483,6 +488,98 @@ TEST_F(ModelEffectsTest, TheKalimaHelperKeepsItsStoneOrderAndPulseWhenPoolsFill)
             EXPECT_EQ(effects[index].ownerContext, nullptr);
         }
         EXPECT_EQ(random.State(), AfterDraws(Seed, capacity.draws).State());
+    }
+}
+
+// 0x43befb y 0x43bfa8: el 0x192 y el 0x197 (salvo el 0x197 en la 6, que vuelve sin rand(): 0x43bfaf) sacan rand() % 2;
+// en 0, el humo 0x5f2/0x11 en el punto (2, 30, 0) del hueso 6 (+0x120, el 0x192) o 31 (+0x5d0, el 0x197) por 0x4ec110,
+// con los ángulos del objeto (+0x1c), escala 1 y sin dueño (0x43bf75, 0x43c04b). La luz: (1; 0,2f; 0) del 0x192; la
+// del 0x197, (1; 0; 0) con +0x4 en 9 y (0; 0,3f; 1) si no. Con la tabla llena, sin los rand() del humo.
+TEST_F(ModelEffectsTest, TheKalimaSmokersBreatheFromTheirBone)
+{
+    m_actor.bodyPose.assign(40, Client::Render::Models::BoneTransform(1.0f));
+    for (std::size_t bone = 0; bone < m_actor.bodyPose.size(); ++bone)
+        m_actor.bodyPose[bone][3] = glm::vec3(0.0f, 0.0f, static_cast<float>(bone));
+    m_actor.angles = {0.0f, 0.0f, 30.0f};
+    const std::uint32_t smoky = FirstSeedWhere(
+        [](CrtRandom& random)
+        {
+            static_cast<void>(random.Next());
+            return random.Next() % 2 == 0;
+        });
+    const std::uint32_t clean = FirstSeedWhere(
+        [](CrtRandom& random)
+        {
+            static_cast<void>(random.Next());
+            return random.Next() % 2 != 0;
+        });
+    struct Case
+    {
+        std::uint16_t type;
+        std::uint8_t action;
+        std::int32_t subtype;
+        float bone;
+        glm::vec3 light;
+    };
+    const float fifth = std::bit_cast<float>(0x3e4ccccdu);
+    const float third = std::bit_cast<float>(0x3e99999au);
+    for (const std::int32_t map : {0, 24})
+    {
+        for (const Case& value :
+             {Case{0x192, 0, 0, 6.0f, {1.0f, fifth, 0.0f}}, Case{0x192, 6, 9, 6.0f, {1.0f, fifth, 0.0f}},
+              Case{0x197, 0, 9, 31.0f, {1.0f, 0.0f, 0.0f}}, Case{0x197, 3, 0, 31.0f, {0.0f, third, 1.0f}}})
+        {
+            SCOPED_TRACE(testing::Message()
+                         << map << " " << value.type << " " << static_cast<int>(value.action) << " " << value.subtype);
+            Clear();
+            m_actor.animation.action = value.action;
+            m_actor.subtype = value.subtype;
+            CrtRandom random(smoky);
+            const auto stepped = Step(value.type, map, random);
+            ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+            auto reference = std::make_unique<Client::World::Particles>();
+            CrtRandom expected = AfterDraws(smoky, 2);
+            const glm::vec3 point = m_actor.position + glm::vec3(2.0f, 30.0f, value.bone);
+            const auto made =
+                reference->CreateChecked(0x5f2, point, m_actor.angles, value.light, 0x11, 1.0f, Clock, expected, 0);
+            ASSERT_TRUE(made.HasValue());
+            ASSERT_TRUE(made.Value().has_value());
+            EXPECT_EQ(random.State(), expected.State());
+            ASSERT_EQ(Alive(0x5f2, 0x11), 1);
+            const Client::World::Particle& want = reference->All()[*made.Value()];
+            const auto all = m_world->Particles().All();
+            const auto got =
+                std::ranges::find_if(all, [](const Client::World::Particle& particle) { return particle.alive; });
+            ASSERT_NE(got, all.end());
+            EXPECT_EQ(got->position, want.position);
+            EXPECT_EQ(got->angles, want.angles);
+            EXPECT_EQ(got->light, want.light);
+            EXPECT_EQ(got->scale, want.scale);
+            EXPECT_EQ(got->life, want.life);
+            EXPECT_EQ(got->rotation, want.rotation);
+            EXPECT_EQ(got->rotationFactor, want.rotationFactor);
+            EXPECT_EQ(got->field64, want.field64);
+            EXPECT_EQ(got->owner, want.owner);
+
+            Clear();
+            CrtRandom dry(clean);
+            ASSERT_TRUE(Step(value.type, map, dry).HasValue());
+            EXPECT_EQ(dry.State(), AfterDraws(clean, 2).State());
+            EXPECT_EQ(Alive(0x5f2, 0x11), 0);
+
+            for (auto& particle : m_world->Particles().All())
+                particle.alive = true;
+            CrtRandom crowded(smoky);
+            ASSERT_TRUE(Step(value.type, map, crowded).HasValue());
+            EXPECT_EQ(crowded.State(), AfterDraws(smoky, 2).State());
+        }
+        // El 0x197 en la 6: sólo el rand() de 0x506cac.
+        Clear();
+        m_actor.animation.action = 6;
+        CrtRandom still(smoky);
+        ASSERT_TRUE(Step(0x197, map, still).HasValue());
+        EXPECT_EQ(still.State(), AfterDraws(smoky, 1).State());
+        EXPECT_EQ(Alive(0x5f2, 0x11), 0);
     }
 }
 

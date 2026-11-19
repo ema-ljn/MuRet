@@ -9,22 +9,27 @@
 #include "Render/Models/Skeleton.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/AttackSkillReads.h"
+#include "Scenes/BlastEffectCalls.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/CharacterStep.h"
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/HeroAttack.h"
+#include "Scenes/HighModelEffects.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/PlayerActionSpeeds.h"
+#include "Scenes/WizardEffects.h"
 #include "Scenes/WorldMap.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "World/IFishStepServices.h"
 #include "World/Particles.h"
 #include "World/ModelEffects.h"
+#include "World/WizardModelEffects.h"
 
 #include <glm/ext/vector_float3.hpp>
 
 #include <algorithm>
+#include <array>
 #include <bit>
 #include <cstddef>
 #include <cstdint>
@@ -42,6 +47,15 @@ namespace
 bool HasFreeEffect(const CharacterStepContext& context)
 {
     return std::ranges::any_of(context.world.Map().effects.Effects(), [](const auto& effect) { return !effect.alive; });
+}
+
+// 0x518cf0 de un tipo alto (Scenes/HighModelEffects) desde un caso, con la dirección del llamador delante del error.
+Core::Expected<void, std::string> CreateHighEffect(const World::ModelEffectArguments& arguments,
+                                                   const CharacterStepContext& context, std::uint32_t address)
+{
+    if (auto made = CreateHighModelEffect(arguments, HighContextOf(context)); !made.HasValue())
+        return Core::Unexpected(std::format("{:#x}: {}", address, made.Error()));
+    return {};
 }
 
 bool HasFreeJoint(const CharacterStepContext& context)
@@ -199,10 +213,34 @@ Core::Expected<void, std::string> StepTheSkill2b(ActorState& actor, std::uint8_t
     constexpr std::uint8_t LastSparkStep = 12;
     if (step >= FirstSparkStep && step <= LastSparkStep)
     {
-        if (HasFreeEffect(context))
-            return CutAt(0x4f9b49,
-                         "los dos efectos 0x812/1 delante de la mano (CL11); detrás, +0x1a0 del blanco en 0x23", skill,
-                         actor, slot);
+        // El largo ((+0x381 − 8) · 10 + 100) y el rumbo quedan en la x87; FSIN y FCOS retenidos por el largo, un solo
+        // redondeo (PC53), y la suma guardada en float.
+        constexpr double SparkStepLength = 10.0, SparkBase = 100.0; // 0x6b87a8 y 0x6b86b4
+        constexpr std::int32_t SparkSubtype = 1;
+        constexpr std::int16_t SparkEmitter = 0x812;
+        glm::vec3 point = BonePoint(actor, bone, glm::vec3(0.0f), context.world);
+        const double length = static_cast<double>(static_cast<int>(step) - 8) * SparkStepLength + SparkBase;
+        const double angle = static_cast<double>(actor.angles.z) * Degree;
+        const auto sine = Render::Models::Detail::SineDoubleProductPC53(angle, length);
+        const auto cosine = Render::Models::Detail::CosineDoubleProductPC53(angle, length);
+        if (!sine || !cosine)
+            return Core::Unexpected(std::format("0x4f9b2c: el rumbo {} de las chispas de la {:#x} no cabe en el "
+                                                "perfil PC53",
+                                                actor.angles.z, skill));
+        point.x = static_cast<float>(*sine + static_cast<double>(point.x));
+        point.y = static_cast<float>(static_cast<double>(point.y) - *cosine);
+        for (const std::uint32_t address : {0x4f9b49u, 0x4f9b69u})
+        {
+            if (auto made = CreateHighEffect({.type = SparkEmitter,
+                                              .position = point,
+                                              .angles = actor.angles,
+                                              .light = glm::vec3(1.0f),
+                                              .subtype = SparkSubtype,
+                                              .owner = &actor},
+                                             context, address);
+                !made.HasValue())
+                return made;
+        }
         const auto actors = context.world.Actors();
         if (step >= 10 && actor.attackTarget != 0xffff && actor.attackTarget < actors.size() &&
             actors[actor.attackTarget].alive)
@@ -272,7 +310,7 @@ Core::Expected<void, std::string> StepTheSkill2c(ActorState& actor, std::uint8_t
 }
 
 // 0x4f9bce..0x4f9e60: la 0x2f.
-Core::Expected<void, std::string> StepTheSkill2f(const ActorState& actor, std::uint8_t skill, std::size_t slot,
+Core::Expected<void, std::string> StepTheSkill2f(ActorState& actor, std::uint8_t skill, std::size_t,
                                                  const CharacterStepContext& context)
 {
     constexpr std::uint8_t SoundStep = 10;
@@ -289,30 +327,88 @@ Core::Expected<void, std::string> StepTheSkill2f(const ActorState& actor, std::u
     {
         // 0x4f9c0e..0x4f9c8d: 0x4ec110 con el hueso de la mano y 0x518cf0(0x813, punto, o+0x1c, (1; 1; 0,5), el modelo
         // de la mano (MOVSX), o, −1, 0, 0, 0, 0).
-        if (HasFreeEffect(context))
-            return CutAt(0x4f9c8d, "el efecto 0x813 en el hueso de la mano, con su modelo de subtipo (CL11)", skill,
-                         actor, slot);
+        constexpr std::int16_t BoltEmitter = 0x813;
+        const ActorItemPart& hand = actor.hands[HandOf(actor)];
+        const glm::vec3 point = BonePoint(actor, hand.bone, glm::vec3(0.0f), context.world);
+        return CreateHighEffect({.type = BoltEmitter,
+                                 .position = point,
+                                 .angles = actor.angles,
+                                 .light = {1.0f, 1.0f, 0.5f},
+                                 .subtype = std::bit_cast<std::int16_t>(hand.model),
+                                 .owner = &actor},
+                                context, 0x4f9c8d);
     }
     else if (step == SparkStep)
     {
         // 0x4f9ca2..0x4f9d3c: la posición 50 por delante (0x6b86b0) y 110 más arriba (0x6ba184), y dos
-        // 0x518cf0(0x812, punto, o+0x1c, (1; 1; 1), 0, o, −1, 0, 0, 0, 0).
-        if (HasFreeEffect(context))
-            return CutAt(0x4f9d1c, "los dos efectos 0x812/0 delante del que pega (CL11)", skill, actor, slot);
+        // 0x518cf0(0x812, punto, o+0x1c, (1; 1; 1), 0, o, −1, 0, 0, 0, 0). FSIN y FCOS retenidos por 50 (PC53).
+        constexpr float Ahead = 50.0f;
+        constexpr double Lift = 110.0;
+        constexpr std::int16_t SparkEmitter = 0x812;
+        const double angle = static_cast<double>(actor.angles.z) * Degree;
+        const auto sine = Render::Models::Detail::SineProductPC53(angle, Ahead);
+        const auto cosine = Render::Models::Detail::CosineProductPC53(angle, Ahead);
+        if (!sine || !cosine)
+            return Core::Unexpected(std::format(
+                "0x4f9cb6: el rumbo {} de las chispas de la {:#x} no cabe en el perfil PC53", actor.angles.z, skill));
+        glm::vec3 point = actor.position;
+        point.x = static_cast<float>(*sine + static_cast<double>(point.x));
+        point.y = static_cast<float>(static_cast<double>(point.y) - *cosine);
+        point.z = static_cast<float>(static_cast<double>(point.z) + Lift);
+        for (const std::uint32_t address : {0x4f9d1cu, 0x4f9d3cu})
+        {
+            if (auto made = CreateHighEffect({.type = SparkEmitter,
+                                              .position = point,
+                                              .angles = actor.angles,
+                                              .light = glm::vec3(1.0f),
+                                              .owner = &actor},
+                                             context, address);
+                !made.HasValue())
+                return made;
+        }
     }
-    // 0x4f9d44..0x4f9e52: en 13 y 14, tres veces la posición 145 por delante (0x6ba180) y 110 más arriba, tres
-    // rand() % 60 − 30 (salvo en 11, que no llega), y 0x518cf0(0x10f, punto, o+0x1c, (0,3; 0,3; 0,3), el modelo de la
-    // mano, o, −1, 0, 0, 0, 0).
+    // 0x4f9d44..0x4f9e52: en 13 y 14, tres veces la posición de o 145 por delante por el rumbo (+0x24 · π/180; FSIN y
+    // FCOS retenidos y el FMUL por 145 redondea una sola vez: el perfil PC53) y 110 más arriba (0x6ba184), tres
+    // rand() % 60 − 30 sumados con FILD + FADD (salvo en 11, 0x4f9dab, que no llega) y 0x518cf0(0x10f, punto, o+0x1c,
+    // (0,3; 0,3; 0,3) de 0x4f9d78, el modelo de la mano (MOVSX), o, −1, 0, 0, 0, 0) (0x4f9e49, lote switch de la CL11).
+    // Con la tabla llena, el lazo sigue con sus rand().
     constexpr std::uint8_t FirstRockStep = 13;
     constexpr std::uint8_t LastRockStep = 14;
     if (step < FirstRockStep || step > LastRockStep)
         return {};
-    for (int rock = 0; rock < 3; ++rock)
+    constexpr int Rocks = 3;
+    constexpr float RockReach = 145.0f; // 0x6ba180
+    constexpr double RockRise = 110.0;  // 0x6ba184
+    constexpr int Scatter = 60;
+    constexpr int ScatterCentre = 30;
+    constexpr std::int16_t RockEffect = 0x10f;
+    constexpr glm::vec3 RockLight{0.3f, 0.3f, 0.3f}; // 0x3e99999a
+    const std::int32_t subtype = std::bit_cast<std::int16_t>(actor.hands[HandOf(actor)].model);
+    for (int rock = 0; rock < Rocks; ++rock)
     {
-        DrawThePoint(context);
-        if (HasFreeEffect(context))
-            return CutAt(0x4f9e49, "el primero de los tres efectos 0x10f delante del que pega (CL11)", skill, actor,
-                         slot);
+        const double angle = static_cast<double>(actor.angles.z) * Degree;
+        const auto sine = Render::Models::Detail::SineProductPC53(angle, RockReach);
+        const auto cosine = Render::Models::Detail::CosineProductPC53(angle, RockReach);
+        if (!sine || !cosine)
+            return Core::Unexpected(std::format(
+                "0x4f9d8f: el rumbo {} de la piedra de la {:#x} no cabe en el perfil PC53", actor.angles.z, skill));
+        glm::vec3 point = actor.position;
+        point.x = static_cast<float>(*sine + static_cast<double>(point.x));
+        point.y = static_cast<float>(static_cast<double>(point.y) - *cosine);
+        point.z = static_cast<float>(static_cast<double>(point.z) + RockRise);
+        for (int axis = 0; axis < 3; ++axis)
+        {
+            const int offset = context.random.Next() % Scatter - ScatterCentre;
+            point[axis] = static_cast<float>(static_cast<double>(offset) + static_cast<double>(point[axis]));
+        }
+        const World::ModelEffectArguments arguments{.type = RockEffect,
+                                                    .position = point,
+                                                    .angles = actor.angles,
+                                                    .light = RockLight,
+                                                    .subtype = subtype,
+                                                    .owner = &actor};
+        if (auto made = CreateBlastEffect(arguments, &actor, context); !made.HasValue())
+            return Core::Unexpected(made.Error());
     }
     return {};
 }
@@ -365,8 +461,19 @@ Core::Expected<void, std::string> StepTheSkill37(ActorState& actor, std::uint8_t
     }
     // 0x4f9f0c..0x4f9f3e: en 1 y 2, 0x518cf0(0x621, o+0x10, o+0x1c, o+0xf4, 1, o, −1, 0, 0, 0, 0).
     constexpr std::uint8_t LastGlowStep = 2;
-    if (actor.byte381 >= 1 && actor.byte381 <= LastGlowStep && HasFreeEffect(context))
-        return CutAt(0x4f9f3e, "el efecto 0x621/1 sobre el que tira (CL11)", skill, actor, slot);
+    if (actor.byte381 >= 1 && actor.byte381 <= LastGlowStep)
+    {
+        constexpr std::int32_t HeldGlowSubtype = 1;
+        if (auto made = CreateHighEffect({.type = World::PiercingShotGlowEffect,
+                                          .position = actor.position,
+                                          .angles = actor.angles,
+                                          .light = actor.light,
+                                          .subtype = HeldGlowSubtype,
+                                          .owner = &actor},
+                                         context, 0x4f9f3e);
+            !made.HasValue())
+            return made;
+    }
     // 0x4f9f46..0x4f9f57: antes del frame 3, o con NaN, sale.
     if (!(FrameOf(actor) >= ThirdFrame))
     {
@@ -414,13 +521,31 @@ Core::Expected<void, std::string> StepTheSkill38(ActorState& actor, std::uint8_t
     constexpr std::uint8_t SpinAction = 0x8d;
     if (IsPlayer(actor) && ActionOf(actor) == SpinAction)
     {
-        // 0x4fa4c1..0x4fa5ba: cinco 0x518cf0(0xce, o+0x10, ángulos con la z 40 menos y 20 más cada vez, o+0xf4, 2, o,
-        // −1, 0, 0, 0, 0), 0x41ed10(0x72, 0, 0) y +0x381 en 15.
-        if (HasFreeEffect(context))
-            return CutAt(0x4fa4fa,
-                         "el primero de los cinco efectos 0xce/2 (CL11); detrás, el sonido 0x72 y +0x381 en 15", skill,
-                         actor, slot);
-        RequestTheSound(context, 0x72);
+        // 0x4fa4c1..0x4fa5ba: cinco 0x518cf0(0xce, o+0x10, ángulos, o+0xf4, 2, o, −1, 0, 0, 0, 0) con los de o y la z
+        // 40 menos y después 20 más cada vez (fld, fsub o fadd y fstp sobre el local), cuyas altas cuentan en el
+        // registro propio; después 0x41ed10(0x72, 0, 0) y +0x381 en 15.
+        constexpr int Waves = 5;
+        constexpr double FirstTurn = 40.0; // 0x6b8bf4
+        constexpr double NextTurn = 20.0;  // 0x6b86d0
+        constexpr std::int32_t WaveSubtype = 2;
+        constexpr std::int32_t SpinSound = 0x72;
+        constexpr std::array<std::uint32_t, Waves> Calls{0x4fa4fa, 0x4fa523, 0x4fa54f, 0x4fa578, 0x4fa5a4};
+        glm::vec3 angles = actor.angles;
+        angles.z = static_cast<float>(static_cast<double>(angles.z) - FirstTurn);
+        for (int wave = 0; wave < Waves; ++wave)
+        {
+            if (wave > 0)
+                angles.z = static_cast<float>(static_cast<double>(angles.z) + NextTurn);
+            const auto created = CreateWizardEffect(
+                context, WizardArguments(World::MagicEffect, actor.position, angles, actor.light, WaveSubtype, &actor));
+            if (!created.HasValue())
+            {
+                return Core::Unexpected(std::format("{:#x}: el 0xce/2 de la habilidad {:#x} del lugar {}: {}",
+                                                    Calls[static_cast<std::size_t>(wave)], skill, slot,
+                                                    created.Error()));
+            }
+        }
+        RequestTheSound(context, SpinSound);
         actor.byte381 = AttackDone;
     }
     // 0x4fa5c3.

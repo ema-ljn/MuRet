@@ -463,7 +463,7 @@ TEST_F(KalimaSiegeHelperTest, KundunRoarsShakesAndDropsStonesInKalima)
 }
 
 // Las acciones 3 y 4 de Kundun: el efecto 0x128 (0x518cf0, CL11) con lugar en la tabla corta; llena, nada. En la 4,
-// pasado el 6, veinticuatro joints 0x6ee/14 (CL11) y, en Kalima, 0x437860; pasado el 9, otra vez 0x437860; pasado el
+// pasado el 6, veinticuatro joints 0x6ee/0xe y, en Kalima, 0x437860; pasado el 9, otra vez 0x437860; pasado el
 // 6, el temblor (rand() & 15 − 16) · 0,1.
 TEST_F(KalimaSiegeHelperTest, KundunAttacksCutInTheirEffectsAndJoints)
 {
@@ -484,10 +484,34 @@ TEST_F(KalimaSiegeHelperTest, KundunAttacksCutInTheirEffectsAndJoints)
     FillParticles();
     ExpectCut(Draw(2), "0x43d0fd", "0x128/1");
 
+    // 0x43d19f: los veinticuatro joints 0x6ee/0xe (0x53349a: quietos, vida 10, un punto y la x de los ángulos en 20)
+    // desde el hueso 49 a 400 de altura; fuera de Kalima, el temblor y nada más.
     SetUp();
-    Actor(0x192, 4, 6.5f).dword60 = 0x65;
+    ActorState& burst = Actor(0x192, 4, 6.5f);
+    burst.dword60 = 0x65;
     FillParticles();
-    ExpectCut(Draw(0), "0x43d19f", "0x6ee");
+    {
+        CrtRandom expected{Seed};
+        static_cast<void>(expected.Next());
+        static_cast<void>(expected.Next());
+        const auto result = Draw(0);
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        EXPECT_EQ(burst.dword60, 0x66);
+        EXPECT_EQ(std::ranges::count_if(m_joints, [](const Client::Scenes::JointState& joint) { return joint.alive; }),
+                  24);
+        for (std::size_t turn = 0; turn < 24; ++turn)
+        {
+            const Client::Scenes::JointState& joint = m_joints[turn];
+            EXPECT_EQ(joint.type, 0x6ee);
+            EXPECT_EQ(joint.subtype, 0xe);
+            EXPECT_EQ(joint.angles, glm::vec3(20.0f, 0.0f, 30.0f * static_cast<float>(turn)));
+            EXPECT_EQ(joint.position.z, 400.0f);
+            EXPECT_EQ(joint.life, 10);
+            EXPECT_EQ(joint.maximumCount, 1);
+            EXPECT_EQ(joint.width, 100.0f);
+        }
+        EXPECT_EQ(m_random.State(), expected.State());
+    }
 
     for (const std::int32_t map : {2, 24})
     {
@@ -554,8 +578,8 @@ TEST_F(KalimaSiegeHelperTest, TheThirdKalimaHelperDrawsTwelveSprites)
     EXPECT_TRUE(Sprites().empty());
 }
 
-// 0x43e080..0x43e3f2, el 0x194: ocho sprites con dos rand() % 360 y, en la acción 3, los joints 0x614/7 entre los
-// huesos 10..16 y 31..37 (CL11).
+// 0x43e080..0x43e3f2, el 0x194: ocho sprites con dos rand() % 360 y, en la acción 3, los doce joints 0x614/7 entre
+// los huesos 10..16 y 31..37, sin rand() (0x5315b7).
 TEST_F(KalimaSiegeHelperTest, TheFourthKalimaHelperTurnsItsGlowsAndChainsItsBones)
 {
     Actor(0x194, 0);
@@ -573,7 +597,18 @@ TEST_F(KalimaSiegeHelperTest, TheFourthKalimaHelperTurnsItsGlowsAndChainsItsBone
 
     SetUp();
     Actor(0x194, 3);
-    ExpectCut(Draw(36), "0x43e368", "0x614");
+    ASSERT_TRUE(Draw(36).HasValue());
+    EXPECT_EQ(std::ranges::count_if(m_joints, [](const Client::Scenes::JointState& joint) { return joint.alive; }), 12);
+    EXPECT_EQ(m_joints[0].type, 0x614);
+    EXPECT_EQ(m_joints[0].subtype, 7);
+    EXPECT_EQ(m_joints[0].position, Bone(10));
+    EXPECT_EQ(m_joints[0].targetPosition, Bone(11));
+    EXPECT_EQ(m_joints[0].maximumCount, 3);
+    EXPECT_EQ(m_joints[0].life, 1);
+    EXPECT_TRUE(m_joints[0].repeatedTexture);
+    EXPECT_EQ(m_joints[6].position, Bone(31));
+    EXPECT_EQ(m_joints[11].targetPosition, Bone(37));
+    EXPECT_EQ(m_random.State(), After(2));
     SetUp();
     Actor(0x194, 3);
     FillJoints();
@@ -667,11 +702,13 @@ TEST_F(KalimaSiegeHelperTest, TheSixthKalimaHelperBeatsAndSparks)
 }
 
 // 0x43e924..0x43ebef, el 0x197: rojo con el subtipo 9 (+0x4) y azul con otro; seis vueltas de dos partículas por los
-// huesos 41 y 51 (0x5da/1 o 0x5dc/12). En la acción 6 suelta las dos manos.
+// huesos 41 y 51 (0x5da/1 o 0x5dc/12). La 0x5da/1 (0x540d1b) vive 3 y saca dos rand(): el empuje ((rand() & 7) + 32) ·
+// −0,3f en y y el giro. En la acción 6 suelta las dos manos.
 TEST_F(KalimaSiegeHelperTest, TheSeventhKalimaHelperIsRedOrBlue)
 {
     Actor(0x197, 0).subtype = 9;
-    ExpectCut(Draw(36), "0x43eb65", "0x5da/1");
+    ASSERT_TRUE(Draw(36).HasValue());
+    EXPECT_EQ(m_random.State(), After(24));
     auto sprites = Sprites();
     ASSERT_EQ(sprites.size(), 4u);
     const float lum = F32(std::sin(D(Clock) * D(0.003f)) * D(0.2f) + D(0.8f));
@@ -679,6 +716,21 @@ TEST_F(KalimaSiegeHelperTest, TheSeventhKalimaHelperIsRedOrBlue)
     EXPECT_EQ(sprites[0].position, Bone(33));
     EXPECT_EQ(sprites[0].light, glm::vec3(lum, pale, pale));
     EXPECT_EQ(sprites[3].position, Bone(34));
+    CrtRandom red{Seed};
+    for (std::size_t slot = 0; slot < 12; ++slot)
+    {
+        const auto& particle = m_particles->All()[slot];
+        EXPECT_EQ(particle.type, 0x5da);
+        EXPECT_EQ(particle.subtype, 1);
+        EXPECT_EQ(particle.life, 3);
+        EXPECT_EQ(particle.light, glm::vec3(lum, pale, pale));
+        const float offset = -40.0f - static_cast<float>(slot / 2) * 24.0f;
+        EXPECT_EQ(particle.position, Bone(slot % 2 == 0 ? 41 : 51, {0.0f, offset, 0.0f}));
+        EXPECT_EQ(particle.scale, F32(D(7.2f) / static_cast<double>((slot / 2) / 2 + 6)));
+        EXPECT_EQ(particle.velocity, glm::vec3(0.0f, F32(static_cast<double>((red.Next() & 7) + 32) * -D(0.3f)), 0.0f));
+        EXPECT_EQ(particle.rotation, static_cast<float>(red.Next() % 360));
+    }
+    EXPECT_FALSE(m_particles->All()[12].alive);
 
     SetUp();
     Actor(0x197, 0).subtype = 2;

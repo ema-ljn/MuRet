@@ -13,6 +13,7 @@
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/FullSetScan.h"
 #include "Scenes/GameDrawTail.h"
+#include "Scenes/JointFamilies.h"
 #include "Scenes/PartyActors.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/SocialState.h"
@@ -29,7 +30,6 @@
 
 #include <glm/ext/vector_float3.hpp>
 
-#include <algorithm>
 #include <array>
 #include <bit>
 #include <cstddef>
@@ -308,16 +308,44 @@ Core::Expected<AfterTheActions, std::string> Actions(Tail& tail)
             std::format("0x50f9b3: el efecto 0x621 y el sonido 0x1cc de la acción {:#x} no están portados", action));
     // 0x50f9c9: por debajo de 2 (también con NaN, como el fcomp) y con party (0x78aba48 sobre 0), 0x59e680. Fuera de
     // la party salta a 0x510a7a, sin las banderas, el contador ni el conjunto, también entre frames. En la party, dos
-    // joints 0x618 (/0xc y /0xd, de ancho 20) hacia cada miembro a la vista (+0x1c en 0 o más) que no es él.
+    // joints 0x618 (/0xc y /0xd, de ancho 20, BeamJoints.cpp) por cada miembro a la vista (+0x1c en 0 o más) que no es
+    // él, desde ese miembro 150 más arriba, con los ángulos del personaje y él de dueño (0x50fa1c..0x50faba).
     if (!(frame >= PartyFrameLimit) && !tail.pass.party.empty())
     {
         if (!IsInTheParty(tail.pass.party, actor))
             return GuildMark;
-        const auto other = [&tail](const PartySlot& member)
-        { return member.actorIndex >= 0 && static_cast<std::size_t>(member.actorIndex) != tail.pass.slot; };
-        if (original && std::ranges::any_of(tail.pass.party, other))
-            return Core::Unexpected(
-                std::format("0x50fa74: los joints 0x618 de la acción {:#x} hacia la party no están portados", action));
+        for (const PartySlot& member : tail.pass.party)
+        {
+            if (!original || member.actorIndex < 0 || static_cast<std::size_t>(member.actorIndex) == tail.pass.slot)
+                continue;
+            const auto index = static_cast<std::size_t>(member.actorIndex);
+            if (index >= tail.pass.actors.size())
+                return Core::Unexpected(
+                    std::format("0x50fa3b: el miembro {} de la party de la acción {:#x} está fuera de los personajes",
+                                index, action));
+            if (tail.pass.joints.empty())
+                return Core::Unexpected(std::string("0x50fa74: faltan los joints del frame (0x530860)"));
+            const glm::vec3& at = tail.pass.actors[index].position;
+            glm::vec3 from{at.x, at.y, F32(D(at.z) + 150.0)}; // 0x6b87ac
+            for (const std::int32_t subtype : {0xc, 0xd})
+            {
+                const World::FishEffectRequest request{.type = JointFamilies::BeamJoint,
+                                                       .firstPosition = from,
+                                                       .secondPosition = from,
+                                                       .angles = tail.actor.angles,
+                                                       .subtype = subtype,
+                                                       .ownerContext = &tail.actor,
+                                                       .scale = 20.0f,
+                                                       .key = -1,
+                                                       .skill = 0,
+                                                       .skillSerial = 0,
+                                                       .target = NoTarget};
+                const auto created = CreateFaunaJoint(tail.pass.joints, request, tail.pass.random);
+                if (!created.HasValue())
+                    return Core::Unexpected(
+                        std::format("{}: {}", subtype == 0xc ? "0x50fa74" : "0x50fa97", created.Error()));
+            }
+        }
     }
     // 0x50fac5: en [7, 8), dos 0x117/2 en la mano derecha.
     if (original && !(frame < SecondWindowStart) && frame < SecondWindowEnd)
@@ -731,18 +759,24 @@ Core::Expected<void, std::string> StepSkillFlare(World::ModelEffect& effect, std
     return {};
 }
 
+bool StepsAsPetSummon(const World::ModelEffect& effect)
+{
+    // 0x52b984..0x52b9a5: los /4 y /6 a /0xa saltan a 0x52b9b8; los demás de 1 en adelante, a 0x518900.
+    constexpr std::int32_t PulsingSubtype = 4, FirstBindingSubtype = 6, LastOwnSubtype = 0xa;
+    return effect.type == World::ColoredDecalEffect && effect.subtype != PulsingSubtype &&
+           (effect.subtype < FirstBindingSubtype || effect.subtype > LastOwnSubtype);
+}
+
 Core::Expected<void, std::string> StepPetSummon(World::ModelEffect& effect, std::span<JointState> joints,
                                                 Render::Models::CrtRandom& random)
 {
     if (!effect.alive)
         return {};
-    if (effect.type != World::ColoredDecalEffect ||
-        (effect.subtype != World::LevelUpDecalSubtype && effect.subtype != World::PetSummonSubtype &&
-         effect.subtype != World::SummonDecalSubtype))
+    if (!StepsAsPetSummon(effect))
         return Core::Unexpected(
-            std::format("0x52b9a6: el efecto {:#x}/{} no es el 0x61e/0, /1 ni /3", effect.type, effect.subtype));
-    // 0x52b984 → 0x52b9b8 → 0x52bb29: el /0 no entra en 0x518900, ni consulta joints o dueño.
-    if (effect.subtype == World::LevelUpDecalSubtype)
+            std::format("0x52b9a6: el efecto {:#x}/{} no va a 0x518900", effect.type, effect.subtype));
+    // 0x52b984 → 0x52b9b8 → 0x52bb29: el /0 (y un subtipo negativo) no entra en 0x518900, ni consulta joints o dueño.
+    if (effect.subtype < World::PetSummonSubtype)
     {
         static_cast<void>(random.Next());
         World::StepModelEffect(effect, nullptr);
@@ -753,6 +787,9 @@ Core::Expected<void, std::string> StepPetSummon(World::ModelEffect& effect, std:
     // 0x5208c5: el primer rand() corre para todo efecto vivo, aunque el 0x61e no use la luz.
     static_cast<void>(random.Next());
     glm::vec3& position = effect.transform.position;
+    // 0x51898b..0x5189bd: el /5 pide el 619/0xb; los demás, el de su subtipo.
+    constexpr std::int32_t SwappedSubtype = 5, SwappedJointSubtype = 0xb;
+    const std::int32_t jointSubtype = effect.subtype == SwappedSubtype ? SwappedJointSubtype : effect.subtype;
     for (int made = 0; made < SummonJoints; ++made)
     {
         glm::vec3 angles{static_cast<float>(random.Next() % SummonPitchSpan), 0.0f,
@@ -764,7 +801,7 @@ Core::Expected<void, std::string> StepPetSummon(World::ModelEffect& effect, std:
                         F32(D(position.z) - D(reach.z) + SummonLift)};
         const auto created = CreateFaunaJoint(
             joints,
-            {EnergyType, start, position, angles, effect.subtype, effect.ownerContext, SummonWidth, NoKey, 0, 0,
+            {EnergyType, start, position, angles, jointSubtype, effect.ownerContext, SummonWidth, NoKey, 0, 0,
              NoTarget},
             random, effect.owner.effect != nullptr ? JointOwnerKind::ModelEffect : JointOwnerKind::ByType);
         if (!created.HasValue())

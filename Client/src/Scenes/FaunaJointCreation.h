@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Scenes/GameDrawTail.h"
+#include "Scenes/JointKernels.h"
 #include "World/IFishStepServices.h"
 
 #include <cstddef>
@@ -42,7 +43,8 @@ inline constexpr std::int32_t KillBeamJoint = 0x618;
 
 [[nodiscard]] Core::Expected<std::optional<std::size_t>, std::string>
 CreateFaunaJoint(std::span<JointState> joints, const World::FishEffectRequest& request,
-                 Render::Models::CrtRandom& random, JointOwnerKind ownerKind = JointOwnerKind::ByType);
+                 Render::Models::CrtRandom& random, JointOwnerKind ownerKind = JointOwnerKind::ByType,
+                 const JointKernels::CreationServices* services = nullptr);
 // 535840: 697/0 y618/4 siguen el+40 del dueño;610/8 sigue position con z300;
 // 10f/3 usa vida/RNG, seno y color del dueño.614/10 y 614/14 giran e iteran su cola sin leer al dueño;
 // el 618/0x11 sigue el +0x40 del personaje y el 610/4 va de su +0x17c a su posición; el 60f/0, el 60f/0xa (que baja) y
@@ -55,9 +57,12 @@ CreateFaunaJoint(std::span<JointState> joints, const World::FishEffectRequest& r
 // Castle pide los sprites del frame (0x5491e0) y las partículas. El615/7 de la llegada comparte geometría sin esas
 // emisiones. Los618/2y/3 siguen los dos puntos del dueño y emiten5d5/0 con el seno del reloj.
 [[nodiscard]] Core::Expected<void, std::string> StepJoints(std::span<JointState> joints);
-// El 618/0 y /1 piden además la luz dinámica (`lighting`, 0x7b4ccc4) y el sonido 0x23 (0x41ed10) al llegar.
+// El 618/0 y /1 piden además la luz dinámica (`lighting`, 0x7b4ccc4) y el sonido 0x23 (0x41ed10) al llegar; el
+// 613/0 y el /5, la altura del terreno (`terrainHeight`, 0x5f93c0); el 0x10f/4 y el /9, los 400 personajes
+// (`actors`, 0x743a16c).
 [[nodiscard]] Core::Expected<void, std::string>
 StepJoints(std::span<JointState> joints, Render::Models::CrtRandom& random, Render::Models::ClothWorld* cloth = nullptr,
            World::Particles* particles = nullptr, float worldClock = 0, World::FrameSprites* sprites = nullptr,
-           World::TerrainLighting* lighting = nullptr, const std::function<void(std::int32_t)>& soundRequest = {});
+           World::TerrainLighting* lighting = nullptr, const std::function<void(std::int32_t)>& soundRequest = {},
+           const std::function<double(float, float)>& terrainHeight = {}, std::span<const ActorState> actors = {});
 } // namespace Client::Scenes

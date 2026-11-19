@@ -1,4 +1,5 @@
 #include "Scenes/AttackStep.h"
+#include "Scenes/AttackSkillCases.h"
 
 #include "Core/Expected.h"
 #include "Data/Terrain/TerrainAttributes.h"
@@ -18,6 +19,7 @@
 #include "World/GameModelEffects.h"
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
+#include "World/WizardModelEffects.h"
 #include "World/PortableParticleTrigonometry.h"
 #include "World/TerrainLighting.h"
 
@@ -340,7 +342,9 @@ TEST(AttackStepTest, TheMapHelpersOfTheMonstersExitOrCut)
         Case{"Kalima fuera de Kalima", 0, 0x160, 0x91, 1, "", CountingStep},
         Case{"el 31", 0x1f, 0x160, 0x123, 1, "", Helper},
         Case{"el 31 con otro", 0x1f, 0x160, 0x126, 1, "", CountingStep},
-        Case{"el pulso del asedio", 0x1e, 0x160, 0x120, 1, "", Helper + 1},
+        // El alta del pulso 0x61c/0 saca su rand() % 360 y corta en su joint 0x61c/3 (0x51f1c5, del lote de los
+        // joints).
+        Case{"el pulso del asedio", 0x1e, 0x160, 0x120, 1, "0x51f1c5", Helper + 1},
         Case{"la piedra del asedio en5", 0x1e, 0x160, 0x68, 5, "", Helper},
         Case{"el 54", 0x36, 0x160, 0x134, 1, "", Helper},
         Case{"el 35 en 14", 0x23, 0x1b2, 3, 14, "", Helper + OwnRecord + SkillWithTarget, {0x47}, true},
@@ -376,7 +380,7 @@ TEST(AttackStepTest, TheMapHelpersOfTheMonstersExitOrCut)
         }
         EXPECT_EQ(DrawsSince(Seed, tested.random), probe.draws);
         EXPECT_EQ(tested.sounds, probe.sounds);
-        if (probe.map == 30)
+        if (probe.map == 30 && probe.cut.empty())
         {
             const auto effects = tested.world.Map().effects.Effects();
             ASSERT_EQ(std::ranges::count_if(effects, [](const auto& effect) { return effect.alive; }), 1);
@@ -477,13 +481,33 @@ TEST(AttackStepTest, TheStrikeSoundFollowsTheOwnHands)
     }
 }
 
-// Lo que corta, en su orden y con los rand() de antes: los joints
-// 0x614 de la 3 sin caso (0x4f8fef, CL11), lo que crean los casos de la cabeza y con blanco (0x4fdeeb, 0x504372,
-// CL11), los efectos de los casos de 0x4f5b70 (0x4f7050), la partícula de 0x52e740 (0x5042ce, CL11) y, sin el pool de
-// joints, los de +0x380 en 2 (0x505169). La flecha (0x53e2b0) ya no corta: sus cortes están en test_arrow_effects.cpp.
-// Los demás casos de 0x4f97b0, en test_attack_frame_skills.cpp; los de 0x4fdeeb y 0x504372, en
-// test_attack_skill_cases.cpp.
+// 0x5042ce: con la 0x39 en 14, 0x52e740 ya no corta: la chispa 0x5c6/0 en el blanco y, con dos rand() antes de cada
+// una, las veinte 0x5c5/0; el paso sigue.
+TEST(AttackStepTest, TheSparkOf0x39LeavesItsParticles)
+{
+    AttackWorld tested;
+    ActorState& hero = tested.Striker(HeroSlot, 0x23, VictimSlot);
+    hero.animation.action = 0x39;
+    hero.byte381 = 14;
 
+    const auto stepped = tested.Attack(hero, HeroSlot);
+
+    ASSERT_TRUE(stepped.HasValue()) << ErrorOf(stepped);
+    const auto count = [&](std::int32_t type)
+    {
+        return std::ranges::count_if(tested.particles.All(), [type](const Client::World::Particle& particle)
+                                     { return particle.alive && particle.type == type && particle.subtype == 0; });
+    };
+    EXPECT_EQ(count(0x5c6), 1);
+    EXPECT_EQ(count(0x5c5), 20);
+    // Los 140 de 0x52e740 (veinte vueltas de dos rand() y los cinco de la 0x5c5/0) y lo que sigue del paso.
+    EXPECT_GE(DrawsSince(Seed, tested.random), CountingStep + SkillRead + 20 * (2 + 5));
+}
+
+// Lo que corta, con los rand() de antes: sin el pool de joints, los de +0x380 en 2 (0x505169). La habilidad 0x0c (el
+// rayo 0x5e8, 0x500c64) y el caso 0x31 de +0x376 (0x4f67ad) ya no cortan: están en AttackSkillCases.cpp y
+// MonsterAttackStep.cpp. La flecha (0x53e2b0), en test_arrow_effects.cpp. Los demás casos de 0x4f97b0, en
+// test_attack_frame_skills.cpp; los de 0x4fdeeb y 0x504372, en test_attack_skill_cases.cpp.
 TEST(AttackStepTest, TheCutsAfterTheirDraws)
 {
     struct Case
@@ -494,35 +518,6 @@ TEST(AttackStepTest, TheCutsAfterTheirDraws)
         int draws;
     };
     const std::array cases{
-        Case{"la habilidad 3", [](AttackWorld&, ActorState& hero) { hero.byte38e = 3; }, "0x4f8fef", CountingStep},
-        Case{"la habilidad 8",
-             [](AttackWorld&, ActorState& hero)
-             {
-                 hero.byte38e = 8;
-                 hero.byte381 = 14;
-             },
-             "0x500c49", CountingStep + SkillRead + OwnRecord},
-        Case{"la habilidad 7",
-             [](AttackWorld&, ActorState& hero)
-             {
-                 hero.byte38e = 7;
-                 hero.byte381 = 14;
-             },
-             "0x504768", CountingStep + 2 * SkillRead},
-        Case{"el caso 0x23 de +0x376",
-             [](AttackWorld&, ActorState& hero)
-             {
-                 hero.word376 = 0x23;
-                 hero.byte38e = 0x32;
-             },
-             "0x4f7050", SkillRead + 1 + SkillRead},
-        Case{"la 0x39",
-             [](AttackWorld&, ActorState& hero)
-             {
-                 hero.animation.action = 0x39;
-                 hero.byte381 = 14;
-             },
-             "0x52e77b", CountingStep + SkillRead},
         Case{"mató, sin los joints",
              [](AttackWorld& tested, ActorState& hero)
              {
@@ -543,6 +538,59 @@ TEST(AttackStepTest, TheCutsAfterTheirDraws)
 
         EXPECT_TRUE(HasError(stepped, probe.cut)) << ErrorOf(stepped);
         EXPECT_EQ(DrawsSince(Seed, tested.random), probe.draws);
+    }
+}
+
+// 0x4f8f5b: con la habilidad 3 y sin caso, los dos joints 0x614/0 de la mano 0 (0x4f8fef de ancho 50 y 0x4f9012 de
+// ancho 10, los dos colgados del blanco) y la partícula 0x5ca/0 (0x4f9034) con sus dos rand().
+TEST(AttackStepTest, TheSkillThreeTailCreatesItsTwoLightningJoints)
+{
+    AttackWorld tested;
+    ActorState& hero = tested.Striker(HeroSlot, 0x23, VictimSlot);
+    hero.byte38e = 3;
+
+    const auto stepped = tested.Attack(hero, HeroSlot);
+
+    ASSERT_TRUE(stepped.HasValue()) << ErrorOf(stepped);
+    EXPECT_EQ(DrawsSince(Seed, tested.random), CountingStep + 2);
+    ASSERT_TRUE(tested.joints[0].alive);
+    ASSERT_TRUE(tested.joints[1].alive);
+    EXPECT_FALSE(tested.joints[2].alive);
+    for (const JointState& joint : {tested.joints[0], tested.joints[1]})
+    {
+        EXPECT_EQ(joint.type, 0x614);
+        EXPECT_EQ(joint.subtype, 0);
+        EXPECT_EQ(joint.ownerContext, &tested.Victim());
+        EXPECT_EQ(joint.angles, glm::vec3(-60.0f, 0.0f, hero.angles.z));
+        EXPECT_EQ(joint.position, tested.joints[0].position);
+    }
+    EXPECT_EQ(tested.joints[0].width, 50.0f);
+    EXPECT_EQ(tested.joints[1].width, 10.0f);
+    const auto particles = tested.particles.All();
+    EXPECT_EQ(std::ranges::count_if(particles, [](const Client::World::Particle& particle)
+                                    { return particle.alive && particle.type == Client::World::ThunderParticle; }),
+              1);
+}
+
+// La luz local de 0x4fd5f0 llega a los casos: la 0x07 crea su 0xc1/0 sobre el blanco con ella (0x50474e), la de
+// Scenes::BodyLight o la que le pasa el cuerpo con la partícula 0x5ac (0x4fdb3f).
+TEST(AttackStepTest, TheSkillCasesTakeTheBodyLight)
+{
+    for (const glm::vec3& light : {Client::Scenes::BodyLight, glm::vec3(0.3f, 0.5f, 1.0f)})
+    {
+        AttackWorld tested;
+        ActorState& hero = tested.Striker(HeroSlot, 0x23, VictimSlot);
+        hero.byte38e = 7;
+        hero.byte381 = 14;
+
+        const auto stepped = StepTheAttack(hero, HeroSlot, tested.Context(), light);
+
+        ASSERT_TRUE(stepped.HasValue()) << ErrorOf(stepped);
+        const auto ice = std::ranges::find_if(tested.world.Map().effects.Effects(), [](const auto& effect)
+                                              { return effect.alive && effect.type == Client::World::IceEffect; });
+        ASSERT_NE(ice, tested.world.Map().effects.Effects().end());
+        EXPECT_EQ(ice->light, light);
+        EXPECT_EQ(ice->transform.position, tested.Victim().position);
     }
 }
 

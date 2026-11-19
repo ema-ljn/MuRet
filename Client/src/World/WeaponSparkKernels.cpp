@@ -33,7 +33,7 @@ void CountDown(Particle& particle)
 
 bool IsWeaponSpark(std::int32_t type, std::int32_t subtype)
 {
-    return type == SparkParticle && subtype == WeaponSparkSubtype;
+    return type == SparkParticle && (subtype == WeaponSparkSubtype || subtype == TwinWeaponSparkSubtype);
 }
 
 void CreateWeaponSpark(Particle& particle, Render::Models::CrtRandom& random)

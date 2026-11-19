@@ -1,6 +1,6 @@
 # CL11 requerida por Crywolf/Fortress: factibilidad de F8 y C1A
 
-2026-11-18. Auditoría estática inicial del snapshot R4 `f5e8fc45`. Las tablas registran el comportamiento del original y las diferencias observadas en R4. La implementación posterior de H11 conectó estos llamadores con señales propias. Los contratos implementados y las diferencias de trayectoria, geometría, emisiones y RNG figuran en el [ADR 0020](../../../docs/adr/0020-senales-crywolf.md).
+2026-11-18. Auditoría estática inicial del snapshot R4 `f5e8fc45`. Las tablas registran el comportamiento del original y las diferencias observadas en R4. La implementación posterior de H11 conectó estos llamadores con señales propias (el ADR 0020, retirado). Desde la CL11 (2026-11-19) MuRet porta los efectos originales `F8/1`, `105/3` y `C1A/0` con sus modelos y texturas, sin señales propias; los joints `60f/19` y `60f/0xb` de `F8/1` cortan con su dirección (`0x51a3b7`, `0x51a405`) hasta que estén portados [06](06-render-escenas-y-ui.md#los-efectos-con-modelo-de-los-tipos-altos).
 
 Fuente nativa: exports `*.asm` de `mainexe-vmxp-c32bbd5f/decompiled/functions`, pseudocódigo sólo como índice. Cuando el export ASM omite bloques intercalados, se desensambló estáticamente el tramo de `main-c32-text.bin`, VA base401000. PE c32 sólo leído como bytes de datos para constantes y tablas; no ejecutado, cargado ni emulado. SHA de referencia: c32bbd5f16ca400c7cfc71fa5f4cd573c57f146dd19a6da52fdd1007abaca26a.
 

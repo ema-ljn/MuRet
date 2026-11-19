@@ -13,6 +13,7 @@
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
 
+#include <array>
 #include <bit>
 #include <cstddef>
 #include <cstdint>
@@ -284,7 +285,7 @@ TEST(GroundEffectDrawingTest, Type61eChoosesItsSubtypeColor)
     }
 }
 
-TEST(GroundEffectDrawingTest, Type61eStopsAtUnportedOwnerSpawnAndUnknownColorBranches)
+TEST(GroundEffectDrawingTest, Type61eStopsWithoutAnOwnerOrAColorAndHidesItsSpawners)
 {
     struct Probe
     {
@@ -293,8 +294,8 @@ TEST(GroundEffectDrawingTest, Type61eStopsAtUnportedOwnerSpawnAndUnknownColorBra
         const char* address;
     };
     const auto heights = std::make_unique<TerrainHeights>();
-    for (const Probe& probe :
-         {Probe{7, 10, "0x52ded0"}, Probe{6, 50, "0x52e04c"}, Probe{8, 4, "0x52e0a2"}, Probe{11, 10, "0x52dfdc"}})
+    // El /7 sin un personaje de dueño (0x52ded0) y un subtipo sin color (0x52dfdc, la luz local de antes).
+    for (const Probe& probe : {Probe{7, 10, "0x52ded0"}, Probe{11, 10, "0x52dfdc"}})
     {
         ModelEffect effect = Effect(0x61e);
         effect.subtype = probe.subtype;
@@ -316,6 +317,102 @@ TEST(GroundEffectDrawingTest, Type61eStopsAtUnportedOwnerSpawnAndUnknownColorBra
         EXPECT_FALSE(drawn.error.has_value());
         EXPECT_TRUE(drawn.batch.Vertices().empty());
     }
+}
+
+// 0x52e010..0x52e0a2: el /6 cada 25 vidas suelta un 0x61e/7 (su rand() % 360) y el /8 en las vidas pares un /9 (sin
+// rand()), en el primer lugar libre de la tabla del pase, con su posición, sus ángulos, su luz y su dueño. Llena, nada.
+TEST(GroundEffectDrawingTest, Type61eSpawnersDropTheirChildIntoThePassTable)
+{
+    const auto heights = std::make_unique<TerrainHeights>();
+    int owner = 0;
+    struct Probe
+    {
+        std::int32_t subtype;
+        std::int32_t life;
+        std::optional<std::int32_t> child;
+    };
+    for (const Probe& probe : {Probe{6, 50, 7}, Probe{6, 49, std::nullopt}, Probe{8, 4, 9}, Probe{8, 3, std::nullopt}})
+    {
+        std::array<ModelEffect, 3> table{};
+        table[0] = Effect(0x61e);
+        table[0].subtype = probe.subtype;
+        table[0].life = probe.life;
+        table[0].ownerContext = &owner;
+        table[1].alive = true;
+        table[2].transform.angles.z = 99.0f;
+        CrtRandom random;
+        ModelBatch batch;
+        batch.Begin(Client::Render::Pass3D{});
+        const auto drawn = DrawGroundEffectCase(
+            batch, table[0], GroundEffectResources{.heights = *heights, .random = random, .table = table});
+        ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+        EXPECT_TRUE(batch.Vertices().empty());
+        if (!probe.child.has_value())
+        {
+            EXPECT_FALSE(table[2].alive);
+            EXPECT_EQ(random.State(), 1u);
+            continue;
+        }
+        ASSERT_TRUE(table[2].alive) << probe.subtype;
+        EXPECT_EQ(table[2].type, 0x61e);
+        EXPECT_EQ(table[2].subtype, *probe.child);
+        EXPECT_EQ(table[2].transform.position, table[0].transform.position);
+        EXPECT_EQ(table[2].light, table[0].light);
+        EXPECT_EQ(table[2].ownerContext, &owner);
+        if (*probe.child == 7)
+        {
+            CrtRandom expected;
+            const int turn = expected.Next() % 360;
+            EXPECT_EQ(table[2].life, 40);
+            EXPECT_EQ(table[2].transform.angles.z, static_cast<float>(turn));
+            EXPECT_EQ(random.State(), expected.State());
+        }
+        else
+        {
+            EXPECT_EQ(table[2].life, 10);
+            EXPECT_EQ(table[2].transform.scale, std::bit_cast<float>(0x3dcccccdu));
+            EXPECT_EQ(table[2].transform.angles.z, table[0].transform.angles.z);
+            EXPECT_EQ(random.State(), 1u);
+        }
+    }
+}
+
+// 0x52ddf0..0x52df00 y 0x52dfa0: el /7 se pone en la posición de su dueño y gira 10 más en cada dibujo; con más de 30
+// de vida, la luz (40 − vida) · 0,1f; el lado vida · 0,07f y el color (0,9; 0,4; 0,2) por la luz.
+TEST(GroundEffectDrawingTest, Type61eChildFollowsItsOwnerAndTurns)
+{
+    const auto heights = std::make_unique<TerrainHeights>();
+    int owner = 0;
+    const glm::vec3 ownerPosition(1200.0f, 2100.0f, 40.0f);
+    ModelEffect effect = Effect(0x61e);
+    effect.subtype = 7;
+    effect.life = 35;
+    effect.ownerContext = &owner;
+    CrtRandom random;
+    ModelBatch batch;
+    batch.Begin(Client::Render::Pass3D{});
+    batch.SetState(ModelDrawState{.texture = TextureSlot{0x32}, .blend = ModelBlend::Additive, .depthTest = false});
+    const auto drawn =
+        DrawGroundEffectCase(batch, effect,
+                             GroundEffectResources{.heights = *heights,
+                                                   .random = random,
+                                                   .ownerPosition = [&](const void* asked) -> std::optional<glm::vec3>
+                                                   {
+                                                       if (asked == &owner)
+                                                           return ownerPosition;
+                                                       return std::nullopt;
+                                                   }});
+    ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+    EXPECT_EQ(effect.transform.position, ownerPosition);
+    EXPECT_EQ(effect.transform.angles.z, 25.0f);
+    ASSERT_FALSE(batch.Vertices().empty());
+    const double brightness = 5.0 * static_cast<double>(0.1f);
+    const glm::vec3 color{static_cast<float>(brightness * static_cast<double>(0.9f)),
+                          static_cast<float>(brightness * static_cast<double>(0.4f)),
+                          static_cast<float>(brightness * static_cast<double>(0.2f))};
+    EXPECT_EQ(batch.Vertices()[0].color.red, color.x);
+    EXPECT_EQ(batch.Vertices()[0].color.green, color.y);
+    EXPECT_EQ(batch.Vertices()[0].color.blue, color.z);
 }
 
 TEST(GroundEffectDrawingTest, Type61ePulsesSubtypeFourAndTenWithTheStoredScale)

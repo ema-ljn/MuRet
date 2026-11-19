@@ -32,8 +32,10 @@
 #include "Scenes/MonsterHelpers.h"
 #include "Scenes/WorldMap.h"
 #include "Scenes/WorldRuntime.h"
+#include "Scenes/VertexEffects.h"
 #include "Scenes/WorldState.h"
 #include "World/ChaosCastle.h"
+#include "World/IFishStepServices.h"
 #include "World/OriginalFtol.h"
 #include "World/Particles.h"
 #include "World/Sprites.h"
@@ -636,6 +638,98 @@ Result DrawTheShines(MonsterFrame& frame)
     return DrawTheShinePass(frame, model, monster == 0x43 ? 0x144 : Chrome, factor, OwnTexture);
 }
 
+// 0x50c36b..0x50c595, los +0x376 0x49 y 0x4b, con el corrimiento de [ebp−0x50] en 0. El 0x49 (0x50c3ed..0x50c50e):
+// catorce flare01 (0x5ac) de 0,8f con la luz (0,1f; 0,1f; 1) en los huesos 13 a 26 (+0x270..+0x4e0) y, desde el punto
+// del hueso de antes ([ebp−0x8c]) hasta el del actual, el joint 0x614/7 sin dueño de ancho 20 (0x41a00000) con los
+// ángulos del actor en los huesos 14, 15, 16 y 23 (+0x2a0..+0x300 y +0x450); después siete flare01 más en los huesos
+// 52 a 58 (+0x9c0..+0xb10). El 0x4b (0x50c37e..0x50c3e8): la partícula 0x5d9/0 de 0,3f (0x3e99999a) con la luz (1,
+// 1, 1) en el hueso 18 (+0x360). Entre frames del original no crean los joints ni la partícula. Después, 0x60b130 con
+// el pase 0x44 (el 0x4b con el 0x100: 0x50c51d..0x50c53c) sobre la pose guardada, como MonsterShines; el 0x49 sigue
+// con 0x60b300 (0x50c595), que corta.
+Result DrawTheChainsOf0x49And0x4b(MonsterFrame& frame)
+{
+    const ActorState& actor = frame.actor;
+    const std::uint16_t monster = actor.word376;
+    constexpr std::uint16_t Chained = 0x49;
+    if (monster == Chained)
+    {
+        constexpr std::uint16_t Flare = 0x5ac;
+        constexpr float FlareScale = std::bit_cast<float>(0x3f4ccccdu); // 0,8
+        const glm::vec3 light{std::bit_cast<float>(0x3dcccccdu), std::bit_cast<float>(0x3dcccccdu), 1.0f};
+        constexpr std::size_t FirstBone = 13;
+        constexpr std::size_t LastBone = 26;
+        constexpr std::size_t FirstLink = 14;
+        constexpr std::size_t LastLink = 16;
+        constexpr std::size_t LoneLink = 23;
+        constexpr float LinkWidth = 20.0f;
+        if (frame.pass.sprites == nullptr)
+            return Core::Unexpected<std::string>("0x50c43b: falta la tabla de los sprites del frame (0x5491e0)");
+        glm::vec3 previous{};
+        for (std::size_t bone = FirstBone; bone <= LastBone; ++bone)
+        {
+            const glm::vec3 point = PointOnTheBone(actor, bone, glm::vec3(0.0f));
+            static_cast<void>(frame.pass.sprites->Create(Flare, point, FlareScale, light, 0.0f, 0));
+            const bool linked = (bone >= FirstLink && bone <= LastLink) || bone == LoneLink;
+            if (linked && frame.originalFrame)
+            {
+                if (frame.pass.joints.empty())
+                    return Core::Unexpected<std::string>("0x50c492: faltan los joints del frame (0x530860)");
+                glm::vec3 from = previous;
+                glm::vec3 to = point;
+                glm::vec3 angles = actor.angles;
+                const World::FishEffectRequest request{.type = 0x614,
+                                                       .firstPosition = from,
+                                                       .secondPosition = to,
+                                                       .angles = angles,
+                                                       .subtype = 7,
+                                                       .ownerContext = nullptr,
+                                                       .scale = LinkWidth,
+                                                       .key = -1,
+                                                       .skill = 0,
+                                                       .skillSerial = 0,
+                                                       .target = -1};
+                if (auto made = CreateFaunaJoint(frame.pass.joints, request, frame.random); !made.HasValue())
+                    return Core::Unexpected(std::format("0x50c492: {}", made.Error()));
+            }
+            previous = point;
+        }
+        constexpr std::size_t FirstTail = 52;
+        constexpr std::size_t LastTail = 58;
+        for (std::size_t bone = FirstTail; bone <= LastTail; ++bone)
+            static_cast<void>(frame.pass.sprites->Create(Flare, PointOnTheBone(actor, bone, glm::vec3(0.0f)),
+                                                         FlareScale, light, 0.0f, 0));
+    }
+    else if (frame.originalFrame)
+    {
+        constexpr std::size_t SparkBone = 18;
+        constexpr float SparkScale = std::bit_cast<float>(0x3e99999au); // 0,3
+        if (frame.pass.particles == nullptr)
+            return Core::Unexpected<std::string>("0x50c3e0: falta el arreglo de las partículas (0x53fe70)");
+        const auto created = frame.pass.particles->CreateChecked(
+            World::FireParticle, PointOnTheBone(actor, SparkBone, glm::vec3(0.0f)), actor.angles, glm::vec3(1.0f), 0,
+            SparkScale, frame.worldClock, frame.random);
+        if (!created.HasValue())
+            return Core::Unexpected(std::format("0x50c3e0: la partícula 0x5d9/0 del +0x376 0x4b falla con el error {}",
+                                                static_cast<int>(created.Error())));
+    }
+    if (!actor.bodyPose.empty())
+    {
+        const PosedBody posed = PosedBodyOf(frame);
+        MonsterBodyModel model{.batch = frame.batch,
+                               .models = frame.fauna,
+                               .object = posed.object,
+                               .meshes = posed.meshes,
+                               .frameClock = frame.pass.frameClock};
+        constexpr std::uint32_t SecondColor = 0x100;
+        const std::uint32_t flags = monster == Chained ? ChromePass : ChromePass | SecondColor;
+        if (auto shone = DrawTheShinePass(frame, model, flags, 1.0f, OwnTexture); !shone.HasValue())
+            return shone;
+    }
+    if (monster == Chained)
+        return Cut("0x50c595", "el pase 0x250 de 0x60b300 del +0x376 0x49", actor.type);
+    return {};
+}
+
 // La tela de la grilla de un +0x376 de WearsAGridClothOfItsOwn (0x50c283..0x50c35c y 0x50c59f..0x50c669): la del lugar
 // (pass.cloths[slot]), armada, simulada y dibujada sobre la pose guardada (+0x120) con CharacterCloth, y entre frames
 // del original dibujada como quedó. Sin la tela del lugar, corta con `address`.
@@ -810,9 +904,10 @@ Result HangTheStatueWeapon(MonsterFrame& frame)
     return hung;
 }
 
-// 0x50bf45..0x50c904: lo que se agrega por el +0x376. El 0x45, hasta sus partículas, el 0x46, el 0x4d, las telas del
+// 0x50bf45..0x50c904: lo que se agrega por el +0x376. El 0x45 con sus partículas, el 0x46, el 0x4d, las telas del
 // 0x47, el 0x4a y el 0x12d (0x50c59f, con cualquier tipo: los tres son del 0x186), los pases de brillo
-// (MonsterShines) y lo que cuelgan el 0x2a y las estatuas 0x84 a 0x86; los demás cortan.
+// (MonsterShines), lo que cuelgan el 0x2a y las estatuas 0x84 a 0x86 y las cadenas del 0x49 y el 0x4b (el 0x49 corta
+// en 0x60b300); los demás cortan.
 Result DrawTheDecorations(MonsterFrame& frame)
 {
     const std::uint16_t monster = frame.actor.word376;
@@ -830,6 +925,8 @@ Result DrawTheDecorations(MonsterFrame& frame)
         return HangTheCarriedModels(frame);
     if (Within(monster, 0x84, 0x86))
         return HangTheStatueWeapon(frame);
+    if (monster == 0x49 || monster == 0x4b)
+        return DrawTheChainsOf0x49And0x4b(frame);
     return CheckMonsterDecorations(frame.actor.word376);
 }
 
@@ -1281,6 +1378,16 @@ Result DrawTheTail(MonsterFrame& frame, const glm::vec3& terrainLight)
                                          .originalFrame = frame.originalFrame,
                                          .batch = &frame.batch,
                                          .heights = terrain.heights.get()};
+            // 0x4ee770 desde 0x441400: la malla 0 del cuerpo posado otra vez, como la dejó en 0x5786f9c (Q-C1581).
+            helperPass.vertexEffects = [&frame](std::int32_t type,
+                                                std::int32_t subtype) -> Core::Expected<void, std::string>
+            {
+                if (frame.actor.bodyPose.empty())
+                    return Core::Unexpected(std::string("0x4ee770: el cuerpo no tiene pose para sus vértices"));
+                const PosedBody posed = PosedBodyOf(frame);
+                return EmitVertexEffects(frame.fauna, posed.object, posed.meshes, 0, type, subtype,
+                                         frame.world.Map().effects, frame.random);
+            };
             if (auto helpers = DrawTheMonsterHelpers(helperPass); !helpers.HasValue())
                 return helpers;
         }

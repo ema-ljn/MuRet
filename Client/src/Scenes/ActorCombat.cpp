@@ -11,10 +11,12 @@
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/CombatActionSpeeds.h"
 #include "Scenes/MonsterSounds.h"
+#include "Scenes/WizardEffects.h"
 #include "Scenes/WorldEntry.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "World/ModelEffects.h"
+#include "World/WizardModelEffects.h"
 
 #include <algorithm>
 #include <array>
@@ -448,6 +450,34 @@ void DeathSound(const ActorState& actor, const ActorCombatContext& context)
     if (actor.pet.model == Fenrir)
         requestSound(0x278);
 }
+// Los servicios de World::WizardModelEffects para 0x4f4a10 y 0x4f5660: las partículas y el terreno del mundo.
+World::WizardEffectServices WizardServicesOf(const ActorCombatContext& context)
+{
+    WorldState& world = context.world;
+    return WizardEffectServicesOf(world, context.random,
+                                  WizardSceneParts{.particles = &world.Particles(), .terrain = &world.Map().terrain});
+}
+
+// 0x4f589d..0x4f58f6 (el jugador) y 0x4f5938..0x4f5991 (el 0x170): 0x518cf0(0xd5, +0x10, +0x1c, +0xf4, 0, 0, −1, …)
+// una vez y el 0xd6 diez, sin dueño: los huesos que saltan, cada uno con sus cinco rand() (0x51b72b). Con la tabla
+// llena, nada y sin rand().
+Core::Expected<void, std::string> ScatterTheBones(ActorState& actor, const ActorCombatContext& context,
+                                                  std::uint32_t firstCall, std::uint32_t boneCall)
+{
+    constexpr int Bones = 10; // [ebp-0x8]
+    const World::WizardEffectServices services = WizardServicesOf(context);
+    World::ModelEffects& effects = context.world.Map().effects;
+    for (int bone = -1; bone < Bones; ++bone)
+    {
+        const std::int16_t type = bone < 0 ? World::FirstBoneEffect : World::SecondBoneEffect;
+        const auto created = World::CreateWizardModelEffect(
+            effects, WizardArguments(type, actor.position, actor.angles, actor.light, 0), context.random, services);
+        if (!created.HasValue())
+            return Core::Unexpected(std::format("{:#x}: el hueso {:#x} de la muerte: {}",
+                                                bone < 0 ? firstCall : boneCall, type, created.Error()));
+    }
+    return {};
+}
 } // namespace
 
 ActorCombatContext CombatContextOf(const WorldEntryResources& resources)
@@ -468,11 +498,18 @@ Core::Expected<void, std::string> SetActorAttack(ActorState& actor, const ActorC
             return attacked;
         break;
     case 0x27:
-        if (std::ranges::any_of(context.world.Map().effects.Effects(),
-                                [](const World::ModelEffect& effect) { return !effect.alive; }))
-            return Core::Unexpected(std::string("0x4f4f5b: el efecto 0xd4 del 0x27 al pegar (0x518cf0) es de la CL11"));
+    {
+        // 0x4f4f3a..0x4f4f5b: 0x518cf0(0xd4, +0x10, +0x1c, +0xf4, 0, 0, −1, 0, 0, 0, 0), la sierra sin dueño (con la
+        // tabla llena, nada). Después el sonido 0x10.
+        const auto sawed = World::CreateWizardModelEffect(
+            context.world.Map().effects,
+            WizardArguments(World::SawEffect, actor.position, actor.angles, actor.light, 0), context.random,
+            WizardServicesOf(context));
+        if (!sawed.HasValue())
+            return Core::Unexpected(std::format("0x4f4f5b: la sierra 0xd4 del 0x27: {}", sawed.Error()));
         context.world.Runtime().RequestSound(0x10, actor.position);
         break;
+    }
     case 0x28:
         if (auto set = SetTheAction(actor, context, 1); !set.HasValue())
             return set;
@@ -523,15 +560,23 @@ Core::Expected<void, std::string> SetActorDie(ActorState& actor, const ActorComb
     {
         // 0x4f58a7, 0x4f5942 y 0x4f599e apagan +0 antes del primer creador de efectos.
         actor.alive = false;
-        const char* firstEffectCall = actor.type == Data::Models::PlayerSkeletonModel ? "0x4f58c2"
-                                      : actor.type == 0x170                           ? "0x4f595d"
-                                                                                      : "0x4f59ca";
-        // Un lugar libre llega a la llamada CL11; lleno, los creadores no-op y sigue con el sonido y el frame.
-        if (std::ranges::any_of(context.world.Map().effects.Effects(),
-                                [](const World::ModelEffect& effect) { return !effect.alive; }))
-            return Core::Unexpected(std::format("{}: los efectos de la muerte del modelo {:#x} (0x518cf0) son de "
-                                                "la CL11",
-                                                firstEffectCall, actor.type));
+        if (actor.type == 0x16b)
+        {
+            // 0x4f59ad..0x4f59f4: ocho pares 0xe5/0xe6 (CL11, lote del switch). Con la tabla llena, los creadores no
+            // hacen nada y sigue con el sonido y el frame.
+            if (std::ranges::any_of(context.world.Map().effects.Effects(),
+                                    [](const World::ModelEffect& effect) { return !effect.alive; }))
+                return Core::Unexpected(
+                    std::string("0x4f59ca: los efectos 0xe5 y 0xe6 de la muerte del 0x16b (0x518cf0) son de la CL11"));
+        }
+        else
+        {
+            const bool player = actor.type == Data::Models::PlayerSkeletonModel;
+            if (auto bones =
+                    ScatterTheBones(actor, context, player ? 0x4f58c2u : 0x4f595du, player ? 0x4f58e7u : 0x4f5982u);
+                !bones.HasValue())
+                return bones;
+        }
         context.world.Runtime().RequestSound(0x7c, actor.position); // 0x4f59fe
     }
     else if (auto set = SetTheAction(actor, context, 6); !set.HasValue())

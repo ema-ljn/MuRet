@@ -17,6 +17,7 @@
 #include "Scenes/ActorEffectFlags.h"
 #include "Scenes/ActorEquipment.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/BlastEffectCalls.h"
 #include "Scenes/CharacterStep.h"
 #include "Scenes/ChatReceive.h"
 #include "Scenes/CrywolfContract.h"
@@ -37,6 +38,8 @@
 #include "World/GameCamera.h"
 #include "World/ModelEffects.h"
 #include "World/ParticleBurst.h"
+#include "World/ParticleOwner.h"
+#include "World/Particles.h"
 #include "World/TerrainCulling.h"
 
 #include <array>
@@ -509,10 +512,28 @@ Core::Expected<void, std::string> FinishTheTransformed(std::size_t index,
         // 0x4c9549..0x4c9652.
         PutInTheCellCenter(actor, random);
         actor.alpha = 0.0f;
-        return Core::Unexpected(std::string("0x4c965c: el efecto 0xec (0x518cf0) y el joint 0x5d5/2 (0x53fe70) del "
-                                            "transformado que llega son de la CL11"));
+        // 0x4c961f..0x4c967f: 0x518cf0(0xec, +0x10, +0x1c, +0xf4, 0, el personaje, −1, 0, 0, 0, 0), el círculo mágico
+        // (World/BlastModelEffects), y 0x53fe70(0x5d5, +0x10, +0x1c, +0xf4, 2, 1,0f, el personaje), el rayo que lo
+        // sigue en su paso; ninguno saca rand(). Con la tabla llena, nada.
+        constexpr std::int16_t MagicCircle = 0xec;
+        if (auto circle = CreateBlastEffectOutsideTheStep({.type = MagicCircle,
+                                                           .position = actor.position,
+                                                           .angles = actor.angles,
+                                                           .light = actor.light,
+                                                           .subtype = 0,
+                                                           .key = 0xffff},
+                                                          &actor, world, random);
+            !circle.HasValue())
+            return Core::Unexpected(std::format("0x4c965c: {}", circle.Error()));
+        const World::ParticleOwner owner{World::ParticleOwnerKind::Actor, index};
+        if (auto bolt = world.Particles().CreateOwnedChecked(World::LightningParticle, actor.position, actor.angles,
+                                                             actor.light, World::LightningFollowSubtype, 1.0f, 0.0f,
+                                                             random, 0, owner);
+            !bolt.HasValue())
+            return Core::Unexpected(
+                std::format("0x4c9674: la partícula 0x5d5/2, error {}", static_cast<unsigned>(bolt.Error())));
     }
-    if (auto walked = WalkToTheTarget(actor, record.targetX, record.targetY, resources); !walked.HasValue())
+    else if (auto walked = WalkToTheTarget(actor, record.targetX, record.targetY, resources); !walked.HasValue())
         return walked;
     // 0x4c9733..0x4c975d.
     actor.byte1e3 = 0;

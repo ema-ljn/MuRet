@@ -18,8 +18,10 @@
 #include "Scenes/ChatReceive.h"
 #include "Scenes/CombatActionSpeeds.h"
 #include "Scenes/GameDrawTail.h"
+#include "Scenes/HighModelEffects.h"
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/OwnCharacterRecord.h"
+#include "Scenes/SkullEffects.h"
 #include "Scenes/WorldEntry.h"
 #include "Scenes/WorldMap.h"
 #include "Scenes/WorldRuntime.h"
@@ -436,32 +438,31 @@ Core::Expected<void, std::string> CastTheSkill(const Cast& cast)
             return acted;
         return Settle(cast);
     }
-    // 0x4cd617: con la skill salida, apaga el 0x628/0 del blanco y crea otro (CL11). Con la tabla llena 0x518cf0 no
-    // crea nada y sigue igual: el sonido 0x85 en el blanco (0x4cd669..0x4cd671) y su 0x40 (0x4cd676..0x4cd67e).
+    // 0x4cd617: con la skill salida, apaga el 0x628/0 del blanco y crea otro (Scenes::PutTheSkullOn; con la tabla
+    // llena, ninguno). Después, el sonido 0x85 en el blanco (0x4cd669..0x4cd671) y su 0x40 (0x4cd676..0x4cd67e).
     case 0x37:
         if (succeeded)
         {
-            KillModelEffectsOf(world.Map().effects, 0x628, &target, 0);
-            if (HasFreeEffectSlot(world))
-                return Core::Unexpected(std::string("0x4cd664: el efecto 0x628 de 0x518cf0 es de la CL11"));
+            if (auto skull = PutTheSkullOn(target, world, resources.cloth.random, 0x4cd664); !skull.HasValue())
+                return skull;
             world.Runtime().RequestSound(0x85, target.position);
             target.flags78 |= 0x40;
         }
         if (IsPlayer(source))
             return {};
         return AttackAndSettle(source, resources);
-    // 0x4cd6a5: con la skill salida, apaga el 0xc1/1 del blanco y crea el 0xc1/1 y el 0xc1/2 (CL11). Con la tabla
-    // llena los dos 0x518cf0 no crean nada y sigue igual (0x4cd733..0x4cd748): +0x378 del blanco en 0, 0x4f2250 sobre
-    // él y su 0x20.
+    // 0x4cd6a5: con la skill salida, el hielo del blanco (0x4cd6bc..0x4cd730: apaga su 0xc1/1 y crea el 0xc1/1 y el
+    // /2, Scenes::WrapInIce; con la tabla llena, nada). Después (0x4cd733..0x4cd748): +0x378 del blanco en 0, 0x4f2250
+    // sobre él y su 0x20.
     case 0x33:
     {
         if (auto acted = ActByTheHands(source, StaffHands, resources); !acted.HasValue())
             return acted;
         if (!succeeded)
             return Settle(cast);
-        KillModelEffectsOf(world.Map().effects, 0xc1, &target, 1);
-        if (HasFreeEffectSlot(world))
-            return Core::Unexpected(std::string("0x4cd6ff: el efecto 0xc1 de 0x518cf0 es de la CL11"));
+        if (auto frozen = WrapInIce(target, resources, IceCalls{.first = 0x4cd6ff, .second = 0x4cd72b});
+            !frozen.HasValue())
+            return frozen;
         target.movement = 0;
         if (auto stopped = Stop(target, resources); !stopped.HasValue())
             return stopped;
@@ -519,7 +520,8 @@ Core::Expected<void, std::string> CastTheSkill(const Cast& cast)
             RemoveActorFlag(0x4000, target, world);
         return Settle(cast);
     }
-    // 0x4cdad7: con la skill salida, 0x2000 en la fuente y su efecto 0x138 (CL11).
+    // 0x4cdad7..0x4cdb7a: con la skill salida, 0x2000 en la fuente y 0x518cf0(0x138, su posición, sus ángulos, su
+    // luz, 0, sin dueño, −1, 0, 0, 0, 0): la runa de maná (Scenes/HighModelEffects, sin rand()).
     case 0x45:
     {
         if (auto acted = Act(source, MountedAction(source, 0x3f), resources); !acted.HasValue())
@@ -527,8 +529,12 @@ Core::Expected<void, std::string> CastTheSkill(const Cast& cast)
         if (!succeeded)
             return Settle(cast);
         source.flags78 |= 0x2000;
-        if (HasFreeEffectSlot(world))
-            return Core::Unexpected(std::string("0x4cdb72: el efecto 0x138 de 0x518cf0 es de la CL11"));
+        constexpr std::int16_t ManaRune = 0x138;
+        const auto rune = CreateHighModelEffect(
+            {.type = ManaRune, .position = source.position, .angles = source.angles, .light = source.light},
+            {.world = world, .random = resources.cloth.random});
+        if (!rune.HasValue())
+            return Core::Unexpected(std::format("0x4cdb72: {}", rune.Error()));
         return Settle(cast);
     }
     case 0x48:

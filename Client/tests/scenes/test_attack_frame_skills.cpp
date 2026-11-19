@@ -19,6 +19,7 @@
 #include "Scenes/WorldState.h"
 #include "World/Particles.h"
 #include "World/ModelEffects.h"
+#include "World/WizardModelEffects.h"
 
 #include "support/PlayerActors.h"
 
@@ -342,8 +343,8 @@ TEST(AttackFrameSkillsTest, TheBoltsOf2cCutWithoutTheirPools)
 
 // 0x2b (0x4f98a0..0x4f9bcd): el hueso de la mano de 0x4f9780 (la izquierda con la 0x25 o la 0x26) en Player.bmd. Un
 // dummy o fuera de la cuenta (JGE: el igual tampoco), nada. Hasta 8, la mano a +0x194, corrida 300 por el rumbo; en 8,
-// el sonido 0x71; de 2 a 8 corta en el primer joint 0x10f/2 después de sus tres rand(); de 6 a 12, en los efectos
-// 0x812/1; desde 13, +0x381 en [0x6c88ac].
+// el sonido 0x71; de 2 a 8 corta en el primer joint 0x10f/2 después de sus tres rand(); de 6 a 12, los dos efectos
+// 0x812/1 (sin rand()); desde 12, +0x381 en [0x6c88ac].
 TEST(AttackFrameSkillsTest, TheHandOf2bChargesUntilEight)
 {
     struct Case
@@ -365,8 +366,8 @@ TEST(AttackFrameSkillsTest, TheHandOf2bChargesUntilEight)
         {"en 1, con la izquierda de la 0x26", 0x26, 1, Bones, HandBone, "", 0, true, 1, {}},
         {"en 2", 0x2b, 2, HandBone, 0, "0x4f99fe", 3, false, 2, {}},
         {"en 8", 0x2b, 8, HandBone, 0, "0x4f99fe", 3, false, 8, {0x71}},
-        {"en 9", 0x2b, 9, HandBone, 0, "0x4f9b49", 0, false, 9, {}},
-        {"en 12", 0x2b, 12, HandBone, 0, "0x4f9b49", 0, false, 12, {}},
+        {"en 9", 0x2b, 9, HandBone, 0, "", 0, false, 9, {}},
+        {"en 12", 0x2b, 12, HandBone, 0, "", 0, false, FullThreshold, {}},
         {"en 13", 0x2b, 13, HandBone, 0, "", 0, false, FullThreshold, {}},
         {"en 14", 0x2b, 14, HandBone, 0, "", 0, false, FullThreshold, {}},
         {"un dummy", 0x2b, 13, DummyBone, 0, "", 0, false, 13, {}},
@@ -445,8 +446,8 @@ TEST(AttackFrameSkillsTest, TheHandOf2bTurnsWithTheHeading)
     }
 }
 
-// 0x2f (0x4f9bce..0x4f9e60): en 10, el sonido 0x7d; en 4, el efecto 0x813 de la mano; en 8, los 0x812/0; en 13 y 14,
-// tres rand() y el primer efecto 0x10f. En los demás, nada.
+// 0x2f (0x4f9bce..0x4f9e60): en 10, el sonido 0x7d; en 4, el efecto 0x813 de la mano; en 8, los 0x812/0 (sin
+// rand()); en 13 y 14, tres veces tres rand() y el efecto 0x10f. En los demás, nada.
 TEST(AttackFrameSkillsTest, TheStepsOf2f)
 {
     struct Case
@@ -457,8 +458,8 @@ TEST(AttackFrameSkillsTest, TheStepsOf2f)
         std::vector<std::int32_t> sounds;
     };
     const std::vector<Case> cases{
-        {1, "", 0, {}},  {4, "0x4f9c8d", 0, {}},  {8, "0x4f9d1c", 0, {}},  {10, "", 0, {0x7d}},
-        {12, "", 0, {}}, {13, "0x4f9e49", 3, {}}, {14, "0x4f9e49", 3, {}}, {15, "", 0, {}},
+        {1, "", 0, {}},  {4, "", 0, {}},  {8, "", 0, {}},  {10, "", 0, {0x7d}},
+        {12, "", 0, {}}, {13, "", 9, {}}, {14, "", 9, {}}, {15, "", 0, {}},
     };
     for (const std::int32_t map : Maps)
     {
@@ -483,6 +484,125 @@ TEST(AttackFrameSkillsTest, TheStepsOf2f)
             EXPECT_EQ(tested.sounds, probe.sounds);
             EXPECT_EQ(hero.byte381, probe.step);
         }
+    }
+}
+
+// 0x4f9d44..0x4f9e52 (CL11): cada 0x10f de la 0x2f sale 145 por delante de o por su rumbo (PC53) y 110 más arriba, con
+// tres rand() % 60 − 30 sumados; sus argumentos: los ángulos de o, la luz (0,3; 0,3; 0,3), el modelo de la mano de
+// subtipo y o de dueño. Con la tabla llena, el lazo saca igual sus nueve rand(). La base, calculada aparte para el
+// rumbo 30 desde (1000, 2000, 300): FSIN y FCOS por 145 en double, guardados en float.
+TEST(AttackFrameSkillsTest, TheRocksOf2fFallInFrontOfTheStriker)
+{
+    constexpr std::uint16_t HandModel = 0x205;
+    const glm::vec3 base{std::bit_cast<float>(0x44861000u), std::bit_cast<float>(0x44ea4da4u), 410.0f};
+    for (const bool full : {false, true})
+    {
+        SCOPED_TRACE(full);
+        FrameWorld tested(0);
+        ActorState& hero = tested.Striker(0x42, 0.0f, 13);
+        hero.position = glm::vec3(1000.0f, 2000.0f, 300.0f);
+        hero.angles = glm::vec3(0.0f, 0.0f, 30.0f);
+        hero.hands[0].model = HandModel;
+        auto effects = tested.world.Map().effects.Effects();
+        if (full)
+        {
+            for (Client::World::ModelEffect& effect : effects)
+                effect.alive = true;
+        }
+
+        const auto stepped = tested.Step(hero, 0x2f);
+
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        EXPECT_EQ(DrawsSince(Seed, tested.random), 9);
+        if (full)
+            continue;
+        CrtRandom expected(Seed);
+        for (std::size_t rock = 0; rock < 3; ++rock)
+        {
+            SCOPED_TRACE(rock);
+            glm::vec3 point = base;
+            for (int axis = 0; axis < 3; ++axis)
+            {
+                const int offset = expected.Next() % 60 - 30;
+                point[axis] = static_cast<float>(static_cast<double>(offset) + static_cast<double>(point[axis]));
+            }
+            const Client::World::ModelEffect& effect = effects[rock];
+            ASSERT_TRUE(effect.alive);
+            EXPECT_EQ(effect.type, 0x10f);
+            EXPECT_EQ(effect.subtype, HandModel);
+            EXPECT_EQ(effect.transform.position, point);
+            EXPECT_EQ(effect.light, glm::vec3(0.3f));
+            EXPECT_EQ(effect.ownerContext, &hero);
+            EXPECT_EQ(effect.life, 20);
+        }
+        EXPECT_FALSE(effects[3].alive);
+    }
+}
+
+// 0x4f9a86..0x4f9b69 y 0x4f9c0e..0x4f9d3c: los 0x812/1 de la 0x2b, (+0x381 − 8) · 10 + 100 delante de la mano por el
+// rumbo; el 0x813 de la 0x2f en la mano, con su modelo de subtipo y la luz (1; 1; 0,5); y los 0x812/0 de la 0x2f, 50
+// delante de o y 110 más arriba. Todos con o de dueño.
+TEST(AttackFrameSkillsTest, TheEmittersOf2bAnd2fStartAtTheHand)
+{
+    const auto emitters = [](const FrameWorld& tested)
+    {
+        std::vector<const Client::World::ModelEffect*> found;
+        for (const auto& effect : tested.world.Map().effects.Effects())
+        {
+            if (effect.alive)
+                found.push_back(&effect);
+        }
+        return found;
+    };
+    {
+        FrameWorld tested(0);
+        ActorState& hero = tested.Striker(0x2b, 0.0f, 9);
+        hero.hands[0].bone = HandBone;
+        hero.position = {1000.0f, 2000.0f, 0.0f};
+        hero.angles = {0.0f, 0.0f, 0.0f};
+        hero.scale = 1.0f;
+        hero.bodyPose.assign(Bones, Client::Render::Models::BoneTransform(1.0f));
+        hero.bodyPose[HandBone][3] = {10.0f, 20.0f, 30.0f};
+        tested.world.PlaceModel(hero);
+        ASSERT_TRUE(tested.Step(hero, 0x2b).HasValue());
+        const auto made = emitters(tested);
+        ASSERT_EQ(made.size(), 2u);
+        for (const auto* effect : made)
+        {
+            EXPECT_EQ(effect->type, 0x812);
+            EXPECT_EQ(effect->subtype, 1);
+            EXPECT_EQ(effect->life, 10);
+            EXPECT_EQ(effect->ownerContext, &hero);
+            EXPECT_EQ(effect->transform.position, glm::vec3(1010.0f, 1910.0f, 30.0f));
+        }
+    }
+    {
+        FrameWorld tested(0);
+        ActorState& hero = tested.Striker(0x42, 0.0f, 8);
+        hero.position = {100.0f, 200.0f, 300.0f};
+        hero.angles = {0.0f, 0.0f, 0.0f};
+        ASSERT_TRUE(tested.Step(hero, 0x2f).HasValue());
+        const auto made = emitters(tested);
+        ASSERT_EQ(made.size(), 2u);
+        for (const auto* effect : made)
+        {
+            EXPECT_EQ(effect->type, 0x812);
+            EXPECT_EQ(effect->subtype, 0);
+            EXPECT_EQ(effect->transform.position, glm::vec3(100.0f, 150.0f, 410.0f));
+        }
+    }
+    {
+        FrameWorld tested(0);
+        ActorState& hero = tested.Striker(0x42, 0.0f, 4);
+        hero.hands[0].model = 0x0812;
+        ASSERT_TRUE(tested.Step(hero, 0x2f).HasValue());
+        const auto made = emitters(tested);
+        ASSERT_EQ(made.size(), 1u);
+        EXPECT_EQ(made[0]->type, 0x813);
+        EXPECT_EQ(made[0]->subtype, 0x812);
+        EXPECT_EQ(made[0]->life, 5);
+        EXPECT_EQ(made[0]->light, glm::vec3(1.0f, 1.0f, 0.5f));
+        EXPECT_EQ(made[0]->transform.angles, glm::vec3(0.0f));
     }
 }
 
@@ -587,7 +707,7 @@ TEST(AttackFrameSkillsTest, ThePiercingShotReachesTheArrowThroughTheAttack)
     }
 }
 
-// 0x37 (0x4f9ef3..0x4fa490), solo el 0x20a en la 0x3d: en 1 y 2, el efecto 0x621/1 (0x4f9f3e); antes del frame 3 sale
+// 0x37 (0x4f9ef3..0x4fa490), solo el 0x20a en la 0x3d: en 1 y 2, el efecto 0x621/1 sobre o; antes del frame 3 sale
 // con [0x6c88ac] en 15; desde el 3, la clave del elegido en +0x8a (0x558eb0), el sonido 0x72, el lugar de la 0x37 en
 // el registro propio (0x59fb80, 3.848 rand() al cerrarlo) y el efecto 0x5be (0x4f9fae, CL11).
 TEST(AttackFrameSkillsTest, TheThrowOf37)
@@ -607,8 +727,8 @@ TEST(AttackFrameSkillsTest, TheThrowOf37)
     const std::vector<Case> cases{
         {"otro tipo", 0x152, 0x3d, 3.0f, 3, "", 0, {}, FullThreshold},
         {"otra acción", Player, 0x3c, 3.0f, 3, "", 0, {}, FullThreshold},
-        {"en 1", Player, 0x3d, 3.0f, 1, "0x4f9f3e", 0, {}, UntouchedThreshold},
-        {"en 2", Player, 0x3d, 0.0f, 2, "0x4f9f3e", 0, {}, UntouchedThreshold},
+        {"en 1", Player, 0x3d, 3.0f, 1, "0x4f9fae", OwnRecord, {0x72}, UntouchedThreshold},
+        {"en 2", Player, 0x3d, 0.0f, 2, "", 0, {}, FullThreshold},
         {"antes del frame 3", Player, 0x3d, 2.9f, 3, "", 0, {}, FullThreshold},
         {"en el frame 3", Player, 0x3d, 3.0f, 3, "0x4f9fae", OwnRecord, {0x72}, UntouchedThreshold},
     };
@@ -640,6 +760,16 @@ TEST(AttackFrameSkillsTest, TheThrowOf37)
             // Sin elegido, 0x558eb0 da −1.
             EXPECT_EQ(static_cast<std::uint16_t>(hero.word8a), probe.draws == OwnRecord ? 0xffff : 0x1234);
             EXPECT_EQ(hero.byte381, probe.step);
+            const auto& glow = tested.world.Map().effects.Effects()[0];
+            const bool held = probe.type == Player && probe.action == 0x3d && probe.step <= 2;
+            EXPECT_EQ(glow.alive, held);
+            if (held)
+            {
+                EXPECT_EQ(glow.type, 0x621);
+                EXPECT_EQ(glow.subtype, 1);
+                EXPECT_EQ(glow.ownerContext, &hero);
+                EXPECT_EQ(glow.life, 20);
+            }
         }
     }
 }
@@ -691,9 +821,9 @@ TEST(AttackFrameSkillsTest, Skill39AttemptsEveryKeyAcrossPartialAndFullPools)
     }
 }
 
-// 0x38 (0x4fa4a8..0x4fa5d3): el 0x20a en la 0x8d corta en el primer efecto 0xce/2 (0x4fa4fa); los demás, [0x6c88ac] en
-// 15. 0x39 (0x4fa994..0x4faaca), de cualquier tipo: pasado el frame 5, los joints 0x60f/0x17 (0x4fa9ca); entre 2,3f y
-// 2,6f (sin los bordes), los de las claves 2 y 3 (0x4faa81); siempre [0x6c88ac] en 15 para la0x39.
+// 0x38 (0x4fa4a8..0x4fa5d3): fuera del 0x20a en la 0x8d (TheSpinOf38ThrowsFiveWaves), [0x6c88ac] en 15. 0x39
+// (0x4fa994..0x4faaca), de cualquier tipo: pasado el frame 5, los joints 0x60f/0x17 (0x4fa9ca); entre 2,3f y 2,6f (sin
+// los bordes), los de las claves 2 y 3 (0x4faa81); siempre [0x6c88ac] en 15 para la0x39.
 TEST(AttackFrameSkillsTest, TheSpinOf38AndTheBoltsOf39)
 {
     struct Case
@@ -707,15 +837,10 @@ TEST(AttackFrameSkillsTest, TheSpinOf38AndTheBoltsOf39)
     };
     constexpr float NaN = std::numeric_limits<float>::quiet_NaN();
     const std::vector<Case> cases{
-        {"0x38 en la 0x8d", 0x38, Player, 0x8d, 0.0f, "0x4fa4fa"},
-        {"0x38 en la 0x8c", 0x38, Player, 0x8c, 0.0f, ""},
-        {"0x38 de otro tipo", 0x38, 0x152, 0x8d, 0.0f, ""},
-        {"0x39 en 5,5", 0x39, Player, 0x8d, 5.5f, ""},
-        {"0x39 de otro tipo en 5,5", 0x39, 0x152, 3, 5.5f, ""},
-        {"0x39 en 5", 0x39, Player, 0x8d, 5.0f, ""},
-        {"0x39 en 2,4", 0x39, Player, 0x8d, 2.4f, ""},
-        {"0x39 en 2,3", 0x39, Player, 0x8d, 2.3f, ""},
-        {"0x39 en 2,6", 0x39, Player, 0x8d, 2.6f, ""},
+        {"0x38 en la 0x8c", 0x38, Player, 0x8c, 0.0f, ""}, {"0x38 de otro tipo", 0x38, 0x152, 0x8d, 0.0f, ""},
+        {"0x39 en 5,5", 0x39, Player, 0x8d, 5.5f, ""},     {"0x39 de otro tipo en 5,5", 0x39, 0x152, 3, 5.5f, ""},
+        {"0x39 en 5", 0x39, Player, 0x8d, 5.0f, ""},       {"0x39 en 2,4", 0x39, Player, 0x8d, 2.4f, ""},
+        {"0x39 en 2,3", 0x39, Player, 0x8d, 2.3f, ""},     {"0x39 en 2,6", 0x39, Player, 0x8d, 2.6f, ""},
         {"0x39 con NaN", 0x39, Player, 0x8d, NaN, ""},
     };
     for (const std::int32_t map : Maps)
@@ -750,9 +875,47 @@ TEST(AttackFrameSkillsTest, TheSpinOf38AndTheBoltsOf39)
     }
 }
 
+// 0x4fa4c1..0x4fa5c3, la 0x38 del 0x20a en la 0x8d: cinco 0xce/2 desde o con o de dueño, el rumbo 40 menos y después
+// 20 más cada vez; cada alta cuenta en el registro propio (+0x8c con la cuenta, que sube). Después el sonido 0x72,
+// +0x381 en 15 y [0x6c88ac] en 15.
+TEST(AttackFrameSkillsTest, TheSpinOf38ThrowsFiveWaves)
+{
+    FrameWorld tested(0);
+    ActorState& hero = tested.Striker(0x8d, 0.0f, 4);
+    hero.angles = glm::vec3(0.0f, 0.0f, 100.0f);
+    hero.light = glm::vec3(0.5f, 0.25f, 1.0f);
+    tested.world.OwnCharacter().bytef04 = 7;
+    tested.world.Runtime().skillThreshold = UntouchedThreshold;
+
+    const auto stepped = tested.Step(hero, 0x38);
+
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_TRUE(stepped.Value());
+    std::vector<float> headings;
+    std::vector<std::uint16_t> counts;
+    for (const Client::World::ModelEffect& effect : tested.world.Map().effects.Effects())
+    {
+        if (!effect.alive || effect.type != Client::World::MagicEffect)
+            continue;
+        EXPECT_EQ(effect.subtype, 2);
+        EXPECT_EQ(effect.ownerContext, &hero);
+        EXPECT_EQ(effect.transform.position, hero.position);
+        EXPECT_EQ(effect.light, hero.light);
+        headings.push_back(effect.transform.angles.z);
+        counts.push_back(effect.word8c);
+    }
+    EXPECT_EQ(headings, (std::vector<float>{60.0f, 80.0f, 100.0f, 120.0f, 140.0f}));
+    EXPECT_EQ(counts, (std::vector<std::uint16_t>{7, 8, 9, 10, 11}));
+    EXPECT_EQ(tested.world.OwnCharacter().bytef04, 12);
+    EXPECT_EQ(DrawsSince(Seed, tested.random), 5 * OwnRecord);
+    EXPECT_EQ(hero.byte381, 15);
+    EXPECT_EQ(tested.Threshold(), FullThreshold);
+    EXPECT_EQ(tested.sounds, (std::vector<std::int32_t>{0x72}));
+}
+
 // 0x4f8f5b, la 3 sin caso de +0x376 en la cola de 0x4f5b70 (por el paso del ataque, con el blanco en el pool): el
-// hueso de la derecha contra la cuenta de huesos (JL: el igual pasa, Q-C1093); fuera, nada; si no, corta en los joints
-// 0x614/0 (0x4f8fef), sin rand() propios. Otro tipo sin la biblioteca de modelos corta en 0x4f8f69.
+// hueso de la derecha contra la cuenta de huesos (JL: el igual pasa, Q-C1093); fuera, nada; si no, los dos joints
+// 0x614/0 (0x4f8fef y 0x4f9012, sin rand() propios) y la partícula 0x5ca/0 (0x4f9034, dos rand()).
 TEST(AttackFrameSkillsTest, TheHandBoltsOfTheTail)
 {
     struct Case
@@ -760,13 +923,13 @@ TEST(AttackFrameSkillsTest, TheHandBoltsOfTheTail)
         std::string_view name;
         std::uint16_t type;
         std::uint8_t bone;
-        std::string_view cut;
+        bool cast;
     };
     const std::vector<Case> cases{
-        {"el hueso 0", Player, 0, "0x4f8fef"},
-        {"el hueso de la cuenta", Player, Bones, "0x4f8fef"},
-        {"pasado la cuenta", Player, Bones + 1, ""},
-        {"otro tipo", 0x152, 0, "0x4f8fef"},
+        {"el hueso 0", Player, 0, true},
+        {"el hueso de la cuenta", Player, Bones, true},
+        {"pasado la cuenta", Player, Bones + 1, false},
+        {"otro tipo", 0x152, 0, true},
     };
     for (const std::int32_t map : Maps)
     {
@@ -782,17 +945,18 @@ TEST(AttackFrameSkillsTest, TheHandBoltsOfTheTail)
 
             const auto stepped = StepTheAttack(hero, HeroSlot, tested.Context());
 
-            if (probe.cut.empty())
+            ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+            EXPECT_EQ(hero.byte381, 2);
+            const auto joints = AliveJoints(tested.joints);
+            EXPECT_EQ(joints.size(), probe.cast ? 2u : 0u);
+            for (const JointState* joint : joints)
             {
-                ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
-                EXPECT_EQ(hero.byte381, 2);
+                EXPECT_EQ(joint->type, 0x614);
+                EXPECT_EQ(joint->subtype, 0);
             }
-            else
-            {
-                EXPECT_TRUE(HasError(stepped, probe.cut)) << ErrorOf(stepped);
-            }
-            // La lectura de 0x4f97b0, el rand() de 0x4f5b97 y las lecturas de 0x4f811b y 0x4f8a2c.
-            EXPECT_EQ(DrawsSince(Seed, tested.random), 4);
+            // La lectura de 0x4f97b0, el rand() de 0x4f5b97 y las lecturas de 0x4f811b y 0x4f8a2c; con los joints, los
+            // dos de la 0x5ca/0.
+            EXPECT_EQ(DrawsSince(Seed, tested.random), probe.cast ? 6 : 4);
         }
     }
 }

@@ -4,6 +4,8 @@
 
 #include "Scenes/GameTailDrawingPrimitives.h"
 #include "Scenes/FaunaObject.h"
+#include "Scenes/ActorState.h"
+#include "Scenes/JointKernels.h"
 #include "Core/Expected.h"
 #include "Render/ModelBatch.h"
 #include "Render/Models/Cloth.h"
@@ -130,11 +132,19 @@ Core::Expected<glm::vec3, std::string> BloodCastleSegmentLight(const JointState&
                                                                const JointDrawResources* resources)
 {
     glm::vec3 segmentLight;
-    const auto* owner = static_cast<const FaunaObject*>(joint.ownerContext);
-    segmentLight = glm::vec3(1);
-    if (owner != nullptr)
+    // El +0x18 del dueño: un personaje (ActorState) en el 10f/0, /4 y /9 de AuraJoints.cpp, o el FaunaObject.
+    const glm::vec3* ownerPosition = nullptr;
+    if (joint.ownerKind == JointOwnerKind::Actor)
     {
-        const double base = static_cast<double>(owner->position.z) + (joint.subtype == 9 ? 180 : 50);
+        if (const auto* actor = JointKernels::ActorOwner(joint))
+            ownerPosition = &actor->position;
+    }
+    else if (const auto* owner = static_cast<const FaunaObject*>(joint.ownerContext))
+        ownerPosition = &owner->position;
+    segmentLight = glm::vec3(1);
+    if (ownerPosition != nullptr)
+    {
+        const double base = static_cast<double>(ownerPosition->z) + (joint.subtype == 9 ? 180 : 50);
         const double reduction = (static_cast<double>(joint.points[static_cast<std::size_t>(segment)][0].z) - base) *
                                  static_cast<double>(0.01f);
         segmentLight = joint.light;

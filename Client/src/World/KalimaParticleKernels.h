@@ -26,6 +26,11 @@ inline constexpr std::int32_t KalimaFanta = 0x6ed;
 // a la 4).
 inline constexpr std::int32_t CrywolfFanta = 0x6ec;
 inline constexpr std::int32_t ShortFantaSubtype = 5;
+// 0x543be5: la /6 (la de 0x428adc y 0x428c52) vive 32. 0x543aed: la /7 nace corrida y más grande, y su paso (0x547cc2)
+// se achica 0,1f y sube 2 más. La /1..4 leen a su dueño (0x547a4d, 0x547a73) y no están; los demás subtipos son la /0.
+inline constexpr std::int32_t LongFantaSubtype = 6;
+inline constexpr std::int32_t SwirlFantaSubtype = 7;
+inline constexpr std::int32_t LastOwnedFantaSubtype = 4;
 inline constexpr std::int32_t KalimaWaterfallFirst = 0x6f0;
 inline constexpr std::int32_t KalimaWaterfallMist = 0x6f1;
 // 0x6f2 y 0x6f3: las salpicaduras de las cascadas (el 0x39 del 54 crea 6f2/4).
@@ -34,6 +39,13 @@ inline constexpr std::int32_t KalimaWaterfallLast = 0x6f4;
 // 0x6f4/6, la caída de los braseros 0x34 de Castle Siege (0x42caf4): nace en 0x543f04 y su paso (0x547fa4) solo toca
 // la luz.
 inline constexpr std::int32_t BrazierFallSubtype = 6;
+// Las del joint 0x613/0xe y 0x6ee/0xe de Kundun: la caída 6f4/3 (0x521aa3 y 0x539120, nace en 0x543dc0 y su paso,
+// 0x547f4c, gira 4 además de la caída de la 6f4), y las salpicaduras 6f2/2, 6f3/2 (0x5390e6 y 0x539109) y 6f4/4, que
+// nacen con la subida del ángulo x (0x544295 y 0x543e14) y avanzan 20 hacia su ángulo z (0x5480fd y 0x547f6b). Todas
+// van al billboard común (0x54889a).
+inline constexpr std::int32_t KundunFallSubtype = 3;
+inline constexpr std::int32_t KundunSplashSubtype = 2;
+inline constexpr std::int32_t KundunSplashLastSubtype = 4;
 [[nodiscard]] bool IsKalimaParticle(std::int32_t type, std::int32_t subtype);
 // Después del prefijo53fe70.6f1/0 consultaScene tras3CRT y antes de almacenar vz;
 // su ausencia conserva Initialize/vida/rotación/escala y devuelve MissingScene, sin jitter.

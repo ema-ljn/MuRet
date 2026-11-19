@@ -86,9 +86,9 @@ struct KalimaSiegeHelperPass
 //   rand() % 600. Las acciones 3 y 4 sacan el efecto 0x128 y los joints 0x6ee/14 (CL11), 0x437860 y el temblor con
 //   rand() & 15.
 // - 0x193, 0x194, 0x195, 0x196 y 0x197: sus sprites (el 0x194 con dos rand() % 360); el 0x196 saca la neblina 0x5ac/0
-//   del hueso 60 y, en las acciones 0 y 1, rand() % 50 por hueso; los joints 0x614/7 y 0x610/5 y las partículas
-//   0x5f2/13 y 0x5da/1 cortan (CL11); 0x5dc/12 usa el alta común de la estela. El 0x195 y el 0x197 sueltan las
-//   dos manos en la acción 6.
+//   del hueso 60 y, en las acciones 0 y 1, rand() % 50 por hueso; los joints 0x614/7 y 0x610/5 y la partícula
+//   0x5f2/13 cortan (CL11); la 0x5da/1 (World::MissileFireParticleKernels) y la 0x5dc/12 se crean. El 0x195 y el
+//   0x197 sueltan las dos manos en la acción 6.
 // 0x42dfe0, solo en el mapa 30: el 0x19c, el 0x1a1, el 0x1a8 y el 0x1fd, con sus sprites, +0x68, +0x42c, +0x58 y
 // los calcos de 0x42a1b0, que en el modo 0x80 pisan la luz que reciben (+0xf4 del 0x19c sin el asedio y del 0x1a1
 // con él, Q-C876).

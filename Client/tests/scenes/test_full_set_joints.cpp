@@ -8,6 +8,7 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/HelperTable.h"
+#include "Scenes/JointKernels.h"
 #include "World/IFishStepServices.h"
 #include "World/Sprites.h"
 
@@ -367,21 +368,41 @@ TEST(FullSetJointsTest, OnlyTheSparklesTakeAHelperForOwner)
     EXPECT_FALSE(full.Value().has_value());
 }
 
-// 0x53c393: un 60f/1 con la cola usaría la matriz que dejó el joint anterior; el 60f/0 que cae la apaga, así que sólo
-// se llega con un estado armado a mano.
-TEST(FullSetJointsTest, AFallenSparkleWithItsTailIsNotPorted)
+// 0x53c393: un 60f/1 con la cola usa la matriz que dejó en [ebp−0xe8] el último joint de la vuelta que la calculó (el
+// 60f/0 que cae la apaga, así que sólo se llega con un estado armado a mano). Sin ninguno antes, la de la pila: con
+// dibujo corta (Q-C1623).
+TEST(FullSetJointsTest, AFallenSparkleWithItsTailUsesThePreviousMatrix)
 {
-    std::array<JointState, 1> joints{};
-    joints[0].alive = true;
-    joints[0].type = 0x60f;
-    joints[0].subtype = 1;
-    joints[0].tailEnabled = true;
+    std::array<JointState, 2> joints{};
+    joints[1].alive = true;
+    joints[1].type = 0x60f;
+    joints[1].subtype = 1;
+    joints[1].tailEnabled = true;
+    joints[1].drawEnabled = 3;
+    joints[1].width = 20.0f;
+    joints[1].maximumCount = 5;
+    joints[1].life = 30;
+    joints[1].position = {10.0f, 20.0f, 30.0f};
     CrtRandom random(1);
-
-    const auto stepped = Client::Scenes::StepJoints(joints, random);
-
+    auto alone = joints;
+    const auto stepped = Client::Scenes::StepJoints(alone, random);
     ASSERT_FALSE(stepped.HasValue());
-    EXPECT_NE(stepped.Error().find("0x53c393"), std::string::npos) << stepped.Error();
+    EXPECT_NE(stepped.Error().find("0x53c3a5"), std::string::npos) << stepped.Error();
+
+    // El 0x613/0xa de antes calcula la matriz con sus ángulos de antes del caso (0, 0, 90).
+    joints[0].alive = true;
+    joints[0].type = 0x613;
+    joints[0].subtype = 0xa;
+    joints[0].angles = {0.0f, 0.0f, 90.0f};
+    joints[0].life = 10;
+    JointState expected = joints[1];
+    ASSERT_TRUE(Client::Scenes::JointKernels::AppendJointTail(
+                    expected, Client::Render::Models::OriginalAngleMatrix(glm::vec3{0.0f, 0.0f, 90.0f}))
+                    .HasValue());
+    ASSERT_TRUE(Client::Scenes::StepJoints(joints, random).HasValue());
+    EXPECT_EQ(joints[1].count, expected.count);
+    EXPECT_EQ(joints[1].points[0], expected.points[0]);
+    EXPECT_EQ(joints[1].position, (glm::vec3{10.0f, 20.0f, 30.0f}));
 }
 
 // 0x534cb6: los 60f/0x12 (0x5103be) restan (mezcla 4) y, con el ancho 20, viven 50 con un tercer rand() para vz:
@@ -639,6 +660,96 @@ TEST(FullSetJointsTest, TheSetEnergyCirclesItsMovingOwnerUntilItsRadiusRunsOut)
         }
     }
     EXPECT_EQ(random.State(), CrtRandom(1).State());
+}
+
+// 0x5325c7..0x532659: el 619/0xa de la 0x35: como el /9, con vida 80, vx 80 y +0x9d4 en 1 sólo con el giro 225 o 405.
+TEST(FullSetJointsTest, TheSkillEnergyTurnsForwardOnlyFromTwoAngles)
+{
+    for (const float turn : {45.0f, 405.0f, 225.0f, 450.0f})
+    {
+        SCOPED_TRACE(turn);
+        ActorState actor;
+        actor.position = {130.0f, 170.0f, 290.0f};
+        std::array<JointState, 1> joints{};
+        CrtRandom random(1);
+        Request request{0x619, 0xa, 15.0f, -1, 0};
+        request.angles = {-45.0f, 0.0f, turn};
+
+        const auto created = Create(joints, request, &actor, random);
+
+        ASSERT_TRUE(created.HasValue()) << created.Error();
+        EXPECT_EQ(random.State(), CrtRandom(1).State());
+        const JointState& joint = joints[0];
+        EXPECT_EQ(joint.life, 80);
+        EXPECT_EQ(joint.maximumCount, 20);
+        EXPECT_EQ(joint.count, 0);
+        EXPECT_EQ(joint.field9ec, static_cast<std::int32_t>(turn));
+        EXPECT_EQ(joint.field9d4, turn == 225.0f || turn == 405.0f ? 1 : 0);
+        EXPECT_EQ(joint.velocity, glm::vec3(80.0f, 0.0f, 0.0f));
+        EXPECT_EQ(joint.light, glm::vec3(Float(0x3dba2e8cu), Float(0x3d3a2e8cu), Float(0x3dba2e8cu)));
+        EXPECT_EQ(joint.position, actor.position);
+        EXPECT_EQ(joint.targetPosition, actor.position);
+        EXPECT_EQ(joint.width, 15.0f);
+    }
+}
+
+// 0x5388e7..0x538a4d: el 619/0xa sigue al dueño como el /9, con la z en el destino más vida · 0,0125f · 300, +0x9ec
+// que sube 2 con +0x9d4 y si no baja 2, y la luz por 1,2f por encima de 68 y por 0,9090909f debajo de 40. En el paso
+// 81, vx por debajo de 0, queda en 0 con la vida en 0.
+TEST(FullSetJointsTest, TheSkillEnergyCirclesItsOwnerAndClimbsWithItsLife)
+{
+    for (const float turn : {45.0f, 225.0f})
+    {
+        SCOPED_TRACE(turn);
+        ActorState actor;
+        actor.position = {130.0f, 170.0f, 290.0f};
+        std::array<JointState, 1> joints{};
+        CrtRandom random(1);
+        Request request{0x619, 0xa, 15.0f, -1, 0};
+        request.angles = {-45.0f, 0.0f, turn};
+        ASSERT_TRUE(Create(joints, request, &actor, random).HasValue());
+        JointState expected = joints[0];
+        const double tenth = D(Float(0x3dcccccdu));
+
+        for (int step = 1; step <= 81; ++step)
+        {
+            SCOPED_TRACE(step);
+            if (step == 20)
+                actor.position = {F32(D(actor.position.x) + 3.5), F32(D(actor.position.y) - 2.25),
+                                  F32(D(actor.position.z) + 1.0)};
+            ASSERT_TRUE(Client::Scenes::StepJoints(joints, random).HasValue());
+
+            expected.targetPosition = actor.position;
+            const double argument = static_cast<double>(expected.field9ec) * tenth;
+            expected.field9ec += turn == 225.0f ? 2 : -2;
+            const double sine = expected.velocity.x > 0 ? Sine(argument, expected.velocity.x) : 0.0;
+            const double cosine = expected.velocity.x > 0 ? Cosine(argument, expected.velocity.x) : 0.0;
+            expected.position.x = F32(sine + D(expected.targetPosition.x));
+            expected.position.y = F32(cosine + D(expected.targetPosition.y));
+            expected.position.z =
+                F32(static_cast<double>(expected.life) * D(Float(0x3c4ccccdu)) * 300.0 + D(expected.targetPosition.z));
+            const double reduced = D(expected.velocity.x) - 1.0;
+            expected.velocity.x = F32(reduced);
+            if (!(reduced >= 0))
+            {
+                expected.velocity.x = 0.0f;
+                expected.life = 0;
+            }
+            if (expected.life < 40)
+                expected.light = Faded(expected.light, 0x3f68ba2eu);
+            else if (expected.life > 0x44)
+                expected.light = Faded(expected.light, 0x3f99999au);
+            --expected.life;
+
+            const JointState& joint = joints[0];
+            EXPECT_EQ(joint.field9ec, expected.field9ec);
+            EXPECT_EQ(joint.position, expected.position);
+            EXPECT_EQ(joint.velocity.x, expected.velocity.x);
+            EXPECT_EQ(joint.light, expected.light);
+            EXPECT_EQ(joint.life, expected.life);
+            EXPECT_EQ(joint.alive, step < 81);
+        }
+    }
 }
 
 // El 619/1 del calco de la mascota (0x518900), con el héroe de dueño.

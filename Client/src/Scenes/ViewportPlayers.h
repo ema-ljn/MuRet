@@ -79,8 +79,8 @@ void ApplyViewportLeave(const Protocol::Viewport::Leave& leave, WorldState& worl
 // 0x4c9356..0x4c9762, lo que 0x4c92a0 hace con el personaje `index` que devolvió 0x5141e0: con +0x376 en 7 la escala
 // en 0,8; la clase del héroe publicado que leyó antes del alta (`heroClass`, 0x4c9328), el PK, +0x88 y +0x3e3 en 1;
 // las banderas (0x4e6380 y 0x42ab40); la celda protegida, +0x39a/+0x39b y el ángulo. Recién llegado, la posición, el
-// alpha en 0 y corta en 0x4c965c (el efecto 0xec de 0x518cf0 y el joint 0x5d5/2 de 0x53fe70, CL11); si no, el camino
-// (0x4eac00) con la Y leída antes que la X. Después, el nombre, +0x1e3 en 0 y 0x512a30 sobre el héroe publicado.
+// alpha en 0, el círculo 0xec (0x4c965c) y el rayo 0x5d5/2 que lo sigue (0x4c9674), los dos con él de dueño; si no, el
+// camino (0x4eac00) con la Y leída antes que la X. Después, el nombre, +0x1e3 en 0 y 0x512a30 sobre el héroe publicado.
 [[nodiscard]] Core::Expected<void, std::string>
 FinishTheTransformed(std::size_t index, const Protocol::Viewport::TransformedRecord& record, std::uint8_t heroClass,
                      const WorldEntryResources& resources);

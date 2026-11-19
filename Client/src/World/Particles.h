@@ -50,11 +50,21 @@ inline constexpr std::int32_t FireworkParticle = 0x60d;
 inline constexpr std::int32_t PoundingBallParticle = 0x640;
 inline constexpr std::int32_t ShinyParticle = 0x5fc;
 inline constexpr std::int32_t ThunderParticle = 0x5ca;
+// 0x5410d9: la /1 (la de 0x53fd42) gris que se apaga con la vida; la /2 (la de 0x51df52) con la textura 0x61e.
+inline constexpr std::int32_t ThunderGraySubtype = 1;
+inline constexpr std::int32_t ThunderBoltSubtype = 2;
 inline constexpr std::int32_t FairySparkParticle = 0x5c5;
 inline constexpr std::int32_t FireParticle = 0x5d9;
 // 0x4fd580/0x43ebb7: la llama azul de la estela de Kalima, con su textura Effect\Fire05.jpg (0x61ddac).
 inline constexpr std::int32_t BlueTrailFireParticle = 0x5dc;
 inline constexpr std::int32_t BlueTrailFireSubtype = 12;
+// Los casos del fuego (5d9, 5db y 5dc, 0x541172 y 0x5457a5) que tienen nombre: la /7 y la /11 se mecen de costado, la
+// /9 sigue a su dueño (+0x40) desde una partida en anillo, la /12 es la alta de la estela y la /13 sube recta.
+inline constexpr std::int32_t FireSwaySubtype = 7;
+inline constexpr std::int32_t FireRingSubtype = 9;
+inline constexpr std::int32_t FireLongSwaySubtype = 11;
+inline constexpr std::int32_t FireTallSubtype = BlueTrailFireSubtype;
+inline constexpr std::int32_t FireFountainSubtype = 13;
 inline constexpr std::int32_t DropParticle = 0x607;
 inline constexpr std::int32_t WorldSmokeSubtype = 2;
 inline constexpr std::uint16_t BreathParticle = 0x5f2;
@@ -75,6 +85,12 @@ inline constexpr std::int32_t BowSparkSubtype = 12;
 inline constexpr std::int32_t LightningParticle = 0x5d5;
 inline constexpr std::int32_t LightningTrailSubtype = 0;
 inline constexpr std::int32_t LightningHitSubtype = 1;
+// Los demás casos de 0x540bb2: la /2 (vida 20, la del 0x4c965c) sigue en su paso a su dueño (+0x40, un personaje),
+// la /3 vive 1 paso con la escala del pedido, y la /4 y la /5 conservan la luz del pedido.
+inline constexpr std::int32_t LightningFollowSubtype = 2;
+inline constexpr std::int32_t LightningFlashSubtype = 3;
+inline constexpr std::int32_t LightningPlainSubtype = 4;
+inline constexpr std::int32_t LightningPlainScaledSubtype = 5;
 inline constexpr std::uint16_t CloudParticle = 0x622;
 inline constexpr std::int32_t LoginCloudSubtype = 10;
 // Los dos tipos que comparten creación y paso; la 68 además corre la posición al nacer.
@@ -202,6 +218,17 @@ using ParticleOwnerBones = std::function<std::optional<glm::vec3>(const Particle
 // (ParticleOwnerKind::Actor, el lugar del pool) para el subtipo. nullopt si no está.
 using ParticleActorHands = std::function<std::optional<glm::vec3>(std::uint64_t, std::int32_t)>;
 
+// Lo que el paso lee por el puntero +0x40 de las partículas que siguen a su dueño (5c6/4, 5d5/2, el fuego /9 y
+// 5de/4): el byte vivo (+0x0), la posición (+0x10) y, sólo de un efecto con modelo, su partida (+0x17c).
+struct ParticleOwnerState
+{
+    bool alive = false;
+    glm::vec3 position{};
+    std::optional<glm::vec3> start;
+};
+// El estado del dueño de una identidad (Particle::typedOwner); nullopt si no está.
+using ParticleOwnerStates = std::function<std::optional<ParticleOwnerState>(const ParticleOwner&)>;
+
 class Particles
 {
 public:
@@ -235,7 +262,8 @@ public:
     // CreateKalimaChecked agrega5ac/6,7,6ed/0,6f0..4/0, 6f1/3 y6f4/1; escena prestada para6f1.
     // Las familias con dueño tipado: las de Kalima y las de la selección (SelectionParticleKernels.h:
     // 622/1, 5de/7 y 729/0,1), más 6f0/2, 6f1/2 y 6f2,6f3/4 de los objetos del 54 y del 33, y la 5fd/0 y /2 de la
-    // mano (que no lee el reloj ni la escena, ni saca rand()), y la 5ac/4 de Swell Life (0x540112), sin rand().
+    // mano (que no lee el reloj ni la escena, ni saca rand()), y la 5ac/4 de Swell Life (0x540112), sin rand(). También
+    // las que siguen a su dueño sin leerlo al nacer (5d5/2, el fuego /9 y 5f2/36: FollowsItsOwner).
     [[nodiscard]] Core::Expected<std::optional<std::size_t>, ParticleError>
     CreateOwnedChecked(std::int32_t type, const glm::vec3& position, const glm::vec3& angles, const glm::vec3& light,
                        std::int32_t subtype, float scale, float worldClock, Render::Models::CrtRandom& random,
@@ -247,6 +275,14 @@ public:
     CreateFollowingChecked(std::int32_t type, const glm::vec3& position, const glm::vec3& angles,
                            const glm::vec3& light, std::int32_t subtype, float scale, ParticleOwner owner,
                            const ParticleOwnerBones& bones);
+    // 0x53fe70 con las que leen la posición de su dueño al nacer (+0x40 → +0x10): la 5c6/4 (0x540686, la velocidad
+    // hacia él) y la 5de/4 (0x5417ba, la partida). Las demás la ignoran; el dueño queda en typedOwner para su paso. Sin
+    // ella, CreateChecked rechaza esas dos con MissingOwner antes de tocar el lugar.
+    [[nodiscard]] Core::Expected<std::optional<std::size_t>, ParticleError>
+    CreateTowardChecked(std::int32_t type, const glm::vec3& position, const glm::vec3& angles, const glm::vec3& light,
+                        std::int32_t subtype, float scale, std::reference_wrapper<const float> worldClock,
+                        Render::Models::CrtRandom& random, IParticleTrigonometry& trigonometry, ParticleOwner owner,
+                        const glm::vec3& ownerPosition);
     // 0x54061d: chispa5c6/2 hacia el centro de su lugar físico621, sinCRT.
     std::optional<std::size_t> CreatePiercingSpark(const glm::vec3& position, float scale, ParticleOwner owner,
                                                    const glm::vec3& center);
@@ -264,7 +300,8 @@ private:
     CreateImpl(std::int32_t type, const glm::vec3& position, const glm::vec3& angles, const glm::vec3& light,
                std::int32_t subtype, float scale, float legacyClock, const float* worldClock,
                Render::Models::CrtRandom& random, std::uint32_t owner, IParticleTrigonometry* trigonometry,
-               std::optional<std::int32_t> scene = std::nullopt, ParticleOwner typedOwner = {});
+               std::optional<std::int32_t> scene = std::nullopt, ParticleOwner typedOwner = {},
+               const glm::vec3* ownerPosition = nullptr);
     // En el heap: la escena que la lleva tiene que caber en la pila.
     std::vector<Particle> m_particles = std::vector<Particle>(ParticleCount);
     ParticleWind m_wind;
@@ -304,12 +341,16 @@ StepParticlesChecked(Particles& particles, Render::Models::CrtRandom& random,
                      const ParticleTextureHeight& textureHeight = {}, TerrainLighting* lighting = nullptr,
                      const ParticleActorHands& actorHands = {}, const ParticleOwnerBones& ownerBones = {});
 
-// Igual contrato con los sonidos0x40 de las explosiones1 creadas por5ed/2; no retiene el callback.
-[[nodiscard]] Core::Expected<void, ParticleError> StepParticlesChecked(
-    Particles& particles, Render::Models::CrtRandom& random, std::reference_wrapper<const float> worldClock,
-    const std::int32_t* map, IParticleTrigonometry& trigonometry, const ParticleTerrainHeight& terrainHeight,
-    const ParticleObjectOwners& owners, const ParticleActorActions& actorActions,
-    const ParticleTextureHeight& textureHeight, TerrainLighting* lighting, const ParticleActorHands& actorHands,
-    const ParticleOwnerBones& ownerBones, const std::function<void(std::int32_t)>& sound);
+// Igual contrato con los sonidos0x40 de las explosiones1 creadas por5ed/2; no retiene el callback. `ownerStates` da
+// el dueño (+0x40) de las que lo siguen (5c6/4, 5d5/2, el fuego /9 y 5de/4): sin él, o sin ese dueño, cortan con
+// MissingOwner en su caso.
+[[nodiscard]] Core::Expected<void, ParticleError>
+StepParticlesChecked(Particles& particles, Render::Models::CrtRandom& random,
+                     std::reference_wrapper<const float> worldClock, const std::int32_t* map,
+                     IParticleTrigonometry& trigonometry, const ParticleTerrainHeight& terrainHeight,
+                     const ParticleObjectOwners& owners, const ParticleActorActions& actorActions,
+                     const ParticleTextureHeight& textureHeight, TerrainLighting* lighting,
+                     const ParticleActorHands& actorHands, const ParticleOwnerBones& ownerBones,
+                     const std::function<void(std::int32_t)>& sound, const ParticleOwnerStates& ownerStates = {});
 
 } // namespace Client::World

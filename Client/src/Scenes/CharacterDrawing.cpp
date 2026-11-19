@@ -1447,7 +1447,12 @@ Render::ModelBlend ItemPassBlend(const MeshDraw& draw, std::uint32_t flags,
                                  std::optional<Render::Models::ShinePass> shine)
 {
     using Render::ModelBlend;
-    if ((flags & 0x40) != 0 || (!shine && draw.blends) || shine == Render::Models::ShinePass::Chrome3 ||
+    // 0x4ecf22..0x4ecf34 → 0x4ed014: la malla del blendMesh (o todas, con el blendMesh en −2 o menos) sólo mira la
+    // 0x80: ZERO / ONE_MINUS_SRC_COLOR (0x620b10) con ella, aditiva (0x620a90) sin ella. La 0x40 es de la otra rama
+    // (0x4ecf57).
+    if (!shine && draw.blends)
+        return (flags & 0x80) != 0 ? ModelBlend::Subtractive : ModelBlend::Additive;
+    if ((flags & 0x40) != 0 || shine == Render::Models::ShinePass::Chrome3 ||
         shine == Render::Models::ShinePass::Chrome4 || shine == Render::Models::ShinePass::Chrome5)
         return ModelBlend::Additive;
     if ((flags & 0x80) != 0)

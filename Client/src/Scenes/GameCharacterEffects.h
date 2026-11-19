@@ -63,6 +63,9 @@ struct GameCharacterEffectsPass
     // Los lugares de la party hasta su cuenta (PartyMembers): las acciones 0x51, 0x5b y 0x94 del Dark Lord los leen
     // con el frame por debajo de 2 (0x50f9c9).
     std::span<const PartySlot> party{};
+    // Los 400 personajes (0x743a16c): los miembros de la party a los que van los joints 0x618 de esas acciones
+    // (0x50fa25). Sin ellos, cortan.
+    std::span<const ActorState> actors{};
     // DAT_05767b88: el reloj del mundo en ms, en float.
     float worldClock = 0.0f;
     std::int32_t map = 0;        // 0x6c9dd0
@@ -100,8 +103,11 @@ StepFullSetFlare(World::ModelEffect& effect, std::span<JointState> joints, Rende
 // (0x5208c5) y tres joints 619/1 de ancho 5, cada uno con su giro (rand() % 90, 0, rand() % 360), nacido donde ese giro
 // lleva (0, −200, 0) restado de la posición del efecto, con 120 más de z; la posición del efecto de segundo punto, el
 // dueño del efecto (el héroe), key −1 y sin skill ni objetivo. El /3 de la 0x1c y de las invocaciones hace lo mismo con
-// joints 619/3, de la CL11: corta en el primero (0x5189cc), después de sus dos rand(). Después la cola común
-// (0x52cb98): sin animación ni velocidad, una vida menos.
+// joints 619/3, de la CL11: corta en el primero (0x5189cc), después de sus dos rand(). El /2, el /5 y los de 0xb en
+// adelante van también a 0x518900, con joints 619 del mismo subtipo salvo el /5, que los pide 619/0xb (0x51898b). Los
+// negativos, como el /0. Después la cola común (0x52cb98): sin animación ni velocidad, una vida menos. Los /4 y /6 a
+// /0xa son de Scenes/HighModelEffects (StepsAsPetSummon los deja afuera).
+[[nodiscard]] bool StepsAsPetSummon(const World::ModelEffect& effect);
 [[nodiscard]] Core::Expected<void, std::string> StepPetSummon(World::ModelEffect& effect, std::span<JointState> joints,
                                                               Render::Models::CrtRandom& random);
 

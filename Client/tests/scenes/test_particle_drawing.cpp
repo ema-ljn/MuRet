@@ -435,12 +435,10 @@ TEST_F(ParticleDrawingTest, MissingInitialMetadataAndUnknownBranchesFailAtTheirO
     EXPECT_EQ(m_events.back(), "additive");
     EXPECT_TRUE(m_backend.selectors.empty());
     m_events.clear();
-    // El subtipo 5 ya tiene su rama de fuego rotado. El 7 sigue sin implementar.
+    // El 7 va, como el 5, al fuego girado por +0x44 (0x548850).
     Seed(13, 0x5d9, 7);
     result = Draw();
-    ASSERT_FALSE(result.HasValue());
-    EXPECT_EQ(result.Error().error.reason, ParticleError::UnsupportedSubtype);
-    EXPECT_EQ(m_events.back(), "additive");
+    EXPECT_TRUE(result.HasValue());
 }
 TEST_F(ParticleDrawingTest, CloudScratchLivesThroughBinderAndUsesTheLiveClockAndPhysicalIndices)
 {

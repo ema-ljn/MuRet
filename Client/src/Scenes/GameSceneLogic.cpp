@@ -7,6 +7,7 @@
 #include "Scenes/SelectionState.h"
 #include "Scenes/GameParticles.h"
 #include "Scenes/HandShine.h"
+#include "Scenes/HighModelEffects.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/FaunaEffects.h"
@@ -24,7 +25,6 @@
 #include "Protocol/Outgoing.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/Skeleton.h"
-#include "Scenes/ActorState.h"
 #include "Scenes/CameraTour.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/CharacterStep.h"
@@ -208,12 +208,6 @@ GameScene::StepTheModelEffects(float worldClock, const std::function<double(floa
         auto& effect = effects[slot];
         if (!effect.alive)
             continue;
-        if (effect.type == World::SiegeArrivalCue && effect.subtype == 0)
-        {
-            // 0x52952d consulta al actor del alta. Sus lugares viven tanto como el mundo.
-            const auto* owner = static_cast<const ActorState*>(effect.ownerContext);
-            effect.hasOwner = owner != nullptr && owner->alive;
-        }
         const auto* skeleton = effect.type == World::EarthquakeBurstEffect
                                    ? nullptr
                                    : m_worldModels.SkeletonOf(static_cast<std::uint16_t>(effect.type));
@@ -297,6 +291,18 @@ GameScene::StepTheModelEffects(float worldClock, const std::function<double(floa
             if (auto stepped = StepFaunaLightning(effect, slot, skeleton, m_context.world->Particles(), m_sprites,
                                                   m_context.world->DynamicLighting().Lighting(), *m_context.cloth);
                 !stepped.HasValue())
+                return stepped;
+            continue;
+        }
+        // 0x525e6e, 0x52a688, 0x52b56d y 0x52c9e7: los tipos altos de la CL11 leen el mundo (el dueño, el héroe, los
+        // joints, las partículas y la tabla de efectos), fuera de World.
+        if (StepsAsHighModelEffect(effect))
+        {
+            const HighEffectStepContext high{.world = *m_context.world,
+                                             .random = m_context.cloth->random,
+                                             .services = services,
+                                             .worldClock = worldClock};
+            if (auto stepped = StepHighModelEffect(effect, skeleton, high); !stepped.HasValue())
                 return stepped;
             continue;
         }

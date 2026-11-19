@@ -141,20 +141,23 @@ bool HasParticleRoom(const ArrowStepContext& context)
            std::ranges::any_of(context.particles->All(), [](const auto& particle) { return !particle.alive; });
 }
 
-// 0x51c590..0x51c5a9: 0x518cf0(0x105, la posición de la flecha, sus ángulos, su luz, 0, la flecha, −1, 0, 0, 0, 0), la
-// estela de la skill 0x34. El caso 0x105 con el subtipo 0 (0x519fc9..0x51a06d): vida 100, +0x64 en 0, +0x68 en 1, +0xe4
-// en 0, la escala 12 (0x519ff3) y la partida en la posición del dueño (0x51a040); después, cuatro joints 610/0..3,
-// sonido 7a sin posición y escala 1. Cada alta busca el primer hueco, aun con saturación parcial; sin rand().
-Core::Expected<void, std::string> CreateTheArrowTrail(World::ModelEffect& arrow, WorldState& world, CrtRandom& random)
+// 0x518cf0(0x105, la posición de la flecha, sus ángulos, su luz, subtipo, la flecha, −1, 0, 0, 0, 0): el /0 es la
+// estela de la skill 0x34 (0x51c590..0x51c5a9) y el /3, el pulso de la 0xf8/1 en su vida 13 (0x523f72). El caso 0x105
+// (0x519fc9..0x51a101): vida 100, +0x64 en 0, +0x68 en 1 y +0xe4 en 0; el /0, la escala 12 (0x519ff3) y el /3, la
+// escala 10 y la luz (0,9; 0,4; 0,6) (0x51a01b), los dos con la partida en la posición del dueño (0x51a040); después,
+// cuatro joints 610/0..3 con la clave 30 y el subtipo del alta de noveno argumento, el sonido 7a sin posición y la
+// escala en 1. Cada alta busca el primer hueco, aun con saturación parcial; sin rand().
+Core::Expected<void, std::string> CreateTheArrowTrail(World::ModelEffect& arrow, WorldState& world, CrtRandom& random,
+                                                      std::int32_t subtype)
 {
     constexpr std::int16_t TrailType = 0x105;
-    constexpr std::int32_t TrailLife = 100;
-    constexpr float TrailScale = 12.0f; // 0x41400000
+    constexpr std::int32_t TrailLife = 100, PulseSubtype = 3;
+    constexpr float TrailScale = 12.0f, PulseScale = 10.0f; // 0x41400000, 0x41200000
     const World::ModelEffectArguments arguments{.type = TrailType,
                                                 .position = arrow.transform.position,
                                                 .angles = arrow.transform.angles,
                                                 .light = arrow.light,
-                                                .subtype = 0,
+                                                .subtype = subtype,
                                                 .owner = &arrow,
                                                 .key = 0xffff,
                                                 .byte89 = 0,
@@ -170,16 +173,25 @@ Core::Expected<void, std::string> CreateTheArrowTrail(World::ModelEffect& arrow,
     trail.objectState.blendMesh = 0;
     trail.objectState.light = 1.0f;
     trail.turnDirection = 0.0f;
-    trail.transform.scale = TrailScale;
+    if (subtype == PulseSubtype)
+    {
+        trail.transform.scale = PulseScale;
+        trail.light = {std::bit_cast<float>(0x3f666666u), std::bit_cast<float>(0x3ecccccdu),
+                       std::bit_cast<float>(0x3f19999au)};
+    }
+    else
+    {
+        trail.transform.scale = TrailScale;
+    }
     trail.start = arrow.transform.position;
     trail.owner.effect = &arrow;
     constexpr std::int32_t TrailJoint = 0x610, JointLife = 30, NoTarget = -1;
-    for (std::int32_t subtype = 0; subtype < 4; ++subtype)
+    for (std::int32_t joint = 0; joint < 4; ++joint)
     {
         const auto made =
             CreateFaunaJoint(world.DrawTail().joints,
                              {TrailJoint, trail.transform.position, trail.transform.position, trail.transform.angles,
-                              subtype, &trail, TrailScale, JointLife, 0, 0, NoTarget},
+                              joint, &trail, trail.transform.scale, JointLife, subtype, 0, NoTarget},
                              random, JointOwnerKind::ModelEffect);
         if (!made.HasValue())
             return Core::Unexpected("0x51a08a/aa/cd/ed: " + made.Error());
@@ -271,7 +283,7 @@ Core::Expected<void, std::string> BeginTheArrow(World::ModelEffect& effect, Worl
     constexpr std::int32_t PiercingSubtype = 2;
     if (effect.subtype == PiercingSubtype)
     {
-        if (auto trail = CreateTheArrowTrail(effect, world, random); !trail.HasValue())
+        if (auto trail = CreateTheArrowTrail(effect, world, random, 0); !trail.HasValue())
             return trail;
         effect.dword100 = 0;
         effect.state = 1;
@@ -339,12 +351,26 @@ Core::Expected<void, std::string> BeginCelestialArrow(World::ModelEffect& effect
     effect.start = effect.transform.position;
     AddRotated(effect.start, Render::Models::OriginalVectorRotate(
                                  Muzzle, Render::Models::OriginalAngleMatrix(effect.transform.angles)));
+    glm::vec3 angles{0.0f, 0.0f, effect.transform.angles.z};
     if (callerAngles != nullptr)
-        *callerAngles = {0.0f, 0.0f, effect.transform.angles.z};
-    // H11: la /1 usa la señal procedural del proyecto; conserva el prefijo y el motor de trayectoria,
-    // sin reconstruir la cadena visual de joints60f/19 ni consumir sus sorteos.
-    if (effect.subtype != 1 && HasJointRoom(world))
-        return Core::Unexpected(std::string("0x51a405: el joint 0x60f/0xb de la flecha 0xf8 sigue en CL11"));
+        *callerAngles = angles;
+    // 0x51a37a..0x51a419: con el /1, tres joints 0x60f/0x19 (0x51a3b7), y si no cuatro 0x60f/0xb (0x51a405), desde la
+    // partida, con los ángulos del caller, la flecha de dueño, escala 50, clave −1 y el noveno argumento en 1 sólo en
+    // el segundo; después 0x51a1b0. Los dos joints son del lote de los joints de la CL11.
+    constexpr std::int32_t ArrowJoint = 0x60f, NoKey = -1, NoTarget = -1;
+    constexpr float ArrowJointScale = 50.0f; // 0x42480000
+    const bool celestial = effect.subtype == 1;
+    const std::int32_t jointSubtype = celestial ? 0x19 : 0xb;
+    const int joints = celestial ? 3 : 4;
+    for (int joint = 0; joint < joints; ++joint)
+    {
+        const auto made = CreateFaunaJoint(world.DrawTail().joints,
+                                           {ArrowJoint, effect.start, effect.start, angles, jointSubtype, &effect,
+                                            ArrowJointScale, NoKey, joint == 1 ? 1 : 0, 0, NoTarget},
+                                           random, JointOwnerKind::ModelEffect);
+        if (!made.HasValue())
+            return Core::Unexpected(std::format("{:#x}: {}", celestial ? 0x51a3b7u : 0x51a405u, made.Error()));
+    }
     CopyTheOwnCount(effect, world, random);
     return {};
 }
@@ -368,7 +394,7 @@ Core::Expected<void, std::string> BeginAdvancedArrow(World::ModelEffect& effect,
         effect.turnDirection = -10.0f;
         if (effect.subtype == 2)
         {
-            if (auto trail = CreateTheArrowTrail(effect, world, random); !trail.HasValue())
+            if (auto trail = CreateTheArrowTrail(effect, world, random, 0); !trail.HasValue())
                 return trail;
             effect.dword100 = 0;
             effect.state = 1;
@@ -384,7 +410,7 @@ Core::Expected<void, std::string> BeginAdvancedArrow(World::ModelEffect& effect,
     }
     if (effect.type != ReignArrow && effect.subtype != 0)
     {
-        if (auto trail = CreateTheArrowTrail(effect, world, random); !trail.HasValue())
+        if (auto trail = CreateTheArrowTrail(effect, world, random, 0); !trail.HasValue())
             return trail;
         effect.dword100 = 0;
         effect.state = 1;
@@ -1166,18 +1192,13 @@ Core::Expected<void, std::string> StepCelestialArrow(World::ModelEffect& effect,
     effect.transform.angles.y = F32(D(effect.transform.angles.y) + (single ? 60.0 : 30.0));
     if (single)
     {
-        if (effect.life == 13)
+        // 0x523f4b..0x523f72: en la vida 13, el pulso 0x105/3 con la flecha de dueño (sus joints y su sonido 0x7a).
+        constexpr std::int32_t PulseLife = 13, PulseSubtype = 3;
+        if (effect.life == PulseLife)
         {
-            // H11: pulso procedural propio, sin la cadena visual original ni RNG adicional.
-            const auto pulse = context.world.Map().effects.CreateCrywolfEffect({.type = World::CrywolfPulseEffect,
-                                                                                .position = effect.transform.position,
-                                                                                .angles = effect.transform.angles,
-                                                                                .light = effect.light,
-                                                                                .subtype = World::CrywolfPulseSubtype,
-                                                                                .owner = &effect});
-            constexpr std::int32_t PulseSound = 0x7a;
-            if (pulse.has_value() && context.soundRequest)
-                context.soundRequest(PulseSound);
+            if (auto pulse = CreateTheArrowTrail(effect, context.world, context.random, PulseSubtype);
+                !pulse.HasValue())
+                return pulse;
         }
         if (auto hit = HitWithTheArrow(effect, context); !hit.HasValue())
             return hit;
@@ -1188,7 +1209,7 @@ Core::Expected<void, std::string> StepCelestialArrow(World::ModelEffect& effect,
     if (effect.subtype == 0)
         return {};
     if (effect.life == 13)
-        return CreateTheArrowTrail(effect, context.world, context.random);
+        return CreateTheArrowTrail(effect, context.world, context.random, 0);
     if (effect.life == 30)
     {
         effect.dword100 = 0;
@@ -1493,7 +1514,16 @@ Core::Expected<void, std::string> StepArrow(World::ModelEffect& effect, const Re
     // vida.
     const bool alive = effect.alive;
     effect.alive = true;
+    const glm::vec3 position = effect.transform.position;
     World::StepModelEffect(effect, skeleton);
+    if (effect.type == CelestialArrow)
+    {
+        // 0x52ccbe..0x52cd3f: la 0xf8 no se mueve; la velocidad girada por sus ángulos corre la partida (+0x17c).
+        effect.transform.position = position;
+        effect.previousPosition = position;
+        AddRotated(effect.start, Render::Models::OriginalVectorRotate(
+                                     effect.velocity, Render::Models::OriginalAngleMatrix(effect.transform.angles)));
+    }
     if (!alive)
         effect.alive = false;
     return {};

@@ -49,34 +49,10 @@
 
 namespace
 {
-TEST(GameModelEffectsTest, AShardRetiresOnlyBelowTheTerrainAfterTheCommonMovement)
-{
-    auto particles = std::make_unique<Client::World::Particles>();
-    auto lighting = std::make_unique<Client::World::TerrainLighting>();
-    Client::World::ModelEffect shard;
-    shard.alive = true;
-    shard.type = 0xc1a;
-    shard.life = 3;
-    shard.transform.position = {1000, 2000, 40};
-    shard.velocity = {0, -80, -10};
-    Client::Render::Models::CrtRandom random(1);
-    const Client::World::ModelEffectStepServices services{.terrainHeight = [](float, float) { return 40.0; },
-                                                          .lighting = lighting.get()};
-
-    auto result = Client::World::StepGameModelEffect(shard, nullptr, *particles, 0, random, nullptr, services);
-    ASSERT_TRUE(result.HasValue()) << result.Error();
-    EXPECT_TRUE(shard.alive);
-    EXPECT_EQ(shard.transform.position, (glm::vec3{1000, 1920, 30}));
-
-    result = Client::World::StepGameModelEffect(shard, nullptr, *particles, 0, random, nullptr, services);
-    ASSERT_TRUE(result.HasValue()) << result.Error();
-    EXPECT_FALSE(shard.alive);
-    EXPECT_EQ(shard.transform.position, (glm::vec3{1000, 1840, 20}));
-    EXPECT_EQ(shard.life, 1);
-    EXPECT_EQ(random.State(), Client::Tests::AfterDraws(1, 2).State());
-}
-
-TEST(GameModelEffectsTest, AVolleyPulseFollowsItsProjectileAndRetiresWhenTheOwnerIsReused)
+// 0x523b8b..0x523d35 con el subtipo 3 (el pulso de la 0xf8/1): el mismo paso que la estela 0x105/0. Con la flecha viva,
+// +0xe4 90 más, sus ángulos en +0x1c y en +0x28, la partida en la posición de antes y la posición en la de ella; el
+// puntero retiene el lugar aunque cambie el tipo. Con la flecha apagada, la vida en −1 y la cola lo libera.
+TEST(GameModelEffectsTest, TheVolleyPulseStepsLikeTheTrailAndRetiresWithItsArrow)
 {
     auto particles = std::make_unique<Client::World::Particles>();
     Client::World::ModelEffect projectile;
@@ -84,23 +60,37 @@ TEST(GameModelEffectsTest, AVolleyPulseFollowsItsProjectileAndRetiresWhenTheOwne
     projectile.type = 0xf8;
     projectile.subtype = 1;
     projectile.transform.position = {10, 20, 30};
+    projectile.transform.angles = {0, 60, 90};
     Client::World::ModelEffect pulse;
     pulse.alive = true;
     pulse.type = 0x105;
     pulse.subtype = 3;
     pulse.life = 10;
+    pulse.transform.position = {1, 2, 3};
     pulse.owner.effect = &projectile;
     Client::Render::Models::CrtRandom random(1);
+    const std::int32_t map = 34;
+    const Client::World::ModelEffectStepServices services{.map = &map};
 
-    auto result = Client::World::StepGameModelEffect(pulse, nullptr, *particles, 0, random);
+    auto result = Client::World::StepGameModelEffect(pulse, nullptr, *particles, 0, random, nullptr, services);
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_TRUE(pulse.alive);
-    EXPECT_EQ(pulse.transform.position, projectile.transform.position);
+    EXPECT_EQ(pulse.life, 9);
+    EXPECT_EQ(pulse.turnDirection, 90.0f);
+    EXPECT_EQ(pulse.start, (glm::vec3{1, 2, 3}));
+    EXPECT_EQ(pulse.transform.angles, projectile.transform.angles);
+    EXPECT_EQ(pulse.copiedAngles, (glm::vec3{0, 90, 90}));
     projectile.type = 0xc1a;
-    result = Client::World::StepGameModelEffect(pulse, nullptr, *particles, 0, random);
+    result = Client::World::StepGameModelEffect(pulse, nullptr, *particles, 0, random, nullptr, services);
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    EXPECT_TRUE(pulse.alive);
+    EXPECT_EQ(pulse.turnDirection, 180.0f);
+    projectile.alive = false;
+    result = Client::World::StepGameModelEffect(pulse, nullptr, *particles, 0, random, nullptr, services);
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_FALSE(pulse.alive);
-    EXPECT_EQ(random.State(), Client::Tests::AfterDraws(1, 2).State());
+    EXPECT_EQ(pulse.life, -2);
+    EXPECT_EQ(random.State(), Client::Tests::AfterDraws(1, 3).State());
 }
 
 TEST(GameModelEffectsTest, TheShortBowTrailFollowsThePhysicalArrowSlotAndRunsItsCommonTail)
@@ -288,55 +278,6 @@ TEST(GameModelEffectsTest, TheShortBowTrailOnlyDisturbsKalimaForThePublishedHero
             EXPECT_EQ(random.State(), expected.State());
             EXPECT_EQ(trail.life, 99);
         }
-}
-
-TEST(GameModelEffectsTest, TheSiegeArrivalCueStaysAtTheSpawnUntilItsActorIsGone)
-{
-    auto particles = std::make_unique<Client::World::Particles>();
-    Client::World::ModelEffect effect;
-    effect.alive = true;
-    effect.type = Client::World::SiegeArrivalCue;
-    effect.hasOwner = true;
-    const glm::vec3 position{350, 550, 100};
-    effect.transform.position = position;
-    Client::Render::Models::CrtRandom random(1);
-
-    for (int frame = 0; frame < 3; ++frame)
-    {
-        const auto result = Client::World::StepGameModelEffect(effect, nullptr, *particles, 0, random);
-        ASSERT_TRUE(result.HasValue()) << result.Error();
-        EXPECT_TRUE(effect.alive);
-        EXPECT_EQ(effect.transform.position, position);
-    }
-
-    effect.hasOwner = false;
-    const auto result = Client::World::StepGameModelEffect(effect, nullptr, *particles, 0, random);
-    ASSERT_TRUE(result.HasValue()) << result.Error();
-    EXPECT_FALSE(effect.alive);
-    EXPECT_EQ(random.State(), Client::Tests::AfterDraws(1, 4).State());
-}
-
-TEST(GameModelEffectsTest, SiegeAttackCuesExpireWithoutKeepingTheSlotAlive)
-{
-    auto particles = std::make_unique<Client::World::Particles>();
-    for (const std::int16_t type : {std::int16_t{0x19f}, std::int16_t{0x61c}})
-    {
-        SCOPED_TRACE(type);
-        Client::World::ModelEffect effect;
-        effect.alive = true;
-        effect.type = type;
-        effect.life = 2;
-        Client::Render::Models::CrtRandom random(1);
-        auto result = Client::World::StepGameModelEffect(effect, nullptr, *particles, 0, random);
-        ASSERT_TRUE(result.HasValue()) << result.Error();
-        EXPECT_TRUE(effect.alive);
-        EXPECT_EQ(effect.life, 1);
-        EXPECT_LT(effect.alpha, 1.0f);
-        result = Client::World::StepGameModelEffect(effect, nullptr, *particles, 0, random);
-        ASSERT_TRUE(result.HasValue()) << result.Error();
-        EXPECT_FALSE(effect.alive);
-        EXPECT_EQ(random.State(), Client::Tests::AfterDraws(1, 2).State());
-    }
 }
 
 TEST(GameModelEffectsTest, NoriaUpdatesLightAndPitchThenTheCommonLifeWithOneRandom)

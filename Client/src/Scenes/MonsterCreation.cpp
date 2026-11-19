@@ -11,6 +11,7 @@
 #include "Scenes/FaunaModels.h"
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/GameDrawTail.h"
+#include "Scenes/HighModelEffects.h"
 #include "World/IFishStepServices.h"
 #include "Scenes/MonsterKinds.h"
 #include "Scenes/NpcNames.h"
@@ -39,6 +40,8 @@ namespace Client::Scenes
 {
 namespace
 {
+// El aura de la llegada del asedio (Skill\Aurora, 0x42d513 y 0x42d5af).
+constexpr std::int16_t ArrivalAuraEffect = 0x134;
 // Desde +0x1d9: el nombre (diez bytes), +0x1e3, nameSpill hasta +0x1f1, el WORD de +0x1f2, la clave de +0x1f4,
 // +0x1f6 y +0x1f7 (MuRet no los guarda), la cabeza de +0x1f8 y el resto de su parte, +0x1fa..+0x217 (tampoco).
 constexpr std::size_t NameBytes = 10;
@@ -389,18 +392,22 @@ private:
             return Core::Unexpected(std::format("{:#x}: el joint {:#x} (0x530860) del tipo {} es de la CL11",
                                                 step.address, step.value, m_type));
         case MonsterStepKind::Arrival:
-            if (m_index && step.value == World::SiegeArrivalCue)
+            if (m_index && step.value == ArrivalAuraEffect)
             {
                 auto& actor = Actor();
-                // 0x42d513 y 0x42d5af prestan el actor y pasan 120 como clave de la señal.
+                // 0x42d4c0..0x42d513 y 0x42d5af: 0x518cf0(0x134, el actor, sus ángulos, su luz, 0, el actor, 120, 0, 0,
+                // 0, 0): el aura de la llegada, con el actor de dueño y la escala de la clave.
                 constexpr std::uint16_t ArrivalScaleKey = 120;
-                static_cast<void>(m_resources.world.Map().effects.CreateSiegeCue({.type = World::SiegeArrivalCue,
-                                                                                  .position = actor.position,
-                                                                                  .angles = actor.angles,
-                                                                                  .light = actor.light,
-                                                                                  .owner = &actor,
-                                                                                  .key = ArrivalScaleKey},
-                                                                                 m_resources.cloth.random));
+                const World::ModelEffectArguments arguments{.type = ArrivalAuraEffect,
+                                                            .position = actor.position,
+                                                            .angles = actor.angles,
+                                                            .light = actor.light,
+                                                            .owner = &actor,
+                                                            .key = ArrivalScaleKey};
+                const auto created =
+                    CreateHighModelEffect(arguments, {.world = m_resources.world, .random = m_resources.cloth.random});
+                if (!created.HasValue())
+                    return Core::Unexpected(created.Error());
                 return {};
             }
             // 0x518d0f devuelve el control al caller cuando no hay un lugar libre en el pool.

@@ -843,7 +843,8 @@ TEST(AttackSkillCasesTest, TheSummonGoesOverTheTarget)
 
 // 0x33 y 0x34: dos lecturas de +0x38e (la skill de 0x53e2b0 y la de 0x59fb80) y un tiro; 0x18: antes, la tanda sin
 // blanco con su propia lectura y 0x59fb80. Los rand(), las flechas y los sonidos son los de las lecturas y los de
-// 0x53e2b0, que corre igual en un mundo gemelo. La flecha de la 0x34 corta en la estela 0x105 (CL11).
+// 0x53e2b0, que corre igual en un mundo gemelo. La flecha de la 0x34 crea su estela 0x105/0 con sus cuatro joints 0x610
+// (0x51a08a..0x51a0ed, ya portados).
 TEST(AttackSkillCasesTest, TheArrowCasesReadTheSkillBeforeShooting)
 {
     struct Case
@@ -853,7 +854,7 @@ TEST(AttackSkillCasesTest, TheArrowCasesReadTheSkillBeforeShooting)
         std::size_t arrows;
         std::string_view cut;
     };
-    for (const Case& probe : {Case{0x33, false, 1, ""}, Case{0x34, false, 1, "0x51a08a"}, Case{0x18, true, 4, ""}})
+    for (const Case& probe : {Case{0x33, false, 1, ""}, Case{0x34, false, 1, ""}, Case{0x18, true, 4, ""}})
     {
         SCOPED_TRACE(int{probe.skill});
         SkillWorld tested;

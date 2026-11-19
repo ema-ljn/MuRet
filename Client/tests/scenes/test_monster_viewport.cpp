@@ -645,7 +645,8 @@ TEST_F(MonsterViewportTest, TheSiegeSwitchAndBothCatapultsCanBePickedForTalkAndO
     }
 }
 
-// 42d513 y 42d5af publican el actor tanto con espacio para la señal como con el pool lleno.
+// 0x42d513 y 0x42d5af publican el actor tanto con espacio para el aura 0x134 como con el pool lleno. Su alta
+// (0x51d714): vida 100, la escala de la clave (120 · 0,01f), +0x64 y +0x68 en 0, sin rand().
 TEST_F(MonsterViewportTest, CastleSiegePublishesTheActorsWithOneOrNoFreeArrivalSlots)
 {
     struct Kind
@@ -682,6 +683,10 @@ TEST_F(MonsterViewportTest, CastleSiegePublishesTheActorsWithOneOrNoFreeArrivalS
         EXPECT_EQ(effects.back().ownerContext, &Actor(1));
         EXPECT_EQ(effects.back().disturbanceState, 120);
         EXPECT_EQ(effects.back().transform.position, Actor(1).position);
+        EXPECT_EQ(effects.back().life, 100);
+        EXPECT_EQ(effects.back().transform.scale, static_cast<float>(120.0 * static_cast<double>(0.01f)));
+        EXPECT_EQ(effects.back().objectState.blendMesh, 0);
+        EXPECT_EQ(effects.back().objectState.light, 0.0f);
         EXPECT_EQ(game->cloth.random.State(), AfterDraws(Seed, WalkingRecordDraws).State());
 
         // La misma alta con la tabla llena se completa sin tocar sus entradas vivas.

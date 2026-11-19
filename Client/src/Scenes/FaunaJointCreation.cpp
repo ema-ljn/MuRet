@@ -823,12 +823,13 @@ Core::Expected<void, std::string> CreateCase(JointState& joint, const World::Fis
     }
     if (request.type == JointFamilies::SpiritJoint || request.type == JointFamilies::SecondSpiritJoint)
         return JointFamilies::CreateSpiritJoint(joint, request, random, services);
-    if (request.type == JointFamilies::DropJoint &&
-        (request.subtype == JointFamilies::DropSubtype || request.subtype == JointFamilies::DarkDropSubtype))
+    if (JointFamilies::IsDrop(request.type, request.subtype))
     {
         JointFamilies::CreateDropJoint(joint, request, random);
         return {};
     }
+    if (JointFamilies::IsOrbit(request.type, request.subtype))
+        return JointFamilies::CreateOrbitJoint(joint, request, random);
     if (JointFamilies::IsInferno(request.type, request.subtype))
     {
         JointFamilies::CreateInfernoJoint(joint, request);
@@ -991,6 +992,7 @@ Core::Expected<std::optional<std::size_t>, std::string> CreateFaunaJoint(std::sp
         request.type == JointFamilies::SecondSpiritJoint || request.type == JointFamilies::BeamJoint ||
         request.type == JointFamilies::SpiralJoint ||
         (request.type == JointFamilies::DropJoint && request.subtype == JointFamilies::WanderSubtype) ||
+        (JointFamilies::IsOrbit(request.type, request.subtype) && request.subtype == JointFamilies::ColumnSubtype) ||
         (request.type == JointFamilies::AuraJoint && request.subtype != 1 && request.subtype != 3);
     // El 0x618 que sigue a un efecto con modelo (la /5 de las flechas y la /0xa y /0xb del 0x11b/1) y el 0x60f/0xb y
     // /0x19 de la flecha 0xf8.
@@ -1006,6 +1008,9 @@ Core::Expected<std::optional<std::size_t>, std::string> CreateFaunaJoint(std::sp
         (request.type == 0x615 && request.subtype == 6) || JointFamilies::IsHelix(request.type, request.subtype);
     // El 0x6ee/0x12 del 0x125 de Kundun (0x51ce91), que le escribe el alpha y la posición en su paso (0x539494).
     const bool kundunSpirit = request.type == JointFamilies::SecondSpiritJoint && request.subtype == 0x12;
+    // El 0x62b/0xe y /0xf del efecto 0x60f (0x52b408, 0x52b42b), que sólo miran si hay dueño (0x53b18a).
+    const bool whirl =
+        JointFamilies::IsOrbit(request.type, request.subtype) && request.subtype != JointFamilies::ColumnSubtype;
     for (std::size_t i = 0; i < joints.size(); ++i)
     {
         if (joints[i].alive)
@@ -1023,7 +1028,7 @@ Core::Expected<std::optional<std::size_t>, std::string> CreateFaunaJoint(std::sp
                (request.subtype == SummonEnergySubtype || request.subtype == SummonDecalEnergySubtype)) ||
               (request.type == 0x610 && (request.subtype == 13 || (request.subtype >= 0 && request.subtype <= 3))) ||
               (request.type == SparkleJoint && request.subtype == 6) || effectBeam || pulseJoint || kundunSpirit ||
-              request.type == JointFamilies::FireTrailJoint))
+              whirl || request.type == JointFamilies::FireTrailJoint))
             return Core::Unexpected(
                 std::string("0x530860: el dueño ModelEffect no está portado para este tipo y subtipo"));
         Prefix(joints[i], request, ownerKind);
@@ -1828,6 +1833,7 @@ enum class Family : std::uint8_t
     FireTrail,
     Helix,
     Flare,
+    Orbit,
 };
 
 std::optional<Family> FamilyStep(const JointState& joint)
@@ -1840,9 +1846,10 @@ std::optional<Family> FamilyStep(const JointState& joint)
     if ((joint.type == JointFamilies::SpiritJoint || joint.type == JointFamilies::SecondSpiritJoint) &&
         joint.subtype != 4 && joint.subtype != 9)
         return Family::Spirit;
-    if (joint.type == JointFamilies::DropJoint &&
-        (joint.subtype == JointFamilies::DropSubtype || joint.subtype == JointFamilies::DarkDropSubtype))
+    if (JointFamilies::IsDrop(joint.type, joint.subtype))
         return Family::Drop;
+    if (JointFamilies::IsOrbit(joint.type, joint.subtype))
+        return Family::Orbit;
     // La /1 (el hada) y la /3 (Blood Castle) siguen en el paso de abajo, con el FaunaObject de dueño.
     if (joint.type == JointFamilies::AuraJoint && joint.subtype != 1 && joint.subtype != 3)
         return Family::Aura;
@@ -1951,6 +1958,8 @@ Core::Expected<void, std::string> RunFamily(JointState& joint, Family family,
         return JointFamilies::StepHelixJoint(joint);
     case Family::Flare:
         return JointFamilies::StepFlareJoint(joint);
+    case Family::Orbit:
+        return JointFamilies::StepOrbitJoint(joint, services);
     }
     return {};
 }

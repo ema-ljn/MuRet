@@ -234,6 +234,9 @@ TEST_F(ViewportPlayersTest, ANewPlayerAppearsInTheCentreOfItsCell)
         const auto& effect = game->world.Map().effects.Effects()[0];
         EXPECT_TRUE(effect.alive);
         EXPECT_EQ(effect.type, Client::World::ArrivalEffect);
+        EXPECT_TRUE(effect.hasOwner);
+        EXPECT_EQ(effect.ownerContext, &actor);
+        EXPECT_EQ(effect.disturbanceState, 0xffffu);
         EXPECT_EQ(game->cloth.random.State(), AfterDraws(Seed, FreshRecordDraws).State());
         // La copia del dispatcher (0x4e372e) la hace la sesión antes del lector; 0x4c8860 copia solo con el estado 1.
         EXPECT_EQ(game->world.Runtime().viewportPackets.count, 0);
@@ -424,6 +427,11 @@ TEST_F(ViewportPlayersTest, TheTeleportStateKeepsWhatTheOldOneHad)
     const auto effects = game->world.Map().effects.Effects();
     EXPECT_EQ(effects[0].type, Client::World::TeleportEffect);
     EXPECT_EQ(effects[1].type, Client::World::ArrivalEffect);
+    EXPECT_FALSE(effects[0].hasOwner);
+    EXPECT_EQ(effects[0].ownerContext, nullptr);
+    EXPECT_TRUE(effects[1].hasOwner);
+    EXPECT_EQ(effects[1].ownerContext, &actor);
+    EXPECT_EQ(effects[1].disturbanceState, 0xffffu);
     // 0x4c8a43..0x4c8ad4: el estado 1 copia el paquete entero (Q-C801), además de la copia del dispatcher.
     const auto& ring = game->world.Runtime().viewportPackets;
     EXPECT_EQ(ring.count, 1);

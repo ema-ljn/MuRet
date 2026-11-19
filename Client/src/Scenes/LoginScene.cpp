@@ -329,6 +329,28 @@ LoginScene::LoginScene(const SceneContext& context, const GameData& data, const 
     }
 }
 
+LoginScene::~LoginScene()
+{
+    DetachTheDragonOwner();
+}
+
+void LoginScene::DetachTheDragonOwner()
+{
+    if (m_objects.empty())
+        return;
+    // El mundo compartido puede conservar efectos después de la escena, aun en lugares inactivos.
+    // La vida y la visibilidad del último dibujo no dependen de este enlace.
+    const void* owner = &m_objects.front();
+    for (World::ModelEffect& effect : CharacterWorld().Map().effects.Effects())
+    {
+        if (effect.ownerContext == owner)
+        {
+            effect.ownerContext = nullptr;
+            effect.hasOwner = false;
+        }
+    }
+}
+
 World::GameCamera& LoginScene::CameraState()
 {
     return m_context.camera != nullptr ? *m_context.camera : m_localCamera;
@@ -591,6 +613,7 @@ Core::Expected<void, std::string> LoginScene::LoadTheLogo()
 Core::Expected<void, std::string> LoginScene::PlaceTheModels()
 {
     const std::uint8_t map = m_world ? m_world->map : 0;
+    DetachTheDragonOwner();
     m_objects.clear();
     // 0x616ec0 en el mapa 55 (0x6188ae..0x61891b), antes del .obj: 0x606660(0xb4, (5.600; 23.000; 0),
     // (0, 0, 0), 1), el dueño del dragón. No se dibuja (+0x58 en −2), pero 0x5ffdf0 lo posa en el buffer
@@ -632,8 +655,14 @@ Core::Expected<void, std::string> LoginScene::PlaceTheModels()
     m_tailSpriteReplayValid = false;
     if (m_world && m_world->map == DragonMap)
     {
-        (void)CharacterWorld().Map().effects.Create(World::DragonEffect, DragonOwnerPosition, glm::vec3(0.0f),
-                                                    glm::vec3(1.0f), World::DragonScale);
+        // 0x606953..0x60697a: el dueño durable y la clave -1, después de la última realocación.
+        (void)CharacterWorld().Map().effects.Create(World::ModelEffectArguments{.type = World::DragonEffect,
+                                                                                .position = DragonOwnerPosition,
+                                                                                .angles = glm::vec3(0.0f),
+                                                                                .light = glm::vec3(1.0f),
+                                                                                .owner = &m_objects.front(),
+                                                                                .key = 0xffff,
+                                                                                .scale = World::DragonScale});
     }
     m_routes = {};
     m_horse = {};
@@ -1797,12 +1826,16 @@ void LoginScene::Leave()
     m_options.Close();
     m_credits.Close();
     m_ui.Clear();
-    m_textures.Release();
+    // 0x61c7c0 vuelve a subir las brasas de 0x61ccb0. El slot común sobrevive a la salida del login.
+    const Render::TextureSlot ember{World::EmberTexture};
+    const auto commonSlot = m_models.TextureSlotOf(ember.value);
+    m_textures.Release(commonSlot == ember ? commonSlot : std::nullopt);
     m_windowTextures.Release();
     ReleaseTheIllustrations();
     RetainTheTerrain();
     m_terrain.Release();
     m_worldModels.Release();
+    DetachTheDragonOwner();
     m_objects.clear();
     m_logoIndex.reset();
     if (m_logoTextures)

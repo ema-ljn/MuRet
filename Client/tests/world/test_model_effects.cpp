@@ -189,6 +189,155 @@ TEST(ModelEffectsTest, AnUnseenSlotDoesNotBecomeSeenWhenReused)
     EXPECT_FALSE(effects.Effects()[0].seen);
 }
 
+// 0x518d28..0x518e36 sólo pisa el prefijo: los otros campos físicos pertenecen al lugar reciclado.
+TEST(ModelEffectsTest, ReusingTheGenericEffectsRetainsFieldsOutsideTheNativePrefix)
+{
+    for (const auto type : {DragonEffect, Client::World::ArrivalEffect, Client::World::TeleportEffect})
+    {
+        SCOPED_TRACE(type);
+        ModelEffects effects;
+        ModelEffect& effect = effects.Effects()[0];
+        effect.seen = true;
+        effect.point40 = {1, 2, 3};
+        effect.copiedAngles = {4, 5, 6};
+        effect.start = {7, 8, 9};
+        effect.reference = 11;
+        effect.turnPending = 12;
+        effect.turnDirection = 13;
+        effect.flagEc = 14;
+        effect.textureFrame = 15;
+        effect.textureTime = 16;
+        effect.word8c = 17;
+        effect.byte90 = 18;
+        effect.siegeTarget = {19, 20, 21};
+        effect.flags78 = 22;
+        ASSERT_EQ(effects.Create(type, {100, 200, 300}, {10, 20, 30}, {0.2f, 0.3f, 0.4f}, 0.5f), 0u);
+        EXPECT_TRUE(effect.seen);
+        EXPECT_EQ(effect.point40, glm::vec3(1, 2, 3));
+        EXPECT_EQ(effect.copiedAngles, glm::vec3(4, 5, 6));
+        EXPECT_EQ(effect.textureFrame, 15);
+        EXPECT_EQ(effect.textureTime, 16u);
+        EXPECT_EQ(effect.word8c, 17u);
+        EXPECT_EQ(effect.byte90, 18u);
+        EXPECT_EQ(effect.siegeTarget, glm::vec3(19, 20, 21));
+        EXPECT_EQ(effect.flags78, 22u);
+        if (type == DragonEffect)
+        {
+            EXPECT_EQ(effect.start, effect.transform.position);
+            EXPECT_EQ(effect.reference, 0);
+            EXPECT_EQ(effect.turnPending, 1);
+            EXPECT_EQ(effect.turnDirection, 1);
+            EXPECT_EQ(effect.flagEc, 1);
+        }
+        else
+        {
+            EXPECT_EQ(effect.start, glm::vec3(7, 8, 9));
+            EXPECT_EQ(effect.reference, 11);
+            EXPECT_EQ(effect.turnPending, 12);
+            EXPECT_EQ(effect.turnDirection, 13);
+            EXPECT_EQ(effect.flagEc, 14);
+        }
+    }
+}
+
+// 0x518db5/0x518dcb/0x518dbe: el teletransporte también pisa los bytes de argumentos y +0x100.
+TEST(ModelEffectsTest, ReusingTheGenericEffectsReinitializesEveryNativePrefixField)
+{
+    for (const auto type : {DragonEffect, Client::World::ArrivalEffect, Client::World::TeleportEffect})
+    {
+        SCOPED_TRACE(type);
+        ModelEffects effects;
+        ModelEffect& effect = effects.Effects()[0];
+        effect.subtype = 9;
+        effect.byte89 = 10;
+        effect.byte1bd = 11;
+        effect.dword100 = 12;
+        effect.disturbanceState = 13;
+        effect.state = 14;
+        effect.animation.action = 15;
+        effect.animation.frame = 16;
+        effect.animation.previousKey = 17;
+        effect.vertexLight = false;
+        effect.alpha = 0.2f;
+        effect.renderFlags = 18;
+        effect.hasOwner = true;
+        effect.ownerContext = &effects;
+        effect.owner.effect = &effect;
+        effect.itemType = &effect.type;
+        effect.itemLevel = &effect.byte90;
+        effect.objectState = {.blendMesh = 3, .light = 0.4f, .uv = {0.2f, 0.3f}, .hiddenMesh = 4};
+        ASSERT_EQ(effects.Create(type, {100, 200, 300}, {10, 20, 30}, {0.2f, 0.3f, 0.4f}, 0.5f), 0u);
+        EXPECT_EQ(effect.subtype, 0);
+        EXPECT_EQ(effect.byte89, 0);
+        EXPECT_EQ(effect.byte1bd, 0);
+        EXPECT_EQ(effect.dword100, 0);
+        EXPECT_EQ(effect.disturbanceState, 0xffff);
+        EXPECT_EQ(effect.state, 0);
+        EXPECT_EQ(effect.animation.action, 0);
+        EXPECT_EQ(effect.animation.frame, 0);
+        EXPECT_EQ(effect.animation.previousKey, 0);
+        EXPECT_TRUE(effect.vertexLight);
+        EXPECT_EQ(effect.alpha, 1);
+        EXPECT_EQ(effect.renderFlags, 0u);
+        EXPECT_FALSE(effect.hasOwner);
+        EXPECT_EQ(effect.ownerContext, nullptr);
+        EXPECT_EQ(effect.owner.effect, nullptr);
+        EXPECT_EQ(effect.itemType, nullptr);
+        EXPECT_EQ(effect.itemLevel, nullptr);
+        EXPECT_EQ(effect.objectState, Client::Render::Models::ObjectState{});
+    }
+}
+
+TEST(ModelEffectsTest, AnUnimplementedSubtypeLeavesTheFreeSlotUntouched)
+{
+    ModelEffects effects;
+    ModelEffect& slot = effects.Effects()[0];
+    slot.life = 42;
+    slot.disturbanceState = 17;
+    const Client::World::ModelEffectArguments arguments{.type = Client::World::ArrivalEffect, .subtype = 6};
+    EXPECT_FALSE(effects.Create(arguments));
+    EXPECT_FALSE(slot.alive);
+    EXPECT_EQ(slot.life, 42);
+    EXPECT_EQ(slot.disturbanceState, 17);
+}
+
+// El overload conserva los argumentos reales del caller, en vez de sintetizar un dueño o una clave.
+TEST(ModelEffectsTest, GenericCreationForwardsTheNativePrefixArguments)
+{
+    for (const auto type : {DragonEffect, Client::World::ArrivalEffect, Client::World::TeleportEffect})
+    {
+        SCOPED_TRACE(type);
+        ModelEffects effects;
+        int owner = 0;
+        const Client::World::ModelEffectArguments arguments{.type = type,
+                                                            .position = {100, 200, 300},
+                                                            .angles = {10, 20, 30},
+                                                            .light = {0.2f, 0.3f, 0.4f},
+                                                            .owner = &owner,
+                                                            .key = 0x1234,
+                                                            .byte89 = 23,
+                                                            .byte88 = 2,
+                                                            .byte1bd = 24,
+                                                            .scale = 0.5f};
+        ASSERT_EQ(effects.Create(arguments), 0u);
+        const ModelEffect& effect = effects.Effects()[0];
+        EXPECT_TRUE(effect.hasOwner);
+        EXPECT_EQ(effect.ownerContext, &owner);
+        EXPECT_EQ(effect.disturbanceState, 0x1234);
+        EXPECT_EQ(effect.byte89, 23);
+        EXPECT_EQ(effect.byte1bd, 24);
+        EXPECT_EQ(effect.state, type == DragonEffect ? 0 : 2);
+        EXPECT_EQ(effect.transform.scale, 0.5f);
+        EXPECT_EQ(effect.life, type == DragonEffect ? 1000 : type == Client::World::ArrivalEffect ? 20 : 10);
+        if (type != DragonEffect)
+        {
+            EXPECT_EQ(effect.transform.position, arguments.position);
+            EXPECT_EQ(effect.transform.angles, arguments.angles);
+            EXPECT_EQ(effect.light, arguments.light);
+        }
+    }
+}
+
 // La vida baja uno por paso y se vuelve a llenar en 10 (0x520b3b): el dragón no muere nunca.
 TEST_F(DragonTest, TheDragonNeverDies)
 {

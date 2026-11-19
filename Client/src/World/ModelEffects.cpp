@@ -39,6 +39,8 @@ constexpr glm::vec3 DragonVelocity{0.0f, -35.0f, 0.0f};
 // 0x518d0a..0x518e3c: la velocidad de la animación que pone lo común; 0x51eebb: la vida del 0x61f.
 constexpr float CommonAnimationSpeed = 0.3f;
 constexpr std::int32_t ArrivalLife = 20;
+// 0x51e4f6: el teletransporte no consume rand().
+constexpr std::int32_t TeleportLife = 10;
 
 // 0x52096c..0x520b72: los topes de los ángulos (0x6b869c, 0x6ba2a8), el alabeo por paso (0x6b882c), el
 // radio de la partida (0x6b8ac8, 0x6ba2a4), el giro (0x6b86cc, 0x6b8b94), la vida que se vuelve a
@@ -150,26 +152,23 @@ float CreationScale(float scale)
     return scale > 0.0f ? scale : DefaultScale;
 }
 
-ModelEffect DragonAt(const glm::vec3& position, const glm::vec3& angles, float scale)
+// 0x518f95..0x519006 y 0x51a97b: sólo los stores de la rama del dragón.
+void InitializeDragonEffect(ModelEffect& effect)
 {
-    ModelEffect effect;
-    effect.alive = true;
-    effect.type = DragonEffect;
-    effect.transform.scale = CreationScale(scale);
-    effect.transform.position = {
-        position.x, position.y,
-        static_cast<float>(static_cast<double>(position.z) + static_cast<double>(DragonHeight))};
-    effect.transform.angles = {angles.x, 0.0f, angles.z};
+    effect.transform.position.z =
+        static_cast<float>(static_cast<double>(effect.transform.position.z) + static_cast<double>(DragonHeight));
+    effect.transform.angles.y = 0.0f;
     effect.life = DragonLife;
     effect.velocity = DragonVelocity;
     effect.speed = 1.0f;
+    effect.state = 0;
+    effect.reference = 0.0f;
     effect.turnPending = 1.0f;
     effect.turnDirection = 1.0f;
     effect.flagEc = 1.0f;
     effect.light = glm::vec3(1.0f);
     effect.start = effect.transform.position;
     effect.previousPosition = effect.transform.position;
-    return effect;
 }
 
 // 0x518d28..0x518e36: lo que realmente escribe el prefijo; los demás campos del slot sobreviven.
@@ -199,22 +198,6 @@ void InitializeCommonEffect(ModelEffect& effect, std::int16_t type, const glm::v
     effect.renderFlags = 0;
 }
 
-// Lo común de 0x518d0a..0x518e3c (la escala, la posición, los ángulos, la luz y +0xd8 en 0,3) y el caso
-// 0x61e/0x61f con el subtipo 0 (0x51eebb): 20 pasos de vida y la salida de 0x51db73, sin rand().
-ModelEffect ArrivalAt(const glm::vec3& position, const glm::vec3& angles, const glm::vec3& light, float scale)
-{
-    ModelEffect effect;
-    effect.alive = true;
-    effect.type = ArrivalEffect;
-    effect.transform.scale = CreationScale(scale);
-    effect.transform.position = position;
-    effect.transform.angles = angles;
-    effect.light = light;
-    effect.life = ArrivalLife;
-    effect.speed = CommonAnimationSpeed;
-    effect.previousPosition = position;
-    return effect;
-}
 } // namespace
 
 std::optional<std::size_t> ModelEffects::Begin(const ModelEffectArguments& arguments)
@@ -1155,30 +1138,29 @@ std::optional<std::size_t> ModelEffects::CreateLightningDecal(const glm::vec3& p
 std::optional<std::size_t> ModelEffects::Create(std::int16_t type, const glm::vec3& position, const glm::vec3& angles,
                                                 const glm::vec3& light, float scale)
 {
-    if (type != DragonEffect && type != ArrivalEffect && type != TeleportEffect)
-    {
+    return Create(
+        ModelEffectArguments{.type = type, .position = position, .angles = angles, .light = light, .scale = scale});
+}
+
+std::optional<std::size_t> ModelEffects::Create(const ModelEffectArguments& arguments)
+{
+    if (arguments.subtype != 0 ||
+        (arguments.type != DragonEffect && arguments.type != ArrivalEffect && arguments.type != TeleportEffect))
         return std::nullopt;
-    }
-    for (std::size_t k = 0; k < m_effects.size(); ++k)
+    const auto slot = Begin(arguments);
+    if (!slot)
+        return std::nullopt;
+    ModelEffect& effect = m_effects[*slot];
+    if (arguments.type == DragonEffect)
     {
-        if (m_effects[k].alive)
-        {
-            continue;
-        }
-        if (type == TeleportEffect)
-        {
-            InitializeCommonEffect(m_effects[k], type, position, angles, light, scale);
-            m_effects[k].life = 10; // 0x51e4f6; sin rand().
-            return k;
-        }
-        const bool seen = m_effects[k].seen;
-        m_effects[k] =
-            type == DragonEffect ? DragonAt(position, angles, scale) : ArrivalAt(position, angles, light, scale);
-        // 0x518cf0 no escribe +0x16c: el consumidor del suelo lee el último dibujo de este lugar.
-        m_effects[k].seen = seen;
-        return k;
+        InitializeDragonEffect(effect);
     }
-    return std::nullopt;
+    else
+    {
+        // 0x51eebb (llegada /0) y 0x51e4f6: el resto del lugar queda como lo dejó el prefijo.
+        effect.life = arguments.type == ArrivalEffect ? ArrivalLife : TeleportLife;
+    }
+    return slot;
 }
 
 std::optional<std::size_t> ModelEffects::CreateCrywolfTideEffect(const ModelEffectArguments& arguments)

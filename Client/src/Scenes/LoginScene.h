@@ -100,7 +100,7 @@ public:
     // Las ventanas guardan this (el tamaño de las texturas): no se copia ni se mueve.
     LoginScene(const LoginScene&) = delete;
     LoginScene& operator=(const LoginScene&) = delete;
-    ~LoginScene() override = default;
+    ~LoginScene() override;
 
     // Como 0x6349a0, cada vez que se entra: el terreno del mundo 55 (0x61a560, LoadedWorld: el .map,
     // el .att, las alturas, la luz y los tiles; sin él, el login va sin terreno y la luz del terreno es
@@ -160,6 +160,7 @@ private:
     // 0x604ab0 con el 0xa2: la luz de las rutas y el avance a +0xd8.
     void StepTheLogo(World::WorldObject& logo) const;
     [[nodiscard]] Core::Expected<void, std::string> PlaceTheModels();
+    void DetachTheDragonOwner();
     [[nodiscard]] Core::Expected<void, std::string> PlaceTheCharacter();
     [[nodiscard]] Core::Expected<void, std::string> StepTheCharacters();
     void StepTheWorld();

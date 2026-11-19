@@ -32,6 +32,7 @@
 namespace Client::Scenes
 {
 struct WorldSpecialModelSet;
+struct WorldModelTextureRequests;
 class ModelTextureTable;
 inline constexpr std::size_t WorldModelCount = 160;
 // El dragón que vuela en el login (06 § El dragón de fondo): solo en el mapa 55.
@@ -79,16 +80,21 @@ public:
 private:
     void LoadFile(const std::filesystem::path& dataRoot, const Data::Models::ModelFile& file, Core::Log& log,
                   std::size_t& missing);
-    void AssignSpecialTexture(const Data::Models::ModelFile& file, const WorldSpecialModelSet& specials);
+    void AssignSpecialTexture(const Data::Models::ModelFile& file, const WorldSpecialModelSet& specials,
+                              WorldModelTextureRequests& textureRequests);
     [[nodiscard]] Core::Expected<void, std::string> LoadSpecials(const std::filesystem::path& dataRoot,
                                                                  const WorldSpecialModelSet& specials, Core::Log& log,
-                                                                 std::size_t& missing);
-    void LoadObjects(const std::filesystem::path& dataRoot, std::uint8_t map, Core::Log& log, std::size_t& missing);
+                                                                 std::size_t& missing,
+                                                                 WorldModelTextureRequests& textureRequests);
+    void LoadObjects(const std::filesystem::path& dataRoot, std::uint8_t map, Core::Log& log, std::size_t& missing,
+                     WorldModelTextureRequests& textureRequests);
     [[nodiscard]] Core::Expected<void, std::string> ConfigureActions(std::uint8_t map,
                                                                      const WorldSpecialModelSet& specials);
     [[nodiscard]] Core::Expected<void, std::string> LoadTheSpearman(const std::filesystem::path& dataRoot,
-                                                                    Core::Log& log, std::size_t& missing);
-    void UploadTextures(const std::filesystem::path& dataRoot, Render::ITextureStore& textures, Core::Log& log);
+                                                                    Core::Log& log, std::size_t& missing,
+                                                                    WorldModelTextureRequests& textureRequests);
+    void UploadTextures(const std::filesystem::path& dataRoot, Render::ITextureStore& textures, Core::Log& log,
+                        const WorldModelTextureRequests& textureRequests);
 
     std::string m_folder;
     std::map<std::uint16_t, Data::Models::Model> m_models;

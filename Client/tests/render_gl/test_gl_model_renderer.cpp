@@ -26,6 +26,8 @@
 #include <gtest/gtest.h>
 
 #include <glm/ext/vector_float3.hpp>
+#include <glm/ext/matrix_clip_space.hpp>
+#include <glm/ext/matrix_transform.hpp>
 
 #include <array>
 #include <cstdint>
@@ -397,6 +399,33 @@ TEST_F(GlModelRendererTest, TheLinearFogMixesByTheEyeDistance)
         DrawBatch();
         ExpectNear(Cell(0), expected);
     }
+}
+
+// Q-C391: |z| del ojo no depende de la proyección; en ortográfica clip.w siempre vale 1.
+TEST_F(GlModelRendererTest, OrthographicFogUsesTheTransformedEyeDepth)
+{
+    auto pass = TestPass(Screen);
+    pass.projection = glm::ortho(-5.0f, 5.0f, -5.0f, 5.0f, 1.0f, 100.0f);
+    pass.view = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -10.0f));
+    m_batch.Begin(pass);
+    m_batch.SetFog(ModelFog{.color = glm::vec3(0.0f), .start = 10.0f, .end = 30.0f});
+    AddSquare({WhiteSlot, ModelBlend::Opaque, false}, 10.0f, Color{1, 1, 1, 0.5f});
+    DrawBatch();
+    ExpectNear(Cell(0), Rgba8{128, 128, 128, 128});
+}
+
+TEST_F(GlModelRendererTest, OrthographicEyeFogIgnoresTheWorldView)
+{
+    auto pass = TestPass(Screen);
+    pass.projection = glm::ortho(-5.0f, 5.0f, -5.0f, 5.0f, 1.0f, 100.0f);
+    pass.view = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -10.0f));
+    m_batch.Begin(pass);
+    m_batch.SetFog(ModelFog{.color = glm::vec3(0.0f), .start = 10.0f, .end = 30.0f});
+    ModelDrawState state{WhiteSlot, ModelBlend::Opaque, false};
+    state.space = Client::Render::ModelCoordinateSpace::Eye;
+    AddSquare(state, 20.0f, Color{1, 1, 1, 0.5f});
+    DrawBatch();
+    ExpectNear(Cell(0), Rgba8{128, 128, 128, 128});
 }
 
 // El color de la niebla es el del comando, y glDisable(GL_FOG) la saca: el verde a 40, después del fin, sale rojo

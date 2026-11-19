@@ -675,6 +675,9 @@ TEST_F(WorldEntryTest, TheSettlingFollowsTheNativeOrder)
             EXPECT_EQ(effect.transform.position, hero.position);
             EXPECT_EQ(effect.transform.angles, hero.angles);
             EXPECT_EQ(effect.life, 20);
+            EXPECT_TRUE(effect.hasOwner);
+            EXPECT_EQ(effect.ownerContext, &hero);
+            EXPECT_EQ(effect.disturbanceState, 0xffff);
         }
     }
 }

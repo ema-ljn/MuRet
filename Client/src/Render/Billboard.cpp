@@ -8,6 +8,7 @@
 #include <glm/ext/vector_float3.hpp>
 
 #include <array>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 
@@ -60,7 +61,8 @@ std::array<BillboardCorner, 4> MakeBillboardGeometry(const Models::OriginalMatri
     const float halfWidthFloat = F32(halfWidth);
     const float halfHeight = F32(static_cast<double>(height) * Half);
     std::array<BillboardCorner, 4> corners{};
-    if (rotation == 0.0f)
+    // 621451–62145c: TEST AH,40 toma la ruta sin giro también para unordered.
+    if (rotation == 0.0f || std::isnan(rotation))
     {
         const float left = F32(static_cast<double>(eye.x) - halfWidth);
         const float right = F32(static_cast<double>(eye.x) + static_cast<double>(halfWidthFloat));

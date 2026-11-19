@@ -11,6 +11,8 @@
 #include "Render/Gl/GlModelRenderer.h"
 #include "Render/Gl/TextureTable.h"
 #include "Render/ModelBatch.h"
+#include "Render/ModelFog.h"
+#include "Render/TextureEnvMode.h"
 #include "Render/ModelBatchParticleState.h"
 #include "Render/ModelVertex.h"
 #include "Render/SpriteVertex.h"
@@ -95,6 +97,40 @@ protected:
         return value;
     }
 };
+
+// 620f52..620fa5: el pase con política cero apaga fog aun sin comandos de dibujo.
+TEST_F(GlParticleMaterialBackendTest, EmptyInitializingPassDisablesFogWhileContinuationPreservesIt)
+{
+    Client::Render::ModelBatch batch;
+    const auto pass = Client::Tests::TestPass({64, 64});
+    batch.Begin(pass);
+    batch.SetFog(Client::Render::ModelFog{.color = {0.25f, 0.5f, 0.75f}, .start = 10, .end = 30});
+    batch.SetTextureEnv(Client::Render::TextureEnvMode::Add);
+    Client::Tests::AddSquare(batch, batch.State(), 20, {1, 1, 1, 1});
+    auto renderer = Client::Render::Gl::GlModelRenderer::Create(Gl());
+    ASSERT_TRUE(renderer.HasValue());
+    Client::Render::Gl::TextureTable textures(Gl());
+    Client::Tests::RecordingSink sink;
+    Client::Core::Log log(sink, Client::Core::LogLevel::Debug);
+    renderer.Value().Draw(batch, textures, log);
+    ASSERT_EQ(ReadUniform("fog"), 1);
+    ASSERT_EQ(ReadUniform("textureAdd"), 1);
+
+    batch.Begin(pass, false);
+    ASSERT_TRUE(batch.Commands().empty());
+    ASSERT_TRUE(batch.Vertices().empty());
+    renderer.Value().Draw(batch, textures, log);
+    EXPECT_EQ(ReadUniform("fog"), 1);
+    EXPECT_EQ(ReadUniform("textureAdd"), 1);
+
+    batch.Begin(pass, true);
+    ASSERT_TRUE(batch.Commands().empty());
+    ASSERT_TRUE(batch.Vertices().empty());
+    renderer.Value().Draw(batch, textures, log);
+    EXPECT_EQ(ReadUniform("fog"), 0);
+    EXPECT_EQ(ReadUniform("textureAdd"), 1);
+    EXPECT_EQ(Gl().getError(), static_cast<GLenum>(GL_NO_ERROR));
+}
 
 // Detecta que el sink ejecute tail/helpers prematuramente o ignore comandos sin geometría.
 TEST_F(GlParticleMaterialBackendTest, PrefixOnlyChangesBlendInRealGl)
@@ -420,9 +456,10 @@ TEST_F(GlParticleMaterialBackendTest, SubtractiveFogErrorStillExecutesReachedSta
     Gl().getIntegerv(GL_CURRENT_PROGRAM, &program);
     const GLint alphaLocation = Gl().getUniformLocation(static_cast<GLuint>(program), "alphaTest");
     const GLint textureLocation = Gl().getUniformLocation(static_cast<GLuint>(program), "textured");
-    // El inicio620db0 ahora publica alpha/textura antes de los dos helpers de la cola.
+    const GLint fogLocation = Gl().getUniformLocation(static_cast<GLuint>(program), "fog");
+    // 620db0 publica alpha, textura y fog antes de los dos helpers de la cola.
     const std::vector<std::pair<GLint, GLint>> expected{
-        {alphaLocation, 0}, {textureLocation, 1}, {alphaLocation, 0}, {textureLocation, 1}};
+        {alphaLocation, 0}, {textureLocation, 1}, {fogLocation, 0}, {alphaLocation, 0}, {textureLocation, 1}};
     EXPECT_EQ(s_uniformCalls, expected);
     EXPECT_EQ(s_drawCalls, 0);
     EXPECT_EQ(ReadUniform("alphaTest"), 0);

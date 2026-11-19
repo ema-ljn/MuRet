@@ -132,7 +132,7 @@ TEST(PlayerModelsTest, TheSkillLoaderKeepsItsNativeOrderAndTheWorldGates)
 {
     const std::span<const ModelFile> files = SkillModelFiles();
 
-    ASSERT_EQ(files.size(), 29u);
+    ASSERT_EQ(files.size(), 106u);
     std::vector<std::uint16_t> models;
     std::vector<std::string_view> names;
     std::vector<int> numbers;
@@ -142,22 +142,53 @@ TEST(PlayerModelsTest, TheSkillLoaderKeepsItsNativeOrderAndTheWorldGates)
         names.push_back(file.name);
         numbers.push_back(file.number);
     }
-    EXPECT_EQ(models, (std::vector<std::uint16_t>{0xc2, 0xc6,  0x110, 0xbf,  0x14a, 0x14b, 0x14c, 0x14d, 0xc0, 0xc5,
-                                                  0xdb, 0xdc,  0xdd,  0xde,  0xdf,  0xe0,  0xe1,  0xf9,  0xe3, 0xe2,
-                                                  0xf7, 0x10e, 0x111, 0x10c, 0x10d, 0x11c, 0x145, 0x146, 0x147}));
-    EXPECT_EQ(names, (std::vector<std::string_view>{"Fire",         "Rider",       "Rider",       "DarkHorse",
-                                                    "fenril_black", "fenril_red",  "fenril_blue", "lightning_type01",
-                                                    "DarkSpirit",   "HellGate",    "Arrow",       "ArrowSteel",
-                                                    "ArrowThunder", "ArrowLaser",  "ArrowV",      "ArrowSaw",
-                                                    "ArrowNature",  "Arrow_Spark", "ArrowWing",   "ArrowBomb",
-                                                    "ArrowDouble",  "KCross",      "Carow",       "Gate",
-                                                    "Gate",         "LaceArrow",   "elf_skill",   "WaveForce",
-                                                    "deathsp_eff"}));
-    EXPECT_EQ(numbers, (std::vector<int>{1, 1, 2,  -1, -1, -1, -1, -1, -1, -1, 1,  1,  1,  1, 1,
-                                         1, 1, -1, 1,  1,  1,  -1, -1, 1,  2,  -1, -1, -1, -1}));
+    EXPECT_EQ(models,
+              (std::vector<std::uint16_t>{
+                  0xc1,  0xca,  0xc2,  0xc3,  0xc8,  0xc9,  0xcb,  0xcc,  0xcd,  0xce,  0xcf,  0xd0,  0xd1,  0xd2,
+                  0xd3,  0xd4,  0xd5,  0xd6,  0xd7,  0xd8,  0xd9,  0xc6,  0x110, 0xbf,  0x14a, 0x14b, 0x14c, 0x14d,
+                  0xc0,  0xc5,  0xdb,  0xdc,  0xdd,  0xde,  0xdf,  0xe0,  0xe1,  0x109, 0xf9,  0x10f, 0xe4,  0xe5,
+                  0xe6,  0xec,  0xe3,  0xe2,  0xf1,  0xf5,  0xf6,  0xf7,  0x10e, 0x111, 0x112, 0x10c, 0x10d, 0x10a,
+                  0x10b, 0x113, 0x114, 0x115, 0x116, 0x117, 0x118, 0x119, 0x11a, 0x11b, 0x11c, 0xfb,  0xfc,  0xfd,
+                  0xff,  0x101, 0x102, 0x103, 0x104, 0xfe,  0x100, 0x105, 0x107, 0x108, 0x129, 0x12a, 0x136, 0x137,
+                  0x138, 0x139, 0x13a, 0x13b, 0x12b, 0x12c, 0x12d, 0x12e, 0x12f, 0x130, 0x131, 0x132, 0x133, 0x134,
+                  0x135, 0x13c, 0x13d, 0x13e, 0x140, 0x145, 0x146, 0x147}));
+    EXPECT_EQ(names,
+              (std::vector<std::string_view>{"Ice",          "Ice",           "Fire",           "Poison",
+                                             "Stone",        "Stone",         "Circle",         "Circle",
+                                             "Magic",        "Magic",         "Storm",          "Laser",
+                                             "Skeleton",     "Skeleton",      "Skeleton",       "Saw",
+                                             "Bone",         "Bone",          "Snow",           "Snow",
+                                             "Snow",         "Rider",         "Rider",          "DarkHorse",
+                                             "fenril_black", "fenril_red",    "fenril_blue",    "lightning_type01",
+                                             "DarkSpirit",   "HellGate",      "Arrow",          "ArrowSteel",
+                                             "ArrowThunder", "ArrowLaser",    "ArrowV",         "ArrowSaw",
+                                             "ArrowNature",  "Protect",       "Arrow_Spark",    "RidingSpear",
+                                             "Protect",      "BigStone",      "BigStone",       "MagicCircle",
+                                             "ArrowWing",    "ArrowBomb",     "Ball",           "Blast",
+                                             "Inferno",      "ArrowDouble",   "KCross",         "Carow",
+                                             "combo",        "Gate",          "Gate",           "StoneCoffin",
+                                             "StoneCoffin",  "AirForce",      "m_Waves",        "m_Piercing",
+                                             "PierPart",     "DarkLordSkill", "groundStone",    "groundStone2",
+                                             "seamanFX",     "Skull",         "LaceArrow",      "EarthQuake",
+                                             "EarthQuake",   "EarthQuake",    "EarthQuake",     "EarthQuake",
+                                             "EarthQuake",   "flashing",      "tail",           "EarthQuake",
+                                             "EarthQuake",   "Piercing",      "WaveForce",      "Blizzard",
+                                             "ManyFlag",     "MuSign",        "GroundCrystal",  "skinshell",
+                                             "ManaRune",     "Javelin",       "ArrowImpact",    "SwordForce",
+                                             "FlyBigStone1", "FlyBigStone2",  "FlySmallStone1", "FlySmallStone2",
+                                             "WallStone1",   "WallStone2",    "GatePart1",      "GatePart2",
+                                             "GatePart3",    "Aurora",        "TowerGatePlane", "golem_stone",
+                                             "bossrock",     "bossrocklight", "ProtectGuild",   "elf_skill",
+                                             "WaveForce",    "deathsp_eff"}));
+    EXPECT_EQ(numbers,
+              (std::vector<int>{1,  2,  1,  1,  1,  2,  1,  2,  1,  2,  1,  1,  1,  2,  3,  1,  1,  2,  1,  2,  3,  1,
+                                2,  -1, -1, -1, -1, -1, -1, -1, 1,  1,  1,  1,  1,  1,  1,  2,  -1, 1,  1,  1,  2,  1,
+                                1,  1,  1,  1,  1,  1,  -1, -1, -1, 1,  2,  1,  2,  -1, -1, -1, -1, -1, -1, -1, -1, -1,
+                                -1, 1,  2,  3,  5,  7,  8,  -1, -1, 4,  6,  -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+                                -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1}));
     for (const ModelFile& file : files)
     {
-        const bool gate = file.model == 0x10c || file.model == 0x10d;
+        const bool gate = file.model == 0x10c || file.model == 0x10d || file.model == 0x10a || file.model == 0x10b;
         const std::string_view folder = gate ? "Object12\\" : (file.model == 0x14d ? "Effect\\" : "Skill\\");
         EXPECT_EQ(file.folder, folder) << file.name;
     }

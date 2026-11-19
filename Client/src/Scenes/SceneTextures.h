@@ -39,6 +39,8 @@ public:
     // Suelta cada slot del juego, en orden, si hubo un Load (aunque haya fallado: lo que la tabla
     // subió antes del error no queda). Uno más no hace nada.
     void Release();
+    // Conserva el slot que también pertenece a la carga común de GameModels.
+    void Release(std::optional<Render::TextureSlot> sharedSlot);
 
     // El de `slot` si se subió, o 1 × 1.
     [[nodiscard]] TextureBufferSize BufferSize(Render::TextureSlot slot) const;

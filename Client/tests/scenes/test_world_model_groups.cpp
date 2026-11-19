@@ -6,9 +6,12 @@
 #include "Data/Textures/Sampling.h"
 #include "Data/Textures/Texture.h"
 #include "Data/Textures/TextureSet.h"
+#include "Render/ModelBatch.h"
 #include "Render/Models/Skeleton.h"
 #include "Render/TextureSlot.h"
+#include "Scenes/CharacterDrawing.h"
 #include "Scenes/GameModels.h"
+#include "Scenes/ModelTextureTable.h"
 
 #include "support/FakeTextureStore.h"
 #include "support/GoldenDir.h"
@@ -402,5 +405,186 @@ TEST_F(WorldModelGroupsTest, MissingExileSpecialsAreOptionalButTheirInvalidWrapI
     EXPECT_NE(models.Find(0xe7), nullptr);
     EXPECT_EQ(m_store.loadCalls, before);
     models.Release();
+}
+// Una asignación provisional no posee la referencia del modelo que ya dejó la textura residente.
+TEST(WorldModelOwnershipTest, FailedActionsKeepResidentReferencesAcrossReleaseAndRetry)
+{
+    constexpr TextureSlot SharedSlot{0x68};
+    constexpr std::array<Client::Data::Textures::TextureSetEntry, 1> SharedTexture{
+        {{"Object2\\group104.tga", SharedSlot.value, {}}}};
+    for (const std::uint8_t map : {std::uint8_t{1}, std::uint8_t{30}})
+    {
+        SCOPED_TRACE(static_cast<int>(map));
+        Client::Tests::TemporaryFolder folder{"world-texture-ownership"};
+        WriteModel(folder.Path(), Special{0, "Object2", "Object01.bmd", SharedSlot.value});
+        WriteModel(folder.Path(), Special{0, "Object31", "Object01.bmd", SharedSlot.value});
+        if (map == 30)
+            WriteModel(folder.Path(),
+                       Special{Client::Scenes::SpearmanModel, "Monster", "Monster78.bmd", SharedSlot.value});
+        WriteModel(folder.Path(), Special{1, map == 1 ? "Object2" : "Object31", "Object02.bmd", 0x41c});
+        const auto decoded = Client::Data::Textures::LoadTextureSet(folder.Path(), SharedTexture);
+        ASSERT_TRUE(decoded.HasValue());
+        Client::Tests::FakeTextureStore store;
+        Client::Scenes::ModelTextureTable table;
+        table.Bind(store);
+        table.Slots().SetName(SharedSlot, "group104.tga");
+        table.Slots().SetNext(TextureSlot{0x700});
+        ASSERT_TRUE(table.Upload(decoded.Value().front()).HasValue());
+        Client::Tests::RecordingSink sink;
+        Client::Core::Log log{sink, Client::Core::LogLevel::Debug};
+        Client::Scenes::WorldModels models;
+
+        const auto failed = models.Load(folder.Path(), map, store, log, nullptr, nullptr, &table);
+
+        ASSERT_FALSE(failed.HasValue());
+        EXPECT_NE(failed.Error().find(map == 1 ? "0x61a13c" : "0x612e5a"), std::string::npos);
+        ASSERT_EQ(models.MeshTextures(0).size(), 1u);
+        EXPECT_EQ(models.MeshTextures(0).front(), SharedSlot);
+        EXPECT_EQ(store.loadCalls, 1);
+        EXPECT_EQ(table.Slots().Next(), TextureSlot{0x700});
+        EXPECT_TRUE(table.Slots().ToLoad().empty());
+        EXPECT_TRUE(table.Slots().NameOf(TextureSlot{0x41c}).empty());
+        models.Release();
+        models.Release();
+        EXPECT_EQ(table.References(SharedSlot), 1);
+        EXPECT_EQ(table.Slots().NameOf(SharedSlot), "group104.tga");
+        EXPECT_TRUE(table.Metadata(SharedSlot.value).has_value());
+        EXPECT_TRUE(store.Find(SharedSlot).has_value());
+        EXPECT_TRUE(store.released.empty());
+
+        // Load también suelta una carga fallida anterior antes de reintentar.
+        ASSERT_FALSE(models.Load(folder.Path(), map, store, log, nullptr, nullptr, &table).HasValue());
+        std::filesystem::remove(folder.Path() / "Object2/Object02.bmd");
+        WriteModel(folder.Path(), Special{40, "Object2", "Object41.bmd", SharedSlot.value});
+        const auto retried = models.Load(folder.Path(), 1, store, log, nullptr, nullptr, &table);
+        ASSERT_TRUE(retried.HasValue()) << retried.Error();
+        EXPECT_EQ(table.References(SharedSlot), 3);
+        EXPECT_EQ(store.loadCalls, 1);
+        models.Release();
+        EXPECT_EQ(table.References(SharedSlot), 1);
+        EXPECT_TRUE(table.Metadata(SharedSlot.value).has_value());
+        EXPECT_TRUE(store.Find(SharedSlot).has_value());
+        table.Release(SharedSlot);
+        EXPECT_EQ(table.References(SharedSlot), 0);
+        EXPECT_FALSE(store.Find(SharedSlot).has_value());
+    }
+}
+
+TEST(WorldModelOwnershipTest, AFailedEmptySlotDoesNotOwnALaterUpload)
+{
+    constexpr TextureSlot slot{0x41c};
+    Client::Tests::TemporaryFolder folder("world-empty-texture-slot");
+    auto model = Client::Tests::SampleModel();
+    model.meshes.front().textureName = "missing.tga";
+    Client::Tests::WriteSceneFile(folder.Path(), "Object3/Object01.bmd",
+                                  Client::Tests::PlainBmd(Client::Tests::BmdContent(model), 0x0a));
+    Client::Tests::WriteSceneFile(folder.Path(), "Object3/later.OZT", Client::Tests::PlainOzt(8, 8));
+    Client::Tests::FakeTextureStore store;
+    Client::Tests::RecordingSink sink;
+    Client::Core::Log log(sink, Client::Core::LogLevel::Debug);
+    Client::Scenes::ModelTextureTable table;
+    Client::Scenes::WorldModels models;
+    ASSERT_TRUE(models.Load(folder.Path(), 2, store, log, nullptr, nullptr, &table).HasValue());
+    EXPECT_TRUE(table.Slots().NameOf(slot).empty());
+    EXPECT_EQ(table.Slots().Next(), TextureSlot{0x41d});
+    EXPECT_EQ(models.MeshTextures(0).front(), Client::Render::UnboundModelTextureSlot);
+
+    const Client::Data::Textures::TextureSetEntry entry{"Object3/later.tga", slot.value, {}};
+    const auto loaded = Client::Data::Textures::LoadTextureSet(folder.Path(), std::span(&entry, 1));
+    ASSERT_TRUE(loaded.HasValue());
+    table.Slots().SetName(slot, "later.tga");
+    ASSERT_TRUE(table.Upload(loaded.Value().front()).HasValue());
+
+    models.Release();
+    EXPECT_EQ(table.References(slot), 1);
+    EXPECT_EQ(table.Slots().NameOf(slot), "later.tga");
+    EXPECT_TRUE(store.Find(slot));
+}
+
+TEST(WorldModelOwnershipTest, FailedReplacementPreservesTheResidentAndDoesNotDrawItOnTheNewMesh)
+{
+    constexpr TextureSlot resident{0x41c};
+    constexpr TextureSlot shared{0x41d};
+    constexpr TextureSlot neighbor{0x41e};
+    for (const bool failUpload : {false, true})
+    {
+        SCOPED_TRACE(failUpload);
+        Client::Tests::TemporaryFolder folder("world-texture-replacement");
+        const auto writeModel = [&](std::string_view file, std::span<const std::string_view> names)
+        {
+            Client::Data::Models::Model model = Client::Tests::SampleModel();
+            const auto mesh = model.meshes.front();
+            model.meshes.clear();
+            for (const auto name : names)
+            {
+                auto copy = mesh;
+                copy.textureName = name;
+                model.meshes.push_back(copy);
+            }
+            Client::Tests::WriteSceneFile(folder.Path(), file,
+                                          Client::Tests::PlainBmd(Client::Tests::BmdContent(model), 0x0a));
+        };
+        constexpr std::array<std::string_view, 3> first{"new.tga", "new.tga", "shared.tga.extra"};
+        constexpr std::array<std::string_view, 2> second{"shared.tga.extra", "neighbor.tga"};
+        writeModel("Object3/Object01.bmd", first);
+        writeModel("Object3/Object02.bmd", second);
+        Client::Tests::WriteSceneFile(folder.Path(), "Object3/shared.OZT", Client::Tests::PlainOzt(16, 16));
+        Client::Tests::WriteSceneFile(folder.Path(), "Object3/neighbor.OZT", Client::Tests::PlainOzt(4, 4));
+        const std::string_view residentName = failUpload ? "resident.tga" : "new.tga";
+        Client::Tests::WriteSceneFile(folder.Path(),
+                                      "Object2/" + std::string(residentName.substr(0, residentName.find('.'))) + ".OZT",
+                                      Client::Tests::PlainOzt(8, 8));
+        if (failUpload)
+            Client::Tests::WriteSceneFile(folder.Path(), "Object3/new.OZT", Client::Tests::PlainOzt(32, 32));
+
+        Client::Tests::FakeTextureStore store;
+        Client::Scenes::ModelTextureTable table;
+        table.Bind(store);
+        table.Slots().SetName(resident, residentName);
+        const auto oldPath = "Object2\\" + std::string(residentName);
+        const Client::Data::Textures::TextureSetEntry old{oldPath, resident.value, {}};
+        const auto loaded = Client::Data::Textures::LoadTextureSet(folder.Path(), std::span(&old, 1));
+        ASSERT_TRUE(loaded.HasValue());
+        ASSERT_TRUE(table.Upload(loaded.Value().front()).HasValue());
+        store.failNextLoad = failUpload;
+        Client::Tests::RecordingSink sink;
+        Client::Core::Log log(sink, Client::Core::LogLevel::Debug);
+        Client::Scenes::WorldModels models;
+
+        ASSERT_TRUE(models.Load(folder.Path(), 2, store, log, nullptr, nullptr, &table).HasValue());
+        EXPECT_EQ(table.Slots().Next(), TextureSlot{0x41f});
+        EXPECT_EQ(table.Slots().NameOf(resident), residentName);
+        EXPECT_EQ(table.Slots().NameOf(shared), "shared.tga.extra");
+        EXPECT_EQ(table.References(resident), 1);
+        EXPECT_EQ(table.References(shared), 2);
+        EXPECT_EQ(table.References(neighbor), 1);
+        EXPECT_EQ(store.loaded, (std::vector<std::uint16_t>{0x41c, 0x41d, 0x41e}));
+        ASSERT_TRUE(store.Find(resident).has_value());
+        EXPECT_EQ(store.Find(resident)->texture.textureWidth, 8);
+
+        Client::Render::ModelBatch batch;
+        Client::Scenes::DrawnObject object;
+        object.transform.scale = 1;
+        Client::Scenes::DrawObject(batch, models, object, {});
+        ASSERT_EQ(batch.Commands().size(), 2u);
+        EXPECT_FALSE(batch.Commands().front().state.texture.has_value());
+        EXPECT_EQ(batch.Commands().back().state.texture, shared);
+
+        models.Release();
+        models.Release();
+        EXPECT_EQ(table.References(resident), 1);
+        ASSERT_TRUE(table.Metadata(resident.value).has_value());
+        EXPECT_TRUE(store.Find(resident).has_value());
+        EXPECT_FALSE(store.Find(shared).has_value());
+        EXPECT_FALSE(store.Find(neighbor).has_value());
+
+        Client::Tests::WriteSceneFile(folder.Path(), "Object3/new.OZT", Client::Tests::PlainOzt(32, 32));
+        ASSERT_TRUE(models.Load(folder.Path(), 2, store, log, nullptr, nullptr, &table).HasValue());
+        EXPECT_EQ(models.MeshTextures(0).front(), resident);
+        EXPECT_EQ(table.Slots().NameOf(resident), "new.tga");
+        ASSERT_TRUE(store.Find(resident).has_value());
+        EXPECT_EQ(store.Find(resident)->texture.textureWidth, 32);
+        models.Release();
+    }
 }
 } // namespace

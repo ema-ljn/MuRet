@@ -783,6 +783,24 @@ archivo y su lector están en [05](05-formatos-de-datos.md#modelos-bmd); acá, l
   **Verificado:** un script que repite `0x60d530`, `0x60d550` y `0x60d5f0` con los modelos del
   laboratorio da, para los 750 slots de `0x12e` a `0x41b`, los mismos nombres que el volcado
   `lor_slots.bin` de la tabla (sacado en Lorencia después del login y la selección), uno por uno.
+  En CL11.3, `GameModels` registra las 106 cargas BMD de la rama Data de `0x615700`. El
+  laboratorio aporta 105 archivos. Falta `SkillManyFlag.bmd` (`0x129`, `0x6166e8`), que
+  se saltea y deja las dos consultas de mallas vacías. Las consultas de `0xdb`, `0x109` y
+  `0x10f` que preceden a sus cargas también encuentran cero mallas en esa fase. Quedan
+  primero las asignaciones explícitas de `0x616953..0x616e18` y después el barrido
+  `0xbe..0x150` de `0x616e46`. Las mallas de `0x113`, `0x11a` y `0x11b` conservan
+  GL_CLAMP cuando sus nombres entran por primera vez. El volcado coincide con la tabla de
+  arranque hasta `0x41b`, que queda libre delante de los objetos de mapa.
+
+  `0x61606f..0x61607f` escribe la acción 0 de HellGate (`0xc5`), con el lock apagado y
+  velocidad 0,15. `0x616276` pone 0,5 en la acción 0 de Ball01 (`0xf1`). El cargador
+  aplica esos valores al esqueleto. Los slots fijos `0x608..0x60a` y `0x6f7` se suben
+  fuera de la asignación de mallas. `0x635` se comparte con el login, que vuelve a subir el
+  mismo archivo y conserva la textura común al salir. `0x61d83c` sube `Effect\Impack03.jpg`
+  a `0x716` con GL_LINEAR/GL_CLAMP. La selección recibe ese slot, sustituye su contenido
+  cuando carga la última malla de NewFace05 y lo libera al salir (`0x61cc65..0x61cc7a`).
+  Tarkan lo vuelve a subir desde `Object9\Impack03.jpg` en `0x61784b`.
+
   En esa carga, 29 nombres se encuentran en un slot que cargó otra carpeta y su modelo **no
   tiene** ese archivo en la suya (4 de `0x611850` y 25 de `0x615700`: anda porque otro lo cargó
   antes), y uno con otro archivo: `Helper04` (`0x1c15`, `Item\`) dibuja el de `Skill\` (`0x285`).
@@ -9705,9 +9723,11 @@ que `WorldEntry`, `WorldTransitionSupport` y `SessionEventApplier` atan a `App::
 `Scenes::StepCastleSiegeObjectFrame` (`CastleSiegeObjectServices`). El dibujo: `Scenes::DrawCastleSiegeBody`
 (`CharacterDrawing`) desde `DrawGameWorldObjects`, y `Render::Models::ShadowSpreadOf`. El efecto: `StepGatePlane` y
 `ModelEffects::CreateGatePlane`. La niebla: `World::InTheCastleSiegeFog` y `Render::ModelFog`, que
-`GameScene::DrawTheWorldPass` pone en el lote con `ModelBatch::SetFog` y saca después de la cola; cada
-`ModelDrawCommand` lleva la suya, `ModelBatch::Begin` con el material la apaga (`0x620db0`) y `GlModelRenderer` la
-aplica en el fragment shader con la w del clip como |z| del ojo (Q-C391). El panel: `WorldRuntime::siegePanelKind`
+`GameScene::DrawTheWorldPass` pone en el lote con `ModelBatch::SetFog` y saca después de la cola.
+Cada cambio de niebla llega al shader en el orden del lote, incluso si le sigue un pase sin geometría.
+`ModelBatch::Begin` con el material la apaga (`0x620db0`) y `GlModelRenderer` la aplica en el fragment shader
+con |z| del ojo, calculada con la fila z de la vista antes de la proyección (identidad para comandos Eye),
+también en proyección ortográfica (Q-C391). El panel `WorldRuntime::siegePanelKind`
 y `heroGuildPost`. Las partículas: la `6ec/0` y la `6f4/6` en `World::CreateKalimaParticle` y
 `World::StepKalimaParticle` (`KalimaParticleKernels`, con `World::BrazierFallSubtype`), y el humo `5f2/0x15` con el
 de Crywolf (`World::CrywolfSmokeSubtype`); el frame las suelta con `Particles::CreateChecked`. Corta lo del asedio

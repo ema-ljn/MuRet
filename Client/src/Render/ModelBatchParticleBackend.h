@@ -39,6 +39,7 @@ public:
     ModelBatchParticleBackend(std::reference_wrapper<ModelBatch> batch,
                               std::reference_wrapper<const Scenes::IModelLibrary> models,
                               ModelBatchParticleState initialState);
+    ~ModelBatchParticleBackend() override;
     ModelBatchParticleBackend(const ModelBatchParticleBackend&) = delete;
     ModelBatchParticleBackend& operator=(const ModelBatchParticleBackend&) = delete;
 
@@ -90,7 +91,9 @@ private:
     const std::reference_wrapper<const Scenes::IModelLibrary> m_models;
     ModelBatchParticleState m_state;
     std::optional<std::uint64_t> m_observedSerial;
-    // Scratch único del quad en curso; un fallo no publica triángulos ni inventa End/rollback.
+    // Scratch único del quad en curso; un fallo conserva el prefijo hasta destruir su dueño.
+    // Sólo el adapter que abrió el quad puede abandonar su marca al terminar el pase.
+    bool m_ownsPrimitive = false;
     std::array<ModelVertex, 4> m_corners{};
     std::size_t m_cornerCount = 0;
     // Base World del perfil portado; la vista se aplica por comando en el renderer existente.

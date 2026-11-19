@@ -102,7 +102,7 @@ TEST(ModelTextureCallsTest, TheHelpersTakeTheirTexturesFromItem)
 }
 
 // NativeSkillLoadTest comprueba el barrido de 0x616e20 y las llamadas sueltas para Gate01/02,
-// Carow (0x111) y LaceArrow (0x11c), fuera de estas tablas.
+// y LaceArrow (0x11c), fuera de estas tablas.
 TEST(ModelTextureCallsTest, TheTablesCoverTheModelsQueriedOutsideTheFinalSweep)
 {
     std::set<std::uint16_t> called;
@@ -115,8 +115,11 @@ TEST(ModelTextureCallsTest, TheTablesCoverTheModelsQueriedOutsideTheFinalSweep)
         }
     }
 
-    const std::set<std::uint16_t> outsideTheseTables{0xc2, 0xc6, 0xdc, 0xdd,  0xde,  0xdf,  0xe0,  0xe1,
-                                                     0xe2, 0xe3, 0xf7, 0x10c, 0x10d, 0x10e, 0x111, 0x11c};
+    const std::set<std::uint16_t> outsideTheseTables{
+        0xc1,  0xc2,  0xc3,  0xc6,  0xc8,  0xc9,  0xca,  0xcb,  0xcc,  0xcd,  0xce,  0xcf,  0xd0,  0xd1,
+        0xd2,  0xd3,  0xd4,  0xd5,  0xd6,  0xd7,  0xd8,  0xd9,  0xdc,  0xdd,  0xde,  0xdf,  0xe0,  0xe1,
+        0xe2,  0xe3,  0xe4,  0xe5,  0xe6,  0xec,  0xf1,  0xf5,  0xf6,  0xf7,  0xfe,  0x100, 0x105, 0x109,
+        0x10a, 0x10b, 0x10c, 0x10d, 0x10e, 0x10f, 0x117, 0x11c, 0x136, 0x138, 0x139, 0x13a, 0x13b};
     for (const std::span<const ModelFile> table : {PlayerModelFiles(), ItemModelFiles(), SkillModelFiles()})
     {
         for (const ModelFile& file : table)
@@ -128,7 +131,7 @@ TEST(ModelTextureCallsTest, TheTablesCoverTheModelsQueriedOutsideTheFinalSweep)
     }
 }
 
-// Las siete primeras de 0x615700 después de su 0x60d530(0x3b8) (0x61692a), en su orden y con Skill\: las de
+// Las 45 consultas explícitas de 0x615700 después de su 0x60d530(0x3b8), empezando por las de
 // 0x145, 0x146 y 0x147, y después las del caballo (0x6169a7), las del cuervo (0x6169c2), las de HellGate
 // (0x6169e0) y las del Dinorant (0x6169fb).
 TEST(ModelTextureCallsTest, TheSkillLoaderAsksForTheDarkHorseFourthAndTheRavenFifth)
@@ -139,9 +142,23 @@ TEST(ModelTextureCallsTest, TheSkillLoaderAsksForTheDarkHorseFourthAndTheRavenFi
     for (const ModelTextureCall& call : calls)
     {
         models.push_back(call.model);
-        EXPECT_EQ(call.folder, "Skill\\") << std::hex << call.model;
+        const std::string_view folder = call.model == 0x12b                            ? "Npc\\"
+                                        : (call.model == 0x12f || call.model == 0x130) ? "Object31\\"
+                                        : (call.model == 0x131 || call.model == 0x132 || call.model == 0x133 ||
+                                           call.model == 0x134 || call.model == 0x13c)
+                                            ? "Monster\\"
+                                        : call.model == 0x137 ? "Effect\\"
+                                        : call.model == 0x140 ? "Item\\"
+                                                              : "Skill\\";
+        EXPECT_EQ(call.folder, folder) << std::hex << call.model;
+        const bool clamped = call.model == 0x113 || call.model == 0x11a || call.model == 0x11b;
+        EXPECT_EQ(call.wrap, clamped ? Wrap::Clamp : Wrap::Repeat) << std::hex << call.model;
     }
-    EXPECT_EQ(models, (std::vector<std::uint16_t>{0x145, 0x146, 0x147, 0xbf, 0xc0, 0xc5, 0x110}));
+    EXPECT_EQ(models, (std::vector<std::uint16_t>{0x145, 0x146, 0x147, 0xbf,  0xc0,  0xc5,  0x110, 0xfb,  0xfc,
+                                                  0xfd,  0xff,  0x101, 0x102, 0x103, 0x104, 0x107, 0x108, 0x111,
+                                                  0x112, 0x113, 0x114, 0x115, 0x116, 0x118, 0x119, 0x11a, 0x11b,
+                                                  0x129, 0x12a, 0x12b, 0x12c, 0x12d, 0x12e, 0x12f, 0x130, 0x131,
+                                                  0x132, 0x133, 0x134, 0x135, 0x13c, 0x13d, 0x13e, 0x137, 0x140}));
 }
 
 // 0x615f77, 0x615fab y 0x615fdc: los Fenrir, con Skill\, y 0x616010: su rayo 0x14d, con Effect\, antes del

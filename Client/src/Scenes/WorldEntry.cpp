@@ -197,9 +197,13 @@ void PublishTheHero(const WorldEntryResources& resources)
 // Con la tabla llena no crea nada, como el original.
 void CreateTheArrival(const WorldEntryResources& resources)
 {
-    const ActorState& hero = HeroOf(resources);
-    static_cast<void>(
-        resources.world.Map().effects.Create(World::ArrivalEffect, hero.position, hero.angles, hero.light, 0.0f));
+    ActorState& hero = HeroOf(resources);
+    static_cast<void>(resources.world.Map().effects.Create({.type = World::ArrivalEffect,
+                                                            .position = hero.position,
+                                                            .angles = hero.angles,
+                                                            .light = hero.light,
+                                                            .owner = &hero,
+                                                            .key = 0xffff}));
 }
 
 // 0x4c486d..0x4c4935: abre el contador, lo pone en 30 y lo cierra (0x412890).

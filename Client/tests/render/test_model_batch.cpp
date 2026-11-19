@@ -148,13 +148,16 @@ TEST(ModelBatchTest, EachCommandCarriesTheFogOfItsTriangles)
     batch.SetFog(std::nullopt);
     batch.Triangle(TriangleAt(3));
 
-    ASSERT_EQ(batch.Commands().size(), 4u);
+    ASSERT_EQ(batch.Commands().size(), 6u);
     EXPECT_EQ(batch.Commands()[0].fog, std::nullopt);
     EXPECT_EQ(batch.Commands()[1].fog, fog);
     EXPECT_EQ(batch.Commands()[1].state, batch.Commands()[0].state);
     EXPECT_EQ(batch.Commands()[2].fog, fog);
-    EXPECT_EQ(batch.Commands()[3].fog, std::nullopt);
-    EXPECT_EQ(batch.Commands()[3].firstVertex, 9u);
+    EXPECT_EQ(batch.Commands()[3].fog, fog);
+    EXPECT_EQ(batch.Commands()[4].fog, std::nullopt);
+    EXPECT_EQ(batch.Commands()[4].vertexCount, 0u);
+    EXPECT_EQ(batch.Commands()[5].fog, std::nullopt);
+    EXPECT_EQ(batch.Commands()[5].firstVertex, 9u);
 }
 
 // 0x620db0 apaga la niebla (Begin con el material) y 0x6213e0 o un flush la conservan (Begin sin él). Las
@@ -191,14 +194,64 @@ TEST(ModelBatchTest, EachCommandCarriesTheTextureEnvOfItsTriangles)
     batch.SetTextureEnv(TextureEnvMode::Modulate);
     batch.Triangle(TriangleAt(3));
 
-    ASSERT_EQ(batch.Commands().size(), 3u);
+    ASSERT_EQ(batch.Commands().size(), 5u);
     EXPECT_EQ(batch.Commands()[0].textureEnv, TextureEnvMode::Modulate);
     EXPECT_EQ(batch.Commands()[1].textureEnv, TextureEnvMode::Add);
-    EXPECT_EQ(batch.Commands()[1].vertexCount, 6u);
-    EXPECT_EQ(batch.Commands()[2].textureEnv, TextureEnvMode::Modulate);
+    EXPECT_EQ(batch.Commands()[1].vertexCount, 0u);
+    EXPECT_EQ(batch.Commands()[2].vertexCount, 6u);
+    EXPECT_EQ(batch.Commands()[2].textureEnv, TextureEnvMode::Add);
+    EXPECT_EQ(batch.Commands()[3].textureEnv, TextureEnvMode::Modulate);
+    EXPECT_EQ(batch.Commands()[3].vertexCount, 0u);
+    EXPECT_EQ(batch.Commands()[4].textureEnv, TextureEnvMode::Modulate);
 
     batch.SetTextureEnv(TextureEnvMode::Add);
     batch.Begin(SomePass());
     EXPECT_EQ(batch.TextureEnv(), TextureEnvMode::Add);
 }
+
+TEST(ModelBatchTest, TextureEnvChangesPublishWithoutGeometryOrMaterialSerialChanges)
+{
+    ModelBatch batch;
+    batch.Begin(SomePass(), false);
+    const auto serial = batch.StateSerial();
+    batch.SetTextureEnv(TextureEnvMode::Modulate);
+    EXPECT_TRUE(batch.Commands().empty());
+    batch.SetTextureEnv(TextureEnvMode::Add);
+    batch.SetTextureEnv(TextureEnvMode::Add);
+    batch.SetTextureEnv(TextureEnvMode::Modulate);
+    ASSERT_EQ(batch.Commands().size(), 2u);
+    EXPECT_EQ(batch.Commands()[0].textureEnv, TextureEnvMode::Add);
+    EXPECT_EQ(batch.Commands()[1].textureEnv, TextureEnvMode::Modulate);
+    for (const auto& command : batch.Commands())
+    {
+        EXPECT_NE(command.operation, ModelStateOperation::Draw);
+        EXPECT_EQ(command.vertexCount, 0u);
+    }
+    EXPECT_TRUE(batch.Vertices().empty());
+    EXPECT_EQ(batch.StateSerial(), serial);
+}
+
+TEST(ModelBatchTest, FogChangesPublishWithoutGeometryOrMaterialSerialChanges)
+{
+    const ModelFog fog{.color = {0.25f, 0.5f, 0.75f}, .start = 10, .end = 30};
+    ModelBatch batch;
+    batch.Begin(SomePass(), false);
+    const auto serial = batch.StateSerial();
+    batch.SetFog(std::nullopt);
+    EXPECT_TRUE(batch.Commands().empty());
+    batch.SetFog(fog);
+    batch.SetFog(fog);
+    batch.SetFog(std::nullopt);
+    ASSERT_EQ(batch.Commands().size(), 2u);
+    EXPECT_EQ(batch.Commands()[0].fog, fog);
+    EXPECT_EQ(batch.Commands()[1].fog, std::nullopt);
+    for (const auto& command : batch.Commands())
+    {
+        EXPECT_NE(command.operation, ModelStateOperation::Draw);
+        EXPECT_EQ(command.vertexCount, 0u);
+    }
+    EXPECT_TRUE(batch.Vertices().empty());
+    EXPECT_EQ(batch.StateSerial(), serial);
+}
+
 } // namespace

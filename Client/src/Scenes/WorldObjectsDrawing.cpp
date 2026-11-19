@@ -31,6 +31,7 @@
 #include "Render/Models/ObjectState.h"
 #include "Render/Models/Skeleton.h"
 #include "Render/TextureSlot.h"
+#include "Render/TextureEnvMode.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/ModelPoseCallbacks.h"
 #include "Scenes/ParticleDrawServices.h"
@@ -883,13 +884,17 @@ void DrawFrameSprites(Render::ModelBatch& batch, World::FrameSprites& sprites, c
         World::StepSpriteAlpha(sprite);
         const Render::TextureSlot slot{sprite.texture};
         Render::Billboard billboard;
+        // 0x5493de/0x549410 llaman621400: el byte de componentes decide Color3 o Color4 también aquí.
+        const auto metadata = textures.TextureMetadataOf(sprite.texture);
+        constexpr int RgbComponents = 3;
+        const int components = metadata ? metadata->components : RgbComponents;
         // El tamaño: la escala por el alpha en la x87, por el ancho y el alto de la textura.
         const double size = static_cast<double>(sprite.scale) * static_cast<double>(sprite.alpha);
         if (sprite.texture == World::AtlasSprite)
         {
             billboard =
                 Render::MakeBillboard(view, sprite.position, AtlasSide, AtlasSide, sprite.light, sprite.rotation,
-                                      AtlasCell(sprite.blend), glm::vec2(AtlasThird), sprite.texture, 3);
+                                      AtlasCell(sprite.blend), glm::vec2(AtlasThird), sprite.texture, components);
         }
         else
         {
@@ -897,7 +902,7 @@ void DrawFrameSprites(Render::ModelBatch& batch, World::FrameSprites& sprites, c
             const auto width = static_cast<float>(size * static_cast<double>(texture.x));
             const auto height = static_cast<float>(size * static_cast<double>(texture.y));
             billboard = Render::MakeBillboard(view, sprite.position, width, height, sprite.light, sprite.rotation,
-                                              glm::vec2(0.0f), glm::vec2(1.0f), sprite.texture, 3);
+                                              glm::vec2(0.0f), glm::vec2(1.0f), sprite.texture, components);
         }
         batch.SetState(Render::ModelDrawState{.texture = slot, .blend = SpriteBlend(sprite)});
         const auto vertex = [&billboard](std::size_t k)
@@ -914,13 +919,22 @@ Core::Expected<void, World::ParticleDrawingFailure>
 DrawParticles(Render::ModelBatch& batch, World::Particles& particles, const IModelLibrary& textures,
               const Render::Models::OriginalMatrix& view, float worldClock, std::uint8_t mode)
 {
-    // Un adaptador por pase: su primer servicio importa el estado que dejó el lote (los sprites), sin
-    // suponer el de un frame anterior.
-    Render::ModelBatchParticleBackend backend(std::ref(batch), std::cref(textures),
-                                              Render::ModelBatchParticleState::ForModelPass());
-    ParticleDrawServices services(std::cref(textures), std::ref(backend), std::cref(view));
-    // 0x548550(0): el modo 0 no filtra por altura.
-    return World::DrawParticlesChecked(particles, mode, std::cref(worldClock), services);
+    bool restoreTextureEnv = false;
+    const auto drawn = [&]
+    {
+        // Un adaptador por pase importa el material que dejó el lote.
+        Render::ModelBatchParticleBackend backend(std::ref(batch), std::cref(textures),
+                                                  Render::ModelBatchParticleState::ForModelPass());
+        ParticleDrawServices services(std::cref(textures), std::ref(backend), std::cref(view));
+        const auto result = World::DrawParticlesChecked(particles, mode, std::cref(worldClock), services);
+        restoreTextureEnv = !result.HasValue() && services.HasOpenTextureEnvOverride();
+        return result;
+    }();
+    // 0x548a4a restablece GL_MODULATE tras el billboard. Si MuRet interrumpe el pase,
+    // cierra primero el quad incompleto y completa solo esta restauración.
+    if (restoreTextureEnv)
+        batch.SetTextureEnv(Render::TextureEnvMode::Modulate);
+    return drawn;
 }
 
 void DrawLeaves(Render::ModelBatch& batch, const World::Leaves& leaves)

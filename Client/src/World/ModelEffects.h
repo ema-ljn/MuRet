@@ -274,6 +274,9 @@ public:
     // Noria tiene su creador separado con CRT; los demás tipos no se crean.
     std::optional<std::size_t> Create(std::int16_t type, const glm::vec3& position, const glm::vec3& angles,
                                       const glm::vec3& light, float scale);
+    // Admite el subtipo 0 de los tres tipos anteriores. Conserva los argumentos del prefijo y los campos
+    // físicos que éste no escribe al reciclar el lugar.
+    std::optional<std::size_t> Create(const ModelEffectArguments& arguments);
     // 0x51c36e/0x51c38a: los efectos 322..324 de la torre de Noria; 322/323 ponen sourceLight en cero.
     std::optional<std::size_t> CreateNoriaEffect(std::int16_t type, const glm::vec3& position, const glm::vec3& angles,
                                                  glm::vec3& sourceLight, Render::Models::CrtRandom& random);

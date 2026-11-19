@@ -6,12 +6,14 @@
 #include "Scenes/JointFamilies.h"
 #include "Scenes/JointKernels.h"
 #include "World/IFishStepServices.h"
+#include "World/Particles.h"
 
 #include <glm/ext/vector_float3.hpp>
 
 #include <bit>
 #include <cstdint>
 #include <format>
+#include <functional>
 #include <string>
 
 namespace Client::Scenes::JointFamilies
@@ -30,6 +32,14 @@ Core::Expected<void, std::string> CreateStormJoint(JointState& joint, const Worl
         // 0x534b27..0x534b2e: sin cola y con vida 0; sus tres /6 los crea FaunaJointCreation.cpp (0x534baa).
         joint.tailEnabled = false;
         joint.life = 0;
+        return {};
+    }
+    if (request.subtype > StormSubtype)
+    {
+        // 0x534b1e → 0x534cb6: después del primer tramo, sólo el tope de 50 puntos.
+        constexpr std::int32_t MostPoints = 50;
+        if (joint.maximumCount > MostPoints)
+            joint.maximumCount = MostPoints;
         return {};
     }
     if (request.subtype != BoltSubtype)
@@ -66,8 +76,8 @@ Core::Expected<void, std::string> CreateStormJoint(JointState& joint, const Worl
 
 Core::Expected<void, std::string> StepStormJoint(JointState& joint, const JointKernels::StepServices& services)
 {
-    if (joint.subtype == StormSubtype)
-        return {}; // 0x53bec5: la /7 sólo pasa por la cola y la vida.
+    if (joint.subtype >= StormSubtype)
+        return {}; // 0x53bec5: la /7 y las de más de 7 sólo pasan por la cola y la vida.
     if (joint.subtype != BoltSubtype)
         return Core::Unexpected(
             std::format("0x53be76: el paso del joint 0x632/{} no está portado (CL11)", joint.subtype));
@@ -82,12 +92,41 @@ Core::Expected<void, std::string> StepStormJoint(JointState& joint, const JointK
     for (int axis = 0; axis < 3; ++axis)
         joint.position[axis] = F32(D(moved[axis]) + D(joint.position[axis]));
     // 0x53bf3c: la tanda (+0x9eb, la vida del alta) menos la vida. Con menos de 10 (los diez primeros pasos), la
-    // partícula 0x5ee; después, el ancho 40, la altura del terreno y los 0x614/4 y las 0x6ac al tocarla.
+    // partícula 0x5ee/0 en +0x24, con la luz y escala 3, y el ancho 100; después, el ancho 40.
     if (static_cast<std::int32_t>(joint.volley) - joint.life < 10)
-        return Core::Unexpected(std::string("0x53bf6e: la partícula 0x5ee (0x53fe70) del joint 0x632/6 es del lote de "
-                                            "partículas (CL11)"));
-    joint.width = 40;
-    return Core::Unexpected(std::string("0x53bf8d: el suelo del joint 0x632/6 (0x5f93c0, los 0x614/4 y las partículas "
-                                        "0x6ac) no está portado (CL11)"));
+    {
+        constexpr std::int32_t Smoke = 0x5ee;
+        constexpr float SmokeScale = 3.0f; // 0x53bf59
+        const bool made =
+            services.particles != nullptr && services.particles
+                                                 ->CreateChecked(Smoke, joint.pathIncrement, joint.angles, joint.light,
+                                                                 0, SmokeScale, services.worldClock, *services.random)
+                                                 .HasValue();
+        if (!made)
+            return Core::Unexpected(std::string("0x53bf6e: la partícula 0x5ee (0x53fe70) del joint 0x632/6 es del lote "
+                                                "de partículas (CL11)"));
+        joint.width = 100;
+    }
+    else
+        joint.width = 40;
+    // 0x53bf86..0x53bfa3: la altura del terreno (0x5f93c0), guardada en float. Con la z por encima, sólo la cola
+    // cruzada; en el suelo o debajo (o NaN), el 0x614/4, 0x52e3a0 y la partícula 0x6ac/2, que no están portados.
+    if (services.terrainHeight == nullptr || !*services.terrainHeight)
+        return Core::Unexpected(std::string("0x53bf8d: falta la altura del terreno del joint 0x632/6"));
+    const float ground = F32((*services.terrainHeight)(joint.position.x, joint.position.y));
+    if (!(joint.position.z > ground))
+        return Core::Unexpected(std::string("0x53bfd3: el joint 0x632/6 en el suelo (el 0x614/4, 0x52e3a0 y la "
+                                            "partícula 0x6ac) no está portado (CL11)"));
+    // 0x53c052..0x53c0a0: 0x535020(joint, la matriz del paso, 1) y, con la vida por debajo de la mitad de la tanda,
+    // la luz · 0,7692308f.
+    if (auto appended = JointKernels::AppendCrossedJointTail(joint, matrix, true); !appended.HasValue())
+        return appended;
+    if (joint.life < static_cast<std::int32_t>(joint.volley >> 1))
+    {
+        constexpr double Fade = static_cast<double>(std::bit_cast<float>(0x3f44ec4fu)); // 0x6ba240
+        for (int channel = 0; channel < 3; ++channel)
+            joint.light[channel] = F32(D(joint.light[channel]) * Fade);
+    }
+    return {};
 }
 } // namespace Client::Scenes::JointFamilies

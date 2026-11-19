@@ -200,8 +200,8 @@ std::vector<const Client::World::ModelEffect*> AliveEffects(const WorldState& wo
 }
 
 // Los casos de la cabeza que crean lo que MuRet no tiene (CL11): cortan en su alta, con los rand() de antes (0x59fb80
-// con el registro propio cerrado, el rand() % 50 de la 0x27 y los dos de 0x51fe10 de la 0x0e, que corta en su primera
-// chispa). La 0x48 deja +0x78 en 0 antes de cortar.
+// con el registro propio cerrado y los dos de 0x51fe10 de la 0x0e, que corta en su primera chispa). La 0x48 deja +0x78
+// en 0 antes de cortar. La 0x29, la 0x27 y la 0x0d, del lote switch, en TheSwitchHeadCasesCreateTheirEffects.
 TEST(AttackSkillCasesTest, TheHeadCasesCutAfterTheirDraws)
 {
     struct Case
@@ -211,12 +211,11 @@ TEST(AttackSkillCasesTest, TheHeadCasesCutAfterTheirDraws)
         int draws;
     };
     const std::array cases{
-        Case{0x30, "0x4fe0e4", 0},         Case{0x43, "0x4fe172", 0},         Case{0x45, "0x4fe322", 0},
-        Case{0x48, "0x4fe590", 0},         Case{0x35, "0x4fe856", 0},         Case{0x3f, "0x4feae8", 0},
-        Case{0x41, "0x4febbb", 0},         Case{0x31, "0x4fec15", 0},         Case{0x29, "0x4fec9a", OwnRecord},
-        Case{0x0a, "0x4fecf3", OwnRecord}, Case{0x28, "0x4ff4ef", 0},         Case{0x26, "0x4ff5b2", 0},
-        Case{0x27, "0x4ffdaf", 1},         Case{0x08, "0x500c49", OwnRecord}, Case{0x0c, "0x500cb9", OwnRecord},
-        Case{0x0d, "0x500d7b", OwnRecord}, Case{0x0e, "0x51fe9e", 2},         Case{0x09, "0x501c67", OwnRecord},
+        Case{0x30, "0x4fe0e4", 0},         Case{0x43, "0x4fe172", 0}, Case{0x45, "0x4fe322", 0},
+        Case{0x48, "0x4fe590", 0},         Case{0x35, "0x4fe856", 0}, Case{0x3f, "0x4feae8", 0},
+        Case{0x41, "0x4febbb", 0},         Case{0x31, "0x4fec15", 0}, Case{0x0a, "0x4fecf3", OwnRecord},
+        Case{0x28, "0x4ff4ef", 0},         Case{0x26, "0x4ff5b2", 0}, Case{0x08, "0x500c49", OwnRecord},
+        Case{0x0c, "0x500cb9", OwnRecord}, Case{0x0e, "0x51fe9e", 2}, Case{0x09, "0x501c67", OwnRecord},
         Case{0x2c, "0x502975", 0},
     };
     for (const std::int32_t map : Maps)
@@ -924,18 +923,23 @@ TEST(AttackSkillCasesTest, TheSparkCutsAtItsFirstParticle)
     EXPECT_TRUE(HasError(sparked, "0x52e77b")) << ErrorOf(sparked);
     EXPECT_EQ(DrawsSince(Seed, tested.random), 0);
 }
-// 501494→51fff0: el estallido y las piedras preceden al efecto 0xf6.
+// 501494→51fff0: el estallido y las piedras preceden al efecto 0xf6/0 sobre o, con o de dueño (0x5014da, CL11).
 TEST(AttackSkillCasesTest, Skill0eRunsTheBurstBeforeTheNextCapability)
 {
     SkillWorld tested;
     tested.withParticles = true;
     const auto used = tested.Head(0x0e);
-    ASSERT_FALSE(used.HasValue());
-    EXPECT_NE(used.Error().find("0x5014da"), std::string::npos) << used.Error();
+    ASSERT_TRUE(used.HasValue()) << used.Error();
     EXPECT_TRUE(std::ranges::any_of(tested.world.Particles().All(), [](const auto& p) { return p.alive; }));
     EXPECT_EQ(
         std::ranges::count_if(tested.world.Map().effects.Effects(), [](const auto& effect) { return effect.alive; }),
-        16);
+        17);
+    const auto inferno = std::ranges::find_if(tested.world.Map().effects.Effects(),
+                                              [](const auto& effect) { return effect.alive && effect.type == 0xf6; });
+    ASSERT_NE(inferno, tested.world.Map().effects.Effects().end());
+    EXPECT_EQ(inferno->subtype, 0);
+    EXPECT_EQ(inferno->ownerContext, &tested.Striker());
+    EXPECT_EQ(inferno->transform.position, tested.Striker().position);
     for (auto& effect : tested.world.Map().effects.Effects())
         effect.alive = true;
     for (auto& particle : tested.world.Particles().All())
@@ -944,6 +948,103 @@ TEST(AttackSkillCasesTest, Skill0eRunsTheBurstBeforeTheNextCapability)
     const auto full = tested.Head(0x0e);
     ASSERT_TRUE(full.HasValue()) << full.Error();
     EXPECT_EQ(DrawsSince(before, tested.random), 8 * (20 * 2 + 2) + OwnRecord);
+}
+
+// 0x4fec30..0x4fecb0 (la 0x29), 0x4ffcbe..0x4ffdb7 (la 0x27) y 0x500cd4..0x500dba (la 0x0d), del lote switch de la
+// CL11: el 0xf3 sobre o (con su registro propio: la cuenta +0xf04 uno más) y el sonido 0x73; diez 0x108/0 sin dueño en
+// la celda de la skill, cada uno con su rand() % 50 antes del alta, la key de la vuelta y el sonido 0x90; y dos 0xf5 en
+// la celda con o de dueño, que cortan en el joint 0x618/5 (0x5193d6, lote joints) con lugar en la tabla y siguen sin
+// él. Sin las alturas del terreno, la 0x27 y la 0x0d cortan antes de sus rand().
+TEST(AttackSkillCasesTest, TheSwitchHeadCasesCreateTheirEffects)
+{
+    const auto alive = [](SkillWorld& tested, std::int16_t type)
+    {
+        std::vector<const Client::World::ModelEffect*> found;
+        for (const Client::World::ModelEffect& effect : tested.world.Map().effects.Effects())
+        {
+            if (effect.alive && effect.type == type)
+                found.push_back(&effect);
+        }
+        return found;
+    };
+    {
+        SkillWorld tested;
+        ActorState& striker = tested.Striker();
+        striker.word8a = 0x0123;
+        striker.hands[0].model = 0x212 + 5;
+        tested.world.OwnCharacter().SetSkillAt(3, 0x29);
+        tested.world.OwnCharacter().bytef04 = 0x41;
+        ASSERT_TRUE(tested.Head(0x29).HasValue());
+        EXPECT_EQ(DrawsSince(Seed, tested.random), 2 * OwnRecord);
+        EXPECT_EQ(tested.sounds, std::vector<std::int32_t>{0x73});
+        EXPECT_EQ(tested.world.OwnCharacter().bytef04, 0x42);
+        const auto trails = alive(tested, 0xf3);
+        ASSERT_EQ(trails.size(), 1u);
+        EXPECT_EQ(trails[0]->ownerContext, &striker);
+        EXPECT_EQ(trails[0]->transform.position, striker.position);
+        EXPECT_EQ(trails[0]->disturbanceState, 0x0123);
+        EXPECT_EQ(trails[0]->byte89, 3);
+        EXPECT_EQ(trails[0]->itemType, &striker.word8c);
+        EXPECT_EQ(striker.word8c, 5);
+    }
+    {
+        SkillWorld tested;
+        Flatten(tested.world);
+        ActorState& striker = tested.Striker();
+        striker.skillCellX = 120;
+        striker.skillCellY = 33;
+        ASSERT_TRUE(tested.Head(0x27).HasValue());
+        constexpr int StormAltaDraws = 5;
+        EXPECT_EQ(DrawsSince(Seed, tested.random), 10 * (1 + StormAltaDraws));
+        EXPECT_EQ(tested.sounds, std::vector<std::int32_t>{0x90});
+        const auto storm = alive(tested, 0x108);
+        ASSERT_EQ(storm.size(), 10u);
+        for (std::size_t round = 0; round < storm.size(); ++round)
+        {
+            EXPECT_EQ(storm[round]->subtype, 0);
+            EXPECT_EQ(storm[round]->ownerContext, nullptr);
+            EXPECT_EQ(storm[round]->disturbanceState, static_cast<std::uint16_t>(round + 1));
+        }
+    }
+    for (const bool jointsFull : {false, true})
+    {
+        SCOPED_TRACE(jointsFull);
+        SkillWorld tested;
+        Flatten(tested.world);
+        ActorState& striker = tested.Striker();
+        striker.skillCellX = 120;
+        striker.skillCellY = 33;
+        tested.world.OwnCharacter().SetSkillAt(2, 0x0d);
+        for (JointState& joint : tested.joints)
+            joint.alive = jointsFull;
+        const auto stepped = tested.Head(0x0d);
+        constexpr int BlastDraws = 5;
+        if (!jointsFull)
+        {
+            EXPECT_TRUE(HasError(stepped, "0x5193d6")) << ErrorOf(stepped);
+            EXPECT_EQ(DrawsSince(Seed, tested.random), OwnRecord + BlastDraws);
+            continue;
+        }
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        EXPECT_EQ(DrawsSince(Seed, tested.random), OwnRecord + 2 * (BlastDraws + OwnRecord));
+        const auto blasts = alive(tested, 0xf5);
+        ASSERT_EQ(blasts.size(), 2u);
+        for (const Client::World::ModelEffect* blast : blasts)
+        {
+            EXPECT_EQ(blast->ownerContext, &striker);
+            EXPECT_EQ(blast->byte89, 2);
+            // 0x51931b..0x51936a: 300 a 799 sobre la celda (12.050; 3.350) a la altura 150.
+            EXPECT_GE(blast->transform.position.x, 12050.0f + 200.0f);
+            EXPECT_GE(blast->transform.position.z, 150.0f + 300.0f);
+        }
+    }
+    for (const std::uint8_t skill : {std::uint8_t{0x27}, std::uint8_t{0x0d}})
+    {
+        SkillWorld tested;
+        const auto cut = tested.Head(skill);
+        EXPECT_TRUE(HasError(cut, skill == 0x27 ? "0x4ffd1e" : "0x500d28")) << ErrorOf(cut);
+        EXPECT_EQ(DrawsSince(Seed, tested.random), 0);
+    }
 }
 
 TEST(AttackSkillCasesTest, TheFullPoolsPreserveEveryHeadTail)
@@ -965,6 +1066,8 @@ TEST(AttackSkillCasesTest, TheFullPoolsPreserveEveryHeadTail)
         SCOPED_TRACE(int{probe.skill});
         SkillWorld tested;
         tested.withParticles = true;
+        // La 0x27 y la 0x0d leen la altura de la celda de la skill (0x5f93c0) aun sin lugar en la tabla.
+        Flatten(tested.world);
         auto& actor = tested.Hero();
         actor.position = glm::vec3(125.0f, 250.0f, 375.0f);
         actor.skillTarget4c = static_cast<std::int32_t>(VictimSlot);

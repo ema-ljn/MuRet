@@ -446,7 +446,7 @@ TEST(AttackFrameSkillsTest, TheHandOf2bTurnsWithTheHeading)
 }
 
 // 0x2f (0x4f9bce..0x4f9e60): en 10, el sonido 0x7d; en 4, el efecto 0x813 de la mano; en 8, los 0x812/0; en 13 y 14,
-// tres rand() y el primer efecto 0x10f. En los demás, nada.
+// tres veces tres rand() y el efecto 0x10f (lote switch de la CL11). En los demás, nada.
 TEST(AttackFrameSkillsTest, TheStepsOf2f)
 {
     struct Case
@@ -457,8 +457,8 @@ TEST(AttackFrameSkillsTest, TheStepsOf2f)
         std::vector<std::int32_t> sounds;
     };
     const std::vector<Case> cases{
-        {1, "", 0, {}},  {4, "0x4f9c8d", 0, {}},  {8, "0x4f9d1c", 0, {}},  {10, "", 0, {0x7d}},
-        {12, "", 0, {}}, {13, "0x4f9e49", 3, {}}, {14, "0x4f9e49", 3, {}}, {15, "", 0, {}},
+        {1, "", 0, {}},  {4, "0x4f9c8d", 0, {}}, {8, "0x4f9d1c", 0, {}}, {10, "", 0, {0x7d}},
+        {12, "", 0, {}}, {13, "", 9, {}},        {14, "", 9, {}},        {15, "", 0, {}},
     };
     for (const std::int32_t map : Maps)
     {
@@ -483,6 +483,61 @@ TEST(AttackFrameSkillsTest, TheStepsOf2f)
             EXPECT_EQ(tested.sounds, probe.sounds);
             EXPECT_EQ(hero.byte381, probe.step);
         }
+    }
+}
+
+// 0x4f9d44..0x4f9e52 (CL11): cada 0x10f de la 0x2f sale 145 por delante de o por su rumbo (PC53) y 110 más arriba, con
+// tres rand() % 60 − 30 sumados; sus argumentos: los ángulos de o, la luz (0,3; 0,3; 0,3), el modelo de la mano de
+// subtipo y o de dueño. Con la tabla llena, el lazo saca igual sus nueve rand().
+TEST(AttackFrameSkillsTest, TheRocksOf2fFallInFrontOfTheStriker)
+{
+    constexpr std::uint16_t HandModel = 0x205;
+    constexpr double Degree = static_cast<double>(std::bit_cast<float>(0x3c8efa35u));
+    for (const bool full : {false, true})
+    {
+        SCOPED_TRACE(full);
+        FrameWorld tested(0);
+        ActorState& hero = tested.Striker(0x42, 0.0f, 13);
+        hero.position = glm::vec3(1000.0f, 2000.0f, 300.0f);
+        hero.angles = glm::vec3(0.0f, 0.0f, 30.0f);
+        hero.hands[0].model = HandModel;
+        auto effects = tested.world.Map().effects.Effects();
+        if (full)
+        {
+            for (Client::World::ModelEffect& effect : effects)
+                effect.alive = true;
+        }
+
+        const auto stepped = tested.Step(hero, 0x2f);
+
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        EXPECT_EQ(DrawsSince(Seed, tested.random), 9);
+        if (full)
+            continue;
+        CrtRandom expected(Seed);
+        const double angle = static_cast<double>(hero.angles.z) * Degree;
+        const auto sine = Client::Render::Models::Detail::SineProductPC53(angle, 145.0f);
+        const auto cosine = Client::Render::Models::Detail::CosineProductPC53(angle, 145.0f);
+        ASSERT_TRUE(sine && cosine);
+        for (std::size_t rock = 0; rock < 3; ++rock)
+        {
+            SCOPED_TRACE(rock);
+            glm::vec3 point{static_cast<float>(*sine + 1000.0), static_cast<float>(2000.0 - *cosine), 410.0f};
+            for (int axis = 0; axis < 3; ++axis)
+            {
+                const int offset = expected.Next() % 60 - 30;
+                point[axis] = static_cast<float>(static_cast<double>(offset) + static_cast<double>(point[axis]));
+            }
+            const Client::World::ModelEffect& effect = effects[rock];
+            ASSERT_TRUE(effect.alive);
+            EXPECT_EQ(effect.type, 0x10f);
+            EXPECT_EQ(effect.subtype, HandModel);
+            EXPECT_EQ(effect.transform.position, point);
+            EXPECT_EQ(effect.light, glm::vec3(0.3f));
+            EXPECT_EQ(effect.ownerContext, &hero);
+            EXPECT_EQ(effect.life, 20);
+        }
+        EXPECT_FALSE(effects[3].alive);
     }
 }
 

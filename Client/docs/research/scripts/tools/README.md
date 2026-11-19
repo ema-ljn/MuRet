@@ -32,6 +32,7 @@ python -I Client/docs/research/scripts/tools/regen_cache.py
 | `funcof.py` | la función que contiene cada dirección y quién la llama; con `--group`, las direcciones juntadas por función | `funcof.py 635b20` |
 | `reach.py` | si unas raíces llegan a unos destinos por `call` directos, y el camino | `reach.py 6371a0,6350b0 635ae0` |
 | `effect_sites.py` | censo crudo CL11.R de calls directos en `.text` con familia y fase | `effect_sites.py > /tmp/effect-sites.tsv` |
+| `effect_step_switches.py` | índice de las tablas y los sitios de efectos del paso con modelo `0x5208a0` | `effect_step_switches.py --sites > /tmp/model-step-sites.tsv` |
 | `cg.py` | desde una función y hasta una profundidad, cada llamada a uno de los destinos (y el módulo del grafo que usan las otras) | `cg.py 6371a0 2 635ae0 5fbb00` |
 | `rd.py` | constantes de la imagen: `f` float con sus bits, `d`, `i`, `s` string, `p` puntero a string | `rd.py 6ba360 6c9e0c:i 6d2aec:s` |
 | `jt.py` | la tabla de saltos de un `switch`: qué casos van a cada destino | `jt.py 606ed4 606ea0 0x97` |
@@ -76,3 +77,25 @@ Son 1.486 sitios, de los cuales 1.482 corresponden a `alta/actualización`, uno 
 `dibujo`. No son cantidades de efectos en ejecución. El censo no atribuye dueño ni alcanzabilidad.
 Regenerá `all.txt` y `source.txt` juntos y conservá el TSV fuera de Git. El contexto está en el
 [research del cliente](../../README.md).
+
+## Los saltos del paso de efectos con modelo (CL11.R)
+
+`effect_step_switches.py` coteja la misma caché con los bytes del exe
+`c32bbd5f` indicado en `MURET_MAIN_EXE` o `--exe`. Lee las nueve tablas
+de punteros y sus mapas de bytes. Asocia 518 valores de selector con sus
+bloques. El subtipo 4 que `0x52b5a1` despacha antes de `0x52b60b` queda
+fuera de esa tabla.
+
+```bash
+python3 -I Client/docs/research/scripts/tools/effect_step_switches.py > /tmp/model-step-switches.tsv
+python3 -I Client/docs/research/scripts/tools/effect_step_switches.py --sites > /tmp/model-step-sites.tsv
+python3 -I Client/docs/research/scripts/tools/test_effect_step_switches.py
+```
+
+La primera salida registra el sitio del salto, el valor de tipo o subtipo,
+el bloque de entrada y los sitios posibles antes de la cola común
+`0x52cb98`. Su tabla propia se registra por separado. La salida por sitio
+reúne las 233 llamadas directas, incluidas las que llegan desde comparaciones
+fuera de las tablas. El recorrido sigue ambas salidas de los saltos
+condicionales. Una asociación orienta la lectura del ASM y deja por auditar
+las guardas que exigen dueño, mapa, vida o estado del pool.

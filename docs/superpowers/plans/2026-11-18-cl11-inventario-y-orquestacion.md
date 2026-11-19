@@ -76,6 +76,10 @@ comprobar la rama que llega a cada corte y el resto del ciclo con capacidad disp
 - [ ] Indexar bloques de cada raíz por fase y destino de la tabla de salto e indicar las
   entradas que comparten bloque. Para cada llamada externa registrar la VA, la rama y su guarda,
   el tipo, el subtipo, los argumentos que lleguen por registros o memoria y sus posibles valores.
+  - [x] `0x5208a0`: nueve tablas, 518 entradas y censo de los 233 sitios del cuerpo.
+    El índice por sitio incluye las comparaciones directas. Queda verificar las guardas y
+    argumentos de cada brazo y aplicar el índice a las demás raíces.
+    [Generador y alcance](../../../Client/docs/research/scripts/tools/README.md#los-saltos-del-paso-de-efectos-con-modelo-cl11r)
 - [ ] Reconciliar las 549 llamadas sin resolver, las regiones sin cita y los cortes prioritarios.
   Registrar el símbolo C++ que consume la rama, el efecto previo y su estado de capacidad,
   el orden de RNG y efectos secundarios y qué test distingue implementación de diagnóstico.

@@ -377,14 +377,19 @@ Core::Expected<void, std::string> GameScene::StepTheEffects(float worldClock)
     // 0x53ae6d: el 0x60f/0xb de la flecha 0xf8 con el skill 1 la hace chocar desde el paso de los joints.
     const JointKernels::EffectHit arrowHit = [&](World::ModelEffect& arrow)
     { return HitTheArrow(arrow, ArrowContext(worldClock, terrainHeight)); };
-    // 0x53b548: el 0x61c/0 compara su dueño con el héroe ([0x743a170]).
+    // 0x53b548: el 0x61c/0 compara su dueño con el héroe ([0x743a170]) y, con él, manda sus blancos (0x517a20) por el
+    // mismo envío que el choque de las flechas.
+    const std::function<void(Protocol::Outgoing)> sendHits =
+        m_session != nullptr ? std::function<void(Protocol::Outgoing)>([session = m_session](Protocol::Outgoing packet)
+                                                                       { session->SendChat(std::move(packet)); })
+                             : std::function<void(Protocol::Outgoing)>{};
     const auto actors = m_context.world->Actors();
     const ActorState* hero = runtime.hero < actors.size() ? &actors[runtime.hero] : nullptr;
     if (auto stepped = StepJoints(
             m_context.world->DrawTail().joints, m_context.cloth->random, m_context.cloth, &m_context.world->Particles(),
             worldClock, &m_sprites, &m_context.world->DynamicLighting().Lighting(),
             [&](std::int32_t sound) { runtime.RequestSound(sound); }, terrainHeight, actors, arrowHit,
-            &m_context.world->Map().effects, hero, m_context.world);
+            &m_context.world->Map().effects, hero, m_context.world, m_models, sendHits);
         !stepped.HasValue())
         return stepped;
     // 0x63712d: 0x549090, las marcas del suelo, sin rand(). En la espera también corre, y acá no: la tabla

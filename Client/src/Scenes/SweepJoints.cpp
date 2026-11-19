@@ -5,20 +5,28 @@
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/JointFamilies.h"
 #include "Scenes/JointKernels.h"
+#include "Scenes/SkillHits.h"
+#include "Scenes/WorldMap.h"
+#include "Scenes/WorldRuntime.h"
+#include "Scenes/WorldState.h"
+#include "Protocol/Outgoing.h"
 #include "World/IFishStepServices.h"
 #include "World/Particles.h"
+#include "World/TerrainAttributeQuery.h"
 
 #include <glm/ext/vector_float3.hpp>
 
 #include <bit>
 #include <cstdint>
 #include <format>
+#include <functional>
 #include <string>
 
 // El 0x61c/0 (alta 0x5342e4..0x534399, paso 0x53b3e1..0x53b623): el barrido que pide el paso del efecto 0x5be
-// (0x52a72a, con el personaje dueño del efecto, ancho 150 y la skill y la clave del efecto), que MuRet no crea
-// (0x4f9fae). Gira a 180 de su destino (la posición de partida) bajando la z de su giro 11 por tramo, ocho tramos por
-// paso, y suelta en cada uno dos rayos 0x614/3 y a veces la partícula 0x5d9. Sin la cola común ni el movimiento común
+// (0x52a72a, con el personaje dueño del efecto, ancho 150 y la skill y la clave del efecto; el 0x5be lo crea la skill
+// 0x37, 0x4f9fae). Gira a 180 de su destino (la posición de partida) bajando la z de su giro 11 por tramo, ocho tramos
+// por paso, y suelta en cada uno dos rayos 0x614/3 y a veces la partícula 0x5d9; con el héroe de dueño, cada cinco
+// vueltas, el asedio lo frena o manda los blancos de la skill (0x53b569). Sin la cola común ni el movimiento común
 // (0x53585e).
 namespace Client::Scenes::JointFamilies
 {
@@ -85,6 +93,49 @@ Core::Expected<void, std::string> Sweep(JointState& joint, const JointKernels::S
     const std::int32_t second = services.random->Next() & 7;
     return Spark(services, joint, from, F32(static_cast<double>(second) + LargeBase));
 }
+
+// 0x53b569..0x53b5b6 y 0x53b5cb..0x53b5e6, con el héroe de dueño. Con el asedio prendido (0x4294b0, el byte 0x7239ec)
+// y el bit 0x100 del atributo de la celda de la posición (0x5f82c0), la velocidad (+0x9d8) en 0 y la vida en
+// ftol(vida · 0,2f) (0x6b8cfc, 0x69fd3c): devuelve true y el paso sale de las vueltas (0x53b5ec). Si no,
+// 0x517a20(+0x9ea, posición, 150, +0x9eb, +0x9e8, 0): los blancos de la skill alrededor, con el C1 10, y sigue con la
+// vuelta siguiente.
+Core::Expected<bool, std::string> HitAroundTheHero(JointState& joint, const JointKernels::StepServices& services)
+{
+    if (services.world == nullptr || services.random == nullptr)
+        return Core::Unexpected(std::string("0x53b569: faltan el mundo o el RNG del joint 0x61c/0 del héroe"));
+    WorldState& world = *services.world;
+    if (world.Runtime().siegeActive)
+    {
+        const auto& attributes = world.Map().terrain.attributes;
+        if (!attributes)
+            return Core::Unexpected(std::string("0x53b57a: faltan los atributos del terreno del joint 0x61c/0"));
+        const auto cell = World::TerrainAttributeQueryAt(*attributes, joint.position.x, joint.position.y);
+        if (!cell.HasValue())
+            return Core::Unexpected(std::string("0x53b57a: la celda del joint 0x61c/0 cae fuera de la tabla"));
+        constexpr std::uint32_t Blocked = 0x100;
+        if ((cell.Value() & Blocked) == Blocked)
+        {
+            constexpr double Cut = static_cast<double>(std::bit_cast<float>(0x3e4ccccdu)); // 0x6b8cfc, 0,2f
+            joint.speed = 0.0f;
+            joint.life = static_cast<std::int32_t>(static_cast<double>(joint.life) * Cut);
+            return true;
+        }
+    }
+    constexpr float HitRadius = std::bit_cast<float>(0x43160000u); // 150, 0x53b5a2
+    const SkillHitsRequest request{.skillIndex = joint.skill,
+                                   .point = joint.position,
+                                   .radius = HitRadius,
+                                   .volley = joint.volley,
+                                   .key = static_cast<std::uint16_t>(joint.key),
+                                   .extra = 0};
+    // Sin el envío, 0x517a20 saca igual sus rand() (SkillHits.h).
+    const std::function<void(Protocol::Outgoing)> unsent;
+    const auto hit =
+        HitTheTargetsAround(request, world, *services.random, services.send != nullptr ? *services.send : unsent);
+    if (!hit.HasValue())
+        return Core::Unexpected(std::format("0x53b5b1: {}", hit.Error()));
+    return false;
+}
 } // namespace
 
 void CreateSweepJoint(JointState& joint, const World::FishEffectRequest& request)
@@ -114,10 +165,9 @@ Core::Expected<void, std::string> StepSweepJoint(JointState& joint, const JointK
 {
     // 0x53b3f1..0x53b5c3: ocho vueltas; cada una agrega un tramo mientras la cuenta sea menor que los puntos − 1.
     // 0x53b53e..0x53b567: en la /0 (+0xc) con el dueño (+0x54) igual al héroe ([0x743a170]), vida de más de 18 y la
-    // vuelta múltiplo de 5, el asedio (0x4294b0, 0x5f82c0: con el atributo 0x100 corta la vida a vida · 0,2f y sale de
-    // las vueltas, 0x53b5cb) o los blancos de la skill (0x517a20, radio 150), que MuRet no tiene: corta ahí. Con otro
-    // dueño (o sin dueño) sigue con la vuelta siguiente. Sin el héroe en los servicios no se sabe: con dueño, vida de
-    // más de 18 y la vuelta múltiplo de 5, corta.
+    // vuelta múltiplo de 5, el asedio o los blancos de la skill (HitAroundTheHero). Con otro dueño (o sin dueño) sigue
+    // con la vuelta siguiente. Sin el héroe en los servicios no se sabe: con dueño, vida de más de 18 y la vuelta
+    // múltiplo de 5, corta.
     constexpr int Turns = 8, HitEvery = 5;
     constexpr std::int32_t HitLife = 18;
     for (int turn = 0; turn < Turns; ++turn)
@@ -131,10 +181,13 @@ Core::Expected<void, std::string> StepSweepJoint(JointState& joint, const JointK
         if (services.hero == nullptr)
             return Core::Unexpected(
                 std::string("0x53b548: falta el héroe ([0x743a170]) para el dueño del joint 0x61c/0"));
-        if (joint.ownerContext == static_cast<const void*>(services.hero))
-            return Core::Unexpected(
-                std::string("0x53b569: el joint 0x61c/0 del héroe ([0x743a170]): el asedio "
-                            "(0x4294b0, 0x5f82c0) y los blancos de 0x517a20 no están portados (CL11)"));
+        if (joint.ownerContext != static_cast<const void*>(services.hero))
+            continue;
+        const auto stopped = HitAroundTheHero(joint, services);
+        if (!stopped.HasValue())
+            return Core::Unexpected(stopped.Error());
+        if (stopped.Value())
+            break;
     }
     // 0x53b5ec..0x53b620: con vida de menos de 10, la x de la luz por 0,6666667f en los tres canales; si no, la vida
     // por 0,033333335f.

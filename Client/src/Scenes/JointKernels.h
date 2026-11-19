@@ -27,9 +27,15 @@ struct ModelEffect;
 struct TerrainLighting;
 } // namespace Client::World
 
+namespace Client::Protocol
+{
+struct Outgoing;
+}
+
 namespace Client::Scenes
 {
 struct ActorState;
+class IModelLibrary;
 class WorldState;
 } // namespace Client::Scenes
 
@@ -105,8 +111,15 @@ struct StepServices
     // El héroe ([0x743a170]): el 0x61c/0 compara su dueño con él (0x53b548). Sin él, el 0x61c/0 con dueño corta.
     const ActorState* hero = nullptr;
     // Los modelos compartidos (0x5769ad8 + tipo · 0xe0, su escala y su posición): el 0x614/0xc se pone en el modelo del
-    // dueño (0x536b1d) y el 0x62c/5..7 con dueño le escribe la posición al suyo (0x53bc42). Sin ellos, cortan.
+    // dueño (0x536b1d) y el 0x62c/5..7 con dueño le escribe la posición al suyo (0x53bc42). Sin ellos, cortan. El
+    // 0x61c/0 del héroe lee además el asedio (0x4294b0) y el atributo de la celda (0x5f82c0), y manda sus blancos
+    // (0x517a20).
     WorldState* world = nullptr;
+    // El envío del C1 10 de 0x517a20 (el 0x61c/0 del héroe, 0x53b5b1). Sin él, no se manda, pero salen los rand().
+    const std::function<void(Protocol::Outgoing)>* send = nullptr;
+    // Los modelos (0x5769ad8): el 0x632/0 y /1 con dueño posan el 0x20b (Player\Shadow01) al llegar al suelo
+    // (0x53c1eb). Sin ellos, cortan ahí.
+    const IModelLibrary* models = nullptr;
 };
 
 // El dueño de un joint de las familias de este archivo, cuando es un personaje (ActorState): el objeto del original,

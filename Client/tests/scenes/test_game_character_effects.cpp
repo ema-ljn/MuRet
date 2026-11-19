@@ -651,30 +651,43 @@ TEST_F(GameCharacterEffectsTest, ThePetSummonRefusesOtherEffectsAndAMissingJoint
     EXPECT_NE(refused.Error().find("0x52b9a6"), std::string::npos) << refused.Error();
 }
 
-// 0x52b9a6 → 0x518900 con el /3 de la 0x1c y de las invocaciones: el rand() de la luz y el giro del primer joint, que
-// es un 619/3 de la CL11 (0x530c18): corta en 0x5189cc después de esos tres rand(), sin la cola. Con la tabla de joints
-// llena, ninguno y sigue: nueve rand() y la cola.
-TEST_F(GameCharacterEffectsTest, TheSummonDecalCutsAtItsFirstEnergyJoint)
+// 0x52b9a6 → 0x518900 con el /3 de la 0x1c y de las invocaciones: el rand() de la luz y, como el /1, tres joints
+// 619/3 (0x5189cc), cada uno con los dos rand() de su giro, con el personaje de dueño. Con la tabla de joints llena,
+// ninguno y sigue: los mismos siete rand() y la cola.
+TEST_F(GameCharacterEffectsTest, TheSummonDecalDropsThreeEnergyJoints)
 {
     ASSERT_TRUE(
         m_effects.CreatePetSummon(m_actor.position, {}, glm::vec3(0.5f), &m_actor, Client::World::SummonDecalSubtype)
             .has_value());
     Client::World::ModelEffect& summon = m_effects.Effects()[0];
 
-    const auto cut = Client::Scenes::StepPetSummon(summon, m_joints, m_random);
+    const auto stepped = Client::Scenes::StepPetSummon(summon, m_joints, m_random);
 
-    ASSERT_FALSE(cut.HasValue());
-    EXPECT_NE(cut.Error().find("0x5189cc"), std::string::npos) << cut.Error();
-    EXPECT_NE(cut.Error().find("0x619/3"), std::string::npos) << cut.Error();
-    EXPECT_EQ(m_random.State(), AfterRandoms(3));
-    EXPECT_EQ(summon.life, 20);
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_EQ(m_random.State(), AfterRandoms(7));
+    EXPECT_EQ(summon.life, 19);
+    const std::vector<int> draws = RandomsAfter(1, 6);
+    const auto joints = LiveJoints(m_joints);
+    ASSERT_EQ(joints.size(), 3u);
+    for (std::size_t index = 0; index < joints.size(); ++index)
+    {
+        SCOPED_TRACE(index);
+        EXPECT_EQ(joints[index].type, 0x619);
+        EXPECT_EQ(joints[index].subtype, 3);
+        EXPECT_EQ(joints[index].angles, glm::vec3(static_cast<float>(draws[index * 2] % 90), 0.0f,
+                                                  static_cast<float>(draws[(index * 2) + 1] % 360)));
+        EXPECT_EQ(joints[index].ownerContext, &m_actor);
+        EXPECT_EQ(joints[index].width, 5.0f);
+        EXPECT_EQ(joints[index].life, 12);
+        EXPECT_EQ(joints[index].maximumCount, 2);
+    }
 
     for (auto& joint : m_joints)
         joint.alive = true;
     CrtRandom full{1};
     ASSERT_TRUE(Client::Scenes::StepPetSummon(summon, m_joints, full).HasValue());
     EXPECT_EQ(full.State(), AfterRandoms(7));
-    EXPECT_EQ(summon.life, 19);
+    EXPECT_EQ(summon.life, 18);
 }
 
 // 0x52a8a7: el 5ac/2 de la 0x35 saca el rand() de la luz, deja la vida en 10 con el dueño vivo con 0x400 (en 0 si no) y

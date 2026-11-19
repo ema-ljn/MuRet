@@ -103,7 +103,7 @@ inline constexpr std::int16_t ColoredDecalEffect = 0x61e;
 inline constexpr std::int32_t LevelUpDecalSubtype = 0;
 inline constexpr std::int32_t PetSummonSubtype = 1;
 // El /3, que la 0x1c crea sobre el blanco y las invocaciones 0x1e..0x24 sobre el que las lanza (0x50470f y 0x4fdf1e):
-// su paso suelta tres joints 619/3 (0x518900), que son de la CL11.
+// su paso suelta tres joints 619/3 (0x518900), que suben hacia él como los 619/1.
 inline constexpr std::int32_t SummonDecalSubtype = 3;
 // El terremoto (la familia EarthQuake): el 0xfa, que la acción 3 del caballo oscuro crea con el caballo de dueño y el
 // estado (+0x88) en 2 (0x4453e0) y que con un estado distinto de 0 no se dibuja (0x52d400). Su paso suelta en la vida

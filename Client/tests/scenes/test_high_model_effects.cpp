@@ -1431,9 +1431,9 @@ TEST(HighModelEffectsTest, TheManaRuneGrowsFlashesAndSinks)
     EXPECT_EQ(shrinking.transform.scale, 1.0f);
 }
 // 0x52c981 y 0x52caa5: el 0x812 suelta en cada paso el joint 0x60f/0xc (el /1, escala 100) o 0x60f/4 (el /0, escala
-// 50) con él de dueño (HelixJoints.cpp: un rand(), vx; la /4 toma su luz), y el 0x813 tres 0x619/6 con dos rand()
-// cada uno, que es del lote de los joints: con lugar corta (después de los rand() del primero) y, con la tabla llena,
-// sigue. Con la tabla llena, el 0x812 sigue sin el joint. Los dos pierden una vida y no se mueven.
+// 50) con él de dueño (HelixJoints.cpp: un rand(), vx; la /4 toma su luz), y el 0x813 tres 0x619/6 del punto 100
+// hacia atrás a su posición, con dos rand() cada uno y sin dueño. Con la tabla llena, siguen sin los joints. Los dos
+// pierden una vida y no se mueven.
 TEST(HighModelEffectsTest, TheEmittersLeaveJointsEveryStep)
 {
     for (const std::int32_t subtype : {0, 1})
@@ -1475,12 +1475,37 @@ TEST(HighModelEffectsTest, TheEmittersLeaveJointsEveryStep)
     ModelEffect& bolt = tested.Effect(0);
     EXPECT_EQ(bolt.life, 5);
     EXPECT_EQ(bolt.transform.angles, glm::vec3(0.0f));
-    EXPECT_TRUE(HasError(StepHighModelEffect(bolt, nullptr, tested.StepContext()), "0x52cb85"));
-    EXPECT_EQ(tested.Draws(), 3);
+    const auto bolted = StepHighModelEffect(bolt, nullptr, tested.StepContext());
+    ASSERT_TRUE(bolted.HasValue()) << bolted.Error();
+    EXPECT_EQ(tested.Draws(), 7);
+    CrtRandom expected(Seed);
+    static_cast<void>(expected.Next());
+    for (std::size_t made = 0; made < 3; ++made)
+    {
+        SCOPED_TRACE(made);
+        const auto& energy = tested.world->DrawTail().joints[made];
+        glm::vec3 angles{0.0f};
+        angles.x = static_cast<float>(expected.Next() % 90);
+        angles.z = static_cast<float>(expected.Next() % 360);
+        const glm::vec3 back = Client::Render::Models::OriginalVectorRotate(
+            {0.0f, -100.0f, 0.0f}, Client::Render::Models::OriginalAngleMatrix(angles));
+        const glm::vec3& at = bolt.transform.position;
+        ASSERT_TRUE(energy.alive);
+        EXPECT_EQ(energy.type, 0x619);
+        EXPECT_EQ(energy.subtype, 6);
+        EXPECT_EQ(energy.angles, angles);
+        EXPECT_EQ(energy.position,
+                  glm::vec3(static_cast<float>(static_cast<double>(at.x) - static_cast<double>(back.x)),
+                            static_cast<float>(static_cast<double>(at.y) - static_cast<double>(back.y)),
+                            static_cast<float>(static_cast<double>(at.z) - static_cast<double>(back.z))));
+        EXPECT_EQ(energy.targetPosition, at);
+        EXPECT_EQ(energy.width, 5.0f);
+        EXPECT_EQ(energy.ownerContext, nullptr);
+    }
     tested.FillTheJoints();
     ASSERT_TRUE(StepHighModelEffect(bolt, nullptr, tested.StepContext()).HasValue());
-    EXPECT_EQ(bolt.life, 4);
-    EXPECT_EQ(tested.Draws(), 3 + 7);
+    EXPECT_EQ(bolt.life, 3);
+    EXPECT_EQ(tested.Draws(), 7 + 7);
 }
 // El fld/fadd/fstp de cada eje, como Sum de HighModelEffects.
 glm::vec3 SumOf(const glm::vec3& a, const glm::vec3& b)

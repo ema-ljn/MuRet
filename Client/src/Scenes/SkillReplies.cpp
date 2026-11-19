@@ -18,6 +18,7 @@
 #include "Scenes/ChatReceive.h"
 #include "Scenes/CombatActionSpeeds.h"
 #include "Scenes/GameDrawTail.h"
+#include "Scenes/HighModelEffects.h"
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/WorldEntry.h"
@@ -519,7 +520,8 @@ Core::Expected<void, std::string> CastTheSkill(const Cast& cast)
             RemoveActorFlag(0x4000, target, world);
         return Settle(cast);
     }
-    // 0x4cdad7: con la skill salida, 0x2000 en la fuente y su efecto 0x138 (CL11).
+    // 0x4cdad7..0x4cdb7a: con la skill salida, 0x2000 en la fuente y 0x518cf0(0x138, su posición, sus ángulos, su
+    // luz, 0, sin dueño, −1, 0, 0, 0, 0): la runa de maná (Scenes/HighModelEffects, sin rand()).
     case 0x45:
     {
         if (auto acted = Act(source, MountedAction(source, 0x3f), resources); !acted.HasValue())
@@ -527,8 +529,12 @@ Core::Expected<void, std::string> CastTheSkill(const Cast& cast)
         if (!succeeded)
             return Settle(cast);
         source.flags78 |= 0x2000;
-        if (HasFreeEffectSlot(world))
-            return Core::Unexpected(std::string("0x4cdb72: el efecto 0x138 de 0x518cf0 es de la CL11"));
+        constexpr std::int16_t ManaRune = 0x138;
+        const auto rune = CreateHighModelEffect(
+            {.type = ManaRune, .position = source.position, .angles = source.angles, .light = source.light},
+            {.world = world, .random = resources.cloth.random});
+        if (!rune.HasValue())
+            return Core::Unexpected(std::format("0x4cdb72: {}", rune.Error()));
         return Settle(cast);
     }
     case 0x48:

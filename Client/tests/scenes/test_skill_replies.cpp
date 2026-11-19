@@ -442,7 +442,7 @@ TEST(SkillRepliesTest, TheEffectsOfTheSkillsAreCL11Cuts)
 {
     for (const auto& [skill, where] :
          {std::pair{std::uint8_t{0x37}, "0x4cd664"}, std::pair{std::uint8_t{0x33}, "0x4cd6ff"},
-          std::pair{std::uint8_t{0x45}, "0x4cdb72"}, std::pair{std::uint8_t{0x3b}, "0x4cddfa"}})
+          std::pair{std::uint8_t{0x3b}, "0x4cddfa"}})
     {
         auto tested = std::make_unique<Replies>();
         const auto applied = tested->Attack(skill);
@@ -450,6 +450,30 @@ TEST(SkillRepliesTest, TheEffectsOfTheSkillsAreCL11Cuts)
         EXPECT_NE(applied.Error().find(where), std::string::npos) << applied.Error();
         EXPECT_NE(applied.Error().find("CL11"), std::string::npos) << applied.Error();
     }
+}
+
+// 0x4cdb36..0x4cdb7a: con la skill salida, la 0x45 prende 0x2000 en la fuente y pone la runa de maná 0x138/0 en su
+// posición, con sus ángulos y su luz, sin rand() propios.
+TEST(SkillRepliesTest, TheSkill45RaisesAManaRuneOverItsCaster)
+{
+    auto tested = std::make_unique<Replies>();
+    ActorState& source = tested->Actor(CasterIndex);
+    source.position = {1000, 2000, 300};
+    source.angles = {0, 0, 90};
+    source.light = {0.5f, 0.6f, 0.7f};
+    const auto applied = tested->Attack(0x45);
+    ASSERT_TRUE(applied.HasValue()) << applied.Error();
+    EXPECT_EQ(source.flags78 & 0x2000u, 0x2000u);
+    const auto& effects = tested->world.Map().effects.Effects();
+    const auto rune = std::ranges::find_if(effects, [](const auto& effect) { return effect.alive; });
+    ASSERT_NE(rune, effects.end());
+    EXPECT_EQ(rune->type, 0x138);
+    EXPECT_EQ(rune->subtype, 0);
+    EXPECT_EQ(rune->life, 50);
+    EXPECT_EQ(rune->transform.position, glm::vec3(1000, 2000, 600));
+    EXPECT_EQ(rune->transform.angles, glm::vec3(0, 0, 45));
+    EXPECT_EQ(rune->light, glm::vec3(0.5f, 0.6f, 0.7f));
+    EXPECT_FALSE(rune->hasOwner);
 }
 
 // 0x518d0f..0x518d26 retorna al no hallar hueco, sin ejecutar el constructor pendiente ni consumir su RNG. Lo que

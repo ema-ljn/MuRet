@@ -155,6 +155,12 @@ struct ModelEffectOwner
     const std::uint16_t* type = nullptr;
     const ModelEffect* effect = nullptr;
     const glm::vec3* angles = nullptr;
+    // CL11 (World/BlastModelEffects): +0x10 (la posición), +0 (el byte vivo) y +0x16c (si se dibujó) de un dueño que
+    // no es otro efecto, como los leen en vivo los pasos del 0xe4, del 0xe5/5, del 0xec, del 0xf6, del 0x109 y del
+    // 0x113.
+    const glm::vec3* position = nullptr;
+    const bool* alive = nullptr;
+    const bool* seen = nullptr;
 };
 
 // Proyección de los campos compartidos por los efectos de 0x1d4 bytes.

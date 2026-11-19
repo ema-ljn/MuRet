@@ -7,6 +7,7 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/ArrowEffects.h"
 #include "Scenes/AttackSkillReads.h"
+#include "Scenes/BlastEffectCalls.h"
 #include "Scenes/CharacterStep.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/HeroAttack.h"
@@ -215,6 +216,77 @@ Core::Expected<void, std::string> CastTheFlame(ActorState& actor, const Characte
     return {};
 }
 
+// 0x518cf0(tipo, punto, o+0x1c, o+0xf4, 0, o, o+0x8a, `index`, 0, 0, 0): un efecto del lote switch de la CL11
+// (Scenes/BlastEffectCalls) con o de dueño, como lo piden la 0x29 (0x4fec9a), la 0xd (0x500d7b y 0x500dba) y la 0xe
+// (0x5014da). Con la tabla llena, nada.
+Core::Expected<void, std::string> CreateOwnedBlast(std::int16_t type, const glm::vec3& point, ActorState& actor,
+                                                   std::int32_t index, const CharacterStepContext& context)
+{
+    const World::ModelEffectArguments arguments{.type = type,
+                                                .position = point,
+                                                .angles = actor.angles,
+                                                .light = actor.light,
+                                                .subtype = 0,
+                                                .owner = &actor,
+                                                .key = static_cast<std::uint16_t>(actor.word8a),
+                                                .byte89 = static_cast<std::uint8_t>(index & 0xff)};
+    const auto made = CreateBlastEffect(arguments, &actor, context);
+    if (!made.HasValue())
+        return Core::Unexpected(made.Error());
+    return {};
+}
+
+// La celda de la skill (+0x39c y +0x39d, más 0,5f por 100 en la x87, cada eje guardado en float) con la altura del
+// terreno ahí (0x5f93c0, guardada en float), como la leen 0x4ffcbe y 0x500cd4. Sin las alturas, MuRet corta en
+// `address`.
+Core::Expected<glm::vec3, std::string> SkillCellPoint(const ActorState& actor, const CharacterStepContext& context,
+                                                      std::uint32_t address)
+{
+    constexpr double CellCentre = 0.5; // 0x6b882c
+    constexpr double CellSize = 100.0; // 0x6b86b4
+    const World::WorldTerrain& terrain = context.terrain != nullptr ? *context.terrain : context.world.Map().terrain;
+    if (!terrain.heights || !terrain.attributes)
+        return Core::Unexpected(
+            std::format("{:#x}: falta la altura del terreno (0x5f93c0) de la celda de la skill", address));
+    glm::vec3 point{};
+    point.x = static_cast<float>((static_cast<double>(actor.skillCellX) + CellCentre) * CellSize);
+    point.y = static_cast<float>((static_cast<double>(actor.skillCellY) + CellCentre) * CellSize);
+    point.z = static_cast<float>(
+        World::TerrainHeightAt(*terrain.heights, *terrain.attributes, point.x, point.y, context.fixedHeight));
+    return point;
+}
+
+// 0x4ffcbe..0x4ffdb7, la 0x27: la celda de la skill con su altura y diez vueltas: rand() % 50 por la vuelta sobre la
+// altura (FILD + FADD, guardado en float) y 0x518cf0(0x108, punto, o+0x1c, (1, 1, 1) de 0x4fd81e, 0, nadie, vuelta + 1,
+// 0, 0, 0, 0), aunque la tabla esté llena (el rand() sale antes del alta).
+Core::Expected<void, std::string> DropTheIceStorm(const ActorState& actor, const CharacterStepContext& context)
+{
+    constexpr int Rounds = 10;
+    constexpr int Rise = 50;
+    constexpr std::int16_t StormEffect = 0x108;
+    constexpr glm::vec3 White{1.0f, 1.0f, 1.0f}; // 0x4fd81e
+    const auto cell = SkillCellPoint(actor, context, 0x4ffd1e);
+    if (!cell.HasValue())
+        return Core::Unexpected(cell.Error());
+    const float height = cell.Value().z;
+    for (int round = 0; round < Rounds; ++round)
+    {
+        glm::vec3 point = cell.Value();
+        point.z =
+            static_cast<float>(static_cast<double>(context.random.Next() % Rise * round) + static_cast<double>(height));
+        const World::ModelEffectArguments arguments{.type = StormEffect,
+                                                    .position = point,
+                                                    .angles = actor.angles,
+                                                    .light = White,
+                                                    .subtype = 0,
+                                                    .owner = nullptr,
+                                                    .key = static_cast<std::uint16_t>(round + 1)};
+        if (auto made = CreateBlastEffect(arguments, nullptr, context); !made.HasValue())
+            return Core::Unexpected(made.Error());
+    }
+    return {};
+}
+
 // 0x4fe190..0x4fe24e (la 0x44, el subtipo 0) y 0x4fe442..0x4fe500 (la 0x47, el 1): con un blanco que no es o, el joint
 // 0x632 del blanco hacia sí mismo (z + 0x6ba198) y el sonido 0x267.
 Core::Expected<void, std::string> BindTheTarget(ActorState& actor, std::size_t slot, std::uint8_t skill,
@@ -411,10 +483,15 @@ Core::Expected<void, std::string> StepTheHeadSkill(ActorState& actor, std::size_
     case 0x31:
         return EffectThenSound(0x4fec15, "el efecto 0x6ac sobre o (0x518cf0)", skill, slot, 0x72, context);
     case 0x29:
-        // 0x4fec30: el arma y 0x59fb80(0x29) antes del 0xf3.
+    {
+        // 0x4fec30: el arma, 0x59fb80(0x29), el 0xf3 sobre o (0x4fec9a) y el sonido 0x73.
         KeepTheWeapon(actor);
-        static_cast<void>(OwnSkillIndex(context, skill));
-        return EffectThenSound(0x4fec9a, "el efecto 0xf3 sobre o (0x518cf0)", skill, slot, 0x73, context);
+        const std::int32_t index = OwnSkillIndex(context, skill);
+        if (auto made = CreateOwnedBlast(0xf3, actor.position, actor, index, context); !made.HasValue())
+            return made;
+        RequestTheSound(context, 0x73);
+        return {};
+    }
     case 0x0a:
         // 0x4fecb5: 0x59fb80(0xa) antes del 0xcb; lo de Kalima de después (0x4fed2d) no se alcanza.
         static_cast<void>(OwnSkillIndex(context, skill));
@@ -448,14 +525,8 @@ Core::Expected<void, std::string> StepTheHeadSkill(ActorState& actor, std::size_
         CountHeroVolley(actor, context);
         return {};
     case 0x27:
-        // 0x4ffcbe: la celda con su altura y la primera de diez vueltas: rand() % 50 · 0 en la z, y el 0x108/1.
-        // 4ffd5c: un selector por alta, incluso si el allocator no encuentra lugar; subtipo0, key=i+1.
-        for (int index = 0; index < 10; ++index)
-        {
-            static_cast<void>(context.random.Next());
-            if (HasEffectRoom(context))
-                return CutAt(0x4ffdaf, "el primero de los diez efectos 0x108 (0x518cf0)", skill, slot);
-        }
+        if (auto storm = DropTheIceStorm(actor, context); !storm.HasValue())
+            return storm;
         CountHeroVolley(actor, context);
         RequestTheSound(context, 0x90);
         return {};
@@ -469,18 +540,27 @@ Core::Expected<void, std::string> StepTheHeadSkill(ActorState& actor, std::size_
         static_cast<void>(OwnSkillIndex(context, skill));
         return EffectThenSound(0x500cb9, "el efecto 0x5e8 (0x518cf0)", skill, slot, 0x7a, context);
     case 0x0d:
-        // 0x500cd4: la celda con su altura y 0x59fb80(0xd).
-        static_cast<void>(OwnSkillIndex(context, skill));
-        if (HasEffectRoom(context))
-            return CutAt(0x500d7b, "el primer efecto 0xf5 (0x518cf0)", skill, slot);
+    {
+        // 0x500cd4: la celda con su altura, 0x59fb80(0xd) y dos 0xf5 ahí con o de dueño (0x500d7b y 0x500dba).
+        const auto cell = SkillCellPoint(actor, context, 0x500d28);
+        if (!cell.HasValue())
+            return Core::Unexpected(cell.Error());
+        const std::int32_t index = OwnSkillIndex(context, skill);
+        for (int blast = 0; blast < 2; ++blast)
+        {
+            if (auto made = CreateOwnedBlast(0xf5, cell.Value(), actor, index, context); !made.HasValue())
+                return made;
+        }
         CountHeroVolley(actor, context);
         return {};
+    }
     case 0x0e:
         if (auto burst = ScatterCombatBurstAt(actor.position, context); !burst.HasValue())
             return burst;
-        static_cast<void>(OwnSkillIndex(context, skill));
-        if (HasEffectRoom(context))
-            return CutAt(0x5014da, "el efecto 0xf6 tras el estallido", skill, slot);
+        // 0x5014da: el 0xf6 sobre o, con o de dueño.
+        if (auto made = CreateOwnedBlast(0xf6, actor.position, actor, OwnSkillIndex(context, skill), context);
+            !made.HasValue())
+            return made;
         CountHeroVolley(actor, context);
         return {};
     case 0x09:

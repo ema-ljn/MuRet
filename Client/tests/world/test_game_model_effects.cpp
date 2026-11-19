@@ -1062,8 +1062,9 @@ TEST(GameModelEffectsTest, TheFlameJetFadesItsLightAndCutsWithoutItsTables)
     ASSERT_FALSE(cut.HasValue());
     EXPECT_NE(cut.Error().find("0x52ae25"), std::string::npos) << cut.Error();
 
+    // El /1 y el /2 son del lote switch de la CL11 (World/BlastModelEffects); el /3 sigue sin portar.
     Client::World::ModelEffect other = DungeonEffect(Client::World::FlameJetEffect, 30);
-    other.subtype = 1;
+    other.subtype = 3;
     cut = Client::World::StepGameModelEffect(other, nullptr, more, 0.0f, quietRandom, nullptr, services);
     ASSERT_FALSE(cut.HasValue());
     EXPECT_NE(cut.Error().find("0x52ae7f"), std::string::npos) << cut.Error();

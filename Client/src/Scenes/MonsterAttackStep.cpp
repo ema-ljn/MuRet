@@ -9,6 +9,7 @@
 #include "Render/Models/Skeleton.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/ArrowEffects.h"
+#include "Scenes/BlastEffectCalls.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/CharacterStep.h"
 #include "Scenes/GameDrawTail.h"
@@ -202,6 +203,37 @@ std::optional<std::size_t> CreateKalimaEarthquake(ActorState& actor, std::uint8_
     return created;
 }
 
+// 0x518cf0 con un efecto del lote switch de la CL11 (Scenes/BlastEffectCalls): en `position`, con `angles` y `light`,
+// el subtipo, `owner` en +0x108 (o nadie), +0x8a en −1, los bytes en 0 y la escala 0.
+Core::Expected<void, std::string> CreateTheBlastEffect(std::int16_t type, std::int32_t subtype,
+                                                       const glm::vec3& position, const glm::vec3& angles,
+                                                       const glm::vec3& light, ActorState* owner,
+                                                       const CharacterStepContext& context)
+{
+    const World::ModelEffectArguments arguments{.type = type,
+                                                .position = position,
+                                                .angles = angles,
+                                                .light = light,
+                                                .subtype = subtype,
+                                                .owner = owner,
+                                                .key = 0xffff,
+                                                .byte89 = 0,
+                                                .byte88 = 0,
+                                                .byte1bd = 0,
+                                                .scale = 0.0f};
+    const auto made = CreateBlastEffect(arguments, owner, context);
+    if (!made.HasValue())
+        return Core::Unexpected(made.Error());
+    return {};
+}
+
+// 0x518cf0 sobre c, con sus ángulos y su luz (los argumentos de 0x43b21d..0x43b25e, 0x4f6129..0x4f6145, …).
+Core::Expected<void, std::string> CreateOnTheActor(std::int16_t type, std::int32_t subtype, ActorState& actor,
+                                                   ActorState* owner, const CharacterStepContext& context)
+{
+    return CreateTheBlastEffect(type, subtype, actor.position, actor.angles, actor.light, owner, context);
+}
+
 // Un efecto, joint o partícula sin portar en un caso de 0x4f5b70 o de sus ayudantes, con lo que hizo antes y sus
 // rand().
 Core::Unexpected<std::string> CutAt(std::uint32_t address, std::string_view what, const ActorState& actor,
@@ -270,23 +302,33 @@ Core::Expected<void, std::string> CreateTailThunder(ActorState& actor, std::size
                               address);
 }
 
-// 0x4f7a6b..0x4f7a8a: cinco puntos desde la posición del actor, con dos rand() por escritura.
-void SetTheFifthTrailPoint(ActorState& actor, CrtRandom& random)
+// 0x4f79db..0x4f7aae: cinco veces, un punto desde la posición de c con dos rand() % 1001 − 500 y 500 más arriba, que
+// queda también en +0x17c..+0x184, y 0x518cf0(0x106/1) ahí, con los ángulos de c y 45 más en x (0x6b8848), la luz
+// (1; 0,5; 0) y c de dueño.
+Core::Expected<void, std::string> LaunchTheFiveStabs(ActorState& actor, const CharacterStepContext& context)
 {
     constexpr int Iterations = 5;
     constexpr int OffsetSpan = 1001;
     constexpr int OffsetCenter = 500;
-    constexpr float Rise = 500.0f;
+    constexpr double Rise = 500.0, Tilt = 45.0; // 0x6b8a98, 0x6b8848
+    constexpr std::int16_t StabEffect = 0x106;
     for (int iteration = 0; iteration < Iterations; ++iteration)
     {
-        const auto dx = static_cast<std::int32_t>(random.Next() % OffsetSpan) - OffsetCenter;
-        const auto dy = static_cast<std::int32_t>(random.Next() % OffsetSpan) - OffsetCenter;
+        const glm::vec3 angles{static_cast<float>(static_cast<double>(actor.angles.x) + Tilt), actor.angles.y,
+                               actor.angles.z};
+        const auto dx = static_cast<std::int32_t>(context.random.Next() % OffsetSpan) - OffsetCenter;
+        const auto dy = static_cast<std::int32_t>(context.random.Next() % OffsetSpan) - OffsetCenter;
         actor.trailOrigin = {
-            static_cast<float>(static_cast<double>(actor.position.x) + static_cast<double>(dx)),
-            static_cast<float>(static_cast<double>(actor.position.y) + static_cast<double>(dy)),
-            static_cast<float>(static_cast<double>(actor.position.z) + static_cast<double>(Rise)),
+            static_cast<float>(static_cast<double>(dx) + static_cast<double>(actor.position.x)),
+            static_cast<float>(static_cast<double>(dy) + static_cast<double>(actor.position.y)),
+            static_cast<float>(static_cast<double>(actor.position.z) + Rise),
         };
+        if (auto made =
+                CreateTheBlastEffect(StabEffect, 1, actor.trailOrigin, angles, TrailAttackLight, &actor, context);
+            !made.HasValue())
+            return made;
     }
+    return {};
 }
 
 // 0x43aa46..0x43ab01 y sus copias de 0x43b47c y 0x43b7e7: el switch por la habilidad leída (las tablas de bytes de
@@ -392,12 +434,12 @@ Core::Expected<Helped, std::string> StepKalima(ActorState& actor, const KindCase
             }
             if (actor.byte381 >= ThirteenthStep)
             {
-                if (!HasFreeModelEffect(context))
-                {
-                    actor.byte381 = FifteenthStep;
-                    return Helped::Exit;
-                }
-                return CutAt(0x43b5ac, "los efectos 0xf6/0 y 0x5de/1 (CL11)", actor, slot);
+                // 0x43b5ac y 0x43b5cc, con c de dueño.
+                if (auto made = CreateOnTheActor(0xf6, 0, actor, &actor, context); !made.HasValue())
+                    return Core::Unexpected(made.Error());
+                if (auto made = CreateOnTheActor(World::FlameJetEffect, 1, actor, &actor, context); !made.HasValue())
+                    return Core::Unexpected(made.Error());
+                actor.byte381 = FifteenthStep;
             }
         }
         return Helped::Exit;
@@ -453,12 +495,12 @@ Core::Expected<Helped, std::string> StepKalima(ActorState& actor, const KindCase
         // En la 3 y desde 13, 0xf6/5 y 0x5de/2 y +0x381 en 15.
         if (action == FirstAttack && actor.byte381 >= ThirteenthStep)
         {
-            if (!HasFreeModelEffect(context))
-            {
-                actor.byte381 = FifteenthStep;
-                return Helped::Exit;
-            }
-            return CutAt(0x43b241, "los efectos 0xf6/5 y 0x5de/2 (CL11)", actor, slot);
+            // 0x43b241 y 0x43b25e, con c de dueño.
+            if (auto made = CreateOnTheActor(0xf6, 5, actor, &actor, context); !made.HasValue())
+                return Core::Unexpected(made.Error());
+            if (auto made = CreateOnTheActor(World::FlameJetEffect, 2, actor, &actor, context); !made.HasValue())
+                return Core::Unexpected(made.Error());
+            actor.byte381 = FifteenthStep;
         }
         return Helped::Exit;
     default:
@@ -781,9 +823,9 @@ Core::Expected<void, std::string> StepTheKindCase(ActorState& actor, const KindC
         constexpr std::uint16_t RockKind = 0x3f;
         if (actor.word376 != RockKind)
         {
-            // 0x4f6121 (el 0x3d): en 1, 0xf6 sobre c; pool lleno, sigue a la cola.
-            if (step == FirstStep && HasFreeModelEffect(context))
-                return CutAt(0x4f6145, "el efecto 0xf6 (CL11)", actor, slot);
+            // 0x4f6121 (el 0x3d): en 1, 0xf6/0 sobre c, sin dueño (0x4f6145).
+            if (step == FirstStep)
+                return CreateOnTheActor(0xf6, 0, actor, nullptr, context);
             return {};
         }
         // El 0x3f: en 1, 0x51fff0(c + 0x10, 0) y 0xf6; +0x38e; con '2', dos rand() % 800 y 0x518cf0(0xf5).
@@ -791,22 +833,32 @@ Core::Expected<void, std::string> StepTheKindCase(ActorState& actor, const KindC
         {
             if (auto burst = ScatterTheBurst(actor, slot, context); !burst.HasValue())
                 return burst;
-            if (HasFreeModelEffect(context))
-                return CutAt(0x4f5d5a, "el efecto 0xf6 tras el estallido (CL11)", actor, slot);
+            // 0x4f5d5a: el 0xf6/0 en c + 0x10, sin dueño.
+            if (auto made = CreateOnTheActor(0xf6, 0, actor, nullptr, context); !made.HasValue())
+                return made;
         }
         if (ReadTheSkill(actor, context.random) != CaseSkill)
             return {};
-        static_cast<void>(context.random.Next());
-        static_cast<void>(context.random.Next());
-        if (!HasFreeModelEffect(context))
-            return {};
-        return CutAt(0x4f609d, "el efecto 0xf5 (CL11)", actor, slot);
+        // 0x4f6030..0x4f609d: el 0xf5/0 sin dueño en (r % 800 + x − 400; r % 800 + y − 400; z) (0x6b87b0), y en 14
+        // las dieciocho 0xc1a (0x4f60a5).
+        constexpr int Spread = 800;
+        constexpr double Center = 400.0;
+        const auto dx = static_cast<double>(context.random.Next() % Spread);
+        const auto dy = static_cast<double>(context.random.Next() % Spread);
+        const glm::vec3 point{static_cast<float>(dx + static_cast<double>(actor.position.x) - Center),
+                              static_cast<float>(dy + static_cast<double>(actor.position.y) - Center),
+                              actor.position.z};
+        if (auto made = CreateTheBlastEffect(0xf5, 0, point, actor.angles, actor.light, nullptr, context);
+            !made.HasValue())
+            return made;
+        if (actor.byte381 == FourteenthStep)
+            LaunchTheRadialVolley(actor, context.world.Map().effects);
+        return {};
     }
     case 0x4f6152:
         // +0x38e; con '2' y en 1, 0xf6/1; pool lleno, sigue a la cola.
-        if (ReadTheSkill(actor, context.random) == CaseSkill && actor.byte381 == FirstStep &&
-            HasFreeModelEffect(context))
-            return CutAt(0x4f6422, "el efecto 0xf6/1 (CL11)", actor, slot);
+        if (ReadTheSkill(actor, context.random) == CaseSkill && actor.byte381 == FirstStep)
+            return CreateOnTheActor(0xf6, 1, actor, nullptr, context); // 0x4f6422
         return {};
     case 0x4f6442:
     {
@@ -907,8 +959,8 @@ Core::Expected<void, std::string> StepTheKindCase(ActorState& actor, const KindC
                 return effect;
             RequestTheSound(context, HitSound);
         }
-        else if (actor.byte381 == FirstStep && HasFreeModelEffect(context))
-            return CutAt(0x4f789b, "el efecto 0xf6/1 (CL11)", actor, slot);
+        else if (actor.byte381 == FirstStep)
+            return CreateOnTheActor(0xf6, 1, actor, nullptr, context); // 0x4f789b
         return {};
     }
     case 0x4f793e:
@@ -917,8 +969,7 @@ Core::Expected<void, std::string> StepTheKindCase(ActorState& actor, const KindC
         {
             if (auto burst = ScatterTheBurst(actor, slot, context); !burst.HasValue())
                 return burst;
-            if (HasFreeModelEffect(context))
-                return CutAt(0x4f7980, "el efecto 0xf6 tras el estallido (CL11)", actor, slot);
+            return CreateOnTheActor(0xf6, 0, actor, nullptr, context); // 0x4f7980
         }
         return {};
     case 0x4f798d:
@@ -933,9 +984,9 @@ Core::Expected<void, std::string> StepTheKindCase(ActorState& actor, const KindC
                 localLight = TrailAttackLight;
                 if (auto burst = ScatterTheBurst(actor, slot, context); !burst.HasValue())
                     return burst;
-                if (HasFreeModelEffect(context))
-                    return CutAt(0x4f79d3, "el efecto 0xf6 tras el estallido (CL11)", actor, slot);
-                SetTheFifthTrailPoint(actor, context.random);
+                if (auto made = CreateOnTheActor(0xf6, 0, actor, nullptr, context); !made.HasValue()) // 0x4f79d3
+                    return made;
+                return LaunchTheFiveStabs(actor, context);
             }
             return {};
         }
@@ -946,8 +997,13 @@ Core::Expected<void, std::string> StepTheKindCase(ActorState& actor, const KindC
             constexpr glm::vec3 TrailOffset{-50.0f, 100.0f, 0.0f};
             localLight = TrailAttackLight;
             actor.trailOrigin = BonePoint(actor, TrailBone, TrailOffset, context);
-            if (HasFreeModelEffect(context))
-                return CutAt(0x4f80cf, "el efecto 0x106/1 desde +0x17c (CL11)", actor, slot);
+            // 0x4f7b56 → 0x4f80cf: el 0x106/1 desde +0x17c, con 45 más en la x de los ángulos y c de dueño.
+            const glm::vec3 angles{static_cast<float>(static_cast<double>(actor.angles.x) + 45.0), actor.angles.y,
+                                   actor.angles.z};
+            if (auto made =
+                    CreateTheBlastEffect(0x106, 1, actor.trailOrigin, angles, TrailAttackLight, &actor, context);
+                !made.HasValue())
+                return made;
             RequestTheSound(context, HitSound);
         }
         else if (step == NinthStep)
@@ -1012,7 +1068,7 @@ Core::Expected<void, std::string> StepTheKindCase(ActorState& actor, const KindC
 
 // 0x4f8147: con 0x11 en +0x38e, el switch por +0x376 − 0x25. Todos sus casos salen (RET o 0x4f903c).
 Core::Expected<void, std::string> StepTheKindSkill(ActorState& actor, const KindCase& found, std::size_t slot,
-                                                   const CharacterStepContext& context)
+                                                   const CharacterStepContext& context, const glm::vec3& localLight)
 {
     const std::uint8_t step = actor.byte381;
     const std::uint8_t action = actor.animation.action;
@@ -1041,8 +1097,17 @@ Core::Expected<void, std::string> StepTheKindSkill(ActorState& actor, const Kind
         {
             if ((context.random.Next() & 1) == 0)
             {
-                if (HasFreeModelEffect(context))
-                    return CutAt(0x4f8227, "los dos efectos 0xf5 sobre el blanco (CL11)", actor, slot);
+                // 0x4f8227 y 0x4f8244: en la posición del blanco (+0x3a4, ya en [0, 400)), con c de dueño.
+                ActorState& target =
+                    context.world.Actors()[static_cast<std::size_t>(std::bit_cast<std::int16_t>(actor.attackTarget))];
+                for (int blast = 0; blast < 2; ++blast)
+                {
+                    if (auto made =
+                            CreateTheBlastEffect(0xf5, 0, target.position, actor.angles, actor.light, &actor, context);
+                        !made.HasValue())
+                        return made;
+                }
+                return {};
             }
             else if (HasFreeModelEffect(context))
             {
@@ -1055,8 +1120,12 @@ Core::Expected<void, std::string> StepTheKindSkill(ActorState& actor, const Kind
         // En 14, 0x4ec110 con el hueso 33, 0x518cf0(0x106/1) y el joint 0x614/2 hacia el blanco.
         if (step == FourteenthStep)
         {
-            if (HasFreeModelEffect(context))
-                return CutAt(0x4f8326, "el efecto 0x106/1 del hueso 33 (CL11)", actor, slot);
+            // 0x4f82c1..0x4f8326: el punto del hueso 33 y el 0x106/1 sin dueño, con la luz local.
+            constexpr std::size_t HookBone = 33;
+            const glm::vec3 point = BonePoint(actor, HookBone, glm::vec3(0.0f), context);
+            if (auto made = CreateTheBlastEffect(0x106, 1, point, actor.angles, localLight, nullptr, context);
+                !made.HasValue())
+                return made;
             return AttemptJoint(actor, slot, context, 0x4f834c, "el joint 0x614/2 del hueso 33 (CL11)");
         }
         return {};
@@ -1069,8 +1138,15 @@ Core::Expected<void, std::string> StepTheKindSkill(ActorState& actor, const Kind
         // En 14, 0x4ec110 con la matriz de 0x74374ec, 0x106/1 y el joint 0x614/2 hacia el blanco.
         if (step == FourteenthStep)
         {
-            if (HasFreeModelEffect(context))
-                return CutAt(0x4f845e, "el efecto 0x106/1 (CL11)", actor, slot);
+            // 0x4f8401..0x4f845e: el punto de la matriz de 0x74374ec (WorldRuntime::phoenixBones[2]) y el 0x106/1 sin
+            // dueño, con la luz local.
+            const SharedModelPlacement placement = context.world.ModelPlacement(static_cast<std::uint16_t>(actor.type));
+            const glm::vec3 point = Render::Models::OriginalTransformPosition(
+                Render::Models::OriginalMatrixOf(context.world.Runtime().phoenixBones[2]), glm::vec3(0.0f),
+                placement.scale, placement.origin);
+            if (auto made = CreateTheBlastEffect(0x106, 1, point, actor.angles, localLight, nullptr, context);
+                !made.HasValue())
+                return made;
             return AttemptJoint(actor, slot, context, 0x4f8484, "el joint 0x614/2 (CL11)");
         }
         return {};
@@ -1078,8 +1154,15 @@ Core::Expected<void, std::string> StepTheKindSkill(ActorState& actor, const Kind
         // En la 4 y en 13, 0x4ec110 con el hueso 11 y (−50, 100, 0), 0x106/1 y el joint 0x614/2 hacia el blanco.
         if (action == SecondAttack && step == ThirteenthStep)
         {
-            if (HasFreeModelEffect(context))
-                return CutAt(0x4f852d, "el efecto 0x106/1 del hueso 11 (CL11)", actor, slot);
+            // 0x4f84ad..0x4f852d: el punto (−50, 100, 0) del hueso 11 y el 0x106/1 sin dueño, con 45 más en la x de los
+            // ángulos y la luz (1; 0,5; 0).
+            constexpr std::size_t TrailBone = 11;
+            const glm::vec3 point = BonePoint(actor, TrailBone, {-50.0f, 100.0f, 0.0f}, context);
+            const glm::vec3 angles{static_cast<float>(static_cast<double>(actor.angles.x) + 45.0), actor.angles.y,
+                                   actor.angles.z};
+            if (auto made = CreateTheBlastEffect(0x106, 1, point, angles, TrailAttackLight, nullptr, context);
+                !made.HasValue())
+                return made;
             return AttemptJoint(actor, slot, context, 0x4f8553, "el joint 0x614/2 del hueso 11 (CL11)");
         }
         return {};
@@ -1303,7 +1386,7 @@ Core::Expected<void, std::string> StepTheTail(ActorState& actor, std::size_t slo
     if (ReadTheSkill(actor, context.random) == KindSkill)
     {
         if (const KindCase* found = CaseOf(KindSkillCases, actor.word376))
-            return StepTheKindSkill(actor, *found, slot, context);
+            return StepTheKindSkill(actor, *found, slot, context, localLight);
         return {};
     }
     // 0x4f8a2c: con 3, el switch por +0x376 − 0x22 (0x4f8a56); sin caso, y el 0xffff, 0x4f8f5b (el hueso de +0x2bd con

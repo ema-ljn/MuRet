@@ -9,6 +9,7 @@
 #include "Render/Models/Skeleton.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/AttackSkillReads.h"
+#include "Scenes/BlastEffectCalls.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/CharacterStep.h"
 #include "Scenes/FaunaJointCreation.h"
@@ -272,7 +273,7 @@ Core::Expected<void, std::string> StepTheSkill2c(ActorState& actor, std::uint8_t
 }
 
 // 0x4f9bce..0x4f9e60: la 0x2f.
-Core::Expected<void, std::string> StepTheSkill2f(const ActorState& actor, std::uint8_t skill, std::size_t slot,
+Core::Expected<void, std::string> StepTheSkill2f(ActorState& actor, std::uint8_t skill, std::size_t slot,
                                                  const CharacterStepContext& context)
 {
     constexpr std::uint8_t SoundStep = 10;
@@ -300,19 +301,48 @@ Core::Expected<void, std::string> StepTheSkill2f(const ActorState& actor, std::u
         if (HasFreeEffect(context))
             return CutAt(0x4f9d1c, "los dos efectos 0x812/0 delante del que pega (CL11)", skill, actor, slot);
     }
-    // 0x4f9d44..0x4f9e52: en 13 y 14, tres veces la posición 145 por delante (0x6ba180) y 110 más arriba, tres
-    // rand() % 60 − 30 (salvo en 11, que no llega), y 0x518cf0(0x10f, punto, o+0x1c, (0,3; 0,3; 0,3), el modelo de la
-    // mano, o, −1, 0, 0, 0, 0).
+    // 0x4f9d44..0x4f9e52: en 13 y 14, tres veces la posición de o 145 por delante por el rumbo (+0x24 · π/180; FSIN y
+    // FCOS retenidos y el FMUL por 145 redondea una sola vez: el perfil PC53) y 110 más arriba (0x6ba184), tres
+    // rand() % 60 − 30 sumados con FILD + FADD (salvo en 11, 0x4f9dab, que no llega) y 0x518cf0(0x10f, punto, o+0x1c,
+    // (0,3; 0,3; 0,3) de 0x4f9d78, el modelo de la mano (MOVSX), o, −1, 0, 0, 0, 0) (0x4f9e49, lote switch de la CL11).
+    // Con la tabla llena, el lazo sigue con sus rand().
     constexpr std::uint8_t FirstRockStep = 13;
     constexpr std::uint8_t LastRockStep = 14;
     if (step < FirstRockStep || step > LastRockStep)
         return {};
-    for (int rock = 0; rock < 3; ++rock)
+    constexpr int Rocks = 3;
+    constexpr float RockReach = 145.0f; // 0x6ba180
+    constexpr double RockRise = 110.0;  // 0x6ba184
+    constexpr int Scatter = 60;
+    constexpr int ScatterCentre = 30;
+    constexpr std::int16_t RockEffect = 0x10f;
+    constexpr glm::vec3 RockLight{0.3f, 0.3f, 0.3f}; // 0x3e99999a
+    const std::int32_t subtype = std::bit_cast<std::int16_t>(actor.hands[HandOf(actor)].model);
+    for (int rock = 0; rock < Rocks; ++rock)
     {
-        DrawThePoint(context);
-        if (HasFreeEffect(context))
-            return CutAt(0x4f9e49, "el primero de los tres efectos 0x10f delante del que pega (CL11)", skill, actor,
-                         slot);
+        const double angle = static_cast<double>(actor.angles.z) * Degree;
+        const auto sine = Render::Models::Detail::SineProductPC53(angle, RockReach);
+        const auto cosine = Render::Models::Detail::CosineProductPC53(angle, RockReach);
+        if (!sine || !cosine)
+            return Core::Unexpected(std::format(
+                "0x4f9d8f: el rumbo {} de la piedra de la {:#x} no cabe en el perfil PC53", actor.angles.z, skill));
+        glm::vec3 point = actor.position;
+        point.x = static_cast<float>(*sine + static_cast<double>(point.x));
+        point.y = static_cast<float>(static_cast<double>(point.y) - *cosine);
+        point.z = static_cast<float>(static_cast<double>(point.z) + RockRise);
+        for (int axis = 0; axis < 3; ++axis)
+        {
+            const int offset = context.random.Next() % Scatter - ScatterCentre;
+            point[axis] = static_cast<float>(static_cast<double>(offset) + static_cast<double>(point[axis]));
+        }
+        const World::ModelEffectArguments arguments{.type = RockEffect,
+                                                    .position = point,
+                                                    .angles = actor.angles,
+                                                    .light = RockLight,
+                                                    .subtype = subtype,
+                                                    .owner = &actor};
+        if (auto made = CreateBlastEffect(arguments, &actor, context); !made.HasValue())
+            return Core::Unexpected(made.Error());
     }
     return {};
 }

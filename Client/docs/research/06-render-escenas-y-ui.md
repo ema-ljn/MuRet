@@ -14694,6 +14694,55 @@ intermedio dibuja una copia del retrato con la copia del `rand()` del frame, sin
 recursos del mundo (`GameUiContext::worldEntry`, `ChatReceiveContext::worldEntry`): el primer pedido crea el
 `LetterPortrait`.
 
+### Los efectos con modelo del lote switch (CL11)
+
+(CL11, lote switch, 2026-11-19, *estático*, ASM c32bbd5f.) `World/BlastModelEffects` porta el alta (`0x518cf0`) y el
+paso (`0x5208a0`) de los efectos con modelo `0xe4`, `0xe5`/`0xe6` con el subtipo 5, `0xe7` a `0xe9`, `0xec`, `0xf2` a
+`0xf6`, `0x105/1` (el hijo del `0x106`), `0x106` a `0x109`, `0x10c`, `0x10d`, `0x10f`, `0x112`, `0x113` y `0x5de` con
+los subtipos 1 y 2; `Scenes/BlastEffectCalls` arma desde el paso de los personajes lo que piden afuera (el registro
+propio, el héroe publicado, los blancos de `0x517a20`, los joints y el sonido). El `0xf8` y el `0x105/3` no son de este
+lote (ADR 0020).
+
+- **El prefijo** (Q-C1540): cada alta empieza por el de `ModelEffects::Begin` (el primer lugar libre de los 200, el
+  dueño en `+0x108`, la key en `+0x8a`, `+0x88`, `+0x89` y `+0x1bd`); con la tabla llena no hay alta ni `rand()`, ni
+  el registro propio ni los joints de su caso. El paso lee en vivo de `+0x108` el tipo, los ángulos, la posición, el
+  byte vivo y `+0x16c` del dueño (`World::ModelEffectOwner`).
+- **El registro propio** (Q-C1541): el `0xf3` (`0x51a625`) lo abre, suma uno a `+0xf04` (envuelve) y lo cierra; el
+  `0xf4` (`0x51a65a`, `0x51a1b6`) y el `0xf5` (`0x5193db`) copian `+0xf04` a `+0x8c`. Cada cierre en profundidad 0
+  saca 3.848 `rand()` (`0x40b4d0`). El `0xf6` con el subtipo 0 o 1 y el héroe publicado de dueño (`0x519a49`) copia la
+  cuenta con el registro abierto y **lo cierra antes** de `0x517a20(+0x89, la posición, 400, +0x8c, +0x8a, 0)`
+  (`0x519e67..0x519e9e`), que abre otro: con el héroe de dueño son dos cierres.
+- **El `0x106` y su hijo** (Q-C1543): `0x518e66` corre el punto (−10, −60, 135) por los ángulos, escala 0,8 y la y de la
+  velocidad en −70, y vuelve a `0x518d0a` con el `0x105` de su subtipo y el `0x106` de dueño (`+0x108` del hijo es el
+  efecto). El `0x105/1` (`0x519fc9..0x51a101`): vida 100, la escala 24 durante los cuatro joints `0x610/0..3` (key
+  `0x1e`, la skill en el subtipo, el efecto de dueño), el sonido `0x7a` y la escala 1, aun con la tabla de joints
+  llena. El alta devuelve el lugar del `0x106`, no el de su hijo.
+- **Los llamadores** (Q-C1546 a Q-C1549): `0x43b5ac`/`0x43b5cc` (el `0xa1` en la 3 desde 13: `0xf6/0` y `0x5de/1` sobre
+  c con c de dueño) y `0x43b241`/`0x43b25e` (el `0xa0`: `0xf6/5` y `0x5de/2`), los dos antes de `+0x381` en 15; en
+  `0x4f5b70`, los `0xf6` sin dueño de `0x4f6145`, `0x4f5d5a`, `0x4f6422`, `0x4f789b`, `0x4f7980` y `0x4f79d3`; el
+  `0xf5/0` sin dueño de `0x4f609d` en (`rand() % 800` + x − 400, `rand() % 800` + y − 400, z); los cinco `0x106/1` de
+  `0x4f79db..0x4f7aae` (cada punto con dos `rand() % 1001` − 500 y 500 más arriba, en `+0x17c`, los ángulos con 45 más
+  en x y c de dueño); el de `0x4f80cf` desde `+0x17c`; los dos `0xf5/0` de `0x4f8227`/`0x4f8244` en la posición del
+  blanco (`+0x3a4`) con c de dueño; los `0x106/1` sin dueño de `0x4f8326` (el hueso 33, la luz local), `0x4f845e` (la
+  matriz de `0x74374ec`) y `0x4f852d` (el hueso 11 con (−50, 100, 0) y 45 más en x). En `0x4fd5f0`: el `0xf3` de la
+  0x29 (`0x4fec9a`, con `0x59fb80(0x29)` en `+0x89`) antes del sonido `0x73`; los diez `0x108/0` de la 0x27
+  (`0x4ffd5c..0x4ffdaf`: la celda de la skill con su altura y, por vuelta, `rand() % 50` por la vuelta sobre la altura,
+  la luz (1, 1, 1) de `0x4fd81e`, sin dueño y la key en la vuelta + 1; el `rand()` sale aun con la tabla llena); los
+  dos `0xf5/0` de la 0x0d en la celda (`0x500d7b`, `0x500dba`) y el `0xf6/0` de la 0x0e tras el estallido (`0x5014da`),
+  con o de dueño. En `0x4f97b0`, los tres `0x10f` de la 0x2f (`0x4f9d44..0x4f9e52`): la posición 145 por delante por
+  el rumbo (`+0x24` · π/180 en float, el perfil PC53) y 110 más arriba, tres `rand() % 60` − 30 sumados con FILD +
+  FADD, la luz 0,3, el modelo de la mano de subtipo y o de dueño.
+- **El paso** (Q-C1547): el primer `rand()` es la luz local; la cola común (`0x52cb98`) publica la acción y anima los
+  BMD de `[0xad, 0x151)`, mueve con `0x51fc80` por los ángulos salvo el `0x10f`, que va derecho (la tabla de
+  `0x52d1a4`); el `0xf3` y el `0xf4` solo pierden la vida, y los `0xe7..0xe9` y el `0x113` sin dueño salen sin cola.
+- **El dibujo** (Q-C1548): el `0xf3` no se dibuja (`0x52d620`), el `0xf4` es el ítem del dueño (`DrawItemModelEffect`),
+  el `0x10f` va por `DrawBloodCastleModelEffect` y los demás por el cuerpo común de `0x6002e0`. El `0x112/0` pasa
+  `+0x74 | 2`, que es 2 porque nadie escribe `+0x74`. El `0x109/0` agrega antes del pase común uno con
+  `0x4ef0c0(0x1040, +0x174, +0x64, +0x68, +0x6c, +0x70, 1, −1)` (`0x60213e`), que MuRet no hace (P-C412).
+
+Lo que corta (P-C410 a P-C413): las partículas que este lote no crea, los joints del lote joints y lo que el dueño
+tiene y MuRet no.
+
 ## Lo que no se sabe
 
 - **Modelos, en el binario** (P-C01, cerrado en la CL6.R): el skinning, la pose, el avance, la

@@ -199,7 +199,10 @@ GameScene::StepTheModelEffects(float worldClock, const std::function<double(floa
             if (!hit.HasValue())
                 return Core::Unexpected(hit.Error());
             return {};
-        }};
+        },
+        // CL11 (World/BlastModelEffects): el registro propio (0x7681eb4) del 0xf4 que suelta el paso del 0xf3.
+        .ownRecordDepth = &m_context.world->Runtime().ownRecordDepth,
+        .ownRecordCount = &m_context.world->OwnCharacter().bytef04};
     // 52d220: reset44dc40antesdelprimeractivo; el último proyectil seguido vuelveaescribirlo.
     CameraInputState().effectTarget = glm::vec3(0.0f);
     auto effects = m_context.world->Map().effects.Effects();

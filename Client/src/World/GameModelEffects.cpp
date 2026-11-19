@@ -4,6 +4,7 @@
 
 #include "Core/Expected.h"
 #include "Render/Models/Cloth.h"
+#include "World/BlastModelEffects.h"
 #include "Render/Models/OriginalRetainedMath.h"
 #include "World/ModelEffects.h"
 #include "World/IFishStepServices.h"
@@ -1554,6 +1555,9 @@ Core::Expected<void, std::string> StepGameModelEffect(ModelEffect& effect, const
         return {};
     // 5208c5: el primer sorteo corre para todo tipo vivo, incluso si su rama no usa la luz local.
     const int lightDraw = random.Next();
+    // CL11, lote switch: 0xe4..0xf6, 0x105/1..0x113 y 0x5de/1 y /2 (World/BlastModelEffects).
+    if (StepsAsBlastModelEffect(effect))
+        return StepBlastModelEffect(effect, skeleton, particles, worldClock, random, lightDraw, kalima, services);
     const glm::vec3 before = effect.transform.position;
     bool wholeStep = false;
     constexpr std::int16_t FirstTower = 322;

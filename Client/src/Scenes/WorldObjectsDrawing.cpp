@@ -883,13 +883,17 @@ void DrawFrameSprites(Render::ModelBatch& batch, World::FrameSprites& sprites, c
         World::StepSpriteAlpha(sprite);
         const Render::TextureSlot slot{sprite.texture};
         Render::Billboard billboard;
+        // 0x5493de/0x549410 llaman621400: el byte de componentes decide Color3 o Color4 también aquí.
+        const auto metadata = textures.TextureMetadataOf(sprite.texture);
+        constexpr int RgbComponents = 3;
+        const int components = metadata ? metadata->components : RgbComponents;
         // El tamaño: la escala por el alpha en la x87, por el ancho y el alto de la textura.
         const double size = static_cast<double>(sprite.scale) * static_cast<double>(sprite.alpha);
         if (sprite.texture == World::AtlasSprite)
         {
             billboard =
                 Render::MakeBillboard(view, sprite.position, AtlasSide, AtlasSide, sprite.light, sprite.rotation,
-                                      AtlasCell(sprite.blend), glm::vec2(AtlasThird), sprite.texture, 3);
+                                      AtlasCell(sprite.blend), glm::vec2(AtlasThird), sprite.texture, components);
         }
         else
         {
@@ -897,7 +901,7 @@ void DrawFrameSprites(Render::ModelBatch& batch, World::FrameSprites& sprites, c
             const auto width = static_cast<float>(size * static_cast<double>(texture.x));
             const auto height = static_cast<float>(size * static_cast<double>(texture.y));
             billboard = Render::MakeBillboard(view, sprite.position, width, height, sprite.light, sprite.rotation,
-                                              glm::vec2(0.0f), glm::vec2(1.0f), sprite.texture, 3);
+                                              glm::vec2(0.0f), glm::vec2(1.0f), sprite.texture, components);
         }
         batch.SetState(Render::ModelDrawState{.texture = slot, .blend = SpriteBlend(sprite)});
         const auto vertex = [&billboard](std::size_t k)

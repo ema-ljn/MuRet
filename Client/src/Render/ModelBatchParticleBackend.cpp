@@ -107,6 +107,13 @@ ModelBatchParticleBackend::ModelBatchParticleBackend(std::reference_wrapper<Mode
 {
 }
 
+ModelBatchParticleBackend::~ModelBatchParticleBackend()
+{
+    // El scratch nunca se publicó: abandonar su marca no fabrica End ni borra geometría completa.
+    if (m_ownsPrimitive)
+        m_batch.get().EndPrimitive();
+}
+
 IParticleDrawBackend::Result ModelBatchParticleBackend::PrepareMaterial()
 {
     if (IsDrawing())
@@ -360,7 +367,11 @@ IParticleDrawBackend::Result ModelBatchParticleBackend::SynchronizeBatch()
 
 IParticleDrawBackend::Result ModelBatchParticleBackend::CheckPrimitiveState() const
 {
-    if (IsDrawing() && m_observedSerial != m_batch.get().StateSerial())
+    if (!IsDrawing())
+        return {};
+    if (!m_ownsPrimitive)
+        return Core::Unexpected(std::make_error_code(std::errc::operation_in_progress));
+    if (m_observedSerial != m_batch.get().StateSerial())
         return Core::Unexpected(std::make_error_code(std::errc::state_not_recoverable));
     return {};
 }
@@ -384,6 +395,7 @@ IParticleDrawBackend::Result ModelBatchParticleBackend::BeginQuad(ModelCoordinat
     const auto opened = m_batch.get().BeginPrimitive();
     if (!opened.HasValue())
         return opened;
+    m_ownsPrimitive = true;
     m_cornerCount = 0;
     m_primitiveSpace = space;
     return {};
@@ -464,6 +476,7 @@ IParticleDrawBackend::Result ModelBatchParticleBackend::End()
     m_batch.get().Triangle({m_corners[0], m_corners[1], m_corners[2]});
     m_batch.get().Triangle({m_corners[0], m_corners[2], m_corners[3]});
     m_batch.get().EndPrimitive();
+    m_ownsPrimitive = false;
     return {};
 }
 

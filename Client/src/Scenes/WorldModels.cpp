@@ -71,8 +71,9 @@ Core::Expected<void, std::string> WorldModels::Load(const std::filesystem::path&
             m_sharedTextures->Seed(*gameSlots, globalModels);
     }
     m_folder = ObjectFolder(map);
-    m_slots.emplace(gameSlots != nullptr ? gameSlots->ContinuedAt(SpecialModelsFirstSlot)
-                                         : Render::Models::ModelTextureSlots(SpecialModelsFirstSlot));
+    m_slots.emplace(m_sharedTextures != nullptr ? m_sharedTextures->Slots().ContinuedAt(SpecialModelsFirstSlot)
+                    : gameSlots != nullptr      ? gameSlots->ContinuedAt(SpecialModelsFirstSlot)
+                                                : Render::Models::ModelTextureSlots(SpecialModelsFirstSlot));
     TextureSlots()->SetNext(SpecialModelsFirstSlot);
     m_requestStart = TextureSlots()->ToLoad().size();
     std::size_t missing = 0;
@@ -89,6 +90,12 @@ Core::Expected<void, std::string> WorldModels::Load(const std::filesystem::path&
     log.Debug("los objetos de {}: {} modelos y {} que no están", m_folder, m_models.size(), missing);
     if (m_models.empty())
         log.Warning("no hay ningún modelo de los objetos del mundo en Data\\{}: el mundo va sin ellos", m_folder);
+    if (m_sharedTextures != nullptr)
+    {
+        // Publica nombres, cursor y pedidos solo después de validar todos los modelos.
+        m_sharedTextures->Slots() = std::move(*m_slots);
+        m_slots.reset();
+    }
     UploadTextures(dataRoot, textures, log);
     if (m_sharedTextures != nullptr)
     {
@@ -304,7 +311,8 @@ void WorldModels::UploadTextures(const std::filesystem::path& dataRoot, Render::
 
 void WorldModels::Release()
 {
-    if (m_sharedTextures != nullptr)
+    // Antes de UploadTextures, los bindings son provisionales: todavía no adquirieron referencias.
+    if (m_sharedTextures != nullptr && m_store != nullptr)
     {
         for (const auto& [model, bindings] : m_meshTextures)
             for (const auto slot : bindings)
@@ -388,11 +396,11 @@ std::size_t WorldModels::Count() const
 
 Render::Models::ModelTextureSlots* WorldModels::TextureSlots()
 {
-    return m_sharedTextures != nullptr ? &m_sharedTextures->Slots() : m_slots ? &*m_slots : nullptr;
+    return m_slots ? &*m_slots : m_sharedTextures != nullptr ? &m_sharedTextures->Slots() : nullptr;
 }
 
 const Render::Models::ModelTextureSlots* WorldModels::TextureSlots() const
 {
-    return m_sharedTextures != nullptr ? &m_sharedTextures->Slots() : m_slots ? &*m_slots : nullptr;
+    return m_slots ? &*m_slots : m_sharedTextures != nullptr ? &m_sharedTextures->Slots() : nullptr;
 }
 } // namespace Client::Scenes

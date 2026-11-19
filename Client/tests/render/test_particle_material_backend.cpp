@@ -76,6 +76,71 @@ private:
     mutable int m_metadataQueries = 0;
 };
 
+TEST(ParticleMaterialBackendTest, DestroyingAnObserverDoesNotCloseAnotherAdaptersPrimitive)
+{
+    Client::Render::ModelBatch batch;
+    batch.Begin(Client::Render::Pass3D{});
+    MaterialModels models;
+    Client::Render::ModelBatchParticleBackend owner(std::ref(batch), std::cref(models),
+                                                    Client::Render::ModelBatchParticleState::ForModelPass());
+    ASSERT_TRUE(owner.Begin().HasValue());
+    {
+        Client::Render::ModelBatchParticleBackend observer(std::ref(batch), std::cref(models),
+                                                           Client::Render::ModelBatchParticleState::ForModelPass());
+        EXPECT_FALSE(observer.Begin().HasValue());
+    }
+    EXPECT_TRUE(batch.HasOpenPrimitive());
+}
+
+TEST(ParticleMaterialBackendTest, DestroyingAnAdapterDiscardsOnlyItsUnfinishedQuad)
+{
+    Client::Render::ModelBatch batch;
+    batch.Begin(Client::Render::Pass3D{});
+    MaterialModels models;
+    {
+        Client::Render::ModelBatchParticleBackend backend(std::ref(batch), std::cref(models),
+                                                          Client::Render::ModelBatchParticleState::ForModelPass());
+        ASSERT_TRUE(backend.Begin().HasValue());
+        ASSERT_TRUE(backend.Vertex({1, 2, 3}).HasValue());
+        EXPECT_FALSE(backend.End().HasValue());
+        EXPECT_TRUE(batch.Vertices().empty());
+    }
+    EXPECT_FALSE(batch.HasOpenPrimitive());
+    EXPECT_TRUE(batch.Vertices().empty());
+    EXPECT_TRUE(batch.BeginPrimitive().HasValue());
+    batch.EndPrimitive();
+}
+
+TEST(ParticleMaterialBackendTest, OnlyTheAdapterThatOpenedAQuadCanWriteOrFinishIt)
+{
+    Client::Render::ModelBatch batch;
+    batch.Begin(Client::Render::Pass3D{});
+    SlotLookupModels models;
+    const auto state = Client::Render::ModelBatchParticleState::ForModelPass();
+    Client::Render::ModelBatchParticleBackend first(std::ref(batch), std::cref(models), state);
+    ASSERT_TRUE(first.Additive().HasValue());
+    ASSERT_TRUE(first.BindTexture(0x5c5).HasValue());
+    constexpr std::array<glm::vec3, 4> corners{{{0, 0, 0}, {1, 0, 0}, {1, 1, 0}, {0, 1, 0}}};
+    ASSERT_TRUE(first.Begin().HasValue());
+    for (const auto& corner : corners)
+        ASSERT_TRUE(first.Vertex(corner).HasValue());
+    ASSERT_TRUE(first.End().HasValue());
+
+    Client::Render::ModelBatchParticleBackend second(std::ref(batch), std::cref(models), first.State());
+    ASSERT_TRUE(second.Begin().HasValue());
+    EXPECT_FALSE(first.Color3({1, 1, 1}).HasValue());
+    EXPECT_FALSE(first.TexCoord({0, 0}).HasValue());
+    EXPECT_FALSE(first.Vertex({2, 2, 2}).HasValue());
+    EXPECT_FALSE(first.End().HasValue());
+    ASSERT_TRUE(batch.HasOpenPrimitive());
+    ASSERT_EQ(batch.Vertices().size(), 6u);
+    for (const auto& corner : corners)
+        ASSERT_TRUE(second.Vertex(corner).HasValue());
+    ASSERT_TRUE(second.End().HasValue());
+    EXPECT_FALSE(batch.HasOpenPrimitive());
+    EXPECT_EQ(batch.Vertices().size(), 12u);
+}
+
 TEST(ParticleMaterialBackendTest, PhysicalSlotLookupKeepsPublicUnsignedRaw32Api)
 {
     using SlotLookup =

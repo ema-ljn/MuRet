@@ -9,6 +9,7 @@
 #include "Render/Models/Skeleton.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/GameModels.h"
+#include "Scenes/ModelTextureTable.h"
 
 #include "support/FakeTextureStore.h"
 #include "support/GoldenDir.h"
@@ -402,5 +403,68 @@ TEST_F(WorldModelGroupsTest, MissingExileSpecialsAreOptionalButTheirInvalidWrapI
     EXPECT_NE(models.Find(0xe7), nullptr);
     EXPECT_EQ(m_store.loadCalls, before);
     models.Release();
+}
+// Una asignación provisional no posee la referencia del modelo que ya dejó la textura residente.
+TEST(WorldModelOwnershipTest, FailedActionsKeepResidentReferencesAcrossReleaseAndRetry)
+{
+    constexpr TextureSlot SharedSlot{0x68};
+    constexpr std::array<Client::Data::Textures::TextureSetEntry, 1> SharedTexture{
+        {{"Object2\\group104.tga", SharedSlot.value, {}}}};
+    for (const std::uint8_t map : {std::uint8_t{1}, std::uint8_t{30}})
+    {
+        SCOPED_TRACE(static_cast<int>(map));
+        Client::Tests::TemporaryFolder folder{"world-texture-ownership"};
+        WriteModel(folder.Path(), Special{0, "Object2", "Object01.bmd", SharedSlot.value});
+        WriteModel(folder.Path(), Special{0, "Object31", "Object01.bmd", SharedSlot.value});
+        if (map == 30)
+            WriteModel(folder.Path(),
+                       Special{Client::Scenes::SpearmanModel, "Monster", "Monster78.bmd", SharedSlot.value});
+        WriteModel(folder.Path(), Special{1, map == 1 ? "Object2" : "Object31", "Object02.bmd", 0x41c});
+        const auto decoded = Client::Data::Textures::LoadTextureSet(folder.Path(), SharedTexture);
+        ASSERT_TRUE(decoded.HasValue());
+        Client::Tests::FakeTextureStore store;
+        Client::Scenes::ModelTextureTable table;
+        table.Bind(store);
+        table.Slots().SetName(SharedSlot, "group104.tga");
+        table.Slots().SetNext(TextureSlot{0x700});
+        ASSERT_TRUE(table.Upload(decoded.Value().front()).HasValue());
+        Client::Tests::RecordingSink sink;
+        Client::Core::Log log{sink, Client::Core::LogLevel::Debug};
+        Client::Scenes::WorldModels models;
+
+        const auto failed = models.Load(folder.Path(), map, store, log, nullptr, nullptr, &table);
+
+        ASSERT_FALSE(failed.HasValue());
+        EXPECT_NE(failed.Error().find(map == 1 ? "0x61a13c" : "0x612e5a"), std::string::npos);
+        ASSERT_EQ(models.MeshTextures(0).size(), 1u);
+        EXPECT_EQ(models.MeshTextures(0).front(), SharedSlot);
+        EXPECT_EQ(store.loadCalls, 1);
+        EXPECT_EQ(table.Slots().Next(), TextureSlot{0x700});
+        EXPECT_TRUE(table.Slots().ToLoad().empty());
+        EXPECT_TRUE(table.Slots().NameOf(TextureSlot{0x41c}).empty());
+        models.Release();
+        models.Release();
+        EXPECT_EQ(table.References(SharedSlot), 1);
+        EXPECT_EQ(table.Slots().NameOf(SharedSlot), "group104.tga");
+        EXPECT_TRUE(table.Metadata(SharedSlot.value).has_value());
+        EXPECT_TRUE(store.Find(SharedSlot).has_value());
+        EXPECT_TRUE(store.released.empty());
+
+        // Load también suelta una carga fallida anterior antes de reintentar.
+        ASSERT_FALSE(models.Load(folder.Path(), map, store, log, nullptr, nullptr, &table).HasValue());
+        std::filesystem::remove(folder.Path() / "Object2/Object02.bmd");
+        WriteModel(folder.Path(), Special{40, "Object2", "Object41.bmd", SharedSlot.value});
+        const auto retried = models.Load(folder.Path(), 1, store, log, nullptr, nullptr, &table);
+        ASSERT_TRUE(retried.HasValue()) << retried.Error();
+        EXPECT_EQ(table.References(SharedSlot), 3);
+        EXPECT_EQ(store.loadCalls, 1);
+        models.Release();
+        EXPECT_EQ(table.References(SharedSlot), 1);
+        EXPECT_TRUE(table.Metadata(SharedSlot.value).has_value());
+        EXPECT_TRUE(store.Find(SharedSlot).has_value());
+        table.Release(SharedSlot);
+        EXPECT_EQ(table.References(SharedSlot), 0);
+        EXPECT_FALSE(store.Find(SharedSlot).has_value());
+    }
 }
 } // namespace

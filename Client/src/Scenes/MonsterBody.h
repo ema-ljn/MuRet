@@ -20,6 +20,7 @@ namespace Client::Scenes
 // - 0x602365: con +0x78 & 2, RenderBody(2) con el blendMesh en −2 y la luz en 1; el 0x177 (0x602391) y el 0x1f3 y el
 //   0x1f4 (0x60243e).
 // Los casos de los tipos que ninguna alta de monstruo da (MonsterKinds) quedan cortados con su dirección, y también
-// lo que no está portado: los efectos de 0x4ee770 (CL11) y la clase de los bordes del 0x183 (0x6011f1).
+// lo que no está portado: la clase de los bordes del 0x183 (0x6011f1). Los efectos por vértice de 0x4ee770 (el 0x18e y
+// el 0x18f al morir, Scenes/VertexEffects.h) salen sólo en los frames del original.
 [[nodiscard]] Core::Expected<void, std::string> DrawMonsterBody(MonsterBodyFrame& frame);
 } // namespace Client::Scenes

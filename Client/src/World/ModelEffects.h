@@ -58,6 +58,9 @@ inline constexpr std::int32_t RisingStoneChipSubtype = 1;
 // La /2 de las piedritas (la de las tormentas 0xcf, 0x522f17 y 0x5231a1 → 0x52b14d): nace como la /0 (0x51b72b) y
 // sube como la /1, girando 20 en z en cada paso (0x523a44).
 inline constexpr std::int32_t SpinningStoneChipSubtype = 2;
+// La /0xc de las piedritas (la de la columna 0x5de/3, 0x52afe1): nace como la /0 con la escala ((& 3) + 15) · 0,1f
+// (0x51b509..0x51b5d6) y cae y se prende como la /0 (0x523980, 0x523a3a, 0x523ad2).
+inline constexpr std::int32_t ColumnStoneChipSubtype = 0xc;
 // Los pedazos grandes (Data\Skill\BigStone1 y 2): con el subtipo 0 los suelta la muerte del 0x16b (0x4f59ca), corridos
 // rand() % 128 − 64 en x e y y rand() % 180 en z antes del camino de las piedritas (0x51b659); el /5 es del lote del
 // estallido (World/BlastModelEffects) y el /10 de la piedra que cae (CreateGroundStoneChip).
@@ -297,9 +300,11 @@ public:
     // salida común: el prefijo (sin dueño, +0x8a en −1), la z 50 más, el empuje (0; ((& 127) + 32) · 0,1f; 0), la vida
     // (& 15) + 32, la escala ((& 3) + 8) · 0,1f, la z de los ángulos en % 360 para girar el empuje a la velocidad, la
     // caída +0xe4 en % 5 + 2 y, con el 0x10b, el subtipo 1 y otro % 5 más en la caída; al final, los tres ángulos en
-    // % 360. Nueve rand() con el 0x10b, ocho con el 0x10a. Lleno, ninguno y sin rand().
+    // % 360. Nueve rand() con el 0x10b, ocho con el 0x10a. Lleno, ninguno y sin rand(). Otro subtipo (el 0x10b/2, /3
+    // y /4 y el 0x10a/4 de 0x4ee770) queda en +0x4 y sale con ocho rand().
     std::optional<std::size_t> CreateDebris(std::int16_t type, const glm::vec3& position, const glm::vec3& angles,
-                                            const glm::vec3& light, Render::Models::CrtRandom& random);
+                                            const glm::vec3& light, Render::Models::CrtRandom& random,
+                                            std::int32_t subtype = 0);
     // 0x518cf0(0x5de, …, 0, 0, −1, 0, 0, 0, 0) → 0x51e7d8 con el subtipo 0: el prefijo común, vida 40 y el
     // registro propio abierto y cerrado (copia su +0xf04 a +0x8c, que sólo lee la rama del dueño héroe, y el
     // cierre que deja la cuenta en 0 gasta sus 3.848 rand()). Lleno, ninguno.
@@ -320,7 +325,8 @@ public:
     // 0x518cf0(0xc8 o 0xc9, o 0xea, 0xeb, 0xe5 o 0xe6 con el subtipo 0, …, 0, 0, −1, 0, 0, 0, 0) → 0x51b72b: el
     // prefijo común y cinco rand(): el empuje ((& 255) + 64) · 0,1f en y, la vida (& 15) + 32, la escala ((& 3) + 8) ·
     // 0,1f, el yaw rand() % 360 y la caída (& 15) + 8 en +0xe4; la velocidad es el empuje girado por los ángulos con
-    // ese yaw. La /1 de 0x520119 tiene empuje cero y omite ese primer sorteo. El 0xe5 y el 0xe6 sacan antes tres más
+    // ese yaw. La /1 de 0x520119 tiene empuje cero y omite ese primer sorteo; la /0xc del 0xc8 y el 0xc9 (0x51b509..
+    // 0x51b5d6) saca los mismos cinco con la escala ((& 3) + 15) · 0,1f. El 0xe5 y el 0xe6 sacan antes tres más
     // (0x51b66b..0x51b6d6): rand() % 128 − 64 en x, otro en y y rand() % 180 en z, sumados a la posición (cada uno
     // guardado en float y después fld, fadd y fstp). Otro tipo o la tabla llena, ninguno.
     std::optional<std::size_t> CreateStoneChip(std::int16_t type, const glm::vec3& position, const glm::vec3& angles,

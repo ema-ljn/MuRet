@@ -152,8 +152,9 @@ struct GameRavenPass
     // el grito corta en su primera partícula.
     World::Particles* particles = nullptr;
     float worldClock = 0.0f;
-    // Las tablas del mundo para el estado 5 (0x418aab..0x418c0a): los joints 0x5ac/1 (0x530860) y los efectos 0x117/3
-    // y 0x113/0 (0x518cf0). Sin ellas, el estado 5 corta en la primera alta.
+    // Las tablas del mundo para el estado 5 (0x418aab..0x418c0a: los joints 0x5ac/1 de 0x530860 y los efectos 0x117/3
+    // y 0x113/0 de 0x518cf0) y para el final del grito (0x418a8c: los joints 0x613/0xd hacia el personaje de +0x3b0,
+    // uno de sus 400). Sin ellas, cortan en la primera alta.
     WorldState* world = nullptr;
 };
 
@@ -164,8 +165,8 @@ struct GameRavenPass
 // terreno (el +0x108 del cuervo queda en 0 desde 0x415c1e, así que el lazo del asedio de 0x600343 no lo encuentra en
 // el pool). Después, en los frames del original, 0x418920, que sólo hace algo en los estados 5 y 6 (los que pone el
 // A8): el 5 suelta los joints 0x5ac/1, el 0x117/3 y el 0x113/0 en las tablas de `world`, el grito del 6 las partículas
-// 0x5ac/6 de sus huesos, y su final (0x4ee770) es de la CL11 y corta con su dirección (DrawTheRavenAttack). Se dibuja
-// como lo dejó el paso, como el personaje. En un frame del original le quedan los huesos de la pose para la chispa del
-// paso.
+// 0x5ac/6 de sus huesos (DrawTheRavenAttack), y su final, los joints 0x613/0xd de los vértices de su malla 1 (0x4ee770,
+// EndTheShout). Se dibuja como lo dejó el paso, como el personaje. En un frame del original le quedan los huesos de la
+// pose para la chispa del paso.
 [[nodiscard]] Core::Expected<void, std::string> DrawGameRaven(ActorState& owner, const GameRavenPass& pass);
 } // namespace Client::Scenes

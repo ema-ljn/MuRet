@@ -206,15 +206,16 @@ Core::Expected<void, std::string> StepTheArrowBlast(World::ModelEffect& effect, 
     constexpr std::int32_t LastLives = 2, FiredSubtype = 1;
     if (effect.life < LastLives && effect.subtype == 0 && effect.ownerContext != nullptr)
     {
+        // 0x529e31 y 0x529e37: el pitch en 90 y el subtipo en 1 antes de leer al dueño (+0x108, 0x529e3e).
+        constexpr float Upright = std::bit_cast<float>(0x42b40000u); // 90
+        effect.transform.angles.x = Upright;
+        effect.subtype = FiredSubtype;
         const ActorState* owner = ActorOwnerOf(context.world, effect.ownerContext);
         if (owner == nullptr)
             return Core::Unexpected(
                 std::string("0x529e3e: el dueño (+0x108) del efecto 0x13a no es un personaje del mundo (CL11)"));
-        constexpr float Upright = std::bit_cast<float>(0x42b40000u); // 90
-        constexpr int Spread = 100;                                  // 0x64
-        constexpr double Center = 50.0, Height = 1200.0;             // 0x6b86b0 y 0x6ba198
-        effect.transform.angles.x = Upright;
-        effect.subtype = FiredSubtype;
+        constexpr int Spread = 100;                      // 0x64
+        constexpr double Center = 50.0, Height = 1200.0; // 0x6b86b0 y 0x6ba198
         glm::vec3 point = owner->position;
         point.x = F32((static_cast<double>(context.random.Next() % Spread) - Center) + D(point.x));
         point.y = F32((static_cast<double>(context.random.Next() % Spread) - Center) + D(point.y));

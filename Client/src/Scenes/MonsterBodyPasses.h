@@ -26,7 +26,8 @@ struct ClothWorld;
 namespace Client::World
 {
 class ModelEffects;
-}
+class Particles;
+} // namespace Client::World
 
 namespace Client::Scenes
 {
@@ -104,6 +105,8 @@ struct MonsterBodyFrame
     float* cameraShake = nullptr;
     // 4ee770 consume el mismo pool de518cf0 que el resto del frame.
     World::ModelEffects* effects = nullptr;
+    // Las partículas del frame (0x53fe70), para los 0x607/2 de 0x4ee770 al morir los 0x191..0x197 (0x43ed6c).
+    World::Particles* particles = nullptr;
     // 0x5f93c0, la altura del terreno que piden las altas de los pedazos de Kundun al caer (0x51e26e). Vacía, esas
     // altas cortan.
     std::function<double(float, float)> terrainHeight{};

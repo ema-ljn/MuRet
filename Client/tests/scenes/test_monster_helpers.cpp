@@ -535,10 +535,12 @@ TEST_F(MonsterHelpersTest, The1a4LeavesFantasAndSmokesOnItsBones)
 }
 
 // 0x441a8a..0x441c75, en Lorencia y en Devias: en la 3 de 8,4 a 10,2 con +4 en 0, el 0x1a4 golpea en su mano derecha
-// (Monster82_RHand) con su z: el cráter 0x636/2 y el joint 0x61c/6 (ancho 200, sin dueño, clave −1) con los ángulos
-// (−90, 0, z) y la columna 0x5de/3 con sus ángulos y su luz (vida 15). Después, lo mismo en cada jugador visto y vivo
-// a más de 200 y menos de 1100 en el plano, la columna con los ángulos de él y en blanco; el sonido 0x207. Los rand()
-// del joint, repetidos en un pool gemelo con el mismo CrtRandom; el cráter y la columna no sacan.
+// (Monster82_RHand, un hueso con traslación en x, y y z) con la x y la y del hueso y la z del personaje: el cráter
+// 0x636/2 (luz en blanco) y el joint 0x61c/6 (ancho 200, sin dueño, clave −1) con los ángulos (−90, 0, z) y la columna
+// 0x5de/3 con sus ángulos y su luz (vida 15). Después, lo mismo en cada uno de los primeros 400 jugadores visto y vivo
+// a más de 200 (200 justo no; 313,0001f − 113 sí) y menos de 1100 en el plano, la columna con los ángulos de él y en
+// blanco; el registro 400, aunque sea un jugador válido, no (0x441c60: 0x69780 = 400 · 0x438). El sonido 0x207. Los
+// rand() del joint, repetidos en un pool gemelo con el mismo CrtRandom; el cráter y la columna no sacan.
 TEST_F(MonsterHelpersTest, The1a4StrikesTheGroundUnderItsHandAndItsVictims)
 {
     Name("Monster82_LHand", 34);
@@ -558,7 +560,10 @@ TEST_F(MonsterHelpersTest, The1a4StrikesTheGroundUnderItsHandAndItsVictims)
         ActorState& actor = Monster(0x1a4, 3, 9.0f);
         actor.subtype = 0;
         actor.angles = {1.0f, 2.0f, 30.0f};
-        const auto player = [this](std::size_t slot, const glm::vec3& offset, bool seen) -> ActorState&
+        // El hueso 45 en (13, −7, 45): la mano queda en (113, 193, 55) y el golpe en (113, 193, 10).
+        actor.bodyPose[45][3] = glm::vec3(13.0f, -7.0f, 45.0f);
+        const glm::vec3 hand{113.0f, 193.0f, Origin.z};
+        const auto player = [this, &hand](std::size_t slot, const glm::vec3& offset, bool seen) -> ActorState&
         {
             ActorState& other = m_world->Actors()[slot];
             other = ActorState{};
@@ -566,7 +571,7 @@ TEST_F(MonsterHelpersTest, The1a4StrikesTheGroundUnderItsHandAndItsVictims)
             other.seen = seen;
             other.byte88 = 1;
             other.type = 0x20a;
-            other.position = Origin + offset;
+            other.position = hand + offset;
             other.angles = {0.0f, 0.0f, static_cast<float>(slot)};
             return other;
         };
@@ -574,6 +579,10 @@ TEST_F(MonsterHelpersTest, The1a4StrikesTheGroundUnderItsHandAndItsVictims)
         static_cast<void>(player(21, {150.0f, 0.0f, 0.0f}, true));
         static_cast<void>(player(22, {0.0f, 1100.0f, 0.0f}, true));
         static_cast<void>(player(23, {600.0f, 0.0f, 0.0f}, false));
+        static_cast<void>(player(24, {200.0f, 0.0f, 0.0f}, true));
+        ActorState& edge = player(25, {0.0f, 0.0f, 0.0f}, true);
+        edge.position.x = 313.0001f; // 200,0000915… del golpe
+        static_cast<void>(player(400, {600.0f, 0.0f, 0.0f}, true));
         CrtRandom attack(quiet);
         MonsterHelperPass attacking = Pass(map, attack);
 
@@ -582,11 +591,11 @@ TEST_F(MonsterHelpersTest, The1a4StrikesTheGroundUnderItsHandAndItsVictims)
         ASSERT_TRUE(struck.HasValue()) << struck.Error();
         EXPECT_EQ(actor.subtype, 1);
         EXPECT_EQ(Sound(), 0x207);
+        const std::array<glm::vec3, 3> points{hand, victim.position, edge.position};
         CrtRandom replay = AfterDraws(quiet, 1);
         std::vector<Client::Scenes::JointState> twin(m_world->DrawTail().joints.size());
-        const glm::vec3 hand{Origin.x, Origin.y, Origin.z};
         const glm::vec3 down{-90.0f, 0.0f, 30.0f};
-        for (const glm::vec3& at : {hand, victim.position})
+        for (const glm::vec3& at : points)
         {
             glm::vec3 point = at;
             glm::vec3 angles = down;
@@ -608,17 +617,18 @@ TEST_F(MonsterHelpersTest, The1a4StrikesTheGroundUnderItsHandAndItsVictims)
         EXPECT_EQ(attack.State(), replay.State());
         const auto effects = m_world->Map().effects.Effects();
         const auto& joints = m_world->DrawTail().joints;
-        const std::array<glm::vec3, 2> points{hand, victim.position};
-        const std::array<glm::vec3, 2> columnAngles{actor.angles, victim.angles};
-        const std::array<glm::vec3, 2> columnLights{actor.light, glm::vec3(1.0f)};
-        for (std::size_t strike = 0; strike < 2; ++strike)
+        const std::array<glm::vec3, 3> columnAngles{actor.angles, victim.angles, edge.angles};
+        const std::array<glm::vec3, 3> columnLights{actor.light, glm::vec3(1.0f), glm::vec3(1.0f)};
+        for (std::size_t strike = 0; strike < points.size(); ++strike)
         {
             SCOPED_TRACE(strike);
             const Client::World::ModelEffect& crater = effects[2 * strike];
             ASSERT_TRUE(crater.alive);
             EXPECT_EQ(crater.type, 0x636);
             EXPECT_EQ(crater.subtype, 2);
+            EXPECT_EQ(crater.transform.position, points[strike]);
             EXPECT_EQ(crater.transform.angles, down);
+            EXPECT_EQ(crater.light, glm::vec3(1.0f));
             EXPECT_EQ(crater.ownerContext, nullptr);
             const Client::World::ModelEffect& column = effects[(2 * strike) + 1];
             ASSERT_TRUE(column.alive);
@@ -638,8 +648,9 @@ TEST_F(MonsterHelpersTest, The1a4StrikesTheGroundUnderItsHandAndItsVictims)
             EXPECT_EQ(joint.position, twin[strike].position);
             EXPECT_EQ(joint.angles, twin[strike].angles);
         }
-        EXPECT_FALSE(effects[4].alive);
-        EXPECT_FALSE(joints[2].alive);
+        EXPECT_FALSE(effects[6].alive);
+        EXPECT_FALSE(joints[3].alive);
+        m_world->Actors()[400] = ActorState{};
     }
 }
 

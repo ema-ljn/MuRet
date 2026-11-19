@@ -1044,10 +1044,13 @@ Core::Expected<std::optional<std::size_t>, std::string> CreateFaunaJoint(std::sp
          (request.subtype == JointFamilies::ArrowWanderSubtype || request.subtype == JointFamilies::PinkWanderSubtype));
     // Los del pulso 0x61c del asedio, con él de dueño, que no leen: el 0x632/5 (0x52c266) y el 0x615/6 (0x52c31e); y
     // los del 0x812 (0x52c9a7 y 0x52c9da), el 0x60f/0xc y el /4, que lee su luz. También el 0x632/4 del 0x13a
-    // (0x51e01a), que lo sigue.
+    // (0x51e01a), que lo sigue, y el 0x632/2 y /3 del paso del 0x13a (0x529eca, 0x529eed), que no lo leen (en el
+    // suelo sueltan la onda 0x6eb/4, 0x53c1b5).
+    constexpr std::int32_t FirstRainSubtype = 2; // 0x529eca; la /3 (0x529eed) es JointFamilies::LastFallingSubtype.
+    const bool rainJoint = request.subtype >= FirstRainSubtype && request.subtype <= JointFamilies::LastFallingSubtype;
     const bool pulseJoint =
-        (request.type == JointFamilies::StormJoint &&
-         (request.subtype == JointFamilies::FallingStarSubtype || request.subtype == JointFamilies::BlastSubtype)) ||
+        (request.type == JointFamilies::StormJoint && (request.subtype == JointFamilies::FallingStarSubtype ||
+                                                       request.subtype == JointFamilies::BlastSubtype || rainJoint)) ||
         (request.type == 0x615 && request.subtype == 6) || JointFamilies::IsHelix(request.type, request.subtype);
     // El 0x6ee/0x12 del 0x125 de Kundun (0x51ce91), que le escribe el alpha y la posición en su paso (0x539494), y el
     // 0x613/0xf del 0x126 (0x51cf45), que le escribe los ángulos, el alpha y la posición (0x539249).

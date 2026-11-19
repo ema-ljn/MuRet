@@ -22,7 +22,7 @@
 // su blanco, con el personaje blanco de dueño: 0x5026a4 y 0x5027f0 de ancho 100 (0x42c80000) con el subtipo
 // 0x4f2230(o), y 0x5026ed y 0x502841 de ancho 80 (0x42a00000) con ese subtipo + 3. Como el 0x614 (LightningJoints.cpp),
 // da una vuelta por punto: gira hacia el dueño 80 más arriba (0x4e9810, de a 50), se sacude, agrega un tramo y avanza,
-// hasta llegar. Su llamador sigue cortado: el subtipo sale de 0x4f2230 (el +0x31b de Fenrir, que ActorState no tiene).
+// hasta llegar. El subtipo sale de 0x4f2230 (el +0x31b, pet.flags1b, el excelente de Fenrir).
 namespace Client::Scenes::JointFamilies
 {
 namespace

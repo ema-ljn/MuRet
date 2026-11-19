@@ -11921,7 +11921,7 @@ registro propio abierto y cerrado: 3.848 en 0) y los de las lecturas de `+0x38e`
 | 8, `0xc`, `0xd` | `0x500c10`, `0x500c64`, `0x500cd4` | `0x59fb80` y el `0xcf`, el `0x5e8` o los `0xf5` | `0x500c49`, `0x500cb9`, `0x500d7b` (CL11) |
 | `0xe` | `0x50148b` | las piedras de `0x51fff0(o+0x10, 0)`: el primer punto girado (sin `rand()`) y `0x51fe10(punto, 1)`, con `rand() % 60 + 150` y `rand() % 30` | `0x51fe9e`, la primera chispa `0x5c5`/2 (CL11; P-C360) |
 | 9 | `0x501bab` | `0x59fb80(9)` y los joints `0x613`/0 | `0x501c67` (CL11) |
-| `0x4c` | `0x502352` | el sonido `0x27d` y el lazo de los blancos (abajo) | el final, o `0x5026a4` (CL11) |
+| `0x4c` | `0x502352` | el sonido `0x27d` y el lazo de los blancos (abajo) | el final |
 | `0x2c` | `0x50294e` | el `0x13b` sobre o | `0x502975` (CL11) |
 
 **La `0x4c`** (`0x502363..0x502949`). Recorre los 400 lugares hasta juntar diez (`0x502569`): un monstruo vivo
@@ -11932,9 +11932,13 @@ alcance sin el `0x1c16` (con c en 0, Q-C1114) con los `rand()` de su entrada de 
 menor (`FCOMP`, C0). Después `rand() % 360`, que nadie lee antes de los joints (Q-C1112). Con `+0x434` en −1 o desde
 400 (`JGE` con signo: un negativo lee fuera del pool y MuRet corta en `0x5025b8`), termina; si no, dos vueltas con el
 punto de `0x4f5b10(o, 0, −140, 130)`, el ángulo `rand() % 360`, 0, `rand() % 360` y dos joints `0x14f` hacia el
-blanco de `+0x434`: corta en el primero (`0x5026a4`): su subtipo es `0x4f2230(o)`, que lee el `+0x31b` de Fenrir (0 con 1,
-2 con 2, si no 1; el segundo, ese + 3), que `ActorState` no tiene; el joint `0x14f` está portado (`PlasmaJoints.cpp`). La lista de los diez la leen los joints `0x62c` de
-`0x5026fa..0x502944`. Skill.bmd llega en `CharacterStepContext::skills`; sin él, corta en el primer blanco que mira.
+blanco de `+0x434`, con él de dueño (`0x5026a4`, ancho 100, y `0x5026ed`, ancho 80): el subtipo es `0x4f2230(o)`, que
+lee el `+0x31b` (`pet.flags1b`, el excelente de Fenrir que copian `0x4c879d`, `0x513c60` y `0x5bc9db`: 0 con 1, 2 con 2,
+si no 1; el segundo, ese + 3). Las mismas dos vueltas por cada uno de los juntados, en su orden (`[ebp−0x214]`,
+`0x5027f0` y `0x502841`), y al final seis `0x62c` sin dueño de ancho 60 con el subtipo `0x4f2230(o)` + 0xb
+(`0x50293c`), desde el punto de `0x4f5b10(o, 0, rand() % 40 − 20 + 10, 130)` hacia él mismo, con los ángulos
+(`rand() % 360`, 0, `rand() % 360`); su alta saca el `rand()` de la tanda. Con el pool lleno, `0x530860` no crea ni saca
+`rand()` (CL11, octava vuelta de los joints). Skill.bmd llega en `CharacterStepContext::skills`; sin él, corta en el primer blanco que mira.
 
 **Con blanco** (`0x504372`, la skill − 1 por `0x5055c8` y `0x505578`; todos siguen en `0x505069`):
 
@@ -14517,7 +14521,7 @@ en un lugar de más adelante pasa en la misma vuelta de `0x53c670`.
   MuRet corta (`0x53bc27`, `0x53bc42`). La `0x41` (`0x4feb3b..0x4febd3`) crea el efecto `0x62c/0` en
   `0x4f5b10(o, 0, −90, −50)` (80 más alto en la acción `0x51`, 40 en la `0x5b`) con vida 0 y sus cinco joints (/1,
   /0 de ancho 250, /2, /3 y /4 de ancho 100; `0x51f25e`); el efecto no tiene caso en el paso (`0x52b57e`) ni en el
-  dibujo. Los seis `0x62c/0xb..0xd` de la `0x4c` (`0x50293c`) siguen detrás del `0x14f`.
+  dibujo. Los seis `0x62c/0xb..0xd` de la `0x4c` (`0x50293c`) los crea la `0x4c` después de sus `0x14f`.
 - **`0x610/5`, `0x60f/0x29` y `/0x2a`** (`SparkJoints.cpp`). El `0x610/5` es la chispa del `0x196` de Kalima
   (`0x43e904`): lo común del `0x610` (`0x531c43..0x531cc7`: la vida en la key, la key en 0, 50 puntos y el ancho del
   color del skill, 20 con el 0 y el 3, 40 con el 1 y el que tenía el lugar con otro; el 3 lee la luz del dueño) y la
@@ -14704,7 +14708,7 @@ en un lugar de más adelante pasa en la misma vuelta de `0x53c670`.
   `rand() % 8` en 0 tres `rand()` sin usar y la `0x5f2/0`); si no, con el ancho de 50 o más la luz dinámica de radio 2
   `((rand() & 3) + 4) · 0,04f · 0,4f`, y avanza. Lo pide la `0x4c` con el blanco de dueño: `0x5026a4` y `0x5027f0` de
   ancho 100 (`0x42c80000`) con el subtipo `0x4f2230(o)`, y `0x5026ed` y `0x502841` de ancho 80 (`0x42a00000`) con ese
-  subtipo + 3; sigue cortada: el subtipo es el `+0x31b` de Fenrir. Séptima vuelta: el avance gira en otro vector
+  subtipo + 3 (el `+0x31b` de Fenrir, `pet.flags1b`; octava vuelta). Séptima vuelta: el avance gira en otro vector
   (`[ebp−0xc]` a `[ebp−0x2c]`, `0x535c85..0x535ca7`), así que `OriginalVectorRotate` es el del original, y el test
   compara las celdas de la luz dinámica.
 - **`0x697`** (sexta vuelta): el alta (`0x530a2a`) y el paso (`0x5381cb`) no leen el subtipo; el único llamador

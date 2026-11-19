@@ -7,6 +7,7 @@
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/OriginalAngles.h"
+#include "Render/Models/OriginalRotation.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/ArrowEffects.h"
 #include "Scenes/CharacterStep.h"
@@ -895,7 +896,8 @@ TEST(AttackSkillCasesTest, TheHandsDecideTheRaise)
 
 // 0x4c: el sonido 0x27d y el lazo de los 400: el monstruo lejos lee el alcance y no entra, el de la acción 6 no lo lee,
 // y de los doce cerca entran diez (el último, justo en el alcance) y el lazo se corta ahí. Después rand() % 360; sin
-// blanco en +0x434, nada más; con él, dos rand() y el joint 0x14f corta.
+// blanco en +0x434, nada más; con él, dos vueltas de dos rand() por él y por cada uno de los diez (los 0x14f llenan los
+// 16 lugares y los demás no se crean) y seis 0x62c de tres rand() cada uno, sin lugar.
 TEST(AttackSkillCasesTest, TheStrikeAroundGathersTenTargetsInRange)
 {
     const auto skills = SkillsWithRange(3);
@@ -919,8 +921,10 @@ TEST(AttackSkillCasesTest, TheStrikeAroundGathersTenTargetsInRange)
             const int reads = 1 + 10;
             if (target == 2)
             {
-                EXPECT_TRUE(HasError(stepped, "0x5026a4")) << ErrorOf(stepped);
-                EXPECT_EQ(DrawsSince(Seed, tested.random), reads * SkillEntry + 3);
+                ASSERT_TRUE(stepped.HasValue()) << ErrorOf(stepped);
+                EXPECT_EQ(DrawsSince(Seed, tested.random), reads * SkillEntry + 1 + 11 * 4 + 6 * 3);
+                EXPECT_TRUE(std::ranges::all_of(tested.joints, [](const JointState& joint)
+                                                { return joint.alive && joint.type == 0x14f; }));
             }
             else
             {
@@ -929,6 +933,78 @@ TEST(AttackSkillCasesTest, TheStrikeAroundGathersTenTargetsInRange)
             }
             EXPECT_EQ(tested.sounds, (std::vector<std::int32_t>{0x27d}));
         }
+    }
+}
+
+// 0x5025d7..0x502944: con el blanco de +0x434 (que no se junta) dos vueltas desde el punto (0, −140, 130) de o, con los
+// ángulos (rand() % 360, 0, rand() % 360), de dos 0x14f hacia su posición y con él de dueño: ancho 100 con el subtipo
+// de 0x4f2230 y 80 con ese más 3. Después seis 0x62c sin dueño, de ancho 60 y con el subtipo más 0xb, desde (0, rand()
+// % 40 − 20 + 10, 130) hacia el mismo punto, con sus ángulos y el rand() de su tanda (0x53477e; el camino 150 más
+// alto). 0x4f2230 lee +0x31b (el excelente de Fenrir): 1 da 0, 2 da 2 y cualquier otro 1.
+TEST(AttackSkillCasesTest, TheStrikeAroundSendsPlasmaAndRaisesSpirals)
+{
+    for (const auto& [excellent, shade] :
+         {std::pair{std::uint8_t{1}, 0}, std::pair{std::uint8_t{2}, 2}, std::pair{std::uint8_t{7}, 1}})
+    {
+        SCOPED_TRACE(shade);
+        SkillWorld tested;
+        tested.Striker().pet.flags1b = excellent;
+        tested.Striker().angles = {0.0f, 0.0f, 90.0f};
+        ActorState& aimed = tested.world.Actors()[30];
+        aimed = ActorState{};
+        aimed.position = {700.0f, 800.0f, 900.0f};
+        tested.Striker().skillTarget4c = 30;
+        ASSERT_TRUE(tested.Head(0x4c).HasValue());
+
+        const auto point = [&](const glm::vec3& offset)
+        {
+            const auto turned = Client::Render::Models::OriginalVectorRotate(
+                offset, Client::Render::Models::OriginalAngleMatrix(tested.Striker().angles));
+            const glm::vec3& at = tested.Striker().position;
+            const auto sum = [](float first, float second)
+            { return static_cast<float>(static_cast<double>(first) + static_cast<double>(second)); };
+            return glm::vec3{sum(at.x, turned.x), sum(at.y, turned.y), sum(at.z, turned.z)};
+        };
+        CrtRandom expected{Seed};
+        static_cast<void>(expected.Next());
+        for (std::size_t round = 0; round < 2; ++round)
+        {
+            const auto pitch = static_cast<float>(expected.Next() % 360);
+            const auto yaw = static_cast<float>(expected.Next() % 360);
+            for (std::size_t pair = 0; pair < 2; ++pair)
+            {
+                const JointState& plasma = tested.joints[round * 2 + pair];
+                EXPECT_TRUE(plasma.alive);
+                EXPECT_EQ(plasma.type, 0x14f);
+                EXPECT_EQ(plasma.subtype, shade + (pair == 0 ? 0 : 3));
+                EXPECT_EQ(plasma.ownerContext, &aimed);
+                EXPECT_EQ(plasma.ownerKind, Client::Scenes::JointOwnerKind::Actor);
+                EXPECT_EQ(plasma.width, pair == 0 ? 100.0f : 80.0f);
+                EXPECT_EQ(plasma.position, point({0.0f, -140.0f, 130.0f}));
+                EXPECT_EQ(plasma.angles, (glm::vec3{pitch, 0.0f, yaw}));
+                // Con dueño, 0x530967 no copia el segundo punto: su paso va hacia el dueño (0x535b37).
+                EXPECT_EQ(plasma.targetPosition, glm::vec3(0.0f));
+            }
+        }
+        for (std::size_t spiral = 0; spiral < 6; ++spiral)
+        {
+            const auto height = static_cast<float>(static_cast<double>(expected.Next() % 40 - 20) + 10.0);
+            static_cast<void>(expected.Next());
+            static_cast<void>(expected.Next());
+            static_cast<void>(expected.Next());
+            const JointState& risen = tested.joints[4 + spiral];
+            EXPECT_TRUE(risen.alive);
+            EXPECT_EQ(risen.type, 0x62c);
+            EXPECT_EQ(risen.subtype, shade + 0xb);
+            EXPECT_EQ(risen.ownerContext, nullptr);
+            EXPECT_EQ(risen.width, 60.0f);
+            // Su alta (0x5346d8) sube el camino 150.
+            const glm::vec3 from = point({0.0f, height, 130.0f});
+            EXPECT_EQ(risen.pathIncrement,
+                      (glm::vec3{from.x, from.y, static_cast<float>(static_cast<double>(from.z) + 150.0)}));
+        }
+        EXPECT_FALSE(tested.joints[10].alive);
+        EXPECT_EQ(tested.random.State(), expected.State());
     }
 }
 

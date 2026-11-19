@@ -46,7 +46,7 @@ inline constexpr std::int32_t KillBeamJoint = 0x618;
 CreateFaunaJoint(std::span<JointState> joints, const World::FishEffectRequest& request,
                  Render::Models::CrtRandom& random, JointOwnerKind ownerKind = JointOwnerKind::ByType,
                  const JointKernels::CreationServices* services = nullptr);
-// 535840: 697/0 y618/4 siguen el+40 del dueño;610/8 sigue position con z300;
+// 535840: 697 y618/4 siguen el+40 del dueño;610/8 sigue position con z300;
 // 10f/3 usa vida/RNG, seno y color del dueño.614/10 y 614/14 giran e iteran su cola sin leer al dueño;
 // el 618/0x11 sigue el +0x40 del personaje y el 610/4 va de su +0x17c a su posición; el 60f/0, el 60f/0xa (que baja) y
 // el 60f/0x12 giran alrededor de su destino y, según la acción del dueño (la del personaje o la del caballo), pasan al
@@ -65,7 +65,10 @@ CreateFaunaJoint(std::span<JointState> joints, const World::FishEffectRequest& r
 // la luz dinámica; el 0x615/6 del pulso del asedio, la altura del terreno y las partículas; el 0x632/5, los sprites, la
 // altura del terreno y la tabla de efectos (la onda 0x6eb/4 al llegar al suelo); el 0x60f/4, /0xc y el 0x62b/4, /0xc
 // dan otro paso entero mientras la vida no sea múltiplo de 12 (0x53c3c6); el 0x6e8/0 y /1 no se mueven (la lista de
-// 0x53585e) y el 0x61c/1 sigue a su efecto de dueño.
+// 0x53585e) y el 0x61c/1 sigue a su efecto de dueño. De la sexta vuelta: el 0x5ac agrega sus tramos sin moverse con
+// el paso común; el 0x6ee/0x12 le escribe al 0x125 dueño el alpha y la posición (0x539494); la /0xe y la /0xf del
+// 0x60f y del 0x62b con dueño piden el RNG; el 0x61c/0, el RNG y las partículas (y corta con dueño donde busca al
+// héroe, 0x53b548); el 0x14f, el RNG, la luz dinámica con ancho de 50 o más y las partículas al llegar con 50.
 [[nodiscard]] Core::Expected<void, std::string>
 StepJoints(std::span<JointState> joints, Render::Models::CrtRandom& random, Render::Models::ClothWorld* cloth = nullptr,
            World::Particles* particles = nullptr, float worldClock = 0, World::FrameSprites* sprites = nullptr,

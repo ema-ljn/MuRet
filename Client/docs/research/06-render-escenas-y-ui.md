@@ -14279,7 +14279,10 @@ en un lugar de más adelante pasa en la misma vuelta de `0x53c670`.
   lote de partículas).
 - **`0x60f/2` y `0x60f/0x18`** (`DropJoints.cpp`): alta `0x533677` y `0x5340dc` (la /0x18 con la textura `0x62d`; vz
   en `rand() % 20 + 35`, la luz blanca, vida `rand() % 50 + 25` y el destino en el segundo punto) y paso `0x53b156`
-  (con vida de 25 o menos cae sobre el destino con vz + 5; con menos de 10, la luz por 0,7692308f).
+  (con vida de 25 o menos cae sobre el destino con vz + 5; con menos de 10, la luz por 0,7692308f). La /0x13 (sexta
+  vuelta, alta `0x533a28`, paso `0x53a12c`) niega vz (`fchs`), no cambia la textura y baja con vz − 5: la piden las
+  columnas del círculo `0xc3` con el `0x62b` (`0x5236ce`, `0x523898`, sin dueño, ancho 40). El `0x62b` comparte el alta
+  (`0x533677`) y el paso (`0x539f1b`) del `0x60f`.
 - **`0x10f` con un personaje de dueño** (`AuraJoints.cpp`, segunda vuelta): alta `0x530edd..0x531214` (tabla
   `0x534e38`; el destino es el `+0x10` del dueño). /0: luz entera, vida 999.999, 30 puntos, textura `0x62b`. /4 y /9:
   luz (0,4; 0,8; 0,2), vida 10.000; el prefijo (`0x53098d`) guarda su blanco en `+0xa0c` si no es −1 (si no, queda el
@@ -14431,6 +14434,51 @@ en un lugar de más adelante pasa en la misma vuelta de `0x53c670`.
   apaga el joint y desreferencia el puntero nulo (`+0x10`, `0x5343fb`), y revienta: MuRet corta (`0x5343f8`). Paso `0x53b628..0x53b69b`, sin `rand()`: sin dueño se apaga;
   si no, vive lo que vive el dueño, el ancho baja 1, la posición es la del dueño 100 más arriba y, bajo 15 de vida, la
   luz por 0,7692308f (`0x3f44ec4f`).
+- **`0x5ac`** (`FlareJoints.cpp`, sexta vuelta): los sesenta rayos sin dueño del `0x114/0` (`0x51c1b8`) y del combo
+  `0x112/0` (`0x51c004`), con el ancho `rand() % 40 + 70`. Alta `0x530c93..0x530dd8`: todos sin la cola común
+  (`+0x9f2` en 0); la /0 con vida 20, 30 puntos, la velocidad `rand() % 10 + 10`, la x de los ángulos `30 − rand() %
+  40`, la y en 0, la z `rand() % 360` y la luz (0,1f; 0,5f; 1); la /1 con vida 10, 20 puntos, el skill `rand() % 5`,
+  la velocidad `rand() % 5 + 1`, los ángulos (30, 0, `rand() % 360`) y la luz (1; 0,8f; 0,6f); las dos guardan la
+  posición en `+0x24` (`0x533242`). Paso `0x5359d7..0x535b32`, sin el movimiento común (`0x53585e`): la /0 con vida de
+  más de 16 agrega diez tramos con la matriz de sus ángulos, cada uno antes de avanzar (0, −velocidad, 0) girado; la /1
+  con el skill en 0 o vida de más de 3, cinco, con la velocidad + 0,5 después de cada uno; todos apagan la luz por
+  0,8333333f.
+- **`0x60f` y `0x62b` /0x10, /0xe y /0xf** (`OrbitJoints.cpp`, sexta vuelta). Lo común del `0x60f` (`0x533677`: vida
+  100, 20 puntos, ancho 10) y, en todos, el destino en el segundo punto (`0x5342be`). La /0x10 es la columna de la
+  lluvia de sombras `0xbd` (`0x51bcb0`, el personaje del efecto de dueño, ancho 120): alta `0x5337fa` sin la cola
+  común, la luz en 0,1f, vida 60, y veinte veces la z + 50 y un tramo con la matriz del alta (`[ebp−0x54]`); paso
+  `0x53a5c7`: con dueño, el destino menos su posición (en float) se resta de los cuatro puntos de los tramos
+  cuenta − 1..0 y el destino pasa a su posición; la luz bajo 20 de vida por 0,9090909f, bajo 40 en 0,25 y si no por
+  1,04f. La /0xe y la /0xf (alta `0x534132`): la mezcla 4, la textura `0x613`, vz `(rand() % 150) · 0,01f`, vy
+  `rand() % 500 − 250`, velocidad 30, la luz (0,2f; 0,4f; 0,8f), con el ancho de más de 10 vz `(rand() % 250 + 150) ·
+  0,01f`, vida 20 y la z + `rand() % 25`; paso `0x53b18a`, con dueño (que no lee): a = vy · 0,1f retenido (la /0xf, −a),
+  x = FCOS(a) · velocidad + la x del destino, y = la y del destino − FSIN(a) · velocidad, z + vz; bajo 20 de vida la
+  velocidad + 5; el ancho + 1, vy + 4 y vz + `(rand() % 200 + 200) · 0,01f`. Las pide el paso del efecto `0x60f`
+  (`0x52b408`, `0x52b42b`, con él de dueño), que MuRet no crea. Todos, bajo 10 de vida, la luz por 0,7692308f
+  (`0x53b318`).
+- **`0x61c/0`** (`SweepJoints.cpp`, sexta vuelta): el barrido que pide el paso del efecto `0x5be` (`0x52a72a`, con el
+  personaje dueño del efecto, ancho 150, la clave `+0x8a` y la skill `+0x89`), que MuRet no crea (`0x4f9fae`). Alta
+  `0x5342e4..0x534399`: sin la cola común, velocidad 0, la z de los ángulos + 30, el destino en la partida, vida 20, 18
+  puntos, `+0x9dc` con los ángulos nuevos, la cuenta en −1 y la posición 180 hacia −y girado por ellos. Paso
+  `0x53b3e1..0x53b623`, sin el movimiento común: ocho vueltas; mientras la cuenta sea menor que los puntos − 1, la
+  posición es el destino más (0, −180, 0) girado por `+0x9dc`, un tramo con la matriz de los ángulos, vz − 11, con
+  `rand() & 1` en 0 la partícula `0x5d9` y dos `0x614/3` sin dueño desde la posición de antes, key 5 y skill 0xa, de
+  ancho `rand() % 10 + 5` y `(rand() & 7) + 4`. Con el dueño en el héroe (`[0x743a170]`), vida de más de 18 y la vuelta
+  múltiplo de 5, el asedio (`0x4294b0` y el `0x100` de `0x5f82c0`: la vida · 0,2f y velocidad 0) o `0x517a20(skill,
+  posición, 150, tanda, clave, 0)`: MuRet corta ahí con dueño (`0x53b548`). Después la luz: bajo 10 de vida, la x por
+  0,6666667f en los tres canales; si no, la vida · 0,033333335f.
+- **`0x14f`** (`PlasmaJoints.cpp`, sexta vuelta): alta `0x530ddd..0x530ed8`: velocidad 50, la textura repetida
+  (`+0x9f0`), el ancho, 50 puntos, vida 20 y por subtipo la textura y la luz (/0..2 la `0x614` con (0,7; 1; 0,7), (1;
+  0,6; 0,6) y (0,7; 0,7; 1); /3..5 la `0x632` con (0,1; 0,8; 0,1), (1; 0,3; 0,2) y (0,2; 0,3; 1)). Paso
+  `0x535b37..0x535d4a`, después del movimiento común: una vuelta por punto; con dueño el destino es su posición 80 más
+  arriba; `0x4e9810` de a 50; vx y vz `((rand() & 0x3ff) − 512) / ancho` (la z de los ángulos del tramo con el cociente
+  sin redondear); un tramo; llega con la velocidad · 1,5 mayor que la distancia (con ancho 50 justo, la `0x5ca/0` y con
+  `rand() % 8` en 0 tres `rand()` sin usar y la `0x5f2/0`); si no, con el ancho de 50 o más la luz dinámica de radio 2
+  `((rand() & 3) + 4) · 0,04f · 0,4f`, y avanza. Lo pide la `0x4c` (`0x5026a4`, con el blanco de dueño y ancho 100),
+  que sigue cortada: el subtipo es `0x4f2230(o)` (el `+0x31b` de Fenrir).
+- **`0x697`** (sexta vuelta): el alta (`0x530a2a`) y el paso (`0x5381cb`) no leen el subtipo; el único llamador
+  (`0x4473f9`) pide el /0. **`0x6ee/0x12`** (sexta vuelta, `SpiritJoints.cpp`): con el `0x125` de Kundun de dueño
+  (`0x51ce91`), arriba.
 La matriz de la cola común (`0x53c393`, `[ebp−0xe8]`) es la que calculó `0x53590e` en el paso del joint; los de la
 lista `0x53585e..0x53590c` no la calculan y usan la del último joint de la vuelta que la calculó (Q-C1623). El paso
 común lee también `[ebp−0x30]` y `[ebp+8]`, la posición menos el destino en x y en y antes de moverse (`0x53584f`).

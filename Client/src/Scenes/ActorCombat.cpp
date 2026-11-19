@@ -11,10 +11,12 @@
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/CombatActionSpeeds.h"
 #include "Scenes/MonsterSounds.h"
+#include "Scenes/WizardEffects.h"
 #include "Scenes/WorldEntry.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "World/ModelEffects.h"
+#include "World/WizardModelEffects.h"
 
 #include <algorithm>
 #include <array>
@@ -468,11 +470,20 @@ Core::Expected<void, std::string> SetActorAttack(ActorState& actor, const ActorC
             return attacked;
         break;
     case 0x27:
-        if (std::ranges::any_of(context.world.Map().effects.Effects(),
-                                [](const World::ModelEffect& effect) { return !effect.alive; }))
-            return Core::Unexpected(std::string("0x4f4f5b: el efecto 0xd4 del 0x27 al pegar (0x518cf0) es de la CL11"));
-        context.world.Runtime().RequestSound(0x10, actor.position);
+    {
+        // 0x4f4f3a..0x4f4f5b: 0x518cf0(0xd4, +0x10, +0x1c, +0xf4, 0, 0, −1, 0, 0, 0, 0), la sierra sin dueño (con la
+        // tabla llena, nada). Después el sonido 0x10.
+        WorldState& world = context.world;
+        const auto sawed = World::CreateWizardModelEffect(
+            world.Map().effects, WizardArguments(World::SawEffect, actor.position, actor.angles, actor.light, 0),
+            context.random,
+            WizardEffectServicesOf(world, context.random,
+                                   WizardSceneParts{.particles = &world.Particles(), .terrain = &world.Map().terrain}));
+        if (!sawed.HasValue())
+            return Core::Unexpected(std::format("0x4f4f5b: la sierra 0xd4 del 0x27: {}", sawed.Error()));
+        world.Runtime().RequestSound(0x10, actor.position);
         break;
+    }
     case 0x28:
         if (auto set = SetTheAction(actor, context, 1); !set.HasValue())
             return set;

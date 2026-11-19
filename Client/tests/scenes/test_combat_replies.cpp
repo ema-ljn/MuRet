@@ -26,6 +26,7 @@
 #include "Scenes/WorldState.h"
 #include "UI/MessageArea.h"
 #include "World/ModelEffects.h"
+#include "World/WizardModelEffects.h"
 
 #include "support/PlayerActors.h"
 #include "support/SceneDataFiles.h"
@@ -1235,7 +1236,41 @@ TEST_F(CombatRepliesTest, EffectsWithoutPoolSpaceKeepTheAnimationAndFinishAttack
     }
 }
 
-// Con un lugar libre, los dos efectos siguen cortando en la alta que no está portada.
+// 0x4f4f3a..0x4f4f6a: con un lugar libre, el 0x27 crea la sierra 0xd4/0 sin dueño en su posición (130 más arriba,
+// 0x51a4ee), con sus ángulos y vida 10, sin rand(), y sigue con el sonido 0x10 y +0x38f.
+TEST_F(CombatRepliesTest, TheSawOf27GoesOutWithTheStrike)
+{
+    ActorState& saw = MonsterAt(12, 0x20c);
+    saw.type = 0x27;
+    saw.attackCount = 0xff;
+    saw.animation.action = 7;
+    saw.animation.frame = 1.0f;
+    saw.position = {300.0f, 400.0f, 50.0f};
+    saw.angles = {0.0f, 0.0f, 45.0f};
+    Runtime().lastSoundId.reset();
+    auto effectPool = m_world->Map().effects.Effects();
+    for (Client::World::ModelEffect& poolEffect : effectPool)
+        poolEffect.alive = true;
+    effectPool[3].alive = false;
+    const CrtRandom expected = m_random;
+
+    ASSERT_TRUE(Client::Scenes::SetActorAttack(saw, Combat()).HasValue());
+
+    const Client::World::ModelEffect& created = effectPool[3];
+    EXPECT_TRUE(created.alive);
+    EXPECT_EQ(created.type, Client::World::SawEffect);
+    EXPECT_EQ(created.subtype, 0);
+    EXPECT_EQ(created.ownerContext, nullptr);
+    EXPECT_EQ(created.life, 10);
+    EXPECT_EQ(created.transform.position, glm::vec3(300.0f, 400.0f, 180.0f));
+    EXPECT_EQ(created.transform.angles, saw.angles);
+    EXPECT_EQ(saw.animation.action, 7);
+    EXPECT_EQ(saw.attackCount, 0);
+    EXPECT_EQ(Runtime().lastSoundId, std::optional<std::int32_t>(0x10));
+    EXPECT_EQ(m_random.State(), expected.State());
+}
+
+// Con un lugar libre, el 0x33 sigue cortando en la alta del 0x5da, que no está portada (CL11, lote de los altos).
 TEST_F(CombatRepliesTest, EffectsWithPoolSpaceKeepTheirCut)
 {
     struct EffectCase
@@ -1243,7 +1278,7 @@ TEST_F(CombatRepliesTest, EffectsWithPoolSpaceKeepTheirCut)
         std::uint16_t model;
         std::string_view errorAddress;
     };
-    constexpr std::array<EffectCase, 2> EffectModels{{{0x27, "0x4f4f5b"}, {0x33, "0x4f4fb9"}}};
+    constexpr std::array<EffectCase, 1> EffectModels{{{0x33, "0x4f4fb9"}}};
     std::size_t slot = 12;
     for (const EffectCase& test : EffectModels)
     {

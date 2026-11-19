@@ -98,7 +98,8 @@ struct DrawnCharacter
     // 0x50db94 repone el RGB antes de las armas, las alas y la mascota: el héroe no conserva ahí
     // el color de los bits del registro propio que usó para sus partes.
     std::optional<glm::vec3> hangingLight{};
-    // +0x174 y las guardas de la sombra de 0x50bc05..0x50bc71.
+    // +0x174 y las guardas de la sombra de 0x50bc05..0x50bcbd (CastsShadow, GameCharacters.h). `object.position` ya
+    // tiene la z del suelo de la sombra (0x50bc77..0x50bcbd, ShadowGroundOf en MonsterDrawing.h).
     float alpha = 1.0f;
     bool castsShadow = true;
     bool safeZone = false;
@@ -194,8 +195,9 @@ void DrawCharacter(Render::ModelBatch& batch, const IModelLibrary& models, const
                    Core::Duration frameClock, CharacterDrawPass pass = CharacterDrawPass::All);
 
 // Las guardas de la sombra de 0x50ba30 (0x50bc05..0x50bc71: castsShadow y, fuera de la zona segura, sin las mascotas
-// que se montan): con ellas, 0x50bcec llama a 0x60cf70 con el 0x20b, que le copia la escala y la posición del personaje
-// aunque no lo dibuje (WorldState::PlaceShadowModel).
+// que se montan): con ellas, en Blood Castle el que muere empujado baja al terreno (0x50bc77..0x50bcbd) y 0x50bcec
+// llama a 0x60cf70 con el 0x20b, que le copia la escala y la posición del personaje aunque no lo dibuje
+// (WorldState::PlaceShadowModel).
 [[nodiscard]] bool DrawsTheShadow(const DrawnCharacter& character);
 
 // 0x50d374..0x50d3d7: en Chaos Castle (18 a 23), un jugador (+0x88 en 1) no lleva sus seis partes sino el Angel

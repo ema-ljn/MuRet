@@ -72,6 +72,13 @@ void CreateInfernoJoint(JointState& joint, const World::FishEffectRequest& reque
 [[nodiscard]] Core::Expected<void, std::string> StepInfernoJoint(JointState& joint,
                                                                  const JointKernels::StepServices& services);
 
+// El 0x5f2 (FireTrailJoints.cpp): alta 0x531229..0x53128f y 0x532073 y paso 0x5366bd..0x5366ee. La estela de los
+// meteoros 0xc2/6 y /8 de los magos (0x51b098 y 0x51b268), con el efecto (World::ModelEffect) de dueño, que sigue
+// mientras vive y es 0xc2.
+inline constexpr std::int32_t FireTrailJoint = 0x5f2;
+void CreateFireTrailJoint(JointState& joint, const World::FishEffectRequest& request);
+[[nodiscard]] Core::Expected<void, std::string> StepFireTrailJoint(JointState& joint);
+
 // El 0x10f con un personaje (ActorState) de dueño (AuraJoints.cpp): alta 0x530edd..0x531214 y paso 0x535d4f..0x5366a7.
 // La /1 (el hada) y la /3 (Blood Castle) llevan un FaunaObject y siguen en FaunaJointCreation.cpp. Las /5..7 no hacen
 // el primer tramo (0x530a5c): FaunaJointCreation.cpp las llama antes.

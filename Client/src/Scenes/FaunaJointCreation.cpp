@@ -733,6 +733,11 @@ Core::Expected<void, std::string> CreateCase(JointState& joint, const World::Fis
         JointFamilies::CreateWanderingJoint(joint, request, random);
         return {};
     }
+    if (request.type == JointFamilies::FireTrailJoint)
+    {
+        JointFamilies::CreateFireTrailJoint(joint, request);
+        return {};
+    }
     if (request.type == JointFamilies::AuraJoint && request.subtype != 1 && request.subtype != 3)
         return JointFamilies::CreateAuraJoint(joint, request);
     if (request.type == JointFamilies::StormJoint)
@@ -882,7 +887,8 @@ Core::Expected<std::optional<std::size_t>, std::string> CreateFaunaJoint(std::sp
         if (ownerKind == JointOwnerKind::ModelEffect &&
             !((request.type == EnergyJoint && request.subtype == SummonEnergySubtype) ||
               (request.type == 0x610 && (request.subtype == 13 || (request.subtype >= 0 && request.subtype <= 3))) ||
-              (request.type == SparkleJoint && request.subtype == 6) || effectBeam))
+              (request.type == SparkleJoint && request.subtype == 6) || effectBeam ||
+              request.type == JointFamilies::FireTrailJoint))
             return Core::Unexpected(
                 std::string("0x530860: el dueño ModelEffect no está portado para este tipo y subtipo"));
         Prefix(joints[i], request, ownerKind);
@@ -1528,6 +1534,7 @@ enum class Family : std::uint8_t
     Spiral,
     Wandering,
     Inferno,
+    FireTrail,
 };
 
 std::optional<Family> FamilyStep(const JointState& joint)
@@ -1556,6 +1563,8 @@ std::optional<Family> FamilyStep(const JointState& joint)
         return Family::Wandering;
     if (JointFamilies::IsInferno(joint.type, joint.subtype))
         return Family::Inferno;
+    if (joint.type == JointFamilies::FireTrailJoint)
+        return Family::FireTrail;
     return std::nullopt;
 }
 
@@ -1639,6 +1648,8 @@ Core::Expected<void, std::string> RunFamily(JointState& joint, Family family,
         return JointFamilies::StepWanderingJoint(joint, services);
     case Family::Inferno:
         return JointFamilies::StepInfernoJoint(joint, services);
+    case Family::FireTrail:
+        return JointFamilies::StepFireTrailJoint(joint);
     }
     return {};
 }

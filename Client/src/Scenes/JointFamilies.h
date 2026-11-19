@@ -64,6 +64,17 @@ void CreateWanderingJoint(JointState& joint, const World::FishEffectRequest& req
 [[nodiscard]] Core::Expected<void, std::string> StepWanderingJoint(JointState& joint,
                                                                    const JointKernels::StepServices& services);
 
+// El 0x60f/4 y /0xc y el 0x62b/4 y /0xc (HelixJoints.cpp): alta 0x533faf..0x5340d7 y paso 0x53b08a..0x53b14c. La /4 y
+// la /0xc del 0x812 (0x52c9da y 0x52c9a7) llevan el efecto de dueño (JointOwnerKind::ModelEffect); la /4 lee su luz.
+// FaunaJointCreation.cpp repite su paso mientras la vida que queda no sea múltiplo de 12 (0x53c3c6).
+inline constexpr std::int32_t SecondHelixJoint = 0x62b;
+inline constexpr std::int32_t HelixSubtype = 4;
+inline constexpr std::int32_t WideHelixSubtype = 0xc;
+[[nodiscard]] bool IsHelix(std::int32_t type, std::int32_t subtype);
+[[nodiscard]] Core::Expected<void, std::string>
+CreateHelixJoint(JointState& joint, const World::FishEffectRequest& request, Render::Models::CrtRandom& random);
+[[nodiscard]] Core::Expected<void, std::string> StepHelixJoint(JointState& joint);
+
 // El 0x61c/2..6 (InfernoJoints.cpp): alta 0x534444..0x53463b y paso 0x53b6a0..0x53b7ec. La /4 (la skill 0x49,
 // 0x504b33) suelta en cada paso un 0x62b/6 y dos sprites; la /2 corta en su efecto 0xf6 (0x53b760).
 inline constexpr std::int32_t InfernoJoint = 0x61c;

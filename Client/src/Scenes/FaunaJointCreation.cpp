@@ -695,6 +695,8 @@ Core::Expected<void, std::string> CreateCase(JointState& joint, const World::Fis
         return JointFamilies::CreateBeamJoint(joint, request, random);
     }
     FirstQuad(joint);
+    if (JointFamilies::IsHelix(request.type, request.subtype))
+        return JointFamilies::CreateHelixJoint(joint, request, random);
     if (request.type == SparkleJoint && request.subtype == 0x17)
     {
         CreateSkill39Bolt(joint, request);
@@ -884,10 +886,11 @@ Core::Expected<std::optional<std::size_t>, std::string> CreateFaunaJoint(std::sp
          (request.subtype == 5 || request.subtype == 0xa || request.subtype == 0xb)) ||
         (request.type == JointFamilies::DropJoint &&
          (request.subtype == JointFamilies::ArrowWanderSubtype || request.subtype == JointFamilies::PinkWanderSubtype));
-    // Los del pulso 0x61c del asedio, con él de dueño, que no leen: el 0x632/5 (0x52c266) y el 0x615/6 (0x52c31e).
+    // Los del pulso 0x61c del asedio, con él de dueño, que no leen: el 0x632/5 (0x52c266) y el 0x615/6 (0x52c31e); y
+    // los del 0x812 (0x52c9a7 y 0x52c9da), el 0x60f/0xc y el /4, que lee su luz.
     const bool pulseJoint =
         (request.type == JointFamilies::StormJoint && request.subtype == JointFamilies::FallingStarSubtype) ||
-        (request.type == 0x615 && request.subtype == 6);
+        (request.type == 0x615 && request.subtype == 6) || JointFamilies::IsHelix(request.type, request.subtype);
     for (std::size_t i = 0; i < joints.size(); ++i)
     {
         if (joints[i].alive)
@@ -1580,6 +1583,7 @@ enum class Family : std::uint8_t
     Wandering,
     Inferno,
     FireTrail,
+    Helix,
 };
 
 std::optional<Family> FamilyStep(const JointState& joint)
@@ -1610,6 +1614,8 @@ std::optional<Family> FamilyStep(const JointState& joint)
         return Family::Inferno;
     if (joint.type == JointFamilies::FireTrailJoint)
         return Family::FireTrail;
+    if (JointFamilies::IsHelix(joint.type, joint.subtype))
+        return Family::Helix;
     return std::nullopt;
 }
 
@@ -1695,6 +1701,8 @@ Core::Expected<void, std::string> RunFamily(JointState& joint, Family family,
         return JointFamilies::StepInfernoJoint(joint, services);
     case Family::FireTrail:
         return JointFamilies::StepFireTrailJoint(joint);
+    case Family::Helix:
+        return JointFamilies::StepHelixJoint(joint);
     }
     return {};
 }
@@ -1713,7 +1721,17 @@ Core::Expected<void, std::string> StepFamilyJoint(JointState& joint, Family fami
         return stepped;
     if (returned)
         return {};
-    return CommonTail(joint, frameMatrix);
+    if (auto tail = CommonTail(joint, frameMatrix); !tail.HasValue())
+        return tail;
+    // 0x53c3c6..0x53c3f3: con vida (ya restada) y no múltiplo de 12, el 0x60f y el 0x62b con el subtipo 4 o 0xc dan
+    // otro paso entero, con su propio marco: la matriz de [ebp−0xe8] de éste no cambia.
+    constexpr std::int32_t Beat = 12;
+    if (family == Family::Helix && joint.life >= 0 && joint.life % Beat != 0)
+    {
+        std::optional<Render::Models::OriginalMatrix> innerMatrix;
+        return StepFamilyJoint(joint, family, services, innerMatrix);
+    }
+    return {};
 }
 
 Core::Expected<void, std::string>

@@ -1430,9 +1430,10 @@ TEST(HighModelEffectsTest, TheManaRuneGrowsFlashesAndSinks)
     ASSERT_TRUE(StepHighModelEffect(shrinking, nullptr, tested.StepContext()).HasValue());
     EXPECT_EQ(shrinking.transform.scale, 1.0f);
 }
-// 0x52c981 y 0x52caa5: el 0x812 suelta en cada paso el joint 0x60f/0xc (el /1) o 0x60f/4 (el /0), y el 0x813 tres
-// 0x619/6 con dos rand() cada uno; los dos joints son del lote de los joints: con lugar cortan (después de los rand()
-// del primero) y, con la tabla llena, siguen. Los dos pierden una vida y no se mueven.
+// 0x52c981 y 0x52caa5: el 0x812 suelta en cada paso el joint 0x60f/0xc (el /1, escala 100) o 0x60f/4 (el /0, escala
+// 50) con él de dueño (HelixJoints.cpp: un rand(), vx; la /4 toma su luz), y el 0x813 tres 0x619/6 con dos rand()
+// cada uno, que es del lote de los joints: con lugar corta (después de los rand() del primero) y, con la tabla llena,
+// sigue. Con la tabla llena, el 0x812 sigue sin el joint. Los dos pierden una vida y no se mueven.
 TEST(HighModelEffectsTest, TheEmittersLeaveJointsEveryStep)
 {
     for (const std::int32_t subtype : {0, 1})
@@ -1442,14 +1443,31 @@ TEST(HighModelEffectsTest, TheEmittersLeaveJointsEveryStep)
         ASSERT_TRUE(CreateHighModelEffect({.type = 0x812, .position = {1, 2, 3}, .subtype = subtype}, tested.Context())
                         .HasValue());
         ModelEffect& spark = tested.Effect(0);
+        spark.light = {0.25f, 0.5f, 0.75f};
         EXPECT_EQ(spark.life, 10);
-        EXPECT_TRUE(HasError(StepHighModelEffect(spark, nullptr, tested.StepContext()),
-                             subtype == 1 ? "0x52c9a7" : "0x52c9da"));
+        const auto stepped = StepHighModelEffect(spark, nullptr, tested.StepContext());
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        EXPECT_EQ(tested.Draws(), 2);
+        CrtRandom expected(Seed);
+        static_cast<void>(expected.Next());
+        const auto& helix = tested.world->DrawTail().joints.front();
+        ASSERT_TRUE(helix.alive);
+        EXPECT_EQ(helix.type, 0x60f);
+        EXPECT_EQ(helix.subtype, subtype == 1 ? 0xc : 4);
+        EXPECT_EQ(helix.ownerContext, &spark);
+        EXPECT_EQ(helix.width, subtype == 1 ? 100.0f : 50.0f);
+        EXPECT_EQ(helix.life, subtype == 1 ? 70 : 110);
+        EXPECT_EQ(helix.maximumCount, 50);
+        EXPECT_EQ(helix.light,
+                  subtype == 1 ? glm::vec3(std::bit_cast<float>(0x3dcccccdu), std::bit_cast<float>(0x3dcccccdu), 1.0f)
+                               : spark.light);
+        EXPECT_EQ(helix.velocity.x, static_cast<float>(expected.Next() % 360));
+        EXPECT_EQ(helix.targetPosition, (glm::vec3{1, 2, 3}));
         tested.FillTheJoints();
         ASSERT_TRUE(StepHighModelEffect(spark, nullptr, tested.StepContext()).HasValue());
-        EXPECT_EQ(spark.life, 9);
+        EXPECT_EQ(spark.life, 8);
         EXPECT_EQ(spark.transform.position, (glm::vec3{1, 2, 3}));
-        EXPECT_EQ(tested.Draws(), 2);
+        EXPECT_EQ(tested.Draws(), 3);
     }
     HighWorld tested;
     ASSERT_TRUE(

@@ -101,9 +101,8 @@ TEST(ModelTextureCallsTest, TheHelpersTakeTheirTexturesFromItem)
     }
 }
 
-// Las tablas cubren los modelos consultados fuera del barrido final. Gate01/02 tienen su propio flujo
-// en 0x616370 y 0x6179f0. Fire01 (0xc2) y Uniria (0xc6) se consultan en el lazo de 0x616e20 de GameModels.
-// NativeSkillLoadTest comprueba los bindings del barrido con los recursos cargados.
+// NativeSkillLoadTest comprueba el barrido de 0x616e20 y las llamadas sueltas para Gate01/02,
+// Carow (0x111) y LaceArrow (0x11c), fuera de estas tablas.
 TEST(ModelTextureCallsTest, TheTablesCoverTheModelsQueriedOutsideTheFinalSweep)
 {
     std::set<std::uint16_t> called;
@@ -116,13 +115,14 @@ TEST(ModelTextureCallsTest, TheTablesCoverTheModelsQueriedOutsideTheFinalSweep)
         }
     }
 
+    const std::set<std::uint16_t> outsideTheseTables{0xc2, 0xc6, 0xdc, 0xdd,  0xde,  0xdf,  0xe0,  0xe1,
+                                                     0xe2, 0xe3, 0xf7, 0x10c, 0x10d, 0x10e, 0x111, 0x11c};
     for (const std::span<const ModelFile> table : {PlayerModelFiles(), ItemModelFiles(), SkillModelFiles()})
     {
         for (const ModelFile& file : table)
         {
-            const bool worldGate = file.model == 0x10c || file.model == 0x10d;
-            const bool loopOnly = file.model == 0xc2 || file.model == 0xc6;
-            EXPECT_EQ(called.contains(file.model), file.model != PlayerSkeletonModel && !worldGate && !loopOnly)
+            EXPECT_EQ(called.contains(file.model),
+                      file.model != PlayerSkeletonModel && !outsideTheseTables.contains(file.model))
                 << std::hex << file.model;
         }
     }
@@ -145,7 +145,7 @@ TEST(ModelTextureCallsTest, TheSkillLoaderAsksForTheDarkHorseFourthAndTheRavenFi
 }
 
 // 0x615f77, 0x615fab y 0x615fdc: los Fenrir, con Skill\, y 0x616010: su rayo 0x14d, con Effect\, antes del
-// 0x60d530(0x3b8) de 0x615700.
+// 0x60d530(0x3b8) de 0x615700. 0x616181 añade las de Arrow_Spark al mismo bloque.
 TEST(ModelTextureCallsTest, TheFenrirAskForTheirTexturesBeforeTheSkillBlock)
 {
     std::vector<std::uint16_t> models;
@@ -154,7 +154,7 @@ TEST(ModelTextureCallsTest, TheFenrirAskForTheirTexturesBeforeTheSkillBlock)
         models.push_back(call.model);
         EXPECT_EQ(call.folder, call.model == 0x14d ? "Effect\\" : "Skill\\") << std::hex << call.model;
     }
-    EXPECT_EQ(models, (std::vector<std::uint16_t>{0x14a, 0x14b, 0x14c, 0x14d}));
+    EXPECT_EQ(models, (std::vector<std::uint16_t>{0x14a, 0x14b, 0x14c, 0x14d, 0xf9}));
 }
 
 // 0x2901 y 0x2600 en todas: repitiendo y sin filtro.

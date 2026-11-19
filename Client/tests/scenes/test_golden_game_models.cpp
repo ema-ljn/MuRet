@@ -9,12 +9,20 @@
 #include "Data/Models/PlayerModels.h"
 #include "Data/Textures/Sampling.h"
 #include "Data/Textures/Texture.h"
+#include "Render/ModelBatch.h"
+#include "Render/Models/Cloth.h"
 #include "Render/Models/Skeleton.h"
 #include "Render/Models/ModelTextureSlots.h"
 #include "Data/Textures/TextureSet.h"
 #include "Render/TextureSlot.h"
+#include "Scenes/ArrowEffects.h"
 #include "Scenes/CreatePreview.h"
+#include "Scenes/GameDrawTail.h"
 #include "Scenes/TextureSets.h"
+#include "Scenes/WorldMap.h"
+#include "Scenes/WorldState.h"
+#include "World/ModelEffects.h"
+#include "World/SphereFrustum.h"
 
 #include "support/FakeTextureStore.h"
 #include "support/FileBytes.h"
@@ -90,7 +98,7 @@ TEST_F(NativeSkillLoadTest, TheLoadedSkillTexturesFollowEveryReachedNativeCallIn
         query({call.model, call.folder});
     native.SetNext(TextureSlot{0x25a});
     for (const auto& call : Client::Data::Models::ItemTextureCalls())
-        query({call.model, call.folder});
+        query({call.model, call.folder, Wrap::Repeat, call.model != 0xdb});
     ASSERT_EQ(native.Next(), TextureSlot{0x371});
     for (const Call& call : std::to_array<Call>({{0x14a, "Skill\\"},
                                                  {0x14b, "Skill\\"},
@@ -104,6 +112,8 @@ TEST_F(NativeSkillLoadTest, TheLoadedSkillTexturesFollowEveryReachedNativeCallIn
     for (const std::uint16_t model :
          {std::uint16_t{0x10d}, std::uint16_t{0x10a}, std::uint16_t{0x10d}, std::uint16_t{0x10b}})
         query({model, "Monster\\"});
+    native.SetNext(TextureSlot{0x138});
+    query({0x11c, "Item\\", Wrap::Clamp});
     native.SetNext(TextureSlot{0x3b8});
     const auto skill = std::to_array<Call>({{0x145, "Skill\\"},
                                             {0x146, "Skill\\"},
@@ -183,6 +193,42 @@ constexpr std::size_t AdditionalTailModels = 30;
 class GoldenGameModels : public Client::Tests::GoldenDataTest
 {
 };
+
+// 0x616095 carga la flecha común. 0x52d68c lee su cuenta de mallas en el segundo pase de Kalima.
+TEST_F(GoldenGameModels, TheBowArrowDrawsInTheSecondPassOfKalima)
+{
+    FakeTextureStore store;
+    RecordingSink sink;
+    Log log(sink, LogLevel::Debug);
+    GameModels models;
+    const auto loaded = models.Load(m_dataRoot, store, log);
+    ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
+
+    auto world = std::make_unique<Client::Scenes::WorldState>();
+    Client::Render::Models::CrtRandom random(1);
+    const Client::World::ModelEffectArguments arguments{.type = 0xdb, .position = {100, 100, 100}, .light = {1, 1, 1}};
+    const auto created = Client::Scenes::CreateTheArrowEffect(arguments, *world, random);
+    ASSERT_TRUE(created.HasValue()) << created.Error();
+    const auto& arrow = world->Map().effects.Effects().front();
+    ASSERT_TRUE(arrow.alive);
+    ASSERT_EQ(arrow.objectState.blendMesh, 1);
+    Client::Render::ModelBatch batch;
+    const auto drawn = Client::Scenes::DrawGameModelEffects(batch, models, world->Map().effects.Effects(),
+                                                            Client::World::SphereFrustum{}, nullptr, {}, 0, 1);
+    ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+    EXPECT_FALSE(batch.Vertices().empty());
+
+    constexpr std::array<std::uint16_t, 14> projectiles{0xdb, 0xdc, 0xdd, 0xde, 0xdf,  0xe0,  0xe1,
+                                                        0xe2, 0xe3, 0xf7, 0xf9, 0x10e, 0x111, 0x11c};
+    for (const auto type : projectiles)
+    {
+        SCOPED_TRACE(type);
+        const auto* model = models.Find(type);
+        ASSERT_NE(model, nullptr);
+        EXPECT_FALSE(model->meshes.empty());
+        EXPECT_EQ(models.MeshTextures(type).size(), model->meshes.size());
+    }
+}
 
 // Todas las filas de los dos cargadores, salvo las tres que faltan; Player.bmd con su esqueleto de
 // personaje (la cabeza en el 20), y una malla con su slot por cada malla de cada modelo.
@@ -271,11 +317,20 @@ TEST_F(GoldenGameModels, TheTexturesGoWhereTheLoadersPutThem)
     {
         EXPECT_TRUE(loaded.contains(static_cast<std::uint16_t>(slot))) << std::hex << slot;
     }
-    // 0x2901 y 0x2600 en todas las de los modelos.
+    // 0x6164bb pide CLAMP para los dos archivos de LaceArrow; el resto de estas llamadas repite.
     for (const auto& entry : models.TextureSlots().ToLoad())
     {
+        const bool laceArrow = (entry.slot == 0x138 || entry.slot == 0x139) &&
+                               (entry.path == "Item\\nfb_R.jpg" || entry.path == "Item\\nfb.jpg");
         EXPECT_EQ(entry.sampling.filter, ModelTextureSampling.filter) << entry.path;
-        EXPECT_EQ(entry.sampling.wrap, ModelTextureSampling.wrap) << entry.path;
+        EXPECT_EQ(entry.sampling.wrap, laceArrow ? Client::Data::Textures::Wrap::Clamp : ModelTextureSampling.wrap)
+            << entry.path;
+    }
+    for (const TextureSlot slot : {TextureSlot{0x138}, TextureSlot{0x139}})
+    {
+        const auto uploaded = textures.Find(slot);
+        ASSERT_TRUE(uploaded.has_value());
+        EXPECT_EQ(uploaded->sampling.wrap, Client::Data::Textures::Wrap::Clamp);
     }
 }
 
@@ -591,9 +646,8 @@ TEST_F(ModelTextureSlotsGoldenTest, TheCloudTextureMatchesTheNativeSlot)
 // El nombre de cada slot de 0x12e a 0x374, como lo dejan 0x60f7d0 y 0x611850 y los tres Fenrir (0x615f77, 0x615fab
 // y 0x615fdc, las primeras de 0x615700), y de 0x3b8 a 0x3ce, como los deja 0x615700 desde su 0x60d530(0x3b8) hasta
 // el Dinorant (0x110, la séptima llamada, 0x6169fb), contra la tabla de 0x7d3a198 volcada en Lorencia (0x38 bytes por
-// slot, el nombre en +0). 0x138 y 0x139 son de LaceArrow, que 0x615700 carga encima (Q-C89); de 0x375 a 0x3b7 van
-// las habilidades y los efectos que 0x615700 pide antes, que MuRet todavía no carga. Lo que GameModels pide
-// después (las del lazo 0x616e20 y las de 0x61619f y 0x616c5c) no está en los slots del original.
+// slot, el nombre en +0). 0x138 y 0x139 son de LaceArrow, que 0x615700 carga encima (Q-C89); de 0x375 a 0x3b7
+// van la flecha eléctrica y los efectos siguientes, de los que todavía falta completar la carga.
 TEST_F(ModelTextureSlotsGoldenTest, StartupMatchesTheDump)
 {
     const auto dump = DumpFile(Client::Tests::LorenciaCapture, "lor_slots.bin");
@@ -616,7 +670,7 @@ TEST_F(ModelTextureSlotsGoldenTest, StartupMatchesTheDump)
     std::size_t compared = 0;
     for (std::uint16_t slot = 0x12e; slot < SkillBlockEnd; ++slot)
     {
-        if (slot == 0x138 || slot == 0x139 || (slot >= 0x375 && slot < 0x3b8))
+        if (slot >= 0x375 && slot < 0x3b8)
         {
             continue;
         }
@@ -625,7 +679,7 @@ TEST_F(ModelTextureSlotsGoldenTest, StartupMatchesTheDump)
         EXPECT_EQ(models.TextureSlots().NameOf(TextureSlot{slot}), name) << std::hex << slot;
         compared += name.empty() ? 0u : 1u;
     }
-    EXPECT_EQ(compared, 489u + 4u + 15u + 4u + 4u);
+    EXPECT_EQ(compared, 491u + 4u + 15u + 4u + 4u);
 }
 
 // El cuervo (0xc0, Skill\DarkSpirit.bmd): sus mallas con las texturas de la quinta llamada de 0x615700

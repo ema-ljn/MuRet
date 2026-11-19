@@ -7,6 +7,7 @@
 #include "Data/Models/ModelLoadCalls.h"
 #include "Data/Models/ModelTextureCalls.h"
 #include "Data/Models/PlayerModels.h"
+#include "Data/Textures/Sampling.h"
 #include "Data/Textures/Texture.h"
 #include "Data/Textures/TextureSet.h"
 #include "Render/ITextureStore.h"
@@ -22,6 +23,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
+#include <initializer_list>
 #include <map>
 #include <optional>
 #include <span>
@@ -68,12 +70,12 @@ constexpr std::array<Data::Models::ModelFile, 15> TailModelFiles{{{0x10f, "Skill
 // 616a11..616d8e: las consultas explícitas de los modelos que carga MuRet, en su orden nativo.
 // Después de éstas, 616e20..616e4f recorre TODOS los IDs be..150 con Skill. No mezclar ese barrido con
 // las consultas Object31/Monster: el primer nombre encontrado fija la carpeta y el slot.
-constexpr std::array<Data::Models::ModelTextureCall, 21> TailTextureCalls{
-    {{0xfb, "Skill\\"},     {0xfc, "Skill\\"},     {0xfd, "Skill\\"},    {0xff, "Skill\\"},    {0x101, "Skill\\"},
-     {0x102, "Skill\\"},    {0x114, "Skill\\"},    {0x115, "Skill\\"},   {0x118, "Skill\\"},   {0x119, "Skill\\"},
-     {0x12a, "Skill\\"},    {0x12b, "Npc\\"},      {0x12c, "Skill\\"},   {0x12d, "Skill\\"},   {0x12e, "Skill\\"},
-     {0x12f, "Object31\\"}, {0x130, "Object31\\"}, {0x131, "Monster\\"}, {0x132, "Monster\\"}, {0x133, "Monster\\"},
-     {0x135, "Skill\\"}}};
+constexpr std::array<Data::Models::ModelTextureCall, 22> TailTextureCalls{
+    {{0xfb, "Skill\\"},    {0xfc, "Skill\\"},     {0xfd, "Skill\\"},     {0xff, "Skill\\"},    {0x101, "Skill\\"},
+     {0x102, "Skill\\"},   {0x111, "Skill\\"},    {0x114, "Skill\\"},    {0x115, "Skill\\"},   {0x118, "Skill\\"},
+     {0x119, "Skill\\"},   {0x12a, "Skill\\"},    {0x12b, "Npc\\"},      {0x12c, "Skill\\"},   {0x12d, "Skill\\"},
+     {0x12e, "Skill\\"},   {0x12f, "Object31\\"}, {0x130, "Object31\\"}, {0x131, "Monster\\"}, {0x132, "Monster\\"},
+     {0x133, "Monster\\"}, {0x135, "Skill\\"}}};
 
 // Sube las de `entries` de a una: la que no carga deja su línea en el log, y las demás siguen.
 void UploadEach(const std::filesystem::path& dataRoot, std::span<const Data::Textures::TextureSetEntry> entries,
@@ -110,42 +112,60 @@ void UploadEach(const std::filesystem::path& dataRoot, std::span<const Data::Tex
 Core::Expected<void, std::string> GameModels::Load(const std::filesystem::path& dataRoot,
                                                    Render::ITextureStore& textures, Core::Log& log)
 {
-    for (const std::span<const Data::Models::ModelFile> table :
-         {Data::Models::PlayerModelFiles(), Data::Models::ItemModelFiles(), Data::Models::SkillModelFiles(),
-          std::span<const Data::Models::ModelFile>(TailModelFiles), Data::Models::SiegeModelFiles()})
+    const auto loadTables =
+        [&](std::initializer_list<std::span<const Data::Models::ModelFile>> tables) -> Core::Expected<void, std::string>
     {
-        for (const Data::Models::ModelFile& file : table)
+        for (const auto table : tables)
         {
-            auto loaded = Data::Models::LoadModelFile(dataRoot, file);
-            if (!loaded.HasValue())
+            for (const Data::Models::ModelFile& file : table)
             {
-                if (Data::Models::IsRequiredModel(file.name))
+                auto loaded = Data::Models::LoadModelFile(dataRoot, file);
+                if (!loaded.HasValue())
                 {
-                    return Core::Unexpected("no se pudo leer " + loaded.Error().path);
+                    if (Data::Models::IsRequiredModel(file.name))
+                    {
+                        return Core::Unexpected("no se pudo leer " + loaded.Error().path);
+                    }
+                    log.Warning("un modelo no se puede leer y no se dibuja: {}", loaded.Error().path);
+                    continue;
                 }
-                log.Warning("un modelo no se puede leer y no se dibuja: {}", loaded.Error().path);
-                continue;
+                Data::Models::Model model = std::move(loaded).Value();
+                auto skeleton = file.model == Data::Models::PlayerSkeletonModel
+                                    ? Render::Models::MakePlayerSkeleton(model)
+                                    : Render::Models::MakeSkeleton(model);
+                if (skeleton.HasValue())
+                {
+                    m_skeletons.insert_or_assign(file.model, std::move(skeleton).Value());
+                }
+                m_models.insert_or_assign(file.model, std::move(model));
             }
-            Data::Models::Model model = std::move(loaded).Value();
-            auto skeleton = file.model == Data::Models::PlayerSkeletonModel ? Render::Models::MakePlayerSkeleton(model)
-                                                                            : Render::Models::MakeSkeleton(model);
-            if (skeleton.HasValue())
-            {
-                m_skeletons.insert_or_assign(file.model, std::move(skeleton).Value());
-            }
-            m_models.insert_or_assign(file.model, std::move(model));
         }
-    }
+        return {};
+    };
+    const auto playerAndItems = loadTables({Data::Models::PlayerModelFiles(), Data::Models::ItemModelFiles()});
+    if (!playerAndItems.HasValue())
+        return playerAndItems;
     m_slots.SetNext(PlayerTexturesStart);
     AssignTextures(Data::Models::PlayerTextureCalls());
     m_slots.SetNext(ItemTexturesStart);
     AssignTextures(Data::Models::ItemTextureCalls());
+    // 0x611850 consulta 0xdb con Item\Bow\ antes de que 0x616095 cargue su BMD.
+    const auto skills = loadTables({Data::Models::SkillModelFiles(), TailModelFiles, Data::Models::SiegeModelFiles()});
+    if (!skills.HasValue())
+        return skills;
     m_slots.SetNext(FenrirTexturesStart);
     AssignTextures(Data::Models::FenrirTextureCalls());
     // 61619f consulta 10f antes de cargar su BMD en 6161b5. En el perfil sin Data2/SMD no hay mallas
     // en ese punto: no asignar ahora el BMD futuro. Su consulta efectiva llega con el barrido de 616e46.
     m_slots.SetNext(GateTexturesStart);
     AssignTextures(Data::Models::SiegeBeforeSkillTextureCalls());
+    // 0x6164a0..0x6164bb: LaceArrow pisa los slots 0x138 y 0x139, con Item\ y GL_CLAMP (Q-C89).
+    if (const auto* laceArrow = Find(0x11c); laceArrow != nullptr)
+    {
+        m_slots.SetNext(PlayerTexturesStart);
+        constexpr Data::Textures::Sampling sampling{Data::Textures::Filter::Nearest, Data::Textures::Wrap::Clamp};
+        m_meshTextures.insert_or_assign(0x11c, m_slots.Assign(*laceArrow, "Item\\", sampling));
+    }
     m_slots.SetNext(SkillTexturesStart);
     AssignTextures(Data::Models::SkillTextureCalls());
     AssignTextures(TailTextureCalls);

@@ -4345,13 +4345,20 @@ de `0x443d70` en el mapa 55 y la escena 2; los slots, **verificados** en `lor_sl
   emulado: largo 1,6 en el login). Son el cuervo (`0x41834e`), los ayudantes (`0x44532e`, el caballo
   del login por `0x4453b0`), los peces (`0x446f74`), los efectos (`0x52d871`, `0x52d897`, `0x52da99`)
   y los objetos del mundo (`0x604a47`, `0x607b2e`). Con el segundo argumento en 1 (los cuerpos de
-  monstruo `0x50baed` y de personaje `0x50bd81`, los pájaros `0x446bee`, el cartel `0x414572` y la
-  capa `0x4147a4`) y en lo colgado (`0x509a39`, que llega con Translate en 1 desde los que llaman a
+  monstruo `0x50baed` y de personaje `0x50bd81`, los tres `0x602e90` del `0x4d` en `0x50ba30`
+  (`0x50c20b`, `0x50c217` y `0x50c248`), los pájaros `0x446bee`, el cartel `0x414572` y la capa
+  `0x4147a4`) y en lo colgado (`0x509a39`, que llega con Translate en 1 desde los que llaman a
   `0x509340`) los huesos son del modelo: la posición es `0x5fccc0` · s + origen y la normal se gira
-  sin escala (`0x4ebf70`). MuRet: el scratch con el segundo argumento en 0 sale de
-  `Render::Models::SkinMeshInWorld` (`OriginalVectorTransform` y `OriginalVectorRotate` sobre
-  `OriginalMatrixOf` del hueso del mundo, en x87 emulado: bit a bit contra la sonda de `0x4ebc80`)
-  y el cromo y la luz leen la normal tal como queda (sin un factor aparte).
+  sin escala (`0x4ebf70`). La vista previa de la creación (`0x63e637` → `0x50ba30` → `0x50baed` o
+  `0x50bd81`) también va con el 1: deja los huesos del modelo en su `+0x120` y su luz por vértice
+  toma la normal sin la escala de la clase (5,9 a 9,1). MuRet: el scratch con el segundo argumento
+  en 0 sale de `Render::Models::SkinMeshInWorld` (`OriginalVectorTransform` y `OriginalVectorRotate`
+  sobre `OriginalMatrixOf` del hueso del mundo, en x87 emulado: bit a bit contra la sonda de
+  `0x4ebc80`) y el cromo y la luz leen la normal tal como queda (sin un factor aparte). Sin el scratch
+  publicado, los cuerpos de efecto (`0x52da99` → `0x602e90(efecto, 0, …)`: el `0x140` de
+  `HighEffectDrawing`, el `+0x74` en `0x80` de `WizardEffectDrawing`, el `0x137/1` de `SkinShells` y
+  el `0x13d`/`0x13e` de `MeteorEffects`) lo arman con `Scenes::WorldScratchOf`, como `DrawObject`.
+  La vista previa publica con `PublishFaunaPose(…, false)` (`CharacterSelectScene`).
   `0x4ecc30` la multiplica por el color en el pase con textura (el modo 2): con el blanco del caballo
   y la escala 1,6, va de 0,2 a 0,8 · 1,6 · 2,385 + 0,4 = 3,45, que el GL recorta a 1. **Verificado**
   contra las trazas de GL: el color por vértice de los bloques con luz por vértice ajusta con

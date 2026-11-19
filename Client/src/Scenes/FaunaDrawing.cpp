@@ -323,11 +323,13 @@ Core::Expected<void, std::string> PublishFaunaPose(FaunaDrawCarry& carry, const 
     if (carry.bones.size() < count)
         carry.bones.resize(count, Render::Models::BoneTransform(0));
     auto bones = std::span(carry.bones).first(count);
-    // 0x5ffdf0 con el segundo argumento en 1 (sin `translated`): 0x4eb860 con la bandera en 0 deja los huesos en el
-    // modelo y 0x4ebc80 corre con Translate en 1 (0x600177). Con el segundo argumento en 0: 0x4eb860 con la bandera en
-    // 1 (0x4ebbda..0x4ebc14) mete la escala (R · s, en float) y el origen en la raíz y arma los huesos en el mundo, y
-    // 0x4ebc80 corre con Translate en 0 (0x6001a1): hueso · v y hueso · n. Las dos saltean los dummy (0x4eb973), que
-    // quedan con lo que tenía el buffer.
+    // 0x5ffdf0 con el segundo argumento en 1 (sin `translated`): 0x4eb860 con la bandera en 0 (el sete de 0x5fff22 o
+    // 0x5fff50) deja los huesos en el modelo y 0x4ebc80 corre con Translate en 1. Con el segundo argumento en 0:
+    // 0x4eb860 con la bandera en 1 (0x4ebbda..0x4ebc14) mete la escala (R · s, en float) y el origen en la raíz y arma
+    // los huesos en el mundo, y 0x4ebc80 corre con Translate en 0: hueso · v y hueso · n. El Translate de las dos
+    // llamadas a 0x4ebc80 es el mismo `ebx` (el segundo argumento, 0x5fff19) que empuja 0x600154: 0x600177 con +0x11c
+    // en 1 posa en el buffer propio ([esi+0x120]) y 0x6001a1 con +0x11c en 0, en el global 0x68b181c. Las dos poses
+    // saltean los dummy (0x4eb973), que quedan con lo que tenía el buffer.
     const bool posed =
         translated
             ? Render::Models::PoseWorldSkeleton(*skeleton, object.animation, object.transform, glm::vec2{}, bones)

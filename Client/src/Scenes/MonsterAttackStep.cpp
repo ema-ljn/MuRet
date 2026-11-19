@@ -337,12 +337,13 @@ Core::Expected<void, std::string> ThrowTheSpirit(const ActorState& actor, const 
     return {};
 }
 
-// 0x530860(tipo, desde, hasta, ángulos, subtipo, dueño, ancho, −1, 0, 0, −1) desde la cola de 0x4f5b70: el dueño es el
-// blanco (ESI). El 0x614/2 lee el hueso 33 del blanco con el modelo del jugador (0x5313fe: 0x5769ad8 + 0x20a · 0xe0).
-// Con el pool lleno, nada y sin rand().
+// 0x530860(tipo, desde, hasta, ángulos, subtipo, dueño, ancho, key, 0, 0, −1) desde la cola de 0x4f5b70 (key −1) y
+// desde 0x43b0ed (key 50): el dueño es el blanco (ESI). El 0x614/2 lee el hueso 33 del blanco con el modelo del jugador
+// (0x5313fe: 0x5769ad8 + 0x20a · 0xe0). Con el pool lleno, nada y sin rand().
 Core::Expected<void, std::string> CreateTheJoint(ActorState& owner, const CharacterStepContext& context,
                                                  std::uint32_t address, std::int32_t type, std::int32_t subtype,
-                                                 glm::vec3 from, glm::vec3 to, glm::vec3 angles, float width)
+                                                 glm::vec3 from, glm::vec3 to, glm::vec3 angles, float width,
+                                                 std::int32_t key = -1)
 {
     if (context.joints.empty())
         return Core::Unexpected(std::format("{:#x}: faltan los joints del frame (0x530860)", address));
@@ -354,7 +355,7 @@ Core::Expected<void, std::string> CreateTheJoint(ActorState& owner, const Charac
                                            .subtype = subtype,
                                            .ownerContext = &owner,
                                            .scale = width,
-                                           .key = -1,
+                                           .key = key,
                                            .skill = 0,
                                            .skillSerial = 0,
                                            .target = -1};
@@ -783,14 +784,30 @@ Core::Expected<Helped, std::string> StepKalima(ActorState& actor, const KindCase
             }
             return Helped::Exit;
         }
-        // 0x43b045..0x43b0ed: con 0x11 y el blanco de +0x3a4 de c en [0, 400), 0x4ec110 con el hueso 60 y tres joints
-        // 0x610/6 hacia el blanco.
+        // 0x43b045..0x43b156: con 0x11 y el blanco de +0x3a4 de c en [0, 400), el punto del hueso 60 de c (0x4ec110 con
+        // el offset en 0) y tres joints 0x610/6 de ahí a la posición del blanco, con él de dueño, ancho 30 y key 50
+        // (0x43b0ed, 0x43b11c y 0x43b14e). Los ángulos son los de c: la z, después la z − 30 y después ésa + 15 (cada
+        // una guardada). Sin rand(); con el pool lleno, nada.
         const auto target = std::bit_cast<std::int16_t>(actor.attackTarget);
         if (skill == KindSkill && target >= 0 && target < PoolSlots)
         {
-            if (IsJointPoolFull(context))
-                return Helped::Exit;
-            return CutAt(0x43b0ed, "los tres joints 0x610/6 hacia el blanco (CL11)", actor, slot);
+            constexpr std::size_t BoltBone = 60;
+            constexpr std::int32_t BoltJoint = 0x610, BoltSubtype = 6, BoltKey = 0x32;
+            constexpr float BoltWidth = 30.0f;                       // 0x41f00000
+            constexpr std::array<double, 3> Turns{0.0, -30.0, 15.0}; // 0x6b8858 y 0x6b87bc
+            constexpr std::array<std::uint32_t, 3> Sites{0x43b0ed, 0x43b11c, 0x43b14e};
+            const glm::vec3 from = BonePoint(actor, BoltBone, glm::vec3(0.0f), context);
+            ActorState& victim = context.world.Actors()[static_cast<std::size_t>(target)];
+            glm::vec3 angles = actor.angles;
+            for (std::size_t bolt = 0; bolt < Sites.size(); ++bolt)
+            {
+                if (bolt > 0)
+                    angles.z = static_cast<float>(static_cast<double>(angles.z) + Turns[bolt]);
+                if (auto made = CreateTheJoint(victim, context, Sites[bolt], BoltJoint, BoltSubtype, from,
+                                               victim.position, angles, BoltWidth, BoltKey);
+                    !made.HasValue())
+                    return Core::Unexpected(made.Error());
+            }
         }
         return Helped::Exit;
     }

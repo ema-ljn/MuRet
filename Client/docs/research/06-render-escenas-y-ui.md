@@ -14046,7 +14046,8 @@ en un lugar de más adelante pasa en la misma vuelta de `0x53c670`.
   DWORD de `+0xa08`, el serial); `+0x9eb` es la cuenta · 15, `+0x9ec` vuelve a 0 y `+0x24` es el segundo punto 150 más
   arriba. Su paso no se mueve (lista de `0x53585e`) ni gira (`0x536964`): con la vida par suelta dos `0x614/0` sin dueño
   de ancho 50 y 10 desde la posición hasta `+0x24` (`0x5370a8`, `0x5370c9`) y la partícula `0x5ca/0` con la luz de
-  `[ebp−0x18]`, que nadie escribió en ese camino (Q-C1622: MuRet corta en `0x5370e8`). Lo que sigue, para quien lo
+  `[ebp−0x18]`, que ese camino no escribe: es la última que dejó el paso de un joint anterior de la misma vuelta de
+  `0x53c670` (p. ej. `0x539cb6` del `0x613/0`; Q-C1622: MuRet corta en `0x5370e8`). Lo que sigue, para quien lo
   destrabe: con `+0x9ec` > 0, cada 15 de `i < +0x9ec` toma el personaje `+0x9f4[i / 15]` y, si sigue vivo, sin
   `+0x389`, de clase 2 y visible, pone el destino en él 100 más arriba, el rumbo de `0x4e93f0` desde la posición en la z
   de los ángulos y suelta dos `0x614/0` de ancho 50 y 10 desde el destino anterior (`[ebp−0xc]`, al principio `+0x24`

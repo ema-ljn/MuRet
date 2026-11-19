@@ -475,9 +475,11 @@ Core::Expected<void, std::string> StepWithoutRandom(JointState& joint)
 namespace
 {
 // 0x53706d..0x5370e8: la /0xf, con la vida par, suelta dos 0x614/0 sin dueño de ancho 50 y 10 desde la posición hasta
-// +0x24 con sus ángulos; después la partícula 0x5ca/0 con la luz de [ebp−0x18], que en este camino nadie escribe: es la
-// que dejó el paso del joint anterior (Q-C1622), y corta. Lo que sigue (0x5370ed..0x537278: los joints hacia los
-// personajes de +0x9f4 cada 15 de +0x9ec, que crece de a uno con la vida par hasta +0x9eb) queda documentado en 06.
+// +0x24 con sus ángulos; después la partícula 0x5ca/0 con la luz de [ebp−0x18], que este camino no escribe: no es
+// indefinida, es la última que escribió el paso de un joint anterior de la misma vuelta de 0x53c670 (p. ej. 0x539cb6
+// del 0x613/0; sin ninguno antes, lo que haya en la pila) (Q-C1622), y corta. Lo que sigue (0x5370ed..0x537278: los
+// joints hacia los personajes de +0x9f4 cada 15 de +0x9ec, que crece de a uno con la vida par hasta +0x9eb) queda
+// documentado en 06.
 Core::Expected<void, std::string> StepTheChain(JointState& joint, const JointKernels::StepServices& services)
 {
     if (joint.life % 2 != 0)

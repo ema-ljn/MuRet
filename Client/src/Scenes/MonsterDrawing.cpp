@@ -953,15 +953,11 @@ Result DrawTheShadow(MonsterFrame& frame)
     if (actor.byte88 == UnwalledKind || OneOf(actor.word376, Unshadowed) || frame.map == NoShadowMap ||
         actor.alpha < ShadowAlpha)
         return {};
-    // 0x50be15..0x50be50: en Blood Castle, con +0x1a1 y muriéndose, la z baja a la del terreno si es menor.
-    if (InBloodCastle(frame.map) && actor.byte1a1 != 0 && actor.dying != 0)
-    {
-        const auto ground = GroundHeight(frame.world, frame.pass, actor.position.x, actor.position.y);
-        if (!ground)
-            return Core::Unexpected<std::string>("0x50be3b: falta el terreno de 0x5f93c0");
-        if (*ground < D(actor.position.z))
-            actor.position.z = F32(*ground);
-    }
+    // 0x50be15..0x50be52: en Blood Castle, con +0x1a1 y muriéndose, la z baja a la del terreno (también con NaN).
+    const auto grounded = ShadowGroundOf(frame.world, frame.pass, actor, frame.map, 0x50be3b);
+    if (!grounded.HasValue())
+        return Core::Unexpected(grounded.Error());
+    actor.position.z = grounded.Value();
     const bool marked = actor.word376 == 0xe8 || actor.word376 == 0xe9;
     if (marked)
         actor.dword58 = 2;
@@ -1501,6 +1497,20 @@ glm::vec3 HangingLightOf(const ActorState& actor, const glm::vec3& terrainLight,
     if (!keeper || third == 0)
         return light;
     return {F32(static_cast<double>(third) * 0.5), faint, faint};
+}
+
+Core::Expected<float, std::string> ShadowGroundOf(const WorldState& world, const GameCharacterPass& pass,
+                                                  const ActorState& actor, std::int32_t map, std::uint32_t address)
+{
+    if (!InBloodCastle(map) || actor.byte1a1 == 0 || actor.dying == 0)
+        return actor.position.z;
+    const auto ground = GroundHeight(world, pass, actor.position.x, actor.position.y);
+    if (!ground)
+        return Core::Unexpected(std::format("{:#x}: falta el terreno de 0x5f93c0", address));
+    // fcom [z] y `test ah, 1`: con el terreno a la altura de la z o arriba (C0 en 0, ordenados) no escribe.
+    if (*ground >= D(actor.position.z))
+        return actor.position.z;
+    return F32(*ground);
 }
 
 Core::Expected<void, std::string> DrawGameMonster(Render::ModelBatch& batch, const IModelLibrary& models,

@@ -18,6 +18,7 @@
 #include "World/SkinShellEffects.h"
 #include "World/Sprites.h"
 
+#include <glm/ext/quaternion_float.hpp>
 #include <glm/ext/vector_float3.hpp>
 
 #include <gtest/gtest.h>
@@ -800,6 +801,80 @@ TEST(StormJointsTest, TheOwnedFallingSubtypesShedTheShellsOfTheShadow)
         const auto missing = bare.Step(&none, world.get());
         ASSERT_FALSE(missing.HasValue());
         EXPECT_TRUE(missing.Error().starts_with("0x53c1eb")) << missing.Error();
+    }
+}
+
+// 0x53c1c6..0x53c210 con los ángulos del dueño y un hueso raíz que no es la identidad: 0x4eb860 arma la raíz con
+// 0x5fc8f0(ángulos del dueño) por la escala (2) y el origen (100, 200, 300) del 0x20b, le concatena (0x5fca90) la key
+// del hueso, el cuaternión (0,5; 0,5; 0,5; 0,5) (0x5fcdb0: (x, y, z) → (z, x, y), exacto) en (1, 2, 3), y 0x4ebc80 pasa
+// cada vértice por esa matriz (0x5fccc0). Con (0, 0, 90) el coseno de 90 · 0x3c8efa35 queda en la pila (0x32510b46 en
+// float) y se pierde al redondear: (94, 208, 310), (104, 214, 316) y (82, 220, 290). Con (30, 0, 45), los bits de
+// abajo. Los vértices salen de repetir 0x5fc8f0, 0x5fcdb0, 0x5fca90 y 0x5fccc0 en la x87 aparte (Fraction exacta con
+// redondeo a 53 y 24 bits, el seno y el coseno a 64).
+TEST(StormJointsTest, TheShellsOfTheShadowTurnWithTheOwnerAndTheRootBone)
+{
+    struct Case
+    {
+        glm::vec3 angles;
+        std::array<std::array<std::uint32_t, 3>, 3> posed;
+    };
+    const std::array cases{Case{{0.0f, 0.0f, 90.0f},
+                                {{{0x42bc0000u, 0x43500000u, 0x439b0000u},
+                                  {0x42d00000u, 0x43560000u, 0x439e0000u},
+                                  {0x42a40000u, 0x435c0000u, 0x43910000u}}}},
+                           Case{{30.0f, 0.0f, 45.0f},
+                                {{{0x42d3094bu, 0x434dcbaau, 0x439bd484u},
+                                  {0x42ec02fdu, 0x4349cb0cu, 0x439bed9fu},
+                                  {0x42c72af5u, 0x4364b34cu, 0x43962b7du}}}}};
+    ShadowModels models;
+    Client::Render::Models::BoneKey& key = models.skeleton.bones[0].actions[0][0];
+    key.position = {1.0f, 2.0f, 3.0f};
+    key.rotation = glm::quat::wxyz(0.5f, 0.5f, 0.5f, 0.5f);
+    for (const Case& probe : cases)
+    {
+        SCOPED_TRACE(::testing::Message() << probe.angles.x << ", " << probe.angles.y << ", " << probe.angles.z);
+        auto world = std::make_unique<Client::Scenes::WorldState>();
+        world->PlaceModel(Client::Data::Models::PlayerShadowModel,
+                          {.scale = 2.0f, .origin = {100.0f, 200.0f, 300.0f}, .action = 0});
+        Falling owned;
+        owned.ground = 5000.0;
+        owned.target.position = {9000.0f, 9000.0f, 9000.0f};
+        owned.target.angles = probe.angles;
+        ASSERT_TRUE(owned.Create(0, &owned.target, Client::Scenes::JointOwnerKind::Actor).HasValue());
+        CrtRandom expected = owned.random;
+
+        const auto stepped = owned.Step(&models, world.get());
+
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        auto twin = std::make_unique<Client::World::ModelEffects>();
+        std::size_t shells = 0;
+        for (std::size_t corner = 0; corner < 90; ++corner)
+        {
+            if (expected.Next() % 8 != 0)
+                continue;
+            const std::array<std::uint32_t, 3>& bits = probe.posed[corner % 3];
+            const glm::vec3 vertex{std::bit_cast<float>(bits[0]), std::bit_cast<float>(bits[1]),
+                                   std::bit_cast<float>(bits[2])};
+            ASSERT_TRUE(Client::World::CreateSkinShell({.type = Client::World::SkinShellEffect,
+                                                        .position = vertex,
+                                                        .angles = glm::vec3(0.0f),
+                                                        .light = glm::vec3(1.0f),
+                                                        .subtype = 0},
+                                                       *twin, expected)
+                            .has_value());
+            ++shells;
+        }
+        static_cast<void>(expected.Next());
+        EXPECT_EQ(owned.random.State(), expected.State());
+        ASSERT_GT(shells, 0U);
+        for (std::size_t slot = 0; slot < shells; ++slot)
+        {
+            SCOPED_TRACE(slot);
+            const Client::World::ModelEffect& shell = owned.effects->Effects()[slot];
+            EXPECT_TRUE(shell.alive);
+            EXPECT_EQ(shell.transform.position, twin->Effects()[slot].transform.position);
+        }
+        EXPECT_FALSE(owned.effects->Effects()[shells].alive);
     }
 }
 

@@ -51,6 +51,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <algorithm>
+#include <limits>
 #include <memory>
 #include <span>
 #include <string>
@@ -280,6 +281,57 @@ TEST_F(MonsterDrawingTest, ALorenciaSpiderDrawsItsBodyThenItsShadowWithTheOneAtt
     EXPECT_EQ(spider.bodyPose.size(), 48u);
     // El de 0x50db57 y los dos de +0x38e en el lazo de las manos (0x50e288), sin ninguna mano.
     EXPECT_EQ(m_clothWorld.random.State(), AfterRandoms(3));
+}
+
+// 0x50be15..0x50be52: después del cuerpo, en Blood Castle (0xb a 0x11), el que muere empujado (+0x1a1 y +0x389) baja a
+// la altura del terreno (0x5f93c0, 4 en todo el mapa) y la sombra se aplasta ahí (5 sobre su z). El fcom con `test ah,
+// 1` escribe también con la z en NaN; con el terreno a la altura de la z o arriba, no. Fuera de esos mapas, sin +0x1a1
+// o sin morirse, la z queda. Sin las alturas corta en la llamada a 0x5f93c0, después del cuerpo.
+TEST_F(MonsterDrawingTest, TheDyingOfBloodCastleSinkToTheGroundUnderTheirShadow)
+{
+    m_world->Map().terrain.heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
+    m_world->Map().terrain.heights->cells.fill(4.0f);
+    struct Case
+    {
+        std::int32_t map;
+        std::uint8_t byte1a1;
+        std::uint8_t dying;
+        float z;
+        float grounded;
+    };
+    const float nan = std::numeric_limits<float>::quiet_NaN();
+    const std::array cases{Case{0xb, 1, 1, 10.0f, 4.0f},  Case{0x11, 1, 1, 10.0f, 4.0f}, Case{0xb, 1, 1, nan, 4.0f},
+                           Case{0xb, 1, 1, 3.0f, 3.0f},   Case{2, 1, 1, 10.0f, 10.0f},   Case{0x12, 1, 1, 10.0f, 10.0f},
+                           Case{0xb, 0, 1, 10.0f, 10.0f}, Case{0xb, 1, 0, 10.0f, 10.0f}};
+    for (const Case& probe : cases)
+    {
+        SCOPED_TRACE(::testing::Message() << "mapa " << probe.map << ", +0x1a1 " << int{probe.byte1a1} << ", +0x389 "
+                                          << int{probe.dying} << ", z " << probe.z);
+        m_world->Runtime().map = probe.map;
+        ActorState& spider = Monster(5, Spider, 3);
+        spider.byte1a1 = probe.byte1a1;
+        spider.dying = probe.dying;
+        spider.position.z = probe.z;
+        m_batch.Begin(Client::Render::Pass3D{});
+
+        const auto result = Draw(Pass());
+
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        EXPECT_EQ(spider.position, (glm::vec3{150.0f, 150.0f, probe.grounded}));
+        ASSERT_EQ(m_batch.Vertices().size(), 6u);
+        EXPECT_FLOAT_EQ(m_batch.Vertices()[3].position.z, probe.grounded + 5.0f);
+    }
+
+    m_world->Map().terrain.heights.reset();
+    m_world->Runtime().map = 0xb;
+    ActorState& blind = Monster(5, Spider, 3);
+    blind.byte1a1 = 1;
+    blind.dying = 1;
+    m_batch.Begin(Client::Render::Pass3D{});
+    const auto cut = Draw(Pass());
+    ASSERT_FALSE(cut.HasValue());
+    EXPECT_NE(cut.Error().find("0x50be3b"), std::string::npos) << cut.Error();
+    EXPECT_EQ(m_batch.Vertices().size(), 3u);
 }
 
 TEST_F(MonsterDrawingTest, ADeviasYetiWithVertexLightTakesTheWholeTerrainLight)

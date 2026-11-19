@@ -141,17 +141,6 @@ FullSetScan ScanTheActor(WorldState& world, const ActorState& actor, Render::Mod
     return ScanFullSet(ScannedCharacterOf(actor), world.OwnCharacter(), depth, copy);
 }
 
-bool CastsShadow(const ActorState& actor, std::int32_t map)
-{
-    constexpr std::int32_t NoShadowMap = 10;
-    constexpr std::int32_t FirstKalimaMap = 24;
-    constexpr std::int32_t LastKalimaMap = 29;
-    constexpr std::int32_t SeventhKalimaMap = 36;
-    // 0x50bc16: con +0x3e4 (el retrato de las cartas), sin sombra.
-    return actor.alpha >= ShadowAlphaThreshold && actor.byte3e4 == 0 && map != NoShadowMap &&
-           !(map >= FirstKalimaMap && map <= LastKalimaMap) && map != SeventhKalimaMap;
-}
-
 DrawnCharacter CharacterToDraw(ActorState& actor, std::size_t slot, CharacterCloth* cloth,
                                const GameCharacterPass& pass, std::int32_t map)
 {
@@ -544,6 +533,30 @@ Core::Expected<void, std::string> DrawTheTail(Render::ModelBatch& batch, const I
                                               .world = &world});
 }
 
+// Entre frames del original, la z del suelo de la sombra (0x50bc77..0x50bcbd) es la del dibujo, pero no queda en el
+// personaje: el paso siguiente lee la que dejó el último frame del original (ADR 0005). La devuelve al salir del
+// dibujo.
+class GroundBetweenFrames
+{
+public:
+    GroundBetweenFrames(ActorState& actor, float z) : m_actor(actor), m_stepped(actor.position.z)
+    {
+        actor.position.z = z;
+    }
+    ~GroundBetweenFrames()
+    {
+        m_actor.position.z = m_stepped;
+    }
+    GroundBetweenFrames(const GroundBetweenFrames&) = delete;
+    GroundBetweenFrames& operator=(const GroundBetweenFrames&) = delete;
+    GroundBetweenFrames(GroundBetweenFrames&&) = delete;
+    GroundBetweenFrames& operator=(GroundBetweenFrames&&) = delete;
+
+private:
+    ActorState& m_actor;
+    float m_stepped;
+};
+
 // `slot` es su lugar en el pool, o ActorPoolSize fuera de él; `cloth`, su tela.
 Core::Expected<void, std::string> DrawOne(Render::ModelBatch& batch, const IModelLibrary& models, WorldState& world,
                                           ActorState& actor, std::size_t slot, CharacterCloth* cloth,
@@ -579,9 +592,24 @@ Core::Expected<void, std::string> DrawOne(Render::ModelBatch& batch, const IMode
             if (model != Data::Models::PlayerSkeletonModel && model != ChaosCastleBodyModel)
                 global(model, bones, transform, translated);
         };
+    // 0x50bc77..0x50bcbd: con la sombra, en Blood Castle el que muere empujado baja a la altura del terreno antes de
+    // 0x60cf70; la sombra, el cuerpo y lo que cuelga van ahí. La escritura queda (0x50bcaf) sólo en un frame del
+    // original.
+    std::optional<GroundBetweenFrames> projectedGround;
+    if (DrawsTheShadow(character))
+    {
+        const auto ground = ShadowGroundOf(world, pass, actor, map, 0x50bc9d);
+        if (!ground.HasValue())
+            return Core::Unexpected(ground.Error());
+        character.object.position.z = ground.Value();
+        if (originalFrame)
+            actor.position.z = ground.Value();
+        else
+            projectedGround.emplace(actor, ground.Value());
+    }
     DrawCharacter(batch, models, character, pass.frameClock, CharacterDrawPass::Shadow);
-    // 0x50bcec: 0x60cf70 con el 0x20b le copia la escala y la posición del personaje (lo lee el 0x632/0 y /1 en el
-    // suelo, 0x53c1eb). Sólo en un frame del original.
+    // 0x50bcec: 0x60cf70 con el 0x20b le copia la escala y la posición del personaje, ya en el suelo (lo lee el 0x632/0
+    // y /1 en el suelo, 0x53c1eb). Sólo en un frame del original.
     if (originalFrame && DrawsTheShadow(character))
         world.PlaceShadowModel(actor);
     if (auto decorated = CheckMonsterDecorations(actor.word376); !decorated.HasValue())
@@ -634,6 +662,17 @@ Core::Expected<void, std::string> DrawThePool(Render::ModelBatch& batch, const I
     return {};
 }
 } // namespace
+
+bool CastsShadow(const ActorState& actor, std::int32_t map)
+{
+    constexpr std::int32_t NoShadowMap = 10;
+    constexpr std::int32_t FirstKalimaMap = 24;
+    constexpr std::int32_t LastKalimaMap = 29;
+    constexpr std::int32_t SeventhKalimaMap = 36;
+    // 0x50bc16: con +0x3e4 (el retrato de las cartas), sin sombra.
+    return actor.alpha >= ShadowAlphaThreshold && actor.byte3e4 == 0 && map != NoShadowMap &&
+           !(map >= FirstKalimaMap && map <= LastKalimaMap) && map != SeventhKalimaMap;
+}
 
 void FinishTheCastleFrame(WorldRuntime* runtime, Data::Terrain::TerrainLayer<std::uint16_t>& walls)
 {

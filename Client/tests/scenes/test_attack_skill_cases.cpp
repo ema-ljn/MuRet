@@ -983,7 +983,7 @@ TEST(AttackSkillCasesTest, TheStrikeAroundSendsPlasmaAndRaisesSpirals)
                 EXPECT_EQ(plasma.width, pair == 0 ? 100.0f : 80.0f);
                 EXPECT_EQ(plasma.position, point({0.0f, -140.0f, 130.0f}));
                 EXPECT_EQ(plasma.angles, (glm::vec3{pitch, 0.0f, yaw}));
-                // Con dueño, 0x530967 no copia el segundo punto: su paso va hacia el dueño (0x535b37).
+                // Con dueño, 0x530942 salta la copia del segundo punto: su paso va hacia el dueño (0x535b37).
                 EXPECT_EQ(plasma.targetPosition, glm::vec3(0.0f));
             }
         }

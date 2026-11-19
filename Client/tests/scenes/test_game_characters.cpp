@@ -4,6 +4,7 @@
 #include "Data/Models/Model.h"
 #include "Data/Models/PlayerModels.h"
 #include "Data/Terrain/TerrainAttributes.h"
+#include "Data/Terrain/TerrainHeights.h"
 #include "Render/ModelBatch.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/HalfLifeMath.h"
@@ -38,6 +39,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 #include <memory>
 #include <optional>
 #include <span>
@@ -585,6 +587,98 @@ TEST_F(UnarmedGameCharacterTest, TheBodyLeavesItsScaleAndPositionInThePlayerMode
     Actor().alpha = 0.009f;
     ASSERT_TRUE(Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, pass).HasValue());
     EXPECT_EQ(m_world->PlayerModel().scale, 0.0f);
+}
+
+// Los vértices de las botas (la textura 0x300 de UnarmedModels), opacas.
+std::vector<Client::Render::ModelVertex> BootVertices(const Client::Render::ModelBatch& batch)
+{
+    std::vector<Client::Render::ModelVertex> found;
+    const auto vertices = batch.Vertices();
+    for (const Client::Render::ModelDrawCommand& command : batch.Commands())
+    {
+        if (command.operation != Client::Render::ModelStateOperation::Draw ||
+            command.state.texture != Client::Render::TextureSlot{0x300})
+            continue;
+        for (std::size_t i = 0; i < command.vertexCount; ++i)
+            found.push_back(vertices[command.firstVertex + i]);
+    }
+    return found;
+}
+
+// 0x50bc77..0x50bcbd: con la sombra, en Blood Castle (los mapas 0xb a 0x11), el que muere empujado (+0x1a1 y +0x389)
+// baja a la altura del terreno (0x5f93c0, 4 en todo el mapa) antes de 0x60cf70 (0x50bcec), que copia ese origen al
+// 0x20b; el cuerpo se dibuja ahí. El fcom con `test ah, 1` escribe también con la z en NaN; con el terreno a la altura
+// de la z o arriba no escribe. Fuera de esos mapas (Devias y Chaos Castle), sin +0x1a1 o sin morirse, la z queda. Sin
+// las alturas, corta en la llamada a 0x5f93c0.
+TEST_F(UnarmedGameCharacterTest, TheDyingOfBloodCastleSinkToTheGroundUnderTheirShadow)
+{
+    m_world->Map().terrain.heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
+    m_world->Map().terrain.heights->cells.fill(4.0f);
+    struct Case
+    {
+        std::int32_t map;
+        std::uint8_t byte1a1;
+        std::uint8_t dying;
+        float z;
+        float grounded;
+    };
+    const float nan = std::numeric_limits<float>::quiet_NaN();
+    const std::array cases{
+        Case{0xb, 1, 1, 10.0f, 4.0f},   Case{0x11, 1, 1, 10.0f, 4.0f}, Case{0xb, 1, 1, nan, 4.0f},
+        Case{0xb, 1, 1, 3.0f, 3.0f},    Case{0xb, 1, 1, 4.0f, 4.0f},   Case{2, 1, 1, 10.0f, 10.0f},
+        Case{0x12, 1, 1, 10.0f, 10.0f}, Case{0xb, 0, 1, 10.0f, 10.0f}, Case{0xb, 1, 0, 10.0f, 10.0f}};
+    const std::uint8_t kind = Actor().byte88;
+    for (const Case& probe : cases)
+    {
+        SCOPED_TRACE(::testing::Message() << "mapa " << probe.map << ", +0x1a1 " << int{probe.byte1a1} << ", +0x389 "
+                                          << int{probe.dying} << ", z " << probe.z);
+        m_world->Runtime().map = probe.map;
+        // En Chaos Castle, sin el Angel (+0x88 distinto de 1).
+        Actor().byte88 = probe.map == 0x12 ? std::uint8_t{0} : kind;
+        Actor().byte1a1 = probe.byte1a1;
+        Actor().dying = probe.dying;
+        Actor().position = {150.0f, 150.0f, probe.z};
+        m_world->PlaceModel(Client::Data::Models::PlayerShadowModel, {});
+        m_cloth.random = Client::Render::Models::CrtRandom(1);
+        m_batch.Begin({});
+
+        const auto drawn = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
+
+        ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+        EXPECT_EQ(Actor().position, (glm::vec3{150.0f, 150.0f, probe.grounded}));
+        const Client::Scenes::SharedModelPlacement shadow =
+            m_world->ModelPlacement(Client::Data::Models::PlayerShadowModel);
+        EXPECT_EQ(shadow.origin, (glm::vec3{150.0f, 150.0f, probe.grounded}));
+        EXPECT_EQ(shadow.scale, 1.0f);
+        const auto boots = BootVertices(m_batch);
+        ASSERT_EQ(boots.size(), 3u);
+        EXPECT_EQ(boots[0].position, (glm::vec3{150.0f, 150.0f, probe.grounded}));
+    }
+    Actor().byte88 = kind;
+
+    // Entre frames del original, el cuerpo va al suelo pero la z no queda ni el 0x20b se toca.
+    m_world->Runtime().map = 0xb;
+    Actor().byte1a1 = 1;
+    Actor().dying = 1;
+    Actor().position = {150.0f, 150.0f, 10.0f};
+    m_world->PlaceModel(Client::Data::Models::PlayerShadowModel, {});
+    m_batch.Begin({});
+    auto between = Pass();
+    between.originalFrames = 0;
+    const auto projected = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, between);
+    ASSERT_TRUE(projected.HasValue()) << projected.Error();
+    EXPECT_EQ(Actor().position.z, 10.0f);
+    EXPECT_EQ(m_world->ModelPlacement(Client::Data::Models::PlayerShadowModel).scale, 0.0f);
+    const auto boots = BootVertices(m_batch);
+    ASSERT_EQ(boots.size(), 3u);
+    EXPECT_EQ(boots[0].position.z, 4.0f);
+
+    m_world->Map().terrain.heights.reset();
+    m_batch.Begin({});
+    const auto blind = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
+    ASSERT_FALSE(blind.HasValue());
+    EXPECT_NE(blind.Error().find("0x50bc9d"), std::string::npos) << blind.Error();
+    EXPECT_EQ(Actor().position.z, 10.0f);
 }
 
 // 0x4959d5: 0x50ba30(personaje, personaje, 0) con el personaje del retrato de las cartas, fuera del pool y con su tela

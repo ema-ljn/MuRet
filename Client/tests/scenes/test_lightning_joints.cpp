@@ -270,7 +270,8 @@ TEST(LightningJointsTest, TheRedBoltSitsOnTheSharedModelOfItsOwner)
     world->PlaceModel(owner.type, {.scale = 1.5f, .origin = origin});
     // y de partida menos y del destino: 40 (< 50 · 1,5, llega), −500 (llega: no hay valor absoluto), 75 (50 · 1,5 = 75
     // exacto: con el > estricto de 0x536d71 no llega en ese tramo) y 80 (no llega). Con dueño, el alta no copia el
-    // segundo punto (0x530967): el destino es el que tenía el lugar, (0, 0, 0), y no el (0, 1000, 0) que se pasa.
+    // segundo punto (0x530942 salta a 0x530957): el destino es el que tenía el lugar, (0, 0, 0), y no el (0, 1000, 0)
+    // que se pasa.
     for (const float startY : {40.0f, -500.0f, 75.0f, 80.0f})
     {
         SCOPED_TRACE(startY);

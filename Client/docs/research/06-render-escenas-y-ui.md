@@ -8818,7 +8818,10 @@ dibujar con otra luz no reemplace la base.
 
 **Estático**, `0x50ba30`: `DrawGameCharacters` conserva el filtro del héroe, el orden de400 lugares
 y las puertas finales. Para un jugador `0x20a` con esqueleto/acciones: verifica las ramas anteriores,
-dibuja la sombra (`0x50bcec`), publica `0x505820` (`0x50c91e`), toma la luz dinámica (`0x50cc55`) y
+dibuja la sombra (`0x50bcec`; antes, en Blood Castle, los mapas `0xb` a `0x11`, con `+0x1a1` y muriéndose,
+`+0x389`, baja la z del objeto a la altura de `0x5f93c0` si el terreno queda debajo, o con la z o la altura en NaN
+por el `fcom` con `test ah, 1`, `0x50bc77..0x50bcbd`: la escritura queda y `0x60cf70` copia ese origen al `0x20b`;
+`ShadowGroundOf`, sólo en los frames del original), publica `0x505820` (`0x50c91e`), toma la luz dinámica (`0x50cc55`) y
 el color del héroe. Ese color abre/cierra una vez el registro propio:3.848 rand cuando queda cerrado,
 aun con sus bits de ajuste apagados. Cada máscara de color multiplica con stores f32; el bit0 usa
 el literal0,9f del binario. Reutiliza `DrawCharacter` por fases Parts y Cloth, conserva el rand de
@@ -14004,7 +14007,8 @@ con el modelo de `0x5769ad8 + tipo · 0xe0` (sin acciones, nada: `0x50ba82`), en
    en el 30).
 3. **La sombra** (`0x50bd89..0x50bf3e`): sin `+0x88` en 8, sin los `+0x376` `0x19`, `0x16`, `0x2a`, `0xf2`, `0x3b`,
    `0x3f` y `0x98`, fuera del mapa 10 y con el alpha desde 0,3f. En Blood Castle, con `+0x1a1` y muriéndose (`+0x389`),
-   la z baja a la del terreno (`0x5f93c0`) si es menor. El `0xe8` y el `0xe9` ponen `+0x58` en 2. Salvo el `0x18e`,
+   la z baja a la del terreno (`0x5f93c0`) si el terreno queda debajo, y también con la z o la altura en NaN (el `fcom`
+   con `test ah, 1`, `0x50be15..0x50be52`; `ShadowGroundOf`). El `0xe8` y el `0xe9` ponen `+0x58` en 2. Salvo el `0x18e`,
    el `0x18f` y del `0xa8` al `0xac`, `0x60cf70` con `+0x98` en 1 → `0x60b3d0` → `0x4eff40(+0x64, +0x58, −1, −1)`:
    cada malla salvo la de `+0x58`, las sin triángulos y las de la textura `+0x64`, aplastada como la del jugador
    (negra; en el 7, con alpha 0,2; sin sombra en Kalima). Después, el calco del `0xe8` y el `0xe9` (`0x50bed8..0x50bf3e`,
@@ -14037,7 +14041,8 @@ con el modelo de `0x5769ad8 + tipo · 0xe0` (sin acciones, nada: `0x50ba82`), en
    `0x18a`): s = f((sin((ftol(T) % 10.000) · 0,001f) + 1) · 0,5f), con el resto con el signo del dividendo y la suma
    antes de redondear el seno; `0x60b130(modelo, objeto, tipo, +0x174, 0x44, f(s · 0,7f + 0,3f), −1)`; `+0x64` en 0 y
    `+0x68` en f((1 − s + 1) · 0,3f), guardados; `0x602e90(objeto, 1, 2, 0)` y `0x602e90(objeto, 1, 3, 0)`: el tercer
-   argumento de `0x5ffdf0` (`0x5fff7f..0x5fffaf`) en 2 o 3 deja `0x6c881c` en 1,2f o 1,4f, sin contorno, y el último
+   argumento de `0x5ffdf0` (`0x5fff7f..0x5fffaf`) en 2 o 3 deja `0x6c881c` en 1,2f o 1,4f, sin contorno ni el 1 de
+   `0x600144` (salta a `0x60014e`; la vuelve a 1 el `0x5ffdf0` de `0x50c248` en `0x5fff82`, Q-C1730), y el último
    `0x4ebc80` pasa cada vértice al mundo a esa escala alrededor de su hueso (`0x6002e0` no mira ese argumento), así que
    el cuerpo va otra vez, más grande, con la malla 0 como blendMesh y por la luz de `+0x68`; el hueso 24 de `+0x120` a
    `0x74374ec`; `+0x64` en −1; `INC` de `+0x2` y `0x602e90(objeto, 1, contorno, 0)` con el `0x18a` (su caso de
@@ -14419,9 +14424,11 @@ pose del cuervo). Tests: `test_vertex_effects.cpp`, `test_monster_body.cpp` (`Th
 - **El aterrizaje** (`0x53c1c6..0x53c246`): `0x4eb860(0x68b181c, 0, 0, 0, dueño+0x1c, dueño+0x28, 0, 1)` posa el
   `0x20b` (`0x5769ad8` + `0x1c9a0`) con el cuadro, el anterior y la acción anterior en 0 y la acción (`+0xa0`), la
   escala (`+0x68`) y el origen (`+0x6c`) del modelo compartido, que sólo escribe `0x60cf70` cuando `0x50ba30` dibuja la
-  sombra de un personaje (`0x50bcec`, con las guardas de `0x50bc05..0x50bc71`; la acción no la escribe nadie; Q-C1730). Después
+  sombra de un personaje (`0x50bcec`, con las guardas de `0x50bc05..0x50bc71` y el suelo de Blood Castle de
+  `0x50bc77..0x50bcbd`; la acción no la escribe nadie; Q-C1730). Después
   `0x4ebc80(0x68b181c, dueño+0x124, +0x130, +0x13c, 0)`: con el último argumento en 0, cada vértice sólo por la matriz
-  de su hueso (`0x5fccc0`, sin escala ni origen; `0x6c881c` está en 1 fuera de los dibujos que la cambian), y le escribe
+  de su hueso (`0x5fccc0`, sin escala ni origen; con `0x6c881c` en 1, `0x4ebdb0`, que es lo que dejan `0x5fff82` y
+  `0x60d01e` salvo en el caso de P-C521), y le escribe
   al dueño la caja de `+0x13c` (el origen del modelo más su piso; los ejes, su caja, sin el modo del editor
   `0x77f3b18`). Al final `0x4ee770(0, 0x137, subtipo, 0, 0)`.
 - **El alta** (`0x51d8c4..0x51da45`, después del prefijo común): el empuje en y `((rand() & 127) + 32) · 0,1f`, la z
@@ -14444,9 +14451,16 @@ pose del cuervo). Tests: `test_vertex_effects.cpp`, `test_monster_body.cpp` (`Th
 `Scenes::DrawTheSkinShellBody` (`Scenes/SkinShells.h`, el dibujo desde `DrawPlainModelEffect`). La pose del `0x20b` va
 por `Render::Models::PoseWorldSkeleton` y los vértices por `OriginalVectorTransform`. `WorldState::PlaceShadowModel`
 publica la escala y el origen del `0x20b` donde MuRet dibuja la sombra de un personaje con sus guardas
-(`DrawsTheShadow`): en el juego (`GameCharacters.cpp`, sólo en los frames del original), en la selección y en el login.
-Tests: `test_skin_shell_effects.cpp`, `test_vertex_effects.cpp` (`TheSkinShellsComeOneInEightWithTheJointSubtype`) y
-`test_storm_joints.cpp` (`TheOwnedFallingSubtypesShedTheShellsOfTheShadow`).
+(`DrawsTheShadow`): en el juego (`GameCharacters.cpp`, sólo en los frames del original, después del suelo de Blood
+Castle de `ShadowGroundOf`), en la selección (las dos ramas, con el mundo 54 y sin él, con `castsShadow` de
+`CastsShadow`) y en el login. En la selección, `SelectionWorld::StepEffects` no le da a `0x53c670` los modelos ni
+`JointKernels::VolleyServices`: la `0x632/0` y `/1` con dueño cortan en `0x53c1c6`, como el `0x613` de ancho 80
+(`0x539a50`) y el `0x61c/0` del héroe (`0x53b569`). Tests: `test_skin_shell_effects.cpp` (con bits fijados aparte),
+`test_vertex_effects.cpp` (`TheSkinShellsComeOneInEightWithTheJointSubtype`), `test_storm_joints.cpp`
+(`TheOwnedFallingSubtypesShedTheShellsOfTheShadow` y `TheShellsOfTheShadowTurnWithTheOwnerAndTheRootBone`),
+`test_selection_joints.cpp` (`TheSelectionCutsWhereTheJointsAskForTheVolleyOrTheShadowModels`),
+`test_game_characters.cpp` (`TheDyingOfBloodCastleSinkToTheGroundUnderTheirShadow`), `test_monster_drawing.cpp` y
+`test_character_select_scene.cpp` (`TheShadowsOfTheListPlaceTheSharedShadowModel`).
 
 ### Los helpers de los monstruos
 

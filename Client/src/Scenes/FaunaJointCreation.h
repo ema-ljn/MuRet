@@ -28,13 +28,12 @@ struct TerrainLighting;
 
 // 530860: ownerContext es FaunaObject durable salvo613/4, 614/10 y614/14, donde permanece opaco, y el 618/0x11 y el
 // 610/4 de lo que cuelga de un jugador, el 60f/0, el 60f/0x12 y el 610/7 del conjunto completo, el 60f/0 y el 60f/0xa
-// del premio de una misión (0x4ddb80), el 619/9 de su 5ac/3 y el 619/1 del calco de la mascota (0x518900), donde es el
-// ActorState del personaje, al igual que618/2y/3 del altarCrywolf. Con `ownerKind` en Helper es el HelperState del
-// caballo oscuro (0x444740), y en Raven el DarkSpirit del cuervo (0x418390 y 0x418400), sólo para el 60f/0 y el
-// 60f/0x12: lee su luz (+0xf4) al nacer y su acción (+0x111) en el paso; con otro tipo corta antes de escribir
-// (0x530860).
-// ModelEffect identifica al dueño durable de619/1 y610/13, sin aliasActorState.
-// Pool lleno no lee los argumentos ni RNG.
+// del premio de una misión (0x4ddb80), el 619/9 de su 5ac/3, el 619/1 del calco de la mascota (0x518900) y el 619/8 de
+// la skill cargada (0x5189f0), donde es el ActorState del personaje, al igual que618/2y/3 del altarCrywolf. Con
+// `ownerKind` en Helper es el HelperState del caballo oscuro (0x444740), y en Raven el DarkSpirit del cuervo (0x418390
+// y 0x418400), sólo para el 60f/0 y el 60f/0x12: lee su luz (+0xf4) al nacer y su acción (+0x111) en el paso; con otro
+// tipo corta antes de escribir (0x530860). ModelEffect identifica al dueño durable de619/1 y610/13, sin
+// aliasActorState. Pool lleno no lee los argumentos ni RNG.
 namespace Client::Scenes
 {
 class IModelLibrary;
@@ -55,6 +54,8 @@ CreateFaunaJoint(std::span<JointState> joints, const World::FishEffectRequest& r
 // 60f/1, que sólo se apaga; con el ancho en 40 o más no la leen (el 60f/0 del caballo y los del premio nacen con 40);
 // el 610/7 se mece desde su partida y el 619/9 gira alrededor de la posición del personaje, leída en vivo; el 619/1
 // acelera y gira hacia el héroe, 120 más arriba, y en su última vida deja el sprite 0x5fd (pide el RNG y los sprites);
+// el 619/8 acelera, gira hacia su destino con más de 10 de vida, se apaga con menos de 6 y deja el sprite 0x5ac en cada
+// paso (pide los sprites, sin el RNG);
 // sólo la llegada con width50 necesita particles, y el humo usa worldClock.
 // El overload sin RNG conserva la frontera535f18 tras movimiento y comprobación del dueño. El 615/2 de Chaos
 // Castle pide los sprites del frame (0x5491e0) y las partículas. El615/7 de la llegada comparte geometría sin esas

@@ -343,6 +343,9 @@ constexpr std::int32_t EnergyJoint = 0x619, SetEnergySubtype = 9, SkillEnergySub
 constexpr std::int32_t SummonEnergySubtype = 1, SummonDecalEnergySubtype = 3;
 // El 619/6 que el 0x813 suelta tres veces por paso (0x52cb85), sin dueño.
 constexpr std::int32_t BoltEnergySubtype = 6;
+// El 619/8 de la skill cargada del mago (0x5189f0): tres por paso de un 0x20a en la acción 0x44 o 0x45, con el
+// personaje de dueño (+0x54), que ni el alta ni el paso leen.
+constexpr std::int32_t ChargedEnergySubtype = 8;
 // Los remolinos 6e8/0 y /1 del 0x114/1 (0x51c25f), sin dueño.
 constexpr std::int32_t SwirlJoint = 0x6e8;
 // El 61c/1 del láser 0xd0/1 de los magos (0x51a5dd), con el efecto de dueño.
@@ -628,6 +631,26 @@ void CreateBoltEnergy(JointState& joint, const World::FishEffectRequest& request
     CreateSummonEnergy(joint, request);
     joint.light = {1, 1, 0.5f};
     joint.maximumCount = BoltPoints;
+}
+
+// 0x5323d3..0x5323f8, 0x5324ea..0x53254a y 0x534cb6: el 619/8 de la skill cargada (0x5189f0). Lo común del 0x619 y el
+// caso 8: la luz (0,5; 0,5; (rand() & 0x7f) · 1/255f + 0,5), vida 0x11, 3 puntos y el destino (+0x58) en el segundo
+// punto con z + 100. Un rand(), después de las escrituras de la luz, de la vida y de los puntos.
+void CreateChargedEnergy(JointState& joint, const World::FishEffectRequest& request, Render::Models::CrtRandom& random)
+{
+    constexpr std::int32_t ChargedLife = 0x11, ChargedPoints = 3, ShadeMask = 0x7f;
+    constexpr float Half = 0.5f;                                   // 0x5324ef
+    constexpr float ShadeStep = std::bit_cast<float>(0x3b808081u); // 0x6b88f8, 1/255
+    constexpr double ShadeBase = 0.5, Lift = 100.0;                // 0x6b882c y 0x6b86b4
+    CreateSummonEnergy(joint, request);
+    joint.life = ChargedLife;
+    joint.light.x = Half;
+    joint.maximumCount = ChargedPoints;
+    joint.light.y = Half;
+    const int shade = random.Next() & ShadeMask;
+    joint.light.z = F32(static_cast<double>(shade) * D(ShadeStep) + ShadeBase);
+    joint.targetPosition = {request.secondPosition.x, request.secondPosition.y,
+                            F32(D(request.secondPosition.z) + Lift)};
 }
 
 // 0x533e60..0x533f9e: el abanico de la habilidad39, después del quad con el ancho retenido.
@@ -949,6 +972,11 @@ Core::Expected<void, std::string> CreateCase(JointState& joint, const World::Fis
     if (request.type == EnergyJoint && request.subtype == BoltEnergySubtype)
     {
         CreateBoltEnergy(joint, request);
+        return {};
+    }
+    if (request.type == EnergyJoint && request.subtype == ChargedEnergySubtype)
+    {
+        CreateChargedEnergy(joint, request, random);
         return {};
     }
     if (request.type == 0x10f && (request.subtype == 1 || request.subtype == 3))
@@ -1845,6 +1873,33 @@ Core::Expected<void, std::string> StepBoltEnergy(JointState& joint, std::size_t 
     return {};
 }
 
+// 0x538a52..0x538a70, 0x538a94..0x538b15, 0x538b5d..0x538b8d → 0x538c23 y 0x538cb7: el 619/8 de la skill cargada,
+// después del avance común. La velocidad sube 4 (0x6b8a44); con más de 10 de vida gira de a 10 (0x4e9810) hacia el
+// destino (+0x58); con menos de 6, cada canal de la luz por 0,5555556f (0x6ba234). En los tres casos, el sprite 0x5ac
+// en su posición con la escala 1, la luz, sin dueño, el giro 0 y la mezcla 0 (0x5491e0). La luz de 0x538b5d no cambia:
+// la tabla 0x53c628 manda la /8 a 0x538c23, que descarta el producto. Sin rand(); sigue la cola común (0x53c393).
+Core::Expected<void, std::string> StepChargedEnergy(JointState& joint, std::size_t index, World::FrameSprites* sprites)
+{
+    constexpr double Climb = 4.0;                             // 0x6b8a44
+    constexpr std::int32_t LastStraightLife = 10;             // 0x538aad
+    constexpr std::int32_t FirstBrightLife = 6;               // 0x538acf
+    constexpr float TurnStep = 10;                            // 0x538ab8
+    constexpr float Fade = std::bit_cast<float>(0x3f0e38e4u); // 0x6ba234, 0,5555556f
+    constexpr std::uint16_t ChargeSprite = 0x5ac;
+    constexpr float ChargeScale = 1; // 0x538b02
+    if (sprites == nullptr)
+        return Core::Unexpected(std::format("0x538b0d: faltan los sprites del joint {} (0x619/8)", index));
+    joint.speed = F32(Climb + D(joint.speed));
+    const glm::vec3 target = joint.targetPosition;
+    if (joint.life > LastStraightLife)
+        static_cast<void>(SteerJoint(joint, target, TurnStep));
+    else if (joint.life < FirstBrightLife)
+        joint.light = {F32(D(joint.light.x) * D(Fade)), F32(D(joint.light.y) * D(Fade)),
+                       F32(D(joint.light.z) * D(Fade))};
+    static_cast<void>(sprites->Create(ChargeSprite, joint.position, ChargeScale, joint.light, 0, 0));
+    return {};
+}
+
 // 0x53a73b..0x53a7cc: el delta queda retenido hasta después de girar, antes del límite persistente.
 void AdvanceSkill39Bend(JointState& joint)
 {
@@ -2179,9 +2234,11 @@ StepJointsChecked(std::span<JointState> joints, Render::Models::CrtRandom* rando
                                   (joint.subtype == SummonEnergySubtype || joint.subtype == SummonDecalEnergySubtype);
         // Los rayos del 0x813 (0x52cb85), sin dueño.
         const bool boltEnergy = joint.type == EnergyJoint && joint.subtype == BoltEnergySubtype;
+        // Los de la skill cargada (0x5189f0), con el personaje de dueño, que el paso no lee.
+        const bool chargedEnergy = joint.type == EnergyJoint && joint.subtype == ChargedEnergySubtype;
         if (!crywolf && !bloodCastle && !fairy && !spiritBeam && !icarus && !noria && !skyBolt && !trapBolt &&
-            !meteor && !swordTrail && !fullSet && !summonEnergy && !boltEnergy && !crywolfArrowTrail &&
-            !piercingTrail && !piercingImpact && !skill39 && !targetBolt && !swirl && !laser)
+            !meteor && !swordTrail && !fullSet && !summonEnergy && !boltEnergy && !chargedEnergy &&
+            !crywolfArrowTrail && !piercingTrail && !piercingImpact && !skill39 && !targetBolt && !swirl && !laser)
             return Core::Unexpected(
                 std::format("0x535840: el paso del joint {} ({:#x}/{}) no está portado", i, joint.type, joint.subtype));
         // 0x5358bc: el 60f/1 y el 6e8 (la lista de 0x53585e) no se mueven ni calculan la matriz de 0x53590e; con la
@@ -2238,6 +2295,9 @@ StepJointsChecked(std::span<JointState> joints, Render::Models::CrtRandom* rando
         if (boltEnergy)
             if (auto result = StepBoltEnergy(joint, i, random, sprites); !result.HasValue())
                 return result;
+        if (chargedEnergy)
+            if (auto result = StepChargedEnergy(joint, i, sprites); !result.HasValue())
+                return result;
         if (targetBolt)
             if (auto result = StepTargetBolt(joint, random, lighting); !result.HasValue())
                 return result;
@@ -2249,11 +2309,11 @@ StepJointsChecked(std::span<JointState> joints, Render::Models::CrtRandom* rando
         const bool actorOwned =
             swordTrail || fullSet || summonEnergy || crywolfArrowTrail || piercingTrail || targetBolt;
         const auto* owner = (joint.type == 0x613 || joint.type == 0x614 || joint.type == 0x615 || meteor ||
-                             actorOwned || boltEnergy || swirl || laser)
+                             actorOwned || boltEnergy || chargedEnergy || swirl || laser)
                                 ? nullptr
                                 : static_cast<const FaunaObject*>(joint.ownerContext);
         const bool ownerless = spiritBeam || icarus || noria || skyBolt || trapBolt || meteor || actorOwned ||
-                               piercingImpact || skill39 || boltEnergy || swirl || laser;
+                               piercingImpact || skill39 || boltEnergy || chargedEnergy || swirl || laser;
         if (owner == nullptr && !ownerless)
             return Core::Unexpected(std::format("{}: falta el dueño durable del joint {:#x}/{}",
                                                 fairy         ? "0x536076"

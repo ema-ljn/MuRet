@@ -423,7 +423,7 @@ public:
                                                 const glm::vec3& light, std::uint8_t state,
                                                 const ModelEffectOwner& owner, std::uint8_t& ownRecordDepth,
                                                 std::uint8_t& ownRecordCount, Render::Models::CrtRandom& random);
-    // 0x51a8ad: pulso sin dueño ni azar; primer lugar libre, vida 15 y luz blanca.
+    // 0x519275: pulso sin dueño ni azar; primer lugar libre, vida 15 y luz blanca.
     std::optional<std::size_t> CreateEarthquakeBurst(const glm::vec3& position, const glm::vec3& angles,
                                                      const glm::vec3& light);
     // 0x518cf0(0xfb..0x102, posición, ángulos, luz, subtipo, dueño, tamaño, 0, 0, 0, 0) → 0x51a6e4..0x51a85c: el

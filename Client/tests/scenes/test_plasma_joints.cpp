@@ -9,12 +9,14 @@
 #include "World/IFishStepServices.h"
 #include "World/Particles.h"
 #include "World/TerrainLighting.h"
+#include "World/WorldObjectStepServices.h"
 
 #include <glm/ext/vector_float3.hpp>
 
 #include <gtest/gtest.h>
 
 #include <algorithm>
+#include <array>
 #include <bit>
 #include <cstddef>
 #include <cstdint>
@@ -79,9 +81,13 @@ struct PlasmaWorld
     CrtRandom random{Seed};
 };
 
-// Una vuelta del paso con `replay`: el giro hacia el destino, el sacudón y, si no llega, la luz y el avance. Devuelve
-// si llegó.
-bool Turn(JointState& joint, CrtRandom& replay)
+// 0x535c26..0x535c77: la luz dinámica de radio 2 con ((rand() & 3) + 4) · 0,04f · 0,4f, por los bits de cada sorteo
+// (de una cuenta aparte: cada producto a 53 bits y el fst a float).
+constexpr std::array<std::uint32_t, 4> GlowBits{0x3d83126fu, 0x3da3d70au, 0x3dc49ba6u, 0x3de56041u};
+
+// Una vuelta del paso con `replay`: el giro hacia el destino, el sacudón y, si no llega, la luz (en `lighting`, si
+// está) y el avance. Devuelve si llegó.
+bool Turn(JointState& joint, CrtRandom& replay, Client::World::TerrainLighting* lighting = nullptr)
 {
     const float distance =
         F32(Client::Render::Models::MoveToward(joint.position, joint.angles, joint.targetPosition, 50.0f));
@@ -92,7 +98,12 @@ bool Turn(JointState& joint, CrtRandom& replay)
                            F32(turn + D(joint.angles.z))};
     if (D(joint.speed) * 1.5 > D(distance))
         return true;
-    static_cast<void>(replay.Next());
+    const auto shade = static_cast<std::size_t>(replay.Next() & 3);
+    if (lighting != nullptr)
+    {
+        const glm::vec3 glow(std::bit_cast<float>(GlowBits[shade]));
+        EXPECT_TRUE(Client::World::AddDynamicLight(lighting, joint.position, glow, 2, "prueba").HasValue());
+    }
     const auto moved = Client::Render::Models::OriginalVectorRotate(
         {0.0f, -joint.speed, 0.0f}, Client::Render::Models::OriginalAngleMatrix(shaken));
     for (int axis = 0; axis < 3; ++axis)
@@ -140,7 +151,7 @@ TEST(PlasmaJointsTest, EachSubtypeBornsWithItsColor)
 
 // 0x535b37..0x535cd4: después del movimiento común (50 por sus ángulos), una vuelta por punto: el destino es el dueño
 // 80 más arriba, gira hacia él de a 50 (0x4e9810), saca vx y vz ((rand() & 0x3ff) − 512) / ancho, agrega el tramo y, si
-// no llega (velocidad · 1,5 contra la distancia), con el ancho de 50 o más saca el rand() de la luz dinámica y avanza.
+// no llega (velocidad · 1,5 contra la distancia), con el ancho de 50 o más deja la luz dinámica y avanza.
 // Con ancho 100, al llegar no suelta nada. Sigue la cola común.
 TEST(PlasmaJointsTest, ThePlasmaTurnsTowardItsOwnerUntilItArrives)
 {
@@ -158,9 +169,10 @@ TEST(PlasmaJointsTest, ThePlasmaTurnsTowardItsOwnerUntilItArrives)
     for (int axis = 0; axis < 3; ++axis)
         expected.position[axis] = F32(D(expected.position[axis]) + D(first[axis]));
     expected.targetPosition = {1000.0f, 1500.0f, 300.0f};
+    auto lit = std::make_unique<Client::World::TerrainLighting>();
     int turns = 0;
     for (; turns < 50; ++turns)
-        if (Turn(expected, replay))
+        if (Turn(expected, replay, lit.get()))
             break;
     ASSERT_LT(turns, 50);
     EXPECT_GT(turns, 3);
@@ -170,6 +182,10 @@ TEST(PlasmaJointsTest, ThePlasmaTurnsTowardItsOwnerUntilItArrives)
     EXPECT_EQ(joint.position, expected.position);
     EXPECT_EQ(joint.angles, expected.angles);
     EXPECT_EQ(joint.velocity, expected.velocity);
+    // La luz dinámica de cada vuelta que no llega, en la posición de antes de avanzar.
+    EXPECT_TRUE(lit->cells == tested.lighting->cells);
+    const auto dark = std::make_unique<Client::World::TerrainLighting>();
+    EXPECT_FALSE(lit->cells == dark->cells);
     // Un tramo por vuelta (también la de la llegada) y el de la cola común.
     EXPECT_EQ(joint.count, turns + 2);
     EXPECT_EQ(joint.life, 19);

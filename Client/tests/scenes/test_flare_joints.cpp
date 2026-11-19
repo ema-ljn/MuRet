@@ -3,8 +3,12 @@
 #include "Core/Expected.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/OriginalRotation.h"
+#include "Scenes/BlastEffectCalls.h"
+#include "Scenes/CharacterStep.h"
 #include "Scenes/GameDrawTail.h"
+#include "Scenes/WorldState.h"
 #include "World/IFishStepServices.h"
+#include "World/ModelEffects.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -13,6 +17,7 @@
 #include <bit>
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <optional>
 #include <string>
 #include <tuple>
@@ -239,5 +244,58 @@ TEST(FlareJointsTest, TheSecondFlareSpeedsUpForFiveSegments)
         }
         EXPECT_EQ(joint.light.x, static_cast<float>(static_cast<double>(0.8333333f)));
         EXPECT_EQ(joint.life, life - 1);
+    }
+}
+
+// 0x51bf73..0x51c00d: el combo 0x112/0 (World/BlastModelEffects, por Scenes::CreateBlastEffect) sube 50 y suelta
+// sesenta joints 0x5ac/0 sin dueño desde su posición con sus ángulos (en 0), cada uno con el ancho rand() % 40 + 70
+// sacado antes de su alta, que saca tres: 240 rand(). Con la tabla de joints llena 0x530860 no encuentra lugar y no
+// saca ninguno: sólo los 60 de los anchos.
+TEST(FlareJointsTest, TheComboReleasesSixtyFlares)
+{
+    for (const bool full : {false, true})
+    {
+        SCOPED_TRACE(full);
+        auto world = std::make_unique<Client::Scenes::WorldState>();
+        auto& joints = world->DrawTail().joints;
+        if (full)
+            for (JointState& joint : joints)
+                joint.alive = true;
+        CrtRandom random{Seed};
+        const Client::Scenes::CharacterStepContext context{.world = *world, .random = random, .joints = joints};
+        const Client::World::ModelEffectArguments arguments{.type = 0x112, .position = {1000.0f, 2000.0f, 300.0f}};
+
+        const auto made = Client::Scenes::CreateBlastEffect(arguments, nullptr, context);
+
+        ASSERT_TRUE(made.HasValue()) << made.Error();
+        ASSERT_TRUE(made.Value().has_value());
+        const Client::World::ModelEffect& combo = world->Map().effects.Effects()[*made.Value()];
+        EXPECT_EQ(combo.type, 0x112);
+        EXPECT_EQ(combo.transform.position, (glm::vec3{1000.0f, 2000.0f, 350.0f}));
+        CrtRandom replay{Seed};
+        for (std::size_t ray = 0; ray < 60; ++ray)
+        {
+            SCOPED_TRACE(ray);
+            const auto width = static_cast<float>(replay.Next() % 40 + 70);
+            if (full)
+                continue;
+            const JointState& flare = joints[ray];
+            ASSERT_TRUE(flare.alive);
+            EXPECT_EQ(flare.type, 0x5ac);
+            EXPECT_EQ(flare.subtype, 0);
+            EXPECT_EQ(flare.ownerContext, nullptr);
+            EXPECT_EQ(flare.width, width);
+            EXPECT_EQ(flare.position, combo.transform.position);
+            EXPECT_EQ(flare.life, 20);
+            replay.Discard(3);
+        }
+        if (!full)
+        {
+            EXPECT_FALSE(joints[60].alive);
+        }
+        EXPECT_EQ(random.State(), replay.State());
+        CrtRandom counted{Seed};
+        counted.Discard(full ? 60U : 240U);
+        EXPECT_EQ(random.State(), counted.State());
     }
 }

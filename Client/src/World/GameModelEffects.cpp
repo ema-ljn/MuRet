@@ -667,7 +667,8 @@ Core::Expected<void, std::string> StepAidaWisp(ModelEffect& effect, Particles& p
 // 0, −1, 0, 0, 0, 0), sin rand(); llena, nada). El /0, el /2, el /3 y el /7, con la vida entre 6 y 9, sueltan la
 // órbita 60f con la escala 0,19, la luz del efecto y el efecto de dueño (+0x40): el /3 (el del 0x38 de Crywolf) la /10,
 // que no lee al dueño (Q-C346); los otros la /0 (0x52b8ff, 0x52b977), cuyo paso lee la acción (+0x111) del 0x61d como
-// la de un personaje (0x54735f): el prefijo de 0x518cf0 la deja en 0 y sólo un lugar reusado conserva otra.
+// la de un personaje (0x54735f): el prefijo de 0x518cf0 la deja en 0 y sólo un lugar reusado conserva otra. Sin la
+// tabla de efectos el /0 corta siempre (el /1); la órbita /0, sólo si tiene lugar.
 Core::Expected<void, std::string> StepFadingDecal(const ModelEffect& effect, Particles& particles,
                                                   const float& worldClock, Render::Models::CrtRandom& random,
                                                   const ModelEffectStepServices& services)
@@ -703,6 +704,10 @@ Core::Expected<void, std::string> StepFadingDecal(const ModelEffect& effect, Par
         return {};
     }
     const char* const caller = effect.subtype == TrailSubtype ? "0x52b8ff" : "0x52b977";
+    // 0x53fe70 sin lugar libre no crea ni saca rand(): la tabla de efectos (el lugar del dueño) sólo hace falta si la
+    // órbita nace.
+    if (std::ranges::none_of(particles.All(), [](const Particle& slot) { return !slot.alive; }))
+        return {};
     if (services.effects == nullptr)
         return Core::Unexpected(std::format("{}: la órbita 0x60f/0 pide la tabla de efectos de su dueño", caller));
     const auto pool = services.effects->Effects();

@@ -576,7 +576,7 @@ TEST(CrywolfDecalTest, TheBannerDecalReleasesFourOrbsBeforeItFades)
 
     // 0x52b8ff y 0x52b977: el /0, el /2 y el /7 sueltan la órbita 60f/0 con su posición, sus ángulos, su luz, la escala
     // 0,19 y el efecto de dueño (su lugar en la tabla), después del rand() de la luz del paso; llena, nada. Sin la
-    // tabla de efectos (de donde sale el lugar del dueño) cortan con su dirección.
+    // tabla de efectos (de donde sale el lugar del dueño) cortan con su dirección si la órbita tiene lugar.
     for (const std::int32_t subtype : {0, 2, 7})
     {
         SCOPED_TRACE(subtype);
@@ -631,6 +631,13 @@ TEST(CrywolfDecalTest, TheBannerDecalReleasesFourOrbsBeforeItFades)
 
         if (subtype == 0)
             continue;
+        // Con la tabla de partículas llena la órbita no nace y el dueño no hace falta: sin la tabla de efectos el /2 y
+        // el /7 siguen como el original, con sólo el rand() de la luz.
+        Client::World::ModelEffect unowned = before;
+        CrtRandom unownedRandom(29);
+        ASSERT_TRUE(Client::World::StepGameModelEffect(unowned, nullptr, *full, 2500.0f, unownedRandom).HasValue());
+        EXPECT_EQ(unownedRandom.State(), 0x0085526cu); // 29 · 214013 + 2531011
+        EXPECT_EQ(unownedRandom.State(), Client::Tests::AfterDraws(29, 1).State());
         CrtRandom loneRandom(29);
         const auto lone = Client::World::StepGameModelEffect(again, nullptr, *spawned, 2500.0f, loneRandom);
         ASSERT_FALSE(lone.HasValue());

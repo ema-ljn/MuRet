@@ -50,11 +50,29 @@ void ModelTextureSlots::SetNext(TextureSlot next)
 std::vector<TextureSlot> ModelTextureSlots::Assign(const Data::Models::Model& model, std::string_view folder,
                                                    Sampling sampling)
 {
+    return Assign(model, folder, sampling, nullptr, nullptr);
+}
+
+std::vector<TextureSlot> ModelTextureSlots::Assign(const Data::Models::Model& model, std::string_view folder,
+                                                   Sampling sampling, ModelTextureRequests* requests,
+                                                   std::vector<std::optional<std::size_t>>* bindings)
+{
     std::vector<TextureSlot> slots;
     slots.reserve(model.meshes.size());
+    if (bindings != nullptr)
+    {
+        bindings->clear();
+        bindings->reserve(model.meshes.size());
+    }
     for (const Data::Models::Mesh& mesh : model.meshes)
     {
         const std::optional<TextureSlot> found = Find(mesh.textureName);
+        if (!found && requests != nullptr)
+        {
+            const auto next = Next();
+            requests->lastBySlot.insert_or_assign(next.value, requests->names.size());
+            requests->names.push_back({mesh.textureName, std::string(NameOf(next))});
+        }
         TextureSlot slot = found.has_value() ? *found : Request(folder, mesh.textureName, sampling);
         const std::optional<std::uint16_t> skin = Data::Models::SkinSlotOf(mesh.textureName);
         if (skin.has_value())
@@ -62,6 +80,12 @@ std::vector<TextureSlot> ModelTextureSlots::Assign(const Data::Models::Model& mo
             slot = TextureSlot{*skin};
         }
         slots.push_back(slot);
+        if (requests != nullptr && bindings != nullptr)
+        {
+            const auto assigned = requests->lastBySlot.find(slot.value);
+            bindings->push_back(!skin && assigned != requests->lastBySlot.end() ? std::optional(assigned->second)
+                                                                                : std::nullopt);
+        }
     }
     return slots;
 }

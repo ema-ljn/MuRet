@@ -19,9 +19,12 @@
 #include "Render/Models/Cloth.h"
 #include "Scenes/SceneCameras.h"
 #include "Scenes/SceneTextures.h"
+#include "Scenes/TextureMetadata.h"
+#include "Scenes/TextureSets.h"
 #include "UI/Widget.h"
 
 #include <glm/ext/vector_float3.hpp>
+#include <glm/ext/vector_float2.hpp>
 
 #include <array>
 #include <cstddef>
@@ -97,9 +100,12 @@ std::array<Data::Models::ModelFile, 1 + NewFaceCount> SelectionModelFiles()
 
 Core::Expected<void, std::string> SelectionModels::Load(const std::filesystem::path& dataRoot,
                                                         Render::ITextureStore& textures, Core::Log& log,
-                                                        const Render::Models::ModelTextureSlots* gameSlots)
+                                                        const Render::Models::ModelTextureSlots* gameSlots,
+                                                        std::optional<TextureMetadata> startupTexture)
 {
     Release();
+    m_startupTexture = startupTexture;
+    m_startupStore = startupTexture ? &textures : nullptr;
     m_models.clear();
     m_skeletons.clear();
     m_meshTextures.clear();
@@ -141,9 +147,17 @@ Core::Expected<void, std::string> SelectionModels::Load(const std::filesystem::p
 
 void SelectionModels::Release()
 {
+    constexpr Render::TextureSlot slot{StartupSelectionTextureSlot};
     if (m_textures)
     {
-        m_textures->Release();
+        m_textures->Release(m_startupTexture ? std::optional(slot) : std::nullopt);
+    }
+    if (m_startupStore != nullptr)
+    {
+        // 0x61cc65..0x61cc7a: el slot se libera aun si no lo reemplazó NewFace05.
+        m_startupStore->Release(slot);
+        m_startupStore = nullptr;
+        m_startupTexture.reset();
     }
 }
 
@@ -163,6 +177,27 @@ std::span<const Render::TextureSlot> SelectionModels::MeshTextures(std::uint16_t
 {
     const auto found = m_meshTextures.find(model);
     return found == m_meshTextures.end() ? std::span<const Render::TextureSlot>{} : found->second;
+}
+
+std::optional<TextureMetadata> SelectionModels::TextureMetadataOf(std::uint32_t selector) const
+{
+    const auto uploaded = m_textures ? m_textures->MetadataOf(selector) : std::nullopt;
+    if (uploaded)
+        return uploaded;
+    return selector == StartupSelectionTextureSlot ? m_startupTexture : std::nullopt;
+}
+
+std::optional<Render::TextureSlot> SelectionModels::TextureSlotOf(std::uint32_t selector) const
+{
+    if (TextureMetadataOf(selector))
+        return Render::TextureSlot{static_cast<std::uint16_t>(selector)};
+    return std::nullopt;
+}
+
+std::optional<glm::vec2> SelectionModels::TextureSize(Render::TextureSlot slot) const
+{
+    const auto metadata = TextureMetadataOf(slot.value);
+    return metadata ? std::optional(metadata->size) : std::nullopt;
 }
 
 const Render::Models::ModelTextureSlots* SelectionModels::TextureSlots() const

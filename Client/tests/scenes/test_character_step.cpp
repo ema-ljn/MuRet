@@ -106,11 +106,11 @@ constexpr int OtherSeenCellDraws = 8;
 constexpr int EffectsRandomDraws = 1;
 // Una lectura de +0x38e (0x517630 o sus copias en línea): un rand() al cerrarse en 0.
 constexpr int SkillReadDraws = 1;
-// Una habilidad con caso en el switch de 0x4f97b0 (0x4f9899) que corta: la 0x34 con +0x381 en 3, en el efecto 0x621
-// (0x4f9ecb, CL11).
-constexpr std::uint8_t FrameSkill = 0x34;
-constexpr std::uint8_t FrameSkillStep = 3;
-constexpr std::string_view FrameSkillCut = "0x4f9ecb";
+// Una habilidad todavía sin su efecto: la0x37 con acción0x3d y+0x381 en1 crea621/1.
+// El brillo621/0 de la0x34 ya recorre el productor normal (test_attack_frame_skills).
+constexpr std::uint8_t FrameSkill = 0x37;
+constexpr std::uint8_t FrameSkillStep = 1;
+constexpr std::string_view FrameSkillCut = "0x4f9f3e";
 // 0x5068fd: la cabeza de otro que el héroe sortea con rand() % 32 en 0.
 constexpr int HeadOneIn = 32;
 // La selección (0x633f20, World55) y el login (0x6349a0, World56).
@@ -1330,8 +1330,9 @@ TEST(CharacterStepTest, AnEquippedSwordAttackCreatesItsTrailAndContinuesTheBody)
     EXPECT_EQ(ribbon.ownerContext, &hero);
     EXPECT_EQ(ribbon.ownerEquipment, &hero.level);
     EXPECT_EQ(ribbon.type, 0);
-    EXPECT_EQ(ribbon.count, 10);
-    EXPECT_EQ(ribbon.life, 15);
+    // Las diez altas de 0x4fd5a0 preceden al único paso de las cintas al terminar el pool (0x5091d0).
+    EXPECT_EQ(ribbon.count, 9);
+    EXPECT_EQ(ribbon.life, 14);
     EXPECT_EQ(ribbon.light, (glm::vec3{1.0f, 0.6f, 0.2f}));
     EXPECT_EQ(ribbon.first[0], (glm::vec3{100.0f, 180.0f, 300.0f}));
     EXPECT_EQ(ribbon.second[0], (glm::vec3{100.0f, 80.0f, 300.0f}));
@@ -1424,6 +1425,7 @@ TEST(CharacterStepTest, TheBodyStopsWhereMuRetHasNothing)
              [](GameWorld& tested)
              {
                  tested.Hero().dying = 1;
+                 tested.Hero().animation.action = 0x3d;
                  tested.Hero().byte381 = FrameSkillStep;
                  tested.Hero().byte38e = FrameSkill;
              },
@@ -1431,6 +1433,7 @@ TEST(CharacterStepTest, TheBodyStopsWhereMuRetHasNothing)
         Case{"pegó con una habilidad",
              [](GameWorld& tested)
              {
+                 tested.Hero().animation.action = 0x3d;
                  tested.Hero().byte381 = FrameSkillStep;
                  tested.Hero().byte38e = FrameSkill;
              },
@@ -2059,6 +2062,8 @@ TEST(CharacterStepTest, TheExitsOf508ba0BeforeTheCell)
         other.type = probe.type;
         other.dying = probe.dying;
         other.movement = probe.movement;
+        if (probe.dying != 0)
+            other.animation.action = 0x3d;
         other.byte381 = probe.dying != 0 ? FrameSkillStep : 0;
         other.byte38e = FrameSkill;
 

@@ -252,7 +252,7 @@ TEST_F(KalimaSiegeHelperTest, TheKalimaGateCountsItsParticle)
 // estrellas de los huesos 51..55 y 29..33.
 TEST_F(KalimaSiegeHelperTest, TheFirstKalimaHelperDrawsItsStarsAndDrawsItsRandoms)
 {
-    ActorState& helper = Actor(0x191, 6);
+    Actor(0x191, 6);
     ASSERT_TRUE(Draw(24).HasValue());
     auto sprites = Sprites();
     ASSERT_EQ(sprites.size(), 10u);
@@ -269,7 +269,7 @@ TEST_F(KalimaSiegeHelperTest, TheFirstKalimaHelperDrawsItsStarsAndDrawsItsRandom
     EXPECT_EQ(m_random.State(), Seed);
 
     SetUp();
-    Actor(0x191, 0);
+    const ActorState& helper = Actor(0x191, 0);
     FillParticles();
     ASSERT_TRUE(Draw(24).HasValue());
     sprites = Sprites();
@@ -667,7 +667,7 @@ TEST_F(KalimaSiegeHelperTest, TheSixthKalimaHelperBeatsAndSparks)
 }
 
 // 0x43e924..0x43ebef, el 0x197: rojo con el subtipo 9 (+0x4) y azul con otro; seis vueltas de dos partículas por los
-// huesos 41 y 51 (0x5da/1 o 0x5dc/12, CL11). En la acción 6 suelta las dos manos.
+// huesos 41 y 51 (0x5da/1 o 0x5dc/12). En la acción 6 suelta las dos manos.
 TEST_F(KalimaSiegeHelperTest, TheSeventhKalimaHelperIsRedOrBlue)
 {
     Actor(0x197, 0).subtype = 9;
@@ -682,7 +682,26 @@ TEST_F(KalimaSiegeHelperTest, TheSeventhKalimaHelperIsRedOrBlue)
 
     SetUp();
     Actor(0x197, 0).subtype = 2;
-    ExpectCut(Draw(36), "0x43ebb7", "0x5dc/12");
+    ASSERT_TRUE(Draw(36).HasValue());
+    EXPECT_EQ(m_random.State(), After(48));
+    CrtRandom expected{Seed};
+    for (std::size_t slot = 0; slot < 12; ++slot)
+    {
+        const auto& particle = m_particles->All()[slot];
+        EXPECT_TRUE(particle.alive);
+        EXPECT_EQ(particle.type, 0x5dc);
+        EXPECT_EQ(particle.subtype, 12);
+        EXPECT_EQ(particle.life, 24);
+        EXPECT_EQ(particle.light, glm::vec3(pale, pale, lum));
+        const float offset = -40.0f - static_cast<float>(slot / 2) * 24.0f;
+        EXPECT_EQ(particle.position, Bone(slot % 2 == 0 ? 41 : 51, {0.0f, offset, 0.0f}));
+        static_cast<void>(expected.Next());
+        static_cast<void>(expected.Next());
+        const float scale = F32(D(7.2f) / static_cast<double>((slot / 2) / 2 + 6) * 0.5);
+        EXPECT_EQ(particle.scale, F32((expected.Next() % 16 + 150) * D(scale) * D(0.012f)));
+        static_cast<void>(expected.Next());
+    }
+    EXPECT_FALSE(m_particles->All()[12].alive);
     sprites = Sprites();
     EXPECT_EQ(sprites[0].light, glm::vec3(0.0f, pale, lum));
     EXPECT_EQ(sprites[2].light, glm::vec3(F32(D(lum) * D(0.1f)), F32(D(lum) * D(0.3f)), lum));

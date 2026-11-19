@@ -12,7 +12,6 @@
 #include "World/ParticleDrawing.h"
 #include "World/Particles.h"
 #include <glm/ext/vector_float2.hpp>
-#include <cmath>
 #include <cstdint>
 #include <functional>
 namespace Client::Scenes
@@ -91,17 +90,23 @@ World::IParticleDrawingServices::Result ParticleDrawServices::Type620870()
 }
 World::IParticleDrawingServices::Result ParticleDrawServices::TextureEnv(Render::TextureEnvMode mode)
 {
-    return Checked(m_backend.get().TextureEnv(mode), Phase::TextureEnv);
+    const auto changed = Checked(m_backend.get().TextureEnv(mode), Phase::TextureEnv);
+    if (changed.HasValue())
+        m_textureEnvOverride = mode == Render::TextureEnvMode::Add;
+    return changed;
+}
+bool ParticleDrawServices::HasOpenTextureEnvOverride() const
+{
+    return m_textureEnvOverride;
 }
 World::IParticleDrawingServices::Result ParticleDrawServices::Billboard(Render::ParticleBillboardRequest request)
 {
     const auto bound = Checked(m_backend.get().BindTexture(request.selector), Phase::Bind);
     if (!bound.HasValue())
         return bound;
-    // 621451 C3: unordered conserva la ruta sin giro. P y view se consumen DESPUÉS del binder.
-    const float rotation = std::isnan(request.rotation) ? 0.0f : request.rotation;
+    // P y view se consumen DESPUÉS del binder.
     const auto corners = Render::MakeBillboardGeometry(m_view.get(), request.position.get(), request.width,
-                                                       request.height, rotation, request.uv, request.uvSize);
+                                                       request.height, request.rotation, request.uv, request.uvSize);
     const auto begun = Checked(m_backend.get().Begin(), Phase::Begin);
     if (!begun.HasValue())
         return begun;

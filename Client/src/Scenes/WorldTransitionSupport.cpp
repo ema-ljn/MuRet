@@ -161,8 +161,13 @@ void ClearTransitionActorsAndItems(std::uint16_t playerKey, const WorldEntryReso
 }
 void CreateTransitionArrival(ActorState& actor, const WorldEntryResources& resources)
 {
-    static_cast<void>(
-        resources.world.Map().effects.Create(World::ArrivalEffect, actor.position, actor.angles, actor.light, 0.0f));
+    static_cast<void>(resources.world.Map().effects.Create(World::ModelEffectArguments{.type = World::ArrivalEffect,
+                                                                                       .position = actor.position,
+                                                                                       .angles = actor.angles,
+                                                                                       .light = actor.light,
+                                                                                       .owner = &actor,
+                                                                                       .key = 0xffff,
+                                                                                       .scale = 0.0f}));
 }
 Core::Expected<void, std::string> StartTheTeleportAction(ActorState& actor, const WorldEntryResources& resources)
 {

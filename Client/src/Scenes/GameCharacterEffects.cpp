@@ -122,11 +122,11 @@ constexpr float EnergyWidth = 10.0f;
 
 // 0x52a7b7 y 0x52a8a7: los 5ac/1 y /2 de las skills que llegan viven 10 pasos más mientras el dueño esté vivo con su
 // bandera de +0x78; con 0x4000 en el dueño no hacen nada. El /1 suelta dos 5ac/4 de la luz (1; 0,5f; 0,1f) con las
-// escalas de 0x6c8c38 + rand() % 7 y 0x6c8c3e − ese; el /2, cada 50 de +0xd8, gira 50, se pone a 80 del dueño y 50
-// más arriba, y suelta el joint 619/9 de ancho 15.
+// índices de hueso de 0x6c8c38 + rand() % 7 y 0x6c8c3e − ese; el /2, cada 50 de +0xd8, gira 50, se pone a 80 del dueño
+// y 50 más arriba, y suelta el joint 619/9 de ancho 15.
 constexpr std::int32_t SkillFlareLife = 10;
 constexpr std::uint32_t SwellFlag = 0x10, GuardFlag = 0x400, QuietOwnerFlag = 0x4000;
-constexpr int SwellScales = 7;
+constexpr std::array<float, 7> SwellBones{25, 26, 27, 20, 34, 35, 36};
 constexpr std::int32_t GuardPeriod = 50;
 constexpr double GuardTurn = 50.0;   // 0x6b86b0
 constexpr float GuardRadius = 80.0f; // 0x6b9ffc
@@ -576,6 +576,23 @@ Result GuildMark(const Tail& tail)
         return Core::Unexpected<std::string>("0x510f4d: el efecto 0x140 de +0x369 no está portado");
     return {};
 }
+Core::Expected<void, std::string> RaiseSwellLifeChildren(const World::ModelEffect& effect, World::Particles* particles,
+                                                         World::ParticleOwner owner, Render::Models::CrtRandom& random)
+{
+    // 0x52a82b..0x52a89a: el selector corre aun con la tabla de partículas llena.
+    const std::size_t bone = static_cast<std::size_t>(random.Next()) % SwellBones.size();
+    if (particles == nullptr)
+        return Core::Unexpected<std::string>("0x52a866: faltan las partículas de Swell Life");
+    for (const std::size_t index : std::array{bone, SwellBones.size() - 1 - bone})
+    {
+        const auto made = particles->CreateOwnedChecked(World::SwellLifeParticle, effect.transform.position,
+                                                        glm::vec3(0), {1, 0.5f, 0.1f}, World::SwellLifeParticleSubtype,
+                                                        SwellBones[index], 0, random, 0, owner);
+        if (!made.HasValue())
+            return Core::Unexpected<std::string>("0x52a866/0x52a89a: no se pudo crear la luz de Swell Life");
+    }
+    return {};
+}
 } // namespace
 
 Core::Expected<void, std::string> DrawGameCharacterEffects(ActorState& actor, const GameCharacterEffectsPass& pass)
@@ -648,7 +665,8 @@ Core::Expected<void, std::string> StepFullSetFlare(World::ModelEffect& effect, s
 }
 
 Core::Expected<void, std::string> StepSkillFlare(World::ModelEffect& effect, std::span<JointState> joints,
-                                                 Render::Models::CrtRandom& random)
+                                                 Render::Models::CrtRandom& random, World::Particles* particles,
+                                                 World::ParticleOwner particleOwner)
 {
     if (!effect.alive)
         return {};
@@ -661,8 +679,11 @@ Core::Expected<void, std::string> StepSkillFlare(World::ModelEffect& effect, std
     const bool swell = effect.subtype == World::SwellFlareSubtype;
     // 0x52a7e6 y 0x52a8dc: +0x78 del dueño se lee aunque +0x108 esté en 0; MuRet los crea siempre con el blanco.
     if (effect.ownerContext == nullptr)
+    {
+        effect.life = 0; // 0x52a7e3/0x52a8d9, antes de leer +0x78 del dueño nulo.
         return Core::Unexpected(
             std::format("{}: el 0x5ac/{} sin dueño lee +0x78 de 0", swell ? "0x52a7ec" : "0x52a8e2", effect.subtype));
+    }
     const auto& owner = *static_cast<const ActorState*>(effect.ownerContext);
     const std::uint32_t flag = swell ? SwellFlag : GuardFlag;
     effect.life = owner.alive && (owner.flags78 & flag) == flag ? SkillFlareLife : 0;
@@ -670,38 +691,39 @@ Core::Expected<void, std::string> StepSkillFlare(World::ModelEffect& effect, std
     {
         if (swell)
         {
-            // 0x52a82b..0x52a866: la escala sale de la tabla de 0x6c8c38 con rand() % 7.
-            const int scale = random.Next() % SwellScales;
-            return Core::Unexpected(std::format("0x52a866: las partículas 0x5ac/4 del 0x5ac/1 (0x53fe70, la escala de "
-                                                "0x6c8c38 + {}) son de la CL11",
-                                                scale));
+            const auto raised = RaiseSwellLifeChildren(effect, particles, particleOwner, random);
+            if (!raised.HasValue())
+                return raised;
         }
-        constexpr double Step = 1.0; // 0x6b87d4
-        // 0x52a8f7..0x52a91e: fst deja la suma en la pila para el ftol (0x69fd3c).
-        const double counted = D(effect.speed) + Step;
-        effect.speed = F32(counted);
-        if (World::FtolLow(counted) % GuardPeriod == 0)
+        else
         {
-            glm::vec3& angles = effect.transform.angles;
-            glm::vec3& position = effect.transform.position;
-            // 0x52a92a: fst; el seno sale de la suma sin redondear y el coseno vuelve a cargar el float (Q-C380).
-            const double turned = D(angles.z) + GuardTurn;
-            angles.z = F32(turned);
-            const auto sine = Render::Models::Detail::SineProductPC53(turned * D(Tenth), GuardRadius);
-            const auto cosine = Render::Models::Detail::CosineProductPC53(D(angles.z) * D(Tenth), GuardRadius);
-            if (!sine || !cosine)
-                return Core::Unexpected<std::string>("0x52a950: el giro del 0x5ac/2 excede el perfil matemático");
-            position.x = F32(*sine + D(owner.position.x));
-            position.y = F32(*cosine + D(owner.position.y));
-            position.z = F32(D(owner.position.z) + GuardRise);
-            if (joints.empty())
-                return Core::Unexpected<std::string>("0x52a9a0: faltan los joints del paso (0x530860)");
-            const auto created = CreateFaunaJoint(joints,
-                                                  {EnergyType, position, position, angles, EnergySubtype,
-                                                   effect.ownerContext, GuardWidth, NoKey, 0, 0, NoTarget},
-                                                  random);
-            if (!created.HasValue())
-                return Core::Unexpected(std::format("0x52a9a0: {}", created.Error()));
+            constexpr double Step = 1.0; // 0x6b87d4
+            // 0x52a8f7..0x52a91e: fst deja la suma en la pila para el ftol (0x69fd3c).
+            const double counted = D(effect.speed) + Step;
+            effect.speed = F32(counted);
+            if (World::FtolLow(counted) % GuardPeriod == 0)
+            {
+                glm::vec3& angles = effect.transform.angles;
+                glm::vec3& position = effect.transform.position;
+                // 0x52a92a: fst; el seno sale de la suma sin redondear y el coseno vuelve a cargar el float (Q-C380).
+                const double turned = D(angles.z) + GuardTurn;
+                angles.z = F32(turned);
+                const auto sine = Render::Models::Detail::SineProductPC53(turned * D(Tenth), GuardRadius);
+                const auto cosine = Render::Models::Detail::CosineProductPC53(D(angles.z) * D(Tenth), GuardRadius);
+                if (!sine || !cosine)
+                    return Core::Unexpected<std::string>("0x52a950: el giro del 0x5ac/2 excede el perfil matemático");
+                position.x = F32(*sine + D(owner.position.x));
+                position.y = F32(*cosine + D(owner.position.y));
+                position.z = F32(D(owner.position.z) + GuardRise);
+                if (joints.empty())
+                    return Core::Unexpected<std::string>("0x52a9a0: faltan los joints del paso (0x530860)");
+                const auto created = CreateFaunaJoint(joints,
+                                                      {EnergyType, position, position, angles, EnergySubtype,
+                                                       effect.ownerContext, GuardWidth, NoKey, 0, 0, NoTarget},
+                                                      random);
+                if (!created.HasValue())
+                    return Core::Unexpected(std::format("0x52a9a0: {}", created.Error()));
+            }
         }
     }
     // 0x52cb98: el 0x5ac no avanza animación; la velocidad (0) girada y una vida menos.

@@ -4,7 +4,9 @@
 
 #include <glm/ext/vector_float3.hpp>
 
+#include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <functional>
 #include <string>
 
@@ -19,12 +21,18 @@ struct TerrainAttributes;
 }
 namespace Client::World
 {
+struct FishEffectRequest;
 struct ModelEffect;
+struct ModelEffectArguments;
 class ModelEffects;
 class Particles;
 class KalimaWorld;
 class FrameSprites;
 struct TerrainLighting;
+// 0x5192a3 y 0x5212e7: alta y cuerpo de la estela compartida por Crywolf y el terremoto.
+inline constexpr std::int16_t SpiritTrailEffect = 0x104;
+[[nodiscard]] std::optional<std::size_t> CreateSpiritTrail(const ModelEffectArguments&, ModelEffects&);
+
 // Lo que los casos piden afuera de su efecto: la altura del terreno (0x5f93c0) de la mariposa, de las
 // piedras y del terremoto, la tabla de sprites del frame (0x5491e0) de la mariposa, la de los efectos (0x518cf0) y
 // la luz dinámica (0x7b4ccc4) del chorro 0x5de, de las piedras 0x118/0x119 y de las grietas del terremoto,
@@ -42,6 +50,9 @@ struct ModelEffectStepServices
     const std::int32_t* map = nullptr;
     float* cameraShake = nullptr;
     std::function<void(std::int32_t)> sound{};
+    std::function<Core::Expected<void, std::string>(const FishEffectRequest&)> joint{};
+    // 0x52cc21: el paso del pulso 0x103 publica su acción en la tabla compartida antes de animar.
+    std::function<void(std::uint16_t, std::uint8_t)> publishAction{};
     // 0x51ed6a y 0x52b349 piden sonido para el destello 0x60d en su posición.
     std::function<void(std::int32_t, const glm::vec3&)> soundAt{};
     // 0x52ae2a: el héroe publicado ([0x743a170]), que el chorro 0x5de/0 de la Flame compara con su dueño (+0x108), y
@@ -78,11 +89,12 @@ struct ModelEffectStepServices
 // pone sobre el terreno (en Kalima, con la onda 0x437860), suelta la explosión 5ed/0 y, con un dueño que no es del
 // tipo 0x1b1, las grietas 0xfd, 0xfb y 0xfc, y cinco pares 0xfe/0xff donde la celda lo deja; en la 10, cuatro anillos
 // de cinco pares 0x101/0x102, el sonido 0x97 y la vida en 0; en las demás, se hamaca con +0x28. Con el estado 0 (la
-// habilidad del Dark Lord) corta donde sale de lo portado. Salta la animación y 0x51fc80 de la cola (0x52cbb0). Las
-// grietas 0xfb..0x102 (0x52276a..0x522bd2) se apagan y se hunden; la 0xfb tiembla la cámara, las 0xfc y 0xff sueltan
-// a veces piedritas 0xc8/0xc9 y, con la 0x102, prenden la luz dinámica según el tipo de su dueño. Las piedras 0x10a y
-// 0x10b de las estatuas de Blood Castle (0x52531d) saltan, caen sobre el terreno y se inclinan; uno de cada diez pasos
-// corta en 0x5252e6, donde el polvo 5f3/0 va en un local sin escribir (Q-C1176).
+// habilidad del Dark Lord), en la vida 13 emite dos grupos de cuatro estelas 0x104 y el sonido 0x96 antes de la
+// hamaca; en la 11 emite ocho joints 0x617/0, una chispa 5c5/0 y el pulso 0x103. Salta la animación y 0x51fc80 de la
+// cola (0x52cbb0). Las grietas 0xfb..0x102 (0x52276a..0x522bd2) se apagan y se hunden; la 0xfb tiembla la cámara, las
+// 0xfc y 0xff sueltan a veces piedritas 0xc8/0xc9 y, con la 0x102, prenden la luz dinámica según el tipo de su dueño.
+// Las piedras 0x10a y 0x10b de las estatuas de Blood Castle (0x52531d) saltan, caen sobre el terreno y se inclinan; uno
+// de cada diez pasos corta en 0x5252e6, donde el polvo 5f3/0 va en un local sin escribir (Q-C1176).
 [[nodiscard]] Core::Expected<void, std::string>
 StepGameModelEffect(ModelEffect& effect, const Render::Models::Skeleton* skeleton, Particles& particles,
                     float worldClock, Render::Models::CrtRandom& random, KalimaWorld* kalima = nullptr,

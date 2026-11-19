@@ -6,7 +6,9 @@
 #include "Render/TextureSlot.h"
 
 #include <cstddef>
+#include <cstdint>
 #include <deque>
+#include <map>
 #include <optional>
 #include <span>
 #include <string>
@@ -19,6 +21,19 @@
 // CL6). Qué escena empieza en qué slot es de quien la arma (CL6.3).
 namespace Client::Render::Models
 {
+struct TextureRequestNames
+{
+    std::string requested;
+    std::string previous;
+};
+
+struct ModelTextureRequests
+{
+    std::vector<TextureRequestNames> names;
+    // La última reserva de esta carga para cada slot, incluso si vuelve a usarse el mismo nombre.
+    std::map<std::uint16_t, std::size_t> lastBySlot;
+};
+
 class ModelTextureSlots
 {
 public:
@@ -49,6 +64,10 @@ public:
     // que se pidió queda ocupado. `sampling` es el de las OZJ: las OZT van siempre con GL_NEAREST.
     std::vector<TextureSlot> Assign(const Data::Models::Model& model, std::string_view folder,
                                     Data::Textures::Sampling sampling);
+    // Lleva el vínculo entre cada malla y su petición. La piel y los nombres ya residentes no tienen petición.
+    std::vector<TextureSlot> Assign(const Data::Models::Model& model, std::string_view folder,
+                                    Data::Textures::Sampling sampling, ModelTextureRequests* requests,
+                                    std::vector<std::optional<std::size_t>>* bindings);
 
     // Lo que pidió Assign y hay que subir, en orden, con el slot y el muestreo de cada una
     // (Data::Textures::LoadTextureSet): la carpeta, el nombre hasta el primer punto y la extensión del

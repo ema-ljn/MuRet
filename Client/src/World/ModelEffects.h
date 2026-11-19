@@ -40,6 +40,7 @@ inline constexpr float DragonScale = 1.6f;
 // El efecto de llegada: lo crea dos veces la respuesta del F3 03 sobre el héroe (06, "El héroe").
 inline constexpr std::int16_t ArrivalEffect = 0x61f;
 inline constexpr std::int16_t TeleportEffect = 0x5c6;
+inline constexpr std::int16_t PiercingShotGlowEffect = 0x621;
 // La mariposa (0x51913a): la emite el 0x3c del mapa 54 y del 33 (0x425790), con el objeto de dueño.
 inline constexpr std::int16_t ButterflyEffect = 0xae;
 // Los del Dungeon y de Lost Tower: la piedra que cae del 0x34 del mapa 1 (DungeonStone), el chorro de fuego
@@ -136,6 +137,7 @@ inline constexpr std::int32_t SummonDecalSubtype = 3;
 // 11 la explosión 5ed/0 y las grietas 0xfb..0x100, y en la 10 las 0x101 y 0x102 (Data\Skill\EarthQuake01..08, que
 // dibuja 0x602e90). Los tres primeros (0xfd, 0xfb y 0xfc) llevan al 0xfa de dueño; los demás, al dueño del 0xfa.
 inline constexpr std::int16_t EarthquakeEffect = 0xfa;
+inline constexpr std::int16_t EarthquakeBurstEffect = 0x103;
 inline constexpr std::int16_t FirstEarthquakeCrack = 0xfb;
 inline constexpr std::int16_t LastEarthquakeCrack = 0x102;
 // +0x74 en 0x80: las grietas 0xfc, 0xff y 0x102 con el subtipo 1 (0x51a850); 0x6002e0 las dibuja por 0x4ef0c0 con
@@ -245,6 +247,8 @@ public:
     std::optional<std::size_t> CreateCrywolfTideEffect(const ModelEffectArguments& arguments);
     // 0x51c129: ondas114/2 y/6, key firmado como escala, sinRNG; 0x51c8e8:115/1.
     std::optional<std::size_t> CreateWaveEffect(const ModelEffectArguments& arguments);
+    // 0x51efa5: brillo621/0 de Piercing Shot, vida10 y corrimiento girado, sinCRT.
+    std::optional<std::size_t> CreatePiercingShot(const ModelEffectArguments& arguments);
     std::optional<std::size_t> CreatePiercingEffect(const ModelEffectArguments& arguments);
     // 0x51c06c: proyectil0xee de BD0C, sinCRT; +1b0 recibe los ángulos como destino.
     std::optional<std::size_t> CreateCrywolfMissile(const ModelEffectArguments& arguments);
@@ -270,6 +274,9 @@ public:
     // Noria tiene su creador separado con CRT; los demás tipos no se crean.
     std::optional<std::size_t> Create(std::int16_t type, const glm::vec3& position, const glm::vec3& angles,
                                       const glm::vec3& light, float scale);
+    // Admite el subtipo 0 de los tres tipos anteriores. Conserva los argumentos del prefijo y los campos
+    // físicos que éste no escribe al reciclar el lugar.
+    std::optional<std::size_t> Create(const ModelEffectArguments& arguments);
     // 0x51c36e/0x51c38a: los efectos 322..324 de la torre de Noria; 322/323 ponen sourceLight en cero.
     std::optional<std::size_t> CreateNoriaEffect(std::int16_t type, const glm::vec3& position, const glm::vec3& angles,
                                                  glm::vec3& sourceLight, Render::Models::CrtRandom& random);
@@ -422,6 +429,9 @@ public:
                                                 const glm::vec3& light, std::uint8_t state,
                                                 const ModelEffectOwner& owner, std::uint8_t& ownRecordDepth,
                                                 std::uint8_t& ownRecordCount, Render::Models::CrtRandom& random);
+    // 0x519275: pulso sin dueño ni azar; primer lugar libre, vida 15 y luz blanca.
+    std::optional<std::size_t> CreateEarthquakeBurst(const glm::vec3& position, const glm::vec3& angles,
+                                                     const glm::vec3& light);
     // 0x518cf0(0xfb..0x102, posición, ángulos, luz, subtipo, dueño, tamaño, 0, 0, 0, 0) → 0x51a6e4..0x51a85c: el
     // prefijo común con el dueño y +0x8a en `size`, y la escala size · 0,01f (fild/fmul/fstp). Vida: 0xfb 35 con el
     // subtipo 0 y 60 con el 1; 0xfc 20 con el 0 y el 1 y 50 con el 2; 0xfd, 0xfe y 0x100 35; 0xff, 0x101 y 0x102 40.

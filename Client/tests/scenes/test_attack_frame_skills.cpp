@@ -26,6 +26,8 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
+#include <array>
 #include <bit>
 #include <cstddef>
 #include <cstdint>
@@ -485,7 +487,7 @@ TEST(AttackFrameSkillsTest, TheStepsOf2f)
 }
 
 // 0x34 (0x4f9e61..0x4f9ef2): el 0x20a de la 0x22 a la 0x97, desde el frame 5, vuelve al 5 con la key anterior en 4; en
-// 3 corta en el efecto 0x621/0 (0x4f9ecb, CL11) antes del 5 de [0x6c88ac]; si no, [0x6c88ac] en 5.
+// 3 crea el efecto 0x621/0 y suena0x81 antes del5 de[0x6c88ac].
 TEST(AttackFrameSkillsTest, ThePiercingShotHoldsItsFrame)
 {
     struct Case
@@ -497,13 +499,17 @@ TEST(AttackFrameSkillsTest, ThePiercingShotHoldsItsFrame)
         std::uint8_t step;
         float expectedFrame;
         std::int16_t expectedKey;
-        std::string_view cut;
     };
     const std::vector<Case> cases{
-        {"en el frame 6", Player, 0x2e, 6.0f, 4, 5.0f, 4, ""}, {"en el frame 5", Player, 0x97, 5.0f, 4, 5.0f, 4, ""},
-        {"antes del 5", Player, 0x2e, 4.9f, 4, 4.9f, 0, ""},   {"en la 0x21", Player, 0x21, 6.0f, 4, 6.0f, 0, ""},
-        {"en la 0x98", Player, 0x98, 6.0f, 4, 6.0f, 0, ""},    {"otro tipo", 0x152, 0x2e, 6.0f, 4, 6.0f, 0, ""},
-        {"en 3", Player, 0x2e, 6.0f, 3, 5.0f, 4, "0x4f9ecb"},
+        {"en el frame 6", Player, 0x2e, 6.0f, 4, 5.0f, 4},
+        {"en el frame 5", Player, 0x97, 5.0f, 4, 5.0f, 4},
+        {"antes del 5", Player, 0x2e, 4.9f, 4, 4.9f, 0},
+        {"en la 0x21", Player, 0x21, 6.0f, 4, 6.0f, 0},
+        {"en la 0x98", Player, 0x98, 6.0f, 4, 6.0f, 0},
+        {"otro tipo", 0x152, 0x2e, 6.0f, 4, 6.0f, 0},
+        {"en 3", Player, 0x2e, 6.0f, 3, 5.0f, 4},
+        {"en 3 fuera del rango", Player, 0x21, 2.0f, 3, 2.0f, 0},
+        {"en 3 con otro modelo", 0x152, 0x2e, 2.0f, 3, 2.0f, 0},
     };
     for (const std::int32_t map : Maps)
     {
@@ -513,33 +519,35 @@ TEST(AttackFrameSkillsTest, ThePiercingShotHoldsItsFrame)
             FrameWorld tested(map);
             ActorState& hero = tested.Striker(probe.action, probe.frame, probe.step);
             hero.type = probe.type;
+            hero.light = {0.2f, 0.4f, 0.6f};
 
             const auto stepped = tested.Step(hero, 0x34);
 
-            if (probe.cut.empty())
+            ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+            EXPECT_TRUE(stepped.Value());
+            EXPECT_EQ(tested.Threshold(), 5);
+            if (probe.step == 3)
             {
-                ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
-                EXPECT_TRUE(stepped.Value());
-                EXPECT_EQ(tested.Threshold(), 5);
-            }
-            else
-            {
-                EXPECT_TRUE(HasError(stepped, probe.cut)) << ErrorOf(stepped);
-                EXPECT_EQ(tested.Threshold(), FullThreshold);
+                const auto& effect = tested.world.Map().effects.Effects()[0];
+                EXPECT_TRUE(effect.alive);
+                EXPECT_EQ(effect.type, 0x621);
+                EXPECT_EQ(effect.life, 10);
+                EXPECT_EQ(effect.ownerContext, &hero);
+                EXPECT_EQ(effect.light, hero.light);
             }
             EXPECT_EQ(hero.animation.frame, probe.expectedFrame);
             EXPECT_EQ(hero.animation.previousKey, probe.expectedKey);
             EXPECT_EQ(hero.byte381, probe.step);
             EXPECT_EQ(DrawsSince(Seed, tested.random), 0);
-            EXPECT_TRUE(tested.sounds.empty());
+            EXPECT_EQ(tested.sounds,
+                      probe.step == 3 ? (std::vector<std::int32_t>{0x81}) : (std::vector<std::int32_t>{}));
         }
     }
 }
 
 // La 0x34 por el paso del ataque, sin blanco y con el arco a pie (0x2e): desde +0x381 en 1, [0x6c88ac] en 5 y +0x381
-// sube a 2 y a 3, donde corta en el efecto 0x621 (0x4f9ecb) antes de la flecha. Desde 4 (después del efecto, cuando
-// esté), llega a 5 y corre la habilidad: 0x53e2b0 con la 0x34 (el sonido 0x55 y [0x5767948] en 0x34; sin arco en el
-// registro propio, sin flecha) y la cuenta de la tanda.
+// sube a2 y a3, emite621/0 y continúa a4. Desde4 llega a5 y corre la habilidad: 0x53e2b0 con la 0x34 (el sonido 0x55 y
+// [0x5767948] en 0x34; sin arco en el registro propio, sin flecha) y la cuenta de la tanda.
 TEST(AttackFrameSkillsTest, ThePiercingShotReachesTheArrowThroughTheAttack)
 {
     for (const std::int32_t map : Maps)
@@ -556,9 +564,12 @@ TEST(AttackFrameSkillsTest, ThePiercingShotReachesTheArrowThroughTheAttack)
             EXPECT_EQ(counting.Threshold(), 5);
         }
         const auto glowing = StepTheAttack(striker, HeroSlot, counting.Context());
-        EXPECT_TRUE(HasError(glowing, "0x4f9ecb")) << ErrorOf(glowing);
+        ASSERT_TRUE(glowing.HasValue()) << ErrorOf(glowing);
+        EXPECT_EQ(striker.byte381, 4);
+        EXPECT_EQ(counting.sounds, (std::vector<std::int32_t>{0x81}));
+        EXPECT_TRUE(counting.world.Map().effects.Effects()[0].alive);
         // Cada paso: la lectura de 0x4f97b0 y el rand() de 0x4f5b97 (sin blanco, la cola no lee +0x38e).
-        EXPECT_EQ(DrawsSince(Seed, counting.random), 2 + 2 + 1);
+        EXPECT_EQ(DrawsSince(Seed, counting.random), 2 + 2 + 2);
 
         FrameWorld shooting(map);
         ActorState& archer = shooting.Striker(0x2e, 0.0f, 4);
@@ -633,9 +644,56 @@ TEST(AttackFrameSkillsTest, TheThrowOf37)
     }
 }
 
+TEST(AttackFrameSkillsTest, Skill39AttemptsEveryKeyAcrossPartialAndFullPools)
+{
+    for (const float frame : {2.4f, 5.5f})
+    {
+        for (const int capacity : {0, 1, 2, 3})
+        {
+            SCOPED_TRACE(testing::Message() << frame << "/" << capacity);
+            FrameWorld tested(0);
+            ActorState& actor = tested.Striker(0x84, frame, 4);
+            actor.position = {100, 200, 300};
+            actor.angles = {10, 20, 30};
+            tested.world.Runtime().skillThreshold = UntouchedThreshold;
+            for (auto& joint : tested.joints)
+                joint.alive = true;
+            for (int index = 0; index < capacity; ++index)
+                tested.joints[static_cast<std::size_t>(index * 2)].alive = false;
+            const auto stepped = tested.Step(actor, 0x39);
+            ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+            const std::array earlyKeys{2, 3};
+            const std::array lateKeys{0, 1, 4};
+            const auto keys = frame > 5 ? std::span<const int>(lateKeys) : std::span<const int>(earlyKeys);
+            const auto admitted = std::min(static_cast<std::size_t>(capacity), keys.size());
+            for (std::size_t index = 0; index < admitted; ++index)
+            {
+                const auto& joint = tested.joints[index * 2];
+                EXPECT_EQ(joint.type, 0x60f);
+                EXPECT_EQ(joint.subtype, 0x17);
+                EXPECT_EQ(joint.key, keys[index]);
+                EXPECT_EQ(joint.ownerContext, nullptr);
+                EXPECT_EQ(joint.angles, actor.angles);
+            }
+            for (std::size_t index = 0; index < tested.joints.size(); ++index)
+            {
+                if (index % 2 == 0 && index / 2 < admitted)
+                    continue;
+                EXPECT_EQ(tested.joints[index].type, 0);
+                EXPECT_EQ(tested.joints[index].alive,
+                          !(index % 2 == 0 && index / 2 < static_cast<std::size_t>(capacity)));
+            }
+            EXPECT_EQ(actor.byte381, frame > 5 ? 15 : 4);
+            EXPECT_EQ(tested.Threshold(), FullThreshold);
+            EXPECT_EQ(tested.sounds, std::vector<std::int32_t>{0x270});
+            EXPECT_EQ(tested.random.State(), Seed);
+        }
+    }
+}
+
 // 0x38 (0x4fa4a8..0x4fa5d3): el 0x20a en la 0x8d corta en el primer efecto 0xce/2 (0x4fa4fa); los demás, [0x6c88ac] en
 // 15. 0x39 (0x4fa994..0x4faaca), de cualquier tipo: pasado el frame 5, los joints 0x60f/0x17 (0x4fa9ca); entre 2,3f y
-// 2,6f (sin los bordes), los de las claves 2 y 3 (0x4faa81); si no, [0x6c88ac] en 15.
+// 2,6f (sin los bordes), los de las claves 2 y 3 (0x4faa81); siempre [0x6c88ac] en 15 para la0x39.
 TEST(AttackFrameSkillsTest, TheSpinOf38AndTheBoltsOf39)
 {
     struct Case
@@ -652,10 +710,10 @@ TEST(AttackFrameSkillsTest, TheSpinOf38AndTheBoltsOf39)
         {"0x38 en la 0x8d", 0x38, Player, 0x8d, 0.0f, "0x4fa4fa"},
         {"0x38 en la 0x8c", 0x38, Player, 0x8c, 0.0f, ""},
         {"0x38 de otro tipo", 0x38, 0x152, 0x8d, 0.0f, ""},
-        {"0x39 en 5,5", 0x39, Player, 0x8d, 5.5f, "0x4fa9ca"},
-        {"0x39 de otro tipo en 5,5", 0x39, 0x152, 3, 5.5f, "0x4fa9ca"},
+        {"0x39 en 5,5", 0x39, Player, 0x8d, 5.5f, ""},
+        {"0x39 de otro tipo en 5,5", 0x39, 0x152, 3, 5.5f, ""},
         {"0x39 en 5", 0x39, Player, 0x8d, 5.0f, ""},
-        {"0x39 en 2,4", 0x39, Player, 0x8d, 2.4f, "0x4faa81"},
+        {"0x39 en 2,4", 0x39, Player, 0x8d, 2.4f, ""},
         {"0x39 en 2,3", 0x39, Player, 0x8d, 2.3f, ""},
         {"0x39 en 2,6", 0x39, Player, 0x8d, 2.6f, ""},
         {"0x39 con NaN", 0x39, Player, 0x8d, NaN, ""},
@@ -683,9 +741,11 @@ TEST(AttackFrameSkillsTest, TheSpinOf38AndTheBoltsOf39)
                 EXPECT_TRUE(HasError(stepped, probe.cut)) << ErrorOf(stepped);
                 EXPECT_EQ(tested.Threshold(), UntouchedThreshold);
             }
-            EXPECT_EQ(hero.byte381, 4);
+            const bool emitted =
+                probe.skill == 0x39 && (probe.frame > 5.0f || (probe.frame > 2.3f && probe.frame < 2.6f));
+            EXPECT_EQ(hero.byte381, probe.skill == 0x39 && probe.frame > 5.0f ? 15 : 4);
             EXPECT_EQ(DrawsSince(Seed, tested.random), 0);
-            EXPECT_TRUE(tested.sounds.empty());
+            EXPECT_EQ(tested.sounds, emitted ? std::vector<std::int32_t>{0x270} : std::vector<std::int32_t>{});
         }
     }
 }

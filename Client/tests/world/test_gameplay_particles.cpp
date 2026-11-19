@@ -2,6 +2,8 @@
 
 #include "Render/Models/Cloth.h"
 #include "World/ParticleDrawing.h"
+#include "World/ParticleOwner.h"
+#include "World/PortableParticleTrigonometry.h"
 
 #include "support/ParticleDrawRecorder.h"
 
@@ -15,6 +17,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <initializer_list>
+#include <functional>
 #include <optional>
 #include <limits>
 
@@ -27,11 +30,128 @@ using Client::Tests::RecordedParticleDraw;
 using Client::World::Particle;
 using Client::World::Particles;
 constexpr std::int32_t Fire = 0x5d9;
+// 0x5dc, la llama azul de la estela de Kalima: su textura es su tipo (Effect\Fire05.jpg, 0x61ddac).
+constexpr std::int32_t BlueFire = 0x5dc;
 constexpr std::int32_t Smoke = 0x5f2;
 
 std::uint32_t Bits(float value)
 {
     return std::bit_cast<std::uint32_t>(value);
+}
+
+TEST(GameplayParticlesTest, SwellLifeChildRetainsItsBoneAndOwnerWithoutBirthRandoms)
+{
+    Particles particles;
+    CrtRandom random(7);
+    const Client::World::ParticleOwner owner{Client::World::ParticleOwnerKind::Actor, 17};
+    const auto made =
+        particles.CreateOwnedChecked(0x5ac, {100, 200, 300}, {}, {1, 0.5f, 0.1f}, 4, 25, 0, random, 5, owner);
+    ASSERT_TRUE(made.HasValue());
+    ASSERT_EQ(made.Value(), 0u);
+    const auto& child = particles.All()[0];
+    EXPECT_TRUE(child.alive);
+    EXPECT_EQ(child.type, 0x5ac);
+    EXPECT_EQ(child.texture, 0x5ac);
+    EXPECT_EQ(child.subtype, 4);
+    EXPECT_EQ(child.life, 10);
+    EXPECT_EQ(child.scale, 2);
+    EXPECT_EQ(child.rotation, 25);
+    EXPECT_EQ(child.verticalSpeed, 0);
+    EXPECT_EQ(child.typedOwner, owner);
+    EXPECT_EQ(child.position, glm::vec3(100, 200, 300));
+    EXPECT_EQ(child.light, glm::vec3(1, 0.5f, 0.1f));
+    EXPECT_EQ(random.State(), 7u);
+}
+
+TEST(GameplayParticlesTest, SwellLifeFinishesBothRandomsOnInvalidOwnersAndItsDeathTick)
+{
+    for (const int ownerState : std::array{0, 1, 2})
+    {
+        const bool valid = ownerState == 2;
+        Particles particles;
+        CrtRandom random(7);
+        const Client::World::ParticleOwner owner{
+            ownerState == 0 ? Client::World::ParticleOwnerKind::None : Client::World::ParticleOwnerKind::Actor, 0};
+        ASSERT_TRUE(
+            particles.CreateOwnedChecked(0x5ac, {100, 200, 300}, {}, {1, 0.5f, 0.1f}, 4, 25, 0, random, 5, owner)
+                .HasValue());
+        auto& child = particles.All()[0];
+        child.velocity = {1, 2, 3};
+        Client::World::PortableParticleTrigonometry trigonometry;
+        const float clock = 0;
+        const Client::World::ParticleOwnerBones bones = [valid](const Particle&) -> std::optional<glm::vec3>
+        {
+            if (valid)
+                return glm::vec3(10, 20, 30);
+            return std::nullopt;
+        };
+        auto expected = random;
+        float speed = 0;
+        float scale = 2;
+        glm::vec3 light{1, 0.5f, 0.1f};
+        const int ticks = valid ? 10 : 1;
+        for (int tick = 1; tick <= ticks; ++tick)
+        {
+            for (int wind = 0; wind < 2; ++wind)
+                (void)expected.Next();
+            speed = static_cast<float>(static_cast<double>(speed) +
+                                       static_cast<double>(expected.Next() % 40 + 60) *
+                                           static_cast<double>(std::bit_cast<float>(0x3dc28f5cu)));
+            scale = static_cast<float>(static_cast<double>(scale) -
+                                       static_cast<double>(expected.Next() % 400 + 400) *
+                                           static_cast<double>(std::bit_cast<float>(0x38d1b717u)));
+            for (int axis = 0; axis < 3; ++axis)
+                light[axis] = static_cast<float>(static_cast<double>(light[axis]) *
+                                                 static_cast<double>(std::bit_cast<float>(0x3f3da12fu)));
+            const auto stepped = Client::World::StepParticlesChecked(particles, random, std::cref(clock), nullptr,
+                                                                     trigonometry, {}, {}, {}, {}, nullptr, {}, bones);
+            ASSERT_TRUE(stepped.HasValue());
+            EXPECT_EQ(child.alive, valid && tick < 10);
+            EXPECT_EQ(child.life, 10 - tick);
+            EXPECT_EQ(child.verticalSpeed, speed);
+            EXPECT_EQ(child.scale, scale);
+            EXPECT_EQ(child.light, light);
+            const glm::vec3 base = valid ? glm::vec3(10, 20, 30) : glm::vec3(101, 202, 303);
+            EXPECT_EQ(child.position,
+                      (glm::vec3{base.x, base.y, static_cast<float>(static_cast<double>(base.z) + speed)}));
+            EXPECT_EQ(random.State(), expected.State());
+        }
+        const auto state = child;
+        (void)expected.Next();
+        (void)expected.Next();
+        ASSERT_TRUE(Client::World::StepParticlesChecked(particles, random, std::cref(clock), nullptr, trigonometry, {},
+                                                        {}, {}, {}, nullptr, {}, bones)
+                        .HasValue());
+        EXPECT_EQ(random.State(), expected.State());
+        EXPECT_EQ(child.life, state.life);
+        EXPECT_EQ(child.scale, state.scale);
+    }
+}
+
+TEST(GameplayParticlesTest, SwellLifeReusesTheFirstSlotAndFullPoolsConsumeNoBirthRandoms)
+{
+    Particles particles;
+    CrtRandom random(7);
+    for (auto& particle : particles.All())
+        particle.alive = true;
+    const auto full = particles.CreateOwnedChecked(0x5ac, {}, {}, {}, 4, 36, 0, random, 5, {});
+    ASSERT_TRUE(full.HasValue());
+    EXPECT_FALSE(full.Value().has_value());
+    EXPECT_EQ(random.State(), 7u);
+    auto& reused = particles.All()[0];
+    reused.alive = false;
+    reused.verticalSpeed = 999;
+    reused.velocity = {9, 8, 7};
+    reused.rotation = 123;
+    const Client::World::ParticleOwner owner{Client::World::ParticleOwnerKind::Actor, 9};
+    const auto made = particles.CreateOwnedChecked(0x5ac, {1, 2, 3}, {}, {1, 0.5f, 0.1f}, 4, 36, 0, random, 5, owner);
+    ASSERT_TRUE(made.HasValue());
+    ASSERT_EQ(made.Value(), 0u);
+    EXPECT_EQ(reused.typedOwner, owner);
+    EXPECT_EQ(reused.verticalSpeed, 0);
+    EXPECT_EQ(reused.velocity, glm::vec3(0));
+    EXPECT_EQ(reused.rotation, 36);
+    EXPECT_EQ(random.State(), 7u);
 }
 
 TEST(GameplayParticlesTest, FireCreationKeepsTheFourDistinctScaleAndRandomPaths)
@@ -53,6 +173,132 @@ TEST(GameplayParticlesTest, FireCreationKeepsTheFourDistinctScaleAndRandomPaths)
         EXPECT_EQ(particle.light, glm::vec3(2, 3, 4));
         EXPECT_EQ(particle.start, glm::vec3(100, 200, 300));
     }
+}
+
+// 0x541197..0x541403: la 5dc/12 con su propia textura (0x53feb3 copia el tipo en +0x8 y el caso no la cambia).
+TEST(GameplayParticlesTest, BlueTrailFireUsesFourRandomsAndItsOwnTexture)
+{
+    Particles particles;
+    CrtRandom random(7);
+    const auto made = particles.CreateChecked(0x5dc, {100, 200, 300}, {10, 20, 30}, {2, 3, 4}, 12, 0.75f, 0, random);
+    ASSERT_TRUE(made.HasValue());
+    ASSERT_EQ(made.Value(), 0u);
+    const Particle& particle = particles.All()[0];
+    EXPECT_EQ(particle.type, 0x5dc);
+    EXPECT_EQ(particle.texture, BlueFire);
+    EXPECT_EQ(particle.subtype, 12);
+    EXPECT_EQ(particle.life, 24);
+    EXPECT_EQ(particle.position, glm::vec3(100, 200, 300));
+    EXPECT_EQ(particle.angles, glm::vec3(10, 20, 30));
+    EXPECT_EQ(particle.light, glm::vec3(2, 3, 4));
+    EXPECT_EQ(particle.velocity, glm::vec3(0, -4.5f, 0));
+    // CRT(7): 61,17422,15215,7040; R2 se consume aunque R4 lo pisa.
+    EXPECT_EQ(particle.scale, static_cast<float>((165.0 * 0.75) * static_cast<double>(0.012f)));
+    EXPECT_EQ(particle.rotation, 200.0f);
+    CrtRandom expected(7);
+    for (int draw = 0; draw < 4; ++draw)
+        (void)expected.Next();
+    EXPECT_EQ(random.State(), expected.State());
+}
+
+TEST(GameplayParticlesTest, BlueTrailFireAdvancesItsWholeLifeIncludingTheDeathTick)
+{
+    Particles particles;
+    CrtRandom random(7);
+    ASSERT_EQ(particles.Create(0x5dc, {100, 200, 300}, {}, {2, 3, 4}, 12, 0.75f, 0, random), 0u);
+    Particle& particle = particles.All()[0];
+    auto expectedRandom = random;
+    float expectedScale = particle.scale;
+    float expectedVertical = 0;
+    float expectedZ = particle.position.z;
+    float expectedY = particle.position.y;
+    float expectedRotation = particle.rotation;
+    const float velocity = particle.velocity.y;
+    const float clock = 0;
+    Client::Tests::ParticleDrawRecorder recorder;
+    recorder.dimensions[BlueFire] = {128, 64};
+    recorder.materialFlags[BlueFire] = 3;
+    for (int tick = 1; tick <= 24; ++tick)
+    {
+        (void)expectedRandom.Next();
+        (void)expectedRandom.Next();
+        expectedRotation += static_cast<float>(expectedRandom.Next() % 10 + 10);
+        expectedScale = static_cast<float>(static_cast<double>(expectedScale) - static_cast<double>(0.04f));
+        expectedVertical = static_cast<float>(static_cast<double>(expectedVertical) + static_cast<double>(0.004f));
+        expectedZ = static_cast<float>(static_cast<double>(expectedZ) + static_cast<double>(expectedVertical) * 10.0);
+        expectedY = static_cast<float>(static_cast<double>(expectedY) + velocity);
+        const auto stepped = Client::World::StepParticlesChecked(particles, random);
+        ASSERT_TRUE(stepped.HasValue());
+        EXPECT_EQ(particle.alive, tick < 24);
+        EXPECT_EQ(particle.life, 24 - tick);
+        EXPECT_EQ(particle.scale, expectedScale);
+        EXPECT_EQ(particle.rotation, expectedRotation);
+        EXPECT_EQ(particle.verticalSpeed, expectedVertical);
+        EXPECT_EQ(particle.position, glm::vec3(100, expectedY, expectedZ));
+        EXPECT_EQ(particle.velocity.y, velocity);
+        EXPECT_EQ(particle.light,
+                  glm::vec3(static_cast<float>(static_cast<double>(24 - tick) *
+                                               static_cast<double>(std::bit_cast<float>(0x3d2aaaabu)))));
+        EXPECT_EQ(std::bit_cast<std::int32_t>(particle.field48), (tick - 1) / 6);
+        EXPECT_EQ(random.State(), expectedRandom.State());
+        recorder.draws.clear();
+        const auto drawn = Client::World::DrawParticlesChecked(particles, 0, std::cref(clock), recorder);
+        ASSERT_TRUE(drawn.HasValue());
+        EXPECT_EQ(recorder.draws.size(), tick < 24 ? 1u : 0u);
+        if (!recorder.draws.empty())
+        {
+            const auto& draw = recorder.draws.front();
+            EXPECT_EQ(draw.uv, glm::vec2(static_cast<float>((tick - 1) / 6) * 0.25f, 0));
+            EXPECT_EQ(draw.rotation, expectedRotation);
+            EXPECT_EQ(draw.texture, BlueFire);
+        }
+    }
+    // El lugar muerto ya no consume su tercer rand; el viento continúa.
+    (void)expectedRandom.Next();
+    (void)expectedRandom.Next();
+    ASSERT_TRUE(Client::World::StepParticlesChecked(particles, random).HasValue());
+    EXPECT_EQ(random.State(), expectedRandom.State());
+    EXPECT_EQ(particle.life, 0);
+}
+
+TEST(GameplayParticlesTest, BlueTrailFireDrawKeepsItsAtlasRotationAndFailurePhases)
+{
+    Particles particles;
+    Particle& particle = particles.All()[0];
+    particle = Particle{.alive = true,
+                        .type = 0x5dc,
+                        .texture = BlueFire,
+                        .subtype = 12,
+                        .scale = 1.5f,
+                        .position = {100, 200, 300},
+                        .angles = {17, 22, 33},
+                        .light = {2, 3, 4},
+                        .rotation = 95,
+                        .field48 = std::bit_cast<float>(3)};
+    const float clock = 0;
+    Client::Tests::ParticleDrawRecorder recorder;
+    auto drawn = Client::World::DrawParticlesChecked(particles, 0, std::cref(clock), recorder);
+    ASSERT_FALSE(drawn.HasValue());
+    EXPECT_EQ(drawn.Error().error.phase, Client::World::ParticleDrawingPhase::Dimensions);
+    recorder.dimensions[BlueFire] = {128, 64};
+    drawn = Client::World::DrawParticlesChecked(particles, 0, std::cref(clock), recorder);
+    ASSERT_FALSE(drawn.HasValue());
+    EXPECT_EQ(drawn.Error().error.phase, Client::World::ParticleDrawingPhase::MaterialFlag);
+    recorder.materialFlags[BlueFire] = 3;
+    drawn = Client::World::DrawParticlesChecked(particles, 0, std::cref(clock), recorder);
+    ASSERT_TRUE(drawn.HasValue());
+    ASSERT_EQ(recorder.draws.size(), 1u);
+    const auto& draw = recorder.draws[0];
+    EXPECT_EQ(draw.texture, BlueFire);
+    EXPECT_EQ(draw.rotation, 95);
+    EXPECT_EQ(draw.width, 48);
+    EXPECT_EQ(draw.height, 96);
+    EXPECT_EQ(draw.uv, glm::vec2(0.75f, 0));
+    EXPECT_EQ(draw.uvSize, glm::vec2(0.25f, 1));
+    EXPECT_EQ(draw.light, glm::vec3(2, 3, 4));
+    EXPECT_EQ(draw.blend, RecordedParticleDraw::Blend::Additive);
+    EXPECT_EQ(particle.type, 0x5dc);
+    EXPECT_EQ(particle.subtype, 12);
 }
 
 TEST(GameplayParticlesTest, SmokeTwoDoesNotUseTheLoginCreation)

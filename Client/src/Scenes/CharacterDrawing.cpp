@@ -403,6 +403,8 @@ std::optional<Render::TextureSlot> AssignedSlot(const Data::Models::Mesh& mesh,
 {
     if (index < slots.size())
     {
+        if (slots[index] == Render::UnboundModelTextureSlot)
+            return std::nullopt;
         return slots[index];
     }
     if (const std::optional<std::uint16_t> fixed = Data::Models::SkinSlotOf(mesh.textureName))

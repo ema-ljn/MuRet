@@ -11,6 +11,7 @@
 
 #include "Core/Expected.h"
 #include "Data/Models/Model.h"
+#include "Data/Models/PlayerModels.h"
 #include "Render/Billboard.h"
 #include "Render/ModelBatch.h"
 #include "Render/ModelVertex.h"
@@ -24,6 +25,7 @@
 #include "Scenes/GameTailDrawingPrimitives.h"
 #include "Scenes/ModelPoseCallbacks.h"
 #include "Scenes/SiegeCueDrawing.h"
+#include "World/GameModelEffects.h"
 #include "World/Leaves.h"
 #include "World/ModelEffects.h"
 #include "World/Sprites.h"
@@ -587,8 +589,8 @@ DrawPlainModelEffect(Render::ModelBatch& batch, World::ModelEffect& effect, cons
     object.color = terrain + effect.light;
     object.alpha = effect.alpha;
     object.vertexLight = effect.vertexLight;
-    if ((effect.type == 0xe1 && effect.subtype == 1) || effect.type == 0x104 || effect.type == 0x145 ||
-        effect.type == 0x147 || effect.type == 0x10a || effect.type == 0x10b ||
+    if ((effect.type == 0xe1 && effect.subtype == 1) || effect.type == World::SpiritTrailEffect ||
+        effect.type == 0x145 || effect.type == 0x147 || effect.type == 0x10a || effect.type == 0x10b ||
         (effect.type >= 0x12b && effect.type <= 0x133) ||
         (effect.type == 0x114 && (effect.subtype == 2 || effect.subtype == 6)) ||
         (effect.type == 0x115 && effect.subtype == 1) || effect.type == 0xed || effect.type == 0xee)
@@ -710,6 +712,8 @@ DrawGameModelEffectsChecked(Render::ModelBatch& batch, const IModelLibrary& mode
         effect.seen = World::SphereVisible(frustum, effect.transform.position, 400);
         if (!effect.seen)
             continue;
+        // 0x103 (flashing.bmd) y 0x105/0 (Piercing.bmd) no tienen caso propio: 0x52d6c3 y 0x52d78f los mandan a
+        // 0x52da92 → 0x602e90 con su malla, como el resto de 0xbe..0x150 (GenericEffect, más abajo).
         if (World::IsSiegeCue(effect.type, effect.subtype) || World::IsCrywolfCue(effect.type, effect.subtype) ||
             World::IsRisingStoneChip(effect.type, effect.subtype))
         {
@@ -722,10 +726,13 @@ DrawGameModelEffectsChecked(Render::ModelBatch& batch, const IModelLibrary& mode
             const auto blendMesh = effect.objectState.blendMesh;
             if (blendMesh == -1 || blendMesh < -2)
                 continue;
-            const auto* model = models.Find(static_cast<std::uint16_t>(effect.type));
-            if (model == nullptr)
-                return Core::Unexpected(std::string("0x52d68c: falta el modelo del filtro de blendMesh"));
-            if (static_cast<std::int64_t>(model->meshes.size()) < blendMesh)
+            const auto modelId = static_cast<std::uint16_t>(effect.type);
+            if (modelId >= Data::Models::ModelTableSize)
+                return Core::Unexpected(std::format("0x52d68c: modelo {:#x} fuera de la tabla", modelId));
+            const auto* model = models.Find(modelId);
+            // 0x60dbe0 inicializa la tabla a cero. Un BMD ausente deja en cero su cuenta de mallas.
+            const auto meshCount = model != nullptr ? static_cast<std::int64_t>(model->meshes.size()) : 0;
+            if (meshCount < blendMesh)
                 continue;
         }
         if (OmittedEffect(effect))

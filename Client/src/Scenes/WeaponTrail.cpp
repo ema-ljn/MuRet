@@ -196,10 +196,11 @@ Result SampleParticles(ActorState& actor, const Trail& trail, const glm::vec3& p
         return {};
     if (context.particles == nullptr)
         return Core::Unexpected(std::string("0x4fd585: faltan las partículas de la estela del 0x194"));
-    const auto created = context.particles->CreateChecked(0x5dc, point, actor.angles, LightOf(trail), 0xc, 1.0f,
-                                                          context.worldClock, context.random, 0);
+    const auto created =
+        context.particles->CreateChecked(World::BlueTrailFireParticle, point, actor.angles, LightOf(trail),
+                                         World::BlueTrailFireSubtype, 1.0f, context.worldClock, context.random);
     if (!created.HasValue())
-        return Core::Unexpected(std::string("0x4fd585: la partícula 0x5dc/12 de la estela no está portada"));
+        return Core::Unexpected(std::string("0x4fd585: falló el alta de la partícula 0x5dc/12 de la estela"));
     return {};
 }
 

@@ -28,6 +28,7 @@
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "World/GameModelEffects.h"
+#include "World/IFishStepServices.h"
 #include "World/GroundMarks.h"
 #include "World/ModelEffects.h"
 #include "World/ObjectModelStepState.h"
@@ -240,10 +241,26 @@ Core::Expected<void, std::string> SelectionWorld::StepEffects(WorldState& world,
         .lighting = &world.DynamicLighting().Lighting(),
         .systemTime = [systemTime]() { return systemTime; },
         .sound = [&world](std::int32_t id) { world.Runtime().RequestSound(id); },
+        .joint = [&world, &cloth](const World::FishEffectRequest& request) -> Core::Expected<void, std::string>
+        {
+            const auto created = CreateFaunaJoint(world.DrawTail().joints, request, cloth.random);
+            if (!created.HasValue())
+                return Core::Unexpected(created.Error());
+            return {};
+        },
+        .publishAction =
+            [&world](std::uint16_t type, std::uint8_t action)
+        {
+            auto placement = world.ModelPlacement(type);
+            placement.action = action;
+            world.PlaceModel(type, placement);
+        },
         .soundAt = [&world](std::int32_t id, const glm::vec3& origin) { world.Runtime().RequestSound(id, origin); }};
     for (World::ModelEffect& effect : world.Map().effects.Effects())
     {
-        const auto* skeleton = m_models.SkeletonOf(static_cast<std::uint16_t>(effect.type));
+        const auto* skeleton = effect.type == World::EarthquakeBurstEffect
+                                   ? nullptr
+                                   : m_models.SkeletonOf(static_cast<std::uint16_t>(effect.type));
         if (auto stepped = World::StepGameModelEffect(effect, skeleton, world.Particles(), worldClock, cloth.random,
                                                       world.Map().kalima.get(), services);
             !stepped.HasValue())

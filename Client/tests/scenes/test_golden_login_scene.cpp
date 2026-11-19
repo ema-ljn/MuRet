@@ -33,6 +33,7 @@
 #include "Scenes/CharacterHead.h"
 #include "Scenes/DarkHorse.h"
 #include "Scenes/GameData.h"
+#include "Scenes/GameDrawTail.h"
 #include "Scenes/GameModels.h"
 #include "Scenes/LoadingScene.h"
 #include "Scenes/SceneCameras.h"
@@ -367,6 +368,20 @@ protected:
     std::optional<Client::Scenes::GameData> m_data;
     Client::Scenes::GameModels m_models;
 };
+
+TEST_F(GoldenLoginWorld, LeavingLoginKeepsTheCommonFireSnuffSlot)
+{
+    // 0x61ccb0 carga primero este slot y 0x61c7c0 repite la misma subida.
+    constexpr TextureSlot fireSnuff{0x635};
+    EXPECT_EQ(m_models.TextureSlotOf(fireSnuff.value), fireSnuff);
+    LoginScene scene(SceneContext{m_dataRoot, m_store, m_log}, *m_data, m_models, nullptr, Version, FixedSeed,
+                     &m_models.TextureSlots());
+    ASSERT_TRUE(scene.Enter().HasValue());
+    ASSERT_TRUE(m_store.Find(fireSnuff).has_value());
+    scene.Leave();
+    EXPECT_TRUE(m_store.Find(fireSnuff).has_value());
+    EXPECT_FALSE(m_store.Find(TextureSlot{0x15}).has_value());
+}
 
 // Un frame del login con el reloj `clock`, sin mirar lo que dibujó.
 void DrawAt(LoginScene& scene, Client::Core::Duration clock)
@@ -707,10 +722,18 @@ TEST_F(GoldenLoginWorld, ArrivalReusesTheVisibilityLeftByTheLoginDragon)
     auto effects = world->Map().effects.Effects();
     ASSERT_TRUE(effects[0].alive);
     EXPECT_FALSE(effects[0].seen);
+    ASSERT_TRUE(effects[0].hasOwner);
+    ASSERT_NE(effects[0].ownerContext, nullptr);
+    EXPECT_EQ(effects[0].disturbanceState, 0xffff);
+    const auto* owner = static_cast<const Client::World::WorldObject*>(effects[0].ownerContext);
+    EXPECT_EQ(owner->type, Client::World::DragonEffect);
+    EXPECT_EQ(owner->transform.position, glm::vec3(5600, 23000, 0));
     static_cast<void>(Frame(scene, 1));
     EXPECT_TRUE(effects[0].seen);
     scene.Leave();
     EXPECT_TRUE(effects[0].alive);
+    EXPECT_FALSE(effects[0].hasOwner);
+    EXPECT_EQ(effects[0].ownerContext, nullptr);
     selection.BeginSelection();
     ASSERT_TRUE(selection.InitializeSelection(m_dataRoot, input).HasValue());
     EXPECT_TRUE(effects[0].alive) << "sin lista no corre la carga del mapa54";
@@ -724,6 +747,43 @@ TEST_F(GoldenLoginWorld, ArrivalReusesTheVisibilityLeftByTheLoginDragon)
     ASSERT_EQ(world->Map().effects.Create(Client::World::ArrivalEffect, {}, {}, {}, 0.0f), 1u);
     EXPECT_TRUE(effects[0].seen);
     EXPECT_FALSE(effects[1].seen);
+}
+
+// El mundo sobrevive a la escena: se retiran sólo los enlaces a sus objetos, aun en un slot inactivo.
+TEST_F(GoldenLoginWorld, TheLoginDragonOwnerIsDetachedOnReentryAndDestruction)
+{
+    auto world = std::make_unique<Client::Scenes::WorldState>();
+    int unrelatedOwner = 0;
+    auto effects = world->Map().effects.Effects();
+    {
+        LoginScene scene(SceneContext{.dataRoot = m_dataRoot, .textures = m_store, .log = m_log, .world = world.get()},
+                         *m_data, m_models, nullptr, Version, FixedSeed, &m_models.TextureSlots());
+        ASSERT_TRUE(scene.Enter().HasValue());
+        ASSERT_TRUE(effects[0].hasOwner);
+        ASSERT_NE(effects[0].ownerContext, nullptr);
+        effects[1].hasOwner = true;
+        effects[1].ownerContext = effects[0].ownerContext;
+        effects[1].seen = true;
+        effects[2].hasOwner = true;
+        effects[2].ownerContext = &unrelatedOwner;
+        ASSERT_TRUE(scene.Enter().HasValue());
+        EXPECT_FALSE(effects[1].hasOwner);
+        EXPECT_EQ(effects[1].ownerContext, nullptr);
+        EXPECT_TRUE(effects[1].seen);
+        ASSERT_TRUE(effects[0].hasOwner);
+        ASSERT_NE(effects[0].ownerContext, nullptr);
+        const auto* owner = static_cast<const Client::World::WorldObject*>(effects[0].ownerContext);
+        EXPECT_EQ(owner->type, Client::World::DragonEffect);
+        EXPECT_EQ(owner->transform.position, glm::vec3(5600, 23000, 0));
+        effects[0].seen = true;
+        EXPECT_TRUE(effects[0].alive);
+    }
+    EXPECT_TRUE(effects[0].alive);
+    EXPECT_TRUE(effects[0].seen);
+    EXPECT_FALSE(effects[0].hasOwner);
+    EXPECT_EQ(effects[0].ownerContext, nullptr);
+    EXPECT_TRUE(effects[2].hasOwner);
+    EXPECT_EQ(effects[2].ownerContext, &unrelatedOwner);
 }
 
 // CL7.6 B1: con lo global de la tela (como en main.cpp), el dibujo del personaje pide los sprites del
@@ -874,7 +934,14 @@ TEST_F(GoldenLoginWorld, TheLoginCharacterRunsTheTailOfTheGame)
         SceneContext{.dataRoot = m_dataRoot, .textures = m_store, .log = m_log, .cloth = &cloth, .world = &world},
         *m_data, m_models, nullptr, Version, FixedSeed, &m_models.TextureSlots());
     ASSERT_TRUE(scene.Enter().HasValue());
+    // 0x634d13 termina en 0x5091d0 después de avanzar los personajes del login.
+    auto& ribbon = world.DrawTail().ribbons[0];
+    ribbon.alive = true;
+    ribbon.count = 3;
+    ribbon.life = 4;
     scene.Step(Client::Input::InputState{});
+    EXPECT_EQ(ribbon.count, 2);
+    EXPECT_EQ(ribbon.life, 3);
     auto& actor = world.Actors()[2];
     DrawAt(scene, 40ms);
     ASSERT_FALSE(scene.Failure().has_value()) << *scene.Failure();
@@ -915,10 +982,14 @@ TEST_F(GoldenLoginWorld, TheLoginPublishesTheCharacterCutAndKeepsItsRandomState)
     cloth.logicSteps = 77;
     const auto wind = cloth.wind;
     const float windBase = cloth.windBase;
+    auto& ribbon = world.DrawTail().ribbons[0];
+    ribbon.alive = true;
+    ribbon.life = 3;
     scene.Step(Client::Input::InputState{});
     ASSERT_TRUE(scene.Failure());
     EXPECT_NE(scene.Failure()->find("0x4fcd82"), std::string::npos);
     EXPECT_GT(world.Actors()[2].run, 0) << "el movimiento precede al corte publicado del cuerpo";
+    EXPECT_EQ(ribbon.life, 3) << "el corte del personaje precede a 0x5091d0";
     // Ochenta brasas con10 rand; siguen8 de TerrainWall y1 de SetActorWalk. El cuerpo corta
     // antes de los efectos, las partículas y la tela.
     EXPECT_EQ(cloth.random.State(), Client::Tests::AfterDraws(Seed, 809).State());

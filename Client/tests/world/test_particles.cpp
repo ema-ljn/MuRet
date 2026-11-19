@@ -1,5 +1,6 @@
 #include "World/Particles.h"
 
+#include "Core/Expected.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/OriginalRotation.h"
 #include "World/ParticleDrawing.h"
@@ -268,6 +269,73 @@ TEST(ParticlesTest, AFullTableCreatesNothingAndTakesNoRand)
     EXPECT_EQ(particles.Create(Client::World::BreathParticle, glm::vec3(0.0f), glm::vec3(0.0f), glm::vec3(3.0f), 0,
                                1.0f, 0.0f, random),
               0u);
+}
+
+// 0x53fe70: el barrido de los 3.000 lugares termina antes del despacho por tipo o subtipo.
+TEST(ParticlesTest, FullPoolPrecedesValidationAcrossCheckedCreationEntryPoints)
+{
+    Particles particles;
+    CrtRandom random(5);
+    Client::World::PortableParticleTrigonometry trigonometry;
+    const float clock = 0.0f;
+    const glm::vec3 zero{};
+    int boneCalls = 0;
+    const Client::World::ParticleOwnerBones bones = [&boneCalls](const Particle&)
+    {
+        ++boneCalls;
+        return std::optional<glm::vec3>{};
+    };
+    using Result = Client::Core::Expected<std::optional<std::size_t>, Client::World::ParticleError>;
+    const std::array<std::function<Result()>, 6> create{
+        {[&] { return particles.CreateChecked(-1, zero, zero, zero, -1, 1.0f, clock, random); }, [&]
+         { return particles.CreateChecked(-1, zero, zero, zero, -1, 1.0f, std::cref(clock), random, 0, trigonometry); },
+         [&] { return particles.CreateKalimaChecked(-1, zero, zero, zero, -1, 1.0f, clock, random, 0); },
+         [&] { return particles.CreateOwnedChecked(-1, zero, zero, zero, -1, 1.0f, clock, random, 0); },
+         [&] { return particles.CreateFollowingChecked(-1, zero, zero, zero, -1, 1.0f, {}, bones); },
+         [&] {
+             return particles.CreateFollowingChecked(Client::World::SkillShineParticle, zero, zero, zero, 0, 1.0f, {},
+                                                     bones);
+         }}};
+    for (Particle& particle : particles.All())
+    {
+        particle.alive = true;
+        particle.type = Client::World::BreathParticle;
+        particle.position = glm::vec3(7.0f);
+        particle.life = 42;
+    }
+    const auto before = WordsOf(particles.All().front());
+    const auto randomBefore = random.State();
+    for (std::size_t entry = 0; entry < create.size(); ++entry)
+    {
+        SCOPED_TRACE(entry);
+        const auto result = create[entry]();
+        EXPECT_TRUE(result.HasValue());
+        if (result.HasValue())
+        {
+            EXPECT_FALSE(result.Value().has_value());
+        }
+    }
+    EXPECT_EQ(random.State(), randomBefore);
+    EXPECT_EQ(boneCalls, 0);
+    for (const Particle& particle : particles.All())
+        EXPECT_EQ(WordsOf(particle), before);
+
+    // Un lugar libre al final alcanza para restablecer los errores de validación habituales.
+    particles.All().back().alive = false;
+    constexpr std::array<Client::World::ParticleError, 6> Errors{
+        Client::World::ParticleError::UnsupportedType,    Client::World::ParticleError::UnsupportedType,
+        Client::World::ParticleError::UnsupportedSubtype, Client::World::ParticleError::UnsupportedSubtype,
+        Client::World::ParticleError::UnsupportedType,    Client::World::ParticleError::MissingOwner};
+    for (std::size_t entry = 0; entry < create.size(); ++entry)
+    {
+        SCOPED_TRACE(entry);
+        const auto result = create[entry]();
+        ASSERT_FALSE(result.HasValue());
+        EXPECT_EQ(result.Error(), Errors[entry]);
+        EXPECT_FALSE(particles.All().back().alive);
+    }
+    EXPECT_EQ(random.State(), randomBefore);
+    EXPECT_EQ(boneCalls, 1);
 }
 
 // Los subtipos vecinos a los tres que arma MuRet no se crean ni sacan rand().

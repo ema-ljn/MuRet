@@ -12,6 +12,8 @@
 #include "Scenes/FaunaDrawing.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "Scenes/WorldMap.h"
+#include "World/ModelEffects.h"
 #include "Scenes/WorldObjectsDrawing.h"
 #include "World/OriginalFtol.h"
 #include "World/ParticleDrawing.h"
@@ -234,10 +236,38 @@ std::optional<glm::vec3> OwnerBonePointOf(WorldState& world, const World::Partic
 {
     constexpr std::int32_t ShineOwnerType = 0x62d;
     constexpr glm::vec3 ShineOffset{0.0f, -120.0f, 0.0f}; // 0x53fdfd: 0xc2f00000
+    if (particle.type == World::SparkParticle && particle.subtype == World::PiercingSparkSubtype &&
+        particle.typedOwner.kind == World::ParticleOwnerKind::ModelEffect)
+    {
+        const auto effects = world.Map().effects.Effects();
+        if (particle.typedOwner.identity >= effects.size())
+            return std::nullopt;
+        const auto& owner = effects[static_cast<std::size_t>(particle.typedOwner.identity)];
+        return owner.alive ? std::optional(owner.transform.position) : std::nullopt;
+    }
     const auto actors = world.Actors();
     if (particle.typedOwner.kind != World::ParticleOwnerKind::Actor || particle.typedOwner.identity >= actors.size())
         return std::nullopt;
     const ActorState& owner = actors[static_cast<std::size_t>(particle.typedOwner.identity)];
+    if (particle.type == World::SwellLifeParticle && particle.subtype == World::SwellLifeParticleSubtype)
+    {
+        // 0x544a9d..0x544b09: dirección retenida, sin leer alive ni flags. No usa la escala del modelo ni 53fdb0.
+        constexpr std::uint16_t PlayerType = 0x20a;
+        if (owner.type != PlayerType || owner.byte88 != 1)
+            return std::nullopt;
+        const auto bone = World::OriginalFtolLow(static_cast<double>(particle.rotation));
+        if (!bone)
+            return std::nullopt;
+        const Render::Models::BoneTransform matrix =
+            *bone >= 0 && static_cast<std::size_t>(*bone) < owner.bodyPose.size()
+                ? owner.bodyPose[static_cast<std::size_t>(*bone)]
+                : Render::Models::BoneTransform(0.0f);
+        glm::vec3 point =
+            Render::Models::OriginalVectorTransform(particle.angles, Render::Models::OriginalMatrixOf(matrix));
+        for (int axis = 0; axis < 3; ++axis)
+            point[axis] = static_cast<float>(static_cast<double>(point[axis]) + owner.position[axis]);
+        return point;
+    }
     // 0x53fe20..0x53fe42: el subtipo and 0x80000001 con la corrección del signo.
     const ActorState& hero = actors[world.Runtime().hero];
     std::uint8_t bone = 0;

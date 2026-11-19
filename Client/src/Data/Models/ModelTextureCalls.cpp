@@ -136,24 +136,62 @@ constexpr CallList<291> ItemCalls = MakeItemCalls();
 static_assert(PlayerCalls.count == PlayerCalls.calls.size(), "las llamadas de 0x60f7d0");
 static_assert(ItemCalls.count == ItemCalls.calls.size(), "las llamadas de 0x611850");
 
-// 0x616953, 0x616971, 0x61698c y 0x6169a7.
-constexpr std::array<ModelTextureCall, 7> SkillCalls{{
-    {0x145, SkillFolder},
-    {0x146, SkillFolder},
-    {0x147, SkillFolder},
-    {0xbf, SkillFolder},
-    {0xc0, SkillFolder},  // 0x6169c2, el cuervo
-    {0xc5, SkillFolder},  // 0x6169e0, HellGate
-    {0x110, SkillFolder}, // 0x6169fb, el Dinorant
-}};
+// 0x616953..0x616e0b: las 45 consultas explícitas después del reset a 0x3b8.
+// El primer nombre registrado fija la carpeta y el muestreo antes del barrido final.
+constexpr std::array<ModelTextureCall, 45> SkillCalls{{{0x145, "Skill\\"},
+                                                       {0x146, "Skill\\"},
+                                                       {0x147, "Skill\\"},
+                                                       {0xbf, "Skill\\"},
+                                                       {0xc0, "Skill\\"},
+                                                       {0xc5, "Skill\\"},
+                                                       {0x110, "Skill\\"},
+                                                       {0xfb, "Skill\\"},
+                                                       {0xfc, "Skill\\"},
+                                                       {0xfd, "Skill\\"},
+                                                       {0xff, "Skill\\"},
+                                                       {0x101, "Skill\\"},
+                                                       {0x102, "Skill\\"},
+                                                       {0x103, "Skill\\"},
+                                                       {0x104, "Skill\\"},
+                                                       {0x107, "Skill\\"},
+                                                       {0x108, "Skill\\"},
+                                                       {0x111, "Skill\\"},
+                                                       {0x112, "Skill\\"},
+                                                       {0x113, "Skill\\", Textures::Wrap::Clamp},
+                                                       {0x114, "Skill\\"},
+                                                       {0x115, "Skill\\"},
+                                                       {0x116, "Skill\\"},
+                                                       {0x118, "Skill\\"},
+                                                       {0x119, "Skill\\"},
+                                                       {0x11a, "Skill\\", Textures::Wrap::Clamp},
+                                                       {0x11b, "Skill\\", Textures::Wrap::Clamp},
+                                                       {0x129, "Skill\\"},
+                                                       {0x12a, "Skill\\"},
+                                                       {0x12b, "Npc\\"},
+                                                       {0x12c, "Skill\\"},
+                                                       {0x12d, "Skill\\"},
+                                                       {0x12e, "Skill\\"},
+                                                       {0x12f, "Object31\\"},
+                                                       {0x130, "Object31\\"},
+                                                       {0x131, "Monster\\"},
+                                                       {0x132, "Monster\\"},
+                                                       {0x133, "Monster\\"},
+                                                       {0x134, "Monster\\"},
+                                                       {0x135, "Skill\\"},
+                                                       {0x13c, "Monster\\"},
+                                                       {0x13d, "Skill\\"},
+                                                       {0x13e, "Skill\\"},
+                                                       {0x137, "Effect\\"},
+                                                       {0x140, "Item\\"}}};
 
 // 0x615f77, 0x615fab y 0x615fdc: los tres Fenrir, las primeras de 0x615700, donde dejó 0x611850; 0x616010: el rayo
-// 0x14d de su dibujo, con Effect\.
-constexpr std::array<ModelTextureCall, 4> FenrirCalls{{
+// 0x14d de su dibujo, con Effect\. 0x616181 consulta la flecha eléctrica con Skill\ en el mismo bloque.
+constexpr std::array<ModelTextureCall, 5> FenrirCalls{{
     {0x14a, SkillFolder},
     {0x14b, SkillFolder},
     {0x14c, SkillFolder},
     {0x14d, EffectFolder},
+    {0xf9, SkillFolder},
 }};
 
 // 0x2600 y 0x2900 en las trece.

@@ -482,13 +482,31 @@ constexpr std::array<ModelFile, 243> ItemFiles = {{
     {0xc1e, ItemFolder, "HDK_Staff", -1},         // 0x6117f8
 }};
 
-// Las llamadas a 0x60da30 de 0x615700 que MuRet ya hace, en su orden: las monturas de las mascotas (el Uniria, el
-// Dinorant y los tres Fenrir), el caballo, el rayo de los Fenrir (0x14d, de Data\Effect\), el cuervo y HellGate
-// (0xc5), que pide texturas antes que el Dinorant.
-constexpr std::array<ModelFile, 15> SkillFiles = {{
-    {0xc2, SkillFolder, "Fire", 1},                // 0x615d4c; fire01.jpg queda disponible antes del login
+// 0x615700: las cargas de la rama Data en orden del ASM. ManyFlag es opcional.
+constexpr std::array<ModelFile, 106> SkillFiles = {{
+    {0xc1, SkillFolder, "Ice", 1},                 // 0x615d20
+    {0xca, SkillFolder, "Ice", 2},                 // 0x615d36
+    {0xc2, SkillFolder, "Fire", 1},                // 0x615d4c
+    {0xc3, SkillFolder, "Poison", 1},              // 0x615d62
+    {0xc8, SkillFolder, "Stone", 1},               // 0x615d81
+    {0xc9, SkillFolder, "Stone", 2},               // 0x615d81
+    {0xcb, SkillFolder, "Circle", 1},              // 0x615da6
+    {0xcc, SkillFolder, "Circle", 2},              // 0x615dbc
+    {0xcd, SkillFolder, "Magic", 1},               // 0x615dd2
+    {0xce, SkillFolder, "Magic", 2},               // 0x615de8
+    {0xcf, SkillFolder, "Storm", 1},               // 0x615e01
+    {0xd0, SkillFolder, "Laser", 1},               // 0x615e17
+    {0xd1, SkillFolder, "Skeleton", 1},            // 0x615e36
+    {0xd2, SkillFolder, "Skeleton", 2},            // 0x615e36
+    {0xd3, SkillFolder, "Skeleton", 3},            // 0x615e36
+    {0xd4, SkillFolder, "Saw", 1},                 // 0x615e5b
+    {0xd5, SkillFolder, "Bone", 1},                // 0x615e7a
+    {0xd6, SkillFolder, "Bone", 2},                // 0x615e7a
+    {0xd7, SkillFolder, "Snow", 1},                // 0x615ea5
+    {0xd8, SkillFolder, "Snow", 2},                // 0x615ea5
+    {0xd9, SkillFolder, "Snow", 3},                // 0x615ea5
     {0xc6, SkillFolder, "Rider", 1},               // 0x615eca
-    {0x110, SkillFolder, "Rider", 2},              // 0x615f30, sin el .smd de 0x615f17 (0x6c9e0c en 1)
+    {0x110, SkillFolder, "Rider", 2},              // 0x615f30
     {0xbf, SkillFolder, "DarkHorse", -1},          // 0x615f46
     {0x14a, SkillFolder, "fenril_black", -1},      // 0x615f5c
     {0x14b, SkillFolder, "fenril_red", -1},        // 0x615f90
@@ -496,8 +514,79 @@ constexpr std::array<ModelFile, 15> SkillFiles = {{
     {0x14d, EffectFolder, "lightning_type01", -1}, // 0x615ff5
     {0xc0, SkillFolder, "DarkSpirit", -1},         // 0x616026
     {0xc5, SkillFolder, "HellGate", -1},           // 0x61605c
+    {0xdb, SkillFolder, "Arrow", 1},               // 0x616095
+    {0xdc, SkillFolder, "ArrowSteel", 1},          // 0x6160ab
+    {0xdd, SkillFolder, "ArrowThunder", 1},        // 0x6160c1
+    {0xde, SkillFolder, "ArrowLaser", 1},          // 0x6160da
+    {0xdf, SkillFolder, "ArrowV", 1},              // 0x6160f0
+    {0xe0, SkillFolder, "ArrowSaw", 1},            // 0x616106
+    {0xe1, SkillFolder, "ArrowNature", 1},         // 0x61611c
+    {0x109, SkillFolder, "Protect", 2},            // 0x616150
+    {0xf9, SkillFolder, "Arrow_Spark", -1},        // 0x616166
+    {0x10f, SkillFolder, "RidingSpear", 1},        // 0x6161b5
+    {0xe4, SkillFolder, "Protect", 1},             // 0x6161cb
+    {0xe5, SkillFolder, "BigStone", 1},            // 0x6161ea
+    {0xe6, SkillFolder, "BigStone", 2},            // 0x6161ea
+    {0xec, SkillFolder, "MagicCircle", 1},         // 0x61620f
+    {0xe3, SkillFolder, "ArrowWing", 1},           // 0x616225
+    {0xe2, SkillFolder, "ArrowBomb", 1},           // 0x61623b
+    {0xf1, SkillFolder, "Ball", 1},                // 0x616251
+    {0xf5, SkillFolder, "Blast", 1},               // 0x61627d
+    {0xf6, SkillFolder, "Inferno", 1},             // 0x616293
+    {0xf7, SkillFolder, "ArrowDouble", 1},         // 0x6162a9
+    {0x10e, SkillFolder, "KCross", -1},            // 0x6162bf
+    {0x111, SkillFolder, "Carow", -1},             // 0x6162d8
+    {0x112, SkillFolder, "combo", -1},             // 0x6162ee
     {0x10c, BloodCastleFolder, "Gate", 1},         // 0x616304
     {0x10d, BloodCastleFolder, "Gate", 2},         // 0x61631a
+    {0x10a, BloodCastleFolder, "StoneCoffin", 1},  // 0x616333
+    {0x10b, BloodCastleFolder, "StoneCoffin", 2},  // 0x616349
+    {0x113, SkillFolder, "AirForce", -1},          // 0x6163ac
+    {0x114, SkillFolder, "m_Waves", -1},           // 0x6163c2
+    {0x115, SkillFolder, "m_Piercing", -1},        // 0x6163d8
+    {0x116, SkillFolder, "PierPart", -1},          // 0x6163ee
+    {0x117, SkillFolder, "DarkLordSkill", -1},     // 0x616407
+    {0x118, SkillFolder, "groundStone", -1},       // 0x61641d
+    {0x119, SkillFolder, "groundStone2", -1},      // 0x616442
+    {0x11a, SkillFolder, "seamanFX", -1},          // 0x616467
+    {0x11b, SkillFolder, "Skull", -1},             // 0x616480
+    {0x11c, SkillFolder, "LaceArrow", -1},         // 0x616496
+    {0xfb, SkillFolder, "EarthQuake", 1},          // 0x6165c1
+    {0xfc, SkillFolder, "EarthQuake", 2},          // 0x6165d7
+    {0xfd, SkillFolder, "EarthQuake", 3},          // 0x6165ed
+    {0xff, SkillFolder, "EarthQuake", 5},          // 0x616603
+    {0x101, SkillFolder, "EarthQuake", 7},         // 0x61661c
+    {0x102, SkillFolder, "EarthQuake", 8},         // 0x616632
+    {0x103, SkillFolder, "flashing", -1},          // 0x616648
+    {0x104, SkillFolder, "tail", -1},              // 0x61665e
+    {0xfe, SkillFolder, "EarthQuake", 4},          // 0x616677
+    {0x100, SkillFolder, "EarthQuake", 6},         // 0x61668d
+    {0x105, SkillFolder, "Piercing", -1},          // 0x6166a3
+    {0x107, SkillFolder, "WaveForce", -1},         // 0x6166b9
+    {0x108, SkillFolder, "Blizzard", -1},          // 0x6166d2
+    {0x129, SkillFolder, "ManyFlag", -1},          // 0x6166e8
+    {0x12a, SkillFolder, "MuSign", -1},            // 0x6166fe
+    {0x136, SkillFolder, "GroundCrystal", -1},     // 0x616714
+    {0x137, SkillFolder, "skinshell", -1},         // 0x61672d
+    {0x138, SkillFolder, "ManaRune", -1},          // 0x616743
+    {0x139, SkillFolder, "Javelin", -1},           // 0x616759
+    {0x13a, SkillFolder, "ArrowImpact", -1},       // 0x61676f
+    {0x13b, SkillFolder, "SwordForce", -1},        // 0x616788
+    {0x12b, SkillFolder, "FlyBigStone1", -1},      // 0x61679e
+    {0x12c, SkillFolder, "FlyBigStone2", -1},      // 0x6167b4
+    {0x12d, SkillFolder, "FlySmallStone1", -1},    // 0x6167ca
+    {0x12e, SkillFolder, "FlySmallStone2", -1},    // 0x6167e3
+    {0x12f, SkillFolder, "WallStone1", -1},        // 0x6167f9
+    {0x130, SkillFolder, "WallStone2", -1},        // 0x61680f
+    {0x131, SkillFolder, "GatePart1", -1},         // 0x616825
+    {0x132, SkillFolder, "GatePart2", -1},         // 0x61683e
+    {0x133, SkillFolder, "GatePart3", -1},         // 0x616854
+    {0x134, SkillFolder, "Aurora", -1},            // 0x61686a
+    {0x135, SkillFolder, "TowerGatePlane", -1},    // 0x616880
+    {0x13c, SkillFolder, "golem_stone", -1},       // 0x616899
+    {0x13d, SkillFolder, "bossrock", -1},          // 0x6168af
+    {0x13e, SkillFolder, "bossrocklight", -1},     // 0x6168c5
+    {0x140, SkillFolder, "ProtectGuild", -1},      // 0x6168db
     {0x145, SkillFolder, "elf_skill", -1},         // 0x6168f4
     {0x146, SkillFolder, "WaveForce", -1},         // 0x61690a
     {0x147, SkillFolder, "deathsp_eff", -1},       // 0x616920

@@ -783,6 +783,24 @@ archivo y su lector están en [05](05-formatos-de-datos.md#modelos-bmd); acá, l
   **Verificado:** un script que repite `0x60d530`, `0x60d550` y `0x60d5f0` con los modelos del
   laboratorio da, para los 750 slots de `0x12e` a `0x41b`, los mismos nombres que el volcado
   `lor_slots.bin` de la tabla (sacado en Lorencia después del login y la selección), uno por uno.
+  En CL11.3, `GameModels` registra las 106 cargas BMD de la rama Data de `0x615700`. El
+  laboratorio aporta 105 archivos. Falta `SkillManyFlag.bmd` (`0x129`, `0x6166e8`), que
+  se saltea y deja las dos consultas de mallas vacías. Las consultas de `0xdb`, `0x109` y
+  `0x10f` que preceden a sus cargas también encuentran cero mallas en esa fase. Quedan
+  primero las asignaciones explícitas de `0x616953..0x616e18` y después el barrido
+  `0xbe..0x150` de `0x616e46`. Las mallas de `0x113`, `0x11a` y `0x11b` conservan
+  GL_CLAMP cuando sus nombres entran por primera vez. El volcado coincide con la tabla de
+  arranque hasta `0x41b`, que queda libre delante de los objetos de mapa.
+
+  `0x61606f..0x61607f` escribe la acción 0 de HellGate (`0xc5`), con el lock apagado y
+  velocidad 0,15. `0x616276` pone 0,5 en la acción 0 de Ball01 (`0xf1`). El cargador
+  aplica esos valores al esqueleto. Los slots fijos `0x608..0x60a` y `0x6f7` se suben
+  fuera de la asignación de mallas. `0x635` se comparte con el login, que vuelve a subir el
+  mismo archivo y conserva la textura común al salir. `0x61d83c` sube `Effect\Impack03.jpg`
+  a `0x716` con GL_LINEAR/GL_CLAMP. La selección recibe ese slot, sustituye su contenido
+  cuando carga la última malla de NewFace05 y lo libera al salir (`0x61cc65..0x61cc7a`).
+  Tarkan lo vuelve a subir desde `Object9\Impack03.jpg` en `0x61784b`.
+
   En esa carga, 29 nombres se encuentran en un slot que cargó otra carpeta y su modelo **no
   tiene** ese archivo en la suya (4 de `0x611850` y 25 de `0x615700`: anda porque otro lo cargó
   antes), y uno con otro archivo: `Helper04` (`0x1c15`, `Item\`) dibuja el de `Skill\` (`0x285`).
@@ -4227,8 +4245,28 @@ de `0x443d70` en el mapa 55 y la escena 2; los slots, **verificados** en `lor_sl
     `rand() % 50 + 40` (salvo en una celda con el `0x4`, el `0x8` o el `0x10`, Q-C424) a la altura del suelo más 3
     (100 en Kalima). En la vida 10, cuatro anillos de cinco pares `0x101`/`0x102` de tamaño 100 (el sentido del
     cuarto sale de un `rand()`, Q-C429; la celda los frena sólo con los tres bits), el sonido `0x97` y la vida en
-    0. En las demás, se hamaca alrededor de la partida. El estado 0 (la habilidad del Dark Lord) corta en
-    `0x521e13` y `0x5224ec` (CL9.2, P-C58).
+    0. En las demás, se hamaca alrededor de la partida. Con el estado 0 y vida 13,
+    `0x5225bb` y `0x52264e` intentan crear dos grupos de cuatro estelas `0x104` antes del
+    movimiento. Los dos sorteos intermedios se consumen aunque se llene la tabla. `0x52266a`
+    pide `0x96` con origen nulo, luego sigue el movimiento y la vida queda en 12.
+    MuRet comparte el alta y el paso de la estela con Crywolf. Cada hijo toma el primer
+    hueco, conserva el sorteo común por paso y se libera tras seis pasos. El render
+    continúa sin geometría de la estela cuando falta su malla en la tabla actual.
+    En la vida 11 y estado 0, después de la explosión intenta ocho joints
+    `0x617/0` de ancho 10 (`0x521ef5`). Cada intento usa cuatro sorteos para
+    la inclinación, el rumbo y las dos coordenadas, aun con la tabla llena.
+    Tras el primero intenta `0x5c5/0` en el mismo punto y ángulos
+    (`0x521f1c`); después del octavo intenta `0x103/0` (`0x521f6c`),
+    antes de bajar la partida y emitir las grietas.
+    El pulso toma el primer hueco sin sorteo, nace sin dueño a Z menos 15
+    y se libera tras 15 pasos. En `0x521253` cambia la escala y baja X y Z.
+    Conserva el brillo inicial hasta que la escala supera 2. Cada paso usa
+    el sorteo común y reduce la luz del terreno con radio 5 en la nueva
+    posición. Antes del paso común publica la acción en `0x52cc21`, con
+    una sola clave que conserva el cuadro. Sin caso propio en el dibujo, va por
+    `0x52da84` → `0x602e90` con su malla, `Skill\flashing.bmd` (`0x615700`), en los dos pases.
+    El creador de Kalima en `0x43b570` conserva las referencias vivas al
+    equipo del dueño, que el dibujo del padre lee en `0x52d43a` y `0x52d549`.
   - **Las grietas** `0xfb..0x102` (`Skill\EarthQuake01..08`, `0x6165bc..0x616688`) nacen
     (`0x51a6e4..0x51a85c`) con la escala `tamaño · 0,01f` y la vida de su tipo y subtipo (Q-C423); en su paso, la
     luz de las mallas, se hunden 0,5f, la `0xfb` hace temblar la cámara, la `0xfc` y la `0xff` sueltan piedritas
@@ -7389,6 +7427,9 @@ con el contador en más de 30, MoveHero sale en `0x59afd6`, pero el paso sigue (
    `0x505de0` y `0x42da90` (fuera del mapa 30 devuelve 0 en `0x42da9a`).
 5. `0x52e500` (`0x5091d0`): el paso de las estelas de `0x75e9870` (100 de `0x2f4`), sin `rand()`. Las crea
    `0x52e470`, desde habilidades, efectos y la acción 3 del caballo (`0x444671`).
+   `StepCharacters` lo ejecuta una vez tras los 400 personajes del login (`0x634d13`), la selección
+   (`0x6342f9`) y el juego (`0x63710f`). En la selección, el dibujo de la cinta queda entre el personaje
+   y el joint (`0x63486a`, `0x63486f`, `0x634875`).
 
 **`0x505de0` con un jugador** (entero en [§ Los efectos de los
 personajes](#los-efectos-de-los-personajes-0x505de0)). El `0x20a` tiene acciones; un modelo sin acciones
@@ -7445,8 +7486,8 @@ Corta con error, en el orden del original:
 - con otro que el héroe, en Kalima y en las acciones del `0x6f4`, después de sus dos `rand()` (`0x5087fc`).
 
 Con el héroe, el `0x6f4` de los mapas 24 a 29 y 36 no se alcanza sin cortar antes en los pasos. Su cabeza gira
-hacia un blanco que MuRet todavía no escribe (MoveHero, P-C44 b). `0x52e500` es frontera, como las de T8, porque
-corre también en la espera (P-C44). En la espera, `0x508f00` entero sigue siendo frontera (P-C41 a).
+hacia un blanco que MuRet todavía no escribe (MoveHero, P-C44 b). En la espera, el paso común de los personajes
+también envejece las estelas si alcanzó `0x5091d0`.
 
 Tests: `CharacterStepTest`, `GoldenCharacterStep.TheSafeZoneFollowsTheLogicalCellAhead` y
 `TheHeroAtRestDrawsTheSameBudgetOnLorenciaAndDevias`, y
@@ -7882,7 +7923,9 @@ se repite. Es el mismo en los dos mapas (`GoldenCharacterStep.TheHeroAtRestDraws
   - ~~en las `0xc3` y `0xc4` que terminan (`0x4fcb87`)~~: dejan los restos ([Los restos](#los-restos-0x52e810), CL9
     hito 3, fase 7);
   - en la partícula de las `0x4d`, `0x4f` y `0x5a` (`0x4fdb70`);
-  - en la partícula `5dc/12` de la estela del `0x194` (`0x4fd585`) y en los efectos aún no portados de algunos helpers; la cinta común de `0x4fd236` está implementada.
+  - en los efectos aún no portados de algunos helpers. La partícula `5dc/12` de la estela del `0x194`
+    (`0x4fd580`) ya pasa por el pool común antes de cada apéndice impar de la cinta de `0x4fd5a0`;
+    su textura es su tipo (`Effect\Fire05.jpg`, `0x61ddac`) y se dibuja con el atlas girado de `0x548c9c`.
 - Sin Item.bmd, `0x54efe0` corta con equipo que no sea el vacío de la respuesta del F3 03 (Q-C246).
 - Tests: `CharacterStepTest` y `GoldenCharacterStep`, `GameSceneDrawTest.WithoutPlayerBmdTheStepStopsAtTheBody` y
   `ActorConstructionTest.LeavesThePlayerUnseenAndNotDying`.
@@ -9680,9 +9723,11 @@ que `WorldEntry`, `WorldTransitionSupport` y `SessionEventApplier` atan a `App::
 `Scenes::StepCastleSiegeObjectFrame` (`CastleSiegeObjectServices`). El dibujo: `Scenes::DrawCastleSiegeBody`
 (`CharacterDrawing`) desde `DrawGameWorldObjects`, y `Render::Models::ShadowSpreadOf`. El efecto: `StepGatePlane` y
 `ModelEffects::CreateGatePlane`. La niebla: `World::InTheCastleSiegeFog` y `Render::ModelFog`, que
-`GameScene::DrawTheWorldPass` pone en el lote con `ModelBatch::SetFog` y saca después de la cola; cada
-`ModelDrawCommand` lleva la suya, `ModelBatch::Begin` con el material la apaga (`0x620db0`) y `GlModelRenderer` la
-aplica en el fragment shader con la w del clip como |z| del ojo (Q-C391). El panel: `WorldRuntime::siegePanelKind`
+`GameScene::DrawTheWorldPass` pone en el lote con `ModelBatch::SetFog` y saca después de la cola.
+Cada cambio de niebla llega al shader en el orden del lote, incluso si le sigue un pase sin geometría.
+`ModelBatch::Begin` con el material la apaga (`0x620db0`) y `GlModelRenderer` la aplica en el fragment shader
+con |z| del ojo, calculada con la fila z de la vista antes de la proyección (identidad para comandos Eye),
+también en proyección ortográfica (Q-C391). El panel `WorldRuntime::siegePanelKind`
 y `heroGuildPost`. Las partículas: la `6ec/0` y la `6f4/6` en `World::CreateKalimaParticle` y
 `World::StepKalimaParticle` (`KalimaParticleKernels`, con `World::BrazierFallSubtype`), y el humo `5f2/0x15` con el
 de Crywolf (`World::CrywolfSmokeSubtype`); el frame las suelta con `Particles::CreateChecked`. Corta lo del asedio
@@ -11592,10 +11637,13 @@ mano es la de `0x4f9780(o)`: la izquierda (`+0x2d8`) con el `0x20a` en la `0x25`
   `rand()`).
 - `0x34` (`0x4f9e61..0x4f9ef2`). El `0x20a` de la `0x22` a la `0x97`, desde el frame 5, vuelve al 5 (`+0x114`) con la
   key anterior en 4 (`+0x118`, `4,0f`). En 3, `0x518cf0(0x621, o+0x10, o+0x1c, o+0xf4, 0, o, −1, 0, 0, 0, 0)` y el
-  sonido `0x81`: corta en el efecto (`0x4f9ecb`). Después, `[0x6c88ac]` en 5 (`0x4f9ee2`,
+  sonido `0x81` (`0x4f9ecb`). Después, `[0x6c88ac]` en 5 (`0x4f9ee2`,
   `WorldRuntime::skillThreshold`): la habilidad corre cuando `+0x381` llega a 5 y no a 15, y con ella el tiro de
-  `0x53e2b0` con la `0x34` (`0x50377d` sin blanco, `0x504060` con él; Q-C1094). Desde `+0x381` en 1, el paso corta en
-  3, antes del tiro (P-C345).
+  `0x53e2b0` con la `0x34` (`0x50377d` sin blanco, `0x504060` con él; Q-C1094).
+  `0x621/0` vive diez pasos. Su paso intenta tres pares de sprite `0x5fd` y partícula `0x5c6/2`
+  (`0x52be28`, `0x52be64`) con 16 sorteos incluidos los pools llenos. El sprite hereda el RGB
+  del actor y la partícula nace blanca. En su ciclo, el slot físico del padre determina si llega a
+  los últimos cinco pasos antes de lo previsto (`0x5450ce`).
 - `0x37` (`0x4f9ef3..0x4fa490`), solo el `0x20a` en la `0x3d` (si no, `[0x6c88ac]` en 15, `0x4fa47e`): en 1 y 2,
   `0x518cf0(0x621, …, 1, o, …)` (`0x4f9f3e`); antes del frame 3, o con NaN, sale con `[0x6c88ac]` en 15. Desde el 3:
   `o+0x8a = 0x558eb0(c, [0x6c8e30])`, el sonido `0x72`, el lugar de la `0x37` en el registro propio (`0x59fb80`, 3.848
@@ -11606,9 +11654,14 @@ mano es la de `0x4f9780(o)`: la izquierda (`+0x2d8`) con el `0x20a` en la `0x25`
   y 20 más cada vez, o+0xf4, 2, o, …)`, el sonido `0x72` y `+0x381` en 15: corta en el primero (`0x4fa4fa`). Después,
   con la `0x8d` o sin ella, `[0x6c88ac]` en 15 (`0x4fa5c3`).
 - `0x39` (`0x4fa994..0x4faaca`), de cualquier tipo (Q-C1107). Pasado el frame 5, tres `0x530860(0x60f, o+0x10,
-  o+0x10, o+0x1c, 0x17, sin dueño, 40,0f, la clave 0, 1 y 4, 0, 0, −1)`, `+0x381` en 15 y el sonido `0x270`: corta en
-  el primero (`0x4fa9ca`); si no, pasado 2,3f (`0x6ba178`) y antes de 2,6f (`0x6ba174`), los de las claves 2 y 3 y el
-  sonido `0x270` (`0x4faa81`). Los dos siguen con `[0x6c88ac]` en 15, como el que no hace nada (`0x4faaba`).
+  o+0x10, o+0x1c, 0x17, sin dueño, 40,0f, la clave 0, 1 y 4, 0, 0, −1)`, `+0x381` en 15 y el sonido `0x270`.
+  Pasado 2,3f (`0x6ba178`) y antes de 2,6f (`0x6ba174`), intenta claves 2 y 3 y pide el mismo sonido.
+  `[0x6c88ac]` queda en 15 con cualquier capacidad (`0x4faaba`).
+  El joint conserva los ángulos del actor y los de la curva aparte (`0x533e60`). Nace con contador −1 y
+  vida 24 menos la clave. La clave 5 usa vida 10, límite 20 y una cara. En el paso `0x53a6b3`, de vidas 19
+  a 8 aumenta cuatro muestras por vez hasta el tope y gira desde la partida. Por debajo de 8 añade un quad
+  con la matriz de la curva. Por debajo de 10 atenúa el RGB (`0x53b339`) y se libera cuando la vida queda en −1.
+  El ciclo del joint no consume CRT.
 
 **`0x4f8f5b`, la 3 sin caso de `+0x376`** (la cola de `0x4f5b70`). El hueso de la derecha (`+0x2bd`) contra la cuenta
 de huesos del modelo del tipo (`[EBP − 4]`; en MuRet como en la `0x2b`, y sin esqueleto corta en `0x4f8f69`): con la
@@ -11732,7 +11785,11 @@ y de la velocidad en −50 y `+0xe4` en −10; el `0xf9`, escala 1 y −70 y el 
 demás, escala 0,8f y −70. Con el subtipo 2 (la skill `0x34`, `0x51c58a`), la estela `0x518cf0(0x105, la posición
 de la flecha, sus ángulos, su luz, 0, la flecha, −1, 0, 0, 0, 0)` y, se haya creado o no, `+0x100` en 0 y `+0x88` en
 1; el caso `0x105` con el subtipo 0 (`0x519fc9`): vida 100, `+0x64` en 0, `+0x68` en 1, `+0xe4` en 0, escala 12 y la
-partida en la posición del dueño, y el joint `0x610` (`0x51a08a`, CL11). El `0xe1`/1, el joint `0x610`/0xd. El `0xdb`
+partida en la posición del dueño. Intenta en orden los cuatro `0x610/0..3` (`0x51a08a..0x51a0ed`) con la
+estela como dueño y luego pide `0x7a` y cambia a escala 1. La estela sigue la flecha en `0x523b8b` y conserva el
+paso de animación común. Su dibujo es el genérico (`0x52d78f` salta sólo el subtipo 3, `0x52da92` → `0x602e90`)
+con `Piercing.bmd`, que carga `0x615700`.
+El `0xe1`/1 usa el joint `0x610`/0xd. El `0xdb`
 con el subtipo 3 o 4 (`0x51c601`, la del asedio): vida 40, escala 1,5, `+0xe4` en (`rand() % 100` + 50) ·
 `0x3d888889`, la partida en la posición del héroe y, con el 3, la y de la velocidad en −(`rand() % 30` + 50) y la x de
 los ángulos en −(`rand() % 20` + 45); con el 4, −(`rand() % 15` + 55) y −10 (cada fild más la constante y el `fchs` en
@@ -12374,11 +12431,18 @@ la rama de la skill:
 | `0x37` | salida: apaga el `0x628/0` del blanco y crea otro (CL11, `0x4cd664`); si no, un monstruo va a `0x4f4a10` con el frame en 0 (`0x4cd68e`) |
 | `0x43`..`0x48` | la acción por la montura (Dark Horse `0x52`, Uniria `0x40`, Dinorant `0x41`, Fenrir `0x5d`; si no `0x3f` o `0x87`); salidas, la `0x44` baja el `0x1000` del blanco, la `0x46` le prende `0x4000` (si no es la fuente), la `0x47` le baja `0x4000`, la `0x48` le baja seis y la `0x45` prende `0x2000` en la fuente y crea su `0x138` (CL11, `0x4cdb72`) |
 | `0x4b`, `0x40` | `0x200` (`0x800` con `0x4f3f80` antes) en el blanco; la acción del Dark Horse, Fenrir o `0x8e` |
-| `0x35`, `0x30` | sin `0x400` (`0x10`) en el blanco, apaga su `0x5ac/2` y sus joints `0x619/9` (su `0x5ac/1`) y crea otro con él de dueño (`0x4cdc88`, `0x4cdd84`; `World::ModelEffects::CreateSkillFlare`, vida 1000); después, el bit. El paso (`0x52a7b7`, `Scenes::StepSkillFlare`): el /2 gira alrededor del dueño y cada 50 suelta un joint `0x619/9`; el /1 corta en sus partículas `0x5ac/4` (`0x52a866`, CL11) |
+| `0x35`, `0x30` | sin `0x400` (`0x10`) en el blanco, apaga su `0x5ac/2` y sus joints `0x619/9` (su `0x5ac/1`) y crea otro con él de dueño (`0x4cdc88`, `0x4cdd84`; `World::ModelEffects::CreateSkillFlare`, vida 1000); después, el bit. El paso (`0x52a7b7`, `Scenes::StepSkillFlare`): el /2 gira alrededor del dueño y cada 50 suelta un joint `0x619/9`; el /1 emite `0x5ac/4` en dos huesos opuestos (`0x52a866`, `0x52a89a`, CL11.3) |
 | `0x31` | `0x41` en Atlans (8) y en el cielo (10), `0x40` en los demás |
 | `0x3b` | el efecto `0x112` en la fuente (CL11, `0x4cddfa`) |
 | `0x3a` | `0x44`, el sonido `0x92` y `+0x1bc` en 0 |
 | `0x28` | `0x45`; en el héroe suelta el clic derecho (`0x4cde43..0x4cde58`: el soltado `0x7d36840`, el clic `0x7d36880`, el botón `0x7d3685c` y los frames de carga `0x7d368a4`) |
+
+Swell Life elige un índice `rand() % 7` incluso con el pool lleno. Intenta dos altas con los índices
+`k` y `6−k` de `[25, 26, 27, 20, 34, 35, 36]`. Cada `0x5ac/4` guarda ese hueso como rotación, toma
+el primer lugar libre y nace con vida 10, escala 2 y RGB `(1, 0.5, 0.1)`. En el paso `0x544a7d`
+sigue el hueso del actor de tipo `0x20a` con `+0x88 == 1`. Aunque el dueño quede inválido o se
+agote la vida, consume sus dos sorteos, sube y reduce la escala y la luz. Conserva el dibujo
+común de `0x5ac` y la rotación guardada.
 
 `0x4f5290`, en un jugador, abre los stats propios (`0x4f3f80`, 3.848 `rand()`) y elige `0x97` (Uniria o Dinorant),
 `0x5d` (Fenrir), `0x92` (elfo) o `0x8e + rand() % 2`; en otro, 3 y 4 de a tres con `+0x38f`.
@@ -13500,7 +13564,8 @@ NewFace suelto o el que cargó el alta ([Los modelos de los monstruos y los NPC]
    y la 4, y el `0x1b8` en la 3 y la 4 con el frame en 5,06f (`0x6b8a30`) o menos, o NaN). Fuera de esas acciones no
    hacen nada ni sacan `rand()`, salvo el sorteo incondicional de `0x432bd0`. Las cintas de los cuatro helpers
    están portadas: [auditoría de estelas H3](15-h3-combate-y-muerte.md#estelas-de-ataque-auditoría-del-2026-11-16).
-   Los efectos145/147 y partículas640/5dc aún conservan su frontera cuando hay capacidad en su pool.
+   Los efectos `0x145` y `0x147` y la partícula `0x640` aún cortan cuando hay capacidad en su pool.
+   La `0x5dc/12` completa sus cinco intentos y el paso continúa hasta el sorteo de `0x432bd0`.
 4. **`0x505de0`**: sin acciones va a la caja de `0x505e15`; la cabeza pasa antes por `0x4ea190` (`0x5068e3`): la acción
    6 no toca el blanco, la 0 sortea uno (`rand() % 32` en 0: `rand() % 128 − 64` y `rand() % 48 − 16`), la 2 con
    `+0x3a4` distinto de −1 mira a ese personaje del pool con `0x4ea0e0` (el rumbo de `0x4e93f0` a menos de 90 grados

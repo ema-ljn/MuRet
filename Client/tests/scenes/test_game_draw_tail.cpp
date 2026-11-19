@@ -37,6 +37,7 @@
 #include <span>
 #include <limits>
 #include <memory>
+#include <optional>
 #include <glm/ext/vector_int2.hpp>
 #include <glm/ext/vector_float4.hpp>
 #include <string>
@@ -79,9 +80,9 @@ public:
         skeleton.bones = {bone};
         skeleton.actions = {Client::Render::Models::ActionInfo{.keyCount = 1}};
     }
-    const Client::Data::Models::Model* Find(std::uint16_t) const override
+    const Client::Data::Models::Model* Find(std::uint16_t id) const override
     {
-        return &model;
+        return missingModel == id ? nullptr : &model;
     }
     const Client::Render::Models::Skeleton* SkeletonOf(std::uint16_t) const override
     {
@@ -94,6 +95,7 @@ public:
     Client::Data::Models::Model model;
     Client::Render::Models::Skeleton skeleton;
     std::array<Client::Render::TextureSlot, 1> textures{Client::Render::TextureSlot{0x400}};
+    std::optional<std::uint16_t> missingModel;
 };
 class RetainedDummyModels final : public Client::Scenes::IModelLibrary
 {
@@ -1044,6 +1046,44 @@ TEST(GameDrawTailTest, ModelEffectPublishesItsPoseBeforeGeometryAndNeverForGroun
     EXPECT_EQ(poses, 1);
 }
 
+// 0x52d6c3: el pulso 0x103 del terremoto no tiene caso propio y va por 0x52da84 → 0x602e90 con su malla,
+// flashing.bmd (0x615700). Nace con blendMesh 0: en el segundo pase lo filtra 0x52d66a..0x52d693 sólo con −1.
+TEST(GameDrawTailTest, TheEarthquakeBurstDrawsFlashingBmdThroughTheGenericPath)
+{
+    TriangleModels models;
+    Client::World::SphereFrustum frustum;
+    Client::World::ModelEffect burst;
+    burst.alive = true;
+    burst.type = Client::World::EarthquakeBurstEffect;
+    burst.objectState.blendMesh = 0;
+    burst.alpha = 1;
+    burst.transform.scale = 0.5f;
+    Client::Render::ModelBatch batch;
+    const auto drawn =
+        Client::Scenes::DrawGameModelEffects(batch, models, std::span(&burst, 1), frustum, nullptr, {}, 0, 0);
+    ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+    EXPECT_FALSE(batch.Vertices().empty());
+    Client::Render::ModelBatch secondary;
+    const auto drawnAgain =
+        Client::Scenes::DrawGameModelEffects(secondary, models, std::span(&burst, 1), frustum, nullptr, {}, 0, 1);
+    ASSERT_TRUE(drawnAgain.HasValue()) << drawnAgain.Error();
+    EXPECT_EQ(secondary.Vertices().size(), batch.Vertices().size());
+    burst.objectState.blendMesh = -1;
+    Client::Render::ModelBatch excluded;
+    const auto skipped =
+        Client::Scenes::DrawGameModelEffects(excluded, models, std::span(&burst, 1), frustum, nullptr, {}, 0, 1);
+    ASSERT_TRUE(skipped.HasValue()) << skipped.Error();
+    EXPECT_TRUE(excluded.Vertices().empty());
+    // Sin flashing.bmd la cuenta de mallas es 0 (0x60dbe0): el primer pase no dibuja nada y no corta.
+    burst.objectState.blendMesh = 0;
+    models.missingModel = static_cast<std::uint16_t>(Client::World::EarthquakeBurstEffect);
+    Client::Render::ModelBatch missing;
+    const auto withoutModel =
+        Client::Scenes::DrawGameModelEffects(missing, models, std::span(&burst, 1), frustum, nullptr, {}, 0, 0);
+    ASSERT_TRUE(withoutModel.HasValue()) << withoutModel.Error();
+    EXPECT_TRUE(missing.Vertices().empty());
+}
+
 // 0x52d620 → 0x52d400: el terremoto 0xfa del caballo (estado 2) no se dibuja ni busca modelos, en ninguna vida. Las
 // grietas 0xfb..0x102 van por 0x52da84 → 0x602e90 con su malla; con +0x74 en 0x80 (0xfc, 0xff y 0x102 de subtipo 1),
 // 0x6002e0 las dibujaría por 0x4ef0c0, que no está portado: corta en 0x6004aa.
@@ -1149,14 +1189,39 @@ TEST(GameDrawTailTest, ModelEffectNonzeroModeFiltersBlendMeshBeforeDispatchingIt
                     .HasValue());
     EXPECT_EQ(missing.lookups, 0);
     effect.objectState.blendMesh = 2;
-    const auto failed =
+    const auto withoutMeshes =
         Client::Scenes::DrawGameModelEffects(batch, missing, std::span(&effect, 1), frustum, nullptr, {}, 0, 1);
-    ASSERT_FALSE(failed.HasValue());
-    EXPECT_NE(failed.Error().find("0x52d68c"), std::string::npos);
+    ASSERT_TRUE(withoutMeshes.HasValue()) << withoutMeshes.Error();
     TriangleModels oneMesh;
     ASSERT_TRUE(Client::Scenes::DrawGameModelEffects(batch, oneMesh, std::span(&effect, 1), frustum, nullptr, {}, 0, 1)
                     .HasValue());
     EXPECT_TRUE(batch.Commands().empty());
+    effect.type = -1;
+    const auto invalid =
+        Client::Scenes::DrawGameModelEffects(batch, missing, std::span(&effect, 1), frustum, nullptr, {}, 0, 1);
+    ASSERT_FALSE(invalid.HasValue());
+    EXPECT_NE(invalid.Error().find("0x52d68c"), std::string::npos);
+}
+
+TEST(GameDrawTailTest, AnUnloadedModelDoesNotAbortTheRestOfTheSecondPass)
+{
+    Client::Render::ModelBatch batch;
+    TriangleModels models;
+    models.missingModel = std::uint16_t{0x14e};
+    Client::World::SphereFrustum frustum;
+    std::array<Client::World::ModelEffect, 2> effects{};
+    effects[0].alive = true;
+    effects[0].type = 0x14e;
+    effects[0].objectState.blendMesh = 1;
+    effects[1].alive = true;
+    effects[1].type = 0xdb;
+    effects[1].objectState.blendMesh = 1;
+    effects[1].transform.scale = 1;
+
+    const auto drawn = Client::Scenes::DrawGameModelEffects(batch, models, effects, frustum, nullptr, {}, 0, 1);
+    ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+    EXPECT_TRUE(effects[1].seen);
+    EXPECT_EQ(batch.Vertices().size(), 3u);
 }
 
 TEST(GameDrawTailTest, MirroredModelEffectDrawsTwiceAndRetainsItsSecondHeight)

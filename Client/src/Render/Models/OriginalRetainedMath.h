@@ -57,6 +57,8 @@ struct SignedConversion
 // factor exacto con un solo R53. Mismo dominio del argumento que SineProductPC53; el factor, finito y de
 // cualquier signo.
 [[nodiscard]] std::optional<double> SineDoubleProductPC53(double argument, double multiplier);
+// FCOS por un factor double retenido, con el mismo contrato que SineDoubleProductPC53.
+[[nodiscard]] std::optional<double> CosineDoubleProductPC53(double argument, double multiplier);
 // Valor canónico retenido; conserva clases y signo de cero. Error si no cabe exactamente en double.
 [[nodiscard]] std::optional<double> RetainedProductPC53(const Retained64& value, float multiplier);
 } // namespace Client::Render::Models::Detail

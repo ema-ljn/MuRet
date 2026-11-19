@@ -107,6 +107,13 @@ ModelBatchParticleBackend::ModelBatchParticleBackend(std::reference_wrapper<Mode
 {
 }
 
+ModelBatchParticleBackend::~ModelBatchParticleBackend()
+{
+    // El scratch nunca se publicó: abandonar su marca no fabrica End ni borra geometría completa.
+    if (m_ownsPrimitive)
+        m_batch.get().EndPrimitive();
+}
+
 IParticleDrawBackend::Result ModelBatchParticleBackend::PrepareMaterial()
 {
     if (IsDrawing())
@@ -230,7 +237,8 @@ IParticleDrawBackend::Result ModelBatchParticleBackend::MaterialTail(bool alphaT
         if (!changed.HasValue())
             return changed;
     }
-    // 620a00/620b10 alcanzan fog después de los stores anteriores. No hay fog en este shader.
+    // 620a00/620b10 consultan una política separada de la niebla regional después de estos stores.
+    // Los stores directos de 0x07d368a0 del binario analizado la dejan en cero.
     if (enableFog && m_state.fogPolicy != 0)
         return Unsupported();
     return {};
@@ -263,13 +271,19 @@ IParticleDrawBackend::Result ModelBatchParticleBackend::Type620850()
 }
 IParticleDrawBackend::Result ModelBatchParticleBackend::Type620870()
 {
-    return Unsupported();
+    const auto prepared = PrepareMaterial();
+    if (!prepared.HasValue())
+        return prepared;
+    if (!m_state.depthTest)
+        return {};
+    m_state.depthTest = false; // 62087e: caché antes del glDisable(GL_DEPTH_TEST).
+    return PublishOperation(ModelStateOperation::DepthTest);
 }
 
 IParticleDrawBackend::Result ModelBatchParticleBackend::TextureEnv(TextureEnvMode mode)
 {
     // glTexEnvi entre glBegin y glEnd es un error de GL; 0x5489eb lo llama fuera del quad. No es del material:
-    // no publica una operación ni cambia el serial del lote.
+    // publica su propio eje sin cambiar el serial del material.
     if (IsDrawing())
         return Core::Unexpected(std::make_error_code(std::errc::operation_in_progress));
     m_batch.get().SetTextureEnv(mode);
@@ -360,7 +374,11 @@ IParticleDrawBackend::Result ModelBatchParticleBackend::SynchronizeBatch()
 
 IParticleDrawBackend::Result ModelBatchParticleBackend::CheckPrimitiveState() const
 {
-    if (IsDrawing() && m_observedSerial != m_batch.get().StateSerial())
+    if (!IsDrawing())
+        return {};
+    if (!m_ownsPrimitive)
+        return Core::Unexpected(std::make_error_code(std::errc::operation_in_progress));
+    if (m_observedSerial != m_batch.get().StateSerial())
         return Core::Unexpected(std::make_error_code(std::errc::state_not_recoverable));
     return {};
 }
@@ -384,6 +402,7 @@ IParticleDrawBackend::Result ModelBatchParticleBackend::BeginQuad(ModelCoordinat
     const auto opened = m_batch.get().BeginPrimitive();
     if (!opened.HasValue())
         return opened;
+    m_ownsPrimitive = true;
     m_cornerCount = 0;
     m_primitiveSpace = space;
     return {};
@@ -464,6 +483,7 @@ IParticleDrawBackend::Result ModelBatchParticleBackend::End()
     m_batch.get().Triangle({m_corners[0], m_corners[1], m_corners[2]});
     m_batch.get().Triangle({m_corners[0], m_corners[2], m_corners[3]});
     m_batch.get().EndPrimitive();
+    m_ownsPrimitive = false;
     return {};
 }
 

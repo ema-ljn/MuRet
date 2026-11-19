@@ -320,7 +320,7 @@ Core::Expected<void, std::string> StepTheSkill2f(const ActorState& actor, std::u
 // 0x4f9e61..0x4f9ef2: la 0x34. El 0x20a de la 0x22 a la 0x97, desde el frame 5, vuelve al 5 (+0x114) con la key
 // anterior en 4 (+0x118, que MuRet guarda truncada); en 3, el efecto 0x621/0 y el sonido 0x81; [0x6c88ac] en 5, que
 // adelanta la habilidad (0x4fdbda) a cuando +0x381 llega a 5.
-Core::Expected<void, std::string> StepTheSkill34(ActorState& actor, std::uint8_t skill, std::size_t slot,
+Core::Expected<void, std::string> StepTheSkill34(ActorState& actor, std::uint8_t, std::size_t,
                                                  const CharacterStepContext& context)
 {
     constexpr std::uint8_t FirstAction = 0x22;
@@ -336,10 +336,11 @@ Core::Expected<void, std::string> StepTheSkill34(ActorState& actor, std::uint8_t
     constexpr std::uint8_t GlowStep = 3;
     if (actor.byte381 == GlowStep)
     {
-        if (HasFreeEffect(context))
-            return CutAt(0x4f9ecb,
-                         "el efecto 0x621/0 sobre el que tira (CL11); detrás, el sonido 0x81 y [0x6c88ac] en 5", skill,
-                         actor, slot);
+        static_cast<void>(context.world.Map().effects.CreatePiercingShot({.type = World::PiercingShotGlowEffect,
+                                                                          .position = actor.position,
+                                                                          .angles = actor.angles,
+                                                                          .light = actor.light,
+                                                                          .owner = &actor}));
         if (context.soundAt)
             context.soundAt(0x81, actor.position);
         else
@@ -427,30 +428,42 @@ Core::Expected<void, std::string> StepTheSkill38(ActorState& actor, std::uint8_t
     return {};
 }
 
-// 0x4fa994..0x4faaca: la 0x39, de cualquier tipo.
-Core::Expected<void, std::string> StepTheSkill39(ActorState& actor, std::uint8_t skill, std::size_t slot,
-                                                 const CharacterStepContext& context)
+Core::Expected<void, std::string> CreateSkill39Bolts(ActorState& actor, const CharacterStepContext& context,
+                                                     std::initializer_list<std::int32_t> keys, std::uint32_t address)
 {
+    constexpr std::int32_t BoltJoint = 0x60f, BoltSubtype = 0x17;
+    constexpr float Width = 40.0f;
+    for (const std::int32_t key : keys)
+    {
+        const World::FishEffectRequest request{
+            BoltJoint, actor.position, actor.position, actor.angles, BoltSubtype, nullptr, Width, key, 0, 0, -1};
+        const auto created = CreateFaunaJoint(context.joints, request, context.random);
+        if (!created.HasValue())
+            return Core::Unexpected(std::format("{:#x}: {}", address, created.Error()));
+    }
+    return {};
+}
+
+// 0x4fa994..0x4faaca: la 0x39, de cualquier tipo.
+Core::Expected<void, std::string> StepTheSkill39(ActorState& actor, const CharacterStepContext& context)
+{
+    constexpr std::int32_t BoltSound = 0x270;
     const float frame = FrameOf(actor);
     if (frame > FifthFrame)
     {
         // 0x4fa9ab..0x4faa29: tres 0x530860(0x60f, o+0x10, o+0x10, o+0x1c, 0x17, sin dueño, 40,0f, la clave 0, 1 y 4,
         // 0, 0, −1), +0x381 en 15 y 0x41ed10(0x270, 0, 0).
-        if (HasFreeJoint(context))
-            return CutAt(0x4fa9ca,
-                         "los joints 0x60f/0x17 con las claves 0, 1 y 4 (CL11); detrás, +0x381 en 15 y el sonido "
-                         "0x270",
-                         skill, actor, slot);
+        if (auto created = CreateSkill39Bolts(actor, context, {0, 1, 4}, 0x4fa9ca); !created.HasValue())
+            return created;
         actor.byte381 = AttackDone;
-        RequestTheSound(context, 0x270);
+        RequestTheSound(context, BoltSound);
     }
     if (frame > BoltOpening && frame < BoltClosing)
     {
         // 0x4faa62..0x4faab0: dos 0x530860(0x60f, …, 0x17, …, la clave 2 y 3, …) y 0x41ed10(0x270, 0, 0).
-        if (HasFreeJoint(context))
-            return CutAt(0x4faa81, "los joints 0x60f/0x17 con las claves 2 y 3 (CL11); detrás, el sonido 0x270", skill,
-                         actor, slot);
-        RequestTheSound(context, 0x270);
+        if (auto created = CreateSkill39Bolts(actor, context, {2, 3}, 0x4faa81); !created.HasValue())
+            return created;
+        RequestTheSound(context, BoltSound);
     }
     // 0x4faaba.
     context.world.Runtime().skillThreshold = FullThreshold;
@@ -566,7 +579,7 @@ Core::Expected<bool, std::string> StepTheFrameSkill(ActorState& actor, std::uint
     case 0x38:
         return Handled(StepTheSkill38(actor, skill, slot, context));
     case 0x39:
-        return Handled(StepTheSkill39(actor, skill, slot, context));
+        return Handled(StepTheSkill39(actor, context));
     case 0x28:
     case 0x30:
     case 0x31:

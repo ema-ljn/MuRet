@@ -7,6 +7,8 @@
 #include "Data/Models/Model.h"
 #include "Data/Terrain/TerrainObjects.h"
 #include "Render/ModelBatch.h"
+#include "Render/TextureEnvMode.h"
+#include "World/BloodCastleParticleKernels.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/ObjectState.h"
 #include "Render/Models/Skeleton.h"
@@ -1682,7 +1684,7 @@ TEST(ModelEffectsDrawingTest, TheDragonIsDrawnBetweenTwoSteps)
 
 // Una biblioteca con el tamaño de la textura de los sprites (0x5ac de 64 × 32) y la del aliento (0x5f2): las
 // dos son JPG, de 3 componentes, y ligan el slot de su selector, como las de EffectTextureSet en GameModels.
-class SpriteTextures final : public Client::Scenes::IModelLibrary
+class SpriteTextures : public Client::Scenes::IModelLibrary
 {
 public:
     [[nodiscard]] const Model* Find(std::uint16_t) const override
@@ -1719,6 +1721,133 @@ public:
         return metadata ? std::optional(metadata->size) : std::nullopt;
     }
 };
+
+// Metadata sintética: fuerza la frontera de color después de Begin, sin assets ni GL.
+class InterruptedEffectTextures final : public SpriteTextures
+{
+public:
+    explicit InterruptedEffectTextures(const ModelBatch& batch) : m_batch(batch) {}
+    bool interrupt = true;
+    std::optional<TextureMetadata> TextureMetadataOf(std::uint32_t selector) const override
+    {
+        if (interrupt && m_batch.HasOpenPrimitive() && ++m_colorQueries == 2)
+            return std::nullopt;
+        if (selector == Client::World::TorchFlameParticle)
+            selector = Client::World::BreathParticle;
+        return SpriteTextures::TextureMetadataOf(selector);
+    }
+
+private:
+    const ModelBatch& m_batch;
+    mutable std::size_t m_colorQueries = 0;
+};
+
+class RgbaSpriteTextures final : public SpriteTextures
+{
+public:
+    std::optional<TextureMetadata> TextureMetadataOf(std::uint32_t) const override
+    {
+        TextureMetadata metadata(Client::Data::Textures::Texture{});
+        metadata.size = glm::vec2(64.0f, 32.0f);
+        metadata.components = 4;
+        return metadata;
+    }
+};
+
+TEST(SpritesDrawingTest, RgbaSpritesUseLightRedAsBillboardAlpha)
+{
+    const RgbaSpriteTextures textures;
+    for (const std::uint16_t selector :
+         {std::uint16_t{0x5ac}, Client::World::AtlasSprite, Client::Render::OpaqueAlphaBillboardSlot})
+    {
+        Client::World::FrameSprites sprites;
+        ASSERT_TRUE(sprites.Create(selector, {0, 0, -10}, 1, {0.25f, 0.5f, 0.75f}, 0, 0));
+        sprites.MarkSeen();
+        ModelBatch batch;
+        batch.Begin(Client::Render::Pass3D{});
+        Client::Scenes::DrawFrameSprites(batch, sprites, textures, Client::Render::ViewRows(glm::mat4(1)));
+        ASSERT_EQ(batch.Vertices().size(), 6u);
+        for (const auto& vertex : batch.Vertices())
+        {
+            EXPECT_FLOAT_EQ(vertex.color.red, 0.25f);
+            EXPECT_FLOAT_EQ(vertex.color.green, 0.5f);
+            EXPECT_FLOAT_EQ(vertex.color.blue, 0.75f);
+            EXPECT_FLOAT_EQ(vertex.color.alpha, selector == Client::Render::OpaqueAlphaBillboardSlot ? 1.0f : 0.25f);
+        }
+    }
+}
+
+TEST(ParticlesDrawingTest, InterruptedQuadPreservesCompletedGeometryAndAllowsNextPass)
+{
+    ModelBatch batch;
+    batch.Begin(Client::Render::Pass3D{});
+    InterruptedEffectTextures textures(batch);
+    Client::World::Particles particles;
+    Client::Render::Models::CrtRandom random(1);
+    for (int i = 0; i < 2; ++i)
+        ASSERT_TRUE(
+            particles.Create(Client::World::BreathParticle, {0, 0, -300}, glm::vec3(0), glm::vec3(1), 0, 1, 0, random)
+                .has_value());
+    const auto view = Client::Render::ViewRows(glm::mat4(1));
+    const auto failed = Client::Scenes::DrawParticles(batch, particles, textures, view);
+    ASSERT_FALSE(failed.HasValue());
+    EXPECT_EQ(failed.Error().slot, 1u);
+    EXPECT_EQ(failed.Error().error.reason, Client::World::ParticleError::MissingColorFlag);
+    EXPECT_EQ(failed.Error().error.phase, Client::World::ParticleDrawingPhase::ColorFlag);
+    EXPECT_FALSE(failed.Error().error.backendError);
+    EXPECT_FALSE(batch.HasOpenPrimitive());
+    ASSERT_EQ(batch.Vertices().size(), 6u);
+    EXPECT_FLOAT_EQ(batch.Vertices()[0].color.red, 1.0f);
+    std::size_t completed = 0;
+    for (const auto& command : batch.Commands())
+        completed += command.vertexCount;
+    EXPECT_EQ(completed, 6u);
+    textures.interrupt = false;
+    ASSERT_TRUE(Client::Scenes::DrawParticles(batch, particles, textures, view).HasValue());
+    EXPECT_EQ(batch.Vertices().size(), 18u);
+    batch.Begin(Client::Render::Pass3D{});
+    ASSERT_TRUE(Client::Scenes::DrawParticles(batch, particles, textures, view).HasValue());
+    EXPECT_EQ(batch.Vertices().size(), 12u);
+}
+
+TEST(ParticlesDrawingTest, AnInterruptedTextureOverrideDoesNotAffectTheNextProducer)
+{
+    using Client::Render::TextureEnvMode;
+    for (const bool temporaryOverride : {false, true})
+    {
+        SCOPED_TRACE(temporaryOverride);
+        ModelBatch batch;
+        batch.Begin(Client::Render::Pass3D{});
+        const auto expected = temporaryOverride ? TextureEnvMode::Modulate : TextureEnvMode::Add;
+        batch.SetTextureEnv(expected);
+        InterruptedEffectTextures textures(batch);
+        Client::World::Particles particles;
+        Client::Render::Models::CrtRandom random(1);
+        for (int i = 0; i < 2; ++i)
+            ASSERT_TRUE(
+                particles
+                    .Create(Client::World::BreathParticle, {0, 0, -300}, glm::vec3(0), glm::vec3(1), 0, 1, 0, random)
+                    .has_value());
+        if (temporaryOverride)
+        {
+            auto& second = particles.All()[1];
+            second.type = Client::World::TorchFlameParticle;
+            second.texture = Client::World::TorchFlameParticle;
+            second.subtype = Client::World::BrightFlameSubtype;
+        }
+        const auto result =
+            Client::Scenes::DrawParticles(batch, particles, textures, Client::Render::ViewRows(glm::mat4(1)));
+        ASSERT_FALSE(result.HasValue());
+        EXPECT_EQ(result.Error().slot, 1u);
+        EXPECT_EQ(result.Error().error.phase, Client::World::ParticleDrawingPhase::ColorFlag);
+        EXPECT_FALSE(batch.HasOpenPrimitive());
+        ASSERT_EQ(batch.Vertices().size(), 6u);
+        EXPECT_EQ(batch.TextureEnv(), expected);
+        batch.Triangle({batch.Vertices()[0], batch.Vertices()[1], batch.Vertices()[2]});
+        ASSERT_EQ(batch.Vertices().size(), 9u);
+        EXPECT_EQ(batch.Commands().back().textureEnv, expected);
+    }
+}
 
 // 0x549440(0): cada sprite vivo se dibuja una vez, aditivo, como el cuadrado de 0x621400 con la textura
 // por la escala (0x549290), y se apaga.

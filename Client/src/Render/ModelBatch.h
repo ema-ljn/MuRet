@@ -64,6 +64,8 @@ enum class ModelStateOperation : std::uint8_t
     AlphaTest,
     Texture2d,
     Binding,
+    TextureEnv,
+    Fog,
 };
 
 struct ModelDrawState

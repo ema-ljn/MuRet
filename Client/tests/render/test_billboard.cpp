@@ -14,6 +14,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <fstream>
+#include <limits>
 #include <sstream>
 #include <string>
 
@@ -132,6 +133,24 @@ TEST(BillboardTest, ThreeHundredCasesMatchTheBinary)
         ++cases;
     }
     EXPECT_EQ(cases, 300u);
+}
+
+// 621451–62145c: FCOMP marca C3 tanto para cero como para unordered.
+TEST(BillboardTest, NanRotationUsesTheUnrotatedGeometry)
+{
+    const Client::Render::Models::OriginalMatrix view{1, 0, 0, 10, 0, 1, 0, 20, 0, 0, 1, 30};
+    const auto zero = Client::Render::MakeBillboardGeometry(view, {2, 3, 4}, 6, 8, 0, {0.25f, 0.5f}, {0.5f, 0.25f});
+    const auto nan = Client::Render::MakeBillboardGeometry(
+        view, {2, 3, 4}, 6, 8, std::numeric_limits<float>::quiet_NaN(), {0.25f, 0.5f}, {0.5f, 0.25f});
+    for (std::size_t corner = 0; corner < zero.size(); ++corner)
+    {
+        for (int component = 0; component < 3; ++component)
+            EXPECT_EQ(Bits(nan[corner].position[component]), Bits(zero[corner].position[component]));
+        EXPECT_EQ(Bits(nan[corner].uv.x), Bits(zero[corner].uv.x));
+        EXPECT_EQ(Bits(nan[corner].uv.y), Bits(zero[corner].uv.y));
+    }
+    EXPECT_EQ(nan[0].position, glm::vec3(9, 19, 34));
+    EXPECT_EQ(nan[2].position, glm::vec3(15, 27, 34));
 }
 
 // La vista de 0x620370: por filas, la traspuesta de la de glm.

@@ -22,13 +22,9 @@ namespace Client::Scenes
 [[nodiscard]] Core::Expected<std::optional<std::size_t>, std::string>
 CreateCrywolfDeathSpirit(const World::ModelEffectArguments&, World::ModelEffects&, World::Particles*,
                          Render::Models::CrtRandom&, float worldClock = 0);
-// 5192a3:104/0, sin RNG. El dueño del trail permanece como ModelEffect::owner.effect.
-[[nodiscard]] std::optional<std::size_t> CreateCrywolfSpiritTrail(const World::ModelEffectArguments&,
-                                                                  World::ModelEffects&);
-// Cuerpos de52709b y5212e7: el dispatcher conserva CRT, animación y vida comunes.
+// Cuerpo de52709b: el dispatcher conserva CRT, animación y vida comunes.
 // nativeStackPoint es [EBP−28] al entrar: la primera61e/1 de vida<10 lo lee antes de escribirlo.
 [[nodiscard]] Core::Expected<void, std::string>
 StepCrywolfDeathSpirit(World::ModelEffect&, Render::Models::CrtRandom&, const World::ModelEffectStepServices&,
                        std::optional<glm::vec3> nativeStackPoint = std::nullopt);
-void StepCrywolfSpiritTrail(World::ModelEffect&);
 } // namespace Client::Scenes

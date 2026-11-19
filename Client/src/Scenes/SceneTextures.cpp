@@ -46,13 +46,20 @@ Core::Expected<void, std::string> SceneTextures::Load(const std::filesystem::pat
 
 void SceneTextures::Release()
 {
+    Release(std::nullopt);
+}
+
+void SceneTextures::Release(std::optional<Render::TextureSlot> sharedSlot)
+{
     if (!m_loaded)
     {
         return;
     }
     for (const Data::Textures::TextureSetEntry& entry : m_set)
     {
-        m_store.Release(Render::TextureSlot{entry.slot});
+        const Render::TextureSlot slot{entry.slot};
+        if (slot != sharedSlot)
+            m_store.Release(slot);
     }
     m_loaded = false;
     m_sizes.clear();

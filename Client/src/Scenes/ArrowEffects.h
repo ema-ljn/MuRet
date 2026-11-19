@@ -44,7 +44,7 @@ class WorldState;
 // 0x51a1e6..0x51a405, 0x51be81 y la salida 0x51a1b6, que copia +0xf04 del registro propio a +0x8c). La llama 0x53d9a0
 // por cada mano; la 0xdb con el subtipo 3 o 4 la crea el asedio (0x42c319 y 0x42c4e0, CL9.5) y la 0xe1/1 la fortaleza
 // y Crywolf (0x42fd32 y 0x43252d); su 610/13 conserva al efecto de dueño. Con el subtipo 2 (la skill 0x34), antes el
-// 0x105 con la flecha de dueño, que corta en su joint (0x51a08a, CL11). Con la tabla llena, nada y sin rand().
+// 0x105 con la flecha de dueño y cuatro intentos de joint 0x610 (0x51a08a). Con la tabla llena, nada y sin rand().
 [[nodiscard]] Core::Expected<void, std::string> CreateTheArrowEffect(const World::ModelEffectArguments& arguments,
                                                                      WorldState& world,
                                                                      Render::Models::CrtRandom& random,

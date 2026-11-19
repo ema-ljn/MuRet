@@ -34,6 +34,8 @@
 #include "Scenes/DynamicWorldLight.h"
 #include "Scenes/FaunaModels.h"
 #include "Scenes/FaunaJointCreation.h"
+#include "Scenes/GameDrawTail.h"
+#include "Scenes/GameRibbonCreation.h"
 #include "Scenes/HealthBars.h"
 #include "Scenes/ItemSetOptionList.h"
 #include "Scenes/ModelBody.h"
@@ -1430,10 +1432,8 @@ Core::Expected<void, std::string> StepCharacters(const CharacterStepContext& con
             return stepped;
         }
     }
-    // Frontera (08 P-C44): 0x52e500 (0x5091d0), el paso de las estelas de 0x75e9870, sin rand(). Las
-    // crea 0x52e470 desde las habilidades, los efectos y la acción 3 del caballo (0x444671); MuRet no
-    // tiene la tabla. Corre también en la espera.
-    return {};
+    // 0x5091d0: una vez después del último 0x508ea0, también en el login y antes del preview de selección.
+    return StepRibbons(world.DrawTail().ribbons);
 }
 
 Core::Expected<void, std::string> StepCharacter(ActorState& actor, const CharacterStepContext& context)

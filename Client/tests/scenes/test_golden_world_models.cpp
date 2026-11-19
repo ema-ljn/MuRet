@@ -20,6 +20,7 @@
 #include "support/SceneDataFiles.h"
 #include "support/SyntheticModels.h"
 #include "support/TemporaryFolder.h"
+#include "support/TextureFiles.h"
 
 #include <gtest/gtest.h>
 
@@ -438,19 +439,22 @@ TEST(WorldModelsTest, LorenciaAssignsNamedTexturesByIdAfterLoadingTheSpecials)
     struct Request
     {
         std::string_view file;
-        std::string_view texture;
+        std::string_view textureStem;
     };
-    constexpr std::array<Request, 4> Requests{{{"Bird01.bmd", "test-bird.jpg"},
-                                               {"Fish01.bmd", "test-fish.jpg"},
-                                               {"StoneWall01.bmd", "test-stone.jpg"},
-                                               {"SteelWall01.bmd", "test-steel.jpg"}}};
+    constexpr std::array<Request, 4> Requests{{{"Bird01.bmd", "test-bird"},
+                                               {"Fish01.bmd", "test-fish"},
+                                               {"StoneWall01.bmd", "test-stone"},
+                                               {"SteelWall01.bmd", "test-steel"}}};
     constexpr std::uint8_t ClearVersion = 0x0a;
     for (const Request& request : Requests)
     {
         Client::Data::Models::Model model = Client::Tests::SampleModel();
-        model.meshes.front().textureName = request.texture;
-        Client::Tests::WriteSceneFile(folder.Path(), std::filesystem::path("Object1") / request.file,
+        const std::string texture(request.textureStem);
+        model.meshes.front().textureName = texture + ".tga";
+        const std::filesystem::path objects("Object1");
+        Client::Tests::WriteSceneFile(folder.Path(), objects / request.file,
                                       Client::Tests::PlainBmd(Client::Tests::BmdContent(model), ClearVersion));
+        Client::Tests::WriteSceneFile(folder.Path(), objects / (texture + ".OZT"), Client::Tests::PlainOzt(2, 2));
     }
     FakeTextureStore store;
     RecordingSink sink;

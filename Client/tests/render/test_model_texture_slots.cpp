@@ -7,11 +7,13 @@
 
 #include <gtest/gtest.h>
 
+#include <cstddef>
 #include <cstdint>
 #include <format>
 #include <optional>
 #include <ostream>
 #include <span>
+#include <string>
 #include <string_view>
 #include <type_traits>
 #include <utility>
@@ -95,6 +97,33 @@ TEST(ModelTextureSlotsTest, ARepeatedNameReusesItsSlot)
     EXPECT_EQ(assigned, Slots({0x138, 0x138}));
     EXPECT_EQ(slots.ToLoad().size(), 1u);
     EXPECT_EQ(slots.Next(), TextureSlot{0x139});
+}
+
+TEST(ModelTextureSlotsTest, AReusedSlotKeepsEachRequestsExactTextureKey)
+{
+    ModelTextureSlots slots(PlayerParts);
+    Client::Render::Models::ModelTextureRequests requests;
+    std::vector<std::optional<std::size_t>> bindings;
+    const auto first = slots.Assign(ModelWith({"panel.tga.extra", "panel.tga.extra"}), "Player\\", ModelSampling,
+                                    &requests, &bindings);
+    EXPECT_EQ(first, Slots({0x138, 0x138}));
+    ASSERT_EQ(bindings.size(), 2u);
+    EXPECT_EQ(bindings[0], 0u);
+    EXPECT_EQ(bindings[1], 0u);
+    slots.SetNext(PlayerParts);
+    const auto second = slots.Assign(ModelWith({"replacement.jpg"}), "Item\\", ModelSampling, &requests, &bindings);
+    EXPECT_EQ(second, Slots({0x138}));
+    ASSERT_EQ(bindings.size(), 1u);
+    EXPECT_EQ(bindings[0], 1u);
+    ASSERT_EQ(requests.names.size(), 2u);
+    EXPECT_EQ(requests.names[0].requested, "panel.tga.extra");
+    EXPECT_TRUE(requests.names[0].previous.empty());
+    EXPECT_EQ(requests.names[1].requested, "replacement.jpg");
+    EXPECT_EQ(requests.names[1].previous, "panel.tga.extra");
+    ASSERT_EQ(slots.ToLoad().size(), 2u);
+    EXPECT_EQ(slots.ToLoad()[0].path, "Player\\panel.tga");
+    EXPECT_EQ(slots.ToLoad()[1].path, "Item\\replacement.jpg");
+    EXPECT_EQ(slots.NameOf(PlayerParts), "replacement.jpg");
 }
 
 // Q-C90: se busca el nombre desnudo, sin la carpeta: el de otra carpeta se reusa.

@@ -35,6 +35,9 @@ struct TerrainLighting;
 struct WorldObject;
 
 inline constexpr std::size_t ParticleCount = 3000;
+// 0x52a866/0x52a89a: las dos luces que siguen los huesos del blanco de Swell Life.
+inline constexpr std::int32_t SwellLifeParticle = 0x5ac;
+inline constexpr std::int32_t SwellLifeParticleSubtype = 4;
 // 540260 y542599: las chispas5ad/2 y la niebla5f2/27 de la mano de Crywolf.
 inline constexpr std::int32_t MagicSparkParticle = 0x5ad;
 inline constexpr std::int32_t CrywolfTideSmokeSubtype = 25;
@@ -49,11 +52,15 @@ inline constexpr std::int32_t ShinyParticle = 0x5fc;
 inline constexpr std::int32_t ThunderParticle = 0x5ca;
 inline constexpr std::int32_t FairySparkParticle = 0x5c5;
 inline constexpr std::int32_t FireParticle = 0x5d9;
+// 0x4fd580/0x43ebb7: la llama azul de la estela de Kalima, con su textura Effect\Fire05.jpg (0x61ddac).
+inline constexpr std::int32_t BlueTrailFireParticle = 0x5dc;
+inline constexpr std::int32_t BlueTrailFireSubtype = 12;
 inline constexpr std::int32_t DropParticle = 0x607;
 inline constexpr std::int32_t WorldSmokeSubtype = 2;
 inline constexpr std::uint16_t BreathParticle = 0x5f2;
 // La chispa del cuervo (Effect\Spark03.jpg), con el subtipo 5 (06 § El cuervo).
 inline constexpr std::uint16_t SparkParticle = 0x5c6;
+inline constexpr std::int32_t PiercingSparkSubtype = 2;
 // 0x42ddb0: bendición sobre un personaje cerca de la corona/marca del asedio.
 inline constexpr std::int32_t SiegeBlessingParticle = 0x638;
 inline constexpr std::int32_t TeleportSparkSubtype = 1;
@@ -187,7 +194,9 @@ using ParticleObjectOwners = std::function<WorldObject*(std::uint64_t)>;
 // la órbita 60f/0 lee por el puntero +0x40 (0x54735f). nullopt si no está.
 using ParticleActorActions = std::function<std::optional<std::uint8_t>(std::uint64_t)>;
 // 0x53fdb0(partícula): el punto en el mundo del hueso que sigue la 5fe, el de su dueño (+0x40, ParticleOwner del pool
-// de personajes) que elige el héroe publicado con el subtipo. nullopt si el dueño no está o no se resuelve.
+// de personajes) que elige el héroe publicado con el subtipo. También resuelve la 5ac/4 por rotation y pose propia,
+// sin escala del modelo. nullopt si el dueño no está o no se resuelve; la 5ac/4 se apaga y termina sus dos rand().
+// Para 5c6/2 resuelve el centro del lugar físico ModelEffect cuando está vivo.
 using ParticleOwnerBones = std::function<std::optional<glm::vec3>(const Particle&)>;
 // 0x53fdb0 en el paso de la 5fd (0x546d37 y 0x546d47): el punto de la mano del personaje dueño
 // (ParticleOwnerKind::Actor, el lugar del pool) para el subtipo. nullopt si no está.
@@ -199,7 +208,7 @@ public:
     // 0x53fe70(tipo, posición, ángulos, luz, subtipo, escala, dueño) en el primer lugar libre, con el reloj
     // del mundo (DAT_05767b88, en ms) y el rand() de la CRT. Con los 3.000 llenos no se crea ni saca
     // rand(). Se aceptan5ca/0, 5e4 (cualquier subtipo), 5f2/0,2,11,21,33, 5f3/0, 5ed/0, 5c6/1,5,9,11, 622/6,8,9,10,
-    // 5d9/0..3,5,8, 607/0, 67/0,
+    // 5d9/0..3,5,8, 5dc/12, 607/0, 67/0,
     // 68/0, 698/0, 6ab/0,1 y 6ac/0,1; la órbita 60f/0,3,4,10 pide el overload con la trigonometría. Create es la
     // compatibilidad login; Core usa CreateChecked para distinguir errores de pool lleno. La neblina consume cinco
     // rand() y conserva +0x60 del uso anterior del lugar. 622/8 consume siete rand().
@@ -226,7 +235,7 @@ public:
     // CreateKalimaChecked agrega5ac/6,7,6ed/0,6f0..4/0, 6f1/3 y6f4/1; escena prestada para6f1.
     // Las familias con dueño tipado: las de Kalima y las de la selección (SelectionParticleKernels.h:
     // 622/1, 5de/7 y 729/0,1), más 6f0/2, 6f1/2 y 6f2,6f3/4 de los objetos del 54 y del 33, y la 5fd/0 y /2 de la
-    // mano (que no lee el reloj ni la escena, ni saca rand()).
+    // mano (que no lee el reloj ni la escena, ni saca rand()), y la 5ac/4 de Swell Life (0x540112), sin rand().
     [[nodiscard]] Core::Expected<std::optional<std::size_t>, ParticleError>
     CreateOwnedChecked(std::int32_t type, const glm::vec3& position, const glm::vec3& angles, const glm::vec3& light,
                        std::int32_t subtype, float scale, float worldClock, Render::Models::CrtRandom& random,
@@ -238,6 +247,9 @@ public:
     CreateFollowingChecked(std::int32_t type, const glm::vec3& position, const glm::vec3& angles,
                            const glm::vec3& light, std::int32_t subtype, float scale, ParticleOwner owner,
                            const ParticleOwnerBones& bones);
+    // 0x54061d: chispa5c6/2 hacia el centro de su lugar físico621, sinCRT.
+    std::optional<std::size_t> CreatePiercingSpark(const glm::vec3& position, float scale, ParticleOwner owner,
+                                                   const glm::vec3& center);
     // 0x6070a0, al entrar a la escena: apaga el byte vivo de cada lugar. El viento sigue como estaba.
     void Clear();
 

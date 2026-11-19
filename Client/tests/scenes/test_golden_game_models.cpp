@@ -9,17 +9,31 @@
 #include "Data/Models/PlayerModels.h"
 #include "Data/Textures/Sampling.h"
 #include "Data/Textures/Texture.h"
+#include "Render/ModelBatch.h"
+#include "Render/Models/Cloth.h"
 #include "Render/Models/Skeleton.h"
 #include "Render/Models/ModelTextureSlots.h"
 #include "Data/Textures/TextureSet.h"
 #include "Render/TextureSlot.h"
+#include "Scenes/ArrowEffects.h"
+#include "Scenes/CharacterSelectScene.h"
 #include "Scenes/CreatePreview.h"
+#include "Scenes/GameData.h"
+#include "Scenes/GameDrawTail.h"
+#include "Scenes/ModelTextureTable.h"
+#include "Scenes/SceneContext.h"
+#include "Scenes/TerrainTiles.h"
 #include "Scenes/TextureSets.h"
+#include "Scenes/WorldMap.h"
+#include "Scenes/WorldState.h"
+#include "World/ModelEffects.h"
+#include "World/SphereFrustum.h"
 
 #include "support/FakeTextureStore.h"
 #include "support/FileBytes.h"
 #include "support/GoldenDir.h"
 #include "support/RecordingSink.h"
+#include "support/TemporaryFolder.h"
 
 #include <gtest/gtest.h>
 
@@ -79,7 +93,7 @@ TEST_F(NativeSkillLoadTest, TheLoadedSkillTexturesFollowEveryReachedNativeCallIn
     std::map<std::uint16_t, std::vector<TextureSlot>> bindings;
     const auto query = [&](const Call& call)
     {
-        // 61619f precede al BMD de6161b5: el perfil sin Data2/SMD aún no tiene ese modelo.
+        // 0x61613a y 0x61619f consultan los modelos antes de sus cargas BMD.
         if (!call.bmdAvailable)
             return;
         if (const auto* model = game.Find(call.model); model != nullptr)
@@ -90,13 +104,13 @@ TEST_F(NativeSkillLoadTest, TheLoadedSkillTexturesFollowEveryReachedNativeCallIn
         query({call.model, call.folder});
     native.SetNext(TextureSlot{0x25a});
     for (const auto& call : Client::Data::Models::ItemTextureCalls())
-        query({call.model, call.folder});
+        query({call.model, call.folder, Wrap::Repeat, call.model != 0xdb});
     ASSERT_EQ(native.Next(), TextureSlot{0x371});
     for (const Call& call : std::to_array<Call>({{0x14a, "Skill\\"},
                                                  {0x14b, "Skill\\"},
                                                  {0x14c, "Skill\\"},
                                                  {0x14d, "Effect\\"},
-                                                 {0x109, "Skill\\"},
+                                                 {0x109, "Skill\\", Wrap::Repeat, false},
                                                  {0xf9, "Skill\\"},
                                                  {0x10f, "Skill\\", Wrap::Repeat, false}}))
         query(call);
@@ -104,6 +118,8 @@ TEST_F(NativeSkillLoadTest, TheLoadedSkillTexturesFollowEveryReachedNativeCallIn
     for (const std::uint16_t model :
          {std::uint16_t{0x10d}, std::uint16_t{0x10a}, std::uint16_t{0x10d}, std::uint16_t{0x10b}})
         query({model, "Monster\\"});
+    native.SetNext(TextureSlot{0x138});
+    query({0x11c, "Item\\", Wrap::Clamp});
     native.SetNext(TextureSlot{0x3b8});
     const auto skill = std::to_array<Call>({{0x145, "Skill\\"},
                                             {0x146, "Skill\\"},
@@ -173,19 +189,74 @@ TEST_F(NativeSkillLoadTest, TheLoadedSkillTexturesFollowEveryReachedNativeCallIn
     }
 }
 
-// Los tres giftbox de 0x60ff50, que el laboratorio no tiene (06).
-constexpr std::size_t MissingInTheLab = 3;
-// 6161b5 carga RidingSpear01/10f, 0x6166fe MuSign/12a, 0x615d6a Stone01/c8 y Stone02/c9, 0x61641d y 0x616442
-// groundStone/118 y groundStone2/119, 0x6165bc..0x616688 EarthQuake01..08/fb..102 y 0x616880 TowerGatePlane/135
-// aparte de las tablas de jugador, ítems y skills; más los 15 de SiegeModelFiles, 0x6161ea..0x616854.
-constexpr std::size_t AdditionalTailModels = 30;
+// Los tres giftbox de 0x60ff50 y ManyFlag de 0x6166e8 no están en el laboratorio.
+constexpr std::size_t MissingInTheLab = 4;
 
 class GoldenGameModels : public Client::Tests::GoldenDataTest
 {
 };
 
-// Todas las filas de los dos cargadores, salvo las tres que faltan; Player.bmd con su esqueleto de
-// personaje (la cabeza en el 20), y una malla con su slot por cada malla de cada modelo.
+TEST_F(GoldenGameModels, TheEffectTextureRegistryPublishesTheFire05Slot)
+{
+    FakeTextureStore textures;
+    RecordingSink sink;
+    Log log(sink, LogLevel::Debug);
+    GameModels models;
+    ASSERT_TRUE(models.Load(m_dataRoot, textures, log).HasValue());
+
+    // 0x61ddac fija el slot. Las dimensiones y componentes salen de Fire05.OZJ (fixture JPEG 6b).
+    constexpr TextureSlot fire{0x5dc};
+    const auto slot = models.TextureSlotOf(fire.value);
+    ASSERT_TRUE(slot.has_value());
+    EXPECT_EQ(*slot, fire);
+    const auto metadata = models.TextureMetadataOf(fire.value);
+    ASSERT_TRUE(metadata.has_value());
+    EXPECT_EQ(metadata->size.x, 256.0f);
+    EXPECT_EQ(metadata->size.y, 64.0f);
+    EXPECT_EQ(metadata->components, 3);
+    const auto uploaded = textures.Find(fire);
+    ASSERT_TRUE(uploaded.has_value());
+    EXPECT_EQ(uploaded->sampling.filter, Client::Data::Textures::Filter::Linear);
+    EXPECT_EQ(uploaded->sampling.wrap, Client::Data::Textures::Wrap::Clamp);
+}
+
+// 0x616095 carga la flecha común. 0x52d68c lee su cuenta de mallas en el segundo pase de Kalima.
+TEST_F(GoldenGameModels, TheBowArrowDrawsInTheSecondPassOfKalima)
+{
+    FakeTextureStore store;
+    RecordingSink sink;
+    Log log(sink, LogLevel::Debug);
+    GameModels models;
+    const auto loaded = models.Load(m_dataRoot, store, log);
+    ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
+
+    auto world = std::make_unique<Client::Scenes::WorldState>();
+    Client::Render::Models::CrtRandom random(1);
+    const Client::World::ModelEffectArguments arguments{.type = 0xdb, .position = {100, 100, 100}, .light = {1, 1, 1}};
+    const auto created = Client::Scenes::CreateTheArrowEffect(arguments, *world, random);
+    ASSERT_TRUE(created.HasValue()) << created.Error();
+    const auto& arrow = world->Map().effects.Effects().front();
+    ASSERT_TRUE(arrow.alive);
+    ASSERT_EQ(arrow.objectState.blendMesh, 1);
+    Client::Render::ModelBatch batch;
+    const auto drawn = Client::Scenes::DrawGameModelEffects(batch, models, world->Map().effects.Effects(),
+                                                            Client::World::SphereFrustum{}, nullptr, {}, 0, 1);
+    ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+    EXPECT_FALSE(batch.Vertices().empty());
+
+    constexpr std::array<std::uint16_t, 14> projectiles{0xdb, 0xdc, 0xdd, 0xde, 0xdf,  0xe0,  0xe1,
+                                                        0xe2, 0xe3, 0xf7, 0xf9, 0x10e, 0x111, 0x11c};
+    for (const auto type : projectiles)
+    {
+        SCOPED_TRACE(type);
+        const auto* model = models.Find(type);
+        ASSERT_NE(model, nullptr);
+        EXPECT_FALSE(model->meshes.empty());
+        EXPECT_EQ(models.MeshTextures(type).size(), model->meshes.size());
+    }
+}
+
+// Todas las filas de los cargadores de arranque, salvo los cuatro archivos ausentes.
 TEST_F(GoldenGameModels, LoadsEveryModelOfThePlayerLoader)
 {
     FakeTextureStore textures;
@@ -196,8 +267,9 @@ TEST_F(GoldenGameModels, LoadsEveryModelOfThePlayerLoader)
     const auto loaded = models.Load(m_dataRoot, textures, log);
 
     ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
-    EXPECT_EQ(models.Count(), PlayerModelFiles().size() + ItemModelFiles().size() + SkillModelFiles().size() +
-                                  AdditionalTailModels - MissingInTheLab);
+    EXPECT_EQ(SkillModelFiles().size(), 106u);
+    EXPECT_EQ(models.Count(),
+              PlayerModelFiles().size() + ItemModelFiles().size() + SkillModelFiles().size() - MissingInTheLab);
     ASSERT_NE(models.SkeletonOf(0x20a), nullptr);
     EXPECT_EQ(models.SkeletonOf(0x20a)->headBone, 20);
     for (const auto& file : PlayerModelFiles())
@@ -205,6 +277,198 @@ TEST_F(GoldenGameModels, LoadsEveryModelOfThePlayerLoader)
         const auto* model = models.Find(file.model);
         ASSERT_NE(model, nullptr) << file.name << " " << file.number;
         EXPECT_EQ(models.MeshTextures(file.model).size(), model->meshes.size()) << file.name << " " << file.number;
+    }
+    EXPECT_EQ(models.Find(0x129), nullptr);
+    for (const auto& file : SkillModelFiles())
+    {
+        SCOPED_TRACE(file.model);
+        if (file.model == 0x129)
+            continue;
+        const auto* model = models.Find(file.model);
+        ASSERT_NE(model, nullptr) << file.name << " " << file.number;
+        const auto slots = models.MeshTextures(file.model);
+        ASSERT_EQ(slots.size(), model->meshes.size());
+        for (const TextureSlot slot : slots)
+        {
+            EXPECT_TRUE(textures.Find(slot).has_value()) << slot.value;
+        }
+    }
+}
+
+TEST_F(GoldenGameModels, StartupActionsKeepTheOverridesWrittenAfterTheBmdLoad)
+{
+    FakeTextureStore textures;
+    RecordingSink sink;
+    Log log(sink, LogLevel::Debug);
+    GameModels models;
+    ASSERT_TRUE(models.Load(m_dataRoot, textures, log).HasValue());
+
+    const auto* gate = models.SkeletonOf(0xc5);
+    ASSERT_NE(gate, nullptr);
+    ASSERT_FALSE(gate->actions.empty());
+    EXPECT_FALSE(gate->actions.front().lockPositions); // 0x61606f.
+    EXPECT_EQ(gate->actions.front().speed, 0.15f);     // 0x61607f.
+    const auto* projectile = models.SkeletonOf(0xf1);
+    ASSERT_NE(projectile, nullptr);
+    ASSERT_FALSE(projectile->actions.empty());
+    EXPECT_EQ(projectile->actions.front().speed, 0.5f); // 0x616276.
+}
+
+TEST_F(GoldenGameModels, StartupPublishesTheFourFixedSkillTextureSlots)
+{
+    FakeTextureStore textures;
+    RecordingSink sink;
+    Log log(sink, LogLevel::Debug);
+    GameModels models;
+    ASSERT_TRUE(models.Load(m_dataRoot, textures, log).HasValue());
+
+    // 0x616043 y 0x616e6f..0x616ea9 suben estos slots fuera del lazo de mallas.
+    for (const TextureSlot slot : {TextureSlot{0x608}, TextureSlot{0x609}, TextureSlot{0x60a}, TextureSlot{0x6f7}})
+    {
+        SCOPED_TRACE(slot.value);
+        EXPECT_EQ(models.TextureSlotOf(slot.value), slot);
+        const auto uploaded = textures.Find(slot);
+        ASSERT_TRUE(uploaded.has_value());
+        const bool darkSpirit = slot.value == 0x6f7;
+        EXPECT_EQ(uploaded->sampling.filter,
+                  darkSpirit ? Client::Data::Textures::Filter::Linear : Client::Data::Textures::Filter::Nearest);
+        EXPECT_EQ(uploaded->sampling.wrap,
+                  darkSpirit ? Client::Data::Textures::Wrap::Repeat : Client::Data::Textures::Wrap::Clamp);
+    }
+}
+
+TEST_F(GoldenGameModels, ReloadKeepsTheSameModelTextureOrder)
+{
+    FakeTextureStore textures;
+    RecordingSink sink;
+    Log log(sink, LogLevel::Debug);
+    GameModels models;
+    ASSERT_TRUE(models.Load(m_dataRoot, textures, log).HasValue());
+    const auto expectedRequests = models.TextureSlots().ToLoad().size();
+    const auto expectedNext = models.TextureSlots().Next();
+    ASSERT_FALSE(models.MeshTextures(0xdb).empty());
+    const auto expectedArrow = models.MeshTextures(0xdb).front();
+
+    ASSERT_TRUE(models.Load(m_dataRoot, textures, log).HasValue());
+    EXPECT_EQ(models.TextureSlots().ToLoad().size(), expectedRequests);
+    EXPECT_EQ(models.TextureSlots().Next(), expectedNext);
+    ASSERT_FALSE(models.MeshTextures(0xdb).empty());
+    EXPECT_EQ(models.MeshTextures(0xdb).front(), expectedArrow);
+    for (const auto& entry : models.TextureSlots().ToLoad())
+        EXPECT_FALSE(entry.path.starts_with("Item\\Bow\\")) << entry.path;
+}
+
+TEST_F(GoldenGameModels, SelectionReplacesAndReleasesTheTemporaryStartupTexture)
+{
+    constexpr TextureSlot temporary{0x716};
+    FakeTextureStore textures;
+    RecordingSink sink;
+    Log log(sink, LogLevel::Debug);
+    GameModels models;
+    ASSERT_TRUE(models.Load(m_dataRoot, textures, log).HasValue());
+    const auto startup = textures.Find(temporary);
+    ASSERT_TRUE(startup.has_value());
+    EXPECT_EQ(models.TextureSlotOf(temporary.value), temporary);
+    FakeTextureStore unrelated;
+    EXPECT_FALSE(models.TakeStartupSelectionTexture(unrelated).has_value());
+    EXPECT_EQ(startup->texture.textureWidth, 64);
+    EXPECT_EQ(startup->texture.textureHeight, 64);
+    EXPECT_EQ(startup->sampling.filter, Client::Data::Textures::Filter::Linear);
+    EXPECT_EQ(startup->sampling.wrap, Client::Data::Textures::Wrap::Clamp);
+
+    Client::Scenes::SelectionModels selection;
+    ASSERT_TRUE(
+        selection.Load(m_dataRoot, textures, log, &models.TextureSlots(), models.TakeStartupSelectionTexture(textures))
+            .HasValue());
+    const auto preview = textures.Find(temporary);
+    ASSERT_TRUE(preview.has_value());
+    EXPECT_EQ(preview->texture.textureWidth, 256);
+    EXPECT_EQ(preview->texture.textureHeight, 256);
+    EXPECT_EQ(preview->sampling.filter, Client::Data::Textures::Filter::Nearest);
+    EXPECT_EQ(preview->sampling.wrap, Client::Data::Textures::Wrap::Repeat);
+    EXPECT_EQ(selection.TextureSlotOf(temporary.value), temporary);
+    const auto selected = selection.TextureMetadataOf(temporary.value);
+    ASSERT_TRUE(selected.has_value());
+    EXPECT_EQ(selected->size.x, 256.0f);
+    EXPECT_FALSE(models.TextureSlotOf(temporary.value).has_value());
+
+    selection.Release();
+    selection.Release();
+    EXPECT_FALSE(textures.Find(temporary).has_value());
+    EXPECT_FALSE(selection.TextureSlotOf(temporary.value).has_value());
+    EXPECT_FALSE(models.TextureSlotOf(temporary.value).has_value());
+    EXPECT_FALSE(models.TextureMetadataOf(temporary.value).has_value());
+    EXPECT_EQ(std::ranges::count(textures.released, temporary.value), 1);
+
+    // 0x61784b: Tarkan vuelve a publicar el slot desde la carpeta del mapa.
+    Client::Scenes::ModelTextureTable mapTextures;
+    Client::Scenes::TerrainTiles terrain(textures);
+    terrain.BindTextureTable(mapTextures);
+    std::vector<std::string> skipped;
+    const auto loaded = terrain.Load(m_dataRoot, 8, skipped);
+    ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
+    const auto mapped = mapTextures.Metadata(temporary.value);
+    ASSERT_TRUE(mapped.has_value());
+    EXPECT_EQ(mapped->size.x, 64.0f);
+    EXPECT_EQ(mapped->size.y, 64.0f);
+    EXPECT_FALSE(models.TextureMetadataOf(temporary.value).has_value());
+    terrain.Release();
+    EXPECT_FALSE(textures.Find(temporary).has_value());
+    EXPECT_FALSE(mapTextures.Metadata(temporary.value).has_value());
+}
+
+TEST_F(GoldenGameModels, SelectionReleasesTheTemporaryStartupSlotWithoutAReplacementModel)
+{
+    constexpr TextureSlot temporary{0x716};
+    FakeTextureStore textures;
+    RecordingSink sink;
+    Log log(sink, LogLevel::Debug);
+    GameModels models;
+    ASSERT_TRUE(models.Load(m_dataRoot, textures, log).HasValue());
+
+    const Client::Tests::TemporaryFolder noPreviewModels("selection-without-preview-models");
+    Client::Scenes::SelectionModels selection;
+    ASSERT_TRUE(selection
+                    .Load(noPreviewModels.Path(), textures, log, &models.TextureSlots(),
+                          models.TakeStartupSelectionTexture(textures))
+                    .HasValue());
+    EXPECT_EQ(selection.TextureSlotOf(temporary.value), temporary);
+    const auto inherited = selection.TextureMetadataOf(temporary.value);
+    ASSERT_TRUE(inherited.has_value());
+    EXPECT_EQ(inherited->size.x, 64.0f);
+    EXPECT_FALSE(models.TextureMetadataOf(temporary.value).has_value());
+    selection.Release();
+    EXPECT_FALSE(textures.Find(temporary).has_value());
+    EXPECT_FALSE(selection.TextureMetadataOf(temporary.value).has_value());
+    EXPECT_EQ(std::ranges::count(textures.released, temporary.value), 1);
+}
+
+TEST_F(GoldenGameModels, AnEnteredOrFailedSelectionReleasesTheStartupTexture)
+{
+    constexpr TextureSlot temporary{0x716};
+    const Client::Tests::TemporaryFolder missingUi("selection-without-ui");
+    const Client::Scenes::GameData data;
+    for (const bool success : {true, false})
+    {
+        SCOPED_TRACE(success);
+        FakeTextureStore textures;
+        RecordingSink sink;
+        Log log(sink, LogLevel::Debug);
+        GameModels models;
+        ASSERT_TRUE(models.Load(m_dataRoot, textures, log).HasValue());
+        EXPECT_EQ(models.TextureSlotOf(temporary.value), temporary);
+
+        const Client::Scenes::SceneContext context{success ? m_dataRoot : missingUi.Path(), textures, log};
+        auto scene = std::make_unique<Client::Scenes::CharacterSelectScene>(context, data, models, nullptr,
+                                                                            &models.TextureSlots());
+        const auto entered = scene->Enter();
+        ASSERT_EQ(entered.HasValue(), success);
+        scene->Leave();
+        scene->Leave();
+
+        EXPECT_FALSE(models.TextureMetadataOf(temporary.value).has_value());
+        EXPECT_FALSE(textures.Find(temporary).has_value());
+        EXPECT_EQ(std::ranges::count(textures.released, temporary.value), 1);
     }
 }
 
@@ -271,11 +535,22 @@ TEST_F(GoldenGameModels, TheTexturesGoWhereTheLoadersPutThem)
     {
         EXPECT_TRUE(loaded.contains(static_cast<std::uint16_t>(slot))) << std::hex << slot;
     }
-    // 0x2901 y 0x2600 en todas las de los modelos.
+    // LaceArrow (0x6164bb), AirForce (0x616b63), seamanFX (0x616c0b) y Skull (0x616c26) piden CLAMP.
     for (const auto& entry : models.TextureSlots().ToLoad())
     {
+        const bool laceArrow = (entry.slot == 0x138 || entry.slot == 0x139) &&
+                               (entry.path == "Item\\nfb_R.jpg" || entry.path == "Item\\nfb.jpg");
+        const bool skillClamps = entry.slot == 0x3d8 || (entry.slot >= 0x3df && entry.slot <= 0x3e1);
         EXPECT_EQ(entry.sampling.filter, ModelTextureSampling.filter) << entry.path;
-        EXPECT_EQ(entry.sampling.wrap, ModelTextureSampling.wrap) << entry.path;
+        EXPECT_EQ(entry.sampling.wrap,
+                  laceArrow || skillClamps ? Client::Data::Textures::Wrap::Clamp : ModelTextureSampling.wrap)
+            << entry.path;
+    }
+    for (const TextureSlot slot : {TextureSlot{0x138}, TextureSlot{0x139}})
+    {
+        const auto uploaded = textures.Find(slot);
+        ASSERT_TRUE(uploaded.has_value());
+        EXPECT_EQ(uploaded->sampling.wrap, Client::Data::Textures::Wrap::Clamp);
     }
 }
 
@@ -415,9 +690,9 @@ TEST_F(GoldenGameModels, EveryTextureTheLoadersAskForIsThere)
     EXPECT_EQ(textures.loaded.size(),
               models.TextureSlots().ToLoad().size() + PlayerFixedTextures().size() + GlowTextureSet.size() +
                   ClothTextureSet.size() + Client::Scenes::EffectTextureSet.size() +
-                  Client::Scenes::DamageTextureSet.size() + Client::Scenes::HudTextureSet.size() +
-                  Client::Scenes::CrywolfTextureSet.size() + Client::Scenes::FaunaJointTextureSet.size() +
-                  Client::Scenes::GameTailTextureSet.size());
+                  Client::Scenes::StartupSelectionTextureSet.size() + Client::Scenes::DamageTextureSet.size() +
+                  Client::Scenes::HudTextureSet.size() + Client::Scenes::CrywolfTextureSet.size() +
+                  Client::Scenes::FaunaJointTextureSet.size() + Client::Scenes::GameTailTextureSet.size());
     for (const std::string& line : sink.lines)
     {
         EXPECT_EQ(line.find("una textura de un modelo"), std::string::npos) << line;
@@ -555,6 +830,43 @@ class ModelTextureSlotsGoldenTest : public Client::Tests::MemoryDumpTest
 {
 };
 
+TEST_F(ModelTextureSlotsGoldenTest, CommonTextureDimensionsAndComponentsMatchLorencia)
+{
+    const auto dump = DumpFile(Client::Tests::LorenciaCapture, "lor_slots.bin");
+    ASSERT_TRUE(dump.has_value());
+    const auto table = ReadFileBytes(*dump);
+    ASSERT_TRUE(table.has_value());
+    constexpr std::size_t SlotBytes = 0x38;
+    constexpr std::size_t DimensionsOffset = 0x20;
+    constexpr std::size_t ComponentsOffset = 0x28;
+    ASSERT_EQ(table->size(), Client::Render::OriginalTextureSlotCount * SlotBytes);
+    FakeTextureStore textures;
+    RecordingSink sink;
+    Log log(sink, LogLevel::Debug);
+    GameModels models;
+    ASSERT_TRUE(models.Load(m_dataRoot, textures, log).HasValue());
+
+    // Entradas fijas nuevas de 0x61ccb0. La selección reutiliza y libera 0x716 (0x61cc65..0x61cc7a).
+    constexpr std::array<std::uint16_t, 32> slots{
+        0xf6,  0x102, 0x103, 0x5c1, 0x5dc, 0x5ee, 0x5ff, 0x600, 0x61b, 0x61d, 0x624, 0x628, 0x629, 0x62a, 0x62d, 0x62e,
+        0x62f, 0x630, 0x631, 0x632, 0x633, 0x634, 0x699, 0x69a, 0x6ae, 0x6b2, 0x6b3, 0x6b4, 0x6b5, 0x6e8, 0x6e9, 0x6ef};
+    for (const auto slot : slots)
+    {
+        SCOPED_TRACE(slot);
+        const auto uploaded = textures.Find(TextureSlot{slot});
+        ASSERT_TRUE(uploaded.has_value());
+        const char* record = table->data() + (slot * SlotBytes);
+        float width = 0.0f;
+        float height = 0.0f;
+        std::memcpy(&width, record + DimensionsOffset, sizeof width);
+        std::memcpy(&height, record + DimensionsOffset + sizeof width, sizeof height);
+        const auto components = static_cast<std::uint8_t>(record[ComponentsOffset]);
+        EXPECT_EQ(static_cast<float>(uploaded->texture.textureWidth), width);
+        EXPECT_EQ(static_cast<float>(uploaded->texture.textureHeight), height);
+        EXPECT_EQ(uploaded->texture.format == Client::Data::Textures::PixelFormat::Rgba ? 4u : 3u, components);
+    }
+}
+
 // Oráculo nativo independiente: metadatos residuales del slot 0x622 en la captura de Lorencia.
 // Su nombre ya está vacío; no demuestra residencia, visibilidad ni movimiento en el login.
 TEST_F(ModelTextureSlotsGoldenTest, TheCloudTextureMatchesTheNativeSlot)
@@ -588,12 +900,8 @@ TEST_F(ModelTextureSlotsGoldenTest, TheCloudTextureMatchesTheNativeSlot)
     EXPECT_EQ(uploaded->texture.format == Client::Data::Textures::PixelFormat::Rgba ? 4u : 3u, components);
 }
 
-// El nombre de cada slot de 0x12e a 0x374, como lo dejan 0x60f7d0 y 0x611850 y los tres Fenrir (0x615f77, 0x615fab
-// y 0x615fdc, las primeras de 0x615700), y de 0x3b8 a 0x3ce, como los deja 0x615700 desde su 0x60d530(0x3b8) hasta
-// el Dinorant (0x110, la séptima llamada, 0x6169fb), contra la tabla de 0x7d3a198 volcada en Lorencia (0x38 bytes por
-// slot, el nombre en +0). 0x138 y 0x139 son de LaceArrow, que 0x615700 carga encima (Q-C89); de 0x375 a 0x3b7 van
-// las habilidades y los efectos que 0x615700 pide antes, que MuRet todavía no carga. Lo que GameModels pide
-// después (las del lazo 0x616e20 y las de 0x61619f y 0x616c5c) no está en los slots del original.
+// Los nombres de 0x60f7d0, 0x611850 y 0x615700, incluidos los slots vacíos y los de LaceArrow (Q-C89).
+// El volcado de 0x7d3a198 en Lorencia tiene registros de 0x38 bytes, con el nombre en +0.
 TEST_F(ModelTextureSlotsGoldenTest, StartupMatchesTheDump)
 {
     const auto dump = DumpFile(Client::Tests::LorenciaCapture, "lor_slots.bin");
@@ -602,7 +910,7 @@ TEST_F(ModelTextureSlotsGoldenTest, StartupMatchesTheDump)
     ASSERT_TRUE(table.has_value());
     constexpr std::size_t SlotBytes = 0x38;
     constexpr std::size_t NameBytes = 0x20;
-    constexpr std::uint16_t SkillBlockEnd = 0x3cf;
+    constexpr std::uint16_t WorldObjectStart = 0x41c;
     ASSERT_EQ(table->size(), Client::Render::OriginalTextureSlotCount * SlotBytes);
     FakeTextureStore textures;
     RecordingSink sink;
@@ -612,20 +920,14 @@ TEST_F(ModelTextureSlotsGoldenTest, StartupMatchesTheDump)
     ASSERT_TRUE(models.Load(m_dataRoot, textures, log).HasValue());
 
     ASSERT_FALSE(models.MeshTextures(0x110).empty());
-    ASSERT_EQ(models.MeshTextures(0x110).back(), TextureSlot{SkillBlockEnd - 1});
-    std::size_t compared = 0;
-    for (std::uint16_t slot = 0x12e; slot < SkillBlockEnd; ++slot)
+    EXPECT_EQ(models.MeshTextures(0x110).back(), TextureSlot{0x3ce});
+    EXPECT_EQ(models.TextureSlots().Next(), TextureSlot{0x41b});
+    for (std::uint16_t slot = 0x12e; slot < WorldObjectStart; ++slot)
     {
-        if (slot == 0x138 || slot == 0x139 || (slot >= 0x375 && slot < 0x3b8))
-        {
-            continue;
-        }
         const std::string_view record(table->data() + (slot * SlotBytes), NameBytes);
         const std::string_view name = record.substr(0, record.find('\0'));
         EXPECT_EQ(models.TextureSlots().NameOf(TextureSlot{slot}), name) << std::hex << slot;
-        compared += name.empty() ? 0u : 1u;
     }
-    EXPECT_EQ(compared, 489u + 4u + 15u + 4u + 4u);
 }
 
 // El cuervo (0xc0, Skill\DarkSpirit.bmd): sus mallas con las texturas de la quinta llamada de 0x615700

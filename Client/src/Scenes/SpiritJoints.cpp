@@ -437,6 +437,21 @@ Core::Expected<void, std::string> StepSpiritJoint(JointState& joint, const Joint
     constexpr std::int32_t LastSpiritSubtype = 0x15;
     if (subtype > LastSpiritSubtype)
         return {};
+    if (subtype == 0xe)
+    {
+        // 0x53909f..0x539125: la x de los ángulos − 2 (0x6b8818), la luz local en 1 y rand() % 5: con 0 la partícula
+        // 0x6f2/2 (0x5390e6), con 1 o 2 la 0x6f3/2 (0x539109) y si no la 0x6f4/4 (0x539120), en la posición con los
+        // ángulos y la luz +0x48 del joint. Las tres son del lote de partículas de la CL11.
+        if (services.random == nullptr)
+            return Core::Unexpected(std::format("0x5390c2: falta el RNG del joint {:#x}/0xe", joint.type));
+        constexpr double Tilt = 2.0; // 0x6b8818
+        joint.angles.x = F32(D(joint.angles.x) - Tilt);
+        const std::int32_t pick = services.random->Next() % 5;
+        const std::uint32_t address = pick == 0 ? 0x5390e6u : (pick <= 2 ? 0x539109u : 0x539120u);
+        const std::int32_t particle = pick == 0 ? 0x6f2 : (pick <= 2 ? 0x6f3 : 0x6f4);
+        return Core::Unexpected(std::format("{:#x}: la partícula {:#x}/{} del joint {:#x}/0xe no está portada (CL11)",
+                                            address, particle, pick > 2 ? 4 : 2, joint.type));
+    }
     const bool ported = subtype == 1 || subtype == 2 || subtype == 3 || subtype == 6 || subtype == 7 || subtype == 8 ||
                         subtype == 0xd || subtype == 0x15;
     if (!ported)

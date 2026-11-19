@@ -1,0 +1,333 @@
+#include "World/SmokeParticleKernels.h"
+
+#include "Core/Expected.h"
+#include "Render/Models/Cloth.h"
+#include "World/Ftol.h"
+#include "World/Particles.h"
+
+#include <glm/ext/vector_float3.hpp>
+
+#include <bit>
+#include <cstdint>
+#include <optional>
+
+namespace Client::World
+{
+namespace
+{
+constexpr int FullTurn = 360;
+constexpr double Hundredth = static_cast<double>(std::bit_cast<float>(0x3c23d70au));  // 0x6b88d4 y 0x6b86c0, 0,01f
+constexpr double Tenth = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));      // 0x6b87b8, 0,1f
+constexpr double Fifth = static_cast<double>(std::bit_cast<float>(0x3e4ccccdu));      // 0x6b8854, 0,2f
+constexpr double Twentieth = static_cast<double>(std::bit_cast<float>(0x3d4ccccdu));  // 0x6b8a48 y 0x6b8ad0, 0,05f
+constexpr double FourFifths = static_cast<double>(std::bit_cast<float>(0x3f4ccccdu)); // 0x6b8a38, 0,8f
+constexpr double Eighth = 0.125;                                                      // 0x6ba170
+constexpr double Half = 0.5;                                                          // 0x6b882c
+constexpr double Shrink = static_cast<double>(std::bit_cast<float>(0x3da3d70au));     // 0x6ba1ac, 0,08f
+
+float F32(double value)
+{
+    return static_cast<float>(value);
+}
+
+void ScaleLight(Particle& particle, double factor)
+{
+    for (int channel = 0; channel < 3; ++channel)
+        particle.light[channel] = F32(static_cast<double>(particle.light[channel]) * factor);
+}
+
+// La luz del pedido queda en +0x60..+0x68 (0x5418b1, 0x54228c).
+void KeepTheLight(Particle& particle)
+{
+    particle.rotationFactor = particle.light.x;
+    particle.field64 = {particle.light.y, particle.light.z};
+}
+
+// 0x5418ca..0x541924 y 0x5422a5..0x5422ff: la escala ((rand() & 31) + 8) · escala · 0,01f, el ángulo x rand() % 360 y
+// el giro _ftol(reloj) % 360.
+void ShakeAtBirth(Particle& particle, Render::Models::CrtRandom& random, float clock)
+{
+    constexpr int ScaleMask = 31, ScaleBase = 8;
+    const double argumentScale = static_cast<double>(particle.scale);
+    particle.scale = F32((static_cast<double>((random.Next() & ScaleMask) + ScaleBase) * argumentScale) * Hundredth);
+    particle.angles.x = static_cast<float>(random.Next() % FullTurn);
+    particle.rotation = static_cast<float>(FtolLow(static_cast<double>(clock)) % FullTurn);
+}
+
+// 0x5424ff..0x542524 y 0x5426f2..0x542717: la velocidad vertical ((rand() & 31) + 60) · 0,1f.
+void RiseAtBirth(Particle& particle, Render::Models::CrtRandom& random)
+{
+    constexpr int RiseMask = 31, RiseBase = 60;
+    particle.verticalSpeed = F32(static_cast<double>((random.Next() & RiseMask) + RiseBase) * Tenth);
+}
+
+// 0x541981..0x541a00: vida 25, el giro y el ángulo x rand() % 360 y la partida (rand() % 50 − 25; rand() % 50 − 25;
+// −(rand() % 50)), que la /36 usa como distancia a su dueño.
+void TrailAtBirth(Particle& particle, Render::Models::CrtRandom& random)
+{
+    constexpr std::int32_t TrailLife = 25;
+    constexpr int Spread = 50, Center = 25;
+    particle.life = TrailLife;
+    particle.rotation = static_cast<float>(random.Next() % FullTurn);
+    particle.angles.x = static_cast<float>(random.Next() % FullTurn);
+    particle.start.x = static_cast<float>(random.Next() % Spread - Center);
+    particle.start.y = static_cast<float>(random.Next() % Spread - Center);
+    particle.start.z = -static_cast<float>(random.Next() % Spread);
+}
+
+// 0x545ed6..0x545ef1: la velocidad vertical suma `rise` y la z la suma sin redondear; la escala crece 0,05f.
+void RiseLikeTheBreath(Particle& particle, double rise)
+{
+    const double speed = static_cast<double>(particle.verticalSpeed) + rise;
+    particle.verticalSpeed = F32(speed);
+    particle.position.z = F32(speed + static_cast<double>(particle.position.z));
+    particle.scale = F32(static_cast<double>(particle.scale) + Twentieth);
+}
+
+// 0x54658b..0x546616 (/19) y 0x546630..0x5466bb (/20): la velocidad vertical suma rand() % 20 · 0,002f, la x y la y
+// (rand() % 100 − 20) · 0,01f, la z la velocidad y la escala rand() % 10 · 0,001f; el giro queda igual a la escala.
+void Shake(Particle& particle, Render::Models::CrtRandom& random)
+{
+    constexpr double RiseStep = static_cast<double>(std::bit_cast<float>(0x3b03126fu)); // 0x6ba3a4, 0,002f
+    constexpr double GrowStep = static_cast<double>(std::bit_cast<float>(0x3a83126fu)); // 0x6ba128, 0,001f
+    constexpr int RiseSpan = 20, DriftSpan = 100, DriftBase = 20, GrowSpan = 10;
+    particle.verticalSpeed =
+        F32(static_cast<double>(random.Next() % RiseSpan) * RiseStep + static_cast<double>(particle.verticalSpeed));
+    particle.position.x = F32(static_cast<double>(random.Next() % DriftSpan - DriftBase) * Hundredth +
+                              static_cast<double>(particle.position.x));
+    particle.position.y = F32(static_cast<double>(random.Next() % DriftSpan - DriftBase) * Hundredth +
+                              static_cast<double>(particle.position.y));
+    particle.position.z = F32(static_cast<double>(particle.position.z) + static_cast<double>(particle.verticalSpeed));
+    const double grown = static_cast<double>(random.Next() % GrowSpan) * GrowStep + static_cast<double>(particle.scale);
+    particle.scale = F32(grown);
+    particle.rotation = F32(grown);
+}
+
+// 0x545ef9..0x545f63: con vida menor a 23, la velocidad vertical suma la escala · 0,1f y la z y la y la suman sin
+// redondear, la escala baja 0,08f; si no, la posición es la del dueño (+0x40 → +0x10) más la partida. El giro suma
+// 0,01f.
+Core::Expected<void, ParticleError> StepTheTrail(Particle& particle, const ParticleOwnerStates& ownerStates)
+{
+    constexpr std::int32_t FollowLife = 23;
+    if (particle.life < FollowLife)
+    {
+        const double speed = static_cast<double>(particle.scale) * Tenth + static_cast<double>(particle.verticalSpeed);
+        particle.verticalSpeed = F32(speed);
+        particle.position.z = F32(speed + static_cast<double>(particle.position.z));
+        particle.position.y = F32(speed + static_cast<double>(particle.position.y));
+        particle.scale = F32(static_cast<double>(particle.scale) - Shrink);
+    }
+    else
+    {
+        const auto owner = ownerStates ? ownerStates(particle.typedOwner) : std::nullopt;
+        if (!owner)
+            return Core::Unexpected(ParticleError::MissingOwner);
+        for (int axis = 0; axis < 3; ++axis)
+            particle.position[axis] =
+                F32(static_cast<double>(owner->position[axis]) + static_cast<double>(particle.start[axis]));
+    }
+    particle.rotation = F32(static_cast<double>(particle.rotation) + Hundredth);
+    return {};
+}
+
+// 0x545f68..0x545fbf: la z y la y retroceden la dirección guardada (+0x68 y +0x64) por 0,8f, la escala crece 0,08f, el
+// giro 0,01f y la luz se apaga por 0,9708738f.
+void StepTheBackTrail(Particle& particle)
+{
+    constexpr double Fade = static_cast<double>(std::bit_cast<float>(0x3f788b30u)); // 0x6ba3b0
+    particle.position.z =
+        F32(static_cast<double>(particle.position.z) - static_cast<double>(particle.field64.y) * FourFifths);
+    particle.position.y =
+        F32(static_cast<double>(particle.position.y) - static_cast<double>(particle.field64.x) * FourFifths);
+    particle.scale = F32(static_cast<double>(particle.scale) + Shrink);
+    particle.rotation = F32(static_cast<double>(particle.rotation) + Hundredth);
+    ScaleLight(particle, Fade);
+}
+
+// 0x546905..0x546952: la escala baja 0,05f y la luz se apaga por 0,9090909f; con la escala sin redondear en 0 o menos
+// y el azul guardado en 0 o menos, se apaga (0x545360).
+void StepTheShrinking(Particle& particle)
+{
+    constexpr double Fade = static_cast<double>(std::bit_cast<float>(0x3f68ba2eu)); // 0x6ba26c
+    const double shrunk = static_cast<double>(particle.scale) - Twentieth;
+    particle.scale = F32(shrunk);
+    ScaleLight(particle, Fade);
+    if (!(shrunk > 0.0) && !(particle.light.z > 0.0f))
+        particle.alive = false;
+}
+} // namespace
+
+bool IsSmokeParticle(std::int32_t type, std::int32_t subtype)
+{
+    if (type != BreathParticle)
+        return false;
+    switch (subtype)
+    {
+    case GlowSmokeSubtype:
+    case ShakingSmokeSubtype:
+    case DarkShakingSmokeSubtype:
+    case WarmBreathSubtype:
+    case StoneSmokeSubtype:
+    case FadingSmokeSubtype:
+    case ShrinkingSmokeSubtype:
+    case TrailSmokeSubtype:
+    case BackTrailSmokeSubtype:
+        return true;
+    default:
+        return false;
+    }
+}
+
+void CreateSmokeParticle(Particle& particle, Render::Models::CrtRandom& random, float clock)
+{
+    constexpr std::int32_t GlowLife = 12, ShakingLife = 40, BreathLife = 16, StoneLife = 32, FadingLife = 25;
+    constexpr std::int32_t ShrinkingLife = 15;
+    constexpr int BreathMask = 31, BreathBase = 48, FadingMask = 63, FadingBase = 64;
+    constexpr float Ember = std::bit_cast<float>(0x3e99999au); // 0x541973, 0,3f
+    constexpr double BackStep = 15.0;                          // 0x6b87bc
+    switch (particle.subtype)
+    {
+    case GlowSmokeSubtype:
+        // 0x5418b1..0x541924: guarda la luz, vida 12.
+        KeepTheLight(particle);
+        particle.life = GlowLife;
+        ShakeAtBirth(particle, random, clock);
+        return;
+    case ShakingSmokeSubtype:
+        // 0x54228c..0x5422ff: guarda la luz (su paso no la lee), vida 40.
+        KeepTheLight(particle);
+        particle.life = ShakingLife;
+        ShakeAtBirth(particle, random, clock);
+        return;
+    case DarkShakingSmokeSubtype:
+        // 0x542307..0x542368: vida 40.
+        particle.life = ShakingLife;
+        ShakeAtBirth(particle, random, clock);
+        return;
+    case WarmBreathSubtype:
+        // 0x54184b..0x5418a9, el alta del aliento /0: vida 16, la escala ((rand() & 31) + 48) · 0,01f, el ángulo x
+        // rand() % 360 y el giro _ftol(reloj) % 360.
+        particle.life = BreathLife;
+        particle.scale = F32(static_cast<double>((random.Next() & BreathMask) + BreathBase) * Hundredth);
+        particle.angles.x = static_cast<float>(random.Next() % FullTurn);
+        particle.rotation = static_cast<float>(FtolLow(static_cast<double>(clock)) % FullTurn);
+        return;
+    case StoneSmokeSubtype:
+    {
+        // 0x542450..0x5424b7: vida 32, la escala (((rand() & 31) + 48) · 0,01f + 1) · escala, el ángulo x y el giro
+        // como la /23.
+        particle.life = StoneLife;
+        const double argumentScale = static_cast<double>(particle.scale);
+        particle.scale =
+            F32((static_cast<double>((random.Next() & BreathMask) + BreathBase) * Hundredth + 1.0) * argumentScale);
+        particle.angles.x = static_cast<float>(random.Next() % FullTurn);
+        particle.rotation = static_cast<float>(FtolLow(static_cast<double>(clock)) % FullTurn);
+        return;
+    }
+    case FadingSmokeSubtype:
+        // 0x54252c..0x542591: vida 25, la escala ((rand() & 63) + 64) · 0,01f, el giro rand() % 360 y la subida.
+        particle.life = FadingLife;
+        particle.scale = F32(static_cast<double>((random.Next() & FadingMask) + FadingBase) * Hundredth);
+        particle.rotation = static_cast<float>(random.Next() % FullTurn);
+        RiseAtBirth(particle, random);
+        return;
+    case ShrinkingSmokeSubtype:
+        // 0x5426cf..0x542717: la escala del pedido (la que ya tiene), vida 15, el giro rand() % 360 y la subida.
+        particle.life = ShrinkingLife;
+        particle.rotation = static_cast<float>(random.Next() % FullTurn);
+        RiseAtBirth(particle, random);
+        return;
+    case TrailSmokeSubtype:
+        // 0x54196c..0x54197a: la luz (1; 0,3f; 0).
+        particle.light = glm::vec3(1.0f, Ember, 0.0f);
+        TrailAtBirth(particle, random);
+        return;
+    case BackTrailSmokeSubtype:
+    {
+        // 0x541932..0x541967: la luz del pedido es una dirección: queda en +0x60..+0x68, la luz pasa a (1, 1, 1) y la
+        // z y la y retroceden 15 por el azul y el verde (la x no).
+        const glm::vec3 direction = particle.light;
+        KeepTheLight(particle);
+        particle.light = glm::vec3(1.0f);
+        particle.position.z =
+            F32(static_cast<double>(particle.position.z) - static_cast<double>(direction.z) * BackStep);
+        particle.position.y =
+            F32(static_cast<double>(particle.position.y) - static_cast<double>(direction.y) * BackStep);
+        TrailAtBirth(particle, random);
+        return;
+    }
+    default:
+        return;
+    }
+}
+
+Core::Expected<void, ParticleError> StepSmokeParticle(Particle& particle, Render::Models::CrtRandom& random,
+                                                      const ParticleOwnerStates& ownerStates)
+{
+    constexpr double Fortieth = static_cast<double>(std::bit_cast<float>(0x3ccccccdu));     // 0x6ba1fc, 0,025f
+    constexpr double ThirtySecond = 0.03125;                                                // 0x6b8880
+    constexpr double Ember = static_cast<double>(std::bit_cast<float>(0x3f19999au));        // 0x6b8a20, 0,6f
+    constexpr double Ash = static_cast<double>(std::bit_cast<float>(0x3eb33333u));          // 0x6b8bc4, 0,35f
+    constexpr double FadingGrowth = static_cast<double>(std::bit_cast<float>(0x3e19999au)); // 0x6b8ae8, 0,15f
+    constexpr double BreathRise = Fifth;                                                    // 0x6b8854
+    switch (particle.subtype)
+    {
+    case GlowSmokeSubtype:
+    {
+        // 0x546171..0x5461a0: l = vida · 0,125; con l mayor a 1, l = 1 − l. La luz es l por la guardada y sigue como
+        // el aliento.
+        double glow = static_cast<double>(particle.life) * Eighth;
+        if (glow > 1.0)
+            glow = 1.0 - glow;
+        particle.light = glm::vec3(F32(glow * static_cast<double>(particle.rotationFactor)),
+                                   F32(glow * static_cast<double>(particle.field64.x)),
+                                   F32(glow * static_cast<double>(particle.field64.y)));
+        RiseLikeTheBreath(particle, BreathRise);
+        return {};
+    }
+    case ShakingSmokeSubtype:
+    case DarkShakingSmokeSubtype:
+    {
+        // 0x546573 (/19: vida · 0,025f · 0,5) y 0x54661e (/20: vida · 0,025f): la luz gris.
+        double gray = static_cast<double>(particle.life) * Fortieth;
+        if (particle.subtype == ShakingSmokeSubtype)
+            gray *= Half;
+        particle.light = glm::vec3(F32(gray));
+        Shake(particle, random);
+        return {};
+    }
+    case WarmBreathSubtype:
+    {
+        // 0x5460a0..0x5460bd: l = vida · 0,125, la luz (l · 0,1f; l; l · 0,6f) y sigue como el aliento.
+        const double warm = static_cast<double>(particle.life) * Eighth;
+        particle.light = glm::vec3(F32(warm * Tenth), F32(warm), F32(warm * Ember));
+        RiseLikeTheBreath(particle, BreathRise);
+        return {};
+    }
+    case StoneSmokeSubtype:
+    {
+        // 0x54675f..0x546790: l = vida · 0,03125, la luz (l · 0,2f; l · 0,5; l · 0,35f) y el aliento con 0,1f.
+        const double ash = static_cast<double>(particle.life) * ThirtySecond;
+        particle.light = glm::vec3(F32(ash * Fifth), F32(ash * Half), F32(ash * Ash));
+        RiseLikeTheBreath(particle, Tenth);
+        return {};
+    }
+    case FadingSmokeSubtype:
+        // 0x5467ed..0x546815: la luz por vida · 0,05f y la escala crece 0,15f.
+        ScaleLight(particle, static_cast<double>(particle.life) * Twentieth);
+        particle.scale = F32(static_cast<double>(particle.scale) + FadingGrowth);
+        return {};
+    case ShrinkingSmokeSubtype:
+        StepTheShrinking(particle);
+        return {};
+    case TrailSmokeSubtype:
+        return StepTheTrail(particle, ownerStates);
+    case BackTrailSmokeSubtype:
+        StepTheBackTrail(particle);
+        return {};
+    default:
+        return {};
+    }
+}
+
+} // namespace Client::World

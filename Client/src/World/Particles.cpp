@@ -1728,7 +1728,8 @@ Particles::CreateOwnedChecked(std::int32_t type, const glm::vec3& position, cons
                               Render::Models::CrtRandom& random, std::int32_t scene, ParticleOwner owner)
 {
     if (!IsKalimaParticle(type, subtype) && !IsSelectionParticle(type, subtype) && !IsTrialsParticle(type, subtype) &&
-        !IsHandShine(type, subtype) && !IsSwellLifeParticle(type, subtype))
+        !IsHandShine(type, subtype) && !IsSwellLifeParticle(type, subtype) &&
+        !(FollowsItsOwner(type, subtype) && !NeedsOwnerPosition(type, subtype)))
     {
         if (IsParticlePoolFull(m_particles))
             return std::optional<std::size_t>{};
@@ -1867,7 +1868,8 @@ Particles::CreateImpl(std::int32_t type, const glm::vec3& position, const glm::v
         }
         if (IsEffectParticle(type, subtype))
         {
-            const auto created = CreateEffectParticle(particle, random, {worldClock, trigonometry, ownerPosition});
+            const auto created =
+                CreateEffectParticle(particle, random, {worldClock, trigonometry, ownerPosition, legacyClock});
             if (!created.HasValue())
                 return Core::Unexpected(created.Error());
             return std::optional(index);

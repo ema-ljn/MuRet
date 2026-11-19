@@ -793,7 +793,7 @@ CaseResult StepTheKalimaHelper(ModelEffectsPass& pass)
     case 0x197:
     {
         // 0x43befb y 0x43bfa8: el 0x197 en la 6, nada; si no, rand() % 2 en 0 pide del hueso 6 (el 0x192) o 31 (el
-        // 0x197) en (2, 30, 0) el 0x5f2/0x11, que el pool no conoce.
+        // 0x197) en (2, 30, 0) el humo 0x5f2/0x11 (World::GlowSmokeSubtype).
         if (actor.type == 0x197 && actor.animation.action == 6)
             return true;
         if (Roll(pass, 2) != 0)

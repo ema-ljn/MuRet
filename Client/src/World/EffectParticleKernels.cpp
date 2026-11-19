@@ -6,6 +6,7 @@
 #include "World/IParticleTrigonometry.h"
 #include "World/Particles.h"
 #include "World/SelectionParticleKernels.h"
+#include "World/SmokeParticleKernels.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -519,8 +520,8 @@ Core::Expected<void, ParticleError> StepTheSpark(Particle& particle, Render::Mod
 
 bool IsEffectParticle(std::int32_t type, std::int32_t subtype)
 {
-    return type == RingParticle || IsSmoke(type, subtype) || IsEffectFlame(type, subtype) ||
-           IsEffectSpark(type, subtype);
+    return type == RingParticle || IsSmoke(type, subtype) || IsSmokeParticle(type, subtype) ||
+           IsEffectFlame(type, subtype) || IsEffectSpark(type, subtype);
 }
 
 bool FollowsItsOwner(std::int32_t type, std::int32_t subtype)
@@ -529,7 +530,8 @@ bool FollowsItsOwner(std::int32_t type, std::int32_t subtype)
            (type == LightningParticle && subtype == LightningFollowSubtype) ||
            ((type == FireParticle || type == DeathSpiritFireParticle || type == BlueTrailFireParticle) &&
             subtype == FireRingSubtype) ||
-           (type == FlameParticle && subtype == FollowingFlameSubtype);
+           (type == FlameParticle && subtype == FollowingFlameSubtype) ||
+           (type == BreathParticle && subtype == TrailSmokeSubtype);
 }
 
 bool NeedsOwnerPosition(std::int32_t type, std::int32_t subtype)
@@ -553,6 +555,11 @@ Core::Expected<void, ParticleError> CreateEffectParticle(Particle& particle, Ren
         }
         return {};
     }
+    if (IsSmokeParticle(particle.type, particle.subtype))
+    {
+        CreateSmokeParticle(particle, random, birth.worldClock != nullptr ? *birth.worldClock : birth.legacyClock);
+        return {};
+    }
     if (particle.type == BreathParticle)
     {
         CreateTheSmoke(particle, random);
@@ -569,6 +576,8 @@ Core::Expected<void, ParticleError> StepEffectParticle(Particle& particle, Rende
 {
     if (particle.type == RingParticle)
         return StepTheRing(particle, trigonometry);
+    if (IsSmokeParticle(particle.type, particle.subtype))
+        return StepSmokeParticle(particle, random, ownerStates);
     if (particle.type == BreathParticle)
     {
         StepTheSmoke(particle);

@@ -1320,8 +1320,9 @@ Core::Expected<void, std::string> StepStorm(ModelEffect& effect, float luminosit
                             std::bit_cast<float>(0x3dcccccdu));
         !created.HasValue())
         return created;
-    const glm::vec3 shade{F32(D(luminosity) * NegativeTenth), F32(D(luminosity) * NegativeThreeTenths), -luminosity};
-    return Light(services, at, shade, 5, "0x5230be");
+    // 0x52308e..0x5230be: el tono (−0,1L; −0,3L; −L) que guarda en [ebp-0x1c] no lo lee nadie; 0x5f9780 recibe la luz
+    // del efecto (esi = +0xf4, 0x523049).
+    return Light(services, at, effect.light, 5, "0x5230be");
 }
 
 Core::Expected<void, std::string> StepCase(ModelEffect& effect, float luminosity, glm::vec3& local, CrtRandom& random,

@@ -11,6 +11,7 @@
 #include "World/Sprites.h"
 #include "World/TerrainLighting.h"
 #include "Data/Terrain/TerrainAttributes.h"
+#include "Data/Terrain/TerrainLight.h"
 
 #include "support/PlayerActors.h"
 
@@ -478,6 +479,28 @@ TEST(WizardModelEffectsTest, TheStormAndTheMagicCutAtTheirSmoke)
     const auto smoke = Client::World::StepWizardModelEffect(magic, nullptr, random, world.Services());
     ASSERT_FALSE(smoke.HasValue());
     EXPECT_NE(smoke.Error().find("0x522c0e"), std::string::npos);
+}
+
+// 0x52303b..0x5230be: el 0xcf/1 suelta su humo 5f2/3 y su gota 607/3 (con la tabla de partículas llena, 0x53fe70 no
+// hace nada: MuRet no tiene esas dos) y suma al terreno su propia luz (+0xf4, esi de 0x523049) con el radio 5; el tono
+// (−0,1L; −0,3L; −L) de [ebp-0x1c] no lo lee nadie.
+TEST(WizardModelEffectsTest, TheTwistingStormLightsTheGroundWithItsOwnLight)
+{
+    Harness world;
+    CrtRandom random(14);
+    ModelEffect& storm = world.At(Create(world, Arguments(0xcf, 1), random));
+    for (auto& particle : world.particles->All())
+        particle.alive = true;
+    const glm::vec3 light = storm.light;
+    const auto stepped = Client::World::StepWizardModelEffect(storm, nullptr, random, world.Services());
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    const auto reference = std::make_unique<Client::World::TerrainLighting>();
+    Client::World::AddTerrainLight(*reference, storm.transform.position.x, storm.transform.position.y,
+                                   {light.x, light.y, light.z}, 5);
+    EXPECT_EQ(light, glm::vec3(0.5f, 0.6f, 0.7f));
+    EXPECT_NE(world.lighting->cells[20 * 256 + 10], (Client::Data::Terrain::TerrainLightColor{}));
+    for (std::size_t cell = 0; cell < reference->cells.size(); ++cell)
+        ASSERT_EQ(world.lighting->cells[cell], reference->cells[cell]) << cell;
 }
 
 TEST(WizardModelEffectsTest, TheOuterCircleShakesTheCameraAndGlows)

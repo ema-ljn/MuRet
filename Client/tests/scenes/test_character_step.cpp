@@ -106,9 +106,9 @@ constexpr int OtherSeenCellDraws = 8;
 constexpr int EffectsRandomDraws = 1;
 // Una lectura de +0x38e (0x517630 o sus copias en línea): un rand() al cerrarse en 0.
 constexpr int SkillReadDraws = 1;
-// Una habilidad todavía sin su efecto: la 0x2b con +0x381 en 2 y el hueso 0 de la mano en el modelo saca los tres
-// rand() del punto y corta en el primer joint 0x10f/2 (0x4f99fe). La 0x2f (sus 0x10f de 0x4f9e49) y el 0x621/1 de la
-// 0x37 ya nacen (test_attack_frame_skills).
+// Una habilidad sin el pool de joints: la 0x2b con +0x381 en 2 y el hueso 0 de la mano en el modelo saca los tres
+// rand() del punto y corta en el primer joint 0x10f/2 (0x4f99fe), que este contexto no presta. La 0x2f (sus 0x10f de
+// 0x4f9e49) y el 0x621/1 de la 0x37 ya nacen (test_attack_frame_skills).
 constexpr std::uint8_t FrameSkill = 0x2b;
 constexpr std::uint8_t FrameSkillStep = 2;
 constexpr std::string_view FrameSkillCut = "0x4f99fe";

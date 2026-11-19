@@ -26,19 +26,29 @@ namespace
 using JointKernels::D;
 using JointKernels::F32;
 
-// 0x53c0a5..0x53c390 con la /5 (la que suelta el pulso 0x61c/0 del asedio, 0x52c266), después del movimiento común: la
-// velocidad sube 10, la cola con la matriz de los ángulos (0x535520, si está prendida), sube otros 10 y avanza
-// (0, −velocidad, 0) girado por +0x3c. Debajo de la altura del terreno menos +0x9ec (150), la z queda ahí y, la primera
-// vez (con la cola y la clave en 0), la onda 0x6eb/4 (0x53c295: 0x518cf0(0x6eb, posición, ángulos, (1; 0,8f; 0,3f),
-// 4, 0, −1, 0, 0, 0, 0), con su rand() si hay lugar); después, la clave en 1, la velocidad en −20 y la luz por
-// 0,8333333f. Siempre, el sprite 0x60f de escala 2,5 con la luz y el giro rand() % 360.
-Core::Expected<void, std::string> StepFallingStar(JointState& joint, const JointKernels::StepServices& services)
+// 0x53c0a5..0x53c390 con la /0..3 y la /5, después del movimiento común. La /2 gira su z rand() % 10 + 10 (en la x87,
+// rand + z + 10). La velocidad sube 10, la cola con la matriz de los ángulos (0x535520, si está prendida), sube otros
+// 10 y avanza (0, −velocidad, 0) girado por +0x3c. Debajo de la altura del terreno menos +0x9ec (150, o 300 la /2 y la
+// /3), la z queda ahí y, con la cola y la clave distinta de 1: la /0 y la /1 con dueño posan su modelo y sueltan sus
+// efectos por vértice (corta, CL11); la /2, la /3 y la /5, la onda 0x6eb/4 (0x53c295: 0x518cf0(0x6eb, posición,
+// ángulos, luz, 4, 0, −1, 0, 0, 0, 0), con su rand() si hay lugar) con la luz (1; 0,8f; 0,3f) la /5 y (0,3f; 0,8f; 1)
+// las otras; después la /5 pone la clave en 1 y la velocidad en −20, las otras apagan la cola, y la luz por
+// 0,8333333f. Siempre, el sprite con el giro rand() % 360: el 0x60f de escala 1 con la luz la /0 y la /1, de 2,5 la /5
+// y el 0x5fe de 1,6f con (0; 1; 1) la /2 y la /3.
+Core::Expected<void, std::string> StepFallingJoint(JointState& joint, const JointKernels::StepServices& services)
 {
     if (services.random == nullptr || services.sprites == nullptr || services.terrainHeight == nullptr ||
         !*services.terrainHeight)
-        return Core::Unexpected(
-            std::string("0x53c0c9: faltan el RNG, los sprites o la altura del terreno del joint 0x632/5"));
+        return Core::Unexpected(std::format(
+            "0x53c0c9: faltan el RNG, los sprites o la altura del terreno del joint 0x632/{}", joint.subtype));
+    constexpr std::int32_t TurningSubtype = 2, FirstGlowSubtype = 2;
     constexpr double Boost = 10.0; // 0x6b87a8
+    if (joint.subtype == TurningSubtype)
+    {
+        constexpr int TurnSpan = 10;
+        const int turn = services.random->Next() % TurnSpan;
+        joint.angles.z = F32((static_cast<double>(turn) + D(joint.angles.z)) + Boost);
+    }
     joint.speed = F32(D(joint.speed) + Boost);
     if (joint.tailEnabled)
         if (auto appended = JointKernels::AppendJointTail(joint, Render::Models::OriginalAngleMatrix(joint.angles));
@@ -58,31 +68,85 @@ Core::Expected<void, std::string> StepFallingStar(JointState& joint, const Joint
         constexpr std::int16_t Landed = 1;
         if (joint.tailEnabled && joint.key != Landed)
         {
-            if (services.effects == nullptr)
-                return Core::Unexpected(
-                    std::string("0x53c295: el joint 0x632/5 pide la tabla de efectos (0x518cf0) para la onda 0x6eb/4"));
-            constexpr std::int32_t WaveSubtype = 4;
-            const glm::vec3 glow{1.0f, std::bit_cast<float>(0x3f4ccccdu), std::bit_cast<float>(0x3e99999au)};
-            static_cast<void>(services.effects->CreateCastleShockWave({.type = World::ShockWaveEffect,
-                                                                       .position = joint.position,
-                                                                       .angles = joint.angles,
-                                                                       .light = glow,
-                                                                       .subtype = WaveSubtype},
-                                                                      *services.random));
+            if (joint.subtype < FirstGlowSubtype)
+            {
+                // 0x53c1bb..0x53c246: con dueño, 0x4eb860 y 0x4ebc80 posan el modelo 0x20b (0x5769ad8 + 0x1c9a0) con
+                // los ángulos y la posición del dueño y 0x4ee770(0, 0x137, subtipo, 0, 0) suelta los 0x137 de sus
+                // vértices; los efectos por vértice del 0x137 no están portados.
+                if (joint.ownerContext != nullptr)
+                    return Core::Unexpected(std::format("0x53c1c6: el joint 0x632/{} en el suelo con dueño pide los "
+                                                        "efectos por vértice 0x137 (0x4ee770), sin portar (CL11)",
+                                                        joint.subtype));
+            }
+            else
+            {
+                if (services.effects == nullptr)
+                    return Core::Unexpected(std::format(
+                        "0x53c295: el joint 0x632/{} pide la tabla de efectos (0x518cf0) para la onda 0x6eb/4",
+                        joint.subtype));
+                constexpr std::int32_t WaveSubtype = 4;
+                const glm::vec3 glow =
+                    joint.subtype == FallingStarSubtype
+                        ? glm::vec3{1.0f, std::bit_cast<float>(0x3f4ccccdu), std::bit_cast<float>(0x3e99999au)}
+                        : glm::vec3{std::bit_cast<float>(0x3e99999au), std::bit_cast<float>(0x3f4ccccdu), 1.0f};
+                static_cast<void>(services.effects->CreateCastleShockWave({.type = World::ShockWaveEffect,
+                                                                           .position = joint.position,
+                                                                           .angles = joint.angles,
+                                                                           .light = glow,
+                                                                           .subtype = WaveSubtype},
+                                                                          *services.random));
+            }
         }
-        constexpr float Bounce = std::bit_cast<float>(0xc1a00000u); // −20
-        joint.key = Landed;
-        joint.speed = Bounce;
+        if (joint.subtype == FallingStarSubtype)
+        {
+            constexpr float Bounce = std::bit_cast<float>(0xc1a00000u); // −20
+            joint.key = Landed;
+            joint.speed = Bounce;
+        }
+        else
+            joint.tailEnabled = false;                                                  // 0x53c2b8
         constexpr double Fade = static_cast<double>(std::bit_cast<float>(0x3f555555u)); // 0x6b8b98, 0,8333333f
         for (int channel = 0; channel < 3; ++channel)
             joint.light[channel] = F32(D(joint.light[channel]) * Fade);
     }
-    // 0x53c320..0x53c38b: 0x5491e0(0x60f, posición, 2,5, luz, 0, giro, 0); MuRet no guarda el dueño del sprite.
-    constexpr std::uint16_t StarTexture = 0x60f;
-    constexpr float StarScale = 2.5f; // 0x40200000
+    // 0x53c2e7..0x53c38b: 0x5491e0(textura, posición, escala, luz, 0, giro, 0); MuRet no guarda el dueño del sprite.
     constexpr int FullTurn = 360;
     const auto rotation = static_cast<float>(services.random->Next() % FullTurn);
-    static_cast<void>(services.sprites->Create(StarTexture, joint.position, StarScale, joint.light, rotation, 0));
+    if (joint.subtype < FirstGlowSubtype || joint.subtype == FallingStarSubtype)
+    {
+        constexpr std::uint16_t StarTexture = 0x60f;
+        const float scale = joint.subtype == FallingStarSubtype ? 2.5f : 1.0f; // 0x40200000 y 0x3f800000
+        static_cast<void>(services.sprites->Create(StarTexture, joint.position, scale, joint.light, rotation, 0));
+        return {};
+    }
+    constexpr std::uint16_t ShinyTexture = 0x5fe;
+    constexpr float ShinyScale = std::bit_cast<float>(0x3fcccccdu); // 1,6f
+    const glm::vec3 cyan{0.0f, 1.0f, 1.0f};
+    static_cast<void>(services.sprites->Create(ShinyTexture, joint.position, ShinyScale, cyan, rotation, 0));
+    return {};
+}
+
+// 0x53be90..0x53bebd y 0x53c076..0x53c0a0: la /4 sigue a su dueño (el efecto 0x13a, 0x51e01a): sin él se apaga; con
+// él, toma su byte vivo y su posición, y con menos de 15 de vida la luz por 0,7692308f.
+Core::Expected<void, std::string> FollowTheBlast(JointState& joint)
+{
+    if (joint.ownerContext == nullptr)
+    {
+        joint.alive = false; // 0x53be97
+        return {};
+    }
+    if (joint.ownerKind != JointOwnerKind::ModelEffect)
+        return Core::Unexpected(std::string("0x53be9f: el dueño del joint 0x632/4 no es un efecto con modelo"));
+    const auto& owner = *static_cast<const World::ModelEffect*>(joint.ownerContext);
+    joint.alive = owner.alive;
+    joint.position = owner.transform.position;
+    constexpr std::int32_t FadingLife = 15;
+    if (joint.life < FadingLife)
+    {
+        constexpr double Fade = static_cast<double>(std::bit_cast<float>(0x3f44ec4fu)); // 0x6ba240
+        for (int channel = 0; channel < 3; ++channel)
+            joint.light[channel] = F32(D(joint.light[channel]) * Fade);
+    }
     return {};
 }
 } // namespace
@@ -105,17 +169,20 @@ Core::Expected<void, std::string> CreateStormJoint(JointState& joint, const Worl
             joint.maximumCount = MostPoints;
         return {};
     }
-    if (request.subtype == FallingStarSubtype)
+    if (request.subtype <= LastFallingSubtype || request.subtype == FallingStarSubtype)
     {
         // 0x534bcb..0x534c0c: 10 puntos, vida 40, velocidad 70, el ancho, +0x9f1 en rand() & 1, la clave en 0 y +0x9ec
-        // en 150 (lo que baja la altura del terreno en el paso). 0x534c61..0x534c8e: la /5 con la textura 0x60f, 15
-        // puntos, la velocidad rand() % 20 + 10 y +0x9f1 en 2. 0x534ca4: +0x3c, los ángulos del pedido. Dos rand().
-        constexpr std::int32_t Life = 0x28, Points = 0xf, Below = 0x96;
-        constexpr float Speed = 70;                  // 0x428c0000
-        constexpr std::uint16_t StarTexture = 0x60f; // 0x534c61
+        // en 150 (lo que baja la altura del terreno en el paso). La /2 y la /3 (0x534c1e..0x534c54): velocidad 30,
+        // +0x9ec en 300 y la textura 0x62c y 0x62b. 0x534c61..0x534c8e: la /5 con la textura 0x60f, 15 puntos, la
+        // velocidad rand() % 20 + 10 y +0x9f1 en 2; las demás (0x534c97), los ángulos en (90, 0, 0). 0x534ca4: +0x3c,
+        // los ángulos. Un rand() (dos la /5).
+        constexpr std::int32_t Life = 0x28, Points = 0xf, Below = 0x96, DeepBelow = 0x12c;
+        constexpr float Speed = 70, SlowSpeed = 30; // 0x428c0000 y 0x41f00000
+        constexpr std::uint16_t StarTexture = 0x60f, SpiralTexture = 0x62c, FlareTexture = 0x62b;
         constexpr int SpeedSpan = 0x14;
         constexpr double SpeedBase = 10.0; // 0x6b87a8
         constexpr std::uint8_t StarOrientation = 2;
+        constexpr float Upright = 90.0f; // 0x42b40000
         joint.maximumCount = 10;
         joint.life = Life;
         joint.speed = Speed;
@@ -123,16 +190,53 @@ Core::Expected<void, std::string> CreateStormJoint(JointState& joint, const Worl
         joint.orientation = static_cast<std::uint8_t>(random.Next() & 1);
         joint.key = 0;
         joint.field9ec = Below;
-        joint.texture = StarTexture;
-        joint.maximumCount = Points;
-        joint.speed = F32(static_cast<double>(random.Next() % SpeedSpan) + SpeedBase);
-        joint.orientation = StarOrientation;
+        if (request.subtype == 2 || request.subtype == 3)
+        {
+            joint.speed = SlowSpeed;
+            joint.field9ec = DeepBelow;
+            joint.texture = request.subtype == 2 ? SpiralTexture : FlareTexture;
+        }
+        if (request.subtype == FallingStarSubtype)
+        {
+            joint.texture = StarTexture;
+            joint.maximumCount = Points;
+            joint.speed = F32(static_cast<double>(random.Next() % SpeedSpan) + SpeedBase);
+            joint.orientation = StarOrientation;
+        }
+        else
+            joint.angles = {Upright, 0.0f, 0.0f};
         joint.bendAngles = joint.angles;
         return {};
     }
+    if (request.subtype == BlastSubtype)
+    {
+        // 0x534977..0x534a08: el ancho, velocidad 0, el pase 1 (+0x64), la textura 0x62b, la luz en 1, la velocidad
+        // (+0x9dc..+0x9e4) en 0, 20 puntos, vida 30 y la tanda (+0x9eb) en 0; con dueño (el efecto 0x13a), su posición
+        // y sus ángulos (0x5343f8). Sin dueño, el original apaga el joint y desreferencia el puntero nulo (0x5349d3):
+        // MuRet corta. Sin rand().
+        constexpr std::uint16_t FlareTexture = 0x62b;
+        constexpr std::int32_t Points = 0x14, Life = 0x1e;
+        joint.width = request.scale;
+        joint.speed = 0;
+        joint.category = 1;
+        joint.texture = FlareTexture;
+        joint.light = glm::vec3(1.0f);
+        joint.velocity = glm::vec3(0.0f);
+        joint.maximumCount = Points;
+        joint.life = Life;
+        joint.volley = 0;
+        if (joint.ownerContext == nullptr || joint.ownerKind != JointOwnerKind::ModelEffect)
+        {
+            joint.alive = false;
+            return Core::Unexpected(std::string("0x5349d3: el joint 0x632/4 sin un efecto con modelo de dueño"));
+        }
+        const auto& owner = *static_cast<const World::ModelEffect*>(joint.ownerContext);
+        joint.position = owner.transform.position;
+        joint.angles = owner.transform.angles;
+        return {};
+    }
     if (request.subtype != BoltSubtype)
-        return Core::Unexpected(
-            std::format("0x534959: la creación del joint 0x632/{} no está portada (CL11)", request.subtype));
+        return Core::Unexpected(std::format("0x534959: el subtipo {} del joint 0x632 no llega acá", request.subtype));
     // 0x534a16..0x534b19.
     constexpr std::int32_t Life = 0x19;
     constexpr float Radian = std::bit_cast<float>(0x3c8efa35u); // 0x6b8cf8
@@ -217,11 +321,12 @@ Core::Expected<void, std::string> StepStormJoint(JointState& joint, const JointK
 {
     if (joint.subtype >= StormSubtype)
         return {}; // 0x53bec5: la /7 y las de más de 7 sólo pasan por la cola y la vida.
-    if (joint.subtype == FallingStarSubtype)
-        return StepFallingStar(joint, services);
+    if (joint.subtype <= LastFallingSubtype || joint.subtype == FallingStarSubtype)
+        return StepFallingJoint(joint, services);
+    if (joint.subtype == BlastSubtype)
+        return FollowTheBlast(joint);
     if (joint.subtype != BoltSubtype)
-        return Core::Unexpected(
-            std::format("0x53be76: el paso del joint 0x632/{} no está portado (CL11)", joint.subtype));
+        return Core::Unexpected(std::format("0x53be76: el subtipo {} del joint 0x632 no llega acá", joint.subtype));
     // 0x53becb..0x53bf55: la y de la velocidad tiembla rand() % 5 − 2, la z baja 10 y se mueve por los ángulos.
     if (services.random == nullptr)
         return Core::Unexpected(std::string("0x53becb: falta el RNG del paso del joint 0x632/6"));

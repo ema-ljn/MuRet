@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/OriginalRotation.h"
+#include "Scenes/ActorState.h"
 #include "Scenes/GameDrawTail.h"
 #include "World/IFishStepServices.h"
 #include "World/ModelEffects.h"
@@ -465,4 +466,270 @@ TEST(StormJointsTest, TheFallingStarWaveNeedsTheEffectTable)
     static_cast<void>(expected.Next());
     EXPECT_EQ(full.random.State(), expected.State());
     EXPECT_EQ(full.joints[0].key, 1);
+}
+
+namespace
+{
+// La /0..4 con la altura del terreno de `ground`. La /0 y la /1 tienen al personaje blanco de dueño (0x4fe235,
+// 0x4fe4e7) y la /4 al efecto 0x13a (0x51e01a).
+struct Falling
+{
+    Client::Core::Expected<std::optional<std::size_t>, std::string> Create(std::int32_t subtype, void* owner,
+                                                                           Client::Scenes::JointOwnerKind kind,
+                                                                           float width = 120.0f, std::int32_t key = -1)
+    {
+        glm::vec3 from = start;
+        glm::vec3 turn = angles;
+        const Client::World::FishEffectRequest request{.type = 0x632,
+                                                       .firstPosition = from,
+                                                       .secondPosition = from,
+                                                       .angles = turn,
+                                                       .subtype = subtype,
+                                                       .ownerContext = owner,
+                                                       .scale = width,
+                                                       .key = key,
+                                                       .skill = 0,
+                                                       .skillSerial = 0,
+                                                       .target = -1};
+        return Client::Scenes::CreateFaunaJoint(joints, request, random, kind);
+    }
+
+    Client::Core::Expected<void, std::string> Step()
+    {
+        return Client::Scenes::StepJoints(
+            joints, random, nullptr, nullptr, 0.0f, sprites.get(), nullptr, {}, [this](float, float) { return ground; },
+            {}, {}, effects.get());
+    }
+
+    const Client::World::Sprite* LiveSprite() const
+    {
+        const auto all = sprites->Sprites();
+        const auto live = std::ranges::find_if(all, [](const auto& sprite) { return sprite.alive; });
+        return live == all.end() ? nullptr : &*live;
+    }
+
+    std::vector<JointState> joints = std::vector<JointState>(2);
+    CrtRandom random{Seed};
+    std::unique_ptr<Client::World::FrameSprites> sprites = std::make_unique<Client::World::FrameSprites>();
+    std::unique_ptr<Client::World::ModelEffects> effects = std::make_unique<Client::World::ModelEffects>();
+    Client::Scenes::ActorState target{};
+    glm::vec3 start{1500.0f, 1600.0f, 1220.0f};
+    glm::vec3 angles{0.0f, 0.0f, 135.0f};
+    double ground = 20.0;
+};
+} // namespace
+
+// 0x534bcb..0x534cb6 con la /0..3: 10 puntos, vida 40, el ancho, +0x9f1 en rand() & 1, la clave en 0, velocidad 70 y
+// +0x9ec en 150 (la /2 y la /3, 30 y 300 con la textura 0x62c y 0x62b; la /0 y la /1 conservan la 0x632) y los ángulos
+// y +0x3c en (90, 0, 0). Un rand(); el dueño queda en +0x54.
+TEST(StormJointsTest, TheFallingSubtypesAreBornUpright)
+{
+    struct Case
+    {
+        std::int32_t subtype;
+        std::uint16_t texture;
+        float speed;
+        std::int32_t below;
+    };
+    for (const Case& probe : {Case{0, 0x632, 70.0f, 150}, Case{1, 0x632, 70.0f, 150}, Case{2, 0x62c, 30.0f, 300},
+                              Case{3, 0x62b, 30.0f, 300}})
+    {
+        SCOPED_TRACE(probe.subtype);
+        Falling falling;
+        ASSERT_TRUE(falling.Create(probe.subtype, &falling.target, Client::Scenes::JointOwnerKind::Actor).HasValue());
+        const JointState& joint = falling.joints[0];
+        CrtRandom expected{Seed};
+        EXPECT_EQ(joint.orientation, expected.Next() & 1);
+        EXPECT_EQ(falling.random.State(), expected.State());
+        EXPECT_EQ(joint.texture, probe.texture);
+        EXPECT_EQ(joint.width, 120.0f);
+        EXPECT_EQ(joint.maximumCount, 10);
+        EXPECT_EQ(joint.life, 40);
+        EXPECT_EQ(joint.speed, probe.speed);
+        EXPECT_EQ(joint.field9ec, probe.below);
+        EXPECT_EQ(joint.key, 0);
+        EXPECT_EQ(joint.angles, glm::vec3(90.0f, 0.0f, 0.0f));
+        EXPECT_EQ(joint.bendAngles, glm::vec3(90.0f, 0.0f, 0.0f));
+        EXPECT_EQ(joint.position, falling.start);
+        EXPECT_EQ(joint.light, glm::vec3(1.0f));
+        EXPECT_EQ(joint.ownerContext, &falling.target);
+        EXPECT_TRUE(joint.tailEnabled);
+    }
+}
+
+// 0x53c0a5..0x53c38b en el aire: la /2 gira la z rand() % 10 + 10; todas suben 10 la velocidad, agregan la cola, suben
+// otros 10 y bajan con +0x3c (90, 0, 0); el sprite con rand() % 360: el 0x60f de escala 1 con la luz la /0 y la /1 y el
+// 0x5fe de 1,6f con (0; 1; 1) la /2 y la /3. La cola común agrega otro tramo.
+TEST(StormJointsTest, TheFallingSubtypesSpeedUpInTheAir)
+{
+    for (const std::int32_t subtype : {0, 1, 2, 3})
+    {
+        SCOPED_TRACE(subtype);
+        Falling falling;
+        ASSERT_TRUE(falling.Create(subtype, &falling.target, Client::Scenes::JointOwnerKind::Actor).HasValue());
+        JointState& joint = falling.joints[0];
+        const float speed = joint.speed;
+        CrtRandom expected = falling.random;
+
+        ASSERT_TRUE(falling.Step().HasValue());
+
+        const auto matrix = Client::Render::Models::OriginalAngleMatrix({90.0f, 0.0f, 0.0f});
+        const auto first = Client::Render::Models::OriginalVectorRotate({0, -speed, 0}, matrix);
+        const glm::vec3 moved{F32(D(falling.start.x) + D(first.x)), F32(D(falling.start.y) + D(first.y)),
+                              F32(D(falling.start.z) + D(first.z))};
+        float z = 0.0f;
+        if (subtype == 2)
+            z = F32((static_cast<double>(expected.Next() % 10) + 0.0) + 10.0);
+        const float faster = F32(D(F32(D(speed) + 10.0)) + 10.0);
+        const auto second = Client::Render::Models::OriginalVectorRotate({0, -faster, 0}, matrix);
+        EXPECT_EQ(joint.position, glm::vec3(F32(D(second.x) + D(moved.x)), F32(D(second.y) + D(moved.y)),
+                                            F32(D(second.z) + D(moved.z))));
+        EXPECT_EQ(joint.angles.z, z);
+        EXPECT_EQ(joint.speed, faster);
+        EXPECT_EQ(joint.count, 2);
+        EXPECT_EQ(joint.life, 39);
+        EXPECT_TRUE(joint.tailEnabled);
+        const auto rotation = static_cast<float>(expected.Next() % 360);
+        EXPECT_EQ(falling.random.State(), expected.State());
+        const Client::World::Sprite* sprite = falling.LiveSprite();
+        ASSERT_NE(sprite, nullptr);
+        EXPECT_EQ(sprite->texture, subtype < 2 ? 0x60f : 0x5fe);
+        EXPECT_EQ(sprite->scale, subtype < 2 ? 1.0f : std::bit_cast<float>(0x3fcccccdu));
+        EXPECT_EQ(sprite->light, subtype < 2 ? glm::vec3(1.0f) : glm::vec3(0.0f, 1.0f, 1.0f));
+        EXPECT_EQ(sprite->rotation, rotation);
+        EXPECT_EQ(sprite->position, joint.position);
+    }
+}
+
+// 0x53c16d..0x53c2e0 en el suelo (la altura del terreno menos +0x9ec por encima de la z): la z queda ahí; la /2 y la
+// /3, con la cola y la clave en 0, sueltan la onda 0x6eb/4 con la luz (0,3f; 0,8f; 1) (con el rand() de su escala);
+// todas apagan la cola (la clave queda) y la luz pasa a · 0,8333333f; el sprite sale igual. La /0 y la /1 sin dueño no
+// sueltan nada; con dueño, posan el modelo 0x20b y piden los efectos por vértice 0x137 (0x4ee770): cortan.
+TEST(StormJointsTest, TheFallingSubtypesLandWithTheirWaveOrTheirVertices)
+{
+    for (const std::int32_t subtype : {0, 1, 2, 3})
+    {
+        SCOPED_TRACE(subtype);
+        Falling falling;
+        falling.ground = 5000.0;
+        ASSERT_TRUE(falling.Create(subtype, nullptr, Client::Scenes::JointOwnerKind::ByType).HasValue());
+        JointState& joint = falling.joints[0];
+        CrtRandom expected = falling.random;
+
+        const auto stepped = falling.Step();
+
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        EXPECT_EQ(joint.position.z, F32(5000.0 - (subtype < 2 ? 150.0 : 300.0)));
+        EXPECT_FALSE(joint.tailEnabled);
+        EXPECT_EQ(joint.key, 0);
+        EXPECT_EQ(joint.light, glm::vec3(F32(1.0 * D(std::bit_cast<float>(0x3f555555u)))));
+        if (subtype == 2)
+            static_cast<void>(expected.Next());
+        const auto waves =
+            std::ranges::count_if(falling.effects->Effects(), [](const auto& effect) { return effect.alive; });
+        if (subtype >= 2)
+        {
+            ASSERT_EQ(waves, 1);
+            const Client::World::ModelEffect& wave = falling.effects->Effects()[0];
+            EXPECT_EQ(wave.type, Client::World::ShockWaveEffect);
+            EXPECT_EQ(wave.subtype, 4);
+            EXPECT_EQ(wave.transform.position, joint.position);
+            EXPECT_EQ(wave.light,
+                      glm::vec3(std::bit_cast<float>(0x3e99999au), std::bit_cast<float>(0x3f4ccccdu), 1.0f));
+            static_cast<void>(expected.Next());
+        }
+        else
+            EXPECT_EQ(waves, 0);
+        static_cast<void>(expected.Next());
+        EXPECT_EQ(falling.random.State(), expected.State());
+        EXPECT_NE(falling.LiveSprite(), nullptr);
+    }
+    for (const std::int32_t subtype : {0, 1})
+    {
+        SCOPED_TRACE(subtype);
+        Falling owned;
+        owned.ground = 5000.0;
+        ASSERT_TRUE(owned.Create(subtype, &owned.target, Client::Scenes::JointOwnerKind::Actor).HasValue());
+        const auto cut = owned.Step();
+        ASSERT_FALSE(cut.HasValue());
+        EXPECT_TRUE(cut.Error().starts_with("0x53c1c6")) << cut.Error();
+        // Sin la cola, el suelo no lee al dueño.
+        Falling tailless;
+        tailless.ground = 5000.0;
+        ASSERT_TRUE(tailless.Create(subtype, &tailless.target, Client::Scenes::JointOwnerKind::Actor).HasValue());
+        tailless.joints[0].tailEnabled = false;
+        ASSERT_TRUE(tailless.Step().HasValue());
+    }
+}
+
+// 0x534977..0x534a08: la /4 con los argumentos de 0x51e01a (la posición y los ángulos del 0x13a, ancho 40, key 50):
+// velocidad 0, el pase 1, la textura 0x62b, la luz 1, 20 puntos, vida 30, la tanda en 0 y la posición y los ángulos
+// del dueño, sin rand(). Sin dueño, el original desreferencia el puntero nulo: MuRet corta.
+TEST(StormJointsTest, TheBlastJointIsBornOnItsEffect)
+{
+    Falling blast;
+    Client::World::ModelEffect effect{};
+    effect.alive = true;
+    effect.transform.position = {700.0f, 800.0f, 260.0f};
+    effect.transform.angles = {-30.0f, 0.0f, 45.0f};
+    blast.start = effect.transform.position;
+    blast.angles = effect.transform.angles;
+    blast.joints[0].volley = 9;
+    ASSERT_TRUE(blast.Create(4, &effect, Client::Scenes::JointOwnerKind::ModelEffect, 40.0f, 0x32).HasValue());
+    const JointState& joint = blast.joints[0];
+    EXPECT_TRUE(joint.alive);
+    EXPECT_EQ(joint.width, 40.0f);
+    EXPECT_EQ(joint.speed, 0.0f);
+    EXPECT_EQ(joint.category, 1);
+    EXPECT_EQ(joint.texture, 0x62b);
+    EXPECT_EQ(joint.light, glm::vec3(1.0f));
+    EXPECT_EQ(joint.velocity, glm::vec3(0.0f));
+    EXPECT_EQ(joint.maximumCount, 20);
+    EXPECT_EQ(joint.life, 30);
+    EXPECT_EQ(joint.volley, 0);
+    EXPECT_EQ(joint.key, 0x32);
+    EXPECT_EQ(joint.position, effect.transform.position);
+    EXPECT_EQ(joint.angles, effect.transform.angles);
+    EXPECT_EQ(joint.ownerContext, &effect);
+    EXPECT_EQ(blast.random.State(), Seed);
+
+    Falling ownerless;
+    const auto cut = ownerless.Create(4, nullptr, Client::Scenes::JointOwnerKind::ByType);
+    ASSERT_FALSE(cut.HasValue());
+    EXPECT_TRUE(cut.Error().starts_with("0x5349d3")) << cut.Error();
+}
+
+// 0x53be90..0x53bebd y 0x53c076..0x53c0a0: la /4 toma el byte vivo y la posición de su efecto; con menos de 15 de vida
+// la luz por 0,7692308f. Sin dueño se apaga. Sin rand().
+TEST(StormJointsTest, TheBlastJointFollowsItsEffect)
+{
+    Falling blast;
+    Client::World::ModelEffect effect{};
+    effect.alive = true;
+    blast.start = {700.0f, 800.0f, 260.0f};
+    ASSERT_TRUE(blast.Create(4, &effect, Client::Scenes::JointOwnerKind::ModelEffect, 40.0f, 0x32).HasValue());
+    JointState& joint = blast.joints[0];
+    effect.transform.position = {710.0f, 790.0f, 250.0f};
+
+    ASSERT_TRUE(blast.Step().HasValue());
+
+    EXPECT_TRUE(joint.alive);
+    EXPECT_EQ(joint.position, effect.transform.position);
+    EXPECT_EQ(joint.life, 29);
+    EXPECT_EQ(joint.light, glm::vec3(1.0f));
+    EXPECT_EQ(blast.random.State(), Seed);
+
+    joint.life = 14;
+    ASSERT_TRUE(blast.Step().HasValue());
+    EXPECT_EQ(joint.light, glm::vec3(F32(1.0 * D(std::bit_cast<float>(0x3f44ec4fu)))));
+
+    effect.alive = false;
+    ASSERT_TRUE(blast.Step().HasValue());
+    EXPECT_FALSE(joint.alive);
+
+    Falling lost;
+    ASSERT_TRUE(lost.Create(4, &effect, Client::Scenes::JointOwnerKind::ModelEffect, 40.0f, 0x32).HasValue());
+    lost.joints[0].ownerContext = nullptr;
+    ASSERT_TRUE(lost.Step().HasValue());
+    EXPECT_FALSE(lost.joints[0].alive);
 }

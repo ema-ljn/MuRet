@@ -48,7 +48,7 @@
 #include <format>
 #include <span>
 #include <string>
-#include <string_view>
+#include <tuple>
 
 // Los casos de habilidad de 0x4fd5f0 (0x4fdeeb, 0x504372 y 0x5042ce), cotejados con el PE c32bbd5f: 06, "El paso del
 // ataque".
@@ -76,21 +76,6 @@ void RequestTheSound(const CharacterStepContext& context, std::int32_t sound, co
         context.soundRequest(sound);
 }
 
-// Lo que crea un caso y MuRet no tiene: un efecto con modelo (0x518cf0), un joint (0x530860) o una partícula (0x53fe70)
-// de la CL11, con lo de antes y sus rand().
-Core::Unexpected<std::string> CutAt(std::uint32_t address, std::string_view what, std::uint8_t skill, std::size_t slot)
-{
-    return Core::Unexpected(
-        std::format("{:#x}: {} de la habilidad {:#x} del lugar {}, sin portar (CL11)", address, what, skill, slot));
-}
-
-// 530872: lleno sale antes del constructor. Un pool de joints ausente sigue siendo una capacidad pendiente.
-bool HasJointRoom(const CharacterStepContext& context)
-{
-    return context.joints.empty() ||
-           std::ranges::any_of(context.joints, [](const auto& joint) { return !joint.alive; });
-}
-
 // 0x518cf0 de un tipo alto (Scenes/HighModelEffects) desde un caso: el error lleva la habilidad y el lugar.
 Core::Expected<void, std::string> CreateHighEffect(const World::ModelEffectArguments& arguments, std::uint8_t skill,
                                                    std::size_t slot, const CharacterStepContext& context)
@@ -109,17 +94,6 @@ glm::vec3 CaseLight(const ActorState& actor)
     const bool flared = std::ranges::find(FlaredActions, actor.animation.action) != FlaredActions.end() &&
                         actor.animation.frame > FlareFrame;
     return flared ? glm::vec3(std::bit_cast<float>(0x3e99999au), 0.5f, 1.0f) : glm::vec3(1.0f);
-}
-
-Core::Expected<void, std::string> JointThenSound(std::uint32_t address, std::string_view what, std::uint8_t skill,
-                                                 std::size_t slot, std::int32_t sound,
-                                                 const CharacterStepContext& context)
-{
-    if (HasJointRoom(context))
-        return CutAt(address, what, skill, slot);
-    if (sound >= 0)
-        RequestTheSound(context, sound);
-    return {};
 }
 
 // 0x530860(0x613, desde, hasta, ángulos, subtipo, o, ancho, key, skill, serial, −1): un joint 0x613 colgado de o, con
@@ -671,18 +645,41 @@ Core::Expected<void, std::string> DropTheIceStorm(const ActorState& actor, const
 }
 
 // 0x4fe190..0x4fe24e (la 0x44, el subtipo 0) y 0x4fe442..0x4fe500 (la 0x47, el 1): con un blanco que no es o, el joint
-// 0x632 del blanco hacia sí mismo (z + 0x6ba198) y el sonido 0x267.
-Core::Expected<void, std::string> BindTheTarget(ActorState& actor, std::size_t slot, std::uint8_t skill,
+// 0x530860(0x632, p, p, los ángulos del blanco, subtipo, blanco, 120, −1, 0, 0, −1) con p la posición del blanco con
+// la z + 1200 (0x6ba198, en la x87 y guardada en float), que cae sobre él (StormJoints.cpp), y el sonido 0x267, se haya
+// creado o no.
+Core::Expected<void, std::string> BindTheTarget(ActorState& actor, std::size_t slot,
                                                 const CharacterStepContext& context, std::uint32_t read,
-                                                std::uint32_t joint)
+                                                std::uint32_t joint, std::int32_t subtype)
 {
     const auto target = TargetOf(actor, slot, context, read);
     if (!target.HasValue())
         return Core::Unexpected(target.Error());
     if (target.Value() == nullptr || target.Value() == &actor)
         return {};
+    if (context.joints.empty())
+        return Core::Unexpected(std::format("{:#x}: faltan los joints del frame (0x530860)", joint));
+    ActorState& bound = *target.Value();
+    constexpr double Height = 1200.0; // 0x6ba198
+    constexpr float Width = 120.0f;   // 0x42f00000
+    glm::vec3 from{bound.position.x, bound.position.y, F32(D(bound.position.z) + Height)};
+    const World::FishEffectRequest request{.type = JointFamilies::StormJoint,
+                                           .firstPosition = from,
+                                           .secondPosition = from,
+                                           .angles = bound.angles,
+                                           .subtype = subtype,
+                                           .ownerContext = &bound,
+                                           .scale = Width,
+                                           .key = -1,
+                                           .skill = 0,
+                                           .skillSerial = 0,
+                                           .target = -1};
+    if (auto created = CreateFaunaJoint(context.joints, request, context.random, JointOwnerKind::Actor);
+        !created.HasValue())
+        return Core::Unexpected(std::format("{:#x}: {}", joint, created.Error()));
     constexpr std::int32_t BindSound = 0x267;
-    return JointThenSound(joint, "el joint 0x632 sobre el blanco (0x530860)", skill, slot, BindSound, context);
+    RequestTheSound(context, BindSound);
+    return {};
 }
 
 // 0x4fe383..0x4fe43d, la 0x46: con blanco, 0x534f90(0x10f, blanco, 4) y (…, 9), el calco 0x61e/6 sobre él (0x518cf0)
@@ -783,13 +780,26 @@ float CellsBetween(const ActorState& from, const ActorState& to)
     return static_cast<float>(std::sqrt(squared) / CellSize);
 }
 
+// 0x4f2230(o): el subtipo de los joints de la 0x4c según el byte +0x31b (el +0x1b de la mascota, el excelente de Fenrir
+// que copian 0x4c879d, 0x513c60 y 0x5bc9db): con 1, 0; con 2, 2; con cualquier otro, 1.
+std::int32_t FenrirShade(const ActorState& actor)
+{
+    constexpr std::uint8_t RedFenrir = 1, BlueFenrir = 2;
+    if (actor.pet.flags1b == RedFenrir)
+        return 0;
+    return actor.pet.flags1b == BlueFenrir ? 2 : 1;
+}
+
 // 0x502352..0x502949, la 0x4c: el sonido 0x27d y el lazo de los 400 lugares hasta juntar diez blancos (0x502569): un
 // monstruo vivo (+0x88 en 2) que no está en la acción 6, o un jugador vivo (+0x88 en 1) fuera de la 0xc3 que 0x5588d0
 // deja atacar; de cada uno, la distancia y el alcance de la 0x4c sin dueño (0x5526f0(0x4c, 0), con los rand() de su
 // entrada), y entra si el alcance no es menor (FCOMP con C0). Después rand() % 360, que no se usa antes del corte. Con
-// +0x434 en −1 o desde 400, nada más; si no, la primera de dos vueltas: el punto de 0x4f5b10(o, 0, −140, 130), sin
-// rand(), el ángulo con rand() % 360, 0 y rand() % 360, y el joint 0x14f hacia el blanco de +0x434. La lista de los
-// diez la leen los joints de después (0x5026fa).
+// +0x434 en −1 o desde 400, nada más; si no, dos vueltas por el blanco de +0x434 y otras dos por cada uno de los
+// juntados (0x5025d7..0x50284e): el punto de 0x4f5b10(o, 0, −140, 130), sin rand(), los ángulos (rand() % 360, 0,
+// rand() % 360) y dos joints 0x14f hacia la posición del blanco, con él de dueño: ancho 100 con el subtipo de
+// 0x4f2230(o) y 80 con ese más 3. Al final (0x502853..0x502944), seis 0x62c sin dueño de ancho 60 con el subtipo de
+// 0x4f2230(o) más 0xb, desde el punto de 0x4f5b10(o, 0, rand() % 40 − 20 + 10, 130) hacia él mismo, con los ángulos
+// (rand() % 360, 0, rand() % 360). Con el pool lleno, 0x530860 no crea nada ni saca rand().
 Core::Expected<void, std::string> StrikeAround(const ActorState& actor, std::size_t slot, std::uint8_t skill,
                                                const CharacterStepContext& context)
 {
@@ -802,7 +812,9 @@ Core::Expected<void, std::string> StrikeAround(const ActorState& actor, std::siz
     RequestTheSound(context, AroundSound);
     const HeroSkillContext ranges{.world = context.world, .random = context.random, .skills = context.skills};
     std::size_t gathered = 0;
-    for (const ActorState& other : context.world.Actors().first<PoolSlots>())
+    // [ebp−0x214]: los juntados, en su orden (0x50245e, 0x502553).
+    std::array<ActorState*, MostTargets> found{};
+    for (ActorState& other : context.world.Actors().first<PoolSlots>())
     {
         bool candidate = other.alive && other.byte88 == MonsterObject && other.animation.action != MonsterFallAction;
         if (!candidate && other.alive && other.byte88 == PlayerObject && other.animation.action != PlayerFallAction)
@@ -819,7 +831,7 @@ Core::Expected<void, std::string> StrikeAround(const ActorState& actor, std::siz
             if (!range.HasValue())
                 return Core::Unexpected(std::format("0x50243d: {} (la 0x4c del lugar {})", range.Error(), slot));
             if (range.Value() >= cells)
-                ++gathered;
+                found[gathered++] = &other;
         }
         if (gathered >= MostTargets)
             break;
@@ -833,16 +845,74 @@ Core::Expected<void, std::string> StrikeAround(const ActorState& actor, std::siz
         return Core::Unexpected(
             std::format("0x5025b8: el blanco {} de +0x434 del lugar {} está fuera del pool", target, slot));
     }
-    static_cast<void>(context.random.Next());
-    static_cast<void>(context.random.Next());
-    if (HasJointRoom(context))
-        return CutAt(0x5026a4, "el subtipo del primero de los cuatro joints 0x14f, de 0x4f2230 (el +0x31b de Fenrir)",
-                     skill, slot);
-    // 50261e..5028e4: 2×2 para el blanco principal, N×2×2 para los encontrados y 6×3 para los seis 62c.
-    constexpr std::size_t RemainingFixedDraws = 20;
-    constexpr std::size_t DrawsPerTarget = 4;
-    for (std::size_t draw = 0; draw < RemainingFixedDraws + gathered * DrawsPerTarget; ++draw)
-        static_cast<void>(context.random.Next());
+    if (context.joints.empty())
+        return Core::Unexpected(std::string("0x5026a4: faltan los joints del frame (0x530860)"));
+    const std::int32_t shade = FenrirShade(actor);
+    const auto strike = [&](ActorState& struck, std::uint32_t first,
+                            std::uint32_t second) -> Core::Expected<void, std::string>
+    {
+        constexpr int Rounds = 2, Turn = 360;
+        constexpr std::int32_t PlasmaJoint = 0x14f, Paler = 3;
+        constexpr float Wide = 100.0f, Narrow = 80.0f; // 0x42c80000 y 0x42a00000
+        for (int round = 0; round < Rounds; ++round)
+        {
+            glm::vec3 from = TurnedPoint(actor, {0.0f, -140.0f, 130.0f}); // 0xc30c0000 y 0x43020000
+            const auto pitch = static_cast<float>(context.random.Next() % Turn);
+            const auto yaw = static_cast<float>(context.random.Next() % Turn);
+            glm::vec3 angles{pitch, 0.0f, yaw};
+            glm::vec3 to = struck.position;
+            for (const auto& [address, subtype, width] :
+                 {std::tuple{first, shade, Wide}, std::tuple{second, shade + Paler, Narrow}})
+            {
+                const World::FishEffectRequest request{.type = PlasmaJoint,
+                                                       .firstPosition = from,
+                                                       .secondPosition = to,
+                                                       .angles = angles,
+                                                       .subtype = subtype,
+                                                       .ownerContext = &struck,
+                                                       .scale = width,
+                                                       .key = -1,
+                                                       .skill = 0,
+                                                       .skillSerial = 0,
+                                                       .target = -1};
+                if (auto created = CreateFaunaJoint(context.joints, request, context.random, JointOwnerKind::Actor);
+                    !created.HasValue())
+                    return Core::Unexpected(std::format("{:#x}: {}", address, created.Error()));
+            }
+        }
+        return {};
+    };
+    if (auto struck = strike(context.world.Actors()[static_cast<std::size_t>(target)], 0x5026a4, 0x5026ed);
+        !struck.HasValue())
+        return struck;
+    for (std::size_t index = 0; index < gathered; ++index)
+        if (auto struck = strike(*found[index], 0x5027f0, 0x502841); !struck.HasValue())
+            return struck;
+    constexpr int Spirals = 6, Spread = 40, Shift = 20, Turn = 360;
+    constexpr std::int32_t SpiralJoint = 0x62c, SpiralShade = 0xb;
+    constexpr double Lift = 10.0;  // 0x6b87a8
+    constexpr float Width = 60.0f; // 0x42700000
+    for (int spiral = 0; spiral < Spirals; ++spiral)
+    {
+        const auto height = F32(static_cast<double>(context.random.Next() % Spread - Shift) + Lift);
+        glm::vec3 from = TurnedPoint(actor, {0.0f, height, 130.0f});
+        const auto pitch = static_cast<float>(context.random.Next() % Turn);
+        const auto yaw = static_cast<float>(context.random.Next() % Turn);
+        glm::vec3 angles{pitch, 0.0f, yaw};
+        const World::FishEffectRequest request{.type = SpiralJoint,
+                                               .firstPosition = from,
+                                               .secondPosition = from,
+                                               .angles = angles,
+                                               .subtype = shade + SpiralShade,
+                                               .ownerContext = nullptr,
+                                               .scale = Width,
+                                               .key = -1,
+                                               .skill = 0,
+                                               .skillSerial = 0,
+                                               .target = -1};
+        if (auto created = CreateFaunaJoint(context.joints, request, context.random); !created.HasValue())
+            return Core::Unexpected(std::format("0x50293c: {}", created.Error()));
+    }
     return {};
 }
 
@@ -954,7 +1024,7 @@ Core::Expected<void, std::string> StepTheHeadSkill(ActorState& actor, std::size_
     case 0x43:
         return CallTheStorm(actor, context);
     case 0x44:
-        return BindTheTarget(actor, slot, skill, context, 0x4fe1a6, 0x4fe235);
+        return BindTheTarget(actor, slot, context, 0x4fe1a6, 0x4fe235, 0);
     case 0x45:
         return RingTheSpirits(actor, slot, skill, context,
                               {.subtype = 0x15,
@@ -965,7 +1035,7 @@ Core::Expected<void, std::string> StepTheHeadSkill(ActorState& actor, std::size_
     case 0x46:
         return FreeTheTarget(actor, slot, skill, context);
     case 0x47:
-        return BindTheTarget(actor, slot, skill, context, 0x4fe458, 0x4fe4e7);
+        return BindTheTarget(actor, slot, context, 0x4fe458, 0x4fe4e7, 1);
     case 0x48:
         return RaiseTheAuras(actor, context);
     case 0x35:

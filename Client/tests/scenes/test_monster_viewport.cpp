@@ -15,6 +15,7 @@
 #include "Protocol/Outgoing.h"
 #include "Protocol/Viewport.h"
 #include "Render/Models/Cloth.h"
+#include "Render/Models/OriginalRotation.h"
 #include "Scenes/ActorCreation.h"
 #include "Scenes/ActorPickingBox.h"
 #include "Scenes/ActorState.h"
@@ -982,6 +983,48 @@ TEST_F(MonsterViewportTest, OrdinaryMonsterCreationAttachesBothOwnedBeamsInNativ
     }
 }
 
+// 0x51656e..0x5165d1: el NPC 257 (un 0x20a) suelta el 0x60f/0x2a de ancho 15 con él de dueño, que nace (0, −15, 0)
+// girado por sus ángulos más allá de su posición. Sin rand(): con los joints llenos, el RNG queda igual.
+TEST_F(MonsterViewportTest, TheNpc257CarriesItsSpinningSparkle)
+{
+    std::optional<std::uint32_t> drawn;
+    for (const bool full : {false, true})
+    {
+        SCOPED_TRACE(full);
+        Load(0);
+        auto& joints = game->world.DrawTail().joints;
+        if (full)
+            for (auto& joint : joints)
+                joint.alive = true;
+        const Cell cell = FreeRow();
+        const auto created = Client::Scenes::CreateMonster(257, cell.x, cell.y, 100, game->Resources());
+        ASSERT_TRUE(created.HasValue()) << created.Error();
+        ActorState& actor = Actor(created.Value());
+        if (!full)
+        {
+            const Client::Scenes::JointState& joint = joints[0];
+            EXPECT_TRUE(joint.alive);
+            EXPECT_EQ(joint.type, 0x60f);
+            EXPECT_EQ(joint.subtype, 0x2a);
+            EXPECT_EQ(joint.ownerContext, &actor);
+            EXPECT_EQ(joint.ownerKind, Client::Scenes::JointOwnerKind::Actor);
+            EXPECT_EQ(joint.width, 15.0f);
+            EXPECT_EQ(joint.life, 100);
+            const auto moved = Client::Render::Models::OriginalVectorRotate(
+                {0.0f, -15.0f, 0.0f}, Client::Render::Models::OriginalAngleMatrix(actor.angles));
+            const glm::vec3 path{static_cast<float>(static_cast<double>(moved.x) + actor.position.x),
+                                 static_cast<float>(static_cast<double>(moved.y) + actor.position.y),
+                                 static_cast<float>(static_cast<double>(moved.z) + actor.position.z)};
+            EXPECT_EQ(joint.pathIncrement, path);
+            EXPECT_EQ(joint.targetPosition, actor.position);
+            EXPECT_FALSE(joints[1].alive);
+            drawn = game->cloth.random.State();
+        }
+        else
+            EXPECT_EQ(game->cloth.random.State(), drawn);
+    }
+}
+
 TEST_F(MonsterViewportTest, OrdinaryCreationFinishesItsTailWithOneOrNoJointSlots)
 {
     for (const std::size_t free : {std::size_t{0}, std::size_t{1}})
@@ -1156,17 +1199,58 @@ TEST_F(MonsterViewportTest, TheSummonsTakeTheirLevelFromTheType)
     EXPECT_EQ(game->cloth.random.State(), AfterDraws(Seed, WalkingRecordDraws + WalkingRecordDraws).State());
 }
 
-// 0x51747c: el invocado que llega corta después del nombre, antes de las celdas.
-TEST_F(MonsterViewportTest, ANewSummonCutsAfterItsName)
+// 0x51746e..0x517555: el invocado que llega (0x98..0x9e), después del nombre y antes de las celdas, suelta cuatro
+// 0x615/1 sin dueño desde su posición, de ancho rand() % 10 más 60, 50, 50 y 60, cada uno con los dos rand() de su alta
+// (la x y la y ± 5, 0x531b1d y 0x531b37), 800 más arriba y con la cola apagada. Con el pool lleno, sólo los cuatro del
+// ancho. Después sigue como los otros recién llegados y corta en 0x4ca5f6 (el efecto 0xec).
+TEST_F(MonsterViewportTest, ANewSummonDropsFourBoltsAfterItsName)
 {
-    Load(0);
-    const std::array<SummonRecordBytes, 1> records{{{.key = 0x0b00, .isNew = true, .type = 0x9a, .x = 130, .y = 130}}};
-    const auto applied = Summons(records);
-    ASSERT_FALSE(applied.HasValue());
-    EXPECT_NE(applied.Error().find("0x51747c"), std::string::npos) << applied.Error();
-    EXPECT_TRUE(Actor(1).alive);
-    EXPECT_EQ(Actor(1).level, 3);
-    EXPECT_EQ(game->cloth.random.State(), AfterDraws(Seed, ConstructionDraws).State());
+    for (const bool full : {false, true})
+    {
+        SCOPED_TRACE(full);
+        Load(0);
+        auto& joints = game->world.DrawTail().joints;
+        for (auto& joint : joints)
+            joint.alive = full;
+        const std::array<SummonRecordBytes, 1> records{
+            {{.key = 0x0b00, .isNew = true, .type = 0x9a, .x = 130, .y = 130}}};
+        const auto applied = Summons(records);
+        ASSERT_FALSE(applied.HasValue());
+        EXPECT_NE(applied.Error().find("0x4ca5f6"), std::string::npos) << applied.Error();
+        const ActorState& summon = Actor(1);
+        EXPECT_TRUE(summon.alive);
+        EXPECT_EQ(summon.level, 3);
+        constexpr std::array<double, 4> Bases{60.0, 50.0, 50.0, 60.0};
+        auto expected = AfterDraws(Seed, ConstructionDraws);
+        std::size_t live = 0;
+        for (const double base : Bases)
+        {
+            SCOPED_TRACE(base);
+            const auto width = static_cast<float>(static_cast<double>(expected.Next() % 10) + base);
+            if (full)
+                continue;
+            const float x = static_cast<float>(static_cast<double>(expected.Next() % 10 - 5) +
+                                               static_cast<double>(summon.position.x));
+            const float y = static_cast<float>(static_cast<double>(expected.Next() % 10 - 5) +
+                                               static_cast<double>(summon.position.y));
+            while (live < joints.size() && !joints[live].alive)
+                ++live;
+            ASSERT_LT(live, joints.size());
+            const auto& bolt = joints[live++];
+            EXPECT_EQ(bolt.type, 0x615);
+            EXPECT_EQ(bolt.subtype, 1);
+            EXPECT_EQ(bolt.width, width);
+            EXPECT_EQ(bolt.ownerContext, nullptr);
+            EXPECT_FALSE(bolt.tailEnabled);
+            EXPECT_EQ(bolt.position,
+                      glm::vec3(x, y, static_cast<float>(static_cast<double>(summon.position.z) + 800.0)));
+            EXPECT_EQ(bolt.targetPosition, summon.position);
+            EXPECT_EQ(bolt.pathIncrement, bolt.position);
+            EXPECT_EQ(bolt.angles, glm::vec3(0.0f));
+        }
+        expected.Discard(CellDraws);
+        EXPECT_EQ(game->cloth.random.State(), expected.State());
+    }
 }
 
 // 0x4ca516..0x4ca5bf: fuera de 0x98..0x9e, el nombre es el del dueño (diez bytes), el Text 485 y el del monstruo; sin

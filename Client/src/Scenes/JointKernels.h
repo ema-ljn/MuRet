@@ -30,6 +30,7 @@ struct TerrainLighting;
 namespace Client::Scenes
 {
 struct ActorState;
+class WorldState;
 } // namespace Client::Scenes
 
 // Lo que comparten el alta de los joints (0x530860), su paso (0x535840) y las familias que viven en sus propios
@@ -103,6 +104,9 @@ struct StepServices
     World::ModelEffects* effects = nullptr;
     // El héroe ([0x743a170]): el 0x61c/0 compara su dueño con él (0x53b548). Sin él, el 0x61c/0 con dueño corta.
     const ActorState* hero = nullptr;
+    // Los modelos compartidos (0x5769ad8 + tipo · 0xe0, su escala y su posición): el 0x614/0xc se pone en el modelo del
+    // dueño (0x536b1d) y el 0x62c/5..7 con dueño le escribe la posición al suyo (0x53bc42). Sin ellos, cortan.
+    WorldState* world = nullptr;
 };
 
 // El dueño de un joint de las familias de este archivo, cuando es un personaje (ActorState): el objeto del original,

@@ -10,6 +10,7 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/JointKernels.h"
+#include "Scenes/WorldState.h"
 #include "World/IFishStepServices.h"
 #include "World/Particles.h"
 #include "World/TerrainLighting.h"
@@ -18,6 +19,7 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <array>
 #include <bit>
 #include <cstddef>
@@ -71,9 +73,10 @@ struct Pool
         return Client::Scenes::CreateFaunaJoint(joints, request, random, kind, services);
     }
 
-    Client::Core::Expected<void, std::string> Step(float clock = 0.0f)
+    Client::Core::Expected<void, std::string> Step(float clock = 0.0f, Client::Scenes::WorldState* world = nullptr)
     {
-        return Client::Scenes::StepJoints(joints, random, nullptr, &particles, clock, nullptr, lighting.get());
+        return Client::Scenes::StepJoints(joints, random, nullptr, &particles, clock, nullptr, lighting.get(), {}, {},
+                                          {}, {}, nullptr, nullptr, world);
     }
 
     std::vector<JointState> joints = std::vector<JointState>(4);
@@ -254,17 +257,70 @@ TEST(LightningJointsTest, TheOwnerBoneBoltAimsAtTheChestOfItsOwner)
     EXPECT_NE(lonely.Error().find("0x531412"), std::string::npos) << lonely.Error();
 }
 
-// 0x531356: la /0xc nace roja con vida 10; su paso pone la posición en un hueso del modelo del dueño (0x536b1d) y
-// corta.
-TEST(LightningJointsTest, TheRedBoltCutsOnItsOwnerBone)
+// 0x531356: la /0xc nace roja con vida 10. Su paso (0x536adf..0x536b22) pone la posición en el punto (0, −100, 0) de
+// la matriz 0x743751c del modelo del tipo del dueño: nadie la escribe en c32bbd5f y queda en cero, así que el punto es
+// la posición del modelo compartido. Salta 0x4e9810: "lo que falta" es el [ebp+8] de 0x53586c, la y de la posición
+// menos la del destino antes de moverse, con signo. Sin dueño personaje o sin los modelos, corta.
+TEST(LightningJointsTest, TheRedBoltSitsOnTheSharedModelOfItsOwner)
 {
-    Pool pool;
-    ASSERT_TRUE(pool.Create(0x614, 0xc, {}, {}, 30.0f).HasValue());
-    EXPECT_EQ(pool.joints[0].light, (glm::vec3{1.0f, Tenth, Tenth}));
-    EXPECT_EQ(pool.joints[0].life, 10);
-    EXPECT_EQ(pool.joints[0].speed, 50.0f);
-    EXPECT_EQ(pool.joints[0].maximumCount, 50);
-    const auto cut = pool.Step();
+    ActorState owner = Owner({1.0f, 2.0f, 3.0f});
+    owner.type = 0x1a5;
+    auto world = std::make_unique<Client::Scenes::WorldState>();
+    const glm::vec3 origin{700.25f, 800.5f, 900.75f};
+    world->PlaceModel(owner.type, {.scale = 1.5f, .origin = origin});
+    // y de partida menos y del destino: 40 (< 50 · 1,5, llega), −500 (llega: no hay valor absoluto) y 80 (no llega).
+    for (const float startY : {40.0f, -500.0f, 80.0f})
+    {
+        SCOPED_TRACE(startY);
+        Pool pool;
+        ASSERT_TRUE(
+            pool.Create(0x614, 0xc, {10.0f, startY, 30.0f}, {0.0f, 0.0f, 0.0f}, 30.0f, &owner, JointOwnerKind::Actor)
+                .HasValue());
+        const JointState& joint = pool.joints[0];
+        EXPECT_EQ(joint.light, (glm::vec3{1.0f, Tenth, Tenth}));
+        EXPECT_EQ(joint.life, 10);
+        EXPECT_EQ(joint.speed, 50.0f);
+        EXPECT_EQ(joint.maximumCount, 50);
+        const std::int32_t count = joint.count;
+        CrtRandom twin = pool.random;
+        const auto stepped = pool.Step(0.0f, world.get());
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        const bool arrives = startY < 75.0f;
+        // Cada tramo saca los dos rand() del temblor por defecto (0x536cb3); con ancho 30 no hay luz ni partículas.
+        const int segments = arrives ? 1 : 50;
+        glm::vec3 shaken{};
+        for (int segment = 0; segment < segments; ++segment)
+        {
+            shaken.x = F32(static_cast<double>((twin.Next() & 0x3ff) - 0x200) / 30.0);
+            shaken.z = F32(static_cast<double>((twin.Next() & 0x3ff) - 0x200) / 30.0);
+        }
+        EXPECT_EQ(pool.random.State(), twin.State());
+        EXPECT_EQ(joint.velocity.x, shaken.x);
+        EXPECT_EQ(joint.velocity.z, shaken.z);
+        shaken = {F32(D(joint.angles.x) + D(shaken.x)), F32(D(joint.velocity.y) + D(joint.angles.y)),
+                  F32(D(shaken.z) + D(joint.angles.z))};
+        // Un corrimiento por tramo y otro de la cola común (CommonTail), hasta 49 (0x53553f).
+        EXPECT_EQ(joint.count, std::min(count + segments + 1, joint.maximumCount - 1));
+        if (arrives)
+        {
+            EXPECT_EQ(joint.position, origin);
+            continue;
+        }
+        // El último tramo vuelve al modelo y avanza (0, −50, 0) por la matriz de sus ángulos con el temblor.
+        const auto moved = Client::Render::Models::OriginalVectorRotate(
+            {0.0f, -50.0f, 0.0f}, Client::Render::Models::OriginalAngleMatrix(shaken));
+        EXPECT_EQ(joint.position, (glm::vec3{F32(D(moved.x) + D(origin.x)), F32(D(moved.y) + D(origin.y)),
+                                             F32(D(moved.z) + D(origin.z))}));
+    }
+
+    Pool orphan;
+    ASSERT_TRUE(orphan.Create(0x614, 0xc, {}, {}, 30.0f).HasValue());
+    const auto lonely = orphan.Step(0.0f, world.get());
+    ASSERT_FALSE(lonely.HasValue());
+    EXPECT_TRUE(lonely.Error().starts_with("0x536adf")) << lonely.Error();
+    Pool unserved;
+    ASSERT_TRUE(unserved.Create(0x614, 0xc, {}, {}, 30.0f, &owner, JointOwnerKind::Actor).HasValue());
+    const auto cut = unserved.Step();
     ASSERT_FALSE(cut.HasValue());
     EXPECT_TRUE(cut.Error().starts_with("0x536b1d")) << cut.Error();
 }

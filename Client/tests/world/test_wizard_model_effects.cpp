@@ -503,6 +503,33 @@ TEST(WizardModelEffectsTest, TheTwistingStormLightsTheGroundWithItsOwnLight)
         ASSERT_EQ(world.lighting->cells[cell], reference->cells[cell]) << cell;
 }
 
+// 0x5231f6..0x52328c: el 0xcb/1 con vida 45 suelta sus joints 613/6; el primero saca su rand() % 10 (0x52321f) antes
+// del alta del joint (0x530860), que corta. Con la vida en 44 − +0x1bc del dueño o menos, nada.
+TEST(WizardModelEffectsTest, TheHiddenCircleDrawsItsFirstJointRandomBeforeTheCut)
+{
+    Harness world;
+    world.owner = WizardOwnerView{.alive = true};
+    CrtRandom random(15);
+    ModelEffectArguments arguments = Arguments(0xcb, 1);
+    int owner = 0;
+    arguments.owner = &owner;
+    ModelEffect& circle = world.At(Create(world, arguments, random));
+    ASSERT_EQ(circle.life, 45);
+    CrtRandom oracle = random;
+    static_cast<void>(oracle.Next()); // 0x5208c5, la luz del paso.
+    static_cast<void>(oracle.Next()); // 0x52321f.
+    const auto cut = Client::World::StepWizardModelEffect(circle, nullptr, random, world.Services());
+    ASSERT_FALSE(cut.HasValue());
+    EXPECT_NE(cut.Error().find("0x52328c"), std::string::npos) << cut.Error();
+    EXPECT_EQ(random.State(), oracle.State());
+
+    circle.life = 44;
+    CrtRandom quiet = random;
+    static_cast<void>(quiet.Next());
+    ASSERT_TRUE(Client::World::StepWizardModelEffect(circle, nullptr, random, world.Services()).HasValue());
+    EXPECT_EQ(random.State(), quiet.State());
+}
+
 TEST(WizardModelEffectsTest, TheOuterCircleShakesTheCameraAndGlows)
 {
     Harness world;

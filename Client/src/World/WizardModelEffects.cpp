@@ -1085,7 +1085,8 @@ Core::Expected<void, std::string> StepFire(ModelEffect& effect, float luminosity
 }
 
 // 0x5231be..0x52336f.
-Core::Expected<void, std::string> StepInnerCircle(ModelEffect& effect, const WizardEffectServices& services)
+Core::Expected<void, std::string> StepInnerCircle(ModelEffect& effect, CrtRandom& random,
+                                                  const WizardEffectServices& services)
 {
     effect.objectState.light = F32(LifeTimes(effect.life, Tenth));
     if (effect.subtype == 1)
@@ -1095,7 +1096,9 @@ Core::Expected<void, std::string> StepInnerCircle(ModelEffect& effect, const Wiz
             return Core::Unexpected(owner.Error());
         if (effect.life <= 44 - owner.Value().byte1bc)
             return {};
-        // 0x5231f6..0x5232f8: 36 joints 613/6 en abanico y, en el primer paso, 36 613/7.
+        // 0x5231f6..0x5232f8: 36 joints 613/6 en abanico y, en el primer paso, 36 613/7. El primero saca su
+        // rand() % 10 (0x52321f) antes del alta del joint (0x52328c), que corta.
+        static_cast<void>(random.Next());
         return Core::Unexpected(std::format("0x52328c: el 0xcb/1 suelta los joints {:#x}/6 (CL11)", SnowBlastJoint));
     }
     if (effect.subtype == 2)
@@ -1367,7 +1370,7 @@ Core::Expected<void, std::string> StepCase(ModelEffect& effect, float luminosity
     case PlainSkillEffect:
         return {};
     case InnerCircleEffect:
-        return StepInnerCircle(effect, services);
+        return StepInnerCircle(effect, random, services);
     case OuterCircleEffect:
         return StepOuterCircle(effect, luminosity, random, services);
     case FollowingMagicEffect: // 0x5217da

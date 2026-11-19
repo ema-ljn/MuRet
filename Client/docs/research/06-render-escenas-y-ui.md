@@ -4339,14 +4339,26 @@ de `0x443d70` en el mapa 55 y la escena 2; los slots, **verificados** en `lor_sl
   normal girada por su hueso max(0,2; 0,8 · L·n + 0,4), con L = (1,3; 0; 2): la rama de
   `DAT_006c8818`, que vale 1 desde el `.data` y nadie escribe (Q-C115). El ángulo con que se gira L
   (`+0x8c` del modelo) lo escribe solo la rama del mundo 30, que no corre. La normal no se normaliza
-  y, en un objeto de `0x5ffdf0`, lleva su escala: `0x4eb860` (con Translate) pone la escala en la
-  raíz, y `0x4ebc80` (sin Translate) gira la normal con esa matriz (emulado: largo 1,6 en el login).
+  y lleva la escala sólo en un objeto de `0x5ffdf0` con el segundo argumento en 0: `0x4eb860` (con la
+  bandera en 1, el `sete` de `0x5fff22`/`0x5fff50`) pone R · s en la raíz (`0x4ebbda..0x4ebc14`) y
+  `0x4ebc80` (con Translate en 0, `0x600177`/`0x6001a1`) gira la normal con esa matriz (`0x5fcbd0`;
+  emulado: largo 1,6 en el login). Son el cuervo (`0x41834e`), los ayudantes (`0x44532e`, el caballo
+  del login por `0x4453b0`), los peces (`0x446f74`), los efectos (`0x52d871`, `0x52d897`, `0x52da99`)
+  y los objetos del mundo (`0x604a47`, `0x607b2e`). Con el segundo argumento en 1 (los cuerpos de
+  monstruo `0x50baed` y de personaje `0x50bd81`, los pájaros `0x446bee`, el cartel `0x414572` y la
+  capa `0x4147a4`) y en lo colgado (`0x509a39`, que llega con Translate en 1 desde los que llaman a
+  `0x509340`) los huesos son del modelo: la posición es `0x5fccc0` · s + origen y la normal se gira
+  sin escala (`0x4ebf70`). MuRet: el scratch con el segundo argumento en 0 sale de
+  `Render::Models::SkinMeshInWorld` (`OriginalVectorTransform` y `OriginalVectorRotate` sobre
+  `OriginalMatrixOf` del hueso del mundo, en x87 emulado: bit a bit contra la sonda de `0x4ebc80`)
+  y el cromo y la luz leen la normal tal como queda (sin un factor aparte).
   `0x4ecc30` la multiplica por el color en el pase con textura (el modo 2): con el blanco del caballo
   y la escala 1,6, va de 0,2 a 0,8 · 1,6 · 2,385 + 0,4 = 3,45, que el GL recorta a 1. **Verificado**
   contra las trazas de GL: el color por vértice de los bloques con luz por vértice ajusta con
   (1,3; 0; 2) (R² mediano 0,93 en la selección y 0,42 en Lorencia, contra −0,26 y −0,41 con
   (0; −1,5; 0)). El cromo (el modo 4) va con el color parejo, con las UV de la normal con su escala
-  (u = 0,5 · nz + t, v = 0,5 · ny + 2t) y, con el alpha por debajo de 0,99, por el alpha (Q-C95). El
+  (u = 0,5 · nz + t, v = 0,5 · ny + 2t; un cuerpo de monstruo con escala 1,5 da 0,5 en las UV de una
+  normal (0; 0; 1), porque su scratch no la escala) y, con el alpha por debajo de 0,99, por el alpha (Q-C95). El
   pase base con ese alpha va con `0x620a00(1)` y `glColor4f`, con su alpha test (0,25): en los pasos
   1 y 2 (0,1 y 0,19) el cuerpo no se ve, aparece en el 3 (0,271) y queda opaco en el 44 (0,9903); la
   sombra al 0,7 y el cromo por el alpha se ven desde el primero.
@@ -14398,7 +14410,8 @@ Otro tipo o subtipo no hace nada ni saca `rand()`. Los que llaman: el cuervo al 
 `0x5ffdf0`, `0x4eb860` con la bandera en 1 arma los huesos en el mundo, con la escala y el origen en la raíz
 (`0x4ebbda..0x4ebc14`, R · s en float y la traslación en el origen) y sin tocar los dummy, y `0x4ebc80` corre con
 Translate en 0 (`0x600154`, `0x6001a1`): el scratch es hueso · v. MuRet: `PublishFaunaPose` con `translated`, con
-`PoseWorldSkeleton` y `Render::Models::SkinMeshInWorld`; las normales del scratch, con los huesos sin escala), las puertas del asedio
+`PoseWorldSkeleton` y `Render::Models::SkinMeshInWorld`: las posiciones con `OriginalVectorTransform` (`0x5fccc0`)
+y las normales con `OriginalVectorRotate` (`0x5fcbd0`) sobre el hueso del mundo, con su escala, en x87 emulado), las puertas del asedio
 (`0x42cfcb`, `0x12f`), sus monstruos (`0x42e6f3` el `0x131`, `0x42e76b` el `0x10a`), `0x439d90` (`0x439dc5`, la malla
 6), los `0x191`, `0x193..0x197` al morir (`0x43ed6c`, `0x43f514`, `0x43f5b9`, `0x43f682`, `0x43f87d`, `0x43f933`, el
 `0x607`), el `0x1a4` y el `0x1a6` al morir (`0x441696`, `0x442165`, el `0x13c`), la `0x632/0` y `/1` en el suelo

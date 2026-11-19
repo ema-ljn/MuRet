@@ -43,6 +43,7 @@
 #include "support/ItemFiles.h"
 #include "Scenes/OwnInventory.h"
 #include "World/ItemState.h"
+#include "World/ModelEffects.h"
 #include "support/PlayerActors.h"
 #include "support/RecordingSink.h"
 #include "support/SessionHarness.h"
@@ -282,6 +283,26 @@ TEST(WorldTransitionsTest, RegenKeepsItsOwnFieldsAndSlotWithoutTouchingTheWarpCo
     EXPECT_EQ(hero.byte374, 1);
     EXPECT_EQ(tested.cloth.random.State(), Client::Tests::AfterDraws(1, 3 * 0xf08 + 35).State());
 }
+TEST(WorldTransitionsTest, TransitionArrivalRetainsTheDurableOwnerAndNativeKey)
+{
+    Transition tested;
+    auto& actor = tested.Hero();
+    actor.position = {10, 20, 30};
+    actor.angles = {1, 2, 3};
+    actor.light = {0.25f, 0.5f, 0.75f};
+    Client::Scenes::CreateTransitionArrival(actor, tested.Resources());
+    const auto& effect = tested.world.Map().effects.Effects()[0];
+    ASSERT_TRUE(effect.alive);
+    EXPECT_EQ(effect.type, Client::World::ArrivalEffect);
+    EXPECT_TRUE(effect.hasOwner);
+    EXPECT_EQ(effect.ownerContext, &actor);
+    EXPECT_EQ(effect.disturbanceState, 0xffffu);
+    EXPECT_EQ(effect.transform.position, actor.position);
+    EXPECT_EQ(effect.transform.angles, actor.angles);
+    EXPECT_EQ(effect.light, actor.light);
+    EXPECT_EQ(effect.life, 20);
+}
+
 TEST(WorldTransitionsTest, MagicTeleportRetainsTheCounterAndOtherActorsWithoutAcknowledgement)
 {
     Transition tested;

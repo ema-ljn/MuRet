@@ -55,9 +55,9 @@ WalkToTheTarget(ActorState& actor, std::uint8_t targetX, std::uint8_t targetY, c
 // recupera (+0x1f2 sin el byte de arriba, Q-C800); la clase de +4, la piel en 0, +0x88 en 1 y el PK; por el estado, 1:
 // 0x53d930 y el paquete otra vez a la cola (Q-C801), 2: la acción 0xc5 (0xc7 el elfo), 3: 0xcb (0xcc), 4: 0xc9 (0xca),
 // 0x4ea030; las banderas (0x4e6380); la celda protegida y +0x39a/+0x39b; el ángulo, (dirección − 1) · 45. Recién
-// llegado (el bit 15): la posición en el centro de la celda, el efecto 0x61f (0x518cf0, sin el dueño en +0x108, como la
-// entrada del héroe) y el alpha en 0. Si no, el camino hasta +0x26/+0x27 (0x4eac00) y, si hay, +0x378 en 1. En Kalima
-// (24 a 29 y 36), el joint 0x610/8 con el jugador de dueño (0x4c91dc, la clase de los peces de Atlans con
+// llegado (el bit 15): la posición en el centro de la celda, el efecto 0x61f (0x4c905f, con el actor de dueño en
+// +0x108 y la clave −1) y el alpha en 0. Si no, el camino hasta +0x26/+0x27 (0x4eac00) y, si hay, +0x378 en 1. En
+// Kalima (24 a 29 y 36), el joint 0x610/8 con el jugador de dueño (0x4c91dc, la clase de los peces de Atlans con
 // JointOwnerKind::Actor; sin rand(), con los joints llenos nada). Después, el equipo (ApplyCharacterSet con el
 // lugar de 0x5110d0), el nombre y +0x1e3 en 0, con el estado 1 otra vez +0x360 y +0x78, Castle Siege (0x42ab40) y el
 // panel (0x412140). Cada celda escrita o leída gasta 4 rand() al cerrarse; el alta, los 28 de 0x511290 y los de sus

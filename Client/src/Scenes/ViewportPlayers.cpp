@@ -216,8 +216,13 @@ Core::Expected<void, std::string> ApplyPlayerRecord(const Protocol::Viewport::Pl
     if (record.isNew)
     {
         PutInTheCellCenter(actor, random);
-        static_cast<void>(
-            world.Map().effects.Create(World::ArrivalEffect, actor.position, actor.angles, actor.light, 0.0f));
+        static_cast<void>(world.Map().effects.Create(World::ModelEffectArguments{.type = World::ArrivalEffect,
+                                                                                 .position = actor.position,
+                                                                                 .angles = actor.angles,
+                                                                                 .light = actor.light,
+                                                                                 .owner = &actor,
+                                                                                 .key = 0xffff,
+                                                                                 .scale = 0.0f}));
         actor.alpha = 0.0f;
     }
     else if (auto walked = WalkToTheTarget(actor, record.targetX, record.targetY, resources); !walked.HasValue())

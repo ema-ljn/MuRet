@@ -721,10 +721,18 @@ TEST_F(GoldenLoginWorld, ArrivalReusesTheVisibilityLeftByTheLoginDragon)
     auto effects = world->Map().effects.Effects();
     ASSERT_TRUE(effects[0].alive);
     EXPECT_FALSE(effects[0].seen);
+    ASSERT_TRUE(effects[0].hasOwner);
+    ASSERT_NE(effects[0].ownerContext, nullptr);
+    EXPECT_EQ(effects[0].disturbanceState, 0xffff);
+    const auto* owner = static_cast<const Client::World::WorldObject*>(effects[0].ownerContext);
+    EXPECT_EQ(owner->type, Client::World::DragonEffect);
+    EXPECT_EQ(owner->transform.position, glm::vec3(5600, 23000, 0));
     static_cast<void>(Frame(scene, 1));
     EXPECT_TRUE(effects[0].seen);
     scene.Leave();
     EXPECT_TRUE(effects[0].alive);
+    EXPECT_FALSE(effects[0].hasOwner);
+    EXPECT_EQ(effects[0].ownerContext, nullptr);
     selection.BeginSelection();
     ASSERT_TRUE(selection.InitializeSelection(m_dataRoot, input).HasValue());
     EXPECT_TRUE(effects[0].alive) << "sin lista no corre la carga del mapa54";
@@ -738,6 +746,43 @@ TEST_F(GoldenLoginWorld, ArrivalReusesTheVisibilityLeftByTheLoginDragon)
     ASSERT_EQ(world->Map().effects.Create(Client::World::ArrivalEffect, {}, {}, {}, 0.0f), 1u);
     EXPECT_TRUE(effects[0].seen);
     EXPECT_FALSE(effects[1].seen);
+}
+
+// El mundo sobrevive a la escena: se retiran sólo los enlaces a sus objetos, aun en un slot inactivo.
+TEST_F(GoldenLoginWorld, TheLoginDragonOwnerIsDetachedOnReentryAndDestruction)
+{
+    auto world = std::make_unique<Client::Scenes::WorldState>();
+    int unrelatedOwner = 0;
+    auto effects = world->Map().effects.Effects();
+    {
+        LoginScene scene(SceneContext{.dataRoot = m_dataRoot, .textures = m_store, .log = m_log, .world = world.get()},
+                         *m_data, m_models, nullptr, Version, FixedSeed, &m_models.TextureSlots());
+        ASSERT_TRUE(scene.Enter().HasValue());
+        ASSERT_TRUE(effects[0].hasOwner);
+        ASSERT_NE(effects[0].ownerContext, nullptr);
+        effects[1].hasOwner = true;
+        effects[1].ownerContext = effects[0].ownerContext;
+        effects[1].seen = true;
+        effects[2].hasOwner = true;
+        effects[2].ownerContext = &unrelatedOwner;
+        ASSERT_TRUE(scene.Enter().HasValue());
+        EXPECT_FALSE(effects[1].hasOwner);
+        EXPECT_EQ(effects[1].ownerContext, nullptr);
+        EXPECT_TRUE(effects[1].seen);
+        ASSERT_TRUE(effects[0].hasOwner);
+        ASSERT_NE(effects[0].ownerContext, nullptr);
+        const auto* owner = static_cast<const Client::World::WorldObject*>(effects[0].ownerContext);
+        EXPECT_EQ(owner->type, Client::World::DragonEffect);
+        EXPECT_EQ(owner->transform.position, glm::vec3(5600, 23000, 0));
+        effects[0].seen = true;
+        EXPECT_TRUE(effects[0].alive);
+    }
+    EXPECT_TRUE(effects[0].alive);
+    EXPECT_TRUE(effects[0].seen);
+    EXPECT_FALSE(effects[0].hasOwner);
+    EXPECT_EQ(effects[0].ownerContext, nullptr);
+    EXPECT_TRUE(effects[2].hasOwner);
+    EXPECT_EQ(effects[2].ownerContext, &unrelatedOwner);
 }
 
 // CL7.6 B1: con lo global de la tela (como en main.cpp), el dibujo del personaje pide los sprites del

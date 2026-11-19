@@ -10,8 +10,10 @@
 // Los efectos de las acciones 3 y 4 de Kundun (0x43d051 y 0x43d0fd, KalimaSiegeHelpers): el 0x128, sin modelo, que en
 // su paso suelta diez 0x126 (Skill\phoenix, 0x527b37) con el /0 o los 0x125 (Skill\dragonhead, 0x527bb8 y 0x527c13)
 // con el /1. Sus altas (0x518f38, 0x51cebf y 0x51cdc9) y sus pasos (0x527ad6, 0x52778c y 0x5276b7). El dibujo del 0x125
-// es el caso de 0x438fe0 que llama 0x6002e0 (0x43909e, DrawTheHighEffectBody de Scenes/HighEffectDrawing); el 0x126 y
-// el 0x128 van por el camino común. 06, "Los efectos con modelo de los tipos altos".
+// es el caso de 0x438fe0 que llama 0x6002e0 (0x43909e, DrawTheHighEffectBody de Scenes/HighEffectDrawing), que sólo
+// corre con el alpha en 0,01 o más (0x5ffdf0, 0x5ffe2a..0x5ffe3d): el 0x125 nace con el alpha en 0 (0x51cdf5) y sólo su
+// joint 0x6ee/0x12 lo enciende (0x53949a); el 0x126 y el 0x128 van por el camino común. 06, "Los efectos con modelo de
+// los tipos altos".
 namespace Client::World
 {
 struct ModelEffect;

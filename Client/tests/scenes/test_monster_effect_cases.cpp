@@ -518,7 +518,8 @@ TEST_F(ModelEffectsTest, TheFlamingMonsterBurnsAlongItsLimbs)
             EXPECT_EQ(m_actor.effectOrigin, BoneAt(9));
             EXPECT_EQ(Alive(0x5de, 2), crowded ? 5 : (even ? 39 : 38));
             EXPECT_EQ(Alive(0x5de, 3), !crowded && even ? 1 : 0);
-            EXPECT_LT(RedAtTheActor(), 2.0f);
+            // 0x50772c..0x507754: la celda (10, 20) del personaje con peso 1: 2 − 1,3f = 0x3f333334.
+            EXPECT_EQ(std::bit_cast<std::uint32_t>(RedAtTheActor()), 0x3f333334u);
 
             std::array<glm::vec3, Bones.size()> points{};
             for (std::size_t index = 0; index < Bones.size(); ++index)
@@ -571,6 +572,10 @@ TEST_F(ModelEffectsTest, TheMonsterWithoutFlamesBurnsItsHands)
     ASSERT_TRUE(sine.has_value());
     const double glow = *sine + static_cast<double>(std::bit_cast<float>(0x3f333333u));
     const glm::vec3 light{static_cast<float>(glow), static_cast<float>(glow * 0.5), static_cast<float>(glow * 0.5)};
+    // Con el reloj en 12345, los bits que da una emulación x87 aparte (redondeo a 53 bits y seno con 80 dígitos).
+    EXPECT_EQ(std::bit_cast<std::uint32_t>(light.x), 0x3f124c2eu);
+    EXPECT_EQ(std::bit_cast<std::uint32_t>(light.y), 0x3e924c2eu);
+    EXPECT_EQ(light.z, light.y);
     for (const std::int32_t map : {0, 2})
     {
         SCOPED_TRACE(map);
@@ -628,12 +633,13 @@ TEST_F(ModelEffectsTest, TheFlamingMonsterGoesOnWithTheParticlesFull)
                 particle.alive = true;
             m_clock = clock;
             m_actor.word376 = 0x3f;
-            RedAtTheActor() = 2.0f;
+            RedAtTheActor() = 1.0f;
             CrtRandom random(Seed);
             const auto stepped = Step(0x17e, map, random);
             ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
             EXPECT_EQ(random.State(), AfterDraws(Seed, 1).State());
-            EXPECT_LT(RedAtTheActor(), 2.0f);
+            // 1 − 1,3f es negativo: 0x5f9780 deja la celda en 0.
+            EXPECT_EQ(RedAtTheActor(), 0.0f);
         }
         m_clock = Clock;
         m_actor.word376 = 0;

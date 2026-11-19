@@ -712,9 +712,9 @@ Result FlameAlong(ModelEffectsPass& pass, std::uint32_t address, const std::arra
 // par 11 (ESI desde 0x16) y 0,5f después, y por par de 0x6c8890 y de 0x6c8898 con 0,6f; con ftol(reloj) par (el resto
 // con signo de 0x5076b8), la 0x5de/2 del punto 30 mirado desde el 0 con 1,3f y la 0x5de/3 del punto 1 con 0,5f y la
 // misma luz; al final, la luz (−1,3) × 3 de radio 3. Los ángulos pasan de un 0x4e9810 al siguiente. La y y la z de la
-// luz ([EBP − 0x4c] y [EBP − 0x48]) no las escribe nadie en 0x505de0: la /2 y la /3 sólo leen la x del pedido
-// (0x5416dc, 0x541702) y pisan las tres con la luz del reloj (0x54173c..0x541748, 0x5417a6..0x5417b2), así que MuRet
-// las deja en 0.
+// luz ([EBP − 0x4c] y [EBP − 0x48]) no las escribe nadie en 0x505de0: la /2 sólo lee la x del pedido (0x5416dc,
+// 0x541702), la /3 no lee la luz del pedido (0x541750..0x5417b2), y las dos pisan las tres con la luz del reloj
+// (0x54173c..0x541748, 0x5417a6..0x5417b2), así que MuRet las deja en 0.
 Result StepTheFlamingLimbs(ModelEffectsPass& pass)
 {
     ActorState& actor = pass.actor;

@@ -211,12 +211,11 @@ TEST(AttackSkillCasesTest, TheHeadCasesCutAfterTheirDraws)
         int draws;
     };
     const std::array cases{
-        Case{0x30, "0x4fe0e4", 0},         Case{0x43, "0x4fe172", 0}, Case{0x45, "0x4fe322", 0},
+        Case{0x30, "0x4fe127", 0},         Case{0x43, "0x4fe172", 0}, Case{0x45, "0x4fe360", 0},
         Case{0x48, "0x4fe590", 0},         Case{0x35, "0x4fe856", 0}, Case{0x3f, "0x4feae8", 0},
         Case{0x41, "0x4febbb", 0},         Case{0x31, "0x4fec15", 0}, Case{0x0a, "0x4fecf3", OwnRecord},
         Case{0x28, "0x4ff4ef", 0},         Case{0x26, "0x4ff5b2", 0}, Case{0x08, "0x500c49", OwnRecord},
-        Case{0x0c, "0x500cb9", OwnRecord}, Case{0x0e, "0x51fe9e", 2}, Case{0x09, "0x501c67", OwnRecord},
-        Case{0x2c, "0x502975", 0},
+        Case{0x0c, "0x500cb9", OwnRecord}, Case{0x0e, "0x51fe9e", 2}, Case{0x2c, "0x502975", 0},
     };
     for (const std::int32_t map : Maps)
     {
@@ -234,6 +233,75 @@ TEST(AttackSkillCasesTest, TheHeadCasesCutAfterTheirDraws)
             EXPECT_TRUE(tested.sounds.empty());
         }
     }
+}
+
+// 0x4fe015..0x4fe0e4: el primero de los 36 joints 0x613/2 de la 0x30, colgado de o 100 más arriba con los ángulos
+// (−10, 0, 0), sin rand(); 0x53265e y 0x533173: la mezcla 1, la segunda cara, velocidad 50, la luz 0,5, vida 20, tres
+// puntos y la partida en +0x24. El calco 0x61e/4 de la vuelta 0 corta (0x4fe127).
+TEST(AttackSkillCasesTest, TheSpiritRingStartsWithItsFirstJoint)
+{
+    SkillWorld tested;
+    tested.Striker().position = {1000.0f, 2000.0f, 50.0f};
+
+    const auto stepped = tested.Head(0x30);
+
+    EXPECT_TRUE(HasError(stepped, "0x4fe127")) << ErrorOf(stepped);
+    EXPECT_EQ(DrawsSince(Seed, tested.random), 0);
+    const JointState& joint = tested.joints.front();
+    ASSERT_TRUE(joint.alive);
+    EXPECT_EQ(joint.type, 0x613);
+    EXPECT_EQ(joint.subtype, 2);
+    EXPECT_EQ(joint.position, glm::vec3(1000.0f, 2000.0f, 150.0f));
+    EXPECT_EQ(joint.angles, glm::vec3(-10.0f, 0.0f, 0.0f));
+    EXPECT_EQ(joint.width, 60.0f);
+    EXPECT_EQ(joint.blend, 1);
+    EXPECT_EQ(joint.drawEnabled, 2);
+    EXPECT_EQ(joint.speed, 50.0f);
+    EXPECT_EQ(joint.light, glm::vec3(0.5f));
+    EXPECT_EQ(joint.life, 20);
+    EXPECT_EQ(joint.maximumCount, 3);
+    EXPECT_EQ(joint.pathIncrement, joint.position);
+    EXPECT_EQ(joint.ownerContext, &tested.Striker());
+    EXPECT_FALSE(tested.joints[1].alive);
+}
+
+// 0x501bab..0x501ca4: la 0x09 da cuatro vueltas; en cada una, 0x59fb80(9) (el registro propio cerrado en 0) y dos
+// joints 0x613/0, cada uno con su acceso al registro propio para el +0x9eb (0x532675): 12 cierres de 3.848. El de
+// ancho 80 lleva la key +0x8a, el índice de la skill (0 sin ella) y +0x1bd; el de ancho 20, la key −1. Suena 0x75.
+TEST(AttackSkillCasesTest, TheEvilSpiritsThrowEightJointsWithTheVolley)
+{
+    SkillWorld tested;
+    tested.Striker().position = {1000.0f, 2000.0f, 50.0f};
+    tested.Striker().word8a = 0x1234;
+    tested.Striker().magicKey = 7;
+    tested.world.OwnCharacter().bytef04 = 9;
+
+    const auto stepped = tested.Head(0x09);
+
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_EQ(DrawsSince(Seed, tested.random), 12 * OwnRecord);
+    for (std::size_t index = 0; index < 8; ++index)
+    {
+        SCOPED_TRACE(index);
+        const JointState& joint = tested.joints[index];
+        const bool wide = index % 2 == 0;
+        ASSERT_TRUE(joint.alive);
+        EXPECT_EQ(joint.type, 0x613);
+        EXPECT_EQ(joint.subtype, 0);
+        EXPECT_EQ(joint.position, glm::vec3(1000.0f, 2000.0f, 150.0f));
+        EXPECT_EQ(joint.angles, glm::vec3(0.0f, 0.0f, 90.0f * static_cast<float>(index / 2)));
+        EXPECT_EQ(joint.width, wide ? 80.0f : 20.0f);
+        EXPECT_EQ(joint.key, wide ? 0x1234 : -1);
+        EXPECT_EQ(joint.skill, 0);
+        EXPECT_EQ(joint.skillSerial, wide ? 7 : 0);
+        EXPECT_EQ(joint.volley, 9);
+        EXPECT_EQ(joint.blend, 3);
+        EXPECT_EQ(joint.speed, 70.0f);
+        EXPECT_EQ(joint.life, 49);
+        EXPECT_EQ(joint.maximumCount, 6);
+    }
+    EXPECT_FALSE(tested.joints[8].alive);
+    EXPECT_EQ(tested.sounds, std::vector<std::int32_t>{0x75});
 }
 
 // Con el registro propio abierto (+0x38e de 0x40ad90 en uso), 0x59fb80 no saca rand().
@@ -1160,7 +1228,12 @@ TEST(AttackSkillCasesTest, MixedPoolsStopAtTheFirstConstructorWithRoom)
         tested.joints.front().alive = false;
         for (auto& effect : tested.world.Map().effects.Effects())
             effect.alive = true;
-        EXPECT_TRUE(HasError(tested.Head(0x30), "0x4fe0e4"));
+        // Con un lugar, el primero de los 36 joints y nada más; los calcos no tienen lugar y suena 0x7f.
+        const auto stepped = tested.Head(0x30);
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        EXPECT_EQ(tested.joints.front().type, 0x613);
+        EXPECT_EQ(tested.joints.front().subtype, 2);
+        EXPECT_EQ(tested.sounds, std::vector<std::int32_t>{0x7f});
     }
     {
         SkillWorld tested;

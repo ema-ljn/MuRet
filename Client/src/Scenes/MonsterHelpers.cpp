@@ -11,6 +11,7 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/CrywolfDeathSpiritEffects.h"
 #include "Scenes/FaunaDrawing.h"
+#include "Scenes/FaunaJointCreation.h"
 #include "Scenes/FaunaModels.h"
 #include "Scenes/GameRibbonCreation.h"
 #include "Scenes/GameDrawTail.h"
@@ -19,6 +20,7 @@
 #include "Render/TextureSlot.h"
 #include "Scenes/WorldState.h"
 #include "Scenes/WorldMap.h"
+#include "World/IFishStepServices.h"
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
 #include "World/ParticleBurst.h"
@@ -844,7 +846,7 @@ bool HasTarget(const ActorState& actor)
 // 0x261 más rand() % 2; con +4 en 0, +4 = 1 y 0x264 en la 3, 0x9c más rand() % 2 y 0x263 en la 4 y 0x265 en la 6.
 // Después, en la 3 y la 4, las partículas 0x5f2/0x1b y 0x5ad del pie (desde el frame 4, 0x6b8a44) y del blanco (desde
 // 6, 0x6b87f4), que con la tabla llena no crean nada, y con el blanco +0x3a4 en el pool, en la 4 desde el frame 6, el
-// joint 0x614.
+// joint 0x614/0x10.
 Result DrawThe1b6(MonsterHelperPass& pass)
 {
     if (auto ready = NeedTheSprites(pass, 0x4272ee); !ready.HasValue())
@@ -894,9 +896,29 @@ Result DrawThe1b6(MonsterHelperPass& pass)
     }
     else if (action == 6)
         SoundOnce(pass, 0x265, false);
-    // 0x427767..0x427a8d: 6 (0x6b87f4).
+    // 0x4279cc..0x427a8d: 6 (0x6b87f4). El 0x614/0x10 sin dueño desde el blanco hasta 100 (0x6b86b4) sobre él, con los
+    // ángulos del actor y ancho 10.
     if (action == 4 && HasTarget(actor) && actor.animation.frame >= 6.0f)
-        return Cut(0x427a8d, "el joint 0x614 (0x530860) hacia el blanco +0x3a4", actor);
+    {
+        const ActorState& target = pass.world.Actors()[static_cast<std::size_t>(actor.attackTarget)];
+        glm::vec3 from = target.position;
+        glm::vec3 to{target.position.x, target.position.y, F32(D(target.position.z) + 100.0)};
+        glm::vec3 angles = actor.angles;
+        constexpr float Width = 10.0f; // 0x41200000
+        const World::FishEffectRequest request{.type = 0x614,
+                                               .firstPosition = from,
+                                               .secondPosition = to,
+                                               .angles = angles,
+                                               .subtype = 0x10,
+                                               .ownerContext = nullptr,
+                                               .scale = Width,
+                                               .key = -1,
+                                               .skill = 0,
+                                               .skillSerial = 0,
+                                               .target = -1};
+        if (auto made = CreateFaunaJoint(pass.world.DrawTail().joints, request, pass.random); !made.HasValue())
+            return Core::Unexpected(std::format("0x427a8d: {}", made.Error()));
+    }
     return {};
 }
 

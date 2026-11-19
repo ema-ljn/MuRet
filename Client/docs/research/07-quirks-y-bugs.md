@@ -838,6 +838,8 @@ Q-C1364 toma el siguiente número libre después de los reservados por las cabez
 | # | Dónde | Qué pasa | Clase | MuRet | Ola |
 | --- | --- | --- | --- | --- | --- |
 | Q-C1369 | `F3 05` en `0x4d2ed0` | lee los WORD de `pkt[0x12]` y `pkt[0x14]` y los guarda en los offsets `+0x48` y `+0x4a` del registro propio. El emisor 1.02i termina en `0x12` bytes. `0x4e8fa7` agrega un byte FD fuera del frame; el resto no pertenece al wire. *Estático* | lectura fuera del paquete | acepta el frame de 18 bytes y usa cero para cada palabra incompleta, como en Q-C144. [ADR 0022](../../../docs/adr/0022-subida-de-nivel.md) | CL9 y CL10 |
+| Q-C1620 | la luz local del paso del `0x613`, `0x5395c4..0x539600` y `0x539796..0x5399a2` | la `/6` y la `/7` eligen su luz local por la skill (`+0x9ea`) y solo escriben la de 0 y la de 1; la `/0xd` con vida de 28 o menos y sin dueño salta a los sprites sin escribirla. Con 10 o más de vida, los sprites `0x5ac` y `0x5fd` salen con lo que haya en `[ebp−0x18..−0x10]` del paso anterior. *Estático* | indefinido | MuRet corta en `0x539707` y en `0x5399a2` (P-C430 c) | CL11 |
+| Q-C1621 | `+0x9eb` del joint, `0x530860` | el alta común no lo escribe: solo la `0x613/0` y la `/5` (`0x53293b`, `0x532e75`) y otros tipos lo ponen; en los demás queda el del uso anterior del lugar, y el paso de la `0x613/0` lo manda a `0x517a20` como la tanda. *Estático* | contrato | se reproduce: `JointState::volley` se retiene entre usos | CL11 |
 
 ## Cómo se agrega un quirk
 

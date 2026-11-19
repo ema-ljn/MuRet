@@ -477,11 +477,10 @@ TEST(AttackStepTest, TheStrikeSoundFollowsTheOwnHands)
     }
 }
 
-// Lo que corta, en su orden y con los rand() de antes: los joints
-// 0x614 de la 3 sin caso (0x4f8fef, CL11), lo que crean los casos de la cabeza y con blanco (0x4fdeeb, 0x504372,
-// CL11), los efectos de los casos de 0x4f5b70 (0x4f7050), la partícula de 0x52e740 (0x5042ce, CL11) y, sin el pool de
-// joints, los de +0x380 en 2 (0x505169). La flecha (0x53e2b0) ya no corta: sus cortes están en test_arrow_effects.cpp.
-// Los demás casos de 0x4f97b0, en test_attack_frame_skills.cpp; los de 0x4fdeeb y 0x504372, en
+// Lo que corta, en su orden y con los rand() de antes: lo que crean los casos de la cabeza y con blanco (0x4fdeeb,
+// 0x504372, CL11), los efectos de los casos de 0x4f5b70 (0x4f7050), la partícula de 0x52e740 (0x5042ce, CL11) y, sin el
+// pool de joints, los de +0x380 en 2 (0x505169). La flecha (0x53e2b0) ya no corta: sus cortes están en
+// test_arrow_effects.cpp. Los demás casos de 0x4f97b0, en test_attack_frame_skills.cpp; los de 0x4fdeeb y 0x504372, en
 // test_attack_skill_cases.cpp.
 
 TEST(AttackStepTest, TheCutsAfterTheirDraws)
@@ -494,7 +493,6 @@ TEST(AttackStepTest, TheCutsAfterTheirDraws)
         int draws;
     };
     const std::array cases{
-        Case{"la habilidad 3", [](AttackWorld&, ActorState& hero) { hero.byte38e = 3; }, "0x4f8fef", CountingStep},
         Case{"la habilidad 8",
              [](AttackWorld&, ActorState& hero)
              {
@@ -544,6 +542,37 @@ TEST(AttackStepTest, TheCutsAfterTheirDraws)
         EXPECT_TRUE(HasError(stepped, probe.cut)) << ErrorOf(stepped);
         EXPECT_EQ(DrawsSince(Seed, tested.random), probe.draws);
     }
+}
+
+// 0x4f8f5b: con la habilidad 3 y sin caso, los dos joints 0x614/0 de la mano 0 (0x4f8fef de ancho 50 y 0x4f9012 de
+// ancho 10, los dos colgados del blanco) y la partícula 0x5ca/0 (0x4f9034) con sus dos rand().
+TEST(AttackStepTest, TheSkillThreeTailCreatesItsTwoLightningJoints)
+{
+    AttackWorld tested;
+    ActorState& hero = tested.Striker(HeroSlot, 0x23, VictimSlot);
+    hero.byte38e = 3;
+
+    const auto stepped = tested.Attack(hero, HeroSlot);
+
+    ASSERT_TRUE(stepped.HasValue()) << ErrorOf(stepped);
+    EXPECT_EQ(DrawsSince(Seed, tested.random), CountingStep + 2);
+    ASSERT_TRUE(tested.joints[0].alive);
+    ASSERT_TRUE(tested.joints[1].alive);
+    EXPECT_FALSE(tested.joints[2].alive);
+    for (const JointState& joint : {tested.joints[0], tested.joints[1]})
+    {
+        EXPECT_EQ(joint.type, 0x614);
+        EXPECT_EQ(joint.subtype, 0);
+        EXPECT_EQ(joint.ownerContext, &tested.Victim());
+        EXPECT_EQ(joint.angles, glm::vec3(-60.0f, 0.0f, hero.angles.z));
+        EXPECT_EQ(joint.position, tested.joints[0].position);
+    }
+    EXPECT_EQ(tested.joints[0].width, 50.0f);
+    EXPECT_EQ(tested.joints[1].width, 10.0f);
+    const auto particles = tested.particles.All();
+    EXPECT_EQ(std::ranges::count_if(particles, [](const Client::World::Particle& particle)
+                                    { return particle.alive && particle.type == Client::World::ThunderParticle; }),
+              1);
 }
 
 // 0x558eb0: la clave del elegido solo con el héroe que pega. −1 con otro, con un ítem en el cursor o sin elegido; el

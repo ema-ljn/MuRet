@@ -38,6 +38,7 @@
 
 #include <algorithm>
 #include <array>
+#include <bit>
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
@@ -1757,42 +1758,66 @@ TEST_F(MonsterAttackCasesTest, FullJointPoolSkipsItsEffectsAndContinuesTheCaller
         ExpectWithOnlyJointPoolFull(probe);
 }
 
-TEST_F(MonsterAttackCasesTest, AFreeJointAfterTheFullModelPoolKeepsTheJointCutBoundary)
+// 0x4f74ee..0x4f7573 y 0x4f7ec0..0x4f7f45: con un solo lugar libre, el primero de los joints 0x613 sale sin dueño 100
+// más arriba del monstruo, con los ángulos de sus tres rand() % 360, y los demás intentos sólo sacan los suyos. El /1
+// suena 0x3e al nacer (0x5330c5); el /3 no. Los rand() de la cola (0x4f80e0) siguen.
+TEST_F(MonsterAttackCasesTest, AFreeJointAfterTheFullModelPoolTakesTheFirstSpirit)
 {
     Load(0);
-    const std::vector<Probe> probes{{.name = "0x48, primer joint",
-                                     .type = 3,
-                                     .step = 14,
-                                     .skill = CaseSkill,
-                                     .cut = "0x4f756a",
-                                     .draws = 4,
-                                     .kind = std::uint16_t{0x48}},
-                                    {.name = "0x4d, primer joint",
-                                     .type = 3,
-                                     .step = 2,
-                                     .skill = CaseSkill,
-                                     .cut = "0x4f7f3c",
-                                     .draws = 4,
-                                     .kind = std::uint16_t{0x4d}}};
-    for (const Probe& probe : probes)
+    struct Case
     {
-        SCOPED_TRACE(probe.name);
-        ActorState& monster = Prepare(probe);
+        Probe probe;
+        std::int32_t subtype;
+        int joints;
+        float width;
+        float speed;
+        std::vector<std::int32_t> expectedSounds;
+    };
+    const std::array cases{
+        Case{Probe{.name = "0x48, 0x613/1", .type = 3, .step = 14, .skill = CaseSkill, .kind = std::uint16_t{0x48}}, 1,
+             36, 60.0f, 70.0f, std::vector<std::int32_t>{0x3e}},
+        Case{Probe{.name = "0x4d, 0x613/3", .type = 3, .step = 2, .skill = CaseSkill, .kind = std::uint16_t{0x4d}}, 3,
+             40, 50.0f, 140.0f, std::vector<std::int32_t>{}}};
+    for (const Case& probe : cases)
+    {
+        SCOPED_TRACE(probe.probe.name);
+        ActorState& monster = Prepare(probe.probe);
+        monster.position = {1000.0f, 2000.0f, 30.0f};
         SetPoolAvailability(true, false, false);
+        const std::uint32_t seed = game->cloth.random.State();
         const auto stepped = Step(monster);
-        EXPECT_TRUE(!stepped.HasValue() && stepped.Error().starts_with(probe.cut)) << stepped.Error();
-        EXPECT_EQ(Draws(), probe.draws);
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        EXPECT_EQ(Draws(), SkillRead + 3 * probe.joints + Tail);
+        EXPECT_EQ(sounds, probe.expectedSounds);
         ASSERT_EQ(game->joints.size(), 1u);
-        EXPECT_FALSE(game->joints.front().alive);
+        const Client::Scenes::JointState& joint = game->joints.front();
+        ASSERT_TRUE(joint.alive);
+        CrtRandom angles(seed);
+        static_cast<void>(angles.Next()); // +0x38e
+        const float x = static_cast<float>(angles.Next() % 360);
+        const float y = static_cast<float>(angles.Next() % 360);
+        const float z = static_cast<float>(angles.Next() % 360);
+        EXPECT_EQ(joint.type, 0x613);
+        EXPECT_EQ(joint.subtype, probe.subtype);
+        EXPECT_EQ(joint.angles, glm::vec3(x, y, z));
+        EXPECT_EQ(joint.position, glm::vec3(1000.0f, 2000.0f, 130.0f));
+        EXPECT_EQ(joint.targetPosition, joint.position);
+        EXPECT_EQ(joint.ownerContext, nullptr);
+        EXPECT_EQ(joint.key, 0);
+        EXPECT_EQ(joint.width, probe.width);
+        EXPECT_EQ(joint.speed, probe.speed);
+        EXPECT_EQ(joint.life, 49);
     }
 }
 
-TEST_F(MonsterAttackCasesTest, AFullModelPoolReachesTheNextTailJointCall)
+// 0x4f834c, 0x4f8484 y 0x4f8553: con el pool de efectos lleno, el 0x106/1 no sale y el joint 0x614/2 sí, colgado del
+// blanco (ESI) y apuntado a su hueso 33 con el modelo del jugador (0x5313fe), sin rand() propio.
+TEST_F(MonsterAttackCasesTest, AFullModelPoolCreatesTheTailLightningOfTheTarget)
 {
     struct Case
     {
         Probe probe;
-        std::string_view nextJointCut;
+        std::string_view address;
         int draws;
         std::vector<std::int32_t> expectedSounds;
     };
@@ -1849,7 +1874,7 @@ TEST_F(MonsterAttackCasesTest, AFullModelPoolReachesTheNextTailJointCall)
 
         const auto stepped = Step(monster);
 
-        EXPECT_TRUE(!stepped.HasValue() && stepped.Error().starts_with(probe.nextJointCut)) << stepped.Error();
+        ASSERT_TRUE(stepped.HasValue()) << probe.address << ": " << stepped.Error();
         EXPECT_EQ(Draws(), probe.draws);
         EXPECT_EQ(sounds, probe.expectedSounds);
         if (!probe.expectedSounds.empty())
@@ -1858,7 +1883,21 @@ TEST_F(MonsterAttackCasesTest, AFullModelPoolReachesTheNextTailJointCall)
             EXPECT_EQ(soundDraws, std::vector<int>{0});
         }
         ASSERT_EQ(game->joints.size(), 1u);
-        EXPECT_FALSE(game->joints.front().alive);
+        const Client::Scenes::JointState& joint = game->joints.front();
+        ASSERT_TRUE(joint.alive);
+        EXPECT_EQ(joint.type, 0x614);
+        EXPECT_EQ(joint.subtype, 2);
+        EXPECT_EQ(joint.width, 50.0f);
+        EXPECT_EQ(joint.life, 2);
+        EXPECT_EQ(joint.light, glm::vec3(1.0f, std::bit_cast<float>(0x3dcccccdu), 0.0f));
+        const ActorState& victim = game->world.Actors()[0];
+        EXPECT_EQ(joint.ownerContext, &victim);
+        const auto player = game->world.ModelPlacement(Client::Data::Models::PlayerSkeletonModel);
+        const Client::Render::Models::BoneTransform chest =
+            victim.bodyPose.size() > 33 ? victim.bodyPose[33] : Client::Render::Models::BoneTransform(0.0f);
+        EXPECT_EQ(joint.targetPosition, Client::Render::Models::OriginalTransformPosition(
+                                            Client::Render::Models::OriginalMatrixOf(chest),
+                                            glm::vec3(0.0f, -150.0f, 0.0f), player.scale, player.origin));
     }
 }
 
@@ -2662,9 +2701,8 @@ TEST_F(MonsterAttackCasesTest, TheSkill0x11CasesLeaveAfterTheirEffect)
     }
 }
 
-// La cola con 3 en +0x38e (0x4f8a56): los casos con sus sonidos en 1 y su rand() % 360 antes del joint; sin caso,
-// 0x4f8f5b: el hueso de la mano del alta pasa la cuenta del esqueleto de prueba (sin huesos) y sale, sin rand(). Sus
-// joints 0x614/0 (0x4f8fef), en test_attack_frame_skills.cpp.
+// La cola con 3 en +0x38e (0x4f8a56): los casos con sus sonidos en 1 y su rand() % 360 antes del joint, que corta sin
+// el pool de joints del frame; sin caso, 0x4f8f5b crea sus dos 0x614/0 (0x4f8fef y 0x4f9012) y la 0x5ca/0.
 TEST_F(MonsterAttackCasesTest, TheSkill3CasesLeaveAfterTheirJoints)
 {
     const std::vector<Probe> probes{
@@ -2706,8 +2744,18 @@ TEST_F(MonsterAttackCasesTest, TheSkill3CasesLeaveAfterTheirJoints)
         ASSERT_NE(game->world.FaunaResources().SkeletonOf(static_cast<std::uint16_t>(fallback.type)), nullptr);
         game->joints.assign(1, Client::Scenes::JointState{});
         const auto stepped = Step(fallback);
-        EXPECT_TRUE(!stepped.HasValue() && stepped.Error().starts_with("0x4f8fef")) << stepped.Error();
-        EXPECT_EQ(Draws(), Tail);
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        // El primer 0x614/0 (0x4f8fef) toma el único lugar; el segundo (0x4f9012) no tiene dónde y la 0x5ca/0
+        // (0x4f9034) saca sus dos rand().
+        EXPECT_EQ(Draws(), Tail + 2);
+        const Client::Scenes::JointState& joint = game->joints.front();
+        ASSERT_TRUE(joint.alive);
+        EXPECT_EQ(joint.type, 0x614);
+        EXPECT_EQ(joint.subtype, 0);
+        EXPECT_EQ(joint.width, 50.0f);
+        EXPECT_EQ(joint.life, 2);
+        EXPECT_EQ(joint.ownerContext, &game->world.Actors()[0]);
+        EXPECT_EQ(joint.angles, glm::vec3(-60.0f, 0.0f, fallback.angles.z));
     }
 }
 

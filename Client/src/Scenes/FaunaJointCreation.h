@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Scenes/GameDrawTail.h"
+#include "Scenes/JointKernels.h"
 #include "World/IFishStepServices.h"
 
 #include <cstddef>
@@ -42,7 +43,8 @@ inline constexpr std::int32_t KillBeamJoint = 0x618;
 
 [[nodiscard]] Core::Expected<std::optional<std::size_t>, std::string>
 CreateFaunaJoint(std::span<JointState> joints, const World::FishEffectRequest& request,
-                 Render::Models::CrtRandom& random, JointOwnerKind ownerKind = JointOwnerKind::ByType);
+                 Render::Models::CrtRandom& random, JointOwnerKind ownerKind = JointOwnerKind::ByType,
+                 const JointKernels::CreationServices* services = nullptr);
 // 535840: 697/0 y618/4 siguen el+40 del dueño;610/8 sigue position con z300;
 // 10f/3 usa vida/RNG, seno y color del dueño.614/10 y 614/14 giran e iteran su cola sin leer al dueño;
 // el 618/0x11 sigue el +0x40 del personaje y el 610/4 va de su +0x17c a su posición; el 60f/0, el 60f/0xa (que baja) y

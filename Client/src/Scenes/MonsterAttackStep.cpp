@@ -12,11 +12,16 @@
 #include "Scenes/BlastEffectCalls.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/CharacterStep.h"
+#include "Scenes/FaunaJointCreation.h"
 #include "Scenes/GameDrawTail.h"
+#include "Scenes/JointFamilies.h"
+#include "Scenes/JointKernels.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
-#include "World/Particles.h"
+#include "World/IFishStepServices.h"
 #include "World/ModelEffects.h"
+#include "World/OriginalFtol.h"
+#include "World/Particles.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -257,12 +262,98 @@ glm::vec3 BonePoint(const ActorState& actor, std::size_t bone, const glm::vec3& 
                                                      placement.origin);
 }
 
-Core::Expected<void, std::string> AttemptJoint(ActorState& actor, std::size_t slot, const CharacterStepContext& context,
-                                               std::uint32_t address, std::string_view description)
+// 0x4ec110(modelo, matriz, offset, punto, 1) con una matriz que no es un hueso del actor: las del fénix que guardó el
+// último dibujo (WorldRuntime::phoenixBones, 0x743748c..0x74374ec), con la escala y la posición del modelo del tipo.
+glm::vec3 MatrixPoint(const ActorState& actor, const Render::Models::BoneTransform& matrix, const glm::vec3& offset,
+                      const CharacterStepContext& context)
 {
-    if (!IsJointPoolFull(context))
-        return CutAt(address, description, actor, slot);
+    const SharedModelPlacement placement = context.world.ModelPlacement(static_cast<std::uint16_t>(actor.type));
+    return Render::Models::OriginalTransformPosition(Render::Models::OriginalMatrixOf(matrix), offset, placement.scale,
+                                                     placement.origin);
+}
+
+// Lo que el alta de un joint le pide al paso: el hueso 33 del jugador, el sonido de la CL10 y el registro propio.
+JointKernels::CreationServices JointServices(const CharacterStepContext& context)
+{
+    return {.playerBonePoint =
+                [&context](const ActorState& bones, std::size_t bone, const glm::vec3& offset)
+            {
+                const Render::Models::BoneTransform matrix =
+                    bone < bones.bodyPose.size() ? bones.bodyPose[bone] : Render::Models::BoneTransform(0.0f);
+                const SharedModelPlacement placement = context.world.ModelPlacement(Data::Models::PlayerSkeletonModel);
+                return Render::Models::OriginalTransformPosition(Render::Models::OriginalMatrixOf(matrix), offset,
+                                                                 placement.scale, placement.origin);
+            },
+            .soundRequest = [&context](std::int32_t sound) { RequestTheSound(context, sound); },
+            .ownRecordDepth = &context.world.Runtime().ownRecordDepth,
+            .ownVolley = &context.world.OwnCharacter().bytef04};
+}
+
+// 0x4f74ee..0x4f7573 y 0x4f7ec0..0x4f7f45: un joint 0x613 sin dueño desde 100 más arriba del monstruo, con los
+// ángulos (rand() % 360, rand() % 360, rand() % 360) y la key, la skill y el serial en 0. Con el pool lleno, los
+// rand() de los ángulos y nada más.
+Core::Expected<void, std::string> ThrowTheSpirit(const ActorState& actor, const CharacterStepContext& context,
+                                                 std::uint32_t address, std::int32_t subtype, float width)
+{
+    constexpr std::int32_t FullTurn = 360;
+    glm::vec3 angles{};
+    angles.x = static_cast<float>(context.random.Next() % FullTurn);
+    angles.y = static_cast<float>(context.random.Next() % FullTurn);
+    angles.z = static_cast<float>(context.random.Next() % FullTurn);
+    glm::vec3 point{actor.position.x, actor.position.y,
+                    static_cast<float>(static_cast<double>(actor.position.z) + 100.0)};
+    if (context.joints.empty())
+        return Core::Unexpected(std::format("{:#x}: faltan los joints del frame (0x530860)", address));
+    const JointKernels::CreationServices services = JointServices(context);
+    const World::FishEffectRequest request{.type = JointFamilies::SpiritJoint,
+                                           .firstPosition = point,
+                                           .secondPosition = point,
+                                           .angles = angles,
+                                           .subtype = subtype,
+                                           .ownerContext = nullptr,
+                                           .scale = width,
+                                           .key = 0,
+                                           .skill = 0,
+                                           .skillSerial = 0,
+                                           .target = -1};
+    const auto created = CreateFaunaJoint(context.joints, request, context.random, JointOwnerKind::ByType, &services);
+    if (!created.HasValue())
+        return Core::Unexpected(std::format("{:#x}: {}", address, created.Error()));
     return {};
+}
+
+// 0x530860(tipo, desde, hasta, ángulos, subtipo, dueño, ancho, −1, 0, 0, −1) desde la cola de 0x4f5b70: el dueño es el
+// blanco (ESI). El 0x614/2 lee el hueso 33 del blanco con el modelo del jugador (0x5313fe: 0x5769ad8 + 0x20a · 0xe0).
+// Con el pool lleno, nada y sin rand().
+Core::Expected<void, std::string> CreateTheJoint(ActorState& owner, const CharacterStepContext& context,
+                                                 std::uint32_t address, std::int32_t type, std::int32_t subtype,
+                                                 glm::vec3 from, glm::vec3 to, glm::vec3 angles, float width)
+{
+    if (context.joints.empty())
+        return Core::Unexpected(std::format("{:#x}: faltan los joints del frame (0x530860)", address));
+    const JointKernels::CreationServices services = JointServices(context);
+    const World::FishEffectRequest request{.type = type,
+                                           .firstPosition = from,
+                                           .secondPosition = to,
+                                           .angles = angles,
+                                           .subtype = subtype,
+                                           .ownerContext = &owner,
+                                           .scale = width,
+                                           .key = -1,
+                                           .skill = 0,
+                                           .skillSerial = 0,
+                                           .target = -1};
+    const auto created = CreateFaunaJoint(context.joints, request, context.random, JointOwnerKind::Actor, &services);
+    if (!created.HasValue())
+        return Core::Unexpected(std::format("{:#x}: {}", address, created.Error()));
+    return {};
+}
+
+// rand() % 360 en la z de los ángulos (0x4f8620..0x4f8651 y sus copias): la x y la y en 0.
+glm::vec3 RandomTurn(CrtRandom& random)
+{
+    constexpr std::int32_t FullTurn = 360;
+    return {0.0f, 0.0f, static_cast<float>(random.Next() % FullTurn)};
 }
 
 Core::Expected<void, std::string> CreateTailParticle(ActorState& actor, std::size_t slot,
@@ -285,21 +376,134 @@ Core::Expected<void, std::string> CreateTailParticle(ActorState& actor, std::siz
     return {};
 }
 
-Core::Expected<void, std::string> CreateTailFire(ActorState& actor, std::size_t slot,
-                                                 const CharacterStepContext& context, std::size_t bone,
-                                                 std::uint32_t address)
+// 0x4f8c0d, 0x4f8837 y 0x4f86a6..0x4f8761: cuatro veces, con la mano 0 en las dos primeras, el punto del hueso,
+// rand() % 360, el joint 0x61b/0 de ancho 50 hacia el blanco y la partícula 0x5d9/0 con los ángulos y la luz del actor.
+Core::Expected<void, std::string> ThrowTheHandBolts(ActorState& actor, ActorState& target, std::size_t slot,
+                                                    const CharacterStepContext& context, std::uint32_t jointAddress,
+                                                    std::uint32_t particleAddress)
 {
-    return CreateTailParticle(actor, slot, context, TailFireParticle, BonePoint(actor, bone, glm::vec3(0.0f), context),
-                              actor.light, address);
+    constexpr int Bolts = 4;
+    constexpr int FirstHandBolts = 2;
+    constexpr float Width = 50.0f; // 0x42480000
+    for (int bolt = 0; bolt < Bolts; ++bolt)
+    {
+        const std::size_t bone = actor.hands[bolt < FirstHandBolts ? 0 : 1].bone;
+        const glm::vec3 point = BonePoint(actor, bone, glm::vec3(0.0f), context);
+        const glm::vec3 angles = RandomTurn(context.random);
+        if (auto made = CreateTheJoint(target, context, jointAddress, 0x61b, 0, point, target.position, angles, Width);
+            !made.HasValue())
+            return made;
+        if (auto particle =
+                CreateTailParticle(actor, slot, context, TailFireParticle, point, actor.light, particleAddress);
+            !particle.HasValue())
+            return particle;
+    }
+    return {};
 }
 
-Core::Expected<void, std::string> CreateTailThunder(ActorState& actor, std::size_t slot,
-                                                    const CharacterStepContext& context, std::size_t bone,
-                                                    const glm::vec3& offset, const glm::vec3& light,
-                                                    std::uint32_t address)
+// 0x4f8a5d y 0x4f890b: el giro sale del reloj, (45 − (ftol(reloj) / 10 + +0x381 · 3) % 90) + 180 (0x6b8848 y
+// 0x6b86bc) y suma 270 (0x6ba10c) por joint; cuatro veces, alternando manos, el joint 0x61b/1 de ancho 50 y la
+// partícula 0x5d9/0, sin rand() propio.
+Core::Expected<void, std::string> TurnTheHandBolts(ActorState& actor, ActorState& target, std::size_t slot,
+                                                   const CharacterStepContext& context, std::uint32_t clockAddress,
+                                                   std::uint32_t jointAddress, std::uint32_t particleAddress)
 {
-    return CreateTailParticle(actor, slot, context, TailThunderParticle, BonePoint(actor, bone, offset, context), light,
-                              address);
+    constexpr std::int32_t ClockDivisor = 10;
+    constexpr std::int32_t StepTurn = 3;
+    constexpr std::int32_t Swing = 90;
+    constexpr double SwingCenter = 45.0;
+    constexpr double HalfTurn = 180.0;
+    constexpr double NextTurn = 270.0;
+    constexpr int Bolts = 4;
+    constexpr float Width = 50.0f;
+    const auto clock = World::OriginalFtolLow(context.worldClock);
+    if (!clock)
+        return Core::Unexpected(std::format("{:#x}: el reloj del giro excede ftol (0x69fd3c)", clockAddress));
+    const std::int32_t phase = (*clock / ClockDivisor + static_cast<std::int32_t>(actor.byte381) * StepTurn) % Swing;
+    auto angle = static_cast<float>((SwingCenter - static_cast<double>(phase)) + HalfTurn);
+    for (int bolt = 0; bolt < Bolts; ++bolt)
+    {
+        const std::size_t bone = actor.hands[static_cast<std::size_t>(bolt % 2)].bone;
+        const glm::vec3 point = BonePoint(actor, bone, glm::vec3(0.0f), context);
+        const glm::vec3 angles{0.0f, 0.0f, angle};
+        if (auto made = CreateTheJoint(target, context, jointAddress, 0x61b, 1, point, target.position, angles, Width);
+            !made.HasValue())
+            return made;
+        if (auto particle =
+                CreateTailParticle(actor, slot, context, TailFireParticle, point, actor.light, particleAddress);
+            !particle.HasValue())
+            return particle;
+        angle = static_cast<float>(static_cast<double>(angle) + NextTurn);
+    }
+    return {};
+}
+
+// Los rayos de las manos: por cada uno, el punto del hueso (la mano 0 en la primera mitad), rand() % 360 y dos joints
+// 0x614 hacia el blanco, de ancho 50 y 10; el 0x4f8ce1 suma la partícula 0x5ca/0 con la luz local.
+struct HandLightning
+{
+    std::int32_t subtype = 0;
+    int count = 0;
+    std::uint32_t wideAddress = 0;
+    std::uint32_t thinAddress = 0;
+    std::uint32_t thunderAddress = 0; // 0: sin la partícula.
+};
+
+Core::Expected<void, std::string> ThrowTheHandLightning(ActorState& actor, ActorState& target, std::size_t slot,
+                                                        const CharacterStepContext& context, const HandLightning& cast,
+                                                        const glm::vec3& localLight)
+{
+    constexpr float WideWidth = 50.0f; // 0x42480000
+    constexpr float ThinWidth = 10.0f; // 0x41200000
+    for (int bolt = 0; bolt < cast.count; ++bolt)
+    {
+        const std::size_t bone = actor.hands[bolt < cast.count / 2 ? 0 : 1].bone;
+        const glm::vec3 point = BonePoint(actor, bone, glm::vec3(0.0f), context);
+        const glm::vec3 angles = RandomTurn(context.random);
+        if (auto made = CreateTheJoint(target, context, cast.wideAddress, 0x614, cast.subtype, point, target.position,
+                                       angles, WideWidth);
+            !made.HasValue())
+            return made;
+        if (auto made = CreateTheJoint(target, context, cast.thinAddress, 0x614, cast.subtype, point, target.position,
+                                       angles, ThinWidth);
+            !made.HasValue())
+            return made;
+        if (cast.thunderAddress == 0)
+            continue;
+        if (auto particle =
+                CreateTailParticle(actor, slot, context, TailThunderParticle, point, localLight, cast.thunderAddress);
+            !particle.HasValue())
+            return particle;
+    }
+    return {};
+}
+
+// 0x4f8e85 y 0x4f8f5b: el punto de la mano 0 (con (0, −130, 0) salvo el modelo 0x20a), los ángulos (−60, 0, z del
+// actor), dos joints 0x614/0 de ancho 50 y 10 y la partícula 0x5ca/0 con la luz local, sin rand() propio.
+Core::Expected<void, std::string> CastTheHandLightning(ActorState& actor, ActorState& target, std::size_t slot,
+                                                       const CharacterStepContext& context, const glm::vec3& localLight,
+                                                       std::uint32_t wideAddress)
+{
+    constexpr glm::vec3 Offset20A(0.0f);
+    constexpr glm::vec3 OtherOffset(0.0f, -130.0f, 0.0f); // 0xc3020000
+    constexpr float Tilt = -60.0f;                        // 0xc2700000
+    constexpr float WideWidth = 50.0f;
+    constexpr float ThinWidth = 10.0f;
+    constexpr std::uint32_t ThinOffset = 0x23;    // 0x4f8f07 → 0x4f8f2a, 0x4f8fef → 0x4f9012
+    constexpr std::uint32_t ThunderOffset = 0x45; // → 0x4f8f4c, → 0x4f9034
+    const auto model = static_cast<std::uint16_t>(actor.type);
+    const glm::vec3& offset = model == Data::Models::PlayerSkeletonModel ? Offset20A : OtherOffset;
+    const glm::vec3 point = BonePoint(actor, actor.hands[0].bone, offset, context);
+    const glm::vec3 angles{Tilt, 0.0f, actor.angles.z};
+    if (auto made = CreateTheJoint(target, context, wideAddress, 0x614, 0, point, target.position, angles, WideWidth);
+        !made.HasValue())
+        return made;
+    if (auto made = CreateTheJoint(target, context, wideAddress + ThinOffset, 0x614, 0, point, target.position, angles,
+                                   ThinWidth);
+        !made.HasValue())
+        return made;
+    return CreateTailParticle(actor, slot, context, TailThunderParticle, point, localLight,
+                              wideAddress + ThunderOffset);
 }
 
 // 0x4f79db..0x4f7aae: cinco veces, un punto desde la posición de c con dos rand() % 1001 − 500 y 500 más arriba, que
@@ -935,17 +1139,14 @@ Core::Expected<void, std::string> StepTheKindCase(ActorState& actor, const KindC
     case 0x4f715a:
         return DripTheBlood(actor, slot, context);
     case 0x4f7223:
-        // +0x38e; con '2' y en 14, treinta y seis joints 0x613/1, cada intento precedido por tres rand() % 360.
+        // +0x38e; con '2' y en 14, treinta y seis joints 0x613/1 de ancho 60 (0x4f756a), cada uno con su sonido 0x3e.
         if (ReadTheSkill(actor, context.random) == CaseSkill && actor.byte381 == FourteenthStep)
         {
             constexpr int JointCount = 36;
+            constexpr float Width = 60.0f; // 0x42700000
             for (int joint = 0; joint < JointCount; ++joint)
-            {
-                for (int angle = 0; angle < 3; ++angle)
-                    static_cast<void>(context.random.Next());
-                if (!IsJointPoolFull(context))
-                    return CutAt(0x4f756a, "el primero de los treinta y seis joints 0x613/1 (CL11)", actor, slot);
-            }
+                if (auto thrown = ThrowTheSpirit(actor, context, 0x4f756a, 1, Width); !thrown.HasValue())
+                    return thrown;
         }
         return {};
     case 0x4f75b5:
@@ -1014,20 +1215,17 @@ Core::Expected<void, std::string> StepTheKindCase(ActorState& actor, const KindC
     }
     case 0x4f7bc8:
     {
-        // +0x38e; con '2' y en 2 o 6, cuarenta joints 0x613/3, cada intento precedido por tres rand() % 360.
+        // +0x38e; con '2' y en 2 o 6, cuarenta joints 0x613/3 de ancho 50 (0x4f7f3c).
         constexpr std::uint8_t SecondStep = 2;
         constexpr std::uint8_t SixthStep = 6;
         if (ReadTheSkill(actor, context.random) == CaseSkill &&
             (actor.byte381 == SecondStep || actor.byte381 == SixthStep))
         {
             constexpr int JointCount = 40;
+            constexpr float Width = 50.0f; // 0x42480000
             for (int joint = 0; joint < JointCount; ++joint)
-            {
-                for (int angle = 0; angle < 3; ++angle)
-                    static_cast<void>(context.random.Next());
-                if (!IsJointPoolFull(context))
-                    return CutAt(0x4f7f3c, "el primero de los cuarenta joints 0x613/3 (CL11)", actor, slot);
-            }
+                if (auto thrown = ThrowTheSpirit(actor, context, 0x4f7f3c, 3, Width); !thrown.HasValue())
+                    return thrown;
         }
         return {};
     }
@@ -1067,8 +1265,9 @@ Core::Expected<void, std::string> StepTheKindCase(ActorState& actor, const KindC
 }
 
 // 0x4f8147: con 0x11 en +0x38e, el switch por +0x376 − 0x25. Todos sus casos salen (RET o 0x4f903c).
-Core::Expected<void, std::string> StepTheKindSkill(ActorState& actor, const KindCase& found, std::size_t slot,
-                                                   const CharacterStepContext& context, const glm::vec3& localLight)
+Core::Expected<void, std::string> StepTheKindSkill(ActorState& actor, ActorState& target, const KindCase& found,
+                                                   std::size_t slot, const CharacterStepContext& context,
+                                                   const glm::vec3& localLight)
 {
     const std::uint8_t step = actor.byte381;
     const std::uint8_t action = actor.animation.action;
@@ -1117,16 +1316,17 @@ Core::Expected<void, std::string> StepTheKindSkill(ActorState& actor, const Kind
         return {};
     }
     case 0x4f82b4:
-        // En 14, 0x4ec110 con el hueso 33, 0x518cf0(0x106/1) y el joint 0x614/2 hacia el blanco.
+        // En 14, 0x4ec110 con el hueso 33 (0x630), 0x518cf0(0x106/1) y el joint 0x614/2 desde y hasta ese punto, con
+        // los ángulos del actor.
         if (step == FourteenthStep)
         {
             // 0x4f82c1..0x4f8326: el punto del hueso 33 y el 0x106/1 sin dueño, con la luz local.
-            constexpr std::size_t HookBone = 33;
-            const glm::vec3 point = BonePoint(actor, HookBone, glm::vec3(0.0f), context);
+            constexpr std::size_t ChestBone = 33;
+            const glm::vec3 point = BonePoint(actor, ChestBone, glm::vec3(0.0f), context);
             if (auto made = CreateTheBlastEffect(0x106, 1, point, actor.angles, localLight, nullptr, context);
                 !made.HasValue())
                 return made;
-            return AttemptJoint(actor, slot, context, 0x4f834c, "el joint 0x614/2 del hueso 33 (CL11)");
+            return CreateTheJoint(target, context, 0x4f834c, 0x614, 2, point, point, actor.angles, 50.0f);
         }
         return {};
     case 0x4f835b:
@@ -1135,241 +1335,151 @@ Core::Expected<void, std::string> StepTheKindSkill(ActorState& actor, const Kind
             return CutAt(0x4f83e5, "el efecto 0xc2/5 del hueso 6 (CL11)", actor, slot);
         return {};
     case 0x4f83f4:
-        // En 14, 0x4ec110 con la matriz de 0x74374ec, 0x106/1 y el joint 0x614/2 hacia el blanco.
+        // En 14, 0x4ec110 con la matriz de 0x74374ec (la cola del fénix), 0x106/1 y el joint 0x614/2 desde y hasta ese
+        // punto, con los ángulos del actor.
         if (step == FourteenthStep)
         {
             // 0x4f8401..0x4f845e: el punto de la matriz de 0x74374ec (WorldRuntime::phoenixBones[2]) y el 0x106/1 sin
             // dueño, con la luz local.
-            const SharedModelPlacement placement = context.world.ModelPlacement(static_cast<std::uint16_t>(actor.type));
-            const glm::vec3 point = Render::Models::OriginalTransformPosition(
-                Render::Models::OriginalMatrixOf(context.world.Runtime().phoenixBones[2]), glm::vec3(0.0f),
-                placement.scale, placement.origin);
+            constexpr std::size_t TailMatrix = 2;
+            const glm::vec3 point =
+                MatrixPoint(actor, context.world.Runtime().phoenixBones[TailMatrix], glm::vec3(0.0f), context);
             if (auto made = CreateTheBlastEffect(0x106, 1, point, actor.angles, localLight, nullptr, context);
                 !made.HasValue())
                 return made;
-            return AttemptJoint(actor, slot, context, 0x4f8484, "el joint 0x614/2 (CL11)");
+            return CreateTheJoint(target, context, 0x4f8484, 0x614, 2, point, point, actor.angles, 50.0f);
         }
         return {};
     case 0x4f8493:
-        // En la 4 y en 13, 0x4ec110 con el hueso 11 y (−50, 100, 0), 0x106/1 y el joint 0x614/2 hacia el blanco.
+        // En la 4 y en 13, los ángulos del actor con 45 más en la x, 0x4ec110 con el hueso 11 (0x210) y (−50, 100, 0),
+        // 0x106/1 y el joint 0x614/2 hacia el blanco.
         if (action == SecondAttack && step == ThirteenthStep)
         {
             // 0x4f84ad..0x4f852d: el punto (−50, 100, 0) del hueso 11 y el 0x106/1 sin dueño, con 45 más en la x de los
             // ángulos y la luz (1; 0,5; 0).
-            constexpr std::size_t TrailBone = 11;
-            const glm::vec3 point = BonePoint(actor, TrailBone, {-50.0f, 100.0f, 0.0f}, context);
-            const glm::vec3 angles{static_cast<float>(static_cast<double>(actor.angles.x) + 45.0), actor.angles.y,
+            constexpr std::size_t ArmBone = 11;
+            constexpr glm::vec3 ArmOffset{-50.0f, 100.0f, 0.0f}; // 0xc2480000 y 0x42c80000
+            constexpr double Lift = 45.0;                        // 0x6b8848
+            const glm::vec3 angles{static_cast<float>(static_cast<double>(actor.angles.x) + Lift), actor.angles.y,
                                    actor.angles.z};
+            const glm::vec3 point = BonePoint(actor, ArmBone, ArmOffset, context);
             if (auto made = CreateTheBlastEffect(0x106, 1, point, angles, TrailAttackLight, nullptr, context);
                 !made.HasValue())
                 return made;
-            return AttemptJoint(actor, slot, context, 0x4f8553, "el joint 0x614/2 del hueso 11 (CL11)");
+            return CreateTheJoint(target, context, 0x4f8553, 0x614, 2, point, target.position, angles, 50.0f);
         }
         return {};
     case 0x4f8562:
-        // En 1, cuatro veces dos joints 0x60f/7 hacia el blanco.
-        if (step == FirstStep)
-        {
-            constexpr int Attempts = 4;
-            for (int attempt = 0; attempt < Attempts; ++attempt)
-            {
-                if (auto joint = AttemptJoint(actor, slot, context, 0x4f8592, "uno de los ocho joints 0x60f/7 (CL11)");
-                    !joint.HasValue())
-                    return joint;
-            }
-        }
+        // En 1, cuatro veces dos joints 0x60f/7: el primero desde la posición del actor con los ángulos de [EBP−0x20] y
+        // el segundo desde [EBP−0x2c], dos locales que este camino (sin caso en el primer switch) no escribe. Con
+        // lugar en el pool, corta; lleno, nada.
+        if (step == FirstStep && !IsJointPoolFull(context))
+            return CutAt(0x4f8592,
+                         "el primero de los ocho joints 0x60f/7, con los ángulos de una local sin escribir (CL11)",
+                         actor, slot);
         return {};
     case 0x4f85ca:
     {
-        // Seis joints 0x614/2 con un rand() cada uno, y después cuatro partículas 5d9/0.
-        constexpr int JointAttempts = 6;
-        constexpr int ParticleAttempts = 4;
-        for (int attempt = 0; attempt < JointAttempts; ++attempt)
-        {
-            static_cast<void>(context.random.Next());
-            if (auto joint =
-                    AttemptJoint(actor, slot, context, 0x4f8654, "uno de los doce joints 0x614/2 de las manos (CL11)");
-                !joint.HasValue())
-                return joint;
-        }
+        // Seis veces dos joints 0x614/2 de las manos; en 1, sonido 0x75; y los cuatro 0x61b/0 con su 0x5d9/0.
+        constexpr HandLightning Lightning{
+            .subtype = 2, .count = 6, .wideAddress = 0x4f8654, .thinAddress = 0x4f8677, .thunderAddress = 0};
+        if (auto cast = ThrowTheHandLightning(actor, target, slot, context, Lightning, glm::vec3(0.0f));
+            !cast.HasValue())
+            return cast;
         if (step == FirstStep)
             RequestTheSound(context, RoarSound);
-        for (int attempt = 0; attempt < ParticleAttempts; ++attempt)
-        {
-            static_cast<void>(context.random.Next());
-            if (auto joint = AttemptJoint(actor, slot, context, 0x4f872d, "uno de los cuatro joints 0x61b/0 (CL11)");
-                !joint.HasValue())
-                return joint;
-            const std::size_t bone = attempt < 2 ? actor.hands[0].bone : actor.hands[1].bone;
-            if (auto particle = CreateTailFire(actor, slot, context, bone, 0x4f874f); !particle.HasValue())
-                return particle;
-        }
-        return {};
+        return ThrowTheHandBolts(actor, target, slot, context, 0x4f872d, 0x4f874f);
     }
     case 0x4f876e:
     {
-        // En 1, sonido 0x75; cuatro veces dos joints 0x5bc/1.
+        // En 1, sonido 0x75; cuatro veces (la mano 0 en las dos primeras) dos joints 0x5bc/1 de ancho 50 y 10 hacia el
+        // blanco, con los ángulos en 0 y sin rand().
         if (step == FirstStep)
             RequestTheSound(context, RoarSound);
         constexpr int Attempts = 4;
+        constexpr int FirstHandAttempts = 2;
         for (int attempt = 0; attempt < Attempts; ++attempt)
         {
-            if (auto joint =
-                    AttemptJoint(actor, slot, context, 0x4f87f8, "uno de los ocho joints 0x5bc/1 de las manos (CL11)");
-                !joint.HasValue())
-                return joint;
+            const std::size_t bone = actor.hands[attempt < FirstHandAttempts ? 0 : 1].bone;
+            const glm::vec3 point = BonePoint(actor, bone, glm::vec3(0.0f), context);
+            const glm::vec3 angles(0.0f);
+            if (auto made = CreateTheJoint(target, context, 0x4f87f8, 0x5bc, 1, point, target.position, angles, 50.0f);
+                !made.HasValue())
+                return made;
+            if (auto made = CreateTheJoint(target, context, 0x4f881e, 0x5bc, 1, point, target.position, angles, 10.0f);
+                !made.HasValue())
+                return made;
         }
         return {};
     }
     case 0x4f8837:
-    {
-        // En 1, sonido 0x75; cuatro veces un rand(), joint 0x61b/0 y partícula 0x5d9/0.
+        // En 1, sonido 0x75; los cuatro joints 0x61b/0 de las manos con su 0x5d9/0.
         if (step == FirstStep)
             RequestTheSound(context, RoarSound);
-        constexpr int Attempts = 4;
-        for (int attempt = 0; attempt < Attempts; ++attempt)
-        {
-            static_cast<void>(context.random.Next());
-            if (auto joint = AttemptJoint(actor, slot, context, 0x4f88d0,
-                                          "uno de los cuatro joints 0x61b/0 de las manos (CL11)");
-                !joint.HasValue())
-                return joint;
-            const std::size_t bone = attempt < 2 ? actor.hands[0].bone : actor.hands[1].bone;
-            if (auto particle = CreateTailFire(actor, slot, context, bone, 0x4f88f2); !particle.HasValue())
-                return particle;
-        }
-        return {};
-    }
+        return ThrowTheHandBolts(actor, target, slot, context, 0x4f88d0, 0x4f88f2);
     case 0x4f890b:
-    {
-        // En 1, sonido 0x50; cuatro veces joint 0x61b/1 y partícula 0x5d9/0, sin rand() caller.
+        // En 1, sonido 0x50; los cuatro joints 0x61b/1 girados por el reloj, con su 0x5d9/0.
         if (step == FirstStep)
             RequestTheSound(context, HowlSound);
-        constexpr int Attempts = 4;
-        for (int attempt = 0; attempt < Attempts; ++attempt)
-        {
-            if (auto joint = AttemptJoint(actor, slot, context, 0x4f89df,
-                                          "uno de los cuatro joints 0x61b/1 de las manos (CL11)");
-                !joint.HasValue())
-                return joint;
-            const std::size_t bone = attempt % 2 == 0 ? actor.hands[0].bone : actor.hands[1].bone;
-            if (auto particle = CreateTailFire(actor, slot, context, bone, 0x4f8a01); !particle.HasValue())
-                return particle;
-        }
-        return {};
-    }
+        return TurnTheHandBolts(actor, target, slot, context, 0x4f8928, 0x4f89df, 0x4f8a01);
     default:
         return Core::Unexpected(std::format("{:#x}: un caso de 0x4f8147 sin rama", found.address));
     }
 }
 
 // 0x4f8a56: con 3 en +0x38e, el switch por +0x376 − 0x22. Todos sus casos salen.
-Core::Expected<void, std::string> StepTheBoneSkill(ActorState& actor, const KindCase& found, std::size_t slot,
-                                                   const CharacterStepContext& context, const glm::vec3& localLight)
+Core::Expected<void, std::string> StepTheBoneSkill(ActorState& actor, ActorState& target, const KindCase& found,
+                                                   std::size_t slot, const CharacterStepContext& context,
+                                                   const glm::vec3& localLight)
 {
     const std::uint8_t step = actor.byte381;
     switch (found.address)
     {
     case 0x4f8a5d:
-    {
-        // En 1, sonido 0x50; cuatro joints 0x61b/1 y partículas 0x5d9/0, alternando manos y sin rand().
+        // En 1, sonido 0x50; los cuatro joints 0x61b/1 girados por el reloj, con su 0x5d9/0.
         if (step == FirstStep)
             RequestTheSound(context, HowlSound);
-        constexpr int Attempts = 4;
-        for (int attempt = 0; attempt < Attempts; ++attempt)
-        {
-            if (auto joint = AttemptJoint(actor, slot, context, 0x4f8b31,
-                                          "uno de los cuatro joints 0x61b/1 de las manos (CL11)");
-                !joint.HasValue())
-                return joint;
-            const std::size_t bone = attempt % 2 == 0 ? actor.hands[0].bone : actor.hands[1].bone;
-            if (auto particle = CreateTailFire(actor, slot, context, bone, 0x4f8b53); !particle.HasValue())
-                return particle;
-        }
-        return {};
-    }
+        return TurnTheHandBolts(actor, target, slot, context, 0x4f8a7a, 0x4f8b31, 0x4f8b53);
     case 0x4f8b78:
     {
-        // Desde 8 (JC), cuatro joints 0x614/0 precedidos cada uno por rand() % 360.
+        // Desde 8 (JB), 0x4ec110 con la matriz de 0x743748c (el primer hueso del fénix) y cuatro veces rand() % 360 y
+        // el joint 0x614/0 de ancho 80 hacia el blanco.
         if (step < EighthStep)
             return {};
         constexpr int Attempts = 4;
+        constexpr float Width = 80.0f; // 0x42a00000
+        const glm::vec3 point = MatrixPoint(actor, context.world.Runtime().phoenixBones[0], glm::vec3(0.0f), context);
         for (int attempt = 0; attempt < Attempts; ++attempt)
         {
-            static_cast<void>(context.random.Next());
-            if (auto joint = AttemptJoint(actor, slot, context, 0x4f8bfb, "uno de los cuatro joints 0x614/0 (CL11)");
-                !joint.HasValue())
-                return joint;
+            const glm::vec3 angles = RandomTurn(context.random);
+            if (auto made = CreateTheJoint(target, context, 0x4f8bfb, 0x614, 0, point, target.position, angles, Width);
+                !made.HasValue())
+                return made;
         }
         return {};
     }
     case 0x4f8c0d:
-    {
-        // En 1, sonido 0x75; cuatro veces un rand(), joint 0x61b/0 y partícula 0x5d9/0.
+        // En 1, sonido 0x75; los cuatro joints 0x61b/0 de las manos con su 0x5d9/0.
         if (step == FirstStep)
             RequestTheSound(context, RoarSound);
-        constexpr int Attempts = 4;
-        for (int attempt = 0; attempt < Attempts; ++attempt)
-        {
-            static_cast<void>(context.random.Next());
-            if (auto joint = AttemptJoint(actor, slot, context, 0x4f8ca6,
-                                          "uno de los cuatro joints 0x61b/0 de las manos (CL11)");
-                !joint.HasValue())
-                return joint;
-            const std::size_t bone = attempt < 2 ? actor.hands[0].bone : actor.hands[1].bone;
-            if (auto particle = CreateTailFire(actor, slot, context, bone, 0x4f8cc8); !particle.HasValue())
-                return particle;
-        }
-        return {};
-    }
+        return ThrowTheHandBolts(actor, target, slot, context, 0x4f8ca6, 0x4f8cc8);
     case 0x4f8ce1:
     {
-        // Cuatro veces un rand(), dos joints 0x614/0 y la partícula 0x5ca/0 con la luz local.
-        constexpr int Attempts = 4;
-        constexpr glm::vec3 NoOffset(0.0f);
-        for (int attempt = 0; attempt < Attempts; ++attempt)
-        {
-            static_cast<void>(context.random.Next());
-            if (auto joint =
-                    AttemptJoint(actor, slot, context, 0x4f8d63, "uno de los ocho joints 0x614/0 de las manos (CL11)");
-                !joint.HasValue())
-                return joint;
-            const std::size_t bone = attempt < 2 ? actor.hands[0].bone : actor.hands[1].bone;
-            if (auto particle = CreateTailThunder(actor, slot, context, bone, NoOffset, localLight, 0x4f8dab);
-                !particle.HasValue())
-                return particle;
-        }
-        return {};
+        // Cuatro veces dos joints 0x614/0 de las manos y la partícula 0x5ca/0 con la luz local.
+        constexpr HandLightning Lightning{
+            .subtype = 0, .count = 4, .wideAddress = 0x4f8d63, .thinAddress = 0x4f8d89, .thunderAddress = 0x4f8dab};
+        return ThrowTheHandLightning(actor, target, slot, context, Lightning, localLight);
     }
     case 0x4f8dc4:
     {
-        // Seis veces un rand() y dos joints 0x614/2.
-        constexpr int Attempts = 6;
-        for (int attempt = 0; attempt < Attempts; ++attempt)
-        {
-            static_cast<void>(context.random.Next());
-            if (auto joint =
-                    AttemptJoint(actor, slot, context, 0x4f8e46, "uno de los doce joints 0x614/2 de las manos (CL11)");
-                !joint.HasValue())
-                return joint;
-        }
-        return {};
+        // Seis veces dos joints 0x614/2 de las manos.
+        constexpr HandLightning Lightning{
+            .subtype = 2, .count = 6, .wideAddress = 0x4f8e46, .thinAddress = 0x4f8e6c, .thunderAddress = 0};
+        return ThrowTheHandLightning(actor, target, slot, context, Lightning, localLight);
     }
     case 0x4f8e85:
-    {
-        // Dos joints 0x614/0 y una partícula 0x5ca/0, sin rand().
-        constexpr glm::vec3 Offset20A(0.0f);
-        constexpr glm::vec3 OtherOffset(0.0f, -130.0f, 0.0f);
-        const auto model = static_cast<std::uint16_t>(actor.type);
-        const glm::vec3& offset = model == Data::Models::PlayerSkeletonModel ? Offset20A : OtherOffset;
-        if (auto joint = AttemptJoint(actor, slot, context, 0x4f8f07, "los joints 0x614/0 del caso 0x27 (CL11)");
-            !joint.HasValue())
-            return joint;
-        if (auto joint = AttemptJoint(actor, slot, context, 0x4f8f2a, "el segundo joint 0x614/0 del caso 0x27 (CL11)");
-            !joint.HasValue())
-            return joint;
-        return CreateTailThunder(actor, slot, context, actor.hands[0].bone, offset, localLight, 0x4f8f4c);
-    }
+        // Dos joints 0x614/0 desde la mano 0 y una partícula 0x5ca/0, sin rand().
+        return CastTheHandLightning(actor, target, slot, context, localLight, 0x4f8f07);
     default:
         return Core::Unexpected(std::format("{:#x}: un caso de 0x4f8a56 sin rama", found.address));
     }
@@ -1382,11 +1492,13 @@ Core::Expected<void, std::string> StepTheTail(ActorState& actor, std::size_t slo
     const auto target = std::bit_cast<std::int16_t>(actor.attackTarget);
     if (target < 0 || target >= PoolSlots)
         return {};
+    // ESI: el blanco, del que cuelgan los joints de la cola.
+    ActorState& victim = context.world.Actors()[static_cast<std::size_t>(target)];
     // 0x4f811b: con 0x11, el switch por +0x376 − 0x25 (0x4f8147); los que no tienen caso, y el 0xffff, salen.
     if (ReadTheSkill(actor, context.random) == KindSkill)
     {
         if (const KindCase* found = CaseOf(KindSkillCases, actor.word376))
-            return StepTheKindSkill(actor, *found, slot, context, localLight);
+            return StepTheKindSkill(actor, victim, *found, slot, context, localLight);
         return {};
     }
     // 0x4f8a2c: con 3, el switch por +0x376 − 0x22 (0x4f8a56); sin caso, y el 0xffff, 0x4f8f5b (el hueso de +0x2bd con
@@ -1394,7 +1506,7 @@ Core::Expected<void, std::string> StepTheTail(ActorState& actor, std::size_t slo
     if (ReadTheSkill(actor, context.random) == BoneSkill)
     {
         if (const KindCase* found = CaseOf(BoneSkillCases, actor.word376))
-            return StepTheBoneSkill(actor, *found, slot, context, localLight);
+            return StepTheBoneSkill(actor, victim, *found, slot, context, localLight);
         std::size_t boneCount = 0;
         const auto model = static_cast<std::uint16_t>(actor.type);
         const Render::Models::Skeleton* skeleton = context.world.FaunaResources().SkeletonOf(model);
@@ -1406,16 +1518,7 @@ Core::Expected<void, std::string> StepTheTail(ActorState& actor, std::size_t slo
             boneCount = skeleton->bones.size();
         if (boneCount < actor.hands[0].bone)
             return {};
-        constexpr glm::vec3 Offset20A(0.0f);
-        constexpr glm::vec3 OtherOffset(0.0f, -130.0f, 0.0f);
-        const glm::vec3& offset = model == Data::Models::PlayerSkeletonModel ? Offset20A : OtherOffset;
-        if (auto joint = AttemptJoint(actor, slot, context, 0x4f8fef, "el primer joint del caso sin tabla (CL11)");
-            !joint.HasValue())
-            return joint;
-        if (auto joint = AttemptJoint(actor, slot, context, 0x4f9012, "el segundo joint del caso sin tabla (CL11)");
-            !joint.HasValue())
-            return joint;
-        return CreateTailThunder(actor, slot, context, actor.hands[0].bone, offset, localLight, 0x4f9034);
+        return CastTheHandLightning(actor, victim, slot, context, localLight, 0x4f8fef);
     }
     return {};
 }

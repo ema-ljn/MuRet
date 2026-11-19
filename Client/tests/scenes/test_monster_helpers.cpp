@@ -1093,8 +1093,9 @@ TEST_F(MonsterHelpersTest, The1b6GlowsThenCutsAtItsFoot)
 }
 
 // 0x4276a4..0x427a92 con la tabla llena: el 0x1b6 suena (en la 4, 0x9c más rand() % 2 y después 0x263, con +4 = 1) y,
-// en la 4 desde el frame 6 con el blanco +0x3a4 en el pool, corta en el joint 0x614. Sin blanco (un WORD negativo o
-// desde 0x190), o en la 3, sus partículas no crean nada.
+// en la 4 desde el frame 6 con el blanco +0x3a4 en el pool, crea el joint 0x614/0x10 sin dueño desde el blanco hasta
+// 100 sobre él (0x427a8d, dos rand()). Sin blanco (un WORD negativo o desde 0x190), o en la 3, sus partículas no crean
+// nada.
 TEST_F(MonsterHelpersTest, The1b6FollowsItsTailWithAFullTable)
 {
     Name("Monster100_L_Hand", 76);
@@ -1111,10 +1112,30 @@ TEST_F(MonsterHelpersTest, The1b6FollowsItsTailWithAFullTable)
         actor.attackTarget = 3;
         CrtRandom random(11);
         MonsterHelperPass pass = Pass(map, random);
-        EXPECT_TRUE(CutAt(Client::Scenes::DrawTheMonsterHelpers(pass), "0x427a8d"));
+        for (Client::Scenes::JointState& joint : m_world->DrawTail().joints)
+            joint.alive = false;
+        ActorState& victim = m_world->Actors()[3];
+        victim.position = {300.0f, 400.0f, 50.0f};
+        actor.angles = {1.0f, 2.0f, 3.0f};
+        ASSERT_TRUE(Client::Scenes::DrawTheMonsterHelpers(pass).HasValue());
         EXPECT_EQ(Sound(), 0x263);
         EXPECT_EQ(actor.subtype, 1);
-        EXPECT_EQ(random.State(), AfterDraws(11, 2).State());
+        CrtRandom expected = AfterDraws(11, 2);
+        const float speed = static_cast<float>(static_cast<double>(expected.Next() % 10) + 20.0);
+        const std::int32_t life = expected.Next() % 2 + 2;
+        EXPECT_EQ(random.State(), expected.State());
+        const Client::Scenes::JointState& joint = m_world->DrawTail().joints[0];
+        ASSERT_TRUE(joint.alive);
+        EXPECT_EQ(joint.type, 0x614);
+        EXPECT_EQ(joint.subtype, 0x10);
+        EXPECT_EQ(joint.ownerContext, nullptr);
+        EXPECT_EQ(joint.position, victim.position);
+        EXPECT_EQ(joint.targetPosition, (glm::vec3{300.0f, 400.0f, 150.0f}));
+        EXPECT_EQ(joint.angles, actor.angles);
+        EXPECT_EQ(joint.width, 10.0f);
+        EXPECT_EQ(joint.speed, speed);
+        EXPECT_EQ(joint.life, life);
+        EXPECT_FALSE(m_world->DrawTail().joints[1].alive);
         EXPECT_EQ(LiveSprites().size(), 5u);
         m_sprites.Clear();
 

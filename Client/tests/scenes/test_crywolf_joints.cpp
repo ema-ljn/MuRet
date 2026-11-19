@@ -55,12 +55,14 @@ TEST(CrywolfJointsTest, ArrivalBoltCreatesStepsAndDrawsWithoutTheChaosCastleEmis
     EXPECT_EQ(batch.Vertices().size(), 588u);
 }
 
-// 0x5309d6 → 0x530a00: /17 salta FirstQuad, retiene los puntos y usa un rand() para la velocidad. Sigue el paso
-// común del 614 (giro25, dos rand por tramo, cola/vida), sin las emisiones del ancho50.
-TEST(CrywolfJointsTest, RisingBeamKeepsTheOldFirstQuadAndCompletesItsStep)
+// 0x530afa → 0x5309d6 → 0x530a00: /17 pasa por FirstQuad con el ancho retenido (el 0x614 solo llega a 0x5309d6 por
+// la tabla 0x534ccc, después del primer tramo) y usa un rand() para la velocidad. Sigue el paso común del 614
+// (giro 25, dos rand por tramo, cola/vida), sin las emisiones del ancho 50.
+TEST(CrywolfJointsTest, RisingBeamBuildsItsFirstQuadWithTheRetainedWidthAndCompletesItsStep)
 {
     std::array<JointState, 1> joints{};
     joints[0].points[0][0] = {91, 92, 93};
+    joints[0].width = 6;
     CrtRandom random(7);
     glm::vec3 origin{};
     glm::vec3 angles{};
@@ -69,7 +71,8 @@ TEST(CrywolfJointsTest, RisingBeamKeepsTheOldFirstQuadAndCompletesItsStep)
     ASSERT_TRUE(created.HasValue()) << created.Error();
     ASSERT_EQ(created.Value(), 0u);
     const auto& joint = joints[0];
-    EXPECT_EQ(joint.points[0][0], (glm::vec3{91, 92, 93}));
+    EXPECT_EQ(joint.points[0][0], (glm::vec3{-3, 0, 0}));
+    EXPECT_EQ(joint.points[0][3], (glm::vec3{0, 0, 3}));
     EXPECT_EQ(joint.speed, 21);
     EXPECT_EQ(joint.width, 10);
     EXPECT_EQ(joint.life, 10);

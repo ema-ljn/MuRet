@@ -149,6 +149,9 @@ struct JointState
     std::int16_t key = 0;
     std::uint8_t skill = 0;
     std::uint8_t skillSerial = 0;
+    // +0x9eb: la cuenta de la tanda (+0xf04 del registro propio) que el 0x613/0 y el /5 copian al nacer (0x53293b,
+    // 0x532e75) y mandan con sus blancos (0x517a20, 0x539ac5). 0x530860 no la escribe: en los demás queda la de antes.
+    std::uint8_t volley = 0;
     bool tailEnabled = false;
     std::int32_t field9ec = 0;
     // D-C4: dos giros del último dibujo original; no forman parte del registro nativo.

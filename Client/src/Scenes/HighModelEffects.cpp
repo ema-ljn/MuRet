@@ -4,6 +4,7 @@
 #include "Render/Models/Animation.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/HalfLifeMath.h"
+#include "Render/Models/OriginalAngles.h"
 #include "Render/Models/OriginalRetainedMath.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Render/Models/Skeleton.h"
@@ -57,6 +58,9 @@ constexpr std::int16_t GrowingFlashEffect = 0x141;
 constexpr std::uint8_t NoAction = 0xff;
 // Los rayos de luz que se dibujan como sprites a lo largo de su velocidad (0x52d941): no se mueven ni tienen paso.
 constexpr std::int16_t MovingLightFirst = 0x5e8, MovingLightSecond = 0x5e9, MovingLightLast = 0x5ea;
+// Skill\PierPart (la 0x3d y la 0x4a de 0x4fd5f0), Skill\DarkLordSkill (las manos de la 0x40, la 0x4b y la 0x3d) y
+// Skill\ManaRune (la 0x4b).
+constexpr std::int16_t PierPartEffect = 0x116, DarkLordSkillEffect = 0x117, ManaRuneEffect = 0x138;
 // Los que caen sobre el blanco del 0x46 (+0x376) en su paso 5 (0x4f5cb6): sin dibujo, sólo su fuego y sus sprites.
 constexpr std::int16_t FallingStarEffect = 0x625;
 
@@ -341,6 +345,140 @@ void BeginTheFallingStar(World::ModelEffect& effect, const HighEffectContext& co
     position.x = F32(D(position.x) + Lead);
     effect.start = position;
     context.world.Runtime().RequestSound(FallingSound);
+}
+
+// 0x51ca31..0x51cb46, el 0x116 (Skill\PierPart). El /0 (los tres de la 0x3d, 0x504e40): vida 20, +0xe4 (cuántos /1
+// suelta por paso) en 2, +0xd8 (el giro) en 10, +0x58 en 1, la escala 1,2f, la luz en 1, la velocidad (0, −26, 0), la
+// partida (+0x17c) en la luz que recibió (el ecx del prefijo: el punto del dueño al que va), +0x28..+0x30 en los
+// ángulos y los ángulos en (0, 0, z del argumento). El /1 (lo suelta el paso del /0, con él de dueño): la vida del
+// dueño (+0x108 → +0x60), +0x58 en 0, la escala 0,5f, el alpha (20 − vida) · 0,2f, la velocidad en 0 y la llama 0x5da/0
+// (0x53fe70 con la escala 1 y el efecto de dueño). El /2 (la 0x4a, 0x504b80): vida 20, +0xd8 en 50, +0x58 en −2, la z
+// 20 menos, la velocidad (0, −40, 0), +0x28..+0x30 en los ángulos y los ángulos en (0, 0, z). Otro subtipo, sólo el
+// prefijo. Sin rand() (los de la llama, sí).
+Core::Expected<void, std::string> BeginThePierPart(World::ModelEffect& effect,
+                                                   const World::ModelEffectArguments& arguments,
+                                                   const HighEffectContext& context)
+{
+    constexpr std::int32_t PartLife = 20;
+    if (effect.subtype == 0)
+    {
+        constexpr float Bursts = 2.0f, Turn = 10.0f, Rush = -26.0f; // 0x40000000, 0x41200000 y 0xc1d00000
+        constexpr std::int16_t PartHidden = 1;
+        constexpr float PartScale = std::bit_cast<float>(0x3f99999au); // 1,2f
+        effect.life = PartLife;
+        effect.turnDirection = Bursts;
+        effect.speed = Turn;
+        effect.objectState.hiddenMesh = PartHidden;
+        effect.transform.scale = PartScale;
+        effect.light = glm::vec3(1.0f);
+        effect.velocity = {0.0f, Rush, 0.0f};
+        effect.start = arguments.light;
+        effect.copiedAngles = effect.transform.angles;
+        effect.transform.angles = {0.0f, 0.0f, arguments.angles.z};
+        return {};
+    }
+    if (effect.subtype == 1)
+    {
+        const auto* parent = static_cast<const World::ModelEffect*>(effect.ownerContext);
+        if (parent == nullptr)
+            return Core::Unexpected(std::string("0x51cad9: el 0x116/1 lee la vida de un dueño (+0x108) nulo"));
+        constexpr float TrailScale = 0.5f;                                                  // 0x3f000000
+        constexpr double FadeStep = static_cast<double>(std::bit_cast<float>(0x3e4ccccdu)); // 0x6b8cfc, 0,2f
+        effect.life = parent->life;
+        effect.objectState.hiddenMesh = 0;
+        effect.transform.scale = TrailScale;
+        effect.alpha = F32(static_cast<double>(PartLife - effect.life) * FadeStep);
+        effect.velocity = glm::vec3(0.0f);
+        constexpr std::int32_t TrailFire = World::MissileFireParticle, TrailFireSubtype = 0;
+        if (auto fire =
+                CreateParticle(context.world, context.random, context.worldClock, TrailFire, effect.transform.position,
+                               effect.transform.angles, effect.light, TrailFireSubtype, 1.0f, 0x51cb38);
+            !fire.HasValue())
+            return Core::Unexpected(fire.Error() + " (CL11)");
+        return {};
+    }
+    if (effect.subtype == 2)
+    {
+        constexpr float Turn = 50.0f, Rush = -40.0f; // 0x42480000 y 0xc2200000
+        constexpr std::int16_t PartHidden = -2;
+        constexpr double Drop = 20.0; // 0x6b86d0
+        effect.life = PartLife;
+        effect.speed = Turn;
+        effect.objectState.hiddenMesh = PartHidden;
+        effect.transform.position.z = F32(D(effect.transform.position.z) - Drop);
+        effect.velocity = {0.0f, Rush, 0.0f};
+        effect.copiedAngles = effect.transform.angles;
+        effect.transform.angles = {0.0f, 0.0f, arguments.angles.z};
+    }
+    return {};
+}
+
+// 0x51cbb2..0x51cc6a, el 0x117 (Skill\DarkLordSkill): vida 10, la escala 0,2f y +0xd8 (lo que crece) en 0,1f. Con el
+// subtipo 1 o menos (con signo), los ángulos (45, y, 0): y es subtipo · −90 + 45 si rand() % 2 sale distinto de 0 y,
+// si no, 45 con el /0 o −45 con los demás. El /2, vida 12 y +0xd8 en 0,4f, sin rand(). Otro subtipo, nada más.
+void BeginTheDarkLordSkill(World::ModelEffect& effect, CrtRandom& random)
+{
+    constexpr std::int32_t SkillLife = 10, WideLife = 12;
+    constexpr float SkillScale = std::bit_cast<float>(0x3e4ccccdu); // 0,2f
+    constexpr float Growth = std::bit_cast<float>(0x3dcccccdu);     // 0,1f
+    constexpr float WideGrowth = std::bit_cast<float>(0x3ecccccdu); // 0,4f
+    constexpr double TiltPerSubtype = -90.0, TiltBase = 45.0;       // 0x6ba1dc y 0x6b8848
+    constexpr float Pitch = 45.0f, LeftTilt = -45.0f;               // 0x42340000 y 0x6b8af4
+    effect.life = SkillLife;
+    effect.transform.scale = SkillScale;
+    effect.speed = Growth;
+    const std::int32_t subtype = effect.subtype;
+    if (subtype <= 1)
+    {
+        const float tilt = F32(static_cast<double>(subtype) * TiltPerSubtype + TiltBase);
+        float yaw = tilt;
+        if (random.Next() % 2 == 0)
+            yaw = subtype == 0 ? Pitch : LeftTilt;
+        effect.transform.angles = {Pitch, yaw, 0.0f};
+        return;
+    }
+    if (subtype == 2)
+    {
+        effect.life = WideLife;
+        effect.speed = WideGrowth;
+    }
+}
+
+// 0x51da46..0x51daca, el 0x138 (Skill\ManaRune). El /0 (la 0x4b, 0x502ae6): vida 50, la escala en 0, +0xe4 (lo que
+// crece) en 0,1f, el alpha en 0,3f, +0x58 en 0, la z 300 más y los ángulos en (0, 0, 45). El /1 (lo suelta el paso del
+// /0): vida 10, la escala 1,1f, +0xe4 en 0,1f, +0x58 en −1, +0x64 en −2 y +0x68 en 0,4f. Otro subtipo, sólo el
+// prefijo. Sin rand().
+void BeginTheManaRune(World::ModelEffect& effect)
+{
+    constexpr float Growth = std::bit_cast<float>(0x3dcccccdu); // 0,1f
+    if (effect.subtype == 0)
+    {
+        constexpr std::int32_t RuneLife = 50;
+        constexpr float RuneAlpha = std::bit_cast<float>(0x3e99999au); // 0,3f
+        constexpr double Lift = 300.0;                                 // 0x6b8900
+        constexpr float RuneTurn = 45.0f;                              // 0x42340000
+        effect.life = RuneLife;
+        effect.transform.scale = 0.0f;
+        effect.turnDirection = Growth;
+        effect.alpha = RuneAlpha;
+        effect.objectState.hiddenMesh = 0;
+        effect.transform.position.z = F32(D(effect.transform.position.z) + Lift);
+        effect.transform.angles = {0.0f, 0.0f, RuneTurn};
+        return;
+    }
+    if (effect.subtype == 1)
+    {
+        constexpr std::int32_t FlashLife = 10;
+        constexpr float FlashScale = std::bit_cast<float>(0x3f8ccccdu); // 1,1f
+        constexpr std::int16_t FlashHidden = -1, FlashBlend = -2;
+        constexpr float FlashLight = std::bit_cast<float>(0x3ecccccdu); // 0,4f
+        effect.life = FlashLife;
+        effect.transform.scale = FlashScale;
+        effect.turnDirection = Growth;
+        effect.objectState.hiddenMesh = FlashHidden;
+        effect.objectState.blendMesh = FlashBlend;
+        effect.objectState.light = FlashLight;
+    }
 }
 
 // ---- Los pasos ----
@@ -692,6 +830,200 @@ Core::Expected<void, std::string> StepTheFallingStar(World::ModelEffect& effect,
     return {};
 }
 
+// La velocidad (+0xcc) girada por los ángulos (0x5fc8f0 y 0x5fcbd0) sumada a la posición, un fstp por eje.
+void Advance(World::ModelEffect& effect)
+{
+    effect.transform.position = Sum(Rotated(effect.velocity, effect.transform.angles), effect.transform.position);
+}
+
+// 0x52727b..0x527447, el 0x116/0: con dueño (+0x108, un personaje), el destino es su posición más la partida. Si
+// +0xe4 pasa de 1, desde 1 hasta antes de +0xe4: con rand() & 1 en 0, el cabeceo 20 más (por debajo de −90) o 20
+// menos; 0x4e9810 gira hacia el destino de a +0xd8; +0xd8 0,4f más (y 0,1f más con menos de 10 de vida, desde la suma
+// sin redondear); avanza y suelta el 0x116/1 en su lugar con él de dueño. Después, +0xe4 0,1f más y el sonido 0x1ca.
+// Con la distancia del último giro por debajo de 40 y la vida en 5, lee la altura del terreno (0x5f93c0) en una
+// variable que nadie lee: MuRet no la pide. Sin dueño, nada.
+Core::Expected<void, std::string> StepTheHomingPart(World::ModelEffect& effect, const HighEffectStepContext& context)
+{
+    const auto* owner = static_cast<const ActorState*>(effect.ownerContext);
+    if (owner == nullptr)
+        return {};
+    const glm::vec3 target = Sum(owner->position, effect.start);
+    constexpr double Tilt = 20.0, TiltFloor = -90.0;                                        // 0x6b86d0 y 0x6ba1dc
+    constexpr double Acceleration = static_cast<double>(std::bit_cast<float>(0x3ecccccdu)); // 0x6b87b4, 0,4f
+    constexpr double LateBoost = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));    // 0x6b87b8, 0,1f
+    constexpr std::int32_t LateLife = 10;
+    constexpr std::int32_t TrailSubtype = 1;
+    const HighEffectContext created{.world = context.world, .random = context.random, .worldClock = context.worldClock};
+    for (int count = 1; static_cast<double>(count) < D(effect.turnDirection); ++count)
+    {
+        if ((context.random.Next() & 1) == 0)
+        {
+            const double pitch = D(effect.transform.angles.x);
+            effect.transform.angles.x = F32(!(pitch >= TiltFloor) ? pitch + Tilt : pitch - Tilt);
+        }
+        static_cast<void>(
+            Render::Models::MoveToward(effect.transform.position, effect.transform.angles, target, effect.speed));
+        const double faster = D(effect.speed) + Acceleration;
+        effect.speed = F32(effect.life < LateLife ? faster + LateBoost : faster);
+        Advance(effect);
+        constexpr std::int16_t PierPart = 0x116;
+        if (auto trail = CreateHighModelEffect({.type = PierPart,
+                                                .position = effect.transform.position,
+                                                .angles = effect.transform.angles,
+                                                .light = effect.light,
+                                                .subtype = TrailSubtype,
+                                                .owner = &effect},
+                                               created);
+            !trail.HasValue())
+            return Core::Unexpected("0x5273c6: " + trail.Error());
+    }
+    constexpr double MoreBursts = static_cast<double>(std::bit_cast<float>(0x3dcccccdu)); // 0x6b87b8, 0,1f
+    constexpr std::int32_t PartSound = 0x1ca;
+    effect.turnDirection = F32(D(effect.turnDirection) + MoreBursts);
+    context.world.Runtime().RequestSound(PartSound);
+    return {};
+}
+
+// 0x527455..0x527534, el 0x116/2: con dueño, 0x4e9810 gira hacia su posición de a +0xd8, +0xd8 2,4f más, avanza y,
+// con la vida múltiplo de 3, el joint 0x61c/2 en su lugar con los ángulos (−90, 0, z) y la escala 150. Sin dueño,
+// nada.
+Core::Expected<void, std::string> StepTheDivingPart(World::ModelEffect& effect, const HighEffectStepContext& context)
+{
+    const auto* owner = static_cast<const ActorState*>(effect.ownerContext);
+    if (owner == nullptr)
+        return {};
+    constexpr double Acceleration = static_cast<double>(std::bit_cast<float>(0x4019999au)); // 0x6ba238, 2,4f
+    static_cast<void>(
+        Render::Models::MoveToward(effect.transform.position, effect.transform.angles, owner->position, effect.speed));
+    effect.speed = F32(D(effect.speed) + Acceleration);
+    Advance(effect);
+    constexpr std::int32_t JointEvery = 3;
+    if (effect.life % JointEvery != 0)
+        return {};
+    constexpr std::int32_t DiveJoint = 0x61c, DiveJointSubtype = 2;
+    constexpr float DiveJointScale = 150.0f; // 0x43160000
+    constexpr float DivePitch = -90.0f;      // 0xc2b40000
+    const glm::vec3& position = effect.transform.position;
+    return CreateJoint(context.world, context.random, DiveJoint, position, position,
+                       {DivePitch, 0.0f, effect.transform.angles.z}, DiveJointSubtype, nullptr, DiveJointScale,
+                       0x52752c);
+}
+
+// 0x52727b..0x527276, el 0x116: el /0 y el /2 buscan a su dueño; el /1, con menos de 5 de vida (edi, 5 desde
+// 0x5208df), el alpha por 0,7692308f.
+Core::Expected<void, std::string> StepThePierPart(World::ModelEffect& effect, const HighEffectStepContext& context)
+{
+    if (effect.subtype == 0)
+        return StepTheHomingPart(effect, context);
+    if (effect.subtype == 2)
+        return StepTheDivingPart(effect, context);
+    constexpr std::int32_t FadeLife = 5;
+    constexpr double Fade = static_cast<double>(std::bit_cast<float>(0x3f44ec4fu)); // 0x6ba240
+    if (effect.subtype == 1 && effect.life < FadeLife)
+        effect.alpha = F32(D(effect.alpha) * Fade);
+    return {};
+}
+
+// 0x527539..0x5275c8, el 0x117: la escala crece +0xd8. Con el subtipo 1 o menos, +0xd8 0,02f más y, con menos de 7 de
+// vida, +0x68 por 0,5555556f. El /2, +0xd8 0,06f menos y, con menos de 8, +0x68 por 0,6666667f. Los demás, +0xd8 0,04f
+// más y, con menos de 8, +0x68 por 0,5555556f.
+void StepTheDarkLordSkill(World::ModelEffect& effect)
+{
+    constexpr double SmallGrowth = static_cast<double>(std::bit_cast<float>(0x3ca3d70au)); // 0x6b8b90, 0,02f
+    constexpr double Shrink = static_cast<double>(std::bit_cast<float>(0x3d75c28fu));      // 0x6ba230, 0,06f
+    constexpr double WideGrowth = static_cast<double>(std::bit_cast<float>(0x3d23d70au));  // 0x6b8aec, 0,04f
+    constexpr double QuickFade = static_cast<double>(std::bit_cast<float>(0x3f0e38e4u));   // 0x6ba234
+    constexpr double SlowFade = static_cast<double>(std::bit_cast<float>(0x3f2aaaabu));    // 0x6b8c64
+    constexpr std::int32_t EarlyFadeLife = 7, LateFadeLife = 8;
+    effect.transform.scale = F32(D(effect.transform.scale) + D(effect.speed));
+    double fade = QuickFade;
+    std::int32_t fadeLife = LateFadeLife;
+    if (effect.subtype <= 1)
+    {
+        effect.speed = F32(D(effect.speed) + SmallGrowth);
+        fadeLife = EarlyFadeLife;
+    }
+    else if (effect.subtype == 2)
+    {
+        effect.speed = F32(D(effect.speed) - Shrink);
+        fade = SlowFade;
+    }
+    else
+    {
+        effect.speed = F32(D(effect.speed) + WideGrowth);
+    }
+    if (effect.life < fadeLife)
+        effect.objectState.light = F32(D(effect.objectState.light) * fade);
+}
+
+// 0x529a4f..0x529b81, el 0x138. El /0: con más de 43 de vida, +0x58 en −2; con más de 40, en 0; con más de 30, la
+// escala crece +0xe4 y +0xe4 0,15f más, y al pasar de 1 la escala queda en 1, +0xe4 en 0,01f y suelta el 0x138/1 en su
+// lugar con su luz; con menos de 15, la escala achica +0xe4 (con piso 0), +0xe4 0,2f más, el alpha es vida · 0,05f y
+// baja 10. El /1: la escala 0,02f menos (comparada sin redondear: por debajo de 1, queda en 1) y el alpha vida · 0,05f.
+Core::Expected<void, std::string> StepTheManaRune(World::ModelEffect& effect, const HighEffectStepContext& context)
+{
+    constexpr double AlphaPerLife = static_cast<double>(std::bit_cast<float>(0x3d4ccccdu)); // 0x6b8ad0, 0,05f
+    if (effect.subtype == 1)
+    {
+        constexpr double Shrink = static_cast<double>(std::bit_cast<float>(0x3ca3d70au)); // 0x6b8b90, 0,02f
+        const double scale = D(effect.transform.scale) - Shrink;
+        effect.transform.scale = F32(scale);
+        if (!(scale >= 1.0))
+            effect.transform.scale = 1.0f;
+        effect.alpha = F32(static_cast<double>(effect.life) * AlphaPerLife);
+        return {};
+    }
+    if (effect.subtype != 0)
+        return {};
+    constexpr std::int32_t HiddenLife = 43, ShownLife = 40, GrowingLife = 30, FadingLife = 15;
+    constexpr std::int16_t Hidden = -2;
+    if (effect.life > HiddenLife)
+    {
+        effect.objectState.hiddenMesh = Hidden;
+        return {};
+    }
+    if (effect.life > ShownLife)
+    {
+        effect.objectState.hiddenMesh = 0;
+        return {};
+    }
+    if (effect.life > GrowingLife)
+    {
+        constexpr double Acceleration = static_cast<double>(std::bit_cast<float>(0x3e19999au)); // 0x6b8ae8, 0,15f
+        constexpr float SettledGrowth = std::bit_cast<float>(0x3c23d70au);                      // 0,01f
+        effect.transform.scale = F32(D(effect.transform.scale) + D(effect.turnDirection));
+        effect.turnDirection = F32(D(effect.turnDirection) + Acceleration);
+        if (!(effect.transform.scale > 1.0f))
+            return {};
+        effect.transform.scale = 1.0f;
+        effect.turnDirection = SettledGrowth;
+        constexpr std::int16_t ManaRune = 0x138;
+        constexpr std::int32_t FlashSubtype = 1;
+        const HighEffectContext created{
+            .world = context.world, .random = context.random, .worldClock = context.worldClock};
+        if (auto flash = CreateHighModelEffect({.type = ManaRune,
+                                                .position = effect.transform.position,
+                                                .angles = effect.transform.angles,
+                                                .light = effect.light,
+                                                .subtype = FlashSubtype},
+                                               created);
+            !flash.HasValue())
+            return Core::Unexpected("0x529ae2: " + flash.Error());
+        return {};
+    }
+    if (effect.life >= FadingLife)
+        return {};
+    constexpr double Acceleration = static_cast<double>(std::bit_cast<float>(0x3e4ccccdu)); // 0x6b8854, 0,2f
+    constexpr double Sink = 10.0;                                                           // 0x6b87a8
+    effect.transform.scale = F32(D(effect.transform.scale) - D(effect.turnDirection));
+    effect.turnDirection = F32(D(effect.turnDirection) + Acceleration);
+    if (!(effect.transform.scale >= 0.0f))
+        effect.transform.scale = 0.0f;
+    effect.alpha = F32(static_cast<double>(effect.life) * AlphaPerLife);
+    effect.transform.position.z = F32(D(effect.transform.position.z) - Sink);
+    return {};
+}
+
 // 0x52c9fd..0x52caa0 y 0x521216, el 0xc1a: con el terreno (0x5f93c0) por encima de su z, la explosión 0x5ed/0 80 más
 // arriba (con su sonido 0x40), seis piedritas 0xc8 o 0xc9 (rand() & 1) con el subtipo 0 y el lugar libre; siempre, la
 // luz dinámica (luz · 0,2f; luz · 0,4f; luz) de radio 2 con la luz local del primer rand().
@@ -803,12 +1135,21 @@ HighEffectContext HighContextOf(const CharacterStepContext& context)
             .models = context.models};
 }
 
+glm::vec3 ActorBonePoint(const ActorState& actor, std::size_t bone, const glm::vec3& offset, const WorldState& world)
+{
+    const Render::Models::BoneTransform matrix =
+        bone < actor.bodyPose.size() ? actor.bodyPose[bone] : Render::Models::BoneTransform(0.0f);
+    const auto placement = world.ModelPlacement(actor.type);
+    return Render::Models::OriginalTransformPosition(Render::Models::OriginalMatrixOf(matrix), offset, placement.scale,
+                                                     placement.origin);
+}
+
 bool IsHighModelEffect(std::int16_t type)
 {
     return type == SiegeAuraEffect || type == SiegeFlareEffect || type == SiegeSpearmanEffect ||
            type == SiegePulseEffect || type == RadialShardEffect || type == GrowingFlashEffect ||
            type == World::ColoredDecalEffect || (type >= MovingLightFirst && type <= MovingLightLast) ||
-           type == FallingStarEffect;
+           type == FallingStarEffect || type == PierPartEffect || type == DarkLordSkillEffect || type == ManaRuneEffect;
 }
 
 Core::Expected<std::optional<std::size_t>, std::string>
@@ -851,6 +1192,15 @@ CreateHighModelEffect(const World::ModelEffectArguments& arguments, const HighEf
         break;
     case FallingStarEffect:
         BeginTheFallingStar(effect, context);
+        break;
+    case PierPartEffect:
+        begun = BeginThePierPart(effect, arguments, context);
+        break;
+    case DarkLordSkillEffect:
+        BeginTheDarkLordSkill(effect, context.random);
+        break;
+    case ManaRuneEffect:
+        BeginTheManaRune(effect);
         break;
     default:
         break;
@@ -912,6 +1262,15 @@ Core::Expected<void, std::string> StepHighModelEffect(World::ModelEffect& effect
         break;
     case FallingStarEffect:
         stepped = StepTheFallingStar(effect, context);
+        break;
+    case PierPartEffect:
+        stepped = StepThePierPart(effect, context);
+        break;
+    case DarkLordSkillEffect:
+        StepTheDarkLordSkill(effect);
+        break;
+    case ManaRuneEffect:
+        stepped = StepTheManaRune(effect, context);
         break;
     default:
         break;

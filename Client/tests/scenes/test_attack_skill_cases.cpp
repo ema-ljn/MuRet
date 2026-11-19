@@ -568,49 +568,71 @@ TEST(AttackSkillCasesTest, TheReleaseKillsTheFlamesOfTheTarget)
     EXPECT_TRUE(HasError(tested.Head(0x46), "0x4fe3ce"));
 }
 
-// 0x40 y 0x4b: con otra cosa que 0xa21 en la derecha, o que 0xa19 o un escudo (0xe12..0x1011) en la izquierda, el
-// 0x117 en el hueso corta; con las dos, la 0x40 suena (0x1cf) y la 0x4b corta en el 0x138.
+// 0x40 y 0x4b: con otra cosa que 0xa21 en la derecha, el 0x117/0 en el hueso de la derecha; con otra cosa que 0xa19 o
+// un escudo (0xe12..0x1011) en la izquierda, el 0x117/1 en el suyo (un rand() cada uno, en su alta), con los ángulos de
+// o y la luz (1; 0,6; 0,3) de la 0x40 o (1; 1; 1) de la 0x4b. Después la 0x40 suena (0x1cf, desde o) y la 0x4b crea el
+// 0x138/0 sobre o y suena (0x272). Con la tabla llena, sólo los sonidos y sin rand().
 TEST(AttackSkillCasesTest, TheHandsDecideTheRaise)
 {
     struct Case
     {
         std::uint16_t right;
         std::uint16_t left;
-        std::string_view raise;
-        std::string_view other;
+        std::vector<std::int32_t> hands;
     };
     const std::array cases{
-        Case{0xffff, 0xa19, "0x4fea10", "0x502a23"}, Case{0xa21, 0xffff, "0x4fea9b", "0x502ab4"},
-        Case{0xa21, 0xa20, "0x4fea9b", "0x502ab4"},  Case{0xa21, 0x1012, "0x4fea9b", "0x502ab4"},
-        Case{0xa21, 0xa19, "", "0x502ae6"},          Case{0xa21, 0xe12, "", "0x502ae6"},
-        Case{0xa21, 0x1011, "", "0x502ae6"},
+        Case{0xffff, 0xa19, {0}}, Case{0xa21, 0xffff, {1}}, Case{0xa21, 0xa20, {1}}, Case{0xa21, 0x1012, {1}},
+        Case{0xa21, 0xa19, {}},   Case{0xa21, 0xe12, {}},   Case{0xa21, 0x1011, {}}, Case{0xffff, 0xffff, {0, 1}},
     };
+    const glm::vec3 warm{1.0f, std::bit_cast<float>(0x3f19999au), std::bit_cast<float>(0x3e99999au)};
     for (const Case& probe : cases)
     {
-        SCOPED_TRACE(testing::Message() << probe.right << " y " << probe.left);
-        SkillWorld tested(2);
-        tested.Striker().position = glm::vec3(125.0f, 250.0f, 375.0f);
-        tested.Striker().hands[0].model = probe.right;
-        tested.Striker().hands[1].model = probe.left;
-
-        const auto raised = tested.Head(0x40);
-        const auto other = tested.Head(0x4b);
-
-        if (probe.raise.empty())
+        for (const std::uint8_t skill : {std::uint8_t{0x40}, std::uint8_t{0x4b}})
         {
-            EXPECT_TRUE(raised.HasValue()) << ErrorOf(raised);
-            EXPECT_EQ(tested.sounds, (std::vector<std::int32_t>{0x1cf}));
-            ASSERT_EQ(tested.soundOrigins.size(), 1u);
-            EXPECT_EQ(tested.soundOrigins.front(), tested.Striker().position);
+            SCOPED_TRACE(testing::Message() << probe.right << " y " << probe.left << ", skill " << int{skill});
+            SkillWorld tested(2);
+            ActorState& striker = tested.Striker();
+            striker.position = glm::vec3(125.0f, 250.0f, 375.0f);
+            striker.angles = glm::vec3(0.0f, 0.0f, 60.0f);
+            striker.light = glm::vec3(0.25f);
+            striker.hands[0].model = probe.right;
+            striker.hands[1].model = probe.left;
+
+            const auto stepped = tested.Head(skill);
+
+            ASSERT_TRUE(stepped.HasValue()) << ErrorOf(stepped);
+            const auto alive = AliveEffects(tested.world);
+            const std::size_t runes = skill == 0x4b ? 1 : 0;
+            ASSERT_EQ(alive.size(), probe.hands.size() + runes);
+            for (std::size_t made = 0; made < probe.hands.size(); ++made)
+            {
+                EXPECT_EQ(alive[made]->type, 0x117);
+                EXPECT_EQ(alive[made]->subtype, probe.hands[made]);
+                EXPECT_EQ(alive[made]->light, skill == 0x40 ? warm : glm::vec3(1.0f));
+                EXPECT_EQ(alive[made]->life, 10);
+                EXPECT_EQ(alive[made]->transform.angles.x, 45.0f);
+            }
+            if (runes != 0)
+            {
+                const auto* rune = alive.back();
+                EXPECT_EQ(rune->type, 0x138);
+                EXPECT_EQ(rune->subtype, 0);
+                EXPECT_EQ(rune->life, 50);
+                EXPECT_EQ(rune->light, glm::vec3(0.25f));
+                EXPECT_EQ(rune->transform.position, glm::vec3(125.0f, 250.0f, 675.0f));
+            }
+            EXPECT_EQ(DrawsSince(Seed, tested.random), static_cast<int>(probe.hands.size()));
+            EXPECT_EQ(tested.sounds, (std::vector<std::int32_t>{skill == 0x40 ? 0x1cf : 0x272}));
+            EXPECT_EQ(tested.soundOrigins.size(), skill == 0x40 ? 1u : 0u);
         }
-        else
-        {
-            EXPECT_TRUE(HasError(raised, probe.raise)) << ErrorOf(raised);
-            EXPECT_TRUE(tested.sounds.empty());
-        }
-        EXPECT_TRUE(HasError(other, probe.other)) << ErrorOf(other);
-        EXPECT_EQ(DrawsSince(Seed, tested.random), 0);
     }
+    SkillWorld full(2);
+    for (auto& effect : full.world.Map().effects.Effects())
+        effect.alive = true;
+    full.Striker().hands[0].model = 0xffff;
+    ASSERT_TRUE(full.Head(0x4b).HasValue());
+    EXPECT_EQ(DrawsSince(Seed, full.random), 0);
+    EXPECT_EQ(full.sounds, (std::vector<std::int32_t>{0x272}));
 }
 
 // 0x4c: el sonido 0x27d y el lazo de los 400: el monstruo lejos lee el alcance y no entra, el de la acción 6 no lo lee,
@@ -729,9 +751,8 @@ TEST(AttackSkillCasesTest, TheTargetCasesCutWithoutDraws)
     const std::array cases{
         Case{0x07, 0x20a, "0x504768"}, Case{0x01, 0x20a, "0x504926"}, Case{0x01, 0x0e, "0x50497e"},
         Case{0x02, 0x20a, "0x5049ef"}, Case{0x2d, 0x20a, "0x504a3a"}, Case{0x49, 0x20a, "0x504b33"},
-        Case{0x4a, 0x20a, "0x504b80"}, Case{0x04, 0x20a, "0x504bce"}, Case{0x0b, 0x164, "0x504c38"},
-        Case{0x0b, 0x20a, "0x504cc0"}, Case{0x3c, 0x20a, "0x504d05"}, Case{0x3d, 0x20a, "0x504e40"},
-        Case{0x11, 0x15e, "0x50501a"}, Case{0x11, 0x20a, "0x505053"},
+        Case{0x04, 0x20a, "0x504bce"}, Case{0x0b, 0x164, "0x504c38"}, Case{0x0b, 0x20a, "0x504cc0"},
+        Case{0x3c, 0x20a, "0x504d05"}, Case{0x11, 0x15e, "0x50501a"}, Case{0x11, 0x20a, "0x505053"},
     };
     for (const std::int32_t map : Maps)
     {
@@ -747,6 +768,64 @@ TEST(AttackSkillCasesTest, TheTargetCasesCutWithoutDraws)
             EXPECT_EQ(DrawsSince(Seed, tested.random), 0);
         }
     }
+}
+
+// 0x504b51..0x504b99, la 0x4a: el 0x116/2 sobre o con el blanco de dueño (vida 20, la z 20 menos) y el sonido 0x271,
+// sin rand(); con la tabla llena, sólo el sonido.
+TEST(AttackSkillCasesTest, TheDivingPartFollowsTheTarget)
+{
+    SkillWorld tested;
+    tested.Striker().position = glm::vec3(100.0f, 200.0f, 300.0f);
+    tested.Striker().angles = glm::vec3(0.0f, 0.0f, 30.0f);
+    ASSERT_TRUE(tested.WithTarget(0x4a).HasValue());
+    const auto alive = AliveEffects(tested.world);
+    ASSERT_EQ(alive.size(), 1u);
+    EXPECT_EQ(alive[0]->type, 0x116);
+    EXPECT_EQ(alive[0]->subtype, 2);
+    EXPECT_EQ(alive[0]->ownerContext, &tested.Victim());
+    EXPECT_EQ(alive[0]->transform.position, glm::vec3(100.0f, 200.0f, 280.0f));
+    EXPECT_EQ(alive[0]->transform.angles, glm::vec3(0.0f, 0.0f, 30.0f));
+    EXPECT_EQ(alive[0]->life, 20);
+    EXPECT_EQ(DrawsSince(Seed, tested.random), 0);
+    EXPECT_EQ(tested.sounds, (std::vector<std::int32_t>{0x271}));
+
+    SkillWorld full;
+    for (auto& effect : full.world.Map().effects.Effects())
+        effect.alive = true;
+    ASSERT_TRUE(full.WithTarget(0x4a).HasValue());
+    EXPECT_EQ(full.sounds, (std::vector<std::int32_t>{0x271}));
+}
+
+// 0x504d87..0x504f51, la 0x3d: tres 0x116/0 desde el primer hueso de o con el blanco de dueño, los rumbos z + 90, z y
+// z − 90 y la partida (0, 0, techo) y (0, 0, techo / 2); después el 0x117/0 y el /1 (un rand() cada uno). Sin sonido.
+TEST(AttackSkillCasesTest, TheLaunchedPartsAimAtTheTargetsTop)
+{
+    SkillWorld tested;
+    tested.Striker().angles = glm::vec3(0.0f, 0.0f, 30.0f);
+    tested.Victim().boundsTop = 150.0f;
+    ASSERT_TRUE(tested.WithTarget(0x3d).HasValue());
+    const auto alive = AliveEffects(tested.world);
+    ASSERT_EQ(alive.size(), 5u);
+    const std::array<float, 3> yaws{120.0f, 30.0f, -60.0f};
+    const std::array<float, 3> aims{150.0f, 75.0f, 75.0f};
+    for (std::size_t part = 0; part < 3; ++part)
+    {
+        SCOPED_TRACE(part);
+        EXPECT_EQ(alive[part]->type, 0x116);
+        EXPECT_EQ(alive[part]->subtype, 0);
+        EXPECT_EQ(alive[part]->ownerContext, &tested.Victim());
+        EXPECT_EQ(alive[part]->transform.angles, glm::vec3(0.0f, 0.0f, yaws[part]));
+        EXPECT_EQ(alive[part]->start, glm::vec3(0.0f, 0.0f, aims[part]));
+        EXPECT_EQ(alive[part]->light, glm::vec3(1.0f));
+        EXPECT_EQ(alive[part]->transform.position, alive[0]->transform.position);
+    }
+    EXPECT_EQ(alive[3]->type, 0x117);
+    EXPECT_EQ(alive[3]->subtype, 0);
+    EXPECT_EQ(alive[4]->type, 0x117);
+    EXPECT_EQ(alive[4]->subtype, 1);
+    EXPECT_EQ(alive[4]->transform.position, alive[0]->transform.position);
+    EXPECT_EQ(DrawsSince(Seed, tested.random), 2);
+    EXPECT_TRUE(tested.sounds.empty());
 }
 
 // 0x5046bf..0x50473b, la 0x1c: sin 0x4000 en o, el calco 0x61e/3 sobre el blanco, con él de dueño, y con +0x38d de o

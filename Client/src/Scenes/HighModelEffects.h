@@ -57,6 +57,12 @@ struct HighEffectContext
 // por eje.
 [[nodiscard]] glm::vec3 PointAround(const ActorState& actor, const glm::vec3& offset);
 
+// 0x4ec110(modelo del tipo, huesos propios (+0x120) + hueso · 0x30, offset, punto, 1): el punto de un hueso del
+// personaje en el mundo, con la escala y el origen de su modelo (los que 0x4fd69b le copia antes del paso). Sin huesos
+// propios (antes del primer dibujo), la matriz en cero (Q-C318), como OwnBonePoint de CharacterStep.cpp.
+[[nodiscard]] glm::vec3 ActorBonePoint(const ActorState& actor, std::size_t bone, const glm::vec3& offset,
+                                       const WorldState& world);
+
 // Los tipos cuya alta está en este archivo.
 [[nodiscard]] bool IsHighModelEffect(std::int16_t type);
 

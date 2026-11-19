@@ -5,6 +5,7 @@
 #include "Protocol/Outgoing.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
+#include "Render/Models/OriginalAngles.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Render/Models/OriginalRetainedMath.h"
 #include "Render/Models/Skeleton.h"
@@ -960,5 +961,227 @@ TEST(HighModelEffectsTest, TheStraightFallingStarSmokesAndDropsIceBelowTheTerrai
     const auto cut = StepHighModelEffect(star, nullptr, room.StepContext());
     EXPECT_TRUE(HasError(cut, "0x52c036")) << (cut.HasValue() ? std::string("sin corte") : cut.Error());
     EXPECT_EQ(room.Draws(), 1);
+}
+// 0x51ca31: el 0x116/0 guarda la luz que recibe como la partida y pone la suya en 1; el /2 baja 20; el /1 toma la vida
+// de su dueño (otro efecto) y suelta la llama 0x5da/0, que MuRet no tiene: corta en 0x51cb38 con lugar en la tabla de
+// partículas y, llena, sigue sin rand().
+TEST(HighModelEffectsTest, ThePierPartsTakeTheirAimLifeAndFlame)
+{
+    HighWorld tested;
+    const ModelEffectArguments homing{.type = 0x116,
+                                      .position = {10, 20, 30},
+                                      .angles = {5, 6, 70},
+                                      .light = {0, 0, 150},
+                                      .owner = &tested.world->Actors()[3]};
+    ASSERT_TRUE(CreateHighModelEffect(homing, tested.Context()).HasValue());
+    const ModelEffect& part = tested.Effect(0);
+    EXPECT_EQ(part.life, 20);
+    EXPECT_EQ(part.turnDirection, 2.0f);
+    EXPECT_EQ(part.speed, 10.0f);
+    EXPECT_EQ(part.objectState.hiddenMesh, 1);
+    EXPECT_EQ(part.transform.scale, std::bit_cast<float>(0x3f99999au));
+    EXPECT_EQ(part.light, glm::vec3(1.0f));
+    EXPECT_EQ(part.velocity, (glm::vec3{0, -26, 0}));
+    EXPECT_EQ(part.start, (glm::vec3{0, 0, 150}));
+    EXPECT_EQ(part.copiedAngles, (glm::vec3{5, 6, 70}));
+    EXPECT_EQ(part.transform.angles, (glm::vec3{0, 0, 70}));
+
+    ModelEffectArguments diving = homing;
+    diving.subtype = 2;
+    ASSERT_TRUE(CreateHighModelEffect(diving, tested.Context()).HasValue());
+    const ModelEffect& dive = tested.Effect(1);
+    EXPECT_EQ(dive.life, 20);
+    EXPECT_EQ(dive.speed, 50.0f);
+    EXPECT_EQ(dive.objectState.hiddenMesh, -2);
+    EXPECT_EQ(dive.transform.position, (glm::vec3{10, 20, 10}));
+    EXPECT_EQ(dive.velocity, (glm::vec3{0, -40, 0}));
+    EXPECT_EQ(dive.transform.angles, (glm::vec3{0, 0, 70}));
+
+    tested.Effect(0).life = 12;
+    const ModelEffectArguments trail{.type = 0x116, .position = {1, 2, 3}, .subtype = 1, .owner = &tested.Effect(0)};
+    EXPECT_TRUE(HasError(CreateHighModelEffect(trail, tested.Context()), "0x51cb38"));
+    tested.FillTheParticles();
+    tested.Effect(2).alive = false;
+    ASSERT_TRUE(CreateHighModelEffect(trail, tested.Context()).HasValue());
+    const ModelEffect& flame = tested.Effect(2);
+    EXPECT_EQ(flame.life, 12);
+    EXPECT_EQ(flame.objectState.hiddenMesh, 0);
+    EXPECT_EQ(flame.transform.scale, 0.5f);
+    EXPECT_EQ(flame.alpha, static_cast<float>(8.0 * static_cast<double>(std::bit_cast<float>(0x3e4ccccdu))));
+    EXPECT_EQ(flame.velocity, glm::vec3(0.0f));
+    EXPECT_EQ(tested.Draws(), 0);
+}
+
+// 0x52727b..0x527447: el 0x116/0 con +0xe4 en 2 da una vuelta (un rand(), el giro hacia su dueño más la partida, +0xd8
+// 0,4f más, el avance y el 0x116/1, que corta en su llama con lugar), y después +0xe4 0,1f más y el sonido 0x1ca; sin
+// dueño, sólo la luz local.
+TEST(HighModelEffectsTest, TheHomingPartTurnsTowardItsOwnerAndLeavesItsTrail)
+{
+    HighWorld tested;
+    ActorState& owner = tested.world->Actors()[3];
+    owner.position = {1000, 0, 0};
+    const ModelEffectArguments homing{.type = 0x116, .position = {0, 0, 0}, .light = {0, 0, 100}, .owner = &owner};
+    ASSERT_TRUE(CreateHighModelEffect(homing, tested.Context()).HasValue());
+    ModelEffect& part = tested.Effect(0);
+    tested.FillTheParticles();
+    ASSERT_TRUE(StepHighModelEffect(part, nullptr, tested.StepContext()).HasValue());
+    CrtRandom expected(Seed);
+    static_cast<void>(expected.Next());
+    glm::vec3 angles{0, 0, 0};
+    if ((expected.Next() & 1) == 0)
+        angles.x = -20.0f;
+    static_cast<void>(Client::Render::Models::MoveToward({0, 0, 0}, angles, {1000, 0, 100}, 10.0f));
+    const glm::vec3 moved =
+        Client::Render::Models::OriginalVectorRotate({0, -26, 0}, Client::Render::Models::OriginalAngleMatrix(angles));
+    EXPECT_EQ(part.transform.angles, angles);
+    EXPECT_EQ(part.transform.position, moved);
+    EXPECT_EQ(part.speed, static_cast<float>(10.0 + static_cast<double>(std::bit_cast<float>(0x3ecccccdu))));
+    EXPECT_EQ(part.turnDirection, static_cast<float>(2.0 + static_cast<double>(std::bit_cast<float>(0x3dcccccdu))));
+    EXPECT_EQ(part.life, 19);
+    EXPECT_EQ(tested.world->Runtime().lastSoundId, 0x1ca);
+    const ModelEffect& trail = tested.Effect(1);
+    ASSERT_TRUE(trail.alive);
+    EXPECT_EQ(trail.subtype, 1);
+    EXPECT_EQ(trail.ownerContext, &part);
+    EXPECT_EQ(trail.transform.position, moved);
+    EXPECT_EQ(trail.life, 20);
+    EXPECT_EQ(tested.Draws(), 2);
+
+    HighWorld room;
+    ASSERT_TRUE(CreateHighModelEffect({.type = 0x116, .owner = &room.world->Actors()[3]}, room.Context()).HasValue());
+    EXPECT_TRUE(HasError(StepHighModelEffect(room.Effect(0), nullptr, room.StepContext()), "0x5273c6: 0x51cb38"));
+
+    HighWorld alone;
+    ASSERT_TRUE(CreateHighModelEffect({.type = 0x116}, alone.Context()).HasValue());
+    ASSERT_TRUE(StepHighModelEffect(alone.Effect(0), nullptr, alone.StepContext()).HasValue());
+    EXPECT_EQ(alone.Effect(0).turnDirection, 2.0f);
+    EXPECT_EQ(alone.Draws(), 1);
+}
+
+// 0x527455..0x527534 y 0x527252: el 0x116/2 gira hacia su dueño, +0xd8 2,4f más y avanza; con la vida múltiplo de 3,
+// el joint 0x61c/2 (del lote de los joints: con lugar corta en 0x52752c; lleno, sigue). El /1, con menos de 5 de vida,
+// el alpha por 0,7692308f.
+TEST(HighModelEffectsTest, TheDivingPartDropsAJointEveryThreeSteps)
+{
+    HighWorld tested;
+    ActorState& owner = tested.world->Actors()[3];
+    owner.position = {0, 1000, 0};
+    ASSERT_TRUE(
+        CreateHighModelEffect({.type = 0x116, .angles = {0, 0, 0}, .subtype = 2, .owner = &owner}, tested.Context())
+            .HasValue());
+    ModelEffect& dive = tested.Effect(0);
+    dive.life = 10;
+    ASSERT_TRUE(StepHighModelEffect(dive, nullptr, tested.StepContext()).HasValue());
+    EXPECT_EQ(dive.speed, static_cast<float>(50.0 + static_cast<double>(std::bit_cast<float>(0x4019999au))));
+    EXPECT_EQ(dive.life, 9);
+    EXPECT_TRUE(HasError(StepHighModelEffect(dive, nullptr, tested.StepContext()), "0x52752c"));
+    tested.FillTheJoints();
+    dive.life = 9;
+    ASSERT_TRUE(StepHighModelEffect(dive, nullptr, tested.StepContext()).HasValue());
+    EXPECT_EQ(tested.Draws(), 3);
+
+    ModelEffect& trail = tested.Effect(1);
+    trail = ModelEffect{};
+    trail.alive = true;
+    trail.type = 0x116;
+    trail.subtype = 1;
+    trail.life = 5;
+    trail.alpha = 0.5f;
+    ASSERT_TRUE(StepHighModelEffect(trail, nullptr, tested.StepContext()).HasValue());
+    EXPECT_EQ(trail.alpha, 0.5f);
+    ASSERT_TRUE(StepHighModelEffect(trail, nullptr, tested.StepContext()).HasValue());
+    EXPECT_EQ(trail.alpha, static_cast<float>(0.5 * static_cast<double>(std::bit_cast<float>(0x3f44ec4fu))));
+    EXPECT_EQ(trail.life, 3);
+}
+
+// 0x51cbb2 y 0x527539: el 0x117 nace con vida 10, escala 0,2f y +0xd8 0,1f; con el subtipo 1 o menos, un rand() % 2
+// elige entre la inclinación subtipo · −90 + 45 y la fija; el /2, vida 12 y +0xd8 0,4f. Su paso crece y apaga +0x68.
+TEST(HighModelEffectsTest, TheDarkLordSkillTiltsByItsSubtypeAndGrows)
+{
+    for (const std::int32_t subtype : {-1, 0, 1, 2, 3})
+    {
+        SCOPED_TRACE(subtype);
+        HighWorld tested;
+        ASSERT_TRUE(CreateHighModelEffect({.type = 0x117, .angles = {1, 2, 3}, .subtype = subtype}, tested.Context())
+                        .HasValue());
+        ModelEffect& hand = tested.Effect(0);
+        CrtRandom expected(Seed);
+        if (subtype <= 1)
+        {
+            const float yaw =
+                expected.Next() % 2 != 0 ? static_cast<float>(subtype * -90.0 + 45.0) : (subtype == 0 ? 45.0f : -45.0f);
+            EXPECT_EQ(hand.transform.angles, (glm::vec3{45, yaw, 0}));
+            EXPECT_EQ(tested.Draws(), 1);
+        }
+        else
+        {
+            EXPECT_EQ(hand.transform.angles, (glm::vec3{1, 2, 3}));
+            EXPECT_EQ(tested.Draws(), 0);
+        }
+        EXPECT_EQ(hand.life, subtype == 2 ? 12 : 10);
+        EXPECT_EQ(hand.transform.scale, std::bit_cast<float>(0x3e4ccccdu));
+        const float growth = std::bit_cast<float>(subtype == 2 ? 0x3ecccccdu : 0x3dcccccdu);
+        EXPECT_EQ(hand.speed, growth);
+        hand.life = 7;
+        hand.objectState.light = 0.9f;
+        ASSERT_TRUE(StepHighModelEffect(hand, nullptr, tested.StepContext()).HasValue());
+        EXPECT_EQ(hand.transform.scale,
+                  static_cast<float>(static_cast<double>(std::bit_cast<float>(0x3e4ccccdu)) + growth));
+        const std::uint32_t change = subtype <= 1 ? 0x3ca3d70au : subtype == 2 ? 0x3d75c28fu : 0x3d23d70au;
+        const double sign = subtype == 2 ? -1.0 : 1.0;
+        EXPECT_EQ(hand.speed, static_cast<float>(static_cast<double>(growth) +
+                                                 sign * static_cast<double>(std::bit_cast<float>(change))));
+        const std::uint32_t fade = subtype == 2 ? 0x3f2aaaabu : 0x3f0e38e4u;
+        EXPECT_EQ(hand.objectState.light,
+                  subtype <= 1 ? 0.9f : static_cast<float>(0.9 * static_cast<double>(std::bit_cast<float>(fade))));
+        EXPECT_EQ(hand.life, 6);
+    }
+}
+
+// 0x51da46 y 0x529a4f: el 0x138/0 nace 300 más arriba, oculto hasta la vida 40, crece desde la 40 y, al pasar de 1,
+// suelta el 0x138/1 con su luz; por debajo de 15 se achica, se apaga con la vida y baja. El /1 se achica hasta 1.
+TEST(HighModelEffectsTest, TheManaRuneGrowsFlashesAndSinks)
+{
+    HighWorld tested;
+    ASSERT_TRUE(
+        CreateHighModelEffect({.type = 0x138, .position = {10, 20, 30}, .light = glm::vec3(0.5f)}, tested.Context())
+            .HasValue());
+    ModelEffect& rune = tested.Effect(0);
+    EXPECT_EQ(rune.life, 50);
+    EXPECT_EQ(rune.transform.scale, 0.0f);
+    EXPECT_EQ(rune.alpha, std::bit_cast<float>(0x3e99999au));
+    EXPECT_EQ(rune.transform.position, (glm::vec3{10, 20, 330}));
+    EXPECT_EQ(rune.transform.angles, (glm::vec3{0, 0, 45}));
+    ASSERT_TRUE(StepHighModelEffect(rune, nullptr, tested.StepContext()).HasValue());
+    EXPECT_EQ(rune.objectState.hiddenMesh, -2);
+    rune.life = 41;
+    ASSERT_TRUE(StepHighModelEffect(rune, nullptr, tested.StepContext()).HasValue());
+    EXPECT_EQ(rune.objectState.hiddenMesh, 0);
+    int steps = 0;
+    while (!tested.Effect(1).alive && steps < 10)
+    {
+        ASSERT_TRUE(StepHighModelEffect(rune, nullptr, tested.StepContext()).HasValue());
+        ++steps;
+    }
+    ASSERT_TRUE(tested.Effect(1).alive);
+    EXPECT_EQ(rune.transform.scale, 1.0f);
+    EXPECT_EQ(rune.turnDirection, std::bit_cast<float>(0x3c23d70au));
+    const ModelEffect& flash = tested.Effect(1);
+    EXPECT_EQ(flash.subtype, 1);
+    EXPECT_EQ(flash.life, 10);
+    EXPECT_EQ(flash.transform.scale, std::bit_cast<float>(0x3f8ccccdu));
+    EXPECT_EQ(flash.objectState.blendMesh, -2);
+    EXPECT_EQ(flash.objectState.light, std::bit_cast<float>(0x3ecccccdu));
+    EXPECT_EQ(flash.light, glm::vec3(0.5f));
+    rune.life = 14;
+    ASSERT_TRUE(StepHighModelEffect(rune, nullptr, tested.StepContext()).HasValue());
+    EXPECT_EQ(rune.alpha, static_cast<float>(14.0 * static_cast<double>(std::bit_cast<float>(0x3d4ccccdu))));
+    EXPECT_EQ(rune.transform.position.z, 320.0f);
+    EXPECT_EQ(tested.Draws(), steps + 3);
+
+    ModelEffect& shrinking = tested.Effect(1);
+    shrinking.transform.scale = 1.01f;
+    ASSERT_TRUE(StepHighModelEffect(shrinking, nullptr, tested.StepContext()).HasValue());
+    EXPECT_EQ(shrinking.transform.scale, 1.0f);
 }
 } // namespace

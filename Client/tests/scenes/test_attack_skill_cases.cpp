@@ -30,7 +30,7 @@
 
 #include <algorithm>
 #include <array>
-#include <cmath>
+#include <bit>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -239,7 +239,8 @@ TEST(AttackSkillCasesTest, TheHeadCasesCutAfterTheirDraws)
 
 // 0x4fe795..0x4fe981: la 0x35 cuelga de o cuatro 0x619/0xa de ancho 15 con los ángulos (−45, 0, 45, 405, 225 y 450),
 // que nacen en o; su primer tramo queda en el punto (sen 4,5 · 80; cos 4,5 · 80; 300) o (cos 22,5 · 80; sen 22,5 · 80;
-// 300) más o. Suena 0x7f, sin rand().
+// 300) más o. Suena 0x7f, sin rand(). Los puntos, por sus bits: FSIN/FCOS a 64 bits, el producto por 80 y la suma con
+// o en PC53 y el fstp a float. Con el lugar nuevo (ancho 0 en 0x530afa), las cuatro esquinas caen justo en el punto.
 TEST(AttackSkillCasesTest, TheEnergyCaseHangsFourJointsAroundItsCaster)
 {
     SkillWorld tested;
@@ -261,15 +262,12 @@ TEST(AttackSkillCasesTest, TheEnergyCaseHangsFourJointsAroundItsCaster)
         EXPECT_EQ(joint.angles, glm::vec3(-45.0f, 0.0f, turns[index]));
         EXPECT_EQ(joint.position, tested.Striker().position);
         EXPECT_EQ(joint.ownerContext, &tested.Striker());
-        const bool near = index < 2;
-        const double argument = near ? 4.5 : 22.5;
-        const glm::vec3 from{1000.0f + 80.0f * static_cast<float>(near ? std::sin(argument) : std::cos(argument)),
-                             2000.0f + 80.0f * static_cast<float>(near ? std::cos(argument) : std::sin(argument)),
-                             350.0f};
-        const glm::vec3 center = (joint.points[0][0] + joint.points[0][1]) * 0.5f;
-        EXPECT_NEAR(center.x, from.x, 1e-3f);
-        EXPECT_NEAR(center.y, from.y, 1e-3f);
-        EXPECT_NEAR(center.z, from.z, 1e-3f);
+        // 921,7976 y 1983,1364 (4,5 rad); 930,1356 y 1961,0260 (22,5 rad).
+        const glm::vec3 from =
+            index < 2 ? glm::vec3(std::bit_cast<float>(0x4466730cu), std::bit_cast<float>(0x44f7e45du), 350.0f)
+                      : glm::vec3(std::bit_cast<float>(0x446888aeu), std::bit_cast<float>(0x44f520d5u), 350.0f);
+        for (const glm::vec3& corner : joint.points[0])
+            EXPECT_EQ(corner, from);
     }
     EXPECT_FALSE(tested.joints[4].alive);
     EXPECT_EQ(tested.sounds, std::vector<std::int32_t>{0x7f});

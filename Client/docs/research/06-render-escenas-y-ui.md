@@ -11824,8 +11824,9 @@ mano es la de `0x4f9780(o)`: la izquierda (`+0x2d8`) con el `0x20a` en la `0x25`
   byte `+0x22` de su registro de `0x8c` (un dummy) o desde la cuenta de huesos (`+0x22` del modelo, `JGE` con signo)
   sale (Q-C1090). En 8, el sonido `0x71` (`0x4f9910`). De 2 a 8, tres veces: la posición con z + 120 (`0x6b86c8`),
   tres `rand() % 0x259 − 300` sumados, x menos el seno del rumbo · 1.400 (`0x6ba188`) e y más el coseno, y
-  `0x530860(0x10f, punto, punto, o+0x1c, 2, o, 40,0f, −1, 0, 0, −1)`: corta en el primero (`0x4f99fe`, después de
-  sus tres `rand()`). Hasta 8 (también en 1), `0x4ec110` con el hueso y `(0, 0, 0)` a `o+0x194`
+  `0x530860(0x10f, punto, punto, o+0x1c, 2, o, 40,0f, −1, 0, 0, −1)` (FSIN y FCOS retenidos y un redondeo con el
+  FMUL, el perfil PC53; con el pool lleno, los nueve `rand()` igual; CL11, octava vuelta del lote joints: el joint va
+  de la mano de o al punto, ver el `0x10f`). Hasta 8 (también en 1), `0x4ec110` con el hueso y `(0, 0, 0)` a `o+0x194`
   (`ActorState::skillHandPoint`), más el seno del rumbo (`+0x24 · π/180`, `0x6b8cf8`) · 300 (`0x6b8900`) en x y menos
   el coseno · 300 en y, en la x87 y guardado en `float` (`0x4f9a0d..0x4f9a80`); lo lee el paso de los joints `0x10f`
   con ese dueño. De 6 a 12, `0x4ec110` con el hueso, el punto corrido (`+0x381` − 8) · 10 + 100 por el rumbo y dos
@@ -14452,8 +14453,12 @@ en un lugar de más adelante pasa en la misma vuelta de `0x53c670`.
   (`0x536526`): tres vueltas de z + 10 y cola; con la tanda en 0 la y por 0,95 (bajo 10, −10); pasada la 40, y − 20,
   z − 5 y ancho + 15; con y negativa, la tanda 40 de la /5 y la /6 suelta el efecto `0x6eb` (`0x518cf0`, corta en
   `0x536626`) y la tanda sube: hasta 20, y = −30 y ancho 40, después el `+0x24` sube 5; al final, con vida < 10 la luz
-  por 0,8333333f, y el ancho − 5. La /2 con dueño vivo pone el ancho en vida · 3 y corta en `0x53d1a0` con escala 1,4
-  (`0x535e66`); sin él, suelta el dueño. Los crean `0x5048db` (cinco /0 de ancho 20 tras `0x534f90`), `0x5045f9` y
+  por 0,8333333f, y el ancho − 5. La /2 (la `0x2b`, `0x4f99fe`; octava vuelta, `0x535dbe..0x535ee4`) sin dueño vivo
+  lo suelta; con él, el ancho es la vida · 3 y la posición es (1 − a) · `o+0x194` + a · p, con a = (vida − 10) · 0,1f
+  entre 0 y 1 (guardada en `float`; 1 − a también) y p el destino (`+0x58`) más `0x53d1a0(17721 · lugar, dir, 1,4f)`
+  · 300 (la x suma el producto sin guardarlo en `float`; la y y la z lo guardan). En `0x53d1a0`, la frecuencia de la x
+  (0,048f · escala) queda en la x87 y las de la y y la z (0,0613f y 0,1113f · escala) se guardan en `float`: con
+  escala 1 o 0,5 da lo mismo, con 1,4 no. Los crean `0x5048db` (cinco /0 de ancho 20 tras `0x534f90`), `0x5045f9` y
   `0x5046b0` (cinco /4 con el `+0x3a4` de c, con signo), `0x4e644f` (cinco /0 de ancho 50) y `0x4e662d` (tres /8 de
   ancho 30, ángulos z 90/180/270, la copia del `+0x10` 10 más abajo cada vez) y la `0x48` (`0x4fe505..0x4fe790`: `+0x78`
   de o en 0 y seis /5..7 de ancho 170 desde o + 100 en z, girados 45, 135, 225, 90, 180 y 270, la copia 10 más abajo

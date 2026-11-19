@@ -343,7 +343,7 @@ TEST(AttackFrameSkillsTest, TheBoltsOf2cCutWithoutTheirPools)
 
 // 0x2b (0x4f98a0..0x4f9bcd): el hueso de la mano de 0x4f9780 (la izquierda con la 0x25 o la 0x26) en Player.bmd. Un
 // dummy o fuera de la cuenta (JGE: el igual tampoco), nada. Hasta 8, la mano a +0x194, corrida 300 por el rumbo; en 8,
-// el sonido 0x71; de 2 a 8 corta en el primer joint 0x10f/2 después de sus tres rand(); de 6 a 12, los dos efectos
+// el sonido 0x71; de 2 a 8, tres joints 0x10f/2 con tres rand() cada uno; de 6 a 12, los dos efectos
 // 0x812/1 (sin rand()); desde 12, +0x381 en [0x6c88ac].
 TEST(AttackFrameSkillsTest, TheHandOf2bChargesUntilEight)
 {
@@ -364,8 +364,8 @@ TEST(AttackFrameSkillsTest, TheHandOf2bChargesUntilEight)
         {"en 1", 0x2b, 1, HandBone, 0, "", 0, true, 1, {}},
         {"en 1, con la izquierda de la 0x25", 0x25, 1, DummyBone, HandBone, "", 0, true, 1, {}},
         {"en 1, con la izquierda de la 0x26", 0x26, 1, Bones, HandBone, "", 0, true, 1, {}},
-        {"en 2", 0x2b, 2, HandBone, 0, "0x4f99fe", 3, false, 2, {}},
-        {"en 8", 0x2b, 8, HandBone, 0, "0x4f99fe", 3, false, 8, {0x71}},
+        {"en 2", 0x2b, 2, HandBone, 0, "", 9, true, 2, {}},
+        {"en 8", 0x2b, 8, HandBone, 0, "", 9, true, 8, {0x71}},
         {"en 9", 0x2b, 9, HandBone, 0, "", 0, false, 9, {}},
         {"en 12", 0x2b, 12, HandBone, 0, "", 0, false, FullThreshold, {}},
         {"en 13", 0x2b, 13, HandBone, 0, "", 0, false, FullThreshold, {}},
@@ -409,6 +409,73 @@ TEST(AttackFrameSkillsTest, TheHandOf2bChargesUntilEight)
             EXPECT_EQ(hero.skillHandPoint, probe.handPoint ? glm::vec3(1010.0f, 1720.0f, 30.0f) : untouched);
             EXPECT_EQ(tested.Threshold(), FullThreshold);
         }
+    }
+}
+
+// 0x4f9918..0x4f9a07: de 2 a 8, tres veces la posición de o con la z + 120 y tres rand() % 601 − 300 sumados, menos el
+// seno del rumbo · 1.400 en x y más el coseno en y (FSIN y FCOS retenidos, un redondeo con el FMUL: PC53), y el joint
+// 0x10f/2 de ancho 40 con o de dueño y sus ángulos, que va de su mano (AuraJoints.cpp). Con el pool lleno, los nueve
+// rand() igual y ningún joint; sin el pool, corta.
+TEST(AttackFrameSkillsTest, TheBoltsOf2bLeaveFromTheHand)
+{
+    for (const std::int32_t map : Maps)
+    {
+        SCOPED_TRACE(map);
+        FrameWorld tested(map);
+        ActorState& hero = tested.Striker(0x2b, 0.0f, 4);
+        hero.hands[0].bone = HandBone;
+        hero.position = {1000.0f, 2000.0f, 33.5f};
+        hero.angles = {0.0f, 0.0f, 30.0f};
+        hero.scale = 1.0f;
+        tested.world.PlaceModel(hero);
+
+        const auto stepped = tested.Step(hero, 0x2b);
+
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        const double angle = 30.0 * static_cast<double>(std::bit_cast<float>(0x3c8efa35u));
+        const auto sine = Client::Render::Models::Detail::SineProductPC53(angle, 1400.0f);
+        const auto cosine = Client::Render::Models::Detail::CosineProductPC53(angle, 1400.0f);
+        ASSERT_TRUE(sine.has_value() && cosine.has_value());
+        CrtRandom expected{Seed};
+        const auto bolts = AliveJoints(tested.joints);
+        ASSERT_EQ(bolts.size(), 3u);
+        for (const JointState* bolt : bolts)
+        {
+            const double x = static_cast<double>(expected.Next() % 601 - 300) + 1000.0;
+            const double y = static_cast<double>(expected.Next() % 601 - 300) + 2000.0;
+            const auto z =
+                static_cast<float>(static_cast<double>(expected.Next() % 601 - 300) + static_cast<double>(153.5f));
+            const glm::vec3 point{static_cast<float>(static_cast<double>(static_cast<float>(x)) - *sine),
+                                  static_cast<float>(*cosine + static_cast<double>(static_cast<float>(y))), z};
+            EXPECT_EQ(bolt->type, 0x10f);
+            EXPECT_EQ(bolt->subtype, 2);
+            EXPECT_EQ(bolt->position, point);
+            EXPECT_EQ(bolt->targetPosition, point);
+            EXPECT_EQ(bolt->angles, hero.angles);
+            EXPECT_EQ(bolt->width, 40.0f);
+            EXPECT_EQ(bolt->ownerContext, &hero);
+            EXPECT_EQ(bolt->ownerKind, Client::Scenes::JointOwnerKind::Actor);
+            EXPECT_EQ(bolt->texture, 0x62c);
+        }
+        EXPECT_EQ(tested.random.State(), expected.State());
+
+        FrameWorld full(map);
+        for (JointState& joint : full.joints)
+            joint.alive = true;
+        ActorState& crowded = full.Striker(0x2b, 0.0f, 4);
+        crowded.hands[0].bone = HandBone;
+        full.world.PlaceModel(crowded);
+        ASSERT_TRUE(full.Step(crowded, 0x2b).HasValue());
+        EXPECT_EQ(DrawsSince(Seed, full.random), 9);
+
+        FrameWorld without(map);
+        without.withJoints = false;
+        ActorState& alone = without.Striker(0x2b, 0.0f, 4);
+        alone.hands[0].bone = HandBone;
+        without.world.PlaceModel(alone);
+        const auto cut = without.Step(alone, 0x2b);
+        EXPECT_TRUE(HasError(cut, "0x4f99fe")) << ErrorOf(cut);
+        EXPECT_EQ(DrawsSince(Seed, without.random), 3);
     }
 }
 

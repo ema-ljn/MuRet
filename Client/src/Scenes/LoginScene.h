@@ -169,6 +169,9 @@ private:
     // rand() de la CRT: el dragón por World::StepGameModelEffect y el meteoro 0xc2/9 del 0x59 por
     // World::StepWizardModelEffect.
     [[nodiscard]] Core::Expected<void, std::string> StepTheModelEffects();
+    // 0x53c670 (0x634d1d), entre los efectos con modelo y las partículas: el paso de los joints del mundo
+    // (WorldState::DrawTail), con los globales del juego, como la selección (SelectionWorld::StepEffects).
+    [[nodiscard]] Core::Expected<void, std::string> StepTheJoints();
     // 0x5446e0 (0x634d22): el de la escena del juego, con el dueño de las partículas que siguen a un efecto (la estela
     // 5f2/0x24 del meteoro).
     [[nodiscard]] Core::Expected<void, std::string> StepTheParticles();

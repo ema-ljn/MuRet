@@ -15417,6 +15417,15 @@ Los llamadores portados (cada alta con su dirección en el error):
   meteoro de dueño (`+0x108`), la clave 30, los ángulos en 0 y la luz `(0; 0,5; 0)`, sin `rand()` propio; después el
   polvo y las piedritas de su subtipo. `Scenes::WizardEffectServicesOf` lo da (`otherEffect`) con
   `World::CreateBlastModelEffect` sobre la tabla del mundo, y el dueño tiene que ser un lugar de esa tabla.
+- El fuego que cae (`0xc2/4`, `0x524a5f..0x524b2a`): debajo del suelo tiembla la cámara (`(rand() & 3) − 4` por
+  0,1f) y recorre los 400 primeros personajes del pool (`0x524a8d..0x524b21`): dx y dy se guardan en float antes de
+  mirar al personaje, y empuja al vivo, visto (`+0x16c`), que no es el héroe (`[0x743a170]`), sin `+0x389` y con la raíz
+  de dy² + dx² a 200 o menos (`0x6b8928`, `test ah,0x41`): el `0x20a` con Fenrir (`+0x318` en `0x1c37`) con
+  `0x4e9cd0` (la acción de golpe por las manos, `Scenes::FenrirHitActionOf`), el `0x20a` sin él con
+  `0x4ea030(0xc2)` y los demás con `0x4ea030(5)`, que no pone una acción que el modelo no tiene. Sigue con todos, sin
+  `rand()`, y cae en el suelo igual (`0x524b27 → 0x524c64`). El servicio es `pushAround` de
+  `Scenes::WizardEffectServicesOf`, con los esqueletos del mapa y después los del juego (`WizardSceneParts::models`);
+  sin Player.bmd, un `0x20a` cercano corta en `0x524afc`.
 - `0x4f5660`: el jugador de subtipo `0xd1..0xd3` y el `0x170` sueltan un `0xd5/0` y diez `0xd6/0` sin dueño (`0x4f58c2`,
   `0x4f58e7`; `0x4f595d`, `0x4f5982`), cinco `rand()` cada uno, antes del sonido `0x7c`.
 

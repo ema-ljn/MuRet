@@ -219,7 +219,8 @@ GameScene::StepTheModelEffects(float worldClock, const std::function<double(floa
                          .send = m_session != nullptr ? std::function<void(Protocol::Outgoing)>(
                                                             [session = m_session](Protocol::Outgoing packet)
                                                             { session->SendChat(std::move(packet)); })
-                                                      : std::function<void(Protocol::Outgoing)>{}});
+                                                      : std::function<void(Protocol::Outgoing)>{},
+                         .models = m_models});
     // 52d220: reset44dc40antesdelprimeractivo; el último proyectil seguido vuelveaescribirlo.
     CameraInputState().effectTarget = glm::vec3(0.0f);
     auto effects = m_context.world->Map().effects.Effects();

@@ -15,6 +15,7 @@
 
 #include <glm/ext/vector_float3.hpp>
 
+#include <algorithm>
 #include <bit>
 #include <cmath>
 #include <cstddef>
@@ -181,10 +182,18 @@ Core::Expected<void, std::string> StepTheGuildMark(World::ModelEffect& effect, c
             constexpr int Bursts = 5;
             constexpr std::int32_t Burst = 0x5c5, BurstSubtype = 6;
             constexpr float BurstScale = 1.5f; // 0x3fc00000
+            // 0x529f5b: push ebx, la marca de dueño; el paso de la 0x5c5/6 resta lo que se corrió desde su partida.
+            const auto pool = context.world.Map().effects.Effects();
+            const auto found =
+                std::ranges::find_if(pool, [&](const World::ModelEffect& candidate) { return &candidate == &effect; });
+            if (found == pool.end())
+                return Core::Unexpected(std::string("0x529f5b: el 0x140 fuera de su pool durable"));
+            const World::ParticleOwner burstOwner{World::ParticleOwnerKind::ModelEffect,
+                                                  static_cast<std::uint64_t>(found - pool.begin())};
             for (int burst = 0; burst < Bursts; ++burst)
                 if (auto made = CreateHighParticle(context.world, context.random, context.worldClock, Burst,
                                                    effect.transform.position, effect.transform.angles, effect.light,
-                                                   BurstSubtype, BurstScale, 0x529f71);
+                                                   BurstSubtype, BurstScale, 0x529f71, burstOwner);
                     !made.HasValue())
                     return Core::Unexpected(made.Error());
         }

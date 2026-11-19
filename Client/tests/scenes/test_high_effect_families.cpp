@@ -11,6 +11,7 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/FaunaDrawing.h"
 #include "Scenes/GameDrawTail.h"
+#include "Scenes/GameParticles.h"
 #include "Scenes/HighEffectEmitters.h"
 #include "Scenes/WorldMap.h"
 #include "Scenes/WorldState.h"
@@ -682,9 +683,10 @@ TEST(HighEffectFamiliesTest, TheGuildMarkFollowsItsOwnerAndFadesIn)
     EXPECT_EQ(mark.life, -1);
 }
 
-// Las chispas del paso del 0x140: con la vida entre 121 y 124, cinco 0x5c5/6 (0x529f71, escala 1,5f); entre 40 y 59,
-// el giro, dos radios y la altura (cuatro rand()) y una 0x5c5/5 (0x52a16e), que no es de MuRet: con lugar corta. Con las
-// partículas llenas, sólo los rand() propios; por debajo de 50 el alpha baja 0,1f.
+// Las chispas del paso del 0x140: con la vida entre 121 y 124, cinco 0x5c5/6 con él de dueño (0x529f71, escala 1,5f),
+// que el paso de las partículas resuelve; entre 40 y 59, el giro, dos radios y la altura (cuatro rand()) y una 0x5c5/5
+// (0x52a16e), que no es de MuRet: con lugar corta. Con las partículas llenas, sólo los rand() propios; por debajo de 50
+// el alpha baja 0,1f.
 TEST(HighEffectFamiliesTest, TheGuildMarkSparksAtBirthAndBeforeFading)
 {
     for (const bool full : {false, true})
@@ -715,13 +717,24 @@ TEST(HighEffectFamiliesTest, TheGuildMarkSparksAtBirthAndBeforeFading)
             }
             ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
             const bool bursts = !full && life == 122;
-            if (bursts)
-                for (int burst = 0; burst < 5; ++burst)
-                    ReplayParticle(replay, 0x5c5, 6, 1.5f);
+            const Client::World::ParticleOwner markOwner{Client::World::ParticleOwnerKind::ModelEffect, 0};
+            auto twin = std::make_unique<Client::World::Particles>();
+            for (int burst = 0; bursts && burst < 5; ++burst)
+                ASSERT_TRUE(twin->CreateOwnedChecked(0x5c5, glm::vec3(0.0f), glm::vec3(0.0f), glm::vec3(1.0f), 6, 1.5f,
+                                                     tested.clock, replay, 0, markOwner)
+                                .HasValue());
             EXPECT_EQ(tested.random.State(), replay.State());
             if (!full)
             {
                 EXPECT_EQ(AliveParticles(*tested.world, 0x5c5, 6), bursts ? 5 : 0);
+                for (const auto& particle : tested.world->Particles().All())
+                    if (particle.alive && particle.type == 0x5c5)
+                    {
+                        EXPECT_EQ(particle.typedOwner, markOwner);
+                    }
+                const auto resolved = Client::Scenes::ParticleOwnerStatesOf(*tested.world)(markOwner);
+                ASSERT_TRUE(resolved.has_value());
+                EXPECT_EQ(resolved->position, mark.transform.position);
             }
             EXPECT_EQ(mark.alpha, life < 50 ? static_cast<float>(0.5 - static_cast<double>(0.1f)) : 0.5f);
         }

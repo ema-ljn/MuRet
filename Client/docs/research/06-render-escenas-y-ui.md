@@ -14203,7 +14203,7 @@ la marca `0x140` de `+0x369` (`0x510f4d`, en `MonsterDrawing` y en `GameCharacte
 joint `0x10f/5` y `/6` (`0x536626`). Los dos `0x6e8/0` del `0x114/1` (`0x51c25f`) los crea el lote joints. Cortan, con un lugar libre y después de sus
 `rand()`: los joints `0x5ac/0` del `0x114/0` (`0x51c1b8`) y el `0x6ee/0x12` con dueño del `0x125` (`0x51ce91`) (08, P-C420); la
 partícula `0x5c5/5` del `0x140` (`0x52a16e`; la `0x6ec/3` del `0x13d`, `0x5262e8`, con él de dueño, y las cinco `0x5c5/6`
-del `0x140`, `0x529f71`, ya nacen con el lote de partículas) y la órbita
+del `0x140`, `0x529f71`, ya nacen con el efecto de dueño) y la órbita
 `0x60f/0` con el `0x61d` de dueño (`0x52b8ff`, `0x52b977`; su paso lee `+0x111` del efecto como la acción de un
 personaje) (08, P-C422). El `0x125` todavía no sale en el juego: el `0x128` que lo suelta no está (`0x43d051`,
 `0x43d0fd`, `KalimaSiegeHelpers`; su /0 crea diez `0x126`). Del `0x145` el original solo crea el /2 (`0x433339`, ya en

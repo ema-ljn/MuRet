@@ -1014,6 +1014,99 @@ TEST(Cl11Particles, TheShockWaveParticleFadesAndGrows)
     }
 }
 
+// 0x542d75..0x542ecf: la gota 0x607 de 1 a 4 vive rand() % 10 + 30 con la luz 1 y la escala (rand() % 6 + 4) · 0,03f;
+// la /3 la suma a la del pedido y sortea otra igual para la subida (tres rand()). Los pasos (0x547029, 0x5470a0,
+// 0x5470d3, 0x54714a): la /1 sube el cuadro, camina (rand() % 30 − 15) por la escala en x e y y sube (rand() % 20 + 10)
+// · escala · 0,3f, y crece 0,002f; la /2 y la /4 suben (rand() % 20 + 10) · 0,3f y crecen 0,005f, y la /4 se para en
+// 350 con la vida en 0; la /3 sube el cuadro y camina como la /0 con su subida en lugar de la escala.
+TEST(Cl11Particles, TheDropsBubbleFloatRiseAndStop)
+{
+    const auto walk = [](int steps, double by, float from)
+    { return F32(static_cast<double>(steps) * by + static_cast<double>(from)); };
+    for (const std::int32_t subtype : {1, 2, 3, 4})
+    {
+        SCOPED_TRACE(subtype);
+        auto particles = std::make_unique<Particles>();
+        CrtRandom random(Seed);
+        const float asked = 0.1f;
+        const auto created =
+            particles->CreateChecked(0x607, {10, 20, 30}, {}, glm::vec3(0.25f), subtype, asked, 0.0f, random);
+        ASSERT_TRUE(created.HasValue() && created.Value().has_value());
+        Particle& drop = Only(*particles, *created.Value());
+        Draws draws;
+        EXPECT_EQ(drop.life, draws.Next() % 10 + 30);
+        const double scaleStep = static_cast<double>(draws.Next() % 6 + 4) * D(0x3cf5c28fu);
+        EXPECT_EQ(drop.light, glm::vec3(1.0f));
+        if (subtype == 3)
+        {
+            EXPECT_EQ(drop.scale, F32(scaleStep + static_cast<double>(asked)));
+            EXPECT_EQ(drop.verticalSpeed, F32(static_cast<double>(draws.Next() % 6 + 4) * D(0x3cf5c28fu)));
+        }
+        else
+        {
+            EXPECT_EQ(drop.scale, F32(scaleStep));
+        }
+        EXPECT_EQ(random.State(), draws.random.State());
+        if (subtype == 4)
+            drop.position.z = 349.0f;
+        const Particle before = drop;
+        ASSERT_TRUE(Step(*particles, random, 0.0f).HasValue());
+        static_cast<void>(draws.Next());
+        static_cast<void>(draws.Next());
+        const auto frame = std::bit_cast<std::uint32_t>(drop.field48);
+        const auto was = std::bit_cast<std::uint32_t>(before.field48);
+        switch (subtype)
+        {
+        case 1:
+        {
+            EXPECT_EQ(frame, was + 1u);
+            const double scale = static_cast<double>(before.scale);
+            EXPECT_EQ(drop.position.x, walk(draws.Next() % 30 - 15, scale, before.position.x));
+            EXPECT_EQ(drop.position.y, walk(draws.Next() % 30 - 15, scale, before.position.y));
+            EXPECT_EQ(drop.position.z, walk(draws.Next() % 20 + 10, scale * D(0x3e99999au), before.position.z));
+            EXPECT_EQ(drop.scale, F32(scale + D(0x3b03126fu)));
+            break;
+        }
+        case 2:
+        case 4:
+        {
+            EXPECT_EQ(frame, was);
+            EXPECT_EQ(drop.position.x, before.position.x);
+            const float risen = walk(draws.Next() % 20 + 10, D(0x3e99999au), before.position.z);
+            EXPECT_EQ(drop.scale, F32(static_cast<double>(before.scale) + D(0x3ba3d70au)));
+            if (subtype == 4)
+            {
+                ASSERT_GT(risen, 350.0f);
+                EXPECT_EQ(drop.position.z, 350.0f);
+                EXPECT_EQ(drop.life, 0);
+            }
+            else
+            {
+                EXPECT_EQ(drop.position.z, risen);
+                EXPECT_EQ(drop.life, before.life - 1);
+            }
+            break;
+        }
+        default:
+        {
+            EXPECT_EQ(frame, was + 1u);
+            const double rise = static_cast<double>(before.verticalSpeed) * 2.5;
+            EXPECT_EQ(drop.position.x, walk(draws.Next() % 20 - 10, rise, before.position.x));
+            EXPECT_EQ(drop.position.y, walk(draws.Next() % 20 - 10, rise, before.position.y));
+            EXPECT_EQ(drop.position.z, walk(draws.Next() % 20 + 10, rise, before.position.z));
+            EXPECT_EQ(drop.scale, before.scale);
+            break;
+        }
+        }
+        EXPECT_EQ(random.State(), draws.random.State());
+    }
+    auto particles = std::make_unique<Particles>();
+    CrtRandom random(Seed);
+    const auto outside = particles->CreateChecked(0x607, {}, {}, glm::vec3(1.0f), 5, 1.0f, 0.0f, random);
+    ASSERT_FALSE(outside.HasValue());
+    EXPECT_EQ(outside.Error(), ParticleError::UnsupportedSubtype);
+}
+
 TEST(Cl11Particles, TheNewTypesGoToTheirBillboards)
 {
     using Kind = std::tuple<std::int32_t, std::int32_t, bool>;

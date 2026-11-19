@@ -80,6 +80,11 @@ constexpr double DropScaleStep = static_cast<double>(std::bit_cast<float>(0x3cf5
 constexpr int DropWalkSpan = 20;
 constexpr int DropWalkCenter = 10;
 constexpr double DropWalkFactor = 2.5;
+// 0x542d60..0x542d6e: la 607 de 0 a 4 (la tabla de 0x544614); las de fuera salen por 0x54304c con el prefijo.
+constexpr std::int32_t LastDropSubtype = 4;
+// La /1 de las burbujas (0x43c332, 0x52434e, 0x526d5f), la /2 que pide el sonido 0x1d8 (0x4ef02e), la /3 que sube con
+// su +0x50 (0x523089) y la /4 que se para en 350 (0x52a400).
+constexpr std::int32_t BubbleDropSubtype = 1, SoundingDropSubtype = 2, RisingDropSubtype = 3, CappedDropSubtype = 4;
 // Contratos final-runtime 53fe70/5446e0/548550, casos 5d9/0..3 y 5f2/2.
 constexpr std::int32_t FireLife = 24;
 constexpr std::int32_t WorldSmokeLife = 50;
@@ -935,7 +940,7 @@ bool IsMapSpark(const Particle& particle)
 
 bool IsDrop(const Particle& particle)
 {
-    return particle.type == DropParticle && particle.subtype == 0;
+    return particle.type == DropParticle && particle.subtype >= 0 && particle.subtype <= LastDropSubtype;
 }
 
 std::optional<ParticleError> BindingError(std::int32_t type, std::int32_t subtype)
@@ -953,9 +958,11 @@ std::optional<ParticleError> BindingError(std::int32_t type, std::int32_t subtyp
     {
         return subtype == 0 ? std::nullopt : std::optional(ParticleError::UnsupportedSubtype);
     }
+    // 0x542d60 y 0x546fa2: la 607 de 0 a 4.
     if (type == DropParticle)
     {
-        return subtype == 0 ? std::nullopt : std::optional(ParticleError::UnsupportedSubtype);
+        return subtype >= 0 && subtype <= LastDropSubtype ? std::nullopt
+                                                          : std::optional(ParticleError::UnsupportedSubtype);
     }
     // 0x541172 y 0x5457a5: el fuego trata cualquier subtipo (los de fuera de sus casos, sin nada propio).
     if (IsFireType(type))
@@ -1412,15 +1419,28 @@ void StepTheMapSpark(Particle& particle)
     }
 }
 
+// 0x542d75..0x542ecf: la vida rand() % 10 + 30, la luz 1 (pisa la del pedido) y la escala (rand() % 6 + 4) · 0,03f
+// (0x6b8bd4), dos rand(); la /2 además pide el sonido 0x1d8 (0x542e08, lo pide quien la crea). La /3 (0x542e1a) suma
+// esa escala a la del pedido y sortea otra igual para la subida (+0x50): tres rand().
 void CreateTheDrop(Particle& particle, Render::Models::CrtRandom& random)
 {
     particle.life = DropLifeBase + (random.Next() % DropLifeSpan);
     const int scaleSteps = (random.Next() % DropScaleSpan) + DropScaleBase;
+    if (particle.subtype == RisingDropSubtype)
+    {
+        particle.scale = F32(static_cast<double>(scaleSteps) * DropScaleStep + static_cast<double>(particle.scale));
+        const int riseSteps = (random.Next() % DropScaleSpan) + DropScaleBase;
+        particle.light = glm::vec3(1.0f);
+        particle.verticalSpeed = F32(static_cast<double>(riseSteps) * DropScaleStep);
+        return;
+    }
     particle.light = glm::vec3(1.0f);
     particle.scale = F32(static_cast<double>(scaleSteps) * DropScaleStep);
 }
 
-void StepTheDrop(Particle& particle, Render::Models::CrtRandom& random)
+// 0x546fb2..0x547024 (/0) y 0x5470d3..0x547145 (/3): el cuadro +0x48 (un entero) sube 1 y la posición camina
+// (rand() % 20 − 10; rand() % 20 − 10; rand() % 20 + 10) por la escala (la /3, por su subida +0x50) y por 2,5.
+void WalkTheDrop(Particle& particle, Render::Models::CrtRandom& random, float stride)
 {
     const std::uint32_t frame = std::bit_cast<std::uint32_t>(particle.field48) + 1u;
     particle.field48 = std::bit_cast<float>(frame);
@@ -1429,9 +1449,67 @@ void StepTheDrop(Particle& particle, Render::Models::CrtRandom& random)
         const int direction = axis == 2 ? DropWalkCenter : -DropWalkCenter;
         const int steps = (random.Next() % DropWalkSpan) + direction;
         // La escala se relee después de cada RNG; no hay store32 entre los dos productos.
-        particle.position[axis] =
-            F32(static_cast<double>(steps) * static_cast<double>(particle.scale) * DropWalkFactor +
-                static_cast<double>(particle.position[axis]));
+        particle.position[axis] = F32(static_cast<double>(steps) * static_cast<double>(stride) * DropWalkFactor +
+                                      static_cast<double>(particle.position[axis]));
+    }
+}
+
+// 0x5470a0..0x5470ce (/2) y 0x54714a..0x54719a (/4): la z sube (rand() % 20 + 10) · 0,3f y la escala crece 0,005f
+// (0x6b89d8); la /4, con la z guardada por encima de 350 (0x6b89ac; ni menor, ni igual, ni NaN), la deja en 350 y la
+// vida en 0.
+void FloatTheDrop(Particle& particle, Render::Models::CrtRandom& random)
+{
+    constexpr double Lift = static_cast<double>(std::bit_cast<float>(0x3e99999au));  // 0x6b89dc, 0,3f
+    constexpr double Swell = static_cast<double>(std::bit_cast<float>(0x3ba3d70au)); // 0x6b89d8, 0,005f
+    constexpr float Ceiling = 350.0f;                                                // 0x6b89ac
+    const int steps = (random.Next() % DropWalkSpan) + DropWalkCenter;
+    particle.position.z = F32(static_cast<double>(steps) * Lift + static_cast<double>(particle.position.z));
+    particle.scale = F32(static_cast<double>(particle.scale) + Swell);
+    if (particle.subtype == CappedDropSubtype && particle.position.z > Ceiling)
+    {
+        particle.position.z = Ceiling;
+        particle.life = 0;
+    }
+}
+
+// 0x547029..0x54709b, la /1: el cuadro sube 1, la x y la y caminan (rand() % 30 − 15) por la escala, la z sube
+// (rand() % 20 + 10) por la escala y por 0,3f, y la escala crece 0,002f (0x6b89bc).
+void BubbleTheDrop(Particle& particle, Render::Models::CrtRandom& random)
+{
+    constexpr int BubbleSpan = 30, BubbleCenter = 15;
+    constexpr double Lift = static_cast<double>(std::bit_cast<float>(0x3e99999au));  // 0x6b89dc, 0,3f
+    constexpr double Swell = static_cast<double>(std::bit_cast<float>(0x3b03126fu)); // 0x6b89bc, 0,002f
+    const std::uint32_t frame = std::bit_cast<std::uint32_t>(particle.field48) + 1u;
+    particle.field48 = std::bit_cast<float>(frame);
+    for (int axis = 0; axis < 2; ++axis)
+    {
+        const int steps = (random.Next() % BubbleSpan) - BubbleCenter;
+        particle.position[axis] = F32(static_cast<double>(steps) * static_cast<double>(particle.scale) +
+                                      static_cast<double>(particle.position[axis]));
+    }
+    const int steps = (random.Next() % DropWalkSpan) + DropWalkCenter;
+    particle.position.z = F32(static_cast<double>(steps) * static_cast<double>(particle.scale) * Lift +
+                              static_cast<double>(particle.position.z));
+    particle.scale = F32(static_cast<double>(particle.scale) + Swell);
+}
+
+void StepTheDrop(Particle& particle, Render::Models::CrtRandom& random)
+{
+    switch (particle.subtype)
+    {
+    case BubbleDropSubtype:
+        BubbleTheDrop(particle, random);
+        return;
+    case SoundingDropSubtype:
+    case CappedDropSubtype:
+        FloatTheDrop(particle, random);
+        return;
+    case RisingDropSubtype:
+        WalkTheDrop(particle, random, particle.verticalSpeed);
+        return;
+    default:
+        WalkTheDrop(particle, random, particle.scale);
+        return;
     }
 }
 

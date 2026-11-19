@@ -589,8 +589,8 @@ TEST(WizardModelEffectsTest, TheStormAndTheMagicLeaveTheirSmoke)
 }
 
 // 0x52303b..0x5230be: el 0xcf/1 suelta su humo 5f2/3 y su gota 607/3 (con la tabla de partículas llena, 0x53fe70 no
-// hace nada: MuRet no tiene esas dos) y suma al terreno su propia luz (+0xf4, esi de 0x523049) con el radio 5; el tono
-// (−0,1L; −0,3L; −L) de [ebp-0x1c] no lo lee nadie.
+// hace nada) y suma al terreno su propia luz (+0xf4, esi de 0x523049) con el radio 5; el tono (−0,1L; −0,3L; −L) de
+// [ebp-0x1c] no lo lee nadie.
 TEST(WizardModelEffectsTest, TheTwistingStormLightsTheGroundWithItsOwnLight)
 {
     Harness world;
@@ -608,6 +608,47 @@ TEST(WizardModelEffectsTest, TheTwistingStormLightsTheGroundWithItsOwnLight)
     EXPECT_NE(world.lighting->cells[20 * 256 + 10], (Client::Data::Terrain::TerrainLightColor{}));
     for (std::size_t cell = 0; cell < reference->cells.size(); ++cell)
         ASSERT_EQ(world.lighting->cells[cell], reference->cells[cell]) << cell;
+}
+
+// 0x52303b..0x523089: con lugar, el 0xcf/1 suelta en el punto 100 más arriba su humo 5f2/3 y su gota 607/3 de 0,1f
+// (0x523070, 0x523089), con sus ángulos ya girados: la gota vive rand() % 10 + 30, su escala suma (rand() % 6 + 4) ·
+// 0,03f a la del pedido, sortea otra igual para la subida (+0x50) y pisa la luz con 1 (0x542e1a). Su paso suma 1 al
+// cuadro y camina por la subida · 2,5 (0x5470d3).
+TEST(WizardModelEffectsTest, TheTwistingStormDropsARisingDrop)
+{
+    Harness world;
+    CrtRandom random(14);
+    ModelEffect& storm = world.At(Create(world, Arguments(0xcf, 1), random));
+    const glm::vec3 at = storm.transform.position;
+    const glm::vec3 point{at.x, at.y, F32(static_cast<double>(at.z) + 100.0)};
+    CrtRandom oracle = random;
+    const auto stepped = Client::World::StepWizardModelEffect(storm, nullptr, random, world.Services());
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_EQ(world.ParticlesOf(0x5f2, 3), 1U);
+    ASSERT_EQ(world.ParticlesOf(0x607, 3), 1U);
+    static_cast<void>(oracle.Next()); // 0x5208c5, la luz del paso.
+    static_cast<void>(oracle.Next()); // rand() % 30 del giro.
+    auto twin = std::make_unique<Client::World::Particles>();
+    ASSERT_TRUE(
+        twin->CreateChecked(0x5f2, point, storm.transform.angles, storm.light, 3, 1.0f, 1000.0f, oracle).HasValue());
+    ASSERT_TRUE(twin->CreateChecked(0x607, point, storm.transform.angles, storm.light, 3,
+                                    std::bit_cast<float>(0x3dcccccdu), 1000.0f, oracle)
+                    .HasValue());
+    EXPECT_EQ(random.State(), oracle.State());
+    const auto drop =
+        std::ranges::find_if(std::as_const(*world.particles).All(), [](const Client::World::Particle& particle)
+                             { return particle.alive && particle.type == 0x607; });
+    const Client::World::Particle& reference = twin->All()[1];
+    EXPECT_EQ(drop->start, point);
+    EXPECT_EQ(drop->angles, storm.transform.angles);
+    EXPECT_EQ(drop->light, glm::vec3(1.0f));
+    EXPECT_EQ(drop->life, reference.life);
+    EXPECT_GE(drop->life, 30);
+    EXPECT_LE(drop->life, 39);
+    EXPECT_EQ(drop->scale, reference.scale);
+    EXPECT_GT(drop->scale, std::bit_cast<float>(0x3dcccccdu));
+    EXPECT_EQ(drop->verticalSpeed, reference.verticalSpeed);
+    EXPECT_GT(drop->verticalSpeed, 0.0f);
 }
 
 // 0x5231f6..0x52328c: el 0xcb/1 con vida 45 suelta sus joints 613/6; el primero saca su rand() % 10 (0x52321f) antes

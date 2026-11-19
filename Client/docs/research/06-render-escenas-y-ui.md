@@ -8695,6 +8695,17 @@ por 0,95238101f (`0x54808a`, `0x6ba264`). La onda `0x6eb` (`Effect\ShockWave.jpg
 (`0x6ba234`) y crece 0,3f (`0x6b89dc`). Las dos van al billboard común (`0x54889a`). Las pide el `0x1b7` (las tres /1
 de los brazos y la cabeza y la `0x6eb/3` del brazo izquierdo de 5 a 5,5).
 
+**Las gotas `0x607`/1..4** (`Particles.cpp`, tercera vuelta; la /0 ya estaba): el alta (`0x542d60`, la tabla de
+`0x544614` de 0 a 4; las de fuera salen por `0x54304c`) da a todas la vida `rand() % 10 + 30`, la luz 1 (pisa la del
+pedido) y la escala `(rand() % 6 + 4) · 0,03f`; la /2 además pide el sonido `0x1d8` (`0x542e08`, lo pide quien la crea)
+y la /3 (`0x542e1a`) suma esa escala a la del pedido y sortea otra igual para la subida `+0x50`: tres `rand()`. El paso
+(`0x546fa2`, la tabla de `0x548478`): la /1 (`0x547029`) sube el cuadro `+0x48`, camina `(rand() % 30 − 15)` por la
+escala en x e y, sube `(rand() % 20 + 10) · escala · 0,3f` y crece 0,002f; la /2 y la /4 (`0x5470a0`, `0x54714a`) suben
+`(rand() % 20 + 10) · 0,3f` y crecen 0,005f, y la /4, con la z por encima de 350, queda en 350 con la vida en 0; la /3
+(`0x5470d3`) camina como la /0 con su subida en lugar de la escala. Todas van al dibujo de la gota (`0x548925`). Las
+piden el `0x191` de Kalima (la /1, `0x43c332`, `0x43c3bf`), las flechas `0xe2` y `0xe3` (la /1, `0x52434e`,
+`0x526d5f`), el `0xcf/1` (la /3, `0x523089`), `0x4ef02e` (la /2) y `0x52a400` (la /4).
+
 ### Las partículas de la fuente en el juego
 
 **Estático**, `0x603011..0x60313f`: después del rand común del objeto, luz1 y V calculada con NEG
@@ -11962,10 +11973,10 @@ menos), que no mira el byte vivo: corre también si el choque la apagó.
   `+0xf4`, el giro ±`ftol(reloj)` · 0,1f), cuatro veces tres `rand()` del punto ((& 31) − 16; (& 63) − 32;
   (& 31) − 16) y `0x608 + rand() % 3` (corta en `0x526a8b`, CL11), la y de los ángulos + 30, la luz (luz · 0,6f;
   · 0,8f; · 0,8f) y el choque.
-- `0xe3` (`0x526c56`): los dos sprites, cuatro veces el punto (& 15) − 8 y la `0x607`/1 (corta en `0x526d5f`,
-  CL11), la `0x5f2`/0, la luz verde y el choque.
+- `0xe3` (`0x526c56`): los dos sprites, cuatro veces el punto (& 15) − 8 y la burbuja `0x607`/1 de 1 (`0x526d5f`,
+  tercera vuelta del lote de partículas), la `0x5f2`/0, la luz verde y el choque.
 - `0xe2` (`0x524237`): dos sprites `0x5ac` con (1; 0,6f; 0,4f) y escalas 1 y 2, cuatro veces el punto y la
-  `0x607`/1 (`0x52434e`, CL11; con el pool lleno no se crea ni saca `rand()`). Después cae (`0x52435d..0x5243bd`): la
+  burbuja `0x607`/1 (`0x52434e`, tercera vuelta; con el pool lleno no se crea ni saca `rand()`). Después cae (`0x52435d..0x5243bd`): la
   z más `+0xe4` y `+0xe4` menos 1, cada uno en la x87 y guardado en `float`; con el terreno (`0x5f93c0`) por encima
   de la z (el FCOM sin C0 ni C3: ni menor, ni igual, ni NaN), la z al terreno, `+0xe4` por −0,4f (`0x6ba18c`) y la
   y de la velocidad por 0,4f (`0x6b87b4`). En la última vida, `0x51fe10(posición, 1)` y, con el héroe
@@ -14044,7 +14055,7 @@ la acción 6.
 | Tipo | Qué hace, en orden |
 | --- | --- |
 | `0xc5` (la puerta de Kalima) | en la acción 1: con `+0x60` en 0, la partícula `0x6ae/0` a 3 con (1; 0,1; 0,1) del hueso 8 (`0x43c20d`, Q-C878); `+0x60` sube 1 y desde 5 vuelve a 0 |
-| `0x191` | fuera de la 6, cinco vueltas por los huesos 74..78 y 62..66 (la luz sube 0,25 por vuelta y la escala baja 0,2 desde 1,5): dos `0x5ac` por hueso y `rand() & 1` en 0 da la partícula `0x607/1` (`0x43c332`, `0x43c3bf`); después, con `+0x68`, el `0x5ca` (0,2) y el `0x5fd` (1) del punto (2, 2, 0) del hueso 8 y de los huesos 22 y 15. Siempre, los `0x5ac` de los huesos 51..55 (2) y 29..33 (1,5) |
+| `0x191` | fuera de la 6, cinco vueltas por los huesos 74..78 y 62..66 (la luz sube 0,25 por vuelta y la escala baja 0,2 desde 1,5): dos `0x5ac` por hueso y `rand() & 1` en 0 da la burbuja `0x607/1` de 1 en el hueso (`0x43c332`, `0x43c3bf`, tercera vuelta del lote de partículas); después, con `+0x68`, el `0x5ca` (0,2) y el `0x5fd` (1) del punto (2, 2, 0) del hueso 8 y de los huesos 22 y 15. Siempre, los `0x5ac` de los huesos 51..55 (2) y 29..33 (1,5) |
 | `0x192` (Kundun) | muerto, la mano izquierda sin ítem; si no, dos `0x5ca` rojos (huesos 8 y 9), el `0x62b` del hueso 100 (en la acción 5, también el `0x62d` con el pulso de `+0x8a` y `+0x89`, Q-C879) y `rand() & 1` en 0 da el humo `0x5f2/13` en el hueso 100 con la luz 1 y la escala del pulso (1 fuera de la 5; `0x43c9cb`, tercera vuelta del lote de partículas). En la 5: con el frame debajo de 2 y `+0x60` distinto de 100, `+0x60` en 100 y el sonido `0x1db`; con `+0x60` en 100 pasado el 4, `+0x60` en `0x65` y, en Kalima, `0x437860` en su celda lógica (`+0x420` y después `+0x41c`, con sus `rand()`; radio 2 y 2.000); pasado el 3, el temblor `0x7d325c8 = ((rand() & 7) − 8) · 0,2`; en Kalima entre el 3 y el 14, dos efectos 9 (`0x518cf0`) a `rand() % 360` grados y `rand() % 600 + 200` de distancia, 800 más arriba. En la 3 y la 4 (`0x43cfb8..0x43dc81`), con `+0x60` de 100 a `0x67`: el efecto `0x128` (`0x43d051`, `0x43d0fd`), los 24 joints `0x6ee/14` (`0x43d19f`), `0x437860` en Kalima y, en la 4 pasado el 6, el temblor `((rand() & 15) − 16) · 0,1` |
 | `0x193` | fuera de la 6, los `0x5ca`, `0x5fd` y `0x5ac` de los huesos 6, 13, 19, 23, 25, 31 y 33 |
 | `0x194` | fuera de la 6, el `0x5ca` y el `0x5fd` de los huesos 9 y 10, y el `0x5ac` y el `0x5fd` girado `rand() % 360` de los huesos 3 y 4; en la 3, los joints `0x614/7` entre los huesos 10..16 y 31..37 de a pares (`0x43e368`, `0x43e3da`) |

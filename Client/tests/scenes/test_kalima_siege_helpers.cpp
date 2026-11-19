@@ -273,8 +273,8 @@ TEST_F(KalimaSiegeHelperTest, TheKalimaGateCountsItsParticle)
 }
 
 // 0x43c233..0x43c646, el 0x191: fuera de la acción 6, cinco vueltas por los huesos 74..78 y 62..66 con dos 0x5ac y un
-// rand() & 1 cada uno (en 0, la partícula 0x607/1, CL11), los ojos del hueso 8 y los huesos 22 y 15; siempre, las
-// estrellas de los huesos 51..55 y 29..33.
+// rand() & 1 cada uno (en 0, la burbuja 0x607/1: 0x43c332 arriba, 0x43c3bf abajo), los ojos del hueso 8 y los huesos 22
+// y 15; siempre, las estrellas de los huesos 51..55 y 29..33.
 TEST_F(KalimaSiegeHelperTest, TheFirstKalimaHelperDrawsItsStarsAndDrawsItsRandoms)
 {
     Actor(0x191, 6);
@@ -320,12 +320,41 @@ TEST_F(KalimaSiegeHelperTest, TheFirstKalimaHelperDrawsItsStarsAndDrawsItsRandom
     EXPECT_EQ(m_random.State(), After(10));
     EXPECT_EQ(helper.dword60, 0);
 
-    // Con lugar en el pool: 41 y 18467 son impares, 6334 par: la partícula del hueso 75 corta.
+    // Con lugar en el pool, cada rand() & 1 en 0 suelta en su hueso la burbuja 0x607/1 de 1, con los ángulos del
+    // personaje y la luz 1 de su alta (0x542d96), y dos rand() más: la primera, la del hueso 75 (41 y 18467 son
+    // impares, 6334 par).
     SetUp();
     Actor(0x191, 0);
-    ExpectCut(Draw(2), "0x43c332", "0x607/1");
-    EXPECT_EQ(Sprites().size(), 6u);
-    EXPECT_EQ(m_random.State(), After(3));
+    ASSERT_TRUE(Draw(2).HasValue());
+    EXPECT_EQ(Sprites().size(), 36u);
+    auto twin = std::make_unique<Client::World::Particles>();
+    CrtRandom expected{Seed};
+    std::size_t made = 0;
+    for (std::size_t round = 0; round < 5; ++round)
+    {
+        for (const std::size_t bone : {74 + round, 62 + round})
+        {
+            if ((expected.Next() & 1) != 0)
+                continue;
+            SCOPED_TRACE(bone);
+            const auto replayed =
+                twin->CreateChecked(0x607, Bone(bone), m_actor->angles, glm::vec3(0.5f), 1, 1.0f, Clock, expected);
+            ASSERT_TRUE(replayed.HasValue() && replayed.Value() == std::optional<std::size_t>{made});
+            const Client::World::Particle& bubble = m_particles->All()[made];
+            const Client::World::Particle& reference = twin->All()[made];
+            EXPECT_TRUE(bubble.alive);
+            EXPECT_EQ(bubble.type, 0x607);
+            EXPECT_EQ(bubble.subtype, 1);
+            EXPECT_EQ(bubble.position, Bone(bone));
+            EXPECT_EQ(bubble.light, glm::vec3(1.0f));
+            EXPECT_EQ(bubble.life, reference.life);
+            EXPECT_EQ(bubble.scale, reference.scale);
+            ++made;
+        }
+    }
+    EXPECT_EQ(m_particles->All()[0].position, Bone(75));
+    EXPECT_FALSE(m_particles->All()[made].alive);
+    EXPECT_EQ(m_random.State(), expected.State());
 }
 
 // 0x43c647..0x43c9d0, Kundun (0x192): en la acción 6 suelta la mano izquierda; si no, los ojos de los huesos 8 y 9,

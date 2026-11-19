@@ -77,22 +77,30 @@ jobs:
             # cayó dos veces seguidas en el mismo enlace (1572 de 1874, los test_game_scene_*) sin
             # dejar error, como en #361. El enlazador descarta la depuración de los ejecutables
             # (--strip-debug): los 590 de test pesan 5,2 GB en vez de 27 GB (medido en local con
-            # GCC 13). Los .o y ClientLib la conservan, y un build a mano con el preset la tiene entera.
-            extra-configure: '-DCMAKE_EXE_LINKER_FLAGS=-Wl,--strip-debug'
+            # GCC 13). Desde #379 tampoco se compila con -g (CMAKE_CXX_FLAGS_DEBUG vacío): los .o
+            # pesan menos y entran en la caché de ccache. Lo que el job verifica no cambia; un build
+            # a mano con el preset sigue teniendo la depuración entera.
+            extra-configure: >-
+              -DCMAKE_EXE_LINKER_FLAGS=-Wl,--strip-debug -DCMAKE_CXX_FLAGS_DEBUG=
+              -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
             font-file: /usr/share/fonts/truetype/dejavu/DejaVuSans.ttf
+          # Con Ninja y cl desde el entorno de MSVC (paso "Entorno de MSVC"), no con MSBuild: MSBuild
+          # compilaba ClientLib en un solo núcleo (21 minutos) y no lo mejoraron ni /MP ni 4
+          # proyectos a la vez (#379). Ninja reparte todos los archivos entre los núcleos, como en
+          # Linux, y deja usar ccache. Sin información de depuración, como el --strip-debug de
+          # Linux: ccache no guarda lo compilado con /Zi, y sin PDB los 690 enlaces no lo arman.
+          # Lo que el job verifica sigue igual: /Od, /RTC1, el runtime de depuración con sus
+          # iteradores verificados, /W4 /WX y la pila de 1 MB.
           - name: Windows (MSVC, Debug)
             kind: build
             os: windows-2022
-            configure-preset: windows-x64
-            build-preset: windows-x64-debug
-            test-preset: windows-x64-debug
+            configure-preset: windows-x64-ninja-debug
+            build-preset: windows-x64-ninja-debug
+            test-preset: windows-x64-ninja-debug
             precompiled-headers: 'ON'
-            # Sin información de depuración, como el --strip-debug de Linux: con /Zi cada archivo
-            # manda sus tipos al PDB del proyecto por un único mspdbsrv, y cada uno de los 690
-            # enlaces arma su PDB con los de ClientLib. Con /MP y 4 proyectos a la vez el build no
-            # bajó de 75 min (#379). Lo que este job verifica sigue igual: /Od, /RTC1, el runtime
-            # de depuración con sus iteradores verificados, /W4 /WX y la pila de 1 MB.
-            extra-configure: '-DCMAKE_MSVC_DEBUG_INFORMATION_FORMAT= -DCMAKE_EXE_LINKER_FLAGS_DEBUG=/INCREMENTAL:NO'
+            extra-configure: >-
+              -DCMAKE_MSVC_DEBUG_INFORMATION_FORMAT= -DCMAKE_EXE_LINKER_FLAGS_DEBUG=/INCREMENTAL:NO
+              -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
             font-file: 'C:\Windows\Fonts\arial.ttf'
           # Que cada archivo del cliente incluya lo que usa (docs/CODING_RULES.md § 7). Antes iba al
           # final del job de Linux y le sumaba 12 a 18 minutos; clang-tidy solo lee el
@@ -122,7 +130,7 @@ jobs:
       # La fuente de los tests de FreeType (CL5.3, support/GoldenDir.h): una del runner. Con la
       # variable puesta, un archivo que falta o que no es una fuente hace fallar los tests.
       MURET_CLIENT_FONT_FILE: ${{ matrix.font-file }}
-      # Los cuatro núcleos del runner, para MSBuild (proyectos a la vez) y para CTest.
+      # Los cuatro núcleos del runner, para CTest (Ninja ya los usa todos).
       MURET_CI_JOBS: 4
 
     steps:
@@ -139,7 +147,8 @@ jobs:
       # Lo que los puertos sdl3 y alsa de vcpkg piden del sistema, los headers de OpenGL/EGL,
       # y Xvfb + Mesa (llvmpipe) para abrir la ventana sin pantalla. NASM lo
       # pide el puerto libjpeg-turbo para su SIMD: en Linux, vcpkg no lo baja y usa el del sistema
-      # (en Windows sí lo baja). clang-tidy-18, para el job de los includes.
+      # (en Windows sí lo baja). ccache, para no recompilar lo que no cambió. clang-tidy-18, para
+      # el job de los includes.
       - name: Paquetes del sistema (Linux)
         if: runner.os == 'Linux'
         # Con los mismos reintentos que el paso del formato.
@@ -153,6 +162,7 @@ jobs:
                 libgl-dev libegl-dev \
                 nasm \
                 xvfb libgl1-mesa-dri \
+                ccache \
                 clang-tidy-18 && break
             if [ "$attempt" = 5 ]; then exit 1; fi
             sleep $((attempt * 30))
@@ -216,6 +226,90 @@ jobs:
           key: vcpkg-${{ env.RUNNER_IMAGE }}-${{ hashFiles('vcpkg.json') }}
           restore-keys: vcpkg-${{ env.RUNNER_IMAGE }}-
 
+      # cl, link y los headers y bibliotecas de Windows en el PATH, INCLUDE y LIB, como en una
+      # consola "x64 Native Tools" de Visual Studio: lo que necesita Ninja, que no los busca solo como
+      # MSBuild. Pasa a los pasos siguientes solo lo que vcvars64.bat agrega o cambia. Las carpetas
+      # nuevas del PATH van en el mismo orden que les da vcvars64.bat (GITHUB_PATH antepone cada
+      # línea a las anteriores, por eso se escriben al revés).
+      - name: Entorno de MSVC (Windows)
+        if: runner.os == 'Windows' && matrix.kind == 'build'
+        shell: pwsh
+        run: |
+          $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
+          $vs = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+          if (-not $vs) { throw 'No hay un Visual Studio con las herramientas de C++ x64' }
+          $vcvars = Join-Path $vs 'VC\Auxiliary\Build\vcvars64.bat'
+          # Un .cmd sin espacios en la ruta: así las comillas de la ruta de Visual Studio no pasan
+          # por las reglas de cmd /c.
+          $script = Join-Path $env:RUNNER_TEMP 'vcvars64-set.cmd'
+          Set-Content -Path $script -Encoding ascii -Value "@call `"$vcvars`" >nul", '@set'
+          $before = @{}
+          Get-ChildItem env: | ForEach-Object { $before[$_.Name] = $_.Value }
+          $oldPath = $env:Path -split ';'
+          $lines = cmd /c $script
+          if (-not ($lines -match '^VCToolsInstallDir=')) { throw 'vcvars64.bat no dejó el entorno de MSVC' }
+          $newPath = @()
+          foreach ($line in $lines) {
+            if ($line -notmatch '^([^=]+)=(.*)$') { continue }
+            $name = $Matches[1]
+            $value = $Matches[2]
+            if ($name -eq 'Path') {
+              $newPath = @($value -split ';' | Where-Object { $_ -and ($oldPath -notcontains $_) })
+            } elseif ($before[$name] -ne $value) {
+              "$name=$value" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+            }
+          }
+          [array]::Reverse($newPath)
+          $newPath | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
+
+      # ccache guarda cada .o y .obj compilado: lo que un push no cambió sale de la caché en vez de
+      # recompilarse. En Windows, la versión que soporta cl oficialmente (desde la 4.13), con su
+      # SHA-256; en Linux, la de apt.
+      - name: ccache (Windows)
+        if: runner.os == 'Windows' && matrix.kind == 'build'
+        shell: pwsh
+        run: |
+          $version = '4.13.5'
+          $zip = Join-Path $env:RUNNER_TEMP 'ccache.zip'
+          Invoke-WebRequest "https://github.com/ccache/ccache/releases/download/v$version/ccache-$version-windows-x86_64.zip" -OutFile $zip
+          $hash = (Get-FileHash $zip -Algorithm SHA256).Hash
+          if ($hash -ne '6685aa505f0a95a3a6d8b6c1b6fab1deff29628e44ded4a5760e4efe1742a736') { throw "SHA-256 inesperado: $hash" }
+          Expand-Archive $zip -DestinationPath $env:RUNNER_TEMP
+          $dir = Join-Path $env:RUNNER_TEMP "ccache-$version-windows-x86_64"
+          & (Join-Path $dir 'ccache.exe') --version
+          $dir | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
+          # Qué cl, link, ninja y cmake quedaron primero en el PATH con el paso anterior.
+          Get-Command cl, link, ninja, cmake | Format-Table -AutoSize Name, Source
+
+      # La caché de ccache de la corrida anterior: la última de este PR o, si no hay, la de main.
+      # Cada corrida guarda la suya al final (paso "Guardar la caché de ccache"), también si falló.
+      - name: Restaurar la caché de ccache
+        id: ccache
+        if: matrix.kind == 'build'
+        uses: actions/cache/restore@v6
+        with:
+          path: ${{ runner.temp }}/ccache
+          key: ccache-${{ matrix.os }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: ccache-${{ matrix.os }}-
+
+      # pch_defines,time_macros: lo que ccache pide para cachear con precompiled headers. El modo
+      # depend toma los includes de /showIncludes o -MD (que Ninja ya pide) en vez de correr el
+      # preprocesador aparte en cada archivo que no está en la caché.
+      - name: Configurar ccache
+        if: matrix.kind == 'build'
+        shell: bash
+        run: |
+          dir="$(cygpath -m "$RUNNER_TEMP" 2>/dev/null || echo "$RUNNER_TEMP")/ccache"
+          {
+            echo "CCACHE_DIR=$dir"
+            echo "CCACHE_MAXSIZE=2G"
+            echo "CCACHE_SLOPPINESS=pch_defines,time_macros"
+            echo "CCACHE_DEPEND=true"
+          } >> "$GITHUB_ENV"
+          export CCACHE_DIR="$dir"
+          ccache --version | head -n 1
+          ccache --zero-stats
+
       - name: Configurar
         run: >-
           cmake --preset ${{ matrix.configure-preset }} -DMURET_WARNINGS_AS_ERRORS=ON
@@ -241,9 +335,7 @@ jobs:
           for path in "${changed[@]}"; do
             targets+=("$(basename "$path" .cpp)")
           done
-          parallel=()
-          if [ "$RUNNER_OS" = Windows ]; then parallel=(--parallel "$MURET_CI_JOBS"); fi
-          cmake --build --preset ${{ matrix.build-preset }} "${parallel[@]}" --target "${targets[@]}"
+          cmake --build --preset ${{ matrix.build-preset }} --target "${targets[@]}"
           [ "${#changed[@]}" -gt 0 ] || exit 0
           # Las suites de esos ejecutables, para correr con CTest solo sus tests (cada TEST es un
           # test de CTest con el nombre de su suite, ver Client/tests/CMakeLists.txt).
@@ -252,11 +344,8 @@ jobs:
           for path in "${changed[@]}"; do
             module="$(basename "$(dirname "$path")")"
             name="$(basename "$path" .cpp)"
-            if [ "$RUNNER_OS" = Windows ]; then
-              exe="$build/Client/tests/$module/Debug/$name.exe"
-            else
-              exe="$build/Client/tests/$module/$name"
-            fi
+            exe="$build/Client/tests/$module/$name"
+            if [ "$RUNNER_OS" = Windows ]; then exe="$exe.exe"; fi
             while IFS= read -r suite; do suites+=("$suite"); done \
               < <("$exe" --gtest_list_tests | tr -d '\r' | sed -n 's/^\([^ #][^ ]*\)\.\( .*\)\{0,1\}$/\1/p')
           done
@@ -267,11 +356,21 @@ jobs:
 
       - name: Compilar
         if: matrix.kind == 'build'
-        # MSBuild arma de a cuatro proyectos (y /MP reparte los archivos de cada uno, CMakeLists.txt
-        # de la raíz); Ninja ya usa todos los núcleos.
-        run: >-
-          cmake --build --preset ${{ matrix.build-preset }}
-          ${{ runner.os == 'Windows' && '--parallel 4' || '' }}
+        run: cmake --build --preset ${{ matrix.build-preset }}
+
+      # Cuántos archivos salieron de la caché y cuántos se compilaron, también si el build falló.
+      - name: Estadísticas de ccache
+        if: always() && steps.ccache.outcome == 'success'
+        run: ccache --show-stats --verbose
+
+      # Se guarda también si el build falló: el push que lo arregla encuentra compilado todo lo
+      # que llegó a compilar esta corrida.
+      - name: Guardar la caché de ccache
+        if: always() && steps.ccache.outcome == 'success'
+        uses: actions/cache/save@v6
+        with:
+          path: ${{ runner.temp }}/ccache
+          key: ${{ steps.ccache.outputs.cache-primary-key }}
 
       # Cuánto dejó el build, también si falló, para ver de antemano si el disco vuelve a quedar justo.
       - name: Disco y memoria después de compilar (Linux)

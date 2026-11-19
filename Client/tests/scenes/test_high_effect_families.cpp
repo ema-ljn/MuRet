@@ -817,7 +817,7 @@ TEST(HighEffectFamiliesTest, TheKundunCallLivesThirtyStepsOrCallsItsEcho)
     auto& effects = tested.world->Map().effects;
     const auto made = Client::Scenes::CreateTheKundunCall(effects, {.type = 0x128, .subtype = 1});
     ASSERT_TRUE(made.HasValue()) << made.Error();
-    EXPECT_EQ(made.Value(), std::optional<std::size_t>{0});
+    EXPECT_EQ(made.Value(), std::optional<std::size_t>{std::size_t{0}});
     EXPECT_EQ(tested.Effect(0).life, 30);
     tested.FillTheEffects();
     const auto full = Client::Scenes::CreateTheKundunCall(effects, {.type = 0x128});

@@ -16,8 +16,8 @@ namespace Client::World
 // sólo del tipo 0x5f2, Effect\smoke01.jpg). El dibujo de 0x548550 ya los trata por su subtipo (0x548707..0x54874c).
 // La /17 (0x5418b1) es la del 0x192 y el 0x197 (0x43bf75, 0x43c04b): guarda la luz y su paso la usa.
 inline constexpr std::int32_t GlowSmokeSubtype = 17;
-// La /19 (0x54228c, la del joint de 0x539494) y la /20 (0x542307, que se dibuja restando: 0x548732) tiemblan y crecen
-// al azar.
+// La /19 (0x54228c, la que el paso de los joints crea en 0x5394fb) y la /20 (0x542307, que se dibuja restando:
+// 0x548732) tiemblan y crecen al azar.
 inline constexpr std::int32_t ShakingSmokeSubtype = 19;
 inline constexpr std::int32_t DarkShakingSmokeSubtype = 20;
 // La /23 (0x54184b, el alta del aliento) es la de 0x44267f, 0x44274b y 0x442817: el aliento con otra luz.

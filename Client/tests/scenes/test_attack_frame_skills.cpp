@@ -751,8 +751,8 @@ TEST(AttackFrameSkillsTest, TheSpinOf38AndTheBoltsOf39)
 }
 
 // 0x4f8f5b, la 3 sin caso de +0x376 en la cola de 0x4f5b70 (por el paso del ataque, con el blanco en el pool): el
-// hueso de la derecha contra la cuenta de huesos (JL: el igual pasa, Q-C1093); fuera, nada; si no, corta en los joints
-// 0x614/0 (0x4f8fef), sin rand() propios. Otro tipo sin la biblioteca de modelos corta en 0x4f8f69.
+// hueso de la derecha contra la cuenta de huesos (JL: el igual pasa, Q-C1093); fuera, nada; si no, los dos joints
+// 0x614/0 (0x4f8fef y 0x4f9012, sin rand() propios) y la partícula 0x5ca/0 (0x4f9034, dos rand()).
 TEST(AttackFrameSkillsTest, TheHandBoltsOfTheTail)
 {
     struct Case
@@ -760,13 +760,13 @@ TEST(AttackFrameSkillsTest, TheHandBoltsOfTheTail)
         std::string_view name;
         std::uint16_t type;
         std::uint8_t bone;
-        std::string_view cut;
+        bool cast;
     };
     const std::vector<Case> cases{
-        {"el hueso 0", Player, 0, "0x4f8fef"},
-        {"el hueso de la cuenta", Player, Bones, "0x4f8fef"},
-        {"pasado la cuenta", Player, Bones + 1, ""},
-        {"otro tipo", 0x152, 0, "0x4f8fef"},
+        {"el hueso 0", Player, 0, true},
+        {"el hueso de la cuenta", Player, Bones, true},
+        {"pasado la cuenta", Player, Bones + 1, false},
+        {"otro tipo", 0x152, 0, true},
     };
     for (const std::int32_t map : Maps)
     {
@@ -782,17 +782,18 @@ TEST(AttackFrameSkillsTest, TheHandBoltsOfTheTail)
 
             const auto stepped = StepTheAttack(hero, HeroSlot, tested.Context());
 
-            if (probe.cut.empty())
+            ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+            EXPECT_EQ(hero.byte381, 2);
+            const auto joints = AliveJoints(tested.joints);
+            EXPECT_EQ(joints.size(), probe.cast ? 2u : 0u);
+            for (const JointState* joint : joints)
             {
-                ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
-                EXPECT_EQ(hero.byte381, 2);
+                EXPECT_EQ(joint->type, 0x614);
+                EXPECT_EQ(joint->subtype, 0);
             }
-            else
-            {
-                EXPECT_TRUE(HasError(stepped, probe.cut)) << ErrorOf(stepped);
-            }
-            // La lectura de 0x4f97b0, el rand() de 0x4f5b97 y las lecturas de 0x4f811b y 0x4f8a2c.
-            EXPECT_EQ(DrawsSince(Seed, tested.random), 4);
+            // La lectura de 0x4f97b0, el rand() de 0x4f5b97 y las lecturas de 0x4f811b y 0x4f8a2c; con los joints, los
+            // dos de la 0x5ca/0.
+            EXPECT_EQ(DrawsSince(Seed, tested.random), probe.cast ? 6 : 4);
         }
     }
 }

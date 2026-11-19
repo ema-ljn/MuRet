@@ -38,6 +38,7 @@
 
 #include <algorithm>
 #include <array>
+#include <bit>
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
@@ -1763,12 +1764,14 @@ TEST_F(MonsterAttackCasesTest, AFreeJointAfterTheFullModelPoolKeepsTheJointCutBo
     }
 }
 
-TEST_F(MonsterAttackCasesTest, AFullModelPoolReachesTheNextTailJointCall)
+// 0x4f834c, 0x4f8484 y 0x4f8553: con el pool de efectos lleno, el 0x106/1 no sale y el joint 0x614/2 sí, colgado del
+// blanco (ESI) y apuntado a su hueso 33 con el modelo del jugador (0x5313fe), sin rand() propio.
+TEST_F(MonsterAttackCasesTest, AFullModelPoolCreatesTheTailLightningOfTheTarget)
 {
     struct Case
     {
         Probe probe;
-        std::string_view nextJointCut;
+        std::string_view address;
         int draws;
         std::vector<std::int32_t> expectedSounds;
     };
@@ -1825,7 +1828,7 @@ TEST_F(MonsterAttackCasesTest, AFullModelPoolReachesTheNextTailJointCall)
 
         const auto stepped = Step(monster);
 
-        EXPECT_TRUE(!stepped.HasValue() && stepped.Error().starts_with(probe.nextJointCut)) << stepped.Error();
+        ASSERT_TRUE(stepped.HasValue()) << probe.address << ": " << stepped.Error();
         EXPECT_EQ(Draws(), probe.draws);
         EXPECT_EQ(sounds, probe.expectedSounds);
         if (!probe.expectedSounds.empty())
@@ -1834,7 +1837,21 @@ TEST_F(MonsterAttackCasesTest, AFullModelPoolReachesTheNextTailJointCall)
             EXPECT_EQ(soundDraws, std::vector<int>{0});
         }
         ASSERT_EQ(game->joints.size(), 1u);
-        EXPECT_FALSE(game->joints.front().alive);
+        const Client::Scenes::JointState& joint = game->joints.front();
+        ASSERT_TRUE(joint.alive);
+        EXPECT_EQ(joint.type, 0x614);
+        EXPECT_EQ(joint.subtype, 2);
+        EXPECT_EQ(joint.width, 50.0f);
+        EXPECT_EQ(joint.life, 2);
+        EXPECT_EQ(joint.light, glm::vec3(1.0f, std::bit_cast<float>(0x3dcccccdu), 0.0f));
+        const ActorState& victim = game->world.Actors()[0];
+        EXPECT_EQ(joint.ownerContext, &victim);
+        const auto player = game->world.ModelPlacement(Client::Data::Models::PlayerSkeletonModel);
+        const Client::Render::Models::BoneTransform chest =
+            victim.bodyPose.size() > 33 ? victim.bodyPose[33] : Client::Render::Models::BoneTransform(0.0f);
+        EXPECT_EQ(joint.targetPosition, Client::Render::Models::OriginalTransformPosition(
+                                            Client::Render::Models::OriginalMatrixOf(chest),
+                                            glm::vec3(0.0f, -150.0f, 0.0f), player.scale, player.origin));
     }
 }
 
@@ -2586,9 +2603,8 @@ TEST_F(MonsterAttackCasesTest, TheSkill0x11CasesLeaveAfterTheirEffect)
     }
 }
 
-// La cola con 3 en +0x38e (0x4f8a56): los casos con sus sonidos en 1 y su rand() % 360 antes del joint; sin caso,
-// 0x4f8f5b: el hueso de la mano del alta pasa la cuenta del esqueleto de prueba (sin huesos) y sale, sin rand(). Sus
-// joints 0x614/0 (0x4f8fef), en test_attack_frame_skills.cpp.
+// La cola con 3 en +0x38e (0x4f8a56): los casos con sus sonidos en 1 y su rand() % 360 antes del joint, que corta sin
+// el pool de joints del frame; sin caso, 0x4f8f5b crea sus dos 0x614/0 (0x4f8fef y 0x4f9012) y la 0x5ca/0.
 TEST_F(MonsterAttackCasesTest, TheSkill3CasesLeaveAfterTheirJoints)
 {
     const std::vector<Probe> probes{
@@ -2630,8 +2646,18 @@ TEST_F(MonsterAttackCasesTest, TheSkill3CasesLeaveAfterTheirJoints)
         ASSERT_NE(game->world.FaunaResources().SkeletonOf(static_cast<std::uint16_t>(fallback.type)), nullptr);
         game->joints.assign(1, Client::Scenes::JointState{});
         const auto stepped = Step(fallback);
-        EXPECT_TRUE(!stepped.HasValue() && stepped.Error().starts_with("0x4f8fef")) << stepped.Error();
-        EXPECT_EQ(Draws(), Tail);
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        // El primer 0x614/0 (0x4f8fef) toma el único lugar; el segundo (0x4f9012) no tiene dónde y la 0x5ca/0
+        // (0x4f9034) saca sus dos rand().
+        EXPECT_EQ(Draws(), Tail + 2);
+        const Client::Scenes::JointState& joint = game->joints.front();
+        ASSERT_TRUE(joint.alive);
+        EXPECT_EQ(joint.type, 0x614);
+        EXPECT_EQ(joint.subtype, 0);
+        EXPECT_EQ(joint.width, 50.0f);
+        EXPECT_EQ(joint.life, 2);
+        EXPECT_EQ(joint.ownerContext, &game->world.Actors()[0]);
+        EXPECT_EQ(joint.angles, glm::vec3(-60.0f, 0.0f, fallback.angles.z));
     }
 }
 

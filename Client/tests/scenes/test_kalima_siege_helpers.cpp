@@ -554,8 +554,8 @@ TEST_F(KalimaSiegeHelperTest, TheThirdKalimaHelperDrawsTwelveSprites)
     EXPECT_TRUE(Sprites().empty());
 }
 
-// 0x43e080..0x43e3f2, el 0x194: ocho sprites con dos rand() % 360 y, en la acción 3, los joints 0x614/7 entre los
-// huesos 10..16 y 31..37 (CL11).
+// 0x43e080..0x43e3f2, el 0x194: ocho sprites con dos rand() % 360 y, en la acción 3, los doce joints 0x614/7 entre
+// los huesos 10..16 y 31..37, sin rand() (0x5315b7).
 TEST_F(KalimaSiegeHelperTest, TheFourthKalimaHelperTurnsItsGlowsAndChainsItsBones)
 {
     Actor(0x194, 0);
@@ -573,7 +573,18 @@ TEST_F(KalimaSiegeHelperTest, TheFourthKalimaHelperTurnsItsGlowsAndChainsItsBone
 
     SetUp();
     Actor(0x194, 3);
-    ExpectCut(Draw(36), "0x43e368", "0x614");
+    ASSERT_TRUE(Draw(36).HasValue());
+    EXPECT_EQ(std::ranges::count_if(m_joints, [](const Client::Scenes::JointState& joint) { return joint.alive; }), 12);
+    EXPECT_EQ(m_joints[0].type, 0x614);
+    EXPECT_EQ(m_joints[0].subtype, 7);
+    EXPECT_EQ(m_joints[0].position, Bone(10));
+    EXPECT_EQ(m_joints[0].targetPosition, Bone(11));
+    EXPECT_EQ(m_joints[0].maximumCount, 3);
+    EXPECT_EQ(m_joints[0].life, 1);
+    EXPECT_TRUE(m_joints[0].repeatedTexture);
+    EXPECT_EQ(m_joints[6].position, Bone(31));
+    EXPECT_EQ(m_joints[11].targetPosition, Bone(37));
+    EXPECT_EQ(m_random.State(), After(2));
     SetUp();
     Actor(0x194, 3);
     FillJoints();

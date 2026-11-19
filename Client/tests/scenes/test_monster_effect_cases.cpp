@@ -377,14 +377,17 @@ TEST_F(ModelEffectsTest, TheDyingBurstCutsAtItsUnknownDust)
     }
 }
 
-// 0x507006 y 0x50749c: el 0x185 corta en su primer joint 0x614/7 y el 0x17e en su primer 0x5de, después del & 7.
-TEST_F(ModelEffectsTest, TheUnknownJointsAndParticlesCut)
+// 0x507006 y 0x50749c: el 0x185 crea sus catorce joints 0x614/7 (0x5315b7, sin rand()) y el 0x17e corta en su
+// primer 0x5de, después del & 7.
+TEST_F(ModelEffectsTest, TheBoneJointsAreCreatedAndTheUnknownParticlesCut)
 {
     for (const std::int32_t map : {0, 2})
     {
         SCOPED_TRACE(map);
+        Clear();
         CrtRandom random(Seed);
-        EXPECT_TRUE(CutAt(Step(0x185, map, random), "0x50706f"));
+        ASSERT_TRUE(Step(0x185, map, random).HasValue());
+        EXPECT_EQ(Joints(0x614), 14);
         EXPECT_EQ(random.State(), AfterDraws(Seed, 1).State());
         m_actor.word376 = 0x3f;
         CrtRandom other(Seed);

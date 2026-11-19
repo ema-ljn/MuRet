@@ -1,4 +1,5 @@
 #include "Scenes/AttackStep.h"
+#include "Scenes/AttackSkillCases.h"
 
 #include "Core/Expected.h"
 #include "Data/Terrain/TerrainAttributes.h"
@@ -18,6 +19,7 @@
 #include "World/GameModelEffects.h"
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
+#include "World/WizardModelEffects.h"
 #include "World/PortableParticleTrigonometry.h"
 #include "World/TerrainLighting.h"
 
@@ -495,20 +497,20 @@ TEST(AttackStepTest, TheCutsAfterTheirDraws)
     };
     const std::array cases{
         Case{"la habilidad 3", [](AttackWorld&, ActorState& hero) { hero.byte38e = 3; }, "0x4f8fef", CountingStep},
-        Case{"la habilidad 8",
+        Case{"la habilidad 0x0c",
              [](AttackWorld&, ActorState& hero)
              {
-                 hero.byte38e = 8;
+                 hero.byte38e = 0x0c;
                  hero.byte381 = 14;
              },
-             "0x500c49", CountingStep + SkillRead + OwnRecord},
-        Case{"la habilidad 7",
+             "0x500cb9", CountingStep + SkillRead + OwnRecord},
+        Case{"la habilidad 1",
              [](AttackWorld&, ActorState& hero)
              {
-                 hero.byte38e = 7;
+                 hero.byte38e = 1;
                  hero.byte381 = 14;
              },
-             "0x504768", CountingStep + 2 * SkillRead},
+             "0x50497e", CountingStep + 2 * SkillRead},
         Case{"el caso 0x23 de +0x376",
              [](AttackWorld&, ActorState& hero)
              {
@@ -543,6 +545,28 @@ TEST(AttackStepTest, TheCutsAfterTheirDraws)
 
         EXPECT_TRUE(HasError(stepped, probe.cut)) << ErrorOf(stepped);
         EXPECT_EQ(DrawsSince(Seed, tested.random), probe.draws);
+    }
+}
+
+// La luz local de 0x4fd5f0 llega a los casos: la 0x07 crea su 0xc1/0 sobre el blanco con ella (0x50474e), la de
+// Scenes::BodyLight o la que le pasa el cuerpo con la partícula 0x5ac (0x4fdb3f).
+TEST(AttackStepTest, TheSkillCasesTakeTheBodyLight)
+{
+    for (const glm::vec3& light : {Client::Scenes::BodyLight, glm::vec3(0.3f, 0.5f, 1.0f)})
+    {
+        AttackWorld tested;
+        ActorState& hero = tested.Striker(HeroSlot, 0x23, VictimSlot);
+        hero.byte38e = 7;
+        hero.byte381 = 14;
+
+        const auto stepped = StepTheAttack(hero, HeroSlot, tested.Context(), light);
+
+        ASSERT_TRUE(stepped.HasValue()) << ErrorOf(stepped);
+        const auto ice = std::ranges::find_if(tested.world.Map().effects.Effects(), [](const auto& effect)
+                                              { return effect.alive && effect.type == Client::World::IceEffect; });
+        ASSERT_NE(ice, tested.world.Map().effects.Effects().end());
+        EXPECT_EQ(ice->light, light);
+        EXPECT_EQ(ice->transform.position, tested.Victim().position);
     }
 }
 

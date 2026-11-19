@@ -232,7 +232,7 @@ Core::Expected<void, std::string> BleedOnTheTarget(const ActorState& actor, cons
 
 // 0x5037dd..0x50534a: con blanco.
 Core::Expected<void, std::string> StrikeTheTarget(ActorState& actor, std::size_t slot, std::int16_t target,
-                                                  const CharacterStepContext& context)
+                                                  const CharacterStepContext& context, const glm::vec3& light)
 {
     const WorldRuntime& runtime = context.world.Runtime();
     auto actors = context.world.Actors();
@@ -321,10 +321,10 @@ Core::Expected<void, std::string> StrikeTheTarget(ActorState& actor, std::size_t
         if (auto sparked = SparkTheTarget(actor, victim, slot, context); !sparked.HasValue())
             return sparked;
     }
-    // 0x5042d3..0x50431c: los ángulos con el rumbo de 0x4e93f0 hacia el blanco, que solo leen los casos (sin rand()).
-    // 0x50432a..0x504372: +0x38e y su switch (AttackSkillCases.h).
+    // 0x5042d3..0x50431c: los ángulos con el rumbo de 0x4e93f0 hacia el blanco, que solo leen los casos (sin rand();
+    // los arma StepTheTargetSkill). 0x50432a..0x504372: +0x38e y su switch (AttackSkillCases.h).
     const std::uint8_t first = ReadTheSkill(actor, context.random);
-    if (auto cased = StepTheTargetSkill(actor, victim, slot, first, context); !cased.HasValue())
+    if (auto cased = StepTheTargetSkill(actor, victim, slot, first, context, light); !cased.HasValue())
         return cased;
     // 0x505069..0x505107: el punto del blanco, la bandera de la 0x25 y la 0x26 y la luz, que leen los casos de
     // habilidad. Con +0x380 en 2 (el 16 del héroe, mató), 0x530860(0x618, blanco+0x10, blanco+0x10, o+0x1c, 0 y 1, o,
@@ -368,7 +368,7 @@ Core::Expected<void, std::string> StrikeTheTarget(ActorState& actor, std::size_t
 } // namespace
 
 Core::Expected<void, std::string> StepTheAttack(ActorState& actor, std::size_t slot,
-                                                const CharacterStepContext& context)
+                                                const CharacterStepContext& context, const glm::vec3& light)
 {
     WorldRuntime& runtime = context.world.Runtime();
     // 0x4fdb9a..0x4fdbd4.
@@ -391,12 +391,12 @@ Core::Expected<void, std::string> StepTheAttack(ActorState& actor, std::size_t s
     actor.word8a = static_cast<std::int16_t>(key.Value());
     // 0x4fdc17..0x4fdeeb: +0x38e y el switch de la cabeza.
     const std::uint8_t skill = ReadTheSkill(actor, context.random);
-    if (auto cased = StepTheHeadSkill(actor, slot, skill, context); !cased.HasValue())
+    if (auto cased = StepTheHeadSkill(actor, slot, skill, context, light); !cased.HasValue())
         return cased;
     // 0x502aff..0x502b0c: +0x3a4 (MOVSX) en −1.
     const auto target = std::bit_cast<std::int16_t>(actor.attackTarget);
     auto struck =
-        target == NoTarget ? StrikeNothing(actor, slot, context) : StrikeTheTarget(actor, slot, target, context);
+        target == NoTarget ? StrikeNothing(actor, slot, context) : StrikeTheTarget(actor, slot, target, context, light);
     if (!struck.HasValue())
         return struck;
     // 0x505356..0x505388: 0x40ae60, +0x38e en 0 y 0x40b0a0, una escritura por la tabla.

@@ -26,6 +26,7 @@
 #include "Scenes/ActorConstruction.h"
 #include "Scenes/ActorDying.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/AttackSkillCases.h"
 #include "Scenes/AttackStep.h"
 #include "Scenes/CharacterHead.h"
 #include "Scenes/CharacterDrawing.h"
@@ -775,11 +776,15 @@ Core::Expected<void, std::string> StepTheBoneEmitter(ActorState& actor, const Ch
     return {};
 }
 
+// 0x4fdb3f: la luz local de 0x4fd5f0 con la partícula 0x5ac (0,3f es 0x3e99999a); la leen después los casos de
+// habilidad (Scenes::BodyLight).
+constexpr glm::vec3 ActionFlareLight{0.3f, 0.5f, 1.0f};
+
 Core::Expected<void, std::string> CreateTheActionFlare(ActorState& actor, const CharacterStepContext& context)
 {
     constexpr std::size_t FlareBone = 42;
     constexpr std::int32_t FlareType = 0x5ac;
-    constexpr glm::vec3 Light{0.3f, 0.5f, 1.0f};
+    constexpr glm::vec3 Light = ActionFlareLight;
     const glm::vec3 point = SharedBonePoint(actor, FlareBone, glm::vec3(0.0f), context.world);
     if (context.particles == nullptr)
         return Core::Unexpected(std::string("0x4fdb92: falta el pool de partículas de la acción con 0x5ac/0"));
@@ -870,16 +875,19 @@ Core::Expected<void, std::string> StepTheBody(ActorState& actor, std::size_t slo
     if (auto emitted = StepTheBoneEmitter(actor, context); !emitted.HasValue())
         return emitted;
     // 0x4fdae0..0x4fdb92: las 0x4d, 0x4f y 0x5a pasado el frame 5,5 sacan la partícula 0x5ac del hueso 42.
+    // La luz local de 0x4fd5f0: (1, 1, 1) en 0x4fd81e y la de la partícula en 0x4fdb3f.
+    glm::vec3 bodyLight = BodyLight;
     const std::uint8_t action = actor.animation.action;
     if (IsOneOf(ParticleActions, action) && actor.animation.frame > ParticleFrame)
     {
+        bodyLight = ActionFlareLight;
         if (auto flare = CreateTheActionFlare(actor, context); !flare.HasValue())
             return flare;
     }
     // 0x4fdb9a..0x50539e: con +0x381 distinto de 0, 0x4f97b0 y 0x4f5b70 y +0x381 += 1; desde [0x6c88ac], la habilidad
     // de +0x38e con el blanco de +0x3a4. Lo ponen en 1 el ataque al llegar (0x5653c1, HeroAttack) y el 18 con 0x78 y
     // 0x79 (0x4cb830, ActionReply).
-    if (auto attacked = StepTheAttack(actor, slot, context); !attacked.HasValue())
+    if (auto attacked = StepTheAttack(actor, slot, context, bodyLight); !attacked.HasValue())
     {
         return attacked;
     }

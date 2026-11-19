@@ -1,6 +1,9 @@
 #pragma once
 
 #include "Core/Expected.h"
+#include "Scenes/AttackSkillCases.h"
+
+#include <glm/ext/vector_float3.hpp>
 
 #include <cstddef>
 #include <string>
@@ -18,7 +21,9 @@ struct CharacterStepContext;
 // +0x380 en 0. La flecha (0x53e2b0, después de 0x59fb80) es FireTheArrow (ArrowEffects.h). Corta, con lo que hizo
 // antes y sus rand(), en los casos de habilidad (hito 4), en los monstruos y transformados (la fase 2c), en los cortes
 // de la flecha y en los efectos sin portar.
-// `slot` es el lugar de `actor` en el pool.
+// `slot` es el lugar de `actor` en el pool y `light`, la luz local de 0x4fd5f0 (Scenes::BodyLight o la de la partícula
+// 0x5ac, 0x4fdb3f) que leen los casos de habilidad.
 [[nodiscard]] Core::Expected<void, std::string> StepTheAttack(ActorState& actor, std::size_t slot,
-                                                              const CharacterStepContext& context);
+                                                              const CharacterStepContext& context,
+                                                              const glm::vec3& light = BodyLight);
 } // namespace Client::Scenes

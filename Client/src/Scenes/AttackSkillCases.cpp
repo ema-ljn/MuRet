@@ -257,14 +257,16 @@ Core::Expected<glm::vec3, std::string> SkillCellPoint(const ActorState& actor, c
 }
 
 // 0x4ffcbe..0x4ffdb7, la 0x27: la celda de la skill con su altura y diez vueltas: rand() % 50 por la vuelta sobre la
-// altura (FILD + FADD, guardado en float) y 0x518cf0(0x108, punto, o+0x1c, (1, 1, 1) de 0x4fd81e, 0, nadie, vuelta + 1,
-// 0, 0, 0, 0), aunque la tabla esté llena (el rand() sale antes del alta).
+// altura (FILD + FADD, guardado en float) y 0x518cf0(0x108, punto, o+0x1c, la luz local, 0, nadie, vuelta + 1, 0, 0, 0,
+// 0), aunque la tabla esté llena (el rand() sale antes del alta). La luz local es (1, 1, 1) de 0x4fd81e, o (0,3; 0,5;
+// 1) de 0x4fdb3f con las acciones 0x4d, 0x4f y 0x5a pasado el frame 5,5; da igual: el alta del 0x108/0 la pone en 0
+// (0x51bd37).
 Core::Expected<void, std::string> DropTheIceStorm(const ActorState& actor, const CharacterStepContext& context)
 {
     constexpr int Rounds = 10;
     constexpr int Rise = 50;
     constexpr std::int16_t StormEffect = 0x108;
-    constexpr glm::vec3 White{1.0f, 1.0f, 1.0f}; // 0x4fd81e
+    constexpr glm::vec3 White{1.0f, 1.0f, 1.0f}; // 0x4fd81e; la de 0x4fdb3f la pisa el alta igual (0x51bd37)
     const auto cell = SkillCellPoint(actor, context, 0x4ffd1e);
     if (!cell.HasValue())
         return Core::Unexpected(cell.Error());

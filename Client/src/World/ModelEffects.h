@@ -320,10 +320,10 @@ public:
     // rand() y sin tocar el registro.
     std::optional<std::size_t> CreateOwnedFlameJet(const ModelEffectArguments& arguments, std::uint8_t& ownRecordDepth,
                                                    std::uint8_t ownRecordCount, Render::Models::CrtRandom& random);
-    // 0x518cf0(0xc8 o 0xc9, …, 0, 0, −1, 0, 0, 0, 0) → 0x51b72b con el subtipo 0: el prefijo común y cinco
-    // rand(): el empuje ((& 255) + 64) · 0,1f en y, la vida (& 15) + 32, la escala ((& 3) + 8) · 0,1f, el
-    // yaw rand() % 360 y la caída (& 15) + 8 en +0xe4; la velocidad es el empuje girado por los ángulos con
-    // ese yaw. La /1 de 0x520119 tiene empuje cero y omite ese primer sorteo. Otro tipo o la tabla llena, ninguno.
+    // 0x518cf0(0xc8 o 0xc9, o 0xea o 0xeb con el subtipo 0, …, 0, 0, −1, 0, 0, 0, 0) → 0x51b72b: el prefijo común y
+    // cinco rand(): el empuje ((& 255) + 64) · 0,1f en y, la vida (& 15) + 32, la escala ((& 3) + 8) · 0,1f, el yaw
+    // rand() % 360 y la caída (& 15) + 8 en +0xe4; la velocidad es el empuje girado por los ángulos con ese yaw. La /1
+    // de 0x520119 tiene empuje cero y omite ese primer sorteo. Otro tipo o la tabla llena, ninguno.
     std::optional<std::size_t> CreateStoneChip(std::int16_t type, const glm::vec3& position, const glm::vec3& angles,
                                                const glm::vec3& light, Render::Models::CrtRandom& random);
     std::optional<std::size_t> CreateStoneChip(std::int16_t type, const glm::vec3& position, const glm::vec3& angles,

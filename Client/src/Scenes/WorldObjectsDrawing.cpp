@@ -711,6 +711,9 @@ Core::Expected<void, std::string> DrawGameWorldObjects(Render::ModelBatch& batch
 Core::Expected<void, std::string> DrawGroundEffects(Render::ModelBatch& batch, std::span<World::ModelEffect> effects,
                                                     const World::GroundEffectResources& resources)
 {
+    // Lo que el dibujo crea (0x52e04c, 0x52e0a2) va a la misma tabla que se recorre.
+    World::GroundEffectResources onTable = resources;
+    onTable.table = effects;
     for (std::size_t slot = 0; slot < effects.size(); ++slot)
     {
         World::ModelEffect& effect = effects[slot];
@@ -721,7 +724,7 @@ Core::Expected<void, std::string> DrawGroundEffects(Render::ModelBatch& batch, s
         }
         static_cast<void>(resources.random.Next()); // 0x52dc46, aun sin un caso de suelo.
         World::ApplyGroundEffectAdditive(batch);    // 0x620a90, antes de despachar por tipo.
-        if (auto drawn = World::DrawGroundEffectCase(batch, effect, resources); !drawn.HasValue())
+        if (auto drawn = World::DrawGroundEffectCase(batch, effect, onTable); !drawn.HasValue())
         {
             return Core::Unexpected(drawn.Error() + std::format(", en el efecto {} (el {:#x})", slot, effect.type));
         }

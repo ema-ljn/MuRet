@@ -468,15 +468,6 @@ Core::Expected<Helped, std::string> StepKalima(ActorState& actor, const KindCase
 }
 
 // Lo que las altas de los tipos altos (Scenes/HighModelEffects) leen del paso de los personajes.
-HighEffectContext HighContextOf(const CharacterStepContext& context)
-{
-    return {.world = context.world,
-            .random = context.random,
-            .worldClock = context.worldClock,
-            .send = context.send,
-            .models = context.models};
-}
-
 // 0x42dcf0 en el 30: el 0x120 (0x42dd23) suelta el pulso 0x61c/0 en cada paso y el 0x68 (0x42dd56), en el 5, el
 // lancero 0x19f/0 con la z 500 más arriba; los dos sin dueño y con la clave en −1. Sale con AL en 1 también con la
 // tabla llena.

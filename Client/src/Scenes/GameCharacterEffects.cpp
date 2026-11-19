@@ -731,18 +731,24 @@ Core::Expected<void, std::string> StepSkillFlare(World::ModelEffect& effect, std
     return {};
 }
 
+bool StepsAsPetSummon(const World::ModelEffect& effect)
+{
+    // 0x52b984..0x52b9a5: los /4 y /6 a /0xa saltan a 0x52b9b8; los demás de 1 en adelante, a 0x518900.
+    constexpr std::int32_t PulsingSubtype = 4, FirstBindingSubtype = 6, LastOwnSubtype = 0xa;
+    return effect.type == World::ColoredDecalEffect && effect.subtype != PulsingSubtype &&
+           (effect.subtype < FirstBindingSubtype || effect.subtype > LastOwnSubtype);
+}
+
 Core::Expected<void, std::string> StepPetSummon(World::ModelEffect& effect, std::span<JointState> joints,
                                                 Render::Models::CrtRandom& random)
 {
     if (!effect.alive)
         return {};
-    if (effect.type != World::ColoredDecalEffect ||
-        (effect.subtype != World::LevelUpDecalSubtype && effect.subtype != World::PetSummonSubtype &&
-         effect.subtype != World::SummonDecalSubtype))
+    if (!StepsAsPetSummon(effect))
         return Core::Unexpected(
-            std::format("0x52b9a6: el efecto {:#x}/{} no es el 0x61e/0, /1 ni /3", effect.type, effect.subtype));
-    // 0x52b984 → 0x52b9b8 → 0x52bb29: el /0 no entra en 0x518900, ni consulta joints o dueño.
-    if (effect.subtype == World::LevelUpDecalSubtype)
+            std::format("0x52b9a6: el efecto {:#x}/{} no va a 0x518900", effect.type, effect.subtype));
+    // 0x52b984 → 0x52b9b8 → 0x52bb29: el /0 (y un subtipo negativo) no entra en 0x518900, ni consulta joints o dueño.
+    if (effect.subtype < World::PetSummonSubtype)
     {
         static_cast<void>(random.Next());
         World::StepModelEffect(effect, nullptr);
@@ -753,6 +759,9 @@ Core::Expected<void, std::string> StepPetSummon(World::ModelEffect& effect, std:
     // 0x5208c5: el primer rand() corre para todo efecto vivo, aunque el 0x61e no use la luz.
     static_cast<void>(random.Next());
     glm::vec3& position = effect.transform.position;
+    // 0x51898b..0x5189bd: el /5 pide el 619/0xb; los demás, el de su subtipo.
+    constexpr std::int32_t SwappedSubtype = 5, SwappedJointSubtype = 0xb;
+    const std::int32_t jointSubtype = effect.subtype == SwappedSubtype ? SwappedJointSubtype : effect.subtype;
     for (int made = 0; made < SummonJoints; ++made)
     {
         glm::vec3 angles{static_cast<float>(random.Next() % SummonPitchSpan), 0.0f,
@@ -764,7 +773,7 @@ Core::Expected<void, std::string> StepPetSummon(World::ModelEffect& effect, std:
                         F32(D(position.z) - D(reach.z) + SummonLift)};
         const auto created = CreateFaunaJoint(
             joints,
-            {EnergyType, start, position, angles, effect.subtype, effect.ownerContext, SummonWidth, NoKey, 0, 0,
+            {EnergyType, start, position, angles, jointSubtype, effect.ownerContext, SummonWidth, NoKey, 0, 0,
              NoTarget},
             random, effect.owner.effect != nullptr ? JointOwnerKind::ModelEffect : JointOwnerKind::ByType);
         if (!created.HasValue())

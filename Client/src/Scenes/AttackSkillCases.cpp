@@ -12,10 +12,12 @@
 #include "Scenes/HeroAttack.h"
 #include "Scenes/HeroSkillCasts.h"
 #include "Scenes/HeroSkills.h"
+#include "Scenes/HighModelEffects.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/WorldMap.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "World/ColoredDecals.h"
 #include "World/ModelEffects.h"
 #include "World/KalimaWorld.h"
 #include "World/Particles.h"
@@ -86,6 +88,59 @@ Core::Expected<void, std::string> EffectThenSound(std::uint32_t address, std::st
         return CutAt(address, what, skill, slot);
     if (sound >= 0)
         RequestTheSound(context, sound, actor);
+    return {};
+}
+
+// 0x518cf0 de un tipo alto (Scenes/HighModelEffects) desde un caso: el error lleva la habilidad y el lugar.
+Core::Expected<void, std::string> CreateHighEffect(const World::ModelEffectArguments& arguments, std::uint8_t skill,
+                                                   std::size_t slot, const CharacterStepContext& context)
+{
+    if (auto made = CreateHighModelEffect(arguments, HighContextOf(context)); !made.HasValue())
+        return Core::Unexpected(std::format("{} (la habilidad {:#x} del lugar {})", made.Error(), skill, slot));
+    return {};
+}
+
+// 0x4fd81e y 0x4fdaeb..0x4fdb4d: la luz local del paso, (1; 1; 1) o, con la acción 0x4d, 0x4f o 0x5a pasado el frame
+// 5,5, la de la partícula 0x5ac/0 (0,3; 0,5; 1).
+glm::vec3 CaseLight(const ActorState& actor)
+{
+    constexpr std::array<std::uint8_t, 3> FlaredActions{0x4d, 0x4f, 0x5a};
+    constexpr float FlareFrame = 5.5f; // 0x6b8a40
+    const bool flared = std::ranges::find(FlaredActions, actor.animation.action) != FlaredActions.end() &&
+                        actor.animation.frame > FlareFrame;
+    return flared ? glm::vec3(std::bit_cast<float>(0x3e99999au), 0.5f, 1.0f) : glm::vec3(1.0f);
+}
+
+// 0x4fe015..0x4fe134 (la 0x30) y 0x4fe253..0x4fe36d (la 0x45): 36 vueltas con los ángulos (−10, 0, vuelta · 10) y, en
+// cada una, el joint 0x613 (`jointSubtype`) desde 100 sobre o, que con la tabla de joints con lugar corta en el primero
+// (CL11, lote de los joints); llena, nada. En las vueltas 0 y 20, el calco 0x61e (`decalSubtype`) sobre o con la luz
+// `light` y o de dueño. Después, el sonido.
+Core::Expected<void, std::string> RingOfDecals(ActorState& actor, std::size_t slot, std::uint8_t skill,
+                                               const CharacterStepContext& context, std::uint32_t jointAddress,
+                                               std::string_view joint, std::int32_t decalSubtype,
+                                               const glm::vec3& light, std::int32_t sound)
+{
+    if (HasJointRoom(context))
+        return CutAt(jointAddress, joint, skill, slot);
+    constexpr int Turns = 36, DecalEvery = 20;
+    constexpr float Pitch = -10.0f; // 0xc1200000
+    constexpr double TurnStep = 10.0;
+    for (int turn = 0; turn < Turns; ++turn)
+    {
+        if (turn % DecalEvery != 0)
+            continue;
+        const glm::vec3 angles{Pitch, 0.0f, static_cast<float>(static_cast<double>(turn) * TurnStep)};
+        if (auto made = CreateHighEffect({.type = World::ColoredDecalEffect,
+                                          .position = actor.position,
+                                          .angles = angles,
+                                          .light = light,
+                                          .subtype = decalSubtype,
+                                          .owner = &actor},
+                                         skill, slot, context);
+            !made.HasValue())
+            return made;
+    }
+    RequestTheSound(context, sound);
     return {};
 }
 
@@ -245,7 +300,18 @@ Core::Expected<void, std::string> FreeTheTarget(ActorState& actor, std::size_t s
     KillJointsOf(context.joints, FlameJoint, target.Value(), 4);
     KillJointsOf(context.joints, FlameJoint, target.Value(), 9);
     constexpr std::int32_t FreeSound = 0x269;
-    return EffectThenSound(0x4fe424, "el calco 0x61e/6 sobre el blanco (0x518cf0)", skill, slot, FreeSound, context);
+    const ActorState& freed = *target.Value();
+    if (auto made = CreateHighEffect({.type = World::ColoredDecalEffect,
+                                      .position = freed.position,
+                                      .angles = freed.angles,
+                                      .light = freed.light,
+                                      .subtype = World::BindingDecalSubtype,
+                                      .owner = target.Value()},
+                                     skill, slot, context);
+        !made.HasValue())
+        return made;
+    RequestTheSound(context, FreeSound);
+    return {};
 }
 
 // 0x4fe986..0x4feab6 (la 0x40) y 0x502993..0x502aee (la 0x4b): con otra cosa que 0xa21 en la derecha, el 0x117/0 en su
@@ -377,17 +443,15 @@ Core::Expected<void, std::string> StepTheHeadSkill(ActorState& actor, std::size_
         return {};
     case 0x30:
         // 0x4fe015: treinta y seis vueltas; la primera, 0x530860(0x613, …, 2, o, 60, …) sin rand() antes.
-        if (HasJointRoom(context))
-            return CutAt(0x4fe0e4, "el primero de los 36 joints 0x613/2 (0x530860)", skill, slot);
-        return EffectThenSound(0x4fe127, "el calco 0x61e/4 entre los joints", skill, slot, 0x7f, context);
+        return RingOfDecals(actor, slot, skill, context, 0x4fe0e4, "el primero de los 36 joints 0x613/2 (0x530860)",
+                            World::PulsingDecalSubtype, actor.light, 0x7f);
     case 0x43:
         return JointThenSound(0x4fe172, "el joint 0x632/7 sobre o (0x530860)", skill, slot, 0x266, context);
     case 0x44:
         return BindTheTarget(actor, slot, skill, context, 0x4fe1a6, 0x4fe235);
     case 0x45:
-        if (HasJointRoom(context))
-            return CutAt(0x4fe322, "el primero de los 36 joints 0x613/0x15 (0x530860)", skill, slot);
-        return EffectThenSound(0x4fe360, "el calco 0x61e/0xa entre los joints", skill, slot, 0x268, context);
+        return RingOfDecals(actor, slot, skill, context, 0x4fe322, "el primero de los 36 joints 0x613/0x15 (0x530860)",
+                            World::CoolPulsingDecalSubtype, CaseLight(actor), 0x268);
     case 0x46:
         return FreeTheTarget(actor, slot, skill, context);
     case 0x47:
@@ -550,8 +614,15 @@ Core::Expected<void, std::string> StepTheTargetSkill(ActorState& actor, ActorSta
         // 0x5044fe: con +0x38d y sin 0x4000 en o+0x78, el calco 0x61e/2 sobre el blanco.
         if (actor.skillSucceeded == 0 || (actor.flags78 & QuietFlag) != 0)
             return {};
-        if (HasEffectRoom(context))
-            return CutAt(0x504561, "el calco 0x61e/2 sobre el blanco (0x518cf0)", skill, slot);
+        if (auto made = CreateHighEffect({.type = World::ColoredDecalEffect,
+                                          .position = victim.position,
+                                          .angles = victim.angles,
+                                          .light = victim.light,
+                                          .subtype = 2,
+                                          .owner = &victim},
+                                         skill, slot, context);
+            !made.HasValue())
+            return made;
         {
             constexpr std::uint32_t BoundFlag = 8;
             const bool alreadyBound = (victim.flags78 & BoundFlag) != 0;

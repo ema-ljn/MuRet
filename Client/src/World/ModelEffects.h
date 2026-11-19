@@ -209,6 +209,11 @@ struct ModelEffectArguments
 // El WORD +0x2 del dueño, leído en vivo, o nada sin dueño.
 [[nodiscard]] std::optional<std::uint16_t> OwnerTypeOf(const ModelEffectOwner& owner);
 
+// ModelEffects::Begin sobre otra tabla del mismo formato: la copia que repite el pase del suelo (0x52dc20) crea ahí lo
+// que el original crea en la suya (los 0x61e/7 y /9 de 0x52e04c y 0x52e0a2).
+[[nodiscard]] std::optional<std::size_t> BeginModelEffect(std::span<ModelEffect> table,
+                                                          const ModelEffectArguments& arguments);
+
 class ModelEffects
 {
 public:

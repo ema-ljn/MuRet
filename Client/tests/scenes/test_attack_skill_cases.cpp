@@ -29,6 +29,7 @@
 
 #include <algorithm>
 #include <array>
+#include <bit>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -493,8 +494,9 @@ TEST(AttackSkillCasesTest, TheBindingSkillsLookAtTheirTarget)
     }
 }
 
-// 0x46: con blanco, 0x534f90(0x10f, blanco, 4) y (…, 9) apagan los joints de él con esos subtipos, y el calco 0x61e/6
-// corta; sin blanco, nada; sin el pool de joints, corta antes.
+// 0x46: con blanco, 0x534f90(0x10f, blanco, 4) y (…, 9) apagan los joints de él con esos subtipos, el calco 0x61e/6
+// nace sobre él (vida 60, escala (rand() % 50 + 50) · 0,04f, la partida en su posición y él de dueño) y suena el 0x269;
+// sin blanco, nada; sin el pool de joints, corta antes.
 TEST(AttackSkillCasesTest, TheReleaseKillsTheFlamesOfTheTarget)
 {
     SkillWorld tested;
@@ -510,13 +512,30 @@ TEST(AttackSkillCasesTest, TheReleaseKillsTheFlamesOfTheTarget)
         tested.joints[index].ownerContext = index == 3 ? &tested.Striker() : &tested.Victim();
     }
 
-    EXPECT_TRUE(HasError(tested.Head(0x46), "0x4fe424"));
+    tested.Victim().position = glm::vec3(1500.0f, 1600.0f, 20.0f);
+    tested.Victim().light = glm::vec3(0.5f);
+    ASSERT_TRUE(tested.Head(0x46).HasValue());
+
+    const auto alive = AliveEffects(tested.world);
+    ASSERT_EQ(alive.size(), 1u);
+    const Client::World::ModelEffect& decal = *alive.front();
+    CrtRandom expected{Seed};
+    const int grown = expected.Next() % 50 + 50;
+    EXPECT_EQ(decal.type, 0x61e);
+    EXPECT_EQ(decal.subtype, 6);
+    EXPECT_EQ(decal.life, 60);
+    EXPECT_EQ(decal.transform.scale,
+              static_cast<float>(static_cast<double>(grown) * static_cast<double>(std::bit_cast<float>(0x3d23d70au))));
+    EXPECT_EQ(decal.start, tested.Victim().position);
+    EXPECT_EQ(decal.light, tested.Victim().light);
+    EXPECT_EQ(decal.ownerContext, &tested.Victim());
+    EXPECT_EQ(DrawsSince(Seed, tested.random), 1);
+    EXPECT_EQ(tested.sounds, std::vector<std::int32_t>{0x269});
 
     EXPECT_FALSE(tested.joints[0].alive);
     EXPECT_FALSE(tested.joints[1].alive);
     EXPECT_TRUE(tested.joints[2].alive);
     EXPECT_TRUE(tested.joints[3].alive);
-    EXPECT_EQ(DrawsSince(Seed, tested.random), 0);
 
     tested.withJoints = false;
     EXPECT_TRUE(HasError(tested.Head(0x46), "0x4fe3ce"));
@@ -751,7 +770,15 @@ TEST(AttackSkillCasesTest, TheQuietTargetCasesDoNothing)
     ActorState& striker = tested.Striker();
     EXPECT_TRUE(tested.WithTarget(0x1b).HasValue());
     striker.skillSucceeded = 1;
-    EXPECT_TRUE(HasError(tested.WithTarget(0x1b), "0x504561"));
+    // El calco 0x61e/2 nace sobre el blanco, sin rand(); después corta en el joint 0x10f/4 de la CL11.
+    EXPECT_TRUE(HasError(tested.WithTarget(0x1b), "0x5045f9"));
+    const auto bound = AliveEffects(tested.world);
+    ASSERT_EQ(bound.size(), 1u);
+    EXPECT_EQ(bound.front()->type, 0x61e);
+    EXPECT_EQ(bound.front()->subtype, 2);
+    EXPECT_EQ(bound.front()->life, 20);
+    EXPECT_EQ(bound.front()->ownerContext, &tested.Victim());
+    EXPECT_EQ(DrawsSince(Seed, tested.random), 0);
     striker.flags78 = 0x4000;
     EXPECT_TRUE(tested.WithTarget(0x1b).HasValue());
     EXPECT_TRUE(tested.WithTarget(0x1c).HasValue());
@@ -771,7 +798,7 @@ TEST(AttackSkillCasesTest, TheQuietTargetCasesDoNothing)
     EXPECT_TRUE(tested.WithTarget(0x00).HasValue());
     EXPECT_EQ(DrawsSince(Seed, tested.random), 0);
     EXPECT_TRUE(tested.sounds.empty());
-    EXPECT_TRUE(AliveEffects(tested.world).empty());
+    EXPECT_EQ(AliveEffects(tested.world).size(), 1u); // el 0x61e/2 de la 0x1b
 }
 
 // 0x10: el 0x189 prende 0x100 en su +0x78; con 0x4000, nada; si no, 0x100 en +0x78 del blanco, el sonido 0x84,
@@ -1034,8 +1061,9 @@ TEST(AttackSkillCasesTest, MixedPoolsStopAtTheFirstConstructorWithRoom)
         SkillWorld tested;
         for (auto& joint : tested.joints)
             joint.alive = true;
-        EXPECT_TRUE(HasError(tested.Head(0x30), "0x4fe127"));
-        EXPECT_TRUE(tested.sounds.empty());
+        EXPECT_TRUE(tested.Head(0x30).HasValue());
+        EXPECT_EQ(tested.sounds, std::vector<std::int32_t>{0x7f});
+        EXPECT_EQ(AliveEffects(tested.world).size(), 2u);
         tested.joints.front().alive = false;
         for (auto& effect : tested.world.Map().effects.Effects())
             effect.alive = true;

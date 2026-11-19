@@ -242,9 +242,7 @@ GameScene::StepTheModelEffects(float worldClock, const std::function<double(floa
         }
         // 0x52b9a6: el calco 0x61e/1 de la mascota suelta joints 619/1 con el héroe de dueño, y el /3 de la 0x1c y de
         // las invocaciones, los 619/3 de la CL11, fuera de World.
-        if (effect.type == World::ColoredDecalEffect &&
-            (effect.subtype == World::LevelUpDecalSubtype || effect.subtype == World::PetSummonSubtype ||
-             effect.subtype == World::SummonDecalSubtype))
+        if (StepsAsPetSummon(effect))
         {
             if (auto stepped = StepPetSummon(effect, m_context.world->DrawTail().joints, m_context.cloth->random);
                 !stepped.HasValue())

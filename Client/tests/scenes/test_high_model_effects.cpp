@@ -539,3 +539,171 @@ TEST(HighModelEffectsTest, TheRadialShardBurstsIntoChipsBelowTheTerrain)
     EXPECT_TRUE(HasError(StepHighModelEffect(unseen, nullptr, blind.StepContext()), "0x52ca08"));
 }
 } // namespace
+
+namespace
+{
+// 0x51eebb..0x51efa4: el caso del 0x61e en el alta, con sus rand() y la tabla llena sin ninguno.
+TEST(HighModelEffectsTest, TheColoredDecalTakesItsLifeAndScaleBySubtype)
+{
+    constexpr double ScaleStep = static_cast<double>(std::bit_cast<float>(0x3d23d70au)); // 0,04f
+    struct Probe
+    {
+        std::int32_t subtype;
+        std::int32_t life;
+        int draws;
+    };
+    for (const Probe& probe : {Probe{2, 20, 0}, Probe{4, 40, 1}, Probe{5, 20, 0}, Probe{6, 60, 1}, Probe{7, 40, 1},
+                               Probe{8, 20, 0}, Probe{9, 10, 0}, Probe{0xa, 40, 1}})
+    {
+        SCOPED_TRACE(probe.subtype);
+        HighWorld tested;
+        ActorState& owner = tested.world->Actors()[3];
+        const ModelEffectArguments arguments{.type = 0x61e,
+                                             .position = {700, 800, 90},
+                                             .angles = {0, 0, 45},
+                                             .light = glm::vec3(0.5f),
+                                             .subtype = probe.subtype,
+                                             .owner = &owner};
+        const auto made = CreateHighModelEffect(arguments, tested.Context());
+        ASSERT_TRUE(made.HasValue()) << made.Error();
+        ASSERT_EQ(made.Value(), std::optional<std::size_t>{0});
+        const ModelEffect& decal = tested.Effect(0);
+        EXPECT_EQ(decal.life, probe.life);
+        EXPECT_EQ(decal.ownerContext, &owner);
+        EXPECT_EQ(tested.Draws(), probe.draws);
+        CrtRandom expected{Seed};
+        if (probe.subtype == 4 || probe.subtype == 6 || probe.subtype == 0xa)
+        {
+            const int grown = expected.Next() % 50 + 50;
+            EXPECT_EQ(decal.transform.scale, static_cast<float>(static_cast<double>(grown) * ScaleStep));
+        }
+        if (probe.subtype == 6)
+        {
+            EXPECT_EQ(decal.start, arguments.position);
+        }
+        if (probe.subtype == 7)
+        {
+            EXPECT_EQ(decal.transform.angles.z, static_cast<float>(expected.Next() % 360));
+        }
+        if (probe.subtype == 9)
+        {
+            EXPECT_EQ(decal.transform.scale, std::bit_cast<float>(0x3dcccccdu));
+        }
+    }
+    HighWorld full;
+    full.FillTheEffects();
+    const auto none = CreateHighModelEffect({.type = 0x61e, .subtype = 6}, full.Context());
+    ASSERT_TRUE(none.HasValue()) << none.Error();
+    EXPECT_FALSE(none.Value().has_value());
+    EXPECT_EQ(full.Draws(), 0);
+}
+
+// 0x52b9c1..0x52bb24: el 0x61e/6 pone su partida como origen del modelo de su dueño, sortea +0x68 y, por cada vida, un
+// hueso; los dummy no sacan más; los otros, tres rand() del corrimiento y la partícula 0x5ac/8, que MuRet no tiene:
+// con lugar corta ahí (0x52baf5); llena, sigue. Después, el alpha del dueño en vida · 0,0125f, y la cola: una vida
+// menos sin moverse.
+TEST(HighModelEffectsTest, TheBindingDecalSparksOverTheBonesOfItsOwner)
+{
+    HighWorld tested;
+    ActionModels models(1);
+    models.skeleton.bones.resize(2);
+    models.skeleton.bones[1].dummy = true;
+    tested.world->FaunaResources().Bind(&models);
+    ActorState& owner = tested.world->Actors()[3];
+    owner.alive = true;
+    owner.type = 0x20a;
+    owner.position = {1000, 1000, 0};
+    owner.angles = {0, 0, 90};
+    owner.alpha = 1.0f;
+    const ModelEffectArguments arguments{
+        .type = 0x61e, .position = {1000, 1000, 0}, .light = glm::vec3(1.0f), .subtype = 6, .owner = &owner};
+    ASSERT_TRUE(CreateHighModelEffect(arguments, tested.Context()).HasValue());
+    ModelEffect& decal = tested.Effect(0);
+    decal.life = 3;
+    const int before = tested.Draws();
+    const ModelEffect kept = decal;
+    const auto cut = StepHighModelEffect(decal, nullptr, tested.StepContext());
+    if (!cut.HasValue())
+    {
+        EXPECT_NE(cut.Error().find("0x52baf5"), std::string::npos) << cut.Error();
+    }
+    decal = kept;
+    tested.random = CrtRandom{Seed};
+    for (int skipped = 0; skipped < before; ++skipped)
+        static_cast<void>(tested.random.Next());
+    tested.FillTheParticles();
+
+    const auto stepped = StepHighModelEffect(decal, nullptr, tested.StepContext());
+
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    CrtRandom expected{Seed};
+    for (int skipped = 0; skipped < before; ++skipped)
+        static_cast<void>(expected.Next());
+    static_cast<void>(expected.Next()); // la luz local (0x5208c5)
+    const int glow = expected.Next() % 10;
+    int sparks = 0;
+    int draws = before + 2;
+    for (int turn = 0; turn < 3; ++turn)
+    {
+        const int bone = expected.Next() % 2;
+        ++draws;
+        if (bone == 1)
+            continue;
+        for (int axis = 0; axis < 3; ++axis)
+            static_cast<void>(expected.Next());
+        draws += 3;
+        ++sparks;
+    }
+    EXPECT_EQ(decal.objectState.light,
+              static_cast<float>(static_cast<double>(glow) * static_cast<double>(std::bit_cast<float>(0x3dcccccdu))));
+    EXPECT_EQ(owner.alpha, static_cast<float>(3.0 * static_cast<double>(std::bit_cast<float>(0x3c4ccccdu))));
+    EXPECT_EQ(tested.world->ModelPlacement(0x20a).origin, decal.start);
+    EXPECT_EQ(decal.life, 2);
+    EXPECT_EQ(decal.transform.position, arguments.position);
+    EXPECT_GT(sparks, 0);
+    EXPECT_EQ(tested.Draws(), draws);
+    tested.world->FaunaResources().Bind(nullptr);
+}
+
+// El 0x61e/6 sin huesos en el modelo de su dueño: el original divide por cero (0x52ba47); MuRet corta, después del
+// rand() de +0x68.
+TEST(HighModelEffectsTest, TheBindingDecalCutsWhenItsOwnerHasNoBones)
+{
+    HighWorld tested;
+    ActorState& owner = tested.world->Actors()[3];
+    owner.type = 0x20a;
+    ASSERT_TRUE(CreateHighModelEffect({.type = 0x61e, .subtype = 6, .owner = &owner}, tested.Context()).HasValue());
+    const auto stepped = StepHighModelEffect(tested.Effect(0), nullptr, tested.StepContext());
+    ASSERT_FALSE(stepped.HasValue());
+    EXPECT_NE(stepped.Error().find("0x52ba47"), std::string::npos) << stepped.Error();
+    EXPECT_EQ(tested.Draws(), 1 + 2);
+}
+
+// 0x52bb29..0x52bb74: el 0x61e/9 crece 0,3f y su luz baja a 0,909f; los /4, /7, /8 y /0xa solo pierden una vida.
+TEST(HighModelEffectsTest, TheGrowingDecalWidensAndDims)
+{
+    HighWorld tested;
+    ASSERT_TRUE(
+        CreateHighModelEffect({.type = 0x61e, .light = glm::vec3(0.8f), .subtype = 9}, tested.Context()).HasValue());
+    ModelEffect& decal = tested.Effect(0);
+    ASSERT_TRUE(StepHighModelEffect(decal, nullptr, tested.StepContext()).HasValue());
+    const double decay = static_cast<double>(std::bit_cast<float>(0x3f68ba2eu));
+    EXPECT_EQ(decal.transform.scale, static_cast<float>(static_cast<double>(std::bit_cast<float>(0x3dcccccdu)) +
+                                                        static_cast<double>(std::bit_cast<float>(0x3e99999au))));
+    EXPECT_EQ(decal.light.x, static_cast<float>(static_cast<double>(0.8f) * decay));
+    EXPECT_EQ(decal.life, 9);
+    EXPECT_EQ(tested.Draws(), 1);
+    for (const std::int32_t subtype : {4, 7, 8, 0xa})
+    {
+        HighWorld plain;
+        ASSERT_TRUE(CreateHighModelEffect({.type = 0x61e, .subtype = subtype}, plain.Context()).HasValue());
+        const int life = plain.Effect(0).life;
+        const float scale = plain.Effect(0).transform.scale;
+        const int before = plain.Draws();
+        ASSERT_TRUE(StepHighModelEffect(plain.Effect(0), nullptr, plain.StepContext()).HasValue());
+        EXPECT_EQ(plain.Effect(0).life, life - 1);
+        EXPECT_EQ(plain.Effect(0).transform.scale, scale);
+        EXPECT_EQ(plain.Draws(), before + 1);
+    }
+}
+} // namespace

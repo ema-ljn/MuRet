@@ -3,11 +3,13 @@
 #include "Core/Expected.h"
 #include "Render/Models/Animation.h"
 #include "Render/Models/Cloth.h"
+#include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/OriginalRetainedMath.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Render/Models/Skeleton.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterDrawing.h"
+#include "Scenes/CharacterStep.h"
 #include "Scenes/FaunaModels.h"
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/GameDrawTail.h"
@@ -15,6 +17,7 @@
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "World/GameModelEffects.h"
+#include "World/ColoredDecals.h"
 #include "World/IFishStepServices.h"
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
@@ -28,6 +31,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <format>
+#include <functional>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -513,12 +517,82 @@ Core::Expected<void, std::string> StepTheRadialShard(World::ModelEffect& effect,
     const glm::vec3 color{F32(D(luminosity) * Fifth), F32(D(luminosity) * TwoFifths), luminosity};
     return World::AddDynamicLight(context.services.lighting, position, color, 2, "0x521246");
 }
+
+// 0x52b9c1..0x52bb24, el 0x61e/6 (el calco que la 0x44 y la 0x47 ponen sobre el blanco, su dueño): el modelo del dueño
+// (0x5769ad8 + su tipo · 0xe0) toma la partida del calco como origen (+0x6c); +0x68 en (rand() % 10) · 0,1f; tantas
+// vueltas como vida, cada una con un hueso al azar (rand() % sus huesos) que, si no es un dummy, da tres rand() del
+// corrimiento (± 50, ± 10, ± 10), su punto (0x4ec110 con los huesos propios del dueño, la escala del modelo y ese
+// origen) y la partícula 0x5ac/8 con los ángulos del dueño, luz 1 y escala 1; después, el alpha del dueño (+0x174) en
+// vida · 0,0125f.
+Core::Expected<void, std::string> StepTheBindingDecal(World::ModelEffect& effect, const HighEffectStepContext& context)
+{
+    auto* owner = static_cast<ActorState*>(effect.ownerContext);
+    if (owner == nullptr)
+        return Core::Unexpected(std::string("0x52b9c1: el 0x61e/6 lee el modelo de un dueño nulo"));
+    SharedModelPlacement placement = context.world.ModelPlacement(owner->type);
+    placement.origin = effect.start;
+    context.world.PlaceModel(owner->type, placement);
+    constexpr int GlowSpan = 10;
+    constexpr double Tenth = static_cast<double>(std::bit_cast<float>(0x3dcccccdu)); // 0x6b87b8
+    effect.objectState.light = F32(static_cast<double>(context.random.Next() % GlowSpan) * Tenth);
+    const Render::Models::Skeleton* skeleton = context.world.FaunaResources().SkeletonOf(owner->type);
+    constexpr int SideSpan = 100, SideCenter = 50, DepthSpan = 20, DepthCenter = 10;
+    constexpr std::int32_t SparkSubtype = 8;
+    constexpr float SparkScale = 1.0f;
+    for (std::int32_t turn = 0; turn < effect.life; ++turn)
+    {
+        const std::size_t bones = skeleton != nullptr ? skeleton->bones.size() : 0;
+        if (bones == 0)
+            return Core::Unexpected(std::format("0x52ba47: el modelo {:#x} del dueño del 0x61e/6 no tiene huesos (el "
+                                                "rand() % 0 del original)",
+                                                owner->type));
+        const auto bone = static_cast<std::size_t>(context.random.Next() % static_cast<int>(bones));
+        if (skeleton->bones[bone].dummy)
+            continue;
+        glm::vec3 offset{};
+        offset.x = static_cast<float>(context.random.Next() % SideSpan - SideCenter);
+        offset.y = static_cast<float>(context.random.Next() % DepthSpan - DepthCenter);
+        offset.z = static_cast<float>(context.random.Next() % DepthSpan - DepthCenter);
+        // Sin huesos propios (antes del primer dibujo del dueño), la matriz en cero, como HandShinePoint (Q-C318).
+        const Render::Models::BoneTransform matrix =
+            bone < owner->bodyPose.size() ? owner->bodyPose[bone] : Render::Models::BoneTransform(0.0f);
+        const glm::vec3 point = Render::Models::OriginalTransformPosition(Render::Models::OriginalMatrixOf(matrix),
+                                                                          offset, placement.scale, placement.origin);
+        if (auto made = CreateParticle(context.world, context.random, context.worldClock, World::SwellLifeParticle,
+                                       point, owner->angles, glm::vec3(1.0f), SparkSubtype, SparkScale, 0x52baf5);
+            !made.HasValue())
+            return Core::Unexpected(made.Error());
+    }
+    constexpr double FadePerLife = static_cast<double>(std::bit_cast<float>(0x3c4ccccdu)); // 0x6ba208, 0,0125f
+    owner->alpha = F32(static_cast<double>(effect.life) * FadePerLife);
+    return {};
+}
+
+// 0x52bb29..0x52bb74, el 0x61e/9: la escala 0,3f más y la luz por 0,909f en cada canal.
+void StepTheGrowingDecal(World::ModelEffect& effect)
+{
+    constexpr double Growth = static_cast<double>(std::bit_cast<float>(0x3e99999au)); // 0x6b89dc, 0,3f
+    constexpr double Decay = static_cast<double>(std::bit_cast<float>(0x3f68ba2eu));  // 0x6ba26c
+    effect.transform.scale = F32(D(effect.transform.scale) + Growth);
+    for (int channel = 0; channel < 3; ++channel)
+        effect.light[channel] = F32(D(effect.light[channel]) * Decay);
+}
 } // namespace
+
+HighEffectContext HighContextOf(const CharacterStepContext& context)
+{
+    return {.world = context.world,
+            .random = context.random,
+            .worldClock = context.worldClock,
+            .send = context.send,
+            .models = context.models};
+}
 
 bool IsHighModelEffect(std::int16_t type)
 {
     return type == SiegeAuraEffect || type == SiegeFlareEffect || type == SiegeSpearmanEffect ||
-           type == SiegePulseEffect || type == RadialShardEffect || type == GrowingFlashEffect;
+           type == SiegePulseEffect || type == RadialShardEffect || type == GrowingFlashEffect ||
+           type == World::ColoredDecalEffect;
 }
 
 Core::Expected<std::optional<std::size_t>, std::string>
@@ -551,6 +625,9 @@ CreateHighModelEffect(const World::ModelEffectArguments& arguments, const HighEf
     case GrowingFlashEffect:
         BeginTheGrowingFlash(effect);
         break;
+    case World::ColoredDecalEffect:
+        World::BeginColoredDecal(effect, context.random);
+        break;
     default:
         break;
     }
@@ -561,6 +638,11 @@ CreateHighModelEffect(const World::ModelEffectArguments& arguments, const HighEf
 
 bool StepsAsHighModelEffect(const World::ModelEffect& effect)
 {
+    // 0x52b984: los 0x61e que no van a 0x518900 (los /0, /1, /3 y los demás que sí van son de StepPetSummon).
+    if (effect.type == World::ColoredDecalEffect)
+        return effect.subtype == World::PulsingDecalSubtype || effect.subtype == World::BindingDecalSubtype ||
+               effect.subtype == World::BindingChildSubtype || effect.subtype == World::SpawningDecalSubtype ||
+               effect.subtype == World::GrowingDecalSubtype || effect.subtype == World::CoolPulsingDecalSubtype;
     return IsHighModelEffect(effect.type);
 }
 
@@ -598,6 +680,12 @@ Core::Expected<void, std::string> StepHighModelEffect(World::ModelEffect& effect
     case GrowingFlashEffect:
         StepTheGrowingFlash(effect);
         break;
+    case World::ColoredDecalEffect:
+        if (effect.subtype == World::BindingDecalSubtype)
+            stepped = StepTheBindingDecal(effect, context);
+        else if (effect.subtype == World::GrowingDecalSubtype)
+            StepTheGrowingDecal(effect);
+        break;
     default:
         break;
     }
@@ -607,5 +695,18 @@ Core::Expected<void, std::string> StepHighModelEffect(World::ModelEffect& effect
     // D-C4: el dibujo interpola desde antes del paso entero.
     effect.previousPosition = before;
     return tail;
+}
+
+std::function<std::optional<glm::vec3>(const void*)> ActorPositionOf(const WorldState& world)
+{
+    return [&world](const void* owner) -> std::optional<glm::vec3>
+    {
+        for (const ActorState& actor : world.Actors())
+        {
+            if (&actor == owner)
+                return actor.position;
+        }
+        return std::nullopt;
+    };
 }
 } // namespace Client::Scenes

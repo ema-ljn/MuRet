@@ -202,9 +202,14 @@ void InitializeCommonEffect(ModelEffect& effect, std::int16_t type, const glm::v
 
 std::optional<std::size_t> ModelEffects::Begin(const ModelEffectArguments& arguments)
 {
-    for (std::size_t slot = 0; slot < m_effects.size(); ++slot)
+    return BeginModelEffect(m_effects, arguments);
+}
+
+std::optional<std::size_t> BeginModelEffect(std::span<ModelEffect> table, const ModelEffectArguments& arguments)
+{
+    for (std::size_t slot = 0; slot < table.size(); ++slot)
     {
-        ModelEffect& effect = m_effects[slot];
+        ModelEffect& effect = table[slot];
         if (effect.alive)
             continue;
         InitializeCommonEffect(effect, arguments.type, arguments.position, arguments.angles, arguments.light,

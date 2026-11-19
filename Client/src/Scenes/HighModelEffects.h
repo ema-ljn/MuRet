@@ -3,6 +3,8 @@
 #include "Core/Expected.h"
 #include "Protocol/Outgoing.h"
 
+#include <glm/ext/vector_float3.hpp>
+
 #include <cstddef>
 #include <cstdint>
 #include <functional>
@@ -31,6 +33,7 @@ namespace Client::Scenes
 {
 class IModelLibrary;
 class WorldState;
+struct CharacterStepContext;
 
 // Lo que las altas de estos tipos leen y escriben fuera de su lugar: la tabla de efectos (World::ModelEffects), los
 // joints (0x530860, GameDrawTailState::joints), las partículas (0x53fe70), el sonido (0x41ed10, que queda en
@@ -45,6 +48,9 @@ struct HighEffectContext
     std::function<void(Protocol::Outgoing)> send{};
     const IModelLibrary* models = nullptr;
 };
+
+// El contexto de las altas desde el paso de un personaje (0x4f5b70, 0x4fd5f0, 0x4f97b0 y sus helpers).
+[[nodiscard]] HighEffectContext HighContextOf(const CharacterStepContext& context);
 
 // Los tipos cuya alta está en este archivo.
 [[nodiscard]] bool IsHighModelEffect(std::int16_t type);
@@ -76,4 +82,8 @@ struct HighEffectStepContext
 [[nodiscard]] Core::Expected<void, std::string> StepHighModelEffect(World::ModelEffect& effect,
                                                                     const Render::Models::Skeleton* skeleton,
                                                                     const HighEffectStepContext& context);
+
+// La posición (+0x10) de un personaje de `world` que es el dueño (+0x108) de un efecto, para el pase del suelo (el
+// 0x61e/7, 0x52ded0); nullopt si el dueño no es uno de sus personajes. `world` tiene que vivir más que la función.
+[[nodiscard]] std::function<std::optional<glm::vec3>(const void*)> ActorPositionOf(const WorldState& world);
 } // namespace Client::Scenes

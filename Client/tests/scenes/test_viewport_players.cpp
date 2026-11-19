@@ -32,8 +32,10 @@
 #include "Scenes/WorldEntry.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "Scenes/WorldTransitionSupport.h"
 #include "World/GameCamera.h"
 #include "World/ModelEffects.h"
+#include "World/ParticleOwner.h"
 #include "World/Particles.h"
 #include "World/TerrainCulling.h"
 #include "World/WorldTerrain.h"
@@ -53,6 +55,7 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -719,8 +722,9 @@ TEST_F(ViewportPlayersTest, TheTransformedIntoTheMissingMonsterCuts)
 
 // 0x4c9356..0x4c975d sobre el personaje que dio el alta (que la hito 2 porta): con +0x376 en 7, la escala en 0,8; la
 // clase del héroe, el PK, +0x88 y +0x3e3; el camino con la Y leída antes que la X, el nombre y el héroe vestido otra
-// vez. El recién llegado corta en 0x4c965c, con la posición y el alpha ya puestos.
-TEST_F(ViewportPlayersTest, FinishingTheTransformedWalksOrCutsWhenItArrives)
+// vez. El recién llegado no camina: con la posición y el alpha puestos, el círculo 0xec (0x4c965c) y el rayo 0x5d5/2
+// (0x4c9674) con él de dueño, sin rand(), y después el nombre.
+TEST_F(ViewportPlayersTest, FinishingTheTransformedWalksOrRaisesItsCircleWhenItArrives)
 {
     Load(0);
     const Cell cell = FreeRow();
@@ -752,16 +756,37 @@ TEST_F(ViewportPlayersTest, FinishingTheTransformedWalksOrCutsWhenItArrives)
     EXPECT_EQ(std::to_integer<char>(actor.name[0]), 'T');
 
     record.isNew = true;
+    record.name[0] = std::byte{'U'};
     const CrtRandom before = game->cloth.random;
     const auto arrived = Client::Scenes::FinishTheTransformed(1, record, 2, game->Resources());
-    ASSERT_FALSE(arrived.HasValue());
-    EXPECT_NE(arrived.Error().find("0x4c965c"), std::string::npos) << arrived.Error();
+    ASSERT_TRUE(arrived.HasValue()) << arrived.Error();
+    EXPECT_EQ(std::to_integer<char>(actor.name[0]), 'U');
+    const auto effects = std::as_const(game->world.Map().effects).Effects();
+    const auto circle = std::ranges::find_if(effects, [](const Client::World::ModelEffect& effect)
+                                             { return effect.alive && effect.type == 0xec; });
+    ASSERT_NE(circle, effects.end());
+    EXPECT_EQ(circle->subtype, 0);
+    EXPECT_EQ(circle->ownerContext, &actor);
+    EXPECT_EQ(circle->life, 30);
+    EXPECT_EQ(circle->transform.position, actor.position);
+    const auto& particles = std::as_const(game->world.Particles()).All();
+    const auto bolt = std::ranges::find_if(particles, [](const Client::World::Particle& particle)
+                                           { return particle.alive && particle.type == 0x5d5; });
+    ASSERT_NE(bolt, particles.end());
+    EXPECT_EQ(bolt->subtype, 2);
+    EXPECT_EQ(bolt->typedOwner, (Client::World::ParticleOwner{Client::World::ParticleOwnerKind::Actor, 1}));
     EXPECT_EQ(actor.alpha, 0.0f);
     EXPECT_EQ(actor.position.x, (static_cast<float>(cell.x) + 0.5f) * 100.0f);
     CrtRandom expected = before;
     for (int draw = 0; draw < CellDraws + CellDraws; ++draw)
         static_cast<void>(expected.Next());
-    EXPECT_EQ(game->cloth.random.State(), expected.State());
+    // El círculo y el rayo no sacan rand(): después de las celdas sólo quedan los de 0x512a30 sobre el héroe publicado,
+    // que se repiten desde ahí.
+    const CrtRandom arrivedRandom = game->cloth.random;
+    game->cloth.random = expected;
+    const auto resources = game->Resources();
+    ASSERT_TRUE(Client::Scenes::DressTransitionHero(Client::Scenes::PublishedHero(resources), resources).HasValue());
+    EXPECT_EQ(arrivedRandom.State(), game->cloth.random.State());
 }
 
 // 0x4e68e1..0x4e68fd: el héroe recibe Text[1828] cada vez, aunque ya tenga la bandera; OR corre después del aviso.

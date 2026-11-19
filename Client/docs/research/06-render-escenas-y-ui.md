@@ -12342,9 +12342,10 @@ el mismo pool, así que mueven y lastiman a los que da de alta el `12`.
 lleno). `0x401040` saca los huesos con nombre (`WorldRuntime::namedBones`, desde la hito 2); `0x4fb1a0` reinicializa las telas del slot,
 propiedad de `WorldState`, también en cleanup de mapa; reconstruir una clave viva las conserva
 ([contraste del ciclo](13-h1-actores-y-picking.md#el-dueño-de-las-telas), P-C161 resuelto). El efecto `0x61f` va sin el dueño, como el de la entrada del héroe. Cortan con su
-dirección, después de lo que el original hace antes: el recién llegado del `45` en `0x4c965c` (CL11; el alta de
-`0x4c934c` es `CreateMonster` desde el hito 2, [Los monstruos y los NPC en el
-viewport](#los-monstruos-y-los-npc-en-el-viewport)), y las banderas que crean efectos (`0x4e644f`, `0x4e662d`,
+dirección, después de lo que el original hace antes: ~~el recién llegado del `45` en `0x4c965c`~~ (CL11: el círculo
+`0xec` de `0x518cf0` y el rayo `0x5d5/2` de `0x53fe70`, los dos con el personaje de dueño y sin `rand()`, y después el
+nombre sin el camino de `0x4eac00`; el alta de `0x4c934c` es `CreateMonster` desde el hito 2, [Los monstruos y los NPC
+en el viewport](#los-monstruos-y-los-npc-en-el-viewport)), y las banderas que crean efectos (`0x4e644f`, `0x4e662d`,
 `0x4e6725`, `0x4e676e`, `0x4e67d6` y ~~`0x4e6869`~~, CL11 y CL10; la del `0x40`, el `0x628/0` y el sonido `0x85`, portada en la CL11 con `Scenes::PutTheSkullOn`). La ráfaga DF ya está conectada mediante
 `World::CreatePushBurst` y el subtipo de `NoriaParticleKernels`: duplica escala y triplica el vector local antes de
 girarlo (`0x5404ad..0x5404ca`); comparte paso y dibujo con la familia ya portada. `GameModels` carga su textura

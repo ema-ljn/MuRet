@@ -553,21 +553,42 @@ Core::Expected<void, std::string> StepAidaWisp(ModelEffect& effect, Particles& p
     return {};
 }
 
-// 0x52b8a6..0x52b97f: el 0x61d. El /0 crea otro efecto (0x518cf0) y el /2 y el /7 sueltan órbitas 60f/0, que no
-// salen de los objetos de los mapas portados; el resto no hace nada. El /3 (el del 0x38 de Crywolf), con la vida
-// entre 6 y 9, suelta la 60f/10 con la luz del efecto, la escala 0,19 y el efecto como dueño, que la órbita /10
-// no lee (Q-C346).
+// 0x52b8a6..0x52b97f: el 0x61d. El /0 deja en cada paso el /1 (0x52b8cf: 0x518cf0(0x61d, posición, ángulos, luz, 1,
+// 0, −1, 0, 0, 0, 0), sin rand(); llena, nada). El /0, el /2, el /3 y el /7, con la vida entre 6 y 9, sueltan la
+// órbita 60f con la escala 0,19 y el efecto de dueño: el /3 (el del 0x38 de Crywolf) la /10 con la luz del efecto, que
+// no lee al dueño (Q-C346); los otros la /0 (0x52b8ff, 0x52b977), cuyo paso lee la acción (+0x111) del dueño como la de
+// un personaje: con lugar en la tabla de partículas cortan (CL11); llena, nada.
 Core::Expected<void, std::string> StepFadingDecal(const ModelEffect& effect, Particles& particles,
-                                                  const float& worldClock, Render::Models::CrtRandom& random)
+                                                  const float& worldClock, Render::Models::CrtRandom& random,
+                                                  const ModelEffectStepServices& services)
 {
-    constexpr std::int32_t FirstEffectSubtype = 0, FirstOrbSubtype = 2, LastOrbSubtype = 7;
+    constexpr std::int32_t TrailSubtype = 0, FadingSubtype = 1, FirstOrbSubtype = 2, LastOrbSubtype = 7;
     constexpr std::int32_t OrbAfterLife = 5, OrbBeforeLife = 10;
     constexpr float OrbScale = std::bit_cast<float>(0x3e428f5cu); // 0x52b937: 0,19.
-    if (effect.subtype == FirstEffectSubtype || effect.subtype == FirstOrbSubtype || effect.subtype == LastOrbSubtype)
-        return Core::Unexpected(
-            std::format("0x52b8a6: el paso del 0x61d con el subtipo {} no está portado", effect.subtype));
-    if (effect.subtype != CrywolfDecalSubtype || effect.life <= OrbAfterLife || effect.life >= OrbBeforeLife)
+    if (effect.subtype == TrailSubtype)
+    {
+        if (services.effects == nullptr)
+            return Core::Unexpected(std::string("0x52b8cf: el 0x61d/0 pide la tabla de efectos (0x518cf0) para el /1"));
+        constexpr std::uint16_t NoKey = 0xffff;
+        static_cast<void>(services.effects->CreateFadingDecal(effect.transform.position, effect.transform.angles,
+                                                              effect.light, FadingSubtype, NoKey));
+    }
+    else if (effect.subtype != FirstOrbSubtype && effect.subtype != CrywolfDecalSubtype &&
+             effect.subtype != LastOrbSubtype)
+    {
         return {};
+    }
+    if (effect.life <= OrbAfterLife || effect.life >= OrbBeforeLife)
+        return {};
+    if (effect.subtype != CrywolfDecalSubtype)
+    {
+        if (std::ranges::none_of(particles.All(), [](const Particle& particle) { return !particle.alive; }))
+            return {};
+        return Core::Unexpected(
+            std::format("{}: la órbita 0x60f/0 con el 0x61d/{} de dueño lee su +0x111 como la acción de un personaje "
+                        "(CL11)",
+                        effect.subtype == TrailSubtype ? "0x52b8ff" : "0x52b977", effect.subtype));
+    }
     PortableParticleTrigonometry trigonometry;
     const auto created =
         particles.CreateChecked(OrbitParticle, effect.transform.position, effect.transform.angles, effect.light,
@@ -1747,7 +1768,7 @@ Core::Expected<void, std::string> StepGameModelEffect(ModelEffect& effect, const
     }
     else if (effect.type == FadingDecalEffect)
     {
-        if (auto stepped = StepFadingDecal(effect, particles, worldClock, random); !stepped.HasValue())
+        if (auto stepped = StepFadingDecal(effect, particles, worldClock, random, services); !stepped.HasValue())
             return stepped;
     }
     else if (effect.type == 0x145)

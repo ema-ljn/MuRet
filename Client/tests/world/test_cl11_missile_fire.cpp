@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Render/Models/Cloth.h"
+#include "Render/Models/OriginalRetainedMath.h"
 #include "World/Particles.h"
 #include "World/PortableParticleTrigonometry.h"
 
@@ -14,8 +15,6 @@
 #include <gtest/gtest.h>
 
 #include <bit>
-#include <cmath>
-#include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <initializer_list>
@@ -26,6 +25,8 @@
 namespace
 {
 using Client::Render::Models::CrtRandom;
+using Client::Render::Models::Detail::CosineProductPC53;
+using Client::Render::Models::Detail::SineProductPC53;
 using Client::Tests::AfterDraws;
 using Client::World::Particle;
 using Client::World::ParticleError;
@@ -163,9 +164,14 @@ TEST(Cl11MissileFire, TheOrbitCirclesItsBirthplace)
     const float lift = fire.verticalSpeed;
     const float scale = fire.scale;
     ASSERT_TRUE(Step(*particles, random).HasValue());
+    // FSIN y FCOS retenidos por el 120 del radio (0x6b86c8) con un solo R53.
     const double angle = (99.0 + D(phase)) * D(0x3dcccccdu);
-    EXPECT_EQ(fire.position.x, F32(std::sin(angle) * 120.0 + 100.0));
-    EXPECT_EQ(fire.position.y, F32(200.0 - std::cos(angle) * 120.0));
+    const auto sine = SineProductPC53(angle, 120.0f);
+    const auto cosine = CosineProductPC53(angle, 120.0f);
+    ASSERT_TRUE(sine.has_value());
+    ASSERT_TRUE(cosine.has_value());
+    EXPECT_EQ(fire.position.x, F32(*sine + 100.0));
+    EXPECT_EQ(fire.position.y, F32(200.0 - *cosine));
     EXPECT_EQ(fire.position.z, F32(D(lift) + 300.0));
     EXPECT_EQ(fire.scale, F32(D(scale) - D(0x3b03126fu)));
 }
@@ -189,7 +195,11 @@ TEST(Cl11MissileFire, TheSwirlTheRiseAndTheFade)
         fire.verticalSpeed = 1.0f;
         const float turn = fire.rotation;
         ASSERT_TRUE(Step(*particles, random).HasValue());
-        EXPECT_EQ(fire.position, glm::vec3(F32(std::cos(2.0) * 20.0), F32(std::sin(2.0) * 20.0), 1.0f));
+        const auto cosine = CosineProductPC53(2.0, 20.0f);
+        const auto sine = SineProductPC53(2.0, 20.0f);
+        ASSERT_TRUE(cosine.has_value());
+        ASSERT_TRUE(sine.has_value());
+        EXPECT_EQ(fire.position, glm::vec3(F32(*cosine + 0.0), F32(*sine + 0.0), 1.0f));
         EXPECT_EQ(fire.rotation, F32(D(turn) + 1.0));
     }
     {

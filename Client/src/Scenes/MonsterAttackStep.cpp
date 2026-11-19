@@ -13,6 +13,7 @@
 #include "Scenes/CharacterStep.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/HighModelEffects.h"
+#include "Scenes/KalimaMonsterEffects.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "World/Particles.h"
@@ -404,11 +405,15 @@ Core::Expected<Helped, std::string> StepKalima(ActorState& actor, const KindCase
         return Helped::Exit;
     }
     case 0x43abea:
-        // En la 4 y en 14, 0x518cf0(0x11a) sobre c.
+        // En la 4 y en 14, 0x518cf0(0x11a, c + 0x10, c + 0x1c, c + 0xf4, 0, 0, −1, 0, 0, 0, 0) (0x43ac07..0x43ac29):
+        // el seamanFX sobre c (Scenes::KalimaMonsterEffects; su alta pisa la luz). Con la tabla llena, nada.
         if (action == SecondAttack && actor.byte381 == FourteenthStep)
         {
-            if (HasFreeModelEffect(context))
-                return CutAt(0x43ac29, "el efecto 0x11a (CL11)", actor, slot);
+            if (auto created = CreateHighModelEffect(
+                    {.type = SeamanEffect, .position = actor.position, .angles = actor.angles, .light = actor.light},
+                    HighContextOf(context));
+                !created.HasValue())
+                return Core::Unexpected(std::format("0x43ac29: {}", created.Error()));
         }
         return Helped::Exit;
     case 0x43ac3a:

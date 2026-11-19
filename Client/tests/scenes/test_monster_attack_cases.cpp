@@ -388,7 +388,7 @@ TEST_F(MonsterAttackCasesTest, TheKalimaMonstersLeaveWithoutTheTail)
          .action = 4,
          .cut = "0x43ab5f",
          .draws = SkillRead + 1 + 0xf08},
-        {.name = "0x93 en la 4 y en 14", .type = 0x93, .step = 14, .action = 4, .cut = "0x43ac29"},
+        {.name = "0x93 en la 4 y en 14", .type = 0x93, .step = 14, .action = 4},
         {.name = "0x93 en la 3 y en 14", .type = 0x93, .step = 14},
         {.name = "0x94 con 0x11 en 14", .type = 0x94, .step = 14, .skill = 0x11, .draws = SkillRead + 1 + 0xf08},
         {.name = "0x94 con 0x11 en 13", .type = 0x94, .step = 13, .skill = 0x11, .draws = SkillRead},
@@ -419,6 +419,26 @@ TEST_F(MonsterAttackCasesTest, TheKalimaMonstersLeaveWithoutTheTail)
         SCOPED_TRACE(map);
         ExpectTheTailIn(map, {0x90, 0x91, 0x92, 0x93, 0x94, 0x95, 0xa0, 0xa1, 0x113});
     }
+}
+
+// 0x43ac07..0x43ac29: el 0x93 en la 4 y en 14 pone el seamanFX 0x11a sobre sí, con sus ángulos (vida 20, la luz que el
+// alta pisa con (1, 1, 1) y la partida en su lugar), sin rand() propios.
+TEST_F(MonsterAttackCasesTest, Kalima93RaisesTheSeamanEffectOverItself)
+{
+    Load(24);
+    ActorState& monster = Prepare(Probe{.name = "0x93 en la 4 y en 14", .type = 0x93, .step = 14, .action = 4});
+    monster.light = {0.2f, 0.3f, 0.4f};
+    ASSERT_TRUE(Step(monster).HasValue());
+    const auto effects = game->world.Map().effects.Effects();
+    const auto seaman = std::find_if(effects.begin(), effects.end(),
+                                     [](const auto& effect) { return effect.alive && effect.type == 0x11a; });
+    ASSERT_NE(seaman, effects.end());
+    EXPECT_EQ(seaman->transform.position, monster.position);
+    EXPECT_EQ(seaman->start, monster.position);
+    EXPECT_EQ(seaman->transform.angles, monster.angles);
+    EXPECT_EQ(seaman->light, glm::vec3(1.0f));
+    EXPECT_EQ(seaman->life, 20);
+    EXPECT_EQ(Draws(), 0);
 }
 
 TEST_F(MonsterAttackCasesTest, Kalima91CreatesTheStateOneEarthquakeBeforeThe615Boundary)

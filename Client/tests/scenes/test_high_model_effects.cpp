@@ -726,6 +726,52 @@ TEST(HighModelEffectsTest, TheBindingDecalFindsItsOwnerModelLikeTheSpearman)
     EXPECT_EQ(decal.life, 2);
 }
 
+// 0x51c884 y 0x5266ea: el seamanFX 0x11a nace con +0x64 en −2, +0x68 en 0,2f, escala 0,4f, vida 20, +0xe4 en 120 y la
+// velocidad (0, −40, 0) en +0xd8, con luz 1 y la partida en su lugar. Cada paso crece 0,02f, sube a la partida más
+// +0xe4 (que baja de a 20 hasta 60) y acelera 10; con la tabla de partículas llena, sin las 0x6f4/1 ni rand() de más.
+TEST(HighModelEffectsTest, TheSeamanEffectRisesAndSpeedsUp)
+{
+    HighWorld tested;
+    tested.FillTheParticles();
+    ASSERT_TRUE(
+        CreateHighModelEffect({.type = 0x11a, .position = {100, 200, 300}, .light = glm::vec3(0.5f)}, tested.Context())
+            .HasValue());
+    ModelEffect& seaman = tested.Effect(0);
+    EXPECT_EQ(seaman.objectState.blendMesh, -2);
+    EXPECT_EQ(seaman.objectState.light, std::bit_cast<float>(0x3e4ccccdu));
+    EXPECT_EQ(seaman.transform.scale, std::bit_cast<float>(0x3ecccccdu));
+    EXPECT_EQ(seaman.life, 20);
+    EXPECT_EQ(seaman.turnDirection, 120.0f);
+    EXPECT_EQ(seaman.velocity, glm::vec3(0, -40, 0));
+    EXPECT_EQ(seaman.light, glm::vec3(1.0f));
+    EXPECT_EQ(seaman.start, glm::vec3(100, 200, 300));
+    float scale = seaman.transform.scale;
+    float before = seaman.turnDirection;
+    for (const float lift : {100.0f, 80.0f, 60.0f, 60.0f})
+    {
+        ASSERT_TRUE(StepHighModelEffect(seaman, nullptr, tested.StepContext()).HasValue());
+        scale = static_cast<float>(static_cast<double>(scale) + static_cast<double>(std::bit_cast<float>(0x3ca3d70au)));
+        EXPECT_EQ(seaman.transform.scale, scale);
+        EXPECT_EQ(seaman.turnDirection, lift);
+        EXPECT_EQ(seaman.transform.position.z, 300.0f + before);
+        before = lift;
+    }
+    EXPECT_EQ(seaman.speed, -80.0f);
+    EXPECT_EQ(seaman.velocity, glm::vec3(0, -80, 0));
+    EXPECT_EQ(seaman.life, 16);
+    EXPECT_EQ(tested.Draws(), 4);
+
+    // Con lugar, las cuatro 0x6f4/1 (las de la cascada de Kalima) en su lugar.
+    HighWorld roomy;
+    ASSERT_TRUE(CreateHighModelEffect({.type = 0x11a, .position = {100, 200, 300}}, roomy.Context()).HasValue());
+    const auto stepped = StepHighModelEffect(roomy.Effect(0), nullptr, roomy.StepContext());
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    const auto sprays =
+        std::ranges::count_if(roomy.world->Particles().All(), [](const auto& particle)
+                              { return particle.alive && particle.type == 0x6f4 && particle.subtype == 1; });
+    EXPECT_EQ(sprays, 4);
+}
+
 // 0x52bb29..0x52bb74: el 0x61e/9 crece 0,3f y su luz baja a 0,909f; los /4, /7, /8 y /0xa solo pierden una vida.
 TEST(HighModelEffectsTest, TheGrowingDecalWidensAndDims)
 {

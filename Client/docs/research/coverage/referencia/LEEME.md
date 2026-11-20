@@ -1,10 +1,10 @@
 # Referencia del cliente: métricas y trazas contra el `main.exe`
 
 Una tabla por cada cosa que se consulta seguido, para no volver a medir ni a buscar lo mismo cada vez. Está generada
-sobre MuRet `8be763fa` (2026-11-20: `main` con la CL11 cerrada, el CI de #379 y los globos de la selección de #383)
-contra el `main.exe` c32bbd5f del repo de research; `generado.json` dice el commit exacto. Sale de la auditoría del
-2026-11-20 (`analisis/2026-11-20-auditoria-cliente/` en los archivos del proyecto) y de
-[10-cobertura-roadmap.md](../../10-cobertura-roadmap.md).
+sobre MuRet `fc98e209` (2026-11-20: `main` con la CL11 cerrada, el CI de #379, los globos de la selección de #383 y
+los cierres de las ventanas de los NPC al caminar de #385) contra el `main.exe` c32bbd5f del repo de research;
+`generado.json` dice el commit exacto. Sale de la auditoría del 2026-11-20 (`analisis/2026-11-20-auditoria-cliente/`
+en los archivos del proyecto) y de [10-cobertura-roadmap.md](../../10-cobertura-roadmap.md).
 
 Las columnas que vienen de la matriz CL.M, de las citas y del grafo de llamadas se rehacen solas en cualquier commit
 (ver [Cómo regenerarla](#cómo-regenerarla)). Las que vienen de la auditoría (la categoría de lo que falta, la clase de
@@ -207,3 +207,8 @@ El resto, por ola, por hito y la serie: `grep -P '\tavance-ola\t|\tavance-cl9-hi
 - Los llamadores son las llamadas directas del grafo de Ghidra; las vtables y los punteros no están.
 - Las clases de los cortes G, S, R y D se revisaron por grupos, no una por una. Los pasos de VM y las filas de código
   de 08 son cotas superiores.
+- Un G ("no salta en una partida normal") vale sólo si cada lugar que llega a esa función le presta el servicio: cada
+  `GamePanels` se arma donde se usa y presta sus cables. El de `UI/PanelRegistry.cpp:789` (0x657ab0, "cerrar la
+  ventana del NPC sin el mundo") saltó jugando hasta #385, al caminar con la tienda, el almacén o la caja del caos
+  abiertos; la columna `nota` de `cortes.tsv` lo dice. Para encontrar otros, buscar los `GamePanels` que cierran o
+  abren paneles sin prestar lo que esos paneles piden.

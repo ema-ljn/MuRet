@@ -4705,6 +4705,23 @@ TEST(ServerSessionTest, TheShortFloorItemRepliesStillReleaseTheirWaits)
     EXPECT_TRUE(std::holds_alternative<FloorItems::ShortStatFruit>(events[3]));
 }
 
+// El GCMoneySend del GameServer 0.97 (C3 08 22 FE, el zen al comprar en la tienda) llega al mundo con su zen, y no
+// como el 22 corto que solo suelta el pedido (07 Q-C1240).
+TEST(ServerSessionTest, TheShortZenOfThe22ReachesTheWorld)
+{
+    namespace FloorItems = Client::Protocol::FloorItems;
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+    tested.socket.reads = {
+        FromTheGameServer(Bytes({0xc1, 0x08, 0x22, 0xfe, 0x00, 0x01, 0x86, 0xa0}), tested.gameServerSends)};
+    ASSERT_TRUE(tested.session.Poll().HasValue());
+    const auto events = tested.eventSink.TakeWorldEvents();
+    ASSERT_EQ(events.size(), 1u);
+    const auto* zen = std::get_if<FloorItems::ShortZenPickUp>(&events[0]);
+    ASSERT_NE(zen, nullptr);
+    EXPECT_EQ(zen->zen, 100000u);
+}
+
 // La conexión cifra sólo el gate: los tres C1 de mundo restantes salen con XOR32 sin C3.
 TEST(ServerSessionTest, GateRequestAndTeleportDoneUseTheirDelivery)
 {

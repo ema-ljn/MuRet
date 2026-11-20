@@ -679,6 +679,37 @@ TEST(FloorItemsSceneTest, TheShortRepliesReleaseOnlyTheirWaits)
     EXPECT_EQ(runtime.cursorItem.occupied, 0u);
 }
 
+// 07 Q-C1240: el C3 08 22 FE del GameServer 0.97 (el zen al comprar, vender o reparar) trae el zen. 0x4d0cc0 lo
+// escribe con el registro abierto (su cierre) y, con el elegido vivo, el aviso "%d %s %s", como con el paquete entero,
+// y suelta el pedido. Lo que no sale es el sonido de 0x4d1051, que lee el tipo de pkt[4..10] y aquí cae fuera del
+// paquete.
+TEST(FloorItemsSceneTest, TheShortZenOfThe22WritesTheZenWithoutTheSound)
+{
+    auto stage = StageIn(0);
+    ASSERT_TRUE(Scenes::ApplyFloorItemsCreate(ThreeItems(), stage->Resources()).HasValue());
+    Scenes::WorldRuntime& runtime = stage->world.Runtime();
+    runtime.floor.pendingPickUp = 5;
+    runtime.floor.chosen = 5;
+    // El de los ítems que cayeron recién.
+    runtime.lastSoundId.reset();
+    const CrtRandom expected = Advanced(stage->cloth.random, Own);
+    ASSERT_TRUE(Scenes::ApplyShortZenPickUp({.zen = 123456}, stage->Resources()).HasValue());
+    EXPECT_EQ(stage->cloth.random.State(), expected.State());
+    EXPECT_EQ(stage->world.OwnCharacter().zen, 123456u);
+    ASSERT_EQ(runtime.chat.log.entries.size(), 1u);
+    EXPECT_EQ(runtime.chat.log.entries[0].text, "66053 zen levantado");
+    EXPECT_FALSE(runtime.lastSoundId.has_value());
+    EXPECT_EQ(runtime.floor.pendingPickUp, -1);
+
+    // Con el elegido sin ítem (0x77f4714 en 0), el zen sin el aviso.
+    runtime.floor.chosen = 3;
+    runtime.floor.pendingPickUp = 5;
+    ASSERT_TRUE(Scenes::ApplyShortZenPickUp({.zen = 1000}, stage->Resources()).HasValue());
+    EXPECT_EQ(stage->world.OwnCharacter().zen, 1000u);
+    EXPECT_EQ(runtime.chat.log.entries.size(), 1u);
+    EXPECT_EQ(runtime.floor.pendingPickUp, -1);
+}
+
 // 0x4c24cf: la vuelta a la selección suelta el pedido del C1 22 y 0x4c24c9 la espera del uso.
 TEST(FloorItemsSceneTest, TheReturnToSelectionClearsThePickUpRequest)
 {

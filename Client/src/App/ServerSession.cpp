@@ -1880,6 +1880,15 @@ void ServerSession::OnPickUpResult(const Network::Packet& packet)
     const auto result = Protocol::FloorItems::ReadPickUpResult(packet);
     if (!result.HasValue())
     {
+        // 07 Q-C1240: el C3 08 22 FE del GameServer 0.97 (el zen al comprar, vender o reparar) trae el zen, aunque no
+        // los siete bytes que el sonido lee desde pkt[4].
+        if (const auto zen = Protocol::FloorItems::ReadShortZenPickUp(packet);
+            result.Error() == Protocol::ProtocolError::TooShort && zen.HasValue())
+        {
+            m_log.Debug("el 22 con el zen llegó corto: se aplica el zen, sin el sonido (07 Q-C1240)");
+            static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(zen.Value(), *this)));
+            return;
+        }
         m_log.Warning("se ignora lo levantado del piso (22): {}", Unreadable);
         // 07 Q-C1240: 0x4d0cc0 no mira el largo y suelta el pedido (0x4d10b9) en todos sus caminos.
         if (result.Error() == Protocol::ProtocolError::TooShort)

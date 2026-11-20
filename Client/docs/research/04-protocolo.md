@@ -1387,7 +1387,8 @@ del piso es la de `0x220` bytes de `0x77f46c8` (1000), con el objeto en `+0x4c`.
   byte alto primero (`+0xecc` del registro propio, abierto); con un lugar (o `0xfd`, "en otro lado"), los siete
   bytes del ítem desde `pkt[4]`; con `0xff`, nada. El sonido (CL10) sale de `pkt[4..]` como un ítem, también con el
   zen. El GameServer 0.97 lo manda en C3 de 8 bytes (`PMSG_ITEMGETRESULT`, `Data[4]`): el ítem de un lugar sale
-  corto (07 Q-C1240).
+  corto (07 Q-C1240). El zen de comprar, vender o reparar llega así también (`GCMoneySend`, `C3 08 22 FE <zen:4>`):
+  el zen y el aviso no leen más allá de `pkt[7]` y se aplican; el sonido, que lee el tipo de `pkt[4..10]`, no.
 - **`23` del cliente** (`0x5dfe27..0x5e0685`): `C1 06 23 <x> <y> <lugar>`, la celda del terreno bajo el mouse
   (`0x5fc260(1)` y `0x5fac90`, como MoveHero) y el byte bajo de `[0x78a6758]`, de donde salió el ítem del cursor;
   con el XOR32 y en C3. Es `PMSG_ITEMTHROW`, de 6 bytes.
@@ -1410,7 +1411,9 @@ del piso es la de `0x220` bytes de `0x77f46c8` (1000), con el objeto en `+0x4c`.
 `App::ServerSession` los registra en un bloque y manda el `22`, el `23` y el `26` (`SendPickUp`, `SendDrop` y
 `SendUseItem`). Un `22`, un `23` o un `2C` más cortos de lo que lee el cliente no llegan al mundo, salvo lo que el
 original escribe en todos sus caminos (`ShortPickUpResult`, `ShortDropResult` con `pkt[3]` si llegó, y
-`ShortStatFruit`; 07 Q-C1240). Un `20` corto no escribe nada fijo y se ignora entero. Lo que hace el mundo con cada uno, en [06](06-render-escenas-y-ui.md#los-ítems-del-piso). Los tests
+`ShortStatFruit`; 07 Q-C1240). Del `22` con `0xfe` corto llegan el zen y el aviso (`ShortZenPickUp`,
+`Scenes::ApplyShortZenPickUp`, desde el 2026-11-20: antes el zen de una compra en la tienda no bajaba).
+Un `20` corto no escribe nada fijo y se ignora entero. Lo que hace el mundo con cada uno, en [06](06-render-escenas-y-ui.md#los-ítems-del-piso). Los tests
 usan ítems inventados.
 
 ### Los otros jugadores: `12`, `14`, `45`, `25` y `DF`

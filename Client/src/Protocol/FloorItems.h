@@ -105,6 +105,17 @@ struct ShortDropResult
     std::optional<std::uint8_t> result;
 };
 
+// El 22 con 0xfe que ReadPickUpResult rechaza por corto: el GCMoneySend del GameServer 0.97 (C3 08 22 FE, el zen al
+// comprar, vender o reparar, 07 Q-C1240). 0x4d0cc0 lee el zen de pkt[4..7], con el byte alto primero, que sí llegó, y
+// el tipo del sonido de pkt[4..10] (0x4d1051), que no.
+struct ShortZenPickUp
+{
+    std::uint32_t zen = 0;
+};
+
+// WrongPacket si pkt[3] no es 0xfe, y TooShort sin los cuatro bytes del zen.
+[[nodiscard]] Core::Expected<ShortZenPickUp, ProtocolError> ReadShortZenPickUp(const Network::Packet& packet);
+
 // El 23 que ReadDropResult rechaza por corto: solo pkt[3], si llegó.
 [[nodiscard]] Core::Expected<ShortDropResult, ProtocolError> ReadShortDropResult(const Network::Packet& packet);
 

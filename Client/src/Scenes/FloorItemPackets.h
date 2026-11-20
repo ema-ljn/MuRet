@@ -82,6 +82,12 @@ void ApplyFloorItemsDelete(const Protocol::FloorItems::FloorItemsDelete& deleted
 [[nodiscard]] Core::Expected<void, std::string> ApplyPickUpResult(const Protocol::FloorItems::PickUpResult& result,
                                                                   const WorldEntryResources& resources);
 
+// El 22 con 0xfe y corto (07 Q-C1240, el GCMoneySend del GameServer 0.97): de 0x4d0cc0, lo que no lee más allá de
+// pkt[7], en su orden: el zen con el registro propio abierto (0x4d0d9b), el aviso con el elegido vivo (0x4d0f5f) y el
+// pedido en −1 (0x4d10b9). El sonido (0x4d1051) no sale: su tipo cae en pkt[8..10], fuera del paquete.
+[[nodiscard]] Core::Expected<void, std::string> ApplyShortZenPickUp(const Protocol::FloorItems::ShortZenPickUp& result,
+                                                                    const WorldEntryResources& resources);
+
 // Un 22 corto (07 Q-C1240): de 0x4d0cc0, solo el pedido (0x6c82e8) en −1, que 0x4d10b9 escribe en todos los caminos.
 // Sin él, RequestThePickUp (0x5667d7, 0x566e90) no vuelve a pedir nada.
 void ApplyShortPickUpResult(WorldState& world);

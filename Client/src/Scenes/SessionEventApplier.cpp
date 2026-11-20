@@ -641,6 +641,8 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyWorldContent(const A
         return ApplyDropResult(*dropped, m_resources);
     if (const auto* fruit = std::get_if<Protocol::FloorItems::StatFruit>(&event))
         return ApplyStatFruit(*fruit, m_resources.world, m_resources.cloth.random, m_resources.texts);
+    if (const auto* zen = std::get_if<Protocol::FloorItems::ShortZenPickUp>(&event))
+        return ApplyShortZenPickUp(*zen, m_resources);
     if (std::holds_alternative<Protocol::FloorItems::ShortPickUpResult>(event))
     {
         ApplyShortPickUpResult(m_resources.world);

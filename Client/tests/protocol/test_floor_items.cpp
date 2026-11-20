@@ -90,6 +90,23 @@ TEST(FloorItemsProtocolTest, ReadsThePickUpResult)
               ProtocolError::TooShort);
 }
 
+// El C3 08 22 FE del GameServer 0.97 (GCMoneySend: el zen al comprar, vender o reparar) no alcanza para
+// ReadPickUpResult, porque 0x4d0cc0 lee siete bytes desde pkt[4] para el sonido (0x4d1051), pero su zen, pkt[4..7] con
+// el byte alto primero, sí llegó (07 Q-C1240).
+TEST(FloorItemsProtocolTest, ReadsTheZenOfAShortPickUpResult)
+{
+    const auto bytes = Bytes({0xc1, 0x08, 0x22, 0xfe, 0x00, 0x01, 0x86, 0xa0});
+    EXPECT_EQ(ErrorOf(FloorItems::ReadPickUpResult(PacketOf(bytes))), ProtocolError::TooShort);
+    const auto zen = FloorItems::ReadShortZenPickUp(PacketOf(bytes));
+    ASSERT_TRUE(zen.HasValue());
+    EXPECT_EQ(zen.Value().zen, 100000u);
+    // Otro resultado no es el zen; sin los cuatro bytes, tampoco.
+    EXPECT_EQ(ErrorOf(FloorItems::ReadShortZenPickUp(PacketOf(Bytes({0xc1, 0x08, 0x22, 0x0c, 0x00, 0x18, 0x2c, 0})))),
+              ProtocolError::WrongPacket);
+    EXPECT_EQ(ErrorOf(FloorItems::ReadShortZenPickUp(PacketOf(Bytes({0xc1, 0x07, 0x22, 0xfe, 0x00, 0x01, 0x86})))),
+              ProtocolError::TooShort);
+}
+
 TEST(FloorItemsProtocolTest, ReadsTheDropResultAndTheStatFruit)
 {
     const auto drop = FloorItems::ReadDropResult(PacketOf(Bytes({0xc1, 0x05, 0x23, 1, 0x14})));

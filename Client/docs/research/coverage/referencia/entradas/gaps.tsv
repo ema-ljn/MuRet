@@ -696,7 +696,7 @@ CL8	0x45b840	712	unknown	clon de una citada	exact:0x45f420	la llama 0x45b810
 CL8	0x4bff40	712	unknown	sin citar		0x4bff40 712 ventanas: CL8.3
 CL8	0x406050	710	partial	partial: falta 0.04	CL9	1. El launcher. 0x406ae0, lo que hace el botón 0x7d2 (su entrada en el mapa de mensajes de
 CL8	0x460ba0	706	not-started	clon de una citada	exact:0x45e2e0	la llama 0x460b70, 0x6b494a, 0x6b4966 y 5 más
-CL8	0x437c90	685	partial	partial: falta 0.50	CL8	portado en la CL9), el nombre del 0x1c0c de nivel 2 (la tabla de 0x6c9350) y del 0x1a0a (la tabla de monstruos de 0x7681eb8), las líneas del
+CL8	0x437c90	685	partial	partial: falta 0.50	CL8	portado en la CL9), el nombre del 0x1c0c de nivel 2 (la tabla de 0x6c9350), las líneas del
 CL8	0x477f70	678	not-started	sin citar		0x477f70 678 inventario: —
 CL8	0x5b2aa0	671	partial	partial: falta 0.03	CL9	0x5b2b0d): la mascota (1 el caballo, 0 el cuervo) y los bytes de abajo de 0x78abb28 y 0x78abb2c, la
 CL8	0x59adf0	640	partial	partial: falta 0.05	CL9	(0x490490), Shift (0x59adf0, 0x652330, y con los dígitos en 0x420e30), Ctrl (0x5588d0,

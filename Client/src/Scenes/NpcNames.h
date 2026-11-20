@@ -2,6 +2,7 @@
 
 #include "Data/Text/NpcNames.h"
 
+#include <cstddef>
 #include <cstdint>
 #include <optional>
 #include <span>
@@ -31,4 +32,9 @@ using NpcNameTable = std::vector<NpcName>;
 // en sus 0x34 bytes (un nombre largo de LoadNpcNames), sigue por el tipo y el nombre de los registros que siguen. Sin
 // '\0' hasta el final de la tabla (LoadNpcNames no lo deja), lo que hay hasta ahí.
 [[nodiscard]] std::optional<std::string> NpcNameOf(const NpcNameTable& table, std::int32_t type);
+
+// El nombre de +2 del registro `index` de la tabla, como lo lee un "%s" del original: hasta su primer '\0' y, sin él en
+// sus 0x34 bytes, por el tipo y el nombre de los registros que siguen, hasta el final de la tabla. Es lo que devuelve
+// NpcNameOf del registro que encuentra; lo usan también los que recorren la tabla sin cortar en el primero (0x5b21a6).
+[[nodiscard]] std::string NpcNameAt(const NpcNameTable& table, std::size_t index);
 } // namespace Client::Scenes

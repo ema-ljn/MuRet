@@ -6,6 +6,7 @@
 #include "Data/Tables/ItemSetTables.h"
 #include "Data/Tables/ItemTable.h"
 #include "Data/Tables/SkillTable.h"
+#include "Data/Text/NpcNames.h"
 #include "Data/Text/TextTable.h"
 #include "Render/ModelBatch.h"
 #include "Render/Models/Cloth.h"
@@ -24,6 +25,7 @@
 #include "Scenes/GamePanels.h"
 #include "Scenes/GameTooltips.h"
 #include "Scenes/LoginModels.h"
+#include "Scenes/NpcNames.h"
 #include "Scenes/NpcWindowState.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnInventory.h"
@@ -48,6 +50,7 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -518,9 +521,6 @@ std::array<std::byte, Client::Scenes::InventoryItemBytes::extent> ItemBytes(cons
 // porte, el test falla hasta sacarlo de acá.
 std::optional<std::string_view> KnownCut(const ShopItem& entry)
 {
-    // P-C125 (b): el nombre del anillo de transformación (0x1a0a) busca su monstruo en la tabla de 0x7681eb8.
-    if (entry.group == 13 && entry.index == 10)
-        return "0x5b41dc";
     // Q-C415 y Q-C1044: el caballo (0x1a04) con la 0x96 en la primera opción; el lazo de 0x423ae9 agrega otra en cada
     // vuelta y escribe fuera del ítem hasta que la cuenta da la vuelta.
     if (entry.group == 13 && entry.index == 4)
@@ -575,6 +575,11 @@ protected:
         auto options = Client::Data::Tables::LoadItemSetOptionTable(std::as_bytes(std::span(setOptionFile)));
         ASSERT_TRUE(options.HasValue());
         m_sets.emplace(Client::Data::Tables::ItemSetTables{std::move(types).Value(), std::move(options).Value()});
+        // 0x7681eb8: los monstruos de NpcName(Eng).txt, que nombran los anillos de transformación (0x1a0a).
+        const std::vector<char> npcFile = read("Local\\NpcName(Eng).txt");
+        auto npcs = Client::Data::Text::LoadNpcNames(std::as_bytes(std::span(npcFile)));
+        ASSERT_TRUE(npcs.HasValue());
+        m_world.Runtime().npcNames = Client::Scenes::NpcNameTableOf(npcs.Value());
 
         m_models.Set(Client::Data::Models::PlayerSkeletonModel, {}, Client::Tests::PlayerActionsSkeleton(), {});
         m_world.OwnCharacter().ClearEquipmentForEntry();
@@ -728,6 +733,16 @@ TEST_F(GoldenShopTooltipsTest, EveryShopItemDrawsItsTooltipFromTheGridAndFromThe
     }
     EXPECT_EQ(failed, 0) << failures.str();
     EXPECT_EQ(m_world.Runtime().ownRecordDepth, 0);
+
+    // 0x5b41d0..0x5b421a: el anillo +1 (13 10 1 de shop1) es el monstruo 7 de 0x6c9338, el Giant de NpcName(Eng).txt,
+    // con el 103; desde la grilla de la tienda va después del precio.
+    const auto ring = std::ranges::find_if(ShopItems, [](const ShopItem& item)
+                                           { return item.group == 13 && item.index == 10 && item.level == 1; });
+    ASSERT_NE(ring, ShopItems.end());
+    ASSERT_TRUE(Placed(*ring).HasValue());
+    ASSERT_TRUE(Hover(Client::UI::HoveredItem::Place::NpcGridCell, 1).HasValue());
+    const auto& text = m_world.Runtime().hud.tooltip.text;
+    EXPECT_NE(std::ranges::find(text, std::string("Giant Anillo de transformacion")), text.end());
 }
 // El mismo barrido con los modelos del repo: cada ítem en la grilla de la tienda abierta, dibujado como lo dibuja el
 // pase 3D de la UI (0x5ac120 → 0x5f7610, la tienda desde 0x5f769b, cada ítem con 0x5e1480 → 0x5e0720 → 0x60b3d0). Las

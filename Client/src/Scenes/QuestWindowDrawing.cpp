@@ -203,14 +203,15 @@ Core::Expected<std::string, std::string> QuestItemNameOf(const GameHudContext& c
     if (type < 0 || type > LastType)
         return Core::Unexpected(std::format("0x5b1c76: el tipo {:#x} lee fuera de Item.bmd", type));
     const auto item = static_cast<std::uint16_t>(type);
-    if (!ItemNameIsWritten(item, level))
+    const NpcNameTable* names = &context.world.Runtime().npcNames;
+    if (!ItemNameIsWritten(item, level, names))
     {
         const char* where = type == FirstQuestItem ? "0x5b1cb1" : type == SecondQuestItem ? "0x5b1cf3" : "0x41b924";
         return Core::Unexpected(std::format("{}: con el nivel {}, 0x5b1c70 no escribe el nombre del {:#x} y 0x41b810 "
                                             "lo lee de la pila sin iniciar (Q-C874)",
                                             where, level, type));
     }
-    return ItemNameOf(context.items, context.texts, item, level);
+    return ItemNameOf(context.items, context.texts, names, item, level);
 }
 
 // 0x41b810(estado, conNombres): los ítems pedidos a la clase en la misión en curso, desde y = 235 (o 240 con los

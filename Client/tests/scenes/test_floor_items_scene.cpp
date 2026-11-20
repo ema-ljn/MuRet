@@ -27,6 +27,7 @@
 #include "Scenes/GameHud.h"
 #include "Scenes/InventoryMoves.h"
 #include "Scenes/LoginModels.h"
+#include "Scenes/NpcNames.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnInventory.h"
 #include "Scenes/ReturnToSelection.h"
@@ -54,6 +55,7 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -162,7 +164,8 @@ struct Stage
                                               {166, "fuerza"},    {167, "agilidad"},     {168, "energia"},
                                               {169, "vitalidad"}, {176, " +habilidad"},  {177, " +opcion"},
                                               {178, " +suerte"},  {378, "no se puede"},  {379, "%s %d %s"},
-                                              {1412, "sumados"},  {1900, "comando"},     {1903, "restados"}}))
+                                              {1412, "sumados"},  {1900, "comando"},     {1903, "restados"},
+                                              {103, "Anillo"}}))
     {
         sprites.Begin(Client::App::PixelSize{640, 480});
         models.Set(Client::Data::Models::PlayerSkeletonModel, {}, Client::Tests::PlayerActionsSkeleton(), {});
@@ -865,6 +868,23 @@ TEST_F(FloorItemNameTest, TheBoxesGoWithTheirTexts)
     const auto unwritten = Draw(chest);
     ASSERT_FALSE(unwritten.HasValue());
     EXPECT_NE(unwritten.Error().find("Q-C1242"), std::string::npos) << unwritten.Error();
+}
+
+// 0x5bb2eb..0x5bb338: el anillo de transformación en el piso (el modelo 0x1c1c): el monstruo del nivel en 0x6c9338 y el
+// primer registro de 0x7681eb8 con ese tipo, "%s %s" con su nombre y el 103. Sin ninguno, el buffer queda sin escribir
+// (0x5bb30f, Q-C1242).
+TEST_F(FloorItemNameTest, TheTransformationRingNamesItsFirstMonster)
+{
+    Scenes::NpcNameTable& names = m_stage->world.Runtime().npcNames;
+    names[3].type = 7;
+    std::ranges::copy(std::string_view("Gigante A"), names[3].name.begin());
+    names[10].type = 7;
+    std::ranges::copy(std::string_view("Gigante B"), names[10].name.begin());
+    ASSERT_TRUE(Draw(Item(0x1a0a, 1 << 3)).HasValue());
+    EXPECT_EQ(Last().text, "Gigante A Anillo");
+    const auto unwritten = Draw(Item(0x1a0a, 2 << 3));
+    ASSERT_FALSE(unwritten.HasValue());
+    EXPECT_NE(unwritten.Error().find("0x5bb30f"), std::string::npos) << unwritten.Error();
 }
 
 // 0x60848b..0x608491: la caja de la suerte de nivel 13 escribe el modelo 0x2240 y sigue en el caso de abajo, que lo

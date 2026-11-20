@@ -3,9 +3,11 @@
 #include "Core/Expected.h"
 #include "Data/Tables/ItemTable.h"
 #include "Scenes/HudItems.h"
+#include "Scenes/NpcNames.h"
 #include "UI/GameText.h"
 #include "UI/SprintfFormat.h"
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -124,19 +126,63 @@ Core::Expected<std::string_view, std::string> TextOf(const Data::Text::TextTable
         return Core::Unexpected(std::format("0x5b1c70: falta el texto {} de Text.bmd", index));
     return *text;
 }
+// 0x6c9338..0x6c9377 del c32bbd5f: del 0x18 en adelante, los bytes de 0x6c9350.
+constexpr std::array<std::uint32_t, 16> TransformationMonsters{
+    0x2, 0x7, 0xe, 0x8, 0x9, 0x29, 0xf9b5f7c8, 0xb020a9c5, 0x20e2c7ed, 0xe0c7a9bf, 0xc7b1, 0x0, 0x0, 0x0, 0x0, 0x0};
+constexpr std::uint16_t TransformationRing = 0x1a0a;
+constexpr std::size_t TransformationRingText = 103;
+
+// 0x5b21b6..0x5b21e9: los registros de 0x7681eb8 con el tipo del monstruo, sin cortar en el primero.
+bool HasTheMonster(const NpcNameTable& table, std::uint32_t monster)
+{
+    return std::ranges::any_of(table, [monster](const NpcName& entry) { return std::uint32_t{entry.type} == monster; });
+}
+
+Core::Expected<std::string, std::string> TransformationRingName(const Data::Text::TextTable* texts,
+                                                                const NpcNameTable* npcNames, std::int32_t level)
+{
+    if (npcNames == nullptr)
+        return Core::Unexpected(std::string("0x5b21a6: el nombre del anillo de transformación lee los monstruos de "
+                                            "0x7681eb8 y no están"));
+    const std::optional<std::uint32_t> monster = TransformationMonsterOf(level);
+    if (!monster)
+        return Core::Unexpected(std::format("0x5b21bb: el nivel {} del anillo de transformación lee 0x6c9338 fuera "
+                                            "de lo que MuRet tiene de la .data",
+                                            level));
+    // Sin ninguno, el buffer queda sin escribir.
+    std::string name;
+    for (std::size_t index = 0; index < npcNames->size(); ++index)
+    {
+        // 0x5b21c2..0x5b21ca: el word del tipo, sin signo, contra el dword del nivel, que se vuelve a leer.
+        if (std::uint32_t{(*npcNames)[index].type} != *monster)
+            continue;
+        // 0x5b21cc..0x5b21d8: sprintf(buffer, "%s %s" (0x6c9998), +2 del registro, el 103 (0x76c4a90)).
+        const auto text = TextOf(texts, TransformationRingText);
+        if (!text.HasValue())
+            return Core::Unexpected(text.Error());
+        name = UI::Sprintf("%s %s", std::string_view(NpcNameAt(*npcNames, index)), text.Value());
+    }
+    return name;
+}
 } // namespace
 
+std::optional<std::uint32_t> TransformationMonsterOf(std::int32_t level)
+{
+    if (level < 0 || static_cast<std::size_t>(level) >= TransformationMonsters.size())
+        return std::nullopt;
+    return TransformationMonsters[static_cast<std::size_t>(level)];
+}
+
 Core::Expected<std::string, std::string> ItemNameOf(const Data::Tables::ItemTable* items,
-                                                    const Data::Text::TextTable* texts, std::uint16_t type,
-                                                    std::int32_t level)
+                                                    const Data::Text::TextTable* texts, const NpcNameTable* npcNames,
+                                                    std::uint16_t type, std::int32_t level)
 {
     if (type == 0x1c0c && level == 2)
         return Core::Unexpected(std::string("0x5b1d52: el nombre del 0x1c0c de nivel 2 lee la tabla de .data de "
                                             "0x6c9350 por +0x2d del registro, como el cuerpo del ítem (0x5b3824, "
                                             "08 P-C125 b)"));
-    if (type == 0x1a0a)
-        return Core::Unexpected(std::string("0x5b21a6: el nombre del anillo de transformación lee los monstruos de "
-                                            "0x7681eb8, que MuRet no carga (CL9 hito 2)"));
+    if (type == TransformationRing)
+        return TransformationRingName(texts, npcNames, level);
     // 0x5b1c76..0x5b1c8d: el registro de Item.bmd, que todos los casos con el nombre leen.
     const auto recordName = [&]() -> Core::Expected<std::string, std::string>
     {
@@ -200,8 +246,13 @@ Core::Expected<std::string, std::string> ItemNameOf(const Data::Tables::ItemTabl
     return UI::Sprintf("%s +%d", std::string_view(name.Value()), level);
 }
 
-bool ItemNameIsWritten(std::uint16_t type, std::int32_t level)
+bool ItemNameIsWritten(std::uint16_t type, std::int32_t level, const NpcNameTable* npcNames)
 {
+    if (type == TransformationRing && npcNames != nullptr)
+    {
+        const std::optional<std::uint32_t> monster = TransformationMonsterOf(level);
+        return !monster || HasTheMonster(*npcNames, *monster);
+    }
     // El 0x180b, las cajas de 0x1c0b del 8 al 12 y el 0x1c0c de nivel 2 (0x5b1d52) escriben antes de la tabla.
     if (type == Type180b || (type == 0x1c0b && level >= FirstPlusBox && level <= LastPlusBox) ||
         (type == 0x1c0c && level == 2))

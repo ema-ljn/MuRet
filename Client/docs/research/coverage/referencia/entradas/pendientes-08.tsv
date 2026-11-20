@@ -107,7 +107,7 @@ P-C121	148	abierta	CL8	CL8	vm		1	La división por 0 de las letras	las letras con
 P-C122	149	abierta	CL8	CL8	codigo		0	Lo que la ventana del personaje lee fuera del registro de MuRet	el nombre largo
 P-C123	150	abierta	CL8	CL8	vm		1	Lo que la ventana del personaje infiere o deja para la VM	la ventana del personaje, más allá de lo estático
 P-C124	151	cerrada	CL8	CL8	—		0	Cerrado el 2026-11-12	—
-P-C125	152	abierta	CL8	CL8	codigo	Scenes/ItemNames.cpp:134	1	Lo que corta el cuerpo del ítem	los tooltips de esos ítems y casos
+P-C125	152	abierta	CL8	CL8	codigo	Scenes/ItemNames.cpp:181	1	Lo que corta el cuerpo del ítem	los tooltips de esos ítems y casos
 P-C126	153	cerrada	CL8	CL9	—	Scenes/ItemPrice.cpp:650	0	Cerrado el 2026-11-13	CL8
 P-C127	154	cerrada	CL8	CL8	—		0	Cerrado el 2026-11-12	—
 P-C135	155	abierta	CL8	CL8	codigo		0	Lo que corta el cuerpo de la skill	el tooltip de esas skills

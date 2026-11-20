@@ -3336,7 +3336,7 @@ ventana y el cartel del set, el cuerpo del ítem, el de reparar (con el precio d
 ítem), el sprintf del CRT (`UI/SprintfFormat`) y `0x40ebd0` en la cola de los comandos del chat
 (Q-C594). Los tests son `test_game_tooltips.cpp`, `test_item_tooltips.cpp`, `test_sprintf_format.cpp` y
 `test_chat_commands.cpp`. Del cuerpo del ítem cortan con su dirección: `0x1a04` y `0x1a05` (`0x4229d4`, P-C126,
-portado en la CL9), las líneas del `0x1c1c` (`0x437c90`), el `0x1a13`
+portado en la CL9), el `0x1a13`
 desde el nivel 3, un nombre de más de 64 bytes y un renglón fuera de los 30 (P-C125). El cuerpo de la skill y la ayuda
 de los comandos están en `Scenes/SkillTooltip.cpp`, con `0x5516e0` en `Scenes/OwnDamage` (`test_skill_tooltip.cpp`).
 Cortan con su dirección lo que leen fuera de lo que MuRet tiene (P-C135), y lo que depende de otras olas o de la VM
@@ -3402,7 +3402,7 @@ ventana y el cartel del set, el cuerpo del ítem, el de reparar con su precio (`
 (Q-C594). Los tests son `test_game_tooltips.cpp`, `test_item_tooltips.cpp`, `test_item_price.cpp` (con Item.bmd real
 para los de oro), `test_sprintf_format.cpp` y `test_chat_commands.cpp`. Del precio cortan con su dirección las lecturas
 que MuRet no tiene, como en P-C140. Del cuerpo del ítem cortan con su dirección: `0x1a04` y `0x1a05` (`0x4229d4`,
-P-C126, portado en la CL9), las líneas del `0x1c1c` (`0x437c90`), el
+P-C126, portado en la CL9), el
 `0x1a13` desde el nivel 3, un nombre de más de 64 bytes y un renglón fuera de los 30 (P-C125).
 El de la skill (`0x5b90b0`) corta con su dirección (P-C101). La ayuda del ítem (el modo 3) está en § HUD y
 ventanas, "La ayuda del ítem".

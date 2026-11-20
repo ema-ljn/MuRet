@@ -74,6 +74,7 @@ constexpr std::uint16_t Ticket = 0x1c14;
 constexpr std::uint16_t Pet = 0x1a04;
 // El de Chaos Castle (0x5b63b7): el tipo es el del original, como el 0x1c0d de la gema.
 constexpr std::uint16_t ChaosCastleArmor = 0x1a1d;
+constexpr std::uint16_t LostMap = 0x1c1c;
 constexpr std::uint8_t ArmorSet = 3;
 constexpr std::uint8_t BlueBoxSkill = 0x4c;
 constexpr std::uint16_t BlueBoxMana = 85;
@@ -108,6 +109,7 @@ Client::Data::Text::TextTable Texts()
                                          {94, "Vida %d"},
                                          {103, "Anillo"},
                                          {159, "fin"},
+                                         {58, "Kalima"},
                                          {368, "Nivel"},
                                          {238, "Reparar: %s"},
                                          {572, "Gema para mejorar"},
@@ -127,7 +129,9 @@ Client::Data::Text::TextTable Texts()
                                          {1089, "Grupo"},
                                          {1101, "Sin precio"},
                                          {1147, "Chaos Castle"},
+                                         {1123, "Desde el nivel %d"},
                                          {1157, "Clic para entrar"},
+                                         {1184, "Tira la piedra"},
                                          {1620, "Compra: %s(%s)"},
                                          {1860, "Suerte %d"},
                                          {1863, "Sello uno"},
@@ -196,6 +200,7 @@ Client::Data::Tables::ItemTable Items()
         .Named(Ticket, "Boleto")
         .Named(Pet, "Mascota")
         // Con la clase A marcada: el cuerpo no escribe las clases del 0x1a1d (0x5b79c7).
+        .Named(LostMap, "Mapa")
         .Named(ChaosCastleArmor, "Armadura")
         .Byte(ChaosCastleArmor, 0x45, 1)
         .Table();
@@ -610,6 +615,93 @@ TEST_F(ItemTooltipsTest, TheChaosCastleArmorReadsItsOwnTableForClasses3And4)
         ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
         ExpectLines(ChaosCastleLines(ChaosCastleRowsOfClasses3And4, 2), 4);
     }
+}
+
+// 0x437d49..0x4381e0: el Mapa perdido (0x1c1c) en 0x437c90, que 0x5b6a2f llama con el renglón y guarda el que devuelve
+// en 0x78abb30 sin tocar 0x78abb34: sus "\n" no son medios renglones. Abre el registro propio para leer el nivel (+0xe)
+// y lo cierra; la cabecera "%s %s       %s    " (0x6c7468) con el 58, el 368 y el 935, en el 0 y sin negrita; las siete
+// filas de Kalima de 0x6b8b18 (el máximo escrito hasta 400, JLE) con "        %d             %3d~%3d     " (0x6c7444),
+// la del nivel del mapa en el 8; un "\n" sin color ni negrita; el 1184 en el 7, sin escribir la negrita; y, con el
+// nivel propio por debajo del mínimo de la primera fila (JGE), otro "\n" y el 1123 con ese mínimo en el 5.
+constexpr std::string_view KalimaHeader = "Kalima Nivel       Minimo    ";
+constexpr std::array<std::string_view, 7> KalimaRows{
+    "        1              40~400     ", "        2             131~400     ", "        3             181~400     ",
+    "        4             231~400     ", "        5             281~400     ", "        6             331~400     ",
+    "        7             350~400     "};
+// 0x437d14..0x437d26: las clases 3 y 4 (+0x1d4 & 7) leen desde la octava fila ([EBP − 4] en 7).
+constexpr std::array<std::string_view, 7> KalimaRowsOfClasses3And4{
+    "        1              20~400     ", "        2             111~400     ", "        3             161~400     ",
+    "        4             211~400     ", "        5             261~400     ", "        6             311~400     ",
+    "        7             350~400     "};
+
+ItemState LostMapItem(std::int32_t level)
+{
+    ItemState item;
+    item.id = LostMap;
+    item.scalar1Low = static_cast<std::uint32_t>(level) << 3u;
+    return item;
+}
+
+// El cuerpo entero. El nombre, de 0x5b42cd: "%s +%d" (0x6c9a68) con el nombre y el nivel, en dorado ([EBP − 0x1c] en
+// 3). Después, las líneas de 0x437c90 y el "\n" de 0x5b7da7, sin la durabilidad (0x5b6ab5) ni las clases. Medios
+// renglones solo el del principio, el de después del nombre y el último.
+std::vector<Line> KalimaLines(const std::array<std::string_view, 7>& rows, std::int32_t mapLevel,
+                              std::optional<std::string> warning)
+{
+    std::vector<Line> lines{{"\n", 0, StaleBold},
+                            {"Mapa +" + std::to_string(mapLevel), Client::Scenes::TooltipGold, 1},
+                            {"\n", 0, StaleBold}};
+    lines.push_back({std::string(KalimaHeader), 0, 0});
+    for (std::size_t i = 0; i < rows.size(); ++i)
+        lines.push_back({std::string(rows[i]), static_cast<std::int32_t>(i + 1) == mapLevel ? HighlightedRow : 0, 0});
+    lines.push_back({"\n", 0, StaleBold});
+    lines.push_back({"Tira la piedra", Client::Scenes::TooltipWhiteOnRed, StaleBold});
+    if (warning)
+    {
+        lines.push_back({"\n", 0, StaleBold});
+        lines.push_back({*warning, Client::Scenes::TooltipWhiteOnBlue, StaleBold});
+    }
+    lines.push_back({"\n", 0, StaleBold});
+    return lines;
+}
+
+TEST_F(ItemTooltipsTest, TheLostMapListsTheKalimasAndMarksTheOneOfItsLevel)
+{
+    world.OwnCharacter().level = 100;
+    const CrtRandom expected = Advanced(random, OwnRecordCloseRandoms + NpcShopQuery + SkillAccess);
+
+    const auto drawn = Draw(LostMapItem(2));
+
+    ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+    ExpectLines(KalimaLines(KalimaRows, 2, std::nullopt), 3);
+    EXPECT_EQ(random.State(), expected.State());
+    EXPECT_EQ(world.Runtime().ownRecordDepth, 0);
+}
+
+// 0x43818b..0x4381d8: con el nivel propio por debajo del mínimo de la primera fila de su tabla (40, o 20 con las clases
+// 3 y 4), el "\n" y el 1123 con ese mínimo en el 5; en el mínimo, no.
+TEST_F(ItemTooltipsTest, TheLostMapWarnsBelowTheFirstKalima)
+{
+    world.OwnCharacter().level = 39;
+    ASSERT_TRUE(Draw(LostMapItem(1)).HasValue());
+    ExpectLines(KalimaLines(KalimaRows, 1, "Desde el nivel 40"), 3);
+
+    world.OwnCharacter().level = 40;
+    ASSERT_TRUE(Draw(LostMapItem(1)).HasValue());
+    ExpectLines(KalimaLines(KalimaRows, 1, std::nullopt), 3);
+
+    HeroIs(Gladiator);
+    world.OwnCharacter().level = 19;
+    ASSERT_TRUE(Draw(LostMapItem(7)).HasValue());
+    ExpectLines(KalimaLines(KalimaRowsOfClasses3And4, 7, "Desde el nivel 20"), 3);
+}
+
+// 0x4380fd: el nivel del mapa contra el número de la fila; con 0 no marca ninguna.
+TEST_F(ItemTooltipsTest, TheLostMapOfLevelZeroMarksNoRow)
+{
+    world.OwnCharacter().level = 100;
+    ASSERT_TRUE(Draw(LostMapItem(0)).HasValue());
+    ExpectLines(KalimaLines(KalimaRows, 0, std::nullopt), 3);
 }
 
 // 0x5b690a..0x5b691d: el nivel contra el mínimo y el máximo, los dos incluidos; fuera de la tabla, ninguno.

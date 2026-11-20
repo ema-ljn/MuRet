@@ -1,8 +1,13 @@
 #include "Core/Expected.h"
+#include "Scenes/GameHud.h"
 #include "Scenes/HudItems.h"
+#include "Scenes/ItemNames.h"
 #include "Scenes/ItemTooltipParts.h"
+#include "Scenes/NpcNames.h"
 #include "Scenes/TooltipLines.h"
 #include "Scenes/TooltipWriter.h"
+#include "Scenes/WorldRuntime.h"
+#include "Scenes/WorldState.h"
 #include "World/ItemState.h"
 
 #include <algorithm>
@@ -93,6 +98,7 @@ constexpr std::uint32_t FirstJewelSkill = 30;
 constexpr std::size_t JewelText = 102;
 // 0x1a0a busca en la tabla 0x7681eb8 (de a 0x36 bytes hasta 0x7688ab8) el word de 0x6c9338[nivel].
 constexpr std::uint16_t TransformationRing = 0x1a0a;
+constexpr std::size_t TransformationRingText = 103;
 // 0x1a1f: "%s %s" con el 1187 o el 1214 delante.
 constexpr std::uint16_t PetSpirit = 0x1a1f;
 constexpr std::array<std::size_t, 2> PetSpiritTexts{1187, 1214};
@@ -279,6 +285,25 @@ Core::Expected<void, std::string> WriteTheGenericName(Frame& frame, std::string_
     return {};
 }
 
+// 0x5b41d0..0x5b421a: el primer registro de 0x7681eb8 cuyo tipo (el word, sin signo) es el monstruo del nivel
+// (0x6c9338), y sprintf(renglón, "%s %s" (0x6c9a38), +2 del registro, el 103) en la cola de 0x5b4582. Sin ninguno,
+// salta a 0x5b459d sin escribir el renglón.
+Core::Expected<void, std::string> WriteTheTransformationRingName(Frame& frame)
+{
+    const std::optional<std::uint32_t> monster = TransformationMonsterOf(frame.level);
+    if (!monster)
+        return Core::Unexpected(std::format("0x5b41dc: el nivel {} del anillo de transformación lee 0x6c9338 fuera de "
+                                            "lo que MuRet tiene de la .data",
+                                            frame.level));
+    const std::optional<std::string> name =
+        NpcNameOf(frame.context.world.Runtime().npcNames, static_cast<std::int32_t>(*monster));
+    if (!name)
+        return {};
+    TooltipWriter& lines = frame.lines;
+    lines.Print("%s %s", std::string_view(*name), lines.Text(TransformationRingText));
+    return {};
+}
+
 Core::Expected<void, std::string> WriteTheNameLine(Frame& frame, std::string_view record)
 {
     TooltipWriter& lines = frame.lines;
@@ -304,8 +329,7 @@ Core::Expected<void, std::string> WriteTheNameLine(Frame& frame, std::string_vie
     if (type == SkillJewel)
         return WriteTheJewelName(frame);
     if (type == TransformationRing)
-        return Core::Unexpected(std::string("0x5b41dc: el nombre del 0x1a0a busca su monstruo en la tabla 0x7681eb8, "
-                                            "que MuRet no tiene"));
+        return WriteTheTransformationRingName(frame);
     if (WriteASpecialName(frame, type, record))
         return {};
     return WriteTheGenericName(frame, record);

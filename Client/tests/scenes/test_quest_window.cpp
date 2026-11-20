@@ -985,7 +985,7 @@ TEST(QuestItemNamesTest, OnlyTheLevelsWithoutANameAreNotWritten)
           Case{0x1c0c, 2, true},  Case{0x1c0c, 3, false}, Case{0x180b, 7, true},  Case{0x0001, 13, true}})
     {
         SCOPED_TRACE(std::format("{:#x} {}", probe.type, probe.level));
-        EXPECT_EQ(Client::Scenes::ItemNameIsWritten(probe.type, probe.level), probe.written);
+        EXPECT_EQ(Client::Scenes::ItemNameIsWritten(probe.type, probe.level, nullptr), probe.written);
     }
 }
 } // namespace

@@ -14,6 +14,7 @@
 #include "Scenes/GameTooltips.h"
 #include "Scenes/ItemPrice.h"
 #include "Scenes/ItemSetState.h"
+#include "Scenes/NpcNames.h"
 #include "Scenes/NpcWindowState.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnInventory.h"
@@ -32,6 +33,7 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -104,6 +106,7 @@ Client::Data::Text::TextTable Texts()
                                          {87, "Vida extra"},
                                          {88, "Opcion +%d"},
                                          {94, "Vida %d"},
+                                         {103, "Anillo"},
                                          {159, "fin"},
                                          {368, "Nivel"},
                                          {238, "Reparar: %s"},
@@ -648,6 +651,31 @@ TEST_F(ItemTooltipsTest, TheChaosCastleArmorOpensTheOwnRecordForTheLevel)
     EXPECT_EQ(Lines().colors[FirstChaosCastleRow + 1], HighlightedRow);
     EXPECT_EQ(random.State(), expected.State());
     EXPECT_EQ(world.Runtime().ownRecordDepth, 0);
+}
+
+// 0x5b41d0..0x5b421a: el título del anillo de transformación (0x1a0a): el monstruo del nivel en 0x6c9338 y el primer
+// registro de 0x7681eb8 con ese tipo (corta en el primero), "%s %s" con su nombre y el 103. Sin ninguno (el 14 del
+// nivel 2), salta a 0x5b459d sin escribir el renglón, que 0x5b2aa0 vació al empezar.
+TEST_F(ItemTooltipsTest, TheTransformationRingNamesItsFirstMonster)
+{
+    Client::Scenes::NpcNameTable& names = world.Runtime().npcNames;
+    names[3].type = 7;
+    std::ranges::copy(std::string_view("Gigante A"), names[3].name.begin());
+    names[10].type = 7;
+    std::ranges::copy(std::string_view("Gigante B"), names[10].name.begin());
+    ItemState ring;
+    ring.id = 0x1a0a;
+    ring.scalar1Low = 1u << 3u;
+
+    const auto drawn = Draw(ring);
+
+    ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+    EXPECT_EQ(Lines().text[1], "Gigante A Anillo");
+
+    ring.scalar1Low = 2u << 3u;
+    const auto unnamed = Draw(ring);
+    ASSERT_TRUE(unnamed.HasValue()) << unnamed.Error();
+    EXPECT_EQ(Lines().text[1], "");
 }
 
 TEST_F(ItemTooltipsTest, TheTooltipsDrawTheBodyOfTheHoveredItemWithTheOwnRecordOpen)

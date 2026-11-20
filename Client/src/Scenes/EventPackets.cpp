@@ -628,8 +628,8 @@ private:
             line = std::move(formatted).Value();
         }
         // 0x4d6a54: 0x5b1c70(tipo, pkt[0xc]) en el segundo buffer, en cero; donde no escribe nada queda vacío.
-        auto name = ItemNameOf(m_context.items, m_context.texts, static_cast<std::uint16_t>(packet.item & ItemTypeMask),
-                               packet.level);
+        auto name = ItemNameOf(m_context.items, m_context.texts, &m_context.world.Runtime().npcNames,
+                               static_cast<std::uint16_t>(packet.item & ItemTypeMask), packet.level);
         if (!name.HasValue())
             return Core::Unexpected(std::format("0x4d6a54: {}", name.Error()));
         if (name.Value().size() >= ItemNoticeBuffer)

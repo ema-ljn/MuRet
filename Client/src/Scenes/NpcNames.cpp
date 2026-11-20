@@ -1,6 +1,7 @@
 #include "Scenes/NpcNames.h"
 
 #include <algorithm>
+#include <cstddef>
 #include <cstdint>
 #include <optional>
 #include <span>
@@ -22,11 +23,19 @@ std::optional<std::string> NpcNameOf(const NpcNameTable& table, std::int32_t typ
                                             { return static_cast<std::int32_t>(entry.type) == type; });
     if (found == table.end())
         return std::nullopt;
+    return NpcNameAt(table, static_cast<std::size_t>(found - table.begin()));
+}
+
+std::string NpcNameAt(const NpcNameTable& table, std::size_t index)
+{
     std::string name;
-    for (auto entry = found; entry != table.end(); ++entry)
+    if (index >= table.size())
+        return name;
+    const auto first = table.begin() + static_cast<std::ptrdiff_t>(index);
+    for (auto entry = first; entry != table.end(); ++entry)
     {
         // Después del primero, el word del tipo del siguiente (el byte bajo primero) y su nombre.
-        if (entry != found)
+        if (entry != first)
         {
             for (const unsigned shift : {0u, 8u})
             {

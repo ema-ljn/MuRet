@@ -13,8 +13,11 @@
 #include "Scenes/HudItems.h"
 #include "Scenes/HudText.h"
 #include "Scenes/ITextDrawer.h" // IWYU pragma: keep (ITextDrawer como ITextMeasure)
+#include "Scenes/ItemNames.h"
 #include "Scenes/ItemTooltipParts.h"
+#include "Scenes/NpcNames.h"
 #include "Scenes/WorldRuntime.h"
+#include "Scenes/WorldState.h"
 #include "UI/GameText.h"
 #include "UI/SprintfFormat.h"
 
@@ -248,6 +251,27 @@ Name ByLevel(const NameFrame& frame, const std::array<std::size_t, Count>& texts
     return TextAsFormat(frame, texts[static_cast<std::size_t>(frame.level)]);
 }
 
+// 0x5bb2ed..0x5bb338: el anillo de transformación (el modelo 0x1c1c): el primer registro de 0x7681eb8 cuyo tipo (el
+// word, sin signo) es el monstruo del nivel (0x6c9338), y sprintf(buffer, "%s %s" (0x6c9cb4), +2 del registro, el 103).
+// Sin ninguno, salta a 0x5bb811 sin escribir el buffer (0x5bb30f).
+Name TransformationRingName(const NameFrame& frame)
+{
+    const std::optional<std::uint32_t> monster = TransformationMonsterOf(frame.level);
+    if (!monster)
+        return Core::Unexpected(std::format("0x5bb2ed: el nivel {} del anillo de transformación lee 0x6c9338 fuera de "
+                                            "lo que MuRet tiene de la .data",
+                                            frame.level));
+    const std::optional<std::string> name =
+        NpcNameOf(frame.context.world.Runtime().npcNames, static_cast<std::int32_t>(*monster));
+    if (!name)
+        return Unwritten(frame, 0x5bb30f);
+    constexpr std::size_t TransformationRingText = 103;
+    const auto text = TextOf(frame, TransformationRingText);
+    if (!text.HasValue())
+        return Core::Unexpected(text.Error());
+    return UI::Sprintf("%s %s", std::string_view(*name), text.Value());
+}
+
 // 0x5ba7d5..0x5bb811: el texto y su color según el modelo.
 Name ComposeTheName(const NameFrame& frame)
 {
@@ -384,9 +408,7 @@ Name ComposeTheName(const NameFrame& frame)
     case 0x1a1d:
         return ScrollName(frame);
     case 0x1c1c:
-        // 0x5bb2eb..0x5bb30d: busca en los monstruos (0x7681eb8, de 0x36 bytes) el de 0x6c9338[nivel].
-        return Core::Unexpected(std::string("0x5bb2f1: el nombre del anillo de transformación en el piso lee los "
-                                            "monstruos de 0x7681eb8, que MuRet no carga (CL9 hito 2)"));
+        return TransformationRingName(frame);
     case 0x1e19:
         return ByLevel(frame, std::array<std::size_t, 2>{1413, 1414}, 0x5bb37f);
     case 0x1c19:

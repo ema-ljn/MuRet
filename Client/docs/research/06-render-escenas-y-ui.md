@@ -3336,7 +3336,7 @@ ventana y el cartel del set, el cuerpo del ítem, el de reparar (con el precio d
 ítem), el sprintf del CRT (`UI/SprintfFormat`) y `0x40ebd0` en la cola de los comandos del chat
 (Q-C594). Los tests son `test_game_tooltips.cpp`, `test_item_tooltips.cpp`, `test_sprintf_format.cpp` y
 `test_chat_commands.cpp`. Del cuerpo del ítem cortan con su dirección: `0x1a04` y `0x1a05` (`0x4229d4`, P-C126,
-portado en la CL9), el nombre del `0x1c0c` de nivel 2 (la tabla de `0x6c9350`) y del `0x1a0a` (la tabla de monstruos de `0x7681eb8`), las líneas del `0x1c1c` (`0x437c90`), el `0x1a13`
+portado en la CL9), el nombre del `0x1c0c` de nivel 2 (la tabla de `0x6c9350`), las líneas del `0x1c1c` (`0x437c90`), el `0x1a13`
 desde el nivel 3, un nombre de más de 64 bytes y un renglón fuera de los 30 (P-C125). El cuerpo de la skill y la ayuda
 de los comandos están en `Scenes/SkillTooltip.cpp`, con `0x5516e0` en `Scenes/OwnDamage` (`test_skill_tooltip.cpp`).
 Cortan con su dirección lo que leen fuera de lo que MuRet tiene (P-C135), y lo que depende de otras olas o de la VM
@@ -3403,7 +3403,7 @@ ventana y el cartel del set, el cuerpo del ítem, el de reparar con su precio (`
 para los de oro), `test_sprintf_format.cpp` y `test_chat_commands.cpp`. Del precio cortan con su dirección las lecturas
 que MuRet no tiene, como en P-C140. Del cuerpo del ítem cortan con su dirección: `0x1a04` y `0x1a05` (`0x4229d4`,
 P-C126, portado en la CL9), el nombre del `0x1c0c` de nivel 2 (la tabla
-de `0x6c9350`) y del `0x1a0a` (la tabla de monstruos de `0x7681eb8`), las líneas del `0x1c1c` (`0x437c90`), el
+de `0x6c9350`), las líneas del `0x1c1c` (`0x437c90`), el
 `0x1a13` desde el nivel 3, un nombre de más de 64 bytes y un renglón fuera de los 30 (P-C125).
 El de la skill (`0x5b90b0`) corta con su dirección (P-C101). La ayuda del ítem (el modo 3) está en § HUD y
 ventanas, "La ayuda del ítem".
@@ -8525,8 +8525,9 @@ vértices en `+0xe8`, la luz en `+0xf4`, la caja del picking en `+0x13c` y "a la
   con su valor, las joyas en negrita, las cajas, los fuegos y las frutas con sus textos, el orbe de invocación (el modelo `0x1a1d`) con su
   skill (nivel + 30, con su acceso a Skill.bmd) y los demás con el color del nivel (gris, blanco, naranja, celeste,
   dorado desde el 7), celeste con opciones, verde excelente, el conjunto en blanco y negrita (verde sobre rojo) y los
-  textos de la skill, la opción y la suerte. 15 más arriba, centrado con la mitad del ancho con signo. Cortan el
-  `0x1a0a` (los monstruos de `0x7681eb8`, CL9 hito 2) y los modelos y niveles que no escriben el texto (07 Q-C1242).
+  textos de la skill, la opción y la suerte. 15 más arriba, centrado con la mitad del ancho con signo. El anillo de
+  transformación (el modelo `0x1c1c`), con su monstruo de `0x7681eb8` (07 Q-C1822). Cortan los modelos y niveles que no
+  escriben el texto (07 Q-C1242).
 - **El `2C`** (`0x4de500`): con 0 y un stat de 0 a 4, el stat y `+0x44` suben; con 3, el stat baja y `+0x68` y
   `+0x48` suben; los dos en el registro propio y con el aviso armado con 379, el texto del stat y 1412 o 1903. Los
   otros resultados abren su aviso. Siempre `0x5767954` en 0.

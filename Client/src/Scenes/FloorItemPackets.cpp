@@ -200,8 +200,8 @@ Core::Expected<void, std::string> PickUpMessage(const Protocol::FloorItems::Pick
         return SystemLine(resources, UI::Sprintf("%d %s %s", chosen.value, zen.Value(), picked.Value()), "0x4d0faf");
     }
     // 0x4d0fdd..0x4d1049: el nombre del elegido por su tipo y su nivel, vivo o no.
-    const auto name = ItemNameOf(resources.items, resources.texts, static_cast<std::uint16_t>(chosen.itemType),
-                                 (chosen.value >> 3) & 15);
+    const auto name = ItemNameOf(resources.items, resources.texts, &resources.world.Runtime().npcNames,
+                                 static_cast<std::uint16_t>(chosen.itemType), (chosen.value >> 3) & 15);
     if (!name.HasValue())
         return Core::Unexpected(std::format("0x4d1019: {}", name.Error()));
     return SystemLine(resources, UI::Sprintf("%s %s", std::string_view(name.Value()), picked.Value()), "0x4d1049");

@@ -16,6 +16,8 @@ inline constexpr std::uint8_t DeleteSubcode = 0x02; // borrar, y su respuesta (C
 inline constexpr std::uint8_t SelectSubcode = 0x03; // entrar al mundo, y su respuesta (0x4c3940, CL7)
 // Un punto de los de subir de nivel a una estadística, desde la ventana del personaje (0x5e468e, CL8 hito 5).
 inline constexpr std::uint8_t LevelUpPointSubcode = 0x06;
+// El estado de PK de un personaje (0x4d3b50).
+inline constexpr std::uint8_t PkLevelSubcode = 0x08;
 // 04-protocolo, "El F3 10, el inventario": la lista de ítems, no la apariencia de selección.
 inline constexpr std::uint8_t InventoryListSubcode = 0x10;
 

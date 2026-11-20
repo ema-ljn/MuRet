@@ -26,6 +26,7 @@
 #include "Protocol/Character/CharacterSelect.h"
 #include "Protocol/Character/InventoryList.h"
 #include "Protocol/Character/LevelUpPoint.h"
+#include "Protocol/Character/PkLevel.h"
 #include "Protocol/Character/Opcodes.h"
 #include "Protocol/Combat.h"
 #include "Protocol/Connection/Hello.h"
@@ -413,6 +414,9 @@ void ServerSession::RegisterSkillHandlers()
         // 0x4e30cd: la respuesta al punto de subir de nivel (0x4d3200).
         m_gameServer.On(CharacterOpcode, Protocol::Character::LevelUpPointSubcode,
                         [this](const Network::Packet& packet) { OnLevelUpPointResult(packet); }) &&
+        // 0x4e30cd: el estado de PK de un personaje (0x4d3b50).
+        m_gameServer.On(CharacterOpcode, Protocol::Character::PkLevelSubcode,
+                        [this](const Network::Packet& packet) { OnPkLevel(packet); }) &&
         m_gameServer.On(CharacterOpcode, Skill::SummonLifeSubcode,
                         [this](const Network::Packet& packet) { OnSummonLife(packet); }) &&
         m_gameServer.On(Protocol::Pet::PetOrderOpcode, [this](const Network::Packet& packet) { OnPetOrder(packet); }) &&
@@ -2399,6 +2403,17 @@ void ServerSession::OnLevelUpPointResult(const Network::Packet& packet)
         return;
     }
     static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(reply.Value(), *this)));
+}
+
+void ServerSession::OnPkLevel(const Network::Packet& packet)
+{
+    const auto level = Protocol::Character::ReadPkLevel(packet);
+    if (!level.HasValue())
+    {
+        m_log.Warning("se ignora el estado de PK (F3 08): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(level.Value(), *this)));
 }
 
 void ServerSession::OnSummonLife(const Network::Packet& packet)

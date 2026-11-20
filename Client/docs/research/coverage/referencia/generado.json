@@ -1,9 +1,9 @@
 {
- "ref": "8be763fac0694200f7b3ecafddad21a4acc0c858",
+ "ref": "753d816e15a40c7af8fb6a2606fa07191b21b123",
  "fecha_commit": "2026-11-20",
  "funciones": 5648,
  "trazas": 55953,
- "trazas_docs": 29590,
+ "trazas_docs": 29587,
  "archivos": 1411,
  "ids": 1121,
  "metricas": 412

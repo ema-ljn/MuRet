@@ -1,7 +1,7 @@
 # Referencia del cliente: métricas y trazas contra el `main.exe`
 
 Una tabla por cada cosa que se consulta seguido, para no volver a medir ni a buscar lo mismo cada vez. Está generada
-sobre MuRet `8be763fa` (2026-11-20: `main` con la CL11 cerrada, el CI de #379 y los globos de la selección de #383)
+sobre MuRet `753d816e` (2026-11-20: `main` con la CL11 cerrada, el CI de #379 y los globos de la selección de #383)
 contra el `main.exe` c32bbd5f del repo de research; `generado.json` dice el commit exacto. Sale de la auditoría del
 2026-11-20 (`analisis/2026-11-20-auditoria-cliente/` en los archivos del proyecto) y de
 [10-cobertura-roadmap.md](../../10-cobertura-roadmap.md).

@@ -781,8 +781,8 @@ def main():
     for fjs in os.listdir(f'{E}/serie'):
         r0 = fjs.removeprefix('frozen-').removesuffix('.json')
         with open(f'{E}/serie/{fjs}', encoding='utf-8') as fh:
-            serie[r0] = (json.load(fh)['Total'], 'frozen.py')
-    serie.setdefault(here, (T, 'esta corrida'))
+            serie[r0] = (json.load(fh)['Total'], 'entradas/serie')
+    serie[here] = (T, 'esta corrida')
 
     def when(r0):
         try:

@@ -30,6 +30,7 @@
 #include "Scenes/SceneId.h"
 #include "Scenes/SceneTextures.h"
 #include "Scenes/SelectionWorld.h"
+#include "UI/CharacterBalloons.h"
 #include "UI/CreateCharacterWindow.h"
 #include "UI/EscapeWindow.h"
 #include "UI/NameChecks.h"
@@ -41,6 +42,7 @@
 #include "World/TerrainCells.h"
 #include "World/TerrainCulling.h"
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
@@ -190,6 +192,15 @@ private:
     void DrawTheCursor(SceneCanvas& canvas) const;
     // 0x634949..0x63495f: los avisos y el área vieja, antes de la UI.
     void DrawTheMessages(SceneCanvas& canvas);
+    // Los cinco registros del pool como los lee 0x63cc60. MuRet saca de la lista de la sesión el lugar borrado sin
+    // bajar el +0 de su registro (0x643374, Q-C104): uno que no está en la lista va como muerto. Sin el mundo, los
+    // cinco muertos.
+    [[nodiscard]] std::array<UI::BalloonRecord, UI::BalloonCount> BalloonRecords() const;
+    // 0x63cfb0: los globos con los registros de ahora.
+    void UpdateTheBalloons();
+    // 0x65fe00 → 0x63cf80, antes de las ventanas: cada personaje a z + 280 con la proyección del pase del mundo
+    // (0x6205b0 con el caché de 0x620db0 en 0x634785). Un error queda en m_failure.
+    void DrawTheBalloons(SceneCanvas& canvas, const Render::Pass3D& pass, float fieldOfView);
     // Con la respuesta del F3 02, su aviso en lugar del 0x5d (0x4e2fe9), salvo que la sesión haya
     // caído. Si abrió uno en este paso.
     bool TakeTheDeletionResult();
@@ -242,6 +253,8 @@ private:
     World::TerrainRange m_terrainRange{};
     UI::NoticeWindow m_notice;
     UI::SelectionBar m_bar;
+    // Los globos de los cinco lugares (+0x8dc8 de la UI nueva, 06 § Los globos).
+    UI::CharacterBalloons m_balloons;
     // Las palabras de FilterName.bmd y Filter.bmd de `data`, y los textos 457 y 458.
     UI::NameFilters m_nameFilters;
     UI::CreateCharacterWindow m_create;

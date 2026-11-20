@@ -14,6 +14,7 @@
 #include "World/ParticleDrawing.h"
 #include "Render/ParticleBillboardRequest.h"
 #include "Render/TextureEnvMode.h"
+#include <algorithm>
 #include <cmath>
 #include <functional>
 #include <optional>

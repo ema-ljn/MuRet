@@ -1,9 +1,13 @@
 #include "Protocol/Character/LevelUpPoint.h"
 
+#include "Core/ByteReader.h"
+#include "Core/Expected.h"
+#include "Network/Packet.h"
 #include "Network/PacketWriter.h"
 #include "Protocol/Character/Opcodes.h"
 #include "Protocol/Outgoing.h"
 #include "Protocol/PacketFields.h"
+#include "Protocol/ProtocolError.h"
 
 #include <cstdint>
 

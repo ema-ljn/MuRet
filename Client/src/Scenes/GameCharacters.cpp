@@ -1,4 +1,5 @@
 #include "Scenes/GameCharacters.h"
+#include "Render/Models/ObjectState.h"
 #include "Scenes/CastleSiegeBlessing.h"
 
 #include "Scenes/ActorPickingBox.h"
@@ -72,6 +73,8 @@ constexpr std::int32_t LastEventMap = 23;
 constexpr float ShadowAlphaThreshold = 0.5f;
 // +0x88 de un jugador (0x511290 y el F3 03) y las banderas de 0x609640 con que va su Angel en Chaos Castle.
 constexpr std::uint8_t PlayerKind = 1;
+// +0x88 en 4: un NPC (0x50d2b6).
+constexpr std::uint8_t NpcKind = 4;
 constexpr std::uint32_t ChaosCastleBodyFlags = 2;
 constexpr std::uint32_t ChaosCastleHeroFlags = 6;
 
@@ -285,12 +288,34 @@ Core::Expected<void, std::string> CheckTheEarlyBranches(const ActorState& actor)
     return {};
 }
 
-Core::Expected<void, std::string> CheckTheBody(const ActorState& actor)
+// 0x50d2cb..0x50d2da y 0x50d31e..0x50d32d: los subtipos con el cuerpo entero de un esqueleto (Skill\Skeleton01..03).
+constexpr std::int32_t FirstSkeletonBody = 0xd1;
+constexpr std::int32_t LastSkeletonBody = 0xd3;
+// 0x50d2b9..0x50d2bd: la rama con el nivel, +0x88 en 4 (un NPC) y el mapa [0x6c9dd0] en 0.
+constexpr std::int32_t SkeletonNpcMap = 0;
+
+bool WearsTheSkeletonBody(const ActorState& actor)
 {
-    if (actor.subtype >= 209 && actor.subtype <= 211)
-        return Core::Unexpected<std::string>(
-            "0x50d2dc: las partes por subtipo 209 a 211 de 0x50ba30 no están portadas");
-    return {};
+    return actor.subtype >= FirstSkeletonBody && actor.subtype <= LastSkeletonBody;
+}
+
+// 0x50d2aa..0x50d35e, antes de mirar +0x3e3: 0x60cf70 con el subtipo de modelo (DrawSkeletonBody) y salta a la tela
+// (0x50d58b), sin las partes ni la marca del gremio. Con +0x88 en 4 y el mapa 0, el nivel es el word +0x1d6 · 8, que
+// 0x60b3d0 lee con >> 3 y & 0xf (0x60b3de); si no, 0. El objeto es el propio personaje: +0x64, +0x68, +0x6c, +0x70 y
+// la malla oculta +0x58 del contorno.
+Core::Expected<void, std::string> DrawTheSkeletonBody(Render::ModelBatch& batch, const IModelLibrary& models,
+                                                      const ActorState& actor, const DrawnCharacter& character,
+                                                      const GameCharacterPass& pass)
+{
+    const bool npcOfLorencia = actor.byte88 == NpcKind && character.map == SkeletonNpcMap;
+    const std::uint8_t level = npcOfLorencia ? static_cast<std::uint8_t>(actor.level & 15) : std::uint8_t{0};
+    const Render::Models::ObjectState state{.blendMesh = static_cast<std::int16_t>(actor.dword64),
+                                            .light = actor.blendMeshLight,
+                                            .uv = {actor.textureU, actor.textureV},
+                                            .hiddenMesh = static_cast<std::int16_t>(actor.dword58)};
+    const ItemDrawContext context = pass.itemContext != nullptr ? *pass.itemContext : ItemDrawContext{};
+    return DrawSkeletonBody(batch, models, character, pass.frameClock, static_cast<std::uint16_t>(actor.subtype), level,
+                            state, actor.byteE8 != 0, context);
 }
 
 bool InChaosCastle(std::int32_t map)
@@ -413,10 +438,13 @@ Core::Expected<void, std::string> DrawTheBody(Render::ModelBatch& batch, const I
                                               const ActorState& actor, const DrawnCharacter& character,
                                               const GameCharacterPass& pass, bool hero, const GuildState& guild)
 {
-    if (auto supported = CheckTheBody(actor); !supported.HasValue())
-        return supported;
+    if (WearsTheSkeletonBody(actor))
+    {
+        if (auto drawn = DrawTheSkeletonBody(batch, models, actor, character, pass); !drawn.HasValue())
+            return drawn;
+    }
     // 0x50d363: con +0x3e3, ni las partes ni la marca del gremio; sigue la tela (0x50d58b).
-    if (actor.byte3e3 == 0)
+    else if (actor.byte3e3 == 0)
     {
         // 0x50d374: en Chaos Castle, un jugador va con el Angel, con el cromo si es el héroe (0x743a170), y salta
         // a 0x50d4fb, que en esos mapas no dibuja la marca del gremio.

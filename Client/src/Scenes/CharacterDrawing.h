@@ -334,6 +334,18 @@ DrawItemFromMeshes(Render::ModelBatch& batch, const IModelLibrary& models, const
                    std::uint8_t excellent, std::uint8_t ancient, std::uint8_t detail = 4,
                    const ItemDrawContext& context = {});
 
+// 0x50d2aa..0x50d35e: un 0x20a con el subtipo 0xd1..0xd3 no lleva sus seis partes sino el cuerpo entero del esqueleto
+// (`model`, el subtipo: Skill\Skeleton01..03, que carga 0x615e36), sobre el cuerpo posado, con 0x60cf70(c, subtipo,
+// NULL, &c+0x3b4, c+0x174, `level` · 8, 0, 0, 0, 0, 1, modo, 2). La parte en NULL saltea la tela del pantalón
+// (0x60d18b); el noveno argumento en 0 posa en los huesos propios (+0x120). Como en una parte: sale con el alpha en
+// 0,01 o menos (0x60cf99); el contorno si está marcado, con `state` (la malla oculta +0x58 solo ahí, 0x60ce68); la caja
+// del picking (0x4ebc80) aunque el modelo no esté cargado; y 0x60b3d0 con `level` (el nivel ya extraído, >> 3 & 0xf),
+// sin excelente ni set, y 2. `vertexLight` es +0xe8 del objeto (0x60cffa).
+[[nodiscard]] Core::Expected<void, std::string>
+DrawSkeletonBody(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnCharacter& character,
+                 Core::Duration frameClock, std::uint16_t model, std::uint8_t level,
+                 const Render::Models::ObjectState& state, bool vertexLight, const ItemDrawContext& context);
+
 // 4ecc30/4ef0c0: mesh<0 recorre RenderBody; mesh>=0 pide esa malla directamente.
 // Los pases especiales prestan las mismas mallas y no calculan otra pose.
 // storedColor recibe sólo los FSTP de RGB, también antes de un error posterior.

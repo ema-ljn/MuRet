@@ -216,7 +216,7 @@ de MuRet. El botón aparece cuando el workflow está en `main`; antes, corre en 
 | cota alta / media / baja | **91,7 / 89,5 / 87,4 %** |
 | cota baja con test | 77,7 % |
 | explicado (baja + clones, plataforma, herramientas, STL, sin uso) | 91,7 % |
-| cortes vivos | 1.754 sitios; 7 cierran el cliente jugando (3 P, 4 V) |
+| cortes vivos | 1.754 sitios; 6 cierran el cliente jugando (2 P, 4 V) |
 | pasos de VM | 234 (cota superior); 11 bloquean código |
 | 08 | 305 filas: 246 abiertas (98 de código, cota superior) |
 | chat (A+B, vivo) | 137.715 B (5,9 %): 99,2 % citado, 79,4 % con test |

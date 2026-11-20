@@ -1216,7 +1216,9 @@ TEST_F(GameCharacterRenderTest, TheSkeletonNpcOfLorenciaGlowsWithItsWordOf1d6)
             EXPECT_FLOAT_EQ(light.green, 0.6f * factor);
             EXPECT_FLOAT_EQ(light.blue, 0.9f * factor);
             if (glows)
+            {
                 EXPECT_EQ(commands[2].state.blend, Client::Render::ModelBlend::Additive);
+            }
         }
     }
 }

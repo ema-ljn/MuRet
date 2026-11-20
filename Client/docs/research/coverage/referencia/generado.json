@@ -1,10 +1,10 @@
 {
- "ref": "f344773b943db22864a1627e4ef83f9bc1c2ef2d",
- "fecha_commit": "2026-11-19",
+ "ref": "8be763fac0694200f7b3ecafddad21a4acc0c858",
+ "fecha_commit": "2026-11-20",
  "funciones": 5648,
- "trazas": 55817,
- "trazas_docs": 29552,
- "archivos": 1409,
- "ids": 1120,
- "metricas": 408
+ "trazas": 55953,
+ "trazas_docs": 29590,
+ "archivos": 1411,
+ "ids": 1121,
+ "metricas": 412
 }

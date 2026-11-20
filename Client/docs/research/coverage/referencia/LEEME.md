@@ -1,7 +1,7 @@
 # Referencia del cliente: métricas y trazas contra el `main.exe`
 
 Una tabla por cada cosa que se consulta seguido, para no volver a medir ni a buscar lo mismo cada vez. Está generada
-sobre MuRet `dce38707` (2026-11-20: `main` en `2cad3274`, con la CL11 cerrada, el CI de #379, los globos de la
+sobre MuRet `038b215f` (2026-11-20: `main` en `2cad3274`, con la CL11 cerrada, el CI de #379, los globos de la
 selección de #383 y los cierres de las ventanas de los NPC al caminar de #385, más la rama `cliente/tienda-zen-y-puntos`:
 el tooltip de la armadura de Chaos Castle, `0x1a1d`, que cerraba el cliente en la tienda de Lorencia, el barrido de los
 tooltips de las tiendas del servidor del laboratorio, el zen del `22` corto y la respuesta del `F3 06`, `0x4d3200`)

@@ -11132,15 +11132,16 @@ de Lorencia verifican el componente; `GameScene`, reglas del clic y caminar sigu
   cierra con `0x40b800`, y `0x59afd6` compara con 30 (`jg` al epílogo, `0x59e2c0`). Cada cierre que
   deja la cuenta en 0 gasta 4 `rand()`. Con más de 30 sale antes de `0x57cfc0` (`0x59e255`).
 - **El derecho sobre el elegido** (`0x59afdf..0x59b185`, entre el contador y la cabeza; *estático*, CL9 hito 1). Con
-  la ventana de una carta (`+0xf0` de `[0x5763514]`, si `0x490a00` la encuentra) y el flanco del derecho
-  (`0x7d36880`), el nombre del elegido (`+0x1d9` del lugar `0x6c8e30`, sin mirar el −1) va al campo de esa ventana
-  (`+0xb4`, sus métodos `+0x4c` y `+0x30(1)`). Después, con el chat abierto (`0x6c8e68`), el héroe en la zona segura
+  la caja de agregar un amigo (`+0xf0` de `[0x5763514]`, que solo escribe `0x49d0b0`, si `0x490a00` la encuentra) y el
+  flanco del derecho (`0x7d36880`), el nombre del elegido (`+0x1d9` del lugar `0x6c8e30`, sin mirar el −1) va a su EDIT
+  (`+0xb4`): la vtable `+0x4c` (`0x467ee0`, `SetWindowTextA` con menos de `0x100` bytes) y la `+0x30` con 1 (`0x4682a0`:
+  el foco, el id del EDIT en `0x5762ec0` y `EM_SETSEL(−2, −1)`), sin gastar el derecho (07 Q-C1826). Después, con el chat abierto (`0x6c8e68`), el héroe en la zona segura
   (`+0x3e2`), un elegido, el derecho y `+0x376` del elegido en `0xff` (solo lo escribe `0x5140c0`, el alta de los
   monstruos): el derecho se gasta (`0x59b092`); en Chaos Castle (18 a 23), nada más. Si no, `0x4694c0(0, 0, 1, lugar)`
   con el lugar de ahora del historial de los susurros (`0x77f31cc + 0x6c8ea8 · 0x100`), **antes** de las copias
   (Q-C804); el nombre al buffer del susurro (`0x7798cf8`), del buffer al lugar, el buffer en 0 (0x100 bytes) y del
   lugar al buffer; su largo en `0x7758594` y el sonido `0x19`. Sin `rand()`. MuRet: `NameTheChosen`
-  (`GameMovement.cpp`); la carta es del hito 10 y corta en `0x59b003` (P-C162).
+  (`GameMovement.cpp`); desde el 2026-11-20 también el nombre a la caja de agregar un amigo, salvo sin elegido (el −1 lee antes de la tabla de personajes: corta con `0x59b020`, VM).
 - **Si el héroe camina** (`+0x378`, `0x59b295..0x59b304`; *verificado* el cuerpo, abajo): con
   `+0x78 & 0x20`, `SetPlayerStop` (`0x4f2250`); si no, `SetPlayerWalk` (`0x4f37c0`) y
   `MovePath(héroe, 1)` (`0x4ea270`). Al llegar, `+0x378 = 0`, `SetPlayerStop`, `0x77f3ba8 =

@@ -1,7 +1,7 @@
 # Referencia del cliente: métricas y trazas contra el `main.exe`
 
 Una tabla por cada cosa que se consulta seguido, para no volver a medir ni a buscar lo mismo cada vez. Está generada
-sobre MuRet `c17fc48f` (2026-11-20: `main` en `2cad3274`, con la CL11 cerrada, el CI de #379, los globos de la
+sobre MuRet `52bf9dbb` (2026-11-20: `main` en `2cad3274`, con la CL11 cerrada, el CI de #379, los globos de la
 selección de #383 y los cierres de las ventanas de los NPC al caminar de #385; la rama de #386, con el tooltip de la
 armadura de Chaos Castle, el barrido de las tiendas, el zen del `22` corto y el `F3 06`; y la de #387, apilada, con el
 ítem 3D del diálogo de vender, `0x633110`, y las uniones del `0x1a18` de la tienda de la Potion Girl, Q-C1821)

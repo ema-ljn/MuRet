@@ -45,6 +45,11 @@ def live(row):
     return row.get('clase') == 'game' and row.get('viva') == 'sí'
 
 
+def closes_the_client(value):
+    """Como el generador (build_client_reference.py): solo lo que empieza con "sí"; no "-" ni "depende de la VM"."""
+    return (value or '').startswith('sí')
+
+
 def closed_against_asm(row):
     """Vivo, portado sin cortes ni citas pendientes, con test, sin pasos de VM y sin filas de 08 abiertas."""
     return (live(row) and row.get('estado') == 'implemented' and row.get('falso_positivo') != 'sí'
@@ -73,7 +78,9 @@ def closure_by_wave(funciones):
                 c['explicadas'] += 1
                 c['bytes_explicados'] += size
             c['con_cortes'] += bool(row.get('cortes_vivos'))
-            c['cierran'] += row.get('cierra_el_cliente') not in ('', 'no', None)
+            # En funciones.tsv la columna lista los archivo:línea de sus cortes que cierran el cliente: el
+            # generador ya la filtra con closes_the_client sobre cortes.tsv.
+            c['cierran'] += bool(row.get('cierra_el_cliente'))
             c['sin_test'] += cited and number(row.get('citas_test')) == 0
             c['con_vm'] += bool(row.get('pasos_vm'))
             c['con_08'] += bool(row.get('ids_08_abiertas'))
@@ -101,6 +108,12 @@ def metric_deltas(new, old):
         key = (r['ambito'], r['clave'], r['metrica'])
         if before.get(key) != r['valor']:
             deltas.append((*key, before.get(key), r['valor']))
+    # Lo que la commiteada tiene y la nueva ya no.
+    after = {(r['ambito'], r['clave'], r['metrica']) for r in new}
+    for r in old:
+        key = (r['ambito'], r['clave'], r['metrica'])
+        if r['ambito'] not in VOLATILE and key not in after:
+            deltas.append((*key, r['valor'], None))
     return deltas
 
 
@@ -172,7 +185,7 @@ def traces_section(metrics, committed, cortes, huecos):
     by_class = [[r['clave'], r['valor']] for r in metrics if r['ambito'] == 'cortes' and r['metrica'] == 'sitios']
     out += ['### Cortes vivos', '', table(['Clase', 'Sitios'], by_class) if by_class else 'Ninguno.', '']
     closing = [[f"`{r['archivo']}:{r['línea']}`", r.get('función', ''), r.get('clase', ''), r['cierra_el_cliente']]
-               for r in cortes if r.get('cierra_el_cliente') not in ('', 'no', None)]
+               for r in cortes if closes_the_client(r.get('cierra_el_cliente'))]
     out += ['### Los que cierran el cliente jugando', '',
             table(['Dónde', 'Función', 'Clase', 'Cómo'], closing) if closing else 'Ninguno.', '']
     hole_metrics = [[r['clave'], r['metrica'], r['valor'].replace('.', ',')] for r in metrics if r['ambito'] == 'huecos']
@@ -191,7 +204,7 @@ def traces_section(metrics, committed, cortes, huecos):
     if deltas:
         out += ['Difiere: hay que regenerarla y commitearla (LEEME.md, Cómo regenerarla).', '',
                 table(['Ámbito', 'Clave', 'Métrica', 'Commiteada', 'Nueva'],
-                      [[a, k, m, '—' if o is None else o.replace('.', ','), n.replace('.', ',')]
+                      [[a, k, m, '—' if o is None else o.replace('.', ','), '—' if n is None else n.replace('.', ',')]
                        for a, k, m, o, n in deltas])]
     else:
         out += ['La referencia commiteada está al día.']

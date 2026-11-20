@@ -9,6 +9,7 @@ import tempfile
 import unittest
 
 import reference_summary as rs
+from build_client_reference import ADDR
 
 FUNCIONES = ['va', 'bytes', 'clase', 'viva', 'ola', 'estado', 'categoria_faltante', 'falso_positivo', 'cortes_vivos',
              'cierra_el_cliente',
@@ -19,7 +20,7 @@ HUECOS = ['hueco', 'desde', 'hasta', 'funciones', 'bytes', 'ola', 'senal']
 
 
 def closed(**changes):
-    row = dict(va='0x401000', bytes='1024', clase='game', viva='sí', ola='CL8', estado='implemented',
+    row = dict(va='f1', bytes='1024', clase='game', viva='sí', ola='CL8', estado='implemented',
                falso_positivo='', cortes_vivos='', cierra_el_cliente='', citas_pendiente='0', citas_test='2',
                pasos_vm='', ids_08_abiertas='')
     row.update(changes)
@@ -55,10 +56,10 @@ class ReferenceSummaryTest(unittest.TestCase):
 
     def test_closure_by_wave_counts_kb_and_blockers(self):
         rows = [closed(bytes='1024'),
-                closed(va='0x402000', bytes='2048', estado='unknown', citas_test='0'),
-                closed(va='0x403000', bytes='512', estado='partial', cortes_vivos='P1',
+                closed(va='f2', bytes='2048', estado='unknown', citas_test='0'),
+                closed(va='f3', bytes='512', estado='partial', cortes_vivos='P1',
                        cierra_el_cliente='Scenes/A.cpp:10'),
-                closed(va='0x404000', bytes='100', ola='CL2')]
+                closed(va='f4', bytes='100', ola='CL2')]
         waves = rs.closure_by_wave(rows)
         cl8 = waves['CL8']
         self.assertEqual(cl8['funciones'], 3)
@@ -75,9 +76,9 @@ class ReferenceSummaryTest(unittest.TestCase):
     def test_explained_functions_are_not_left_to_close(self):
         # Sin citar pero explicadas (un clon, la plataforma...): no frenan ni cuentan en lo que queda por cerrar.
         rows = [closed(bytes='1024'),
-                closed(va='0x402000', bytes='2048', estado='unknown', citas_test='0',
+                closed(va='f2', bytes='2048', estado='unknown', citas_test='0',
                        categoria_faltante='clon byte a byte de una función citada'),
-                closed(va='0x403000', bytes='512', estado='unknown', citas_test='0',
+                closed(va='f3', bytes='512', estado='unknown', citas_test='0',
                        categoria_faltante='sin clasificar')]
         cl8 = rs.closure_by_wave(rows)['CL8']
         self.assertEqual(cl8['explicadas'], 1)
@@ -87,11 +88,37 @@ class ReferenceSummaryTest(unittest.TestCase):
         self.assertAlmostEqual(cl8['kb_por_cerrar'], 1.5)
 
     def test_deltas_show_new_and_missing_metrics(self):
-        old = [metric('cortes', 'total', 'sitios', 1754), metric('huecos', 'total', 'bloques', 299)]
+        old = [metric('cortes', 'total', 'sitios', 1754), metric('huecos', 'total', 'bloques', 299),
+               metric('vm', 'total', 'pasos', 234)]
         new = [metric('cortes', 'total', 'sitios', 1753), metric('huecos', 'total', 'bloques', 299),
                metric('07', 'otras', 'registrada', 75)]
         self.assertEqual(rs.metric_deltas(new, old),
-                         [('cortes', 'total', 'sitios', '1754', '1753'), ('07', 'otras', 'registrada', None, '75')])
+                         [('cortes', 'total', 'sitios', '1754', '1753'), ('07', 'otras', 'registrada', None, '75'),
+                          ('vm', 'total', 'pasos', '234', None)])
+
+    def test_only_what_starts_with_si_closes_the_client(self):
+        # Los valores de cortes.tsv: el generador cuenta los que empiezan con "sí" (build_client_reference.py).
+        for value in ('sí', 'sí, ruta rara', 'sí: al entrar a Blood Castle (el Arcángel, NPC 232)'):
+            self.assertTrue(rs.closes_the_client(value), value)
+        for value in ('', 'no', '-', 'depende de la VM', None):
+            self.assertFalse(rs.closes_the_client(value), value)
+        with tempfile.TemporaryDirectory() as root:
+            folder = pathlib.Path(root)
+            write(folder / 'funciones.tsv', FUNCIONES, [closed()])
+            write(folder / 'metricas.tsv', METRICAS, [])
+            write(folder / 'cortes.tsv', CORTES,
+                  [dict(archivo='Scenes/Cierra.cpp', línea='1', clase='P', cierra_el_cliente='sí'),
+                   dict(archivo='Scenes/Guion.cpp', línea='2', clase='H', cierra_el_cliente='-'),
+                   dict(archivo='Scenes/Vm.cpp', línea='3', clase='V', cierra_el_cliente='depende de la VM')])
+            write(folder / 'huecos.tsv', HUECOS, [])
+            text = rs.render(folder, folder)
+        self.assertIn('Scenes/Cierra.cpp', text)
+        self.assertNotIn('Scenes/Guion.cpp', text)
+        self.assertNotIn('Scenes/Vm.cpp', text)
+
+    def test_this_file_cites_no_address(self):
+        # Una VA del main.exe acá contaría como cita de documentación en la referencia que la action mide.
+        self.assertEqual(ADDR.findall(pathlib.Path(__file__).read_text(encoding='utf-8')), [])
 
     def test_render_sections(self):
         with tempfile.TemporaryDirectory() as root:

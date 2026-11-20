@@ -35,6 +35,8 @@ struct ItemTooltipFrame
 [[nodiscard]] std::uint8_t RecordByte(const ItemTooltipFrame& frame, std::size_t offset);
 // D+0x1b & 0x3f: alguna opción excelente.
 [[nodiscard]] bool IsExcellent(const World::ItemState& item);
+// La clase del héroe, el byte +0x1d4 de [0x743a170] (la clase en los bits 0 a 2 y la evolución arriba).
+[[nodiscard]] std::uint8_t HeroClassOf(const GameHudContext& context);
 
 // Lo que se lee de una entrada de Skill.bmd con su acceso abierto: el nombre (+0, hasta su '\0' o el fin de la
 // entrada), el byte +0x21, el word +0x22 (el maná), el word +0x24 (el texto 360, "Stamina usada") y el byte +0x26 (el

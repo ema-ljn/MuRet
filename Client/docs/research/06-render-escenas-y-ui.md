@@ -3125,6 +3125,23 @@ en la CL9 hito 7 (§ Las tiendas personales, "El dibujo").
    `0x1e00..0x1fff`, por su acceso), la defensa, la resistencia, la tasa de defensa, las dos velocidades de
    Item.bmd, las pociones de asedio y la caja de la suerte.
 4. Las notas (`0x5b58ea..0x5b6a3b`): los paquetes de joyas, el texto de cada joya, las alas y los ítems de evento.
+   El `0x1a1d`, la armadura de Chaos Castle (`0x5b63b7..0x5b69e7`), elige la tabla por la clase del héroe
+   (`[0x743a170]+0x1d4 & 7`: con 3 o 4, desde la séptima fila) y abre el registro propio en línea (`0x5b63d7`: como
+   `0x40b240`, y sin la entrada, el alta de `0x40ad90`), lee el word `+0xe` de `[0x7681eb0]` (el nivel) y lo cierra
+   (`0x5b6698`, como `0x40b4d0`: 3.848 `rand()` si su cuenta vuelve a 0). Recién después escribe:
+   - la cabecera con `"%s %s    %s      %s    "` (`0x6c9b80`) y los textos 1147, 368, 935 y 936, en blanco y sin
+     negrita;
+   - seis filas con `"        %d             %3d~%3d     %3d,000"` (`0x6c9b98`): el número, el mínimo y el máximo
+     de `0x6ba598` (pares de dwords con signo; el máximo escrito, hasta 400 con `JLE`) y la entrada en miles de
+     `0x6ba5f8` (25, 80, 150, 250, 400 y 650, la misma para las dos tablas); en el 8 la fila con mínimo ≤ nivel ≤
+     máximo (con signo, contra el máximo de la tabla) y si no en el 0, sin negrita;
+   - un `"\n"` (`0x6c9bc4`) que suma un medio, sin color ni negrita, y el 1157 en el 7, sin escribir la negrita.
+
+   Las filas son 15–49, 50–119, 120–179, 180–239, 240–299 y 300–400, y para las clases 3 y 4, 15–29, 30–99, 100–159,
+   160–219, 220–279 y 280–400 (en el build `2f16a9c6` los dos últimos máximos son 999, y ahí sí sirve el tope). Pisa
+   `[EBP−0x1c]` (el color del nombre) y otros locales del acceso, pero nada de lo que sigue los lee antes de
+   escribirlos. Portado el 2026-11-20 (`WriteTheChaosCastleLevels` en `Scenes/ItemTooltipNotes.cpp`); jugando, el
+   tooltip de este ítem cerraba el cliente.
 5. Los requisitos (`0x5b6a3c..0x5b79bc`): la durabilidad (con la máxima de `0x5b1ba0`), el daño de las flechas, las
    resistencias de `+0x4a..+0x50` y los requisitos de nivel, fuerza, agilidad, vitalidad, energía y comando contra
    el registro propio (más sus sumas): uno que no llega va en rojo, con un renglón más (el 74 con lo que falta).
@@ -3296,7 +3313,7 @@ ventana y el cartel del set, el cuerpo del ítem, el de reparar (con el precio d
 ítem), el sprintf del CRT (`UI/SprintfFormat`) y `0x40ebd0` en la cola de los comandos del chat
 (Q-C594). Los tests son `test_game_tooltips.cpp`, `test_item_tooltips.cpp`, `test_sprintf_format.cpp` y
 `test_chat_commands.cpp`. Del cuerpo del ítem cortan con su dirección: `0x1a04` y `0x1a05` (`0x4229d4`, P-C126,
-portado en la CL9), el nombre del `0x1c0c` de nivel 2 (la tabla de `0x6c9350`) y del `0x1a0a` (la tabla de monstruos de `0x7681eb8`), las líneas del `0x1a1d` (`0x5b63b7`) y del `0x1c1c` (`0x437c90`), el `0x1a13`
+portado en la CL9), el nombre del `0x1c0c` de nivel 2 (la tabla de `0x6c9350`) y del `0x1a0a` (la tabla de monstruos de `0x7681eb8`), las líneas del `0x1c1c` (`0x437c90`), el `0x1a13`
 desde el nivel 3, un nombre de más de 64 bytes y un renglón fuera de los 30 (P-C125). El cuerpo de la skill y la ayuda
 de los comandos están en `Scenes/SkillTooltip.cpp`, con `0x5516e0` en `Scenes/OwnDamage` (`test_skill_tooltip.cpp`).
 Cortan con su dirección lo que leen fuera de lo que MuRet tiene (P-C135), y lo que depende de otras olas o de la VM
@@ -3363,8 +3380,8 @@ ventana y el cartel del set, el cuerpo del ítem, el de reparar con su precio (`
 para los de oro), `test_sprintf_format.cpp` y `test_chat_commands.cpp`. Del precio cortan con su dirección las lecturas
 que MuRet no tiene, como en P-C140. Del cuerpo del ítem cortan con su dirección: `0x1a04` y `0x1a05` (`0x4229d4`,
 P-C126, portado en la CL9), el nombre del `0x1c0c` de nivel 2 (la tabla
-de `0x6c9350`) y del `0x1a0a` (la tabla de monstruos de `0x7681eb8`), las líneas del `0x1a1d` (`0x5b63b7`) y del
-`0x1c1c` (`0x437c90`), el `0x1a13` desde el nivel 3, un nombre de más de 64 bytes y un renglón fuera de los 30 (P-C125).
+de `0x6c9350`) y del `0x1a0a` (la tabla de monstruos de `0x7681eb8`), las líneas del `0x1c1c` (`0x437c90`), el
+`0x1a13` desde el nivel 3, un nombre de más de 64 bytes y un renglón fuera de los 30 (P-C125).
 El de la skill (`0x5b90b0`) corta con su dirección (P-C101). La ayuda del ítem (el modo 3) está en § HUD y
 ventanas, "La ayuda del ítem".
 

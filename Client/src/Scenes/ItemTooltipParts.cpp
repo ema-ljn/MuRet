@@ -53,6 +53,12 @@ bool IsExcellent(const World::ItemState& item)
     return (item.flags1b & ExcellentBits) != 0;
 }
 
+std::uint8_t HeroClassOf(const GameHudContext& context)
+{
+    const WorldState& world = context.world;
+    return world.Actors()[world.Runtime().hero].characterClass;
+}
+
 Core::Expected<SkillEntryFields, std::string> ReadTheSkillEntry(GameHudContext& context, std::uint32_t skill,
                                                                 std::string_view where)
 {

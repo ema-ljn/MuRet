@@ -1,392 +1,393 @@
 ref	ambito	clave	metrica	valor	unidad	fuente	nota
-ba7be37a	inventario	excluded	funciones	136	func	matriz congelada	
-ba7be37a	inventario	excluded	kb	37.8	KB	matriz congelada	
-ba7be37a	inventario	game muerta	funciones	305	func	matriz congelada	
-ba7be37a	inventario	game muerta	kb	76.1	KB	matriz congelada	
-ba7be37a	inventario	game viva	funciones	3278	func	matriz congelada	
-ba7be37a	inventario	game viva	kb	2197	KB	matriz congelada	
-ba7be37a	inventario	library	funciones	1891	func	matriz congelada	
-ba7be37a	inventario	library	kb	124.7	KB	matriz congelada	
-ba7be37a	inventario	thunk	funciones	38	func	matriz congelada	
-ba7be37a	inventario	thunk	kb	0.2	KB	matriz congelada	
-ba7be37a	avance	total	funciones_vivas	3278	func	matriz regenerada sin MENTION_ONLY, ola congelada	
-ba7be37a	avance	total	kb_vivos	2197	KB	matriz regenerada sin MENTION_ONLY, ola congelada	
-ba7be37a	avance	total	funciones_citadas	2238	func	matriz regenerada sin MENTION_ONLY, ola congelada	
-ba7be37a	avance	total	cota_alta	91.7	%	matriz regenerada sin MENTION_ONLY, ola congelada	
-ba7be37a	avance	total	cota_media	89.6	%	matriz regenerada sin MENTION_ONLY, ola congelada	
-ba7be37a	avance	total	cota_baja	87.4	%	matriz regenerada sin MENTION_ONLY, ola congelada	
-ba7be37a	avance	total	cota_baja_con_test	77.8	%	matriz regenerada sin MENTION_ONLY, ola congelada	
-ba7be37a	avance	total	falta_cota_baja	276.4	KB	matriz regenerada sin MENTION_ONLY, ola congelada	
-ba7be37a	avance-ola	CL1	funciones_vivas	11	func	ola congelada	
-ba7be37a	avance-ola	CL1	kb_vivos	4.2	KB	ola congelada	
-ba7be37a	avance-ola	CL1	funciones_citadas	10	func	ola congelada	
-ba7be37a	avance-ola	CL1	cota_alta	100	%	ola congelada	
-ba7be37a	avance-ola	CL1	cota_media	99.5	%	ola congelada	
-ba7be37a	avance-ola	CL1	cota_baja	99	%	ola congelada	
-ba7be37a	avance-ola	CL1	cota_baja_con_test	39.4	%	ola congelada	
-ba7be37a	avance-ola	CL1	falta_cota_baja	0	KB	ola congelada	
-ba7be37a	avance-ola	CL2	funciones_vivas	49	func	ola congelada	
-ba7be37a	avance-ola	CL2	kb_vivos	19.2	KB	ola congelada	
-ba7be37a	avance-ola	CL2	funciones_citadas	24	func	ola congelada	
-ba7be37a	avance-ola	CL2	cota_alta	94.2	%	ola congelada	
-ba7be37a	avance-ola	CL2	cota_media	79.1	%	ola congelada	
-ba7be37a	avance-ola	CL2	cota_baja	64	%	ola congelada	
-ba7be37a	avance-ola	CL2	cota_baja_con_test	50.7	%	ola congelada	
-ba7be37a	avance-ola	CL2	falta_cota_baja	6.9	KB	ola congelada	
-ba7be37a	avance-ola	CL3	funciones_vivas	117	func	ola congelada	
-ba7be37a	avance-ola	CL3	kb_vivos	82.7	KB	ola congelada	
-ba7be37a	avance-ola	CL3	funciones_citadas	38	func	ola congelada	
-ba7be37a	avance-ola	CL3	cota_alta	98.4	%	ola congelada	
-ba7be37a	avance-ola	CL3	cota_media	94.5	%	ola congelada	
-ba7be37a	avance-ola	CL3	cota_baja	90.6	%	ola congelada	
-ba7be37a	avance-ola	CL3	cota_baja_con_test	85	%	ola congelada	
-ba7be37a	avance-ola	CL3	falta_cota_baja	7.8	KB	ola congelada	
-ba7be37a	avance-ola	CL4	funciones_vivas	18	func	ola congelada	
-ba7be37a	avance-ola	CL4	kb_vivos	18.9	KB	ola congelada	
-ba7be37a	avance-ola	CL4	funciones_citadas	13	func	ola congelada	
-ba7be37a	avance-ola	CL4	cota_alta	99.1	%	ola congelada	
-ba7be37a	avance-ola	CL4	cota_media	97.7	%	ola congelada	
-ba7be37a	avance-ola	CL4	cota_baja	96.2	%	ola congelada	
-ba7be37a	avance-ola	CL4	cota_baja_con_test	93.6	%	ola congelada	
-ba7be37a	avance-ola	CL4	falta_cota_baja	0.7	KB	ola congelada	
-ba7be37a	avance-ola	CL5	funciones_vivas	150	func	ola congelada	
-ba7be37a	avance-ola	CL5	kb_vivos	34.3	KB	ola congelada	
-ba7be37a	avance-ola	CL5	funciones_citadas	61	func	ola congelada	
-ba7be37a	avance-ola	CL5	cota_alta	97.1	%	ola congelada	
-ba7be37a	avance-ola	CL5	cota_media	82.7	%	ola congelada	
-ba7be37a	avance-ola	CL5	cota_baja	68.4	%	ola congelada	
-ba7be37a	avance-ola	CL5	cota_baja_con_test	61.4	%	ola congelada	
-ba7be37a	avance-ola	CL5	falta_cota_baja	10.9	KB	ola congelada	
-ba7be37a	avance-ola	CL6	funciones_vivas	161	func	ola congelada	
-ba7be37a	avance-ola	CL6	kb_vivos	72.1	KB	ola congelada	
-ba7be37a	avance-ola	CL6	funciones_citadas	110	func	ola congelada	
-ba7be37a	avance-ola	CL6	cota_alta	96.9	%	ola congelada	
-ba7be37a	avance-ola	CL6	cota_media	90.4	%	ola congelada	
-ba7be37a	avance-ola	CL6	cota_baja	83.9	%	ola congelada	
-ba7be37a	avance-ola	CL6	cota_baja_con_test	74.8	%	ola congelada	
-ba7be37a	avance-ola	CL6	falta_cota_baja	11.6	KB	ola congelada	
-ba7be37a	avance-ola	CL7	funciones_vivas	675	func	ola congelada	
-ba7be37a	avance-ola	CL7	kb_vivos	571.7	KB	ola congelada	
-ba7be37a	avance-ola	CL7	funciones_citadas	482	func	ola congelada	
-ba7be37a	avance-ola	CL7	cota_alta	94.3	%	ola congelada	
-ba7be37a	avance-ola	CL7	cota_media	91.1	%	ola congelada	
-ba7be37a	avance-ola	CL7	cota_baja	88	%	ola congelada	
-ba7be37a	avance-ola	CL7	cota_baja_con_test	83.3	%	ola congelada	
-ba7be37a	avance-ola	CL7	falta_cota_baja	68.6	KB	ola congelada	
-ba7be37a	avance-ola	CL8	funciones_vivas	1000	func	ola congelada	
-ba7be37a	avance-ola	CL8	kb_vivos	756.8	KB	ola congelada	
-ba7be37a	avance-ola	CL8	funciones_citadas	693	func	ola congelada	
-ba7be37a	avance-ola	CL8	cota_alta	94	%	ola congelada	
-ba7be37a	avance-ola	CL8	cota_media	92.2	%	ola congelada	
-ba7be37a	avance-ola	CL8	cota_baja	90.4	%	ola congelada	
-ba7be37a	avance-ola	CL8	cota_baja_con_test	82.7	%	ola congelada	
-ba7be37a	avance-ola	CL8	falta_cota_baja	72.3	KB	ola congelada	
-ba7be37a	avance-ola	CL9	funciones_vivas	1030	func	ola congelada	
-ba7be37a	avance-ola	CL9	kb_vivos	557.3	KB	ola congelada	
-ba7be37a	avance-ola	CL9	funciones_citadas	758	func	ola congelada	
-ba7be37a	avance-ola	CL9	cota_alta	84.3	%	ola congelada	
-ba7be37a	avance-ola	CL9	cota_media	84.3	%	ola congelada	
-ba7be37a	avance-ola	CL9	cota_baja	84.3	%	ola congelada	
-ba7be37a	avance-ola	CL9	cota_baja_con_test	65.6	%	ola congelada	
-ba7be37a	avance-ola	CL9	falta_cota_baja	87.6	KB	ola congelada	
-ba7be37a	avance-ola	CL10	funciones_vivas	24	func	ola congelada	
-ba7be37a	avance-ola	CL10	kb_vivos	10.3	KB	ola congelada	
-ba7be37a	avance-ola	CL10	funciones_citadas	6	func	ola congelada	
-ba7be37a	avance-ola	CL10	cota_alta	28.7	%	ola congelada	
-ba7be37a	avance-ola	CL10	cota_media	28.7	%	ola congelada	
-ba7be37a	avance-ola	CL10	cota_baja	28.7	%	ola congelada	
-ba7be37a	avance-ola	CL10	cota_baja_con_test	1.4	%	ola congelada	
-ba7be37a	avance-ola	CL10	falta_cota_baja	7.4	KB	ola congelada	
-ba7be37a	avance-ola	CL11	funciones_vivas	43	func	ola congelada	
-ba7be37a	avance-ola	CL11	kb_vivos	69.6	KB	ola congelada	
-ba7be37a	avance-ola	CL11	funciones_citadas	43	func	ola congelada	
-ba7be37a	avance-ola	CL11	cota_alta	96.3	%	ola congelada	
-ba7be37a	avance-ola	CL11	cota_media	96.3	%	ola congelada	
-ba7be37a	avance-ola	CL11	cota_baja	96.3	%	ola congelada	
-ba7be37a	avance-ola	CL11	cota_baja_con_test	95.5	%	ola congelada	
-ba7be37a	avance-ola	CL11	falta_cota_baja	2.6	KB	ola congelada	
-ba7be37a	avance-cl9-hito	hito 1	funciones_vivas	14	func	plan CL9	
-ba7be37a	avance-cl9-hito	hito 1	kb_vivos	8	KB	plan CL9	
-ba7be37a	avance-cl9-hito	hito 1	funciones_citadas	14	func	plan CL9	
-ba7be37a	avance-cl9-hito	hito 1	cota_alta	95.1	%	plan CL9	
-ba7be37a	avance-cl9-hito	hito 1	cota_media	95.1	%	plan CL9	
-ba7be37a	avance-cl9-hito	hito 1	cota_baja	95.1	%	plan CL9	
-ba7be37a	avance-cl9-hito	hito 1	cota_baja_con_test	88.2	%	plan CL9	
-ba7be37a	avance-cl9-hito	hito 1	falta_cota_baja	0.4	KB	plan CL9	
-ba7be37a	avance-cl9-hito	hito 2	funciones_vivas	36	func	plan CL9	
-ba7be37a	avance-cl9-hito	hito 2	kb_vivos	33.8	KB	plan CL9	
-ba7be37a	avance-cl9-hito	hito 2	funciones_citadas	36	func	plan CL9	
-ba7be37a	avance-cl9-hito	hito 2	cota_alta	96.8	%	plan CL9	
-ba7be37a	avance-cl9-hito	hito 2	cota_media	96.8	%	plan CL9	
-ba7be37a	avance-cl9-hito	hito 2	cota_baja	96.8	%	plan CL9	
-ba7be37a	avance-cl9-hito	hito 2	cota_baja_con_test	95	%	plan CL9	
-ba7be37a	avance-cl9-hito	hito 2	falta_cota_baja	1.1	KB	plan CL9	
-ba7be37a	avance-cl9-hito	hito 3	funciones_vivas	13	func	plan CL9	
-ba7be37a	avance-cl9-hito	hito 3	kb_vivos	11.5	KB	plan CL9	
-ba7be37a	avance-cl9-hito	hito 3	funciones_citadas	13	func	plan CL9	
-ba7be37a	avance-cl9-hito	hito 3	cota_alta	81.3	%	plan CL9	
-ba7be37a	avance-cl9-hito	hito 3	cota_media	81.3	%	plan CL9	
-ba7be37a	avance-cl9-hito	hito 3	cota_baja	81.3	%	plan CL9	
-ba7be37a	avance-cl9-hito	hito 3	cota_baja_con_test	81.3	%	plan CL9	
-ba7be37a	avance-cl9-hito	hito 3	falta_cota_baja	2.1	KB	plan CL9	
-ba7be37a	avance-cl9-hito	hito 4	funciones_vivas	54	func	plan CL9	
-ba7be37a	avance-cl9-hito	hito 4	kb_vivos	59.3	KB	plan CL9	
-ba7be37a	avance-cl9-hito	hito 4	funciones_citadas	52	func	plan CL9	
-ba7be37a	avance-cl9-hito	hito 4	cota_alta	93.1	%	plan CL9	
-ba7be37a	avance-cl9-hito	hito 4	cota_media	92.9	%	plan CL9	
-ba7be37a	avance-cl9-hito	hito 4	cota_baja	92.8	%	plan CL9	
-ba7be37a	avance-cl9-hito	hito 4	cota_baja_con_test	88.4	%	plan CL9	
-ba7be37a	avance-cl9-hito	hito 4	falta_cota_baja	4.3	KB	plan CL9	
-ba7be37a	avance-cl9-hito	hito 5	funciones_vivas	8	func	plan CL9	
-ba7be37a	avance-cl9-hito	hito 5	kb_vivos	12.3	KB	plan CL9	
-ba7be37a	avance-cl9-hito	hito 5	funciones_citadas	7	func	plan CL9	
-ba7be37a	avance-cl9-hito	hito 5	cota_alta	94.5	%	plan CL9	
-ba7be37a	avance-cl9-hito	hito 5	cota_media	94.5	%	plan CL9	
-ba7be37a	avance-cl9-hito	hito 5	cota_baja	94.5	%	plan CL9	
-ba7be37a	avance-cl9-hito	hito 5	cota_baja_con_test	87.2	%	plan CL9	
-ba7be37a	avance-cl9-hito	hito 5	falta_cota_baja	0.7	KB	plan CL9	
-ba7be37a	avance-cl9-hito	hito 6	funciones_vivas	68	func	plan CL9	
-ba7be37a	avance-cl9-hito	hito 6	kb_vivos	39.1	KB	plan CL9	
-ba7be37a	avance-cl9-hito	hito 6	funciones_citadas	49	func	plan CL9	
-ba7be37a	avance-cl9-hito	hito 6	cota_alta	82.2	%	plan CL9	
-ba7be37a	avance-cl9-hito	hito 6	cota_media	82.2	%	plan CL9	
-ba7be37a	avance-cl9-hito	hito 6	cota_baja	82.2	%	plan CL9	
-ba7be37a	avance-cl9-hito	hito 6	cota_baja_con_test	74.6	%	plan CL9	
-ba7be37a	avance-cl9-hito	hito 6	falta_cota_baja	7	KB	plan CL9	
-ba7be37a	avance-cl9-hito	hito 7	funciones_vivas	109	func	plan CL9	
-ba7be37a	avance-cl9-hito	hito 7	kb_vivos	34.9	KB	plan CL9	
-ba7be37a	avance-cl9-hito	hito 7	funciones_citadas	62	func	plan CL9	
-ba7be37a	avance-cl9-hito	hito 7	cota_alta	76	%	plan CL9	
-ba7be37a	avance-cl9-hito	hito 7	cota_media	75.8	%	plan CL9	
-ba7be37a	avance-cl9-hito	hito 7	cota_baja	75.5	%	plan CL9	
-ba7be37a	avance-cl9-hito	hito 7	cota_baja_con_test	66.8	%	plan CL9	
-ba7be37a	avance-cl9-hito	hito 7	falta_cota_baja	8.5	KB	plan CL9	
-ba7be37a	avance-cl9-hito	hito 8	funciones_vivas	189	func	plan CL9	
-ba7be37a	avance-cl9-hito	hito 8	kb_vivos	77.7	KB	plan CL9	
-ba7be37a	avance-cl9-hito	hito 8	funciones_citadas	102	func	plan CL9	
-ba7be37a	avance-cl9-hito	hito 8	cota_alta	74.8	%	plan CL9	
-ba7be37a	avance-cl9-hito	hito 8	cota_media	73.5	%	plan CL9	
-ba7be37a	avance-cl9-hito	hito 8	cota_baja	72.2	%	plan CL9	
-ba7be37a	avance-cl9-hito	hito 8	cota_baja_con_test	56.9	%	plan CL9	
-ba7be37a	avance-cl9-hito	hito 8	falta_cota_baja	21.6	KB	plan CL9	
-ba7be37a	avance-cl9-hito	hito 9	funciones_vivas	312	func	plan CL9	
-ba7be37a	avance-cl9-hito	hito 9	kb_vivos	89.2	KB	plan CL9	
-ba7be37a	avance-cl9-hito	hito 9	funciones_citadas	312	func	plan CL9	
-ba7be37a	avance-cl9-hito	hito 9	cota_alta	97.8	%	plan CL9	
-ba7be37a	avance-cl9-hito	hito 9	cota_media	97.8	%	plan CL9	
-ba7be37a	avance-cl9-hito	hito 9	cota_baja	97.8	%	plan CL9	
-ba7be37a	avance-cl9-hito	hito 9	cota_baja_con_test	32.3	%	plan CL9	
-ba7be37a	avance-cl9-hito	hito 9	falta_cota_baja	1.9	KB	plan CL9	
-ba7be37a	avance-cl9-hito	hito 10	funciones_vivas	79	func	plan CL9	
-ba7be37a	avance-cl9-hito	hito 10	kb_vivos	39.1	KB	plan CL9	
-ba7be37a	avance-cl9-hito	hito 10	funciones_citadas	79	func	plan CL9	
-ba7be37a	avance-cl9-hito	hito 10	cota_alta	95.6	%	plan CL9	
-ba7be37a	avance-cl9-hito	hito 10	cota_media	95.6	%	plan CL9	
-ba7be37a	avance-cl9-hito	hito 10	cota_baja	95.6	%	plan CL9	
-ba7be37a	avance-cl9-hito	hito 10	cota_baja_con_test	63	%	plan CL9	
-ba7be37a	avance-cl9-hito	hito 10	falta_cota_baja	1.7	KB	plan CL9	
-ba7be37a	avance-cl9-hito	hito 11	funciones_vivas	30	func	plan CL9	
-ba7be37a	avance-cl9-hito	hito 11	kb_vivos	15.2	KB	plan CL9	
-ba7be37a	avance-cl9-hito	hito 11	funciones_citadas	25	func	plan CL9	
-ba7be37a	avance-cl9-hito	hito 11	cota_alta	91.4	%	plan CL9	
-ba7be37a	avance-cl9-hito	hito 11	cota_media	91.4	%	plan CL9	
-ba7be37a	avance-cl9-hito	hito 11	cota_baja	91.4	%	plan CL9	
-ba7be37a	avance-cl9-hito	hito 11	cota_baja_con_test	72	%	plan CL9	
-ba7be37a	avance-cl9-hito	hito 11	falta_cota_baja	1.3	KB	plan CL9	
-ba7be37a	avance-cl9-hito	hito 12	funciones_vivas	173	func	plan CL9	
-ba7be37a	avance-cl9-hito	hito 12	kb_vivos	72.7	KB	plan CL9	
-ba7be37a	avance-cl9-hito	hito 12	funciones_citadas	62	func	plan CL9	
-ba7be37a	avance-cl9-hito	hito 12	cota_alta	59	%	plan CL9	
-ba7be37a	avance-cl9-hito	hito 12	cota_media	59	%	plan CL9	
-ba7be37a	avance-cl9-hito	hito 12	cota_baja	59	%	plan CL9	
-ba7be37a	avance-cl9-hito	hito 12	cota_baja_con_test	47.9	%	plan CL9	
-ba7be37a	avance-cl9-hito	hito 12	falta_cota_baja	29.8	KB	plan CL9	
-ba7be37a	avance-cl9-hito	hito 13	funciones_vivas	31	func	plan CL9	
-ba7be37a	avance-cl9-hito	hito 13	kb_vivos	22.3	KB	plan CL9	
-ba7be37a	avance-cl9-hito	hito 13	funciones_citadas	17	func	plan CL9	
-ba7be37a	avance-cl9-hito	hito 13	cota_alta	55.9	%	plan CL9	
-ba7be37a	avance-cl9-hito	hito 13	cota_media	55.9	%	plan CL9	
-ba7be37a	avance-cl9-hito	hito 13	cota_baja	55.9	%	plan CL9	
-ba7be37a	avance-cl9-hito	hito 13	cota_baja_con_test	23.9	%	plan CL9	
-ba7be37a	avance-cl9-hito	hito 13	falta_cota_baja	9.8	KB	plan CL9	
-ba7be37a	avance-cl8-subola	CL8.1	funciones_vivas	52	func	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
-ba7be37a	avance-cl8-subola	CL8.1	kb_vivos	40	KB	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
-ba7be37a	avance-cl8-subola	CL8.1	funciones_citadas	51	func	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
-ba7be37a	avance-cl8-subola	CL8.1	cota_alta	96	%	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
-ba7be37a	avance-cl8-subola	CL8.1	cota_media	95.9	%	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
-ba7be37a	avance-cl8-subola	CL8.1	cota_baja	95.9	%	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
-ba7be37a	avance-cl8-subola	CL8.1	cota_baja_con_test	83.8	%	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
-ba7be37a	avance-cl8-subola	CL8.1	falta_cota_baja	1.7	KB	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
-ba7be37a	avance-cl8-subola	CL8.2	funciones_vivas	104	func	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
-ba7be37a	avance-cl8-subola	CL8.2	kb_vivos	101	KB	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
-ba7be37a	avance-cl8-subola	CL8.2	funciones_citadas	91	func	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
-ba7be37a	avance-cl8-subola	CL8.2	cota_alta	96.6	%	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
-ba7be37a	avance-cl8-subola	CL8.2	cota_media	95.8	%	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
-ba7be37a	avance-cl8-subola	CL8.2	cota_baja	95.1	%	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
-ba7be37a	avance-cl8-subola	CL8.2	cota_baja_con_test	88.3	%	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
-ba7be37a	avance-cl8-subola	CL8.2	falta_cota_baja	5	KB	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
-ba7be37a	avance-cl8-subola	CL8.3	funciones_vivas	258	func	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
-ba7be37a	avance-cl8-subola	CL8.3	kb_vivos	180.9	KB	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
-ba7be37a	avance-cl8-subola	CL8.3	funciones_citadas	168	func	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
-ba7be37a	avance-cl8-subola	CL8.3	cota_alta	97.2	%	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
-ba7be37a	avance-cl8-subola	CL8.3	cota_media	93.9	%	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
-ba7be37a	avance-cl8-subola	CL8.3	cota_baja	90.6	%	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
-ba7be37a	avance-cl8-subola	CL8.3	cota_baja_con_test	82.4	%	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
-ba7be37a	avance-cl8-subola	CL8.3	falta_cota_baja	17.1	KB	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
-ba7be37a	avance-cl8-subola	CL8.4	funciones_vivas	100	func	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
-ba7be37a	avance-cl8-subola	CL8.4	kb_vivos	247.4	KB	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
-ba7be37a	avance-cl8-subola	CL8.4	funciones_citadas	93	func	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
-ba7be37a	avance-cl8-subola	CL8.4	cota_alta	96.5	%	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
-ba7be37a	avance-cl8-subola	CL8.4	cota_media	95.9	%	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
-ba7be37a	avance-cl8-subola	CL8.4	cota_baja	95.3	%	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
-ba7be37a	avance-cl8-subola	CL8.4	cota_baja_con_test	92.8	%	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
-ba7be37a	avance-cl8-subola	CL8.4	falta_cota_baja	11.7	KB	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
-ba7be37a	avance	sin el chat	cota_alta	91.6	%	sin las funciones enteras de A y B	
-ba7be37a	avance	sin el chat	cota_baja	87	%	sin las funciones enteras de A y B	
-ba7be37a	avance	sin el chat	cota_baja_con_test	78	%	sin las funciones enteras de A y B	
-ba7be37a	faltante	sin clasificar	funciones	457	func	triage de la auditoría	
-ba7be37a	faltante	sin clasificar	kb	54.9	KB	triage de la auditoría	
-ba7be37a	faltante	clon byte a byte de una citada	funciones	313	func	triage de la auditoría	
-ba7be37a	faltante	clon byte a byte de una citada	kb	45.8	KB	triage de la auditoría	
-ba7be37a	faltante	pendiente CL9	funciones	117	func	triage de la auditoría	
-ba7be37a	faltante	pendiente CL9	kb	36.5	KB	triage de la auditoría	
-ba7be37a	faltante	portada sin cita 0x	funciones	61	func	triage de la auditoría	
-ba7be37a	faltante	portada sin cita 0x	kb	21.3	KB	triage de la auditoría	
-ba7be37a	faltante	plataforma	funciones	20	func	triage de la auditoría	
-ba7be37a	faltante	plataforma	kb	8.9	KB	triage de la auditoría	
-ba7be37a	faltante	falta	funciones	11	func	triage de la auditoría	
-ba7be37a	faltante	falta	kb	8.8	KB	triage de la auditoría	
-ba7be37a	faltante	herramienta de desarrollo	funciones	19	func	triage de la auditoría	
-ba7be37a	faltante	herramienta de desarrollo	kb	8.5	KB	triage de la auditoría	
-ba7be37a	faltante	STL	funciones	39	func	triage de la auditoría	
-ba7be37a	faltante	STL	kb	6.8	KB	triage de la auditoría	
-ba7be37a	faltante	sin uso en el original	funciones	2	func	triage de la auditoría	
-ba7be37a	faltante	sin uso en el original	kb	3.9	KB	triage de la auditoría	
-ba7be37a	faltante	sin confirmar	funciones	1	func	triage de la auditoría	
-ba7be37a	faltante	sin confirmar	kb	0.5	KB	triage de la auditoría	
-ba7be37a	faltante	fracción de cortes de las citadas	kb	80.5	KB	matriz	
-ba7be37a	avance	total	explicado	91.8	%	cota baja + clones, portadas sin 0x, plataforma, herramientas, STL y sin uso	
-ba7be37a	huecos	la llama código citado	bloques	185	bloques	huecos.tsv	
-ba7be37a	huecos	la llama código citado	funciones	397	func	huecos.tsv	
-ba7be37a	huecos	la llama código citado	kb	61.8	KB	huecos.tsv	
-ba7be37a	huecos	la llama sólo código sin citar	bloques	85	bloques	huecos.tsv	
-ba7be37a	huecos	la llama sólo código sin citar	funciones	158	func	huecos.tsv	
-ba7be37a	huecos	la llama sólo código sin citar	kb	29.2	KB	huecos.tsv	
-ba7be37a	huecos	sin llamador directo	bloques	27	bloques	huecos.tsv	
-ba7be37a	huecos	sin llamador directo	funciones	34	func	huecos.tsv	
-ba7be37a	huecos	sin llamador directo	kb	10.2	KB	huecos.tsv	
-ba7be37a	cortes	P	sitios	0	sitios	censo de cortes (auditoría)	
-ba7be37a	cortes	O	sitios	0	sitios	censo de cortes (auditoría)	
-ba7be37a	cortes	V	sitios	7	sitios	censo de cortes (auditoría)	
-ba7be37a	cortes	X	sitios	20	sitios	censo de cortes (auditoría)	
-ba7be37a	cortes	R	sitios	234	sitios	censo de cortes (auditoría)	
-ba7be37a	cortes	S	sitios	436	sitios	censo de cortes (auditoría)	
-ba7be37a	cortes	G	sitios	975	sitios	censo de cortes (auditoría)	
-ba7be37a	cortes	D	sitios	70	sitios	censo de cortes (auditoría)	
-ba7be37a	cortes	I	sitios	13	sitios	censo de cortes (auditoría)	
-ba7be37a	cortes	H	sitios	2	sitios	censo de cortes (auditoría)	
-ba7be37a	cortes	total	sitios	1757	sitios	censo de cortes (auditoría)	
-ba7be37a	cortes	cierran el cliente	sitios	5	sitios	censo + informe 4.1	
-ba7be37a	cortes-ola	-	sitios	62	sitios	ola de la función del original que contiene la VA	
-ba7be37a	cortes-ola	CL2	sitios	3	sitios	ola de la función del original que contiene la VA	
-ba7be37a	cortes-ola	CL3	sitios	2	sitios	ola de la función del original que contiene la VA	
-ba7be37a	cortes-ola	CL4	sitios	1	sitios	ola de la función del original que contiene la VA	
-ba7be37a	cortes-ola	CL6	sitios	24	sitios	ola de la función del original que contiene la VA	
-ba7be37a	cortes-ola	CL7	sitios	1094	sitios	ola de la función del original que contiene la VA	
-ba7be37a	cortes-ola	CL8	sitios	298	sitios	ola de la función del original que contiene la VA	
-ba7be37a	cortes-ola	CL9	sitios	215	sitios	ola de la función del original que contiene la VA	
-ba7be37a	cortes-ola	CL10	sitios	1	sitios	ola de la función del original que contiene la VA	
-ba7be37a	cortes-ola	CL11	sitios	55	sitios	ola de la función del original que contiene la VA	
-ba7be37a	vm	?	pasos	1	pasos	lista única (cota superior)	
-ba7be37a	vm	CL10	pasos	1	pasos	lista única (cota superior)	
-ba7be37a	vm	CL11	pasos	18	pasos	lista única (cota superior)	
-ba7be37a	vm	CL2	pasos	1	pasos	lista única (cota superior)	
-ba7be37a	vm	CL3	pasos	4	pasos	lista única (cota superior)	
-ba7be37a	vm	CL4	pasos	2	pasos	lista única (cota superior)	
-ba7be37a	vm	CL5	pasos	6	pasos	lista única (cota superior)	
-ba7be37a	vm	CL6	pasos	13	pasos	lista única (cota superior)	
-ba7be37a	vm	CL7	pasos	34	pasos	lista única (cota superior)	
-ba7be37a	vm	CL8	pasos	35	pasos	lista única (cota superior)	
-ba7be37a	vm	CL9	pasos	119	pasos	lista única (cota superior)	
-ba7be37a	vm	total	pasos	234	pasos	lista única (cota superior)	
-ba7be37a	vm	total	bloquean_codigo	11	pasos	lista única	
-ba7be37a	08	CL10	abierta	1	filas	pendientes-08	
-ba7be37a	08	CL11	abierta	29	filas	pendientes-08	
-ba7be37a	08	CL11	cerrada	2	filas	pendientes-08	
-ba7be37a	08	CL3	abierta	1	filas	pendientes-08	
-ba7be37a	08	CL4	abierta	2	filas	pendientes-08	
-ba7be37a	08	CL4	cerrada	1	filas	pendientes-08	
-ba7be37a	08	CL5	abierta	1	filas	pendientes-08	
-ba7be37a	08	CL5	cerrada	1	filas	pendientes-08	
-ba7be37a	08	CL6	abierta	9	filas	pendientes-08	
-ba7be37a	08	CL6	cerrada	3	filas	pendientes-08	
-ba7be37a	08	CL7	abierta	33	filas	pendientes-08	
-ba7be37a	08	CL7	cerrada	2	filas	pendientes-08	
-ba7be37a	08	CL8	abierta	41	filas	pendientes-08	
-ba7be37a	08	CL8	cerrada	14	filas	pendientes-08	
-ba7be37a	08	CL9	abierta	129	filas	pendientes-08	
-ba7be37a	08	CL9	cerrada	36	filas	pendientes-08	
-ba7be37a	08-abiertas	codigo	filas	98	filas	pendientes-08 (código es cota superior)	
-ba7be37a	08-abiertas	datos	filas	2	filas	pendientes-08 (código es cota superior)	
-ba7be37a	08-abiertas	otro	filas	5	filas	pendientes-08 (código es cota superior)	
-ba7be37a	08-abiertas	servidor	filas	17	filas	pendientes-08 (código es cota superior)	
-ba7be37a	08-abiertas	vm	filas	124	filas	pendientes-08 (código es cota superior)	
-ba7be37a	07	bug	con algo pendiente	28	filas	07-quirks-y-bugs	
-ba7be37a	07	bug	registrada	198	filas	07-quirks-y-bugs	
-ba7be37a	07	bug latente	registrada	5	filas	07-quirks-y-bugs	
-ba7be37a	07	contrato	con algo pendiente	20	filas	07-quirks-y-bugs	
-ba7be37a	07	contrato	registrada	179	filas	07-quirks-y-bugs	
-ba7be37a	07	código muerto	registrada	5	filas	07-quirks-y-bugs	
-ba7be37a	07	diseño	con algo pendiente	22	filas	07-quirks-y-bugs	
-ba7be37a	07	diseño	registrada	112	filas	07-quirks-y-bugs	
-ba7be37a	07	efecto latente	registrada	9	filas	07-quirks-y-bugs	
-ba7be37a	07	efecto visible	registrada	6	filas	07-quirks-y-bugs	
-ba7be37a	07	estado que queda	registrada	11	filas	07-quirks-y-bugs	
-ba7be37a	07	interno	con algo pendiente	1	filas	07-quirks-y-bugs	
-ba7be37a	07	interno	registrada	16	filas	07-quirks-y-bugs	
-ba7be37a	07	otras	con algo pendiente	3	filas	07-quirks-y-bugs	
-ba7be37a	07	otras	registrada	74	filas	07-quirks-y-bugs	
-ba7be37a	07	otras	retirada	1	filas	07-quirks-y-bugs	
-ba7be37a	07	quirk	con algo pendiente	3	filas	07-quirks-y-bugs	
-ba7be37a	07	quirk	registrada	14	filas	07-quirks-y-bugs	
-ba7be37a	07	visible	con algo pendiente	5	filas	07-quirks-y-bugs	
-ba7be37a	07	visible	registrada	112	filas	07-quirks-y-bugs	
-ba7be37a	chat	A+B vivo	entradas	254	entradas	auditoría del chat	
-ba7be37a	chat	A+B vivo	bytes	137715	B	auditoría del chat	
-ba7be37a	chat	A+B vivo	pct_codigo_juego	5.9	%	sobre 2.273 KB con lo muerto	
-ba7be37a	chat	A+B vivo	citado_sin_corte	99.2	%	auditoría del chat	
-ba7be37a	chat	A+B vivo	con_test	79.4	%	auditoría del chat	
-ba7be37a	chat	amigos (C)	bytes	18239	B	auditoría del chat	
-ba7be37a	chat	amigos (C)	citado_sin_corte	99.3	%	auditoría del chat	
-ba7be37a	chat	amigos (C)	con_test	81.5	%	auditoría del chat	
-ba7be37a	sustitutos	fila-07	filas	108	filas	auditoría	
-ba7be37a	sustitutos	juego	filas	16	filas	auditoría	
-ba7be37a	sustitutos	plataforma	filas	19	filas	auditoría	
-ba7be37a	sin-cablear	diferido	abierta-08	4	filas	auditoría	
-ba7be37a	sin-cablear	diferido	chat	1	filas	auditoría	
-ba7be37a	sin-cablear	diferido	comentario-viejo	13	filas	auditoría	
-ba7be37a	sin-cablear	diferido	corte-vivo	2	filas	auditoría	
-ba7be37a	sin-cablear	diferido	describe-corte	18	filas	auditoría	
-ba7be37a	sin-cablear	diferido	historico	16	filas	auditoría	
-ba7be37a	sin-cablear	diferido	pendiente	3	filas	auditoría	
-ba7be37a	sin-cablear	diferido	suena	44	filas	auditoría	
-ba7be37a	sin-cablear	funcion-sin-llamador	accesor	56	filas	auditoría	
-ba7be37a	sin-cablear	funcion-sin-llamador	falso-positivo	1	filas	auditoría	
-ba7be37a	sin-cablear	funcion-sin-llamador	feature-sin-cablear	6	filas	auditoría	
-ba7be37a	sin-cablear	funcion-sin-llamador	helper	6	filas	auditoría	
-ba7be37a	sin-cablear	funcion-sin-llamador	legacy-sustituido	9	filas	auditoría	
-ba7be37a	sin-cablear	no-portado	pendiente	3	filas	auditoría	
-ba7be37a	sin-cablear	pedido-sin-consumidor	feature-sin-cablear	3	filas	auditoría	
-ba7be37a	muret	Client/src	archivos	1417	archivos	ls-tree	
-ba7be37a	muret	Client/src	lineas	270335	líneas	ls-tree	
-ba7be37a	muret	Client/tests	archivos	745	archivos	ls-tree	
-ba7be37a	muret	Client/tests	tests	8754	TEST	TEST, TEST_F y TEST_P	
-ba7be37a	citas	src	corte	2562	citas	trazas	
-ba7be37a	citas	src	impl	40350	citas	trazas	
-ba7be37a	citas	tests	test	13117	citas	trazas	
-ba7be37a	citas	tests	test-corte	433	citas	trazas	
-ba7be37a	citas	docs	doc	29793	citas	trazas-docs	
-ba7be37a	citas	src	pendiente	31	citas	citas que no son corte pero dicen que no está portado	
+b9f70ceb	inventario	excluded	funciones	136	func	matriz congelada	
+b9f70ceb	inventario	excluded	kb	37.8	KB	matriz congelada	
+b9f70ceb	inventario	game muerta	funciones	305	func	matriz congelada	
+b9f70ceb	inventario	game muerta	kb	76.1	KB	matriz congelada	
+b9f70ceb	inventario	game viva	funciones	3278	func	matriz congelada	
+b9f70ceb	inventario	game viva	kb	2197	KB	matriz congelada	
+b9f70ceb	inventario	library	funciones	1891	func	matriz congelada	
+b9f70ceb	inventario	library	kb	124.7	KB	matriz congelada	
+b9f70ceb	inventario	thunk	funciones	38	func	matriz congelada	
+b9f70ceb	inventario	thunk	kb	0.2	KB	matriz congelada	
+b9f70ceb	avance	total	funciones_vivas	3278	func	matriz regenerada sin MENTION_ONLY, ola congelada	
+b9f70ceb	avance	total	kb_vivos	2197	KB	matriz regenerada sin MENTION_ONLY, ola congelada	
+b9f70ceb	avance	total	funciones_citadas	2242	func	matriz regenerada sin MENTION_ONLY, ola congelada	
+b9f70ceb	avance	total	cota_alta	91.5	%	matriz regenerada sin MENTION_ONLY, ola congelada	
+b9f70ceb	avance	total	cota_media	89.5	%	matriz regenerada sin MENTION_ONLY, ola congelada	
+b9f70ceb	avance	total	cota_baja	87.5	%	matriz regenerada sin MENTION_ONLY, ola congelada	
+b9f70ceb	avance	total	cota_baja_con_test	77.9	%	matriz regenerada sin MENTION_ONLY, ola congelada	
+b9f70ceb	avance	total	falta_cota_baja	273.7	KB	matriz regenerada sin MENTION_ONLY, ola congelada	
+b9f70ceb	avance-ola	CL1	funciones_vivas	11	func	ola congelada	
+b9f70ceb	avance-ola	CL1	kb_vivos	4.2	KB	ola congelada	
+b9f70ceb	avance-ola	CL1	funciones_citadas	10	func	ola congelada	
+b9f70ceb	avance-ola	CL1	cota_alta	100	%	ola congelada	
+b9f70ceb	avance-ola	CL1	cota_media	99.5	%	ola congelada	
+b9f70ceb	avance-ola	CL1	cota_baja	99	%	ola congelada	
+b9f70ceb	avance-ola	CL1	cota_baja_con_test	39.4	%	ola congelada	
+b9f70ceb	avance-ola	CL1	falta_cota_baja	0	KB	ola congelada	
+b9f70ceb	avance-ola	CL2	funciones_vivas	49	func	ola congelada	
+b9f70ceb	avance-ola	CL2	kb_vivos	19.2	KB	ola congelada	
+b9f70ceb	avance-ola	CL2	funciones_citadas	24	func	ola congelada	
+b9f70ceb	avance-ola	CL2	cota_alta	94.2	%	ola congelada	
+b9f70ceb	avance-ola	CL2	cota_media	79.1	%	ola congelada	
+b9f70ceb	avance-ola	CL2	cota_baja	64	%	ola congelada	
+b9f70ceb	avance-ola	CL2	cota_baja_con_test	50.7	%	ola congelada	
+b9f70ceb	avance-ola	CL2	falta_cota_baja	6.9	KB	ola congelada	
+b9f70ceb	avance-ola	CL3	funciones_vivas	117	func	ola congelada	
+b9f70ceb	avance-ola	CL3	kb_vivos	82.7	KB	ola congelada	
+b9f70ceb	avance-ola	CL3	funciones_citadas	38	func	ola congelada	
+b9f70ceb	avance-ola	CL3	cota_alta	98.4	%	ola congelada	
+b9f70ceb	avance-ola	CL3	cota_media	94.5	%	ola congelada	
+b9f70ceb	avance-ola	CL3	cota_baja	90.6	%	ola congelada	
+b9f70ceb	avance-ola	CL3	cota_baja_con_test	85	%	ola congelada	
+b9f70ceb	avance-ola	CL3	falta_cota_baja	7.8	KB	ola congelada	
+b9f70ceb	avance-ola	CL4	funciones_vivas	18	func	ola congelada	
+b9f70ceb	avance-ola	CL4	kb_vivos	18.9	KB	ola congelada	
+b9f70ceb	avance-ola	CL4	funciones_citadas	13	func	ola congelada	
+b9f70ceb	avance-ola	CL4	cota_alta	99.1	%	ola congelada	
+b9f70ceb	avance-ola	CL4	cota_media	97.7	%	ola congelada	
+b9f70ceb	avance-ola	CL4	cota_baja	96.2	%	ola congelada	
+b9f70ceb	avance-ola	CL4	cota_baja_con_test	93.6	%	ola congelada	
+b9f70ceb	avance-ola	CL4	falta_cota_baja	0.7	KB	ola congelada	
+b9f70ceb	avance-ola	CL5	funciones_vivas	150	func	ola congelada	
+b9f70ceb	avance-ola	CL5	kb_vivos	34.3	KB	ola congelada	
+b9f70ceb	avance-ola	CL5	funciones_citadas	61	func	ola congelada	
+b9f70ceb	avance-ola	CL5	cota_alta	97.1	%	ola congelada	
+b9f70ceb	avance-ola	CL5	cota_media	82.7	%	ola congelada	
+b9f70ceb	avance-ola	CL5	cota_baja	68.4	%	ola congelada	
+b9f70ceb	avance-ola	CL5	cota_baja_con_test	61.4	%	ola congelada	
+b9f70ceb	avance-ola	CL5	falta_cota_baja	10.9	KB	ola congelada	
+b9f70ceb	avance-ola	CL6	funciones_vivas	161	func	ola congelada	
+b9f70ceb	avance-ola	CL6	kb_vivos	72.1	KB	ola congelada	
+b9f70ceb	avance-ola	CL6	funciones_citadas	110	func	ola congelada	
+b9f70ceb	avance-ola	CL6	cota_alta	96.9	%	ola congelada	
+b9f70ceb	avance-ola	CL6	cota_media	90.4	%	ola congelada	
+b9f70ceb	avance-ola	CL6	cota_baja	83.9	%	ola congelada	
+b9f70ceb	avance-ola	CL6	cota_baja_con_test	74.8	%	ola congelada	
+b9f70ceb	avance-ola	CL6	falta_cota_baja	11.6	KB	ola congelada	
+b9f70ceb	avance-ola	CL7	funciones_vivas	675	func	ola congelada	
+b9f70ceb	avance-ola	CL7	kb_vivos	571.7	KB	ola congelada	
+b9f70ceb	avance-ola	CL7	funciones_citadas	484	func	ola congelada	
+b9f70ceb	avance-ola	CL7	cota_alta	93.5	%	ola congelada	
+b9f70ceb	avance-ola	CL7	cota_media	91	%	ola congelada	
+b9f70ceb	avance-ola	CL7	cota_baja	88.4	%	ola congelada	
+b9f70ceb	avance-ola	CL7	cota_baja_con_test	83.7	%	ola congelada	
+b9f70ceb	avance-ola	CL7	falta_cota_baja	66.1	KB	ola congelada	
+b9f70ceb	avance-ola	CL8	funciones_vivas	1000	func	ola congelada	
+b9f70ceb	avance-ola	CL8	kb_vivos	756.8	KB	ola congelada	
+b9f70ceb	avance-ola	CL8	funciones_citadas	695	func	ola congelada	
+b9f70ceb	avance-ola	CL8	cota_alta	94	%	ola congelada	
+b9f70ceb	avance-ola	CL8	cota_media	92.2	%	ola congelada	
+b9f70ceb	avance-ola	CL8	cota_baja	90.5	%	ola congelada	
+b9f70ceb	avance-ola	CL8	cota_baja_con_test	82.7	%	ola congelada	
+b9f70ceb	avance-ola	CL8	falta_cota_baja	72.1	KB	ola congelada	
+b9f70ceb	avance-ola	CL9	funciones_vivas	1030	func	ola congelada	
+b9f70ceb	avance-ola	CL9	kb_vivos	557.3	KB	ola congelada	
+b9f70ceb	avance-ola	CL9	funciones_citadas	758	func	ola congelada	
+b9f70ceb	avance-ola	CL9	cota_alta	84.3	%	ola congelada	
+b9f70ceb	avance-ola	CL9	cota_media	84.3	%	ola congelada	
+b9f70ceb	avance-ola	CL9	cota_baja	84.3	%	ola congelada	
+b9f70ceb	avance-ola	CL9	cota_baja_con_test	65.6	%	ola congelada	
+b9f70ceb	avance-ola	CL9	falta_cota_baja	87.6	KB	ola congelada	
+b9f70ceb	avance-ola	CL10	funciones_vivas	24	func	ola congelada	
+b9f70ceb	avance-ola	CL10	kb_vivos	10.3	KB	ola congelada	
+b9f70ceb	avance-ola	CL10	funciones_citadas	6	func	ola congelada	
+b9f70ceb	avance-ola	CL10	cota_alta	28.7	%	ola congelada	
+b9f70ceb	avance-ola	CL10	cota_media	28.7	%	ola congelada	
+b9f70ceb	avance-ola	CL10	cota_baja	28.7	%	ola congelada	
+b9f70ceb	avance-ola	CL10	cota_baja_con_test	1.4	%	ola congelada	
+b9f70ceb	avance-ola	CL10	falta_cota_baja	7.4	KB	ola congelada	
+b9f70ceb	avance-ola	CL11	funciones_vivas	43	func	ola congelada	
+b9f70ceb	avance-ola	CL11	kb_vivos	69.6	KB	ola congelada	
+b9f70ceb	avance-ola	CL11	funciones_citadas	43	func	ola congelada	
+b9f70ceb	avance-ola	CL11	cota_alta	96.3	%	ola congelada	
+b9f70ceb	avance-ola	CL11	cota_media	96.3	%	ola congelada	
+b9f70ceb	avance-ola	CL11	cota_baja	96.3	%	ola congelada	
+b9f70ceb	avance-ola	CL11	cota_baja_con_test	95.5	%	ola congelada	
+b9f70ceb	avance-ola	CL11	falta_cota_baja	2.6	KB	ola congelada	
+b9f70ceb	avance-cl9-hito	hito 1	funciones_vivas	14	func	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 1	kb_vivos	8	KB	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 1	funciones_citadas	14	func	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 1	cota_alta	95.1	%	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 1	cota_media	95.1	%	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 1	cota_baja	95.1	%	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 1	cota_baja_con_test	88.2	%	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 1	falta_cota_baja	0.4	KB	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 2	funciones_vivas	36	func	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 2	kb_vivos	33.8	KB	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 2	funciones_citadas	36	func	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 2	cota_alta	96.8	%	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 2	cota_media	96.8	%	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 2	cota_baja	96.8	%	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 2	cota_baja_con_test	95	%	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 2	falta_cota_baja	1.1	KB	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 3	funciones_vivas	13	func	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 3	kb_vivos	11.5	KB	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 3	funciones_citadas	13	func	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 3	cota_alta	81.3	%	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 3	cota_media	81.3	%	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 3	cota_baja	81.3	%	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 3	cota_baja_con_test	81.3	%	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 3	falta_cota_baja	2.1	KB	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 4	funciones_vivas	54	func	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 4	kb_vivos	59.3	KB	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 4	funciones_citadas	52	func	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 4	cota_alta	93.1	%	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 4	cota_media	92.9	%	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 4	cota_baja	92.8	%	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 4	cota_baja_con_test	88.4	%	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 4	falta_cota_baja	4.3	KB	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 5	funciones_vivas	8	func	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 5	kb_vivos	12.3	KB	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 5	funciones_citadas	7	func	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 5	cota_alta	94.5	%	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 5	cota_media	94.5	%	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 5	cota_baja	94.5	%	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 5	cota_baja_con_test	87.2	%	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 5	falta_cota_baja	0.7	KB	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 6	funciones_vivas	68	func	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 6	kb_vivos	39.1	KB	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 6	funciones_citadas	49	func	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 6	cota_alta	82.2	%	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 6	cota_media	82.2	%	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 6	cota_baja	82.2	%	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 6	cota_baja_con_test	74.6	%	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 6	falta_cota_baja	7	KB	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 7	funciones_vivas	109	func	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 7	kb_vivos	34.9	KB	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 7	funciones_citadas	62	func	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 7	cota_alta	76	%	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 7	cota_media	75.8	%	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 7	cota_baja	75.5	%	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 7	cota_baja_con_test	66.8	%	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 7	falta_cota_baja	8.5	KB	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 8	funciones_vivas	189	func	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 8	kb_vivos	77.7	KB	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 8	funciones_citadas	102	func	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 8	cota_alta	74.8	%	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 8	cota_media	73.5	%	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 8	cota_baja	72.2	%	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 8	cota_baja_con_test	56.9	%	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 8	falta_cota_baja	21.6	KB	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 9	funciones_vivas	312	func	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 9	kb_vivos	89.2	KB	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 9	funciones_citadas	312	func	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 9	cota_alta	97.8	%	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 9	cota_media	97.8	%	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 9	cota_baja	97.8	%	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 9	cota_baja_con_test	32.3	%	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 9	falta_cota_baja	1.9	KB	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 10	funciones_vivas	79	func	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 10	kb_vivos	39.1	KB	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 10	funciones_citadas	79	func	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 10	cota_alta	95.6	%	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 10	cota_media	95.6	%	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 10	cota_baja	95.6	%	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 10	cota_baja_con_test	63	%	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 10	falta_cota_baja	1.7	KB	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 11	funciones_vivas	30	func	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 11	kb_vivos	15.2	KB	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 11	funciones_citadas	25	func	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 11	cota_alta	91.4	%	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 11	cota_media	91.4	%	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 11	cota_baja	91.4	%	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 11	cota_baja_con_test	72	%	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 11	falta_cota_baja	1.3	KB	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 12	funciones_vivas	173	func	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 12	kb_vivos	72.7	KB	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 12	funciones_citadas	62	func	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 12	cota_alta	59	%	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 12	cota_media	59	%	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 12	cota_baja	59	%	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 12	cota_baja_con_test	47.9	%	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 12	falta_cota_baja	29.8	KB	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 13	funciones_vivas	31	func	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 13	kb_vivos	22.3	KB	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 13	funciones_citadas	17	func	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 13	cota_alta	55.9	%	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 13	cota_media	55.9	%	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 13	cota_baja	55.9	%	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 13	cota_baja_con_test	23.9	%	plan CL9	
+b9f70ceb	avance-cl9-hito	hito 13	falta_cota_baja	9.8	KB	plan CL9	
+b9f70ceb	avance-cl8-subola	CL8.1	funciones_vivas	52	func	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
+b9f70ceb	avance-cl8-subola	CL8.1	kb_vivos	40	KB	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
+b9f70ceb	avance-cl8-subola	CL8.1	funciones_citadas	51	func	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
+b9f70ceb	avance-cl8-subola	CL8.1	cota_alta	96	%	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
+b9f70ceb	avance-cl8-subola	CL8.1	cota_media	95.9	%	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
+b9f70ceb	avance-cl8-subola	CL8.1	cota_baja	95.9	%	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
+b9f70ceb	avance-cl8-subola	CL8.1	cota_baja_con_test	83.9	%	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
+b9f70ceb	avance-cl8-subola	CL8.1	falta_cota_baja	1.7	KB	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
+b9f70ceb	avance-cl8-subola	CL8.2	funciones_vivas	104	func	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
+b9f70ceb	avance-cl8-subola	CL8.2	kb_vivos	101	KB	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
+b9f70ceb	avance-cl8-subola	CL8.2	funciones_citadas	91	func	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
+b9f70ceb	avance-cl8-subola	CL8.2	cota_alta	96.6	%	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
+b9f70ceb	avance-cl8-subola	CL8.2	cota_media	95.8	%	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
+b9f70ceb	avance-cl8-subola	CL8.2	cota_baja	95.1	%	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
+b9f70ceb	avance-cl8-subola	CL8.2	cota_baja_con_test	88.3	%	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
+b9f70ceb	avance-cl8-subola	CL8.2	falta_cota_baja	5	KB	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
+b9f70ceb	avance-cl8-subola	CL8.3	funciones_vivas	258	func	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
+b9f70ceb	avance-cl8-subola	CL8.3	kb_vivos	180.9	KB	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
+b9f70ceb	avance-cl8-subola	CL8.3	funciones_citadas	168	func	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
+b9f70ceb	avance-cl8-subola	CL8.3	cota_alta	97.2	%	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
+b9f70ceb	avance-cl8-subola	CL8.3	cota_media	93.9	%	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
+b9f70ceb	avance-cl8-subola	CL8.3	cota_baja	90.6	%	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
+b9f70ceb	avance-cl8-subola	CL8.3	cota_baja_con_test	82.4	%	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
+b9f70ceb	avance-cl8-subola	CL8.3	falta_cota_baja	17.1	KB	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
+b9f70ceb	avance-cl8-subola	CL8.4	funciones_vivas	100	func	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
+b9f70ceb	avance-cl8-subola	CL8.4	kb_vivos	247.4	KB	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
+b9f70ceb	avance-cl8-subola	CL8.4	funciones_citadas	93	func	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
+b9f70ceb	avance-cl8-subola	CL8.4	cota_alta	96.5	%	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
+b9f70ceb	avance-cl8-subola	CL8.4	cota_media	95.9	%	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
+b9f70ceb	avance-cl8-subola	CL8.4	cota_baja	95.3	%	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
+b9f70ceb	avance-cl8-subola	CL8.4	cota_baja_con_test	92.8	%	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
+b9f70ceb	avance-cl8-subola	CL8.4	falta_cota_baja	11.7	KB	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
+b9f70ceb	avance	sin el chat	cota_alta	91.3	%	sin las funciones enteras de A y B	
+b9f70ceb	avance	sin el chat	cota_baja	87.1	%	sin las funciones enteras de A y B	
+b9f70ceb	avance	sin el chat	cota_baja_con_test	78.1	%	sin las funciones enteras de A y B	
+b9f70ceb	faltante	sin clasificar	funciones	449	func	triage de la auditoría	
+b9f70ceb	faltante	sin clasificar	kb	54.1	KB	triage de la auditoría	
+b9f70ceb	faltante	clon byte a byte de una citada	funciones	312	func	triage de la auditoría	
+b9f70ceb	faltante	clon byte a byte de una citada	kb	45.7	KB	triage de la auditoría	
+b9f70ceb	faltante	pendiente CL9	funciones	114	func	triage de la auditoría	
+b9f70ceb	faltante	pendiente CL9	kb	36.3	KB	triage de la auditoría	
+b9f70ceb	faltante	portada sin cita 0x	funciones	63	func	triage de la auditoría	
+b9f70ceb	faltante	portada sin cita 0x	kb	21.6	KB	triage de la auditoría	
+b9f70ceb	faltante	STL	funciones	55	func	triage de la auditoría	
+b9f70ceb	faltante	STL	kb	10.4	KB	triage de la auditoría	
+b9f70ceb	faltante	plataforma	funciones	20	func	triage de la auditoría	
+b9f70ceb	faltante	plataforma	kb	8.9	KB	triage de la auditoría	
+b9f70ceb	faltante	herramienta de desarrollo	funciones	19	func	triage de la auditoría	
+b9f70ceb	faltante	herramienta de desarrollo	kb	8.5	KB	triage de la auditoría	
+b9f70ceb	faltante	sin uso en el original	funciones	2	func	triage de la auditoría	
+b9f70ceb	faltante	sin uso en el original	kb	3.9	KB	triage de la auditoría	
+b9f70ceb	faltante	falta	funciones	1	func	triage de la auditoría	
+b9f70ceb	faltante	falta	kb	2.5	KB	triage de la auditoría	
+b9f70ceb	faltante	sin confirmar	funciones	1	func	triage de la auditoría	
+b9f70ceb	faltante	sin confirmar	kb	0.5	KB	triage de la auditoría	
+b9f70ceb	faltante	fracción de cortes de las citadas	kb	81.1	KB	matriz	
+b9f70ceb	avance	total	explicado	92.1	%	cota baja + clones, portadas sin 0x, plataforma, herramientas, STL y sin uso	
+b9f70ceb	huecos	la llama código citado	bloques	184	bloques	huecos.tsv	
+b9f70ceb	huecos	la llama código citado	funciones	383	func	huecos.tsv	
+b9f70ceb	huecos	la llama código citado	kb	57.1	KB	huecos.tsv	
+b9f70ceb	huecos	la llama sólo código sin citar	bloques	83	bloques	huecos.tsv	
+b9f70ceb	huecos	la llama sólo código sin citar	funciones	149	func	huecos.tsv	
+b9f70ceb	huecos	la llama sólo código sin citar	kb	26.4	KB	huecos.tsv	
+b9f70ceb	huecos	sin llamador directo	bloques	27	bloques	huecos.tsv	
+b9f70ceb	huecos	sin llamador directo	funciones	34	func	huecos.tsv	
+b9f70ceb	huecos	sin llamador directo	kb	10.2	KB	huecos.tsv	
+b9f70ceb	cortes	P	sitios	0	sitios	censo de cortes (auditoría)	
+b9f70ceb	cortes	O	sitios	0	sitios	censo de cortes (auditoría)	
+b9f70ceb	cortes	V	sitios	7	sitios	censo de cortes (auditoría)	
+b9f70ceb	cortes	X	sitios	20	sitios	censo de cortes (auditoría)	
+b9f70ceb	cortes	R	sitios	234	sitios	censo de cortes (auditoría)	
+b9f70ceb	cortes	S	sitios	437	sitios	censo de cortes (auditoría)	
+b9f70ceb	cortes	G	sitios	978	sitios	censo de cortes (auditoría)	
+b9f70ceb	cortes	D	sitios	70	sitios	censo de cortes (auditoría)	
+b9f70ceb	cortes	I	sitios	13	sitios	censo de cortes (auditoría)	
+b9f70ceb	cortes	H	sitios	2	sitios	censo de cortes (auditoría)	
+b9f70ceb	cortes	total	sitios	1761	sitios	censo de cortes (auditoría)	
+b9f70ceb	cortes	cierran el cliente	sitios	5	sitios	censo + informe 4.1	
+b9f70ceb	cortes-ola	-	sitios	62	sitios	ola de la función del original que contiene la VA	
+b9f70ceb	cortes-ola	CL2	sitios	3	sitios	ola de la función del original que contiene la VA	
+b9f70ceb	cortes-ola	CL3	sitios	2	sitios	ola de la función del original que contiene la VA	
+b9f70ceb	cortes-ola	CL4	sitios	1	sitios	ola de la función del original que contiene la VA	
+b9f70ceb	cortes-ola	CL6	sitios	24	sitios	ola de la función del original que contiene la VA	
+b9f70ceb	cortes-ola	CL7	sitios	1098	sitios	ola de la función del original que contiene la VA	
+b9f70ceb	cortes-ola	CL8	sitios	298	sitios	ola de la función del original que contiene la VA	
+b9f70ceb	cortes-ola	CL9	sitios	215	sitios	ola de la función del original que contiene la VA	
+b9f70ceb	cortes-ola	CL10	sitios	1	sitios	ola de la función del original que contiene la VA	
+b9f70ceb	cortes-ola	CL11	sitios	55	sitios	ola de la función del original que contiene la VA	
+b9f70ceb	vm	?	pasos	1	pasos	lista única (cota superior)	
+b9f70ceb	vm	CL10	pasos	1	pasos	lista única (cota superior)	
+b9f70ceb	vm	CL11	pasos	18	pasos	lista única (cota superior)	
+b9f70ceb	vm	CL2	pasos	1	pasos	lista única (cota superior)	
+b9f70ceb	vm	CL3	pasos	4	pasos	lista única (cota superior)	
+b9f70ceb	vm	CL4	pasos	2	pasos	lista única (cota superior)	
+b9f70ceb	vm	CL5	pasos	6	pasos	lista única (cota superior)	
+b9f70ceb	vm	CL6	pasos	13	pasos	lista única (cota superior)	
+b9f70ceb	vm	CL7	pasos	34	pasos	lista única (cota superior)	
+b9f70ceb	vm	CL8	pasos	35	pasos	lista única (cota superior)	
+b9f70ceb	vm	CL9	pasos	119	pasos	lista única (cota superior)	
+b9f70ceb	vm	total	pasos	234	pasos	lista única (cota superior)	
+b9f70ceb	vm	total	bloquean_codigo	11	pasos	lista única	
+b9f70ceb	08	CL10	abierta	1	filas	pendientes-08	
+b9f70ceb	08	CL11	abierta	29	filas	pendientes-08	
+b9f70ceb	08	CL11	cerrada	2	filas	pendientes-08	
+b9f70ceb	08	CL3	abierta	1	filas	pendientes-08	
+b9f70ceb	08	CL4	abierta	2	filas	pendientes-08	
+b9f70ceb	08	CL4	cerrada	1	filas	pendientes-08	
+b9f70ceb	08	CL5	abierta	1	filas	pendientes-08	
+b9f70ceb	08	CL5	cerrada	1	filas	pendientes-08	
+b9f70ceb	08	CL6	abierta	9	filas	pendientes-08	
+b9f70ceb	08	CL6	cerrada	3	filas	pendientes-08	
+b9f70ceb	08	CL7	abierta	33	filas	pendientes-08	
+b9f70ceb	08	CL7	cerrada	2	filas	pendientes-08	
+b9f70ceb	08	CL8	abierta	41	filas	pendientes-08	
+b9f70ceb	08	CL8	cerrada	14	filas	pendientes-08	
+b9f70ceb	08	CL9	abierta	129	filas	pendientes-08	
+b9f70ceb	08	CL9	cerrada	36	filas	pendientes-08	
+b9f70ceb	08-abiertas	codigo	filas	98	filas	pendientes-08 (código es cota superior)	
+b9f70ceb	08-abiertas	datos	filas	2	filas	pendientes-08 (código es cota superior)	
+b9f70ceb	08-abiertas	otro	filas	5	filas	pendientes-08 (código es cota superior)	
+b9f70ceb	08-abiertas	servidor	filas	17	filas	pendientes-08 (código es cota superior)	
+b9f70ceb	08-abiertas	vm	filas	124	filas	pendientes-08 (código es cota superior)	
+b9f70ceb	07	bug	con algo pendiente	28	filas	07-quirks-y-bugs	
+b9f70ceb	07	bug	registrada	198	filas	07-quirks-y-bugs	
+b9f70ceb	07	bug latente	registrada	5	filas	07-quirks-y-bugs	
+b9f70ceb	07	contrato	con algo pendiente	20	filas	07-quirks-y-bugs	
+b9f70ceb	07	contrato	registrada	179	filas	07-quirks-y-bugs	
+b9f70ceb	07	código muerto	registrada	5	filas	07-quirks-y-bugs	
+b9f70ceb	07	diseño	con algo pendiente	22	filas	07-quirks-y-bugs	
+b9f70ceb	07	diseño	registrada	112	filas	07-quirks-y-bugs	
+b9f70ceb	07	efecto latente	registrada	9	filas	07-quirks-y-bugs	
+b9f70ceb	07	efecto visible	registrada	6	filas	07-quirks-y-bugs	
+b9f70ceb	07	estado que queda	registrada	11	filas	07-quirks-y-bugs	
+b9f70ceb	07	interno	con algo pendiente	1	filas	07-quirks-y-bugs	
+b9f70ceb	07	interno	registrada	16	filas	07-quirks-y-bugs	
+b9f70ceb	07	otras	con algo pendiente	3	filas	07-quirks-y-bugs	
+b9f70ceb	07	otras	registrada	74	filas	07-quirks-y-bugs	
+b9f70ceb	07	otras	retirada	1	filas	07-quirks-y-bugs	
+b9f70ceb	07	quirk	con algo pendiente	3	filas	07-quirks-y-bugs	
+b9f70ceb	07	quirk	registrada	15	filas	07-quirks-y-bugs	
+b9f70ceb	07	visible	con algo pendiente	5	filas	07-quirks-y-bugs	
+b9f70ceb	07	visible	registrada	112	filas	07-quirks-y-bugs	
+b9f70ceb	chat	A+B vivo	entradas	254	entradas	auditoría del chat	
+b9f70ceb	chat	A+B vivo	bytes	137715	B	auditoría del chat	
+b9f70ceb	chat	A+B vivo	pct_codigo_juego	5.9	%	sobre 2.273 KB con lo muerto	
+b9f70ceb	chat	A+B vivo	citado_sin_corte	99.2	%	auditoría del chat	
+b9f70ceb	chat	A+B vivo	con_test	79.4	%	auditoría del chat	
+b9f70ceb	chat	amigos (C)	bytes	18239	B	auditoría del chat	
+b9f70ceb	chat	amigos (C)	citado_sin_corte	99.3	%	auditoría del chat	
+b9f70ceb	chat	amigos (C)	con_test	81.5	%	auditoría del chat	
+b9f70ceb	sustitutos	fila-07	filas	108	filas	auditoría	
+b9f70ceb	sustitutos	juego	filas	16	filas	auditoría	
+b9f70ceb	sustitutos	plataforma	filas	19	filas	auditoría	
+b9f70ceb	sin-cablear	diferido	abierta-08	4	filas	auditoría	
+b9f70ceb	sin-cablear	diferido	chat	1	filas	auditoría	
+b9f70ceb	sin-cablear	diferido	comentario-viejo	13	filas	auditoría	
+b9f70ceb	sin-cablear	diferido	corte-vivo	2	filas	auditoría	
+b9f70ceb	sin-cablear	diferido	describe-corte	18	filas	auditoría	
+b9f70ceb	sin-cablear	diferido	historico	17	filas	auditoría	
+b9f70ceb	sin-cablear	diferido	pendiente	2	filas	auditoría	
+b9f70ceb	sin-cablear	diferido	suena	44	filas	auditoría	
+b9f70ceb	sin-cablear	funcion-sin-llamador	accesor	56	filas	auditoría	
+b9f70ceb	sin-cablear	funcion-sin-llamador	falso-positivo	1	filas	auditoría	
+b9f70ceb	sin-cablear	funcion-sin-llamador	feature-sin-cablear	6	filas	auditoría	
+b9f70ceb	sin-cablear	funcion-sin-llamador	helper	6	filas	auditoría	
+b9f70ceb	sin-cablear	funcion-sin-llamador	legacy-sustituido	9	filas	auditoría	
+b9f70ceb	sin-cablear	no-portado	historico	2	filas	auditoría	
+b9f70ceb	sin-cablear	no-portado	pendiente	1	filas	auditoría	
+b9f70ceb	sin-cablear	pedido-sin-consumidor	feature-sin-cablear	3	filas	auditoría	
+b9f70ceb	muret	Client/src	archivos	1421	archivos	ls-tree	
+b9f70ceb	muret	Client/src	lineas	270726	líneas	ls-tree	
+b9f70ceb	muret	Client/tests	archivos	747	archivos	ls-tree	
+b9f70ceb	muret	Client/tests	tests	8765	TEST	TEST, TEST_F y TEST_P	
+b9f70ceb	citas	src	corte	2565	citas	trazas	
+b9f70ceb	citas	src	impl	40447	citas	trazas	
+b9f70ceb	citas	tests	test	13155	citas	trazas	
+b9f70ceb	citas	tests	test-corte	433	citas	trazas	
+b9f70ceb	citas	docs	doc	29844	citas	trazas-docs	
+b9f70ceb	citas	src	pendiente	31	citas	citas que no son corte pero dicen que no está portado	
 3495be9	serie	total	cota_baja	54	%	frozen.py	MENTION_ONLY vieja (comparable con la serie)
 3495be9	serie	total	cota_media	60.1	%	frozen.py	MENTION_ONLY vieja (comparable con la serie)
 3495be9	serie	total	cota_alta	66.3	%	frozen.py	MENTION_ONLY vieja (comparable con la serie)
@@ -411,7 +412,7 @@ c18eec8nm	serie	total	cota_baja_con_test	77.6	%	frozen.py	MENTION_ONLY corregida
 753d816nm	serie	total	cota_media	89.5	%	frozen.py	MENTION_ONLY corregida
 753d816nm	serie	total	cota_alta	91.7	%	frozen.py	MENTION_ONLY corregida
 753d816nm	serie	total	cota_baja_con_test	77.6	%	frozen.py	MENTION_ONLY corregida
-ba7be37nm	serie	total	cota_baja	87.4	%	esta corrida	MENTION_ONLY corregida
-ba7be37nm	serie	total	cota_media	89.6	%	esta corrida	MENTION_ONLY corregida
-ba7be37nm	serie	total	cota_alta	91.7	%	esta corrida	MENTION_ONLY corregida
-ba7be37nm	serie	total	cota_baja_con_test	77.8	%	esta corrida	MENTION_ONLY corregida
+b9f70cenm	serie	total	cota_baja	87.5	%	esta corrida	MENTION_ONLY corregida
+b9f70cenm	serie	total	cota_media	89.5	%	esta corrida	MENTION_ONLY corregida
+b9f70cenm	serie	total	cota_alta	91.5	%	esta corrida	MENTION_ONLY corregida
+b9f70cenm	serie	total	cota_baja_con_test	77.9	%	esta corrida	MENTION_ONLY corregida

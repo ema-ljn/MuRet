@@ -28,6 +28,7 @@
 #include "Protocol/BuildConstants.h"
 #include "Protocol/CastleBattle.h"
 #include "Protocol/CastleSiege.h"
+#include "Protocol/Character/PkLevel.h"
 #include "Protocol/Combat.h"
 #include "Protocol/Events.h"
 #include "Protocol/FloorItems.h"
@@ -4740,6 +4741,24 @@ TEST(ServerSessionTest, TheLevelUpPointReplyReachesTheWorld)
     EXPECT_EQ(point->result, 0x12);
     EXPECT_EQ(point->maxLifeOrMana, 0x1234);
     EXPECT_EQ(point->maxBp, 0x5678);
+}
+
+// El F3 08 (0x4d3b50, 0x4e30cd en el sub-dispatcher del F3), el estado de PK que el servidor manda al entrar al mundo,
+// llega al mundo: sin su handler se descartaba con un aviso.
+TEST(ServerSessionTest, ThePkLevelReachesTheWorld)
+{
+    namespace Character = Client::Protocol::Character;
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+    tested.socket.reads = {
+        FromTheGameServer(Bytes({0xc1, 0x07, 0xf3, 0x08, 0x12, 0x34, 0x03}), tested.gameServerSends)};
+    ASSERT_TRUE(tested.session.Poll().HasValue());
+    const auto events = tested.eventSink.TakeWorldEvents();
+    ASSERT_EQ(events.size(), 1u);
+    const auto* level = std::get_if<Character::PkLevel>(&events[0]);
+    ASSERT_NE(level, nullptr);
+    EXPECT_EQ(level->key, 0x1234);
+    EXPECT_EQ(level->level, 3);
 }
 
 // La conexión cifra sólo el gate: los tres C1 de mundo restantes salen con XOR32 sin C3.

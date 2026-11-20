@@ -14,6 +14,7 @@
 #include "Protocol/Character/CharacterList.h"
 #include "Protocol/Character/CharacterSelectResult.h"
 #include "Protocol/Character/InventoryList.h"
+#include "Protocol/Character/PkLevel.h"
 #include "Protocol/Combat.h"
 #include "Protocol/Duel.h"
 #include "Protocol/Events.h"
@@ -66,6 +67,7 @@
 #include "Scenes/PersonalShopLists.h"
 #include "Scenes/PetOrders.h"
 #include "Scenes/PetStats.h"
+#include "Scenes/PkLevelReply.h"
 #include "Scenes/QuestReplies.h"
 #include "Scenes/ReturnToSelection.h"
 #include "Scenes/SceneId.h"
@@ -490,6 +492,8 @@ std::optional<Core::Expected<void, std::string>> SessionEventApplier::ApplySkill
         return ApplyLevelUp(*level, m_resources);
     if (const auto* point = std::get_if<Protocol::Character::LevelUpPointResult>(&event))
         return ApplyLevelUpPointResult(*point, m_resources);
+    if (const auto* pk = std::get_if<Protocol::Character::PkLevel>(&event))
+        return ApplyPkLevel(*pk, m_resources);
     if (const auto* summon = std::get_if<Protocol::Skill::SummonLife>(&event))
     {
         ApplySummonLife(*summon, m_resources);

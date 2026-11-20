@@ -505,6 +505,7 @@ private:
     void OnSkillList(const Network::Packet& packet);
     void OnLevelUp(const Network::Packet& packet);
     void OnLevelUpPointResult(const Network::Packet& packet);
+    void OnPkLevel(const Network::Packet& packet);
     void OnSummonLife(const Network::Packet& packet);
     void OnPetOrder(const Network::Packet& packet);
     void OnPetAttack(const Network::Packet& packet);

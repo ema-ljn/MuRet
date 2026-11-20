@@ -6,6 +6,7 @@
 #include "Protocol/Character/CharacterSelectResult.h"
 #include "Protocol/Character/InventoryList.h"
 #include "Protocol/Character/LevelUpPoint.h"
+#include "Protocol/Character/PkLevel.h"
 #include "Protocol/Combat.h"
 #include "Protocol/Duel.h"
 #include "Protocol/Events.h"
@@ -135,18 +136,18 @@ using WorldEvent = std::variant<
     Protocol::PersonalShop::ShopPurchase, Protocol::PersonalShop::ShopRefresh, Protocol::Skill::MagicAttack,
     Protocol::Skill::DurationMagic, Protocol::Skill::MagicCancel, Protocol::Skill::ActorState,
     Protocol::Skill::ActorEffect, Protocol::Skill::SkillTarget, Protocol::Skill::SkillList, Protocol::Skill::LevelUp,
-    Protocol::Character::LevelUpPointResult, Protocol::Skill::SummonLife, Protocol::Pet::PetOrder,
-    Protocol::Pet::PetAttack, Protocol::Pet::PetInfoReply, Protocol::Quest::QuestFlag, Protocol::Quest::QuestList,
-    Protocol::Quest::QuestStateChange, Protocol::Quest::SetQuestResult, Protocol::Quest::QuestResult,
-    Protocol::Movement::Action, Protocol::Viewport::Players, Protocol::Viewport::Leave, Protocol::Viewport::Transformed,
-    Protocol::Viewport::EquipmentShown, Protocol::Viewport::Position, Protocol::Viewport::Monsters,
-    Protocol::Viewport::Summons, Protocol::Viewport::Objects, Protocol::Viewport::MagicAttackCount,
-    Protocol::Friends::FriendList, Protocol::Friends::FriendAddResult, Protocol::Friends::FriendRequest,
-    Protocol::Friends::FriendDeleteResult, Protocol::Friends::FriendState, Protocol::Combat::KillExperience,
-    Protocol::Combat::Death, Protocol::Events::EventPacket, Protocol::Guild::GuildPacket,
-    Protocol::Letters::LetterSendResult, Protocol::Letters::LetterRow, Protocol::Letters::LetterRead,
-    Protocol::Letters::LetterDeleteResult, Protocol::FriendChat::RoomAnswer, Protocol::FriendChat::InviteResult,
-    ChatRoomPacket, ChatRoomClosed, ChatRoomPingDue, Protocol::CastleSiege::CastleSiegePacket,
-    Protocol::CastleBattle::CastleBattlePacket, MapServerLeft, MapServerJoined, MapServerAuthenticationPrepared,
-    GuildTableReset>;
+    Protocol::Character::LevelUpPointResult, Protocol::Character::PkLevel, Protocol::Skill::SummonLife,
+    Protocol::Pet::PetOrder, Protocol::Pet::PetAttack, Protocol::Pet::PetInfoReply, Protocol::Quest::QuestFlag,
+    Protocol::Quest::QuestList, Protocol::Quest::QuestStateChange, Protocol::Quest::SetQuestResult,
+    Protocol::Quest::QuestResult, Protocol::Movement::Action, Protocol::Viewport::Players, Protocol::Viewport::Leave,
+    Protocol::Viewport::Transformed, Protocol::Viewport::EquipmentShown, Protocol::Viewport::Position,
+    Protocol::Viewport::Monsters, Protocol::Viewport::Summons, Protocol::Viewport::Objects,
+    Protocol::Viewport::MagicAttackCount, Protocol::Friends::FriendList, Protocol::Friends::FriendAddResult,
+    Protocol::Friends::FriendRequest, Protocol::Friends::FriendDeleteResult, Protocol::Friends::FriendState,
+    Protocol::Combat::KillExperience, Protocol::Combat::Death, Protocol::Events::EventPacket,
+    Protocol::Guild::GuildPacket, Protocol::Letters::LetterSendResult, Protocol::Letters::LetterRow,
+    Protocol::Letters::LetterRead, Protocol::Letters::LetterDeleteResult, Protocol::FriendChat::RoomAnswer,
+    Protocol::FriendChat::InviteResult, ChatRoomPacket, ChatRoomClosed, ChatRoomPingDue,
+    Protocol::CastleSiege::CastleSiegePacket, Protocol::CastleBattle::CastleBattlePacket, MapServerLeft,
+    MapServerJoined, MapServerAuthenticationPrepared, GuildTableReset>;
 } // namespace Client::App

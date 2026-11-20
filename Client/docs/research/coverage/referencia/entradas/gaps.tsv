@@ -1199,7 +1199,7 @@ CL9	0x5ba790	366	partial	partial: falta 0.08	CL9	cmp con 0x7688ab8 (0x514133, 0x
 CL9	0x661bc0	366	partial	partial: falta 0.33	CL9	0x661bc0 1099 ventanas: CL9.5
 CL9	0x4e0340	358	not-started	sin citar		P-C302 Los paquetes de la batalla del asedio (CL9 hito 12, 2026-11-14, [04](04-protocolo.md#castle-siege-las-ventanas-del-castillo)). De la 
 CL9	0x4e00c0	352	not-started	sin citar		P-C90 Los diálogos del juego que quedan (CL8 hito 6, 2026-11-12; [06](06-render-escenas-y-ui.md#los-diálogos-del-juego)). Portados el despac
-CL9	0x4d3b50	341	not-started	sin citar		F3 08: el cambio de clase
+CL9	0x4d3b50	341	not-started	sin citar		F3 08: el estado de PK de un personaje (07 Q-C1827)
 CL9	0x4806e0	327	not-started	clon de una citada	exact:0x479240	sin texto que la describa
 CL9	0x481db0	327	not-started	clon de una citada	exact:0x479240	sin texto que la describa
 CL9	0x484b90	327	not-started	clon de una citada	exact:0x479240	sin texto que la describa

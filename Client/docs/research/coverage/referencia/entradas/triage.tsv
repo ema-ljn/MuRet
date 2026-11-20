@@ -909,7 +909,7 @@ CL9	0x48a620	16	clon byte a byte de una función citada	la llama 0x46b9d0, 0x488
 CL9	0x48aaa0	16	clon byte a byte de una función citada	la llama 0x46d630, 0x488f90
 CL9	0x48b3b0	16	clon byte a byte de una función citada	la llama 0x46f510, 0x489590
 CL9	0x48b760	16	clon byte a byte de una función citada	la llama 0x4708e0, 0x489890
-CL9	0x4d3b50	341	pendiente CL9 (fuera del plan)	F3 08: el cambio de clase
+CL9	0x4d3b50	341	pendiente CL9 (fuera del plan)	F3 08: el estado de PK de un personaje (07 Q-C1827)
 CL9	0x5ae2d0	15	pendiente CL9 (fuera del plan)	la llama 0x57cfc0
 CL9	0x5ae2e0	7	pendiente CL9 (fuera del plan)	la llama 0x57cfc0
 CL9	0x5ae2f0	4	pendiente CL9 (fuera del plan)	la llama 0x57cfc0

@@ -427,6 +427,7 @@ está en [06](06-render-escenas-y-ui.md#la-escena-del-juego).
 | `F3 04` | S->C (C3) | `0x4c4b80` | revivir (abajo) |
 | `F3 05` | S->C (C1) | `0x4e30b9 → 0x4d2ed0` | [subir de nivel](#subir-de-nivel-f3-05) |
 | `F3 06` | C->S y S->C (C1) | `0x5e468e`; `0x4e30cd → 0x4d3200` | [el punto de subir de nivel](#el-f3-06-que-llega) |
+| `F3 08` | S->C (C1) | `0x4e30cd → 0x4d3b50` | [el estado de PK de un personaje](#el-f3-08-el-estado-de-pk) |
 | `F3 12` | C->S | `0x4c6e10` | "ya está el mapa", después de un `1C` con gate (abajo) |
 | `0x0F` | S->C | `0x4e36b5` | el clima: la meta de la lluvia (abajo) |
 | `0xBD` | C->S y S->C | `0x4c421a`, `0x4c785d`; `0x4e2b10` → `0x4033b0` | el estado de Crywolf; el recorrido de la cámara (abajo) |
@@ -581,6 +582,23 @@ más el agregado. `0x4e30cd` (el caso 6 de la tabla de `0x4e5ff8`) llama a `0x4d
 `RecalculateOwnStats`. Hasta el 2026-11-20 el `F3 06` no tenía handler: la sesión lo descartaba ("no tiene handler")
 y el punto pedido no se veía. Los tests son `test_level_up_point.cpp`, `test_level_up_point_reply.cpp` y
 `ServerSessionTest.TheLevelUpPointReplyReachesTheWorld`.
+
+### El F3 08, el estado de PK
+
+(2026-11-20, *estático*, contra el ASM de `0x4d3b50`.) `C1 07 F3 08 <clave:2, el byte alto primero> <estado>`, del
+sub-dispatcher del `F3` (`0x4e30cd`). El servidor lo manda al entrar al mundo (en el laboratorio llega después del
+`F3 03`) y cuando cambia el estado de un personaje. La auditoría lo llamó "el cambio de clase": no lo es.
+
+1. `0x5110d0(clave)` (`0x4d3b6c`), sin mirar el resultado: el primero de los 400 vivo con la clave, o el registro
+   fantasma 400 si no hay ninguno.
+2. `+0x375` con el estado (`0x4d3b8b`), y el word `+0x1d6` en 1 desde el 6 (`JC`, sin signo) y en 0 si no
+   (`0x4d3b93`, `0x4d3b9e`). `+0x1d6` es el word que la lista y el `F3 03` escriben como nivel; en el juego lo leen el
+   tinte del personaje bajo el mouse y los sprites de las manos (07 Q-C1827).
+3. Del 1 al 6, por la tabla de `0x4d3ca8`, `0x555190(nombre, texto, tipo)`: el nombre es `+0x1d9` del personaje de otra
+   llamada a `0x5110d0(clave)` (los dos `PUSH` de antes quedan en la pila para `0x555190`). El 1 y el 2, el 487 en el
+   tipo 1; el 3, el 488 en el 1; el 4, el 489 en el 2; el 5 y el 6, `"%s %d%s"` (`0x6c843c` y `0x6c8444`) con el 490,
+   1 o 2 y el 491, a un buffer de `0x20` bytes de la pila, en el 2. El 0 y desde el 7, nada más. MuRet:
+   `Protocol::Character::ReadPkLevel` y `Scenes::ApplyPkLevel` (`PkLevelReply.cpp`).
 
 ### Caminar y pegar: `D3` y `D7`
 

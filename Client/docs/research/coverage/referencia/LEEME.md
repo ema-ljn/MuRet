@@ -25,7 +25,7 @@ hasta que alguien las vuelva a revisar.
 | `archivos.tsv` | ~1.410 | cada archivo de `Client/src`: qué funciones del original cita, de qué ola, sus cortes, qué tests lo cubren y su último commit |
 | `ids.tsv` | ~1.120 | cada fila Q-C de 07 y P-C de 08: estado, clase o tipo, ola, si pide VM, las funciones que nombra y qué hace MuRet |
 | `metricas.tsv` | ~400 | **los números**, en formato largo: avance total, por ola, por hito de la CL9 y por sub-ola de la CL8, lo que falta por categoría, los huecos, cortes, VM, 08, 07, chat, sustitutos, tamaño de MuRet y la serie desde el 13/11 |
-| `cortes.tsv` | 1.754 | los cortes vivos con su clase (P, O, X, R, S, G, D, I, V, H), qué falta y cómo se llega |
+| `cortes.tsv` | 1.757 | los cortes vivos con su clase (P, O, X, R, S, G, D, I, V, H), qué falta y cómo se llega |
 | `vm.tsv` | 234 | los pasos de VM pendientes de todas las olas, y si bloquean código |
 | `sustitutos.tsv`, `sin-cablear.tsv` | 143, 185 | los sustitutos propios de MuRet y el código sin llamador |
 | `chat.tsv` | 333 | el inventario del chat (funciones y tramos), con su estado |
@@ -216,7 +216,7 @@ de MuRet. El botón aparece cuando el workflow está en `main`; antes, corre en 
 | cota alta / media / baja | **91,7 / 89,5 / 87,4 %** |
 | cota baja con test | 77,7 % |
 | explicado (baja + clones, plataforma, herramientas, STL, sin uso) | 91,7 % |
-| cortes vivos | 1.754 sitios; 5 cierran el cliente jugando (los 5 V, de la VM) |
+| cortes vivos | 1.757 sitios; 5 cierran el cliente jugando (los 5 V, de la VM) |
 | pasos de VM | 234 (cota superior); 11 bloquean código |
 | 08 | 305 filas: 246 abiertas (98 de código, cota superior) |
 | chat (A+B, vivo) | 137.715 B (5,9 %): 99,2 % citado, 79,4 % con test |

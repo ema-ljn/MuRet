@@ -31,6 +31,7 @@
 #include "support/FakeClock.h"
 #include "support/FakeTextureStore.h"
 #include "support/GoldenDir.h"
+#include "support/LetterMeasure.h"
 #include "support/RecordingFrameTarget.h"
 #include "support/RecordingSink.h"
 #include "support/SessionHarness.h"
@@ -101,8 +102,13 @@ protected:
 
     Scenes::WorldEntryResources Resources()
     {
-        return {*m_world,  *m_selection,          m_dataRoot,         *m_cloth, m_camera, m_cameraInput,
-                *m_models, &m_data->items->table, &*m_data->itemSets, m_log,    &m_clock};
+        Scenes::WorldEntryResources resources{*m_world,           *m_selection,  m_dataRoot, *m_cloth,
+                                              m_camera,           m_cameraInput, *m_models,  &m_data->items->table,
+                                              &*m_data->itemSets, m_log,         &m_clock};
+        // El renglón de bienvenida del F3 03 y del 1C que cambia de mapa (0x4c4b60 y 0x4c7c4e).
+        resources.textMeasure = &m_letters;
+        resources.texts = &*m_data->text;
+        return resources;
     }
 
     void Receive(std::vector<std::byte> plain, bool encrypted = true)
@@ -300,6 +306,7 @@ protected:
     World::GameCameraInput m_cameraInput;
     Input::InputState m_input;
     std::optional<Scenes::GameData> m_data;
+    LetterMeasure m_letters;
     std::optional<std::string> m_pollFailure;
     Network::PacketSerials m_incoming;
     Network::PacketSerials m_outgoing;

@@ -1,5 +1,12 @@
 #include "Scenes/MapBanner.h"
 
+#include "Data/Textures/Sampling.h"
+#include "Render/TextureSlot.h"
+#include "support/FakeTextureStore.h"
+#include "support/SceneDataFiles.h"
+#include "support/TemporaryFolder.h"
+#include "support/TextureFiles.h"
+
 #include <gtest/gtest.h>
 
 #include <cstdint>
@@ -118,5 +125,58 @@ TEST(MapBannerTest, ItFadesInHoldsFiveSecondsAndFadesOut)
     EXPECT_EQ(steps, 67);
     EXPECT_EQ(banner.state, MapBannerState::Off);
     EXPECT_EQ(banner.alpha, 0.0f);
+}
+
+// 0x63bd00(imagen, 0x66a, GL_NEAREST, GL_CLAMP, 0, 1): la imagen pendiente sube desde Data\ al slot 0x66a (el OZT del
+// nombre hasta el punto) y deja de estar pendiente; la de otro mapa la reemplaza en el mismo slot. Una de 24 bits no se
+// sube y no avisa (Q-C14, Q-C29): queda la de antes. Una que falta, o el nombre vacío de un mapa sin imagen, corta: el
+// original avisa "File not exist" y cierra (Q-C23).
+TEST(MapBannerTest, TheImageGoesToItsSlotAndAMissingOneCuts)
+{
+    const Client::Tests::TemporaryFolder data("map-banner");
+    Client::Tests::WriteSceneFile(data.Path(), "Interface/lorencia.OZT", Client::Tests::PlainOzt(4, 4));
+    Client::Tests::WriteSceneFile(data.Path(), "Interface/noria.OZT", Client::Tests::PlainOzt(8, 4));
+    Client::Tests::WriteSceneFile(data.Path(), "Interface/devias.OZT", Client::Tests::PlainOzt(4, 4, 24));
+    Client::Tests::FakeTextureStore store;
+    const Client::Render::TextureSlot slot{Client::Scenes::MapBannerSlot};
+    MapBanner banner = Client::Scenes::MakeTheMapBanner();
+    Client::Scenes::ResetTheMapBanner(banner, 0);
+    const auto upload = [&] { return Client::Scenes::UploadTheMapBanner(banner, data.Path(), store); };
+
+    ASSERT_TRUE(upload().HasValue());
+    EXPECT_EQ(store.loadCalls, 0);
+
+    Client::Scenes::ShowTheMapBanner(banner, 0);
+    const auto lorencia = upload();
+    ASSERT_TRUE(lorencia.HasValue()) << lorencia.Error();
+    EXPECT_FALSE(banner.pendingImage.has_value());
+    const auto first = store.Find(slot);
+    ASSERT_TRUE(first.has_value());
+    EXPECT_EQ(first->texture.width, 4);
+    EXPECT_EQ(first->sampling.filter, Client::Data::Textures::Filter::Nearest);
+    EXPECT_EQ(first->sampling.wrap, Client::Data::Textures::Wrap::Clamp);
+
+    Client::Scenes::ShowTheMapBanner(banner, 3);
+    const auto noria = upload();
+    ASSERT_TRUE(noria.HasValue()) << noria.Error();
+    const auto second = store.Find(slot);
+    ASSERT_TRUE(second.has_value());
+    EXPECT_EQ(second->texture.width, 8);
+
+    Client::Scenes::ShowTheMapBanner(banner, 2);
+    const auto devias = upload();
+    ASSERT_TRUE(devias.HasValue()) << devias.Error();
+    EXPECT_FALSE(banner.pendingImage.has_value());
+    EXPECT_EQ(store.Find(slot)->texture.width, 8);
+    EXPECT_EQ(store.loadCalls, 2);
+
+    Client::Scenes::ShowTheMapBanner(banner, 1);
+    const auto dungeon = upload();
+    ASSERT_FALSE(dungeon.HasValue());
+    EXPECT_NE(dungeon.Error().find("dungeun"), std::string::npos) << dungeon.Error();
+
+    Client::Scenes::ShowTheMapBanner(banner, 5);
+    EXPECT_FALSE(upload().HasValue());
+    EXPECT_EQ(store.loadCalls, 2);
 }
 } // namespace

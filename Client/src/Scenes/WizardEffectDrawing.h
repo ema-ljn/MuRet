@@ -29,6 +29,9 @@ struct DrawnObject;
 // 0x601da8..0x601df1: el 0xcc/3 y /4 con el color del modelo en (0,1f; 0,1f; 10) y el pase común.
 // 0x601df6..0x601e39: el 0xcb/2 y /3 con el color en (0,5; 0,5; 1) y RenderBody(2, …, 0x6e9): Effect\Magic_b.jpg en
 // cada malla. Después (0x6021fe) el color vuelve a (1, 1, 1), que no es del efecto.
+// 0x60213e..0x60216b: el 0x109 con el subtipo (+0x4) en 1, antes del pase común, RenderBody(0x1040, …, 1, −1): el cromo
+// aditivo sin la malla 1. El edx que compara es el 1 de 0x601095, así que no es del 0x109/0 (el escudo de 0x4cb3b0, el
+// único 0x109 que crea el original), que va sólo por el común.
 // Devuelve true si lo dibujó; false si sigue el pase común de `object` (con el color que le haya puesto).
 [[nodiscard]] Core::Expected<bool, std::string> DrawTheWizardEffectBody(Render::ModelBatch& batch,
                                                                         const IModelLibrary& models,

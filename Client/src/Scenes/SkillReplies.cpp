@@ -708,7 +708,7 @@ Core::Expected<void, std::string> ApplyMagicAttack(const MagicAttack& attack, co
     const std::size_t targetIndex = ActorWithKey(world, attack.target);
     if (targetIndex == NoActor)
         return {};
-    runtime.skillSource = static_cast<std::int32_t>(sourceIndex);
+    runtime.lastAttacker = static_cast<std::int32_t>(sourceIndex);
     const auto actors = world.Actors();
     ActorState& source = actors[sourceIndex];
     ActorState& target = actors[targetIndex];
@@ -880,7 +880,7 @@ Core::Expected<void, std::string> ApplySkillTarget(const SkillTarget& target, co
     const std::size_t targetIndex = ActorWithKey(world, target.target);
     if (targetIndex == NoActor)
         return {};
-    world.Runtime().skillSource = static_cast<std::int32_t>(sourceIndex);
+    world.Runtime().lastAttacker = static_cast<std::int32_t>(sourceIndex);
     ActorState& source = world.Actors()[sourceIndex];
     {
         const Render::Models::LogicalAccess access(source.byte42eAccesses, resources.cloth.random,

@@ -471,6 +471,70 @@ TEST(CharacterStepTest, ChargedSkillFlaresAndTheFullJointTailUseTheirNativeBudge
     }
 }
 
+// 0x506f5a → 0x5189f0: el héroe en (1000, 2000, 300) con la acción 0x44 o la 0x45 (sin huesos, sin las chispas
+// 0x5ac/6) suelta tres 0x619/8 en los tres primeros lugares de la tabla de joints, cada uno con sus tres rand(): los
+// dos de los ángulos (rand() % 90, 0, rand() % 360) y el de la luz del alta (rand() & 0x7f). El primer punto es la
+// posición menos (0, −500, 0) girado por los ángulos (0x5fc8f0 y 0x5fcbd0) y 120 más arriba; el destino, la posición
+// con z + 100. Los esperados son literales, calculados aparte del port con los rand() de la semilla después de
+// SeenHeroDraws.
+TEST(CharacterStepTest, TheChargedSkillReleasesThreeEnergyJointsWithTheirRandoms)
+{
+    struct Expected
+    {
+        glm::vec3 angles;
+        glm::vec3 first;
+        std::uint32_t blue;
+    };
+    const std::array<Expected, 3> expected{
+        Expected{
+            {8.0f, 0.0f, 71.0f},
+            {std::bit_cast<float>(0x4404f5ddu), std::bit_cast<float>(0x45071333u), std::bit_cast<float>(0x43f4cb14u)},
+            0x3f0e0e0eu},
+        Expected{
+            {7.0f, 0.0f, 3.0f},
+            {std::bit_cast<float>(0x447381bcu), std::bit_cast<float>(0x451bf97du), std::bit_cast<float>(0x43f077a3u)},
+            0x3f373737u},
+        Expected{
+            {31.0f, 0.0f, 187.0f},
+            {std::bit_cast<float>(0x44838766u), std::bit_cast<float>(0x44c4d38du), std::bit_cast<float>(0x44296138u)},
+            0x3f2d2d2du}};
+    for (const std::uint8_t action : {std::uint8_t{0x44}, std::uint8_t{0x45}})
+    {
+        SCOPED_TRACE(static_cast<int>(action));
+        GameWorld tested;
+        ActorState& hero = tested.Hero();
+        hero.animation.action = action;
+        hero.animation.previousAction = action;
+        hero.position = {1000.0f, 2000.0f, 300.0f};
+        tested.world.Runtime().terrainPolygon = Everything;
+        const auto stepped = StepCharacters({.world = tested.world,
+                                             .random = tested.random,
+                                             .playerSkeleton = &tested.skeleton,
+                                             .joints = tested.world.DrawTail().joints});
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        EXPECT_EQ(tested.random.State(), Client::Tests::AfterDraws(Seed, SeenHeroDraws + 9).State());
+        const auto& joints = tested.world.DrawTail().joints;
+        EXPECT_EQ(std::ranges::count_if(joints, [](const auto& joint) { return joint.alive; }), 3);
+        for (std::size_t index = 0; index < expected.size(); ++index)
+        {
+            SCOPED_TRACE(index);
+            const auto& joint = joints[index];
+            EXPECT_TRUE(joint.alive);
+            EXPECT_EQ(joint.type, 0x619);
+            EXPECT_EQ(joint.subtype, 8);
+            EXPECT_EQ(joint.ownerContext, &hero);
+            EXPECT_EQ(joint.width, 10.0f);
+            EXPECT_EQ(joint.key, -1);
+            EXPECT_EQ(joint.life, 17);
+            EXPECT_EQ(joint.maximumCount, 3);
+            EXPECT_EQ(joint.angles, expected[index].angles);
+            EXPECT_EQ(joint.position, expected[index].first);
+            EXPECT_EQ(joint.light, glm::vec3(0.5f, 0.5f, std::bit_cast<float>(expected[index].blue)));
+            EXPECT_EQ(joint.targetPosition, glm::vec3(1000.0f, 2000.0f, 400.0f));
+        }
+    }
+}
+
 TEST(CharacterStepTest, Action96CreatesTenFiresAndFullParticlesKeepItsBoneChoices)
 {
     for (const bool full : {false, true})
@@ -1722,7 +1786,8 @@ TEST(CharacterStepTest, BothHandsAddTheirLightsRightFirst)
 }
 
 // El caso del 0x20a en 0x506cf8 y los pasos del héroe (0x50862f), después del rand() & 7: el mapa 7 y las
-// acciones 0x44, 0x45 y 0x96 cortan (el 7 sin el pool de la burbuja); el 9 tiene su test. Los pasos ya producen
+// acciones 0x44, 0x45 y 0x96 cortan (el 7 sin el pool de la burbuja; la 0x44 y la 0x45 sin la tabla de joints, después
+// de los dos rand() de los ángulos del primer 0x619/8); el 9 tiene su test. Los pasos ya producen
 // solicitudes CL10 sin cortar ni agregar RNG.
 
 TEST(CharacterStepTest, ThePlayerEffectsAndStepsStopAfterTheRandom)
@@ -1981,7 +2046,8 @@ TEST(CharacterStepTest, KalimaParticleCutsAfterItsTwoRandoms)
 }
 
 // Después de la cabeza, otro que el héroe sigue el camino del 0x20a del héroe: la luz de una mano suma al buffer
-// dinámico y sigue; el mapa 7 (solo en el juego) y las acciones 0x44, 0x45 y 0x96 cortan después del rand() & 7.
+// dinámico y sigue; el mapa 7 (solo en el juego) y las acciones 0x44, 0x45 y 0x96 cortan después del rand() & 7 (la
+// 0x44 y la 0x45, sin la tabla de joints, en el primer 0x619/8).
 
 TEST(CharacterStepTest, AfterItsHeadAnotherCharacterTakesThePathOfTheHero)
 {

@@ -1328,6 +1328,60 @@ TEST(GameDrawTailTest, TheWizardEffectsTakeTheirBodyPass)
     }
 }
 
+// 0x60213e..0x60216b: el 0x109 (Protect2) con +0x4 en 1 (el edx de 0x601095) agrega antes del pase común (0x602170)
+// RenderBody(0x1040, …, 1, −1): el cromo 0x1000 con la textura del pase (0x620) y aditivo, sin la malla 1. El 0x109/0,
+// el escudo de 0x4cb3b0 y el único 0x109 que crea el original, va sólo por el común: cada malla con su textura.
+TEST(GameDrawTailTest, OnlyTheShieldOfSubtypeOneTakesTheChromePassBeforeTheCommon)
+{
+    using Client::Render::ModelBlend;
+    using Client::Render::TextureSlot;
+    struct Draw
+    {
+        ModelBlend blend;
+        std::optional<TextureSlot> texture;
+        std::size_t vertices;
+    };
+    Client::World::SphereFrustum frustum;
+    TwoMeshModels models;
+    std::array<std::vector<Draw>, 2> draws;
+    for (const std::int32_t subtype : {0, 1})
+    {
+        SCOPED_TRACE(subtype);
+        Client::Render::ModelBatch batch;
+        Client::World::ModelEffect shield;
+        shield.alive = true;
+        shield.type = 0x109;
+        shield.subtype = subtype;
+        shield.life = 20;
+        shield.objectState.blendMesh = 0; // 0x51921a
+        shield.light = {0.25f, 0.25f, 0.25f};
+        const auto drawn =
+            Client::Scenes::DrawGameModelEffects(batch, models, std::span(&shield, 1), frustum, nullptr, {}, 0, 0);
+        ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+        for (const Client::Render::ModelDrawCommand& command : batch.Commands())
+            if (command.operation == Client::Render::ModelStateOperation::Draw && command.vertexCount != 0)
+                draws[static_cast<std::size_t>(subtype)].push_back(
+                    {command.state.blend, command.state.texture, command.vertexCount});
+    }
+    const std::vector<Draw>& common = draws[0];
+    const std::vector<Draw>& chromed = draws[1];
+    ASSERT_FALSE(common.empty());
+    ASSERT_EQ(chromed.size(), common.size() + 1);
+    // Sólo la malla 0: la 1 va oculta en este pase.
+    EXPECT_EQ(chromed[0].blend, ModelBlend::Additive);
+    EXPECT_EQ(chromed[0].texture, std::optional(TextureSlot{0x620}));
+    EXPECT_EQ(chromed[0].vertices, 3u);
+    for (std::size_t index = 0; index < common.size(); ++index)
+    {
+        SCOPED_TRACE(index);
+        EXPECT_EQ(chromed[index + 1].blend, common[index].blend);
+        EXPECT_EQ(chromed[index + 1].texture, common[index].texture);
+        EXPECT_EQ(chromed[index + 1].vertices, common[index].vertices);
+    }
+    for (const Draw& draw : common)
+        EXPECT_NE(draw.texture, std::optional(TextureSlot{0x620}));
+}
+
 // 0x6002e0 → 0x442e10 con el 0x13d y el 0x13e, sin RenderBody: la malla 0 con 2, la luz 1 y el color en (1, 1, 1). El
 // 0x13d, con el blendMesh −1 (opaca, su textura) y después con el 0 (aditiva) y la textura 0x63c. El 0x13e, una vez con
 // el blendMesh 0 y la U en FSIN(T · 0,00008f) · 2,5f, y deja +0x6c en 1; sin el reloj del mundo, corta.

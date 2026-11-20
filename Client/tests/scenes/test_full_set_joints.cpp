@@ -1052,3 +1052,152 @@ TEST(FullSetJointsTest, TheBoltEnergyNeedsTheSpritesOnlyForItsSparks)
     ASSERT_FALSE(blind.HasValue());
     EXPECT_NE(blind.Error().find("0x538c5d"), std::string::npos) << blind.Error();
 }
+
+// El 619/8 de la skill cargada del mago (0x5189f0), con el personaje de dueño. Los esperados son literales, calculados
+// aparte del port (Fraction y redondeos de la x87; el primer rand() de la semilla 1 es 41).
+namespace
+{
+constexpr std::int32_t ChargedEnergy = 8;
+} // namespace
+
+// 0x5323d3..0x5323f8 y 0x5324ea..0x53254a: lo común del 0x619 (velocidad 0, el ancho) y el caso 8: vida 0x11, 3 puntos,
+// la luz (0,5; 0,5; (41 & 0x7f) · 1/255f + 0,5) y el destino en el segundo punto con z + 100, aunque tenga dueño. Un
+// rand(); la posición y los ángulos, los del pedido.
+TEST(FullSetJointsTest, TheChargedEnergyIsBornWithAHalfLightAndOneRandom)
+{
+    ActorState hero;
+    std::array<JointState, 1> joints{};
+    CrtRandom random(1);
+    Request request{0x619, ChargedEnergy, 10.0f, -1, 0};
+    request.angles = {40.0f, 0.0f, 213.0f};
+
+    const auto created = Create(joints, request, &hero, random);
+
+    ASSERT_TRUE(created.HasValue()) << created.Error();
+    EXPECT_EQ(created.Value(), std::optional<std::size_t>(0));
+    CrtRandom once(1);
+    static_cast<void>(once.Next());
+    EXPECT_EQ(random.State(), once.State());
+    const JointState& joint = joints[0];
+    EXPECT_TRUE(joint.alive);
+    EXPECT_EQ(joint.type, 0x619);
+    EXPECT_EQ(joint.subtype, ChargedEnergy);
+    EXPECT_EQ(joint.texture, 0x619);
+    EXPECT_EQ(joint.life, 17);
+    EXPECT_EQ(joint.maximumCount, 3);
+    EXPECT_EQ(joint.count, 0);
+    EXPECT_EQ(joint.speed, 0.0f);
+    EXPECT_EQ(joint.width, 10.0f);
+    EXPECT_EQ(joint.light, glm::vec3(0.5f, 0.5f, Float(0x3f292929u)));
+    EXPECT_EQ(joint.position, glm::vec3(100.0f, 200.0f, 300.0f));
+    EXPECT_EQ(joint.angles, glm::vec3(40.0f, 0.0f, 213.0f));
+    EXPECT_EQ(joint.targetPosition, glm::vec3(110.0f, 190.0f, 405.0f));
+    EXPECT_EQ(joint.ownerContext, &hero);
+}
+
+// 0x530860..0x53088a: con la tabla llena sale antes del caso, sin el rand() de la luz.
+TEST(FullSetJointsTest, TheChargedEnergyIsNotBornInAFullPoolNorDrawsItsRandom)
+{
+    ActorState hero;
+    std::array<JointState, 2> joints{};
+    for (JointState& joint : joints)
+        joint.alive = true;
+    CrtRandom random(1);
+
+    const auto created = Create(joints, Request{0x619, ChargedEnergy, 10.0f, -1, 0}, &hero, random);
+
+    ASSERT_TRUE(created.HasValue()) << created.Error();
+    EXPECT_FALSE(created.Value().has_value());
+    EXPECT_EQ(random.State(), CrtRandom(1).State());
+}
+
+// 0x538a52..0x538a70, 0x538a94..0x538b15 y 0x53c393, con 17 de vida y la velocidad en 0 (sin avance común): la
+// velocidad en 4; gira de a 10 hacia el destino (300, 200, 400) desde (100, 200, 400): el rumbo 90 deja la z en 10 y la
+// inclinación 360 (0x4e93f0 sin x da 0) deja la x en 360; el sprite 0x5ac en la posición con la escala 1, la luz, el
+// giro 0 y la mezcla 0. La luz no cambia (0x53c628 lleva la /8 a 0x538c23). Sin rand(); la cola común: un punto y 16.
+TEST(FullSetJointsTest, TheChargedEnergySteersTowardsItsTargetAndLeavesAFlare)
+{
+    ActorState hero;
+    std::array<JointState, 1> joints{};
+    CrtRandom random(1);
+    Request request{0x619, ChargedEnergy, 10.0f, -1, 0};
+    request.first = {100.0f, 200.0f, 400.0f};
+    request.second = {300.0f, 200.0f, 300.0f};
+    ASSERT_TRUE(Create(joints, request, &hero, random).HasValue());
+    const auto afterBirth = random.State();
+    Client::World::FrameSprites sprites;
+
+    const auto stepped = Client::Scenes::StepJoints(joints, random, nullptr, nullptr, 0, &sprites);
+
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_EQ(random.State(), afterBirth);
+    const JointState& joint = joints[0];
+    const glm::vec3 light{0.5f, 0.5f, Float(0x3f292929u)};
+    EXPECT_EQ(joint.speed, 4.0f);
+    EXPECT_EQ(joint.position, glm::vec3(100.0f, 200.0f, 400.0f));
+    EXPECT_EQ(joint.angles, glm::vec3(360.0f, 0.0f, 10.0f));
+    EXPECT_EQ(joint.light, light);
+    EXPECT_EQ(joint.targetPosition, glm::vec3(300.0f, 200.0f, 400.0f));
+    EXPECT_EQ(joint.count, 1);
+    EXPECT_EQ(joint.life, 16);
+    EXPECT_TRUE(joint.alive);
+    ASSERT_EQ(std::ranges::count_if(sprites.Sprites(), [](const auto& sprite) { return sprite.alive; }), 1);
+    const auto& flare = sprites.Sprites()[0];
+    EXPECT_EQ(flare.texture, 0x5ac);
+    EXPECT_EQ(flare.position, glm::vec3(100.0f, 200.0f, 400.0f));
+    EXPECT_EQ(flare.scale, 1.0f);
+    EXPECT_EQ(flare.light, light);
+    EXPECT_EQ(flare.rotation, 0.0f);
+    EXPECT_EQ(flare.blend, 0);
+}
+
+// 0x538aad..0x538af5: con 10 de vida o menos no gira; con menos de 6, cada canal de la luz por 0,5555556f (0x6ba234):
+// 0,5 da 0x3e8e38e4 y 0x3f292929 da 0x3ebbf4d9. El sprite 0x5ac sale igual, con la luz que quedó.
+TEST(FullSetJointsTest, TheChargedEnergyStopsTurningAndFadesBelowSixLives)
+{
+    struct Case
+    {
+        std::int32_t life;
+        glm::vec3 light;
+    };
+    const glm::vec3 born{0.5f, 0.5f, Float(0x3f292929u)};
+    for (const Case& probe :
+         {Case{10, born}, Case{6, born}, Case{5, {Float(0x3e8e38e4u), Float(0x3e8e38e4u), Float(0x3ebbf4d9u)}}})
+    {
+        SCOPED_TRACE(probe.life);
+        ActorState hero;
+        std::array<JointState, 1> joints{};
+        CrtRandom random(1);
+        Request request{0x619, ChargedEnergy, 10.0f, -1, 0};
+        request.first = {100.0f, 200.0f, 400.0f};
+        request.second = {300.0f, 200.0f, 300.0f};
+        request.angles = {20.0f, 0.0f, 30.0f};
+        ASSERT_TRUE(Create(joints, request, &hero, random).HasValue());
+        joints[0].life = probe.life;
+        Client::World::FrameSprites sprites;
+
+        ASSERT_TRUE(Client::Scenes::StepJoints(joints, random, nullptr, nullptr, 0, &sprites).HasValue());
+
+        EXPECT_EQ(joints[0].angles, request.angles);
+        EXPECT_EQ(joints[0].light, probe.light);
+        EXPECT_EQ(joints[0].life, probe.life - 1);
+        EXPECT_EQ(sprites.Sprites()[0].light, probe.light);
+        EXPECT_TRUE(sprites.Sprites()[0].alive);
+    }
+}
+
+// 0x538b0d: el sprite de cada paso pide la tabla de sprites del frame; sin ella corta antes de tocar el joint.
+TEST(FullSetJointsTest, TheChargedEnergyNeedsTheFrameSprites)
+{
+    ActorState hero;
+    std::array<JointState, 1> joints{};
+    CrtRandom random(1);
+    ASSERT_TRUE(Create(joints, Request{0x619, ChargedEnergy, 10.0f, -1, 0}, &hero, random).HasValue());
+
+    const auto blind = Client::Scenes::StepJoints(joints, random);
+
+    ASSERT_FALSE(blind.HasValue());
+    EXPECT_NE(blind.Error().find("0x538b0d"), std::string::npos) << blind.Error();
+    EXPECT_EQ(joints[0].speed, 0.0f);
+    EXPECT_EQ(joints[0].life, 17);
+}

@@ -1009,7 +1009,10 @@ Core::Expected<void, std::string> EmitSkillParticle(std::int32_t type, const glm
     return {};
 }
 
-// 5189f0: tres619/8. Los dos selectores preceden cada intento, también con J lleno.
+// 0x5189f0(c, &posición): tres 0x619/8 (0x518aa8: 0x530860(0x619, primero, posición, ángulos, 8, c, 10, −1, 0, 0,
+// −1)). Cada uno con los ángulos (rand() % 90, 0, rand() % 360), que salen también con la tabla de joints llena, y el
+// primer punto en la posición menos (0, −500, 0) girado por ellos, 120 más arriba. El alta saca su rand() de la luz
+// (FaunaJointCreation, 0x5324ea) sólo con un lugar libre.
 Core::Expected<void, std::string> EmitChargedSkillJoints(ActorState& actor, const CharacterStepContext& context)
 {
     constexpr int Count = 3, PitchSpan = 90, YawSpan = 360;

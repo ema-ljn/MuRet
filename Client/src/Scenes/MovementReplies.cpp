@@ -12,6 +12,7 @@
 #include "Scenes/ActorShock.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/ActorWalk.h"
+#include "Scenes/BlastEffectCalls.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/CrywolfContract.h"
 #include "Scenes/DamageNumbers.h"
@@ -19,12 +20,16 @@
 #include "Scenes/MonsterCreation.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/WorldEntry.h"
+#include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "World/ModelEffects.h"
 
 #include <glm/ext/vector_float3.hpp>
 
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <format>
 #include <string>
 
 namespace Client::Scenes
@@ -164,6 +169,40 @@ glm::vec3 DamageLight(std::uint8_t type, bool hero)
         return {1.0f, 1.0f, 1.0f};
     }
 }
+// 0x4cb30b..0x4cb3b0: el héroe 0x20a con +0x78 & 0x100 (el escudo de la skill del mago, 0x4e641a) que recibe un golpe
+// sin sacudida. El personaje del lugar [0x5767964] (WorldRuntime::lastAttacker: el del último 18 con 0x78 o 0x79, o la
+// fuente del último 19, 69 o 1A, con el 400, el lugar que sigue a los 400 de la tabla, si no estaba; 0 antes del
+// primero) es el que pega: 0x4e93f0 da el rumbo desde él hasta el héroe y, si difiere del suyo (+0x24) en menos de 10
+// (0x6b8d30, un double; también sin orden, con NaN), 0x518cf0(0x109, +0x10 del héroe, (0, 0, rumbo + 180), +0xf4, 0,
+// héroe, −1, 0, 0, 0, 0): el escudo, que mira al que pega. El original no mira si ese lugar está vivo: lee el que haya.
+// Sin rand(); con la tabla llena, nada.
+Core::Expected<void, std::string> RaiseTheShield(ActorState& hero, const WorldEntryResources& resources)
+{
+    constexpr std::int16_t ShieldEffect = 0x109;
+    constexpr double FacingSpan = 10.0; // 0x6b8d30
+    constexpr double Behind = 180.0;    // 0x6b86bc
+    WorldState& world = resources.world;
+    const std::int32_t source = world.Runtime().lastAttacker;
+    const auto actors = world.Actors();
+    if (source < 0 || static_cast<std::size_t>(source) >= actors.size())
+        return Core::Unexpected(
+            std::format("0x4cb347: el lugar {} de [0x5767964] cae fuera de la tabla de personajes", source));
+    const ActorState& striker = actors[static_cast<std::size_t>(source)];
+    const double heading =
+        Render::Models::CreateAngle(striker.position.x, striker.position.y, hero.position.x, hero.position.y);
+    // 0x4cb361..0x4cb376: fabs y fcomp con test ah,1: C0 también sin orden.
+    if (std::fabs(heading - static_cast<double>(striker.angles.z)) >= FacingSpan)
+        return {};
+    const World::ModelEffectArguments shield{.type = ShieldEffect,
+                                             .position = hero.position,
+                                             .angles = {0.0f, 0.0f, static_cast<float>(heading + Behind)},
+                                             .light = hero.light,
+                                             .subtype = 0,
+                                             .key = 0xffff};
+    if (auto made = CreateBlastEffectOutsideTheStep(shield, &hero, world, resources.cloth.random); !made.HasValue())
+        return Core::Unexpected(std::format("0x4cb3b0: {}", made.Error()));
+    return {};
+}
 void CreateOrdinaryDamage(const Protocol::Movement::Damage& reply, ActorState& actor, bool hero,
                           const WorldEntryResources& resources)
 {
@@ -230,7 +269,8 @@ Core::Expected<void, std::string> ApplyDamageReply(const Protocol::Movement::Dam
             SubtractHeroLife(reply.amount, resources);
             constexpr std::uint32_t DefensiveEffectFlag = 0x100;
             if ((actor->flags78 & DefensiveEffectFlag) != 0 && actor->type == Data::Models::PlayerSkeletonModel)
-                return Core::Unexpected(std::string("0x4cb32f: el efecto defensivo necesita el atacante seleccionado"));
+                if (auto shielded = RaiseTheShield(*actor, resources); !shielded.HasValue())
+                    return shielded;
         }
         else if (actor->word376 != NoRandomShock && (resources.cloth.random.Next() & 1) == 0)
         {

@@ -18,6 +18,7 @@
 #include "Scenes/GuildState.h"
 #include "Scenes/HudItems.h"
 #include "Scenes/ItemHelpLevels.h"
+#include "Scenes/MapBanner.h"
 #include "Scenes/MonsterSounds.h"
 #include "Scenes/NpcNames.h"
 #include "Scenes/NpcWindowState.h"
@@ -257,6 +258,8 @@ struct HudState
     // [0x5763528]: el cartel de Slide.bmd (0x46aea0), que dibuja el 15 (0x46b090) y escribe al dibujar (la opacidad,
     // el corrimiento, el texto que pasa y 0x5762ee4). Lo llenan el timer 0x3eb y el 0D, y lo pasa el paso de la UI.
     UI::SlideBanner slides{};
+    // [0x5763534]: el cartel con el nombre del mapa (Scenes/MapBanner.h), que dibuja el 19 (0x65dd70).
+    MapBanner mapBanner = MakeTheMapBanner();
     // 0x78793c8, 0x787a560 y 0x78a9230: los renglones de los tooltips, sus colores y sus negritas (CL8 hito 5).
     TooltipLines tooltip{};
     // 0x787a15c y 0x6c9334: la tabla por nivel de la ayuda del ítem y su ítem (−1 en la .data), que llena 0x5afc00.

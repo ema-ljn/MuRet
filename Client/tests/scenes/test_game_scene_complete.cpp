@@ -24,6 +24,7 @@
 #include "support/GoldenDir.h"
 #include "support/FakeClock.h"
 #include "support/FakeTextureStore.h"
+#include "support/LetterMeasure.h"
 #include "support/RecordingFrameTarget.h"
 #include "support/RecordingSink.h"
 #include <gtest/gtest.h>
@@ -192,17 +193,21 @@ TEST_P(CompleteWorldEntryTest, ARealWorldEntryRunsLogicBetweenCompleteFrames)
     reply.pk = 3;
     world.OwnCharacter().ClearEquipmentForEntry();
     Publisher publisher;
-    const Client::Scenes::WorldEntryResources resources{world,
-                                                        selection,
-                                                        m_dataRoot,
-                                                        cloth,
-                                                        camera,
-                                                        cameraInput,
-                                                        models,
-                                                        &data.Value().items->table,
-                                                        &*data.Value().itemSets,
-                                                        log,
-                                                        &clock};
+    const Client::Tests::LetterMeasure letters;
+    Client::Scenes::WorldEntryResources resources{world,
+                                                  selection,
+                                                  m_dataRoot,
+                                                  cloth,
+                                                  camera,
+                                                  cameraInput,
+                                                  models,
+                                                  &data.Value().items->table,
+                                                  &*data.Value().itemSets,
+                                                  log,
+                                                  &clock};
+    // El renglón de bienvenida del F3 03 (0x4c4b60).
+    resources.textMeasure = &letters;
+    resources.texts = &*data.Value().text;
     const auto entered = Client::Scenes::ApplyWorldEntry(reply, 1, resources, publisher);
     ASSERT_TRUE(entered.HasValue()) << entered.Error();
     world.Runtime().drawingEnabled = true;

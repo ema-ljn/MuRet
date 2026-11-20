@@ -1,4 +1,5 @@
 #include "Scenes/GameScene.h"
+#include "Scenes/MapBanner.h"
 #include "Scenes/SiegeBattleUi.h"
 #include "Scenes/MonsterSounds.h"
 #include "Scenes/MonsterModelTable.h"
@@ -338,15 +339,15 @@ void GameScene::StepEntry()
             UI::ClearTheLetters(runtime.oldWindows.letterModel);
             // 0x636920: 0x46b010, las colas del cartel de Slide.bmd, su timer 0x3eb y 0x46b0e0 (el registro propio y
             // un texto de Slide.bmd, con sus rand()).
+            const auto now =
+                m_context.clock != nullptr
+                    ? static_cast<std::uint32_t>(
+                          std::chrono::duration_cast<std::chrono::milliseconds>(m_context.clock->Now()).count())
+                    : 0U;
             if (m_context.cloth != nullptr)
-            {
-                const auto now =
-                    m_context.clock != nullptr
-                        ? static_cast<std::uint32_t>(
-                              std::chrono::duration_cast<std::chrono::milliseconds>(m_context.clock->Now()).count())
-                        : 0U;
                 StartTheSlides(*m_context.world, m_context.cloth->random, now);
-            }
+            // 0x636925..0x63692b: 0x65dc00, el cartel del nombre del mapa apagado y sin mapa.
+            ResetTheMapBanner(runtime.hud.mapBanner, now);
             // 0x636935: la tabla de los gremios (0x447ae0). El F1 00 (0x4c1e54) y la lista de personajes (0x4c1f14)
             // también la vacían, pero antes de que haya mundo: la entrada al juego deja lo mismo.
             ResetTheGuildTable(runtime.guild);

@@ -281,13 +281,13 @@ CL6	0x512930	11	partial	partial: falta 0.05	CL6	0x1c16; 0x512930 le deja la cabe
 CL6	0x4541d0	7	unknown	sin citar		la llama 0x454f20
 CL6	0x454660	7	not-started	sin citar		la llama 0x454630, 0x454790, 0x6b3cd0
 CL6	0x622b30	6	unknown	sin citar		la llama 0x63d7c0
-CL7	0x65d080	2933	unknown	sin citar		textos: "Interface\Icarus.tga", "Interface\Kalima.tga"; la llama 0x65cd70
+CL7	0x65d080	2933	unknown	sin citar		la tabla del cartel del nombre del mapa: 34 entradas mapa → Interface\<mapa>.tga (sin el 5, el 32 y el 35)
 CL7	0x411600	2172	unknown	sin citar		usa glColor3f, glColor4f
 CL7	0x54b3d0	1307	not-started	sin citar		- Parser 0x54b3d0; el valor en runtime del flag 0x6c9e0c; handler de
 CL7	0x53c6a0	1272	partial	partial: falta 0.46	CL7	(0x6046a0, abajo: el logo), los joints (0x53c6a0(0)), los efectos con modelo
 CL7	0x42b540	1270	partial	partial: falta 0.32	CL9	El preludio (0x42b540, el tercer eslabón de 0x6061c0, una vez por paso y antes de mirar si hay objetos
 CL7	0x4385a0	1175	unknown	sin citar		El prefijo global 0x4385a0 corre antes del early-return por ausencia de objetos vistos y
-CL7	0x65e1d0	1094	unknown	sin citar		la llama 0x65ce80, 0x65cf80
+CL7	0x65e1d0	1094	unknown	sin citar		erase(first, last) del std::_Tree
 CL7	0x41d2d0	1058	unknown	sin citar		perturbación, 0x41d880, 0x41d2d0, render o integración/lifetime de Kalima.
 CL7	0x439680	1052	unknown	sin citar		- 0x439680, Kalima: lee y cierra el acceso lógico al contador antes del gate %100; el cierre
 CL7	0x453750	1039	not-started	clon de una citada	exact:0x4a81f0	la llama 0x450fe0, 0x451100, 0x451430 y 3 más
@@ -306,13 +306,13 @@ CL7	0x608a00	673	partial	partial: falta 0.67	CL7	El piso tiene otro gate: 0x608b
 CL7	0x42eed0	652	unknown	sin citar		la llama 0x602ed0
 CL7	0x41dd00	641	unknown	sin citar		usa glColor3fv, glColor4f; la llama 0x437940
 CL7	0x622170	639	unknown	sin citar		adentro (0x622170) proyecta por prioridad x, luego y, si no z; ±0,5 seleccionan ese eje, sin
-CL7	0x65e670	628	unknown	sin citar		la llama 0x65dfa0
+CL7	0x65e670	628	unknown	sin citar		el insert del std::_Tree: baja por el árbol y pide el nodo
 CL7	0x61a280	611	unknown	sin citar		la llama 0x616ec0
 CL7	0x41cca0	608	unknown	sin citar		World/KalimaWorld conserva el estado de 0x41cca0, los planos periódicos de
 CL7	0x445ec0	602	unknown	sin citar		- 0x445ec0 llama al flock 0x4e9a40 con el pool físico completo, incluidos vecinos vivos fuera
 CL7	0x410330	577	unknown	sin citar		if (mode == 0) cipher = Create(VMT 0x410348); // TDCP_rijndael
 CL7	0x42e3d0	576	partial	partial: falta 0.40	CL9	DAT_07d2d360, el ciclo de 32 pasos elige una de 32 texturas animadas: en el terreno del mundo 7 el slot 0x1e + n (0x5fa830), y en los modelo
-CL7	0x65dfa0	558	unknown	sin citar		la llama 0x65de30
+CL7	0x65dfa0	558	unknown	sin citar		el _Insert del std::_Tree, con el rebalanceo rojo-negro
 CL7	0x5301a0	511	unknown	sin citar		alrededor del héroe (estático), y avanzan con 0x5301a0 y 0x5303a0: caen y se posan en el
 CL7	0x615500	510	unknown	sin citar		0x615500 0x548 nada: lo llama 0x61eeb0, detrás de DAT_07d366bc
 CL7	0x41df90	502	unknown	sin citar		usa glBegin, glColor3fv, glColor4f; la llama 0x41dd00
@@ -332,7 +332,7 @@ CL7	0x445890	404	unknown	sin citar		- 0x445890, Atlans: heroY0,01f conserva el p
 CL7	0x5f8c10	384	unknown	sin citar		sin texto que la describa
 CL7	0x4f37c0	375	partial	partial: falta 0.19	CL9	sigue su camino (0x508e26..0x508e6e: 0x4f37c0, 0x4ea270(c, 1) y, si terminó, +0x378 en 0, 0x4f2250
 CL7	0x41d700	372	not-started	sin citar		la llama 0x41cca0, 0x437860
-CL7	0x65ea80	369	unknown	sin citar		la llama 0x65dfa0, 0x65e670
+CL7	0x65ea80	369	unknown	sin citar		construye el nodo del std::_Tree: copia la clave y arma el std::string del valor
 CL7	0x4e9a40	368	unknown	sin citar		- 0x445ec0 llama al flock 0x4e9a40 con el pool físico completo, incluidos vecinos vivos fuera
 CL7	0x599ef0	360	partial	partial: falta 0.09	CL7	0x1C C->S (C3) 0x599ef0 pedir un gate (abajo)
 CL7	0x4fbe10	355	partial	partial: falta 0.22	CL9	- C1 06 AF 02 x y (0x4fbee8, desde 0x4fbe10), con el XOR32: en Chaos Castle, el héroe 10 s en la misma
@@ -354,16 +354,16 @@ CL7	0x52fc10	270	unknown	sin citar		solo nace en Icarus (0x52fc10): en Lorencia,
 CL7	0x52fd20	270	unknown	sin citar		la llama 0x530490
 CL7	0x416a20	268	partial	partial: falta 0.05	CL9,CL10	<resultado> como C3 (GCCloseMsgSend, 0x417280 en la reconstrucción del GS) cuando termina la
 CL7	0x61ccb0	263	partial	partial: falta 0.03	CL9	Slide.bmd 0x46b3b0, desde 0x61ccb0 (0x61ed18) / sin buscar 0xa030 bytes con el XOR3 entero (0x4c1690, la clave de 0x6c82e4): el período, la 
-CL7	0x65de30	260	unknown	sin citar		la llama 0x65d080, 0x65dc30
+CL7	0x65de30	260	unknown	sin citar		el operator[] del std::map<int, std::string>: busca la clave y, si no está, la inserta con la cadena vacía
 CL7	0x4eaaf0	258	unknown	sin citar		(new(0x424), en 0x5767b74) y lo inicializa 0x4eaaf0, desde el cargador del mundo (0x61bd80):
 CL7	0x505de0	257	partial	partial: falta 0.02	CL9	0x01 la zona segura 0x511290 y 0x505de0 (+0x3e2 del personaje), el segundo intento del camino, el clic que no ataca y la música
 CL7	0x52e590	257	partial	partial: falta 0.60	CL7	0x602ef4); 0x510d00; 0x59ec80 con +0x8de8 en 0; 0x4453b0, 0x52e590 (cintas), 0x53c6a0(0)
 CL7	0x54e6f0	255	unknown	sin citar		la llama 0x61eeb0
 CL7	0x5f8e40	252	unknown	sin citar		sin texto que la describa
 CL7	0x445a90	251	unknown	sin citar		la llama 0x446120
-CL7	0x65cf80	249	unknown	sin citar		la llama 0x65ce50
+CL7	0x65cf80	249	unknown	sin citar		el destructor del cartel (la vtable 0x6baad4 y el del árbol inline)
 CL7	0x42ac50	242	unknown	sin citar		la llama 0x42ad50, 0x5650c0
-CL7	0x65ce80	242	unknown	sin citar		la llama 0x6b7280
+CL7	0x65ce80	242	unknown	sin citar		el destructor del std::map<int, std::string> (borra los nodos, la cabeza y el _Nil compartido)
 CL7	0x621610	241	unknown	sin citar		P-C73 Lo que el 3D de la UI deja en los globales y su traza (hito 4 de la CL8, 2026-11-12, [06](06-render-escenas-y-ui.md#el-inventario)). A
 CL7	0x4c1060	240	not-started	sin citar		FUN_004c1060((int )(DVar3 + 0x41c));
 CL7	0x4e1010	237	partial	partial: falta 0.16	CL9	ventana de comandos, CL9.4), 0x4295f0 dos veces (Fenrir) y 0x4e1010 (las misiones: el único que prende
@@ -375,7 +375,7 @@ CL7	0x4125f0	222	unknown	sin citar		0x412564/0x412604, 0x411128/0x4111c8 Encrypt
 CL7	0x438fe0	221	partial	partial: falta 0.13	CL11	DAT_07d2d360, el ciclo de 32 pasos elige una de 32 texturas animadas: en el terreno del mundo 7 el slot 0x1e + n (0x5fa830), y en los modelo
 CL7	0x549b80	221	not-started	sin citar		Filter.bmd 0x549c60 / 0x549b80 igual, con checksum 0x3E7D 0x077531DC, la cuenta en 0x07758558
 CL7	0x6450f0	221	unknown	sin citar		0x6450f0 221 ventanas: portada (UI/ServerListWindow)
-CL7	0x65cd70	221	unknown	sin citar		local_24ac = FUN_0065cd70();
+CL7	0x65cd70	221	unknown	sin citar		el constructor del cartel del nombre del mapa (new 0x28 en 0x4bb999): el árbol de +8, la vtable 0x6baad4 y 0x65d080
 CL7	0x5300c0	215	unknown	sin citar		Q-C321 la consulta del atributo de una posición, 0x5f82c0 los dos fmul van por 0x6ba110, que vale −0,01f (0xbc23d70a): la fila y la columna 
 CL7	0x535840	214	partial	partial: falta 0.01	CL11	las vueltas), que gira como el /0 pero baja (0x53b2d5). Después el calco 0x61e/0 de 0x518cf0 (el de subir de
 CL7	0x40de10	211	partial	partial: falta 0.24	CL7	0x40de10 con las cuatro copias (0x40e4ac).
@@ -458,10 +458,10 @@ CL7	0x42ad50	96	partial	partial: falta 0.50	CL9	0x12 en 0x4c89e1, 0x40c140, y 0x
 CL7	0x4f5660	96	partial	partial: falta 0.08	CL9	(0x4fcd00, 0x4fd770) y, muriéndose, +0x389 + 1 y 0x4f5660 desde 15 o en los mapas 11 a 17 con
 CL7	0x457550	94	not-started	sin citar		sin texto que la describa
 CL7	0x54ed00	94	unknown	sin citar		la llama 0x54ed60
-CL7	0x65e950	91	unknown	sin citar		la llama 0x65dfa0
+CL7	0x65e950	91	unknown	sin citar		_Rrotate del std::_Tree
 CL7	0x419900	90	partial	partial: falta 0.17	CL9	este orden, el F3 00 (C1 04 F3 00, cifrado, 0x4c3653), un C1 03 31 (0x419900, desde
 CL7	0x510ca0	88	not-started	sin citar		sin texto que la describa
-CL7	0x65e8f0	87	unknown	sin citar		la llama 0x65dfa0
+CL7	0x65e8f0	87	unknown	sin citar		_Lrotate del std::_Tree
 CL7	0x414690	84	unknown	sin citar		la llama 0x4146f0
 CL7	0x445a30	84	unknown	sin citar		la llama 0x446120
 CL7	0x405490	83	partial	partial: falta 0.30	CL7	El preludio (0x405490, primero en 0x6061c0), con la cuenta de los 3 vistos del pase anterior (0x7d365a0):
@@ -484,7 +484,7 @@ CL7	0x4d9260	73	partial	partial: falta 0.05	CL9	65 0x4e42af → 0x4d9260 C2 (inf
 CL7	0x413ba0	72	not-started	sin citar		la llama 0x413bf0
 CL7	0x4548b0	70	partial	partial: falta 0.50	CL9	0x4548b0, 0x454980)) y +0x18c = 3:
 CL7	0x457f70	70	partial	partial: falta 0.50	CL9	19 las 0x44 a 0x48 (0x594e42..0x599d1c, dos copias cada una) C1 06 19 <skill> <clave H L>: con 0x6c8e30 en −1, la del jugador (0x57678bc); s
-CL7	0x65e620	70	unknown	sin citar		la llama 0x65ce80, 0x65cf80
+CL7	0x65e620	70	unknown	sin citar		_Erase del std::_Tree: borra un subárbol, recursiva
 CL7	0x6371a0	69	partial	partial: falta 0.05	CL9	5 → 0x6371a0), la animación de mascota y alas dentro de ese dibujo, la captura si se pidió
 CL7	0x405e00	68	partial	partial: falta 0.19	CL7	Las celdas (0x405e00(x, y), en el dibujo del terreno, por cada celda dibujada que no está escondida): rand()
 CL7	0x4379a0	67	unknown	sin citar		registro propio, tabla de clase/nivel 0x4379a0, lecturas XY separadas y orden de los sorteos.
@@ -494,7 +494,7 @@ CL7	0x42c500	63	partial	partial: falta 0.17	CL7	dibujan una vez, la primera que 
 CL7	0x4eb5e0	63	not-started	sin citar		la llama 0x4ead70
 CL7	0x6061c0	63	partial	partial: falta 0.12	CL7	login](#el-mundo-del-login)), y los vistos van a 0x604ab0. 0x6061c0 al empezar, 0x6063d0 y
 CL7	0x4013d0	62	not-started	sin citar		la llama 0x401350, 0x401410, 0x401480
-CL7	0x65df40	62	unknown	sin citar		la llama 0x65e620, 0x65ec00, 0x6b72a8
+CL7	0x65df40	62	unknown	sin citar		el _Tidy del std::string de MSVC6 (la cuenta de referencias en el byte de antes y el delete)
 CL7	0x5fa5c0	61	partial	partial: falta 0.10	CL7	├─ 0x5fa5c0 UV: u = x · 64 / ancho de la textura (agua animada aparte)
 CL7	0x60cf70	61	partial	partial: falta 0.05	CL11	(0x60cf70) no posa sus huesos: usa las matrices que dejó la pose del cuerpo (estático).
 CL7	0x61c9f0	61	unknown	sin citar		Q-C92 el logo del login, 0x61c7c0 y 0x61c9f0 carga Logo03 sin 0x60d530: sus dos texturas van donde dejó el próximo el mundo 55, que el login
@@ -558,8 +558,8 @@ CL7	0x456a20	33	unknown	sin citar		la clase de la vtable 0x6b8d38 (sus métodos 
 CL7	0x4573a0	33	not-started	sin citar		sin texto que la describa
 CL7	0x457dc0	33	not-started	sin citar		sin texto que la describa
 CL7	0x5fb570	33	partial	partial: falta 0.03	CL7	- El trapecio (0x5fb570, con el nivel de cámara 0): lo lejos K y el factor de ancho f de cada
-CL7	0x65ce50	33	unknown	sin citar		0x65ce50 33 ventanas: fuera del dominio
-CL7	0x65ec00	33	unknown	sin citar		la llama 0x65ce80, 0x65cf80
+CL7	0x65ce50	33	unknown	sin citar		el destructor del cartel con delete (0x65cf80 y operator delete)
+CL7	0x65ec00	33	unknown	sin citar		el destructor con delete del std::string de MSVC6 (_Tidy, 0x65df40)
 CL7	0x4378a0	32	unknown	sin citar		aparte (0x4378a0 → 0x41cca0, 0x41cf00).
 CL7	0x4eac00	32	partial	partial: falta 0.09	CL9	0x4ea030 y 0x42a110, y sin el bit 7 el camino de 0x4eac00 (+0x378) o, con él, 0x4c9790. El GS 0.97 arma
 CL7	0x548eb0	32	partial	partial: falta 0.25	CL7	cola de textos 3D; el daño es 0x548eb0), 0x5bbbc0 no dibuja barras de vida y ALT no muestra el HP de todos
@@ -573,7 +573,7 @@ CL7	0x4378c0	29	unknown	sin citar		FUN_004378c0();
 CL7	0x517270	29	partial	partial: falta 0.07	CL7	personaje de la escena un equipo fijo con el cuervo (0x517270, desde 0x634a43; 0x51734b
 CL7	0x5f9000	29	unknown	sin citar		(0x7d2d35c, que pone 0x5f9000 al cargar), la celda es x · 0,01 y y · 0,01 truncados, y entre
 CL7	0x640ea0	29	unknown	sin citar		(0x620db0(0, 0, 640, 480), glClear, 0x640ea0, que llama a 0x647650 con cada una,
-CL7	0x65e9b0	29	unknown	sin citar		la llama 0x65dfa0
+CL7	0x65e9b0	29	unknown	sin citar		_Buynode del std::_Tree: un nodo de 0x24 con el padre y el color
 CL7	0x439d90	28	partial	partial: falta 0.33	CL9	0x439d90. El 0x196: RenderBody(2) y (0,5; sin(T · 0,002f) · 0,3f + 0,7f; 0,5) con la malla 0 en 0x44 al
 CL7	0x6063d0	28	partial	partial: falta 0.07	CL7	login](#el-mundo-del-login)), y los vistos van a 0x604ab0. 0x6061c0 al empezar, 0x6063d0 y
 CL7	0x5f93c0	27	partial	partial: falta 0.08	CL9	0x40 la altura fija de 0x6c9d5c: 1.200, y 1.201 desde que la cámara pisa una (Q-C150) 0x5f93c0, 0x5fac90 y la cámara
@@ -607,7 +607,7 @@ CL7	0x42fdc0	17	partial	partial: falta 0.12	CL9	0x723bf9 (ni 0x42fdc0 ni la vuel
 CL7	0x4c2480	17	partial	partial: falta 0.03	CL9	0x4c2480) y otro C1 03 31 (0x4499b0, desde 0x657670, si la caja de 0x723c80 está vacía;
 CL7	0x5491e0	17	partial	partial: falta 0.10	CL9	una luz que solo usa el 0x1c12 (con 0x5491e0), aunque 0x5ffdf0 no lo haya dibujado (Q-C223).
 CL7	0x5545f0	17	not-started	sin citar		+0x2134c..+0x21385 de [0x710148]), y las llamadas 0x5545f0, 0x555030, 0x40ba20 (con
-CL7	0x65df80	17	unknown	clon de una citada	exact:0x4bfdd0	la llama 0x65ce80, 0x65cf80
+CL7	0x65df80	17	unknown	clon de una citada	exact:0x4bfdd0	begin() del std::_Tree: el hijo izquierdo de la cabeza
 CL7	0x4573e0	16	not-started	sin citar		la llama 0x457380
 CL7	0x4e9920	16	partial	partial: falta 0.18	CL9	1E las ramas del caballero (0x582439..0x5896a3) C1 0C 1E <skill> <x> <y> <rumbo> <hacia> <espalda> <clave H L> <b11>: la celda lógica del hé
 CL7	0x5ffdf0	16	partial	partial: falta 0.02	CL7	+0xa0 (la acción). 0x5ffdf0(objeto, bandera, modo, _) los copia del objeto (la escala de
@@ -788,7 +788,7 @@ CL8	0x472140	160	not-started	clon de una citada	param:0x489d80	la llama 0x6b3ee8
 CL8	0x48a020	160	not-started	clon de una citada	param:0x489d80	la llama 0x6b4448, 0x6b4453, 0x6b4758 y 1 más
 CL8	0x4be8b0	160	unknown	clon de una citada	param:0x489d80	la llama 0x6b5239, 0x6b5279, 0x6b52b9 y 1 más
 CL8	0x4c0210	160	unknown	clon de una citada	param:0x489d80	la llama 0x6b5308, 0x6b5316
-CL8	0x65dcd0	154	unknown	sin citar		0x65dcd0 154 HUD: sin asignar
+CL8	0x65dcd0	154	unknown	sin citar		el fundido del cartel del nombre del mapa, por dibujo: 0,015 de alfa, 5.000 ms quieto
 CL8	0x644d60	152	unknown	sin citar		0x644d60 152 ventanas: CL8.3 (se reemplaza por la STL)
 CL8	0x4a9d90	151	unknown	sin citar		0x4a9d90 151 ventanas: CL8.3 (se reemplaza por la STL)
 CL8	0x4aa700	151	unknown	sin citar		0x4aa700 151 ventanas: CL8.3 (se reemplaza por la STL)
@@ -958,7 +958,7 @@ CL8	0x467b10	41	partial	partial: falta 0.06	CL9	izquierda, derecha 0x25, 0x27 0x
 CL8	0x4bfc50	41	unknown	sin citar		FUN_004bfc50();
 CL8	0x4bfc80	41	unknown	sin citar		FUN_004bfc80();
 CL8	0x4bfcb0	41	unknown	sin citar		FUN_004bfcb0();
-CL8	0x65dc00	41	not-started	sin citar		usa timeGetTime; la llama 0x636290
+CL8	0x65dc00	41	not-started	sin citar		el reinicio del cartel del nombre del mapa (0x63692b): apagado, +0x14 en −1 y el alfa en 1
 CL8	0x644c70	40	unknown	sin citar		0x644c70 40 ventanas: CL8.3 (se reemplaza por la STL)
 CL8	0x46a9c0	39	partial	partial: falta 0.11	CL8	multimap, si su clave ya llegó: si no caducó, 0x46a9c0 pone su color, elige su fuente en el DC y agrega
 CL8	0x487b10	39	not-started	clon de una citada	exact:0x487b70	la llama 0x45f6f0
@@ -1276,7 +1276,7 @@ CL9	0x48cf80	160	not-started	sin citar		la llama 0x4818b0
 CL9	0x661270	160	not-started	sin citar		la llama 0x661240
 CL9	0x48e1f0	156	not-started	sin citar		la llama 0x46f940
 CL9	0x437a20	154	partial	partial: falta 0.25	CL9	P-C271 Lo que cortan los ítems del piso (CL9 hito 5, 2026-11-13). Cortan con su dirección y su ola: (a) usar desde la grilla el 0x1a1d, el 0
-CL9	0x65cc80	151	not-started	sin citar		la llama 0x65cc50
+CL9	0x65cc80	151	not-started	sin citar		_Init del std::_Tree: el _Nil compartido de 0x72399c (cuenta en 0x57635a8) y la cabeza
 CL9	0x480850	150	not-started	clon de una citada	param:0x4793b0	la llama 0x46b9d0, 0x488c90
 CL9	0x481f20	150	not-started	clon de una citada	param:0x4793b0	la llama 0x46d630, 0x488f90
 CL9	0x484d00	150	not-started	clon de una citada	param:0x4793b0	la llama 0x46f510, 0x489590
@@ -1447,7 +1447,7 @@ CL9	0x48d1c0	43	not-started	clon de una citada	param:0x473860	0x48d1c0 43 paso: 
 CL9	0x48d1f0	43	not-started	clon de una citada	param:0x473860	la llama 0x484670, 0x48af40, 0x48d710
 CL9	0x48d220	43	not-started	clon de una citada	param:0x473860	la llama 0x485d60, 0x48b3c0
 CL9	0x4a04a0	42	partial	partial: falta 0.50	CL9	(0x4a04a0, que vuelve a 0x4dcb70).
-CL9	0x65cc50	41	not-started	sin citar		0x65cc50 41 ventanas: CL9.4
+CL9	0x65cc50	41	not-started	sin citar		el constructor del std::_Tree (el std::map<int, std::string> del cartel del mapa y otros)
 CL9	0x497970	40	partial	partial: falta 0.06	CL9	copiar el héroe en el retrato con +0x3e3 del héroe distinto de 0 0x496530: un acceso al registro propio para comparar y uno por grupo distin
 CL9	0x4a6430	40	partial	partial: falta 0.14	CL9	(0x49c010), ordena, la pestaña y el estado en el chat con ese amigo (0x4a6840, 0x4a6430 y 0x495630,
 CL9	0x4ca780	39	partial	partial: falta 0.23	CL9	- 14 (0x4ca780): C1 <largo> 14 <cuenta> <clave:2>…. Las claves van enteras: 0x4ca7a2 compara la
@@ -1517,7 +1517,7 @@ CL9	0x472600	23	not-started	clon de una citada	exact:0x403100	la llama 0x46f320
 CL9	0x4726a0	23	not-started	clon de una citada	exact:0x403100	la llama 0x4706f0
 CL9	0x4cbe00	23	partial	partial: falta 0.17	CL9	07 0x4cbe00 C1 0A 07 <tipo> <máscara: 4, little endian> <clave H L> GCSend_07 (0x4263a0) arma 8 bytes y nadie lo llama (P-C260)
 CL9	0x534fd0	23	partial	partial: falta 0.33	CL11	0x4f97b0, 0x4f5b70, 0x59fb80, 0x53e2b0, 0x5526f0, 0x517630, 0x42ea00, 0x51fff0, 0x52e740, 0x534f90, 0x534fd0, 0x4f2230, 0x4f5b10, 0x437860, 
-CL9	0x65cd20	23	not-started	sin citar		0x65cd20 23 ventanas: CL9.4
+CL9	0x65cd20	23	not-started	sin citar		allocator::allocate: operator new de max(n, 0)
 CL9	0x430180	22	partial	partial: falta 0.11	CL9	wsprintfA ([0x6b851c]) a un buffer de 300 bytes de la pila, y los de 0x430180 son 0x554180. Empieza con
 CL9	0x4527f0	21	not-started	sin citar		0x4527f0 21 HUD: CL9.3/CL9.4
 CL9	0x452810	21	not-started	sin citar		0x452810 21 HUD: CL9.3/CL9.4

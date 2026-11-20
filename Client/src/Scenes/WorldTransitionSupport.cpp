@@ -1,7 +1,9 @@
 #include "Scenes/WorldTransitionSupport.h"
 
+#include "App/WindowState.h"
 #include "Core/Expected.h"
 #include "Data/Models/PlayerModels.h"
+#include "Data/Text/TextTable.h"
 #include "Render/Models/Animation.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/Skeleton.h"
@@ -13,21 +15,26 @@
 #include "Scenes/CombatActionSpeeds.h"
 #include "Scenes/DarkSpirit.h"
 #include "Scenes/GameDrawTail.h"
+#include "Scenes/GameMessages.h"
 #include "Scenes/GamePanels.h"
 #include "Scenes/CastleWindows.h"
 #include "Scenes/MapLoad.h"
+#include "Scenes/MapNames.h"
 #include "Scenes/MonsterCreation.h"
 #include "Scenes/OwnStatHelpers.h"
 #include "Scenes/PersonalShopTitles.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/SelectionState.h"
 #include "Scenes/WorldEntry.h"
+#include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "UI/MessageArea.h"
 #include "World/GameCamera.h"
 #include "World/ModelEffects.h"
 #include "World/TerrainCulling.h"
 #include "World/TerrainHeight.h"
 
+#include <cstddef>
 #include <cstdint>
 #include <format>
 #include <string>
@@ -189,6 +196,25 @@ Core::Expected<void, std::string> StartTheTeleportAction(ActorState& actor, cons
     resources.world.Runtime().RequestSound(TeleportSound);
     return {};
 }
+Core::Expected<void, std::string> AddTheWelcomeLine(const WorldEntryResources& resources)
+{
+    constexpr std::size_t WelcomeText = 484;
+    if (resources.texts == nullptr)
+        return Core::Unexpected(std::string("0x4c4b38 y 0x4c7c26: falta Text.bmd para el renglón de bienvenida"));
+    if (resources.textMeasure == nullptr)
+        return Core::Unexpected(std::string("0x4c4b60 y 0x4c7c4e: falta el medidor para el renglón de bienvenida"));
+    WorldRuntime& runtime = resources.world.Runtime();
+    const auto name = resources.texts->Text(MapNameText(runtime.map));
+    const auto welcome = resources.texts->Text(WelcomeText);
+    if (!name || !welcome)
+        return Core::Unexpected(
+            std::string("0x4c4b38 y 0x4c7c26: Text.bmd no ofrece el nombre del mapa o el 484 de la bienvenida"));
+    std::string line(*name);
+    line += *welcome;
+    const App::PixelSize screen = resources.screen ? resources.screen() : App::PixelSize{640, 480};
+    return AddGameMessage(runtime, *resources.textMeasure, screen, {}, line, UI::SystemMessage);
+}
+
 Core::Expected<void, std::string> CloseTransitionWindows(const WorldEntryResources& resources)
 {
     GamePanels panels(resources.world, resources.cloth.random);

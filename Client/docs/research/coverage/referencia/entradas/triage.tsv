@@ -269,15 +269,15 @@ CL7	0x4032b0	33	clon byte a byte de una función citada	sin texto que la describ
 CL7	0x405f70	33	clon byte a byte de una función citada	sin texto que la describa
 CL7	0x418c60	33	clon byte a byte de una función citada	sin texto que la describa
 CL7	0x447f00	33	clon byte a byte de una función citada	sin texto que la describa
-CL7	0x65df80	17	clon byte a byte de una función citada	la llama 0x65ce80, 0x65cf80
-CL7	0x65d080	2933	falta: el cartel del nombre del mapa (tabla de Interface\<mapa>.tga)	textos: "Interface\Icarus.tga", "Interface\Kalima.tga"; la llama 0x65cd70
-CL7	0x65e1d0	1094	falta: el cartel del nombre del mapa (tabla de Interface\<mapa>.tga)	la llama 0x65ce80, 0x65cf80
-CL7	0x65e670	628	falta: el cartel del nombre del mapa (tabla de Interface\<mapa>.tga)	la llama 0x65dfa0
-CL7	0x65dfa0	558	falta: el cartel del nombre del mapa (tabla de Interface\<mapa>.tga)	la llama 0x65de30
-CL7	0x65de30	260	falta: el cartel del nombre del mapa (tabla de Interface\<mapa>.tga)	la llama 0x65d080, 0x65dc30
-CL7	0x65cf80	249	falta: el cartel del nombre del mapa (tabla de Interface\<mapa>.tga)	la llama 0x65ce50
-CL7	0x65ce80	242	falta: el cartel del nombre del mapa (tabla de Interface\<mapa>.tga)	la llama 0x6b7280
-CL7	0x65cd70	221	falta: el cartel del nombre del mapa (tabla de Interface\<mapa>.tga)	local_24ac = FUN_0065cd70();
+CL7	0x65df80	17	STL: plantillas de MSVC6	begin() del std::_Tree: el hijo izquierdo de la cabeza
+CL7	0x65d080	2933	portada: el cartel del nombre del mapa (Scenes/MapBanner, 07 Q-C1829)	la tabla del cartel del nombre del mapa: 34 entradas mapa → Interface\<mapa>.tga (sin el 5, el 32 y el 35)
+CL7	0x65e1d0	1094	STL: plantillas de MSVC6	erase(first, last) del std::_Tree
+CL7	0x65e670	628	STL: plantillas de MSVC6	el insert del std::_Tree: baja por el árbol y pide el nodo
+CL7	0x65dfa0	558	STL: plantillas de MSVC6	el _Insert del std::_Tree, con el rebalanceo rojo-negro
+CL7	0x65de30	260	STL: plantillas de MSVC6	el operator[] del std::map<int, std::string>: busca la clave y, si no está, la inserta con la cadena vacía
+CL7	0x65cf80	249	portada sin cita: el cartel del nombre del mapa: el destructor; lo cubre MapBanner (RAII)	el destructor del cartel (la vtable 0x6baad4 y el del árbol inline)
+CL7	0x65ce80	242	STL: plantillas de MSVC6	el destructor del std::map<int, std::string> (borra los nodos, la cabeza y el _Nil compartido)
+CL7	0x65cd70	221	portada: el cartel del nombre del mapa (Scenes/MapBanner, 07 Q-C1829)	el constructor del cartel del nombre del mapa (new 0x28 en 0x4bb999): el árbol de +8, la vtable 0x6baad4 y 0x65d080
 CL7	0x615500	510	herramienta de desarrollo: carga .smd detrás de DAT_07d366bc, que nadie escribe	0x615500 0x548 nada: lo llama 0x61eeb0, detrás de DAT_07d366bc
 CL7	0x54b3d0	1307	herramienta de desarrollo: lee Data2\Local\item(%s).txt (el exportador del Item.bmd)	- Parser 0x54b3d0; el valor en runtime del flag 0x6c9e0c; handler de
 CL7	0x411600	2172	portada sin cita 0x (MuRet la nombra sin el 0x)	usa glColor3f, glColor4f
@@ -339,7 +339,7 @@ CL7	0x622170	639	sin clasificar	adentro (0x622170) proyecta por prioridad x, lue
 CL7	0x61a280	611	sin clasificar	la llama 0x616ec0
 CL7	0x410330	577	sin clasificar	if (mode == 0) cipher = Create(VMT 0x410348); // TDCP_rijndael
 CL7	0x640c90	491	sin clasificar	a 0x721 (GL_LINEAR, GL_CLAMP) y un objeto de 0x2a8 bytes (0x640c10, 0x640c90) con las
-CL7	0x65ea80	369	sin clasificar	la llama 0x65dfa0, 0x65e670
+CL7	0x65ea80	369	STL: plantillas de MSVC6	construye el nodo del std::_Tree: copia la clave y arma el std::string del valor
 CL7	0x4573f0	343	sin clasificar	la llama 0x457550
 CL7	0x54a180	340	sin clasificar	0x4bae26, a cero en 0x4baf80 y liberada en 0x4aefbc); 0x54a180 (lee Data2\Gate.txt) y
 CL7	0x446f00	298	sin clasificar	del login por 0x4453b0), los peces (0x446f74), los efectos (0x52d871, 0x52d897, 0x52da99)
@@ -379,17 +379,17 @@ CL7	0x640f90	109	sin clasificar	0x640f90 109 ventanas: portada (UI/MenuBar)
 CL7	0x401480	98	sin clasificar	la llama 0x401060, 0x401130
 CL7	0x457550	94	sin clasificar	sin texto que la describa
 CL7	0x54ed00	94	sin clasificar	la llama 0x54ed60
-CL7	0x65e950	91	sin clasificar	la llama 0x65dfa0
+CL7	0x65e950	91	STL: plantillas de MSVC6	_Rrotate del std::_Tree
 CL7	0x510ca0	88	sin clasificar	sin texto que la describa
-CL7	0x65e8f0	87	sin clasificar	la llama 0x65dfa0
+CL7	0x65e8f0	87	STL: plantillas de MSVC6	_Lrotate del std::_Tree
 CL7	0x414690	84	sin clasificar	la llama 0x4146f0
 CL7	0x457c10	82	sin clasificar	la clase de la vtable 0x6b8d38 (sus métodos 0x4573a0, 0x457550 y 0x457dc0 son CL7): destructor, lista de objetos y búsqu
 CL7	0x4c1190	78	sin clasificar	IsOpen(0x20) / IsOpen(0x10000) 0x659290 (cierres 0x4c0ec0 / 0x4c1190) 1 cada uno donde se llame
 CL7	0x413ba0	72	sin clasificar	la llama 0x413bf0
-CL7	0x65e620	70	sin clasificar	la llama 0x65ce80, 0x65cf80
+CL7	0x65e620	70	STL: plantillas de MSVC6	_Erase del std::_Tree: borra un subárbol, recursiva
 CL7	0x4eb5e0	63	sin clasificar	la llama 0x4ead70
 CL7	0x4013d0	62	sin clasificar	la llama 0x401350, 0x401410, 0x401480
-CL7	0x65df40	62	sin clasificar	la llama 0x65e620, 0x65ec00, 0x6b72a8
+CL7	0x65df40	62	STL: plantillas de MSVC6	el _Tidy del std::string de MSVC6 (la cuenta de referencias en el byte de antes y el delete)
 CL7	0x61c9f0	61	sin clasificar	Q-C92 el logo del login, 0x61c7c0 y 0x61c9f0 carga Logo03 sin 0x60d530: sus dos texturas van donde dejó el próximo el mu
 CL7	0x612230	58	sin clasificar	para sentarse). Lo demás de cada entrada queda (Q-C138). Después, 0x612230 y 0x612d50 sueltan
 CL7	0x612d50	58	sin clasificar	para sentarse). Lo demás de cada entrada queda (Q-C138). Después, 0x612230 y 0x612d50 sueltan
@@ -413,12 +413,12 @@ CL7	0x447f40	33	sin clasificar	sin texto que la describa
 CL7	0x456a20	33	sin clasificar	la clase de la vtable 0x6b8d38 (sus métodos 0x4573a0, 0x457550 y 0x457dc0 son CL7): destructor, lista de objetos y búsqu
 CL7	0x4573a0	33	sin clasificar	sin texto que la describa
 CL7	0x457dc0	33	sin clasificar	sin texto que la describa
-CL7	0x65ce50	33	sin clasificar	0x65ce50 33 ventanas: fuera del dominio
-CL7	0x65ec00	33	sin clasificar	la llama 0x65ce80, 0x65cf80
+CL7	0x65ce50	33	portada sin cita: el cartel del nombre del mapa: el destructor con delete; lo cubre MapBanner (RAII)	el destructor del cartel con delete (0x65cf80 y operator delete)
+CL7	0x65ec00	33	STL: plantillas de MSVC6	el destructor con delete del std::string de MSVC6 (_Tidy, 0x65df40)
 CL7	0x5fc380	30	sin clasificar	add esp,4 y call 0x5fc380. Ese último solo escribe tres constantes:
 CL7	0x5f9000	29	sin clasificar	(0x7d2d35c, que pone 0x5f9000 al cargar), la celda es x · 0,01 y y · 0,01 truncados, y entre
 CL7	0x640ea0	29	sin clasificar	(0x620db0(0, 0, 640, 480), glClear, 0x640ea0, que llama a 0x647650 con cada una,
-CL7	0x65e9b0	29	sin clasificar	la llama 0x65dfa0
+CL7	0x65e9b0	29	STL: plantillas de MSVC6	_Buynode del std::_Tree: un nodo de 0x24 con el padre y el color
 CL7	0x5ecda0	23	sin clasificar	[0x723c60]), 0x5e3c70, 0x5ecda0, 0x403300 y 0x403d60. Ninguna de esas llamadas, ni
 CL7	0x65f290	21	sin clasificar	FUN_0065f290();
 CL7	0x620ff0	19	sin clasificar	la llama 0x53d2c0, 0x53d550, 0x53ebd0 y 5 más
@@ -596,8 +596,8 @@ CL8	0x476010	16	clon byte a byte de una función citada	0x476010 16 ventanas: CL
 CL8	0x476960	16	clon byte a byte de una función citada	0x476960 16 ventanas: CL8.3 (se reemplaza por la STL)
 CL8	0x48af30	16	clon byte a byte de una función citada	la llama 0x489290
 CL8	0x4bfdf0	16	clon byte a byte de una función citada	0x4bfdf0 16 ventanas: CL8.3
-CL8	0x65dcd0	154	falta: el cartel del nombre del mapa (tabla de Interface\<mapa>.tga)	0x65dcd0 154 HUD: sin asignar
-CL8	0x65dc00	41	falta: el cartel del nombre del mapa (tabla de Interface\<mapa>.tga)	usa timeGetTime; la llama 0x636290
+CL8	0x65dcd0	154	portada: el cartel del nombre del mapa (Scenes/MapBanner, 07 Q-C1829)	el fundido del cartel del nombre del mapa, por dibujo: 0,015 de alfa, 5.000 ms quieto
+CL8	0x65dc00	41	portada: el cartel del nombre del mapa (Scenes/MapBanner, 07 Q-C1829)	el reinicio del cartel del nombre del mapa (0x63692b): apagado, +0x14 en −1 y el alfa en 1
 CL8	0x459b60	90	herramienta de desarrollo: el lector de .smd	0x459b60 / 0x459c00 delta del frame con QueryPerformanceCounter (timeGetTime si no hay),
 CL8	0x459c00	33	herramienta de desarrollo: el lector de .smd	0x459b60 / 0x459c00 delta del frame con QueryPerformanceCounter (timeGetTime si no hay),
 CL8	0x45eab0	1311	sin clasificar	textos: "(%d)"
@@ -991,7 +991,7 @@ CL9	0x450fe0	283	pendiente CL9 hito 7 (CL9.4)	sin texto que la describa
 CL9	0x5f8130	234	pendiente CL9 hito 7 (CL9.4)	0x5f8130 234 paso: CL9.4
 CL9	0x451100	232	pendiente CL9 hito 7 (CL9.4)	la llama 0x6b3c00
 CL9	0x4c09c0	232	pendiente CL9 hito 7 (CL9.4)	la llama 0x6b5340
-CL9	0x65cc80	151	pendiente CL9 hito 7 (CL9.4)	la llama 0x65cc50
+CL9	0x65cc80	151	STL: plantillas de MSVC6	_Init del std::_Tree: el _Nil compartido de 0x72399c (cuenta en 0x57635a8) y la cabeza
 CL9	0x53eaf0	124	pendiente CL9 hito 7 (CL9.4)	0x637119 0x53eaf0 la tabla 0x75fe028 (0x51fc80), sin leer —
 CL9	0x452ce0	102	pendiente CL9 hito 7 (CL9.4)	0x452ce0 102 HUD: CL9.3/CL9.4
 CL9	0x454050	91	pendiente CL9 hito 7 (CL9.4)	la llama 0x453520
@@ -1001,14 +1001,14 @@ CL9	0x4e7940	81	pendiente CL9 hito 7 (CL9.4)	0x4e7940 81 paso: CL9.4
 CL9	0x453d10	62	pendiente CL9 hito 7 (CL9.4)	la llama 0x450fe0, 0x451100, 0x4514a0
 CL9	0x4c0bd0	62	pendiente CL9 hito 7 (CL9.4)	la llama 0x4c0340, 0x4c09c0, 0x4db890 y 2 más
 CL9	0x452830	43	pendiente CL9 hito 7 (CL9.4)	0x452830 43 HUD: CL9.3/CL9.4
-CL9	0x65cc50	41	pendiente CL9 hito 7 (CL9.4)	0x65cc50 41 ventanas: CL9.4
+CL9	0x65cc50	41	STL: plantillas de MSVC6	el constructor del std::_Tree (el std::map<int, std::string> del cartel del mapa y otros)
 CL9	0x4c0ab0	33	pendiente CL9 hito 7 (CL9.4)	FUN_004c0ab0(1);
 CL9	0x4540e0	29	pendiente CL9 hito 7 (CL9.4)	la llama 0x453520
 CL9	0x454030	28	pendiente CL9 hito 7 (CL9.4)	0x454030 28 HUD: CL9.3/CL9.4
 CL9	0x4e8070	25	pendiente CL9 hito 7 (CL9.4)	0x4e8070 25 paso: CL9.4
 CL9	0x4e73b0	24	pendiente CL9 hito 7 (CL9.4)	0x4e73b0 24 paso: CL9.4
 CL9	0x5f8220	24	pendiente CL9 hito 7 (CL9.4)	0x5f8220 24 paso: CL9.4
-CL9	0x65cd20	23	pendiente CL9 hito 7 (CL9.4)	0x65cd20 23 ventanas: CL9.4
+CL9	0x65cd20	23	STL: plantillas de MSVC6	allocator::allocate: operator new de max(n, 0)
 CL9	0x4527f0	21	pendiente CL9 hito 7 (CL9.4)	0x4527f0 21 HUD: CL9.3/CL9.4
 CL9	0x452810	21	pendiente CL9 hito 7 (CL9.4)	0x452810 21 HUD: CL9.3/CL9.4
 CL9	0x4529e0	5	pendiente CL9 hito 7 (CL9.4)	del elegido prende +0x60 (0x4529e0) y los demás no se tocan (Q-C977); si no, +0x60 en 0 (0x4529f0). Con

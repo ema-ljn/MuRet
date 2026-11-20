@@ -14,6 +14,7 @@
 #include "Scenes/GamePanels.h"
 #include "Scenes/CastleWindows.h"
 #include "Scenes/IWorldEntryPublisher.h"
+#include "Scenes/MapBanner.h"
 #include "Scenes/MapLoad.h"
 #include "Scenes/OwnStatHelpers.h"
 #include "Scenes/SceneId.h"
@@ -334,8 +335,14 @@ SettleWorldEntry(WorldEntryResult result, const WorldEntryResources& resources, 
         return Core::Unexpected(stopped.Error());
     }
     AskForTheSounds(resources.world.Runtime().map, resources.world.Runtime(), result);
-    // 0x4c4a19..0x4c4b0e, el chequeo de ResourceGuard, no hace nada (Q-C147). 0x65dc30 y el renglón de
-    // bienvenida con el nombre del mapa (0x555190) son del área de mensajes (CL9).
+    // 0x4c4a19..0x4c4b0e, el chequeo de ResourceGuard, no hace nada (Q-C147). 0x4c4b22..0x4c4b28: 0x65dc30, el cartel
+    // con el nombre del mapa.
+    ShowTheMapBanner(resources.world.Runtime().hud.mapBanner, resources.world.Runtime().map);
+    // 0x4c4b2d..0x4c4b60: el renglón de bienvenida, con el formato 0x6c83e0 y el nombre 0x5767978.
+    if (auto welcome = AddTheWelcomeLine(resources); !welcome.HasValue())
+    {
+        return Core::Unexpected(welcome.Error());
+    }
     return result;
 }
 } // namespace Client::Scenes

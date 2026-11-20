@@ -1741,7 +1741,7 @@ Las texturas nuevas del HUD: `0x104` a `0x120` (sin `0x106`, que no se sube), `0
 | 16 | `0x413ca0` | Castle Siege (mapa 30) | `0x4294b0` | nada |
 | 17 | `[[0x576350c]]+0x14` = `0x479080` | ventana del chat (*inferido*) | | sin leer |
 | 18 | `0x5f7440` | ventanas (los paneles, abajo) | por máscara | 2 r |
-| 19 | `0x65dd70(this = [0x5763534])` | imagen que se desvanece (slot `0x66a`) | `+0x18` | nada |
+| 19 | `0x65dd70(this = [0x5763534])` | el cartel con el nombre del mapa (slot `0x66a`, [§ El cartel del nombre del mapa](#el-cartel-del-nombre-del-mapa)) | `+0x18` | nada |
 | 20 | `0x5a9290` | barra de abajo: Menu04 `0xe9` en (0, 387, 108, 45) y espejada en (532, 387); Menu01_new `0xe6` (0, 432, 256, 48), Menu02 `0xe7` (256, 432, 128, 48), Menu03_new `0xe8` (384, 432, 256, 48), opacos | siempre | 3.848 r; traza 124333..124379 |
 | 21 | `0x4365c0` | UI de evento; **empieza siempre con `0x620a00(1)`** y sale con `0x6c73d1` en −1 (su `.data` es `0xff`) | `0x723bf9`, `0x6c73d1` | la mezcla normal, que hereda la XP |
 | 22 | `0x5aa9a0` | entrada del chat (`0xf8`/`0xf9` en (186, 415)) e indicador F3 (`0xef` en (432, 420)); **empieza siempre con `glColor3f(1,1,1)`** y el `SelectObject` de la fuente normal | `0x6c8e68`/`0x77f3b69`; `0x6c8dd0` | el blanco, que hereda la XP |
@@ -2337,6 +2337,48 @@ viejo; no se declara equivalente al EDIT completo. Los ids de los dos EDIT (1 y 
   Q-C531). Lo escriben (`0x61c170`) la salida del juego, el cambio de servidor y el gate a los mapas 30 y 31, que son
   de otras olas salvo las dos primeras: en MuRet lo escriben los botones del menú de Esc del juego (hito 6, [Los
   diálogos del juego](#los-diálogos-del-juego)).
+
+### El cartel del nombre del mapa
+
+Leído en el ASM (2026-11-20, *estático*; el texto del renglón, *verificado* en el `Text.bmd` del laboratorio). El
+objeto `[0x5763534]` (vtable `0x6baad4`, `0x28` bytes) lo arma WinMain en `0x4bb9b8`: `0x65cd70` crea el
+`std::map<int, std::string>` de `+8` (el árbol rojo-negro de MSVC6, con nodos de `0x24`) y `0x65d080` lo llena con la
+imagen de cada mapa, todas `Interface\<nombre>.tga`: el 0 `lorencia`, el 1 `dungeun`, el 2 `devias`, el 3 `noria`, el 4
+`losttower`, el 6 `stadium`, el 7 `atlans`, el 8 `tarcan`, el 9 `devilsquare`, el 10 `Icarus`, del 11 al 17
+`bloodcastle`, del 18 al 23 `chaoscastle`, del 24 al 29 y el 36 `Kalima`, el 30 `loren`, el 31 `ordeal`, el 33 `aida`
+y el 34 `crywolffortress` (34 entradas). El 5, el 32 y el 35 no están. Los campos:
+
+| Campo | Qué es |
+|---|---|
+| `+0x14` (word) | el mapa de la imagen que está en el slot `0x66a`; −1 desde `0x65dc00` |
+| `+0x18` | el estado: 0 apagado, 1 entra, 2 quieto, 3 sale |
+| `+0x1c` | el `timeGetTime()` del último paso |
+| `+0x20` | lo que lleva quieto, en ms |
+| `+0x24` | el alfa (float) |
+
+- **`0x65dc00`**, en el primer paso de la escena 5 (`0x63692b`, después del cartel de `Slide.bmd`): apagado, `+0x14`
+  en −1, el reloj, la cuenta en 0 y el alfa en 1.
+- **`0x65dc30`**, sin argumentos: entra (1) con el alfa en 0,2 (`0x3e4ccccd`) y la cuenta en 0. Si `+0x14` (con signo)
+  no es el mapa de `0x6c9dd0`, busca su imagen con el `operator[]` del árbol (`0x65dc67`; uno que no está entra con la
+  cadena vacía de `0x6b85ec`), la copia a 128 bytes de la pila y la carga con `0x63bd00(imagen, 0x66a, GL_NEAREST,
+  GL_CLAMP, 0, 1)`; después `+0x14` = el mapa. Con el mismo mapa no recarga: solo vuelve a fundir. Lo llaman el `F3 03`
+  al final (`0x4c4b28`), el `F3 04` antes de cerrar las ventanas (`0x4c504e`) y el `1C` después de `0x4f2250`, solo
+  con `pkt[3]` distinto de 0 (`0x4c831c`). El mapa 32 no llega: la carga lo pasa a 9 antes (Q-C58).
+- **`0x65dcd0`**, en cada dibujo de `0x65dd70`: con el estado 1 suma 0,015 (`0x6b8a24`) al alfa y, si la suma de la x87
+  llega a 1 (`0x6b87d4`, `TEST AH, 0x41`), pasa a 2 con el alfa en 1; con el 2 suma `timeGetTime() − +0x1c` a la cuenta
+  y, pasados 5.000 ms (`JBE`, sin signo), pasa a 3 con la cuenta en 0; con el 3 resta 0,015 y, si la suma llega a 0
+  (`0x6b86a0`), se apaga con el alfa en 0. Guarda el reloj en cada paso. El fundido va **por dibujo**, no por tiempo:
+  54 dibujos para entrar desde 0,2 y 67 para salir (Q-C1829).
+- **`0x65dd70`**, el paso 19 del HUD: `0x65dcd0` y, si no se apagó, `0x620a00(1)`, `glColor4f(1, 1, 1, alfa)`,
+  `0x621b60(0x66a, (ancho del mundo (0x5bb8d0) · rx − 166) · 0,5, ry · 220, 166, 90, 0, 0, 0,6484375, 0,703125, 0, 0,
+  0)`, `glColor4f(1, 1, 1, 1)` y `0x620980`. Sin escalar el tamaño ni la posición: 166 × 90 píxeles en cualquier
+  pantalla, centrado en el ancho del mundo.
+- El resto de `0x65cc50..0x65e9b0` son las plantillas del árbol (el constructor, `_Init` con el `_Nil` de `0x72399c`,
+  `allocate`, `operator[]`, el insert, las rotaciones, `_Erase` y los destructores) y los dos destructores del cartel.
+
+MuRet: `Scenes/MapBanner` (la tabla, `0x65dc00`, `0x65dc30` y `0x65dcd0`), el paso 19 de `Scenes/GameHud`, el
+reinicio en `GameScene::StepEntry` y los tres disparos. La imagen la sube la escena antes del dibujo
+(`UploadTheMapBanner`); una que falta corta como `0x63bd00` con el sexto argumento en 1 (Q-C23).
 
 ### Los diálogos del juego
 
@@ -6543,7 +6585,7 @@ en orden (`0x4c41d4..0x4c4b60`, *estático*):
 | 16 | `0x4f2250(héroe)`: la acción de parado ([Caminar](#caminar)) | |
 | 17 | los sonidos de los mapas de evento, `0x41ee00(id, 1)`: el `0x8b` fuera de Blood Castle (mapa menor que 11 o mayor que 17) y el `0x99` y el `0x9e` fuera de Chaos Castle (menor que 18 o mayor que 23) | `0x4c49d6..0x4c4a11` |
 | 18 | el chequeo de ResourceGuard (un objeto de `0x2c` bytes, `GetModuleFileNameA`, `0x4292e0` y `0x681ec0`), sin efecto: el `jmp` de `0x4c4ad5` saltea el aviso y el `0x4e8380` (Q-C147) | `0x4c4ad5` |
-| 19 | `0x65dc30` y el renglón `" Bienvenido"` más el nombre del mapa en el área de mensajes: `sprintf("%s%s", texto 484, 0x5f0b40(mapa))` y `0x555190(0x5767978, …, 1)` (el texto, *verificado* en el `s31_text.bin` del volcado de Devias) | |
+| 19 | `0x65dc30` ([§ El cartel del nombre del mapa](#el-cartel-del-nombre-del-mapa)) y el renglón del sistema con el nombre del mapa y el texto 484 en el área de mensajes: `sprintf(buf, "%s%s", 0x5f0b40(mapa), texto 484)` (`0x6c83e0`; **el nombre primero**: "Lorencia Bienvenido") y `0x555190(0x5767978, buf, 1)`, con `0x5767978` un buffer de la `.bss` que nadie escribe (el nombre vacío). El texto, *verificado* en el `s31_text.bin` del volcado de Devias. MuRet: `ShowTheMapBanner` y `AddTheWelcomeLine` | `0x4c4b22..0x4c4b60` |
 
 Las velocidades del keepalive (`+0x4c` y `+0x58` del registro, [04](04-protocolo.md)) no las
 escribe este handler; quién las calcula después, sin leer (P-C28 i).
@@ -12388,7 +12430,9 @@ Los formatos, en [04](04-protocolo.md#los-cambios-de-mapa-1c-f3-04-y-f3-12).
    comandos `0x6e592c` en `0x4c7b34`, `0x512a30` y `0x443d40`) **al entrar y al salir**: `0x4c7af1..0x4c7b2f` mira viejo 18..23 con cambio **o**
    nuevo 18..23. Al salir también paran `0x99`/`0x9e`. Después `0x447d70`; la z otra
    vez, con las alturas nuevas; y el renglón con el nombre del mapa y el texto 484 en el área de
-   mensajes (`0x555190(0x5767988, …, 1)`). El nombre sale de `0x5f0b40`: el texto 30 + mapa del 0 al
+   mensajes: `sprintf(buf, "%s%s", 0x5f0b40(mapa), texto 484)` (`0x6c8410`, el nombre primero) y
+   `0x555190(0x5767988, buf, 1)`, con otro nombre vacío de la `.bss` (`0x4c7c17..0x4c7c4e`; MuRet:
+   `AddTheWelcomeLine`, al final de `ChangeTeleportMap`). El nombre sale de `0x5f0b40`: el texto 30 + mapa del 0 al
    9, el 55 en el 10, el 56 del 11 al 17, el 57 del 18 al 23, el 58 en Kalima, el 669 en el 30, el
    59 en el 31, el 39 en el 32, el 1.850 en el 33, el 1.851 en el 34 y 30 + mapa en los demás
    (*emulado* para los 256, y los textos *verificado* en el `Text.bmd` del laboratorio).
@@ -12398,7 +12442,8 @@ Los formatos, en [04](04-protocolo.md#los-cambios-de-mapa-1c-f3-04-y-f3-12).
    `0x723c50 = 0` (la tormenta); `0x78abb0c` y `0x78abb10` en 0, `0x6c8e28..0x6c8e38` en −1 (los
    objetivos elegidos, *inferido*) y `0x6c8e4d = 0xff`.
 6. Al final: `+0x378 = 0`, `0x4f2250(héroe)` y, con `pkt[3]` distinto de 0, `0x65dc30`, el cartel
-   con el nombre del mapa (`Interface\<mapa>.tga` en el slot `0x66a`, si el mapa cambió).
+   con el nombre del mapa (`Interface\<mapa>.tga` en el slot `0x66a`, si el mapa cambió; [§ El cartel del nombre del
+   mapa](#el-cartel-del-nombre-del-mapa)).
 
 Del lado del servidor (`CGTeleportMagicRecv`, `gObjMoveGate` del GameServer reconstruido;
 *estático*), mover pone `RegenOk = 1` y **el `F3 12` lo pasa a 2** (`Seam_4789b0`); un pedido de
@@ -12411,7 +12456,8 @@ BP, la experiencia y el zen, y rearma al héroe con `0x511290(héroe, 0x20a, x, 
 conservando `+0x368`, `+0x369`, `+0x370`, `+0x375` y `+0x1f2`. Le pone `+0x3e2 = 1` (la zona segura,
 *inferido*) y el efecto `0x61f`, limpia los ítems y los personajes y, si cambió el mapa, `0x61a560`
 y la z; el segundo `0x512a30` corre sólo al entrar/salir de Chaos. **No manda el `F3 12` ni toca
-`0x77f3b04`**. En el `muproxy.log` hay
+`0x77f3b04`**. Termina con las marcas de los gremios (`+0x374`), `0x65dc30` (el cartel del nombre del mapa,
+`0x4c504e`) y `0x657a90` (`0x4c5059`). En el `muproxy.log` hay
 dos, cinco segundos después del `17` (la muerte) del héroe, y ningún `F3 12` detrás (*verificado*).
 
 **Port del hito 2, T11–T15 (2026-11-10).** `WorldTransitions` y

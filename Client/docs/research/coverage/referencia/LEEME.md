@@ -115,7 +115,7 @@ el ASM.
 | 24 | `casos_de_test` | los tres casos (`Suite.Caso`) que más la citan |
 | 25 | `doc_research` | la primera línea de `Client/docs/research` que la nombra |
 | 26 | `categoria_faltante` | para las sin citar: clon, portada sin `0x`, plataforma, herramienta, STL, sin uso, pendiente CL9, falta, sin clasificar |
-| 27 | `falso_positivo` | `sí` si la matriz la cuenta como citada pero falta (`0x65dc30`, `0x65dd70`, `0x59eb90`) |
+| 27 | `falso_positivo` | `sí` si la matriz la cuenta como citada pero falta (`0x59eb90`) |
 | 28 | `clon_de` | la función citada de la que es un clon byte a byte |
 | 29 | `chat` | el bloque del chat (A núcleo, B amigo y cartas, C amigos) o sus tramos |
 | 30 | `cortes_vivos` | los cortes dentro de ella, por clase (`G3 R1`) |

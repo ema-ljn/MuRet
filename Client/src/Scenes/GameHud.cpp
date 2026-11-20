@@ -1,4 +1,6 @@
 #include "Scenes/GameHud.h"
+#include "Render/ScreenScale.h"
+#include "Scenes/MapBanner.h"
 #include "Scenes/SiegeBattleUi.h"
 
 #include "App/WindowState.h"
@@ -281,6 +283,38 @@ void Quad(Render::SpriteBatch& sprites, std::uint16_t slot, float x, float y, fl
                                       .scaleSize = true,
                                       .scalePosition = true,
                                       .alpha = 0.0f});
+}
+
+// 0x65dd70: 0x65dcd0 corre el fundido con timeGetTime() y, si el cartel no se apagó, 0x620a00(1), glColor4f(1, 1, 1,
+// alfa), 0x621b60(0x66a, x, y, 166, 90, 0, 0, 0,6484375, 0,703125, 0, 0, 0) sin escalar el tamaño ni la posición
+// (MapBannerQuadOf), glColor4f(1, 1, 1, 1) y 0x620980.
+void DrawTheMapBanner(Frame& frame)
+{
+    GameHudContext& context = frame.context;
+    MapBanner& banner = context.hud.mapBanner;
+    StepTheMapBanner(banner, context.tickCount);
+    if (banner.state == MapBannerState::Off)
+        return;
+    Render::SpriteBatch& sprites = context.sprites;
+    sprites.SetBlend(BlendMode::Alpha);
+    sprites.SetColor(Color{1.0f, 1.0f, 1.0f, banner.alpha});
+    const App::PixelSize screen = sprites.Screen();
+    const MapBannerQuad at =
+        MapBannerQuadOf(frame.panels.WorldWidth(), Render::ScaleX(1.0f, screen), Render::ScaleY(1.0f, screen));
+    sprites.Quad(Render::OriginalQuad{.slot = Render::TextureSlot{MapBannerSlot},
+                                      .x = at.x,
+                                      .y = at.y,
+                                      .width = MapBannerWidth,
+                                      .height = MapBannerHeight,
+                                      .u = 0.0f,
+                                      .v = 0.0f,
+                                      .du = MapBannerDu,
+                                      .dv = MapBannerDv,
+                                      .scaleSize = false,
+                                      .scalePosition = false,
+                                      .alpha = 0.0f});
+    sprites.SetColor(White);
+    sprites.SetBlend(BlendMode::Opaque);
 }
 
 // El índice de 0x5763338, la resolución del registro (0 a 4: 640, 800, 1024, 1280 y 1600 de ancho). MuRet no lo
@@ -1772,7 +1806,8 @@ Core::Expected<void, std::string> DrawTheHud(GameHudContext& context)
     // 18. 0x5f7440.
     if (auto windows = DrawTheWindows(frame); !windows.HasValue())
         return windows;
-    // 19. 0x65dd70: la imagen que se desvanece de [0x5763534], con su +0x18 en 0 (hito 6).
+    // 19. 0x65dd70: el cartel con el nombre del mapa ([0x5763534]).
+    DrawTheMapBanner(frame);
     // 20. 0x5a9290.
     DrawTheBottomBar(frame);
     // 21. 0x4365c0: la interfaz de Crywolf (Scenes/CrywolfInterfaceDrawing), que empieza siempre con 0x620a00(1); la

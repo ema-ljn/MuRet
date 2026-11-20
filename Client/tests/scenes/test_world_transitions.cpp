@@ -20,6 +20,7 @@
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/IWorldTransitionPublisher.h"
 #include "Scenes/LoginModels.h"
+#include "Scenes/MapBanner.h"
 #include "Scenes/PlayerActionSpeeds.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/SelectionInventory.h"
@@ -27,6 +28,7 @@
 #include "Scenes/SessionEventApplier.h"
 #include "Scenes/WorldEntry.h"
 #include "Scenes/WorldTransitionSupport.h"
+#include "support/LetterMeasure.h"
 #include "support/SceneDataFiles.h"
 #include "UI/ChatLog.h"
 #include "UI/MessageArea.h"
@@ -99,9 +101,14 @@ struct Transition
                 .models = models,
                 .items = &items,
                 .itemSetTables = &itemSets,
-                .log = log};
+                .log = log,
+                .textMeasure = &letters,
+                .texts = &texts};
     }
     static constexpr std::uint16_t PlayerKey = 33;
+    // El renglón de bienvenida del F3 03 (0x4c4b60) de los tests que entran por la sesión.
+    Client::Tests::LetterMeasure letters;
+    Client::Data::Text::TextTable texts = Client::Tests::MakeTextTable({});
     std::filesystem::path dataRoot;
     Client::Scenes::WorldState world;
     Client::Scenes::SelectionState selection{world};
@@ -191,6 +198,43 @@ TEST(WorldTransitionsTest, SameMapGateClearsOthersAndItemsButPreservesTheHeroAnd
     EXPECT_EQ(tested.world.Runtime().movement.mouseUpdateTimeMax, 6);
     EXPECT_EQ(tested.world.Runtime().storm, 0);
     EXPECT_EQ(tested.world.Runtime().selectedTargets[0], -1);
+}
+// 0x4c830c..0x4c831c: el 1C con gate (pkt[3]) dispara 0x65dc30 después de 0x4f2250, con el mapa de 0x6c9dd0; sin gate
+// (el teleport de la magia), no.
+TEST(WorldTransitionsTest, AGateTeleportShowsTheMapBannerAndAMagicOneDoesNot)
+{
+    auto gate = std::make_unique<Transition>();
+    Publisher publisher;
+    const auto gated = Client::Scenes::ApplyTeleport(Client::Protocol::World::Teleport{23, 0, 30, 31, 0},
+                                                     Transition::PlayerKey, gate->Resources(), publisher);
+    ASSERT_TRUE(gated.HasValue()) << gated.Error();
+    const Client::Scenes::MapBanner& shown = gate->world.Runtime().hud.mapBanner;
+    EXPECT_EQ(shown.state, Client::Scenes::MapBannerState::FadingIn);
+    EXPECT_EQ(shown.shownMap, 0);
+    ASSERT_TRUE(shown.pendingImage.has_value());
+    EXPECT_EQ(*shown.pendingImage, "Interface\\lorencia.tga");
+
+    auto magic = std::make_unique<Transition>();
+    const auto moved = Client::Scenes::ApplyTeleport(Client::Protocol::World::Teleport{0, 0, 30, 31, 0},
+                                                     Transition::PlayerKey, magic->Resources(), publisher);
+    ASSERT_TRUE(moved.HasValue()) << moved.Error();
+    const Client::Scenes::MapBanner& quiet = magic->world.Runtime().hud.mapBanner;
+    EXPECT_EQ(quiet.state, Client::Scenes::MapBannerState::Off);
+    EXPECT_FALSE(quiet.pendingImage.has_value());
+}
+
+// 0x4c5048..0x4c504e: el F3 04 dispara 0x65dc30 antes de cerrar las ventanas (0x657a90).
+TEST(WorldTransitionsTest, RegenShowsTheMapBanner)
+{
+    auto tested = std::make_unique<Transition>();
+    const auto result = Client::Scenes::ApplyRegen(Client::Protocol::World::Regen{30, 31, 0, 0, 70, 80, 90, 100, 110},
+                                                   Transition::PlayerKey, tested->Resources());
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    const Client::Scenes::MapBanner& banner = tested->world.Runtime().hud.mapBanner;
+    EXPECT_EQ(banner.state, Client::Scenes::MapBannerState::FadingIn);
+    EXPECT_EQ(banner.shownMap, 0);
+    ASSERT_TRUE(banner.pendingImage.has_value());
+    EXPECT_EQ(*banner.pendingImage, "Interface\\lorencia.tga");
 }
 TEST(WorldTransitionsTest, TeleportReturnsTheCursorToItsInventoryFootprintBeforeMovingTheHero)
 {
@@ -355,6 +399,31 @@ TEST(WorldTransitionsTest, MagicTeleportRetainsTheCounterAndOtherActorsWithoutAc
 class WorldTransitionsMapsTest : public Client::Tests::GoldenDataTest
 {
 };
+// 0x4c7c17..0x4c7c4e: el 1C que cambia de mapa, después de la z con las alturas nuevas, escribe el renglón del sistema
+// "%s%s" (0x6c8410) con el nombre del mapa nuevo (0x5f0b40) y el texto 484, con el nombre vacío (0x5767988, de la
+// .bss). Sin cambio de mapa, no.
+TEST_F(WorldTransitionsMapsTest, ATeleportToAnotherMapWelcomesToIt)
+{
+    Transition tested;
+    Publisher publisher;
+    tested.dataRoot = m_dataRoot;
+    tested.texts = Client::Tests::MakeTextTable({{30, "<mapa 0>"}, {33, "<mapa 3>"}, {484, " <bienvenida>"}});
+    const auto& log = tested.world.Runtime().chat.log.entries;
+
+    const auto same = Client::Scenes::ApplyTeleport(Client::Protocol::World::Teleport{23, 0, 30, 31, 2},
+                                                    Transition::PlayerKey, tested.Resources(), publisher);
+    ASSERT_TRUE(same.HasValue()) << same.Error();
+    EXPECT_TRUE(log.empty());
+
+    const auto noria = Client::Scenes::ApplyTeleport(Client::Protocol::World::Teleport{23, 3, 30, 31, 2},
+                                                     Transition::PlayerKey, tested.Resources(), publisher);
+    ASSERT_TRUE(noria.HasValue()) << noria.Error();
+    ASSERT_EQ(log.size(), 1u);
+    EXPECT_EQ(log.back().name, "");
+    EXPECT_EQ(log.back().text, "<mapa 3> <bienvenida>");
+    EXPECT_EQ(log.back().type, Client::UI::SystemMessage);
+}
+
 TEST_F(WorldTransitionsMapsTest, ReentersLorenciaAndNoriaWithTheSameDurableState)
 {
     Transition tested;

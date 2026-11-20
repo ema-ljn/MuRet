@@ -33,6 +33,7 @@
 #include "support/FakeClock.h"
 #include "support/GoldenDir.h"
 #include "support/FakeTextureStore.h"
+#include "support/LetterMeasure.h"
 #include "support/RecordingFrameTarget.h"
 #include "support/RecordingSink.h"
 #include "support/ScenePrinters.h"
@@ -1316,6 +1317,7 @@ TEST(SceneManagerTest, GameSelectionGameHoldsAndReloadsAgain)
                                                .cameraInput = &cameraInput,
                                                .selection = &selection,
                                                .world = &world};
+    const Client::Tests::LetterMeasure letters;
     const Client::Scenes::WorldEntryResources resources{.world = world,
                                                         .selection = selection,
                                                         .dataRoot = gameResources.dataRoot,
@@ -1325,7 +1327,9 @@ TEST(SceneManagerTest, GameSelectionGameHoldsAndReloadsAgain)
                                                         .models = gameResources.models,
                                                         .items = &gameResources.data.items->table,
                                                         .itemSetTables = &*gameResources.data.itemSets,
-                                                        .log = log};
+                                                        .log = log,
+                                                        .textMeasure = &letters,
+                                                        .texts = &*gameResources.data.text};
     RecordingFrameTarget target({800, 600});
     bool returning = false;
     bool choose = false;

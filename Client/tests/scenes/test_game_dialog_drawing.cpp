@@ -185,6 +185,10 @@ public:
         {430, "guerra de %s"},
         {431, "aceptas?"},
         {432, "aceptas la batalla?"},
+        {423, "sin zen"},
+        {424, "tope del comercio"},
+        {440, "contrasena incorrecta"},
+        {441, "ya estaba trancado"},
         {442, "iguales"},
         {445, "distinta"},
         {857, "ganaste"},
@@ -445,6 +449,56 @@ TEST(GameDialogDrawingTest, TheKeypadDialogsAreGenericOks)
             EXPECT_EQ(tested.text.texts[0].y, 0x4b);
         }
     }
+}
+
+// 0x630818 y 0x63093e con la cola de 0x63140b: el 0x74 (sin zen, 0x631dc5) y el 0x75 (el tope del comercio,
+// 0x631df7), el 0x85 y el 0x86 (la contraseña del almacén, 0x63222e y 0x63225f) y el 0x89 (0x6322f2) son del OK
+// genérico, con el 423, el 424, el 440, el 441 y el 401 en un renglón, centrado en y = [EBP − 0x20] + 0xf (0x4b).
+TEST(GameDialogDrawingTest, TheMoneyAndWarehouseNoticesAreGenericOks)
+{
+    for (const std::int32_t map : {Lorencia, Devias, Noria})
+    {
+        for (const auto& [id, expected] :
+             std::to_array<std::pair<std::int32_t, std::string_view>>({{0x74, "sin zen"},
+                                                                       {0x75, "tope del comercio"},
+                                                                       {0x85, "contrasena incorrecta"},
+                                                                       {0x86, "ya estaba trancado"},
+                                                                       {0x89, "uno"}}))
+        {
+            SCOPED_TRACE(id);
+            DrawingDialogs tested(map);
+            tested.world.Runtime().dialogs.current = id;
+
+            ASSERT_TRUE(tested.Draw().HasValue());
+            const std::vector<DrawnQuad> quads = QuadsOf(tested.sprites);
+            ASSERT_EQ(quads.size(), 2u);
+            EXPECT_EQ(quads[0].slot, 0xf0);
+            EXPECT_EQ(quads[1].slot, 0xf1);
+            ASSERT_EQ(tested.text.texts.size(), 1u);
+            EXPECT_EQ(tested.text.texts[0].text, expected);
+            EXPECT_EQ(tested.text.texts[0].x, CenteredX(std::string(expected)));
+            EXPECT_EQ(tested.text.texts[0].y, 0x4b);
+        }
+    }
+}
+
+// 0x632441: el 0x90 (el 99 con 1, 0x4e4a40) es del OK genérico como el 0x8f, pero su renglón no sale de Text.bmd: es la
+// cadena de la .data 0x6d6320, en coreano (EUC-KR), "서버 이전시 오류 발생 : 문의 바람", con sus bytes tal cual.
+TEST(GameDialogDrawingTest, TheServerMoveErrorDrawsTheStringOfTheData)
+{
+    DrawingDialogs tested(Lorencia);
+    tested.world.Runtime().dialogs.current = 0x90;
+
+    ASSERT_TRUE(tested.Draw().HasValue());
+    const std::vector<DrawnQuad> quads = QuadsOf(tested.sprites);
+    ASSERT_EQ(quads.size(), 2u);
+    EXPECT_EQ(quads[0].slot, 0xf0);
+    ASSERT_EQ(tested.text.texts.size(), 1u);
+    EXPECT_EQ(tested.text.texts[0].text,
+              "\xbc\xad\xb9\xf6 \xc0\xcc\xc0\xfc\xbd\xc3 \xbf\xc0\xb7\xf9 \xb9\xdf\xbb\xfd : "
+              "\xb9\xae\xc0\xc7 \xb9\xd9\xb6\xf7");
+    EXPECT_EQ(tested.text.texts[0].text.size(), 33u);
+    EXPECT_EQ(tested.text.texts[0].y, 0x4b);
 }
 
 // Los avisos del alta del gremio (CL9 hito 8): el marco y el OK del genérico (0x630818 y 0x63093e) y sus textos, el

@@ -457,13 +457,22 @@ constexpr int ConfirmTextTop = 0x87;
 // avisos del alta del gremio (CL9 hito 8, de 0x654f80 y 0x655c10): el nombre filtrado (0x72, 0x6314a3: 392 y 393),
 // corto (0x79, 0x63143f: 390), con un byte malo (0x7a, 0x631471: 391) y la marca vacía (0x7e, 0x631f05: 426). Su marco
 // y su OK son los del genérico (0x630818 y 0x63093e). El 0x87 y el 0x88 los abre la caja de la contraseña del almacén
-// (0x5e7d53, 0x5e7e83; CL9 hito 6): la tabla 0x632bf0 los lleva a 0x632290 y 0x6322c1, un renglón cada uno.
+// (0x5e7d53, 0x5e7e83; CL9 hito 6): la tabla 0x632bf0 los lleva a 0x632290 y 0x6322c1, un renglón cada uno. Los avisos
+// del zen (0x74, sin zen, 0x631dc5; 0x75, el tope del comercio, 0x631df7) y los del estado del almacén del 83 (0x85,
+// 0x86 y 0x89: 0x63222e, 0x63225f y 0x6322f2) también, con un renglón: 0x631d66 y 0x631520 son la misma x. El 0x90 (el
+// 99 con 1, 0x632441) dibuja como el 0x8f, pero su renglón es `fixed`, la cadena de la .data 0x6d6320.
 struct GenericText
 {
     std::int32_t id = 0;
     std::size_t first = 0;
     std::optional<std::size_t> second{};
+    // Sin Text.bmd: los bytes del renglón, de la .data del c32bbd5f.
+    std::string_view fixed{};
 };
+// 0x6d6320: "서버 이전시 오류 발생 : 문의 바람" (un error al migrar de servidor), en coreano (EUC-KR), con sus bytes.
+constexpr std::string_view ServerMoveErrorText =
+    "\xbc\xad\xb9\xf6 \xc0\xcc\xc0\xfc\xbd\xc3 \xbf\xc0\xb7\xf9 \xb9\xdf\xbb\xfd : "
+    "\xb9\xae\xc0\xc7 \xb9\xd9\xb6\xf7";
 constexpr auto GenericTexts = std::to_array<GenericText>({
     {UI::DisconnectDialog, 402, std::nullopt},
     {0x6f, 405, 406},
@@ -476,6 +485,12 @@ constexpr auto GenericTexts = std::to_array<GenericText>({
     {0x79, 390, std::nullopt},
     {0x7a, 391, std::nullopt},
     {0x7e, 426, std::nullopt},
+    {0x74, 423, std::nullopt},
+    {0x75, 424, std::nullopt},
+    {0x85, 440, std::nullopt},
+    {0x86, 441, std::nullopt},
+    {0x89, 401, std::nullopt},
+    {0x90, 0, std::nullopt, ServerMoveErrorText},
 });
 
 // 0x6309d4..0x630aeb: el sí y el no de 0x7f, 0x76, 0x77 y 0x78, de 70 × 21 en y 98 con las UV del OK: el sí, 0xf1
@@ -1882,6 +1897,11 @@ Core::Expected<void, std::string> DrawTheGameDialogs(GameHudContext& context)
         return DrawTheShopText(frame);
     else if (generic)
     {
+        if (!generic->fixed.empty())
+        {
+            DrawCentered(frame, GenericTextY, generic->fixed);
+            return {};
+        }
         if (!generic->second)
             return DrawCenteredText(frame, GenericTextY, generic->first);
         if (auto drawn = DrawCenteredText(frame, GenericFirstRowY, generic->first); !drawn.HasValue())

@@ -653,6 +653,27 @@ TEST_F(ItemTooltipsTest, TheChaosCastleArmorOpensTheOwnRecordForTheLevel)
     EXPECT_EQ(world.Runtime().ownRecordDepth, 0);
 }
 
+// 0x5b3824..0x5b3852: el boleto (0x1c0c) de nivel 2, sprintf(renglón, "%s" (0x6c99e4), 0x6c9350 + D+0x1a · 100): el
+// premio por la durabilidad del ítem, no por Item.bmd+0x2d como 0x5b1c70. El 7 es "뮤 머그컵", con sus bytes EUC-KR.
+// Desde el 10 lee la .data que sigue a los diez premios, que MuRet no tiene: corta.
+TEST_F(ItemTooltipsTest, TheTicketOfLevelTwoNamesThePrizeOfItsDurability)
+{
+    ItemState ticket;
+    ticket.id = 0x1c0c;
+    ticket.scalar1Low = 2u << 3u;
+    ticket.durability = 7;
+
+    const auto drawn = Draw(ticket);
+
+    ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+    EXPECT_EQ(Lines().text[1], "\xb9\xc2 \xb8\xd3\xb1\xd7\xc4\xc5");
+
+    ticket.durability = 10;
+    const auto outside = Draw(ticket);
+    ASSERT_FALSE(outside.HasValue());
+    EXPECT_NE(outside.Error().find("0x5b3835"), std::string::npos) << outside.Error();
+}
+
 // 0x5b41d0..0x5b421a: el título del anillo de transformación (0x1a0a): el monstruo del nivel en 0x6c9338 y el primer
 // registro de 0x7681eb8 con ese tipo (corta en el primero), "%s %s" con su nombre y el 103. Sin ninguno (el 14 del
 // nivel 2), salta a 0x5b459d sin escribir el renglón, que 0x5b2aa0 vació al empezar.

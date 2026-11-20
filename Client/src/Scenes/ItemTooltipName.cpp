@@ -175,10 +175,19 @@ Core::Expected<bool, std::string> WriteALeveledName(Frame& frame, std::int32_t t
             WriteTheCase(lines, LuckyBoxNames[static_cast<std::size_t>(level)], record);
         return true;
     }
+    // 0x5b3824..0x5b3852: sprintf(renglón, "%s" (0x6c99e4), 0x6c9350 + D+0x1a · 100): el premio por la durabilidad del
+    // ítem, no por Item.bmd+0x2d como 0x5b1c70. Sigue en 0x5b4598, como los demás.
     if (type == EventTicket && level == EventTicketTableLevel)
-        return Core::Unexpected(std::format("0x5b3824: el nombre del 0x1c0c con nivel 2 sale de la tabla de .data "
-                                            "0x6c9350 (la durabilidad {} · 100), que MuRet no tiene",
-                                            frame.item.durability));
+    {
+        const std::uint32_t index = frame.item.durability;
+        const std::optional<std::string_view> prize = EventTicketPrizeOf(index);
+        if (!prize)
+            return Core::Unexpected(std::format("0x5b3835: el premio {} del boleto (su durabilidad) lee 0x6c9350 + {} "
+                                                "· 100, en la .data que sigue a los diez premios, que MuRet no tiene",
+                                                index, index));
+        lines.Print("%s", *prize);
+        return true;
+    }
     for (const LeveledName& leveled : LeveledNames)
     {
         if (leveled.type != type)

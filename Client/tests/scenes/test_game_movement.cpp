@@ -26,6 +26,8 @@
 #include "Protocol/Outgoing.h"
 #include "Protocol/Inventory.h"
 #include "Scenes/EventGlobals.h"
+#include "Scenes/NpcWindowState.h"
+#include "UI/PanelRegistry.h"
 #include <glm/ext/vector_float2.hpp>
 #include <algorithm>
 #include <array>
@@ -409,6 +411,70 @@ TEST(GameMovementTest, AWalkWithTheSecondGuildWindowOpenClosesItAfterTheD3)
                   (std::vector<std::byte>{std::byte{0xc1}, std::byte{0x04}, std::byte{0x54}, std::byte{0x00}}));
         EXPECT_EQ(tested->world.Runtime().panels.delegated.secondGuild, 0);
         EXPECT_EQ(tested->world.Runtime().lastSoundId, 0x1c);
+    }
+}
+
+// 0x56b3d2, 0x56b41e y 0x56b48a → 0x65cae0(id, 0) → 0x657ab0: caminar con la tienda del NPC, el almacén o la caja del
+// caos abiertos los cierra después del D3, con su paquete en claro por la sesión de las ventanas (el C1 03 31 de
+// 0x659063, el C1 03 82 de 0x658567 y el C1 03 87 de 0x658767), la grilla del NPC vacía y el inventario con ellos.
+// Sin esos cierres prestados, el juego terminaba con "cerrar la ventana del NPC sin el mundo". En Lorencia y en
+// Devias.
+TEST(GameMovementTest, AWalkWithAnNpcWindowOpenClosesItAfterTheD3)
+{
+    using Client::UI::PanelState;
+    struct NpcWindowCase
+    {
+        std::uint8_t PanelState::*open;
+        std::byte closeCode;
+    };
+    constexpr std::array<NpcWindowCase, 3> windows{{{&PanelState::npcShop, std::byte{0x31}},
+                                                    {&PanelState::warehouse, std::byte{0x82}},
+                                                    {&PanelState::chaosBox, std::byte{0x87}}}};
+    for (const NpcWindowCase& window : windows)
+    {
+        for (const std::int32_t map : {0, 2})
+        {
+            SCOPED_TRACE(std::to_integer<int>(window.closeCode));
+            SCOPED_TRACE(map);
+            auto tested = std::make_unique<MovingHero>();
+            auto& runtime = tested->world.Runtime();
+            runtime.map = map;
+            runtime.movement.mouseUpdateTime = 6;
+            runtime.panels.*window.open = 1;
+            runtime.panels.inventory = 1;
+            runtime.npcWindows.grid[5].id = 0x0c01;
+            runtime.npcWindows.grid[5].occupied = 1;
+            std::vector<std::vector<std::byte>> sent;
+            auto context = tested->Context();
+            context.input.leftPressed = true;
+            context.input.leftDown = true;
+            context.pickTarget = []() -> Client::Core::Expected<std::optional<Client::GameLogic::PathCell>, std::string>
+            { return std::optional{Client::GameLogic::PathCell{179, 116}}; };
+            context.sendWalk = [&sent](auto, auto, float) -> Client::Core::Expected<void, std::string>
+            {
+                sent.push_back({std::byte{0xd3}});
+                return {};
+            };
+            context.sendNpcWindow =
+                [&sent](Client::Protocol::Outgoing outgoing) -> Client::Core::Expected<void, std::string>
+            {
+                EXPECT_EQ(outgoing.delivery, Client::Network::Delivery::Clear);
+                sent.emplace_back(outgoing.packet.Bytes().begin(), outgoing.packet.Bytes().end());
+                return {};
+            };
+            const auto result = StepHeroMovement(context);
+            ASSERT_TRUE(result.HasValue()) << result.Error();
+            ASSERT_EQ(sent.size(), 2u);
+            EXPECT_EQ(sent[0], (std::vector<std::byte>{std::byte{0xd3}}));
+            EXPECT_EQ(sent[1], (std::vector<std::byte>{std::byte{0xc1}, std::byte{0x03}, window.closeCode}));
+            EXPECT_EQ(runtime.panels.*window.open, 0);
+            EXPECT_EQ(runtime.panels.inventory, 0);
+            if (window.open != &PanelState::chaosBox)
+            {
+                EXPECT_EQ(runtime.npcWindows.grid[5].id, 0xffff);
+                EXPECT_EQ(runtime.npcWindows.grid[5].occupied, 0u);
+            }
+        }
     }
 }
 

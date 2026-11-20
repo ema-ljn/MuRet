@@ -11,6 +11,8 @@
 #include "World/ModelEffects.h"
 #include "Data/Text/DialogTable.h"
 #include "Data/Text/TextTable.h"
+#include "Network/Delivery.h"
+#include "Network/Packet.h"
 #include "Protocol/Events.h"
 #include "Protocol/Outgoing.h"
 #include "Render/Models/Cloth.h"
@@ -24,6 +26,7 @@
 #include "Scenes/EventGlobals.h"
 #include "Scenes/EventMapObject.h"
 #include "Scenes/GamePanels.h"
+#include "Scenes/NpcWindowState.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
@@ -579,6 +582,56 @@ TEST_F(EventPacketsTest, TheDevilSquareEntryClosesTheOpenWindow)
     EXPECT_EQ(Runtime().panels.eventNpc, 0);
     EXPECT_EQ(Runtime().panels.inventory, 0);
     ExpectMessageBox("muy fuerte");
+}
+
+// 0x4da78f → 0x657a90 → 0x657ab0(0x10000): el 9A que llega con la tienda de un NPC abierta la cierra con el C1 03 31
+// en claro por la sesión de las ventanas (0x659063), vacía su grilla y cierra el inventario; sin ese envío, cerrarla
+// corta. Igual el almacén (C1 03 82) y la caja del caos vacía (C1 03 87).
+TEST_F(EventPacketsTest, TheBloodCastleEntryClosesAnOpenNpcWindow)
+{
+    using Client::UI::PanelState;
+    struct NpcWindowCase
+    {
+        std::uint8_t PanelState::*open;
+        std::byte closeCode;
+    };
+    constexpr std::array<NpcWindowCase, 3> windows{{{&PanelState::npcShop, std::byte{0x31}},
+                                                    {&PanelState::warehouse, std::byte{0x82}},
+                                                    {&PanelState::chaosBox, std::byte{0x87}}}};
+    for (const NpcWindowCase& window : windows)
+    {
+        SCOPED_TRACE(std::to_integer<int>(window.closeCode));
+        Runtime().panels.*window.open = 1;
+        Runtime().panels.inventory = 1;
+        const std::string cut = Cut(Events::BloodCastleEntryResult{0});
+        EXPECT_NE(cut.find("sin la sesión"), std::string::npos) << cut;
+
+        Runtime().panels.*window.open = 1;
+        Runtime().panels.inventory = 1;
+        Runtime().npcWindows.grid[5].id = 0x0c01;
+        Runtime().npcWindows.grid[5].occupied = 1;
+        std::vector<std::vector<std::byte>> sent;
+        auto context = Context();
+        context.sendNpcWindow =
+            [&sent](Client::Protocol::Outgoing outgoing) -> Client::Core::Expected<void, std::string>
+        {
+            EXPECT_EQ(outgoing.delivery, Client::Network::Delivery::Clear);
+            sent.emplace_back(outgoing.packet.Bytes().begin(), outgoing.packet.Bytes().end());
+            return {};
+        };
+        const auto applied = Client::Scenes::ApplyEventPacket(Events::BloodCastleEntryResult{0}, context);
+        ASSERT_TRUE(applied.HasValue()) << applied.Error();
+        ASSERT_EQ(sent.size(), 1u);
+        EXPECT_EQ(sent[0], (std::vector<std::byte>{std::byte{0xc1}, std::byte{0x03}, window.closeCode}));
+        EXPECT_EQ(Runtime().panels.*window.open, 0);
+        EXPECT_EQ(Runtime().panels.inventory, 0);
+        if (window.open != &PanelState::chaosBox)
+        {
+            EXPECT_EQ(Runtime().npcWindows.grid[5].id, 0xffff);
+            EXPECT_EQ(Runtime().npcWindows.grid[5].occupied, 0u);
+        }
+        EXPECT_TRUE(worldPackets.empty());
+    }
 }
 
 // ----- 91 (0x4da8c0), con wsprintfA.

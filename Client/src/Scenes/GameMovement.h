@@ -84,6 +84,10 @@ struct HeroMovementContext
     // El C1 03 3D que caminar manda al cerrar el comercio (0x56b3b2 → 0x65cae0(0x20) con 0, 0x657fe1). Sin él, caminar
     // con el comercio abierto corta.
     std::function<void(Protocol::Outgoing)> sendGamePacket{};
+    // Lo que manda caminar al cerrar las ventanas de los NPC (0x56b3d2, 0x56b41e y 0x56b48a → 0x65cae0 → 0x657ab0): el
+    // C1 03 82 del almacén, el C1 03 87 de la caja del caos y el C1 03 31 de la tienda, en claro por la sesión
+    // (App::ServerSession::SendNpcWindowPacket). Vacío, el cierre corta donde manda.
+    std::function<Core::Expected<void, std::string>(Protocol::Outgoing)> sendNpcWindow{};
     // La llegada a un NPC (0x5674c8, Scenes/NpcTalk.h): el C3 A0 sin la clase de las misiones (0x5676a6) y el C3 30
     // (0x567c2d..). Los dos rand() de cada C3 los saca el paso. Sin ellos, la llegada corta donde los manda.
     std::function<void()> requestQuestList{};

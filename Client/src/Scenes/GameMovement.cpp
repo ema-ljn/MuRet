@@ -238,6 +238,11 @@ Core::Expected<void, std::string> SendThePath(ActorState& hero, GameLogic::PathC
     GameMovementState& state = runtime.movement;
     GamePanels panels(context.world, context.random);
     panels.LendTheSession(context.world, context.random, context.sendGamePacket, context.sendWindowClose);
+    // 0x56b3d2, 0x56b41e y 0x56b48a: el almacén, la caja del caos y la tienda del NPC se cierran por 0x657ab0, que
+    // vacía sus grillas y manda lo suyo (UI::PanelContext::npcWindowClosing).
+    panels.LendTheNpcWindows(context.world, context.random,
+                             context.inventory != nullptr ? *context.inventory : InventoryServices{},
+                             context.sendNpcWindow);
     // 0x56acf7: con el NPC de la caja abierto (0x8000), nada.
     if (panels.Registry().IsOpen(UI::TrainerPanel) || (hero.flags78 & MovementLockedFlag) != 0)
         return {};

@@ -668,6 +668,7 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyWorldContent(const A
     if (const auto* packet = std::get_if<Protocol::Events::EventPacket>(&event))
     {
         // CL9 hito 11: GetTickCount es el reloj de la sesión en ms (App::TickCountMs); sin reloj, 0.
+        const InventoryServices inventory = InventoryServicesOf(m_resources);
         const EventPacketContext context{
             .world = m_resources.world,
             .random = m_resources.cloth.random,
@@ -681,7 +682,10 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyWorldContent(const A
             .sendWindowClose = [&session] { session.SendWindowClose(); },
             // SendChat manda cualquier paquete de mundo, como el de los demás pasos.
             .send = [&session](Protocol::Outgoing outgoing) { session.SendChat(std::move(outgoing)); },
-            .dataRoot = m_resources.dataRoot};
+            .dataRoot = m_resources.dataRoot,
+            .sendNpcWindow = [&session](Protocol::Outgoing packet)
+            { return session.SendNpcWindowPacket(std::move(packet)); },
+            .inventory = &inventory};
         const auto applied = ApplyEventPacket(*packet, context);
         if (!applied.HasValue())
             return Core::Unexpected(applied.Error());

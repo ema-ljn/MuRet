@@ -39,6 +39,10 @@ def write(path, columns, rows):
 
 
 class ReferenceSummaryTest(unittest.TestCase):
+    def test_field_size_limit_fits_a_32_bit_c_long(self):
+        # En Windows el long de C es de 32 bits: con sys.maxsize, field_size_limit tira OverflowError al importar.
+        self.assertLessEqual(csv.field_size_limit(), 2**31 - 1)
+
     def test_closed_needs_every_condition(self):
         self.assertTrue(rs.closed_against_asm(closed()))
         for change in (dict(estado='partial'), dict(falso_positivo='sí'), dict(cortes_vivos='G1'),

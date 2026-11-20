@@ -16,7 +16,9 @@ import json
 import pathlib
 import sys
 
-csv.field_size_limit(sys.maxsize)
+# Los campos largos de las tablas (los textos de funciones.tsv). Con tope en el long de C de 32 bits: en Windows,
+# sys.maxsize tira OverflowError.
+csv.field_size_limit(2**31 - 1)
 
 # Lo que cambia en cada commit sin decir nada del avance.
 VOLATILE = {'serie', 'muret'}

@@ -1,0 +1,235 @@
+ola	fuente	paso	titulo	ids	bloquea	cortes	nota
+CL8	2026-11-13-cl8-lista-vm.md	1	El juego quieto en Lorencia	P-C60 P-C61 Q-C457 Q-C458	no		
+CL8	2026-11-13-cl8-lista-vm.md	2	Un `C1 26` y un `C1 27`.	P-C150 Q-C770 Q-C771	no		
+CL8	2026-11-13-cl8-lista-vm.md	3	Abrir la C con un lugar de puntos vacío	P-C104 P-C123 Q-C595 Q-C673	no		
+CL8	2026-11-13-cl8-lista-vm.md	4	Una traza de GL	P-C60 P-C89 P-C98 P-C123 Q-C444	no		
+CL8	2026-11-13-cl8-lista-vm.md	5	Leer `[0x78a7068]` y `[0x78aba14]`	P-C60 Q-C650	no		
+CL8	2026-11-13-cl8-lista-vm.md	6	Los anchos de `GetTextExtentPointA`	P-C60 Q-C520	no		
+CL8	2026-11-13-cl8-lista-vm.md	7	Los renglones, el orden y los colores del tooltip	P-C60 P-C103 P-C104 Q-C590 Q-C591	no		
+CL8	2026-11-13-cl8-lista-vm.md	8	La ayuda del ítem:	Q-C750 Q-C752	no		
+CL8	2026-11-13-cl8-lista-vm.md	9	Qué abre F4	P-C60	no		
+CL8	2026-11-13-cl8-lista-vm.md	10	Qué objeto es `[0x6e5904]`	P-C60	no		
+CL8	2026-11-13-cl8-lista-vm.md	11	El cable de cuatro acciones:	P-C72 P-C104	no		
+CL8	2026-11-13-cl8-lista-vm.md	12	Los avisos del ítem del cursor.	P-C72 P-C151 Q-C772 Q-C775	sí	Scenes/InventoryMoves.cpp:425	
+CL8	2026-11-13-cl8-lista-vm.md	13	Enter apretado en el juego:	P-C88	no		
+CL8	2026-11-13-cl8-lista-vm.md	14	Las flechas del historial del chat con el IME prendido	P-C85	no		
+CL8	2026-11-13-cl8-lista-vm.md	15	El cartel de `Slide.bmd`:	P-C80	no		
+CL8	2026-11-13-cl8-lista-vm.md	16	Los globos:	P-C81 P-C82	no		
+CL8	2026-11-13-cl8-lista-vm.md	17	Los botones viejos y la barra del título	P-C96	no		
+CL8	2026-11-13-cl8-lista-vm.md	18	El contador de ids `0x5762eb0`	P-C97	no		
+CL8	2026-11-13-cl8-lista-vm.md	19	Impr Pant	P-C110 P-C111 Q-C630	no		
+CL8	2026-11-13-cl8-lista-vm.md	20	La ventana del personaje.	P-C123 Q-C670 Q-C671 Q-C677 Q-C724	no		
+CL8	2026-11-13-cl8-lista-vm.md	21	El tooltip de la skill	P-C136	no		
+CL8	2026-11-13-cl8-lista-vm.md	22	El precio de reparar	P-C140	no		
+CL8	2026-11-13-cl8-lista-vm.md	23	Los créditos:	P-C78	no		
+CL8	2026-11-13-cl8-lista-vm.md	24	Un ítem de la UI con brillo o sprites	P-C73 P-C74 Q-C479	no		
+CL8	2026-11-13-cl8-lista-vm.md	25	El pulso del set:		no		
+CL11	2026-11-19-cl11-lista-vm.md	1	Los efectos de los magos	P-C402 Q-C1502	no		
+CL11	2026-11-19-cl11-lista-vm.md	2	La skill cargada del mago	P-C54	no		
+CL11	2026-11-19-cl11-lista-vm.md	3	El escudo del mago	P-C58 P-C412	no		
+CL11	2026-11-19-cl11-lista-vm.md	4	La segunda animación del `0x13b`	P-C421	no		
+CL11	2026-11-19-cl11-lista-vm.md	5	Las cáscaras `0x137` y la pose del `0x20b`.	P-C520 P-C521 P-C522 Q-C1730	no		
+CL11	2026-11-19-cl11-lista-vm.md	6	El serial de los C3 en `0x517a20`.	P-C523	no		
+CL11	2026-11-19-cl11-lista-vm.md	7	El volley en el mapa 54 con el asedio prendido	P-C524	no		
+CL11	2026-11-19-cl11-lista-vm.md	8	Chaos Castle con jugadores	P-C535 P-C536 Q-C1820	no		
+CL11	2026-11-19-cl11-lista-vm.md	9	El login con un personaje que crea joints o partículas en su cola	P-C540	no		
+CL11	2026-11-19-cl11-lista-vm.md	10	La pose y el scratch con Translate en 1.	P-C541	no		
+CL11	2026-11-19-cl11-lista-vm.md	11	Las locales sin escribir de los efectos	P-C430 P-C480 Q-C1176 Q-C1580 Q-C1620	sí	World/BlastModelEffects.cpp:1126 Scenes/MonsterHelpers.cpp:614	
+CL11	2026-11-19-cl11-lista-vm.md	12	Una traza de GL por familia	P-C53 P-C55 P-C230	no		
+CL11	2026-11-19-cl11-lista-vm.md	13	Dos actores del mismo tipo que se mueren a la vez	P-C323 Q-C1178	no		
+CL9	RUNBOOK-cl9-vm.md	H1-E1	Héroe parado, escribir `^^`; repetir caminando, con elfo y con transformación realmente cargada		no		
+CL9	RUNBOOK-cl9-vm.md	H1-E2	Provocar por una mecánica real del laboratorio un DF de tipo 0xf1 con actor publicado		no		
+CL9	RUNBOOK-cl9-vm.md	H1-E3	Aplicar al héroe el bit 0x02000000; repetir sin quitarlo, y observar un actor distinto		no		
+CL9	RUNBOOK-cl9-vm.md	H9-B1	Abrir Amigos, mantener un botón, cerrar con F y reabrir sin una liberación intermedia; repetir F6 y caja Agregar		no		
+CL9	RUNBOOK-cl9-vm.md	H9-D1	Doble clic sobre fila offline y sobre un botón; observar también un tercer clic y mouse UP		no		
+CL9	RUNBOOK-cl9-vm.md	H9-Q1	Abrir Agregar, escribir nombre sintético de prueba y Enter; mover/redimensionar con colas pendientes		no		
+CL9	RUNBOOK-cl9-vm.md	H9-U1	Cerrar el EDIT y continuar escribiendo; volver a abrirlo	P-C181	no		
+CL9	RUNBOOK-cl9-vm.md	§2	Recuperar y repetir los 59 tests que se saltean por evidencia externa (en el host, sin arrancar el original)		no		no es observación del original
+CL9	RUNBOOK-cl9-vm.md	§6	H3: repetir el combate normal (A4/D7/17/16) con captura del cable	Q-C1161	no		una corrida ya se hizo (15-h3); repetirla
+CL9	RUNBOOK-cl9-castle-crywolf.md	Prioridad 1	La posición indeterminada del polvo 5f3 ([EBP-0x28] en 0x5252e6/0x529520 y 0x525302..0x525310)	P-C232 Q-C1176	sí	World/BlastModelEffects.cpp:1126 World/BlastModelEffects.cpp:1126	el runbook dice que impide declarar H13 jugable
+CL9	RUNBOOK-cl9-castle-crywolf.md	Registro H12	Abrir desde NPC/respuesta; tabs 0/1/2; estados 1/3/5/6; cerrar y reabrir		no		
+CL9	RUNBOOK-cl9-castle-crywolf.md	Senior H12	Entrada NPC 12 con byte4 0/1; puertas/estatuas, impuestos, retirar y fabricar		no		
+CL9	RUNBOOK-cl9-castle-crywolf.md	Retiro H12	Confirmar un importe válido y luego el campo vacío, tanto con Enter como con Sí		no		
+CL9	RUNBOOK-cl9-castle-crywolf.md	Zona de caza	Modos 1/2/3; permitido 0/1/2; dinero tarifa−1/igual/+1; editar y confirmar		no		
+CL9	RUNBOOK-cl9-castle-crywolf.md	Marca del dueño	Recibir B9 02, repetir los mismos bytes y cambiar la marca		no		
+CL9	RUNBOOK-cl9-castle-crywolf.md	Holders	Ocupación y salida del viewport; claves `13d`, otra y `813d`		no		
+CL9	RUNBOOK-cl9-castle-crywolf.md	Corona/bandos	B2 14/15/16/18/19; éxito, rechazo y cancelación		no		
+CL9	RUNBOOK-cl9-castle-crywolf.md	Panel de batalla	Sin gremio, miembro, maestro solo y maestro en alianza		no		
+CL9	RUNBOOK-cl9-castle-crywolf.md	Puertas/armas	Hablar con el interruptor 219 o las catapultas 221/222; abrir/cerrar puerta; disparar, impactar y cambiar de personaje con arma abierta		no		
+CL9	RUNBOOK-cl9-castle-crywolf.md	Mapa 30	Paz→batalla→paz y dueño distinto		no		
+CL9	RUNBOOK-cl9-castle-crywolf.md	Altas y ataques H13	Entrar al viewport de los actores 278/283 y observar ataques de los tipos `0x68` y `0x120`		no		
+CL9	RUNBOOK-cl9-castle-crywolf.md	B1/servidor	Cruzar al servidor del mapa y volver; saludo posterior al login		no		
+CL9	RUNBOOK-cl9-castle-crywolf.md	Retorno	Cambiar personaje/servidor; entrenador vacío y ocupado; ventana/corona activa		no		
+CL9	RUNBOOK-cl9-castle-crywolf.md	Battle Soccer	Partido con score activo, fin por F3 24 y aceptar A7		no		
+CL9	RUNBOOK-cl9-castle-crywolf.md	Crywolf	Llegada, altares, contrato, ataque de cada familia, BD0C y final de la cámara		no		
+CL9	RUNBOOK-cl9-castle-crywolf.md	Ataques `F8/1` y `C1A/0`	Provocar el ataque de la etapa 14 en los mapas 34/35. Repetir la descarga radial fuera de Crywolf.		no		
+CL9	RUNBOOK-cl9-castle-crywolf.md	Dispersión `C8/C9` y llamas de `17e`	Provocar el paso 1 en Crywolf con capacidad normal y repetir la saturación de los pools.		no		
+CL9	RUNBOOK-cl9-castle-crywolf.md	Carga Crywolf con estado 3 o mayor	Entrar al mapa 34 conservando ese estado y registrar el conjunto de archivos disponible.	Q-C1328	no		
+CL9	RUNBOOK-cl9-castle-crywolf.md	NPC de evento	Hablar resultados 4/6 y usar cada botón, regresar/cerrar		no		
+CL9	RUNBOOK-cl9-castle-crywolf.md	Inventario/equipo	Equipo sin mano por F3 13/lista/selección; doble clic joya; clic derecho almacén; tirar ticket		no		
+CL9	RUNBOOK-cl9-castle-crywolf.md	EDIT H9/H10	Selección, cursor, clipboard, flechas de lista, Tab, Enter e IME		no		
+CL7	2026-11-11-cl7-handoff.md	capa	La capa al caminar contra el original (Magic Gladiator en Devias, recto y girando; #307/#314)	P-C22	no		decide si se interpola la tela entre frames (ClothCarry)
+CL7	2026-11-11-cl7-handoff.md	punto 7	VM al final: contraste visual/numérico, CRT, primeros cuadros, seen/pose, caminar/gates/warps, GL y modal/cierre	P-C50 P-C54 P-C55 P-C56 Q-C180	no		genérico; lo detallan las filas de 08
+CL7	RUNBOOK-cl7-vm.md	CW	La CW de la x87 con el EIP adentro de 0x69fd3c (las 41 muestras de 2026-11-09 no cayeron adentro)	P-C34	sí	Scenes/ItemPrice.cpp:680	el runbook se corrió el 2026-11-09; falta este punto
+CL7	RUNBOOK-cl7-vm.md	luz	La luz sombreada del terreno (0x7c0ccc4) en Lorencia y Devias contra la de MuRet	P-C15	no		sin confirmar si se cerró: P-C15 sigue abierta
+CL7	ADR 0012	C0	Las cinco muestras de C0 del giro (P-C32) en el cliente de XP	P-C32	no		los tres helpers angulares siguen abiertos (08 § P-C32)
+CL10	ADR 0021	audio	Contraste dinámico del audio con el original (disparadores de efectos, volúmenes)	P-C07 P-C79	no		
+CL4	08-pendientes.md	fila	Diferencial dinámico del login `F1 01` y del keepalive `0x0E`	P-C05	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL9	08-pendientes.md	fila	Semántica de cada handler	P-C09	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL5	08-pendientes.md	fila	La carga y el login, en GL y en pantalla.	P-C13	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL6	08-pendientes.md	fila	La selección, lo que la CL6.R dejó abierto	P-C14	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL6	08-pendientes.md	fila	Crear y borrar personajes, en el cable	P-C16	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL6	08-pendientes.md	fila	La cabeza y el guardia de Lorencia, lo que la CL6.2 dejó abierto	P-C17	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL6	08-pendientes.md	fila	El render de modelos más allá de las dos trazas	P-C18	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL6	08-pendientes.md	fila	La selección de MuRet, lo que la CL6.3 PR D dejó abierto	P-C19	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL6	08-pendientes.md	fila	Lo que la CL6.3 PR F dibuja sin traza	P-C20	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL6	08-pendientes.md	fila	Las pruebas a mano de la CL6.3 contra el GS del laboratorio	P-C21	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL7	08-pendientes.md	fila	El login completo, contra el original	P-C23	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL7	08-pendientes.md	fila	El recorte y las olas del terreno fuera del login	P-C24	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL7	08-pendientes.md	fila	Los sprites de un frame fuera del login	P-C25	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL7	08-pendientes.md	fila	El buffer global de la pose	P-C26	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL8	08-pendientes.md	fila	Lo que el cierre del login dejó abierto	P-C27	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL7	08-pendientes.md	fila	La entrada al mundo y la escena del juego	P-C28	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL7	08-pendientes.md	fila	La cámara del juego	P-C29	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL7	08-pendientes.md	fila	Caminar	P-C30	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL7	08-pendientes.md	fila	Los mapas y los gates	P-C31	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL7	08-pendientes.md	fila	La admisión del `1C` según el cuarto argumento del dispatcher	P-C33	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL7	08-pendientes.md	fila	Bridge01 y el margen `+0xdc`	P-C35	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL7	08-pendientes.md	fila	El contrato de `0x54bf40` y `0x4225d0`	P-C36	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL7	08-pendientes.md	fila	Los stats del registro propio, `0x550d10`	P-C38	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL7	08-pendientes.md	fila	El azar de la entrada al mundo con la tabla de protección real	P-C39	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL7	08-pendientes.md	fila	Lo que deja `0x505820` entre la selección y el juego	P-C40	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL7	08-pendientes.md	fila	El primer frame del juego y lo que su paso comparte con la selección	P-C41	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL7	08-pendientes.md	fila	El `F3 10` en el original	P-C42	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL7	08-pendientes.md	fila	Una segunda respuesta del `F3 03` en el mundo	P-C43	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL7	08-pendientes.md	fila	El paso de los personajes del juego	P-C44	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL7	08-pendientes.md	fila	La vuelta a la selección en el original	P-C45	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL7	08-pendientes.md	fila	El trapecio y el rango compartidos, y lo que `0x5fbb00` deja todavía por escena	P-C46	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL7	08-pendientes.md	fila	La tabla de los ayudantes en el juego	P-C47	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL7	08-pendientes.md	fila	El pase del pasto y las marcas del suelo	P-C48	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL7	08-pendientes.md	fila	Las marcas del suelo	P-C49	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL3	08-pendientes.md	fila	El manejador de caídas en el original y en el MuRet de Windows	P-C51	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL7	08-pendientes.md	fila	El cuerpo de los personajes, `0x4fd5f0`	P-C52	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL7	08-pendientes.md	fila	El paquete de clima `0F` y su consumo	P-C57	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL8	08-pendientes.md	fila	Los diálogos del juego que quedan	P-C90	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL8	08-pendientes.md	fila	La división por 0 de las letras	P-C121	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL8	08-pendientes.md	fila	Lo que corta el cuerpo del ítem	P-C125	sí	Scenes/ItemNames.cpp:134	fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL9	08-pendientes.md	fila	El `07` del GameServer 0.97	P-C260	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL9	08-pendientes.md	fila	El byte de la lista del `F3 11`	P-C261	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL9	08-pendientes.md	fila	Lo que el GameServer 0.97 no manda	P-C262	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL9	08-pendientes.md	fila	La cabeza del aviso del `73`	P-C263	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL9	08-pendientes.md	fila	El comienzo del frame en la espera	P-C267	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL9	08-pendientes.md	fila	Conexiones de skills de armas y H5, hechas estáticamente	P-C269	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL9	08-pendientes.md	fila	Brillo5fe sobre héroe transformado, hecho estáticamente	P-C358	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL11	08-pendientes.md	fila	Rama del elfo conectada a H5 y al acercamiento común	P-C220	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL9	08-pendientes.md	fila	El `1E` de la rama del Wizard	P-C221	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL11	08-pendientes.md	fila	Rama Knight/Gladiator/Lord conectada	P-C223	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL9	08-pendientes.md	fila	Lo que dejó la rama del caballero para otros	P-C224	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL9	08-pendientes.md	fila	El combate contra la GS reconstruida	P-C252	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL9	08-pendientes.md	fila	Las celdas fuera de la grilla	P-C256	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL11	08-pendientes.md	fila	Habilidades del paso del ataque, lógica H4 portada; gráficos parciales.	P-C258	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL9	08-pendientes.md	fila	El paso del ataque en la VM	P-C259	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL9	08-pendientes.md	fila	Los casos de habilidad del paso del ataque en la VM	P-C347	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL11	08-pendientes.md	fila	Conexiones de flechas H4 hechas; asedio H13 pendiente	P-C231	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL11	08-pendientes.md	fila	Tiro penetrante del arco corto	P-C345	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL9	08-pendientes.md	fila	La acción, `18`	P-C152	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL9	08-pendientes.md	fila	Lo que manda un GameServer 1.02 a los otros jugadores	P-C160	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL9	08-pendientes.md	fila	El `A0` sin los bytes de estado	P-C171	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL9	08-pendientes.md	fila	El `13` del GS 0.97 no es el del cliente	P-C172	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL9	08-pendientes.md	fila	La pila que `0x517400` copia al nombre	P-C177	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL9	08-pendientes.md	fila	Lo que corta el dibujo de los monstruos y los NPC	P-C179	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL9	08-pendientes.md	fila	`NPC\BloodCastle01.bmd`, el `0x1f3`	P-C240	sí	Scenes/FaunaModels.cpp:341	fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL9	08-pendientes.md	fila	El dibujo de los monstruos contra el original	P-C242	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL9	08-pendientes.md	fila	Lo que corta la ventana de las misiones	P-C243	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL9	08-pendientes.md	fila	La ventana de las misiones en la VM	P-C244	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL9	08-pendientes.md	fila	La tela sobre la malla en la VM	P-C330	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL9	08-pendientes.md	fila	Los helpers de Kalima, el asedio y el paso del 30 contra el original	P-C335	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL9	08-pendientes.md	fila	Los efectos de los helpers de los monstruos	P-C336	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL9	08-pendientes.md	fila	Los helpers de los monstruos contra el original	P-C337	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL9	08-pendientes.md	fila	`NpcName(%s).txt`: el idioma y los nombres largos	P-C352	sí	Scenes/MonsterCreation.cpp:574	fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL9	08-pendientes.md	fila	Lo que cuelgan el `0x2a` y las estatuas de Blood Castle, contra el original	P-C353	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL9	08-pendientes.md	fila	Lo que corta el nombre de un invocado	P-C356	sí	Scenes/MonsterViewport.cpp:154	fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL9	08-pendientes.md	fila	El comercio, la party, el duelo y las tiendas contra el GameServer	P-C200	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL9	08-pendientes.md	fila	`0x78abacc`	P-C203	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL9	08-pendientes.md	fila	Lo que la fase 1 del hito 7 corta o deja a medias	P-C205	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL9	08-pendientes.md	fila	La fase 2 del hito 7 frente a la VM y al hito 3	P-C206	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL9	08-pendientes.md	fila	Lo que la fase 2 del hito 7 deja a otros hitos	P-C207	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL9	08-pendientes.md	fila	Las tiendas personales que quedan	P-C208	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL9	08-pendientes.md	fila	Lo que corta el comando sobre el elegido	P-C209	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL9	08-pendientes.md	fila	El clic derecho sobre la grilla propia del comercio	P-C235	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL9	08-pendientes.md	fila	El paso del diálogo `0x91` de la tienda personal	P-C312	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL9	08-pendientes.md	fila	La tienda personal en la VM	P-C313	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL9	08-pendientes.md	fila	Los carteles de las tiendas en la VM	P-C342	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL9	08-pendientes.md	fila	Lo que queda de los carteles	P-C343	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL9	08-pendientes.md	fila	El EDIT de `[0x5763504]` en el diálogo del zen	P-C362	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL9	08-pendientes.md	fila	Lo que la auditoría del hito 7 deja fuera del hito	P-C364	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL9	08-pendientes.md	fila	Lo que los ítems del piso dejan para la VM y el cable	P-C270	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL9	08-pendientes.md	fila	Lo que la fase 2 del hito 5 deja para la VM	P-C275	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL9	08-pendientes.md	fila	Los ids de los botones del diálogo de los paneles	P-C280	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL9	08-pendientes.md	fila	El `Sleep(500)` del `EB`	P-C282	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL9	08-pendientes.md	fila	El gremio contra el GameServer 0.97	P-C283	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL9	08-pendientes.md	fila	El `EDIT` del alta del gremio	P-C286	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL9	08-pendientes.md	fila	Los amigos contra un servidor que los tenga	P-C184	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL9	08-pendientes.md	fila	El dibujo de los amigos contra el original	P-C186	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL9	08-pendientes.md	fila	Las cartas y el chat con un amigo contra un servidor que los tenga	P-C214	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL9	08-pendientes.md	fila	El EDIT de varios renglones contra la VM	P-C217	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL9	08-pendientes.md	fila	El alpha test y la mezcla del retrato de las cartas	P-C359	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL9	08-pendientes.md	fila	La ventana de `0x78abb00` y la entrada del número de serie	P-C247	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL9	08-pendientes.md	fila	El contrato de los altares de Crywolf	P-C249	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL9	08-pendientes.md	fila	La bandera del espacio en `wsprintfA`	P-C290	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL9	08-pendientes.md	fila	El cable de los eventos contra el GameServer	P-C293	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL9	08-pendientes.md	fila	Lo que la VM tiene que confirmar de los dibujos de los eventos	P-C294	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL9	08-pendientes.md	fila	Lo que la VM tiene que confirmar del paso de las ventanas de los NPC de evento	P-C296	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL9	08-pendientes.md	fila	El derrumbe de los objetos	P-C297	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL9	08-pendientes.md	fila	La interfaz de Crywolf	P-C298	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL9	08-pendientes.md	fila	El recorrido de la cámara	P-C299	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL9	08-pendientes.md	fila	La bandera del altar con `0x6c8e54` en −1	P-C328	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL9	08-pendientes.md	fila	La cámara con el recorrido, contra el original	P-C329	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL9	08-pendientes.md	fila	Las ventanas de los NPC contra el GameServer 0.97	P-C190	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL9	08-pendientes.md	fila	Lo que queda del hito 6 después de la fase 3b	P-C198	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL9	08-pendientes.md	fila	Las respuestas del `BC` sin oráculo de red	P-C341	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL9	08-pendientes.md	fila	La lista de `0x6e5660`: lo que se infiere	P-C366	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL9	08-pendientes.md	fila	Lo del castillo que solo la VM dice	P-C303	no		fila de 08 que pide VM/traza/captura y que no nombra ningún paso
+CL2	07-quirks-y-bugs.md	fila	`decode_inbound`, antes del corte	Q-C18	no		fila de 07 que nombra VM/traza/captura; revisar si pide algo o sólo cita una traza ya hecha
+CL7	07-quirks-y-bugs.md	fila	terreno, `0x5fa830`	Q-C19	no		fila de 07 que nombra VM/traza/captura; revisar si pide algo o sólo cita una traza ya hecha
+CL6	07-quirks-y-bugs.md	fila	dibujo del personaje, `0x509340`	Q-C20	no		fila de 07 que nombra VM/traza/captura; revisar si pide algo o sólo cita una traza ya hecha
+CL6	07-quirks-y-bugs.md	fila	reloj del frame, `0x4eb620`	Q-C22	no		fila de 07 que nombra VM/traza/captura; revisar si pide algo o sólo cita una traza ya hecha
+?	07-quirks-y-bugs.md	fila	`WinMain`, `0x4b9c13`..`0x4b9c7d`, después de `wzPopLaunchInfo` (`0x6922c0`)	Q-C34	no		fila de 07 que nombra VM/traza/captura; revisar si pide algo o sólo cita una traza ya hecha
+CL3	07-quirks-y-bugs.md	fila	bucle, `0x637791`..`0x638638`	Q-C44	no		fila de 07 que nombra VM/traza/captura; revisar si pide algo o sólo cita una traza ya hecha
+CL3	07-quirks-y-bugs.md	fila	`WinMain`, `0x4be019`..`0x4be057`	Q-C46	no		fila de 07 que nombra VM/traza/captura; revisar si pide algo o sólo cita una traza ya hecha
+CL3	07-quirks-y-bugs.md	fila	mouse, `0x640940`	Q-C47	no		fila de 07 que nombra VM/traza/captura; revisar si pide algo o sólo cita una traza ya hecha
+CL4	07-quirks-y-bugs.md	fila	`WinMain` y el WndProc (`0x4af4e0`), mientras se arrastra la ventana o se cambia su tamaño	Q-C49	no		fila de 07 que nombra VM/traza/captura; revisar si pide algo o sólo cita una traza ya hecha
+CL5	07-quirks-y-bugs.md	fila	`0x621b60`, con alfa	Q-C57	no		fila de 07 que nombra VM/traza/captura; revisar si pide algo o sólo cita una traza ya hecha
+CL5	07-quirks-y-bugs.md	fila	las fuentes de `WinMain`, CRT y [análisis de codificación](12-codificacion.md)	Q-C67	no		fila de 07 que nombra VM/traza/captura; revisar si pide algo o sólo cita una traza ya hecha
+CL5	07-quirks-y-bugs.md	fila	el wrap de `0x63b870` y `0x63bd00` (el cuarto argumento)	Q-C73	no		fila de 07 que nombra VM/traza/captura; revisar si pide algo o sólo cita una traza ya hecha
+CL5	07-quirks-y-bugs.md	fila	el estado de GL del 2D: `0x621aa0`, `0x620a00`, `0x620a90` y `0x647650`	Q-C75	no		fila de 07 que nombra VM/traza/captura; revisar si pide algo o sólo cita una traza ya hecha
+CL5	07-quirks-y-bugs.md	fila	el texto con GDI: `0x467060` (el del login) y `0x4667a0`	Q-C76	no		fila de 07 que nombra VM/traza/captura; revisar si pide algo o sólo cita una traza ya hecha
+CL6	07-quirks-y-bugs.md	fila	las acciones de un modelo, `0x4f13d0` y `0x60dbe0`	Q-C87	no		fila de 07 que nombra VM/traza/captura; revisar si pide algo o sólo cita una traza ya hecha
+CL6	07-quirks-y-bugs.md	fila	la luz por vértice, `0x4ebc80`	Q-C115	no		fila de 07 que nombra VM/traza/captura; revisar si pide algo o sólo cita una traza ya hecha
+CL6	07-quirks-y-bugs.md	fila	el peso del viento de la tela, `0x454240`	Q-C121	no		fila de 07 que nombra VM/traza/captura; revisar si pide algo o sólo cita una traza ya hecha
+CL6	07-quirks-y-bugs.md	fila	los resortes de la tela, `0x454a50`	Q-C122	no		fila de 07 que nombra VM/traza/captura; revisar si pide algo o sólo cita una traza ya hecha
+CL7	07-quirks-y-bugs.md	fila	el fondo del juego, `0x6371a0` (`0x637391..0x637404`)	Q-C143	no		fila de 07 que nombra VM/traza/captura; revisar si pide algo o sólo cita una traza ya hecha
+CL7	07-quirks-y-bugs.md	fila	una segunda respuesta del `F3 03` con el héroe en el mundo, `0x4c3940` (`0x4c44ad`, `0x61a5aa`)	Q-C196	no		fila de 07 que nombra VM/traza/captura; revisar si pide algo o sólo cita una traza ya hecha
+CL7	07-quirks-y-bugs.md	fila	el primer paso del juego después de la espera, `0x508f00` (`0x63710f`), con el trapecio del dibujo de la selección (`0x63475c`)	Q-C216	no		fila de 07 que nombra VM/traza/captura; revisar si pide algo o sólo cita una traza ya hecha
+CL8	07-quirks-y-bugs.md	fila	el cursor del juego, `0x6376d7` y `0x6376e1`	Q-C442	no		fila de 07 que nombra VM/traza/captura; revisar si pide algo o sólo cita una traza ya hecha
+CL8	07-quirks-y-bugs.md	fila	la lectura de la captura, `0x6202e0` (`0x62031f`)	Q-C631	no		fila de 07 que nombra VM/traza/captura; revisar si pide algo o sólo cita una traza ya hecha
+CL8	07-quirks-y-bugs.md	fila	el grupo del mensaje de la captura, `0x638232..0x6382ae`	Q-C632	no		fila de 07 que nombra VM/traza/captura; revisar si pide algo o sólo cita una traza ya hecha
+CL8	07-quirks-y-bugs.md	fila	el archivo de la captura, `0x63b150` y `0x6202e0`	Q-C633	no		fila de 07 que nombra VM/traza/captura; revisar si pide algo o sólo cita una traza ya hecha
+CL8	07-quirks-y-bugs.md	fila	el pedido de la captura, `0x637d10..0x637d25`	Q-C634	no		fila de 07 que nombra VM/traza/captura; revisar si pide algo o sólo cita una traza ya hecha
+CL8	07-quirks-y-bugs.md	fila	un error de la libjpeg en la captura, `0x63b150`	Q-C635	no		fila de 07 que nombra VM/traza/captura; revisar si pide algo o sólo cita una traza ya hecha
+CL9	07-quirks-y-bugs.md	fila	el rumbo del `1E`, `0x4cea3e..0x4cea4d`	Q-C1201	no		fila de 07 que nombra VM/traza/captura; revisar si pide algo o sólo cita una traza ya hecha
+CL9	07-quirks-y-bugs.md	fila	la entrada del Magic Gladiator, `0x5854c1 → 0x5897a7`	Q-C1225	no		fila de 07 que nombra VM/traza/captura; revisar si pide algo o sólo cita una traza ya hecha
+CL9	07-quirks-y-bugs.md	fila	el `0x17e` de Crywolf en `0x4324c0`, `0x432a12..0x432b21`	Q-C1050	sí	Scenes/MonsterAttackStep.cpp:1040	fila de 07 que nombra VM/traza/captura; revisar si pide algo o sólo cita una traza ya hecha
+CL9	07-quirks-y-bugs.md	fila	la distancia del lazo de la `0x4c`, `0x5023e4..0x502433` (y `0x5024d9..0x502528`, en `0x4fd5f0`)	Q-C1111	no		fila de 07 que nombra VM/traza/captura; revisar si pide algo o sólo cita una traza ya hecha
+CL9	07-quirks-y-bugs.md	fila	el `50` de alguien fuera del viewport, `0x4d74b0` (`0x4d74f8`)	Q-C1297	no		fila de 07 que nombra VM/traza/captura; revisar si pide algo o sólo cita una traza ya hecha
+CL9	07-quirks-y-bugs.md	fila	el punto de la mano de `0x53d810` y de `0x53fdb0`, `0x4ec110` con Translate en 1	Q-C853	no		fila de 07 que nombra VM/traza/captura; revisar si pide algo o sólo cita una traza ya hecha
+CL9	07-quirks-y-bugs.md	fila	las dos marcas `0x69b` del `0x204` al `0x208`, `0x43436c` y `0x43439a` (`0x5fb2f0`)	Q-C1100	no		fila de 07 que nombra VM/traza/captura; revisar si pide algo o sólo cita una traza ya hecha
+CL9	07-quirks-y-bugs.md	fila	las poses de las estelas de `0x432bd0` (`0x4eb860` con el modelo, `0x68b181c`)	Q-C1102	no		fila de 07 que nombra VM/traza/captura; revisar si pide algo o sólo cita una traza ya hecha
+CL9	07-quirks-y-bugs.md	fila	las armas de las estatuas de Blood Castle, `0x50c83b..0x50c8b8` y `0x5099ed`	Q-C1119	sí	Scenes/GameHanging.cpp:687	fila de 07 que nombra VM/traza/captura; revisar si pide algo o sólo cita una traza ya hecha
+CL9	07-quirks-y-bugs.md	fila	el título de la tienda que se mira, `0x4db92b` (`3F 05`)	Q-C962	no		fila de 07 que nombra VM/traza/captura; revisar si pide algo o sólo cita una traza ya hecha
+CL9	07-quirks-y-bugs.md	fila	el título del `3F 02`, `0x5ea407..` y `0x62378b..` (`0x5ea290` y `0x623750`)	Q-C965	no		fila de 07 que nombra VM/traza/captura; revisar si pide algo o sólo cita una traza ya hecha
+CL9	07-quirks-y-bugs.md	fila	`/purchase` sin elegido, `0x574c8c..0x575e66` (`0x56c440`)	Q-C967	sí	Scenes/SocialRequests.cpp:382	fila de 07 que nombra VM/traza/captura; revisar si pide algo o sólo cita una traza ya hecha
+CL9	07-quirks-y-bugs.md	fila	los ítems del piso con el GameServer 0.97, `0x4d0ba0`, `0x4d0cc0` y `0x4de500`	Q-C1240	no		fila de 07 que nombra VM/traza/captura; revisar si pide algo o sólo cita una traza ya hecha
+CL9	07-quirks-y-bugs.md	fila	los renglones del contrato de Crywolf, `0x435b33..0x435bac`	Q-C1348	no		fila de 07 que nombra VM/traza/captura; revisar si pide algo o sólo cita una traza ya hecha
+CL9	07-quirks-y-bugs.md	fila	el NPC elegido en −1, `0x4eac1c..0x4eac30`	Q-C1350	no		fila de 07 que nombra VM/traza/captura; revisar si pide algo o sólo cita una traza ya hecha
+CL9	07-quirks-y-bugs.md	fila	el `99` del número personal, `0x5e8706..0x5e8bfd` (en `0x5e7bf0`)	Q-C925	no		fila de 07 que nombra VM/traza/captura; revisar si pide algo o sólo cita una traza ya hecha

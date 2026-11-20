@@ -46,15 +46,18 @@ por una tabla o un puntero.
 
 ## La cobertura del roadmap (CL.M)
 
-Tres scripts aparte, que no usan la caché ni `capstone`: solo la biblioteca estándar. Arman y
+Cinco scripts aparte, que no usan la caché ni `capstone`: solo la biblioteca estándar. Arman y
 verifican la matriz de [10](../../10-cobertura-roadmap.md), una fila por función del `main.exe` con
-su ola. El método está en ese informe.
+su ola, y la referencia por función de
+[`coverage/referencia/`](../../coverage/referencia/LEEME.md). El método está en esos dos textos.
 
 | Herramienta | Qué hace | Ejemplo |
 | --- | --- | --- |
 | `build_roadmap_matrix.py` | lee el clon del research (el inventario, el grafo, los exports y el exe de `original/`) y MuRet en un commit, y escribe la matriz; con `--summary`, un JSON con los conteos y el avance | `build_roadmap_matrix.py --research "$RESEARCH" --repo . --ref origin/main --out Client/docs/research/coverage/mainexe-roadmap.tsv` |
 | `check_roadmap_coverage.py` | el verificador del plan de CL.M: el inventario fijado, cada VA una vez con sus columnas originales, olas, estados y evidencia válidos; con `--require-complete`, sin pendientes | `check_roadmap_coverage.py --inventory "$INV" --mapping Client/docs/research/coverage/mainexe-roadmap.tsv --require-complete` |
 | `test_check_roadmap_coverage.py` | sus controles negativos, sobre copias de la matriz del repo; el inventario va en `MURET_MAINEXE_INVENTORY` | `MURET_MAINEXE_INVENTORY="$INV" python3 -I test_check_roadmap_coverage.py` |
+| `build_client_reference.py` | con la matriz regenerada (`--out` y `--rows` a `/tmp`), arma la referencia: una fila por función, cada cita con su símbolo, los huecos sin citar, los cortes y las métricas | `build_client_reference.py --research "$RESEARCH" --ref origin/main --matriz /tmp/matriz.tsv --filas /tmp/filas.tsv` |
+| `client_reference_symbols.py` | el símbolo de MuRet (función, tabla o caso de test) de cada línea de un `.cpp`/`.h`, contando llaves; lo usa la referencia | — |
 
 `$INV` es `$RESEARCH/client-research/mainexe-vmxp-c32bbd5f/decompiled/inventory.tsv`.
 

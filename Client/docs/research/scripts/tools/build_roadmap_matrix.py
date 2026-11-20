@@ -229,17 +229,12 @@ REVIEW = {
 # implementación. MuRet no tiene audio hasta la CL10: sus citas de las funciones de sonido marcan dónde
 # se pide uno.
 MENTION_ONLY = {
-    0x4F97B0: 'CharacterStep.cpp la nombra como quien sube +0x1a0',
-    0x498820: 'EncryptedPacket.h la nombra como el único que manda un C2',
-    0x41ED10: 'sin audio hasta la CL10', 0x41EE00: 'sin audio hasta la CL10',
-    0x4ACF60: 'sin audio hasta la CL10', 0x4ACFD0: 'sin audio hasta la CL10',
-    0x435BD0: 'GameUi.cpp nombra la cadena de Crywolf del paso, sin portarla',
-    0x44F810: 'GameUi.cpp la nombra en el corte de la CL9.5',
+    # LogicalAccess.h saca los rand() del registro propio, pero no hace el alta ni la búsqueda de la entrada.
     0x40AD90: 'LogicalAccess.h: no hace el alta de la entrada', 0x40B240: 'LogicalAccess.h: no hace la búsqueda',
-    # Del plan de la CL9: el corte está en la línea siguiente a la cita.
-    0x4C8860: 'ActorState.h nombra el byte +0x360 que escribe el 0x12 (0x4c89e1), sin portar',
-    0x576A60: 'ChatCommands.h nombra el emote como de la CL9.1',
 }
+# Ya no van (auditoría del 2026-11-20, analisis/2026-11-20-auditoria-cliente): 0x4f97b0 (AttackFrameSkills.cpp),
+# 0x498820 (LetterWindows), los cuatro de audio (la CL10), 0x435bd0 (CrywolfContract.h), 0x44f810 (el arma y la puerta
+# del asedio), 0x4c8860 (ViewportPlayers) y 0x576a60 (los emotes) están portados.
 # Citas que portan solo una parte (revisión independiente).
 PARTIAL_ONLY = {
     0x4365C0: 'GameHud.cpp porta el 0x620a00(1) del principio; la UI de los eventos es de la CL9.5',
@@ -259,7 +254,10 @@ CLM_OUTPUTS = {'Client/docs/research/10-cobertura-roadmap.md',
                # (decisiones 5 y 9 del plan).
                'docs/superpowers/plans/2026-11-13-ola-cl9-gameplay.md',
                'docs/superpowers/plans/2026-11-13-ola-cl9-funciones.tsv',
-               'docs/superpowers/plans/2026-11-13-ola-cl9-cortes.tsv'}
+               'docs/superpowers/plans/2026-11-13-ola-cl9-cortes.tsv',
+               # La referencia (coverage/referencia, que ya queda afuera por estar en coverage/) y sus scripts.
+               'Client/docs/research/scripts/tools/build_client_reference.py',
+               'Client/docs/research/scripts/tools/client_reference_symbols.py'}
 TYPE_CREATE = 0x5141E0
 EFFECT_CALLS = {0x518CF0, 0x530860, 0x53FE70, 0x5491E0, 0x41ED10}
 # Gigantes con ramas de varias olas: la ola responsable sale de su papel, no de quién lo cita más.
@@ -1323,6 +1321,7 @@ def build(args):
     # reparte entre las olas que nombran esos cortes (CL9 en adelante) o queda en la suya.
     prog = {'live_bytes': 0, 'implemented': 0, 'partial_done': 0.0, 'partial_left': collections.Counter(),
             'not_started': collections.Counter(), 'unknown': collections.Counter()}
+    per_row = []  # --rows: el avance de cada función viva, para build_client_reference.py
     for r in out_rows:
         a = int(r[0], 16)
         row = dict(zip(NEW_COLUMNS, r[len(header):]))
@@ -1343,6 +1342,9 @@ def build(args):
             for x in later:
                 prog['partial_left'][x] += size * left / len(later)
             prog['partial_done'] += size * (1 - left)
+            per_row.append((a, size, st, w, ncut, nimp, left, ','.join(later)))
+        if st != 'partial':
+            per_row.append((a, size, st, w, 0, 0, 0.0 if st == 'implemented' else 1.0, ''))
     owed = sum(prog['not_started'].values()) + sum(prog['partial_left'].values())
     unknown = sum(prog['unknown'].values())
     prog['done_pct'] = {f'sin cita x{u}': round(100 * (1 - (owed + u * unknown) / prog['live_bytes']), 1)
@@ -1359,6 +1361,11 @@ def build(args):
     if args.summary:
         with open(args.summary, 'w', encoding='utf-8') as fh:
             json.dump(summary, fh, indent=1, default=list)
+    if args.rows:
+        with open(args.rows, 'w', encoding='utf-8', newline='\n') as fh:
+            fh.write('va\tsize\tstate\twave\tcuts\tcitations\tleft\tlater_waves\n')
+            for t in per_row:
+                fh.write('\t'.join([f'{t[0]:#x}'] + [str(x) for x in t[1:]]) + '\n')
     return summary
 
 
@@ -1369,6 +1376,7 @@ def main():
     ap.add_argument('--ref', default='HEAD', help='commit de MuRet que se mide')
     ap.add_argument('--out', required=True)
     ap.add_argument('--summary')
+    ap.add_argument('--rows', help='TSV con el avance de cada función viva (lo lee build_client_reference.py)')
     s = build(ap.parse_args())
     print(json.dumps({k: s[k] for k in ('muret_commit', 'kinds', 'basis')}, default=list))
 

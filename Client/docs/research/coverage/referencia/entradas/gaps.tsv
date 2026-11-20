@@ -1,0 +1,1615 @@
+ola	va	bytes_que_faltan	estado	tipo	clon_o_olas	proposito
+CL1	0x5f8360	41	unknown	sin citar		- Error de validación → 0x5f8360: MessageBoxA + WM_DESTROY, sin fclose.
+CL2	0x68f540	3842	unknown	sin citar		las rondas del cifrado por bloques de 0x68f4b0, sin uso
+CL2	0x4e8f70	463	unknown	sin citar		└─ 0x4e893d: corte C1/C2/C3/C4 → 0x4e8f70 push a una cola FIFO
+CL2	0x4149b0	413	partial	partial: falta 0.09	CL9	velocidad de ataque y la de magia: en el GS original, CGLiveClient (0x415140) compara el
+CL2	0x41fa80	365	not-started	sin citar		hex del paquete y del texto plano (0x41fa80). El paquete se despacha
+CL2	0x4e9140	322	unknown	clon de una citada	exact:0x48ba10	mapa de bloques en +0x24, contador en +0x2c; 0x4e9140/0x4e9290/0x4e9300
+CL2	0x4e893d	309	unknown	sin citar		└─ 0x4e893d: corte C1/C2/C3/C4 → 0x4e8f70 push a una cola FIFO
+CL2	0x4e8a80	280	not-started	sin citar		└─ 0x4e8a80 pop → si C3/C4: Dec2.Decrypt (0x685b30) + serial 0x5767914 → rearmado C1/C2
+CL2	0x685f60	155	unknown	sin citar		0x685e20 / 0x685f60 copia y desplazamiento de campos de bits, MSB primero
+CL2	0x68f4b0	136	unknown	sin citar		cifrado por bloques de 16 bytes (cargas big-endian, rondas en 0x68f540), sin uso
+CL2	0x4e9290	109	unknown	clon de una citada	exact:0x476d10	mapa de bloques en +0x24, contador en +0x2c; 0x4e9140/0x4e9290/0x4e9300
+CL2	0x685ac6	101	unknown	sin citar		0x685ACB = loop de descifrado propio del juego (stride 0xB, XOR con
+CL2	0x40b3b0	53	unknown	sin citar		con el serial de 0x5767913 (la entrada de un byte de la tabla de protección, 0x40b3b0 y 0x40b3f0)
+CL2	0x4e8ba0	45	not-started	sin citar		+0x30 (0x4e8ba0 crea el nodo, 0x4e8be0 copia el puntero) y avanza el
+CL2	0x685a90	45	unknown	sin citar		constructor y destructor del objeto de la vtable 0x6bd884, junto al descifrado propio 0x685ac6 (CL2)
+CL2	0x6b7cd6	37	unknown	sin citar		- main.exe recv → trampolín 0x6B7CF2 (parcheado por FoxAnti.Init →
+CL2	0x4e9300	36	unknown	clon de una citada	param:0x4784d0	mapa de bloques en +0x24, contador en +0x2c; 0x4e9140/0x4e9290/0x4e9300
+CL2	0x6b7cb0	36	unknown	sin citar		└─ n >= 3 → 0x6b7cb0: n = FoxAnti.decode_inbound(n, buf) (tabla 0x6b7d00[0])
+CL2	0x4031b0	35	unknown	sin citar		sin texto que la describa
+CL2	0x685a60	30	unknown	sin citar		constructor y destructor del objeto de la vtable 0x6bd884, junto al descifrado propio 0x685ac6 (CL2)
+CL2	0x4e8be0	19	not-started	sin citar		+0x30 (0x4e8ba0 crea el nodo, 0x4e8be0 copia el puntero) y avanza el
+CL2	0x685a40	18	unknown	sin citar		constructor y destructor del objeto de la vtable 0x6bd884, junto al descifrado propio 0x685ac6 (CL2)
+CL2	0x4dd350	16	partial	partial: falta 0.14	CL9	el 1060), 02 (0x4dd350, los miembros: pkt[6] y, de a 11 bytes desde pkt[8], el número y el nombre), 04
+CL2	0x4dd540	10	partial	partial: falta 0.25	CL9	0x4e1d50 con 1, cuyo switch 0x4e2a60 despacha por pkt[3] a 0x4dd1b0..0x4dd540 con la ventana): 00
+CL2	0x686000	10	unknown	sin citar		Leídas como contexto (no asignadas, ≤ 45 B): 0x686000 (bit >> 3), wrappers
+CL2	0x4031a0	7	unknown	sin citar		0x4031a0 7 chat: —
+CL2	0x685a80	7	unknown	sin citar		constructor y destructor del objeto de la vtable 0x6bd884, junto al descifrado propio 0x685ac6 (CL2)
+CL2	0x4e8870	3	unknown	sin citar		seriales 0x5767913/0x5767914), 0x6b7cb0 (trampolín del hook), 0x4e8870 y
+CL3	0x4200a0	965	not-started	sin citar		Q-C1297 el 50 de alguien fuera del viewport, 0x4d74b0 (0x4d74f8) guarda la clave en 0x78aba40 y, sin el diálogo ocupado, 0x5110d0 da 400 y e
+CL3	0x420590	652	unknown	sin citar		textos: " %dMhz", "AMD 486"; usa wsprintfA; la llama 0x420c00
+CL3	0x6832e0	465	unknown	sin citar		la llama 0x67f840
+CL3	0x4be780	300	unknown	sin citar		la llama 0x4be750
+CL3	0x4be9a0	300	unknown	sin citar		la llama 0x4be970
+CL3	0x4beb20	300	unknown	sin citar		la llama 0x4beaf0
+CL3	0x420470	284	unknown	clon de una citada	exact:0x684ed0	usa GetCurrentProcess, GetCurrentThread, GetPriorityClass; la llama 0x420590
+CL3	0x4af3e0	255	unknown	sin citar		FUN_006a0292(DAT_068c4a58,0xe0,(undefined4 )(DAT_068c4a58 + -4),FUN_004af3e0);
+CL3	0x645ce0	241	unknown	sin citar		la llama 0x645860, 0x645ba0
+CL3	0x680d00	236	unknown	sin citar		destructor y limpieza del objeto del manejador de caídas (vtable 0x6bd86c, cuyos métodos 0x682860 y 0x682970 son CL3)
+CL3	0x469f30	234	unknown	sin citar		usa SetFocus; la llama 0x4b9b80
+CL3	0x469e50	218	unknown	sin citar		prepara 0x469e50. Los dos con EM_LIMITTEXT 10 (0x467f30): 10 caracteres. La clave lleva
+CL3	0x636290	178	partial	partial: falta 0.05	CL3	3 5 0x6356f0 al terminar la carga del mundo, que dibuja un solo frame con las cuatro LSBg en mosaico y las suelta (CL6.R); el F3 03 lo manda
+CL3	0x4b94a0	171	unknown	sin citar		Q-C36 0x4b9890, con 0x4b94a0 un parser de opciones de la línea de comandos: /y<host> y /z<puerto> codificados, como los arma el launcher en 
+CL3	0x4b8ff0	164	unknown	sin citar		registra la clase "MU" y crea la ventana (CreateWindowExA) desde WinMain
+CL3	0x41f910	144	unknown	sin citar		Q-C48 log, 0x41f7a0 y 0x41f830, con 0x41f910 MuError.log (0x6c6a20) se abre con CreateFileA (0x41f7e8): lectura y escritura, compartido solo
+CL3	0x41fc90	140	unknown	sin citar		separadores en 0x41fcfc, 0x4b9f42, 0x4b9fc8, 0x4b9fe3,
+CL3	0x680970	139	unknown	sin citar		destructor y limpieza del objeto del manejador de caídas (vtable 0x6bd86c, cuyos métodos 0x682860 y 0x682970 son CL3)
+CL3	0x459a70	130	unknown	sin citar		el temporizador de alta resolución (QueryPerformanceCounter, timeBeginPeriod) que arma WinMain
+CL3	0x4c02b0	129	not-started	sin citar		FUN_004c02b0();
+CL3	0x41f6a0	127	unknown	sin citar		Q-C48 log, 0x41f7a0 y 0x41f830, con 0x41f910 MuError.log (0x6c6a20) se abre con CreateFileA (0x41f7e8): lectura y escritura, compartido solo
+CL3	0x41f620	115	unknown	sin citar		Q-C48 log, 0x41f7a0 y 0x41f830, con 0x41f910 MuError.log (0x6c6a20) se abre con CreateFileA (0x41f7e8): lectura y escritura, compartido solo
+CL3	0x420c00	111	unknown	sin citar		FUN_00420c00();
+CL3	0x645c00	98	unknown	sin citar		la llama 0x645860, 0x645ba0
+CL3	0x683280	96	unknown	sin citar		usa GetFileSize, GetLastError; la llama 0x683940, 0x683c60
+CL3	0x682c70	91	unknown	sin citar		la llama 0x682990, 0x6829f0
+CL3	0x682990	89	unknown	sin citar		la llama 0x680180, 0x682970, 0x6b7880
+CL3	0x4ad360	81	unknown	sin citar		WinMain (0x4b9e24), 0x4ad360, 0x4b90a0 y 0x4ad4a0, y los cuatro le pasan lo que
+CL3	0x41f9a0	64	unknown	sin citar		(0x41fa58) y 0x41f9e0, que la escribe en MuError.log (0x41f9a0, con el XOR de Q-C48) solo
+CL3	0x413ae0	62	unknown	sin citar		la llama 0x6b3238, 0x6b3480, 0x6b348b y 174 más
+CL3	0x4c0ae0	62	unknown	sin citar		la llama 0x6b5130, 0x6b7a10
+CL3	0x680130	51	unknown	sin citar		0x67f4f0 toma el objeto único de la biblioteca (0x680130: un estático en 0x7d5c670, armado
+CL3	0x683db0	51	unknown	sin citar		la llama 0x683bb0, 0x683bd0
+CL3	0x6463b0	47	partial	partial: falta 0.12	CL3	0x645ba0, 0x645c70, 0x645ca0 y 0x6463b0). La ventana no tiene fondo (0x669c70 con -2). Lo
+CL3	0x669dc0	47	unknown	sin citar		la llama 0x6451d0
+CL3	0x682d50	47	unknown	sin citar		la llama 0x67f840
+CL3	0x682dc0	46	unknown	sin citar		la llama 0x6829f0
+CL3	0x459b30	45	unknown	sin citar		usa timeEndPeriod, timeGetDevCaps; la llama 0x459b00
+CL3	0x41ec40	42	not-started	sin citar		- 0x4B331D: PostQuitMessage(0) (tras llamadas 0x41EC40/0x6B2DA2/
+CL3	0x4be6f0	38	unknown	sin citar		la llama 0x4af3e0, 0x6b51a0
+CL3	0x4be720	38	unknown	sin citar		la llama 0x6b51ab
+CL3	0x682cf0	37	unknown	sin citar		la llama 0x67f840
+CL3	0x682d20	37	unknown	sin citar		la llama 0x67f840
+CL3	0x682df0	37	unknown	sin citar		la llama 0x6829f0
+CL3	0x669d90	35	unknown	sin citar		0x669d90 35 ventanas: portada
+CL3	0x6808d0	34	unknown	sin citar		destructor y limpieza del objeto del manejador de caídas (vtable 0x6bd86c, cuyos métodos 0x682860 y 0x682970 son CL3)
+CL3	0x682d80	34	unknown	sin citar		la llama 0x6b79c0
+CL3	0x41f740	33	unknown	sin citar		sin texto que la describa
+CL3	0x459b00	33	unknown	clon de una citada	exact:0x48ff00	sin texto que la describa
+CL3	0x4be750	33	unknown	sin citar		sin texto que la describa
+CL3	0x4be970	33	unknown	clon de una citada	exact:0x48f970	sin texto que la describa
+CL3	0x4beaf0	33	unknown	clon de una citada	exact:0x495ef0	sin texto que la describa
+CL3	0x669f10	33	unknown	sin citar		0x669f10 33 ventanas: portada
+CL3	0x682930	32	unknown	sin citar		la llama 0x682d50
+CL3	0x67f550	31	unknown	sin citar		una sola vez por 0x67f550 y destruido con atexit, 0x680170) y llama a 0x67f710: si todavía
+CL3	0x682840	31	unknown	sin citar		la llama 0x6829f0
+CL3	0x41f720	30	unknown	sin citar		textos: "MuError.log"; la llama 0x4acf30
+CL3	0x680950	30	unknown	sin citar		destructor y limpieza del objeto del manejador de caídas (vtable 0x6bd86c, cuyos métodos 0x682860 y 0x682970 son CL3)
+CL3	0x682860	30	unknown	sin citar		sin texto que la describa
+CL3	0x682970	30	unknown	sin citar		sin texto que la describa
+CL3	0x682950	29	unknown	sin citar		El filtro, 0x680180. Con el EXCEPTION_POINTERS, arma la lista de frames (0x682950) y la
+CL3	0x67f530	28	unknown	sin citar		(0x67f830 y 0x67f530). Si eso devuelve 1 y la bandera vale 0 (0x67f820), devuelve
+CL3	0x41f810	22	unknown	sin citar		usa CloseHandle; la llama 0x41f770
+CL3	0x41f780	19	unknown	sin citar		la llama 0x41f720, 0x41f810
+CL3	0x680110	19	unknown	sin citar		los punteros y la lista (0x680110); sin él, escribe con el nombre por defecto del objeto
+CL3	0x682cd0	19	unknown	sin citar		0x512 4 cuántos frames 0x682cd0, 0x67ff50
+CL3	0x682e20	17	unknown	sin citar		la llama 0x6829f0
+CL3	0x41fc00	15	unknown	sin citar		FUN_0041fc00();
+CL3	0x4ad3c0	13	unknown	sin citar		WM_DESTROY (0x2) apagado: bandera DAT_05763568 = 1, cierra el socket (0x4e8380), libera, wzAudioDestroy, cierra GL (0x4ad180), cierra el han
+CL3	0x683bf0	12	unknown	sin citar		la llama 0x683db0
+CL3	0x41f770	11	unknown	sin citar		la llama 0x41f740
+CL3	0x680100	9	unknown	sin citar		llena desde el Ebp del CONTEXT (+0xb4, 0x6829f0). Con un callback (0x680100), lo llama con
+CL3	0x682880	7	unknown	sin citar		la llama 0x682860
+CL3	0x67f820	4	unknown	sin citar		(0x67f830 y 0x67f530). Si eso devuelve 1 y la bandera vale 0 (0x67f820), devuelve
+CL3	0x67f830	4	unknown	sin citar		(0x67f830 y 0x67f530). Si eso devuelve 1 y la bandera vale 0 (0x67f820), devuelve
+CL3	0x682910	4	unknown	sin citar		la llama 0x682cf0
+CL3	0x682920	4	unknown	sin citar		la llama 0x682d20
+CL3	0x4bfc30	3	unknown	sin citar		la llama 0x4af3e0
+CL3	0x4bfc40	3	unknown	sin citar		la llama 0x4af3e0
+CL3	0x682db0	3	unknown	sin citar		la llama 0x6829f0
+CL3	0x450e70	1	unknown	sin citar		FUN_00450e70();
+CL4	0x4d5910	509	unknown	sin citar		0x71 0x4e465b Delega a FUN_004d5910, que NO lee el paquete: envía un paquete C1 71 (3 B, sin payload) por el socket global PTR_DAT_006c82a0 
+CL4	0x4e2b10	175	partial	partial: falta 0.01	CL9	vuelta al ConnectServer (0x642837, en 0x642810), el F4 03 con el GameServer (0x4e3396),
+CL4	0x65fe50	44	unknown	sin citar		to connect." y abre el aviso 0x70 de la UI (0x65fe50, el texto 402 de Text.bmd), y
+CL4	0x4e8560	4	unknown	sin citar		la conexión 0x4e8560, después de la espera, en la escena 5 y con el byte 0x7d3a13c distinto de 0 (0x638640): con -1 deja > Connection closed
+CL4	0x450376	1	unknown	sin citar		vacía: la llama el WM_TIMER 1000 antes del keepalive (02-arranque-y-ciclo-de-vida.md)
+CL4	0x4e8850	1	not-started	sin citar		FUN_004e8850();
+CL5	0x475470	1139	unknown	sin citar		la llama 0x465bb0, 0x465da0, 0x466c20 y 1 más
+CL5	0x466c20	972	unknown	sin citar		usa glDeleteTextures, glIsTexture
+CL5	0x477540	676	unknown	clon de una citada	param:0x4aa3d0	FUN_00477540 búsqueda/inserción en el árbol
+CL5	0x63ca20	569	unknown	sin citar		0x63ca20 569 HUD: CL8.3 ; ventanas: CL5 (selección) sí
+CL5	0x465bb0	496	unknown	sin citar		la llama 0x465b80
+CL5	0x4669c0	461	unknown	sin citar		la llama 0x465eb0
+CL5	0x466000	454	partial	partial: falta 0.33	CL5	- El texto: TextOut (0 si no está) elige cómo se dibuja: con 1, la caché de 0x466000 con
+CL5	0x63cc60	356	unknown	sin citar		0x63cc60 356 ventanas: CL5 (selección)
+CL5	0x465eb0	327	unknown	sin citar		0x6b9520), cuyo método 1, 0x465eb0, va a 0x466000: la caché y los colores 0x02. Con
+CL5	0x475aa0	322	unknown	clon de una citada	exact:0x48ba10	la llama 0x466c20
+CL5	0x477930	321	unknown	clon de una citada	exact:0x4a9c00	la llama 0x466c20
+CL5	0x465a70	268	unknown	sin citar		valor TextOut del registro (02), que vale 0 si no está. Con 1, la clase de 0x465a70 (vtable
+CL5	0x465da0	232	unknown	sin citar		la llama 0x6b41c8
+CL5	0x4758f0	203	unknown	sin citar		la llama 0x465bb0
+CL5	0x412bb0	185	partial	partial: falta 0.05	CL9	sin mirar pkt[4] (0x4c1e3e), llama a 0x412bb0 y 0x447ae0 y sale sin validar la versión
+CL5	0x4aece0	185	not-started	sin citar		el juego sale (Q-C35), y 0x4aece0 lee su versión: la del log
+CL5	0x41fdd0	184	unknown	sin citar		FUN_0041fdd0();
+CL5	0x41fd20	171	unknown	sin citar		FUN_0041fd20();
+CL5	0x63ce70	168	unknown	sin citar		0x63ce70 168 ventanas: CL5 (selección)
+CL5	0x472700	160	unknown	clon de una citada	param:0x489d80	la llama 0x6b41d3
+CL5	0x4658b0	148	unknown	sin citar		Qué camino corre (CL5.R, estático): el objeto de DAT_05763510 lo arma 0x4658b0 con el
+CL5	0x475a10	140	unknown	clon de una citada	param:0x4733c0	la llama 0x466c20
+CL5	0x643fd0	140	unknown	sin citar		+0x7e8 0x6ba988 (0x643fd0, arma 0x644120) sin identificar sin leer
+CL5	0x466b90	138	unknown	sin citar		la llama 0x4669c0
+CL5	0x644090	137	unknown	sin citar		0x644090 137 ventanas: CL5 (seguimiento)
+CL5	0x6465c0	126	unknown	sin citar		0x6465c0 126 ventanas: portada (UI/ServerListWindow)
+CL5	0x63c9a0	120	unknown	sin citar		0x63c9a0 120 ventanas: CL5 (selección)
+CL5	0x63ef00	117	unknown	sin citar		+0x4578 0x6ba848 (0x63ef00, arma 0x63f020) la de los créditos (inferido: la abre el botón de los créditos de la barra); abierta, tapa el mun
+CL5	0x4878f0	109	unknown	clon de una citada	exact:0x4ab1b0	la llama 0x466c20
+CL5	0x63efb0	109	unknown	sin citar		0x63efb0 109 ventanas: CL5 (seguimiento)
+CL5	0x647850	109	unknown	sin citar		0x647850 109 ventanas: CL5 (seguimiento)
+CL5	0x487880	108	unknown	clon de una citada	exact:0x4ab220	la llama 0x466c20
+CL5	0x6477b0	107	unknown	sin citar		+0x3d0 0x6baa0c (0x6477b0, arma 0x6478c0) la que abre Esc (0x634c60, con la lista y la barra de abajo abiertas, +0x10f4 y +0xe4c, y las demá
+CL5	0x478c90	105	unknown	sin citar		la llama 0x466c20
+CL5	0x477870	91	unknown	sin citar		la llama 0x466000
+CL5	0x63cf20	91	unknown	sin citar		0x63cf20 91 ventanas: CL5 (selección)
+CL5	0x65f160	91	unknown	sin citar		0x65f160 91 ventanas: portada?
+CL5	0x4778d0	89	unknown	sin citar		la llama 0x465bb0
+CL5	0x4777f0	87	unknown	sin citar		FUN_004777f0/00477870 rotaciones (fixup rojo-negro)
+CL5	0x478a10	84	unknown	clon de una citada	exact:0x4aaeb0	la llama 0x466000
+CL5	0x457bb0	83	unknown	sin citar		usa glFrontFace, glStencilOp
+CL5	0x669c20	79	unknown	sin citar		0x669c20 79 ventanas: portada (UI/CreateCharacterWindow)
+CL5	0x63c2d0	78	unknown	sin citar		0x63c2d0 78 ventanas: CL5 (seguimiento)
+CL5	0x66a170	78	unknown	sin citar		0x66a170 78 ventanas: portada (ServerListWindow)
+CL5	0x640460	70	unknown	sin citar		la llama 0x640280, 0x6402d0
+CL5	0x4759c0	67	unknown	clon de una citada	exact:0x4a8ba0	la llama 0x465da0, 0x4669c0, 0x466c20 y 1 más
+CL5	0x6467e0	65	unknown	sin citar		0x6467e0 65 ventanas: CL5 (seguimiento)
+CL5	0x459bc0	63	unknown	sin citar		para el delta de la UI (0x459b60) y el doble clic (0x459bc0), con timeGetTime si no hay.
+CL5	0x669d50	63	unknown	sin citar		0x669d50 63 ventanas: portada
+CL5	0x477480	62	unknown	sin citar		la llama 0x4669c0
+CL5	0x4774c0	62	unknown	sin citar		la llama 0x4669c0
+CL5	0x477500	62	unknown	sin citar		la llama 0x465bb0, 0x465da0, 0x4758f0
+CL5	0x65f1c0	59	unknown	sin citar		0x65f1c0 59 ventanas: portada (carga)
+CL5	0x457b70	57	unknown	sin citar		usa glBegin, glEnd, glVertex3fv; la llama 0x457b60, 0x457bb0
+CL5	0x695bf0	55	unknown	sin citar		textos: "glProgramEnvParameter4fARB"; usa wglGetProcAddress; la llama 0x66b270
+CL5	0x695ce0	55	unknown	sin citar		textos: "glProgramLocalParameter4fARB"; usa wglGetProcAddress; la llama 0x66b1c0
+CL5	0x466560	50	partial	partial: falta 0.50	CL5	0x466000 otro camino: TextOutA → texturas propias (slots de 0x466560, 10000 + índice), caché en
+CL5	0x6444f0	43	unknown	sin citar		0x6444f0 43 ventanas: CL5 (seguimiento)
+CL5	0x63cf80	42	unknown	sin citar		0x40eca0, 0x65fe00 (la UI nueva: si hay modo, 0x63cf80 y la lista de +0x8de0 por
+CL5	0x63cfb0	42	unknown	sin citar		0x63cfb0 42 ventanas: CL5 (selección)
+CL5	0x695c30	40	unknown	sin citar		textos: "glProgramEnvParameter4fvARB"; usa wglGetProcAddress; la llama 0x66b2b0
+CL5	0x695d20	40	unknown	sin citar		textos: "glProgramLocalParameter4fvARB"; usa wglGetProcAddress; la llama 0x66b200
+CL5	0x695d80	40	unknown	sin citar		textos: "glGetProgramEnvParameterfvARB"; usa wglGetProcAddress; la llama 0x66b310
+CL5	0x695de0	40	unknown	sin citar		textos: "glGetProgramLocalParameterfvAR"; usa wglGetProcAddress; la llama 0x66b2e0
+CL5	0x63f600	36	unknown	clon de una citada	exact:0x647d10	0x63f600 36 ventanas: CL5 (seguimiento)
+CL5	0x6446b0	36	unknown	clon de una citada	exact:0x647d10	0x6446b0 36 ventanas: CL5 (seguimiento)
+CL5	0x4789e0	35	unknown	sin citar		FUN_004789e0/00478a10 alocar nodo / fixup de inserción
+CL5	0x646560	35	unknown	sin citar		sin texto que la describa
+CL5	0x447aa0	33	not-started	sin citar		sin texto que la describa
+CL5	0x465b80	33	unknown	clon de una citada	exact:0x4633b0	sin texto que la describa
+CL5	0x467010	33	unknown	clon de una citada	exact:0x4633b0	sin texto que la describa
+CL5	0x63c2a0	33	unknown	sin citar		0x63c2a0 33 ventanas: CL5 (seguimiento)
+CL5	0x63ce10	33	unknown	sin citar		0x63ce10 33 ventanas: CL5 (selección)
+CL5	0x63d480	33	unknown	sin citar		0x63d480 33 ventanas: portada (UI/CreateCharacterWindow)
+CL5	0x63ef80	33	unknown	sin citar		0x63ef80 33 ventanas: CL5 (seguimiento)
+CL5	0x644060	33	unknown	clon de una citada	exact:0x488360	0x644060 33 ventanas: CL5 (seguimiento)
+CL5	0x646590	33	unknown	sin citar		0x646590 33 ventanas: portada (UI/ServerListWindow)
+CL5	0x647820	33	unknown	sin citar		0x647820 33 ventanas: CL5 (seguimiento)
+CL5	0x63c280	32	unknown	sin citar		0x63c280 32 HUD: CL8.3 ; ventanas: CL5 (seguimiento) sí
+CL5	0x477850	28	unknown	clon de una citada	exact:0x4aa0b0	la llama 0x4758f0
+CL5	0x63c940	28	unknown	sin citar		sin texto que la describa
+CL5	0x647030	28	unknown	sin citar		0x647030 28 ventanas: CL5 (seguimiento)
+CL5	0x487ba0	26	unknown	clon de una citada	param:0x4875f0	FUN_00487ba0 copiar/setear clave del nodo
+CL5	0x63ce50	25	unknown	sin citar		0x63ce50 25 ventanas: CL5 (selección)
+CL5	0x4659e0	24	unknown	sin citar		usa SelectObject
+CL5	0x478220	24	unknown	clon de una citada	exact:0x4a98a0	FUN_00478220 setter pequeño
+CL5	0x487960	19	unknown	sin citar		la llama 0x466c20
+CL5	0x466ff0	18	unknown	sin citar		cualquier otro, la de 0x466ff0 (vtable 0x6b9538), cuyo método 1, 0x467060, hace un
+CL5	0x475450	17	unknown	clon de una citada	exact:0x4bfdd0	la llama 0x465bb0, 0x465da0, 0x466c20
+CL5	0x475bf0	16	unknown	clon de una citada	exact:0x474b90	la llama 0x465bb0
+CL5	0x63ce00	16	unknown	sin citar		0x63ce00 16 HUD: CL8.3 ; ventanas: CL5 (selección) sí
+CL5	0x450300	14	unknown	sin citar		FUN_00450300();
+CL5	0x467040	11	unknown	sin citar		la llama 0x467010
+CL5	0x63c990	11	unknown	sin citar		0x63c990 11 ventanas: CL5 (selección)
+CL5	0x63ce40	11	unknown	sin citar		0x63ce40 11 ventanas: CL5 (selección)
+CL5	0x647020	11	unknown	sin citar		0x647020 11 ventanas: CL5 (seguimiento)
+CL5	0x4659b0	9	unknown	sin citar		la llama 0x465a70, 0x466ff0
+CL5	0x447ad0	7	not-started	sin citar		la llama 0x447aa0
+CL5	0x4659d0	7	unknown	sin citar		la llama 0x465bb0, 0x467040, 0x6b41a0 y 1 más
+CL5	0x640840	7	unknown	sin citar		0x640840 7 ventanas: portada
+CL6	0x458d60	1380	unknown	sin citar		la llama 0x458c50
+CL6	0x4f1ac0	1116	unknown	sin citar		DAT_07d366bc, que nadie escribe) lee con 0x4f13d0; 0x4f1ac0 escribe un .bmd (con
+CL6	0x4592e0	914	unknown	sin citar		la llama 0x458c50
+CL6	0x458280	629	unknown	sin citar		textos: "nodes", "skeleton"; la llama 0x458bd0
+CL6	0x458500	611	unknown	sin citar		la llama 0x458280, 0x4587e0, 0x458980 y 1 más
+CL6	0x4f1f80	602	unknown	sin citar		mínimo y el máximo de los vértices que cuelgan de él (0x4f1f80, las 8 esquinas en hueso +
+CL6	0x458980	591	unknown	sin citar		textos: "triangles"; la llama 0x458bd0
+CL6	0x459690	540	unknown	sin citar		la llama 0x458ce0
+CL6	0x4561d0	488	not-started	sin citar		sin texto que la describa
+CL6	0x60b3d0	424	partial	partial: falta 0.07	CL6	+0x70 (U y V). 0x511290 arma el del jugador con −1, −1, 1, 0 y 0, y 0x60b3d0, 0x60b130,
+CL6	0x60d830	406	unknown	sin citar		la llama 0x60dbe0, 0x60ff50, 0x612270 y 3 más
+CL6	0x4587e0	402	unknown	sin citar		textos: "skeleton", "time"; la llama 0x458bd0
+CL6	0x455b10	292	unknown	sin citar		# 0x455930, 0x455b10 y 0x455c40
+CL6	0x4ad180	228	unknown	sin citar		WM_DESTROY (0x2) apagado: bandera DAT_05763568 = 1, cierra el socket (0x4e8380), libera, wzAudioDestroy, cierra GL (0x4ad180), cierra el han
+CL6	0x549ec0	221	unknown	sin citar		carga FilterName.bmd, como su par 0x549c60 (Filter.bmd, CL6)
+CL6	0x454410	192	unknown	sin citar		la llama 0x455770
+CL6	0x4544d0	160	unknown	sin citar		# G. las ramas raras: columnas en el mismo punto (el largo mínimo 0,001 de 0x4555d0 y 0x4544d0), filas
+CL6	0x63d990	150	partial	partial: falta 0.08	CL6	F3 01 C->S, crear 0x63d990 C1, 15: el nombre hasta su primer cero y con ceros hasta 10, y un byte con la clase de la vista previa por 16 más
+CL6	0x642d50	150	unknown	sin citar		Q-C116 cancelar el aviso del código del borrado, 0x6436a0 pone el id en −1 y cierra, pero el EDIT del código (DAT_05763508, el que 0x6436c0 
+CL6	0x455d90	149	unknown	sin citar		la llama 0x455770
+CL6	0x458c50	138	unknown	sin citar		la llama 0x60d830, 0x60d9d0, 0x60dbe0
+CL6	0x458bd0	123	unknown	sin citar		la llama 0x458c50, 0x458ce0
+CL6	0x4ebc80	105	partial	partial: falta 0.09	CL11	raíz queda sin las dos y las pone 0x4ebc80 en cada vértice. Los hijos, con
+CL6	0x59e700	103	partial	partial: falta 0.09	CL9	0x59e700(máscara) recorre los 400 personajes (vivos, visibles, con alpha > 0, +0x389 en 0,
+CL6	0x456580	100	not-started	sin citar		sin texto que la describa
+CL6	0x634c60	94	partial	partial: falta 0.09	CL6	2 4 0x634c60 el login aceptado: el F1 01 deja el estado de la conexión, DAT_057678c0, en 0x14; la escena lo ve en su paso, lo pasa a 0x32 y 
+CL6	0x6154a0	92	unknown	sin citar		con desplazamiento rand()&1023 (0x60dc4c..0x60dc7a). El constructor 0x6154ab..0x6154b3
+CL6	0x60d9d0	89	unknown	sin citar		textos: "%s%d.smd", "%s0%d.smd"; la llama 0x60dbe0, 0x60ff50
+CL6	0x454f20	88	unknown	sin citar		sin texto que la describa
+CL6	0x510c40	88	not-started	sin citar		sin texto que la describa
+CL6	0x458ce0	76	unknown	sin citar		la llama 0x60d830, 0x60d9d0, 0x60dbe0
+CL6	0x607b60	75	partial	partial: falta 0.07	CL9	0x61f (en lo que cuelga, 2, 1, 2 y −1, de 0x607b60); las demás, −1. El 0x42 del excelente,
+CL6	0x454700	73	not-started	sin citar		la llama 0x455cd0
+CL6	0x455ea0	63	partial	partial: falta 0.08	CL9	0x6b8d04 sobre 0x454a00) y el +0x24 (0x455ea0) con (objeto, 2, 0x12, 0x400, −1); después 0x455cd0 dos
+CL6	0x60b130	61	partial	partial: falta 0.13	CL9	+0x70 (U y V). 0x511290 arma el del jugador con −1, −1, 1, 0 y 0, y 0x60b3d0, 0x60b130,
+CL6	0x5fc7c0	60	not-started	sin citar		la llama 0x458000, 0x4ec340, 0x622900
+CL6	0x5139f0	58	partial	partial: falta 0.03	CL9	equipo (0x5139f0, [06](06-render-escenas-y-ui.md#la-selección-de-personaje)); y [0x21], a
+CL6	0x5f8b10	50	partial	partial: falta 0.20	CL6	- Al cargar un mundo (0x5f8f40): 0x63b490 lee TerrainLight.OZJ en 0x78ecc10; 0x5f8b10
+CL6	0x60dbe0	46	partial	partial: falta 0.01	CL6	el cuerpo de cada modelo 0x636290 y la tabla de velocidades de 0x60dbe0 ([06](06-render-escenas-y-ui.md)) por paso, verificado por paso; el 
+CL6	0x60b300	45	partial	partial: falta 0.22	CL6	0x60b300, 0x609640 y el contorno (0x60cd60) se los pasan; lo que cuelga lleva otro objeto
+CL6	0x4545d0	39	unknown	sin citar		la llama 0x4547f0
+CL6	0x459910	38	unknown	sin citar		textura de cada malla (0x459940 y 0x459910: qué prende cada letra, y qué nombres del
+CL6	0x5fc760	38	unknown	sin citar		la llama 0x60b3d0
+CL6	0x4547c0	37	not-started	sin citar		la llama 0x455cd0
+CL6	0x4541e0	36	unknown	sin citar		la llama 0x4541b0
+CL6	0x454320	34	unknown	sin citar		la llama 0x4555d0
+CL6	0x454390	33	unknown	sin citar		la llama 0x4547f0, 0x455930, 0x455ea0 y 1 más
+CL6	0x454630	33	not-started	clon de una citada	exact:0x48fe30	sin texto que la describa
+CL6	0x454760	33	not-started	clon de una citada	exact:0x488360	sin texto que la describa
+CL6	0x640c40	33	unknown	sin citar		sin texto que la describa
+CL6	0x4546d0	29	unknown	sin citar		la llama 0x455770
+CL6	0x412810	28	partial	partial: falta 0.25	CL9	0x412810 114 un acceso de la protección no se porta (protección)
+CL6	0x640c70	28	unknown	sin citar		la llama 0x640c40
+CL6	0x454690	25	unknown	sin citar		la llama 0x455770
+CL6	0x454670	24	not-started	sin citar		la llama 0x454600, 0x4547a0
+CL6	0x60cd60	24	partial	partial: falta 0.08	CL9	(0x510d00 con DAT_006c8e30): dos pases de 0x60cd60 sin luz, en (0,1; 0,01; 0) a 1 + 0,1 /
+CL6	0x4541b0	18	unknown	sin citar		sin texto que la describa
+CL6	0x454600	18	not-started	sin citar		la llama 0x454700
+CL6	0x4547a0	17	not-started	sin citar		la llama 0x454700
+CL6	0x4fb1a0	16	partial	partial: falta 0.06	CL9	y 0x4fb1a0 suelta todas las telas (el frame siguiente las arma de nuevo desde la pose de ese
+CL6	0x450320	14	unknown	sin citar		la llama 0x634c60
+CL6	0x454790	11	not-started	sin citar		la llama 0x454760
+CL6	0x455e80	11	unknown	sin citar		la llama 0x455e50, 0x510c40
+CL6	0x512930	11	partial	partial: falta 0.05	CL6	0x1c16; 0x512930 le deja la cabeza en -1. 0x420d60 le cuelga al cuervo un objeto aparte, de
+CL6	0x4541d0	7	unknown	sin citar		la llama 0x454f20
+CL6	0x454660	7	not-started	sin citar		la llama 0x454630, 0x454790, 0x6b3cd0
+CL6	0x622b30	6	unknown	sin citar		la llama 0x63d7c0
+CL7	0x65d080	2933	unknown	sin citar		textos: "Interface\Icarus.tga", "Interface\Kalima.tga"; la llama 0x65cd70
+CL7	0x411600	2172	unknown	sin citar		usa glColor3f, glColor4f
+CL7	0x54b3d0	1307	not-started	sin citar		- Parser 0x54b3d0; el valor en runtime del flag 0x6c9e0c; handler de
+CL7	0x53c6a0	1272	partial	partial: falta 0.46	CL7	(0x6046a0, abajo: el logo), los joints (0x53c6a0(0)), los efectos con modelo
+CL7	0x42b540	1270	partial	partial: falta 0.32	CL9	El preludio (0x42b540, el tercer eslabón de 0x6061c0, una vez por paso y antes de mirar si hay objetos
+CL7	0x4385a0	1175	unknown	sin citar		El prefijo global 0x4385a0 corre antes del early-return por ausencia de objetos vistos y
+CL7	0x65e1d0	1094	unknown	sin citar		la llama 0x65ce80, 0x65cf80
+CL7	0x41d2d0	1058	unknown	sin citar		perturbación, 0x41d880, 0x41d2d0, render o integración/lifetime de Kalima.
+CL7	0x439680	1052	unknown	sin citar		- 0x439680, Kalima: lee y cierra el acceso lógico al contador antes del gate %100; el cierre
+CL7	0x453750	1039	not-started	clon de una citada	exact:0x4a81f0	la llama 0x450fe0, 0x451100, 0x451430 y 3 más
+CL7	0x616ec0	1003	partial	partial: falta 0.08	CL7	nadie pide World33. Antes de la carpeta, 0x616ec0 fuerza el mapa 7 si DAT_07d366bc está
+CL7	0x41cf00	966	unknown	sin citar		0x41d880 y la malla de 0x41d2d0 que consume 0x41cf00. El dueño es independiente
+CL7	0x54a660	951	not-started	sin citar		la llama 0x61ccb0
+CL7	0x4c6790	938	unknown	sin citar		0xD3 S->C 0x4c6790 dónde va un personaje: la celda X/Y y la dirección en pkt[7] >> 4 (abajo)
+CL7	0x41d880	860	unknown	sin citar		perturbación, 0x41d880, 0x41d2d0, render o integración/lifetime de Kalima.
+CL7	0x443990	859	unknown	sin citar		Módulos de evento Step de objetos y hojas 0x52fe30, 0x42b1e0, 0x443996, 0x4292c0, 0x5301a0
+CL7	0x435600	775	unknown	sin citar		la llama 0x530490
+CL7	0x457870	739	not-started	sin citar		19 las 0x44 a 0x48 (0x594e42..0x599d1c, dos copias cada una) C1 06 19 <skill> <clave H L>: con 0x6c8e30 en −1, la del jugador (0x57678bc); s
+CL7	0x54aa20	719	not-started	sin citar		Skill.bmd 0x54acf0 / 0x54aa20 256 × 0x3C bytes + checksum 0x5A18; luego un contenedor "guardia" con rand() [0x076BD1D8], 0x3C00
+CL7	0x4455e0	686	unknown	sin citar		- 0x4455e0, Icarus: índices 0..2 preparan Monster32 y gastan seis sorteos del nacimiento; los
+CL7	0x4105f0	683	partial	partial: falta 0.17	CL9	if (mode == 1) cipher = Create(VMT 0x4112f0); // TDCP_blowfish
+CL7	0x608a00	673	partial	partial: falta 0.67	CL7	El piso tiene otro gate: 0x608b0a..0x608b20 posa sin traslación aun con alpha0; 0x60cf70 sólo
+CL7	0x42eed0	652	unknown	sin citar		la llama 0x602ed0
+CL7	0x41dd00	641	unknown	sin citar		usa glColor3fv, glColor4f; la llama 0x437940
+CL7	0x622170	639	unknown	sin citar		adentro (0x622170) proyecta por prioridad x, luego y, si no z; ±0,5 seleccionan ese eje, sin
+CL7	0x65e670	628	unknown	sin citar		la llama 0x65dfa0
+CL7	0x61a280	611	unknown	sin citar		la llama 0x616ec0
+CL7	0x41cca0	608	unknown	sin citar		World/KalimaWorld conserva el estado de 0x41cca0, los planos periódicos de
+CL7	0x445ec0	602	unknown	sin citar		- 0x445ec0 llama al flock 0x4e9a40 con el pool físico completo, incluidos vecinos vivos fuera
+CL7	0x410330	577	unknown	sin citar		if (mode == 0) cipher = Create(VMT 0x410348); // TDCP_rijndael
+CL7	0x42e3d0	576	partial	partial: falta 0.40	CL9	DAT_07d2d360, el ciclo de 32 pasos elige una de 32 texturas animadas: en el terreno del mundo 7 el slot 0x1e + n (0x5fa830), y en los modelo
+CL7	0x65dfa0	558	unknown	sin citar		la llama 0x65de30
+CL7	0x5301a0	511	unknown	sin citar		alrededor del héroe (estático), y avanzan con 0x5301a0 y 0x5303a0: caen y se posan en el
+CL7	0x615500	510	unknown	sin citar		0x615500 0x548 nada: lo llama 0x61eeb0, detrás de DAT_07d366bc
+CL7	0x41df90	502	unknown	sin citar		usa glBegin, glColor3fv, glColor4f; la llama 0x41dd00
+CL7	0x4fcee0	493	partial	partial: falta 0.27	CL9	0x4fd5f0 (1, 0x4fd7e4, sin condición), 0x432bd0 (1, 0x432bf1, desde 0x4fcee0 con el frame en 3 o
+CL7	0x640c90	491	unknown	sin citar		a 0x721 (GL_LINEAR, GL_CLAMP) y un objeto de 0x2a8 bytes (0x640c10, 0x640c90) con las
+CL7	0x52f880	472	unknown	sin citar		la llama 0x530490
+CL7	0x446b60	456	partial	partial: falta 0.50	CL7	(0x50c20b, 0x50c217 y 0x50c248), los pájaros 0x446bee, el cartel 0x414572 y la capa
+CL7	0x445b90	455	unknown	sin citar		- 0x445b90 conserva los if sucesivos: el ave AD/BC puede pasar 0 → 1 → 3 en un paso y tomar
+CL7	0x54bf40	453	partial	partial: falta 0.10	CL7	sin tope, y 0x54bf40 con B1 y B4 sin bits arriba y B3 con los del tipo). El GameServer 0.97 lo manda en C2 con
+CL7	0x438c10	452	partial	partial: falta 0.50	CL7	marcadores 0x438f81 y productor ambiental 0x4389ca. KalimaObjectMovement conserva velocidad,
+CL7	0x52f6b0	450	unknown	sin citar		la llama 0x530490
+CL7	0x4fd5f0	425	partial	partial: falta 0.01	CL9	la lógica de la escena llega por 0x508f00 → 0x508ea0 → 0x4fd5f0 → 0x4fcd00 a 0x4f9580,
+CL7	0x52fe30	423	unknown	sin citar		Módulos de evento Step de objetos y hojas 0x52fe30, 0x42b1e0, 0x443996, 0x4292c0, 0x5301a0
+CL7	0x52fa60	417	unknown	sin citar		lluvia (0x75fdc38) en 100 en cada paso. En el 0 nacen con 0x52fa60, el tipo 100 (leaf01),
+CL7	0x432bd0	409	partial	partial: falta 0.12	CL9	0x4fd5f0 (1, 0x4fd7e4, sin condición), 0x432bd0 (1, 0x432bf1, desde 0x4fcee0 con el frame en 3 o
+CL7	0x445890	404	unknown	sin citar		- 0x445890, Atlans: heroY0,01f conserva el producto sin spill antes de compararlo con 128.
+CL7	0x5f8c10	384	unknown	sin citar		sin texto que la describa
+CL7	0x4f37c0	375	partial	partial: falta 0.19	CL9	sigue su camino (0x508e26..0x508e6e: 0x4f37c0, 0x4ea270(c, 1) y, si terminó, +0x378 en 0, 0x4f2250
+CL7	0x41d700	372	not-started	sin citar		la llama 0x41cca0, 0x437860
+CL7	0x65ea80	369	unknown	sin citar		la llama 0x65dfa0, 0x65e670
+CL7	0x4e9a40	368	unknown	sin citar		- 0x445ec0 llama al flock 0x4e9a40 con el pool físico completo, incluidos vecinos vivos fuera
+CL7	0x599ef0	360	partial	partial: falta 0.09	CL7	0x1C C->S (C3) 0x599ef0 pedir un gate (abajo)
+CL7	0x4fbe10	355	partial	partial: falta 0.22	CL9	- C1 06 AF 02 x y (0x4fbee8, desde 0x4fbe10), con el XOR32: en Chaos Castle, el héroe 10 s en la misma
+CL7	0x445d60	351	unknown	sin citar		restantes crean el 0x10f y su joint con el dueño durable. 0x445d60 usa yaw en radianes y el
+CL7	0x4573f0	343	not-started	sin citar		la llama 0x457550
+CL7	0x429ec0	341	unknown	sin citar		sin el ítem no sale. El GS (CGEventChipRegRequest, 0x429fc0) acepta los tipos 0 y 1 y le suma 12 a la casilla.
+CL7	0x54a180	340	not-started	sin citar		0x4bae26, a cero en 0x4baf80 y liberada en 0x4aefbc); 0x54a180 (lee Data2\Gate.txt) y
+CL7	0x509340	325	partial	partial: falta 0.03	CL7	mascota y alas 0x509340 por frame dibujado, verificado (Q-C20) por tiempo (CL6)
+CL7	0x42ec00	322	not-started	clon de una citada	exact:0x48ba10	la llama 0x42a2b0
+CL7	0x56acd0	320	partial	partial: falta 0.12	CL9	0xD3 C->S 0x56acd0 (SendMove) caminar; FoxAnti lo manda como A3 (abajo)
+CL7	0x4f2250	313	partial	partial: falta 0.06	CL7	CL9 hito 1 (2026-11-13). Estático, con el ASM de 0x4cb750, 0x576a60, 0x576eb0, 0x4f2250 y 0x59b456,
+CL7	0x425260	307	partial	partial: falta 0.11	CL7	PMSG_ATTACK (CGAttack, 0x4254d0: NumberH NumberL AttackAction DirDis, el número en 16 bits
+CL7	0x438ad0	307	unknown	sin citar		El ciclo vivo completa esos tres cuerpos públicos: movimiento 0x438ad0, partículas de los
+CL7	0x446f00	298	unknown	sin citar		del login por 0x4453b0), los peces (0x446f74), los efectos (0x52d871, 0x52d897, 0x52da99)
+CL7	0x414820	282	partial	partial: falta 0.80	CL9	comparado con 0x80 en 0x4148aa y 0x4c64f5). No mira el largo del paquete, y un lugar de
+CL7	0x53d9a0	276	partial	partial: falta 0.12	CL9,CL10	[0x5767948] la skill del último tiro (GameMovementState::lastShotSkill, la misma de las ramas del elfo, del caballero y del Wizard) la escri
+CL7	0x4c0cc0	270	unknown	sin citar		la llama 0x6b5140
+CL7	0x52fc10	270	unknown	sin citar		solo nace en Icarus (0x52fc10): en Lorencia, el 0F de lluvia prende el sonido de ambiente y nada
+CL7	0x52fd20	270	unknown	sin citar		la llama 0x530490
+CL7	0x416a20	268	partial	partial: falta 0.05	CL9,CL10	<resultado> como C3 (GCCloseMsgSend, 0x417280 en la reconstrucción del GS) cuando termina la
+CL7	0x61ccb0	263	partial	partial: falta 0.03	CL9	Slide.bmd 0x46b3b0, desde 0x61ccb0 (0x61ed18) / sin buscar 0xa030 bytes con el XOR3 entero (0x4c1690, la clave de 0x6c82e4): el período, la 
+CL7	0x65de30	260	unknown	sin citar		la llama 0x65d080, 0x65dc30
+CL7	0x4eaaf0	258	unknown	sin citar		(new(0x424), en 0x5767b74) y lo inicializa 0x4eaaf0, desde el cargador del mundo (0x61bd80):
+CL7	0x505de0	257	partial	partial: falta 0.02	CL9	0x01 la zona segura 0x511290 y 0x505de0 (+0x3e2 del personaje), el segundo intento del camino, el clic que no ataca y la música
+CL7	0x52e590	257	partial	partial: falta 0.60	CL7	0x602ef4); 0x510d00; 0x59ec80 con +0x8de8 en 0; 0x4453b0, 0x52e590 (cintas), 0x53c6a0(0)
+CL7	0x54e6f0	255	unknown	sin citar		la llama 0x61eeb0
+CL7	0x5f8e40	252	unknown	sin citar		sin texto que la describa
+CL7	0x445a90	251	unknown	sin citar		la llama 0x446120
+CL7	0x65cf80	249	unknown	sin citar		la llama 0x65ce50
+CL7	0x42ac50	242	unknown	sin citar		la llama 0x42ad50, 0x5650c0
+CL7	0x65ce80	242	unknown	sin citar		la llama 0x6b7280
+CL7	0x621610	241	unknown	sin citar		P-C73 Lo que el 3D de la UI deja en los globales y su traza (hito 4 de la CL8, 2026-11-12, [06](06-render-escenas-y-ui.md#el-inventario)). A
+CL7	0x4c1060	240	not-started	sin citar		FUN_004c1060((int )(DVar3 + 0x41c));
+CL7	0x4e1010	237	partial	partial: falta 0.16	CL9	ventana de comandos, CL9.4), 0x4295f0 dos veces (Fenrir) y 0x4e1010 (las misiones: el único que prende
+CL7	0x53ea00	237	unknown	sin citar		usa glBegin, glEnd, glPopMatrix
+CL7	0x54b8f0	236	not-started	sin citar		Item.bmd 0x54b9e0 / 0x54b8f0 8192 × 0x54 bytes + checksum 0xE2F1 [0x07758550], 0xA8000
+CL7	0x5f9580	233	unknown	sin citar		- 0x5ad1cf / 0x5ad209: pincel de altura FUN_005f9580(x, y, ∓10.0f, brush+1, &DAT_07accca4), luego normales y luz.
+CL7	0x5446e0	223	partial	partial: falta 0.01	CL11	0) girada por los ángulos del pedido y el giro x en rand() % 360. Su paso (0x546b66), después del
+CL7	0x4125f0	222	unknown	sin citar		0x412564/0x412604, 0x411128/0x4111c8 Encrypt/Decrypt CFB8bit shift 1 byte + realimentación
+CL7	0x438fe0	221	partial	partial: falta 0.13	CL11	DAT_07d2d360, el ciclo de 32 pasos elige una de 32 texturas animadas: en el terreno del mundo 7 el slot 0x1e + n (0x5fa830), y en los modelo
+CL7	0x549b80	221	not-started	sin citar		Filter.bmd 0x549c60 / 0x549b80 igual, con checksum 0x3E7D 0x077531DC, la cuenta en 0x07758558
+CL7	0x6450f0	221	unknown	sin citar		0x6450f0 221 ventanas: portada (UI/ServerListWindow)
+CL7	0x65cd70	221	unknown	sin citar		local_24ac = FUN_0065cd70();
+CL7	0x5300c0	215	unknown	sin citar		Q-C321 la consulta del atributo de una posición, 0x5f82c0 los dos fmul van por 0x6ba110, que vale −0,01f (0xbc23d70a): la fila y la columna 
+CL7	0x535840	214	partial	partial: falta 0.01	CL11	las vueltas), que gira como el /0 pero baja (0x53b2d5). Después el calco 0x61e/0 de 0x518cf0 (el de subir de
+CL7	0x40de10	211	partial	partial: falta 0.24	CL7	0x40de10 con las cuatro copias (0x40e4ac).
+CL7	0x4caae0	210	partial	partial: falta 0.07	CL11	0xD7 S->C 0x4caae0 el daño a un personaje, con el bit 15 del id como "golpe con sacudida" (abajo; antes esta tabla decía posición y direcció
+CL7	0x52ffe0	210	unknown	sin citar		la llama 0x530490
+CL7	0x452250	199	not-started	sin citar		la llama 0x451430, 0x4514a0, 0x451590 y 1 más
+CL7	0x4059d0	196	partial	partial: falta 0.20	CL7	0x4059d0, 0x438c10 y 0x42c9f0) y el dibujo 0x4403b0 (en 0x6002e0, después de 0x438fe0 y 0x42cc10).
+CL7	0x4146f0	196	unknown	sin citar		0x4147a4) y en lo colgado (0x509a39, que llega con Translate en 1 desde los que llaman a
+CL7	0x5208a0	194	partial	partial: falta 0.04	CL9,CL11	0x6001b0 y 0x509340); lo cambian 0x5e0720 (un valor por parte) y 0x5208a0 (±30).
+CL7	0x42ae60	191	partial	partial: falta 0.50	CL9	0x12 en 0x4c89e1, 0x40c140, y 0x42ab40, 0x42ad50 y 0x42ae60 con las banderas de +0x78), y su
+CL7	0x508ba0	190	partial	partial: falta 0.25	CL7	frame) y, por personaje visto y por paso (cierre del login): 0x508ba0 (8, 0x508c75 y 0x508ce9),
+CL7	0x52dc20	190	partial	partial: falta 0.10	CL7	│ [juego] terreno, objetos 0x6046a0, suelo 0x52dc20, pájaros, personajes 0x510d00,
+CL7	0x53e2b0	189	partial	partial: falta 0.11	CL9	0x4f97b0, 0x4f5b70, 0x59fb80, 0x53e2b0, 0x5526f0, 0x517630, 0x42ea00, 0x51fff0, 0x52e740, 0x534f90, 0x534fd0, 0x4f2230, 0x4f5b10, 0x437860, 
+CL7	0x4ee770	188	partial	partial: falta 0.08	CL11	0x526d5f), el 0xcf/1 (la /3, 0x523089), 0x4ef02e (la /2) y 0x52a400 (la /4).
+CL7	0x518cf0	188	partial	partial: falta 0.01	CL9	desde el paso y 9 desde el dibujo (una, 0x518cf0, desde los dos). Lo que una lógica por paso lee
+CL7	0x53fe70	187	partial	partial: falta 0.01	CL11	0x637700; dos, 0x53fe70 y 0x5fc260, desde los dos) y 8 desde ninguno de los dos (una es
+CL7	0x442e10	186	partial	partial: falta 0.09	CL9	0x34 por el mismo pulso con 0,0009f (0x6b8bc8), sin restaurarlo su RenderBody(2, …), y 0x442e10 devuelve 0: 0x6002e0 sigue y lo dibuja otra 
+CL7	0x612d90	185	partial	partial: falta 0.02	CL9	0x612270, 0x612d90 (monstruos y NPC a pedido) y 0x61c7c0 (el login) ninguno donde dejó el próximo el último (Q-C92)
+CL7	0x4c3940	182	partial	partial: falta 0.04	CL7	héroe: 0x4c3940 la copia a su +0x1f4 y 0x510f70 la compara al cargar un mapa
+CL7	0x530860	181	partial	partial: falta 0.01	CL11	siguen con quince vueltas de 0x530860 con el personaje de dueño, el ancho 40 y la key 2: el 0x60f/0 en su
+CL7	0x52e3b0	179	unknown	sin citar		la llama 0x52e470
+CL7	0x6002e0	179	partial	partial: falta 0.02	CL11	0x6002e0 ([El caballo oscuro](#el-caballo-oscuro); en MuRet, ShinePass::Chrome5).
+CL7	0x41eb90	175	unknown	sin citar		- 0x4B32DB: loop de 638 iteraciones (call 0x41EB90(i)) antes del quit.
+CL7	0x4039f0	173	partial	partial: falta 0.22	CL9,CL10	las claves 10000 en adelante (0x4039f0, que 0x403d60 borra con 0x510ff0), sus acciones y caminos (0x403760,
+CL7	0x50ba30	172	partial	partial: falta 0.01	CL9	(0x510d00 → 0x50ba30 → 0x509340 → 0x4ec200) anima sus partes con velocidad fija: la
+CL7	0x456a50	170	unknown	sin citar		la clase de la vtable 0x6b8d38 (sus métodos 0x4573a0, 0x457550 y 0x457dc0 son CL7): destructor, lista de objetos y búsqueda por (x, y, z)
+CL7	0x602ed0	169	partial	partial: falta 0.03	CL7	(0x5ffdf0 y, si devuelve 1, 0x6002e0) y a 0x602ed0 (los efectos de cada mapa, que tira un
+CL7	0x4fb9e0	167	partial	partial: falta 0.16	CL9	0x1f, el 0x45, el 0x07 con el byte 3 en 1 y el 0x68) y lo sacan 0x4e6910 y 0x4fb9e0 (al morir);
+CL7	0x5bc740	167	partial	partial: falta 0.04	CL7	del GS reconstruido. Cada entrada va a 0x5bc740(…, lugar, bytes), que la pasa al héroe con
+CL7	0x52d260	166	partial	partial: falta 0.40	CL7	(0x52d33f, 0x52d4f1 y 0x52d7d2): los vértices los lleva al mundo 0x4ebc80 (Translate en 1, el
+CL7	0x608950	166	unknown	sin citar		la llama 0x608a00
+CL7	0x604ab0	164	partial	partial: falta 0.04	CL7	escala 1.) Su luz la sube 0x604ab0 (abajo, en el dibujo).
+CL7	0x457690	162	not-started	sin citar		1E las ramas del caballero (0x582439..0x5896a3) C1 0C 1E <skill> <x> <y> <rumbo> <hacia> <espalda> <clave H L> <b11>: la celda lógica del hé
+CL7	0x63d0f0	162	unknown	sin citar		0x63d0f0 162 ventanas: portada (UI/CreateCharacterWindow)
+CL7	0x430040	158	partial	partial: falta 0.50	CL11	C1 BD 0C … a b c d 0x4e59d6 → 0x4e15f0 → 0x430040 un solo efecto 0xee (0x518cf0, CL11) en (pkt[8] · 100, pkt[9] · 100, 100) con el héroe de 
+CL7	0x5111f0	155	not-started	sin citar		FUN_005111f0();
+CL7	0x621710	155	partial	partial: falta 0.33	CL7	selector: 0x621799/0x621889 pasan 1 al binder; 0x61bdb4 carga Interface\FontTest.tga con
+CL7	0x421db0	154	partial	partial: falta 0.15	CL9	La respuesta S->C es el handler A9 (0x4e4ca1 → 0x421db0): guarda por pkt[3] (el tipo) el
+CL7	0x52d620	154	partial	partial: falta 0.13	CL11	(0x52d620(0), el dragón), 0x549510 y las hojas (0x5306a0, las brasas); después 0x6213e0,
+CL7	0x553780	153	unknown	sin citar		9 el estado 0x3d, 0x77f3b67 = 0 y 0x553780(1, 0) 0x4c4854
+CL7	0x4e94c0	147	unknown	sin citar		una suma vectorial reordenada. El rumbo 0x4e97a0 y el giro entero 0x4e94c0 son distintos
+CL7	0x54ed60	145	unknown	sin citar		la llama 0x54eec0
+CL7	0x42cc10	143	partial	partial: falta 0.13	CL7	0x600b35 y el Uniria y el Guardian Angel, por la cadena de los mapas (0x438fe0, 0x42cc10, 0x4403b0,
+CL7	0x52e500	143	unknown	sin citar		5. 0x52e500 (0x5091d0): el paso de las estelas de 0x75e9870 (100 de 0x2f4), sin rand(). Las crea
+CL7	0x607010	136	unknown	sin citar		la llama 0x5acbe0, 0x6070a0, 0x6071d0
+CL7	0x401130	130	not-started	sin citar		sin texto que la describa
+CL7	0x456ca0	129	unknown	sin citar		la clase de la vtable 0x6b8d38 (sus métodos 0x4573a0, 0x457550 y 0x457dc0 son CL7): destructor, lista de objetos y búsqueda por (x, y, z)
+CL7	0x61a560	128	partial	partial: falta 0.06	CL7	su respuesta 0x4c3940 (1.289 líneas) C3 de 0x34 bytes: los campos, en [La entrada al mundo](#la-entrada-al-mundo-la-respuesta-del-f3-03-y-el
+CL7	0x642930	124	unknown	sin citar		0x642930 124 ventanas: portada (UI/NoticeWindow)
+CL7	0x41dc80	122	unknown	sin citar		la llama 0x4378e0
+CL7	0x63e7a0	122	unknown	sin citar		0x63e7a0 122 ventanas: portada (UI/SelectionBar)
+CL7	0x641540	122	unknown	sin citar		0x641540 122 ventanas: portada (UI/LoginWindow)
+CL7	0x549b00	121	not-started	sin citar		la llama 0x61ccb0
+CL7	0x549e40	121	not-started	sin citar		la llama 0x61ccb0
+CL7	0x439aa0	120	unknown	sin citar		Y=heroY−500+rand()%200, Z=heroZ−800. 0x439aa0 gira, sortea %5 y, con timer<20,
+CL7	0x511290	120	partial	partial: falta 0.02	CL9,CL11	+0x368, el estado en el gremio (inferido: 0xff por defecto en 0x511ca6 y 0x415d56, y
+CL7	0x508a80	119	partial	partial: falta 0.43	CL7	y el ángulo z desde +0x388; después, 0x508a80); con +0x3e5 sale; el 0x159 sale. Si no, lee la X
+CL7	0x454980	117	not-started	sin citar		0x4548b0, 0x454980)) y +0x18c = 3:
+CL7	0x54a2e0	117	not-started	sin citar		Gate.bmd 0x54a360 / 0x54a2e0 256 × 9 bytes ([los campos](#gatebmd)) [0x07688AB8], 0x900
+CL7	0x43ed20	115	partial	partial: falta 0.03	CL9	- 0x43ed20 (desde 0x438fe0, en todos los mapas; fase 8): del 0x191 al 0x197, los monstruos de Kalima de
+CL7	0x52f550	115	partial	partial: falta 0.33	CL7	- 0x26 y 0x27: la patada (0x52f550). Con la acción del héroe (+0x111 de [0x743a170]) entre 0xd y
+CL7	0x40d010	113	partial	partial: falta 0.09	CL7	0x40d010 y 0x40da20 ([06](06-render-escenas-y-ui.md#los-stats-del-registro-propio)).
+CL7	0x615700	112	partial	partial: falta 0.02	CL11	0x615700 (avance 5) 0x69, 0x138 y 0x3b8 antes del primero, siete habilidades y efectos (0x14a a 0x14d, 0x109, 0xf9 y 0x10f) donde dejó 0x611
+CL7	0x4306a0	110	partial	partial: falta 0.09	CL7	funciones que siguen en la cadena (0x42f170, 0x425d90 con 0x428df0 y 0x4306a0) sólo tienen casos de
+CL7	0x456d30	110	not-started	sin citar		la llama 0x6b3cf0
+CL7	0x412960	109	not-started	sin citar		la llama 0x412930
+CL7	0x42ed50	109	not-started	clon de una citada	exact:0x476d10	la llama 0x42a2b0
+CL7	0x640f90	109	unknown	sin citar		0x640f90 109 ventanas: portada (UI/MenuBar)
+CL7	0x468320	108	partial	partial: falta 0.07	CL9	muestra. El input de texto (0x468320) incluye el IME coreano.
+CL7	0x412140	105	partial	partial: falta 0.10	CL7	timeGetTime(), los milisegundos desde que arrancó Windows (0x412210). Después 0x4127c0,
+CL7	0x4e97a0	105	unknown	sin citar		una suma vectorial reordenada. El rumbo 0x4e97a0 y el giro entero 0x4e94c0 son distintos
+CL7	0x550d10	105	partial	partial: falta 0.06	CL7	(0x550d10, [06](06-render-escenas-y-ui.md#los-stats-del-registro-propio)). Por todo eso es inferido (alto) que el A9 pide la información de 
+CL7	0x4ecc30	102	partial	partial: falta 0.03	CL7	DAT_07d2d360, el ciclo de 32 pasos elige una de 32 texturas animadas: en el terreno del mundo 7 el slot 0x1e + n (0x5fa830), y en los modelo
+CL7	0x457740	99	partial	partial: falta 0.33	CL9	(0x6011f1, después de la malla 0 y solo cuando 0x457e00 llega a 0x457740: con el alpha desde 0,01f, sin
+CL7	0x5fa830	99	partial	partial: falta 0.09	CL7	DAT_07d2d360, el ciclo de 32 pasos elige una de 32 texturas animadas: en el terreno del mundo 7 el slot 0x1e + n (0x5fa830), y en los modelo
+CL7	0x401480	98	not-started	sin citar		la llama 0x401060, 0x401130
+CL7	0x418920	97	partial	partial: falta 0.13	CL11	oscuro](#el-caballo-oscuro) (sin sombra ni alturas, Q-C440); 0x418920 corta en los estados 5 y 6
+CL7	0x4eb860	97	partial	partial: falta 0.09	CL7	los huesos dummy, que la pose no toca (0x4eb860, estático).
+CL7	0x42ad50	96	partial	partial: falta 0.50	CL9	0x12 en 0x4c89e1, 0x40c140, y 0x42ab40, 0x42ad50 y 0x42ae60 con las banderas de +0x78), y su
+CL7	0x4f5660	96	partial	partial: falta 0.08	CL9	(0x4fcd00, 0x4fd770) y, muriéndose, +0x389 + 1 y 0x4f5660 desde 15 o en los mapas 11 a 17 con
+CL7	0x457550	94	not-started	sin citar		sin texto que la describa
+CL7	0x54ed00	94	unknown	sin citar		la llama 0x54ed60
+CL7	0x65e950	91	unknown	sin citar		la llama 0x65dfa0
+CL7	0x419900	90	partial	partial: falta 0.17	CL9	este orden, el F3 00 (C1 04 F3 00, cifrado, 0x4c3653), un C1 03 31 (0x419900, desde
+CL7	0x510ca0	88	not-started	sin citar		sin texto que la describa
+CL7	0x65e8f0	87	unknown	sin citar		la llama 0x65dfa0
+CL7	0x414690	84	unknown	sin citar		la llama 0x4146f0
+CL7	0x445a30	84	unknown	sin citar		la llama 0x446120
+CL7	0x405490	83	partial	partial: falta 0.30	CL7	El preludio (0x405490, primero en 0x6061c0), con la cuenta de los 3 vistos del pase anterior (0x7d365a0):
+CL7	0x430510	83	partial	partial: falta 0.21	CL7	el 34 no hacen nada), el frame 0x430510 (en 0x602ed0, por 0x6044ed) y el dibujo 0x4306a0 (el último de
+CL7	0x4378e0	82	unknown	sin citar		0x4378e0 devuelve175. El calco tiene su propio plano y escala; no se deduce de esos175.
+CL7	0x457c10	82	unknown	sin citar		la clase de la vtable 0x6b8d38 (sus métodos 0x4573a0, 0x457550 y 0x457dc0 son CL7): destructor, lista de objetos y búsqueda por (x, y, z)
+CL7	0x5f16a0	82	partial	partial: falta 0.19	CL9	La marca (0x5f16a0(índice, fondo)): la paleta de 16 DWORD en 0x77f3d84 (0xAABBGGRR; el 0 negro con alfa
+CL7	0x40e1b0	81	partial	partial: falta 0.06	CL7	desde +4, los conjuntos desde +0x8004, y de +0x9307 a +0x940b está lo que escriben 0x40e1b0,
+CL7	0x65e9d0	81	unknown	clon de una citada	param:0x4aad90	la llama 0x65dfa0
+CL7	0x512a30	79	partial	partial: falta 0.05	CL7	0x512a30: el equipo del héroe sale de acá, no de la lista de la selección (estático). En el
+CL7	0x4c1190	78	unknown	sin citar		IsOpen(0x20) / IsOpen(0x10000) 0x659290 (cierres 0x4c0ec0 / 0x4c1190) 1 cada uno donde se llame
+CL7	0x401750	77	not-started	clon de una citada	exact:0x4e8ea0	la llama 0x6b3090
+CL7	0x4294c0	77	partial	partial: falta 0.33	CL9	0x4294c0 y 0x42fe80 los vuelven a cargar durante el juego, sin mirar lo que devuelve el
+CL7	0x43ff20	76	unknown	clon de una citada	exact:0x425090	la llama 0x443990
+CL7	0x606660	76	partial	partial: falta 0.04	CL7	0 a la 255 dan el orden del archivo. Los offsets salen de los volcados, no del asm de 0x606660,
+CL7	0x612270	76	partial	partial: falta 0.03	CL9	carga los modelos de los NPC (61 cargas de modelos y 3 de sonidos, "Npc\", "NpcClerk"), como su par 0x612d90 (CL7)
+CL7	0x4401e0	75	partial	partial: falta 0.17	CL7	0x43ffc0 (en 0x605a62, después de 0x438a90 y 0x42c850), el frame 0x4401e0 (en 0x602ed0, después de
+CL7	0x42ddb0	73	partial	partial: falta 0.33	CL9	otro puesto, los paneles 1 y 2 (0x412193). Después de cada 0x20a, 0x42afe0 llama a 0x42ddb0(personaje, 380)
+CL7	0x4d9260	73	partial	partial: falta 0.05	CL9	65 0x4e42af → 0x4d9260 C2 (inferido: lee la cuenta de pkt[4]): entradas de 0xc bytes desde pkt[5]: <gremio:4 LE> <puesto> <+0x369> <relación
+CL7	0x413ba0	72	not-started	sin citar		la llama 0x413bf0
+CL7	0x4548b0	70	partial	partial: falta 0.50	CL9	0x4548b0, 0x454980)) y +0x18c = 3:
+CL7	0x457f70	70	partial	partial: falta 0.50	CL9	19 las 0x44 a 0x48 (0x594e42..0x599d1c, dos copias cada una) C1 06 19 <skill> <clave H L>: con 0x6c8e30 en −1, la del jugador (0x57678bc); s
+CL7	0x65e620	70	unknown	sin citar		la llama 0x65ce80, 0x65cf80
+CL7	0x6371a0	69	partial	partial: falta 0.05	CL9	5 → 0x6371a0), la animación de mascota y alas dentro de ese dibujo, la captura si se pidió
+CL7	0x405e00	68	partial	partial: falta 0.19	CL7	Las celdas (0x405e00(x, y), en el dibujo del terreno, por cada celda dibujada que no está escondida): rand()
+CL7	0x4379a0	67	unknown	sin citar		registro propio, tabla de clase/nivel 0x4379a0, lecturas XY separadas y orden de los sorteos.
+CL7	0x65ea30	67	unknown	clon de una citada	exact:0x4a8ba0	la llama 0x65ce80, 0x65cf80, 0x65e1d0
+CL7	0x40b440	66	partial	partial: falta 0.50	CL7	(0x40b240, 0x40b440) y su cierre (0x40b4d0). MuRet las toma de
+CL7	0x42c500	63	partial	partial: falta 0.17	CL7	dibujan una vez, la primera que se ven con el −1 de la creación (Q-C335). El paso de los vistos (0x42c500,
+CL7	0x4eb5e0	63	not-started	sin citar		la llama 0x4ead70
+CL7	0x6061c0	63	partial	partial: falta 0.12	CL7	login](#el-mundo-del-login)), y los vistos van a 0x604ab0. 0x6061c0 al empezar, 0x6063d0 y
+CL7	0x4013d0	62	not-started	sin citar		la llama 0x401350, 0x401410, 0x401480
+CL7	0x65df40	62	unknown	sin citar		la llama 0x65e620, 0x65ec00, 0x6b72a8
+CL7	0x5fa5c0	61	partial	partial: falta 0.10	CL7	├─ 0x5fa5c0 UV: u = x · 64 / ancho de la textura (agua animada aparte)
+CL7	0x60cf70	61	partial	partial: falta 0.05	CL11	(0x60cf70) no posa sus huesos: usa las matrices que dejó la pose del cuerpo (estático).
+CL7	0x61c9f0	61	unknown	sin citar		Q-C92 el logo del login, 0x61c7c0 y 0x61c9f0 carga Logo03 sin 0x60d530: sus dos texturas van donde dejó el próximo el mundo 55, que el login
+CL7	0x52e810	60	partial	partial: falta 0.16	CL9	0xc3 y 0xc4 van antes a 0x52e810);
+CL7	0x404bb0	59	partial	partial: falta 0.50	CL9	0x4042c0, 0x404830, 0x404b70, 0x404bb0): el camino de la cámara (0x403d90, 0x4034e0), los personajes de
+CL7	0x612230	58	unknown	sin citar		para sentarse). Lo demás de cada entrada queda (Q-C138). Después, 0x612230 y 0x612d50 sueltan
+CL7	0x612d50	58	unknown	sin citar		para sentarse). Lo demás de cada entrada queda (Q-C138). Después, 0x612230 y 0x612d50 sueltan
+CL7	0x429e40	57	partial	partial: falta 0.50	CL9	if (auto set = SetMonsterAction(actor, 137, 0x429e40, resources); !set.HasValue())
+CL7	0x437940	56	unknown	sin citar		0x6eb Calco con scale y luz propia; en24..29/36, salvo /6, conserva depthWrite=false y corta en 0x52e12f antes de 0x437940.
+CL7	0x413f20	54	not-started	sin citar		la llama 0x413c30
+CL7	0x605d70	54	partial	partial: falta 0.05	CL7	1. 0x6061c0(&selector), con el selector en 0. En el 10, 0x605d70:
+CL7	0x4453e0	53	partial	partial: falta 0.11	CL7	largo y la key en 0; y, si la acción sigue en 3, 0x4453e0 (el terremoto, abajo). Con jinete + 8 en 1
+CL7	0x51fe10	53	partial	partial: falta 0.24	CL10	de 0x51fe10 (CL11: corta en 0x4fbba8); fuera de los castillos, con la skill 0x28 o 0x3b en +0x391,
+CL7	0x40c810	52	unknown	clon de una citada	exact:0x418de0	0x40c810 (el XOR3 con FC CF AB de 0x6c63c4, que vuelve a empezar en cada registro) y los copia
+CL7	0x5189f0	52	partial	partial: falta 0.25	CL11	0x68 cada uno; en las acciones 0x44 y 0x45, efectos 0x5ac y 0x5189f0; en la 0x96, diez 0x5d9
+CL7	0x54eec0	52	unknown	sin citar		FUN_0054eec0();
+CL7	0x401670	51	not-started	sin citar		la llama 0x401000, 0x401020, 0x401040 y 5 más
+CL7	0x4295b0	51	not-started	sin citar		la llama 0x4295f0, 0x429e40, 0x42ddb0
+CL7	0x42ebc0	51	not-started	sin citar		la llama 0x4293d0
+CL7	0x4f53a0	50	partial	partial: falta 0.07	CL9	el bit 15 del id llama siempre a SetPlayerShock (0x4f53a0, 0x4cab6b), también con el
+CL7	0x42a2b0	49	partial	partial: falta 0.09	CL9	- 0x42a2b0(o), que solo actúa con el 0x1a8 ([Las barras de vida del 0x1a8](#las-barras-de-vida-del-0x1a8)).
+CL7	0x61eeb0	49	unknown	sin citar		0x615500 0x548 nada: lo llama 0x61eeb0, detrás de DAT_07d366bc
+CL7	0x43ffc0	48	partial	partial: falta 0.11	CL7	0x43ffc0 (en 0x605a62, después de 0x438a90 y 0x42c850), el frame 0x4401e0 (en 0x602ed0, después de
+CL7	0x4673a0	48	unknown	sin citar		0x4673a0 48 chat: fuera de alcance
+CL7	0x444010	46	partial	partial: falta 0.01	CL7	0x444010) sigue la posición, los ángulos y la cabeza del jinete, y elige su acción por la de él:
+CL7	0x404d00	45	not-started	sin citar		sin texto que la describa
+CL7	0x413b40	45	not-started	sin citar		sin texto que la describa
+CL7	0x413f60	45	not-started	sin citar		sin texto que la describa
+CL7	0x4f9580	45	partial	partial: falta 0.09	CL9	preview de la ventana de crear (0x63e430), y la 68 se multiplica por 0,5 en 0x4f9580, que
+CL7	0x52e470	45	partial	partial: falta 0.33	CL7	jinete en 0x53, el terremoto del Dark Lord), 0x52e470 con el héroe publicado (0x743a170) de dueño: del
+CL7	0x401100	44	not-started	sin citar		read(bytes(image), 0x401100, 4)
+CL7	0x41cc70	44	unknown	sin citar		24 a 29 y 36 sin tiles; un terreno de agua propio de 0x114ad8 bytes en 0x723c48 0x4377a0, 0x41cc70
+CL7	0x42c9f0	44	partial	partial: falta 0.10	CL7	0x4059d0, 0x438c10 y 0x42c9f0) y el dibujo 0x4403b0 (en 0x6002e0, después de 0x438fe0 y 0x42cc10).
+CL7	0x530490	43	partial	partial: falta 0.08	CL7	caballo, 0x530490 (las hojas), 0x508f00 (los personajes y el cuervo), 0x52d220 (los efectos),
+CL7	0x4377a0	42	partial	partial: falta 0.25	CL7	rama del 55. Los tiles son los de siempre (0x4377a0(0x37) devuelve 0): TileGrass01..02
+CL7	0x508f00	42	partial	partial: falta 0.06	CL7	0x02 hay un personaje: lo saca y lo pone 0x508f00 en cada paso, en tiempo de ejecución el camino, que lo toma como pared
+CL7	0x5fac90	42	partial	partial: falta 0.08	CL7	(0x5fc260(1) y 0x5fac90, como MoveHero) y el byte bajo de [0x78a6758], de donde salió el ítem del cursor;
+CL7	0x4fcd00	41	partial	partial: falta 0.09	CL9	la lógica de la escena llega por 0x508f00 → 0x508ea0 → 0x4fd5f0 → 0x4fcd00 a 0x4f9580,
+CL7	0x42a760	40	partial	partial: falta 0.04	CL9	(protocol.cpp:443, 0x42ab20): MuRet lo llama WindowClose. Los llaman también otros lugares de la interfaz (0x44b5da,
+CL7	0x6046a0	40	partial	partial: falta 0.04	CL7	├─ pase 3D fondo, frustum 0x5fbb00, terreno 0x5fc260, personajes 0x510d00, objetos 0x6046a0
+CL7	0x42a110	39	partial	partial: falta 0.25	CL9	0x4ea030 y 0x42a110, y sin el bit 7 el camino de 0x4eac00 (+0x378) o, con él, 0x4c9790. El GS 0.97 arma
+CL7	0x6070a0	39	partial	partial: falta 0.13	CL7	- La carga (0x61a560(0x37) → 0x616ec0). 0x6070a0 suelta los modelos 0 a 159, vacía las
+CL7	0x4125c0	38	unknown	sin citar		la llama 0x6b31fb, 0x6b3211
+CL7	0x548550	38	partial	partial: falta 0.02	CL7	los sprites (0x549440(0)), las partículas (0x548550(0)) y glPopMatrix (CL6.4: antes este
+CL7	0x457f40	37	not-started	sin citar		sin texto que la describa
+CL7	0x550990	37	partial	partial: falta 0.06	CL7	del héroe anterior (0x512ee7, con 0x743a170 todavía en él) y, si no, 0x550990 lee lo que dejó
+CL7	0x42edc0	36	not-started	clon de una citada	param:0x4784d0	la llama 0x42a2b0
+CL7	0x443d70	36	partial	partial: falta 0.07	CL7	de 0x443d70 en el mapa 55 y la escena 2; los slots, verificados en lor_slots.bin).
+CL7	0x405fb0	35	unknown	sin citar		sin texto que la describa
+CL7	0x418c30	35	unknown	sin citar		sin texto que la describa
+CL7	0x42c850	35	partial	partial: falta 0.11	CL7	0x43ffc0 (en 0x605a62, después de 0x438a90 y 0x42c850), el frame 0x4401e0 (en 0x602ed0, después de
+CL7	0x5f9780	35	partial	partial: falta 0.12	CL7	│ [selección] personajes 0x510d00, el elegido 0x5f9780 y 0x53fe70 (0x4129f0 no dibuja)
+CL7	0x4032b0	33	not-started	clon de una citada	exact:0x4633b0	sin texto que la describa
+CL7	0x405f70	33	unknown	clon de una citada	exact:0x48f970	sin texto que la describa
+CL7	0x413bf0	33	not-started	sin citar		sin texto que la describa
+CL7	0x413fb0	33	not-started	sin citar		sin texto que la describa
+CL7	0x418c60	33	unknown	clon de una citada	exact:0x488360	sin texto que la describa
+CL7	0x447f00	33	unknown	clon de una citada	exact:0x48ff00	sin texto que la describa
+CL7	0x447f40	33	unknown	sin citar		sin texto que la describa
+CL7	0x456a20	33	unknown	sin citar		la clase de la vtable 0x6b8d38 (sus métodos 0x4573a0, 0x457550 y 0x457dc0 son CL7): destructor, lista de objetos y búsqueda por (x, y, z)
+CL7	0x4573a0	33	not-started	sin citar		sin texto que la describa
+CL7	0x457dc0	33	not-started	sin citar		sin texto que la describa
+CL7	0x5fb570	33	partial	partial: falta 0.03	CL7	- El trapecio (0x5fb570, con el nivel de cámara 0): lo lejos K y el factor de ancho f de cada
+CL7	0x65ce50	33	unknown	sin citar		0x65ce50 33 ventanas: fuera del dominio
+CL7	0x65ec00	33	unknown	sin citar		la llama 0x65ce80, 0x65cf80
+CL7	0x4378a0	32	unknown	sin citar		aparte (0x4378a0 → 0x41cca0, 0x41cf00).
+CL7	0x4eac00	32	partial	partial: falta 0.09	CL9	0x4ea030 y 0x42a110, y sin el bit 7 el camino de 0x4eac00 (+0x378) o, con él, 0x4c9790. El GS 0.97 arma
+CL7	0x548eb0	32	partial	partial: falta 0.25	CL7	cola de textos 3D; el daño es 0x548eb0), 0x5bbbc0 no dibuja barras de vida y ALT no muestra el HP de todos
+CL7	0x5141e0	31	partial	partial: falta 0.00	CL9	+8 y +9 la celda, +0xa y +0xb el blanco, +0xc la dirección << 4. Por elemento: 0x5141e0(tipo, x, y,
+CL7	0x414470	30	partial	partial: falta 0.11	CL7	(0x50c20b, 0x50c217 y 0x50c248), los pájaros 0x446bee, el cartel 0x414572 y la capa
+CL7	0x418390	30	partial	partial: falta 0.29	CL11	su vtable + 8 y, con 0xfe, + 0x14 (0x418390, cinco joints 0x60f/2) y con 0xff, + 0x18 (0x418400,
+CL7	0x5fc260	30	partial	partial: falta 0.11	CL7	0x637700; dos, 0x53fe70 y 0x5fc260, desde los dos) y 8 desde ninguno de los dos (una es
+CL7	0x5fc380	30	unknown	sin citar		add esp,4 y call 0x5fc380. Ese último solo escribe tres constantes:
+CL7	0x4292c0	29	unknown	sin citar		Módulos de evento Step de objetos y hojas 0x52fe30, 0x42b1e0, 0x443996, 0x4292c0, 0x5301a0
+CL7	0x4378c0	29	unknown	sin citar		FUN_004378c0();
+CL7	0x517270	29	partial	partial: falta 0.07	CL7	personaje de la escena un equipo fijo con el cuervo (0x517270, desde 0x634a43; 0x51734b
+CL7	0x5f9000	29	unknown	sin citar		(0x7d2d35c, que pone 0x5f9000 al cargar), la celda es x · 0,01 y y · 0,01 truncados, y entre
+CL7	0x640ea0	29	unknown	sin citar		(0x620db0(0, 0, 640, 480), glClear, 0x640ea0, que llama a 0x647650 con cada una,
+CL7	0x65e9b0	29	unknown	sin citar		la llama 0x65dfa0
+CL7	0x439d90	28	partial	partial: falta 0.33	CL9	0x439d90. El 0x196: RenderBody(2) y (0,5; sin(T · 0,002f) · 0,3f + 0,7f; 0,5) con la malla 0 en 0x44 al
+CL7	0x6063d0	28	partial	partial: falta 0.07	CL7	login](#el-mundo-del-login)), y los vistos van a 0x604ab0. 0x6061c0 al empezar, 0x6063d0 y
+CL7	0x5f93c0	27	partial	partial: falta 0.08	CL9	0x40 la altura fija de 0x6c9d5c: 1.200, y 1.201 desde que la cámara pisa una (Q-C150) 0x5f93c0, 0x5fac90 y la cámara
+CL7	0x510d00	26	partial	partial: falta 0.05	CL7	├─ pase 3D fondo, frustum 0x5fbb00, terreno 0x5fc260, personajes 0x510d00, objetos 0x6046a0
+CL7	0x54e7f0	26	partial	partial: falta 0.12	CL9	GoldenNpcNames). 0x54e7f0, desde 0x61ccb0 (0x61ed05, con Data\Local\NpcName(%s).txt de 0x6d29e0 y el
+CL7	0x418400	25	partial	partial: falta 0.29	CL11	su vtable + 8 y, con 0xfe, + 0x14 (0x418390, cinco joints 0x60f/2) y con 0xff, + 0x18 (0x418400,
+CL7	0x5fb2f0	25	partial	partial: falta 0.04	CL7	cuenta, y su dibujo (0x52dc20) es un calco en el suelo con la textura 0x61e (0x5fb2f0) y
+CL7	0x6349a0	25	partial	partial: falta 0.04	CL7	con esos dos se conecta al ConnectServer (0x4c1340, desde 0x6349a0 y 0x642810). Sin
+CL7	0x549130	24	partial	partial: falta 0.19	CL9	pase del pasto (prendido en el 55 por 0x5f87b0), 0x549130 (las marcas del suelo) y el depth test
+CL7	0x404e20	23	partial	partial: falta 0.04	CL9	C1 0E 9B estado quedan:2 máx:2 actual:2 dueño:2 arma 0x4e4999 → método +8 Blood Castle (0x40c140): 0 gira a los jugadores (0x5111a0(0xc0)) y
+CL7	0x40da20	23	partial	partial: falta 0.15	CL7	0x40d010 y 0x40da20 ([06](06-render-escenas-y-ui.md#los-stats-del-registro-propio)).
+CL7	0x512870	23	partial	partial: falta 0.12	CL9	el equipo (los 17 bytes de la lista) y +0x18..+0x1b los estados. Con 1 (0x4e0c1d), un jugador: 0x512870(clave,
+CL7	0x5ecda0	23	not-started	sin citar		[0x723c60]), 0x5e3c70, 0x5ecda0, 0x403300 y 0x403d60. Ninguna de esas llamadas, ni
+CL7	0x612c80	22	partial	partial: falta 0.11	CL9	Monster34, 0x154/0x155 con mBahamut1/mYeti1. Las tablas de diez WORD de 0x612c80 son
+CL7	0x4ec200	21	partial	partial: falta 0.06	CL7	0x4ec200, que hace frame += velocidad con la acción de modelo + 0xa0 (sus argumentos 5 y 6
+CL7	0x510ef0	21	partial	partial: falta 0.18	CL11	banderas (0x50ea20..0x510a7a). Esa cola no mira la escena salvo 0x510ef0 (la marca del guild, sólo en
+CL7	0x65f290	21	not-started	sin citar		FUN_0065f290();
+CL7	0x4016c0	20	partial	partial: falta 0.14	CL9	0x4010d0(objeto, nombre, desplazamiento, punto) buscan con 0x4016c0 el objeto y el nombre exactos, y
+CL7	0x4053f0	20	partial	partial: falta 0.14	CL7	0x4053f0 y 0x512930 (la cabeza y la escala). Con +0x3e3 no toca la ropa.
+CL7	0x40c140	20	partial	partial: falta 0.06	CL9	C1 0E 9B estado quedan:2 máx:2 actual:2 dueño:2 arma 0x4e4999 → método +8 Blood Castle (0x40c140): 0 gira a los jugadores (0x5111a0(0xc0)) y
+CL7	0x4250f0	20	partial	partial: falta 0.07	CL7	vistos en el último dibujo, que en el 33 y el 54 llega a 0x4250f0 por la cadena de 0x605a62 (0x425070):
+CL7	0x403760	19	partial	partial: falta 0.05	CL9	las claves 10000 en adelante (0x4039f0, que 0x403d60 borra con 0x510ff0), sus acciones y caminos (0x403760,
+CL7	0x620ff0	19	unknown	sin citar		la llama 0x53d2c0, 0x53d550, 0x53ebd0 y 5 más
+CL7	0x42ab40	18	partial	partial: falta 0.07	CL9	+0x18 las banderas de efectos, 32 bits, el bajo primero 0x4e6380 y 0x42ab40
+CL7	0x457380	18	not-started	sin citar		la llama 0x457d60
+CL7	0x4032e0	17	not-started	sin citar		la llama 0x4032b0
+CL7	0x404ce0	17	not-started	sin citar		la llama 0x6b3120
+CL7	0x413b20	17	not-started	sin citar		la llama 0x6b3230
+CL7	0x413f90	17	not-started	sin citar		la llama 0x413fb0
+CL7	0x42fdc0	17	partial	partial: falta 0.12	CL9	0x723bf9 (ni 0x42fdc0 ni la vuelta a la selección; Q-C1342). El hijo 26 del HUD (0x436240, 0x5a74ed), con la
+CL7	0x4c2480	17	partial	partial: falta 0.03	CL9	0x4c2480) y otro C1 03 31 (0x4499b0, desde 0x657670, si la caja de 0x723c80 está vacía;
+CL7	0x5491e0	17	partial	partial: falta 0.10	CL9	una luz que solo usa el 0x1c12 (con 0x5491e0), aunque 0x5ffdf0 no lo haya dibujado (Q-C223).
+CL7	0x5545f0	17	not-started	sin citar		+0x2134c..+0x21385 de [0x710148]), y las llamadas 0x5545f0, 0x555030, 0x40ba20 (con
+CL7	0x65df80	17	unknown	clon de una citada	exact:0x4bfdd0	la llama 0x65ce80, 0x65cf80
+CL7	0x4573e0	16	not-started	sin citar		la llama 0x457380
+CL7	0x4e9920	16	partial	partial: falta 0.18	CL9	1E las ramas del caballero (0x582439..0x5896a3) C1 0C 1E <skill> <x> <y> <rumbo> <hacia> <espalda> <clave H L> <b11>: la celda lógica del hé
+CL7	0x5ffdf0	16	partial	partial: falta 0.02	CL7	+0xa0 (la acción). 0x5ffdf0(objeto, bandera, modo, _) los copia del objeto (la escala de
+CL7	0x403300	15	partial	partial: falta 0.11	CL9	(0x403250, con los valores de 0x403300: +0x154 en 0, la espera +0x6a en 1, +0x158 en 0, el reloj +0x37
+CL7	0x4fc790	15	partial	partial: falta 0.07	CL9	- Con +0x88 en 4, los 0x20a de subtipo 0xd1 a 0xd3 giran en los mapas 0 y 2, y 0x4fc790 sortea un
+CL7	0x5111a0	15	partial	partial: falta 0.20	CL9	C1 0E 9B estado quedan:2 máx:2 actual:2 dueño:2 arma 0x4e4999 → método +8 Blood Castle (0x40c140): 0 gira a los jugadores (0x5111a0(0xc0)) y
+CL7	0x403590	14	partial	partial: falta 0.17	CL9	0x637138 0x403590 el recorrido de la cámara ([El recorrido de la cámara](#el-recorrido-de-la-cámara)) Scenes::StepTheCameraTour (CL9 hito 11
+CL7	0x420cf0	14	partial	partial: falta 0.12	CL7	oscuro de un personaje (0x4167b0, desde 0x420cf0 y 0x420d60). Solo 0x420d60 mira si en
+CL7	0x445260	14	partial	partial: falta 0.04	CL7	demás. Lo dibuja 0x4453b0 → 0x445260, con la escala 1,6 en la escena 2, entre los personajes y
+CL7	0x4455c0	14	partial	partial: falta 0.67	CL9	C1 05 0B estado evento 0x4e3594 guarda la copia en la cola de 0x77f27b4 (como el 1C); con evento 1 o 3, la tormenta (0x723c50) en 1 o 3 si e
+CL7	0x4ad400	14	partial	partial: falta 0.09	CL7	abre así en Windows. Si no, lo abre para leer (0x4aec13), lo lee entero y lo suma (0x4ad400):
+CL7	0x4055b0	13	partial	partial: falta 0.11	CL7	(0x4055b0, después de 0x604ab0): el 3 suma 1 a la cuenta; con la trampa armada (0x6c634d, 1 en la .data,
+CL7	0x437860	13	partial	partial: falta 0.30	CL10	con el estado 0 o 2, revuelve el agua (0x437860), y si no sube 100 (afuera, 25); la z, la altura del
+CL7	0x447b00	13	partial	partial: falta 0.33	CL9	marca en 64 nibbles. 0x447b00(clave) la busca de 0 hasta la cuenta inclusive (con la cuenta en 0 mira la entrada
+CL7	0x5e3c70	13	not-started	sin citar		[0x723c60]), 0x5e3c70, 0x5ecda0, 0x403300 y 0x403d60. Ninguna de esas llamadas, ni
+CL7	0x401060	12	not-started	sin citar		la llama 0x5111f0
+CL7	0x534f90	12	partial	partial: falta 0.20	CL9	0x4f97b0, 0x4f5b70, 0x59fb80, 0x53e2b0, 0x5526f0, 0x517630, 0x42ea00, 0x51fff0, 0x52e740, 0x534f90, 0x534fd0, 0x4f2230, 0x4f5b10, 0x437860, 
+CL7	0x5f8300	12	partial	partial: falta 0.14	CL7	EncTerrain<N>.map 0x5f87b0 2 bytes + capa 1 + capa 2 + alfa = 0x30002 bytes; antes de leerlo, 0x5f8300 limpia las capas y llena el corrimien
+CL7	0x4250e0	11	unknown	sin citar		la llama 0x606660
+CL7	0x42ee30	11	unknown	sin citar		la llama 0x606660
+CL7	0x4303d0	11	unknown	sin citar		la llama 0x606660
+CL7	0x437850	11	unknown	sin citar		36). En Lorencia da 0, así que 0x437850() da falso y el dibujo hace el terreno y no el segundo
+CL7	0x443fa0	11	partial	partial: falta 0.11	CL7	0x443fa0), el cuervo (el 0x1a05 del 1, 0x420cf0) y la capa del Wizard's Ring de nivel 3, y la copia con el
+CL7	0x457df0	11	not-started	sin citar		la llama 0x457dc0
+CL7	0x510ff0	11	partial	partial: falta 0.09	CL9	las claves 10000 en adelante (0x4039f0, que 0x403d60 borra con 0x510ff0), sus acciones y caminos (0x403760,
+CL7	0x52d220	11	partial	partial: falta 0.20	CL7	- Cómo se mueve (0x5208a0, caso 0x52096c..0x520b72, por paso de lógica desde 0x52d220):
+CL7	0x44dc40	10	partial	partial: falta 0.33	CL11	(0x44dc40(0, 0, 0) y 0x5208a0 con cada lugar vivo, el dragón y los meteoros, con su rand() de 0x5208c5) y la
+CL7	0x4e15f0	10	partial	partial: falta 0.25	CL11	C1 BD 0C … a b c d 0x4e59d6 → 0x4e15f0 → 0x430040 un solo efecto 0xee (0x518cf0, CL11) en (pkt[8] · 100, pkt[9] · 100, 100) con el héroe de 
+CL7	0x518900	10	partial	partial: falta 0.05	CL11	creado nada; el paso de ese efecto (0x518900) crea tres joints 0x619/1 (El calco de la mascota, abajo).
+CL7	0x404c90	9	partial	partial: falta 0.12	CL9	suelo): 0x4033f0 (con +0x154 en 2 y la espera, 0x404c90(5000), un reloj de timeGetTime como el de
+CL7	0x4182f0	9	partial	partial: falta 0.06	CL7	C1 F3 22 b w:2 0x4e31f8 el byte de pkt[4] a 0x5767814 y la palabra de pkt[6] a 0x5767816 PMSG_F3_22 (0x418330, la guerra de gremios) mide 6:
+CL7	0x4fcb10	9	partial	partial: falta 0.06	CL9	y +0x3e1 en 0, y vuelve a elegir la acción de parado (0x4fcb10 → 0x4f2250); si es la misma,
+CL7	0x54e540	9	partial	partial: falta 0.12	CL7	0x550e17..0x550e30), abre el registro (0x550e36..0x551038), llama a 0x54e540(+0x36, 0x90,
+CL7	0x5f82c0	8	partial	partial: falta 0.15	CL11	bit 0x100 del atributo de la celda del punto (0x5f82c0) sale con 0 y, sin él, cualquier jugador entra (MuRet
+CL7	0x405fa0	7	unknown	sin citar		la llama 0x405f70
+CL7	0x40cfa0	7	partial	partial: falta 0.07	CL7	(0x40cfa0); 0 o 0xff es ninguno. El byte 3 solo lo lee 0x40eee0, como el conjunto del tipo siguiente con
+CL7	0x40dc50	7	partial	partial: falta 0.11	CL7	con la durabilidad (D+0x1a) distinta de 0, 0x40dc50(lugar, &v) (0x550d6d; 66 bytes; ecx =
+CL7	0x418c20	7	unknown	sin citar		la llama 0x6b3300
+CL7	0x418c90	7	unknown	sin citar		la llama 0x418c60
+CL7	0x421d60	7	partial	partial: falta 0.18	CL7	11 0x77f3b10 = 0, 0x6c8dcc = 6 y 0x420d60(héroe): el cuervo, si la mano izquierda (+0x2d8) lleva el 0x1c17 (0x421d60, un new 0x460 y 0x4167b
+CL7	0x447f30	7	unknown	sin citar		la llama 0x447f00
+CL7	0x447f70	7	unknown	sin citar		la llama 0x447f40
+CL7	0x4573d0	7	not-started	sin citar		la llama 0x4573a0, 0x457d60, 0x457df0 y 1 más
+CL7	0x4ec110	7	partial	partial: falta 0.05	CL9	punto de 0x4ec110(hueso, desplazamiento, salida, 0) (sin la escala ni el origen del modelo, Q-C401);
+CL7	0x53c670	7	partial	partial: falta 0.17	CL11	0x53c670 (los joints) y 0x5446e0 (las partículas). El dibujo, después de los objetos:
+CL7	0x548fe0	7	partial	partial: falta 0.04	CL7	0x182 0x507414 0x507414, 0x507429 y 0x50744b rand() % 5 en 0: dos rand() % 21 − 10 y una marca del suelo 0x5e3 (0x548fe0, que saca uno más)
+CL7	0x4ea030	6	partial	partial: falta 0.06	CL9	según la acción (acción − 0x12 contra 0x89, las tablas 0x4cbd70 y 0x4cbcec), con 0x4ea030, que no pone
+CL7	0x606560	5	partial	partial: falta 0.03	CL7	- La lógica (0x606560, en cada paso del login desde 0x634c60, solo para los objetos que se
+CL7	0x401000	4	partial	partial: falta 0.12	CL11	ParticleOwnerStatesOf lo resuelve sin huesos con nombre, porque 0x401000 sólo registra personajes (sus llamadas
+CL7	0x403390	4	partial	partial: falta 0.20	CL9	diálogo: 0x7d, 0x95, 0x8a, 0x8d, 0x8b y 0x78abb00 != 3) y 0x403390 (después de 0x5be150).
+CL7	0x414340	4	partial	partial: falta 0.08	CL9	0x2222, 0x222a y 0x2232 más (clase >> 3) · 5 + (clase & 7)). Después, 0x414340,
+CL7	0x42fe50	4	partial	partial: falta 0.33	CL9	- La carga (0x61a6d0, 0x42fe50 después del .map): con 0, EncTerrain35.att y TerrainLight como los
+CL7	0x54b3a0	4	partial	partial: falta 0.10	CL9	sin leer el paquete; cifrado, cada entrada va a 0x5bc740, que decodifica el tipo con 0x54b3a0 (el
+CL7	0x5f8290	2	partial	partial: falta 0.11	CL7	0x5f8290(ftol(x · 0,01f), ftol(y · 0,01f)), que es y · 256 + x sin la máscara de 0x5f82a0
+CL7	0x404c30	1	not-started	sin citar		la llama 0x403660
+CL7	0x404c40	1	not-started	sin citar		la llama 0x403660
+CL7	0x404c50	1	not-started	sin citar		la llama 0x403660
+CL7	0x404c60	1	not-started	sin citar		la llama 0x403660
+CL7	0x404c70	1	not-started	sin citar		la llama 0x403660
+CL7	0x404c80	1	not-started	sin citar		la llama 0x403660
+CL7	0x4294b0	1	partial	partial: falta 0.09	CL9	1 0x5a7520 arenas de Tarkan (mapa 8: dos 0x622000 con 0x5c2/0x5c3 en (0, 0, 640, 435), UV por tiempo); Crywolf (34) con 0x576353c → 0x435930
+CL7	0x456b00	1	unknown	sin citar		la clase de la vtable 0x6b8d38 (sus métodos 0x4573a0, 0x457550 y 0x457dc0 son CL7): destructor, lista de objetos y búsqueda por (x, y, z)
+CL7	0x487d50	1	not-started	sin citar		la llama 0x6b4570, 0x6b72c0
+CL7	0x602e90	1	partial	partial: falta 0.02	CL11	2 (1,2), los dos desde 0x602e90, y en el modo 1, el contorno del personaje bajo el mouse
+CL8	0x576eb0	2829	partial	partial: falta 0.12	CL9	CL9 hito 1 (2026-11-13). Estático, con el ASM de 0x4cb750, 0x576a60, 0x576eb0, 0x4f2250 y 0x59b456,
+CL8	0x4d4020	2593	unknown	sin citar		0x4d4020 2593 inventario: CL8.4
+CL8	0x5ca250	2122	partial	partial: falta 0.04	CL9	arman 0x449d80 y, en línea, 0x5ca46c.. (la grilla), 0x5bf294.. (el equipo), 0x59bf1c (MoveHero) y, en
+CL8	0x4365c0	2014	partial	partial: falta 0.50	CL9	21 0x4365c0 UI de evento; empieza siempre con 0x620a00(1) y sale con 0x6c73d1 en −1 (su .data es 0xff) 0x723bf9, 0x6c73d1 la mezcla normal, 
+CL8	0x652c90	1535	partial	partial: falta 0.67	CL8	25 0x652c90 BattleSkill 0x4294b0 nada
+CL8	0x45eab0	1311	not-started	sin citar		textos: "(%d)"
+CL8	0x56c440	1243	partial	partial: falta 0.03	CL9	([0x743a170] + 0x24): con el héroe parado salen dos iguales (Q-C776). Sin portar: 0x56c440, 0x406050 (la
+CL8	0x59ff10	1151	partial	partial: falta 0.05	CL9	DAT_05767940 lo ponen en 70 (2,8 s) seis copias en línea del código que manda un mensaje, cada una con el último texto (0x57676e4): cuatro e
+CL8	0x461100	1064	not-started	sin citar		sin texto que la describa
+CL8	0x476270	1039	unknown	sin citar		la llama 0x46a180, 0x46add0, 0x476680
+CL8	0x4a9090	1039	unknown	clon de una citada	exact:0x4a81f0	0x4a9090 1039 ventanas: CL8.3 (STL)
+CL8	0x4727f0	1001	unknown	sin citar		0x4727f0 1001 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x473450	989	not-started	sin citar		la llama 0x45e2e0, 0x460ba0, 0x461100 y 3 más
+CL8	0x5d8d50	913	partial	partial: falta 0.03	CL9	0x23 C->S (C3) y S->C 0x5d8d50 (0x5e04cc) / 0x4d10d0 tirar el ítem del cursor y el resultado (abajo)
+CL8	0x45e5b0	864	not-started	sin citar		sin texto que la describa
+CL8	0x45a680	814	unknown	sin citar		0x45a680 814 ventanas: CL8.3
+CL8	0x45a2c0	810	unknown	sin citar		0x45a2c0 810 ventanas: CL8.3
+CL8	0x5ee2e0	756	partial	partial: falta 0.07	CL8	otras ventanas (el personaje 0x5ee2e0, la party 0x5f0be0, las tiendas 0x5f3030 y 0x5f4720, el almacén
+CL8	0x4d3200	753	unknown	sin citar		0x4d3200 753 inventario: CL8.4
+CL8	0x489290	719	not-started	sin citar		la llama 0x4030c0, 0x489260
+CL8	0x45b840	712	unknown	clon de una citada	exact:0x45f420	la llama 0x45b810
+CL8	0x4bff40	712	unknown	sin citar		0x4bff40 712 ventanas: CL8.3
+CL8	0x406050	710	partial	partial: falta 0.04	CL9	1. El launcher. 0x406ae0, lo que hace el botón 0x7d2 (su entrada en el mapa de mensajes de
+CL8	0x460ba0	706	not-started	clon de una citada	exact:0x45e2e0	la llama 0x460b70, 0x6b494a, 0x6b4966 y 5 más
+CL8	0x437c90	685	partial	partial: falta 0.50	CL8	portado en la CL9), el nombre del 0x1c0c de nivel 2 (la tabla de 0x6c9350) y del 0x1a0a (la tabla de monstruos de 0x7681eb8), las líneas del
+CL8	0x477f70	678	not-started	sin citar		0x477f70 678 inventario: —
+CL8	0x5b2aa0	671	partial	partial: falta 0.03	CL9	0x5b2b0d): la mascota (1 el caballo, 0 el cuervo) y los bytes de abajo de 0x78abb28 y 0x78abb2c, la
+CL8	0x59adf0	640	partial	partial: falta 0.05	CL9	(0x490490), Shift (0x59adf0, 0x652330, y con los dígitos en 0x420e30), Ctrl (0x5588d0,
+CL8	0x477bd0	628	unknown	sin citar		0x477bd0 628 ventanas: CL8.2
+CL8	0x45efd0	616	not-started	sin citar		Clic de una fila antigua de gremio 0x45f18a pertenece al método 0x45efd0, accesible sólo mediante la vtable que instala el constructor sin r
+CL8	0x479500	601	unknown	clon de una citada	param:0x47c410	sin texto que la describa
+CL8	0x47dbb0	599	not-started	clon de una citada	param:0x47ac90	sin texto que la describa
+CL8	0x483760	599	not-started	clon de una citada	param:0x47ac90	sin texto que la describa
+CL8	0x5c4110	596	partial	partial: falta 0.03	CL9	0x558eb0, 0x5c4110), Q, W y E con el flanco (0x5c4110), S (0x5e4ce0), Espacio y F1 a F4
+CL8	0x48e830	532	unknown	sin citar		0x48e937..0x48e93e, durante el destructor del manager. Las pestañas de objetos rechazados siguen vivas tras Reset.
+CL8	0x66a750	519	unknown	sin citar		0x66a750 519 ventanas: portada (ServerListWindow)
+CL8	0x46a270	494	unknown	sin citar		la llama 0x46a150, 0x46af90, 0x6b4280 y 3 más
+CL8	0x623e70	476	partial	partial: falta 0.01	CL9	0x623e70 (40 KB) solo en la escena 5 y con DAT_05762eb4 == 0: los diálogos del juego
+CL8	0x47e700	475	not-started	sin citar		sin texto que la describa
+CL8	0x62db60	451	partial	partial: falta 0.02	CL9	│ ├─ UI en el juego 0x62db60 (20 KB, 52 llamadas GL)
+CL8	0x424230	448	partial	partial: falta 0.24	CL9	- 0x424230 manda A9 01 00 08 desde la lógica de la UI del juego (0x5ee140, que corre desde
+CL8	0x6599a0	425	partial	partial: falta 0.03	CL9	un bit por panel), que lee DAT_07d53709; la escriben solo el sistema de paneles (0x6599a0
+CL8	0x45e910	402	not-started	sin citar		sin texto que la describa
+CL8	0x449d80	387	partial	partial: falta 0.10	CL9	arman 0x449d80 y, en línea, 0x5ca46c.. (la grilla), 0x5bf294.. (el equipo), 0x59bf1c (MoveHero) y, en
+CL8	0x473200	384	unknown	sin citar		0x473200 384 chat: CL8.2
+CL8	0x474490	384	not-started	sin citar		la llama 0x4624b0
+CL8	0x5b90b0	380	partial	partial: falta 0.07	CL8	4. Con una skill de la barra bajo el mouse (0x6c9320 ≠ −1), 0x5b90b0.
+CL8	0x487be0	356	not-started	sin citar		0x487be0 356 inventario: —
+CL8	0x5e7bf0	340	partial	partial: falta 0.04	CL9	todo con 0xff 00), la contraseña del almacén C1 10 83 <tipo> <contraseña:2> <número:10> (0x5e7e90), todos con el
+CL8	0x657450	339	unknown	sin citar		El objeto (4 B, vtable 0x6baacc) lo arma 0x657450 desde WinMain (0x4bb96a) con seis objetos: 0x7d536f0
+CL8	0x652330	332	partial	partial: falta 0.40	CL9	(0x490490), Shift (0x59adf0, 0x652330, y con los dígitos en 0x420e30), Ctrl (0x5588d0,
+CL8	0x657ab0	330	partial	partial: falta 0.05	CL9	la pone en 1 en 0x65c95f y 0x657ab0 en 0 en 0x657af9). DAT_00723911 recuerda que ya se
+CL8	0x47d8f0	327	not-started	clon de una citada	exact:0x479240	sin texto que la describa
+CL8	0x452860	325	not-started	sin citar		la llama 0x451860, 0x4518b0
+CL8	0x43fcf0	322	not-started	clon de una citada	param:0x4a7bd0	la llama 0x4381f0
+CL8	0x472be0	322	unknown	clon de una citada	param:0x4a7bd0	0x472be0 322 ventanas: CL8.3 (se reemplaza por la STL) ; paso: CL8.3
+CL8	0x48b770	322	unknown	clon de una citada	exact:0x48ba10	la llama 0x479500
+CL8	0x48b8c0	322	not-started	clon de una citada	exact:0x48ba10	la llama 0x47ac90
+CL8	0x48bb60	322	not-started	clon de una citada	exact:0x48ba10	la llama 0x47dbb0
+CL8	0x48c0a0	322	not-started	clon de una citada	exact:0x48ba10	la llama 0x483760
+CL8	0x637700	322	partial	partial: falta 0.04	CL10	├─ frame 0x63945d (orquestador) → 0x637700 (render loop)
+CL8	0x4767a0	321	unknown	sin citar		0x4767a0 321 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x476f40	321	not-started	sin citar		la llama 0x462c70
+CL8	0x47e8e0	313	not-started	clon de una citada	exact:0x47a230	sin texto que la describa
+CL8	0x5e4ce0	305	partial	partial: falta 0.10	CL9	0x558eb0, 0x5c4110), Q, W y E con el flanco (0x5c4110), S (0x5e4ce0), Espacio y F1 a F4
+CL8	0x5e0720	302	partial	partial: falta 0.09	CL8	0x6001b0 y 0x509340); lo cambian 0x5e0720 (un valor por parte) y 0x5208a0 (±30).
+CL8	0x66b6b0	290	not-started	sin citar		la llama 0x66ad70
+CL8	0x5e74f0	289	partial	partial: falta 0.20	CL9	0x775857c (byte) el mouse es de la UI 0 en 0x636e04 en cada paso; 1 en 0x636e1d (y ≥ 432), en 0x637063 (aviso abierto) y en los handlers de 
+CL8	0x479840	277	unknown	clon de una citada	param:0x47c750	0x479840 277 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x47def0	274	not-started	clon de una citada	param:0x47afd0	sin texto que la describa
+CL8	0x467db0	272	not-started	sin citar		0x467db0 272 chat: fuera de alcance
+CL8	0x5ea290	272	partial	partial: falta 0.08	CL9	detrás del terminador incluido, 07 Q-C965; 0x5ea407.. y 0x62378b.., WriteOpenShop), el 3F 03 (C1 04 3F 03;
+CL8	0x471ae0	264	partial	partial: falta 0.29	CL9	con el 1000 y el 2, solo esto último; con otro id, nada. Su dibujo (0x6304e1 → 0x471ae0), en "El dibujo".
+CL8	0x5ebca0	255	partial	partial: falta 0.06	CL9	0x56ea6c) y el AC (C1 10 AC <sí> <clave BE> <nombre>, C3; 0x5ebca0).
+CL8	0x40eee0	250	partial	partial: falta 0.26	CL8	(0x40cfa0); 0 o 0xff es ninguno. El byte 3 solo lo lee 0x40eee0, como el conjunto del tipo siguiente con
+CL8	0x644fd0	239	unknown	sin citar		+0x10e8 0x6ba9c0 (0x644fd0, arma 0x6451d0) la lista de servidores (abajo) 21 botones de grupo de 108 × 26 (0xc), 16 de servidor de 193 × 26 
+CL8	0x5a9630	237	partial	partial: falta 0.05	CL9	rand()). La barra principal (0x5a9630) la llama en 0x5a9ddb con la lista de ventanas ([0x5763524]), después de
+CL8	0x5b1c70	233	partial	partial: falta 0.15	CL9	C1 47 clave:2 … ítem:4 nivel (hasta pkt[0xc]) 0x4d6990 la clave big-endian; con la del héroe, nada; con otra, el aviso con el nombre del íte
+CL8	0x46a180	232	unknown	sin citar		la llama 0x6b4238, 0x6b4258
+CL8	0x48e620	232	unknown	sin citar		la llama 0x6b4847, 0x6b48a7, 0x6b516f
+CL8	0x48e740	232	unknown	sin citar		la llama 0x6b4818, 0x6b4823, 0x6b482e y 3 más
+CL8	0x5be150	232	partial	partial: falta 0.08	CL9	traba. Cifrado, suelta la traba; con 0xff (rechazado), 0x5be150 vuelve el ítem del cursor a su lugar. Si no,
+CL8	0x5b8150	230	partial	partial: falta 0.09	CL8	cmp con 0x7688ab8 (0x514133, 0x54ebcb, 0x5b41f5, 0x5b8930, 0x5bb308) son el final de
+CL8	0x4673d0	229	not-started	sin citar		P-C286 El EDIT del alta del gremio (CL9 hito 8, fases 3 y 5). ~~No está leído con qué fuente, color ni recorte lo dibuja 0x468320~~ [fase 5:
+CL8	0x5ac2d0	228	partial	partial: falta 0.17	CL9	0x775857c (byte) el mouse es de la UI 0 en 0x636e04 en cada paso; 1 en 0x636e1d (y ≥ 432), en 0x637063 (aviso abierto) y en los handlers de 
+CL8	0x4a79d0	221	unknown	sin citar		0x4a79d0 221 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x4a7ab0	221	unknown	sin citar		0x4a7ab0 221 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x65ed80	220	unknown	sin citar		0x65ed80 220 ventanas: CL8.3 (UI nueva)
+CL8	0x59ec80	219	partial	partial: falta 0.10	CL9	WM_RBUTTONDOWN (0x204) 0x4b3d15: DAT_07d36840 = 0; si DAT_07d3685c no estaba, DAT_07d36880 = 1 (el flanco); y DAT_07d3685c = 1 (abajo). Con 
+CL8	0x476680	203	unknown	sin citar		la llama 0x46a270
+CL8	0x4a8600	203	unknown	sin citar		0x4a8600 203 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x4a94a0	203	unknown	sin citar		0x4a94a0 203 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x4ab400	193	not-started	sin citar		la llama 0x495f20
+CL8	0x4a3b80	191	partial	partial: falta 0.09	CL9	- C1 0E C2 <1 0> <nombre:10>: la respuesta de la caja del C2 (0x4a3b80 con dueño −1, 0x4a3bde el sí
+CL8	0x48ee60	183	partial	partial: falta 0.07	CL9	cajas son 0x48ee60(10, −1, −1, texto, 0, 0).
+CL8	0x5a5860	183	partial	partial: falta 0.06	CL9	29 0x5a9630 barra principal (tramos arriba) siempre 3 × 3.848 + 2 × 4 r (las celdas del héroe), y 3 × 60 r con una skill a la vista (0x5a592
+CL8	0x478bd0	179	unknown	sin citar		la llama 0x45fea0, 0x478d10
+CL8	0x40e850	178	partial	partial: falta 0.20	CL8	La ventana del set (0x40e850, un thiscall sobre [0x6eed3c]). La prende 0x40e6c0, el mouse sobre el
+CL8	0x474610	178	not-started	sin citar		la llama 0x462c70
+CL8	0x476970	174	unknown	sin citar		0x476970 174 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x47d680	172	not-started	sin citar		la llama 0x47d320
+CL8	0x63d010	170	unknown	sin citar		0x63d010 170 HUD: CL8.3 ; ventanas: portada (UI/CreateCharacterWindow) sí
+CL8	0x478b20	168	unknown	sin citar		0x478b20 168 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x40a650	167	partial	partial: falta 0.10	CL9	siempre en 44405. Otro camino, 0x40aa60,
+CL8	0x659290	167	partial	partial: falta 0.12	CL8	pide con 0x659290(0x2000000), la consulta del estado de los paneles de la UI (364 llamadas,
+CL8	0x479450	166	unknown	clon de una citada	param:0x47abe0	sin texto que la describa
+CL8	0x47db00	166	not-started	clon de una citada	param:0x47abe0	sin texto que la describa
+CL8	0x4836b0	166	not-started	clon de una citada	param:0x47abe0	sin texto que la describa
+CL8	0x489c20	163	unknown	clon de una citada	param:0x4723c0	la llama 0x6b3e78, 0x6b3e83, 0x6b3ea8 y 7 más
+CL8	0x4c0b20	163	unknown	sin citar		la llama 0x4bfcb0
+CL8	0x66a670	163	unknown	sin citar		0x66a670 163 ventanas: portada (ServerListWindow)
+CL8	0x471ed0	160	unknown	clon de una citada	param:0x489d80	la llama 0x495f20, 0x6b3e10, 0x6b3e30 y 30 más
+CL8	0x472140	160	not-started	clon de una citada	param:0x489d80	la llama 0x6b3ee8, 0x6b3ef3, 0x6b3f18 y 12 más
+CL8	0x48a020	160	not-started	clon de una citada	param:0x489d80	la llama 0x6b4448, 0x6b4453, 0x6b4758 y 1 más
+CL8	0x4be8b0	160	unknown	clon de una citada	param:0x489d80	la llama 0x6b5239, 0x6b5279, 0x6b52b9 y 1 más
+CL8	0x4c0210	160	unknown	clon de una citada	param:0x489d80	la llama 0x6b5308, 0x6b5316
+CL8	0x65dcd0	154	unknown	sin citar		0x65dcd0 154 HUD: sin asignar
+CL8	0x644d60	152	unknown	sin citar		0x644d60 152 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x4a9d90	151	unknown	sin citar		0x4a9d90 151 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x4aa700	151	unknown	sin citar		0x4aa700 151 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x4c0920	151	unknown	sin citar		la llama 0x4bfc80
+CL8	0x5b0550	150	partial	partial: falta 0.05	CL8	0x6376bb 0x5b0550 superposiciones (abajo) siempre
+CL8	0x487450	144	unknown	sin citar		0x487450 144 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x555b00	143	partial	partial: falta 0.03	CL8	con 1024 y 15 con 1280. La otra escritura, en 0x556333 (dentro de 0x555b00), la acota a 32, y
+CL8	0x6575e0	143	unknown	sin citar		0x6575e0 143 ventanas: CL8.3
+CL8	0x475f80	142	unknown	clon de una citada	param:0x478500	0x475f80 142 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x478240	142	unknown	clon de una citada	param:0x478500	0x478240 142 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x478300	142	unknown	clon de una citada	param:0x478500	la llama 0x472db0, 0x478d10
+CL8	0x478440	142	not-started	clon de una citada	param:0x478500	la llama 0x473450, 0x47a410
+CL8	0x4d1400	141	partial	partial: falta 0.06	CL9	- 24 del GameServer (0x4d1400): C3 0C 24 <resultado> <lugar> <ítem:7>. Antes, el dispatcher lo copia a la
+CL8	0x471f70	140	unknown	clon de una citada	param:0x4733c0	0x471f70 140 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x476eb0	140	not-started	clon de una citada	param:0x4733c0	la llama 0x462c70
+CL8	0x557170	140	partial	partial: falta 0.20	CL8	0x557170(nombre, pkt + 5, personaje, 0, sin color): el texto se lee en el paquete mismo, hasta su \0.
+CL8	0x553670	139	unknown	sin citar		0x553670 139 chat: no se porta
+CL8	0x4873c0	138	unknown	sin citar		0x4873c0 138 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x401ae0	136	unknown	sin citar		0x401ae0 136 HUD: CL9.3/CL9.4 ; inventario: CL8.4 sí
+CL8	0x54d0f0	135	partial	partial: falta 0.05	CL8	deja en 0x5767950 el precio de 0x54d0f0 en el modo 0. El 0.97 lo lee como PMSG_BUYREQUEST (Pos en +3) y
+CL8	0x476a20	134	unknown	sin citar		0x476a20 134 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x491080	134	partial	partial: falta 0.12	CL9	UI/OldControls; estático; los paquetes, en [04](04-protocolo.md#los-amigos-c0c4)). El panel 1 (0x491080, desde
+CL8	0x40eca0	133	partial	partial: falta 0.24	CL8	0x6376c6 0x40eca0(this = [0x6eed3c]) cartel del set +0x9305 ≠ 0
+CL8	0x4876b0	133	not-started	sin citar		la llama 0x462c70
+CL8	0x479180	132	unknown	clon de una citada	exact:0x47a910	sin texto que la describa
+CL8	0x47d830	132	not-started	clon de una citada	exact:0x47a910	sin texto que la describa
+CL8	0x549700	132	unknown	sin citar		Text.bmd 0x5495e0 / 0x549700 2048 × 300 bytes g_GlobalText 0x076BD1DC
+CL8	0x5531d0	132	partial	partial: falta 0.17	CL8	0x5531d0 792 HUD: CL9.2 src
+CL8	0x5e1480	132	partial	partial: falta 0.04	CL8	(0x5f7610), el del cursor (0x5f7b10) y las 3 ranuras rápidas (0x558110(i) → 0x5e1480(208 + 31i, 454, 20,
+CL8	0x460130	131	partial	partial: falta 0.12	CL9	mirar el mensaje, el segundo deque vacío y la + 0x98 (0x460130, 0x465450) con cada renglón del primero de atrás
+CL8	0x477090	131	not-started	sin citar		la llama 0x462c70
+CL8	0x647470	131	unknown	sin citar		0x647470 131 ventanas: portada (Render/UiImage)
+CL8	0x5513d0	130	partial	partial: falta 0.17	CL8	1. Los daños. 0x5513d0 da la magia. 0x5516e0 (thiscall que no lee el registro) da el de la skill: con s, el
+CL8	0x40f580	127	unknown	sin citar		0x40f580 127 HUD: infra ; inventario: CL8.4 ; chat: CL9.2 sí
+CL8	0x487630	127	not-started	sin citar		la llama 0x462c70
+CL8	0x4dd570	126	partial	partial: falta 0.16	CL8	- F3 30 (0x4e32c9 → 0x4dd570(pkt + 4)): C1 13 F3 30 <teclas:10> <banderas> <Q> <W> <E> <chat>. Abre el
+CL8	0x641490	125	unknown	sin citar		+0x4228 0x6ba900 (0x641490, arma 0x6415c0) la cuenta y la clave (abajo) 329 × 245 (0x13), centrada en x y a dos tercios en y: ((W − w) / 2, 
+CL8	0x642880	122	unknown	sin citar		+0x8 0x6ba938 (0x642880, arma 0x6429b0) el aviso (abajo) 352 × 113 con los slots 0x727 y 0x728, al centro; detrás, la pantalla en negro con 
+CL8	0x549560	120	unknown	sin citar		- Parser 0x549560 (rama flag == 0): copia strlen+1 del token a
+CL8	0x46af90	119	unknown	sin citar		la llama 0x46af30
+CL8	0x5516e0	118	partial	partial: falta 0.15	CL8	1. Los daños. 0x5513d0 da la magia. 0x5516e0 (thiscall que no lee el registro) da el de la skill: con s, el
+CL8	0x660010	118	unknown	sin citar		0x660010 118 ventanas: CL8.3
+CL8	0x4d0cc0	117	partial	partial: falta 0.11	CL9,CL10	0x22 C->S (C3) y S->C (C3) 0x5650c0 (0x566bd2) / 0x4d0cc0 levantar un ítem del piso y el resultado (abajo; antes esta tabla decía "crea obje
+CL8	0x5f7bc0	117	partial	partial: falta 0.12	CL9	ventanas viejas), 0x5f7bc0 (tooltip), …, 0x65fe00 (vacío) y el cursor.
+CL8	0x478390	115	unknown	clon de una citada	param:0x472d30	la llama 0x472db0, 0x478d10
+CL8	0x561840	115	partial	partial: falta 0.11	CL8	Las flechas del elfo (0x561840 → 0x5579e0, CL8 2026-11-13, estático). 0x5bd750 las llama al sacar el
+CL8	0x43fe40	109	not-started	clon de una citada	exact:0x476d10	la llama 0x4381f0
+CL8	0x4768f0	109	unknown	clon de una citada	exact:0x476d10	0x4768f0 109 ventanas: CL8.3 (se reemplaza por la STL) ; paso: CL8.3
+CL8	0x476ab0	109	unknown	clon de una citada	exact:0x476d10	0x476ab0 109 chat: CL8.2
+CL8	0x48c8d0	109	unknown	clon de una citada	exact:0x476d10	la llama 0x479500
+CL8	0x48c940	109	not-started	clon de una citada	exact:0x476d10	la llama 0x47ac90
+CL8	0x48ca20	109	not-started	clon de una citada	exact:0x476d10	la llama 0x47dbb0
+CL8	0x48cbe0	109	not-started	clon de una citada	exact:0x476d10	la llama 0x483760
+CL8	0x640ef0	107	unknown	sin citar		+0xe40 0x6ba8c8 (0x640ef0, arma 0x641000) la barra de abajo, con dos botones, el menú y los créditos (abajo) botones de 54 × 30 (0x10, 0x11)
+CL8	0x4ab060	105	unknown	sin citar		0x4ab060 105 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x424fd0	104	unknown	clon de una citada	param:0x453b60	0x424fd0 104 HUD: CL8.4 (B2) ; paso: CL9.4 sí
+CL8	0x4a9570	104	unknown	clon de una citada	exact:0x453b60	0x4a9570 104 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x61c210	103	partial	partial: falta 0.07	CL8	CL8, hito 6 (2026-11-12). Estático, con el ASM de 0x623e70, 0x62db60, 0x632e30, 0x633300 y 0x61c210;
+CL8	0x5a89b0	100	partial	partial: falta 0.13	CL9	antes esta sección tenía cinco errores: 0x5a89b0 no son las barras propias (es la vida de la party), no hay
+CL8	0x490190	99	unknown	sin citar		0x490190 99 ventanas: CL8.3
+CL8	0x49e3c0	96	not-started	sin citar		la llama 0x49e480
+CL8	0x5e5920	96	partial	partial: falta 0.03	CL9	- C1 05 90 cuadrado casilla (0x5e5b2f..0x5e5eb4, el paso de la ventana de Devil Square) y C1 05 9A puente
+CL8	0x4e78c0	94	not-started	sin citar		la llama 0x4e7440
+CL8	0x477ed0	91	unknown	sin citar		0x477ed0 91 ventanas: CL8.2
+CL8	0x4e7860	91	not-started	sin citar		la llama 0x4e7440
+CL8	0x5aa9a0	91	partial	partial: falta 0.14	CL8	22 0x5aa9a0 entrada del chat (0xf8/0xf9 en (186, 415)) e indicador F3 (0xef en (432, 420)); empieza siempre con glColor3f(1,1,1) y el Select
+CL8	0x5ed960	91	partial	partial: falta 0.05	CL9	C1 04 33 <lugar> (0x5d8e1a), reparar C1 05 34 <lugar> <0x78abb10> (0x5c4485, un ítem de la grilla; 0x5edaa7,
+CL8	0x459b60	90	unknown	sin citar		0x459b60 / 0x459c00 delta del frame con QueryPerformanceCounter (timeGetTime si no hay),
+CL8	0x4a5120	88	partial	partial: falta 0.10	CL9	Los íconos de amigos y cartas de la barra (0x4a5120, CL9 hito 10; cierra el hueco de P-C63; estático, sin
+CL8	0x4a80d0	88	unknown	sin citar		0x4a80d0 88 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x477e50	87	unknown	sin citar		0x477e50 87 ventanas: CL8.2
+CL8	0x5b1570	87	partial	partial: falta 0.06	CL9	uno menos cada una. MuRet: Scenes/NpcWindowSteps.cpp (los pasos de 0x5ed960, 0x5b1570, 0x5ea060,
+CL8	0x489b60	86	not-started	sin citar		0x489b60 86 inventario: —
+CL8	0x46e440	85	not-started	clon de una citada	exact:0x461830	sin texto que la describa
+CL8	0x479790	85	unknown	clon de una citada	exact:0x47af20	0x479790 85 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x47de40	85	not-started	clon de una citada	exact:0x47af20	sin texto que la describa
+CL8	0x5ecde0	84	partial	partial: falta 0.03	CL9	del diálogo 0x73, 0x626b2a..0x626eaf), el 3C (C1 04 3C <OK>, C3; 0x5ecde0) y el 3D (C1 03 3D, C3; el botón de
+CL8	0x556dd0	83	partial	partial: falta 0.09	CL9	+0x88 en 4; con gremio (+0x1f2 como short ≥ 0), 0x556dd0 llena el gremio y el puesto con la tabla de los
+CL8	0x5e2270	83	unknown	sin citar		P-C364 Lo que la auditoría del hito 7 deja fuera del hito (CL9 hito 7, 2026-11-17, auditoría adversarial contra el ASM antes de la prueba en
+CL8	0x456fc0	82	unknown	sin citar		usa CallNextHookEx
+CL8	0x644aa0	82	unknown	sin citar		0x644aa0 82 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x45bb20	81	partial	partial: falta 0.07	CL8	0x45bb20 1215 chat: CL8.2
+CL8	0x478ac0	81	unknown	clon de una citada	param:0x4aad90	0x478ac0 81 ventanas: CL8.2
+CL8	0x61ae60	79	partial	partial: falta 0.06	CL9	32 bits, que 0x61b33c sube con GL_NEAREST y GL_CLAMP) y lo vuelve a subir con glTexImage2D. Quien la llama
+CL8	0x640280	79	unknown	sin citar		la llama 0x640250
+CL8	0x468d50	77	partial	partial: falta 0.07	CL9	de todos los EDIT (0x468d50, la vtable + 0x20): con el mouse en (x, y − 4, w, h + 8) y el clic con el EDIT
+CL8	0x4727a0	77	unknown	clon de una citada	exact:0x4e8ea0	sin texto que la describa
+CL8	0x4a7980	77	unknown	clon de una citada	exact:0x4e8ea0	la llama 0x6b4839, 0x6b4855, 0x6b4899 y 2 más
+CL8	0x633300	77	partial	partial: falta 0.05	CL9	grilla del otro cambiada y el propio apagado abre el aviso 0x633300(4, 0x173, 0x94) en vez de mandar el 3C.
+CL8	0x422990	76	partial	partial: falta 0.01	CL9	- 0x422990 manda el de un ítem 0x1a04 o 0x1a05 cuando cambia el que se mira (lo llama la UI,
+CL8	0x641830	74	unknown	sin citar		sin texto que la describa
+CL8	0x63eac0	73	unknown	sin citar		0x63eac0 73 ventanas: portada (UI/SelectionBar)
+CL8	0x553730	72	not-started	sin citar		FUN_00553730();
+CL8	0x456ee0	71	unknown	sin citar		(WH_KEYBOARD_LL + ALT+TAB 0x456EF9), y los DLLs compañeros del cliente
+CL8	0x41b810	69	partial	partial: falta 0.15	CL9	(Scenes::QuestClassFlagOf, que también lee 0x41b8b9).
+CL8	0x4a8130	69	unknown	sin citar		0x4a8130 69 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x476750	67	unknown	clon de una citada	exact:0x4a8ba0	la llama 0x46a180, 0x476270
+CL8	0x4a86d0	67	unknown	clon de una citada	exact:0x4a8ba0	0x4a86d0 67 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x4797f0	65	unknown	clon de una citada	exact:0x47af80	0x4797f0 65 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x47dea0	65	not-started	clon de una citada	exact:0x47af80	sin texto que la describa
+CL8	0x5bd750	65	partial	partial: falta 0.03	CL9	- 28 (0x4c5ec0): C1 05 28 <lugar> <fin de la espera>. Con el lugar distinto de 0xff, 0x5bd750(lugar) lo
+CL8	0x641140	64	unknown	sin citar		sin texto que la describa
+CL8	0x4675f0	63	not-started	sin citar		sin texto que la describa
+CL8	0x467630	63	not-started	sin citar		sin texto que la describa
+CL8	0x467670	63	not-started	sin citar		sin texto que la describa
+CL8	0x63c840	63	unknown	sin citar		0x63c840 63 ventanas: portada (UI/Button)
+CL8	0x66a390	63	unknown	sin citar		0x66a390 63 ventanas: portada (ServerListWindow)
+CL8	0x467a90	62	partial	partial: falta 0.50	CL9	P-C286 El EDIT del alta del gremio (CL9 hito 8, fases 3 y 5). ~~No está leído con qué fuente, color ni recorte lo dibuja 0x468320~~ [fase 5:
+CL8	0x46f020	62	partial	partial: falta 0.17	CL9	ven); después el blanco y la fuente normal, y desde el primero que se ve hasta 8 filas (0x46f020): el velo
+CL8	0x477b90	62	unknown	sin citar		la llama 0x46a180, 0x476680
+CL8	0x4a9d50	62	unknown	clon de una citada	exact:0x4aa0d0	0x4a9d50 62 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x4aa680	62	unknown	sin citar		0x4aa680 62 HUD: CL9.4? ; ventanas: CL8.3 (se reemplaza por la STL) ; paso: CL8.3 sí
+CL8	0x4aa6c0	62	unknown	clon de una citada	exact:0x4aa0d0	0x4aa6c0 62 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x551c70	62	partial	partial: falta 0.09	CL8	- 1: el nombre de la entrada del ícono en Skill.bmd (0x551c70, con el acceso de la entrada: 60 rand() al
+CL8	0x5a9050	59	partial	partial: falta 0.10	CL8	0x555b00 (lo llama 0x5a9050) hace lo mismo sin dispatch: 0x553e50 y después 0x554000
+CL8	0x40d530	57	partial	partial: falta 0.20	CL8	0x40d530 y su valor (& 0xff), en azul, o en rojo si la opción es 0xa5 o más sin la marca de la clase. Una
+CL8	0x5a7320	57	partial	partial: falta 0.11	CL9	DAT_077f3b74 lo ponen en 100 (4 s) dos escrituras en línea de 0x59ff10 al mandar una macro (0x5a1ea1, 0x5a2b3d); 0x59fea0 hace lo mismo (0x5
+CL8	0x5e3c80	57	partial	partial: falta 0.05	CL9	el 43 (C1 04 43 <número>, XOR32 en claro; el botón de echar de 0x5e3c80). Los tamaños coinciden con
+CL8	0x47b0f0	55	partial	partial: falta 0.03	CL9	Las nueve vecinas de 0x479960 son 0x47b0f0, 0x47c870, 0x47e010, 0x47f7b0, 0x480e00,
+CL8	0x644ed0	55	unknown	sin citar		0x644ed0 55 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x477f30	54	unknown	sin citar		0x477f30 54 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x4c1150	53	unknown	sin citar		0x4c1150 53 ventanas: no se porta: se cuentan sus rand()
+CL8	0x555190	53	partial	partial: falta 0.07	CL9	0x554610 y 0x555190 (mensajes en pantalla, inferido)
+CL8	0x643f60	53	unknown	sin citar		0x643f60 53 ventanas: portada (UI/NoticeWindow)
+CL8	0x459c70	52	partial	partial: falta 0.12	CL8	texto cortado por 0x459c70 en 2 renglones de 0x7d, 0x96 × 100 sin achicarse, las banderas 0xb y los botones
+CL8	0x647520	52	unknown	sin citar		la llama 0x63c330
+CL8	0x43fcb0	51	not-started	sin citar		la llama 0x4376c0
+CL8	0x448370	51	unknown	sin citar		0x448370 51 HUD: CL8.3 ; chat: CL8.3
+CL8	0x449720	51	unknown	sin citar		0x448440 (por 0x449830, que pide el objeto de 0x723c68 con 0x449720, desde 0x61ccb0, 0x61ec8f, con
+CL8	0x456f70	51	unknown	sin citar		la llama 0x456e90, 0x456eb0, 0x456fc0
+CL8	0x475f00	51	unknown	clon de una citada	exact:0x4a7b90	0x475f00 51 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x4be6b0	51	not-started	sin citar		FUN_004be6b0();
+CL8	0x4bee10	51	unknown	sin citar		FUN_004bee10();
+CL8	0x632d80	51	partial	partial: falta 0.67	CL10	0x4bad89, después de poner la primera escena (0x632d80) y antes del bucle de mensajes. Es
+CL8	0x644b90	50	unknown	sin citar		cerrarla (0x65f6c0) la pasa a la cola con 0x644b90: la última que se abrió va arriba.
+CL8	0x456bc0	49	unknown	sin citar		+ FUN_00456bc0 + FUN_006202e0.
+CL8	0x4731c0	49	unknown	clon de una citada	param:0x473e80	la llama 0x472db0, 0x478d10
+CL8	0x4906a0	49	partial	partial: falta 0.12	CL9	0x4906a0(+0xa8, 1) si +0xa8 está en 0 o la lista de F6 tiene alguna (Q-C573); la de amigos oculta se suelta; el
+CL8	0x4d10d0	49	partial	partial: falta 0.06	CL9	0x23 C->S (C3) y S->C 0x5d8d50 (0x5e04cc) / 0x4d10d0 tirar el ítem del cursor y el resultado (abajo)
+CL8	0x41c2a0	48	partial	partial: falta 0.12	CL9	pestaña elegida. La 0 (0x41c2a0): el título "Quest", el nombre de la misión más alta (+0x2137f), el texto del
+CL8	0x4aaf10	48	unknown	clon de una citada	exact:0x4aad60	0x4aaf10 48 HUD: CL8.1 ; ventanas: CL8.3 (STL) ; paso: CL8.3 sí
+CL8	0x561c50	48	partial	partial: falta 0.06	CL9	5. Si no (sin camino, o con arma de tiro), 0x561c50 (abajo): con flechas, 0x5650c0(héroe, héroe, 1), que no
+CL8	0x456f30	47	unknown	sin citar		usa UnhookWindowsHookEx, UnregisterHotKey; la llama 0x456eb0
+CL8	0x46a850	46	partial	partial: falta 0.25	CL8	no, elige la fuente, saca el pedazo de adelante si el corrimiento lo pasó (0x46a850: el pedazo son hasta 4 bytes,
+CL8	0x473390	46	unknown	clon de una citada	param:0x474040	la llama 0x472db0, 0x478d10
+CL8	0x489bc0	46	unknown	clon de una citada	param:0x473830	0x489bc0 46 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x59e2e0	46	partial	partial: falta 0.23	CL9	- La búsqueda del picking (0x59e2e0, sin rand()): cada ítem vivo y a la vista con la luz del pase de vértices
+CL8	0x644f40	46	unknown	sin citar		0x644f40 46 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x40ad10	45	unknown	sin citar		sin texto que la describa
+CL8	0x40f2f0	45	unknown	sin citar		sin texto que la describa
+CL8	0x41ba20	45	partial	partial: falta 0.03	CL9	- El dibujo (0x41ca40, desde 0x5f75db): con 1, 0x41ba20; con 2, 0x41c600. Después, con el personaje
+CL8	0x41cbc0	45	not-started	sin citar		sin texto que la describa
+CL8	0x465880	45	unknown	sin citar		la llama 0x465850
+CL8	0x4a8180	45	unknown	sin citar		0x4a8180 45 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x644cd0	45	unknown	sin citar		cabeza, y 0x65fe00 las dibuja desde la cola hasta la cabeza con 0x644cd0, así que la cabeza va
+CL8	0x695ab0	45	not-started	sin citar		textos: "glProgramStringARB"; usa wglGetProcAddress; la llama 0x66ad70
+CL8	0x479210	44	unknown	clon de una citada	exact:0x47a9a0	sin texto que la describa
+CL8	0x47d8c0	44	not-started	clon de una citada	exact:0x47a9a0	sin texto que la describa
+CL8	0x483470	44	not-started	clon de una citada	exact:0x47a9a0	sin texto que la describa
+CL8	0x644ca0	44	unknown	sin citar		0x644ca0 44 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x489bf0	43	unknown	clon de una citada	param:0x473860	0x489bf0 43 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x558800	43	partial	partial: falta 0.22	CL9	las paredes; con las otras, la celda lógica del héroe (la Y y la X, 4 rand() cada una) y 0x558800: sin la
+CL8	0x66a720	43	unknown	sin citar		0x66a720 43 ventanas: portada (ServerListWindow)
+CL8	0x469490	42	not-started	sin citar		FUN_00469490();
+CL8	0x46af60	42	unknown	sin citar		sin texto que la describa
+CL8	0x467b10	41	partial	partial: falta 0.06	CL9	izquierda, derecha 0x25, 0x27 0x467b10 (0x467b51, 0x467b5e) V; 0x479960 y sus nueve vecinas, que descartan el valor (0x479999, 0x47999d) V
+CL8	0x4bfc50	41	unknown	sin citar		FUN_004bfc50();
+CL8	0x4bfc80	41	unknown	sin citar		FUN_004bfc80();
+CL8	0x4bfcb0	41	unknown	sin citar		FUN_004bfcb0();
+CL8	0x65dc00	41	not-started	sin citar		usa timeGetTime; la llama 0x636290
+CL8	0x644c70	40	unknown	sin citar		0x644c70 40 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x46a9c0	39	partial	partial: falta 0.11	CL8	multimap, si su clave ya llegó: si no caducó, 0x46a9c0 pone su color, elige su fuente en el DC y agrega
+CL8	0x487b10	39	not-started	clon de una citada	exact:0x487b70	la llama 0x45f6f0
+CL8	0x487b40	39	not-started	clon de una citada	exact:0x487b70	la llama 0x45e5b0
+CL8	0x644f70	39	unknown	sin citar		0x644f70 39 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x643f30	37	unknown	sin citar		0x643f30 37 ventanas: portada (UI/NoticeWindow)
+CL8	0x43feb0	36	not-started	clon de una citada	param:0x4784d0	la llama 0x4381f0
+CL8	0x468d20	36	unknown	sin citar		0x468d20 36 chat: CL8.2
+CL8	0x4782d0	36	unknown	clon de una citada	param:0x4784d0	0x4782d0 36 ventanas: CL8.3 (se reemplaza por la STL) ; paso: CL8.3
+CL8	0x478410	36	unknown	clon de una citada	param:0x4784d0	0x478410 36 chat: CL8.2
+CL8	0x47a9d0	36	partial	partial: falta 0.11	CL9	// 0x45abc0 y 0x47a9d0 sobre la lista de una pestaña: la cola entera.
+CL8	0x48cd30	36	unknown	clon de una citada	param:0x4784d0	la llama 0x479500
+CL8	0x48cd60	36	not-started	clon de una citada	param:0x4784d0	la llama 0x47ac90
+CL8	0x48cdc0	36	not-started	clon de una citada	param:0x4784d0	la llama 0x47dbb0
+CL8	0x48ce80	36	not-started	clon de una citada	param:0x4784d0	la llama 0x483760
+CL8	0x63d790	36	unknown	clon de una citada	exact:0x647d10	0x63d790 36 ventanas: portada (UI/CreateCharacterWindow)
+CL8	0x63eb10	36	unknown	clon de una citada	exact:0x647d10	0x63eb10 36 ventanas: portada (UI/SelectionBar)
+CL8	0x641180	36	unknown	clon de una citada	exact:0x647d10	sin texto que la describa
+CL8	0x641880	36	unknown	clon de una citada	exact:0x647d10	las muestra: 0x6418b0, después del RET de 0x641880, una ventana más que lee Enter y Esc con
+CL8	0x642bc0	36	unknown	sin citar		(0x669c70(W, H, −1, 0), el negro de atrás) y su vtable + 8 (0x642bc0) mueve solo la caja, así
+CL8	0x642e00	36	unknown	clon de una citada	exact:0x647d10	sin texto que la describa
+CL8	0x645de0	36	unknown	clon de una citada	exact:0x647d10	0x645de0 36 ventanas: portada (UI/ServerListWindow)
+CL8	0x4518b0	35	partial	partial: falta 0.06	CL9	chat (0x556dd0: con cartel, el título corto de 0x4518b0 en +0x54) y /trade (0x451810, el aviso 493).
+CL8	0x5af090	35	partial	partial: falta 0.03	CL8	(Q-C613); 0x77f3b66 en 1 y 0x5af090(1, 1, cuántos, 0, 2, 1). 0x5afb00 es solo del modo 3.
+CL8	0x695ae0	35	not-started	sin citar		textos: "glBindProgramARB"; usa wglGetProcAddress; la llama 0x66ad70, 0x66b110
+CL8	0x695b10	35	not-started	sin citar		textos: "glDeleteProgramsARB"; usa wglGetProcAddress; la llama 0x66b150
+CL8	0x695b40	35	not-started	sin citar		textos: "glGenProgramsARB"; usa wglGetProcAddress; la llama 0x66ad70
+CL8	0x40bdd0	34	partial	partial: falta 0.05	CL9	- Devil Square, 0x40bdd0: glColor3f(0,5, 1, 0,5), 647 en (0xe5, 0x46) y 648 con el nombre del héroe (+0x1d9)
+CL8	0x5f7440	34	partial	partial: falta 0.07	CL9	Por frame (0x6371a0, el 2D en 0x637646..0x6376e6): 0x5a7320 (el HUD, que llama a 0x5f7440 → 0x6579e0,
+CL8	0x403170	33	not-started	sin citar		sin texto que la describa
+CL8	0x40ad60	33	unknown	sin citar		sin texto que la describa
+CL8	0x40cf30	33	partial	partial: falta 0.31	CL8	con el 3 de 0 a 3 y un conjunto en la pieza 1 (0x40cf30), un renglón verde (el 4) "%s %s %s:(%s+%d)" con su
+CL8	0x40f340	33	unknown	sin citar		sin texto que la describa
+CL8	0x41cc10	33	not-started	sin citar		sin texto que la describa
+CL8	0x459c00	33	unknown	sin citar		0x459b60 / 0x459c00 delta del frame con QueryPerformanceCounter (timeGetTime si no hay),
+CL8	0x45a5f0	33	unknown	sin citar		0x45a5f0 33 ventanas: CL8.3
+CL8	0x45a650	33	unknown	sin citar		0x45a650 33 ventanas: CL8.3
+CL8	0x45adc0	33	unknown	sin citar		0x45adc0 33 ventanas: CL8.3
+CL8	0x45b810	33	unknown	sin citar		sin texto que la describa
+CL8	0x45e2b0	33	not-started	clon de una citada	exact:0x4633b0	sin texto que la describa
+CL8	0x45f3f0	33	not-started	clon de una citada	exact:0x4633b0	sin texto que la describa
+CL8	0x460b70	33	not-started	clon de una citada	exact:0x4633b0	sin texto que la describa
+CL8	0x4621b0	33	not-started	clon de una citada	exact:0x4633b0	sin texto que la describa
+CL8	0x465850	33	unknown	clon de una citada	exact:0x4633b0	sin texto que la describa
+CL8	0x4676e0	33	unknown	clon de una citada	exact:0x4633b0	0x4676e0 33 chat: CL8.2
+CL8	0x46a150	33	unknown	sin citar		sin texto que la describa
+CL8	0x46af30	33	unknown	sin citar		sin texto que la describa
+CL8	0x487d60	33	unknown	clon de una citada	exact:0x488360	sin texto que la describa
+CL8	0x488060	33	not-started	clon de una citada	exact:0x488360	sin texto que la describa
+CL8	0x489260	33	not-started	clon de una citada	exact:0x488360	sin texto que la describa
+CL8	0x48e710	33	unknown	sin citar		0x48e710 33 ventanas: CL8.3
+CL8	0x490160	33	unknown	clon de una citada	exact:0x488360	0x490160 33 ventanas: CL8.3
+CL8	0x491d20	33	unknown	clon de una citada	exact:0x48f970	0x491d20 33 ventanas: CL8.3
+CL8	0x4bff10	33	unknown	clon de una citada	exact:0x48ff00	0x4bff10 33 ventanas: CL8.3
+CL8	0x63d0c0	33	unknown	sin citar		0x63d0c0 33 ventanas: portada (UI/CreateCharacterWindow)
+CL8	0x63e770	33	unknown	clon de una citada	exact:0x48f970	0x63e770 33 ventanas: portada (UI/SelectionBar)
+CL8	0x640250	33	unknown	sin citar		sin texto que la describa
+CL8	0x640f60	33	unknown	clon de una citada	exact:0x488360	sin texto que la describa
+CL8	0x641510	33	unknown	sin citar		sin texto que la describa
+CL8	0x642900	33	unknown	clon de una citada	exact:0x48ff00	0x642900 FUN_00642900 6ba934 (1) destructor thunk (FUN_00642930 + operator delete).
+CL8	0x643e70	33	unknown	clon de una citada	exact:0x48f970	destructor de la clase de la vtable 0x6ba970, cuyos métodos 0x643ed0..0x643f60 son CL8
+CL8	0x643ed0	33	unknown	sin citar		0x643ed0 33 ventanas: portada (UI/NoticeWindow)
+CL8	0x6450c0	33	unknown	sin citar		0x6450c0 33 ventanas: portada (UI/ServerListWindow)
+CL8	0x6575b0	33	unknown	clon de una citada	exact:0x4633b0	0x6575b0 33 ventanas: CL8.3
+CL8	0x65ed50	33	unknown	sin citar		0x65ed50 33 ventanas: CL8.3 (UI nueva)
+CL8	0x65ffe0	33	unknown	clon de una citada	exact:0x4647e0	0x65ffe0 33 ventanas: CL8.3
+CL8	0x669bf0	33	unknown	clon de una citada	exact:0x495ef0	0x669bf0 33 ventanas: portada
+CL8	0x66a140	33	unknown	sin citar		0x66a140 33 ventanas: portada (ServerListWindow)
+CL8	0x66aa90	33	not-started	sin citar		sin texto que la describa
+CL8	0x41eed0	32	partial	partial: falta 0.67	CL10	WM_MOUSEWHEEL (0x20A) 0x4b4c03: DAT_07d366d8 = delta / 120 (idiv, que trunca hacia 0), en muescas; lo consume quien lo lee: las listas (0x47
+CL8	0x554610	32	partial	partial: falta 0.07	CL8	0x554610 y 0x555190 (mensajes en pantalla, inferido)
+CL8	0x40bab0	31	partial	partial: falta 0.10	CL9	C1 04 92 tipo 0x4e4930 con el objeto del evento ([0x723c60]), 0x40ba60(pkt[3] + 1): +8 y GetTickCount en +0xc, que dibuja la cuenta de 30 s 
+CL8	0x5fe610	30	partial	partial: falta 0.02	CL9	(0x5fe690; 06 § "La caja del caos"). Los tipos que pueden salir: 1 a 8, 0xb, 0xf a 0x11 y 0x16 a 0x1c
+CL8	0x6205b0	30	partial	partial: falta 0.23	CL8	0x6205b0; con la x y la y de la pantalla en 0 o más (con signo, 0x438460..0x438469), la negrita en el DC
+CL8	0x412b30	29	partial	partial: falta 0.25	CL9	el sub 0 de B1 con otro GameServer (0x412b86, en 0x412b30) y 0x4c1b9f, en una copia del
+CL8	0x478aa0	29	unknown	sin citar		0x478aa0 29 ventanas: CL8.2
+CL8	0x4e7920	29	not-started	sin citar		la llama 0x4e7440
+CL8	0x5ac120	29	partial	partial: falta 0.07	CL9	27 0x5ac120 3D en la UI (abajo, El 3D de la UI) siempre traza 124479..126583
+CL8	0x477eb0	28	unknown	clon de una citada	exact:0x4aa0b0	la llama 0x476680
+CL8	0x4aaa20	28	unknown	clon de una citada	exact:0x4aa0b0	0x4aaa20 28 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x669bd0	28	unknown	sin citar		0x669bd0 28 HUD: CL8.3 ; ventanas: portada (ServerListWindow box) sí
+CL8	0x477b00	27	unknown	clon de una citada	exact:0x476cf0	0x477b00 27 chat: CL8.2
+CL8	0x632c90	27	partial	partial: falta 0.11	CL9	847 en (+0xa, +0xc), caja 0x78; el título 846 como el de Devil Square; y 832 partido por 0x632c90 en a
+CL8	0x660350	27	partial	partial: falta 0.25	CL9	motivo. Con la función en 0 se cierra sin llamarla; si devuelve 0 queda abierto; si no, +4 = 0 y 0x660350, que
+CL8	0x487bc0	26	unknown	clon de una citada	exact:0x4875f0	0x487bc0 26 ventanas: CL8.2
+CL8	0x5e7aa0	26	partial	partial: falta 0.17	CL9	y sin 0x78abb1c guarda {−1, 1, zen, 0x77f3cc8} y abre el teclado (0x5e7aa0(1), sus 40 rand() antes de
+CL8	0x40bbf0	25	partial	partial: falta 0.08	CL9	(570, 345), y la fila baja a 357; 865 en (570, fila); y 0x40bbf0(570f, fila + 10f, +0x18): " %.2d :" con los
+CL8	0x456e90	25	unknown	sin citar		FUN_00456e90();
+CL8	0x4ab360	25	unknown	clon de una citada	exact:0x4ab300	0x4ab360 25 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x6203c0	25	partial	partial: falta 0.13	CL8	arma la perspectiva con gluPerspective(FOV, w/h, near, far × 1,4) (0x6203c0; FOV, near y far
+CL8	0x647500	25	unknown	sin citar		0x647500 25 ventanas: portada (Render/UiImage)
+CL8	0x45b200	24	partial	partial: falta 0.11	CL10	corre la vtable + 0x20: el botón (0x45b200: el apretón lo marca en 0x5762ec4, el soltado sobre él le manda el
+CL8	0x4a9880	24	unknown	clon de una citada	exact:0x4a98a0	0x4a9880 24 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x642ba0	24	unknown	sin citar		sin texto que la describa
+CL8	0x40cf00	23	partial	partial: falta 0.67	CL8	el que sigue al último, en 0); 0x77f3b66 en 1. 0x40cf00(ítem) lee los bytes 2 y 3 del tipo en ItemSetType.bmd:
+CL8	0x465980	23	unknown	sin citar		0x465980 23 chat: existente
+CL8	0x472040	23	unknown	clon de una citada	exact:0x403100	0x472040 23 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x4376c0	22	not-started	sin citar		sin texto que la describa
+CL8	0x4383f0	22	partial	partial: falta 0.05	CL8	minimapa (el modo 4 de las superposiciones es la ventana /move), 0x4383f0 no son los números de daño (es una
+CL8	0x490490	22	partial	partial: falta 0.05	CL9	(0x490490), Shift (0x59adf0, 0x652330, y con los dígitos en 0x420e30), Ctrl (0x5588d0,
+CL8	0x660280	22	unknown	sin citar		0x660280 22 ventanas: CL8.3
+CL8	0x63b150	21	partial	partial: falta 0.07	CL8	después del dibujo de la escena, 0x6202e0 hace glReadPixels en RGB y 0x63b150 escribe un JPEG de calidad 100;
+CL8	0x657930	21	partial	partial: falta 0.12	CL9	8. si el diálogo no es 0x6e: 0x657930 (diálogo de los paneles, gremio 2, gremio, CS);
+CL8	0x487980	19	unknown	sin citar		0x487980 19 chat: CL8.2
+CL8	0x5ee140	19	partial	partial: falta 0.09	CL9	- 0x424230 manda A9 01 00 08 desde la lógica de la UI del juego (0x5ee140, que corre desde
+CL8	0x643f10	19	unknown	sin citar		0x643f10 19 ventanas: portada (UI/NoticeWindow)
+CL8	0x4a81b0	18	unknown	clon de una citada	exact:0x4e8f50	0x4a81b0 18 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x66a120	18	unknown	sin citar		La caja de la descripción (+0x3040) es otra clase (vtable 0x6bab24, constructor 0x66a120):
+CL8	0x40ad40	17	unknown	sin citar		la llama 0x40ad60
+CL8	0x40f320	17	unknown	sin citar		la llama 0x40f340
+CL8	0x41cbf0	17	not-started	sin citar		la llama 0x41cc10
+CL8	0x465830	17	unknown	sin citar		local_248c = FUN_00465830();
+CL8	0x471e80	17	partial	partial: falta 0.33	CL9	- La caja 0x9c es el objeto 0x575d9d0 (0x471e80 lo arma la primera vez con 0x471650): +0 el id, +4 los botones
+CL8	0x476020	17	unknown	clon de una citada	exact:0x4bfdd0	la llama 0x46a180
+CL8	0x490a00	17	partial	partial: falta 0.11	CL9	0x490a00 y 0x45aa50); el botón del estado (0x4a3030) pregunta "¿salir de línea?" o
+CL8	0x4a81d0	17	unknown	clon de una citada	exact:0x4bfdd0	0x4a81d0 17 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x4a9070	17	unknown	clon de una citada	exact:0x4bfdd0	0x4a9070 17 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x4030f0	16	not-started	clon de una citada	exact:0x472020	sin texto que la describa
+CL8	0x456ec0	16	unknown	sin citar		la llama 0x456f70
+CL8	0x472030	16	unknown	clon de una citada	exact:0x472020	sin texto que la describa
+CL8	0x4722a0	16	not-started	clon de una citada	exact:0x472020	sin texto que la describa
+CL8	0x4725b0	16	not-started	clon de una citada	exact:0x472020	sin texto que la describa
+CL8	0x473380	16	not-started	clon de una citada	exact:0x474b90	la llama 0x45b840, 0x45f420, 0x487d90
+CL8	0x473a10	16	unknown	clon de una citada	exact:0x474b90	0x473a10 16 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x476010	16	unknown	clon de una citada	exact:0x474b90	0x476010 16 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x476960	16	unknown	clon de una citada	exact:0x474b90	0x476960 16 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x48af30	16	not-started	clon de una citada	exact:0x474b90	la llama 0x489290
+CL8	0x4bfdf0	16	unknown	clon de una citada	exact:0x474b90	0x4bfdf0 16 ventanas: CL8.3
+CL8	0x622b40	16	partial	partial: falta 0.10	CL9	empieza con /, 0x622b40) en el nombre sin espacios, y unas cadenas fijas y los textos 457 y 458
+CL8	0x646fe0	16	unknown	sin citar		0x647650 en el binario). Son objetos de 0xa8 bytes (vtable 0x6baa08, constructor 0x646fe0,
+CL8	0x657880	15	partial	partial: falta 0.15	CL9	0x659860, Open 0x6599a0, Close 0x65cae0, CloseByMask 0x657ab0, las teclas 0x657880): el
+CL8	0x467060	14	partial	partial: falta 0.02	CL8	cualquier otro, la de 0x466ff0 (vtable 0x6b9538), cuyo método 1, 0x467060, hace un
+CL8	0x467360	14	partial	partial: falta 0.25	CL9	el IME a la ventana del juego (0x467360);
+CL8	0x643f00	14	unknown	sin citar		0x643f00 14 ventanas: portada (UI/NoticeWindow)
+CL8	0x65cae0	14	partial	partial: falta 0.04	CL9	C1 04 90 resultado 0x4e4870 cierra el NPC de evento (0x65cae0(0x1000, 0)) y, con 1..5, el aviso 677, 678, 686, 687 o 679 PMSG_RESULT, igual
+CL8	0x41b9e0	13	partial	partial: falta 0.20	CL9	- Los ítems en 3D (0x41b9e0, lo primero de 0x5ac120): con el diálogo, los ítems pedidos de la misión en curso
+CL8	0x63e660	13	unknown	sin citar		0x63e660 13 ventanas: CL8.3 (UI nueva)
+CL8	0x644a60	13	unknown	sin citar		0x644a60 13 HUD: CL8.3 ; ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x456eb0	12	unknown	sin citar		└─ WM_QUIT 0x456eb0 + 0x4aeda0 + 0x4017a0 y return
+CL8	0x5b1130	12	partial	partial: falta 0.06	CL9	0x77f3b6c con sus puntos (0x5b1130) en el formato del primer texto y los siguientes con 0x69fd9b sin argumentos.
+CL8	0x4030c0	11	not-started	sin citar		la llama 0x403170
+CL8	0x469420	11	partial	partial: falta 0.33	CL8	// 0x469420: SetText(0) en los dos EDIT.
+CL8	0x644a80	11	unknown	sin citar		0x644a80 11 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x422930	9	partial	partial: falta 0.11	CL9	(0x422930, los words de 0x723968 + 0x14 · tipo) por 2.000.000 el caballo y 1.000.000 el cuervo, en 32 bits.
+CL8	0x640830	9	unknown	sin citar		la llama 0x640850
+CL8	0x451d10	8	partial	partial: falta 0.17	CL9	personaje, con 0x6c8e38 en −1 un monstruo (+0x88 en 2): 0x6c8e64 = 0xff000064, 0x6c8e5c = 0xffc8e6ff y 0x623690(0x5bb8d0() / 2, 10, nombre) 
+CL8	0x632e30	8	partial	partial: falta 0.06	CL9	2 y 0xb el texto 596 con 0x7d2dc80 en 0; 4 y 9 la caja 0x632e30 con los textos 649 y 689; 100 la caja del
+CL8	0x4682a0	7	partial	partial: falta 0.06	CL9	elige (0x469500) y es de la UI, el clic le da el foco (0x468d50 → 0x4682a0(1); sus flechas y su barra no,
+CL8	0x469450	7	partial	partial: falta 0.12	CL8	Q-C1291 el cierre de la ventana 2, 0x6570b0 apaga 0x77f3b68 pero no oculta el EDIT [0x5763504] ni le saca el foco: cerrándola desde la págin
+CL8	0x554180	7	partial	partial: falta 0.04	CL9	│ ├─ texto 0x554180
+CL8	0x61c170	7	partial	partial: falta 0.10	CL8	Q-C531). Lo escriben (0x61c170) la salida del juego, el cambio de servidor y el gate a los mapas 30 y 31, que son
+CL8	0x643ea0	7	unknown	sin citar		destructor de la clase de la vtable 0x6ba970, cuyos métodos 0x643ed0..0x643f60 son CL8
+CL8	0x6603c0	7	partial	partial: falta 0.09	CL9	B2 1F 0x4e5532 pkt[4]; con 1, pkt[5] 0 y 2: 0x6603c0 y 0x6600d0(Text[860 o 1386], 1, 0x32, 1, 0, 0) sobre [0x7d53704], el diálogo de los pan
+CL8	0x4720e0	6	partial	partial: falta 0.25	CL9	~~P-C185~~ Cerrado el 2026-11-13 (CL9 hito 9). Las 246 filas con hito = 9 de 2026-11-13-ola-cl9-funciones.tsv que no aparecían por su direcc
+CL8	0x5aea20	6	unknown	sin citar		0x5aea20 6 HUD: CL8.4 (B2) ; inventario: CL8.4 ; chat: CL8.3/CL9.3 sí
+CL8	0x661b90	6	partial	partial: falta 0.17	CL9	0x661b90 36 ventanas: CL9.5
+CL8	0x4529c0	5	not-started	sin citar		la llama 0x451720
+CL8	0x456f60	3	unknown	sin citar		la llama 0x456fc0
+CL8	0x4e8880	3	unknown	sin citar		paquetes en +0x4020. Con +0x4018 distinto de 0 avisa lo que mandó a 0x4e8880, que en este
+CL8	0x5542f0	3	partial	partial: falta 0.03	CL9	0x5541b9..0x5541bc); 0x5542f0 pasa el que le dan. 0x467060 no lee el color ([ebp + 0x20]). Mide el texto con
+CL8	0x45aa50	2	partial	partial: falta 0.06	CL9	0x490a00 y 0x45aa50); el botón del estado (0x4a3030) pregunta "¿salir de línea?" o
+CL8	0x465950	2	partial	partial: falta 0.04	CL9	└─ 0x465950 dispatch virtual por el objeto de DAT_05763510 (lo elige TextOut, abajo)
+CL8	0x4914e0	2	partial	partial: falta 0.11	CL9	- Chaos Castle (0x4c7b17..0x4c7b2f): 0x4906a0(1, 0) esconde las ventanas sin anotarlas (Q-C572), y 0x4914e0
+CL8	0x5110d0	2	partial	partial: falta 0.04	CL9,CL10	completo, sin & 0x7fff, y lo entrega así al lookup 0x5110d0. La dirección se carga
+CL8	0x6570a0	2	partial	partial: falta 0.50	CL9	0x40000 gremio 2 (paquetes 54, 56) 0x6570a0() CL9.4
+CL8	0x657a90	2	partial	partial: falta 0.09	CL9	estado: el GS manda GetQuestStateBYTE, el byte con las cuatro misiones (Q-C843). Después 0x657a90 (cierra
+CL8	0x45a9c0	1	partial	partial: falta 0.33	CL9	0x45a9c0 4 HUD: CL8.1 ; ventanas: CL8.3 ; chat: CL8.3 (base) ; paso: CL8.3 sí
+CL8	0x5fc0b0	1	unknown	sin citar		0x637144..0x63717a 0x5fc0d0 y 0x5fc0b0, con 0x7d2d35e funciones de un ret nada
+CL8	0x5fc0d0	1	unknown	sin citar		0x637144..0x63717a 0x5fc0d0 y 0x5fc0b0, con 0x7d2d35e funciones de un ret nada
+CL9	0x4852b0	1766	not-started	clon de una citada	param:0x47b0f0	0x4824d0, 0x483bc0, 0x4852b0 y 0x486910. Las diez leen las flechas en el mismo orden y
+CL9	0x486910	1766	not-started	clon de una citada	param:0x47b0f0	0x4824d0, 0x483bc0, 0x4852b0 y 0x486910. Las diez leen las flechas en el mismo orden y
+CL9	0x46fe00	1280	not-started	sin citar		sin texto que la describa
+CL9	0x666650	1245	not-started	sin citar		0x666650 1245 HUD: CL9.5 / CL9.4
+CL9	0x470d50	1230	not-started	clon de una citada	param:0x46cb20	sin texto que la describa
+CL9	0x48d710	1227	not-started	sin citar		la llama 0x46f940
+CL9	0x48d250	1213	not-started	sin citar		0x48d250 1213 paso: CL9.3
+CL9	0x64c840	1122	not-started	sin citar		0x64c840 1122 HUD: CL9.5 / CL9.4
+CL9	0x46f940	1114	not-started	sin citar		P-C300 Las ventanas del castillo que quedan (CL9 hito 12, 2026-11-14, [04](04-protocolo.md#castle-siege-las-ventanas-del-castillo)). Está el
+CL9	0x44ea60	1075	not-started	sin citar		0x44ea60 1075 HUD: CL9.5
+CL9	0x663f40	1071	not-started	sin citar		0x663f40 1071 HUD: CL9.5 / CL9.4
+CL9	0x40f850	1058	partial	partial: falta 0.40	CL9	31 IsOpen(0) si no hay ninguna abierta → 0x4125b0 (vfunc +0xc de [0x5763530], el panel del asedio): con la clase 0 a la vista (+0x19, que su
+CL9	0x4c0510	1039	not-started	clon de una citada	exact:0x4a81f0	0x4c0510 1039 paso: CL9.4
+CL9	0x64e600	1002	partial	partial: falta 0.33	CL9	(0x64e600, 0x64def0, 0x650c10, 0x650830), portadas en las fases 4 y 5; el alta es de la fase 3 (abajo). La
+CL9	0x48aab0	1001	not-started	sin citar		la llama 0x489290
+CL9	0x48af40	988	not-started	sin citar		la llama 0x46f510, 0x489590
+CL9	0x48a630	978	not-started	sin citar		la llama 0x46d630, 0x488f90
+CL9	0x44ff00	921	not-started	sin citar		0x44ff00 921 HUD: CL9.5
+CL9	0x64f720	886	not-started	sin citar		la llama 0x64f6f0
+CL9	0x654af0	885	not-started	sin citar		la llama 0x654ac0
+CL9	0x64bd10	875	not-started	sin citar		0x64bd10 875 HUD: CL9.5 / CL9.4
+CL9	0x55cbc0	871	partial	partial: falta 0.07	CL9	un freno de 300 ms entre acciones _DAT_0576791c, con GetTickCount, en 0x57cfc0, 0x559890, 0x55b6f0, 0x55cbc0 y 0x55faa0, todas desde el paso
+CL9	0x6689f0	857	not-started	sin citar		usa WS2_32.dll#111, WS2_32.dll#19; la llama 0x6691c0
+CL9	0x484670	855	not-started	sin citar		sin texto que la describa
+CL9	0x55faa0	807	partial	partial: falta 0.11	CL9	un freno de 300 ms entre acciones _DAT_0576791c, con GetTickCount, en 0x57cfc0, 0x559890, 0x55b6f0, 0x55cbc0 y 0x55faa0, todas desde el paso
+CL9	0x4cfce0	793	partial	partial: falta 0.29	CL9	- El 9C, la experiencia de Blood Castle (0x4cfce0, desde 0x4e3a93, con el flag igual):
+CL9	0x48b3c0	780	not-started	sin citar		la llama 0x4708e0, 0x489890
+CL9	0x4cf200	770	partial	partial: falta 0.28	CL9	- El 16, la experiencia de una muerte (0x4cf200, desde 0x4e3a74 con el flag de
+CL9	0x48a290	766	not-started	sin citar		la llama 0x46b9d0, 0x488c90
+CL9	0x64b400	760	not-started	sin citar		la llama 0x64b700
+CL9	0x485d60	720	not-started	sin citar		sin texto que la describa
+CL9	0x488c90	719	not-started	sin citar		la llama 0x488c60, 0x64f720
+CL9	0x488f90	719	not-started	sin citar		la llama 0x488f60, 0x64f720
+CL9	0x489590	719	not-started	sin citar		la llama 0x489560, 0x64ada0
+CL9	0x489890	719	not-started	sin citar		la llama 0x489860, 0x64ada0
+CL9	0x46b9d0	706	not-started	clon de una citada	param:0x45e2e0	la llama 0x46b9a0, 0x6b6e56, 0x6b6ee6
+CL9	0x46c660	706	not-started	clon de una citada	exact:0x45e2e0	la llama 0x46c630, 0x6b6e48, 0x6b6ed8
+CL9	0x46d630	706	not-started	clon de una citada	param:0x45e2e0	clases de las listas (0x46b800..0x46d630; MuRet guarda lo que se les agrega) y las ventanas que mandan
+CL9	0x46f510	706	not-started	clon de una citada	param:0x45e2e0	la llama 0x46f4e0, 0x6b6ceb, 0x6b6d2b
+CL9	0x4708e0	706	not-started	clon de una citada	param:0x45e2e0	la llama 0x4708b0, 0x6b6cf9
+CL9	0x64b710	690	not-started	sin citar		0x64b710 690 HUD: CL9.5 / CL9.4
+CL9	0x55b6f0	682	partial	partial: falta 0.13	CL9	un freno de 300 ms entre acciones _DAT_0576791c, con GetTickCount, en 0x57cfc0, 0x559890, 0x55b6f0, 0x55cbc0 y 0x55faa0, todas desde el paso
+CL9	0x4a0a30	639	partial	partial: falta 0.33	CL9	(0x49cc20, 0x49e7f0; la de las cartas, 0x4a0a30, corta: hito 10); con la mezcla normal, la franja del 7 de 20
+CL9	0x668d50	634	not-started	sin citar		0x668d50 634 HUD: CL9.5 / CL9.4
+CL9	0x453d50	628	not-started	clon de una citada	exact:0x4a9e30	la llama 0x453520
+CL9	0x5650c0	603	partial	partial: falta 0.03	CL9,CL10	la interacción al llegar: levantar un ítem (0x22), hablar con un NPC (0x30), la tienda personal y los demás (0x18, 0xA0, 0xD3, 0xD7); el TSV
+CL9	0x4809a0	599	not-started	clon de una citada	param:0x47ac90	sin texto que la describa
+CL9	0x482070	599	not-started	clon de una citada	param:0x47ac90	sin texto que la describa
+CL9	0x484e50	599	not-started	clon de una citada	param:0x47ac90	sin texto que la describa
+CL9	0x4864b0	599	not-started	clon de una citada	param:0x47ac90	sin texto que la describa
+CL9	0x48dbe0	578	not-started	sin citar		0x48dbe0 578 paso: CL9.3
+CL9	0x453520	558	not-started	sin citar		la llama 0x4511f0
+CL9	0x4e7630	556	not-started	sin citar		0x4e7630 556 paso: CL9.4
+CL9	0x57cfc0	546	partial	partial: falta 0.02	CL9	las acciones del héroe al final de MoveHero: arma los paquetes de habilidad 0x19, 0x1E y 0x26 (CL9.2); la CL7 porta su acceso al registro pr
+CL9	0x48dfd0	529	not-started	sin citar		la llama 0x46f940
+CL9	0x496530	508	partial	partial: falta 0.11	CL9	copiar el héroe en el retrato con +0x3e3 del héroe distinto de 0 0x496530: un acceso al registro propio para comparar y uno por grupo distin
+CL9	0x4859a0	475	not-started	clon de una citada	param:0x47b7e0	sin texto que la describa
+CL9	0x487000	475	not-started	clon de una citada	param:0x4814f0	sin texto que la describa
+CL9	0x49a1f0	466	partial	partial: falta 0.12	CL9	PMSG_KILLPLAYER_EXT de CalcSendRewardEXP (0x49af90), con HIWORD y LOWORD en WORD
+CL9	0x517a20	447	partial	partial: falta 0.12	CL9,CL10	el ataque a varios blancos (CL9.2): hasta 5 del viewport en un radio, el C1 .. 10 con el serial de los C3 y send (0x51867d, 0x5187ee); lo ll
+CL9	0x661310	423	partial	partial: falta 0.20	CL9	C1 04 B2 08 0x661310, al abrir el 0x100000
+CL9	0x4dff10	391	not-started	sin citar		P-C90 Los diálogos del juego que quedan (CL8 hito 6, 2026-11-12; [06](06-render-escenas-y-ui.md#los-diálogos-del-juego)). Portados el despac
+CL9	0x473890	384	not-started	sin citar		la llama 0x46c930, 0x49b220
+CL9	0x474c50	384	not-started	sin citar		la llama 0x46bca0
+CL9	0x474dd0	384	not-started	clon de una citada	param:0x473ec0	la llama 0x46d900
+CL9	0x475150	384	not-started	sin citar		la llama 0x46f7e0
+CL9	0x4752d0	384	not-started	sin citar		la llama 0x470bb0
+CL9	0x5ba790	366	partial	partial: falta 0.08	CL9	cmp con 0x7688ab8 (0x514133, 0x54ebcb, 0x5b41f5, 0x5b8930, 0x5bb308) son el final de
+CL9	0x661bc0	366	partial	partial: falta 0.33	CL9	0x661bc0 1099 ventanas: CL9.5
+CL9	0x4e0340	358	not-started	sin citar		P-C302 Los paquetes de la batalla del asedio (CL9 hito 12, 2026-11-14, [04](04-protocolo.md#castle-siege-las-ventanas-del-castillo)). De la 
+CL9	0x4e00c0	352	not-started	sin citar		P-C90 Los diálogos del juego que quedan (CL8 hito 6, 2026-11-12; [06](06-render-escenas-y-ui.md#los-diálogos-del-juego)). Portados el despac
+CL9	0x4d3b50	341	not-started	sin citar		F3 08: el cambio de clase
+CL9	0x4806e0	327	not-started	clon de una citada	exact:0x479240	sin texto que la describa
+CL9	0x481db0	327	not-started	clon de una citada	exact:0x479240	sin texto que la describa
+CL9	0x484b90	327	not-started	clon de una citada	exact:0x479240	sin texto que la describa
+CL9	0x4861f0	327	not-started	clon de una citada	exact:0x479240	sin texto que la describa
+CL9	0x474f50	322	not-started	clon de una citada	param:0x4a7bd0	0x474f50 322 paso: CL9.3
+CL9	0x48be00	322	not-started	clon de una citada	exact:0x48ba10	la llama 0x4809a0
+CL9	0x48bf50	322	not-started	clon de una citada	exact:0x48ba10	la llama 0x482070
+CL9	0x48c1f0	322	not-started	clon de una citada	exact:0x48ba10	la llama 0x484e50
+CL9	0x48c340	322	not-started	clon de una citada	exact:0x48ba10	la llama 0x4864b0
+CL9	0x64ccd0	320	partial	partial: falta 0.33	CL9	C1 05 B2 02 01 0x64ccd0, la respuesta 8 del diálogo
+CL9	0x5a7d70	319	not-started	sin citar		Q-C456 los joints de evento, 0x5a7d70 inalcanzable: 0x5767920 solo se escribe con 0 (0x4c2508, 0x5a7d5f), así que la llamada a 0x530860 desd
+CL9	0x4816d0	313	not-started	clon de una citada	exact:0x47a230	sin texto que la describa
+CL9	0x482da0	313	not-started	clon de una citada	exact:0x47a230	sin texto que la describa
+CL9	0x485b80	313	not-started	clon de una citada	exact:0x47a230	sin texto que la describa
+CL9	0x4871e0	313	not-started	clon de una citada	exact:0x47a230	sin texto que la describa
+CL9	0x4cc530	309	partial	partial: falta 0.05	CL9	19 0x4cc530 C3 08 19 <skill> <fuente H L> <blanco H L>; el bit 15 del blanco es el éxito (+0x38d) y el blanco se busca con los 15 de abajo P
+CL9	0x44e930	293	not-started	sin citar		0x44e930 293 HUD: CL9.5
+CL9	0x668100	292	not-started	sin citar		P-C285 El campo de texto y el reloj del diálogo de los paneles (CL9 hito 8, fase 2). 0x660830 corta con el campo (0x10: 0x66097a, la caja 0x
+CL9	0x5f1890	290	partial	partial: falta 0.40	CL9	2 FUN_004e0790 expansión de nibbles → mapa/terreno. Desempaqueta 32 B (pkt+4..) en 64 nibbles (par=high, impar=low) y llama FUN_005f1890(0x6
+CL9	0x450fe0	283	not-started	sin citar		sin texto que la describa
+CL9	0x6487d0	276	partial	partial: falta 0.50	CL9	0x6487d0 553 ventanas: CL9.5
+CL9	0x480ce0	274	not-started	clon de una citada	param:0x47afd0	sin texto que la describa
+CL9	0x4823b0	274	not-started	clon de una citada	param:0x47afd0	sin texto que la describa
+CL9	0x485190	274	not-started	clon de una citada	param:0x47afd0	sin texto que la describa
+CL9	0x4867f0	274	not-started	clon de una citada	param:0x47afd0	sin texto que la describa
+CL9	0x44f340	266	partial	partial: falta 0.50	CL9	P-C302 Los paquetes de la batalla del asedio (CL9 hito 12, 2026-11-14, [04](04-protocolo.md#castle-siege-las-ventanas-del-castillo)). De la 
+CL9	0x48dec0	264	not-started	sin citar		0x48dec0 264 paso: CL9.3
+CL9	0x44f560	263	partial	partial: falta 0.50	CL9	P-C302 Los paquetes de la batalla del asedio (CL9 hito 12, 2026-11-14, [04](04-protocolo.md#castle-siege-las-ventanas-del-castillo)). De la 
+CL9	0x48e290	255	not-started	sin citar		la llama 0x46f940
+CL9	0x4a11b0	254	partial	partial: falta 0.07	CL9	(0x4a11b0 con el 12) o el de la de leer (0x49a1f0, que después se cierra).
+CL9	0x650c10	253	partial	partial: falta 0.12	CL9	(0x64e600, 0x64def0, 0x650c10, 0x650830), portadas en las fases 4 y 5; el alta es de la fase 3 (abajo). La
+CL9	0x64d090	251	not-started	sin citar		(0x5ac8d0: 0x5ac8ea y 0x5ac9d0..0x5acad2), RePág y AvPág (0x64d090), y en 0x59ff10
+CL9	0x651840	247	partial	partial: falta 0.25	CL10	el 229) y 0x7d536d8 en 0x40. El paso (0x651840, detrás de 0x45aa80(0)): el mouse sobre 0xbe × 0x1b1 prende
+CL9	0x64d190	246	not-started	sin citar		0x64d190 246 HUD: CL9.5 / CL9.4
+CL9	0x4849d0	244	not-started	clon de una citada	param:0x47a810	usa SelectObject, glColor3f
+CL9	0x486030	244	not-started	clon de una citada	param:0x47a810	usa SelectObject, glColor3f
+CL9	0x4e0240	244	not-started	sin citar		P-C90 Los diálogos del juego que quedan (CL8 hito 6, 2026-11-12; [06](06-render-escenas-y-ui.md#los-diálogos-del-juego)). Portados el despac
+CL9	0x5f8130	234	not-started	sin citar		0x5f8130 234 paso: CL9.4
+CL9	0x451100	232	not-started	sin citar		la llama 0x6b3c00
+CL9	0x4c09c0	232	not-started	sin citar		la llama 0x6b5340
+CL9	0x4ca0b0	231	partial	partial: falta 0.13	CL9	- 1F (0x4ca0b0): C2 xx xx 1F <n> y n elementos de 0x18: la clave como el 13, el tipo entero en +2 y
+CL9	0x452f80	228	partial	partial: falta 0.42	CL9	líneas (0x452f80: con 20 bytes o menos, el título entero y la segunda vacía; si no, la primera hasta el primer corte
+CL9	0x551f40	228	partial	partial: falta 0.33	CL9	0x551f40 (60) contra +0x1e + +0x30. Cerrado el registro, 0x57ce80, sin mirar su resultado.
+CL9	0x559890	227	partial	partial: falta 0.03	CL9	un freno de 300 ms entre acciones _DAT_0576791c, con GetTickCount, en 0x57cfc0, 0x559890, 0x55b6f0, 0x55cbc0 y 0x55faa0, todas desde el paso
+CL9	0x5f58f0	226	partial	partial: falta 0.07	CL9	0x5f4e30, la caja del caos 0x5febf0, el NPC de evento 0x5f58f0 y las del asedio), y en otras 14 la sombra va en
+CL9	0x561f60	225	partial	partial: falta 0.02	CL10	mandan (0x55b6f0, 0x55a368, 0x561f60) y las ramas de las clases de 0x57cfc0 los arman en línea, con el XOR32
+CL9	0x559510	211	partial	partial: falta 0.24	CL9	(0x7758580..0x7758588, las que escriben 0x559510 y las ramas de 0x57cfc0).
+CL9	0x4f92f0	209	partial	partial: falta 0.33	CL9	se queda con el último. Las lee 0x4f92f0, el ayudante de los monstruos de los mapas 33, 34 y 54 (06 § Pegar al
+CL9	0x46dfa0	206	partial	partial: falta 0.36	CL9	la cabeza 0x46daa0 con los encabezados 182 y 1330 en x + 0xf y 0x71; el renglón 0x46dfa0: la franja, la marca
+CL9	0x608880	195	not-started	sin citar		0x637078 0x608880 los ítems del piso que caen CL9.3
+CL9	0x4d4af0	192	partial	partial: falta 0.07	CL9	36 C1 0D 36 <nombre:10> 0x4d4af0 Sin cifrar ([EBP+0xc] en 0), solo el aviso C1 06 F1 03 00 36 en C3 (2 rand()). Cifrado: con la tienda perso
+CL9	0x5eb020	189	partial	partial: falta 0.08	CL9	(C1 10 3F 07 <clave BE> <nombre:10>, C3), que manda 0x5eb020 al cerrar la tienda de otro con la clave del dueño
+CL9	0x4db120	188	partial	partial: falta 0.12	CL9	01 C1 06 3F 01 <resultado> <lugar> 0x4db120 con un resultado distinto de 1 y 0x6c931c en 1 (la tienda propia): 0x5be150 con un ítem en el cu
+CL9	0x4f4a10	177	partial	partial: falta 0.08	CL10	0x78, 0x79 0x4f4a10 (SetPlayerAttack, [06](06-render-escenas-y-ui.md#pegar-al-llegar)), +0x381 en 1, +0x114 en 0, +0x3a4 con el WORD bajo de
+CL9	0x4750a0	174	not-started	sin citar		0x4750a0 174 paso: CL9.3
+CL9	0x49eb60	173	partial	partial: falta 0.25	CL9	<asunto:0x20 en pkt[0x2e]> <tipo en pkt[0x4e]>. 0 y 1: la carta al modelo (0x49eb60, si el número no está) y el
+CL9	0x4a3030	173	partial	partial: falta 0.12	CL9	estado con +0xe0 en 1 (0x4a3030). El C4 02 de 0x48eb84 (el primer paso del juego) tampoco sale (Q-C886).
+CL9	0x44b910	170	partial	partial: falta 0.04	CL9	0x44b9ce, 0x44c62e y 0x658dfd a 0x4499b0): MuRet tiene los dos del entrenador con 0x724580 en 2
+CL9	0x4788d0	168	not-started	sin citar		0x4788d0 168 paso: CL9.3
+CL9	0x4e0650	167	not-started	sin citar		P-C302 Los paquetes de la batalla del asedio (CL9 hito 12, 2026-11-14, [04](04-protocolo.md#castle-siege-las-ventanas-del-castillo)). De la 
+CL9	0x5febf0	167	partial	partial: falta 0.05	CL9	C1 05 BD 09 b 0x4e5a25 0x7d2dc9d = b (lo lee la caja del caos, 0x5ff2f2) no está
+CL9	0x4808f0	166	not-started	clon de una citada	param:0x47abe0	sin texto que la describa
+CL9	0x481fc0	166	not-started	clon de una citada	param:0x47abe0	sin texto que la describa
+CL9	0x484da0	166	not-started	clon de una citada	param:0x47abe0	sin texto que la describa
+CL9	0x486400	166	not-started	clon de una citada	param:0x47abe0	sin texto que la describa
+CL9	0x5a7640	166	partial	partial: falta 0.10	CL9	2 0x5a7640 guerra de gremios: marcador y marcas 0x576796c y hero+0x1f2 ≠ −1; 0x576796f nada
+CL9	0x5f3b40	165	partial	partial: falta 0.05	CL9	La ventana del comercio (0x5f3b40, desde 0x5f2280 después del inventario). Con IsOpen(0x20) (su
+CL9	0x4641f0	160	partial	partial: falta 0.20	CL9	orden de [0x576351c]) y, sin mezcla, los cuatro botones. Cada renglón (0x4641f0): el elegido como el de amigos,
+CL9	0x489e80	160	not-started	clon de una citada	param:0x489d80	la llama 0x6b42f8, 0x6b4303, 0x6b4328 y 3 más
+CL9	0x489f50	160	not-started	clon de una citada	param:0x489d80	la llama 0x6b43d8, 0x6b43e3, 0x6b4408 y 3 más
+CL9	0x48a0f0	160	not-started	clon de una citada	param:0x489d80	la llama 0x6b4478, 0x6b4483, 0x6b44a8 y 3 más
+CL9	0x48a1c0	160	not-started	clon de una citada	param:0x489d80	la llama 0x6b44e8, 0x6b44f3, 0x6b4518 y 3 más
+CL9	0x48cf80	160	not-started	sin citar		la llama 0x4818b0
+CL9	0x661270	160	not-started	sin citar		la llama 0x661240
+CL9	0x48e1f0	156	not-started	sin citar		la llama 0x46f940
+CL9	0x437a20	154	partial	partial: falta 0.25	CL9	P-C271 Lo que cortan los ítems del piso (CL9 hito 5, 2026-11-13). Cortan con su dirección y su ola: (a) usar desde la grilla el 0x1a1d, el 0
+CL9	0x65cc80	151	not-started	sin citar		la llama 0x65cc50
+CL9	0x480850	150	not-started	clon de una citada	param:0x4793b0	la llama 0x46b9d0, 0x488c90
+CL9	0x481f20	150	not-started	clon de una citada	param:0x4793b0	la llama 0x46d630, 0x488f90
+CL9	0x484d00	150	not-started	clon de una citada	param:0x4793b0	la llama 0x46f510, 0x489590
+CL9	0x486360	150	not-started	clon de una citada	param:0x4793b0	la llama 0x4708e0, 0x489890
+CL9	0x48d020	148	not-started	sin citar		la llama 0x46f940, 0x484670, 0x48d710
+CL9	0x48c720	147	not-started	sin citar		la llama 0x46f940
+CL9	0x6570b0	146	partial	partial: falta 0.18	CL9,CL10	- C1 04 54 <respuesta> con el XOR32 (0x655d70 con Crear: el 1; 0x6570b0 al cerrar la ventana 2 y la página 0 y
+CL9	0x5f3030	144	partial	partial: falta 0.07	CL9	otras ventanas (el personaje 0x5ee2e0, la party 0x5f0be0, las tiendas 0x5f3030 y 0x5f4720, el almacén
+CL9	0x48a590	142	not-started	clon de una citada	exact:0x4aafa0	la llama 0x480260, 0x48a290
+CL9	0x48aa10	142	not-started	clon de una citada	exact:0x478500	la llama 0x4818b0, 0x48a630
+CL9	0x48aea0	142	not-started	clon de una citada	param:0x478500	0x48aea0 142 paso: CL9.3
+CL9	0x48b320	142	not-started	clon de una citada	param:0x478500	la llama 0x484670, 0x48af40
+CL9	0x48b6d0	142	not-started	clon de una citada	exact:0x4aafa0	la llama 0x485d60, 0x48b3c0
+CL9	0x552f10	140	partial	partial: falta 0.20	CL9	las demoras de las habilidades una tabla de int en [0x7681eb0] + 0x76c, una por casilla de habilidad del personaje; 0x552c50 y 0x552990 carg
+CL9	0x470650	135	not-started	clon de una citada	exact:0x46c3d0	sin texto que la describa
+CL9	0x471480	135	not-started	clon de una citada	exact:0x46c3d0	sin texto que la describa
+CL9	0x4cedd0	135	partial	partial: falta 0.14	CL9	- 1A (0x4cedd0): no crea nada: es la skill que pega a varios (PMSG_MAGICATTACK_COUNT_SEND). C1 xx 1A, la
+CL9	0x48c610	134	not-started	sin citar		0x48c610 134 paso: CL9.3
+CL9	0x48c7c0	133	not-started	sin citar		la llama 0x46f940
+CL9	0x4c9790	133	partial	partial: falta 0.15	CL10	0x4ea030 y 0x42a110, y sin el bit 7 el camino de 0x4eac00 (+0x378) o, con él, 0x4c9790. El GS 0.97 arma
+CL9	0x660e20	133	not-started	sin citar		0x660e20 133 HUD: CL9.5 / CL9.4
+CL9	0x480620	132	not-started	clon de una citada	exact:0x47a910	sin texto que la describa
+CL9	0x481cf0	132	not-started	clon de una citada	exact:0x47a910	sin texto que la describa
+CL9	0x484ad0	132	not-started	clon de una citada	exact:0x47a910	sin texto que la describa
+CL9	0x486130	132	not-started	clon de una citada	exact:0x47a910	sin texto que la describa
+CL9	0x48de30	131	not-started	sin citar		0x48de30 131 paso: CL9.3
+CL9	0x49cc20	129	partial	partial: falta 0.11	CL9	(0x49cc20, 0x49e7f0; la de las cartas, 0x4a0a30, corta: hito 10); con la mezcla normal, la franja del 7 de 20
+CL9	0x44efc0	128	partial	partial: falta 0.50	CL9	P-C264 La fase 2 de las skills (CL9 hito 4). Quedan sin portar: (a) las cuatro funciones por clase que usan una skill y 0x57cfc0, que las ll
+CL9	0x4c8860	128	partial	partial: falta 0.05	CL9	- 12 (0x4e372e → 0x4c8860): C2 <largo:2> 12 <cuenta> <registro:0x2c>…. El dispatcher copia antes el
+CL9	0x5a6cc0	127	partial	partial: falta 0.17	CL9	14 0x5a6cc0 marcador de duelo 0x78abad8 nada
+CL9	0x655d70	126	partial	partial: falta 0.08	CL9	- C1 04 54 <respuesta> con el XOR32 (0x655d70 con Crear: el 1; 0x6570b0 al cerrar la ventana 2 y la página 0 y
+CL9	0x53eaf0	124	not-started	sin citar		0x637119 0x53eaf0 la tabla 0x75fe028 (0x51fc80), sin leer —
+CL9	0x4dce10	122	partial	partial: falta 0.23	CL9	mensaje 0x500 más un índice (0x49df01). La IP llega en el CA del servidor (0x4dce10,
+CL9	0x4cbe90	119	partial	partial: falta 0.33	CL9	1B 0x4cbe90 C1 06 1B <skill> <clave H L> PMSG_MAGICCANCEL (0x4262f0), igual
+CL9	0x660f60	119	not-started	sin citar		0x660f60 119 HUD: CL9.5 / CL9.4
+CL9	0x4df1a0	117	partial	partial: falta 0.09	CL9	B2 02 0x4df1a0 (tabla 0x4df6ac) pkt[4] 0, 2, 3: 1512, 1514, 1515. 1: manda C1 04 B2 03 y C1 03 B4, 0x64d290(0) y el 1513
+CL9	0x576a60	117	partial	partial: falta 0.11	CL9	CL9 hito 1 (2026-11-13). Estático, con el ASM de 0x4cb750, 0x576a60, 0x576eb0, 0x4f2250 y 0x59b456,
+CL9	0x48c490	115	not-started	clon de una citada	param:0x472d30	la llama 0x480260, 0x48a290
+CL9	0x48c510	115	not-started	clon de una citada	param:0x472d30	la llama 0x4818b0, 0x48a630
+CL9	0x48c590	115	not-started	clon de una citada	exact:0x472d30	0x48c590 115 paso: CL9.3
+CL9	0x48c6a0	115	not-started	clon de una citada	param:0x472d30	la llama 0x484670, 0x48af40
+CL9	0x48c850	115	not-started	clon de una citada	param:0x472d30	la llama 0x485d60, 0x48b3c0
+CL9	0x648740	115	not-started	sin citar		0x648710 FUN_00648710 6baa50 (0) destructor thunk (FUN_00648740).
+CL9	0x660eb0	115	not-started	sin citar		0x660eb0 115 HUD: CL9.5 / CL9.4
+CL9	0x5f37f0	112	partial	partial: falta 0.13	CL9	y al final gluOrtho2D(0, W, 0, H)), 0x5f37f0, 0x62db60 (diálogos: el menú de Esc va arriba de todas las
+CL9	0x64ada0	112	not-started	sin citar		0x64ad70 FUN_0064ad70 6baa50 (1) destructor thunk (FUN_0064ada0).
+CL9	0x44b190	110	partial	partial: falta 0.13	CL9	0x44b190 como Requestpos (07, Q-C948), en C3, y detrás el C1 03 31 de 0x4499b0 en claro.
+CL9	0x48cf10	110	not-started	sin citar		la llama 0x480260
+CL9	0x48d0c0	110	not-started	sin citar		la llama 0x485d60
+CL9	0x4dcb70	110	partial	partial: falta 0.21	CL9	- C7 (0x4dcb70, en C2): C2 len C7 <relleno> <número:u16> <largo:u16> <clase> <equipo:17> <dirección>
+CL9	0x477410	109	not-started	clon de una citada	exact:0x476d10	0x477410 109 paso: CL9.3
+CL9	0x48cb00	109	not-started	clon de una citada	exact:0x476d10	la llama 0x4809a0
+CL9	0x48cb70	109	not-started	clon de una citada	exact:0x476d10	la llama 0x482070
+CL9	0x48cc50	109	not-started	clon de una citada	exact:0x476d10	la llama 0x484e50
+CL9	0x48ccc0	109	not-started	clon de una citada	exact:0x476d10	la llama 0x4864b0
+CL9	0x558bb0	108	partial	partial: falta 0.14	CL9	son funciones de Ghidra: 11 se alcanzan desde el paso y 3 desde el dibujo (una, 0x558bb0, desde
+CL9	0x4d74b0	106	partial	partial: falta 0.08	CL9	50 0x4d74b0 C1 05 50 <clave:2>, el byte alto entero (sin & 0x7f)
+CL9	0x4e73d0	104	not-started	clon de una citada	param:0x453b60	la llama 0x4db120
+CL9	0x452ce0	102	not-started	sin citar		0x452ce0 102 HUD: CL9.3/CL9.4
+CL9	0x4c5070	102	partial	partial: falta 0.08	CL9	lo lee el handler de main.exe (0x4c5070). La traducción de la lista y del F4 03 es
+CL9	0x660cb0	102	not-started	sin citar		la llama 0x663b20, 0x666190
+CL9	0x49e7f0	100	partial	partial: falta 0.17	CL9	(0x49cc20, 0x49e7f0; la de las cartas, 0x4a0a30, corta: hito 10); con la mezcla normal, la franja del 7 de 20
+CL9	0x5f4720	100	partial	partial: falta 0.06	CL9	B2 1A 0x4e54f6 pkt[4]; con 1 o 2, pkt[5] 1: [0x78aba34]; 2: [0x78aba30] (MOVZX). Los leen 0x44d680, 0x5b1200, 0x5b12f0, 0x5f4720 y 0x5febf0,
+CL9	0x465450	99	partial	partial: falta 0.14	CL9	mirar el mensaje, el segundo deque vacío y la + 0x98 (0x460130, 0x465450) con cada renglón del primero de atrás
+CL9	0x57ce80	99	partial	partial: falta 0.38	CL9	10. Salvo el Wizard: 0x57ce80 apunta (con el elegido, su posición +0x10; sin él, el punto del terreno bajo el mouse,
+CL9	0x497c10	98	partial	partial: falta 0.12	CL9	C1 46 tipo atributo modo cuenta … 0x4dab90 tipo 1: cuenta celdas (x, y) desde pkt[7], 0x5f8730 (quita) con modo ≠ 0 y 0x5f8710 (agrega) con 
+CL9	0x552990	98	partial	partial: falta 0.14	CL9	las demoras de las habilidades una tabla de int en [0x7681eb0] + 0x76c, una por casilla de habilidad del personaje; 0x552c50 y 0x552990 carg
+CL9	0x4e6380	96	partial	partial: falta 0.07	CL9	(& 3) con & 0x80 en +0x42d y (>> 4) & 7 en +0x93, +3 el tipo bajo, +4..+7 los estados (0x4e6380),
+CL9	0x5a6fc0	95	partial	partial: falta 0.11	CL9	4 0x5a6fc0 info de Castle Siege objeto 0x5767924 nada (libera con 0x4e05f0)
+CL9	0x4d07c0	93	partial	partial: falta 0.15	CL9	0x4da730, 0x4da750, 0x4dac70, 0x4e7360, 0x4c2480, 0x4d07c0); ninguno corre en el paso ni en el dibujo
+CL9	0x419bd0	92	partial	partial: falta 0.03	CL9	pkt[5]. El cliente lo manda (C1 05 A2 <misión> 1, C3) desde el paso de la ventana: las respuestas (0x419bd0,
+CL9	0x495a20	92	partial	partial: falta 0.10	CL9	copiar el héroe en el retrato con +0x3e3 del héroe distinto de 0 0x496530: un acceso al registro propio para comparar y uno por grupo distin
+CL9	0x454050	91	not-started	sin citar		la llama 0x453520
+CL9	0x4c9c60	91	partial	partial: falta 0.08	CL9	- 13 (0x4c9c60): C2 xx xx 13 <n> y n elementos de 0x10 desde pkt[5]: +0 y +1 la clave (el bit 7
+CL9	0x5f1bb0	91	partial	partial: falta 0.23	CL9	0x5f16a0(1999, 1) sin quad (Q-C1290), el editor (0x653750: los cuadrados de 0x5f1bb0, de 13 en la grilla, de
+CL9	0x650350	91	partial	partial: falta 0.08	CL9	RePág 0x21 0x59ff10 (0x5a00a3) P 0x64d090 (0x64d0d6, 0x64d127) P; 0x650350 (0x650387) V
+CL9	0x4c0c10	89	not-started	sin citar		la llama 0x4c0340
+CL9	0x608350	89	partial	partial: falta 0.09	CL9,CL10	0x608350(entrada, ítem, ((x + 0,5) · 100, (y + 0,5) · 100), recién caído), en orden. El GameServer 0.97 arma
+CL9	0x44f7b0	88	not-started	sin citar		P-C302 Los paquetes de la batalla del asedio (CL9 hito 12, 2026-11-14, [04](04-protocolo.md#castle-siege-las-ventanas-del-castillo)). De la 
+CL9	0x5526f0	88	partial	partial: falta 0.13	CL9	0x4f97b0, 0x4f5b70, 0x59fb80, 0x53e2b0, 0x5526f0, 0x517630, 0x42ea00, 0x51fff0, 0x52e740, 0x534f90, 0x534fd0, 0x4f2230, 0x4f5b10, 0x437860, 
+CL9	0x41a9e0	87	partial	partial: falta 0.05	CL9	(0x41a9e0, con los ítems de 0x419b10). MuRet: Scenes::StepTheQuestWindow (CL9 hito 2, fase 5b;
+CL9	0x453fd0	87	not-started	sin citar		la llama 0x453520
+CL9	0x46c260	87	not-started	clon de una citada	exact:0x461c70	sin texto que la describa
+CL9	0x46cff0	87	not-started	clon de una citada	exact:0x461c70	sin texto que la describa
+CL9	0x46df40	87	not-started	clon de una citada	exact:0x461c70	sin texto que la describa
+CL9	0x470300	87	not-started	clon de una citada	exact:0x461c70	sin texto que la describa
+CL9	0x471220	87	not-started	clon de una citada	exact:0x461c70	sin texto que la describa
+CL9	0x46bdc0	85	not-started	clon de una citada	exact:0x461830	sin texto que la describa
+CL9	0x46cac0	85	not-started	clon de una citada	exact:0x461830	sin texto que la describa
+CL9	0x46da40	85	not-started	clon de una citada	exact:0x461830	sin texto que la describa
+CL9	0x46fda0	85	not-started	clon de una citada	exact:0x461830	sin texto que la describa
+CL9	0x470cf0	85	not-started	clon de una citada	exact:0x461830	sin texto que la describa
+CL9	0x480c30	85	not-started	clon de una citada	exact:0x47af20	sin texto que la describa
+CL9	0x482300	85	not-started	clon de una citada	exact:0x47af20	sin texto que la describa
+CL9	0x4850e0	85	not-started	clon de una citada	exact:0x47af20	sin texto que la describa
+CL9	0x486740	85	not-started	clon de una citada	exact:0x47af20	sin texto que la describa
+CL9	0x4c16d0	83	not-started	sin citar		filtro de DAT_05767804/FUN_004c16d0).
+CL9	0x5fd120	82	partial	partial: falta 0.38	CL9	en el modo 3 con 0x6689d0, que corta, CL9.5), lo primero de 0x5d8d50 en cada paso es 0x5fd120(0x7d2d380, 8, 4),
+CL9	0x454100	81	not-started	clon de una citada	exact:0x4aad90	la llama 0x453520
+CL9	0x4e7940	81	not-started	sin citar		0x4e7940 81 paso: CL9.4
+CL9	0x4d6990	80	partial	partial: falta 0.17	CL9	C1 47 clave:2 … ítem:4 nivel (hasta pkt[0xc]) 0x4d6990 la clave big-endian; con la del héroe, nada; con otra, el aviso con el nombre del íte
+CL9	0x4dc010	80	partial	partial: falta 0.08	CL9	- C0 (0x4dc010): C2 len C0 <cartas> <tope> <n> n × (<nombre:10> <estado>), los tres sin signo. Vacía la
+CL9	0x5f4e30	79	partial	partial: falta 0.03	CL9	0x5f4e30, la caja del caos 0x5febf0, el NPC de evento 0x5f58f0 y las del asedio), y en otras 14 la sombra va en
+CL9	0x654f80	76	partial	partial: falta 0.18	CL9	- Página 1 (0x654f80 y 0x655130). El editor, 0x6535c0: el héroe con +0x24 en 112,5; la grilla de 8 × 8 de 15
+CL9	0x4d7a20	71	partial	partial: falta 0.25	CL9	51, 53, 56, 60 0x4d7a20, 0x4d7c30, 0x4d7ff0, 0x4d8150 C1 04 <op> <resultado>
+CL9	0x4ddb80	69	partial	partial: falta 0.03	CL10	y 0x4e4bf2, copias de 0x4ddaa0, 0x4ddad0, 0x4ddb00, 0x4ddb40 y 0x4ddb80), sin guarda de escena ni del
+CL9	0x453bd0	67	not-started	clon de una citada	exact:0x4a8ba0	0x453bd0 67 HUD: CL9.3/CL9.4
+CL9	0x463190	67	partial	partial: falta 0.12	CL9	~~P-C185~~ Cerrado el 2026-11-13 (CL9 hito 9). Las 246 filas con hito = 9 de 2026-11-13-ola-cl9-funciones.tsv que no aparecían por su direcc
+CL9	0x4c0c70	67	not-started	clon de una citada	exact:0x4a8ba0	0x4c0c70 67 paso: CL9.4
+CL9	0x5588d0	66	partial	partial: falta 0.09	CL9	(0x490490), Shift (0x59adf0, 0x652330, y con los dígitos en 0x420e30), Ctrl (0x5588d0,
+CL9	0x459e30	65	partial	partial: falta 0.50	CL9	// 0x20 por 0x459e30.
+CL9	0x480c90	65	not-started	clon de una citada	exact:0x47af80	sin texto que la describa
+CL9	0x482360	65	not-started	clon de una citada	exact:0x47af80	sin texto que la describa
+CL9	0x485140	65	not-started	clon de una citada	exact:0x47af80	sin texto que la describa
+CL9	0x4867a0	65	not-started	clon de una citada	exact:0x47af80	sin texto que la describa
+CL9	0x4c92a0	65	partial	partial: falta 0.05	CL9	- 45 (0x4c92a0): C2 <largo:2> 45 <cuenta> <registro:0x1c>…, el jugador transformado: la clave y la celda como
+CL9	0x651680	65	partial	partial: falta 0.25	CL9	sprintf(buffer de 100, texto 483, texto) (Q-C514), 0x554610(buffer, 1) y 0x651680 sobre [0x7d536f0], la
+CL9	0x4126e0	64	not-started	sin citar		la llama 0x411ed0
+CL9	0x453d10	62	not-started	sin citar		la llama 0x450fe0, 0x451100, 0x4514a0
+CL9	0x4c0bd0	62	not-started	sin citar		la llama 0x4c0340, 0x4c09c0, 0x4db890 y 2 más
+CL9	0x64fdf0	62	partial	partial: falta 0.05	CL9	y + 0x4b + 4 (la elegida, uno más arriba); blanco y el dibujo de la pestaña (0x64fdf0, 0x6507d0 o 0x651400).
+CL9	0x651c20	61	partial	partial: falta 0.04	CL9	0x650350 o 0x650c10). El dibujo (0x651c20): blanco, el fondo sin mezcla, la mezcla, el título (el 180) en negrita
+CL9	0x65feb0	61	partial	partial: falta 0.20	CL9	los paneles (0x65feb0, 0x1064 B, con Sí/No y Confirmar/Cancelar y un campo de texto).
+CL9	0x4d1e00	60	partial	partial: falta 0.02	CL9	- 30 (0x4d1e00): sin cifrar, el aviso C1 06 F1 03 00 30 con el XOR32 y en C3, sin leer nada más. Cifrado:
+CL9	0x660fe0	60	not-started	sin citar		0x660fe0 60 HUD: CL9.5 / CL9.4
+CL9	0x48e3f0	59	not-started	sin citar		0x48e3f0 59 paso: CL9.3
+CL9	0x435bd0	58	partial	partial: falta 0.04	CL9	dos emisores de BD, con el 3 (0x435d4c) y con el 9 (0x65a986), sin leer.
+CL9	0x495760	58	partial	partial: falta 0.08	CL9	(+0x16c), en el login, la selección y el juego; el inventario (0x4959d5, con +0x3e4 en 1 en
+CL9	0x4e0980	58	partial	partial: falta 0.05	CL9	el caso 0x68 del dispatcher (CL9.1); 06-render-escenas-y-ui.md solo la nombra entre los que crean un modelo con 0x5139f0
+CL9	0x44eea0	56	partial	partial: falta 0.20	CL9	// 0x4e0926: 0x44eea0 recibe clave, modo (pkt[4]), tipo (pkt[7]), X e Y.
+CL9	0x64f3e0	56	partial	partial: falta 0.07	CL9	gremio 0x10 (0x64f3e0), 0x7d536f4 gremio 2 0x40000 (0x654900), 0x7d536f8 CS 0x80000 (0x64aca0),
+CL9	0x48e430	55	not-started	sin citar		la llama 0x48d710
+CL9	0x511110	55	not-started	sin citar		la llama 0x4e0240
+CL9	0x412720	54	not-started	sin citar		la llama 0x411ed0
+CL9	0x655ac0	54	partial	partial: falta 0.17	CL9	- Página 3 (0x6552b0 y 0x655ac0). Próximo junta los 64 nibbles de a dos (el par primero arriba) y, armando un
+CL9	0x6600d0	54	partial	partial: falta 0.14	CL9	B2 1F 0x4e5532 pkt[4]; con 1, pkt[5] 0 y 2: 0x6603c0 y 0x6600d0(Text[860 o 1386], 1, 0x32, 1, 0, 0) sobre [0x7d53704], el diálogo de los pan
+CL9	0x4cc290	52	partial	partial: falta 0.08	CL9	69 0x4cc290 C1 08 69 <skill> <fuente: 2> <blanco: 2>, los dos WORD en little endian y sin máscara no lo manda (P-C262)
+CL9	0x42fe80	51	partial	partial: falta 0.14	CL9	C1 06 BD 00 estado etapa 0x4e5965 0x42fe80(estado, etapa) (la interfaz de Crywolf; con otro estado que el anterior, la luz y el .att del map
+CL9	0x49ea50	50	partial	partial: falta 0.25	CL9	0x49ea50 199 ventanas: CL9.4
+CL9	0x552c50	50	partial	partial: falta 0.07	CL9	las demoras de las habilidades una tabla de int en [0x7681eb0] + 0x76c, una por casilla de habilidad del personaje; 0x552c50 y 0x552990 carg
+CL9	0x654900	49	partial	partial: falta 0.11	CL9	gremio 0x10 (0x64f3e0), 0x7d536f4 gremio 2 0x40000 (0x654900), 0x7d536f8 CS 0x80000 (0x64aca0),
+CL9	0x4540b0	48	not-started	clon de una citada	exact:0x5f8260	0x4540b0 48 HUD: CL9.4? ; paso: CL9.4
+CL9	0x4dbf50	47	partial	partial: falta 0.25	CL11	48 0x4dbf50 C1 06 48 <clave H L> <tipo> no lo manda (P-C262)
+CL9	0x480c00	46	not-started	clon de una citada	exact:0x479760	la llama 0x46b9d0, 0x488c90
+CL9	0x4822d0	46	not-started	clon de una citada	exact:0x479760	la llama 0x46d630, 0x488f90
+CL9	0x4850b0	46	not-started	clon de una citada	exact:0x479760	la llama 0x46f510, 0x489590
+CL9	0x486710	46	not-started	clon de una citada	exact:0x479760	la llama 0x4708e0, 0x489890
+CL9	0x489f20	46	not-started	clon de una citada	param:0x473830	la llama 0x480260, 0x48a290
+CL9	0x489ff0	46	not-started	clon de una citada	param:0x473830	la llama 0x4818b0, 0x48a630
+CL9	0x48a0c0	46	not-started	clon de una citada	param:0x473830	0x48a0c0 46 paso: CL9.3
+CL9	0x48a190	46	not-started	clon de una citada	param:0x473830	la llama 0x484670, 0x48af40, 0x48d710
+CL9	0x48a260	46	not-started	clon de una citada	param:0x473830	la llama 0x485d60, 0x48b3c0
+CL9	0x48e390	46	not-started	clon de una citada	exact:0x4acc70	0x48e390 46 paso: CL9.3
+CL9	0x48e3c0	46	not-started	clon de una citada	exact:0x4acc70	la llama 0x48d710
+CL9	0x4d0a30	46	partial	partial: falta 0.12	CL9	- El 17, la muerte (0x4d0a30, desde 0x4e3ab2, sin flag): lee pkt[3..4] (la clave, sin
+CL9	0x651400	45	partial	partial: falta 0.08	CL9	y + 0x4b + 4 (la elegida, uno más arriba); blanco y el dibujo de la pestaña (0x64fdf0, 0x6507d0 o 0x651400).
+CL9	0x661b60	45	not-started	sin citar		la llama 0x661bc0, 0x6691c0
+CL9	0x464190	44	partial	partial: falta 0.50	CL9	~~P-C185~~ Cerrado el 2026-11-13 (CL9 hito 9). Las 246 filas con hito = 9 de 2026-11-13-ola-cl9-funciones.tsv que no aparecían por su direcc
+CL9	0x4806b0	44	not-started	clon de una citada	exact:0x47a9a0	sin texto que la describa
+CL9	0x481d80	44	not-started	clon de una citada	exact:0x47a9a0	sin texto que la describa
+CL9	0x484b60	44	not-started	clon de una citada	exact:0x47a9a0	sin texto que la describa
+CL9	0x4861c0	44	not-started	clon de una citada	exact:0x47a9a0	sin texto que la describa
+CL9	0x5f6550	44	partial	partial: falta 0.02	CL9	- El dibujo, 0x5f6550 (desde 0x5f75d0, después de los NPC de evento). El color blanco, la mezcla normal, la
+CL9	0x452830	43	not-started	sin citar		0x452830 43 HUD: CL9.3/CL9.4
+CL9	0x48d160	43	not-started	clon de una citada	param:0x473860	la llama 0x480260, 0x48a290
+CL9	0x48d190	43	not-started	clon de una citada	param:0x473860	la llama 0x4818b0, 0x48a630
+CL9	0x48d1c0	43	not-started	clon de una citada	param:0x473860	0x48d1c0 43 paso: CL9.3
+CL9	0x48d1f0	43	not-started	clon de una citada	param:0x473860	la llama 0x484670, 0x48af40, 0x48d710
+CL9	0x48d220	43	not-started	clon de una citada	param:0x473860	la llama 0x485d60, 0x48b3c0
+CL9	0x4a04a0	42	partial	partial: falta 0.50	CL9	(0x4a04a0, que vuelve a 0x4dcb70).
+CL9	0x65cc50	41	not-started	sin citar		0x65cc50 41 ventanas: CL9.4
+CL9	0x497970	40	partial	partial: falta 0.06	CL9	copiar el héroe en el retrato con +0x3e3 del héroe distinto de 0 0x496530: un acceso al registro propio para comparar y uno por grupo distin
+CL9	0x4a6430	40	partial	partial: falta 0.14	CL9	(0x49c010), ordena, la pestaña y el estado en el chat con ese amigo (0x4a6840, 0x4a6430 y 0x495630,
+CL9	0x4ca780	39	partial	partial: falta 0.23	CL9	- 14 (0x4ca780): C1 <largo> 14 <cuenta> <clave:2>…. Las claves van enteras: 0x4ca7a2 compara la
+CL9	0x4d0ba0	39	partial	partial: falta 0.20	CL9	0x20 / 0x21 S->C (C2) 0x4d0ba0 / 0x4e3849 los ítems del piso que aparecen y los que se van (abajo)
+CL9	0x435b00	38	partial	partial: falta 0.18	CL9	C1 08 BD 03 resultado valor clave:2 0x4e59a5 → 0x4e1010 el resultado del contrato de los altares, con la clave big-endian (pkt[6]·256 + pkt[
+CL9	0x558eb0	38	partial	partial: falta 0.12	CL9	0x558eb0, 0x5c4110), Q, W y E con el flanco (0x5c4110), S (0x5e4ce0), Espacio y F1 a F4
+CL9	0x59eb90	38	partial	partial: falta 0.17	CL9	objetos (0x59eb90).
+CL9	0x41b5a0	36	partial	partial: falta 0.17	CL9	- El paso (0x41b5a0, desde 0x5ee20d, después de los comandos): con el personaje abierto, el clic en el botón
+CL9	0x478840	36	not-started	clon de una citada	param:0x4784d0	la llama 0x46b9d0
+CL9	0x478870	36	not-started	clon de una citada	param:0x4784d0	la llama 0x46d630
+CL9	0x4788a0	36	not-started	clon de una citada	param:0x4784d0	0x4788a0 36 paso: CL9.3
+CL9	0x478980	36	not-started	clon de una citada	exact:0x4784d0	la llama 0x46f510
+CL9	0x4789b0	36	not-started	clon de una citada	param:0x4784d0	la llama 0x4708e0
+CL9	0x48ce20	36	not-started	clon de una citada	param:0x4784d0	la llama 0x4809a0
+CL9	0x48ce50	36	not-started	clon de una citada	param:0x4784d0	la llama 0x482070
+CL9	0x48ceb0	36	not-started	clon de una citada	param:0x4784d0	la llama 0x484e50
+CL9	0x48cee0	36	not-started	clon de una citada	param:0x4784d0	la llama 0x4864b0
+CL9	0x4d57f0	36	partial	partial: falta 0.12	CL9	cabeza en 0x57635bc) se aplica con 0x4d57f0 y la marca vuelve a 0 (0x4d1d70..0x4d1d85).
+CL9	0x4dc720	36	partial	partial: falta 0.12	CL9	- C4 (0x4dc720): C1 0E C4 <nombre:10> <estado>. Con 0xfc, todos en 0xfc (0x49c0e0), ordena, la
+CL9	0x426ce0	35	partial	partial: falta 0.20	CL10	0x431470 y 0x426ce0 salen para 0xa8..0xac en el mapa 54 sin más rand().
+CL9	0x4961d0	35	partial	partial: falta 0.06	CL9	armar el retrato de una carta 0x4961d0: la celda del personaje (2 cierres), la del héroe (2) y 0x511290 44 evento (la de leer y la de escrib
+CL9	0x41ca40	34	partial	partial: falta 0.12	CL9	- El dibujo (0x41ca40, desde 0x5f75db): con 1, 0x41ba20; con 2, 0x41c600. Después, con el personaje
+CL9	0x53d810	34	partial	partial: falta 0.18	CL9	2. 0x53d810(el que pega, 0): el punto (0, 0, 0) del hueso de su mano derecha (+0x2bd) con 0x4ec110 (Translate
+CL9	0x46b9a0	33	not-started	clon de una citada	exact:0x4633b0	sin texto que la describa
+CL9	0x46c630	33	not-started	clon de una citada	exact:0x4633b0	sin texto que la describa
+CL9	0x46d600	33	not-started	clon de una citada	exact:0x4633b0	sin texto que la describa
+CL9	0x46f4e0	33	not-started	clon de una citada	exact:0x4647e0	sin texto que la describa
+CL9	0x4708b0	33	not-started	clon de una citada	exact:0x4633b0	sin texto que la describa
+CL9	0x488c60	33	not-started	clon de una citada	exact:0x488360	sin texto que la describa
+CL9	0x488f60	33	not-started	clon de una citada	exact:0x488360	sin texto que la describa
+CL9	0x489560	33	not-started	clon de una citada	exact:0x488360	sin texto que la describa
+CL9	0x489860	33	not-started	clon de una citada	exact:0x488360	sin texto que la describa
+CL9	0x495630	33	partial	partial: falta 0.11	CL9	(0x49c010), ordena, la pestaña y el estado en el chat con ese amigo (0x4a6840, 0x4a6430 y 0x495630,
+CL9	0x4c0ab0	33	not-started	sin citar		FUN_004c0ab0(1);
+CL9	0x648710	33	not-started	sin citar		0x648710 33 ventanas: CL9.5
+CL9	0x64ad70	33	not-started	clon de una citada	exact:0x48f970	0x64ad70 33 ventanas: CL9.5
+CL9	0x64f6f0	33	not-started	clon de una citada	exact:0x495ef0	0x64f6f0 33 ventanas: CL9.4
+CL9	0x654ac0	33	not-started	sin citar		0x654ac0 33 ventanas: CL9.4
+CL9	0x661240	33	not-started	sin citar		0x661240 33 ventanas: CL9.5
+CL9	0x471930	32	partial	partial: falta 0.08	CL9	alto pasado del final se pierde (07 Q-C966). Su paso (0x6260d1 → 0x471930): con el clic, los botones en y de h +
+CL9	0x4c1800	31	partial	partial: falta 0.33	CL9	(0x62b39c) y 0 con el no o Esc (0x62c5c2, que además olvida la guerra con 0x4c1800).
+CL9	0x4de500	31	partial	partial: falta 0.02	CL9	0x2C S->C 0x4de500 la fruta de stats (abajo)
+CL9	0x517400	31	partial	partial: falta 0.09	CL9	0x98..0x9e van por 0x517400 (el nivel, tipo − 0x97, y wsprintfA con el nombre del caso como formato y el
+CL9	0x64f1c0	30	partial	partial: falta 0.06	CL9	0x64f1c0)); +0x53c (el 1308), solo a un 0x40 o un 0x20, y +0x5c4 (el 1309), a quien no es maestro, abren el
+CL9	0x4540e0	29	not-started	sin citar		la llama 0x453520
+CL9	0x4da070	29	partial	partial: falta 0.07	CL9	F3 40: un aviso del servidor, que dibujan los avisos de la CL8 (0x632e30, 0x633300)
+CL9	0x454030	28	not-started	sin citar		0x454030 28 HUD: CL9.3/CL9.4
+CL9	0x4127c0	27	not-started	sin citar		timeGetTime(), los milisegundos desde que arrancó Windows (0x412210). Después 0x4127c0,
+CL9	0x49de50	27	partial	partial: falta 0.07	CL9	- Otra conexión: 0x49de50 arma un objeto de 0x402c bytes por sala, llama a 0x4e81b0 sin
+CL9	0x64fc00	27	partial	partial: falta 0.06	CL9	−1, Q-C1281), manda C1 03 E9 en claro por el socket y pone +0x84 en 1. Después, el paso de la pestaña (0x64fc00,
+CL9	0x452110	26	partial	partial: falta 0.14	CL9	cada cartel en el orden del mapa, 0x452110: el punto (x, y, techo + z + 60) del dueño, como el globo, proyectado
+CL9	0x46f920	26	not-started	sin citar		la llama 0x46f940
+CL9	0x4cb750	26	partial	partial: falta 0.02	CL9	0x18 S->C 0x4cb750 acción o animación de un personaje remoto, según pkt[6]
+CL9	0x454160	25	not-started	clon de una citada	exact:0x4ab300	la llama 0x453520, 0x453d50
+CL9	0x4d9f00	25	partial	partial: falta 0.10	CL9	F3 23: un efecto en la posición del héroe que pide el servidor
+CL9	0x4e8070	25	not-started	sin citar		0x4e8070 25 paso: CL9.4
+CL9	0x632f70	25	partial	partial: falta 0.07	CL9	C1 07 F3 40 comando a b 0x4da070 por la tabla 0x4da24c: 0, el efecto 0x60e en la celda (0x518cf0, corta); 1, el aviso 650 + a (810 + a desde
+CL9	0x412580	24	not-started	sin citar		P-C302 Los paquetes de la batalla del asedio (CL9 hito 12, 2026-11-14, [04](04-protocolo.md#castle-siege-las-ventanas-del-castillo)). De la 
+CL9	0x4e73b0	24	not-started	sin citar		0x4e73b0 24 paso: CL9.4
+CL9	0x5f8220	24	not-started	sin citar		0x5f8220 24 paso: CL9.4
+CL9	0x5f8240	24	not-started	clon de una citada	exact:0x4a98a0	0x5f8240 24 paso: CL9.4
+CL9	0x655c10	24	partial	partial: falta 0.25	CL9	- Página 2 (0x655c10 y 0x655c70), la marca sola: solo la abre 0x6538e0, que nadie llama (Q-C1288). Próximo con
+CL9	0x402bc0	23	partial	partial: falta 0.08	CL9	- 0x402bc0 al juntar cuenta en las 64 casillas, fila por fila, las de la joya elegida y alcanza en cuanto la cuenta
+CL9	0x4724b0	23	not-started	clon de una citada	exact:0x403100	la llama 0x46b800
+CL9	0x472550	23	not-started	clon de una citada	exact:0x403100	la llama 0x46d440
+CL9	0x472600	23	not-started	clon de una citada	exact:0x403100	la llama 0x46f320
+CL9	0x4726a0	23	not-started	clon de una citada	exact:0x403100	la llama 0x4706f0
+CL9	0x4cbe00	23	partial	partial: falta 0.17	CL9	07 0x4cbe00 C1 0A 07 <tipo> <máscara: 4, little endian> <clave H L> GCSend_07 (0x4263a0) arma 8 bytes y nadie lo llama (P-C260)
+CL9	0x534fd0	23	partial	partial: falta 0.33	CL11	0x4f97b0, 0x4f5b70, 0x59fb80, 0x53e2b0, 0x5526f0, 0x517630, 0x42ea00, 0x51fff0, 0x52e740, 0x534f90, 0x534fd0, 0x4f2230, 0x4f5b10, 0x437860, 
+CL9	0x65cd20	23	not-started	sin citar		0x65cd20 23 ventanas: CL9.4
+CL9	0x430180	22	partial	partial: falta 0.11	CL9	wsprintfA ([0x6b851c]) a un buffer de 300 bytes de la pila, y los de 0x430180 son 0x554180. Empieza con
+CL9	0x4527f0	21	not-started	sin citar		0x4527f0 21 HUD: CL9.3/CL9.4
+CL9	0x452810	21	not-started	sin citar		0x452810 21 HUD: CL9.3/CL9.4
+CL9	0x4da8c0	19	partial	partial: falta 0.04	CL9	C1 91 tipo … 0x4da8c0 tipo 1 (Devil Square): pkt[4] 0 → 643, si no 644 con los minutos; tipo 2 (Blood Castle): 850 o 851 con el nombre 1146;
+CL9	0x42de90	18	partial	partial: falta 0.08	CL9	funciones de los tipos sin caso propio: 0x43bdd0, 0x42de90, 0x441210, 0x42f550,
+CL9	0x449c60	18	not-started	sin citar		el ítem a la caja (0x5be150) y 0x449c60 pone sus marcas como las de las otras grillas (0x5e5207). Soltado en
+CL9	0x4e7360	18	partial	partial: falta 0.50	CL9	C1 93 puesto cuenta registros… 0x4e4959 → 0x4e7360 → método +0xc Devil Square (0x40bd20): con cuenta < 200, cuenta registros de 24 bytes a +
+CL9	0x4f5290	18	partial	partial: falta 0.08	CL9,CL10	0x10 fuera del héroe, 0x4f5290 y el frame en 0
+CL9	0x453500	17	not-started	clon de una citada	exact:0x4bfdd0	la llama 0x450fe0, 0x451100
+CL9	0x4c04f0	17	not-started	clon de una citada	exact:0x4bfdd0	la llama 0x4c0340, 0x4c09c0
+CL9	0x4e9c50	17	partial	partial: falta 0.14	CL9	0x3d, 0x38 0x8d, 0x2b 0x43, 0x43 y 0x46 0x3f, 0x4c por las dos manos de 0x4e9c50, las demás
+CL9	0x64faa0	17	partial	partial: falta 0.17	CL9	0x64e550 (con 8, el diálogo 0x7d del juego, 0x7d3a10c, con el lugar de 0x64faa0 de 0x7d536c8 en
+CL9	0x472490	16	not-started	clon de una citada	exact:0x472020	sin texto que la describa
+CL9	0x4724a0	16	not-started	clon de una citada	exact:0x472020	sin texto que la describa
+CL9	0x472530	16	not-started	clon de una citada	exact:0x472020	sin texto que la describa
+CL9	0x472540	16	not-started	clon de una citada	exact:0x472020	sin texto que la describa
+CL9	0x4725e0	16	not-started	clon de una citada	exact:0x472020	sin texto que la describa
+CL9	0x4725f0	16	not-started	clon de una citada	exact:0x472020	sin texto que la describa
+CL9	0x472680	16	not-started	clon de una citada	exact:0x472020	sin texto que la describa
+CL9	0x472690	16	not-started	clon de una citada	exact:0x472020	sin texto que la describa
+CL9	0x48a620	16	not-started	clon de una citada	exact:0x474b90	la llama 0x46b9d0, 0x488c90
+CL9	0x48aaa0	16	not-started	clon de una citada	exact:0x474b90	la llama 0x46d630, 0x488f90
+CL9	0x48b3b0	16	not-started	clon de una citada	exact:0x474b90	la llama 0x46f510, 0x489590
+CL9	0x48b760	16	not-started	clon de una citada	exact:0x474b90	la llama 0x4708e0, 0x489890
+CL9	0x4d67e0	16	partial	partial: falta 0.14	CL9	42 C1 xx 42 <resultado> <cuenta> <miembro:0x18>… 0x4d67e0 la cuenta en 0x78aba48 y cada miembro (nombre, número, mapa, x, y, dos bytes que n
+CL9	0x4e05f0	16	partial	partial: falta 0.50	CL9	4 0x5a6fc0 info de Castle Siege objeto 0x5767924 nada (libera con 0x4e05f0)
+CL9	0x5ebbd0	16	partial	partial: falta 0.08	CL9	copia el título a 0x78aba64 si 0x5ebbd0 lo valida (si no, el texto 1130, 0x770fe14, con el tipo 1); con el 2,
+CL9	0x402b70	15	partial	partial: falta 0.22	CL9	[270, 305] y [315, 350] guardan la joya, ponen 10, 20 o 30 y preguntan a 0x402b70. Si alcanza, cierran y abren
+CL9	0x439d40	15	partial	partial: falta 0.20	CL9	0xca (0x100) pasan antes por 0x439d40, que en un personaje que no es un jugador baja 0x100 (o 8) y pone
+CL9	0x5ae2d0	15	not-started	sin citar		la llama 0x57cfc0
+CL9	0x64d2f0	15	not-started	sin citar		B4 0x4dfce0 pkt[4]; con 1, la cuenta y registros de 0xe desde pkt + 0xc 0: 860. 1: vacía la lista de [0x7d536f8] + 0xe4 (0x64d2f0), agrega c
+CL9	0x64d340	15	not-started	sin citar		B5 0x4dfd80 (tabla 0x4dfe24) pkt[4]; con 1, la cuenta y registros de 10 0: 860; 2 y 3: 1609. 1: vacía la lista de +0x214 (0x64d340) y agrega
+CL9	0x6522f0	15	partial	partial: falta 0.30	CL9,CL10	Las dos ventanas al cerrarse. 0x6522f0 ([0x7d536f0], el gremio): +0x7c = 0, la pestaña 1, +0x84 = 0, el
+CL9	0x54ebb0	14	partial	partial: falta 0.25	CL9	cmp con 0x7688ab8 (0x514133, 0x54ebcb, 0x5b41f5, 0x5b8930, 0x5bb308) son el final de
+CL9	0x419840	12	partial	partial: falta 0.12	CL9	0x419840 99 ventanas: CL9.x
+CL9	0x64b700	11	not-started	sin citar		la llama 0x64c0b0
+CL9	0x64d300	11	not-started	sin citar		B4 0x4dfce0 pkt[4]; con 1, la cuenta y registros de 0xe desde pkt + 0xc 0: 860. 1: vacía la lista de [0x7d536f8] + 0xe4 (0x64d2f0), agrega c
+CL9	0x420cd0	10	partial	partial: falta 0.33	CL9	(+0xa) y cuatro WORD que calcula 0x4221d0 (+0xc a +0x12). 0x420cd0 (desde 0x657670, en la vuelta a la
+CL9	0x44b510	10	partial	partial: falta 0.25	CL9	0x44b510 (0x44b610, 0x44c850 o 0x44d680). Los textos 1212 a 1232 de Text.bmd (resurrección, el caballo
+CL9	0x4dd8a0	9	partial	partial: falta 0.05	CL9	C1 94 tipo cuenta:2 [a:2 b:2 c:2] 0x4dd8a0 cierra las ventanas, 0x78abb04 = cuenta y 0x78abb00 = tipo + 1; con el 1 (Muto) los tres números 
+CL9	0x418f40	8	partial	partial: falta 0.08	CL9	(0x4194c0 con 0x558410). El diálogo (0x418f40, 0x419600, 0x419710): el texto %d) %s de cada
+CL9	0x64de50	8	not-started	sin citar		la llama 0x470360
+CL9	0x5ae2e0	7	not-started	sin citar		la llama 0x57cfc0
+CL9	0x4365a0	6	partial	partial: falta 0.25	CL9	(0x4365a0: el nibble alto en 1) da 0x435b00(0x34); sin contratos (el bajo en 0), 0x35; si no, 0x38 con la
+CL9	0x6522d0	6	partial	partial: falta 0.50	CL9	0x6522d0 12 ventanas: CL9.4
+CL9	0x657090	6	partial	partial: falta 0.50	CL9	0x657090 12 ventanas: CL9.4
+CL9	0x4529e0	5	not-started	sin citar		del elegido prende +0x60 (0x4529e0) y los demás no se tocan (Q-C977); si no, +0x60 en 0 (0x4529f0). Con
+CL9	0x4529f0	5	not-started	sin citar		del elegido prende +0x60 (0x4529e0) y los demás no se tocan (Q-C977); si no, +0x60 en 0 (0x4529f0). Con
+CL9	0x4529d0	4	not-started	sin citar		0x4529d0 4 HUD: CL9.4?
+CL9	0x452a00	4	not-started	sin citar		0x452a00 4 HUD: CL9.3/CL9.4
+CL9	0x57cf90	4	partial	partial: falta 0.09	CL9	1E las ramas del caballero (0x582439..0x5896a3) C1 0C 1E <skill> <x> <y> <rumbo> <hacia> <espalda> <clave H L> <b11>: la celda lógica del hé
+CL9	0x5ae2f0	4	not-started	sin citar		la llama 0x57cfc0
+CL9	0x6522e0	4	not-started	sin citar		0x10 gremio (G) 0x6522e0() CL9.4
+CL9	0x4126d0	3	not-started	sin citar		la llama 0x411ed0
+CL9	0x421d90	3	partial	partial: falta 0.20	CL9	(0x421d90, la caché del tooltip de las mascotas de 0x422990);
+CL9	0x449940	3	partial	partial: falta 0.14	CL9	el 0x8000 (0x65be8b: 0x449940, que deja el modo en 0x724580 y vacía la caja de 0x723c80); el paso de los
+CL9	0x6602b0	3	partial	partial: falta 0.14	CL9	pone 0x6602b0 junto con el paso +8, y que 0x660090 borra al abrir; solo lo usa la ventana de los cargos, abajo),
+CL10	0x61ef10	4382	not-started	sin citar		lectura. El arranque nativo 0x4b9df9 llama al renombrado 0x61ef10. Sus
+CL10	0x41e6d0	982	not-started	sin citar		avisa (0x41eac0 sale si 0x41e6d0 falla). Por eso el cliente corre con estos huecos (Q-C23
+CL10	0x41f0f0	510	not-started	sin citar		textos: "Bad Format in Wave file!", "WaveLoad"; usa MessageBoxA, mmioAscend, mmioClose; la llama 0x41e6d0
+CL10	0x41e520	408	not-started	sin citar		arranca DirectSound (CoInitialize y DirectSoundCreate, DSOUND#1) desde WinMain
+CL10	0x41ff30	362	not-started	sin citar		el log de los drivers de sonido ("Sound Card Driver", DirectSoundEnumerate, DSOUND#2) desde WinMain
+CL10	0x41ef00	309	not-started	sin citar		antes del glClearColor de cada mapa). 0x41ef00 (el sonido 3D, CL10); GetLocalTime (0x6381c7); sprintf
+CL10	0x41fe90	153	not-started	sin citar		y armaba el registro con el callback 0x41fe90. El formato del log de
+CL10	0x41f2f0	139	not-started	sin citar		textos: "hResult is %d"; usa mmioClose, mmioRead; la llama 0x41e6d0
+CL10	0x41ee80	72	not-started	sin citar		0x41ee80 72 paso: CL10
+CL10	0x41eac0	34	partial	partial: falta 0.17	CL10	de ambiente (el caso no llama a 0x41eac0). El lazo genérico (0x61a0c4..0x61a0e1) carga el
+CL10	0x41ee50	34	not-started	sin citar		con 2, en la escena 5 limpia el juego (0x42fdc0, 0x622b00, 0x41ee50, 0x5be150 y 0x61eef0,
+CL10	0x41f090	33	not-started	sin citar		sin texto que la describa
+CL10	0x622b00	32	not-started	sin citar		con 2, en la escena 5 limpia el juego (0x42fdc0, 0x622b00, 0x41ee50, 0x5be150 y 0x61eef0,
+CL10	0x41f0c0	30	not-started	sin citar		usa mmioClose; la llama 0x41f090
+CL10	0x41f070	29	not-started	sin citar		la llama 0x41e6d0
+CL10	0x41fbf0	15	not-started	sin citar		MuRet cubre también las nueve llamadas a 0x41fbf0 que agregaban
+CL10	0x41ed10	12	partial	partial: falta 0.08	CL10	toca un sonido: el buffer de DirectSound del id (0x71d2c4)
+CL10	0x4ad060	12	not-started	sin citar		la posición del stream de la música (wzAudioGetStreamOffsetRange)
+CL10	0x41ed00	6	not-started	sin citar		la llama 0x41ed10
+CL10	0x41eab0	3	not-started	sin citar		la llama 0x41eac0, 0x41ec70
+CL11	0x431470	556	partial	partial: falta 0.14	CL9	0x431470 y 0x426ce0 salen para 0xa8..0xac en el mapa 54 sin más rand().
+CL11	0x4f5b70	266	partial	partial: falta 0.02	CL9	- Con +0x381 positivo, 0x4f97b0(c, o), 0x4f5b70(c) y +0x381 += 1.
+CL11	0x43c150	221	partial	partial: falta 0.02	CL11	(0x541c18, tercera vuelta: la del bastón de Kundun 0x43c9cb, la del 0x195 rojo 0x43e4c0 y las tres de la flecha
+CL11	0x4f97b0	220	partial	partial: falta 0.03	CL11	la habilidad del personaje (CL11.4): 23 altas de efectos (0x518cf0, 0x530860, 0x53fe70), 7 sonidos y 11 rand(), sin paquetes; 06 la deja "si
+CL11	0x42ea00	218	partial	partial: falta 0.50	CL9	0x4f97b0, 0x4f5b70, 0x59fb80, 0x53e2b0, 0x5526f0, 0x517630, 0x42ea00, 0x51fff0, 0x52e740, 0x534f90, 0x534fd0, 0x4f2230, 0x4f5b10, 0x437860, 
+CL11	0x434180	204	partial	partial: falta 0.04	CL9	0x510a1e: 0x43c150, 0x42dfe0, 0x441400, 0x42fa30 (siempre 0), 0x434180 y 0x4271d0, hasta el primero
+CL11	0x441400	204	partial	partial: falta 0.03	CL11	/4, 0x441774 y 0x441846) y el 0x1a9 (la /3, 0x442da1); el 0x13d crea la /3 con él de dueño (0x5262e8):
+CL11	0x520170	177	partial	partial: falta 0.10	CL9,CL10,CL11	10 (FoxAnti: 1D) 0x517a20 (0x517c74..0x5184c7), desde el choque de las flechas de skill (0x520497) C1 [8 + 3n] 10 <skill> <x> <y> <tanda> <n
+CL11	0x4271d0	122	partial	partial: falta 0.02	CL11	1E 0x561f60 (0x562b36 y 0x563f5a) C1 0C 1E <skill> <X> <Y> <rumbo> <hacia> <espalda> <clave H L> 00: la celda lógica de c (la Y se lee antes
+CL11	0x43a7a0	111	partial	partial: falta 0.03	CL9	MFC, en 0x43ada8), escribe en HKLM\SOFTWARE\Webzen\Mu\Connection un Key con
+CL11	0x43bdd0	82	partial	partial: falta 0.12	CL9	funciones de los tipos sin caso propio: 0x43bdd0, 0x42de90, 0x441210, 0x42f550,
+CL11	0x517850	62	partial	partial: falta 0.40	CL9	0x51fe10 con el 0xe2 y el 0xf8. Sin +0x88, 0x517850(efecto, 100,
+CL11	0x51fff0	55	partial	partial: falta 0.14	CL9	0x4f97b0, 0x4f5b70, 0x59fb80, 0x53e2b0, 0x5526f0, 0x517630, 0x42ea00, 0x51fff0, 0x52e740, 0x534f90, 0x534fd0, 0x4f2230, 0x4f5b10, 0x437860, 
+CL11	0x518b60	49	partial	partial: falta 0.12	CL11	0x5ca (sin modelo; la 0x11 de los jugadores, 0x505053) 0x51e529..0x51e569: vida 20, la velocidad (0, −60, 0), la z 100 más; el /1, escala 1,
+CL11	0x535520	40	partial	partial: falta 0.10	CL11	a la cola común (0x53c393: 0x535520 con la matriz del principio del paso y la vida − 1). Un joint que el paso crea
+CL11	0x52e740	39	partial	partial: falta 0.20	CL11	0x4f97b0, 0x4f5b70, 0x59fb80, 0x53e2b0, 0x5526f0, 0x517630, 0x42ea00, 0x51fff0, 0x52e740, 0x534f90, 0x534fd0, 0x4f2230, 0x4f5b10, 0x437860, 
+CL11	0x439b20	35	partial	partial: falta 0.20	CL11	(0x439ca6); con 0x37, tres 0x11b/1 de 0x439b20 (0x439ba5); con 0xc8, 0xcb/3 y 0xcc/4 de
+CL11	0x53fdb0	6	partial	partial: falta 0.03	CL9	y 0x53fdb0, sin rand(). 0x53fdb0(partícula) toma el modelo del dueño (+0x40, su tipo +2), le pone el origen

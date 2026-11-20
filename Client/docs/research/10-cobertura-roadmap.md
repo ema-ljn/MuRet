@@ -470,3 +470,16 @@ que los tamaños sumen lo mismo que el inventario. Al 2026-11-13 da 0 errores co
 
 Al mergear trabajo nuevo en `main`, regenerar la matriz mueve los estados (`unknown` → `implemented`)
 y, con citas nuevas, alguna ola inferida. Las olas que vienen de una cita o de una lectura no cambian.
+
+## La referencia por función (2026-11-20)
+
+[`coverage/referencia/`](coverage/referencia/LEEME.md) junta lo que se consulta seguido: una fila por cada
+función del `main.exe` (ola, estado, dónde está en MuRet y con qué símbolo, tests, cortes, 07/08, VM y
+llamadores), cada cita de una VA en `Client/src`, `Client/tests` y los documentos, los archivos de MuRet,
+las métricas con su serie y los **huecos**: los bloques contiguos de funciones vivas sin citar ni explicar,
+con quién los llama desde código citado. Ahí aparecieron los globos de la selección de personaje
+(`0x63c940..0x63cfb0`, P-C27 b), que la matriz tenía como CL5 `unknown`.
+
+`MENTION_ONLY` se puso al día: de las 12 funciones que el 13/11 sólo se nombraban, 10 ya están portadas.
+`--rows` escribe el avance de cada función viva, que es lo que lee `build_client_reference.py`. Cómo
+regenerarla, en su [LEEME](coverage/referencia/LEEME.md#cómo-regenerarla).

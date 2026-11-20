@@ -683,8 +683,8 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyWorldContent(const A
             // SendChat manda cualquier paquete de mundo, como el de los demás pasos.
             .send = [&session](Protocol::Outgoing outgoing) { session.SendChat(std::move(outgoing)); },
             .dataRoot = m_resources.dataRoot,
-            .sendNpcWindow = [&session](Protocol::Outgoing packet)
-            { return session.SendNpcWindowPacket(std::move(packet)); },
+            .sendNpcWindow = [&session](Protocol::Outgoing outgoing)
+            { return session.SendNpcWindowPacket(std::move(outgoing)); },
             .inventory = &inventory};
         const auto applied = ApplyEventPacket(*packet, context);
         if (!applied.HasValue())

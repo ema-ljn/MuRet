@@ -122,6 +122,29 @@ Core::Expected<DropResult, ProtocolError> ReadDropResult(const Network::Packet& 
     return DropResult{.result = *result, .slot = slot.value_or(0)};
 }
 
+Core::Expected<ShortZenPickUp, ProtocolError> ReadShortZenPickUp(const Network::Packet& packet)
+{
+    auto fields = FieldsOf(packet, Network::PacketType::C1, PickUpOpcode);
+    if (!fields.HasValue())
+        return Core::Unexpected(fields.Error());
+    Core::ByteReader& reader = fields.Value();
+    const auto result = reader.ReadU8();
+    if (!result)
+        return Core::Unexpected(ProtocolError::TooShort);
+    if (*result != ZenPickedUp)
+        return Core::Unexpected(ProtocolError::WrongPacket);
+    // 0x4d0d9b..0x4d0dc7: pkt[4] es el byte alto.
+    ShortZenPickUp zen;
+    for (std::size_t index = 0; index < 4; ++index)
+    {
+        const auto byte = reader.ReadU8();
+        if (!byte)
+            return Core::Unexpected(ProtocolError::TooShort);
+        zen.zen = (zen.zen << 8) | *byte;
+    }
+    return zen;
+}
+
 Core::Expected<ShortDropResult, ProtocolError> ReadShortDropResult(const Network::Packet& packet)
 {
     auto fields = FieldsOf(packet, Network::PacketType::C1, DropOpcode);

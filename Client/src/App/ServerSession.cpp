@@ -25,6 +25,7 @@
 #include "Protocol/Character/CharacterName.h"
 #include "Protocol/Character/CharacterSelect.h"
 #include "Protocol/Character/InventoryList.h"
+#include "Protocol/Character/LevelUpPoint.h"
 #include "Protocol/Character/Opcodes.h"
 #include "Protocol/Combat.h"
 #include "Protocol/Connection/Hello.h"
@@ -409,6 +410,9 @@ void ServerSession::RegisterSkillHandlers()
                         [this](const Network::Packet& packet) { OnSkillList(packet); }) &&
         m_gameServer.On(CharacterOpcode, Skill::LevelUpSubcode,
                         [this](const Network::Packet& packet) { OnLevelUp(packet); }) &&
+        // 0x4e30cd: la respuesta al punto de subir de nivel (0x4d3200).
+        m_gameServer.On(CharacterOpcode, Protocol::Character::LevelUpPointSubcode,
+                        [this](const Network::Packet& packet) { OnLevelUpPointResult(packet); }) &&
         m_gameServer.On(CharacterOpcode, Skill::SummonLifeSubcode,
                         [this](const Network::Packet& packet) { OnSummonLife(packet); }) &&
         m_gameServer.On(Protocol::Pet::PetOrderOpcode, [this](const Network::Packet& packet) { OnPetOrder(packet); }) &&
@@ -1880,6 +1884,15 @@ void ServerSession::OnPickUpResult(const Network::Packet& packet)
     const auto result = Protocol::FloorItems::ReadPickUpResult(packet);
     if (!result.HasValue())
     {
+        // 07 Q-C1240: el C3 08 22 FE del GameServer 0.97 (el zen al comprar, vender o reparar) trae el zen, aunque no
+        // los siete bytes que el sonido lee desde pkt[4].
+        if (const auto zen = Protocol::FloorItems::ReadShortZenPickUp(packet);
+            result.Error() == Protocol::ProtocolError::TooShort && zen.HasValue())
+        {
+            m_log.Debug("el 22 con el zen llegó corto: se aplica el zen, sin el sonido (07 Q-C1240)");
+            static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(zen.Value(), *this)));
+            return;
+        }
         m_log.Warning("se ignora lo levantado del piso (22): {}", Unreadable);
         // 07 Q-C1240: 0x4d0cc0 no mira el largo y suelta el pedido (0x4d10b9) en todos sus caminos.
         if (result.Error() == Protocol::ProtocolError::TooShort)
@@ -2372,6 +2385,17 @@ void ServerSession::OnLevelUp(const Network::Packet& packet)
     if (!reply.HasValue())
     {
         m_log.Warning("se ignora la subida de nivel (F3 05): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(reply.Value(), *this)));
+}
+
+void ServerSession::OnLevelUpPointResult(const Network::Packet& packet)
+{
+    const auto reply = Protocol::Character::ReadLevelUpPointResult(packet);
+    if (!reply.HasValue())
+    {
+        m_log.Warning("se ignora el punto de subir de nivel (F3 06): {}", Unreadable);
         return;
     }
     static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(reply.Value(), *this)));

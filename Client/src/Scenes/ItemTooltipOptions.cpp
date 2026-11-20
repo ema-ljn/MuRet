@@ -8,7 +8,6 @@
 #include "Scenes/ItemTooltipParts.h"
 #include "Scenes/TooltipLines.h"
 #include "Scenes/TooltipWriter.h"
-#include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "World/ItemState.h"
 
@@ -161,12 +160,6 @@ constexpr std::size_t SetSlots = 13;
 constexpr std::uint8_t FullSetActive = 0xd;
 constexpr std::size_t SetTitleText = 1089;
 constexpr std::size_t SetTailText = 159;
-
-std::uint8_t HeroClassOf(const GameHudContext& context)
-{
-    const WorldState& world = context.world;
-    return world.Actors()[world.Runtime().hero].characterClass;
-}
 
 // 0x5af5e4..0x5af5f0: los colores de N + 2 y N + 3 en 0, aunque no escriba esos renglones.
 void ClearTheColorsAhead(TooltipWriter& lines)

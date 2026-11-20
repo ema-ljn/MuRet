@@ -1,13 +1,19 @@
 #include "Core/Expected.h"
+#include "Render/Models/LogicalAccess.h"
+#include "Scenes/GameHud.h"
 #include "Scenes/ItemTooltipParts.h"
+#include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/TooltipLines.h"
 #include "Scenes/TooltipWriter.h"
+#include "Scenes/WorldState.h"
 #include "World/ItemState.h"
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
 #include <string>
+#include <string_view>
 
 // 0x5b58ea..0x5b6a3b del cuerpo del ítem (06 § Los tooltips, "El cuerpo del ítem"): los paquetes de joyas, el texto
 // de cada joya y de cada objeto de evento, las alas y las capas. Los textos son los de Text.bmd (la dirección −
@@ -97,7 +103,45 @@ constexpr std::uint16_t Archer = 0x1a07;
 constexpr std::array<std::size_t, 2> ArcherTexts{1460, 1461};
 constexpr std::uint16_t GuardianScroll = 0x1a0b;
 constexpr std::array<std::size_t, 2> GuardianScrollTexts{1416, 1462};
-constexpr std::uint16_t BloodCastleInvitation = 0x1a1d;
+// 0x5b63b7..0x5b69e7: la armadura de Chaos Castle y sus niveles.
+constexpr std::uint16_t ChaosCastleArmor = 0x1a1d;
+// 0x5b63c0..0x5b63d0: las clases 3 y 4 (+0x1d4 & 7, sin la evolución) leen desde la séptima fila de 0x6ba598.
+constexpr std::uint8_t HeroClassBits = 7;
+constexpr std::uint8_t FirstClassOfTheSecondTable = 3;
+constexpr std::uint8_t SecondClassOfTheSecondTable = 4;
+constexpr std::size_t ChaosCastleCount = 6;
+struct LevelRange
+{
+    std::int32_t minimum = 0;
+    std::int32_t maximum = 0;
+};
+// 0x6ba598, dwords con signo (0x5b68cd apunta al máximo, 0x6ba59c, y lee el mínimo en −4): el nivel mínimo y el
+// máximo de cada castillo, seis filas para las otras clases y seis para la 3 y la 4. En el build 2f16a9c6 los dos
+// últimos máximos son 999.
+constexpr std::array<LevelRange, 2 * ChaosCastleCount> ChaosCastleLevels{{{15, 49},
+                                                                          {50, 119},
+                                                                          {120, 179},
+                                                                          {180, 239},
+                                                                          {240, 299},
+                                                                          {300, 400},
+                                                                          {15, 29},
+                                                                          {30, 99},
+                                                                          {100, 159},
+                                                                          {160, 219},
+                                                                          {220, 279},
+                                                                          {280, 400}}};
+// 0x6ba5f8..0x6ba610: la entrada a cada castillo, en miles de zen; la misma para las dos tablas.
+constexpr std::array<std::int32_t, ChaosCastleCount> ChaosCastleThousands{25, 80, 150, 250, 400, 650};
+// 0x5b68dd: el máximo escrito, con signo (JLE); la comparación con el nivel usa el de la tabla.
+constexpr std::int32_t ShownMaximumLevel = 400;
+// 0x6c9b80 y 0x6c9b98, de la .data.
+constexpr std::string_view ChaosCastleHeaderFormat = "%s %s    %s      %s    ";
+constexpr std::string_view ChaosCastleRowFormat = "        %d             %3d~%3d     %3d,000";
+constexpr std::size_t ChaosCastleText = 1147;       // 0x7711200
+constexpr std::size_t LevelText = 368;              // 0x76d811c
+constexpr std::size_t MinimumLevelText = 935;       // 0x7701990
+constexpr std::size_t PriceText = 936;              // 0x7701abc
+constexpr std::size_t RightClickToEnterText = 1157; // 0x7711db8
 constexpr std::uint16_t LordSign = 0x1c15;
 constexpr std::int32_t LordSignLevel = 3;
 constexpr std::size_t LordSignText = 1291;
@@ -217,6 +261,50 @@ void WriteTheMarks(Frame& frame)
     lines.Next();
 }
 
+// 0x5b63b7..0x5b69e7: el 0x1a1d. Antes de escribir, abre el registro propio (en línea, como 0x40b240 y 0x40b4d0),
+// lee su nivel (el word +0xe de [0x7681eb0]) y lo cierra: 3.848 rand() si su cuenta vuelve a 0. Después, la cabecera
+// en blanco; una fila por castillo de la tabla de la clase del héroe, con el máximo escrito hasta 400 y en el 8 la de
+// su nivel (con signo y los dos bordes, contra el máximo de la tabla), sin negrita; un "\n" sin color ni negrita; y
+// el 1157 en el 7, sin escribir la negrita.
+void WriteTheChaosCastleLevels(Frame& frame)
+{
+    TooltipWriter& lines = frame.lines;
+    lines.At("0x5b63b7");
+    if (lines.Failed())
+        return;
+    GameHudContext& context = frame.context;
+    const std::uint8_t heroClass = HeroClassOf(context) & HeroClassBits;
+    const std::size_t first =
+        heroClass == FirstClassOfTheSecondTable || heroClass == SecondClassOfTheSecondTable ? ChaosCastleCount : 0;
+    std::int32_t level = 0;
+    {
+        const Render::Models::LogicalAccess own(context.ownRecordDepth, context.random,
+                                                Render::Models::OwnRecordCloseRandoms);
+        level = context.world.OwnCharacter().level;
+    }
+    lines.At("0x5b6874");
+    lines.Print(ChaosCastleHeaderFormat, lines.Text(ChaosCastleText), lines.Text(LevelText),
+                lines.Text(MinimumLevelText), lines.Text(PriceText));
+    lines.Color(TooltipWhite);
+    lines.Bold(0);
+    lines.Next();
+    for (std::size_t i = 0; i < ChaosCastleCount; ++i)
+    {
+        const LevelRange& range = ChaosCastleLevels[first + i];
+        lines.Print(ChaosCastleRowFormat, static_cast<std::int32_t>(i + 1), range.minimum,
+                    std::min(range.maximum, ShownMaximumLevel), ChaosCastleThousands[i]);
+        const bool heroRow = level >= range.minimum && level <= range.maximum;
+        lines.Color(heroRow ? TooltipWhiteOnTeal : TooltipWhite);
+        lines.Bold(0);
+        lines.Next();
+    }
+    lines.At("0x5b697b");
+    lines.NewLine();
+    lines.PrintText(RightClickToEnterText);
+    lines.Color(TooltipWhiteOnRed);
+    lines.Next();
+}
+
 // 0x5b5e34..0x5b6a2f: el resto de la cadena.
 Core::Expected<void, std::string> WriteTheEventItem(Frame& frame, std::int32_t type)
 {
@@ -265,9 +353,8 @@ Core::Expected<void, std::string> WriteTheEventItem(Frame& frame, std::int32_t t
         lines.Bold(0);
         lines.Next();
     }
-    else if (type == BloodCastleInvitation)
-        return Core::Unexpected(std::string("0x5b63b7: las líneas del 0x1a1d abren el registro propio y leen la tabla "
-                                            "de niveles 0x6ba59c; no están portadas"));
+    else if (type == ChaosCastleArmor)
+        WriteTheChaosCastleLevels(frame);
     else if (type == LordSign)
     {
         lines.Color(TooltipWhite);

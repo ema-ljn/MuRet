@@ -450,6 +450,25 @@ Core::Expected<void, std::string> ApplyPickUpResult(const Protocol::FloorItems::
     return {};
 }
 
+Core::Expected<void, std::string> ApplyShortZenPickUp(const Protocol::FloorItems::ShortZenPickUp& result,
+                                                      const WorldEntryResources& resources)
+{
+    WorldState& world = resources.world;
+    WorldRuntime& runtime = world.Runtime();
+    {
+        // 0x4d0ce0..0x4d0f5f: el zen en +0xecc con el registro abierto.
+        const Render::Models::LogicalAccess own(runtime.ownRecordDepth, resources.cloth.random,
+                                                Render::Models::OwnRecordCloseRandoms);
+        world.OwnCharacter().zen = result.zen;
+    }
+    const Protocol::FloorItems::PickUpResult zen{.result = Protocol::FloorItems::ZenPickedUp, .zen = result.zen};
+    if (auto said = PickUpMessage(zen, resources); !said.HasValue())
+        return said;
+    // 0x4d10b9.
+    runtime.floor.pendingPickUp = -1;
+    return {};
+}
+
 void ApplyShortPickUpResult(WorldState& world)
 {
     // 0x4d10b9.

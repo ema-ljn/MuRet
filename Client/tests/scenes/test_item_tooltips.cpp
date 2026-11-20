@@ -32,6 +32,7 @@
 
 #include <gtest/gtest.h>
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <optional>
@@ -69,6 +70,8 @@ constexpr std::uint16_t Jewel = 0x1c0d;
 constexpr std::uint16_t BlueBox = 0x1a25;
 constexpr std::uint16_t Ticket = 0x1c14;
 constexpr std::uint16_t Pet = 0x1a04;
+// El de Chaos Castle (0x5b63b7): el tipo es el del original, como el 0x1c0d de la gema.
+constexpr std::uint16_t ChaosCastleArmor = 0x1a1d;
 constexpr std::uint8_t ArmorSet = 3;
 constexpr std::uint8_t BlueBoxSkill = 0x4c;
 constexpr std::uint16_t BlueBoxMana = 85;
@@ -102,6 +105,7 @@ Client::Data::Text::TextTable Texts()
                                          {88, "Opcion +%d"},
                                          {94, "Vida %d"},
                                          {159, "fin"},
+                                         {368, "Nivel"},
                                          {238, "Reparar: %s"},
                                          {572, "Gema para mejorar"},
                                          {577, "Golpe extra %d"},
@@ -111,12 +115,16 @@ Client::Data::Text::TextTable Texts()
                                          {629, "Opcion leve"},
                                          {631, "Opcion fija"},
                                          {632, "Stat D +%d"},
+                                         {935, "Minimo"},
+                                         {936, "Valor"},
                                          {950, "Stat A +%d"},
                                          {951, "Stat B +%d"},
                                          {970, "Stat C %d"},
                                          {423, "Te falta zen"},
                                          {1089, "Grupo"},
                                          {1101, "Sin precio"},
+                                         {1147, "Chaos Castle"},
+                                         {1157, "Clic para entrar"},
                                          {1620, "Compra: %s(%s)"},
                                          {1860, "Suerte %d"},
                                          {1863, "Sello uno"},
@@ -184,6 +192,9 @@ Client::Data::Tables::ItemTable Items()
         .Named(BlueBox, "Caja Azul")
         .Named(Ticket, "Boleto")
         .Named(Pet, "Mascota")
+        // Con la clase A marcada: el cuerpo no escribe las clases del 0x1a1d (0x5b79c7).
+        .Named(ChaosCastleArmor, "Armadura")
+        .Byte(ChaosCastleArmor, 0x45, 1)
         .Table();
 }
 
@@ -529,6 +540,114 @@ TEST_F(ItemTooltipsTest, AJewelHasItsNoteAndNoDurability)
                  {"\n", 0, StaleBold}},
                 3);
     EXPECT_EQ(random.State(), expected.State());
+}
+
+// 0x5b63b7..0x5b69e7: el 0x1a1d escribe la tabla de Chaos Castle de 0x6ba598, la de la clase del héroe, con el
+// renglón de su nivel en el 8. Los textos son los de Text.bmd; los formatos, los de 0x6c9b80 y 0x6c9b98.
+constexpr std::string_view ChaosCastleHeader = "Chaos Castle Nivel    Minimo      Valor    ";
+constexpr std::array<std::string_view, 6> ChaosCastleRows{
+    "        1              15~ 49      25,000", "        2              50~119      80,000",
+    "        3             120~179     150,000", "        4             180~239     250,000",
+    "        5             240~299     400,000", "        6             300~400     650,000"};
+// Las clases 3 y 4 leen desde la séptima fila: los mismos precios.
+constexpr std::array<std::string_view, 6> ChaosCastleRowsOfClasses3And4{
+    "        1              15~ 29      25,000", "        2              30~ 99      80,000",
+    "        3             100~159     150,000", "        4             160~219     250,000",
+    "        5             220~279     400,000", "        6             280~400     650,000"};
+constexpr std::int32_t HighlightedRow = 8;
+// El renglón de la cabecera de la tabla: después del "\n", el nombre y su "\n".
+constexpr std::size_t ChaosCastleHeaderLine = 3;
+constexpr std::size_t FirstChaosCastleRow = ChaosCastleHeaderLine + 1;
+
+ItemState ChaosCastleItem()
+{
+    ItemState item;
+    item.id = ChaosCastleArmor;
+    item.durability = 1;
+    return item;
+}
+
+// El cuerpo entero: la tabla, el "\n" (sin color ni negrita), el 1157 en el 7 sin escribir la negrita y el "\n" de
+// 0x5b7da7. Sin la durabilidad (0x5b6ab5) ni las clases.
+std::vector<Line> ChaosCastleLines(const std::array<std::string_view, 6>& rows, std::optional<std::size_t> highlighted)
+{
+    std::vector<Line> lines{{"\n", 0, StaleBold}, {"Armadura", 0, 1}, {"\n", 0, StaleBold}};
+    lines.push_back({std::string(ChaosCastleHeader), 0, 0});
+    for (std::size_t i = 0; i < rows.size(); ++i)
+        lines.push_back({std::string(rows[i]), highlighted == i ? HighlightedRow : 0, 0});
+    lines.push_back({"\n", 0, StaleBold});
+    lines.push_back({"Clic para entrar", Client::Scenes::TooltipWhiteOnRed, StaleBold});
+    lines.push_back({"\n", 0, StaleBold});
+    return lines;
+}
+
+TEST_F(ItemTooltipsTest, TheChaosCastleArmorListsTheLevelsAndMarksTheOneOfTheHero)
+{
+    world.OwnCharacter().level = 110;
+    const CrtRandom expected = Advanced(random, OwnRecordCloseRandoms + NpcShopQuery + SkillAccess);
+
+    const auto drawn = Draw(ChaosCastleItem());
+
+    ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+    ExpectLines(ChaosCastleLines(ChaosCastleRows, 1), 4);
+    EXPECT_EQ(random.State(), expected.State());
+    EXPECT_EQ(world.Runtime().ownRecordDepth, 0);
+}
+
+// 0x5b63c0..0x5b63d0: la clase del héroe (+0x1d4 & 7), sin la evolución.
+TEST_F(ItemTooltipsTest, TheChaosCastleArmorReadsItsOwnTableForClasses3And4)
+{
+    world.OwnCharacter().level = 110;
+    for (const std::uint8_t heroClass : {Gladiator, std::uint8_t{Gladiator | (1 << 3)}, std::uint8_t{4}})
+    {
+        HeroIs(heroClass);
+
+        const auto drawn = Draw(ChaosCastleItem());
+
+        ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+        ExpectLines(ChaosCastleLines(ChaosCastleRowsOfClasses3And4, 2), 4);
+    }
+}
+
+// 0x5b690a..0x5b691d: el nivel contra el mínimo y el máximo, los dos incluidos; fuera de la tabla, ninguno.
+TEST_F(ItemTooltipsTest, TheChaosCastleArmorMarksTheRowOfTheLevelWithItsEdges)
+{
+    struct LevelCase
+    {
+        std::uint16_t level = 0;
+        std::optional<std::size_t> row;
+    };
+    const std::array<LevelCase, 7> cases{
+        {{14, std::nullopt}, {15, 0}, {49, 0}, {50, 1}, {300, 5}, {400, 5}, {401, std::nullopt}}};
+    for (const auto& [level, row] : cases)
+    {
+        world.OwnCharacter().level = level;
+
+        const auto drawn = Draw(ChaosCastleItem());
+
+        ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+        for (std::size_t i = 0; i < ChaosCastleRows.size(); ++i)
+            EXPECT_EQ(Lines().colors[FirstChaosCastleRow + i], row == i ? HighlightedRow : 0)
+                << "nivel " << level << ", fila " << i;
+    }
+}
+
+// 0x5b63d7..0x5b6871: abre el registro propio para leer el nivel (+0xe) y lo cierra. Sin el acceso de 0x5f7bc0
+// alrededor, el cierre del 0x1a1d deja la cuenta en 0 y gasta sus 3.848 rand().
+TEST_F(ItemTooltipsTest, TheChaosCastleArmorOpensTheOwnRecordForTheLevel)
+{
+    world.OwnCharacter().level = 110;
+    const CrtRandom expected = Advanced(random, OwnRecordCloseRandoms + NpcShopQuery + SkillAccess);
+    GameHudContext context = Context();
+    ItemState item = ChaosCastleItem();
+
+    const auto drawn = Client::Scenes::DrawTheItemTooltip(
+        Client::Scenes::ItemTooltipContext{.hud = context, .x = 320, .y = 300, .item = item});
+
+    ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+    EXPECT_EQ(Lines().colors[FirstChaosCastleRow + 1], HighlightedRow);
+    EXPECT_EQ(random.State(), expected.State());
+    EXPECT_EQ(world.Runtime().ownRecordDepth, 0);
 }
 
 TEST_F(ItemTooltipsTest, TheTooltipsDrawTheBodyOfTheHoveredItemWithTheOwnRecordOpen)

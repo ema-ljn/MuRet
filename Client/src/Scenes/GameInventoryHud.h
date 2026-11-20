@@ -85,4 +85,21 @@ void DrawTheGridBoxes(Render::SpriteBatch& sprites, float x, float y, std::span<
 // 0x5f7b10: el ítem del cursor (0x7879f80), del tamaño de Item.bmd y centrado en el mouse, con el último argumento
 // de 0x5e1480 en 1.
 [[nodiscard]] Core::Expected<void, std::string> DrawTheCursorItem(GameHudContext& context);
+
+// Qué ítem dibuja 0x633110 (0x633116..0x63315d y 0x6331fc..0x633220): con el diálogo abierto (0x7d3a10c) 0x94 o 0x98
+// y el aviso (0x78abb14) en 1, el del cursor (0x7879f80: vender algo valioso); con el 0x96, el 0xa8, el 0x99, o el
+// 0x94 con el aviso 5 (que el selector pasa por el 0x96), el de los diálogos (0x78a59c8). Si no, ninguno.
+enum class DialogItemSource : std::uint8_t
+{
+    None,
+    Cursor,
+    Dialog,
+};
+[[nodiscard]] DialogItemSource DialogItemOf(std::int32_t dialog, std::int32_t warningKind);
+
+// 0x633110, entre los dos cursores del frame (0x6376dc; la llamada no tiene condición, la tiene adentro): el ítem de
+// DialogItemOf, sin mirar 0x7879fbc, con su propio pase (la proyección de 1°, W / H, 20 y `farPlane`, el far del mundo
+// de este frame en 0x6d5d44, y la vista en la identidad) y 0x5e1480(245, 115, 40, 60, tipo, +4, D+0x1b, D+0x1c, 1): la
+// caja es fija, no la de Item.bmd. Los rand() son los de 0x5e0720. Sin los recursos de la UI, solo los rand().
+[[nodiscard]] Core::Expected<void, std::string> DrawTheDialogItem(GameHudContext& context, float farPlane);
 } // namespace Client::Scenes

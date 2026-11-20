@@ -766,6 +766,128 @@ TEST_F(GameInventoryHudTest, TheCursorItemSpendsTheRandomsOfItsModel)
     EXPECT_EQ(random.State(), expected.State());
 }
 
+// 0x633116..0x63315d y 0x6331fc..0x633220: 0x633110 dibuja el ítem del cursor con el 0x94 o el 0x98 y el aviso 1
+// (vender algo valioso), y el de los diálogos (0x78a59c8) con el 0x96, el 0xa8, el 0x99 y el 0x94 con el aviso 5, que
+// pasa por el 0x96. El 0x98 de la mezcla (aviso 2) y los otros avisos, nada.
+TEST(DialogItemTest, TheDialogAndItsWarningChooseTheItem)
+{
+    using Client::Scenes::DialogItemOf;
+    using Source = Client::Scenes::DialogItemSource;
+    EXPECT_EQ(DialogItemOf(0x98, 1), Source::Cursor);
+    EXPECT_EQ(DialogItemOf(0x94, 1), Source::Cursor);
+    for (const std::int32_t warning : {0, 2, 3, 4, 5, 6})
+        EXPECT_EQ(DialogItemOf(0x98, warning), Source::None) << warning;
+    for (const std::int32_t warning : {0, 2, 3, 4, 6})
+        EXPECT_EQ(DialogItemOf(0x94, warning), Source::None) << warning;
+    EXPECT_EQ(DialogItemOf(0x94, 5), Source::Dialog);
+    for (const std::int32_t dialog : {0x96, 0xa8, 0x99})
+    {
+        for (const std::int32_t warning : {0, 1, 2, 5})
+            EXPECT_EQ(DialogItemOf(dialog, warning), Source::Dialog) << dialog << " " << warning;
+    }
+    EXPECT_EQ(DialogItemOf(0, 1), Source::None);
+    EXPECT_EQ(DialogItemOf(0x97, 1), Source::None);
+}
+
+// 0x633110 sin modelos: los rand() de 0x5e0720 del ítem que elige (el 0x0c0e, el modelo 0xe20: dos en 0x607b60). Con
+// el diálogo de vender toma el ítem del cursor sin mirar 0x7879fbc; con el 0x99, el de los diálogos; con la mezcla,
+// nada.
+TEST_F(GameInventoryHudTest, TheDialogItemSpendsTheRandomsOfTheItemItShows)
+{
+    Client::Scenes::WorldRuntime& runtime = world.Runtime();
+    runtime.cursorItem.id = 0x0c0e;
+    runtime.cursorItemCount = 0;
+    runtime.dialogs.current = 0x98;
+    runtime.social.trade.warningKind = 2;
+    const CrtRandom unchanged = random;
+    {
+        GameHudContext context = Context();
+        ASSERT_TRUE(Client::Scenes::DrawTheDialogItem(context, 2000.0f).HasValue());
+    }
+    EXPECT_EQ(random.State(), unchanged.State());
+
+    runtime.social.trade.warningKind = 1;
+    const CrtRandom sold = Advanced(random, 2);
+    {
+        GameHudContext context = Context();
+        ASSERT_TRUE(Client::Scenes::DrawTheDialogItem(context, 2000.0f).HasValue());
+    }
+    EXPECT_EQ(random.State(), sold.State());
+
+    runtime.cursorItem.id = 0xffff;
+    runtime.dialogItem.id = 0x0c0e;
+    runtime.dialogs.current = 0x99;
+    runtime.social.trade.warningKind = 0;
+    const CrtRandom priced = Advanced(random, 2);
+    GameHudContext context = Context();
+    ASSERT_TRUE(Client::Scenes::DrawTheDialogItem(context, 2000.0f).HasValue());
+    EXPECT_EQ(random.State(), priced.State());
+}
+
+// 0x633110 con los modelos: su propio pase (la proyección de 1°, W / H, 20 y el far del mundo de 0x6d5d44, que el
+// ancla no usa) y 0x5e1480(245, 115, 40, 60, …, 1). La caja es fija: el 0x000e es de 1 × 3 en Item.bmd y va en la de
+// 40 × 60. El 2D de antes queda debajo y el pase de los ítems de la UI vuelve a su far de 2.000.
+TEST_F(GameInventoryHudTest, TheDialogItemDrawsInItsFixedBox)
+{
+    Client::Scenes::WorldRuntime& runtime = world.Runtime();
+    runtime.cursorItem.id = 0x000e;
+    runtime.dialogs.current = 0x98;
+    runtime.social.trade.warningKind = 1;
+    mouse = {260, 140};
+    worldClock = 4321.0f;
+    for (const Client::App::PixelSize screen : {Screen640, Client::App::PixelSize{1024, 768}})
+    {
+        SCOPED_TRACE(screen.width);
+        models.Begin(Client::Render::Pass3D{});
+        events.clear();
+        Client::Scenes::UiItemResources resources = UiItems(screen);
+        {
+            GameHudContext context = Context();
+            context.uiItems = &resources;
+            const auto drawn = Client::Scenes::DrawTheDialogItem(context, 3200.0f);
+            ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+        }
+
+        EXPECT_EQ(events, (std::vector<std::string>{"2d", "3d"}));
+        EXPECT_FALSE(resources.open);
+        EXPECT_EQ(resources.pass.pass.farPlane, 2000.0f);
+        glm::vec3 angles{};
+        const glm::vec3 expected =
+            PlacedAt(screen, 0x000e, 0, {.x = 245.0f, .y = 115.0f, .width = 40.0f, .height = 60.0f}, true, angles);
+        EXPECT_EQ(TriangleOrigins(), std::vector<glm::vec3>{expected});
+    }
+}
+
+// 0x5ac1e9..0x5ac204: 0x5ac120 dibuja el ítem del cursor solo con 0x78abb14 en 0 y 0x78aba60 distinto de 2. Con el
+// diálogo de vender abierto (el aviso 1) o el del precio de la tienda propia (2), no lo dibuja: el de vender lo dibuja
+// 0x633110 en el diálogo. Con el HUD entero, los rand() del 0x0c0e no salen.
+TEST_F(GameInventoryHudTest, TheCursorItemWaitsWhileItsDialogIsOpen)
+{
+    Client::Scenes::WorldRuntime& runtime = world.Runtime();
+    runtime.cursorItem.id = 0x0c0e;
+    runtime.cursorItemCount = 1;
+    struct Case
+    {
+        std::int32_t warning = 0;
+        std::int32_t shopDialog = 0;
+        int cursorRandoms = 0;
+    };
+    for (const Case tested : {Case{0, 0, 2}, Case{1, 0, 0}, Case{0, 2, 0}, Case{0, 1, 2}})
+    {
+        SCOPED_TRACE(tested.warning * 10 + tested.shopDialog);
+        runtime.social.trade.warningKind = tested.warning;
+        runtime.social.personalShop.dialogMode = tested.shopDialog;
+        random = CrtRandom{Seed};
+        sprites.Begin(Screen640);
+        const CrtRandom expected =
+            Advanced(random, HudBaseDraws + WindowDraws + Own + 2 * WorldWidthDraws + tested.cursorRandoms);
+        GameHudContext context = Context();
+        const auto drawn = Client::Scenes::DrawTheHud(context);
+        ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+        EXPECT_EQ(random.State(), expected.State());
+    }
+}
+
 // El HUD entero con el inventario abierto, en Lorencia y en Devias: el estado base más la ventana, el cierre del
 // registro alrededor del equipo de 0x5e2fc0 y las dos consultas que el ancho del mundo (0x5bb8d0) hace con el
 // inventario abierto (la tienda y el comercio), en los avisos de durabilidad y en la party cerrada (0x5f0be0, que con

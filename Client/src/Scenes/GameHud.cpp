@@ -47,6 +47,7 @@
 #include "Scenes/SecondGuildWindow.h"
 #include "Scenes/QuestWindow.h"
 #include "Scenes/ShopSigns.h"
+#include "Scenes/SocialState.h"
 #include "Scenes/TooltipLines.h"
 #include "Scenes/UiItemDrawing.h"
 #include "Scenes/WarehouseKeypad.h"
@@ -1066,9 +1067,16 @@ Core::Expected<void, std::string> DrawTheUi3DItems(Frame& frame)
     // 0x5f7610: los ítems de las grillas abiertas, en su orden, y la caja del entrenador (0x44ad40(0)).
     if (auto grids = DrawTheGridItems(frame.context, frame.panels); !grids.HasValue())
         return grids;
-    // 0x5ac1f8: el ítem del cursor (con 0x78abb14 en 0 y 0x78aba60 distinto de 2, que MuRet no tiene).
-    if (auto cursor = DrawTheCursorItem(frame.context); !cursor.HasValue())
-        return cursor;
+    // 0x5ac1e9..0x5ac204: el ítem del cursor (0x5f7b10), con 0x7879fbc en más de 0 (lo mira DrawTheCursorItem), sin
+    // un aviso esperando (0x78abb14 en 0: el de vender lo dibuja 0x633110 en su diálogo) y sin el diálogo del precio de
+    // la tienda propia (0x78aba60 distinto de 2).
+    constexpr std::int32_t ShopPriceDialog = 2;
+    const SocialState& social = frame.runtime.social;
+    if (social.trade.warningKind == 0 && social.personalShop.dialogMode != ShopPriceDialog)
+    {
+        if (auto cursor = DrawTheCursorItem(frame.context); !cursor.HasValue())
+            return cursor;
+    }
     // 0x5ac209..0x5ac267: las tres ranuras rápidas, cada una con 0x5e1480((float)(208 + 31i), 454, 20, 20, tipo, +4, 0,
     // 0, 0).
     const std::span<const World::ItemState, InventoryCellCount> cells(frame.context.world.Inventory().cells);

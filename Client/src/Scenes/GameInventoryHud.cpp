@@ -825,6 +825,58 @@ Core::Expected<void, std::string> DrawTheCursorItem(GameHudContext& context)
     return DrawUiItem(context, box.Value(), type, item.scalar1Low, item.flags1b, item.flags1c, true);
 }
 
+DialogItemSource DialogItemOf(std::int32_t dialog, std::int32_t warningKind)
+{
+    constexpr std::int32_t PriceDialog = 0x94;
+    constexpr std::int32_t ItemDialog = 0x96;
+    constexpr std::int32_t SaleDialog = 0x98;
+    constexpr std::int32_t PriceBelowValueDialog = 0x99;
+    constexpr std::int32_t FruitDialog = 0xa8;
+    constexpr std::int32_t SaleWarning = 1;
+    constexpr std::int32_t OtherShopWarning = 5;
+    // 0x633116..0x633144: CL en 1 con el 0x94 o el 0x98 y el aviso 1, o con el 0x96 o el 0xa8.
+    const bool shown = ((dialog == PriceDialog || dialog == SaleDialog) && warningKind == SaleWarning) ||
+                       dialog == ItemDialog || dialog == FruitDialog;
+    // 0x633146..0x63315d: el 0x94 con el aviso 5 dibuja; con otro, el 0x99 dibuja; si no, CL.
+    const bool draws =
+        dialog == PriceDialog ? warningKind == OtherShopWarning || shown : dialog == PriceBelowValueDialog || shown;
+    if (!draws)
+        return DialogItemSource::None;
+    // 0x6331fc..0x633220: con el aviso 5, el 0x96; el 0x96, el 0x99 y el 0xa8 van al ítem de los diálogos.
+    const std::int32_t chosen = warningKind == OtherShopWarning ? ItemDialog : dialog;
+    if (chosen == ItemDialog || chosen == PriceBelowValueDialog || chosen == FruitDialog)
+        return DialogItemSource::Dialog;
+    return DialogItemSource::Cursor;
+}
+
+Core::Expected<void, std::string> DrawTheDialogItem(GameHudContext& context, float farPlane)
+{
+    const WorldRuntime& runtime = context.world.Runtime();
+    const DialogItemSource source = DialogItemOf(runtime.dialogs.current, runtime.social.trade.warningKind);
+    if (source == DialogItemSource::None)
+        return {};
+    // 0x633222..0x633247 el del cursor y 0x633249..0x63326e el de los diálogos: el WORD con signo, el DWORD +4, el byte
+    // +0x1b y el DWORD +0x1c & 0xff.
+    const World::ItemState& item = source == DialogItemSource::Cursor ? runtime.cursorItem : runtime.dialogItem;
+    const auto type = static_cast<std::int32_t>(static_cast<std::int16_t>(item.id));
+    // 0x63326f..0x633283.
+    constexpr UiItemBox Box{.x = 245.0f, .y = 115.0f, .width = 40.0f, .height = 60.0f};
+    if (context.uiItems == nullptr)
+        return DrawUiItem(context, Box, type, item.scalar1Low, item.flags1b, item.flags1c, true);
+    // 0x633163..0x6331f7: el pase propio; 0x633288..0x633293, los dos glPopMatrix. El de 0x5ac120 vuelve a quedar para
+    // el próximo frame.
+    UiItemResources& resources = *context.uiItems;
+    auto pass = MakeUiItemPass(resources.pass.pass.screen, farPlane);
+    if (!pass.HasValue())
+        return Core::Unexpected(pass.Error());
+    const UiItemPass itemsPass = resources.pass;
+    resources.pass = pass.Value();
+    auto drawn = DrawUiItem(context, Box, type, item.scalar1Low, item.flags1b, item.flags1c, true);
+    CloseUiItemPass(resources);
+    resources.pass = itemsPass;
+    return drawn;
+}
+
 namespace
 {
 // ---------------------------------------------------------------------------------------------------------------

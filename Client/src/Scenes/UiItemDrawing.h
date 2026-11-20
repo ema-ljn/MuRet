@@ -97,14 +97,16 @@ PlaceUiItem(const UiItemCall& call, const UnprojectedPoint& anchor, bool hovered
             const Data::Tables::ItemTable* items, glm::vec3& angles);
 
 // El pase 3D de 0x5ac120: la proyección de 1°, W / H, 20 y 2.000 en la pantalla entera (0x620d10 y 0x6203c0) y la
-// vista en la identidad (0x620370 sobre MODELVIEW en la identidad), con su caché de 0x6203c0.
+// vista en la identidad (0x620370 sobre MODELVIEW en la identidad), con su caché de 0x6203c0. El de 0x633110 es igual
+// pero con el near y el far de [0x6d5d40] (20) y [0x6d5d44] (el far del mundo de este frame, que escribe 0x635ae0):
+// `farPlane`. El caché de 0x6203c0 no depende del far.
 struct UiItemPass
 {
     Render::Pass3D pass{};
     GameProjection projection{};
 };
 
-[[nodiscard]] Core::Expected<UiItemPass, std::string> MakeUiItemPass(App::PixelSize screen);
+[[nodiscard]] Core::Expected<UiItemPass, std::string> MakeUiItemPass(App::PixelSize screen, float farPlane = 2000.0f);
 
 // Lo que el dueño del frame le presta al tramo 3D de la UI para dibujar sus ítems: el lote de los modelos y los
 // fines de los dos lotes (SceneCanvas), los modelos, el buffer global de la pose (0x68b181c), los contextos de

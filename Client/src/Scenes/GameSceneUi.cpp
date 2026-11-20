@@ -26,6 +26,7 @@
 #include "Scenes/GameFriends.h"
 #include "Scenes/GameHover.h"
 #include "Scenes/GameHud.h"
+#include "Scenes/GameInventoryHud.h"
 #include "Scenes/GameItemSpecialDrawing.h"
 #include "Scenes/GameMessages.h"
 #include "Scenes/GameMovementState.h"
@@ -670,10 +671,12 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canva
     if (auto label = DrawTheSetLabel(hud); !label.HasValue())
         return label;
     // 0x6376cb: 0x65ee60 → 0x65fe00, la UI nueva (hito 6).
-    // 0x6376d7: 0x5ac2d0, el cursor, 0x6376dc: 0x633110, el ítem 3D del diálogo (P-C90), y 0x6376e1: el cursor otra
-    // vez, el mismo quad.
+    // 0x6376d7: 0x5ac2d0, el cursor, 0x6376dc: 0x633110, el ítem 3D del diálogo, con el far del mundo de este frame
+    // (0x6d5d44), y 0x6376e1: el cursor otra vez, el mismo quad.
     if (auto cursor = DrawTheGameCursor(hud); !cursor.HasValue())
         return cursor;
+    if (auto item = DrawTheDialogItem(hud, m_drawnCamera.farPlane); !item.HasValue())
+        return item;
     if (auto cursor = DrawTheGameCursor(hud); !cursor.HasValue())
         return cursor;
     // 0x6376e6: 0x621a90 y 0x620fc0 cierran el 2D: el lote lo dibuja quien presenta el frame.

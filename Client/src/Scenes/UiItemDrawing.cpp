@@ -685,19 +685,19 @@ Core::Expected<UiItemPlacement, std::string> PlaceUiItem(const UiItemCall& call,
     return placement;
 }
 
-Core::Expected<UiItemPass, std::string> MakeUiItemPass(App::PixelSize screen)
+Core::Expected<UiItemPass, std::string> MakeUiItemPass(App::PixelSize screen, float farPlane)
 {
-    // 0x5ac15f..0x5ac17f: fild del ancho, fidiv del alto y fstp; 0x6203c0(1, aspecto, 20, 2.000).
+    // 0x5ac15f..0x5ac17f: fild del ancho, fidiv del alto y fstp; 0x6203c0(1, aspecto, 20, 2.000). 0x633110
+    // (0x633199..0x6331d2): lo mismo con [0x6d5d40] y [0x6d5d44].
     constexpr float FieldOfView = 1.0f;
     constexpr float NearPlane = 20.0f;
-    constexpr float FarPlane = 2000.0f;
     UiItemPass made;
     made.pass.screen = screen;
     made.pass.viewport = glm::ivec4(0, 0, screen.width, screen.height);
     const auto aspect = F32(static_cast<double>(screen.width) / static_cast<double>(screen.height));
-    made.pass.projection = glm::perspective(glm::radians(FieldOfView), aspect, NearPlane, FarPlane);
+    made.pass.projection = glm::perspective(glm::radians(FieldOfView), aspect, NearPlane, farPlane);
     made.pass.view = glm::mat4(1.0f);
-    made.pass.farPlane = FarPlane;
+    made.pass.farPlane = farPlane;
     auto projection = MakeGameProjection(made.pass, FieldOfView);
     if (!projection.HasValue())
         return Core::Unexpected(projection.Error());

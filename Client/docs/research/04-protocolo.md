@@ -426,6 +426,7 @@ está en [06](06-render-escenas-y-ui.md#la-escena-del-juego).
 | `0x1C` | S->C (C3) | `0x4c6e10`, desde `0x4e3f2a` | el warp: el gate, el mapa, la celda y la dirección (abajo) |
 | `F3 04` | S->C (C3) | `0x4c4b80` | revivir (abajo) |
 | `F3 05` | S->C (C1) | `0x4e30b9 → 0x4d2ed0` | [subir de nivel](#subir-de-nivel-f3-05) |
+| `F3 06` | C->S y S->C (C1) | `0x5e468e`; `0x4e30cd → 0x4d3200` | [el punto de subir de nivel](#el-f3-06-que-llega) |
 | `F3 12` | C->S | `0x4c6e10` | "ya está el mapa", después de un `1C` con gate (abajo) |
 | `0x0F` | S->C | `0x4e36b5` | el clima: la meta de la lluvia (abajo) |
 | `0xBD` | C->S y S->C | `0x4c421a`, `0x4c785d`; `0x4e2b10` → `0x4033b0` | el estado de Crywolf; el recorrido de la cámara (abajo) |
@@ -552,6 +553,34 @@ el efecto de actor `48/10`, que conserva sus propias guardas.
 La longitud se verificó en el ASM del emisor. La captura histórica no tiene
 una subida de nivel observada. Los tests ejercitan el lector, el despacho
 real de sesión, la actualización de estado, el orden del RNG y el sonido.
+
+### El F3 06 que llega
+
+(2026-11-20, *estático*, contra el ASM de `0x4d3200` y `CGLevelUpPointAdd`, `0x417b50`, del GameServer 0.97
+reconstruido; el cable de la sesión no tiene ninguno, 08 P-C104 c.) El cliente lo pide con los botones de la ventana
+del personaje: `C1 05 F3 06 <estadística>` ([06](06-render-escenas-y-ui.md#la-ventana-del-personaje)). El servidor
+contesta siempre con `PMSG_LVPOINTADDRESULT`, de 10 bytes: `C1 0A F3 06 <resultado> <relleno> <vida o maná:2>
+<BP:2>`, los words en little endian. El resultado es `0x10` + la estadística si sumó el punto y 0 si no; el word de
+`pkt[6]` es la vida máxima con la vitalidad (2) y el maná máximo con la energía (3), y el de `pkt[8]`, el BP máximo
+más el agregado. `0x4e30cd` (el caso 6 de la tabla de `0x4e5ff8`) llama a `0x4d3200(pkt)`:
+
+1. Con el nibble alto de `pkt[4]` (`TEST byte [pkt + 4], 0xf0`, `0x4d320c`), abre el registro propio en línea (la
+   búsqueda de `0x40b240` y, sin la entrada, el alta de `0x40ad90`), y:
+   - baja en 1 el word `+0x68` (los puntos para repartir) antes del switch (`0x4d32d8`): de 0 da la vuelta a `0xffff`;
+   - por el nibble bajo (`0x4d32dc`, la tabla de `0x4d34f4`) sube en 1 el word de la estadística: `+0x18` la fuerza,
+     `+0x1a` la agilidad, `+0x1c` la vitalidad (y `+0x26`, la vida máxima, del word de `pkt[6]`), `+0x1e` la energía
+     (y `+0x28`, el maná máximo) o `+0x20` el comando. De 5 a 15, el `JA` de `0x4d32e2` no sube ninguna. La vida y el
+     maná actuales no cambian;
+   - en todos esos casos, `+0x3a` (el BP máximo) del word de `pkt[8]` (`0x4d3356`);
+   - lo cierra (`0x4d335a..0x4d3415`, como `0x40b4d0`: 3.848 `rand()` si queda sin accesos).
+2. Siempre, también sin el punto (`0x4d341a..0x4d34ed`): abre el registro, llama a `0x550d10` (los stats del
+   registro propio, [06](06-render-escenas-y-ui.md#los-stats-del-registro-propio)) y lo cierra.
+
+**MuRet**: `Protocol::Character::ReadLevelUpPointResult` (con el nibble alto, sin los 10 bytes, `TooShort`),
+`App::ServerSession::OnLevelUpPointResult` y `Scenes::ApplyLevelUpPointResult` (`Scenes/LevelUpPointReply`), con
+`RecalculateOwnStats`. Hasta el 2026-11-20 el `F3 06` no tenía handler: la sesión lo descartaba ("no tiene handler")
+y el punto pedido no se veía. Los tests son `test_level_up_point.cpp`, `test_level_up_point_reply.cpp` y
+`ServerSessionTest.TheLevelUpPointReplyReachesTheWorld`.
 
 ### Caminar y pegar: `D3` y `D7`
 

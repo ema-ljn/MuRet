@@ -51,6 +51,7 @@
 #include "Protocol/Character/CharacterSelect.h"
 #include "Protocol/Character/CharacterSelectResult.h"
 #include "Protocol/Character/InventoryList.h"
+#include "Protocol/Character/LevelUpPoint.h"
 #include "Protocol/Character/Opcodes.h"
 #include "Protocol/Connection/Keepalive.h"
 #include "Protocol/Connection/Login.h"
@@ -4720,6 +4721,25 @@ TEST(ServerSessionTest, TheShortZenOfThe22ReachesTheWorld)
     const auto* zen = std::get_if<FloorItems::ShortZenPickUp>(&events[0]);
     ASSERT_NE(zen, nullptr);
     EXPECT_EQ(zen->zen, 100000u);
+}
+
+// La respuesta del F3 06 (0x4d3200, 0x4e30cd en el sub-dispatcher del F3) llega al mundo: sin su handler se
+// descartaba y el punto sumado no se veía.
+TEST(ServerSessionTest, TheLevelUpPointReplyReachesTheWorld)
+{
+    namespace Character = Client::Protocol::Character;
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+    tested.socket.reads = {
+        FromTheGameServer(Bytes({0xc1, 0x0a, 0xf3, 0x06, 0x12, 0x00, 0x34, 0x12, 0x78, 0x56}), tested.gameServerSends)};
+    ASSERT_TRUE(tested.session.Poll().HasValue());
+    const auto events = tested.eventSink.TakeWorldEvents();
+    ASSERT_EQ(events.size(), 1u);
+    const auto* point = std::get_if<Character::LevelUpPointResult>(&events[0]);
+    ASSERT_NE(point, nullptr);
+    EXPECT_EQ(point->result, 0x12);
+    EXPECT_EQ(point->maxLifeOrMana, 0x1234);
+    EXPECT_EQ(point->maxBp, 0x5678);
 }
 
 // La conexión cifra sólo el gate: los tres C1 de mundo restantes salen con XOR32 sin C3.

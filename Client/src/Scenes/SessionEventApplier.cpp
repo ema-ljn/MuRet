@@ -42,6 +42,7 @@
 #include "Scenes/ActorCombat.h"
 #include "Scenes/CastleBattleReceive.h"
 #include "Scenes/CastleSiegeReceive.h"
+#include "Scenes/LevelUpPointReply.h"
 #include "Scenes/MapServerMoveApply.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/ChatReceive.h"
@@ -487,6 +488,8 @@ std::optional<Core::Expected<void, std::string>> SessionEventApplier::ApplySkill
         return ApplySkillList(*list, m_resources);
     if (const auto* level = std::get_if<Protocol::Skill::LevelUp>(&event))
         return ApplyLevelUp(*level, m_resources);
+    if (const auto* point = std::get_if<Protocol::Character::LevelUpPointResult>(&event))
+        return ApplyLevelUpPointResult(*point, m_resources);
     if (const auto* summon = std::get_if<Protocol::Skill::SummonLife>(&event))
     {
         ApplySummonLife(*summon, m_resources);

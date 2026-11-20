@@ -3491,7 +3491,8 @@ las columnas de la caja).
 Sin Text.bmd, Item.bmd (la magia con báculo, `0x5f05a2`) o Skill.bmd (`0x5513d0`), en la dirección que los lee. Un
 dibujo intermedio de MuRet hace la magia sobre una copia de la lista de los sets, para no dejar sus marcas.
 
-**Lo que porta MuRet**: abrir, el paso, los botones, el F3 06 (`Protocol/Character/LevelUpPoint`) y el A9 de la
+**Lo que porta MuRet**: abrir, el paso, los botones, el F3 06 (`Protocol/Character/LevelUpPoint`) y su respuesta
+(`0x4d3200`, `Scenes/LevelUpPointReply`, 2026-11-20: [04](04-protocolo.md#el-f3-06-que-llega)) y el A9 de la
 mascota, en `Scenes/GameUi.cpp` y `Scenes/GamePanels.cpp`; el dibujo y el botón de cerrar, en
 `Scenes/GameCharacterHud.cpp` (desde `DrawTheWindows` de `Scenes/GameHud.cpp`), con `0x5b8b80` y `0x5513d0` en
 `Scenes/OwnDamage.cpp`, `0x40d8c0` en `Scenes/ItemSetOptionList.cpp` y los textos con ancho en

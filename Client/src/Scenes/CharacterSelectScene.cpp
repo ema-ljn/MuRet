@@ -40,6 +40,7 @@
 #include "Scenes/CharacterSlots.h"
 #include "Scenes/CreatePreview.h"
 #include "Scenes/GameModels.h"
+#include "Scenes/GameProjection.h"
 #include "Scenes/FullSetScan.h"
 #include "Scenes/GameCharacters.h"
 #include "Scenes/GameData.h"
@@ -78,6 +79,7 @@
 #include "World/TerrainHeight.h"
 #include "World/TerrainLighting.h"
 #include "World/WorldTerrain.h"
+#include "UI/CharacterBalloons.h"
 #include "UI/CreateCharacterWindow.h"
 #include "UI/DeleteChecks.h"
 #include "UI/EscapeWindow.h"
@@ -187,6 +189,7 @@ CharacterSelectScene::CharacterSelectScene(const SceneContext& context, const Ga
       m_world(context.textures, context.log),
       m_notice([this](Render::TextureSlot slot) { return m_windowTextures.BufferSize(slot); }, m_texts),
       m_bar([this](Render::TextureSlot slot) { return m_textures.BufferSize(slot); }, m_texts),
+      m_balloons([this](Render::TextureSlot slot) { return m_textures.BufferSize(slot); }, m_texts),
       m_nameFilters{.filterName = data.filterName,
                     .filter = data.filter,
                     .operation = UI::TextAt(m_texts, OperationText).value_or(std::string_view{}),
@@ -287,6 +290,8 @@ Core::Expected<void, std::string> CharacterSelectScene::Enter()
     m_notice.Close();
     m_create.Close();
     m_bar.Close();
+    // Los globos los suelta la UI del login (0x65f300 → 0x63ce50) y se arman con la lista (0x65f4b0).
+    m_balloons.Release();
     m_escape.Arm(UI::NewUiMode::Selection);
     m_options.Arm(CurrentOptions());
     const std::array<UI::NewUiWindow*, 5> uiWindows{&m_notice, &m_escape, &m_options, &m_bar, &m_create};
@@ -632,6 +637,11 @@ bool CharacterSelectScene::TakeTheCreationResult()
     }
     m_waitingForTheCreation = false;
     const std::optional<std::uint8_t> result = m_session->CreateResult();
+    // 0x4c23d2: con el creado, los globos de nuevo (0x63cfb0), aunque la sesión haya caído.
+    if (result && !UI::NoticeOfCreateResult(*result))
+    {
+        UpdateTheBalloons();
+    }
     if (!result || m_failureShown)
     {
         return false;
@@ -742,6 +752,12 @@ bool CharacterSelectScene::TakeTheDeletionResult()
     }
     m_waitingForTheDeletion = false;
     const std::optional<std::uint8_t> result = m_session->DeleteResult();
+    // 0x643360..0x6433b3: el aviso 0x60 baja el +0 del elegido y pone los globos de nuevo (0x63cfb0). En MuRet el
+    // borrado ya salió de la lista de la sesión (Q-C104).
+    if (result && UI::NoticeOfDeleteResult(*result) == UI::CharacterDeletedNotice)
+    {
+        UpdateTheBalloons();
+    }
     // Con la sesión caída, el 0x70 de la falla queda arriba aunque la respuesta haya llegado antes.
     if (!result || m_failureShown)
     {
@@ -891,12 +907,15 @@ void CharacterSelectScene::StepTheScene(const Input::InputState& input)
             return;
         }
     }
-    // 0x633f20 → 0x65f4b0, con la lista: la barra, con 0x65f690 (arriba y con el foco).
+    // 0x633f20 → 0x65f4b0, con la lista: los globos (0x63ce70, al empezar), la barra, con 0x65f690 (arriba y con el
+    // foco), y los globos con los registros (0x63cfb0, al final).
     if (!m_openedTheBar)
     {
+        m_balloons.Build();
         m_bar.Open();
         m_ui.Raise(m_bar);
         m_openedTheBar = true;
+        UpdateTheBalloons();
     }
     if (m_context.world != nullptr)
     {
@@ -1276,6 +1295,12 @@ void CharacterSelectScene::Render(SceneCanvas& canvas, float alpha)
     // 0x634949..0x63495f: los avisos y el área vieja. La UI del modo 4 (0x65fe00): la barra, la ventana de crear y el
     // aviso arriba. Y el cursor (0x634980).
     DrawTheMessages(canvas);
+    // 0x65fe00 → 0x63cf80: los globos, antes de las ventanas.
+    DrawTheBalloons(canvas, pass, camera.fieldOfView);
+    if (m_failure)
+    {
+        return;
+    }
     // +0x511: el primer 0D con 1 que llegó en la selección, que guarda el juego.
     std::string_view serverNotice;
     if (m_context.world != nullptr && m_context.world->Runtime().chat.selectionNotice)
@@ -1304,6 +1329,84 @@ void CharacterSelectScene::Render(SceneCanvas& canvas, float alpha)
         }
     }
     DrawTheCursor(canvas);
+}
+
+std::array<UI::BalloonRecord, UI::BalloonCount> CharacterSelectScene::BalloonRecords() const
+{
+    std::array<UI::BalloonRecord, UI::BalloonCount> records{};
+    if (m_context.world == nullptr)
+    {
+        return records;
+    }
+    const Protocol::Character::CharacterList* list =
+        m_session != nullptr && m_session->Characters() ? &*m_session->Characters() : nullptr;
+    for (std::size_t slot = 0; slot < UI::BalloonCount; ++slot)
+    {
+        const ActorState& actor = m_context.world->Actors()[slot];
+        const bool listed =
+            m_session == nullptr ||
+            (list != nullptr &&
+             std::ranges::any_of(list->characters, [slot](const Protocol::Character::CharacterEntry& entry)
+                                 { return entry.slot == slot; }));
+        records[slot] = UI::BalloonRecord{.alive = actor.alive && listed,
+                                          .characterClass = actor.characterClass,
+                                          .level = actor.level,
+                                          .controlCode = actor.controlCode,
+                                          .name = Protocol::Character::NameAsText(actor.name),
+                                          .guildStatus = actor.guildStatus};
+    }
+    return records;
+}
+
+void CharacterSelectScene::UpdateTheBalloons()
+{
+    const std::array<UI::BalloonRecord, UI::BalloonCount> records = BalloonRecords();
+    if (auto updated = m_balloons.Update(records); !updated.HasValue() && !m_failure)
+    {
+        m_failure = updated.Error();
+    }
+}
+
+void CharacterSelectScene::DrawTheBalloons(SceneCanvas& canvas, const Render::Pass3D& pass, float fieldOfView)
+{
+    if (!m_balloons.IsBuilt())
+    {
+        return;
+    }
+    std::array<std::optional<UI::BalloonHead>, UI::BalloonCount> heads{};
+    if (m_context.world != nullptr)
+    {
+        const auto projection = MakeGameProjection(pass, fieldOfView);
+        for (std::size_t slot = 0; slot < UI::BalloonCount; ++slot)
+        {
+            if (!m_balloons.IsShown(slot))
+            {
+                continue;
+            }
+            if (!projection.HasValue())
+            {
+                m_failure = "0x63ca76 → " + projection.Error();
+                return;
+            }
+            // 0x63ca20: la x y la y del registro, y la z más 280 (0x6b8c78, un double) en el fstp de un float.
+            const ActorState& actor = m_context.world->Actors()[slot];
+            const glm::vec3 head{
+                actor.position.x, actor.position.y,
+                static_cast<float>(static_cast<double>(actor.position.z) + static_cast<double>(UI::BalloonHeadHeight))};
+            const auto point = ProjectGamePoint(projection.Value(), head);
+            if (!point.HasValue())
+            {
+                m_failure = "0x63ca76 → " + point.Error();
+                return;
+            }
+            heads[slot] =
+                UI::BalloonHead{.point = UI::Point{point.Value().x, point.Value().y}, .controlCode = actor.controlCode};
+        }
+    }
+    if (auto drawn = m_balloons.Draw(canvas.sprites, canvas.text, canvas.screen, heads); !drawn.HasValue())
+    {
+        m_failure = drawn.Error();
+    }
 }
 
 bool CharacterSelectScene::HasTheWorld() const

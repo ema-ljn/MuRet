@@ -6,6 +6,7 @@
 #include "Core/Expected.h"
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
+#include "Data/Text/TextTable.h"
 #include "Data/Models/PlayerModels.h"
 #include "Input/InputState.h"
 #include "Input/Key.h"
@@ -14,6 +15,7 @@
 #include "Render/ModelBatch.h"
 #include "Render/Models/Animation.h"
 #include "Render/Models/Cloth.h"
+#include "Render/Text/FontSet.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterSelectScene.h"
@@ -32,6 +34,7 @@
 #include "Scenes/WorldEntry.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "UI/GameText.h"
 #include "World/GameCamera.h"
 #include "World/ModelEffects.h"
 #include "World/TerrainHeight.h"
@@ -46,6 +49,7 @@
 #include "support/PlayerActors.h"
 #include "support/RecordingFrameTarget.h"
 #include "support/RecordingSink.h"
+#include "support/RecordingTextDrawer.h"
 #include "support/SessionHarness.h"
 #include "support/SessionPackets.h"
 #include "support/UiInput.h"
@@ -57,6 +61,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <iterator>
 #include <memory>
 #include <optional>
 #include <string>
@@ -663,5 +668,63 @@ TEST_F(SelectionPipelineTest, TheSelectionDrawingLeavesTheScanOfTheLastCharacter
     ASSERT_TRUE(m_world.Runtime().fullSetScan.has_value());
     EXPECT_EQ(m_world.Runtime().fullSetScan->dword743a178, 0);
     EXPECT_EQ(m_world.Runtime().fullSetScan->byte743a17c, 1);
+}
+
+// 06 § Los globos: con la lista, 0x65f4b0 arma los globos (0x63ce70) y los pone al día (0x63cfb0), y 0x65fe00 los
+// dibuja antes de las ventanas (0x63cf80): uno por personaje, con el nombre, el rango (0xff: el 488) y la clase con el
+// nivel, centrados en la misma caja de 118 columnas, a 16 de distancia en 640 × 480.
+TEST_F(SelectionPipelineTest, EachListedCharacterGetsItsBalloonBeforeTheWindows)
+{
+    ASSERT_NO_FATAL_FAILURE(StartSelect());
+    CharacterEntryFields first = Bare(1);
+    first.name = "globo1";
+    first.level = 37;
+    CharacterEntryFields second = Bare(3);
+    second.name = "globo3";
+    ASSERT_NO_FATAL_FAILURE(ReceiveList({first, second}));
+    m_manager->Step(Client::Input::InputState{});
+    ASSERT_FALSE(m_manager->Failure().has_value()) << *m_manager->Failure();
+    // Sin las mallas: el esqueleto del test no tiene los huesos de la cola de 0x50ba30, y los globos no los miran.
+    m_models.Clear();
+    m_manager->Render(0.0f);
+    ASSERT_FALSE(m_manager->Failure().has_value()) << *m_manager->Failure();
+
+    const Client::Data::Text::TextTable* texts = m_data.text ? &*m_data.text : nullptr;
+    const std::string guild = "(" + std::string(Client::UI::TextAt(texts, 488).value_or("")) + ")";
+    const std::string wizard(Client::UI::TextAt(texts, 20).value_or(""));
+    ASSERT_FALSE(m_target.frames.empty());
+    const std::vector<Client::Tests::FrameEvent>& events = m_target.frames.back().events;
+    const auto indexOf = [&events](const auto& predicate)
+    { return static_cast<std::size_t>(std::distance(events.begin(), std::ranges::find_if(events, predicate))); };
+    const auto quadOf = [](std::uint16_t slot)
+    {
+        return [slot](const Client::Tests::FrameEvent& event) {
+            return event.kind == Client::Tests::FrameEvent::Kind::Quad && event.texture && event.texture->value == slot;
+        };
+    };
+    // La barra empieza con su adorno (deco.tga, 0xe): las cajas (character_ex.tga, 0x13) y los renglones van antes.
+    const std::size_t bar = indexOf(quadOf(0xe));
+    ASSERT_LT(bar, events.size());
+    const auto boxes =
+        std::ranges::count_if(events.begin(), events.begin() + static_cast<std::ptrdiff_t>(bar), quadOf(0x13));
+    EXPECT_EQ(boxes, 2);
+    for (const auto& [name, level] :
+         {std::pair<std::string, int>{"globo1", 37}, std::pair<std::string, int>{"globo3", 1}})
+    {
+        const std::size_t line =
+            indexOf([&name](const Client::Tests::FrameEvent& event)
+                    { return event.kind == Client::Tests::FrameEvent::Kind::Text && event.text.text == name; });
+        ASSERT_LT(line + 2, bar) << name;
+        const Client::Tests::RecordedText& drawn = events[line].text;
+        EXPECT_TRUE(drawn.windowed);
+        EXPECT_EQ(drawn.style.font, Client::Render::Text::FontKind::OtherFace12);
+        EXPECT_EQ(drawn.style.colors.text, 0xffffffffu);
+        EXPECT_EQ(events[line + 1].text.text, guild);
+        EXPECT_EQ(events[line + 2].text.text, wizard + " " + std::to_string(level));
+        EXPECT_EQ(events[line + 1].text.x, drawn.x);
+        EXPECT_EQ(events[line + 2].text.x, drawn.x);
+        EXPECT_EQ(events[line + 1].text.y, drawn.y + 16);
+        EXPECT_EQ(events[line + 2].text.y, drawn.y + 32);
+    }
 }
 } // namespace

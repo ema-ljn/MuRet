@@ -1,0 +1,1050 @@
+ola	va	bytes	categoria	proposito
+CL1	0x5f8360	41	sin clasificar	- Error de validación → 0x5f8360: MessageBoxA + WM_DESTROY, sin fclose.
+CL2	0x4e9140	322	clon byte a byte de una función citada	mapa de bloques en +0x24, contador en +0x2c; 0x4e9140/0x4e9290/0x4e9300
+CL2	0x4e9290	109	clon byte a byte de una función citada	mapa de bloques en +0x24, contador en +0x2c; 0x4e9140/0x4e9290/0x4e9300
+CL2	0x4e9300	36	clon byte a byte de una función citada	mapa de bloques en +0x24, contador en +0x2c; 0x4e9140/0x4e9290/0x4e9300
+CL2	0x6b7cd6	37	portada sin cita 0x (MuRet la nombra sin el 0x)	- main.exe recv → trampolín 0x6B7CF2 (parcheado por FoxAnti.Init →
+CL2	0x4e8f70	463	sin clasificar	└─ 0x4e893d: corte C1/C2/C3/C4 → 0x4e8f70 push a una cola FIFO
+CL2	0x41fa80	365	sin clasificar	hex del paquete y del texto plano (0x41fa80). El paquete se despacha
+CL2	0x4e893d	309	sin clasificar	└─ 0x4e893d: corte C1/C2/C3/C4 → 0x4e8f70 push a una cola FIFO
+CL2	0x4e8a80	280	sin clasificar	└─ 0x4e8a80 pop → si C3/C4: Dec2.Decrypt (0x685b30) + serial 0x5767914 → rearmado C1/C2
+CL2	0x685f60	155	sin clasificar	0x685e20 / 0x685f60 copia y desplazamiento de campos de bits, MSB primero
+CL2	0x685ac6	101	sin clasificar	0x685ACB = loop de descifrado propio del juego (stride 0xB, XOR con
+CL2	0x40b3b0	53	sin clasificar	con el serial de 0x5767913 (la entrada de un byte de la tabla de protección, 0x40b3b0 y 0x40b3f0)
+CL2	0x4e8ba0	45	sin clasificar	+0x30 (0x4e8ba0 crea el nodo, 0x4e8be0 copia el puntero) y avanza el
+CL2	0x685a90	45	sin clasificar	constructor y destructor del objeto de la vtable 0x6bd884, junto al descifrado propio 0x685ac6 (CL2)
+CL2	0x6b7cb0	36	sin clasificar	└─ n >= 3 → 0x6b7cb0: n = FoxAnti.decode_inbound(n, buf) (tabla 0x6b7d00[0])
+CL2	0x4031b0	35	sin clasificar	sin texto que la describa
+CL2	0x685a60	30	sin clasificar	constructor y destructor del objeto de la vtable 0x6bd884, junto al descifrado propio 0x685ac6 (CL2)
+CL2	0x4e8be0	19	sin clasificar	+0x30 (0x4e8ba0 crea el nodo, 0x4e8be0 copia el puntero) y avanza el
+CL2	0x685a40	18	sin clasificar	constructor y destructor del objeto de la vtable 0x6bd884, junto al descifrado propio 0x685ac6 (CL2)
+CL2	0x686000	10	sin clasificar	Leídas como contexto (no asignadas, ≤ 45 B): 0x686000 (bit >> 3), wrappers
+CL2	0x4031a0	7	sin clasificar	0x4031a0 7 chat: —
+CL2	0x685a80	7	sin clasificar	constructor y destructor del objeto de la vtable 0x6bd884, junto al descifrado propio 0x685ac6 (CL2)
+CL2	0x4e8870	3	sin clasificar	seriales 0x5767913/0x5767914), 0x6b7cb0 (trampolín del hook), 0x4e8870 y
+CL2	0x68f540	3842	sin uso en el original: cifrado por bloques que nadie llama con datos	las rondas del cifrado por bloques de 0x68f4b0, sin uso
+CL2	0x68f4b0	136	sin uso en el original: cifrado por bloques que nadie llama con datos	cifrado por bloques de 16 bytes (cargas big-endian, rondas en 0x68f540), sin uso
+CL3	0x420470	284	clon byte a byte de una función citada	usa GetCurrentProcess, GetCurrentThread, GetPriorityClass; la llama 0x420590
+CL3	0x459b00	33	clon byte a byte de una función citada	sin texto que la describa
+CL3	0x4be970	33	clon byte a byte de una función citada	sin texto que la describa
+CL3	0x4beaf0	33	clon byte a byte de una función citada	sin texto que la describa
+CL3	0x459a70	130	herramienta de desarrollo: el lector de .smd	el temporizador de alta resolución (QueryPerformanceCounter, timeBeginPeriod) que arma WinMain
+CL3	0x459b30	45	herramienta de desarrollo: el lector de .smd	usa timeEndPeriod, timeGetDevCaps; la llama 0x459b00
+CL3	0x420590	652	plataforma: CPU y MHz para el log (MuRet tiene su log, ADR 0006)	textos: " %dMhz", "AMD 486"; usa wsprintfA; la llama 0x420c00
+CL3	0x4200a0	965	plataforma: versión de Windows para el log (MuRet tiene su log, ADR 0006)	Q-C1297 el 50 de alguien fuera del viewport, 0x4d74b0 (0x4d74f8) guarda la clave en 0x78aba40 y, sin el diálogo ocupado,
+CL3	0x6832e0	465	sin clasificar	la llama 0x67f840
+CL3	0x4be780	300	sin clasificar	la llama 0x4be750
+CL3	0x4be9a0	300	sin clasificar	la llama 0x4be970
+CL3	0x4beb20	300	sin clasificar	la llama 0x4beaf0
+CL3	0x4af3e0	255	sin clasificar	FUN_006a0292(DAT_068c4a58,0xe0,(undefined4 )(DAT_068c4a58 + -4),FUN_004af3e0);
+CL3	0x645ce0	241	sin clasificar	la llama 0x645860, 0x645ba0
+CL3	0x680d00	236	sin clasificar	destructor y limpieza del objeto del manejador de caídas (vtable 0x6bd86c, cuyos métodos 0x682860 y 0x682970 son CL3)
+CL3	0x469f30	234	sin clasificar	usa SetFocus; la llama 0x4b9b80
+CL3	0x469e50	218	sin clasificar	prepara 0x469e50. Los dos con EM_LIMITTEXT 10 (0x467f30): 10 caracteres. La clave lleva
+CL3	0x4b94a0	171	sin clasificar	Q-C36 0x4b9890, con 0x4b94a0 un parser de opciones de la línea de comandos: /y<host> y /z<puerto> codificados, como los 
+CL3	0x4b8ff0	164	sin clasificar	registra la clase "MU" y crea la ventana (CreateWindowExA) desde WinMain
+CL3	0x41f910	144	sin clasificar	Q-C48 log, 0x41f7a0 y 0x41f830, con 0x41f910 MuError.log (0x6c6a20) se abre con CreateFileA (0x41f7e8): lectura y escrit
+CL3	0x41fc90	140	sin clasificar	separadores en 0x41fcfc, 0x4b9f42, 0x4b9fc8, 0x4b9fe3,
+CL3	0x680970	139	sin clasificar	destructor y limpieza del objeto del manejador de caídas (vtable 0x6bd86c, cuyos métodos 0x682860 y 0x682970 son CL3)
+CL3	0x4c02b0	129	sin clasificar	FUN_004c02b0();
+CL3	0x41f6a0	127	sin clasificar	Q-C48 log, 0x41f7a0 y 0x41f830, con 0x41f910 MuError.log (0x6c6a20) se abre con CreateFileA (0x41f7e8): lectura y escrit
+CL3	0x41f620	115	sin clasificar	Q-C48 log, 0x41f7a0 y 0x41f830, con 0x41f910 MuError.log (0x6c6a20) se abre con CreateFileA (0x41f7e8): lectura y escrit
+CL3	0x420c00	111	sin clasificar	FUN_00420c00();
+CL3	0x645c00	98	sin clasificar	la llama 0x645860, 0x645ba0
+CL3	0x683280	96	sin clasificar	usa GetFileSize, GetLastError; la llama 0x683940, 0x683c60
+CL3	0x682c70	91	sin clasificar	la llama 0x682990, 0x6829f0
+CL3	0x682990	89	sin clasificar	la llama 0x680180, 0x682970, 0x6b7880
+CL3	0x4ad360	81	sin clasificar	WinMain (0x4b9e24), 0x4ad360, 0x4b90a0 y 0x4ad4a0, y los cuatro le pasan lo que
+CL3	0x41f9a0	64	sin clasificar	(0x41fa58) y 0x41f9e0, que la escribe en MuError.log (0x41f9a0, con el XOR de Q-C48) solo
+CL3	0x413ae0	62	sin clasificar	la llama 0x6b3238, 0x6b3480, 0x6b348b y 174 más
+CL3	0x4c0ae0	62	sin clasificar	la llama 0x6b5130, 0x6b7a10
+CL3	0x680130	51	sin clasificar	0x67f4f0 toma el objeto único de la biblioteca (0x680130: un estático en 0x7d5c670, armado
+CL3	0x683db0	51	sin clasificar	la llama 0x683bb0, 0x683bd0
+CL3	0x669dc0	47	sin clasificar	la llama 0x6451d0
+CL3	0x682d50	47	sin clasificar	la llama 0x67f840
+CL3	0x682dc0	46	sin clasificar	la llama 0x6829f0
+CL3	0x41ec40	42	sin clasificar	- 0x4B331D: PostQuitMessage(0) (tras llamadas 0x41EC40/0x6B2DA2/
+CL3	0x4be6f0	38	sin clasificar	la llama 0x4af3e0, 0x6b51a0
+CL3	0x4be720	38	sin clasificar	la llama 0x6b51ab
+CL3	0x682cf0	37	sin clasificar	la llama 0x67f840
+CL3	0x682d20	37	sin clasificar	la llama 0x67f840
+CL3	0x682df0	37	sin clasificar	la llama 0x6829f0
+CL3	0x669d90	35	sin clasificar	0x669d90 35 ventanas: portada
+CL3	0x6808d0	34	sin clasificar	destructor y limpieza del objeto del manejador de caídas (vtable 0x6bd86c, cuyos métodos 0x682860 y 0x682970 son CL3)
+CL3	0x682d80	34	sin clasificar	la llama 0x6b79c0
+CL3	0x41f740	33	sin clasificar	sin texto que la describa
+CL3	0x4be750	33	sin clasificar	sin texto que la describa
+CL3	0x669f10	33	sin clasificar	0x669f10 33 ventanas: portada
+CL3	0x682930	32	sin clasificar	la llama 0x682d50
+CL3	0x67f550	31	sin clasificar	una sola vez por 0x67f550 y destruido con atexit, 0x680170) y llama a 0x67f710: si todavía
+CL3	0x682840	31	sin clasificar	la llama 0x6829f0
+CL3	0x41f720	30	sin clasificar	textos: "MuError.log"; la llama 0x4acf30
+CL3	0x680950	30	sin clasificar	destructor y limpieza del objeto del manejador de caídas (vtable 0x6bd86c, cuyos métodos 0x682860 y 0x682970 son CL3)
+CL3	0x682860	30	sin clasificar	sin texto que la describa
+CL3	0x682970	30	sin clasificar	sin texto que la describa
+CL3	0x682950	29	sin clasificar	El filtro, 0x680180. Con el EXCEPTION_POINTERS, arma la lista de frames (0x682950) y la
+CL3	0x67f530	28	sin clasificar	(0x67f830 y 0x67f530). Si eso devuelve 1 y la bandera vale 0 (0x67f820), devuelve
+CL3	0x41f810	22	sin clasificar	usa CloseHandle; la llama 0x41f770
+CL3	0x41f780	19	sin clasificar	la llama 0x41f720, 0x41f810
+CL3	0x680110	19	sin clasificar	los punteros y la lista (0x680110); sin él, escribe con el nombre por defecto del objeto
+CL3	0x682cd0	19	sin clasificar	0x512 4 cuántos frames 0x682cd0, 0x67ff50
+CL3	0x682e20	17	sin clasificar	la llama 0x6829f0
+CL3	0x41fc00	15	sin clasificar	FUN_0041fc00();
+CL3	0x4ad3c0	13	sin clasificar	WM_DESTROY (0x2) apagado: bandera DAT_05763568 = 1, cierra el socket (0x4e8380), libera, wzAudioDestroy, cierra GL (0x4a
+CL3	0x683bf0	12	sin clasificar	la llama 0x683db0
+CL3	0x41f770	11	sin clasificar	la llama 0x41f740
+CL3	0x680100	9	sin clasificar	llena desde el Ebp del CONTEXT (+0xb4, 0x6829f0). Con un callback (0x680100), lo llama con
+CL3	0x682880	7	sin clasificar	la llama 0x682860
+CL3	0x67f820	4	sin clasificar	(0x67f830 y 0x67f530). Si eso devuelve 1 y la bandera vale 0 (0x67f820), devuelve
+CL3	0x67f830	4	sin clasificar	(0x67f830 y 0x67f530). Si eso devuelve 1 y la bandera vale 0 (0x67f820), devuelve
+CL3	0x682910	4	sin clasificar	la llama 0x682cf0
+CL3	0x682920	4	sin clasificar	la llama 0x682d20
+CL3	0x4bfc30	3	sin clasificar	la llama 0x4af3e0
+CL3	0x4bfc40	3	sin clasificar	la llama 0x4af3e0
+CL3	0x682db0	3	sin clasificar	la llama 0x6829f0
+CL3	0x450e70	1	sin clasificar	FUN_00450e70();
+CL4	0x4d5910	509	sin clasificar	0x71 0x4e465b Delega a FUN_004d5910, que NO lee el paquete: envía un paquete C1 71 (3 B, sin payload) por el socket glob
+CL4	0x65fe50	44	sin clasificar	to connect." y abre el aviso 0x70 de la UI (0x65fe50, el texto 402 de Text.bmd), y
+CL4	0x4e8560	4	sin clasificar	la conexión 0x4e8560, después de la espera, en la escena 5 y con el byte 0x7d3a13c distinto de 0 (0x638640): con -1 deja
+CL4	0x450376	1	sin clasificar	vacía: la llama el WM_TIMER 1000 antes del keepalive (02-arranque-y-ciclo-de-vida.md)
+CL4	0x4e8850	1	sin clasificar	FUN_004e8850();
+CL5	0x465bb0	496	STL: plantillas de MSVC6	la llama 0x465b80
+CL5	0x465a70	268	STL: plantillas de MSVC6	valor TextOut del registro (02), que vale 0 si no está. Con 1, la clase de 0x465a70 (vtable
+CL5	0x465da0	232	STL: plantillas de MSVC6	la llama 0x6b41c8
+CL5	0x4758f0	203	STL: plantillas de MSVC6	la llama 0x465bb0
+CL5	0x477870	91	STL: plantillas de MSVC6	la llama 0x466000
+CL5	0x4778d0	89	STL: plantillas de MSVC6	la llama 0x465bb0
+CL5	0x4777f0	87	STL: plantillas de MSVC6	FUN_004777f0/00477870 rotaciones (fixup rojo-negro)
+CL5	0x477480	62	STL: plantillas de MSVC6	la llama 0x4669c0
+CL5	0x4774c0	62	STL: plantillas de MSVC6	la llama 0x4669c0
+CL5	0x477500	62	STL: plantillas de MSVC6	la llama 0x465bb0, 0x465da0, 0x4758f0
+CL5	0x475470	1139	STL: árbol (std::map) de MSVC6	la llama 0x465bb0, 0x465da0, 0x466c20 y 1 más
+CL5	0x477540	676	clon byte a byte de una función citada	FUN_00477540 búsqueda/inserción en el árbol
+CL5	0x475aa0	322	clon byte a byte de una función citada	la llama 0x466c20
+CL5	0x477930	321	clon byte a byte de una función citada	la llama 0x466c20
+CL5	0x472700	160	clon byte a byte de una función citada	la llama 0x6b41d3
+CL5	0x475a10	140	clon byte a byte de una función citada	la llama 0x466c20
+CL5	0x4878f0	109	clon byte a byte de una función citada	la llama 0x466c20
+CL5	0x487880	108	clon byte a byte de una función citada	la llama 0x466c20
+CL5	0x478a10	84	clon byte a byte de una función citada	la llama 0x466000
+CL5	0x4759c0	67	clon byte a byte de una función citada	la llama 0x465da0, 0x4669c0, 0x466c20 y 1 más
+CL5	0x63f600	36	clon byte a byte de una función citada	0x63f600 36 ventanas: CL5 (seguimiento)
+CL5	0x6446b0	36	clon byte a byte de una función citada	0x6446b0 36 ventanas: CL5 (seguimiento)
+CL5	0x465b80	33	clon byte a byte de una función citada	sin texto que la describa
+CL5	0x467010	33	clon byte a byte de una función citada	sin texto que la describa
+CL5	0x644060	33	clon byte a byte de una función citada	0x644060 33 ventanas: CL5 (seguimiento)
+CL5	0x477850	28	clon byte a byte de una función citada	la llama 0x4758f0
+CL5	0x487ba0	26	clon byte a byte de una función citada	FUN_00487ba0 copiar/setear clave del nodo
+CL5	0x478220	24	clon byte a byte de una función citada	FUN_00478220 setter pequeño
+CL5	0x475450	17	clon byte a byte de una función citada	la llama 0x465bb0, 0x465da0, 0x466c20
+CL5	0x475bf0	16	clon byte a byte de una función citada	la llama 0x465bb0
+CL5	0x459bc0	63	herramienta de desarrollo: el lector de .smd	para el delta de la UI (0x459b60) y el doble clic (0x459bc0), con timeGetTime si no hay.
+CL5	0x466c20	972	sin clasificar	usa glDeleteTextures, glIsTexture
+CL5	0x63ca20	569	sin clasificar	0x63ca20 569 HUD: CL8.3 ; ventanas: CL5 (selección) sí
+CL5	0x4669c0	461	sin clasificar	la llama 0x465eb0
+CL5	0x63cc60	356	sin clasificar	0x63cc60 356 ventanas: CL5 (selección)
+CL5	0x465eb0	327	sin clasificar	0x6b9520), cuyo método 1, 0x465eb0, va a 0x466000: la caché y los colores 0x02. Con
+CL5	0x4aece0	185	sin clasificar	el juego sale (Q-C35), y 0x4aece0 lee su versión: la del log
+CL5	0x41fdd0	184	sin clasificar	FUN_0041fdd0();
+CL5	0x41fd20	171	sin clasificar	FUN_0041fd20();
+CL5	0x63ce70	168	sin clasificar	0x63ce70 168 ventanas: CL5 (selección)
+CL5	0x4658b0	148	sin clasificar	Qué camino corre (CL5.R, estático): el objeto de DAT_05763510 lo arma 0x4658b0 con el
+CL5	0x643fd0	140	sin clasificar	+0x7e8 0x6ba988 (0x643fd0, arma 0x644120) sin identificar sin leer
+CL5	0x466b90	138	sin clasificar	la llama 0x4669c0
+CL5	0x644090	137	sin clasificar	0x644090 137 ventanas: CL5 (seguimiento)
+CL5	0x6465c0	126	sin clasificar	0x6465c0 126 ventanas: portada (UI/ServerListWindow)
+CL5	0x63c9a0	120	sin clasificar	0x63c9a0 120 ventanas: CL5 (selección)
+CL5	0x63ef00	117	sin clasificar	+0x4578 0x6ba848 (0x63ef00, arma 0x63f020) la de los créditos (inferido: la abre el botón de los créditos de la barra); 
+CL5	0x63efb0	109	sin clasificar	0x63efb0 109 ventanas: CL5 (seguimiento)
+CL5	0x647850	109	sin clasificar	0x647850 109 ventanas: CL5 (seguimiento)
+CL5	0x6477b0	107	sin clasificar	+0x3d0 0x6baa0c (0x6477b0, arma 0x6478c0) la que abre Esc (0x634c60, con la lista y la barra de abajo abiertas, +0x10f4 
+CL5	0x478c90	105	sin clasificar	la llama 0x466c20
+CL5	0x63cf20	91	sin clasificar	0x63cf20 91 ventanas: CL5 (selección)
+CL5	0x65f160	91	sin clasificar	0x65f160 91 ventanas: portada?
+CL5	0x457bb0	83	sin clasificar	usa glFrontFace, glStencilOp
+CL5	0x669c20	79	sin clasificar	0x669c20 79 ventanas: portada (UI/CreateCharacterWindow)
+CL5	0x63c2d0	78	sin clasificar	0x63c2d0 78 ventanas: CL5 (seguimiento)
+CL5	0x66a170	78	sin clasificar	0x66a170 78 ventanas: portada (ServerListWindow)
+CL5	0x640460	70	sin clasificar	la llama 0x640280, 0x6402d0
+CL5	0x6467e0	65	sin clasificar	0x6467e0 65 ventanas: CL5 (seguimiento)
+CL5	0x669d50	63	sin clasificar	0x669d50 63 ventanas: portada
+CL5	0x65f1c0	59	sin clasificar	0x65f1c0 59 ventanas: portada (carga)
+CL5	0x457b70	57	sin clasificar	usa glBegin, glEnd, glVertex3fv; la llama 0x457b60, 0x457bb0
+CL5	0x695bf0	55	sin clasificar	textos: "glProgramEnvParameter4fARB"; usa wglGetProcAddress; la llama 0x66b270
+CL5	0x695ce0	55	sin clasificar	textos: "glProgramLocalParameter4fARB"; usa wglGetProcAddress; la llama 0x66b1c0
+CL5	0x6444f0	43	sin clasificar	0x6444f0 43 ventanas: CL5 (seguimiento)
+CL5	0x63cf80	42	sin clasificar	0x40eca0, 0x65fe00 (la UI nueva: si hay modo, 0x63cf80 y la lista de +0x8de0 por
+CL5	0x63cfb0	42	sin clasificar	0x63cfb0 42 ventanas: CL5 (selección)
+CL5	0x695c30	40	sin clasificar	textos: "glProgramEnvParameter4fvARB"; usa wglGetProcAddress; la llama 0x66b2b0
+CL5	0x695d20	40	sin clasificar	textos: "glProgramLocalParameter4fvARB"; usa wglGetProcAddress; la llama 0x66b200
+CL5	0x695d80	40	sin clasificar	textos: "glGetProgramEnvParameterfvARB"; usa wglGetProcAddress; la llama 0x66b310
+CL5	0x695de0	40	sin clasificar	textos: "glGetProgramLocalParameterfvAR"; usa wglGetProcAddress; la llama 0x66b2e0
+CL5	0x4789e0	35	sin clasificar	FUN_004789e0/00478a10 alocar nodo / fixup de inserción
+CL5	0x646560	35	sin clasificar	sin texto que la describa
+CL5	0x447aa0	33	sin clasificar	sin texto que la describa
+CL5	0x63c2a0	33	sin clasificar	0x63c2a0 33 ventanas: CL5 (seguimiento)
+CL5	0x63ce10	33	sin clasificar	0x63ce10 33 ventanas: CL5 (selección)
+CL5	0x63d480	33	sin clasificar	0x63d480 33 ventanas: portada (UI/CreateCharacterWindow)
+CL5	0x63ef80	33	sin clasificar	0x63ef80 33 ventanas: CL5 (seguimiento)
+CL5	0x646590	33	sin clasificar	0x646590 33 ventanas: portada (UI/ServerListWindow)
+CL5	0x647820	33	sin clasificar	0x647820 33 ventanas: CL5 (seguimiento)
+CL5	0x63c280	32	sin clasificar	0x63c280 32 HUD: CL8.3 ; ventanas: CL5 (seguimiento) sí
+CL5	0x63c940	28	sin clasificar	sin texto que la describa
+CL5	0x647030	28	sin clasificar	0x647030 28 ventanas: CL5 (seguimiento)
+CL5	0x63ce50	25	sin clasificar	0x63ce50 25 ventanas: CL5 (selección)
+CL5	0x4659e0	24	sin clasificar	usa SelectObject
+CL5	0x487960	19	sin clasificar	la llama 0x466c20
+CL5	0x466ff0	18	sin clasificar	cualquier otro, la de 0x466ff0 (vtable 0x6b9538), cuyo método 1, 0x467060, hace un
+CL5	0x63ce00	16	sin clasificar	0x63ce00 16 HUD: CL8.3 ; ventanas: CL5 (selección) sí
+CL5	0x450300	14	sin clasificar	FUN_00450300();
+CL5	0x467040	11	sin clasificar	la llama 0x467010
+CL5	0x63c990	11	sin clasificar	0x63c990 11 ventanas: CL5 (selección)
+CL5	0x63ce40	11	sin clasificar	0x63ce40 11 ventanas: CL5 (selección)
+CL5	0x647020	11	sin clasificar	0x647020 11 ventanas: CL5 (seguimiento)
+CL5	0x4659b0	9	sin clasificar	la llama 0x465a70, 0x466ff0
+CL5	0x447ad0	7	sin clasificar	la llama 0x447aa0
+CL5	0x4659d0	7	sin clasificar	la llama 0x465bb0, 0x467040, 0x6b41a0 y 1 más
+CL5	0x640840	7	sin clasificar	0x640840 7 ventanas: portada
+CL6	0x454630	33	clon byte a byte de una función citada	sin texto que la describa
+CL6	0x454760	33	clon byte a byte de una función citada	sin texto que la describa
+CL6	0x458d60	1380	herramienta de desarrollo: el lector de .smd	la llama 0x458c50
+CL6	0x4592e0	914	herramienta de desarrollo: el lector de .smd	la llama 0x458c50
+CL6	0x458280	629	herramienta de desarrollo: el lector de .smd	textos: "nodes", "skeleton"; la llama 0x458bd0
+CL6	0x458500	611	herramienta de desarrollo: el lector de .smd	la llama 0x458280, 0x4587e0, 0x458980 y 1 más
+CL6	0x458980	591	herramienta de desarrollo: el lector de .smd	textos: "triangles"; la llama 0x458bd0
+CL6	0x459690	540	herramienta de desarrollo: el lector de .smd	la llama 0x458ce0
+CL6	0x4587e0	402	herramienta de desarrollo: el lector de .smd	textos: "skeleton", "time"; la llama 0x458bd0
+CL6	0x458c50	138	herramienta de desarrollo: el lector de .smd	la llama 0x60d830, 0x60d9d0, 0x60dbe0
+CL6	0x458bd0	123	herramienta de desarrollo: el lector de .smd	la llama 0x458c50, 0x458ce0
+CL6	0x458ce0	76	herramienta de desarrollo: el lector de .smd	la llama 0x60d830, 0x60d9d0, 0x60dbe0
+CL6	0x459910	38	herramienta de desarrollo: el lector de .smd	textura de cada malla (0x459940 y 0x459910: qué prende cada letra, y qué nombres del
+CL6	0x4f1ac0	1116	herramienta de desarrollo: escribe un .bmd detrás de DAT_07d366bc, que nadie escribe	DAT_07d366bc, que nadie escribe) lee con 0x4f13d0; 0x4f1ac0 escribe un .bmd (con
+CL6	0x6154a0	92	portada sin cita 0x (MuRet la nombra sin el 0x)	con desplazamiento rand()&1023 (0x60dc4c..0x60dc7a). El constructor 0x6154ab..0x6154b3
+CL6	0x4f1f80	602	sin clasificar	mínimo y el máximo de los vértices que cuelgan de él (0x4f1f80, las 8 esquinas en hueso +
+CL6	0x4561d0	488	sin clasificar	sin texto que la describa
+CL6	0x60d830	406	sin clasificar	la llama 0x60dbe0, 0x60ff50, 0x612270 y 3 más
+CL6	0x455b10	292	sin clasificar	# 0x455930, 0x455b10 y 0x455c40
+CL6	0x4ad180	228	sin clasificar	WM_DESTROY (0x2) apagado: bandera DAT_05763568 = 1, cierra el socket (0x4e8380), libera, wzAudioDestroy, cierra GL (0x4a
+CL6	0x549ec0	221	sin clasificar	carga FilterName.bmd, como su par 0x549c60 (Filter.bmd, CL6)
+CL6	0x454410	192	sin clasificar	la llama 0x455770
+CL6	0x4544d0	160	sin clasificar	# G. las ramas raras: columnas en el mismo punto (el largo mínimo 0,001 de 0x4555d0 y 0x4544d0), filas
+CL6	0x642d50	150	sin clasificar	Q-C116 cancelar el aviso del código del borrado, 0x6436a0 pone el id en −1 y cierra, pero el EDIT del código (DAT_057635
+CL6	0x455d90	149	sin clasificar	la llama 0x455770
+CL6	0x456580	100	sin clasificar	sin texto que la describa
+CL6	0x60d9d0	89	sin clasificar	textos: "%s%d.smd", "%s0%d.smd"; la llama 0x60dbe0, 0x60ff50
+CL6	0x454f20	88	sin clasificar	sin texto que la describa
+CL6	0x510c40	88	sin clasificar	sin texto que la describa
+CL6	0x454700	73	sin clasificar	la llama 0x455cd0
+CL6	0x5fc7c0	60	sin clasificar	la llama 0x458000, 0x4ec340, 0x622900
+CL6	0x4545d0	39	sin clasificar	la llama 0x4547f0
+CL6	0x5fc760	38	sin clasificar	la llama 0x60b3d0
+CL6	0x4547c0	37	sin clasificar	la llama 0x455cd0
+CL6	0x4541e0	36	sin clasificar	la llama 0x4541b0
+CL6	0x454320	34	sin clasificar	la llama 0x4555d0
+CL6	0x454390	33	sin clasificar	la llama 0x4547f0, 0x455930, 0x455ea0 y 1 más
+CL6	0x640c40	33	sin clasificar	sin texto que la describa
+CL6	0x4546d0	29	sin clasificar	la llama 0x455770
+CL6	0x640c70	28	sin clasificar	la llama 0x640c40
+CL6	0x454690	25	sin clasificar	la llama 0x455770
+CL6	0x454670	24	sin clasificar	la llama 0x454600, 0x4547a0
+CL6	0x4541b0	18	sin clasificar	sin texto que la describa
+CL6	0x454600	18	sin clasificar	la llama 0x454700
+CL6	0x4547a0	17	sin clasificar	la llama 0x454700
+CL6	0x450320	14	sin clasificar	la llama 0x634c60
+CL6	0x454790	11	sin clasificar	la llama 0x454760
+CL6	0x455e80	11	sin clasificar	la llama 0x455e50, 0x510c40
+CL6	0x4541d0	7	sin clasificar	la llama 0x454f20
+CL6	0x454660	7	sin clasificar	la llama 0x454630, 0x454790, 0x6b3cd0
+CL6	0x622b30	6	sin clasificar	la llama 0x63d7c0
+CL7	0x453750	1039	clon byte a byte de una función citada	la llama 0x450fe0, 0x451100, 0x451430 y 3 más
+CL7	0x42ec00	322	clon byte a byte de una función citada	la llama 0x42a2b0
+CL7	0x42ed50	109	clon byte a byte de una función citada	la llama 0x42a2b0
+CL7	0x65e9d0	81	clon byte a byte de una función citada	la llama 0x65dfa0
+CL7	0x401750	77	clon byte a byte de una función citada	la llama 0x6b3090
+CL7	0x43ff20	76	clon byte a byte de una función citada	la llama 0x443990
+CL7	0x65ea30	67	clon byte a byte de una función citada	la llama 0x65ce80, 0x65cf80, 0x65e1d0
+CL7	0x40c810	52	clon byte a byte de una función citada	0x40c810 (el XOR3 con FC CF AB de 0x6c63c4, que vuelve a empezar en cada registro) y los copia
+CL7	0x42edc0	36	clon byte a byte de una función citada	la llama 0x42a2b0
+CL7	0x4032b0	33	clon byte a byte de una función citada	sin texto que la describa
+CL7	0x405f70	33	clon byte a byte de una función citada	sin texto que la describa
+CL7	0x418c60	33	clon byte a byte de una función citada	sin texto que la describa
+CL7	0x447f00	33	clon byte a byte de una función citada	sin texto que la describa
+CL7	0x65df80	17	clon byte a byte de una función citada	la llama 0x65ce80, 0x65cf80
+CL7	0x65d080	2933	falta: el cartel del nombre del mapa (tabla de Interface\<mapa>.tga)	textos: "Interface\Icarus.tga", "Interface\Kalima.tga"; la llama 0x65cd70
+CL7	0x65e1d0	1094	falta: el cartel del nombre del mapa (tabla de Interface\<mapa>.tga)	la llama 0x65ce80, 0x65cf80
+CL7	0x65e670	628	falta: el cartel del nombre del mapa (tabla de Interface\<mapa>.tga)	la llama 0x65dfa0
+CL7	0x65dfa0	558	falta: el cartel del nombre del mapa (tabla de Interface\<mapa>.tga)	la llama 0x65de30
+CL7	0x65de30	260	falta: el cartel del nombre del mapa (tabla de Interface\<mapa>.tga)	la llama 0x65d080, 0x65dc30
+CL7	0x65cf80	249	falta: el cartel del nombre del mapa (tabla de Interface\<mapa>.tga)	la llama 0x65ce50
+CL7	0x65ce80	242	falta: el cartel del nombre del mapa (tabla de Interface\<mapa>.tga)	la llama 0x6b7280
+CL7	0x65cd70	221	falta: el cartel del nombre del mapa (tabla de Interface\<mapa>.tga)	local_24ac = FUN_0065cd70();
+CL7	0x615500	510	herramienta de desarrollo: carga .smd detrás de DAT_07d366bc, que nadie escribe	0x615500 0x548 nada: lo llama 0x61eeb0, detrás de DAT_07d366bc
+CL7	0x54b3d0	1307	herramienta de desarrollo: lee Data2\Local\item(%s).txt (el exportador del Item.bmd)	- Parser 0x54b3d0; el valor en runtime del flag 0x6c9e0c; handler de
+CL7	0x411600	2172	portada sin cita 0x (MuRet la nombra sin el 0x)	usa glColor3f, glColor4f
+CL7	0x4385a0	1175	portada sin cita 0x (MuRet la nombra sin el 0x)	El prefijo global 0x4385a0 corre antes del early-return por ausencia de objetos vistos y
+CL7	0x41d2d0	1058	portada sin cita 0x (MuRet la nombra sin el 0x)	perturbación, 0x41d880, 0x41d2d0, render o integración/lifetime de Kalima.
+CL7	0x439680	1052	portada sin cita 0x (MuRet la nombra sin el 0x)	- 0x439680, Kalima: lee y cierra el acceso lógico al contador antes del gate %100; el cierre
+CL7	0x41cf00	966	portada sin cita 0x (MuRet la nombra sin el 0x)	0x41d880 y la malla de 0x41d2d0 que consume 0x41cf00. El dueño es independiente
+CL7	0x41d880	860	portada sin cita 0x (MuRet la nombra sin el 0x)	perturbación, 0x41d880, 0x41d2d0, render o integración/lifetime de Kalima.
+CL7	0x443990	859	portada sin cita 0x (MuRet la nombra sin el 0x)	Módulos de evento Step de objetos y hojas 0x52fe30, 0x42b1e0, 0x443996, 0x4292c0, 0x5301a0
+CL7	0x435600	775	portada sin cita 0x (MuRet la nombra sin el 0x)	la llama 0x530490
+CL7	0x4455e0	686	portada sin cita 0x (MuRet la nombra sin el 0x)	- 0x4455e0, Icarus: índices 0..2 preparan Monster32 y gastan seis sorteos del nacimiento; los
+CL7	0x41dd00	641	portada sin cita 0x (MuRet la nombra sin el 0x)	usa glColor3fv, glColor4f; la llama 0x437940
+CL7	0x41cca0	608	portada sin cita 0x (MuRet la nombra sin el 0x)	World/KalimaWorld conserva el estado de 0x41cca0, los planos periódicos de
+CL7	0x445ec0	602	portada sin cita 0x (MuRet la nombra sin el 0x)	- 0x445ec0 llama al flock 0x4e9a40 con el pool físico completo, incluidos vecinos vivos fuera
+CL7	0x5301a0	511	portada sin cita 0x (MuRet la nombra sin el 0x)	alrededor del héroe (estático), y avanzan con 0x5301a0 y 0x5303a0: caen y se posan en el
+CL7	0x41df90	502	portada sin cita 0x (MuRet la nombra sin el 0x)	usa glBegin, glColor3fv, glColor4f; la llama 0x41dd00
+CL7	0x52f880	472	portada sin cita 0x (MuRet la nombra sin el 0x)	la llama 0x530490
+CL7	0x445b90	455	portada sin cita 0x (MuRet la nombra sin el 0x)	- 0x445b90 conserva los if sucesivos: el ave AD/BC puede pasar 0 → 1 → 3 en un paso y tomar
+CL7	0x52f6b0	450	portada sin cita 0x (MuRet la nombra sin el 0x)	la llama 0x530490
+CL7	0x52fe30	423	portada sin cita 0x (MuRet la nombra sin el 0x)	Módulos de evento Step de objetos y hojas 0x52fe30, 0x42b1e0, 0x443996, 0x4292c0, 0x5301a0
+CL7	0x52fa60	417	portada sin cita 0x (MuRet la nombra sin el 0x)	lluvia (0x75fdc38) en 100 en cada paso. En el 0 nacen con 0x52fa60, el tipo 100 (leaf01),
+CL7	0x445890	404	portada sin cita 0x (MuRet la nombra sin el 0x)	- 0x445890, Atlans: heroY0,01f conserva el producto sin spill antes de compararlo con 128.
+CL7	0x5f8c10	384	portada sin cita 0x (MuRet la nombra sin el 0x)	sin texto que la describa
+CL7	0x41d700	372	portada sin cita 0x (MuRet la nombra sin el 0x)	la llama 0x41cca0, 0x437860
+CL7	0x4e9a40	368	portada sin cita 0x (MuRet la nombra sin el 0x)	- 0x445ec0 llama al flock 0x4e9a40 con el pool físico completo, incluidos vecinos vivos fuera
+CL7	0x445d60	351	portada sin cita 0x (MuRet la nombra sin el 0x)	restantes crean el 0x10f y su joint con el dueño durable. 0x445d60 usa yaw en radianes y el
+CL7	0x429ec0	341	portada sin cita 0x (MuRet la nombra sin el 0x)	sin el ítem no sale. El GS (CGEventChipRegRequest, 0x429fc0) acepta los tipos 0 y 1 y le suma 12 a la casilla.
+CL7	0x438ad0	307	portada sin cita 0x (MuRet la nombra sin el 0x)	El ciclo vivo completa esos tres cuerpos públicos: movimiento 0x438ad0, partículas de los
+CL7	0x52fc10	270	portada sin cita 0x (MuRet la nombra sin el 0x)	solo nace en Icarus (0x52fc10): en Lorencia, el 0F de lluvia prende el sonido de ambiente y nada
+CL7	0x52fd20	270	portada sin cita 0x (MuRet la nombra sin el 0x)	la llama 0x530490
+CL7	0x5f8e40	252	portada sin cita 0x (MuRet la nombra sin el 0x)	sin texto que la describa
+CL7	0x445a90	251	portada sin cita 0x (MuRet la nombra sin el 0x)	la llama 0x446120
+CL7	0x5f9580	233	portada sin cita 0x (MuRet la nombra sin el 0x)	- 0x5ad1cf / 0x5ad209: pincel de altura FUN_005f9580(x, y, ∓10.0f, brush+1, &DAT_07accca4), luego normales y luz.
+CL7	0x5300c0	215	portada sin cita 0x (MuRet la nombra sin el 0x)	Q-C321 la consulta del atributo de una posición, 0x5f82c0 los dos fmul van por 0x6ba110, que vale −0,01f (0xbc23d70a): l
+CL7	0x52ffe0	210	portada sin cita 0x (MuRet la nombra sin el 0x)	la llama 0x530490
+CL7	0x52e3b0	179	portada sin cita 0x (MuRet la nombra sin el 0x)	la llama 0x52e470
+CL7	0x553780	153	portada sin cita 0x (MuRet la nombra sin el 0x)	9 el estado 0x3d, 0x77f3b67 = 0 y 0x553780(1, 0) 0x4c4854
+CL7	0x4e94c0	147	portada sin cita 0x (MuRet la nombra sin el 0x)	una suma vectorial reordenada. El rumbo 0x4e97a0 y el giro entero 0x4e94c0 son distintos
+CL7	0x52e500	143	portada sin cita 0x (MuRet la nombra sin el 0x)	5. 0x52e500 (0x5091d0): el paso de las estelas de 0x75e9870 (100 de 0x2f4), sin rand(). Las crea
+CL7	0x41dc80	122	portada sin cita 0x (MuRet la nombra sin el 0x)	la llama 0x4378e0
+CL7	0x439aa0	120	portada sin cita 0x (MuRet la nombra sin el 0x)	Y=heroY−500+rand()%200, Z=heroZ−800. 0x439aa0 gira, sortea %5 y, con timer<20,
+CL7	0x4e97a0	105	portada sin cita 0x (MuRet la nombra sin el 0x)	una suma vectorial reordenada. El rumbo 0x4e97a0 y el giro entero 0x4e94c0 son distintos
+CL7	0x445a30	84	portada sin cita 0x (MuRet la nombra sin el 0x)	la llama 0x446120
+CL7	0x4378e0	82	portada sin cita 0x (MuRet la nombra sin el 0x)	0x4378e0 devuelve175. El calco tiene su propio plano y escala; no se deduce de esos175.
+CL7	0x4379a0	67	portada sin cita 0x (MuRet la nombra sin el 0x)	registro propio, tabla de clase/nivel 0x4379a0, lecturas XY separadas y orden de los sorteos.
+CL7	0x437940	56	portada sin cita 0x (MuRet la nombra sin el 0x)	0x6eb Calco con scale y luz propia; en24..29/36, salvo /6, conserva depthWrite=false y corta en 0x52e12f antes de 0x4379
+CL7	0x4295b0	51	portada sin cita 0x (MuRet la nombra sin el 0x)	la llama 0x4295f0, 0x429e40, 0x42ddb0
+CL7	0x4673a0	48	portada sin cita 0x (MuRet la nombra sin el 0x)	0x4673a0 48 chat: fuera de alcance
+CL7	0x4378a0	32	portada sin cita 0x (MuRet la nombra sin el 0x)	aparte (0x4378a0 → 0x41cca0, 0x41cf00).
+CL7	0x4292c0	29	portada sin cita 0x (MuRet la nombra sin el 0x)	Módulos de evento Step de objetos y hojas 0x52fe30, 0x42b1e0, 0x443996, 0x4292c0, 0x5301a0
+CL7	0x4378c0	29	portada sin cita 0x (MuRet la nombra sin el 0x)	FUN_004378c0();
+CL7	0x437850	11	portada sin cita 0x (MuRet la nombra sin el 0x)	36). En Lorencia da 0, así que 0x437850() da falso y el dibujo hace el terreno y no el segundo
+CL7	0x4c6790	938	portada sin cita: el D3 (OnWalk, Protocol/Movement)	0xD3 S->C 0x4c6790 dónde va un personaje: la celda X/Y y la dirección en pkt[7] >> 4 (abajo)
+CL7	0x54a660	951	sin clasificar	la llama 0x61ccb0
+CL7	0x457870	739	sin clasificar	19 las 0x44 a 0x48 (0x594e42..0x599d1c, dos copias cada una) C1 06 19 <skill> <clave H L>: con 0x6c8e30 en −1, la del ju
+CL7	0x54aa20	719	sin clasificar	Skill.bmd 0x54acf0 / 0x54aa20 256 × 0x3C bytes + checksum 0x5A18; luego un contenedor "guardia" con rand() [0x076BD1D8],
+CL7	0x42eed0	652	sin clasificar	la llama 0x602ed0
+CL7	0x622170	639	sin clasificar	adentro (0x622170) proyecta por prioridad x, luego y, si no z; ±0,5 seleccionan ese eje, sin
+CL7	0x61a280	611	sin clasificar	la llama 0x616ec0
+CL7	0x410330	577	sin clasificar	if (mode == 0) cipher = Create(VMT 0x410348); // TDCP_rijndael
+CL7	0x640c90	491	sin clasificar	a 0x721 (GL_LINEAR, GL_CLAMP) y un objeto de 0x2a8 bytes (0x640c10, 0x640c90) con las
+CL7	0x65ea80	369	sin clasificar	la llama 0x65dfa0, 0x65e670
+CL7	0x4573f0	343	sin clasificar	la llama 0x457550
+CL7	0x54a180	340	sin clasificar	0x4bae26, a cero en 0x4baf80 y liberada en 0x4aefbc); 0x54a180 (lee Data2\Gate.txt) y
+CL7	0x446f00	298	sin clasificar	del login por 0x4453b0), los peces (0x446f74), los efectos (0x52d871, 0x52d897, 0x52da99)
+CL7	0x4c0cc0	270	sin clasificar	la llama 0x6b5140
+CL7	0x4eaaf0	258	sin clasificar	(new(0x424), en 0x5767b74) y lo inicializa 0x4eaaf0, desde el cargador del mundo (0x61bd80):
+CL7	0x54e6f0	255	sin clasificar	la llama 0x61eeb0
+CL7	0x42ac50	242	sin clasificar	la llama 0x42ad50, 0x5650c0
+CL7	0x621610	241	sin clasificar	P-C73 Lo que el 3D de la UI deja en los globales y su traza (hito 4 de la CL8, 2026-11-12, [06](06-render-escenas-y-ui.m
+CL7	0x4c1060	240	sin clasificar	FUN_004c1060((int )(DVar3 + 0x41c));
+CL7	0x53ea00	237	sin clasificar	usa glBegin, glEnd, glPopMatrix
+CL7	0x54b8f0	236	sin clasificar	Item.bmd 0x54b9e0 / 0x54b8f0 8192 × 0x54 bytes + checksum 0xE2F1 [0x07758550], 0xA8000
+CL7	0x4125f0	222	sin clasificar	0x412564/0x412604, 0x411128/0x4111c8 Encrypt/Decrypt CFB8bit shift 1 byte + realimentación
+CL7	0x549b80	221	sin clasificar	Filter.bmd 0x549c60 / 0x549b80 igual, con checksum 0x3E7D 0x077531DC, la cuenta en 0x07758558
+CL7	0x6450f0	221	sin clasificar	0x6450f0 221 ventanas: portada (UI/ServerListWindow)
+CL7	0x452250	199	sin clasificar	la llama 0x451430, 0x4514a0, 0x451590 y 1 más
+CL7	0x4146f0	196	sin clasificar	0x4147a4) y en lo colgado (0x509a39, que llega con Translate en 1 desde los que llaman a
+CL7	0x41eb90	175	sin clasificar	- 0x4B32DB: loop de 638 iteraciones (call 0x41EB90(i)) antes del quit.
+CL7	0x456a50	170	sin clasificar	la clase de la vtable 0x6b8d38 (sus métodos 0x4573a0, 0x457550 y 0x457dc0 son CL7): destructor, lista de objetos y búsqu
+CL7	0x608950	166	sin clasificar	la llama 0x608a00
+CL7	0x457690	162	sin clasificar	1E las ramas del caballero (0x582439..0x5896a3) C1 0C 1E <skill> <x> <y> <rumbo> <hacia> <espalda> <clave H L> <b11>: la
+CL7	0x63d0f0	162	sin clasificar	0x63d0f0 162 ventanas: portada (UI/CreateCharacterWindow)
+CL7	0x5111f0	155	sin clasificar	FUN_005111f0();
+CL7	0x54ed60	145	sin clasificar	la llama 0x54eec0
+CL7	0x607010	136	sin clasificar	la llama 0x5acbe0, 0x6070a0, 0x6071d0
+CL7	0x401130	130	sin clasificar	sin texto que la describa
+CL7	0x456ca0	129	sin clasificar	la clase de la vtable 0x6b8d38 (sus métodos 0x4573a0, 0x457550 y 0x457dc0 son CL7): destructor, lista de objetos y búsqu
+CL7	0x642930	124	sin clasificar	0x642930 124 ventanas: portada (UI/NoticeWindow)
+CL7	0x63e7a0	122	sin clasificar	0x63e7a0 122 ventanas: portada (UI/SelectionBar)
+CL7	0x641540	122	sin clasificar	0x641540 122 ventanas: portada (UI/LoginWindow)
+CL7	0x549b00	121	sin clasificar	la llama 0x61ccb0
+CL7	0x549e40	121	sin clasificar	la llama 0x61ccb0
+CL7	0x454980	117	sin clasificar	0x4548b0, 0x454980)) y +0x18c = 3:
+CL7	0x54a2e0	117	sin clasificar	Gate.bmd 0x54a360 / 0x54a2e0 256 × 9 bytes ([los campos](#gatebmd)) [0x07688AB8], 0x900
+CL7	0x456d30	110	sin clasificar	la llama 0x6b3cf0
+CL7	0x412960	109	sin clasificar	la llama 0x412930
+CL7	0x640f90	109	sin clasificar	0x640f90 109 ventanas: portada (UI/MenuBar)
+CL7	0x401480	98	sin clasificar	la llama 0x401060, 0x401130
+CL7	0x457550	94	sin clasificar	sin texto que la describa
+CL7	0x54ed00	94	sin clasificar	la llama 0x54ed60
+CL7	0x65e950	91	sin clasificar	la llama 0x65dfa0
+CL7	0x510ca0	88	sin clasificar	sin texto que la describa
+CL7	0x65e8f0	87	sin clasificar	la llama 0x65dfa0
+CL7	0x414690	84	sin clasificar	la llama 0x4146f0
+CL7	0x457c10	82	sin clasificar	la clase de la vtable 0x6b8d38 (sus métodos 0x4573a0, 0x457550 y 0x457dc0 son CL7): destructor, lista de objetos y búsqu
+CL7	0x4c1190	78	sin clasificar	IsOpen(0x20) / IsOpen(0x10000) 0x659290 (cierres 0x4c0ec0 / 0x4c1190) 1 cada uno donde se llame
+CL7	0x413ba0	72	sin clasificar	la llama 0x413bf0
+CL7	0x65e620	70	sin clasificar	la llama 0x65ce80, 0x65cf80
+CL7	0x4eb5e0	63	sin clasificar	la llama 0x4ead70
+CL7	0x4013d0	62	sin clasificar	la llama 0x401350, 0x401410, 0x401480
+CL7	0x65df40	62	sin clasificar	la llama 0x65e620, 0x65ec00, 0x6b72a8
+CL7	0x61c9f0	61	sin clasificar	Q-C92 el logo del login, 0x61c7c0 y 0x61c9f0 carga Logo03 sin 0x60d530: sus dos texturas van donde dejó el próximo el mu
+CL7	0x612230	58	sin clasificar	para sentarse). Lo demás de cada entrada queda (Q-C138). Después, 0x612230 y 0x612d50 sueltan
+CL7	0x612d50	58	sin clasificar	para sentarse). Lo demás de cada entrada queda (Q-C138). Después, 0x612230 y 0x612d50 sueltan
+CL7	0x413f20	54	sin clasificar	la llama 0x413c30
+CL7	0x54eec0	52	sin clasificar	FUN_0054eec0();
+CL7	0x401670	51	sin clasificar	la llama 0x401000, 0x401020, 0x401040 y 5 más
+CL7	0x42ebc0	51	sin clasificar	la llama 0x4293d0
+CL7	0x61eeb0	49	sin clasificar	0x615500 0x548 nada: lo llama 0x61eeb0, detrás de DAT_07d366bc
+CL7	0x404d00	45	sin clasificar	sin texto que la describa
+CL7	0x413b40	45	sin clasificar	sin texto que la describa
+CL7	0x413f60	45	sin clasificar	sin texto que la describa
+CL7	0x401100	44	sin clasificar	read(bytes(image), 0x401100, 4)
+CL7	0x41cc70	44	sin clasificar	24 a 29 y 36 sin tiles; un terreno de agua propio de 0x114ad8 bytes en 0x723c48 0x4377a0, 0x41cc70
+CL7	0x4125c0	38	sin clasificar	la llama 0x6b31fb, 0x6b3211
+CL7	0x457f40	37	sin clasificar	sin texto que la describa
+CL7	0x405fb0	35	sin clasificar	sin texto que la describa
+CL7	0x418c30	35	sin clasificar	sin texto que la describa
+CL7	0x413bf0	33	sin clasificar	sin texto que la describa
+CL7	0x413fb0	33	sin clasificar	sin texto que la describa
+CL7	0x447f40	33	sin clasificar	sin texto que la describa
+CL7	0x456a20	33	sin clasificar	la clase de la vtable 0x6b8d38 (sus métodos 0x4573a0, 0x457550 y 0x457dc0 son CL7): destructor, lista de objetos y búsqu
+CL7	0x4573a0	33	sin clasificar	sin texto que la describa
+CL7	0x457dc0	33	sin clasificar	sin texto que la describa
+CL7	0x65ce50	33	sin clasificar	0x65ce50 33 ventanas: fuera del dominio
+CL7	0x65ec00	33	sin clasificar	la llama 0x65ce80, 0x65cf80
+CL7	0x5fc380	30	sin clasificar	add esp,4 y call 0x5fc380. Ese último solo escribe tres constantes:
+CL7	0x5f9000	29	sin clasificar	(0x7d2d35c, que pone 0x5f9000 al cargar), la celda es x · 0,01 y y · 0,01 truncados, y entre
+CL7	0x640ea0	29	sin clasificar	(0x620db0(0, 0, 640, 480), glClear, 0x640ea0, que llama a 0x647650 con cada una,
+CL7	0x65e9b0	29	sin clasificar	la llama 0x65dfa0
+CL7	0x5ecda0	23	sin clasificar	[0x723c60]), 0x5e3c70, 0x5ecda0, 0x403300 y 0x403d60. Ninguna de esas llamadas, ni
+CL7	0x65f290	21	sin clasificar	FUN_0065f290();
+CL7	0x620ff0	19	sin clasificar	la llama 0x53d2c0, 0x53d550, 0x53ebd0 y 5 más
+CL7	0x457380	18	sin clasificar	la llama 0x457d60
+CL7	0x4032e0	17	sin clasificar	la llama 0x4032b0
+CL7	0x404ce0	17	sin clasificar	la llama 0x6b3120
+CL7	0x413b20	17	sin clasificar	la llama 0x6b3230
+CL7	0x413f90	17	sin clasificar	la llama 0x413fb0
+CL7	0x5545f0	17	sin clasificar	+0x2134c..+0x21385 de [0x710148]), y las llamadas 0x5545f0, 0x555030, 0x40ba20 (con
+CL7	0x4573e0	16	sin clasificar	la llama 0x457380
+CL7	0x5e3c70	13	sin clasificar	[0x723c60]), 0x5e3c70, 0x5ecda0, 0x403300 y 0x403d60. Ninguna de esas llamadas, ni
+CL7	0x401060	12	sin clasificar	la llama 0x5111f0
+CL7	0x4250e0	11	sin clasificar	la llama 0x606660
+CL7	0x42ee30	11	sin clasificar	la llama 0x606660
+CL7	0x4303d0	11	sin clasificar	la llama 0x606660
+CL7	0x457df0	11	sin clasificar	la llama 0x457dc0
+CL7	0x405fa0	7	sin clasificar	la llama 0x405f70
+CL7	0x418c20	7	sin clasificar	la llama 0x6b3300
+CL7	0x418c90	7	sin clasificar	la llama 0x418c60
+CL7	0x447f30	7	sin clasificar	la llama 0x447f00
+CL7	0x447f70	7	sin clasificar	la llama 0x447f40
+CL7	0x4573d0	7	sin clasificar	la llama 0x4573a0, 0x457d60, 0x457df0 y 1 más
+CL7	0x404c30	1	sin clasificar	la llama 0x403660
+CL7	0x404c40	1	sin clasificar	la llama 0x403660
+CL7	0x404c50	1	sin clasificar	la llama 0x403660
+CL7	0x404c60	1	sin clasificar	la llama 0x403660
+CL7	0x404c70	1	sin clasificar	la llama 0x403660
+CL7	0x404c80	1	sin clasificar	la llama 0x403660
+CL7	0x456b00	1	sin clasificar	la clase de la vtable 0x6b8d38 (sus métodos 0x4573a0, 0x457550 y 0x457dc0 son CL7): destructor, lista de objetos y búsqu
+CL7	0x487d50	1	sin clasificar	la llama 0x6b4570, 0x6b72c0
+CL8	0x4727f0	1001	STL: lista de MSVC6 (el barrido CL8 la marca "se reemplaza por la STL")	0x4727f0 1001 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x4767a0	321	STL: plantillas de MSVC6	0x4767a0 321 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x4a79d0	221	STL: plantillas de MSVC6	0x4a79d0 221 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x4a7ab0	221	STL: plantillas de MSVC6	0x4a7ab0 221 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x4a8600	203	STL: plantillas de MSVC6	0x4a8600 203 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x4a94a0	203	STL: plantillas de MSVC6	0x4a94a0 203 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x476970	174	STL: plantillas de MSVC6	0x476970 174 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x478b20	168	STL: plantillas de MSVC6	0x478b20 168 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x644d60	152	STL: plantillas de MSVC6	0x644d60 152 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x4a9d90	151	STL: plantillas de MSVC6	0x4a9d90 151 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x4aa700	151	STL: plantillas de MSVC6	0x4aa700 151 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x487450	144	STL: plantillas de MSVC6	0x487450 144 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x4873c0	138	STL: plantillas de MSVC6	0x4873c0 138 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x476a20	134	STL: plantillas de MSVC6	0x476a20 134 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x4ab060	105	STL: plantillas de MSVC6	0x4ab060 105 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x4a80d0	88	STL: plantillas de MSVC6	0x4a80d0 88 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x644aa0	82	STL: plantillas de MSVC6	0x644aa0 82 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x4a8130	69	STL: plantillas de MSVC6	0x4a8130 69 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x4aa680	62	STL: plantillas de MSVC6	0x4aa680 62 HUD: CL9.4? ; ventanas: CL8.3 (se reemplaza por la STL) ; paso: CL8.3 sí
+CL8	0x644ed0	55	STL: plantillas de MSVC6	0x644ed0 55 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x477f30	54	STL: plantillas de MSVC6	0x477f30 54 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x644f40	46	STL: plantillas de MSVC6	0x644f40 46 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x4a8180	45	STL: plantillas de MSVC6	0x4a8180 45 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x644ca0	44	STL: plantillas de MSVC6	0x644ca0 44 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x644c70	40	STL: plantillas de MSVC6	0x644c70 40 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x644f70	39	STL: plantillas de MSVC6	0x644f70 39 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x644a60	13	STL: plantillas de MSVC6	0x644a60 13 HUD: CL8.3 ; ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x644a80	11	STL: plantillas de MSVC6	0x644a80 11 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x4a9090	1039	clon byte a byte de una función citada	0x4a9090 1039 ventanas: CL8.3 (STL)
+CL8	0x45b840	712	clon byte a byte de una función citada	la llama 0x45b810
+CL8	0x460ba0	706	clon byte a byte de una función citada	la llama 0x460b70, 0x6b494a, 0x6b4966 y 5 más
+CL8	0x479500	601	clon byte a byte de una función citada	sin texto que la describa
+CL8	0x47dbb0	599	clon byte a byte de una función citada	sin texto que la describa
+CL8	0x483760	599	clon byte a byte de una función citada	sin texto que la describa
+CL8	0x47d8f0	327	clon byte a byte de una función citada	sin texto que la describa
+CL8	0x43fcf0	322	clon byte a byte de una función citada	la llama 0x4381f0
+CL8	0x472be0	322	clon byte a byte de una función citada	0x472be0 322 ventanas: CL8.3 (se reemplaza por la STL) ; paso: CL8.3
+CL8	0x48b770	322	clon byte a byte de una función citada	la llama 0x479500
+CL8	0x48b8c0	322	clon byte a byte de una función citada	la llama 0x47ac90
+CL8	0x48bb60	322	clon byte a byte de una función citada	la llama 0x47dbb0
+CL8	0x48c0a0	322	clon byte a byte de una función citada	la llama 0x483760
+CL8	0x47e8e0	313	clon byte a byte de una función citada	sin texto que la describa
+CL8	0x479840	277	clon byte a byte de una función citada	0x479840 277 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x47def0	274	clon byte a byte de una función citada	sin texto que la describa
+CL8	0x479450	166	clon byte a byte de una función citada	sin texto que la describa
+CL8	0x47db00	166	clon byte a byte de una función citada	sin texto que la describa
+CL8	0x4836b0	166	clon byte a byte de una función citada	sin texto que la describa
+CL8	0x489c20	163	clon byte a byte de una función citada	la llama 0x6b3e78, 0x6b3e83, 0x6b3ea8 y 7 más
+CL8	0x471ed0	160	clon byte a byte de una función citada	la llama 0x495f20, 0x6b3e10, 0x6b3e30 y 30 más
+CL8	0x472140	160	clon byte a byte de una función citada	la llama 0x6b3ee8, 0x6b3ef3, 0x6b3f18 y 12 más
+CL8	0x48a020	160	clon byte a byte de una función citada	la llama 0x6b4448, 0x6b4453, 0x6b4758 y 1 más
+CL8	0x4be8b0	160	clon byte a byte de una función citada	la llama 0x6b5239, 0x6b5279, 0x6b52b9 y 1 más
+CL8	0x4c0210	160	clon byte a byte de una función citada	la llama 0x6b5308, 0x6b5316
+CL8	0x475f80	142	clon byte a byte de una función citada	0x475f80 142 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x478240	142	clon byte a byte de una función citada	0x478240 142 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x478300	142	clon byte a byte de una función citada	la llama 0x472db0, 0x478d10
+CL8	0x478440	142	clon byte a byte de una función citada	la llama 0x473450, 0x47a410
+CL8	0x471f70	140	clon byte a byte de una función citada	0x471f70 140 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x476eb0	140	clon byte a byte de una función citada	la llama 0x462c70
+CL8	0x479180	132	clon byte a byte de una función citada	sin texto que la describa
+CL8	0x47d830	132	clon byte a byte de una función citada	sin texto que la describa
+CL8	0x478390	115	clon byte a byte de una función citada	la llama 0x472db0, 0x478d10
+CL8	0x43fe40	109	clon byte a byte de una función citada	la llama 0x4381f0
+CL8	0x4768f0	109	clon byte a byte de una función citada	0x4768f0 109 ventanas: CL8.3 (se reemplaza por la STL) ; paso: CL8.3
+CL8	0x476ab0	109	clon byte a byte de una función citada	0x476ab0 109 chat: CL8.2
+CL8	0x48c8d0	109	clon byte a byte de una función citada	la llama 0x479500
+CL8	0x48c940	109	clon byte a byte de una función citada	la llama 0x47ac90
+CL8	0x48ca20	109	clon byte a byte de una función citada	la llama 0x47dbb0
+CL8	0x48cbe0	109	clon byte a byte de una función citada	la llama 0x483760
+CL8	0x424fd0	104	clon byte a byte de una función citada	0x424fd0 104 HUD: CL8.4 (B2) ; paso: CL9.4 sí
+CL8	0x4a9570	104	clon byte a byte de una función citada	0x4a9570 104 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x46e440	85	clon byte a byte de una función citada	sin texto que la describa
+CL8	0x479790	85	clon byte a byte de una función citada	0x479790 85 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x47de40	85	clon byte a byte de una función citada	sin texto que la describa
+CL8	0x478ac0	81	clon byte a byte de una función citada	0x478ac0 81 ventanas: CL8.2
+CL8	0x4727a0	77	clon byte a byte de una función citada	sin texto que la describa
+CL8	0x4a7980	77	clon byte a byte de una función citada	la llama 0x6b4839, 0x6b4855, 0x6b4899 y 2 más
+CL8	0x476750	67	clon byte a byte de una función citada	la llama 0x46a180, 0x476270
+CL8	0x4a86d0	67	clon byte a byte de una función citada	0x4a86d0 67 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x4797f0	65	clon byte a byte de una función citada	0x4797f0 65 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x47dea0	65	clon byte a byte de una función citada	sin texto que la describa
+CL8	0x4a9d50	62	clon byte a byte de una función citada	0x4a9d50 62 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x4aa6c0	62	clon byte a byte de una función citada	0x4aa6c0 62 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x475f00	51	clon byte a byte de una función citada	0x475f00 51 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x4731c0	49	clon byte a byte de una función citada	la llama 0x472db0, 0x478d10
+CL8	0x4aaf10	48	clon byte a byte de una función citada	0x4aaf10 48 HUD: CL8.1 ; ventanas: CL8.3 (STL) ; paso: CL8.3 sí
+CL8	0x473390	46	clon byte a byte de una función citada	la llama 0x472db0, 0x478d10
+CL8	0x489bc0	46	clon byte a byte de una función citada	0x489bc0 46 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x479210	44	clon byte a byte de una función citada	sin texto que la describa
+CL8	0x47d8c0	44	clon byte a byte de una función citada	sin texto que la describa
+CL8	0x483470	44	clon byte a byte de una función citada	sin texto que la describa
+CL8	0x489bf0	43	clon byte a byte de una función citada	0x489bf0 43 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x487b10	39	clon byte a byte de una función citada	la llama 0x45f6f0
+CL8	0x487b40	39	clon byte a byte de una función citada	la llama 0x45e5b0
+CL8	0x43feb0	36	clon byte a byte de una función citada	la llama 0x4381f0
+CL8	0x4782d0	36	clon byte a byte de una función citada	0x4782d0 36 ventanas: CL8.3 (se reemplaza por la STL) ; paso: CL8.3
+CL8	0x478410	36	clon byte a byte de una función citada	0x478410 36 chat: CL8.2
+CL8	0x48cd30	36	clon byte a byte de una función citada	la llama 0x479500
+CL8	0x48cd60	36	clon byte a byte de una función citada	la llama 0x47ac90
+CL8	0x48cdc0	36	clon byte a byte de una función citada	la llama 0x47dbb0
+CL8	0x48ce80	36	clon byte a byte de una función citada	la llama 0x483760
+CL8	0x63d790	36	clon byte a byte de una función citada	0x63d790 36 ventanas: portada (UI/CreateCharacterWindow)
+CL8	0x63eb10	36	clon byte a byte de una función citada	0x63eb10 36 ventanas: portada (UI/SelectionBar)
+CL8	0x641180	36	clon byte a byte de una función citada	sin texto que la describa
+CL8	0x641880	36	clon byte a byte de una función citada	las muestra: 0x6418b0, después del RET de 0x641880, una ventana más que lee Enter y Esc con
+CL8	0x642e00	36	clon byte a byte de una función citada	sin texto que la describa
+CL8	0x645de0	36	clon byte a byte de una función citada	0x645de0 36 ventanas: portada (UI/ServerListWindow)
+CL8	0x45e2b0	33	clon byte a byte de una función citada	sin texto que la describa
+CL8	0x45f3f0	33	clon byte a byte de una función citada	sin texto que la describa
+CL8	0x460b70	33	clon byte a byte de una función citada	sin texto que la describa
+CL8	0x4621b0	33	clon byte a byte de una función citada	sin texto que la describa
+CL8	0x465850	33	clon byte a byte de una función citada	sin texto que la describa
+CL8	0x4676e0	33	clon byte a byte de una función citada	0x4676e0 33 chat: CL8.2
+CL8	0x487d60	33	clon byte a byte de una función citada	sin texto que la describa
+CL8	0x488060	33	clon byte a byte de una función citada	sin texto que la describa
+CL8	0x489260	33	clon byte a byte de una función citada	sin texto que la describa
+CL8	0x490160	33	clon byte a byte de una función citada	0x490160 33 ventanas: CL8.3
+CL8	0x491d20	33	clon byte a byte de una función citada	0x491d20 33 ventanas: CL8.3
+CL8	0x4bff10	33	clon byte a byte de una función citada	0x4bff10 33 ventanas: CL8.3
+CL8	0x63e770	33	clon byte a byte de una función citada	0x63e770 33 ventanas: portada (UI/SelectionBar)
+CL8	0x640f60	33	clon byte a byte de una función citada	sin texto que la describa
+CL8	0x642900	33	clon byte a byte de una función citada	0x642900 FUN_00642900 6ba934 (1) destructor thunk (FUN_00642930 + operator delete).
+CL8	0x643e70	33	clon byte a byte de una función citada	destructor de la clase de la vtable 0x6ba970, cuyos métodos 0x643ed0..0x643f60 son CL8
+CL8	0x6575b0	33	clon byte a byte de una función citada	0x6575b0 33 ventanas: CL8.3
+CL8	0x65ffe0	33	clon byte a byte de una función citada	0x65ffe0 33 ventanas: CL8.3
+CL8	0x669bf0	33	clon byte a byte de una función citada	0x669bf0 33 ventanas: portada
+CL8	0x477eb0	28	clon byte a byte de una función citada	la llama 0x476680
+CL8	0x4aaa20	28	clon byte a byte de una función citada	0x4aaa20 28 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x477b00	27	clon byte a byte de una función citada	0x477b00 27 chat: CL8.2
+CL8	0x487bc0	26	clon byte a byte de una función citada	0x487bc0 26 ventanas: CL8.2
+CL8	0x4ab360	25	clon byte a byte de una función citada	0x4ab360 25 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x4a9880	24	clon byte a byte de una función citada	0x4a9880 24 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x472040	23	clon byte a byte de una función citada	0x472040 23 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x4a81b0	18	clon byte a byte de una función citada	0x4a81b0 18 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x476020	17	clon byte a byte de una función citada	la llama 0x46a180
+CL8	0x4a81d0	17	clon byte a byte de una función citada	0x4a81d0 17 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x4a9070	17	clon byte a byte de una función citada	0x4a9070 17 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x4030f0	16	clon byte a byte de una función citada	sin texto que la describa
+CL8	0x472030	16	clon byte a byte de una función citada	sin texto que la describa
+CL8	0x4722a0	16	clon byte a byte de una función citada	sin texto que la describa
+CL8	0x4725b0	16	clon byte a byte de una función citada	sin texto que la describa
+CL8	0x473380	16	clon byte a byte de una función citada	la llama 0x45b840, 0x45f420, 0x487d90
+CL8	0x473a10	16	clon byte a byte de una función citada	0x473a10 16 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x476010	16	clon byte a byte de una función citada	0x476010 16 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x476960	16	clon byte a byte de una función citada	0x476960 16 ventanas: CL8.3 (se reemplaza por la STL)
+CL8	0x48af30	16	clon byte a byte de una función citada	la llama 0x489290
+CL8	0x4bfdf0	16	clon byte a byte de una función citada	0x4bfdf0 16 ventanas: CL8.3
+CL8	0x65dcd0	154	falta: el cartel del nombre del mapa (tabla de Interface\<mapa>.tga)	0x65dcd0 154 HUD: sin asignar
+CL8	0x65dc00	41	falta: el cartel del nombre del mapa (tabla de Interface\<mapa>.tga)	usa timeGetTime; la llama 0x636290
+CL8	0x459b60	90	herramienta de desarrollo: el lector de .smd	0x459b60 / 0x459c00 delta del frame con QueryPerformanceCounter (timeGetTime si no hay),
+CL8	0x459c00	33	herramienta de desarrollo: el lector de .smd	0x459b60 / 0x459c00 delta del frame con QueryPerformanceCounter (timeGetTime si no hay),
+CL8	0x45eab0	1311	sin clasificar	textos: "(%d)"
+CL8	0x461100	1064	sin clasificar	sin texto que la describa
+CL8	0x476270	1039	sin clasificar	la llama 0x46a180, 0x46add0, 0x476680
+CL8	0x473450	989	sin clasificar	la llama 0x45e2e0, 0x460ba0, 0x461100 y 3 más
+CL8	0x45e5b0	864	sin clasificar	sin texto que la describa
+CL8	0x45a680	814	sin clasificar	0x45a680 814 ventanas: CL8.3
+CL8	0x45a2c0	810	sin clasificar	0x45a2c0 810 ventanas: CL8.3
+CL8	0x4d3200	753	sin clasificar	0x4d3200 753 inventario: CL8.4
+CL8	0x489290	719	sin clasificar	la llama 0x4030c0, 0x489260
+CL8	0x4bff40	712	sin clasificar	0x4bff40 712 ventanas: CL8.3
+CL8	0x477f70	678	sin clasificar	0x477f70 678 inventario: —
+CL8	0x477bd0	628	sin clasificar	0x477bd0 628 ventanas: CL8.2
+CL8	0x45efd0	616	sin clasificar	Clic de una fila antigua de gremio 0x45f18a pertenece al método 0x45efd0, accesible sólo mediante la vtable que instala 
+CL8	0x48e830	532	sin clasificar	0x48e937..0x48e93e, durante el destructor del manager. Las pestañas de objetos rechazados siguen vivas tras Reset.
+CL8	0x46a270	494	sin clasificar	la llama 0x46a150, 0x46af90, 0x6b4280 y 3 más
+CL8	0x47e700	475	sin clasificar	sin texto que la describa
+CL8	0x45e910	402	sin clasificar	sin texto que la describa
+CL8	0x473200	384	sin clasificar	0x473200 384 chat: CL8.2
+CL8	0x474490	384	sin clasificar	la llama 0x4624b0
+CL8	0x487be0	356	sin clasificar	0x487be0 356 inventario: —
+CL8	0x657450	339	sin clasificar	El objeto (4 B, vtable 0x6baacc) lo arma 0x657450 desde WinMain (0x4bb96a) con seis objetos: 0x7d536f0
+CL8	0x452860	325	sin clasificar	la llama 0x451860, 0x4518b0
+CL8	0x476f40	321	sin clasificar	la llama 0x462c70
+CL8	0x66b6b0	290	sin clasificar	la llama 0x66ad70
+CL8	0x467db0	272	sin clasificar	0x467db0 272 chat: fuera de alcance
+CL8	0x644fd0	239	sin clasificar	+0x10e8 0x6ba9c0 (0x644fd0, arma 0x6451d0) la lista de servidores (abajo) 21 botones de grupo de 108 × 26 (0xc), 16 de s
+CL8	0x46a180	232	sin clasificar	la llama 0x6b4238, 0x6b4258
+CL8	0x48e620	232	sin clasificar	la llama 0x6b4847, 0x6b48a7, 0x6b516f
+CL8	0x48e740	232	sin clasificar	la llama 0x6b4818, 0x6b4823, 0x6b482e y 3 más
+CL8	0x4673d0	229	sin clasificar	P-C286 El EDIT del alta del gremio (CL9 hito 8, fases 3 y 5). ~~No está leído con qué fuente, color ni recorte lo dibuja
+CL8	0x65ed80	220	sin clasificar	0x65ed80 220 ventanas: CL8.3 (UI nueva)
+CL8	0x476680	203	sin clasificar	la llama 0x46a270
+CL8	0x4ab400	193	sin clasificar	la llama 0x495f20
+CL8	0x478bd0	179	sin clasificar	la llama 0x45fea0, 0x478d10
+CL8	0x474610	178	sin clasificar	la llama 0x462c70
+CL8	0x47d680	172	sin clasificar	la llama 0x47d320
+CL8	0x63d010	170	sin clasificar	0x63d010 170 HUD: CL8.3 ; ventanas: portada (UI/CreateCharacterWindow) sí
+CL8	0x4c0b20	163	sin clasificar	la llama 0x4bfcb0
+CL8	0x66a670	163	sin clasificar	0x66a670 163 ventanas: portada (ServerListWindow)
+CL8	0x4c0920	151	sin clasificar	la llama 0x4bfc80
+CL8	0x6575e0	143	sin clasificar	0x6575e0 143 ventanas: CL8.3
+CL8	0x553670	139	sin clasificar	0x553670 139 chat: no se porta
+CL8	0x401ae0	136	sin clasificar	0x401ae0 136 HUD: CL9.3/CL9.4 ; inventario: CL8.4 sí
+CL8	0x4876b0	133	sin clasificar	la llama 0x462c70
+CL8	0x549700	132	sin clasificar	Text.bmd 0x5495e0 / 0x549700 2048 × 300 bytes g_GlobalText 0x076BD1DC
+CL8	0x477090	131	sin clasificar	la llama 0x462c70
+CL8	0x647470	131	sin clasificar	0x647470 131 ventanas: portada (Render/UiImage)
+CL8	0x40f580	127	sin clasificar	0x40f580 127 HUD: infra ; inventario: CL8.4 ; chat: CL9.2 sí
+CL8	0x487630	127	sin clasificar	la llama 0x462c70
+CL8	0x641490	125	sin clasificar	+0x4228 0x6ba900 (0x641490, arma 0x6415c0) la cuenta y la clave (abajo) 329 × 245 (0x13), centrada en x y a dos tercios 
+CL8	0x642880	122	sin clasificar	+0x8 0x6ba938 (0x642880, arma 0x6429b0) el aviso (abajo) 352 × 113 con los slots 0x727 y 0x728, al centro; detrás, la pa
+CL8	0x549560	120	sin clasificar	- Parser 0x549560 (rama flag == 0): copia strlen+1 del token a
+CL8	0x46af90	119	sin clasificar	la llama 0x46af30
+CL8	0x660010	118	sin clasificar	0x660010 118 ventanas: CL8.3
+CL8	0x640ef0	107	sin clasificar	+0xe40 0x6ba8c8 (0x640ef0, arma 0x641000) la barra de abajo, con dos botones, el menú y los créditos (abajo) botones de 
+CL8	0x490190	99	sin clasificar	0x490190 99 ventanas: CL8.3
+CL8	0x49e3c0	96	sin clasificar	la llama 0x49e480
+CL8	0x4e78c0	94	sin clasificar	la llama 0x4e7440
+CL8	0x477ed0	91	sin clasificar	0x477ed0 91 ventanas: CL8.2
+CL8	0x4e7860	91	sin clasificar	la llama 0x4e7440
+CL8	0x477e50	87	sin clasificar	0x477e50 87 ventanas: CL8.2
+CL8	0x489b60	86	sin clasificar	0x489b60 86 inventario: —
+CL8	0x5e2270	83	sin clasificar	P-C364 Lo que la auditoría del hito 7 deja fuera del hito (CL9 hito 7, 2026-11-17, auditoría adversarial contra el ASM a
+CL8	0x456fc0	82	sin clasificar	usa CallNextHookEx
+CL8	0x640280	79	sin clasificar	la llama 0x640250
+CL8	0x641830	74	sin clasificar	sin texto que la describa
+CL8	0x63eac0	73	sin clasificar	0x63eac0 73 ventanas: portada (UI/SelectionBar)
+CL8	0x553730	72	sin clasificar	FUN_00553730();
+CL8	0x456ee0	71	sin clasificar	(WH_KEYBOARD_LL + ALT+TAB 0x456EF9), y los DLLs compañeros del cliente
+CL8	0x641140	64	sin clasificar	sin texto que la describa
+CL8	0x4675f0	63	sin clasificar	sin texto que la describa
+CL8	0x467630	63	sin clasificar	sin texto que la describa
+CL8	0x467670	63	sin clasificar	sin texto que la describa
+CL8	0x63c840	63	sin clasificar	0x63c840 63 ventanas: portada (UI/Button)
+CL8	0x66a390	63	sin clasificar	0x66a390 63 ventanas: portada (ServerListWindow)
+CL8	0x477b90	62	sin clasificar	la llama 0x46a180, 0x476680
+CL8	0x4c1150	53	sin clasificar	0x4c1150 53 ventanas: no se porta: se cuentan sus rand()
+CL8	0x643f60	53	sin clasificar	0x643f60 53 ventanas: portada (UI/NoticeWindow)
+CL8	0x647520	52	sin clasificar	la llama 0x63c330
+CL8	0x43fcb0	51	sin clasificar	la llama 0x4376c0
+CL8	0x448370	51	sin clasificar	0x448370 51 HUD: CL8.3 ; chat: CL8.3
+CL8	0x449720	51	sin clasificar	0x448440 (por 0x449830, que pide el objeto de 0x723c68 con 0x449720, desde 0x61ccb0, 0x61ec8f, con
+CL8	0x456f70	51	sin clasificar	la llama 0x456e90, 0x456eb0, 0x456fc0
+CL8	0x4be6b0	51	sin clasificar	FUN_004be6b0();
+CL8	0x4bee10	51	sin clasificar	FUN_004bee10();
+CL8	0x644b90	50	sin clasificar	cerrarla (0x65f6c0) la pasa a la cola con 0x644b90: la última que se abrió va arriba.
+CL8	0x456bc0	49	sin clasificar	+ FUN_00456bc0 + FUN_006202e0.
+CL8	0x456f30	47	sin clasificar	usa UnhookWindowsHookEx, UnregisterHotKey; la llama 0x456eb0
+CL8	0x40ad10	45	sin clasificar	sin texto que la describa
+CL8	0x40f2f0	45	sin clasificar	sin texto que la describa
+CL8	0x41cbc0	45	sin clasificar	sin texto que la describa
+CL8	0x465880	45	sin clasificar	la llama 0x465850
+CL8	0x644cd0	45	sin clasificar	cabeza, y 0x65fe00 las dibuja desde la cola hasta la cabeza con 0x644cd0, así que la cabeza va
+CL8	0x695ab0	45	sin clasificar	textos: "glProgramStringARB"; usa wglGetProcAddress; la llama 0x66ad70
+CL8	0x66a720	43	sin clasificar	0x66a720 43 ventanas: portada (ServerListWindow)
+CL8	0x469490	42	sin clasificar	FUN_00469490();
+CL8	0x46af60	42	sin clasificar	sin texto que la describa
+CL8	0x4bfc50	41	sin clasificar	FUN_004bfc50();
+CL8	0x4bfc80	41	sin clasificar	FUN_004bfc80();
+CL8	0x4bfcb0	41	sin clasificar	FUN_004bfcb0();
+CL8	0x643f30	37	sin clasificar	0x643f30 37 ventanas: portada (UI/NoticeWindow)
+CL8	0x468d20	36	sin clasificar	0x468d20 36 chat: CL8.2
+CL8	0x642bc0	36	sin clasificar	(0x669c70(W, H, −1, 0), el negro de atrás) y su vtable + 8 (0x642bc0) mueve solo la caja, así
+CL8	0x695ae0	35	sin clasificar	textos: "glBindProgramARB"; usa wglGetProcAddress; la llama 0x66ad70, 0x66b110
+CL8	0x695b10	35	sin clasificar	textos: "glDeleteProgramsARB"; usa wglGetProcAddress; la llama 0x66b150
+CL8	0x695b40	35	sin clasificar	textos: "glGenProgramsARB"; usa wglGetProcAddress; la llama 0x66ad70
+CL8	0x403170	33	sin clasificar	sin texto que la describa
+CL8	0x40ad60	33	sin clasificar	sin texto que la describa
+CL8	0x40f340	33	sin clasificar	sin texto que la describa
+CL8	0x41cc10	33	sin clasificar	sin texto que la describa
+CL8	0x45a5f0	33	sin clasificar	0x45a5f0 33 ventanas: CL8.3
+CL8	0x45a650	33	sin clasificar	0x45a650 33 ventanas: CL8.3
+CL8	0x45adc0	33	sin clasificar	0x45adc0 33 ventanas: CL8.3
+CL8	0x45b810	33	sin clasificar	sin texto que la describa
+CL8	0x46a150	33	sin clasificar	sin texto que la describa
+CL8	0x46af30	33	sin clasificar	sin texto que la describa
+CL8	0x48e710	33	sin clasificar	0x48e710 33 ventanas: CL8.3
+CL8	0x63d0c0	33	sin clasificar	0x63d0c0 33 ventanas: portada (UI/CreateCharacterWindow)
+CL8	0x640250	33	sin clasificar	sin texto que la describa
+CL8	0x641510	33	sin clasificar	sin texto que la describa
+CL8	0x643ed0	33	sin clasificar	0x643ed0 33 ventanas: portada (UI/NoticeWindow)
+CL8	0x6450c0	33	sin clasificar	0x6450c0 33 ventanas: portada (UI/ServerListWindow)
+CL8	0x65ed50	33	sin clasificar	0x65ed50 33 ventanas: CL8.3 (UI nueva)
+CL8	0x66a140	33	sin clasificar	0x66a140 33 ventanas: portada (ServerListWindow)
+CL8	0x66aa90	33	sin clasificar	sin texto que la describa
+CL8	0x478aa0	29	sin clasificar	0x478aa0 29 ventanas: CL8.2
+CL8	0x4e7920	29	sin clasificar	la llama 0x4e7440
+CL8	0x669bd0	28	sin clasificar	0x669bd0 28 HUD: CL8.3 ; ventanas: portada (ServerListWindow box) sí
+CL8	0x456e90	25	sin clasificar	FUN_00456e90();
+CL8	0x647500	25	sin clasificar	0x647500 25 ventanas: portada (Render/UiImage)
+CL8	0x642ba0	24	sin clasificar	sin texto que la describa
+CL8	0x465980	23	sin clasificar	0x465980 23 chat: existente
+CL8	0x4376c0	22	sin clasificar	sin texto que la describa
+CL8	0x660280	22	sin clasificar	0x660280 22 ventanas: CL8.3
+CL8	0x487980	19	sin clasificar	0x487980 19 chat: CL8.2
+CL8	0x643f10	19	sin clasificar	0x643f10 19 ventanas: portada (UI/NoticeWindow)
+CL8	0x66a120	18	sin clasificar	La caja de la descripción (+0x3040) es otra clase (vtable 0x6bab24, constructor 0x66a120):
+CL8	0x40ad40	17	sin clasificar	la llama 0x40ad60
+CL8	0x40f320	17	sin clasificar	la llama 0x40f340
+CL8	0x41cbf0	17	sin clasificar	la llama 0x41cc10
+CL8	0x465830	17	sin clasificar	local_248c = FUN_00465830();
+CL8	0x456ec0	16	sin clasificar	la llama 0x456f70
+CL8	0x646fe0	16	sin clasificar	0x647650 en el binario). Son objetos de 0xa8 bytes (vtable 0x6baa08, constructor 0x646fe0,
+CL8	0x643f00	14	sin clasificar	0x643f00 14 ventanas: portada (UI/NoticeWindow)
+CL8	0x63e660	13	sin clasificar	0x63e660 13 ventanas: CL8.3 (UI nueva)
+CL8	0x456eb0	12	sin clasificar	└─ WM_QUIT 0x456eb0 + 0x4aeda0 + 0x4017a0 y return
+CL8	0x4030c0	11	sin clasificar	la llama 0x403170
+CL8	0x640830	9	sin clasificar	la llama 0x640850
+CL8	0x643ea0	7	sin clasificar	destructor de la clase de la vtable 0x6ba970, cuyos métodos 0x643ed0..0x643f60 son CL8
+CL8	0x5aea20	6	sin clasificar	0x5aea20 6 HUD: CL8.4 (B2) ; inventario: CL8.4 ; chat: CL8.3/CL9.3 sí
+CL8	0x4529c0	5	sin clasificar	la llama 0x451720
+CL8	0x456f60	3	sin clasificar	la llama 0x456fc0
+CL8	0x4e8880	3	sin clasificar	paquetes en +0x4020. Con +0x4018 distinto de 0 avisa lo que mandó a 0x4e8880, que en este
+CL8	0x5fc0b0	1	sin clasificar	0x637144..0x63717a 0x5fc0d0 y 0x5fc0b0, con 0x7d2d35e funciones de un ret nada
+CL8	0x5fc0d0	1	sin clasificar	0x637144..0x63717a 0x5fc0d0 y 0x5fc0b0, con 0x7d2d35e funciones de un ret nada
+CL8	0x66a750	519	sin confirmar: barra de desplazamiento de una lista (ServerListWindow según el barrido CL8)	0x66a750 519 ventanas: portada (ServerListWindow)
+CL8	0x4d4020	2593	sin confirmar: handler S->C 0x29 (CL8.4) que MuRet no registra	0x4d4020 2593 inventario: CL8.4
+CL9	0x4852b0	1766	clon byte a byte de una función citada	0x4824d0, 0x483bc0, 0x4852b0 y 0x486910. Las diez leen las flechas en el mismo orden y
+CL9	0x486910	1766	clon byte a byte de una función citada	0x4824d0, 0x483bc0, 0x4852b0 y 0x486910. Las diez leen las flechas en el mismo orden y
+CL9	0x470d50	1230	clon byte a byte de una función citada	sin texto que la describa
+CL9	0x4c0510	1039	clon byte a byte de una función citada	0x4c0510 1039 paso: CL9.4
+CL9	0x46b9d0	706	clon byte a byte de una función citada	la llama 0x46b9a0, 0x6b6e56, 0x6b6ee6
+CL9	0x46c660	706	clon byte a byte de una función citada	la llama 0x46c630, 0x6b6e48, 0x6b6ed8
+CL9	0x46d630	706	clon byte a byte de una función citada	clases de las listas (0x46b800..0x46d630; MuRet guarda lo que se les agrega) y las ventanas que mandan
+CL9	0x46f510	706	clon byte a byte de una función citada	la llama 0x46f4e0, 0x6b6ceb, 0x6b6d2b
+CL9	0x4708e0	706	clon byte a byte de una función citada	la llama 0x4708b0, 0x6b6cf9
+CL9	0x453d50	628	clon byte a byte de una función citada	la llama 0x453520
+CL9	0x4809a0	599	clon byte a byte de una función citada	sin texto que la describa
+CL9	0x482070	599	clon byte a byte de una función citada	sin texto que la describa
+CL9	0x484e50	599	clon byte a byte de una función citada	sin texto que la describa
+CL9	0x4864b0	599	clon byte a byte de una función citada	sin texto que la describa
+CL9	0x4859a0	475	clon byte a byte de una función citada	sin texto que la describa
+CL9	0x487000	475	clon byte a byte de una función citada	sin texto que la describa
+CL9	0x474dd0	384	clon byte a byte de una función citada	la llama 0x46d900
+CL9	0x4806e0	327	clon byte a byte de una función citada	sin texto que la describa
+CL9	0x481db0	327	clon byte a byte de una función citada	sin texto que la describa
+CL9	0x484b90	327	clon byte a byte de una función citada	sin texto que la describa
+CL9	0x4861f0	327	clon byte a byte de una función citada	sin texto que la describa
+CL9	0x474f50	322	clon byte a byte de una función citada	0x474f50 322 paso: CL9.3
+CL9	0x48be00	322	clon byte a byte de una función citada	la llama 0x4809a0
+CL9	0x48bf50	322	clon byte a byte de una función citada	la llama 0x482070
+CL9	0x48c1f0	322	clon byte a byte de una función citada	la llama 0x484e50
+CL9	0x48c340	322	clon byte a byte de una función citada	la llama 0x4864b0
+CL9	0x4816d0	313	clon byte a byte de una función citada	sin texto que la describa
+CL9	0x482da0	313	clon byte a byte de una función citada	sin texto que la describa
+CL9	0x485b80	313	clon byte a byte de una función citada	sin texto que la describa
+CL9	0x4871e0	313	clon byte a byte de una función citada	sin texto que la describa
+CL9	0x480ce0	274	clon byte a byte de una función citada	sin texto que la describa
+CL9	0x4823b0	274	clon byte a byte de una función citada	sin texto que la describa
+CL9	0x485190	274	clon byte a byte de una función citada	sin texto que la describa
+CL9	0x4867f0	274	clon byte a byte de una función citada	sin texto que la describa
+CL9	0x4849d0	244	clon byte a byte de una función citada	usa SelectObject, glColor3f
+CL9	0x486030	244	clon byte a byte de una función citada	usa SelectObject, glColor3f
+CL9	0x4808f0	166	clon byte a byte de una función citada	sin texto que la describa
+CL9	0x481fc0	166	clon byte a byte de una función citada	sin texto que la describa
+CL9	0x484da0	166	clon byte a byte de una función citada	sin texto que la describa
+CL9	0x486400	166	clon byte a byte de una función citada	sin texto que la describa
+CL9	0x489e80	160	clon byte a byte de una función citada	la llama 0x6b42f8, 0x6b4303, 0x6b4328 y 3 más
+CL9	0x489f50	160	clon byte a byte de una función citada	la llama 0x6b43d8, 0x6b43e3, 0x6b4408 y 3 más
+CL9	0x48a0f0	160	clon byte a byte de una función citada	la llama 0x6b4478, 0x6b4483, 0x6b44a8 y 3 más
+CL9	0x48a1c0	160	clon byte a byte de una función citada	la llama 0x6b44e8, 0x6b44f3, 0x6b4518 y 3 más
+CL9	0x480850	150	clon byte a byte de una función citada	la llama 0x46b9d0, 0x488c90
+CL9	0x481f20	150	clon byte a byte de una función citada	la llama 0x46d630, 0x488f90
+CL9	0x484d00	150	clon byte a byte de una función citada	la llama 0x46f510, 0x489590
+CL9	0x486360	150	clon byte a byte de una función citada	la llama 0x4708e0, 0x489890
+CL9	0x48a590	142	clon byte a byte de una función citada	la llama 0x480260, 0x48a290
+CL9	0x48aa10	142	clon byte a byte de una función citada	la llama 0x4818b0, 0x48a630
+CL9	0x48aea0	142	clon byte a byte de una función citada	0x48aea0 142 paso: CL9.3
+CL9	0x48b320	142	clon byte a byte de una función citada	la llama 0x484670, 0x48af40
+CL9	0x48b6d0	142	clon byte a byte de una función citada	la llama 0x485d60, 0x48b3c0
+CL9	0x470650	135	clon byte a byte de una función citada	sin texto que la describa
+CL9	0x471480	135	clon byte a byte de una función citada	sin texto que la describa
+CL9	0x480620	132	clon byte a byte de una función citada	sin texto que la describa
+CL9	0x481cf0	132	clon byte a byte de una función citada	sin texto que la describa
+CL9	0x484ad0	132	clon byte a byte de una función citada	sin texto que la describa
+CL9	0x486130	132	clon byte a byte de una función citada	sin texto que la describa
+CL9	0x48c490	115	clon byte a byte de una función citada	la llama 0x480260, 0x48a290
+CL9	0x48c510	115	clon byte a byte de una función citada	la llama 0x4818b0, 0x48a630
+CL9	0x48c590	115	clon byte a byte de una función citada	0x48c590 115 paso: CL9.3
+CL9	0x48c6a0	115	clon byte a byte de una función citada	la llama 0x484670, 0x48af40
+CL9	0x48c850	115	clon byte a byte de una función citada	la llama 0x485d60, 0x48b3c0
+CL9	0x477410	109	clon byte a byte de una función citada	0x477410 109 paso: CL9.3
+CL9	0x48cb00	109	clon byte a byte de una función citada	la llama 0x4809a0
+CL9	0x48cb70	109	clon byte a byte de una función citada	la llama 0x482070
+CL9	0x48cc50	109	clon byte a byte de una función citada	la llama 0x484e50
+CL9	0x48ccc0	109	clon byte a byte de una función citada	la llama 0x4864b0
+CL9	0x4e73d0	104	clon byte a byte de una función citada	la llama 0x4db120
+CL9	0x46c260	87	clon byte a byte de una función citada	sin texto que la describa
+CL9	0x46cff0	87	clon byte a byte de una función citada	sin texto que la describa
+CL9	0x46df40	87	clon byte a byte de una función citada	sin texto que la describa
+CL9	0x470300	87	clon byte a byte de una función citada	sin texto que la describa
+CL9	0x471220	87	clon byte a byte de una función citada	sin texto que la describa
+CL9	0x46bdc0	85	clon byte a byte de una función citada	sin texto que la describa
+CL9	0x46cac0	85	clon byte a byte de una función citada	sin texto que la describa
+CL9	0x46da40	85	clon byte a byte de una función citada	sin texto que la describa
+CL9	0x46fda0	85	clon byte a byte de una función citada	sin texto que la describa
+CL9	0x470cf0	85	clon byte a byte de una función citada	sin texto que la describa
+CL9	0x480c30	85	clon byte a byte de una función citada	sin texto que la describa
+CL9	0x482300	85	clon byte a byte de una función citada	sin texto que la describa
+CL9	0x4850e0	85	clon byte a byte de una función citada	sin texto que la describa
+CL9	0x486740	85	clon byte a byte de una función citada	sin texto que la describa
+CL9	0x454100	81	clon byte a byte de una función citada	la llama 0x453520
+CL9	0x453bd0	67	clon byte a byte de una función citada	0x453bd0 67 HUD: CL9.3/CL9.4
+CL9	0x4c0c70	67	clon byte a byte de una función citada	0x4c0c70 67 paso: CL9.4
+CL9	0x480c90	65	clon byte a byte de una función citada	sin texto que la describa
+CL9	0x482360	65	clon byte a byte de una función citada	sin texto que la describa
+CL9	0x485140	65	clon byte a byte de una función citada	sin texto que la describa
+CL9	0x4867a0	65	clon byte a byte de una función citada	sin texto que la describa
+CL9	0x4540b0	48	clon byte a byte de una función citada	0x4540b0 48 HUD: CL9.4? ; paso: CL9.4
+CL9	0x480c00	46	clon byte a byte de una función citada	la llama 0x46b9d0, 0x488c90
+CL9	0x4822d0	46	clon byte a byte de una función citada	la llama 0x46d630, 0x488f90
+CL9	0x4850b0	46	clon byte a byte de una función citada	la llama 0x46f510, 0x489590
+CL9	0x486710	46	clon byte a byte de una función citada	la llama 0x4708e0, 0x489890
+CL9	0x489f20	46	clon byte a byte de una función citada	la llama 0x480260, 0x48a290
+CL9	0x489ff0	46	clon byte a byte de una función citada	la llama 0x4818b0, 0x48a630
+CL9	0x48a0c0	46	clon byte a byte de una función citada	0x48a0c0 46 paso: CL9.3
+CL9	0x48a190	46	clon byte a byte de una función citada	la llama 0x484670, 0x48af40, 0x48d710
+CL9	0x48a260	46	clon byte a byte de una función citada	la llama 0x485d60, 0x48b3c0
+CL9	0x48e390	46	clon byte a byte de una función citada	0x48e390 46 paso: CL9.3
+CL9	0x48e3c0	46	clon byte a byte de una función citada	la llama 0x48d710
+CL9	0x4806b0	44	clon byte a byte de una función citada	sin texto que la describa
+CL9	0x481d80	44	clon byte a byte de una función citada	sin texto que la describa
+CL9	0x484b60	44	clon byte a byte de una función citada	sin texto que la describa
+CL9	0x4861c0	44	clon byte a byte de una función citada	sin texto que la describa
+CL9	0x48d160	43	clon byte a byte de una función citada	la llama 0x480260, 0x48a290
+CL9	0x48d190	43	clon byte a byte de una función citada	la llama 0x4818b0, 0x48a630
+CL9	0x48d1c0	43	clon byte a byte de una función citada	0x48d1c0 43 paso: CL9.3
+CL9	0x48d1f0	43	clon byte a byte de una función citada	la llama 0x484670, 0x48af40, 0x48d710
+CL9	0x48d220	43	clon byte a byte de una función citada	la llama 0x485d60, 0x48b3c0
+CL9	0x478840	36	clon byte a byte de una función citada	la llama 0x46b9d0
+CL9	0x478870	36	clon byte a byte de una función citada	la llama 0x46d630
+CL9	0x4788a0	36	clon byte a byte de una función citada	0x4788a0 36 paso: CL9.3
+CL9	0x478980	36	clon byte a byte de una función citada	la llama 0x46f510
+CL9	0x4789b0	36	clon byte a byte de una función citada	la llama 0x4708e0
+CL9	0x48ce20	36	clon byte a byte de una función citada	la llama 0x4809a0
+CL9	0x48ce50	36	clon byte a byte de una función citada	la llama 0x482070
+CL9	0x48ceb0	36	clon byte a byte de una función citada	la llama 0x484e50
+CL9	0x48cee0	36	clon byte a byte de una función citada	la llama 0x4864b0
+CL9	0x46b9a0	33	clon byte a byte de una función citada	sin texto que la describa
+CL9	0x46c630	33	clon byte a byte de una función citada	sin texto que la describa
+CL9	0x46d600	33	clon byte a byte de una función citada	sin texto que la describa
+CL9	0x46f4e0	33	clon byte a byte de una función citada	sin texto que la describa
+CL9	0x4708b0	33	clon byte a byte de una función citada	sin texto que la describa
+CL9	0x488c60	33	clon byte a byte de una función citada	sin texto que la describa
+CL9	0x488f60	33	clon byte a byte de una función citada	sin texto que la describa
+CL9	0x489560	33	clon byte a byte de una función citada	sin texto que la describa
+CL9	0x489860	33	clon byte a byte de una función citada	sin texto que la describa
+CL9	0x64ad70	33	clon byte a byte de una función citada	0x64ad70 33 ventanas: CL9.5
+CL9	0x64f6f0	33	clon byte a byte de una función citada	0x64f6f0 33 ventanas: CL9.4
+CL9	0x454160	25	clon byte a byte de una función citada	la llama 0x453520, 0x453d50
+CL9	0x5f8240	24	clon byte a byte de una función citada	0x5f8240 24 paso: CL9.4
+CL9	0x4724b0	23	clon byte a byte de una función citada	la llama 0x46b800
+CL9	0x472550	23	clon byte a byte de una función citada	la llama 0x46d440
+CL9	0x472600	23	clon byte a byte de una función citada	la llama 0x46f320
+CL9	0x4726a0	23	clon byte a byte de una función citada	la llama 0x4706f0
+CL9	0x453500	17	clon byte a byte de una función citada	la llama 0x450fe0, 0x451100
+CL9	0x4c04f0	17	clon byte a byte de una función citada	la llama 0x4c0340, 0x4c09c0
+CL9	0x472490	16	clon byte a byte de una función citada	sin texto que la describa
+CL9	0x4724a0	16	clon byte a byte de una función citada	sin texto que la describa
+CL9	0x472530	16	clon byte a byte de una función citada	sin texto que la describa
+CL9	0x472540	16	clon byte a byte de una función citada	sin texto que la describa
+CL9	0x4725e0	16	clon byte a byte de una función citada	sin texto que la describa
+CL9	0x4725f0	16	clon byte a byte de una función citada	sin texto que la describa
+CL9	0x472680	16	clon byte a byte de una función citada	sin texto que la describa
+CL9	0x472690	16	clon byte a byte de una función citada	sin texto que la describa
+CL9	0x48a620	16	clon byte a byte de una función citada	la llama 0x46b9d0, 0x488c90
+CL9	0x48aaa0	16	clon byte a byte de una función citada	la llama 0x46d630, 0x488f90
+CL9	0x48b3b0	16	clon byte a byte de una función citada	la llama 0x46f510, 0x489590
+CL9	0x48b760	16	clon byte a byte de una función citada	la llama 0x4708e0, 0x489890
+CL9	0x4d3b50	341	pendiente CL9 (fuera del plan)	F3 08: el cambio de clase
+CL9	0x5ae2d0	15	pendiente CL9 (fuera del plan)	la llama 0x57cfc0
+CL9	0x5ae2e0	7	pendiente CL9 (fuera del plan)	la llama 0x57cfc0
+CL9	0x5ae2f0	4	pendiente CL9 (fuera del plan)	la llama 0x57cfc0
+CL9	0x5a7d70	319	pendiente CL9 hito 11 (CL9.5)	Q-C456 los joints de evento, 0x5a7d70 inalcanzable: 0x5767920 solo se escribe con 0 (0x4c2508, 0x5a7d5f), así que la lla
+CL9	0x661270	160	pendiente CL9 hito 11 (CL9.5)	la llama 0x661240
+CL9	0x648740	115	pendiente CL9 hito 11 (CL9.5)	0x648710 FUN_00648710 6baa50 (0) destructor thunk (FUN_00648740).
+CL9	0x648710	33	pendiente CL9 hito 11 (CL9.5)	0x648710 33 ventanas: CL9.5
+CL9	0x661240	33	pendiente CL9 hito 11 (CL9.5)	0x661240 33 ventanas: CL9.5
+CL9	0x46fe00	1280	pendiente CL9 hito 12 (CL9.5)	sin texto que la describa
+CL9	0x48d710	1227	pendiente CL9 hito 12 (CL9.5)	la llama 0x46f940
+CL9	0x46f940	1114	pendiente CL9 hito 12 (CL9.5)	P-C300 Las ventanas del castillo que quedan (CL9 hito 12, 2026-11-14, [04](04-protocolo.md#castle-siege-las-ventanas-del
+CL9	0x48af40	988	pendiente CL9 hito 12 (CL9.5)	la llama 0x46f510, 0x489590
+CL9	0x484670	855	pendiente CL9 hito 12 (CL9.5)	sin texto que la describa
+CL9	0x48b3c0	780	pendiente CL9 hito 12 (CL9.5)	la llama 0x4708e0, 0x489890
+CL9	0x64b400	760	pendiente CL9 hito 12 (CL9.5)	la llama 0x64b700
+CL9	0x485d60	720	pendiente CL9 hito 12 (CL9.5)	sin texto que la describa
+CL9	0x489590	719	pendiente CL9 hito 12 (CL9.5)	la llama 0x489560, 0x64ada0
+CL9	0x489890	719	pendiente CL9 hito 12 (CL9.5)	la llama 0x489860, 0x64ada0
+CL9	0x48dfd0	529	pendiente CL9 hito 12 (CL9.5)	la llama 0x46f940
+CL9	0x4dff10	391	pendiente CL9 hito 12 (CL9.5)	P-C90 Los diálogos del juego que quedan (CL8 hito 6, 2026-11-12; [06](06-render-escenas-y-ui.md#los-diálogos-del-juego))
+CL9	0x475150	384	pendiente CL9 hito 12 (CL9.5)	la llama 0x46f7e0
+CL9	0x4752d0	384	pendiente CL9 hito 12 (CL9.5)	la llama 0x470bb0
+CL9	0x4e0340	358	pendiente CL9 hito 12 (CL9.5)	P-C302 Los paquetes de la batalla del asedio (CL9 hito 12, 2026-11-14, [04](04-protocolo.md#castle-siege-las-ventanas-de
+CL9	0x4e00c0	352	pendiente CL9 hito 12 (CL9.5)	P-C90 Los diálogos del juego que quedan (CL8 hito 6, 2026-11-12; [06](06-render-escenas-y-ui.md#los-diálogos-del-juego))
+CL9	0x668100	292	pendiente CL9 hito 12 (CL9.5)	P-C285 El campo de texto y el reloj del diálogo de los paneles (CL9 hito 8, fase 2). 0x660830 corta con el campo (0x10: 
+CL9	0x48e290	255	pendiente CL9 hito 12 (CL9.5)	la llama 0x46f940
+CL9	0x64d090	251	pendiente CL9 hito 12 (CL9.5)	(0x5ac8d0: 0x5ac8ea y 0x5ac9d0..0x5acad2), RePág y AvPág (0x64d090), y en 0x59ff10
+CL9	0x4e0240	244	pendiente CL9 hito 12 (CL9.5)	P-C90 Los diálogos del juego que quedan (CL8 hito 6, 2026-11-12; [06](06-render-escenas-y-ui.md#los-diálogos-del-juego))
+CL9	0x4e0650	167	pendiente CL9 hito 12 (CL9.5)	P-C302 Los paquetes de la batalla del asedio (CL9 hito 12, 2026-11-14, [04](04-protocolo.md#castle-siege-las-ventanas-de
+CL9	0x48e1f0	156	pendiente CL9 hito 12 (CL9.5)	la llama 0x46f940
+CL9	0x48d020	148	pendiente CL9 hito 12 (CL9.5)	la llama 0x46f940, 0x484670, 0x48d710
+CL9	0x48c720	147	pendiente CL9 hito 12 (CL9.5)	la llama 0x46f940
+CL9	0x48c7c0	133	pendiente CL9 hito 12 (CL9.5)	la llama 0x46f940
+CL9	0x64ada0	112	pendiente CL9 hito 12 (CL9.5)	0x64ad70 FUN_0064ad70 6baa50 (1) destructor thunk (FUN_0064ada0).
+CL9	0x48d0c0	110	pendiente CL9 hito 12 (CL9.5)	la llama 0x485d60
+CL9	0x660cb0	102	pendiente CL9 hito 12 (CL9.5)	la llama 0x663b20, 0x666190
+CL9	0x44f7b0	88	pendiente CL9 hito 12 (CL9.5)	P-C302 Los paquetes de la batalla del asedio (CL9 hito 12, 2026-11-14, [04](04-protocolo.md#castle-siege-las-ventanas-de
+CL9	0x4126e0	64	pendiente CL9 hito 12 (CL9.5)	la llama 0x411ed0
+CL9	0x48e430	55	pendiente CL9 hito 12 (CL9.5)	la llama 0x48d710
+CL9	0x511110	55	pendiente CL9 hito 12 (CL9.5)	la llama 0x4e0240
+CL9	0x412720	54	pendiente CL9 hito 12 (CL9.5)	la llama 0x411ed0
+CL9	0x4127c0	27	pendiente CL9 hito 12 (CL9.5)	timeGetTime(), los milisegundos desde que arrancó Windows (0x412210). Después 0x4127c0,
+CL9	0x46f920	26	pendiente CL9 hito 12 (CL9.5)	la llama 0x46f940
+CL9	0x412580	24	pendiente CL9 hito 12 (CL9.5)	P-C302 Los paquetes de la batalla del asedio (CL9 hito 12, 2026-11-14, [04](04-protocolo.md#castle-siege-las-ventanas-de
+CL9	0x64d2f0	15	pendiente CL9 hito 12 (CL9.5)	B4 0x4dfce0 pkt[4]; con 1, la cuenta y registros de 0xe desde pkt + 0xc 0: 860. 1: vacía la lista de [0x7d536f8] + 0xe4 
+CL9	0x64d340	15	pendiente CL9 hito 12 (CL9.5)	B5 0x4dfd80 (tabla 0x4dfe24) pkt[4]; con 1, la cuenta y registros de 10 0: 860; 2 y 3: 1609. 1: vacía la lista de +0x214
+CL9	0x64b700	11	pendiente CL9 hito 12 (CL9.5)	la llama 0x64c0b0
+CL9	0x64d300	11	pendiente CL9 hito 12 (CL9.5)	B4 0x4dfce0 pkt[4]; con 1, la cuenta y registros de 0xe desde pkt + 0xc 0: 860. 1: vacía la lista de [0x7d536f8] + 0xe4 
+CL9	0x64de50	8	pendiente CL9 hito 12 (CL9.5)	la llama 0x470360
+CL9	0x4126d0	3	pendiente CL9 hito 12 (CL9.5)	la llama 0x411ed0
+CL9	0x666650	1245	pendiente CL9 hito 13 (CL9.5)	0x666650 1245 HUD: CL9.5 / CL9.4
+CL9	0x64c840	1122	pendiente CL9 hito 13 (CL9.5)	0x64c840 1122 HUD: CL9.5 / CL9.4
+CL9	0x44ea60	1075	pendiente CL9 hito 13 (CL9.5)	0x44ea60 1075 HUD: CL9.5
+CL9	0x663f40	1071	pendiente CL9 hito 13 (CL9.5)	0x663f40 1071 HUD: CL9.5 / CL9.4
+CL9	0x44ff00	921	pendiente CL9 hito 13 (CL9.5)	0x44ff00 921 HUD: CL9.5
+CL9	0x64bd10	875	pendiente CL9 hito 13 (CL9.5)	0x64bd10 875 HUD: CL9.5 / CL9.4
+CL9	0x64b710	690	pendiente CL9 hito 13 (CL9.5)	0x64b710 690 HUD: CL9.5 / CL9.4
+CL9	0x668d50	634	pendiente CL9 hito 13 (CL9.5)	0x668d50 634 HUD: CL9.5 / CL9.4
+CL9	0x44e930	293	pendiente CL9 hito 13 (CL9.5)	0x44e930 293 HUD: CL9.5
+CL9	0x64d190	246	pendiente CL9 hito 13 (CL9.5)	0x64d190 246 HUD: CL9.5 / CL9.4
+CL9	0x660e20	133	pendiente CL9 hito 13 (CL9.5)	0x660e20 133 HUD: CL9.5 / CL9.4
+CL9	0x660f60	119	pendiente CL9 hito 13 (CL9.5)	0x660f60 119 HUD: CL9.5 / CL9.4
+CL9	0x660eb0	115	pendiente CL9 hito 13 (CL9.5)	0x660eb0 115 HUD: CL9.5 / CL9.4
+CL9	0x660fe0	60	pendiente CL9 hito 13 (CL9.5)	0x660fe0 60 HUD: CL9.5 / CL9.4
+CL9	0x48d250	1213	pendiente CL9 hito 6 (CL9.3)	0x48d250 1213 paso: CL9.3
+CL9	0x48aab0	1001	pendiente CL9 hito 6 (CL9.3)	la llama 0x489290
+CL9	0x6689f0	857	pendiente CL9 hito 6 (CL9.3)	usa WS2_32.dll#111, WS2_32.dll#19; la llama 0x6691c0
+CL9	0x48dbe0	578	pendiente CL9 hito 6 (CL9.3)	0x48dbe0 578 paso: CL9.3
+CL9	0x48dec0	264	pendiente CL9 hito 6 (CL9.3)	0x48dec0 264 paso: CL9.3
+CL9	0x4750a0	174	pendiente CL9 hito 6 (CL9.3)	0x4750a0 174 paso: CL9.3
+CL9	0x4788d0	168	pendiente CL9 hito 6 (CL9.3)	0x4788d0 168 paso: CL9.3
+CL9	0x48c610	134	pendiente CL9 hito 6 (CL9.3)	0x48c610 134 paso: CL9.3
+CL9	0x48de30	131	pendiente CL9 hito 6 (CL9.3)	0x48de30 131 paso: CL9.3
+CL9	0x48e3f0	59	pendiente CL9 hito 6 (CL9.3)	0x48e3f0 59 paso: CL9.3
+CL9	0x661b60	45	pendiente CL9 hito 6 (CL9.3)	la llama 0x661bc0, 0x6691c0
+CL9	0x453520	558	pendiente CL9 hito 7 (CL9.4)	la llama 0x4511f0
+CL9	0x4e7630	556	pendiente CL9 hito 7 (CL9.4)	0x4e7630 556 paso: CL9.4
+CL9	0x450fe0	283	pendiente CL9 hito 7 (CL9.4)	sin texto que la describa
+CL9	0x5f8130	234	pendiente CL9 hito 7 (CL9.4)	0x5f8130 234 paso: CL9.4
+CL9	0x451100	232	pendiente CL9 hito 7 (CL9.4)	la llama 0x6b3c00
+CL9	0x4c09c0	232	pendiente CL9 hito 7 (CL9.4)	la llama 0x6b5340
+CL9	0x65cc80	151	pendiente CL9 hito 7 (CL9.4)	la llama 0x65cc50
+CL9	0x53eaf0	124	pendiente CL9 hito 7 (CL9.4)	0x637119 0x53eaf0 la tabla 0x75fe028 (0x51fc80), sin leer —
+CL9	0x452ce0	102	pendiente CL9 hito 7 (CL9.4)	0x452ce0 102 HUD: CL9.3/CL9.4
+CL9	0x454050	91	pendiente CL9 hito 7 (CL9.4)	la llama 0x453520
+CL9	0x4c0c10	89	pendiente CL9 hito 7 (CL9.4)	la llama 0x4c0340
+CL9	0x453fd0	87	pendiente CL9 hito 7 (CL9.4)	la llama 0x453520
+CL9	0x4e7940	81	pendiente CL9 hito 7 (CL9.4)	0x4e7940 81 paso: CL9.4
+CL9	0x453d10	62	pendiente CL9 hito 7 (CL9.4)	la llama 0x450fe0, 0x451100, 0x4514a0
+CL9	0x4c0bd0	62	pendiente CL9 hito 7 (CL9.4)	la llama 0x4c0340, 0x4c09c0, 0x4db890 y 2 más
+CL9	0x452830	43	pendiente CL9 hito 7 (CL9.4)	0x452830 43 HUD: CL9.3/CL9.4
+CL9	0x65cc50	41	pendiente CL9 hito 7 (CL9.4)	0x65cc50 41 ventanas: CL9.4
+CL9	0x4c0ab0	33	pendiente CL9 hito 7 (CL9.4)	FUN_004c0ab0(1);
+CL9	0x4540e0	29	pendiente CL9 hito 7 (CL9.4)	la llama 0x453520
+CL9	0x454030	28	pendiente CL9 hito 7 (CL9.4)	0x454030 28 HUD: CL9.3/CL9.4
+CL9	0x4e8070	25	pendiente CL9 hito 7 (CL9.4)	0x4e8070 25 paso: CL9.4
+CL9	0x4e73b0	24	pendiente CL9 hito 7 (CL9.4)	0x4e73b0 24 paso: CL9.4
+CL9	0x5f8220	24	pendiente CL9 hito 7 (CL9.4)	0x5f8220 24 paso: CL9.4
+CL9	0x65cd20	23	pendiente CL9 hito 7 (CL9.4)	0x65cd20 23 ventanas: CL9.4
+CL9	0x4527f0	21	pendiente CL9 hito 7 (CL9.4)	0x4527f0 21 HUD: CL9.3/CL9.4
+CL9	0x452810	21	pendiente CL9 hito 7 (CL9.4)	0x452810 21 HUD: CL9.3/CL9.4
+CL9	0x4529e0	5	pendiente CL9 hito 7 (CL9.4)	del elegido prende +0x60 (0x4529e0) y los demás no se tocan (Q-C977); si no, +0x60 en 0 (0x4529f0). Con
+CL9	0x4529f0	5	pendiente CL9 hito 7 (CL9.4)	del elegido prende +0x60 (0x4529e0) y los demás no se tocan (Q-C977); si no, +0x60 en 0 (0x4529f0). Con
+CL9	0x4529d0	4	pendiente CL9 hito 7 (CL9.4)	0x4529d0 4 HUD: CL9.4?
+CL9	0x452a00	4	pendiente CL9 hito 7 (CL9.4)	0x452a00 4 HUD: CL9.3/CL9.4
+CL9	0x48a630	978	pendiente CL9 hito 8 (CL9.4)	la llama 0x46d630, 0x488f90
+CL9	0x64f720	886	pendiente CL9 hito 8 (CL9.4)	la llama 0x64f6f0
+CL9	0x654af0	885	pendiente CL9 hito 8 (CL9.4)	la llama 0x654ac0
+CL9	0x48a290	766	pendiente CL9 hito 8 (CL9.4)	la llama 0x46b9d0, 0x488c90
+CL9	0x488c90	719	pendiente CL9 hito 8 (CL9.4)	la llama 0x488c60, 0x64f720
+CL9	0x488f90	719	pendiente CL9 hito 8 (CL9.4)	la llama 0x488f60, 0x64f720
+CL9	0x473890	384	pendiente CL9 hito 8 (CL9.4)	la llama 0x46c930, 0x49b220
+CL9	0x474c50	384	pendiente CL9 hito 8 (CL9.4)	la llama 0x46bca0
+CL9	0x48cf80	160	pendiente CL9 hito 8 (CL9.4)	la llama 0x4818b0
+CL9	0x48cf10	110	pendiente CL9 hito 8 (CL9.4)	la llama 0x480260
+CL9	0x4c16d0	83	pendiente CL9 hito 8 (CL9.4)	filtro de DAT_05767804/FUN_004c16d0).
+CL9	0x654ac0	33	pendiente CL9 hito 8 (CL9.4)	0x654ac0 33 ventanas: CL9.4
+CL9	0x608880	195	portada sin cita 0x (MuRet la nombra sin el 0x)	0x637078 0x608880 los ítems del piso que caen CL9.3
+CL9	0x449c60	18	portada sin cita 0x (MuRet la nombra sin el 0x)	el ítem a la caja (0x5be150) y 0x449c60 pone sus marcas como las de las otras grillas (0x5e5207). Soltado en
+CL9	0x6522e0	4	portada sin cita 0x (MuRet la nombra sin el 0x)	0x10 gremio (G) 0x6522e0() CL9.4
+CL10	0x61ef10	4382	plataforma: DirectSound, mmio y wzAudio (MuRet usa SDL3, ADR 0021)	lectura. El arranque nativo 0x4b9df9 llama al renombrado 0x61ef10. Sus
+CL10	0x41e6d0	982	plataforma: DirectSound, mmio y wzAudio (MuRet usa SDL3, ADR 0021)	avisa (0x41eac0 sale si 0x41e6d0 falla). Por eso el cliente corre con estos huecos (Q-C23
+CL10	0x41f0f0	510	plataforma: DirectSound, mmio y wzAudio (MuRet usa SDL3, ADR 0021)	textos: "Bad Format in Wave file!", "WaveLoad"; usa MessageBoxA, mmioAscend, mmioClose; la llama 0x41e6d0
+CL10	0x41e520	408	plataforma: DirectSound, mmio y wzAudio (MuRet usa SDL3, ADR 0021)	arranca DirectSound (CoInitialize y DirectSoundCreate, DSOUND#1) desde WinMain
+CL10	0x41ff30	362	plataforma: DirectSound, mmio y wzAudio (MuRet usa SDL3, ADR 0021)	el log de los drivers de sonido ("Sound Card Driver", DirectSoundEnumerate, DSOUND#2) desde WinMain
+CL10	0x41ef00	309	plataforma: DirectSound, mmio y wzAudio (MuRet usa SDL3, ADR 0021)	antes del glClearColor de cada mapa). 0x41ef00 (el sonido 3D, CL10); GetLocalTime (0x6381c7); sprintf
+CL10	0x41fe90	153	plataforma: DirectSound, mmio y wzAudio (MuRet usa SDL3, ADR 0021)	y armaba el registro con el callback 0x41fe90. El formato del log de
+CL10	0x41f2f0	139	plataforma: DirectSound, mmio y wzAudio (MuRet usa SDL3, ADR 0021)	textos: "hResult is %d"; usa mmioClose, mmioRead; la llama 0x41e6d0
+CL10	0x41ee80	72	plataforma: DirectSound, mmio y wzAudio (MuRet usa SDL3, ADR 0021)	0x41ee80 72 paso: CL10
+CL10	0x41ee50	34	plataforma: DirectSound, mmio y wzAudio (MuRet usa SDL3, ADR 0021)	con 2, en la escena 5 limpia el juego (0x42fdc0, 0x622b00, 0x41ee50, 0x5be150 y 0x61eef0,
+CL10	0x41f090	33	plataforma: DirectSound, mmio y wzAudio (MuRet usa SDL3, ADR 0021)	sin texto que la describa
+CL10	0x622b00	32	plataforma: DirectSound, mmio y wzAudio (MuRet usa SDL3, ADR 0021)	con 2, en la escena 5 limpia el juego (0x42fdc0, 0x622b00, 0x41ee50, 0x5be150 y 0x61eef0,
+CL10	0x41f0c0	30	plataforma: DirectSound, mmio y wzAudio (MuRet usa SDL3, ADR 0021)	usa mmioClose; la llama 0x41f090
+CL10	0x41f070	29	plataforma: DirectSound, mmio y wzAudio (MuRet usa SDL3, ADR 0021)	la llama 0x41e6d0
+CL10	0x41fbf0	15	plataforma: DirectSound, mmio y wzAudio (MuRet usa SDL3, ADR 0021)	MuRet cubre también las nueve llamadas a 0x41fbf0 que agregaban
+CL10	0x4ad060	12	plataforma: DirectSound, mmio y wzAudio (MuRet usa SDL3, ADR 0021)	la posición del stream de la música (wzAudioGetStreamOffsetRange)
+CL10	0x41ed00	6	plataforma: DirectSound, mmio y wzAudio (MuRet usa SDL3, ADR 0021)	la llama 0x41ed10
+CL10	0x41eab0	3	plataforma: DirectSound, mmio y wzAudio (MuRet usa SDL3, ADR 0021)	la llama 0x41eac0, 0x41ec70

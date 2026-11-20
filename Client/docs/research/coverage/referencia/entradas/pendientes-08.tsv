@@ -1,0 +1,306 @@
+id	linea	estado	ola	ola_origen	tipo	corte_vivo	vm_en_texto	titulo	bloquea
+P-C01	44	cerrada	CL6	CL6	—		1	Cerrado el 2026-11-03	CL6
+P-C02	45	cerrada	CL7	?	—		1	Cerrado el 2026-10-31.	CL7
+P-C03	46	cerrada	CL6	CL3	—		0	Cerrado para la CL3 el 2026-11-02	CL6 a CL9
+P-C04	47	cerrada	CL5	CL5	—		1	Cerrado el 2026-11-03	CL5
+P-C05	48	abierta	CL4	CL2	vm		1	Diferencial dinámico del login `F1 01` y del keepalive `0x0E`	CL4.5
+P-C06	49	cerrada	CL6	CL6	—		0	Cerrado el 2026-11-03	CL6
+P-C07	50	abierta	CL10	CL10	vm		1	Audio	CL10 y CL11
+P-C08	51	abierta	CL8	CL3	otro		0	Input completo.	CL8
+P-C09	52	abierta	CL9	?	vm		1	Semántica de cada handler	CL9
+P-C10	53	abierta	CL4	?	servidor		0	¿Con qué servidor se prueba?	CL4
+P-C11	54	cerrada	CL4	CL4	—		0	Cerrado el 2026-11-02	CL4, CL8
+P-C12	55	abierta	CL7	CL5	datos		0	Los mapas.	CL7.5, CL9
+P-C13	56	abierta	CL5	?	vm		1	La carga y el login, en GL y en pantalla.	CL5
+P-C14	57	abierta	CL6	CL6	vm		1	La selección, lo que la CL6.R dejó abierto	CL6.2, CL6.3
+P-C15	58	abierta	CL6	CL6	vm		1	El login de la CL6.4	CL6.4 (a, b, d, e y f), CL7.6 C (c), CL7 (h e i), CL7.6 B (j)
+P-C16	59	abierta	CL6	CL6	servidor		1	Crear y borrar personajes, en el cable	CL6.5
+P-C17	60	abierta	CL6	CL6	vm		1	La cabeza y el guardia de Lorencia, lo que la CL6.2 dejó abierto	CL6.3 (el giro), CL9 (los NPC)
+P-C18	61	abierta	CL6	?	vm		1	El render de modelos más allá de las dos trazas	CL6.3 (a, b, c y f), CL7 y CL9 (d y e)
+P-C19	62	abierta	CL6	CL6	vm		1	La selección de MuRet, lo que la CL6.3 PR D dejó abierto	CL6.3
+P-C20	63	abierta	CL6	CL6	vm		1	Lo que la CL6.3 PR F dibuja sin traza	CL6.3 (a a e, g a i), CL7 (f)
+P-C21	64	abierta	CL6	CL6	servidor		1	Las pruebas a mano de la CL6.3 contra el GS del laboratorio	CL6.3
+P-C22	65	abierta	CL6	?	vm		1	La tela, lo que no se puede emular	CL6.6 (a a c), CL7.6 (d), CL9 (e y f)
+P-C23	66	abierta	CL7	CL7	vm		1	El login completo, contra el original	CL7.1 y CL7.2 (a), CL7.6 A (b), CL7.6 C (c), CL7.6 B (d a f)
+P-C24	67	abierta	CL7	CL7	vm		1	El recorte y las olas del terreno fuera del login	CL7.3 (a y c), CL7.1 (b)
+P-C25	68	abierta	CL7	CL7	vm		1	Los sprites de un frame fuera del login	CL7 (el cierre de la selección), CL8 (el juego)
+P-C26	69	abierta	CL7	CL7	vm		1	El buffer global de la pose	CL7.6 B2 (a y b), la ola que use lo que cuelga con desplazamiento (c), CL7.6 B4 (d)
+P-C27	70	abierta	CL8	CL7	vm		1	Lo que el cierre del login dejó abierto	cierre del login (a, c, g a i), CL8 (b)
+P-C28	71	abierta	CL7	?	vm		1	La entrada al mundo y la escena del juego	CL7 (la entrada, los modelos y lo vivo de Lorencia)
+P-C29	72	abierta	CL7	CL7	vm		1	La cámara del juego	CL7.3
+P-C30	73	abierta	CL7	?	vm		1	Caminar	CL7.4
+P-C31	74	abierta	CL7	?	vm		1	Los mapas y los gates	CL7.5, CL9 (j)
+P-C32	75	abierta	CL7	?	vm		1	Muestras x87 del giro.	CL7.4 C
+P-C33	76	abierta	CL7	?	vm		1	La admisión del `1C` según el cuarto argumento del dispatcher	CL7.5 C y D (el hito 2): el `1C` no se admite antes de cerrarlo
+P-C34	77	abierta	CL7	?	codigo	Scenes/ItemPrice.cpp:680	1	La palabra de control de la x87 adentro de `0x69fd3c` y de `SendMove`	CL7.4 B y E (el `D3` que sale), CL7.5 E (el trapecio) y una política única para `_ftol`
+P-C35	78	abierta	CL7	?	vm		1	Bridge01 y el margen `+0xdc`	CL7.L2 (el recorte de los objetos de Lorencia)
+P-C36	79	abierta	CL7	?	vm		1	El contrato de `0x54bf40` y `0x4225d0`	CL7.L3 (el equipo del `F3 10` en el héroe)
+P-C37	80	cerrada	CL7	CL7	—		1	Los objetos de Devias en la memoria del original	CL7.L2 y CL7.5 A y E contra Devias
+P-C38	81	abierta	CL7	?	vm		1	Los stats del registro propio, `0x550d10`	CL7 (hito 1, T10, T10b, T10c y lo que sigue)
+P-C39	82	abierta	CL7	?	vm		1	El azar de la entrada al mundo con la tabla de protección real	CL7 hito 1, ahora que `0x512a30` vuelve entero con las tablas de los conjuntos (P-C38 y P-C40), y P-C22 a
+P-C40	83	abierta	CL7	?	codigo		1	Lo que deja `0x505820` entre la selección y el juego	CL7 (hito 1) y el dibujo de los personajes del juego
+P-C41	84	abierta	CL7	?	vm		1	El primer frame del juego y lo que su paso comparte con la selección	CL7 (hito 1: T11 a T13 y las hojas del hito 4), CL7.4, CL8
+P-C42	85	abierta	CL7	?	vm		1	El `F3 10` en el original	CL7 (hito 1, T9 y lo que sigue)
+P-C43	86	abierta	CL7	?	vm		1	Una segunda respuesta del `F3 03` en el mundo	CL7 (hito 1) y el dibujo de los personajes del juego
+P-C44	87	abierta	CL7	CL7	vm		1	El paso de los personajes del juego	CL7 (hito 1 y CL7.4), CL8
+P-C45	88	abierta	CL7	?	vm		1	La vuelta a la selección en el original	CL7 (hito 1) y la UI del juego (CL8)
+P-C46	89	abierta	CL7	?	codigo		1	El trapecio y el rango compartidos, y lo que `0x5fbb00` deja todavía por escena	CL7 (hito 1 y la ola de los efectos), CL8
+P-C47	90	abierta	CL7	?	vm		1	La tabla de los ayudantes en el juego	CL7 (hito 1 y la ola de los efectos), CL9
+P-C48	91	abierta	CL7	CL7	vm		1	El pase del pasto y las marcas del suelo	CL7 (hito 1)
+P-C49	92	abierta	CL7	CL7	vm		1	Las marcas del suelo	CL7 (hito 1), CL7.4
+P-C50	93	abierta	CL7	?	vm		1	El paso de personajes de selección y login	CL7 y CL8
+P-C51	94	abierta	CL3	CL3	vm		1	El manejador de caídas en el original y en el MuRet de Windows	nada: la CL3 lo usa como está
+P-C52	95	abierta	CL7	CL7	vm		1	El cuerpo de los personajes, `0x4fd5f0`	CL7 (hito 1 y CL7.4), la ola del combate, CL10
+P-C53	96	abierta	CL7	CL7	vm		1	Los objetos del juego	CL7 (hito 3 y la ola de los efectos), CL7.4
+P-C54	97	abierta	CL7	CL7	codigo		1	Lo que falta de `0x505de0` y el paso de la selección y del login	CL7 (hito 1 y CL7.4), la ola de los efectos, CL10
+P-C55	98	abierta	CL7	?	vm		1	El dibujo del juego después de los objetos	CL7, CL9.3, CL11
+P-C56	99	abierta	CL7	?	vm		1	El paso de personajes del login (`0x634d13`)	CL7
+P-C57	100	abierta	CL7	?	vm		1	El paquete de clima `0F` y su consumo	CL7 (hito 4), CL9/CL10
+P-C58	101	abierta	CL8	CL7	codigo		1	Los cortes que la CL7 deja para otras olas	CL8, CL9, CL10, CL11
+P-C59	102	abierta	CL9	CL8	codigo		0	Lo que la UI del juego abre hacia otras olas	CL9, CL10, CL11
+P-C60	103	abierta	CL8	CL8	vm		1	Lo que la CL8 deja para la VM	CL8
+P-C61	104	abierta	CL8	CL8	vm		1	La vuelta de `WinMain` y la secuencia de la CRT entre frames	todas las escenas
+P-C62	105	abierta	CL8	CL8	codigo		0	La resolución del registro en el HUD	el HUD en anchos fuera de los cinco
+P-C63	106	abierta	CL8	CL8	codigo		0	Lo que el HUD (hito 2 de la CL8) deja para otros hitos y olas	el mapa 30 con el panel a la vista; los eventos con su paquete
+P-C70	107	abierta	CL8	CL8	codigo	Scenes/GameInventoryHud.cpp:280	0	El modelo de los ítems de la UI y el fondo del texto en caja	lo que (a) corta con su dirección: las uniones del `0x1a18` en la UI (`0x60c3b6`) y un modelo o un esqueleto que falta (`0x5e13d9`)
+P-C71	108	abierta	CL8	CL8	codigo		0	Lo que el inventario deja cortado	usar el inventario en las ventanas de otras olas
+P-C72	109	abierta	CL8	CL8	vm		1	Lo que el ítem del cursor lee sin poder verlo	(a) el texto de los avisos 269, 1862, 1915, 251 y 250; (b) un ítem soltado fuera del borde; (c) equipar el `0x1a5`; (d) el elfo con flechas; (e) la cuenta de `rand()` de un `24` en claro; (g) el cable
+P-C73	110	abierta	CL8	CL8	vm		1	Lo que el 3D de la UI deja en los globales y su traza	un lector de esos globales entre `0x5ac120` y el pase del mundo siguiente; la imagen de los ítems de la UI
+P-C74	111	abierta	CL8	CL8	vm		1	Lo que `0x60b3d0` crea desde un ítem de la UI	un ítem de la UI con brillo, sprites o efectos
+P-C75	112	cerrada	CL8	CL8	—		0	Cerrado el 2026-11-12	—
+P-C76	113	cerrada	CL8	CL8	—		0	Cerrado el 2026-11-12	—
+P-C77	114	abierta	CL8	CL8	codigo		0	Lo que la ventana de Esc deja	la vuelta a la lista desde la selección
+P-C78	115	abierta	CL8	CL8	vm		1	Lo que contesta el CS a los créditos	el `F4 06` de los créditos
+P-C79	116	abierta	CL8	CL8	otro		0	El sonido de las opciones y de los créditos	el volumen y el brillo
+P-C80	117	abierta	CL8	CL8	vm		1	El momento del timer del cartel de `Slide.bmd`	el juego: la secuencia de la CRT cada `período` segundos
+P-C81	118	abierta	CL8	CL8	vm		1	El dibujo de los globos	ver los globos y los nombres sobre las cabezas; el clic derecho en un globo
+P-C82	119	abierta	CL9	CL8	codigo		1	Los cortes del chat que llega	el Guild Master y el gremio, en la CL9.4; el clic derecho, con el campo del chat
+P-C83	120	abierta	CL8	CL8	codigo		0	`0x77f3b66` en los textos que siguen a un globo	un texto de esos que llegue más abajo que `H − H · 47 / 640` en un frame del juego (con el hover, casi todos: Q-C612 es la excepción): en el original sube hasta ese tope
+P-C85	121	abierta	CL8	CL8	vm		1	El IME en el historial del chat	que las flechas del chat hagan lo mismo que el original en cada Windows
+P-C86	122	abierta	CL8	CL8	codigo		0	Las flechas y la barra de los EDIT del chat	el clic en el borde derecho del campo del chat
+P-C87	123	cerrada	CL9	CL9	—		0	Cerrado el 2026-11-13	—
+P-C88	124	abierta	CL8	CL8	vm		0	La repetición de Enter	Enter apretado en el juego
+P-C89	125	abierta	CL8	CL8	vm		1	Lo que la entrada del chat no escribe o dibuja distinto	el dibujo de los EDIT contra una traza; (b) cuando alguien lea `0x5762ec0`
+P-C90	126	abierta	CL8	CL8	codigo		1	Los diálogos del juego que quedan	un diálogo de otra ola abierto por su paquete; el panel con su diálogo
+P-C91	127	abierta	CL8	CL8	codigo		0	El brillo de las opciones en los otros caminos de `0x60b3d0`	el brillo bajado, en el juego y en la selección (el global queda entre escenas)
+P-C92	128	cerrada	CL8	CL8	—		1	Cerrado el 2026-11-12	CL8
+P-C93	129	cerrada	CL8	CL8	—		0	Cerrado el 2026-11-12	CL8
+P-C94	130	cerrada	CL8	CL8	—		1	Cerrado el 2026-11-12	CL8
+P-C95	131	abierta	CL9	CL9	codigo		0	Lo que las ventanas viejas dejan para la CL9.4	los amigos, el correo y su chat
+P-C96	132	abierta	CL8	CL8	vm		1	Cuándo se apaga el soltado del izquierdo	el clic de los botones viejos y de la barra del título con el mouse en movimiento
+P-C97	133	abierta	CL8	CL8	vm		1	El valor del contador de ids	ninguno a la vista; un test que compare ids con el original
+P-C98	134	abierta	CL8	CL8	vm		1	El dibujo de la lista de ventanas oculta	el estado de GL después del HUD; el parpadeo de la lista
+P-C99	135	abierta	CL8	CL8	codigo		0	Lo que el hito 7 no escribe	(a) entrar y salir de Chaos Castle
+P-C100	136	cerrada	CL8	CL8	—		1	Cerrado el 2026-11-12	la ventana del personaje
+P-C101	137	cerrada	CL8	CL8	—		1	Cerrado el 2026-11-12	CL8
+P-C102	138	cerrada	CL8	CL8	—		0	Unido a P-C105 el 2026-11-13	—
+P-C103	139	abierta	CL8	CL8	vm		1	Lo que el sprintf de los tooltips infiere	los renglones con textos raros o largos
+P-C104	140	abierta	CL9	CL9	vm		1	Lo que el hito 5 deja para la VM	los `rand()` y los paquetes de la ventana del personaje y del set
+P-C105	141	cerrada	CL8	CL8	—		1	Cerrado el 2026-11-13	—
+P-C110	142	abierta	CL8	CL8	vm		1	La captura de un frame retenido	Impr Pant en la carga del mundo, en un warp, con la selección esperando la lista o en el login antes de su primer paso
+P-C111	143	abierta	CL8	CL8	vm		1	El lugar del grupo elegido como global	Impr Pant en la lista después de un servidor ocupado o de cancelar la cuenta, o con una lista que trae el grupo 23
+P-C115	144	cerrada	CL8	CL8	—		1	Cerrado el 2026-11-13	—
+P-C116	145	cerrada	CL9	CL9	—		1	Cerrado el 2026-11-13	
+P-C117	146	abierta	CL9	CL9	codigo		0	El comando sobre el personaje elegido	la D abierta con un comando elegido y el mouse sobre otro personaje
+P-C120	147	abierta	CL8	CL8	servidor		0	La ventana del personaje sin el servidor elegido	la ventana del personaje fuera del camino del login
+P-C121	148	abierta	CL8	CL8	vm		1	La división por 0 de las letras	las letras con un registro raro
+P-C122	149	abierta	CL8	CL8	codigo		0	Lo que la ventana del personaje lee fuera del registro de MuRet	el nombre largo
+P-C123	150	abierta	CL8	CL8	vm		1	Lo que la ventana del personaje infiere o deja para la VM	la ventana del personaje, más allá de lo estático
+P-C124	151	cerrada	CL8	CL8	—		0	Cerrado el 2026-11-12	—
+P-C125	152	abierta	CL8	CL8	codigo	Scenes/ItemNames.cpp:134	1	Lo que corta el cuerpo del ítem	los tooltips de esos ítems y casos
+P-C126	153	cerrada	CL8	CL9	—	Scenes/ItemPrice.cpp:650	0	Cerrado el 2026-11-13	CL8
+P-C127	154	cerrada	CL8	CL8	—		0	Cerrado el 2026-11-12	—
+P-C135	155	abierta	CL8	CL8	codigo		0	Lo que corta el cuerpo de la skill	el tooltip de esas skills
+P-C136	156	abierta	CL8	CL8	vm		1	Lo que el cuerpo de la skill deja a otras olas o a la VM	el tooltip de la skill más allá de lo estático
+P-C140	157	abierta	CL9	CL8	codigo		1	Lo que corta el precio de un ítem	el precio de reparar de esos ítems y, en la CL9.3, el de la tienda de NPC
+P-C145	158	cerrada	CL8	CL8	—		1	Cerrado el 2026-11-13	—
+P-C146	159	abierta	CL8	CL8	codigo		0	Lo que corta la ayuda del ítem	`/` y el nombre de un ítem en el chat sin esas tablas, o con un Text.bmd de otro cliente
+P-C150	160	abierta	CL8	CL8	vm		1	La poción del `26` y del `27`	(a) un lugar fuera de la grilla, que solo manda un servidor que no es el 1.02; (b) la durabilidad de una poción con un `26` o un `27`
+P-C151	161	abierta	CL8	CL8	vm		1	Las flechas del elfo	(a) el `28` de una mano de un elfo sin arco ni ballesta con algo en el inventario; (b) el `28` de una mano de un elfo que encuentra sus flechas con el cursor vacío
+P-C260	162	abierta	CL9	CL9	servidor		1	El `07` del GameServer 0.97	el `07` contra un servidor real
+P-C261	163	abierta	CL9	CL9	vm		1	El byte de la lista del `F3 11`	la lista de skills de un GameServer sin el FoxAnti
+P-C262	164	abierta	CL9	CL9	servidor		1	Lo que el GameServer 0.97 no manda	el cuervo, el efecto del nivel y el `69` contra un servidor real
+P-C263	165	abierta	CL9	CL9	vm		1	La cabeza del aviso del `73`	nada: el GameServer 1.02 no manda el `73`
+P-C264	166	abierta	CL9	CL9	codigo		0	La fase 2 de las skills	usar una skill desde el juego; el `B7`
+P-C265	167	abierta	CL11	CL11	codigo		0	Efectos de respuestas de skills, parcialmente pendientes CL11.	esas skills sobre el mundo
+P-C266	168	abierta	CL9	CL9	codigo		0	El resto del cuervo y de las mascotas	los efectos del ataque
+P-C245	169	abierta	CL9	CL9	codigo		0	La rama muerta de los datos de la mascota	nada alcanzable
+P-C246	170	cerrada	CL9	?	—		1	Resuelto el 2026-11-18.	CL9 hitos 4 y 6
+P-C267	171	abierta	CL9	CL9	vm		1	El comienzo del frame en la espera	cuántos `rand()` saca la espera; que las esperas bajen durante la carga de un mapa
+P-C268	172	abierta	CL9	CL9	codigo		0	Usar una skill desde el juego	usar una skill con el clic derecho o el ataque automático; los `19`, `1E`, `D3`, `DF` y `26` que salen
+P-C269	173	abierta	CL9	CL9	vm		1	Conexiones de skills de armas y H5, hechas estáticamente	skills sin maná, transformaciones y llegada
+P-C358	174	abierta	CL9	CL9	codigo		1	Brillo5fe sobre héroe transformado, hecho estáticamente	brillo con anillo de transformación
+P-C220	175	abierta	CL11	CL11	vm		1	Rama del elfo conectada a H5 y al acercamiento común	skills del elfo
+P-C221	176	abierta	CL9	CL9	vm		1	El `1E` de la rama del Wizard	lo que hace el servidor con la `0x4c`, la 8, la 9 y la `0xd` sobre un blanco
+P-C222	177	abierta	CL9	CL9	codigo		0	Lo que corta la rama del Wizard	~~Soul Barrier y el Teleport Ally con la party~~; la poción; el Magic Gladiator
+P-C223	178	abierta	CL11	CL11	vm		1	Rama Knight/Gladiator/Lord conectada	skills de Knight/Gladiator/Lord
+P-C224	179	abierta	CL9	CL9	vm		1	Lo que dejó la rama del caballero para otros	la `0x31` del caballero y lo que lee `+0x1bd`
+P-C250	180	abierta	CL9	CL9	codigo		0	Lo que corta pegar y morir	los monstruos que pegan o mueren, los efectos de la muerte; el ataque en la guerra de gremios
+P-C251	181	abierta	CL9	CL9	servidor		0	Lo que falta cablear del ataque	las skills
+P-C252	182	abierta	CL9	CL9	servidor		1	El combate contra la GS reconstruida	jugar contra la GS reconstruida; el `9C` de Blood Castle
+P-C253	183	abierta	CL9	CL9	otro		0	Las tablas de sonidos de los modelos	un modelo que nunca se escribió (también el `0x20a` con los subtipos 209 a 211 al caminar) suena `0xd2` (`0xd7` con el subtipo 9)
+P-C254	184	cerrada	CL9	CL9	—		0	`+0x381` después de pegar	—
+P-C255	185	abierta	CL9	CL9	codigo		0	Lo que corta morirse	otro jugador que muere en Chaos Castle o por la skill `0x28`
+P-C256	186	abierta	CL9	CL9	vm		1	Las celdas fuera de la grilla	un blanco en el borde del mapa, o empujado fuera
+P-C257	187	abierta	CL9	CL9	codigo		0	Lo que corta el paso del ataque sin habilidad	pegar en el juego, PvP y contra monstruos
+P-C258	188	abierta	CL11	CL11	vm		1	Habilidades del paso del ataque, lógica H4 portada; gráficos parciales.	skills
+P-C259	189	abierta	CL9	CL9	vm		1	El paso del ataque en la VM	contrato
+P-C346	190	abierta	CL9	CL9	codigo		0	Lo que crean los casos de habilidad del paso del ataque	las skills de los jugadores y los monstruos con esos casos
+P-C360	191	abierta	CL9	CL9	codigo		0	La `0x0e` de la cabeza con `BurstAt`	la Inferno (`0x0e`) de cualquiera
+P-C347	192	abierta	CL9	CL9	vm		1	Los casos de habilidad del paso del ataque en la VM	contrato
+P-C230	193	abierta	CL11	CL11	codigo		0	Fronteras gráficas de flechas en CL11, revisadas H4 2026-11-16.	arcos4/6,4/13,4/14,4/16..21 y skills de flecha
+P-C231	194	abierta	CL11	CL11	codigo		1	Conexiones de flechas H4 hechas; asedio H13 pendiente	skills del elfo y flechas de asedio
+P-C326	195	abierta	CL9	CL9	codigo		0	Lo que dibujan las flechas de skill	los efectos de las skills del elfo
+P-C327	196	abierta	CL9	CL9	codigo		0	Las flechas y los blancos de skill en el asedio	el asedio
+P-C344	197	abierta	CL9	CL9	codigo		0	Los efectos de las habilidades de los frames del ataque	las habilidades `0x2b`, `0x2f`, `0x37` y `0x38`, la 3 de los monstruos sin caso
+P-C345	198	abierta	CL11	CL11	vm		1	Tiro penetrante del arco corto	la habilidad `0x34`
+P-C232	199	abierta	CL9	CL9	codigo	World/BlastModelEffects.cpp:1126	1	El polvo de las piedras de Blood Castle en la VM	uno de cada diez pasos de cada piedra
+P-C233	200	abierta	CL9	CL9	codigo		0	Los efectos de los casos de monstruo de `0x4f5b70`	los monstruos con caso, en sus mapas, cuando pegan
+P-C234	201	cerrada	CL9	CL9	—		0	Los misiles de los monstruos	esos monstruos cuando pegan
+P-C152	202	abierta	CL9	CL9	vm		1	La acción, `18`	(c) la sesión con otros jugadores que pegan, hasta el hito 3
+P-C160	203	abierta	CL9	CL9	servidor		1	Lo que manda un GameServer 1.02 a los otros jugadores	qué bytes llegan en `+0x16`, `+0x17` y `+0x29..+0x2b` del `12`, en `+6` y `+7` del `45` y en el byte 6 del ítem del `25`, y si un servidor 1.02 manda el `DF`
+P-C162	204	abierta	CL9	CL9	codigo		0	Lo que cortan los otros jugadores	otros jugadores transformados, con banderas de efectos o empujados; un clic, el derecho o una carta con un personaje elegido; un `0B`
+P-C164	205	abierta	CL9	CL9	vm		0	Resueltos estáticamente cámara, caja persistida, E8 y comparación (2026-11-15)	Falta observar CW efectivo tras DLL/GL y casos nativos de distancia casi empatada. Se conserva el límite seguro fuera de65536 celdas; no equivalencia universal de esa lectura
+P-C170	206	abierta	CL9	CL9	datos		0	Sin `Dialog.bmd`	un `Data` sin el archivo
+P-C323	207	abierta	CL9	CL9	codigo		1	Lo que queda de los restos, `0x52e810`	fin de muerte y el `0x161` de Devias
+P-C161	208	cerrada	CL9	CL9	—		0	Resuelto en el cliente (2026-11-15)	No equivale a una traza nativa de todas las telas
+P-C163	209	cerrada	CL9	CL9	—		0	Contrato recuperado y portado estáticamente en el cierre H1/H9 (2026-11-14)	VM y alias nativo universal permanecen fuera del cierre estático
+P-C171	210	abierta	CL9	CL9	vm		1	El `A0` sin los bytes de estado	el `A0` del GS 0.97, siempre
+P-C172	211	abierta	CL9	CL9	servidor		1	El `13` del GS 0.97 no es el del cliente	contra el GS 0.97, todo `13` se lee corrido
+P-C173	212	abierta	CL9	CL9	codigo	Scenes/FaunaModels.cpp:294	0	`Monster50`, el tipo 68	un `13` o un `1F` del tipo 68
+P-C174	213	cerrada	CL9	CL9	—		0	Cerrado el 2026-11-13	—
+P-C175	214	abierta	CL9	CL9	codigo		0	Lo que corta el alta de un monstruo	los tipos con joints o llegada (los de Tarkan e Icarus, los de los mapas 30, 34 y 35 y los de `0x440530` y `0x425db0`), los que piden una acción y los del asedio prendido
+P-C176	215	abierta	CL9	CL9	codigo		0	Los modelos de los monstruos y los NPC	un monstruo o NPC en la pantalla; un caso con `0x4ea030`
+P-C177	216	abierta	CL9	CL9	vm		1	La pila que `0x517400` copia al nombre	quien lea `+0x1e3` o lo que sigue al 0 hasta `+0x1f0` en un invocado `0x98..0x9e`
+P-C178	217	abierta	CL9	CL9	codigo		0	Lo que queda del hito 2	un NPC al que se le hace clic; un monstruo en la pantalla; la ventana de las misiones
+P-C179	218	abierta	CL9	CL9	codigo		1	Lo que corta el dibujo de los monstruos y los NPC	un monstruo de esos tipos o con ese `+0x376` en la pantalla
+P-C240	219	abierta	CL9	CL9	codigo	Scenes/FaunaModels.cpp:341	1	`NPC\BloodCastle01.bmd`, el `0x1f3`	el NPC de Blood Castle que lo pide (`0x612270(0x1f3)`)
+P-C241	220	abierta	CL9	CL9	codigo		0	Lo que queda del cuerpo de los monstruos y los NPC	un monstruo de esos tipos en la pantalla; uno que ataca con espada o muere
+P-C242	221	abierta	CL9	CL9	vm		1	El dibujo de los monstruos contra el original	un monstruo en la pantalla
+P-C243	222	abierta	CL9	CL9	codigo		1	Lo que corta la ventana de las misiones	un `quest.bmd` con otros ítems, niveles o más pedidos; la misión 255; un clic en las respuestas sin diálogo mostrado
+P-C244	223	abierta	CL9	CL9	vm		1	La ventana de las misiones en la VM	la ventana de las misiones con el personaje abierto; un clic sobre el botón de terminar
+P-C330	224	abierta	CL9	CL9	vm		1	La tela sobre la malla en la VM	un Magic Skeleton en Blood Castle
+P-C332	225	abierta	CL9	CL9	codigo		0	Lo que corta el cuerpo de los monstruos y los NPC	b − a
+P-C334	226	abierta	CL9	CL9	codigo		0	Los efectos de los helpers de Kalima y del asedio	un monstruo de Kalima o un objeto del asedio en la pantalla
+P-C335	227	abierta	CL9	CL9	vm		1	Los helpers de Kalima, el asedio y el paso del 30 contra el original	un Kundun o la puerta de Kalima en la pantalla; las puertas del 30 con un jugador delante
+P-C336	228	abierta	CL9	CL9	vm		1	Los efectos de los helpers de los monstruos	un monstruo de esos tipos en la pantalla, con lugar en la tabla de partículas o en su efecto, joint o estela; en Crywolf (mapa 34) los del `0x1ab` al `0x1b4`
+P-C337	229	abierta	CL9	CL9	vm		1	Los helpers de los monstruos contra el original	dos monstruos con el mismo modelo del `0x1ab` al `0x1b4`, uno atacando; un `0x204..0x208` sin esos bits de `+0x7c`; el paso de un `0x1b0` que ataca
+P-C352	230	abierta	CL9	CL9	codigo	Scenes/MonsterCreation.cpp:574	1	`NpcName(%s).txt`: el idioma y los nombres largos	el alta de los tipos 76, 231 y 246 con la tabla cargada; un cliente con otro idioma
+P-C353	231	abierta	CL9	CL9	vm		1	Lo que cuelgan el `0x2a` y las estatuas de Blood Castle, contra el original	el monstruo 42 o una estatua de Blood Castle (132 a 134) en la pantalla
+P-C356	232	abierta	CL9	CL9	codigo	Scenes/MonsterViewport.cpp:154	1	Lo que corta el nombre de un invocado	un `NpcName(%s).txt` con otro formato en 152..158; un dueño de diez letras con un formato corto
+P-C200	233	abierta	CL9	CL9	servidor		1	El comercio, la party, el duelo y las tiendas contra el GameServer	un `39` de un GS 1.02 y cualquier duelo o tienda con un servidor que los tenga
+P-C201	234	cerrada	CL9	CL9	—		0	Cerrado el 2026-11-16	—
+P-C202	235	abierta	CL9	CL9	codigo		0	El `SetCursorPos` del `37`	el mouse justo después de abrir un comercio
+P-C203	236	abierta	CL9	CL9	vm		1	`0x78abacc`	nada de lo portado
+P-C204	237	abierta	CL9	CL9	codigo		0	La fase 2 del hito 7: lo que necesita los actores del hito 1	las tiendas, los comandos sobre otro y las barras de la party
+P-C205	238	abierta	CL9	CL9	codigo		1	Lo que la fase 1 del hito 7 corta o deja a medias	(a)..(e) ver y tocar las ventanas; (f) los `rand()` de la entrada a la selección
+P-C206	239	abierta	CL9	CL9	vm		1	La fase 2 del hito 7 frente a la VM y al hito 3	ver el duelo; pegarle al rival
+P-C207	240	abierta	CL9	CL9	codigo		1	Lo que la fase 2 del hito 7 deja a otros hitos	Enter en el `0x73` con el almacén
+P-C208	241	abierta	CL9	CL9	codigo		1	Las tiendas personales que quedan	ver los carteles; abrir la tienda propia con ítems y mirar la de otro
+P-C209	242	abierta	CL9	CL9	codigo		1	Lo que corta el comando sobre el elegido	un comando del gremio sobre otro; ver el `3F 05` con el cable
+P-C235	243	abierta	CL9	CL9	vm		1	El clic derecho sobre la grilla propia del comercio	el clic derecho sobre un ítem puesto en el comercio
+P-C312	244	abierta	CL9	CL9	vm		1	El paso del diálogo `0x91` de la tienda personal	poner el título y los precios de la tienda propia
+P-C313	245	abierta	CL9	CL9	vm		1	La tienda personal en la VM	el cable de la tienda
+P-C342	246	abierta	CL9	CL9	vm		1	Los carteles de las tiendas en la VM	dos jugadores, uno con la tienda abierta y su cartel, otro que lo elige con la ventana de los comandos (D) y el comando de la tienda; uno que habla con la tienda abierta
+P-C343	247	abierta	CL9	CL9	codigo		1	Lo que queda de los carteles	/ver puestos; un globo angosto de alguien que abre la tienda después de hablar
+P-C362	248	abierta	CL9	CL9	vm		1	El EDIT de `[0x5763504]` en el diálogo del zen	darle zen al comercio o al almacén
+P-C363	249	abierta	CL9	CL9	codigo	Scenes/GameDialogSteps.cpp:1071	0	El no de los diálogos de otros hitos	Esc sobre un pedido del almacén que espera detrás del comercio o la party
+P-C364	250	abierta	CL9	CL9	codigo		1	Lo que la auditoría del hito 7 deja fuera del hito	una ventana de NPC con aviso; el entrenador; `/purchase` solo
+P-C270	251	abierta	CL9	CL9	vm		1	Lo que los ítems del piso dejan para la VM y el cable	los ítems del piso con el servidor del laboratorio
+P-C271	252	abierta	CL9	CL9	codigo		0	Lo que cortan los ítems del piso	usar esos ítems, tirar con esas ventanas abiertas y los nombres de esos ítems
+P-C272	253	abierta	CL9	CL9	codigo		0	La fase 2 del hito 5: las joyas sobre un ítem y el resto del clic derecho en la grilla	el diálogo de la fruta, el de la joya sobre el `0x1a25` y el clic derecho con el almacén abierto
+P-C273	254	abierta	CL9	CL9	codigo		0	Lo que corta `MoveHero` después del ataque, con el picking del hito 1 y el ítem del piso	caminar hasta un objeto o un NPC elegidos
+P-C274	255	abierta	CL9	CL9	codigo		0	Lo que el hito 6 necesita del clic derecho de la grilla	pasar con el clic derecho un ítem al almacén o del almacén al inventario
+P-C275	256	abierta	CL9	CL9	vm		1	Lo que la fase 2 del hito 5 deja para la VM	—
+P-C280	257	abierta	CL9	CL9	vm		1	Los ids de los botones del diálogo de los paneles	nada
+P-C281	258	abierta	CL9	CL9	codigo		0	Lo que el hito 8 deja para después de su fase 2	el gremio en pantalla
+P-C282	259	abierta	CL9	CL9	vm		1	El `Sleep(500)` del `EB`	nada
+P-C283	260	abierta	CL9	CL9	servidor		1	El gremio contra el GameServer 0.97	probar contra un servidor
+P-C284	261	abierta	CL9	CL9	codigo		0	El segundo marcador de `0x5a7640` y el gremio del héroe en `0x6c6498`	el marcador del hito 11 y el panel del asedio
+P-C369	262	abierta	CL9	CL9	otro		0	Dos copias de `0x6c649a`, el puesto del héroe en su gremio	un héroe con gremio en el mapa 30
+P-C370	263	abierta	CL9	CL9	codigo		0	Lo que se pierde al descartar entero un paquete del gremio que escribe fuera	forzar los casos con un GS de prueba
+P-C285	264	abierta	CL9	CL9	codigo		0	El campo de texto y el reloj del diálogo de los paneles	el reloj y el campo del diálogo
+P-C286	265	abierta	CL9	CL9	vm		1	El `EDIT` del alta del gremio	nada
+P-C287	266	abierta	CL9	CL9	codigo		0	La ventana del gremio, `[0x7d536f0]`	nada
+P-C288	267	abierta	CL9	CL9	otro		0	Las ventanas de la alianza que mandan	romper una alianza o echar a un gremio de ella desde la ventana
+P-C289	268	cerrada	CL9	CL9	—		0	Las marcas de la lista de la alianza	nada
+P-C180	269	cerrada	CL9	CL9	—		0	Cerrado el 2026-11-13	CL9
+P-C181	270	abierta	CL9	CL9	vm		1	El EDIT de la caja de agregar	editor completo y contraste de los casos restantes
+P-C182	271	cerrada	CL9	CL9	—		1	El doble clic en el juego	chat con doble clic
+P-C183	272	cerrada	CL9	CL9	—		0	Cerrado el 2026-11-13	CL9
+P-C184	273	abierta	CL9	CL9	servidor		1	Los amigos contra un servidor que los tenga	dar por verificados los amigos
+P-C185	274	cerrada	CL9	CL9	—		0	Cerrado el 2026-11-13	CL9
+P-C186	275	abierta	CL9	CL9	vm		1	El dibujo de los amigos contra el original	dar por verificado el dibujo de los amigos
+P-C187	276	cerrada	CL9	CL9	—		1	El segundo clic de un doble clic	dos clics rápidos sobre un botón, renglón o suelo
+P-C210	277	cerrada	CL9	CL9	—		0	Cerrado el 2026-11-13	CL9
+P-C211	278	cerrada	CL9	CL9	—		1	Cerrado el 2026-11-13	CL9
+P-C212	279	cerrada	CL9	CL9	—	Scenes/GameLetters.cpp:370	0	Cerrado el 2026-11-13	CL9
+P-C213	280	cerrada	CL9	CL9	—		0	Cerrado el 2026-11-13	CL9
+P-C214	281	abierta	CL9	CL9	servidor		1	Las cartas y el chat con un amigo contra un servidor que los tenga	dar por verificado el hito 10
+P-C215	282	cerrada	CL9	CL9	—		0	Cerrado el 2026-11-13	CL9
+P-C216	283	cerrada	CL9	CL9	—		0	Cerrado el 2026-11-13	CL9
+P-C217	284	abierta	CL9	CL9	vm		1	El EDIT de varios renglones contra la VM	escribir una carta larga
+P-C218	285	cerrada	CL9	CL9	—		1	Cerrado el 2026-11-13	un texto de 0x100 bytes en el chat con tres miembros, o un renglón de carta en más de 80 pedazos
+P-C219	286	cerrada	CL9	CL9	—		0	Cerrado el 2026-11-18	CL9
+P-C359	287	abierta	CL9	CL9	vm		1	El alpha test y la mezcla del retrato de las cartas	el retrato con una malla con alpha antes de una opaca, después de un 2D con alpha test
+P-C310	288	cerrada	CL9	CL9	—		1	Cerrado el 2026-11-13	CL9
+P-C311	289	cerrada	CL9	CL9	—		1	Cerrado el 2026-11-13	CL9
+P-C247	290	abierta	CL9	CL9	vm		1	La ventana de `0x78abb00` y la entrada del número de serie	un `94` del GS (el NPC 236) con cada tipo, la Rena y la piedra en el inventario, y el número de serie
+P-C248	291	cerrada	CL9	CL9	—		0	El título de la ventana de `0x78abb00`	—
+P-C249	292	abierta	CL9	CL9	vm		1	El contrato de los altares de Crywolf	contratar un altar de Crywolf con una elfa
+P-C290	293	abierta	CL9	CL9	vm		1	La bandera del espacio en `wsprintfA`	el 91 de Devil Square y de Blood Castle, la cuenta del 92 (`0x40bab0`)
+P-C291	294	abierta	CL9	CL9	codigo		0	Lo que la fase 1 del hito 11 deja cortado para la fase 2	entrar a un evento con su ventana, sus resultados, un derrumbe o Crywolf en guerra
+P-C292	295	abierta	CL9	CL9	codigo		0	Lo que el hito 11 deja a otros hitos y olas	—
+P-C293	296	abierta	CL9	CL9	servidor		1	El cable de los eventos contra el GameServer	(a) la guerra de gremios con un GameServer 1.02; (c) un servidor que mande esos paquetes
+P-C294	297	abierta	CL9	CL9	vm		1	Lo que la VM tiene que confirmar de los dibujos de los eventos	entrar a Devil Square, Blood Castle o Chaos Castle hasta los resultados; hablar con Charon o con el Mensajero de los Arcángeles
+P-C295	298	abierta	CL9	CL9	codigo		0	Lo que la fase 2 del hito 11 deja cortado	entrar a un evento con un chip o un número de serie, un derrumbe, Crywolf en guerra, el recorrido de la cámara o Battle Soccer
+P-C296	299	abierta	CL9	CL9	vm		1	Lo que la VM tiene que confirmar del paso de las ventanas de los NPC de evento	elegir un cuadrado o un puente con y sin la invitación o la capa, y fuera del nivel
+P-C297	300	abierta	CL9	CL9	vm		1	El derrumbe de los objetos	entrar a Blood Castle hasta la puerta; un derrumbe de Chaos Castle
+P-C298	301	abierta	CL9	CL9	vm		1	La interfaz de Crywolf	Crywolf entero con un servidor que lo tenga: la advertencia, la defensa con Balgass, los resultados y el rango
+P-C299	302	abierta	CL9	CL9	vm		1	El recorrido de la cámara	el `BD 00` con la etapa 2 de un servidor con Crywolf, en cualquier mapa
+P-C328	303	abierta	CL9	CL9	vm		1	La bandera del altar con `0x6c8e54` en −1	caminar en Crywolf con el asedio sin un NPC elegido
+P-C329	304	abierta	CL9	CL9	vm		1	La cámara con el recorrido, contra el original	el `BD 00` con la etapa 2 en un servidor con Crywolf
+P-C190	305	abierta	CL9	CL9	servidor		1	Las ventanas de los NPC contra el GameServer 0.97	la tienda, el almacén y la caja del caos contra un GameServer 0.97
+P-C191	306	abierta	CL9	CL9	codigo		0	Lo que sigue cortado del hito 6	hablar con un NPC y usar su ventana
+P-C192	307	cerrada	CL9	CL9	—		1	Reconciliado el 2026-11-18.	[Matriz de conexiones y evidencia](2026-11-18-cl9-h6-cierre.md)
+P-C193	308	cerrada	CL9	?	—		1	Conectado el 2026-11-18.	CL9 hitos 5 y 6
+P-C194	309	cerrada	CL9	CL9	—		1	Tramos H6 reconciliados el 2026-11-18.	[Matriz H6](2026-11-18-cl9-h6-cierre.md)
+P-C195	310	cerrada	CL9	CL9	—		1	Reconciliado el 2026-11-18.	`PanelRegistryTest` y proveedor de sesión existente
+P-C197	311	cerrada	CL9	?	—		1	Resuelto estáticamente el 2026-11-18.	CL9 hito 6
+P-C198	312	abierta	CL9	CL9	codigo		1	Lo que queda del hito 6 después de la fase 3b	ver y usar la mezcla de joyas, el `0x91`, el `0x9a`, el `0xa8`, el `0xaa` y el entrenador
+P-C199	313	abierta	CL9	CL9	codigo		0	Las respuestas del `BC`	la respuesta de juntar o deshacer joyas
+P-C338	314	cerrada	CL9	?	—		1	Reconciliado el 2026-11-18.	CL9 hito 6
+P-C339	315	cerrada	CL9	CL9	—		1	Reconciliado el 2026-11-18 con H7/H10.	`PersonalShopWindowTest` y `GameDialogStepsTest`, proveedores existentes
+P-C340	316	cerrada	CL9	CL9	—		1	Reconciliado el 2026-11-18.	`PetTrainerTest`21 y `PetTrainerDrawingTest`8
+P-C341	317	abierta	CL9	CL9	servidor		1	Las respuestas del `BC` sin oráculo de red	comprobar los textos y el diálogo de la mezcla de joyas contra un servidor
+P-C366	318	abierta	CL9	CL9	vm		1	La lista de `0x6e5660`: lo que se infiere	el id de la lista y de las ventanas de WinMain; doble clic izquierdo sobre una fila seguido por otro mensaje
+P-C367	319	cerrada	CL9	CL9	—		1	Conectado el 2026-11-18.	`CursorItemTest.TradeAndShopItemsUseTheTradeSourceWhenDroppedOnEquipment`, mapas 0/2/3 y matriz de OK/traba
+P-C368	320	cerrada	CL9	?	—		1	Reconciliado el 2026-11-18 con el EDIT compartido de H7/H10.	CL9 hitos 6, 7 y 10
+P-C300	321	abierta	CL9	CL9	codigo		0	Las ventanas del castillo que quedan	CL9 hito 12 (sus fases 2 y 3)
+P-C301	322	abierta	CL9	CL9	codigo		0	El `B6` con el panel del asedio de clase 2	CL9 hito 13
+P-C302	323	abierta	CL9	CL9	codigo		0	Los paquetes de la batalla del asedio	CL9 hito 13
+P-C303	324	abierta	CL9	CL9	vm		1	Lo del castillo que solo la VM dice	nada: fidelidad
+P-C400	325	abierta	CL11	CL11	codigo		0	Lo que cortan los efectos de los magos	CL11, los lotes joints, partículas y switch
+P-C401	326	abierta	CL11	CL11	codigo		0	Los llamadores de los tipos de los magos que no están	nada en el login
+P-C402	327	abierta	CL11	CL11	vm		1	Los efectos de los magos contra el original	nada: fidelidad
+P-C410	328	abierta	CL11	CL11	codigo		0	Las partículas de los efectos del lote switch	el lote de las partículas
+P-C411	329	abierta	CL11	CL11	codigo		0	Los joints de los efectos del lote switch	el lote joints
+P-C412	330	cerrada	CL11	CL11	—		0	El pase `0x1040` del `0x109/0`	~~ver un `0x109/0` en la pantalla~~ nada
+P-C413	331	abierta	CL11	CL11	codigo		0	Lo que los efectos del lote switch leen del dueño y MuRet no tiene	un llamador que los alcance
+P-C420	332	abierta	CL11	CL11	codigo		0	Los joints que piden los efectos de los tipos altos	el ataque del asedio en el 30, los dobles de `0x429110`, los ataques de etapa 14 de Crywolf y la fortaleza, las flechas con estela, el `0x91` de Kalima en la 4 y en 14 (cinco pasos después), la 0x3c, 
+P-C421	333	abierta	CL11	CL11	vm		1	La segunda animación del `0x13b`	la llama del pulso del asedio y la de `0x4fd5f0`
+P-C422	334	abierta	CL11	CL11	codigo		0	Las partículas que piden los efectos de los tipos altos	las estrellas del 0x46 de `0x4f5b70` después de su primer paso con fuego, los tres `0x116/0` de la 0x3d, el calco de la 0x46, la piedra del `0x1a6`, la calavera de la 0x37 y de la bandera `0x40` en su
+P-C460	335	abierta	CL11	CL11	codigo		0	Lo que corta la novena vuelta de los tipos altos	la 0x37 del héroe, la caída de Kundun en Kalima, el golpe de la 3 del `0x1a4`, la skill `0x2e`
+P-C430	336	abierta	CL11	CL11	codigo		0	Lo que queda de los joints de la CL11	—
+P-C440	337	abierta	CL11	CL11	codigo		0	Las partículas de los efectos de la CL11	los efectos de la CL11 que crean esas partículas
+P-C470	338	cerrada	CL11	CL11	—		0	Los efectos por vértice del `0x632/0` y `/1` en el suelo	ver la `0x44` o la `0x47` contra un blanco
+P-C480	339	abierta	CL11	CL11	codigo		0	Lo que corta `0x4ee770`, los efectos por vértice	la `0x632/0` y `/1` del suelo; el cuervo transparente en Chaos Castle
+P-C520	340	abierta	CL11	CL11	codigo		1	La pose del `0x20b` de las cáscaras no queda en los globales	la VM: un `0x632/0` que llega al suelo en el primero de dos pasos seguidos, con un monstruo sin pose en el mismo cuadro
+P-C521	341	abierta	CL11	CL11	codigo		1	La escala de los huesos `0x6c881c` puede quedar en 1,4f o en 1,2f	la VM: un monstruo 77 en Chaos Castle que se desvanece y una `0x632/0` que cae en ese cuadro
+P-C522	342	abierta	CL11	CL11	codigo		0	Lo que `0x4ebc80` le escribe al `0x20b` y no se guarda	buscar los lectores de `+0xc4` y `+0x8c..+0x94` del `0x20b`; la VM en el mapa 30
+P-C523	343	abierta	CL11	CL11	vm		0	El `Discard(2)` del C1 10 de `0x517a20` supone el serial cerrado	la VM: contar los `rand()` de un C1 10 del barrido del héroe y del `0x613` de ancho 80
+P-C524	344	abierta	CL11	CL11	vm		1	Los atributos del volley en el mapa 54	ver qué tabla queda en `0x7d0d348` en el juego con el mapa 54
+P-C535	345	abierta	CL11	CL11	vm		0	El fundido de Chaos Castle de los jugadores	la VM: un jugador en Chaos Castle con el héroe con `+0x1a1`, su alpha cuadro a cuadro
+P-C536	346	abierta	CL11	CL11	vm		0	El registro del modelo cuando `0x6001b0` o `0x5ffdf0` no copian	la VM: un jugador o un monstruo con alguna rama de huesos en la cola que entra con el alpha por debajo de 0,01 detrás de otro del mismo tipo; un monstruo de Blood Castle que muere con sombra y un paso
+P-C540	347	abierta	CL11	CL11	vm		0	Los joints, las partículas y los efectos del login entre frames del original	un personaje del login con un ala o un arma que cree joints o partículas en su cola
+P-C541	348	abierta	CL11	CL11	vm		0	La pose y el scratch con Translate en 1 no son bit a bit	sondas de `0x4ebc80` y `0x4eb860` contra MuRet con ángulos no exactos, como la de `SkinMeshInWorld`; para (d), un BMD con vértices en un dummy; para (e), un objeto con `+0x11c` dibujado con el segundo

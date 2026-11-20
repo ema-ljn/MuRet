@@ -1,0 +1,716 @@
+{
+ "head": "c18eec8759b00af3763d682cead2edb4c82f1465",
+ "game_bytes": 2327716,
+ "bloques": {
+  "A": {
+   "todo": {
+    "total": {
+     "n": 129,
+     "bytes": 67761
+    },
+    "funciones": {
+     "n": 111,
+     "bytes": 42154
+    },
+    "tramos": {
+     "n": 18,
+     "bytes": 25607
+    },
+    "citadas_sin_corte": {
+     "n": 103,
+     "bytes": 62336
+    },
+    "con_test": {
+     "n": 68,
+     "bytes": 54271
+    },
+    "solo_corte": {
+     "n": 1,
+     "bytes": 48
+    },
+    "sin_citar": {
+     "n": 25,
+     "bytes": 5377
+    },
+    "por_alcance": {
+     "chat": {
+      "n": 107,
+      "bytes": 62038
+     },
+     "ime": {
+      "n": 6,
+      "bytes": 1319
+     },
+     "muerto": {
+      "n": 9,
+      "bytes": 3684
+     },
+     "stl": {
+      "n": 7,
+      "bytes": 720
+     }
+    },
+    "por_estado": {
+     "citada sin corte": {
+      "n": 70,
+      "bytes": 28341
+     },
+     "efecto portado sin citar": {
+      "n": 6,
+      "bytes": 291
+     },
+     "fuera de alcance (IME)": {
+      "n": 6,
+      "bytes": 1319
+     },
+     "muerto": {
+      "n": 9,
+      "bytes": 3684
+     },
+     "no hace falta": {
+      "n": 3,
+      "bytes": 778
+     },
+     "portada y cableada (verificada)": {
+      "n": 27,
+      "bytes": 31843
+     },
+     "simplificada": {
+      "n": 1,
+      "bytes": 785
+     },
+     "sustituida (STL)": {
+      "n": 2,
+      "bytes": 145
+     },
+     "sustituida (STL), sin citar": {
+      "n": 5,
+      "bytes": 575
+     }
+    },
+    "por_ola": {
+     "CL3": {
+      "n": 6,
+      "bytes": 16773
+     },
+     "CL4": {
+      "n": 6,
+      "bytes": 499
+     },
+     "CL5": {
+      "n": 2,
+      "bytes": 1020
+     },
+     "CL7": {
+      "n": 2,
+      "bytes": 1661
+     },
+     "CL8": {
+      "n": 113,
+      "bytes": 47808
+     }
+    }
+   },
+   "vivo": {
+    "total": {
+     "n": 107,
+     "bytes": 62038
+    },
+    "funciones": {
+     "n": 90,
+     "bytes": 37074
+    },
+    "tramos": {
+     "n": 17,
+     "bytes": 24964
+    },
+    "citadas_sin_corte": {
+     "n": 98,
+     "bytes": 60969
+    },
+    "con_test": {
+     "n": 66,
+     "bytes": 53104
+    },
+    "solo_corte": {
+     "n": 0,
+     "bytes": 0
+    },
+    "sin_citar": {
+     "n": 9,
+     "bytes": 1069
+    },
+    "por_alcance": {
+     "chat": {
+      "n": 107,
+      "bytes": 62038
+     }
+    },
+    "por_estado": {
+     "citada sin corte": {
+      "n": 70,
+      "bytes": 28341
+     },
+     "efecto portado sin citar": {
+      "n": 6,
+      "bytes": 291
+     },
+     "no hace falta": {
+      "n": 3,
+      "bytes": 778
+     },
+     "portada y cableada (verificada)": {
+      "n": 27,
+      "bytes": 31843
+     },
+     "simplificada": {
+      "n": 1,
+      "bytes": 785
+     }
+    },
+    "por_ola": {
+     "CL3": {
+      "n": 5,
+      "bytes": 16130
+     },
+     "CL4": {
+      "n": 6,
+      "bytes": 499
+     },
+     "CL5": {
+      "n": 1,
+      "bytes": 151
+     },
+     "CL7": {
+      "n": 1,
+      "bytes": 1613
+     },
+     "CL8": {
+      "n": 94,
+      "bytes": 43645
+     }
+    }
+   }
+  },
+  "B": {
+   "todo": {
+    "total": {
+     "n": 153,
+     "bytes": 76270
+    },
+    "funciones": {
+     "n": 151,
+     "bytes": 75989
+    },
+    "tramos": {
+     "n": 2,
+     "bytes": 281
+    },
+    "citadas_sin_corte": {
+     "n": 151,
+     "bytes": 76214
+    },
+    "con_test": {
+     "n": 69,
+     "bytes": 56209
+    },
+    "solo_corte": {
+     "n": 0,
+     "bytes": 0
+    },
+    "sin_citar": {
+     "n": 2,
+     "bytes": 56
+    },
+    "por_alcance": {
+     "chat": {
+      "n": 147,
+      "bytes": 75677
+     },
+     "muerto": {
+      "n": 3,
+      "bytes": 329
+     },
+     "stl": {
+      "n": 3,
+      "bytes": 264
+     }
+    },
+    "por_estado": {
+     "citada sin corte": {
+      "n": 135,
+      "bytes": 70523
+     },
+     "muerto": {
+      "n": 3,
+      "bytes": 329
+     },
+     "portada y cableada (verificada)": {
+      "n": 3,
+      "bytes": 1045
+     },
+     "sustituida (STL)": {
+      "n": 12,
+      "bytes": 4373
+     }
+    },
+    "por_ola": {
+     "CL2": {
+      "n": 10,
+      "bytes": 2645
+     },
+     "CL4": {
+      "n": 2,
+      "bytes": 329
+     },
+     "CL8": {
+      "n": 22,
+      "bytes": 11573
+     },
+     "CL9": {
+      "n": 119,
+      "bytes": 61723
+     }
+    }
+   },
+   "vivo": {
+    "total": {
+     "n": 147,
+     "bytes": 75677
+    },
+    "funciones": {
+     "n": 145,
+     "bytes": 75396
+    },
+    "tramos": {
+     "n": 2,
+     "bytes": 281
+    },
+    "citadas_sin_corte": {
+     "n": 147,
+     "bytes": 75677
+    },
+    "con_test": {
+     "n": 69,
+     "bytes": 56209
+    },
+    "solo_corte": {
+     "n": 0,
+     "bytes": 0
+    },
+    "sin_citar": {
+     "n": 0,
+     "bytes": 0
+    },
+    "por_alcance": {
+     "chat": {
+      "n": 147,
+      "bytes": 75677
+     }
+    },
+    "por_estado": {
+     "citada sin corte": {
+      "n": 135,
+      "bytes": 70523
+     },
+     "portada y cableada (verificada)": {
+      "n": 3,
+      "bytes": 1045
+     },
+     "sustituida (STL)": {
+      "n": 9,
+      "bytes": 4109
+     }
+    },
+    "por_ola": {
+     "CL2": {
+      "n": 9,
+      "bytes": 2372
+     },
+     "CL4": {
+      "n": 2,
+      "bytes": 329
+     },
+     "CL8": {
+      "n": 17,
+      "bytes": 11253
+     },
+     "CL9": {
+      "n": 119,
+      "bytes": 61723
+     }
+    }
+   }
+  },
+  "C": {
+   "todo": {
+    "total": {
+     "n": 31,
+     "bytes": 18239
+    },
+    "funciones": {
+     "n": 30,
+     "bytes": 18119
+    },
+    "tramos": {
+     "n": 1,
+     "bytes": 120
+    },
+    "citadas_sin_corte": {
+     "n": 30,
+     "bytes": 18119
+    },
+    "con_test": {
+     "n": 24,
+     "bytes": 14856
+    },
+    "solo_corte": {
+     "n": 1,
+     "bytes": 120
+    },
+    "sin_citar": {
+     "n": 0,
+     "bytes": 0
+    },
+    "por_alcance": {
+     "chat": {
+      "n": 31,
+      "bytes": 18239
+     }
+    },
+    "por_estado": {
+     "citada sin corte": {
+      "n": 30,
+      "bytes": 18119
+     },
+     "sólo en un corte": {
+      "n": 1,
+      "bytes": 120
+     }
+    },
+    "por_ola": {
+     "CL4": {
+      "n": 1,
+      "bytes": 120
+     },
+     "CL8": {
+      "n": 8,
+      "bytes": 5063
+     },
+     "CL9": {
+      "n": 22,
+      "bytes": 13056
+     }
+    }
+   },
+   "vivo": {
+    "total": {
+     "n": 31,
+     "bytes": 18239
+    },
+    "funciones": {
+     "n": 30,
+     "bytes": 18119
+    },
+    "tramos": {
+     "n": 1,
+     "bytes": 120
+    },
+    "citadas_sin_corte": {
+     "n": 30,
+     "bytes": 18119
+    },
+    "con_test": {
+     "n": 24,
+     "bytes": 14856
+    },
+    "solo_corte": {
+     "n": 1,
+     "bytes": 120
+    },
+    "sin_citar": {
+     "n": 0,
+     "bytes": 0
+    },
+    "por_alcance": {
+     "chat": {
+      "n": 31,
+      "bytes": 18239
+     }
+    },
+    "por_estado": {
+     "citada sin corte": {
+      "n": 30,
+      "bytes": 18119
+     },
+     "sólo en un corte": {
+      "n": 1,
+      "bytes": 120
+     }
+    },
+    "por_ola": {
+     "CL4": {
+      "n": 1,
+      "bytes": 120
+     },
+     "CL8": {
+      "n": 8,
+      "bytes": 5063
+     },
+     "CL9": {
+      "n": 22,
+      "bytes": 13056
+     }
+    }
+   }
+  },
+  "A+B": {
+   "todo": {
+    "total": {
+     "n": 282,
+     "bytes": 144031
+    },
+    "funciones": {
+     "n": 262,
+     "bytes": 118143
+    },
+    "tramos": {
+     "n": 20,
+     "bytes": 25888
+    },
+    "citadas_sin_corte": {
+     "n": 254,
+     "bytes": 138550
+    },
+    "con_test": {
+     "n": 137,
+     "bytes": 110480
+    },
+    "solo_corte": {
+     "n": 1,
+     "bytes": 48
+    },
+    "sin_citar": {
+     "n": 27,
+     "bytes": 5433
+    },
+    "por_alcance": {
+     "chat": {
+      "n": 254,
+      "bytes": 137715
+     },
+     "ime": {
+      "n": 6,
+      "bytes": 1319
+     },
+     "muerto": {
+      "n": 12,
+      "bytes": 4013
+     },
+     "stl": {
+      "n": 10,
+      "bytes": 984
+     }
+    },
+    "por_estado": {
+     "citada sin corte": {
+      "n": 205,
+      "bytes": 98864
+     },
+     "efecto portado sin citar": {
+      "n": 6,
+      "bytes": 291
+     },
+     "fuera de alcance (IME)": {
+      "n": 6,
+      "bytes": 1319
+     },
+     "muerto": {
+      "n": 12,
+      "bytes": 4013
+     },
+     "no hace falta": {
+      "n": 3,
+      "bytes": 778
+     },
+     "portada y cableada (verificada)": {
+      "n": 30,
+      "bytes": 32888
+     },
+     "simplificada": {
+      "n": 1,
+      "bytes": 785
+     },
+     "sustituida (STL)": {
+      "n": 14,
+      "bytes": 4518
+     },
+     "sustituida (STL), sin citar": {
+      "n": 5,
+      "bytes": 575
+     }
+    },
+    "por_ola": {
+     "CL2": {
+      "n": 10,
+      "bytes": 2645
+     },
+     "CL3": {
+      "n": 6,
+      "bytes": 16773
+     },
+     "CL4": {
+      "n": 8,
+      "bytes": 828
+     },
+     "CL5": {
+      "n": 2,
+      "bytes": 1020
+     },
+     "CL7": {
+      "n": 2,
+      "bytes": 1661
+     },
+     "CL8": {
+      "n": 135,
+      "bytes": 59381
+     },
+     "CL9": {
+      "n": 119,
+      "bytes": 61723
+     }
+    }
+   },
+   "vivo": {
+    "total": {
+     "n": 254,
+     "bytes": 137715
+    },
+    "funciones": {
+     "n": 235,
+     "bytes": 112470
+    },
+    "tramos": {
+     "n": 19,
+     "bytes": 25245
+    },
+    "citadas_sin_corte": {
+     "n": 245,
+     "bytes": 136646
+    },
+    "con_test": {
+     "n": 135,
+     "bytes": 109313
+    },
+    "solo_corte": {
+     "n": 0,
+     "bytes": 0
+    },
+    "sin_citar": {
+     "n": 9,
+     "bytes": 1069
+    },
+    "por_alcance": {
+     "chat": {
+      "n": 254,
+      "bytes": 137715
+     }
+    },
+    "por_estado": {
+     "citada sin corte": {
+      "n": 205,
+      "bytes": 98864
+     },
+     "efecto portado sin citar": {
+      "n": 6,
+      "bytes": 291
+     },
+     "no hace falta": {
+      "n": 3,
+      "bytes": 778
+     },
+     "portada y cableada (verificada)": {
+      "n": 30,
+      "bytes": 32888
+     },
+     "simplificada": {
+      "n": 1,
+      "bytes": 785
+     },
+     "sustituida (STL)": {
+      "n": 9,
+      "bytes": 4109
+     }
+    },
+    "por_ola": {
+     "CL2": {
+      "n": 9,
+      "bytes": 2372
+     },
+     "CL3": {
+      "n": 5,
+      "bytes": 16130
+     },
+     "CL4": {
+      "n": 8,
+      "bytes": 828
+     },
+     "CL5": {
+      "n": 1,
+      "bytes": 151
+     },
+     "CL7": {
+      "n": 1,
+      "bytes": 1613
+     },
+     "CL8": {
+      "n": 111,
+      "bytes": 54898
+     },
+     "CL9": {
+      "n": 119,
+      "bytes": 61723
+     }
+    }
+   }
+  }
+ },
+ "matriz_regenerada": {
+  "A": {
+   "n": {
+    "implemented": 63,
+    "not-started": 4,
+    "unknown": 4,
+    "partial": 19
+   },
+   "bytes": {
+    "implemented": 20647,
+    "not-started": 231,
+    "unknown": 814,
+    "partial": 15382
+   }
+  },
+  "B": {
+   "n": {
+    "partial": 24,
+    "implemented": 120,
+    "not-started": 1
+   },
+   "bytes": {
+    "partial": 25385,
+    "implemented": 46097,
+    "not-started": 3914
+   }
+  },
+  "C": {
+   "n": {
+    "implemented": 23,
+    "partial": 7
+   },
+   "bytes": {
+    "implemented": 11164,
+    "partial": 6955
+   }
+  }
+ }
+}

@@ -1,0 +1,186 @@
+tipo	nombre_o_sitio	donde	lineas	vas	usos_tests	veredicto	nota
+funcion-sin-llamador	DrawModelEffects	Scenes/WorldObjectsDrawing.cpp:796;Scenes/WorldObjectsDrawing.cpp:805	70	18	7	legacy-sustituido	API vieja de 7/8 argumentos; el juego dibuja con DrawGameModelEffects (GameSceneTail.cpp:219)
+funcion-sin-llamador	OwnerBonePointOf	Scenes/GameParticles.cpp:277	62	13	0	falso-positivo	lo usa ParticleOwnerBonesOf (GameParticles.cpp:342), que llaman HeroSkillCasts.cpp:320 y LoginScene.cpp:1065
+funcion-sin-llamador	DrawWorldQuad	Render/ModelBatchParticleBackend.cpp:512	31	0	0	accesor	getter, helper de test o de plataforma sin VA de juego
+funcion-sin-llamador	InlineColor	Render/Text/InlineColors.cpp:11	28	12	14	feature-sin-cablear	los colores 0x02 de 0x4667a0/0x4665d0: sólo corren con TextOut=1 en el registro (06 § Texto); MuRet sigue el camino de TextOut≠1 (el de las trazas), así que con la config por defecto no se ve la diferencia
+funcion-sin-llamador	ParseInlineColors	Render/Text/InlineColors.cpp:40	25	4	13	feature-sin-cablear	idem InlineColor
+funcion-sin-llamador	GateCheck	GameLogic/GateCheck.cpp:138	18	0	14	legacy-sustituido	envoltorio de 0x599ef0; GameGates.cpp usa CheckGate por registro
+funcion-sin-llamador	BindOnLoopback	Network/SocketApi.cpp:476	16	0	1	accesor	getter, helper de test o de plataforma sin VA de juego
+funcion-sin-llamador	CloseWithReset	Network/SocketApi.cpp:535	15	1	1	helper	helper con VA citada, sin llamador; sin impacto conocido
+funcion-sin-llamador	ListenOnLoopback	Network/SocketApi.cpp:493	14	0	3	accesor	getter, helper de test o de plataforma sin VA de juego
+funcion-sin-llamador	Rebuild	World/TerrainWalls.cpp:104	12	0	4	accesor	getter, helper de test o de plataforma sin VA de juego
+funcion-sin-llamador	LocalPort	Network/SocketApi.cpp:508	10	0	5	accesor	getter, helper de test o de plataforma sin VA de juego
+funcion-sin-llamador	NpcTalkCursorWarp	Scenes/NpcWindows.cpp:259	10	47	2	feature-sin-cablear	el SetCursorPos de 0x4d28a9..0x4d28f6 al hablar con un NPC; ver la fila SetCursorPos
+funcion-sin-llamador	PopMatrix	Render/ModelBatchParticleBackend.cpp:544	10	0	0	accesor	getter, helper de test o de plataforma sin VA de juego
+funcion-sin-llamador	StepModelEffects	Scenes/WorldObjectsDrawing.cpp:785	10	1	1	legacy-sustituido	el juego pasa los efectos con StepModelEffect/StepGameModelEffect (GameSceneLogic.cpp:337/342)
+funcion-sin-llamador	InterpreterVersion	Render/Text/FreeTypeRasterizer.cpp:413	9	0	1	accesor	getter, helper de test o de plataforma sin VA de juego
+funcion-sin-llamador	PushMatrix	Render/ModelBatchParticleBackend.cpp:490	9	0	0	accesor	getter, helper de test o de plataforma sin VA de juego
+funcion-sin-llamador	IsLoaded	Scenes/SelectionWorld.cpp:179;Scenes/LoadedWorld.cpp:65	8	0	7	accesor	getter, helper de test o de plataforma sin VA de juego
+funcion-sin-llamador	ReadPixels	Render/Gl/GlFramebuffer.cpp:80	7	0	7	accesor	getter, helper de test o de plataforma sin VA de juego
+funcion-sin-llamador	EnterTheGame	UI/NewUi.cpp:83	6	2	1	feature-sin-cablear	0x65f5f0 (vacía la lista de la UI nueva y pone el modo 5): ninguna escena lo llama; impacto sin confirmar
+funcion-sin-llamador	GrowTheListRows	UI/OldControls.cpp:223	6	1	0	feature-sin-cablear	0x47a9a0 (vtable + 0x44, 3 renglones por paso): sin llamador; impacto sin confirmar
+funcion-sin-llamador	SecondLeafSine	Render/Models/OriginalRetainedMath.cpp:694;Scenes/GameLeaves.cpp:93	6	0	2	accesor	getter, helper de test o de plataforma sin VA de juego
+funcion-sin-llamador	UpdateCharacterPosition	GameLogic/CharacterPosition.cpp:71	6	1	12	helper	helper con VA citada, sin llamador; sin impacto conocido
+funcion-sin-llamador	ConcatTransforms	Render/Models/HalfLifeMath.cpp:161;Render/Models/Pose.cpp:178	5	1	2	helper	helper con VA citada, sin llamador; sin impacto conocido
+funcion-sin-llamador	HasTheFocus	UI/NewUi.cpp:432	5	0	8	accesor	getter, helper de test o de plataforma sin VA de juego
+funcion-sin-llamador	IsDragged	UI/NewUi.cpp:438	5	0	3	accesor	getter, helper de test o de plataforma sin VA de juego
+funcion-sin-llamador	IsStuck	UI/NewUi.cpp:444	5	0	2	accesor	getter, helper de test o de plataforma sin VA de juego
+funcion-sin-llamador	PoseFrame	Scenes/FaunaModels.cpp:519	5	1	9	helper	helper con VA citada, sin llamador; sin impacto conocido
+funcion-sin-llamador	SetCount	Scenes/TooltipWriter.cpp:126	5	0	0	accesor	getter, helper de test o de plataforma sin VA de juego
+funcion-sin-llamador	StepParticles	World/Particles.cpp:3051	5	3	33	legacy-sustituido	el mundo usa StepParticlesChecked (comentario de Particles.h:371)
+funcion-sin-llamador	AllSelected	UI/TextField.cpp:206	4	0	7	accesor	getter, helper de test o de plataforma sin VA de juego
+funcion-sin-llamador	AlphaWriteDepth	Render/ModelBatchParticleBackend.cpp:149	4	0	4	accesor	getter, helper de test o de plataforma sin VA de juego
+funcion-sin-llamador	BarAlpha	UI/CreditsWindow.cpp:284	4	0	7	accesor	getter, helper de test o de plataforma sin VA de juego
+funcion-sin-llamador	Batch	Render/ModelBatchParticleBackend.cpp:564	4	0	0	accesor	getter, helper de test o de plataforma sin VA de juego
+funcion-sin-llamador	ChatRoomCount	App/ServerSession.cpp:2187	4	0	6	accesor	getter, helper de test o de plataforma sin VA de juego
+funcion-sin-llamador	Check	UI/OptionsWindow.cpp:218	4	0	57	accesor	getter, helper de test o de plataforma sin VA de juego
+funcion-sin-llamador	ClassButton	UI/CreateCharacterWindow.cpp:250	4	0	5	accesor	getter, helper de test o de plataforma sin VA de juego
+funcion-sin-llamador	ConnectButton	UI/SelectionBar.cpp:227	4	0	4	accesor	getter, helper de test o de plataforma sin VA de juego
+funcion-sin-llamador	CreateButton	UI/SelectionBar.cpp:222	4	0	22	accesor	getter, helper de test o de plataforma sin VA de juego
+funcion-sin-llamador	DeleteButton	UI/SelectionBar.cpp:232	4	0	12	accesor	getter, helper de test o de plataforma sin VA de juego
+funcion-sin-llamador	Description	UI/ServerListWindow.cpp:322	4	0	31	accesor	getter, helper de test o de plataforma sin VA de juego
+funcion-sin-llamador	DialogRoutes	Scenes/GameDialogSteps.cpp:1109	4	2	1	accesor	devuelve la tabla de despacho para tests
+funcion-sin-llamador	Focus	UI/LoginWindow.cpp:105	4	0	4	accesor	getter, helper de test o de plataforma sin VA de juego
+funcion-sin-llamador	Halves	Scenes/TooltipWriter.cpp:132	4	0	0	accesor	getter, helper de test o de plataforma sin VA de juego
+funcion-sin-llamador	HasPushedMatrix	Render/ModelBatchParticleBackend.cpp:559	4	0	0	accesor	getter, helper de test o de plataforma sin VA de juego
+funcion-sin-llamador	Illustration	UI/CreditsWindow.cpp:269	4	0	1	accesor	getter, helper de test o de plataforma sin VA de juego
+funcion-sin-llamador	IllustrationAlpha	UI/CreditsWindow.cpp:274	4	0	5	accesor	getter, helper de test o de plataforma sin VA de juego
+funcion-sin-llamador	IllustrationState	UI/CreditsWindow.cpp:264	4	0	6	accesor	getter, helper de test o de plataforma sin VA de juego
+funcion-sin-llamador	IsInstalled	Core/Crash/CrashHandler.cpp:958	4	0	5	accesor	getter, helper de test o de plataforma sin VA de juego
+funcion-sin-llamador	JoinedWorld	App/ServerSession.cpp:758	4	0	5	accesor	getter, helper de test o de plataforma sin VA de juego
+funcion-sin-llamador	LastAlpha	App/GameLoop.cpp:42	4	0	7	accesor	getter, helper de test o de plataforma sin VA de juego
+funcion-sin-llamador	LastCloseReason	Network/Connection.cpp:184	4	0	11	accesor	getter, helper de test o de plataforma sin VA de juego
+funcion-sin-llamador	Layout	UI/NoticeWindow.cpp:190	4	0	7	accesor	getter, helper de test o de plataforma sin VA de juego
+funcion-sin-llamador	LoginRavenOwner	Scenes/LoginModels.cpp:155	4	1	1	legacy-sustituido	sin confirmar: el paso del cuervo del login lee al dueño por otro camino
+funcion-sin-llamador	Max	UI/Slider.cpp:61	4	0	3	accesor	getter, helper de test o de plataforma sin VA de juego
+funcion-sin-llamador	ModelMatrix	Render/ModelBatchParticleBackend.cpp:555	4	0	0	accesor	getter, helper de test o de plataforma sin VA de juego
+funcion-sin-llamador	MouseRay	Scenes/GameScene.cpp:1325	4	2	12	accesor	accesor de GameScene para tests
+funcion-sin-llamador	NameIndices	UI/CreditsWindow.cpp:299	4	0	6	accesor	getter, helper de test o de plataforma sin VA de juego
+funcion-sin-llamador	NextIndex	UI/CreditsWindow.cpp:304	4	0	2	accesor	getter, helper de test o de plataforma sin VA de juego
+funcion-sin-llamador	OkButton	UI/CreateCharacterWindow.cpp:255	4	0	2	accesor	getter, helper de test o de plataforma sin VA de juego
+funcion-sin-llamador	PixelsPerEm	Render/Text/FreeTypeRasterizer.cpp:408	4	0	2	accesor	getter, helper de test o de plataforma sin VA de juego
+funcion-sin-llamador	Progress	Scenes/LoadingScene.cpp:167	4	1	3	accesor	accesor de LoadingScene para tests
+funcion-sin-llamador	RecordPoseKey	Scenes/FaunaModels.cpp:530	4	0	2	accesor	getter, helper de test o de plataforma sin VA de juego
+funcion-sin-llamador	RoleIndex	UI/CreditsWindow.cpp:294	4	0	2	accesor	getter, helper de test o de plataforma sin VA de juego
+funcion-sin-llamador	RowState	UI/CreditsWindow.cpp:279	4	0	10	accesor	getter, helper de test o de plataforma sin VA de juego
+funcion-sin-llamador	Running	Core/IntervalTimer.cpp:36	4	0	18	accesor	getter, helper de test o de plataforma sin VA de juego
+funcion-sin-llamador	SetListener	Platform/SdlAudio.cpp:320	4	0	9	feature-sin-cablear	la posición 3D del sonido (0x41ef00) está apagada en este exe (0x7238f7, ADR 0021): no se oye la diferencia
+funcion-sin-llamador	SiegeModelFiles	Data/Models/ModelLoadCalls.cpp:39	4	5	3	legacy-sustituido	sin confirmar: los BMD de 0x6161ea ya están en la tabla de PlayerModels.cpp:528
+funcion-sin-llamador	SiegeTextureCalls	Data/Models/ModelLoadCalls.cpp:47	4	5	1	legacy-sustituido	sin confirmar: GameModels.cpp asigna Skill\ de 0xbe a 0x150 en un lazo (líneas 163-167)
+funcion-sin-llamador	SliderAt	UI/OptionsWindow.cpp:228	4	0	5	accesor	getter, helper de test o de plataforma sin VA de juego
+funcion-sin-llamador	SoundFiles	Scenes/FaunaModels.cpp:502	4	0	3	accesor	getter, helper de test o de plataforma sin VA de juego
+funcion-sin-llamador	Thumb	UI/Slider.cpp:92	4	0	1	accesor	getter, helper de test o de plataforma sin VA de juego
+funcion-sin-llamador	TitleIndex	UI/CreditsWindow.cpp:289	4	0	4	accesor	getter, helper de test o de plataforma sin VA de juego
+funcion-sin-llamador	UnlitObjectColor	Scenes/LoginModels.cpp:130	4	2	2	legacy-sustituido	sin confirmar
+funcion-sin-llamador	UsedSlots	Render/Text/TextCache.cpp:223	4	0	10	accesor	getter, helper de test o de plataforma sin VA de juego
+funcion-sin-llamador	WearsAGridClothOfItsOwn	Scenes/CharacterCloth.cpp:189	4	9	0	legacy-sustituido	MonsterDrawing.cpp:768 RunTheGridCloth decide por su cuenta
+funcion-sin-llamador	SetBlocked	Audio/Music.h:22	0	0	1	accesor	getter, helper de test o de plataforma sin VA de juego
+funcion-sin-llamador	Spheres	Render/Models/Cloth.h:225	0	4	8	helper	helper con VA citada, sin llamador; sin impacto conocido
+funcion-sin-llamador	Springs	Render/Models/Cloth.h:221	0	4	5	helper	helper con VA citada, sin llamador; sin impacto conocido
+pedido-sin-consumidor	SetCursorPos del NPC (0x4d28f6)	Client/src/Scenes/NpcWindows.cpp:356		1		feature-sin-cablear	npcWindows.cursorWarpRequested queda en true y nadie lo lee; no hay SDL_WarpMouse en src. El original mueve el cursor del sistema al abrir el diálogo de un NPC
+pedido-sin-consumidor	SetCursorPos del 37 (0x4d55bd..0x4d562b)	Client/src/Scenes/SocialEvents.cpp:488		1		feature-sin-cablear	TradeState::cursorMoveRequested = 1 y nadie lo lee (08 P-C202, abierta)
+pedido-sin-consumidor	SetCursorPos de SendMove (0x56b77f)	Client/src/Scenes/GameMovement.cpp:228		1		feature-sin-cablear	GameMovementState::cursorWarpRequest y nadie lo lee
+no-portado	0x65dd70, la imagen del mapa que se desvanece (paso 19 del HUD)	Client/src/Scenes/GameHud.cpp:1767		1		pendiente	sólo el comentario; la CL.M regenerada la da como implemented porque está citada
+no-portado	"0x65dc30 y "" Bienvenido""+mapa (0x555190, texto 484)"	Client/src/Scenes/WorldEntry.cpp:337		3		pendiente	"sólo el comentario ""(CL9)""; con 0x65d080 (la tabla de Interface\<mapa>.tga, slot 0x66a) tampoco portada"
+no-portado	el diálogo 0x70 al perder la conexión en el juego (0x638640..0x638694)	Client/src/Scenes/GameScene.cpp:1289		2		pendiente	Q-C70: el original lo abre en cada frame con el socket en −1; MuRet sigue sin ventana (GameSceneTest.AFailedSessionKeepsTheGame)
+diferido	// error: NPC\BloodCastle01.bmd tiene dos (Q-C108), y qué hacer con ellos es de la CL9.	Client/src/Render/Models/Skeleton.h:62				abierta-08	P-C240 abierta: NPC\BloodCastle01.bmd (0x1f3) con dos huesos raíz, Q-C108
+diferido	// 04 § La party: del 40 al 44 en los dos sentidos (08 P-C92 en la CL8 hito 6, el resto en la CL9 hito 7). Los lectores	Client/src/Protocol/Party.h:14				historico	P-C92 y P-C116 cerradas
+diferido	// de las mascotas (0x424230), es de la CL8.	Client/src/Protocol/Pet/PetInfo.h:23				historico	P-C126 cerrada (CL9 hito 4)
+diferido	// los dos con el otro abajo la soltaría; queda para la CL8, con su lado, como Shift (P-C08).	Client/src/Platform/InputEvents.h:32				abierta-08	P-C08 (input) sigue abierta en 08
+diferido	// acción de pkt[6]: 0x12 la 0x98 y el sonido 0x6f (CL10); 0x78 y 0x79 pegan (0x4f4a10, SetActorAttack del hito 3, y	Client/src/Scenes/ActionReply.h:25				suena	el comentario dice lastSoundId pero el código pide RequestSound o un soundRequest cableado (revisado a mano)
+diferido	// (en WorldRuntime::lastSoundId, para la CL10) y +0x38f + 1. La llaman el ataque del héroe al llegar (0x5650c0) y las	Client/src/Scenes/ActorCombat.h:45				suena	el comentario dice lastSoundId pero el código pide RequestSound o un soundRequest cableado (revisado a mano)
+diferido	// 0x35); con la tabla llena, ninguno. Después prende el bit y sigue. El paso del /1 corta en 0x52a866 (CL11).	Client/src/Scenes/ActorEffectFlags.cpp:256				describe-corte	describe cortes de la CL11 (los cuenta el censo de cortes); algunos ya no aplican, p. ej. la 0x6ae de la puerta de Kalima se crea (KalimaSiegeHelpers.cpp:256)
+diferido	// es ese WORD + 0xd2, + 5 con el subtipo 9 (CL10).	Client/src/Scenes/ActorShock.cpp:92				suena	requestSound(*drawn) en ActorShock.cpp:96; requestSound es RequestSound (líneas 53/76)
+diferido	// +0x1a1: sólo lo escriben los paquetes de 0x4d07c0 y 0x4d0a30 (CL9.5); en Chaos Castle, prendido en el	Client/src/Scenes/ActorState.h:258				comentario-viejo	+0x1a1 lo escriben CombatReplies.cpp:94..113 (0x4d07c0/0x4d0a30)
+diferido	// lo que hizo antes y sus rand(), en los efectos, joints y partículas que MuRet no tiene (CL11) y sin el esqueleto del	Client/src/Scenes/AttackFrameSkills.h:21				describe-corte	describe cortes de la CL11 (los cuenta el censo de cortes); algunos ya no aplican, p. ej. la 0x6ae de la puerta de Kalima se crea (KalimaSiegeHelpers.cpp:256)
+diferido	// 0x403ad5: 0x41ed10(0x243, 0, 0) (CL10).	Client/src/Scenes/CameraTour.cpp:307				suena	auto: RequestSound o soundRequest en ±10 líneas
+diferido	// zona segura que las manda a la espalda es de la CL7.	Client/src/Scenes/CharacterDrawing.h:50				historico	CL7 cerrada
+diferido	// 0x417e67: 0x41ed10(0x1d1) (CL10).	Client/src/Scenes/CharacterStep.cpp:975				suena	auto: RequestSound o soundRequest en ±10 líneas
+diferido	// Los sonidos de 0x41ed10 (CL10): 0x6083a5 el zen, 0x60840a las joyas y 0x608400 lo demás; 0x4d10af y 0x4d10a2 los	Client/src/Scenes/FloorItemPackets.cpp:70				suena	el comentario dice lastSoundId pero el código pide RequestSound o un soundRequest cableado (revisado a mano)
+diferido	// 0x41ed10 con el ítem recién caído (CL10): queda el último en lastSoundId.	Client/src/Scenes/FloorItemPackets.h:53				suena	auto: RequestSound o soundRequest en ±10 líneas
+diferido	// 0x50f828..0x50fba1: las acciones 0x94, 0x51 y 0x5b. Las escriben los paquetes (CL9): lo que crea	Client/src/Scenes/GameCharacterEffects.cpp:302				historico	describe quién escribe las acciones; lo que crea efectos corta con su dirección (censo de cortes)
+diferido	// El corte de un diálogo que no es de la CL8, con la ola de su paso.	Client/src/Scenes/GameDialogDrawing.cpp:1763				corte-vivo	"los diálogos 0x71 y 0x76 siguen como DialogStep::Cut ""CL9.4"" (GameDialogSteps.cpp:234 y 237); la CL9.4 está mergeada"
+diferido	// los paquetes: el 0x12 (0x4c89e1, ViewportPlayers.h) y 0x40c140 (CL9.5) copian un byte, y 0x42ab40	Client/src/Scenes/GameHanging.cpp:1162				comentario-viejo	0x40c140 portado en EventPackets.cpp:940
+diferido	// (ApplyCastleSiegeFlags), 0x42ad50 y 0x42ae60 (CL9.5) lo eligen por las banderas 0x40000, 0x80000, 0x400000 y	Client/src/Scenes/GameHanging.cpp:1163				comentario-viejo	ApplyCastleSiegeFlags (0x42ab40) cableado en ViewportPlayers.cpp:261/507
+diferido	// hacia arriba con rojo a medias. Nadie la escribe hasta la CL9.2.	Client/src/Scenes/GameHud.cpp:1180				comentario-viejo	skillDelays lo escribe SkillDelays.cpp:119/142
+diferido	// 0x41ed10(0x29, 0, 0): llegó una carta. Queda en lastSoundId (CL10).	Client/src/Scenes/GameLetters.cpp:65				suena	el comentario dice lastSoundId pero el código pide RequestSound o un soundRequest cableado (revisado a mano)
+diferido	// (CL10) El sonido queda pedido.	Client/src/Scenes/GameLetters.cpp:295				suena	auto: RequestSound o soundRequest en ±10 líneas
+diferido	// hito 10 (CL9.4): `letter` queda en 0.	Client/src/Scenes/GameMovement.cpp:739				corte-vivo	"manager.letter ya se escribe (UI/FriendWindows.cpp:486, la caja Agregar); GameMovement.cpp:741-743 corta ""0x59b003 ... es del hito 10"" con esa caja abierta y clic derecho sobre un elegido: el corte cierra el cliente"
+diferido	// Q-C70: sin conexión, el juego sigue; el texto 3 del área de mensajes es de la CL9.	Client/src/Scenes/GameScene.cpp:1289				pendiente	Q-C70: el original abre el diálogo 0x70 en cada frame con el socket en −1 (0x638640..0x638694); MuRet sigue el juego sin ventana (GameSceneTest.AFailedSessionKeepsTheGame); ningún consumidor de SessionFailure::GameServerLost en Scenes
+diferido	// y el choque de las de skill pide un sonido (CL10) y manda el C1 10 (0x517a20).	Client/src/Scenes/GameSceneLogic.cpp:275				suena	el comentario dice lastSoundId pero el código pide RequestSound o un soundRequest cableado (revisado a mano)
+diferido	// de los paneles es de la CL9.5 (P-C285), y su ventana es la del juego.	Client/src/Scenes/GameUi.cpp:232				abierta-08	P-C285 abierta: el campo de texto y el reloj del diálogo de los paneles
+diferido	// 0x6522f0 y 0x6570b0: 0x41ed10(0x1c, 0, 0). Queda en WorldRuntime::lastSoundId (CL10).	Client/src/Scenes/GuildPanels.cpp:31				suena	el comentario dice lastSoundId pero el código pide RequestSound o un soundRequest cableado (revisado a mano)
+diferido	runtime.RequestSound(GuildCloseSound); // 0x41ed10 (CL10)	Client/src/Scenes/GuildPanels.cpp:196				suena	auto: RequestSound o soundRequest en ±10 líneas
+diferido	runtime.RequestSound(GuildCloseSound); // 0x41ed10 (CL10)	Client/src/Scenes/GuildPanels.cpp:219				suena	auto: RequestSound o soundRequest en ±10 líneas
+diferido	// 0x651895..0x6518e3: el botón de cerrar, lo que deja en 0x6c8dcc y su sonido (CL10).	Client/src/Scenes/GuildWindow.cpp:70				suena	el comentario dice lastSoundId pero el código pide RequestSound o un soundRequest cableado (revisado a mano)
+diferido	runtime.RequestSound(ClickSound); // 0x41ed10 (CL10)	Client/src/Scenes/GuildWindow.cpp:690				suena	auto: RequestSound o soundRequest en ±10 líneas
+diferido	// 0x564f2f (P-C269 c): 0x53e2b0(c, c, 0, lugar, `count`, 0), con los sonidos en WorldRuntime::lastSoundId (CL10).	Client/src/Scenes/HeroSkillCasts.cpp:227				suena	auto: RequestSound o soundRequest en ±10 líneas
+diferido	context.world.Runtime().RequestSound(0x1ce); // 0x41ed10(0x1ce, 0, 0) (CL10)	Client/src/Scenes/HeroSkillsKnight.cpp:542				suena	auto: RequestSound o soundRequest en ±10 líneas
+diferido	"// lo pide delante del error de un joint que MuRet no tiene (el lote de los joints de la CL11) y ""(CL11)"" detrás. La"	Client/src/Scenes/HighEffectEmitters.h:31				describe-corte	describe cortes de la CL11 (los cuenta el censo de cortes); algunos ya no aplican, p. ej. la 0x6ae de la puerta de Kalima se crea (KalimaSiegeHelpers.cpp:256)
+diferido	// 0x41ed10 (CL10), en lastSoundId.	Client/src/Scenes/InventoryMoves.cpp:259				suena	el comentario dice lastSoundId pero el código pide RequestSound o un soundRequest cableado (revisado a mano)
+diferido	// lugares 0 a 11. La grilla de la tienda y del almacén y la caja del caos son de la CL9 hito 6; las otras (comercio,	Client/src/Scenes/InventoryMoves.h:23				historico	grillas de la CL9 hito 6 (P-C192 cerrada)
+diferido	runtime.RequestSound(ArrowSound); // (CL10)	Client/src/Scenes/JewelBundleList.cpp:241				suena	la misma línea llama a RequestSound
+diferido	// en WorldRuntime::lastSoundId (CL10).	Client/src/Scenes/JewelBundleList.h:46				suena	el comentario dice lastSoundId pero el código pide RequestSound o un soundRequest cableado (revisado a mano)
+diferido	runtime.RequestSound(DialogSound); // (CL10)	Client/src/Scenes/JewelMix.cpp:549				suena	la misma línea llama a RequestSound
+diferido	// MouseUpdateTime en 0, su máximo en 6 y el sonido 0x19 (CL10).	Client/src/Scenes/JewelMix.h:58				suena	el comentario dice lastSoundId pero el código pide RequestSound o un soundRequest cableado (revisado a mano)
+diferido	// 0x41ed10(id, 0, 0): en WorldRuntime::lastSoundId (CL10), solo en el frame del original.	Client/src/Scenes/KalimaSiegeHelpers.cpp:204				suena	auto: RequestSound o soundRequest en ±10 líneas
+diferido	// (0x53fe70) que MuRet no tiene cortan con su dirección (CL11) si su tabla tiene lugar; llenas, el original no crea	Client/src/Scenes/KalimaSiegeHelpers.h:40				describe-corte	describe cortes de la CL11 (los cuenta el censo de cortes); algunos ya no aplican, p. ej. la 0x6ae de la puerta de Kalima se crea (KalimaSiegeHelpers.cpp:256)
+diferido	// 0x41ed10 (CL10): WorldRuntime::lastSoundId en el frame del original; entre frames, nullptr.	Client/src/Scenes/KalimaSiegeHelpers.h:63				suena	auto: RequestSound o soundRequest en ±10 líneas
+diferido	// - 0xc5 (la puerta de Kalima): con la acción 1, si +0x60 está en 0, la partícula 0x6ae (CL11) del hueso 8 (el punto	Client/src/Scenes/KalimaSiegeHelpers.h:81				describe-corte	describe cortes de la CL11 (los cuenta el censo de cortes); algunos ya no aplican, p. ej. la 0x6ae de la puerta de Kalima se crea (KalimaSiegeHelpers.cpp:256)
+diferido	//   0x607/1 (CL11), y los 0x5ca y 0x5fd de los huesos 8, 22 y 15 con +0x68; siempre, los 0x5ac de los huesos 51..55 y	Client/src/Scenes/KalimaSiegeHelpers.h:84				describe-corte	describe cortes de la CL11 (los cuenta el censo de cortes); algunos ya no aplican, p. ej. la 0x6ae de la puerta de Kalima se crea (KalimaSiegeHelpers.cpp:256)
+diferido	//   acción 5 el 0x62d con el pulso de +0x8a y +0x89) del hueso 100 y un rand() & 1 para la partícula 0x5f2/13 (CL11).	Client/src/Scenes/KalimaSiegeHelpers.h:87				describe-corte	describe cortes de la CL11 (los cuenta el censo de cortes); algunos ya no aplican, p. ej. la 0x6ae de la puerta de Kalima se crea (KalimaSiegeHelpers.cpp:256)
+diferido	//   En la acción 5, con el frame debajo de 2, el sonido 0x1db (CL10); pasado el 4, en Kalima, 0x437860 en su celda;	Client/src/Scenes/KalimaSiegeHelpers.h:88				suena	el comentario dice lastSoundId pero el código pide RequestSound o un soundRequest cableado (revisado a mano)
+diferido	//   0x43d051; el /1 en el hueso 49 a 400 de altura, 0x43d0fd; Scenes/KundunEffects), los joints 0x6ee/14 (CL11),	Client/src/Scenes/KalimaSiegeHelpers.h:91				describe-corte	describe cortes de la CL11 (los cuenta el censo de cortes); algunos ya no aplican, p. ej. la 0x6ae de la puerta de Kalima se crea (KalimaSiegeHelpers.cpp:256)
+diferido	//   0x5f2/13 cortan (CL11); la 0x5da/1 (World::MissileFireParticleKernels) y la 0x5dc/12 se crean. El 0x195 y el	Client/src/Scenes/KalimaSiegeHelpers.h:95				describe-corte	describe cortes de la CL11 (los cuenta el censo de cortes); algunos ya no aplican, p. ej. la 0x6ae de la puerta de Kalima se crea (KalimaSiegeHelpers.cpp:256)
+diferido	// y sin la música (CL10). Con la sesión, su UI (CL5.5): la lista de servidores cuando la sesión espera la elección,	Client/src/Scenes/LoginScene.h:66				comentario-viejo	LoginScene.cpp:494 y 1303 tocan la música
+diferido	// no conoce, corta (CL11).	Client/src/Scenes/ModelEffects.cpp:87				describe-corte	describe cortes de la CL11 (los cuenta el censo de cortes); algunos ya no aplican, p. ej. la 0x6ae de la puerta de Kalima se crea (KalimaSiegeHelpers.cpp:256)
+diferido	// 0x41ed10(sonido, 0, 0) (CL10).	Client/src/Scenes/ModelEffects.cpp:133				suena	auto: RequestSound o soundRequest en ±10 líneas
+diferido	// (+0x78, +0x381, +0x17c), pide los sonidos (CL10) y reutiliza las partículas y efectos ya soportados. Corta, con	Client/src/Scenes/MonsterAttackStep.h:19				suena	el comentario dice lastSoundId pero el código pide RequestSound o un soundRequest cableado (revisado a mano)
+diferido	// lo que hizo antes y sus rand(), en los efectos (0x518cf0), joints (0x530860) y partículas sin portar (CL11), en los	Client/src/Scenes/MonsterAttackStep.h:20				describe-corte	describe cortes de la CL11 (los cuenta el censo de cortes); algunos ya no aplican, p. ej. la 0x6ae de la puerta de Kalima se crea (KalimaSiegeHelpers.cpp:256)
+diferido	// 0x41ed10 (CL10): el sonido queda anotado; entre frames del original no se pide.	Client/src/Scenes/MonsterBodyPasses.cpp:83				suena	auto: RequestSound o soundRequest en ±10 líneas
+diferido	// El sonido pedido a 0x41ed10 (CL10); solo en los frames del original.	Client/src/Scenes/MonsterBodyPasses.h:100				suena	auto: RequestSound o soundRequest en ±10 líneas
+diferido	//   (CL10).	Client/src/Scenes/MonsterCreation.h:64				suena	MonsterCreation.cpp:373-375: case Sound → RequestSound
+diferido	// 0x41ed10(sonido, 0, 0) (CL10): solo se despacha en un frame del original.	Client/src/Scenes/MonsterHelpers.cpp:261				suena	auto: RequestSound o soundRequest en ±10 líneas
+diferido	// reloj del mundo ([0x5767b88], en ms). Los sonidos (0x41ed10, en WorldRuntime::lastSoundId para la CL10) se piden	Client/src/Scenes/MonsterHelpers.h:49				suena	el comentario dice lastSoundId pero el código pide RequestSound o un soundRequest cableado (revisado a mano)
+diferido	Siege,       // 0x4294b0: con el asedio prendido sigue otra rama (CL9.5)	Client/src/Scenes/MonsterKinds.h:41				comentario-viejo	MonsterCreation.cpp:336 usa runtime.siegeActive
+diferido	Joint,       // 0x530860(value, posición, posición, ángulos, offset, personaje, extra, −1, 0, 0, −1) (CL11)	Client/src/Scenes/MonsterKinds.h:42				describe-corte	describe cortes de la CL11 (los cuenta el censo de cortes); algunos ya no aplican, p. ej. la 0x6ae de la puerta de Kalima se crea (KalimaSiegeHelpers.cpp:256)
+diferido	Arrival,     // 0x518cf0(value, posición, ángulos, luz, offset, personaje) (CL11)	Client/src/Scenes/MonsterKinds.h:43				describe-corte	describe cortes de la CL11 (los cuenta el censo de cortes); algunos ya no aplican, p. ej. la 0x6ae de la puerta de Kalima se crea (KalimaSiegeHelpers.cpp:256)
+diferido	Sound,       // 0x41ed10(value, 0, 0) (CL10)	Client/src/Scenes/MonsterKinds.h:44				suena	idem
+diferido	resources.world.Runtime().RequestSound(*sound); // (CL10)	Client/src/Scenes/MonsterViewport.cpp:62				suena	auto: RequestSound o soundRequest en ±10 líneas
+diferido	runtime.RequestSound(0x173); // (CL10) 0x4c9876	Client/src/Scenes/MonsterViewport.cpp:434				suena	la misma línea llama a RequestSound
+diferido	// el alpha en 0. Los sonidos van a WorldRuntime::lastSoundId (CL10).	Client/src/Scenes/MonsterViewport.h:27				suena	el comentario dice lastSoundId pero el código pide RequestSound o un soundRequest cableado (revisado a mano)
+diferido	// a la ventana es de la plataforma (CL10).	Client/src/Scenes/NpcWindowState.h:231				pendiente	SetCursorPos sin cablear: cursorWarpRequested (NpcWindows.cpp:356), TradeState::cursorMoveRequested (SocialEvents.cpp:488) y GameMovementState::cursorWarpRequest (GameMovement.cpp:228) no los lee nadie; NpcTalkCursorWarp sin llamador; no h…
+diferido	// 0x41ed10 (CL10): lo que dejan en WorldRuntime::lastSoundId.	Client/src/Scenes/NpcWindows.cpp:50				suena	el comentario dice lastSoundId pero el código pide RequestSound o un soundRequest cableado (revisado a mano)
+diferido	// Nadie la escribe hasta la CL9.2: queda en 0.	Client/src/Scenes/OwnCharacterRecord.h:140				comentario-viejo	idem skillDelays
+diferido	// la interfaz no está leído (CL9): la segunda, la de los lugares desde el 76, podría ser la tienda	Client/src/Scenes/OwnInventory.h:11				historico	sin confirmar: dice que la segunda grilla (desde el 76) podría ser la tienda personal; la CL9 hito 7 la usa
+diferido	// 0x41ed10(0x1c, 0, 0), el sonido de los botones (CL10).	Client/src/Scenes/QuestWindowStep.cpp:65				suena	el comentario dice lastSoundId pero el código pide RequestSound o un soundRequest cableado (revisado a mano)
+diferido	// 0x6381bb: 0x41ef00, el sonido 3D, es de la CL10.	Client/src/Scenes/Screenshots.cpp:104				comentario-viejo	0x41ef00 es la actualización 3D de los sonidos; este exe la tiene apagada (0x7238f7, 2026-11-18-cl10-audio.md:16) y SdlAudio::SetListener está vacío y sin llamador: no se oye la diferencia
+diferido	// 0x41ed10(0x19, 0, 0): el clic del botón de cerrar y de la paleta (CL10).	Client/src/Scenes/SecondGuildWindow.cpp:80				suena	el comentario dice lastSoundId pero el código pide RequestSound o un soundRequest cableado (revisado a mano)
+diferido	runtime.RequestSound(ClickSound); // 0x41ed10 (CL10)	Client/src/Scenes/SecondGuildWindow.cpp:311				suena	auto: RequestSound o soundRequest en ±10 líneas
+diferido	runtime.RequestSound(ClickSound); // 0x41ed10 (CL10)	Client/src/Scenes/SecondGuildWindow.cpp:378				suena	auto: RequestSound o soundRequest en ±10 líneas
+diferido	// el choque de las flechas de skill (0x520170 en 0x520497, Scenes/ArrowEffects); la matriz lo pone en la CL11 (06,	Client/src/Scenes/SkillHits.h:18				describe-corte	describe cortes de la CL11 (los cuenta el censo de cortes); algunos ya no aplican, p. ej. la 0x6ae de la puerta de Kalima se crea (KalimaSiegeHelpers.cpp:256)
+diferido	// (hito 1), los efectos de 0x518cf0 de tipos que MuRet no crea y los joints de 0x530860 (CL11). Los sonidos quedan en	Client/src/Scenes/SkillReplies.h:23				describe-corte	describe cortes de la CL11 (los cuenta el censo de cortes); algunos ya no aplican, p. ej. la 0x6ae de la puerta de Kalima se crea (KalimaSiegeHelpers.cpp:256)
+diferido	// WorldRuntime::lastSoundId (CL10). El rand() del cierre de +0x38e y de +0x42e, y los de 0x4f2250 y 0x4f5290, en su	Client/src/Scenes/SkillReplies.h:24				suena	el comentario dice lastSoundId pero el código pide RequestSound o un soundRequest cableado (revisado a mano)
+diferido	// que giran. Sin rand(). Corta en la primera partícula que MuRet no tiene, con lugar en la tabla (CL11).	Client/src/Scenes/SkullEffects.h:40				describe-corte	describe cortes de la CL11 (los cuenta el censo de cortes); algunos ya no aplican, p. ej. la 0x6ae de la puerta de Kalima se crea (KalimaSiegeHelpers.cpp:256)
+diferido	// (CL10) 0x41ed10(0x1b, 0, 0).	Client/src/Scenes/ViewportPlayers.cpp:619				suena	auto: RequestSound o soundRequest en ±10 líneas
+diferido	// 0x41ed10(0x19, 0, 0) (CL10).	Client/src/Scenes/WarehouseKeypad.cpp:313				suena	auto: RequestSound o soundRequest en ±10 líneas
+diferido	// bienvenida con el nombre del mapa (0x555190) son del área de mensajes (CL9).	Client/src/Scenes/WorldEntry.cpp:338				pendiente	"0x65dc30 (cartel del mapa, slot 0x66a, tabla 0x65d080) y el renglón "" Bienvenido""+mapa (0x555190, texto 484) no están portados: grep sin resultados de 65dc30/65dcd0/65de30 fuera del comentario"
+diferido	// DAT_006c634c, el área de Chaos Castle: 0xff hasta que un paquete la mueve (CL9.5).	Client/src/Scenes/WorldObjectsDrawing.h:160				comentario-viejo	chaosCastleArea ya lo escriben los paquetes (EventPackets.cpp:987/1031, EventDrawing.cpp:535)
+diferido	// 0x4294b0, el byte del asedio (0x7239ec): apagado hasta que un paquete lo prende (CL9.5).	Client/src/Scenes/WorldObjectsDrawing.h:162				comentario-viejo	siegeActive lo escribe CastleSiegeMap.cpp:20
+diferido	// 0x5767960: la vida del invocado, de 0 a 100. La escribe su paquete (CL9.2).	Client/src/Scenes/WorldRuntime.h:216				comentario-viejo	summonLife lo escribe SkillReplies.cpp:1037
+diferido	// nombre que le da el creador del monstruo y el hueso de su modelo. Lo leen los efectos (CL11).	Client/src/Scenes/WorldRuntime.h:317				describe-corte	describe cortes de la CL11 (los cuenta el censo de cortes); algunos ya no aplican, p. ej. la 0x6ae de la puerta de Kalima se crea (KalimaSiegeHelpers.cpp:256)
+diferido	// personaje. En qué orden los recorre quien los lee, sin leer (CL11).	Client/src/Scenes/WorldRuntime.h:611				describe-corte	describe cortes de la CL11 (los cuenta el censo de cortes); algunos ya no aplican, p. ej. la 0x6ae de la puerta de Kalima se crea (KalimaSiegeHelpers.cpp:256)
+diferido	// /1../0 y la cola de los nombres; lo de cada comando social corta con la dirección de su bloque (CL9.4), donde	Client/src/UI/ChatCommands.h:22				chat	del sistema de chat (fuera de esta sección)
+diferido	// última. Los escribe quien lo abre (CL9).	Client/src/UI/GameDialogs.h:67				historico	nota de quién escribe el campo
+diferido	// 0x661b90 sin ítem en el cursor: algún lugar de la grilla de la caja del caos (0x7d2d380) ocupado (CL9.3).	Client/src/UI/PanelRegistry.h:124				historico	caja del caos de la CL9 hito 6 (sin confirmar el lector exacto)
+diferido	// manda C1 03 97 (CL9.5). Los demás los pone en 0 cerrar el inventario (0x659250..0x65926a).	Client/src/UI/PanelRegistry.h:155				comentario-viejo	el C1 03 97 sale por la sesión (GameSceneMovement.cpp:95)
+diferido	// 0x6c634c: el área (0xff en la .data y al armar el objeto de evento; la mueven los paquetes de la CL9.5).	Client/src/World/ChaosCastle.h:49				comentario-viejo	idem chaosCastleArea
+diferido	// el login). Es la primera lectura del disco de la capa de datos: los cargadores de la CL1 reciben	Client/src/Data/Textures/TextureSet.h:19				historico	CL1
+diferido	// durabilidad, requisitos y demás. Qué hay en cada offset se lee en la CL9.	Client/src/Data/Tables/ItemTable.h:25				historico	los campos se leen en la CL9 (sin confirmar campo por campo)
+diferido	// original. Leer sus campos (nombres, niveles, requisitos) es de la CL9. Las tres tablas son la	Client/src/Data/Tables/RecordTable.h:14				historico	idem
+diferido	// lee en la CL9.	Client/src/Data/Tables/SkillTable.h:24				historico	idem
+diferido	// la pose son de la CL6.2.	Client/src/Data/Models/Model.h:12				historico	CL6.2
+diferido	"// animación""). Lo que hace el paso con ella es de la CL6.2."	Client/src/Data/Models/PlayerActions.h:12				historico	CL6.2
+diferido	// todo little-endian. Qué modelo es cada tipo y qué hace el original con el ángulo es de la CL7.	Client/src/Data/Terrain/TerrainObjects.h:25				historico	CL7
+diferido	// queda para la CL8. Con el mouse capturado SDL puede dar negativos o más allá del borde.	Client/src/Input/InputEvent.h:51				historico	el mouse sin acotar es Q-C47 (diseño, CL5.5); la CL8 está cerrada
+diferido	// todavía (de las revisiones de la CL3.3, para sumar a P-C08), y lo que el original no lee, que	Client/src/Input/Key.h:13				abierta-08	P-C08

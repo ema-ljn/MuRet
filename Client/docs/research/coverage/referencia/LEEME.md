@@ -1,10 +1,13 @@
 # Referencia del cliente: métricas y trazas contra el `main.exe`
 
 Una tabla por cada cosa que se consulta seguido, para no volver a medir ni a buscar lo mismo cada vez. Está generada
-sobre MuRet `8efe3df6` (2026-11-20: `main` con la CL11 cerrada, el CI de #379, los globos de la selección de #383 y
-los cierres de las ventanas de los NPC al caminar de #385) contra el `main.exe` c32bbd5f del repo de research;
-`generado.json` dice el commit exacto. Sale de la auditoría del 2026-11-20 (`analisis/2026-11-20-auditoria-cliente/`
-en los archivos del proyecto) y de [10-cobertura-roadmap.md](../../10-cobertura-roadmap.md).
+sobre MuRet `dce38707` (2026-11-20: `main` en `2cad3274`, con la CL11 cerrada, el CI de #379, los globos de la
+selección de #383 y los cierres de las ventanas de los NPC al caminar de #385, más la rama `cliente/tienda-zen-y-puntos`:
+el tooltip de la armadura de Chaos Castle, `0x1a1d`, que cerraba el cliente en la tienda de Lorencia, el barrido de los
+tooltips de las tiendas del servidor del laboratorio, el zen del `22` corto y la respuesta del `F3 06`, `0x4d3200`)
+contra el `main.exe` c32bbd5f del repo de research; `generado.json` dice el commit exacto. Sale de la auditoría del
+2026-11-20 (`analisis/2026-11-20-auditoria-cliente/` en los archivos del proyecto) y de
+[10-cobertura-roadmap.md](../../10-cobertura-roadmap.md).
 
 Las columnas que vienen de la matriz CL.M, de las citas y del grafo de llamadas se rehacen solas en cualquier commit
 (ver [Cómo regenerarla](#cómo-regenerarla)). Las que vienen de la auditoría (la categoría de lo que falta, la clase de
@@ -22,7 +25,7 @@ hasta que alguien las vuelva a revisar.
 | `archivos.tsv` | ~1.410 | cada archivo de `Client/src`: qué funciones del original cita, de qué ola, sus cortes, qué tests lo cubren y su último commit |
 | `ids.tsv` | ~1.120 | cada fila Q-C de 07 y P-C de 08: estado, clase o tipo, ola, si pide VM, las funciones que nombra y qué hace MuRet |
 | `metricas.tsv` | ~400 | **los números**, en formato largo: avance total, por ola, por hito de la CL9 y por sub-ola de la CL8, lo que falta por categoría, los huecos, cortes, VM, 08, 07, chat, sustitutos, tamaño de MuRet y la serie desde el 13/11 |
-| `cortes.tsv` | 1.754 | los cortes vivos con su clase (P, O, X, R, S, G, D, I, V, H), qué falta y cómo se llega |
+| `cortes.tsv` | 1.753 | los cortes vivos con su clase (P, O, X, R, S, G, D, I, V, H), qué falta y cómo se llega |
 | `vm.tsv` | 234 | los pasos de VM pendientes de todas las olas, y si bloquean código |
 | `sustitutos.tsv`, `sin-cablear.tsv` | 143, 185 | los sustitutos propios de MuRet y el código sin llamador |
 | `chat.tsv` | 333 | el inventario del chat (funciones y tramos), con su estado |
@@ -76,6 +79,10 @@ figuraban como `falta`. Con #383 (`UI/CharacterBalloons`) ocho quedaron citadas,
 destructores de C++ que no tienen cita (`0x63c990`, `0x63ce00`, `0x63ce10`, `0x63ce40` y `0x63cf20`) pasan a `portada
 sin cita`, porque los cubren la clase con RAII y `Release` (`0x63ce50`). Las tres de después (`0x63d010..0x63d0f0`,
 hueco `h085`) son de otra clase y siguen sin clasificar.
+
+En `dce38707` se cerró `h042`: `0x4d3200` sola (753 B, `la llama código citado`, desde el dispatcher `0x4e2b10`), la
+respuesta del `F3 06`. Sin ella, sumar un punto en la ventana del personaje no hacía nada y la sesión avisaba que el
+`F3 06` no tenía handler; ahora es `Scenes/LevelUpPointReply`.
 
 Un hueco no es una prueba: puede estar portado sin citar, o ser un destructor que RAII hace innecesario. Hay que leer
 el ASM.
@@ -187,10 +194,10 @@ se cae sola y hay que mirar si de verdad se portaron.
 | | |
 | --- | --- |
 | código de juego vivo | 3.278 funciones, 2.197 KB |
-| cota alta / media / baja | **91,7 / 89,5 / 87,3 %** |
-| cota baja con test | 77,6 % |
+| cota alta / media / baja | **91,7 / 89,5 / 87,4 %** |
+| cota baja con test | 77,7 % |
 | explicado (baja + clones, plataforma, herramientas, STL, sin uso) | 91,7 % |
-| cortes vivos | 1.754 sitios; 13 cierran el cliente jugando (9 P u O, 4 V) |
+| cortes vivos | 1.753 sitios; 12 cierran el cliente jugando (8 P u O, 4 V) |
 | pasos de VM | 234 (cota superior); 11 bloquean código |
 | 08 | 305 filas: 246 abiertas (98 de código, cota superior) |
 | chat (A+B, vivo) | 137.715 B (5,9 %): 99,2 % citado, 79,4 % con test |

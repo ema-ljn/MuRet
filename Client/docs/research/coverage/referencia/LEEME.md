@@ -1,10 +1,10 @@
 # Referencia del cliente: métricas y trazas contra el `main.exe`
 
 Una tabla por cada cosa que se consulta seguido, para no volver a medir ni a buscar lo mismo cada vez. Está generada
-sobre MuRet `038b215f` (2026-11-20: `main` en `2cad3274`, con la CL11 cerrada, el CI de #379, los globos de la
-selección de #383 y los cierres de las ventanas de los NPC al caminar de #385, más la rama `cliente/tienda-zen-y-puntos`:
-el tooltip de la armadura de Chaos Castle, `0x1a1d`, que cerraba el cliente en la tienda de Lorencia, el barrido de los
-tooltips de las tiendas del servidor del laboratorio, el zen del `22` corto y la respuesta del `F3 06`, `0x4d3200`)
+sobre MuRet `52bf9dbb` (2026-11-20: `main` en `2cad3274`, con la CL11 cerrada, el CI de #379, los globos de la
+selección de #383 y los cierres de las ventanas de los NPC al caminar de #385; la rama de #386, con el tooltip de la
+armadura de Chaos Castle, el barrido de las tiendas, el zen del `22` corto y el `F3 06`; y la de #387, apilada, con el
+ítem 3D del diálogo de vender, `0x633110`, y las uniones del `0x1a18` de la tienda de la Potion Girl, Q-C1821)
 contra el `main.exe` c32bbd5f del repo de research; `generado.json` dice el commit exacto. Sale de la auditoría del
 2026-11-20 (`analisis/2026-11-20-auditoria-cliente/` en los archivos del proyecto) y de
 [10-cobertura-roadmap.md](../../10-cobertura-roadmap.md).

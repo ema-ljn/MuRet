@@ -1470,7 +1470,7 @@ mapa 30 y `0x637641` corre el picking (`0x59ec80`).
 | `0x6376c6` | `0x40eca0(this = [0x6eed3c])` cartel del set | `+0x9305 ≠ 0` | |
 | `0x6376cb` | `0x65ee60` → `0x65fe00` UI nueva | siempre | (portado para login/selección) |
 | `0x6376d7` | `0x5ac2d0` cursor | siempre | mezcla normal, blanco. Traza 126884 |
-| `0x6376dc` | `0x633110` ítem 3D de diálogo | `0x7d3a10c` ∈ {0x94/0x98 con `0x78abb14 == 1`, 0x96, 0xa8, 0x99, 0x94 con `0x78abb14 == 5`} | proyección propia (abajo) |
+| `0x6376dc` | `0x633110` ítem 3D de diálogo | siempre; la condición va adentro (`0x633116..0x63315d`): `0x7d3a10c` ∈ {0x94/0x98 con `0x78abb14 == 1`, 0x96, 0xa8, 0x99, 0x94 con `0x78abb14 == 5`} | proyección propia (abajo); portado el 2026-11-20 |
 | `0x6376e1` | `0x5ac2d0` cursor **otra vez** | siempre | Traza 126895, mismo quad |
 | `0x6376e6` | `0x621a90`, `0x620fc0` | siempre | traza 126896..126901: 3 pops en MODELVIEW, PROJECTION, 1 pop, MODELVIEW; devuelve 1 |
 
@@ -1788,9 +1788,31 @@ En la base todo da −1 o 0 y queda el 2 (*verificado*: los dos quads finales so
 **El 3D de la UI** (`0x5ac120`, *verificado* contra la traza 124479..126583): proyección de 1° (`0x6203c0(1.0,
 W/H, 20, 2000)`), la cámara `0x7d366f0`, profundidad; con `0x78abb00` en 0 o 3, los ítems de las grillas abiertas
 (`0x5f7610`), el del cursor (`0x5f7b10`) y las 3 ranuras rápidas (`0x558110(i)` → `0x5e1480(208 + 31i, 454, 20,
-20, …)`); si no, `0x5f70a0`. `0x633110` (después del primer cursor) es el ítem 3D de los diálogos de NPC y de la
-mezcla, con su propia proyección: CL9.3. El pase y el dibujo de cada ítem, en § El inventario ("El pase de los
+20, …)`); si no, `0x5f70a0`. `0x633110` (después del primer cursor) es el ítem 3D de los diálogos, con su propia proyección (abajo, "El ítem 3D
+de los diálogos"); el `0x98` de la mezcla (`0x78abb14` en 2) no lo dibuja. El pase y el dibujo de cada ítem, en § El inventario ("El pase de los
 ítems").
+
+**El ítem 3D de los diálogos** (`0x633110`, 2026-11-20, *estático*; desde `0x6376dc`, sin condición afuera). Con A el
+diálogo abierto (`0x7d3a10c`) y B el aviso (`0x78abb14`), dibuja con (A = `0x94` o `0x98`) y B = 1, con A = `0x96`
+o `0xa8`, con el `0x94` y B = 5, o con el `0x99` (`0x633116..0x63315d`); el `0x98` de la mezcla (B = 2) no.
+
+1. Su pase (`0x633163..0x6331f7`): PROJECTION con push e identidad, `0x620d10(0, 0, W, H)`, `0x6203c0(1, W / H,
+   [0x6d5d40], [0x6d5d44])` (20 y el far del mundo de este frame, que escribe `0x635ae0`, sin el × 1,4 de
+   `0x620db0`; el de `0x5ac120` lleva 20 y 2.000 literales), MODELVIEW con push e identidad, `0x620370(0x7d366f0)`
+   y la prueba y la máscara de la profundidad (`0x620850`, `0x620890`), sin limpiarla.
+2. El ítem (`0x6331fc..0x633220`): con B = 5 toma A = `0x96`; con `0x96`, `0x99` o `0xa8`, el de los diálogos
+   (`0x78a59c8`); si no, el del cursor (`0x7879f80`), sin mirar `0x7879fbc`. Vender algo valioso (`0x98` con 1)
+   muestra el del cursor.
+3. `0x5e1480(245, 115, 40, 60, tipo, +4, D+0x1b, D+0x1c & 0xff, 1)`: la caja es fija, no la de Item.bmd; con el
+   último en 1, el mouse encima no mira el cursor y el ítem queda a 0,07 de la cámara (`0x5e0720`). Los `rand()`
+   son los de `0x5e0720` (`0x607b60`, `0x609640` y el pase del set de `0x60b3d0`).
+4. Dos `glPopMatrix` en MODELVIEW (`0x633288..0x633293`): la proyección de 1° queda puesta.
+
+Con ese diálogo, `0x5ac120` no dibuja el ítem en el cursor: lo llama solo con `0x7879fbc` en más de 0, `0x78abb14`
+en 0 y `0x78aba60` distinto de 2 (`0x5ac1e9..0x5ac204`). **MuRet**: `Scenes::DialogItemOf` y `DrawTheDialogItem`
+(`Scenes/GameInventoryHud`), con `MakeUiItemPass(pantalla, far)`, entre los dos cursores de `GameSceneUi`, y la
+guarda en `DrawTheUi3DItems`. Queda para la VM si el segundo cursor (`0x6376e1`), que se dibuja con esa proyección
+puesta, se ve sobre el ítem (P-C90).
 
 **Las teclas por paso** (`0x5ac8d0`, `0x63717f`, `GetAsyncKeyState` con un latch por tecla): SPACE levanta el ítem
 del piso más cercano (`0x5650c0`, CL9.3); F1 cicla las ayudas (`0x77f3b08`, arriba en "Las ayudas de F1"); F2
@@ -2554,7 +2576,7 @@ DC y los colores del texto en (−1, 0), y termina con `0x620a00(1)`. Los textos
 | `0x77`, `0x78` (CL9 hito 7, fase 2) | el mismo marco (`0x630818`); el sí (`0x6309d4`), `0xf1` (`0xf2` con el mouse en `[0xea, 0x130) × [0x62, 0x77)`) en (234, 98), y el no, `0xf3` (`0xf4` en `[0x14e, 0x194)`) en (334, 98), de 70 × 21 con las UV del OK (también los del `0x7f` y el `0x76`, de otras olas; su no, 08 P-C363). El `0x77` (`0x631e29`): `sprintf(418, nombre)` con el `+0x1d9` del primero vivo de los 400 con la clave de `0x78aba4c` (`0x5110d0`, `MOVSX`; sin ninguno, el 400) en la fuente del DC en y = 75 − 6 y `sprintf(425)` en 75 + 6. El `0x78` (`0x631bb0`): `sprintf(418, 0x78aba1c)` en la negrita grande (`0x576355c`) en 75 − 11 y `sprintf(419)` en la normal en 75 + 11 |
 | `0x7d` (CL9 hito 8, fase 6) | el mismo marco; el `EDIT` del número (`[0x5763508]`, `0x630af0`) en (`0xf3`, `0x62`) con `+0x4c` en 9, tope 7, el foco y sus `*`; el sí angosto, `0xf1` (`0xf2` en `[0x143, 0x16b)`) en (323, 98), y el no, `0xf3` (`0xf4` en `[0x175, 0x19d)`) en (373, 98), de 40 × 21; el 427 y el 428 en rojo (`0x631f36`) en 75 − 6 y 75 + 6 (§ El diálogo del número del gremio) |
 | `0x73` (CL9 hito 7, revisión contra el ASM) | el marco del OK genérico sin el botón (`0x630818..0x630870`) y, con `0x6c7b8c` en 1 (su valor de la .data), el EDIT de `[0x5763504]` (`0x630876..0x6308c6`: la vtable + 4 con 0, + 0x4c con 9, + 0x3c con 8, + 8 con (0x46, 0xe), `0x45a9d0(0x11b, 0x5f)`, + 0x30 con 0 y + 0x14, que lo dibuja); después, en la cola de `0x63140b` (`0x631c91`), el texto 420, 421 o 422 según `0x78abacc`, en y = `0x4b`. MuRet rearma `UI::ChatInputState::dialogEdit` con eso en cada cuadro, con su foco, y lo dibuja (08 P-C362) |
-| `0x94`, `0x99` (CL9 hito 7, auditoría) | `0x630cbd` (el `0x94`) y `0x630cc4` (el `0x99`, con `0x96`, `0x98` y `0x9a`; el `0xa3` desde y = `0xd2`): `0xfc` de 213 × 5 en (213, 100), tres `0xfb` de 213 × 40 desde 105 y `0xfc` en 225, sin mezcla; los botones de `0x7d368b8` con estado de 1 a 4, `0xf0` + estado en (x + 213, y + 100, w, h) con las UV (0, 0, w / 128, h / 32), sin el − 1 de las cajas. En la cola (`0x632637`), los renglones de `0x12` en `0x12` en la negrita (`0x5763558`) y (1; 0,7; 0): con el aviso 3 de `0x78abb14` desde y = `0x73` y centrados en `0x140`, con el 4 `0x1e` más abajo, con otro desde `0x82` y centrados en `0x15e`; el renglón 0 con el aviso 1 en (1, 0, 0), el 3 con el aviso 3 en (1; 0,1; 0,1), y con el 6 (el precio bajo) el 0 en (1, 0, 0) y los demás en blanco con la normal (`0x5763554`). El aviso 2 pone antes un renglón de `0x7d2dc98` (`0x632683`, el título de la mezcla del CL9 hito 6). El ítem 3D del diálogo (`0x633110`, con el `0x94` y los avisos 1 o 5, o el `0x99`) no lo dibuja MuRet (P-C90) |
+| `0x94`, `0x99` (CL9 hito 7, auditoría) | `0x630cbd` (el `0x94`) y `0x630cc4` (el `0x99`, con `0x96`, `0x98` y `0x9a`; el `0xa3` desde y = `0xd2`): `0xfc` de 213 × 5 en (213, 100), tres `0xfb` de 213 × 40 desde 105 y `0xfc` en 225, sin mezcla; los botones de `0x7d368b8` con estado de 1 a 4, `0xf0` + estado en (x + 213, y + 100, w, h) con las UV (0, 0, w / 128, h / 32), sin el − 1 de las cajas. En la cola (`0x632637`), los renglones de `0x12` en `0x12` en la negrita (`0x5763558`) y (1; 0,7; 0): con el aviso 3 de `0x78abb14` desde y = `0x73` y centrados en `0x140`, con el 4 `0x1e` más abajo, con otro desde `0x82` y centrados en `0x15e`; el renglón 0 con el aviso 1 en (1, 0, 0), el 3 con el aviso 3 en (1; 0,1; 0,1), y con el 6 (el precio bajo) el 0 en (1, 0, 0) y los demás en blanco con la normal (`0x5763554`). El aviso 2 pone antes un renglón de `0x7d2dc98` (`0x632683`, el título de la mezcla del CL9 hito 6). El ítem 3D del diálogo (`0x633110`, con el `0x94` o el `0x98` y el aviso 1, el `0x94` con el 5, el `0x96`, el `0xa8` y el `0x99`), en "El ítem 3D de los diálogos" |
 | `0x94`, `0x96`, `0x98`, `0x99`, `0xa9` (CL9 hito 6) | `0x630cc4..0x630fbe`: `0xfc` de 213 × 5 en (213, 100), 3 filas de `0xfb` de 213 × 40 desde y = 105 y otra `0xfc`, con las UV de las cajas; cada botón con estado de 1 a 4, `0xf0 + estado` en `(x + 213, y + 100, w, h)` (sin el − 1 de las cajas) con las UV `(0, 0, w / 128, h / 32)`. Después de `0x620a00(1)`, los renglones (`0x632637`): la fuente gruesa y `(1; 0,7; 0)` en cada uno, centrados en x = `0x15e` desde y = 100 + `0x1e` de a `0x12`; salvo en el `0x96`, con `0x78abb14` en 3 en x = `0x140` desde 100 + `0xf`, en 4 en `0x140` desde 100 + `0x2d`, y en 2 antes el título de la mezcla (`0x632683`, que lee `0x7d2dc98`, de la caja del caos: en la fila del `0x9a`). Los colores siguen a `0x78abb14` también en el `0x96`: con 6, el primero en rojo y los demás en la fuente normal y en blanco; si no, el primero en rojo con 1, el cuarto en `(1; 0,1; 0,1)` con 3 y todos en `(0,9; 0,9; 1)` con 2. No vuelve al blanco ni a la fuente normal. El `0xa9` (`0x632a45`): la fuente gruesa y el amarillo, centrados en `0x140` desde y = 100 + `0x2d`, y al final la fuente normal. Sin `rand()` |
 
 `0x61ccb0` sube `Message_box` (`0xf0`), `ok`, `ok2`, `cancel`, `cancel2` (`0xf1` a
@@ -2800,8 +2822,9 @@ del modelo. T es el float del reloj del mundo (`0x5767b88`); el pulso se guarda 
 del `0,01f` cuyo float ya es `0,01f` no saca el `rand()`. MuRet hace las dos cosas con `Render::Models::SetPulseAt` y
 `SetPulseIsOff`, en `DrawItemFromMeshes` (el piso, lo que cuelga de los personajes y la UI) y en la cuenta de la UI
 sin modelos (CL8, 2026-11-13; `PassColorsTest` y
-`UiItemDrawingTest.TheSetRandomWaitsForTheUnroundedPulse`). `0x1a18` llega a sus uniones (`0x60c3b6`, `0x530860`), con el objeto local de `0x5e0720` de dueño: MuRet
-corta ahí (P-C70).
+`UiItemDrawingTest.TheSetRandomWaitsForTheUnroundedPulse`). `0x1a18` (el 12,6) llega a sus uniones (`0x60c3b6`,
+`0x530860`), con el objeto local de `0x5e0720` de dueño, que nadie desreferencia: nacen después del dibujo de las
+uniones y mueren en el primer paso del frame siguiente, con sus `rand()` (07 Q-C1821; portado el 2026-11-20).
 
 **El punto de la caja** (`0x5e1486..0x5e1d69`, *estático*, leído en el ASM). Con el cursor vacío (`0x7879fbc` en 0) o
 con `siempre`, el ítem está bajo el mouse si x ≤ mx < x + w e y ≤ my < y + h (el `FILD` de `0x7d3682c` y `0x7d36828`
@@ -2977,7 +3000,7 @@ deja `0x78a6758` en la casilla + 12, la saca con `0x5bd750`, pone el destino en 
 
 **Lo que porta MuRet**: la ventana entera; los ítems 3D, el del cursor y los de las ranuras, dibujados en el pase de
 la UI con sus `rand()` (`Scenes/UiItemDrawing.h`, `test_ui_item_drawing.cpp` y `test_game_inventory_hud.cpp`; el
-`0x1a18` corta en `0x60c3b6`); las cifras; el mundo angosto en `GameScene` (`0x63733e` y `0x63738a`); las texturas
+`0x1a18` con sus uniones, Q-C1821, y sin los modelos corta en `0x60c3b6`); las cifras; el mundo angosto en `GameScene` (`0x63733e` y `0x63738a`); las texturas
 `0x104` a `0x120` (sin `0x106`), `0x652`, `0x657` y `0x658` en `HudTextureSet`; el paso en `Scenes/GameUi.cpp` (`test_game_inventory_step.cpp`) con
 los botones de reparar y cerrar, el equipo y la grilla bajo el mouse y el paso del ítem del cursor; y levantar,
 soltar, equipar, el piso, MoveHero y las respuestas en `Scenes/InventoryMoves.cpp` (`test_cursor_item.cpp` y
@@ -15679,7 +15702,7 @@ como siempre, `0x602e90` y el `rand() % 30 + 70` de `0x445336`. En `0x50ba30`, `
 ni sus `rand()`; los globales de `0x505820` quedan los del último personaje, y la cola no los lee sin el conjunto.
 
 **Lo que queda del estado.** La cámara de las billboards (`0x7d366f0`) queda en la identidad hasta el pase del mundo
-siguiente; lo único que la lee antes es `0x633110` (P-C90), y el retrato no dibuja billboards. Las matrices y el
+siguiente; `0x633110` la vuelve a escribir (`0x620370`) antes de usarla, y el retrato no dibuja billboards. Las matrices y el
 viewport de la pantalla vuelven en `0x4959dd..0x495a0c`, pero la profundidad, `GL_LEQUAL` y el alpha de 0,25 quedan para
 el 2D que sigue. Ese 2D sí escribe la profundidad (el retrato deja la prueba y la máscara prendidas, `0x4958f3` y
 `0x4958fd`, y los quads en z = 0 del `gluOrtho2D` dan 0,5), pero sin efecto a la vista (*inferido*): con `GL_LEQUAL`

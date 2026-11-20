@@ -14,6 +14,7 @@
 #include "World/ParticleDrawing.h"
 #include "Render/ParticleBillboardRequest.h"
 #include "Render/TextureEnvMode.h"
+#include <algorithm>
 #include <cmath>
 #include <functional>
 #include <optional>
@@ -23,6 +24,8 @@
 #include "Scenes/FaunaObject.h"
 #include "Scenes/GameDrawTail.h"
 #include "Render/Models/Cloth.h"
+#include "Scenes/UiItemDrawing.h"
+
 #include <gtest/gtest.h>
 #include <array>
 #include <bit>
@@ -528,6 +531,64 @@ TEST(GameJointStepTest, RealHelperPublisherCompletesTheFollowingTickWithItsFloor
         EXPECT_EQ(joint.ownerContext, &owner);
     }
     EXPECT_EQ(owner.type, 0x1a18);
+}
+
+// 0x60c3b6..0x60c598 desde el dibujo de la UI (0x5e0720): las 20 uniones del 0x1a18 (12,6) con el objeto local de la
+// pila de 0x5e0720 de dueño, que nadie desreferencia (07 Q-C1821). Con dueño, 0x530860 no escribe +0x58 (0x53099b):
+// queda el del ocupante anterior del lugar, y la posición sale de ahí (0x5333a7). Nacen después del dibujo de las
+// uniones del frame (0x637516, 0x637592) y mueren en el primer paso del siguiente (0x53c3ad..0x53c3bd), con dos rand()
+// por cada 0x614 (0x536cb3, 0x536cda): el original no las dibuja nunca, y el dibujo intermedio de MuRet las apaga en su
+// copia.
+TEST(GameJointStepTest, TheUiWingJointsDieUnseenInTheirFirstStep)
+{
+    Client::Scenes::DrawnObject object;
+    object.model = 0x1a18;
+    std::array<Client::Render::Models::BoneTransform, 31> bones;
+    bones.fill(Client::Render::Models::BoneTransform(1));
+    auto tail = std::make_unique<Client::Scenes::GameDrawTailState>();
+    for (auto& joint : tail->joints)
+        joint.targetPosition = {900, 800, 700};
+    Client::Render::Models::CrtRandom random(19);
+    Client::World::FrameSprites sprites;
+    Client::Scenes::ItemSpecialDrawContext special;
+    special.sprites = &sprites;
+    Client::Scenes::ItemDrawContext context;
+    context.special = &special;
+    context.ownerContext = Client::Scenes::UiItemLocalObject();
+    context.poseBones = [&]() { return std::span<const Client::Render::Models::BoneTransform>(bones); };
+    context.createJoint =
+        [&](const Client::World::FishEffectRequest& request) -> Client::Core::Expected<void, std::string>
+    {
+        auto created = Client::Scenes::CreateFaunaJoint(tail->joints, request, random);
+        if (!created.HasValue())
+            return Client::Core::Unexpected(created.Error());
+        return {};
+    };
+    const Client::Render::Models::CrtRandom created = random;
+    std::optional<float> alpha;
+    ASSERT_TRUE(Client::Scenes::PrepareItemGlowEffects(object, {}, 0, context, alpha).HasValue());
+    EXPECT_EQ(random.State(), created.State());
+    EXPECT_EQ(std::ranges::count_if(tail->joints, [](const auto& joint) { return joint.alive; }), 20);
+    for (std::size_t index = 0; index < 20; ++index)
+    {
+        const Client::Scenes::JointState& joint = tail->joints[index];
+        EXPECT_EQ(joint.ownerContext, Client::Scenes::UiItemLocalObject());
+        EXPECT_EQ(joint.targetPosition, glm::vec3(900, 800, 700));
+        EXPECT_EQ(joint.position, glm::vec3(900, 800, 700));
+    }
+
+    // El dibujo intermedio no las ve; la tabla de verdad las guarda para el paso.
+    auto copy = std::make_unique<Client::Scenes::GameDrawTailState>(*tail);
+    Client::Scenes::HideUiItemJoints(*copy);
+    EXPECT_EQ(std::ranges::count_if(copy->joints, [](const auto& joint) { return joint.alive; }), 0);
+    EXPECT_EQ(std::ranges::count_if(tail->joints, [](const auto& joint) { return joint.alive; }), 20);
+
+    Client::Render::Models::CrtRandom expected = random;
+    expected.Discard(20);
+    const auto stepped = Client::Scenes::StepJoints(tail->joints, random);
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_EQ(random.State(), expected.State());
+    EXPECT_EQ(std::ranges::count_if(tail->joints, [](const auto& joint) { return joint.alive; }), 0);
 }
 
 TEST(GameJointStepTest, ReachedBeamEmitsThunderWithTwoCreationDrawsThenStepsItsRotation)

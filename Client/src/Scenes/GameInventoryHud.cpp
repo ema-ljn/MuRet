@@ -273,14 +273,14 @@ Core::Expected<void, std::string> DrawUiItem(GameHudContext& context, const UiIt
     const std::optional<UiItemCall> call = UiItemCallOf(type, level);
     if (!call)
         return {};
-    // 0x60c3b6: 0x60b3d0 cuelga del 0x1a18 las uniones 0x614 y 0x613 (0x530860) con el objeto local de 0x5e0720 de
-    // dueño, en la pila, que el paso de las uniones lee después (P-C70).
-    constexpr std::int32_t WingsWithJoints = 0x1a18;
-    if (call->model == WingsWithJoints)
-        return Core::Unexpected(std::string("0x60c3b6: las uniones 0x614 y 0x613 (0x530860) del 0x1a18 en la UI "
-                                            "tienen de dueño el objeto local de 0x5e0720 (P-C70)"));
     if (context.uiItems == nullptr)
     {
+        // 0x60c3b6..0x60c598: con los modelos, el 0x1a18 cuelga 20 uniones de los huesos de su pose, que el paso
+        // siguiente usa con sus rand() (Q-C1821). Sin los modelos MuRet no tiene esos huesos.
+        constexpr std::int32_t WingsWithJoints = 0x1a18;
+        if (call->model == WingsWithJoints)
+            return Core::Unexpected(std::string("0x60c3b6: las uniones 0x614 y 0x613 (0x530860) del 0x1a18 en la UI "
+                                                "salen de los huesos de su pose, que sin los modelos no hay"));
         SpendUiItemRandoms(context, call->model, excellent, set);
         return {};
     }
@@ -823,6 +823,58 @@ Core::Expected<void, std::string> DrawTheCursorItem(GameHudContext& context)
     box.Value().x = F32(static_cast<double>(context.mouse.x) - static_cast<double>(box.Value().width) * Half);
     box.Value().y = F32(static_cast<double>(context.mouse.y) - static_cast<double>(box.Value().height) * Half);
     return DrawUiItem(context, box.Value(), type, item.scalar1Low, item.flags1b, item.flags1c, true);
+}
+
+DialogItemSource DialogItemOf(std::int32_t dialog, std::int32_t warningKind)
+{
+    constexpr std::int32_t PriceDialog = 0x94;
+    constexpr std::int32_t ItemDialog = 0x96;
+    constexpr std::int32_t SaleDialog = 0x98;
+    constexpr std::int32_t PriceBelowValueDialog = 0x99;
+    constexpr std::int32_t FruitDialog = 0xa8;
+    constexpr std::int32_t SaleWarning = 1;
+    constexpr std::int32_t OtherShopWarning = 5;
+    // 0x633116..0x633144: CL en 1 con el 0x94 o el 0x98 y el aviso 1, o con el 0x96 o el 0xa8.
+    const bool shown = ((dialog == PriceDialog || dialog == SaleDialog) && warningKind == SaleWarning) ||
+                       dialog == ItemDialog || dialog == FruitDialog;
+    // 0x633146..0x63315d: el 0x94 con el aviso 5 dibuja; con otro, el 0x99 dibuja; si no, CL.
+    const bool draws =
+        dialog == PriceDialog ? warningKind == OtherShopWarning || shown : dialog == PriceBelowValueDialog || shown;
+    if (!draws)
+        return DialogItemSource::None;
+    // 0x6331fc..0x633220: con el aviso 5, el 0x96; el 0x96, el 0x99 y el 0xa8 van al ítem de los diálogos.
+    const std::int32_t chosen = warningKind == OtherShopWarning ? ItemDialog : dialog;
+    if (chosen == ItemDialog || chosen == PriceBelowValueDialog || chosen == FruitDialog)
+        return DialogItemSource::Dialog;
+    return DialogItemSource::Cursor;
+}
+
+Core::Expected<void, std::string> DrawTheDialogItem(GameHudContext& context, float farPlane)
+{
+    const WorldRuntime& runtime = context.world.Runtime();
+    const DialogItemSource source = DialogItemOf(runtime.dialogs.current, runtime.social.trade.warningKind);
+    if (source == DialogItemSource::None)
+        return {};
+    // 0x633222..0x633247 el del cursor y 0x633249..0x63326e el de los diálogos: el WORD con signo, el DWORD +4, el byte
+    // +0x1b y el DWORD +0x1c & 0xff.
+    const World::ItemState& item = source == DialogItemSource::Cursor ? runtime.cursorItem : runtime.dialogItem;
+    const auto type = static_cast<std::int32_t>(static_cast<std::int16_t>(item.id));
+    // 0x63326f..0x633283.
+    constexpr UiItemBox Box{.x = 245.0f, .y = 115.0f, .width = 40.0f, .height = 60.0f};
+    if (context.uiItems == nullptr)
+        return DrawUiItem(context, Box, type, item.scalar1Low, item.flags1b, item.flags1c, true);
+    // 0x633163..0x6331f7: el pase propio; 0x633288..0x633293, los dos glPopMatrix. El de 0x5ac120 vuelve a quedar para
+    // el próximo frame.
+    UiItemResources& resources = *context.uiItems;
+    auto pass = MakeUiItemPass(resources.pass.pass.screen, farPlane);
+    if (!pass.HasValue())
+        return Core::Unexpected(pass.Error());
+    const UiItemPass itemsPass = resources.pass;
+    resources.pass = pass.Value();
+    auto drawn = DrawUiItem(context, Box, type, item.scalar1Low, item.flags1b, item.flags1c, true);
+    CloseUiItemPass(resources);
+    resources.pass = itemsPass;
+    return drawn;
 }
 
 namespace

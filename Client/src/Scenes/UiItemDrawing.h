@@ -33,6 +33,7 @@ class CrtRandom;
 
 namespace Client::Scenes
 {
+struct GameDrawTailState;
 class IModelLibrary;
 struct FaunaDrawCarry;
 struct ItemDrawContext;
@@ -97,14 +98,16 @@ PlaceUiItem(const UiItemCall& call, const UnprojectedPoint& anchor, bool hovered
             const Data::Tables::ItemTable* items, glm::vec3& angles);
 
 // El pase 3D de 0x5ac120: la proyección de 1°, W / H, 20 y 2.000 en la pantalla entera (0x620d10 y 0x6203c0) y la
-// vista en la identidad (0x620370 sobre MODELVIEW en la identidad), con su caché de 0x6203c0.
+// vista en la identidad (0x620370 sobre MODELVIEW en la identidad), con su caché de 0x6203c0. El de 0x633110 es igual
+// pero con el near y el far de [0x6d5d40] (20) y [0x6d5d44] (el far del mundo de este frame, que escribe 0x635ae0):
+// `farPlane`. El caché de 0x6203c0 no depende del far.
 struct UiItemPass
 {
     Render::Pass3D pass{};
     GameProjection projection{};
 };
 
-[[nodiscard]] Core::Expected<UiItemPass, std::string> MakeUiItemPass(App::PixelSize screen);
+[[nodiscard]] Core::Expected<UiItemPass, std::string> MakeUiItemPass(App::PixelSize screen, float farPlane = 2000.0f);
 
 // Lo que el dueño del frame le presta al tramo 3D de la UI para dibujar sus ítems: el lote de los modelos y los
 // fines de los dos lotes (SceneCanvas), los modelos, el buffer global de la pose (0x68b181c), los contextos de
@@ -135,4 +138,16 @@ struct UiItemResources
 
 // 0x5ac2a2..0x5ac2bb: el fin de 0x5ac120. Si un ítem abrió el pase, el lote de los modelos se dibuja.
 void CloseUiItemPass(UiItemResources& resources);
+
+// [ebp − 0x45c] de 0x5e0720: el objeto local que 0x5e0720 arma en la pila para cada ítem de la UI y pasa a 0x607b60 y a
+// 0x60cf70. 0x60b3d0 lo da de dueño a las uniones del 0x1a18 (0x60c482..0x60c555): no nulo, así que 0x530860 no escribe
+// +0x58, pero nadie lo desreferencia después (07 Q-C1821). Su dirección es la misma en cada llamada; MuRet usa una
+// ficha durable que tampoco se lee.
+[[nodiscard]] void* UiItemLocalObject();
+
+// Esas uniones nacen en el dibujo de la UI, después del de las uniones (0x637516 y 0x637592), y mueren en el primer
+// paso del frame siguiente (la vida en 0, 0x53c3ad..0x53c3bd), antes del dibujo que sigue: el original no las dibuja
+// nunca. Los dibujos intermedios de MuRet (GameScene::PrepareDrawProjection) las apagan en su copia de la cola; la
+// tabla de verdad las guarda para el paso, con sus rand().
+void HideUiItemJoints(GameDrawTailState& tail);
 } // namespace Client::Scenes

@@ -10,6 +10,7 @@
 #include "Render/Pass3D.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/FaunaDrawing.h"
+#include "Scenes/GameDrawTail.h"
 #include "Scenes/GameItemSpecialDrawing.h"
 #include "Scenes/GameProjection.h"
 #include "UI/Widget.h"
@@ -685,19 +686,19 @@ Core::Expected<UiItemPlacement, std::string> PlaceUiItem(const UiItemCall& call,
     return placement;
 }
 
-Core::Expected<UiItemPass, std::string> MakeUiItemPass(App::PixelSize screen)
+Core::Expected<UiItemPass, std::string> MakeUiItemPass(App::PixelSize screen, float farPlane)
 {
-    // 0x5ac15f..0x5ac17f: fild del ancho, fidiv del alto y fstp; 0x6203c0(1, aspecto, 20, 2.000).
+    // 0x5ac15f..0x5ac17f: fild del ancho, fidiv del alto y fstp; 0x6203c0(1, aspecto, 20, 2.000). 0x633110
+    // (0x633199..0x6331d2): lo mismo con [0x6d5d40] y [0x6d5d44].
     constexpr float FieldOfView = 1.0f;
     constexpr float NearPlane = 20.0f;
-    constexpr float FarPlane = 2000.0f;
     UiItemPass made;
     made.pass.screen = screen;
     made.pass.viewport = glm::ivec4(0, 0, screen.width, screen.height);
     const auto aspect = F32(static_cast<double>(screen.width) / static_cast<double>(screen.height));
-    made.pass.projection = glm::perspective(glm::radians(FieldOfView), aspect, NearPlane, FarPlane);
+    made.pass.projection = glm::perspective(glm::radians(FieldOfView), aspect, NearPlane, farPlane);
     made.pass.view = glm::mat4(1.0f);
-    made.pass.farPlane = FarPlane;
+    made.pass.farPlane = farPlane;
     auto projection = MakeGameProjection(made.pass, FieldOfView);
     if (!projection.HasValue())
         return Core::Unexpected(projection.Error());
@@ -754,7 +755,8 @@ Core::Expected<void, std::string> DrawUiItemModel(UiItemResources& resources, Re
     special.objectLight = &objectLight;
     special.publishedObject = &object;
     context.special = &special;
-    context.ownerContext = nullptr;
+    // 0x5e13de y 0x5e1443: el objeto local, que 0x60b3d0 da de dueño a las uniones del 0x1a18 (Q-C1821).
+    context.ownerContext = UiItemLocalObject();
     // 0x60b3d0 desempaca el nivel: (nivel >> 3) & 15.
     const auto level = static_cast<std::uint8_t>((placement.level >> 3) & 15);
     return DrawItemFromMeshes(resources.batch, resources.models, object, resources.frameClock,
@@ -768,5 +770,21 @@ void CloseUiItemPass(UiItemResources& resources)
     if (resources.flushModels)
         resources.flushModels();
     resources.open = false;
+}
+
+void* UiItemLocalObject()
+{
+    // Una ficha: nadie la lee, solo se compara.
+    static std::byte localObject{};
+    return &localObject;
+}
+
+void HideUiItemJoints(GameDrawTailState& tail)
+{
+    for (JointState& joint : tail.joints)
+    {
+        if (joint.alive && joint.ownerContext == UiItemLocalObject())
+            joint.alive = false;
+    }
 }
 } // namespace Client::Scenes

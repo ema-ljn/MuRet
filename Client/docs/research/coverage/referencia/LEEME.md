@@ -189,6 +189,25 @@ cambió; lo que se porte después pasa solo a `implemented`, y lo que cambie de 
 falsos positivos (columna 27) llevan las citas de implementación que tenían en la auditoría: si aparecen más, la marca
 se cae sola y hay que mirar si de verdad se portaron.
 
+## La action
+
+Para no regenerar a mano: en GitHub, **Actions → Referencia del cliente → Run workflow**, con la rama o el commit (vacío,
+la rama elegida arriba). Tarda unos 5 minutos y no toca el repo. En la página de la corrida queda el resumen
+(`scripts/tools/reference_summary.py`), y las tablas regeneradas, para bajar como artifact durante 30 días:
+
+1. **Cuánto falta para portar:** las cotas alta, media, baja y baja con test, y los KB fuera de la cota baja, en total
+   y por ola.
+2. **Cuánto falta para cerrarlo contra el ASM:** las funciones vivas cerradas, las que están portadas (`implemented`)
+   sin falso positivo, sin cortes vivos ni citas pendientes, con al menos un test, sin pasos de VM y sin filas de 08
+   abiertas. Las explicadas (clones, portadas sin cita, plataforma, herramientas, STL y sin uso) van aparte y no
+   entran en la base. Al lado, lo que frena a las demás: sin citar, con cortes (y las que cierran el cliente), sin
+   test, con VM y con 08. Mide eso, no la fidelidad byte a byte (ver Límites).
+3. **El estado de las trazas:** los cortes por clase, los que cierran el cliente jugando, los huecos más grandes y la
+   diferencia con la `metricas.tsv` commiteada en la rama: si difiere, hay que regenerarla y commitearla.
+
+Lee el repo de research con una deploy key de solo lectura de ese repo; la privada es el secreto `RESEARCH_DEPLOY_KEY`
+de MuRet. El botón aparece cuando el workflow está en `main`; antes, corre en los PRs que lo cambian.
+
 ## Los números principales
 
 | | |

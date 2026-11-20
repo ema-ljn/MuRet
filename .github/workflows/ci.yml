@@ -151,6 +151,11 @@ jobs:
         if: matrix.kind == 'build'
         run: python -m unittest discover -s Client/docs/research/scripts/game/capture -p 'test_*evidence.py' -v
 
+      # El resumen de la action de la referencia (.github/workflows/referencia.yml), con tablas inventadas.
+      - name: Tests del resumen de la referencia
+        if: matrix.kind == 'build'
+        run: python -m unittest discover -s Client/docs/research/scripts/tools -p 'test_reference_summary.py' -v
+
       # Lo que los puertos sdl3 y alsa de vcpkg piden del sistema, los headers de OpenGL/EGL,
       # y Xvfb + Mesa (llvmpipe) para abrir la ventana sin pantalla. NASM lo
       # pide el puerto libjpeg-turbo para su SIMD: en Linux, vcpkg no lo baja y usa el del sistema

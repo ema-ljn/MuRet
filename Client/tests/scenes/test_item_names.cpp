@@ -1,14 +1,19 @@
 #include "Scenes/ItemNames.h"
 
 #include "Core/Expected.h"
+#include "Data/Tables/ItemTable.h"
 #include "Data/Text/TextTable.h"
 #include "Scenes/NpcNames.h"
+#include "support/ItemFiles.h"
 #include "support/SceneDataFiles.h"
 
 #include <gtest/gtest.h>
 
 #include <algorithm>
+#include <array>
+#include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <string_view>
 
@@ -19,6 +24,9 @@ using Client::Scenes::NpcName;
 using Client::Scenes::NpcNameTable;
 
 constexpr std::uint16_t TransformationRing = 0x1a0a;
+constexpr std::uint16_t EventTicket = 0x1c0c;
+// Item.bmd+0x2d, el byte que 0x5b1d54 lee del registro.
+constexpr std::size_t PrizeOffset = 0x2d;
 
 NpcName Record(std::uint16_t type, std::string_view name)
 {
@@ -75,6 +83,48 @@ TEST_F(ItemNamesTest, TheTransformationRingWithoutItsMonsterLeavesTheBuffer)
     const auto empty = Name(11);
     ASSERT_TRUE(empty.HasValue()) << empty.Error();
     EXPECT_EQ(empty.Value(), " Anillo");
+}
+
+// 0x5b1d52..0x5b1d6e: el 0x1c0c de nivel 2 (el boleto), sprintf(buffer, "%s" (0x6c98f0), 0x6c9350 + Item.bmd+0x2d ·
+// 100): el premio de los diez de 100 bytes de la .data, en coreano (EUC-KR), con sus bytes tal cual. El 4 es "256M 램".
+TEST(ItemNamesTicketTest, TheTicketOfLevelTwoNamesThePrizeOfItsRecord)
+{
+    const Client::Data::Tables::ItemTable items =
+        Client::Tests::ItemTableOf({}, {{.type = EventTicket, .offset = PrizeOffset, .value = 4}});
+    const auto name = Client::Scenes::ItemNameOf(&items, nullptr, nullptr, EventTicket, 2);
+    ASSERT_TRUE(name.HasValue()) << name.Error();
+    EXPECT_EQ(name.Value(), "256M \xb7\xa5");
+}
+
+// 0x6c9350..0x6c9737: los diez premios con los largos de la .data del c32bbd5f (hasta su '\0'), y el 0 entero.
+TEST(ItemNamesTicketTest, TheTenPrizesAreTheBytesOfTheData)
+{
+    constexpr std::array<std::size_t, 10> Lengths{18, 14, 12, 30, 7, 17, 16, 9, 8, 20};
+    for (std::uint32_t i = 0; i < Lengths.size(); ++i)
+    {
+        const std::optional<std::string_view> prize = Client::Scenes::EventTicketPrizeOf(i);
+        ASSERT_TRUE(prize.has_value()) << i;
+        EXPECT_EQ(prize->size(), Lengths[i]) << i;
+    }
+    EXPECT_EQ(Client::Scenes::EventTicketPrizeOf(0),
+              std::string_view("\xc8\xf7\xb5\xf9\xc5\xa9 \xb0\xed\xc7\xe2 \xbf\xa9\xc7\xe0\xb1\xc7"));
+    EXPECT_EQ(Client::Scenes::EventTicketPrizeOf(1), std::string_view("\xc6\xe6\xc6\xbc\xbe\xf6"
+                                                                      "4 \xc4\xc4\xc7\xbb\xc5\xcd"));
+    EXPECT_FALSE(Client::Scenes::EventTicketPrizeOf(10).has_value());
+}
+
+// Desde el 10, 0x6c9350 + i · 100 lee la .data que sigue a los diez (strings de formato y globales que el juego
+// cambia), que MuRet no tiene: corta. Sin Item.bmd, también.
+TEST(ItemNamesTicketTest, TheTicketPrizeOutsideTheTenCuts)
+{
+    const Client::Data::Tables::ItemTable items =
+        Client::Tests::ItemTableOf({}, {{.type = EventTicket, .offset = PrizeOffset, .value = 10}});
+    const auto outside = Client::Scenes::ItemNameOf(&items, nullptr, nullptr, EventTicket, 2);
+    ASSERT_FALSE(outside.HasValue());
+    EXPECT_NE(outside.Error().find("0x5b1d60"), std::string::npos) << outside.Error();
+    const auto unloaded = Client::Scenes::ItemNameOf(nullptr, nullptr, nullptr, EventTicket, 2);
+    ASSERT_FALSE(unloaded.HasValue());
+    EXPECT_NE(unloaded.Error().find("0x5b1c76"), std::string::npos) << unloaded.Error();
 }
 
 // Sin la tabla de 0x7681eb8, corta.

@@ -132,6 +132,28 @@ constexpr std::array<std::uint32_t, 16> TransformationMonsters{
 constexpr std::uint16_t TransformationRing = 0x1a0a;
 constexpr std::size_t TransformationRingText = 103;
 
+// 0x6c9350..0x6c9737 del c32bbd5f: los diez premios del boleto, de a 100 bytes, cada uno hasta su '\0' (EUC-KR). Del 0
+// al 9: 히딩크 고향 여행권, 펜티엄4 컴퓨터, 디지탈카메라, 로지텍 무선 마우스+키보드 세트, 256M 램, 6개월 잡지 구독권,
+// 문화상품권(만원), 뮤 머그컵, 뮤 T셔츠 y 뮤 10시간 무료이용권. Ningún código los escribe: solo los leen 0x5b1d60 y
+// 0x5b3835.
+constexpr std::array<std::string_view, 10> EventTicketPrizes{
+    "\xc8\xf7\xb5\xf9\xc5\xa9 \xb0\xed\xc7\xe2 \xbf\xa9\xc7\xe0\xb1\xc7",
+    "\xc6\xe6\xc6\xbc\xbe\xf6"
+    "4 \xc4\xc4\xc7\xbb\xc5\xcd",
+    "\xb5\xf0\xc1\xf6\xc5\xbb\xc4\xab\xb8\xde\xb6\xf3",
+    "\xb7\xce\xc1\xf6\xc5\xd8 \xb9\xab\xbc\xb1 \xb8\xb6\xbf\xec\xbd\xba+\xc5\xb0\xba\xb8\xb5\xe5 \xbc\xbc\xc6\xae",
+    "256M \xb7\xa5",
+    "6\xb0\xb3\xbf\xf9 \xc0\xe2\xc1\xf6 \xb1\xb8\xb5\xb6\xb1\xc7",
+    "\xb9\xae\xc8\xad\xbb\xf3\xc7\xb0\xb1\xc7(\xb8\xb8\xbf\xf8)",
+    "\xb9\xc2 \xb8\xd3\xb1\xd7\xc4\xc5",
+    "\xb9\xc2 T\xbc\xc5\xc3\xf7",
+    "\xb9\xc2 10\xbd\xc3\xb0\xa3 \xb9\xab\xb7\xe1\xc0\xcc\xbf\xeb\xb1\xc7",
+};
+constexpr std::uint16_t EventTicket = 0x1c0c;
+constexpr std::int32_t EventTicketTableLevel = 2;
+// Item.bmd+0x2d: el byte que 0x5b1d54 lee del registro.
+constexpr std::size_t EventTicketPrizeOffset = 0x2d;
+
 // 0x5b21b6..0x5b21e9: los registros de 0x7681eb8 con el tipo del monstruo, sin cortar en el primero.
 bool HasTheMonster(const NpcNameTable& table, std::uint32_t monster)
 {
@@ -166,6 +188,13 @@ Core::Expected<std::string, std::string> TransformationRingName(const Data::Text
 }
 } // namespace
 
+std::optional<std::string_view> EventTicketPrizeOf(std::uint32_t index)
+{
+    if (index >= EventTicketPrizes.size())
+        return std::nullopt;
+    return EventTicketPrizes[index];
+}
+
 std::optional<std::uint32_t> TransformationMonsterOf(std::int32_t level)
 {
     if (level < 0 || static_cast<std::size_t>(level) >= TransformationMonsters.size())
@@ -177,22 +206,39 @@ Core::Expected<std::string, std::string> ItemNameOf(const Data::Tables::ItemTabl
                                                     const Data::Text::TextTable* texts, const NpcNameTable* npcNames,
                                                     std::uint16_t type, std::int32_t level)
 {
-    if (type == 0x1c0c && level == 2)
-        return Core::Unexpected(std::string("0x5b1d52: el nombre del 0x1c0c de nivel 2 lee la tabla de .data de "
-                                            "0x6c9350 por +0x2d del registro, como el cuerpo del ítem (0x5b3824, "
-                                            "08 P-C125 b)"));
     if (type == TransformationRing)
         return TransformationRingName(texts, npcNames, level);
-    // 0x5b1c76..0x5b1c8d: el registro de Item.bmd, que todos los casos con el nombre leen.
-    const auto recordName = [&]() -> Core::Expected<std::string, std::string>
+    // 0x5b1c76..0x5b1c8d: el registro de Item.bmd (ECX), que leen los casos con el nombre y el boleto.
+    const auto recordOf = [&]() -> Core::Expected<std::span<const std::byte, Data::Tables::ItemRecordSize>, std::string>
     {
         if (items == nullptr)
             return Core::Unexpected(std::string("0x5b1c76: lee *[0x7758550] (Item.bmd) y no está cargado"));
         const auto record = items->Record(type);
         if (!record)
             return Core::Unexpected(std::format("0x5b1c76: el tipo {:#x} lee fuera de Item.bmd", type));
-        return ItemRecordName(*record);
+        return *record;
     };
+    const auto recordName = [&]() -> Core::Expected<std::string, std::string>
+    {
+        const auto record = recordOf();
+        if (!record.HasValue())
+            return Core::Unexpected(record.Error());
+        return ItemRecordName(record.Value());
+    };
+    // 0x5b1d52..0x5b1d6e: el boleto de nivel 2, sprintf(buffer, "%s" (0x6c98f0), 0x6c9350 + byte [ECX + 0x2d] · 100).
+    if (type == EventTicket && level == EventTicketTableLevel)
+    {
+        const auto record = recordOf();
+        if (!record.HasValue())
+            return Core::Unexpected(record.Error());
+        const auto index = std::to_integer<std::uint32_t>(record.Value()[EventTicketPrizeOffset]);
+        const std::optional<std::string_view> prize = EventTicketPrizeOf(index);
+        if (!prize)
+            return Core::Unexpected(std::format("0x5b1d60: el premio {} del boleto (Item.bmd+0x2d) lee 0x6c9350 + {} "
+                                                "· 100, en la .data que sigue a los diez premios, que MuRet no tiene",
+                                                index, index));
+        return UI::Sprintf("%s", *prize);
+    }
     if (type == Type180b)
     {
         const auto first = TextOf(texts, Type180bFirst);

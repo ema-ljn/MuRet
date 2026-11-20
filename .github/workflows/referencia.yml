@@ -1,0 +1,90 @@
+# La referencia del cliente, regenerada a pedido: cuánto falta para portar el main.exe, cuánto falta para cerrarlo
+# contra el ASM y el estado de las trazas (cortes, huecos y la diferencia con la referencia commiteada). Se dispara a
+# mano (Actions → Referencia del cliente → Run workflow, con la rama o el commit) y no toca el repo: el resumen va a la
+# página de la corrida y las tablas, a un artifact. Diseño: docs/superpowers/specs/2026-11-20-accion-referencia-design.md;
+# cómo leer lo que muestra: Client/docs/research/coverage/referencia/LEEME.md, "La action".
+#
+# Los generadores leen el repo de research (privado): el main.exe c32bbd5f, su pseudocódigo, el inventario y el grafo
+# de llamadas. Lo clona con una deploy key de solo lectura de ese repo, la privada en el secreto RESEARCH_DEPLOY_KEY.
+name: Referencia del cliente
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Rama, tag o commit de MuRet que se mide (vacío, la rama desde la que se dispara)
+        required: false
+        type: string
+  # workflow_dispatch solo aparece con el archivo en main: así se prueba en el PR que lo cambia.
+  pull_request:
+    paths:
+      - .github/workflows/referencia.yml
+      - Client/docs/research/scripts/tools/reference_summary.py
+
+permissions:
+  contents: read
+
+concurrency:
+  group: referencia-${{ inputs.ref || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  referencia:
+    name: Regenerar y resumir
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      # La historia entera: la matriz hace git blame de cada cita.
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.ref || github.ref }}
+          fetch-depth: 0
+
+      - name: El commit que se mide
+        id: commit
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: El repo de research
+        env:
+          DEPLOY_KEY: ${{ secrets.RESEARCH_DEPLOY_KEY }}
+        run: |
+          if [ -z "$DEPLOY_KEY" ]; then
+            echo "::error::falta el secreto RESEARCH_DEPLOY_KEY (los PRs desde un fork no lo tienen)"
+            exit 1
+          fi
+          key="$RUNNER_TEMP/research_key"
+          printf '%s\n' "$DEPLOY_KEY" > "$key"
+          chmod 600 "$key"
+          export GIT_SSH_COMMAND="ssh -i $key -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new"
+          # Clon parcial y disperso: solo lo que leen los generadores (~100 MB).
+          git clone --depth 1 --filter=blob:none --sparse \
+            git@github.com:EmaNLJN/mu-server-repack-research-102i.git "$RUNNER_TEMP/research"
+          git -C "$RUNNER_TEMP/research" sparse-checkout set --no-cone \
+            'client-research/mainexe-vmxp-c32bbd5f/original/*' \
+            'client-research/mainexe-vmxp-c32bbd5f/decompiled/functions/*' \
+            'client-research/mainexe-vmxp-c32bbd5f/decompiled/inventory.tsv' \
+            'client-research/analysis/mainexe/*'
+          rm -f "$key"
+
+      - name: La matriz y la referencia
+        env:
+          COMMIT: ${{ steps.commit.outputs.sha }}
+        run: |
+          tools=Client/docs/research/scripts/tools
+          mkdir -p "$RUNNER_TEMP/referencia"
+          python3 -I "$tools/build_roadmap_matrix.py" --research "$RUNNER_TEMP/research" --repo . --ref "$COMMIT" \
+            --out "$RUNNER_TEMP/matriz.tsv" --summary "$RUNNER_TEMP/resumen-matriz.json" --rows "$RUNNER_TEMP/filas.tsv"
+          python3 -I "$tools/build_client_reference.py" --research "$RUNNER_TEMP/research" --ref "$COMMIT" \
+            --matriz "$RUNNER_TEMP/matriz.tsv" --filas "$RUNNER_TEMP/filas.tsv" --out "$RUNNER_TEMP/referencia"
+
+      - name: El resumen
+        run: |
+          python3 -I Client/docs/research/scripts/tools/reference_summary.py \
+            --nueva "$RUNNER_TEMP/referencia" --commiteada Client/docs/research/coverage/referencia \
+            >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: referencia-${{ steps.commit.outputs.sha }}
+          path: ${{ runner.temp }}/referencia
+          retention-days: 30

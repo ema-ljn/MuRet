@@ -146,6 +146,32 @@ constexpr std::uint16_t LordSign = 0x1c15;
 constexpr std::int32_t LordSignLevel = 3;
 constexpr std::size_t LordSignText = 1291;
 constexpr std::uint16_t LostMap = 0x1c1c;
+// 0x437d14..0x437d26: las clases 3 y 4 (+0x1d4 & 7) leen desde la octava fila de 0x6b8b18 ([EBP − 4] en 7).
+constexpr std::size_t KalimaCount = 7;
+// 0x6b8b18 (.rdata), dwords con signo: el nivel mínimo y el máximo de cada Kalima, siete filas para las otras clases y
+// siete para la 3 y la 4. 0x4380c1 apunta al máximo (0x6b8b1c) y lee el mínimo en −4.
+constexpr std::array<LevelRange, 2 * KalimaCount> KalimaLevels{{{40, 999},
+                                                                {131, 999},
+                                                                {181, 999},
+                                                                {231, 999},
+                                                                {281, 999},
+                                                                {331, 999},
+                                                                {350, 999},
+                                                                {20, 999},
+                                                                {111, 999},
+                                                                {161, 999},
+                                                                {211, 999},
+                                                                {261, 999},
+                                                                {311, 999},
+                                                                {350, 999}}};
+// 0x6c7468 y 0x6c7444, de la .data.
+constexpr std::string_view KalimaHeaderFormat = "%s %s       %s    ";
+constexpr std::string_view KalimaRowFormat = "        %d             %3d~%3d     ";
+// 0x6c6484.
+constexpr std::string_view KalimaBreak = "\n";
+constexpr std::size_t KalimaText = 58;            // 0x76c15d4
+constexpr std::size_t MagicStoneText = 1184;      // 0x7713d5c
+constexpr std::size_t KalimaFromLevelText = 1123; // 0x770f5e0
 constexpr std::uint16_t MarkOfKundun = 0x1c1d;
 constexpr std::size_t MarkCountText = 1181;
 constexpr std::size_t MarkReadyText = 1182;
@@ -261,6 +287,61 @@ void WriteTheMarks(Frame& frame)
     lines.Next();
 }
 
+// 0x437d49..0x4381e0: el 0x1c1c (el Mapa perdido) en 0x437c90, que 0x5b6a2f llama con el renglón y que devuelve el que
+// sigue (0x5b6a37 lo guarda en 0x78abb30 y no toca 0x78abb34: sus "\n" no son medios renglones). La clase del héroe
+// (+0x1d4 & 7) elige la tabla; abre el registro propio (en línea, como 0x40b240), lee su nivel (el word +0xe de
+// [0x7681eb0]) y lo cierra: 3.848 rand() si su cuenta vuelve a 0. Después, la cabecera en el 0 y sin negrita; las siete
+// filas con el máximo escrito hasta 400 (JLE) y en el 8 la del nivel del mapa ((D+4 >> 3) & 0xf), sin negrita; un "\n"
+// sin color ni negrita; el 1184 en el 7, sin escribir la negrita; y, con el nivel propio por debajo del mínimo de la
+// primera fila (JGE, con signo), otro "\n" y el 1123 con ese mínimo en el 5.
+void WriteTheKalimaLevels(Frame& frame)
+{
+    TooltipWriter& lines = frame.lines;
+    lines.At("0x437d49");
+    if (lines.Failed())
+        return;
+    GameHudContext& context = frame.context;
+    const std::uint8_t heroClass = HeroClassOf(context) & HeroClassBits;
+    const std::size_t first =
+        heroClass == FirstClassOfTheSecondTable || heroClass == SecondClassOfTheSecondTable ? KalimaCount : 0;
+    std::int32_t ownLevel = 0;
+    {
+        const Render::Models::LogicalAccess own(context.ownRecordDepth, context.random,
+                                                Render::Models::OwnRecordCloseRandoms);
+        ownLevel = context.world.OwnCharacter().level;
+    }
+    lines.At("0x438071");
+    lines.Color(TooltipWhite);
+    lines.Print(KalimaHeaderFormat, lines.Text(KalimaText), lines.Text(LevelText), lines.Text(MinimumLevelText));
+    lines.Color(TooltipWhite);
+    lines.Bold(0);
+    lines.Next();
+    for (std::size_t i = 0; i < KalimaCount; ++i)
+    {
+        const LevelRange& range = KalimaLevels[first + i];
+        const auto row = static_cast<std::int32_t>(i + 1);
+        lines.Print(KalimaRowFormat, row, range.minimum, std::min(range.maximum, ShownMaximumLevel));
+        lines.Color(frame.level == row ? TooltipWhiteOnTeal : TooltipWhite);
+        lines.Bold(0);
+        lines.Next();
+    }
+    lines.At("0x43813a");
+    lines.Print(KalimaBreak);
+    lines.Next();
+    lines.PrintText(MagicStoneText);
+    lines.Color(TooltipWhiteOnRed);
+    lines.Next();
+    const std::int32_t minimum = KalimaLevels[first].minimum;
+    if (ownLevel >= minimum)
+        return;
+    lines.At("0x438193");
+    lines.Print(KalimaBreak);
+    lines.Next();
+    lines.PrintText(KalimaFromLevelText, minimum);
+    lines.Color(TooltipWhiteOnBlue);
+    lines.Next();
+}
+
 // 0x5b63b7..0x5b69e7: el 0x1a1d. Antes de escribir, abre el registro propio (en línea, como 0x40b240 y 0x40b4d0),
 // lee su nivel (el word +0xe de [0x7681eb0]) y lo cierra: 3.848 rand() si su cuenta vuelve a 0. Después, la cabecera
 // en blanco; una fila por castillo de la tabla de la clase del héroe, con el máximo escrito hasta 400 y en el 8 la de
@@ -363,8 +444,7 @@ Core::Expected<void, std::string> WriteTheEventItem(Frame& frame, std::int32_t t
         lines.Next();
     }
     else if (type == LostMap)
-        return Core::Unexpected(std::string("0x437d49: las líneas del 0x1c1c (0x437c90) abren el registro propio y "
-                                            "leen la tabla de su clase; no están portadas"));
+        WriteTheKalimaLevels(frame);
     else if (type == MarkOfKundun)
         WriteTheMarks(frame);
     return {};

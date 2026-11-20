@@ -160,6 +160,8 @@ def main():
     ap.add_argument('--filas', required=True)
     ap.add_argument('--entradas', default=os.path.join(REF_DIR, 'entradas'))
     ap.add_argument('--out', default=REF_DIR)
+    ap.add_argument('--guardar-serie', action='store_true',
+                    help='guarda el avance total de esta corrida en entradas/serie/frozen-<ref>nm.json')
     a = ap.parse_args()
     E = a.entradas
     ref = git(a.muret, 'rev-parse', a.ref).strip()
@@ -278,26 +280,42 @@ def main():
     # --- lo que hizo la auditoría a mano ---
     TRI = {int(r['va'], 16): r for r in tsv(f'{E}/triage.tsv')}
     GAP = {int(r['va'], 16): r for r in tsv(f'{E}/gaps.tsv')}
+    # Faltas que la auditoría confirmó en funciones sin citar: valen mientras sigan sin citar (cuando alguien las
+    # porta y las cita, la fila pasa sola a implemented).
     OVERRIDE_CAT = {
-        0x4d4020: 'falta: el C3 29 (tiempo de la bebida), MuRet no registra el 0x29',
-        0x65dc30: 'falta: el cartel del nombre del mapa; la única cita es el comentario de Scenes/WorldEntry.cpp:337, '
-                  'que dice que es de la CL9 (falso positivo de la cota)',
-        0x65dd70: 'falta: el cartel del nombre del mapa; la única cita es el paso 19 de Scenes/GameHud.cpp:1767, un '
-                  'comentario (falso positivo de la cota)',
-        0x59eb90: 'falta: elegir los objetos del mapa con el mouse; las citas dicen que no está portada (falso '
-                  'positivo de la cota)'}
+        0x4d4020: 'falta: el C3 29 (tiempo de la bebida), MuRet no registra el 0x29'}
+    # Falsos positivos de la cota: citadas, pero lo que las cita no las porta. Con las citas de implementación que
+    # tenían en la auditoría: si aparecen más, alguien las portó y la marca se cae (hay que revisarla a mano).
+    FALSE_POSITIVE = {
+        0x65dc30: (1, 'falta: el cartel del nombre del mapa; la única cita es el comentario de '
+                      'Scenes/WorldEntry.cpp:337, que dice que es de la CL9 (falso positivo de la cota)'),
+        0x65dd70: (1, 'falta: el cartel del nombre del mapa; la única cita es el paso 19 de Scenes/GameHud.cpp:1767, '
+                      'un comentario (falso positivo de la cota)'),
+        0x59eb90: (5, 'falta: elegir los objetos del mapa con el mouse; las citas dicen que no está portada (falso '
+                      'positivo de la cota)')}
     # Los globos de la selección de personaje (los nameplates): la clase de vtable 0x6ba7d0 (el dueño, en UI + 0x8dc8)
     # y sus cinco elementos de 0xf0 bytes (vtable 0x6ba7cc). La P-C27 (b) los anotó; la auditoría los dejó entre las
     # chicas sin clasificar. Encontrados por el hilo de los nameplates (2026-11-20).
-    balloons = 'falta: los globos de la selección de personaje (nameplates, P-C27 b)'
-    for va, what in ((0x63c940, 'constructor de un globo'), (0x63c990, 'destructor de un globo'),
-                     (0x63c9a0, 'arma un globo con character_ex.tga'), (0x63ca20, 'dibuja un globo'),
-                     (0x63cc60, 'copia el nombre, el rango del gremio y la clase y el nivel de un registro'),
-                     (0x63ce00, 'constructor del dueño'), (0x63ce10, 'destructor del dueño (con delete)'),
-                     (0x63ce40, 'destructor del dueño'), (0x63ce50, 'libera los cinco globos'),
-                     (0x63ce70, 'crea los cinco globos'), (0x63cf20, 'destructor del arreglo de globos'),
-                     (0x63cf80, 'dibuja los cinco, desde 0x65fe00'), (0x63cfb0, 'copia los cinco registros')):
-        OVERRIDE_CAT[va] = f'{balloons}: {what}'
+    # Portados (#383, UI/CharacterBalloons): los que hacen algo quedan citados y pasan solos a implemented. Los
+    # constructores y destructores de C++ (poner la vtable, llamar al de la base, el delete escalar o del arreglo) no
+    # tienen cita: en MuRet los cubre CharacterBalloons con RAII y Release (0x63ce50). Mientras el resto de los globos
+    # no esté citado, siguen como falta.
+    balloons = 'los globos de la selección de personaje (nameplates, P-C27 b)'
+    raii = ROWS.get(0x63ce50, {}).get('st') in ('implemented', 'partial') and \
+        ROWS.get(0x63ce70, {}).get('st') in ('implemented', 'partial')
+    for va, what, cxx in (
+            (0x63c940, 'constructor de un globo', True), (0x63c990, 'destructor de un globo', True),
+            (0x63c9a0, 'arma un globo con character_ex.tga', False), (0x63ca20, 'dibuja un globo', False),
+            (0x63cc60, 'copia el nombre, el rango del gremio y la clase y el nivel de un registro', False),
+            (0x63ce00, 'constructor del dueño', True), (0x63ce10, 'destructor del dueño (con delete)', True),
+            (0x63ce40, 'destructor del dueño', True), (0x63ce50, 'libera los cinco globos', False),
+            (0x63ce70, 'crea los cinco globos', False), (0x63cf20, 'destructor del arreglo de globos', True),
+            (0x63cf80, 'dibuja los cinco, desde 0x65fe00', False), (0x63cfb0, 'copia los cinco registros', False)):
+        if cxx and raii:
+            OVERRIDE_CAT[va] = (f'portada sin cita: {balloons}: {what}; lo cubren CharacterBalloons (RAII) y '
+                                f'Release (0x63ce50)')
+        else:
+            OVERRIDE_CAT[va] = f'falta: {balloons}: {what}'
 
     CHAT, CHAT_TRAMOS = {}, collections.defaultdict(list)
     for r in tsv(f'{E}/chat-funciones.tsv'):
@@ -411,6 +429,9 @@ def main():
         done = (1 - rw['left']) if rw and st in ('implemented', 'partial') else 0.0
         tri = TRI.get(va)
         cat = OVERRIDE_CAT.get(va, tri['categoria'] if tri else '')
+        fp = va in FALSE_POSITIVE and st in ('implemented', 'partial') and len(imp) <= FALSE_POSITIVE[va][0]
+        if fp:
+            cat = FALSE_POSITIVE[va][1]
         gap = GAP.get(va)
         clon = ''
         if gap and gap.get('clon_o_olas', '').startswith('exact:'):
@@ -444,8 +465,8 @@ def main():
             citas_docs=len(dd), archivos_src=top(src_c, 3), primera_cita=first, simbolos_muret=top(sym_c, 3),
             tests=top(tst_c, 2), casos_de_test=top(case_c, 3),
             doc_research=doc_first,
-            categoria_faltante=cat if st in ('unknown', 'not-started') or va in OVERRIDE_CAT else '',
-            falso_positivo='sí' if va in OVERRIDE_CAT and st in ('implemented', 'partial') else '',
+            categoria_faltante=cat if st in ('unknown', 'not-started') or fp else '',
+            falso_positivo='sí' if fp else '',
             clon_de=clon, chat=chat, cortes_vivos=cortes, cierra_el_cliente='; '.join(cierra),
             ids_07=' '.join(i07[:12]), ids_08_abiertas=' '.join(i08a[:12]), ids_08_cerradas=' '.join(i08c[:12]),
             pasos_vm='; '.join(vm_fn.get(va, [])[:4]),
@@ -750,16 +771,33 @@ def main():
     m('citas', 'src', 'pendiente', sum(1 for r in traz if r['pendiente']), 'citas',
       'citas que no son corte pero dicen que no está portado')
 
-    # serie
-    for fjs in sorted(os.listdir(f'{E}/serie')):
+    # serie: los puntos guardados en entradas/serie (por fecha del commit) y esta corrida
+    here = f'{ref[:7]}nm'
+    if a.guardar_serie:
+        with open(f'{E}/serie/frozen-{here}.json', 'w', encoding='utf-8') as fh:
+            json.dump({'Total': dict(T)}, fh, indent=1)
+            fh.write('\n')
+    serie = {}
+    for fjs in os.listdir(f'{E}/serie'):
         r0 = fjs.removeprefix('frozen-').removesuffix('.json')
-        d = json.load(open(f'{E}/serie/{fjs}'))['Total']
+        with open(f'{E}/serie/{fjs}', encoding='utf-8') as fh:
+            serie[r0] = (json.load(fh)['Total'], 'frozen.py')
+    serie.setdefault(here, (T, 'esta corrida'))
+
+    def when(r0):
+        try:
+            return git(a.muret, 'show', '-s', '--format=%cI', r0.removesuffix('nm')).strip()
+        except Exception:  # un commit que este clon no tiene: al final
+            return '~'
+
+    for r0 in sorted(serie, key=lambda r: (when(r), r)):
+        d, fuente = serie[r0]
         L = d['live']
         nota = 'MENTION_ONLY corregida' if r0.endswith('nm') else 'MENTION_ONLY vieja (comparable con la serie)'
-        m('serie', 'total', 'cota_baja', pct(d['done'], L), '%', 'frozen.py', nota, r=r0)
-        m('serie', 'total', 'cota_media', pct(d['done'] + d['unk'] / 2, L), '%', 'frozen.py', nota, r=r0)
-        m('serie', 'total', 'cota_alta', pct(d['done'] + d['unk'], L), '%', 'frozen.py', nota, r=r0)
-        m('serie', 'total', 'cota_baja_con_test', pct(d['done_t'], L), '%', 'frozen.py', nota, r=r0)
+        m('serie', 'total', 'cota_baja', pct(d['done'], L), '%', fuente, nota, r=r0)
+        m('serie', 'total', 'cota_media', pct(d['done'] + d['unk'] / 2, L), '%', fuente, nota, r=r0)
+        m('serie', 'total', 'cota_alta', pct(d['done'] + d['unk'], L), '%', fuente, nota, r=r0)
+        m('serie', 'total', 'cota_baja_con_test', pct(d['done_t'], L), '%', fuente, nota, r=r0)
 
     # --- las tablas de la auditoría, con los V corregidos ---
     cols_c = list(tsv(f'{E}/cortes-vivos.tsv')[0].keys())

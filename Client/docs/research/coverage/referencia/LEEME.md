@@ -1,9 +1,10 @@
 # Referencia del cliente: métricas y trazas contra el `main.exe`
 
 Una tabla por cada cosa que se consulta seguido, para no volver a medir ni a buscar lo mismo cada vez. Está generada
-sobre MuRet `f344773b` (2026-11-20, la CL11 cerrada y el CI de #379) contra el `main.exe` c32bbd5f del repo de
-research. Sale de la auditoría del 2026-11-20 (`analisis/2026-11-20-auditoria-cliente/` en los archivos del proyecto)
-y de [10-cobertura-roadmap.md](../../10-cobertura-roadmap.md).
+sobre MuRet `8be763fa` (2026-11-20: `main` con la CL11 cerrada, el CI de #379 y los globos de la selección de #383)
+contra el `main.exe` c32bbd5f del repo de research; `generado.json` dice el commit exacto. Sale de la auditoría del
+2026-11-20 (`analisis/2026-11-20-auditoria-cliente/` en los archivos del proyecto) y de
+[10-cobertura-roadmap.md](../../10-cobertura-roadmap.md).
 
 Las columnas que vienen de la matriz CL.M, de las citas y del grafo de llamadas se rehacen solas en cualquier commit
 (ver [Cómo regenerarla](#cómo-regenerarla)). Las que vienen de la auditoría (la categoría de lo que falta, la clase de
@@ -70,9 +71,14 @@ suelen ser una misma clase o un mismo `.cpp`, y les pone:
 - `entradas`: las funciones citadas que lo llaman, con su archivo de MuRet;
 - `textos`: las cadenas de su pseudocódigo, para saber de qué se trata sin abrirlo.
 
-En `f344773b` los globos son el hueco `h006` (16 funciones, 1.877 B, 8 entradas citadas) y sus 13 funciones figuran
-como `falta`. Un hueco no es una prueba: puede estar portado sin citar, o ser un destructor que RAII hace innecesario.
-Hay que leer el ASM.
+En `f344773b` los globos eran el hueco `h006` (16 funciones, 1.877 B, 8 entradas citadas) y sus 13 funciones
+figuraban como `falta`. Con #383 (`UI/CharacterBalloons`) ocho quedaron citadas, y los cinco constructores y
+destructores de C++ que no tienen cita (`0x63c990`, `0x63ce00`, `0x63ce10`, `0x63ce40` y `0x63cf20`) pasan a `portada
+sin cita`, porque los cubren la clase con RAII y `Release` (`0x63ce50`). Las tres de después (`0x63d010..0x63d0f0`,
+hueco `h085`) son de otra clase y siguen sin clasificar.
+
+Un hueco no es una prueba: puede estar portado sin citar, o ser un destructor que RAII hace innecesario. Hay que leer
+el ASM.
 
 ## Las columnas
 
@@ -147,6 +153,9 @@ y `ultimo_cambio` / `ultimo_commit`.
 `08-abiertas`, `07`, `chat`, `sustitutos`, `sin-cablear`, `muret`, `citas` y `serie`. Al regenerar en otro commit se
 pueden pegar las filas nuevas debajo: la columna `ref` las separa.
 
+`serie` junta los puntos guardados en `entradas/serie/` (ordenados por la fecha del commit) y el de la corrida, con
+`fuente` = `esta corrida`. Las refs con `nm` son con la `MENTION_ONLY` corregida; las otras se comparan entre sí.
+
 ## Cómo regenerarla
 
 Con el clon del research de [scripts/README.md](../../scripts/README.md#el-entorno) (`$RESEARCH`, que tenga
@@ -158,15 +167,20 @@ T=Client/docs/research/scripts/tools
 python3 -I $T/build_roadmap_matrix.py --research "$RESEARCH" --repo . --ref origin/main \
     --out /tmp/matriz.tsv --summary /tmp/resumen.json --rows /tmp/filas.tsv
 python3 -I $T/build_client_reference.py --research "$RESEARCH" --ref origin/main \
-    --matriz /tmp/matriz.tsv --filas /tmp/filas.tsv
+    --matriz /tmp/matriz.tsv --filas /tmp/filas.tsv --guardar-serie
 ```
+
+`--guardar-serie` deja el avance total del commit en `entradas/serie/frozen-<ref>nm.json`, para que la serie lo
+conserve en las corridas siguientes. Conviene usarlo sólo con commits de `main`.
 
 La matriz tarda unos minutos y la referencia unos 15 segundos; las dos usan sólo la biblioteca estándar. La matriz va a
 `/tmp` porque `mainexe-roadmap.tsv` es la asignación congelada de CL.M: la referencia toma de ahí las olas y de la
 matriz regenerada los estados.
 
 Las entradas a mano (`entradas/`) son de la auditoría del 2026-11-20. En un commit nuevo siguen valiendo para lo que no
-cambió; lo que se porte después pasa solo a `implemented`, y lo que cambie de clase hay que volver a clasificarlo.
+cambió; lo que se porte después pasa solo a `implemented`, y lo que cambie de clase hay que volver a clasificarlo. Los
+falsos positivos (columna 27) llevan las citas de implementación que tenían en la auditoría: si aparecen más, la marca
+se cae sola y hay que mirar si de verdad se portaron.
 
 ## Los números principales
 
@@ -175,7 +189,7 @@ cambió; lo que se porte después pasa solo a `implemented`, y lo que cambie de 
 | código de juego vivo | 3.278 funciones, 2.197 KB |
 | cota alta / media / baja | **91,7 / 89,5 / 87,3 %** |
 | cota baja con test | 77,6 % |
-| explicado (baja + clones, plataforma, herramientas, STL, sin uso) | 91,6 % |
+| explicado (baja + clones, plataforma, herramientas, STL, sin uso) | 91,7 % |
 | cortes vivos | 1.754 sitios; 13 cierran el cliente jugando (9 P u O, 4 V) |
 | pasos de VM | 234 (cota superior); 11 bloquean código |
 | 08 | 305 filas: 246 abiertas (98 de código, cota superior) |

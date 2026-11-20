@@ -8,7 +8,6 @@
 #include "Scenes/ItemTooltipParts.h"
 #include "Scenes/TooltipLines.h"
 #include "Scenes/TooltipWriter.h"
-#include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "World/ItemState.h"
 

@@ -19,6 +19,8 @@
 #include "Scenes/GameMovementState.h"
 #include "UI/ChatInput.h"
 #include "Scenes/WorldMap.h"
+#include "UI/OldControls.h"
+#include "UI/OldWindows.h"
 #include "World/WorldTerrain.h"
 #include "Network/Packet.h"
 #include "Network/Crypto/Xor32.h"
@@ -724,6 +726,60 @@ TEST(GameMovementTest, ALetterIdWithoutItsWindowDoesNotTakeTheRightClick)
     EXPECT_FALSE(tested->world.Runtime().ui.rightClick);
     EXPECT_EQ(tested->world.Runtime().chat.input.whisperBuffer[0], 'x');
     EXPECT_FALSE(tested->world.Runtime().lastSoundId.has_value());
+}
+
+// La caja de agregar un amigo (0x49d0b0) abierta, con su id en +0xf0 de [0x5763514] y su EDIT en +0xb4. Los ids son
+// inventados.
+constexpr std::int32_t AddBoxId = 0x77;
+constexpr std::int32_t AddBoxEditId = 0x78;
+
+void OpenTheAddFriendBox(Client::Scenes::WorldRuntime& runtime, Client::UI::OldWindowKind kind)
+{
+    Client::UI::OldWindow box;
+    box.kind = kind;
+    box.base.id = AddBoxId;
+    box.add.edit.base.id = AddBoxEditId;
+    box.add.edit.text.SetText("previo");
+    runtime.oldWindows.windows.emplace(AddBoxId, std::move(box));
+    runtime.oldWindows.letter = AddBoxId;
+}
+
+// 0x59afdf..0x59b033: con la caja de agregar un amigo y el derecho, el nombre del elegido (+0x1d9) va a su EDIT con la
+// vtable + 0x4c (0x467ee0, SetWindowTextA) y la vtable + 0x30 con 1 (0x4682a0: el foco de Windows, el id del EDIT en
+// 0x5762ec0 y EM_SETSEL(−2, −1), el cursor al final). Después sigue en 0x59b036, que con el chat cerrado no hace nada.
+TEST(GameMovementTest, TheRightClickWithTheAddFriendBoxPutsTheChosenNameInItsEdit)
+{
+    const auto tested = AHeroRightClickingTheChosen(0);
+    auto& runtime = tested->world.Runtime();
+    runtime.ui.chatOpen = false;
+    OpenTheAddFriendBox(runtime, Client::UI::OldWindowKind::AddFriendBox);
+
+    const auto result = StepHeroMovement(tested->Context());
+
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    const Client::UI::OldEdit& edit = runtime.oldWindows.windows.at(AddBoxId).add.edit;
+    EXPECT_EQ(edit.text.Value(), "Rival01");
+    EXPECT_EQ(edit.text.Cursor(), 7u);
+    EXPECT_FALSE(edit.text.HasSelection());
+    EXPECT_EQ(runtime.chat.input.focus, Client::UI::ChatFocus::OldWindow);
+    EXPECT_EQ(runtime.oldWindows.focusedEdit, AddBoxEditId);
+    EXPECT_EQ(runtime.chat.input.whisperBuffer[0], 'x');
+}
+
+// 0x59b003..0x59b020: sin mirar el −1, un derecho sin elegido lee el nombre del registro −1, antes de la tabla de
+// personajes ([0x743a16c] − 0x438 + 0x1d9): lo que hay ahí depende del heap (VM). Corta, y el EDIT queda como estaba.
+TEST(GameMovementTest, TheRightClickWithTheAddFriendBoxAndNoChosenIsCut)
+{
+    const auto tested = AHeroRightClickingTheChosen(0);
+    auto& runtime = tested->world.Runtime();
+    OpenTheAddFriendBox(runtime, Client::UI::OldWindowKind::AddFriendBox);
+    runtime.selectedTargets[2] = -1;
+
+    const auto result = StepHeroMovement(tested->Context());
+
+    ASSERT_FALSE(result.HasValue());
+    EXPECT_NE(result.Error().find("0x59b020"), std::string::npos) << result.Error();
+    EXPECT_EQ(runtime.oldWindows.windows.at(AddBoxId).add.edit.text.Value(), "previo");
 }
 
 // El clic de ataque (CL9 hito 3): el héroe de MovingHero en (182, 115) y otro jugador elegido en el lugar 5, en

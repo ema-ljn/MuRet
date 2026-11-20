@@ -37,6 +37,8 @@
 #include "Scenes/InventoryMoves.h"
 #include "Scenes/NpcTalk.h"
 #include "Scenes/WorldMap.h"
+#include "UI/OldControls.h"
+#include "UI/OldWindowSteps.h"
 #include "World/OriginalFtol.h"
 #include "World/TerrainWalls.h"
 #include "World/WorldTerrain.h"
@@ -739,13 +741,34 @@ Core::Expected<void, std::string> MoveTheHero(ActorState& hero, const HeroMoveme
 Core::Expected<void, std::string> NameTheChosen(WorldState& world)
 {
     WorldRuntime& runtime = world.Runtime();
-    // 0x59afdf..0x59b033: con la ventana de una carta (+0xf0 de [0x5763514]) y el derecho, el nombre del elegido
-    // (+0x1d9, sin mirar el −1) va al campo de la ventana (+0xb4, los métodos +0x4c y +0x30). MuRet no la abre hasta el
-    // hito 10 (CL9.4): `letter` queda en 0.
-    if (runtime.oldWindows.letter != 0 && runtime.ui.rightClick &&
-        UI::FindTheOldWindow(runtime.oldWindows, runtime.oldWindows.letter) != nullptr)
-        return Core::Unexpected(
-            std::string("0x59b003: el nombre del elegido en la ventana de la carta es del hito 10"));
+    // 0x59afdf..0x59b033: con la caja de agregar un amigo (+0xf0 de [0x5763514], que solo escribe 0x49d0b0 y 0x490200
+    // vuelve a 0; JBE: sin signo) y el derecho, si 0x490a00 la encuentra, el nombre del elegido (+0x1d9, sin mirar el
+    // −1) va a su EDIT (+0xb4): la vtable + 0x4c (0x467ee0: SetWindowTextA con menos de 0x100 bytes) y la + 0x30 con 1
+    // (0x4682a0: el foco, el id del EDIT en 0x5762ec0 y EM_SETSEL(−2, −1), el cursor al final). No gasta el derecho y
+    // sigue en 0x59b036.
+    if (runtime.oldWindows.letter != 0 && runtime.ui.rightClick)
+    {
+        if (UI::OldWindow* box = UI::FindTheOldWindow(runtime.oldWindows, runtime.oldWindows.letter); box != nullptr)
+        {
+            if (box->kind != UI::OldWindowKind::AddFriendBox)
+                return Core::Unexpected(std::string("0x59b00f: +0xf0 es una ventana que no es la caja de agregar un "
+                                                    "amigo: su +0xb4 no es el EDIT"));
+            const std::int32_t named = runtime.selectedTargets[2];
+            if (named < 0 || static_cast<std::size_t>(named) >= world.Actors().size())
+                return Core::Unexpected(
+                    std::format("0x59b020: el nombre del elegido {} se lee de +0x1d9 de su registro, "
+                                "fuera de la tabla de personajes ([0x743a16c] + elegido · 0x438): "
+                                "lo que hay ahí depende del heap (VM)",
+                                named));
+            constexpr std::size_t SetTextLimit = 0x100;
+            UI::OldEdit& edit = box->add.edit;
+            const std::string name = ChatNameOf(world.Actors()[static_cast<std::size_t>(named)]);
+            if (name.size() < SetTextLimit)
+                edit.text.SetText(name);
+            UI::Steps::FocusTheEdit(runtime.oldWindows, edit, OldWindowGlobalsOf(runtime));
+            edit.text.Deselect();
+        }
+    }
     // 0x59b036..0x59b086: el chat abierto (0x6c8e68), el héroe en la zona segura (+0x3e2), un elegido, el derecho y
     // +0x376 del elegido en 0xff (solo lo escribe 0x5140c0, la cola del alta de un monstruo, con el tipo 255).
     const std::int32_t chosen = runtime.selectedTargets[2];

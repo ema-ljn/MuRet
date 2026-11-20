@@ -6155,6 +6155,47 @@ Un personaje que arma `0x511290` sale sin gremio: `0x511ca6` pone su `+0x368` en
 respuesta de crear (`0x4c2290`) no lo toca. El que se crea en la sesión se puede borrar sin otra
 lista.
 
+### Los globos
+
+Leídos en el ASM y el pseudocódigo de `c32bbd5f` (*estático*, sin traza). La caja oscura con el nombre arriba de cada
+personaje de la lista es un objeto de la UI nueva (`+0x8dc8`) con un arreglo de cinco globos de `0xf0` bytes en `+4`,
+uno por registro del pool (`0x743a16c + 0x438 · i`), cada uno con la imagen de `0xa8` bytes de `0x646fe0` adelante.
+
+- **El armado** (`0x63ce70`, al principio de `0x65f4b0`, cuando llega la lista): `0x63c9a0` con cada globo limpia
+  `+0xac..+0xef` y arma la imagen con `0x647050(118, 54, 0x13, 0, 0, 59, 54, 0, 0, 1, 1)`: `character_ex.tga` (el
+  slot `0x13` de `0x61ca30`, negra con alfa `0x8f` y un borde claro), en píxeles, con el punto de `+0x58` y `+0x5c`
+  en (59, 54), y en (0, 0) hasta que se dibuja. Al final de `0x65f4b0` va la puesta al día. Lo sueltan `0x63ce50`
+  desde la UI del login (`0x65f300`) y la del juego (`0x65f5f0`): solo hay globos en el modo 4.
+- **La puesta al día** (`0x63cfb0` → `0x63cc60` con los cinco): la llaman `0x65f4b0`, la respuesta de crear con 1
+  (`0x4c23d2`) y el aviso `0x60` del borrado (`0x6433b3`, después de bajar el `+0` del elegido en `0x643374`). Con el
+  `+0` del registro en 0 solo baja `+0xa0`: el globo se esconde y conserva el color y los textos. Con el registro
+  vivo, `+0xa0` en 1; el color del nombre (`+0xac`, en `0xAABBGGRR`) por el CtlCode (`+0x1d8`), en el orden de sus
+  pruebas: `0x01` cian (`0xffffff00`), `0x12` dorado (`0xff27d9ff`), `0x04` blanco, `0x08` o `0x20` rojo
+  (`0xff0000ff`), y blanco sin nada; el nombre (`+0x1d9`, el `strcpy` hasta su 0) en `+0xb0`; `sprintf("(%s)")` en `+0xc0` con el
+  rango del gremio (`+0x368`: `0x80` el texto 1300, `0x40` el 1301, `0x20` el 1302, 0 el 1330, `0xff` el 488 y otro
+  el 0), y `sprintf("%s %d")` en `+0xd0` con la clase (el texto 20 + (`+0x1d4` >> 3) · 5 + (`+0x1d4` & 7), como la
+  ventana del personaje) y el nivel (`+0x1d6`, con `movzx`). El de `+0xc0` tiene 16 bytes: un rango que no entra
+  sigue en `+0xd0` (Q-C1503).
+- **El dibujo** (`0x63cf80` → `0x63ca20` con los mostrados, desde `0x65fe00` antes de las ventanas, con la mezcla
+  que dejan los avisos y el área vieja): `0x647650` dibuja la caja donde la dejó el dibujo anterior, con su blanco.
+  Después proyecta el personaje en (x, y, z + 280) (`0x6b8c78`, un double, y el `fstp` en float) con `0x6205b0`,
+  que lee el caché del pase del mundo (`0x620db0(0, 25, 640, 430)` en `0x634785`), pasa el punto a píxeles (`fild`,
+  `fmul` por rx o ry y `_ftol`) y ubica la caja con `0x6472e0(x, y, 3)`: centrada en x y con el borde de abajo en
+  la cabeza. Así **la caja va un frame atrás de los textos**, y el primer frame está en (0, 0). Los tres renglones
+  (`0x5542f0(x, y, texto, 118, 2, 0)`: centrados en una caja de 118 columnas, `0x467060` en el modo 2) van con la
+  fuente de `DAT_05763560` y el fondo en 0, en la x del borde de la caja y en y + 7, + 23 y + 39, pasados a
+  640 × 480 (`fild`, `fdiv` y `_ftol`): el nombre con su color, el gremio en blanco y la clase en dorado (`0xff27d9ff`). Con
+  el bit `0x80` del CtlCode de ahora (lo lee en cada dibujo, `0x63cbbc..0x63cc50`), los textos 1241 a 1243 en
+  `0xffb4c8ff` arriba de la caja, en y − 46 + 16 · i: el primero con la negrita y los otros con la normal.
+
+MuRet: `UI::CharacterBalloons`, que `CharacterSelectScene` arma y pone al día en los mismos lugares y dibuja después
+de los mensajes y antes de las ventanas (`CharacterBalloonsTest` y
+`SelectionPipelineTest.EachListedCharacterGetsItsBalloonBeforeTheWindows`). MuRet saca de la lista de la sesión el
+lugar borrado sin bajar el `+0` de su registro (Q-C104): la escena lo pasa como muerto. Un `sprintf` que pasaría del
+final del globo (`+0xf0`) pisaría la imagen del que sigue: MuRet corta con su dirección (`0x63cd70` o `0x63cdba`), y
+lo mismo con un globo mostrado sin su personaje proyectado (`0x63ca76`). Hasta el 2026-11-20 no estaban portados
+(P-C27 b): la textura se cargaba y no se dibujaba.
+
 ### La ventana de crear
 
 Leída en la CL6.5 (*estático*; *emulado* el lugar en cuatro pantallas y los chequeos del nombre con

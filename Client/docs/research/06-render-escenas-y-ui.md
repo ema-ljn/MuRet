@@ -2368,7 +2368,12 @@ y el 34 `crywolffortress` (34 entradas). El 5, el 32 y el 35 no están. Los camp
   llega a 1 (`0x6b87d4`, `TEST AH, 0x41`), pasa a 2 con el alfa en 1; con el 2 suma `timeGetTime() − +0x1c` a la cuenta
   y, pasados 5.000 ms (`JBE`, sin signo), pasa a 3 con la cuenta en 0; con el 3 resta 0,015 y, si la suma llega a 0
   (`0x6b86a0`), se apaga con el alfa en 0. Guarda el reloj en cada paso. El fundido va **por dibujo**, no por tiempo:
-  54 dibujos para entrar desde 0,2 y 67 para salir (Q-C1829).
+  54 dibujos para entrar desde 0,2 y 67 para salir (Q-C1829). Al ritmo del original (21,33 FPS, 46,875 ms por
+  frame, [02 § El ritmo](02-arranque-y-ciclo-de-vida.md#el-ritmo-lógica-a-25-por-segundo-dibujo-a-2133)): entra en
+  2,53 s, se queda hasta el frame 107 (5,02 s) y sale en 3,14 s, 10,7 s en total. MuRet avanza el cartel solo en los
+  frames del original (`OriginalFramesOfTheSteps` en el modo desacoplado, uno por dibujo en el fiel): simulado con la
+  pantalla a 60 Hz, 2,57, 7,60 y 10,77 s contra 2,53, 7,55 y 10,69 s; los dibujos intermedios muestran la copia, un
+  frame adelante.
 - **`0x65dd70`**, el paso 19 del HUD: `0x65dcd0` y, si no se apagó, `0x620a00(1)`, `glColor4f(1, 1, 1, alfa)`,
   `0x621b60(0x66a, (ancho del mundo (0x5bb8d0) · rx − 166) · 0,5, ry · 220, 166, 90, 0, 0, 0,6484375, 0,703125, 0, 0,
   0)`, `glColor4f(1, 1, 1, 1)` y `0x620980`. Sin escalar el tamaño ni la posición: 166 × 90 píxeles en cualquier

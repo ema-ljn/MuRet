@@ -22,6 +22,7 @@
 #include "Scenes/FaunaState.h"
 #include "Scenes/GameMessages.h"
 #include "Scenes/GamePanels.h"
+#include "Scenes/InventoryMoves.h"
 #include "Scenes/CastleWindows.h"
 #include "Scenes/ItemNames.h"
 #include "Scenes/JewelMix.h"
@@ -419,6 +420,10 @@ private:
                                                           .texts = m_context.texts,
                                                           .screen = m_context.screen,
                                                           .now = m_context.tickCount});
+        // 0x657a90 alcanza también el almacén, la caja del caos, el entrenador y la tienda del NPC (0x657ab0).
+        panels.LendTheNpcWindows(m_world, m_context.random,
+                                 m_context.inventory != nullptr ? *m_context.inventory : InventoryServices{},
+                                 m_context.sendNpcWindow);
         return panels.Registry().CloseAll();
     }
 

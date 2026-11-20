@@ -35,6 +35,7 @@ namespace Client::Scenes
 class IModelLibrary;
 class WorldState;
 struct EventMapObject;
+struct InventoryServices;
 struct WorldRuntime;
 
 struct EventPacketContext
@@ -64,6 +65,11 @@ struct EventPacketContext
     // La carpeta Data, de donde el BD 00 vuelve a leer la luz y el .att con otro estado de Crywolf (0x42ff81 y
     // 0x42ffe8). Vacía, ese cambio corta.
     std::filesystem::path dataRoot{};
+    // Lo que 0x657a90 manda y usa al cerrar las ventanas de los NPC (0x657ab0 con 0x40, 0x100, 0x8000 y 0x10000): el
+    // C1 03 82, el C1 03 87 y el C1 03 31 en claro por la sesión (App::ServerSession::SendNpcWindowPacket) y los
+    // servicios del inventario (el ítem del cursor y los avisos). Vacío, cerrar una de ellas corta donde manda.
+    std::function<Core::Expected<void, std::string>(Protocol::Outgoing)> sendNpcWindow{};
+    const InventoryServices* inventory = nullptr;
 };
 
 // Los sonidos que pidió, en orden: 0x41ed10 (los que suenan) y 0x41ee00 (los que se apagan). El último que suena

@@ -33,6 +33,7 @@ class CrtRandom;
 
 namespace Client::Scenes
 {
+struct GameDrawTailState;
 class IModelLibrary;
 struct FaunaDrawCarry;
 struct ItemDrawContext;
@@ -137,4 +138,16 @@ struct UiItemResources
 
 // 0x5ac2a2..0x5ac2bb: el fin de 0x5ac120. Si un ítem abrió el pase, el lote de los modelos se dibuja.
 void CloseUiItemPass(UiItemResources& resources);
+
+// [ebp − 0x45c] de 0x5e0720: el objeto local que 0x5e0720 arma en la pila para cada ítem de la UI y pasa a 0x607b60 y a
+// 0x60cf70. 0x60b3d0 lo da de dueño a las uniones del 0x1a18 (0x60c482..0x60c555): no nulo, así que 0x530860 no escribe
+// +0x58, pero nadie lo desreferencia después (07 Q-C1821). Su dirección es la misma en cada llamada; MuRet usa una
+// ficha durable que tampoco se lee.
+[[nodiscard]] void* UiItemLocalObject();
+
+// Esas uniones nacen en el dibujo de la UI, después del de las uniones (0x637516 y 0x637592), y mueren en el primer
+// paso del frame siguiente (la vida en 0, 0x53c3ad..0x53c3bd), antes del dibujo que sigue: el original no las dibuja
+// nunca. Los dibujos intermedios de MuRet (GameScene::PrepareDrawProjection) las apagan en su copia de la cola; la
+// tabla de verdad las guarda para el paso, con sus rand().
+void HideUiItemJoints(GameDrawTailState& tail);
 } // namespace Client::Scenes

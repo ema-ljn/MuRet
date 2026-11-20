@@ -2,6 +2,7 @@
 
 #include "Scenes/ActorPickingBox.h"
 #include "Scenes/GameSceneFrameProjection.h"
+#include "Scenes/UiItemDrawing.h"
 #include "Scenes/WorldState.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/ActorState.h"
@@ -26,6 +27,8 @@ void GameScene::PrepareDrawProjection(int frames)
         m_projection = std::make_unique<GameSceneFrameProjection>();
     auto& world = *m_context.world;
     m_projection->tail = world.DrawTail();
+    // Las uniones del objeto local de la UI (0x1a18) mueren antes del dibujo siguiente del original (Q-C1821).
+    HideUiItemJoints(m_projection->tail);
     m_projection->lighting = world.DynamicLighting().Lighting();
     m_projection->modelState = world.Runtime().objectModelState;
     m_projection->items = world.Runtime().itemRender;

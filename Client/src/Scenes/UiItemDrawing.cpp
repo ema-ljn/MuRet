@@ -10,6 +10,7 @@
 #include "Render/Pass3D.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/FaunaDrawing.h"
+#include "Scenes/GameDrawTail.h"
 #include "Scenes/GameItemSpecialDrawing.h"
 #include "Scenes/GameProjection.h"
 #include "UI/Widget.h"
@@ -754,7 +755,8 @@ Core::Expected<void, std::string> DrawUiItemModel(UiItemResources& resources, Re
     special.objectLight = &objectLight;
     special.publishedObject = &object;
     context.special = &special;
-    context.ownerContext = nullptr;
+    // 0x5e13de y 0x5e1443: el objeto local, que 0x60b3d0 da de dueño a las uniones del 0x1a18 (Q-C1821).
+    context.ownerContext = UiItemLocalObject();
     // 0x60b3d0 desempaca el nivel: (nivel >> 3) & 15.
     const auto level = static_cast<std::uint8_t>((placement.level >> 3) & 15);
     return DrawItemFromMeshes(resources.batch, resources.models, object, resources.frameClock,
@@ -768,5 +770,21 @@ void CloseUiItemPass(UiItemResources& resources)
     if (resources.flushModels)
         resources.flushModels();
     resources.open = false;
+}
+
+void* UiItemLocalObject()
+{
+    // Una ficha: nadie la lee, solo se compara.
+    static std::byte localObject{};
+    return &localObject;
+}
+
+void HideUiItemJoints(GameDrawTailState& tail)
+{
+    for (JointState& joint : tail.joints)
+    {
+        if (joint.alive && joint.ownerContext == UiItemLocalObject())
+            joint.alive = false;
+    }
 }
 } // namespace Client::Scenes

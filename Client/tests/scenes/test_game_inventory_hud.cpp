@@ -584,12 +584,55 @@ TEST_F(GameInventoryHudTest, TheSetPassDrawsItsRandomWhenThePulseIsOff)
 
 // Las alas 0x1806 (el modelo 0x1a18) cortan antes de sus uniones, con su dirección. Las grillas de la tienda, del
 // almacén y del entrenador (hito 6) y la del comercio (hito 7) ya no cortan.
-TEST_F(GameInventoryHudTest, WhatBelongsToOtherWavesStopsWithItsAddress)
+// Sin los modelos MuRet no tiene los huesos de las 20 uniones del 0x1a18 (0x60c3b6), que el paso siguiente usa con
+// sus rand(): sin ellos corta.
+TEST_F(GameInventoryHudTest, WithoutModelsTheWingsOfDarknessStopWithTheirAddress)
 {
     PutItem(0, 0x1806, 2, 2);
     auto wings = GridItems();
     ASSERT_FALSE(wings.HasValue());
     EXPECT_NE(wings.Error().find("0x60c3b6"), std::string::npos) << wings.Error();
+}
+
+// 0x60c3b6..0x60c598 con los modelos: el 0x1806 (12,6, Wing of Darkness, el modelo 0x1a18 de la tienda de la Potion
+// Girl) cuelga de su objeto local, el de la pila de 0x5e0720, diez pares de uniones (0x614/0xe y 0x613/4) y diez
+// sprites 0x62b, sin rand() (07 Q-C1821).
+TEST_F(GameInventoryHudTest, TheWingsOfDarknessHangTheirJointsFromTheUiLocalObject)
+{
+    PutItem(0, 0x1806, 2, 2);
+    uiModels.skeleton.bones.resize(31, uiModels.skeleton.bones[0]);
+    auto glow = std::make_unique<Client::World::FrameSprites>();
+    special.sprites = glow.get();
+    std::vector<Client::World::FishEffectRequest> requests;
+    models.Begin(Client::Render::Pass3D{});
+    Client::Scenes::UiItemResources resources = UiItems(Screen640);
+    itemContext.originalFrame = true;
+    itemContext.poseBones = [this]()
+    { return std::span<const Client::Render::Models::BoneTransform>(poseCarry.bones); };
+    itemContext.createJoint =
+        [&requests](const Client::World::FishEffectRequest& request) -> Client::Core::Expected<void, std::string>
+    {
+        requests.push_back(request);
+        return {};
+    };
+    const CrtRandom unchanged = random;
+    {
+        GameHudContext context = Context();
+        context.uiItems = &resources;
+        const auto drawn = Client::Scenes::DrawUiItem(
+            context, {.x = 465.0f, .y = 200.0f, .width = 40.0f, .height = 40.0f}, 0x1806, 0, 0, 0, false);
+        ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+    }
+    Client::Scenes::CloseUiItemPass(resources);
+    EXPECT_EQ(random.State(), unchanged.State());
+    ASSERT_EQ(requests.size(), 20u);
+    for (std::size_t index = 0; index < requests.size(); ++index)
+    {
+        EXPECT_EQ(requests[index].type, index % 2 == 0 ? 0x614 : 0x613) << index;
+        EXPECT_EQ(requests[index].subtype, index % 2 == 0 ? 14 : 4) << index;
+        EXPECT_EQ(requests[index].ownerContext, Client::Scenes::UiItemLocalObject()) << index;
+    }
+    EXPECT_EQ(std::ranges::count_if(glow->Sprites(), [](const auto& sprite) { return sprite.alive; }), 10);
 }
 
 // 0x5f769b y 0x5f7756 (CL9 hito 6): la grilla de la tienda y la del almacén (0x78a7070, 8 × 15) van desde la esquina de

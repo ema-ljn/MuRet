@@ -2822,8 +2822,9 @@ del modelo. T es el float del reloj del mundo (`0x5767b88`); el pulso se guarda 
 del `0,01f` cuyo float ya es `0,01f` no saca el `rand()`. MuRet hace las dos cosas con `Render::Models::SetPulseAt` y
 `SetPulseIsOff`, en `DrawItemFromMeshes` (el piso, lo que cuelga de los personajes y la UI) y en la cuenta de la UI
 sin modelos (CL8, 2026-11-13; `PassColorsTest` y
-`UiItemDrawingTest.TheSetRandomWaitsForTheUnroundedPulse`). `0x1a18` llega a sus uniones (`0x60c3b6`, `0x530860`), con el objeto local de `0x5e0720` de dueño: MuRet
-corta ahí (P-C70).
+`UiItemDrawingTest.TheSetRandomWaitsForTheUnroundedPulse`). `0x1a18` (el 12,6) llega a sus uniones (`0x60c3b6`,
+`0x530860`), con el objeto local de `0x5e0720` de dueño, que nadie desreferencia: nacen después del dibujo de las
+uniones y mueren en el primer paso del frame siguiente, con sus `rand()` (07 Q-C1821; portado el 2026-11-20).
 
 **El punto de la caja** (`0x5e1486..0x5e1d69`, *estático*, leído en el ASM). Con el cursor vacío (`0x7879fbc` en 0) o
 con `siempre`, el ítem está bajo el mouse si x ≤ mx < x + w e y ≤ my < y + h (el `FILD` de `0x7d3682c` y `0x7d36828`
@@ -2999,7 +3000,7 @@ deja `0x78a6758` en la casilla + 12, la saca con `0x5bd750`, pone el destino en 
 
 **Lo que porta MuRet**: la ventana entera; los ítems 3D, el del cursor y los de las ranuras, dibujados en el pase de
 la UI con sus `rand()` (`Scenes/UiItemDrawing.h`, `test_ui_item_drawing.cpp` y `test_game_inventory_hud.cpp`; el
-`0x1a18` corta en `0x60c3b6`); las cifras; el mundo angosto en `GameScene` (`0x63733e` y `0x63738a`); las texturas
+`0x1a18` con sus uniones, Q-C1821, y sin los modelos corta en `0x60c3b6`); las cifras; el mundo angosto en `GameScene` (`0x63733e` y `0x63738a`); las texturas
 `0x104` a `0x120` (sin `0x106`), `0x652`, `0x657` y `0x658` en `HudTextureSet`; el paso en `Scenes/GameUi.cpp` (`test_game_inventory_step.cpp`) con
 los botones de reparar y cerrar, el equipo y la grilla bajo el mouse y el paso del ítem del cursor; y levantar,
 soltar, equipar, el piso, MoveHero y las respuestas en `Scenes/InventoryMoves.cpp` (`test_cursor_item.cpp` y

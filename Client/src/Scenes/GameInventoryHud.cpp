@@ -273,14 +273,14 @@ Core::Expected<void, std::string> DrawUiItem(GameHudContext& context, const UiIt
     const std::optional<UiItemCall> call = UiItemCallOf(type, level);
     if (!call)
         return {};
-    // 0x60c3b6: 0x60b3d0 cuelga del 0x1a18 las uniones 0x614 y 0x613 (0x530860) con el objeto local de 0x5e0720 de
-    // dueño, en la pila, que el paso de las uniones lee después (P-C70).
-    constexpr std::int32_t WingsWithJoints = 0x1a18;
-    if (call->model == WingsWithJoints)
-        return Core::Unexpected(std::string("0x60c3b6: las uniones 0x614 y 0x613 (0x530860) del 0x1a18 en la UI "
-                                            "tienen de dueño el objeto local de 0x5e0720 (P-C70)"));
     if (context.uiItems == nullptr)
     {
+        // 0x60c3b6..0x60c598: con los modelos, el 0x1a18 cuelga 20 uniones de los huesos de su pose, que el paso
+        // siguiente usa con sus rand() (Q-C1821). Sin los modelos MuRet no tiene esos huesos.
+        constexpr std::int32_t WingsWithJoints = 0x1a18;
+        if (call->model == WingsWithJoints)
+            return Core::Unexpected(std::string("0x60c3b6: las uniones 0x614 y 0x613 (0x530860) del 0x1a18 en la UI "
+                                                "salen de los huesos de su pose, que sin los modelos no hay"));
         SpendUiItemRandoms(context, call->model, excellent, set);
         return {};
     }

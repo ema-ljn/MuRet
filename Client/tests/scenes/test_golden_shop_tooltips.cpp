@@ -5,12 +5,18 @@
 #include "Data/Tables/ItemTable.h"
 #include "Data/Tables/SkillTable.h"
 #include "Data/Text/TextTable.h"
+#include "Render/ModelBatch.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/SpriteBatch.h"
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/FaunaDrawing.h"
 #include "Scenes/GameHud.h"
+#include "Scenes/GameInventoryHud.h"
+#include "Scenes/GameItemSpecialDrawing.h"
+#include "Scenes/GameModels.h"
+#include "Scenes/GamePanels.h"
 #include "Scenes/GameTooltips.h"
 #include "Scenes/LoginModels.h"
 #include "Scenes/NpcWindowState.h"
@@ -18,12 +24,15 @@
 #include "Scenes/OwnInventory.h"
 #include "Scenes/OwnItemPlacement.h"
 #include "Scenes/SelectionState.h"
+#include "Scenes/UiItemDrawing.h"
 #include "Scenes/WorldEntry.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/GameUiState.h"
+#include "World/Sprites.h"
 #include "World/GameCamera.h"
 #include "World/ItemState.h"
+#include "support/FakeTextureStore.h"
 #include "support/FileBytes.h"
 #include "support/GoldenDir.h"
 #include "support/PlayerActors.h"
@@ -711,6 +720,74 @@ TEST_F(GoldenShopTooltipsTest, EveryShopItemDrawsItsTooltipFromTheGridAndFromThe
         check(which.str(), "en el inventario", Hover(Client::UI::HoveredItem::Place::InventoryCell, 0), cut);
     }
     EXPECT_EQ(failed, 0) << failures.str();
+    EXPECT_EQ(m_world.Runtime().ownRecordDepth, 0);
+}
+// El mismo barrido con los modelos del repo: cada ítem en la grilla de la tienda abierta, dibujado como lo dibuja el
+// pase 3D de la UI (0x5ac120 → 0x5f7610, la tienda desde 0x5f769b, cada ítem con 0x5e1480 → 0x5e0720 → 0x60b3d0). Las
+// alas de 12,6 (el modelo 0x1a18, en la tienda de la Potion Girl) cuelgan sus uniones del objeto local (Q-C1821).
+// Ninguno puede cortar.
+TEST_F(GoldenShopTooltipsTest, EveryShopItemDrawsItsModelInTheShopGrid)
+{
+    Client::Tests::FakeTextureStore textures;
+    Client::Scenes::GameModels models;
+    const auto loaded = models.Load(m_dataRoot, textures, m_log);
+    ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
+    Client::Render::ModelBatch batch;
+    Client::Scenes::FaunaDrawCarry poseCarry;
+    Client::World::FrameSprites sprites;
+    Client::Scenes::ItemSpecialDrawContext special;
+    special.random = &m_random;
+    special.worldClock = 4321.0f;
+    special.sprites = &sprites;
+    Client::Scenes::ItemDrawContext itemContext;
+    itemContext.special = &special;
+    itemContext.selections = &m_world.Runtime().itemRender.selections;
+    itemContext.originalFrame = true;
+    itemContext.poseBones = [&poseCarry]()
+    { return std::span<const Client::Render::Models::BoneTransform>(poseCarry.bones); };
+    std::size_t joints = 0;
+    itemContext.createJoint = [&joints](const Client::World::FishEffectRequest& request)
+    {
+        EXPECT_EQ(request.ownerContext, Client::Scenes::UiItemLocalObject());
+        ++joints;
+        return Client::Core::Expected<void, std::string>{};
+    };
+    m_world.Runtime().panels.npcShop = 1;
+    std::ostringstream failures;
+    int failed = 0;
+    for (const ShopItem& entry : ShopItems)
+    {
+        std::ostringstream which;
+        which << "shop" << int{entry.shop} << " " << int{entry.group} << " " << int{entry.index} << " +"
+              << int{entry.level} << " (" << entry.name << ")";
+        auto placed = Placed(entry);
+        if (!placed.HasValue())
+        {
+            failures << which.str() << " al ponerlo: " << placed.Error() << "\n";
+            ++failed;
+            continue;
+        }
+        auto pass = Client::Scenes::MakeUiItemPass(Screen640);
+        ASSERT_TRUE(pass.HasValue()) << pass.Error();
+        batch.Begin(Client::Render::Pass3D{});
+        sprites.Clear();
+        Client::Scenes::UiItemResources resources{
+            .batch = batch, .models = models, .poseCarry = poseCarry, .itemContext = itemContext, .pass = pass.Value()};
+        GameHudContext context = Context();
+        context.uiItems = &resources;
+        Client::Scenes::GamePanels panels(m_world, m_random);
+        const auto drawn = Client::Scenes::DrawTheGridItems(context, panels.Registry());
+        Client::Scenes::CloseUiItemPass(resources);
+        if (!drawn.HasValue())
+        {
+            failures << which.str() << " en la grilla: " << drawn.Error() << "\n";
+            ++failed;
+        }
+    }
+    EXPECT_EQ(failed, 0) << failures.str();
+    // Las alas de 12,6 de la Potion Girl (shop5): 20 uniones cada vez que se dibujan.
+    EXPECT_GT(joints, 0u);
+    EXPECT_EQ(joints % 20, 0u);
     EXPECT_EQ(m_world.Runtime().ownRecordDepth, 0);
 }
 } // namespace

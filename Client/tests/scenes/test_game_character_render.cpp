@@ -57,6 +57,9 @@ using Client::Scenes::GameCharacterPass;
 
 constexpr std::uint16_t BootsModel = 0x1800;
 constexpr std::uint16_t AngelModel = 0x1f7;
+// Skill\\Skeleton02 (0x615e36): el cuerpo del subtipo 0xd2. El 0xd1 no está cargado.
+constexpr std::uint16_t SkeletonBodyModel = 0xd2;
+constexpr std::uint16_t UnloadedSkeletonBody = 0xd1;
 
 // El estado del rand() de la CRT con la semilla 1 después de `count` llamadas.
 std::uint32_t AfterRandoms(std::size_t count)
@@ -178,12 +181,16 @@ public:
         m_model.meshes = {mesh};
         // El Angel de Chaos Castle con dos mallas: su pase se distingue del de las botas por los vértices.
         m_angel.meshes = {mesh, mesh};
+        // El cuerpo de un esqueleto con tres: ni las botas ni el Angel.
+        m_skeletonBody.meshes = {mesh, mesh, mesh};
     }
 
     [[nodiscard]] const Client::Data::Models::Model* Find(std::uint16_t model) const override
     {
         if (model == AngelModel)
             return &m_angel;
+        if (model == SkeletonBodyModel)
+            return &m_skeletonBody;
         return model == BootsModel || model == 0x20b || HasHand(model) ? &m_model : nullptr;
     }
     [[nodiscard]] const Client::Render::Models::Skeleton* SkeletonOf(std::uint16_t model) const override
@@ -206,8 +213,10 @@ private:
     Client::Render::Models::Skeleton m_skeleton;
     Client::Data::Models::Model m_model;
     Client::Data::Models::Model m_angel;
-    std::array<Client::Render::TextureSlot, 2> m_texture{Client::Render::TextureSlot{0x300},
-                                                         Client::Render::TextureSlot{0x300}};
+    Client::Data::Models::Model m_skeletonBody;
+    // Una por malla del modelo con más: las tres del esqueleto.
+    std::array<Client::Render::TextureSlot, 3> m_texture{
+        Client::Render::TextureSlot{0x300}, Client::Render::TextureSlot{0x300}, Client::Render::TextureSlot{0x300}};
 };
 
 class GameCharacterRenderTest : public testing::Test
@@ -236,6 +245,10 @@ protected:
         actor.word1f2 = 0xffff;
         actor.scale = 1.0f;
         actor.alpha = 1.0f;
+        // 0x511290: sin malla de mezcla ni oculta (+0x64 y +0x58 en −1) y la luz de la mezcla (+0x68) en 1.
+        actor.dword58 = -1;
+        actor.dword64 = -1;
+        actor.blendMeshLight = 1.0f;
         actor.safeZone = 1;
         actor.position = {150.0f, 150.0f, 10.0f};
         actor.light = {0.1f, 0.2f, 0.3f};
@@ -1096,43 +1109,6 @@ TEST_F(GameCharacterRenderTest, MissingClothKeepsTheShadowPartsScanAndHeroLightP
     }
 }
 
-TEST_F(GameCharacterRenderTest, EarlierSpecialBodyCutsKeepTheShadowAndTheCompletedScanAndLight)
-{
-    struct Case
-    {
-        std::int32_t subtype;
-        std::uint8_t byte3e3;
-        std::int32_t map;
-        const char* address;
-    };
-    constexpr std::array cases{Case{209, 0, 0, "0x50d2dc"}};
-    for (const auto& value : cases)
-    {
-        SCOPED_TRACE(value.address);
-        ActorState& actor = Player(0);
-        actor.subtype = value.subtype;
-        actor.byte88 = value.subtype == 209 ? std::uint8_t{4} : std::uint8_t{1};
-        actor.byte3e3 = value.byte3e3;
-        m_world->Runtime().map = value.map;
-        m_world->OwnCharacter().speedAdjustBits = 1;
-        m_world->Runtime().fullSetScan = Client::Scenes::Scan505820{123, 42};
-        m_clothWorld.random = Client::Render::Models::CrtRandom{1};
-        m_batch.Begin(Client::Render::Pass3D{});
-
-        const auto result = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
-
-        ASSERT_FALSE(result.HasValue());
-        EXPECT_NE(result.Error().find(value.address), std::string::npos) << result.Error();
-        ASSERT_EQ(m_batch.Vertices().size(), 3u);
-        ASSERT_EQ(m_batch.Commands().size(), 1u);
-        EXPECT_EQ(m_batch.Commands()[0].state.blend, Client::Render::ModelBlend::Shadow);
-        EXPECT_EQ(m_world->Runtime().fullSetScan->dword743a178, 0);
-        EXPECT_EQ(m_world->Runtime().fullSetScan->byte743a17c, 1);
-        EXPECT_EQ(actor.drawnLight, (glm::vec3{0.9f, 0.5f, 0.5f}));
-        EXPECT_EQ(m_clothWorld.random.State(), 0x65b2ab69u);
-    }
-}
-
 TEST_F(GameCharacterRenderTest, MissingDynamicLightKeepsTheShadowAndRunsThePrecedingScan)
 {
     ActorState& actor = Player(0);
@@ -1181,6 +1157,100 @@ TEST_F(GameCharacterRenderTest, WithPlus3e3ThePlayerDrawsNoPartsAndGoesOnToTheCl
     ASSERT_EQ(m_batch.Commands().size(), 1u);
     EXPECT_EQ(m_batch.Commands()[0].state.blend, Client::Render::ModelBlend::Shadow);
     EXPECT_EQ(m_clothWorld.random.State(), 0x0029e2c0u); // el rand de 0x50db57 sigue
+}
+
+// 0x50d316..0x50d35e: un 0x20a con el subtipo 0xd1..0xd3 no lleva sus partes ni la marca del gremio: 0x60cf70(c,
+// subtipo, NULL, &c+0x3b4, c+0x174, 0, 0, 0, 0, 0, 1, modo, 2) con el cuerpo entero del esqueleto (Skill\\Skeleton0N),
+// y salta a la tela (0x50d58b). Sin el nivel, el color es la luz.
+TEST_F(GameCharacterRenderTest, TheSkeletonSubtypesWearTheirWholeBodyInsteadOfTheParts)
+{
+    ActorState& actor = Player(7);
+    actor.subtype = SkeletonBodyModel;
+    m_world->Runtime().hero = 42;
+
+    const auto result = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
+
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    const auto commands = m_batch.Commands();
+    ASSERT_EQ(commands.size(), 2u);
+    EXPECT_EQ(commands[0].state.blend, Client::Render::ModelBlend::Shadow);
+    // Las tres mallas del esqueleto, no la bota.
+    EXPECT_EQ(commands[1].state.blend, Client::Render::ModelBlend::Opaque);
+    EXPECT_EQ(commands[1].vertexCount, 9u);
+    const auto light = m_batch.Vertices()[3].color;
+    EXPECT_FLOAT_EQ(light.red, 0.3f);
+    EXPECT_FLOAT_EQ(light.green, 0.6f);
+    EXPECT_FLOAT_EQ(light.blue, 0.9f);
+    EXPECT_EQ(m_clothWorld.random.State(), 0x0029e2c0u); // el rand de 0x50db57 sigue
+}
+
+// 0x50d2aa..0x50d311: con +0x88 en 4 (un NPC) y el mapa [0x6c9dd0] en 0 (Lorencia), el nivel es el word +0x1d6 · 8,
+// que 0x60b3d0 lee con >> 3 y & 0xf: con 7, el color por 0,8 y el pase del 0x44 (Chrome). En otro mapa, o con otro
+// +0x88, el 0.
+TEST_F(GameCharacterRenderTest, TheSkeletonNpcOfLorenciaGlowsWithItsWordOf1d6)
+{
+    for (const std::int32_t map : {0, 2})
+    {
+        for (const std::uint8_t kind : {std::uint8_t{4}, std::uint8_t{1}})
+        {
+            SCOPED_TRACE(std::to_string(map) + " " + std::to_string(kind));
+            m_world->Runtime().map = map;
+            m_world->Runtime().hero = 42;
+            ActorState& actor = Player(7);
+            actor.byte88 = kind;
+            actor.subtype = SkeletonBodyModel;
+            actor.level = 7;
+            m_clothWorld.random = Client::Render::Models::CrtRandom{1};
+            m_batch.Begin(Client::Render::Pass3D{});
+
+            const auto result = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
+
+            ASSERT_TRUE(result.HasValue()) << result.Error();
+            const bool glows = kind == 4 && map == 0;
+            const auto commands = m_batch.Commands();
+            ASSERT_EQ(commands.size(), glows ? 3u : 2u);
+            EXPECT_EQ(commands[1].vertexCount, 9u);
+            const float factor = glows ? 0.8f : 1.0f;
+            const auto light = m_batch.Vertices()[3].color;
+            EXPECT_FLOAT_EQ(light.red, 0.3f * factor);
+            EXPECT_FLOAT_EQ(light.green, 0.6f * factor);
+            EXPECT_FLOAT_EQ(light.blue, 0.9f * factor);
+            if (glows)
+                EXPECT_EQ(commands[2].state.blend, Client::Render::ModelBlend::Additive);
+        }
+    }
+}
+
+// 0x50d2aa: la rama del esqueleto va antes de mirar +0x3e3 (0x50d363): con +0x3e3 el cuerpo entero se dibuja igual.
+TEST_F(GameCharacterRenderTest, WithPlus3e3TheSkeletonStillWearsItsWholeBody)
+{
+    ActorState& actor = Player(7);
+    actor.subtype = SkeletonBodyModel;
+    actor.byte3e3 = 1;
+    m_world->Runtime().hero = 42;
+
+    const auto result = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
+
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    ASSERT_EQ(m_batch.Commands().size(), 2u);
+    EXPECT_EQ(m_batch.Commands()[1].vertexCount, 9u);
+}
+
+// 0x60cf70 con un modelo sin cargar (el registro en 0 de 0x60dbe0): sin mallas que dibujar; publica la caja del
+// picking (0x4ebc80) igual.
+TEST_F(GameCharacterRenderTest, AnUnloadedSkeletonBodyOnlyPublishesThePickingBox)
+{
+    ActorState& actor = Player(7);
+    actor.subtype = UnloadedSkeletonBody;
+    m_world->Runtime().hero = 42;
+
+    const auto result = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
+
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    ASSERT_EQ(m_batch.Commands().size(), 1u);
+    EXPECT_EQ(m_batch.Commands()[0].state.blend, Client::Render::ModelBlend::Shadow);
+    EXPECT_EQ(actor.field13c, actor.position.x + actor.boundsMin.x);
+    EXPECT_EQ(actor.field168, actor.boundsTop - actor.boundsMin.z);
 }
 
 TEST_F(GameCharacterRenderTest, InChaosCastleAPlayerWearsTheAngelAndOnlyTheHeroAddsItsChrome)

@@ -9877,6 +9877,8 @@ apaga (vida por debajo de 4, la luz por 0,8333f), deja dos sprites `0x5fd` en el
 con velocidad 10 y ángulos (−90, 0, 0); su paso (`0x538ea4..0x538f37`) corre x e y con `rand() % 10` − 5, sube la velocidad y
 se apaga desde vida 10. La cola común (`0x53c393`) usa la matriz del principio del paso.
 
+**Los esqueletos.** Un `0x20a` con el subtipo `0xd1..0xd3` (los tipos 14, 15, 16, 55, 56 y 236; también el héroe transformado con el anillo de transformación +2, el monstruo 14) no lleva sus partes sino el cuerpo entero `Skill\Skeleton01..03` (el subtipo es el modelo, que carga `0x615e36`): en `0x50d2aa..0x50d35e`, **antes** de mirar `+0x3e3`, `0x60cf70(c, subtipo, NULL, &c+0x3b4, c+0x174, nivel · 8, 0, 0, 0, 0, 1, modo, 2)` y salta a la tela (`0x50d58b`), sin las partes ni la marca del gremio. Con `+0x88` en 4 y el mapa `[0x6c9dd0]` en 0 (un NPC en Lorencia) el nivel es el word `+0x1d6` · 8, que `0x60b3d0` lee con `>> 3 & 0xf`; si no, 0. La Golden Archer (236) se crea con `+0x1d6` en 8 (`0x51642b`): en Lorencia brilla con el nivel 8 (07 Q-C1828). La parte en NULL saltea la tela del pantalón (`0x60d18b`). MuRet: `DrawSkeletonBody` (`CharacterDrawing.cpp`), con el objeto del propio personaje (`+0x58`, `+0x64`, `+0x68`, `+0x6c` y `+0x70`).
+
 **Los personajes.** En Chaos Castle un jugador (`+0x88` en 1) no lleva sus partes sino el Angel (`0x1f7`,
 `Player\Angel`, que carga `0x618970`): `0x60cf70` con su contorno de estos mapas y `0x60b3d0` con el nivel 0, que
 le pone la luz del personaje y llama a `0x609640` con 2, o 6 el héroe, que además lleva el cromo de la malla 0

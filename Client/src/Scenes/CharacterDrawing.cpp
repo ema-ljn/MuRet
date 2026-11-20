@@ -44,6 +44,7 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <format>
 #include <optional>
 #include <random>
 #include <ratio>
@@ -1789,6 +1790,77 @@ Core::Expected<void, std::string> DrawItemFromMeshes(Render::ModelBatch& batch, 
     if (!rendered.HasValue())
         return rendered;
     return DrawItemOptionPasses(batch, models, base, frameClock, meshes, glow, context);
+}
+
+Core::Expected<void, std::string> DrawSkeletonBody(Render::ModelBatch& batch, const IModelLibrary& models,
+                                                   const DrawnCharacter& character, Core::Duration frameClock,
+                                                   std::uint16_t model, std::uint8_t level,
+                                                   const Render::Models::ObjectState& state, bool vertexLight,
+                                                   const ItemDrawContext& context)
+{
+    // 0x60cf99: con el alpha en 0,01 o menos (o NaN), nada.
+    if (!(character.alpha > PartBoxAlphaThreshold))
+        return {};
+    const std::vector<BoneTransform> body = PoseCharacterBody(models, character);
+    if (body.empty())
+        return {};
+    if (character.onPose)
+        character.onPose(Data::Models::PlayerSkeletonModel, body, character.object, false);
+    const Data::Models::Model* found = models.Find(model);
+    if (found == nullptr)
+    {
+        // El registro en 0 de 0x60dbe0: sin mallas que dibujar; 0x4ebc80 publica la caja del picking igual.
+        if (character.onPartBox)
+            character.onPartBox(character.object.position);
+        return {};
+    }
+    // Al esqueleto nadie le escribe la piel (+0x98 del modelo): la deja en 0 0x60dbe0, como al Angel.
+    constexpr std::uint8_t SkeletonBodySkinClass = 0;
+    if (character.outlined)
+    {
+        // 0x60d04d: el contorno, con la malla oculta +0x58 del objeto (0x60ce68), antes de 0x5ffce0 y de 0x60b3d0.
+        std::minstd_rand random(RandomSeedOf(frameClock));
+        const CharacterFrame frame{batch, models, character, frameClock, random};
+        std::vector<Render::Models::SkinnedMesh> outlineMeshes;
+        std::vector<MeshDraw> draws =
+            MeshDrawsOf(models, model, *found, body, character.object, SkeletonBodySkinClass,
+                        Render::Color{character.light.x, character.light.y, character.light.z, 1.0f}, state, frameClock,
+                        outlineMeshes);
+        for (MeshDraw& draw : draws)
+            draw.alpha = character.alpha;
+        DrawOutline(frame, draws, body);
+    }
+    if (character.onPartBox)
+        character.onPartBox(character.object.position);
+    std::vector<Render::Models::SkinnedMesh> meshes(found->meshes.size());
+    for (std::size_t index = 0; index < found->meshes.size(); ++index)
+    {
+        if (!IndicesInRange(found->meshes[index]) ||
+            !Render::Models::SkinMesh(found->meshes[index], body, character.object, meshes[index]))
+            return Core::Unexpected(
+                std::format("0x60cf70: una malla del cuerpo del esqueleto {:#x} no se puede pasar a "
+                            "los huesos del cuerpo",
+                            model));
+    }
+    // 0x60cffa..0x60d003: el cuerpo sin malla oculta, con +0x44 del modelo por +0xe8 del objeto.
+    DrawnObject object;
+    object.model = model;
+    object.animation = character.body;
+    object.transform = character.object;
+    object.state = state;
+    object.state.hiddenMesh = Render::Models::NoHiddenMesh;
+    object.color = character.light;
+    object.alpha = character.alpha;
+    object.vertexLight = vertexLight;
+    // 0x60d42a..0x60d44b: 0x60b3d0 con el nivel, sin excelente ni set, y el último argumento en 2.
+    constexpr std::uint32_t SkeletonBodyFlags = 2;
+    ItemDrawContext resources = context;
+    ItemSpecialDrawContext special = context.special != nullptr ? *context.special : ItemSpecialDrawContext{};
+    special.flags = SkeletonBodyFlags;
+    special.publishedObject = &object;
+    resources.special = &special;
+    return DrawItemFromMeshes(batch, models, object, frameClock, meshes, level, 0, 0, Render::Models::DefaultGlowDetail,
+                              resources);
 }
 
 void DrawSubtractiveMesh(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnObject& object,

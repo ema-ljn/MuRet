@@ -596,8 +596,9 @@ convention (`--name`), Windows uses its most common one (`/name`), and every opt
   with no server and no error; an unknown `--option` gives its line and the usage, with exit code 2;
   `--data /usr/share/mu` is a path); and `test_command_line_windows.cpp` (today's launcher cases of Q-C36 and Q-C37,
   `/name value`, `/name:value`, names in any case, `/?`, the launcher form with `/host`). The tests' CMake adds each
-  one only on its system. The `Client.Main.*` CTest lines switch to `--host 127.0.0.1 --port …` so they read the same on both CI machines, one
-  Windows-only line keeps `connect /u127.0.0.1 /p0`, and the expected messages change to English.
+  one only on its system. The `Client.Main.*` CTest lines switch to `--host 127.0.0.1 --port …` so they read the
+  same on both CI machines, one Windows-only line keeps `connect /u127.0.0.1 /p0`, and the expected messages change
+  to English.
 - **Docs:** `Client/README.md` (the arguments table and the two examples, lines 175, 195 and 289 today) per system;
   D-C10 in the roadmap spec and the MuRet column of Q-C36 say the launcher form is Windows only and Linux uses
   `--host`/`--port` and ignores it; the header of `CommandLine.h` lists the options once, in English.

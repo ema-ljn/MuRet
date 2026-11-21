@@ -132,6 +132,14 @@ No cycles between modules.
   ([`cmake/PrecompiledHeaders.cmake`](../cmake/PrecompiledHeaders.cmake)), con la biblioteca
   estándar. Son para compilar más rápido, no reemplazan ningún include, y el job de Linux del CI
   compila sin ellos para que lo que falte falle.
+- **No common header.** There is no `Common.h`, `Define.h` or umbrella header that gathers other
+  headers so files can include one line (cMaNGOS's `Common.h` has 27 includes and 259 users, and 482
+  of its 511 scripts include only `sc_common.h`). It hides what each file uses, which
+  `check_layers.py` and the module refactor need to see, and touching it recompiles everything;
+  speed is the precompiled header's job. What several files share goes into a small header with one
+  topic: `<Module>Fwd.h`, `<Module>Defines.h`, the ids of a map or event (`<Map>.h`, like
+  TrinityCore's `molten_core.h`), or one header of `engine/Core` or `engine/Math`. clangd adds the
+  include when a symbol is completed (`--header-insertion=iwyu`, its default).
 - Lo verifica `misc-include-cleaner` de clang-tidy 18 en `Client/`: el job de Linux del CI lo
   corre y corta con cualquier hallazgo, sea un include que falta o uno que sobra. El check mira
   solo el archivo principal de cada compilación, así que los headers van aparte, de a uno. A mano

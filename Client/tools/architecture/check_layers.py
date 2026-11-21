@@ -147,6 +147,11 @@ def write_baseline(path: pathlib.Path, found: list[tuple[str, str, str, str]]) -
         writer.writerows(found)
 
 
+def _print_violations(rows: list[tuple[str, str, str, str]]) -> None:
+    for file, include, source, target in rows:
+        print(f'  {file} -> {include} ({source} -> {target})')
+
+
 def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('--src', type=pathlib.Path, required=True)
@@ -179,9 +184,12 @@ def main(argv: list[str] | None = None) -> int:
         print(f'cycle of {len(component)} modules: {", ".join(component)}')
     known = load_baseline(args.baseline)
     new = [violation for violation in found if violation not in known]
+    stale = sorted(known.difference(found))
+    if stale:
+        print(f'{len(stale)} baseline rows no longer happen; rerun with --write-baseline to drop them:')
+        _print_violations(stale)
     print(f'{len(found)} layer violations: {len(found) - len(new)} in the baseline, {len(new)} new')
-    for file, include, source, target in new:
-        print(f'  {file} -> {include} ({source} -> {target})')
+    _print_violations(new)
     return 1 if new else 0
 
 

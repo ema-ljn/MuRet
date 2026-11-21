@@ -106,6 +106,16 @@ class CheckLayersTest(unittest.TestCase):
         self.assertIn('Core/C.h -> Scenes/B.h', output)
         self.assertNotIn('Core/A.h -> Scenes/B.h', output)
 
+    def test_fixed_violation_is_reported_as_stale_without_failing(self):
+        self.source('Core/A.h')
+        self.source('Scenes/B.h')
+        self.baseline_rows.append({'file': 'Core/A.h', 'include': 'Scenes/B.h', 'from_module': 'engine/Core',
+                                   'to_module': 'game/Scenes'})
+        code, output = self.run_check()
+        self.assertEqual(code, 0)
+        self.assertIn('1 baseline rows no longer happen', output)
+        self.assertIn('Core/A.h -> Scenes/B.h', output)
+
     def test_write_baseline_then_check_passes(self):
         self.source('Core/A.h', 'Scenes/B.h')
         self.source('Scenes/B.h')

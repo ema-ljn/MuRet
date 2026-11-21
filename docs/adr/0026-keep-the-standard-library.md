@@ -50,7 +50,8 @@ game-oriented replacement such as EASTL. Measured on `main` `bfaad8b` with GCC 1
   stay as they are.
 - The per-frame allocations go away by reusing buffers in AR4.1 (character drawing and skinning) and by deleting
   `GamePanels` in AR4.5, with the behavior golden identical.
-- `-O0` stays slow. An `-Og` build is the cheap fix for debugging; the MSVC counterpart is not measured yet.
+- `-O0` stays slow. The `linux-x64-fastdebug` preset (`-Og`) is the cheap fix for debugging on Linux; on Windows the
+  `windows-x64-relwithdebinfo` build preset is offered but not measured, and CI does not build it.
 - Not measured: Windows with MSVC's STL, GL drawing, fights and effects.
 - What would reopen it: a Release scene whose CPU work passes 10 ms per frame with the time inside the containers, a
   port to a console or a low-memory device, or large hash tables on a hot path.

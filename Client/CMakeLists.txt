@@ -29,6 +29,8 @@ file(GLOB_RECURSE client_sources CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/
 list(FILTER client_sources EXCLUDE REGEX "/src/main\\.cpp$")
 list(FILTER client_sources EXCLUDE REGEX "/src/Platform/")
 list(FILTER client_sources EXCLUDE REGEX "/src/Render/Gl/")
+# ClientRoundedMath, with its own compile options.
+list(FILTER client_sources EXCLUDE REGEX "/src/Render/Models/RoundedMath/")
 # Each system's command line syntax (App/CommandLineSystem.h).
 list(FILTER client_sources EXCLUDE REGEX "/src/App/CommandLine(Posix|Windows)\\.cpp$")
 if(WIN32)
@@ -48,6 +50,8 @@ target_link_libraries(ClientLib PRIVATE CLI11::CLI11)
 # PUBLIC: los headers de Render/Models/ usan sus tipos (pregunta 4 del plan de la CL6). Sin
 # GLM_FORCE_* ni GLM_ENABLE_EXPERIMENTAL, así el precompiled header no cambia.
 target_link_libraries(ClientLib PUBLIC glm::glm-header-only)
+add_subdirectory(src/Render/Models/RoundedMath)
+target_link_libraries(ClientLib PUBLIC ClientRoundedMath)
 # Los sockets de Network/SocketApi.cpp (CL4.1): en Windows son de Winsock 2, ws2_32. En Linux están
 # en la libc.
 if(WIN32)

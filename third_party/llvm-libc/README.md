@@ -8,6 +8,11 @@ each returns the float or double nearest to the exact value, so the result does 
 the system, the C library or the CPU. Only `Client/src/Render/Models/RoundedMath/RoundedMath.cpp` includes
 these headers; the rest of the client calls `Render/Models/RoundedMath.h`.
 
+One case is not correctly rounded: without FMA instructions, the sine and the tangent of a double below 2^-968 can
+be one unit in the last place off (`src/__support/math/sin.h` and `tan.h`, where `x * 2^-54` underflows; still so in
+llvm-project `main` on 2026-11-21). `RoundedMath.cpp` returns `x` there, which is the nearest double, and
+`RoundedMathTest` compares every function with MPFR.
+
 It is a copy and not a vcpkg port because the `llvm[libc]` port builds all of LLVM, and the client needs
 208 headers.
 

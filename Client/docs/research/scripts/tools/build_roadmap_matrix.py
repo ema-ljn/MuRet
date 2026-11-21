@@ -18,6 +18,7 @@ Solo biblioteca estándar. No ejecuta el PE: todo es lectura estática.
 import argparse
 import bisect
 import collections
+import concurrent.futures
 import gzip
 import hashlib
 import json
@@ -318,6 +319,7 @@ CUT = re.compile(r'cut\(|Unexpected\(|\bCL ?(9|10|11)\b|\bCL(9|10|11)\.|es de la
 WTOK = re.compile(r'\bCL ?(\d{1,2})(?:\.\d+|\.R\d?)?\b')
 AR_SCOPE = re.compile(r'^\w+\(AR\d+(?:\.\d+)?\)!?:')
 IGNORE_REVS = '.git-blame-ignore-revs'
+BLAMES_AHEAD = 32
 SUBWAVE = re.compile(r'\bCL ?(\d{1,2}\.(?:\d+|R\d?))\b')
 
 
@@ -619,17 +621,20 @@ class MuRet:
     def fn(self, h):
         return self.F.containing(int(h, 16))
 
+    @staticmethod
+    def _measured(f):
+        if not f.startswith(('Client/', 'docs/')) or f.endswith('Input/Key.h'):
+            return False
+        if f.startswith('Client/docs/research/coverage/') or f in CLM_OUTPUTS:
+            return False
+        return f.endswith(('.h', '.cpp', '.md', '.tsv', '.py', '.txt', '.inc'))
+
     def _scan(self):
-        files = git(self.repo, 'ls-tree', '-r', '--name-only', self.ref).split('\n')
+        files = [f for f in git(self.repo, 'ls-tree', '-r', '--name-only', self.ref).split('\n') if self._measured(f)]
+        blames = self._blames([f for f in files if f.startswith('Client/src/')])
         for f in files:
-            if not f.startswith(('Client/', 'docs/')) or f.endswith('Input/Key.h'):
-                continue
-            if f.startswith('Client/docs/research/coverage/') or f in CLM_OUTPUTS:
-                continue
-            if not f.endswith(('.h', '.cpp', '.md', '.tsv', '.py', '.txt', '.inc')):
-                continue
             if f.startswith('Client/src/'):
-                self._blame(f)
+                self._read_blame(f, next(blames))
                 continue
             text = git(self.repo, 'show', f'{self.ref}:{f}')
             for i, line in enumerate(text.splitlines(), 1):
@@ -660,9 +665,22 @@ class MuRet:
                 if a is not None:
                     self.cl8[a] = p[2] if len(p) > 2 else ''
 
+    def _blames(self, files):
+        # One git blame per file, several at a time, read back in the files' order.
+        with concurrent.futures.ThreadPoolExecutor(max_workers=os.cpu_count() or 1) as pool:
+            ahead = collections.deque()
+            for f in files:
+                ahead.append(pool.submit(self._blame, f))
+                if len(ahead) > BLAMES_AHEAD:
+                    yield ahead.popleft().result()
+            while ahead:
+                yield ahead.popleft().result()
+
     def _blame(self, f):
-        out = git(self.repo, 'blame', '--line-porcelain', '-M', '-C', '--ignore-revs-file', self.ignore_file, self.ref,
-                  '--', f, check=True)
+        return git(self.repo, 'blame', '--porcelain', '-M', '-C', '--ignore-revs-file', self.ignore_file, self.ref,
+                   '--', f, check=True)
+
+    def _read_blame(self, f, out):
         cur = ln = None
         for line in out.splitlines():
             if re.match(r'^[0-9a-f]{40} ', line):

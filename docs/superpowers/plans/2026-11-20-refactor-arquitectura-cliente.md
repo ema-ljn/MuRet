@@ -361,24 +361,30 @@ golden de comportamiento iguales.
   de un `Network::Packet`, así `engine/Crypto` (SimpleModulus, Xor32, Xor3, K16) no ve la red; `IPlayback` gana un
   `Register(SoundDefinition)` y `SdlAudio` deja de incluir el catálogo de sonidos, que el juego le pasa al arrancar
   (el catálogo va a `game/Sound`). El orden de las llamadas al motor de audio no cambia: el golden lo compara.
-  `FoxAntiObfuscation` sale de `Network` a `engine/Obfuscation`, una capa que se saca al compilar (Emanuel,
-  2026-11-21): `Network` se queda con `IObfuscation`, `ObfuscationError` y la identidad (lo que usa si no hay
-  capa), y solo `app/` enlaza el target. Hay dos interruptores, uno arriba del otro:
-  - **Al compilar**, la opción de CMake `MURET_FOXANTI`, prendida por defecto mientras el laboratorio la use.
-    Apagada, `engine/Obfuscation` no se agrega (`if(MURET_FOXANTI) add_subdirectory(...)`), `app/` no la enlaza y
-    el binario no lleva nada de FoxAnti. Los tests que la necesitan (los 2 de FoxAnti y los 10 que arman la conexión
-    con ella, entre ellos los goldens del cable del laboratorio) van en una lista aparte del CMake de los tests y
-    no se compilan; si un archivo la usa solo en algunos casos, esos casos se pasan a un archivo propio.
-  - **Al arrancar**, la clave que ya existe desde la CL4: `[Server] Obfuscation = foxanti | none` de
-    `muret-client.ini` (`App/Config.h`). Elige entre lo que se compiló. Con la opción apagada, el valor por defecto
-    pasa a `none`, y `foxanti` es un error de la config que dice su línea ("este cliente se compiló sin FoxAnti").
-  Lo que cambia con la opción vive en un solo archivo, `app/ObfuscationChoice.cpp`, con el único `#if MURET_FOXANTI`
-  del cliente: `ParseObfuscation` (hoy en `Config.cpp`), `ChooseObfuscation` (hoy en `main.cpp`) y
-  `DefaultObfuscation()`, que `ClientConfig` usa como valor inicial. El enum `ObfuscationMode` conserva `FoxAnti` en
-  los dos casos, así la config y sus tests compilan sin `#if`. La definición la pone CMake solo sobre `MuRetApp`
-  (`target_compile_definitions(MuRetApp PRIVATE MURET_FOXANTI=1)`) y no llega a otro target. El job de Windows
-  Release del CI, que ya compila solo `Main` y los tests de la matemática, configura con `MURET_FOXANTI=OFF` y suma
-  `test_config`: el cliente sin la capa compila y se prueba en cada PR sin un job nuevo.
+  `FoxAntiObfuscation` sale de `Network` a `engine/Obfuscation`, una capa que se saca al compilar y que el resto del
+  cliente recibe inyectada (Emanuel, 2026-11-21: la decide quien programa, no quien juega). `Network` se queda con
+  `IObfuscation`, `ObfuscationError` y la identidad; `Connection`, `PacketReader`, `EncryptPacket` y `ServerSession`
+  ya reciben la capa como `IObfuscation` sin saber cuál es, y eso no cambia.
+  - **Un solo interruptor, al compilar**: la opción de CMake `MURET_FOXANTI`, prendida por defecto mientras el
+    laboratorio la use. Apagada, `engine/Obfuscation` no se agrega (`if(MURET_FOXANTI) add_subdirectory(...)`),
+    `app/` no la enlaza y el binario no lleva nada de FoxAnti.
+  - **La inyección, sin `#if` en el código**: la raíz de composición de `app/` pide la capa a
+    `std::unique_ptr<const Network::IObfuscation> MakeObfuscation()`, declarada en `app/MakeObfuscation.h`, y la
+    guarda junto a la conexión (hoy `Online` en `main.cpp`). CMake agrega a `MuRetApp` una de dos definiciones:
+    `app/MakeObfuscationFoxAnti.cpp`, que arma una `FoxAntiObfuscation` y enlaza `MuRetObfuscation`, o
+    `app/MakeObfuscationNone.cpp`, que arma una `IdentityObfuscation`. Ningún otro archivo sabe que la capa existe:
+    sacarla del repo es borrar `engine/Obfuscation`, `MakeObfuscationFoxAnti.cpp` y el `if` del CMake.
+  - **La clave `[Server] Obfuscation` de `muret-client.ini` se va** (existe desde la CL4, pregunta 8 de su plan).
+    Salen `App/ObfuscationMode.h`, el campo `obfuscation` de `ClientConfig`, `ParseObfuscation`, `ChooseObfuscation`
+    de `main.cpp` y sus casos de `test_config`; `Online` recibe la capa en vez del modo. Un .ini que todavía la
+    tenga da el error de clave que no existe, con su línea y un texto que apunta a `MURET_FOXANTI`. `Client/README.md`
+    deja de nombrarla y dice cómo compilar sin la capa.
+  - **Los tests**: los que necesitan FoxAnti (los 2 de FoxAnti y los 10 que arman la conexión con ella, entre ellos
+    los goldens del cable del laboratorio) van en una lista aparte del CMake de los tests, que solo se compila con la
+    opción prendida; si un archivo la usa solo en algunos casos, esos casos pasan a un archivo propio. El resto
+    inyecta la identidad o un doble.
+  - **El CI**: el job de Windows Release, que ya compila solo `Main` y los tests de la matemática, configura con
+    `MURET_FOXANTI=OFF`. Así el cliente sin la capa compila y enlaza en cada PR sin un job nuevo.
 - **El kit común** (se crea acá para que las mudanzas no arrastren copias): `X87.h` junto a `Ftol.h` (`F32`, `D`,
   `Truncate`, `Bits`: las 115 copias de `F32` se reemplazan solo donde el cuerpo es idéntico, verificado por script),
   `Core/WrappingInt.h`, `Core::Expected` con `AndThen`, `Transform` y `OrElse` (los nombres de `std::expected`, para

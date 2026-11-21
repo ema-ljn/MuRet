@@ -151,10 +151,11 @@ jobs:
         if: matrix.kind == 'build'
         run: python -m unittest discover -s Client/docs/research/scripts/game/capture -p 'test_*evidence.py' -v
 
-      # El resumen de la action de la referencia (.github/workflows/referencia.yml), con tablas inventadas.
-      - name: Tests del resumen de la referencia
+      # The reference tools (.github/workflows/referencia.yml): its summary and the anchors of the hand-classified
+      # cuts (AR0.2), with made-up tables.
+      - name: Reference tools tests
         if: matrix.kind == 'build'
-        run: python -m unittest discover -s Client/docs/research/scripts/tools -p 'test_reference_summary.py' -v
+        run: python -m unittest discover -s Client/docs/research/scripts/tools -p 'test_reference_*.py' -v
 
       # Client refactor (AR0.1): a new include that breaks the module layers, or a file without a module, fails.
       - name: Client layers

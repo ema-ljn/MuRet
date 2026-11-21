@@ -257,7 +257,9 @@ CLM_OUTPUTS = {'Client/docs/research/10-cobertura-roadmap.md',
                'docs/superpowers/plans/2026-11-13-ola-cl9-cortes.tsv',
                # La referencia (coverage/referencia, que ya queda afuera por estar en coverage/) y sus scripts.
                'Client/docs/research/scripts/tools/build_client_reference.py',
-               'Client/docs/research/scripts/tools/client_reference_symbols.py'}
+               'Client/docs/research/scripts/tools/client_reference_symbols.py',
+               'Client/docs/research/scripts/tools/reference_anchors.py',
+               'Client/docs/research/scripts/tools/test_reference_anchors.py'}
 TYPE_CREATE = 0x5141E0
 EFFECT_CALLS = {0x518CF0, 0x530860, 0x53FE70, 0x5491E0, 0x41ED10}
 # Gigantes con ramas de varias olas: la ola responsable sale de su papel, no de quién lo cita más.

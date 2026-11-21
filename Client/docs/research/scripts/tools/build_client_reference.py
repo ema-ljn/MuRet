@@ -44,11 +44,14 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from client_reference_symbols import symbols  # noqa: E402
+from reference_anchors import cut_sites, resolve_entries  # noqa: E402
 
 REF_DIR = 'Client/docs/research/coverage/referencia'
 # Los scripts de la referencia no son fuente de citas (tienen VA en sus tablas a mano).
 SELF = {'Client/docs/research/scripts/tools/build_client_reference.py',
-        'Client/docs/research/scripts/tools/client_reference_symbols.py'}
+        'Client/docs/research/scripts/tools/client_reference_symbols.py',
+        'Client/docs/research/scripts/tools/reference_anchors.py',
+        'Client/docs/research/scripts/tools/test_reference_anchors.py'}
 STRING = re.compile(r'"((?:[^"\\\n]|\\.){3,})"')
 
 ADDR = re.compile(r'0[xX](?:00)?([4-6][0-9a-fA-F]{5})\b')
@@ -205,6 +208,7 @@ def main():
     texts = cat_files(a.muret, ref, scan)
     traz, traz_docs = [], []
     src_lines = {}
+    sites = []
     for f in scan:
         text = texts.get(f)
         if text is None:
@@ -214,6 +218,8 @@ def main():
         if ar == 'src':
             src_lines[f] = len(lines)
         sym = symbols(lines) if ar in ('src', 'tests') and f.endswith(('.h', '.cpp', '.inc', '.hpp')) else None
+        if ar == 'src' and sym is not None:
+            sites += cut_sites(f.removeprefix('Client/src/'), text, sym)
         for i, line in enumerate(lines, 1):
             ms = list(ADDR.finditer(line))
             if not ms:
@@ -323,18 +329,9 @@ def main():
                 CHAT_TRAMOS[fn].append(r)
         else:
             CHAT[va] = r
-    CORTES = [r for r in tsv(f'{E}/cortes-vivos.tsv') if not r['origen'].startswith(('CL11-sin', 'CL11-cerrado'))]
-    # Los V que se alcanzan jugando (informe, sección 4.1): se corrige "depende de la VM".
-    V_REACH = {('Scenes/FaunaModels.cpp', '341'): 'sí: al entrar a Blood Castle (el Arcángel, NPC 232)',
-               ('World/BlastModelEffects.cpp', '1126'): 'sí: casi seguro al golpear la estatua de Blood Castle o '
-                                                      'la puerta del castillo',
-               ('World/GameModelEffects.cpp', '1732'): 'sí: casi seguro al golpear la estatua de Blood Castle o '
-                                                     'la puerta del castillo',
-               ('World/SiegeVertexEffects.cpp', '335'): 'sí: casi seguro al golpear la estatua del castillo'}
-    for r in CORTES:
-        k = (r['archivo'], r['línea'])
-        if k in V_REACH:
-            r['cierra_el_cliente'] = V_REACH[k]
+    # Each hand row takes the cut with its anchor, wherever it is in this commit (reference_anchors.py).
+    CORTES = resolve_entries([r for r in tsv(f'{E}/cortes-vivos.tsv')
+                              if not r['origen'].startswith(('CL11-sin', 'CL11-cerrado'))], sites)
     cortes_fn = collections.defaultdict(list)
     for r in CORTES:
         if r['función'].startswith('0x'):
@@ -706,6 +703,8 @@ def main():
     m('cortes', 'total', 'sitios', sum(cc.values()), 'sitios', 'censo de cortes (auditoría)')
     m('cortes', 'cierran el cliente', 'sitios', sum(1 for r in CORTES if r['cierra_el_cliente'].startswith('sí')),
       'sitios', 'censo + informe 4.1')
+    m('entradas', 'cortes-vivos', 'unresolved-entries', sum(1 for r in CORTES if r['resolved_by'] == 'unresolved'),
+      'filas', 'hand rows whose cut reference_anchors.py did not find')
     cw = collections.Counter(r['ola'] for r in CORTES if r['archivo'] and r['clase'] != 'H')
     for w in sorted(cw, key=lambda w: (len(w), w)):
         m('cortes-ola', w, 'sitios', cw[w], 'sitios', 'ola de la función del original que contiene la VA')
@@ -797,7 +796,7 @@ def main():
         m('serie', 'total', 'cota_baja_con_test', pct(d['done_t'], L), '%', fuente, nota, r=r0)
 
     # --- las tablas de la auditoría, con los V corregidos ---
-    cols_c = list(tsv(f'{E}/cortes-vivos.tsv')[0].keys())
+    cols_c = list(tsv(f'{E}/cortes-vivos.tsv')[0].keys()) + ['resolved_by']
     write_tsv(os.path.join(a.out, 'cortes.tsv'), cols_c, CORTES)
     for src, dst in (('vm.tsv', 'vm.tsv'), ('sustitutos.tsv', 'sustitutos.tsv'), ('sin-cablear.tsv', 'sin-cablear.tsv'),
                      ('chat-funciones.tsv', 'chat.tsv')):

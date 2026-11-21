@@ -130,17 +130,19 @@ AR0.2.
   `#include "…"` que resuelven a un archivo de `src`; los `<…>` no cuentan. El módulo de un archivo sale primero del
   mapa (su fila por la ruta de hoy) y, si no tiene fila (un archivo nuevo), del glob más largo de `carpetas_hoy`.
 - [ ] **Step 4:** los tests pasan.
-- [ ] **Step 5:** `modulos.tsv` con los módulos de destino de la spec (las 9 carpetas del motor, `game/Protocol`,
-  `game/Kernel`, `game/Ui`, los 15 módulos del juego, `game/Session`, `game/Scenes`, `app`) y, mientras dure la
-  migración, `carpetas_hoy` apuntando a lo de hoy (`Core/**` → `engine/Core`; `Scenes/**` → según el mapa). Capas:
-  `engine/Core` 0; `engine/Math` 1; `engine/Input`, `Audio`, `Network` y `Data` 2; `engine/Platform` 3;
-  `engine/Render` 4; `engine/Models` 5; `game/Protocol` 6; `game/Kernel` 7; `game/Ui` 8; los módulos del juego 9;
-  `game/Session` 10; `game/Scenes` 11; `app` 12. Entre módulos del juego (misma capa), `puede_usar` lista los que hoy
-  se usan en un solo sentido según `scenes-modulos-candidatos.tsv`.
+- [ ] **Step 5:** `modulos.tsv` con los 57 módulos de destino de la spec (13 del motor, 43 del juego y `app`; los
+  submódulos de `Events/` y `MapScripts/` son carpetas de su módulo) y, mientras dure la migración, `carpetas_hoy`
+  apuntando a lo de hoy (`Core/**` → `engine/Core`; `Scenes/**` → según el mapa). Capas: `engine/Core` 0;
+  `engine/Math`, `Crt` y `Crypto` 1; `engine/Diagnostics`, `Input`, `Audio`, `Network` y `Data` 2;
+  `engine/Platform` y `Pathfinding` 3; `engine/Render` 4; `engine/Models` 5; `game/Protocol`, `Tables` y `Maps` 6;
+  `game/Kernel` 7; `game/Assets`, `Terrain`, `Sound`, `Camera` y `Ui` 8; los módulos del juego 9; `game/Session` 10;
+  `game/Scenes` 11; `app` 12. Entre módulos de la misma capa, `puede_usar` lista los que hoy se usan en un solo
+  sentido según el grafo medido con el mapa (`Effects` → `Particles`, `Movement` → `engine/Pathfinding`…).
 - [ ] **Step 6:** `python3 -I Client/tools/arquitectura/check_layers.py … --escribir-base` sobre `main` escribe
-  `linea-de-base-capas.tsv` y, sin `--escribir-base`, sale con 0. Con el mapa del anexo, la base de hoy tiene 336
-  includes que suben de capa (54 pares de módulos, 193 archivos) y 49 pares mutuos entre módulos del juego; si da
-  muy distinto, el chequeo o el mapa están mal.
+  `linea-de-base-capas.tsv` y, sin `--escribir-base`, sale con 0. Con el mapa del anexo (revisión del 2026-11-21),
+  la base de hoy tiene 365 includes que suben de capa (83 pares de módulos, 210 archivos), 11 de ellos desde el
+  motor, y 80 pares mutuos entre módulos del juego de la misma capa; si da muy distinto, el chequeo o el mapa están
+  mal.
 - [ ] **Step 7:** en el job `includes` de `ci.yml`, un paso "Capas del cliente" que corre los tests y el chequeo
   (sin build: el chequeo lee los fuentes).
 - [ ] **Step 8:** commit `AR0.1: el registro de módulos y el chequeo de capas`.
@@ -162,7 +164,7 @@ AR0.2.
 - Produces: `mapa-modulos.tsv` con las columnas del anexo (`archivo`, `lineas`, `carpeta_actual`, `destino`,
   `confianza`, `por_que`), que leen `check_layers.py`, `mover.py` (Task 6) y la referencia (Task 5).
 
-- [ ] **Step 1:** revisar a mano las 52 filas de confianza `baja` del mapa (los archivos de `Scenes/` que el grafo de
+- [ ] **Step 1:** revisar a mano las 50 filas de confianza `baja` del mapa (los archivos de `Scenes/` que el grafo de
   includes tira hacia otro módulo) y corregir su `destino`; anotar en `por_que` la razón.
 - [ ] **Step 2:** CODING_RULES §5 con la tabla de capas del cliente (las de la spec, con "hace / no hace"), la
   anatomía de un módulo (`Módulo.h` público, `MóduloState.h`, `In/`, `Out/`), los tamaños de referencia (handler ~80
@@ -354,22 +356,33 @@ golden de comportamiento iguales.
   `Render/Frame/`; `IModelLibrary` de `Scenes/CharacterDrawing.h` a `Render/Models/IModelLibrary.h` (va a
   `engine/Models` en AR1.2); el include de `CharacterDrawing.h` en `Render/ModelBatchParticleBackend.cpp` se invierte
   con una interfaz chica en `Render`; `UI/IClipboard` a `Platform/`.
+- **Los módulos nuevos del motor** (revisión del 2026-11-21): `CrtRandom` sale de `Cloth.h` a su propio header, que
+  va a `engine/Crt` con `Msvc6Sort` y los dos formatos de `sprintf`; `Xor32` recibe un `std::span<std::byte>` en vez
+  de un `Network::Packet`, así `engine/Crypto` (SimpleModulus, Xor32, Xor3, K16) no ve la red; `IPlayback` gana un
+  `Register(SoundDefinition)` y `SdlAudio` deja de incluir el catálogo de sonidos, que el juego le pasa al arrancar
+  (el catálogo va a `game/Sound`). El orden de las llamadas al motor de audio no cambia: el golden lo compara.
 - **El kit común** (se crea acá para que las mudanzas no arrastren copias): `X87.h` junto a `Ftol.h` (`F32`, `D`,
   `Truncate`, `Bits`: las 115 copias de `F32` se reemplazan solo donde el cuerpo es idéntico, verificado por script),
   `Core/WrappingInt.h`, `Core::Expected` con `AndThen`, `Transform` y `OrElse` (los nombres de `std::expected`, para
-  pasar a él cuando el repo use C++23), `Data::Text::TextOr`, `UI::Rect::Contains`, y en `game/Kernel/MapId.h` el
-  enum de mapas con sus predicados (`IsChaosCastle`, `IsKalima`…; hoy 25 `FirstChaosCastleMap` y 8 `InChaosCastle`).
+  pasar a él cuando el repo use C++23), `Data::Text::TextOr`, `UI::Rect::Contains`, y en `game/Maps/MapId.h` el
+  enum de mapas con sus predicados (`IsChaosCastle`, `IsKalima`…; hoy 25 `FirstChaosCastleMap` y 8 `InChaosCastle`,
+  y unas 189 comparaciones por mapa con constantes sueltas en 62 archivos, que pasan a los nombres sin moverse).
 - **Verificación:** el golden de comportamiento idéntico; `check_layers.py` baja las violaciones del motor a 0 y se
   regenera la línea de base.
 
 ### AR1.2 (mudanza + targets): `Client/src/engine/`
 
 - `mover.py --raiz engine` lleva `Core`, `Platform`, `Input`, `Audio`, `Network`, `Data` y `Render` a
-  `Client/src/engine/`, `Render/Models` a `engine/Models` y la matemática x87 a `engine/Math`. Los includes de las
-  carpetas que solo cambian de raíz no cambian de texto; los de `Render/Models/…` y de la matemática, sí (lo hace el
-  script).
-- **CMake:** un target por carpeta del motor (`MuRetCore`, `MuRetMath`, `MuRetInput`, `MuRetAudio`, `MuRetNetwork`,
-  `MuRetData`, `MuRetPlatform`, `MuRetRender`, `MuRetModels`) con raíz de include `Client/src/engine`, sus headers en
+  `Client/src/engine/`, `Render/Models` a `engine/Models`, la matemática x87 a `engine/Math`, y cada archivo que el
+  mapa manda a un módulo nuevo del motor (`Crt`, `Crypto`, `Diagnostics`, `Pathfinding`, con lo de `UI/`, `World/` y
+  `GameLogic/` que les toca). Lo que hoy está en `Data/` o `Audio/` pero es del juego va directo a su módulo: las
+  tablas a `game/Tables` (1.772 líneas), las carpetas de los mapas a `game/Maps` y el catálogo de sonidos a
+  `game/Sound`. Los includes de las carpetas que solo cambian de raíz no cambian de texto; los demás los reescribe el
+  script.
+- **CMake:** un target por carpeta del motor (`MuRetCore`, `MuRetMath`, `MuRetCrt`, `MuRetCrypto`, `MuRetDiagnostics`,
+  `MuRetInput`, `MuRetAudio`, `MuRetNetwork`, `MuRetData`, `MuRetPlatform`, `MuRetPathfinding`, `MuRetRender`,
+  `MuRetModels`) y los tres primeros del juego (`MuRetTables`, `MuRetMaps`, `MuRetSound`) con raíz de include
+  `Client/src/engine` (o `Client/src/game`), sus headers en
   `FILE_SET HEADERS` y `VERIFY_INTERFACE_HEADER_SETS ON`; `ClientLib` queda con lo demás y los enlaza.
   `muret_set_fidelity_flags(target)` (en `cmake/`) junta `-ffp-contract=off` y lo que pida MSVC, y se aplica a todos
   los targets. Los tests de `tests/{core,platform,input,audio,network,data,render,render_gl}` enlazan solo su target.
@@ -456,11 +469,11 @@ repetición propia del módulo y los nudos de la spec que le tocan). Antes de ca
 
 | hito | módulos | líneas (≈) | nudos que se desatan en el diseño |
 | --- | --- | ---: | --- |
-| **AR4.1** | `Kernel` (+ `Assets`, terreno), `Player`, `Actors` (+ dibujo de personajes) | 33 mil | el paso del personaje (`0x508f00`) pasa a un registro de pasos por clase de actor; los aplicadores del viewport dejan de llamar a monstruos, chat y tiendas |
-| **AR4.2** | `Monsters`, `Pets`, `Combat`, `Hero` | 33 mil | combate↔héroe; el cuervo de `WorldTransitionSupport` a `Pets`; `0x57ce80`, `0x4eac00` y `0x4ce000` portadas una vez |
-| **AR4.3** | `Effects` (joints, efectos de modelo, partículas), `WorldObjects` | 43 mil | los adaptadores de `0x53fe70`, `0x530860` y `0x518cf0` (cuatro cada uno) pasan a un `EffectSpawner`; `ParticleSpawn` reemplaza las firmas de 15 parámetros (109 llamadas) |
-| **AR4.4** | `Items` (+ tooltips), `Npc`, `Social`, `Chat`, `Guild` | 48 mil | `LetterPortrait` arma el actor por `Actors.h`, no por sus tripas; `InventoryServices` (10 callbacks, 32 archivos) pasa a puertos |
-| **AR4.5** | `Ui` (el kit), `Hud` (+ diálogos), `Events`, `CastleSiege` | 42 mil | `PanelRegistry` con un `IPanel` por módulo y las reglas de exclusión como tabla; el HUD deja de dibujar a mano las ventanas de cada módulo; se borra `GamePanels` |
+| **AR4.1** | `Kernel`, `Assets`, `Terrain`, `Camera`, `Sound` (lo que queda), `Player`, `Actors` (+ dibujo de personajes) | 34 mil | el paso del personaje (`0x508f00`) pasa a un registro de pasos por clase de actor; los aplicadores del viewport dejan de llamar a monstruos, chat y tiendas |
+| **AR4.2** | `Monsters`, `Pets`, `Movement`, `Skills`, `Combat`, `Hero` | 33 mil | combate↔héroe; si `Hero` (788 líneas) se junta con `Player`; el clic de `GameMovement` deja de incluir a `Events` y `Chat` (punto de extensión ordenado); el cuervo de `WorldTransitionSupport` a `Pets`; `0x57ce80`, `0x4eac00` y `0x4ce000` portadas una vez |
+| **AR4.3** | `Particles`, `Joints`, `Effects`, `WorldObjects`, `Fauna`, `Weather`, `MapScripts` (una carpeta por mapa) | 43 mil | los adaptadores de `0x53fe70`, `0x530860` y `0x518cf0` (cuatro cada uno) pasan a un `EffectSpawner`; `ParticleSpawn` reemplaza las firmas de 15 parámetros (109 llamadas); `Joints`↔`Effects` (13 y 6 includes) a un solo sentido o juntos; la tabla `constexpr` id de mapa → funciones de `MapScripts` |
+| **AR4.4** | `Items`, `Tooltips`, `Npc`, `Quests`, `ChaosMix`, `Warehouse`, `PetTrainer`, `Party`, `Social`, `Messenger`, `PersonalShop`, `Chat`, `Guild` | 48 mil | `LetterPortrait` arma el actor por `Actors.h`, no por sus tripas; `InventoryServices` (10 callbacks, 32 archivos) pasa a puertos; `SocialState` se parte en comercio, party y duelo, salvo lo contiguo |
+| **AR4.5** | `Ui` (el kit), `Hud` (+ diálogos), `Events` (un submódulo por evento), `CastleSiege`, `FrontEnd` | 48 mil | `PanelRegistry` con un `IPanel` por módulo y las reglas de exclusión como tabla; el HUD deja de dibujar a mano las ventanas de cada módulo; se borra `GamePanels`; `EventPackets.cpp` (1.740 líneas) se reparte entre los submódulos de cada evento |
 
 **Cada hito está terminado cuando** sus módulos no tienen violaciones en `check_layers.py` (se sacan de la línea de
 base), el golden de comportamiento es idéntico, la referencia da los mismos números del port y `scenes-ciclos.tsv`

@@ -10,7 +10,8 @@
 > Este documento dice **cómo queda el código** y **qué no se negocia** (la fidelidad y el rastreo).
 > El orden del trabajo, por épicas e hitos, está en el
 > [plan](../plans/2026-11-20-refactor-arquitectura-cliente.md). Las mediciones se hicieron sobre
-> `main` en `bb56680` (2026-11-20).
+> `main` en `bb56680` (2026-11-20). Revisado el 2026-11-21: más módulos (de 31 a 57) y lo que se
+> toma de TrinityCore y MaNGOS además de OpenMU.
 
 ## Qué y para qué
 
@@ -121,8 +122,23 @@ tiene mediana de 40 líneas y una acción del jugador, 53.
 
 ## Las referencias: qué se toma de cada una
 
-Se leyeron en sus fuentes: OpenMU `master` f6b4243, TrinityCore `master` 5d07da5 y MuMain `main`
-b9f4614. Ninguna entra como dependencia.
+Se leyeron en sus fuentes: OpenMU `master` f6b4243 (y 45678e3 para la granularidad, el
+2026-11-21), TrinityCore `master` 5d07da5, cMaNGOS `mangos-wotlk` 27cdfdf, MaNGOS Zero b7fface (con
+ScriptDev3 6e2e749) y MuMain `main` b9f4614. Ninguna entra como dependencia.
+
+**Lo que enseñan TrinityCore y MaNGOS sobre módulos, medido:** en los dos, `game` es una sola
+biblioteca y sus carpetas no son módulos. En TrinityCore, 49 de las 51 carpetas de `game` forman
+un solo ciclo (185 pares se incluyen mutuamente, como `Entities`↔`Server` con 97 y 99 includes);
+en cMaNGOS, 44 de 47; en MaNGOS Zero, 11 de 15. La única frontera limpia es entre bibliotecas
+(`common` ← `database` ← `shared` ← `game` ← `scripts`), con cero includes hacia arriba, porque la
+impone el enlazador. Las causas del ciclo son mecánicas: todas las subcarpetas como directorios de
+include (`CollectIncludeDirectories`, así que `#include "Player.h"` no cuesta nada), un PCH con
+headers del juego que tapa los includes faltantes, y singletons de acceso libre (63 `sXxx` en
+TrinityCore; `sObjectMgr` aparece 1.013 veces en 104 archivos de cMaNGOS). Las clases dios salen
+de ahí: `Player.cpp` tiene 31.765 líneas en TrinityCore y 26.182 en cMaNGOS. MuRet lleva la idea
+que sí les funciona un nivel más adentro: **un target por módulo**, con raíz de include por capa y
+ruta calificada, y un PCH solo con la biblioteca estándar (ya es así:
+`cmake/PrecompiledHeaders.cmake`).
 
 | patrón | de dónde | en MuRet |
 | --- | --- | --- |
@@ -143,10 +159,26 @@ b9f4614. Ninguna entra como dependencia.
 | serializar en orden de stream (`Read()`/`Write()`) | TrinityCore | **se rechaza** para lo fijo: los offsets quedan visibles y se comparan con el research |
 | "el dibujo no cambia el estado", con un frame de atraso (ADR 0003) | MuMain | **se rechaza:** cambia el momento y la secuencia de `rand()`; se separa *dónde vive* el código, no *cuándo corre* |
 | carpetas por capa y por dominio (`GameLogic/{Items,Combat}`), funciones de ~40 líneas | MuMain | **se adopta** la forma; su `WSclient.cpp` (463 `case`) y los `Zzz*` no |
+| un target por biblioteca, cero includes hacia arriba entre targets | TrinityCore, MaNGOS | **se adopta y se baja un nivel:** un target por módulo, no por capa |
+| `game` como un solo target con todas sus subcarpetas como directorios de include | TrinityCore, MaNGOS | **se rechaza:** es la causa del ciclo de 49 carpetas; raíz por capa, ruta calificada y `check_layers.py` |
+| lector del formato abajo, filas y tablas arriba (`DB2FileLoader` → `DB2Storage<T>` → `DB2Structure.h`; `DBCFileLoader` → `DBCStructure.h` + `DBCfmt.h`) | TrinityCore, MaNGOS | **se adopta:** `engine/Data` lee, `game/Tables` declara las filas, con `static_assert` en vez del `ASSERT` al cargar; sin los 297 (TrinityCore) o 114 (cMaNGOS) `extern` globales de tablas |
+| una carpeta por instancia con un header de ids (`molten_core/` + `molten_core.h`), `ZoneScript`/`InstanceScript` | TrinityCore, MaNGOS | **se adapta:** `Events/<Evento>/` y `MapScripts/<Mapa>/` con su `<Nombre>.h`; el script de cada mapa sale de una tabla `constexpr` por id, sin registro por nombre ni fábricas |
+| el cargador de scripts con los `AddSC_` en orden escrito (`ScriptLoader.cpp`) | cMaNGOS | **se adopta:** todo lo que se engancha (puntos de extensión, scripts) se arma en `app/` en el orden del original, nunca con constructores estáticos |
+| `ScriptMgr` con hooks difundidos por orden de registro (`FOREACH_SCRIPT`) | TrinityCore | **se rechaza** el difundido: el orden de las llamadas lo escribe el original |
+| la interfaz en el target de abajo y la implementación arriba (`proto/IWorldGateway.h`) | MaNGOS Zero | **se adopta:** los puertos de `Kernel` |
+| plantillas sin tipos del juego aparte (`framework`); un `terrain` que no sabe del mundo | cMaNGOS, MaNGOS Zero | **se adopta:** `engine/Core`, `engine/Pathfinding`; `game/Terrain` no incluye a `Actors` (hoy ya es así) |
+| headers de enums sin lógica (`*Defines.h`, 18 en cMaNGOS) y declaraciones adelantadas (`Player.h`: 17 includes, 64 adelantadas) | cMaNGOS, TrinityCore | **se adopta:** `<Módulo>Fwd.h` y `<Módulo>Defines.h` |
+| las entidades arman y mandan paquetes (`Entities` → `Server`) | TrinityCore | **se rechaza:** `Actors`, `Player` e `Items` no incluyen `Protocol` ni `Session`; mandan por el puerto de `Kernel` |
+| comportamiento como datos (SmartAI: 160 acciones; EventAI) | TrinityCore, MaNGOS | **se rechaza:** el comportamiento es el del binario; un intérprete cambia el orden |
+| `#ifdef` de módulos opcionales sembrados (657 `ENABLE_ELUNA` en MaNGOS Zero); partir archivos sin partir clases (`Player*.cpp`, 30.716 líneas) | MaNGOS Zero | **se rechaza** |
+| proyecto aparte según la dirección de las dependencias y no el tamaño (`Pathfinding`, `AttributeSystem`, `LoginServer` de 109 líneas) | OpenMU | **se adopta:** los criterios de [Los módulos, uno por uno](#los-módulos-uno-por-uno) |
+| la raíz de `GameLogic` como cajón (145 archivos sueltos, `Player` nombrado en 86 de 139 plugins) | OpenMU | **se rechaza:** `Kernel` con presupuesto (hoy 8 archivos) y nada suelto en `game/` |
+| la vertical completa de `CastleSiege/` (acciones, NPC, inteligencia, agenda) frente al evento repartido en cuatro carpetas | OpenMU | **se adopta la vertical:** cada evento en su carpeta |
+| los tamaños: mediana de 40 líneas por archivo, p90 de 218 | OpenMU | **se adopta como meta medible** junto con los tamaños de referencia de abajo |
 
 ## Approaches
 
-1. **Por épicas, intercalado con el port (elegido, a confirmar por Emanuel).** Primero la red de
+1. **Por épicas, intercalado con el port (elegido por Emanuel el 2026-11-21).** Primero la red de
    seguridad (el golden de comportamiento y el rastreo a prueba de mudanzas), después el motor
    aparte, el protocolo y el estado, y al final `Scenes/` partido en módulos, de a un grupo por
    hito. Cada hito es una mudanza generada por script (sin lógica, verificable) y un PR de diseño.
@@ -166,47 +198,67 @@ b9f4614. Ninguna entra como dependencia.
 ```text
 Client/src/
   engine/   el motor: no sabe del estado del juego (raíz de include propia)
-    Core/      Expected, ByteReader, Log, IClock, Crash/, WrappingInt
-    Math/      la matemática del original: Ftol, X87 (F32, Truncate), CrtRandom (el rand() del CRT),
-               OriginalRotation, OriginalAngles, OriginalRetainedMath, HalfLifeMath
-    Input/     teclado y mouse por frame, sin SDL
-    Audio/     música y efectos detrás de Audio::
-    Network/   socket no bloqueante, cifrado, armado de paquetes, Connection
-    Data/      los formatos de Data\: Tables/, Text/, Terrain/, Textures/, Models/
-    Platform/  SDL3: ventana, contexto GL, eventos, WindowState, VSyncMode, Resolution, portapapeles
-    Render/    SpriteBatch, ModelBatch, texto, contratos del frame (IFrameTarget, ITextDrawer), Gl/
-    Models/    esqueleto, pose, animación, skinning, tela, IModelLibrary
+    Core/         Expected, ByteReader, Log y sus salidas, IClock, las codificaciones de texto, WrappingInt  0
+    Math/         la matemática del original: Ftol, X87 (F32, Truncate), OriginalRotation,               1
+                  OriginalAngles, OriginalRetainedMath, HalfLifeMath
+    Crt/          lo que imita al runtime de MSVC 6: CrtRandom (rand), Msvc6Sort, el sprintf original    1
+    Crypto/       el cifrado de MU sobre bytes: SimpleModulus y su archivo de claves, Xor32, Xor3, K16    1
+    Diagnostics/  el manejador de crashes: el volcado, el informe, los registros, las señales             2
+    Input/        teclado y mouse por frame, sin SDL                                                      2
+    Audio/        reproducir efectos y música, la posición 3D; no sabe qué sonidos tiene MU               2
+    Network/      socket no bloqueante, armado de paquetes, la ofuscación, Connection                     2
+    Data/         los formatos de Data\: BMD, OZJ, OZT, JPEG, el terreno, el lector de tablas             2
+    Platform/     SDL3: ventana, contexto GL, eventos, audio, WindowState, Resolution, portapapeles      3
+    Pathfinding/  el A* del original sobre la grilla de paredes del terreno; no ve el estado del juego    3
+    Render/       SpriteBatch, ModelBatch, texto, contratos del frame (IFrameTarget, ITextDrawer), Gl/    4
+    Models/       esqueleto, pose, animación, skinning, tela, IModelLibrary                               5
   game/     el juego del 1.02 (raíz de include propia; ve engine/)
-    Protocol/  layouts y escritores de los paquetes, por módulo (Protocol/Guild/...)
-    Kernel/    el estado compartido: GameContext, pool de actores, jugador, mapa, assets, terreno,
-               y los puertos (mandar un paquete, pedir un sonido, un mensaje en pantalla)
-    Ui/        el kit: widgets, ventanas viejas, el administrador de la UI nueva, paneles
-    Actors/ Monsters/ Hero/ Combat/ Pets/ Items/ Npc/ Social/ Chat/ Guild/ Events/
-    CastleSiege/ WorldObjects/ Effects/ Hud/      los módulos del juego (rebanadas verticales)
-    Session/   la conexión con los servidores, el keepalive, la tabla de opcodes y el ruteo
-    Scenes/    los guiones del frame: Login, Selección, Carga, Juego; SceneManager
-  app/      main.cpp y App/: config, línea de comandos, bucle, la raíz de composición
+    Protocol/     layouts y escritores de los paquetes, por módulo (Protocol/Guild/...)                   6
+    Tables/       las tablas de MU: ítems, sets, skills, misiones, gates, textos, nombres de NPC…         6
+    Maps/         qué es cada mapa: los ids con nombre, su carpeta, su música y sus sonidos de ambiente   6
+    Kernel/       el GameContext, el estado compartido (pool de actores, jugador, mapa actual) y los      7
+                  puertos (mandar un paquete, pedir un sonido, un mensaje en pantalla)
+    Assets/ Terrain/ Sound/ Camera/ Ui/     los servicios del juego (Ui es el kit de widgets)        8
+    Actors/ Player/ Hero/ Monsters/ Pets/ Movement/ Skills/ Combat/ Items/ Tooltips/                 9
+    Npc/ Quests/ ChaosMix/ Warehouse/ PetTrainer/ Party/ Social/ Messenger/ PersonalShop/
+    Chat/ Guild/ Events/<Evento>/ CastleSiege/ WorldObjects/ MapScripts/<Mapa>/ Fauna/ Weather/
+    Particles/ Joints/ Effects/ Hud/ FrontEnd/            los módulos del juego (rebanadas verticales)
+    Session/      la conexión con los servidores, el keepalive, la tabla de opcodes y el ruteo           10
+    Scenes/       los guiones del frame: Login, Selección, Carga, Juego; SceneManager                    11
+  app/      main.cpp y App/: config, línea de comandos, bucle, la raíz de composición                    12
 ```
+
+El número de la derecha es la capa. Son 57 módulos (13 del motor, 43 del juego y `app`), con
+una mediana de 3.200 líneas; el porqué de cada uno está en
+[Los módulos, uno por uno](#los-módulos-uno-por-uno). La primera versión de este documento tenía
+31; Emanuel pidió el 2026-11-21 separar "lo mayor posible" (empezando por el sonido), y la
+revisión salió de medir el mapa y de leer cómo se organizan TrinityCore, MaNGOS y OpenMU.
 
 - **El sentido de las dependencias** es `app → game → engine`, y adentro de cada raíz se usa solo
   lo que está más arriba en el listado: en `engine/`, `Core` y `Math` abajo de todo y `Models`
-  arriba (`Render` le presta `TextureSlot` y `SpriteVertex`); en `game/`, `Protocol` abajo,
-  después `Kernel`, `Ui` y los módulos, y arriba `Session` (su tabla de opcodes nombra los
+  arriba (`Render` le presta `TextureSlot` y `SpriteVertex`); en `game/`, `Protocol`, `Tables` y
+  `Maps` abajo, después `Kernel`, los servicios (`Assets`, `Terrain`, `Sound`, `Camera`, `Ui`) y
+  los módulos, y arriba `Session` (su tabla de opcodes nombra los
   handlers de los módulos) y `Scenes`. Un módulo manda paquetes por el puerto de `Kernel`, que
   `Session` implementa: los handlers no conocen la sesión. Un módulo del juego no incluye las tripas
   de otro: incluye su header público, y los ciclos están prohibidos (`check_layers.py` en CI).
-- **Cuánto falta para eso, medido con el mapa de destino:** el motor tiene 8 includes hacia arriba
-  (`Render` → `Scenes` y `Actors`); en total suben de capa 336 includes en 54 pares de módulos
-  (193 archivos), y entre los módulos del juego hay 1.395 includes en 145 pares, 49 de ellos
-  mutuos.
+- **Cuánto falta para eso, medido con el mapa de destino:** el motor tiene 11 includes hacia
+  arriba (`Render` → `Scenes` y `Actors`, 8; `Xor32` → `Network/Packet.h`, 2; `SdlAudio` → el
+  catálogo de sonidos, 1); en total suben de capa 365 includes en 83 pares de módulos (210
+  archivos), y entre módulos del juego de la misma capa hay 1.685 includes en 306 pares, 80 de
+  ellos mutuos. Con más módulos hay más fronteras, así que estos números son más altos que los
+  de la primera versión (336, 54 y 49): no hay más acoplamiento, se ve más.
 - **Se hace cumplir con el compilador, no con la buena voluntad.** Cada raíz es su propia raíz de
   include: `engine/` no tiene `game/` en su ruta, así que un `#include "Scenes/…"` desde el motor no
   compila. Las carpetas que solo cambian de raíz no cambian sus includes (`"Core/Expected.h"`
   sigue igual, porque cambia la raíz y no la ruta relativa); cuando un archivo cambia de carpeta
   (`Scenes/X.h` → `Guild/X.h`), la mudanza reescribe sus includes y ninguna otra línea.
-- **Targets:** uno por carpeta del motor (`MuRetCore`, `MuRetMath`, `MuRetInput`, `MuRetAudio`,
-  `MuRetNetwork`, `MuRetData`, `MuRetPlatform`, `MuRetRender`, `MuRetModels`) y uno por módulo del
-  juego, con `target_link_libraries` en el sentido de las capas. Los headers van en
+- **Targets:** uno por carpeta del motor (`MuRetCore`, `MuRetMath`, `MuRetCrt`, `MuRetCrypto`,
+  `MuRetDiagnostics`, `MuRetInput`, `MuRetAudio`, `MuRetNetwork`, `MuRetData`, `MuRetPlatform`,
+  `MuRetPathfinding`, `MuRetRender`, `MuRetModels`) y uno por módulo del juego (los submódulos de
+  `Events/` y de `MapScripts/` son carpetas de su target), con `target_link_libraries` en el
+  sentido de las capas y los includes de otros módulos siempre con la ruta calificada
+  (`"Guild/Guild.h"`), nunca con el nombre pelado. Los headers van en
   `FILE_SET HEADERS` con `VERIFY_INTERFACE_HEADER_SETS` (CMake 3.24; el repo pide 3.25): cada
   header compila solo, verificado en CI. `/bigobj` queda donde haga falta, no en todo.
 - **Las banderas de fidelidad en un solo lugar:** `-ffp-contract=off` hoy está en `ClientLib`; con
@@ -232,8 +284,54 @@ Emanuel preguntó si conviene desacoplar el engine. **Sí, y es lo más barato d
   del juego".
 - **Una mejora de paso:** `Render/Models` es simulación (esqueleto, pose, tela), no dibujo: pasa a
   `engine/Models/`, y su matemática x87 (la que también usan `GameLogic`, `World` y `Data`) a
-  `engine/Math/`, junto con `Ftol` y `CrtRandom`. Hoy `Render` y `Render/Models` se incluyen en los
-  dos sentidos (5 y 6 includes); con la matemática abajo queda un solo sentido.
+  `engine/Math/`, junto con `Ftol`; `CrtRandom` sale de `Cloth.h` a `engine/Crt`. Hoy `Render` y
+  `Render/Models` se incluyen en los dos sentidos (5 y 6 includes); con la matemática abajo queda
+  un solo sentido.
+
+### Los módulos, uno por uno
+
+**Los criterios para separar** (de OpenMU, TrinityCore y MaNGOS; ver
+[Las referencias](#las-referencias-qué-se-toma-de-cada-una)):
+
+1. **Decide la dirección de las dependencias, no el tamaño.** En OpenMU `Pathfinding` (1.614
+   líneas) y `AttributeSystem` (1.867) son proyectos propios porque no dependen de nada, y
+   `LoginServer` tiene 109 líneas. Un módulo chico (`Maps`, 117 líneas; `Camera`, 410) está bien
+   si nadie de abajo lo necesita y él no necesita a nadie de arriba.
+2. **Un algoritmo que no ve el estado del juego es una hoja del motor** (`Pathfinding`, `Crt`,
+   `Crypto`), testeable sola.
+3. **Los datos sin comportamiento van abajo** (`Protocol`, `Tables`, `Maps`), y no se incluyen
+   entre sí: en OpenMU `DataModel` arrastra a `Network` por dos archivos.
+4. **El contrato abajo, la implementación arriba:** `Kernel` declara los puertos (mandar un
+   paquete, pedir un sonido, un mensaje en pantalla) y los implementan `Session`, `Sound` y `Ui`,
+   como `proto/IWorldGateway.h` en MaNGOS Zero.
+5. **Un evento o un mapa vive en una carpeta con todo lo suyo** (estado, ventanas, handlers, ids),
+   como el `CastleSiege/` de OpenMU o el `molten_core/` de TrinityCore.
+6. **Si dos módulos hermanos se incluyen mutuamente**, lo compartido baja a `Kernel` o los dos se
+   juntan; un ciclo nunca queda.
+
+**Lo que cambió en la revisión del 2026-11-21** (líneas medidas en `main` `bb56680`, con el mapa
+del anexo):
+
+| módulo | capa | qué tiene | por qué aparte |
+| --- | ---: | --- | --- |
+| `engine/Crt` | 1 | `CrtRandom` (hoy dentro de `Cloth.h`), `Msvc6Sort`, el `sprintf` original (788) | lo que imita al runtime de MSVC 6: las piezas de las que depende la fidelidad, juntas y testeadas solas |
+| `engine/Crypto` | 1 | SimpleModulus y su archivo de claves, Xor32, Xor3, K16 (708; hoy en `Network`, `Core` y `Data`) | el cifrado sobre bytes no necesita sockets ni formatos; `Xor32` deja de recibir un `Network::Packet` |
+| `engine/Diagnostics` | 2 | el manejador de crashes: volcado, informe, registros, señales (2.643) | eran 2.643 de las 4.154 líneas de `Core`; `Core` queda con lo que todos usan |
+| `engine/Pathfinding` | 3 | el A* del original y la grilla de paredes (614; hoy en `GameLogic` y `World`) | solo usa `Data` y `Math`: una hoja, como `Pathfinding` en OpenMU |
+| `game/Tables` | 6 | las 14 tablas de MU: ítems, sets, skills, misiones, gates, textos, nombres de NPC… (1.772; hoy en `Data`) | el motor lee el formato, el juego declara las filas: `DB2FileLoader` / `DB2Structure.h` en TrinityCore, `DBCFileLoader` / `DBCStructure.h` en MaNGOS |
+| `game/Maps` | 6 | los ids de los mapas con nombre y sus predicados (`IsChaosCastle`, `IsKalima`…), la carpeta, la música y el ambiente de cada uno | hoy hay unas 189 comparaciones por mapa en 62 archivos de 18 módulos, con constantes sueltas (`c.map == 7`, `IcarusMap`); pasan a nombres y se quedan donde están, porque son la lógica del original |
+| `game/Sound` | 8 | el catálogo de ids a archivos `.wav` (hoy en `engine/Audio`), qué sonidos carga cada mapa, la tabla de sonidos por modelo, el pedido de sonido (899) | el motor reproduce y no sabe qué sonidos tiene MU: recibe las definiciones al arrancar. Las 224 llamadas que piden un sonido (78 archivos, 19 módulos) se quedan en su función, porque en el original están adentro de ella y algunas eligen con `rand()`; cambian `WorldRuntime::RequestSound` por el puerto de `Kernel` |
+| `game/Assets`, `game/Terrain`, `game/Camera` | 8 | modelos y texturas del juego (4.261), el terreno (4.335), la cámara (410) | salen de `Kernel`, que queda en 8 archivos y 1.735 líneas: estado compartido y puertos, nada más. `Terrain` no conoce actores, como el `terrain` de MaNGOS Zero, que "no sabe del mundo" |
+| `game/Movement` | 9 | el camino del jugador, las gates, la velocidad (2.004; hoy en `Hero`) | usa `Pathfinding`; lo usan las skills, el HUD y los NPC. Hoy incluye a `Events` y a `Chat` (3 y 3) para saber si el clic es suyo: eso pasa a un punto de extensión ordenado (ver la anatomía) |
+| `game/Skills` | 9 | las skills del héroe y sus respuestas (9.025; hoy en `Hero` y `Combat`) | `Spells/` es un módulo propio en TrinityCore y en cMaNGOS. `Hero` queda chico (el ataque y la orientación, 788): en AR4.2 se decide si se junta con `Player` |
+| `game/Tooltips` | 9 | los tooltips de ítems, skills y mascotas (5.699; hoy en `Items`) | están arriba de `Items`, `Skills` y `Pets` |
+| `game/Messenger`, `game/PersonalShop`, `game/Party` | 9 | amigos y cartas (7.740), la tienda personal (1.978), la party (832) | `Social` (15 mil) mezclaba cuatro cosas; queda con el comercio y el duelo (2.369), y su chat pasa a `Chat`. Son los `PlayerActions/Messenger`, `PlayerStore` y `Party` de OpenMU |
+| `game/Quests`, `game/ChaosMix`, `game/Warehouse`, `game/PetTrainer` | 9 | las misiones (2.127), la máquina del Chaos Goblin y las mezclas de joyas (2.682), el almacén (552), el entrenador (1.142) | `Npc` (9 mil) mezclaba cinco ventanas; queda con la charla y las ventanas genéricas (2.589) |
+| `game/Events/<Evento>/` | 9 | Blood Castle, Devil Square, Chaos Castle, Kalima, Crywolf (con su recorrido de cámara) | un submódulo por evento con todo lo suyo; `EventPackets.cpp` (1.740) se reparte entre ellos. OpenMU reparte cada evento en cuatro lugares (reglas, entrada, agenda y vistas): acá no |
+| `game/MapScripts/<Mapa>/` | 9 | los objetos de Noria, Atlans, Icarus, Tarkan, Kalima, Crywolf, Aida, Land of Trials, Dungeon y el castillo (3.051; hoy en `WorldObjects`) | lo que hace cada mapa, con un `<Mapa>.h` de ids, como `scripts/<Zona>/` en TrinityCore. Qué mapa usa qué script lo dice una tabla `constexpr` por id de mapa, que se consulta donde el original llama al código de ese mapa |
+| `game/Fauna`, `game/Weather` | 9 | pájaros y peces (3.111), hojas, lluvia y nubes (1.000; hoy en `WorldObjects`) | sistemas propios del ambiente; `Weather/` es una carpeta propia en TrinityCore y en cMaNGOS |
+| `game/Particles`, `game/Joints`, `game/Effects` | 9 | partículas (7.639), joints (8.173), efectos con modelo (15.910) | `Effects` (31.700) eran tres sistemas. Los dos usan `Particles`, pero `Joints` y `Effects` se incluyen en los dos sentidos (13 y 6 includes): el diseño de AR4.3 deja uno solo o los junta (criterio 6) |
+| `game/FrontEnd` | 9 | el login, la lista de servidores, la selección y la creación de personaje (6.704) | la lógica de la pantalla de entrada; el guion de cada escena queda en `Scenes` |
 
 ### Anatomía de un módulo del juego
 
@@ -257,7 +355,21 @@ game/Guild/
 - **Una acción** (`Out/`) es una intención ("pedir la lista del gremio") que valida contra el estado
   y manda su paquete con `Protocol::Write`.
 - **El estado** de cada módulo es un struct simple con los campos del original que le tocan. El
-  `GameContext` de `Kernel/` es su dueño (la raíz de composición) y presta a cada uno lo suyo.
+  `GameContext` de `Kernel/` es su dueño (la raíz de composición) y presta a cada uno lo suyo. No
+  es un localizador de servicios: nadie le pide "todo" (el `IGameContext` de OpenMU, con 20
+  propiedades y downcasts, es lo que se evita).
+- **Los headers públicos:** `Guild.h` (lo que otros usan), `GuildFwd.h` (declaraciones
+  adelantadas) y, si hace falta, `GuildDefines.h` (enums e ids, sin lógica), como los `*Defines.h`
+  de cMaNGOS. Un `<Mapa>.h` o `<Evento>.h` junta los ids que comparten los archivos de ese mapa o
+  evento, como `molten_core.h` en TrinityCore.
+- **Puntos de extensión ordenados.** Cuando un módulo tiene que preguntarle algo a varios
+  hermanos (antes de caminar con el clic, `GameMovement` pregunta si el recorrido de cámara de
+  Crywolf, su contrato, la ventana de fichas de los eventos o el chat tienen el mouse), declara un
+  puerto con una lista fija de funciones que arma `app/` en el orden del original, como el
+  `ScriptLoader.cpp` de cMaNGOS con sus `AddSC_` en orden escrito. No hay registro en tiempo de
+  ejecución ni orden de suscripción: los plugins de OpenMU no tienen orden y el `FOREACH_SCRIPT`
+  de TrinityCore sigue el orden de registro, y en MuRet el orden de las llamadas y de los `rand()`
+  es parte del contrato.
 - **Tamaños de referencia** (para revisar, no para cortar a ciegas): un handler hasta ~80 líneas,
   un archivo hasta ~400, una función hasta ~60. La excepción es la transcripción de un `switch` del
   original (`0x518cf0`, `0x530860`, `0x5208a0`), que se marca y puede quedar larga, partida en una
@@ -295,9 +407,11 @@ inline constexpr OpcodeTable GameServerOpcodes{
   `globales.tsv`: dirección del original → campo de MuRet → módulo. Es el "UpdateFields" de
   TrinityCore para nuestro caso: dónde vive en MuRet cada global del original, y qué módulo es su
   dueño. Guía el corte de `WorldRuntime`.
-- **El corte.** De los 94 campos de `WorldRuntime`, 17 los usa un solo módulo (se mueven primero).
+- **El corte.** De los 94 campos de `WorldRuntime`, 17 los usa un solo módulo (se mueven primero;
+  medido con los 26 módulos candidatos de `Scenes/`, así que con los 57 de la revisión son menos).
   Los que usan muchos (`hero` en 22 módulos, el pedido de sonido en 21, `ownRecordDepth` en 20, el
-  mapa en 19) forman un núcleo chico en `Kernel/`. El arbitraje del mouse (`movement.pendingClick`,
+  mapa en 19) forman un núcleo chico en `Kernel/`; el pedido de sonido pasa a ser el puerto que
+  implementa `Sound`, y la fauna, su propio estado en `Fauna`. El arbitraje del mouse (`movement.pendingClick`,
   125 usos; `ui.mouseOnUi`; `ui.field`) es su propio estado. `WorldState` se parte en
   `ActorPool`, `PlayerState`, `MapState`, el scratch del frame y la fauna, y queda como la raíz que
   los junta. `world.Hero()` reemplaza los 210 `Actors()[…hero]`.
@@ -373,9 +487,10 @@ raíz de composición.
 | el golden de comportamiento no corre sin ventana | `GameScene` ya corre sin ventana con datos reales y `RecordingFrameTarget` (`tests/scenes/test_game_scene_complete.cpp`), y el login con la sesión (`test_login_scene_session.cpp`); si una escena no puede, el arnés arranca por las que sí |
 | MSVC (C1128, C4242, iteradores) | cada hito pasa el CI de Windows; las reglas de `client-msvc-ci-gotchas` |
 | el plan se come semanas de port | ver el reparto de carriles en el plan; el refactor nunca ocupa los 3 agentes |
+| 57 targets son muchos para CMake y el CI | son bibliotecas estáticas chicas: cada test enlaza solo las suyas (hoy los 728 enlazan todo `ClientLib`), y `ccache` ya cachea por unidad. Si un módulo queda con un solo archivo y nadie más lo usa, se junta con su vecino (criterio 6) |
 
 ## Lo que queda a quien lo construya
 
-Los nombres finales de los módulos chicos (si `Npc` y `Items` se parten), el corte exacto de los
-archivos de confianza baja del mapa (52 de 687 en `Scenes/`), la forma interna de `Route<>` y del
+Si `Hero` se junta con `Player` y si `Joints` se junta con `Effects` (AR4.2 y AR4.3), el corte
+exacto de los archivos de confianza baja del mapa (50 en la revisión), la forma interna de `Route<>` y del
 `GameContext`, y cuándo partir un `switch` del original en una función por `case`.

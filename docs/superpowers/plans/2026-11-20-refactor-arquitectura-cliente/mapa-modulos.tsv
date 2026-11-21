@@ -41,32 +41,32 @@ App/WorldEvent.h	153	App	game/Session	media	la sesión con los servidores
 Audio/Music.cpp	185	Audio	engine/Audio	alta	capa del motor o del protocolo, sin estado del juego
 Audio/Music.h	41	Audio	engine/Audio	alta	capa del motor o del protocolo, sin estado del juego
 Audio/Playback.h	28	Audio	engine/Audio	alta	capa del motor o del protocolo, sin estado del juego
-Audio/SoundCatalog.cpp	657	Audio	engine/Audio	alta	capa del motor o del protocolo, sin estado del juego
-Audio/SoundCatalog.h	22	Audio	engine/Audio	alta	capa del motor o del protocolo, sin estado del juego
+Audio/SoundCatalog.cpp	657	Audio	game/Sound	media	el catálogo de sonidos de MU; el motor recibe las definiciones al arrancar (revisión 2026-11-21)
+Audio/SoundCatalog.h	22	Audio	game/Sound	media	el catálogo de sonidos de MU; el motor recibe las definiciones al arrancar (revisión 2026-11-21)
 Core/Ascii.cpp	28	Core	engine/Core	alta	capa del motor o del protocolo, sin estado del juego
 Core/Ascii.h	22	Core	engine/Core	alta	capa del motor o del protocolo, sin estado del juego
 Core/ByteReader.cpp	89	Core	engine/Core	alta	capa del motor o del protocolo, sin estado del juego
 Core/ByteReader.h	53	Core	engine/Core	alta	capa del motor o del protocolo, sin estado del juego
-Core/Crash/CrashDump.cpp	177	Core	engine/Core	alta	capa del motor o del protocolo, sin estado del juego
-Core/Crash/CrashDump.h	30	Core	engine/Core	alta	capa del motor o del protocolo, sin estado del juego
-Core/Crash/CrashFrames.cpp	88	Core	engine/Core	alta	capa del motor o del protocolo, sin estado del juego
-Core/Crash/CrashFrames.h	25	Core	engine/Core	alta	capa del motor o del protocolo, sin estado del juego
-Core/Crash/CrashHandler.cpp	962	Core	engine/Core	alta	capa del motor o del protocolo, sin estado del juego
-Core/Crash/CrashHandler.h	76	Core	engine/Core	alta	capa del motor o del protocolo, sin estado del juego
-Core/Crash/CrashReport.h	127	Core	engine/Core	alta	capa del motor o del protocolo, sin estado del juego
-Core/Crash/CrashTexts.cpp	526	Core	engine/Core	alta	capa del motor o del protocolo, sin estado del juego
-Core/Crash/CrashTexts.h	68	Core	engine/Core	alta	capa del motor o del protocolo, sin estado del juego
-Core/Crash/Crc32.cpp	50	Core	engine/Core	alta	capa del motor o del protocolo, sin estado del juego
-Core/Crash/Crc32.h	25	Core	engine/Core	alta	capa del motor o del protocolo, sin estado del juego
-Core/Crash/IMemoryReader.h	28	Core	engine/Core	alta	capa del motor o del protocolo, sin estado del juego
-Core/Crash/MemoryTotals.cpp	45	Core	engine/Core	alta	capa del motor o del protocolo, sin estado del juego
-Core/Crash/MemoryTotals.h	31	Core	engine/Core	alta	capa del motor o del protocolo, sin estado del juego
-Core/Crash/ProcSelfFiles.cpp	149	Core	engine/Core	alta	capa del motor o del protocolo, sin estado del juego
-Core/Crash/ProcSelfFiles.h	27	Core	engine/Core	alta	capa del motor o del protocolo, sin estado del juego
-Core/Crash/Registers64.cpp	63	Core	engine/Core	alta	capa del motor o del protocolo, sin estado del juego
-Core/Crash/Registers64.h	48	Core	engine/Core	alta	capa del motor o del protocolo, sin estado del juego
-Core/Crash/SignalCodes.cpp	79	Core	engine/Core	alta	capa del motor o del protocolo, sin estado del juego
-Core/Crash/SignalCodes.h	19	Core	engine/Core	alta	capa del motor o del protocolo, sin estado del juego
+Core/Crash/CrashDump.cpp	177	Core	engine/Diagnostics	alta	el manejador de crashes: proceso y sistema, no es el núcleo (revisión 2026-11-21)
+Core/Crash/CrashDump.h	30	Core	engine/Diagnostics	alta	el manejador de crashes: proceso y sistema, no es el núcleo (revisión 2026-11-21)
+Core/Crash/CrashFrames.cpp	88	Core	engine/Diagnostics	alta	el manejador de crashes: proceso y sistema, no es el núcleo (revisión 2026-11-21)
+Core/Crash/CrashFrames.h	25	Core	engine/Diagnostics	alta	el manejador de crashes: proceso y sistema, no es el núcleo (revisión 2026-11-21)
+Core/Crash/CrashHandler.cpp	962	Core	engine/Diagnostics	alta	el manejador de crashes: proceso y sistema, no es el núcleo (revisión 2026-11-21)
+Core/Crash/CrashHandler.h	76	Core	engine/Diagnostics	alta	el manejador de crashes: proceso y sistema, no es el núcleo (revisión 2026-11-21)
+Core/Crash/CrashReport.h	127	Core	engine/Diagnostics	alta	el manejador de crashes: proceso y sistema, no es el núcleo (revisión 2026-11-21)
+Core/Crash/CrashTexts.cpp	526	Core	engine/Diagnostics	alta	el manejador de crashes: proceso y sistema, no es el núcleo (revisión 2026-11-21)
+Core/Crash/CrashTexts.h	68	Core	engine/Diagnostics	alta	el manejador de crashes: proceso y sistema, no es el núcleo (revisión 2026-11-21)
+Core/Crash/Crc32.cpp	50	Core	engine/Diagnostics	alta	el manejador de crashes: proceso y sistema, no es el núcleo (revisión 2026-11-21)
+Core/Crash/Crc32.h	25	Core	engine/Diagnostics	alta	el manejador de crashes: proceso y sistema, no es el núcleo (revisión 2026-11-21)
+Core/Crash/IMemoryReader.h	28	Core	engine/Diagnostics	alta	el manejador de crashes: proceso y sistema, no es el núcleo (revisión 2026-11-21)
+Core/Crash/MemoryTotals.cpp	45	Core	engine/Diagnostics	alta	el manejador de crashes: proceso y sistema, no es el núcleo (revisión 2026-11-21)
+Core/Crash/MemoryTotals.h	31	Core	engine/Diagnostics	alta	el manejador de crashes: proceso y sistema, no es el núcleo (revisión 2026-11-21)
+Core/Crash/ProcSelfFiles.cpp	149	Core	engine/Diagnostics	alta	el manejador de crashes: proceso y sistema, no es el núcleo (revisión 2026-11-21)
+Core/Crash/ProcSelfFiles.h	27	Core	engine/Diagnostics	alta	el manejador de crashes: proceso y sistema, no es el núcleo (revisión 2026-11-21)
+Core/Crash/Registers64.cpp	63	Core	engine/Diagnostics	alta	el manejador de crashes: proceso y sistema, no es el núcleo (revisión 2026-11-21)
+Core/Crash/Registers64.h	48	Core	engine/Diagnostics	alta	el manejador de crashes: proceso y sistema, no es el núcleo (revisión 2026-11-21)
+Core/Crash/SignalCodes.cpp	79	Core	engine/Diagnostics	alta	el manejador de crashes: proceso y sistema, no es el núcleo (revisión 2026-11-21)
+Core/Crash/SignalCodes.h	19	Core	engine/Diagnostics	alta	el manejador de crashes: proceso y sistema, no es el núcleo (revisión 2026-11-21)
 Core/Environment.cpp	48	Core	engine/Core	alta	capa del motor o del protocolo, sin estado del juego
 Core/Environment.h	14	Core	engine/Core	alta	capa del motor o del protocolo, sin estado del juego
 Core/Expected.h	156	Core	engine/Core	alta	capa del motor o del protocolo, sin estado del juego
@@ -79,7 +79,7 @@ Core/IntervalTimer.h	38	Core	engine/Core	alta	capa del motor o del protocolo, si
 Core/LocalTime.h	18	Core	engine/Core	alta	capa del motor o del protocolo, sin estado del juego
 Core/Log.cpp	64	Core	engine/Core	alta	capa del motor o del protocolo, sin estado del juego
 Core/Log.h	82	Core	engine/Core	alta	capa del motor o del protocolo, sin estado del juego
-Core/Msvc6Sort.h	121	Core	engine/Core	alta	capa del motor o del protocolo, sin estado del juego
+Core/Msvc6Sort.h	121	Core	engine/Crt	alta	imita al runtime de MSVC 6 (revisión 2026-11-21)
 Core/PathText.cpp	47	Core	engine/Core	alta	capa del motor o del protocolo, sin estado del juego
 Core/PathText.h	24	Core	engine/Core	alta	capa del motor o del protocolo, sin estado del juego
 Core/StderrSink.cpp	21	Core	engine/Core	alta	capa del motor o del protocolo, sin estado del juego
@@ -92,8 +92,8 @@ Core/Windows1252.cpp	57	Core	engine/Core	alta	capa del motor o del protocolo, si
 Core/Windows1252.h	13	Core	engine/Core	alta	capa del motor o del protocolo, sin estado del juego
 Core/Windows1252BestFit.cpp	170	Core	engine/Core	alta	capa del motor o del protocolo, sin estado del juego
 Core/Windows1252BestFit.h	14	Core	engine/Core	alta	capa del motor o del protocolo, sin estado del juego
-Core/Xor3.cpp	22	Core	engine/Core	alta	capa del motor o del protocolo, sin estado del juego
-Core/Xor3.h	20	Core	engine/Core	alta	capa del motor o del protocolo, sin estado del juego
+Core/Xor3.cpp	22	Core	engine/Crypto	alta	cifrado de MU sobre bytes, aparte de los sockets y de los formatos; Xor32 deja Network/Packet en AR1.1 (revisión 2026-11-21)
+Core/Xor3.h	20	Core	engine/Crypto	alta	cifrado de MU sobre bytes, aparte de los sockets y de los formatos; Xor32 deja Network/Packet en AR1.1 (revisión 2026-11-21)
 Data/DataError.h	14	Data	engine/Data	alta	capa del motor o del protocolo, sin estado del juego
 Data/DataFile.cpp	87	Data	engine/Data	alta	capa del motor o del protocolo, sin estado del juego
 Data/DataFile.h	33	Data	engine/Data	alta	capa del motor o del protocolo, sin estado del juego
@@ -114,25 +114,25 @@ Data/Models/PlayerActions.cpp	83	Data	engine/Data	alta	capa del motor o del prot
 Data/Models/PlayerActions.h	35	Data	engine/Data	alta	capa del motor o del protocolo, sin estado del juego
 Data/Models/PlayerModels.cpp	610	Data	engine/Data	alta	capa del motor o del protocolo, sin estado del juego
 Data/Models/PlayerModels.h	72	Data	engine/Data	alta	capa del motor o del protocolo, sin estado del juego
-Data/Tables/GateRecord.cpp	24	Data	engine/Data	alta	capa del motor o del protocolo, sin estado del juego
-Data/Tables/GateRecord.h	29	Data	engine/Data	alta	capa del motor o del protocolo, sin estado del juego
-Data/Tables/GateTable.cpp	19	Data	engine/Data	alta	capa del motor o del protocolo, sin estado del juego
-Data/Tables/GateTable.h	34	Data	engine/Data	alta	capa del motor o del protocolo, sin estado del juego
-Data/Tables/ItemSetTables.cpp	54	Data	engine/Data	alta	capa del motor o del protocolo, sin estado del juego
-Data/Tables/ItemSetTables.h	60	Data	engine/Data	alta	capa del motor o del protocolo, sin estado del juego
-Data/Tables/ItemTable.cpp	26	Data	engine/Data	alta	capa del motor o del protocolo, sin estado del juego
-Data/Tables/ItemTable.h	49	Data	engine/Data	alta	capa del motor o del protocolo, sin estado del juego
-Data/Tables/MonsterSkillTable.cpp	70	Data	engine/Data	alta	capa del motor o del protocolo, sin estado del juego
-Data/Tables/MonsterSkillTable.h	51	Data	engine/Data	alta	capa del motor o del protocolo, sin estado del juego
-Data/Tables/QuestTable.cpp	112	Data	engine/Data	alta	capa del motor o del protocolo, sin estado del juego
-Data/Tables/QuestTable.h	110	Data	engine/Data	alta	capa del motor o del protocolo, sin estado del juego
+Data/Tables/GateRecord.cpp	24	Data	game/Tables	alta	una tabla de datos de MU; el lector genérico se queda en engine/Data (revisión 2026-11-21)
+Data/Tables/GateRecord.h	29	Data	game/Tables	alta	una tabla de datos de MU; el lector genérico se queda en engine/Data (revisión 2026-11-21)
+Data/Tables/GateTable.cpp	19	Data	game/Tables	alta	una tabla de datos de MU; el lector genérico se queda en engine/Data (revisión 2026-11-21)
+Data/Tables/GateTable.h	34	Data	game/Tables	alta	una tabla de datos de MU; el lector genérico se queda en engine/Data (revisión 2026-11-21)
+Data/Tables/ItemSetTables.cpp	54	Data	game/Tables	alta	una tabla de datos de MU; el lector genérico se queda en engine/Data (revisión 2026-11-21)
+Data/Tables/ItemSetTables.h	60	Data	game/Tables	alta	una tabla de datos de MU; el lector genérico se queda en engine/Data (revisión 2026-11-21)
+Data/Tables/ItemTable.cpp	26	Data	game/Tables	alta	una tabla de datos de MU; el lector genérico se queda en engine/Data (revisión 2026-11-21)
+Data/Tables/ItemTable.h	49	Data	game/Tables	alta	una tabla de datos de MU; el lector genérico se queda en engine/Data (revisión 2026-11-21)
+Data/Tables/MonsterSkillTable.cpp	70	Data	game/Tables	alta	una tabla de datos de MU; el lector genérico se queda en engine/Data (revisión 2026-11-21)
+Data/Tables/MonsterSkillTable.h	51	Data	game/Tables	alta	una tabla de datos de MU; el lector genérico se queda en engine/Data (revisión 2026-11-21)
+Data/Tables/QuestTable.cpp	112	Data	game/Tables	alta	una tabla de datos de MU; el lector genérico se queda en engine/Data (revisión 2026-11-21)
+Data/Tables/QuestTable.h	110	Data	game/Tables	alta	una tabla de datos de MU; el lector genérico se queda en engine/Data (revisión 2026-11-21)
 Data/Tables/RecordTable.h	67	Data	engine/Data	alta	capa del motor o del protocolo, sin estado del juego
-Data/Tables/SkillTable.cpp	28	Data	engine/Data	alta	capa del motor o del protocolo, sin estado del juego
-Data/Tables/SkillTable.h	39	Data	engine/Data	alta	capa del motor o del protocolo, sin estado del juego
+Data/Tables/SkillTable.cpp	28	Data	game/Tables	alta	una tabla de datos de MU; el lector genérico se queda en engine/Data (revisión 2026-11-21)
+Data/Tables/SkillTable.h	39	Data	game/Tables	alta	una tabla de datos de MU; el lector genérico se queda en engine/Data (revisión 2026-11-21)
 Data/Tables/TableChecksum.cpp	55	Data	engine/Data	alta	capa del motor o del protocolo, sin estado del juego
 Data/Tables/TableChecksum.h	38	Data	engine/Data	alta	capa del motor o del protocolo, sin estado del juego
-Data/Terrain/K16.cpp	22	Data	engine/Data	alta	capa del motor o del protocolo, sin estado del juego
-Data/Terrain/K16.h	39	Data	engine/Data	alta	capa del motor o del protocolo, sin estado del juego
+Data/Terrain/K16.cpp	22	Data	engine/Crypto	alta	cifrado de MU sobre bytes, aparte de los sockets y de los formatos; Xor32 deja Network/Packet en AR1.1 (revisión 2026-11-21)
+Data/Terrain/K16.h	39	Data	engine/Crypto	alta	cifrado de MU sobre bytes, aparte de los sockets y de los formatos; Xor32 deja Network/Packet en AR1.1 (revisión 2026-11-21)
 Data/Terrain/TerrainAttributes.cpp	91	Data	engine/Data	alta	capa del motor o del protocolo, sin estado del juego
 Data/Terrain/TerrainAttributes.h	71	Data	engine/Data	alta	capa del motor o del protocolo, sin estado del juego
 Data/Terrain/TerrainGrid.h	31	Data	engine/Data	alta	capa del motor o del protocolo, sin estado del juego
@@ -144,20 +144,20 @@ Data/Terrain/TerrainMapping.cpp	45	Data	engine/Data	alta	capa del motor o del pr
 Data/Terrain/TerrainMapping.h	78	Data	engine/Data	alta	capa del motor o del protocolo, sin estado del juego
 Data/Terrain/TerrainObjects.cpp	108	Data	engine/Data	alta	capa del motor o del protocolo, sin estado del juego
 Data/Terrain/TerrainObjects.h	68	Data	engine/Data	alta	capa del motor o del protocolo, sin estado del juego
-Data/Text/Credits.cpp	47	Data	engine/Data	alta	capa del motor o del protocolo, sin estado del juego
-Data/Text/Credits.h	53	Data	engine/Data	alta	capa del motor o del protocolo, sin estado del juego
-Data/Text/DialogTable.cpp	84	Data	engine/Data	alta	capa del motor o del protocolo, sin estado del juego
-Data/Text/DialogTable.h	73	Data	engine/Data	alta	capa del motor o del protocolo, sin estado del juego
-Data/Text/FilterWords.cpp	58	Data	engine/Data	alta	capa del motor o del protocolo, sin estado del juego
-Data/Text/FilterWords.h	36	Data	engine/Data	alta	capa del motor o del protocolo, sin estado del juego
-Data/Text/MoveRequirements.cpp	72	Data	engine/Data	alta	capa del motor o del protocolo, sin estado del juego
-Data/Text/MoveRequirements.h	52	Data	engine/Data	alta	capa del motor o del protocolo, sin estado del juego
-Data/Text/NpcNames.cpp	305	Data	engine/Data	alta	capa del motor o del protocolo, sin estado del juego
-Data/Text/NpcNames.h	57	Data	engine/Data	alta	capa del motor o del protocolo, sin estado del juego
-Data/Text/SlideTable.cpp	66	Data	engine/Data	alta	capa del motor o del protocolo, sin estado del juego
-Data/Text/SlideTable.h	54	Data	engine/Data	alta	capa del motor o del protocolo, sin estado del juego
-Data/Text/TextTable.cpp	44	Data	engine/Data	alta	capa del motor o del protocolo, sin estado del juego
-Data/Text/TextTable.h	66	Data	engine/Data	alta	capa del motor o del protocolo, sin estado del juego
+Data/Text/Credits.cpp	47	Data	game/Tables	alta	una tabla de textos de MU; el lector genérico se queda en engine/Data (revisión 2026-11-21)
+Data/Text/Credits.h	53	Data	game/Tables	alta	una tabla de textos de MU; el lector genérico se queda en engine/Data (revisión 2026-11-21)
+Data/Text/DialogTable.cpp	84	Data	game/Tables	alta	una tabla de textos de MU; el lector genérico se queda en engine/Data (revisión 2026-11-21)
+Data/Text/DialogTable.h	73	Data	game/Tables	alta	una tabla de textos de MU; el lector genérico se queda en engine/Data (revisión 2026-11-21)
+Data/Text/FilterWords.cpp	58	Data	game/Tables	alta	una tabla de textos de MU; el lector genérico se queda en engine/Data (revisión 2026-11-21)
+Data/Text/FilterWords.h	36	Data	game/Tables	alta	una tabla de textos de MU; el lector genérico se queda en engine/Data (revisión 2026-11-21)
+Data/Text/MoveRequirements.cpp	72	Data	game/Tables	alta	una tabla de textos de MU; el lector genérico se queda en engine/Data (revisión 2026-11-21)
+Data/Text/MoveRequirements.h	52	Data	game/Tables	alta	una tabla de textos de MU; el lector genérico se queda en engine/Data (revisión 2026-11-21)
+Data/Text/NpcNames.cpp	305	Data	game/Tables	alta	una tabla de textos de MU; el lector genérico se queda en engine/Data (revisión 2026-11-21)
+Data/Text/NpcNames.h	57	Data	game/Tables	alta	una tabla de textos de MU; el lector genérico se queda en engine/Data (revisión 2026-11-21)
+Data/Text/SlideTable.cpp	66	Data	game/Tables	alta	una tabla de textos de MU; el lector genérico se queda en engine/Data (revisión 2026-11-21)
+Data/Text/SlideTable.h	54	Data	game/Tables	alta	una tabla de textos de MU; el lector genérico se queda en engine/Data (revisión 2026-11-21)
+Data/Text/TextTable.cpp	44	Data	game/Tables	alta	una tabla de textos de MU; el lector genérico se queda en engine/Data (revisión 2026-11-21)
+Data/Text/TextTable.h	66	Data	game/Tables	alta	una tabla de textos de MU; el lector genérico se queda en engine/Data (revisión 2026-11-21)
 Data/Textures/JpegErrors.cpp	16	Data	engine/Data	alta	capa del motor o del protocolo, sin estado del juego
 Data/Textures/JpegErrors.h	21	Data	engine/Data	alta	capa del motor o del protocolo, sin estado del juego
 Data/Textures/JpegImage.cpp	232	Data	engine/Data	alta	capa del motor o del protocolo, sin estado del juego
@@ -172,26 +172,26 @@ Data/Textures/Sampling.h	29	Data	engine/Data	alta	capa del motor o del protocolo
 Data/Textures/Texture.h	60	Data	engine/Data	alta	capa del motor o del protocolo, sin estado del juego
 Data/Textures/TextureSet.cpp	151	Data	engine/Data	alta	capa del motor o del protocolo, sin estado del juego
 Data/Textures/TextureSet.h	91	Data	engine/Data	alta	capa del motor o del protocolo, sin estado del juego
-Data/WorldFolder.cpp	21	Data	engine/Data	alta	capa del motor o del protocolo, sin estado del juego
-Data/WorldFolder.h	30	Data	engine/Data	alta	capa del motor o del protocolo, sin estado del juego
-Data/WorldLoadIdentity.cpp	53	Data	engine/Data	alta	capa del motor o del protocolo, sin estado del juego
-Data/WorldLoadIdentity.h	13	Data	engine/Data	alta	capa del motor o del protocolo, sin estado del juego
+Data/WorldFolder.cpp	21	Data	game/Maps	alta	qué carpeta tiene cada mapa: definición del mapa (revisión 2026-11-21)
+Data/WorldFolder.h	30	Data	game/Maps	alta	qué carpeta tiene cada mapa: definición del mapa (revisión 2026-11-21)
+Data/WorldLoadIdentity.cpp	53	Data	game/Maps	alta	qué carpeta tiene cada mapa: definición del mapa (revisión 2026-11-21)
+Data/WorldLoadIdentity.h	13	Data	game/Maps	alta	qué carpeta tiene cada mapa: definición del mapa (revisión 2026-11-21)
 GameLogic/CharacterAppearance.cpp	248	GameLogic	game/Actors	media	regla ^CharacterAppearance
 GameLogic/CharacterAppearance.h	84	GameLogic	game/Actors	media	regla ^CharacterAppearance
-GameLogic/CharacterPosition.cpp	77	GameLogic	game/Hero/Movement	media	regla ^(Path|PathCell|PathFinder|MovePath|Gate
-GameLogic/CharacterPosition.h	31	GameLogic	game/Hero/Movement	media	regla ^(Path|PathCell|PathFinder|MovePath|Gate
-GameLogic/GateCheck.cpp	156	GameLogic	game/Hero/Movement	media	regla ^(Path|PathCell|PathFinder|MovePath|Gate
-GameLogic/GateCheck.h	22	GameLogic	game/Hero/Movement	media	regla ^(Path|PathCell|PathFinder|MovePath|Gate
-GameLogic/GateCheckState.h	31	GameLogic	game/Hero/Movement	media	regla ^(Path|PathCell|PathFinder|MovePath|Gate
-GameLogic/GateDecision.h	28	GameLogic	game/Hero/Movement	media	regla ^(Path|PathCell|PathFinder|MovePath|Gate
-GameLogic/MovePath.cpp	156	GameLogic	game/Hero/Movement	media	regla ^(Path|PathCell|PathFinder|MovePath|Gate
-GameLogic/MovePath.h	43	GameLogic	game/Hero/Movement	media	regla ^(Path|PathCell|PathFinder|MovePath|Gate
-GameLogic/MovementSpeed.cpp	91	GameLogic	game/Hero/Movement	media	regla ^(Path|PathCell|PathFinder|MovePath|Gate
-GameLogic/MovementSpeed.h	34	GameLogic	game/Hero/Movement	media	regla ^(Path|PathCell|PathFinder|MovePath|Gate
-GameLogic/Path.h	22	GameLogic	game/Hero/Movement	media	regla ^(Path|PathCell|PathFinder|MovePath|Gate
-GameLogic/PathCell.h	14	GameLogic	game/Hero/Movement	media	regla ^(Path|PathCell|PathFinder|MovePath|Gate
-GameLogic/PathFinder.cpp	344	GameLogic	game/Hero/Movement	media	regla ^(Path|PathCell|PathFinder|MovePath|Gate
-GameLogic/PathFinder.h	45	GameLogic	game/Hero/Movement	media	regla ^(Path|PathCell|PathFinder|MovePath|Gate
+GameLogic/CharacterPosition.cpp	77	GameLogic	game/Movement	media	el pathfinder, las gates y la velocidad, fuera de Hero (revisión 2026-11-21)
+GameLogic/CharacterPosition.h	31	GameLogic	game/Movement	media	el pathfinder, las gates y la velocidad, fuera de Hero (revisión 2026-11-21)
+GameLogic/GateCheck.cpp	156	GameLogic	game/Movement	media	el pathfinder, las gates y la velocidad, fuera de Hero (revisión 2026-11-21)
+GameLogic/GateCheck.h	22	GameLogic	game/Movement	media	el pathfinder, las gates y la velocidad, fuera de Hero (revisión 2026-11-21)
+GameLogic/GateCheckState.h	31	GameLogic	game/Movement	media	el pathfinder, las gates y la velocidad, fuera de Hero (revisión 2026-11-21)
+GameLogic/GateDecision.h	28	GameLogic	game/Movement	media	el pathfinder, las gates y la velocidad, fuera de Hero (revisión 2026-11-21)
+GameLogic/MovePath.cpp	156	GameLogic	game/Movement	media	el pathfinder, las gates y la velocidad, fuera de Hero (revisión 2026-11-21)
+GameLogic/MovePath.h	43	GameLogic	game/Movement	media	el pathfinder, las gates y la velocidad, fuera de Hero (revisión 2026-11-21)
+GameLogic/MovementSpeed.cpp	91	GameLogic	game/Movement	media	el pathfinder, las gates y la velocidad, fuera de Hero (revisión 2026-11-21)
+GameLogic/MovementSpeed.h	34	GameLogic	game/Movement	media	el pathfinder, las gates y la velocidad, fuera de Hero (revisión 2026-11-21)
+GameLogic/Path.h	22	GameLogic	engine/Pathfinding	media	el A* del original sobre la grilla de paredes: un algoritmo sin estado del juego, como Pathfinding en OpenMU (revisión 2026-11-21)
+GameLogic/PathCell.h	14	GameLogic	engine/Pathfinding	media	el A* del original sobre la grilla de paredes: un algoritmo sin estado del juego, como Pathfinding en OpenMU (revisión 2026-11-21)
+GameLogic/PathFinder.cpp	344	GameLogic	engine/Pathfinding	media	el A* del original sobre la grilla de paredes: un algoritmo sin estado del juego, como Pathfinding en OpenMU (revisión 2026-11-21)
+GameLogic/PathFinder.h	45	GameLogic	engine/Pathfinding	media	el A* del original sobre la grilla de paredes: un algoritmo sin estado del juego, como Pathfinding en OpenMU (revisión 2026-11-21)
 Input/DoubleClick.cpp	29	Input	engine/Input	alta	capa del motor o del protocolo, sin estado del juego
 Input/DoubleClick.h	30	Input	engine/Input	alta	capa del motor o del protocolo, sin estado del juego
 Input/InputEvent.h	74	Input	engine/Input	alta	capa del motor o del protocolo, sin estado del juego
@@ -204,14 +204,14 @@ Network/CloseReason.cpp	30	Network	engine/Network	alta	capa del motor o del prot
 Network/CloseReason.h	25	Network	engine/Network	alta	capa del motor o del protocolo, sin estado del juego
 Network/Connection.cpp	364	Network	engine/Network	alta	capa del motor o del protocolo, sin estado del juego
 Network/Connection.h	180	Network	engine/Network	alta	capa del motor o del protocolo, sin estado del juego
-Network/Crypto/CryptoError.cpp	30	Network	engine/Network	alta	capa del motor o del protocolo, sin estado del juego
-Network/Crypto/CryptoError.h	29	Network	engine/Network	alta	capa del motor o del protocolo, sin estado del juego
-Network/Crypto/SimpleModulus.cpp	205	Network	engine/Network	alta	capa del motor o del protocolo, sin estado del juego
-Network/Crypto/SimpleModulus.h	123	Network	engine/Network	alta	capa del motor o del protocolo, sin estado del juego
-Network/Crypto/SimpleModulusKeyFile.cpp	68	Network	engine/Network	alta	capa del motor o del protocolo, sin estado del juego
-Network/Crypto/SimpleModulusKeyFile.h	37	Network	engine/Network	alta	capa del motor o del protocolo, sin estado del juego
-Network/Crypto/Xor32.cpp	69	Network	engine/Network	alta	capa del motor o del protocolo, sin estado del juego
-Network/Crypto/Xor32.h	44	Network	engine/Network	alta	capa del motor o del protocolo, sin estado del juego
+Network/Crypto/CryptoError.cpp	30	Network	engine/Crypto	alta	cifrado de MU sobre bytes, aparte de los sockets y de los formatos; Xor32 deja Network/Packet en AR1.1 (revisión 2026-11-21)
+Network/Crypto/CryptoError.h	29	Network	engine/Crypto	alta	cifrado de MU sobre bytes, aparte de los sockets y de los formatos; Xor32 deja Network/Packet en AR1.1 (revisión 2026-11-21)
+Network/Crypto/SimpleModulus.cpp	205	Network	engine/Crypto	alta	cifrado de MU sobre bytes, aparte de los sockets y de los formatos; Xor32 deja Network/Packet en AR1.1 (revisión 2026-11-21)
+Network/Crypto/SimpleModulus.h	123	Network	engine/Crypto	alta	cifrado de MU sobre bytes, aparte de los sockets y de los formatos; Xor32 deja Network/Packet en AR1.1 (revisión 2026-11-21)
+Network/Crypto/SimpleModulusKeyFile.cpp	68	Network	engine/Crypto	alta	cifrado de MU sobre bytes, aparte de los sockets y de los formatos; Xor32 deja Network/Packet en AR1.1 (revisión 2026-11-21)
+Network/Crypto/SimpleModulusKeyFile.h	37	Network	engine/Crypto	alta	cifrado de MU sobre bytes, aparte de los sockets y de los formatos; Xor32 deja Network/Packet en AR1.1 (revisión 2026-11-21)
+Network/Crypto/Xor32.cpp	69	Network	engine/Crypto	alta	cifrado de MU sobre bytes, aparte de los sockets y de los formatos; Xor32 deja Network/Packet en AR1.1 (revisión 2026-11-21)
+Network/Crypto/Xor32.h	44	Network	engine/Crypto	alta	cifrado de MU sobre bytes, aparte de los sockets y de los formatos; Xor32 deja Network/Packet en AR1.1 (revisión 2026-11-21)
 Network/Delivery.h	19	Network	engine/Network	alta	capa del motor o del protocolo, sin estado del juego
 Network/EncryptedPacket.cpp	197	Network	engine/Network	alta	capa del motor o del protocolo, sin estado del juego
 Network/EncryptedPacket.h	57	Network	engine/Network	alta	capa del motor o del protocolo, sin estado del juego
@@ -480,7 +480,7 @@ Scenes/ActorCombat.cpp	605	Scenes	game/Combat	media	character attack step (dir.)
 Scenes/ActorCombat.h	52	Scenes	game/Combat	media	character attack step (dir.)/(dir.), hits, combat/skill replies, damage numbers; include graph pulls to Hero (10 vs 
 Scenes/ActorConstruction.cpp	459	Scenes	game/Actors	media	actor record/pool, creation, equipment, flags, per-actor step, viewport packets 0x12/0x14/...; include graph pulls to Fr
 Scenes/ActorConstruction.h	69	Scenes	game/Actors	media	actor record/pool, creation, equipment, flags, per-actor step, viewport packets 0x12/0x14/...; include graph pulls to Fr
-Scenes/ActorCooldownServices.h	21	Scenes	game/Effects/ModelEffects	baja	model effects (dir.) table: high types, arrows, wizard/skill bursts, particles; include graph pulls to Actors (4 vs 0 
+Scenes/ActorCooldownServices.h	21	Scenes	game/Effects	baja	los efectos con modelo; usa Joints y Particles (revisión 2026-11-21)
 Scenes/ActorCreation.cpp	109	Scenes	game/Actors	alta	actor record/pool, creation, equipment, flags, per-actor step, viewport packets 0x12/0x14/...
 Scenes/ActorCreation.h	56	Scenes	game/Actors	alta	actor record/pool, creation, equipment, flags, per-actor step, viewport packets 0x12/0x14/...
 Scenes/ActorDying.cpp	266	Scenes	game/Actors	alta	actor record/pool, creation, equipment, flags, per-actor step, viewport packets 0x12/0x14/...
@@ -504,25 +504,25 @@ Scenes/ActorShock.h	16	Scenes	game/Actors	media	actor record/pool, creation, equ
 Scenes/ActorState.h	398	Scenes	game/Actors	alta	actor record/pool, creation, equipment, flags, per-actor step, viewport packets 0x12/0x14/...
 Scenes/ActorWalk.cpp	377	Scenes	game/Actors	alta	actor record/pool, creation, equipment, flags, per-actor step, viewport packets 0x12/0x14/...
 Scenes/ActorWalk.h	33	Scenes	game/Actors	alta	actor record/pool, creation, equipment, flags, per-actor step, viewport packets 0x12/0x14/...
-Scenes/AidaObjectServices.cpp	233	Scenes	game/WorldObjects	alta	map objects step/draw ((dir.)/(dir.)), per-map object services, fauna (birds/fish/leaves)
-Scenes/AidaObjectServices.h	24	Scenes	game/WorldObjects	alta	map objects step/draw ((dir.)/(dir.)), per-map object services, fauna (birds/fish/leaves)
-Scenes/ArrivalSparks.h	21	Scenes	game/Effects/ModelEffects	alta	model effects (dir.) table: high types, arrows, wizard/skill bursts, particles
-Scenes/ArrowEffects.cpp	1593	Scenes	game/Effects/ModelEffects	baja	model effects (dir.) table: high types, arrows, wizard/skill bursts, particles; include graph pulls to Combat (3 vs 0 
-Scenes/ArrowEffects.h	111	Scenes	game/Effects/ModelEffects	baja	model effects (dir.) table: high types, arrows, wizard/skill bursts, particles; include graph pulls to Combat (3 vs 0 
-Scenes/AttackFrameSkills.cpp	754	Scenes	game/Combat	alta	character attack step (dir.)/(dir.), hits, combat/skill replies, damage numbers
-Scenes/AttackFrameSkills.h	25	Scenes	game/Combat	alta	character attack step (dir.)/(dir.), hits, combat/skill replies, damage numbers
-Scenes/AttackSkillCases.cpp	1641	Scenes	game/Combat	media	character attack step (dir.)/(dir.), hits, combat/skill replies, damage numbers; include graph pulls to Effects.Mode
-Scenes/AttackSkillCases.h	47	Scenes	game/Combat	media	character attack step (dir.)/(dir.), hits, combat/skill replies, damage numbers; include graph pulls to Effects.Mode
-Scenes/AttackSkillReads.cpp	34	Scenes	game/Combat	alta	character attack step (dir.)/(dir.), hits, combat/skill replies, damage numbers
-Scenes/AttackSkillReads.h	27	Scenes	game/Combat	alta	character attack step (dir.)/(dir.), hits, combat/skill replies, damage numbers
+Scenes/AidaObjectServices.cpp	233	Scenes	game/MapScripts/Aida	alta	lo que hace ese mapa, como los scripts por zona de TrinityCore (revisión 2026-11-21)
+Scenes/AidaObjectServices.h	24	Scenes	game/MapScripts/Aida	alta	lo que hace ese mapa, como los scripts por zona de TrinityCore (revisión 2026-11-21)
+Scenes/ArrivalSparks.h	21	Scenes	game/Effects	alta	los efectos con modelo; usa Joints y Particles (revisión 2026-11-21)
+Scenes/ArrowEffects.cpp	1593	Scenes	game/Effects	baja	los efectos con modelo; usa Joints y Particles (revisión 2026-11-21)
+Scenes/ArrowEffects.h	111	Scenes	game/Effects	baja	los efectos con modelo; usa Joints y Particles (revisión 2026-11-21)
+Scenes/AttackFrameSkills.cpp	754	Scenes	game/Skills	media	las skills, un módulo propio; revisar en AR4.2 (revisión 2026-11-21)
+Scenes/AttackFrameSkills.h	25	Scenes	game/Skills	media	las skills, un módulo propio; revisar en AR4.2 (revisión 2026-11-21)
+Scenes/AttackSkillCases.cpp	1641	Scenes	game/Skills	media	las skills, un módulo propio; revisar en AR4.2 (revisión 2026-11-21)
+Scenes/AttackSkillCases.h	47	Scenes	game/Skills	media	las skills, un módulo propio; revisar en AR4.2 (revisión 2026-11-21)
+Scenes/AttackSkillReads.cpp	34	Scenes	game/Skills	media	las skills, un módulo propio; revisar en AR4.2 (revisión 2026-11-21)
+Scenes/AttackSkillReads.h	27	Scenes	game/Skills	media	las skills, un módulo propio; revisar en AR4.2 (revisión 2026-11-21)
 Scenes/AttackStep.cpp	412	Scenes	game/Combat	alta	character attack step (dir.)/(dir.), hits, combat/skill replies, damage numbers
 Scenes/AttackStep.h	29	Scenes	game/Combat	alta	character attack step (dir.)/(dir.), hits, combat/skill replies, damage numbers
-Scenes/AuraJoints.cpp	367	Scenes	game/Effects/Joints	alta	joint system (dir.)/(dir.) and its families
-Scenes/BeamJoints.cpp	473	Scenes	game/Effects/Joints	alta	joint system (dir.)/(dir.) and its families
+Scenes/AuraJoints.cpp	367	Scenes	game/Joints	alta	los joints (las cintas y los rayos), un módulo propio debajo de Effects (revisión 2026-11-21)
+Scenes/BeamJoints.cpp	473	Scenes	game/Joints	alta	los joints (las cintas y los rayos), un módulo propio debajo de Effects (revisión 2026-11-21)
 Scenes/BlastEffectCalls.cpp	113	Scenes	game/Combat	alta	character attack step (dir.)/(dir.), hits, combat/skill replies, damage numbers
 Scenes/BlastEffectCalls.h	40	Scenes	game/Combat	alta	character attack step (dir.)/(dir.), hits, combat/skill replies, damage numbers
-Scenes/CameraTour.cpp	808	Scenes	game/Events	media	Devil Square/Blood Castle/Chaos Castle/Crywolf/Kalima event packets, windows, map objects; include graph pulls to Actors
-Scenes/CameraTour.h	56	Scenes	game/Events	media	Devil Square/Blood Castle/Chaos Castle/Crywolf/Kalima event packets, windows, map objects; include graph pulls to Actors
+Scenes/CameraTour.cpp	808	Scenes	game/Events/Crywolf	media	el recorrido de la cámara de Crywolf (revisión 2026-11-21)
+Scenes/CameraTour.h	56	Scenes	game/Events/Crywolf	media	el recorrido de la cámara de Crywolf (revisión 2026-11-21)
 Scenes/CastleBattleActors.cpp	127	Scenes	game/CastleSiege	media	Castle Siege windows, receive B2..BB, battle UI, weapons, map server move; include graph pulls to Monsters (2 vs 1 own)
 Scenes/CastleBattleActors.h	32	Scenes	game/CastleSiege	media	Castle Siege windows, receive B2..BB, battle UI, weapons, map server move; include graph pulls to Monsters (2 vs 1 own)
 Scenes/CastleBattleCommands.cpp	318	Scenes	game/CastleSiege	alta	Castle Siege windows, receive B2..BB, battle UI, weapons, map server move
@@ -546,8 +546,8 @@ Scenes/CastleSiegeBlessing.cpp	52	Scenes	game/CastleSiege	alta	Castle Siege wind
 Scenes/CastleSiegeBlessing.h	20	Scenes	game/CastleSiege	alta	Castle Siege windows, receive B2..BB, battle UI, weapons, map server move
 Scenes/CastleSiegeMap.cpp	38	Scenes	game/CastleSiege	alta	Castle Siege windows, receive B2..BB, battle UI, weapons, map server move
 Scenes/CastleSiegeMap.h	16	Scenes	game/CastleSiege	alta	Castle Siege windows, receive B2..BB, battle UI, weapons, map server move
-Scenes/CastleSiegeObjectServices.cpp	107	Scenes	game/WorldObjects	alta	map objects step/draw ((dir.)/(dir.)), per-map object services, fauna (birds/fish/leaves)
-Scenes/CastleSiegeObjectServices.h	26	Scenes	game/WorldObjects	alta	map objects step/draw ((dir.)/(dir.)), per-map object services, fauna (birds/fish/leaves)
+Scenes/CastleSiegeObjectServices.cpp	107	Scenes	game/MapScripts/CastleSiege	alta	lo que hace ese mapa, como los scripts por zona de TrinityCore (revisión 2026-11-21)
+Scenes/CastleSiegeObjectServices.h	26	Scenes	game/MapScripts/CastleSiege	alta	lo que hace ese mapa, como los scripts por zona de TrinityCore (revisión 2026-11-21)
 Scenes/CastleSiegeReceive.cpp	671	Scenes	game/CastleSiege	alta	Castle Siege windows, receive B2..BB, battle UI, weapons, map server move
 Scenes/CastleSiegeReceive.h	72	Scenes	game/CastleSiege	alta	Castle Siege windows, receive B2..BB, battle UI, weapons, map server move
 Scenes/CastleWeaponEffects.cpp	162	Scenes	game/CastleSiege	media	Castle Siege windows, receive B2..BB, battle UI, weapons, map server move; include graph pulls to Actors (2 vs 1 own)
@@ -560,10 +560,10 @@ Scenes/CastleWindowSteps.cpp	548	Scenes	game/CastleSiege	alta	Castle Siege windo
 Scenes/CastleWindowSupport.cpp	175	Scenes	game/CastleSiege	alta	Castle Siege windows, receive B2..BB, battle UI, weapons, map server move
 Scenes/CastleWindowSupport.h	73	Scenes	game/CastleSiege	alta	Castle Siege windows, receive B2..BB, battle UI, weapons, map server move
 Scenes/CastleWindows.h	68	Scenes	game/CastleSiege	alta	Castle Siege windows, receive B2..BB, battle UI, weapons, map server move
-Scenes/ChaosBoxDrawing.cpp	460	Scenes	game/Npc	alta	NPC talk, shop/warehouse/chaos box/jewel mix/pet trainer windows (CL9 hito 6)
-Scenes/ChaosBoxDrawing.h	26	Scenes	game/Npc	alta	NPC talk, shop/warehouse/chaos box/jewel mix/pet trainer windows (CL9 hito 6)
-Scenes/ChaosMix.cpp	864	Scenes	game/Npc	alta	NPC talk, shop/warehouse/chaos box/jewel mix/pet trainer windows (CL9 hito 6)
-Scenes/ChaosMix.h	105	Scenes	game/Npc	alta	NPC talk, shop/warehouse/chaos box/jewel mix/pet trainer windows (CL9 hito 6)
+Scenes/ChaosBoxDrawing.cpp	460	Scenes	game/ChaosMix	alta	la máquina del Chaos Goblin y las mezclas de joyas (revisión 2026-11-21)
+Scenes/ChaosBoxDrawing.h	26	Scenes	game/ChaosMix	alta	la máquina del Chaos Goblin y las mezclas de joyas (revisión 2026-11-21)
+Scenes/ChaosMix.cpp	864	Scenes	game/ChaosMix	alta	la máquina del Chaos Goblin y las mezclas de joyas (revisión 2026-11-21)
+Scenes/ChaosMix.h	105	Scenes	game/ChaosMix	alta	la máquina del Chaos Goblin y las mezclas de joyas (revisión 2026-11-21)
 Scenes/CharacterAnimation.cpp	64	Scenes	game/Actors	media	actor record/pool, creation, equipment, flags, per-actor step, viewport packets 0x12/0x14/...; include graph pulls to Fr
 Scenes/CharacterAnimation.h	39	Scenes	game/Actors	media	actor record/pool, creation, equipment, flags, per-actor step, viewport packets 0x12/0x14/...; include graph pulls to Fr
 Scenes/CharacterCloth.cpp	482	Scenes	game/Actors/Drawing	alta	(dir.) player draw: body, cloth, hanging items, item glows, weapon trails
@@ -576,15 +576,15 @@ Scenes/CharacterPicking.cpp	153	Scenes	game/Actors	alta	actor record/pool, creat
 Scenes/CharacterPicking.h	39	Scenes	game/Actors	alta	actor record/pool, creation, equipment, flags, per-actor step, viewport packets 0x12/0x14/...
 Scenes/CharacterSelectScene.cpp	1910	Scenes	game/Scenes	alta	scenes 1-4 (loading, login, character select, create) and their 3D sets
 Scenes/CharacterSelectScene.h	294	Scenes	game/Scenes	alta	scenes 1-4 (loading, login, character select, create) and their 3D sets
-Scenes/CharacterSlots.h	26	Scenes	game/Scenes	alta	scenes 1-4 (loading, login, character select, create) and their 3D sets
+Scenes/CharacterSlots.h	26	Scenes	game/FrontEnd	media	la lógica del login y de la selección; el guion de la escena queda en Scenes (revisión 2026-11-21)
 Scenes/CharacterStep.cpp	1496	Scenes	game/Actors	alta	actor record/pool, creation, equipment, flags, per-actor step, viewport packets 0x12/0x14/...; NOTE per-actor step dispa
 Scenes/CharacterStep.h	148	Scenes	game/Actors	alta	actor record/pool, creation, equipment, flags, per-actor step, viewport packets 0x12/0x14/...; NOTE per-actor step dispa
-Scenes/ChatBubbleDraw.cpp	406	Scenes	game/Social	alta	chat: chat input/receive, bubbles, game messages
-Scenes/ChatBubbleDraw.h	76	Scenes	game/Social	alta	chat: chat input/receive, bubbles, game messages
-Scenes/ChatBubbles.cpp	361	Scenes	game/Social	alta	chat: chat input/receive, bubbles, game messages
-Scenes/ChatBubbles.h	124	Scenes	game/Social	alta	chat: chat input/receive, bubbles, game messages
-Scenes/ChatReceive.cpp	362	Scenes	game/Social	alta	chat: chat input/receive, bubbles, game messages
-Scenes/ChatReceive.h	99	Scenes	game/Social	alta	chat: chat input/receive, bubbles, game messages
+Scenes/ChatBubbleDraw.cpp	406	Scenes	game/Chat	alta	el chat que estaba en Social (revisión 2026-11-21)
+Scenes/ChatBubbleDraw.h	76	Scenes	game/Chat	alta	el chat que estaba en Social (revisión 2026-11-21)
+Scenes/ChatBubbles.cpp	361	Scenes	game/Chat	alta	el chat que estaba en Social (revisión 2026-11-21)
+Scenes/ChatBubbles.h	124	Scenes	game/Chat	alta	el chat que estaba en Social (revisión 2026-11-21)
+Scenes/ChatReceive.cpp	362	Scenes	game/Chat	alta	el chat que estaba en Social (revisión 2026-11-21)
+Scenes/ChatReceive.h	99	Scenes	game/Chat	alta	el chat que estaba en Social (revisión 2026-11-21)
 Scenes/ClassParts.cpp	76	Scenes	game/Actors	alta	actor record/pool, creation, equipment, flags, per-actor step, viewport packets 0x12/0x14/...
 Scenes/ClassParts.h	21	Scenes	game/Actors	alta	actor record/pool, creation, equipment, flags, per-actor step, viewport packets 0x12/0x14/...
 Scenes/ClothCarry.cpp	60	Scenes	game/Actors/Drawing	alta	(dir.) player draw: body, cloth, hanging items, item glows, weapon trails
@@ -593,30 +593,30 @@ Scenes/CombatActionSpeeds.cpp	85	Scenes	game/Combat	media	character attack step 
 Scenes/CombatActionSpeeds.h	15	Scenes	game/Combat	media	character attack step (dir.)/(dir.), hits, combat/skill replies, damage numbers; include graph pulls to Hero (7 vs 2
 Scenes/CombatReplies.cpp	242	Scenes	game/Combat	alta	character attack step (dir.)/(dir.), hits, combat/skill replies, damage numbers
 Scenes/CombatReplies.h	32	Scenes	game/Combat	alta	character attack step (dir.)/(dir.), hits, combat/skill replies, damage numbers
-Scenes/ConstructedBmdPrefix.cpp	33	Scenes	game/Kernel/Assets	media	constructed BMD prefix (dir.)
-Scenes/ConstructedBmdPrefix.h	26	Scenes	game/Kernel/Assets	media	constructed BMD prefix (dir.)
-Scenes/CreatePreview.cpp	306	Scenes	game/Scenes	media	scenes 1-4 (loading, login, character select, create) and their 3D sets; include graph pulls to Assets (5 vs 3 own)
-Scenes/CreatePreview.h	121	Scenes	game/Scenes	media	scenes 1-4 (loading, login, character select, create) and their 3D sets; include graph pulls to Assets (5 vs 3 own)
-Scenes/CrywolfAltarDrawing.h	27	Scenes	game/WorldObjects	media	altar mesh draw inside map-object pass
-Scenes/CrywolfContract.cpp	262	Scenes	game/Events	media	Devil Square/Blood Castle/Chaos Castle/Crywolf/Kalima event packets, windows, map objects; include graph pulls to Hero (
-Scenes/CrywolfContract.h	113	Scenes	game/Events	media	Devil Square/Blood Castle/Chaos Castle/Crywolf/Kalima event packets, windows, map objects; include graph pulls to Hero (
-Scenes/CrywolfDeathSpiritEffects.cpp	139	Scenes	game/Events	alta	Devil Square/Blood Castle/Chaos Castle/Crywolf/Kalima event packets, windows, map objects
-Scenes/CrywolfDeathSpiritEffects.h	30	Scenes	game/Events	alta	Devil Square/Blood Castle/Chaos Castle/Crywolf/Kalima event packets, windows, map objects
-Scenes/CrywolfInterfaceDrawing.cpp	708	Scenes	game/Events	alta	Devil Square/Blood Castle/Chaos Castle/Crywolf/Kalima event packets, windows, map objects
-Scenes/CrywolfInterfaceDrawing.h	33	Scenes	game/Events	alta	Devil Square/Blood Castle/Chaos Castle/Crywolf/Kalima event packets, windows, map objects
-Scenes/CrywolfMissileDrawing.cpp	78	Scenes	game/Events	alta	Devil Square/Blood Castle/Chaos Castle/Crywolf/Kalima event packets, windows, map objects
-Scenes/CrywolfMissileDrawing.h	28	Scenes	game/Events	alta	Devil Square/Blood Castle/Chaos Castle/Crywolf/Kalima event packets, windows, map objects
-Scenes/CrywolfObjectServices.cpp	268	Scenes	game/WorldObjects	alta	map objects step/draw ((dir.)/(dir.)), per-map object services, fauna (birds/fish/leaves)
-Scenes/CrywolfObjectServices.h	40	Scenes	game/WorldObjects	alta	map objects step/draw ((dir.)/(dir.)), per-map object services, fauna (birds/fish/leaves)
+Scenes/ConstructedBmdPrefix.cpp	33	Scenes	game/Assets	media	los modelos y texturas, fuera de Kernel (revisión 2026-11-21)
+Scenes/ConstructedBmdPrefix.h	26	Scenes	game/Assets	media	los modelos y texturas, fuera de Kernel (revisión 2026-11-21)
+Scenes/CreatePreview.cpp	306	Scenes	game/FrontEnd	media	la lógica del login y de la selección; el guion de la escena queda en Scenes (revisión 2026-11-21)
+Scenes/CreatePreview.h	121	Scenes	game/FrontEnd	media	la lógica del login y de la selección; el guion de la escena queda en Scenes (revisión 2026-11-21)
+Scenes/CrywolfAltarDrawing.h	27	Scenes	game/MapScripts/Crywolf	media	lo que hace ese mapa, como los scripts por zona de TrinityCore (revisión 2026-11-21)
+Scenes/CrywolfContract.cpp	262	Scenes	game/Events/Crywolf	media	un submódulo por evento (revisión 2026-11-21)
+Scenes/CrywolfContract.h	113	Scenes	game/Events/Crywolf	media	un submódulo por evento (revisión 2026-11-21)
+Scenes/CrywolfDeathSpiritEffects.cpp	139	Scenes	game/Events/Crywolf	alta	un submódulo por evento (revisión 2026-11-21)
+Scenes/CrywolfDeathSpiritEffects.h	30	Scenes	game/Events/Crywolf	alta	un submódulo por evento (revisión 2026-11-21)
+Scenes/CrywolfInterfaceDrawing.cpp	708	Scenes	game/Events/Crywolf	alta	un submódulo por evento (revisión 2026-11-21)
+Scenes/CrywolfInterfaceDrawing.h	33	Scenes	game/Events/Crywolf	alta	un submódulo por evento (revisión 2026-11-21)
+Scenes/CrywolfMissileDrawing.cpp	78	Scenes	game/Events/Crywolf	alta	un submódulo por evento (revisión 2026-11-21)
+Scenes/CrywolfMissileDrawing.h	28	Scenes	game/Events/Crywolf	alta	un submódulo por evento (revisión 2026-11-21)
+Scenes/CrywolfObjectServices.cpp	268	Scenes	game/MapScripts/Crywolf	alta	lo que hace ese mapa, como los scripts por zona de TrinityCore (revisión 2026-11-21)
+Scenes/CrywolfObjectServices.h	40	Scenes	game/MapScripts/Crywolf	alta	lo que hace ese mapa, como los scripts por zona de TrinityCore (revisión 2026-11-21)
 Scenes/DamageNumbers.cpp	37	Scenes	game/Combat	alta	character attack step (dir.)/(dir.), hits, combat/skill replies, damage numbers
 Scenes/DamageNumbers.h	15	Scenes	game/Combat	alta	character attack step (dir.)/(dir.), hits, combat/skill replies, damage numbers
 Scenes/DarkHorse.cpp	115	Scenes	game/Pets	alta	Dark Lord raven/horse, helper table (dir.), A7/A8/A9, pet window
 Scenes/DarkHorse.h	77	Scenes	game/Pets	alta	Dark Lord raven/horse, helper table (dir.), A7/A8/A9, pet window
 Scenes/DarkSpirit.cpp	504	Scenes	game/Pets	media	Dark Lord raven/horse, helper table (dir.), A7/A8/A9, pet window; include graph pulls to FrontEndScenes (6 vs 3 own)
 Scenes/DarkSpirit.h	173	Scenes	game/Pets	media	Dark Lord raven/horse, helper table (dir.), A7/A8/A9, pet window; include graph pulls to FrontEndScenes (6 vs 3 own)
-Scenes/DropJoints.cpp	75	Scenes	game/Effects/Joints	alta	joint system (dir.)/(dir.) and its families
-Scenes/DynamicWorldLight.cpp	46	Scenes	game/Kernel	baja	durable globals, map load, world entry F3 03, map transitions, terrain state; include graph pulls to GameScene (3 vs 0 o
-Scenes/DynamicWorldLight.h	32	Scenes	game/Kernel	baja	durable globals, map load, world entry F3 03, map transitions, terrain state; include graph pulls to GameScene (3 vs 0 o
+Scenes/DropJoints.cpp	75	Scenes	game/Joints	alta	los joints (las cintas y los rayos), un módulo propio debajo de Effects (revisión 2026-11-21)
+Scenes/DynamicWorldLight.cpp	46	Scenes	game/Terrain	baja	el terreno, fuera de Kernel (revisión 2026-11-21)
+Scenes/DynamicWorldLight.h	32	Scenes	game/Terrain	baja	el terreno, fuera de Kernel (revisión 2026-11-21)
 Scenes/Emote.cpp	64	Scenes	game/Actors	alta	actor record/pool, creation, equipment, flags, per-actor step, viewport packets 0x12/0x14/...
 Scenes/Emote.h	38	Scenes	game/Actors	alta	actor record/pool, creation, equipment, flags, per-actor step, viewport packets 0x12/0x14/...
 Scenes/EventChipWindow.cpp	680	Scenes	game/Events	alta	Devil Square/Blood Castle/Chaos Castle/Crywolf/Kalima event packets, windows, map objects
@@ -631,26 +631,26 @@ Scenes/EventNpcWindows.cpp	502	Scenes	game/Events	alta	Devil Square/Blood Castle
 Scenes/EventNpcWindows.h	46	Scenes	game/Events	alta	Devil Square/Blood Castle/Chaos Castle/Crywolf/Kalima event packets, windows, map objects
 Scenes/EventPackets.cpp	1639	Scenes	game/Events	alta	Devil Square/Blood Castle/Chaos Castle/Crywolf/Kalima event packets, windows, map objects
 Scenes/EventPackets.h	101	Scenes	game/Events	alta	Devil Square/Blood Castle/Chaos Castle/Crywolf/Kalima event packets, windows, map objects
-Scenes/FaunaBirdHandlers.cpp	364	Scenes	game/WorldObjects	alta	map objects step/draw ((dir.)/(dir.)), per-map object services, fauna (birds/fish/leaves)
-Scenes/FaunaDrawing.cpp	391	Scenes	game/WorldObjects	alta	map objects step/draw ((dir.)/(dir.)), per-map object services, fauna (birds/fish/leaves); NOTE misnamed: shared pos
-Scenes/FaunaDrawing.h	78	Scenes	game/WorldObjects	alta	map objects step/draw ((dir.)/(dir.)), per-map object services, fauna (birds/fish/leaves); NOTE misnamed: shared pos
-Scenes/FaunaEffects.cpp	137	Scenes	game/WorldObjects	media	map objects step/draw ((dir.)/(dir.)), per-map object services, fauna (birds/fish/leaves); include graph pulls to Ga
-Scenes/FaunaEffects.h	39	Scenes	game/WorldObjects	media	map objects step/draw ((dir.)/(dir.)), per-map object services, fauna (birds/fish/leaves); include graph pulls to Ga
-Scenes/FaunaJointCreation.cpp	2391	Scenes	game/Effects/Joints	alta	joint system (dir.)/(dir.) and its families; NOTE misnamed: generic joint creator (dir.) (41 includers), not fauna
-Scenes/FaunaJointCreation.h	91	Scenes	game/Effects/Joints	alta	joint system (dir.)/(dir.) and its families; NOTE misnamed: generic joint creator (dir.) (41 includers), not fauna
-Scenes/FaunaModels.cpp	534	Scenes	game/Kernel/Assets	media	on-demand model loader (dir.)/(dir.) + model sounds (misnamed: not fauna-specific); NOTE misnamed: on-demand model l
-Scenes/FaunaModels.h	173	Scenes	game/Kernel/Assets	media	on-demand model loader (dir.)/(dir.) + model sounds (misnamed: not fauna-specific); NOTE misnamed: on-demand model l
-Scenes/FaunaMotion.cpp	139	Scenes	game/WorldObjects	alta	map objects step/draw ((dir.)/(dir.)), per-map object services, fauna (birds/fish/leaves)
-Scenes/FaunaMotion.h	24	Scenes	game/WorldObjects	alta	map objects step/draw ((dir.)/(dir.)), per-map object services, fauna (birds/fish/leaves)
-Scenes/FaunaObject.h	73	Scenes	game/WorldObjects	alta	map objects step/draw ((dir.)/(dir.)), per-map object services, fauna (birds/fish/leaves)
-Scenes/FaunaState.cpp	105	Scenes	game/WorldObjects	alta	map objects step/draw ((dir.)/(dir.)), per-map object services, fauna (birds/fish/leaves)
-Scenes/FaunaState.h	47	Scenes	game/WorldObjects	alta	map objects step/draw ((dir.)/(dir.)), per-map object services, fauna (birds/fish/leaves)
-Scenes/FaunaStep.cpp	293	Scenes	game/WorldObjects	alta	map objects step/draw ((dir.)/(dir.)), per-map object services, fauna (birds/fish/leaves)
-Scenes/FaunaStep.h	64	Scenes	game/WorldObjects	alta	map objects step/draw ((dir.)/(dir.)), per-map object services, fauna (birds/fish/leaves)
-Scenes/FireBreathEffect.cpp	162	Scenes	game/Effects/ModelEffects	alta	model effects (dir.) table: high types, arrows, wizard/skill bursts, particles
-Scenes/FireBreathEffect.h	35	Scenes	game/Effects/ModelEffects	alta	model effects (dir.) table: high types, arrows, wizard/skill bursts, particles
-Scenes/FireTrailJoints.cpp	58	Scenes	game/Effects/Joints	alta	joint system (dir.)/(dir.) and its families
-Scenes/FlareJoints.cpp	120	Scenes	game/Effects/Joints	alta	joint system (dir.)/(dir.) and its families
+Scenes/FaunaBirdHandlers.cpp	364	Scenes	game/Fauna	alta	la fauna de ambiente (pájaros, peces), fuera de WorldObjects (revisión 2026-11-21)
+Scenes/FaunaDrawing.cpp	391	Scenes	game/Fauna	alta	la fauna de ambiente (pájaros, peces), fuera de WorldObjects (revisión 2026-11-21)
+Scenes/FaunaDrawing.h	78	Scenes	game/Fauna	alta	la fauna de ambiente (pájaros, peces), fuera de WorldObjects (revisión 2026-11-21)
+Scenes/FaunaEffects.cpp	137	Scenes	game/Fauna	media	la fauna de ambiente (pájaros, peces), fuera de WorldObjects (revisión 2026-11-21)
+Scenes/FaunaEffects.h	39	Scenes	game/Fauna	media	la fauna de ambiente (pájaros, peces), fuera de WorldObjects (revisión 2026-11-21)
+Scenes/FaunaJointCreation.cpp	2391	Scenes	game/Joints	alta	los joints (las cintas y los rayos), un módulo propio debajo de Effects (revisión 2026-11-21)
+Scenes/FaunaJointCreation.h	91	Scenes	game/Joints	alta	los joints (las cintas y los rayos), un módulo propio debajo de Effects (revisión 2026-11-21)
+Scenes/FaunaModels.cpp	534	Scenes	game/Assets	media	los modelos y texturas, fuera de Kernel (revisión 2026-11-21)
+Scenes/FaunaModels.h	173	Scenes	game/Assets	media	los modelos y texturas, fuera de Kernel (revisión 2026-11-21)
+Scenes/FaunaMotion.cpp	139	Scenes	game/Fauna	alta	la fauna de ambiente (pájaros, peces), fuera de WorldObjects (revisión 2026-11-21)
+Scenes/FaunaMotion.h	24	Scenes	game/Fauna	alta	la fauna de ambiente (pájaros, peces), fuera de WorldObjects (revisión 2026-11-21)
+Scenes/FaunaObject.h	73	Scenes	game/Fauna	alta	la fauna de ambiente (pájaros, peces), fuera de WorldObjects (revisión 2026-11-21)
+Scenes/FaunaState.cpp	105	Scenes	game/Fauna	alta	la fauna de ambiente (pájaros, peces), fuera de WorldObjects (revisión 2026-11-21)
+Scenes/FaunaState.h	47	Scenes	game/Fauna	alta	la fauna de ambiente (pájaros, peces), fuera de WorldObjects (revisión 2026-11-21)
+Scenes/FaunaStep.cpp	293	Scenes	game/Fauna	alta	la fauna de ambiente (pájaros, peces), fuera de WorldObjects (revisión 2026-11-21)
+Scenes/FaunaStep.h	64	Scenes	game/Fauna	alta	la fauna de ambiente (pájaros, peces), fuera de WorldObjects (revisión 2026-11-21)
+Scenes/FireBreathEffect.cpp	162	Scenes	game/Effects	alta	los efectos con modelo; usa Joints y Particles (revisión 2026-11-21)
+Scenes/FireBreathEffect.h	35	Scenes	game/Effects	alta	los efectos con modelo; usa Joints y Particles (revisión 2026-11-21)
+Scenes/FireTrailJoints.cpp	58	Scenes	game/Joints	alta	los joints (las cintas y los rayos), un módulo propio debajo de Effects (revisión 2026-11-21)
+Scenes/FlareJoints.cpp	120	Scenes	game/Joints	alta	los joints (las cintas y los rayos), un módulo propio debajo de Effects (revisión 2026-11-21)
 Scenes/FloorItemActions.cpp	197	Scenes	game/Items	alta	inventory grids, cursor item, floor items, item names/prices, UI item 3D
 Scenes/FloorItemActions.h	50	Scenes	game/Items	alta	inventory grids, cursor item, floor items, item names/prices, UI item 3D
 Scenes/FloorItemNames.cpp	463	Scenes	game/Items	media	inventory grids, cursor item, floor items, item names/prices, UI item 3D; include graph pulls to Hud (3 vs 1 own)
@@ -665,8 +665,8 @@ Scenes/GameCharacterHud.cpp	814	Scenes	game/Hud	baja	game UI step/frame order, H
 Scenes/GameCharacterHud.h	29	Scenes	game/Hud	baja	game UI step/frame order, HUD (dir.), character/inventory windows, panels, misc windows; include graph pulls to OwnCha
 Scenes/GameCharacters.cpp	813	Scenes	game/Actors/Drawing	media	(dir.) player draw: body, cloth, hanging items, item glows, weapon trails; include graph pulls to SocialChat (5 vs 3 o
 Scenes/GameCharacters.h	163	Scenes	game/Actors/Drawing	media	(dir.) player draw: body, cloth, hanging items, item glows, weapon trails; include graph pulls to SocialChat (5 vs 3 o
-Scenes/GameChat.cpp	768	Scenes	game/Social	alta	chat: chat input/receive, bubbles, game messages
-Scenes/GameChat.h	112	Scenes	game/Social	alta	chat: chat input/receive, bubbles, game messages
+Scenes/GameChat.cpp	768	Scenes	game/Chat	alta	el chat que estaba en Social (revisión 2026-11-21)
+Scenes/GameChat.h	112	Scenes	game/Chat	alta	el chat que estaba en Social (revisión 2026-11-21)
 Scenes/GameCommandsWindow.cpp	917	Scenes	game/Hud	baja	game UI step/frame order, HUD (dir.), character/inventory windows, panels, misc windows; include graph pulls to Social
 Scenes/GameCommandsWindow.h	43	Scenes	game/Hud	baja	game UI step/frame order, HUD (dir.), character/inventory windows, panels, misc windows; include graph pulls to Social
 Scenes/GameData.cpp	472	Scenes	game/Scenes	baja	scene machine: IScene/SceneManager/transitions/loop timing (CL5.4); include graph pulls to FrontEndScenes (4 vs 0 own)
@@ -681,14 +681,14 @@ Scenes/GameFloorItemDrawing.cpp	250	Scenes	game/Items	alta	inventory grids, curs
 Scenes/GameFloorItemDrawing.h	15	Scenes	game/Items	alta	inventory grids, cursor item, floor items, item names/prices, UI item 3D
 Scenes/GameFloorItems.cpp	174	Scenes	game/Items	media	inventory grids, cursor item, floor items, item names/prices, UI item 3D; include graph pulls to GameScene (2 vs 1 own)
 Scenes/GameFloorItems.h	36	Scenes	game/Items	media	inventory grids, cursor item, floor items, item names/prices, UI item 3D; include graph pulls to GameScene (2 vs 1 own)
-Scenes/GameFriends.cpp	374	Scenes	game/Social	alta	trade, party, duel, friends, letters, personal shops (CL9 hito 7, 9, 10)
-Scenes/GameFriends.h	84	Scenes	game/Social	alta	trade, party, duel, friends, letters, personal shops (CL9 hito 7, 9, 10)
-Scenes/GameGates.cpp	210	Scenes	game/Hero	alta	own player actions: MoveHero, attack, skill use (dir.) per class, gates
-Scenes/GameGates.h	37	Scenes	game/Hero	alta	own player actions: MoveHero, attack, skill use (dir.) per class, gates
+Scenes/GameFriends.cpp	374	Scenes	game/Messenger	alta	los amigos y las cartas (revisión 2026-11-21)
+Scenes/GameFriends.h	84	Scenes	game/Messenger	alta	los amigos y las cartas (revisión 2026-11-21)
+Scenes/GameGates.cpp	210	Scenes	game/Movement	media	el movimiento y las gates, fuera de Hero (revisión 2026-11-21)
+Scenes/GameGates.h	37	Scenes	game/Movement	media	el movimiento y las gates, fuera de Hero (revisión 2026-11-21)
 Scenes/GameHanging.cpp	1378	Scenes	game/Actors/Drawing	alta	(dir.) player draw: body, cloth, hanging items, item glows, weapon trails
 Scenes/GameHanging.h	105	Scenes	game/Actors/Drawing	alta	(dir.) player draw: body, cloth, hanging items, item glows, weapon trails
-Scenes/GameHelps.cpp	82	Scenes	game/Items/Tooltips	alta	tooltips (dir.)/(dir.), help overlays
-Scenes/GameHelps.h	31	Scenes	game/Items/Tooltips	alta	tooltips (dir.)/(dir.), help overlays
+Scenes/GameHelps.cpp	82	Scenes	game/Tooltips	alta	los tooltips de ítems, skills y mascotas, arriba de Items, Skills y Pets (revisión 2026-11-21)
+Scenes/GameHelps.h	31	Scenes	game/Tooltips	alta	los tooltips de ítems, skills y mascotas, arriba de Items, Skills y Pets (revisión 2026-11-21)
 Scenes/GameHeroFacing.cpp	53	Scenes	game/Hero	alta	own player actions: MoveHero, attack, skill use (dir.) per class, gates
 Scenes/GameHeroFacing.h	33	Scenes	game/Hero	alta	own player actions: MoveHero, attack, skill use (dir.) per class, gates
 Scenes/GameHover.cpp	153	Scenes	game/Hud	media	game UI step/frame order, HUD (dir.), character/inventory windows, panels, misc windows; include graph pulls to Social
@@ -701,33 +701,33 @@ Scenes/GameItemGlowEffects.cpp	322	Scenes	game/Actors/Drawing	alta	(dir.) player
 Scenes/GameItemGlowEffects.h	45	Scenes	game/Actors/Drawing	alta	(dir.) player draw: body, cloth, hanging items, item glows, weapon trails
 Scenes/GameItemGlowSpecialDrawing.cpp	246	Scenes	game/Actors/Drawing	alta	(dir.) player draw: body, cloth, hanging items, item glows, weapon trails
 Scenes/GameItemGlowSpecialDrawing.h	28	Scenes	game/Actors/Drawing	alta	(dir.) player draw: body, cloth, hanging items, item glows, weapon trails
-Scenes/GameItemHelp.cpp	521	Scenes	game/Items/Tooltips	alta	tooltips (dir.)/(dir.), help overlays
+Scenes/GameItemHelp.cpp	521	Scenes	game/Tooltips	alta	los tooltips de ítems, skills y mascotas, arriba de Items, Skills y Pets (revisión 2026-11-21)
 Scenes/GameItemRenderState.cpp	28	Scenes	game/Actors/Drawing	media	(dir.) player draw: body, cloth, hanging items, item glows, weapon trails; include graph pulls to GameScene (3 vs 1 ow
 Scenes/GameItemRenderState.h	26	Scenes	game/Actors/Drawing	media	(dir.) player draw: body, cloth, hanging items, item glows, weapon trails; include graph pulls to GameScene (3 vs 1 ow
 Scenes/GameItemSpecialDrawing.cpp	614	Scenes	game/Actors/Drawing	alta	(dir.) player draw: body, cloth, hanging items, item glows, weapon trails
 Scenes/GameItemSpecialDrawing.h	56	Scenes	game/Actors/Drawing	alta	(dir.) player draw: body, cloth, hanging items, item glows, weapon trails
-Scenes/GameJointDrawing.cpp	347	Scenes	game/Effects/Joints	alta	joint system (dir.)/(dir.) and its families
-Scenes/GameLeafClouds.cpp	134	Scenes	game/WorldObjects	alta	map objects step/draw ((dir.)/(dir.)), per-map object services, fauna (birds/fish/leaves)
-Scenes/GameLeafClouds.h	18	Scenes	game/WorldObjects	alta	map objects step/draw ((dir.)/(dir.)), per-map object services, fauna (birds/fish/leaves)
-Scenes/GameLeaves.cpp	384	Scenes	game/WorldObjects	alta	map objects step/draw ((dir.)/(dir.)), per-map object services, fauna (birds/fish/leaves)
-Scenes/GameLeaves.h	56	Scenes	game/WorldObjects	alta	map objects step/draw ((dir.)/(dir.)), per-map object services, fauna (birds/fish/leaves)
-Scenes/GameLetters.cpp	697	Scenes	game/Social	alta	trade, party, duel, friends, letters, personal shops (CL9 hito 7, 9, 10)
-Scenes/GameLetters.h	78	Scenes	game/Social	alta	trade, party, duel, friends, letters, personal shops (CL9 hito 7, 9, 10)
-Scenes/GameMessages.cpp	110	Scenes	game/Social	alta	chat: chat input/receive, bubbles, game messages
-Scenes/GameMessages.h	55	Scenes	game/Social	alta	chat: chat input/receive, bubbles, game messages
-Scenes/GameModels.cpp	260	Scenes	game/Kernel/Assets	alta	model tables (dir.)/(dir.)/(dir.) + texture links
-Scenes/GameModels.h	69	Scenes	game/Kernel/Assets	alta	model tables (dir.)/(dir.)/(dir.) + texture links
+Scenes/GameJointDrawing.cpp	347	Scenes	game/Joints	alta	los joints (las cintas y los rayos), un módulo propio debajo de Effects (revisión 2026-11-21)
+Scenes/GameLeafClouds.cpp	134	Scenes	game/Weather	alta	las hojas, la lluvia y las nubes, como Weather/ en TrinityCore y cMaNGOS (revisión 2026-11-21)
+Scenes/GameLeafClouds.h	18	Scenes	game/Weather	alta	las hojas, la lluvia y las nubes, como Weather/ en TrinityCore y cMaNGOS (revisión 2026-11-21)
+Scenes/GameLeaves.cpp	384	Scenes	game/Weather	alta	las hojas, la lluvia y las nubes, como Weather/ en TrinityCore y cMaNGOS (revisión 2026-11-21)
+Scenes/GameLeaves.h	56	Scenes	game/Weather	alta	las hojas, la lluvia y las nubes, como Weather/ en TrinityCore y cMaNGOS (revisión 2026-11-21)
+Scenes/GameLetters.cpp	697	Scenes	game/Messenger	alta	los amigos y las cartas (revisión 2026-11-21)
+Scenes/GameLetters.h	78	Scenes	game/Messenger	alta	los amigos y las cartas (revisión 2026-11-21)
+Scenes/GameMessages.cpp	110	Scenes	game/Chat	alta	el chat que estaba en Social (revisión 2026-11-21)
+Scenes/GameMessages.h	55	Scenes	game/Chat	alta	el chat que estaba en Social (revisión 2026-11-21)
+Scenes/GameModels.cpp	260	Scenes	game/Assets	alta	los modelos y texturas, fuera de Kernel (revisión 2026-11-21)
+Scenes/GameModels.h	69	Scenes	game/Assets	alta	los modelos y texturas, fuera de Kernel (revisión 2026-11-21)
 Scenes/GameMoveWindow.cpp	285	Scenes	game/Hud	alta	game UI step/frame order, HUD (dir.), character/inventory windows, panels, misc windows
 Scenes/GameMoveWindow.h	28	Scenes	game/Hud	alta	game UI step/frame order, HUD (dir.), character/inventory windows, panels, misc windows
-Scenes/GameMovement.cpp	895	Scenes	game/Hero	alta	own player actions: MoveHero, attack, skill use (dir.) per class, gates
-Scenes/GameMovement.h	114	Scenes	game/Hero	alta	own player actions: MoveHero, attack, skill use (dir.) per class, gates
-Scenes/GameMovementState.h	79	Scenes	game/Hero	alta	own player actions: MoveHero, attack, skill use (dir.) per class, gates
+Scenes/GameMovement.cpp	895	Scenes	game/Movement	media	el movimiento y las gates, fuera de Hero (revisión 2026-11-21)
+Scenes/GameMovement.h	114	Scenes	game/Movement	media	el movimiento y las gates, fuera de Hero (revisión 2026-11-21)
+Scenes/GameMovementState.h	79	Scenes	game/Movement	media	el movimiento y las gates, fuera de Hero (revisión 2026-11-21)
 Scenes/GamePanels.cpp	303	Scenes	game/Hud	media	game UI step/frame order, HUD (dir.), character/inventory windows, panels, misc windows; include graph pulls to Castle
 Scenes/GamePanels.h	131	Scenes	game/Hud	media	game UI step/frame order, HUD (dir.), character/inventory windows, panels, misc windows; include graph pulls to Castle
-Scenes/GameParticles.cpp	361	Scenes	game/Effects/ModelEffects	baja	model effects (dir.) table: high types, arrows, wizard/skill bursts, particles; include graph pulls to WorldObjects (3
-Scenes/GameParticles.h	131	Scenes	game/Effects/ModelEffects	baja	model effects (dir.) table: high types, arrows, wizard/skill bursts, particles; include graph pulls to WorldObjects (3
-Scenes/GamePartyWindow.cpp	546	Scenes	game/Social	alta	trade, party, duel, friends, letters, personal shops (CL9 hito 7, 9, 10)
-Scenes/GamePartyWindow.h	46	Scenes	game/Social	alta	trade, party, duel, friends, letters, personal shops (CL9 hito 7, 9, 10)
+Scenes/GameParticles.cpp	361	Scenes	game/Effects	baja	los efectos con modelo; usa Joints y Particles (revisión 2026-11-21)
+Scenes/GameParticles.h	131	Scenes	game/Effects	baja	los efectos con modelo; usa Joints y Particles (revisión 2026-11-21)
+Scenes/GamePartyWindow.cpp	546	Scenes	game/Party	alta	la party (revisión 2026-11-21)
+Scenes/GamePartyWindow.h	46	Scenes	game/Party	alta	la party (revisión 2026-11-21)
 Scenes/GamePetWindow.cpp	728	Scenes	game/Pets	media	Dark Lord raven/horse, helper table (dir.), A7/A8/A9, pet window; include graph pulls to OwnCharacter (3 vs 1 own)
 Scenes/GamePetWindow.h	31	Scenes	game/Pets	media	Dark Lord raven/horse, helper table (dir.), A7/A8/A9, pet window; include graph pulls to OwnCharacter (3 vs 1 own)
 Scenes/GameProjection.cpp	108	Scenes	game/Scenes	alta	scene 5: logic/draw cycle, projection, the (dir.)..(dir.) draw tail
@@ -749,16 +749,16 @@ Scenes/GameSocialSteps.h	36	Scenes	game/Social	alta	trade, party, duel, friends,
 Scenes/GameTailDrawingPrimitives.h	33	Scenes	game/Scenes	alta	scene 5: logic/draw cycle, projection, the (dir.)..(dir.) draw tail
 Scenes/GameTailPasses.cpp	117	Scenes	game/Scenes	alta	scene 5: logic/draw cycle, projection, the (dir.)..(dir.) draw tail
 Scenes/GameTailPasses.h	44	Scenes	game/Scenes	alta	scene 5: logic/draw cycle, projection, the (dir.)..(dir.) draw tail
-Scenes/GameTooltips.cpp	615	Scenes	game/Items/Tooltips	alta	tooltips (dir.)/(dir.), help overlays
-Scenes/GameTooltips.h	52	Scenes	game/Items/Tooltips	alta	tooltips (dir.)/(dir.), help overlays
+Scenes/GameTooltips.cpp	615	Scenes	game/Tooltips	alta	los tooltips de ítems, skills y mascotas, arriba de Items, Skills y Pets (revisión 2026-11-21)
+Scenes/GameTooltips.h	52	Scenes	game/Tooltips	alta	los tooltips de ítems, skills y mascotas, arriba de Items, Skills y Pets (revisión 2026-11-21)
 Scenes/GameUi.cpp	2760	Scenes	game/Hud	media	game UI step/frame order, HUD (dir.), character/inventory windows, panels, misc windows; include graph pulls to Social
 Scenes/GameUi.h	231	Scenes	game/Hud	media	game UI step/frame order, HUD (dir.), character/inventory windows, panels, misc windows; include graph pulls to Social
 Scenes/GameWindowDrawing.cpp	251	Scenes	game/Hud	media	game UI step/frame order, HUD (dir.), character/inventory windows, panels, misc windows; include graph pulls to NpcInt
 Scenes/GameWindowDrawing.h	76	Scenes	game/Hud	media	game UI step/frame order, HUD (dir.), character/inventory windows, panels, misc windows; include graph pulls to NpcInt
 Scenes/GridItemUse.cpp	309	Scenes	game/Items	alta	inventory grids, cursor item, floor items, item names/prices, UI item 3D
 Scenes/GridItemUse.h	65	Scenes	game/Items	alta	inventory grids, cursor item, floor items, item names/prices, UI item 3D
-Scenes/GroundEffectFrame.cpp	64	Scenes	game/Effects/ModelEffects	media	ground effects (dir.) per original frame
-Scenes/GroundEffectFrame.h	48	Scenes	game/Effects/ModelEffects	media	ground effects (dir.) per original frame
+Scenes/GroundEffectFrame.cpp	64	Scenes	game/Effects	media	los efectos con modelo; usa Joints y Particles (revisión 2026-11-21)
+Scenes/GroundEffectFrame.h	48	Scenes	game/Effects	media	los efectos con modelo; usa Joints y Particles (revisión 2026-11-21)
 Scenes/GuildDrawing.cpp	543	Scenes	game/Guild	alta	guild/alliance/war state, packets, windows, marks (CL9 hito 8)
 Scenes/GuildDrawing.h	53	Scenes	game/Guild	alta	guild/alliance/war state, packets, windows, marks (CL9 hito 8)
 Scenes/GuildMarkEffects.cpp	245	Scenes	game/Guild	baja	guild/alliance/war state, packets, windows, marks (CL9 hito 8); include graph pulls to Effects.Models (3 vs 0 own)
@@ -774,38 +774,38 @@ Scenes/GuildWindow.cpp	913	Scenes	game/Guild	alta	guild/alliance/war state, pack
 Scenes/GuildWindow.h	143	Scenes	game/Guild	alta	guild/alliance/war state, packets, windows, marks (CL9 hito 8)
 Scenes/GuildWindowTabs.cpp	625	Scenes	game/Guild	alta	guild/alliance/war state, packets, windows, marks (CL9 hito 8)
 Scenes/GuildWindowTabs.h	36	Scenes	game/Guild	alta	guild/alliance/war state, packets, windows, marks (CL9 hito 8)
-Scenes/HandBoltJoints.cpp	141	Scenes	game/Effects/Joints	alta	joint system (dir.)/(dir.) and its families
-Scenes/HandShine.cpp	81	Scenes	game/Effects/ModelEffects	baja	model effects (dir.) table: high types, arrows, wizard/skill bursts, particles; include graph pulls to FrontEndScenes 
-Scenes/HandShine.h	49	Scenes	game/Effects/ModelEffects	baja	model effects (dir.) table: high types, arrows, wizard/skill bursts, particles; include graph pulls to FrontEndScenes 
+Scenes/HandBoltJoints.cpp	141	Scenes	game/Joints	alta	los joints (las cintas y los rayos), un módulo propio debajo de Effects (revisión 2026-11-21)
+Scenes/HandShine.cpp	81	Scenes	game/Effects	baja	los efectos con modelo; usa Joints y Particles (revisión 2026-11-21)
+Scenes/HandShine.h	49	Scenes	game/Effects	baja	los efectos con modelo; usa Joints y Particles (revisión 2026-11-21)
 Scenes/HealthBars.cpp	78	Scenes	game/Hud	media	queued by actor step, drawn by HUD ((dir.))
 Scenes/HealthBars.h	32	Scenes	game/Hud	media	queued by actor step, drawn by HUD ((dir.))
-Scenes/HelixJoints.cpp	149	Scenes	game/Effects/Joints	alta	joint system (dir.)/(dir.) and its families
+Scenes/HelixJoints.cpp	149	Scenes	game/Joints	alta	los joints (las cintas y los rayos), un módulo propio debajo de Effects (revisión 2026-11-21)
 Scenes/HelperStepParts.cpp	198	Scenes	game/Pets	alta	Dark Lord raven/horse, helper table (dir.), A7/A8/A9, pet window
 Scenes/HelperStepParts.h	69	Scenes	game/Pets	alta	Dark Lord raven/horse, helper table (dir.), A7/A8/A9, pet window
 Scenes/HelperTable.cpp	1002	Scenes	game/Pets	alta	Dark Lord raven/horse, helper table (dir.), A7/A8/A9, pet window
 Scenes/HelperTable.h	219	Scenes	game/Pets	alta	Dark Lord raven/horse, helper table (dir.), A7/A8/A9, pet window
 Scenes/HeroAttack.cpp	615	Scenes	game/Hero	alta	own player actions: MoveHero, attack, skill use (dir.) per class, gates
 Scenes/HeroAttack.h	87	Scenes	game/Hero	alta	own player actions: MoveHero, attack, skill use (dir.) per class, gates
-Scenes/HeroSkillCasts.cpp	788	Scenes	game/Hero	alta	own player actions: MoveHero, attack, skill use (dir.) per class, gates
-Scenes/HeroSkillCasts.h	105	Scenes	game/Hero	alta	own player actions: MoveHero, attack, skill use (dir.) per class, gates
-Scenes/HeroSkillSupport.cpp	85	Scenes	game/Hero	alta	own player actions: MoveHero, attack, skill use (dir.) per class, gates
-Scenes/HeroSkillSupport.h	41	Scenes	game/Hero	alta	own player actions: MoveHero, attack, skill use (dir.) per class, gates
-Scenes/HeroSkills.cpp	578	Scenes	game/Hero	alta	own player actions: MoveHero, attack, skill use (dir.) per class, gates
-Scenes/HeroSkills.h	75	Scenes	game/Hero	alta	own player actions: MoveHero, attack, skill use (dir.) per class, gates
-Scenes/HeroSkillsElf.cpp	524	Scenes	game/Hero	alta	own player actions: MoveHero, attack, skill use (dir.) per class, gates
-Scenes/HeroSkillsElf.h	33	Scenes	game/Hero	alta	own player actions: MoveHero, attack, skill use (dir.) per class, gates
-Scenes/HeroSkillsKnight.cpp	705	Scenes	game/Hero	alta	own player actions: MoveHero, attack, skill use (dir.) per class, gates
-Scenes/HeroSkillsKnight.h	28	Scenes	game/Hero	alta	own player actions: MoveHero, attack, skill use (dir.) per class, gates
-Scenes/HeroSkillsTail.cpp	319	Scenes	game/Hero	alta	own player actions: MoveHero, attack, skill use (dir.) per class, gates
-Scenes/HeroSkillsTail.h	30	Scenes	game/Hero	alta	own player actions: MoveHero, attack, skill use (dir.) per class, gates
-Scenes/HeroSkillsWizard.cpp	870	Scenes	game/Hero	alta	own player actions: MoveHero, attack, skill use (dir.) per class, gates
-Scenes/HeroSkillsWizard.h	31	Scenes	game/Hero	alta	own player actions: MoveHero, attack, skill use (dir.) per class, gates
-Scenes/HighEffectDrawing.cpp	203	Scenes	game/Effects/ModelEffects	alta	model effects (dir.) table: high types, arrows, wizard/skill bursts, particles
-Scenes/HighEffectDrawing.h	69	Scenes	game/Effects/ModelEffects	alta	model effects (dir.) table: high types, arrows, wizard/skill bursts, particles
-Scenes/HighEffectEmitters.cpp	66	Scenes	game/Effects/ModelEffects	alta	model effects (dir.) table: high types, arrows, wizard/skill bursts, particles
-Scenes/HighEffectEmitters.h	52	Scenes	game/Effects/ModelEffects	alta	model effects (dir.) table: high types, arrows, wizard/skill bursts, particles
-Scenes/HighModelEffects.cpp	1537	Scenes	game/Effects/ModelEffects	alta	model effects (dir.) table: high types, arrows, wizard/skill bursts, particles
-Scenes/HighModelEffects.h	102	Scenes	game/Effects/ModelEffects	alta	model effects (dir.) table: high types, arrows, wizard/skill bursts, particles
+Scenes/HeroSkillCasts.cpp	788	Scenes	game/Skills	alta	las skills, un módulo propio como Spells/ en TrinityCore (revisión 2026-11-21)
+Scenes/HeroSkillCasts.h	105	Scenes	game/Skills	alta	las skills, un módulo propio como Spells/ en TrinityCore (revisión 2026-11-21)
+Scenes/HeroSkillSupport.cpp	85	Scenes	game/Skills	alta	las skills, un módulo propio como Spells/ en TrinityCore (revisión 2026-11-21)
+Scenes/HeroSkillSupport.h	41	Scenes	game/Skills	alta	las skills, un módulo propio como Spells/ en TrinityCore (revisión 2026-11-21)
+Scenes/HeroSkills.cpp	578	Scenes	game/Skills	alta	las skills, un módulo propio como Spells/ en TrinityCore (revisión 2026-11-21)
+Scenes/HeroSkills.h	75	Scenes	game/Skills	alta	las skills, un módulo propio como Spells/ en TrinityCore (revisión 2026-11-21)
+Scenes/HeroSkillsElf.cpp	524	Scenes	game/Skills	alta	las skills, un módulo propio como Spells/ en TrinityCore (revisión 2026-11-21)
+Scenes/HeroSkillsElf.h	33	Scenes	game/Skills	alta	las skills, un módulo propio como Spells/ en TrinityCore (revisión 2026-11-21)
+Scenes/HeroSkillsKnight.cpp	705	Scenes	game/Skills	alta	las skills, un módulo propio como Spells/ en TrinityCore (revisión 2026-11-21)
+Scenes/HeroSkillsKnight.h	28	Scenes	game/Skills	alta	las skills, un módulo propio como Spells/ en TrinityCore (revisión 2026-11-21)
+Scenes/HeroSkillsTail.cpp	319	Scenes	game/Skills	alta	las skills, un módulo propio como Spells/ en TrinityCore (revisión 2026-11-21)
+Scenes/HeroSkillsTail.h	30	Scenes	game/Skills	alta	las skills, un módulo propio como Spells/ en TrinityCore (revisión 2026-11-21)
+Scenes/HeroSkillsWizard.cpp	870	Scenes	game/Skills	alta	las skills, un módulo propio como Spells/ en TrinityCore (revisión 2026-11-21)
+Scenes/HeroSkillsWizard.h	31	Scenes	game/Skills	alta	las skills, un módulo propio como Spells/ en TrinityCore (revisión 2026-11-21)
+Scenes/HighEffectDrawing.cpp	203	Scenes	game/Effects	alta	los efectos con modelo; usa Joints y Particles (revisión 2026-11-21)
+Scenes/HighEffectDrawing.h	69	Scenes	game/Effects	alta	los efectos con modelo; usa Joints y Particles (revisión 2026-11-21)
+Scenes/HighEffectEmitters.cpp	66	Scenes	game/Effects	alta	los efectos con modelo; usa Joints y Particles (revisión 2026-11-21)
+Scenes/HighEffectEmitters.h	52	Scenes	game/Effects	alta	los efectos con modelo; usa Joints y Particles (revisión 2026-11-21)
+Scenes/HighModelEffects.cpp	1537	Scenes	game/Effects	alta	los efectos con modelo; usa Joints y Particles (revisión 2026-11-21)
+Scenes/HighModelEffects.h	102	Scenes	game/Effects	alta	los efectos con modelo; usa Joints y Particles (revisión 2026-11-21)
 Scenes/HudItems.cpp	226	Scenes	game/Hud	baja	game UI step/frame order, HUD (dir.), character/inventory windows, panels, misc windows; include graph pulls to Invent
 Scenes/HudItems.h	73	Scenes	game/Hud	baja	game UI step/frame order, HUD (dir.), character/inventory windows, panels, misc windows; include graph pulls to Invent
 Scenes/HudText.cpp	28	Scenes	game/Hud	alta	game UI step/frame order, HUD (dir.), character/inventory windows, panels, misc windows
@@ -816,19 +816,19 @@ Scenes/ITextDrawer.h	35	Scenes	game/Scenes	alta	scene<->GL contract; should move
 Scenes/IWorldEntryPublisher.h	14	Scenes	game/Session	alta	top-level packet/transition application that reaches every feature: durable globals, map load, world entry F3 03, map tr
 Scenes/IWorldTransitionPublisher.h	12	Scenes	game/Session	alta	top-level packet/transition application that reaches every feature: durable globals, map load, world entry F3 03, map tr
 Scenes/IWorldView.h	28	Scenes	game/Scenes	alta	scene<->GL contract; should move below Scenes (Render/UI), see layering
-Scenes/IcarusObjectFrame.cpp	79	Scenes	game/WorldObjects	alta	map objects step/draw ((dir.)/(dir.)), per-map object services, fauna (birds/fish/leaves)
-Scenes/IcarusObjectFrame.h	27	Scenes	game/WorldObjects	alta	map objects step/draw ((dir.)/(dir.)), per-map object services, fauna (birds/fish/leaves)
-Scenes/IcarusObjectStep.cpp	213	Scenes	game/WorldObjects	alta	map objects step/draw ((dir.)/(dir.)), per-map object services, fauna (birds/fish/leaves)
-Scenes/IcarusObjectStep.h	61	Scenes	game/WorldObjects	alta	map objects step/draw ((dir.)/(dir.)), per-map object services, fauna (birds/fish/leaves)
-Scenes/InfernoJoints.cpp	171	Scenes	game/Effects/Joints	alta	joint system (dir.)/(dir.) and its families
+Scenes/IcarusObjectFrame.cpp	79	Scenes	game/MapScripts/Icarus	alta	lo que hace ese mapa, como los scripts por zona de TrinityCore (revisión 2026-11-21)
+Scenes/IcarusObjectFrame.h	27	Scenes	game/MapScripts/Icarus	alta	lo que hace ese mapa, como los scripts por zona de TrinityCore (revisión 2026-11-21)
+Scenes/IcarusObjectStep.cpp	213	Scenes	game/MapScripts/Icarus	alta	lo que hace ese mapa, como los scripts por zona de TrinityCore (revisión 2026-11-21)
+Scenes/IcarusObjectStep.h	61	Scenes	game/MapScripts/Icarus	alta	lo que hace ese mapa, como los scripts por zona de TrinityCore (revisión 2026-11-21)
+Scenes/InfernoJoints.cpp	171	Scenes	game/Joints	alta	los joints (las cintas y los rayos), un módulo propio debajo de Effects (revisión 2026-11-21)
 Scenes/InventoryMoves.cpp	2352	Scenes	game/Items	media	inventory grids, cursor item, floor items, item names/prices, UI item 3D; include graph pulls to SocialChat (8 vs 5 own)
 Scenes/InventoryMoves.h	386	Scenes	game/Items	media	inventory grids, cursor item, floor items, item names/prices, UI item 3D; include graph pulls to SocialChat (8 vs 5 own)
 Scenes/InventoryReply.cpp	59	Scenes	game/Items	alta	inventory grids, cursor item, floor items, item names/prices, UI item 3D
 Scenes/InventoryReply.h	37	Scenes	game/Items	alta	inventory grids, cursor item, floor items, item names/prices, UI item 3D
 Scenes/ItemDrawResources.cpp	73	Scenes	game/Actors/Drawing	alta	(dir.) player draw: body, cloth, hanging items, item glows, weapon trails
 Scenes/ItemDrawResources.h	53	Scenes	game/Actors/Drawing	alta	(dir.) player draw: body, cloth, hanging items, item glows, weapon trails
-Scenes/ItemHelpLevels.cpp	158	Scenes	game/Items/Tooltips	alta	tooltips (dir.)/(dir.), help overlays
-Scenes/ItemHelpLevels.h	63	Scenes	game/Items/Tooltips	alta	tooltips (dir.)/(dir.), help overlays
+Scenes/ItemHelpLevels.cpp	158	Scenes	game/Tooltips	alta	los tooltips de ítems, skills y mascotas, arriba de Items, Skills y Pets (revisión 2026-11-21)
+Scenes/ItemHelpLevels.h	63	Scenes	game/Tooltips	alta	los tooltips de ítems, skills y mascotas, arriba de Items, Skills y Pets (revisión 2026-11-21)
 Scenes/ItemNames.cpp	309	Scenes	game/Items	alta	inventory grids, cursor item, floor items, item names/prices, UI item 3D
 Scenes/ItemNames.h	50	Scenes	game/Items	alta	inventory grids, cursor item, floor items, item names/prices, UI item 3D
 Scenes/ItemPrice.cpp	789	Scenes	game/Items	baja	inventory grids, cursor item, floor items, item names/prices, UI item 3D; include graph pulls to NpcInteraction (4 vs 0 
@@ -836,56 +836,56 @@ Scenes/ItemPrice.h	57	Scenes	game/Items	baja	inventory grids, cursor item, floor
 Scenes/ItemSetOptionList.cpp	155	Scenes	game/Player	alta	own record [0x7681eb0], derived stats (dir.), set options, damages, F3 06/F3 10
 Scenes/ItemSetOptionList.h	64	Scenes	game/Player	alta	own record [0x7681eb0], derived stats (dir.), set options, damages, F3 06/F3 10
 Scenes/ItemSetState.h	44	Scenes	game/Player	alta	own record [0x7681eb0], derived stats (dir.), set options, damages, F3 06/F3 10
-Scenes/ItemTooltipName.cpp	363	Scenes	game/Items/Tooltips	alta	tooltips (dir.)/(dir.), help overlays
-Scenes/ItemTooltipNotes.cpp	464	Scenes	game/Items/Tooltips	alta	tooltips (dir.)/(dir.), help overlays
-Scenes/ItemTooltipOptions.cpp	619	Scenes	game/Items/Tooltips	alta	tooltips (dir.)/(dir.), help overlays
-Scenes/ItemTooltipParts.cpp	134	Scenes	game/Items/Tooltips	alta	tooltips (dir.)/(dir.), help overlays
-Scenes/ItemTooltipParts.h	115	Scenes	game/Items/Tooltips	alta	tooltips (dir.)/(dir.), help overlays
-Scenes/ItemTooltipRequirements.cpp	221	Scenes	game/Items/Tooltips	alta	tooltips (dir.)/(dir.), help overlays
-Scenes/ItemTooltipShopPrice.cpp	121	Scenes	game/Items/Tooltips	alta	tooltips (dir.)/(dir.), help overlays
-Scenes/ItemTooltipStats.cpp	360	Scenes	game/Items/Tooltips	alta	tooltips (dir.)/(dir.), help overlays
-Scenes/ItemTooltips.cpp	380	Scenes	game/Items/Tooltips	alta	tooltips (dir.)/(dir.), help overlays
-Scenes/ItemTooltips.h	35	Scenes	game/Items/Tooltips	alta	tooltips (dir.)/(dir.), help overlays
-Scenes/JavelinEffect.cpp	152	Scenes	game/Effects/ModelEffects	alta	model effects (dir.) table: high types, arrows, wizard/skill bursts, particles
-Scenes/JavelinEffect.h	37	Scenes	game/Effects/ModelEffects	alta	model effects (dir.) table: high types, arrows, wizard/skill bursts, particles
-Scenes/JewelBundleList.cpp	556	Scenes	game/Npc	alta	NPC talk, shop/warehouse/chaos box/jewel mix/pet trainer windows (CL9 hito 6)
-Scenes/JewelBundleList.h	55	Scenes	game/Npc	alta	NPC talk, shop/warehouse/chaos box/jewel mix/pet trainer windows (CL9 hito 6)
-Scenes/JewelMix.cpp	556	Scenes	game/Npc	alta	NPC talk, shop/warehouse/chaos box/jewel mix/pet trainer windows (CL9 hito 6)
-Scenes/JewelMix.h	60	Scenes	game/Npc	alta	NPC talk, shop/warehouse/chaos box/jewel mix/pet trainer windows (CL9 hito 6)
-Scenes/JointFamilies.h	187	Scenes	game/Effects/Joints	alta	joint system (dir.)/(dir.) and its families
-Scenes/JointKernels.cpp	103	Scenes	game/Effects/Joints	alta	joint system (dir.)/(dir.) and its families
-Scenes/JointKernels.h	141	Scenes	game/Effects/Joints	alta	joint system (dir.)/(dir.) and its families
-Scenes/KalimaMonsterEffects.cpp	119	Scenes	game/Effects/ModelEffects	media	high-type model effect 0x11a; only owner is the Kalima monster
-Scenes/KalimaMonsterEffects.h	42	Scenes	game/Effects/ModelEffects	media	high-type model effect 0x11a; only owner is the Kalima monster
-Scenes/KalimaObjectServices.cpp	243	Scenes	game/WorldObjects	alta	map objects step/draw ((dir.)/(dir.)), per-map object services, fauna (birds/fish/leaves)
-Scenes/KalimaObjectServices.h	28	Scenes	game/WorldObjects	alta	map objects step/draw ((dir.)/(dir.)), per-map object services, fauna (birds/fish/leaves)
-Scenes/KalimaObjectStep.cpp	126	Scenes	game/WorldObjects	alta	map objects step/draw ((dir.)/(dir.)), per-map object services, fauna (birds/fish/leaves)
-Scenes/KalimaObjectStep.h	21	Scenes	game/WorldObjects	alta	map objects step/draw ((dir.)/(dir.)), per-map object services, fauna (birds/fish/leaves)
+Scenes/ItemTooltipName.cpp	363	Scenes	game/Tooltips	alta	los tooltips de ítems, skills y mascotas, arriba de Items, Skills y Pets (revisión 2026-11-21)
+Scenes/ItemTooltipNotes.cpp	464	Scenes	game/Tooltips	alta	los tooltips de ítems, skills y mascotas, arriba de Items, Skills y Pets (revisión 2026-11-21)
+Scenes/ItemTooltipOptions.cpp	619	Scenes	game/Tooltips	alta	los tooltips de ítems, skills y mascotas, arriba de Items, Skills y Pets (revisión 2026-11-21)
+Scenes/ItemTooltipParts.cpp	134	Scenes	game/Tooltips	alta	los tooltips de ítems, skills y mascotas, arriba de Items, Skills y Pets (revisión 2026-11-21)
+Scenes/ItemTooltipParts.h	115	Scenes	game/Tooltips	alta	los tooltips de ítems, skills y mascotas, arriba de Items, Skills y Pets (revisión 2026-11-21)
+Scenes/ItemTooltipRequirements.cpp	221	Scenes	game/Tooltips	alta	los tooltips de ítems, skills y mascotas, arriba de Items, Skills y Pets (revisión 2026-11-21)
+Scenes/ItemTooltipShopPrice.cpp	121	Scenes	game/Tooltips	alta	los tooltips de ítems, skills y mascotas, arriba de Items, Skills y Pets (revisión 2026-11-21)
+Scenes/ItemTooltipStats.cpp	360	Scenes	game/Tooltips	alta	los tooltips de ítems, skills y mascotas, arriba de Items, Skills y Pets (revisión 2026-11-21)
+Scenes/ItemTooltips.cpp	380	Scenes	game/Tooltips	alta	los tooltips de ítems, skills y mascotas, arriba de Items, Skills y Pets (revisión 2026-11-21)
+Scenes/ItemTooltips.h	35	Scenes	game/Tooltips	alta	los tooltips de ítems, skills y mascotas, arriba de Items, Skills y Pets (revisión 2026-11-21)
+Scenes/JavelinEffect.cpp	152	Scenes	game/Effects	alta	los efectos con modelo; usa Joints y Particles (revisión 2026-11-21)
+Scenes/JavelinEffect.h	37	Scenes	game/Effects	alta	los efectos con modelo; usa Joints y Particles (revisión 2026-11-21)
+Scenes/JewelBundleList.cpp	556	Scenes	game/ChaosMix	alta	la máquina del Chaos Goblin y las mezclas de joyas (revisión 2026-11-21)
+Scenes/JewelBundleList.h	55	Scenes	game/ChaosMix	alta	la máquina del Chaos Goblin y las mezclas de joyas (revisión 2026-11-21)
+Scenes/JewelMix.cpp	556	Scenes	game/ChaosMix	alta	la máquina del Chaos Goblin y las mezclas de joyas (revisión 2026-11-21)
+Scenes/JewelMix.h	60	Scenes	game/ChaosMix	alta	la máquina del Chaos Goblin y las mezclas de joyas (revisión 2026-11-21)
+Scenes/JointFamilies.h	187	Scenes	game/Joints	alta	los joints (las cintas y los rayos), un módulo propio debajo de Effects (revisión 2026-11-21)
+Scenes/JointKernels.cpp	103	Scenes	game/Joints	alta	los joints (las cintas y los rayos), un módulo propio debajo de Effects (revisión 2026-11-21)
+Scenes/JointKernels.h	141	Scenes	game/Joints	alta	los joints (las cintas y los rayos), un módulo propio debajo de Effects (revisión 2026-11-21)
+Scenes/KalimaMonsterEffects.cpp	119	Scenes	game/Effects	media	los efectos con modelo; usa Joints y Particles (revisión 2026-11-21)
+Scenes/KalimaMonsterEffects.h	42	Scenes	game/Effects	media	los efectos con modelo; usa Joints y Particles (revisión 2026-11-21)
+Scenes/KalimaObjectServices.cpp	243	Scenes	game/MapScripts/Kalima	alta	lo que hace ese mapa, como los scripts por zona de TrinityCore (revisión 2026-11-21)
+Scenes/KalimaObjectServices.h	28	Scenes	game/MapScripts/Kalima	alta	lo que hace ese mapa, como los scripts por zona de TrinityCore (revisión 2026-11-21)
+Scenes/KalimaObjectStep.cpp	126	Scenes	game/MapScripts/Kalima	alta	lo que hace ese mapa, como los scripts por zona de TrinityCore (revisión 2026-11-21)
+Scenes/KalimaObjectStep.h	21	Scenes	game/MapScripts/Kalima	alta	lo que hace ese mapa, como los scripts por zona de TrinityCore (revisión 2026-11-21)
 Scenes/KalimaSiegeHelpers.cpp	963	Scenes	game/Monsters/Drawing	media	monster/NPC draw chain (dir.) and per-type helpers (Kalima/Kundun/siege bosses)
 Scenes/KalimaSiegeHelpers.h	112	Scenes	game/Monsters/Drawing	media	monster/NPC draw chain (dir.) and per-type helpers (Kalima/Kundun/siege bosses)
-Scenes/KundunEffects.cpp	220	Scenes	game/Effects/ModelEffects	media	model effect 0x128 for Kundun actions; effect-table plugin
-Scenes/KundunEffects.h	77	Scenes	game/Effects/ModelEffects	media	model effect 0x128 for Kundun actions; effect-table plugin
-Scenes/KundunFallEffects.cpp	452	Scenes	game/Effects/ModelEffects	media	Kundun death pieces 0x11x: effect-table plugin
-Scenes/KundunFallEffects.h	95	Scenes	game/Effects/ModelEffects	media	Kundun death pieces 0x11x: effect-table plugin
-Scenes/LandOfTrialsObjectServices.cpp	158	Scenes	game/WorldObjects	alta	map objects step/draw ((dir.)/(dir.)), per-map object services, fauna (birds/fish/leaves)
-Scenes/LandOfTrialsObjectServices.h	43	Scenes	game/WorldObjects	alta	map objects step/draw ((dir.)/(dir.)), per-map object services, fauna (birds/fish/leaves)
-Scenes/LetterPortrait.cpp	945	Scenes	game/Social	media	trade, party, duel, friends, letters, personal shops (CL9 hito 7, 9, 10); include graph pulls to Actors (7 vs 1 own)
-Scenes/LetterPortrait.h	173	Scenes	game/Social	media	trade, party, duel, friends, letters, personal shops (CL9 hito 7, 9, 10); include graph pulls to Actors (7 vs 1 own)
+Scenes/KundunEffects.cpp	220	Scenes	game/Effects	media	los efectos con modelo; usa Joints y Particles (revisión 2026-11-21)
+Scenes/KundunEffects.h	77	Scenes	game/Effects	media	los efectos con modelo; usa Joints y Particles (revisión 2026-11-21)
+Scenes/KundunFallEffects.cpp	452	Scenes	game/Effects	media	los efectos con modelo; usa Joints y Particles (revisión 2026-11-21)
+Scenes/KundunFallEffects.h	95	Scenes	game/Effects	media	los efectos con modelo; usa Joints y Particles (revisión 2026-11-21)
+Scenes/LandOfTrialsObjectServices.cpp	158	Scenes	game/MapScripts/LandOfTrials	alta	lo que hace ese mapa, como los scripts por zona de TrinityCore (revisión 2026-11-21)
+Scenes/LandOfTrialsObjectServices.h	43	Scenes	game/MapScripts/LandOfTrials	alta	lo que hace ese mapa, como los scripts por zona de TrinityCore (revisión 2026-11-21)
+Scenes/LetterPortrait.cpp	945	Scenes	game/Messenger	media	los amigos y las cartas (revisión 2026-11-21)
+Scenes/LetterPortrait.h	173	Scenes	game/Messenger	media	los amigos y las cartas (revisión 2026-11-21)
 Scenes/LevelUpPointReply.cpp	79	Scenes	game/Player	alta	own record [0x7681eb0], derived stats (dir.), set options, damages, F3 06/F3 10
 Scenes/LevelUpPointReply.h	27	Scenes	game/Player	alta	own record [0x7681eb0], derived stats (dir.), set options, damages, F3 06/F3 10
-Scenes/LightningJoints.cpp	608	Scenes	game/Effects/Joints	alta	joint system (dir.)/(dir.) and its families
+Scenes/LightningJoints.cpp	608	Scenes	game/Joints	alta	los joints (las cintas y los rayos), un módulo propio debajo de Effects (revisión 2026-11-21)
 Scenes/LoadedWorld.cpp	117	Scenes	game/Kernel	alta	durable globals, map load, world entry F3 03, map transitions, terrain state
 Scenes/LoadedWorld.h	79	Scenes	game/Kernel	alta	durable globals, map load, world entry F3 03, map transitions, terrain state
 Scenes/LoadingScene.cpp	171	Scenes	game/Scenes	baja	scenes 1-4 (loading, login, character select, create) and their 3D sets; include graph pulls to Assets (6 vs 0 own)
 Scenes/LoadingScene.h	59	Scenes	game/Scenes	baja	scenes 1-4 (loading, login, character select, create) and their 3D sets; include graph pulls to Assets (6 vs 0 own)
-Scenes/LoginActor.cpp	98	Scenes	game/Scenes	alta	scenes 1-4 (loading, login, character select, create) and their 3D sets
-Scenes/LoginActor.h	30	Scenes	game/Scenes	alta	scenes 1-4 (loading, login, character select, create) and their 3D sets
-Scenes/LoginModels.cpp	203	Scenes	game/Scenes	alta	scenes 1-4 (loading, login, character select, create) and their 3D sets
-Scenes/LoginModels.h	135	Scenes	game/Scenes	alta	scenes 1-4 (loading, login, character select, create) and their 3D sets
+Scenes/LoginActor.cpp	98	Scenes	game/FrontEnd	media	la lógica del login y de la selección; el guion de la escena queda en Scenes (revisión 2026-11-21)
+Scenes/LoginActor.h	30	Scenes	game/FrontEnd	media	la lógica del login y de la selección; el guion de la escena queda en Scenes (revisión 2026-11-21)
+Scenes/LoginModels.cpp	203	Scenes	game/FrontEnd	media	la lógica del login y de la selección; el guion de la escena queda en Scenes (revisión 2026-11-21)
+Scenes/LoginModels.h	135	Scenes	game/FrontEnd	media	la lógica del login y de la selección; el guion de la escena queda en Scenes (revisión 2026-11-21)
 Scenes/LoginScene.cpp	2123	Scenes	game/Scenes	media	scenes 1-4 (loading, login, character select, create) and their 3D sets; include graph pulls to SceneFlow (10 vs 5 own)
 Scenes/LoginScene.h	338	Scenes	game/Scenes	media	scenes 1-4 (loading, login, character select, create) and their 3D sets; include graph pulls to SceneFlow (10 vs 5 own)
-Scenes/LorenciaModelFiles.cpp	60	Scenes	game/Kernel/Assets	alta	Object1 model file names (dir.)
-Scenes/LorenciaModelFiles.h	12	Scenes	game/Kernel/Assets	alta	Object1 model file names (dir.)
+Scenes/LorenciaModelFiles.cpp	60	Scenes	game/Assets	alta	los modelos y texturas, fuera de Kernel (revisión 2026-11-21)
+Scenes/LorenciaModelFiles.h	12	Scenes	game/Assets	alta	los modelos y texturas, fuera de Kernel (revisión 2026-11-21)
 Scenes/MagicAttackCount.cpp	104	Scenes	game/Combat	alta	character attack step (dir.)/(dir.), hits, combat/skill replies, damage numbers
 Scenes/MagicAttackCount.h	27	Scenes	game/Combat	alta	character attack step (dir.)/(dir.), hits, combat/skill replies, damage numbers
 Scenes/MapLoad.cpp	376	Scenes	game/Kernel	baja	durable globals, map load, world entry F3 03, map transitions, terrain state; include graph pulls to SessionApply (4 vs 
@@ -894,16 +894,16 @@ Scenes/MapModelEffectServices.cpp	33	Scenes	game/WorldObjects	alta	map objects s
 Scenes/MapModelEffectServices.h	27	Scenes	game/WorldObjects	alta	map objects step/draw ((dir.)/(dir.)), per-map object services, fauna (birds/fish/leaves)
 Scenes/MapServerMoveApply.cpp	59	Scenes	game/Session	media	top-level packet/transition application that reaches every feature: B1 00 map-server move: session lifecycle
 Scenes/MapServerMoveApply.h	27	Scenes	game/Session	media	top-level packet/transition application that reaches every feature: B1 00 map-server move: session lifecycle
-Scenes/MeteorEffects.cpp	315	Scenes	game/Effects/ModelEffects	media	effects 0x13f/0x13d of Monster87: effect-table plugin
-Scenes/MeteorEffects.h	74	Scenes	game/Effects/ModelEffects	media	effects 0x13f/0x13d of Monster87: effect-table plugin
+Scenes/MeteorEffects.cpp	315	Scenes	game/Effects	media	los efectos con modelo; usa Joints y Particles (revisión 2026-11-21)
+Scenes/MeteorEffects.h	74	Scenes	game/Effects	media	los efectos con modelo; usa Joints y Particles (revisión 2026-11-21)
 Scenes/ModelBody.cpp	257	Scenes	game/Monsters	media	body step of non-0x20a models (monsters/NPCs): (dir.)/(dir.)/(dir.)
 Scenes/ModelBody.h	57	Scenes	game/Monsters	media	body step of non-0x20a models (monsters/NPCs): (dir.)/(dir.)/(dir.)
 Scenes/ModelEffects.cpp	1430	Scenes	game/Monsters	baja	(dir.) per-type effects of non-player characters; called from the monster step; include graph pulls to Actors (1 vs 0 
 Scenes/ModelEffects.h	49	Scenes	game/Monsters	baja	(dir.) per-type effects of non-player characters; called from the monster step; include graph pulls to Actors (1 vs 0 
 Scenes/ModelPoseCallbacks.cpp	25	Scenes	game/Actors/Drawing	alta	(dir.) player draw: body, cloth, hanging items, item glows, weapon trails
 Scenes/ModelPoseCallbacks.h	29	Scenes	game/Actors/Drawing	alta	(dir.) player draw: body, cloth, hanging items, item glows, weapon trails
-Scenes/ModelTextureTable.cpp	95	Scenes	game/Kernel/Assets	alta	durable model texture registry (dir.)/(dir.)
-Scenes/ModelTextureTable.h	45	Scenes	game/Kernel/Assets	alta	durable model texture registry (dir.)/(dir.)
+Scenes/ModelTextureTable.cpp	95	Scenes	game/Assets	alta	los modelos y texturas, fuera de Kernel (revisión 2026-11-21)
+Scenes/ModelTextureTable.h	45	Scenes	game/Assets	alta	los modelos y texturas, fuera de Kernel (revisión 2026-11-21)
 Scenes/MonsterAttackStep.cpp	1835	Scenes	game/Monsters	baja	monster/NPC creation, kinds table, viewport 0x13/0x1F, attack step, sounds; include graph pulls to Effects.Models (5 vs 
 Scenes/MonsterAttackStep.h	26	Scenes	game/Monsters	baja	monster/NPC creation, kinds table, viewport 0x13/0x1F, attack step, sounds; include graph pulls to Effects.Models (5 vs 
 Scenes/MonsterBody.cpp	528	Scenes	game/Monsters/Drawing	media	monster/NPC draw chain (dir.) and per-type helpers (Kalima/Kundun/siege bosses)
@@ -923,20 +923,20 @@ Scenes/MonsterHelpers.h	103	Scenes	game/Monsters/Drawing	media	monster/NPC draw 
 Scenes/MonsterKindTable.cpp	2284	Scenes	game/Monsters	alta	monster/NPC creation, kinds table, viewport 0x13/0x1F, attack step, sounds
 Scenes/MonsterKinds.cpp	119	Scenes	game/Monsters	alta	monster/NPC creation, kinds table, viewport 0x13/0x1F, attack step, sounds
 Scenes/MonsterKinds.h	153	Scenes	game/Monsters	alta	monster/NPC creation, kinds table, viewport 0x13/0x1F, attack step, sounds
-Scenes/MonsterModelTable.cpp	1132	Scenes	game/Kernel/Assets	media	post-load fix-ups of monster/NPC models ((dir.)/(dir.))
-Scenes/MonsterModelTable.h	116	Scenes	game/Kernel/Assets	media	post-load fix-ups of monster/NPC models ((dir.)/(dir.))
+Scenes/MonsterModelTable.cpp	1132	Scenes	game/Assets	media	los modelos y texturas, fuera de Kernel (revisión 2026-11-21)
+Scenes/MonsterModelTable.h	116	Scenes	game/Assets	media	los modelos y texturas, fuera de Kernel (revisión 2026-11-21)
 Scenes/MonsterRibbonTrails.cpp	201	Scenes	game/Monsters/Drawing	baja	monster/NPC draw chain (dir.) and per-type helpers (Kalima/Kundun/siege bosses); include graph pulls to Actors (2 vs 0
 Scenes/MonsterRibbonTrails.h	24	Scenes	game/Monsters/Drawing	baja	monster/NPC draw chain (dir.) and per-type helpers (Kalima/Kundun/siege bosses); include graph pulls to Actors (2 vs 0
-Scenes/MonsterSounds.cpp	137	Scenes	game/Monsters	baja	monster/NPC creation, kinds table, viewport 0x13/0x1F, attack step, sounds; include graph pulls to Assets (2 vs 0 own)
-Scenes/MonsterSounds.h	46	Scenes	game/Monsters	baja	monster/NPC creation, kinds table, viewport 0x13/0x1F, attack step, sounds; include graph pulls to Assets (2 vs 0 own)
+Scenes/MonsterSounds.cpp	137	Scenes	game/Sound	media	la tabla de sonidos por modelo y el pedido de sonido (revisión 2026-11-21)
+Scenes/MonsterSounds.h	46	Scenes	game/Sound	media	la tabla de sonidos por modelo y el pedido de sonido (revisión 2026-11-21)
 Scenes/MonsterStepCases.cpp	222	Scenes	game/Monsters	media	per-type cases of the non-player step ((dir.)/(dir.)); include graph pulls to Hud (2 vs 1 own)
 Scenes/MonsterStepCases.h	65	Scenes	game/Monsters	media	per-type cases of the non-player step ((dir.)/(dir.)); include graph pulls to Hud (2 vs 1 own)
 Scenes/MonsterViewport.cpp	507	Scenes	game/Monsters	media	monster/NPC creation, kinds table, viewport 0x13/0x1F, attack step, sounds; include graph pulls to Actors (5 vs 1 own)
 Scenes/MonsterViewport.h	55	Scenes	game/Monsters	media	monster/NPC creation, kinds table, viewport 0x13/0x1F, attack step, sounds; include graph pulls to Actors (5 vs 1 own)
 Scenes/MovementReplies.cpp	285	Scenes	game/Actors	alta	actor record/pool, creation, equipment, flags, per-actor step, viewport packets 0x12/0x14/...
 Scenes/MovementReplies.h	22	Scenes	game/Actors	alta	actor record/pool, creation, equipment, flags, per-actor step, viewport packets 0x12/0x14/...
-Scenes/NoriaObjectServices.cpp	180	Scenes	game/WorldObjects	alta	map objects step/draw ((dir.)/(dir.)), per-map object services, fauna (birds/fish/leaves)
-Scenes/NoriaObjectServices.h	17	Scenes	game/WorldObjects	alta	map objects step/draw ((dir.)/(dir.)), per-map object services, fauna (birds/fish/leaves)
+Scenes/NoriaObjectServices.cpp	180	Scenes	game/MapScripts/Noria	alta	lo que hace ese mapa, como los scripts por zona de TrinityCore (revisión 2026-11-21)
+Scenes/NoriaObjectServices.h	17	Scenes	game/MapScripts/Noria	alta	lo que hace ese mapa, como los scripts por zona de TrinityCore (revisión 2026-11-21)
 Scenes/NpcChatter.cpp	193	Scenes	game/Monsters	baja	monster/NPC creation, kinds table, viewport 0x13/0x1F, attack step, sounds; include graph pulls to Actors (2 vs 0 own)
 Scenes/NpcChatter.h	46	Scenes	game/Monsters	baja	monster/NPC creation, kinds table, viewport 0x13/0x1F, attack step, sounds; include graph pulls to Actors (2 vs 0 own)
 Scenes/NpcNames.cpp	57	Scenes	game/Monsters	media	monster/NPC creation, kinds table, viewport 0x13/0x1F, attack step, sounds; include graph pulls to Inventory (3 vs 1 own
@@ -956,7 +956,7 @@ Scenes/ObjectFrameSprites.cpp	292	Scenes	game/WorldObjects	alta	map objects step
 Scenes/ObjectFrameSprites.h	62	Scenes	game/WorldObjects	alta	map objects step/draw ((dir.)/(dir.)), per-map object services, fauna (birds/fish/leaves)
 Scenes/OptionsSettings.cpp	27	Scenes	game/Hud	media	options window globals (+0x7e8)
 Scenes/OptionsSettings.h	17	Scenes	game/Hud	media	options window globals (+0x7e8)
-Scenes/OrbitJoints.cpp	196	Scenes	game/Effects/Joints	alta	joint system (dir.)/(dir.) and its families
+Scenes/OrbitJoints.cpp	196	Scenes	game/Joints	alta	los joints (las cintas y los rayos), un módulo propio debajo de Effects (revisión 2026-11-21)
 Scenes/OriginalFramesOfTheSteps.cpp	38	Scenes	game/Scenes	alta	scene machine: IScene/SceneManager/transitions/loop timing (CL5.4)
 Scenes/OriginalFramesOfTheSteps.h	41	Scenes	game/Scenes	alta	scene machine: IScene/SceneManager/transitions/loop timing (CL5.4)
 Scenes/OwnCharacterRecord.cpp	115	Scenes	game/Player	media	own record [0x7681eb0], derived stats (dir.), set options, damages, F3 06/F3 10; include graph pulls to Hero (12 vs 5 
@@ -975,47 +975,47 @@ Scenes/OwnItemSets.cpp	669	Scenes	game/Player	alta	own record [0x7681eb0], deriv
 Scenes/OwnItemSets.h	80	Scenes	game/Player	alta	own record [0x7681eb0], derived stats (dir.), set options, damages, F3 06/F3 10
 Scenes/OwnStatHelpers.cpp	1099	Scenes	game/Player	alta	own record [0x7681eb0], derived stats (dir.), set options, damages, F3 06/F3 10
 Scenes/OwnStatHelpers.h	107	Scenes	game/Player	alta	own record [0x7681eb0], derived stats (dir.), set options, damages, F3 06/F3 10
-Scenes/ParticleDrawServices.cpp	139	Scenes	game/Effects/ModelEffects	alta	model effects (dir.) table: high types, arrows, wizard/skill bursts, particles
-Scenes/ParticleDrawServices.h	42	Scenes	game/Effects/ModelEffects	alta	model effects (dir.) table: high types, arrows, wizard/skill bursts, particles
-Scenes/PartyActors.cpp	185	Scenes	game/Social	alta	trade, party, duel, friends, letters, personal shops (CL9 hito 7, 9, 10)
-Scenes/PartyActors.h	55	Scenes	game/Social	alta	trade, party, duel, friends, letters, personal shops (CL9 hito 7, 9, 10)
-Scenes/PersonalShopLists.cpp	362	Scenes	game/Social	alta	trade, party, duel, friends, letters, personal shops (CL9 hito 7, 9, 10)
-Scenes/PersonalShopLists.h	77	Scenes	game/Social	alta	trade, party, duel, friends, letters, personal shops (CL9 hito 7, 9, 10)
-Scenes/PersonalShopTitles.cpp	133	Scenes	game/Social	alta	trade, party, duel, friends, letters, personal shops (CL9 hito 7, 9, 10)
-Scenes/PersonalShopTitles.h	48	Scenes	game/Social	alta	trade, party, duel, friends, letters, personal shops (CL9 hito 7, 9, 10)
-Scenes/PersonalShopWindow.cpp	646	Scenes	game/Social	media	trade, party, duel, friends, letters, personal shops (CL9 hito 7, 9, 10); include graph pulls to Inventory (4 vs 3 own)
-Scenes/PersonalShopWindow.h	102	Scenes	game/Social	media	trade, party, duel, friends, letters, personal shops (CL9 hito 7, 9, 10); include graph pulls to Inventory (4 vs 3 own)
+Scenes/ParticleDrawServices.cpp	139	Scenes	game/Effects	alta	los efectos con modelo; usa Joints y Particles (revisión 2026-11-21)
+Scenes/ParticleDrawServices.h	42	Scenes	game/Effects	alta	los efectos con modelo; usa Joints y Particles (revisión 2026-11-21)
+Scenes/PartyActors.cpp	185	Scenes	game/Party	alta	la party (revisión 2026-11-21)
+Scenes/PartyActors.h	55	Scenes	game/Party	alta	la party (revisión 2026-11-21)
+Scenes/PersonalShopLists.cpp	362	Scenes	game/PersonalShop	alta	la tienda personal (revisión 2026-11-21)
+Scenes/PersonalShopLists.h	77	Scenes	game/PersonalShop	alta	la tienda personal (revisión 2026-11-21)
+Scenes/PersonalShopTitles.cpp	133	Scenes	game/PersonalShop	alta	la tienda personal (revisión 2026-11-21)
+Scenes/PersonalShopTitles.h	48	Scenes	game/PersonalShop	alta	la tienda personal (revisión 2026-11-21)
+Scenes/PersonalShopWindow.cpp	646	Scenes	game/PersonalShop	media	la tienda personal (revisión 2026-11-21)
+Scenes/PersonalShopWindow.h	102	Scenes	game/PersonalShop	media	la tienda personal (revisión 2026-11-21)
 Scenes/PetHelperSteps.cpp	383	Scenes	game/Pets	alta	Dark Lord raven/horse, helper table (dir.), A7/A8/A9, pet window
 Scenes/PetHelperSteps.h	59	Scenes	game/Pets	alta	Dark Lord raven/horse, helper table (dir.), A7/A8/A9, pet window
 Scenes/PetOrders.cpp	81	Scenes	game/Pets	alta	Dark Lord raven/horse, helper table (dir.), A7/A8/A9, pet window
 Scenes/PetOrders.h	28	Scenes	game/Pets	alta	Dark Lord raven/horse, helper table (dir.), A7/A8/A9, pet window
 Scenes/PetStats.cpp	295	Scenes	game/Pets	media	Dark Lord raven/horse, helper table (dir.), A7/A8/A9, pet window; include graph pulls to SessionApply (2 vs 1 own)
 Scenes/PetStats.h	58	Scenes	game/Pets	media	Dark Lord raven/horse, helper table (dir.), A7/A8/A9, pet window; include graph pulls to SessionApply (2 vs 1 own)
-Scenes/PetTooltip.cpp	360	Scenes	game/Items/Tooltips	alta	tooltips (dir.)/(dir.), help overlays
-Scenes/PetTooltip.h	28	Scenes	game/Items/Tooltips	alta	tooltips (dir.)/(dir.), help overlays
-Scenes/PetTrainer.cpp	438	Scenes	game/Npc	alta	NPC talk, shop/warehouse/chaos box/jewel mix/pet trainer windows (CL9 hito 6)
-Scenes/PetTrainer.h	121	Scenes	game/Npc	alta	NPC talk, shop/warehouse/chaos box/jewel mix/pet trainer windows (CL9 hito 6)
-Scenes/PetTrainerDrawing.cpp	555	Scenes	game/Npc	alta	NPC talk, shop/warehouse/chaos box/jewel mix/pet trainer windows (CL9 hito 6)
-Scenes/PetTrainerDrawing.h	28	Scenes	game/Npc	alta	NPC talk, shop/warehouse/chaos box/jewel mix/pet trainer windows (CL9 hito 6)
+Scenes/PetTooltip.cpp	360	Scenes	game/Tooltips	alta	los tooltips de ítems, skills y mascotas, arriba de Items, Skills y Pets (revisión 2026-11-21)
+Scenes/PetTooltip.h	28	Scenes	game/Tooltips	alta	los tooltips de ítems, skills y mascotas, arriba de Items, Skills y Pets (revisión 2026-11-21)
+Scenes/PetTrainer.cpp	438	Scenes	game/PetTrainer	alta	el entrenador de mascotas (revisión 2026-11-21)
+Scenes/PetTrainer.h	121	Scenes	game/PetTrainer	alta	el entrenador de mascotas (revisión 2026-11-21)
+Scenes/PetTrainerDrawing.cpp	555	Scenes	game/PetTrainer	alta	el entrenador de mascotas (revisión 2026-11-21)
+Scenes/PetTrainerDrawing.h	28	Scenes	game/PetTrainer	alta	el entrenador de mascotas (revisión 2026-11-21)
 Scenes/PkLevelReply.cpp	120	Scenes	game/Actors	baja	actor record/pool, creation, equipment, flags, per-actor step, viewport packets 0x12/0x14/...; include graph pulls to So
 Scenes/PkLevelReply.h	19	Scenes	game/Actors	baja	actor record/pool, creation, equipment, flags, per-actor step, viewport packets 0x12/0x14/...; include graph pulls to So
-Scenes/PlasmaJoints.cpp	169	Scenes	game/Effects/Joints	alta	joint system (dir.)/(dir.) and its families
+Scenes/PlasmaJoints.cpp	169	Scenes	game/Joints	alta	los joints (las cintas y los rayos), un módulo propio debajo de Effects (revisión 2026-11-21)
 Scenes/PlayerActionSpeeds.cpp	41	Scenes	game/Actors	alta	actor record/pool, creation, equipment, flags, per-actor step, viewport packets 0x12/0x14/...
 Scenes/PlayerActionSpeeds.h	21	Scenes	game/Actors	alta	actor record/pool, creation, equipment, flags, per-actor step, viewport packets 0x12/0x14/...
-Scenes/QuestReplies.cpp	230	Scenes	game/Npc	alta	quests (NPC-driven): quest object [0x710148], A0..A3 replies, quest window
-Scenes/QuestReplies.h	50	Scenes	game/Npc	alta	quests (NPC-driven): quest object [0x710148], A0..A3 replies, quest window
-Scenes/QuestState.h	66	Scenes	game/Npc	alta	quests (NPC-driven): quest object [0x710148], A0..A3 replies, quest window
-Scenes/QuestWindow.h	68	Scenes	game/Npc	alta	quests (NPC-driven): quest object [0x710148], A0..A3 replies, quest window
-Scenes/QuestWindowDrawing.cpp	644	Scenes	game/Npc	alta	quests (NPC-driven): quest object [0x710148], A0..A3 replies, quest window
-Scenes/QuestWindowStep.cpp	316	Scenes	game/Npc	alta	quests (NPC-driven): quest object [0x710148], A0..A3 replies, quest window
-Scenes/Quests.cpp	637	Scenes	game/Npc	alta	quests (NPC-driven): quest object [0x710148], A0..A3 replies, quest window
-Scenes/Quests.h	116	Scenes	game/Npc	alta	quests (NPC-driven): quest object [0x710148], A0..A3 replies, quest window
+Scenes/QuestReplies.cpp	230	Scenes	game/Quests	alta	las misiones (revisión 2026-11-21)
+Scenes/QuestReplies.h	50	Scenes	game/Quests	alta	las misiones (revisión 2026-11-21)
+Scenes/QuestState.h	66	Scenes	game/Quests	alta	las misiones (revisión 2026-11-21)
+Scenes/QuestWindow.h	68	Scenes	game/Quests	alta	las misiones (revisión 2026-11-21)
+Scenes/QuestWindowDrawing.cpp	644	Scenes	game/Quests	alta	las misiones (revisión 2026-11-21)
+Scenes/QuestWindowStep.cpp	316	Scenes	game/Quests	alta	las misiones (revisión 2026-11-21)
+Scenes/Quests.cpp	637	Scenes	game/Quests	alta	las misiones (revisión 2026-11-21)
+Scenes/Quests.h	116	Scenes	game/Quests	alta	las misiones (revisión 2026-11-21)
 Scenes/ReturnToSelection.cpp	197	Scenes	game/Session	media	top-level packet/transition application that reaches every feature: F1 02 back to selection: resets world/session state;
 Scenes/ReturnToSelection.h	36	Scenes	game/Session	media	top-level packet/transition application that reaches every feature: F1 02 back to selection: resets world/session state;
-Scenes/RingEffects.cpp	177	Scenes	game/Effects/ModelEffects	alta	model effects (dir.) table: high types, arrows, wizard/skill bursts, particles
-Scenes/RingEffects.h	51	Scenes	game/Effects/ModelEffects	alta	model effects (dir.) table: high types, arrows, wizard/skill bursts, particles
-Scenes/SceneCameras.cpp	57	Scenes	game/Scenes	alta	scenes 1-4 (loading, login, character select, create) and their 3D sets
-Scenes/SceneCameras.h	40	Scenes	game/Scenes	alta	scenes 1-4 (loading, login, character select, create) and their 3D sets
+Scenes/RingEffects.cpp	177	Scenes	game/Effects	alta	los efectos con modelo; usa Joints y Particles (revisión 2026-11-21)
+Scenes/RingEffects.h	51	Scenes	game/Effects	alta	los efectos con modelo; usa Joints y Particles (revisión 2026-11-21)
+Scenes/SceneCameras.cpp	57	Scenes	game/Camera	media	la cámara (revisión 2026-11-21)
+Scenes/SceneCameras.h	40	Scenes	game/Camera	media	la cámara (revisión 2026-11-21)
 Scenes/SceneCanvas.h	40	Scenes	game/Scenes	media	scene<->GL contract; should move below Scenes (Render/UI), see layering; include graph pulls to FrontEndScenes (8 vs 7 o
 Scenes/SceneContext.h	87	Scenes	game/Scenes	baja	scene machine: IScene/SceneManager/transitions/loop timing (CL5.4); include graph pulls to FrontEndScenes (8 vs 0 own)
 Scenes/SceneId.h	39	Scenes	game/Scenes	media	scene machine: IScene/SceneManager/transitions/loop timing (CL5.4); include graph pulls to FrontEndScenes (11 vs 5 own)
@@ -1023,61 +1023,61 @@ Scenes/SceneManager.cpp	304	Scenes	game/Scenes	alta	scene machine: IScene/SceneM
 Scenes/SceneManager.h	149	Scenes	game/Scenes	alta	scene machine: IScene/SceneManager/transitions/loop timing (CL5.4)
 Scenes/SceneText.cpp	64	Scenes	game/Scenes	alta	scene<->GL contract; should move below Scenes (Render/UI), see layering
 Scenes/SceneText.h	61	Scenes	game/Scenes	alta	scene<->GL contract; should move below Scenes (Render/UI), see layering
-Scenes/SceneTextures.cpp	80	Scenes	game/Kernel/Assets	media	scene texture set upload; used by UI (layering leak); include graph pulls to FrontEndScenes (12 vs 2 own)
-Scenes/SceneTextures.h	58	Scenes	game/Kernel/Assets	media	scene texture set upload; used by UI (layering leak); include graph pulls to FrontEndScenes (12 vs 2 own)
+Scenes/SceneTextures.cpp	80	Scenes	game/Assets	media	los modelos y texturas, fuera de Kernel (revisión 2026-11-21)
+Scenes/SceneTextures.h	58	Scenes	game/Assets	media	los modelos y texturas, fuera de Kernel (revisión 2026-11-21)
 Scenes/SceneTransitions.h	46	Scenes	game/Scenes	alta	scene machine: IScene/SceneManager/transitions/loop timing (CL5.4)
 Scenes/SceneWorlds.h	45	Scenes	game/Scenes	media	scene machine: IScene/SceneManager/transitions/loop timing (CL5.4); include graph pulls to FrontEndScenes (4 vs 1 own)
 Scenes/Screenshots.cpp	172	Scenes	game/Scenes	alta	scene<->GL contract; should move below Scenes (Render/UI), see layering
 Scenes/Screenshots.h	144	Scenes	game/Scenes	alta	scene<->GL contract; should move below Scenes (Render/UI), see layering
 Scenes/SecondGuildWindow.cpp	853	Scenes	game/Guild	alta	guild/alliance/war state, packets, windows, marks (CL9 hito 8)
 Scenes/SecondGuildWindow.h	69	Scenes	game/Guild	alta	guild/alliance/war state, packets, windows, marks (CL9 hito 8)
-Scenes/SelectionActor.cpp	170	Scenes	game/Scenes	media	scenes 1-4 (loading, login, character select, create) and their 3D sets; include graph pulls to Actors (3 vs 2 own)
-Scenes/SelectionActor.h	28	Scenes	game/Scenes	media	scenes 1-4 (loading, login, character select, create) and their 3D sets; include graph pulls to Actors (3 vs 2 own)
-Scenes/SelectionInventory.cpp	44	Scenes	game/Scenes	media	scenes 1-4 (loading, login, character select, create) and their 3D sets; include graph pulls to NpcInteraction (2 vs 1 o
-Scenes/SelectionInventory.h	15	Scenes	game/Scenes	media	scenes 1-4 (loading, login, character select, create) and their 3D sets; include graph pulls to NpcInteraction (2 vs 1 o
-Scenes/SelectionState.cpp	262	Scenes	game/Scenes	alta	scenes 1-4 (loading, login, character select, create) and their 3D sets
-Scenes/SelectionState.h	95	Scenes	game/Scenes	alta	scenes 1-4 (loading, login, character select, create) and their 3D sets
-Scenes/SelectionWorld.cpp	520	Scenes	game/Scenes	media	scenes 1-4 (loading, login, character select, create) and their 3D sets; include graph pulls to Assets (7 vs 2 own)
-Scenes/SelectionWorld.h	171	Scenes	game/Scenes	media	scenes 1-4 (loading, login, character select, create) and their 3D sets; include graph pulls to Assets (7 vs 2 own)
+Scenes/SelectionActor.cpp	170	Scenes	game/FrontEnd	media	la lógica del login y de la selección; el guion de la escena queda en Scenes (revisión 2026-11-21)
+Scenes/SelectionActor.h	28	Scenes	game/FrontEnd	media	la lógica del login y de la selección; el guion de la escena queda en Scenes (revisión 2026-11-21)
+Scenes/SelectionInventory.cpp	44	Scenes	game/FrontEnd	media	la lógica del login y de la selección; el guion de la escena queda en Scenes (revisión 2026-11-21)
+Scenes/SelectionInventory.h	15	Scenes	game/FrontEnd	media	la lógica del login y de la selección; el guion de la escena queda en Scenes (revisión 2026-11-21)
+Scenes/SelectionState.cpp	262	Scenes	game/FrontEnd	media	la lógica del login y de la selección; el guion de la escena queda en Scenes (revisión 2026-11-21)
+Scenes/SelectionState.h	95	Scenes	game/FrontEnd	media	la lógica del login y de la selección; el guion de la escena queda en Scenes (revisión 2026-11-21)
+Scenes/SelectionWorld.cpp	520	Scenes	game/FrontEnd	media	la lógica del login y de la selección; el guion de la escena queda en Scenes (revisión 2026-11-21)
+Scenes/SelectionWorld.h	171	Scenes	game/FrontEnd	media	la lógica del login y de la selección; el guion de la escena queda en Scenes (revisión 2026-11-21)
 Scenes/SessionEventApplier.cpp	716	Scenes	game/Session	alta	top-level packet/transition application that reaches every feature: durable globals, map load, world entry F3 03, map tr
 Scenes/SessionEventApplier.h	50	Scenes	game/Session	alta	top-level packet/transition application that reaches every feature: durable globals, map load, world entry F3 03, map tr
-Scenes/ShopSigns.cpp	445	Scenes	game/Social	alta	trade, party, duel, friends, letters, personal shops (CL9 hito 7, 9, 10)
-Scenes/ShopSigns.h	165	Scenes	game/Social	alta	trade, party, duel, friends, letters, personal shops (CL9 hito 7, 9, 10)
+Scenes/ShopSigns.cpp	445	Scenes	game/PersonalShop	alta	la tienda personal (revisión 2026-11-21)
+Scenes/ShopSigns.h	165	Scenes	game/PersonalShop	alta	la tienda personal (revisión 2026-11-21)
 Scenes/SiegeBattleUi.cpp	402	Scenes	game/CastleSiege	alta	Castle Siege windows, receive B2..BB, battle UI, weapons, map server move
 Scenes/SiegeBattleUi.h	48	Scenes	game/CastleSiege	alta	Castle Siege windows, receive B2..BB, battle UI, weapons, map server move
 Scenes/SiegeControlsDrawing.cpp	334	Scenes	game/CastleSiege	alta	Castle Siege windows, receive B2..BB, battle UI, weapons, map server move
 Scenes/SiegePanelDrawing.cpp	314	Scenes	game/CastleSiege	alta	Castle Siege windows, receive B2..BB, battle UI, weapons, map server move
 Scenes/SiegePanelSteps.cpp	174	Scenes	game/CastleSiege	alta	Castle Siege windows, receive B2..BB, battle UI, weapons, map server move
-Scenes/Skill4e9920.cpp	33	Scenes	game/Hero	alta	own player actions: MoveHero, attack, skill use (dir.) per class, gates
-Scenes/Skill4e9920.h	16	Scenes	game/Hero	alta	own player actions: MoveHero, attack, skill use (dir.) per class, gates
-Scenes/Skill4e9c50.cpp	30	Scenes	game/Hero	alta	own player actions: MoveHero, attack, skill use (dir.) per class, gates
-Scenes/Skill4e9c50.h	14	Scenes	game/Hero	alta	own player actions: MoveHero, attack, skill use (dir.) per class, gates
-Scenes/Skill4f5290.cpp	69	Scenes	game/Hero	alta	own player actions: MoveHero, attack, skill use (dir.) per class, gates
-Scenes/Skill4f5290.h	26	Scenes	game/Hero	alta	own player actions: MoveHero, attack, skill use (dir.) per class, gates
-Scenes/Skill551f40.cpp	42	Scenes	game/Hero	alta	own player actions: MoveHero, attack, skill use (dir.) per class, gates
-Scenes/Skill551f40.h	18	Scenes	game/Hero	alta	own player actions: MoveHero, attack, skill use (dir.) per class, gates
-Scenes/Skill55cbc0.cpp	184	Scenes	game/Hero	alta	own player actions: MoveHero, attack, skill use (dir.) per class, gates
-Scenes/Skill55cbc0.h	27	Scenes	game/Hero	alta	own player actions: MoveHero, attack, skill use (dir.) per class, gates
-Scenes/Skill55faa0.cpp	175	Scenes	game/Hero	alta	own player actions: MoveHero, attack, skill use (dir.) per class, gates
-Scenes/Skill55faa0.h	24	Scenes	game/Hero	alta	own player actions: MoveHero, attack, skill use (dir.) per class, gates
-Scenes/Skill57ce80.cpp	56	Scenes	game/Hero	alta	own player actions: MoveHero, attack, skill use (dir.) per class, gates
-Scenes/Skill57ce80.h	18	Scenes	game/Hero	alta	own player actions: MoveHero, attack, skill use (dir.) per class, gates
-Scenes/Skill57cf90.cpp	23	Scenes	game/Hero	alta	own player actions: MoveHero, attack, skill use (dir.) per class, gates
-Scenes/Skill57cf90.h	15	Scenes	game/Hero	alta	own player actions: MoveHero, attack, skill use (dir.) per class, gates
-Scenes/SkillBurstEffects.cpp	236	Scenes	game/Effects/ModelEffects	alta	model effects (dir.) table: high types, arrows, wizard/skill bursts, particles
-Scenes/SkillBurstEffects.h	69	Scenes	game/Effects/ModelEffects	alta	model effects (dir.) table: high types, arrows, wizard/skill bursts, particles
-Scenes/SkillDelays.cpp	168	Scenes	game/Hero	alta	own player actions: MoveHero, attack, skill use (dir.) per class, gates
-Scenes/SkillDelays.h	46	Scenes	game/Hero	alta	own player actions: MoveHero, attack, skill use (dir.) per class, gates
-Scenes/SkillHits.cpp	136	Scenes	game/Combat	media	character attack step (dir.)/(dir.), hits, combat/skill replies, damage numbers; include graph pulls to Effects.Mode
-Scenes/SkillHits.h	50	Scenes	game/Combat	media	character attack step (dir.)/(dir.), hits, combat/skill replies, damage numbers; include graph pulls to Effects.Mode
-Scenes/SkillReplies.cpp	1039	Scenes	game/Combat	alta	character attack step (dir.)/(dir.), hits, combat/skill replies, damage numbers
-Scenes/SkillReplies.h	76	Scenes	game/Combat	alta	character attack step (dir.)/(dir.), hits, combat/skill replies, damage numbers
-Scenes/SkillTooltip.cpp	643	Scenes	game/Items/Tooltips	alta	tooltips (dir.)/(dir.), help overlays
-Scenes/SkillTooltip.h	32	Scenes	game/Items/Tooltips	alta	tooltips (dir.)/(dir.), help overlays
-Scenes/SkinShells.cpp	120	Scenes	game/Effects/ModelEffects	baja	effect 0x137 (skin shells) scene side; include graph pulls to Effects.Joints (1 vs 0 own)
-Scenes/SkinShells.h	51	Scenes	game/Effects/ModelEffects	baja	effect 0x137 (skin shells) scene side; include graph pulls to Effects.Joints (1 vs 0 own)
-Scenes/SkullEffects.cpp	245	Scenes	game/Effects/ModelEffects	alta	model effects (dir.) table: high types, arrows, wizard/skill bursts, particles
-Scenes/SkullEffects.h	55	Scenes	game/Effects/ModelEffects	alta	model effects (dir.) table: high types, arrows, wizard/skill bursts, particles
+Scenes/Skill4e9920.cpp	33	Scenes	game/Skills	alta	las skills, un módulo propio como Spells/ en TrinityCore (revisión 2026-11-21)
+Scenes/Skill4e9920.h	16	Scenes	game/Skills	alta	las skills, un módulo propio como Spells/ en TrinityCore (revisión 2026-11-21)
+Scenes/Skill4e9c50.cpp	30	Scenes	game/Skills	alta	las skills, un módulo propio como Spells/ en TrinityCore (revisión 2026-11-21)
+Scenes/Skill4e9c50.h	14	Scenes	game/Skills	alta	las skills, un módulo propio como Spells/ en TrinityCore (revisión 2026-11-21)
+Scenes/Skill4f5290.cpp	69	Scenes	game/Skills	alta	las skills, un módulo propio como Spells/ en TrinityCore (revisión 2026-11-21)
+Scenes/Skill4f5290.h	26	Scenes	game/Skills	alta	las skills, un módulo propio como Spells/ en TrinityCore (revisión 2026-11-21)
+Scenes/Skill551f40.cpp	42	Scenes	game/Skills	alta	las skills, un módulo propio como Spells/ en TrinityCore (revisión 2026-11-21)
+Scenes/Skill551f40.h	18	Scenes	game/Skills	alta	las skills, un módulo propio como Spells/ en TrinityCore (revisión 2026-11-21)
+Scenes/Skill55cbc0.cpp	184	Scenes	game/Skills	alta	las skills, un módulo propio como Spells/ en TrinityCore (revisión 2026-11-21)
+Scenes/Skill55cbc0.h	27	Scenes	game/Skills	alta	las skills, un módulo propio como Spells/ en TrinityCore (revisión 2026-11-21)
+Scenes/Skill55faa0.cpp	175	Scenes	game/Skills	alta	las skills, un módulo propio como Spells/ en TrinityCore (revisión 2026-11-21)
+Scenes/Skill55faa0.h	24	Scenes	game/Skills	alta	las skills, un módulo propio como Spells/ en TrinityCore (revisión 2026-11-21)
+Scenes/Skill57ce80.cpp	56	Scenes	game/Skills	alta	las skills, un módulo propio como Spells/ en TrinityCore (revisión 2026-11-21)
+Scenes/Skill57ce80.h	18	Scenes	game/Skills	alta	las skills, un módulo propio como Spells/ en TrinityCore (revisión 2026-11-21)
+Scenes/Skill57cf90.cpp	23	Scenes	game/Skills	alta	las skills, un módulo propio como Spells/ en TrinityCore (revisión 2026-11-21)
+Scenes/Skill57cf90.h	15	Scenes	game/Skills	alta	las skills, un módulo propio como Spells/ en TrinityCore (revisión 2026-11-21)
+Scenes/SkillBurstEffects.cpp	236	Scenes	game/Effects	alta	los efectos con modelo; usa Joints y Particles (revisión 2026-11-21)
+Scenes/SkillBurstEffects.h	69	Scenes	game/Effects	alta	los efectos con modelo; usa Joints y Particles (revisión 2026-11-21)
+Scenes/SkillDelays.cpp	168	Scenes	game/Skills	alta	las skills, un módulo propio como Spells/ en TrinityCore (revisión 2026-11-21)
+Scenes/SkillDelays.h	46	Scenes	game/Skills	alta	las skills, un módulo propio como Spells/ en TrinityCore (revisión 2026-11-21)
+Scenes/SkillHits.cpp	136	Scenes	game/Skills	media	las skills, un módulo propio; revisar en AR4.2 (revisión 2026-11-21)
+Scenes/SkillHits.h	50	Scenes	game/Skills	media	las skills, un módulo propio; revisar en AR4.2 (revisión 2026-11-21)
+Scenes/SkillReplies.cpp	1039	Scenes	game/Skills	media	las skills, un módulo propio; revisar en AR4.2 (revisión 2026-11-21)
+Scenes/SkillReplies.h	76	Scenes	game/Skills	media	las skills, un módulo propio; revisar en AR4.2 (revisión 2026-11-21)
+Scenes/SkillTooltip.cpp	643	Scenes	game/Tooltips	alta	los tooltips de ítems, skills y mascotas, arriba de Items, Skills y Pets (revisión 2026-11-21)
+Scenes/SkillTooltip.h	32	Scenes	game/Tooltips	alta	los tooltips de ítems, skills y mascotas, arriba de Items, Skills y Pets (revisión 2026-11-21)
+Scenes/SkinShells.cpp	120	Scenes	game/Effects	baja	los efectos con modelo; usa Joints y Particles (revisión 2026-11-21)
+Scenes/SkinShells.h	51	Scenes	game/Effects	baja	los efectos con modelo; usa Joints y Particles (revisión 2026-11-21)
+Scenes/SkullEffects.cpp	245	Scenes	game/Effects	alta	los efectos con modelo; usa Joints y Particles (revisión 2026-11-21)
+Scenes/SkullEffects.h	55	Scenes	game/Effects	alta	los efectos con modelo; usa Joints y Particles (revisión 2026-11-21)
 Scenes/Slides.cpp	78	Scenes	game/Hud	alta	game UI step/frame order, HUD (dir.), character/inventory windows, panels, misc windows
 Scenes/Slides.h	33	Scenes	game/Hud	alta	game UI step/frame order, HUD (dir.), character/inventory windows, panels, misc windows
 Scenes/SocialEvents.cpp	935	Scenes	game/Social	alta	trade, party, duel, friends, letters, personal shops (CL9 hito 7, 9, 10)
@@ -1085,28 +1085,28 @@ Scenes/SocialEvents.h	165	Scenes	game/Social	alta	trade, party, duel, friends, l
 Scenes/SocialRequests.cpp	413	Scenes	game/Social	alta	trade, party, duel, friends, letters, personal shops (CL9 hito 7, 9, 10)
 Scenes/SocialRequests.h	130	Scenes	game/Social	alta	trade, party, duel, friends, letters, personal shops (CL9 hito 7, 9, 10)
 Scenes/SocialState.h	221	Scenes	game/Social	alta	trade, party, duel, friends, letters, personal shops (CL9 hito 7, 9, 10)
-Scenes/SparkJoints.cpp	263	Scenes	game/Effects/Joints	alta	joint system (dir.)/(dir.) and its families
-Scenes/SpiralJoints.cpp	296	Scenes	game/Effects/Joints	alta	joint system (dir.)/(dir.) and its families
-Scenes/SpiritJoints.cpp	948	Scenes	game/Effects/Joints	alta	joint system (dir.)/(dir.) and its families
-Scenes/StormJoints.cpp	393	Scenes	game/Effects/Joints	alta	joint system (dir.)/(dir.) and its families
-Scenes/SweepJoints.cpp	196	Scenes	game/Effects/Joints	alta	joint system (dir.)/(dir.) and its families
-Scenes/TarkanObjectFrame.cpp	209	Scenes	game/WorldObjects	alta	map objects step/draw ((dir.)/(dir.)), per-map object services, fauna (birds/fish/leaves)
-Scenes/TarkanObjectFrame.h	34	Scenes	game/WorldObjects	alta	map objects step/draw ((dir.)/(dir.)), per-map object services, fauna (birds/fish/leaves)
-Scenes/TerrainMarks.cpp	49	Scenes	game/Kernel	alta	durable globals, map load, world entry F3 03, map transitions, terrain state
-Scenes/TerrainMarks.h	39	Scenes	game/Kernel	alta	durable globals, map load, world entry F3 03, map transitions, terrain state
-Scenes/TerrainPolygonFrame.cpp	55	Scenes	game/Kernel	baja	durable globals, map load, world entry F3 03, map transitions, terrain state; include graph pulls to GameScene (2 vs 0 o
-Scenes/TerrainPolygonFrame.h	27	Scenes	game/Kernel	baja	durable globals, map load, world entry F3 03, map transitions, terrain state; include graph pulls to GameScene (2 vs 0 o
-Scenes/TerrainTiles.cpp	190	Scenes	game/Kernel/Assets	media	terrain tile textures upload; include graph pulls to GameScene (2 vs 1 own)
-Scenes/TerrainTiles.h	81	Scenes	game/Kernel/Assets	media	terrain tile textures upload; include graph pulls to GameScene (2 vs 1 own)
+Scenes/SparkJoints.cpp	263	Scenes	game/Joints	alta	los joints (las cintas y los rayos), un módulo propio debajo de Effects (revisión 2026-11-21)
+Scenes/SpiralJoints.cpp	296	Scenes	game/Joints	alta	los joints (las cintas y los rayos), un módulo propio debajo de Effects (revisión 2026-11-21)
+Scenes/SpiritJoints.cpp	948	Scenes	game/Joints	alta	los joints (las cintas y los rayos), un módulo propio debajo de Effects (revisión 2026-11-21)
+Scenes/StormJoints.cpp	393	Scenes	game/Joints	alta	los joints (las cintas y los rayos), un módulo propio debajo de Effects (revisión 2026-11-21)
+Scenes/SweepJoints.cpp	196	Scenes	game/Joints	alta	los joints (las cintas y los rayos), un módulo propio debajo de Effects (revisión 2026-11-21)
+Scenes/TarkanObjectFrame.cpp	209	Scenes	game/MapScripts/Tarkan	alta	lo que hace ese mapa, como los scripts por zona de TrinityCore (revisión 2026-11-21)
+Scenes/TarkanObjectFrame.h	34	Scenes	game/MapScripts/Tarkan	alta	lo que hace ese mapa, como los scripts por zona de TrinityCore (revisión 2026-11-21)
+Scenes/TerrainMarks.cpp	49	Scenes	game/Terrain	alta	el terreno, fuera de Kernel (revisión 2026-11-21)
+Scenes/TerrainMarks.h	39	Scenes	game/Terrain	alta	el terreno, fuera de Kernel (revisión 2026-11-21)
+Scenes/TerrainPolygonFrame.cpp	55	Scenes	game/Terrain	baja	el terreno, fuera de Kernel (revisión 2026-11-21)
+Scenes/TerrainPolygonFrame.h	27	Scenes	game/Terrain	baja	el terreno, fuera de Kernel (revisión 2026-11-21)
+Scenes/TerrainTiles.cpp	190	Scenes	game/Assets	media	los modelos y texturas, fuera de Kernel (revisión 2026-11-21)
+Scenes/TerrainTiles.h	81	Scenes	game/Assets	media	los modelos y texturas, fuera de Kernel (revisión 2026-11-21)
 Scenes/TestScene.cpp	55	Scenes	game/Scenes	alta	scene machine: IScene/SceneManager/transitions/loop timing (CL5.4)
 Scenes/TestScene.h	48	Scenes	game/Scenes	alta	scene machine: IScene/SceneManager/transitions/loop timing (CL5.4)
 Scenes/TextCacheDrawer.cpp	62	Scenes	game/Scenes	alta	scene<->GL contract; should move below Scenes (Render/UI), see layering
 Scenes/TextCacheDrawer.h	48	Scenes	game/Scenes	alta	scene<->GL contract; should move below Scenes (Render/UI), see layering
-Scenes/TextureMetadata.h	24	Scenes	game/Kernel/Assets	alta	texture metadata copied from loaded Texture
-Scenes/TextureSets.h	540	Scenes	game/Kernel/Assets	media	per-scene texture lists (data); include graph pulls to FrontEndScenes (5 vs 1 own)
-Scenes/TooltipLines.h	64	Scenes	game/Items/Tooltips	alta	tooltips (dir.)/(dir.), help overlays
-Scenes/TooltipWriter.cpp	146	Scenes	game/Items/Tooltips	alta	tooltips (dir.)/(dir.), help overlays
-Scenes/TooltipWriter.h	92	Scenes	game/Items/Tooltips	alta	tooltips (dir.)/(dir.), help overlays
+Scenes/TextureMetadata.h	24	Scenes	game/Assets	alta	los modelos y texturas, fuera de Kernel (revisión 2026-11-21)
+Scenes/TextureSets.h	540	Scenes	game/Assets	media	los modelos y texturas, fuera de Kernel (revisión 2026-11-21)
+Scenes/TooltipLines.h	64	Scenes	game/Tooltips	alta	los tooltips de ítems, skills y mascotas, arriba de Items, Skills y Pets (revisión 2026-11-21)
+Scenes/TooltipWriter.cpp	146	Scenes	game/Tooltips	alta	los tooltips de ítems, skills y mascotas, arriba de Items, Skills y Pets (revisión 2026-11-21)
+Scenes/TooltipWriter.h	92	Scenes	game/Tooltips	alta	los tooltips de ítems, skills y mascotas, arriba de Items, Skills y Pets (revisión 2026-11-21)
 Scenes/UiItemDrawing.cpp	790	Scenes	game/Items	baja	inventory grids, cursor item, floor items, item names/prices, UI item 3D; include graph pulls to GameScene (4 vs 0 own)
 Scenes/UiItemDrawing.h	153	Scenes	game/Items	baja	inventory grids, cursor item, floor items, item names/prices, UI item 3D; include graph pulls to GameScene (4 vs 0 own)
 Scenes/VertexEffects.cpp	389	Scenes	game/Actors/Drawing	media	(dir.) player draw: body, cloth, hanging items, item glows, weapon trails; include graph pulls to MonsterRender (3 vs 
@@ -1115,19 +1115,19 @@ Scenes/ViewportPacketRing.cpp	34	Scenes	game/Actors	alta	actor record/pool, crea
 Scenes/ViewportPacketRing.h	34	Scenes	game/Actors	alta	actor record/pool, creation, equipment, flags, per-actor step, viewport packets 0x12/0x14/...
 Scenes/ViewportPlayers.cpp	631	Scenes	game/Actors	alta	actor record/pool, creation, equipment, flags, per-actor step, viewport packets 0x12/0x14/...
 Scenes/ViewportPlayers.h	105	Scenes	game/Actors	alta	actor record/pool, creation, equipment, flags, per-actor step, viewport packets 0x12/0x14/...
-Scenes/WanderingJoints.cpp	290	Scenes	game/Effects/Joints	alta	joint system (dir.)/(dir.) and its families
-Scenes/WarehouseKeypad.cpp	494	Scenes	game/Npc	alta	NPC talk, shop/warehouse/chaos box/jewel mix/pet trainer windows (CL9 hito 6)
-Scenes/WarehouseKeypad.h	58	Scenes	game/Npc	alta	NPC talk, shop/warehouse/chaos box/jewel mix/pet trainer windows (CL9 hito 6)
-Scenes/WaveEffects.cpp	115	Scenes	game/Effects/ModelEffects	alta	model effects (dir.) table: high types, arrows, wizard/skill bursts, particles
-Scenes/WaveEffects.h	35	Scenes	game/Effects/ModelEffects	alta	model effects (dir.) table: high types, arrows, wizard/skill bursts, particles
+Scenes/WanderingJoints.cpp	290	Scenes	game/Joints	alta	los joints (las cintas y los rayos), un módulo propio debajo de Effects (revisión 2026-11-21)
+Scenes/WarehouseKeypad.cpp	494	Scenes	game/Warehouse	alta	el almacén (revisión 2026-11-21)
+Scenes/WarehouseKeypad.h	58	Scenes	game/Warehouse	alta	el almacén (revisión 2026-11-21)
+Scenes/WaveEffects.cpp	115	Scenes	game/Effects	alta	los efectos con modelo; usa Joints y Particles (revisión 2026-11-21)
+Scenes/WaveEffects.h	35	Scenes	game/Effects	alta	los efectos con modelo; usa Joints y Particles (revisión 2026-11-21)
 Scenes/WeaponTrail.cpp	260	Scenes	game/Actors/Drawing	media	(dir.) player draw: body, cloth, hanging items, item glows, weapon trails; include graph pulls to Actors (3 vs 1 own)
 Scenes/WeaponTrail.h	21	Scenes	game/Actors/Drawing	media	(dir.) player draw: body, cloth, hanging items, item glows, weapon trails; include graph pulls to Actors (3 vs 1 own)
 Scenes/WinMainLoop.cpp	141	Scenes	game/Scenes	alta	scene machine: IScene/SceneManager/transitions/loop timing (CL5.4)
 Scenes/WinMainLoop.h	41	Scenes	game/Scenes	alta	scene machine: IScene/SceneManager/transitions/loop timing (CL5.4)
-Scenes/WizardEffectDrawing.cpp	107	Scenes	game/Effects/ModelEffects	alta	model effects (dir.) table: high types, arrows, wizard/skill bursts, particles
-Scenes/WizardEffectDrawing.h	40	Scenes	game/Effects/ModelEffects	alta	model effects (dir.) table: high types, arrows, wizard/skill bursts, particles
-Scenes/WizardEffects.cpp	210	Scenes	game/Effects/ModelEffects	media	model effects (dir.) table: high types, arrows, wizard/skill bursts, particles; include graph pulls to Combat (4 vs 1 
-Scenes/WizardEffects.h	77	Scenes	game/Effects/ModelEffects	media	model effects (dir.) table: high types, arrows, wizard/skill bursts, particles; include graph pulls to Combat (4 vs 1 
+Scenes/WizardEffectDrawing.cpp	107	Scenes	game/Effects	alta	los efectos con modelo; usa Joints y Particles (revisión 2026-11-21)
+Scenes/WizardEffectDrawing.h	40	Scenes	game/Effects	alta	los efectos con modelo; usa Joints y Particles (revisión 2026-11-21)
+Scenes/WizardEffects.cpp	210	Scenes	game/Effects	media	los efectos con modelo; usa Joints y Particles (revisión 2026-11-21)
+Scenes/WizardEffects.h	77	Scenes	game/Effects	media	los efectos con modelo; usa Joints y Particles (revisión 2026-11-21)
 Scenes/WorldEntry.cpp	341	Scenes	game/Session	media	top-level packet/transition application that reaches every feature: durable globals, map load, world entry F3 03, map tr
 Scenes/WorldEntry.h	145	Scenes	game/Session	media	top-level packet/transition application that reaches every feature: durable globals, map load, world entry F3 03, map tr
 Scenes/WorldLoadingScene.cpp	130	Scenes	game/Scenes	baja	scenes 1-4 (loading, login, character select, create) and their 3D sets; include graph pulls to SceneFlow (5 vs 0 own)
@@ -1135,14 +1135,14 @@ Scenes/WorldLoadingScene.h	50	Scenes	game/Scenes	baja	scenes 1-4 (loading, login
 Scenes/WorldMap.h	37	Scenes	game/Kernel	media	durable globals, map load, world entry F3 03, map transitions, terrain state; include graph pulls to Hero (7 vs 1 own)
 Scenes/WorldModelPose.cpp	60	Scenes	game/WorldObjects	media	map objects step/draw ((dir.)/(dir.)), per-map object services, fauna (birds/fish/leaves); include graph pulls to Mo
 Scenes/WorldModelPose.h	23	Scenes	game/WorldObjects	media	map objects step/draw ((dir.)/(dir.)), per-map object services, fauna (birds/fish/leaves); include graph pulls to Mo
-Scenes/WorldModels.cpp	455	Scenes	game/Kernel/Assets	alta	world object model list (dir.) (CL7.2)
-Scenes/WorldModels.h	113	Scenes	game/Kernel/Assets	alta	world object model list (dir.) (CL7.2)
+Scenes/WorldModels.cpp	455	Scenes	game/Assets	alta	los modelos y texturas, fuera de Kernel (revisión 2026-11-21)
+Scenes/WorldModels.h	113	Scenes	game/Assets	alta	los modelos y texturas, fuera de Kernel (revisión 2026-11-21)
 Scenes/WorldObjectsDrawing.cpp	1012	Scenes	game/WorldObjects	alta	map objects step/draw ((dir.)/(dir.)), per-map object services, fauna (birds/fish/leaves)
 Scenes/WorldObjectsDrawing.h	241	Scenes	game/WorldObjects	alta	map objects step/draw ((dir.)/(dir.)), per-map object services, fauna (birds/fish/leaves)
 Scenes/WorldRuntime.h	623	Scenes	game/Kernel	media	durable globals, map load, world entry F3 03, map transitions, terrain state; include graph pulls to SocialChat (20 vs 3
-Scenes/WorldRuntimeAudio.cpp	37	Scenes	game/Kernel	alta	durable globals, map load, world entry F3 03, map transitions, terrain state
-Scenes/WorldSpecialModels.cpp	134	Scenes	game/Kernel/Assets	alta	per-map special models (dir.)
-Scenes/WorldSpecialModels.h	31	Scenes	game/Kernel/Assets	alta	per-map special models (dir.)
+Scenes/WorldRuntimeAudio.cpp	37	Scenes	game/Sound	media	la tabla de sonidos por modelo y el pedido de sonido (revisión 2026-11-21)
+Scenes/WorldSpecialModels.cpp	134	Scenes	game/Assets	alta	los modelos y texturas, fuera de Kernel (revisión 2026-11-21)
+Scenes/WorldSpecialModels.h	31	Scenes	game/Assets	alta	los modelos y texturas, fuera de Kernel (revisión 2026-11-21)
 Scenes/WorldState.cpp	264	Scenes	game/Kernel	media	durable globals, map load, world entry F3 03, map transitions, terrain state; include graph pulls to CastleSiege (20 vs 
 Scenes/WorldState.h	165	Scenes	game/Kernel	media	durable globals, map load, world entry F3 03, map transitions, terrain state; include graph pulls to CastleSiege (20 vs 
 Scenes/WorldTexts.cpp	92	Scenes	game/Hud	media	game UI step/frame order, HUD (dir.), character/inventory windows, panels, misc windows; include graph pulls to Monste
@@ -1160,8 +1160,8 @@ UI/CastleSeniorWindow.cpp	22	UI	game/CastleSiege	media	regla ^(Castle|Siege)
 UI/CastleSeniorWindow.h	24	UI	game/CastleSiege	media	regla ^(Castle|Siege)
 UI/CastleSiegeState.cpp	147	UI	game/CastleSiege	media	regla ^(Castle|Siege)
 UI/CastleSiegeState.h	193	UI	game/CastleSiege	media	regla ^(Castle|Siege)
-UI/CharacterBalloons.cpp	271	UI	game/Scenes/FrontEnd	media	regla ^(Login|ServerList|CreateCharacter|Delet
-UI/CharacterBalloons.h	103	UI	game/Scenes/FrontEnd	media	regla ^(Login|ServerList|CreateCharacter|Delet
+UI/CharacterBalloons.cpp	271	UI	game/FrontEnd	media	el login, los servidores y la selección, fuera de Scenes (revisión 2026-11-21)
+UI/CharacterBalloons.h	103	UI	game/FrontEnd	media	el login, los servidores y la selección, fuera de Scenes (revisión 2026-11-21)
 UI/ChatCommands.cpp	363	UI	game/Chat	media	regla ^(Chat|WhisperSenders|MacroFile|Emotes)
 UI/ChatCommands.h	162	UI	game/Chat	media	regla ^(Chat|WhisperSenders|MacroFile|Emotes)
 UI/ChatInput.cpp	356	UI	game/Chat	media	regla ^(Chat|WhisperSenders|MacroFile|Emotes)
@@ -1172,23 +1172,23 @@ UI/ChatLogDraw.cpp	479	UI	game/Chat	media	regla ^(Chat|WhisperSenders|MacroFile|
 UI/ChatLogDraw.h	69	UI	game/Chat	media	regla ^(Chat|WhisperSenders|MacroFile|Emotes)
 UI/ChatLogWindow.cpp	402	UI	game/Chat	media	regla ^(Chat|WhisperSenders|MacroFile|Emotes)
 UI/ChatLogWindow.h	99	UI	game/Chat	media	regla ^(Chat|WhisperSenders|MacroFile|Emotes)
-UI/CreateCharacterWindow.cpp	427	UI	game/Scenes/FrontEnd	media	regla ^(Login|ServerList|CreateCharacter|Delet
-UI/CreateCharacterWindow.h	120	UI	game/Scenes/FrontEnd	media	regla ^(Login|ServerList|CreateCharacter|Delet
-UI/CreditsWindow.cpp	500	UI	game/Scenes/FrontEnd	media	regla ^(Login|ServerList|CreateCharacter|Delet
-UI/CreditsWindow.h	123	UI	game/Scenes/FrontEnd	media	regla ^(Login|ServerList|CreateCharacter|Delet
-UI/DeleteChecks.cpp	53	UI	game/Scenes/FrontEnd	media	regla ^(Login|ServerList|CreateCharacter|Delet
-UI/DeleteChecks.h	24	UI	game/Scenes/FrontEnd	media	regla ^(Login|ServerList|CreateCharacter|Delet
+UI/CreateCharacterWindow.cpp	427	UI	game/FrontEnd	media	el login, los servidores y la selección, fuera de Scenes (revisión 2026-11-21)
+UI/CreateCharacterWindow.h	120	UI	game/FrontEnd	media	el login, los servidores y la selección, fuera de Scenes (revisión 2026-11-21)
+UI/CreditsWindow.cpp	500	UI	game/FrontEnd	media	el login, los servidores y la selección, fuera de Scenes (revisión 2026-11-21)
+UI/CreditsWindow.h	123	UI	game/FrontEnd	media	el login, los servidores y la selección, fuera de Scenes (revisión 2026-11-21)
+UI/DeleteChecks.cpp	53	UI	game/FrontEnd	media	el login, los servidores y la selección, fuera de Scenes (revisión 2026-11-21)
+UI/DeleteChecks.h	24	UI	game/FrontEnd	media	el login, los servidores y la selección, fuera de Scenes (revisión 2026-11-21)
 UI/Dialogs.h	55	UI	game/Ui	media	regla ^(Button|Slider|TextField|Widget|OldCont
 UI/Emotes.cpp	134	UI	game/Chat	media	regla ^(Chat|WhisperSenders|MacroFile|Emotes)
 UI/Emotes.h	35	UI	game/Chat	media	regla ^(Chat|WhisperSenders|MacroFile|Emotes)
-UI/EscapeWindow.cpp	293	UI	game/Scenes/FrontEnd	media	regla ^(Login|ServerList|CreateCharacter|Delet
-UI/EscapeWindow.h	116	UI	game/Scenes/FrontEnd	media	regla ^(Login|ServerList|CreateCharacter|Delet
-UI/FriendModel.cpp	98	UI	game/Social	media	regla ^(Friend|Letter)
-UI/FriendModel.h	83	UI	game/Social	media	regla ^(Friend|Letter)
-UI/FriendWindows.cpp	1348	UI	game/Social	media	regla ^(Friend|Letter)
-UI/FriendWindows.h	78	UI	game/Social	media	regla ^(Friend|Letter)
-UI/FriendWindowsDraw.cpp	508	UI	game/Social	media	regla ^(Friend|Letter)
-UI/FriendWindowsDraw.h	44	UI	game/Social	media	regla ^(Friend|Letter)
+UI/EscapeWindow.cpp	293	UI	game/FrontEnd	media	el login, los servidores y la selección, fuera de Scenes (revisión 2026-11-21)
+UI/EscapeWindow.h	116	UI	game/FrontEnd	media	el login, los servidores y la selección, fuera de Scenes (revisión 2026-11-21)
+UI/FriendModel.cpp	98	UI	game/Messenger	media	los amigos y las cartas (revisión 2026-11-21)
+UI/FriendModel.h	83	UI	game/Messenger	media	los amigos y las cartas (revisión 2026-11-21)
+UI/FriendWindows.cpp	1348	UI	game/Messenger	media	los amigos y las cartas (revisión 2026-11-21)
+UI/FriendWindows.h	78	UI	game/Messenger	media	los amigos y las cartas (revisión 2026-11-21)
+UI/FriendWindowsDraw.cpp	508	UI	game/Messenger	media	los amigos y las cartas (revisión 2026-11-21)
+UI/FriendWindowsDraw.h	44	UI	game/Messenger	media	los amigos y las cartas (revisión 2026-11-21)
 UI/GameCursor.cpp	82	UI	game/Ui	media	regla ^(Button|Slider|TextField|Widget|OldCont
 UI/GameCursor.h	38	UI	game/Ui	media	regla ^(Button|Slider|TextField|Widget|OldCont
 UI/GameDialogs.cpp	525	UI	game/Ui	media	regla ^(Button|Slider|TextField|Widget|OldCont
@@ -1199,14 +1199,14 @@ UI/GameUiState.h	189	UI	game/Ui	media	regla ^(Button|Slider|TextField|Widget|Old
 UI/HudPrimitives.cpp	150	UI	game/Ui	media	regla ^(Button|Slider|TextField|Widget|OldCont
 UI/HudPrimitives.h	38	UI	game/Ui	media	regla ^(Button|Slider|TextField|Widget|OldCont
 UI/IClipboard.h	21	UI	engine/Platform	media	regla ^(IClipboard)
-UI/LetterModel.cpp	190	UI	game/Social	media	regla ^(Friend|Letter)
-UI/LetterModel.h	146	UI	game/Social	media	regla ^(Friend|Letter)
-UI/LetterWindows.cpp	2057	UI	game/Social	media	regla ^(Friend|Letter)
-UI/LetterWindows.h	97	UI	game/Social	media	regla ^(Friend|Letter)
-UI/LetterWindowsDraw.cpp	674	UI	game/Social	media	regla ^(Friend|Letter)
-UI/LetterWindowsDraw.h	66	UI	game/Social	media	regla ^(Friend|Letter)
-UI/LoginWindow.cpp	281	UI	game/Scenes/FrontEnd	media	regla ^(Login|ServerList|CreateCharacter|Delet
-UI/LoginWindow.h	123	UI	game/Scenes/FrontEnd	media	regla ^(Login|ServerList|CreateCharacter|Delet
+UI/LetterModel.cpp	190	UI	game/Messenger	media	los amigos y las cartas (revisión 2026-11-21)
+UI/LetterModel.h	146	UI	game/Messenger	media	los amigos y las cartas (revisión 2026-11-21)
+UI/LetterWindows.cpp	2057	UI	game/Messenger	media	los amigos y las cartas (revisión 2026-11-21)
+UI/LetterWindows.h	97	UI	game/Messenger	media	los amigos y las cartas (revisión 2026-11-21)
+UI/LetterWindowsDraw.cpp	674	UI	game/Messenger	media	los amigos y las cartas (revisión 2026-11-21)
+UI/LetterWindowsDraw.h	66	UI	game/Messenger	media	los amigos y las cartas (revisión 2026-11-21)
+UI/LoginWindow.cpp	281	UI	game/FrontEnd	media	el login, los servidores y la selección, fuera de Scenes (revisión 2026-11-21)
+UI/LoginWindow.h	123	UI	game/FrontEnd	media	el login, los servidores y la selección, fuera de Scenes (revisión 2026-11-21)
 UI/MacroFile.cpp	62	UI	game/Chat	media	regla ^(Chat|WhisperSenders|MacroFile|Emotes)
 UI/MacroFile.h	31	UI	game/Chat	media	regla ^(Chat|WhisperSenders|MacroFile|Emotes)
 UI/MenuBar.cpp	137	UI	game/Ui	media	regla ^(Button|Slider|TextField|Widget|OldCont
@@ -1215,8 +1215,8 @@ UI/MessageArea.cpp	288	UI	game/Ui	media	regla ^(Button|Slider|TextField|Widget|O
 UI/MessageArea.h	168	UI	game/Ui	media	regla ^(Button|Slider|TextField|Widget|OldCont
 UI/MessageLog.cpp	33	UI	game/Ui	media	regla ^(Button|Slider|TextField|Widget|OldCont
 UI/MessageLog.h	35	UI	game/Ui	media	regla ^(Button|Slider|TextField|Widget|OldCont
-UI/NameChecks.cpp	156	UI	game/Scenes/FrontEnd	media	regla ^(Login|ServerList|CreateCharacter|Delet
-UI/NameChecks.h	59	UI	game/Scenes/FrontEnd	media	regla ^(Login|ServerList|CreateCharacter|Delet
+UI/NameChecks.cpp	156	UI	game/FrontEnd	media	el login, los servidores y la selección, fuera de Scenes (revisión 2026-11-21)
+UI/NameChecks.h	59	UI	game/FrontEnd	media	el login, los servidores y la selección, fuera de Scenes (revisión 2026-11-21)
 UI/NewUi.cpp	461	UI	game/Ui	media	regla ^(Button|Slider|TextField|Widget|OldCont
 UI/NewUi.h	162	UI	game/Ui	media	regla ^(Button|Slider|TextField|Widget|OldCont
 UI/NoticeWindow.cpp	328	UI	game/Ui	media	regla ^(Button|Slider|TextField|Widget|OldCont
@@ -1238,87 +1238,87 @@ UI/OldWindowDrawParts.h	125	UI	game/Ui	media	regla ^(Button|Slider|TextField|Wid
 UI/OldWindowSteps.h	174	UI	game/Ui	media	regla ^(Button|Slider|TextField|Widget|OldCont
 UI/OldWindows.cpp	1632	UI	game/Ui	media	regla ^(Button|Slider|TextField|Widget|OldCont
 UI/OldWindows.h	703	UI	game/Ui	media	regla ^(Button|Slider|TextField|Widget|OldCont
-UI/OptionsWindow.cpp	379	UI	game/Scenes/FrontEnd	media	regla ^(Login|ServerList|CreateCharacter|Delet
-UI/OptionsWindow.h	120	UI	game/Scenes/FrontEnd	media	regla ^(Login|ServerList|CreateCharacter|Delet
-UI/OriginalFormat.cpp	212	UI	game/Ui	media	regla ^(Button|Slider|TextField|Widget|OldCont
-UI/OriginalFormat.h	58	UI	game/Ui	media	regla ^(Button|Slider|TextField|Widget|OldCont
+UI/OptionsWindow.cpp	379	UI	game/FrontEnd	media	el login, los servidores y la selección, fuera de Scenes (revisión 2026-11-21)
+UI/OptionsWindow.h	120	UI	game/FrontEnd	media	el login, los servidores y la selección, fuera de Scenes (revisión 2026-11-21)
+UI/OriginalFormat.cpp	212	UI	engine/Crt	alta	imita al sprintf del runtime de MSVC 6; solo usa Core (revisión 2026-11-21)
+UI/OriginalFormat.h	58	UI	engine/Crt	alta	imita al sprintf del runtime de MSVC 6; solo usa Core (revisión 2026-11-21)
 UI/PanelDialog.cpp	338	UI	game/Ui	media	regla ^(Button|Slider|TextField|Widget|OldCont
 UI/PanelDialog.h	212	UI	game/Ui	media	regla ^(Button|Slider|TextField|Widget|OldCont
 UI/PanelRegistry.cpp	924	UI	game/Ui	media	regla ^(Button|Slider|TextField|Widget|OldCont
 UI/PanelRegistry.h	321	UI	game/Ui	media	regla ^(Button|Slider|TextField|Widget|OldCont
 UI/PanelTimerFrame.cpp	19	UI	game/Ui	media	regla ^(Button|Slider|TextField|Widget|OldCont
 UI/PanelTimerFrame.h	16	UI	game/Ui	media	regla ^(Button|Slider|TextField|Widget|OldCont
-UI/SelectionBar.cpp	245	UI	game/Scenes/FrontEnd	media	regla ^(Login|ServerList|CreateCharacter|Delet
-UI/SelectionBar.h	94	UI	game/Scenes/FrontEnd	media	regla ^(Login|ServerList|CreateCharacter|Delet
-UI/ServerListModel.cpp	168	UI	game/Scenes/FrontEnd	media	regla ^(Login|ServerList|CreateCharacter|Delet
-UI/ServerListModel.h	89	UI	game/Scenes/FrontEnd	media	regla ^(Login|ServerList|CreateCharacter|Delet
-UI/ServerListWindow.cpp	567	UI	game/Scenes/FrontEnd	media	regla ^(Login|ServerList|CreateCharacter|Delet
-UI/ServerListWindow.h	169	UI	game/Scenes/FrontEnd	media	regla ^(Login|ServerList|CreateCharacter|Delet
+UI/SelectionBar.cpp	245	UI	game/FrontEnd	media	el login, los servidores y la selección, fuera de Scenes (revisión 2026-11-21)
+UI/SelectionBar.h	94	UI	game/FrontEnd	media	el login, los servidores y la selección, fuera de Scenes (revisión 2026-11-21)
+UI/ServerListModel.cpp	168	UI	game/FrontEnd	media	el login, los servidores y la selección, fuera de Scenes (revisión 2026-11-21)
+UI/ServerListModel.h	89	UI	game/FrontEnd	media	el login, los servidores y la selección, fuera de Scenes (revisión 2026-11-21)
+UI/ServerListWindow.cpp	567	UI	game/FrontEnd	media	el login, los servidores y la selección, fuera de Scenes (revisión 2026-11-21)
+UI/ServerListWindow.h	169	UI	game/FrontEnd	media	el login, los servidores y la selección, fuera de Scenes (revisión 2026-11-21)
 UI/SiegeBattleUiState.h	26	UI	game/CastleSiege	media	regla ^(Castle|Siege)
 UI/SiegePanelState.h	33	UI	game/CastleSiege	media	regla ^(Castle|Siege)
 UI/SlideBanner.cpp	390	UI	game/Ui	media	regla ^(Button|Slider|TextField|Widget|OldCont
 UI/SlideBanner.h	178	UI	game/Ui	media	regla ^(Button|Slider|TextField|Widget|OldCont
 UI/Slider.cpp	263	UI	game/Ui	media	regla ^(Button|Slider|TextField|Widget|OldCont
 UI/Slider.h	102	UI	game/Ui	media	regla ^(Button|Slider|TextField|Widget|OldCont
-UI/SprintfFormat.cpp	337	UI	game/Ui	media	regla ^(Button|Slider|TextField|Widget|OldCont
-UI/SprintfFormat.h	60	UI	game/Ui	media	regla ^(Button|Slider|TextField|Widget|OldCont
+UI/SprintfFormat.cpp	337	UI	engine/Crt	alta	imita al sprintf del runtime de MSVC 6; solo usa Core (revisión 2026-11-21)
+UI/SprintfFormat.h	60	UI	engine/Crt	alta	imita al sprintf del runtime de MSVC 6; solo usa Core (revisión 2026-11-21)
 UI/TextField.cpp	306	UI	game/Ui	media	regla ^(Button|Slider|TextField|Widget|OldCont
 UI/TextField.h	90	UI	game/Ui	media	regla ^(Button|Slider|TextField|Widget|OldCont
 UI/WhisperSenders.cpp	45	UI	game/Chat	media	regla ^(Chat|WhisperSenders|MacroFile|Emotes)
 UI/WhisperSenders.h	39	UI	game/Chat	media	regla ^(Chat|WhisperSenders|MacroFile|Emotes)
 UI/Widget.cpp	52	UI	game/Ui	media	regla ^(Button|Slider|TextField|Widget|OldCont
 UI/Widget.h	50	UI	game/Ui	media	regla ^(Button|Slider|TextField|Widget|OldCont
-World/AtlansObjectStep.cpp	112	World	game/WorldObjects	media	regla ^(Birds|Fish|IBird|IFish|Leaf|Leaves|ILe
-World/AtlansObjectStep.h	31	World	game/WorldObjects	media	regla ^(Birds|Fish|IBird|IFish|Leaf|Leaves|ILe
-World/Birds.cpp	432	World	game/WorldObjects	media	regla ^(Birds|Fish|IBird|IFish|Leaf|Leaves|ILe
-World/Birds.h	60	World	game/WorldObjects	media	regla ^(Birds|Fish|IBird|IFish|Leaf|Leaves|ILe
-World/BlastModelEffects.cpp	1513	World	game/Effects/ModelEffects	media	regla ^(ModelEffects|GameModelEffects|BlastMod
-World/BlastModelEffects.h	68	World	game/Effects/ModelEffects	media	regla ^(ModelEffects|GameModelEffects|BlastMod
-World/BloodCastleParticleKernels.cpp	198	World	game/Effects/Particles	media	regla ^(Particle|Particles|IParticle|PortableP
-World/BloodCastleParticleKernels.h	40	World	game/Effects/Particles	media	regla ^(Particle|Particles|IParticle|PortableP
+World/AtlansObjectStep.cpp	112	World	game/MapScripts/Atlans	media	lo que hace ese mapa, como los scripts por zona de TrinityCore (revisión 2026-11-21)
+World/AtlansObjectStep.h	31	World	game/MapScripts/Atlans	media	lo que hace ese mapa, como los scripts por zona de TrinityCore (revisión 2026-11-21)
+World/Birds.cpp	432	World	game/Fauna	media	la fauna de ambiente (pájaros, peces), fuera de WorldObjects (revisión 2026-11-21)
+World/Birds.h	60	World	game/Fauna	media	la fauna de ambiente (pájaros, peces), fuera de WorldObjects (revisión 2026-11-21)
+World/BlastModelEffects.cpp	1513	World	game/Effects	media	los efectos con modelo; usa Joints y Particles (revisión 2026-11-21)
+World/BlastModelEffects.h	68	World	game/Effects	media	los efectos con modelo; usa Joints y Particles (revisión 2026-11-21)
+World/BloodCastleParticleKernels.cpp	198	World	game/Particles	media	las partículas, un módulo propio debajo de Effects (revisión 2026-11-21)
+World/BloodCastleParticleKernels.h	40	World	game/Particles	media	las partículas, un módulo propio debajo de Effects (revisión 2026-11-21)
 World/CastleSiegeEmission.cpp	154	World	game/CastleSiege	media	regla ^(CastleSiege|Siege)
 World/CastleSiegeEmission.h	13	World	game/CastleSiege	media	regla ^(CastleSiege|Siege)
 World/CastleSiegeObjectStep.cpp	187	World	game/CastleSiege	media	regla ^(CastleSiege|Siege)
 World/CastleSiegeObjectStep.h	80	World	game/CastleSiege	media	regla ^(CastleSiege|Siege)
-World/ChaosCastle.cpp	181	World	game/Events	media	regla ^(ChaosCastle|EventMapObject|BloodCastle
-World/ChaosCastle.h	104	World	game/Events	media	regla ^(ChaosCastle|EventMapObject|BloodCastle
-World/ColoredDecals.cpp	77	World	game/Kernel/Terrain	media	regla ^(Terrain|SiegeTerrain|SphereFrustum|Fac
-World/ColoredDecals.h	38	World	game/Kernel/Terrain	media	regla ^(Terrain|SiegeTerrain|SphereFrustum|Fac
-World/CrywolfWater.cpp	102	World	game/WorldObjects	media	regla ^(Birds|Fish|IBird|IFish|Leaf|Leaves|ILe
-World/CrywolfWater.h	39	World	game/WorldObjects	media	regla ^(Birds|Fish|IBird|IFish|Leaf|Leaves|ILe
-World/DungeonObjectStep.cpp	231	World	game/WorldObjects	media	regla ^(Birds|Fish|IBird|IFish|Leaf|Leaves|ILe
-World/DungeonObjectStep.h	43	World	game/WorldObjects	media	regla ^(Birds|Fish|IBird|IFish|Leaf|Leaves|ILe
-World/EffectParticleKernels.cpp	604	World	game/Effects/Particles	media	regla ^(Particle|Particles|IParticle|PortableP
-World/EffectParticleKernels.h	76	World	game/Effects/Particles	media	regla ^(Particle|Particles|IParticle|PortableP
+World/ChaosCastle.cpp	181	World	game/Events/ChaosCastle	media	un submódulo por evento (revisión 2026-11-21)
+World/ChaosCastle.h	104	World	game/Events/ChaosCastle	media	un submódulo por evento (revisión 2026-11-21)
+World/ColoredDecals.cpp	77	World	game/Terrain	media	el terreno, fuera de Kernel (revisión 2026-11-21)
+World/ColoredDecals.h	38	World	game/Terrain	media	el terreno, fuera de Kernel (revisión 2026-11-21)
+World/CrywolfWater.cpp	102	World	game/MapScripts/Crywolf	media	lo que hace ese mapa, como los scripts por zona de TrinityCore (revisión 2026-11-21)
+World/CrywolfWater.h	39	World	game/MapScripts/Crywolf	media	lo que hace ese mapa, como los scripts por zona de TrinityCore (revisión 2026-11-21)
+World/DungeonObjectStep.cpp	231	World	game/MapScripts/Dungeon	media	lo que hace ese mapa, como los scripts por zona de TrinityCore (revisión 2026-11-21)
+World/DungeonObjectStep.h	43	World	game/MapScripts/Dungeon	media	lo que hace ese mapa, como los scripts por zona de TrinityCore (revisión 2026-11-21)
+World/EffectParticleKernels.cpp	604	World	game/Particles	media	las partículas, un módulo propio debajo de Effects (revisión 2026-11-21)
+World/EffectParticleKernels.h	76	World	game/Particles	media	las partículas, un módulo propio debajo de Effects (revisión 2026-11-21)
 World/EventMapObjectStep.cpp	128	World	game/Events	media	regla ^(ChaosCastle|EventMapObject|BloodCastle
 World/EventMapObjectStep.h	43	World	game/Events	media	regla ^(ChaosCastle|EventMapObject|BloodCastle
-World/FaceNormal.cpp	45	World	game/Kernel/Terrain	media	regla ^(Terrain|SiegeTerrain|SphereFrustum|Fac
-World/FaceNormal.h	18	World	game/Kernel/Terrain	media	regla ^(Terrain|SiegeTerrain|SphereFrustum|Fac
-World/Fish.cpp	609	World	game/WorldObjects	media	regla ^(Birds|Fish|IBird|IFish|Leaf|Leaves|ILe
-World/Fish.h	49	World	game/WorldObjects	media	regla ^(Birds|Fish|IBird|IFish|Leaf|Leaves|ILe
+World/FaceNormal.cpp	45	World	game/Terrain	media	el terreno, fuera de Kernel (revisión 2026-11-21)
+World/FaceNormal.h	18	World	game/Terrain	media	el terreno, fuera de Kernel (revisión 2026-11-21)
+World/Fish.cpp	609	World	game/Fauna	media	la fauna de ambiente (pájaros, peces), fuera de WorldObjects (revisión 2026-11-21)
+World/Fish.h	49	World	game/Fauna	media	la fauna de ambiente (pájaros, peces), fuera de WorldObjects (revisión 2026-11-21)
 World/Ftol.h	21	World	engine/Math	alta	regla ^(Ftol|OriginalFtol)
-World/GameCamera.cpp	240	World	game/Kernel/Terrain	media	regla ^(Terrain|SiegeTerrain|SphereFrustum|Fac
-World/GameCamera.h	73	World	game/Kernel/Terrain	media	regla ^(Terrain|SiegeTerrain|SphereFrustum|Fac
-World/GameModelEffects.cpp	2049	World	game/Effects/ModelEffects	media	regla ^(ModelEffects|GameModelEffects|BlastMod
-World/GameModelEffects.h	116	World	game/Effects/ModelEffects	media	regla ^(ModelEffects|GameModelEffects|BlastMod
-World/GroundEffectDrawing.cpp	409	World	game/Kernel/Terrain	media	regla ^(Terrain|SiegeTerrain|SphereFrustum|Fac
-World/GroundEffectDrawing.h	54	World	game/Kernel/Terrain	media	regla ^(Terrain|SiegeTerrain|SphereFrustum|Fac
-World/GroundMarks.cpp	211	World	game/Kernel/Terrain	media	regla ^(Terrain|SiegeTerrain|SphereFrustum|Fac
-World/GroundMarks.h	85	World	game/Kernel/Terrain	media	regla ^(Terrain|SiegeTerrain|SphereFrustum|Fac
-World/IBirdStepServices.h	90	World	game/WorldObjects	media	regla ^(Birds|Fish|IBird|IFish|Leaf|Leaves|ILe
-World/IFishStepServices.h	117	World	game/WorldObjects	media	regla ^(Birds|Fish|IBird|IFish|Leaf|Leaves|ILe
-World/ILeafWaveEvaluator.h	32	World	game/WorldObjects	media	regla ^(Birds|Fish|IBird|IFish|Leaf|Leaves|ILe
-World/IParticleDrawingServices.h	30	World	game/Effects/Particles	media	regla ^(Particle|Particles|IParticle|PortableP
-World/IParticleTrigonometry.cpp	6	World	game/Effects/Particles	media	regla ^(Particle|Particles|IParticle|PortableP
-World/IParticleTrigonometry.h	25	World	game/Effects/Particles	media	regla ^(Particle|Particles|IParticle|PortableP
-World/ITerrainAttributeQuerySource.h	20	World	game/Kernel/Terrain	media	regla ^(Terrain|SiegeTerrain|SphereFrustum|Fac
+World/GameCamera.cpp	240	World	game/Camera	media	la cámara (revisión 2026-11-21)
+World/GameCamera.h	73	World	game/Camera	media	la cámara (revisión 2026-11-21)
+World/GameModelEffects.cpp	2049	World	game/Effects	media	los efectos con modelo; usa Joints y Particles (revisión 2026-11-21)
+World/GameModelEffects.h	116	World	game/Effects	media	los efectos con modelo; usa Joints y Particles (revisión 2026-11-21)
+World/GroundEffectDrawing.cpp	409	World	game/Terrain	media	el terreno, fuera de Kernel (revisión 2026-11-21)
+World/GroundEffectDrawing.h	54	World	game/Terrain	media	el terreno, fuera de Kernel (revisión 2026-11-21)
+World/GroundMarks.cpp	211	World	game/Terrain	media	el terreno, fuera de Kernel (revisión 2026-11-21)
+World/GroundMarks.h	85	World	game/Terrain	media	el terreno, fuera de Kernel (revisión 2026-11-21)
+World/IBirdStepServices.h	90	World	game/Fauna	media	la fauna de ambiente (pájaros, peces), fuera de WorldObjects (revisión 2026-11-21)
+World/IFishStepServices.h	117	World	game/Fauna	media	la fauna de ambiente (pájaros, peces), fuera de WorldObjects (revisión 2026-11-21)
+World/ILeafWaveEvaluator.h	32	World	game/Weather	media	las hojas, la lluvia y las nubes, como Weather/ en TrinityCore y cMaNGOS (revisión 2026-11-21)
+World/IParticleDrawingServices.h	30	World	game/Particles	media	las partículas, un módulo propio debajo de Effects (revisión 2026-11-21)
+World/IParticleTrigonometry.cpp	6	World	game/Particles	media	las partículas, un módulo propio debajo de Effects (revisión 2026-11-21)
+World/IParticleTrigonometry.h	25	World	game/Particles	media	las partículas, un módulo propio debajo de Effects (revisión 2026-11-21)
+World/ITerrainAttributeQuerySource.h	20	World	game/Terrain	media	el terreno, fuera de Kernel (revisión 2026-11-21)
 World/IWorldObjectCreationServices.h	36	World	game/WorldObjects	media	regla ^(Birds|Fish|IBird|IFish|Leaf|Leaves|ILe
 World/ItemState.cpp	610	World	game/Items	media	regla ^ItemState
 World/ItemState.h	87	World	game/Items	media	regla ^ItemState
 World/KalimaObjectMovement.cpp	47	World	game/Events/Kalima	media	regla ^(Kalima)
 World/KalimaObjectMovement.h	11	World	game/Events/Kalima	media	regla ^(Kalima)
-World/KalimaParticleKernels.cpp	586	World	game/Effects/Particles	media	regla ^(Particle|Particles|IParticle|PortableP
-World/KalimaParticleKernels.h	70	World	game/Effects/Particles	media	regla ^(Particle|Particles|IParticle|PortableP
+World/KalimaParticleKernels.cpp	586	World	game/Particles	media	las partículas, un módulo propio debajo de Effects (revisión 2026-11-21)
+World/KalimaParticleKernels.h	70	World	game/Particles	media	las partículas, un módulo propio debajo de Effects (revisión 2026-11-21)
 World/KalimaResources.cpp	35	World	game/Events/Kalima	media	regla ^(Kalima)
 World/KalimaResources.h	17	World	game/Events/Kalima	media	regla ^(Kalima)
 World/KalimaSurfaceDecal.cpp	168	World	game/Events/Kalima	media	regla ^(Kalima)
@@ -1327,85 +1327,85 @@ World/KalimaWaves.cpp	35	World	game/Events/Kalima	media	regla ^(Kalima)
 World/KalimaWaves.h	24	World	game/Events/Kalima	media	regla ^(Kalima)
 World/KalimaWorld.cpp	376	World	game/Events/Kalima	media	regla ^(Kalima)
 World/KalimaWorld.h	62	World	game/Events/Kalima	media	regla ^(Kalima)
-World/LeafWeather.cpp	64	World	game/WorldObjects	media	regla ^(Birds|Fish|IBird|IFish|Leaf|Leaves|ILe
-World/LeafWeather.h	27	World	game/WorldObjects	media	regla ^(Birds|Fish|IBird|IFish|Leaf|Leaves|ILe
-World/Leaves.cpp	190	World	game/WorldObjects	media	regla ^(Birds|Fish|IBird|IFish|Leaf|Leaves|ILe
-World/Leaves.h	95	World	game/WorldObjects	media	regla ^(Birds|Fish|IBird|IFish|Leaf|Leaves|ILe
-World/MissileFireParticleKernels.cpp	237	World	game/Effects/Particles	media	regla ^(Particle|Particles|IParticle|PortableP
-World/MissileFireParticleKernels.h	42	World	game/Effects/Particles	media	regla ^(Particle|Particles|IParticle|PortableP
-World/ModelEffects.cpp	1430	World	game/Effects/ModelEffects	media	regla ^(ModelEffects|GameModelEffects|BlastMod
-World/ModelEffects.h	485	World	game/Effects/ModelEffects	media	regla ^(ModelEffects|GameModelEffects|BlastMod
-World/NoriaObjectStep.cpp	65	World	game/WorldObjects	media	regla ^(Birds|Fish|IBird|IFish|Leaf|Leaves|ILe
-World/NoriaObjectStep.h	14	World	game/WorldObjects	media	regla ^(Birds|Fish|IBird|IFish|Leaf|Leaves|ILe
-World/NoriaParticleKernels.cpp	259	World	game/Effects/Particles	media	regla ^(Particle|Particles|IParticle|PortableP
-World/NoriaParticleKernels.h	40	World	game/Effects/Particles	media	regla ^(Particle|Particles|IParticle|PortableP
-World/ObjectAlpha.cpp	71	World	game/Effects/ModelEffects	media	regla ^(ModelEffects|GameModelEffects|BlastMod
-World/ObjectAlpha.h	13	World	game/Effects/ModelEffects	media	regla ^(ModelEffects|GameModelEffects|BlastMod
+World/LeafWeather.cpp	64	World	game/Weather	media	las hojas, la lluvia y las nubes, como Weather/ en TrinityCore y cMaNGOS (revisión 2026-11-21)
+World/LeafWeather.h	27	World	game/Weather	media	las hojas, la lluvia y las nubes, como Weather/ en TrinityCore y cMaNGOS (revisión 2026-11-21)
+World/Leaves.cpp	190	World	game/Weather	media	las hojas, la lluvia y las nubes, como Weather/ en TrinityCore y cMaNGOS (revisión 2026-11-21)
+World/Leaves.h	95	World	game/Weather	media	las hojas, la lluvia y las nubes, como Weather/ en TrinityCore y cMaNGOS (revisión 2026-11-21)
+World/MissileFireParticleKernels.cpp	237	World	game/Particles	media	las partículas, un módulo propio debajo de Effects (revisión 2026-11-21)
+World/MissileFireParticleKernels.h	42	World	game/Particles	media	las partículas, un módulo propio debajo de Effects (revisión 2026-11-21)
+World/ModelEffects.cpp	1430	World	game/Effects	media	los efectos con modelo; usa Joints y Particles (revisión 2026-11-21)
+World/ModelEffects.h	485	World	game/Effects	media	los efectos con modelo; usa Joints y Particles (revisión 2026-11-21)
+World/NoriaObjectStep.cpp	65	World	game/MapScripts/Noria	media	lo que hace ese mapa, como los scripts por zona de TrinityCore (revisión 2026-11-21)
+World/NoriaObjectStep.h	14	World	game/MapScripts/Noria	media	lo que hace ese mapa, como los scripts por zona de TrinityCore (revisión 2026-11-21)
+World/NoriaParticleKernels.cpp	259	World	game/Particles	media	las partículas, un módulo propio debajo de Effects (revisión 2026-11-21)
+World/NoriaParticleKernels.h	40	World	game/Particles	media	las partículas, un módulo propio debajo de Effects (revisión 2026-11-21)
+World/ObjectAlpha.cpp	71	World	game/Effects	media	los efectos con modelo; usa Joints y Particles (revisión 2026-11-21)
+World/ObjectAlpha.h	13	World	game/Effects	media	los efectos con modelo; usa Joints y Particles (revisión 2026-11-21)
 World/ObjectModelStepState.h	14	World	game/WorldObjects	media	regla ^(Birds|Fish|IBird|IFish|Leaf|Leaves|ILe
 World/OriginalFtol.cpp	26	World	engine/Math	alta	regla ^(Ftol|OriginalFtol)
 World/OriginalFtol.h	13	World	engine/Math	alta	regla ^(Ftol|OriginalFtol)
-World/ParticleBurst.cpp	58	World	game/Effects/Particles	media	regla ^(Particle|Particles|IParticle|PortableP
-World/ParticleBurst.h	25	World	game/Effects/Particles	media	regla ^(Particle|Particles|IParticle|PortableP
-World/ParticleDrawParameters.cpp	95	World	game/Effects/Particles	media	regla ^(Particle|Particles|IParticle|PortableP
-World/ParticleDrawParameters.h	35	World	game/Effects/Particles	media	regla ^(Particle|Particles|IParticle|PortableP
-World/ParticleDrawing.cpp	335	World	game/Effects/Particles	media	regla ^(Particle|Particles|IParticle|PortableP
-World/ParticleDrawing.h	59	World	game/Effects/Particles	media	regla ^(Particle|Particles|IParticle|PortableP
-World/ParticleOwner.h	22	World	game/Effects/Particles	media	regla ^(Particle|Particles|IParticle|PortableP
-World/Particles.cpp	3056	World	game/Effects/Particles	media	regla ^(Particle|Particles|IParticle|PortableP
-World/Particles.h	412	World	game/Effects/Particles	media	regla ^(Particle|Particles|IParticle|PortableP
-World/PortableParticleTrigonometry.cpp	32	World	game/Effects/Particles	media	regla ^(Particle|Particles|IParticle|PortableP
-World/PortableParticleTrigonometry.h	22	World	game/Effects/Particles	media	regla ^(Particle|Particles|IParticle|PortableP
-World/ScepterGlow.cpp	103	World	game/Effects/ModelEffects	media	regla ^(ModelEffects|GameModelEffects|BlastMod
-World/ScepterGlow.h	76	World	game/Effects/ModelEffects	media	regla ^(ModelEffects|GameModelEffects|BlastMod
-World/SelectionParticleKernels.cpp	229	World	game/Effects/Particles	media	regla ^(Particle|Particles|IParticle|PortableP
-World/SelectionParticleKernels.h	41	World	game/Effects/Particles	media	regla ^(Particle|Particles|IParticle|PortableP
+World/ParticleBurst.cpp	58	World	game/Particles	media	las partículas, un módulo propio debajo de Effects (revisión 2026-11-21)
+World/ParticleBurst.h	25	World	game/Particles	media	las partículas, un módulo propio debajo de Effects (revisión 2026-11-21)
+World/ParticleDrawParameters.cpp	95	World	game/Particles	media	las partículas, un módulo propio debajo de Effects (revisión 2026-11-21)
+World/ParticleDrawParameters.h	35	World	game/Particles	media	las partículas, un módulo propio debajo de Effects (revisión 2026-11-21)
+World/ParticleDrawing.cpp	335	World	game/Particles	media	las partículas, un módulo propio debajo de Effects (revisión 2026-11-21)
+World/ParticleDrawing.h	59	World	game/Particles	media	las partículas, un módulo propio debajo de Effects (revisión 2026-11-21)
+World/ParticleOwner.h	22	World	game/Particles	media	las partículas, un módulo propio debajo de Effects (revisión 2026-11-21)
+World/Particles.cpp	3056	World	game/Particles	media	las partículas, un módulo propio debajo de Effects (revisión 2026-11-21)
+World/Particles.h	412	World	game/Particles	media	las partículas, un módulo propio debajo de Effects (revisión 2026-11-21)
+World/PortableParticleTrigonometry.cpp	32	World	game/Particles	media	las partículas, un módulo propio debajo de Effects (revisión 2026-11-21)
+World/PortableParticleTrigonometry.h	22	World	game/Particles	media	las partículas, un módulo propio debajo de Effects (revisión 2026-11-21)
+World/ScepterGlow.cpp	103	World	game/Effects	media	los efectos con modelo; usa Joints y Particles (revisión 2026-11-21)
+World/ScepterGlow.h	76	World	game/Effects	media	los efectos con modelo; usa Joints y Particles (revisión 2026-11-21)
+World/SelectionParticleKernels.cpp	229	World	game/Particles	media	las partículas, un módulo propio debajo de Effects (revisión 2026-11-21)
+World/SelectionParticleKernels.h	41	World	game/Particles	media	las partículas, un módulo propio debajo de Effects (revisión 2026-11-21)
 World/SiegeGateEffects.cpp	24	World	game/CastleSiege	media	regla ^(CastleSiege|Siege)
 World/SiegeGateEffects.h	15	World	game/CastleSiege	media	regla ^(CastleSiege|Siege)
 World/SiegeStoneCollision.cpp	51	World	game/CastleSiege	media	regla ^(CastleSiege|Siege)
 World/SiegeStoneEffects.cpp	102	World	game/CastleSiege	media	regla ^(CastleSiege|Siege)
 World/SiegeStoneEffects.h	62	World	game/CastleSiege	media	regla ^(CastleSiege|Siege)
 World/SiegeStoneStep.cpp	303	World	game/CastleSiege	media	regla ^(CastleSiege|Siege)
-World/SiegeTerrain.cpp	50	World	game/Kernel/Terrain	media	regla ^(Terrain|SiegeTerrain|SphereFrustum|Fac
-World/SiegeTerrain.h	18	World	game/Kernel/Terrain	media	regla ^(Terrain|SiegeTerrain|SphereFrustum|Fac
+World/SiegeTerrain.cpp	50	World	game/Terrain	media	el terreno, fuera de Kernel (revisión 2026-11-21)
+World/SiegeTerrain.h	18	World	game/Terrain	media	el terreno, fuera de Kernel (revisión 2026-11-21)
 World/SiegeVertexEffects.cpp	338	World	game/CastleSiege	media	regla ^(CastleSiege|Siege)
 World/SiegeVertexEffects.h	34	World	game/CastleSiege	media	regla ^(CastleSiege|Siege)
-World/SkinShellEffects.cpp	110	World	game/Effects/ModelEffects	media	regla ^(ModelEffects|GameModelEffects|BlastMod
-World/SkinShellEffects.h	39	World	game/Effects/ModelEffects	media	regla ^(ModelEffects|GameModelEffects|BlastMod
-World/SmokeParticleKernels.cpp	501	World	game/Effects/Particles	media	regla ^(Particle|Particles|IParticle|PortableP
-World/SmokeParticleKernels.h	74	World	game/Effects/Particles	media	regla ^(Particle|Particles|IParticle|PortableP
-World/SphereFrustum.cpp	94	World	game/Kernel/Terrain	media	regla ^(Terrain|SiegeTerrain|SphereFrustum|Fac
-World/SphereFrustum.h	30	World	game/Kernel/Terrain	media	regla ^(Terrain|SiegeTerrain|SphereFrustum|Fac
-World/Sprites.cpp	95	World	game/Effects/Particles	media	regla ^(Particle|Particles|IParticle|PortableP
-World/Sprites.h	56	World	game/Effects/Particles	media	regla ^(Particle|Particles|IParticle|PortableP
-World/TarkanObjectStep.cpp	209	World	game/WorldObjects	media	regla ^(Birds|Fish|IBird|IFish|Leaf|Leaves|ILe
-World/TarkanObjectStep.h	41	World	game/WorldObjects	media	regla ^(Birds|Fish|IBird|IFish|Leaf|Leaves|ILe
-World/TerrainAttributeQuery.cpp	66	World	game/Kernel/Terrain	media	regla ^(Terrain|SiegeTerrain|SphereFrustum|Fac
-World/TerrainAttributeQuery.h	35	World	game/Kernel/Terrain	media	regla ^(Terrain|SiegeTerrain|SphereFrustum|Fac
-World/TerrainCells.cpp	372	World	game/Kernel/Terrain	media	regla ^(Terrain|SiegeTerrain|SphereFrustum|Fac
-World/TerrainCells.h	137	World	game/Kernel/Terrain	media	regla ^(Terrain|SiegeTerrain|SphereFrustum|Fac
-World/TerrainCulling.cpp	412	World	game/Kernel/Terrain	media	regla ^(Terrain|SiegeTerrain|SphereFrustum|Fac
-World/TerrainCulling.h	143	World	game/Kernel/Terrain	media	regla ^(Terrain|SiegeTerrain|SphereFrustum|Fac
-World/TerrainDecal.cpp	202	World	game/Kernel/Terrain	media	regla ^(Terrain|SiegeTerrain|SphereFrustum|Fac
-World/TerrainDecal.h	46	World	game/Kernel/Terrain	media	regla ^(Terrain|SiegeTerrain|SphereFrustum|Fac
-World/TerrainHeight.cpp	66	World	game/Kernel/Terrain	media	regla ^(Terrain|SiegeTerrain|SphereFrustum|Fac
-World/TerrainHeight.h	26	World	game/Kernel/Terrain	media	regla ^(Terrain|SiegeTerrain|SphereFrustum|Fac
-World/TerrainLighting.cpp	269	World	game/Kernel/Terrain	media	regla ^(Terrain|SiegeTerrain|SphereFrustum|Fac
-World/TerrainLighting.h	85	World	game/Kernel/Terrain	media	regla ^(Terrain|SiegeTerrain|SphereFrustum|Fac
-World/TerrainPicking.cpp	409	World	game/Kernel/Terrain	media	regla ^(Terrain|SiegeTerrain|SphereFrustum|Fac
-World/TerrainPicking.h	36	World	game/Kernel/Terrain	media	regla ^(Terrain|SiegeTerrain|SphereFrustum|Fac
-World/TerrainPickingSegment.h	13	World	game/Kernel/Terrain	media	regla ^(Terrain|SiegeTerrain|SphereFrustum|Fac
-World/TerrainPickingState.h	18	World	game/Kernel/Terrain	media	regla ^(Terrain|SiegeTerrain|SphereFrustum|Fac
-World/TerrainPickingTarget.h	15	World	game/Kernel/Terrain	media	regla ^(Terrain|SiegeTerrain|SphereFrustum|Fac
-World/TerrainWalls.cpp	116	World	game/Kernel/Terrain	media	regla ^(Terrain|SiegeTerrain|SphereFrustum|Fac
-World/TerrainWalls.h	73	World	game/Kernel/Terrain	media	regla ^(Terrain|SiegeTerrain|SphereFrustum|Fac
-World/TrialsParticleKernels.cpp	121	World	game/Effects/Particles	media	regla ^(Particle|Particles|IParticle|PortableP
-World/TrialsParticleKernels.h	34	World	game/Effects/Particles	media	regla ^(Particle|Particles|IParticle|PortableP
-World/WeaponSparkKernels.cpp	83	World	game/Effects/Particles	media	regla ^(Particle|Particles|IParticle|PortableP
-World/WeaponSparkKernels.h	41	World	game/Effects/Particles	media	regla ^(Particle|Particles|IParticle|PortableP
-World/WizardModelEffects.cpp	1637	World	game/Effects/ModelEffects	media	regla ^(ModelEffects|GameModelEffects|BlastMod
-World/WizardModelEffects.h	142	World	game/Effects/ModelEffects	media	regla ^(ModelEffects|GameModelEffects|BlastMod
-World/WorldFiles.cpp	40	World	game/Kernel/Terrain	media	regla ^(Terrain|SiegeTerrain|SphereFrustum|Fac
-World/WorldFiles.h	16	World	game/Kernel/Terrain	media	regla ^(Terrain|SiegeTerrain|SphereFrustum|Fac
+World/SkinShellEffects.cpp	110	World	game/Effects	media	los efectos con modelo; usa Joints y Particles (revisión 2026-11-21)
+World/SkinShellEffects.h	39	World	game/Effects	media	los efectos con modelo; usa Joints y Particles (revisión 2026-11-21)
+World/SmokeParticleKernels.cpp	501	World	game/Particles	media	las partículas, un módulo propio debajo de Effects (revisión 2026-11-21)
+World/SmokeParticleKernels.h	74	World	game/Particles	media	las partículas, un módulo propio debajo de Effects (revisión 2026-11-21)
+World/SphereFrustum.cpp	94	World	game/Terrain	media	el terreno, fuera de Kernel (revisión 2026-11-21)
+World/SphereFrustum.h	30	World	game/Terrain	media	el terreno, fuera de Kernel (revisión 2026-11-21)
+World/Sprites.cpp	95	World	game/Particles	media	las partículas, un módulo propio debajo de Effects (revisión 2026-11-21)
+World/Sprites.h	56	World	game/Particles	media	las partículas, un módulo propio debajo de Effects (revisión 2026-11-21)
+World/TarkanObjectStep.cpp	209	World	game/MapScripts/Tarkan	media	lo que hace ese mapa, como los scripts por zona de TrinityCore (revisión 2026-11-21)
+World/TarkanObjectStep.h	41	World	game/MapScripts/Tarkan	media	lo que hace ese mapa, como los scripts por zona de TrinityCore (revisión 2026-11-21)
+World/TerrainAttributeQuery.cpp	66	World	game/Terrain	media	el terreno, fuera de Kernel (revisión 2026-11-21)
+World/TerrainAttributeQuery.h	35	World	game/Terrain	media	el terreno, fuera de Kernel (revisión 2026-11-21)
+World/TerrainCells.cpp	372	World	game/Terrain	media	el terreno, fuera de Kernel (revisión 2026-11-21)
+World/TerrainCells.h	137	World	game/Terrain	media	el terreno, fuera de Kernel (revisión 2026-11-21)
+World/TerrainCulling.cpp	412	World	game/Terrain	media	el terreno, fuera de Kernel (revisión 2026-11-21)
+World/TerrainCulling.h	143	World	game/Terrain	media	el terreno, fuera de Kernel (revisión 2026-11-21)
+World/TerrainDecal.cpp	202	World	game/Terrain	media	el terreno, fuera de Kernel (revisión 2026-11-21)
+World/TerrainDecal.h	46	World	game/Terrain	media	el terreno, fuera de Kernel (revisión 2026-11-21)
+World/TerrainHeight.cpp	66	World	game/Terrain	media	el terreno, fuera de Kernel (revisión 2026-11-21)
+World/TerrainHeight.h	26	World	game/Terrain	media	el terreno, fuera de Kernel (revisión 2026-11-21)
+World/TerrainLighting.cpp	269	World	game/Terrain	media	el terreno, fuera de Kernel (revisión 2026-11-21)
+World/TerrainLighting.h	85	World	game/Terrain	media	el terreno, fuera de Kernel (revisión 2026-11-21)
+World/TerrainPicking.cpp	409	World	game/Terrain	media	el terreno, fuera de Kernel (revisión 2026-11-21)
+World/TerrainPicking.h	36	World	game/Terrain	media	el terreno, fuera de Kernel (revisión 2026-11-21)
+World/TerrainPickingSegment.h	13	World	game/Terrain	media	el terreno, fuera de Kernel (revisión 2026-11-21)
+World/TerrainPickingState.h	18	World	game/Terrain	media	el terreno, fuera de Kernel (revisión 2026-11-21)
+World/TerrainPickingTarget.h	15	World	game/Terrain	media	el terreno, fuera de Kernel (revisión 2026-11-21)
+World/TerrainWalls.cpp	116	World	engine/Pathfinding	media	el A* del original sobre la grilla de paredes: un algoritmo sin estado del juego, como Pathfinding en OpenMU (revisión 2026-11-21)
+World/TerrainWalls.h	73	World	engine/Pathfinding	media	el A* del original sobre la grilla de paredes: un algoritmo sin estado del juego, como Pathfinding en OpenMU (revisión 2026-11-21)
+World/TrialsParticleKernels.cpp	121	World	game/Particles	media	las partículas, un módulo propio debajo de Effects (revisión 2026-11-21)
+World/TrialsParticleKernels.h	34	World	game/Particles	media	las partículas, un módulo propio debajo de Effects (revisión 2026-11-21)
+World/WeaponSparkKernels.cpp	83	World	game/Particles	media	las partículas, un módulo propio debajo de Effects (revisión 2026-11-21)
+World/WeaponSparkKernels.h	41	World	game/Particles	media	las partículas, un módulo propio debajo de Effects (revisión 2026-11-21)
+World/WizardModelEffects.cpp	1637	World	game/Effects	media	los efectos con modelo; usa Joints y Particles (revisión 2026-11-21)
+World/WizardModelEffects.h	142	World	game/Effects	media	los efectos con modelo; usa Joints y Particles (revisión 2026-11-21)
+World/WorldFiles.cpp	40	World	game/Terrain	media	el terreno, fuera de Kernel (revisión 2026-11-21)
+World/WorldFiles.h	16	World	game/Terrain	media	el terreno, fuera de Kernel (revisión 2026-11-21)
 World/WorldObjectMapCreation.cpp	255	World	game/WorldObjects	media	regla ^(Birds|Fish|IBird|IFish|Leaf|Leaves|ILe
 World/WorldObjectMapCreation.h	20	World	game/WorldObjects	media	regla ^(Birds|Fish|IBird|IFish|Leaf|Leaves|ILe
 World/WorldObjectRegistrations.cpp	18	World	game/WorldObjects	media	regla ^(Birds|Fish|IBird|IFish|Leaf|Leaves|ILe
@@ -1414,6 +1414,6 @@ World/WorldObjectStepServices.cpp	465	World	game/WorldObjects	media	regla ^(Bird
 World/WorldObjectStepServices.h	71	World	game/WorldObjects	media	regla ^(Birds|Fish|IBird|IFish|Leaf|Leaves|ILe
 World/WorldObjects.cpp	970	World	game/WorldObjects	media	regla ^(Birds|Fish|IBird|IFish|Leaf|Leaves|ILe
 World/WorldObjects.h	300	World	game/WorldObjects	media	regla ^(Birds|Fish|IBird|IFish|Leaf|Leaves|ILe
-World/WorldTerrain.cpp	399	World	game/Kernel/Terrain	media	regla ^(Terrain|SiegeTerrain|SphereFrustum|Fac
-World/WorldTerrain.h	133	World	game/Kernel/Terrain	media	regla ^(Terrain|SiegeTerrain|SphereFrustum|Fac
+World/WorldTerrain.cpp	399	World	game/Terrain	media	el terreno, fuera de Kernel (revisión 2026-11-21)
+World/WorldTerrain.h	133	World	game/Terrain	media	el terreno, fuera de Kernel (revisión 2026-11-21)
 main.cpp	1010	main.cpp	app	alta	raíz de composición

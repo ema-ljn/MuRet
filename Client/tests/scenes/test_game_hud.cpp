@@ -18,6 +18,7 @@
 #include "Scenes/GameProjection.h"
 #include "Scenes/HudItems.h"
 #include "Scenes/InventoryMoves.h"
+#include "Scenes/MapBanner.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/SocialState.h"
 #include "Scenes/TooltipLines.h"
@@ -40,6 +41,7 @@
 
 #include <algorithm>
 #include <array>
+#include <bit>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
@@ -1002,6 +1004,49 @@ TEST_F(GameHudTest, TheHudDrawsThePanel2000ThroughItsWindowPass)
         EXPECT_TRUE(std::ranges::any_of(quads, [](const DrawnQuad& quad)
                                         { return quad.slot == 0x122 && quad.first.x == 475.0f; }));
     }
+}
+
+// 19. 0x65dd70: el fundido corre en cada dibujo (0x65dcd0) y, si no se apagó, el cartel va con 0x620a00(1) y
+// glColor4f(1, 1, 1, alfa): 0x621b60(0x66a, (ancho del mundo · rx − 166) · 0,5, ry · 220, 166, 90, 0, 0, 0,6484375,
+// 0,703125, 0, 0, 0), sin escalar el tamaño ni la posición. En 1024 × 768, con el mundo de 640: x = 429 e
+// y = 352,00003 (ry = 768 · 0x3b088889 es 1,6000001 en float), y el borde de arriba en GL, 768 − y = 415,99997.
+TEST_F(GameHudTest, TheNineteenthChildDrawsTheMapBannerWhileItFades)
+{
+    Client::Scenes::MapBanner& banner = world.Runtime().hud.mapBanner;
+    Client::Scenes::ResetTheMapBanner(banner, 0);
+    const auto bannerQuads = [this]
+    {
+        std::vector<DrawnQuad> quads = QuadsOf(sprites);
+        std::erase_if(quads, [](const DrawnQuad& quad) { return quad.slot != Client::Scenes::MapBannerSlot; });
+        return quads;
+    };
+    sprites.Begin(Screen1024);
+    tickCount = 10;
+    const auto off = Hud();
+    ASSERT_TRUE(off.HasValue()) << off.Error();
+    EXPECT_TRUE(bannerQuads().empty());
+    EXPECT_EQ(banner.last, 10u);
+
+    Client::Scenes::ShowTheMapBanner(banner, 0);
+    sprites.Begin(Screen1024);
+    tickCount = 30;
+    const auto drawn = Hud();
+    ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+    const float alpha = std::bit_cast<float>(0x3e4ccccdu) + std::bit_cast<float>(0x3c75c28fu);
+    EXPECT_EQ(banner.alpha, alpha);
+    EXPECT_EQ(banner.last, 30u);
+    const std::vector<DrawnQuad> quads = bannerQuads();
+    ASSERT_EQ(quads.size(), 1u);
+    EXPECT_EQ(quads[0].blend, BlendMode::Alpha);
+    EXPECT_EQ(quads[0].color.red, 1.0f);
+    EXPECT_EQ(quads[0].color.alpha, alpha);
+    EXPECT_EQ(quads[0].first.x, 429.0f);
+    EXPECT_EQ(quads[0].first.y, 415.99997f);
+    EXPECT_EQ(quads[0].third.x, 429.0f + 166.0f);
+    EXPECT_EQ(quads[0].third.y, 325.99997f);
+    EXPECT_EQ(quads[0].first.u, 0.0f);
+    EXPECT_EQ(quads[0].third.u, 0.6484375f);
+    EXPECT_EQ(quads[0].third.v, 0.703125f);
 }
 
 TEST_F(GameHudTest, TheTwelfthChildDrawsTheChatBubbles)

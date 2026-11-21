@@ -12,6 +12,7 @@
 #include "Data/Tables/ItemTable.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainHeights.h"
+#include "Data/Text/TextTable.h"
 #include "Input/InputState.h"
 #include "Network/PacketSerials.h"
 #include "Protocol/Character/CharacterSelectResult.h"
@@ -31,6 +32,7 @@
 #include "Scenes/GameScene.h"
 #include "Scenes/IWorldEntryPublisher.h"
 #include "Scenes/LoginModels.h"
+#include "Scenes/MapBanner.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/SceneCameras.h"
 #include "Scenes/SceneContext.h"
@@ -39,6 +41,8 @@
 #include "Scenes/WorldMap.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "UI/ChatLog.h"
+#include "UI/MessageArea.h"
 #include "World/GameCamera.h"
 #include "World/ModelEffects.h"
 #include "World/Leaves.h"
@@ -50,9 +54,11 @@
 #include "support/FakeTextureStore.h"
 #include "support/GoldenDir.h"
 #include "support/ItemSetFiles.h"
+#include "support/LetterMeasure.h"
 #include "support/PlayerActors.h"
 #include "support/RecordingFrameTarget.h"
 #include "support/RecordingSink.h"
+#include "support/SceneDataFiles.h"
 #include "support/SessionHarness.h"
 #include "support/TestGameServer.h"
 
@@ -245,7 +251,9 @@ public:
                                    .cameraInput = cameraInput,
                                    .models = models,
                                    .items = &items,
-                                   .log = log};
+                                   .log = log,
+                                   .textMeasure = &letters,
+                                   .texts = &texts};
     }
 
     [[nodiscard]] ActorState& Hero()
@@ -283,6 +291,9 @@ public:
     Client::Data::Tables::ItemTable items = Client::Tests::ItemsMarking({});
     Client::Tests::RecordingSink sink;
     Client::Core::Log log{sink, Client::Core::LogLevel::Debug};
+    // El nombre del mapa 0 (0x5f0b40: el 30) y el 484 del renglón de bienvenida, sintéticos.
+    Client::Tests::LetterMeasure letters;
+    Client::Data::Text::TextTable texts = Client::Tests::MakeTextTable({{30, "<mapa 0>"}, {484, " <bienvenida>"}});
 };
 
 // Recursos productivos para los tests que ahora atraviesan toda la cola del frame.
@@ -464,6 +475,33 @@ TEST_F(WorldEntryTest, WithTheSetTablesTheEntryRunsTheWholeRecalculation)
     constexpr int TheSettling = OwnRecordClose + WaitClose + WindowRandoms + StopRandom;
     EXPECT_EQ(tested.cloth.random.State(),
               AfterDraws(Seed, 3 * OwnRecordClose + BeforeTheSettling + TheSettling).State());
+}
+
+// 0x4c4b22..0x4c4b60, al final: 0x65dc30 (el cartel entra con el alfa en 0,2 y pide Interface\lorencia.tga para el
+// slot 0x66a) y el renglón del sistema con el nombre vacío: sprintf("%s%s", 0x5f0b40(mapa), texto 484), el nombre del
+// mapa primero.
+TEST_F(WorldEntryTest, TheEntryShowsTheMapBannerAndTheWelcomeLine)
+{
+    Entry tested(m_dataRoot, Seed);
+    const Client::Data::Tables::ItemSetTables sets = NoSets();
+    WorldEntryResources resources = tested.Resources();
+    resources.itemSetTables = &sets;
+    RecordingPublisher publisher;
+
+    const auto entered = ApplyWorldEntry(CableReply(), PlayerKey, resources, publisher);
+
+    ASSERT_TRUE(entered.HasValue()) << entered.Error();
+    const Client::Scenes::WorldRuntime& runtime = tested.world.Runtime();
+    const Client::Scenes::MapBanner& banner = runtime.hud.mapBanner;
+    EXPECT_EQ(banner.state, Client::Scenes::MapBannerState::FadingIn);
+    EXPECT_EQ(banner.shownMap, 0);
+    ASSERT_TRUE(banner.pendingImage.has_value());
+    EXPECT_EQ(*banner.pendingImage, "Interface\\lorencia.tga");
+    ASSERT_FALSE(runtime.chat.log.entries.empty());
+    const Client::UI::ChatEntry& welcome = runtime.chat.log.entries.back();
+    EXPECT_EQ(welcome.name, "");
+    EXPECT_EQ(welcome.text, "<mapa 0> <bienvenida>");
+    EXPECT_EQ(welcome.type, Client::UI::SystemMessage);
 }
 
 // La respuesta aplicada y, sin ningún paso, el primer frame del juego: el contador en 30 no retiene, la

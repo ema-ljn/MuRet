@@ -38,11 +38,14 @@
 #include "World/ItemState.h"
 #include "World/ModelEffects.h"
 
+#include "Data/Text/TextTable.h"
 #include "support/FileBytes.h"
 #include "support/GoldenDir.h"
 #include "support/ItemSetFiles.h"
+#include "support/LetterMeasure.h"
 #include "support/PlayerActors.h"
 #include "support/RecordingSink.h"
+#include "support/SceneDataFiles.h"
 #include "support/SessionHarness.h"
 #include "support/TestGameServer.h"
 #include "support/ViewportPackets.h"
@@ -167,7 +170,9 @@ public:
                                    .models = models,
                                    .items = items,
                                    .itemSetTables = &sets,
-                                   .log = log};
+                                   .log = log,
+                                   .textMeasure = &letters,
+                                   .texts = &texts};
     }
 
     // El héroe publicado en PublishedSlot, un jugador sin armas en el mapa 0.
@@ -197,6 +202,9 @@ public:
     Client::Data::Tables::ItemSetTables sets = NoSets();
     Client::Tests::RecordingSink sink;
     Client::Core::Log log{sink, Client::Core::LogLevel::Debug};
+    // El renglón de bienvenida del F3 03 y del 1C que cambia de mapa (0x4c4b60 y 0x4c7c4e).
+    Client::Tests::LetterMeasure letters;
+    Client::Data::Text::TextTable texts = Client::Tests::MakeTextTable({});
 };
 
 class InventoryReplyTest : public Client::Tests::GoldenDataTest

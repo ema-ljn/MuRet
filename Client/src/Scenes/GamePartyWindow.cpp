@@ -11,6 +11,7 @@
 #include "Scenes/GameProjection.h"
 #include "Scenes/GameUi.h"
 #include "Scenes/GameWindowDrawing.h"
+#include "Scenes/MapNames.h"
 #include "Scenes/SocialState.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
@@ -195,38 +196,6 @@ float F32(double value)
 std::int32_t Truncate(double value)
 {
     return static_cast<std::int32_t>(value);
-}
-
-// 0x5f0b40(mapa): el texto de Text.bmd con su nombre.
-std::size_t MapNameText(std::uint8_t map)
-{
-    constexpr std::size_t FirstMapText = 30;
-    switch (map)
-    {
-    case 0x22:
-        return 1851;
-    case 0x21:
-        return 1850;
-    case 0x1e:
-        return 669;
-    case 0x1f:
-        return 59;
-    case 0x20:
-        return 39;
-    case 0x0a:
-        return 55;
-    case 0x24:
-        return 58;
-    default:
-        break;
-    }
-    if (map > 0x11 && map < 0x18)
-        return 57;
-    if (map > 0x17 && map < 0x1e)
-        return 58;
-    if (map > 0x0a && map < 0x12)
-        return 56;
-    return FirstMapText + map;
 }
 
 Core::Expected<std::size_t, std::string> Members(std::int32_t count, std::string_view where)

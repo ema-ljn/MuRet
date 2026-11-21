@@ -168,7 +168,9 @@ protected:
                 .items = &m_data.items->table,
                 .itemSetTables = &*m_data.itemSets,
                 .log = m_log,
-                .scene = [this] { return std::optional(m_scene); }};
+                .textMeasure = &m_letters,
+                .scene = [this] { return std::optional(m_scene); },
+                .texts = &*m_data.text};
     }
 
     void EnterWorld()

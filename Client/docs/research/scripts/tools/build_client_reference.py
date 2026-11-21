@@ -286,11 +286,8 @@ def main():
         0x4d4020: 'falta: el C3 29 (tiempo de la bebida), MuRet no registra el 0x29'}
     # Falsos positivos de la cota: citadas, pero lo que las cita no las porta. Con las citas de implementación que
     # tenían en la auditoría: si aparecen más, alguien las portó y la marca se cae (hay que revisarla a mano).
+    # (0x65dc30 y 0x65dd70, el cartel del nombre del mapa, salieron al portarlo: Scenes/MapBanner, 07 Q-C1829.)
     FALSE_POSITIVE = {
-        0x65dc30: (1, 'falta: el cartel del nombre del mapa; la única cita es el comentario de '
-                      'Scenes/WorldEntry.cpp:337, que dice que es de la CL9 (falso positivo de la cota)'),
-        0x65dd70: (1, 'falta: el cartel del nombre del mapa; la única cita es el paso 19 de Scenes/GameHud.cpp:1767, '
-                      'un comentario (falso positivo de la cota)'),
         0x59eb90: (5, 'falta: elegir los objetos del mapa con el mouse; las citas dicen que no está portada (falso '
                       'positivo de la cota)')}
     # Los globos de la selección de personaje (los nameplates): la clase de vtable 0x6ba7d0 (el dueño, en UI + 0x8dc8)

@@ -5,6 +5,7 @@
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
 #include "UI/PanelDialog.h"
+#include "support/LetterMeasure.h"
 #include "support/SceneDataFiles.h"
 #include "Data/Models/PlayerModels.h"
 #include "Data/Tables/ItemSetTables.h"
@@ -95,8 +96,13 @@ struct Returning
                                    .cameraInput = cameraInput,
                                    .models = models,
                                    .items = &items,
-                                   .log = log};
+                                   .log = log,
+                                   .textMeasure = &letters,
+                                   .texts = &texts};
     }
+    // El renglón de bienvenida del F3 03 (0x4c4b60).
+    Client::Tests::LetterMeasure letters;
+    Client::Data::Text::TextTable texts = Client::Tests::MakeTextTable({});
 
     [[nodiscard]] std::size_t AliveEffects() const
     {

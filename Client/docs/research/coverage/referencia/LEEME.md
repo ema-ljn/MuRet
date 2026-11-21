@@ -25,7 +25,7 @@ hasta que alguien las vuelva a revisar.
 | `archivos.tsv` | ~1.410 | cada archivo de `Client/src`: qué funciones del original cita, de qué ola, sus cortes, qué tests lo cubren y su último commit |
 | `ids.tsv` | ~1.120 | cada fila Q-C de 07 y P-C de 08: estado, clase o tipo, ola, si pide VM, las funciones que nombra y qué hace MuRet |
 | `metricas.tsv` | ~400 | **los números**, en formato largo: avance total, por ola, por hito de la CL9 y por sub-ola de la CL8, lo que falta por categoría, los huecos, cortes, VM, 08, 07, chat, sustitutos, tamaño de MuRet y la serie desde el 13/11 |
-| `cortes.tsv` | 1.757 | los cortes vivos con su clase (P, O, X, R, S, G, D, I, V, H), qué falta y cómo se llega |
+| `cortes.tsv` | 1.761 | los cortes vivos con su clase (P, O, X, R, S, G, D, I, V, H), qué falta y cómo se llega |
 | `vm.tsv` | 234 | los pasos de VM pendientes de todas las olas, y si bloquean código |
 | `sustitutos.tsv`, `sin-cablear.tsv` | 143, 185 | los sustitutos propios de MuRet y el código sin llamador |
 | `chat.tsv` | 333 | el inventario del chat (funciones y tramos), con su estado |
@@ -115,7 +115,7 @@ el ASM.
 | 24 | `casos_de_test` | los tres casos (`Suite.Caso`) que más la citan |
 | 25 | `doc_research` | la primera línea de `Client/docs/research` que la nombra |
 | 26 | `categoria_faltante` | para las sin citar: clon, portada sin `0x`, plataforma, herramienta, STL, sin uso, pendiente CL9, falta, sin clasificar |
-| 27 | `falso_positivo` | `sí` si la matriz la cuenta como citada pero falta (`0x65dc30`, `0x65dd70`, `0x59eb90`) |
+| 27 | `falso_positivo` | `sí` si la matriz la cuenta como citada pero falta (`0x59eb90`) |
 | 28 | `clon_de` | la función citada de la que es un clon byte a byte |
 | 29 | `chat` | el bloque del chat (A núcleo, B amigo y cartas, C amigos) o sus tramos |
 | 30 | `cortes_vivos` | los cortes dentro de ella, por clase (`G3 R1`) |
@@ -213,10 +213,10 @@ de MuRet. El botón aparece cuando el workflow está en `main`; antes, corre en 
 | | |
 | --- | --- |
 | código de juego vivo | 3.278 funciones, 2.197 KB |
-| cota alta / media / baja | **91,7 / 89,5 / 87,4 %** |
-| cota baja con test | 77,7 % |
-| explicado (baja + clones, plataforma, herramientas, STL, sin uso) | 91,7 % |
-| cortes vivos | 1.757 sitios; 5 cierran el cliente jugando (los 5 V, de la VM) |
+| cota alta / media / baja | **91,5 / 89,5 / 87,5 %** |
+| cota baja con test | 77,9 % |
+| explicado (baja + clones, plataforma, herramientas, STL, sin uso) | 92,1 % |
+| cortes vivos | 1.761 sitios; 5 cierran el cliente jugando (los 5 V, de la VM) |
 | pasos de VM | 234 (cota superior); 11 bloquean código |
 | 08 | 305 filas: 246 abiertas (98 de código, cota superior) |
 | chat (A+B, vivo) | 137.715 B (5,9 %): 99,2 % citado, 79,4 % con test |

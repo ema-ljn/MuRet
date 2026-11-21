@@ -12,6 +12,7 @@
 #include "Scenes/GameUi.h"
 #include "Scenes/HelperTable.h"
 #include "Scenes/IWorldTransitionPublisher.h"
+#include "Scenes/MapBanner.h"
 #include "Scenes/MapLoad.h"
 #include "Scenes/InventoryMoves.h"
 #include "Scenes/WorldEntry.h"
@@ -104,7 +105,10 @@ Core::Expected<void, std::string> ChangeTeleportMap(std::uint8_t map, std::uint1
         runtime.lastSoundId = 0x9e;
     }
     ArmEventMapObject(loadedMap, resources.world.Runtime());
-    return RefreshTransitionHeight(PublishedHero(resources), resources);
+    if (auto height = RefreshTransitionHeight(PublishedHero(resources), resources); !height.HasValue())
+        return height;
+    // 0x4c7c17..0x4c7c4e: el renglón de bienvenida al mapa nuevo.
+    return AddTheWelcomeLine(resources);
 }
 Core::Expected<void, std::string> FinishTeleport(const WorldEntryResources& resources,
                                                  IWorldTransitionPublisher& publisher)
@@ -235,7 +239,12 @@ Core::Expected<void, std::string> ApplyTeleport(const Protocol::World::Teleport&
     ClearTransitionActorsAndItems(playerKey, resources);
     if (auto changed = ChangeTeleportMap(reply.map, playerKey, resources, publisher); !changed.HasValue())
         return changed;
-    return FinishTeleport(resources, publisher);
+    if (auto finished = FinishTeleport(resources, publisher); !finished.HasValue())
+        return finished;
+    // 0x4c830c..0x4c831c: con el gate (pkt[3]) en algo, 0x65dc30, el cartel con el nombre del mapa.
+    auto& runtime = resources.world.Runtime();
+    ShowTheMapBanner(runtime.hud.mapBanner, runtime.map);
+    return {};
 }
 Core::Expected<void, std::string> ApplyRegen(const Protocol::World::Regen& reply, std::uint16_t playerKey,
                                              const WorldEntryResources& resources)
@@ -257,6 +266,8 @@ Core::Expected<void, std::string> ApplyRegen(const Protocol::World::Regen& reply
         hero.byte374 =
             (PublishedHero(resources).word1f2 != NoItemModel && hero.word1f2 == PublishedHero(resources).word1f2) ? 1
                                                                                                                   : 0;
+    // 0x4c5048..0x4c504e: 0x65dc30, el cartel con el nombre del mapa, antes de cerrar las ventanas (0x657a90).
+    ShowTheMapBanner(world.Runtime().hud.mapBanner, world.Runtime().map);
     if (auto closed = CloseTransitionWindows(resources); !closed.HasValue())
         return closed;
     return {};

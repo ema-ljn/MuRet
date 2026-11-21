@@ -33,6 +33,7 @@
 #include "support/FakeClock.h"
 #include "support/FakeTextureStore.h"
 #include "support/GoldenDir.h"
+#include "support/LetterMeasure.h"
 #include "support/PlayerActors.h"
 #include "support/RecordingFrameTarget.h"
 #include "support/RecordingSink.h"
@@ -159,7 +160,9 @@ protected:
                                                             .models = m_models,
                                                             .items = &m_data.items->table,
                                                             .itemSetTables = &*m_data.itemSets,
-                                                            .log = m_log};
+                                                            .log = m_log,
+                                                            .textMeasure = &m_letters,
+                                                            .texts = &*m_data.text};
         EntryPublisher publisher;
         const auto entered = Client::Scenes::ApplyWorldEntry(reply, 5, resources, publisher);
         ASSERT_TRUE(entered.HasValue()) << entered.Error();
@@ -262,6 +265,8 @@ protected:
     Client::World::GameCameraInput m_cameraInput;
     Client::Scenes::GameModels m_models;
     Client::Scenes::GameData m_data;
+    // El renglón de bienvenida del F3 03 (0x4c4b60).
+    Client::Tests::LetterMeasure m_letters;
     Client::Tests::RecordingFrameTarget m_target;
     Client::Scenes::GameScene* m_game = nullptr;
     std::unique_ptr<Client::Scenes::SceneManager> m_manager;

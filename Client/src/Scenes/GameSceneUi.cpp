@@ -38,6 +38,7 @@
 #include "Scenes/GameUi.h"
 #include "Scenes/GuildDrawing.h"
 #include "Scenes/InventoryMoves.h"
+#include "Scenes/MapBanner.h"
 #include "Scenes/NpcWindows.h"
 #include "Scenes/LetterPortrait.h"
 #include "Scenes/SceneCanvas.h"
@@ -402,6 +403,11 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canva
     tintRestore.Restore();
     if (!picked.HasValue())
         return picked;
+    // La imagen que 0x65dc30 cargó en el slot 0x66a al llegar al mapa (0x63bd00): el paquete no tiene GPU, la sube el
+    // primer dibujo que sigue, sobre el cartel de verdad y no sobre la copia de un dibujo intermedio.
+    if (auto uploaded = UploadTheMapBanner(runtime.hud.mapBanner, m_context.dataRoot, m_context.textures);
+        !uploaded.HasValue())
+        return uploaded;
     // 0x637646..0x6376e6: la pasada 2D, en este orden (06 § El dibujo del juego). Un dibujo intermedio de MuRet dibuja
     // con las copias: el rand(), las cuentas de accesos, los globales del HUD, el humo de Crywolf y el sonido.
     ActorState& hero = m_context.world->Actors()[runtime.hero];

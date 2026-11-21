@@ -766,3 +766,5 @@ AR0.3 ──────────┘                      AR3.1 ─► AR3.2 
 - **Consistent names:** `modules.tsv`, `module-map.tsv`, `check_layers.py`, `check_pure_move.py`,
   `check_comments_only.py`, `move.py`, `moves.tsv`, `.git-blame-ignore-revs`, `FrameDigest`, `GameContext`,
   `Route<&Fn>`, `Unported{va}` are used the same way throughout the plan.
+
+<!-- CI probe for #410: a docs-only change. Not for merging. -->

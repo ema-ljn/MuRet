@@ -1,18 +1,20 @@
 ---
 name: clean-code
-description: Use when writing, reviewing or refactoring MuRet code for readability and maintainability (names, functions, comments, errors, classes, tests), and in every design PR of the client refactor. Robert C. Martin's Clean Code rules, ranked below CODING_RULES and fidelity to the original.
+description: Use when writing, reviewing or refactoring MuRet code for readability and maintainability (names, functions, comments, errors, classes, tests), and in every design PR of the client refactor. Robert C. Martin's Clean Code principles, ranked below CODING_RULES and fidelity to the original.
 license: MIT
 metadata:
-  upstream: https://github.com/pproenca/dot-skills/tree/cf93c57cac89d6fc3e4194686000411567f5caf3/skills/.experimental/clean-code
-  upstream-version: "1.0.7"
+  upstream: https://github.com/sickn33/agentic-awesome-skills/tree/e6fb3ca87fc820e176028dfd2333aecc1856beff/skills/clean-code
 ---
 
 # Clean Code in MuRet
 
-This is the `clean-code` skill from [pproenca/dot-skills](https://github.com/pproenca/dot-skills) (MIT): the 48 rules of
-Robert C. Martin's *Clean Code*, with today's corrections and a "when not to" in each one. Emanuel chose Clean Code as
-the guide of the client refactor (2026-11-21). This file is MuRet's layer; the rules are in `references/`, with Java
-examples.
+This is the `clean-code` skill from [sickn33/agentic-awesome-skills](https://github.com/sickn33/agentic-awesome-skills)
+(MIT), one of the most-starred agent skill collections; that collection takes it from
+[jackjin1997/ClawForge](https://github.com/jackjin1997/ClawForge). It sums up Robert C. Martin's *Clean Code* in nine
+parts: names, functions, comments, formatting, objects and data structures, error handling, unit tests, classes, and
+smells. Emanuel chose Clean Code as the guide of the client refactor and asked for skills from popular repositories
+(2026-11-21). This file is MuRet's layer; the summary is in
+[`references/upstream-skill.md`](references/upstream-skill.md), with Python examples.
 
 ## What takes precedence
 
@@ -29,51 +31,33 @@ examples.
 
 ## Where `references/` does not apply to MuRet
 
-| The rule says | In MuRet |
+| The summary says | In MuRet |
 | --- | --- |
-| `name-avoid-encodings`: no `m_` or `I` | They stay: `m_` on private members, `I` on interfaces and `s_` on statics (CODING_RULES §7, decided 2026-11-02). What does apply: no Hungarian type notation (`strName`, `iCount`). |
-| `name-method-verb`: `getName()`, `setName()` | Names follow CODING_RULES §7 (`PascalCase` for functions and methods). The principle (verbs for what it does, nouns for what it is) applies the same. |
-| `func-small`: hardly ever 20 lines | CODING_RULES §1 (about 40 lines) and the spec's sizes (handler ~80, function ~60, file ~400). A transcription of a `switch` from the original is not split to hit a number: it is marked as a transcription (or becomes a table in AR2). |
-| `err-use-exceptions`, `err-write-try-catch-first`, `err-define-by-caller-needs` | MuRet does not throw: errors come back as values (`Core::Expected`, `std::optional`, `std::error_code`). The principle applies the same: the happy path in plain sight, the error with context, and one error type per what the caller needs. |
-| `err-avoid-null` | `std::optional` for what may be missing; a raw pointer is a non-owning observer that may be `nullptr` only if its contract says so. |
-| `cmt-*`: the code explains itself | It applies, and stricter (Emanuel, 2026-11-21; CODING_RULES §9): a comment goes in only if it is strictly necessary, in English and on one line. What stays: the citation to the original (`// 0x4e2b10`, at most with a short label), which tracking reads; the research section of a constant (`// 04-protocolo § ...`); `// Contiguous in the original:`; and a why the code cannot say. No prose, no commented-out code. |
-| `obj-data-object-asymmetry`, `entity`/rich models | State that mimics the original's `.bss` stays as data (`struct` without invariants, fields in `camelCase`) and the logic stays in its module's functions. It is the rule's data/object asymmetry, not an anemic model by neglect. |
-| `emerge-simple-design`: with a single implementation, doubt the interface | Interfaces go at the engine's edges (`ISocket`, `IPlayback`, `IObfuscation`) and where a test needs them, as the rule itself says ("tests need seams"). |
-| `class-separate-concerns`: a dependency injection framework | No framework: the composition root is `app/`, wired by hand in order (`MakeObfuscation()` is the example). `GameContext` passes the parts of the state through the signature; it is not a service locator. |
-| `fmt-*` | `.clang-format` decides; nothing is aligned by hand. |
-| `test-*` | GoogleTest and CTest, one executable per test file until AR1.2 decides otherwise, and CODING_RULES rule 13 (each behavior, one test). |
+| §1 Names | It applies. Casing and prefixes are CODING_RULES §7: types, functions and constants in `PascalCase`, variables in `camelCase`, `m_` on private members, `I` on interfaces and `s_` on statics (decided 2026-11-02). No Hungarian type notation (`strName`, `iCount`). |
+| §2 Functions, "Small!", and the checklist's "smaller than 20 lines" | CODING_RULES §1 (about 40 lines) and the spec's sizes (handler ~80, function ~60, file ~400). A transcription of a `switch` from the original is not split to hit a number: it is marked as a transcription (or becomes a table in AR2). |
+| §2 "No Side Effects: functions shouldn't secretly change global state" | It is AR3's goal: the original's globals become per-module state (`globals.tsv`, `GameContext`) and each function receives in its signature the state it touches. Until its milestone, today's global stays where it is. |
+| §3 Comments, "Good Comments" | It applies, and stricter (Emanuel, 2026-11-21; CODING_RULES §9): a comment goes in only if it is strictly necessary, in English and on one line. What stays: the citation to the original (`// 0x4e2b10`, at most with a short label), which tracking reads; the research section of a constant (`// 04-protocolo § ...`); `// Contiguous in the original:`; and a why the code cannot say. No prose, no commented-out code. |
+| §4 Formatting | `.clang-format` decides; nothing is aligned by hand. |
+| §5 Objects and data structures, DTOs | State that mimics the original's `.bss` stays as data (`struct` without invariants, fields in `camelCase`) and the logic stays in its module's functions: the book's data/object asymmetry, not an anemic model by neglect. The Law of Demeter applies between modules (a module does not reach into another's state); inside a transcription, the original's chains of fields read as they do in the original. |
+| §6 Error handling: exceptions instead of return codes, try-catch first, no null | MuRet does not throw: errors come back as values (`Core::Expected`, `std::optional`, `std::error_code`). The principle applies the same: the happy path in plain sight and the error with context. What may be missing is a `std::optional`; a raw pointer is a non-owning observer that may be `nullptr` only if its contract says so. |
+| §7 Unit tests | GoogleTest and CTest, and CODING_RULES rule 13 (each behavior, one test). In the refactor the safety net is the behavior golden (`FrameDigest`) and the characterization tests, which pin today's behavior before the shape changes. |
+| §8 Classes, "Small!" | It applies by responsibility, not by line count: cohesion first, CODING_RULES sizes only detect the smell. |
+| "Limitations": stop and ask if scope or success criteria are missing | In the refactor the spec and the plan give both; what they leave open is in the spec's "Left to the builder". |
 
 ## How it is used in the refactor
 
-- **When designing a module** (the AR1 to AR6 design PRs): names that say why (`name-intention-revealing`), one thing per
-  function at a single level of abstraction (`func-one-thing`, `func-abstraction-level`), one reason to change per class
-  (`class-small`, `class-cohesion`) and construction separated from use (`class-separate-concerns`).
-- **When deduplicating** (AR6): `func-dry` with its "when not to". Two functions of the original that look alike are
-  merged only if the body is identical and the golden confirms it; incidental duplication stays.
-- **When reviewing**: cite the rule by name (`func-minimize-arguments`) and the `references/` file that explains it.
+- **When designing a module** (the AR1 to AR6 design PRs): names that say why (§1), one thing per function at a single
+  level of abstraction (§2), one reason to change per class (§8) and no reaching into another module's state (§5).
+- **When deduplicating** (AR6): two functions of the original that look alike are merged only if the body is identical
+  and the golden confirms it; incidental duplication stays.
+- **When reviewing**: cite the part and the principle (§2, "Do One Thing"); for a smell, the `refactoring` skill's
+  catalog names the technique that treats it.
 - **Not in moves**: a PR that only moves files cleans nothing up (the plan's Global Constraints).
-
-## The rules
-
-| Priority | Category | Prefix | Files |
-| --- | --- | --- | --- |
-| 1 | Meaningful Names | `name-` | `intention-revealing`, `avoid-disinformation`, `meaningful-distinctions`, `pronounceable`, `searchable`, `avoid-encodings`, `class-noun`, `method-verb` |
-| 2 | Functions | `func-` | `small`, `one-thing`, `abstraction-level`, `minimize-arguments`, `no-side-effects`, `command-query-separation`, `dry` |
-| 3 | Comments | `cmt-` | `express-in-code`, `explain-intent`, `avoid-redundant`, `avoid-commented-out-code`, `warning-consequences` |
-| 4 | Formatting | `fmt-` | `vertical-formatting`, `horizontal-alignment`, `team-rules`, `indentation` |
-| 5 | Error Handling | `err-` | `use-exceptions`, `write-try-catch-first`, `provide-context`, `define-by-caller-needs`, `avoid-null` |
-| 6 | Objects and Data Structures | `obj-` | `data-abstraction`, `data-object-asymmetry`, `law-of-demeter`, `avoid-hybrids`, `dto` |
-| 7 | Boundaries | `bound-` | `wrap-third-party`, `learning-tests` |
-| 8 | Classes and Systems | `class-` | `small`, `cohesion`, `organize-for-change`, `isolate-from-change`, `separate-concerns` |
-| 9 | Unit Tests | `test-` | `first-law`, `keep-clean`, `one-assert`, `first-principles`, `build-operate-check` |
-| 10 | Emergence and Simple Design | `emerge-` | `simple-design`, `expressiveness` |
-
-Each rule is in `references/<prefix><file>.md` (for example `references/func-small.md`), and the categories in
-`references/_sections.md`.
 
 ## Origin and license
 
-`references/` is a verbatim copy of `skills/.experimental/clean-code/references/` at commit `cf93c57c` of
-pproenca/dot-skills (skill version 1.0.7), under the MIT license in [`LICENSE`](LICENSE). This `SKILL.md` is an
-adaptation. To update: bring `references/` from a new commit, change the commit and version in the frontmatter and in
-this section, and review the "Where `references/` does not apply to MuRet" table.
+[`references/upstream-skill.md`](references/upstream-skill.md) is a verbatim copy of `skills/clean-code/SKILL.md` at
+commit `e6fb3ca8` of sickn33/agentic-awesome-skills (formerly antigravity-awesome-skills), under the MIT license in
+[`LICENSE`](LICENSE); its frontmatter names ClawForge, MIT according to its README, as the source. This `SKILL.md` is an
+adaptation. To update: bring the file from a new commit, change the commit in the frontmatter and in this section, and
+review the "Where `references/` does not apply to MuRet" table.

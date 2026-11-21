@@ -141,20 +141,27 @@ docs.
 spec does not answer. `tutor` and the `muret-reviewer` subagent stay out while tutor mode is off.
 
 **The Clean Code and modern C++ skills, vendored into the repo** (Emanuel, 2026-11-21). They are public MIT-licensed
-skills, copied verbatim into each one's `references/`, with the upstream commit in the frontmatter. Each one's
+skills from popular repositories (Emanuel, 2026-11-21: not ones with few stars), copied verbatim into each one's
+`references/` (`refactoring` without its upstream build footers), with the upstream commit in the frontmatter. Each one's
 `SKILL.md` is MuRet's layer: what takes precedence (Emanuel, fidelity, CODING_RULES) and a "Where `references/` does not
 apply to MuRet" table with the clashes already resolved (exceptions versus `Core::Expected`, `m_` and `I`,
 `#pragma once`, function sizes, the `.bss` as data).
 
 | step | skill | for |
 | --- | --- | --- |
-| every design PR, when writing and reviewing it | `clean-code` (from pproenca/dot-skills) | the 48 *Clean Code* rules: names that say why, one thing per function at one level of abstraction, one reason to change per class, construction separated from use; the review cites the rule by name (`func-one-thing`) |
-| where a file goes, which module includes which, how a cycle is cut, the composition root in `app/` (AR1, AR3, AR4, AR7) | `clean-architecture` (from pproenca/dot-skills) | the 42 *Clean Architecture* rules; its "Which rule is which part of the client" table maps them to the layers, `check_layers.py`, the `Kernel` ports and `MakeObfuscation()` |
-| every step of a design PR, and the AR6 deduplication | `refactoring` (from cskwork/clean-code-skill) | Fowler's loop and catalog (detect the smell, the smallest technique, one step, verify, reread) with the fidelity cautions: *Extract Variable* keeps the type of every `float` intermediate, a `switch` from the original is not spread over classes, nothing changes the order of `rand()` calls |
+| every design PR, when writing and reviewing it | `clean-code` (from sickn33/agentic-awesome-skills, about 49k stars) | *Clean Code* in nine parts: names that say why, one thing per function at one level of abstraction, one reason to change per class, no reaching into another module's state; the review cites the part and the principle (§2, "Do One Thing") |
+| where a file goes, which module includes which, how a cycle is cut, the composition root in `app/` (AR1, AR3, AR4, AR7) | `clean-architecture` (`architecture-patterns` from wshobson/agents, about 43k stars) | Clean Architecture and ports and adapters; its "Which idea is which part of the client" table maps them to the layers, `check_layers.py`, the `Kernel` ports and `MakeObfuscation()` |
+| every step of a design PR, and the AR6 deduplication | `refactoring` (`refactor` from luongnv89/claude-howto, about 48k stars) | Fowler's method in six phases, 21 smells and 28 refactorings, with the fidelity cautions: *Extract Variable* keeps the type of every `float` intermediate, a `switch` from the original is not spread over classes, nothing changes the order of `rand()` calls |
 | a class, a packet type (`Field<T, Offset>`), a handler's parameter passing, an `enum` that becomes `enum class` | `cpp-coding-standards` (from affaan-m/everything-claude-code) | the C++ Core Guidelines rule by number (F.16, C.21, Enum.3); it complements `cpp-pro` |
 
-Evaluated and not vendored: generic testing, CMake and static analysis skills (they repeat what `cpp-pro`, CODING_RULES
-and CI already say) and two Clean Code skills without a license. `cpp-pro` stays as it is: its upstream has not changed
+Evaluated and not vendored: pproenca/dot-skills (`clean-code` and `clean-architecture`, 228 stars) and
+cskwork/clean-code-skill (`refactoring`, no stars), vendored first and replaced the same day because Emanuel asked for
+popular repositories; wondelai/skills (the closest to the books, about 2.7k stars); addyosmani/agent-skills
+`code-simplification` (about 119k stars, but it simplifies rather than following Fowler or Martin, and overlaps
+`clean-code` and `refactoring`); github/awesome-copilot `refactor` (about 41k stars, the same ground as `refactoring`
+without its catalogs); davila7/claude-code-templates `clean-code` (generic coding standards that call scripts of other
+skills); generic testing, CMake and static analysis skills (they repeat what `cpp-pro`, CODING_RULES and CI already say)
+and two Clean Code skills without a license. Star counts as of 2026-11-21. `cpp-pro` stays as it is: its upstream has not changed
 since it was vendored.
 
 **The three new repo skills.** They are the refactor procedures that repeat many times and that the port also uses.

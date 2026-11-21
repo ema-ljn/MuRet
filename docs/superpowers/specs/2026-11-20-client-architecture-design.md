@@ -178,15 +178,14 @@ and a PCH with only the standard library (already the case: `cmake/PrecompiledHe
 **Clean Code and Clean Architecture** (Emanuel, 2026-11-21: Clean Code is the refactor's guide).
 They are not one more reference but the rules every design PR is written and reviewed with, below
 [fidelity](#non-negotiable-fidelity) and CODING_RULES. Almost every decision in this spec already
-is a Robert C. Martin rule under another name: the layers are the dependency rule
-(`dep-inward-only`); "contract below, implementation above" is dependency inversion with the
-interface owned by its user (`dep-interface-ownership`); zero cycles is
-`dep-acyclic-dependencies`; `app/` is the main component (`bound-main-component`); one module per
-game feature is `comp-screaming-architecture` and `comp-common-closure`; and `check_layers.py` is
-the boundary test (`test-boundary-verification`). Where they clash with the original, the original
-wins: state that mimics the `.bss` stays as data with the logic in its module's functions
-(`obj-data-object-asymmetry`), a transcribed `switch` is not spread over classes, and *Extract
-Variable* keeps the type of every `float` intermediate. The rules, translated to MuRet, live in the
+is a Robert C. Martin rule under another name: the layers are the dependency rule; "contract
+below, implementation above" is dependency inversion, with the interface (the port) owned by the
+layer that uses it; zero cycles is the acyclic dependencies principle; `app/` is the main
+component, the composition root; one module per game feature is the common closure principle
+("screaming architecture"); and `check_layers.py` is the boundary test. Where they clash with the
+original, the original wins: state that mimics the `.bss` stays as data with the logic in its
+module's functions (the data/object asymmetry of *Clean Code*), a transcribed `switch` is not
+spread over classes, and *Extract Variable* keeps the type of every `float` intermediate. The rules, translated to MuRet, live in the
 repo skills `clean-code`, `clean-architecture`, `refactoring` and `cpp-coding-standards`.
 
 ## Approaches

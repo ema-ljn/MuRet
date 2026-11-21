@@ -1,73 +1,669 @@
-# Code Smells — the diagnostic catalog
+# Code Smells Catalog
 
-A code smell is a surface symptom that usually points to a deeper problem. Smells don't prove something is wrong — they tell you *where to look*. Use this file to **name** what's wrong, then jump to the matching technique in `refactoring-techniques.md`.
+A comprehensive reference of code smells based on Martin Fowler's *Refactoring* (2nd Edition). Code smells are symptoms of deeper problems—they indicate that something might be wrong with your code's design.
 
-23 smells in 5 families. Each row: what it smells like (how to detect) → the techniques that treat it.
+> "A code smell is a surface indication that usually corresponds to a deeper problem in the system." — Martin Fowler
 
 ---
 
 ## Bloaters
-Code, methods, and classes that have grown to unwieldy proportions. They accumulate gradually — no one writes them on purpose.
 
-| Smell | Smells like (detect) | Treat with |
-|---|---|---|
-| **Long Method** | A method with many lines; you scroll to read it; comments section it into "paragraphs." The single most common smell. | Extract Method; Replace Temp with Query; Decompose Conditional; Replace Method with Method Object |
-| **Large Class** | A class with too many fields/methods doing several jobs; "God object." | Extract Class; Extract Subclass; Extract Interface |
-| **Primitive Obsession** | Bare strings/ints for domain ideas (currency, phone, type codes); constants instead of small classes; field groups that travel together. | Replace Data Value with Object; Replace Type Code with Class/Subclasses/State-Strategy; Replace Magic Number with Symbolic Constant; Introduce Parameter Object; Replace Array with Object |
-| **Long Parameter List** | More than ~3-4 params; callers pass values they just pulled off one object. | Replace Parameter with Method Call; Preserve Whole Object; Introduce Parameter Object |
-| **Data Clumps** | The same group of variables appears together in many signatures/fields (e.g. `start, end`; `x, y, z`). | Extract Class; Introduce Parameter Object; Preserve Whole Object |
+Code smells representing something that has grown too large to be handled effectively.
 
-## Object-Orientation Abusers
-Incomplete or incorrect use of OO principles.
+### Long Method
 
-| Smell | Smells like (detect) | Treat with |
-|---|---|---|
-| **Switch Statements** | A `switch`/`if-else` chain on a type code, repeated in several places, that you must extend whenever a new case appears. | Replace Conditional with Polymorphism; Replace Type Code with Subclasses/State-Strategy; Introduce Null Object; Replace Parameter with Explicit Methods |
-| **Temporary Field** | A field set/used only in certain circumstances, empty the rest of the time; orphaned instance variables. | Extract Class; Introduce Null Object; Replace Method with Method Object |
-| **Refused Bequest** | A subclass uses only a fraction of what it inherits; inherited members don't make sense for it. | Push Down Method/Field; Replace Inheritance with Delegation; Extract Superclass |
-| **Alternative Classes with Different Interfaces** | Two classes do the same thing but their methods are named/shaped differently. | Rename Method; Move Method; Extract Superclass; (sometimes) Inline Class |
+**Signs:**
+- Method exceeds 30-50 lines
+- Need to scroll to see the whole method
+- Multiple levels of nesting
+- Comments explaining what sections do
 
-## Change Preventers
-Structure where one change forces many edits elsewhere — the costliest family because it slows every future change.
+**Why it's bad:**
+- Hard to understand
+- Difficult to test in isolation
+- Changes have unintended consequences
+- Duplicate logic hides inside
 
-| Smell | Smells like (detect) | Treat with |
-|---|---|---|
-| **Divergent Change** | You edit one class for many unrelated reasons (new report format *and* new tax rule *and* new DB). | Extract Class (split by reason for change) |
-| **Shotgun Surgery** | One conceptual change forces tiny edits scattered across many classes. The inverse of Divergent Change. | Move Method; Move Field; Inline Class (gather the scattered behavior into one place) |
-| **Parallel Inheritance Hierarchies** | Every time you add a subclass in one hierarchy, you must add a matching one in another. | Move Method; Move Field (then collapse one hierarchy) |
+**Refactorings:**
+- Extract Method
+- Replace Temp with Query
+- Introduce Parameter Object
+- Replace Method with Method Object
+- Decompose Conditional
 
-## Dispensables
-Something pointless whose removal makes the code cleaner.
+**Example (Before):**
+```javascript
+function processOrder(order) {
+  // Validate order (20 lines)
+  if (!order.items) throw new Error('No items');
+  if (order.items.length === 0) throw new Error('Empty order');
+  // ... more validation
 
-| Smell | Smells like (detect) | Treat with |
-|---|---|---|
-| **Comments** | Comments that explain *what* unclear code does (deodorant over bad code). | Extract Method/Variable + Rename; Introduce Assertion. (Keep *why*-comments.) |
-| **Duplicate Code** | Identical or near-identical fragments in multiple spots. | Extract Method; Pull Up Method; Form Template Method; Substitute Algorithm; Consolidate Duplicate Conditional Fragments |
-| **Lazy Class** | A class that no longer earns its keep. | Inline Class; Collapse Hierarchy |
-| **Data Class** | A class that's only fields + getters/setters, with behavior living elsewhere (often Feature Envy). | Move Method (pull behavior in); Encapsulate Field/Collection; Remove Setting Method |
-| **Dead Code** | Variables, params, methods, branches no longer reached. | Delete it (Remove Parameter, Inline Class). Trust version control. |
-| **Speculative Generality** | Unused hooks "for the future": abstract classes with one child, unused params, over-parameterized methods. | Collapse Hierarchy; Inline Class; Remove Parameter; Rename Method |
+  // Calculate totals (30 lines)
+  let subtotal = 0;
+  for (const item of order.items) {
+    subtotal += item.price * item.quantity;
+  }
+  // ... tax, shipping, discounts
 
-## Couplers
-Excessive coupling between classes — or the over-delegation that results from "fixing" it badly.
+  // Send notifications (20 lines)
+  // ... email logic
+}
+```
 
-| Smell | Smells like (detect) | Treat with |
-|---|---|---|
-| **Feature Envy** | A method uses another object's data more than its own. | Move Method; Extract Method (then move the extracted part) |
-| **Inappropriate Intimacy** | Two classes reach into each other's private parts; bidirectional dependence. | Move Method/Field; Extract Class; Hide Delegate; Replace Inheritance with Delegation; Change Bidirectional Association to Unidirectional |
-| **Message Chains** | `a.getB().getC().getD().doIt()` — client walks a chain of objects. | Hide Delegate; Extract Method + Move Method |
-| **Middle Man** | A class that does nothing but delegate to another. | Remove Middle Man; Inline Method; Replace Delegation with Inheritance |
-| **Incomplete Library Class** | A library class lacks a method you need but you can't modify it. | Introduce Foreign Method; Introduce Local Extension |
+**Example (After):**
+```javascript
+function processOrder(order) {
+  validateOrder(order);
+  const totals = calculateOrderTotals(order);
+  sendOrderNotifications(order, totals);
+  return { order, totals };
+}
+```
 
 ---
 
-## How to use this catalog
+### Large Class
 
-1. **Don't fix on sight.** A smell is a hypothesis. Confirm the cost (does it actually make change harder here?) before acting. Speculative Generality and Middle Man are *opposites* of over-fixing other smells — over-correction creates new smells.
-2. **Two smells can describe one mess.** Long Method + Duplicate Code + Comments often co-occur; Extract Method frequently fixes all three at once.
-3. **Watch the opposing pairs** — they show that "more structure" isn't always cleaner:
-   - Divergent Change ↔ Shotgun Surgery
-   - Middle Man ↔ Message Chains
-   - Speculative Generality ↔ a genuinely needed abstraction
-   Aim for the balance point, not the extreme.
-4. **Sequence by leverage.** In a broad cleanup, treat Change Preventers and big Bloaters first — they unblock everything else. Cosmetic Dispensables last.
+**Signs:**
+- Class has many instance variables (>7-10)
+- Class has many methods (>15-20)
+- Class name is vague (Manager, Handler, Processor)
+- Methods don't use all instance variables
+
+**Why it's bad:**
+- Violates Single Responsibility Principle
+- Hard to test
+- Changes ripple through unrelated features
+- Difficult to reuse parts
+
+**Refactorings:**
+- Extract Class
+- Extract Subclass
+- Extract Interface
+
+**Detection:**
+```
+Lines of code > 300
+Number of methods > 15
+Number of fields > 10
+```
+
+---
+
+### Primitive Obsession
+
+**Signs:**
+- Using primitives for domain concepts (string for email, int for money)
+- Arrays of primitives instead of objects
+- String constants for type codes
+- Magic numbers/strings
+
+**Why it's bad:**
+- No validation at type level
+- Logic scattered across codebase
+- Easy to pass wrong values
+- Missing domain concepts
+
+**Refactorings:**
+- Replace Primitive with Object
+- Replace Type Code with Class
+- Replace Type Code with Subclasses
+- Replace Type Code with State/Strategy
+
+**Example (Before):**
+```javascript
+const user = {
+  email: 'john@example.com',     // Just a string
+  phone: '1234567890',           // Just a string
+  status: 'active',              // Magic string
+  balance: 10050                 // Cents as integer
+};
+```
+
+**Example (After):**
+```javascript
+const user = {
+  email: new Email('john@example.com'),
+  phone: new PhoneNumber('1234567890'),
+  status: UserStatus.ACTIVE,
+  balance: Money.cents(10050)
+};
+```
+
+---
+
+### Long Parameter List
+
+**Signs:**
+- Methods with 4+ parameters
+- Parameters that always appear together
+- Boolean flags changing method behavior
+- Null/undefined passed frequently
+
+**Why it's bad:**
+- Hard to call correctly
+- Parameter order confusion
+- Indicates method doing too much
+- Hard to add new parameters
+
+**Refactorings:**
+- Introduce Parameter Object
+- Preserve Whole Object
+- Replace Parameter with Method Call
+- Remove Flag Argument
+
+**Example (Before):**
+```javascript
+function createUser(firstName, lastName, email, phone,
+                    street, city, state, zip,
+                    isAdmin, isActive, createdBy) {
+  // ...
+}
+```
+
+**Example (After):**
+```javascript
+function createUser(personalInfo, address, options) {
+  // personalInfo: { firstName, lastName, email, phone }
+  // address: { street, city, state, zip }
+  // options: { isAdmin, isActive, createdBy }
+}
+```
+
+---
+
+### Data Clumps
+
+**Signs:**
+- Same 3+ fields appear together repeatedly
+- Parameters that always travel together
+- Classes with field subsets belonging together
+
+**Why it's bad:**
+- Duplicate handling logic
+- Missing abstraction
+- Harder to extend
+- Indicates hidden class
+
+**Refactorings:**
+- Extract Class
+- Introduce Parameter Object
+- Preserve Whole Object
+
+**Example:**
+```javascript
+// Data clump: (x, y, z) coordinates
+function movePoint(x, y, z, dx, dy, dz) { }
+function scalePoint(x, y, z, factor) { }
+function distanceBetween(x1, y1, z1, x2, y2, z2) { }
+
+// Extract Point3D class
+class Point3D {
+  constructor(x, y, z) { }
+  move(delta) { }
+  scale(factor) { }
+  distanceTo(other) { }
+}
+```
+
+---
+
+## Object-Orientation Abusers
+
+Smells indicating incomplete or incorrect use of OOP principles.
+
+### Switch Statements
+
+**Signs:**
+- Long switch/case or if/else chains
+- Same switch in multiple places
+- Switch on type codes
+- Adding new cases requires changes everywhere
+
+**Why it's bad:**
+- Violates Open/Closed Principle
+- Changes ripple to all switch locations
+- Hard to extend
+- Often indicates missing polymorphism
+
+**Refactorings:**
+- Replace Conditional with Polymorphism
+- Replace Type Code with Subclasses
+- Replace Type Code with State/Strategy
+
+**Example (Before):**
+```javascript
+function calculatePay(employee) {
+  switch (employee.type) {
+    case 'hourly':
+      return employee.hours * employee.rate;
+    case 'salaried':
+      return employee.salary / 12;
+    case 'commissioned':
+      return employee.sales * employee.commission;
+  }
+}
+```
+
+**Example (After):**
+```javascript
+class HourlyEmployee {
+  calculatePay() {
+    return this.hours * this.rate;
+  }
+}
+
+class SalariedEmployee {
+  calculatePay() {
+    return this.salary / 12;
+  }
+}
+```
+
+---
+
+### Temporary Field
+
+**Signs:**
+- Instance variables only used in some methods
+- Fields set conditionally
+- Complex initialization for certain cases
+
+**Why it's bad:**
+- Confusing—field exists but might be null
+- Hard to understand object state
+- Indicates conditional logic hiding
+
+**Refactorings:**
+- Extract Class
+- Introduce Null Object
+- Replace Temp Field with Local
+
+---
+
+### Refused Bequest
+
+**Signs:**
+- Subclass doesn't use inherited methods/data
+- Subclass overrides to do nothing
+- Inheritance used for code reuse, not IS-A relationship
+
+**Why it's bad:**
+- Wrong abstraction
+- Violates Liskov Substitution Principle
+- Misleading hierarchy
+
+**Refactorings:**
+- Push Down Method/Field
+- Replace Subclass with Delegate
+- Replace Inheritance with Delegation
+
+---
+
+### Alternative Classes with Different Interfaces
+
+**Signs:**
+- Two classes that do similar things
+- Different method names for same concept
+- Could be used interchangeably
+
+**Why it's bad:**
+- Duplicate implementations
+- No common interface
+- Hard to switch between
+
+**Refactorings:**
+- Rename Method
+- Move Method
+- Extract Superclass
+- Extract Interface
+
+---
+
+## Change Preventers
+
+Smells that make changes difficult—changing one thing requires changing many others.
+
+### Divergent Change
+
+**Signs:**
+- One class changed for multiple different reasons
+- Changes in different areas trigger same class edits
+- Class is a "God class"
+
+**Why it's bad:**
+- Violates Single Responsibility
+- High change frequency
+- Merge conflicts
+
+**Refactorings:**
+- Extract Class
+- Extract Superclass
+- Extract Subclass
+
+**Example:**
+A `User` class changes for:
+- Authentication changes
+- Profile changes
+- Billing changes
+- Notification changes
+
+→ Extract: `AuthService`, `ProfileService`, `BillingService`, `NotificationService`
+
+---
+
+### Shotgun Surgery
+
+**Signs:**
+- One change requires edits in many classes
+- Small feature needs touching 10+ files
+- Changes are scattered, hard to find all
+
+**Why it's bad:**
+- Easy to miss a spot
+- High coupling
+- Changes are error-prone
+
+**Refactorings:**
+- Move Method
+- Move Field
+- Inline Class
+
+**Detection:**
+Look for: adding one field requires changes in >5 files.
+
+---
+
+### Parallel Inheritance Hierarchies
+
+**Signs:**
+- Creating subclass in one hierarchy requires subclass in another
+- Class prefixes match (e.g., `DatabaseOrder`, `DatabaseProduct`)
+
+**Why it's bad:**
+- Double the maintenance
+- Coupling between hierarchies
+- Easy to forget one side
+
+**Refactorings:**
+- Move Method
+- Move Field
+- Eliminate one hierarchy
+
+---
+
+## Dispensables
+
+Something unnecessary that should be removed.
+
+### Comments (Excessive)
+
+**Signs:**
+- Comments explaining what code does
+- Commented-out code
+- TODO/FIXME that linger forever
+- Apologies in comments
+
+**Why it's bad:**
+- Comments lie (get out of sync)
+- Code should be self-documenting
+- Dead code causes confusion
+
+**Refactorings:**
+- Extract Method (name explains what)
+- Rename (clarity without comments)
+- Remove commented code
+- Introduce Assertion
+
+**Good vs Bad Comments:**
+```javascript
+// BAD: Explaining what
+// Loop through users and check if active
+for (const user of users) {
+  if (user.status === 'active') { }
+}
+
+// GOOD: Explaining why
+// Active users only - inactive are handled by cleanup job
+const activeUsers = users.filter(u => u.isActive);
+```
+
+---
+
+### Duplicate Code
+
+**Signs:**
+- Same code in multiple places
+- Similar code with small variations
+- Copy-paste patterns
+
+**Why it's bad:**
+- Bug fixes needed in multiple places
+- Inconsistency risk
+- Bloated codebase
+
+**Refactorings:**
+- Extract Method
+- Extract Class
+- Pull Up Method (in hierarchies)
+- Form Template Method
+
+**Detection Rule:**
+Any code duplicated 3+ times should be extracted.
+
+---
+
+### Lazy Class
+
+**Signs:**
+- Class doesn't do enough to justify existence
+- Wrapper with no added value
+- Result of over-engineering
+
+**Why it's bad:**
+- Maintenance overhead
+- Unnecessary indirection
+- Complexity without benefit
+
+**Refactorings:**
+- Inline Class
+- Collapse Hierarchy
+
+---
+
+### Dead Code
+
+**Signs:**
+- Unreachable code
+- Unused variables/methods/classes
+- Commented-out code
+- Code behind impossible conditions
+
+**Why it's bad:**
+- Confusion
+- Maintenance burden
+- Slows down understanding
+
+**Refactorings:**
+- Remove Dead Code
+- Safe Delete
+
+**Detection:**
+```bash
+# Look for unused exports
+# Look for unreferenced functions
+# IDE "unused" warnings
+```
+
+---
+
+### Speculative Generality
+
+**Signs:**
+- Abstract classes with one subclass
+- Unused parameters "for future use"
+- Methods that only delegate
+- "Framework" for one use case
+
+**Why it's bad:**
+- Complexity without benefit
+- YAGNI (You Ain't Gonna Need It)
+- Harder to understand
+
+**Refactorings:**
+- Collapse Hierarchy
+- Inline Class
+- Remove Parameter
+- Rename Method
+
+---
+
+## Couplers
+
+Smells that represent excessive coupling between classes.
+
+### Feature Envy
+
+**Signs:**
+- Method uses more data from another class than its own
+- Many getter calls to another object
+- Data and behavior are separated
+
+**Why it's bad:**
+- Wrong location for behavior
+- Poor encapsulation
+- Hard to maintain
+
+**Refactorings:**
+- Move Method
+- Move Field
+- Extract Method (then move)
+
+**Example (Before):**
+```javascript
+class Order {
+  getDiscountedPrice(customer) {
+    // Uses customer data heavily
+    if (customer.loyaltyYears > 5) {
+      return this.price * customer.discountRate;
+    }
+    return this.price;
+  }
+}
+```
+
+**Example (After):**
+```javascript
+class Customer {
+  getDiscountedPriceFor(price) {
+    if (this.loyaltyYears > 5) {
+      return price * this.discountRate;
+    }
+    return price;
+  }
+}
+```
+
+---
+
+### Inappropriate Intimacy
+
+**Signs:**
+- Classes access each other's private parts
+- Bidirectional references
+- Subclasses know too much about parents
+
+**Why it's bad:**
+- High coupling
+- Changes cascade
+- Hard to modify one without other
+
+**Refactorings:**
+- Move Method
+- Move Field
+- Change Bidirectional to Unidirectional
+- Extract Class
+- Hide Delegate
+
+---
+
+### Message Chains
+
+**Signs:**
+- Long chains of method calls: `a.getB().getC().getD().getValue()`
+- Client depends on navigation structure
+- "Train wreck" code
+
+**Why it's bad:**
+- Fragile—any change breaks chain
+- Violates Law of Demeter
+- Coupling to structure
+
+**Refactorings:**
+- Hide Delegate
+- Extract Method
+- Move Method
+
+**Example:**
+```javascript
+// Bad: Message chain
+const managerName = employee.getDepartment().getManager().getName();
+
+// Better: Hide delegation
+const managerName = employee.getManagerName();
+```
+
+---
+
+### Middle Man
+
+**Signs:**
+- Class that only delegates to another
+- Half the methods are delegations
+- No added value
+
+**Why it's bad:**
+- Unnecessary indirection
+- Maintenance overhead
+- Confusing architecture
+
+**Refactorings:**
+- Remove Middle Man
+- Inline Method
+
+---
+
+## Smell Severity Guide
+
+| Severity | Description | Action |
+|----------|-------------|--------|
+| **Critical** | Blocks development, causes bugs | Fix immediately |
+| **High** | Significant maintenance burden | Fix in current sprint |
+| **Medium** | Noticeable but manageable | Plan for near future |
+| **Low** | Minor inconvenience | Fix opportunistically |
+
+---
+
+## Quick Detection Checklist
+
+Use this checklist when scanning code:
+
+- [ ] Any method > 30 lines?
+- [ ] Any class > 300 lines?
+- [ ] Any method with > 4 parameters?
+- [ ] Any duplicated code blocks?
+- [ ] Any switch/case on type codes?
+- [ ] Any unused code?
+- [ ] Any methods using another class's data heavily?
+- [ ] Any long chains of method calls?
+- [ ] Any comments explaining "what" not "why"?
+- [ ] Any primitives that should be objects?
+
+---
+
+## Further Reading
+
+- Fowler, M. (2018). *Refactoring: Improving the Design of Existing Code* (2nd ed.)
+- Kerievsky, J. (2004). *Refactoring to Patterns*
+- Feathers, M. (2004). *Working Effectively with Legacy Code*

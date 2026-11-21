@@ -195,7 +195,8 @@ skills `clean-code`, `clean-architecture`, `refactoring` y `cpp-coding-standards
 1. **Por épicas, intercalado con el port (elegido por Emanuel el 2026-11-21).** Primero la red de
    seguridad (el golden de comportamiento y el rastreo a prueba de mudanzas), después el motor
    aparte, el protocolo y el estado, y al final `Scenes/` partido en módulos, de a un grupo por
-   hito. Cada hito es una mudanza generada por script (sin lógica, verificable) y un PR de diseño.
+   hito. Cada hito es una mudanza generada por script (sin lógica, verificable), un PR que deja
+   sus comentarios en inglés y solo los necesarios (verificado por script) y un PR de diseño.
    El port sigue en paralelo: lo nuevo entra en el módulo de destino.
 2. **Primero cerrar huecos y trazas, después refactorizar.** Cero riesgo de choque con el port,
    pero todo lo que falta entra en la estructura vieja (más `WorldRuntime`, más `ServerSession`) y
@@ -434,7 +435,7 @@ inline constexpr OpcodeTable GameServerOpcodes{
 - **Lo contiguo no se parte.** Un struct que copia memoria contigua del original porque un
   desborde o una copia la cruza (el renglón de `TooltipLines`, Q-C591; los dos campos de
   `CharacterBalloons`, Q-C1503; los bloques que un `REP STOSD` o una función de reset vacían
-  juntos) queda entero, marcado con `// Contiguo en el original: …` y su fila de 07.
+  juntos) queda entero, marcado con `// Contiguous in the original: …` y su fila de 07.
 
 ### Las escenas como guiones del frame
 
@@ -446,8 +447,12 @@ raíz de composición.
 
 ### Direcciones, offsets y citas
 
-- **Las citas en comentarios se quedan** (`// 0x4d3200: …`): son 55.800, el rastreo las lee, y una
-  constante por dirección no agrega nada que el `funciones.tsv` no tenga.
+- **Las citas en comentarios se quedan** (`// 0x4d3200`): son 55.800, el rastreo las lee, y una
+  constante por dirección no agrega nada que el `funciones.tsv` no tenga. Van en inglés y en una
+  línea, con la dirección y a lo sumo una etiqueta corta; el resto de los comentarios, solo si es
+  estrictamente necesario (Emanuel, 2026-11-21; CODING_RULES §9). Los de hoy, en castellano, pasan
+  en un PR de comentarios después de cada mudanza, y su squash se anota en `.git-blame-ignore-revs`
+  como el de la mudanza.
 - **Los layouts que importan llevan offsets en el tipo:** paquetes (`Field<T, Offset, Endian>`) y
   formatos de `Data\` (`static_assert(offsetof(...))` y `sizeof`). Hoy hay 9 `static_assert` de
   layout en todo `src`.
@@ -485,7 +490,8 @@ raíz de composición.
 - **La ola de cada cita** sale de `git blame`. Un commit sin `CLn` hereda la ola del anterior, así
   que una mudanza atribuiría miles de citas a la ola equivocada. El blame pasa a correr con `-M -C`
   y `--ignore-revs-file .git-blame-ignore-revs`, los commits del refactor llevan `AR` y no heredan
-  ola, y el squash de cada mudanza se anota en `.git-blame-ignore-revs`.
+  ola, y el squash de cada mudanza y de cada PR de comentarios se anota en
+  `.git-blame-ignore-revs`.
 - **Cada pendiente tiene módulo:** la referencia suma la columna `modulo` a `funciones`, `cortes`,
   `huecos` y `vm`, y `consultar.py modulo game/Guild` da lo que falta de ese módulo (cortes vivos,
   huecos, pasos de VM, filas de 08, paquetes `SinPortar`). Un hueco toma el módulo de quienes lo

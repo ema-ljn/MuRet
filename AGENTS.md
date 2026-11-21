@@ -100,10 +100,14 @@ cierran por sí solas toda la CL. Esto responde a huecos que aparecieron recién
 
 - Los PRs van a `main`.
 - **Una sub-ola = un concepto = un PR chico** (regla 10). Un concepto por commit.
-- Mensajes de commit en notación Angular: `tipo(alcance): descripción`, en castellano, con el
+- **Ramas, commits y títulos y descripciones de PR en inglés** (Emanuel, 2026-11-21), igual que el
+  código y sus comentarios ([`CODING_RULES.md`](docs/CODING_RULES.md) §7 y §9). Las ramas con un
+  nombre que diga qué hacen (`refactor/engine-targets`, `fix/guild-mark-overflow`).
+- Mensajes de commit en notación Angular: `tipo(alcance): descripción`, en inglés, con el
   alcance opcional (por ejemplo `docs(learning): …`, `feat(tutor): …`, `fix: …`) y un cuerpo que
-  explique el porqué.
+  explique el porqué. Los del refactor del cliente llevan `AR<épica>.<hito>` en vez del tipo.
 - En la descripción del PR, citá la sub-ola y la sección del research que fija el cambio.
+- En el código, un comentario solo si es estrictamente necesario, corto y en inglés (CODING_RULES §9).
 
 ## Fuera de alcance para cambios de IA
 

@@ -39,12 +39,15 @@ bolsas de parámetros.
 - Máximo 3 agentes en paralelo (Emanuel, 2026-11-19), contando los del port y las revisiones.
 - Cada paso usa la skill que le toca ("Las skills de cada paso"), y las tres skills nuevas del repo nacen con lo que
   describen.
+- Ramas, commits, títulos y descripciones de PR y comentarios del código, en inglés (Emanuel, 2026-11-21); el prefijo
+  `AR<épica>.<hito>` se queda. Un comentario va solo si es estrictamente necesario, corto y en una línea
+  (CODING_RULES §9): la cita al original (`// 0x4d3200`), que lee el rastreo, y un porqué que el código no puede decir.
 - Clean Code es la guía del refactor (Emanuel, 2026-11-21): cada PR de diseño se escribe y se revisa con la skill
   `clean-code`, cada paso sigue el ciclo de `refactoring` y las fronteras entre módulos, `clean-architecture`. Van por
   debajo de la fidelidad y de `CODING_RULES.md`: una regla de estilo no cambia el orden de las llamadas, el de los
   `rand()` ni el redondeo de un `float`. Las mudanzas no limpian nada.
-- PRs grandes por hito (Emanuel, 2026-11-11), con la mudanza y el diseño en PRs separados (la mudanza se revisa por
-  script; el diseño, a ojo).
+- PRs grandes por hito (Emanuel, 2026-11-11), con la mudanza, los comentarios y el diseño en PRs separados (la mudanza
+  y los comentarios se revisan por script; el diseño, a ojo).
 
 ## Review Focus
 
@@ -67,14 +70,24 @@ bolsas de parámetros.
 | épica | qué deja | hitos (PRs) | líneas que mueve o toca (≈) |
 | --- | --- | ---: | ---: |
 | **AR0** Red de seguridad, reglas y rastreo | las reglas nuevas, `modulos.tsv`, el chequeo de capas, el rastreo a prueba de mudanzas, el golden de comportamiento | 3 | 3 mil (herramientas, tests y docs) |
-| **AR1** El motor aparte | las dependencias al revés dadas vuelta, el kit común, `Client/src/engine/` con sus targets | 2 (1 mudanza + 1 diseño) | 30 mil movidas, ~3 mil tocadas |
+| **AR1** El motor aparte | las dependencias al revés dadas vuelta, el kit común, `Client/src/engine/` con sus targets | 3 (1 mudanza + 1 de comentarios + 1 diseño) | 30 mil movidas, ~3 mil tocadas |
 | **AR2** Protocolo y despacho | layouts con offsets en el tipo, la tabla de opcodes, un handler por paquete; adiós `ServerSession` gigante, `WorldEvent` y `SessionEventApplier` | 3 | ~20 mil |
 | **AR3** El estado por módulo | `globales.tsv`, `GameContext`, el núcleo compartido y las primeras partes de `WorldRuntime` en sus módulos | 2 | ~10 mil |
-| **AR4** `Scenes/` en módulos | 5 grupos de módulos verticales, cada uno con su mudanza y su diseño | 10 (5 + 5) | ~210 mil movidas, ~40 mil tocadas |
+| **AR4** `Scenes/` en módulos | 5 grupos de módulos verticales, cada uno con su mudanza, sus comentarios y su diseño | 15 (5 + 5 + 5) | ~210 mil movidas, ~40 mil tocadas |
 | **AR5** Escenas como guiones | `GameScene`, el login y la selección como listas ordenadas; `main.cpp` a `app/` | 2 | ~8 mil |
 | **AR6** Deduplicación y tests | las funciones portadas dos veces, los clones propios, los falsos de tests compartidos | 2 | ~15 mil |
-| **AR7** Cierre | el chequeo de capas estricto, el tamaño de funciones en CI, los docs | 1 | ~1 mil |
-| **total** | | **25** (6 mudanzas por script + 19 de diseño) | |
+| **AR7** Cierre | el chequeo de capas estricto, el tamaño de funciones en CI, los docs; los últimos comentarios en inglés | 2 (1 de comentarios + 1 diseño) | ~1 mil |
+| **total** | | **32** (6 mudanzas por script + 7 de comentarios + 19 de diseño) | |
+
+**Los PRs de comentarios** (Emanuel, 2026-11-21: nada de comentarios en castellano, y solo los estrictamente
+necesarios). Hoy `Client/` tiene unas 60 mil líneas con comentarios, la mitad con una cita al original. Cada mudanza va
+seguida de un PR que pasa los comentarios de los archivos que movió, y de sus tests, a la regla de CODING_RULES §9: lo
+que repite el código se borra, y lo que queda pasa a inglés, en una línea. La cita conserva la dirección y a lo sumo una
+etiqueta corta. Un comentario con algo que el research no tiene (un hallazgo, un quirk) no se pierde: si es largo, pasa
+al research y en el código queda la cita. Lo escribe un agente y lo verifica `check_comments_only.py` (Task 6): sin los
+comentarios, el código es el mismo token por token, y cada dirección citada sigue citada en el mismo archivo. El squash
+va a `.git-blame-ignore-revs`, como una mudanza, para que las citas no cambien de ola. El de AR7 toma lo que no movió
+ninguna mudanza.
 
 Cada épica, salvo AR0, se detalla en su propio plan al arrancar (como las olas), con el estado de `main` de ese día.
 Este plan fija el qué, el orden, cómo se verifica y cuándo está terminada.
@@ -149,7 +162,7 @@ su línea en la tabla "Dónde está cada cosa" de `AGENTS.md`.
 | skill | nace en | qué hace |
 | --- | --- | --- |
 | `muret-modulo` | AR0.1 (Task 2) | dónde va un archivo (`mapa-modulos.tsv`), la anatomía de un módulo (`Módulo.h`, `MóduloState.h`, `In/`, `Out/`, `<Módulo>Fwd.h`, `<Módulo>Defines.h`), cómo se crea un target con su capa en `modulos.tsv`, el contrato abajo y la implementación arriba, y qué hacer cuando `check_layers.py` corta un include. La usan los dos carriles (regla 1) |
-| `muret-mudanza` | AR0.2 (Task 6) | una mudanza de punta a punta: `main` al día, `mover.py` con los módulos del hito, `check_pure_move.py`, las rutas escritas a mano que lista, el título `AR<épica>.<hito>`, nada de lógica y, después del squash, `mover.py --anotar`. Se usa en las 6 mudanzas |
+| `muret-mudanza` | AR0.2 (Task 6) | una mudanza de punta a punta: `main` al día, `mover.py` con los módulos del hito, `check_pure_move.py`, las rutas escritas a mano que lista, el título `AR<épica>.<hito>`, nada de lógica y, después del squash, `mover.py --anotar`; y el PR de comentarios que la sigue, con `check_comments_only.py`. Se usa en las 6 mudanzas |
 | `muret-paquete` | AR2.2 | portar o tocar un paquete: el layout con `Field<T, Offset>` y su `static_assert` de tamaño, la fila de la tabla de opcodes que reemplaza a `SinPortar{va}`, el handler en el `In/` de su módulo, el golden del cable y la cita del `case` original |
 
 ---
@@ -208,7 +221,7 @@ AR0.2.
   mal.
 - [ ] **Step 7:** en el job `includes` de `ci.yml`, un paso "Capas del cliente" que corre los tests y el chequeo
   (sin build: el chequeo lee los fuentes).
-- [ ] **Step 8:** commit `AR0.1: el registro de módulos y el chequeo de capas`.
+- [ ] **Step 8:** commit `AR0.1: add module registry and layer check`.
 
 ### Task 2: las reglas, el mapa y dónde va un port nuevo
 
@@ -235,7 +248,7 @@ AR0.2.
   líneas, archivo ~400, función ~60; la excepción de las transcripciones de `switch` del original, marcadas) y la regla
   de interfaces (solo en los bordes del motor y donde un test la necesita). La sección nueva de direcciones: las citas
   en comentario se quedan; `Field<T, Offset, Endian>` para paquetes; `static_assert(offsetof/sizeof)` para los
-  formatos de `Data\`; `// Contiguo en el original:` para los structs que no se parten.
+  formatos de `Data\`; `// Contiguous in the original:` para los structs que no se parten.
 - [ ] **Step 3:** el ADR con Contexto (las mediciones de la spec), Decisión (las tres raíces, las capas, la tabla de
   opcodes, el estado por módulo, lo que se toma y lo que no de OpenMU, TrinityCore y MuMain), Consecuencias (cómo se
   verifica: `check_layers.py`, el golden de comportamiento) y Estado (propuesto; lo acepta Emanuel).
@@ -244,8 +257,8 @@ AR0.2.
   en `In/` + fila en la tabla (desde AR2).
 - [ ] **Step 5:** la skill `muret-modulo`: los pasos de Step 4 y la anatomía de Step 2, apuntando a CODING_RULES §5 y
   al ADR; su línea en `AGENTS.md`.
-- [ ] **Step 6:** `check_layers.py` sigue en 0 y los docs pasan el job de formato. Commit `AR0.1: las reglas de la
-  arquitectura por módulos y el mapa de archivos`.
+- [ ] **Step 6:** `check_layers.py` sigue en 0 y los docs pasan el job de formato. Commit `AR0.1: add module architecture rules and
+  file map`.
 
 ### Task 3: el ancla estable de las clasificaciones a mano
 
@@ -281,7 +294,7 @@ AR0.2.
   `cortes-vivos.tsv` (columna `cierra_el_cliente`), no un diccionario en el código.
 - [ ] **Step 4:** una corrida de migración (`--anclar-entradas`) escribe la columna `ancla` en las cuatro entradas
   desde los `archivo:línea` de hoy. Antes y después, con la misma ref, `metricas.tsv` es idéntica.
-- [ ] **Step 5:** tests en verde; commit `AR0.2: las entradas a mano se reconocen por un ancla estable`.
+- [ ] **Step 5:** tests en verde; commit `AR0.2: match hand-classified entries by stable anchor`.
 
 ### Task 4: las mudanzas no le cambian la ola a nadie
 
@@ -298,7 +311,7 @@ AR0.2.
   falta anotar un squash).
 
 - [ ] **Step 1: los tests**, con un repo de git inventado en una carpeta temporal:
-  - `test_ar_commit_does_not_inherit_wave`: commits `CL9 hito 2: …`, `AR1.2: mudanza …` y `arreglo`, en ese orden →
+  - `test_ar_commit_does_not_inherit_wave`: commits `CL9 hito 2: …`, `AR1.2: move …` y `fix`, en ese orden →
     olas `CL9`, `AR` y `CL9`: el tercero hereda la del último commit del port, no la del refactor.
   - `test_blame_ignores_listed_move`: un archivo con una cita de un commit `CL7 …`, movido de carpeta en un commit
     `AR1.2` anotado en `.git-blame-ignore-revs` → la cita sigue con ola `CL7`.
@@ -306,7 +319,7 @@ AR0.2.
 - [ ] **Step 2:** los tests fallan; Step 3: el cambio en `build_roadmap_matrix.py`; Step 4: pasan.
 - [ ] **Step 5:** en `coverage/referencia/LEEME.md`, la receta de cada mudanza: después del squash, sumar su hash a
   `.git-blame-ignore-revs` y las rutas a `mudanzas.tsv` (lo hace `mover.py --anotar <hash>`, Task 6).
-- [ ] **Step 6:** commit `AR0.2: el blame de la matriz sigue las mudanzas`.
+- [ ] **Step 6:** commit `AR0.2: make matrix blame follow moves`.
 
 ### Task 5: lo que falta, por módulo
 
@@ -333,15 +346,18 @@ AR0.2.
 - [ ] **Step 2:** fallan; Step 3: el código; Step 4: pasan (el paso de `ci.yml` que ya corre
   `test_reference_summary.py` los toma).
 - [ ] **Step 5:** regenerar la referencia sobre `main` y commitearla: la suma por módulo de cada métrica es igual al
-  total de hoy. Commit `AR0.2: la referencia cuenta lo que falta por módulo`.
+  total de hoy. Commit `AR0.2: count missing work per module in the reference`.
 
 ### Task 6: el script de mudanza y su verificación
 
 **Files:**
 - Create: `Client/tools/arquitectura/mover.py`
 - Create: `Client/tools/arquitectura/check_pure_move.py`
-- Create: `Client/tools/arquitectura/test_mover.py`, `Client/tools/arquitectura/test_check_pure_move.py`
-- Modify: `.github/workflows/ci.yml` (en PRs con `AR` en el título, correr `check_pure_move.py` contra la base)
+- Create: `Client/tools/arquitectura/check_comments_only.py`
+- Create: `Client/tools/arquitectura/test_mover.py`, `Client/tools/arquitectura/test_check_pure_move.py`,
+  `Client/tools/arquitectura/test_check_comments_only.py`
+- Modify: `.github/workflows/ci.yml` (en PRs con `AR` en el título, correr `check_pure_move.py` contra la base; si el
+  título empieza con `AR<épica>.<hito> comments:`, también `check_comments_only.py`)
 - Create: `.claude/skills/muret-mudanza/SKILL.md` ("Las skills de cada paso")
 
 **Interfaces:**
@@ -357,6 +373,10 @@ AR0.2.
 - Produces: `check_pure_move.py --base <ref> --head <ref>`: para cada archivo renombrado (`git diff -M50% --name-status`)
   compara el multiconjunto de líneas sin las de `#include` ni las vacías; sale con 1 y lista las diferencias si alguna
   línea cambió. Los `CMakeLists.txt`, `*.cmake`, `*.md` y `*.tsv` se permiten.
+- Produces: `check_comments_only.py --base <ref> --head <ref>`: para cada `.h` y `.cpp` modificado saca los comentarios
+  (`//` y `/* */`, sin tocar los literales de cadena ni de carácter) y compara los tokens; sale con 1 si cambió un
+  token de código, o si una dirección `0x` de 6 a 8 dígitos citada en un comentario de la base ya no está citada en el
+  mismo archivo, y lista cada caso. Los `*.md` del research se permiten (ahí van los comentarios largos).
 
 - [ ] **Step 1: los tests:**
   - `test_pure_move_passes`: un archivo movido con un include reescrito → 0.
@@ -366,9 +386,14 @@ AR0.2.
     `#include "Scenes/GuildState.h"` en otro archivo pasa a `#include "Guild/GuildState.h"`.
   - `test_mover_keeps_includes_when_only_root_changes`: `Core/Expected.h` a `engine/Core/Expected.h` → ningún include
     cambia.
-- [ ] **Step 2:** fallan; Step 3: los dos scripts; Step 4: pasan.
-- [ ] **Step 5:** la skill `muret-mudanza` con los comandos de verdad de los dos scripts, y su línea en `AGENTS.md`.
-- [ ] **Step 6:** commit `AR0.2: el script de mudanza y su verificación`.
+  - `test_comment_trim_passes`: `x = f(); // 0x4d3200: suma el bonus del set` pasa a `x = f(); // 0x4d3200` y un
+    bloque de prosa se borra → 0.
+  - `test_code_token_change_fails`: además del comentario, un `+` pasa a `-` → 1 y la línea.
+  - `test_lost_citation_fails`: se borra el único comentario que citaba `0x4d3200` → 1 y la dirección.
+  - `test_comment_marker_inside_string_is_code`: cambia el texto de `"http://host"` → 1, porque está en una cadena.
+- [ ] **Step 2:** fallan; Step 3: los tres scripts; Step 4: pasan.
+- [ ] **Step 5:** la skill `muret-mudanza` con los comandos de verdad de los tres scripts, y su línea en `AGENTS.md`.
+- [ ] **Step 6:** commit `AR0.2: add move script, comments-only check and their verification`.
 
 ### Task 7: el golden de comportamiento
 
@@ -403,7 +428,7 @@ AR0.2.
   `support/WirePackets.h` y de las capturas que ya usan los tests de cada tema.
 - [ ] **Step 5:** el CI de Linux y el de Windows dan el mismo golden (la matemática de MuRet no depende de la CPU;
   `client-test-machines-cpu`). Si Windows difiere, el campo que difiere dice dónde.
-- [ ] **Step 6:** commit `AR0.3: el golden de comportamiento de cuatro escenas`.
+- [ ] **Step 6:** commit `AR0.3: add behavior golden for four scenes`.
 
 **AR0 está terminada cuando:** el chequeo de capas corre en CI con la línea de base de hoy; la referencia regenerada
 sobre `main` da los mismos números que la commiteada y además los da por módulo; una mudanza de prueba (en una rama
@@ -462,7 +487,7 @@ golden de comportamiento iguales.
 - **Verificación:** el golden de comportamiento idéntico; `check_layers.py` baja las violaciones del motor a 0 y se
   regenera la línea de base.
 
-### AR1.2 (mudanza + targets): `Client/src/engine/`
+### AR1.2 (mudanza + targets, y sus comentarios): `Client/src/engine/`
 
 - `mover.py --raiz engine` lleva `Core`, `Platform`, `Input`, `Audio`, `Network`, `Data` y `Render` a
   `Client/src/engine/`, `Render/Models` a `engine/Models`, la matemática x87 a `engine/Math`, y cada archivo que el
@@ -480,6 +505,8 @@ golden de comportamiento iguales.
   los targets. Los tests de `tests/{core,platform,input,audio,network,data,render,render_gl}` enlazan solo su target.
 - **Verificación:** `check_pure_move.py` en 0; CI verde; el golden idéntico; la referencia igual salvo rutas;
   `.git-blame-ignore-revs` y `mudanzas.tsv` anotados.
+- **Los comentarios**, en un PR aparte después del squash de la mudanza (`AR1.2 comments: …`): los de `engine/` y sus
+  tests, con `check_comments_only.py` en 0 y su squash en `.git-blame-ignore-revs` ("Los PRs de comentarios").
 - **Decisión pendiente para Emanuel (se pregunta al abrir AR1.2):** agrupar los tests en un ejecutable por módulo
   (15 a 40 en vez de 728: ≈90 % menos enlaces) revierte la decisión del 2026-11-02 de un ejecutable por archivo, como
   MuMain. Sin respuesta, se queda como está.
@@ -556,7 +583,8 @@ de `UI/` de los módulos que salieron.
 ## Épica AR4: `Scenes/` en módulos verticales
 
 Cinco hitos, de abajo hacia arriba en el grafo. Cada hito es **una mudanza** (`mover.py --modulos …`, con lo que hoy
-está en `Scenes/`, `UI/`, `World/` y `GameLogic/` de esos módulos, según el mapa) y **un diseño** (el namespace
+está en `Scenes/`, `UI/`, `World/` y `GameLogic/` de esos módulos, según el mapa), **un PR de comentarios** (los de
+esos archivos y sus tests, en inglés y solo los necesarios: ver "Los PRs de comentarios") y **un diseño** (el namespace
 `Client::<Módulo>`, el estado del módulo fuera de `WorldRuntime`, sus handlers y acciones, las clases chicas, la
 repetición propia del módulo y los nudos de la spec que le tocan). Antes de cada hito se compara el mapa con
 `consultar.py modulo` para no mudar un módulo con port abierto.
@@ -599,6 +627,8 @@ regenerado no tiene pares de esos módulos.
 - `readability-function-size` de clang-tidy con los tamaños de la spec, en modo trinquete: solo el código nuevo o
   cambiado, y las transcripciones de `switch` del original en una lista de excepciones.
 - `Client/README.md` con el mapa de módulos; el ADR de AR0 pasa a aceptado.
+- El último PR de comentarios, con lo que no movió ninguna mudanza (tests incluidos), y un paso del CI que corta un
+  comentario de `Client/` con letras del castellano (`ñ`, vocales con tilde, `¿`, `¡`), para que no vuelvan.
 
 ## Orden y paralelismo
 
@@ -618,6 +648,7 @@ AR0.3 ──────────┘                      AR3.1 ─► AR3.2 
   módulo y `globales.tsv` (AR3), los guiones (AR5), la repetición (AR1.1, AR2.1, AR4, AR6), el golden de
   comportamiento (Task 7), el rastreo a prueba de mudanzas (Tasks 3 a 6), las reglas y el ADR (Task 2), el chequeo de
   capas (Task 1 y AR7). La decisión de los ejecutables de test queda como pregunta en AR1.2.
-- **Nombres consistentes:** `modulos.tsv`, `mapa-modulos.tsv`, `check_layers.py`, `check_pure_move.py`, `mover.py`,
+- **Nombres consistentes:** `modulos.tsv`, `mapa-modulos.tsv`, `check_layers.py`, `check_pure_move.py`,
+  `check_comments_only.py`, `mover.py`,
   `mudanzas.tsv`, `.git-blame-ignore-revs`, `FrameDigest`, `GameContext`, `Route<&Fn>`, `SinPortar{va}` se usan igual
   en todo el plan.

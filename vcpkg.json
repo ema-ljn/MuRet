@@ -5,6 +5,7 @@
   "description": "Servidores y cliente de MU Online 1.02 reescritos en C++20",
   "builtin-baseline": "9a5dfef5d1a0438a7d24856a85bd60f309d355e9",
   "dependencies": [
+    "cli11",
     {
       "name": "freetype",
       "default-features": false
@@ -39,6 +40,10 @@
     }
   ],
   "overrides": [
+    {
+      "name": "cli11",
+      "version": "2.7.2"
+    },
     {
       "name": "libjpeg-turbo",
       "version": "3.2.0#1"

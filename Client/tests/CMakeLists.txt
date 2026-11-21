@@ -99,15 +99,21 @@ function(muret_add_test)
         PROPERTIES ${test_properties})
 endfunction()
 
-# muret_add_module_tests([LINK_LIBS lib ...] [LABEL <etiqueta>] [TIMEOUT <segundos>]): un
-# ejecutable por cada test_*.cpp de la carpeta que lo llama, con el nombre del archivo
-# (test_packet_reader), y lo que reciba se lo pasa a muret_add_test. Un test nuevo entra al
-# reconfigurar.
+# muret_add_module_tests([OTHER_SYSTEM <file> ...] [LINK_LIBS lib ...] [LABEL <label>]
+# [TIMEOUT <seconds>]): one executable for each test_*.cpp of the calling folder, named after the
+# file (test_packet_reader), with the rest passed on to muret_add_test. A new test joins on
+# reconfigure. OTHER_SYSTEM lists the tests of another system's code, which this one does not build.
 function(muret_add_module_tests)
+    cmake_parse_arguments(MAMT "" "" "OTHER_SYSTEM" ${ARGN})
     file(GLOB tests CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/test_*.cpp")
+    foreach(other_system_test IN LISTS MAMT_OTHER_SYSTEM)
+        set(other_system_path "${CMAKE_CURRENT_SOURCE_DIR}/${other_system_test}")
+        list(REMOVE_ITEM tests "${other_system_path}")
+        set_property(GLOBAL APPEND PROPERTY MURET_OTHER_SYSTEM_TEST_SOURCES "${other_system_path}")
+    endforeach()
     foreach(test_source IN LISTS tests)
         get_filename_component(test_name ${test_source} NAME_WE)
-        muret_add_test(NAME ${test_name} SOURCES ${test_source} ${ARGN})
+        muret_add_test(NAME ${test_name} SOURCES ${test_source} ${MAMT_UNPARSED_ARGUMENTS})
     endforeach()
 endfunction()
 
@@ -131,7 +137,8 @@ add_subdirectory(world)
 # CMakeLists.txt) no correría nunca y nadie lo notaría: el configure se corta y lo nombra.
 file(GLOB_RECURSE all_test_sources CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/test_*.cpp")
 get_property(registered_test_sources GLOBAL PROPERTY MURET_REGISTERED_TEST_SOURCES)
-list(REMOVE_ITEM all_test_sources ${registered_test_sources})
+get_property(other_system_test_sources GLOBAL PROPERTY MURET_OTHER_SYSTEM_TEST_SOURCES)
+list(REMOVE_ITEM all_test_sources ${registered_test_sources} ${other_system_test_sources})
 if(all_test_sources)
     list(JOIN all_test_sources "\n  " unregistered)
     message(FATAL_ERROR "Tests sin ejecutable (falta su CMakeLists.txt o su add_subdirectory):\n  ${unregistered}")

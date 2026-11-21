@@ -1,289 +1,258 @@
 #include "App/CommandLine.h"
 
+#include "App/CommandLineSystem.h"
+#include "App/CommandLineValues.h"
+#include "App/FrameRateMeter.h"
 #include "App/LoopTiming.h"
-#include "App/PacingMode.h"
-#include "App/ServerAddress.h"
-#include "App/VSyncMode.h"
-#include "Core/Ascii.h"
 #include "Core/Expected.h"
-#include "Core/PathText.h"
 
-#include <charconv>
+#include <CLI/App.hpp>
+#include <CLI/Error.hpp>
+#include <CLI/Option.hpp>
+// CLI11 is header only: CLI::App needs the definitions of its help and config formatters.
+#include <CLI/Config.hpp>    // IWYU pragma: keep
+#include <CLI/Formatter.hpp> // IWYU pragma: keep
+
+#include <algorithm>
+#include <chrono>
 #include <cstddef>
-#include <cstdint>
-#include <filesystem>
+#include <cstdlib>
+#include <format>
 #include <optional>
 #include <span>
 #include <string>
 #include <string_view>
-#include <system_error>
-#include <type_traits>
 #include <utility>
+#include <vector>
 
 namespace
 {
-using Client::App::PacingMode;
-using Client::App::VSyncMode;
-using Client::Core::EqualsIgnoringAsciiCase;
-using Client::Core::ToLowerAscii;
+using Client::App::CommandLine;
+using Client::App::CommandLineExit;
+using Client::App::OptionStyle;
+using Client::App::OptionTexts;
+using Client::App::SystemSyntax;
 using Client::Core::Unexpected;
+namespace OptionNames = Client::App::OptionNames;
 
-constexpr std::string_view FramesOption = "--frames";
-constexpr std::string_view PacingOption = "--pacing";
-constexpr std::string_view VSyncOption = "--vsync";
-constexpr std::string_view MaxFpsOption = "--max-fps";
-constexpr std::string_view StatsOption = "--stats";
-constexpr std::string_view ConfigOption = "--config";
-constexpr std::string_view DataOption = "--data";
-constexpr std::string_view AutoLoginOption = "--auto-login";
-// Lo que pasa el launcher adelante de /u y /p (02 § Del launcher al juego).
-constexpr std::string_view ConnectWord = "connect";
-constexpr std::string_view Usage =
-    "uso: Main [connect /u<host> /p<puerto>] [--auto-login] [--config RUTA] [--data RUTA] [--frames N] "
-    "[--pacing decoupled|faithful] [--vsync on|adaptive|off] [--max-fps N] [--stats]";
+constexpr std::string_view ProgramName = "Main";
+constexpr std::string_view DoubleDash = "--";
 
-// La letra de una opción del launcher ("/u10.0.0.1" da 'u'), en minúscula, o '\0' si no es una.
-char LauncherLetter(std::string_view argument)
+template <typename Text> std::span<const Text> UpToDoubleDash(std::span<const Text> arguments)
 {
-    return argument.size() >= 2 && argument.front() == '/' ? ToLowerAscii(argument[1]) : '\0';
+    return {arguments.begin(), std::ranges::find(arguments, DoubleDash)};
 }
 
-// Las opciones que llevan un valor atrás, --stats y --auto-login: cada una va una vez.
-bool AlreadyGiven(const Client::App::CommandLine& commandLine, std::string_view option)
+// Not add_option(name, text): CLI11 2.7 turns "" into nullopt, and "" must stay a wrong value.
+void AddValue(CLI::App& app, std::string_view name, std::optional<std::string>& text, std::string_view typeName,
+              const std::string& help)
 {
-    return (option == StatsOption && commandLine.stats) || (option == AutoLoginOption && commandLine.autoLogin) ||
-           (option == FramesOption && commandLine.maxFrames) || (option == PacingOption && commandLine.pacing) ||
-           (option == VSyncOption && commandLine.vsync) || (option == MaxFpsOption && commandLine.maxFps) ||
-           (option == ConfigOption && commandLine.configPath) || (option == DataOption && commandLine.dataPath);
+    app.add_option_function<std::string>(
+           std::string(name), [&text](const std::string& value) { text = value; }, help)
+        ->type_name(std::string(typeName));
 }
 
-std::string Unknown(std::string_view argument)
+void AddFlag(CLI::App& app, std::string_view name, bool& value, const std::string& help)
 {
-    return "no conozco el argumento \"" + std::string(argument) + "\" (" + std::string(Usage) + ")";
+    app.add_flag(std::string(name), value, help)->disable_flag_override();
 }
 
-// Un entero positivo, sin signo ni nada atrás: from_chars ya rechaza "-1", "+5" y el desborde.
-std::optional<std::uint64_t> ParsePositive(std::string_view text)
+void AddOptions(CLI::App& app, OptionTexts& texts)
 {
-    std::uint64_t value = 0;
-    const char* const last = text.data() + text.size();
-    const auto [end, error] = std::from_chars(text.data(), last, value);
-    if (error != std::errc() || end != last || value == 0)
+    AddValue(app, OptionNames::Host, texts.host, "HOST",
+             "The ConnectServer's host, instead of [Server] Host (needs --port)");
+    AddValue(app, OptionNames::Port, texts.port, "PORT",
+             "The ConnectServer's port, instead of [Server] Port (needs --host)");
+    AddFlag(app, OptionNames::AutoLogin, texts.autoLogin,
+            "Pick the first server and log in with MURET_CLIENT_ACCOUNT and MURET_CLIENT_PASSWORD, without the UI "
+            "(needs a server)");
+    AddValue(app, OptionNames::Config, texts.configPath, "PATH", "Read this config instead of muret-client.ini");
+    AddValue(app, OptionNames::Data, texts.dataPath, "PATH",
+             "The original client's data folder, instead of [Data] Path");
+    AddValue(app, OptionNames::Frames, texts.frames, "N", "Draw N frames and exit");
+    AddValue(app, OptionNames::Pacing, texts.pacing, "MODE", "decoupled (MuRet's) or faithful (the original's pace)");
+    AddValue(app, OptionNames::VSync, texts.vsync, "MODE", "on, adaptive or off; faithful pacing takes only off");
+    AddValue(app, OptionNames::MaxFps, texts.maxFps, "N",
+             std::format("The FPS cap with VSync off: 0 (none) or {} to {}", Client::App::MinFpsLimit,
+                         Client::App::MaxFpsLimit));
+    AddFlag(app, OptionNames::Stats, texts.stats,
+            std::format("Print the FPS and the steps per second every {} s",
+                        std::chrono::duration_cast<std::chrono::seconds>(Client::App::StatsInterval).count()));
+}
+
+std::string UsageLine(const SystemSyntax& syntax)
+{
+    const std::string usage = std::format("Usage: {} [OPTIONS]", ProgramName);
+    return syntax.operands.empty() ? usage : std::format("{} {}", usage, syntax.operands);
+}
+
+void ConfigureSyntax(CLI::App& app, const SystemSyntax& syntax, std::string_view version)
+{
+    const bool windowsStyle = syntax.style == OptionStyle::GnuAndWindows;
+    app.usage(UsageLine(syntax));
+    app.footer(std::string(syntax.helpFooter));
+    app.allow_extras();
+    app.allow_windows_style_options(windowsStyle);
+    app.option_defaults()->ignore_case(windowsStyle);
+    // A repeat is MuRet's error (RepeatedOption): CLI11 keeps the last one and counts them.
+    app.option_defaults()->multi_option_policy(CLI::MultiOptionPolicy::TakeLast);
+    // After option_defaults, so that they take the case rule too.
+    app.set_help_flag("-h,--help", "Print this help and exit");
+    app.set_version_flag("--version", std::format("MuRet client {}", version), "Print the version and exit");
+}
+
+CommandLineExit HelpExit(const CLI::App& app)
+{
+    return {.text = app.help(), .exitCode = EXIT_SUCCESS};
+}
+
+CommandLineExit UsageError(const CLI::App& app, std::string_view line)
+{
+    return {.text = std::format("{}: {}\n\n{}", ProgramName, line, app.help()),
+            .exitCode = Client::App::UsageErrorExitCode};
+}
+
+struct AttachedValue
+{
+    std::string option;
+    std::string_view value;
+};
+
+// --name=value, and in the Windows style /name:value, with the option's GNU name.
+std::optional<AttachedValue> SplitAttachedValue(std::string_view argument, OptionStyle style)
+{
+    if (argument.starts_with(DoubleDash))
     {
-        return std::nullopt;
+        const std::size_t equals = argument.find('=');
+        if (equals != std::string_view::npos)
+        {
+            return AttachedValue{std::string(argument.substr(0, equals)), argument.substr(equals + 1)};
+        }
     }
-    return value;
-}
-
-// Un tope de FPS: 0, o de MinFpsLimit a MaxFpsLimit (IsValidMaxFps), sin signo ni nada atrás
-// (from_chars sin signo ya rechaza "-1" y "+5").
-std::optional<int> ParseMaxFps(std::string_view text)
-{
-    unsigned value = 0;
-    const char* const last = text.data() + text.size();
-    const auto [end, error] = std::from_chars(text.data(), last, value);
-    // Más que MaxFpsLimit se corta antes del cast: no tiene por qué entrar en un int.
-    if (error != std::errc() || end != last || value > static_cast<unsigned>(Client::App::MaxFpsLimit) ||
-        !Client::App::IsValidMaxFps(static_cast<int>(value)))
+    else if (style == OptionStyle::GnuAndWindows && argument.starts_with('/'))
     {
-        return std::nullopt;
-    }
-    return static_cast<int>(value);
-}
-
-std::optional<PacingMode> ParsePacing(std::string_view text)
-{
-    if (text == "decoupled")
-    {
-        return PacingMode::Decoupled;
-    }
-    if (text == "faithful")
-    {
-        return PacingMode::Faithful;
+        const std::size_t colon = argument.find(':');
+        if (colon != std::string_view::npos)
+        {
+            return AttachedValue{std::format("--{}", argument.substr(1, colon - 1)), argument.substr(colon + 1)};
+        }
     }
     return std::nullopt;
 }
 
-std::optional<VSyncMode> ParseVSync(std::string_view text)
+// CLI11 reads an empty attached value as none, and the option would take the next argument.
+std::optional<std::string> AttachedValueError(const CLI::App& app, OptionStyle style,
+                                              std::span<const std::string_view> options)
 {
-    if (text == "on")
+    for (const std::string_view argument : options)
     {
-        return VSyncMode::On;
-    }
-    if (text == "adaptive")
-    {
-        return VSyncMode::Adaptive;
-    }
-    if (text == "off")
-    {
-        return VSyncMode::Off;
+        const std::optional<AttachedValue> attached = SplitAttachedValue(argument, style);
+        if (!attached)
+        {
+            continue;
+        }
+        const CLI::Option* const option = app.get_option_no_throw(attached->option);
+        if (option == nullptr)
+        {
+            continue;
+        }
+        if (option->get_expected_max() == 0)
+        {
+            return std::format("{} takes no value", option->get_name());
+        }
+        if (attached->value.empty())
+        {
+            return std::format("{} needs a value", option->get_name());
+        }
     }
     return std::nullopt;
 }
 
-std::string BadValue(std::string_view option, std::string_view expected, std::string_view value)
+// CLI11 reports through exceptions; none leaves here. The exit is the help, the version or a usage error.
+std::optional<CommandLineExit> Parse(CLI::App& app, std::span<const std::string_view> arguments)
 {
-    return std::string(option) + " necesita " + std::string(expected) + ", no \"" + std::string(value) + "\"";
+    // CLI11 takes the arguments last first.
+    std::vector<std::string> reversed(arguments.rbegin(), arguments.rend());
+    try
+    {
+        app.parse(std::move(reversed));
+    }
+    catch (const CLI::CallForHelp&)
+    {
+        return HelpExit(app);
+    }
+    catch (const CLI::CallForVersion& versionText)
+    {
+        return CommandLineExit{.text = std::format("{}\n", versionText.what()), .exitCode = EXIT_SUCCESS};
+    }
+    catch (const CLI::ParseError& error)
+    {
+        return UsageError(app, error.what());
+    }
+    return std::nullopt;
 }
 
-// La ruta de --config o --data, o vacío si no es UTF-8 donde tiene que serlo. En Windows los
-// argumentos llegan en UTF-8 (main.cpp usa SDL_main.h, y SDL los arma con GetCommandLineW y
-// CommandLineToArgvW): se leen con Core::PathFromUtf8, como la config, porque path(std::string)
-// leería la página ANSI. En POSIX el argumento ya son los bytes del sistema de archivos y path
-// los guarda tal cual, así que también sirve un nombre que no es UTF-8 (uno guardado en Latin-1).
-std::optional<std::filesystem::path> PathFromArgument(std::string_view value)
+std::optional<std::string> RepeatedOption(const CLI::App& app)
 {
-    if constexpr (std::is_same_v<std::filesystem::path::value_type, char>)
+    for (const CLI::Option* const option : app.get_options())
     {
-        return std::filesystem::path(value);
+        if (option->count() > 1)
+        {
+            return std::format("{} is repeated", option->get_name());
+        }
     }
-    else
+    return std::nullopt;
+}
+
+// The values go first: a missing value moves the next argument into the system's arguments.
+std::optional<std::string> ReadParsed(const CLI::App& app, const OptionTexts& texts, CommandLine& commandLine)
+{
+    if (auto error = RepeatedOption(app))
     {
-        return Client::Core::PathFromUtf8(value);
+        return error;
     }
+    if (auto error = Client::App::ReadOptions(texts, commandLine))
+    {
+        return error;
+    }
+    const std::vector<std::string> remaining = app.remaining();
+    const auto launcher = Client::App::ReadSystemArguments(UpToDoubleDash(std::span<const std::string>(remaining)));
+    if (!launcher.HasValue())
+    {
+        return launcher.Error();
+    }
+    return Client::App::ReadConnect(texts, launcher.Value(), commandLine);
 }
 } // namespace
 
 namespace Client::App
 {
-Core::Expected<CommandLine, std::string> ParseCommandLine(std::span<const std::string_view> arguments)
+Core::Expected<CommandLine, CommandLineExit> ParseCommandLine(std::span<const std::string_view> arguments,
+                                                              std::string_view version)
 {
+    const SystemSyntax syntax = ThisSystemSyntax();
+    CLI::App app;
+    OptionTexts texts;
+    ConfigureSyntax(app, syntax, version);
+    AddOptions(app, texts);
+    const std::span<const std::string_view> options = UpToDoubleDash(arguments);
+    if (!syntax.helpWord.empty() && std::ranges::find(options, syntax.helpWord) != options.end())
+    {
+        return Unexpected(HelpExit(app));
+    }
+    if (const auto error = AttachedValueError(app, syntax.style, options))
+    {
+        return Unexpected(UsageError(app, *error));
+    }
+    if (auto earlyExit = Parse(app, arguments))
+    {
+        return Unexpected(std::move(*earlyExit));
+    }
     CommandLine commandLine;
-    std::optional<std::string> host;
-    std::optional<std::uint16_t> port;
-    for (std::size_t i = 0; i < arguments.size(); ++i)
+    if (const auto error = ReadParsed(app, texts, commandLine))
     {
-        const std::string_view argument = arguments[i];
-        if (AlreadyGiven(commandLine, argument))
-        {
-            return Unexpected(std::string(argument) + " está repetido");
-        }
-        if (argument == StatsOption)
-        {
-            commandLine.stats = true;
-            continue;
-        }
-        if (argument == AutoLoginOption)
-        {
-            commandLine.autoLogin = true;
-            continue;
-        }
-        // El launcher pasa "connect /u<ip> /p<puerto>"; el parser sin usar del original (0x4b9890,
-        // Q-C36) busca /u y /p sin mirar mayúsculas y sin necesitar el connect.
-        if (EqualsIgnoringAsciiCase(argument, ConnectWord))
-        {
-            continue;
-        }
-        const char letter = LauncherLetter(argument);
-        if (letter == 'u' || letter == 'p')
-        {
-            if ((letter == 'u' && host) || (letter == 'p' && port))
-            {
-                return Unexpected(std::string(argument.substr(0, 2)) + " está repetido");
-            }
-            if (argument.size() == 2)
-            {
-                // "/u 10.0.0.1": el launcher lo pega a la letra.
-                return Unexpected(letter == 'u' ? std::string("/u necesita el host pegado (/u10.0.0.1)")
-                                                : std::string("/p necesita el puerto pegado (/p44405)"));
-            }
-            if (letter == 'u')
-            {
-                auto parsed = ParseHost(argument.substr(2));
-                if (!parsed.HasValue())
-                {
-                    return Unexpected(parsed.Error());
-                }
-                host = std::move(parsed).Value();
-            }
-            else
-            {
-                const auto parsed = ParsePort(argument.substr(2));
-                if (!parsed.HasValue())
-                {
-                    return Unexpected(parsed.Error());
-                }
-                port = parsed.Value();
-            }
-            continue;
-        }
-        if (argument != FramesOption && argument != PacingOption && argument != VSyncOption &&
-            argument != MaxFpsOption && argument != ConfigOption && argument != DataOption)
-        {
-            // /y y /z, entre otras, son opciones del launcher que MuRet no lee.
-            return Unexpected(Unknown(argument));
-        }
-        if (i + 1 == arguments.size())
-        {
-            const std::string_view expected = argument == FramesOption || argument == MaxFpsOption ? "un número"
-                                              : argument == ConfigOption || argument == DataOption ? "una ruta"
-                                                                                                   : "un valor";
-            return Unexpected(std::string(argument) + " necesita " + std::string(expected) + " (" + std::string(Usage) +
-                              ")");
-        }
-        const std::string_view value = arguments[++i];
-        if (argument == ConfigOption || argument == DataOption)
-        {
-            // Límite que queda: CommandLineToArgvW, como el CRT, lee una \ antes de una comilla
-            // como una comilla de verdad y la parte entre comillas sigue abierta, así que
-            // `--data "C:\MU\Data\" --frames 60` llega como un solo argumento,
-            // `C:\MU\Data" --frames 60`. Va `"C:\MU\Data\\"` o sin la última \ (README).
-            auto path = PathFromArgument(value);
-            if (!path)
-            {
-                return Unexpected(std::string(argument) + " necesita una ruta en UTF-8");
-            }
-            (argument == ConfigOption ? commandLine.configPath : commandLine.dataPath) = std::move(*path);
-        }
-        else if (argument == FramesOption)
-        {
-            commandLine.maxFrames = ParsePositive(value);
-            if (!commandLine.maxFrames)
-            {
-                return Unexpected(BadValue(argument, "un número mayor que 0", value));
-            }
-        }
-        else if (argument == MaxFpsOption)
-        {
-            commandLine.maxFps = ParseMaxFps(value);
-            if (!commandLine.maxFps)
-            {
-                const std::string expected =
-                    "0 o un número de " + std::to_string(MinFpsLimit) + " a " + std::to_string(MaxFpsLimit);
-                return Unexpected(BadValue(argument, expected, value));
-            }
-        }
-        else if (argument == PacingOption)
-        {
-            commandLine.pacing = ParsePacing(value);
-            if (!commandLine.pacing)
-            {
-                return Unexpected(BadValue(argument, "decoupled o faithful", value));
-            }
-        }
-        else
-        {
-            commandLine.vsync = ParseVSync(value);
-            if (!commandLine.vsync)
-            {
-                return Unexpected(BadValue(argument, "on, adaptive u off", value));
-            }
-        }
+        return Unexpected(UsageError(app, *error));
     }
-    // Un connect a medias es un error de quien lanza el cliente: no se completa con la config.
-    if (host && !port)
-    {
-        return Unexpected(std::string("/u necesita /p con el puerto"));
-    }
-    if (port && !host)
-    {
-        return Unexpected(std::string("/p necesita /u con el host"));
-    }
-    if (host && port)
-    {
-        commandLine.connect = ServerAddress{std::move(*host), *port};
-    }
-    // Que el modo fiel vaya sin VSync lo mira Resolve, con la config y la línea de comandos juntas.
     return commandLine;
 }
 } // namespace Client::App

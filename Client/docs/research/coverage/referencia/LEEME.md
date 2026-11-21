@@ -189,6 +189,26 @@ cambió; lo que se porte después pasa solo a `implemented`, y lo que cambie de 
 falsos positivos (columna 27) llevan las citas de implementación que tenían en la auditoría: si aparecen más, la marca
 se cae sola y hay que mirar si de verdad se portaron.
 
+### How a hand row finds its cut
+
+Each row of `entradas/cortes-vivos.tsv` keeps the file and line where it was classified, and an `anchor`: the cut's
+addresses, its name (`Unexpected`, `Cut`…), the MuRet symbol around it and a hash of its statement without comments
+or extra spaces (`scripts/tools/reference_anchors.py`). The generator finds every cut call in the commit it measures
+and gives each row the one with its anchor, so a move or an edit elsewhere in the file does not lose it. `cortes.tsv`
+says where each one is now and how it was found (`resolved_by`):
+
+- `anchor`: the same cut, maybe in another file or line.
+- `similar`: the text changed; it is the cut with the same addresses, name and symbol and the closest text. Worth a
+  look.
+- `unresolved`: no cut matches any more (ported or rewritten). The row keeps its old place and counts in
+  `metricas.tsv` (`entradas`, `cortes-vivos`, `unresolved-entries`) until someone reviews it.
+
+A row added by hand gets its anchor on the commit where its file and line are right:
+
+```bash
+python3 -I Client/docs/research/scripts/tools/reference_anchors.py --anchor-entries --ref <commit>
+```
+
 ## La action
 
 Para no regenerar a mano: en GitHub, **Actions → Referencia del cliente → Run workflow**, con la rama o el commit (vacío,

@@ -209,6 +209,21 @@ A row added by hand gets its anchor on the commit where its file and line are ri
 python3 -I Client/docs/research/scripts/tools/reference_anchors.py --anchor-entries --ref <commit>
 ```
 
+### When a refactor moves code
+
+The matrix gives each cited line the wave of the commit that last wrote it (`git blame -M -C`). A refactor commit
+(`type(ARn.m): …`) has no wave of its own: it is `AR`, and the next commit without a wave inherits the last port wave,
+not `AR`. So that a move, a comments pass or a design PR does not take a citation away from its wave:
+
+1. After the squash, add its full hash to [`.git-blame-ignore-revs`](../../../../../.git-blame-ignore-revs), with its
+   subject on a comment line above, and each moved file to `entradas/moves.tsv` (`commit`, `from`, `to`).
+   `move.py --record <hash>` will do both (AR0.2, Task 6).
+2. `git blame` then skips that commit, and a moved or reworded line keeps the commit that wrote it.
+3. A cited line still blamed on a refactor commit that is not listed counts in the last port wave before it, and the
+   matrix warns `citation-attributed-to-AR` (on stderr, and under `warnings` in `--summary`): its squash was not
+   recorded. A cited line that a listed commit wrote in a new file cannot go further back; it counts the same way,
+   without a warning.
+
 ## La action
 
 Para no regenerar a mano: en GitHub, **Actions → Referencia del cliente → Run workflow**, con la rama o el commit (vacío,

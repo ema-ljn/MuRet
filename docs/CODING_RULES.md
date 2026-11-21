@@ -65,11 +65,55 @@ namespace:
   tienen nada que ver.
 - Nombrá con precisión: si un nombre necesita un comentario para entenderse, elegí otro.
 
+### The client's layers (2026-11-21)
+
+The client is split into 58 modules in three roots, `engine/`, `game/` and `app/`
+([spec](superpowers/specs/2026-11-20-client-architecture-design.md),
+[ADR 0023](adr/0023-client-module-architecture.md)). A module uses only modules of a lower layer;
+inside a layer, only the ones its `may_use` names in [`Client/modules.tsv`](../Client/modules.tsv).
+No cycles between modules.
+
+| Layer | Modules | Does | Does not |
+| ---: | --- | --- | --- |
+| 0 | `engine/Core` | `Expected`, `ByteReader`, the log, `IClock`, text encodings | depend on anything |
+| 1 | `engine/Math`, `Crt`, `Crypto` | the original's x87 math, what mimics the MSVC 6 runtime (`rand`, sort, `sprintf`), MU's byte ciphers | touch sockets, files or game state |
+| 2 | `engine/Diagnostics`, `Input`, `Audio`, `Network`, `Data` | the crash handler, input per frame, playing sounds, sockets and framing, reading the `Data\` formats | know which sounds MU has or what a packet means; see SDL |
+| 3 | `engine/Platform`, `Pathfinding`, `Obfuscation` | SDL3 (window, GL context, events), the original's A*, the FoxAnti layer | see game state |
+| 4 | `engine/Render` | sprite and model batches, text, the frame contracts, GL | know actors or scenes |
+| 5 | `engine/Models` | skeleton, pose, animation, skinning, cloth | decide what the game draws |
+| 6 | `game/Protocol`, `Tables`, `Maps` | packet layouts and writers, MU's tables, map ids and their predicates | include each other or hold behavior |
+| 7 | `game/Kernel` | the `GameContext`, the shared state and the ports (send a packet, request a sound, an on-screen message) | hold feature logic |
+| 8 | `game/Assets`, `Terrain`, `Sound`, `Camera`, `Ui` | the game services and the widget kit | know actors or game modules |
+| 9 | the game modules (`Actors` … `FrontEnd`) | one vertical slice per feature: state, handlers, actions, windows | include another module's internals or know the session |
+| 10 | `game/Session` | the connection, keepalive, the opcode table and routing | hold game logic |
+| 11 | `game/Scenes` | the frame scripts (login, selection, loading, game) and the `SceneManager` | do the work: they call the modules in the original's order |
+| 12 | `app` | `main.cpp`, config, command line, the loop, the composition root | |
+
+- **Checked in CI.** `Client/tools/architecture/check_layers.py` reads the includes, takes each
+  file's module from [`module-map.tsv`](../Client/docs/research/coverage/module-map.tsv) and fails
+  on a new include that breaks the table, or on a file without a module. The old ones are in
+  `layers-baseline.tsv` and leave it as the refactor moves each module.
+- **Anatomy of a game module:** `<Module>.h` is what other modules may use, `<Module>Fwd.h` its
+  forward declarations and `<Module>Defines.h` its enums and ids, with no logic. `<Module>State.h`
+  holds the part of the original's globals the module owns. `In/` has one handler per incoming
+  packet: a free function that receives the packet already read and the state it touches, in its
+  signature. `Out/` has one action per player intent, which sends its packet.
+- **Reference sizes,** for review and not for cutting blindly: a handler up to ~80 lines, a file up
+  to ~400, a function up to ~60. A transcription of one of the original's `switch`es is marked and
+  may stay long, with one function per long `case`.
+- **Interfaces** only at the engine's edges and where a test needs one. An interface with a single
+  implementation is noise. A port lives in the module that uses it (`Kernel`) and is implemented
+  above it (`Session`, `Sound`, `Ui`).
+- **Fan-outs are ordered lists** that `app/` assembles in the original's order. No registration at
+  runtime and no static constructors: the order of calls and of `rand()` is part of the contract.
+
 ## 6. Una clase por archivo
 
 - Cada clase o struct importante tiene su **propio archivo**, con el nombre de la clase.
 - Header e implementación separados (`.h` / `.cpp`). Structs chicos muy pegados a una sola clase
   pueden quedarse en el header de esa clase.
+- In a client game module, each packet handler and each action is a free function in its own file,
+  in `In/` or `Out/` (§5).
 
 ## 7. Estilo consistente
 
@@ -292,3 +336,19 @@ piecemeal", porque es mucho; acá son dos archivos, y alinearlos al tocarlos no 
   ([08-quirks-y-bugs](../Server/DataServer/docs/research/08-quirks-y-bugs.md)).
 - Primero el test en rojo, después el código. No se saltea, desactiva ni pone en cuarentena un
   test para que CI quede verde.
+
+## 14. Addresses, offsets and citations (MuRet's own, 2026-11-21)
+
+- **Citations to the original stay in comments,** on one line: the address and at most a short
+  label (`// 0x4d3200`). Tracking counts them (`build_roadmap_matrix.py`, the coverage reference),
+  so a move or a comment cleanup never drops one.
+- **A layout that matters carries its offsets in the type.** A packet is described with
+  `Field<T, Offset, Endian>` and a `static_assert` on its size (from AR2.1; until then its offsets
+  are named constants in `Protocol/`, §3). A `Data\` format gets `static_assert(offsetof(...))` and
+  `static_assert(sizeof(...))`.
+- **In-memory state does not copy the original's layout,** so a `static_assert` proves nothing
+  there. A global named by its address (`dword723bd8`) gets a name that says what it is; the
+  address stays in its comment and, from AR3.1, in `globals.tsv`.
+- **Contiguous data is not split.** A struct that copies contiguous memory of the original because
+  an overflow, a copy or a reset crosses it stays whole, marked with
+  `// Contiguous in the original: …` and its row in the 07 of the research.

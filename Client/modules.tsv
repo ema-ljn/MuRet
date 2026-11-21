@@ -20,12 +20,12 @@ game/Kernel	game	7		*layer<7	GameContext, shared state (actor pool, player, curr
 game/Assets	game	8		*layer<8;game/Sound;game/Terrain	game models and textures
 game/Terrain	game	8		*layer<8	the terrain; does not know actors
 game/Sound	game	8		*layer<8	sound catalog, per-map sounds, per-model sound table, the sound request
-game/Camera	game	8		*layer<8	the camera
+game/Camera	game	8		*layer<8;game/Terrain	the camera
 game/Ui	game	8		*layer<8;game/Assets	the widget kit
 game/Actors	game	9		*layer<9;game/Particles	actors and character drawing
 game/Player	game	9		*layer<9	the player state
 game/Hero	game	9		*layer<9;game/Actors;game/Events;game/Guild;game/Player;game/Social	the hero's attack and facing
-game/Monsters	game	9		*layer<9;game/Chat;game/Effects;game/Fauna;game/Guild;game/Hud;game/Joints;game/Particles;game/Player;game/WorldObjects	monsters and their drawing
+game/Monsters	game	9		*layer<9;game/Chat;game/Effects;game/Fauna;game/Hud;game/Joints;game/Particles;game/Player;game/WorldObjects	monsters and their drawing
 game/Pets	game	9		*layer<9;game/Chat;game/Effects;game/Events;game/Fauna;game/Particles;game/Player	pets
 game/Movement	game	9		*layer<9;game/Chat;game/Items;game/Player	the player's path, gates, speed
 game/Skills	game	9		*layer<9;game/Chat;game/Events;game/Fauna;game/Hud;game/Items;game/Particles;game/Party;game/Player	the hero's skills and their replies
@@ -42,7 +42,7 @@ game/Social	game	9		*layer<9;game/CastleSiege;game/Movement;game/Player	trade an
 game/Messenger	game	9		*layer<9;game/Actors;game/Combat;game/Items;game/Pets;game/Player;game/Tooltips	friends and letters
 game/PersonalShop	game	9		*layer<9;game/CastleSiege;game/FrontEnd;game/Npc;game/Player	the personal shop
 game/Chat	game	9		*layer<9;game/FrontEnd;game/Player	chat
-game/Guild	game	9		*layer<9;game/Events;game/Particles;game/Player	guild, alliance and war
+game/Guild	game	9		*layer<9;game/Events;game/Player	guild, alliance and war
 game/Events	game	9		*layer<9;game/CastleSiege;game/ChaosMix;game/Chat;game/Fauna;game/Items;game/Joints;game/Particles;game/Player;game/Social	one folder per event: Blood Castle, Devil Square, Chaos Castle, Kalima, Crywolf
 game/CastleSiege	game	9		*layer<9;game/Items;game/Movement;game/Particles;game/Player;game/Tooltips	Castle Siege
 game/WorldObjects	game	9		*layer<9;game/Fauna;game/Weather	world objects

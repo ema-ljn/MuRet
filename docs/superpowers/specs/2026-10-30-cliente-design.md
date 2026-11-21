@@ -159,6 +159,13 @@ y `App` conocen a todos. Los namespaces llevan el componente adelante (`Client::
 
 ## Estructura de `Client/`
 
+> **Superseded by the refactor (2026-11-21).** The target structure is now 58 modules in three roots (`engine/`,
+> `game/`, `app/`): see the [architecture spec](2026-11-20-client-architecture-design.md),
+> [ADR 0023](../../adr/0023-client-module-architecture.md) and
+> [CODING_RULES §5](../../CODING_RULES.md#5-capas-separadas). Each file's module is in
+> [`module-map.tsv`](../../../Client/docs/research/coverage/module-map.tsv). What follows describes the layout the
+> refactor starts from.
+
 La forma copia la de MuMain (`src/source/{App,Core,Data,Network,Render,Scenes,UI,World,GameLogic,Audio}`),
 recortada a lo que tiene el 1.02 y con los tests al lado, como `Server/DataServer/`. Cuatro cosas
 de MuMain no se copian (revisado contra su `src/source/` el 2026-11-01):

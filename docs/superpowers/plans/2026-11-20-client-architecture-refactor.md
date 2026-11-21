@@ -72,14 +72,14 @@ bags.
 | epic | what it leaves | milestones (PRs) | lines moved or touched (≈) |
 | --- | --- | ---: | ---: |
 | **AR0** Safety net, rules and tracking | the new rules, `modules.tsv`, the layer check, move-proof tracking, the behavior golden | 3 | 3k (tools, tests and docs) |
-| **AR1** The engine apart | reverse dependencies turned around, the common kit, `Client/src/engine/` with its targets | 3 (1 move + 1 comments + 1 design) | 30k moved, ~3k touched |
+| **AR1** The engine apart | reverse dependencies turned around, the common kit, `Client/src/engine/` with its targets, the command line by each system's conventions | 4 (1 move + 1 comments + 2 design) | 30k moved, ~4k touched |
 | **AR2** Protocol and dispatch | layouts with offsets in the type, the opcode table, one handler per packet; goodbye giant `ServerSession`, `WorldEvent` and `SessionEventApplier` | 3 | ~20k |
 | **AR3** State per module | `globals.tsv`, `GameContext`, the shared core and the first parts of `WorldRuntime` in their modules | 2 | ~10k |
 | **AR4** `Scenes/` into modules | 5 groups of vertical modules, each with its move, its comments and its design | 15 (5 + 5 + 5) | ~210k moved, ~40k touched |
 | **AR5** Scenes as scripts | `GameScene`, login and selection as ordered lists; `main.cpp` to `app/` | 2 | ~8k |
 | **AR6** Deduplication and tests | functions ported twice, our own clones, shared test fakes | 2 | ~15k |
 | **AR7** Wrap-up | strict layer check, function size in CI, the docs; the last comments in English | 2 (1 comments + 1 design) | ~1k |
-| **total** | | **32** (6 scripted moves + 7 comments + 19 design) | |
+| **total** | | **33** (6 scripted moves + 7 comments + 20 design) | |
 
 **The comments PRs** (Emanuel, 2026-11-21: no Spanish comments, and only the strictly necessary ones). Today `Client/`
 has about 60k comment lines, half of them with a citation to the original. Each move is followed by a PR that brings
@@ -518,8 +518,84 @@ golden unchanged.
   instead of 728: ≈90% fewer links) reverts the 2026-11-02 decision of one executable per file, like MuMain. Without an
   answer, it stays as it is.
 
-**AR1 is done when** the engine builds without seeing `game/` and `app/`, and `check_layers.py` has no violation from the
-`engine` root.
+### AR1.3 (design): the command line, by each system's conventions
+
+Emanuel, 2026-11-21: on Linux nobody writes `connect /u<host> /p<port>`. There the client's arguments follow the Unix
+conventions; Windows keeps its own.
+
+- **Today** (`App/CommandLine.cpp`, CL3.4) one parser serves both systems. MuRet's own options look like GNU ones
+  (`--frames N`) but have no `--opt=value`, no `--`, no `-h`/`--help` and no `--version`. The server only comes in the
+  launcher form, `connect /u<host> /p<port>` (Q-C36, D-C10), on Linux too: `Client/README.md` documents it that way.
+  Any argument that starts with `/u` or `/p` is read as the launcher form, which on Linux is also how an absolute path
+  starts (`/usr/…`). The usage line and the messages are in Spanish.
+- **Linux (any POSIX build): GNU syntax only.**
+  - The server is `--host HOST --port PORT`, the names of `[Server] Host` and `Port` in `muret-client.ini`. One without
+    the other is an error, as today.
+  - Every option with a value takes `--opt value` and `--opt=value`. `--` ends the options. There are no positional
+    arguments, so anything else is an error that names it.
+  - `-h`/`--help` prints the usage to stdout and exits 0. `--version` prints `MURET_VERSION` and exits 0.
+  - A usage error goes to stderr, followed by `Try 'Main --help'.`, with exit code 2. A startup error (the data folder,
+    the keys) keeps exit code 1.
+  - `connect`, `/u…` and `/p…` are unknown arguments, and the message points to `--host` and `--port`.
+  - The help and the messages are in English (the 2026-11-21 rule).
+- **Windows: the launcher form stays, plus the same options.**
+  - `connect /u<host> /p<port>` works exactly as today: `connect` is optional, any order and any case, the value
+    attached to the letter, one without the other or a repeat is an error, and `/y` and `/z` are rejected (Q-C36,
+    Q-C37). It is how the lab and the original's launchers start the game.
+  - The same `--long` options as Linux, `--host` and `--port` included, so scripts, the README and the CTest lines are
+    the same on both systems. The launcher form and `--host`/`--port` together are an error.
+  - `/?` also prints the help, as Windows programs do.
+  - **Open, for Emanuel when AR1.3 opens:** whether Windows also takes MuRet's own options in Windows style
+    (`/data C:\MU\Data`, `/frames:60`), which CLI11 gives with `allow_windows_style_options()`. Recommended: no, so
+    there is one syntax for MuRet's options and the `/` letters belong to the launcher. Without an answer, no.
+- **One file per system, chosen by CMake, with no `#if`** (like `MakeObfuscation` in AR1.1). `App/CommandLine.h` keeps
+  one `ParseCommandLine` and one `CommandLine`. The shared options live in `App/CommandLineOptions.cpp`;
+  `App/CommandLinePosix.cpp` and `App/CommandLineWindows.cpp` handle what is left after them. `Client/CMakeLists.txt`
+  adds one of the two with `if(WIN32)`.
+- **The library** (CODING_RULES §10, checked with Context7 on 2026-11-21). CLI11 (`cli11` in vcpkg, header only) does
+  exactly the GNU part: `--opt value` and `--opt=value`, `--`, `-h,--help` by default,
+  `set_version_flag("--version", …)`, the help text built from the options, and a repeated option is an error by
+  default (`MultiOptionPolicy::Throw`; flags take the last one by default, so `--stats` and `--auto-login` set
+  `->multi_option_policy(CLI::MultiOptionPolicy::Throw)` to stay errors when repeated). It cannot read the launcher
+  form: with `allow_windows_style_options()` a `/` short option takes no attached value, as the CL3 plan already found.
+  So both systems parse with `allow_extras()`, and the per-system file reads `remaining()`: on Linux every leftover is
+  an error with the hint above, and on Windows the launcher reader of today takes `connect`, `/u…`, `/p…` and `/?`, and
+  anything else is an error. CLI11 throws `CLI::ParseError`, and `CallForHelp` and `CallForVersion` for help and
+  version. It is caught only inside `ParseCommandLine` and becomes a `Core::Expected`, with help and version as a result
+  of their own that `main.cpp` prints to stdout before returning 0. No exception leaves `App/`. The second candidate
+  is cxxopts (only `-` and `--` options, `allow_unrecognised_options()`), which Context7 does not have. If CLI11 turns
+  out not to fit when the milestone opens (warnings in the MSVC Debug build, a message that cannot be ours), the
+  fallback is a hand-written parser with the same contract, and the PR says why. CLI11 needs no ADR: it is header only
+  and only `App/CommandLine*.cpp` includes it.
+- **Validation stays ours.** CLI11 collects strings, and after the parse `ParseHost` and `ParsePort`
+  (`App/ServerAddress.h`), `ParsePositive`, `ParseMaxFps`, the values of `--pacing` and `--vsync`, and
+  `PathFromArgument` (UTF-8 on Windows) check them, so the limits of Q-C37 stay the same.
+- **What does not change:** `Resolve` (`App/Config.h`) and how the command line overrides the config; `--auto-login` and
+  its environment variables; the raw line that `MainCheckFileName` (0x4ad270) reads, which `main.cpp` builds from
+  `argv` and not from the parser. Nothing of the original's behavior changes either, because the original does not
+  read arguments (Q-C36).
+- **Tests.** `test_command_line.cpp` is split in three: the shared options (`--opt=value`, `--`, help, version,
+  repeats) on both systems; `test_command_line_posix.cpp` (`--host`/`--port`; `connect` and `/u…` rejected with the
+  hint; `--data /usr/share/mu` is a path, not the launcher form); and `test_command_line_windows.cpp` (today's launcher
+  cases of Q-C36 and Q-C37, `/?`, the launcher form with `--host`). The tests' CMake adds each one only on its system.
+  The `Client.Main.*` CTest lines switch to `--host 127.0.0.1 --port …` so they read the same on both CI machines, one
+  Windows-only line keeps `connect /u127.0.0.1 /p0`, and the expected messages change to English.
+- **Docs:** `Client/README.md` (the arguments table and the two examples, lines 175, 195 and 289 today) per system;
+  D-C10 in the roadmap spec and the MuRet column of Q-C36 say the launcher form is Windows only and Linux uses
+  `--host`/`--port`; the header of `CommandLine.h` lists the options once, in English.
+- **Considered and left out:** the XDG folders on Linux (`$XDG_CONFIG_HOME/muret` for the config, `$XDG_STATE_HOME`
+  for the log) instead of the executable's folder. They are a Unix convention too, but they change where the config
+  and the log live, not the command line; a later PR if Emanuel wants them. Short options other than `-h`: none until
+  one has a use. `getopt_long`: POSIX only, with global state (`optind`), and not in MSVC.
+- **Order:** it depends on nothing in AR1.1 or AR1.2 and only touches `App/CommandLine*`, its tests, the CMake test
+  lines and the docs, so it can go any time after AR0.1, next to any milestone that does not move `App/`. It has to land
+  before AR5 moves `main.cpp` and `App/` to `app/`.
+- **Verification:** the behavior golden identical (arguments do not reach the frame); the new tests and the
+  `Client.Main.*` lines green on both CI machines; `check_layers.py` with no new row (`<CLI/CLI.hpp>` is a system
+  include, which the check does not read).
+
+**AR1 is done when** the engine builds without seeing `game/` and `app/`, and `check_layers.py` has no violation from
+the `engine` root. AR1.3 does not hold AR2 back: it only has to land before AR5.
 
 ## Epic AR2: protocol and dispatch
 
@@ -644,6 +720,7 @@ AR0.3 ──────────┘                      AR3.1 ─► AR3.2 
 ```
 
 - AR0.3 runs in parallel with AR0.1 and AR0.2. AR3.1 can start with AR2.1.
+- AR1.3 (the command line) goes any time after AR0.1 and before AR5, next to a milestone that does not move `App/`.
 - Within AR4, one milestone's design can run while the next one's move is generated.
 - The port uses the third agent all the time; if the port becomes urgent, the refactor stops at a milestone boundary
   (every milestone leaves `main` in a complete state).
@@ -656,6 +733,8 @@ AR0.3 ──────────┘                      AR3.1 ─► AR3.2 
   `globals.tsv` (AR3), the scripts (AR5), the repetition (AR1.1, AR2.1, AR4, AR6), the behavior golden (Task 7),
   move-proof tracking (Tasks 3 to 6), the rules and the ADR (Task 2), the layer check (Task 1 and AR7). The test
   executables decision stays as a question in AR1.2.
+- **Beyond the spec:** the command line by each system's conventions (AR1.3), which Emanuel asked for on 2026-11-21;
+  whether Windows also takes Windows-style options stays as a question in AR1.3.
 - **Consistent names:** `modules.tsv`, `module-map.tsv`, `check_layers.py`, `check_pure_move.py`,
   `check_comments_only.py`, `move.py`, `moves.tsv`, `.git-blame-ignore-revs`, `FrameDigest`, `GameContext`,
   `Route<&Fn>`, `Unported{va}` are used the same way throughout the plan.

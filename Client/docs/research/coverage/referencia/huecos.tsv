@@ -1,295 +1,295 @@
-hueco	desde	hasta	funciones	bytes	ola	sub_ola	categorias	senal	entradas_citadas	entradas	ids_08	textos	vas
-h001	0x48d250	0x48e290	8	4353	CL9	CL9.3 CL9.5	pendiente CL9 hito 6 ×4; pendiente CL9 hito 12 ×4	la llama código citado	1	0x46e4c0 (CL9, Scenes/JewelBundleList.cpp)			0x48d250 0x48d710 0x48dbe0 0x48de30 0x48dec0 0x48dfd0 0x48e1f0 0x48e290
-h002	0x45e5b0	0x45efd0	4	3193	CL8		sin clasificar ×4	sin llamador directo	0				0x45e5b0 0x45e910 0x45eab0 0x45efd0
-h003	0x4d4020	0x4d4020	1	2593	CL8	CL8.4	falta	la llama código citado	1	0x4e2b10 (CL4, Scenes/EventPackets.cpp)			0x4d4020
-h004	0x45a2c0	0x45a680	4	1690	CL8	CL8.3	sin clasificar ×4	la llama sólo código sin citar	0				0x45a2c0 0x45a5f0 0x45a650 0x45a680
-h005	0x54a660	0x54aa20	2	1670	CL7		sin clasificar ×2	la llama código citado	1	0x61ccb0 (CL7, Scenes/TextureSets.h)			0x54a660 0x54aa20
-h006	0x4669c0	0x466ff0	4	1589	CL5		sin clasificar ×4	la llama sólo código sin citar	0				0x4669c0 0x466b90 0x466c20 0x466ff0
-h007	0x6689f0	0x668d50	2	1491	CL9	CL9.3 CL9.5	pendiente CL9 hito 6; pendiente CL9 hito 13	la llama código citado	2	0x6691c0 (CL9, Scenes/CastleWindowSupport.cpp); 0x6694c0 (CL9, Scenes/CastleSeniorDrawing.cpp)			0x6689f0 0x668d50
-h008	0x64b400	0x64b710	3	1461	CL9	CL9.5	pendiente CL9 hito 12 ×2; pendiente CL9 hito 13	la llama código citado	1	0x64c0b0 (CL9, Protocol/CastleSiege.h)			0x64b400 0x64b700 0x64b710
-h009	0x44e930	0x44ea60	2	1368	CL9	CL9.5	pendiente CL9 hito 13 ×2	la llama código citado	1	0x5f7440 (CL8, Scenes/GameHud.cpp)			0x44e930 0x44ea60
-h010	0x46fe00	0x46fe00	1	1280	CL9	CL9.5	pendiente CL9 hito 12	sin llamador directo	0				0x46fe00
-h011	0x456bc0	0x457690	18	1268	CL7		sin clasificar ×18	la llama código citado	4	0x4b9b80 (CL3, Scenes/WinMainLoop.cpp); 0x457d60 (CL7, Scenes/MonsterBody.cpp); 0x637700 (CL8, Scenes/Screenshots.h); 0x457740 (CL7, Scenes/MonsterBody.cpp)	P-C332		0x456bc0 0x456ca0 0x456d30 0x456e90 0x456eb0 0x456ec0 0x456ee0 0x456f30 0x456f60 0x456f70 0x456fc0 0x457380 0x4573a0 0x4573d0 0x4573e0 0x4573f0 0x457550 0x457690
-h012	0x666650	0x666650	1	1245	CL9	CL9.5	pendiente CL9 hito 13	la llama código citado	1	0x6694c0 (CL9, Scenes/CastleSeniorDrawing.cpp)			0x666650
-h013	0x476270	0x476680	2	1242	CL8		sin clasificar ×2	la llama código citado	1	0x46add0 (CL8, UI/SlideBanner.cpp)			0x476270 0x476680
-h014	0x46f920	0x46f940	2	1140	CL9	CL9.5	pendiente CL9 hito 12 ×2	la llama sólo código sin citar	0		P-C300		0x46f920 0x46f940
-h015	0x64c840	0x64c840	1	1122	CL9	CL9.5	pendiente CL9 hito 13	la llama código citado	1	0x64d860 (CL9, Scenes/CastleRegistrationDrawing.cpp)			0x64c840
-h016	0x663f40	0x663f40	1	1071	CL9	CL9.5	pendiente CL9 hito 13	la llama código citado	1	0x6694c0 (CL9, Scenes/CastleSeniorDrawing.cpp)			0x663f40
-h017	0x461100	0x461100	1	1064	CL8		sin clasificar	sin llamador directo	0				0x461100
-h018	0x66a670	0x66b6b0	5	1048	CL8		sin clasificar ×4; sin confirmar	la llama sólo código sin citar	0				0x66a670 0x66a720 0x66a750 0x66aa90 0x66b6b0
-h019	0x48e620	0x48e830	4	1029	CL8	CL8.3	sin clasificar ×4	la llama sólo código sin citar	0				0x48e620 0x48e710 0x48e740 0x48e830
-h020	0x48aab0	0x48aab0	1	1001	CL9	CL9.3	pendiente CL9 hito 6	la llama sólo código sin citar	0				0x48aab0
-h021	0x473450	0x473450	1	989	CL8	CL9.4	sin clasificar	la llama código citado	3	0x45e2e0 (CL8, UI/LetterWindows.cpp); 0x49bd60 (CL9, UI/FriendModel.h); 0x488090 (CL8, UI/OldWindows.h)			0x473450
-h022	0x48af40	0x48af40	1	988	CL9	CL9.5	pendiente CL9 hito 12	la llama sólo código sin citar	0				0x48af40
-h023	0x48a630	0x48a630	1	978	CL9	CL9.4	pendiente CL9 hito 8	la llama sólo código sin citar	0				0x48a630
-h024	0x457870	0x457c10	4	961	CL7		sin clasificar ×4	la llama sólo código sin citar	0				0x457870 0x457b70 0x457bb0 0x457c10
-h025	0x4e00c0	0x4e0340	3	954	CL9	CL9.5	pendiente CL9 hito 12 ×3	la llama código citado	1	0x4e2b10 (CL4, Scenes/EventPackets.cpp)	P-C285 P-C302 P-C90		0x4e00c0 0x4e0240 0x4e0340
-h026	0x44ff00	0x450e70	5	951	CL9	CL9.5	sin clasificar ×4; pendiente CL9 hito 13	la llama código citado	4	0x5f7440 (CL8, Scenes/GameHud.cpp); 0x4b9b80 (CL3, Scenes/WinMainLoop.cpp); 0x634c60 (CL6, Scenes/LoginScene.cpp); 0x4aeda0 (CL3, UI/LetterModel.h)			0x44ff00 0x450300 0x450320 0x450376 0x450e70
-h027	0x4750a0	0x4752d0	3	942	CL9	CL9.3 CL9.5	pendiente CL9 hito 12 ×2; pendiente CL9 hito 6	la llama código citado	3	0x46e4c0 (CL9, Scenes/JewelBundleList.cpp); 0x46f7e0 (CL9, Protocol/CastleSiege.h); 0x470bb0 (CL9, Protocol/CastleSiege.h)			0x4750a0 0x475150 0x4752d0
-h028	0x682c70	0x6832e0	12	929	CL3		sin clasificar ×12	la llama código citado	3	0x6829f0 (CL3, Core/Crash/CrashFrames.cpp); 0x67f840 (CL3, Core/Crash/CrashHandler.cpp); 0x683c60 (CL3, Core/Crash/Crc32.h)			0x682c70 0x682cd0 0x682cf0 0x682d20 0x682d50 0x682d80 0x682db0 0x682dc0 0x682df0 0x682e20 0x683280 0x6832e0
-h029	0x654ac0	0x654af0	2	918	CL9	CL9.4	pendiente CL9 hito 8 ×2	la llama sólo código sin citar	0				0x654ac0 0x654af0
-h030	0x64f720	0x64f720	1	886	CL9	CL9.4	pendiente CL9 hito 8	la llama sólo código sin citar	0				0x64f720
-h031	0x64bd10	0x64bd10	1	875	CL9	CL9.5	pendiente CL9 hito 13	la llama código citado	1	0x64d860 (CL9, Scenes/CastleRegistrationDrawing.cpp)			0x64bd10
-h032	0x484670	0x484670	1	855	CL9	CL9.5	pendiente CL9 hito 12	sin llamador directo	0				0x484670
-h033	0x4e7630	0x4e7940	5	851	CL9	CL9.4	sin clasificar ×3; pendiente CL9 hito 7 ×2	la llama código citado	2	0x4e7440 (CL8, Scenes/InventoryMoves.cpp); 0x5f7f90 (CL9, Scenes/PersonalShopWindow.cpp)			0x4e7630 0x4e7860 0x4e78c0 0x4e7920 0x4e7940
-h034	0x489890	0x489b60	2	805	CL9	CL9.5	pendiente CL9 hito 12; sin clasificar	la llama código citado	1	0x4716e0 (CL8, Scenes/PersonalShopWindow.cpp)			0x489890 0x489b60
-h035	0x4c0920	0x4c0c10	7	792	CL9	CL9.4	pendiente CL9 hito 7 ×4; sin clasificar ×3	la llama código citado	5	0x4c0340 (CL9, Scenes/PersonalShopLists.h); 0x4aeda0 (CL3, UI/LetterModel.h); 0x4dbb40 (CL9, Scenes/PersonalShopLists.cpp); 0x4db890 (CL9, Scenes/PersonalShopLists.cpp); 0x4dbcb0 (CL9, Scenes/PersonalShopLists.cpp)			0x4c0920 0x4c09c0 0x4c0ab0 0x4c0ae0 0x4c0b20 0x4c0bd0 0x4c0c10
-h036	0x48b3c0	0x48b3c0	1	780	CL9	CL9.5	pendiente CL9 hito 12	la llama sólo código sin citar	0				0x48b3c0
-h037	0x477b90	0x477e50	3	777	CL8	CL8.2	sin clasificar ×3	la llama código citado	2	0x476040 (CL8, UI/SlideBanner.cpp); 0x46abf0 (CL8, UI/SlideBanner.cpp)			0x477b90 0x477bd0 0x477e50
-h038	0x48a290	0x48a290	1	766	CL9	CL9.4	pendiente CL9 hito 8	la llama sólo código sin citar	0				0x48a290
-h039	0x46a150	0x46a270	3	759	CL8		sin clasificar ×3	la llama sólo código sin citar	0				0x46a150 0x46a180 0x46a270
-h040	0x485d60	0x485d60	1	720	CL9	CL9.5	pendiente CL9 hito 12	sin llamador directo	0				0x485d60
-h041	0x488c90	0x488c90	1	719	CL9	CL9.4	pendiente CL9 hito 8	la llama sólo código sin citar	0				0x488c90
-h042	0x488f90	0x488f90	1	719	CL9	CL9.4	pendiente CL9 hito 8	la llama sólo código sin citar	0				0x488f90
-h043	0x489290	0x489290	1	719	CL8		sin clasificar	la llama sólo código sin citar	0				0x489290
-h044	0x489590	0x489590	1	719	CL9	CL9.5	pendiente CL9 hito 12	la llama sólo código sin citar	0				0x489590
-h045	0x4bff40	0x4bff40	1	712	CL8	CL8.3	sin clasificar	la llama sólo código sin citar	0				0x4bff40
-h046	0x640c40	0x640ef0	5	688	CL7	CL8.3	sin clasificar ×5	la llama código citado	2	0x6356f0 (CL7, Scenes/WorldLoadingScene.cpp); 0x65ec60 (CL7, Scenes/WorldLoadingScene.cpp)			0x640c40 0x640c70 0x640c90 0x640ea0 0x640ef0
-h047	0x477f70	0x477f70	1	678	CL8		sin clasificar	la llama código citado	1	0x4716e0 (CL8, Scenes/PersonalShopWindow.cpp)			0x477f70
-h048	0x42eed0	0x42eed0	1	652	CL7		sin clasificar	la llama código citado	1	0x602ed0 (CL7, Scenes/EventMapObjectFrame.cpp)			0x42eed0
-h049	0x622170	0x622170	1	639	CL7		sin clasificar	la llama código citado	1	0x622440 (CL7, World/TerrainPicking.cpp)			0x622170
-h050	0x4e893d	0x4e8ba0	3	634	CL2		sin clasificar ×3	la llama código citado	1	0x4e1d50 (CL2, App/IChatRoomLinks.h)			0x4e893d 0x4e8a80 0x4e8ba0
-h051	0x61a280	0x61a280	1	611	CL7		sin clasificar	la llama código citado	1	0x616ec0 (CL7, World/WorldTerrain.h)			0x61a280
-h052	0x4f1f80	0x4f1f80	1	602	CL6		sin clasificar	la llama código citado	1	0x4f1f20 (CL6, Render/Models/Skeleton.h)			0x4f1f80
-h053	0x410330	0x410330	1	577	CL7		sin clasificar	sin llamador directo	0				0x410330
-h054	0x474490	0x474610	2	562	CL8		sin clasificar ×2	la llama código citado	2	0x4624b0 (CL8, UI/FriendWindows.cpp); 0x462c70 (CL8, UI/FriendWindows.cpp)			0x474490 0x474610
-h055	0x453520	0x453520	1	558	CL9	CL9.4	pendiente CL9 hito 7	la llama código citado	1	0x4511f0 (CL9, Scenes/PersonalShopTitles.cpp)			0x453520
-h056	0x48cf10	0x48d0c0	4	528	CL9	CL9.4 CL9.5	pendiente CL9 hito 8 ×2; pendiente CL9 hito 12 ×2	la llama código citado	2	0x480260 (CL9, Scenes/GuildWindow.cpp); 0x4818b0 (CL9, Scenes/GuildWindow.cpp)			0x48cf10 0x48cf80 0x48d020 0x48d0c0
-h057	0x450fe0	0x451100	2	515	CL9	CL9.4	pendiente CL9 hito 7 ×2	la llama sólo código sin citar	0				0x450fe0 0x451100
-h058	0x4d5910	0x4d5910	1	509	CL4		sin clasificar	la llama código citado	1	0x4e2b10 (CL4, Scenes/EventPackets.cpp)			0x4d5910
-h059	0x6808d0	0x682880	7	507	CL3		sin clasificar ×7	la llama código citado	1	0x6829f0 (CL3, Core/Crash/CrashFrames.cpp)	P-C224 P-C440		0x6808d0 0x680950 0x680970 0x680d00 0x682840 0x682860 0x682880
-h060	0x64d090	0x64d190	2	497	CL9	CL9.5	pendiente CL9 hito 12; pendiente CL9 hito 13	la llama código citado	2	0x64d350 (CL9, Protocol/CastleSiege.h); 0x64d860 (CL9, Scenes/CastleRegistrationDrawing.cpp)			0x64d090 0x64d190
-h061	0x41fc90	0x41fdd0	3	495	CL5		sin clasificar ×3	la llama código citado	1	0x4b9b80 (CL3, Scenes/WinMainLoop.cpp)			0x41fc90 0x41fd20 0x41fdd0
-h062	0x60d830	0x60d9d0	2	495	CL6		sin clasificar ×2	la llama código citado	5	0x60dbe0 (CL6, Data/Models/PlayerModels.cpp); 0x60ff50 (CL6, Data/Models/PlayerModels.cpp); 0x615700 (CL7, Data/Models/PlayerModels.cpp); 0x616ec0 (CL7, World/WorldTerrain.h); 0x612270 (CL7, Scenes/MonsterModelTable.cpp)			0x60d830 0x60d9d0
-h063	0x644fd0	0x6450f0	3	493	CL8	CL8.3	sin clasificar ×3	la llama código citado	1	0x65ec60 (CL7, Scenes/WorldLoadingScene.cpp)			0x644fd0 0x6450c0 0x6450f0
-h064	0x4561d0	0x4561d0	1	488	CL6		sin clasificar	sin llamador directo	0				0x4561d0
-h065	0x47e700	0x47e700	1	475	CL8		sin clasificar	sin llamador directo	0				0x47e700
-h066	0x549700	0x549b80	3	474	CL7		sin clasificar ×3	la llama código citado	2	0x61ccb0 (CL7, Scenes/TextureSets.h); 0x61ee30 (CL8, Scenes/GameData.h)			0x549700 0x549b00 0x549b80
-h067	0x4e8f70	0x4e8f70	1	463	CL2		sin clasificar	la llama sólo código sin citar	0				0x4e8f70
-h068	0x4be6b0	0x4be780	5	460	CL3		sin clasificar ×5	la llama código citado	1	0x4b9b80 (CL3, Scenes/WinMainLoop.cpp)			0x4be6b0 0x4be6f0 0x4be720 0x4be750 0x4be780
-h069	0x54a180	0x54a2e0	2	457	CL7		sin clasificar ×2	la llama código citado	1	0x61ccb0 (CL7, Scenes/TextureSets.h)			0x54a180 0x54a2e0
-h070	0x695ab0	0x6b7cb0	11	456	CL5		sin clasificar ×11	la llama código citado	1	0x4e88a0 (CL2, Network/Connection.h)			0x695ab0 0x695ae0 0x695b10 0x695b40 0x695bf0 0x695c30 0x695ce0 0x695d20 0x695d80 0x695de0 0x6b7cb0
-h071	0x469e50	0x469f30	2	452	CL3		sin clasificar ×2	la llama código citado	1	0x4b9b80 (CL3, Scenes/WinMainLoop.cpp)			0x469e50 0x469f30
-h072	0x476f40	0x477090	2	452	CL8		sin clasificar ×2	la llama código citado	1	0x462c70 (CL8, UI/FriendWindows.cpp)			0x476f40 0x477090
-h073	0x4527f0	0x452860	4	410	CL8	CL9.4	pendiente CL9 hito 7 ×3; sin clasificar	la llama código citado	4	0x451e40 (CL9, Scenes/ShopSigns.cpp); 0x451d60 (CL9, Scenes/ShopSigns.cpp); 0x451860 (CL9, Scenes/PersonalShopLists.h); 0x4518b0 (CL8, Scenes/ShopSigns.cpp)			0x4527f0 0x452810 0x452830 0x452860
-h074	0x4125c0	0x4127c0	6	408	CL7	CL9.5	pendiente CL9 hito 12 ×4; sin clasificar ×2	la llama código citado	2	0x411ed0 (CL9, Protocol/CastleBattle.h); 0x412140 (CL7, Scenes/CharacterStep.cpp)			0x4125c0 0x4125f0 0x4126d0 0x4126e0 0x412720 0x4127c0
-h075	0x4dff10	0x4dff10	1	391	CL9	CL9.5	pendiente CL9 hito 12	la llama código citado	1	0x4e2b10 (CL4, Scenes/EventPackets.cpp)	P-C285 P-C302 P-C90		0x4dff10
-h076	0x473200	0x473200	1	384	CL8	CL8.2	sin clasificar	la llama código citado	2	0x45bb20 (CL8, UI/ChatLog.h); 0x460130 (CL8, UI/LetterWindows.cpp)			0x473200
-h077	0x473890	0x473890	1	384	CL9	CL9.4	pendiente CL9 hito 8	la llama código citado	2	0x46c930 (CL9, Scenes/GuildWindow.cpp); 0x49b220 (CL9, UI/FriendModel.h)			0x473890
-h078	0x474c50	0x474c50	1	384	CL9	CL9.4	pendiente CL9 hito 8	la llama código citado	1	0x46bca0 (CL9, Scenes/GuildWindow.cpp)			0x474c50
-h079	0x4c1060	0x4c1190	3	371	CL7		sin clasificar ×3	la llama código citado	7	0x4af4e0 (CL3, Scenes/GameChat.cpp); 0x6599a0 (CL8, UI/PanelRegistry.cpp); 0x659290 (CL8, UI/PanelRegistry.cpp); 0x657ab0 (CL8, UI/PanelRegistry.cpp); 0x4aeda0 (CL3, UI/LetterModel.h)	P-C39		0x4c1060 0x4c1150 0x4c1190
-h080	0x41fa80	0x41fa80	1	365	CL2		sin clasificar	la llama código citado	1	0x4e1d50 (CL2, App/IChatRoomLinks.h)			0x41fa80
-h081	0x63d010	0x63d0f0	3	365	CL8	CL8.3	sin clasificar ×3	la llama código citado	1	0x65ec60 (CL7, Scenes/WorldLoadingScene.cpp)			0x63d010 0x63d0c0 0x63d0f0
-h082	0x53ea00	0x53eaf0	2	361	CL7	CL9.4	sin clasificar; pendiente CL9 hito 7	la llama código citado	1	0x636290 (CL3, Scenes/GameScene.cpp)			0x53ea00 0x53eaf0
-h083	0x487be0	0x487d50	2	357	CL8		sin clasificar ×2	la llama sólo código sin citar	0				0x487be0 0x487d50
-h084	0x454410	0x4544d0	2	352	CL6		sin clasificar ×2	la llama código citado	1	0x455770 (CL6, Render/Models/Cloth.cpp)			0x454410 0x4544d0
-h085	0x549e40	0x549ec0	2	342	CL6		sin clasificar ×2	la llama código citado	1	0x61ccb0 (CL7, Scenes/TextureSets.h)			0x549e40 0x549ec0
-h086	0x657450	0x657450	1	339	CL8	CL8.3	sin clasificar	la llama código citado	1	0x4b9b80 (CL3, Scenes/WinMainLoop.cpp)	P-C300		0x657450
-h087	0x41f620	0x41f780	6	335	CL3		sin clasificar ×6	la llama código citado	1	0x41f830 (CL3, Core/FileSink.h)			0x41f620 0x41f6a0 0x41f720 0x41f740 0x41f770 0x41f780
-h088	0x465eb0	0x465eb0	1	327	CL5		sin clasificar	sin llamador directo	0				0x465eb0
-h089	0x5a7d70	0x5a7d70	1	319	CL9	CL9.5	pendiente CL9 hito 11	la llama código citado	1	0x5a7cc0 (CL8, Scenes/GameUi.cpp)	P-C430 P-C59		0x5a7d70
-h090	0x643ea0	0x643fd0	7	303	CL8	CL8.3	sin clasificar ×7	la llama código citado	1	0x65ec60 (CL7, Scenes/WorldLoadingScene.cpp)			0x643ea0 0x643ed0 0x643f00 0x643f10 0x643f30 0x643f60 0x643fd0
-h091	0x4be9a0	0x4be9a0	1	300	CL3		sin clasificar	la llama sólo código sin citar	0				0x4be9a0
-h092	0x4beb20	0x4beb20	1	300	CL3		sin clasificar	la llama sólo código sin citar	0				0x4beb20
-h093	0x446f00	0x446f00	1	298	CL7		sin clasificar	la llama código citado	1	0x6371a0 (CL7, Scenes/GameScene.cpp)			0x446f00
-h094	0x455b10	0x455b10	1	292	CL6		sin clasificar	la llama código citado	1	0x455930 (CL6, Render/Models/Cloth.h)			0x455b10
-h095	0x668100	0x668100	1	292	CL9	CL9.5	pendiente CL9 hito 12	la llama código citado	1	0x6691c0 (CL9, Scenes/CastleWindowSupport.cpp)	P-C285		0x668100
-h096	0x40ad10	0x40ad90	4	289	CL8		sin clasificar ×4	la llama código citado	197	0x4ce000 (CL9, Scenes/SkillReplies.cpp); 0x4cf200 (CL9, Protocol/Combat.h); 0x4d1400 (CL8, Scenes/InventoryMoves.cpp); 0x4d3200 (CL8, Scenes/LevelUpPointReply.cpp); 0x5a6600 (CL8, Scenes/GameHud.cpp)	P-C151 P-C31		0x40ad10 0x40ad40 0x40ad60 0x40ad90
-h097	0x478bd0	0x478c90	2	284	CL8		sin clasificar ×2	la llama código citado	2	0x45fea0 (CL8, UI/LetterWindows.cpp); 0x478d10 (CL8, Scenes/GameScene.cpp)			0x478bd0 0x478c90
-h098	0x414690	0x4146f0	2	280	CL7		sin clasificar ×2	la llama sólo código sin citar	0				0x414690 0x4146f0
-h099	0x48c720	0x48c7c0	2	280	CL9	CL9.5	pendiente CL9 hito 12 ×2	la llama sólo código sin citar	0				0x48c720 0x48c7c0
-h100	0x641490	0x641540	3	280	CL8	CL8.3	sin clasificar ×3	la llama código citado	1	0x65ec60 (CL7, Scenes/WorldLoadingScene.cpp)			0x641490 0x641510 0x641540
-h101	0x467db0	0x467db0	1	272	CL8		sin clasificar	sin llamador directo	0				0x467db0
-h102	0x4c0cc0	0x4c0cc0	1	270	CL7		sin clasificar	la llama sólo código sin citar	0				0x4c0cc0
-h103	0x487630	0x4876b0	2	260	CL8		sin clasificar ×2	la llama código citado	1	0x462c70 (CL8, UI/FriendWindows.cpp)			0x487630 0x4876b0
-h104	0x63ef00	0x63efb0	3	259	CL5	CL8.3	sin clasificar ×3	la llama código citado	1	0x65ec60 (CL7, Scenes/WorldLoadingScene.cpp)			0x63ef00 0x63ef80 0x63efb0
-h105	0x4eaaf0	0x4eaaf0	1	258	CL7		sin clasificar	la llama código citado	1	0x61bd80 (CL7, Scenes/TextureSets.h)			0x4eaaf0
-h106	0x5f8130	0x5f8220	2	258	CL9	CL9.4	pendiente CL9 hito 7 ×2	la llama código citado	1	0x5d8d50 (CL8, Scenes/NpcWindowSteps.cpp)			0x5f8130 0x5f8220
-h107	0x4af3e0	0x4af3e0	1	255	CL3		sin clasificar	la llama sólo código sin citar	0				0x4af3e0
-h108	0x54e6f0	0x54e6f0	1	255	CL7		sin clasificar	la llama sólo código sin citar	0				0x54e6f0
-h109	0x65ed50	0x65ed80	2	253	CL8	CL8.3	sin clasificar ×2	la llama sólo código sin citar	0				0x65ed50 0x65ed80
-h110	0x6477b0	0x647850	3	249	CL5	CL8.3	sin clasificar ×3	la llama código citado	1	0x65ec60 (CL7, Scenes/WorldLoadingScene.cpp)			0x6477b0 0x647820 0x647850
-h111	0x660e20	0x660eb0	2	248	CL9	CL9.5	pendiente CL9 hito 13 ×2	la llama sólo código sin citar	0				0x660e20 0x660eb0
-h112	0x42ac50	0x42ac50	1	242	CL7		sin clasificar	la llama código citado	2	0x42ad50 (CL7, Scenes/ActorState.h); 0x5650c0 (CL9, Scenes/HeroAttack.cpp)			0x42ac50
-h113	0x621610	0x621610	1	241	CL7		sin clasificar	la llama código citado	1	0x621710 (CL7, Scenes/GameDrawTail.cpp)	P-C73		0x621610
-h114	0x645ce0	0x645ce0	1	241	CL3		sin clasificar	la llama código citado	2	0x645860 (CL5, UI/ServerListModel.h); 0x645ba0 (CL3, UI/ServerListWindow.cpp)			0x645ce0
-h115	0x54ed00	0x54ed60	2	239	CL7		sin clasificar ×2	la llama sólo código sin citar	0				0x54ed00 0x54ed60
-h116	0x54b8f0	0x54b8f0	1	236	CL7		sin clasificar	la llama código citado	1	0x61ccb0 (CL7, Scenes/TextureSets.h)			0x54b8f0
-h117	0x59eb90	0x59eb90	1	231	CL9	CL9.3	falta	la llama código citado	1	0x59ec80 (CL8, Scenes/GameUi.cpp)	P-C273 P-C73		0x59eb90
-h118	0x413ae0	0x413bf0	5	229	CL7		sin clasificar ×5	la llama sólo código sin citar	0				0x413ae0 0x413b20 0x413b40 0x413ba0 0x413bf0
-h119	0x4673d0	0x4673d0	1	229	CL8		sin clasificar	la llama código citado	2	0x467b10 (CL8, UI/OldControls.h); 0x4af4e0 (CL3, Scenes/GameChat.cpp)	P-C286		0x4673d0
-h120	0x4ad180	0x4ad180	1	228	CL6		sin clasificar	la llama código citado	3	0x4af4e0 (CL3, Scenes/GameChat.cpp); 0x63945d (CL8, Scenes/WinMainLoop.h); 0x4b8e10 (CL6, Platform/Window.cpp)			0x4ad180
-h121	0x41eb90	0x41ec40	2	217	CL7		sin clasificar ×2	la llama código citado	1	0x4af4e0 (CL3, Scenes/GameChat.cpp)			0x41eb90 0x41ec40
-h122	0x553670	0x553730	2	211	CL8		sin clasificar ×2	la llama código citado	1	0x4af4e0 (CL3, Scenes/GameChat.cpp)			0x553670 0x553730
-h123	0x41f910	0x41f9a0	2	208	CL3		sin clasificar ×2	la llama código citado	2	0x41f830 (CL3, Core/FileSink.h); 0x41f9e0 (CL3, Core/Crash/CrashHandler.h)			0x41f910 0x41f9a0
-h124	0x647470	0x647520	3	208	CL8		sin clasificar ×3	la llama código citado	2	0x63c470 (CL8, UI/Button.h); 0x63c330 (CL8, UI/Button.h)			0x647470 0x647500 0x647520
-h125	0x453fd0	0x454050	3	206	CL9	CL9.4	pendiente CL9 hito 7 ×3	la llama código citado	2	0x4514a0 (CL9, Scenes/PersonalShopLists.h); 0x451e40 (CL9, Scenes/ShopSigns.cpp)			0x453fd0 0x454030 0x454050
-h126	0x456a20	0x456b00	3	204	CL7		sin clasificar ×3	la llama sólo código sin citar	0				0x456a20 0x456a50 0x456b00
-h127	0x685a40	0x685ac6	5	201	CL2		sin clasificar ×5	la llama sólo código sin citar	0				0x685a40 0x685a60 0x685a80 0x685a90 0x685ac6
-h128	0x452250	0x452250	1	199	CL7	CL9.4	sin clasificar	la llama código citado	4	0x451430 (CL9, Scenes/PersonalShopTitles.h); 0x451fe0 (CL8, Scenes/PersonalShopTitles.h); 0x451590 (CL7, Scenes/PersonalShopTitles.h); 0x4514a0 (CL9, Scenes/PersonalShopLists.h)			0x452250
-h129	0x46af30	0x46af90	3	194	CL8		sin clasificar ×3	la llama sólo código sin citar	0				0x46af30 0x46af60 0x46af90
-h130	0x646560	0x6465c0	3	194	CL5		sin clasificar ×3	la llama sólo código sin citar	0				0x646560 0x646590 0x6465c0
-h131	0x465880	0x4658b0	2	193	CL5		sin clasificar ×2	la llama código citado	1	0x61bd80 (CL7, Scenes/TextureSets.h)			0x465880 0x4658b0
-h132	0x4ab400	0x4ab400	1	193	CL8		sin clasificar	la llama código citado	1	0x495f20 (CL8, UI/OldWindows.h)			0x4ab400
-h133	0x661240	0x661270	2	193	CL9	CL9.5	pendiente CL9 hito 11 ×2	la llama sólo código sin citar	0				0x661240 0x661270
-h134	0x4675f0	0x467670	3	189	CL8		sin clasificar ×3	sin llamador directo	0				0x4675f0 0x467630 0x467670
-h135	0x682910	0x682990	6	188	CL3		sin clasificar ×6	la llama código citado	1	0x680180 (CL3, Core/Crash/CrashHandler.cpp)			0x682910 0x682920 0x682930 0x682950 0x682970 0x682990
-h136	0x4aece0	0x4aece0	1	185	CL5		sin clasificar	la llama código citado	2	0x4b9b80 (CL3, Scenes/WinMainLoop.cpp); 0x4b90a0 (CL5, Render/Text/TextLayout.cpp)			0x4aece0
-h137	0x660f60	0x660fe0	2	179	CL9	CL9.5	pendiente CL9 hito 13 ×2	la llama sólo código sin citar	0				0x660f60 0x660fe0
-h138	0x510c40	0x510ca0	2	176	CL6		sin clasificar ×2	sin llamador directo	0				0x510c40 0x510ca0
-h139	0x401100	0x401130	2	174	CL7		sin clasificar ×2	la llama sólo código sin citar	0				0x401100 0x401130
-h140	0x47d680	0x47d680	1	172	CL8		sin clasificar	la llama código citado	1	0x47d320 (CL8, UI/FriendWindows.cpp)			0x47d680
-h141	0x4b94a0	0x4b94a0	1	171	CL3		sin clasificar	la llama código citado	1	0x4b9890 (CL3, App/CommandLine.cpp)			0x4b94a0
-h142	0x40b240	0x40b240	1	168	CL2		sin clasificar	la llama código citado	202	0x4ce000 (CL9, Scenes/SkillReplies.cpp); 0x4cf200 (CL9, Protocol/Combat.h); 0x4d1400 (CL8, Scenes/InventoryMoves.cpp); 0x4d1e00 (CL9, Scenes/NpcWindows.cpp); 0x4d3200 (CL8, Scenes/LevelUpPointReply.cpp)	P-C31		0x40b240
-h143	0x4788d0	0x4788d0	1	168	CL9	CL9.3	pendiente CL9 hito 6	la llama código citado	3	0x46e4c0 (CL9, Scenes/JewelBundleList.cpp); 0x46e940 (CL9, Scenes/JewelBundleList.cpp); 0x482f80 (CL9, Scenes/NpcWindowState.h)			0x4788d0
-h144	0x4e0650	0x4e0650	1	167	CL9	CL9.5	pendiente CL9 hito 12	la llama código citado	1	0x4e2b10 (CL4, Scenes/EventPackets.cpp)	P-C302		0x4e0650
-h145	0x608950	0x608950	1	166	CL7		sin clasificar	la llama código citado	1	0x608a00 (CL7, Scenes/GameDrawTail.cpp)			0x608950
-h146	0x685f60	0x686000	2	165	CL2		sin clasificar ×2	la llama código citado	1	0x685e20 (CL2, Network/Crypto/SimpleModulus.cpp)			0x685f60 0x686000
-h147	0x4b8ff0	0x4b8ff0	1	164	CL3		sin clasificar	la llama código citado	1	0x4b9b80 (CL3, Scenes/WinMainLoop.cpp)			0x4b8ff0
-h148	0x454660	0x454700	5	158	CL6		sin clasificar ×5	la llama código citado	2	0x455770 (CL6, Render/Models/Cloth.cpp); 0x455cd0 (CL6, Render/Models/Cloth.h)			0x454660 0x454670 0x454690 0x4546d0 0x454700
-h149	0x5111f0	0x5111f0	1	155	CL7		sin clasificar	la llama código citado	1	0x4aeda0 (CL3, UI/LetterModel.h)			0x5111f0
-h150	0x642d50	0x642d50	1	150	CL6		sin clasificar	sin llamador directo	0				0x642d50
-h151	0x65f160	0x65f1c0	2	150	CL5		sin clasificar ×2	la llama código citado	2	0x622e40 (CL5, Scenes/LoadingScene.h); 0x65eeb0 (CL5, Render/UiImage.cpp)			0x65f160 0x65f1c0
-h152	0x413f20	0x413fb0	4	149	CL7		sin clasificar ×4	la llama sólo código sin citar	0				0x413f20 0x413f60 0x413f90 0x413fb0
-h153	0x455d90	0x455d90	1	149	CL6		sin clasificar	la llama código citado	1	0x455770 (CL6, Render/Models/Cloth.cpp)			0x455d90
-h154	0x648710	0x648740	2	148	CL9	CL9.5	pendiente CL9 hito 11 ×2	la llama sólo código sin citar	0				0x648710 0x648740
-h155	0x669d50	0x669dc0	3	145	CL3		sin clasificar ×3	la llama código citado	5	0x63e9e0 (CL6, UI/SelectionBar.h); 0x641700 (CL5, UI/LoginWindow.h); 0x645520 (CL3, UI/ServerListWindow.h); 0x6410c0 (CL3, UI/MenuBar.h); 0x6451d0 (CL3, UI/ServerListWindow.cpp)			0x669d50 0x669d90 0x669dc0
-h156	0x63c280	0x63c2d0	3	143	CL5	CL8.3	sin clasificar ×3	la llama sólo código sin citar	0				0x63c280 0x63c2a0 0x63c2d0
-h157	0x6575e0	0x6575e0	1	143	CL8	CL8.3	sin clasificar	la llama sólo código sin citar	0				0x6575e0
-h158	0x41cbc0	0x41cc70	4	139	CL8		sin clasificar ×4	la llama código citado	1	0x4377a0 (CL7, World/WorldTerrain.h)			0x41cbc0 0x41cbf0 0x41cc10 0x41cc70
-h159	0x644090	0x644090	1	137	CL5		sin clasificar	la llama sólo código sin citar	0				0x644090
-h160	0x401ae0	0x401ae0	1	136	CL8	CL8.4	sin clasificar	la llama sólo código sin citar	0				0x401ae0
-h161	0x607010	0x607010	1	136	CL7		sin clasificar	la llama código citado	1	0x6070a0 (CL7, Scenes/MapLoad.h)			0x607010
-h162	0x48c610	0x48c610	1	134	CL9	CL9.3	pendiente CL9 hito 6	la llama código citado	1	0x46e4c0 (CL9, Scenes/JewelBundleList.cpp)			0x48c610
-h163	0x4bfc30	0x4bfcb0	5	129	CL8		sin clasificar ×5	la llama código citado	1	0x4b9b80 (CL3, Scenes/WinMainLoop.cpp)			0x4bfc30 0x4bfc40 0x4bfc50 0x4bfc80 0x4bfcb0
-h164	0x4c02b0	0x4c02b0	1	129	CL3		sin clasificar	la llama código citado	1	0x4aeda0 (CL3, UI/LetterModel.h)			0x4c02b0
-h165	0x66a120	0x66a170	3	129	CL5	CL8.3	sin clasificar ×3	la llama sólo código sin citar	0				0x66a120 0x66a140 0x66a170
-h166	0x40f580	0x40f580	1	127	CL8	CL9.2	sin clasificar	la llama código citado	13	0x40ca20 (CL8, Scenes/GameHud.cpp); 0x4aeda0 (CL3, UI/LetterModel.h); 0x5516e0 (CL8, Scenes/OwnDamage.cpp); 0x5a5860 (CL8, Scenes/GameHud.cpp); 0x4c5070 (CL9, Scenes/SkillReplies.cpp)			0x40f580
-h167	0x642930	0x642930	1	124	CL7		sin clasificar	la llama sólo código sin citar	0				0x642930
-h168	0x63e7a0	0x63e7a0	1	122	CL7		sin clasificar	la llama sólo código sin citar	0				0x63e7a0
-h169	0x642880	0x642880	1	122	CL8	CL8.3	sin clasificar	la llama código citado	1	0x65ec60 (CL7, Scenes/WorldLoadingScene.cpp)			0x642880
-h170	0x549560	0x549560	1	120	CL8		sin clasificar	la llama código citado	1	0x61ee30 (CL8, Scenes/GameData.h)			0x549560
-h171	0x660010	0x660010	1	118	CL8	CL8.3	sin clasificar	la llama sólo código sin citar	0				0x660010
-h172	0x454980	0x454980	1	117	CL7		sin clasificar	la llama sólo código sin citar	0				0x454980
-h173	0x48e3f0	0x48e430	2	114	CL9	CL9.3 CL9.5	pendiente CL9 hito 6; pendiente CL9 hito 12	la llama sólo código sin citar	0				0x48e3f0 0x48e430
-h174	0x640250	0x640280	2	112	CL8		sin clasificar ×2	la llama sólo código sin citar	0				0x640250 0x640280
-h175	0x64ada0	0x64ada0	1	112	CL9	CL9.5	pendiente CL9 hito 12	la llama sólo código sin citar	0				0x64ada0
-h176	0x420c00	0x420c00	1	111	CL3		sin clasificar	la llama código citado	1	0x4b9b80 (CL3, Scenes/WinMainLoop.cpp)			0x420c00
-h177	0x412960	0x412960	1	109	CL7		sin clasificar	la llama sólo código sin citar	0				0x412960
-h178	0x640f90	0x640f90	1	109	CL7		sin clasificar	la llama sólo código sin citar	0				0x640f90
-h179	0x452ce0	0x452ce0	1	102	CL9	CL9.4	pendiente CL9 hito 7	la llama código citado	1	0x452d50 (CL9, Scenes/ShopSigns.cpp)			0x452ce0
-h180	0x660cb0	0x660cb0	1	102	CL9	CL9.5	pendiente CL9 hito 12	la llama código citado	2	0x663b20 (CL9, UI/CastleSiegeState.h); 0x666190 (CL9, UI/CastleSiegeState.h)			0x660cb0
-h181	0x456580	0x456580	1	100	CL6		sin clasificar	sin llamador directo	0				0x456580
-h182	0x490190	0x490190	1	99	CL8	CL8.3	sin clasificar	la llama sólo código sin citar	0				0x490190
-h183	0x401480	0x401480	1	98	CL7		sin clasificar	la llama sólo código sin citar	0				0x401480
-h184	0x447f30	0x448370	4	98	CL8	CL8.3	sin clasificar ×4	la llama sólo código sin citar	0				0x447f30 0x447f40 0x447f70 0x448370
-h185	0x645c00	0x645c00	1	98	CL3		sin clasificar	la llama código citado	2	0x645860 (CL5, UI/ServerListModel.h); 0x645ba0 (CL3, UI/ServerListWindow.cpp)			0x645c00
-h186	0x49e3c0	0x49e3c0	1	96	CL8		sin clasificar	la llama código citado	1	0x49e480 (CL8, Scenes/GameLetters.cpp)			0x49e3c0
-h187	0x40f2f0	0x40f340	3	95	CL8		sin clasificar ×3	la llama sólo código sin citar	0				0x40f2f0 0x40f320 0x40f340
-h188	0x4ad360	0x4ad3c0	2	94	CL3		sin clasificar ×2	la llama código citado	2	0x4b9b80 (CL3, Scenes/WinMainLoop.cpp); 0x4af4e0 (CL3, Scenes/GameChat.cpp)			0x4ad360 0x4ad3c0
-h189	0x477ed0	0x477ed0	1	91	CL8	CL8.2	sin clasificar	la llama código citado	1	0x476040 (CL8, UI/SlideBanner.cpp)			0x477ed0
-h190	0x44f7b0	0x44f7b0	1	88	CL9	CL9.5	pendiente CL9 hito 12	la llama código citado	1	0x4e2b10 (CL4, Scenes/EventPackets.cpp)	P-C302		0x44f7b0
-h191	0x454f20	0x454f20	1	88	CL6		sin clasificar	sin llamador directo	0				0x454f20
-h192	0x4c16d0	0x4c16d0	1	83	CL9	CL9.4	pendiente CL9 hito 8	la llama código citado	1	0x4d8870 (CL9, Scenes/GuildReceive.cpp)			0x4c16d0
-h193	0x5e2270	0x5e2270	1	83	CL8	CL9.4	sin clasificar	la llama sólo código sin citar	0		P-C364		0x5e2270
-h194	0x669c20	0x669c20	1	79	CL5		sin clasificar	la llama sólo código sin citar	0				0x669c20
-h195	0x680100	0x680130	3	79	CL3		sin clasificar ×3	la llama código citado	2	0x680180 (CL3, Core/Crash/CrashHandler.cpp); 0x67f4f0 (CL3, Core/Crash/CrashHandler.h)			0x680100 0x680110 0x680130
-h196	0x403170	0x4031b0	3	75	CL2		sin clasificar ×3	la llama código citado	2	0x56c440 (CL8, Scenes/SocialRequests.cpp); 0x57cfc0 (CL9, Scenes/HeroSkillsWizard.cpp)			0x403170 0x4031a0 0x4031b0
-h197	0x641830	0x641830	1	74	CL8		sin clasificar	sin llamador directo	0				0x641830
-h198	0x63eac0	0x63eac0	1	73	CL8		sin clasificar	sin llamador directo	0				0x63eac0
-h199	0x640460	0x640460	1	70	CL5		sin clasificar	la llama código citado	1	0x6402d0 (CL5, Scenes/LoadingScene.cpp)			0x640460
-h200	0x454790	0x4547c0	3	65	CL6		sin clasificar ×3	la llama código citado	1	0x455cd0 (CL6, Render/Models/Cloth.h)			0x454790 0x4547a0 0x4547c0
-h201	0x6467e0	0x6467e0	1	65	CL5		sin clasificar	la llama sólo código sin citar	0				0x6467e0
-h202	0x641140	0x641140	1	64	CL8		sin clasificar	sin llamador directo	0				0x641140
-h203	0x465980	0x4659e0	4	63	CL5		sin clasificar ×4	la llama código citado	1	0x45c460 (CL8, UI/ChatLogDraw.cpp)			0x465980 0x4659b0 0x4659d0 0x4659e0
-h204	0x4eb5e0	0x4eb5e0	1	63	CL7		sin clasificar	la llama código citado	1	0x4ead70 (CL7, GameLogic/PathFinder.cpp)			0x4eb5e0
-h205	0x63c840	0x63c840	1	63	CL8		sin clasificar	la llama código citado	1	0x63c880 (CL8, UI/EscapeWindow.cpp)			0x63c840
-h206	0x66a390	0x66a390	1	63	CL8		sin clasificar	la llama sólo código sin citar	0				0x66a390
-h207	0x4013d0	0x4013d0	1	62	CL7		sin clasificar	la llama código citado	2	0x401350 (CL7, Scenes/ActorCreation.h); 0x401410 (CL7, Scenes/ActorCreation.h)			0x4013d0
-h208	0x404ce0	0x404d00	2	62	CL7		sin clasificar ×2	la llama sólo código sin citar	0				0x404ce0 0x404d00
-h209	0x453d10	0x453d10	1	62	CL9	CL9.4	pendiente CL9 hito 7	la llama código citado	1	0x4514a0 (CL9, Scenes/PersonalShopLists.h)			0x453d10
-h210	0x4541b0	0x4541e0	3	61	CL6		sin clasificar ×3	la llama sólo código sin citar	0				0x4541b0 0x4541d0 0x4541e0
-h211	0x61c9f0	0x61c9f0	1	61	CL7		sin clasificar	la llama código citado	1	0x634c60 (CL6, Scenes/LoginScene.cpp)			0x61c9f0
-h212	0x5fc7c0	0x5fc7c0	1	60	CL6		sin clasificar	la llama código citado	2	0x458000 (CL7, Scenes/MonsterBody.cpp); 0x622900 (CL6, Render/Models/RayPicking.h)			0x5fc7c0
-h213	0x642ba0	0x642bc0	2	60	CL8		sin clasificar ×2	sin llamador directo	0				0x642ba0 0x642bc0
-h214	0x67f530	0x67f550	2	59	CL3		sin clasificar ×2	la llama código citado	2	0x4b9a70 (CL3, Core/Crash/CrashHandler.h); 0x680180 (CL3, Core/Crash/CrashHandler.cpp)			0x67f530 0x67f550
-h215	0x612230	0x612230	1	58	CL7		sin clasificar	la llama código citado	2	0x61a560 (CL7, Scenes/MapLoad.cpp); 0x61eef0 (CL7, Scenes/ReturnToSelection.cpp)			0x612230
-h216	0x612d50	0x612d50	1	58	CL7		sin clasificar	la llama código citado	2	0x61a560 (CL7, Scenes/MapLoad.cpp); 0x61eef0 (CL7, Scenes/ReturnToSelection.cpp)			0x612d50
-h217	0x4545d0	0x454600	2	57	CL6		sin clasificar ×2	la llama código citado	1	0x4547f0 (CL6, Render/Models/Cloth.cpp)			0x4545d0 0x454600
-h218	0x511110	0x511110	1	55	CL9	CL9.5	pendiente CL9 hito 12	la llama sólo código sin citar	0				0x511110
-h219	0x40b3b0	0x40b3b0	1	53	CL2	CL9.2	sin clasificar	la llama código citado	57	0x449d80 (CL8, Scenes/InventoryMoves.cpp); 0x4b9b80 (CL3, Scenes/WinMainLoop.cpp); 0x4ce000 (CL9, Scenes/SkillReplies.cpp); 0x4cf200 (CL9, Protocol/Combat.h); 0x4d1400 (CL8, Scenes/InventoryMoves.cpp)			0x40b3b0
-h220	0x54eec0	0x54eec0	1	52	CL7		sin clasificar	la llama código citado	1	0x4b9b80 (CL3, Scenes/WinMainLoop.cpp)			0x54eec0
-h221	0x401670	0x401670	1	51	CL7		sin clasificar	la llama código citado	4	0x401000 (CL7, Scenes/WorldRuntime.h); 0x401040 (CL7, Scenes/ActorCreation.h); 0x4010b0 (CL7, Scenes/MonsterHelpers.cpp); 0x4010d0 (CL11, Scenes/MonsterHelpers.cpp)			0x401670
-h222	0x42ebc0	0x42ebc0	1	51	CL7		sin clasificar	la llama código citado	1	0x4293d0 (CL7, Scenes/WorldRuntime.h)			0x42ebc0
-h223	0x43fcb0	0x43fcb0	1	51	CL8		sin clasificar	la llama sólo código sin citar	0				0x43fcb0
-h224	0x449720	0x449720	1	51	CL8	CL8.3	sin clasificar	la llama código citado	3	0x449830 (CL8, Data/Text/MoveRequirements.h); 0x449850 (CL8, Scenes/GameMoveWindow.h); 0x449860 (CL8, Scenes/GameMoveWindow.h)			0x449720
-h225	0x4bee10	0x4bee10	1	51	CL8		sin clasificar	la llama código citado	1	0x4b9b80 (CL3, Scenes/WinMainLoop.cpp)			0x4bee10
-h226	0x683db0	0x683db0	1	51	CL3		sin clasificar	la llama código citado	1	0x683bd0 (CL3, Core/Crash/CrashHandler.cpp)			0x683db0
-h227	0x644b90	0x644b90	1	50	CL8	CL8.3	sin clasificar	la llama código citado	2	0x65f6c0 (CL8, Scenes/LoginScene.cpp); 0x66a070 (CL8, UI/OptionsWindow.cpp)			0x644b90
-h228	0x61eeb0	0x61eeb0	1	49	CL7		sin clasificar	la llama código citado	1	0x636290 (CL3, Scenes/GameScene.cpp)			0x61eeb0
-h229	0x644cd0	0x644cd0	1	45	CL8	CL8.3	sin clasificar	la llama código citado	1	0x65fe00 (CL8, Scenes/CharacterSelectScene.cpp)			0x644cd0
-h230	0x661b60	0x661b60	1	45	CL9	CL9.3	pendiente CL9 hito 6	la llama código citado	2	0x661bc0 (CL9, Scenes/CastleWindowLifecycle.cpp); 0x6691c0 (CL9, Scenes/CastleWindowSupport.cpp)			0x661b60
-h231	0x457dc0	0x457df0	2	44	CL7		sin clasificar ×2	la llama sólo código sin citar	0				0x457dc0 0x457df0
-h232	0x65fe50	0x65fe50	1	44	CL4		sin clasificar	la llama código citado	11	0x4af4e0 (CL3, Scenes/GameChat.cpp); 0x4c1340 (CL4, App/ServerSession.cpp); 0x6342c0 (CL7, Scenes/CharacterSelectScene.cpp); 0x4c2290 (CL6, UI/Notices.h); 0x4e2b10 (CL4, Scenes/EventPackets.cpp)			0x65fe50
-h233	0x6444f0	0x6444f0	1	43	CL5		sin clasificar	sin llamador directo	0				0x6444f0
-h234	0x405fa0	0x405fb0	2	42	CL7		sin clasificar ×2	la llama sólo código sin citar	0				0x405fa0 0x405fb0
-h235	0x418c20	0x418c30	2	42	CL7		sin clasificar ×2	la llama sólo código sin citar	0				0x418c20 0x418c30
-h236	0x469490	0x469490	1	42	CL8		sin clasificar	la llama código citado	1	0x4b9b80 (CL3, Scenes/WinMainLoop.cpp)			0x469490
-h237	0x5f8360	0x5f8360	1	41	CL1		sin clasificar	la llama código citado	1	0x5f8390 (CL1, Data/Terrain/K16.h)			0x5f8360
-h238	0x447aa0	0x447ad0	2	40	CL5		sin clasificar ×2	la llama sólo código sin citar	0				0x447aa0 0x447ad0
-h239	0x647020	0x647030	2	39	CL5		sin clasificar ×2	la llama código citado	1	0x647050 (CL5, Render/UiImage.cpp)			0x647020 0x647030
-h240	0x487960	0x487980	2	38	CL5	CL8.2	sin clasificar ×2	la llama código citado	1	0x469540 (CL8, UI/ChatInput.h)			0x487960 0x487980
-h241	0x5fc760	0x5fc760	1	38	CL6		sin clasificar	la llama código citado	1	0x60b3d0 (CL6, Scenes/CharacterDrawing.cpp)			0x5fc760
-h242	0x457f40	0x457f40	1	37	CL7		sin clasificar	sin llamador directo	0				0x457f40
-h243	0x468d20	0x468d20	1	36	CL8	CL8.2	sin clasificar	sin llamador directo	0				0x468d20
-h244	0x4789e0	0x4789e0	1	35	CL5		sin clasificar	la llama código citado	1	0x466000 (CL5, Render/Text/InlineColors.h)			0x4789e0
-h245	0x454320	0x454320	1	34	CL6		sin clasificar	la llama código citado	1	0x4555d0 (CL6, Render/Models/Cloth.cpp)			0x454320
-h246	0x454390	0x454390	1	33	CL6		sin clasificar	la llama código citado	4	0x4547f0 (CL6, Render/Models/Cloth.cpp); 0x455930 (CL6, Render/Models/Cloth.h); 0x4568f0 (CL6, Render/Models/Cloth.h); 0x455ea0 (CL6, Render/Models/Cloth.cpp)			0x454390
-h247	0x45adc0	0x45adc0	1	33	CL8	CL8.3	sin clasificar	sin llamador directo	0				0x45adc0
-h248	0x45b810	0x45b810	1	33	CL8		sin clasificar	sin llamador directo	0				0x45b810
-h249	0x63d480	0x63d480	1	33	CL5		sin clasificar	sin llamador directo	0				0x63d480
-h250	0x669f10	0x669f10	1	33	CL3		sin clasificar	la llama código citado	5	0x63f5a0 (CL8, UI/CreditsWindow.h); 0x644640 (CL8, UI/OptionsWindow.h); 0x645ba0 (CL3, UI/ServerListWindow.cpp); 0x63d670 (CL6, UI/CreateCharacterWindow.h); 0x647cd0 (CL8, UI/EscapeWindow.h)			0x669f10
-h251	0x5fc380	0x5fc380	1	30	CL7		sin clasificar	la llama sólo código sin citar	0				0x5fc380
-h252	0x4540e0	0x4540e0	1	29	CL9	CL9.4	pendiente CL9 hito 7	la llama sólo código sin citar	0				0x4540e0
-h253	0x478aa0	0x478aa0	1	29	CL8	CL8.2	sin clasificar	la llama código citado	2	0x46a020 (CL8, UI/SlideBanner.h); 0x476040 (CL8, UI/SlideBanner.cpp)			0x478aa0
-h254	0x5f9000	0x5f9000	1	29	CL7		sin clasificar	la llama código citado	1	0x61a560 (CL7, Scenes/MapLoad.cpp)			0x5f9000
-h255	0x669bd0	0x669bd0	1	28	CL8	CL8.3	sin clasificar	la llama código citado	1	0x63e6e0 (CL8, Scenes/WorldRuntime.h)			0x669bd0
-h256	0x5ae2d0	0x5ae2f0	3	26	CL9		pendiente CL9 ×3	la llama código citado	1	0x57cfc0 (CL9, Scenes/HeroSkillsWizard.cpp)			0x5ae2d0 0x5ae2e0 0x5ae2f0
-h257	0x64d2f0	0x64d300	2	26	CL9	CL9.5	pendiente CL9 hito 12 ×2	la llama código citado	1	0x4dfce0 (CL9, Protocol/CastleSiege.cpp)	P-C300		0x64d2f0 0x64d300
-h258	0x4e8070	0x4e8070	1	25	CL9	CL9.4	pendiente CL9 hito 7	la llama código citado	1	0x4e7440 (CL8, Scenes/InventoryMoves.cpp)			0x4e8070
-h259	0x412580	0x412580	1	24	CL9	CL9.5	pendiente CL9 hito 12	la llama código citado	1	0x4e2b10 (CL4, Scenes/EventPackets.cpp)	P-C302		0x412580
-h260	0x4e73b0	0x4e73b0	1	24	CL9	CL9.4	pendiente CL9 hito 7	la llama código citado	2	0x4db120 (CL9, Protocol/PersonalShop.h); 0x5d8d50 (CL8, Scenes/NpcWindowSteps.cpp)			0x4e73b0
-h261	0x4529c0	0x452a00	5	23	CL9	CL9.4	pendiente CL9 hito 7 ×4; sin clasificar	la llama código citado	5	0x451c20 (CL9, Scenes/ShopSigns.cpp); 0x451720 (CL8, Scenes/ChatBubbles.cpp); 0x451770 (CL8, Scenes/GameHover.cpp); 0x4517c0 (CL8, Scenes/ShopSigns.cpp); 0x452a10 (CL9, Scenes/ShopSigns.cpp)			0x4529c0 0x4529d0 0x4529e0 0x4529f0 0x452a00
-h262	0x5ecda0	0x5ecda0	1	23	CL7		sin clasificar	la llama código citado	1	0x4c2480 (CL7, Scenes/ReturnToSelection.cpp)			0x5ecda0
-h263	0x41f810	0x41f810	1	22	CL3		sin clasificar	la llama sólo código sin citar	0				0x41f810
-h264	0x4376c0	0x4376c0	1	22	CL8		sin clasificar	sin llamador directo	0				0x4376c0
-h265	0x660280	0x660280	1	22	CL8	CL8.3	sin clasificar	la llama código citado	1	0x6578e0 (CL8, Scenes/GameUi.cpp)			0x660280
-h266	0x65f290	0x65f290	1	21	CL7		sin clasificar	la llama código citado	1	0x4b9b80 (CL3, Scenes/WinMainLoop.cpp)			0x65f290
-h267	0x4e8be0	0x4e8be0	1	19	CL2		sin clasificar	la llama sólo código sin citar	0				0x4e8be0
-h268	0x620ff0	0x620ff0	1	19	CL7		sin clasificar	la llama código citado	3	0x53d2c0 (CL7, World/GroundEffectDrawing.cpp); 0x5fa5c0 (CL7, World/TerrainCells.cpp); 0x5fa830 (CL7, World/TerrainCells.cpp)			0x620ff0
-h269	0x4032e0	0x4032e0	1	17	CL7		sin clasificar	la llama sólo código sin citar	0				0x4032e0
-h270	0x465830	0x465830	1	17	CL8		sin clasificar	la llama código citado	1	0x4b9b80 (CL3, Scenes/WinMainLoop.cpp)			0x465830
-h271	0x5545f0	0x5545f0	1	17	CL7		sin clasificar	la llama código citado	1	0x4c2480 (CL7, Scenes/ReturnToSelection.cpp)			0x5545f0
-h272	0x640830	0x640840	2	16	CL8		sin clasificar ×2	la llama código citado	8	0x640850 (CL8, UI/OptionsWindow.cpp); 0x63d1a0 (CL6, UI/CreateCharacterWindow.h); 0x63f020 (CL8, Render/Text/FontSet.cpp); 0x63f3a0 (CL8, UI/CreditsWindow.h); 0x644120 (CL8, UI/OptionsWindow.cpp)			0x640830 0x640840
-h273	0x41fc00	0x41fc00	1	15	CL3		sin clasificar	la llama código citado	1	0x4b9b80 (CL3, Scenes/WinMainLoop.cpp)			0x41fc00
-h274	0x64d340	0x64d340	1	15	CL9	CL9.5	pendiente CL9 hito 12	la llama código citado	1	0x4dfd80 (CL9, Protocol/CastleSiege.h)	P-C300		0x64d340
-h275	0x5e3c70	0x5e3c70	1	13	CL7		sin clasificar	la llama código citado	1	0x4c2480 (CL7, Scenes/ReturnToSelection.cpp)			0x5e3c70
-h276	0x63e660	0x63e660	1	13	CL8	CL8.3	sin clasificar	sin llamador directo	0				0x63e660
-h277	0x401060	0x401060	1	12	CL7		sin clasificar	la llama sólo código sin citar	0				0x401060
-h278	0x683bf0	0x683bf0	1	12	CL3		sin clasificar	la llama sólo código sin citar	0				0x683bf0
-h279	0x4030c0	0x4030c0	1	11	CL8		sin clasificar	la llama sólo código sin citar	0				0x4030c0
-h280	0x4250e0	0x4250e0	1	11	CL7		sin clasificar	la llama código citado	1	0x606660 (CL7, World/WorldObjects.cpp)			0x4250e0
-h281	0x42ee30	0x42ee30	1	11	CL7		sin clasificar	la llama código citado	1	0x606660 (CL7, World/WorldObjects.cpp)			0x42ee30
-h282	0x4303d0	0x4303d0	1	11	CL7		sin clasificar	la llama código citado	1	0x606660 (CL7, World/WorldObjects.cpp)			0x4303d0
-h283	0x455e80	0x455e80	1	11	CL6		sin clasificar	la llama sólo código sin citar	0				0x455e80
-h284	0x467040	0x467040	1	11	CL5		sin clasificar	la llama sólo código sin citar	0				0x467040
-h285	0x64de50	0x64de50	1	8	CL9	CL9.5	pendiente CL9 hito 12	la llama código citado	1	0x470360 (CL9, Scenes/CastleGuildListDrawing.cpp)			0x64de50
-h286	0x67f820	0x67f830	2	8	CL3		sin clasificar ×2	la llama código citado	1	0x680180 (CL3, Core/Crash/CrashHandler.cpp)			0x67f820 0x67f830
-h287	0x418c90	0x418c90	1	7	CL7		sin clasificar	la llama sólo código sin citar	0				0x418c90
-h288	0x404c30	0x404c80	6	6	CL7		sin clasificar ×6	la llama código citado	1	0x403660 (CL7, Scenes/CameraTour.cpp)			0x404c30 0x404c40 0x404c50 0x404c60 0x404c70 0x404c80
-h289	0x4e8870	0x4e8880	2	6	CL2	CL9.4	sin clasificar ×2	la llama código citado	149	0x4ce000 (CL9, Scenes/SkillReplies.cpp); 0x4cf200 (CL9, Protocol/Combat.h); 0x4d1400 (CL8, Scenes/InventoryMoves.cpp); 0x4d1e00 (CL9, Scenes/NpcWindows.cpp); 0x64b200 (CL9, Scenes/GamePanels.cpp)			0x4e8870 0x4e8880
-h290	0x5aea20	0x5aea20	1	6	CL8	CL8.3 CL8.4	sin clasificar	la llama código citado	2	0x56c440 (CL8, Scenes/SocialRequests.cpp); 0x5b2aa0 (CL8, Scenes/ItemTooltipStats.cpp)			0x5aea20
-h291	0x622b30	0x622b30	1	6	CL6		sin clasificar	la llama código citado	1	0x63d7c0 (CL6, Scenes/CharacterSelectScene.cpp)			0x622b30
-h292	0x4e8560	0x4e8560	1	4	CL4		sin clasificar	la llama código citado	1	0x637700 (CL8, Scenes/Screenshots.h)			0x4e8560
-h293	0x5fc0b0	0x5fc0d0	2	2	CL8		sin clasificar ×2	la llama código citado	1	0x636290 (CL3, Scenes/GameScene.cpp)			0x5fc0b0 0x5fc0d0
-h294	0x4e8850	0x4e8850	1	1	CL4		sin clasificar	la llama código citado	1	0x4e81b0 (CL4, App/IChatRoomLinks.h)			0x4e8850
+hueco	desde	hasta	funciones	bytes	ola	sub_ola	categorias	senal	entradas_citadas	entradas	ids_08	textos	vas	module
+h001	0x48d250	0x48e290	8	4353	CL9	CL9.3 CL9.5	pendiente CL9 hito 6 ×4; pendiente CL9 hito 12 ×4	la llama código citado	1	0x46e4c0 (CL9, Scenes/JewelBundleList.cpp)			0x48d250 0x48d710 0x48dbe0 0x48de30 0x48dec0 0x48dfd0 0x48e1f0 0x48e290	game/ChaosMix
+h002	0x45e5b0	0x45efd0	4	3193	CL8		sin clasificar ×4	sin llamador directo	0				0x45e5b0 0x45e910 0x45eab0 0x45efd0	
+h003	0x4d4020	0x4d4020	1	2593	CL8	CL8.4	falta	la llama código citado	1	0x4e2b10 (CL4, Scenes/EventPackets.cpp)			0x4d4020	game/Protocol
+h004	0x45a2c0	0x45a680	4	1690	CL8	CL8.3	sin clasificar ×4	la llama sólo código sin citar	0				0x45a2c0 0x45a5f0 0x45a650 0x45a680	
+h005	0x54a660	0x54aa20	2	1670	CL7		sin clasificar ×2	la llama código citado	1	0x61ccb0 (CL7, Scenes/TextureSets.h)			0x54a660 0x54aa20	game/Assets
+h006	0x4669c0	0x466ff0	4	1589	CL5		sin clasificar ×4	la llama sólo código sin citar	0				0x4669c0 0x466b90 0x466c20 0x466ff0	
+h007	0x6689f0	0x668d50	2	1491	CL9	CL9.3 CL9.5	pendiente CL9 hito 6; pendiente CL9 hito 13	la llama código citado	2	0x6691c0 (CL9, Scenes/CastleWindowSupport.cpp); 0x6694c0 (CL9, Scenes/CastleSeniorDrawing.cpp)			0x6689f0 0x668d50	game/CastleSiege
+h008	0x64b400	0x64b710	3	1461	CL9	CL9.5	pendiente CL9 hito 12 ×2; pendiente CL9 hito 13	la llama código citado	1	0x64c0b0 (CL9, Protocol/CastleSiege.h)			0x64b400 0x64b700 0x64b710	game/Protocol
+h009	0x44e930	0x44ea60	2	1368	CL9	CL9.5	pendiente CL9 hito 13 ×2	la llama código citado	1	0x5f7440 (CL8, Scenes/GameHud.cpp)			0x44e930 0x44ea60	game/Hud
+h010	0x46fe00	0x46fe00	1	1280	CL9	CL9.5	pendiente CL9 hito 12	sin llamador directo	0				0x46fe00	
+h011	0x456bc0	0x457690	18	1268	CL7		sin clasificar ×18	la llama código citado	4	0x4b9b80 (CL3, Scenes/WinMainLoop.cpp); 0x457d60 (CL7, Scenes/MonsterBody.cpp); 0x637700 (CL8, Scenes/Screenshots.h); 0x457740 (CL7, Scenes/MonsterBody.cpp)	P-C332		0x456bc0 0x456ca0 0x456d30 0x456e90 0x456eb0 0x456ec0 0x456ee0 0x456f30 0x456f60 0x456f70 0x456fc0 0x457380 0x4573a0 0x4573d0 0x4573e0 0x4573f0 0x457550 0x457690	game/Monsters
+h012	0x666650	0x666650	1	1245	CL9	CL9.5	pendiente CL9 hito 13	la llama código citado	1	0x6694c0 (CL9, Scenes/CastleSeniorDrawing.cpp)			0x666650	game/CastleSiege
+h013	0x476270	0x476680	2	1242	CL8		sin clasificar ×2	la llama código citado	1	0x46add0 (CL8, UI/SlideBanner.cpp)			0x476270 0x476680	game/Ui
+h014	0x46f920	0x46f940	2	1140	CL9	CL9.5	pendiente CL9 hito 12 ×2	la llama sólo código sin citar	0		P-C300		0x46f920 0x46f940	
+h015	0x64c840	0x64c840	1	1122	CL9	CL9.5	pendiente CL9 hito 13	la llama código citado	1	0x64d860 (CL9, Scenes/CastleRegistrationDrawing.cpp)			0x64c840	game/CastleSiege
+h016	0x663f40	0x663f40	1	1071	CL9	CL9.5	pendiente CL9 hito 13	la llama código citado	1	0x6694c0 (CL9, Scenes/CastleSeniorDrawing.cpp)			0x663f40	game/CastleSiege
+h017	0x461100	0x461100	1	1064	CL8		sin clasificar	sin llamador directo	0				0x461100	
+h018	0x66a670	0x66b6b0	5	1048	CL8		sin clasificar ×4; sin confirmar	la llama sólo código sin citar	0				0x66a670 0x66a720 0x66a750 0x66aa90 0x66b6b0	
+h019	0x48e620	0x48e830	4	1029	CL8	CL8.3	sin clasificar ×4	la llama sólo código sin citar	0				0x48e620 0x48e710 0x48e740 0x48e830	
+h020	0x48aab0	0x48aab0	1	1001	CL9	CL9.3	pendiente CL9 hito 6	la llama sólo código sin citar	0				0x48aab0	
+h021	0x473450	0x473450	1	989	CL8	CL9.4	sin clasificar	la llama código citado	3	0x45e2e0 (CL8, UI/LetterWindows.cpp); 0x49bd60 (CL9, UI/FriendModel.h); 0x488090 (CL8, UI/OldWindows.h)			0x473450	game/Messenger
+h022	0x48af40	0x48af40	1	988	CL9	CL9.5	pendiente CL9 hito 12	la llama sólo código sin citar	0				0x48af40	
+h023	0x48a630	0x48a630	1	978	CL9	CL9.4	pendiente CL9 hito 8	la llama sólo código sin citar	0				0x48a630	
+h024	0x457870	0x457c10	4	961	CL7		sin clasificar ×4	la llama sólo código sin citar	0				0x457870 0x457b70 0x457bb0 0x457c10	
+h025	0x4e00c0	0x4e0340	3	954	CL9	CL9.5	pendiente CL9 hito 12 ×3	la llama código citado	1	0x4e2b10 (CL4, Scenes/EventPackets.cpp)	P-C285 P-C302 P-C90		0x4e00c0 0x4e0240 0x4e0340	game/Protocol
+h026	0x44ff00	0x450e70	5	951	CL9	CL9.5	sin clasificar ×4; pendiente CL9 hito 13	la llama código citado	4	0x5f7440 (CL8, Scenes/GameHud.cpp); 0x4b9b80 (CL3, Scenes/WinMainLoop.cpp); 0x634c60 (CL6, Scenes/LoginScene.cpp); 0x4aeda0 (CL3, UI/LetterModel.h)			0x44ff00 0x450300 0x450320 0x450376 0x450e70	game/Scenes
+h027	0x4750a0	0x4752d0	3	942	CL9	CL9.3 CL9.5	pendiente CL9 hito 12 ×2; pendiente CL9 hito 6	la llama código citado	3	0x46e4c0 (CL9, Scenes/JewelBundleList.cpp); 0x46f7e0 (CL9, Protocol/CastleSiege.h); 0x470bb0 (CL9, Protocol/CastleSiege.h)			0x4750a0 0x475150 0x4752d0	game/CastleSiege
+h028	0x682c70	0x6832e0	12	929	CL3		sin clasificar ×12	la llama código citado	3	0x6829f0 (CL3, Core/Crash/CrashFrames.cpp); 0x67f840 (CL3, Core/Crash/CrashHandler.cpp); 0x683c60 (CL3, Core/Crash/Crc32.h)			0x682c70 0x682cd0 0x682cf0 0x682d20 0x682d50 0x682d80 0x682db0 0x682dc0 0x682df0 0x682e20 0x683280 0x6832e0	engine/Diagnostics
+h029	0x654ac0	0x654af0	2	918	CL9	CL9.4	pendiente CL9 hito 8 ×2	la llama sólo código sin citar	0				0x654ac0 0x654af0	
+h030	0x64f720	0x64f720	1	886	CL9	CL9.4	pendiente CL9 hito 8	la llama sólo código sin citar	0				0x64f720	
+h031	0x64bd10	0x64bd10	1	875	CL9	CL9.5	pendiente CL9 hito 13	la llama código citado	1	0x64d860 (CL9, Scenes/CastleRegistrationDrawing.cpp)			0x64bd10	game/CastleSiege
+h032	0x484670	0x484670	1	855	CL9	CL9.5	pendiente CL9 hito 12	sin llamador directo	0				0x484670	
+h033	0x4e7630	0x4e7940	5	851	CL9	CL9.4	sin clasificar ×3; pendiente CL9 hito 7 ×2	la llama código citado	2	0x4e7440 (CL8, Scenes/InventoryMoves.cpp); 0x5f7f90 (CL9, Scenes/PersonalShopWindow.cpp)			0x4e7630 0x4e7860 0x4e78c0 0x4e7920 0x4e7940	game/Items
+h034	0x489890	0x489b60	2	805	CL9	CL9.5	pendiente CL9 hito 12; sin clasificar	la llama código citado	1	0x4716e0 (CL8, Scenes/PersonalShopWindow.cpp)			0x489890 0x489b60	game/PersonalShop
+h035	0x4c0920	0x4c0c10	7	792	CL9	CL9.4	pendiente CL9 hito 7 ×4; sin clasificar ×3	la llama código citado	5	0x4c0340 (CL9, Scenes/PersonalShopLists.h); 0x4aeda0 (CL3, UI/LetterModel.h); 0x4dbb40 (CL9, Scenes/PersonalShopLists.cpp); 0x4db890 (CL9, Scenes/PersonalShopLists.cpp); 0x4dbcb0 (CL9, Scenes/PersonalShopLists.cpp)			0x4c0920 0x4c09c0 0x4c0ab0 0x4c0ae0 0x4c0b20 0x4c0bd0 0x4c0c10	game/PersonalShop
+h036	0x48b3c0	0x48b3c0	1	780	CL9	CL9.5	pendiente CL9 hito 12	la llama sólo código sin citar	0				0x48b3c0	
+h037	0x477b90	0x477e50	3	777	CL8	CL8.2	sin clasificar ×3	la llama código citado	2	0x476040 (CL8, UI/SlideBanner.cpp); 0x46abf0 (CL8, UI/SlideBanner.cpp)			0x477b90 0x477bd0 0x477e50	game/Ui
+h038	0x48a290	0x48a290	1	766	CL9	CL9.4	pendiente CL9 hito 8	la llama sólo código sin citar	0				0x48a290	
+h039	0x46a150	0x46a270	3	759	CL8		sin clasificar ×3	la llama sólo código sin citar	0				0x46a150 0x46a180 0x46a270	
+h040	0x485d60	0x485d60	1	720	CL9	CL9.5	pendiente CL9 hito 12	sin llamador directo	0				0x485d60	
+h041	0x488c90	0x488c90	1	719	CL9	CL9.4	pendiente CL9 hito 8	la llama sólo código sin citar	0				0x488c90	
+h042	0x488f90	0x488f90	1	719	CL9	CL9.4	pendiente CL9 hito 8	la llama sólo código sin citar	0				0x488f90	
+h043	0x489290	0x489290	1	719	CL8		sin clasificar	la llama sólo código sin citar	0				0x489290	
+h044	0x489590	0x489590	1	719	CL9	CL9.5	pendiente CL9 hito 12	la llama sólo código sin citar	0				0x489590	
+h045	0x4bff40	0x4bff40	1	712	CL8	CL8.3	sin clasificar	la llama sólo código sin citar	0				0x4bff40	
+h046	0x640c40	0x640ef0	5	688	CL7	CL8.3	sin clasificar ×5	la llama código citado	2	0x6356f0 (CL7, Scenes/WorldLoadingScene.cpp); 0x65ec60 (CL7, Scenes/WorldLoadingScene.cpp)			0x640c40 0x640c70 0x640c90 0x640ea0 0x640ef0	game/Scenes
+h047	0x477f70	0x477f70	1	678	CL8		sin clasificar	la llama código citado	1	0x4716e0 (CL8, Scenes/PersonalShopWindow.cpp)			0x477f70	game/PersonalShop
+h048	0x42eed0	0x42eed0	1	652	CL7		sin clasificar	la llama código citado	1	0x602ed0 (CL7, Scenes/EventMapObjectFrame.cpp)			0x42eed0	game/WorldObjects
+h049	0x622170	0x622170	1	639	CL7		sin clasificar	la llama código citado	1	0x622440 (CL7, World/TerrainPicking.cpp)			0x622170	game/Terrain
+h050	0x4e893d	0x4e8ba0	3	634	CL2		sin clasificar ×3	la llama código citado	1	0x4e1d50 (CL2, App/IChatRoomLinks.h)			0x4e893d 0x4e8a80 0x4e8ba0	game/Session
+h051	0x61a280	0x61a280	1	611	CL7		sin clasificar	la llama código citado	1	0x616ec0 (CL7, World/WorldTerrain.h)			0x61a280	game/Assets
+h052	0x4f1f80	0x4f1f80	1	602	CL6		sin clasificar	la llama código citado	1	0x4f1f20 (CL6, Render/Models/Skeleton.h)			0x4f1f80	engine/Models
+h053	0x410330	0x410330	1	577	CL7		sin clasificar	sin llamador directo	0				0x410330	
+h054	0x474490	0x474610	2	562	CL8		sin clasificar ×2	la llama código citado	2	0x4624b0 (CL8, UI/FriendWindows.cpp); 0x462c70 (CL8, UI/FriendWindows.cpp)			0x474490 0x474610	game/Messenger
+h055	0x453520	0x453520	1	558	CL9	CL9.4	pendiente CL9 hito 7	la llama código citado	1	0x4511f0 (CL9, Scenes/PersonalShopTitles.cpp)			0x453520	game/PersonalShop
+h056	0x48cf10	0x48d0c0	4	528	CL9	CL9.4 CL9.5	pendiente CL9 hito 8 ×2; pendiente CL9 hito 12 ×2	la llama código citado	2	0x480260 (CL9, Scenes/GuildWindow.cpp); 0x4818b0 (CL9, Scenes/GuildWindow.cpp)			0x48cf10 0x48cf80 0x48d020 0x48d0c0	game/Guild
+h057	0x450fe0	0x451100	2	515	CL9	CL9.4	pendiente CL9 hito 7 ×2	la llama sólo código sin citar	0				0x450fe0 0x451100	
+h058	0x4d5910	0x4d5910	1	509	CL4		sin clasificar	la llama código citado	1	0x4e2b10 (CL4, Scenes/EventPackets.cpp)			0x4d5910	game/Protocol
+h059	0x6808d0	0x682880	7	507	CL3		sin clasificar ×7	la llama código citado	1	0x6829f0 (CL3, Core/Crash/CrashFrames.cpp)	P-C224 P-C440		0x6808d0 0x680950 0x680970 0x680d00 0x682840 0x682860 0x682880	engine/Diagnostics
+h060	0x64d090	0x64d190	2	497	CL9	CL9.5	pendiente CL9 hito 12; pendiente CL9 hito 13	la llama código citado	2	0x64d350 (CL9, Protocol/CastleSiege.h); 0x64d860 (CL9, Scenes/CastleRegistrationDrawing.cpp)			0x64d090 0x64d190	game/CastleSiege
+h061	0x41fc90	0x41fdd0	3	495	CL5		sin clasificar ×3	la llama código citado	1	0x4b9b80 (CL3, Scenes/WinMainLoop.cpp)			0x41fc90 0x41fd20 0x41fdd0	game/Scenes
+h062	0x60d830	0x60d9d0	2	495	CL6		sin clasificar ×2	la llama código citado	5	0x60dbe0 (CL6, Data/Models/PlayerModels.cpp); 0x60ff50 (CL6, Data/Models/PlayerModels.cpp); 0x615700 (CL7, Data/Models/PlayerModels.cpp); 0x616ec0 (CL7, World/WorldTerrain.h); 0x612270 (CL7, Scenes/MonsterModelTable.cpp)			0x60d830 0x60d9d0	engine/Data
+h063	0x644fd0	0x6450f0	3	493	CL8	CL8.3	sin clasificar ×3	la llama código citado	1	0x65ec60 (CL7, Scenes/WorldLoadingScene.cpp)			0x644fd0 0x6450c0 0x6450f0	game/Scenes
+h064	0x4561d0	0x4561d0	1	488	CL6		sin clasificar	sin llamador directo	0				0x4561d0	
+h065	0x47e700	0x47e700	1	475	CL8		sin clasificar	sin llamador directo	0				0x47e700	
+h066	0x549700	0x549b80	3	474	CL7		sin clasificar ×3	la llama código citado	2	0x61ccb0 (CL7, Scenes/TextureSets.h); 0x61ee30 (CL8, Scenes/GameData.h)			0x549700 0x549b00 0x549b80	game/Assets
+h067	0x4e8f70	0x4e8f70	1	463	CL2		sin clasificar	la llama sólo código sin citar	0				0x4e8f70	
+h068	0x4be6b0	0x4be780	5	460	CL3		sin clasificar ×5	la llama código citado	1	0x4b9b80 (CL3, Scenes/WinMainLoop.cpp)			0x4be6b0 0x4be6f0 0x4be720 0x4be750 0x4be780	game/Scenes
+h069	0x54a180	0x54a2e0	2	457	CL7		sin clasificar ×2	la llama código citado	1	0x61ccb0 (CL7, Scenes/TextureSets.h)			0x54a180 0x54a2e0	game/Assets
+h070	0x695ab0	0x6b7cb0	11	456	CL5		sin clasificar ×11	la llama código citado	1	0x4e88a0 (CL2, Network/Connection.h)			0x695ab0 0x695ae0 0x695b10 0x695b40 0x695bf0 0x695c30 0x695ce0 0x695d20 0x695d80 0x695de0 0x6b7cb0	engine/Network
+h071	0x469e50	0x469f30	2	452	CL3		sin clasificar ×2	la llama código citado	1	0x4b9b80 (CL3, Scenes/WinMainLoop.cpp)			0x469e50 0x469f30	game/Scenes
+h072	0x476f40	0x477090	2	452	CL8		sin clasificar ×2	la llama código citado	1	0x462c70 (CL8, UI/FriendWindows.cpp)			0x476f40 0x477090	game/Messenger
+h073	0x4527f0	0x452860	4	410	CL8	CL9.4	pendiente CL9 hito 7 ×3; sin clasificar	la llama código citado	4	0x451e40 (CL9, Scenes/ShopSigns.cpp); 0x451d60 (CL9, Scenes/ShopSigns.cpp); 0x451860 (CL9, Scenes/PersonalShopLists.h); 0x4518b0 (CL8, Scenes/ShopSigns.cpp)			0x4527f0 0x452810 0x452830 0x452860	game/PersonalShop
+h074	0x4125c0	0x4127c0	6	408	CL7	CL9.5	pendiente CL9 hito 12 ×4; sin clasificar ×2	la llama código citado	2	0x411ed0 (CL9, Protocol/CastleBattle.h); 0x412140 (CL7, Scenes/CharacterStep.cpp)			0x4125c0 0x4125f0 0x4126d0 0x4126e0 0x412720 0x4127c0	game/Actors
+h075	0x4dff10	0x4dff10	1	391	CL9	CL9.5	pendiente CL9 hito 12	la llama código citado	1	0x4e2b10 (CL4, Scenes/EventPackets.cpp)	P-C285 P-C302 P-C90		0x4dff10	game/Protocol
+h076	0x473200	0x473200	1	384	CL8	CL8.2	sin clasificar	la llama código citado	2	0x45bb20 (CL8, UI/ChatLog.h); 0x460130 (CL8, UI/LetterWindows.cpp)			0x473200	game/Chat
+h077	0x473890	0x473890	1	384	CL9	CL9.4	pendiente CL9 hito 8	la llama código citado	2	0x46c930 (CL9, Scenes/GuildWindow.cpp); 0x49b220 (CL9, UI/FriendModel.h)			0x473890	game/Guild
+h078	0x474c50	0x474c50	1	384	CL9	CL9.4	pendiente CL9 hito 8	la llama código citado	1	0x46bca0 (CL9, Scenes/GuildWindow.cpp)			0x474c50	game/Guild
+h079	0x4c1060	0x4c1190	3	371	CL7		sin clasificar ×3	la llama código citado	7	0x4af4e0 (CL3, Scenes/GameChat.cpp); 0x6599a0 (CL8, UI/PanelRegistry.cpp); 0x659290 (CL8, UI/PanelRegistry.cpp); 0x657ab0 (CL8, UI/PanelRegistry.cpp); 0x4aeda0 (CL3, UI/LetterModel.h)	P-C39		0x4c1060 0x4c1150 0x4c1190	game/Ui
+h080	0x41fa80	0x41fa80	1	365	CL2		sin clasificar	la llama código citado	1	0x4e1d50 (CL2, App/IChatRoomLinks.h)			0x41fa80	game/Session
+h081	0x63d010	0x63d0f0	3	365	CL8	CL8.3	sin clasificar ×3	la llama código citado	1	0x65ec60 (CL7, Scenes/WorldLoadingScene.cpp)			0x63d010 0x63d0c0 0x63d0f0	game/Scenes
+h082	0x53ea00	0x53eaf0	2	361	CL7	CL9.4	sin clasificar; pendiente CL9 hito 7	la llama código citado	1	0x636290 (CL3, Scenes/GameScene.cpp)			0x53ea00 0x53eaf0	game/Scenes
+h083	0x487be0	0x487d50	2	357	CL8		sin clasificar ×2	la llama sólo código sin citar	0				0x487be0 0x487d50	
+h084	0x454410	0x4544d0	2	352	CL6		sin clasificar ×2	la llama código citado	1	0x455770 (CL6, Render/Models/Cloth.cpp)			0x454410 0x4544d0	engine/Models
+h085	0x549e40	0x549ec0	2	342	CL6		sin clasificar ×2	la llama código citado	1	0x61ccb0 (CL7, Scenes/TextureSets.h)			0x549e40 0x549ec0	game/Assets
+h086	0x657450	0x657450	1	339	CL8	CL8.3	sin clasificar	la llama código citado	1	0x4b9b80 (CL3, Scenes/WinMainLoop.cpp)	P-C300		0x657450	game/Scenes
+h087	0x41f620	0x41f780	6	335	CL3		sin clasificar ×6	la llama código citado	1	0x41f830 (CL3, Core/FileSink.h)			0x41f620 0x41f6a0 0x41f720 0x41f740 0x41f770 0x41f780	engine/Core
+h088	0x465eb0	0x465eb0	1	327	CL5		sin clasificar	sin llamador directo	0				0x465eb0	
+h089	0x5a7d70	0x5a7d70	1	319	CL9	CL9.5	pendiente CL9 hito 11	la llama código citado	1	0x5a7cc0 (CL8, Scenes/GameUi.cpp)	P-C430 P-C59		0x5a7d70	game/Hud
+h090	0x643ea0	0x643fd0	7	303	CL8	CL8.3	sin clasificar ×7	la llama código citado	1	0x65ec60 (CL7, Scenes/WorldLoadingScene.cpp)			0x643ea0 0x643ed0 0x643f00 0x643f10 0x643f30 0x643f60 0x643fd0	game/Scenes
+h091	0x4be9a0	0x4be9a0	1	300	CL3		sin clasificar	la llama sólo código sin citar	0				0x4be9a0	
+h092	0x4beb20	0x4beb20	1	300	CL3		sin clasificar	la llama sólo código sin citar	0				0x4beb20	
+h093	0x446f00	0x446f00	1	298	CL7		sin clasificar	la llama código citado	1	0x6371a0 (CL7, Scenes/GameScene.cpp)			0x446f00	game/Scenes
+h094	0x455b10	0x455b10	1	292	CL6		sin clasificar	la llama código citado	1	0x455930 (CL6, Render/Models/Cloth.h)			0x455b10	game/Actors
+h095	0x668100	0x668100	1	292	CL9	CL9.5	pendiente CL9 hito 12	la llama código citado	1	0x6691c0 (CL9, Scenes/CastleWindowSupport.cpp)	P-C285		0x668100	game/CastleSiege
+h096	0x40ad10	0x40ad90	4	289	CL8		sin clasificar ×4	la llama código citado	197	0x4ce000 (CL9, Scenes/SkillReplies.cpp); 0x4cf200 (CL9, Protocol/Combat.h); 0x4d1400 (CL8, Scenes/InventoryMoves.cpp); 0x4d3200 (CL8, Scenes/LevelUpPointReply.cpp); 0x5a6600 (CL8, Scenes/GameHud.cpp)	P-C151 P-C31		0x40ad10 0x40ad40 0x40ad60 0x40ad90	game/Hud
+h097	0x478bd0	0x478c90	2	284	CL8		sin clasificar ×2	la llama código citado	2	0x45fea0 (CL8, UI/LetterWindows.cpp); 0x478d10 (CL8, Scenes/GameScene.cpp)			0x478bd0 0x478c90	game/Chat
+h098	0x414690	0x4146f0	2	280	CL7		sin clasificar ×2	la llama sólo código sin citar	0				0x414690 0x4146f0	
+h099	0x48c720	0x48c7c0	2	280	CL9	CL9.5	pendiente CL9 hito 12 ×2	la llama sólo código sin citar	0				0x48c720 0x48c7c0	
+h100	0x641490	0x641540	3	280	CL8	CL8.3	sin clasificar ×3	la llama código citado	1	0x65ec60 (CL7, Scenes/WorldLoadingScene.cpp)			0x641490 0x641510 0x641540	game/Scenes
+h101	0x467db0	0x467db0	1	272	CL8		sin clasificar	sin llamador directo	0				0x467db0	
+h102	0x4c0cc0	0x4c0cc0	1	270	CL7		sin clasificar	la llama sólo código sin citar	0				0x4c0cc0	
+h103	0x487630	0x4876b0	2	260	CL8		sin clasificar ×2	la llama código citado	1	0x462c70 (CL8, UI/FriendWindows.cpp)			0x487630 0x4876b0	game/Messenger
+h104	0x63ef00	0x63efb0	3	259	CL5	CL8.3	sin clasificar ×3	la llama código citado	1	0x65ec60 (CL7, Scenes/WorldLoadingScene.cpp)			0x63ef00 0x63ef80 0x63efb0	game/Scenes
+h105	0x4eaaf0	0x4eaaf0	1	258	CL7		sin clasificar	la llama código citado	1	0x61bd80 (CL7, Scenes/TextureSets.h)			0x4eaaf0	game/Assets
+h106	0x5f8130	0x5f8220	2	258	CL9	CL9.4	pendiente CL9 hito 7 ×2	la llama código citado	1	0x5d8d50 (CL8, Scenes/NpcWindowSteps.cpp)			0x5f8130 0x5f8220	game/Npc
+h107	0x4af3e0	0x4af3e0	1	255	CL3		sin clasificar	la llama sólo código sin citar	0				0x4af3e0	
+h108	0x54e6f0	0x54e6f0	1	255	CL7		sin clasificar	la llama sólo código sin citar	0				0x54e6f0	
+h109	0x65ed50	0x65ed80	2	253	CL8	CL8.3	sin clasificar ×2	la llama sólo código sin citar	0				0x65ed50 0x65ed80	
+h110	0x6477b0	0x647850	3	249	CL5	CL8.3	sin clasificar ×3	la llama código citado	1	0x65ec60 (CL7, Scenes/WorldLoadingScene.cpp)			0x6477b0 0x647820 0x647850	game/Scenes
+h111	0x660e20	0x660eb0	2	248	CL9	CL9.5	pendiente CL9 hito 13 ×2	la llama sólo código sin citar	0				0x660e20 0x660eb0	
+h112	0x42ac50	0x42ac50	1	242	CL7		sin clasificar	la llama código citado	2	0x42ad50 (CL7, Scenes/ActorState.h); 0x5650c0 (CL9, Scenes/HeroAttack.cpp)			0x42ac50	game/Actors
+h113	0x621610	0x621610	1	241	CL7		sin clasificar	la llama código citado	1	0x621710 (CL7, Scenes/GameDrawTail.cpp)	P-C73		0x621610	game/Assets
+h114	0x645ce0	0x645ce0	1	241	CL3		sin clasificar	la llama código citado	2	0x645860 (CL5, UI/ServerListModel.h); 0x645ba0 (CL3, UI/ServerListWindow.cpp)			0x645ce0	game/FrontEnd
+h115	0x54ed00	0x54ed60	2	239	CL7		sin clasificar ×2	la llama sólo código sin citar	0				0x54ed00 0x54ed60	
+h116	0x54b8f0	0x54b8f0	1	236	CL7		sin clasificar	la llama código citado	1	0x61ccb0 (CL7, Scenes/TextureSets.h)			0x54b8f0	game/Assets
+h117	0x59eb90	0x59eb90	1	231	CL9	CL9.3	falta	la llama código citado	1	0x59ec80 (CL8, Scenes/GameUi.cpp)	P-C273 P-C73		0x59eb90	game/Hud
+h118	0x413ae0	0x413bf0	5	229	CL7		sin clasificar ×5	la llama sólo código sin citar	0				0x413ae0 0x413b20 0x413b40 0x413ba0 0x413bf0	
+h119	0x4673d0	0x4673d0	1	229	CL8		sin clasificar	la llama código citado	2	0x467b10 (CL8, UI/OldControls.h); 0x4af4e0 (CL3, Scenes/GameChat.cpp)	P-C286		0x4673d0	game/Chat
+h120	0x4ad180	0x4ad180	1	228	CL6		sin clasificar	la llama código citado	3	0x4af4e0 (CL3, Scenes/GameChat.cpp); 0x63945d (CL8, Scenes/WinMainLoop.h); 0x4b8e10 (CL6, Platform/Window.cpp)			0x4ad180	engine/Platform
+h121	0x41eb90	0x41ec40	2	217	CL7		sin clasificar ×2	la llama código citado	1	0x4af4e0 (CL3, Scenes/GameChat.cpp)			0x41eb90 0x41ec40	game/Chat
+h122	0x553670	0x553730	2	211	CL8		sin clasificar ×2	la llama código citado	1	0x4af4e0 (CL3, Scenes/GameChat.cpp)			0x553670 0x553730	game/Chat
+h123	0x41f910	0x41f9a0	2	208	CL3		sin clasificar ×2	la llama código citado	2	0x41f830 (CL3, Core/FileSink.h); 0x41f9e0 (CL3, Core/Crash/CrashHandler.h)			0x41f910 0x41f9a0	engine/Core
+h124	0x647470	0x647520	3	208	CL8		sin clasificar ×3	la llama código citado	2	0x63c470 (CL8, UI/Button.h); 0x63c330 (CL8, UI/Button.h)			0x647470 0x647500 0x647520	game/Ui
+h125	0x453fd0	0x454050	3	206	CL9	CL9.4	pendiente CL9 hito 7 ×3	la llama código citado	2	0x4514a0 (CL9, Scenes/PersonalShopLists.h); 0x451e40 (CL9, Scenes/ShopSigns.cpp)			0x453fd0 0x454030 0x454050	game/PersonalShop
+h126	0x456a20	0x456b00	3	204	CL7		sin clasificar ×3	la llama sólo código sin citar	0				0x456a20 0x456a50 0x456b00	
+h127	0x685a40	0x685ac6	5	201	CL2		sin clasificar ×5	la llama sólo código sin citar	0				0x685a40 0x685a60 0x685a80 0x685a90 0x685ac6	
+h128	0x452250	0x452250	1	199	CL7	CL9.4	sin clasificar	la llama código citado	4	0x451430 (CL9, Scenes/PersonalShopTitles.h); 0x451fe0 (CL8, Scenes/PersonalShopTitles.h); 0x451590 (CL7, Scenes/PersonalShopTitles.h); 0x4514a0 (CL9, Scenes/PersonalShopLists.h)			0x452250	game/PersonalShop
+h129	0x46af30	0x46af90	3	194	CL8		sin clasificar ×3	la llama sólo código sin citar	0				0x46af30 0x46af60 0x46af90	
+h130	0x646560	0x6465c0	3	194	CL5		sin clasificar ×3	la llama sólo código sin citar	0				0x646560 0x646590 0x6465c0	
+h131	0x465880	0x4658b0	2	193	CL5		sin clasificar ×2	la llama código citado	1	0x61bd80 (CL7, Scenes/TextureSets.h)			0x465880 0x4658b0	game/Assets
+h132	0x4ab400	0x4ab400	1	193	CL8		sin clasificar	la llama código citado	1	0x495f20 (CL8, UI/OldWindows.h)			0x4ab400	game/Ui
+h133	0x661240	0x661270	2	193	CL9	CL9.5	pendiente CL9 hito 11 ×2	la llama sólo código sin citar	0				0x661240 0x661270	
+h134	0x4675f0	0x467670	3	189	CL8		sin clasificar ×3	sin llamador directo	0				0x4675f0 0x467630 0x467670	
+h135	0x682910	0x682990	6	188	CL3		sin clasificar ×6	la llama código citado	1	0x680180 (CL3, Core/Crash/CrashHandler.cpp)			0x682910 0x682920 0x682930 0x682950 0x682970 0x682990	engine/Diagnostics
+h136	0x4aece0	0x4aece0	1	185	CL5		sin clasificar	la llama código citado	2	0x4b9b80 (CL3, Scenes/WinMainLoop.cpp); 0x4b90a0 (CL5, Render/Text/TextLayout.cpp)			0x4aece0	engine/Render
+h137	0x660f60	0x660fe0	2	179	CL9	CL9.5	pendiente CL9 hito 13 ×2	la llama sólo código sin citar	0				0x660f60 0x660fe0	
+h138	0x510c40	0x510ca0	2	176	CL6		sin clasificar ×2	sin llamador directo	0				0x510c40 0x510ca0	
+h139	0x401100	0x401130	2	174	CL7		sin clasificar ×2	la llama sólo código sin citar	0				0x401100 0x401130	
+h140	0x47d680	0x47d680	1	172	CL8		sin clasificar	la llama código citado	1	0x47d320 (CL8, UI/FriendWindows.cpp)			0x47d680	game/Messenger
+h141	0x4b94a0	0x4b94a0	1	171	CL3		sin clasificar	la llama código citado	1	0x4b9890 (CL3, App/CommandLineWindows.cpp)			0x4b94a0	app
+h142	0x40b240	0x40b240	1	168	CL2		sin clasificar	la llama código citado	202	0x4ce000 (CL9, Scenes/SkillReplies.cpp); 0x4cf200 (CL9, Protocol/Combat.h); 0x4d1400 (CL8, Scenes/InventoryMoves.cpp); 0x4d1e00 (CL9, Scenes/NpcWindows.cpp); 0x4d3200 (CL8, Scenes/LevelUpPointReply.cpp)	P-C31		0x40b240	game/Hud
+h143	0x4788d0	0x4788d0	1	168	CL9	CL9.3	pendiente CL9 hito 6	la llama código citado	3	0x46e4c0 (CL9, Scenes/JewelBundleList.cpp); 0x46e940 (CL9, Scenes/JewelBundleList.cpp); 0x482f80 (CL9, Scenes/NpcWindowState.h)			0x4788d0	game/ChaosMix
+h144	0x4e0650	0x4e0650	1	167	CL9	CL9.5	pendiente CL9 hito 12	la llama código citado	1	0x4e2b10 (CL4, Scenes/EventPackets.cpp)	P-C302		0x4e0650	game/Protocol
+h145	0x608950	0x608950	1	166	CL7		sin clasificar	la llama código citado	1	0x608a00 (CL7, Scenes/GameDrawTail.cpp)			0x608950	game/Scenes
+h146	0x685f60	0x686000	2	165	CL2		sin clasificar ×2	la llama código citado	1	0x685e20 (CL2, Network/Crypto/SimpleModulus.cpp)			0x685f60 0x686000	engine/Crypto
+h147	0x4b8ff0	0x4b8ff0	1	164	CL3		sin clasificar	la llama código citado	1	0x4b9b80 (CL3, Scenes/WinMainLoop.cpp)			0x4b8ff0	game/Scenes
+h148	0x454660	0x454700	5	158	CL6		sin clasificar ×5	la llama código citado	2	0x455770 (CL6, Render/Models/Cloth.cpp); 0x455cd0 (CL6, Render/Models/Cloth.h)			0x454660 0x454670 0x454690 0x4546d0 0x454700	engine/Models
+h149	0x5111f0	0x5111f0	1	155	CL7		sin clasificar	la llama código citado	1	0x4aeda0 (CL3, UI/LetterModel.h)			0x5111f0	game/Messenger
+h150	0x642d50	0x642d50	1	150	CL6		sin clasificar	sin llamador directo	0				0x642d50	
+h151	0x65f160	0x65f1c0	2	150	CL5		sin clasificar ×2	la llama código citado	2	0x622e40 (CL5, Scenes/LoadingScene.h); 0x65eeb0 (CL5, Render/UiImage.cpp)			0x65f160 0x65f1c0	engine/Render
+h152	0x413f20	0x413fb0	4	149	CL7		sin clasificar ×4	la llama sólo código sin citar	0				0x413f20 0x413f60 0x413f90 0x413fb0	
+h153	0x455d90	0x455d90	1	149	CL6		sin clasificar	la llama código citado	1	0x455770 (CL6, Render/Models/Cloth.cpp)			0x455d90	engine/Models
+h154	0x648710	0x648740	2	148	CL9	CL9.5	pendiente CL9 hito 11 ×2	la llama sólo código sin citar	0				0x648710 0x648740	
+h155	0x669d50	0x669dc0	3	145	CL3		sin clasificar ×3	la llama código citado	5	0x63e9e0 (CL6, UI/SelectionBar.h); 0x641700 (CL5, UI/LoginWindow.h); 0x645520 (CL3, UI/ServerListWindow.h); 0x6410c0 (CL3, UI/MenuBar.h); 0x6451d0 (CL3, UI/ServerListWindow.cpp)			0x669d50 0x669d90 0x669dc0	game/FrontEnd
+h156	0x63c280	0x63c2d0	3	143	CL5	CL8.3	sin clasificar ×3	la llama sólo código sin citar	0				0x63c280 0x63c2a0 0x63c2d0	
+h157	0x6575e0	0x6575e0	1	143	CL8	CL8.3	sin clasificar	la llama sólo código sin citar	0				0x6575e0	
+h158	0x41cbc0	0x41cc70	4	139	CL8		sin clasificar ×4	la llama código citado	1	0x4377a0 (CL7, World/WorldTerrain.h)			0x41cbc0 0x41cbf0 0x41cc10 0x41cc70	game/Terrain
+h159	0x644090	0x644090	1	137	CL5		sin clasificar	la llama sólo código sin citar	0				0x644090	
+h160	0x401ae0	0x401ae0	1	136	CL8	CL8.4	sin clasificar	la llama sólo código sin citar	0				0x401ae0	
+h161	0x607010	0x607010	1	136	CL7		sin clasificar	la llama código citado	1	0x6070a0 (CL7, Scenes/MapLoad.h)			0x607010	game/Session
+h162	0x48c610	0x48c610	1	134	CL9	CL9.3	pendiente CL9 hito 6	la llama código citado	1	0x46e4c0 (CL9, Scenes/JewelBundleList.cpp)			0x48c610	game/ChaosMix
+h163	0x4bfc30	0x4bfcb0	5	129	CL8		sin clasificar ×5	la llama código citado	1	0x4b9b80 (CL3, Scenes/WinMainLoop.cpp)			0x4bfc30 0x4bfc40 0x4bfc50 0x4bfc80 0x4bfcb0	game/Scenes
+h164	0x4c02b0	0x4c02b0	1	129	CL3		sin clasificar	la llama código citado	1	0x4aeda0 (CL3, UI/LetterModel.h)			0x4c02b0	game/Messenger
+h165	0x66a120	0x66a170	3	129	CL5	CL8.3	sin clasificar ×3	la llama sólo código sin citar	0				0x66a120 0x66a140 0x66a170	
+h166	0x40f580	0x40f580	1	127	CL8	CL9.2	sin clasificar	la llama código citado	13	0x40ca20 (CL8, Scenes/GameHud.cpp); 0x4aeda0 (CL3, UI/LetterModel.h); 0x5516e0 (CL8, Scenes/OwnDamage.cpp); 0x5a5860 (CL8, Scenes/GameHud.cpp); 0x4c5070 (CL9, Scenes/SkillReplies.cpp)			0x40f580	game/Hud
+h167	0x642930	0x642930	1	124	CL7		sin clasificar	la llama sólo código sin citar	0				0x642930	
+h168	0x63e7a0	0x63e7a0	1	122	CL7		sin clasificar	la llama sólo código sin citar	0				0x63e7a0	
+h169	0x642880	0x642880	1	122	CL8	CL8.3	sin clasificar	la llama código citado	1	0x65ec60 (CL7, Scenes/WorldLoadingScene.cpp)			0x642880	game/Scenes
+h170	0x549560	0x549560	1	120	CL8		sin clasificar	la llama código citado	1	0x61ee30 (CL8, Scenes/GameData.h)			0x549560	game/Tables
+h171	0x660010	0x660010	1	118	CL8	CL8.3	sin clasificar	la llama sólo código sin citar	0				0x660010	
+h172	0x454980	0x454980	1	117	CL7		sin clasificar	la llama sólo código sin citar	0				0x454980	
+h173	0x48e3f0	0x48e430	2	114	CL9	CL9.3 CL9.5	pendiente CL9 hito 6; pendiente CL9 hito 12	la llama sólo código sin citar	0				0x48e3f0 0x48e430	
+h174	0x640250	0x640280	2	112	CL8		sin clasificar ×2	la llama sólo código sin citar	0				0x640250 0x640280	
+h175	0x64ada0	0x64ada0	1	112	CL9	CL9.5	pendiente CL9 hito 12	la llama sólo código sin citar	0				0x64ada0	
+h176	0x420c00	0x420c00	1	111	CL3		sin clasificar	la llama código citado	1	0x4b9b80 (CL3, Scenes/WinMainLoop.cpp)			0x420c00	game/Scenes
+h177	0x412960	0x412960	1	109	CL7		sin clasificar	la llama sólo código sin citar	0				0x412960	
+h178	0x640f90	0x640f90	1	109	CL7		sin clasificar	la llama sólo código sin citar	0				0x640f90	
+h179	0x452ce0	0x452ce0	1	102	CL9	CL9.4	pendiente CL9 hito 7	la llama código citado	1	0x452d50 (CL9, Scenes/ShopSigns.cpp)			0x452ce0	game/PersonalShop
+h180	0x660cb0	0x660cb0	1	102	CL9	CL9.5	pendiente CL9 hito 12	la llama código citado	2	0x663b20 (CL9, UI/CastleSiegeState.h); 0x666190 (CL9, UI/CastleSiegeState.h)			0x660cb0	game/CastleSiege
+h181	0x456580	0x456580	1	100	CL6		sin clasificar	sin llamador directo	0				0x456580	
+h182	0x490190	0x490190	1	99	CL8	CL8.3	sin clasificar	la llama sólo código sin citar	0				0x490190	
+h183	0x401480	0x401480	1	98	CL7		sin clasificar	la llama sólo código sin citar	0				0x401480	
+h184	0x447f30	0x448370	4	98	CL8	CL8.3	sin clasificar ×4	la llama sólo código sin citar	0				0x447f30 0x447f40 0x447f70 0x448370	
+h185	0x645c00	0x645c00	1	98	CL3		sin clasificar	la llama código citado	2	0x645860 (CL5, UI/ServerListModel.h); 0x645ba0 (CL3, UI/ServerListWindow.cpp)			0x645c00	game/FrontEnd
+h186	0x49e3c0	0x49e3c0	1	96	CL8		sin clasificar	la llama código citado	1	0x49e480 (CL8, Scenes/GameLetters.cpp)			0x49e3c0	game/Messenger
+h187	0x40f2f0	0x40f340	3	95	CL8		sin clasificar ×3	la llama sólo código sin citar	0				0x40f2f0 0x40f320 0x40f340	
+h188	0x4ad360	0x4ad3c0	2	94	CL3		sin clasificar ×2	la llama código citado	2	0x4b9b80 (CL3, Scenes/WinMainLoop.cpp); 0x4af4e0 (CL3, Scenes/GameChat.cpp)			0x4ad360 0x4ad3c0	game/Chat
+h189	0x477ed0	0x477ed0	1	91	CL8	CL8.2	sin clasificar	la llama código citado	1	0x476040 (CL8, UI/SlideBanner.cpp)			0x477ed0	game/Ui
+h190	0x44f7b0	0x44f7b0	1	88	CL9	CL9.5	pendiente CL9 hito 12	la llama código citado	1	0x4e2b10 (CL4, Scenes/EventPackets.cpp)	P-C302		0x44f7b0	game/Protocol
+h191	0x454f20	0x454f20	1	88	CL6		sin clasificar	sin llamador directo	0				0x454f20	
+h192	0x4c16d0	0x4c16d0	1	83	CL9	CL9.4	pendiente CL9 hito 8	la llama código citado	1	0x4d8870 (CL9, Scenes/GuildReceive.cpp)			0x4c16d0	game/Guild
+h193	0x5e2270	0x5e2270	1	83	CL8	CL9.4	sin clasificar	la llama sólo código sin citar	0		P-C364		0x5e2270	
+h194	0x669c20	0x669c20	1	79	CL5		sin clasificar	la llama sólo código sin citar	0				0x669c20	
+h195	0x680100	0x680130	3	79	CL3		sin clasificar ×3	la llama código citado	2	0x680180 (CL3, Core/Crash/CrashHandler.cpp); 0x67f4f0 (CL3, Core/Crash/CrashHandler.h)			0x680100 0x680110 0x680130	engine/Diagnostics
+h196	0x403170	0x4031b0	3	75	CL2		sin clasificar ×3	la llama código citado	2	0x56c440 (CL8, Scenes/SocialRequests.cpp); 0x57cfc0 (CL9, Scenes/HeroSkillsWizard.cpp)			0x403170 0x4031a0 0x4031b0	game/Skills
+h197	0x641830	0x641830	1	74	CL8		sin clasificar	sin llamador directo	0				0x641830	
+h198	0x63eac0	0x63eac0	1	73	CL8		sin clasificar	sin llamador directo	0				0x63eac0	
+h199	0x640460	0x640460	1	70	CL5		sin clasificar	la llama código citado	1	0x6402d0 (CL5, Scenes/LoadingScene.cpp)			0x640460	game/Scenes
+h200	0x454790	0x4547c0	3	65	CL6		sin clasificar ×3	la llama código citado	1	0x455cd0 (CL6, Render/Models/Cloth.h)			0x454790 0x4547a0 0x4547c0	engine/Models
+h201	0x6467e0	0x6467e0	1	65	CL5		sin clasificar	la llama sólo código sin citar	0				0x6467e0	
+h202	0x641140	0x641140	1	64	CL8		sin clasificar	sin llamador directo	0				0x641140	
+h203	0x465980	0x4659e0	4	63	CL5		sin clasificar ×4	la llama código citado	1	0x45c460 (CL8, UI/ChatLogDraw.cpp)			0x465980 0x4659b0 0x4659d0 0x4659e0	game/Chat
+h204	0x4eb5e0	0x4eb5e0	1	63	CL7		sin clasificar	la llama código citado	1	0x4ead70 (CL7, GameLogic/PathFinder.cpp)			0x4eb5e0	engine/Pathfinding
+h205	0x63c840	0x63c840	1	63	CL8		sin clasificar	la llama código citado	1	0x63c880 (CL8, UI/EscapeWindow.cpp)			0x63c840	game/FrontEnd
+h206	0x66a390	0x66a390	1	63	CL8		sin clasificar	la llama sólo código sin citar	0				0x66a390	
+h207	0x4013d0	0x4013d0	1	62	CL7		sin clasificar	la llama código citado	2	0x401350 (CL7, Scenes/ActorCreation.h); 0x401410 (CL7, Scenes/ActorCreation.h)			0x4013d0	game/Actors
+h208	0x404ce0	0x404d00	2	62	CL7		sin clasificar ×2	la llama sólo código sin citar	0				0x404ce0 0x404d00	
+h209	0x453d10	0x453d10	1	62	CL9	CL9.4	pendiente CL9 hito 7	la llama código citado	1	0x4514a0 (CL9, Scenes/PersonalShopLists.h)			0x453d10	game/PersonalShop
+h210	0x4541b0	0x4541e0	3	61	CL6		sin clasificar ×3	la llama sólo código sin citar	0				0x4541b0 0x4541d0 0x4541e0	
+h211	0x61c9f0	0x61c9f0	1	61	CL7		sin clasificar	la llama código citado	1	0x634c60 (CL6, Scenes/LoginScene.cpp)			0x61c9f0	game/Scenes
+h212	0x5fc7c0	0x5fc7c0	1	60	CL6		sin clasificar	la llama código citado	2	0x458000 (CL7, Scenes/MonsterBody.cpp); 0x622900 (CL6, Render/Models/RayPicking.h)			0x5fc7c0	engine/Models
+h213	0x642ba0	0x642bc0	2	60	CL8		sin clasificar ×2	sin llamador directo	0				0x642ba0 0x642bc0	
+h214	0x67f530	0x67f550	2	59	CL3		sin clasificar ×2	la llama código citado	2	0x4b9a70 (CL3, Core/Crash/CrashHandler.h); 0x680180 (CL3, Core/Crash/CrashHandler.cpp)			0x67f530 0x67f550	engine/Diagnostics
+h215	0x612230	0x612230	1	58	CL7		sin clasificar	la llama código citado	2	0x61a560 (CL7, Scenes/MapLoad.cpp); 0x61eef0 (CL7, Scenes/ReturnToSelection.cpp)			0x612230	game/Session
+h216	0x612d50	0x612d50	1	58	CL7		sin clasificar	la llama código citado	2	0x61a560 (CL7, Scenes/MapLoad.cpp); 0x61eef0 (CL7, Scenes/ReturnToSelection.cpp)			0x612d50	game/Session
+h217	0x4545d0	0x454600	2	57	CL6		sin clasificar ×2	la llama código citado	1	0x4547f0 (CL6, Render/Models/Cloth.cpp)			0x4545d0 0x454600	engine/Models
+h218	0x511110	0x511110	1	55	CL9	CL9.5	pendiente CL9 hito 12	la llama sólo código sin citar	0				0x511110	
+h219	0x40b3b0	0x40b3b0	1	53	CL2	CL9.2	sin clasificar	la llama código citado	57	0x449d80 (CL8, Scenes/InventoryMoves.cpp); 0x4b9b80 (CL3, Scenes/WinMainLoop.cpp); 0x4ce000 (CL9, Scenes/SkillReplies.cpp); 0x4cf200 (CL9, Protocol/Combat.h); 0x4d1400 (CL8, Scenes/InventoryMoves.cpp)			0x40b3b0	game/Skills
+h220	0x54eec0	0x54eec0	1	52	CL7		sin clasificar	la llama código citado	1	0x4b9b80 (CL3, Scenes/WinMainLoop.cpp)			0x54eec0	game/Scenes
+h221	0x401670	0x401670	1	51	CL7		sin clasificar	la llama código citado	4	0x401000 (CL7, Scenes/WorldRuntime.h); 0x401040 (CL7, Scenes/ActorCreation.h); 0x4010b0 (CL7, Scenes/MonsterHelpers.cpp); 0x4010d0 (CL11, Scenes/MonsterHelpers.cpp)			0x401670	game/Monsters
+h222	0x42ebc0	0x42ebc0	1	51	CL7		sin clasificar	la llama código citado	1	0x4293d0 (CL7, Scenes/WorldRuntime.h)			0x42ebc0	game/Kernel
+h223	0x43fcb0	0x43fcb0	1	51	CL8		sin clasificar	la llama sólo código sin citar	0				0x43fcb0	
+h224	0x449720	0x449720	1	51	CL8	CL8.3	sin clasificar	la llama código citado	3	0x449830 (CL8, Data/Text/MoveRequirements.h); 0x449850 (CL8, Scenes/GameMoveWindow.h); 0x449860 (CL8, Scenes/GameMoveWindow.h)			0x449720	game/Hud
+h225	0x4bee10	0x4bee10	1	51	CL8		sin clasificar	la llama código citado	1	0x4b9b80 (CL3, Scenes/WinMainLoop.cpp)			0x4bee10	game/Scenes
+h226	0x683db0	0x683db0	1	51	CL3		sin clasificar	la llama código citado	1	0x683bd0 (CL3, Core/Crash/CrashHandler.cpp)			0x683db0	engine/Diagnostics
+h227	0x644b90	0x644b90	1	50	CL8	CL8.3	sin clasificar	la llama código citado	2	0x65f6c0 (CL8, Scenes/LoginScene.cpp); 0x66a070 (CL8, UI/OptionsWindow.cpp)			0x644b90	game/FrontEnd
+h228	0x61eeb0	0x61eeb0	1	49	CL7		sin clasificar	la llama código citado	1	0x636290 (CL3, Scenes/GameScene.cpp)			0x61eeb0	game/Scenes
+h229	0x644cd0	0x644cd0	1	45	CL8	CL8.3	sin clasificar	la llama código citado	1	0x65fe00 (CL8, Scenes/CharacterSelectScene.cpp)			0x644cd0	game/Scenes
+h230	0x661b60	0x661b60	1	45	CL9	CL9.3	pendiente CL9 hito 6	la llama código citado	2	0x661bc0 (CL9, Scenes/CastleWindowLifecycle.cpp); 0x6691c0 (CL9, Scenes/CastleWindowSupport.cpp)			0x661b60	game/CastleSiege
+h231	0x457dc0	0x457df0	2	44	CL7		sin clasificar ×2	la llama sólo código sin citar	0				0x457dc0 0x457df0	
+h232	0x65fe50	0x65fe50	1	44	CL4		sin clasificar	la llama código citado	11	0x4af4e0 (CL3, Scenes/GameChat.cpp); 0x4c1340 (CL4, App/ServerSession.cpp); 0x6342c0 (CL7, Scenes/CharacterSelectScene.cpp); 0x4c2290 (CL6, UI/Notices.h); 0x4e2b10 (CL4, Scenes/EventPackets.cpp)			0x65fe50	game/FrontEnd
+h233	0x6444f0	0x6444f0	1	43	CL5		sin clasificar	sin llamador directo	0				0x6444f0	
+h234	0x405fa0	0x405fb0	2	42	CL7		sin clasificar ×2	la llama sólo código sin citar	0				0x405fa0 0x405fb0	
+h235	0x418c20	0x418c30	2	42	CL7		sin clasificar ×2	la llama sólo código sin citar	0				0x418c20 0x418c30	
+h236	0x469490	0x469490	1	42	CL8		sin clasificar	la llama código citado	1	0x4b9b80 (CL3, Scenes/WinMainLoop.cpp)			0x469490	game/Scenes
+h237	0x5f8360	0x5f8360	1	41	CL1		sin clasificar	la llama código citado	1	0x5f8390 (CL1, Data/Terrain/K16.h)			0x5f8360	engine/Crypto
+h238	0x447aa0	0x447ad0	2	40	CL5		sin clasificar ×2	la llama sólo código sin citar	0				0x447aa0 0x447ad0	
+h239	0x647020	0x647030	2	39	CL5		sin clasificar ×2	la llama código citado	1	0x647050 (CL5, Render/UiImage.cpp)			0x647020 0x647030	engine/Render
+h240	0x487960	0x487980	2	38	CL5	CL8.2	sin clasificar ×2	la llama código citado	1	0x469540 (CL8, UI/ChatInput.h)			0x487960 0x487980	game/Chat
+h241	0x5fc760	0x5fc760	1	38	CL6		sin clasificar	la llama código citado	1	0x60b3d0 (CL6, Scenes/CharacterDrawing.cpp)			0x5fc760	game/Actors
+h242	0x457f40	0x457f40	1	37	CL7		sin clasificar	sin llamador directo	0				0x457f40	
+h243	0x468d20	0x468d20	1	36	CL8	CL8.2	sin clasificar	sin llamador directo	0				0x468d20	
+h244	0x4789e0	0x4789e0	1	35	CL5		sin clasificar	la llama código citado	1	0x466000 (CL5, Render/Text/InlineColors.h)			0x4789e0	engine/Render
+h245	0x454320	0x454320	1	34	CL6		sin clasificar	la llama código citado	1	0x4555d0 (CL6, Render/Models/Cloth.cpp)			0x454320	engine/Models
+h246	0x454390	0x454390	1	33	CL6		sin clasificar	la llama código citado	4	0x4547f0 (CL6, Render/Models/Cloth.cpp); 0x455930 (CL6, Render/Models/Cloth.h); 0x4568f0 (CL6, Render/Models/Cloth.h); 0x455ea0 (CL6, Render/Models/Cloth.cpp)			0x454390	engine/Models
+h247	0x45adc0	0x45adc0	1	33	CL8	CL8.3	sin clasificar	sin llamador directo	0				0x45adc0	
+h248	0x45b810	0x45b810	1	33	CL8		sin clasificar	sin llamador directo	0				0x45b810	
+h249	0x63d480	0x63d480	1	33	CL5		sin clasificar	sin llamador directo	0				0x63d480	
+h250	0x669f10	0x669f10	1	33	CL3		sin clasificar	la llama código citado	5	0x63f5a0 (CL8, UI/CreditsWindow.h); 0x644640 (CL8, UI/OptionsWindow.h); 0x645ba0 (CL3, UI/ServerListWindow.cpp); 0x63d670 (CL6, UI/CreateCharacterWindow.h); 0x647cd0 (CL8, UI/EscapeWindow.h)			0x669f10	game/FrontEnd
+h251	0x5fc380	0x5fc380	1	30	CL7		sin clasificar	la llama sólo código sin citar	0				0x5fc380	
+h252	0x4540e0	0x4540e0	1	29	CL9	CL9.4	pendiente CL9 hito 7	la llama sólo código sin citar	0				0x4540e0	
+h253	0x478aa0	0x478aa0	1	29	CL8	CL8.2	sin clasificar	la llama código citado	2	0x46a020 (CL8, UI/SlideBanner.h); 0x476040 (CL8, UI/SlideBanner.cpp)			0x478aa0	game/Ui
+h254	0x5f9000	0x5f9000	1	29	CL7		sin clasificar	la llama código citado	1	0x61a560 (CL7, Scenes/MapLoad.cpp)			0x5f9000	game/Terrain
+h255	0x669bd0	0x669bd0	1	28	CL8	CL8.3	sin clasificar	la llama código citado	1	0x63e6e0 (CL8, Scenes/WorldRuntime.h)			0x669bd0	game/Kernel
+h256	0x5ae2d0	0x5ae2f0	3	26	CL9		pendiente CL9 ×3	la llama código citado	1	0x57cfc0 (CL9, Scenes/HeroSkillsWizard.cpp)			0x5ae2d0 0x5ae2e0 0x5ae2f0	game/Skills
+h257	0x64d2f0	0x64d300	2	26	CL9	CL9.5	pendiente CL9 hito 12 ×2	la llama código citado	1	0x4dfce0 (CL9, Protocol/CastleSiege.cpp)	P-C300		0x64d2f0 0x64d300	game/Protocol
+h258	0x4e8070	0x4e8070	1	25	CL9	CL9.4	pendiente CL9 hito 7	la llama código citado	1	0x4e7440 (CL8, Scenes/InventoryMoves.cpp)			0x4e8070	game/Items
+h259	0x412580	0x412580	1	24	CL9	CL9.5	pendiente CL9 hito 12	la llama código citado	1	0x4e2b10 (CL4, Scenes/EventPackets.cpp)	P-C302		0x412580	game/Protocol
+h260	0x4e73b0	0x4e73b0	1	24	CL9	CL9.4	pendiente CL9 hito 7	la llama código citado	2	0x4db120 (CL9, Protocol/PersonalShop.h); 0x5d8d50 (CL8, Scenes/NpcWindowSteps.cpp)			0x4e73b0	game/Npc
+h261	0x4529c0	0x452a00	5	23	CL9	CL9.4	pendiente CL9 hito 7 ×4; sin clasificar	la llama código citado	5	0x451c20 (CL9, Scenes/ShopSigns.cpp); 0x451720 (CL8, Scenes/ChatBubbles.cpp); 0x451770 (CL8, Scenes/GameHover.cpp); 0x4517c0 (CL8, Scenes/ShopSigns.cpp); 0x452a10 (CL9, Scenes/ShopSigns.cpp)			0x4529c0 0x4529d0 0x4529e0 0x4529f0 0x452a00	game/PersonalShop
+h262	0x5ecda0	0x5ecda0	1	23	CL7		sin clasificar	la llama código citado	1	0x4c2480 (CL7, Scenes/ReturnToSelection.cpp)			0x5ecda0	game/Session
+h263	0x41f810	0x41f810	1	22	CL3		sin clasificar	la llama sólo código sin citar	0				0x41f810	
+h264	0x4376c0	0x4376c0	1	22	CL8		sin clasificar	sin llamador directo	0				0x4376c0	
+h265	0x660280	0x660280	1	22	CL8	CL8.3	sin clasificar	la llama código citado	1	0x6578e0 (CL8, Scenes/GameUi.cpp)			0x660280	game/Hud
+h266	0x65f290	0x65f290	1	21	CL7		sin clasificar	la llama código citado	1	0x4b9b80 (CL3, Scenes/WinMainLoop.cpp)			0x65f290	game/Scenes
+h267	0x4e8be0	0x4e8be0	1	19	CL2		sin clasificar	la llama sólo código sin citar	0				0x4e8be0	
+h268	0x620ff0	0x620ff0	1	19	CL7		sin clasificar	la llama código citado	3	0x53d2c0 (CL7, World/GroundEffectDrawing.cpp); 0x5fa5c0 (CL7, World/TerrainCells.cpp); 0x5fa830 (CL7, World/TerrainCells.cpp)			0x620ff0	game/Terrain
+h269	0x4032e0	0x4032e0	1	17	CL7		sin clasificar	la llama sólo código sin citar	0				0x4032e0	
+h270	0x465830	0x465830	1	17	CL8		sin clasificar	la llama código citado	1	0x4b9b80 (CL3, Scenes/WinMainLoop.cpp)			0x465830	game/Scenes
+h271	0x5545f0	0x5545f0	1	17	CL7		sin clasificar	la llama código citado	1	0x4c2480 (CL7, Scenes/ReturnToSelection.cpp)			0x5545f0	game/Session
+h272	0x640830	0x640840	2	16	CL8		sin clasificar ×2	la llama código citado	8	0x640850 (CL8, UI/OptionsWindow.cpp); 0x63d1a0 (CL6, UI/CreateCharacterWindow.h); 0x63f020 (CL8, Render/Text/FontSet.cpp); 0x63f3a0 (CL8, UI/CreditsWindow.h); 0x644120 (CL8, UI/OptionsWindow.cpp)			0x640830 0x640840	game/FrontEnd
+h273	0x41fc00	0x41fc00	1	15	CL3		sin clasificar	la llama código citado	1	0x4b9b80 (CL3, Scenes/WinMainLoop.cpp)			0x41fc00	game/Scenes
+h274	0x64d340	0x64d340	1	15	CL9	CL9.5	pendiente CL9 hito 12	la llama código citado	1	0x4dfd80 (CL9, Protocol/CastleSiege.h)	P-C300		0x64d340	game/Protocol
+h275	0x5e3c70	0x5e3c70	1	13	CL7		sin clasificar	la llama código citado	1	0x4c2480 (CL7, Scenes/ReturnToSelection.cpp)			0x5e3c70	game/Session
+h276	0x63e660	0x63e660	1	13	CL8	CL8.3	sin clasificar	sin llamador directo	0				0x63e660	
+h277	0x401060	0x401060	1	12	CL7		sin clasificar	la llama sólo código sin citar	0				0x401060	
+h278	0x683bf0	0x683bf0	1	12	CL3		sin clasificar	la llama sólo código sin citar	0				0x683bf0	
+h279	0x4030c0	0x4030c0	1	11	CL8		sin clasificar	la llama sólo código sin citar	0				0x4030c0	
+h280	0x4250e0	0x4250e0	1	11	CL7		sin clasificar	la llama código citado	1	0x606660 (CL7, World/WorldObjects.cpp)			0x4250e0	game/WorldObjects
+h281	0x42ee30	0x42ee30	1	11	CL7		sin clasificar	la llama código citado	1	0x606660 (CL7, World/WorldObjects.cpp)			0x42ee30	game/WorldObjects
+h282	0x4303d0	0x4303d0	1	11	CL7		sin clasificar	la llama código citado	1	0x606660 (CL7, World/WorldObjects.cpp)			0x4303d0	game/WorldObjects
+h283	0x455e80	0x455e80	1	11	CL6		sin clasificar	la llama sólo código sin citar	0				0x455e80	
+h284	0x467040	0x467040	1	11	CL5		sin clasificar	la llama sólo código sin citar	0				0x467040	
+h285	0x64de50	0x64de50	1	8	CL9	CL9.5	pendiente CL9 hito 12	la llama código citado	1	0x470360 (CL9, Scenes/CastleGuildListDrawing.cpp)			0x64de50	game/CastleSiege
+h286	0x67f820	0x67f830	2	8	CL3		sin clasificar ×2	la llama código citado	1	0x680180 (CL3, Core/Crash/CrashHandler.cpp)			0x67f820 0x67f830	engine/Diagnostics
+h287	0x418c90	0x418c90	1	7	CL7		sin clasificar	la llama sólo código sin citar	0				0x418c90	
+h288	0x404c30	0x404c80	6	6	CL7		sin clasificar ×6	la llama código citado	1	0x403660 (CL7, Scenes/CameraTour.cpp)			0x404c30 0x404c40 0x404c50 0x404c60 0x404c70 0x404c80	game/Events
+h289	0x4e8870	0x4e8880	2	6	CL2	CL9.4	sin clasificar ×2	la llama código citado	149	0x4ce000 (CL9, Scenes/SkillReplies.cpp); 0x4cf200 (CL9, Protocol/Combat.h); 0x4d1400 (CL8, Scenes/InventoryMoves.cpp); 0x4d1e00 (CL9, Scenes/NpcWindows.cpp); 0x64b200 (CL9, Scenes/GamePanels.cpp)			0x4e8870 0x4e8880	game/Guild
+h290	0x5aea20	0x5aea20	1	6	CL8	CL8.3 CL8.4	sin clasificar	la llama código citado	2	0x56c440 (CL8, Scenes/SocialRequests.cpp); 0x5b2aa0 (CL8, Scenes/ItemTooltipStats.cpp)			0x5aea20	game/Social
+h291	0x622b30	0x622b30	1	6	CL6		sin clasificar	la llama código citado	1	0x63d7c0 (CL6, Scenes/CharacterSelectScene.cpp)			0x622b30	game/Scenes
+h292	0x4e8560	0x4e8560	1	4	CL4		sin clasificar	la llama código citado	1	0x637700 (CL8, Scenes/Screenshots.h)			0x4e8560	game/Scenes
+h293	0x5fc0b0	0x5fc0d0	2	2	CL8		sin clasificar ×2	la llama código citado	1	0x636290 (CL3, Scenes/GameScene.cpp)			0x5fc0b0 0x5fc0d0	game/Scenes
+h294	0x4e8850	0x4e8850	1	1	CL4		sin clasificar	la llama código citado	1	0x4e81b0 (CL4, App/IChatRoomLinks.h)			0x4e8850	app

@@ -114,7 +114,8 @@ namespace:
   compila: esos includes se revisan a mano.
 - **Todo lo del código y de Git va en inglés** (Emanuel, 2026-11-21): identificadores, nombres de
   tests (`Feed`, `TEST(PacketReaderTest, CutsAC1)`), comentarios, mensajes de log y de error, ramas,
-  commits y títulos y descripciones de PR. Nada de comentarios en castellano. Los docs también van en
+  commits y títulos y descripciones de PR (ramas, commits y títulos, con la notación Angular de
+  `AGENTS.md`). Nada de comentarios en castellano. Los docs también van en
   inglés: los nuevos desde el 2026-11-21, y los de antes se traducen con el
   [plan de traducción](superpowers/plans/2026-11-21-docs-to-english.md).
 - `.editorconfig` fija espacios, LF y UTF-8. `.clang-tidy` es el de MuMain, con las carpetas de

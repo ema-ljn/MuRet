@@ -43,7 +43,8 @@ For every cleanup, never skipping step 4 or 5:
   feature: another commit and another review. In MuRet, also another lane (the port's).
 - **Tests are the safety net.** Without tests around it, first a characterization test that pins what it does today,
   then the refactor.
-- **Small steps, always green**, and **one topic per commit**, with `AR<epic>.<milestone>` titles.
+- **Small steps, always green**, and **one topic per commit**, with Angular titles and the `AR<epic>.<milestone>`
+  scope (`refactor(AR1.2): …`).
 - **Follow the surrounding code** and **be surgical**: touch what the task asks for; the format and names of the rest
   stay as they were.
 - **Cohesion before line counts.** CODING_RULES sizes detect smells, they are not law: split by responsibility.

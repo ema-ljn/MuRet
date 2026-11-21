@@ -156,6 +156,15 @@ jobs:
         if: matrix.kind == 'build'
         run: python -m unittest discover -s Client/docs/research/scripts/tools -p 'test_reference_summary.py' -v
 
+      # Client refactor (AR0.1): a new include that breaks the module layers, or a file without a module, fails.
+      - name: Client layers
+        if: matrix.kind == 'includes'
+        run: |
+          python3 -I -m unittest discover -s Client/tools/architecture -p 'test_check_layers.py' -v
+          python3 -I Client/tools/architecture/check_layers.py --src Client/src --modules Client/modules.tsv \
+            --map Client/docs/research/coverage/module-map.tsv \
+            --baseline Client/tools/architecture/layers-baseline.tsv
+
       # Lo que los puertos sdl3 y alsa de vcpkg piden del sistema, los headers de OpenGL/EGL,
       # y Xvfb + Mesa (llvmpipe) para abrir la ventana sin pantalla. NASM lo
       # pide el puerto libjpeg-turbo para su SIMD: en Linux, vcpkg no lo baja y usa el del sistema

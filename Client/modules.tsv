@@ -1,0 +1,59 @@
+module	root	layer	folders_today	may_use	note
+engine/Core	engine	0	Core/**	*layer<0	Expected, ByteReader, Log and its sinks, IClock, text encodings, WrappingInt
+engine/Math	engine	1		*layer<1	the original's x87 math: Ftol, F32, Truncate, rotations, angles, retained math
+engine/Crt	engine	1		*layer<1	what mimics the MSVC 6 runtime: rand, Msvc6Sort, sprintf
+engine/Crypto	engine	1		*layer<1	SimpleModulus and its key file, Xor32, Xor3, K16
+engine/Diagnostics	engine	2		*layer<2	the crash handler: dump, report, logs, signals
+engine/Input	engine	2	Input/**	*layer<2	keyboard and mouse per frame, without SDL
+engine/Audio	engine	2	Audio/**	*layer<2	plays effects and music with 3D position; does not know which sounds MU has
+engine/Network	engine	2	Network/**	*layer<2	socket, packet framing, Connection, the obfuscation contract
+engine/Data	engine	2	Data/**	*layer<2	the Data formats: BMD, OZJ, OZT, JPEG, terrain, the table reader
+engine/Platform	engine	3	Platform/**	*layer<3	SDL3: window, GL context, events, audio, WindowState, Resolution, clipboard
+engine/Pathfinding	engine	3		*layer<3	the original's A* over the terrain wall grid
+engine/Obfuscation	engine	3		*layer<3	the lab's FoxAnti layer; removed at compile time (MURET_FOXANTI)
+engine/Render	engine	4	Render/**	*layer<4	SpriteBatch, ModelBatch, text, frame contracts, Gl
+engine/Models	engine	5	Render/Models/**	*layer<5	skeleton, pose, animation, skinning, cloth, IModelLibrary
+game/Protocol	game	6	Protocol/**	*layer<6	packet layouts and writers, per module
+game/Tables	game	6		*layer<6	MU's tables: items, sets, skills, quests, gates, texts, NPC names
+game/Maps	game	6		*layer<6	named map ids and predicates, each map folder, music and ambience
+game/Kernel	game	7		*layer<7	GameContext, shared state (actor pool, player, current map) and the ports
+game/Assets	game	8		*layer<8;game/Sound;game/Terrain	game models and textures
+game/Terrain	game	8		*layer<8	the terrain; does not know actors
+game/Sound	game	8		*layer<8	sound catalog, per-map sounds, per-model sound table, the sound request
+game/Camera	game	8		*layer<8	the camera
+game/Ui	game	8		*layer<8;game/Assets	the widget kit
+game/Actors	game	9		*layer<9;game/Particles	actors and character drawing
+game/Player	game	9		*layer<9	the player state
+game/Hero	game	9		*layer<9;game/Actors;game/Events;game/Guild;game/Player;game/Social	the hero's attack and facing
+game/Monsters	game	9		*layer<9;game/Chat;game/Effects;game/Fauna;game/Guild;game/Hud;game/Joints;game/Particles;game/Player;game/WorldObjects	monsters and their drawing
+game/Pets	game	9		*layer<9;game/Chat;game/Effects;game/Events;game/Fauna;game/Particles;game/Player	pets
+game/Movement	game	9		*layer<9;game/Chat;game/Items;game/Player	the player's path, gates, speed
+game/Skills	game	9		*layer<9;game/Chat;game/Events;game/Fauna;game/Hud;game/Items;game/Particles;game/Party;game/Player	the hero's skills and their replies
+game/Combat	game	9		*layer<9;game/CastleSiege;game/Chat;game/Effects;game/Events;game/Fauna;game/Items;game/Joints;game/Particles;game/Player	combat
+game/Items	game	9		*layer<9;game/Chat;game/Effects;game/Fauna;game/Monsters;game/Particles	items and the inventory
+game/Tooltips	game	9		*layer<9;game/Actors;game/Monsters;game/Npc;game/Pets;game/Player;game/Social	item, skill and pet tooltips
+game/Npc	game	9		*layer<9;game/Actors;game/Chat;game/Events;game/Player;game/Quests;game/Social	NPC talk and the generic NPC windows
+game/Quests	game	9		*layer<9;game/Actors;game/CastleSiege;game/Chat;game/Effects;game/Fauna;game/Items;game/Joints;game/Monsters;game/Movement;game/Player	quests
+game/ChaosMix	game	9		*layer<9;game/Chat;game/Items;game/Movement;game/Player;game/Social	the Chaos Goblin machine and jewel mixes
+game/Warehouse	game	9		*layer<9;game/Movement;game/Npc	the warehouse
+game/PetTrainer	game	9		*layer<9;game/ChaosMix;game/Chat;game/Items;game/Movement;game/Player	the pet trainer
+game/Party	game	9		*layer<9;game/Player;game/Social	the party
+game/Social	game	9		*layer<9;game/CastleSiege;game/Movement;game/Player	trade and duel
+game/Messenger	game	9		*layer<9;game/Actors;game/Combat;game/Items;game/Pets;game/Player;game/Tooltips	friends and letters
+game/PersonalShop	game	9		*layer<9;game/CastleSiege;game/FrontEnd;game/Npc;game/Player	the personal shop
+game/Chat	game	9		*layer<9;game/FrontEnd;game/Player	chat
+game/Guild	game	9		*layer<9;game/Events;game/Particles;game/Player	guild, alliance and war
+game/Events	game	9		*layer<9;game/CastleSiege;game/ChaosMix;game/Chat;game/Fauna;game/Items;game/Joints;game/Particles;game/Player;game/Social	one folder per event: Blood Castle, Devil Square, Chaos Castle, Kalima, Crywolf
+game/CastleSiege	game	9		*layer<9;game/Items;game/Movement;game/Particles;game/Player;game/Tooltips	Castle Siege
+game/WorldObjects	game	9		*layer<9;game/Fauna;game/Weather	world objects
+game/MapScripts	game	9		*layer<9;game/Effects;game/Events;game/Fauna;game/Particles;game/Player	one folder per map with what that map does
+game/Fauna	game	9		*layer<9;game/Particles	birds and fish
+game/Weather	game	9		*layer<9;game/Actors;game/Movement;game/Particles	leaves, rain and clouds
+game/Particles	game	9		*layer<9	particles
+game/Joints	game	9		*layer<9;game/Particles;game/WorldObjects	joints
+game/Effects	game	9		*layer<9;game/Particles;game/Player	model effects
+game/Hud	game	9		*layer<9;game/FrontEnd;game/Hero;game/Player	the HUD and its dialogs
+game/FrontEnd	game	9		*layer<9;game/ChaosMix;game/Effects;game/Events;game/Fauna;game/Items;game/Joints;game/Npc;game/Particles;game/Pets;game/Player;game/WorldObjects	login, server list, character selection and creation
+game/Session	game	10		*layer<10	connection to the servers, keepalive, the opcode table and routing
+game/Scenes	game	11		*layer<11	the frame scripts: Login, Selection, Loading, Game; SceneManager
+app	app	12	App/**;main.cpp	*layer<12	main.cpp and App: config, command line, loop, the composition root

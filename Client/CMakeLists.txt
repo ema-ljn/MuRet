@@ -18,6 +18,8 @@ find_package(glm CONFIG REQUIRED)
 # (pregunta 7 de la CL5). Es el FindFreetype de CMake, que el puerto de vcpkg envuelve, y en Linux
 # sin vcpkg encuentra el del sistema (libfreetype-dev).
 find_package(Freetype REQUIRED)
+# CLI11 (vcpkg.json, AR1.3): the command line's options, header only, used only by App/CommandLine.cpp.
+find_package(CLI11 CONFIG REQUIRED)
 
 # Los fuentes de src/ se juntan solos, como en MuMain: un .cpp nuevo entra al reconfigurar
 # (CONFIGURE_DEPENDS lo mira en cada build). main.cpp es de Main, no de la biblioteca, src/Platform/
@@ -27,6 +29,13 @@ file(GLOB_RECURSE client_sources CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/
 list(FILTER client_sources EXCLUDE REGEX "/src/main\\.cpp$")
 list(FILTER client_sources EXCLUDE REGEX "/src/Platform/")
 list(FILTER client_sources EXCLUDE REGEX "/src/Render/Gl/")
+# Each system's command line syntax (App/CommandLineSystem.h).
+list(FILTER client_sources EXCLUDE REGEX "/src/App/CommandLine(Posix|Windows)\\.cpp$")
+if(WIN32)
+    list(APPEND client_sources "${CMAKE_CURRENT_SOURCE_DIR}/src/App/CommandLineWindows.cpp")
+else()
+    list(APPEND client_sources "${CMAKE_CURRENT_SOURCE_DIR}/src/App/CommandLinePosix.cpp")
+endif()
 add_library(ClientLib STATIC ${client_sources})
 target_include_directories(ClientLib PUBLIC src)
 target_compile_features(ClientLib PUBLIC cxx_std_20)
@@ -35,6 +44,7 @@ target_link_libraries(ClientLib PRIVATE
     $<IF:$<TARGET_EXISTS:libjpeg-turbo::jpeg>,libjpeg-turbo::jpeg,libjpeg-turbo::jpeg-static>)
 # Sus headers quedan en FreeTypeRasterizer.cpp: nadie más los ve.
 target_link_libraries(ClientLib PRIVATE Freetype::Freetype)
+target_link_libraries(ClientLib PRIVATE CLI11::CLI11)
 # PUBLIC: los headers de Render/Models/ usan sus tipos (pregunta 4 del plan de la CL6). Sin
 # GLM_FORCE_* ni GLM_ENABLE_EXPERIMENTAL, así el precompiled header no cambia.
 target_link_libraries(ClientLib PUBLIC glm::glm-header-only)
@@ -113,12 +123,26 @@ if(MURET_BUILD_TESTS)
     # la ventana, así que corre sin pantalla. Si faltara la DLL, no imprimiría nada y fallaría.
     add_test(NAME Client.Main.RejectsBadArguments COMMAND Main --frames 0)
     set_tests_properties(Client.Main.RejectsBadArguments PROPERTIES
-        PASS_REGULAR_EXPRESSION "--frames necesita un número mayor que 0")
-    # Un puerto malo del launcher corta antes de SDL_Init, con el mensaje de ParsePort (CL3.4). Con
-    # PASS_REGULAR_EXPRESSION, CTest mira solo la salida y no el código de salida (EXIT_FAILURE).
-    add_test(NAME Client.Main.RejectsBadPort COMMAND Main connect /u127.0.0.1 /p0)
+        PASS_REGULAR_EXPRESSION "--frames needs a number greater than 0")
+    # Un puerto malo corta antes de SDL_Init, con el mensaje de ParsePort (CL3.4). Con
+    # PASS_REGULAR_EXPRESSION, CTest mira solo la salida y no el código de salida.
+    add_test(NAME Client.Main.RejectsBadPort COMMAND Main --host 127.0.0.1 --port 0)
     set_tests_properties(Client.Main.RejectsBadPort PROPERTIES
-        PASS_REGULAR_EXPRESSION "el puerto va de 1 a 65535")
+        PASS_REGULAR_EXPRESSION "--port: the port must be from 1 to 65535")
+    # The launcher's form is Windows only; Linux ignores it (AR1.3).
+    if(WIN32)
+        add_test(NAME Client.Main.RejectsBadLauncherPort COMMAND Main connect /u127.0.0.1 /p0)
+        set_tests_properties(Client.Main.RejectsBadLauncherPort PROPERTIES
+            PASS_REGULAR_EXPRESSION "/p: the port must be from 1 to 65535")
+    endif()
+    # Without PASS_REGULAR_EXPRESSION, a test passes only with exit code 0.
+    add_test(NAME Client.Main.PrintsTheHelp COMMAND Main --help)
+    add_test(NAME Client.Main.PrintsTheVersion COMMAND Main --version)
+    set_tests_properties(Client.Main.PrintsTheVersion PROPERTIES
+        PASS_REGULAR_EXPRESSION "MuRet client ${PROJECT_VERSION}")
+    add_test(NAME Client.Main.AnUnknownOptionShowsTheUsage COMMAND Main --fullscreen)
+    set_tests_properties(Client.Main.AnUnknownOptionShowsTheUsage PROPERTIES
+        PASS_REGULAR_EXPRESSION "unknown (option|argument) \"--fullscreen\".*Usage: Main")
     # Q-C35: una carpeta de datos que no existe se nombra, antes de SDL_Init (Resolve).
     add_test(NAME Client.Main.NamesTheMissingDataFolder
         COMMAND Main --data ${CMAKE_CURRENT_BINARY_DIR}/no-existe-esta-carpeta-de-datos)
@@ -138,20 +162,20 @@ if(MURET_BUILD_TESTS)
     # plan de la CL4): sin las variables, la salida nombra las dos, antes de mirar las claves y sin
     # red ni ventana.
     add_test(NAME Client.Main.ConnectWithoutCredentialsNamesThem
-        COMMAND Main connect /u127.0.0.1 /p44405 --auto-login)
+        COMMAND Main --host 127.0.0.1 --port 44405 --auto-login)
     set_tests_properties(Client.Main.ConnectWithoutCredentialsNamesThem PROPERTIES
         PASS_REGULAR_EXPRESSION "falta MURET_CLIENT_ACCOUNT; falta MURET_CLIENT_PASSWORD")
     # --auto-login sin un host no tiene a qué entrar: Resolve lo dice antes de abrir la ventana.
     add_test(NAME Client.Main.AutoLoginWithoutAServerSaysSo COMMAND Main --auto-login)
     set_tests_properties(Client.Main.AutoLoginWithoutAServerSaysSo PROPERTIES
-        PASS_REGULAR_EXPRESSION "--auto-login necesita un servidor")
+        PASS_REGULAR_EXPRESSION "--auto-login needs a server")
     # Sin --auto-login, la cuenta la teclea el jugador y el entorno no se mira: un host pide solo
     # las claves de la conexión. Una carpeta de datos vacía no las tiene, y la salida nombra
     # Enc1.dat y Dec2.dat, sin abrir la ventana.
     set(empty_data_folder "${CMAKE_CURRENT_BINARY_DIR}/datos-sin-claves")
     file(MAKE_DIRECTORY "${empty_data_folder}")
     add_test(NAME Client.Main.ConnectWithoutKeysNamesThem
-        COMMAND Main connect /u127.0.0.1 /p44405 --data "${empty_data_folder}")
+        COMMAND Main --host 127.0.0.1 --port 44405 --data "${empty_data_folder}")
     set_tests_properties(Client.Main.ConnectWithoutKeysNamesThem PROPERTIES
         PASS_REGULAR_EXPRESSION "no está Enc1.dat; no está Dec2.dat")
     # Con una carpeta de datos y sin host, las escenas (CL5.4): primero Text.bmd, como WinMain antes
@@ -161,9 +185,13 @@ if(MURET_BUILD_TESTS)
         PASS_REGULAR_EXPRESSION "no está Local.Text.bmd en .*datos-sin-claves")
     # Ningún test de Main ve las variables de quien corre CTest: sin --auto-login no se leen, y con
     # él, el de arriba las necesita sin poner.
-    set_tests_properties(Client.Main.RejectsBadArguments Client.Main.RejectsBadPort
-        Client.Main.NamesTheMissingDataFolder Client.Main.ReadsTheDataPathInUtf8
+    set_tests_properties(Client.Main.RejectsBadArguments Client.Main.RejectsBadPort Client.Main.PrintsTheHelp
+        Client.Main.PrintsTheVersion Client.Main.AnUnknownOptionShowsTheUsage Client.Main.NamesTheMissingDataFolder Client.Main.ReadsTheDataPathInUtf8
         Client.Main.ConnectWithoutCredentialsNamesThem Client.Main.AutoLoginWithoutAServerSaysSo
         Client.Main.ConnectWithoutKeysNamesThem Client.Main.ScenesWithoutTheTextTableNameIt PROPERTIES
         ENVIRONMENT_MODIFICATION "MURET_CLIENT_ACCOUNT=unset:;MURET_CLIENT_PASSWORD=unset:")
+    if(WIN32)
+        set_tests_properties(Client.Main.RejectsBadLauncherPort PROPERTIES
+            ENVIRONMENT_MODIFICATION "MURET_CLIENT_ACCOUNT=unset:;MURET_CLIENT_PASSWORD=unset:")
+    endif()
 endif()

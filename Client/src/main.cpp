@@ -111,10 +111,11 @@
 //   0. El manejador de caídas, antes que nada, como la primera llamada de WinMain (0x4b9b80, en 0x4b9b97): si
 //      el cliente se cae, escribe MuError.dmp en la carpeta actual y, con el log ya abierto, su
 //      línea (Core/Crash/CrashHandler.h). Si no se puede instalar, un aviso y se sigue sin él.
-//   1. ReadStartup, antes de SDL_Init: la carpeta del ejecutable, los argumentos y la config, y,
-//      con un host (de la config o de /u /p), las claves de la conexión y, con --auto-login, antes
-//      la cuenta y la clave del entorno (ReadServerStartup). Un error corta acá, sin abrir la
-//      ventana, y va solo a stderr: el archivo del log lo dice la config.
+//   1. The command line (App/CommandLine.h): the help and the version go to stdout with exit code 0, a usage
+//      error and the usage to stderr with exit code 2. Then ReadStartup, before SDL_Init: the executable's folder
+//      and the config, and, with a host (from the config or the command line), the connection keys and, with
+//      --auto-login, first the account and the password from the environment (ReadServerStartup). An error stops
+//      here, without opening the window, and goes only to stderr: the config names the log file.
 //   2. El log entero, stderr y el archivo. Queda en main porque el TeeSink y el Log guardan
 //      referencias a sus salidas, que tienen que vivir más que ellos. Con una carpeta de datos
 //      (--data o [Data] Path), lo de WinMain antes de la escena 1 (ReadSceneStartup): Text.bmd y,
@@ -209,9 +210,20 @@ std::optional<ServerStartup> ReadServerStartup(const App::ClientConfig& config, 
                          .mainCheckFile = {}};
 }
 
+// Phase 1: argv[1..], in UTF-8 on Windows too (SDL_main.h).
+Core::Expected<App::CommandLine, App::CommandLineExit> ParseArguments(int argc, char* argv[])
+{
+    std::vector<std::string_view> arguments;
+    for (int i = 1; i < argc; ++i)
+    {
+        arguments.emplace_back(argv[i]);
+    }
+    return App::ParseCommandLine(arguments, Version);
+}
+
 // Fase 1. SDL_GetBasePath anda antes de SDL_Init: en la carpeta del ejecutable están la config y,
 // si no dice otra cosa, el log.
-std::optional<Startup> ReadStartup(int argc, char* argv[], Core::Log& log)
+std::optional<Startup> ReadStartup(int argc, char* argv[], App::CommandLine commandLine, Core::Log& log)
 {
     const auto exeFolder = Platform::ExecutableFolder();
     if (!exeFolder.HasValue())
@@ -220,11 +232,6 @@ std::optional<Startup> ReadStartup(int argc, char* argv[], Core::Log& log)
     }
     const std::filesystem::path folder = exeFolder.HasValue() ? exeFolder.Value() : std::filesystem::path();
 
-    std::vector<std::string_view> arguments;
-    for (int i = 1; i < argc; ++i)
-    {
-        arguments.emplace_back(argv[i]);
-    }
     // La línea de comandos que 0x4ad4a0 pide con GetCommandLineA para sumar su ejecutable: argv[0] y
     // los argumentos separados por un espacio. 0x4ad270 corta el nombre en el primer espacio o
     // comilla, así que las comillas que GetCommandLineA conserva no cambian el resultado.
@@ -237,13 +244,7 @@ std::optional<Startup> ReadStartup(int argc, char* argv[], Core::Log& log)
         }
         rawCommandLine += argv[i];
     }
-    auto commandLine = App::ParseCommandLine(arguments);
-    if (!commandLine.HasValue())
-    {
-        log.Error("{}", commandLine.Error());
-        return std::nullopt;
-    }
-    auto config = App::Resolve(folder, commandLine.Value());
+    auto config = App::Resolve(folder, commandLine);
     if (!config.HasValue())
     {
         log.Error("{}", config.Error());
@@ -252,7 +253,7 @@ std::optional<Startup> ReadStartup(int argc, char* argv[], Core::Log& log)
     std::optional<ServerStartup> server;
     if (App::HasServerHost(config.Value()))
     {
-        server = ReadServerStartup(config.Value(), commandLine.Value().autoLogin, log);
+        server = ReadServerStartup(config.Value(), commandLine.autoLogin, log);
         if (!server)
         {
             return std::nullopt;
@@ -260,7 +261,7 @@ std::optional<Startup> ReadStartup(int argc, char* argv[], Core::Log& log)
         server->mainCheckFile = Client::Protocol::Connection::MainCheckFileName(rawCommandLine);
     }
     return Startup{.folder = folder,
-                   .commandLine = std::move(commandLine).Value(),
+                   .commandLine = std::move(commandLine),
                    .config = std::move(config).Value(),
                    .server = std::move(server)};
 }
@@ -938,7 +939,14 @@ int main(int argc, char* argv[])
     {
         startupLog.Warning("{}: el cliente sigue sin manejador de caídas", crashHandler.Error());
     }
-    const std::optional<Startup> startup = ReadStartup(argc, argv, startupLog);
+    auto commandLine = ParseArguments(argc, argv);
+    if (!commandLine.HasValue())
+    {
+        const App::CommandLineExit& ending = commandLine.Error();
+        std::fputs(ending.text.c_str(), ending.exitCode == EXIT_SUCCESS ? stdout : stderr);
+        return ending.exitCode;
+    }
+    const std::optional<Startup> startup = ReadStartup(argc, argv, std::move(commandLine).Value(), startupLog);
     if (!startup)
     {
         return EXIT_FAILURE;

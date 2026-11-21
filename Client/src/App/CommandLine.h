@@ -12,48 +12,49 @@
 #include <string>
 #include <string_view>
 
-// Los argumentos de Main.
+// Main's arguments, by each system's convention (AR1.3). Main --help lists them:
 //
-//   Main                  corre hasta que se cierre la ventana
-//   Main --frames N       dibuja N frames y sale (para probarlo sin nadie que cierre la ventana)
-//   Main --pacing MODO    decoupled (el de MuRet) o faithful (el ritmo del original), CL3.2
-//   Main --vsync MODO     on, adaptive u off; en el modo fiel solo off, como el original
-//   Main --max-fps N      el tope de FPS del modo normal con VSync off: 0 (sin tope), o de
-//                         MinFpsLimit a MaxFpsLimit
-//   Main --stats          imprime los FPS y los pasos por segundo cada 5 s
-//   Main --config RUTA    lee esa config en vez de muret-client.ini junto al ejecutable (CL3.4)
-//   Main --data RUTA      la carpeta de datos, en vez de [Data] Path
-//   Main connect /u<host> /p<puerto>
-//                         el servidor, como lo pasa el launcher (02 § Del launcher al juego):
-//                         connect es opcional, /u y /p van en cualquier orden y sin mirar
-//                         mayúsculas, y uno sin el otro es error. Pisan [Server] de la config
-//   Main --auto-login     con un servidor, elige el primero de la lista y entra con la cuenta y la
-//                         clave del entorno, sin la UI (CL5.5; App/AutoLogin.h). Sin un servidor
-//                         es error (Resolve)
+//   --host HOST --port PORT  the ConnectServer, instead of [Server] Host and Port; one needs the other
+//   --auto-login             with a server, pick the first one and log in with the account and password from the
+//                            environment, without the UI (App/AutoLogin.h); without a server it is an error (Resolve)
+//   --config PATH            read this config instead of muret-client.ini next to the executable
+//   --data PATH              the data folder, instead of [Data] Path
+//   --frames N               draw N frames and exit
+//   --pacing MODE            decoupled (MuRet's) or faithful (the original's pace)
+//   --vsync MODE             on, adaptive or off; faithful pacing takes only off
+//   --max-fps N              the FPS cap with VSync off: 0 (none) or MinFpsLimit to MaxFpsLimit
+//   --stats                  print the FPS and the steps per second every 5 s
+//
+// Linux takes only these, as --name value or --name=value, and ignores what is not an option. Windows also takes
+// /name value and /name:value, in any case, /? and the launcher's connect /u<host> /p<port> (Q-C36). -- ends the
+// options on both.
 namespace Client::App
 {
 struct CommandLine
 {
-    // Sin --frames, vacío: sin límite.
     std::optional<std::uint64_t> maxFrames;
-    // Sin --pacing, vacío: lo decide la config (CL3.4), y si no, Decoupled.
     std::optional<PacingMode> pacing;
-    // Sin --vsync, vacío: lo decide el modo (CL3.4), On en Decoupled y Off en Faithful.
     std::optional<VSyncMode> vsync;
-    // Sin --max-fps, vacío: lo decide la config, y si no, 0 (sin tope). --max-fps 0 pisa un MaxFps
-    // de la config.
     std::optional<int> maxFps;
     bool stats = false;
-    // --auto-login: sin él, la cuenta y la clave las teclea el jugador en la ventana del login.
     bool autoLogin = false;
-    // /u<host> /p<puerto>, con o sin connect adelante. Vacío si no se dio ninguno.
     std::optional<ServerAddress> connect;
-    // --config y --data. Relativas, desde la carpeta actual: son de quien lanza el cliente.
+    // Relative to the current folder: they belong to whoever starts the client.
     std::optional<std::filesystem::path> configPath;
     std::optional<std::filesystem::path> dataPath;
 };
 
-// Lee los argumentos, sin el nombre del programa (argv[1..]). Si alguno está mal, devuelve el
-// mensaje para el usuario. Las combinaciones (el modo fiel sin VSync) las mira Resolve (Config.h).
-Core::Expected<CommandLine, std::string> ParseCommandLine(std::span<const std::string_view> arguments);
+inline constexpr int UsageErrorExitCode = 2;
+
+// The command line ends Main before it starts: the help or the version, to stdout with exit code 0, or a usage error,
+// its line and the usage, to stderr with UsageErrorExitCode.
+struct CommandLineExit
+{
+    std::string text;
+    int exitCode = 0;
+};
+
+// The arguments without the program's name (argv[1..]). Resolve (Config.h) checks the combinations.
+Core::Expected<CommandLine, CommandLineExit> ParseCommandLine(std::span<const std::string_view> arguments,
+                                                              std::string_view version);
 } // namespace Client::App

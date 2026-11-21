@@ -246,11 +246,11 @@ TEST(ConfigTest, RejectsAKeyWithoutAValue)
 
 TEST(ConfigTest, RejectsAPortOutOfRange)
 {
-    EXPECT_EQ(ErrorOf("[Server]\nPort = 0\n").message, "[Server] Port: el puerto va de 1 a 65535");
-    EXPECT_EQ(ErrorOf("[Server]\nPort = 65536\n").message, "[Server] Port: el puerto va de 1 a 65535");
+    EXPECT_EQ(ErrorOf("[Server]\nPort = 0\n").message, "[Server] Port: the port must be from 1 to 65535");
+    EXPECT_EQ(ErrorOf("[Server]\nPort = 65536\n").message, "[Server] Port: the port must be from 1 to 65535");
     EXPECT_EQ(ParseConfig("[Server]\nPort = 65535\n").Value().server->port, 65535);
-    EXPECT_EQ(ErrorOf("[Server]\nPort = 12a\n").message, "[Server] Port: el puerto tiene que ser un número");
-    EXPECT_EQ(ErrorOf("[Server]\nPort = -1\n").message, "[Server] Port: el puerto tiene que ser un número");
+    EXPECT_EQ(ErrorOf("[Server]\nPort = 12a\n").message, "[Server] Port: the port must be a number");
+    EXPECT_EQ(ErrorOf("[Server]\nPort = -1\n").message, "[Server] Port: the port must be a number");
 }
 
 // Q-C37: el original copiaba el host sin mirar el largo.
@@ -262,13 +262,13 @@ TEST(ConfigTest, AcceptsAHostOf255BytesAndRejects256)
 
     const ConfigError error = ErrorOf("[Server]\nHost = " + std::string(MaxHostBytes + 1, 'a') + "\n");
     EXPECT_EQ(error.line, 2u);
-    EXPECT_EQ(error.message, "[Server] Host: el host va de 1 a 255 bytes");
+    EXPECT_EQ(error.message, "[Server] Host: the host must be 1 to 255 bytes");
 }
 
 TEST(ConfigTest, RejectsAHostWithSpaces)
 {
-    EXPECT_EQ(ErrorOf("[Server]\nHost = 10.0.0.1 x\n").message, "[Server] Host: el host no puede tener espacios");
-    EXPECT_EQ(ErrorOf("[Server]\nHost = a\tb\n").message, "[Server] Host: el host no puede tener espacios");
+    EXPECT_EQ(ErrorOf("[Server]\nHost = 10.0.0.1 x\n").message, "[Server] Host: the host cannot have spaces");
+    EXPECT_EQ(ErrorOf("[Server]\nHost = a\tb\n").message, "[Server] Host: the host cannot have spaces");
 }
 
 TEST(ConfigTest, RejectsASizeOutOfRange)
@@ -345,7 +345,7 @@ TEST(ConfigTest, RejectsAPathOrHostThatIsNotUtf8)
 
     // El host no se mira como UTF-8: tiene que ser ASCII (ParseHost, test_server_address.cpp).
     EXPECT_EQ(ErrorOf("[Server]\nHost = \xDA\n").message,
-              "[Server] Host: el host tiene que ser ASCII (un nombre con acentos va en punycode)");
+              "[Server] Host: the host must be ASCII (a name with accents goes in punycode)");
     // Una forma larga de más ("/" en dos bytes) y una mitad de UTF-16 (U+D800).
     EXPECT_EQ(ErrorOf("[Log]\nPath = \xC0\xAF\n").message, "[Log] Path: no es UTF-8");
     EXPECT_EQ(ErrorOf("[Log]\nPath = \xED\xA0\x80\n").message, "[Log] Path: no es UTF-8");
@@ -355,9 +355,8 @@ TEST(ConfigTest, RejectsControlCharacters)
 {
     const ConfigError host = ErrorOf("[Server]\nHost = 10.0.0.1\0evil.com\n"sv);
     EXPECT_EQ(host.line, 2u);
-    EXPECT_EQ(host.message, "[Server] Host: el host no puede tener caracteres de control");
-    EXPECT_EQ(ErrorOf("[Server]\nHost = a\x7F\n").message,
-              "[Server] Host: el host no puede tener caracteres de control");
+    EXPECT_EQ(host.message, "[Server] Host: the host cannot have control characters");
+    EXPECT_EQ(ErrorOf("[Server]\nHost = a\x7F\n").message, "[Server] Host: the host cannot have control characters");
     EXPECT_EQ(ErrorOf("[Log]\nPath = a\x7F\n").message, "[Log] Path: la ruta no puede tener caracteres de control");
 
     const ConfigError path = ErrorOf("[Data]\nPath = C:\\MU\0X\n"sv);
@@ -769,7 +768,7 @@ TEST(ConfigTest, AutoLoginNeedsAServer)
 
     const auto withoutHost = Resolve(exeFolder.Path(), commandLine);
     ASSERT_FALSE(withoutHost.HasValue());
-    EXPECT_NE(withoutHost.Error().find("--auto-login necesita un servidor"), std::string::npos) << withoutHost.Error();
+    EXPECT_NE(withoutHost.Error().find("--auto-login needs a server"), std::string::npos) << withoutHost.Error();
 
     exeFolder.Write("[Server]\nHost = 10.0.0.1\n");
     EXPECT_TRUE(Resolve(exeFolder.Path(), commandLine).HasValue());

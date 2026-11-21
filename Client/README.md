@@ -169,10 +169,19 @@ defecto. Todo se valida antes de abrir la ventana: un error termina `Main` con u
 empieza con `[error]` y nombra la opción, la clave o la ruta, sin abrir nada. Sin argumentos ni
 config, `Main` corre con los valores por defecto, como en CI.
 
+The options follow each system's convention (AR1.3). On Linux they are GNU options: `--name value` or `--name=value`,
+and `--` ends them; an argument that is not an option is ignored, the launcher's `connect /u<host> /p<port>` too.
+Windows also takes `/name value` and `/name:value`, with the name in any case, and the launcher's form. `--help` (`-h`,
+and `/?` on Windows) lists every option and `--version` prints the version, both to stdout with exit code 0. A usage
+error (an unknown option, a missing or bad value, a repeat) prints `Main:` and what is wrong, then the same usage, to
+stderr with exit code 2.
+
 | Opción | Qué hace |
 | --- | --- |
-| `--auto-login` | con un servidor, elige el primero de la lista y entra con la cuenta y la clave del entorno, sin la UI (la sección de abajo). Sin un servidor, de `/u /p` o de `[Server] Host`, es un error |
-| `connect /u<host> /p<puerto>` | el servidor, como lo pasa el launcher. `connect` es opcional, las letras van en mayúscula o minúscula y en cualquier orden. El valor va pegado a la letra. El puerto va de 1 a 65535, y el host, de 1 a 255 bytes de ASCII visible: una IP o un nombre, que con acentos va en punycode (Q-C37). Uno sin el otro, o uno repetido, es un error (Q-C36), y `/y` y `/z`, también |
+| `--help`, `--version` | the usage with every option, or the version, and exit 0 |
+| `--auto-login` | with a server, pick the first one in the list and log in with the account and password from the environment, without the UI (the section below). Without a server, from the command line or `[Server] Host`, it is an error |
+| `--host <host> --port <port>` | the ConnectServer, instead of `[Server] Host` and `Port`. The port goes from 1 to 65535, and the host from 1 to 255 bytes of visible ASCII: an IP or a name, which goes in punycode with accents (Q-C37). One without the other is an error |
+| `connect /u<host> /p<port>` | Windows only: the server, as the launcher passes it. `connect` is optional, the letters go in any case and order, and the value is attached to the letter, with the same limits as `--host` and `--port`. One without the other, a repeat, `/y`, `/z` or this form together with `--host` is an error (Q-C36). Linux ignores it |
 | `--config <ruta>` | lee esa config en vez de `muret-client.ini`; si no existe, es un error que la nombra |
 | `--data <ruta>` | la carpeta de datos del cliente original, en vez de `[Data] Path`; si no existe o no es una carpeta, es un error que la nombra (Q-C35) |
 | `--max-fps <N>` | el tope de FPS del modo normal con VSync apagado, en vez de `[Video] MaxFps`: 0 (sin tope), o de 25 (un frame por paso de la lógica) a 1000. Después de dibujar, `Main` duerme hasta la meta del frame: 1 s / N después de la del anterior, o de donde terminó el anterior si se pasó. Así lo que corre entre frames no se suma, y el tope nunca da menos FPS que no tenerlo. Con VSync no se usa. Con `--pacing faithful`, un tope que no es 0 es un error que nombra `--pacing faithful` y `--max-fps`; `--max-fps 0` vale, y saca un `MaxFps` de la config |
@@ -192,7 +201,7 @@ Cada opción va una vez: una repetida es un error. Dos límites de Windows:
 Por ejemplo:
 
 ```bash
-./build/linux-x64-debug/Client/Main connect /u127.0.0.1 /p44405 --data /ruta/a/Data
+./build/linux-x64-debug/Client/Main --host 127.0.0.1 --port 44405 --data /ruta/a/Data
 ./build/linux-x64-debug/Client/Main --config ~/mu/otra.ini
 ```
 
@@ -226,7 +235,7 @@ muestra en sus lugares (CL6.3).
 
 ### Con un servidor: la cuenta y las claves
 
-Con un host, de `/u` o de `[Server] Host`, `Main` necesita antes de abrir la ventana las claves
+Con un host, de `--host` o de `[Server] Host`, `Main` necesita antes de abrir la ventana las claves
 de la conexión y, con `--auto-login`, antes que ellas, la cuenta y la clave del entorno:
 
 1. Solo con `--auto-login`: la cuenta y la clave del login, en `MURET_CLIENT_ACCOUNT` y
@@ -286,7 +295,7 @@ falta correr está en P-C16 y P-C21 del [08](docs/research/08-pendientes.md).
    `Enc1.dat` y `Dec2.dat`:
 
    ```bash
-   ./build/linux-x64-debug/Client/Main connect /u<ip del CS> /p44405 --data Client/assets/Data
+   ./build/linux-x64-debug/Client/Main --host <ip del CS> --port 44405 --data Client/assets/Data
    ```
 
    En Windows, lo mismo con `build\windows-x64\Client\Debug\Main.exe`, o con `[Server] Host`,

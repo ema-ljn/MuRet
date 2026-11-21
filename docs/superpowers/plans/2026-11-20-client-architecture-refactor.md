@@ -576,7 +576,8 @@ convention (`--name`), Windows uses its most common one (`/name`), and every opt
   - Boost.Program_options (`boost-program-options`, compiled, in Context7): GNU style yes (`unix_style`,
     `allow_unregistered` with `collect_unrecognized`, the help from `options_description`), but `/` only for one-letter
     options (`allow_slash_for_short`), so no `/data:C:\MU\Data`; `unix_style` guesses abbreviations unless turned
-    off; and it brings Boost into a repo that has none.
+    off; it brings Boost into a repo that has none; and its README says the library is "essentially done": good PRs
+    are merged slowly and issues may stay open indefinitely (53 open on 2026-11-21). Boost itself keeps releasing.
   - cxxopts (`cxxopts`, header only) and argparse (`argparse`, header only): only `-` and `--` options, no Windows
     style; Context7 has neither, so not verified beyond the CL3 plan.
   - docopt (`docopt`): parses from the usage text; not in Context7 and with no Windows style.

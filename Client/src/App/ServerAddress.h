@@ -28,8 +28,8 @@ struct ServerAddress
     std::uint16_t port = DefaultConnectPort;
 };
 
-// Un puerto escrito en decimal, solo dígitos y de 1 a 65535. El error es "el puerto va de 1 a
-// 65535" o "el puerto tiene que ser un número".
+// A port written in decimal, digits only, from 1 to 65535. The error is "the port must be from 1 to 65535" or "the port
+// must be a number".
 Core::Expected<std::uint16_t, std::string> ParsePort(std::string_view text);
 
 // Un host de 1 a MaxHostBytes bytes de ASCII visible (0x21 a 0x7E): una IP o un nombre, que con

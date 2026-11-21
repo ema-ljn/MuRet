@@ -698,7 +698,7 @@ arranque hasta el cierre, también antes de conectar. Los otros: el 1001 en `0x4
 | Original | MuRet | Ola |
 | --- | --- | --- |
 | `WinMain` + `WndProc` + `wgl*` | una capa `Platform` sobre una biblioteca portable de ventana e input (decisión D-C3 del roadmap); `main.cpp` solo arma y arranca | CL3 |
-| El servidor: el compilado, o el que deja el launcher en el registro (`wzPopLaunchInfo`); la config en el registro; los argumentos no se leen | archivo de config + argumentos; se acepta `connect /u<ip> /p<puerto>`, lo que entiende el parser sin usar del original (Q-C36) y como ya se lo lanza en el laboratorio | CL3 |
+| El servidor: el compilado, o el que deja el launcher en el registro (`wzPopLaunchInfo`); la config en el registro; los argumentos no se leen | a config file and arguments, by each system's convention (AR1.3): on Windows `connect /u<ip> /p<port>` is accepted, what the original's unused parser understands (Q-C36) and how the lab starts it; on Linux the server is `--host`/`--port` | CL3 |
 | Sin el servidor del launcher, el original vuelve a abrir `Mu.exe` y sale; en el laboratorio, ese salto está anulado (Q-C34) | arranca solo, como el del laboratorio: no hay launcher | — |
 | Se abre a sí mismo por el nombre de la línea de comandos, en la carpeta actual, y si no está, sale sin avisar (Q-C35); copia ese nombre y el host del launcher sin mirar el largo (Q-C37) | no se abre a sí mismo; la carpeta de datos sale de la config, y el host y el puerto se validan | CL3 |
 | Lógica en pasos de 40 ms; dibujo esperando 40 ms con `GetTickCount`, que en la práctica da 46,875 ms | la lógica sigue en pasos de 40 ms con el mismo bucle de alcanzar; el dibujo deja de esperar e interpola entre pasos (D-C4 del roadmap); el modo fiel restaura la espera con un reloj de 15,625 ms, para dar los mismos 21,33 FPS | CL3 |
@@ -723,9 +723,9 @@ Tests que fija:
   `ServerSessionTest.KeepaliveEveryTwentySecondsAndNotBefore`).
 - Las transiciones de escena de la tabla, y que una que no está se rechace (CL5.4).
 - La letra de cada ancho: 12, 13, 14 y 15 en 640, 800, 1024 y 1280, y 15 en 1600 (CL5.3).
-- El parser de la línea de comandos acepta `connect /u<ip> /p<puerto>` como el original, con las
-  letras en mayúscula o minúscula, y rechaza un puerto que no sea un número de 1 a 65535; qué hace
-  con `/u` sin `/p` se decide en la CL3 (CL3).
+- On Windows the command line takes `connect /u<ip> /p<port>` as the original, with the letters in
+  any case, and rejects a port that is not a number from 1 to 65535 or `/u` without `/p`; on Linux
+  the server is `--host`/`--port` (CL3, AR1.3; Q-C36).
 - Sin la carpeta de datos, el arranque termina con un error que la nombra (CL3; un archivo que
   falta adentro es Q-C12).
 - `MuError.dmp` byte a byte contra la tabla de [§ El manejador de caídas](#el-manejador-de-caídas)

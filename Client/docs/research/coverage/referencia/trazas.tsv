@@ -7369,7 +7369,7 @@ va	funcion	dentro	seccion	area	archivo	linea	simbolo	tipo	pendiente	en	texto
 0x448440	0x448440	sí	código	src	Client/src/Scenes/GameData.h	84	GameData::moves	impl		comentario	// de 0x723c68). Vacío si no está, como cuando fopen falla en 0x448440.
 0x448440	0x448440	sí	código	src	Client/src/Scenes/GameData.h	118	LoadGameData	impl		comentario	// 0x61ccb0, también: sin él, la ventana /move queda sin destinos (0x448440 devuelve 0 y nadie lo mira);
 0x448440	0x448440	sí	código	src	Client/src/Scenes/WorldRuntime.h	424	WorldRuntime::moves	impl		comentario	// 0x723c68 (+8, la lista; +0xc, la cuenta): los destinos de movereq.bmd que 0x448440 lee en la carga (0x61ccb0) y
-0x448440	0x448440	sí	código	src	Client/src/main.cpp	685	RunScenes	impl		comentario	// 0x61ec8f: 0x448440 deja los destinos de movereq.bmd en la lista de 0x723c68, que dura hasta el cierre.
+0x448440	0x448440	sí	código	src	Client/src/main.cpp	686	RunScenes	impl		comentario	// 0x61ec8f: 0x448440 deja los destinos de movereq.bmd en la lista de 0x723c68, que dura hasta el cierre.
 0x448440	0x448440	sí	código	tests	Client/tests/data/test_golden_move_requirements.cpp	16		test		comentario	// movereq.bmd real (Data\Local, 0x448440 desde 0x61ccb0): los 28 destinos, el primero, el de la torre con el nombre
 0x448440	0x448440	sí	código	tests	Client/tests/data/test_move_requirements.cpp	15		test		comentario	// Client::Data::Text::LoadMoveRequirements: movereq.bmd (0x448440), la cuenta en claro y registros de 0x50 con el
 0x448440	0x448440	sí	código	tests	Client/tests/data/test_move_requirements.cpp	46	FileWith	test		comentario	// La cuenta y cada registro cifrado por su cuenta, como los lee 0x448440.
@@ -9598,7 +9598,7 @@ va	funcion	dentro	seccion	area	archivo	linea	simbolo	tipo	pendiente	en	texto
 0x46b3b0	0x46b3b0	sí	código	src	Client/src/Scenes/GameData.cpp	222	LoadSlides	impl		comentario	// 0x46b3b0 lee 0xa030 bytes sin mirar el tamaño: un archivo más largo se lee igual.
 0x46b3b0	0x46b3b0	sí	código	src	Client/src/Scenes/GameData.h	114	LoadGameData	impl		comentario	// 0x61c1c0; una palabra que desborda su lugar (Q-C531) es el error. Al final, Slide.bmd (0x46b3b0): uno que no está
 0x46b3b0	0x46b3b0	sí	código	src	Client/src/UI/SlideBanner.h	122	LoadTheSlides	impl		comentario	// 0x46b3b0 después de leer el archivo: el período, la velocidad y los tramos. Si había textos, antes vacía los cinco
-0x46b3b0	0x46b3b0	sí	código	src	Client/src/main.cpp	694	RunScenes	impl		comentario	// 0x61ed18: 0x46b3b0 deja Slide.bmd en el cartel de [0x5763528], que dura hasta el cierre.
+0x46b3b0	0x46b3b0	sí	código	src	Client/src/main.cpp	695	RunScenes	impl		comentario	// 0x61ed18: 0x46b3b0 deja Slide.bmd en el cartel de [0x5763528], que dura hasta el cierre.
 0x46b3b0	0x46b3b0	sí	código	tests	Client/tests/data/test_slide_table.cpp	17		test		comentario	// Client::Data::Text::LoadSlideTable: Slide.bmd (0x46b3b0), con textos inventados.
 0x46b3c4	0x46b3b0	sí	código	src	Client/src/UI/SlideBanner.cpp	309	LoadTheSlides	impl		comentario	// 0x46b3c4..0x46b3dc: con algún texto, 0x46b5b0 vacía las listas antes; los topes y las cuentas se pisan igual.
 0x46b3dc	0x46b3b0	sí	código	src	Client/src/UI/SlideBanner.cpp	309	LoadTheSlides	impl		comentario	// 0x46b3c4..0x46b3dc: con algún texto, 0x46b5b0 vacía las listas antes; los topes y las cuentas se pisan igual.
@@ -11321,7 +11321,7 @@ va	funcion	dentro	seccion	area	archivo	linea	simbolo	tipo	pendiente	en	texto
 0x49de50	0x49de50	sí	código	src	Client/src/UI/LetterModel.h	96	ChatSocketMessage	impl		comentario	// 0x49de50: el mensaje de la conexión de la sala es 0x500 más su lugar.
 0x49de50	0x49de50	sí	código	src	Client/src/UI/LetterModel.h	127	ChatRooms::rooms	impl		comentario	// +0x118: cada sala con su conexión (la de la sesión, App::IChatRoomLinks), desde que 0x49de50 la abre.
 0x49de50	0x49de50	sí	código	src	Client/src/UI/LetterModel.h	144	ForgetTheChatRoom	impl		comentario	// 0x49de50 con el connect que falla: la sala no se anota y el lugar que tomó 0x49e280 queda tomado (Q-C1005).
-0x49de50	0x49de50	sí	código	src	Client/src/main.cpp	374		impl		comentario	// Las salas del chat con un amigo (0x49de50): un socket por sala, con la ofuscación de la config.
+0x49de50	0x49de50	sí	código	src	Client/src/main.cpp	375		impl		comentario	// Las salas del chat con un amigo (0x49de50): un socket por sala, con la ofuscación de la config.
 0x49de50	0x49de50	sí	código	tests	Client/tests/app/test_server_session.cpp	5395	ServerSessionTest.AChatRoomHasItsOwnConnection	test		comentario	// 0x49de50 conecta al 55980 de la IP del CA; el C1 10 00 espera al connect (0x493530) y sale tal cual; lo que llega
 0x49de50	0x49de50	sí	código	tests	Client/tests/app/test_server_session.cpp	5484	ServerSessionTest.AChatRoomThatDoesNotConnectIsForgotten	test		comentario	// El connect que falla: la sala se olvida (0x49de50 no la anota). Una sala que ya tiene la suya no abre otra.
 0x49de50	0x49de50	sí	código	tests	Client/tests/scenes/test_game_letters.cpp	392	GameLettersTest.AChatWithAFriendInvitesAnother	test		comentario	// (0x49de50) y manda por ella el C1 10 00 con la sala y el ticket (0x493530). Con los miembros, el botón 1 muestra la
@@ -11856,7 +11856,7 @@ va	funcion	dentro	seccion	area	archivo	linea	simbolo	tipo	pendiente	en	texto
 0x4ad270	0x4ad270	sí	código	src	Client/src/App/ServerSession.h	178	SessionSettings::mainCheckFile	impl		comentario	// El ejecutable que suma la respuesta al 03 del GS: el nombre que 0x4ad270 saca de la línea de
 0x4ad270	0x4ad270	sí	código	src	Client/src/Protocol/Connection/MainCheck.cpp	99	MainCheckFileName	impl		comentario	// 0x4ad270: strchr desde el segundo carácter hasta la última barra invertida; si hay alguna en la
 0x4ad270	0x4ad270	sí	código	src	Client/src/Protocol/Connection/MainCheck.h	38	MainCheckFileName	impl		comentario	// 0x4ad270: el nombre del ejecutable a partir de la línea de comandos (GetCommandLineA en 0x4ad4d6):
-0x4ad270	0x4ad270	sí	código	src	Client/src/main.cpp	229	ReadStartup	impl		comentario	// los argumentos separados por un espacio. 0x4ad270 corta el nombre en el primer espacio o
+0x4ad270	0x4ad270	sí	código	src	Client/src/main.cpp	236	ReadStartup	impl		comentario	// los argumentos separados por un espacio. 0x4ad270 corta el nombre en el primer espacio o
 0x4ad270	0x4ad270	sí	código	tests	Client/tests/protocol/test_main_check.cpp	120	MainCheckTest.TakesTheFileNameFromTheCommandLine	test-corte		comentario	// 0x4ad270: lo que sigue a la última barra invertida de toda la línea, cortado en el primer espacio,
 0x4ad3d0	0x4ad3d0	sí	código	src	Client/src/Protocol/Connection/MainCheck.h	26	MainCheckTable	impl		comentario	// 0x4ad3d0: la tabla que esconde la clave. El GS la arma con la tabla en los bits 0..3 y 6..15 y seis
 0x4ad3d0	0x4ad3d0	sí	código	tests	Client/tests/protocol/test_main_check.cpp	25		test		comentario	// registros de 0x4ad400 y 0x4ad3d0 (ASM c32bbd5f), aparte del código de MuRet.
@@ -11878,7 +11878,7 @@ va	funcion	dentro	seccion	area	archivo	linea	simbolo	tipo	pendiente	en	texto
 0x4ad46c	0x4ad400	sí	código	src	Client/src/Protocol/Connection/MainCheck.cpp	90	MainCheckSum	impl		comentario	// 0x4ad46c..0x4ad485: el offset siempre es múltiplo de cuatro, así que la mezcla corre en cada
 0x4ad485	0x4ad400	sí	código	src	Client/src/Protocol/Connection/MainCheck.cpp	90	MainCheckSum	impl		comentario	// 0x4ad46c..0x4ad485: el offset siempre es múltiplo de cuatro, así que la mezcla corre en cada
 0x4ad4a0	0x4ad4a0	sí	código	src	Client/src/App/ServerSession.cpp	2759	ServerSession::OnMainCheck	impl		comentario	// ejecutable que nombra la línea de comandos (0x4ad4a0) y la suma, que vuelve como C3. El GS la
-0x4ad4a0	0x4ad4a0	sí	código	src	Client/src/main.cpp	228	ReadStartup	impl		comentario	// La línea de comandos que 0x4ad4a0 pide con GetCommandLineA para sumar su ejecutable: argv[0] y
+0x4ad4a0	0x4ad4a0	sí	código	src	Client/src/main.cpp	235	ReadStartup	impl		comentario	// La línea de comandos que 0x4ad4a0 pide con GetCommandLineA para sumar su ejecutable: argv[0] y
 0x4ad4d6	0x4ad4a0	sí	código	src	Client/src/Protocol/Connection/MainCheck.h	38	MainCheckFileName	impl		comentario	// 0x4ad270: el nombre del ejecutable a partir de la línea de comandos (GetCommandLineA en 0x4ad4d6):
 0x4ad51b	0x4ad4a0	sí	código	src	Client/src/App/ServerSession.cpp	2761	ServerSession::OnMainCheck	impl		comentario	// abrirlo para escribir (0x4ad51b) y, si puede, arma otro paquete (la protección, fuera de alcance):
 0x4ad51b	0x4ad4a0	sí	código	src	Client/src/Protocol/Connection/MainCheck.h	41	MainCheckFileName	impl		comentario	// CreateFileA (0x4ad51b y 0x4aec13).
@@ -12063,7 +12063,7 @@ va	funcion	dentro	seccion	area	archivo	linea	simbolo	tipo	pendiente	en	texto
 0x4b90a0	0x4b90a0	sí	código	src	Client/src/App/Resolution.h	11		impl		comentario	// registro (0x4b90a0, 02 § La resolución) y su ventana no cambia de tamaño; MuMain ofrece los
 0x4b9441	0x4b90a0	sí	código	src	Client/src/Render/Text/TextLayout.cpp	151	TextPieces	impl		comentario	// (0x4b9441..0x4b9467), lo mismo que escala 0x620d50 con un punto.
 0x4b9467	0x4b90a0	sí	código	src	Client/src/Render/Text/TextLayout.cpp	151	TextPieces	impl		comentario	// (0x4b9441..0x4b9467), lo mismo que escala 0x620d50 con un punto.
-0x4b9890	0x4b9890	sí	código	src	Client/src/App/CommandLine.cpp	171	ParseCommandLine	impl		comentario	"// El launcher pasa ""connect /u<ip> /p<puerto>""; el parser sin usar del original (0x4b9890,"
+0x4b9890	0x4b9890	sí	código	src	Client/src/App/CommandLineWindows.cpp	75	ReadSystemArguments	impl		comentario	// The launcher passes connect /u<host> /p<port> (02 § Del launcher al juego). As in 0x4b9890 (Q-C36), connect is
 0x4b9a70	0x4b9a70	sí	código	src	Client/src/Core/Crash/CrashHandler.cpp	147	WriteNewFile	impl		comentario	// Lo que 0x4b9a70 hace con el reporte ya armado: el archivo y, si se escribió entero, la línea
 0x4b9a70	0x4b9a70	sí	código	src	Client/src/Core/Crash/CrashHandler.cpp	475	HandleUnhandledException	impl		comentario	// El filtro: 0x680180 con 0x4b9a70 adentro. Devuelve EXCEPTION_EXECUTE_HANDLER, como el original
 0x4b9a70	0x4b9a70	sí	código	src	Client/src/Core/Crash/CrashHandler.h	12		impl		comentario	// es 0x67f4f0(0x4b9a70, 0), que instala el filtro 0x680180 con SetUnhandledExceptionFilter. Si el
@@ -12072,13 +12072,13 @@ va	funcion	dentro	seccion	area	archivo	linea	simbolo	tipo	pendiente	en	texto
 0x4b9b27	0x4b9a70	sí	código	tests	Client/tests/core/test_crash_handler.cpp	313	CrashHandlerDeathTest.WritesNoLogLineWhenTheDumpCannotBeOpened	test		comentario	// Si el volcado no abre (su carpeta no existe), tampoco hay línea: 0x4b9b27 la salta.
 0x4b9b34	0x4b9a70	sí	código	tests	Client/tests/core/test_crash_texts.cpp	12		test		comentario	// procesador de 0x684730 y la excepción de 0x680260) y la línea del log de 0x4b9b34.
 0x4b9b3e	0x4b9a70	sí	código	src	Client/src/Core/Crash/CrashHandler.h	64	CrashHandler::SetLogFile	impl		comentario	// El archivo del log adonde va la línea de 0x4b9b3e cuando el volcado se escribió: el del
-0x4b9b3e	0x4b9a70	sí	código	src	Client/src/main.cpp	961	main	impl		comentario	// La línea de una caída va al mismo archivo, como la de 0x4b9b3e al MuError.log del original.
+0x4b9b3e	0x4b9a70	sí	código	src	Client/src/main.cpp	969	main	impl		comentario	// La línea de una caída va al mismo archivo, como la de 0x4b9b3e al MuError.log del original.
 0x4b9b66	0x4b9a70	sí	código	src	Client/src/Core/Crash/CrashHandler.h	35		impl		comentario	// No restaura la resolución: el original llama a ChangeDisplaySettingsA(NULL, 0) (0x4b9b66)
 0x4b9b80	0x4b9b80	sí	código	src	Client/src/main.cpp	111		impl		comentario	//   0. El manejador de caídas, antes que nada, como la primera llamada de WinMain (0x4b9b80, en 0x4b9b97): si
 0x4b9b97	0x4b9b80	sí	código	src	Client/src/main.cpp	111		impl		comentario	//   0. El manejador de caídas, antes que nada, como la primera llamada de WinMain (0x4b9b80, en 0x4b9b97): si
 0x4b9b9f	0x4b9b80	sí	código	src	Client/src/Scenes/GameData.h	100		impl		comentario	// Lo de WinMain antes de la escena 1: Text.bmd en 0x4b9b9f (0x61ee30 y 0x5495e0), antes de las
 0x4b9b9f	0x4b9b80	sí	código	src	Client/src/Scenes/GuildDrawing.cpp	458	DrawThePanelDialog	impl		comentario	// 0x65feb0 los copia al armarse, después de Text.bmd (0x4b9b9f); MuRet, la primera vez que dibuja.
-0x4b9b9f	0x4b9b80	sí	código	src	Client/src/main.cpp	564	ReadSceneStartup	impl		comentario	// Fase 2, con una carpeta de datos: lo de WinMain antes de la escena 1, Text.bmd (0x4b9b9f) y los
+0x4b9b9f	0x4b9b80	sí	código	src	Client/src/main.cpp	565	ReadSceneStartup	impl		comentario	// Fase 2, con una carpeta de datos: lo de WinMain antes de la escena 1, Text.bmd (0x4b9b9f) y los
 0x4b9b9f	0x4b9b80	sí	código	tests	Client/tests/scenes/test_game_data.cpp	38		test		comentario	"// Text.bmd en 0x4b9b9f (0x61ee30 y 0x5495e0, con ""Data\Local\Text.bmd"" de 0x6d4370), antes de las"
 0x4b9c12	0x4b9b80	sí	código	tests	Client/tests/core/test_crash_dump.cpp	135	SampleReport	test		código	report.context.eip = 0x004B9C12;
 0x4b9c12	0x4b9b80	sí	código	tests	Client/tests/core/test_crash_dump.cpp	140	SampleReport	test		código	report.exceptionAddress = 0x004B9C12;
@@ -12088,7 +12088,7 @@ va	funcion	dentro	seccion	area	archivo	linea	simbolo	tipo	pendiente	en	texto
 0x4ba0a3	0x4b9b80	sí	código	src	Client/src/App/ConnectionKeyFiles.h	12		impl		comentario	// Dec2.dat para lo que llega, como las carga WinMain (0x4ba094 y 0x4ba0a3).
 0x4ba238	0x4b9b80	sí	código	src	Client/src/Platform/Window.h	78	Window::HideSystemCursor	impl		comentario	// ShowCursor(FALSE) del original (0x4ba238 y 0x4b3327). El error trae el SDL_GetError().
 0x4ba238	0x4b9b80	sí	código	src	Client/src/UI/GameCursor.h	11		impl		comentario	// 0x4ba238, y en el WndProc, 0x4b3327) y dibuja el suyo al final de la UI de cada escena: el login
-0x4ba238	0x4b9b80	sí	código	src	Client/src/main.cpp	751	RunScenes	impl		comentario	// El cursor lo dibuja el juego: el del sistema no se ve sobre la ventana (0x4ba238). Si SDL no puede,
+0x4ba238	0x4b9b80	sí	código	src	Client/src/main.cpp	752	RunScenes	impl		comentario	// El cursor lo dibuja el juego: el del sistema no se ve sobre la ventana (0x4ba238). Si SDL no puede,
 0x4ba6af	0x4b9b80	sí	código	src	Client/src/Render/Text/FontSet.cpp	7	FontStepFor	impl		comentario	// Los cuatro de WinMain (0x4ba6af..0x4ba6d3) como escalones: cada uno vale desde su ancho.
 0x4ba6af	0x4b9b80	sí	código	src	Client/src/Render/Text/FontSet.h	29	FontStepFor	impl		comentario	// n, el paso de la letra (DAT_07758568): WinMain lo escribe en 0x4ba6af..0x4ba6d3 con 12 para un
 0x4ba6af	0x4b9b80	sí	código	tests	Client/tests/render/test_font_set.cpp	11		test		comentario	// (0x4ba6af..0x4ba813) y el paso de la letra por el ancho de la pantalla (pregunta 10 del plan de
@@ -12107,14 +12107,14 @@ va	funcion	dentro	seccion	area	archivo	linea	simbolo	tipo	pendiente	en	texto
 0x4bad33	0x4b9b80	sí	código	src	Client/src/UI/GameUiState.h	158	GameUiState::volume	impl		comentario	// 0x7d3a118: el volumen. WinMain lo lee del registro (VolumeLevel, 0x4bad33..0x4bad55) y, fuera de 0 a 9,
 0x4bad55	0x4b9b80	sí	código	src	Client/src/UI/GameUiState.h	158	GameUiState::volume	impl		comentario	// 0x7d3a118: el volumen. WinMain lo lee del registro (VolumeLevel, 0x4bad33..0x4bad55) y, fuera de 0 a 9,
 0x4bad9a	0x4b9b80	sí	código	src	Client/src/Render/Models/Cloth.h	23	CrtRandom::CrtRandom	impl		comentario	// Lo siembra una vez srand(time(NULL)) (0x4bad9a).
-0x4bad9a	0x4b9b80	sí	código	src	Client/src/main.cpp	655	RunScenes	impl		comentario	// 0x4bad9a, el viento base y el contador de pasos de lógica.
+0x4bad9a	0x4b9b80	sí	código	src	Client/src/main.cpp	656	RunScenes	impl		comentario	// 0x4bad9a, el viento base y el contador de pasos de lógica.
 0x4baf79	0x4b9b80	sí	código	tests	Client/tests/scenes/test_character_step.cpp	2194	SceneCharacters::SceneCharacters	test		comentario	// (0x4baf79..0x4bafc2): su equipo es del tipo 0, y 0x54efe0 lee el +0x2d de sus alas en Item.bmd (`items`).
 0x4bafa6	0x4b9b80	sí	código	src	Client/src/Scenes/ActorState.h	21		impl		comentario	// el REP STOSD de WinMain (0x4bafa6..0x4bafb3).
 0x4bafa6	0x4b9b80	sí	código	src	Client/src/Scenes/WorldState.h	36		impl		comentario	// (REP STOSD en 0x4bafa6..0x4bafb3, con el héroe en el primero, 0x4bafdf), el registro propio
-0x4bafa6	0x4b9b80	sí	código	src	Client/src/main.cpp	661	RunScenes	impl		comentario	// 0x4bafa6..0x4bafc2: WinMain deja en cero el pool de 401 personajes y el registro propio, que
+0x4bafa6	0x4b9b80	sí	código	src	Client/src/main.cpp	662	RunScenes	impl		comentario	// 0x4bafa6..0x4bafc2: WinMain deja en cero el pool de 401 personajes y el registro propio, que
 0x4bafa6	0x4b9b80	sí	código	tests	Client/tests/scenes/test_movement_replies.cpp	438	MovementRepliesTest.WithoutAStrikerTheHeroShieldReadsTheSlotLeftInTheGlobal	test		comentario	// 400, el lugar que sigue a los 400 de la tabla (el registro 401 que WinMain deja en cero, 0x4bafa6), y antes del
 0x4bafa6	0x4b9b80	sí	código	tests	Client/tests/scenes/test_world_state.cpp	46	WorldStateTest.StartsWith401ZeroedRecords	test		comentario	// El REP STOSD de WinMain (0x4bafa6..0x4bafb3): 401 registros en cero, también el que queda fuera de
-0x4bafad	0x4b9b80	sí	código	src	Client/src/main.cpp	701	RunScenes	impl		comentario	// 0x4bafad..0x4bafdf: el pool empieza en cero y el héroe apunta al personaje 0.
+0x4bafad	0x4b9b80	sí	código	src	Client/src/main.cpp	702	RunScenes	impl		comentario	// 0x4bafad..0x4bafdf: el pool empieza en cero y el héroe apunta al personaje 0.
 0x4bafb3	0x4b9b80	sí	código	src	Client/src/Scenes/ActorState.h	21		impl		comentario	// el REP STOSD de WinMain (0x4bafa6..0x4bafb3).
 0x4bafb3	0x4b9b80	sí	código	src	Client/src/Scenes/WorldState.h	36		impl		comentario	// (REP STOSD en 0x4bafa6..0x4bafb3, con el héroe en el primero, 0x4bafdf), el registro propio
 0x4bafb3	0x4b9b80	sí	código	tests	Client/tests/scenes/test_world_state.cpp	46	WorldStateTest.StartsWith401ZeroedRecords	test		comentario	// El REP STOSD de WinMain (0x4bafa6..0x4bafb3): 401 registros en cero, también el que queda fuera de
@@ -12124,14 +12124,14 @@ va	funcion	dentro	seccion	area	archivo	linea	simbolo	tipo	pendiente	en	texto
 0x4bafbc	0x4b9b80	sí	código	tests	Client/tests/scenes/test_world_state.cpp	64	WorldStateTest.TheOwnRecordStartsZeroed	test		comentario	// WinMain llena de ceros el registro propio (04, 0x4bafbc..0x4bafc2): el tipo de los doce lugares
 0x4bafc2	0x4b9b80	sí	código	src	Client/src/Scenes/OwnCharacterRecord.h	27		impl		comentario	// Arranca en cero, como el bloque que WinMain llena de ceros (04, 0x4bafbc..0x4bafc2). El original
 0x4bafc2	0x4b9b80	sí	código	src	Client/src/Scenes/WorldState.h	37		impl		comentario	// ([0x7681eb0], 0x4bafbc..0x4bafc2), las grillas del inventario propio (0x78a9bb0 y 0x78ab0b8, en la
-0x4bafc2	0x4b9b80	sí	código	src	Client/src/main.cpp	661	RunScenes	impl		comentario	// 0x4bafa6..0x4bafc2: WinMain deja en cero el pool de 401 personajes y el registro propio, que
+0x4bafc2	0x4b9b80	sí	código	src	Client/src/main.cpp	662	RunScenes	impl		comentario	// 0x4bafa6..0x4bafc2: WinMain deja en cero el pool de 401 personajes y el registro propio, que
 0x4bafc2	0x4b9b80	sí	código	tests	Client/tests/scenes/test_character_step.cpp	2194	SceneCharacters::SceneCharacters	test		comentario	// (0x4baf79..0x4bafc2): su equipo es del tipo 0, y 0x54efe0 lee el +0x2d de sus alas en Item.bmd (`items`).
 0x4bafc2	0x4b9b80	sí	código	tests	Client/tests/scenes/test_own_character_record.cpp	41	OwnCharacterRecordTest.TheEntryClearEmptiesTypeLevelAndFlags1bOfTheTwelveSlots	test		comentario	// WinMain llena de ceros el registro (04, 0x4bafbc..0x4bafc2): el tipo arranca en 0, no en −1.
 0x4bafc2	0x4b9b80	sí	código	tests	Client/tests/scenes/test_world_state.cpp	64	WorldStateTest.TheOwnRecordStartsZeroed	test		comentario	// WinMain llena de ceros el registro propio (04, 0x4bafbc..0x4bafc2): el tipo de los doce lugares
 0x4bafc9	0x4b9b80	sí	código	src	Client/src/Scenes/OwnCharacterRecord.h	145	OwnCharacterRecord::zen	impl		comentario	// [0x7681eb4] + 0xecc: desde el login, el mismo bloque que [0x7681eb0] (0x4bafc9).
 0x4bafdf	0x4b9b80	sí	código	src	Client/src/Scenes/WorldRuntime.h	541	WorldRuntime::hero	impl		comentario	// DAT_0743a170, el héroe publicado, como lugar del pool: WinMain lo deja en el 0 (0x4bafdf) y la
 0x4bafdf	0x4b9b80	sí	código	src	Client/src/Scenes/WorldState.h	36		impl		comentario	// (REP STOSD en 0x4bafa6..0x4bafb3, con el héroe en el primero, 0x4bafdf), el registro propio
-0x4bafdf	0x4b9b80	sí	código	src	Client/src/main.cpp	701	RunScenes	impl		comentario	// 0x4bafad..0x4bafdf: el pool empieza en cero y el héroe apunta al personaje 0.
+0x4bafdf	0x4b9b80	sí	código	src	Client/src/main.cpp	702	RunScenes	impl		comentario	// 0x4bafad..0x4bafdf: el pool empieza en cero y el héroe apunta al personaje 0.
 0x4bb01b	0x4b9b80	sí	código	src	Client/src/Scenes/GameUi.cpp	203	ChatEditPlace::field	impl		comentario	// (0x45a210) son *inferidos*: los dos primeros que arma WinMain (0x4bb01b y 0x4bb02c), antes de los otros tres
 0x4bb01b	0x4b9b80	sí	código	src	Client/src/UI/ChatInput.h	48	ChatMessageEditId	impl		comentario	// 0x4bb01b/0x4bb02c → 0x4674c0 → 0x45a210 → 0x459ef0: los dos primeros controles de WinMain.
 0x4bb02c	0x4b9b80	sí	código	src	Client/src/Scenes/GameUi.cpp	203	ChatEditPlace::field	impl		comentario	// (0x45a210) son *inferidos*: los dos primeros que arma WinMain (0x4bb01b y 0x4bb02c), antes de los otros tres
@@ -12186,7 +12186,7 @@ va	funcion	dentro	seccion	area	archivo	linea	simbolo	tipo	pendiente	en	texto
 0x4bee60	0x4bee60	sí	código	src	Client/src/App/ServerSession.cpp	2794	ServerSession::SendKeepalive	impl		comentario	// El tick es el de GetTickCount en el original (0x4bee60), y las velocidades van con su ajuste.
 0x4bee60	0x4bee60	sí	código	src	Client/src/Protocol/Connection/Keepalive.h	17		impl		comentario	// dos bits del personaje (0x4bee60 y el WM_TIMER de 0x4af4e0).
 0x4bee60	0x4bee60	sí	código	src	Client/src/Scenes/OwnCharacterRecord.h	98	OwnCharacterRecord::speedAdjustBits	impl		comentario	// +0x3c: los bits del ajuste que 0x4bee60 aplica a las velocidades del keepalive (04, el 0E).
-0x4bee60	0x4bee60	sí	código	src	Client/src/main.cpp	757	RunScenes	impl		comentario	// 0x4bee60 lee las velocidades del keepalive del personaje propio ([0x7681eb0]: +0x3c, +0x4c y
+0x4bee60	0x4bee60	sí	código	src	Client/src/main.cpp	758	RunScenes	impl		comentario	// 0x4bee60 lee las velocidades del keepalive del personaje propio ([0x7681eb0]: +0x3c, +0x4c y
 0x4bee60	0x4bee60	sí	código	tests	Client/tests/protocol/test_keepalive.cpp	72	KeepaliveTest.AdjustsTheSpeedWithTheBitsOfTheCharacter	test		comentario	// Con el bit 0x01 resta 20, con el 0x08 resta 25, y con los dos gana el de 20 (0x4bee60 mira
 0x4bfce0	0x4bfce0	sí	código	src	Client/src/UI/LetterModel.h	25		impl		comentario	// WinMain, 0x4bec50 0x4bed30 0x4bfce0 0x4bfdd0 0x4bfe00 0x4bfef0), que son los de C++.
 0x4bfdd0	0x4bfdd0	sí	código	src	Client/src/UI/LetterModel.h	25		impl		comentario	// WinMain, 0x4bec50 0x4bed30 0x4bfce0 0x4bfdd0 0x4bfe00 0x4bfef0), que son los de C++.
@@ -12461,7 +12461,7 @@ va	funcion	dentro	seccion	area	archivo	linea	simbolo	tipo	pendiente	en	texto
 0x4c363f	0x4c2710	sí	código	src	Client/src/Scenes/SceneTransitions.h	24	OriginalTransitions	impl		comentario	// respuesta cifrada del F1 02: con pkt[4] en 1 va a la 4 (0x4c363f) y con 2, a la 2 (0x4c2f1a). El
 0x4c363f	0x4c2710	sí	código	src	Client/src/Scenes/SceneTransitions.h	33	OriginalTransitions	impl		comentario	{SceneId::Game, SceneId::CharacterSelect},         // 0x4c363f
 0x4c363f	0x4c2710	sí	código	src	Client/src/Scenes/WorldRuntime.h	511	WorldRuntime::orderedScene	impl		comentario	// DAT_006d5dc8 escrito por un paquete: el F1 02 con 1 pone la 4 (0x4c363f) mientras se lee la red, y
-0x4c363f	0x4c2710	sí	código	src	Client/src/main.cpp	770	RunScenes	impl		comentario	// La escena que dejó la red (el F1 02 con 1, 0x4c363f), una vez.
+0x4c363f	0x4c2710	sí	código	src	Client/src/main.cpp	771	RunScenes	impl		comentario	// La escena que dejó la red (el F1 02 con 1, 0x4c363f), una vez.
 0x4c363f	0x4c2710	sí	código	tests	Client/tests/scenes/test_scene_manager.cpp	864	SceneManagerTest.ReentersTheSelectionFresh	test		comentario	// 4 a 4 (0x4c363f, con el F1 02 en la selección): se sale y se entra a una escena nueva, que sube
 0x4c363f	0x4c2710	sí	código	tests	Client/tests/scenes/test_scene_manager.cpp	1172	SceneManagerTest.ANetworkOrderEntersBeforeTheNextStep	test		comentario	// El F1 02 con 1 escribe la escena 4 mientras se lee la red (0x4c363f): el Poll toma la orden y el paso que
 0x4c363f	0x4c2710	sí	código	tests	Client/tests/scenes/test_scene_transitions.cpp	33	Expected	test		comentario	{SceneId::Game, SceneId::CharacterSelect},         // 0x4c363f, en 0x4c2710
@@ -31893,7 +31893,7 @@ va	funcion	dentro	seccion	area	archivo	linea	simbolo	tipo	pendiente	en	texto
 0x54a440	0x54a440	sí	código	src	Client/src/Scenes/GameData.cpp	288	MaxMonsterSkillBytes	impl		comentario	// 0x54a440 lee la cuenta y cuenta · 0x1c bytes sin tope; MuRet lee hasta 1 MiB.
 0x54a440	0x54a440	sí	código	src	Client/src/Scenes/GameData.cpp	291	LoadMonsterSkills	impl		comentario	// 0x54a440: sin el archivo, la tabla de la .bss.
 0x54a440	0x54a440	sí	código	src	Client/src/Scenes/WorldRuntime.h	599	WorldRuntime::monsterSkills	impl		comentario	// [0x7437670]: las skills de los monstruos de MonsterSkill.bmd (0x54a440), que main.cpp copia de
-0x54a440	0x54a440	sí	código	src	Client/src/main.cpp	690	RunScenes	impl		comentario	// 0x61ecdf: 0x54a440 deja MonsterSkill.bmd en [0x7437670], hasta el cierre.
+0x54a440	0x54a440	sí	código	src	Client/src/main.cpp	691	RunScenes	impl		comentario	// 0x61ecdf: 0x54a440 deja MonsterSkill.bmd en [0x7437670], hasta el cierre.
 0x54a440	0x54a440	sí	código	tests	Client/tests/data/test_golden_monster_skill_table.cpp	14		test		comentario	// MonsterSkill.bmd real (Data\Local, 0x54a440 desde 0x61ccb0): los ocho tipos que miran 0x429270 y 0x437580.
 0x54a440	0x54a440	sí	código	tests	Client/tests/data/test_monster_skill_table.cpp	14		test		comentario	// Client::Data::Tables::LoadMonsterSkillTable: MonsterSkill.bmd (0x54a440), la cuenta en claro y registros de 0x1c con
 0x54a44f	0x54a440	sí	código	src	Client/src/Data/Tables/MonsterSkillTable.cpp	34	MonsterSkillTable::Of	impl		comentario	// 0x54a44f..0x54a461: los seis dwords desde 0x7437670, el tipo 0.
@@ -32214,7 +32214,7 @@ va	funcion	dentro	seccion	area	archivo	linea	simbolo	tipo	pendiente	en	texto
 0x54e7f0	0x54e7f0	sí	código	src	Client/src/Scenes/GameData.h	95	GameData::npcNames	corte		comentario	// NpcName(%s).txt (CL9 hito 2): los registros que 0x54e7f0 deja en 0x7681eb8, que main.cpp copia al principio de
 0x54e7f0	0x54e7f0	sí	código	src	Client/src/Scenes/NpcNames.h	13		impl		comentario	// (un word) y el nombre. Los llena la carga de los datos (0x61ed05) con 0x54e7f0 desde Data\Local\NpcName(%s).txt
 0x54e7f0	0x54e7f0	sí	código	src	Client/src/Scenes/NpcNames.h	25	NpcNameTableOf	impl		comentario	// La tabla de 0x7681eb8 después de 0x54e7f0: `loaded` (los registros de LoadNpcNames, que no pasan de 512) desde el
-0x54e7f0	0x54e7f0	sí	código	src	Client/src/main.cpp	692	RunScenes	impl		comentario	// 0x61ed05: 0x54e7f0 deja NpcName(%s).txt en los registros de 0x7681eb8, hasta el cierre.
+0x54e7f0	0x54e7f0	sí	código	src	Client/src/main.cpp	693	RunScenes	impl		comentario	// 0x61ed05: 0x54e7f0 deja NpcName(%s).txt en los registros de 0x7681eb8, hasta el cierre.
 0x54e7f0	0x54e7f0	sí	código	tests	Client/tests/data/test_golden_npc_names.cpp	18		test		comentario	"// NpcName(%s).txt real (Data\Local, 0x54e7f0 desde 0x61ed05): los 287 registros, sin ""end"", el primero y el último,"
 0x54e7f0	0x54e7f0	sí	código	tests	Client/tests/data/test_npc_names.cpp	14		test		comentario	// Client::Data::Text::LoadNpcNames: NpcName(%s).txt con el tokenizador 0x54e8d0 y el lazo de 0x54e7f0. Los nombres
 0x54e7f0	0x54e7f0	sí	código	tests	Client/tests/scenes/test_game_data.cpp	232	GameDataTest.ReadsTheNpcNames	test		comentario	// 0x61ed05 → 0x54e7f0: NpcName(Eng).txt sin mirar mayúsculas; sin él, la tabla vacía y sin error. main.cpp copia los
@@ -46438,7 +46438,7 @@ va	funcion	dentro	seccion	area	archivo	linea	simbolo	tipo	pendiente	en	texto
 0x61c1c0	0x61c1c0	sí	código	src	Client/src/UI/MacroFile.cpp	45	ReadTheMacros	impl		cadena	"""0x61c1c0: la palabra de la macro {} tiene {} bytes y desborda los 0x100 de su lugar (Q-C531)"", macro,"
 0x61c1c0	0x61c1c0	sí	código	src	Client/src/UI/MacroFile.h	12		impl		comentario	// detrás de Text.bmd (0x61ee30 → 0x61c1c0); lo escriben la salida del juego, el cambio de servidor y el gate a los
 0x61c1c0	0x61c1c0	sí	código	src	Client/src/UI/MacroFile.h	22	ReadTheMacros	impl		comentario	"// 0x61c1c0: fopen(""rt"") y diez fscanf(""%s""), una palabra por macro en su orden. ""%s"" salta el blanco (0x09..0x0d y"
-0x61c1c0	0x61c1c0	sí	código	src	Client/src/main.cpp	683	RunScenes	impl		comentario	// 0x61ee30 → 0x61c1c0: las macros de Data\Macro.txt, que GameData leyó detrás de Text.bmd, en 0x77f1db0.
+0x61c1c0	0x61c1c0	sí	código	src	Client/src/main.cpp	684	RunScenes	impl		comentario	// 0x61ee30 → 0x61c1c0: las macros de Data\Macro.txt, que GameData leyó detrás de Text.bmd, en 0x77f1db0.
 0x61c1c0	0x61c1c0	sí	código	tests	Client/tests/scenes/test_game_data.cpp	155	GameDataTest.ReadsTheMacros	test		comentario	// 0x61ee30 → 0x61c1c0: Macro.txt, detrás de Text.bmd, sin mirar mayúsculas; sin él, las macros vacías. Las macros
 0x61c1c0	0x61c1c0	sí	código	tests	Client/tests/scenes/test_game_data.cpp	191	GameDataTest.AnOverflowingMacroIsNamed	test		cadena	"EXPECT_NE(data.Error().find(""0x61c1c0""), std::string::npos) << data.Error();"
 0x61c1c0	0x61c1c0	sí	código	tests	Client/tests/ui/test_macro_file.cpp	12		test		comentario	// Data\Macro.txt (0x61c1c0 y 0x61c170; CL8 hito 3). Las macros son inventadas.
@@ -46578,7 +46578,7 @@ va	funcion	dentro	seccion	area	archivo	linea	simbolo	tipo	pendiente	en	texto
 0x61ccb0	0x61ccb0	sí	código	src	Client/src/UI/LoginWindow.cpp	29	BackgroundSlot	impl		comentario	// 0x6415c0: el fondo (login_back, slot 0x13), los campos (login_me, 0x14) y los botones de 0x61ccb0
 0x61ccb0	0x61ccb0	sí	código	src	Client/src/UI/NoticeWindow.cpp	36	BoxSlot	impl		comentario	// 0x728); los cuatro los sube 0x61ccb0, la carga de todo el juego.
 0x61ccb0	0x61ccb0	sí	código	src	Client/src/UI/OldWindowDraw.h	30	WindowTitleSlot	impl		comentario	// Los slots de Interface\ que carga 0x61ccb0: la barra del título (win_titlebar.jpg), el botón (win_button.tga), los
-0x61ccb0	0x61ccb0	sí	código	src	Client/src/main.cpp	705	RunScenes	impl		comentario	// Los modelos del personaje y de los ítems: los lee la carga (0x61ccb0) y quedan, como GameData.
+0x61ccb0	0x61ccb0	sí	código	src	Client/src/main.cpp	706	RunScenes	impl		comentario	// Los modelos del personaje y de los ítems: los lee la carga (0x61ccb0) y quedan, como GameData.
 0x61ccb0	0x61ccb0	sí	código	tests	Client/tests/data/test_golden_filter_words.cpp	14		test		comentario	// FilterName.bmd y Filter.bmd reales (Data\Local, 0x61ccb0): sus sumas dan, el primero trae las seis
 0x61ccb0	0x61ccb0	sí	código	tests	Client/tests/data/test_golden_monster_skill_table.cpp	14		test		comentario	// MonsterSkill.bmd real (Data\Local, 0x54a440 desde 0x61ccb0): los ocho tipos que miran 0x429270 y 0x437580.
 0x61ccb0	0x61ccb0	sí	código	tests	Client/tests/data/test_golden_move_requirements.cpp	16		test		comentario	// movereq.bmd real (Data\Local, 0x448440 desde 0x61ccb0): los 28 destinos, el primero, el de la torre con el nombre
@@ -46739,15 +46739,15 @@ va	funcion	dentro	seccion	area	archivo	linea	simbolo	tipo	pendiente	en	texto
 0x61eb69	0x61ccb0	sí	código	src	Client/src/Data/Text/DialogTable.h	14		impl		comentario	"// ""Dialog.bmd""; en el original, 0x54b2b0, que la carga de los datos del juego, 0x61ccb0, llama en 0x61eb69 con"
 0x61eb69	0x61ccb0	sí	código	src	Client/src/Scenes/GameData.h	50	DialogTableFile	impl		comentario	// Los diálogos y las misiones, como los pide 0x61ccb0 (0x61eb69 con 0x6d2a48 y 0x61eb7c con 0x6d2a30).
 0x61eb69	0x61ccb0	sí	código	src	Client/src/Scenes/GameData.h	120	LoadGameData	impl		comentario	// y quest.bmd (0x61eb69 y 0x61eb7c): uno que no está queda con sus 200 registros vacíos; uno corto, con lo que deja
-0x61eb69	0x61ccb0	sí	código	src	Client/src/main.cpp	687	RunScenes	impl		comentario	// 0x61eb69 y 0x61eb7c: Dialog.bmd en 0x7688ac0 y quest.bmd en los registros de [0x710148], hasta el cierre.
+0x61eb69	0x61ccb0	sí	código	src	Client/src/main.cpp	688	RunScenes	impl		comentario	// 0x61eb69 y 0x61eb7c: Dialog.bmd en 0x7688ac0 y quest.bmd en los registros de [0x710148], hasta el cierre.
 0x61eb7c	0x61ccb0	sí	código	src	Client/src/Data/Tables/QuestTable.h	14		impl		comentario	"// ""quest.bmd""; en el original, 0x418d10, que la carga de los datos del juego, 0x61ccb0, llama en 0x61eb7c con"
 0x61eb7c	0x61ccb0	sí	código	src	Client/src/Scenes/GameData.h	50	DialogTableFile	impl		comentario	// Los diálogos y las misiones, como los pide 0x61ccb0 (0x61eb69 con 0x6d2a48 y 0x61eb7c con 0x6d2a30).
 0x61eb7c	0x61ccb0	sí	código	src	Client/src/Scenes/GameData.h	120	LoadGameData	impl		comentario	// y quest.bmd (0x61eb69 y 0x61eb7c): uno que no está queda con sus 200 registros vacíos; uno corto, con lo que deja
-0x61eb7c	0x61ccb0	sí	código	src	Client/src/main.cpp	687	RunScenes	impl		comentario	// 0x61eb69 y 0x61eb7c: Dialog.bmd en 0x7688ac0 y quest.bmd en los registros de [0x710148], hasta el cierre.
+0x61eb7c	0x61ccb0	sí	código	src	Client/src/main.cpp	688	RunScenes	impl		comentario	// 0x61eb69 y 0x61eb7c: Dialog.bmd en 0x7688ac0 y quest.bmd en los registros de [0x710148], hasta el cierre.
 0x61ec8f	0x61ccb0	sí	código	src	Client/src/Data/Text/MoveRequirements.h	15		impl		comentario	"// 0x61ec8f con ""Data\Local\movereq.bmd"")."
 0x61ec8f	0x61ccb0	sí	código	src	Client/src/Scenes/GameData.cpp	419	LoadGameData	impl		comentario	// 0x61ecdf: MonsterSkill.bmd, después de movereq.bmd (0x61ec8f) y de las tablas de los conjuntos (0x61ecd5).
 0x61ec8f	0x61ccb0	sí	código	src	Client/src/Scenes/GameData.h	48	MoveRequirementsFile	impl		comentario	// Los destinos de la ventana /move, como los pide 0x61ccb0 (0x61ec8f, con 0x6d2a18).
-0x61ec8f	0x61ccb0	sí	código	src	Client/src/main.cpp	685	RunScenes	impl		comentario	// 0x61ec8f: 0x448440 deja los destinos de movereq.bmd en la lista de 0x723c68, que dura hasta el cierre.
+0x61ec8f	0x61ccb0	sí	código	src	Client/src/main.cpp	686	RunScenes	impl		comentario	// 0x61ec8f: 0x448440 deja los destinos de movereq.bmd en la lista de 0x723c68, que dura hasta el cierre.
 0x61ec8f	0x61ccb0	sí	código	tests	Client/tests/scenes/test_game_data.cpp	194	GameDataTest.ReadsTheMoveRequirements	test		comentario	// 0x61ec8f → 0x448440: movereq.bmd sin mirar mayúsculas; sin él, ningún destino y sin error. Uno corto lo nombra. El
 0x61ecd5	0x61ccb0	sí	código	src	Client/src/Data/Tables/ItemSetTables.h	17		impl		comentario	// que el original no usa (0x61ecd5 lo llama con 0).
 0x61ecd5	0x61ccb0	sí	código	src	Client/src/Scenes/GameData.cpp	131	LoadItemSets	impl		comentario	// 0x40c600 desde 0x61ccb0 (0x61ecd5), después de Item.bmd (0x61eb37), con su argumento en 0: los tipos y
@@ -46757,24 +46757,24 @@ va	funcion	dentro	seccion	area	archivo	linea	simbolo	tipo	pendiente	en	texto
 0x61ecdf	0x61ccb0	sí	código	src	Client/src/Scenes/GameData.cpp	419	LoadGameData	impl		comentario	// 0x61ecdf: MonsterSkill.bmd, después de movereq.bmd (0x61ec8f) y de las tablas de los conjuntos (0x61ecd5).
 0x61ecdf	0x61ccb0	sí	código	src	Client/src/Scenes/GameData.h	53	MonsterSkillTableFile	impl		comentario	// Las skills de los monstruos, como las pide 0x61ccb0 (0x61ecdf, con 0x6d29fc).
 0x61ecdf	0x61ccb0	sí	código	src	Client/src/Scenes/GameData.h	122	LoadGameData	impl		comentario	// registro es un error que lo nombra. Después de las tablas de los conjuntos, MonsterSkill.bmd (0x61ecdf): uno que no
-0x61ecdf	0x61ccb0	sí	código	src	Client/src/main.cpp	690	RunScenes	impl		comentario	// 0x61ecdf: 0x54a440 deja MonsterSkill.bmd en [0x7437670], hasta el cierre.
+0x61ecdf	0x61ccb0	sí	código	src	Client/src/main.cpp	691	RunScenes	impl		comentario	// 0x61ecdf: 0x54a440 deja MonsterSkill.bmd en [0x7437670], hasta el cierre.
 0x61ed05	0x61ccb0	sí	código	src	Client/src/Data/Text/NpcNames.h	13		impl		comentario	"// 0x54e8d0, que la carga de los datos del juego, 0x61ccb0, llama en 0x61ed05 con ""Data\Local\NpcName(%s).txt"" y el"
 0x61ed05	0x61ccb0	sí	código	src	Client/src/Scenes/GameData.h	55	NpcNameFile	impl		comentario	// Los nombres de los monstruos y los NPC, como los pide 0x61ccb0 (0x61ed05, con 0x6d29e0 y el idioma de [0x5763350]).
 0x61ed05	0x61ccb0	sí	código	src	Client/src/Scenes/GameData.h	124	LoadGameData	impl		comentario	// de [0, 0xffff] es un error que lo nombra. Detrás, NpcName(Eng).txt (0x61ed05): uno que no está deja la tabla vacía;
 0x61ed05	0x61ccb0	sí	código	src	Client/src/Scenes/NpcNames.h	13		impl		comentario	// (un word) y el nombre. Los llena la carga de los datos (0x61ed05) con 0x54e7f0 desde Data\Local\NpcName(%s).txt
 0x61ed05	0x61ccb0	sí	código	src	Client/src/Scenes/WorldRuntime.h	434	WorldRuntime::NpcNameTable	impl		comentario	// (0x61ed05); sin el archivo quedan en 0.
-0x61ed05	0x61ccb0	sí	código	src	Client/src/main.cpp	692	RunScenes	impl		comentario	// 0x61ed05: 0x54e7f0 deja NpcName(%s).txt en los registros de 0x7681eb8, hasta el cierre.
+0x61ed05	0x61ccb0	sí	código	src	Client/src/main.cpp	693	RunScenes	impl		comentario	// 0x61ed05: 0x54e7f0 deja NpcName(%s).txt en los registros de 0x7681eb8, hasta el cierre.
 0x61ed05	0x61ccb0	sí	código	tests	Client/tests/data/test_golden_npc_names.cpp	18		test		comentario	"// NpcName(%s).txt real (Data\Local, 0x54e7f0 desde 0x61ed05): los 287 registros, sin ""end"", el primero y el último,"
 0x61ed05	0x61ccb0	sí	código	tests	Client/tests/scenes/test_game_data.cpp	232	GameDataTest.ReadsTheNpcNames	test		comentario	// 0x61ed05 → 0x54e7f0: NpcName(Eng).txt sin mirar mayúsculas; sin él, la tabla vacía y sin error. main.cpp copia los
 0x61ed18	0x61ccb0	sí	código	src	Client/src/Data/Text/SlideTable.h	14		impl		comentario	"// ""Slide.bmd""; en el original, 0x46b3b0, que la carga de los datos del juego, 0x61ccb0, llama en 0x61ed18 con"
 0x61ed18	0x61ccb0	sí	código	src	Client/src/Scenes/GameData.h	46	SlideTableFile	impl		comentario	// Los textos del cartel, como los pide 0x61ccb0 (0x61ed18, con 0x6d29c8).
-0x61ed18	0x61ccb0	sí	código	src	Client/src/main.cpp	694	RunScenes	impl		comentario	// 0x61ed18: 0x46b3b0 deja Slide.bmd en el cartel de [0x5763528], que dura hasta el cierre.
+0x61ed18	0x61ccb0	sí	código	src	Client/src/main.cpp	695	RunScenes	impl		comentario	// 0x61ed18: 0x46b3b0 deja Slide.bmd en el cartel de [0x5763528], que dura hasta el cierre.
 0x61ed18	0x61ccb0	sí	código	tests	Client/tests/data/test_golden_slide_table.cpp	16		test		comentario	// Slide.bmd real (Data\Local, 0x61ed18): el timer cada 60 segundos, la velocidad 2,5 y tres tramos con textos. Mira
 0x61ee30	0x61ee30	sí	código	src	Client/src/Scenes/GameData.h	44	MacroFile	impl		comentario	// Las macros, como las pide 0x61ee30 (0x6c649c), detrás de Text.bmd.
 0x61ee30	0x61ee30	sí	código	src	Client/src/Scenes/GameData.h	100		impl		comentario	// Lo de WinMain antes de la escena 1: Text.bmd en 0x4b9b9f (0x61ee30 y 0x5495e0), antes de las
 0x61ee30	0x61ee30	sí	código	src	Client/src/Scenes/GameData.h	113	LoadGameData	impl		comentario	// detrás de Text.bmd, como en 0x61ee30: si Macro.txt no está o no se lee, quedan vacías, como cuando fopen falla en
 0x61ee30	0x61ee30	sí	código	src	Client/src/UI/MacroFile.h	12		impl		comentario	// detrás de Text.bmd (0x61ee30 → 0x61c1c0); lo escriben la salida del juego, el cambio de servidor y el gate a los
-0x61ee30	0x61ee30	sí	código	src	Client/src/main.cpp	683	RunScenes	impl		comentario	// 0x61ee30 → 0x61c1c0: las macros de Data\Macro.txt, que GameData leyó detrás de Text.bmd, en 0x77f1db0.
+0x61ee30	0x61ee30	sí	código	src	Client/src/main.cpp	684	RunScenes	impl		comentario	// 0x61ee30 → 0x61c1c0: las macros de Data\Macro.txt, que GameData leyó detrás de Text.bmd, en 0x77f1db0.
 0x61ee30	0x61ee30	sí	código	tests	Client/tests/scenes/test_game_data.cpp	38		test		comentario	"// Text.bmd en 0x4b9b9f (0x61ee30 y 0x5495e0, con ""Data\Local\Text.bmd"" de 0x6d4370), antes de las"
 0x61ee30	0x61ee30	sí	código	tests	Client/tests/scenes/test_game_data.cpp	155	GameDataTest.ReadsTheMacros	test		comentario	// 0x61ee30 → 0x61c1c0: Macro.txt, detrás de Text.bmd, sin mirar mayúsculas; sin él, las macros vacías. Las macros
 0x61eef0	0x61eef0	sí	código	src	Client/src/Scenes/ReturnToSelection.cpp	43	ReleaseTheGame	impl		comentario	// 0x61eef0: objetos, pools, ítems del piso y personajes; conserva terreno y héroe publicado.
@@ -49591,7 +49591,7 @@ va	funcion	dentro	seccion	area	archivo	linea	simbolo	tipo	pendiente	en	texto
 0x637700	0x637700	sí	código	src	Client/src/Scenes/WinMainLoop.h	12		impl		comentario	// del frame (0x63945d), y el frame, después de la escena (0x637700), vuelve a abrir y cerrar el contador. Con
 0x637700	0x637700	sí	código	src	Client/src/Scenes/WinMainLoop.h	32	CloseTheFrameCounter	impl		comentario	// 0x63950d..0x63b066: 0x63945d abre y cierra el contador después de 0x637700 (4 rand()). Su rama de más de 31
 0x637700	0x637700	sí	código	src	Client/src/UI/MessageArea.h	25		impl		comentario	// cada paso, después del de la escena (0x637cf3 y 0x637cf8, dentro de 0x637700). Lo que el dibujo escribe y dura
-0x637700	0x637700	sí	código	src	Client/src/main.cpp	793	RunScenes	impl		comentario	// La captura de pantalla de Impr Pant (0x637700 en todas las escenas): sus globales y la lectura de GL.
+0x637700	0x637700	sí	código	src	Client/src/main.cpp	794	RunScenes	impl		comentario	// La captura de pantalla de Impr Pant (0x637700 en todas las escenas): sus globales y la lectura de GL.
 0x637700	0x637700	sí	código	tests	Client/tests/app/test_faithful_pacer.cpp	21		test		comentario	// Client::App::FaithfulPacer y el modo Faithful de GameLoop: el ritmo de 0x637700 con el reloj de
 0x637700	0x637700	sí	código	tests	Client/tests/render/test_cloth.cpp	341	ClothTest.ALogicStepWalksFiveTimesAndCounts	test		comentario	// 0x637700 en un paso de lógica: cinco paseos y el contador más 1, con los 4 rand() de su
 0x637700	0x637700	sí	código	tests	Client/tests/scenes/test_character_select_scene.cpp	512	CharacterSelectSceneTest.HoldsTheLastFrameUntilAStepSawTheList	test		comentario	// Y sin el verdadero de 0x634680, 0x637700 no presenta el frame (0x6385e1..0x6385f7): el clear no se ve y
@@ -49624,17 +49624,17 @@ va	funcion	dentro	seccion	area	archivo	linea	simbolo	tipo	pendiente	en	texto
 0x637cf3	0x637700	sí	código	src	Client/src/Scenes/GameMessages.h	45	StepTheMessageClocks	impl		comentario	// 0x637cf3 y 0x637cf8: el reloj de los avisos (0x5547e0) y el del área vieja (0x5554b0), uno por paso; después,
 0x637cf3	0x637700	sí	código	src	Client/src/Scenes/SceneManager.h	49	SceneManager::SceneManager	impl		comentario	// lógica, como los relojes de los mensajes (0x637cf3 y 0x637cf8). Su error queda en Failure, como el de un
 0x637cf3	0x637700	sí	código	src	Client/src/UI/MessageArea.h	25		impl		comentario	// cada paso, después del de la escena (0x637cf3 y 0x637cf8, dentro de 0x637700). Lo que el dibujo escribe y dura
-0x637cf3	0x637700	sí	código	src	Client/src/main.cpp	835	RunScenes	impl		comentario	// 0x637cf3 y 0x637cf8: los relojes de los mensajes, y 0x637cfd: Impr Pant, detrás del paso de cualquier escena.
+0x637cf3	0x637700	sí	código	src	Client/src/main.cpp	836	RunScenes	impl		comentario	// 0x637cf3 y 0x637cf8: los relojes de los mensajes, y 0x637cfd: Impr Pant, detrás del paso de cualquier escena.
 0x637cf3	0x637700	sí	código	tests	Client/tests/scenes/test_game_messages.cpp	46	GameMessagesTest.TheClocksAddEmptyNoticesAndMessagesWhenTheyRunOut	test		comentario	// 0x637cf3 y 0x637cf8: con los relojes vencidos, un aviso vacío (300) y un mensaje vacío (150), que envejece los
 0x637cf8	0x637700	sí	código	src	Client/src/Scenes/GameMessages.h	45	StepTheMessageClocks	impl		comentario	// 0x637cf3 y 0x637cf8: el reloj de los avisos (0x5547e0) y el del área vieja (0x5554b0), uno por paso; después,
 0x637cf8	0x637700	sí	código	src	Client/src/Scenes/SceneManager.h	49	SceneManager::SceneManager	impl		comentario	// lógica, como los relojes de los mensajes (0x637cf3 y 0x637cf8). Su error queda en Failure, como el de un
 0x637cf8	0x637700	sí	código	src	Client/src/UI/MessageArea.h	25		impl		comentario	// cada paso, después del de la escena (0x637cf3 y 0x637cf8, dentro de 0x637700). Lo que el dibujo escribe y dura
-0x637cf8	0x637700	sí	código	src	Client/src/main.cpp	835	RunScenes	impl		comentario	// 0x637cf3 y 0x637cf8: los relojes de los mensajes, y 0x637cfd: Impr Pant, detrás del paso de cualquier escena.
+0x637cf8	0x637700	sí	código	src	Client/src/main.cpp	836	RunScenes	impl		comentario	// 0x637cf3 y 0x637cf8: los relojes de los mensajes, y 0x637cfd: Impr Pant, detrás del paso de cualquier escena.
 0x637cf8	0x637700	sí	código	tests	Client/tests/scenes/test_game_messages.cpp	46	GameMessagesTest.TheClocksAddEmptyNoticesAndMessagesWhenTheyRunOut	test		comentario	// 0x637cf3 y 0x637cf8: con los relojes vencidos, un aviso vacío (300) y un mensaje vacío (150), que envejece los
 0x637cfd	0x637700	sí	código	src	Client/src/Scenes/GameMessages.cpp	78	StepTheMessageClocks	impl		comentario	// 0x637d2c y 0x637d44: el freno del chat y el de las macros, de a uno por paso (el 0x637cfd de PrintScreen, entre
 0x637cfd	0x637700	sí	código	src	Client/src/Scenes/Screenshots.cpp	32	PrintScreenVirtualKey	impl		comentario	// 0x637cfd: la tecla virtual de Impr Pant (VK_SNAPSHOT), que indexa su latch de 0x77f36d4.
 0x637cfd	0x637700	sí	código	src	Client/src/Scenes/Screenshots.h	101	Screenshots::StepTheKey	impl		comentario	// 0x637cfd..0x637d25, detrás del paso de cualquier escena: con el flanco de Impr Pant (0x553520(0x2c), con su
-0x637cfd	0x637700	sí	código	src	Client/src/main.cpp	835	RunScenes	impl		comentario	// 0x637cf3 y 0x637cf8: los relojes de los mensajes, y 0x637cfd: Impr Pant, detrás del paso de cualquier escena.
+0x637cfd	0x637700	sí	código	src	Client/src/main.cpp	836	RunScenes	impl		comentario	// 0x637cf3 y 0x637cf8: los relojes de los mensajes, y 0x637cfd: Impr Pant, detrás del paso de cualquier escena.
 0x637cff	0x637700	sí	código	src	Client/src/Scenes/GameUi.h	217	StepTheFunctionKeys	impl		comentario	// cambian lo suyo y suenan. Impr Pant (0x637cff, la captura) no es de acá: va detrás del paso de cualquier escena
 0x637cff	0x637700	sí	código	src	Client/src/Scenes/Screenshots.h	36		impl		comentario	// escenas, detrás del paso (0x637cff) y alrededor del dibujo (0x6381bb..0x6385da). No saca rand(). *Estático*.
 0x637cff	0x637700	sí	código	tests	Client/tests/scenes/test_game_ui.cpp	1187	GameUiTest.TheFunctionKeysLeaveThePrintScreenKey	test		comentario	// 0x637cff: Impr Pant no es de las teclas del juego, sino de lo que corre detrás del paso de cualquier escena
@@ -49667,7 +49667,7 @@ va	funcion	dentro	seccion	area	archivo	linea	simbolo	tipo	pendiente	en	texto
 0x6381bb	0x637700	sí	código	src	Client/src/Scenes/Screenshots.cpp	104	Screenshots::BeforeTheDraw	corte		comentario	// 0x6381bb: 0x41ef00, el sonido 3D, es de la CL10.
 0x6381bb	0x637700	sí	código	src	Client/src/Scenes/Screenshots.h	36		impl		comentario	// escenas, detrás del paso (0x637cff) y alrededor del dibujo (0x6381bb..0x6385da). No saca rand(). *Estático*.
 0x6381bb	0x637700	sí	código	src	Client/src/Scenes/Screenshots.h	106	Screenshots::BeforeTheDraw	impl		comentario	// 0x6381bb..0x63835a, antes del dibujo de la escena: con la captura pedida, el nombre y el mensaje, y sin Shift,
-0x6381bb	0x637700	sí	código	src	Client/src/main.cpp	852	RunScenes	impl		comentario	// 0x6381bb..0x63835a y 0x638586..0x6385da: la captura alrededor del dibujo de la escena. Shift es el
+0x6381bb	0x637700	sí	código	src	Client/src/main.cpp	853	RunScenes	impl		comentario	// 0x6381bb..0x63835a y 0x638586..0x6385da: la captura alrededor del dibujo de la escena. Shift es el
 0x6381bb	0x637700	sí	código	tests	Client/tests/scenes/test_screenshots.cpp	240	ScreenshotsTest.TheFrameWritesTheJpegAfterTheMessage	test		comentario	// 0x6381bb..0x6385da sin Shift: el mensaje entra antes del dibujo (sale en la captura), y después la lectura de la
 0x6381c7	0x637700	sí	código	src	Client/src/Core/LocalTime.h	4		impl		comentario	// (0x6381c7). La lee Platform (Platform/LocalTime.h).
 0x6381c7	0x637700	sí	código	src	Client/src/Platform/LocalTime.h	8		impl		comentario	// La hora local del sistema (CL8 hito 6), la del GetLocalTime del original (0x6381c7, el nombre de la captura de
@@ -49689,13 +49689,13 @@ va	funcion	dentro	seccion	area	archivo	linea	simbolo	tipo	pendiente	en	texto
 0x6382f7	0x637700	sí	código	tests	Client/tests/scenes/test_screenshots.cpp	180	ScreenshotsTest.TheMessageIsText459WithTheGroupAndTheHero	test		comentario	"// 0x638219..0x6382f7: el 459 con el nombre en su %s, y "" [grupo / héroe]"" detrás, aunque estén vacíos."
 0x6382f9	0x637700	sí	código	src	Client/src/Scenes/Screenshots.cpp	116	Screenshots::BeforeTheDraw	impl		comentario	// 0x6382f9..0x63835a: sin Shift, el mensaje va antes del dibujo y sale en la captura.
 0x638303	0x637700	sí	código	src	Client/src/Scenes/Screenshots.h	71	ScreenshotFrameContext::shiftDown	impl		comentario	// GetAsyncKeyState(0x10) en 0x638303: Shift abajo.
-0x638303	0x637700	sí	código	src	Client/src/main.cpp	853	RunScenes	impl		comentario	// GetAsyncKeyState(0x10) de 0x638303, la hora la de GetLocalTime y el archivo va a la carpeta de trabajo, como el
+0x638303	0x637700	sí	código	src	Client/src/main.cpp	854	RunScenes	impl		comentario	// GetAsyncKeyState(0x10) de 0x638303, la hora la de GetLocalTime y el archivo va a la carpeta de trabajo, como el
 0x638303	0x637700	sí	código	tests	Client/tests/scenes/test_screenshots.cpp	267	ScreenshotsTest.WithShiftTheMessageGoesAfterTheRead	test		comentario	// 0x638303 y 0x6385af..0x6385d7: con Shift, el mensaje va después de la lectura y no sale en la captura.
 0x638347	0x637700	sí	código	src	Client/src/Scenes/Screenshots.cpp	36	ScreenshotMessageType	impl		comentario	// 0x638347 y 0x6385c4: el tipo de 0x555190.
 0x63835a	0x637700	sí	código	src	Client/src/Scenes/SceneManager.h	52	SceneManager::SceneManager	impl		comentario	// captura de pantalla, 0x6381bb..0x63835a y 0x638586..0x6385da). Sus errores quedan en Failure y el frame no se
 0x63835a	0x637700	sí	código	src	Client/src/Scenes/Screenshots.cpp	116	Screenshots::BeforeTheDraw	impl		comentario	// 0x6382f9..0x63835a: sin Shift, el mensaje va antes del dibujo y sale en la captura.
 0x63835a	0x637700	sí	código	src	Client/src/Scenes/Screenshots.h	106	Screenshots::BeforeTheDraw	impl		comentario	// 0x6381bb..0x63835a, antes del dibujo de la escena: con la captura pedida, el nombre y el mensaje, y sin Shift,
-0x63835a	0x637700	sí	código	src	Client/src/main.cpp	852	RunScenes	impl		comentario	// 0x6381bb..0x63835a y 0x638586..0x6385da: la captura alrededor del dibujo de la escena. Shift es el
+0x63835a	0x637700	sí	código	src	Client/src/main.cpp	853	RunScenes	impl		comentario	// 0x6381bb..0x63835a y 0x638586..0x6385da: la captura alrededor del dibujo de la escena. Shift es el
 0x63852b	0x637700	sí	código	src	Client/src/App/FaithfulPacer.h	23	FaithfulPacer::StartMeasure	impl		comentario	// Toma el inicio (0x63852b). Se llama después de los pasos y antes de dibujar.
 0x63852b	0x637700	sí	código	src	Client/src/App/FaithfulPacer.h	37	FaithfulPacer::m_startMs	impl		comentario	// Lo que leyó GetTickCount en 0x63852b.
 0x63852b	0x637700	sí	código	src	Client/src/App/GameLoop.cpp	133	GameLoop::RunFaithful	impl		comentario	// Después de los pasos (0x63852b): lo que tardan no se acumula.
@@ -49705,7 +49705,7 @@ va	funcion	dentro	seccion	area	archivo	linea	simbolo	tipo	pendiente	en	texto
 0x63852b	0x637700	sí	código	tests	Client/tests/app/test_game_loop.cpp	247	GameLoopTest.TheTimeOfASceneChangeDoesNotCount	test		comentario	// original mide desde después de los pasos (0x63852b): lo que tarda cargar una escena no es tiempo del
 0x638586	0x637700	sí	código	src	Client/src/Scenes/SceneManager.h	52	SceneManager::SceneManager	impl		comentario	// captura de pantalla, 0x6381bb..0x63835a y 0x638586..0x6385da). Sus errores quedan en Failure y el frame no se
 0x638586	0x637700	sí	código	src	Client/src/Scenes/Screenshots.h	112	Screenshots::AfterTheDraw	impl		comentario	// 0x638586..0x6385da, después del dibujo y antes del swap: con la captura pedida, lo que juntó el lienzo a GL,
-0x638586	0x637700	sí	código	src	Client/src/main.cpp	852	RunScenes	impl		comentario	// 0x6381bb..0x63835a y 0x638586..0x6385da: la captura alrededor del dibujo de la escena. Shift es el
+0x638586	0x637700	sí	código	src	Client/src/main.cpp	853	RunScenes	impl		comentario	// 0x6381bb..0x63835a y 0x638586..0x6385da: la captura alrededor del dibujo de la escena. Shift es el
 0x638592	0x637700	sí	código	src	Client/src/Scenes/Screenshots.cpp	133	Screenshots::AfterTheDraw	impl		comentario	// 0x638592..0x6385a7: con 0x7d366bc, el modo del editor que nadie prende, 0x517570 escribiría
 0x6385a7	0x637700	sí	código	src	Client/src/Scenes/Screenshots.cpp	133	Screenshots::AfterTheDraw	impl		comentario	// 0x638592..0x6385a7: con 0x7d366bc, el modo del editor que nadie prende, 0x517570 escribiría
 0x6385aa	0x637700	sí	código	src	Client/src/Scenes/Screenshots.cpp	135	Screenshots::AfterTheDraw	impl		comentario	// 0x6385aa → 0x6202e0: lo dibujado, con lo que todavía junta el lienzo, como en el Present (el 3D antes del 2D).
@@ -49723,7 +49723,7 @@ va	funcion	dentro	seccion	area	archivo	linea	simbolo	tipo	pendiente	en	texto
 0x6385da	0x637700	sí	código	src	Client/src/Scenes/Screenshots.h	36		impl		comentario	// escenas, detrás del paso (0x637cff) y alrededor del dibujo (0x6381bb..0x6385da). No saca rand(). *Estático*.
 0x6385da	0x637700	sí	código	src	Client/src/Scenes/Screenshots.h	55	ScreenshotState::requested	impl		comentario	// 0x7d368a8: la captura pedida. La invierte Impr Pant (0x637d10..0x637d25) y la apaga el frame (0x6385da).
 0x6385da	0x637700	sí	código	src	Client/src/Scenes/Screenshots.h	112	Screenshots::AfterTheDraw	impl		comentario	// 0x638586..0x6385da, después del dibujo y antes del swap: con la captura pedida, lo que juntó el lienzo a GL,
-0x6385da	0x637700	sí	código	src	Client/src/main.cpp	852	RunScenes	impl		comentario	// 0x6381bb..0x63835a y 0x638586..0x6385da: la captura alrededor del dibujo de la escena. Shift es el
+0x6385da	0x637700	sí	código	src	Client/src/main.cpp	853	RunScenes	impl		comentario	// 0x6381bb..0x63835a y 0x638586..0x6385da: la captura alrededor del dibujo de la escena. Shift es el
 0x6385da	0x637700	sí	código	tests	Client/tests/scenes/test_screenshots.cpp	240	ScreenshotsTest.TheFrameWritesTheJpegAfterTheMessage	test		comentario	// 0x6381bb..0x6385da sin Shift: el mensaje entra antes del dibujo (sale en la captura), y después la lectura de la
 0x6385e1	0x637700	sí	código	src	Client/src/Scenes/CharacterSelectScene.cpp	1906	CharacterSelectScene::HoldsTheLastFrame	impl		comentario	// verdadero 0x637700 no presenta el frame (0x6385e1..0x6385f7): queda el último del login. Hasta que un
 0x6385e1	0x637700	sí	código	src	Client/src/Scenes/Screenshots.cpp	164	Screenshots::FinishTheLoop	impl		cadena	"m_heldFrame = std::string(""0x6385aa: la captura de un frame que la escena no presenta (0x6385e1), con el glClear y """
@@ -49750,9 +49750,9 @@ va	funcion	dentro	seccion	area	archivo	linea	simbolo	tipo	pendiente	en	texto
 0x63945d	0x63945d	sí	código	src	Client/src/Scenes/SceneManager.h	47	SceneManager::SceneManager	impl		comentario	// 0x63945d y el principio de la vuelta siguiente de WinMain (P-C61). afterSceneStep corre después de cada paso de
 0x63945d	0x63945d	sí	código	src	Client/src/Scenes/WinMainLoop.h	12		impl		comentario	// del frame (0x63945d), y el frame, después de la escena (0x637700), vuelve a abrir y cerrar el contador. Con
 0x63945d	0x63945d	sí	código	src	Client/src/Scenes/WinMainLoop.h	32	CloseTheFrameCounter	impl		comentario	// 0x63950d..0x63b066: 0x63945d abre y cierra el contador después de 0x637700 (4 rand()). Su rama de más de 31
-0x63945d	0x63945d	sí	código	src	Client/src/main.cpp	782	RunScenes	impl		comentario	// corre en una vuelta sin minimizar cierra el contador de 0x63945d y empieza la vuelta siguiente. Entre las dos,
-0x63945d	0x63945d	sí	código	src	Client/src/main.cpp	799	RunScenes	impl		comentario	// 0x63b0b7: la cola de 0x63945d apaga el Enter de los diálogos (0x5763588).
-0x63945d	0x63945d	sí	código	src	Client/src/main.cpp	876	RunScenes	impl		comentario	// La primera vuelta de WinMain, antes del primer frame: la escena entra adentro de él (0x63945d).
+0x63945d	0x63945d	sí	código	src	Client/src/main.cpp	783	RunScenes	impl		comentario	// corre en una vuelta sin minimizar cierra el contador de 0x63945d y empieza la vuelta siguiente. Entre las dos,
+0x63945d	0x63945d	sí	código	src	Client/src/main.cpp	800	RunScenes	impl		comentario	// 0x63b0b7: la cola de 0x63945d apaga el Enter de los diálogos (0x5763588).
+0x63945d	0x63945d	sí	código	src	Client/src/main.cpp	877	RunScenes	impl		comentario	// La primera vuelta de WinMain, antes del primer frame: la escena entra adentro de él (0x63945d).
 0x63945d	0x63945d	sí	código	tests	Client/tests/scenes/test_win_main_loop.cpp	76	WinMainLoopTest.TheFrameClosesTheCounterWithFour	test		comentario	// 0x63945d, después de 0x637700: abre y cierra el contador.
 0x639482	0x63945d	sí	código	src	Client/src/Scenes/ItemDrawResources.h	22		impl		comentario	// jugador con 0x50ba30: el reloj, el pulso del brillo (0x7d36ba8, que escribe 0x639482 antes de cada frame),
 0x63950d	0x63945d	sí	código	src	Client/src/Scenes/WinMainLoop.h	32	CloseTheFrameCounter	impl		comentario	// 0x63950d..0x63b066: 0x63945d abre y cierra el contador después de 0x637700 (4 rand()). Su rama de más de 31
@@ -49761,7 +49761,7 @@ va	funcion	dentro	seccion	area	archivo	linea	simbolo	tipo	pendiente	en	texto
 0x63b066	0x63945d	sí	código	src	Client/src/Scenes/WinMainLoop.h	32	CloseTheFrameCounter	impl		comentario	// 0x63950d..0x63b066: 0x63945d abre y cierra el contador después de 0x637700 (4 rand()). Su rama de más de 31
 0x63b066	0x63945d	sí	código	tests	Client/tests/scenes/test_win_main_loop.cpp	11		test		comentario	// leídos del ASM de 0x4bbc57..0x4be02f y de 0x63950d..0x63b066.
 0x63b0b7	0x63945d	sí	código	src	Client/src/UI/GameUiState.h	174	GameUiState::enterPressed	impl		comentario	// apagan los diálogos (0x6263df y 0x62da58) y lo apaga la cola del frame (0x63b0b7).
-0x63b0b7	0x63945d	sí	código	src	Client/src/main.cpp	799	RunScenes	impl		comentario	// 0x63b0b7: la cola de 0x63945d apaga el Enter de los diálogos (0x5763588).
+0x63b0b7	0x63945d	sí	código	src	Client/src/main.cpp	800	RunScenes	impl		comentario	// 0x63b0b7: la cola de 0x63945d apaga el Enter de los diálogos (0x5763588).
 0x63b0e3	0x63b0e3	sí	código	src	Client/src/Scenes/CrywolfInterfaceDrawing.cpp	227	TipBackground	impl		comentario	// 0x430180: con la fuente 0x5763558, glColor3f(1, 1, 1), el fondo 0xaa000000 y 0x63b0e3(10000), los cuatro renglones
 0x63b0e3	0x63b0e3	sí	código	src	Client/src/Scenes/CrywolfInterfaceDrawing.cpp	482	TipTimerFires	impl		comentario	// 0x63b0e3(10000): el reloj de timeGetTime de 0x7d3a0e4 y 0x7d3a0e8; vence con inicio + período <= ahora (con signo)
 0x63b0e3	0x63b0e3	sí	código	src	Client/src/Scenes/GameHud.h	93	GameHudContext::tickCount	impl		comentario	// de Crywolf (0x437410 y 0x437426), y que MuRet da también por el timeGetTime() de 0x63b0e3 (0x430180).
@@ -49775,7 +49775,7 @@ va	funcion	dentro	seccion	area	archivo	linea	simbolo	tipo	pendiente	en	texto
 0x63b150	0x63b150	sí	código	src	Client/src/Data/Textures/JpegWriter.h	30	WriteJpegFile	impl		comentario	// 0x63b150(nombre, ancho, alto, píxeles, calidad): `bottomUpRgb` son `height` filas de `width` × 3 bytes (rojo, verde
 0x63b150	0x63b150	sí	código	src	Client/src/Scenes/Screenshots.cpp	38	ScreenshotQuality	impl		comentario	// 0x620330: la calidad que 0x6202e0 le pasa a 0x63b150.
 0x63b150	0x63b150	sí	código	src	Client/src/Scenes/Screenshots.h	113	Screenshots::AfterTheDraw	impl		comentario	// la lectura (0x6202e0), el JPEG con calidad 100 (0x63b150, Data::Textures::WriteJpegFile), el contador, y con
-0x63b150	0x63b150	sí	código	src	Client/src/main.cpp	854	RunScenes	impl		comentario	// nombre solo del fopen de 0x63b150.
+0x63b150	0x63b150	sí	código	src	Client/src/main.cpp	855	RunScenes	impl		comentario	// nombre solo del fopen de 0x63b150.
 0x63b150	0x63b150	sí	código	tests	Client/tests/data/test_jpeg_writer.cpp	20		test		comentario	// WriteJpegFile (0x63b150) contra los vectores de la captura, que escribió la IJG libjpeg 6b con las mismas llamadas
 0x63b150	0x63b150	sí	código	tests	Client/tests/data/test_jpeg_writer.cpp	140	JpegWriterTest.ABufferOfAnotherSizeIsTheError	test		cadena	"EXPECT_NE(written.Error().find(""0x63b150""), std::string::npos) << written.Error();"
 0x63b150	0x63b150	sí	código	tests	Client/tests/scenes/test_scene_manager.cpp	740	SceneManagerTest.ADrawHookFailureStopsTheSceneWithoutPresenting	test		cadena	"tested.afterDrawFailure = ""0x63b150: sin disco"";"
@@ -56365,7 +56365,7 @@ va	funcion	dentro	seccion	area	archivo	linea	simbolo	tipo	pendiente	en	texto
 0x6d5dc8			datos	src	Client/src/Scenes/WorldEntry.h	102	WorldEntryResources::scene	impl		comentario	// 0x6d5dc8, la escena en curso, que miran el 00 (la 2) y el 0D (la 4 y la 5). Vacía, ninguna.
 0x6d5dc8			datos	src	Client/src/Scenes/WorldRuntime.h	564	WorldRuntime::terrainPolygon	impl		comentario	// para las tres escenas. Lo lee solo 0x5fba90, con la escena de ese momento (0x6d5dc8): el primer paso del
 0x6d5dc8			datos	src	Client/src/World/TerrainHeight.h	22	TerrainHeightAt	impl		comentario	// escena de 0x6d5dc8 (en el login, la escena 2, no la mira).
-0x6d5dc8			datos	src	Client/src/main.cpp	708	RunScenes	impl		comentario	// La escena en curso (0x6d5dc8) que leen el 00 y el 0D: la del SceneManager, que se arma después.
+0x6d5dc8			datos	src	Client/src/main.cpp	709	RunScenes	impl		comentario	// La escena en curso (0x6d5dc8) que leen el 00 y el 0D: la del SceneManager, que se arma después.
 0x6d5dc8			datos	tests	Client/tests/data/test_golden_terrain_objects.cpp	228	SceneOfTheCapture	test		comentario	// La escena de la captura (0x6D5DC8). 0x606660 cambia la escala de algunos objetos en las escenas 2
 0x6d5e24			datos	src	Client/src/UI/DeleteChecks.cpp	18	HighLevel	impl		comentario	// El byte 0x6d5e24, 0x50, que nadie escribe.
 0x6d5e24			datos	src	Client/src/UI/DeleteChecks.h	21	NoticeOfDeleteButton	impl		comentario	// 0xff), el 0x92; de nivel 80 o más (0x6d5e24) fuera del grupo libre, el 0x83; con las banderas

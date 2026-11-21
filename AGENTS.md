@@ -63,10 +63,33 @@ seguí el estilo del código que está alrededor.
 | qué se estudia en cada ola, y en qué va Emanuel | [guías y progreso](docs/learning/README.md) |
 | decisiones globales | `docs/adr/` |
 | las reglas de Clean Code, Clean Architecture, refactoring y C++ Core Guidelines, adaptadas a MuRet | [skills del repo](.claude/skills/) |
+| the client's architecture: layers, modules and where each file goes | [spec](docs/superpowers/specs/2026-11-20-client-architecture-design.md), [ADR 0023](docs/adr/0023-client-module-architecture.md), [`Client/modules.tsv`](Client/modules.tsv) and [`module-map.tsv`](Client/docs/research/coverage/module-map.tsv) |
+| the client refactor, epic by epic (AR0 to AR7) | [plan](docs/superpowers/plans/2026-11-20-client-architecture-refactor.md) |
+| where a client file goes and how a module is built | [`muret-module`](.claude/skills/muret-module/SKILL.md) skill |
+| moving client files to their module, and the comments PR after a move | [`muret-move`](.claude/skills/muret-move/SKILL.md) skill |
 
 El contrato con el GameServer 1.02 es el wire (puerto 55960, C1/C2, 22 heads) y el SQL que
 describe el research. Toda diferencia con el original se documenta en un ADR y se cubre con un
 test.
+
+## Where a new port goes (client, 2026-11-21)
+
+The client is moving to modules ([ADR 0023](docs/adr/0023-client-module-architecture.md),
+[`CODING_RULES.md`](docs/CODING_RULES.md) §5). New code goes to its target module from the start:
+
+1. Find its module in [`module-map.tsv`](Client/docs/research/coverage/module-map.tsv): the row of
+   a file of the same feature, or the feature's module in [`Client/modules.tsv`](Client/modules.tsv).
+2. If that module's folder does not exist yet, the file goes where it would go today (`Scenes/`,
+   `UI/`, `World/`), already with the new anatomy (one handler per packet, the state it touches in
+   its signature), and the same PR adds its row to the map. The move of its module carries it later.
+3. Includes respect the layers. In CI, `check_layers.py` rejects a new include that goes up a layer
+   or reaches a module of the same layer that `may_use` does not name, and a file without a module.
+4. A new packet, from AR2 on: its layout in `Protocol/<Module>/`, its handler in `<Module>/In/` and
+   its row in the opcode table, in place of its `Unported{va}` row.
+5. A module that is being moved gets no port work that day; its design and port work on it do not
+   run at the same time.
+
+The [`muret-module`](.claude/skills/muret-module/SKILL.md) skill has these steps.
 
 ## Compilar y testear
 
@@ -99,6 +122,9 @@ cierran por sí solas toda la CL. Esto responde a huecos que aparecieron recién
 ## Ramas y PRs
 
 - Los PRs van a `main`.
+- The client refactor's PRs (scope `AR…`) go to `refactor/client`, the refactor's foundation branch, which merges into
+  `main` when Emanuel decides (Emanuel, 2026-11-21). `main` is merged into it, never rebased or force-pushed, and the
+  merge adds the map rows of the files the port added.
 - **Una sub-ola = un concepto = un PR chico** (regla 10). Un concepto por commit.
 - **Ramas, commits y títulos y descripciones de PR en inglés** (Emanuel, 2026-11-21), igual que el
   código, sus comentarios y los docs nuevos ([`CODING_RULES.md`](docs/CODING_RULES.md) §7 y §9; los

@@ -8,6 +8,8 @@
   python3 -I consultar.py cierran           los cortes que cierran el cliente jugando
   python3 -I consultar.py buscar StepDebris un símbolo o un texto de MuRet: las VA que cita
   python3 -I consultar.py huecos [CL5] [30] los bloques sin citar ni explicar, de mayor a menor (de una ola)
+  python3 -I consultar.py module game/Guild a module (or unassigned): its metrics, live cuts, gaps and their callers,
+                                            VM steps and open 08 rows
 
 Lee los TSV de la carpeta del script. Sólo biblioteca estándar.
 """
@@ -132,6 +134,37 @@ def gaps(args):
             print(f"      textos: {h['textos'][:110]}")
 
 
+def module(name):
+    metrics = [r for r in tsv('metricas.tsv') if r['ambito'] == 'module' and r['clave'] == name]
+    if not metrics:
+        print(f'no module {name} in metricas.tsv')
+        return
+    key = '' if name == 'unassigned' else name
+    print(name)
+    for r in metrics:
+        print(f"  {r['metrica']:16} {r['valor']} {r['unidad']}")
+    cuts = [r for r in tsv('cortes.tsv') if r['module'] == key and r['archivo']]
+    print(f'\n  {len(cuts)} live cuts:')
+    for r in cuts[:30]:
+        closes = ' (closes the client)' if r['cierra_el_cliente'].startswith('sí') else ''
+        print(f"    {r['clase']} {r['archivo']}:{r['línea']}{closes}  {r['qué_falta'][:80]}")
+    holes = [h for h in tsv('huecos.tsv') if h['module'] == key]
+    print(f'\n  {len(holes)} gaps:')
+    for h in holes[:20]:
+        print(f"    {h['hueco']} {h['desde']}..{h['hasta']} {h['bytes']:>6} B {h['funciones']:>3} func  {h['senal']}")
+        if h['entradas']:
+            print(f"      called by: {h['entradas'][:100]}")
+    steps = [r for r in tsv('vm.tsv') if r['module'] == key]
+    print(f'\n  {len(steps)} VM steps:')
+    for r in steps[:20]:
+        print(f"    {r['fuente']}#{r['paso']} {r['titulo'][:90]}")
+    rows = {r['id']: r for r in tsv('ids.tsv')
+            if r['module'] == key and r['id'].startswith('P-') and r['estado'] != 'cerrada'}
+    print(f'\n  {len(rows)} open 08 rows:')
+    for r in list(rows.values())[:20]:
+        print(f"    {r['id']} {r['titulo'][:90]}")
+
+
 def main():
     a = sys.argv[1:]
     if not a:
@@ -144,6 +177,8 @@ def main():
         closing()
     elif a[0] == 'huecos':
         gaps(a[1:])
+    elif a[0] == 'module' and len(a) > 1:
+        module(a[1])
     elif a[0] == 'buscar' and len(a) > 1:
         search(' '.join(a[1:]))
     elif a[0][:2] in ('P-', 'Q-'):

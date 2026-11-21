@@ -93,3 +93,9 @@ por los efectos originales (2026-11-19, decisión de Emanuel).
 | ADR | Título | Estado |
 | --- | --- | --- |
 | [0016](0016-texto-occidental-en-windows-1252.md) | entrada y dibujo occidental con Windows-1252 de XP; activos y wire en bytes | propuesto junto con la corrección de entrada y rasterizador, 2026-11-15 |
+
+## The client refactor
+
+| ADR | Title | Status |
+| --- | --- | --- |
+| [0023](0023-client-module-architecture.md) | The client in modules: three roots, layers and one handler per packet | proposed in AR0.1 (2026-11-21); accepted when the refactor closes (AR7) |

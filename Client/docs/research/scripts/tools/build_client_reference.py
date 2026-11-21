@@ -19,6 +19,9 @@ Salidas (en --out, por defecto Client/docs/research/coverage/referencia):
                    citado y los textos de su pseudocódigo: dónde buscar lo que falta portar
   metricas.tsv     los números en formato largo (ref, ámbito, clave, métrica, valor), con la serie
 
+Every table but trazas carries the `module` of its row and metricas.tsv has a `module` scope (reference_modules.py,
+from Client/modules.tsv and coverage/module-map.tsv in --ref).
+
 Entradas:
   --muret     checkout de MuRet con historia (por defecto, la carpeta actual)
   --ref       commit de MuRet que se mide
@@ -45,6 +48,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from client_reference_symbols import symbols  # noqa: E402
 from reference_anchors import cut_sites, resolve_entries  # noqa: E402
+import reference_modules  # noqa: E402
 
 REF_DIR = 'Client/docs/research/coverage/referencia'
 # Los scripts de la referencia no son fuente de citas (tienen VA en sus tablas a mano).
@@ -206,6 +210,9 @@ def main():
             and not f.endswith('Input/Key.h') and not f.startswith('Client/docs/research/coverage/')
             and not f.startswith('Client/assets/') and f not in SELF]
     texts = cat_files(a.muret, ref, scan)
+    maps = cat_files(a.muret, ref, ['Client/modules.tsv', 'Client/docs/research/coverage/module-map.tsv'])
+    module_map = reference_modules.load(maps.get('Client/modules.tsv', ''),
+                                        maps.get('Client/docs/research/coverage/module-map.tsv', ''))
     traz, traz_docs = [], []
     src_lines = {}
     sites = []
@@ -332,6 +339,8 @@ def main():
     # Each hand row takes the cut with its anchor, wherever it is in this commit (reference_anchors.py).
     CORTES = resolve_entries([r for r in tsv(f'{E}/cortes-vivos.tsv')
                               if not r['origen'].startswith(('CL11-sin', 'CL11-cerrado'))], sites)
+    for r in CORTES:
+        r['module'] = reference_modules.module_of_file(r['archivo'], module_map)
     cortes_fn = collections.defaultdict(list)
     for r in CORTES:
         if r['función'].startswith('0x'):
@@ -449,8 +458,11 @@ def main():
         cl_by = sorted(callers.get(va, ()))
         textos = pseudo_strings(fr.get('file_base', ''))
         wave_of = lambda x: FZ[x]['primary_wave'] if x in FZ else ''
+        module = reference_modules.module_of_citations([r['archivo'].removeprefix('Client/src/') for r in imp or cut],
+                                                       module_map)
         out_rows.append(dict(
             va=hx(va), fin=hx(va + int(fr['size_bytes'] or 0)), bytes=fr['size_bytes'], clase=clase, viva=viva,
+            module=module,
             ola=fr['primary_wave'], sub_ola=c9.get('sub_ola') or CL8.get(va, ''), hito_cl9=c9.get('hito', ''),
             ola_blame=nw.get('primary_wave', ''), olas_consumidoras=fr.get('consumer_waves', ''),
             estado=st, hecho=round(done, 4) if rw else '', bytes_hechos=round(done * rw['size']) if rw else '',
@@ -478,6 +490,23 @@ def main():
     cited = {r['_va'] for r in out_rows if r['estado'] in ('implemented', 'partial') and not r['falso_positivo']}
     open_ = {r['_va'] for r in out_rows if r['viva'] == 'sí' and not r['categoria_faltante'].startswith(EXPL)
              and (r['estado'] in ('unknown', 'not-started') or r['falso_positivo'])}
+    caller_module = {va: by_va[va]['module'] for va in cited}
+    for r in out_rows:
+        if not r['module']:
+            r['module'] = reference_modules.module_of_callers(callers.get(r['_va'], ()), caller_module)
+
+    def module_of_functions(fns):
+        return reference_modules.majority(by_va[f]['module'] for f in fns if f in by_va)
+
+    id_fns = collections.defaultdict(set)
+    for r in ids_rows:
+        id_fns[r['id']].update(int(h, 16) for h in r['funciones'].split())
+    id_module = {idd: module_of_functions(fns) for idd, fns in id_fns.items()}
+    for r in ids_rows:
+        r['module'] = id_module[r['id']]
+    for st in VM:
+        st['module'] = module_of_functions(set().union(*(id_fns.get(i, set()) for i in st['ids'].split())))
+    open_08 = [id_module.get(idd, '') for idd, info in P08.items() if info['estado'] != 'cerrada']
     for r in out_rows:
         va = r['_va']
         if va not in open_:
@@ -524,13 +553,14 @@ def main():
             hueco=hid, desde=hx(b[0]), hasta=hx(b[-1]), funciones=len(b),
             bytes=sum(int(by_va[x]['bytes']) for x in b), ola=waves.most_common(1)[0][0],
             sub_ola=' '.join(sorted({by_va[x]['sub_ola'] for x in b} - {''})),
+            module=reference_modules.module_of_callers(entries, caller_module),
             categorias='; '.join(f'{k} ×{v}' if v > 1 else k for k, v in cats.most_common()),
             senal=('la llama código citado' if entries else
                    'la llama sólo código sin citar' if any(callers.get(x) for x in b) else 'sin llamador directo'),
             entradas_citadas=len(entries), entradas=ent_txt, ids_08=' '.join(ids[:8]),
             textos=' | '.join(txt[:6]), vas=' '.join(hx(x) for x in b[:40])))
     COLS_H = ['hueco', 'desde', 'hasta', 'funciones', 'bytes', 'ola', 'sub_ola', 'categorias', 'senal',
-              'entradas_citadas', 'entradas', 'ids_08', 'textos', 'vas']
+              'entradas_citadas', 'entradas', 'ids_08', 'textos', 'vas', 'module']
     write_tsv(os.path.join(a.out, 'huecos.tsv'), COLS_H, huecos)
     COLS_F = ['va', 'fin', 'bytes', 'clase', 'viva', 'ola', 'sub_ola', 'hito_cl9', 'ola_blame', 'olas_consumidoras',
               'estado', 'hecho', 'bytes_hechos', 'olas_de_sus_cortes', 'citas_impl', 'citas_corte', 'citas_pendiente',
@@ -539,7 +569,7 @@ def main():
               'categoria_faltante', 'falso_positivo', 'clon_de', 'chat', 'cortes_vivos', 'cierra_el_cliente', 'ids_07',
               'ids_08_abiertas', 'ids_08_cerradas', 'pasos_vm', 'llamadores_n', 'llamadores', 'llamados_n',
               'llamadores_citados', 'senal', 'hueco', 'plan_cl9', 'textos', 'proposito', 'nota_auditoria',
-              'pseudocodigo']
+              'pseudocodigo', 'module']
     write_tsv(os.path.join(a.out, 'funciones.tsv'), COLS_F, out_rows)
 
     # --- trazas ---
@@ -583,6 +613,7 @@ def main():
         d, h, s = last.get(f, ('', '', ''))
         arch.append(dict(
             archivo=f.removeprefix('Client/src/'), lineas=src_lines[f],
+            module=reference_modules.module_of_file(f.removeprefix('Client/src/'), module_map),
             citas=sum(1 for r in rs if r['tipo'] == 'impl'), citas_corte=sum(1 for r in rs if r['tipo'] == 'corte'),
             funciones=len(fns), kb_funciones=round(kb, 1),
             ola_principal=wb.most_common(1)[0][0] if wb else '',
@@ -591,12 +622,12 @@ def main():
             cierran=sum(1 for r in cortes_file.get(f, []) if r['cierra_el_cliente'].startswith('sí')),
             tests=top(ov, 3), ultimo_cambio=d, ultimo_commit=f'{h} {s}'))
     COLS_A = ['archivo', 'lineas', 'citas', 'citas_corte', 'funciones', 'kb_funciones', 'ola_principal', 'olas',
-              'cortes_vivos', 'cierran', 'tests', 'ultimo_cambio', 'ultimo_commit']
+              'cortes_vivos', 'cierran', 'tests', 'ultimo_cambio', 'ultimo_commit', 'module']
     write_tsv(os.path.join(a.out, 'archivos.tsv'), COLS_A, arch)
 
     # --- ids.tsv ---
     COLS_I = ['id', 'doc', 'linea', 'estado', 'clase_o_tipo', 'ola', 'vm', 'n_funciones', 'funciones', 'titulo',
-              'muret']
+              'muret', 'module']
     write_tsv(os.path.join(a.out, 'ids.tsv'), COLS_I, ids_rows)
 
     # --- metricas.tsv ---
@@ -709,6 +740,13 @@ def main():
     for w in sorted(cw, key=lambda w: (len(w), w)):
         m('cortes-ola', w, 'sitios', cw[w], 'sitios', 'ola de la función del original que contiene la VA')
 
+    # per module: what is not in one adds up under unassigned, so each metric sums to its total
+    if module_map:
+        totals = reference_modules.module_totals(out_rows, CORTES, huecos, arch, [st['module'] for st in VM], open_08)
+        for module in sorted(totals):
+            for metric, unit in reference_modules.METRICS:
+                m('module', module, metric, totals[module][metric], unit, 'module-map.tsv')
+
     # VM, 08, 07
     for w, n in sorted(collections.Counter(r['ola'] for r in VM).items()):
         m('vm', w, 'pasos', n, 'pasos', 'lista única (cota superior)')
@@ -796,9 +834,10 @@ def main():
         m('serie', 'total', 'cota_baja_con_test', pct(d['done_t'], L), '%', fuente, nota, r=r0)
 
     # --- las tablas de la auditoría, con los V corregidos ---
-    cols_c = list(tsv(f'{E}/cortes-vivos.tsv')[0].keys()) + ['resolved_by']
+    cols_c = list(tsv(f'{E}/cortes-vivos.tsv')[0].keys()) + ['resolved_by', 'module']
     write_tsv(os.path.join(a.out, 'cortes.tsv'), cols_c, CORTES)
-    for src, dst in (('vm.tsv', 'vm.tsv'), ('sustitutos.tsv', 'sustitutos.tsv'), ('sin-cablear.tsv', 'sin-cablear.tsv'),
+    write_tsv(os.path.join(a.out, 'vm.tsv'), list(tsv(f'{E}/vm.tsv')[0].keys()) + ['module'], VM)
+    for src, dst in (('sustitutos.tsv', 'sustitutos.tsv'), ('sin-cablear.tsv', 'sin-cablear.tsv'),
                      ('chat-funciones.tsv', 'chat.tsv')):
         rows = tsv(f'{E}/{src}')
         write_tsv(os.path.join(a.out, dst), list(rows[0].keys()), rows)

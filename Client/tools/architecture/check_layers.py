@@ -50,14 +50,22 @@ def _split_list(cell: str) -> tuple[str, ...]:
     return tuple(item.strip() for item in cell.split(';') if item.strip())
 
 
-def load_modules(path: pathlib.Path) -> dict[str, Module]:
+def modules_from_rows(rows: list[dict[str, str]]) -> dict[str, Module]:
     return {row['module']: Module(row['module'], int(row['layer']), _split_list(row['folders_today']),
                                   _split_list(row['may_use']))
-            for row in _read_tsv(path)}
+            for row in rows}
+
+
+def load_modules(path: pathlib.Path) -> dict[str, Module]:
+    return modules_from_rows(_read_tsv(path))
+
+
+def module_map_from_rows(rows: list[dict[str, str]], modules: dict[str, Module]) -> ModuleMap:
+    return ModuleMap({row['file']: row['target'] for row in rows}, modules)
 
 
 def load_module_map(path: pathlib.Path, modules: dict[str, Module]) -> ModuleMap:
-    return ModuleMap({row['file']: row['target'] for row in _read_tsv(path)}, modules)
+    return module_map_from_rows(_read_tsv(path), modules)
 
 
 def include_graph(src: pathlib.Path) -> dict[str, set[str]]:

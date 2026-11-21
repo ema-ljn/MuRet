@@ -24,7 +24,7 @@ hasta que alguien las vuelva a revisar.
 | `huecos.tsv` | ~300 | **los bloques contiguos de funciones vivas sin citar ni explicar**, con quién los llama desde código citado y sus textos: dónde buscar lo que falta portar |
 | `archivos.tsv` | ~1.410 | cada archivo de `Client/src`: qué funciones del original cita, de qué ola, sus cortes, qué tests lo cubren y su último commit |
 | `ids.tsv` | ~1.120 | cada fila Q-C de 07 y P-C de 08: estado, clase o tipo, ola, si pide VM, las funciones que nombra y qué hace MuRet |
-| `metricas.tsv` | ~400 | **los números**, en formato largo: avance total, por ola, por hito de la CL9 y por sub-ola de la CL8, lo que falta por categoría, los huecos, cortes, VM, 08, 07, chat, sustitutos, tamaño de MuRet y la serie desde el 13/11 |
+| `metricas.tsv` | ~950 | **los números**, en formato largo: avance total, por ola, por hito de la CL9 y por sub-ola de la CL8, lo que falta por categoría, los huecos, cortes, VM, 08, 07, chat, sustitutos, tamaño de MuRet, la serie desde el 13/11 and what is missing per module |
 | `cortes.tsv` | 1.761 | los cortes vivos con su clase (P, O, X, R, S, G, D, I, V, H), qué falta y cómo se llega |
 | `vm.tsv` | 234 | los pasos de VM pendientes de todas las olas, y si bloquean código |
 | `sustitutos.tsv`, `sin-cablear.tsv` | 143, 185 | los sustitutos propios de MuRet y el código sin llamador |
@@ -44,6 +44,7 @@ python3 -I consultar.py faltan CL9          # lo vivo sin citar de una ola, de m
 python3 -I consultar.py huecos CL5          # los bloques sin citar ni explicar (de una ola), con quién los llama
 python3 -I consultar.py cierran             # los cortes que cierran el cliente jugando
 python3 -I consultar.py buscar StepDebris   # un símbolo o un texto de MuRet: qué VA cita
+python3 -I consultar.py module game/Guild   # a module: its metrics, live cuts, gaps and callers, VM steps, open 08
 ```
 
 Con `grep` y `awk` (`trazas.tsv` empieza por `va`, así que `grep -P '^0x5252e6\t' trazas.tsv` da las citas exactas de
@@ -87,6 +88,25 @@ respuesta del `F3 06`. Sin ella, sumar un punto en la ventana del personaje no h
 Un hueco no es una prueba: puede estar portado sin citar, o ser un destructor que RAII hace innecesario. Hay que leer
 el ASM.
 
+## What is missing, per module
+
+Each row of `funciones.tsv`, `cortes.tsv`, `huecos.tsv`, `archivos.tsv`, `ids.tsv` and `vm.tsv` carries the client
+module it belongs to (`module`, the last column). It comes from `Client/modules.tsv` and `coverage/module-map.tsv` in
+the commit measured, through the lookup of `Client/tools/architecture/check_layers.py`
+(`scripts/tools/reference_modules.py`):
+
+- a file: its row in `module-map.tsv`, or else the module whose `folders_today` holds it;
+- a function: the module of the `Client/src` lines that cite it, one vote per line (its cut lines if it has no other);
+  an uncited one takes that of its cited callers, one vote per caller;
+- a cut: its file's; a gap: that of its cited callers; a VM step or an 07/08 row: that of the functions it names.
+
+A tie goes to the first module in alphabetical order. `metricas.tsv` has a `module` scope with `lines`,
+`cited_functions` and `cited_kb` (live functions `implemented` or `partial`), `live_cuts`, `closing_cuts`, `gaps`,
+`gap_kb`, `vm_steps` and `open_08_ids`. What no module claims (a gap or a function called only from uncited code, a VM
+step or an 08 row whose functions have no module) adds up under `unassigned`, so each metric summed over the modules
+equals its total elsewhere in `metricas.tsv` (the KB within rounding). A commit without both tables has an empty
+`module` column and no `module` scope.
+
 ## Las columnas
 
 ### `funciones.tsv`
@@ -129,6 +149,7 @@ el ASM.
 | 44 | `proposito` | lo que dice la matriz (a veces es un trozo de un documento) |
 | 45 | `nota_auditoria` | lo que dijo la auditoría (qué hace, para el chat y las sin citar) |
 | 46 | `pseudocodigo` | el nombre base del `.c` y el `.asm` en `decompiled/functions/` del research |
+| 47 | `module` | the client module (see [What is missing, per module](#what-is-missing-per-module)) |
 
 ### `trazas.tsv` y `trazas-docs.tsv`
 
@@ -144,21 +165,21 @@ CL", "CL9"...). Por eso las cotas y estas tablas cuentan igual.
 ### `huecos.tsv`
 
 `hueco` (`h001`, de mayor a menor), `desde`, `hasta`, `funciones`, `bytes`, `ola`, `sub_ola`, `categorias`, `senal`,
-`entradas_citadas`, `entradas`, `ids_08`, `textos` y `vas` (las primeras 40).
+`entradas_citadas`, `entradas`, `ids_08`, `textos`, `vas` (las primeras 40) and `module`.
 
 ### `archivos.tsv`
 
 `archivo`, `lineas`, `citas` (sin cortes), `citas_corte`, `funciones` (distintas que cita sin corte), `kb_funciones`
 (la suma de sus tamaños: en un `.h` de estado puede ser grande porque nombra funciones enteras), `ola_principal` y
 `olas` (por KB), `cortes_vivos` (por clase), `cierran`, `tests` (los archivos de test que citan más funciones en común)
-y `ultimo_cambio` / `ultimo_commit`.
+y `ultimo_cambio` / `ultimo_commit`, and `module`.
 
 ### `metricas.tsv`
 
 `ref`, `ambito`, `clave`, `metrica`, `valor`, `unidad`, `fuente`, `nota`. Los ámbitos son `inventario`, `avance`,
 `avance-ola`, `avance-cl9-hito`, `avance-cl8-subola`, `faltante`, `huecos`, `cortes`, `cortes-ola`, `vm`, `08`,
-`08-abiertas`, `07`, `chat`, `sustitutos`, `sin-cablear`, `muret`, `citas` y `serie`. Al regenerar en otro commit se
-pueden pegar las filas nuevas debajo: la columna `ref` las separa.
+`08-abiertas`, `07`, `chat`, `sustitutos`, `sin-cablear`, `muret`, `citas`, `serie` and `module`. Al regenerar en otro
+commit se pueden pegar las filas nuevas debajo: la columna `ref` las separa.
 
 `serie` junta los puntos guardados en `entradas/serie/` (ordenados por la fecha del commit) y el de la corrida, con
 `fuente` = `esta corrida`. Las refs con `nm` son con la `MENTION_ONLY` corregida; las otras se comparan entre sí.
@@ -237,7 +258,8 @@ la rama elegida arriba). Tarda unos 5 minutos y no toca el repo. En la página d
    abiertas. Las explicadas (clones, portadas sin cita, plataforma, herramientas, STL y sin uso) van aparte y no
    entran en la base. Al lado, lo que frena a las demás: sin citar, con cortes (y las que cierran el cliente), sin
    test, con VM y con 08. Mide eso, no la fidelidad byte a byte (ver Límites).
-3. **El estado de las trazas:** los cortes por clase, los que cierran el cliente jugando, los huecos más grandes y la
+3. **What is missing, per module:** the `module` scope of `metricas.tsv`, one row per module and its total.
+4. **El estado de las trazas:** los cortes por clase, los que cierran el cliente jugando, los huecos más grandes y la
    diferencia con la `metricas.tsv` commiteada en la rama: si difiere, hay que regenerarla y commitearla.
 
 Lee el repo de research con una deploy key de solo lectura de ese repo; la privada es el secreto `RESEARCH_DEPLOY_KEY`

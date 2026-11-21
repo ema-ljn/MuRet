@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/OriginalRotation.h"
+#include "Render/Models/RoundedMath.h"
 #include "World/EffectParticleKernels.h"
 #include "World/KalimaParticleKernels.h"
 #include "World/ParticleOwner.h"
@@ -38,6 +39,8 @@
 namespace
 {
 using Client::Render::Models::CrtRandom;
+using Client::Render::Models::RoundedCos;
+using Client::Render::Models::RoundedSin;
 using Client::Tests::AfterDraws;
 using Client::Tests::DrawOneParticle;
 using Client::World::Particle;
@@ -104,7 +107,7 @@ TEST(Cl11Particles, TheBurstRingTurnsWithOneRandAndPulsesWithTheSine)
     CrtRandom stepRandom(Seed);
     ASSERT_TRUE(Step(*particles, stepRandom, 0.0f).HasValue());
     EXPECT_EQ(ring.life, 14);
-    EXPECT_EQ(ring.scale, F32(std::sin(0.0) * 3.0 + 1.5));
+    EXPECT_EQ(ring.scale, F32(RoundedSin(0.0) * 3.0 + 1.5));
     EXPECT_EQ(ring.verticalSpeed, 6.0f);
     EXPECT_EQ(stepRandom.State(), AfterDraws(Seed, 2).State()); // sólo el viento
 }
@@ -121,7 +124,7 @@ TEST(Cl11Particles, TheBurstRingStopsAtNinetyAndDimsBelowSix)
     // (15 − 5) · 6 + 40 = 100 > 90; la vida 5 apaga la luz a la mitad.
     EXPECT_EQ(ring.verticalSpeed, 90.0f);
     EXPECT_EQ(ring.light, glm::vec3(0.5f));
-    EXPECT_EQ(ring.scale, F32(std::sin(40.0 * D(0x3c8efa35u)) * 3.0 + 1.5));
+    EXPECT_EQ(ring.scale, F32(RoundedSin(40.0 * D(0x3c8efa35u)) * 3.0 + 1.5));
 }
 
 TEST(Cl11Particles, ThePulseRingLivesTwentyWithoutRandAndShinesWithItsLife)
@@ -133,7 +136,7 @@ TEST(Cl11Particles, ThePulseRingLivesTwentyWithoutRandAndShinesWithItsLife)
     Particle& ring = Only(*particles, 0);
     EXPECT_EQ(ring.life, 20);
     ASSERT_TRUE(Step(*particles, random, 0.0f).HasValue());
-    EXPECT_EQ(ring.scale, F32(std::sin(19.0 * D(0x3e32b8c2u)) * 3.0 + 2.0));
+    EXPECT_EQ(ring.scale, F32(RoundedSin(19.0 * D(0x3e32b8c2u)) * 3.0 + 2.0));
     EXPECT_EQ(ring.light, glm::vec3(F32(19.0 * D(0x3e4ccccdu))));
 }
 
@@ -522,7 +525,7 @@ TEST(Cl11Particles, TheFlameSubtypesDrawTheirRandsAndLightByTheClock)
 {
     PortableParticleTrigonometry trigonometry;
     const float clock = 1234.0f;
-    const double glow = std::sin(1234.0 * D(0x3b03126fu)) * D(0x3e99999au) + D(0x3f333333u);
+    const double glow = RoundedSin(1234.0 * D(0x3b03126fu)) * D(0x3e99999au) + D(0x3f333333u);
     for (const auto& [subtype, draws, life] :
          {std::tuple{1, 2, 15}, std::tuple{2, 2, 10}, std::tuple{3, 1, 10}, std::tuple{5, 1, 4}, std::tuple{6, 2, 10}})
     {
@@ -566,8 +569,8 @@ TEST(Cl11Particles, TheKundunSplashesRiseWithTheirTiltAndAdvanceTwenty)
         const float speed = splash.verticalSpeed;
         const float turn = splash.rotation;
         ASSERT_TRUE(Step(*particles, random, 0.0f).HasValue());
-        EXPECT_EQ(splash.position.x, F32(std::cos(2.0) * 20.0 + 5.0));
-        EXPECT_EQ(splash.position.y, F32(std::sin(2.0) * 20.0 + 6.0));
+        EXPECT_EQ(splash.position.x, F32(RoundedCos(2.0) * 20.0 + 5.0));
+        EXPECT_EQ(splash.position.y, F32(RoundedSin(2.0) * 20.0 + 6.0));
         EXPECT_EQ(splash.position.z, F32(static_cast<double>(speed) + 7.0));
         EXPECT_EQ(splash.rotation, F32(static_cast<double>(turn) + 1.0));
         // La 6f4/4 sigue con el apagado de la 6f4 (vida 5 < 8); las otras, por 0,9090909f.

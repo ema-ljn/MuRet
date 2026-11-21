@@ -1,6 +1,7 @@
 #include "Render/Models/Pose.h"
 
 #include "Render/Models/HalfLifeMath.h"
+#include "Render/Models/RoundedMath.h"
 #include "Render/Models/Skeleton.h"
 
 #include <gtest/gtest.h>
@@ -10,7 +11,6 @@
 #include <glm/ext/vector_float3.hpp>
 
 #include <bit>
-#include <cmath>
 #include <cstdint>
 #include <numbers>
 #include <vector>
@@ -29,6 +29,8 @@ using Client::Render::Models::PoseSkeleton;
 using Client::Render::Models::PoseWorldSkeleton;
 using Client::Render::Models::QuaternionMatrix;
 using Client::Render::Models::QuaternionSlerp;
+using Client::Render::Models::RoundedCos;
+using Client::Render::Models::RoundedSin;
 using Client::Render::Models::Skeleton;
 using Client::Render::Models::SkeletonBone;
 using Client::Render::Models::VectorRotate;
@@ -171,7 +173,7 @@ TEST(PoseTest, InterpolatesBetweenThePreviousKeyAndTheCurrent)
     const std::vector<BoneTransform> bones = Pose(SampleSkeleton(), animation);
 
     ExpectNear(bones[0][3], {2.5f, 0, 0});
-    ExpectNear(VectorRotate({1, 0, 0}, bones[0]), {std::cos(Radians(22.5f)), std::sin(Radians(22.5f)), 0});
+    ExpectNear(VectorRotate({1, 0, 0}, bones[0]), {RoundedCos(Radians(22.5f)), RoundedSin(Radians(22.5f)), 0});
 }
 
 // La key anterior puede ser de otra acción: la que guardó el avance al cambiar.

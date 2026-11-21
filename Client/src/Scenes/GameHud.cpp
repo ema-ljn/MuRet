@@ -1,4 +1,5 @@
 #include "Scenes/GameHud.h"
+#include "Render/Models/RoundedMath.h"
 #include "Render/ScreenScale.h"
 #include "Scenes/MapBanner.h"
 #include "Scenes/SiegeBattleUi.h"
@@ -1927,7 +1928,8 @@ Core::Expected<void, std::string> DrawTheGameCursor(GameHudContext& context)
     if (repairMode == 2)
     {
         // 0x5ac6d4: fsin(T · 0,02) contra 0; el signo es el mismo en cualquier CPU.
-        const double turn = std::sin(static_cast<double>(context.worldClock) * static_cast<double>(0.02f));
+        const double turn =
+            Render::Models::RoundedSin(static_cast<double>(context.worldClock) * static_cast<double>(0.02f));
         if (turn <= 0.0)
             sprites.RotatedQuad(Render::TextureSlot{7}, F32(static_cast<double>(context.mouse.x) + 5.0),
                                 F32(static_cast<double>(context.mouse.y) + 18.0), 24.0f, 24.0f, 45.0f);

@@ -1,5 +1,6 @@
 #include "Render/Models/PassColors.h"
 
+#include "Render/Models/RoundedMath.h"
 #include "Render/Models/Shine.h"
 #include "Render/SpriteVertex.h"
 
@@ -8,7 +9,6 @@
 #include <glm/ext/vector_float3.hpp>
 
 #include <chrono>
-#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <numbers>
@@ -24,6 +24,7 @@ using Client::Render::Color;
 using Client::Render::Models::ExcellentColorAt;
 using Client::Render::Models::MetalFactorOf;
 using Client::Render::Models::PassHiddenMesh;
+using Client::Render::Models::RoundedSin;
 using Client::Render::Models::SetAlphaAt;
 using Client::Render::Models::SetColorOf;
 using Client::Render::Models::SetPulseAt;
@@ -79,7 +80,7 @@ TEST(PassColorsTest, TheExcellentColorPulses)
 TEST(PassColorsTest, TheSetAlphaPulses)
 {
     EXPECT_FLOAT_EQ(SetAlphaAt(std::chrono::milliseconds{0}), 0.4f);
-    EXPECT_FLOAT_EQ(SetAlphaAt(std::chrono::milliseconds{250}), std::sin(0.25f) * 0.5f + 0.4f);
+    EXPECT_FLOAT_EQ(SetAlphaAt(std::chrono::milliseconds{250}), RoundedSin(0.25f) * 0.5f + 0.4f);
 }
 
 // 0x60cc19..0x60cc1c: el alpha es el pulso guardado en un float, pero el rand() del set lo decide el pulso de la x87

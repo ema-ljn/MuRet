@@ -1,6 +1,7 @@
 #include "Render/Pass3D.h"
 
 #include "App/WindowState.h"
+#include "Render/Models/RoundedMath.h"
 
 #include <gtest/gtest.h>
 
@@ -11,7 +12,6 @@
 #include <glm/ext/vector_int4.hpp>
 #include <glm/geometric.hpp>
 
-#include <cmath>
 #include <numbers>
 #include <optional>
 #include <utility>
@@ -26,6 +26,8 @@ using Client::Render::Camera3D;
 using Client::Render::MakePass3D;
 using Client::Render::Pass3D;
 using Client::Render::ViewportRect;
+using Client::Render::Models::RoundedCos;
+using Client::Render::Models::RoundedSin;
 
 constexpr PixelSize Window1024{1024, 768};
 constexpr PixelSize Window800{800, 600};
@@ -52,8 +54,8 @@ Camera3D SomeCamera()
 glm::mat4 GlRotation(float degrees, int axis)
 {
     const double radians = static_cast<double>(degrees) * std::numbers::pi / 180.0;
-    const auto c = static_cast<float>(std::cos(radians));
-    const auto s = static_cast<float>(std::sin(radians));
+    const auto c = static_cast<float>(RoundedCos(radians));
+    const auto s = static_cast<float>(RoundedSin(radians));
     glm::mat4 m(1.0f);
     const int a = (axis + 1) % 3;
     const int b = (axis + 2) % 3;

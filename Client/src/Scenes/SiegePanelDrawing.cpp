@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Render/Models/LogicalAccess.h"
+#include "Render/Models/RoundedMath.h"
 #include "Render/OriginalQuad.h"
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
@@ -18,7 +19,6 @@
 
 #include <algorithm>
 #include <array>
-#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <optional>
@@ -168,7 +168,8 @@ Core::Expected<void, std::string> DrawStatus(GameHudContext& context, UI::SiegeP
         float flash = 1.0f;
         if (status[4] != 0)
         {
-            flash = static_cast<float>(std::sin(static_cast<long double>(status[4]) * 0.2f) + 1.0L);
+            flash = static_cast<float>(
+                Render::Models::RoundedSin(static_cast<double>(status[4]) * static_cast<double>(0.2f)) + 1.0);
             --status[4];
         }
         sprites.SetColor({1.0f, flash, flash, 1.0f});

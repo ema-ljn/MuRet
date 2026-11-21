@@ -1,6 +1,7 @@
 #include "Render/Models/Shine.h"
 
 #include "Core/IClock.h"
+#include "Render/Models/RoundedMath.h"
 
 #include <gtest/gtest.h>
 
@@ -8,7 +9,6 @@
 #include <glm/ext/vector_float3.hpp>
 
 #include <chrono>
-#include <cmath>
 #include <cstdint>
 
 // Client::Render::Models::ShineTexCoords: las UV de los tres pases de brillo de 0x4ecc30, contra las
@@ -16,6 +16,8 @@
 namespace
 {
 using Client::Core::Duration;
+using Client::Render::Models::RoundedCos;
+using Client::Render::Models::RoundedSin;
 using Client::Render::Models::ShinePass;
 using Client::Render::Models::ShineTexCoords;
 
@@ -56,8 +58,8 @@ TEST(ShineTest, TheChromePassRunsWithTheClock)
 // 0x1000, la 141: con c = cos(0,001·T) y s = sin(0,002·T), y t.
 TEST(ShineTest, TheChrome4PassUsesSinAndCos)
 {
-    const auto c = static_cast<float>(std::cos(1000 * 0.001));
-    const auto s = static_cast<float>(std::sin(1000 * 0.002));
+    const auto c = static_cast<float>(RoundedCos(1000 * 0.001));
+    const auto s = static_cast<float>(RoundedSin(1000 * 0.002));
     const float t = 1000 * 0.0001f;
 
     ExpectNear(ShineTexCoords(ShinePass::Chrome4, Normal, Milliseconds(1000)),
@@ -88,8 +90,8 @@ TEST(ShineTest, TheChrome3PassIsTheLightAgainstTheNormal)
 // u = c·nx + s·ny + nz + 5s + 3ny y v = 1 − (c·nx + s·ny + nz) − (2,5·nz + t) (0x4ed25e..0x4ed2b2).
 TEST(ShineTest, TheChrome5PassUsesSinAndCosWithItsOwnWeights)
 {
-    const auto c = static_cast<float>(std::cos(1000 * 0.001));
-    const auto s = static_cast<float>(std::sin(1000 * 0.002));
+    const auto c = static_cast<float>(RoundedCos(1000 * 0.001));
+    const auto s = static_cast<float>(RoundedSin(1000 * 0.002));
     const float t = 1000 * 0.0001f;
     const float sum = c * 0.2f + s * -0.4f + 0.6f;
 

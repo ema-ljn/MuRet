@@ -6,6 +6,7 @@
 #include "Data/Tables/ItemTable.h"
 #include "Render/ModelBatch.h"
 #include "Render/Models/Cloth.h"
+#include "Render/Models/RoundedTransforms.h"
 #include "Render/Models/Skeleton.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/CharacterDrawing.h"
@@ -14,7 +15,6 @@
 #include "Scenes/GameProjection.h"
 #include "support/TableFiles.h"
 
-#include <glm/ext/matrix_clip_space.hpp>
 #include <glm/ext/matrix_float4x4.hpp>
 #include <glm/ext/vector_float3.hpp>
 #include <glm/ext/vector_int2.hpp>
@@ -112,7 +112,8 @@ TEST(UiItemDrawingTest, TheUiPassCoversTheWholeScreenWithOneDegree)
         EXPECT_EQ(pass.pass.view, glm::mat4(1.0f));
         EXPECT_FLOAT_EQ(pass.pass.farPlane, 2000.0f);
         const float aspect = static_cast<float>(static_cast<double>(probe.screen.width) / probe.screen.height);
-        EXPECT_EQ(pass.pass.projection, glm::perspective(glm::radians(1.0f), aspect, 20.0f, 2000.0f));
+        EXPECT_EQ(pass.pass.projection,
+                  Client::Render::Models::RoundedPerspective(glm::radians(1.0f), aspect, 20.0f, 2000.0f));
         EXPECT_EQ(BitsOf(pass.projection.horizontalScale), probe.horizontal);
         EXPECT_EQ(BitsOf(pass.projection.verticalScale), probe.vertical);
         EXPECT_EQ(pass.projection.centerX, probe.screen.width / 2);

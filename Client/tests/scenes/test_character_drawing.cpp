@@ -10,6 +10,7 @@
 #include "Render/Models/OriginalRotation.h"
 #include "Render/Models/PassColors.h"
 #include "Render/Models/Pose.h"
+#include "Render/Models/RoundedMath.h"
 #include "Render/Models/Skeleton.h"
 #include "Render/Models/Skinning.h"
 #include "Render/Pass3D.h"
@@ -52,6 +53,8 @@ using Client::Render::ModelDrawState;
 using Client::Render::TextureSlot;
 using Client::Render::Models::ActionInfo;
 using Client::Render::Models::BoneKey;
+using Client::Render::Models::RoundedCos;
+using Client::Render::Models::RoundedSin;
 using Client::Render::Models::Skeleton;
 using Client::Render::Models::SkeletonBone;
 using Client::Scenes::DrawCharacter;
@@ -788,7 +791,7 @@ ModelBatch DrawnBlendMesh(std::uint8_t characterClass, bool excellent = false)
 // sin(0,001 · T) · 0,1 + 0,7.
 TEST(CharacterDrawingTest, TheBlendMeshLightOfClassFourPulses)
 {
-    const float pulse = std::sin(0.25f) * 0.1f + 0.7f;
+    const float pulse = RoundedSin(0.25f) * 0.1f + 0.7f;
 
     ExpectColor(DrawnBlendMesh(0).Vertices()[0], 0.4f, 0.4f, 0.4f);
     ExpectColor(DrawnBlendMesh(4).Vertices()[0], 0.4f * pulse, 0.4f * pulse, 0.4f * pulse);
@@ -797,7 +800,7 @@ TEST(CharacterDrawingTest, TheBlendMeshLightOfClassFourPulses)
 // El 0x42 del blendMesh también va por esa luz.
 TEST(CharacterDrawingTest, TheExcellentPassOfTheBlendMeshTakesItsLight)
 {
-    const float pulse = std::sin(0.25f) * 0.1f + 0.7f;
+    const float pulse = RoundedSin(0.25f) * 0.1f + 0.7f;
     const Client::Render::Color excellent = Client::Render::Models::ExcellentColorAt(std::chrono::milliseconds{250});
 
     const ModelBatch batch = DrawnBlendMesh(4, true);
@@ -809,7 +812,7 @@ TEST(CharacterDrawingTest, TheExcellentPassOfTheBlendMeshTakesItsLight)
 // El contorno del blendMesh también va por la luz: en la clase 4, el color del contorno por la que late.
 TEST(CharacterDrawingTest, TheOutlineOfTheBlendMeshTakesItsLight)
 {
-    const float pulse = std::sin(0.25f) * 0.1f + 0.7f;
+    const float pulse = RoundedSin(0.25f) * 0.1f + 0.7f;
     DrawnCharacter character;
     character.appearance = Client::GameLogic::ClassAppearance(4, 0);
     character.outlined = true;
@@ -896,7 +899,7 @@ float LightOfPart(const ModelBatch& batch, std::size_t part)
 // en el frame que sigue (las botas, que van antes).
 TEST(CharacterDrawingTest, PantMale25LightsTheCharacterWithItsShoots)
 {
-    const float shoots = std::sin(1.0f) * 0.4f + 0.6f;
+    const float shoots = RoundedSin(1.0f) * 0.4f + 0.6f;
 
     const ModelBatch batch = DrawnLights(0, 0x142a);
 
@@ -910,8 +913,8 @@ TEST(CharacterDrawingTest, PantMale25LightsTheCharacterWithItsShoots)
 // sigue la ven, y la armadura, entre los dos, la de PantMale25.
 TEST(CharacterDrawingTest, ClassFourLightsFromTheHelmOn)
 {
-    const float shoots = std::sin(1.0f) * 0.4f + 0.6f;
-    const float pulse = std::sin(1.0f) * 0.1f + 0.7f;
+    const float shoots = RoundedSin(1.0f) * 0.4f + 0.6f;
+    const float pulse = RoundedSin(1.0f) * 0.1f + 0.7f;
 
     const ModelBatch batch = DrawnLights(4, 0x142a);
 
@@ -936,8 +939,8 @@ TEST(CharacterDrawingTest, TheTest20PartsPutTheLightBackToOne)
 // (en la clase 4, la del casco del frame anterior) y la parte, con la de sus FShoots_R.
 TEST(CharacterDrawingTest, TheOutlineGoesWithTheLightFromBeforeThePart)
 {
-    const float shoots = std::sin(1.0f) * 0.4f + 0.6f;
-    const float pulse = std::sin(1.0f) * 0.1f + 0.7f;
+    const float shoots = RoundedSin(1.0f) * 0.4f + 0.6f;
+    const float pulse = RoundedSin(1.0f) * 0.1f + 0.7f;
     DrawnCharacter character;
     character.appearance = Client::GameLogic::ClassAppearance(4, 0);
     character.appearance.bodyParts[2].model = 0x142a;
@@ -1026,7 +1029,7 @@ TEST(CharacterDrawingTest, TheLightOfWing05Pulses)
     DrawCharacter(batch, models, character, std::chrono::milliseconds{1000});
 
     ASSERT_EQ(batch.Vertices().size(), 3u);
-    EXPECT_NEAR(batch.Vertices()[0].color.red, 0.4f * (std::sin(1.0f) + 1.1f), 1e-6f);
+    EXPECT_NEAR(batch.Vertices()[0].color.red, 0.4f * (RoundedSin(1.0f) + 1.1f), 1e-6f);
 }
 
 // 0x509340 sale sin dibujar con el modelo 0x1c30 (0x509363: CMP EDI,0x1c30 y JZ al final): la capa
@@ -1187,7 +1190,7 @@ ModelBatch DrawnSet(std::size_t meshes, const std::string& second = "part.jpg")
 TEST(CharacterDrawingTest, TheSetPassFadesMeshByMesh)
 {
     const ModelBatch batch = DrawnSet(2);
-    const float alpha = std::sin(0.25f) * 0.5f + 0.4f;
+    const float alpha = RoundedSin(0.25f) * 0.5f + 0.4f;
     const Client::Render::Color set =
         Client::Render::Models::SetColorOf(Client::GameLogic::ClassAppearance(0, 0).bodyParts[1].model);
 
@@ -1203,7 +1206,7 @@ TEST(CharacterDrawingTest, TheSetPassFadesMeshByMesh)
 TEST(CharacterDrawingTest, AMeshWithoutShineDoesNotFadeTheSetPass)
 {
     const ModelBatch batch = DrawnSet(3, "part_N.jpg");
-    const float alpha = std::sin(0.25f) * 0.5f + 0.4f;
+    const float alpha = RoundedSin(0.25f) * 0.5f + 0.4f;
     const Client::Render::Color set =
         Client::Render::Models::SetColorOf(Client::GameLogic::ClassAppearance(0, 0).bodyParts[1].model);
 
@@ -1244,7 +1247,7 @@ TEST(CharacterDrawingTest, TheBoltsAndTheArrowsGoOnTheBack)
         ASSERT_EQ(batch.Vertices().size(), 3u) << std::hex << quiver;
         ExpectAt(batch.Vertices()[0], -10.0f, 5.0f, 10.0f);
         ExpectAt(batch.Vertices()[1], -10.0f, 6.0f, 10.0f);
-        ExpectAt(batch.Vertices()[2], -10.0f - std::cos(seventy), 5.0f, 10.0f + std::sin(seventy));
+        ExpectAt(batch.Vertices()[2], -10.0f - RoundedCos(seventy), 5.0f, 10.0f + RoundedSin(seventy));
     }
 }
 

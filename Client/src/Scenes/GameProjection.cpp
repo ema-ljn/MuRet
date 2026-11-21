@@ -1,6 +1,7 @@
 #include "Scenes/GameProjection.h"
 
 #include "Core/Expected.h"
+#include "Render/Models/RoundedMath.h"
 #include "Render/Pass3D.h"
 
 #include "Render/Billboard.h"
@@ -11,7 +12,6 @@
 #include <glm/ext/vector_int2.hpp>
 
 #include <bit>
-#include <cmath>
 #include <cstdint>
 #include <string>
 
@@ -40,7 +40,7 @@ Core::Expected<GameProjection, std::string> MakeGameProjection(const Render::Pas
     if (width < 2 || height < 2 || pass.screen.width <= 0 || pass.screen.height <= 0)
         return Core::Unexpected(std::string("0x6203c0: viewport o pantalla sin semilados positivos"));
     constexpr float HalfDegree = std::bit_cast<float>(0x3c0efa33u); // 6ba70c; conserva sus bits, no π/360 recalculado.
-    const double tangent = std::tan(static_cast<double>(fieldOfView) * HalfDegree);
+    const double tangent = Render::Models::RoundedTan(static_cast<double>(fieldOfView) * HalfDegree);
     const float aspect = static_cast<float>(static_cast<double>(width) / height);
     GameProjection projection;
     projection.view = Render::ViewRows(pass.view);

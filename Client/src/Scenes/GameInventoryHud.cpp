@@ -1,4 +1,5 @@
 #include "Scenes/GameInventoryHud.h"
+#include "Render/Models/RoundedMath.h"
 #include "Scenes/CastleWindows.h"
 
 #include "App/WindowState.h"
@@ -40,7 +41,6 @@
 
 #include <algorithm>
 #include <array>
-#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <format>
@@ -944,7 +944,8 @@ using Render::Text::TextColors;
 std::uint32_t WarningPulseColor(float worldClock)
 {
     double alpha =
-        std::sin(static_cast<double>(worldClock) * static_cast<double>(WarningPulse)) * WarningSwing + WarningBase;
+        Render::Models::RoundedSin(static_cast<double>(worldClock) * static_cast<double>(WarningPulse)) * WarningSwing +
+        WarningBase;
     if (WarningMost < alpha)
         alpha = WarningMost;
     return (static_cast<std::uint32_t>(Truncate(alpha)) << 24u) + WarningRed;
@@ -1124,7 +1125,8 @@ Core::Expected<void, std::string> DrawTheTradeWindow(GameHudContext& context, UI
     DrawText(context, x + 0x14, y + 0x2d, NameUntilZero(trade.otherName));
     // 0x5f4489..0x5f4505: la flecha que sube y baja junto al OK del otro.
     sprites.SetColor(ArrowColor);
-    const double bob = std::sin(static_cast<double>(context.worldClock) * static_cast<double>(ArrowBob));
+    const double bob =
+        Render::Models::RoundedSin(static_cast<double>(context.worldClock) * static_cast<double>(ArrowBob));
     sprites.Quad(Render::OriginalQuad{.slot = Render::TextureSlot{ArrowSlot},
                                       .x = TradePlace(x, OtherOkLeft),
                                       .y = F32(bob + static_cast<double>(y + ArrowTop)),

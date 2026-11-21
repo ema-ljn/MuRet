@@ -6,6 +6,7 @@
 #include "Data/Tables/SkillTable.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
+#include "Render/Models/RoundedMath.h"
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
 #include "Render/Text/FontSet.h"
@@ -29,7 +30,6 @@
 
 #include <algorithm>
 #include <array>
-#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
@@ -49,6 +49,7 @@ using Client::Render::Color;
 using Client::Render::SpriteBatch;
 using Client::Render::Models::CrtRandom;
 using Client::Render::Models::OwnRecordCloseRandoms;
+using Client::Render::Models::RoundedSin;
 using Client::Render::Models::SmallLogicalCloseRandoms;
 using Client::Render::Text::FontKind;
 using Client::Scenes::GameHudContext;
@@ -622,7 +623,7 @@ TEST_F(GameCharacterHudTest, TheClassAndTheServerFadeIntoEachOther)
     ASSERT_TRUE(Window().HasValue());
 
     EXPECT_EQ(text.texts[2].text, Sprintf(TextAt(460), std::string_view(TextAt(540)), 1));
-    const auto alpha = static_cast<float>(std::sin(1000.0 * static_cast<double>(0.001f)) + 1.0);
+    const auto alpha = static_cast<float>(RoundedSin(1000.0 * static_cast<double>(0.001f)) + 1.0);
     const auto classMarker = NthQuadOf(sprites, Client::Tests::TextMarkerSlot.value, 1);
     const auto serverMarker = NthQuadOf(sprites, Client::Tests::TextMarkerSlot.value, 2);
     ASSERT_TRUE(classMarker.has_value());

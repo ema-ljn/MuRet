@@ -13,6 +13,7 @@
 #include "Protocol/Trade.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
+#include "Render/Models/RoundedMath.h"
 #include "Scenes/GameMessages.h"
 #include "Scenes/EventGlobals.h"
 #include "Scenes/GameChat.h"
@@ -428,7 +429,7 @@ std::int32_t DirectSoundVolume(std::int32_t volume)
     if (volume <= 0)
         return SilentVolume;
     const double ratio = VolumeNumerator / static_cast<double>(std::min(volume, MaxVolume));
-    return static_cast<std::int32_t>(VolumeScale * std::log10(ratio));
+    return static_cast<std::int32_t>(VolumeScale * Render::Models::RoundedLog10(ratio));
 }
 
 // 0x62568a..0x625804: la fila del volumen.

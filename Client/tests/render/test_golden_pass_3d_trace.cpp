@@ -1,4 +1,5 @@
 #include "App/WindowState.h"
+#include "Render/Models/RoundedMath.h"
 #include "Render/Pass3D.h"
 #include "Scenes/SceneCameras.h"
 #include "World/GameCamera.h"
@@ -38,6 +39,8 @@ using Client::Render::Camera3D;
 using Client::Render::MakePass3D;
 using Client::Render::Pass3D;
 using Client::Render::ViewportRect;
+using Client::Render::Models::RoundedCos;
+using Client::Render::Models::RoundedSin;
 using Client::Scenes::SelectionCamera;
 using Client::Scenes::WorldViewport;
 using Client::Tests::GlTrace;
@@ -112,8 +115,8 @@ const TracedPass* FindPass(const std::vector<TracedPass>& passes, const glm::ive
 glm::mat4 GlRotation(double degrees, const glm::vec3& axis)
 {
     const double radians = degrees * std::numbers::pi / 180.0;
-    const auto c = static_cast<float>(std::cos(radians));
-    const auto s = static_cast<float>(std::sin(radians));
+    const auto c = static_cast<float>(RoundedCos(radians));
+    const auto s = static_cast<float>(RoundedSin(radians));
     const glm::vec3 a = axis;
     glm::mat4 m(1.0f);
     m[0] = glm::vec4(a.x * a.x * (1 - c) + c, a.y * a.x * (1 - c) + a.z * s, a.x * a.z * (1 - c) - a.y * s, 0);

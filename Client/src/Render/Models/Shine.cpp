@@ -1,12 +1,12 @@
 #include "Render/Models/Shine.h"
 
 #include "Core/IClock.h"
+#include "Render/Models/RoundedMath.h"
 
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
 
 #include <chrono>
-#include <cmath>
 #include <cstdint>
 
 namespace Client::Render::Models
@@ -58,8 +58,8 @@ glm::vec2 ShineTexCoords(ShinePass pass, const glm::vec3& worldNormal, Core::Dur
     case ShinePass::Chrome4:
     {
         const auto clock = static_cast<double>(ms);
-        const auto c = static_cast<float>(std::cos(clock * static_cast<double>(CosineScale)));
-        const auto s = static_cast<float>(std::sin(clock * static_cast<double>(SineScale)));
+        const auto c = static_cast<float>(RoundedCos(clock * static_cast<double>(CosineScale)));
+        const auto s = static_cast<float>(RoundedSin(clock * static_cast<double>(SineScale)));
         // Como 0x4ed1f5..: la suma de las tres, su complemento menos t·3 y nz·0,5, y a la u ny·0,5 y s·3.
         const float sum = s * ny + c * nx + nz;
         const float v = (One - sum) - (t * Three + nz * Half);
@@ -79,8 +79,8 @@ glm::vec2 ShineTexCoords(ShinePass pass, const glm::vec3& worldNormal, Core::Dur
     case ShinePass::Chrome5:
     {
         const auto clock = static_cast<double>(ms);
-        const auto c = static_cast<double>(static_cast<float>(std::cos(clock * static_cast<double>(CosineScale))));
-        const auto s = static_cast<double>(static_cast<float>(std::sin(clock * static_cast<double>(SineScale))));
+        const auto c = static_cast<double>(static_cast<float>(RoundedCos(clock * static_cast<double>(CosineScale))));
+        const auto s = static_cast<double>(static_cast<float>(RoundedSin(clock * static_cast<double>(SineScale))));
         // 0x4ed25e..0x4ed2b2: la suma de las tres va a la u; la v es su complemento menos nz·2,5 y t; después la u
         // suma s·5 y ny·3 al float que guardó.
         const double sum = c * nx + s * ny + nz;

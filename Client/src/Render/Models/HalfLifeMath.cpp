@@ -1,5 +1,7 @@
 #include "Render/Models/HalfLifeMath.h"
 
+#include "Render/Models/RoundedMath.h"
+
 #include <glm/ext/matrix_float3x3.hpp>
 #include <glm/ext/matrix_float4x4.hpp>
 #include <glm/ext/quaternion_float.hpp>
@@ -89,7 +91,11 @@ SlerpCase Branch(double cosine)
 
 glm::quat AngleQuaternion(const glm::vec3& radians)
 {
-    return glm::quat(radians);
+    const glm::vec3 half = radians * 0.5f;
+    const glm::vec3 c{RoundedCos(half.x), RoundedCos(half.y), RoundedCos(half.z)};
+    const glm::vec3 s{RoundedSin(half.x), RoundedSin(half.y), RoundedSin(half.z)};
+    return glm::quat::wxyz(c.x * c.y * c.z + s.x * s.y * s.z, s.x * c.y * c.z - c.x * s.y * s.z,
+                           c.x * s.y * c.z + s.x * c.y * s.z, c.x * c.y * s.z - s.x * s.y * c.z);
 }
 
 glm::quat QuaternionSlerp(const glm::quat& p, const glm::quat& q, float t)
@@ -104,8 +110,8 @@ glm::quat QuaternionSlerp(const glm::quat& p, const glm::quat& q, float t)
         // 0x5fcf9f: un cuaternión perpendicular a p, y de p hacia él con los senos de π/2. El lazo es
         // de tres: la w queda en p.z, como en Half-Life.
         Components result{-first[1], first[0], -first[3], first[2]};
-        const double fromP = std::sin((One - t) * QuarterTurn);
-        const double toResult = std::sin(t * QuarterTurn);
+        const double fromP = RoundedSin((One - t) * QuarterTurn);
+        const double toResult = RoundedSin(t * QuarterTurn);
         for (std::size_t i = 0; i < 3; ++i)
         {
             result[i] = static_cast<float>(fromP * first[i] + toResult * result[i]);
@@ -119,11 +125,11 @@ glm::quat QuaternionSlerp(const glm::quat& p, const glm::quat& q, float t)
     {
         // 0x5fcf3c: acos del cos en float; ω se guarda en float y su seno también. Los dos pesos
         // quedan en la pila.
-        const double omega = std::acos(static_cast<double>(static_cast<float>(cosine)));
+        const double omega = RoundedAcos(static_cast<double>(static_cast<float>(cosine)));
         const auto roundedOmega = static_cast<double>(static_cast<float>(omega));
-        const auto sinOmega = static_cast<double>(static_cast<float>(std::sin(omega)));
-        fromP = std::sin((One - t) * roundedOmega) / sinOmega;
-        toQ = std::sin(roundedOmega * t) / sinOmega;
+        const auto sinOmega = static_cast<double>(static_cast<float>(RoundedSin(omega)));
+        fromP = RoundedSin((One - t) * roundedOmega) / sinOmega;
+        toQ = RoundedSin(roundedOmega * t) / sinOmega;
     }
 
     Components result{};
@@ -155,7 +161,7 @@ BoneTransform QuaternionMatrix(const glm::quat& q)
 
 BoneTransform AngleMatrix(const glm::vec3& degrees)
 {
-    return QuaternionMatrix(glm::quat(glm::radians(degrees)));
+    return QuaternionMatrix(AngleQuaternion(glm::radians(degrees)));
 }
 
 BoneTransform ConcatTransforms(const BoneTransform& parent, const BoneTransform& child)

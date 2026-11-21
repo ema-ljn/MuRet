@@ -176,6 +176,20 @@ ruta calificada, y un PCH solo con la biblioteca estándar (ya es así:
 | la vertical completa de `CastleSiege/` (acciones, NPC, inteligencia, agenda) frente al evento repartido en cuatro carpetas | OpenMU | **se adopta la vertical:** cada evento en su carpeta |
 | los tamaños: mediana de 40 líneas por archivo, p90 de 218 | OpenMU | **se adopta como meta medible** junto con los tamaños de referencia de abajo |
 
+**Clean Code y Clean Architecture** (Emanuel, 2026-11-21: Clean Code es la guía del refactor). No
+son una referencia más sino las reglas con las que se escribe y se revisa cada PR de diseño, por
+debajo de [la fidelidad](#lo-que-no-se-negocia-la-fidelidad) y de CODING_RULES. Casi todas las
+decisiones de esta spec ya son reglas de Robert C. Martin con otro nombre: las capas son la regla de
+dependencias (`dep-inward-only`); "el contrato abajo, la implementación arriba" es la inversión de
+dependencias con la interfaz del lado de quien la usa (`dep-interface-ownership`); cero ciclos es
+`dep-acyclic-dependencies`; `app/` es el componente main (`bound-main-component`); un módulo por
+cosa del juego es `comp-screaming-architecture` y `comp-common-closure`; y `check_layers.py` es la
+prueba de las fronteras (`test-boundary-verification`). Donde chocan con el original gana el
+original: el estado que imita la `.bss` queda como datos y la lógica en las funciones de su módulo
+(`obj-data-object-asymmetry`), un `switch` transcripto no se reparte en clases, y *Extract Variable*
+conserva el tipo de cada intermedio de `float`. Las reglas, con su traducción a MuRet, viven en las
+skills `clean-code`, `clean-architecture`, `refactoring` y `cpp-coding-standards` del repo.
+
 ## Approaches
 
 1. **Por épicas, intercalado con el port (elegido por Emanuel el 2026-11-21).** Primero la red de

@@ -27,6 +27,13 @@ distribuidos portando el DataServer de MU Online 1.02, después otros servidores
 - En Claude Code: estilo de salida `Tutor MuRet` y, para revisar, el subagente `muret-reviewer`
   (ver [`CLAUDE.md`](CLAUDE.md)). Para C++ está la skill
   [`cpp-pro`](.claude/skills/cpp-pro/SKILL.md), que dice dónde MuRet se aparta de su fuente.
+- Clean Code es la guía del refactor del cliente (Emanuel, 2026-11-21). Las skills
+  [`clean-code`](.claude/skills/clean-code/SKILL.md),
+  [`clean-architecture`](.claude/skills/clean-architecture/SKILL.md),
+  [`refactoring`](.claude/skills/refactoring/SKILL.md) y
+  [`cpp-coding-standards`](.claude/skills/cpp-coding-standards/SKILL.md) traen sus reglas, cada una
+  con una tabla de dónde MuRet manda distinto; van por debajo de CODING_RULES y de la fidelidad al
+  original. Otros agentes las leen como docs.
 
 ## Reglas de código: leelas primero
 
@@ -55,6 +62,7 @@ seguí el estilo del código que está alrededor.
 | el estado de la CL7 y lo que falta, en orden (traspaso del 2026-11-10) | [traspaso de la CL7](docs/superpowers/plans/2026-11-10-cl7-traspaso.md) |
 | qué se estudia en cada ola, y en qué va Emanuel | [guías y progreso](docs/learning/README.md) |
 | decisiones globales | `docs/adr/` |
+| las reglas de Clean Code, Clean Architecture, refactoring y C++ Core Guidelines, adaptadas a MuRet | [skills del repo](.claude/skills/) |
 
 El contrato con el GameServer 1.02 es el wire (puerto 55960, C1/C2, 22 heads) y el SQL que
 describe el research. Toda diferencia con el original se documenta en un ADR y se cubre con un

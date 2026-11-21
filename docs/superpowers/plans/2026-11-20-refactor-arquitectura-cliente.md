@@ -39,6 +39,10 @@ bolsas de parámetros.
 - Máximo 3 agentes en paralelo (Emanuel, 2026-11-19), contando los del port y las revisiones.
 - Cada paso usa la skill que le toca ("Las skills de cada paso"), y las tres skills nuevas del repo nacen con lo que
   describen.
+- Clean Code es la guía del refactor (Emanuel, 2026-11-21): cada PR de diseño se escribe y se revisa con la skill
+  `clean-code`, cada paso sigue el ciclo de `refactoring` y las fronteras entre módulos, `clean-architecture`. Van por
+  debajo de la fidelidad y de `CODING_RULES.md`: una regla de estilo no cambia el orden de las llamadas, el de los
+  `rand()` ni el redondeo de un `float`. Las mudanzas no limpian nada.
 - PRs grandes por hito (Emanuel, 2026-11-11), con la mudanza y el diseño en PRs separados (la mudanza se revisa por
   script; el diseño, a ojo).
 
@@ -95,8 +99,8 @@ El port (huecos, trazas, cortes, VM) no se frena. Las reglas:
 
 Cada paso del refactor tiene una skill que ya resuelve su procedimiento, y el plan las nombra para que quien ejecute no
 lo reinvente (Emanuel, 2026-11-21). Las de `superpowers:` y `engineering:` y las incluidas (`code-review`, `simplify`,
-`security-review`) son del entorno de Claude Code; `cpp-pro` y las tres nuevas viven en `.claude/skills/` del repo, y
-`AGENTS.md` las apunta para que Codex las lea como docs.
+`security-review`) son del entorno de Claude Code; `cpp-pro`, las cuatro de Clean Code y C++ moderno y las tres nuevas
+viven en `.claude/skills/` del repo, y `AGENTS.md` las apunta para que Codex las lea como docs.
 
 **Las que ya hay:**
 
@@ -111,7 +115,7 @@ lo reinvente (Emanuel, 2026-11-21). Las de `superpowers:` y `engineering:` y las
 | C++, CMake y GoogleTest en todo PR de diseño | `cpp-pro` (del repo) | los targets con `FILE_SET HEADERS` (AR1.2), `Field<T, Offset>` y `Route<&Fn>` con concepts (AR2), el ownership del `GameContext` (AR3), la inyección de `MakeObfuscation()` (AR1.1); va por debajo de `CODING_RULES.md` |
 | un golden o un test que cambió después de un PR del refactor | `superpowers:systematic-debugging` | la diferencia es un bug del refactor y no un golden para regenerar (Global Constraints): se busca la causa, no se cambia el esperado |
 | antes de pedir la revisión | `simplify` | lo repetido y lo que sobra en el diff del diseño; en AR6 es la herramienta principal |
-| la revisión de un PR de diseño | `code-review` con esfuerzo `high`, y `superpowers:requesting-code-review` / `superpowers:receiving-code-review` | el revisor busca bugs de corrección y quien escribe verifica cada pedido antes de aplicarlo; el nivel `max` solo si Emanuel lo pide |
+| la revisión de un PR de diseño | `code-review` con esfuerzo `high`, y `superpowers:requesting-code-review` / `superpowers:receiving-code-review` | el revisor busca bugs de corrección y quien escribe verifica cada pedido antes de aplicarlo; la lectura se revisa con `clean-code` (abajo); el nivel `max` solo si Emanuel lo pide |
 | los layouts y el ruteo de los paquetes (AR2.1, AR2.2) | `security-review` | los layouts leen bytes que manda el servidor: un `Field<T, Offset>` más allá del largo del paquete es una lectura fuera de rango |
 | cerrar un hito | `superpowers:verification-before-completion` y `superpowers:finishing-a-development-branch` | `check_layers.py`, `check_pure_move.py`, la foto de `metricas.tsv` igual a la de antes y el CI en verde en las cuatro configuraciones, con la salida a la vista; después, el squash y su línea en `.git-blame-ignore-revs` |
 | el diseño de un hito mientras se genera la mudanza del siguiente (AR4) | `superpowers:dispatching-parallel-agents` | solo ahí: con el agente del port son 3, el máximo |
@@ -119,6 +123,22 @@ lo reinvente (Emanuel, 2026-11-21). Las de `superpowers:` y `engineering:` y las
 
 `superpowers:brainstorming` no hace falta mientras la spec cubra la épica; vuelve si un diseño abre una pregunta que la
 spec no contesta. `tutor` y el subagente `muret-reviewer` siguen afuera mientras el modo tutor esté apagado.
+
+**Las de Clean Code y C++ moderno, traídas al repo** (Emanuel, 2026-11-21). Son skills públicas con licencia MIT,
+copiadas tal cual en `references/` de cada una, con el commit de origen en el frontmatter. El `SKILL.md` de cada una es
+la capa de MuRet: quién manda (Emanuel, la fidelidad, CODING_RULES) y una tabla "Donde `references/` no vale para MuRet"
+con los choques ya resueltos (excepciones contra `Core::Expected`, `m_` e `I`, `#pragma once`, tamaños de función, la
+`.bss` como datos).
+
+| paso | skill | para qué |
+| --- | --- | --- |
+| todo PR de diseño, al escribirlo y al revisarlo | `clean-code` (de pproenca/dot-skills) | las 48 reglas de *Clean Code*: nombres que dicen el porqué, una cosa por función a un solo nivel de abstracción, una razón para cambiar por clase, la construcción separada del uso; la revisión cita la regla por su nombre (`func-one-thing`) |
+| dónde va un archivo, qué módulo incluye a cuál, cómo se corta un ciclo, la raíz de composición de `app/` (AR1, AR3, AR4, AR7) | `clean-architecture` (de pproenca/dot-skills) | las 42 reglas de *Clean Architecture*; su tabla "Qué regla es qué cosa del cliente" las traduce a las capas, `check_layers.py`, los puertos de `Kernel` y `MakeObfuscation()` |
+| cada paso de un PR de diseño, y la deduplicación de AR6 | `refactoring` (de cskwork/clean-code-skill) | el ciclo y el catálogo de Fowler (detectar el olor, la técnica más chica, un paso, verificar, releer) con los cuidados de fidelidad: *Extract Variable* conserva el tipo de cada intermedio de `float`, un `switch` del original no se reparte en clases, nada cambia el orden de los `rand()` |
+| una clase, un tipo de paquete (`Field<T, Offset>`), el paso de parámetros de un handler, un `enum` que pasa a `enum class` | `cpp-coding-standards` (de affaan-m/everything-claude-code) | la regla de las C++ Core Guidelines por su número (F.16, C.21, Enum.3); complementa a `cpp-pro` |
+
+Se evaluaron y no se trajeron: las de tests, CMake y análisis estático genéricas (repiten lo que ya dicen `cpp-pro`,
+CODING_RULES y el CI) y dos de Clean Code sin licencia. `cpp-pro` sigue igual: su origen no cambió desde que se trajo.
 
 **Las tres nuevas, del repo.** Son los procedimientos del refactor que se repiten muchas veces y que también usa el
 port. Van en `.claude/skills/<nombre>/SKILL.md`, en español y con el formato de `cpp-pro`: la `description` dice cuándo

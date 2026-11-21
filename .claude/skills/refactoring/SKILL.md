@@ -1,97 +1,91 @@
 ---
 name: refactoring
-description: Usala cuando en MuRet haya que refactorizar, limpiar o simplificar código sin cambiar lo que hace (los PR de diseño del refactor del cliente, la deduplicación de AR6, un olor de código que traba un cambio). Es el ciclo de refactoring de Martin Fowler con su catálogo de olores y técnicas, con los cuidados de fidelidad del port.
+description: Use when MuRet code has to be refactored, cleaned up or simplified without changing what it does (the client refactor's design PRs, the AR6 deduplication, a code smell blocking a change). Martin Fowler's refactoring loop with its catalog of smells and techniques, plus the port's fidelity cautions.
 license: MIT
 metadata:
   upstream: https://github.com/cskwork/clean-code-skill/tree/acd750b18894b4bd03a0c929c2198336fce638d2
 ---
 
-# Refactorizar en MuRet
+# Refactoring in MuRet
 
-Es la skill `clean-code` de [cskwork/clean-code-skill](https://github.com/cskwork/clean-code-skill)
-(MIT), renombrada `refactoring` para no chocar con la skill `clean-code` de Robert C. Martin: el
-método y el catálogo de *Refactoring* de Martin Fowler, ordenados como refactoring.guru. La skill
-`clean-code` dice cómo se ve el código limpio; esta, cómo se llega sin cambiar el comportamiento.
-El original está en `references/upstream-skill.md`.
+This is the `clean-code` skill from [cskwork/clean-code-skill](https://github.com/cskwork/clean-code-skill) (MIT),
+renamed `refactoring` so it does not clash with Robert C. Martin's `clean-code` skill: the method and catalog of Martin
+Fowler's *Refactoring*, organized like refactoring.guru. The `clean-code` skill says what clean code looks like; this
+one says how to get there without changing behavior. The original is in `references/upstream-skill.md`.
 
-## Quién manda
+## What takes precedence
 
-1. Lo que Emanuel pida en la conversación.
-2. **La fidelidad al `main.exe` original** y el golden de comportamiento del refactor: si algo
-   cambia, es un bug del refactor y no un golden para regenerar.
-3. [`docs/CODING_RULES.md`](../../../docs/CODING_RULES.md) y las Global Constraints del
-   [plan del refactor](../../../docs/superpowers/plans/2026-11-20-refactor-arquitectura-cliente.md).
-4. Esta skill y, al final, `references/`.
+1. What Emanuel asks for in the conversation.
+2. **Fidelity to the original `main.exe`** and the refactor's behavior golden: if something changes, it is a refactor
+   bug and not a golden to regenerate.
+3. [`docs/CODING_RULES.md`](../../../docs/CODING_RULES.md) and the Global Constraints of the
+   [refactor plan](../../../docs/superpowers/plans/2026-11-20-client-architecture-refactor.md).
+4. This skill and, last, `references/`.
 
-## El ciclo
+## The loop
 
-Para cada limpieza, sin saltear el paso 4 ni el 5:
+For every cleanup, never skipping step 4 or 5:
 
-1. **Detectar**: nombrar el problema concreto de lectura o de costo de cambio. El catálogo de
-   olores está en [`references/code-smells.md`](references/code-smells.md).
-2. **Elegir** la transformación más chica que sirva, de
+1. **Detect**: name the concrete readability or change-cost problem. The smell catalog is in
+   [`references/code-smells.md`](references/code-smells.md).
+2. **Choose** the smallest transformation that works, from
    [`references/refactoring-techniques.md`](references/refactoring-techniques.md).
-3. **Un paso chico** que no cambie el comportamiento.
-4. **Verificar** con los tests de lo que se tocó después de cada tanda coherente: los tests del
-   módulo y, si toca lógica portada, el golden de comportamiento (`FrameDigest`). Se agranda la
-   verificación cuando la superficie lo pide; no se corre de nuevo lo que no cambió.
-5. **Verificar que quedó más limpio**: leer el resultado. Si no se lee mejor que antes, se revierte.
-   Cumplir una regla a costa de la lectura es una pérdida.
+3. **One small step** that does not change behavior.
+4. **Verify** with the tests of what was touched after each coherent batch: the module's tests and, if it touches ported
+   logic, the behavior golden (`FrameDigest`). Verification grows when the surface calls for it; what did not change is
+   not rerun.
+5. **Verify it got cleaner**: read the result. If it does not read better than before, revert. Meeting a rule at the
+   cost of readability is a loss.
 
-## Las reglas de juego
+## The ground rules
 
-- **Solo transformaciones que conservan el comportamiento.** Si algo cambia lo que hace el
-  programa, es un arreglo o una función nueva: otro commit y otra revisión. En MuRet, además, otro
-  carril (el del port).
-- **Los tests son la red.** Sin tests alrededor, primero un test de caracterización que fije lo que
-  hace hoy, después el refactor.
-- **Pasos chicos, siempre en verde**, y **un tema por commit**, con títulos `AR<épica>.<hito>`.
-- **Seguir el código de alrededor** y **ser quirúrgico**: se toca lo que la tarea pide; el formato y
-  los nombres del resto quedan como estaban.
-- **Cohesión antes que número de líneas.** Los tamaños de CODING_RULES detectan olores, no son ley:
-  se parte por responsabilidad.
+- **Only behavior-preserving transformations.** If something changes what the program does, it is a fix or a new
+  feature: another commit and another review. In MuRet, also another lane (the port's).
+- **Tests are the safety net.** Without tests around it, first a characterization test that pins what it does today,
+  then the refactor.
+- **Small steps, always green**, and **one topic per commit**, with `AR<epic>.<milestone>` titles.
+- **Follow the surrounding code** and **be surgical**: touch what the task asks for; the format and names of the rest
+  stay as they were.
+- **Cohesion before line counts.** CODING_RULES sizes detect smells, they are not law: split by responsibility.
 
-## Los cuidados de fidelidad (propios de MuRet)
+## The fidelity cautions (MuRet's own)
 
-Algunas técnicas del catálogo conservan el comportamiento en Java y no en un port de x87:
+Some catalog techniques preserve behavior in Java but not in an x87 port:
 
-| Técnica | El cuidado |
+| Technique | The caution |
 | --- | --- |
-| *Extract Variable*, *Inline Temp*, *Replace Temp with Query* | En la matemática portada del original, un temporal de `float` redondea distinto que la expresión recalculada en precisión extendida. Se conserva el tipo de cada intermedio (`F32()`, `Ftol`) y la cantidad de veces que se evalúa. |
-| *Replace Conditional with Polymorphism*, *Replace Type Code with Subclasses* | Un `switch` que transcribe el del original queda como `switch` marcado o pasa a una tabla con el mismo orden (AR2); no se reparte en clases. |
-| *Substitute Algorithm* | Nunca sobre lógica portada, salvo que el golden pruebe que el resultado es idéntico bit a bit y que los `rand()` salen en el mismo orden. |
-| *Consolidate Duplicate Conditional Fragments*, *Remove Control Flag* | Mover código de lugar puede cambiar el orden de efectos (sonidos, partículas, `rand()`): solo si el golden no cambia. |
-| *Replace Error Code with Exception*, *Replace Exception with Test* | MuRet no tira excepciones: los errores vuelven como valores (`Core::Expected`). |
-| *Extract Method*, *Move Method*, *Extract Class* | Son la base de los PR de diseño. La cita al original (`// 0x...`) viaja con el código que cita. |
+| *Extract Variable*, *Inline Temp*, *Replace Temp with Query* | In the original's ported math, a `float` temporary rounds differently from the expression recomputed in extended precision. Keep the type of every intermediate (`F32()`, `Ftol`) and the number of times it is evaluated. |
+| *Replace Conditional with Polymorphism*, *Replace Type Code with Subclasses* | A `switch` that transcribes the original's stays as a marked `switch` or becomes a table in the same order (AR2); it is not spread over classes. |
+| *Substitute Algorithm* | Never on ported logic, unless the golden proves the result is bit-for-bit identical and the `rand()` calls come out in the same order. |
+| *Consolidate Duplicate Conditional Fragments*, *Remove Control Flag* | Moving code can change the order of effects (sounds, particles, `rand()`): only if the golden does not change. |
+| *Replace Error Code with Exception*, *Replace Exception with Test* | MuRet does not throw: errors come back as values (`Core::Expected`). |
+| *Extract Method*, *Move Method*, *Extract Class* | They are the basis of the design PRs. The citation to the original (`// 0x...`) travels with the code it cites. |
 
-## Una limpieza grande
+## A large cleanup
 
-El refactor del cliente sigue el flujo de upstream para limpiar un código entero, con los nombres
-del plan:
+The client refactor follows upstream's flow for cleaning a whole codebase, with the plan's names:
 
-1. **La red primero**: AR0 (el golden de comportamiento, el chequeo de capas, el rastreo).
-2. **Por impacto**: primero los olores que traban cambios (*Divergent Change*, *Shotgun Surgery*,
-   las clases dios como `WorldRuntime`), los cosméticos al final.
-3. **Por unidades**: un grupo de módulos por hito (AR4), cada uno con su mudanza por script y su PR
-   de diseño.
-4. **Verificar cada unidad** y decir exactamente qué se verificó.
-5. **El porqué en el commit**: el qué está en el diff.
+1. **Safety net first**: AR0 (the behavior golden, the layer check, tracking).
+2. **By impact**: first the smells that block changes (*Divergent Change*, *Shotgun Surgery*, god classes like
+   `WorldRuntime`), cosmetic ones last.
+3. **By units**: one group of modules per milestone (AR4), each with its scripted move and its design PR.
+4. **Verify each unit** and say exactly what was verified.
+5. **The why in the commit**: the what is in the diff.
 
-## Las referencias
+## The references
 
-| Archivo | Para |
+| File | For |
 | --- | --- |
-| [`references/code-smells.md`](references/code-smells.md) | nombrar el problema: 23 olores en 5 familias, con la técnica que trata cada uno |
-| [`references/refactoring-techniques.md`](references/refactoring-techniques.md) | la técnica: más de 60, con antes y después de las frecuentes |
-| [`references/clean-code-principles.md`](references/clean-code-principles.md) | los hábitos que evitan los olores (nombres, funciones, guardas, constantes, DRY, comentarios) |
-| [`references/upstream-skill.md`](references/upstream-skill.md) | el `SKILL.md` original, en inglés |
+| [`references/code-smells.md`](references/code-smells.md) | naming the problem: 23 smells in 5 families, with the technique that treats each |
+| [`references/refactoring-techniques.md`](references/refactoring-techniques.md) | the technique: more than 60, with before and after for the common ones |
+| [`references/clean-code-principles.md`](references/clean-code-principles.md) | the habits that prevent smells (names, functions, guards, constants, DRY, comments) |
+| [`references/upstream-skill.md`](references/upstream-skill.md) | the original `SKILL.md` |
 
-Los ejemplos de `references/` son JavaScript y Python: explican la técnica, no se copian al repo.
+The `references/` examples are JavaScript and Python: they explain the technique, they are not copied into the repo.
 
-## Origen y licencia
+## Origin and license
 
-`references/` es una copia textual de `references/` y del `SKILL.md` (como
-`references/upstream-skill.md`) en el commit `acd750b1` de cskwork/clean-code-skill, bajo la
-licencia MIT de [`LICENSE`](LICENSE). Este `SKILL.md` es una adaptación. Para actualizar: traer los
-archivos de un commit nuevo, cambiar el commit en el frontmatter y en esta sección, y revisar "Los
-cuidados de fidelidad".
+`references/` is a verbatim copy of `references/` and of the `SKILL.md` (as `references/upstream-skill.md`) at commit
+`acd750b1` of cskwork/clean-code-skill, under the MIT license in [`LICENSE`](LICENSE). This `SKILL.md` is an adaptation.
+To update: bring the files from a new commit, change the commit in the frontmatter and in this section, and review "The
+fidelity cautions".

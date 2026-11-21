@@ -1,53 +1,50 @@
 ---
 name: cpp-coding-standards
-description: Usala cuando en MuRet haya que escribir o revisar C++ contra las C++ Core Guidelines (RAII, inmutabilidad, tipos fuertes, paso de parámetros, clases, concepts, enum class) y querés citar la regla por su número (F.16, C.21, ES.46). Complementa a cpp-pro; manda CODING_RULES.
+description: Use when writing or reviewing MuRet C++ against the C++ Core Guidelines (RAII, immutability, strong types, parameter passing, classes, concepts, enum class) and you want to cite the rule by number (F.16, C.21, ES.46). Complements cpp-pro; CODING_RULES takes precedence.
 license: MIT
 metadata:
   upstream: https://github.com/affaan-m/everything-claude-code/tree/4adeee6732a12d1540f49a4d50a38ce8c97f9a53/skills/cpp-coding-standards
 ---
 
-# C++ Core Guidelines en MuRet
+# C++ Core Guidelines in MuRet
 
-Es la skill `cpp-coding-standards` de
-[affaan-m/everything-claude-code](https://github.com/affaan-m/everything-claude-code) (MIT): un
-resumen de las [C++ Core Guidelines](https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines)
-con el número de cada regla. Sirve para revisar y para justificar un cambio citando la regla.
-`cpp-pro` explica el lenguaje y el build; esta dice qué regla de las Core Guidelines se rompe. El
-resumen está en [`references/core-guidelines.md`](references/core-guidelines.md).
+This is the `cpp-coding-standards` skill from
+[affaan-m/everything-claude-code](https://github.com/affaan-m/everything-claude-code) (MIT): a summary of the
+[C++ Core Guidelines](https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines) with each rule's number. It is for
+reviewing and for justifying a change by citing the rule. `cpp-pro` explains the language and the build; this one says
+which Core Guidelines rule is broken. The summary is in [`references/core-guidelines.md`](references/core-guidelines.md).
 
-## Quién manda
+## What takes precedence
 
-1. Lo que Emanuel pida en la conversación.
-2. La fidelidad al `main.exe` original (ver la skill `refactoring`, "Los cuidados de fidelidad").
-3. [`docs/CODING_RULES.md`](../../../docs/CODING_RULES.md) y `.clang-format`.
-4. La skill `cpp-pro` (C++20, CMake, vcpkg, GoogleTest en MuRet).
-5. Esta skill y, al final, `references/`.
+1. What Emanuel asks for in the conversation.
+2. Fidelity to the original `main.exe` (see the `refactoring` skill, "The fidelity cautions").
+3. [`docs/CODING_RULES.md`](../../../docs/CODING_RULES.md) and `.clang-format`.
+4. The `cpp-pro` skill (C++20, CMake, vcpkg, GoogleTest in MuRet).
+5. This skill and, last, `references/`.
 
-## Donde `references/` no vale para MuRet
+## Where `references/` does not apply to MuRet
 
-| `references/` dice | En MuRet |
+| `references/` says | In MuRet |
 | --- | --- |
-| C++17/20/23 | Solo C++20, sin extensiones: nada de C++23 (`std::expected`, `std::print`). |
-| E.2, E.14, E.15: excepciones para los errores | MuRet devuelve los errores como valores (`Core::Expected`, `std::optional`, `std::error_code`), como dicen `cpp-pro` y CODING_RULES. Lo que sí vale de E.*: RAII (E.6), `noexcept` donde no se puede fallar (E.12) y destructores que no fallan (E.16). |
-| NL.10 `underscore_style`, miembros con `_` al final, constantes en mayúsculas en los ejemplos | CODING_RULES §7: tipos, funciones y constantes en `PascalCase`, variables en `camelCase`, `m_` en los miembros privados, `I` en las interfaces, `s_` en los estáticos. |
-| SF.8 guardas de include | `#pragma once`, como todo el repo. |
-| I.2 nada de globales que no sean `const` | Es la meta de AR3: los globales del original pasan a partes del estado por módulo (`globales.tsv`, `GameContext`). Hasta entonces, el global de hoy queda donde está. |
-| ES.45 nada de constantes mágicas | CODING_RULES §3: las constantes del wire van con nombre en `Protocol/` y con la cita de la sección del research que las fija. |
-| CP.* concurrencia | CODING_RULES §8: cada dato tiene un hilo dueño. El cliente es casi todo de un hilo. |
-| La lista de control del final (excepciones propias, guardas) | Vale sin esas dos líneas. |
+| C++17/20/23 | C++20 only, no extensions: no C++23 (`std::expected`, `std::print`). |
+| E.2, E.14, E.15: exceptions for errors | MuRet returns errors as values (`Core::Expected`, `std::optional`, `std::error_code`), as `cpp-pro` and CODING_RULES say. What does apply from E.*: RAII (E.6), `noexcept` where failure is impossible (E.12) and destructors that do not fail (E.16). |
+| NL.10 `underscore_style`, members with a trailing `_`, uppercase constants in the examples | CODING_RULES §7: types, functions and constants in `PascalCase`, variables in `camelCase`, `m_` on private members, `I` on interfaces, `s_` on statics. |
+| SF.8 include guards | `#pragma once`, like the whole repo. |
+| I.2 no non-`const` globals | That is AR3's goal: the original's globals become per-module state (`globals.tsv`, `GameContext`). Until then, today's global stays where it is. |
+| ES.45 no magic constants | CODING_RULES §3: wire constants get a name in `Protocol/` and the citation of the research section that fixes them. |
+| CP.* concurrency | CODING_RULES §8: each piece of data has an owning thread. The client is almost entirely single-threaded. |
+| The checklist at the end (own exceptions, guards) | It applies without those two lines. |
 
-## Cuándo usarla y cuándo no
+## When to use it and when not
 
-- **Sí**: al escribir o revisar una clase, un tipo de paquete (`Field<T, Offset>`), el
-  ownership del `GameContext`, el paso de parámetros de un handler (F.16, F.20, I.23), o al
-  cambiar un `enum` por `enum class` (Enum.3).
-- **No** para cambiar la forma de una transcripción del original "porque la guía lo pide": la
-  fidelidad gana, y el cambio de forma va a un PR de diseño con el golden en verde.
+- **Yes**: when writing or reviewing a class, a packet type (`Field<T, Offset>`), the ownership of the `GameContext`, a
+  handler's parameter passing (F.16, F.20, I.23), or when turning an `enum` into an `enum class` (Enum.3).
+- **No** for changing the shape of a transcription of the original "because the guideline says so": fidelity wins, and
+  the shape change goes to a design PR with the golden green.
 
-## Origen y licencia
+## Origin and license
 
-[`references/core-guidelines.md`](references/core-guidelines.md) es una copia textual de
-`skills/cpp-coding-standards/SKILL.md` en el commit `4adeee67` de affaan-m/everything-claude-code,
-bajo la licencia MIT de [`LICENSE`](LICENSE). Este `SKILL.md` es una adaptación. Para actualizar:
-traer el archivo de un commit nuevo, cambiar el commit en el frontmatter y en esta sección, y
-revisar la tabla "Donde `references/` no vale para MuRet".
+[`references/core-guidelines.md`](references/core-guidelines.md) is a verbatim copy of
+`skills/cpp-coding-standards/SKILL.md` at commit `4adeee67` of affaan-m/everything-claude-code, under the MIT license in
+[`LICENSE`](LICENSE). This `SKILL.md` is an adaptation. To update: bring the file from a new commit, change the commit
+in the frontmatter and in this section, and review the "Where `references/` does not apply to MuRet" table.

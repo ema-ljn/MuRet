@@ -1,0 +1,7 @@
+# Commits that git blame skips, so a moved or reworded line keeps the commit (and the coverage wave) that wrote it.
+# The coverage matrix reads it (build_roadmap_matrix.py), and so do GitHub and git blame --ignore-revs-file.
+# One full hash per line, with its subject above: the squash of each refactor PR that moves files or rewrites cited
+# lines. Recipe: Client/docs/research/coverage/referencia/LEEME.md, "When a refactor moves code".
+
+# feat(AR1.3): parse the command line by each system's conventions (#407)
+3a945d9cacd73ddb4708d53d574421c419098eaf

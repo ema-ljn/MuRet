@@ -18,6 +18,7 @@ Solo biblioteca estándar. No ejecuta el PE: todo es lectura estática.
 import argparse
 import bisect
 import collections
+import concurrent.futures
 import gzip
 import hashlib
 import json
@@ -25,6 +26,8 @@ import os
 import re
 import struct
 import subprocess
+import sys
+import tempfile
 
 INV_SHA256 = '42cc47579259c0184e3e921e93ac7817176093a31bb7fb07f2d77734f073194c'
 EXE_SHA256 = 'c32bbd5f16ca400c7cfc71fa5f4cd573c57f146dd19a6da52fdd1007abaca26a'
@@ -314,6 +317,9 @@ CUT = re.compile(r'cut\(|Unexpected\(|\bCL ?(9|10|11)\b|\bCL(9|10|11)\.|es de la
                  r'cortad|sin portar|no se porta|queda para|llegan? con|\bstub\b|gancho|'
                  r'\btodavía no\b|\bMuRet no\b|\bno (?:lo |la |los |las )?porta', re.I)
 WTOK = re.compile(r'\bCL ?(\d{1,2})(?:\.\d+|\.R\d?)?\b')
+AR_SCOPE = re.compile(r'^\w+\(AR\d+(?:\.\d+)?\)!?:')
+IGNORE_REVS = '.git-blame-ignore-revs'
+BLAMES_AHEAD = 32
 SUBWAVE = re.compile(r'\bCL ?(\d{1,2}\.(?:\d+|R\d?))\b')
 
 
@@ -412,9 +418,11 @@ def load_inventory(path):
     return header, rows
 
 
-def git(repo, *args):
-    return subprocess.run(['git', '-C', repo, *args], capture_output=True, text=True,
-                          errors='ignore', check=False).stdout
+def git(repo, *args, check=False):
+    done = subprocess.run(['git', '-C', repo, *args], capture_output=True, text=True, errors='ignore', check=False)
+    if check and done.returncode:
+        raise SystemExit(f'git {" ".join(args)}: {done.stderr.strip()}')
+    return done.stdout
 
 
 class Facts:
@@ -567,7 +575,10 @@ class MuRet:
     def __init__(self, repo, ref, facts):
         self.repo, self.ref, self.F = repo, ref, facts
         self.commit = git(repo, 'rev-parse', ref).strip()
-        self.commit_wave = self._commit_waves()
+        self.commit_wave, self.ar_inherited = self._commit_waves()
+        listed = (line.split('#', 1)[0].strip() for line in git(repo, 'show', f'{ref}:{IGNORE_REVS}').splitlines())
+        self.ignored_revs = [rev for rev in listed if rev]
+        self.ar_citations = collections.Counter()   # (commit, file) -> cited lines a refactor commit took
         self.impl = collections.defaultdict(collections.Counter)
         self.impl_loc = collections.defaultdict(list)
         self.cut = collections.defaultdict(list)
@@ -576,35 +587,54 @@ class MuRet:
         self.doc_wave = collections.defaultdict(collections.Counter)
         self.addr_wave = collections.defaultdict(collections.Counter)   # dirección exacta -> olas
         self.cl8 = {}
-        self._scan()
+        with tempfile.TemporaryDirectory() as folder:
+            self.ignore_file = os.path.join(folder, IGNORE_REVS)
+            with open(self.ignore_file, 'w', encoding='utf-8') as fh:
+                fh.write(''.join(f'{rev}\n' for rev in self.ignored_revs))
+            self._scan()
 
     def _commit_waves(self):
-        out, last = {}, None
+        # A refactor commit (type(ARn.m): ...) is wave AR; its citations count in the last port wave before it.
+        out, ar_inherited, last = {}, {}, None
         log = git(self.repo, 'log', '--reverse', '--format=%H%x00%s%x00%b%x01', self.ref)
         for rec in log.split('\x01'):
             if not rec.strip():
                 continue
             h, subj, body = (rec.strip('\n').split('\x00') + ['', ''])[:3]
+            if AR_SCOPE.match(subj):
+                out[h], ar_inherited[h] = 'AR', last or 'CL0'
+                continue
             m = WTOK.search(subj) or WTOK.search(body)
             w = f'CL{int(m.group(1))}' if m and int(m.group(1)) <= 11 else (last or 'CL0')
             last = w
             out[h] = w
-        return out
+        return out, ar_inherited
+
+    def _listed(self, commit):
+        return any(commit.startswith(rev) for rev in self.ignored_revs)
+
+    @property
+    def warnings(self):
+        return [f'citation-attributed-to-AR: {f}: {n} cited line(s) from {h[:7]}, which is not in {IGNORE_REVS}'
+                for (h, f), n in sorted(self.ar_citations.items(), key=lambda kv: (kv[0][1], kv[0][0]))]
 
     def fn(self, h):
         return self.F.containing(int(h, 16))
 
+    @staticmethod
+    def _measured(f):
+        if not f.startswith(('Client/', 'docs/')) or f.endswith('Input/Key.h'):
+            return False
+        if f.startswith('Client/docs/research/coverage/') or f in CLM_OUTPUTS:
+            return False
+        return f.endswith(('.h', '.cpp', '.md', '.tsv', '.py', '.txt', '.inc'))
+
     def _scan(self):
-        files = git(self.repo, 'ls-tree', '-r', '--name-only', self.ref).split('\n')
+        files = [f for f in git(self.repo, 'ls-tree', '-r', '--name-only', self.ref).split('\n') if self._measured(f)]
+        blames = self._blames([f for f in files if f.startswith('Client/src/')])
         for f in files:
-            if not f.startswith(('Client/', 'docs/')) or f.endswith('Input/Key.h'):
-                continue
-            if f.startswith('Client/docs/research/coverage/') or f in CLM_OUTPUTS:
-                continue
-            if not f.endswith(('.h', '.cpp', '.md', '.tsv', '.py', '.txt', '.inc')):
-                continue
             if f.startswith('Client/src/'):
-                self._blame(f)
+                self._read_blame(f, next(blames))
                 continue
             text = git(self.repo, 'show', f'{self.ref}:{f}')
             for i, line in enumerate(text.splitlines(), 1):
@@ -635,8 +665,22 @@ class MuRet:
                 if a is not None:
                     self.cl8[a] = p[2] if len(p) > 2 else ''
 
+    def _blames(self, files):
+        # One git blame per file, several at a time, read back in the files' order.
+        with concurrent.futures.ThreadPoolExecutor(max_workers=os.cpu_count() or 1) as pool:
+            ahead = collections.deque()
+            for f in files:
+                ahead.append(pool.submit(self._blame, f))
+                if len(ahead) > BLAMES_AHEAD:
+                    yield ahead.popleft().result()
+            while ahead:
+                yield ahead.popleft().result()
+
     def _blame(self, f):
-        out = git(self.repo, 'blame', '--line-porcelain', self.ref, '--', f)
+        return git(self.repo, 'blame', '--porcelain', '-M', '-C', '--ignore-revs-file', self.ignore_file, self.ref,
+                   '--', f, check=True)
+
+    def _read_blame(self, f, out):
         cur = ln = None
         for line in out.splitlines():
             if re.match(r'^[0-9a-f]{40} ', line):
@@ -648,6 +692,10 @@ class MuRet:
                 if not hs:
                     continue
                 w = self.commit_wave.get(cur, 'CL0')
+                if w == 'AR':
+                    if not self._listed(cur):
+                        self.ar_citations[(cur, f)] += 1
+                    w = self.ar_inherited[cur]
                 cut = bool(CUT.search(text))
                 ws = {f'CL{int(x)}' for x in WTOK.findall(text) if int(x) <= 11}
                 for h in hs:
@@ -1359,6 +1407,7 @@ def build(args):
         'dead': sorted(f'{a:#x}' for a in dead),
         'giants': sorted(f'{a:#x}' for a in giants),
         'basis': collections.Counter(basis.values()),
+        'warnings': M.warnings,
     }
     if args.summary:
         with open(args.summary, 'w', encoding='utf-8') as fh:
@@ -1381,6 +1430,8 @@ def main():
     ap.add_argument('--rows', help='TSV con el avance de cada función viva (lo lee build_client_reference.py)')
     s = build(ap.parse_args())
     print(json.dumps({k: s[k] for k in ('muret_commit', 'kinds', 'basis')}, default=list))
+    for warning in s['warnings']:
+        print(f'warning: {warning}', file=sys.stderr)
 
 
 if __name__ == '__main__':

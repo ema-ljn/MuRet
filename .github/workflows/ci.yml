@@ -359,6 +359,18 @@ jobs:
             echo "Más de 40: se compila todo en el paso siguiente."
             exit 0
           fi
+          build="build/${{ matrix.configure-preset }}"
+          # A test of the other system's code (muret_add_module_tests OTHER_SYSTEM) has no target here.
+          mapfile -t known < <(ninja -C "$build" -t targets all | tr -d '\r' | sed -n 's/^\(test_[^:]*\): phony$/\1/p')
+          kept=()
+          for path in "${changed[@]}"; do
+            if printf '%s\n' "${known[@]}" | grep -qxF "$(basename "$path" .cpp)"; then
+              kept+=("$path")
+            else
+              echo "No target on this system: $path"
+            fi
+          done
+          changed=("${kept[@]}")
           targets=(ClientLib)
           for path in "${changed[@]}"; do
             targets+=("$(basename "$path" .cpp)")
@@ -367,7 +379,6 @@ jobs:
           [ "${#changed[@]}" -gt 0 ] || exit 0
           # Las suites de esos ejecutables, para correr con CTest solo sus tests (cada TEST es un
           # test de CTest con el nombre de su suite, ver Client/tests/CMakeLists.txt).
-          build="build/${{ matrix.configure-preset }}"
           suites=()
           for path in "${changed[@]}"; do
             module="$(basename "$(dirname "$path")")"

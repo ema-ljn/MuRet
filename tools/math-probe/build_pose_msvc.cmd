@@ -26,7 +26,7 @@ echo ##### pose %~1: cl %~3
 if "%~2"=="cr" (
   cl /nologo /EHsc %~3 /I"%LLVM%" /DLIBC_NAMESPACE=pose_cr /c pose\cr_impl.cpp /Fo%OUT%\cr_impl.obj > %OUT%\build.log 2>&1
   if errorlevel 1 (powershell -NoProfile -Command "Get-Content '%OUT%\build.log' -TotalCount 30" & exit /b 0)
-  cl /nologo /EHsc /D_CRT_SECURE_NO_WARNINGS %~3 /I%CLIENT% /I"%GLM%" /FIpose\cr_redirect.h %SOURCES% %OUT%\cr_impl.obj /Fo%OUT%\ /Fe%OUT%\pose.exe > %OUT%\build.log 2>&1
+  cl /nologo /EHsc /D_CRT_SECURE_NO_WARNINGS %~3 /I%CLIENT% /I"%GLM%" /Ipose /FIcr_redirect.h %SOURCES% %OUT%\cr_impl.obj /Fo%OUT%\ /Fe%OUT%\pose.exe > %OUT%\build.log 2>&1
 ) else (
   cl /nologo /EHsc /D_CRT_SECURE_NO_WARNINGS %~3 /I%CLIENT% /I"%GLM%" %SOURCES% /Fo%OUT%\ /Fe%OUT%\pose.exe > %OUT%\build.log 2>&1
 )

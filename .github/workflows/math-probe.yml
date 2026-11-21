@@ -110,6 +110,7 @@ jobs:
         shell: bash
         run: ./fetch_sources.sh all
       - name: Build the variants
+        if: ${{ !contains(github.event.head_commit.message, '[pose-only]') }}
         shell: cmd
         run: |
           call build_msvc.cmd debug deps\llvm-23\libc "/Od /MDd /RTC1" ""
@@ -125,6 +126,7 @@ jobs:
           call build_msvc.cmd zc-cmath deps\llvm-23\libc "/O2 /MD /Zc:cmath /DPROBE_DECLARE_FMA3" "" cl /std:c++latest
           exit /b 0
       - name: Run the variants
+        if: ${{ !contains(github.event.head_commit.message, '[pose-only]') }}
         shell: cmd
         run: |
           for %%v in (debug release release-static release-main arch-avx2 avx2-contract strict fast clangcl clangcl-avx2 zc-cmath) do if exist build\%%v\probe.exe call run_msvc.cmd %%v

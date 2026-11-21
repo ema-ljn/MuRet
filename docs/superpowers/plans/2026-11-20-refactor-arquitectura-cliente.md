@@ -37,6 +37,8 @@ bolsas de parámetros.
   includes y nada más.
 - Los scripts nuevos usan solo la biblioteca estándar, se corren con `python3 -I` y sus tests con `unittest`.
 - Máximo 3 agentes en paralelo (Emanuel, 2026-11-19), contando los del port y las revisiones.
+- Cada paso usa la skill que le toca ("Las skills de cada paso"), y las tres skills nuevas del repo nacen con lo que
+  describen.
 - PRs grandes por hito (Emanuel, 2026-11-11), con la mudanza y el diseño en PRs separados (la mudanza se revisa por
   script; el diseño, a ojo).
 
@@ -88,6 +90,47 @@ El port (huecos, trazas, cortes, VM) no se frena. Las reglas:
    `consultar.py modulo <Módulo>`; desde AR2, cada `case` del dispatcher sin portar es una fila `SinPortar{va}` de la
    tabla de opcodes. Antes de cada épica se toma la foto de `metricas.tsv`, y al terminarla se compara: los números del
    port tienen que ser los mismos (salvo lo que el port cerró en el medio).
+
+## Las skills de cada paso
+
+Cada paso del refactor tiene una skill que ya resuelve su procedimiento, y el plan las nombra para que quien ejecute no
+lo reinvente (Emanuel, 2026-11-21). Las de `superpowers:` y `engineering:` y las incluidas (`code-review`, `simplify`,
+`security-review`) son del entorno de Claude Code; `cpp-pro` y las tres nuevas viven en `.claude/skills/` del repo, y
+`AGENTS.md` las apunta para que Codex las lea como docs.
+
+**Las que ya hay:**
+
+| paso | skill | para qué |
+| --- | --- | --- |
+| el plan detallado de cada épica, al arrancarla | `superpowers:writing-plans` | el formato de este plan (Global Constraints, Review Focus, tareas con sus tests) sobre el `main` de ese día |
+| una decisión abierta: los ejecutables de test (AR1.2), `Hero` con `Player` (AR4.2), `Joints` con `Effects` (AR4.3) | `engineering:architecture` | un ADR con las opciones y lo que cuesta cada una; Emanuel elige y queda en `docs/adr/`, como el de AR0 |
+| ejecutar un hito | `superpowers:subagent-driven-development`, o `superpowers:executing-plans` si corre en una sola sesión | un agente escribe y otro revisa cada tarea: entra justo en los 2 agentes del refactor (regla 3 de los carriles) |
+| aislar el hito del port | `superpowers:using-git-worktrees` | un worktree por hito, así el port sigue sobre `main` sin pisarse (regla 2) |
+| las herramientas de AR0 y cada PR de diseño | `superpowers:test-driven-development` | el test primero: en las herramientas, los de cada Task; en el diseño, la escena del golden de comportamiento o un test de caracterización antes de tocar la lógica |
+| el golden de comportamiento (Task 7), los ejecutables de test (AR1.2), los falsos compartidos (AR6) | `engineering:testing-strategy` | qué escenas cubren qué módulos y cómo se agrupan los tests |
+| C++, CMake y GoogleTest en todo PR de diseño | `cpp-pro` (del repo) | los targets con `FILE_SET HEADERS` (AR1.2), `Field<T, Offset>` y `Route<&Fn>` con concepts (AR2), el ownership del `GameContext` (AR3), la inyección de `MakeObfuscation()` (AR1.1); va por debajo de `CODING_RULES.md` |
+| un golden o un test que cambió después de un PR del refactor | `superpowers:systematic-debugging` | la diferencia es un bug del refactor y no un golden para regenerar (Global Constraints): se busca la causa, no se cambia el esperado |
+| antes de pedir la revisión | `simplify` | lo repetido y lo que sobra en el diff del diseño; en AR6 es la herramienta principal |
+| la revisión de un PR de diseño | `code-review` con esfuerzo `high`, y `superpowers:requesting-code-review` / `superpowers:receiving-code-review` | el revisor busca bugs de corrección y quien escribe verifica cada pedido antes de aplicarlo; el nivel `max` solo si Emanuel lo pide |
+| los layouts y el ruteo de los paquetes (AR2.1, AR2.2) | `security-review` | los layouts leen bytes que manda el servidor: un `Field<T, Offset>` más allá del largo del paquete es una lectura fuera de rango |
+| cerrar un hito | `superpowers:verification-before-completion` y `superpowers:finishing-a-development-branch` | `check_layers.py`, `check_pure_move.py`, la foto de `metricas.tsv` igual a la de antes y el CI en verde en las cuatro configuraciones, con la salida a la vista; después, el squash y su línea en `.git-blame-ignore-revs` |
+| el diseño de un hito mientras se genera la mudanza del siguiente (AR4) | `superpowers:dispatching-parallel-agents` | solo ahí: con el agente del port son 3, el máximo |
+| la lista de lo repetido (AR6) | `engineering:tech-debt` | ordenar los clones por lo que cuestan y lo que arriesgan antes de factorizarlos |
+
+`superpowers:brainstorming` no hace falta mientras la spec cubra la épica; vuelve si un diseño abre una pregunta que la
+spec no contesta. `tutor` y el subagente `muret-reviewer` siguen afuera mientras el modo tutor esté apagado.
+
+**Las tres nuevas, del repo.** Son los procedimientos del refactor que se repiten muchas veces y que también usa el
+port. Van en `.claude/skills/<nombre>/SKILL.md`, en español y con el formato de `cpp-pro`: la `description` dice cuándo
+se usa, y el cuerpo es la lista de pasos y apunta a los docs (CODING_RULES §5, el ADR, la spec) en vez de copiarlos.
+Cada una se escribe en la tarea donde nace lo que describe, para no describir un script que todavía no existe, y suma
+su línea en la tabla "Dónde está cada cosa" de `AGENTS.md`.
+
+| skill | nace en | qué hace |
+| --- | --- | --- |
+| `muret-modulo` | AR0.1 (Task 2) | dónde va un archivo (`mapa-modulos.tsv`), la anatomía de un módulo (`Módulo.h`, `MóduloState.h`, `In/`, `Out/`, `<Módulo>Fwd.h`, `<Módulo>Defines.h`), cómo se crea un target con su capa en `modulos.tsv`, el contrato abajo y la implementación arriba, y qué hacer cuando `check_layers.py` corta un include. La usan los dos carriles (regla 1) |
+| `muret-mudanza` | AR0.2 (Task 6) | una mudanza de punta a punta: `main` al día, `mover.py` con los módulos del hito, `check_pure_move.py`, las rutas escritas a mano que lista, el título `AR<épica>.<hito>`, nada de lógica y, después del squash, `mover.py --anotar`. Se usa en las 6 mudanzas |
+| `muret-paquete` | AR2.2 | portar o tocar un paquete: el layout con `Field<T, Offset>` y su `static_assert` de tamaño, la fila de la tabla de opcodes que reemplaza a `SinPortar{va}`, el handler en el `In/` de su módulo, el golden del cable y la cita del `case` original |
 
 ---
 
@@ -155,6 +198,7 @@ AR0.2.
 - Create: `docs/adr/NNNN-arquitectura-por-modulos-del-cliente.md` (el número siguiente libre al abrir el PR)
 - Modify: `docs/adr/README.md` (la fila del ADR)
 - Modify: `AGENTS.md` (tabla "Dónde está cada cosa" y una sección "Dónde va un port nuevo")
+- Create: `.claude/skills/muret-modulo/SKILL.md` ("Las skills de cada paso")
 - Create: `Client/docs/research/coverage/mapa-modulos.tsv` (la semilla del anexo, revisada)
 - Modify: `docs/superpowers/specs/2026-10-30-cliente-design.md` (la sección "Estructura de `Client/`" apunta a la spec
   nueva)
@@ -178,7 +222,9 @@ AR0.2.
 - [ ] **Step 4:** AGENTS.md: "Dónde va un port nuevo": mirar `mapa-modulos.tsv`; si el módulo no existe todavía, el
   lugar de hoy con la anatomía nueva y su fila en el mapa; un paquete nuevo = layout en `Protocol/<Módulo>/` + handler
   en `In/` + fila en la tabla (desde AR2).
-- [ ] **Step 5:** `check_layers.py` sigue en 0 y los docs pasan el job de formato. Commit `AR0.1: las reglas de la
+- [ ] **Step 5:** la skill `muret-modulo`: los pasos de Step 4 y la anatomía de Step 2, apuntando a CODING_RULES §5 y
+  al ADR; su línea en `AGENTS.md`.
+- [ ] **Step 6:** `check_layers.py` sigue en 0 y los docs pasan el job de formato. Commit `AR0.1: las reglas de la
   arquitectura por módulos y el mapa de archivos`.
 
 ### Task 3: el ancla estable de las clasificaciones a mano
@@ -276,6 +322,7 @@ AR0.2.
 - Create: `Client/tools/arquitectura/check_pure_move.py`
 - Create: `Client/tools/arquitectura/test_mover.py`, `Client/tools/arquitectura/test_check_pure_move.py`
 - Modify: `.github/workflows/ci.yml` (en PRs con `AR` en el título, correr `check_pure_move.py` contra la base)
+- Create: `.claude/skills/muret-mudanza/SKILL.md` ("Las skills de cada paso")
 
 **Interfaces:**
 - Produces: `mover.py --mapa <mapa-modulos.tsv> --modulos game/Guild[,…] [--raiz engine]` hace `git mv` de cada
@@ -300,7 +347,8 @@ AR0.2.
   - `test_mover_keeps_includes_when_only_root_changes`: `Core/Expected.h` a `engine/Core/Expected.h` → ningún include
     cambia.
 - [ ] **Step 2:** fallan; Step 3: los dos scripts; Step 4: pasan.
-- [ ] **Step 5:** commit `AR0.2: el script de mudanza y su verificación`.
+- [ ] **Step 5:** la skill `muret-mudanza` con los comandos de verdad de los dos scripts, y su línea en `AGENTS.md`.
+- [ ] **Step 6:** commit `AR0.2: el script de mudanza y su verificación`.
 
 ### Task 7: el golden de comportamiento
 
@@ -445,6 +493,8 @@ violación de la raíz `engine`.
 - `ServerSession` (2.878 líneas) se parte: `Session/Connection` (keepalive, serial, claves, el flujo del login y del
   cambio de servidor) y el ruteo por la tabla. Los primeros módulos que pasan a handlers por paquete son los del login,
   la selección, el movimiento y el viewport.
+- La skill `muret-paquete` ("Las skills de cada paso"), con un paquete del login como ejemplo, y su línea en
+  `AGENTS.md`.
 
 ### AR2.3 (diseño): todos los handlers en sus módulos
 

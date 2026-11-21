@@ -20,6 +20,8 @@
 #include "Network/PacketSerials.h"
 #include "Render/Models/Animation.h"
 #include "Render/Models/Cloth.h"
+#include "Render/ModelVertex.h"
+#include "Render/SpriteVertex.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterSelectScene.h"
 #include "Scenes/GameData.h"
@@ -50,6 +52,7 @@
 #include "support/FakeClock.h"
 #include "support/FakeSocket.h"
 #include "support/FakeTextureStore.h"
+#include "support/Fnv1a.h"
 #include "support/GoldenDir.h"
 #include "support/LetterMeasure.h"
 #include "support/RecordingFrameTarget.h"
@@ -57,11 +60,14 @@
 #include "support/ScenePrinters.h"
 #include "support/TestGameServer.h"
 
+#include <glm/ext/vector_float2.hpp>
+#include <glm/ext/vector_float3.hpp>
 #include <gtest/gtest.h>
 
 #include <algorithm>
 #include <array>
 #include <chrono>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
@@ -407,6 +413,11 @@ public:
         m_manager.FinishTheLoop();
         static const RecordedFrame NoDraw{};
         const RecordedFrame& drawn = m_target.frames.empty() ? NoDraw : m_target.frames.back();
+        if (m_diagnosticFrame == 11 || m_diagnosticFrame == 40)
+        {
+            PrintTheEvents(drawn);
+        }
+        ++m_diagnosticFrame;
         m_sentThisFrame = std::span(m_socket.sent).subspan(sentBefore);
         const FrameDigest digest = DigestOf(drawn, m_sentThisFrame, m_cloth.random.State(), m_world);
         m_clock.Advance(FrameTime);
@@ -448,6 +459,55 @@ public:
     }
 
 private:
+    // TEMPORARY diagnostic for the Windows CI difference; it is removed before merging.
+    void PrintTheEvents(const RecordedFrame& frame) const
+    {
+        const auto bytesHash = [](const auto& values) { return Fnv1a64(std::as_bytes(std::span(values))); };
+        std::printf("DIAG frame %d events %zu\n", m_diagnosticFrame, frame.events.size());
+        for (std::size_t index = 0; index < frame.events.size(); ++index)
+        {
+            const FrameEvent& event = frame.events[index];
+            std::printf("DIAG [%zu] kind %d quad %016llx", index, static_cast<int>(event.kind),
+                        static_cast<unsigned long long>(bytesHash(event.vertices)));
+            if (event.kind == FrameEvent::Kind::Models)
+            {
+                std::vector<glm::vec3> positions;
+                std::vector<glm::vec2> uvs;
+                std::vector<Render::Color> colors;
+                for (const Render::ModelVertex& vertex : event.modelVertices)
+                {
+                    positions.push_back(vertex.position);
+                    uvs.push_back(vertex.uv);
+                    colors.push_back(vertex.color);
+                }
+                std::printf(" commands %zu vertices %zu positions %016llx uvs %016llx colors %016llx",
+                            event.modelCommands.size(), event.modelVertices.size(),
+                            static_cast<unsigned long long>(bytesHash(positions)),
+                            static_cast<unsigned long long>(bytesHash(uvs)),
+                            static_cast<unsigned long long>(bytesHash(colors)));
+            }
+            if (event.kind == FrameEvent::Kind::Text)
+            {
+                std::printf(" text '%s'", event.text.text.c_str());
+            }
+            std::printf("\n");
+        }
+        std::vector<double> sines;
+        std::vector<double> cosines;
+        std::vector<double> arcCosines;
+        for (int step = -200000; step <= 200000; ++step)
+        {
+            const double angle = static_cast<double>(step) * 0.0000314159;
+            sines.push_back(std::sin(angle));
+            cosines.push_back(std::cos(angle));
+            arcCosines.push_back(std::acos(static_cast<double>(step) / 200000.0));
+        }
+        std::printf("DIAG probe sin %016llx cos %016llx acos %016llx\n",
+                    static_cast<unsigned long long>(bytesHash(sines)),
+                    static_cast<unsigned long long>(bytesHash(cosines)),
+                    static_cast<unsigned long long>(bytesHash(arcCosines)));
+    }
+
     std::unique_ptr<Scenes::IScene> MakeScene(Scenes::SceneId id)
     {
         switch (id)
@@ -582,6 +642,7 @@ private:
     Network::PacketSerials m_serverSerials;
     Network::PacketSerials m_traceSerials;
     std::span<const std::byte> m_sentThisFrame;
+    int m_diagnosticFrame = 0;
 };
 
 std::string GoldenText(const std::vector<FrameDigest>& digests)

@@ -27,6 +27,13 @@ distribuidos portando el DataServer de MU Online 1.02, después otros servidores
 - En Claude Code: estilo de salida `Tutor MuRet` y, para revisar, el subagente `muret-reviewer`
   (ver [`CLAUDE.md`](CLAUDE.md)). Para C++ está la skill
   [`cpp-pro`](.claude/skills/cpp-pro/SKILL.md), que dice dónde MuRet se aparta de su fuente.
+- Clean Code es la guía del refactor del cliente (Emanuel, 2026-11-21). Las skills
+  [`clean-code`](.claude/skills/clean-code/SKILL.md),
+  [`clean-architecture`](.claude/skills/clean-architecture/SKILL.md),
+  [`refactoring`](.claude/skills/refactoring/SKILL.md) y
+  [`cpp-coding-standards`](.claude/skills/cpp-coding-standards/SKILL.md) traen sus reglas, cada una
+  con una tabla de dónde MuRet manda distinto; van por debajo de CODING_RULES y de la fidelidad al
+  original. Otros agentes las leen como docs.
 
 ## Reglas de código: leelas primero
 
@@ -55,6 +62,7 @@ seguí el estilo del código que está alrededor.
 | el estado de la CL7 y lo que falta, en orden (traspaso del 2026-11-10) | [traspaso de la CL7](docs/superpowers/plans/2026-11-10-cl7-traspaso.md) |
 | qué se estudia en cada ola, y en qué va Emanuel | [guías y progreso](docs/learning/README.md) |
 | decisiones globales | `docs/adr/` |
+| las reglas de Clean Code, Clean Architecture, refactoring y C++ Core Guidelines, adaptadas a MuRet | [skills del repo](.claude/skills/) |
 
 El contrato con el GameServer 1.02 es el wire (puerto 55960, C1/C2, 22 heads) y el SQL que
 describe el research. Toda diferencia con el original se documenta en un ADR y se cubre con un
@@ -92,10 +100,23 @@ cierran por sí solas toda la CL. Esto responde a huecos que aparecieron recién
 
 - Los PRs van a `main`.
 - **Una sub-ola = un concepto = un PR chico** (regla 10). Un concepto por commit.
-- Mensajes de commit en notación Angular: `tipo(alcance): descripción`, en castellano, con el
-  alcance opcional (por ejemplo `docs(learning): …`, `feat(tutor): …`, `fix: …`) y un cuerpo que
-  explique el porqué.
+- **Ramas, commits y títulos y descripciones de PR en inglés** (Emanuel, 2026-11-21), igual que el
+  código, sus comentarios y los docs nuevos ([`CODING_RULES.md`](docs/CODING_RULES.md) §7 y §9; los
+  docs de antes se traducen con el [plan de traducción](docs/superpowers/plans/2026-11-21-docs-to-english.md)).
+- **Commits, títulos de PR y ramas en notación Angular** (Emanuel, 2026-11-21):
+  - Commit y título de PR: `tipo(alcance): descripción`, con la descripción en imperativo, en
+    minúscula y sin punto final, y un cuerpo que explique el porqué. El título del PR es el commit
+    del squash, así que sigue la misma forma.
+  - Tipos: `feat`, `fix`, `refactor`, `perf`, `test`, `docs`, `build` y `ci` (los de Angular).
+  - Alcance: la ola o el hito si lo hay, porque la matriz lee la ola del título (`feat(CL11): …`,
+    `refactor(AR1.2): …`); si no, el módulo o la carpeta (`docs(learning): …`, `fix(network): …`).
+    Puede faltar (`fix: …`).
+  - Rama: `tipo/alcance-descripcion-corta`, en minúscula y con guiones (`refactor/ar1.2-engine-move`,
+    `feat/cl11-kalima-effects`, `fix/guild-mark-overflow`, `docs/translate-rules`). Las ramas que
+    nombra el entorno de Claude Code en la nube (`claude/…`) no se pueden elegir; ahí el título del PR
+    sigue la regla igual.
 - En la descripción del PR, citá la sub-ola y la sección del research que fija el cambio.
+- En el código, un comentario solo si es estrictamente necesario, corto y en inglés (CODING_RULES §9).
 
 ## Fuera de alcance para cambios de IA
 

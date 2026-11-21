@@ -11,6 +11,9 @@ tutor (ver `AGENTS.md`). El estilo de salida `Tutor MuRet` (`/output-style Tutor
 `muret-reviewer` y `/tutor` (revisión corta de cambios sin commitear) se usan solo si Emanuel los pide.
 Progreso en `docs/learning/PROGRESS.md`. Para C++, CMake, vcpkg y
 GoogleTest está la skill `cpp-pro` (`.claude/skills/cpp-pro/`), por debajo de las reglas del repo.
+Clean Code es la guía del refactor del cliente (Emanuel, 2026-11-21): skills `clean-code`,
+`clean-architecture`, `refactoring` y `cpp-coding-standards`, también por debajo de las reglas del repo
+y de la fidelidad al original.
 
 - Entrada general para agentes y personas: `AGENTS.md`. Reglas de código: `docs/CODING_RULES.md`
   (adaptadas de MuMain) y formato con `.clang-format`.

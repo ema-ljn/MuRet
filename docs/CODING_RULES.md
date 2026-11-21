@@ -112,8 +112,12 @@ namespace:
   (`1ms`), el check no lo pide: ese include se pone a mano, con `keep` si el archivo no nombra nada
   más de él. Tampoco ve lo que está adentro de un `#ifdef _WIN32` o `_MSC_VER`, que en Linux no se
   compila: esos includes se revisan a mano.
-- Comentarios, mensajes y docs en castellano; identificadores y nombres de tests en inglés
-  (`Feed`, `TEST(PacketReaderTest, CutsAC1)`).
+- **Todo lo del código y de Git va en inglés** (Emanuel, 2026-11-21): identificadores, nombres de
+  tests (`Feed`, `TEST(PacketReaderTest, CutsAC1)`), comentarios, mensajes de log y de error, ramas,
+  commits y títulos y descripciones de PR (ramas, commits y títulos, con la notación Angular de
+  `AGENTS.md`). Nada de comentarios en castellano. Los docs también van en
+  inglés: los nuevos desde el 2026-11-21, y los de antes se traducen con el
+  [plan de traducción](superpowers/plans/2026-11-21-docs-to-english.md).
 - `.editorconfig` fija espacios, LF y UTF-8. `.clang-tidy` es el de MuMain, con las carpetas de
   MuRet y `misc-include-cleaner`. CI corre solo el de los includes. El resto todavía tiene
   hallazgos en `Client/` y se corre a mano:
@@ -160,7 +164,7 @@ piecemeal", porque es mucho; acá son dos archivos, y alinearlos al tocarlos no 
 
   #include <cstddef>
 
-  // Corta un flujo TCP en paquetes C1/C2/C3/C4...
+  // Splits a TCP stream into C1/C2/C3/C4 packets.
   namespace Client::Network
   {
   class PacketReader
@@ -217,8 +221,16 @@ piecemeal", porque es mucho; acá son dos archivos, y alinearlos al tocarlos no 
 
 - Escribí código obvio de leer, aunque la versión "ingeniosa" sea más corta.
 - Las expresiones complejas se parten en variables intermedias con nombre.
-- Si un bloque necesita un comentario para explicar **qué** hace, refactorizalo para que no lo
-  necesite. Los comentarios explican el **porqué**.
+- **Un comentario va solo si es estrictamente necesario** (Emanuel, 2026-11-21); si no, no va. Si
+  un bloque necesita un comentario para explicar **qué** hace, refactorizalo para que no lo
+  necesite. Lo que queda va en inglés y corto, en una línea si se puede. Son tres casos:
+  - la cita al original (`// 0x4d3200`, a lo sumo con una etiqueta corta), porque el rastreo cuenta
+    las direcciones citadas en `Client/src` (`build_roadmap_matrix.py`, la referencia de
+    cobertura);
+  - la sección del research que fija una constante (§3);
+  - un porqué que el código no puede decir: un quirk del original que se copia a propósito, un
+    orden que no se puede cambiar.
+- Nada de comentarios que repiten el código, bloques de prosa ni código comentado.
 
 ## 10. Pensar antes de agregar
 

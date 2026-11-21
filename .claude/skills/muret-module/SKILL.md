@@ -29,7 +29,8 @@ rank above this skill.
 ## Anatomy of a game module
 
 - `<Module>.h`: what other modules may use. `<Module>Fwd.h`: forward declarations. `<Module>Defines.h`: enums and ids,
-  no logic.
+  no logic. These small headers are how a module shares declarations: there is no `Common.h` or umbrella header
+  (`docs/CODING_RULES.md` §7).
 - `<Module>State.h`: the part of the original's globals the module owns, as a plain struct.
 - `In/`: one handler per incoming packet, a free function of up to ~80 lines that receives the packet already read and
   the state it touches, in its signature. It does not know the session.

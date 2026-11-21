@@ -377,8 +377,7 @@ AR0.2.
   rows of `moves.tsv` and puts the new path in the map's `file` column. `move.py --record <hash>` adds the squash to
   `.git-blame-ignore-revs`.
 - Produces: `move.py` also lists the hand-written paths that point to a moved file, in `CMakeLists.txt`,
-  `cmake/*.cmake` and `.github/workflows/*.yml` (for example, the `math-release` job watches
-  `Client/src/Render/Models/OriginalRetainedMath.cpp` and `Client/CMakeLists.txt` names `JpegImage.cpp` and
+  `cmake/*.cmake` and `.github/workflows/*.yml` (for example, `Client/CMakeLists.txt` names `JpegImage.cpp` and
   `JpegWriter.cpp`), and rewrites them.
 - Produces: `check_pure_move.py --base <ref> --head <ref>`: for each renamed file (`git diff -M50% --name-status`) it
   compares the multiset of lines without `#include` lines or blank lines; it exits with 1 and lists the differences if any

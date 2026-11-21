@@ -83,6 +83,7 @@ jobs:
             extra-configure: >-
               -DCMAKE_EXE_LINKER_FLAGS=-Wl,--strip-debug -DCMAKE_CXX_FLAGS_DEBUG=
               -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+            ccache-key: ccache-ubuntu-24.04
             font-file: /usr/share/fonts/truetype/dejavu/DejaVuSans.ttf
           # Con Ninja y cl desde el entorno de MSVC (paso "Entorno de MSVC"), no con MSBuild: MSBuild
           # compilaba ClientLib en un solo núcleo (21 minutos) y no lo mejoraron ni /MP ni 4
@@ -106,6 +107,7 @@ jobs:
             # De a 4, cada test de tests/scenes tardó 3 a 4 min en compilar (memoria): el build sin caché
             # pasó las 2 h. De a 2, 31 a 34 s cada uno y 53 min el build entero sin caché (#379).
             build-jobs: '2'
+            ccache-key: ccache-windows-2022
             font-file: 'C:\Windows\Fonts\arial.ttf'
           # Que cada archivo del cliente incluya lo que usa (docs/CODING_RULES.md § 7). Antes iba al
           # final del job de Linux y le sumaba 12 a 18 minutos; clang-tidy solo lee el
@@ -121,14 +123,19 @@ jobs:
             font-file: /usr/share/fonts/truetype/dejavu/DejaVuSans.ttf
           # El perfil matemático retenido en MSVC x64 Release (ADR 0014). Antes iba después de los
           # tests de Windows y le sumaba 26 a 31 minutos.
+          # Ninja, ccache and two jobs, as in Windows Debug: with MSBuild, building Main took 31 of
+          # this job's 33 minutes (#407). Its own ccache key: Debug objects never match Release.
           - name: Windows (MSVC, Release, matemática)
             kind: math-release
             os: windows-2022
-            configure-preset: windows-x64
-            build-preset: windows-x64-release
-            test-preset: windows-x64-release
+            configure-preset: windows-x64-ninja-release
+            build-preset: windows-x64-ninja-release
+            test-preset: windows-x64-ninja-release
             precompiled-headers: 'ON'
-            extra-configure: ''
+            extra-configure: -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+            build-jobs: '2'
+            build-targets: --target Main test_original_angles test_original_retained_math
+            ccache-key: ccache-release-windows-2022
             font-file: 'C:\Windows\Fonts\arial.ttf'
     env:
       VCPKG_DISABLE_METRICS: 1
@@ -281,7 +288,7 @@ jobs:
       # nuevas del PATH van en el mismo orden que les da vcvars64.bat (GITHUB_PATH antepone cada
       # línea a las anteriores, por eso se escriben al revés).
       - name: Entorno de MSVC (Windows)
-        if: steps.scope.outputs.build == 'true' && runner.os == 'Windows' && matrix.kind == 'build'
+        if: steps.scope.outputs.build == 'true' && runner.os == 'Windows'
         shell: pwsh
         run: |
           $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
@@ -315,7 +322,7 @@ jobs:
       # recompilarse. En Windows, la versión que soporta cl oficialmente (desde la 4.13), con su
       # SHA-256; en Linux, la de apt.
       - name: ccache (Windows)
-        if: steps.scope.outputs.build == 'true' && runner.os == 'Windows' && matrix.kind == 'build'
+        if: steps.scope.outputs.build == 'true' && runner.os == 'Windows'
         shell: pwsh
         run: |
           $version = '4.13.5'
@@ -334,12 +341,12 @@ jobs:
       # Cada corrida guarda la suya al final (paso "Guardar la caché de ccache"), también si falló.
       - name: Restaurar la caché de ccache
         id: ccache
-        if: steps.scope.outputs.build == 'true' && matrix.kind == 'build'
+        if: steps.scope.outputs.build == 'true' && matrix.kind != 'includes'
         uses: actions/cache/restore@v6
         with:
           path: ${{ runner.temp }}/ccache
-          key: ccache-${{ matrix.os }}-${{ github.run_id }}-${{ github.run_attempt }}
-          restore-keys: ccache-${{ matrix.os }}-
+          key: ${{ matrix.ccache-key }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: ${{ matrix.ccache-key }}-
 
       # pch_defines,time_macros: lo que ccache pide para cachear con precompiled headers. El modo
       # depend toma los includes de /showIncludes o -MD (que Ninja ya pide) en vez de correr el
@@ -348,7 +355,7 @@ jobs:
       # con cada imagen nueva del runner aunque el compilador sea el mismo (#379: con la imagen de
       # Windows del 16/11, 3 aciertos de 1462). Con el contenido, solo un compilador distinto vacía la caché.
       - name: Configurar ccache
-        if: steps.scope.outputs.build == 'true' && matrix.kind == 'build'
+        if: steps.scope.outputs.build == 'true' && matrix.kind != 'includes'
         shell: bash
         run: |
           dir="$(cygpath -m "$RUNNER_TEMP" 2>/dev/null || echo "$RUNNER_TEMP")/ccache"
@@ -425,9 +432,10 @@ jobs:
           echo "Suites: $regex"
           ctest --preset ${{ matrix.test-preset }} --parallel "$MURET_CI_JOBS" -R "$regex" --no-tests=error
 
+      # math-release builds only Main and the two tests of the math profile.
       - name: Compilar
-        if: steps.scope.outputs.build == 'true' && matrix.kind == 'build'
-        run: cmake --build --preset ${{ matrix.build-preset }}
+        if: steps.scope.outputs.build == 'true' && matrix.kind != 'includes'
+        run: cmake --build --preset ${{ matrix.build-preset }} ${{ matrix.build-targets }}
 
       # Se guarda también si el build falló: el push que lo arregla encuentra compilado todo lo
       # que llegó a compilar esta corrida.
@@ -452,16 +460,11 @@ jobs:
         if: steps.scope.outputs.build == 'true' && matrix.kind == 'build'
         run: ctest --preset ${{ matrix.test-preset }} --parallel ${{ env.MURET_CI_JOBS }}
 
-      # Con el módulo retenido presente, Windows verifica también Main y sus hojas en Release.
-      # Un build fallido corta antes de CTest; cero casos seleccionados también hace fallar el job.
+      # Main and the two tests come from "Compilar". Zero selected tests also fails the job, so a
+      # move or a rename of these tests cannot turn the check off.
       - name: Perfil matemático en MSVC Release
-        if: steps.scope.outputs.build == 'true' && matrix.kind == 'math-release' && hashFiles('Client/src/Render/Models/OriginalRetainedMath.cpp') != ''
-        shell: pwsh
-        run: |
-          cmake --build build/windows-x64 --config Release --parallel 4 --target Main test_original_angles test_original_retained_math
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          ctest --test-dir build/windows-x64 -C Release -R '^(OriginalAnglesTest|OriginalRetainedMathTest)\.' --output-on-failure --no-tests=error
-          exit $LASTEXITCODE
+        if: steps.scope.outputs.build == 'true' && matrix.kind == 'math-release'
+        run: ctest --preset ${{ matrix.test-preset }} -R '^(OriginalAnglesTest|OriginalRetainedMathTest)\.' --no-tests=error
 
       # Los tests con la etiqueta gl (desde la CL5.0, los de labs/cl5.0-pipeline/gl/) abren una
       # ventana escondida con OpenGL 3.3 core, dibujan en un framebuffer y leen los píxeles. En el
@@ -513,7 +516,7 @@ jobs:
       # sort a secas puede ser el de System32. awk y no head: head cortaría el pipe antes de que sort
       # termine de escribir, y con pipefail el paso fallaría.
       - name: Lo más lento del build
-        if: always() && steps.scope.outputs.build == 'true' && matrix.kind == 'build'
+        if: always() && steps.scope.outputs.build == 'true' && matrix.kind != 'includes'
         shell: bash
         run: |
           log="build/${{ matrix.configure-preset }}/.ninja_log"

@@ -10,7 +10,7 @@
 > Este documento dice **cómo queda el código** y **qué no se negocia** (la fidelidad y el rastreo).
 > El orden del trabajo, por épicas e hitos, está en el
 > [plan](../plans/2026-11-20-refactor-arquitectura-cliente.md). Las mediciones se hicieron sobre
-> `main` en `bb56680` (2026-11-20). Revisado el 2026-11-21: más módulos (de 31 a 57) y lo que se
+> `main` en `bb56680` (2026-11-20). Revisado el 2026-11-21: más módulos (de 31 a 58) y lo que se
 > toma de TrinityCore y MaNGOS además de OpenMU.
 
 ## Qué y para qué
@@ -206,10 +206,11 @@ Client/src/
     Diagnostics/  el manejador de crashes: el volcado, el informe, los registros, las señales             2
     Input/        teclado y mouse por frame, sin SDL                                                      2
     Audio/        reproducir efectos y música, la posición 3D; no sabe qué sonidos tiene MU               2
-    Network/      socket no bloqueante, armado de paquetes, la ofuscación, Connection                     2
+    Network/      socket no bloqueante, armado de paquetes, Connection, el contrato de la ofuscación     2
     Data/         los formatos de Data\: BMD, OZJ, OZT, JPEG, el terreno, el lector de tablas             2
     Platform/     SDL3: ventana, contexto GL, eventos, audio, WindowState, Resolution, portapapeles      3
     Pathfinding/  el A* del original sobre la grilla de paredes del terreno; no ve el estado del juego    3
+    Obfuscation/  la capa FoxAnti del servidor del laboratorio, entre el cable y el cliente; opcional     3
     Render/       SpriteBatch, ModelBatch, texto, contratos del frame (IFrameTarget, ITextDrawer), Gl/    4
     Models/       esqueleto, pose, animación, skinning, tela, IModelLibrary                               5
   game/     el juego del 1.02 (raíz de include propia; ve engine/)
@@ -228,7 +229,7 @@ Client/src/
   app/      main.cpp y App/: config, línea de comandos, bucle, la raíz de composición                    12
 ```
 
-El número de la derecha es la capa. Son 57 módulos (13 del motor, 43 del juego y `app`), con
+El número de la derecha es la capa. Son 58 módulos (14 del motor, 43 del juego y `app`), con
 una mediana de 3.200 líneas; el porqué de cada uno está en
 [Los módulos, uno por uno](#los-módulos-uno-por-uno). La primera versión de este documento tenía
 31; Emanuel pidió el 2026-11-21 separar "lo mayor posible" (empezando por el sonido), y la
@@ -255,7 +256,7 @@ revisión salió de medir el mapa y de leer cómo se organizan TrinityCore, MaNG
   (`Scenes/X.h` → `Guild/X.h`), la mudanza reescribe sus includes y ninguna otra línea.
 - **Targets:** uno por carpeta del motor (`MuRetCore`, `MuRetMath`, `MuRetCrt`, `MuRetCrypto`,
   `MuRetDiagnostics`, `MuRetInput`, `MuRetAudio`, `MuRetNetwork`, `MuRetData`, `MuRetPlatform`,
-  `MuRetPathfinding`, `MuRetRender`, `MuRetModels`) y uno por módulo del juego (los submódulos de
+  `MuRetPathfinding`, `MuRetObfuscation`, `MuRetRender`, `MuRetModels`) y uno por módulo del juego (los submódulos de
   `Events/` y de `MapScripts/` son carpetas de su target), con `target_link_libraries` en el
   sentido de las capas y los includes de otros módulos siempre con la ruta calificada
   (`"Guild/Guild.h"`), nunca con el nombre pelado. Los headers van en
@@ -317,6 +318,7 @@ del anexo):
 | `engine/Crt` | 1 | `CrtRandom` (hoy dentro de `Cloth.h`), `Msvc6Sort`, el `sprintf` original (788) | lo que imita al runtime de MSVC 6: las piezas de las que depende la fidelidad, juntas y testeadas solas |
 | `engine/Crypto` | 1 | SimpleModulus y su archivo de claves, Xor32, Xor3, K16 (708; hoy en `Network`, `Core` y `Data`) | el cifrado sobre bytes no necesita sockets ni formatos; `Xor32` deja de recibir un `Network::Packet` |
 | `engine/Diagnostics` | 2 | el manejador de crashes: volcado, informe, registros, señales (2.643) | eran 2.643 de las 4.154 líneas de `Core`; `Core` queda con lo que todos usan |
+| `engine/Obfuscation` | 3 | la capa FoxAnti: las traducciones que pide el servidor del laboratorio en cada sentido (327; hoy en `Network`) | no es del `main.exe`: es una DLL que se le engancha y que pide solo el GameServer del laboratorio (`03-red-y-cifrado.md`, "La capa de FoxAnti"; "un servidor de MuRet podría no usarla"), así que tiene que poder sacarse: `Network` se queda solo con el contrato (`IObfuscation`, con sus cinco puntos en el orden del original) y la identidad, que no toca nada y es lo que usa si no hay capa. `FoxAntiObfuscation` lo elige y lo enlaza solo `app/` (hoy ya lo incluye solo `main.cpp`); sacarla es no enlazar el target y borrar la opción de configuración, sin un `#ifdef` en el resto del código |
 | `engine/Pathfinding` | 3 | el A* del original y la grilla de paredes (614; hoy en `GameLogic` y `World`) | solo usa `Data` y `Math`: una hoja, como `Pathfinding` en OpenMU |
 | `game/Tables` | 6 | las 14 tablas de MU: ítems, sets, skills, misiones, gates, textos, nombres de NPC… (1.772; hoy en `Data`) | el motor lee el formato, el juego declara las filas: `DB2FileLoader` / `DB2Structure.h` en TrinityCore, `DBCFileLoader` / `DBCStructure.h` en MaNGOS |
 | `game/Maps` | 6 | los ids de los mapas con nombre y sus predicados (`IsChaosCastle`, `IsKalima`…), la carpeta, la música y el ambiente de cada uno | hoy hay unas 189 comparaciones por mapa en 62 archivos de 18 módulos, con constantes sueltas (`c.map == 7`, `IcarusMap`); pasan a nombres y se quedan donde están, porque son la lógica del original |
@@ -408,7 +410,7 @@ inline constexpr OpcodeTable GameServerOpcodes{
   TrinityCore para nuestro caso: dónde vive en MuRet cada global del original, y qué módulo es su
   dueño. Guía el corte de `WorldRuntime`.
 - **El corte.** De los 94 campos de `WorldRuntime`, 17 los usa un solo módulo (se mueven primero;
-  medido con los 26 módulos candidatos de `Scenes/`, así que con los 57 de la revisión son menos).
+  medido con los 26 módulos candidatos de `Scenes/`, así que con los 58 de la revisión son menos).
   Los que usan muchos (`hero` en 22 módulos, el pedido de sonido en 21, `ownRecordDepth` en 20, el
   mapa en 19) forman un núcleo chico en `Kernel/`; el pedido de sonido pasa a ser el puerto que
   implementa `Sound`, y la fauna, su propio estado en `Fauna`. El arbitraje del mouse (`movement.pendingClick`,
@@ -487,7 +489,7 @@ raíz de composición.
 | el golden de comportamiento no corre sin ventana | `GameScene` ya corre sin ventana con datos reales y `RecordingFrameTarget` (`tests/scenes/test_game_scene_complete.cpp`), y el login con la sesión (`test_login_scene_session.cpp`); si una escena no puede, el arnés arranca por las que sí |
 | MSVC (C1128, C4242, iteradores) | cada hito pasa el CI de Windows; las reglas de `client-msvc-ci-gotchas` |
 | el plan se come semanas de port | ver el reparto de carriles en el plan; el refactor nunca ocupa los 3 agentes |
-| 57 targets son muchos para CMake y el CI | son bibliotecas estáticas chicas: cada test enlaza solo las suyas (hoy los 728 enlazan todo `ClientLib`), y `ccache` ya cachea por unidad. Si un módulo queda con un solo archivo y nadie más lo usa, se junta con su vecino (criterio 6) |
+| 58 targets son muchos para CMake y el CI | son bibliotecas estáticas chicas: cada test enlaza solo las suyas (hoy los 728 enlazan todo `ClientLib`), y `ccache` ya cachea por unidad. Si un módulo queda con un solo archivo y nadie más lo usa, se junta con su vecino (criterio 6) |
 
 ## Lo que queda a quien lo construya
 

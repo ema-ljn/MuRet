@@ -130,11 +130,11 @@ AR0.2.
   `#include "…"` que resuelven a un archivo de `src`; los `<…>` no cuentan. El módulo de un archivo sale primero del
   mapa (su fila por la ruta de hoy) y, si no tiene fila (un archivo nuevo), del glob más largo de `carpetas_hoy`.
 - [ ] **Step 4:** los tests pasan.
-- [ ] **Step 5:** `modulos.tsv` con los 57 módulos de destino de la spec (13 del motor, 43 del juego y `app`; los
+- [ ] **Step 5:** `modulos.tsv` con los 58 módulos de destino de la spec (14 del motor, 43 del juego y `app`; los
   submódulos de `Events/` y `MapScripts/` son carpetas de su módulo) y, mientras dure la migración, `carpetas_hoy`
   apuntando a lo de hoy (`Core/**` → `engine/Core`; `Scenes/**` → según el mapa). Capas: `engine/Core` 0;
   `engine/Math`, `Crt` y `Crypto` 1; `engine/Diagnostics`, `Input`, `Audio`, `Network` y `Data` 2;
-  `engine/Platform` y `Pathfinding` 3; `engine/Render` 4; `engine/Models` 5; `game/Protocol`, `Tables` y `Maps` 6;
+  `engine/Platform`, `Pathfinding` y `Obfuscation` 3; `engine/Render` 4; `engine/Models` 5; `game/Protocol`, `Tables` y `Maps` 6;
   `game/Kernel` 7; `game/Assets`, `Terrain`, `Sound`, `Camera` y `Ui` 8; los módulos del juego 9; `game/Session` 10;
   `game/Scenes` 11; `app` 12. Entre módulos de la misma capa, `puede_usar` lista los que hoy se usan en un solo
   sentido según el grafo medido con el mapa (`Effects` → `Particles`, `Movement` → `engine/Pathfinding`…).
@@ -361,6 +361,10 @@ golden de comportamiento iguales.
   de un `Network::Packet`, así `engine/Crypto` (SimpleModulus, Xor32, Xor3, K16) no ve la red; `IPlayback` gana un
   `Register(SoundDefinition)` y `SdlAudio` deja de incluir el catálogo de sonidos, que el juego le pasa al arrancar
   (el catálogo va a `game/Sound`). El orden de las llamadas al motor de audio no cambia: el golden lo compara.
+  `FoxAntiObfuscation` sale de `Network` a `engine/Obfuscation`, una capa opcional: `Network` se queda con
+  `IObfuscation`, `ObfuscationError` y la identidad (lo que usa si no hay capa), y solo `app/` elige FoxAnti por la
+  configuración y enlaza su target. Una opción de CMake (`MURET_FOXANTI`, prendida por defecto mientras el
+  laboratorio la use) deja el cliente sin esa capa; el único `#if` vive en la composición de `app/`.
 - **El kit común** (se crea acá para que las mudanzas no arrastren copias): `X87.h` junto a `Ftol.h` (`F32`, `D`,
   `Truncate`, `Bits`: las 115 copias de `F32` se reemplazan solo donde el cuerpo es idéntico, verificado por script),
   `Core/WrappingInt.h`, `Core::Expected` con `AndThen`, `Transform` y `OrElse` (los nombres de `std::expected`, para
@@ -374,13 +378,13 @@ golden de comportamiento iguales.
 
 - `mover.py --raiz engine` lleva `Core`, `Platform`, `Input`, `Audio`, `Network`, `Data` y `Render` a
   `Client/src/engine/`, `Render/Models` a `engine/Models`, la matemática x87 a `engine/Math`, y cada archivo que el
-  mapa manda a un módulo nuevo del motor (`Crt`, `Crypto`, `Diagnostics`, `Pathfinding`, con lo de `UI/`, `World/` y
+  mapa manda a un módulo nuevo del motor (`Crt`, `Crypto`, `Diagnostics`, `Pathfinding`, `Obfuscation`, con lo de `UI/`, `World/` y
   `GameLogic/` que les toca). Lo que hoy está en `Data/` o `Audio/` pero es del juego va directo a su módulo: las
   tablas a `game/Tables` (1.772 líneas), las carpetas de los mapas a `game/Maps` y el catálogo de sonidos a
   `game/Sound`. Los includes de las carpetas que solo cambian de raíz no cambian de texto; los demás los reescribe el
   script.
 - **CMake:** un target por carpeta del motor (`MuRetCore`, `MuRetMath`, `MuRetCrt`, `MuRetCrypto`, `MuRetDiagnostics`,
-  `MuRetInput`, `MuRetAudio`, `MuRetNetwork`, `MuRetData`, `MuRetPlatform`, `MuRetPathfinding`, `MuRetRender`,
+  `MuRetInput`, `MuRetAudio`, `MuRetNetwork`, `MuRetData`, `MuRetPlatform`, `MuRetPathfinding`, `MuRetObfuscation`, `MuRetRender`,
   `MuRetModels`) y los tres primeros del juego (`MuRetTables`, `MuRetMaps`, `MuRetSound`) con raíz de include
   `Client/src/engine` (o `Client/src/game`), sus headers en
   `FILE_SET HEADERS` y `VERIFY_INTERFACE_HEADER_SETS ON`; `ClientLib` queda con lo demás y los enlaza.

@@ -215,8 +215,8 @@ Network/Crypto/Xor32.h	44	Network	engine/Crypto	alta	cifrado de MU sobre bytes, 
 Network/Delivery.h	19	Network	engine/Network	alta	capa del motor o del protocolo, sin estado del juego
 Network/EncryptedPacket.cpp	197	Network	engine/Network	alta	capa del motor o del protocolo, sin estado del juego
 Network/EncryptedPacket.h	57	Network	engine/Network	alta	capa del motor o del protocolo, sin estado del juego
-Network/FoxAntiObfuscation.cpp	285	Network	engine/Network	alta	capa del motor o del protocolo, sin estado del juego
-Network/FoxAntiObfuscation.h	42	Network	engine/Network	alta	capa del motor o del protocolo, sin estado del juego
+Network/FoxAntiObfuscation.cpp	285	Network	engine/Obfuscation	alta	la capa FoxAnti del servidor del laboratorio: opcional, la enlaza solo app; Network se queda con el contrato IObfuscation y la identidad (revisión 2026-11-21)
+Network/FoxAntiObfuscation.h	42	Network	engine/Obfuscation	alta	la capa FoxAnti del servidor del laboratorio: opcional, la enlaza solo app; Network se queda con el contrato IObfuscation y la identidad (revisión 2026-11-21)
 Network/IObfuscation.h	60	Network	engine/Network	alta	capa del motor o del protocolo, sin estado del juego
 Network/IResolver.h	34	Network	engine/Network	alta	capa del motor o del protocolo, sin estado del juego
 Network/ISocket.h	67	Network	engine/Network	alta	capa del motor o del protocolo, sin estado del juego

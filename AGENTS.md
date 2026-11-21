@@ -66,6 +66,7 @@ seguí el estilo del código que está alrededor.
 | the client's architecture: layers, modules and where each file goes | [spec](docs/superpowers/specs/2026-11-20-client-architecture-design.md), [ADR 0023](docs/adr/0023-client-module-architecture.md), [`Client/modules.tsv`](Client/modules.tsv) and [`module-map.tsv`](Client/docs/research/coverage/module-map.tsv) |
 | the client refactor, epic by epic (AR0 to AR7) | [plan](docs/superpowers/plans/2026-11-20-client-architecture-refactor.md) |
 | where a client file goes and how a module is built | [`muret-module`](.claude/skills/muret-module/SKILL.md) skill |
+| moving client files to their module, and the comments PR after a move | [`muret-move`](.claude/skills/muret-move/SKILL.md) skill |
 
 El contrato con el GameServer 1.02 es el wire (puerto 55960, C1/C2, 22 heads) y el SQL que
 describe el research. Toda diferencia con el original se documenta en un ADR y se cubre con un

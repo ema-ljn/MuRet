@@ -68,15 +68,27 @@ def load_module_map(path: pathlib.Path, modules: dict[str, Module]) -> ModuleMap
     return module_map_from_rows(_read_tsv(path), modules)
 
 
-def include_graph(src: pathlib.Path) -> dict[str, set[str]]:
+def _resolve(include: str, src: pathlib.Path, roots: tuple[str, ...]) -> str | None:
+    for candidate in (include, *(f'{root}/{include}' for root in roots)):
+        if (src / candidate).is_file():
+            return candidate
+    return None
+
+
+def include_graph(src: pathlib.Path, roots: tuple[str, ...] = ()) -> dict[str, set[str]]:
+    """Each file's includes, as paths under src. An include is relative to src or, once moved, to a root's folder."""
     graph = {}
     for file in sorted(src.rglob('*')):
         if file.suffix not in SOURCE_SUFFIXES or not file.is_file():
             continue
         text = file.read_text(encoding='utf-8', errors='replace')
-        graph[file.relative_to(src).as_posix()] = {include for include in INCLUDE.findall(text)
-                                                   if (src / include).is_file()}
+        resolved = (_resolve(include, src, roots) for include in INCLUDE.findall(text))
+        graph[file.relative_to(src).as_posix()] = {path for path in resolved if path}
     return graph
+
+
+def roots_of(modules: dict[str, Module]) -> tuple[str, ...]:
+    return tuple(sorted({name.split('/')[0] for name in modules}))
 
 
 def _module_owning(target: str, modules: dict[str, Module]) -> str | None:
@@ -172,8 +184,9 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
 
 def main(argv: list[str] | None = None) -> int:
     args = _parse_args(argv)
-    module_map = load_module_map(args.map, load_modules(args.modules))
-    graph = include_graph(args.src)
+    modules = load_modules(args.modules)
+    module_map = load_module_map(args.map, modules)
+    graph = include_graph(args.src, roots_of(modules))
 
     missing = unmapped(graph, module_map)
     if missing:

@@ -221,10 +221,10 @@ Client/src/
     Input/        keyboard and mouse per frame, without SDL                                            2
     Audio/        play effects and music, 3D position; does not know which sounds MU has               2
     Network/      non-blocking socket, packet framing, Connection, the obfuscation contract            2
+      FoxAnti/    the lab's FoxAnti layer between the wire and the client; removed at compile time     3
     Data/         the Data\ formats: BMD, OZJ, OZT, JPEG, terrain, the table reader                    2
     Platform/     SDL3: window, GL context, events, audio, WindowState, Resolution, clipboard          3
     Pathfinding/  the original's A* over the terrain wall grid; does not see game state                3
-    Obfuscation/  the lab's FoxAnti layer between the wire and the client; removed at compile time     3
     Render/       SpriteBatch, ModelBatch, text, frame contracts (IFrameTarget, ITextDrawer), Gl/      4
     Models/       skeleton, pose, animation, skinning, cloth, IModelLibrary                            5
   game/     the 1.02 game (its own include root; sees engine/)
@@ -270,9 +270,9 @@ came from measuring the map and reading how TrinityCore, MaNGOS and OpenMU are o
   `Guild/X.h`), the move rewrites its includes and no other line.
 - **Targets:** one per engine folder (`MuRetCore`, `MuRetMath`, `MuRetCrt`, `MuRetCrypto`,
   `MuRetDiagnostics`, `MuRetInput`, `MuRetAudio`, `MuRetNetwork`, `MuRetData`, `MuRetPlatform`,
-  `MuRetPathfinding`, `MuRetObfuscation`, `MuRetRender`, `MuRetModels`) and one per game module (the
-  submodules of `Events/` and `MapScripts/` are folders of their target), with
-  `target_link_libraries` following the layers and includes of other modules always with the
+  `MuRetPathfinding`, `MuRetFoxAnti` (only with `MURET_FOXANTI`), `MuRetRender`, `MuRetModels`)
+  and one per game module (the submodules of `Events/` and `MapScripts/` are folders of their
+  target), with `target_link_libraries` following the layers and includes of other modules always with the
   qualified path (`"Guild/Guild.h"`), never the bare name. Headers go in `FILE_SET HEADERS` with
   `VERIFY_INTERFACE_HEADER_SETS` (CMake 3.24; the repo requires 3.25): every header compiles on
   its own, verified in CI. `/bigobj` stays where needed, not everywhere.
@@ -332,7 +332,7 @@ map):
 | `engine/Crt` | 1 | `CrtRandom` (inside `Cloth.h` today), `Msvc6Sort`, the original `sprintf` (788) | what mimics the MSVC 6 runtime: the pieces fidelity depends on, together and tested on their own |
 | `engine/Crypto` | 1 | SimpleModulus and its key file, Xor32, Xor3, K16 (708; today in `Network`, `Core` and `Data`) | byte ciphers need neither sockets nor formats; `Xor32` stops taking a `Network::Packet` |
 | `engine/Diagnostics` | 2 | the crash handler: dump, report, logs, signals (2,643) | it was 2,643 of the 4,154 lines of `Core`; `Core` keeps what everyone uses |
-| `engine/Obfuscation` | 3 | the FoxAnti layer: the translations the lab server asks for in each direction (327; today in `Network`) | it is not part of `main.exe`: it is a DLL hooked into it that only the lab GameServer requires (`03-red-y-cifrado.md`, section "La capa de FoxAnti": "a MuRet server might not use it"), so it must be removable: `Network` keeps only the contract (`IObfuscation`, with its five hooks in the original's order) and the identity, which touches nothing and is what runs when there is no layer. Only `app/` links `FoxAntiObfuscation` (today only `main.cpp` includes it). It is removed at compile time with the CMake option `MURET_FOXANTI`, because the programmer decides it, not the player (Emanuel, 2026-11-21), and the rest of the client receives it injected as `const IObfuscation&`: `app/` builds it with `MakeObfuscation()`, whose definition CMake picks from two files, so there is no `#if` in the code. The `[Server] Obfuscation` ini key goes away |
+| `engine/Network/FoxAnti` | 3 | the FoxAnti layer: the mechanism of the translations the lab server asks for in each direction (327; today in `Network`); its MU values (the XOR key, the opcode remaps, the server codes and the heads it rewrites) come injected from `app/` as a `FoxAntiTables` | it is not part of `main.exe`: it is a DLL hooked into it that only the lab GameServer requires (`03-red-y-cifrado.md`, section "La capa de FoxAnti": "a MuRet server might not use it"), so it must be removable: `Network` keeps only the contract (`IObfuscation`, with its five hooks in the original's order) and the identity, which touches nothing and is what runs when there is no layer. Only `app/` links `FoxAntiObfuscation` (today only `main.cpp` includes it). It is removed at compile time with the CMake option `MURET_FOXANTI`, because the programmer decides it, not the player (Emanuel, 2026-11-21), and the rest of the client receives it injected as `const IObfuscation&`: `app/` builds it with `MakeObfuscation()`, whose definition CMake picks from two files, so there is no `#if` in the code. The `[Server] Obfuscation` ini key goes away. It is an optional library of its own (`MuRetFoxAnti`) inside the `Network` folder, because the network is part of the engine, as in Unreal, Source, Quake 3 and Godot (Emanuel, 2026-11-21) |
 | `engine/Pathfinding` | 3 | the original's A* and the wall grid (614; today in `GameLogic` and `World`) | it only uses `Data` and `Math`: a leaf, like `Pathfinding` in OpenMU |
 | `game/Tables` | 6 | MU's 14 tables: items, sets, skills, quests, gates, texts, NPC names... (1,772; today in `Data`) | the engine reads the format, the game declares the rows: `DB2FileLoader` / `DB2Structure.h` in TrinityCore, `DBCFileLoader` / `DBCStructure.h` in MaNGOS |
 | `game/Maps` | 6 | named map ids and their predicates (`IsChaosCastle`, `IsKalima`...), each map's folder, music and ambience | today there are about 189 per-map comparisons in 62 files of 18 modules, with loose constants (`c.map == 7`, `IcarusMap`); they become names and stay where they are, because they are the original's logic |

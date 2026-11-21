@@ -215,8 +215,8 @@ Network/Crypto/Xor32.h	44	Network	engine/Crypto	high	MU byte ciphers, apart from
 Network/Delivery.h	19	Network	engine/Network	high	engine or protocol layer, no game state
 Network/EncryptedPacket.cpp	197	Network	engine/Network	high	engine or protocol layer, no game state
 Network/EncryptedPacket.h	57	Network	engine/Network	high	engine or protocol layer, no game state
-Network/FoxAntiObfuscation.cpp	285	Network	engine/Obfuscation	high	the lab server's FoxAnti layer: optional, linked only by app; Network keeps the IObfuscation contract and the identity (2026-11-21 review)
-Network/FoxAntiObfuscation.h	42	Network	engine/Obfuscation	high	the lab server's FoxAnti layer: optional, linked only by app; Network keeps the IObfuscation contract and the identity (2026-11-21 review)
+Network/FoxAntiObfuscation.cpp	285	Network	engine/Network/FoxAnti	high	the lab server's FoxAnti layer: optional, linked only by app; Network keeps the IObfuscation contract and the identity (2026-11-21 review)
+Network/FoxAntiObfuscation.h	42	Network	engine/Network/FoxAnti	high	the lab server's FoxAnti layer: optional, linked only by app; Network keeps the IObfuscation contract and the identity (2026-11-21 review)
 Network/IObfuscation.h	60	Network	engine/Network	high	engine or protocol layer, no game state
 Network/IResolver.h	34	Network	engine/Network	high	engine or protocol layer, no game state
 Network/ISocket.h	67	Network	engine/Network	high	engine or protocol layer, no game state

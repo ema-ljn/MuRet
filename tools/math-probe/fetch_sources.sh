@@ -9,6 +9,7 @@ sparse_libc() { # dir ref
 }
 [ -d llvm-23 ] || sparse_libc llvm-23 refs/tags/llvmorg-23.1.6
 [ -d llvm-main ] || sparse_libc llvm-main b6f762dad0298dfcc44c2e9f0268c9d088e40655
+[ -d glm ] || git clone -q --depth 1 --branch 1.0.1 https://github.com/g-truc/glm.git
 if [ "$1" = "all" ]; then
   [ -d openlibm ] || git clone -q --depth 1 --branch v0.8.8 https://github.com/JuliaMath/openlibm.git
   if [ ! -d core-math-2024 ]; then

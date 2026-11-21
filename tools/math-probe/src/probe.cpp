@@ -27,6 +27,11 @@ long double MpfrCosTo64(double x);
 #include <math.h>
 #endif
 
+#if defined(PROBE_DECLARE_FMA3)
+// With /Zc:cmath the headers no longer declare it; the UCRT still exports it.
+extern "C" __declspec(dllimport) int __cdecl _set_FMA3_enable(int);
+#endif
+
 namespace
 {
 // Which compiler and switches built this binary, so a log line says what its numbers belong to.

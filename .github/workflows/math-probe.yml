@@ -35,6 +35,7 @@ jobs:
       - name: Build
         run: LLVM_LIBC=deps/llvm-23/libc LLVM_LIBC_MAIN=deps/llvm-main/libc OPENLIBM=deps/openlibm COREMATH=deps/core-math-2024 ./build.sh 2>&1 | grep -v 'warning\|^\s*|\|^\s*[0-9]* |\|note:\|In file included\|from ' | tail -20
       - name: Hashes
+        if: ${{ !contains(github.event.head_commit.message, '[quick]') }}
         run: ./build/probe hash 2000000 libm llvm llvm-main llvm-native llvm-clang-O0 coremath coremath-native mpfr fdlibm fdlibm-fma sleef sleef-cinz
       - name: Check against the correctly rounded hashes
         run: |
@@ -42,28 +43,40 @@ jobs:
           ./build/probe check 2000000 libm expected/cr-2000000.txt | tail -1 || true
           ./build/probe check 2000000 fdlibm expected/fdlibm-2000000.txt | tail -1 || true
           ./build/probe check 2000000 libm expected/glibc239-fma-2000000.txt || true
+      - name: The client's pose math, system library against correct rounding
+        run: |
+          LLVM_LIBC=deps/llvm-23/libc GLM=deps/glm ./build_pose.sh
+          for v in system cr cr-O0 cr-clang; do echo "##### pose $v"; ./build/pose-$v; done
+          echo "##### pose system, glibc without its FMA paths"
+          GLIBC_TUNABLES=glibc.cpu.hwcaps=-FMA,-AVX2,-FMA4 ./build/pose-system
       - name: Differences from correct rounding
+        if: ${{ !contains(github.event.head_commit.message, '[quick]') }}
         run: ./build/probe table 2000000 mpfr libm fdlibm fdlibm-fma sleef-cinz llvm coremath
       - name: glibc with and without its FMA paths
+        if: ${{ !contains(github.event.head_commit.message, '[quick]') }}
         run: |
           mkdir -p out/fma out/nofma
           ./build/probe dump 2000000 libm out/fma
           GLIBC_TUNABLES=glibc.cpu.hwcaps=-FMA,-AVX2,-FMA4 ./build/probe dump 2000000 libm out/nofma
           ./build/probe diff 2000000 out/fma out/nofma
       - name: The x87 of this CPU
+        if: ${{ !contains(github.event.head_commit.message, '[quick]') }}
         run: |
           ./build/probe x87 2000000 mpfr libm fdlibm sleef-cinz
           gunzip -k data/x87-intel-xeon.bin.gz
           ./build/probe x87cmp 50000 data/x87-intel-xeon.bin
       - name: Timings
+        if: ${{ !contains(github.event.head_commit.message, '[quick]') }}
         run: ./build/probe time 300000 libm llvm llvm-native coremath coremath-native fdlibm sleef sleef-cinz
       - name: Every float
+        if: ${{ !contains(github.event.head_commit.message, '[quick]') }}
         run: |
           for f in sinf cosf tanf acosf; do
             ./build/probe exhaustive 4 $f llvm coremath
             ./build/probe exhaustive 4 $f libm llvm
           done
       - name: CORE-MATH upstream as of today
+        if: ${{ !contains(github.event.head_commit.message, '[quick]') }}
         continue-on-error: true
         run: |
           test -d deps/core-math-upstream || { echo "upstream not reachable"; exit 0; }
@@ -99,21 +112,30 @@ jobs:
       - name: Build the variants
         shell: cmd
         run: |
-          call build_msvc.cmd debug deps\llvm-23\libc "/Od /MDd /RTC1"
-          call build_msvc.cmd release deps\llvm-23\libc "/O2 /MD"
-          call build_msvc.cmd release-static deps\llvm-23\libc "/O2 /MT"
-          call build_msvc.cmd release-avx2 deps\llvm-23\libc "/O2 /MD /arch:AVX2 /fp:contract"
-          call build_msvc.cmd release-main deps\llvm-main\libc "/O2 /MD"
-          call build_msvc.cmd fast deps\llvm-23\libc "/O2 /MD /fp:fast"
-          call build_msvc.cmd clangcl deps\llvm-23\libc "/O2 /MD" clang-cl
-          call build_msvc.cmd zc-cmath deps\llvm-23\libc "/O2 /MD /Zc:cmath" cl /std:c++latest
+          call build_msvc.cmd debug deps\llvm-23\libc "/Od /MDd /RTC1" ""
+          call build_msvc.cmd release deps\llvm-23\libc "/O2 /MD" ""
+          call build_msvc.cmd release-static deps\llvm-23\libc "/O2 /MT" ""
+          call build_msvc.cmd release-main deps\llvm-main\libc "/O2 /MD" ""
+          call build_msvc.cmd arch-avx2 deps\llvm-23\libc "/O2 /MD" "/arch:AVX2"
+          call build_msvc.cmd avx2-contract deps\llvm-23\libc "/O2 /MD" "/arch:AVX2 /fp:contract"
+          call build_msvc.cmd strict deps\llvm-23\libc "/O2 /MD" "/fp:strict"
+          call build_msvc.cmd fast deps\llvm-23\libc "/O2 /MD" "/fp:fast"
+          call build_msvc.cmd clangcl deps\llvm-23\libc "/O2 /MD" "" clang-cl
+          call build_msvc.cmd clangcl-avx2 deps\llvm-23\libc "/O2 /MD" "/arch:AVX2" clang-cl
+          call build_msvc.cmd zc-cmath deps\llvm-23\libc "/O2 /MD /Zc:cmath /DPROBE_DECLARE_FMA3" "" cl /std:c++latest
           exit /b 0
       - name: Run the variants
         shell: cmd
         run: |
-          for %%v in (debug release release-static release-avx2 release-main fast clangcl zc-cmath) do if exist build\%%v\probe.exe call run_msvc.cmd %%v
+          for %%v in (debug release release-static release-main arch-avx2 avx2-contract strict fast clangcl clangcl-avx2 zc-cmath) do if exist build\%%v\probe.exe call run_msvc.cmd %%v
+          exit /b 0
+      - name: The client's pose math, UCRT against correct rounding
+        shell: cmd
+        run: |
+          call build_pose_msvc.cmd deps\llvm-23\libc deps\glm
           exit /b 0
       - name: The UCRT with and without its FMA3 paths
+        if: ${{ !contains(github.event.head_commit.message, '[quick]') }}
         shell: cmd
         run: |
           for %%v in (release release-static) do (
@@ -131,11 +153,13 @@ jobs:
           build\release\probe.exe diff 2000000 out\release-fma3 out\debug
           exit /b 0
       - name: Every float
+        if: ${{ !contains(github.event.head_commit.message, '[quick]') }}
         shell: cmd
         run: |
           for %%f in (sinf cosf tanf acosf) do build\release\probe.exe exhaustive 4 %%f libm llvm
           exit /b 0
       - name: CORE-MATH with MSVC
+        if: ${{ !contains(github.event.head_commit.message, '[quick]') }}
         shell: cmd
         continue-on-error: true
         run: |

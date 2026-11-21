@@ -87,7 +87,10 @@ inline std::vector<double> DomainCosines(std::size_t n)
         }
         else
         {
-            const float gap = rng.UnitF() * std::bit_cast<float>(0x3F800000u - ((static_cast<std::uint32_t>(rng.Next() % 20) + 1u) << 23));
+            // Two statements: the order of two calls inside one expression is unspecified, and MSVC and GCC differ.
+            const float unit = rng.UnitF();
+            const float scale = std::bit_cast<float>(0x3F800000u - ((static_cast<std::uint32_t>(rng.Next() % 20) + 1u) << 23));
+            const float gap = unit * scale;
             c = (i % 4 == 1) ? 1.0f - gap : gap - 1.0f;
         }
         xs.push_back(static_cast<double>(c));

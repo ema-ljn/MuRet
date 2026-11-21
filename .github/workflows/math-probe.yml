@@ -1,0 +1,144 @@
+# Temporary, analysis only: the probe of the deterministic-math analysis (2026-11-21). It lives on the
+# analysis branch and is never merged. It builds tools/math-probe on Linux and Windows and prints
+# hashes, differences and timings of sin, cos, tan, acos and log10 from each candidate library.
+name: Math probe
+
+on:
+  push:
+    branches: ['claude/project-thread-catdhv']
+    paths: ['tools/math-probe/**', '.github/workflows/math-probe.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  linux:
+    name: Linux (GCC and Clang)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: tools/math-probe
+    steps:
+      - uses: actions/checkout@v7
+      - name: CPU and libc
+        run: |
+          grep -m1 'model name' /proc/cpuinfo
+          grep -E '^(cpu family|model|stepping|microcode)\s' /proc/cpuinfo | sort -u
+          grep -m1 flags /proc/cpuinfo | tr ' ' '\n' | grep -E '^(fma|avx2|avx512f)$' | tr '\n' ' '; echo
+          ldd --version | head -1; gcc --version | head -1; clang --version | head -1
+      - name: Packages
+        run: sudo apt-get -o Acquire::Retries=5 update && sudo apt-get -o Acquire::Retries=5 install -y libmpfr-dev libgmp-dev libsleef-dev clang
+      - name: Sources
+        run: ./fetch_sources.sh all
+      - name: Build
+        run: LLVM_LIBC=deps/llvm-23/libc LLVM_LIBC_MAIN=deps/llvm-main/libc OPENLIBM=deps/openlibm COREMATH=deps/core-math-2024 ./build.sh 2>&1 | grep -v 'warning\|^\s*|\|^\s*[0-9]* |\|note:\|In file included\|from ' | tail -20
+      - name: Hashes
+        run: ./build/probe hash 2000000 libm llvm llvm-main llvm-native llvm-clang-O0 coremath coremath-native mpfr fdlibm fdlibm-fma sleef sleef-cinz
+      - name: Check against the correctly rounded hashes
+        run: |
+          for i in llvm llvm-main llvm-native llvm-clang-O0 coremath coremath-native mpfr; do ./build/probe check 2000000 $i expected/cr-2000000.txt | tail -1; done
+          ./build/probe check 2000000 libm expected/cr-2000000.txt | tail -1 || true
+          ./build/probe check 2000000 fdlibm expected/fdlibm-2000000.txt | tail -1 || true
+          ./build/probe check 2000000 libm expected/glibc239-fma-2000000.txt || true
+      - name: Differences from correct rounding
+        run: ./build/probe table 2000000 mpfr libm fdlibm fdlibm-fma sleef-cinz llvm coremath
+      - name: glibc with and without its FMA paths
+        run: |
+          mkdir -p out/fma out/nofma
+          ./build/probe dump 2000000 libm out/fma
+          GLIBC_TUNABLES=glibc.cpu.hwcaps=-FMA,-AVX2,-FMA4 ./build/probe dump 2000000 libm out/nofma
+          ./build/probe diff 2000000 out/fma out/nofma
+      - name: The x87 of this CPU
+        run: |
+          ./build/probe x87 2000000 mpfr libm fdlibm sleef-cinz
+          gunzip -k data/x87-intel-xeon.bin.gz
+          ./build/probe x87cmp 50000 data/x87-intel-xeon.bin
+      - name: Timings
+        run: ./build/probe time 300000 libm llvm llvm-native coremath coremath-native fdlibm sleef sleef-cinz
+      - name: Every float
+        run: |
+          for f in sinf cosf tanf acosf; do
+            ./build/probe exhaustive 4 $f llvm coremath
+            ./build/probe exhaustive 4 $f libm llvm
+          done
+      - name: CORE-MATH upstream as of today
+        continue-on-error: true
+        run: |
+          test -d deps/core-math-upstream || { echo "upstream not reachable"; exit 0; }
+          git -C deps/core-math-upstream log -1 --format='%H %ad %s' --date=short
+          for f in sin cos tan acos log10; do echo "binary64 $f: $(grep -c '__int128' deps/core-math-upstream/src/binary64/$f/*.[ch] | awk -F: '{s+=$2} END {print s}') uses of __int128"; done
+          B=build-upstream LLVM_LIBC=deps/llvm-23/libc LLVM_LIBC_MAIN=deps/llvm-main/libc OPENLIBM=deps/openlibm COREMATH=deps/core-math-upstream ./build.sh 2>&1 | grep -v 'warning\|^\s*|\|^\s*[0-9]* |\|note:\|In file included\|from ' | tail -20
+          for i in coremath coremath-native; do ./build-upstream/probe check 2000000 $i expected/cr-2000000.txt | tail -1; done
+          ./build-upstream/probe time 300000 libm llvm coremath coremath-native
+          for f in sinf cosf tanf acosf; do ./build-upstream/probe exhaustive 4 $f llvm coremath; done
+
+  windows:
+    name: Windows (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-2022, windows-2025]
+    defaults:
+      run:
+        working-directory: tools/math-probe
+    steps:
+      - uses: actions/checkout@v7
+      - name: CPU
+        shell: pwsh
+        run: |
+          Get-CimInstance Win32_Processor | Select-Object -ExpandProperty Name
+          (Get-Item "$env:SystemRoot\System32\ucrtbase.dll").VersionInfo.FileVersion
+          [System.Environment]::OSVersion.VersionString
+      - name: Sources
+        shell: bash
+        run: ./fetch_sources.sh all
+      - name: Build the variants
+        shell: cmd
+        run: |
+          call build_msvc.cmd debug deps\llvm-23\libc "/Od /MDd /RTC1"
+          call build_msvc.cmd release deps\llvm-23\libc "/O2 /MD"
+          call build_msvc.cmd release-static deps\llvm-23\libc "/O2 /MT"
+          call build_msvc.cmd release-avx2 deps\llvm-23\libc "/O2 /MD /arch:AVX2 /fp:contract"
+          call build_msvc.cmd release-main deps\llvm-main\libc "/O2 /MD"
+          call build_msvc.cmd fast deps\llvm-23\libc "/O2 /MD /fp:fast"
+          call build_msvc.cmd clangcl deps\llvm-23\libc "/O2 /MD" clang-cl
+          call build_msvc.cmd zc-cmath deps\llvm-23\libc "/O2 /MD /Zc:cmath" cl /std:c++latest
+          exit /b 0
+      - name: Run the variants
+        shell: cmd
+        run: |
+          for %%v in (debug release release-static release-avx2 release-main fast clangcl zc-cmath) do if exist build\%%v\probe.exe call run_msvc.cmd %%v
+          exit /b 0
+      - name: The UCRT with and without its FMA3 paths
+        shell: cmd
+        run: |
+          for %%v in (release release-static) do (
+            mkdir out\%%v-fma3 out\%%v-nofma3
+            build\%%v\probe.exe dump 2000000 libm out\%%v-fma3
+            set PROBE_NO_FMA3=1
+            build\%%v\probe.exe dump 2000000 libm out\%%v-nofma3
+            set PROBE_NO_FMA3=
+            build\%%v\probe.exe diff 2000000 out\%%v-fma3 out\%%v-nofma3
+          )
+          echo ##### dynamic UCRT against static UCRT, and debug against release
+          build\release\probe.exe diff 2000000 out\release-fma3 out\release-static-fma3
+          mkdir out\debug
+          build\debug\probe.exe dump 2000000 libm out\debug
+          build\release\probe.exe diff 2000000 out\release-fma3 out\debug
+          exit /b 0
+      - name: Every float
+        shell: cmd
+        run: |
+          for %%f in (sinf cosf tanf acosf) do build\release\probe.exe exhaustive 4 %%f libm llvm
+          exit /b 0
+      - name: CORE-MATH with MSVC
+        shell: cmd
+        continue-on-error: true
+        run: |
+          call try_coremath_msvc.cmd deps\core-math-2024
+          call try_coremath_msvc.cmd deps\core-math-upstream
+          exit /b 0

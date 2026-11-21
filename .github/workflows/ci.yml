@@ -191,10 +191,26 @@ jobs:
       - name: Client layers
         if: matrix.kind == 'includes'
         run: |
-          python3 -I -m unittest discover -s Client/tools/architecture -p 'test_check_layers.py' -v
+          python3 -I -m unittest discover -s Client/tools/architecture -p 'test_*.py' -v
           python3 -I Client/tools/architecture/check_layers.py --src Client/src --modules Client/modules.tsv \
             --map Client/docs/research/coverage/module-map.tsv \
             --baseline Client/tools/architecture/layers-baseline.tsv
+
+      # Client refactor (AR0.2): in a PR titled type(ARn) or type(ARn.m), a moved file may only change its includes;
+      # in a docs(ARn.m) PR, only comments may change and every cited address stays cited. HEAD^1 is the base.
+      - name: Refactor moves and comments
+        if: matrix.kind == 'includes' && github.event_name == 'pull_request'
+        env:
+          TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          if [[ ! "$TITLE" =~ ^[a-z]+\(AR[0-9]+(\.[0-9]+)?\)!?: ]]; then
+            echo "Not a refactor PR: nothing to check."
+            exit 0
+          fi
+          python3 -I Client/tools/architecture/check_pure_move.py --base HEAD^1 --head HEAD
+          if [[ "$TITLE" =~ ^docs\(AR[0-9]+\.[0-9]+\): ]]; then
+            python3 -I Client/tools/architecture/check_comments_only.py --base HEAD^1 --head HEAD
+          fi
 
       # Lo que los puertos sdl3 y alsa de vcpkg piden del sistema, los headers de OpenGL/EGL,
       # y Xvfb + Mesa (llvmpipe) para abrir la ventana sin pantalla. NASM lo

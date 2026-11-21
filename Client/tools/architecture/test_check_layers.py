@@ -159,6 +159,22 @@ class CheckLayersTest(unittest.TestCase):
         self.assertEqual(check_layers.module_of('Scenes/GuildWar.cpp', module_map), 'game/Guild')
         self.assertEqual(check_layers.module_of('Scenes/Other.cpp', module_map), 'game/Scenes')
 
+    def test_include_resolves_against_a_layer_root(self):
+        self.source('game/Guild/GuildState.h')
+        self.source('Scenes/Window.cpp', 'Guild/GuildState.h', 'Core/Expected.h')
+        self.source('Core/Expected.h')
+        graph = check_layers.include_graph(self.src, roots=('engine', 'game'))
+        self.assertEqual(graph['Scenes/Window.cpp'], {'game/Guild/GuildState.h', 'Core/Expected.h'})
+
+    def test_moved_file_keeps_its_violation(self):
+        self.source('engine/Core/Expected.h', 'Guild/GuildState.h')
+        self.source('game/Guild/GuildState.h')
+        self.mapped('engine/Core/Expected.h', 'engine/Core')
+        self.mapped('game/Guild/GuildState.h', 'game/Guild')
+        code, output = self.run_check()
+        self.assertEqual(code, 1)
+        self.assertIn('engine/Core/Expected.h -> game/Guild/GuildState.h', output)
+
     def test_only_quoted_includes_inside_src_are_edges(self):
         self.source('Core/A.h', 'SDL3/SDL.h', extra='#include <vector>\n// #include "Scenes/B.h"\n')
         self.source('Scenes/B.h')

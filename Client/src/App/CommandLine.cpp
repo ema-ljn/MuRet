@@ -43,10 +43,13 @@ template <typename Text> std::span<const Text> UpToDoubleDash(std::span<const Te
     return {arguments.begin(), std::ranges::find(arguments, DoubleDash)};
 }
 
+// Not add_option(name, text): CLI11 2.7 turns "" into nullopt, and "" must stay a wrong value.
 void AddValue(CLI::App& app, std::string_view name, std::optional<std::string>& text, std::string_view typeName,
               const std::string& help)
 {
-    app.add_option(std::string(name), text, help)->type_name(std::string(typeName));
+    app.add_option_function<std::string>(
+           std::string(name), [&text](const std::string& value) { text = value; }, help)
+        ->type_name(std::string(typeName));
 }
 
 void AddFlag(CLI::App& app, std::string_view name, bool& value, const std::string& help)

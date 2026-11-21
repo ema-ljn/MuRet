@@ -1,45 +1,23 @@
 #include "App/CommandLine.h"
 
+#include "support/CommandLineTesting.h"
+
 #include <gtest/gtest.h>
 
 #include <filesystem>
 #include <string>
 #include <string_view>
-#include <utility>
-#include <vector>
 
-// Client::App::ParseCommandLine on Linux and the other POSIX systems: GNU options only (Emanuel, 2026-11-21). What is
-// not an option is not for MuRet and is ignored; an unknown option is a usage error.
+// Client::App::ParseCommandLine on Linux and the other POSIX systems: GNU options only. What is not an option is not
+// for MuRet and is ignored; an unknown option is a usage error.
 namespace
 {
 using Client::App::CommandLine;
 using Client::App::CommandLineExit;
-using Client::App::ParseCommandLine;
-using Client::App::UsageErrorExitCode;
-
-constexpr std::string_view Version = "1.2.3";
-
-CommandLine Parsed(std::vector<std::string_view> arguments)
-{
-    auto parsed = ParseCommandLine(arguments, Version);
-    if (!parsed.HasValue())
-    {
-        ADD_FAILURE() << parsed.Error().text;
-        return {};
-    }
-    return std::move(parsed).Value();
-}
-
-CommandLineExit ExitOf(std::vector<std::string_view> arguments)
-{
-    auto parsed = ParseCommandLine(arguments, Version);
-    if (parsed.HasValue())
-    {
-        ADD_FAILURE() << "the command line was accepted";
-        return {};
-    }
-    return parsed.Error();
-}
+using Client::Tests::Contains;
+using Client::Tests::ExitOf;
+using Client::Tests::Parsed;
+using Client::Tests::UsageErrorLine;
 
 TEST(CommandLinePosixTest, IgnoresTheLauncherForm)
 {
@@ -58,14 +36,11 @@ TEST(CommandLinePosixTest, IgnoresTheWindowsForm)
 
 TEST(CommandLinePosixTest, AnUnknownOptionIsAUsageErrorWithTheUsage)
 {
-    for (const std::string_view option : {"--fullscreen", "--fullscreen=1", "-x", "--Frames"})
+    for (const std::string_view option : {"--fullscreen", "--fullscreen=1", "--fullscreen=", "-x", "--Frames"})
     {
-        const CommandLineExit ending = ExitOf({option, "60"});
-
-        EXPECT_EQ(ending.exitCode, UsageErrorExitCode);
-        EXPECT_EQ(ending.text.substr(0, ending.text.find('\n')),
-                  "Main: unknown option \"" + std::string(option) + "\"");
-        EXPECT_NE(ending.text.find("\nUsage: Main [OPTIONS]"), std::string::npos) << ending.text;
+        EXPECT_EQ(UsageErrorLine({option, "60"}), "Main: unknown option \"" + std::string(option) + "\"");
+        const CommandLineExit earlyExit = ExitOf({option, "60"});
+        EXPECT_TRUE(Contains(earlyExit.text, "\nUsage: Main [OPTIONS]")) << earlyExit.text;
     }
 }
 
@@ -90,8 +65,8 @@ TEST(CommandLinePosixTest, APathThatIsNotUtf8IsItsBytes)
 
 TEST(CommandLinePosixTest, TheUsageHasNoWindowsForm)
 {
-    const CommandLineExit ending = ExitOf({"--help"});
+    const CommandLineExit earlyExit = ExitOf({"--help"});
 
-    EXPECT_EQ(ending.text.find("connect /u"), std::string::npos) << ending.text;
+    EXPECT_FALSE(Contains(earlyExit.text, "connect /u")) << earlyExit.text;
 }
 } // namespace

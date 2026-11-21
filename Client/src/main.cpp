@@ -942,9 +942,9 @@ int main(int argc, char* argv[])
     auto commandLine = ParseArguments(argc, argv);
     if (!commandLine.HasValue())
     {
-        const App::CommandLineExit& ending = commandLine.Error();
-        std::fputs(ending.text.c_str(), ending.exitCode == EXIT_SUCCESS ? stdout : stderr);
-        return ending.exitCode;
+        const App::CommandLineExit& earlyExit = commandLine.Error();
+        std::fputs(earlyExit.text.c_str(), earlyExit.exitCode == EXIT_SUCCESS ? stdout : stderr);
+        return earlyExit.exitCode;
     }
     const std::optional<Startup> startup = ReadStartup(argc, argv, std::move(commandLine).Value(), startupLog);
     if (!startup)

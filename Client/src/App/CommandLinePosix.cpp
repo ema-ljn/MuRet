@@ -2,43 +2,36 @@
 
 #include "Core/Expected.h"
 
+#include <algorithm>
+#include <filesystem>
 #include <format>
+#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
 
 namespace Client::App
 {
-OptionStyle SystemOptionStyle()
+SystemSyntax ThisSystemSyntax()
 {
-    return OptionStyle::Gnu;
+    return {.style = OptionStyle::Gnu, .operands = {}, .helpFooter = {}, .helpWord = {}};
 }
 
-std::string_view SystemUsage()
+// What is not an option is not for MuRet, the launcher's connect /u<host> /p<port> too: here the convention is --name.
+Core::Expected<std::optional<ServerTexts>, std::string> ReadSystemArguments(std::span<const std::string> arguments)
 {
-    return "Usage: Main [OPTIONS]";
-}
-
-std::string_view SystemHelpFooter()
-{
-    return {};
-}
-
-// An unknown option is a usage error. The rest is not for MuRet and is ignored, the launcher's connect /u<host>
-// /p<port> too, because on Linux the convention is --name (Emanuel, 2026-11-21). So is everything after --.
-Core::Expected<Leftovers, std::string> ReadLeftovers(std::span<const std::string> arguments)
-{
-    for (const std::string& argument : arguments)
+    const auto option = std::ranges::find_if(arguments, [](std::string_view argument)
+                                             { return argument.size() > 1 && argument.front() == '-'; });
+    if (option != arguments.end())
     {
-        if (argument == "--")
-        {
-            break;
-        }
-        if (argument.size() > 1 && argument.front() == '-')
-        {
-            return Core::Unexpected(std::format("unknown option \"{}\"", argument));
-        }
+        return Core::Unexpected(std::format("unknown option \"{}\"", *option));
     }
-    return Leftovers{};
+    return std::optional<ServerTexts>();
+}
+
+// An argument is the file system's bytes, and path keeps them, so a name that is not UTF-8 works too.
+std::optional<std::filesystem::path> PathFromArgument(std::string_view argument)
+{
+    return std::filesystem::path(argument);
 }
 } // namespace Client::App

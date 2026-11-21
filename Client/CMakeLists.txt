@@ -124,8 +124,8 @@ if(MURET_BUILD_TESTS)
     add_test(NAME Client.Main.RejectsBadArguments COMMAND Main --frames 0)
     set_tests_properties(Client.Main.RejectsBadArguments PROPERTIES
         PASS_REGULAR_EXPRESSION "--frames needs a number greater than 0")
-    # Un puerto malo corta antes de SDL_Init, con el mensaje de ParsePort (CL3.4). Con
-    # PASS_REGULAR_EXPRESSION, CTest mira solo la salida y no el código de salida.
+    # A bad port stops before SDL_Init with ParsePort's message (CL3.4). PASS_REGULAR_EXPRESSION
+    # checks only the output, not the exit code.
     add_test(NAME Client.Main.RejectsBadPort COMMAND Main --host 127.0.0.1 --port 0)
     set_tests_properties(Client.Main.RejectsBadPort PROPERTIES
         PASS_REGULAR_EXPRESSION "--port: the port must be from 1 to 65535")
@@ -142,7 +142,7 @@ if(MURET_BUILD_TESTS)
         PASS_REGULAR_EXPRESSION "MuRet client ${PROJECT_VERSION}")
     add_test(NAME Client.Main.AnUnknownOptionShowsTheUsage COMMAND Main --fullscreen)
     set_tests_properties(Client.Main.AnUnknownOptionShowsTheUsage PROPERTIES
-        PASS_REGULAR_EXPRESSION "unknown (option|argument) \"--fullscreen\".*Usage: Main")
+        PASS_REGULAR_EXPRESSION "unknown option \"--fullscreen\".*Usage: Main")
     # Q-C35: una carpeta de datos que no existe se nombra, antes de SDL_Init (Resolve).
     add_test(NAME Client.Main.NamesTheMissingDataFolder
         COMMAND Main --data ${CMAKE_CURRENT_BINARY_DIR}/no-existe-esta-carpeta-de-datos)
@@ -186,7 +186,8 @@ if(MURET_BUILD_TESTS)
     # Ningún test de Main ve las variables de quien corre CTest: sin --auto-login no se leen, y con
     # él, el de arriba las necesita sin poner.
     set_tests_properties(Client.Main.RejectsBadArguments Client.Main.RejectsBadPort Client.Main.PrintsTheHelp
-        Client.Main.PrintsTheVersion Client.Main.AnUnknownOptionShowsTheUsage Client.Main.NamesTheMissingDataFolder Client.Main.ReadsTheDataPathInUtf8
+        Client.Main.PrintsTheVersion Client.Main.AnUnknownOptionShowsTheUsage
+        Client.Main.NamesTheMissingDataFolder Client.Main.ReadsTheDataPathInUtf8
         Client.Main.ConnectWithoutCredentialsNamesThem Client.Main.AutoLoginWithoutAServerSaysSo
         Client.Main.ConnectWithoutKeysNamesThem Client.Main.ScenesWithoutTheTextTableNameIt PROPERTIES
         ENVIRONMENT_MODIFICATION "MURET_CLIENT_ACCOUNT=unset:;MURET_CLIENT_PASSWORD=unset:")

@@ -163,11 +163,11 @@ sobre `Client/`; cómo correrlo a mano lo dice la regla 7 de
 
 ## Correr y configurar `Main`
 
-Lo que depende del lugar (el servidor, la carpeta de datos, el video) sale de la línea de comandos
-o de `muret-client.ini`: la línea de comandos pisa la config, y la config, los valores por
-defecto. Todo se valida antes de abrir la ventana: un error termina `Main` con un mensaje que
-empieza con `[error]` y nombra la opción, la clave o la ruta, sin abrir nada. Sin argumentos ni
-config, `Main` corre con los valores por defecto, como en CI.
+What depends on the place (the server, the data folder, the video) comes from the command line or from
+`muret-client.ini`: the command line overrides the config, and the config the defaults. Everything is checked before
+the window opens, and an error ends `Main` without opening anything: a command line error with `Main:` and the usage
+(below), and one of the config or of a path with `[error]` and the key or the path. With no arguments and no config,
+`Main` runs with the defaults, as in CI.
 
 The options follow each system's convention (AR1.3). On Linux they are GNU options: `--name value` or `--name=value`,
 and `--` ends them; an argument that is not an option is ignored, the launcher's `connect /u<host> /p<port>` too.
@@ -201,7 +201,7 @@ Cada opción va una vez: una repetida es un error. Dos límites de Windows:
 Por ejemplo:
 
 ```bash
-./build/linux-x64-debug/Client/Main --host 127.0.0.1 --port 44405 --data /ruta/a/Data
+./build/linux-x64-debug/Client/Main --host 127.0.0.1 --port 44405 --data /path/to/Data
 ./build/linux-x64-debug/Client/Main --config ~/mu/otra.ini
 ```
 
@@ -222,7 +222,7 @@ FontFile = /usr/share/fonts/truetype/dejavu/DejaVuSans.ttf
 ```
 
 ```bash
-./build/linux-x64-debug/Client/Main --data /ruta/a/Data
+./build/linux-x64-debug/Client/Main --data /path/to/Data
 ```
 
 Se ve la carga (cinco imágenes y la barra, que avanza una vez por paso, así que dura menos de
@@ -295,7 +295,7 @@ falta correr está en P-C16 y P-C21 del [08](docs/research/08-pendientes.md).
    `Enc1.dat` y `Dec2.dat`:
 
    ```bash
-   ./build/linux-x64-debug/Client/Main --host <ip del CS> --port 44405 --data Client/assets/Data
+   ./build/linux-x64-debug/Client/Main --host <CS ip> --port 44405 --data Client/assets/Data
    ```
 
    En Windows, lo mismo con `build\windows-x64\Client\Debug\Main.exe`, o con `[Server] Host`,
@@ -390,7 +390,7 @@ Path = muret-client.log
 | --- | --- | --- |
 | `[Server] Host` | ninguno | el host del ConnectServer; lo pide la red (CL4) |
 | `[Server] Port` | 44405 | el puerto del ConnectServer, el compilado en el original (`0x6d5dc4`) |
-| `[Server] Obfuscation` | `foxanti` | la forma de los paquetes que espera el servidor: `foxanti`, la capa de FoxAnti del servidor del laboratorio, o `none`, un servidor que habla como `main.exe`. `/u /p` no la cambia |
+| `[Server] Obfuscation` | `foxanti` | la forma de los paquetes que espera el servidor: `foxanti`, la capa de FoxAnti del servidor del laboratorio, o `none`, un servidor que habla como `main.exe`. Neither `--host`/`--port` nor `/u /p` changes it |
 | `[Data] Path` | ninguna | la carpeta `Data\` de una instalación del cliente original |
 | `[Video] Width`, `Height` | 640, 480 | el tamaño de la ventana, que no cambia. Tiene que ser una de las cinco del original (640 × 480, 800 × 600, 1024 × 768, 1280 × 1024 y 1600 × 1200) o un modo del monitor, el del escritorio o uno de pantalla completa; si no, `Main` no abre la ventana y el log dice cuáles valen |
 | `[Video] VSync` | `on`, y `off` en el modo fiel | como `--vsync`. Con `Pacing = faithful` (o `--pacing faithful`), `on` o `adaptive` es un error que nombra `Pacing` y `VSync` |

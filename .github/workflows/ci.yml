@@ -361,10 +361,16 @@ jobs:
           fi
           build="build/${{ matrix.configure-preset }}"
           # A test of the other system's code (muret_add_module_tests OTHER_SYSTEM) has no target here.
-          mapfile -t known < <(ninja -C "$build" -t targets all | tr -d '\r' | sed -n 's/^\(test_[^:]*\): phony$/\1/p')
+          # A set, not grep -q: grep would stop reading early and, with pipefail, drop a test at random.
+          ninja_targets="$(ninja -C "$build" -t targets all)"
+          declare -A known=()
+          while IFS= read -r name; do known["$name"]=1; done \
+            < <(printf '%s\n' "$ninja_targets" | tr -d '\r' | sed -n 's/^\(test_[^:]*\): phony$/\1/p')
+          [ "${#known[@]}" -gt 0 ] || { echo "Ninja listed no test targets in $build"; exit 1; }
           kept=()
           for path in "${changed[@]}"; do
-            if printf '%s\n' "${known[@]}" | grep -qxF "$(basename "$path" .cpp)"; then
+            name="$(basename "$path" .cpp)"
+            if [ -n "${known[$name]:-}" ]; then
               kept+=("$path")
             else
               echo "No target on this system: $path"

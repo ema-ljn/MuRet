@@ -23,7 +23,7 @@
 //   --pacing MODE            decoupled (MuRet's) or faithful (the original's pace)
 //   --vsync MODE             on, adaptive or off; faithful pacing takes only off
 //   --max-fps N              the FPS cap with VSync off: 0 (none) or MinFpsLimit to MaxFpsLimit
-//   --stats                  print the FPS and the steps per second every 5 s
+//   --stats                  print the FPS and the steps per second every StatsInterval (App/FrameRateMeter.h)
 //
 // Linux takes only these, as --name value or --name=value, and ignores what is not an option. Windows also takes
 // /name value and /name:value, in any case, /? and the launcher's connect /u<host> /p<port> (Q-C36). -- ends the

@@ -553,9 +553,11 @@ convention (`--name`), Windows uses its most common one (`/name`), and every opt
   `PATH`, `N`), the help and the messages. Only the launcher's `connect`, `/u` and `/p` keep their letters, because
   they are the original's.
 - **One file per system, chosen by CMake, with no `#if`** (like `MakeObfuscation` in AR1.1). `App/CommandLine.h` keeps
-  one `ParseCommandLine` and one `CommandLine`. The shared options live in `App/CommandLine.cpp`;
-  `App/CommandLinePosix.cpp` and `App/CommandLineWindows.cpp` handle what is left after them, behind
-  `App/CommandLineSystem.h`. `Client/CMakeLists.txt` adds one of the two with `if(WIN32)`.
+  one `ParseCommandLine` and one `CommandLine`. The shared options live in `App/CommandLine.cpp` (the CLI11 side) and
+  `App/CommandLineValues.cpp` (MuRet's rules for their values, with no CLI11); `App/CommandLinePosix.cpp` and
+  `App/CommandLineWindows.cpp` give each system's syntax (`SystemSyntax`), read what is left after the options and turn
+  a path argument into a path, behind `App/CommandLineSystem.h`. `Client/CMakeLists.txt` adds one of the two with
+  `if(WIN32)`.
 - **The library** (CODING_RULES §10, checked with Context7 on 2026-11-21). CLI11 (`cli11` in vcpkg, header only) does
   exactly both styles: `--opt value` and `--opt=value`, `--`, `-h,--help` by default, `set_version_flag("--version",
   …)`, and on Windows `allow_windows_style_options()` (`/name value`, `/name:value`) with `ignore_case()`. It builds the
@@ -566,7 +568,12 @@ convention (`--name`), Windows uses its most common one (`/name`), and every opt
   60` and reads the options after it. It cannot read the launcher form: a `/` short option takes no attached value, as
   the CL3 plan already found. So both systems parse with `allow_extras()`, and the per-system file reads `remaining()`:
   on Linux a leftover that starts with `-` is an unknown option and the rest is dropped; on Windows the launcher reader
-  of today takes `connect`, `/u…`, `/p…` and `/?`, and anything else is an error with the same usage. CLI11 throws
+  of today takes `connect`, `/u…` and `/p…`, and anything else is an error with the same usage. `/?` is looked for
+  before CLI11 parses, so it wins over any error, as `--help` does over the values. CLI11 reads an empty attached
+  value (`--config=`, `/data:`) as none and gives the option the next argument, so `ParseCommandLine` rejects it
+  first (`--config needs a value`), and a flag with any attached value (`--stats takes no value`). The values are
+  checked before the leftovers, because a missing value moves the next argument into them. CLI11 also unwraps a value
+  written `[[…]]` (its escape for vector values); no MuRet value takes that form, so it stays. CLI11 throws
   `CLI::ParseError` (`CallForHelp` and `CallForVersion` for help and version). It is caught only inside
   `ParseCommandLine` and becomes a `Core::Expected`, with help and version as a result of their own that `main.cpp`
   prints to stdout before returning 0. No exception leaves `App/`.

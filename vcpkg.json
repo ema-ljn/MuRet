@@ -41,6 +41,10 @@
   ],
   "overrides": [
     {
+      "name": "cli11",
+      "version": "2.7.2"
+    },
+    {
       "name": "libjpeg-turbo",
       "version": "3.2.0#1"
     },

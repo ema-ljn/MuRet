@@ -2,11 +2,13 @@ file	lines	current_folder	target	confidence	why
 App/AutoLogin.cpp	89	App	app/App	high	engine or protocol layer, no game state
 App/AutoLogin.h	54	App	app/App	high	engine or protocol layer, no game state
 App/CharacterEvent.h	27	App	game/Session	medium	the session with the servers
-App/CommandLine.cpp	289	App	app/App	high	engine or protocol layer, no game state
-App/CommandLine.h	59	App	app/App	high	engine or protocol layer, no game state
-App/CommandLinePosix.cpp	44	App	app/App	high	engine or protocol layer, no game state
-App/CommandLineSystem.h	40	App	app/App	high	engine or protocol layer, no game state
-App/CommandLineWindows.cpp	121	App	app/App	high	engine or protocol layer, no game state
+App/CommandLine.cpp	255	App	app/App	high	engine or protocol layer, no game state
+App/CommandLine.h	60	App	app/App	high	engine or protocol layer, no game state
+App/CommandLinePosix.cpp	37	App	app/App	high	engine or protocol layer, no game state
+App/CommandLineSystem.h	49	App	app/App	high	engine or protocol layer, no game state
+App/CommandLineValues.cpp	221	App	app/App	high	engine or protocol layer, no game state
+App/CommandLineValues.h	48	App	app/App	high	engine or protocol layer, no game state
+App/CommandLineWindows.cpp	103	App	app/App	high	engine or protocol layer, no game state
 App/Config.cpp	643	App	app/App	high	engine or protocol layer, no game state
 App/Config.h	130	App	app/App	high	engine or protocol layer, no game state
 App/ConfigError.h	16	App	app/App	high	engine or protocol layer, no game state

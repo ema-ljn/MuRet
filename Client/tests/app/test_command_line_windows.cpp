@@ -1,6 +1,7 @@
 #include "App/CommandLine.h"
 
 #include "App/ServerAddress.h"
+#include "support/CommandLineTesting.h"
 
 #include <gtest/gtest.h>
 
@@ -16,40 +17,11 @@ namespace
 {
 using Client::App::CommandLine;
 using Client::App::CommandLineExit;
-using Client::App::ParseCommandLine;
 using Client::App::ServerAddress;
-using Client::App::UsageErrorExitCode;
-
-constexpr std::string_view Version = "1.2.3";
-
-CommandLine Parsed(std::vector<std::string_view> arguments)
-{
-    auto parsed = ParseCommandLine(arguments, Version);
-    if (!parsed.HasValue())
-    {
-        ADD_FAILURE() << parsed.Error().text;
-        return {};
-    }
-    return std::move(parsed).Value();
-}
-
-CommandLineExit ExitOf(std::vector<std::string_view> arguments)
-{
-    auto parsed = ParseCommandLine(arguments, Version);
-    if (parsed.HasValue())
-    {
-        ADD_FAILURE() << "the command line was accepted";
-        return {};
-    }
-    return parsed.Error();
-}
-
-std::string ErrorOf(std::vector<std::string_view> arguments)
-{
-    const CommandLineExit ending = ExitOf(arguments);
-    EXPECT_EQ(ending.exitCode, UsageErrorExitCode) << ending.text;
-    return ending.text.substr(0, ending.text.find('\n'));
-}
+using Client::Tests::Contains;
+using Client::Tests::ExitOf;
+using Client::Tests::Parsed;
+using Client::Tests::UsageErrorLine;
 
 ServerAddress ConnectOf(std::vector<std::string_view> arguments)
 {
@@ -81,17 +53,38 @@ TEST(CommandLineWindowsTest, PrintsTheHelpWithTheLauncherForm)
 {
     for (const std::string_view help : {"/?", "/help", "/HELP", "/h", "--help"})
     {
-        const CommandLineExit ending = ExitOf({help});
+        const CommandLineExit earlyExit = ExitOf({help});
 
-        EXPECT_EQ(ending.exitCode, 0) << help;
-        EXPECT_TRUE(ending.text.starts_with("Usage: Main [OPTIONS] [connect /u<host> /p<port>]")) << ending.text;
-        EXPECT_NE(ending.text.find("/name:value"), std::string::npos) << ending.text;
+        EXPECT_EQ(earlyExit.exitCode, 0) << help;
+        EXPECT_TRUE(earlyExit.text.starts_with("Usage: Main [OPTIONS] [connect /u<host> /p<port>]")) << earlyExit.text;
+        EXPECT_TRUE(Contains(earlyExit.text, "/name:value")) << earlyExit.text;
     }
 }
 
 TEST(CommandLineWindowsTest, TheQuestionMarkComesBeforeAnError)
 {
     EXPECT_EQ(ExitOf({"/y1", "/?"}).exitCode, 0);
+    EXPECT_EQ(ExitOf({"--frames", "1", "--frames", "2", "/?"}).exitCode, 0);
+    EXPECT_EQ(ExitOf({"--config=", "/?"}).exitCode, 0);
+    EXPECT_EQ(ExitOf({"/?", "--frames"}).exitCode, 0);
+}
+
+TEST(CommandLineWindowsTest, AfterTheDoubleDashTheQuestionMarkIsIgnored)
+{
+    EXPECT_EQ(Parsed({"--frames", "60", "--", "/?"}).maxFrames, 60u);
+}
+
+TEST(CommandLineWindowsTest, AnEmptyValueAfterTheColonIsAUsageError)
+{
+    EXPECT_EQ(UsageErrorLine({"/data:", "--frames", "5"}), "Main: --data needs a value");
+    EXPECT_EQ(UsageErrorLine({"/STATS:x"}), "Main: --stats takes no value");
+}
+
+// --vsync is the value of --pacing, and off is left over: the line names the value.
+TEST(CommandLineWindowsTest, AMissingValueComesBeforeWhatIsLeftOver)
+{
+    EXPECT_EQ(UsageErrorLine({"--pacing", "--vsync", "off"}),
+              "Main: --pacing needs decoupled or faithful, not \"--vsync\"");
 }
 
 TEST(CommandLineWindowsTest, AcceptsConnectWithHostAndPort)
@@ -102,7 +95,7 @@ TEST(CommandLineWindowsTest, AcceptsConnectWithHostAndPort)
     EXPECT_EQ(address.port, 44405);
 }
 
-TEST(CommandLineWindowsTest, IgnoresTheCase)
+TEST(CommandLineWindowsTest, TheLauncherFormIgnoresTheCase)
 {
     const ServerAddress address = ConnectOf({"CONNECT", "/U10.0.0.1", "/P44405"});
 
@@ -138,44 +131,48 @@ TEST(CommandLineWindowsTest, AcceptsTheAutoLoginWithTheLauncherForm)
 
 TEST(CommandLineWindowsTest, RejectsAPortOutOfRange)
 {
-    EXPECT_EQ(ErrorOf({"connect", "/u10.0.0.1", "/p0"}), "Main: /p: the port must be from 1 to 65535");
-    EXPECT_EQ(ErrorOf({"connect", "/u10.0.0.1", "/p65536"}), "Main: /p: the port must be from 1 to 65535");
+    EXPECT_EQ(UsageErrorLine({"connect", "/u10.0.0.1", "/p0"}), "Main: /p: the port must be from 1 to 65535");
+    EXPECT_EQ(UsageErrorLine({"connect", "/u10.0.0.1", "/p65536"}), "Main: /p: the port must be from 1 to 65535");
+}
+
+TEST(CommandLineWindowsTest, TheLauncherPortGoesFrom1To65535)
+{
     EXPECT_EQ(ConnectOf({"/u10.0.0.1", "/p65535"}).port, 65535);
     EXPECT_EQ(ConnectOf({"/u10.0.0.1", "/p1"}).port, 1);
 }
 
 TEST(CommandLineWindowsTest, RejectsAPortWithLetters)
 {
-    EXPECT_EQ(ErrorOf({"/u10.0.0.1", "/p12a"}), "Main: /p: the port must be a number");
-    EXPECT_EQ(ErrorOf({"/u10.0.0.1", "/p"}), "Main: /p needs the port attached (/p44405)");
+    EXPECT_EQ(UsageErrorLine({"/u10.0.0.1", "/p12a"}), "Main: /p: the port must be a number");
+    EXPECT_EQ(UsageErrorLine({"/u10.0.0.1", "/p"}), "Main: /p needs the port attached (/p44405)");
 }
 
 TEST(CommandLineWindowsTest, RejectsHostWithoutPort)
 {
-    EXPECT_EQ(ErrorOf({"connect", "/u10.0.0.1"}), "Main: /u needs /p with the port");
+    EXPECT_EQ(UsageErrorLine({"connect", "/u10.0.0.1"}), "Main: /u needs /p");
 }
 
 TEST(CommandLineWindowsTest, RejectsPortWithoutHost)
 {
-    EXPECT_EQ(ErrorOf({"/p44405"}), "Main: /p needs /u with the host");
+    EXPECT_EQ(UsageErrorLine({"/p44405"}), "Main: /p needs /u");
 }
 
 TEST(CommandLineWindowsTest, RejectsAnEmptyHost)
 {
-    EXPECT_EQ(ErrorOf({"/u", "/p44405"}), "Main: /u needs the host attached (/u10.0.0.1)");
-    EXPECT_EQ(ErrorOf({"/u", "10.0.0.1", "/p44405"}), "Main: /u needs the host attached (/u10.0.0.1)");
+    EXPECT_EQ(UsageErrorLine({"/u", "/p44405"}), "Main: /u needs the host attached (/u10.0.0.1)");
+    EXPECT_EQ(UsageErrorLine({"/u", "10.0.0.1", "/p44405"}), "Main: /u needs the host attached (/u10.0.0.1)");
 }
 
 TEST(CommandLineWindowsTest, RejectsARepeatedHostOrPort)
 {
-    EXPECT_EQ(ErrorOf({"/u10.0.0.1", "/U10.0.0.2", "/p1"}), "Main: /U is repeated");
-    EXPECT_EQ(ErrorOf({"/u10.0.0.1", "/p1", "/p2"}), "Main: /p is repeated");
+    EXPECT_EQ(UsageErrorLine({"/u10.0.0.1", "/U10.0.0.2", "/p1"}), "Main: /U is repeated");
+    EXPECT_EQ(UsageErrorLine({"/u10.0.0.1", "/p1", "/p2"}), "Main: /p is repeated");
 }
 
 // Q-C37, on the command line: the same ParseHost as the config.
 TEST(CommandLineWindowsTest, RejectsAHostThatIsNotAscii)
 {
-    EXPECT_EQ(ErrorOf({"/um\xFA.org", "/p44405"}),
+    EXPECT_EQ(UsageErrorLine({"/um\xFA.org", "/p44405"}),
               "Main: /u: the host must be ASCII (a name with accents goes in punycode)");
 }
 
@@ -183,7 +180,7 @@ TEST(CommandLineWindowsTest, RejectsAHostThatIsNotAscii)
 TEST(CommandLineWindowsTest, AcceptsAHostOf255BytesAndRejects256)
 {
     EXPECT_EQ(ConnectOf({"/u" + std::string(255, 'a'), "/p44405"}).host.size(), 255u);
-    EXPECT_EQ(ErrorOf({"/u" + std::string(256, 'a'), "/p44405"}), "Main: /u: the host must be 1 to 255 bytes");
+    EXPECT_EQ(UsageErrorLine({"/u" + std::string(256, 'a'), "/p44405"}), "Main: /u: the host must be 1 to 255 bytes");
 }
 
 // /y and /z, among others, are the launcher's and MuRet does not read them.
@@ -191,19 +188,20 @@ TEST(CommandLineWindowsTest, RejectsTheLauncherOptions)
 {
     for (const std::string_view option : {"/y1", "/z1", "/Y"})
     {
-        EXPECT_EQ(ErrorOf({"/u10.0.0.1", "/p44405", option}), "Main: unknown argument \"" + std::string(option) + "\"");
+        EXPECT_EQ(UsageErrorLine({"/u10.0.0.1", "/p44405", option}),
+                  "Main: unknown option \"" + std::string(option) + "\"");
     }
 }
 
 TEST(CommandLineWindowsTest, RejectsWhatIsNotAnOption)
 {
-    EXPECT_EQ(ErrorOf({"foo"}), "Main: unknown argument \"foo\"");
-    EXPECT_EQ(ErrorOf({"--fullscreen"}), "Main: unknown argument \"--fullscreen\"");
+    EXPECT_EQ(UsageErrorLine({"foo"}), "Main: unknown argument \"foo\"");
+    EXPECT_EQ(UsageErrorLine({"--fullscreen"}), "Main: unknown option \"--fullscreen\"");
 }
 
 TEST(CommandLineWindowsTest, TheLauncherFormDoesNotGoWithHostOrPort)
 {
-    EXPECT_EQ(ErrorOf({"/u10.0.0.1", "/p44405", "/host", "10.0.0.2", "/port", "1"}),
+    EXPECT_EQ(UsageErrorLine({"/u10.0.0.1", "/p44405", "/host", "10.0.0.2", "/port", "1"}),
               "Main: /u and /p do not go with --host and --port");
 }
 
@@ -216,7 +214,7 @@ TEST(CommandLineWindowsTest, AfterTheDoubleDashTheLauncherFormIsIgnored)
 // does not repeat its bytes.
 TEST(CommandLineWindowsTest, APathThatIsNotUtf8IsAnError)
 {
-    EXPECT_EQ(ErrorOf({"--data", "C:/MU/\xDA"}), "Main: --data needs a path in UTF-8");
-    EXPECT_EQ(ErrorOf({"--config", "\xC0\xAF.ini"}), "Main: --config needs a path in UTF-8");
+    EXPECT_EQ(UsageErrorLine({"--data", "C:/MU/\xDA"}), "Main: --data needs a path in UTF-8");
+    EXPECT_EQ(UsageErrorLine({"--config", "\xC0\xAF.ini"}), "Main: --config needs a path in UTF-8");
 }
 } // namespace

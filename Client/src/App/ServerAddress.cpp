@@ -36,13 +36,12 @@ bool IsControl(char c)
 
 Core::Expected<std::uint16_t, std::string> ParsePort(std::string_view text)
 {
-    // Los dígitos se miran antes por el mensaje: sin esto, "12a" (from_chars se para en la "a") y
-    // "-1" (sin signo no lo acepta) dirían "va de 1 a 65535".
+    // Digits first, for the message: "12a" (from_chars stops at the "a") and "-1" would say "from 1 to 65535".
     if (text.empty() || !std::ranges::all_of(text, IsDigit))
     {
         return Unexpected(std::string("the port must be a number"));
     }
-    // Con solo dígitos, from_chars lee todo, y el único error que queda es el de 16 bits.
+    // With only digits, from_chars reads them all, and the only error left is the 16 bits.
     std::uint16_t port = 0;
     const auto result = std::from_chars(text.data(), text.data() + text.size(), port);
     if (result.ec != std::errc{} || port == 0)

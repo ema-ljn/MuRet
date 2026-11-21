@@ -99,11 +99,10 @@ function(muret_add_test)
         PROPERTIES ${test_properties})
 endfunction()
 
-# muret_add_module_tests([LINK_LIBS lib ...] [LABEL <etiqueta>] [TIMEOUT <segundos>]): un
-# ejecutable por cada test_*.cpp de la carpeta que lo llama, con el nombre del archivo
-# (test_packet_reader), y lo que reciba se lo pasa a muret_add_test. Un test nuevo entra al
-# reconfigurar.
-# OTHER_SYSTEM <file> ...: the tests of another system's code, not built on this one.
+# muret_add_module_tests([OTHER_SYSTEM <file> ...] [LINK_LIBS lib ...] [LABEL <label>]
+# [TIMEOUT <seconds>]): one executable for each test_*.cpp of the calling folder, named after the
+# file (test_packet_reader), with the rest passed on to muret_add_test. A new test joins on
+# reconfigure. OTHER_SYSTEM lists the tests of another system's code, which this one does not build.
 function(muret_add_module_tests)
     cmake_parse_arguments(MAMT "" "" "OTHER_SYSTEM" ${ARGN})
     file(GLOB tests CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/test_*.cpp")

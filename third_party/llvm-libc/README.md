@@ -6,7 +6,8 @@ A copy of the header-only math of [LLVM-libc](https://libc.llvm.org/), from llvm
 The client uses it for `sin`, `cos`, `tan`, `acos` and `log10`, because its functions are correctly rounded:
 each returns the float or double nearest to the exact value, so the result does not depend on the compiler,
 the system, the C library or the CPU. Only `Client/src/Render/Models/RoundedMath/RoundedMath.cpp` includes
-these headers; the rest of the client calls `Render/Models/RoundedMath.h`.
+these headers; the rest of the client calls `Render/Models/RoundedMath.h`
+([ADR 0027](../../docs/adr/0027-correctly-rounded-math.md)).
 
 One case is not correctly rounded: without FMA instructions, the sine and the tangent of a double below 2^-968 can
 be one unit in the last place off (`src/__support/math/sin.h` and `tan.h`, where `x * 2^-54` underflows; still so in

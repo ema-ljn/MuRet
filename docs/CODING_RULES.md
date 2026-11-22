@@ -332,6 +332,18 @@ scene costs 2.5 to 3.2 ms of CPU of a 40 ms frame at `-O2`, and EASTL ties with 
   errors and MuRet's own fixed formats whose output equals the CRT's (`{}` of an integer or a
   text). A floating-point value the player sees is never printed with `std::format`: `{}` gives the
   shortest representation, and `%f` does not.
+- **Math.** IEEE 754 fixes `+`, `-`, `*`, `/` and the square root. Each C library rounds the sine,
+  the cosine, the logarithm and their kind in its own way, and glm calls them inside `glm::rotate`,
+  `glm::perspective`, `glm::slerp`, `glm::angleAxis` and `glm::quat(vec3)`: the same frame gave
+  other pixels on Windows and on Linux. The client takes them correctly rounded
+  ([ADR 0027](adr/0027-correctly-rounded-math.md)): `RoundedSin`, `RoundedCos`, `RoundedTan`,
+  `RoundedAcos` and `RoundedLog10` from `Render/Models/RoundedMath.h`, `RoundedRotate` and
+  `RoundedPerspective` from `RoundedTransforms.h`. Never `std::sin`, `std::cos`, `std::atan2`,
+  `std::exp`, `std::log`, `std::pow` or their kind, with or without `std::`, in `Client/src` or
+  `Client/tests`. A function the module lacks is added to it, with its MPFR hash. `std::sqrt`,
+  `std::fabs`, `std::floor`, `std::fmod` and `std::ldexp` give the same bits everywhere and stay.
+  `Client/tools/architecture/check_rounded_math.py` checks the names in CI; the one call it lets
+  through is in `rounded-math-exceptions.tsv`, with its reason.
 
 ## 11. Documentar el uso, no las tripas
 

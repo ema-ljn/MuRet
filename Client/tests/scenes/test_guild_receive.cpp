@@ -1,3 +1,4 @@
+#include "Network/Xor32Packet.h"
 #include "Render/Models/IModelLibrary.h"
 #include "Scenes/GuildReceive.h"
 
@@ -6,7 +7,6 @@
 #include "Data/Models/Model.h"
 #include "Data/Models/PlayerModels.h"
 #include "Data/Text/TextTable.h"
-#include "Network/Crypto/Xor32.h"
 #include "Protocol/Guild.h"
 #include "Protocol/Outgoing.h"
 #include "Render/Models/Cloth.h"
@@ -137,7 +137,7 @@ Guild::GuildName GuildNameOf(std::string_view text)
 
 std::vector<std::uint8_t> Plain(const Client::Protocol::Outgoing& sent)
 {
-    const auto plain = Client::Network::Crypto::Xor32Decode(sent.packet);
+    const auto plain = Client::Network::Xor32Decode(sent.packet);
     std::vector<std::uint8_t> bytes;
     for (const std::byte value : plain.Bytes())
         bytes.push_back(std::to_integer<std::uint8_t>(value));

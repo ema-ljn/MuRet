@@ -4,7 +4,7 @@
 #include "Input/InputState.h"
 #include "Input/Key.h"
 #include "Input/MouseMessageState.h"
-#include "Network/Crypto/Xor32.h"
+#include "Network/Xor32Packet.h"
 #include "Protocol/FloorItems.h"
 #include "Protocol/Outgoing.h"
 #include "Render/Models/Cloth.h"
@@ -55,7 +55,7 @@ using Client::Input::InputEvent;
 using Client::Input::InputState;
 using Client::Input::Key;
 using Client::Input::MouseButton;
-using Client::Network::Crypto::Xor32Decode;
+using Client::Network::Xor32Decode;
 using Client::Protocol::FloorItems::UseItem;
 using Client::Render::Models::CrtRandom;
 using Client::Scenes::FramePickingContext;

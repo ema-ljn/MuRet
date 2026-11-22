@@ -1,3 +1,4 @@
+#include "Network/Xor32Packet.h"
 #include "Scenes/GameDialogSteps.h"
 
 #include "Audio/Playback.h"
@@ -6,7 +7,6 @@
 #include "Input/InputEvent.h"
 #include "Input/InputState.h"
 #include "Input/Key.h"
-#include "Network/Crypto/Xor32.h"
 #include "Network/Delivery.h"
 #include "Network/Packet.h"
 #include "Protocol/Connection/Logout.h"
@@ -146,7 +146,7 @@ public:
     {
         if (onGamePacket)
             onGamePacket();
-        const Client::Network::Packet decoded = Client::Network::Crypto::Xor32Decode(outgoing.packet);
+        const Client::Network::Packet decoded = Client::Network::Xor32Decode(outgoing.packet);
         std::vector<std::uint8_t> bytes;
         for (const std::byte b : decoded.Bytes())
             bytes.push_back(std::to_integer<std::uint8_t>(b));

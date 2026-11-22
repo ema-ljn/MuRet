@@ -1,3 +1,4 @@
+#include "Network/Xor32Packet.h"
 #include "Scenes/GameScene.h"
 
 #include "App/ServerSession.h"
@@ -7,7 +8,6 @@
 #include "Data/Text/TextTable.h"
 #include "Input/InputEvent.h"
 #include "Input/InputState.h"
-#include "Network/Crypto/Xor32.h"
 #include "Network/Packet.h"
 #include "Network/PacketSerials.h"
 #include "Render/Models/Cloth.h"
@@ -122,11 +122,11 @@ TEST(GameSceneEmoteTest, ATransformedHeroSendsBothActionsAndTheChatBeforeTheFirs
     const auto received =
         Client::Tests::AsTheGameServerReceives(std::span(online.socket.sent).subspan(sentBefore), serials);
     ASSERT_EQ(received.packets.size(), 3u);
-    EXPECT_TRUE(Client::Tests::SameBytes(Client::Network::Crypto::Xor32Decode(received.packets[0]).Bytes(),
+    EXPECT_TRUE(Client::Tests::SameBytes(Client::Network::Xor32Decode(received.packets[0]).Bytes(),
                                          Client::Tests::Bytes({0xc1, 5, 0x18, 3, 0x8e})));
-    EXPECT_TRUE(Client::Tests::SameBytes(Client::Network::Crypto::Xor32Decode(received.packets[1]).Bytes(),
+    EXPECT_TRUE(Client::Tests::SameBytes(Client::Network::Xor32Decode(received.packets[1]).Bytes(),
                                          Client::Tests::Bytes({0xc1, 5, 0x18, 3, 0x8e})));
-    EXPECT_TRUE(Client::Tests::SameBytes(Client::Network::Crypto::Xor32Decode(received.packets[2]).Bytes(),
+    EXPECT_TRUE(Client::Tests::SameBytes(Client::Network::Xor32Decode(received.packets[2]).Bytes(),
                                          Client::Tests::Bytes({0xc1, 0x15, 0x00, 'H', 'e', 'r', 'o', 'e', 0,   0, 0,
                                                                0,    0,    'h',  'o', 'l', 'a', ' ', '^', '^', 0})));
 }

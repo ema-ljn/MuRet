@@ -1,9 +1,9 @@
+#include "Network/Xor32Packet.h"
 #include "Render/Models/IModelLibrary.h"
 #include "Scenes/CastleWeaponEffects.h"
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
 #include "Data/Models/Model.h"
-#include "Network/Crypto/Xor32.h"
 #include "Network/Packet.h"
 #include "Protocol/CastleBattle.h"
 #include "Protocol/Outgoing.h"
@@ -165,7 +165,7 @@ TEST_F(CastleWeaponEffectsTest, FenrirChoosesItsHandActionButSendsNativeAction5d
     ASSERT_TRUE(services.heroAction(hero.position, 350).HasValue());
     EXPECT_EQ(hero.animation.action, 0x66);
     ASSERT_EQ(sent.size(), 1u);
-    const auto decoded = Client::Network::Crypto::Xor32Decode(sent[0].packet);
+    const auto decoded = Client::Network::Xor32Decode(sent[0].packet);
     const auto bytes = decoded.Bytes();
     EXPECT_EQ(bytes[2], std::byte{0x18});
     EXPECT_EQ(bytes[4], std::byte{0x5d});

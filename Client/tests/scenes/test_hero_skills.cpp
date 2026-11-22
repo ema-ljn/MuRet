@@ -1,3 +1,4 @@
+#include "Network/Xor32Packet.h"
 #include "Render/Models/IModelLibrary.h"
 #include "Scenes/HeroSkills.h"
 #include "Scenes/GameMovement.h"
@@ -8,7 +9,6 @@
 #include "Data/Tables/SkillTable.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainGrid.h"
-#include "Network/Crypto/Xor32.h"
 #include "Network/Delivery.h"
 #include "Network/Packet.h"
 #include "Protocol/Outgoing.h"
@@ -236,7 +236,7 @@ void ExpectTheWizardAimed(SkillHero& tested)
 
 std::vector<std::uint8_t> ClearBytesOf(const Client::Protocol::Outgoing& outgoing)
 {
-    const Client::Network::Packet clear = Client::Network::Crypto::Xor32Decode(outgoing.packet);
+    const Client::Network::Packet clear = Client::Network::Xor32Decode(outgoing.packet);
     std::vector<std::uint8_t> bytes;
     for (const std::byte value : clear.Bytes())
         bytes.push_back(std::to_integer<std::uint8_t>(value));

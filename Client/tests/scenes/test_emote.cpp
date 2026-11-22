@@ -1,9 +1,9 @@
+#include "Network/Xor32Packet.h"
 #include "Render/Models/IModelLibrary.h"
 #include "Scenes/Emote.h"
 
 #include "Data/Models/Model.h"
 #include "Data/Models/PlayerModels.h"
-#include "Network/Crypto/Xor32.h"
 #include "Network/Delivery.h"
 #include "Protocol/Movement.h"
 #include "Protocol/Outgoing.h"
@@ -79,7 +79,7 @@ protected:
         for (const Client::Protocol::Outgoing& sent : m_sent)
         {
             EXPECT_EQ(sent.delivery, Client::Network::Delivery::Clear);
-            EXPECT_TRUE(SameBytes(Client::Network::Crypto::Xor32Decode(sent.packet).Bytes(),
+            EXPECT_TRUE(SameBytes(Client::Network::Xor32Decode(sent.packet).Bytes(),
                                   Bytes({0xc1, 5, 0x18, direction, action})));
         }
     }

@@ -1,10 +1,10 @@
+#include "Network/Xor32Packet.h"
 #include "Scenes/GameUi.h"
 
 #include "Core/Expected.h"
 #include "Input/InputEvent.h"
 #include "Input/InputState.h"
 #include "Input/Key.h"
-#include "Network/Crypto/Xor32.h"
 #include "Network/Packet.h"
 #include "Protocol/Outgoing.h"
 #include "Render/Models/Cloth.h"
@@ -55,7 +55,7 @@ TEST_P(GameDialogClosuresTest, EscapeClosesTheNpcThroughTheTransportBorrowedByTh
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     ASSERT_EQ(sent.size(), 1u);
     const std::uint8_t opcode = kind == 0 ? 0x82 : kind == 1 ? 0x87 : 0x31;
-    const auto plain = Client::Network::Crypto::Xor32Decode(sent[0].packet);
+    const auto plain = Client::Network::Xor32Decode(sent[0].packet);
     EXPECT_TRUE(Client::Tests::SameBytes(plain.Bytes(), Client::Tests::Bytes({0xc1, 3, opcode})));
     EXPECT_EQ(runtime.panels.warehouse, 0);
     EXPECT_EQ(runtime.panels.chaosBox, 0);

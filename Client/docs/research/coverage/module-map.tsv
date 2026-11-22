@@ -249,6 +249,8 @@ Network/SystemResolver.cpp	32	Network	engine/Network	high	engine or protocol lay
 Network/SystemResolver.h	24	Network	engine/Network	high	engine or protocol layer, no game state
 Network/SystemSocket.cpp	157	Network	engine/Network	high	engine or protocol layer, no game state
 Network/SystemSocket.h	70	Network	engine/Network	high	engine or protocol layer, no game state
+Network/Xor32Packet.cpp	40	Network	engine/Network	high	XOR32 over a whole C1 or C2, on top of the Crypto bytes (AR1.1)
+Network/Xor32Packet.h	12	Network	engine/Network	high	XOR32 over a whole C1 or C2, on top of the Crypto bytes (AR1.1)
 Platform/BasePath.cpp	28	Platform	engine/Platform	high	engine or protocol layer, no game state
 Platform/BasePath.h	14	Platform	engine/Platform	high	engine or protocol layer, no game state
 Platform/Clipboard.cpp	60	Platform	engine/Platform	high	engine or protocol layer, no game state

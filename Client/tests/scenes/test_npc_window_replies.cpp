@@ -1,3 +1,4 @@
+#include "Network/Xor32Packet.h"
 #include "Scenes/NpcWindows.h"
 
 #include "Audio/Playback.h"
@@ -8,7 +9,6 @@
 #include "Data/Tables/ItemSetTables.h"
 #include "Data/Tables/ItemTable.h"
 #include "Data/Text/TextTable.h"
-#include "Network/Crypto/Xor32.h"
 #include "Network/Delivery.h"
 #include "Network/Packet.h"
 #include "Protocol/NpcWindows.h"
@@ -62,7 +62,7 @@
 namespace
 {
 using Client::Network::Delivery;
-using Client::Network::Crypto::Xor32Decode;
+using Client::Network::Xor32Decode;
 using Client::Render::Models::CrtRandom;
 using Client::Scenes::NpcWindowState;
 using Client::Scenes::WorldEntryResources;

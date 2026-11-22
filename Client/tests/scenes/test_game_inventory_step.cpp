@@ -4,8 +4,8 @@
 #include "Input/InputEvent.h"
 #include "Input/InputState.h"
 #include "Input/Key.h"
-#include "Network/Crypto/Xor32.h"
 #include "Network/Delivery.h"
+#include "Network/Xor32Packet.h"
 #include "Protocol/Outgoing.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
@@ -421,7 +421,7 @@ TEST_F(InventoryMovesStepTest, TheRightClickOnThe1a1dRequestsTheEventAndKeepsThe
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     ASSERT_EQ(sent.size(), 1u);
     EXPECT_EQ(sent[0].delivery, Client::Network::Delivery::Clear);
-    EXPECT_TRUE(Client::Tests::SameBytes(Client::Network::Crypto::Xor32Decode(sent[0].packet).Bytes(),
+    EXPECT_TRUE(Client::Tests::SameBytes(Client::Network::Xor32Decode(sent[0].packet).Bytes(),
                                          Client::Tests::Bytes({0xc1, 0x04, 0x91, 0x04})));
     EXPECT_EQ(random.State(), expected.State());
     EXPECT_FALSE(runtime.ui.rightClick);
@@ -519,6 +519,6 @@ TEST_F(InventoryMovesStepTest, RepairModeSendsTheItemsPlaceByteByByte)
     EXPECT_FALSE(world.Runtime().movement.pendingClick);
     ASSERT_EQ(sent.size(), 1u);
     EXPECT_EQ(sent[0].delivery, Client::Network::Delivery::Encrypted);
-    EXPECT_TRUE(Client::Tests::SameBytes(Client::Network::Crypto::Xor32Decode(sent[0].packet).Bytes(),
+    EXPECT_TRUE(Client::Tests::SameBytes(Client::Network::Xor32Decode(sent[0].packet).Bytes(),
                                          Client::Tests::Bytes({0xc1, 0x05, 0x34, 2 * 8 + 1 + 12, 0x01})));
 }

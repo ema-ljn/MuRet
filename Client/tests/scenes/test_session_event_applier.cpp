@@ -1,3 +1,4 @@
+#include "Network/Xor32Packet.h"
 #include "Scenes/SessionEventApplier.h"
 
 #include "App/CharacterEvent.h"
@@ -8,7 +9,6 @@
 #include "Core/Log.h"
 #include "Data/Models/PlayerModels.h"
 #include "Protocol/CastleSiege.h"
-#include "Network/Crypto/Xor32.h"
 #include "Protocol/Character/CharacterSelectResult.h"
 #include "Protocol/Character/InventoryList.h"
 #include "Protocol/Events.h"
@@ -287,7 +287,7 @@ TEST(SessionEventApplierTest, TheActionOfAnotherSitsThroughTheSession)
     EXPECT_EQ(other.animation.action, 0xca);
     const std::vector<std::byte> action(online.socket.sent.begin() + static_cast<std::ptrdiff_t>(sent),
                                         online.socket.sent.end());
-    const auto plain = Client::Network::Crypto::Xor32Decode(Client::Tests::PacketOf(action));
+    const auto plain = Client::Network::Xor32Decode(Client::Tests::PacketOf(action));
     EXPECT_TRUE(Client::Tests::SameBytes(plain.Bytes(), Client::Tests::Bytes({0xc1, 5, 0x18, 3, 0x82})));
 }
 // 0x4dd92c: un 94 de tipo 0 sin los números del Muto (el original los lee del buffer de la recepción) se descarta con

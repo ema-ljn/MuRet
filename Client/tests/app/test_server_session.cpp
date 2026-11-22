@@ -17,7 +17,6 @@
 #include "Network/CloseReason.h"
 #include "Network/Connection.h"
 #include "Network/Crypto/SimpleModulus.h"
-#include "Network/Crypto/Xor32.h"
 #include "Network/FoxAntiObfuscation.h"
 #include "Network/IObfuscation.h"
 #include "Network/IdentityObfuscation.h"
@@ -25,6 +24,7 @@
 #include "Network/Packet.h"
 #include "Network/PacketSerials.h"
 #include "Network/SocketError.h"
+#include "Network/Xor32Packet.h"
 #include "Protocol/BuildConstants.h"
 #include "Protocol/CastleBattle.h"
 #include "Protocol/CastleSiege.h"
@@ -144,10 +144,10 @@ using Client::Network::PacketSerials;
 using Client::Network::PacketType;
 using Client::Network::SerialCheck;
 using Client::Network::SocketError;
+using Client::Network::Xor32Decode;
 using Client::Network::Crypto::CipherBlockSize;
 using Client::Network::Crypto::EncryptBlock;
 using Client::Network::Crypto::PlainBlockSize;
-using Client::Network::Crypto::Xor32Decode;
 using Client::Protocol::ClientVersion;
 using Client::Protocol::Character::CharacterEntry;
 using Client::Protocol::Character::CharacterOpcode;

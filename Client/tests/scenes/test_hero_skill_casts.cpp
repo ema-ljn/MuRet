@@ -1,8 +1,8 @@
+#include "Network/Xor32Packet.h"
 #include "Scenes/HeroSkillCasts.h"
 
 #include "Data/Tables/SkillTable.h"
 #include "Core/Expected.h"
-#include "Network/Crypto/Xor32.h"
 #include "Network/Delivery.h"
 #include "Protocol/Outgoing.h"
 #include "Render/Models/Cloth.h"
@@ -107,7 +107,7 @@ TEST(HeroSkillCastsTest, WithoutManaTheSkillLooksForAPotion)
     ASSERT_TRUE(potion.HasValue()) << potion.Error();
     ASSERT_EQ(sent.size(), 1u);
     EXPECT_EQ(sent[0].delivery, Client::Network::Delivery::Encrypted);
-    const auto packet = Client::Network::Crypto::Xor32Decode(sent[0].packet);
+    const auto packet = Client::Network::Xor32Decode(sent[0].packet);
     const auto bytes = packet.Bytes();
     ASSERT_EQ(bytes.size(), 6u);
     EXPECT_EQ(bytes[2], std::byte{0x26});

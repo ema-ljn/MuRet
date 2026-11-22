@@ -1,3 +1,4 @@
+#include "Network/Xor32Packet.h"
 #include "Render/Models/IModelLibrary.h"
 #include "Scenes/GameScene.h"
 
@@ -23,7 +24,6 @@
 #include "Input/InputState.h"
 #include "Input/InputEvent.h"
 #include "Input/Key.h"
-#include "Network/Crypto/Xor32.h"
 #include "Network/PacketSerials.h"
 #include "Render/ModelBatch.h"
 #include "Render/Models/Animation.h"
@@ -356,7 +356,7 @@ TEST_P(GameSceneNpcDialogCloseTest, EscapeSendsTheNpcCloseThroughTheSceneSession
     const auto received = Client::Tests::AsTheGameServerReceives(online->socket.sent, serials);
     ASSERT_EQ(received.packets.size(), 1u);
     const std::uint8_t opcode = kind == 0 ? 0x82 : kind == 1 ? 0x87 : 0x31;
-    const auto plain = Client::Network::Crypto::Xor32Decode(received.packets[0]);
+    const auto plain = Client::Network::Xor32Decode(received.packets[0]);
     EXPECT_TRUE(Client::Tests::SameBytes(plain.Bytes(), Client::Tests::Bytes({0xc1, 3, opcode})));
 }
 

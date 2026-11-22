@@ -1,7 +1,7 @@
 #include "Core/Expected.h"
 #include "Data/Tables/ItemTable.h"
 #include "GameLogic/PathCell.h"
-#include "Network/Crypto/Xor32.h"
+#include "Network/Xor32Packet.h"
 #include "Protocol/FloorItems.h"
 #include "Protocol/Inventory.h"
 #include "Render/Models/Cloth.h"
@@ -40,7 +40,7 @@ namespace
 {
 using Client::Core::Expected;
 using Client::GameLogic::PathCell;
-using Client::Network::Crypto::Xor32Decode;
+using Client::Network::Xor32Decode;
 using Client::Protocol::FloorItems::Drop;
 using Client::Protocol::Inventory::ItemMove;
 using Client::Render::Models::CrtRandom;

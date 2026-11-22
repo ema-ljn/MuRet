@@ -1,8 +1,8 @@
+#include "Network/Xor32Packet.h"
 #include "Scenes/GuildWindow.h"
 
 #include "App/WindowState.h"
 #include "Core/Expected.h"
-#include "Network/Crypto/Xor32.h"
 #include "Data/Text/TextTable.h"
 #include "Protocol/Outgoing.h"
 #include "Render/Models/Cloth.h"
@@ -91,7 +91,7 @@ std::vector<std::byte> BytesOf(std::initializer_list<int> values)
 
 std::vector<std::byte> PlainOf(const Client::Protocol::Outgoing& sent)
 {
-    const auto plain = Client::Network::Crypto::Xor32Decode(sent.packet);
+    const auto plain = Client::Network::Xor32Decode(sent.packet);
     return {plain.Bytes().begin(), plain.Bytes().end()};
 }
 

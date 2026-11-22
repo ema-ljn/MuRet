@@ -1,6 +1,6 @@
+#include "Network/Xor32Packet.h"
 #include "Protocol/Character/CharacterList.h"
 
-#include "Network/Crypto/Xor32.h"
 #include "Network/Delivery.h"
 #include "Protocol/Outgoing.h"
 #include "Protocol/PacketFields.h"
@@ -27,7 +27,7 @@
 namespace
 {
 using Client::Network::Delivery;
-using Client::Network::Crypto::Xor32Decode;
+using Client::Network::Xor32Decode;
 using Client::Protocol::Outgoing;
 using Client::Protocol::ProtocolError;
 using Client::Protocol::TextField;

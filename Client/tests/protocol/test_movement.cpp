@@ -1,6 +1,6 @@
+#include "Network/Xor32Packet.h"
 #include "Protocol/Movement.h"
 
-#include "Network/Crypto/Xor32.h"
 #include "Network/Delivery.h"
 #include "Network/FoxAntiObfuscation.h"
 #include "Protocol/ProtocolError.h"
@@ -23,7 +23,7 @@
 
 namespace
 {
-using Client::Network::Crypto::Xor32Decode;
+using Client::Network::Xor32Decode;
 using Client::Protocol::ProtocolError;
 using Client::Protocol::Movement::Cell;
 using Client::Protocol::Movement::FacingAction;

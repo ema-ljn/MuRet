@@ -1,5 +1,6 @@
 #include "Core/Expected.h"
 #include "GameLogic/PathCell.h"
+#include "Network/Xor32Packet.h"
 #include "Render/Models/IModelLibrary.h"
 #include "Scenes/GameMovement.h"
 #include "Scenes/InventoryMoves.h"
@@ -23,7 +24,6 @@
 #include "UI/OldWindows.h"
 #include "World/WorldTerrain.h"
 #include "Network/Packet.h"
-#include "Network/Crypto/Xor32.h"
 #include "Network/Delivery.h"
 #include "Protocol/Outgoing.h"
 #include "Protocol/Inventory.h"
@@ -237,7 +237,7 @@ TEST(GameMovementTest, AClickFindsAndSendsTheHistoricalD3)
         const auto packet = Client::Protocol::Movement::WriteWalk(path, target, angle);
         if (!packet.HasValue())
             return Client::Core::Unexpected(std::string("invalid movement"));
-        const auto decoded = Client::Network::Crypto::Xor32Decode(packet.Value().packet);
+        const auto decoded = Client::Network::Xor32Decode(packet.Value().packet);
         bytes.assign(decoded.Bytes().begin(), decoded.Bytes().end());
         return {};
     };
@@ -362,7 +362,7 @@ TEST(GameMovementTest, AWalkWithTheTradeOpenCancelsItAfterTheD3)
         };
         context.sendGamePacket = [&sent](Client::Protocol::Outgoing outgoing)
         {
-            const auto decoded = Client::Network::Crypto::Xor32Decode(outgoing.packet);
+            const auto decoded = Client::Network::Xor32Decode(outgoing.packet);
             EXPECT_EQ(outgoing.delivery, Client::Network::Delivery::Encrypted);
             sent.emplace_back(decoded.Bytes().begin(), decoded.Bytes().end());
         };
@@ -401,7 +401,7 @@ TEST(GameMovementTest, AWalkWithTheSecondGuildWindowOpenClosesItAfterTheD3)
         };
         context.sendGamePacket = [&sent](Client::Protocol::Outgoing outgoing)
         {
-            const auto decoded = Client::Network::Crypto::Xor32Decode(outgoing.packet);
+            const auto decoded = Client::Network::Xor32Decode(outgoing.packet);
             EXPECT_EQ(outgoing.delivery, Client::Network::Delivery::Clear);
             sent.emplace_back(decoded.Bytes().begin(), decoded.Bytes().end());
         };
@@ -1092,7 +1092,7 @@ TEST(GameMovementTest, AWalkingElfWithABowSendsItsCellAndShoots)
     {
         const auto packet = Client::Protocol::Movement::WriteWalk(path, target, angle);
         EXPECT_TRUE(packet.HasValue());
-        const auto decoded = Client::Network::Crypto::Xor32Decode(packet.Value().packet);
+        const auto decoded = Client::Network::Xor32Decode(packet.Value().packet);
         sent.emplace_back(decoded.Bytes().begin(), decoded.Bytes().end());
         return {};
     };

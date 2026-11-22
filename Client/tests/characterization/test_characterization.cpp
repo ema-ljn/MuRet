@@ -44,6 +44,8 @@
 #include "Scenes/WorldLoadingScene.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "UI/ChatLog.h"
+#include "UI/PanelRegistry.h"
 #include "UI/SlideBanner.h"
 #include "World/GameCamera.h"
 #include "support/AppPrinters.h"
@@ -444,10 +446,44 @@ public:
         {
             trace += "\n  sent " + HexOf(packet.Bytes());
         }
+        if (m_manager.Current() == Scenes::SceneId::Game)
+        {
+            trace += WorldTrace();
+        }
         return trace;
     }
 
 private:
+    // The state that FrameDigest hashes, in words.
+    std::string WorldTrace()
+    {
+        const Scenes::WorldRuntime& runtime = m_world.Runtime();
+        const Scenes::OwnCharacterRecord& own = m_world.OwnCharacter();
+        const UI::PanelState& panels = runtime.panels;
+        std::string trace =
+            std::format("\n  map {} life {} mana {} zen {} panels inventory {} npc shop {} event {}", runtime.map,
+                        own.life, own.mana, own.zen, panels.inventory, panels.npcShop, panels.eventNpc);
+        const auto actors = m_world.Actors();
+        for (std::size_t index = 0; index < actors.size(); ++index)
+        {
+            const Scenes::ActorState& actor = actors[index];
+            if (actor.alive)
+            {
+                trace += std::format("\n  actor {}{} key {:04x} type {} cell ({}, {}) action {}", index,
+                                     index == runtime.hero ? " (hero)" : "", actor.key, actor.type,
+                                     static_cast<int>(actor.position.x / 100.0f),
+                                     static_cast<int>(actor.position.y / 100.0f), actor.animation.action);
+            }
+        }
+        if (!runtime.chat.log.entries.empty())
+        {
+            const UI::ChatEntry& newest = runtime.chat.log.entries.front();
+            trace += std::format("\n  chat {} lines, the newest {}: {} ({})", runtime.chat.log.entries.size(),
+                                 newest.name, newest.text, newest.type);
+        }
+        return trace;
+    }
+
     std::unique_ptr<Scenes::IScene> MakeScene(Scenes::SceneId id)
     {
         switch (id)
@@ -724,6 +760,21 @@ protected:
 TEST_F(CharacterizationTest, LoginToLorencia)
 {
     ExpectTheGolden("LoginToLorencia");
+}
+
+TEST_F(CharacterizationTest, WalkAndFight)
+{
+    ExpectTheGolden("WalkAndFight");
+}
+
+TEST_F(CharacterizationTest, InventoryShopAndChat)
+{
+    ExpectTheGolden("InventoryShopAndChat");
+}
+
+TEST_F(CharacterizationTest, EventEntry)
+{
+    ExpectTheGolden("EventEntry");
 }
 
 TEST_F(CharacterizationTest, IsDeterministic)

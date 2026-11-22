@@ -61,7 +61,7 @@
 #include "Scenes/ChatBubbles.h"
 #include "Scenes/DarkSpirit.h"
 #include "Scenes/GameCharacters.h"
-#include "Scenes/GuildState.h"
+#include "Guild/GuildState.h"
 #include "Scenes/HelperTable.h"
 #include "Scenes/HighModelEffects.h"
 #include "Scenes/ModelTextureTable.h"

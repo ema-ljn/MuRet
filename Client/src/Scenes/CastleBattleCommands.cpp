@@ -11,7 +11,7 @@
 #include "Scenes/ChatReceive.h"
 #include "Scenes/GameMessages.h"
 #include "Scenes/GamePanels.h"
-#include "Scenes/GuildPanels.h"
+#include "Guild/GuildPanels.h"
 #include "Scenes/SiegeBattleUi.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"

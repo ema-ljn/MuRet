@@ -1,4 +1,4 @@
-#include "Scenes/GuildWindow.h"
+#include "Guild/GuildWindow.h"
 
 #include "Core/Expected.h"
 #include "Data/Text/TextTable.h"
@@ -16,9 +16,9 @@
 #include "Scenes/GameMessages.h"
 #include "Scenes/GameUi.h"
 #include "Scenes/GameWindowDrawing.h"
-#include "Scenes/GuildPanels.h"
-#include "Scenes/GuildState.h"
-#include "Scenes/GuildWindowTabs.h"
+#include "Guild/GuildPanels.h"
+#include "Guild/GuildState.h"
+#include "Guild/GuildWindowTabs.h"
 #include "Scenes/ITextDrawer.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"

@@ -1,4 +1,4 @@
-#include "Scenes/GuildPanels.h"
+#include "Guild/GuildPanels.h"
 #include "Scenes/CastleWindows.h"
 
 #include "Core/Expected.h"
@@ -9,8 +9,8 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/GameMessages.h"
 #include "Scenes/GameUi.h"
-#include "Scenes/GuildState.h"
-#include "Scenes/GuildWindow.h"
+#include "Guild/GuildState.h"
+#include "Guild/GuildWindow.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/ChatInput.h"

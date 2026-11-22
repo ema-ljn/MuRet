@@ -1,5 +1,5 @@
 #include "Scenes/GameHanging.h"
-#include "Scenes/GuildState.h"
+#include "Guild/GuildState.h"
 
 #include "Data/Models/Model.h"
 #include "Render/ModelBatch.h"

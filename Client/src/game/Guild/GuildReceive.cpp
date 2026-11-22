@@ -1,4 +1,4 @@
-#include "Scenes/GuildReceive.h"
+#include "Guild/GuildReceive.h"
 
 #include "Core/Expected.h"
 #include "Protocol/Guild.h"
@@ -13,9 +13,9 @@
 #include "Scenes/GameMessages.h"
 #include "Scenes/GamePanels.h"
 #include "Scenes/CastleWindows.h"
-#include "Scenes/GuildPanels.h"
-#include "Scenes/GuildState.h"
-#include "Scenes/GuildWindow.h"
+#include "Guild/GuildPanels.h"
+#include "Guild/GuildState.h"
+#include "Guild/GuildWindow.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/Dialogs.h"

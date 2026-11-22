@@ -1,7 +1,7 @@
 #include "Scenes/CastleBattleActors.h"
 
 #include "Scenes/ActorState.h"
-#include "Scenes/GuildState.h"
+#include "Guild/GuildState.h"
 
 #include <gtest/gtest.h>
 

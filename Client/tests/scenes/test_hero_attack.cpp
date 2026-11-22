@@ -11,7 +11,7 @@
 #include "Scenes/ActorCombat.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/GameMovementState.h"
-#include "Scenes/GuildState.h"
+#include "Guild/GuildState.h"
 #include "Scenes/SocialState.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldMap.h"

@@ -4,7 +4,7 @@
 #include "Core/Expected.h"
 #include "Scenes/CastleWindowSupport.h"
 #include "Scenes/GamePanels.h"
-#include "Scenes/GuildPanels.h"
+#include "Guild/GuildPanels.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/PanelDialog.h"

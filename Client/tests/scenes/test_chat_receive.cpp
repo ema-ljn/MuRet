@@ -10,7 +10,7 @@
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/ChatBubbles.h"
-#include "Scenes/GuildState.h"
+#include "Guild/GuildState.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/WorldRuntime.h"

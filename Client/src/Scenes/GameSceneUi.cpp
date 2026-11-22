@@ -36,7 +36,7 @@
 #include "Scenes/GameSocialDrawing.h"
 #include "Scenes/GameTooltips.h"
 #include "Scenes/GameUi.h"
-#include "Scenes/GuildDrawing.h"
+#include "Guild/GuildDrawing.h"
 #include "Scenes/InventoryMoves.h"
 #include "Scenes/MapBanner.h"
 #include "Scenes/NpcWindows.h"

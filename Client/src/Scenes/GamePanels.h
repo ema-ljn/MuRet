@@ -2,10 +2,10 @@
 
 #include "Core/Expected.h"
 #include "Data/Tables/ItemTable.h"
-#include "Scenes/GuildPanels.h"
+#include "Guild/GuildPanels.h"
 #include "Scenes/CastleWindows.h"
-#include "Scenes/GuildWindow.h"
-#include "Scenes/SecondGuildWindow.h"
+#include "Guild/GuildWindow.h"
+#include "Guild/SecondGuildWindow.h"
 #include "Data/Text/TextTable.h"
 #include "Protocol/Outgoing.h"
 #include "Scenes/InventoryMoves.h"

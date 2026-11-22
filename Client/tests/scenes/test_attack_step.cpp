@@ -11,7 +11,7 @@
 #include "Scenes/HeroAttack.h"
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/GameDrawTail.h"
-#include "Scenes/GuildState.h"
+#include "Guild/GuildState.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/WorldMap.h"
 #include "Scenes/WorldRuntime.h"

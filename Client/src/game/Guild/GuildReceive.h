@@ -3,7 +3,7 @@
 #include "App/WindowState.h"
 #include "Core/Expected.h"
 #include "Protocol/Guild.h"
-#include "Scenes/GuildPanels.h"
+#include "Guild/GuildPanels.h"
 
 #include <cstdint>
 #include <string>

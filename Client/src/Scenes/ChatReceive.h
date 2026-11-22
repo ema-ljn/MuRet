@@ -6,7 +6,7 @@
 #include "Protocol/Messages.h"
 #include "Protocol/OptionData.h"
 #include "Render/Text/IGlyphRasterizer.h"
-#include "Scenes/GuildPanels.h"
+#include "Guild/GuildPanels.h"
 #include "Scenes/SceneId.h"
 
 #include <cstddef>

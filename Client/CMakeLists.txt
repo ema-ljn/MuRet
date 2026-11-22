@@ -39,7 +39,7 @@ else()
     list(APPEND client_sources "${CMAKE_CURRENT_SOURCE_DIR}/src/App/CommandLinePosix.cpp")
 endif()
 add_library(ClientLib STATIC ${client_sources})
-target_include_directories(ClientLib PUBLIC src)
+target_include_directories(ClientLib PUBLIC src src/game)
 target_compile_features(ClientLib PUBLIC cxx_std_20)
 # En vcpkg, libjpeg-turbo es estática en Linux y dinámica en Windows: el target cambia de nombre.
 target_link_libraries(ClientLib PRIVATE

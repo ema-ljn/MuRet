@@ -15,7 +15,7 @@
 #include "Scenes/FullSetScan.h"
 #include "Scenes/GameMovementState.h"
 #include "Scenes/GameItemRenderState.h"
-#include "Scenes/GuildState.h"
+#include "Guild/GuildState.h"
 #include "Scenes/HudItems.h"
 #include "Scenes/ItemHelpLevels.h"
 #include "Scenes/MapBanner.h"

@@ -13,7 +13,7 @@
 #include "Scenes/GameMessages.h"
 #include "Scenes/GamePanels.h"
 #include "Scenes/GameUi.h"
-#include "Scenes/GuildPanels.h"
+#include "Guild/GuildPanels.h"
 #include "Scenes/InventoryMoves.h"
 #include "Scenes/NpcWindows.h"
 #include "Scenes/WorldRuntime.h"

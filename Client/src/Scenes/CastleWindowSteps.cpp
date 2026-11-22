@@ -10,7 +10,7 @@
 #include "Scenes/GameMessages.h"
 #include "Scenes/GamePanels.h"
 #include "Scenes/GameUi.h"
-#include "Scenes/GuildWindow.h"
+#include "Guild/GuildWindow.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/CastleSiegeState.h"

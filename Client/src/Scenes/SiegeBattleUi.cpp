@@ -14,7 +14,7 @@
 #include "Scenes/GameMovementState.h"
 #include "Scenes/ChatReceive.h"
 #include "Scenes/GameUi.h"
-#include "Scenes/GuildState.h"
+#include "Guild/GuildState.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"

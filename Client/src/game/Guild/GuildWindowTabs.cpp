@@ -1,4 +1,4 @@
-#include "Scenes/GuildWindowTabs.h"
+#include "Guild/GuildWindowTabs.h"
 
 #include "Core/Expected.h"
 #include "Render/Models/LogicalAccess.h"
@@ -11,8 +11,8 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/GameHud.h"
 #include "Scenes/GameWindowDrawing.h"
-#include "Scenes/GuildMarks.h"
-#include "Scenes/GuildState.h"
+#include "Guild/GuildMarks.h"
+#include "Guild/GuildState.h"
 #include "Scenes/ITextDrawer.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/WorldRuntime.h"

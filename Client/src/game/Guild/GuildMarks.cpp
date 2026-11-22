@@ -1,11 +1,11 @@
-#include "Scenes/GuildMarks.h"
+#include "Guild/GuildMarks.h"
 
 #include "Core/Expected.h"
 #include "Data/Textures/Texture.h"
 #include "Data/Textures/TextureSet.h"
 #include "Render/ITextureStore.h"
 #include "Render/TextureSlot.h"
-#include "Scenes/GuildState.h"
+#include "Guild/GuildState.h"
 #include "Scenes/TextureSets.h"
 
 #include <array>

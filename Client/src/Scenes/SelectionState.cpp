@@ -9,7 +9,7 @@
 #include "Scenes/ActorConstruction.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterSlots.h"
-#include "Scenes/GuildReceive.h"
+#include "Guild/GuildReceive.h"
 #include "Scenes/MapLoad.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/SceneWorlds.h"

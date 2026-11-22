@@ -6,7 +6,7 @@
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
-#include "Scenes/GuildState.h"
+#include "Guild/GuildState.h"
 #include "Scenes/MonsterCreation.h"
 #include "Scenes/WorldEntry.h"
 #include "Scenes/WorldMap.h"

@@ -20,7 +20,7 @@
 #include "Scenes/GameMovementState.h"
 #include "Scenes/EventGlobals.h"
 #include "Scenes/GameUi.h"
-#include "Scenes/GuildState.h"
+#include "Guild/GuildState.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/QuestState.h"
 #include "Scenes/SocialState.h"

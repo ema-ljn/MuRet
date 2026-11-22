@@ -2,7 +2,7 @@
 
 #include "App/WindowState.h"
 #include "Core/Expected.h"
-#include "Scenes/GuildPanels.h"
+#include "Guild/GuildPanels.h"
 #include "UI/PanelRegistry.h"
 
 #include <cstdint>

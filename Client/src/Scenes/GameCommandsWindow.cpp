@@ -23,7 +23,7 @@
 #include "Scenes/GameMovementState.h"
 #include "Scenes/GameUi.h"
 #include "Scenes/GameWindowDrawing.h"
-#include "Scenes/GuildState.h"
+#include "Guild/GuildState.h"
 #include "Scenes/PersonalShopTitles.h"
 #include "Scenes/SocialState.h"
 #include "Scenes/SocialRequests.h"

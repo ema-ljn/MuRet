@@ -20,7 +20,7 @@
 #include "Scenes/NpcWindows.h"
 #include "Scenes/OriginalFramesOfTheSteps.h"
 #include "Scenes/GroundEffectFrame.h"
-#include "Scenes/GuildMarks.h"
+#include "Guild/GuildMarks.h"
 #include "World/Sprites.h"
 #include "World/ModelEffects.h"
 #include "Scenes/SceneCanvas.h"

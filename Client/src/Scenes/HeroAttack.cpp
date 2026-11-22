@@ -14,7 +14,7 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/CrywolfContract.h"
 #include "Scenes/GameMovementState.h"
-#include "Scenes/GuildState.h"
+#include "Guild/GuildState.h"
 #include "Scenes/HeroSkillCasts.h"
 #include "Scenes/HeroSkills.h"
 #include "Scenes/OwnCharacterRecord.h"

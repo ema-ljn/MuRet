@@ -1,1 +1,16 @@
 commit	from	to
+	Client/src/Scenes/GuildDrawing.cpp	Client/src/game/Guild/GuildDrawing.cpp
+	Client/src/Scenes/GuildDrawing.h	Client/src/game/Guild/GuildDrawing.h
+	Client/src/Scenes/GuildMarks.cpp	Client/src/game/Guild/GuildMarks.cpp
+	Client/src/Scenes/GuildMarks.h	Client/src/game/Guild/GuildMarks.h
+	Client/src/Scenes/GuildPanels.cpp	Client/src/game/Guild/GuildPanels.cpp
+	Client/src/Scenes/GuildPanels.h	Client/src/game/Guild/GuildPanels.h
+	Client/src/Scenes/GuildReceive.cpp	Client/src/game/Guild/GuildReceive.cpp
+	Client/src/Scenes/GuildReceive.h	Client/src/game/Guild/GuildReceive.h
+	Client/src/Scenes/GuildState.h	Client/src/game/Guild/GuildState.h
+	Client/src/Scenes/GuildWindow.cpp	Client/src/game/Guild/GuildWindow.cpp
+	Client/src/Scenes/GuildWindow.h	Client/src/game/Guild/GuildWindow.h
+	Client/src/Scenes/GuildWindowTabs.cpp	Client/src/game/Guild/GuildWindowTabs.cpp
+	Client/src/Scenes/GuildWindowTabs.h	Client/src/game/Guild/GuildWindowTabs.h
+	Client/src/Scenes/SecondGuildWindow.cpp	Client/src/game/Guild/SecondGuildWindow.cpp
+	Client/src/Scenes/SecondGuildWindow.h	Client/src/game/Guild/SecondGuildWindow.h

@@ -1,4 +1,4 @@
-#include "Scenes/GuildReceive.h"
+#include "Guild/GuildReceive.h"
 
 #include "App/WindowState.h"
 #include "Core/Expected.h"
@@ -17,8 +17,8 @@
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/EventGlobals.h"
 #include "Scenes/GamePanels.h"
-#include "Scenes/GuildPanels.h"
-#include "Scenes/GuildState.h"
+#include "Guild/GuildPanels.h"
+#include "Guild/GuildState.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "Scenes/WorldEntry.h"

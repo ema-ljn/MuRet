@@ -18,7 +18,7 @@
 #include "Scenes/FaunaDrawing.h"
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/GameItemSpecialDrawing.h"
-#include "Scenes/GuildState.h"
+#include "Guild/GuildState.h"
 #include "World/ChaosCastle.h"
 #include "World/IFishStepServices.h"
 #include "World/Particles.h"

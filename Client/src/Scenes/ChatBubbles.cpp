@@ -4,7 +4,7 @@
 #include "Core/Expected.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/GameMessages.h"
-#include "Scenes/GuildState.h"
+#include "Guild/GuildState.h"
 #include "Scenes/PersonalShopTitles.h"
 #include "Scenes/ShopSigns.h"
 #include "Scenes/SocialState.h"

@@ -6,7 +6,6 @@
 #include "Render/Models/Cloth.h"
 #include "Scenes/ActorCombat.h"
 #include "Scenes/ActorState.h"
-#include "Scenes/CharacterDrawing.h"
 #include "Scenes/CombatActionSpeeds.h"
 
 #include <cstdint>

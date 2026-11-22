@@ -12,6 +12,7 @@
 #include "Render/Models/OriginalAngles.h"
 #include "Render/Models/OriginalRetainedMath.h"
 #include "Render/Models/OriginalRotation.h"
+#include "Render/Models/RoundedMath.h"
 #include "Render/Models/Skeleton.h"
 #include "Render/Pass3D.h"
 #include "Render/TextureSlot.h"
@@ -68,6 +69,8 @@ using Client::Render::TextureSlot;
 using Client::Render::Models::ActionInfo;
 using Client::Render::Models::BoneKey;
 using Client::Render::Models::CrtRandom;
+using Client::Render::Models::RoundedCos;
+using Client::Render::Models::RoundedSin;
 using Client::Render::Models::Skeleton;
 using Client::Render::Models::SkeletonBone;
 using Client::Scenes::ActorPoolSize;
@@ -1158,8 +1161,8 @@ TEST(HelperTableTest, InItsWindowTheQuakeRingsSixStonesOnOddCountsAndShakesTheCa
         EXPECT_EQ(effect.life, 40) << stone;
         // El anillo, sin la matriz: (−300 · sen z; 300 · cos z) alrededor del caballo.
         const double radians = static_cast<double>(turn.z) * 3.14159265358979323846 / 180.0;
-        EXPECT_NEAR(effect.transform.position.x - horse.x, -300.0 * std::sin(radians), 0.01) << stone;
-        EXPECT_NEAR(effect.transform.position.y - horse.y, 300.0 * std::cos(radians), 0.01) << stone;
+        EXPECT_NEAR(effect.transform.position.x - horse.x, -300.0 * RoundedSin(radians), 0.01) << stone;
+        EXPECT_NEAR(effect.transform.position.y - horse.y, 300.0 * RoundedCos(radians), 0.01) << stone;
     }
     EXPECT_FALSE(effects[6].alive);
     EXPECT_EQ(shake, QuakeShake(expected));

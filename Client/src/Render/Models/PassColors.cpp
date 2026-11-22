@@ -1,6 +1,7 @@
 #include "Render/Models/PassColors.h"
 
 #include "Core/IClock.h"
+#include "Render/Models/RoundedMath.h"
 #include "Render/Models/Shine.h"
 #include "Render/SpriteVertex.h"
 
@@ -9,7 +10,6 @@
 #include <algorithm>
 #include <array>
 #include <chrono>
-#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <optional>
@@ -264,14 +264,14 @@ Color ExcellentColorAt(Core::Duration clock)
 {
     const double milliseconds = std::chrono::duration<double, std::milli>(clock).count();
     // 0,002 y 0,3 como los floats de 0x6b89bc y 0x6b89dc.
-    const auto k = static_cast<float>((std::sin(milliseconds * static_cast<double>(0.002f)) + 1.0) * 0.5);
+    const auto k = static_cast<float>((RoundedSin(milliseconds * static_cast<double>(0.002f)) + 1.0) * 0.5);
     return Color{k, k * 0.3f, 1.0f - k, 1.0f};
 }
 
 double SetPulseAt(double milliseconds)
 {
     // 0,001, 0,5 y 0,4 como los floats de 0x6b89c8, 0x6b882c y 0x6b87b4.
-    return std::sin(milliseconds * static_cast<double>(0.001f)) * 0.5 + static_cast<double>(0.4f);
+    return RoundedSin(milliseconds * static_cast<double>(0.001f)) * 0.5 + static_cast<double>(0.4f);
 }
 
 bool SetPulseIsOff(double pulse)

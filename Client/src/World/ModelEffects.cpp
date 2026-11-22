@@ -8,6 +8,7 @@
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/ObjectState.h"
 #include "Render/Models/OriginalRotation.h"
+#include "Render/Models/RoundedMath.h"
 #include "Render/Models/Skeleton.h"
 #include "World/OriginalFtol.h"
 #include "World/Sprites.h"
@@ -882,10 +883,10 @@ std::optional<std::size_t> ModelEffects::CreateIcarusEffect(std::int16_t type, c
         constexpr std::int32_t FlareLife = 400;
         effect.light = glm::vec3(FlareLight);
         const double speed = static_cast<double>(random.Next() % SpeedSpan + SpeedBase) * Half;
-        const double cosSteep = std::cos(Steep);
-        effect.velocity.x = F32((std::sin(Side) * cosSteep) * speed);
-        effect.velocity.y = F32((std::cos(Side) * cosSteep) * speed);
-        effect.velocity.z = F32(std::sin(Steep) * speed);
+        const double cosSteep = Render::Models::RoundedCos(Steep);
+        effect.velocity.x = F32((Render::Models::RoundedSin(Side) * cosSteep) * speed);
+        effect.velocity.y = F32((Render::Models::RoundedCos(Side) * cosSteep) * speed);
+        effect.velocity.z = F32(Render::Models::RoundedSin(Steep) * speed);
         effect.transform.scale = FlareScale;
         effect.life = FlareLife;
         return slot;

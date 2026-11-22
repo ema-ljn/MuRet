@@ -154,6 +154,16 @@ dibujaría a saltos. Con `--pacing faithful` (el ritmo del original, VSync apaga
 En Windows: `cmake --preset windows-x64`, `cmake --build --preset windows-x64-debug` y
 `build\windows-x64\Client\Debug\Main.exe`.
 
+A `-O0` Debug build spends about 40 ms of CPU on a frame with 40 monsters on screen, the whole
+budget of a frame, mostly in standard-library calls that are not inlined
+([ADR 0026](../docs/adr/0026-keep-the-standard-library.md)). To play or step through the game at
+speed on Linux, use `linux-x64-fastdebug`: Debug with `-Og`, about 5 times faster, in the same build
+time (`cmake --preset linux-x64-fastdebug`, `cmake --build --preset linux-x64-fastdebug` and
+`./build/linux-x64-fastdebug/Client/Main`). On Windows, `cmake --build --preset
+windows-x64-relwithdebinfo` builds `build\windows-x64\Client\RelWithDebInfo\Main.exe`, optimized
+with debug symbols but without MSVC's iterator checks; it is not measured yet and CI does not build
+it. CI keeps building Debug, with its checks.
+
 Los headers de la biblioteca estándar (y GoogleTest en los tests) se precompilan
 (`cmake/PrecompiledHeaders.cmake`): un build limpio usa como un cuarto menos de CPU. Para compilar
 como el job de Linux del CI, que verifica que cada archivo incluya lo que usa, configurá con

@@ -434,6 +434,10 @@ Render/Models/Pose.cpp	201	Render	engine/Models	medium	model simulation (skeleto
 Render/Models/Pose.h	72	Render	engine/Models	medium	model simulation (skeleton, pose, cloth, x87 math), not drawing
 Render/Models/RayPicking.cpp	74	Render	engine/Models	medium	model simulation (skeleton, pose, cloth, x87 math), not drawing
 Render/Models/RayPicking.h	36	Render	engine/Models	medium	model simulation (skeleton, pose, cloth, x87 math), not drawing
+Render/Models/RoundedMath.h	23	Render	engine/Math	high	correctly rounded sin, cos, tan, acos and log10, the same bits on every system; used by every layer above
+Render/Models/RoundedMath/RoundedMath.cpp	67	Render	engine/Math	high	correctly rounded sin, cos, tan, acos and log10, the same bits on every system; used by every layer above
+Render/Models/RoundedTransforms.cpp	39	Render	engine/Math	high	glm's rotation and perspective with the rounded sine, cosine and tangent; used by Render and Scenes
+Render/Models/RoundedTransforms.h	13	Render	engine/Math	high	glm's rotation and perspective with the rounded sine, cosine and tangent; used by Render and Scenes
 Render/Models/Shine.cpp	94	Render	engine/Models	medium	model simulation (skeleton, pose, cloth, x87 math), not drawing
 Render/Models/Shine.h	36	Render	engine/Models	medium	model simulation (skeleton, pose, cloth, x87 math), not drawing
 Render/Models/Skeleton.cpp	98	Render	engine/Models	medium	model simulation (skeleton, pose, cloth, x87 math), not drawing

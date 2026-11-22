@@ -309,6 +309,50 @@ piecemeal", porque es mucho; acá son dos archivos, y alinearlos al tocarlos no 
 - **Una sub-ola = un concepto = un PR chico.** Los diffs chicos se revisan mejor.
 - Si dudás de una decisión estructural, preguntá antes de construir encima.
 
+### The standard library in the client (2026-11-21)
+
+The client keeps the C++ standard library for its containers and vocabulary types
+([ADR 0026](adr/0026-keep-the-standard-library.md)). Measured on `main` `bfaad8b`, its heaviest
+scene costs 2.5 to 3.2 ms of CPU of a 40 ms frame at `-O2`, and EASTL ties with `std` there.
+
+- **No container library replaces `std`.** A new one (EASTL, Abseil, folly, Boost.Container, a
+  hash map) comes in only with a measurement that shows the problem in the client, under the rules
+  above. Even then, in this order: fix the usage pattern (`reserve`, a reused buffer, a
+  `std::span`); a `std::array` with a count, or a small `StaticVector` in `Core`;
+  `ankerl::unordered_dense` for one hot hash table; Boost.Container if several special containers
+  are needed; `std::flat_map` and `std::inplace_vector` once the CI compilers ship them.
+- **Sorting.** What the original sorts with its `std::sort` goes through `Core::Msvc6Sort`,
+  because the order of equal elements reaches the screen. `std::sort` and `std::ranges::sort` only
+  when no two elements compare equal or equal ones cannot be told apart (integers, unique slots).
+  `std::stable_sort` when the original keeps equal elements in arrival order.
+- **Random numbers.** What the original draws with `rand()` goes through `CrtRandom`, in the
+  original's order. `std::mt19937` and `std::minstd_rand` are fixed by the standard and may serve
+  MuRet's own draws, using their raw output. Never `std::rand`, `std::shuffle`, `std::sample` or the
+  `<random>` distributions (`std::uniform_int_distribution` and the rest): the standard does not fix
+  their results, and GCC and MSVC give different ones.
+- **Hash tables.** Nothing the player sees, and no order of calls, depends on the iteration order
+  of a `std::unordered_map` or `std::unordered_set`, or on the value of `std::hash`: both change
+  between standard libraries and versions. A table that is walked is a `std::map`, a sorted
+  `std::vector` or a container that keeps insertion order.
+- **Text.** A text the original builds with `sprintf` or `wsprintfA` from a `Text.bmd` format goes
+  through `UI::SprintfFormat` or `UI::OriginalFormat`: only they reproduce the CRT's flags, widths
+  and what happens when the format and its arguments do not match. `std::format` is for logs,
+  errors and MuRet's own fixed formats whose output equals the CRT's (`{}` of an integer or a
+  text). A floating-point value the player sees is never printed with `std::format`: `{}` gives the
+  shortest representation, and `%f` does not.
+- **Math.** IEEE 754 fixes `+`, `-`, `*`, `/` and the square root. Each C library rounds the sine,
+  the cosine, the logarithm and their kind in its own way, and glm calls them inside `glm::rotate`,
+  `glm::perspective`, `glm::slerp`, `glm::angleAxis` and `glm::quat(vec3)`: the same frame gave
+  other pixels on Windows and on Linux. The client takes them correctly rounded
+  ([ADR 0027](adr/0027-correctly-rounded-math.md)): `RoundedSin`, `RoundedCos`, `RoundedTan`,
+  `RoundedAcos` and `RoundedLog10` from `Render/Models/RoundedMath.h`, `RoundedRotate` and
+  `RoundedPerspective` from `RoundedTransforms.h`. Never `std::sin`, `std::cos`, `std::atan2`,
+  `std::exp`, `std::log`, `std::pow` or their kind, with or without `std::`, in `Client/src` or
+  `Client/tests`. A function the module lacks is added to it, with its MPFR hash. `std::sqrt`,
+  `std::fabs`, `std::floor`, `std::fmod` and `std::ldexp` give the same bits everywhere and stay.
+  `Client/tools/architecture/check_rounded_math.py` checks the names in CI; the one call it lets
+  through is in `rounded-math-exceptions.tsv`, with its reason.
+
 ## 11. Documentar el uso, no las tripas
 
 - Lo nuevo o cambiado se documenta al nivel de **uso**: cómo se compila, se corre y se configura
@@ -336,6 +380,26 @@ piecemeal", porque es mucho; acá son dos archivos, y alinearlos al tocarlos no 
   - recorridos O(N²) sobre sesiones cuando hay uno O(N) directo.
 - **Medí antes de optimizar** (las sub-olas 2.3 y 4.3 son justamente eso). "Caliente" se juzga por
   frecuencia de llamada, no por lo importante que parece el código.
+
+### The client's frame (2026-11-21)
+
+In the client, the hot path is what runs every frame: the 25 steps per second and the drawing of
+each frame ([ADR 0026](adr/0026-keep-the-standard-library.md)).
+
+- **No allocation per mesh, per actor or per draw.** Code that runs every frame does not create a
+  container for each mesh, actor or draw, and does not build a new `std::function`. It reuses a
+  buffer that outlives the frame (cleared, not freed), or a `std::array` with a count where the
+  original has a fixed array; what happens past that array's end follows the research. A callback
+  that does not change between frames is built once, or replaced by an interface its caller keeps.
+- **Today's exceptions are scheduled.** With 40 monsters on screen, the skinning
+  (`Render/Models/Skinning.cpp`) and the character drawing (`Scenes/CharacterDrawing.cpp`) create
+  about 2,090 temporary `std::vector` per frame, and `GamePanels` rebuilds about 85
+  `std::function`. The refactor removes them (AR4.1 and AR4.5 of the
+  [plan](superpowers/plans/2026-11-20-client-architecture-refactor.md)) with the behavior golden
+  identical. New code does not add more.
+- **Measure an optimized build.** At `-O2`, `malloc` and `free` cost 0.15 ms of that frame. At
+  `-O0` the frame is about 15 times slower because nothing is inlined, so a profile of a `-O0`
+  build points at the standard library instead of the code: profile `-O2`, or `-Og` to debug.
 
 ## 13. Cada comportamiento, un test (propia de MuRet)
 

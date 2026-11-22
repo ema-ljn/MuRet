@@ -1,6 +1,7 @@
 #include "GameLogic/CharacterPosition.h"
 
 #include "Render/Models/OriginalRotation.h"
+#include "Render/Models/RoundedMath.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -60,7 +61,7 @@ bool TryUpdateCharacterPosition(CharacterPositionState state, const std::functio
     state.position.z = static_cast<float>(offset == 0.0 ? terrainHeight : terrainHeight + offset);
     if (bobbing)
     {
-        const auto sine = static_cast<float>(std::sin(static_cast<double>(state.phase)));
+        const auto sine = static_cast<float>(Render::Models::RoundedSin(static_cast<double>(state.phase)));
         const double product = std::fabs(static_cast<double>(sine)) * BobbingAmplitude;
         state.position.z = static_cast<float>((static_cast<double>(state.position.z) - product) + BobbingAmplitude);
     }

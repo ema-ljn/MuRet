@@ -9,6 +9,7 @@
 #include "Render/Models/Animation.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
+#include "Render/Models/RoundedTransforms.h"
 #include "Render/Pass3D.h"
 #include "Render/ScreenScale.h"
 #include "Render/SpriteBatch.h"
@@ -41,7 +42,6 @@
 #include "World/ItemState.h"
 #include "World/TerrainCulling.h"
 
-#include <glm/ext/matrix_clip_space.hpp>
 #include <glm/ext/matrix_float4x4.hpp>
 #include <glm/ext/matrix_transform.hpp>
 #include <glm/ext/vector_float3.hpp>
@@ -650,9 +650,10 @@ Render::Pass3D PortraitPass(App::PixelSize screen, const UI::OldWindowBase& base
     // 0x495801..0x495826: la x87, guardada en float.
     const auto aspect =
         static_cast<float>((static_cast<double>(base.width) * rx) / (ry * static_cast<double>(PortraitHeight)));
-    pass.projection = glm::perspective(glm::radians(FieldOfView), aspect, NearPlane, FarPlane);
-    glm::mat4 view = glm::rotate(glm::mat4(1.0f), glm::radians(RightAngle), glm::vec3(1.0f, 0.0f, 0.0f));
-    view = glm::rotate(view, glm::radians(RightAngle), glm::vec3(0.0f, 0.0f, 1.0f));
+    pass.projection = Render::Models::RoundedPerspective(glm::radians(FieldOfView), aspect, NearPlane, FarPlane);
+    glm::mat4 view =
+        Render::Models::RoundedRotate(glm::mat4(1.0f), glm::radians(RightAngle), glm::vec3(1.0f, 0.0f, 0.0f));
+    view = Render::Models::RoundedRotate(view, glm::radians(RightAngle), glm::vec3(0.0f, 0.0f, 1.0f));
     view = glm::translate(view, Distance);
     double drop = -static_cast<double>(actor.position.z);
     if (actor.pet.model == DarkHorsePet)

@@ -7,6 +7,7 @@
 #include "Render/Models/Cloth.h"
 #include "Render/Models/ObjectState.h"
 #include "Render/Models/Pose.h"
+#include "Render/Models/RoundedTransforms.h"
 #include "Render/Pass3D.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/FaunaDrawing.h"
@@ -16,7 +17,6 @@
 #include "UI/Widget.h"
 #include "World/OriginalFtol.h"
 
-#include <glm/ext/matrix_clip_space.hpp>
 #include <glm/ext/matrix_float4x4.hpp>
 #include <glm/ext/vector_float3.hpp>
 #include <glm/ext/vector_int2.hpp>
@@ -696,7 +696,7 @@ Core::Expected<UiItemPass, std::string> MakeUiItemPass(App::PixelSize screen, fl
     made.pass.screen = screen;
     made.pass.viewport = glm::ivec4(0, 0, screen.width, screen.height);
     const auto aspect = F32(static_cast<double>(screen.width) / static_cast<double>(screen.height));
-    made.pass.projection = glm::perspective(glm::radians(FieldOfView), aspect, NearPlane, farPlane);
+    made.pass.projection = Render::Models::RoundedPerspective(glm::radians(FieldOfView), aspect, NearPlane, farPlane);
     made.pass.view = glm::mat4(1.0f);
     made.pass.farPlane = farPlane;
     auto projection = MakeGameProjection(made.pass, FieldOfView);

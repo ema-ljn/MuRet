@@ -13,6 +13,7 @@
 #include "Render/Models/Attachment.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/HalfLifeMath.h"
+#include "Render/Models/RoundedMath.h"
 #include "Render/Models/Skeleton.h"
 #include "Render/Pass3D.h"
 #include "Render/TextureSlot.h"
@@ -63,6 +64,7 @@
 // ejecutar el original. Un modelo sintético de un triángulo en el hueso 0 deja ver el cuerpo, el contorno y la sombra.
 namespace
 {
+using Client::Render::Models::RoundedSin;
 using Client::Scenes::ActorState;
 using Client::Scenes::GameCharacterPass;
 
@@ -559,7 +561,7 @@ TEST_F(MonsterDrawingTest, TheArchangelsMarkTheFloorUnderThem)
         EXPECT_EQ(decal.state.blend, Client::Render::ModelBlend::Additive);
         ASSERT_TRUE(decal.state.texture.has_value());
         EXPECT_EQ(decal.state.texture->value, 0x61e);
-        const double pulse = std::sin(1000.0 * static_cast<double>(std::bit_cast<float>(0x3ac49ba6u))) *
+        const double pulse = RoundedSin(1000.0 * static_cast<double>(std::bit_cast<float>(0x3ac49ba6u))) *
                                  static_cast<double>(std::bit_cast<float>(0x3e99999au)) +
                              static_cast<double>(std::bit_cast<float>(0x3f4ccccdu));
         ExpectColor(m_batch.Vertices()[6], static_cast<float>(pulse * 0.5), static_cast<float>(pulse * 0.5),

@@ -248,13 +248,19 @@ does). It XORs every byte that comes in and remaps opcodes, and around that it r
 code of the selection and the F3 11 head, so our names say `XorRemap`: `XorRemapObfuscation` next to `IObfuscation` and
 `IdentityObfuscation`, `XorRemapTables`, the option `MURET_XOR_REMAP`, the target `MuRetXorRemap` and the module
 `engine/Network/XorRemap` (its row in `Client/modules.tsv` and the map targets change in this PR). Only the citations keep
-`FoxAnti.dll`, because that is the original file they cite. This PR renames code, not files: a file renamed and edited in
-the same PR fails CI's pure-move check, so `Network/FoxAntiObfuscation.{h,cpp}`,
-`tests/network/test_fox_anti_obfuscation.cpp` and `test_golden_fox_anti_obfuscation.cpp` keep their names until Task 7.
-New files are born with the new name.
+`FoxAnti.dll`, because that is the original file they cite, and so does `tests/vectors/net/tools/foxanti_cases.c`,
+which drives the research's port of that DLL.
+
+**Two PRs, because the files change name too** (Emanuel, 2026-11-22: if the name changes, rename the files). A file
+renamed and edited in the same PR fails CI's pure-move check, so the rename goes first, on its own:
+`refactor(AR1.1): rename the FoxAnti files to XorRemap`, branch `refactor/ar1.1-xor-remap-rename`. It runs `git mv` on
+`Network/FoxAntiObfuscation.{h,cpp}` to `Network/XorRemapObfuscation.{h,cpp}`, `tests/network/test_fox_anti_obfuscation.cpp`
+to `test_xor_remap_obfuscation.cpp` and `test_golden_fox_anti_obfuscation.cpp` to `test_golden_xor_remap_obfuscation.cpp`,
+and changes only include lines, the map's `file` column and the build paths; `check_pure_move.py` passes. The design PR
+below starts from it, and every file it creates is born with the new name.
 
 **Files:**
-- Modify: `Network/FoxAntiObfuscation.{h,cpp}` (the class becomes `XorRemapObfuscation` and takes `XorRemapTables`),
+- Modify: `Network/XorRemapObfuscation.{h,cpp}` (the class becomes `XorRemapObfuscation` and takes `XorRemapTables`),
   `Network/IObfuscation.h` (comment only if it names the mode)
 - Create: `Client/src/Network/XorRemapTables.h` (map row `engine/Network/XorRemap`), `Client/src/App/MakeObfuscation.h`,
   `App/MakeObfuscationXorRemap.cpp`, `App/MakeObfuscationNone.cpp`, `App/LabXorRemapTables.h` (rows `app/App`)
@@ -278,8 +284,8 @@ New files are born with the new name.
 - Produces: `std::unique_ptr<const Network::IObfuscation> Client::App::MakeObfuscation()`. CMake option
   `MURET_XOR_REMAP` (default `ON`) sets `MURET_MAKE_OBFUSCATION_SOURCE`, which `Main` and `test_make_obfuscation`
   compile: `ON` is `MakeObfuscationXorRemap.cpp`, and both link `MuRetXorRemap`, a static library with
-  `Network/FoxAntiObfuscation.cpp` that links `ClientLib`; `OFF` is `MakeObfuscationNone.cpp`, and no source of the
-  layer is built. `ClientLib`'s glob excludes `Network/FoxAntiObfuscation.cpp` and `App/MakeObfuscation*.cpp`.
+  `Network/XorRemapObfuscation.cpp` that links `ClientLib`; `OFF` is `MakeObfuscationNone.cpp`, and no source of the
+  layer is built. `ClientLib`'s glob excludes `Network/XorRemapObfuscation.cpp` and `App/MakeObfuscation*.cpp`.
 - Produces: `muret_add_module_tests(XOR_REMAP <file> …)`: those files build only with `MURET_XOR_REMAP`, link
   `MuRetXorRemap`, and count as registered either way (like `OTHER_SYSTEM`).
 
@@ -294,7 +300,7 @@ TEST(ConfigTest, RejectsTheRemovedObfuscationKey)
 }
 ```
 
-  In `test_fox_anti_obfuscation.cpp`: `XorRemapObfuscation(LabXorRemapTables())` passes every current case, and
+  In `test_xor_remap_obfuscation.cpp`: `XorRemapObfuscation(LabXorRemapTables())` passes every current case, and
   `TEST(XorRemapObfuscationTest, UsesTheInjectedInboundXor)` builds tables with `inboundXor = std::byte{0x55}` and
   expects `InboundMask` to return 0x55. A new `tests/app/test_make_obfuscation.cpp` expects `InboundMask(std::byte{0xC1})`
   to be 0xAA with the option on and 0 with it off (one file, compiled with `MURET_MAKE_OBFUSCATION_SOURCE`; the
@@ -309,7 +315,7 @@ TEST(ConfigTest, RejectsTheRemovedObfuscationKey)
 - [ ] **Step 5: CI and docs.** The job "Windows (MSVC, Release, matemática)" adds `-DMURET_XOR_REMAP=OFF` to its
   configure. `Client/README.md` drops the key from the `.ini` table and example and says how to build without the layer.
 - [ ] **Step 6: Check** `grep -rn "FoxAnti" Client/src Client/tests` shows it only in citations of `FoxAnti.dll` and in
-  the three file names that Task 7 renames, no file outside the layer, `App/MakeObfuscationXorRemap.cpp`,
+  `foxanti_cases.c`, no file outside the layer, `App/MakeObfuscationXorRemap.cpp`,
   `App/LabXorRemapTables.h` and the `XOR_REMAP` tests names `XorRemap`, the `git diff -M50%` check, then push.
   Expected: CI green, and the Windows Release job builds and links `Main` without the layer.
 
@@ -377,10 +383,7 @@ PR `refactor(AR1.2): move the engine to Client/src/engine`, branch `refactor/ar1
   `python3 -I Client/tools/architecture/move.py --root engine --modules game/Tables,game/Maps,game/Sound`.
 - [ ] **Step 2: Do by hand only what it printed:** `target_include_directories(ClientLib PUBLIC src src/engine src/game)`,
   and the `list(FILTER … REGEX)` lines and globs that named an emptied folder (`/src/Platform/` →
-  `/src/engine/Platform/`, `/src/Render/Gl/`, `/src/Render/Models/RoundedMath/`, `Network/FoxAntiObfuscation.cpp`).
-  Then `git mv` the three files Task 4 left with the old name, without touching their content: `engine/Network/XorRemap/
-  FoxAntiObfuscation.{h,cpp}` to `XorRemapObfuscation.{h,cpp}`, and the two tests to `test_xor_remap_obfuscation.cpp`
-  and `test_golden_xor_remap_obfuscation.cpp`; only their include lines and the build paths change.
+  `/src/engine/Platform/`, `/src/Render/Gl/`, `/src/Render/Models/RoundedMath/`, `Network/XorRemapObfuscation.cpp`).
 - [ ] **Step 3: Check** `check_pure_move.py --base origin/refactor/client --head HEAD` lists nothing, `check_layers.py
   --clean-root engine` prints `0 new`, and `git diff -M50% --diff-filter=M` only touches include lines and build paths.
   Push and let CI build. Expected: green, the golden unchanged.

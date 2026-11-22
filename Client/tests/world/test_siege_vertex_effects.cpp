@@ -8,9 +8,9 @@
 #include <gtest/gtest.h>
 
 #include <glm/ext/vector_float3.hpp>
+#include <glm/geometric.hpp>
 
 #include <bit>
-#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
@@ -87,7 +87,7 @@ TEST(SiegeVertexEffectsTest, TheGolemStoneAndTheShowerTakeTheirSmallPush)
         EXPECT_EQ(effect.life, life);
         EXPECT_EQ(effect.transform.angles, angles);
         EXPECT_EQ(effect.transform.position, (glm::vec3{2, 3, 54}));
-        EXPECT_NEAR(std::hypot(effect.velocity.x, effect.velocity.y, effect.velocity.z), push, 1e-3);
+        EXPECT_NEAR(glm::length(effect.velocity), push, 1e-3);
         EXPECT_EQ(random.State(), expected.State());
     }
 }

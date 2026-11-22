@@ -1801,7 +1801,7 @@ TEST(CharacterDrawingTest, TheHorseChromeGoesOnMeshesTwelveToFifteen)
     const std::size_t first = batch.Commands()[1].firstVertex;
     for (std::size_t mesh = 0; mesh < 4; ++mesh)
     {
-        const float factor = std::pow(0.5f, static_cast<float>(mesh + 1));
+        const float factor = std::ldexp(1.0f, -static_cast<int>(mesh + 1));
         ExpectColor(batch.Vertices()[first + (mesh * 3)], factor, 0.8f * factor, 0.3f * factor);
     }
 }

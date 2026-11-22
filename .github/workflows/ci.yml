@@ -198,6 +198,13 @@ jobs:
             --map Client/docs/research/coverage/module-map.tsv \
             --baseline Client/tools/architecture/layers-baseline.tsv
 
+      # ADR 0027: math that the C library or glm rounds, called by name instead of through RoundedMath.h, fails.
+      - name: Client rounded math
+        if: matrix.kind == 'includes'
+        run: |
+          python3 -I Client/tools/architecture/check_rounded_math.py --src Client/src Client/tests \
+            --exceptions Client/tools/architecture/rounded-math-exceptions.tsv
+
       # Client refactor (AR0.2): in a PR titled type(ARn) or type(ARn.m), a moved file may only change its includes;
       # in a docs(ARn.m) PR, only comments may change and every cited address stays cited. HEAD^1 is the base.
       - name: Refactor moves and comments

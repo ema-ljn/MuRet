@@ -126,6 +126,32 @@ class CheckLayersTest(unittest.TestCase):
         code, _ = self.run_check()
         self.assertEqual(code, 0)
 
+    def test_clean_root_violation_fails_even_in_the_baseline(self):
+        self.source('Core/A.h', 'Scenes/B.h')
+        self.source('Scenes/B.h')
+        self.baseline_rows.append({'file': 'Core/A.h', 'include': 'Scenes/B.h', 'from_module': 'engine/Core',
+                                   'to_module': 'game/Scenes'})
+        code, output = self.run_check('--clean-root', 'engine')
+        self.assertEqual(code, 1)
+        self.assertIn('Core/A.h -> Scenes/B.h', output)
+
+    def test_clean_root_ignores_other_roots(self):
+        self.modules.append(module('game/Chat', 9, 'Chat/**'))
+        self.source('Guild/G.cpp', 'Chat/C.h')
+        self.source('Chat/C.h')
+        self.baseline_rows.append({'file': 'Guild/G.cpp', 'include': 'Chat/C.h', 'from_module': 'game/Guild',
+                                   'to_module': 'game/Chat'})
+        code, _ = self.run_check('--clean-root', 'engine')
+        self.assertEqual(code, 0)
+
+    def test_write_baseline_refuses_a_clean_root_violation(self):
+        self.source('Core/A.h', 'Scenes/B.h')
+        self.source('Scenes/B.h')
+        code, output = self.run_check('--write-baseline', '--clean-root', 'engine')
+        self.assertEqual(code, 1)
+        self.assertIn('Core/A.h -> Scenes/B.h', output)
+        self.assertNotIn('Core/A.h', (self.dir / 'baseline.tsv').read_text(encoding='utf-8'))
+
     def test_cycle_between_two_modules(self):
         self.modules += [module('game/A', 9, 'A/**'), module('game/B', 9, 'B/**')]
         self.source('A/x.h', 'B/y.h')

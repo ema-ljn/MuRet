@@ -1,3 +1,4 @@
+#include "Render/Models/IModelLibrary.h"
 #include "Scenes/ModelBody.h"
 
 #include "Core/Expected.h"
@@ -552,7 +553,7 @@ TEST_F(MonsterStep, AModelWithItsOwnCaseOutsideItsWindowOnlyDrawsTheBrightness)
 }
 
 // La biblioteca del mapa detrás de FaunaResources con el 0x1f5 (un NPC) en el esqueleto de Monster02.
-class TraderLibrary final : public Client::Scenes::IModelLibrary
+class TraderLibrary final : public Client::Render::Models::IModelLibrary
 {
 public:
     explicit TraderLibrary(const Skeleton& skeleton, std::uint16_t model = 0x1f5) : m_skeleton(skeleton), m_model(model)

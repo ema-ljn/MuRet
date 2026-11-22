@@ -8,6 +8,7 @@
 #include "Data/Textures/Sampling.h"
 #include "Render/ITextureStore.h"
 #include "Render/Models/Animation.h"
+#include "Render/Models/IModelLibrary.h"
 #include "Render/Models/ModelTextureSlots.h"
 #include "Render/Models/Pose.h"
 #include "Render/Models/Skeleton.h"
@@ -205,7 +206,8 @@ const Render::Models::ModelTextureSlots* SelectionModels::TextureSlots() const
     return m_slots ? &*m_slots : nullptr;
 }
 
-void ChoosePreviewClass(CreatePreview& preview, std::uint8_t characterClass, const IModelLibrary& models)
+void ChoosePreviewClass(CreatePreview& preview, std::uint8_t characterClass,
+                        const Render::Models::IModelLibrary& models)
 {
     preview.characterClass = characterClass;
     preview.type = NewFaceOf(characterClass);
@@ -219,7 +221,7 @@ void ChoosePreviewClass(CreatePreview& preview, std::uint8_t characterClass, con
 }
 
 Core::Expected<void, std::string> RebuildPreview(CreatePreview& preview, std::uint8_t characterClass,
-                                                 const IModelLibrary& models,
+                                                 const Render::Models::IModelLibrary& models,
                                                  const ActorConstructionContext& construction,
                                                  Render::Models::ClothWorld& cloth)
 {
@@ -237,7 +239,7 @@ Core::Expected<void, std::string> RebuildPreview(CreatePreview& preview, std::ui
     return {};
 }
 
-void StepPreview(CreatePreview& preview, const IModelLibrary& models)
+void StepPreview(CreatePreview& preview, const Render::Models::IModelLibrary& models)
 {
     const Render::Models::Skeleton* skeleton = models.SkeletonOf(NewFaceOf(preview.characterClass));
     if (skeleton == nullptr || preview.animation.action >= skeleton->actions.size())
@@ -252,7 +254,8 @@ void StepPreview(CreatePreview& preview, const IModelLibrary& models)
     }
 }
 
-DrawnObject DrawnPreview(CreatePreview& preview, const IModelLibrary& models, float stepAlpha, int originalFrames)
+DrawnObject DrawnPreview(CreatePreview& preview, const Render::Models::IModelLibrary& models, float stepAlpha,
+                         int originalFrames)
 {
     const ClassPose& pose = ClassPoses[preview.characterClass < NewFaceCount ? preview.characterClass : 1];
     preview.angles = pose.angles;

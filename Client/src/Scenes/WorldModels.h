@@ -5,10 +5,10 @@
 #include "Data/Models/Model.h"
 #include "Data/Models/ModelFiles.h"
 #include "Render/ITextureStore.h"
+#include "Render/Models/IModelLibrary.h"
 #include "Render/Models/ModelTextureSlots.h"
 #include "Render/Models/Skeleton.h"
 #include "Render/TextureSlot.h"
-#include "Scenes/CharacterDrawing.h"
 #include "Scenes/TextureMetadata.h"
 
 #include <glm/ext/vector_float2.hpp>
@@ -41,7 +41,7 @@ inline constexpr std::uint16_t DragonModel = 0xb4;
 inline constexpr std::uint16_t SpearmanModel = 0x19f;
 inline constexpr Render::TextureSlot WorldModelsFirstSlot{0x41c};
 
-class WorldModels final : public IModelLibrary
+class WorldModels final : public Render::Models::IModelLibrary
 {
 public:
     // Lee los de `map` desde `dataRoot` y les da sus texturas siguiendo a `gameSlots` (la tabla de la
@@ -58,7 +58,7 @@ public:
     [[nodiscard]] Core::Expected<void, std::string> Load(const std::filesystem::path& dataRoot, std::uint8_t map,
                                                          Render::ITextureStore& textures, Core::Log& log,
                                                          const Render::Models::ModelTextureSlots* gameSlots,
-                                                         const IModelLibrary* globalModels = nullptr,
+                                                         const Render::Models::IModelLibrary* globalModels = nullptr,
                                                          ModelTextureTable* sharedTextures = nullptr);
     // Suelta las texturas y los modelos.
     void Release();
@@ -108,6 +108,6 @@ private:
     std::vector<Render::TextureSlot> m_uploaded;
     std::map<std::uint32_t, TextureMetadata> m_textureMetadata;
     // No poseedor: los modelos y texturas globales viven hasta Release; no se copian ni se modifican.
-    const IModelLibrary* m_globalModels = nullptr;
+    const Render::Models::IModelLibrary* m_globalModels = nullptr;
 };
 } // namespace Client::Scenes

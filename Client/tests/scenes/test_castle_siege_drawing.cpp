@@ -1,3 +1,4 @@
+#include "Render/Models/IModelLibrary.h"
 #include "Scenes/CastleSiegeObjectServices.h"
 
 #include "Core/Expected.h"
@@ -54,13 +55,13 @@ using Client::Render::ModelBlend;
 using Client::Render::ModelDrawState;
 using Client::Render::TextureSlot;
 using Client::Render::Models::CrtRandom;
+using Client::Render::Models::IModelLibrary;
 using Client::Render::Models::RoundedSin;
 using Client::Render::Models::Skeleton;
 using Client::Scenes::CastleSiegeBodyPass;
 using Client::Scenes::DrawCastleSiegeBody;
 using Client::Scenes::DrawnObject;
 using Client::Scenes::GameObjectPass;
-using Client::Scenes::IModelLibrary;
 using Client::Scenes::StepCastleSiegeObjectFrame;
 using Client::World::Particle;
 using Client::World::WorldObject;

@@ -1,3 +1,4 @@
+#include "Render/Models/IModelLibrary.h"
 #include "Scenes/HeroSkills.h"
 #include "Scenes/GameMovement.h"
 
@@ -16,7 +17,6 @@
 #include "Render/Models/Skeleton.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/ActorState.h"
-#include "Scenes/CharacterDrawing.h"
 #include "Scenes/DarkSpirit.h"
 #include "Scenes/GameMovementState.h"
 #include "Scenes/OwnCharacterRecord.h"
@@ -114,7 +114,7 @@ enum HeroClass : std::uint8_t
 };
 
 // El esqueleto de Player.bmd para cualquier modelo: el 0x4f4a10 de un héroe transformado (0x4ea030) pide sus acciones.
-class AnyModels final : public Client::Scenes::IModelLibrary
+class AnyModels final : public Client::Render::Models::IModelLibrary
 {
 public:
     [[nodiscard]] const Client::Data::Models::Model* Find(std::uint16_t /*model*/) const override
@@ -193,7 +193,7 @@ struct SkillHero
     std::uint32_t ticks = 100000;
     Client::Render::Models::Skeleton skeleton = Client::Tests::PlayerActionsSkeleton();
     // nullptr: el 0x4f4a10 de un héroe transformado corta (0x4ea030).
-    const Client::Scenes::IModelLibrary* models = nullptr;
+    const Client::Render::Models::IModelLibrary* models = nullptr;
     std::vector<Client::Protocol::Outgoing> sent;
     Client::Data::Tables::SkillTable skills = SkillsWith({{0x11, 3},
                                                           {0x13, 4},

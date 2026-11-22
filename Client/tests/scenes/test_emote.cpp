@@ -1,3 +1,4 @@
+#include "Render/Models/IModelLibrary.h"
 #include "Scenes/Emote.h"
 
 #include "Data/Models/Model.h"
@@ -9,7 +10,6 @@
 #include "Render/Models/Skeleton.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/ActorState.h"
-#include "Scenes/CharacterDrawing.h"
 #include "UI/Emotes.h"
 
 #include "support/Bytes.h"
@@ -40,7 +40,7 @@ constexpr std::uint8_t ElfClass = 2;
 constexpr std::uint16_t TransformedModel = 0x30;
 
 // Player.bmd con 205 acciones y el modelo de un transformado, con las que diga el test; ninguno más.
-class EmoteModels final : public Client::Scenes::IModelLibrary
+class EmoteModels final : public Client::Render::Models::IModelLibrary
 {
 public:
     const Client::Data::Models::Model* Find(std::uint16_t) const override

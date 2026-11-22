@@ -1,3 +1,4 @@
+#include "Render/Models/IModelLibrary.h"
 #include "Scenes/MonsterHelpers.h"
 
 #include "Scenes/GameDrawTail.h"
@@ -64,7 +65,7 @@ const glm::vec3 Origin{100.0f, 200.0f, 10.0f};
 const glm::vec3 RedEyes{0.9f, 0.2f, 0.1f};
 
 // Un esqueleto de veinte huesos sin padre y ocho acciones de diez keys, cada una a 0,5 por paso.
-class SwingModels final : public Client::Scenes::IModelLibrary
+class SwingModels final : public Client::Render::Models::IModelLibrary
 {
 public:
     SwingModels()

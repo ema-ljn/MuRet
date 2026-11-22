@@ -16,6 +16,7 @@ namespace Client::Render::Models
 {
 class CrtRandom;
 struct ClothWorld;
+class IModelLibrary;
 } // namespace Client::Render::Models
 
 namespace Client::World
@@ -35,7 +36,6 @@ struct TerrainAttributes;
 namespace Client::Scenes
 {
 struct ActorState;
-class IModelLibrary;
 struct SkillHitsRequest;
 class WorldState;
 } // namespace Client::Scenes
@@ -129,7 +129,7 @@ struct StepServices
     const VolleyServices* volley = nullptr;
     // Los modelos (0x5769ad8): el 0x632/0 y /1 con dueño posan el 0x20b (Player\Shadow01) al llegar al suelo
     // (0x53c1eb). Sin ellos, cortan ahí.
-    const IModelLibrary* models = nullptr;
+    const Render::Models::IModelLibrary* models = nullptr;
 };
 
 // El dueño de un joint de las familias de este archivo, cuando es un personaje (ActorState): el objeto del original,

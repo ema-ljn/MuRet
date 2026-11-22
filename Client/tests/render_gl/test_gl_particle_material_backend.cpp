@@ -12,12 +12,12 @@
 #include "Render/Gl/TextureTable.h"
 #include "Render/ModelBatch.h"
 #include "Render/ModelFog.h"
+#include "Render/Models/IModelLibrary.h"
 #include "Render/TextureEnvMode.h"
 #include "Render/ModelBatchParticleState.h"
 #include "Render/ModelVertex.h"
 #include "Render/SpriteVertex.h"
 #include "Render/Pass3D.h"
-#include "Scenes/CharacterDrawing.h"
 #include "Data/Models/Model.h"
 #include "Render/Models/Skeleton.h"
 #include "Render/TextureSlot.h"
@@ -39,7 +39,7 @@
 
 namespace
 {
-class MaterialModels : public Client::Scenes::IModelLibrary
+class MaterialModels : public Client::Render::Models::IModelLibrary
 {
 public:
     const Client::Data::Models::Model* Find(std::uint16_t) const override

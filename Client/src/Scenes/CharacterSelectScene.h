@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Render/Models/Animation.h"
+#include "Render/Models/IModelLibrary.h"
 #include "World/GameCamera.h"
 
 #include "App/ServerSession.h"
@@ -73,7 +74,7 @@ public:
     // dibuja los fondos y no pide nada.
     // `gameSlots` es la tabla de los slots de la carga (GameModels::TextureSlots), que la vista previa
     // de la ventana de crear sigue desde 0x6f8; nullptr, una tabla vacía. Tiene que vivir más.
-    CharacterSelectScene(const SceneContext& context, const GameData& data, const IModelLibrary& models,
+    CharacterSelectScene(const SceneContext& context, const GameData& data, const Render::Models::IModelLibrary& models,
                          App::ServerSession* session, const Render::Models::ModelTextureSlots* gameSlots = nullptr);
     CharacterSelectScene(const SceneContext& context, const GameData& data, GameModels& models,
                          App::ServerSession* session);
@@ -241,7 +242,7 @@ private:
     Render::Camera3D m_previewCamera;
     const Data::Text::TextTable* m_texts;
     const Data::Tables::ItemTable* m_items;
-    const IModelLibrary& m_models;
+    const Render::Models::IModelLibrary& m_models;
     App::ServerSession* m_session;
     SceneTextures m_textures;
     SceneTextures m_windowTextures;

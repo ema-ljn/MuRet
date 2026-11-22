@@ -1,3 +1,4 @@
+#include "Render/Models/IModelLibrary.h"
 #include "Scenes/CreatePreview.h"
 
 #include "App/WindowState.h"
@@ -36,7 +37,7 @@ using Client::Scenes::StepPreview;
 using Client::UI::Rect;
 
 // Dos acciones de 4 keys, la 1 sin repetir, en un hueso.
-class FaceModels final : public Client::Scenes::IModelLibrary
+class FaceModels final : public Client::Render::Models::IModelLibrary
 {
 public:
     FaceModels()

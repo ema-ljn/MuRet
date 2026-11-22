@@ -2,13 +2,13 @@
 
 #include "Core/Expected.h"
 #include "Render/IParticleDrawBackend.h"
+#include "Render/ITextureSlots.h"
 #include "Render/ModelBatch.h"
 #include "Render/ModelBatchParticleState.h"
 #include "Render/ModelVertex.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Render/SpriteVertex.h"
 #include "Render/TextureEnvMode.h"
-#include "Scenes/CharacterDrawing.h"
 
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
@@ -101,9 +101,9 @@ Core::Expected<ModelBlend, std::error_code> BlendOf(const ModelBatchParticleStat
 } // namespace
 
 ModelBatchParticleBackend::ModelBatchParticleBackend(std::reference_wrapper<ModelBatch> batch,
-                                                     std::reference_wrapper<const Scenes::IModelLibrary> models,
+                                                     std::reference_wrapper<const ITextureSlots> textures,
                                                      ModelBatchParticleState initialState)
-    : m_batch(batch), m_models(models), m_state(initialState), m_primitiveSpace(ModelCoordinateSpace::Eye)
+    : m_batch(batch), m_textures(textures), m_state(initialState), m_primitiveSpace(ModelCoordinateSpace::Eye)
 {
 }
 
@@ -309,7 +309,7 @@ IParticleDrawBackend::Result ModelBatchParticleBackend::BindTexture(std::int32_t
         return PublishOperation(ModelStateOperation::Binding);
     }
     // La tabla pública conserva raw32 completo; los negativos ya tomaron la frontera NEG32.
-    const auto slot = m_models.get().TextureSlotOf(static_cast<std::uint32_t>(selector));
+    const auto slot = m_textures.get().TextureSlotOf(static_cast<std::uint32_t>(selector));
     if (!slot)
         return Core::Unexpected(std::make_error_code(std::errc::no_such_file_or_directory));
     m_state.rawTextureName.reset();

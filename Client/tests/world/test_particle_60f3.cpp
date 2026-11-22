@@ -1,3 +1,4 @@
+#include "Render/Models/IModelLibrary.h"
 #include "World/Particles.h"
 #include "World/IParticleTrigonometry.h"
 #include "World/ParticleDrawing.h"
@@ -5,7 +6,6 @@
 #include "Render/Models/Cloth.h"
 #include "Render/ParticleBillboardRequest.h"
 #include "Core/Expected.h"
-#include "Scenes/CharacterDrawing.h"
 #include "Scenes/ParticleDrawServices.h"
 #include "Scenes/TextureMetadata.h"
 #include "Render/IParticleDrawBackend.h"
@@ -462,7 +462,7 @@ TEST(Particle60f3Test, LegacyStepDoesNotAcquireNewAdmission)
 }
 
 constexpr std::int32_t LateSelector = 0x12345678;
-class Library final : public Scenes::IModelLibrary
+class Library final : public Render::Models::IModelLibrary
 {
 public:
     mutable std::vector<std::uint32_t> queries;

@@ -2,6 +2,7 @@
 
 #include "Render/Models/Animation.h"
 #include "Render/Models/Cloth.h"
+#include "Render/Models/IModelLibrary.h"
 #include "Render/Pass3D.h"
 #include "Scenes/FaunaDrawing.h"
 #include "World/GameCamera.h"
@@ -94,7 +95,7 @@ public:
     // Main: los tests la fijan.
     // `gameSlots`, la tabla de slots de la carga (GameModels::TextureSlots), que el mundo sigue desde
     // 0x41c como la global del original; sin ella, una vacía.
-    LoginScene(const SceneContext& context, const GameData& data, const IModelLibrary& models,
+    LoginScene(const SceneContext& context, const GameData& data, const Render::Models::IModelLibrary& models,
                App::ServerSession* session, std::string_view version, std::mt19937::result_type seed,
                const Render::Models::ModelTextureSlots* gameSlots = nullptr);
 
@@ -261,7 +262,7 @@ private:
     // Los de los avisos y el área vieja (0x554810 y 0x5554e0): con cero, el dibujo va sobre copias.
     Render::Models::OriginalFrameCarry m_messageFrames;
     std::vector<std::optional<int>> m_objectEffectRandoms;
-    const IModelLibrary& m_models;
+    const Render::Models::IModelLibrary& m_models;
     App::ServerSession* m_session;
     const Data::Text::TextTable* m_texts;
     SceneTextures m_textures;

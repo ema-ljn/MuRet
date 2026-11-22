@@ -1,3 +1,4 @@
+#include "Render/Models/IModelLibrary.h"
 #include "Scenes/GameParticles.h"
 
 #include "Core/Expected.h"
@@ -71,7 +72,7 @@ Particle Smoke()
     p.position = {10.0f, 20.0f, 1000.0f};
     return p;
 }
-class SmokeTextures final : public Client::Scenes::IModelLibrary
+class SmokeTextures final : public Client::Render::Models::IModelLibrary
 {
 public:
     const Client::Data::Models::Model* Find(std::uint16_t) const override
@@ -105,7 +106,7 @@ public:
     }
 };
 
-class FountainModels final : public Client::Scenes::IModelLibrary
+class FountainModels final : public Client::Render::Models::IModelLibrary
 {
 public:
     FountainModels()

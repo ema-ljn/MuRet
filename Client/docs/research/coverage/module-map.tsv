@@ -401,6 +401,7 @@ Render/Gl/Shaders.h	143	Render	engine/Render	high	engine or protocol layer, no g
 Render/Gl/TextureTable.cpp	59	Render	engine/Render	high	engine or protocol layer, no game state
 Render/Gl/TextureTable.h	51	Render	engine/Render	high	engine or protocol layer, no game state
 Render/IParticleDrawBackend.h	50	Render	engine/Render	high	engine or protocol layer, no game state
+Render/ITextureSlots.h	16	Render	engine/Render	high	the texture slot lookup the particle backend needs, without the model library (AR1.1)
 Render/ITextureStore.h	28	Render	engine/Render	high	engine or protocol layer, no game state
 Render/ModelBatch.cpp	114	Render	engine/Render	high	engine or protocol layer, no game state
 Render/ModelBatch.h	215	Render	engine/Render	high	engine or protocol layer, no game state
@@ -418,6 +419,7 @@ Render/Models/Cloth.cpp	893	Render	engine/Models	medium	model simulation (skelet
 Render/Models/Cloth.h	292	Render	engine/Models	medium	model simulation (skeleton, pose, cloth, x87 math), not drawing
 Render/Models/HalfLifeMath.cpp	175	Render	engine/Math	high	the original's x87 math; used by Render, Models, GameLogic and World
 Render/Models/HalfLifeMath.h	47	Render	engine/Math	high	the original's x87 math; used by Render, Models, GameLogic and World
+Render/Models/IModelLibrary.h	49	Render/Models	engine/Models	high	the loaded models drawing asks for, below the game modules that draw them (AR1.1)
 Render/Models/ItemGlow.cpp	59	Render	engine/Models	medium	model simulation (skeleton, pose, cloth, x87 math), not drawing
 Render/Models/ItemGlow.h	47	Render	engine/Models	medium	model simulation (skeleton, pose, cloth, x87 math), not drawing
 Render/Models/LogicalAccess.cpp	47	Render	engine/Models	medium	model simulation (skeleton, pose, cloth, x87 math), not drawing
@@ -1119,7 +1121,7 @@ Scenes/TestScene.cpp	55	Scenes	game/Scenes	high	scene machine: IScene/SceneManag
 Scenes/TestScene.h	48	Scenes	game/Scenes	high	scene machine: IScene/SceneManager/transitions/loop timing (CL5.4)
 Scenes/TextCacheDrawer.cpp	62	Scenes	engine/Render/Frame	high	the scene to GL frame contract, below the scenes (AR1.1)
 Scenes/TextCacheDrawer.h	48	Scenes	engine/Render/Frame	high	the scene to GL frame contract, below the scenes (AR1.1)
-Scenes/TextureMetadata.h	24	Scenes	game/Assets	high	models and textures, out of Kernel (2026-11-21 review)
+Scenes/TextureMetadata.h	24	Scenes	engine/Models	high	the CPU size and components of a decoded texture, which IModelLibrary returns (AR1.1)
 Scenes/TextureSets.h	540	Scenes	game/Assets	medium	models and textures, out of Kernel (2026-11-21 review)
 Scenes/TooltipLines.h	64	Scenes	game/Tooltips	high	item, skill and pet tooltips, above Items, Skills and Pets (2026-11-21 review)
 Scenes/TooltipWriter.cpp	146	Scenes	game/Tooltips	high	item, skill and pet tooltips, above Items, Skills and Pets (2026-11-21 review)

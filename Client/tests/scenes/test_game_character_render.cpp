@@ -1,3 +1,4 @@
+#include "Render/Models/IModelLibrary.h"
 #include "Scenes/GameCharacters.h"
 
 #include "Core/IClock.h"
@@ -156,7 +157,7 @@ void ExpectSameSprites(std::span<const Client::World::Sprite> actual, std::span<
     }
 }
 
-class CharacterModels final : public Client::Scenes::IModelLibrary
+class CharacterModels final : public Client::Render::Models::IModelLibrary
 {
 public:
     CharacterModels()

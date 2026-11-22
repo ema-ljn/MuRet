@@ -3,9 +3,9 @@
 #include "Core/Expected.h"
 #include "Data/Models/Model.h"
 #include "Data/Textures/TextureSet.h"
+#include "Render/Models/IModelLibrary.h"
 #include "Render/Models/Skeleton.h"
 #include "Render/TextureSlot.h"
-#include "Scenes/CharacterDrawing.h"
 #include "Scenes/ConstructedBmdPrefix.h"
 #include "Scenes/TextureMetadata.h"
 #include "Scenes/ModelTextureTable.h"
@@ -63,7 +63,7 @@ struct FaunaResourceSound
 // modelo 0x171 y el 0x173, desde StepGameFauna) y los de los monstruos y los NPC (desde 0x5141e0, CL9 hito 2, P-C176).
 // En el original van al arreglo global de 0x5769ad8, que no se suelta al cambiar de mapa: el dueño dura más que los
 // cambios de mapa, y Bind solo cambia la biblioteca prestada (la del mapa, que sigue con la global).
-class FaunaModels final : public IModelLibrary
+class FaunaModels final : public Render::Models::IModelLibrary
 {
 public:
     FaunaModels() = default;
@@ -72,7 +72,7 @@ public:
     FaunaModels(FaunaModels&&) = delete;
     FaunaModels& operator=(FaunaModels&&) = delete;
     ~FaunaModels() override;
-    void Bind(const IModelLibrary* base);
+    void Bind(const Render::Models::IModelLibrary* base);
     // 60dc4c: el caller entrega su elección CRT en la inicialización global de modelos.
     [[nodiscard]] Core::Expected<void, std::string> InitializePrefix(std::uint16_t constructedBeforeBase);
     [[nodiscard]] const Render::Models::Skeleton* PrefixModel() const;
@@ -151,7 +151,7 @@ private:
     ConstructedBmdPrefix m_prefix;
     ModelTextureTable m_textureTable;
     ModelTextureTable* m_sharedTextures = nullptr;
-    const IModelLibrary* m_base = nullptr;
+    const Render::Models::IModelLibrary* m_base = nullptr;
     Render::ITextureStore* m_store = nullptr;
     std::map<std::uint16_t, Entry> m_models;
     std::map<std::uint32_t, TextureMetadata> m_metadata;

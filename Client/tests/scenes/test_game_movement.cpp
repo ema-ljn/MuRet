@@ -1,5 +1,6 @@
 #include "Core/Expected.h"
 #include "GameLogic/PathCell.h"
+#include "Render/Models/IModelLibrary.h"
 #include "Scenes/GameMovement.h"
 #include "Scenes/InventoryMoves.h"
 #include "Scenes/ActorState.h"
@@ -14,7 +15,6 @@
 #include "Data/Terrain/TerrainMapping.h"
 #include "Data/Tables/SkillTable.h"
 #include "Data/Models/Model.h"
-#include "Scenes/CharacterDrawing.h"
 #include "Protocol/Movement.h"
 #include "Scenes/GameMovementState.h"
 #include "UI/ChatInput.h"
@@ -53,7 +53,7 @@ using Client::Scenes::WorldState;
 
 constexpr std::uint16_t TransformedModel = 0x154;
 
-class MovementModels final : public Client::Scenes::IModelLibrary
+class MovementModels final : public Client::Render::Models::IModelLibrary
 {
 public:
     const Client::Data::Models::Model* Find(std::uint16_t) const override

@@ -19,6 +19,7 @@
 namespace Client::Render::Models
 {
 class CrtRandom;
+class IModelLibrary;
 struct Skeleton;
 } // namespace Client::Render::Models
 
@@ -31,7 +32,6 @@ struct ModelEffectStepServices;
 
 namespace Client::Scenes
 {
-class IModelLibrary;
 class WorldState;
 struct ActorState;
 struct CharacterStepContext;
@@ -47,7 +47,7 @@ struct HighEffectContext
     Render::Models::CrtRandom& random;
     float worldClock = 0.0f;
     std::function<void(Protocol::Outgoing)> send{};
-    const IModelLibrary* models = nullptr;
+    const Render::Models::IModelLibrary* models = nullptr;
 };
 
 // El contexto de las altas desde el paso de un personaje (0x4f5b70, 0x4fd5f0, 0x4f97b0 y sus helpers).
@@ -82,7 +82,7 @@ struct HighEffectStepContext
     Render::Models::CrtRandom& random;
     const World::ModelEffectStepServices& services;
     float worldClock = 0.0f;
-    const IModelLibrary* models = nullptr;
+    const Render::Models::IModelLibrary* models = nullptr;
 };
 
 // Los tipos cuyo paso está en este archivo.

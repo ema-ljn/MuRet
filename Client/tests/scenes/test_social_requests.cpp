@@ -1,3 +1,4 @@
+#include "Render/Models/IModelLibrary.h"
 #include "Scenes/SocialRequests.h"
 
 #include "Core/Expected.h"
@@ -22,7 +23,6 @@
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Scenes/ActionSend.h"
 #include "Scenes/ActorState.h"
-#include "Scenes/CharacterDrawing.h"
 #include "Scenes/GameChat.h"
 #include "Scenes/GameCommandsWindow.h"
 #include "Scenes/GameMovementState.h"
@@ -648,7 +648,7 @@ TEST_P(CommandsWindowTest, TheWhisperAndTheDuelCommands)
 }
 
 // Player.bmd para todos los tipos: la animación del comando 8 (0x4ea030).
-class CommandModels final : public Client::Scenes::IModelLibrary
+class CommandModels final : public Client::Render::Models::IModelLibrary
 {
 public:
     const Client::Data::Models::Model* Find(std::uint16_t) const override

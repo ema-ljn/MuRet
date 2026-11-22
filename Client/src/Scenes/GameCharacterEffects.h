@@ -36,13 +36,17 @@ struct TerrainPolygon;
 struct WorldTerrain;
 } // namespace Client::World
 
+namespace Client::Render::Models
+{
+class IModelLibrary;
+}
+
 // Los efectos de un jugador en el dibujo del juego: la cola de 0x50ba30 después de lo que cuelga, del caso
 // del 0x20a del switch de 0x50e9fa (0x50ea20) al return, y el cuervo de 0x420df0. Lo que pide un efecto,
 // un joint, una partícula o un sonido que MuRet no tiene corta con su dirección, y sólo cuando la rama de
 // verdad correría. Contrato: 06 § El dibujo del juego, "Los efectos del jugador".
 namespace Client::Scenes
 {
-class IModelLibrary;
 class WorldState;
 struct ActorState;
 struct FaunaDrawCarry;
@@ -140,7 +144,7 @@ StepFullSetFlare(World::ModelEffect& effect, std::span<JointState> joints, Rende
 struct GameRavenPass
 {
     Render::ModelBatch& batch;
-    const IModelLibrary& models;
+    const Render::Models::IModelLibrary& models;
     // El trapecio de este dibujo (0x5fba90) y el buffer dinámico de la luz del terreno (0x5ffce0).
     const World::TerrainPolygon& polygon;
     const World::TerrainLighting* lighting = nullptr;

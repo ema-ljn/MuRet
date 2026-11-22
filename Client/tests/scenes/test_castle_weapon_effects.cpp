@@ -1,3 +1,4 @@
+#include "Render/Models/IModelLibrary.h"
 #include "Scenes/CastleWeaponEffects.h"
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
@@ -33,7 +34,7 @@
 #include <utility>
 namespace
 {
-class WeaponModels final : public Client::Scenes::IModelLibrary
+class WeaponModels final : public Client::Render::Models::IModelLibrary
 {
 public:
     WeaponModels()

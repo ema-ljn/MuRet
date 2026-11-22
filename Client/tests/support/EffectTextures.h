@@ -3,9 +3,9 @@
 #include "Data/Models/Model.h"
 #include "Data/Textures/Texture.h"
 #include "Data/Textures/TextureSet.h"
+#include "Render/Models/IModelLibrary.h"
 #include "Render/Models/Skeleton.h"
 #include "Render/TextureSlot.h"
-#include "Scenes/CharacterDrawing.h"
 #include "Scenes/TextureMetadata.h"
 #include "Scenes/TextureSets.h"
 
@@ -46,10 +46,10 @@ namespace Client::Tests
 }
 
 // Una biblioteca de modelos de test con las texturas de efectos de GameModels encima.
-class WithEffectTextures final : public Scenes::IModelLibrary
+class WithEffectTextures final : public Render::Models::IModelLibrary
 {
 public:
-    explicit WithEffectTextures(const Scenes::IModelLibrary& base) : m_base(base) {}
+    explicit WithEffectTextures(const Render::Models::IModelLibrary& base) : m_base(base) {}
 
     [[nodiscard]] const Data::Models::Model* Find(std::uint16_t model) const override
     {
@@ -77,6 +77,6 @@ public:
     }
 
 private:
-    std::reference_wrapper<const Scenes::IModelLibrary> m_base;
+    std::reference_wrapper<const Render::Models::IModelLibrary> m_base;
 };
 } // namespace Client::Tests

@@ -1,3 +1,4 @@
+#include "Render/Models/IModelLibrary.h"
 #include "Scenes/GameScene.h"
 
 #include "App/PacingMode.h"
@@ -34,7 +35,6 @@
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/ActorState.h"
-#include "Scenes/CharacterDrawing.h"
 #include "Scenes/ChatBubbles.h"
 #include "Scenes/DarkHorse.h"
 #include "Scenes/EventGlobals.h"
@@ -596,7 +596,7 @@ TEST(GameSceneTest, TheWorldWaitAgesItsRibbonOnce)
 }
 
 // Solo el esqueleto del caballo oscuro (0xbf), con una acción de una key en un hueso.
-class HorseSkeletonOnly final : public Client::Scenes::IModelLibrary
+class HorseSkeletonOnly final : public Client::Render::Models::IModelLibrary
 {
 public:
     HorseSkeletonOnly()

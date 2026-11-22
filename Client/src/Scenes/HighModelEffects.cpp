@@ -4,6 +4,7 @@
 #include "Render/Models/Animation.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/HalfLifeMath.h"
+#include "Render/Models/IModelLibrary.h"
 #include "Render/Models/OriginalAngles.h"
 #include "Render/Models/OriginalRetainedMath.h"
 #include "Render/Models/OriginalRotation.h"
@@ -106,7 +107,7 @@ glm::vec3 Sum(const glm::vec3& a, const glm::vec3& b)
 
 // El BMD de la tabla global (0x5769ad8 + tipo · 0xe0): el de FaunaResources, que sigue con los modelos del mapa, y si
 // no el de `models` (los ítems y Player.bmd), como MonsterSkeletonOf.
-const Render::Models::Skeleton* ModelSkeletonOf(const WorldState& world, const IModelLibrary* models,
+const Render::Models::Skeleton* ModelSkeletonOf(const WorldState& world, const Render::Models::IModelLibrary* models,
                                                 std::uint16_t model)
 {
     const auto* skeleton = world.FaunaResources().SkeletonOf(model);

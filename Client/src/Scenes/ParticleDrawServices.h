@@ -12,14 +12,18 @@ namespace Client::Render
 class IParticleDrawBackend;
 struct ParticleBillboardRequest;
 } // namespace Client::Render
-namespace Client::Scenes
+namespace Client::Render::Models
 {
 class IModelLibrary;
+}
+
+namespace Client::Scenes
+{
 // Borrow del mismo owner CPU y del contexto/view vigentes; no posee metadata ni caches GL.
 class ParticleDrawServices final : public World::IParticleDrawingServices
 {
 public:
-    ParticleDrawServices(std::reference_wrapper<const IModelLibrary> models,
+    ParticleDrawServices(std::reference_wrapper<const Render::Models::IModelLibrary> models,
                          std::reference_wrapper<Render::IParticleDrawBackend> backend,
                          std::reference_wrapper<const Render::Models::OriginalMatrix> view);
     [[nodiscard]] Core::Expected<glm::vec2, World::ParticleError> Dimensions(std::int32_t image) override;
@@ -34,7 +38,7 @@ public:
     [[nodiscard]] bool HasOpenTextureEnvOverride() const;
 
 private:
-    const std::reference_wrapper<const IModelLibrary> m_models;
+    const std::reference_wrapper<const Render::Models::IModelLibrary> m_models;
     const std::reference_wrapper<Render::IParticleDrawBackend> m_backend;
     const std::reference_wrapper<const Render::Models::OriginalMatrix> m_view;
     bool m_textureEnvOverride = false;

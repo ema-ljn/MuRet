@@ -1,3 +1,4 @@
+#include "Render/Models/IModelLibrary.h"
 #include "Scenes/MovementReplies.h"
 
 #include "Render/Models/LogicalAccess.h"
@@ -44,7 +45,7 @@
 
 namespace
 {
-class MovementModels final : public Client::Scenes::IModelLibrary
+class MovementModels final : public Client::Render::Models::IModelLibrary
 {
 public:
     const Client::Data::Models::Model* Find(std::uint16_t) const override

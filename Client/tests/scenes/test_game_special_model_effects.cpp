@@ -1,3 +1,4 @@
+#include "Render/Models/IModelLibrary.h"
 #include "Scenes/GameDrawTail.h"
 
 #include "Core/Expected.h"
@@ -34,7 +35,7 @@
 
 namespace
 {
-class NoModels final : public Client::Scenes::IModelLibrary
+class NoModels final : public Client::Render::Models::IModelLibrary
 {
 public:
     const Client::Data::Models::Model* Find(std::uint16_t) const override
@@ -50,7 +51,7 @@ public:
         return {};
     }
 };
-class TriangleModels final : public Client::Scenes::IModelLibrary
+class TriangleModels final : public Client::Render::Models::IModelLibrary
 {
 public:
     TriangleModels()
@@ -103,7 +104,7 @@ public:
 // Un triángulo del hueso 0 con vértices que redondean y `bones` huesos sin giro: la raíz en `root` y los demás,
 // hijos de la raíz, en su origen. Con los ángulos del efecto en 0, la pose de 0x4eb860 sin trasladar da la
 // identidad con esa traslación, sin la escala ni el origen del efecto.
-class PosedItemModels final : public Client::Scenes::IModelLibrary
+class PosedItemModels final : public Client::Render::Models::IModelLibrary
 {
 public:
     PosedItemModels(std::size_t bones, const glm::vec3& root)

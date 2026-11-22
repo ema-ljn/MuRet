@@ -1,3 +1,4 @@
+#include "Render/Models/IModelLibrary.h"
 #include "Scenes/CharacterSelectScene.h"
 
 #include "App/SessionState.h"
@@ -25,7 +26,6 @@
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
 #include "Render/TextureSlot.h"
-#include "Scenes/CharacterDrawing.h"
 #include "Scenes/CharacterSlots.h"
 #include "Scenes/CreatePreview.h"
 #include "Scenes/DarkSpirit.h"
@@ -121,13 +121,13 @@ using Client::Input::Key;
 using Client::Render::TextureSlot;
 using Client::Render::Models::ActionInfo;
 using Client::Render::Models::BoneKey;
+using Client::Render::Models::IModelLibrary;
 using Client::Render::Models::Skeleton;
 using Client::Render::Models::SkeletonBone;
 using Client::Scenes::CharacterSelectScene;
 using Client::Scenes::CharacterSlotHeight;
 using Client::Scenes::CharacterSlots;
 using Client::Scenes::GameData;
-using Client::Scenes::IModelLibrary;
 using Client::Scenes::SceneContext;
 using Client::Scenes::SceneId;
 using Client::Scenes::SelectionTextureSet;

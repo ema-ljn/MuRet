@@ -1,3 +1,4 @@
+#include "Render/Models/IModelLibrary.h"
 #include "support/CheckedWorldObjectProjection.h"
 
 #include "Scenes/WorldObjectsDrawing.h"
@@ -77,7 +78,7 @@ constexpr std::int16_t Rock = 1;
 
 // Cualquier modelo: dos mallas de un triángulo del hueso 0 (texturas 0x41c y 0x41d) y un esqueleto de
 // un hueso, sin animación.
-class TwoMeshModels final : public Client::Scenes::IModelLibrary
+class TwoMeshModels final : public Client::Render::Models::IModelLibrary
 {
 public:
     TwoMeshModels()
@@ -122,7 +123,7 @@ private:
 
 // Un modelo como Waterspout01: cuatro mallas de un triángulo del hueso 0, cada una con la textura de su
 // índice (de 0 a 3, slots 0x41c a 0x41f) y la UV (0,125; 0,25), sin animación.
-class FourMeshModels final : public Client::Scenes::IModelLibrary
+class FourMeshModels final : public Client::Render::Models::IModelLibrary
 {
 public:
     FourMeshModels()
@@ -352,7 +353,8 @@ TEST(WorldObjectsDrawingTest, DrawingStillUpdatesGeometryAndSeenWithoutAnOrigina
 
 // El pase de los objetos del juego (0x6046a0 en 0x6374ce) con los modelos de mentira, todo visto y la
 // semilla 7.
-Client::Core::Expected<void, std::string> DrawGame(ModelBatch& batch, const Client::Scenes::IModelLibrary& models,
+Client::Core::Expected<void, std::string> DrawGame(ModelBatch& batch,
+                                                   const Client::Render::Models::IModelLibrary& models,
                                                    std::span<WorldObject> objects,
                                                    const Client::Scenes::GameObjectPass& pass)
 {
@@ -910,7 +912,7 @@ TEST(WorldObjectsDrawingTest, TheDeviasBeamObjectLeavesTwoSpritesOverItsFirstBon
 }
 
 // Como el 0x67 de Devias (Object104.bmd): dos mallas del hueso 0 y dos acciones de seis keys.
-class SwitchingModels final : public Client::Scenes::IModelLibrary
+class SwitchingModels final : public Client::Render::Models::IModelLibrary
 {
 public:
     SwitchingModels()
@@ -1221,7 +1223,7 @@ TEST(WorldObjectsDrawingTest, TheGameStepStopsAtTheFirstCaseMuRetDoesNotHave)
 
 // Modelos de diez huesos de raíz, sin animación, el k en (100 · k, 10 · k, 0) por la base de su tipo; el
 // del tipo 2 con el 8 dummy. El farol (0x3c), de un hueso, como Object61.bmd.
-class TenBoneModels final : public Client::Scenes::IModelLibrary
+class TenBoneModels final : public Client::Render::Models::IModelLibrary
 {
 public:
     TenBoneModels()
@@ -1615,7 +1617,7 @@ TEST(ModelEffectsDrawingTest, CullingUsesTheLogicalPositionAndRetainsDeadSlotHis
     EXPECT_EQ(batch.Vertices()[0].position.x, -1000.0f);
 }
 
-struct MissingEffectModels final : Client::Scenes::IModelLibrary
+struct MissingEffectModels final : Client::Render::Models::IModelLibrary
 {
     mutable int lookups = 0;
     const Model* Find(std::uint16_t) const override
@@ -1684,7 +1686,7 @@ TEST(ModelEffectsDrawingTest, TheDragonIsDrawnBetweenTwoSteps)
 
 // Una biblioteca con el tamaño de la textura de los sprites (0x5ac de 64 × 32) y la del aliento (0x5f2): las
 // dos son JPG, de 3 componentes, y ligan el slot de su selector, como las de EffectTextureSet en GameModels.
-class SpriteTextures : public Client::Scenes::IModelLibrary
+class SpriteTextures : public Client::Render::Models::IModelLibrary
 {
 public:
     [[nodiscard]] const Model* Find(std::uint16_t) const override
@@ -1972,7 +1974,7 @@ TEST(ParticlesDrawingTest, ABreathIsDrawnWithItsTextureTimesItsScale)
 }
 
 // Una biblioteca que no subió ninguna textura de efectos.
-class NoEffectTextures final : public Client::Scenes::IModelLibrary
+class NoEffectTextures final : public Client::Render::Models::IModelLibrary
 {
 public:
     [[nodiscard]] const Model* Find(std::uint16_t) const override

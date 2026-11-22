@@ -1,3 +1,4 @@
+#include "Render/Models/IModelLibrary.h"
 #include "Scenes/GuildReceive.h"
 
 #include "App/WindowState.h"
@@ -14,7 +15,6 @@
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Scenes/ActorState.h"
-#include "Scenes/CharacterDrawing.h"
 #include "Scenes/EventGlobals.h"
 #include "Scenes/GamePanels.h"
 #include "Scenes/GuildPanels.h"
@@ -145,7 +145,7 @@ std::vector<std::uint8_t> Plain(const Client::Protocol::Outgoing& sent)
 }
 
 // Player.bmd con sus 205 acciones (las que mira 0x4ea030 en el gesto); ningún otro modelo.
-class GestureModels final : public Client::Scenes::IModelLibrary
+class GestureModels final : public Client::Render::Models::IModelLibrary
 {
 public:
     const Client::Data::Models::Model* Find(std::uint16_t /*model*/) const override

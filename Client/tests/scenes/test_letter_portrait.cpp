@@ -1,3 +1,4 @@
+#include "Render/Models/IModelLibrary.h"
 #include "Scenes/LetterPortrait.h"
 
 #include "Core/ILogSink.h"
@@ -126,7 +127,7 @@ int DrawsBetween(CrtRandom from, const CrtRandom& to)
 
 // Lo que dibuja el retrato: Player.bmd con un hueso y una key en cada acción, el caballo oscuro (0xbf) con sus siete
 // acciones de 10 keys en un hueso, y un triángulo para el caballo, la sombra (0x20b) y la armadura del Dark Knight.
-class PortraitModels final : public Client::Scenes::IModelLibrary
+class PortraitModels final : public Client::Render::Models::IModelLibrary
 {
 public:
     PortraitModels()
@@ -205,8 +206,8 @@ struct Game
                 .cloth = cloth,
                 .camera = camera,
                 .cameraInput = input,
-                .models = drawable ? static_cast<const Client::Scenes::IModelLibrary&>(drawn)
-                                   : static_cast<const Client::Scenes::IModelLibrary&>(models),
+                .models = drawable ? static_cast<const Client::Render::Models::IModelLibrary&>(drawn)
+                                   : static_cast<const Client::Render::Models::IModelLibrary&>(models),
                 .items = &items,
                 .itemSetTables = &sets,
                 .log = log};

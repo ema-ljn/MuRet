@@ -1,5 +1,5 @@
 # Only headers that never change, never a project header (docs/CODING_RULES.md § 7).
-option(MURET_PRECOMPILED_HEADERS "Precompile the client's standard library and glm headers" ON)
+option(MURET_PRECOMPILED_HEADERS "Precompile the client's standard-library headers" ON)
 
 set(MURET_STD_PRECOMPILED_HEADERS
     <algorithm>
@@ -22,12 +22,9 @@ set(MURET_STD_PRECOMPILED_HEADERS
     <vector>
 )
 
-set(MURET_GLM_PRECOMPILED_HEADERS)
-
 function(muret_precompile_headers target)
     if(MURET_PRECOMPILED_HEADERS)
-        target_precompile_headers(${target} PRIVATE
-            ${MURET_STD_PRECOMPILED_HEADERS} ${MURET_GLM_PRECOMPILED_HEADERS} ${ARGN})
+        target_precompile_headers(${target} PRIVATE ${MURET_STD_PRECOMPILED_HEADERS} ${ARGN})
     endif()
 endfunction()
 

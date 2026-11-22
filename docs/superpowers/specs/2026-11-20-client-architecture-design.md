@@ -137,9 +137,8 @@ hides missing includes, and freely accessible singletons (63 `sXxx` in TrinityCo
 appears 1,013 times in 104 cMaNGOS files). The god classes come from there: `Player.cpp` has
 31,765 lines in TrinityCore and 26,182 in cMaNGOS. MuRet takes the idea that does work for them one
 level further in: **one target per module**, with an include root per layer and qualified paths,
-and a PCH with only the standard library and glm, never a project header (already the case:
-`cmake/PrecompiledHeaders.cmake`), shared by every module target through `REUSE_FROM` instead of
-built once per target (plan, AR1.2).
+and a PCH with only the standard library (already the case: `cmake/PrecompiledHeaders.cmake`), shared
+by every module target through `REUSE_FROM` instead of built once per target (plan, AR1.2).
 
 | pattern | from | in MuRet |
 | --- | --- | --- |

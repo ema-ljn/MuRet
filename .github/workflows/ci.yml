@@ -390,6 +390,7 @@ jobs:
             echo "CCACHE_SLOPPINESS=pch_defines,time_macros"
             echo "CCACHE_DEPEND=true"
             echo "CCACHE_COMPILERCHECK=content"
+            if [ "$RUNNER_OS" = Windows ]; then echo "CCACHE_RECACHE=true"; fi
           } >> "$GITHUB_ENV"
           export CCACHE_DIR="$dir"
           ccache --version | head -n 1

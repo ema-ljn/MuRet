@@ -5,19 +5,14 @@ set(MURET_STD_PRECOMPILED_HEADERS
     <algorithm>
     <array>
     <bit>
-    <bitset>
     <chrono>
     <cstddef>
     <cstdint>
-    <deque>
     <filesystem>
     <format>
     <functional>
-    <list>
-    <map>
     <memory>
     <optional>
-    <ranges>
     <span>
     <string>
     <string_view>
@@ -27,13 +22,7 @@ set(MURET_STD_PRECOMPILED_HEADERS
     <vector>
 )
 
-set(MURET_GLM_PRECOMPILED_HEADERS
-    <glm/ext/matrix_float4x3.hpp>
-    <glm/ext/matrix_float4x4.hpp>
-    <glm/ext/quaternion_float.hpp>
-    <glm/ext/vector_float2.hpp>
-    <glm/ext/vector_float3.hpp>
-)
+set(MURET_GLM_PRECOMPILED_HEADERS)
 
 function(muret_precompile_headers target)
     if(MURET_PRECOMPILED_HEADERS)

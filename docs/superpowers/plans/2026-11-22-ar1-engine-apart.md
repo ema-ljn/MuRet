@@ -4,12 +4,12 @@
 > superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** the engine (`Core`, `Math`, `Crt`, `Crypto`, `Diagnostics`, `Input`, `Audio`, `Network`, `Data`, `Platform`,
-`Pathfinding`, `Network/FoxAnti`, `Render`, `Models`) lives in `Client/src/engine/`, one CMake target per module, and no
+`Pathfinding`, `Network/XorRemap`, `Render`, `Models`) lives in `Client/src/engine/`, one CMake target per module, and no
 engine file includes `game/` or `app/`, without changing a byte of behavior.
 
 **Architecture:** first the design (AR1.1): cut the 11 engine includes of the game, give the engine types that live in
-game headers a header of their own, merge the two `Ftol` and add the x87 kit, make FoxAnti a compile-time option, and add
-the rest of the common kit. Then the move (AR1.2): `move.py --root engine` with the first three game modules, one target
+game headers a header of their own, merge the two `Ftol` and add the x87 kit, turn FoxAnti into `XorRemap`, a layer
+chosen at compile time, and add the rest of the common kit. Then the move (AR1.2): `move.py --root engine` with the first three game modules, one target
 per module with a shared precompiled header, the namespaces renamed after their new folders, and the comments.
 
 **Tech Stack:** C++20, CMake 3.25 (`FILE_SET HEADERS`, `VERIFY_INTERFACE_HEADER_SETS`, `REUSE_FROM`), GoogleTest,
@@ -47,7 +47,7 @@ Measured on `refactor/client` at 75c33064 (2026-11-22). AR1.3, the command line,
 - A sound registered while effects are off, or an id the catalog does not know: the engine must keep ignoring both after
   the lookup moves to the game. Task 1 tests the free function with a recording playback.
 - An `.ini` that still has `[Server] Obfuscation`: the player gets an error with its line that says how to build without
-  FoxAnti, never a silent default. Task 4 tests it.
+  the `XorRemap` layer, never a silent default. Task 4 tests it.
 - A design PR whose deleted and created files git pairs as a rename (`-M50%`): CI's pure-move check fails it. Each task
   that deletes a file checks `git diff -M50% --name-status` shows no `R` line before pushing.
 
@@ -71,7 +71,8 @@ Measured on `refactor/client` at 75c33064 (2026-11-22). AR1.3, the command line,
 | --- | --- | --- |
 | `App/WindowState`, `VSyncMode`, `Resolution` and the frame contracts move in AR1.1 | their map rows already say `engine/Platform`; the frame contracts' rows change to `engine/Render/Frame`; `move.py` moves them in AR1.2 | a hand move in a design PR fails CI's pure-move check, and `src/Platform/*.cpp` goes to `ClientPlatform`, which `ClientLib` does not link |
 | `IPlayback::Register(SoundDefinition)` | the same, plus `Audio::RegisterSound(IPlayback&, id, path)` in the catalog | the lookup (`FindSound(id, path)`) is the catalog's; the game calls the free function and the engine plays what it is given |
-| `LabFoxAntiTables()` defined in `MakeObfuscationFoxAnti.cpp` | `constexpr` in `App/FoxAntiLabTables.h` | the FoxAnti tests build the lab layer too, and they do not link the executable's sources |
+| `FoxAnti` in the names (`FoxAntiObfuscation`, `MURET_FOXANTI`, `MuRetFoxAnti`, `engine/Network/FoxAnti`) | `XorRemap` (`XorRemapObfuscation`, `MURET_XOR_REMAP`, `MuRetXorRemap`, `engine/Network/XorRemap`) | Emanuel, 2026-11-22: not a DLL any more but a layer named after what it does |
+| `LabFoxAntiTables()` defined in `MakeObfuscationFoxAnti.cpp` | `constexpr` in `App/LabXorRemapTables.h` | the layer's tests build the lab tables too, and they do not link the executable's sources |
 | `Core/WrappingInt.h` and `UI::Rect::Contains` in the kit | left out | no copy of a wrapping integer was found, and `Rect::Contains` already exists (`UI/Widget.h`) |
 | the 189 loose map comparisons switch to names | `MapId.h` replaces the 77 duplicated constants and the predicates; the loose literals switch in each module's AR4 design PR | each literal needs a judgment (is it a map?); AR4 reads those files anyway |
 | map enum | `inline constexpr std::int32_t` constants | `WorldRuntime::map` is `std::int32_t`; an `enum class` needs a cast at each comparison |
@@ -237,40 +238,50 @@ TEST(X87Test, BitsIsTheFloatPattern)   // Bits(1.0f) == 0x3F800000u; Bits(-0.0f)
 - [ ] **Step 5: Check** `git diff -M50% --name-status origin/refactor/client` has no `R` line, `check_rounded_math.py`
   passes, then push and let CI build.
 
-### Task 4: FoxAnti optional at compile time
+### Task 4: the XOR and remap layer, optional at compile time
 
-PR `refactor(AR1.1): make FoxAnti a compile-time option`, branch `refactor/ar1.1-foxanti-option`. Skills: `cpp-pro`,
-`clean-architecture` (composition root), `superpowers:test-driven-development`.
+PR `refactor(AR1.1): make the XOR and remap layer a compile-time option`, branch `refactor/ar1.1-xor-remap-option`.
+Skills: `cpp-pro`, `clean-architecture` (composition root), `superpowers:test-driven-development`.
+
+**The name** (Emanuel, 2026-11-22: not a DLL any more but a layer of our own, easy to take out, named after what it
+does). It XORs every byte that comes in and remaps opcodes, and around that it rebuilds the server list, the server
+code of the selection and the F3 11 head, so our names say `XorRemap`: `XorRemapObfuscation` next to `IObfuscation` and
+`IdentityObfuscation`, `XorRemapTables`, the option `MURET_XOR_REMAP`, the target `MuRetXorRemap` and the module
+`engine/Network/XorRemap` (its row in `Client/modules.tsv` and the map targets change in this PR). Only the citations keep
+`FoxAnti.dll`, because that is the original file they cite. This PR renames code, not files: a file renamed and edited in
+the same PR fails CI's pure-move check, so `Network/FoxAntiObfuscation.{h,cpp}`,
+`tests/network/test_fox_anti_obfuscation.cpp` and `test_golden_fox_anti_obfuscation.cpp` keep their names until Task 7.
+New files are born with the new name.
 
 **Files:**
-- Modify: `Network/FoxAntiObfuscation.{h,cpp}` (takes `FoxAntiTables`), `Network/IObfuscation.h` (comment only if it
-  names the mode)
-- Create: `Client/src/Network/FoxAntiTables.h` (map row `engine/Network/FoxAnti`), `Client/src/App/MakeObfuscation.h`,
-  `App/MakeObfuscationFoxAnti.cpp`, `App/MakeObfuscationNone.cpp`, `App/FoxAntiLabTables.h` (rows `app/App`)
+- Modify: `Network/FoxAntiObfuscation.{h,cpp}` (the class becomes `XorRemapObfuscation` and takes `XorRemapTables`),
+  `Network/IObfuscation.h` (comment only if it names the mode)
+- Create: `Client/src/Network/XorRemapTables.h` (map row `engine/Network/XorRemap`), `Client/src/App/MakeObfuscation.h`,
+  `App/MakeObfuscationXorRemap.cpp`, `App/MakeObfuscationNone.cpp`, `App/LabXorRemapTables.h` (rows `app/App`)
 - Delete: `App/ObfuscationMode.h`
 - Modify: `App/Config.{h,cpp}` (no `obfuscation`, no `ParseObfuscation`), `main.cpp` (no `ChooseObfuscation`),
   `Client/CMakeLists.txt`, `tests/CMakeLists.txt` and `tests/{app,network,protocol,scenes}/CMakeLists.txt`,
-  `tests/app/test_config.cpp`, the 12 test files that build `FoxAntiObfuscation`, `.github/workflows/ci.yml`,
-  `Client/README.md`
+  `tests/app/test_config.cpp`, the 12 test files that build the layer, `Client/modules.tsv`, the map,
+  `.github/workflows/ci.yml`, `Client/README.md`
 
 **Interfaces:**
-- Produces: `struct Client::Network::FoxAntiTables` with `std::byte inboundXor`; `std::array<OpcodeRemap, 3>
+- Produces: `struct Client::Network::XorRemapTables` with `std::byte inboundXor`; `std::array<OpcodeRemap, 3>
   encryptedRemaps`; `std::array<OpcodeRemap, 2> clearRemaps`; `std::uint8_t serverOpcode, labServerListSub,
   serverListSub, serverSelectSub, characterOpcode, skillListSub`; `std::uint32_t codeGroupSize`;
   `std::array<std::uint16_t, 9> listCodeDeltas`; `std::uint16_t ladderStepCodes`; `std::array<LadderStep, 8>
   selectLadder`. `OpcodeRemap {from, to}` and `LadderStep {first, subtract}` move there from the `.cpp`. Offsets and
   sizes of the packets (`ListSubIndex`, `ServerSelectSize`…) are the mechanism and stay in the `.cpp`.
-- Produces: `explicit FoxAntiObfuscation(const FoxAntiTables&)`.
-- Produces: `constexpr Network::FoxAntiTables Client::App::LabFoxAntiTables()` with today's values (0xAA; {0x10, 0x1D},
-  {0x19, 0xA5}, {0x1E, 0xA6}; {0xD3, 0xA3}, {0xD7, 0xA4}; F4, 02, 06, 03, F3, 11; 11; 0x190 … 0xA0; 0x14; the 8 ladder
-  steps).
+- Produces: `explicit XorRemapObfuscation(const XorRemapTables&)`.
+- Produces: `constexpr Network::XorRemapTables Client::App::LabXorRemapTables()` with today's values (0xAA;
+  {0x10, 0x1D}, {0x19, 0xA5}, {0x1E, 0xA6}; {0xD3, 0xA3}, {0xD7, 0xA4}; F4, 02, 06, 03, F3, 11; 11; 0x190 … 0xA0;
+  0x14; the 8 ladder steps).
 - Produces: `std::unique_ptr<const Network::IObfuscation> Client::App::MakeObfuscation()`. CMake option
-  `MURET_FOXANTI` (default `ON`) sets `MURET_MAKE_OBFUSCATION_SOURCE`, which `Main` and `test_make_obfuscation` compile:
-  `ON` is `MakeObfuscationFoxAnti.cpp`, and both link `MuRetFoxAnti`, a static library with
-  `Network/FoxAntiObfuscation.cpp` that links `ClientLib`; `OFF` is `MakeObfuscationNone.cpp`, and no FoxAnti source is
-  built. `ClientLib`'s glob excludes `Network/FoxAntiObfuscation.cpp` and `App/MakeObfuscation*.cpp`.
-- Produces: `muret_add_module_tests(FOX_ANTI <file> …)`: those files build only with `MURET_FOXANTI`, link
-  `MuRetFoxAnti`, and count as registered either way (like `OTHER_SYSTEM`).
+  `MURET_XOR_REMAP` (default `ON`) sets `MURET_MAKE_OBFUSCATION_SOURCE`, which `Main` and `test_make_obfuscation`
+  compile: `ON` is `MakeObfuscationXorRemap.cpp`, and both link `MuRetXorRemap`, a static library with
+  `Network/FoxAntiObfuscation.cpp` that links `ClientLib`; `OFF` is `MakeObfuscationNone.cpp`, and no source of the
+  layer is built. `ClientLib`'s glob excludes `Network/FoxAntiObfuscation.cpp` and `App/MakeObfuscation*.cpp`.
+- Produces: `muret_add_module_tests(XOR_REMAP <file> …)`: those files build only with `MURET_XOR_REMAP`, link
+  `MuRetXorRemap`, and count as registered either way (like `OTHER_SYSTEM`).
 
 - [ ] **Step 1: Write the failing tests.** In `test_config.cpp`:
 
@@ -279,27 +290,28 @@ TEST(ConfigTest, RejectsTheRemovedObfuscationKey)
 {
     const auto error = ErrorOf("[Server]\nObfuscation = foxanti\n");
     EXPECT_EQ(error.line, 2u);
-    EXPECT_NE(error.message.find("MURET_FOXANTI"), std::string::npos);
+    EXPECT_NE(error.message.find("MURET_XOR_REMAP"), std::string::npos);
 }
 ```
 
-  In `test_fox_anti_obfuscation.cpp`: `FoxAntiObfuscation(LabFoxAntiTables())` passes every current case, and
-  `TEST(FoxAntiObfuscationTest, UsesTheInjectedInboundXor)` builds tables with `inboundXor = std::byte{0x55}` and
+  In `test_fox_anti_obfuscation.cpp`: `XorRemapObfuscation(LabXorRemapTables())` passes every current case, and
+  `TEST(XorRemapObfuscationTest, UsesTheInjectedInboundXor)` builds tables with `inboundXor = std::byte{0x55}` and
   expects `InboundMask` to return 0x55. A new `tests/app/test_make_obfuscation.cpp` expects `InboundMask(std::byte{0xC1})`
   to be 0xAA with the option on and 0 with it off (one file, compiled with `MURET_MAKE_OBFUSCATION_SOURCE`; the
   expectation comes from a definition CMake passes).
 - [ ] **Step 2: Run them and see them fail** (the key is still known; no constructor with tables).
-- [ ] **Step 3: Inject the tables and add `MakeObfuscation`.** `main.cpp` keeps the result next to the connection (where
-  `Online` lives) and passes `const Network::IObfuscation&` to `Online`. The config's unknown-key path gets a special
-  message for `[Server] Obfuscation`: `Obfuscation no longer exists: the server's packet shape is chosen when building
-  (-DMURET_FOXANTI=OFF for a server that speaks like main.exe)`.
-- [ ] **Step 4: Split the tests.** A file where every test needs FoxAnti goes whole into its folder's `FOX_ANTI` list;
-  otherwise its FoxAnti tests move to `<file>_fox_anti.cpp` (new file, so no rename) and that file goes in the list.
-- [ ] **Step 5: CI and docs.** The job "Windows (MSVC, Release, matemática)" adds `-DMURET_FOXANTI=OFF` to its
-  configure. `Client/README.md` drops the key from the `.ini` table and example and says how to build without FoxAnti.
-- [ ] **Step 6: Check** no file outside `Network/FoxAnti*`, `App/MakeObfuscationFoxAnti.cpp`, `App/FoxAntiLabTables.h`
-  and the `FOX_ANTI` tests names `FoxAnti` in code (`grep -rn FoxAnti Client/src Client/tests`), the `git diff -M50%`
-  check, then push. Expected: CI green, and the Windows Release job builds and links `Main` without FoxAnti.
+- [ ] **Step 3: Rename, inject the tables and add `MakeObfuscation`.** `main.cpp` keeps the result next to the
+  connection (where `Online` lives) and passes `const Network::IObfuscation&` to `Online`. The config's unknown-key path
+  gets a special message for `[Server] Obfuscation`: `Obfuscation no longer exists: the server's packet shape is chosen
+  when building (-DMURET_XOR_REMAP=OFF for a server that speaks like main.exe)`.
+- [ ] **Step 4: Split the tests.** A file where every test needs the layer goes whole into its folder's `XOR_REMAP`
+  list; otherwise those tests move to `<file>_xor_remap.cpp` (new file, so no rename) and that file goes in the list.
+- [ ] **Step 5: CI and docs.** The job "Windows (MSVC, Release, matemática)" adds `-DMURET_XOR_REMAP=OFF` to its
+  configure. `Client/README.md` drops the key from the `.ini` table and example and says how to build without the layer.
+- [ ] **Step 6: Check** `grep -rn "FoxAnti" Client/src Client/tests` shows it only in citations of `FoxAnti.dll` and in
+  the three file names that Task 7 renames, no file outside the layer, `App/MakeObfuscationXorRemap.cpp`,
+  `App/LabXorRemapTables.h` and the `XOR_REMAP` tests names `XorRemap`, the `git diff -M50%` check, then push.
+  Expected: CI green, and the Windows Release job builds and links `Main` without the layer.
 
 ### Task 5: the rest of the common kit
 
@@ -366,6 +378,9 @@ PR `refactor(AR1.2): move the engine to Client/src/engine`, branch `refactor/ar1
 - [ ] **Step 2: Do by hand only what it printed:** `target_include_directories(ClientLib PUBLIC src src/engine src/game)`,
   and the `list(FILTER … REGEX)` lines and globs that named an emptied folder (`/src/Platform/` →
   `/src/engine/Platform/`, `/src/Render/Gl/`, `/src/Render/Models/RoundedMath/`, `Network/FoxAntiObfuscation.cpp`).
+  Then `git mv` the three files Task 4 left with the old name, without touching their content: `engine/Network/XorRemap/
+  FoxAntiObfuscation.{h,cpp}` to `XorRemapObfuscation.{h,cpp}`, and the two tests to `test_xor_remap_obfuscation.cpp`
+  and `test_golden_xor_remap_obfuscation.cpp`; only their include lines and the build paths change.
 - [ ] **Step 3: Check** `check_pure_move.py --base origin/refactor/client --head HEAD` lists nothing, `check_layers.py
   --clean-root engine` prints `0 new`, and `git diff -M50% --diff-filter=M` only touches include lines and build paths.
   Push and let CI build. Expected: green, the golden unchanged.
@@ -377,7 +392,7 @@ PR `build(AR1.2): give each engine module its own target`, branch `refactor/ar1.
 
 **Interfaces:**
 - Produces: targets `MuRetCore`, `MuRetMath`, `MuRetCrt`, `MuRetCrypto`, `MuRetDiagnostics`, `MuRetInput`, `MuRetAudio`,
-  `MuRetNetwork`, `MuRetData`, `MuRetPlatform`, `MuRetPathfinding`, `MuRetFoxAnti` (only with `MURET_FOXANTI`),
+  `MuRetNetwork`, `MuRetData`, `MuRetPlatform`, `MuRetPathfinding`, `MuRetXorRemap` (only with `MURET_XOR_REMAP`),
   `MuRetRender`, `MuRetModels`, `MuRetTables`, `MuRetMaps`, `MuRetSound`; each with a `CMakeLists.txt` in its folder,
   include root `Client/src/engine` (or `Client/src/game`), headers in `FILE_SET HEADERS`, `VERIFY_INTERFACE_HEADER_SETS
   ON`, and links only the modules its `may_use` row allows. `ClientLib` keeps the rest and links them. `ClientPlatform`
@@ -426,7 +441,7 @@ comments PR". The comments of `Client/src/engine/`, the three game modules and t
 
 - `check_layers.py --clean-root engine` prints `0 new` with no engine row in the baseline (CI runs it on every PR).
 - Every engine target builds, with `VERIFY_INTERFACE_HEADER_SETS`, and the client builds and links with
-  `MURET_FOXANTI=OFF`.
+  `MURET_XOR_REMAP=OFF`.
 - The behavior golden and every test are identical on the four CI configurations.
 - The reference regenerated on `refactor/client` gives the same port numbers as #422's (the AR1 start snapshot), except
   for paths (`reference_summary.py --nueva … --commiteada …`).

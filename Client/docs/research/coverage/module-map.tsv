@@ -377,6 +377,8 @@ Protocol/World.cpp	101	Protocol	game/Protocol	high	engine or protocol layer, no 
 Protocol/World.h	75	Protocol	game/Protocol	high	engine or protocol layer, no game state
 Render/Billboard.cpp	116	Render	engine/Render	high	engine or protocol layer, no game state
 Render/Billboard.h	52	Render	engine/Render	high	engine or protocol layer, no game state
+Render/Frame/IScreenReader.h	19	Render/Frame	engine/Render/Frame	high	the screenshot's read of the drawn frame, implemented by GL (AR1.1)
+Render/Frame/SceneWorld.h	11	Render/Frame	engine/Render/Frame	high	the map the scene hands to the 3D pass (AR1.1)
 Render/Gl/GlFrameTarget.cpp	114	Render	engine/Render	high	engine or protocol layer, no game state
 Render/Gl/GlFrameTarget.h	82	Render	engine/Render	high	engine or protocol layer, no game state
 Render/Gl/GlFramebuffer.cpp	87	Render	engine/Render	high	engine or protocol layer, no game state
@@ -821,12 +823,12 @@ Scenes/HudItems.cpp	226	Scenes	game/Items	high	item queries (quick slots, arrow 
 Scenes/HudItems.h	73	Scenes	game/Items	high	item queries (quick slots, arrow count, max durability) used by the HUD, tooltips and windows (AR0.1 review)
 Scenes/HudText.cpp	28	Scenes	game/Hud	high	game UI step/frame order, HUD (addr.), character/inventory windows, panels, misc windows
 Scenes/HudText.h	21	Scenes	game/Hud	high	game UI step/frame order, HUD (addr.), character/inventory windows, panels, misc windows
-Scenes/IFrameTarget.h	20	Scenes	game/Scenes	high	scene<->GL contract; should move below Scenes (Render/UI), see layering
+Scenes/IFrameTarget.h	20	Scenes	engine/Render/Frame	high	the scene to GL frame contract, below the scenes (AR1.1)
 Scenes/IScene.h	63	Scenes	game/Scenes	medium	scene machine: IScene/SceneManager/transitions/loop timing (CL5.4); include graph pulls to FrontEndScenes (4 vs 2 own)
-Scenes/ITextDrawer.h	35	Scenes	game/Scenes	high	scene<->GL contract; should move below Scenes (Render/UI), see layering
+Scenes/ITextDrawer.h	35	Scenes	engine/Render/Frame	high	the scene to GL frame contract, below the scenes (AR1.1)
 Scenes/IWorldEntryPublisher.h	14	Scenes	game/Session	high	top-level packet/transition application that reaches every feature: durable globals, map load, world entry F3 03, map tr
 Scenes/IWorldTransitionPublisher.h	12	Scenes	game/Session	high	top-level packet/transition application that reaches every feature: durable globals, map load, world entry F3 03, map tr
-Scenes/IWorldView.h	28	Scenes	game/Scenes	high	scene<->GL contract; should move below Scenes (Render/UI), see layering
+Scenes/IWorldView.h	28	Scenes	engine/Render/Frame	high	the scene to GL frame contract, below the scenes (AR1.1)
 Scenes/IcarusObjectFrame.cpp	79	Scenes	game/MapScripts/Icarus	high	what that map does, like TrinityCore's per-zone scripts (2026-11-21 review)
 Scenes/IcarusObjectFrame.h	27	Scenes	game/MapScripts/Icarus	high	what that map does, like TrinityCore's per-zone scripts (2026-11-21 review)
 Scenes/IcarusObjectStep.cpp	213	Scenes	game/MapScripts/Icarus	high	what that map does, like TrinityCore's per-zone scripts (2026-11-21 review)
@@ -1031,13 +1033,13 @@ Scenes/RingEffects.cpp	177	Scenes	game/Effects	high	model effects; uses Joints a
 Scenes/RingEffects.h	51	Scenes	game/Effects	high	model effects; uses Joints and Particles (2026-11-21 review)
 Scenes/SceneCameras.cpp	57	Scenes	game/Camera	medium	the camera (2026-11-21 review)
 Scenes/SceneCameras.h	40	Scenes	game/Camera	medium	the camera (2026-11-21 review)
-Scenes/SceneCanvas.h	40	Scenes	game/Scenes	medium	scene<->GL contract; should move below Scenes (Render/UI), see layering; include graph pulls to FrontEndScenes (8 vs 7 o
+Scenes/SceneCanvas.h	40	Scenes	engine/Render/Frame	high	the scene to GL frame contract, below the scenes (AR1.1)
 Scenes/SceneContext.h	87	Scenes	game/Scenes	high	what the scenes share: data folder, texture store, log, clock (AR0.1 review)
 Scenes/SceneId.h	39	Scenes	game/Scenes	medium	scene machine: IScene/SceneManager/transitions/loop timing (CL5.4); include graph pulls to FrontEndScenes (11 vs 5 own)
 Scenes/SceneManager.cpp	304	Scenes	game/Scenes	high	scene machine: IScene/SceneManager/transitions/loop timing (CL5.4)
 Scenes/SceneManager.h	149	Scenes	game/Scenes	high	scene machine: IScene/SceneManager/transitions/loop timing (CL5.4)
-Scenes/SceneText.cpp	64	Scenes	game/Scenes	high	scene<->GL contract; should move below Scenes (Render/UI), see layering
-Scenes/SceneText.h	61	Scenes	game/Scenes	high	scene<->GL contract; should move below Scenes (Render/UI), see layering
+Scenes/SceneText.cpp	64	Scenes	engine/Render/Frame	high	the scene to GL frame contract, below the scenes (AR1.1)
+Scenes/SceneText.h	61	Scenes	engine/Render/Frame	high	the scene to GL frame contract, below the scenes (AR1.1)
 Scenes/SceneTextures.cpp	80	Scenes	game/Assets	medium	models and textures, out of Kernel (2026-11-21 review)
 Scenes/SceneTextures.h	58	Scenes	game/Assets	medium	models and textures, out of Kernel (2026-11-21 review)
 Scenes/SceneTransitions.h	46	Scenes	game/Scenes	high	scene machine: IScene/SceneManager/transitions/loop timing (CL5.4)
@@ -1115,8 +1117,8 @@ Scenes/TerrainTiles.cpp	190	Scenes	game/Assets	medium	models and textures, out o
 Scenes/TerrainTiles.h	81	Scenes	game/Assets	medium	models and textures, out of Kernel (2026-11-21 review)
 Scenes/TestScene.cpp	55	Scenes	game/Scenes	high	scene machine: IScene/SceneManager/transitions/loop timing (CL5.4)
 Scenes/TestScene.h	48	Scenes	game/Scenes	high	scene machine: IScene/SceneManager/transitions/loop timing (CL5.4)
-Scenes/TextCacheDrawer.cpp	62	Scenes	game/Scenes	high	scene<->GL contract; should move below Scenes (Render/UI), see layering
-Scenes/TextCacheDrawer.h	48	Scenes	game/Scenes	high	scene<->GL contract; should move below Scenes (Render/UI), see layering
+Scenes/TextCacheDrawer.cpp	62	Scenes	engine/Render/Frame	high	the scene to GL frame contract, below the scenes (AR1.1)
+Scenes/TextCacheDrawer.h	48	Scenes	engine/Render/Frame	high	the scene to GL frame contract, below the scenes (AR1.1)
 Scenes/TextureMetadata.h	24	Scenes	game/Assets	high	models and textures, out of Kernel (2026-11-21 review)
 Scenes/TextureSets.h	540	Scenes	game/Assets	medium	models and textures, out of Kernel (2026-11-21 review)
 Scenes/TooltipLines.h	64	Scenes	game/Tooltips	high	item, skill and pet tooltips, above Items, Skills and Pets (2026-11-21 review)

@@ -7,6 +7,7 @@
 #include "Data/Textures/JpegImage.h"
 #include "Input/InputState.h"
 #include "Input/Key.h"
+#include "Render/Frame/IScreenReader.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Scenes/ActorState.h"
@@ -40,10 +41,10 @@ namespace
 {
 using Client::Core::LocalTime;
 using Client::Input::Key;
+using Client::Render::Frame::IScreenReader;
 using Client::Render::Text::FontKind;
 using Client::Render::Text::ITextMeasure;
 using Client::Render::Text::TextExtent;
-using Client::Scenes::IScreenReader;
 using Client::Scenes::ScreenshotFileName;
 using Client::Scenes::ScreenshotFrameContext;
 using Client::Scenes::ScreenshotMessage;

@@ -16,6 +16,7 @@
 #include "Protocol/Character/CharacterList.h"
 #include "Protocol/Character/CharacterName.h"
 #include "Protocol/Connection/Logout.h"
+#include "Render/Frame/SceneWorld.h"
 #include "Render/Models/Animation.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
@@ -1258,7 +1259,7 @@ void CharacterSelectScene::Render(SceneCanvas& canvas, float alpha)
     // trapecio del terreno.
     World::GameCameraInput& cameraInput = CameraInputState();
     cameraInput.scene = World::CullingScene::CharacterSelect;
-    const std::optional<SceneWorld> world = WorldOf(SceneId::CharacterSelect);
+    const std::optional<Render::Frame::SceneWorld> world = WorldOf(SceneId::CharacterSelect);
     const std::uint8_t map = world ? world->map : 0;
     cameraInput.map = map;
     const Render::Camera3D camera = StepTheCameraAndTheTrapezoid(cameraInput, canvas.frameClock);

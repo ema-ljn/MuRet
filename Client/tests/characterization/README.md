@@ -33,7 +33,22 @@ the network, one step, the draw and the end of the loop, and moves the clock 40 
 | `end` | nothing: the scene's last frame |
 
 The trace prints, for each frame, the scene, the session state and the packets the client sent, which says when to
-answer.
+answer. In the game it also prints the world summary that the digest hashes: the map, the own life, mana and zen, the
+open panels, each living actor with its cell and action, and the newest chat line.
+
+Things that make a click or a packet do nothing: the mouse picks one frame late, so it moves before the click frame;
+a dropped item cannot be picked up on the frames right after the drop; an NPC click misses while the inventory is open,
+because the view moves; and the client takes some packets only encrypted (`0x16`, `0x19`, `0x1C`, `0x24`, `0x30`,
+`0x36`…), answering a plain one with `F1 03`.
+
+## The scenes
+
+| Scene | What it does |
+| --- | --- |
+| `LoginToLorencia` | the ConnectServer and GameServer login, the character list and the world entry in Lorencia |
+| `WalkAndFight` | a walk, a skill on a spider that dies and the pick-up of its drop |
+| `InventoryShopAndChat` | an item moved in the inventory, a potion bought from Amy's shop and a whisper |
+| `EventEntry` | the Devil Square notice, Charon's window, the entry with an invitation and the countdown on map 9 |
 
 ## What the harness changes from `main.cpp`
 

@@ -1,0 +1,64 @@
+frame	event	value
+# The ConnectServer: its hello, the list with server 400 and the address of that GameServer. AutoLogin chooses it.
+12	gs	c1 04 00 01
+14	gs	c2 00 0b f4 06 00 01 90 01 00 00
+16	gs	c1 16 f4 03 31 30 2e 30 2e 30 2e 32 00 00 00 00 00 00 00 00 5d da
+# The GameServer: its hello with version 10209, the accepted login (AutoLogin sends the account) and a list with
+# char0001, a level 10 Dark Wizard (whispers need level 6), in slot 0.
+18	gs	c1 0c f1 00 01 00 05 31 30 32 30 39
+20	gs	c1 05 f1 01 01
+22	gs	c1 29 f3 00 00 00 01 00 63 68 61 72 30 30 30 31 00 00 ee 0a 00 00 00 00 00 00 00 03 00 00 00 00 00 00 00 00 00 00 00 00 ff
+# A click on the character and Enter.
+30	mouse	125 353
+31	button-down	left
+32	button-up	left
+34	key-down	Enter
+35	key-up	Enter
+# The world entry in Lorencia at (133, 127), with 60 life and mana and 2000 zen, and a Jewel of Bless (14, 13) in
+# inventory slot 12.
+38	gs-encrypted	c1 34 f3 03 85 7f 00 00 00 00 00 00 6e 00 00 00 00 00 12 00 12 00 0f 00 1e 00 3c 00 3c 00 3c 00 3c 00 00 00 00 00 00 00 d0 07 00 00 03 00 00 00 00 00 ff ff
+39	gs-encrypted	c2 00 0e f3 10 01 0c 0d 00 00 00 00 e0 00
+# I opens the inventory. The jewel goes from slot 12 to slot 22 (the client sends 24, the server accepts it), and I
+# closes the inventory.
+45	key-down	I
+46	key-up	I
+50	mouse	475 210
+52	button-down	left
+53	button-up	left
+56	mouse	515 230
+58	button-down	left
+59	button-up	left
+62	gs-encrypted	c1 0c 24 00 16 0d 00 00 00 00 e0 00
+63	key-down	I
+64	key-up	I
+# Amy the potion girl (type 253, key 0x64) comes into view at (130, 127). A click on her: the hero walks to her and
+# talks (30); she opens her shop with a Small Healing Potion (14, 0) in slot 0.
+65	gs	c2 00 15 13 01 80 64 00 fd 00 00 00 00 82 7f 82 7f 00 00 00 00
+70	mouse	220 135
+72	button-down	left
+73	button-up	left
+94	gs-encrypted	c1 08 30 00 00 00 00 00
+95	gs	c2 00 0e 31 00 01 00 00 00 01 00 00 e0 00
+# A click on the potion buys it (32): it goes to slot 12 and the zen drops to 1980. Escape closes the shop.
+100	mouse	285 60
+102	button-down	left
+103	button-up	left
+105	gs	c1 0b 32 0c 00 00 01 00 00 e0 00
+106	gs-encrypted	c1 08 22 fe 00 00 07 bc
+110	key-down	Escape
+111	key-up	Escape
+# A whisper: Enter opens the chat, Tab goes to the name, Tab back to the message, and Enter sends "hello" to
+# friend01 (02). friend01 answers "hi there".
+115	key-down	Enter
+116	key-up	Enter
+118	key-down	Tab
+119	key-up	Tab
+120	text	friend01
+122	key-down	Tab
+123	key-up	Tab
+124	text	hello
+126	key-down	Enter
+127	key-up	Enter
+135	gs	c1 16 02 66 72 69 65 6e 64 30 31 00 00 68 69 20 74 68 65 72 65 00
+# 30 idle frames.
+165	end	

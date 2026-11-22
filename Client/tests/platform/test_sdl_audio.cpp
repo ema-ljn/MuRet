@@ -1,4 +1,6 @@
+#include "Audio/ISoundCatalog.h"
 #include "Audio/SoundCatalog.h"
+#include "Audio/SoundDefinition.h"
 #include "Platform/SdlAudio.h"
 
 #include <SDL3/SDL_hints.h>
@@ -12,7 +14,9 @@
 #include <ios>
 #include <iterator>
 #include <optional>
+#include <span>
 #include <string>
+#include <string_view>
 #include <thread>
 #include <vector>
 
@@ -100,6 +104,71 @@ std::vector<std::uint8_t> ReadRawAudio(const std::filesystem::path& path)
     std::ifstream file(path, std::ios::binary);
     return {std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>()};
 }
+
+std::filesystem::path UniqueTemporaryRoot(std::string_view prefix)
+{
+    const auto suffix = std::chrono::steady_clock::now().time_since_epoch().count();
+    return std::filesystem::temp_directory_path() / (std::string(prefix) + std::to_string(suffix));
+}
+
+template <typename Play>
+std::vector<std::uint8_t> CaptureDiskOutput(const std::filesystem::path& root, const char* filename,
+                                            const Client::Audio::ISoundCatalog& catalog, Play play)
+{
+    const auto outputPath = root / filename;
+    if (!SDL_SetHint(SDL_HINT_AUDIO_DISK_OUTPUT_FILE, outputPath.string().c_str()))
+    {
+        ADD_FAILURE() << "no se pudo elegir el archivo de salida";
+        return {};
+    }
+    auto playback = Client::Platform::SdlAudio::Create(root, catalog);
+    if (!playback.HasValue())
+    {
+        ADD_FAILURE() << playback.Error();
+        return {};
+    }
+    EXPECT_EQ(playback.Value()->DriverName(), "disk");
+    play(*playback.Value());
+    std::this_thread::sleep_for(std::chrono::milliseconds(350));
+    playback.Value().reset();
+    return ReadRawAudio(outputPath);
+}
+
+bool IsAudible(const std::vector<std::uint8_t>& output)
+{
+    return std::ranges::any_of(output, [](std::uint8_t byte) { return byte != 0; });
+}
+
+class RecordingCatalog final : public Client::Audio::ISoundCatalog
+{
+public:
+    explicit RecordingCatalog(Client::Audio::SoundDefinition known) : m_known(known) {}
+
+    [[nodiscard]] std::optional<Client::Audio::SoundDefinition> Find(std::int32_t id,
+                                                                     std::string_view path) const override
+    {
+        m_lookups.push_back(id);
+        if (id == m_known.id && path == m_known.path)
+        {
+            return m_known;
+        }
+        return std::nullopt;
+    }
+
+    [[nodiscard]] std::span<const Client::Audio::SoundDefinition> StartupSounds() const override
+    {
+        return {};
+    }
+
+    [[nodiscard]] const std::vector<std::int32_t>& Lookups() const
+    {
+        return m_lookups;
+    }
+
+private:
+    Client::Audio::SoundDefinition m_known;
+    mutable std::vector<std::int32_t> m_lookups;
+};
 } // namespace
 
 TEST(SdlAudioTest, WritesLoopedSyntheticAudioToDiskDriver)
@@ -107,35 +176,15 @@ TEST(SdlAudioTest, WritesLoopedSyntheticAudioToDiskDriver)
     HintRestorer restoreHints;
     const auto sound = Client::Audio::FindSound(25);
     ASSERT_TRUE(sound);
-    const auto suffix = std::chrono::steady_clock::now().time_since_epoch().count();
-    const std::filesystem::path root =
-        std::filesystem::temp_directory_path() / ("muret-sdl-audio-" + std::to_string(suffix));
+    const std::filesystem::path root = UniqueTemporaryRoot("muret-sdl-audio-");
     WriteTestWave(root / std::filesystem::path(sound->path));
     const auto mapSounds = Client::Audio::WorldSoundsForMap(11);
     ASSERT_FALSE(mapSounds.empty());
     const auto mapSound = mapSounds.front();
     WriteTestWave(root / std::filesystem::path(mapSound.path));
     ASSERT_TRUE(SDL_SetHint(SDL_HINT_AUDIO_DRIVER, "disk"));
-    const auto capture = [&](const char* filename, auto play) -> std::vector<std::uint8_t>
-    {
-        const auto outputPath = root / filename;
-        if (!SDL_SetHint(SDL_HINT_AUDIO_DISK_OUTPUT_FILE, outputPath.string().c_str()))
-        {
-            ADD_FAILURE() << "no se pudo elegir el archivo de salida";
-            return {};
-        }
-        auto playback = Client::Platform::SdlAudio::Create(root);
-        if (!playback.HasValue())
-        {
-            ADD_FAILURE() << playback.Error();
-            return {};
-        }
-        EXPECT_EQ(playback.Value()->DriverName(), "disk");
-        play(*playback.Value());
-        std::this_thread::sleep_for(std::chrono::milliseconds(350));
-        playback.Value().reset();
-        return ReadRawAudio(outputPath);
-    };
+    const auto capture = [&](const char* filename, auto play)
+    { return CaptureDiskOutput(root, filename, Client::Audio::GameSoundCatalog(), play); };
     const auto nonzero = [](std::uint8_t byte) { return byte != 0; };
 
     // El clic pertenece al arranque y el bucle sigue sonando después de los 100 ms de la muestra.
@@ -188,8 +237,49 @@ TEST(SdlAudioTest, WritesLoopedSyntheticAudioToDiskDriver)
     EXPECT_GT(finished.size(), 1024U);
     EXPECT_TRUE(std::ranges::any_of(finished, nonzero));
 
-    const auto disabled = Client::Platform::SdlAudio::Create(root, false, false);
+    const auto disabled = Client::Platform::SdlAudio::Create(root, Client::Audio::GameSoundCatalog(), false, false);
     ASSERT_TRUE(disabled.HasValue());
     EXPECT_TRUE(disabled.Value()->DriverName().empty());
     std::filesystem::remove_all(root);
+}
+
+TEST(SdlAudioTest, PlaysOnlySoundsTheInjectedCatalogKnows)
+{
+    HintRestorer restoreHints;
+    const RecordingCatalog catalog({7, "fake/beep.wav", 1, false});
+    const std::filesystem::path root = UniqueTemporaryRoot("muret-sdl-audio-catalog-");
+    WriteTestWave(root / "fake/beep.wav");
+    WriteTestWave(root / "fake/other.wav");
+    ASSERT_TRUE(SDL_SetHint(SDL_HINT_AUDIO_DRIVER, "disk"));
+
+    const auto known = CaptureDiskOutput(root, "known.raw", catalog,
+                                         [](Client::Platform::SdlAudio& audio)
+                                         {
+                                             audio.RegisterSound(7, "fake/beep.wav");
+                                             audio.PlaySound(7, std::nullopt, false);
+                                         });
+    const auto unknown = CaptureDiskOutput(root, "unknown.raw", catalog,
+                                           [](Client::Platform::SdlAudio& audio)
+                                           {
+                                               audio.RegisterSound(8, "fake/other.wav");
+                                               audio.PlaySound(8, std::nullopt, false);
+                                           });
+
+    EXPECT_TRUE(IsAudible(known));
+    EXPECT_GT(unknown.size(), 1024U);
+    EXPECT_FALSE(IsAudible(unknown));
+    EXPECT_EQ(catalog.Lookups(), (std::vector<std::int32_t>{7, 8}));
+    std::filesystem::remove_all(root);
+}
+
+TEST(SdlAudioTest, IgnoresRegistrationsWhileEffectsAreOff)
+{
+    const RecordingCatalog catalog({7, "fake/beep.wav", 1, false});
+    const auto audio =
+        Client::Platform::SdlAudio::Create(std::filesystem::temp_directory_path(), catalog, false, false);
+    ASSERT_TRUE(audio.HasValue());
+
+    audio.Value()->RegisterSound(7, "fake/beep.wav");
+
+    EXPECT_TRUE(catalog.Lookups().empty());
 }

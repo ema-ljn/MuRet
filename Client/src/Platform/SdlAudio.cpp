@@ -1,6 +1,7 @@
 #include "Platform/SdlAudio.h"
 
-#include "Audio/SoundCatalog.h"
+#include "Audio/ISoundCatalog.h"
+#include "Audio/SoundDefinition.h"
 #include "Core/Expected.h"
 #include "Data/DataPath.h"
 
@@ -82,6 +83,9 @@ struct SdlAudio::Impl
         MIX_Track* track = nullptr;
     };
 
+    explicit Impl(const Audio::ISoundCatalog& soundCatalog) : catalog(soundCatalog) {}
+
+    const Audio::ISoundCatalog& catalog;
     std::filesystem::path dataRoot;
     MIX_Mixer* mixer = nullptr;
     MIX_Track* musicTrack = nullptr;
@@ -171,9 +175,10 @@ struct SdlAudio::Impl
 SdlAudio::SdlAudio(std::unique_ptr<Impl> impl) : m_impl(std::move(impl)) {}
 
 Core::Expected<std::unique_ptr<SdlAudio>, std::string> SdlAudio::Create(const std::filesystem::path& dataRoot,
+                                                                        const Audio::ISoundCatalog& catalog,
                                                                         bool effectsEnabled, bool musicEnabled)
 {
-    auto impl = std::make_unique<Impl>();
+    auto impl = std::make_unique<Impl>(catalog);
     impl->dataRoot = dataRoot;
     impl->effectsEnabled = effectsEnabled;
     if (!effectsEnabled && !musicEnabled)
@@ -210,7 +215,7 @@ Core::Expected<std::unique_ptr<SdlAudio>, std::string> SdlAudio::Create(const st
     auto audio = std::unique_ptr<SdlAudio>(new SdlAudio(std::move(impl)));
     if (effectsEnabled)
     {
-        for (const Audio::SoundDefinition& sound : Audio::StartupSounds())
+        for (const Audio::SoundDefinition& sound : catalog.StartupSounds())
         {
             audio->RegisterSound(sound.id, sound.path);
         }
@@ -328,7 +333,7 @@ void SdlAudio::RegisterSound(std::int32_t id, std::string_view path)
     {
         return;
     }
-    const auto definition = Audio::FindSound(id, path);
+    const auto definition = m_impl->catalog.Find(id, path);
     if (!definition || definition->voices == 0)
     {
         return;

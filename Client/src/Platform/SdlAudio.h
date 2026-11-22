@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Audio/ISoundCatalog.h"
 #include "Audio/Playback.h"
 #include "Core/Expected.h"
 
@@ -18,7 +19,8 @@ class SdlAudio final : public Audio::IPlayback
 {
 public:
     [[nodiscard]] static Core::Expected<std::unique_ptr<SdlAudio>, std::string>
-    Create(const std::filesystem::path& dataRoot, bool effectsEnabled = true, bool musicEnabled = true);
+    Create(const std::filesystem::path& dataRoot, const Audio::ISoundCatalog& catalog, bool effectsEnabled = true,
+           bool musicEnabled = true);
 
     ~SdlAudio() override;
     SdlAudio(const SdlAudio&) = delete;

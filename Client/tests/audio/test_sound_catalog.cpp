@@ -1,3 +1,4 @@
+#include "Audio/ISoundCatalog.h"
 #include "Audio/SoundCatalog.h"
 
 #include <gtest/gtest.h>
@@ -97,5 +98,25 @@ TEST(SoundCatalogTest, ReturnsNoDefinitionForUnknownIds)
 {
     EXPECT_FALSE(FindSound(-1).has_value());
     EXPECT_FALSE(FindSound(0x7fffffff).has_value());
+}
+
+TEST(SoundCatalogTest, GameCatalogFindsWhatFindSoundFinds)
+{
+    const ISoundCatalog& catalog = GameSoundCatalog();
+
+    const auto sound = catalog.Find(0x146, "Sound\\mShadowAttack2.wav");
+    ASSERT_TRUE(sound.has_value());
+    EXPECT_EQ(sound->path, "sound/mShadowAttack2.wav");
+    EXPECT_EQ(sound->voices, 2);
+    EXPECT_FALSE(catalog.Find(0x19, "sound/missing.wav").has_value());
+    EXPECT_FALSE(catalog.Find(0x7fffffff, "sound/iButtonClick.wav").has_value());
+}
+
+TEST(SoundCatalogTest, GameCatalogStartsTheNativeStartupSounds)
+{
+    const auto sounds = GameSoundCatalog().StartupSounds();
+
+    EXPECT_EQ(sounds.data(), StartupSounds().data());
+    EXPECT_EQ(sounds.size(), StartupSounds().size());
 }
 } // namespace Client::Audio

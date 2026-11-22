@@ -15,6 +15,7 @@
 #include "App/SessionState.h"
 #include "App/VSyncMode.h"
 #include "App/WindowState.h"
+#include "Audio/SoundCatalog.h"
 #include "Core/Crash/CrashHandler.h"
 #include "Core/Expected.h"
 #include "Core/FileSink.h"
@@ -144,6 +145,7 @@
 namespace
 {
 namespace App = Client::App;
+namespace Audio = Client::Audio;
 namespace Core = Client::Core;
 namespace Network = Client::Network;
 namespace Platform = Client::Platform;
@@ -665,8 +667,8 @@ int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Wind
     std::unique_ptr<Platform::SdlAudio> audio;
     Scenes::WorldState world;
     world.Runtime().music.SetEnabled(startup.config.musicOnOff);
-    auto audioCreated =
-        Platform::SdlAudio::Create(*startup.config.dataPath, startup.config.soundOnOff, startup.config.musicOnOff);
+    auto audioCreated = Platform::SdlAudio::Create(*startup.config.dataPath, Audio::GameSoundCatalog(),
+                                                   startup.config.soundOnOff, startup.config.musicOnOff);
     if (audioCreated.HasValue())
     {
         audio = std::move(audioCreated).Value();

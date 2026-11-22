@@ -43,11 +43,13 @@ App/VSyncMode.h	19	App	engine/Platform	high	included by Render, UI and Platform
 App/WindowState.cpp	39	App	engine/Platform	high	included by Render, UI and Platform
 App/WindowState.h	44	App	engine/Platform	high	included by Render, UI and Platform
 App/WorldEvent.h	153	App	game/Session	medium	the session with the servers
+Audio/ISoundCatalog.h	19	Audio	engine/Audio	high	the sound lookup the platform audio asks for; the game's catalog implements it (AR1.1)
 Audio/Music.cpp	185	Audio	engine/Audio	high	engine or protocol layer, no game state
 Audio/Music.h	41	Audio	engine/Audio	high	engine or protocol layer, no game state
 Audio/Playback.h	28	Audio	engine/Audio	high	engine or protocol layer, no game state
 Audio/SoundCatalog.cpp	657	Audio	game/Sound	medium	MU's sound catalog; the engine receives the definitions at startup (2026-11-21 review)
 Audio/SoundCatalog.h	22	Audio	game/Sound	medium	MU's sound catalog; the engine receives the definitions at startup (2026-11-21 review)
+Audio/SoundDefinition.h	15	Audio	engine/Audio	high	what the platform audio needs to know of one sound (AR1.1)
 Core/Ascii.cpp	28	Core	engine/Core	high	engine or protocol layer, no game state
 Core/Ascii.h	22	Core	engine/Core	high	engine or protocol layer, no game state
 Core/ByteReader.cpp	89	Core	engine/Core	high	engine or protocol layer, no game state

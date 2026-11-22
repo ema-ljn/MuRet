@@ -521,15 +521,15 @@ golden unchanged.
   `-ffp-contract=off` and whatever MSVC needs, and is applied to every target. The tests in
   `tests/{core,platform,input,audio,network,data,render,render_gl}` link only their target.
 - **One shared precompiled header, not one per module:** if each new target called `muret_precompile_headers`, the
-  same standard-library header would be compiled once per target (17 here, about 58 after AR4), each leaving its own
-  `.gch` or `.pch` in the build folder. Instead `cmake/PrecompiledHeaders.cmake` gains an owner target, `MuRetStdPch`
-  (a static library with one empty source and the standard-library list), and every module target calls
-  `muret_reuse_precompiled_headers(<target> MuRetStdPch)`, like TrinityCore's script modules (`REUSE_CXX_PCH`).
+  same header would be compiled once per target (17 here, about 58 after AR4), each leaving its own `.gch` or `.pch` in
+  the build folder. Instead `cmake/PrecompiledHeaders.cmake` gains an owner target, `MuRetStdPch` (a static library
+  with one empty source, the standard-library and glm lists, and `glm::glm-header-only`), and every module target
+  calls `muret_reuse_precompiled_headers(<target> MuRetStdPch)`, like TrinityCore's script modules (`REUSE_CXX_PCH`).
   `REUSE_FROM` needs the same compile options and definitions (GCC `-Winvalid-pch`, MSVC C4651), so the owner gets the
   same warnings, `muret_set_fidelity_flags` and MSVC `/bigobj` as the modules. The targets that see
   `SDL_OPENGL_1_FUNCTION_TYPEDEFS` (the `PUBLIC` definition of `engine/Platform`) keep a second owner, as `ClientPlatform`
-  is today, and the tests keep the two test-support headers; since the header holds only the standard library, which
-  does not read that macro, the Windows job checks whether that second owner is still needed. Nothing changes with
+  is today, and the tests keep the two test-support headers; since the header holds only the standard library and glm,
+  which do not read that macro, the Windows job checks whether that second owner is still needed. Nothing changes with
   `MURET_PRECOMPILED_HEADERS=OFF` (the Linux job), and the rule stays: the header is only for speed, every file still
   includes what it uses. Measured in the Windows job before and after: build time and the number of `.pch` files.
 - **Verification:** `check_pure_move.py` at 0; CI green; the golden identical; the reference unchanged except for paths;

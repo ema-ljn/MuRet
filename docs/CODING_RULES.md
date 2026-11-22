@@ -130,8 +130,8 @@ No cycles between modules.
   `Platform/GlLoader.h`, nunca por `SDL_opengl.h` directo. No hay `stdafx.h` que incluir: los
   precompiled headers los arma CMake y los fuerza solo
   ([`cmake/PrecompiledHeaders.cmake`](../cmake/PrecompiledHeaders.cmake)), con la biblioteca
-  estándar. Son para compilar más rápido, no reemplazan ningún include, y el job de Linux del CI
-  compila sin ellos para que lo que falte falle.
+  estándar y los tipos de glm. Son para compilar más rápido, no reemplazan ningún include, y el
+  job de Linux del CI compila sin ellos para que lo que falte falle.
 - **No common header.** There is no `Common.h`, `Define.h` or umbrella header that gathers other
   headers so files can include one line (cMaNGOS's `Common.h` has 27 includes and 259 users, and 482
   of its 511 scripts include only `sc_common.h`). It hides what each file uses, which

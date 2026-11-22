@@ -221,7 +221,7 @@ AR0.2.
   `Events/` and `MapScripts/` are folders of their module) and, while the migration lasts, `folders_today` pointing at
   today's layout (`Core/**` → `engine/Core`; `Scenes/**` → per the map). Layers: `engine/Core` 0; `engine/Math`, `Crt`
   and `Crypto` 1; `engine/Diagnostics`, `Input`, `Audio`, `Network` and `Data` 2; `engine/Platform`, `Pathfinding` and
-  `Obfuscation` 3; `engine/Render` 4; `engine/Models` 5; `game/Protocol`, `Tables` and `Maps` 6; `game/Kernel` 7;
+  `Network/FoxAnti` 3; `engine/Render` 4; `engine/Models` 5; `game/Protocol`, `Tables` and `Maps` 6; `game/Kernel` 7;
   `game/Assets`, `Terrain`, `Sound`, `Camera` and `Ui` 8; the game modules 9; `game/Session` 10; `game/Scenes` 11;
   `app` 12. Between modules of the same layer, `may_use` lists the ones used in a single direction today according to
   the graph measured with the map (`Effects` → `Particles`, `Movement` → `engine/Pathfinding`…).
@@ -462,19 +462,29 @@ golden unchanged.
   `Network::Packet`, so `engine/Crypto` (SimpleModulus, Xor32, Xor3, K16) does not see the network; `IPlayback` gains a
   `Register(SoundDefinition)` and `SdlAudio` stops including the sound catalog, which the game passes in at startup (the
   catalog goes to `game/Sound`). The order of calls into the audio engine does not change: the golden compares it.
-  `FoxAntiObfuscation` leaves `Network` for `engine/Obfuscation`, a layer that is removed at compile time and that the
-  rest of the client receives injected (Emanuel, 2026-11-21: the programmer decides, not the player). `Network` keeps
-  `IObfuscation`, `ObfuscationError` and the identity; `Connection`, `PacketReader`, `EncryptPacket` and `ServerSession`
-  already receive the layer as `IObfuscation` without knowing which one it is, and that does not change.
+  `FoxAntiObfuscation` leaves the `Network` target for an optional library of its own inside the network folder,
+  `engine/Network/FoxAnti` (target `MuRetFoxAnti`, layer 3), that is removed at compile time and that the rest of the
+  client receives injected (Emanuel, 2026-11-21: the programmer decides, not the player). It stays under `Network`
+  because the network is part of the engine, as in Unreal, Source, Quake 3 and Godot, and FoxAnti is one more shape of
+  the packets on the wire (Emanuel, 2026-11-21). `Network` keeps `IObfuscation`, `ObfuscationError` and the identity;
+  `Connection`, `PacketReader`, `EncryptPacket` and `ServerSession` already receive the layer as `IObfuscation` without
+  knowing which one it is, and that does not change.
   - **One switch, at compile time**: the CMake option `MURET_FOXANTI`, on by default while the lab uses it. Off,
-    `engine/Obfuscation` is not added (`if(MURET_FOXANTI) add_subdirectory(...)`), `app/` does not link it and the binary
-    carries nothing of FoxAnti.
+    `engine/Network/CMakeLists.txt` does not add its `FoxAnti/` folder (`if(MURET_FOXANTI) add_subdirectory(FoxAnti)`),
+    `app/` does not link it and the binary carries nothing of FoxAnti.
+  - **Its MU values come injected**: `FoxAnti/` keeps only the mechanism of the five hooks, ported function by function
+    from FoxAnti.dll. Every MU value it matches or writes (the inbound XOR key 0xAA, the opcode remaps of the clear C1
+    packets and of the encrypted ones, the server codes of the list and of the selection, and the heads it rewrites:
+    C2 F4 02, C1 F4 03 and C1 F3 11) goes in a `FoxAntiTables` value that `FoxAntiObfuscation` receives in its
+    constructor. `app/FoxAntiLabTables.h` declares `LabFoxAntiTables()`, the lab's values, defined in
+    `app/MakeObfuscationFoxAnti.cpp`; the tests that need the lab's layer build it with the same function.
   - **Injection, with no `#if` in the code**: the composition root in `app/` gets the layer from
     `std::unique_ptr<const Network::IObfuscation> MakeObfuscation()`, declared in `app/MakeObfuscation.h`, and keeps it
     next to the connection (`Online` in `main.cpp` today). CMake adds one of two definitions to `MuRetApp`:
-    `app/MakeObfuscationFoxAnti.cpp`, which builds a `FoxAntiObfuscation` and links `MuRetObfuscation`, or
-    `app/MakeObfuscationNone.cpp`, which builds an `IdentityObfuscation`. No other file knows the layer exists: removing
-    it from the repo means deleting `engine/Obfuscation`, `MakeObfuscationFoxAnti.cpp` and the CMake `if`.
+    `app/MakeObfuscationFoxAnti.cpp`, which builds a `FoxAntiObfuscation` with `LabFoxAntiTables()` and links
+    `MuRetFoxAnti`, or `app/MakeObfuscationNone.cpp`, which builds an `IdentityObfuscation`. No other file knows the
+    layer exists: removing it from the repo means deleting `engine/Network/FoxAnti`, the two lab files of `app/`
+    (`MakeObfuscationFoxAnti.cpp` and `FoxAntiLabTables.h`) and the CMake `if`.
   - **The `[Server] Obfuscation` key of `muret-client.ini` goes away** (it exists since CL4, question 8 of its plan).
     `App/ObfuscationMode.h`, the `obfuscation` field of `ClientConfig`, `ParseObfuscation`, `ChooseObfuscation` in
     `main.cpp` and their `test_config` cases go; `Online` receives the layer instead of the mode. An .ini that still has
@@ -498,14 +508,15 @@ golden unchanged.
 
 - `move.py --root engine` takes `Core`, `Platform`, `Input`, `Audio`, `Network`, `Data` and `Render` to
   `Client/src/engine/`, `Render/Models` to `engine/Models`, the x87 math to `engine/Math`, and every file the map sends to
-  a new engine module (`Crt`, `Crypto`, `Diagnostics`, `Pathfinding`, `Obfuscation`, with what belongs to them from
+  a new engine module (`Crt`, `Crypto`, `Diagnostics`, `Pathfinding`, `Network/FoxAnti`, with what belongs to them from
   `UI/`, `World/` and `GameLogic/`). What is in `Data/` or `Audio/` today but belongs to the game goes straight to its
   module: the tables to `game/Tables` (1,772 lines), the map folders to `game/Maps` and the sound catalog to
   `game/Sound`. Includes of folders that only change root keep their text; the script rewrites the rest.
 - **CMake:** one target per engine folder (`MuRetCore`, `MuRetMath`, `MuRetCrt`, `MuRetCrypto`, `MuRetDiagnostics`,
-  `MuRetInput`, `MuRetAudio`, `MuRetNetwork`, `MuRetData`, `MuRetPlatform`, `MuRetPathfinding`, `MuRetObfuscation`,
-  `MuRetRender`, `MuRetModels`) and the first three game ones (`MuRetTables`, `MuRetMaps`, `MuRetSound`) with include root
-  `Client/src/engine` (or `Client/src/game`), their headers in `FILE_SET HEADERS` and `VERIFY_INTERFACE_HEADER_SETS ON`;
+  `MuRetInput`, `MuRetAudio`, `MuRetNetwork`, `MuRetData`, `MuRetPlatform`, `MuRetPathfinding`, `MuRetFoxAnti`
+  (only with `MURET_FOXANTI`), `MuRetRender`, `MuRetModels`) and the first three game ones (`MuRetTables`, `MuRetMaps`,
+  `MuRetSound`) with include root `Client/src/engine` (or `Client/src/game`), their headers in `FILE_SET HEADERS` and
+  `VERIFY_INTERFACE_HEADER_SETS ON`;
   `ClientLib` keeps the rest and links them. `muret_set_fidelity_flags(target)` (in `cmake/`) gathers
   `-ffp-contract=off` and whatever MSVC needs, and is applied to every target. The tests in
   `tests/{core,platform,input,audio,network,data,render,render_gl}` link only their target.

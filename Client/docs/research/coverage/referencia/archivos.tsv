@@ -219,8 +219,8 @@ Network/Crypto/Xor32.h	45	0	0	0	0				0		2026-11-02	00acb355 refactor(client): el
 Network/Delivery.h	20	0	0	0	0				0		2026-11-02	d1b024bd feat(client): CL4.3 PR A, la Connection (#61)	engine/Network
 Network/EncryptedPacket.cpp	198	1	0	1	3.4	CL2	CL2 3.4 KB		0	app/test_game_loop.cpp; app/test_server_session.cpp; network/test_encrypted_packet.cpp	2026-11-06	87d016f3 feat(client): conservar el origen de los paquetes descifrados (#154)	engine/Network
 Network/EncryptedPacket.h	58	3	0	3	7.2	CL9	CL9 3.8 KB; CL2 3.4 KB		0	network/test_encrypted_packet.cpp×2; network/test_xor32.cpp×2; scenes/test_game_letters.cpp×2	2026-11-06	87d016f3 feat(client): conservar el origen de los paquetes descifrados (#154)	engine/Network
-Network/FoxAntiObfuscation.cpp	286	0	0	0	0				0		2026-11-06	87d016f3 feat(client): conservar el origen de los paquetes descifrados (#154)	engine/Obfuscation
-Network/FoxAntiObfuscation.h	43	0	0	0	0				0		2026-11-03	4309ebee refactor(client): cada archivo incluye lo que usa, con misc-include-cleaner en el CI (#93)	engine/Obfuscation
+Network/FoxAntiObfuscation.cpp	286	0	0	0	0				0		2026-11-06	87d016f3 feat(client): conservar el origen de los paquetes descifrados (#154)	engine/Network/FoxAnti
+Network/FoxAntiObfuscation.h	43	0	0	0	0				0		2026-11-03	4309ebee refactor(client): cada archivo incluye lo que usa, con misc-include-cleaner en el CI (#93)	engine/Network/FoxAnti
 Network/IObfuscation.h	61	0	0	0	0				0		2026-11-06	87d016f3 feat(client): conservar el origen de los paquetes descifrados (#154)	engine/Network
 Network/IResolver.h	35	1	0	1	0.3	CL4	CL4 0.3 KB		0	scenes/test_login_scene_session.cpp	2026-11-02	bdca51ad feat(client): la CL4.1 PR A, el socket no bloqueante portable	engine/Network
 Network/ISocket.h	68	0	0	0	0				0		2026-11-02	5f38e7c2 fix(client): lo de la revisión del socket y la cola de envío (#53, #54) (#60)	engine/Network

@@ -1,0 +1,433 @@
+# AR1, the engine apart: detailed plan
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or
+> superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+**Goal:** the engine (`Core`, `Math`, `Crt`, `Crypto`, `Diagnostics`, `Input`, `Audio`, `Network`, `Data`, `Platform`,
+`Pathfinding`, `Network/FoxAnti`, `Render`, `Models`) lives in `Client/src/engine/`, one CMake target per module, and no
+engine file includes `game/` or `app/`, without changing a byte of behavior.
+
+**Architecture:** first the design (AR1.1): cut the 11 engine includes of the game, give the engine types that live in
+game headers a header of their own, merge the two `Ftol` and add the x87 kit, make FoxAnti a compile-time option, and add
+the rest of the common kit. Then the move (AR1.2): `move.py --root engine` with the first three game modules, one target
+per module with a shared precompiled header, the namespaces renamed after their new folders, and the comments.
+
+**Tech Stack:** C++20, CMake 3.25 (`FILE_SET HEADERS`, `VERIFY_INTERFACE_HEADER_SETS`, `REUSE_FROM`), GoogleTest,
+Python 3 (standard library, `unittest`), GitHub Actions.
+
+**Spec:** [`docs/superpowers/specs/2026-11-20-client-architecture-design.md`](../specs/2026-11-20-client-architecture-design.md),
+and the epic in the master plan:
+[`2026-11-20-client-architecture-refactor.md`](2026-11-20-client-architecture-refactor.md), "Epic AR1".
+
+Measured on `refactor/client` at 75c33064 (2026-11-22). AR1.3, the command line, already landed in #407.
+
+## Global Constraints
+
+- No PR changes behavior: the behavior golden (`tests/characterization`) and every current test and golden stay
+  identical on Linux and Windows, Debug and `math-release`. A difference is a refactor bug, not a golden to regenerate
+  (`superpowers:systematic-debugging`).
+- The order of the original's calls and of `rand()` calls does not change.
+- Titles and branches: `refactor(AR1.1): …` on `refactor/ar1.1-<topic>`; the move is
+  `refactor(AR1.2): move the engine to Client/src/engine`, the comments are `docs(AR1.2): trim and translate comments`.
+  Never `CLn`. CI runs `check_pure_move.py` on every `type(ARn.m)` PR, so a design PR never renames a file.
+- Everything in English. A comment only if strictly necessary, one line; keep the `// 0x…` citations.
+- New code calls `RoundedMath.h` / `RoundedTransforms.h`, never `std::sin` or glm trig (`check_rounded_math.py`).
+- New scripts: standard library only, `python3 -I`, tests with `unittest`.
+- PRs target `refactor/client`. One task per PR, and each PR is one step: Emanuel says yes before the next one starts.
+- Priority: fidelity, then `docs/CODING_RULES.md`, then `clean-code`, `clean-architecture` and `refactoring`.
+- The cloud container cannot build the client: GitHub CI is the build and the final word.
+
+## Review Focus
+
+- A copy of `F32`, `D`, `Truncate` or `Bits` that looks the same but is not (`static_cast<std::int32_t>(v)` instead of
+  `OriginalFtolLow(v).value_or(0)`): replacing it changes out-of-range results. Task 3's script compares normalized
+  bodies and its tests pin NaN, infinity and 2^40.
+- `IsKalimaMap` includes Kalima 7 (map 36) but most copies check only 24 to 29: those must keep 24 to 29. Task 5 pins
+  36 and 30 to 35 in its tests.
+- A sound registered while effects are off, or an id the catalog does not know: the engine must keep ignoring both after
+  the lookup moves to the game. Task 1 tests the free function with a recording playback.
+- An `.ini` that still has `[Server] Obfuscation`: the player gets an error with its line that says how to build without
+  FoxAnti, never a silent default. Task 4 tests it.
+- A design PR whose deleted and created files git pairs as a rename (`-M50%`): CI's pure-move check fails it. Each task
+  that deletes a file checks `git diff -M50% --name-status` shows no `R` line before pushing.
+
+---
+
+## How this plan places files
+
+- **Existing files change folder only in AR1.2**, by `move.py`, from their row in
+  `Client/docs/research/coverage/module-map.tsv`. In AR1.1 a file whose module changes gets its `target` cell changed,
+  not a `git mv`.
+- **A new file is born in the folder it will keep inside its root** (`Crt/CrtRandom.h`, `Math/X87.h`, `Render/Frame/`),
+  with that folder's namespace, and its row in the map in the same PR (`confidence` `high`, `why` ending in `(AR1.1)`).
+  New folders also get their glob in `Client/modules.tsv` `folders_today`: `Crt/**` for `engine/Crt`, `Math/**` for
+  `engine/Math`, `Maps/**` for `game/Maps`.
+- **Existing files keep their namespace until Task 9**, which renames every moved file's namespace after its new folder
+  (spec, "Namespaces": `Client::<Folder>`, in the design PR, not in the move).
+
+## Deviations from the master plan, and why
+
+| master plan | this plan | why |
+| --- | --- | --- |
+| `App/WindowState`, `VSyncMode`, `Resolution` and the frame contracts move in AR1.1 | their map rows already say `engine/Platform`; the frame contracts' rows change to `engine/Render/Frame`; `move.py` moves them in AR1.2 | a hand move in a design PR fails CI's pure-move check, and `src/Platform/*.cpp` goes to `ClientPlatform`, which `ClientLib` does not link |
+| `IPlayback::Register(SoundDefinition)` | the same, plus `Audio::RegisterSound(IPlayback&, id, path)` in the catalog | the lookup (`FindSound(id, path)`) is the catalog's; the game calls the free function and the engine plays what it is given |
+| `LabFoxAntiTables()` defined in `MakeObfuscationFoxAnti.cpp` | `constexpr` in `App/FoxAntiLabTables.h` | the FoxAnti tests build the lab layer too, and they do not link the executable's sources |
+| `Core/WrappingInt.h` and `UI::Rect::Contains` in the kit | left out | no copy of a wrapping integer was found, and `Rect::Contains` already exists (`UI/Widget.h`) |
+| the 189 loose map comparisons switch to names | `MapId.h` replaces the 77 duplicated constants and the predicates; the loose literals switch in each module's AR4 design PR | each literal needs a judgment (is it a map?); AR4 reads those files anyway |
+| map enum | `inline constexpr std::int32_t` constants | `WorldRuntime::map` is `std::int32_t`; an `enum class` needs a cast at each comparison |
+| AR1.2 tests link only their target | tests keep linking `ClientLib` | `ClientTestSupport` links `ClientLib` publicly and includes `Scenes/`; splitting it belongs to the test-executables ADR (Task 6) |
+
+---
+
+## AR1.1 (design): five PRs
+
+### Task 1: the engine stops including the game
+
+PR `refactor(AR1.1): stop including the game from the engine`, branch `refactor/ar1.1-engine-includes`. Skills:
+`clean-architecture`, `cpp-pro`, `superpowers:test-driven-development`.
+
+Today's 11 engine rows of `layers-baseline.tsv`: `Network/Crypto/Xor32.{h,cpp}` → `Network/Packet.h`;
+`Platform/SdlAudio.cpp` → `Audio/SoundCatalog.h`; `Render/Gl/GlFrameTarget.{h,cpp}` → `Scenes/{SceneCanvas,SceneText,
+IFrameTarget,IWorldView}.h` (6); `Render/Gl/GlScreenReader.h` → `Scenes/Screenshots.h`;
+`Render/ModelBatchParticleBackend.cpp` → `Scenes/CharacterDrawing.h`.
+
+**Files:**
+- Modify: `Client/tools/architecture/check_layers.py`, `test_check_layers.py`, `.github/workflows/ci.yml` (step "Client
+  layers": add `--clean-root engine`), `.claude/skills/muret-module/SKILL.md` (one line on the flag)
+- Create: `Client/src/Render/Frame/SceneWorld.h`, `Client/src/Render/Frame/IScreenReader.h`
+- Modify: `Scenes/SceneWorlds.h`, `Scenes/IWorldView.h`, `Scenes/Screenshots.h`, `Render/Gl/GlScreenReader.h`
+- Map rows to `engine/Render/Frame`: `Scenes/ITextDrawer.h`, `IFrameTarget.h`, `IWorldView.h`, `SceneCanvas.h`,
+  `SceneText.{h,cpp}`, `TextCacheDrawer.{h,cpp}`
+- Create: `Client/src/Render/ITextureSlots.h`, `Client/src/Render/Models/IModelLibrary.h`
+- Modify: `Scenes/CharacterDrawing.h`, `Render/ModelBatchParticleBackend.{h,cpp}`, the users of `Scenes::IModelLibrary`
+  (141 files in `src` and `tests`); map row of `Scenes/TextureMetadata.h` to `engine/Models`
+- Create: `Client/src/Network/Xor32Packet.{h,cpp}`; modify `Network/Crypto/Xor32.{h,cpp}` and the about 80 callers of
+  the `Packet` overloads
+- Create: `Client/src/Audio/SoundDefinition.h`; modify `Audio/Playback.h`, `Audio/SoundCatalog.{h,cpp}`,
+  `Platform/SdlAudio.{h,cpp}`, `main.cpp`, `Scenes/{FaunaModels,GameScene,MapLoad}.cpp`, `tests/audio/test_sound_catalog.cpp`,
+  `tests/platform/test_sdl_audio.cpp`, `tests/scenes/{test_fauna_models,test_game_scene}.cpp`
+- Regenerate: `Client/tools/architecture/layers-baseline.tsv`
+
+**Interfaces:**
+- Produces: `check_layers.py --clean-root ROOT` (repeatable). `clean_root_violations(found, roots: tuple[str, ...]) ->
+  list[tuple[str, str, str, str]]`: the violations whose source module is in one of `roots`. They fail even when listed
+  in the baseline, and `--write-baseline` refuses to write them (exit 1, listing them).
+- Produces: `Client::Render::Frame::SceneWorld { std::uint8_t map = 0; }` (moved out of `SceneWorlds.h`, which includes
+  it); `IWorldView::Draw(Render::Frame::SceneWorld, const Render::Pass3D&, float)`.
+- Produces: `Client::Render::Frame::IScreenReader` with `ReadTheScreen(App::PixelSize) -> std::vector<std::uint8_t>`
+  (moved out of `Screenshots.h`, which includes it).
+- Produces: `Client::Render::ITextureSlots` with `virtual std::optional<TextureSlot> TextureSlotOf(std::uint32_t
+  selector) const = 0`. `ModelBatchParticleBackend` takes `std::reference_wrapper<const Render::ITextureSlots>`.
+- Produces: `Client::Render::Models::IModelLibrary : public Render::ITextureSlots`, the class as it is in
+  `CharacterDrawing.h` today; its `TextureSlotOf` keeps the default body that returns `std::nullopt`.
+- Produces: `Client::Network::Xor32Encode(Packet) -> Packet` and `Xor32Decode(Packet) -> Packet`. `Network::Crypto`
+  keeps only `Xor32Key`, `Xor32EncodeBytes` and `Xor32DecodeBytes`, and `Xor32.h` no longer includes `Network/Packet.h`.
+- Produces: `Client::Audio::SoundDefinition` (fields as today: `id`, `path`, `voices`, `positional`) in
+  `Audio/SoundDefinition.h`; `IPlayback::Register(const SoundDefinition&)` with an empty default, replacing
+  `RegisterSound(std::int32_t, std::string_view)`; `Audio::RegisterSound(IPlayback& playback, std::int32_t id,
+  std::string_view path)` in `SoundCatalog.h`.
+
+- [ ] **Step 1: Write the failing check test** in `test_check_layers.py`:
+
+```python
+def test_a_clean_root_violation_fails_even_in_the_baseline(self):
+    # engine/Render -> game/Scenes listed in the baseline still fails under --clean-root engine
+    self.assertEqual(self.run_check(baseline=[ROW], clean_roots=['engine']), 1)
+
+def test_write_baseline_refuses_a_clean_root_violation(self):
+    self.assertEqual(self.run_check(write_baseline=True, clean_roots=['engine']), 1)
+    self.assertNotIn(ROW, self.read_baseline())
+```
+
+`ROW` is an `engine/Render` file including a `game/Scenes` one; follow the scratch-tree fixtures the file already uses.
+
+- [ ] **Step 2: Run it and see it fail:** `python3 -I -m unittest Client/tools/architecture/test_check_layers.py -v`,
+  failing with "unrecognized arguments: --clean-root".
+- [ ] **Step 3: Implement `--clean-root` and `clean_root_violations`.** Run the tests: pass.
+- [ ] **Step 4: Write the failing sound test** in `tests/audio/test_sound_catalog.cpp`, with a playback double that
+  records each `Register`:
+
+```cpp
+TEST(SoundCatalogTest, RegistersAKnownSoundWithTheCatalogDefinition)  // first StartupSounds() entry: one Register, same id, voices and path
+TEST(SoundCatalogTest, SkipsANegativeId)                              // Register never called
+TEST(SoundCatalogTest, SkipsASoundTheCatalogDoesNotKnow)              // id 0x7fffffff
+TEST(SoundCatalogTest, SkipsAPathThatDoesNotMatchTheId)               // known id, another sound's path
+```
+
+  In `tests/platform/test_sdl_audio.cpp`, on the disk driver with effects off, `Register` of a known sound and then
+  `PlaySound` of its id leave the output silent. It fails to compile (`Register` and `Audio::RegisterSound(IPlayback&,
+  …)` do not exist).
+- [ ] **Step 5: Move the lookup to the game.** `Audio::RegisterSound` returns when `id < 0`, calls `FindSound(id, path)`
+  and calls `playback.Register(*definition)` only when there is one with `voices != 0`. `SdlAudio::Register` keeps the
+  rest of today's body: returns when effects are off, then `try_emplace(sound.id)` and `LoadSound(sound.path)`.
+  `SdlAudio::Create` loses the `StartupSounds()` loop and the catalog include; `main.cpp` runs that loop with
+  `Audio::RegisterSound(*audio, sound.id, sound.path)` right after `Create`, before anything else touches the audio.
+  The three game callers switch to the free function. A test double that recorded `RegisterSound(id, path)` records
+  `Register(sound)`: it now sees only what the catalog knows, with the catalog's path. Run the audio and platform tests.
+- [ ] **Step 6: Split the frame contracts and `IModelLibrary`, and move the `Packet` overloads,** per Interfaces. A file
+  that includes `Scenes/CharacterDrawing.h` and uses no other name it declares includes
+  `Render/Models/IModelLibrary.h` instead (a script lists them; it goes in the PR description, not in the repo).
+- [ ] **Step 7: Retarget the map rows** listed in Files, and regenerate the baseline:
+  `python3 -I Client/tools/architecture/check_layers.py --src Client/src --modules Client/modules.tsv --map
+  Client/docs/research/coverage/module-map.tsv --baseline Client/tools/architecture/layers-baseline.tsv
+  --write-baseline`. The baseline diff only removes rows, among them the 11 engine ones; then the same command without
+  `--write-baseline` and with `--clean-root engine` prints `0 new`.
+- [ ] **Step 8: Push, open the PR and let CI build.** Expected: all jobs green, the characterization tests unchanged.
+
+### Task 2: `CrtRandom` and `PixelSize` get their own headers
+
+PR `refactor(AR1.1): give CrtRandom and PixelSize their own headers`, branch `refactor/ar1.1-crt-random`. Skills:
+`refactoring` (Move Function), `cpp-pro`. No new behavior: the existing tests and the golden are the net.
+
+**Files:**
+- Create: `Client/src/Crt/CrtRandom.h` (module `engine/Crt`), `Client/src/Core/PixelSize.h`
+- Modify: `Render/Models/Cloth.h` (includes `Crt/CrtRandom.h`, uses `Crt::CrtRandom`), `App/WindowState.h` (includes
+  `Core/PixelSize.h`), and their users
+
+**Interfaces:**
+- Produces: `Client::Crt::CrtRandom`, the class of `Cloth.h` lines 24 to 44 as it is.
+- Produces: `Client::Core::PixelSize { int width = 0; int height = 0; }`.
+
+- [ ] **Step 1: Create both headers** and include them from `Cloth.h` and `WindowState.h`.
+- [ ] **Step 2: Rename the uses by script:** `Render::Models::CrtRandom` → `Crt::CrtRandom` (about 1,650 uses and 233
+  `using` declarations) and `App::PixelSize` → `Core::PixelSize` (about 460 uses). A file that includes `Cloth.h` and
+  uses no cloth name (today about 440 of its 556 includers) includes `Crt/CrtRandom.h` instead. The compiler finds the
+  unqualified uses the script leaves.
+- [ ] **Step 3: Check** `grep -rn "Render::Models::CrtRandom\|App::PixelSize" Client/src Client/tests` prints nothing,
+  `check_layers.py` prints `0 new`, then push and let CI build.
+
+### Task 3: one `Ftol` and the x87 kit
+
+PR `refactor(AR1.1): merge the two Ftol and share the x87 helpers`, branch `refactor/ar1.1-x87-kit`. Skills:
+`refactoring`, `superpowers:test-driven-development`.
+
+**Files:**
+- Modify: `World/Ftol.h` (gains `OriginalFtolLow`; stays in place, its row already says `engine/Math`)
+- Delete: `World/OriginalFtol.h`, `World/OriginalFtol.cpp`
+- Create: `Client/src/Math/X87.h`; `tests/world/test_x87.cpp`
+- Modify: `tests/world/test_ftol.cpp`, the 84 includers of `World/OriginalFtol.h`, and the files whose copies the script
+  replaces
+
+**Interfaces:**
+- Produces, in `World/Ftol.h` (namespace `Client::World` until Task 9): `std::optional<std::int32_t>
+  OriginalFtolLow(double)` (today's body, inline) and `std::int32_t FtolLow(double)` defined as
+  `OriginalFtolLow(value).value_or(0)`. Both give today's results: NaN is 0; infinity and |x| ≥ 2^63 are `nullopt` and
+  0; otherwise the low dword of the truncation.
+- Produces, in `Math/X87.h` (namespace `Client::Math`): `constexpr float F32(double)`, `constexpr double D(float)`,
+  `std::int32_t Truncate(double)` (calls `World::FtolLow`), `std::uint32_t Bits(float)`.
+
+- [ ] **Step 1: Write the failing tests.** In `test_ftol.cpp`, `FtolLow` and `OriginalFtolLow` agree for NaN (0 and 0),
+  ±infinity (0 and `nullopt`), 0x1p63 (0 and `nullopt`), 0x1p40 + 5 (5 and 5), -1.5 (-1 and -1). In `test_x87.cpp`:
+
+```cpp
+TEST(X87Test, TruncateIsFtolLow)   // NaN, inf, 0x1p40 + 5, -1.5, 2147483648.0 → 0, 0, 5, -1, INT32_MIN
+TEST(X87Test, F32RoundsLikeTheStore)   // F32(0.1) == 0.1f; F32(D(0.1f)) == 0.1f
+TEST(X87Test, BitsIsTheFloatPattern)   // Bits(1.0f) == 0x3F800000u; Bits(-0.0f) == 0x80000000u
+```
+
+- [ ] **Step 2: Run them and see them fail** (no `Math/X87.h`, no inline `OriginalFtolLow` in `Ftol.h`).
+- [ ] **Step 3: Merge and create** per Interfaces; delete `OriginalFtol.{h,cpp}` and point their includers to
+  `World/Ftol.h`. Run the tests: pass.
+- [ ] **Step 4: Replace the identical copies by script.** A copy goes only if its body, with comments and whitespace
+  removed and the parameter renamed, is exactly the shared one: today 158 `F32(double)`, 63 `D(float)`, 21
+  `Bits(float)`, 17 `Truncate(double)` and 2 `Truncate(float)` in the `OriginalFtolLow(…).value_or(0)` form. The six
+  `Truncate(double)` that are `static_cast<std::int32_t>(v)` stay. Each file gets `#include "Math/X87.h"` and a
+  `using Math::F32;` (one per name it used) in the `.cpp`'s anonymous namespace, or `Math::` qualifiers in a header. The
+  script prints the list and the counts; they go in the PR description.
+- [ ] **Step 5: Check** `git diff -M50% --name-status origin/refactor/client` has no `R` line, `check_rounded_math.py`
+  passes, then push and let CI build.
+
+### Task 4: FoxAnti optional at compile time
+
+PR `refactor(AR1.1): make FoxAnti a compile-time option`, branch `refactor/ar1.1-foxanti-option`. Skills: `cpp-pro`,
+`clean-architecture` (composition root), `superpowers:test-driven-development`.
+
+**Files:**
+- Modify: `Network/FoxAntiObfuscation.{h,cpp}` (takes `FoxAntiTables`), `Network/IObfuscation.h` (comment only if it
+  names the mode)
+- Create: `Client/src/Network/FoxAntiTables.h` (map row `engine/Network/FoxAnti`), `Client/src/App/MakeObfuscation.h`,
+  `App/MakeObfuscationFoxAnti.cpp`, `App/MakeObfuscationNone.cpp`, `App/FoxAntiLabTables.h` (rows `app/App`)
+- Delete: `App/ObfuscationMode.h`
+- Modify: `App/Config.{h,cpp}` (no `obfuscation`, no `ParseObfuscation`), `main.cpp` (no `ChooseObfuscation`),
+  `Client/CMakeLists.txt`, `tests/CMakeLists.txt` and `tests/{app,network,protocol,scenes}/CMakeLists.txt`,
+  `tests/app/test_config.cpp`, the 12 test files that build `FoxAntiObfuscation`, `.github/workflows/ci.yml`,
+  `Client/README.md`
+
+**Interfaces:**
+- Produces: `struct Client::Network::FoxAntiTables` with `std::byte inboundXor`; `std::array<OpcodeRemap, 3>
+  encryptedRemaps`; `std::array<OpcodeRemap, 2> clearRemaps`; `std::uint8_t serverOpcode, labServerListSub,
+  serverListSub, serverSelectSub, characterOpcode, skillListSub`; `std::uint32_t codeGroupSize`;
+  `std::array<std::uint16_t, 9> listCodeDeltas`; `std::uint16_t ladderStepCodes`; `std::array<LadderStep, 8>
+  selectLadder`. `OpcodeRemap {from, to}` and `LadderStep {first, subtract}` move there from the `.cpp`. Offsets and
+  sizes of the packets (`ListSubIndex`, `ServerSelectSize`…) are the mechanism and stay in the `.cpp`.
+- Produces: `explicit FoxAntiObfuscation(const FoxAntiTables&)`.
+- Produces: `constexpr Network::FoxAntiTables Client::App::LabFoxAntiTables()` with today's values (0xAA; {0x10, 0x1D},
+  {0x19, 0xA5}, {0x1E, 0xA6}; {0xD3, 0xA3}, {0xD7, 0xA4}; F4, 02, 06, 03, F3, 11; 11; 0x190 … 0xA0; 0x14; the 8 ladder
+  steps).
+- Produces: `std::unique_ptr<const Network::IObfuscation> Client::App::MakeObfuscation()`. CMake option
+  `MURET_FOXANTI` (default `ON`) sets `MURET_MAKE_OBFUSCATION_SOURCE`, which `Main` and `test_make_obfuscation` compile:
+  `ON` is `MakeObfuscationFoxAnti.cpp`, and both link `MuRetFoxAnti`, a static library with
+  `Network/FoxAntiObfuscation.cpp` that links `ClientLib`; `OFF` is `MakeObfuscationNone.cpp`, and no FoxAnti source is
+  built. `ClientLib`'s glob excludes `Network/FoxAntiObfuscation.cpp` and `App/MakeObfuscation*.cpp`.
+- Produces: `muret_add_module_tests(FOX_ANTI <file> …)`: those files build only with `MURET_FOXANTI`, link
+  `MuRetFoxAnti`, and count as registered either way (like `OTHER_SYSTEM`).
+
+- [ ] **Step 1: Write the failing tests.** In `test_config.cpp`:
+
+```cpp
+TEST(ConfigTest, RejectsTheRemovedObfuscationKey)
+{
+    const auto error = ErrorOf("[Server]\nObfuscation = foxanti\n");
+    EXPECT_EQ(error.line, 2u);
+    EXPECT_NE(error.message.find("MURET_FOXANTI"), std::string::npos);
+}
+```
+
+  In `test_fox_anti_obfuscation.cpp`: `FoxAntiObfuscation(LabFoxAntiTables())` passes every current case, and
+  `TEST(FoxAntiObfuscationTest, UsesTheInjectedInboundXor)` builds tables with `inboundXor = std::byte{0x55}` and
+  expects `InboundMask` to return 0x55. A new `tests/app/test_make_obfuscation.cpp` expects `InboundMask(std::byte{0xC1})`
+  to be 0xAA with the option on and 0 with it off (one file, compiled with `MURET_MAKE_OBFUSCATION_SOURCE`; the
+  expectation comes from a definition CMake passes).
+- [ ] **Step 2: Run them and see them fail** (the key is still known; no constructor with tables).
+- [ ] **Step 3: Inject the tables and add `MakeObfuscation`.** `main.cpp` keeps the result next to the connection (where
+  `Online` lives) and passes `const Network::IObfuscation&` to `Online`. The config's unknown-key path gets a special
+  message for `[Server] Obfuscation`: `Obfuscation no longer exists: the server's packet shape is chosen when building
+  (-DMURET_FOXANTI=OFF for a server that speaks like main.exe)`.
+- [ ] **Step 4: Split the tests.** A file where every test needs FoxAnti goes whole into its folder's `FOX_ANTI` list;
+  otherwise its FoxAnti tests move to `<file>_fox_anti.cpp` (new file, so no rename) and that file goes in the list.
+- [ ] **Step 5: CI and docs.** The job "Windows (MSVC, Release, matemática)" adds `-DMURET_FOXANTI=OFF` to its
+  configure. `Client/README.md` drops the key from the `.ini` table and example and says how to build without FoxAnti.
+- [ ] **Step 6: Check** no file outside `Network/FoxAnti*`, `App/MakeObfuscationFoxAnti.cpp`, `App/FoxAntiLabTables.h`
+  and the `FOX_ANTI` tests names `FoxAnti` in code (`grep -rn FoxAnti Client/src Client/tests`), the `git diff -M50%`
+  check, then push. Expected: CI green, and the Windows Release job builds and links `Main` without FoxAnti.
+
+### Task 5: the rest of the common kit
+
+PR `refactor(AR1.1): add the common kit`, branch `refactor/ar1.1-common-kit`. Skills: `cpp-coding-standards`,
+`superpowers:test-driven-development`.
+
+**Files:**
+- Modify: `Core/Expected.h`, `tests/core/test_expected.cpp`
+- Modify: `Data/Text/TextTable.h`, `tests/data/test_text_table.cpp`; `UI/ChatCommands.cpp`, `UI/Emotes.cpp`
+- Create: `Client/src/Maps/MapId.h` (module `game/Maps`); `tests/world/test_map_id.cpp`
+- Modify: the files that define `First/Last{BloodCastle,ChaosCastle,Kalima}Map` as `std::int32_t` (30 in `Scenes`, 2 in
+  `UI`, 2 in `World`), the copies of `InChaosCastle`, `IsChaosCastleMap`, `IsChaosCastle`, `InBloodCastle`, and
+  `World/KalimaWorld.{h,cpp}` (`IsKalimaMap` moves out)
+
+**Interfaces:**
+- Produces, on `Core::Expected<T, E>` and `Expected<void, E>`, `const&` and `&&` overloads, with the `std::expected`
+  meaning: `AndThen(F)` (F takes the value, or nothing for `void`, and returns an `Expected<U, E>`), `Transform(F)`
+  (returns `Expected<U, E>` with `F`'s result), `OrElse(F)` (F takes the error and returns an `Expected<T, G>`). No
+  caller changes in AR1: each module adopts them in its own design PR.
+- Produces: `std::string_view Client::Data::Text::TextOr(const TextTable& texts, std::size_t index, std::string_view
+  fallback = {})`, `texts.Text(index).value_or(fallback)`. It replaces the `TextAt` of `ChatCommands.cpp` and
+  `Emotes.cpp`, the only identical copies.
+- Produces, in `Client::Maps`: `inline constexpr std::int32_t FirstBloodCastleMap = 11, LastBloodCastleMap = 17,
+  FirstChaosCastleMap = 18, LastChaosCastleMap = 23, FirstKalimaMap = 24, LastKalimaMap = 29, SeventhKalimaMap = 36`;
+  `constexpr bool IsBloodCastle(std::int32_t)`, `IsChaosCastle(std::int32_t)`, `IsKalimaMap(std::int32_t)` (24 to 29,
+  or 36: today's `KalimaWorld.cpp` body).
+
+- [ ] **Step 1: Write the failing tests.** `test_expected.cpp`: `AndThen` runs only on a value and passes an error
+  through untouched; `Transform` maps the value and keeps the error; `OrElse` runs only on an error; each for `void`
+  too, and a move-only value goes through `&&` without a copy. `test_map_id.cpp`:
+
+```cpp
+EXPECT_FALSE(IsBloodCastle(10)); EXPECT_TRUE(IsBloodCastle(11)); EXPECT_TRUE(IsBloodCastle(17)); EXPECT_FALSE(IsBloodCastle(18));
+EXPECT_FALSE(IsChaosCastle(17)); EXPECT_TRUE(IsChaosCastle(18)); EXPECT_TRUE(IsChaosCastle(23)); EXPECT_FALSE(IsChaosCastle(24));
+EXPECT_TRUE(IsKalimaMap(24)); EXPECT_TRUE(IsKalimaMap(29)); EXPECT_FALSE(IsKalimaMap(30)); EXPECT_FALSE(IsKalimaMap(35)); EXPECT_TRUE(IsKalimaMap(36));
+```
+
+  and `TextOr` returns the text, and the fallback for an empty index.
+- [ ] **Step 2: Run them and see them fail.**
+- [ ] **Step 3: Implement** per Interfaces. Run the tests: pass.
+- [ ] **Step 4: Replace the copies by script**, only the `std::int32_t` definitions with these exact values and the
+  predicates with the same body (the two `std::uint8_t` Blood Castle copies stay). A check that compares 24 to 29 keeps
+  `FirstKalimaMap`/`LastKalimaMap`; only a check that also takes 36 becomes `IsKalimaMap`.
+- [ ] **Step 5: Check** `grep -rn "constexpr std::int32_t \(First\|Last\)\(ChaosCastle\|BloodCastle\|Kalima\)Map"
+  Client/src` prints only `Maps/MapId.h`, the `git diff -M50%` check, then push and let CI build.
+
+---
+
+## AR1.2 (move, targets, namespaces, comments)
+
+### Task 6: the test-executables decision
+
+When AR1.2 opens, ask Emanuel with `engineering:architecture` (an ADR in `docs/adr/`): one test executable per file, as
+today (728 executables), or one per module (15 to 40, about 90% fewer links), which reverts the 2026-11-02 decision and
+needs `ClientTestSupport` split so a module's tests link only its target. Without an answer, it stays as it is and Task
+8 does not touch the tests' links.
+
+### Task 7: the move
+
+PR `refactor(AR1.2): move the engine to Client/src/engine`, branch `refactor/ar1.2-engine-move`. Skill: `muret-move`.
+
+- [ ] **Step 1: Run the move** on an up-to-date `refactor/client`:
+  `python3 -I Client/tools/architecture/move.py --root engine --modules game/Tables,game/Maps,game/Sound`.
+- [ ] **Step 2: Do by hand only what it printed:** `target_include_directories(ClientLib PUBLIC src src/engine src/game)`,
+  and the `list(FILTER … REGEX)` lines and globs that named an emptied folder (`/src/Platform/` →
+  `/src/engine/Platform/`, `/src/Render/Gl/`, `/src/Render/Models/RoundedMath/`, `Network/FoxAntiObfuscation.cpp`).
+- [ ] **Step 3: Check** `check_pure_move.py --base origin/refactor/client --head HEAD` lists nothing, `check_layers.py
+  --clean-root engine` prints `0 new`, and `git diff -M50% --diff-filter=M` only touches include lines and build paths.
+  Push and let CI build. Expected: green, the golden unchanged.
+- [ ] **Step 4: After the squash**, in the next PR: `move.py --record <squash>`.
+
+### Task 8: one target per module
+
+PR `build(AR1.2): give each engine module its own target`, branch `refactor/ar1.2-engine-targets`. Skill: `cpp-pro`.
+
+**Interfaces:**
+- Produces: targets `MuRetCore`, `MuRetMath`, `MuRetCrt`, `MuRetCrypto`, `MuRetDiagnostics`, `MuRetInput`, `MuRetAudio`,
+  `MuRetNetwork`, `MuRetData`, `MuRetPlatform`, `MuRetPathfinding`, `MuRetFoxAnti` (only with `MURET_FOXANTI`),
+  `MuRetRender`, `MuRetModels`, `MuRetTables`, `MuRetMaps`, `MuRetSound`; each with a `CMakeLists.txt` in its folder,
+  include root `Client/src/engine` (or `Client/src/game`), headers in `FILE_SET HEADERS`, `VERIFY_INTERFACE_HEADER_SETS
+  ON`, and links only the modules its `may_use` row allows. `ClientLib` keeps the rest and links them. `ClientPlatform`
+  and `ClientRender` become `MuRetPlatform` and part of `MuRetRender`; `ClientRoundedMath` becomes part of `MuRetMath`
+  with its own options kept.
+- Produces: `muret_set_fidelity_flags(target)` in `cmake/` (`-ffp-contract=off` on GCC and Clang, whatever MSVC needs),
+  applied to every target that does the original's arithmetic.
+- Produces: `MuRetStdPch` (static, one empty source, the standard-library list) and
+  `muret_reuse_precompiled_headers(<target> MuRetStdPch)` on every module; a second owner for the targets that see
+  `SDL_OPENGL_1_FUNCTION_TYPEDEFS`, unless the Windows job shows it is not needed (master plan, AR1.2).
+
+- [ ] **Step 1: Measure before:** the Windows Debug job's build time and the number of `.pch` files, from a CI run of
+  the base.
+- [ ] **Step 2: Write the targets** per Interfaces. A link a module's `may_use` row does not allow is a layer bug: stop
+  and fix the code in a design PR, not the row.
+- [ ] **Step 3: Push and let CI build.** Expected: green on all jobs, `VERIFY_INTERFACE_HEADER_SETS` included, the
+  golden unchanged; measure after and put both numbers in the PR description.
+
+### Task 9: the namespaces follow the folders
+
+PR `refactor(AR1.2): name the engine namespaces after their folders`, branch `refactor/ar1.2-engine-namespaces`. Skill:
+`refactoring` (Rename). One rule: every file under `Client/src/engine/<Folder>/` (and the three game modules) declares
+`Client::<Folder>` (`engine/Render/Frame` is `Client::Render::Frame`), and every reference follows.
+
+The biggest renames (uses today): `Render::Models` → `Models` (5,344, the math files to `Math`), `Network::Crypto` →
+`Crypto` (223), `World::OriginalFtolLow`/`FtolLow` → `Math` (187), `GameLogic` path types → `Pathfinding` (85),
+`Core::Crash` → `Diagnostics` (57), `App` window types and `UI::IClipboard` → `Platform` (57), the frame contracts and
+`TextureMetadata` from `Scenes` to `Render::Frame` and `Models`.
+
+- [ ] **Step 1: Rename by script,** one folder at a time, each folder its own commit. The compiler finds what the script
+  misses; a new ambiguity is resolved by qualifying, never by a `using namespace`.
+- [ ] **Step 2: Check** no `namespace Client::<Old>` is left in a moved file, then push and let CI build. Expected: green,
+  golden unchanged.
+
+### Task 10: the comments
+
+PR `docs(AR1.2): trim and translate comments`, branch `refactor/ar1.2-engine-comments`. Skill: `muret-move`, "The
+comments PR". The comments of `Client/src/engine/`, the three game modules and their tests, to CODING_RULES §9.
+
+- [ ] **Step 1: Rewrite the comments.** `check_comments_only.py --base origin/refactor/client --head HEAD` lists nothing.
+- [ ] **Step 2: Push, and after the squash** `move.py --record <squash>`.
+
+---
+
+## AR1 is done when
+
+- `check_layers.py --clean-root engine` prints `0 new` with no engine row in the baseline (CI runs it on every PR).
+- Every engine target builds, with `VERIFY_INTERFACE_HEADER_SETS`, and the client builds and links with
+  `MURET_FOXANTI=OFF`.
+- The behavior golden and every test are identical on the four CI configurations.
+- The reference regenerated on `refactor/client` gives the same port numbers as #422's (the AR1 start snapshot), except
+  for paths (`reference_summary.py --nueva … --commiteada …`).
+- The move's and the comments' squashes are in `.git-blame-ignore-revs` and `moves.tsv`.

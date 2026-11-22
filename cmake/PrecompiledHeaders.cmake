@@ -1,38 +1,34 @@
-# The client's precompiled headers (decided 2026-11-03): the modern replacement of MSVC's `stdafx.h`.
-# CMake (target_precompile_headers) builds the header and forces it into every source of the target
-# (`-include` on GCC and Clang, `/FI` on MSVC), so no file includes it by hand.
+# Los precompiled headers del cliente (decidido el 2026-11-03): el reemplazo moderno del
+# `stdafx.h` de MSVC. CMake (target_precompile_headers) arma el header y lo fuerza en cada fuente
+# del target (`-include` en GCC y Clang, `/FI` en MSVC), así que ningún archivo lo incluye a mano.
 #
-# Only headers that do not change go in: the standard library, the glm types (header-only, and no
-# target defines GLM_FORCE_*) and GoogleTest in the tests. A project header would rebuild everything
-# each time it is touched. It saves no include: every file still includes what it uses
-# (docs/CODING_RULES.md § 7, Core Guidelines SF.10 and SF.11), and the Linux CI job builds with
-# MURET_PRECOMPILED_HEADERS=OFF so that a missing include still fails.
+# Solo va la biblioteca estándar (y GoogleTest en los tests): headers que no cambian. Uno del
+# proyecto haría recompilar todo cada vez que se toca. No es una forma de ahorrar includes: cada
+# archivo sigue incluyendo lo que usa (docs/CODING_RULES.md § 7, Core Guidelines SF.10 y SF.11), y
+# el job de Linux del CI compila con MURET_PRECOMPILED_HEADERS=OFF para que un include que falta
+# siga fallando.
 #
-# A target may use another's header (REUSE_FROM) only if it compiles with the same options and
-# definitions, as CMake requires: otherwise the precompiled header may not be valid for it (GCC warns
-# with -Winvalid-pch, MSVC with C4651). That is why the tests have two: ClientTestSupport's and
-# ClientGlTestSupport's, which also sees ClientPlatform's SDL_OPENGL_1_FUNCTION_TYPEDEFS.
+# Un target puede usar el header de otro (REUSE_FROM) solo si compila con las mismas opciones y
+# definiciones, como pide CMake: con otras, el header precompilado puede no valer para ese target
+# (GCC avisa con -Winvalid-pch, MSVC con C4651). Por eso hay dos para los tests: el de
+# ClientTestSupport y el de ClientGlTestSupport, que además ve SDL_OPENGL_1_FUNCTION_TYPEDEFS de
+# ClientPlatform.
 
-option(MURET_PRECOMPILED_HEADERS "Precompile the client's standard library and glm headers" ON)
+option(MURET_PRECOMPILED_HEADERS "Precompilar los headers de la biblioteca estándar del cliente" ON)
 
-# The standard-library headers that Client/src and Client/tests include most.
+# Los de la biblioteca estándar que más incluyen Client/src y Client/tests.
 set(MURET_STD_PRECOMPILED_HEADERS
     <algorithm>
     <array>
     <bit>
-    <bitset>
     <chrono>
     <cstddef>
     <cstdint>
-    <deque>
     <filesystem>
     <format>
     <functional>
-    <list>
-    <map>
     <memory>
     <optional>
-    <ranges>
     <span>
     <string>
     <string_view>
@@ -42,33 +38,20 @@ set(MURET_STD_PRECOMPILED_HEADERS
     <vector>
 )
 
-# The glm types of the poses, the cloth and the scenes. Measured with clang -ftime-trace on
-# 2026-11-22, they and <bitset>, <deque>, <list>, <map> and <ranges> cut ClientLib's compile time by
-# 18% over the standard-library list of 2026-11-03.
-set(MURET_GLM_PRECOMPILED_HEADERS
-    <glm/ext/matrix_float4x3.hpp>
-    <glm/ext/matrix_float4x4.hpp>
-    <glm/ext/quaternion_float.hpp>
-    <glm/ext/vector_float2.hpp>
-    <glm/ext/vector_float3.hpp>
-)
-
 # muret_precompile_headers(<target> [header ...])
 #
-# Gives <target> its own precompiled header: the lists above and the headers passed (for example
-# <gtest/gtest.h>). <target> has to see glm, as every client target does through ClientLib. Without
-# MURET_PRECOMPILED_HEADERS it does nothing.
+# Le da a <target> su propio precompiled header: la biblioteca estándar de arriba y los headers que
+# se pasen (por ejemplo <gtest/gtest.h>). Sin MURET_PRECOMPILED_HEADERS no hace nada.
 function(muret_precompile_headers target)
     if(MURET_PRECOMPILED_HEADERS)
-        target_precompile_headers(${target} PRIVATE
-            ${MURET_STD_PRECOMPILED_HEADERS} ${MURET_GLM_PRECOMPILED_HEADERS} ${ARGN})
+        target_precompile_headers(${target} PRIVATE ${MURET_STD_PRECOMPILED_HEADERS} ${ARGN})
     endif()
 endfunction()
 
 # muret_reuse_precompiled_headers(<target> <from>)
 #
-# <target> uses the precompiled header of <from> instead of building one: they have to compile with
-# the same definitions (see above). Without MURET_PRECOMPILED_HEADERS it does nothing.
+# <target> usa el precompiled header de <from> en vez de armar uno: tienen que compilar con las
+# mismas definiciones (ver arriba). Sin MURET_PRECOMPILED_HEADERS no hace nada.
 function(muret_reuse_precompiled_headers target from)
     if(MURET_PRECOMPILED_HEADERS)
         target_precompile_headers(${target} REUSE_FROM ${from})

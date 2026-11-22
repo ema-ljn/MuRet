@@ -5,6 +5,7 @@
 #include "Data/Tables/ItemTable.h"
 #include "Data/Text/TextTable.h"
 #include "Render/Models/Cloth.h"
+#include "Render/Models/RoundedMath.h"
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
 #include "Render/Text/FontSet.h"
@@ -25,7 +26,6 @@
 
 #include <gtest/gtest.h>
 
-#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -41,6 +41,7 @@ namespace
 using Client::Render::Color;
 using Client::Render::SpriteBatch;
 using Client::Render::Models::CrtRandom;
+using Client::Render::Models::RoundedSin;
 using Client::Render::Text::FontKind;
 using Client::Scenes::GameHudContext;
 using Client::World::ItemState;
@@ -358,7 +359,7 @@ TEST_P(GamePersonalShopWindowTest, TheOpenOwnShopShowsItsTitle)
     ASSERT_TRUE(Window().HasValue());
 
     EXPECT_EQ(NthQuadOf(sprites, std::nullopt)->first.color, (Color{0.1f, 0.8f, 0.1f, 0.6f}));
-    const double alpha = std::sin(1000.0 * static_cast<double>(0.005f)) * 200.0 + 275.0;
+    const double alpha = RoundedSin(1000.0 * static_cast<double>(0.005f)) * 200.0 + 275.0;
     const auto pulse = (static_cast<std::uint32_t>(static_cast<std::int32_t>(alpha)) << 24u) + 0xd2u;
     ExpectTexts({{"Tienda", Left + 0x23, 0xc, 0xffdcdcdcu, 0xff141414u, 120},
                  {"abierta", Left + 0x14, 0x32, 0xbe000000u, 0, 150},

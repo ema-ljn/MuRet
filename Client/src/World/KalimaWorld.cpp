@@ -1,6 +1,7 @@
 #include "World/KalimaWorld.h"
 
 #include "Core/Expected.h"
+#include "Render/Models/RoundedMath.h"
 #include "World/KalimaWaves.h"
 #include "Render/ModelBatch.h"
 #include "Render/ModelVertex.h"
@@ -134,7 +135,8 @@ struct KalimaWorld::Storage
                 if (distance >= radiusX * radiusY)
                     continue;
                 const double phase = std::sqrt(static_cast<double>(distance) * squaredScale);
-                const auto increment = Truncate((std::cos(phase) + 1.0) * amplitude) >> DisturbanceShift;
+                const auto increment =
+                    Truncate((Render::Models::RoundedCos(phase) + 1.0) * amplitude) >> DisturbanceShift;
                 const auto cell = static_cast<std::size_t>((centerY + y) * WaveSide + centerX + x);
                 destination[cell] += std::bit_cast<std::uint32_t>(increment);
             }
@@ -156,20 +158,24 @@ struct KalimaWorld::Storage
             {
                 const double xFirst = static_cast<double>(x) * FirstSpatialRate;
                 const auto first =
-                    Truncate(std::sin((static_cast<double>(context.worldTime) * FirstTimeRate + yFirst) + xFirst) *
+                    Truncate(Render::Models::RoundedSin(
+                                 (static_cast<double>(context.worldTime) * FirstTimeRate + yFirst) + xFirst) *
                              FirstPeriodicAmplitude);
                 const auto cell = static_cast<std::size_t>(y * WaveSide + x);
                 periodic[0][cell] =
                     Truncate(static_cast<double>(first) -
-                             std::sin((static_cast<double>(context.worldTime) * FirstCounterRate + ySecond) + xFirst) *
+                             Render::Models::RoundedSin(
+                                 (static_cast<double>(context.worldTime) * FirstCounterRate + ySecond) + xFirst) *
                                  FirstPeriodicAmplitude);
-                const auto second = Truncate(std::sin((static_cast<double>(x) * SecondSpatialRate +
-                                                       static_cast<double>(context.worldTime) * SecondTimeRate) +
-                                                      ySecond) *
-                                             SecondPeriodicAmplitude);
+                const auto second =
+                    Truncate(Render::Models::RoundedSin((static_cast<double>(x) * SecondSpatialRate +
+                                                         static_cast<double>(context.worldTime) * SecondTimeRate) +
+                                                        ySecond) *
+                             SecondPeriodicAmplitude);
                 periodic[1][cell] =
                     Truncate(static_cast<double>(second) -
-                             std::sin((static_cast<double>(context.worldTime) * SecondCounterRate + yThird) + x) *
+                             Render::Models::RoundedSin(
+                                 (static_cast<double>(context.worldTime) * SecondCounterRate + yThird) + x) *
                                  SecondPeriodicAmplitude);
             }
         }

@@ -16,6 +16,7 @@
 #include "Protocol/Trade.h"
 #include "Protocol/Viewport.h"
 #include "Render/Models/Cloth.h"
+#include "Render/Models/RoundedMath.h"
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
 #include "Render/Text/FontSet.h"
@@ -53,7 +54,6 @@
 
 #include <algorithm>
 #include <array>
-#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -73,6 +73,7 @@ using Client::Data::Models::PlayerSkeletonModel;
 using Client::Render::Color;
 using Client::Render::SpriteBatch;
 using Client::Render::Models::CrtRandom;
+using Client::Render::Models::RoundedSin;
 using Client::Render::Text::FontKind;
 using Client::Scenes::ActorState;
 using Client::Scenes::GameHudContext;
@@ -531,9 +532,9 @@ TEST_P(GameTradeWindowTest, TheButtonsLightAndTheArrowMoves)
     EXPECT_EQ(text.texts[1].style.colors.text, 0xffffffffu);
     EXPECT_EQ(text.texts[1].style.colors.background, 0xff000000u);
 
-    const auto bob = static_cast<float>(std::sin(1000.0 * static_cast<double>(0.01f)) + 28.0);
+    const auto bob = static_cast<float>(RoundedSin(1000.0 * static_cast<double>(0.01f)) + 28.0);
     ExpectQuad(sprites, Arrow, 0, Left + 140.0f, bob, 15.0f, 24.0f);
-    const double alpha = std::sin(1000.0 * static_cast<double>(0.005f)) * 200.0 + 275.0;
+    const double alpha = RoundedSin(1000.0 * static_cast<double>(0.005f)) * 200.0 + 275.0;
     const auto pulse = (static_cast<std::uint32_t>(static_cast<std::int32_t>(alpha)) << 24u) + 0xd2u;
     ASSERT_EQ(text.texts.size(), 14U);
     EXPECT_EQ(text.texts[10].text, "ojo");

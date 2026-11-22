@@ -5,6 +5,7 @@
 #include "Render/ModelBatch.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/HalfLifeMath.h"
+#include "Render/Models/RoundedMath.h"
 #include "Render/Pass3D.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/ActorState.h"
@@ -21,7 +22,6 @@
 
 #include <algorithm>
 #include <array>
-#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -36,6 +36,8 @@
 namespace
 {
 using Client::Render::Models::CrtRandom;
+using Client::Render::Models::RoundedCos;
+using Client::Render::Models::RoundedSin;
 using Client::Scenes::ActorState;
 using Client::Scenes::KalimaSiegeHelperPass;
 
@@ -297,7 +299,7 @@ TEST_F(KalimaSiegeHelperTest, TheFirstKalimaHelperDrawsItsStarsAndDrawsItsRandom
     ASSERT_TRUE(Draw(24).HasValue());
     auto sprites = Sprites();
     ASSERT_EQ(sprites.size(), 10u);
-    const double lum = std::sin(D(Clock) * D(0.001f)) * D(0.2f) + D(0.4f);
+    const double lum = RoundedSin(D(Clock) * D(0.001f)) * D(0.2f) + D(0.4f);
     const glm::vec3 spine{F32(lum * D(0.1f)), F32(D(F32(lum)) * D(0.4f)), F32(lum)};
     EXPECT_EQ(sprites[0].texture, 0x5ac);
     EXPECT_EQ(sprites[0].position, Bone(51));
@@ -390,14 +392,14 @@ TEST_F(KalimaSiegeHelperTest, KundunDropsItsLeftHandOrLightsItsStaff)
     ASSERT_TRUE(Draw(0).HasValue());
     const auto sprites = Sprites();
     ASSERT_EQ(sprites.size(), 3u);
-    const float red = F32(std::sin(D(Clock) * D(0.003f)) * D(0.2f) + D(0.8f));
+    const float red = F32(RoundedSin(D(Clock) * D(0.003f)) * D(0.2f) + D(0.8f));
     EXPECT_EQ(sprites[0].position, Bone(8));
     EXPECT_EQ(sprites[0].light, glm::vec3(red, 0.0f, 0.0f));
     EXPECT_EQ(sprites[0].scale, 0.4f);
     EXPECT_EQ(sprites[1].position, Bone(9));
     EXPECT_EQ(sprites[2].texture, 0x62b);
     EXPECT_EQ(sprites[2].position, Bone(100));
-    EXPECT_EQ(sprites[2].scale, F32(std::sin(D(Clock) * D(0.001f)) * D(0.3f) + D(1.2f)));
+    EXPECT_EQ(sprites[2].scale, F32(RoundedSin(D(Clock) * D(0.001f)) * D(0.3f) + D(1.2f)));
     EXPECT_EQ(m_actor->word8a, 0);
     EXPECT_EQ(m_random.State(), After(1));
 
@@ -422,7 +424,7 @@ TEST_F(KalimaSiegeHelperTest, KundunsPulseFollowsTheDrawsOfItsFifthAction)
     kundun.dword60 = 0x65;
     kundun.word8a = 10;
     FillParticles();
-    const double halo = std::sin(D(Clock) * D(0.001f)) * D(0.3f) + D(1.2f);
+    const double halo = RoundedSin(D(Clock) * D(0.001f)) * D(0.3f) + D(1.2f);
     struct Beat
     {
         float frame;
@@ -465,7 +467,7 @@ TEST_F(KalimaSiegeHelperTest, KundunRoarsShakesAndDropsStonesInKalima)
     EXPECT_EQ(kundun.word8a, 10);
     auto sprites = Sprites();
     ASSERT_EQ(sprites.size(), 4u);
-    const double halo = std::sin(D(Clock) * D(0.001f)) * D(0.3f) + D(1.2f);
+    const double halo = RoundedSin(D(Clock) * D(0.001f)) * D(0.3f) + D(1.2f);
     EXPECT_EQ(sprites[3].texture, 0x62d);
     EXPECT_EQ(sprites[3].scale, F32(halo * D(F32(10.0 * D(0.15f)))));
     EXPECT_EQ(m_shake, 0.0f);
@@ -504,8 +506,8 @@ TEST_F(KalimaSiegeHelperTest, KundunRoarsShakesAndDropsStonesInKalima)
             {
                 const float turn = static_cast<float>(expected.Next() % 360);
                 const double distance = static_cast<double>(expected.Next() % 600 + 200);
-                const glm::vec3 position{F32(std::sin(D(turn)) * distance + 1000.0),
-                                         F32(std::cos(D(turn)) * distance + 2000.0), 900.0f};
+                const glm::vec3 position{F32(RoundedSin(D(turn)) * distance + 1000.0),
+                                         F32(RoundedCos(D(turn)) * distance + 2000.0), 900.0f};
                 stones.push_back(position);
                 static_cast<void>(effects->CreateKalimaEffect(position, {}, {0.3f, 0.8f, 1.0f}, expected));
             }
@@ -668,7 +670,7 @@ TEST_F(KalimaSiegeHelperTest, TheThirdKalimaHelperDrawsTwelveSprites)
     ASSERT_TRUE(Draw(24).HasValue());
     const auto sprites = Sprites();
     ASSERT_EQ(sprites.size(), 12u);
-    const float lum = F32(std::sin(D(Clock) * D(0.003f)) * D(0.2f) + D(0.8f));
+    const float lum = F32(RoundedSin(D(Clock) * D(0.003f)) * D(0.2f) + D(0.8f));
     const float pale = F32(D(lum) * D(0.9f));
     EXPECT_EQ(sprites[0].texture, 0x5ca);
     EXPECT_EQ(sprites[0].position, Bone(6, {20.0f, 30.0f, -7.0f}));
@@ -743,7 +745,7 @@ TEST_F(KalimaSiegeHelperTest, TheFifthKalimaHelperIsRedForItsMonster)
     ASSERT_TRUE(Draw(24).HasValue());
     auto sprites = Sprites();
     ASSERT_EQ(sprites.size(), 3u);
-    const double wave = std::sin(D(Clock) * D(0.001f));
+    const double wave = RoundedSin(D(Clock) * D(0.001f));
     EXPECT_EQ(sprites[0].texture, 0x62b);
     EXPECT_EQ(sprites[0].position, Bone(0, {0.0f, 0.0f, 30.0f}));
     EXPECT_EQ(sprites[0].scale, F32(wave * D(0.3f) + D(1.2f)));
@@ -773,7 +775,7 @@ TEST_F(KalimaSiegeHelperTest, TheSixthKalimaHelperBeatsAndSparks)
 {
     ActorState& heart = Actor(0x196, 2);
     ASSERT_TRUE(Draw(24).HasValue());
-    const double beat = std::sin(D(Clock) * D(0.002f)) * D(0.3f) + D(0.6f);
+    const double beat = RoundedSin(D(Clock) * D(0.002f)) * D(0.3f) + D(0.6f);
     CrtRandom expected{Seed};
     auto mist = std::make_unique<Client::World::Particles>();
     ASSERT_TRUE(
@@ -791,7 +793,7 @@ TEST_F(KalimaSiegeHelperTest, TheSixthKalimaHelperBeatsAndSparks)
     ASSERT_TRUE(Draw(24).HasValue());
     const auto sprites = Sprites();
     ASSERT_EQ(sprites.size(), 10u);
-    const double lum = std::sin(D(Clock) * D(0.002f)) * D(0.3f) + D(0.6f);
+    const double lum = RoundedSin(D(Clock) * D(0.002f)) * D(0.3f) + D(0.6f);
     const float tenth = F32(lum * D(0.1f));
     EXPECT_EQ(sprites[2].texture, 0x5ca);
     EXPECT_EQ(sprites[2].position, Bone(60));
@@ -849,7 +851,7 @@ TEST_F(KalimaSiegeHelperTest, TheSeventhKalimaHelperIsRedOrBlue)
     EXPECT_EQ(m_random.State(), After(24));
     auto sprites = Sprites();
     ASSERT_EQ(sprites.size(), 4u);
-    const float lum = F32(std::sin(D(Clock) * D(0.003f)) * D(0.2f) + D(0.8f));
+    const float lum = F32(RoundedSin(D(Clock) * D(0.003f)) * D(0.2f) + D(0.8f));
     const float pale = F32(D(lum) * D(0.9f));
     EXPECT_EQ(sprites[0].position, Bone(33));
     EXPECT_EQ(sprites[0].light, glm::vec3(lum, pale, pale));
@@ -913,7 +915,7 @@ TEST_F(KalimaSiegeHelperTest, TheSeventhKalimaHelperIsRedOrBlue)
 // (0x620a90), la luz por v. La luz es la que recibe: la del objeto (+0xf4) queda pisada (Q-C876).
 TEST_F(KalimaSiegeHelperTest, TheCastleGlowMultipliesTheLightItReceives)
 {
-    const float lum = F32(std::sin(D(Clock) * D(0.0015f)) * D(0.3f) + D(0.7f));
+    const float lum = F32(RoundedSin(D(Clock) * D(0.0015f)) * D(0.3f) + D(0.7f));
     const float rest = F32((1.0 - D(lum)) * D(lum));
 
     ActorState& dark = Actor(0x19c);
@@ -955,7 +957,7 @@ TEST_F(KalimaSiegeHelperTest, TheCastleCrownGlowsOrSparkles)
     ActorState& crown = Actor(0x1a8);
     crown.byte93 = 5;
     ASSERT_TRUE(Draw(30).HasValue());
-    EXPECT_EQ(crown.blendMeshLight, F32(std::sin(D(Clock) * D(0.001f)) * 0.3 + D(0.3f)));
+    EXPECT_EQ(crown.blendMeshLight, F32(RoundedSin(D(Clock) * D(0.001f)) * 0.3 + D(0.3f)));
     EXPECT_EQ(m_batch.Commands().front().state.blend, Client::Render::ModelBlend::Additive);
     EXPECT_TRUE(Sprites().empty());
 
@@ -986,7 +988,7 @@ TEST_F(KalimaSiegeHelperTest, TheCastleSwitchesFollowTheSiege)
     const auto sprites = Sprites();
     ASSERT_EQ(sprites.size(), 3u);
     EXPECT_EQ(sprites[0].position,
-              glm::vec3(1000.0f, 2000.0f, F32((std::sin(D(Clock) * D(0.001f)) + 1.0) * 60.0 + 101.0)));
+              glm::vec3(1000.0f, 2000.0f, F32((RoundedSin(D(Clock) * D(0.001f)) + 1.0) * 60.0 + 101.0)));
     EXPECT_EQ(sprites[1].scale, 1.5f);
     EXPECT_EQ(sprites[2].position, Bone(2));
     EXPECT_EQ(m_batch.Commands().front().state.blend, Client::Render::ModelBlend::Subtractive);
@@ -1009,7 +1011,7 @@ TEST_F(KalimaSiegeHelperTest, TheCastleSwitchesFollowTheSiege)
         ASSERT_TRUE(Draw(30).HasValue());
         EXPECT_EQ(wall.position.z, siege ? 300.0f : 200.0f);
         EXPECT_EQ(wall.byte42c, siege ? 1 : 0);
-        EXPECT_EQ(wall.blendMeshLight, F32(std::sin(D(Clock) * D(0.001f)) * D(0.3f) + 0.5));
+        EXPECT_EQ(wall.blendMeshLight, F32(RoundedSin(D(Clock) * D(0.001f)) * D(0.3f) + 0.5));
     }
 }
 } // namespace

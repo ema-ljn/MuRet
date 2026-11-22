@@ -134,7 +134,9 @@ jobs:
             precompiled-headers: 'ON'
             extra-configure: -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
             build-jobs: '2'
-            build-targets: --target Main test_original_angles test_original_retained_math
+            build-targets: >-
+              --target Main test_original_angles test_original_retained_math test_rounded_math
+              test_rounded_transforms test_half_life_math
             ccache-key: ccache-release-windows-2022
             font-file: 'C:\Windows\Fonts\arial.ttf'
     env:
@@ -195,6 +197,13 @@ jobs:
           python3 -I Client/tools/architecture/check_layers.py --src Client/src --modules Client/modules.tsv \
             --map Client/docs/research/coverage/module-map.tsv \
             --baseline Client/tools/architecture/layers-baseline.tsv
+
+      # ADR 0027: math that the C library or glm rounds, called by name instead of through RoundedMath.h, fails.
+      - name: Client rounded math
+        if: matrix.kind == 'includes'
+        run: |
+          python3 -I Client/tools/architecture/check_rounded_math.py --src Client/src Client/tests \
+            --exceptions Client/tools/architecture/rounded-math-exceptions.tsv
 
       # Client refactor (AR0.2): in a PR titled type(ARn) or type(ARn.m), a moved file may only change its includes;
       # in a docs(ARn.m) PR, only comments may change and every cited address stays cited. HEAD^1 is the base.
@@ -476,11 +485,14 @@ jobs:
         if: steps.scope.outputs.build == 'true' && matrix.kind == 'build'
         run: ctest --preset ${{ matrix.test-preset }} --parallel ${{ env.MURET_CI_JOBS }}
 
-      # Main and the two tests come from "Compilar". Zero selected tests also fails the job, so a
-      # move or a rename of these tests cannot turn the check off.
+      # Main and the tests come from "Compilar". Zero selected tests also fails the job, so a
+      # move or a rename of these tests cannot turn the check off. The rounded math runs here too:
+      # the optimizer must not change its bits.
       - name: Perfil matemático en MSVC Release
         if: steps.scope.outputs.build == 'true' && matrix.kind == 'math-release'
-        run: ctest --preset ${{ matrix.test-preset }} -R '^(OriginalAnglesTest|OriginalRetainedMathTest)\.' --no-tests=error
+        run: >-
+          ctest --preset ${{ matrix.test-preset }} --no-tests=error
+          -R '^(OriginalAnglesTest|OriginalRetainedMathTest|RoundedMathTest|RoundedTransformsTest|HalfLifeMathTest)\.'
 
       # Los tests con la etiqueta gl (desde la CL5.0, los de labs/cl5.0-pipeline/gl/) abren una
       # ventana escondida con OpenGL 3.3 core, dibujan en un framebuffer y leen los píxeles. En el

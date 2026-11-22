@@ -1,11 +1,12 @@
 #include "Render/Models/ObjectState.h"
 
+#include "Render/Models/RoundedMath.h"
+
 #include <gtest/gtest.h>
 
 #include <glm/ext/vector_float2.hpp>
 
 #include <chrono>
-#include <cmath>
 #include <cstdint>
 #include <ios>
 #include <optional>
@@ -23,6 +24,7 @@ using Client::Render::Models::NoBlendMesh;
 using Client::Render::Models::NoHiddenMesh;
 using Client::Render::Models::ObjectRandoms;
 using Client::Render::Models::ObjectState;
+using Client::Render::Models::RoundedSin;
 
 constexpr ObjectRandoms Sevens{7, 7};
 
@@ -107,7 +109,7 @@ TEST(ObjectStateTest, SomeTakeTheirUVOrTheirLightFromRand)
 TEST(ObjectStateTest, SomeTypesGetTheirLightFrom0x60b3d0)
 {
     constexpr auto Clock = std::chrono::milliseconds{1000};
-    const auto sine = static_cast<float>(std::sin(1000.0 * static_cast<double>(0.001f)));
+    const auto sine = static_cast<float>(RoundedSin(1000.0 * static_cast<double>(0.001f)));
 
     EXPECT_NEAR(HangingObjectState(0x1a16, Clock, Sevens).light, sine + 1.1f, 1e-6f);
     EXPECT_NEAR(HangingObjectState(0x1a17, Clock, Sevens).light, (sine + 1.0f) * 0.25f, 1e-6f);
@@ -148,7 +150,7 @@ TEST(ObjectStateTest, SomePartsWriteTheLightOfTheCharacter)
 // La de la clase 4 en la parte del casco (0x50ba30): sin(0,001 · T) · 0,1 + 0,7.
 TEST(ObjectStateTest, TheMaskedClassLightPulses)
 {
-    EXPECT_FLOAT_EQ(MaskedClassLightAt(std::chrono::milliseconds{250}), std::sin(0.25f) * 0.1f + 0.7f);
+    EXPECT_FLOAT_EQ(MaskedClassLightAt(std::chrono::milliseconds{250}), RoundedSin(0.25f) * 0.1f + 0.7f);
     EXPECT_FLOAT_EQ(MaskedClassLightAt(std::chrono::milliseconds{0}), 0.7f);
 }
 } // namespace

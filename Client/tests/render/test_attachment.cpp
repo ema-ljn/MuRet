@@ -2,13 +2,13 @@
 
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/Pose.h"
+#include "Render/Models/RoundedMath.h"
 #include "Render/Models/Skeleton.h"
 
 #include <gtest/gtest.h>
 
 #include <glm/ext/vector_float3.hpp>
 
-#include <cmath>
 #include <cstdint>
 #include <numbers>
 #include <vector>
@@ -30,6 +30,8 @@ using Client::Render::Models::DrawsThePet;
 using Client::Render::Models::PlacedRoot;
 using Client::Render::Models::PoseAttached;
 using Client::Render::Models::QuiverPlacement;
+using Client::Render::Models::RoundedCos;
+using Client::Render::Models::RoundedSin;
 using Client::Render::Models::Skeleton;
 using Client::Render::Models::SkeletonBone;
 
@@ -90,7 +92,7 @@ TEST(AttachmentTest, ThePlacedRootIsTheBoneByTheAngleMatrix)
 
     ExpectNear(root[3], {-4.0f, -8.0f, 13.0f});
     ExpectNear(root[0], {-1.0f, 0.0f, 0.0f});
-    ExpectNear(root[1], {0.0f, -std::cos(seventy), std::sin(seventy)});
+    ExpectNear(root[1], {0.0f, -RoundedCos(seventy), RoundedSin(seventy)});
 }
 
 // 0x4ec190: el desplazamiento gira con el hueso y no lleva la escala del personaje, que va en cada

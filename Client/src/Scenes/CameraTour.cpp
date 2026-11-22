@@ -1,4 +1,5 @@
 #include "Scenes/CameraTour.h"
+#include "Render/Models/RoundedMath.h"
 #include "Scenes/ArrivalSparks.h"
 
 #include "Core/Expected.h"
@@ -390,7 +391,7 @@ private:
         glm::vec3 toward{F32(static_cast<double>(actor.position.x) - centerX),
                          F32(static_cast<double>(actor.position.y) - static_cast<double>(centerY)), 0.0f};
         Normalize(toward);
-        const double angle = std::acos(static_cast<double>(toward.y)) * Degrees;
+        const double angle = Render::Models::RoundedAcos(static_cast<double>(toward.y)) * Degrees;
         return toward.x > 0.0f ? FullTurn - angle : angle;
     }
 

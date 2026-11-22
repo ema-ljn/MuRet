@@ -1,5 +1,6 @@
 #include "World/SphereFrustum.h"
 
+#include "Render/Models/RoundedMath.h"
 #include "Render/Pass3D.h"
 #include "World/FaceNormal.h"
 
@@ -8,7 +9,6 @@
 
 #include <array>
 #include <bit>
-#include <cmath>
 #include <cstddef>
 
 namespace Client::World
@@ -31,7 +31,8 @@ FrustumPoints FrustumPointsOf(const glm::mat4& view, const Render::Camera3D& cam
 {
     const float depth = F32(static_cast<double>(camera.farPlane) * FarFactor);
     const double halfWidth =
-        (std::tan(static_cast<double>(camera.fieldOfView) * HalfFieldOfView) * depth * widthFactor) + WidthMargin;
+        (Render::Models::RoundedTan(static_cast<double>(camera.fieldOfView) * HalfFieldOfView) * depth * widthFactor) +
+        WidthMargin;
     const float w = F32(halfWidth);
     const float h = F32(halfWidth * HeightFactor);
     const FrustumPoints local{glm::vec3(0.0f), glm::vec3(-w, h, -depth), glm::vec3(w, h, -depth),

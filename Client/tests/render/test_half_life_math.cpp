@@ -1,5 +1,10 @@
 #include "Render/Models/HalfLifeMath.h"
 
+#include "Render/Models/RoundedMath.h"
+
+#include "support/FloatBits.h"
+#include "support/Fnv1a.h"
+
 #include <gtest/gtest.h>
 
 #include <glm/ext/quaternion_float.hpp>
@@ -9,6 +14,9 @@
 #include <cmath>
 #include <cstddef>
 #include <numbers>
+#include <random>
+#include <span>
+#include <vector>
 
 // Client::Render::Models: la mathlib de Half-Life que usa la pose del original (0x5fcd20, 0x5fce90,
 // 0x5fc700, 0x5fcdb0, 0x5fc8f0, 0x5fca90, 0x5fccc0 y 0x5fcbd0).
@@ -21,8 +29,14 @@ using Client::Render::Models::ConcatTransforms;
 using Client::Render::Models::QuaternionMatrix;
 using Client::Render::Models::QuaternionsAlmostEqual;
 using Client::Render::Models::QuaternionSlerp;
+using Client::Render::Models::RoundedCos;
+using Client::Render::Models::RoundedSin;
 using Client::Render::Models::VectorRotate;
 using Client::Render::Models::VectorTransform;
+using Client::Tests::ExponentRange;
+using Client::Tests::FloatFromBits;
+using Client::Tests::Fnv1a64;
+using Client::Tests::WithoutSign;
 
 // Lo que separa una cuenta en float de la del original en la x87 (la CL6.0 lo midió: 5,4e-7 o
 // menos). Un error de verdad (un signo, un eje, la traslación en otro lado) mueve mucho más.
@@ -60,12 +74,12 @@ TEST(HalfLifeMathTest, AngleQuaternionIsTheHalfLifeFormula)
     for (const glm::vec3 angles : {glm::vec3{0.3f, -1.2f, 2.5f}, glm::vec3{-2.9f, 0.7f, -0.4f},
                                    glm::vec3{1.5f, 1.5f, 1.5f}, glm::vec3{0.0f, 3.1f, -3.1f}})
     {
-        const float sr = std::sin(angles.x / 2);
-        const float cr = std::cos(angles.x / 2);
-        const float sp = std::sin(angles.y / 2);
-        const float cp = std::cos(angles.y / 2);
-        const float sy = std::sin(angles.z / 2);
-        const float cy = std::cos(angles.z / 2);
+        const float sr = RoundedSin(angles.x / 2);
+        const float cr = RoundedCos(angles.x / 2);
+        const float sp = RoundedSin(angles.y / 2);
+        const float cp = RoundedCos(angles.y / 2);
+        const float sy = RoundedSin(angles.z / 2);
+        const float cy = RoundedCos(angles.z / 2);
         const glm::quat expected = glm::quat::wxyz(cr * cp * cy + sr * sp * sy, sr * cp * cy - cr * sp * sy,
                                                    cr * sp * cy + sr * cp * sy, cr * cp * sy - sr * sp * cy);
 
@@ -138,12 +152,12 @@ TEST(HalfLifeMathTest, AngleMatrixIsTheHalfLifeFormula)
     for (const glm::vec3 degrees :
          {glm::vec3{30.0f, -70.0f, 100.0f}, glm::vec3{-170.0f, 45.0f, 12.5f}, glm::vec3{90.0f, 90.0f, 90.0f}})
     {
-        const float sr = std::sin(degrees.x * DegreesToRadians);
-        const float cr = std::cos(degrees.x * DegreesToRadians);
-        const float sp = std::sin(degrees.y * DegreesToRadians);
-        const float cp = std::cos(degrees.y * DegreesToRadians);
-        const float sy = std::sin(degrees.z * DegreesToRadians);
-        const float cy = std::cos(degrees.z * DegreesToRadians);
+        const float sr = RoundedSin(degrees.x * DegreesToRadians);
+        const float cr = RoundedCos(degrees.x * DegreesToRadians);
+        const float sp = RoundedSin(degrees.y * DegreesToRadians);
+        const float cp = RoundedCos(degrees.y * DegreesToRadians);
+        const float sy = RoundedSin(degrees.z * DegreesToRadians);
+        const float cy = RoundedCos(degrees.z * DegreesToRadians);
         // matrix[fila][columna] de Half-Life.
         const std::array<std::array<float, 3>, 3> matrix = {{
             {cp * cy, sr * sp * cy - cr * sy, sr * sy + cr * sp * cy},
@@ -185,5 +199,45 @@ TEST(HalfLifeMathTest, VectorRotateDoesNotMove)
     m[3] = glm::vec3(100.0f, 200.0f, 300.0f);
 
     ExpectNear(VectorRotate({1.0f, 0.0f, 0.0f}, m), {0.0f, 1.0f, 0.0f});
+}
+
+// The hash is the one Linux gives: any other system has to give it too.
+TEST(HalfLifeMathTest, ThePoseGivesTheSameBitsOnEverySystem)
+{
+    constexpr ExponentRange Radians{-8, 1};
+    constexpr ExponentRange Degrees{-2, 8};
+    constexpr ExponentRange Weights{-8, -1};
+    std::mt19937_64 engine(20261121);
+    std::vector<float> values;
+    for (std::size_t i = 0; i < 20000; ++i)
+    {
+        glm::vec3 from;
+        from.x = FloatFromBits(engine, Radians);
+        from.y = FloatFromBits(engine, Radians);
+        from.z = FloatFromBits(engine, Radians);
+        glm::vec3 to;
+        to.x = FloatFromBits(engine, Radians);
+        to.y = FloatFromBits(engine, Radians);
+        to.z = FloatFromBits(engine, Radians);
+        glm::vec3 degrees;
+        degrees.x = FloatFromBits(engine, Degrees);
+        degrees.y = FloatFromBits(engine, Degrees);
+        degrees.z = FloatFromBits(engine, Degrees);
+        const float weight = WithoutSign(FloatFromBits(engine, Weights));
+
+        const glm::quat p = AngleQuaternion(from);
+        const glm::quat between = QuaternionSlerp(p, AngleQuaternion(to), weight);
+        const BoneTransform turn = AngleMatrix(degrees);
+        const glm::vec3 moved = VectorTransform(from, ConcatTransforms(QuaternionMatrix(between), turn));
+
+        values.insert(values.end(), {p.x, p.y, p.z, p.w, between.x, between.y, between.z, between.w});
+        for (int column = 0; column < 4; ++column)
+        {
+            values.insert(values.end(), {turn[column].x, turn[column].y, turn[column].z});
+        }
+        values.insert(values.end(), {moved.x, moved.y, moved.z});
+    }
+
+    EXPECT_EQ(Fnv1a64(std::as_bytes(std::span(values))), 0x77ae730862537224u);
 }
 } // namespace

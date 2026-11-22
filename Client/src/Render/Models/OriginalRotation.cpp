@@ -1,11 +1,11 @@
 #include "Render/Models/OriginalRotation.h"
 
 #include "Render/Models/HalfLifeMath.h"
+#include "Render/Models/RoundedMath.h"
 
 #include <glm/ext/vector_float3.hpp>
 
 #include <bit>
-#include <cmath>
 #include <cstddef>
 
 namespace Client::Render::Models
@@ -79,12 +79,12 @@ OriginalMatrix OriginalAngleMatrix(const glm::vec3& degrees)
     const double z = static_cast<double>(degrees.z) * static_cast<double>(Degrees);
     const double y = static_cast<double>(degrees.y) * static_cast<double>(Degrees);
     const double x = static_cast<double>(degrees.x) * static_cast<double>(Degrees);
-    const double sinZ = F32(std::sin(z));
-    const double cosZ = std::cos(z);
-    const double sinY = F32(std::sin(y));
-    const double cosY = F32(std::cos(y));
-    const double sinX = F32(std::sin(x));
-    const double cosX = F32(std::cos(x));
+    const double sinZ = F32(RoundedSin(z));
+    const double cosZ = RoundedCos(z);
+    const double sinY = F32(RoundedSin(y));
+    const double cosY = F32(RoundedCos(y));
+    const double sinX = F32(RoundedSin(x));
+    const double cosX = F32(RoundedCos(x));
     OriginalMatrix m{};
     m[0] = F32(cosY * cosZ);
     m[4] = F32(cosY * sinZ);

@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Data/Tables/ItemTable.h"
 #include "Render/Models/LogicalAccess.h"
+#include "Render/Models/RoundedMath.h"
 #include "Render/OriginalQuad.h"
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
@@ -28,7 +29,6 @@
 #include "World/OriginalFtol.h"
 
 #include <algorithm>
-#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <format>
@@ -307,7 +307,8 @@ Core::Expected<void, std::string> DrawTheHeader(Window& window)
         return Core::Unexpected(groupName.Error());
     const std::string server = Sprintf(serverFormat.Value(), groupName.Value(), static_cast<std::int32_t>(number));
     // 0x5ee6a1..0x5ee6bf: a = (float)(sin(T · 0,001f) + 1), en la x87.
-    const float alpha = F32(std::sin(static_cast<double>(context.worldClock) * static_cast<double>(0.001f)) + 1.0);
+    const float alpha =
+        F32(Render::Models::RoundedSin(static_cast<double>(context.worldClock) * static_cast<double>(0.001f)) + 1.0);
     sprites.SetColor(Color{1.0f, 1.0f, 1.0f, F32(2.0 - static_cast<double>(alpha))});
     DrawCentered(context, x + 0x16, y + 0x16, className, BoxPixels(context, 150));
     sprites.SetColor(Color{1.0f, 1.0f, 1.0f, alpha});

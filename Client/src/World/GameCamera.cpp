@@ -1,6 +1,7 @@
 #include "World/GameCamera.h"
 
 #include "Render/Models/OriginalRotation.h"
+#include "Render/Models/RoundedMath.h"
 #include "Render/Pass3D.h"
 #include "World/TerrainCulling.h"
 
@@ -8,7 +9,6 @@
 
 #include <array>
 #include <bit>
-#include <cmath>
 #include <cstddef>
 #include <cstdint>
 
@@ -162,10 +162,11 @@ void ApplyRocking(Render::Camera3D& camera, const GameCameraInput& input)
 {
     if (input.map == RockingMap)
     {
-        const double pitchWave = std::sin(static_cast<double>(input.worldTime) * RockingPitchRate);
+        const double pitchWave = Render::Models::RoundedSin(static_cast<double>(input.worldTime) * RockingPitchRate);
         camera.angles.x = F32((pitchWave + pitchWave) + static_cast<double>(camera.angles.x));
-        camera.angles.y = F32((std::sin(static_cast<double>(input.worldTime) * RockingYRate) * RockingYAmplitude) +
-                              static_cast<double>(camera.angles.y));
+        camera.angles.y =
+            F32((Render::Models::RoundedSin(static_cast<double>(input.worldTime) * RockingYRate) * RockingYAmplitude) +
+                static_cast<double>(camera.angles.y));
     }
 }
 

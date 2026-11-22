@@ -3,6 +3,7 @@
 #include "Render/Models/Cloth.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/OriginalRotation.h"
+#include "Render/Models/RoundedMath.h"
 #include "Scenes/FaunaDrawing.h"
 #include "Scenes/WorldObjectsDrawing.h"
 #include "World/ModelEffects.h"
@@ -15,7 +16,6 @@
 #include <gtest/gtest.h>
 
 #include <bit>
-#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
@@ -29,6 +29,7 @@
 namespace
 {
 using Client::Render::Models::CrtRandom;
+using Client::Render::Models::RoundedSin;
 using Client::Scenes::GameObjectPass;
 using Client::Scenes::StepTarkanObjectFrame;
 using Client::World::Particle;
@@ -104,7 +105,7 @@ WorldObject ObjectOf(std::int16_t type)
 // s = sin(fase · 0,002f) · 0,3f + 0,7f, con 0x6b89bc, 0x6b89dc y 0x6b8a5c, sin redondear.
 double Pulse(double phase)
 {
-    return (std::sin(phase * D(std::bit_cast<float>(0x3b03126fu))) * D(std::bit_cast<float>(0x3e99999au))) +
+    return (RoundedSin(phase * D(std::bit_cast<float>(0x3b03126fu))) * D(std::bit_cast<float>(0x3e99999au))) +
            D(std::bit_cast<float>(0x3f333333u));
 }
 

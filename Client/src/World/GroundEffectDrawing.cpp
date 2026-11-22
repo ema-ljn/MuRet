@@ -5,6 +5,7 @@
 #include "Render/ModelVertex.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/OriginalRotation.h"
+#include "Render/Models/RoundedMath.h"
 #include "Render/SpriteVertex.h"
 #include "Render/TextureSlot.h"
 #include "World/ColoredDecals.h"
@@ -18,7 +19,6 @@
 
 #include <array>
 #include <bit>
-#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <optional>
@@ -308,7 +308,9 @@ Core::Expected<void, std::string> DrawColoredDecal(Render::ModelBatch& batch, Mo
         side = F32(static_cast<double>(effect.life) * D(ChildGrowth));
     if (pulse && brightness == 1.0)
     {
-        brightness = std::sin(static_cast<double>(Difference(PulseLife, effect.life)) * D(SmallGrowth)) + D(Half);
+        brightness =
+            Render::Models::RoundedSin(static_cast<double>(Difference(PulseLife, effect.life)) * D(SmallGrowth)) +
+            D(Half);
     }
     if (effect.subtype == BindingChildSubtype)
     {

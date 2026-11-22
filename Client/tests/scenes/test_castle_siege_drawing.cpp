@@ -6,6 +6,7 @@
 #include "Render/ModelVertex.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/HalfLifeMath.h"
+#include "Render/Models/RoundedMath.h"
 #include "Render/Models/Skeleton.h"
 #include "Render/Models/Skinning.h"
 #include "Render/Pass3D.h"
@@ -29,7 +30,6 @@
 #include <bit>
 #include <array>
 #include <chrono>
-#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -54,6 +54,7 @@ using Client::Render::ModelBlend;
 using Client::Render::ModelDrawState;
 using Client::Render::TextureSlot;
 using Client::Render::Models::CrtRandom;
+using Client::Render::Models::RoundedSin;
 using Client::Render::Models::Skeleton;
 using Client::Scenes::CastleSiegeBodyPass;
 using Client::Scenes::DrawCastleSiegeBody;
@@ -126,7 +127,7 @@ TEST(CastleSiegeObjectServicesTest, TheLampPulsesWithTheClockInBothStates)
         fixture.siege = siege;
         WorldObject object = ObjectOf(0x29);
         ASSERT_TRUE(StepCastleSiegeObjectFrame(object, fixture.Pass()).HasValue());
-        const double sine = std::sin(12345.5 * static_cast<double>(std::bit_cast<float>(0x3b03126fu)));
+        const double sine = RoundedSin(12345.5 * static_cast<double>(std::bit_cast<float>(0x3b03126fu)));
         EXPECT_FLOAT_EQ(object.state.light,
                         static_cast<float>(sine * static_cast<double>(std::bit_cast<float>(0x3e99999au)) +
                                            static_cast<double>(std::bit_cast<float>(0x3f333333u))));

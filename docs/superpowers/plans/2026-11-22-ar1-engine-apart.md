@@ -73,13 +73,14 @@ Measured on `refactor/client` at 75c33064 (2026-11-22). AR1.3, the command line,
 | --- | --- | --- |
 | `App/WindowState`, `VSyncMode`, `Resolution` and the frame contracts move in AR1.1 | their map rows already say `engine/Platform`; the frame contracts' rows change to `engine/Render/Frame`; `move.py` moves them in AR1.2 | a hand move in a design PR fails CI's pure-move check, and `src/Platform/*.cpp` goes to `ClientPlatform`, which `ClientLib` does not link |
 | `IPlayback::Register(SoundDefinition)` | the same, plus `Audio::RegisterSound(IPlayback&, id, path)` in the catalog | the lookup (`FindSound(id, path)`) is the catalog's; the game calls the free function and the engine plays what it is given |
-| `FoxAnti` in the names (`FoxAntiObfuscation`, `MURET_FOXANTI`, `MuRetFoxAnti`, `engine/Network/FoxAnti`) | `XorRemap` (`XorRemapObfuscation`, `MURET_XOR_REMAP`, `MuRetXorRemap`, `engine/Network/XorRemap`) | Emanuel, 2026-11-22: not a DLL any more but a layer named after what it does |
+| `FoxAnti` in the names (`FoxAntiObfuscation`, `MURET_FOXANTI`, `MuRetFoxAnti`, `engine/Network/FoxAnti`) | `XorRemap` (`XorRemapObfuscation`, `MURET_XOR_REMAP`, `XorRemap`, `engine/Network/XorRemap`) | Emanuel, 2026-11-22: not a DLL any more but a layer named after what it does |
 | `LabFoxAntiTables()` defined in `MakeObfuscationFoxAnti.cpp` | `constexpr` in `App/LabXorRemapTables.h` | the layer's tests build the lab tables too, and they do not link the executable's sources |
 | `Core/WrappingInt.h` and `UI::Rect::Contains` in the kit | left out | no copy of a wrapping integer was found, and `Rect::Contains` already exists (`UI/Widget.h`) |
 | the 189 loose map comparisons switch to names | `MapId.h` replaces the 77 duplicated constants and the predicates; the loose literals switch in each module's AR4 design PR | each literal needs a judgment (is it a map?); AR4 reads those files anyway |
 | map enum | `inline constexpr std::int32_t` constants | `WorldRuntime::map` is `std::int32_t`; an `enum class` needs a cast at each comparison |
 | one static target per module | one shared library per engine module, `MURET_MONOLITHIC` for a single binary (ADR in Task 6) | Emanuel, 2026-11-22: DLLs on Windows and the same on Linux, as large engines do (Unreal, O3DE, Source) |
-| `MuRetTables`, `MuRetMaps`, `MuRetSound` targets in AR1.2 | the three game modules move in AR1.2 but stay in `ClientLib` | the game's library shape (one `MuRetGame` or a few) is the ADR's AR4 question |
+| `MuRet<Module>` targets (`MuRetCore`…) | no prefix: `Core.dll`, `Audio.dll`…, the executable `main.exe` | Emanuel, 2026-11-22: like the original's `main.exe` |
+| `MuRetTables`, `MuRetMaps`, `MuRetSound` targets in AR1.2 | the three game modules move in AR1.2 but stay in `ClientLib` | the game's library shape (one `Game` or a few) is the ADR's AR4 question |
 
 ---
 
@@ -249,7 +250,7 @@ Skills: `cpp-pro`, `clean-architecture` (composition root), `superpowers:test-dr
 **The name** (Emanuel, 2026-11-22: not a DLL any more but a layer of our own, easy to take out, named after what it
 does). It XORs every byte that comes in and remaps opcodes, and around that it rebuilds the server list, the server
 code of the selection and the F3 11 head, so our names say `XorRemap`: `XorRemapObfuscation` next to `IObfuscation` and
-`IdentityObfuscation`, `XorRemapTables`, the option `MURET_XOR_REMAP`, the target `MuRetXorRemap` and the module
+`IdentityObfuscation`, `XorRemapTables`, the option `MURET_XOR_REMAP`, the target `XorRemap` and the module
 `engine/Network/XorRemap` (its row in `Client/modules.tsv` and the map targets change in this PR). Only the citations keep
 `FoxAnti.dll`, because that is the original file they cite, and so does `tests/vectors/net/tools/foxanti_cases.c`,
 which drives the research's port of that DLL.
@@ -286,11 +287,11 @@ below starts from it, and every file it creates is born with the new name.
   0x14; the 8 ladder steps).
 - Produces: `std::unique_ptr<const Network::IObfuscation> Client::App::MakeObfuscation()`. CMake option
   `MURET_XOR_REMAP` (default `ON`) sets `MURET_MAKE_OBFUSCATION_SOURCE`, which `Main` and `test_make_obfuscation`
-  compile: `ON` is `MakeObfuscationXorRemap.cpp`, and both link `MuRetXorRemap`, a static library with
+  compile: `ON` is `MakeObfuscationXorRemap.cpp`, and both link `XorRemap`, a static library with
   `Network/XorRemapObfuscation.cpp` that links `ClientLib`; `OFF` is `MakeObfuscationNone.cpp`, and no source of the
   layer is built. `ClientLib`'s glob excludes `Network/XorRemapObfuscation.cpp` and `App/MakeObfuscation*.cpp`.
 - Produces: `muret_add_module_tests(XOR_REMAP <file> …)`: those files build only with `MURET_XOR_REMAP`, link
-  `MuRetXorRemap`, and count as registered either way (like `OTHER_SYSTEM`).
+  `XorRemap`, and count as registered either way (like `OTHER_SYSTEM`).
 
 - [ ] **Step 1: Write the failing tests.** In `test_config.cpp`:
 
@@ -382,16 +383,20 @@ large projects do. It goes in its own PR (`docs(AR1): decide modules as shared l
   against more exports and interfaces). O3DE builds each Gem as a `.dll` and, with `LY_MONOLITHIC_GAME`, as a `.lib`
   linked into one smaller binary that starts faster. Source and id Tech 3 (known, not from Context7) ship `engine.dll`,
   a `shaderapi` per graphics backend and the game as `client.dll`/`server.dll`.
-- **The decision to write:** every engine module is a shared library (`MuRetCore`, `MuRetAudio`, `MuRetRender`…), and the
-  OpenGL backend (`Render/Gl`) is its own, `MuRetOpenGl`, as module `engine/Render/Gl` (layer 5) in `modules.tsv`, so
-  changing the renderer means changing one library. The game becomes few libraries, starting with one, `MuRetGame`, in
-  AR4; the executable is `MuRet`. `MURET_MONOLITHIC=ON` builds every module static into one binary.
-- **The rules it fixes:** exports with CMake's `generate_export_header` per module (`MURET_CORE_API` in
+- **The decision to write:** every engine module is a shared library (`Core`, `Audio`, `Render`…), and the
+  OpenGL backend (`Render/Gl`) is its own, `OpenGL`, as module `engine/Render/Gl` (layer 5) in `modules.tsv`, so
+  changing the renderer means changing one library. The game becomes few libraries, starting with one, `Game`, in
+  AR4; the executable keeps the original's name, `main.exe` (`main` on Linux). `MURET_MONOLITHIC=ON` builds every module static into one binary.
+- **The names** (Emanuel, 2026-11-22: no MuRet prefix): the libraries are `Core.dll`, `Audio.dll`, `Render.dll`,
+  `OpenGL.dll`, `XorRemap.dll` and so on, the game `Game.dll`, and the executable `main.exe`, like the original. CMake
+  targets use the same words; on Linux CMake gives the usual `libCore.so`. The export macros follow Unreal (`CORE_API`).
+  Only the CMake options and functions keep `MURET_`/`muret_`, as the build's own namespace, like today.
+- **The rules it fixes:** exports with CMake's `generate_export_header` per module (`CORE_API` in
   `Core/CoreExport.h`, generated), `CXX_VISIBILITY_PRESET hidden` and `VISIBILITY_INLINES_HIDDEN` on both systems and
   `-Wl,--no-undefined` on Linux, so a missing export or dependency fails on both CI machines; no mutable state defined in
   a header (each DLL would get its own copy); all binaries in one output folder (`bin/`), with `$ORIGIN` as the Linux
   `RPATH`; the vcpkg triplet stays `x64-windows` (dynamic CRT), which DLLs that pass `std` types need.
-- **Tests:** a module's tests link only its library, and `ClientTestSupport` splits into `MuRetEngineTestSupport` and
+- **Tests:** a module's tests link only its library, and `ClientTestSupport` splits into `EngineTestSupport` and
   the game's. The question left from 2026-11-02 goes in the same ADR: one test executable per file, as today (728), or one
   per module (15 to 40). Without an answer, one per file stays.
 
@@ -415,20 +420,20 @@ PR `build(AR1.2): build each engine module as a shared library`, branch `refacto
 `cpp-pro`. Starts after Emanuel's yes to the Task 6 ADR.
 
 **Interfaces:**
-- Produces: `muret_add_module(<target> MODULE <module> [LINK <targets>…])` in `cmake/MuRetModule.cmake`: `SHARED`, or
+- Produces: `muret_add_module(<target> MODULE <module> [LINK <targets>…])` in `cmake/AddModule.cmake`: `SHARED`, or
   `STATIC` with `MURET_MONOLITHIC`; sources and `FILE_SET HEADERS` from the module's folder, include root
-  `Client/src/engine`, `VERIFY_INTERFACE_HEADER_SETS ON`; `generate_export_header` with base name `MURET_<MODULE>`
+  `Client/src/engine`, `VERIFY_INTERFACE_HEADER_SETS ON`; `generate_export_header` with `EXPORT_MACRO_NAME` `<MODULE>_API`
   (`STATIC_DEFINE` set when monolithic), its header in a second `FILE_SET`; hidden visibility; `--no-undefined` on Linux;
-  `muret_set_fidelity_flags`; `muret_reuse_precompiled_headers(<target> MuRetStdPch)`.
-- Produces: libraries `MuRetCore`, `MuRetMath`, `MuRetCrt`, `MuRetCrypto`, `MuRetDiagnostics`, `MuRetInput`, `MuRetAudio`,
-  `MuRetNetwork`, `MuRetData`, `MuRetPlatform`, `MuRetPathfinding`, `MuRetXorRemap` (only with `MURET_XOR_REMAP`),
-  `MuRetRender`, `MuRetOpenGl` and `MuRetModels`, each linking only what its `may_use` row allows. `ClientLib` (game and
-  app until AR4 and AR5) stays static and links them; `ClientPlatform`, `ClientRender` and `ClientRoundedMath` disappear
-  into `MuRetPlatform`, `MuRetOpenGl` and `MuRetMath` (the latter keeps its own compile options).
+  `muret_set_fidelity_flags`; `muret_reuse_precompiled_headers(<target> StdPch)`.
+- Produces: libraries (target name = file name, no prefix) `Core`, `Math`, `Crt`, `Crypto`, `Diagnostics`, `Input`, `Audio`,
+  `Network`, `Data`, `Platform`, `Pathfinding`, `XorRemap` (only with `MURET_XOR_REMAP`),
+  `Render`, `OpenGL` and `Models`, each linking only what its `may_use` row allows. `ClientLib` (game and
+  app until AR4 and AR5) stays static and links them; the `Main` target gets `OUTPUT_NAME main`; `ClientPlatform`, `ClientRender` and `ClientRoundedMath` disappear
+  into `Platform`, `OpenGL` and `Math` (the latter keeps its own compile options).
 - Produces: the row `engine/Render/Gl` in `Client/modules.tsv` (layer 5, `may_use` `*layer<5`) and the `Render/Gl` rows of
-  the map pointing to it; only `main.cpp` includes `Render/Gl/` today, so only the executable links `MuRetOpenGl`.
+  the map pointing to it; only `main.cpp` includes `Render/Gl/` today, so only the executable links `OpenGL`.
 - Produces: `muret_set_fidelity_flags(target)` in `cmake/` (`-ffp-contract=off` on GCC and Clang, whatever MSVC needs).
-- Produces: `MuRetStdPch` (static, one empty source, the standard-library list) with the modules' position-independent
+- Produces: `StdPch` (static, one empty source, the standard-library list) with the modules' position-independent
   code, visibility and warnings, so GCC and MSVC accept the reuse; a second owner for the targets that see
   `SDL_OPENGL_1_FUNCTION_TYPEDEFS` unless the Windows job shows it is not needed.
 - Produces: `CMAKE_RUNTIME_OUTPUT_DIRECTORY` and `CMAKE_LIBRARY_OUTPUT_DIRECTORY` at `${CMAKE_BINARY_DIR}/bin`,
@@ -443,7 +448,7 @@ PR `build(AR1.2): build each engine module as a shared library`, branch `refacto
   to every class and free function declared in the module's headers that another module or a test uses; templates and
   `inline` functions get none). A link a module's `may_use` row does not allow is a layer bug: stop and fix the code in a
   design PR, not the row.
-- [ ] **Step 4: Tests and CI.** The engine test folders link only their library and `MuRetEngineTestSupport`. The job
+- [ ] **Step 4: Tests and CI.** The engine test folders link only their library and `EngineTestSupport`. The job
   "Windows (MSVC, Release, matemática)" adds `-DMURET_MONOLITHIC=ON`, so both shapes build on every PR.
 - [ ] **Step 5: Push and let CI build.** Expected: green on all jobs, `VERIFY_INTERFACE_HEADER_SETS` included, the golden
   unchanged; measure after and put both numbers in the PR description.

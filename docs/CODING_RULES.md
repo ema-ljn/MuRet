@@ -283,10 +283,10 @@ only where values must not be mixed. The principles hold across MuRet; the `Clie
    - An open space (sound, model, texture) is `Core::Id<Tag, Rep>`. It separates domains and nothing more: every value
      the original accepts is still accepted, and whether some value means "none" is the domain's decision (texture
      slot 0 is a slot, world object identity 0 is none).
-   - An open id that is switched on or used as a template argument (map, opcode) is an opaque
-     `enum class X : Rep {}` with `inline constexpr` constants. It holds any value of `Rep`, its constants are not all
-     its values, and a `switch` over it gets no warning for a missing case. `Core::Id` keeps its value private, so it
-     cannot be a template argument.
+   - An open id that is switched on or passed by value as a template argument (map, opcode) is a scoped enum without
+     enumerators, `enum class X : Rep {}`, with `inline constexpr` constants. It holds any value of `Rep`, its
+     constants are not all its values, and a `switch` over it gets no warning for a missing case. A `Core::Id` type can
+     be a template type argument, but its private member keeps a `Core::Id` value from being a template argument.
    - A typed id is built with braces (`ModelId{0x20a}`), which reject a narrowing conversion, and unwrapped with
      `Value()` or one named function, at the place where the cast was.
    - The engine never names a game id. The game converts to the engine's representation on its side.

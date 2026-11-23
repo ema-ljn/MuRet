@@ -77,7 +77,7 @@ Measured on `refactor/client` at 75c33064 (2026-11-22). AR1.3, the command line,
 | `LabFoxAntiTables()` defined in `MakeObfuscationFoxAnti.cpp` | `constexpr` in `App/LabXorRemapTables.h` | the layer's tests build the lab tables too, and they do not link the executable's sources |
 | `Core/WrappingInt.h` and `UI::Rect::Contains` in the kit | left out | no copy of a wrapping integer was found, and `Rect::Contains` already exists (`UI/Widget.h`) |
 | the 189 loose map comparisons switch to names | `MapId.h` replaces the 77 duplicated constants and the predicates; the loose literals switch in each module's AR4 design PR | each literal needs a judgment (is it a map?); AR4 reads those files anyway |
-| map enum | `inline constexpr std::int32_t` constants in AR1; AR6 turns them into an opaque `enum class MapId : std::int32_t {}` with the same names | the size of the change, not casts: about 228 parameters and 30 fields change type, 182 loose literals in `Client/src` and 506 in the tests stop compiling, so the type changes once AR4 has named the literals (types review, 2026-11-23) |
+| map enum | `inline constexpr std::int32_t` constants in AR1; AR6 turns them into an opaque `enum class MapId : std::int32_t {}` with the same names | the size of the change, not casts: estimated from the types review (2026-11-23), about 228 parameters and 30 fields to retype and about 182 literal uses in `Client/src` and 506 in the tests to inspect (not all of them stop compiling, see AR6's inventory), so the type changes once AR4 has named the literals |
 | one static target per module | one shared library per engine module, `MU_MONOLITHIC` for a single binary (ADR in Task 6) | Emanuel, 2026-11-22: DLLs on Windows and the same on Linux, as large engines do (Unreal, O3DE, Source) |
 | `MuRet<Module>` targets (`MuRetCore`…) | no prefix: `Core.dll`, `Audio.dll`…, the executable `main.exe` | Emanuel, 2026-11-22: like the original's `main.exe` |
 | `MuRetTables`, `MuRetMaps`, `MuRetSound` targets in AR1.2 | the three game modules move in AR1.2 but stay in `ClientLib` | the game's library shape (one `Game` or a few) is the ADR's AR4 question |
@@ -360,8 +360,9 @@ PR `refactor(AR1.1): add the common kit`, branch `refactor/ar1.1-common-kit`. Sk
 - Produces, in `Core/Expected.h`: `template <typename T> using Result = Expected<T, std::string>;` and
   `using Status = Result<void>;` (CODING_RULES §7, "Types and aliases"). No caller changes in AR1.
 - Produces, in `Core/Id.h`: `template <class Tag, IdRepresentation Rep> class Id`, where the concept
-  `IdRepresentation` accepts only `std::int8_t`, `std::uint8_t`, `std::int16_t`, `std::uint16_t`, `std::int32_t` and
-  `std::uint32_t` (no `bool`, no character type, nothing cv-qualified). It has `constexpr explicit Id(Rep)`,
+  `IdRepresentation` accepts exactly `std::int8_t`, `std::uint8_t`, `std::int16_t`, `std::uint16_t`, `std::int32_t`
+  and `std::uint32_t`, and nothing else (not `bool`, plain `char` or a cv-qualified type). That list is the first
+  scope: `std::uint64_t` joins it when `World::WorldObjectIdentity` migrates. It has `constexpr explicit Id(Rep)`,
   `[[nodiscard]] constexpr Rep Value() const noexcept` and a defaulted `operator==`, and nothing else: no default
   constructor (whether a value means "none" is each domain's decision: texture slot 0 is a slot, world object identity
   0 is none), no ordering and no `std::hash` until a consumer needs them, no arithmetic and no implicit conversion

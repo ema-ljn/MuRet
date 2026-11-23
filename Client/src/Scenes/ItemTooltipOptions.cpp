@@ -48,17 +48,17 @@ constexpr std::size_t MagicGladiatorText = 23;
 constexpr std::int32_t FirstClearedAhead = 2;
 constexpr std::int32_t LastClearedAhead = 3;
 
-// 0x5b79df..0x5b7c37: lo que suma cada tipo, con su nivel desde 5 en los cascos y las botas.
-constexpr std::int32_t FirstHelm = 0x1400;
+// 0x5b79df..0x5b7c37: lo que suma cada tipo, con su nivel desde 5 en los guantes y las botas.
+constexpr std::int32_t FirstGloves = 0x1400;
 constexpr std::int32_t FirstBoots = 0x1600;
 constexpr std::int32_t BootsEnd = 0x1800;
 constexpr std::int32_t BonusLevel = 5;
 constexpr std::size_t BootsText = 78;
-constexpr std::size_t HelmText = 93;
-constexpr std::int32_t FirstShield = 0xa00;
-constexpr std::int32_t ShieldsEnd = 0xc00;
-constexpr std::array<std::int32_t, 3> WithBlocking{0x1f, 0x17, 0x15};
-constexpr std::size_t BlockingText = 79;
+constexpr std::size_t GlovesText = 93;
+constexpr std::int32_t FirstStaff = 0xa00;
+constexpr std::int32_t StaffsEnd = 0xc00;
+constexpr std::array<std::int32_t, 3> MagicSwords{0x1f, 0x17, 0x15};
+constexpr std::size_t MagicDamageText = 79;
 constexpr std::int32_t FirstWand = 0x408;
 constexpr std::int32_t LastWand = 0x40e;
 constexpr std::size_t WandText = 1234;
@@ -317,10 +317,10 @@ void WriteTheBonuses(Frame& frame)
     const std::int32_t level = frame.level;
     if (type >= FirstBoots && type < BootsEnd && level >= BonusLevel)
         WriteABonus(lines, BootsText);
-    if (type >= FirstHelm && type < FirstBoots && level >= BonusLevel)
-        WriteABonus(lines, HelmText);
-    if ((type >= FirstShield && type < ShieldsEnd) || std::ranges::find(WithBlocking, type) != WithBlocking.end())
-        WriteABonus(lines, BlockingText, static_cast<std::int32_t>(item.byte16));
+    if (type >= FirstGloves && type < FirstBoots && level >= BonusLevel)
+        WriteABonus(lines, GlovesText);
+    if ((type >= FirstStaff && type < StaffsEnd) || std::ranges::find(MagicSwords, type) != MagicSwords.end())
+        WriteABonus(lines, MagicDamageText, static_cast<std::int32_t>(item.byte16));
     if (type >= FirstWand && type <= LastWand)
         WriteABonus(lines, WandText, static_cast<std::int32_t>(item.byte16));
     if (item.optionCount > 0)
@@ -377,7 +377,7 @@ Core::Expected<void, std::string> WriteTheOptionLines(Frame& frame)
             lines.Line(TooltipWhiteOnBlue, ShieldSkillText);
         else if (tag == FireScreamOption)
             lines.Line(TooltipWhiteOnBlue, FireScreamText);
-        else if (tag == AddDefenseOption && std::ranges::find(WithBlocking, type) != WithBlocking.end())
+        else if (tag == AddDefenseOption && std::ranges::find(MagicSwords, type) != MagicSwords.end())
             lines.Line(TooltipBlue, AddDefenseText, static_cast<std::int32_t>(value));
     }
     return {};

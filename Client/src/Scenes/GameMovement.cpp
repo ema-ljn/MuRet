@@ -365,7 +365,7 @@ std::pair<std::int32_t, std::int32_t> OwnHands(const HeroMovementContext& contex
     return {std::bit_cast<std::int16_t>(equipment[0].id), std::bit_cast<std::int16_t>(equipment[1].id)};
 }
 
-bool InRange(std::int32_t value, std::int32_t first, std::int32_t end)
+bool InHalfOpenRange(std::int32_t value, std::int32_t first, std::int32_t end)
 {
     return value >= first && value < end;
 }
@@ -380,8 +380,8 @@ Core::Expected<void, std::string> SendTheElfCell(ActorState& hero, const HeroMov
     if (hero.movement == 0 || hero.movementType != 0 || (hero.characterClass & ClassMask) != ElfClass)
         return {};
     const auto [right, left] = OwnHands(context);
-    const bool shoots =
-        InRange(right, 0x808, 0x80f) || InRange(right, 0x810, 0xa00) || InRange(left, 0x800, 0x807) || left == 0x811;
+    const bool shoots = InHalfOpenRange(right, 0x808, 0x80f) || InHalfOpenRange(right, 0x810, 0xa00) ||
+                        InHalfOpenRange(left, 0x800, 0x807) || left == 0x811;
     if (!shoots)
         return {};
     const auto y = ReadCell(hero.cellYAccesses, hero.cellY, context.random);
@@ -443,8 +443,8 @@ Core::Expected<MoveHeroEnd, std::string> AttackTheChosen(ActorState& hero, const
         // 0x59d67d..0x59d8a6: las manos, en otro acceso; la ballesta de la derecha o el arco de la izquierda (con el
         // 0x814 y el 0x815) no caminan.
         const auto [right, left] = OwnHands(context);
-        const bool shoots = InRange(right, 0x808, 0x80f) || InRange(right, 0x810, 0xa00) ||
-                            InRange(left, 0x800, 0x807) || left == 0x811 || left == 0x814 || left == 0x815;
+        const bool shoots = InHalfOpenRange(right, 0x808, 0x80f) || InHalfOpenRange(right, 0x810, 0xa00) ||
+                            InHalfOpenRange(left, 0x800, 0x807) || left == 0x811 || left == 0x814 || left == 0x815;
         constexpr std::uint16_t ShootingWord376 = 9;
         if (!shoots && hero.word376 != ShootingWord376)
         {

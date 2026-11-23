@@ -32,7 +32,7 @@ namespace
 constexpr std::uint16_t UniriaModel = 0x1c14;
 constexpr std::uint16_t DinorantModel = 0x1c15;
 
-bool InRange(std::int32_t value, std::int32_t first, std::int32_t end)
+bool InHalfOpenRange(std::int32_t value, std::int32_t first, std::int32_t end)
 {
     return value >= first && value < end;
 }
@@ -41,14 +41,14 @@ bool InRange(std::int32_t value, std::int32_t first, std::int32_t end)
 bool BowInTheLeft(const ActorState& actor)
 {
     const auto left = static_cast<std::int16_t>(actor.hands[1].model);
-    return InRange(left, 0xa12, 0xa19) || left == 0xa23 || left == 0xa26 || left == 0xa27;
+    return InHalfOpenRange(left, 0xa12, 0xa19) || left == 0xa23 || left == 0xa26 || left == 0xa27;
 }
 
 // 0x4f493a..0x4f4967: una ballesta en la derecha (+0x2b8): 0xa1a a 0xa20, 0xa22 o 0xa24 a 0xc11.
 bool CrossbowInTheRight(const ActorState& actor)
 {
     const auto right = static_cast<std::int16_t>(actor.hands[0].model);
-    return InRange(right, 0xa1a, 0xa21) || right == 0xa22 || InRange(right, 0xa24, 0xc12);
+    return InHalfOpenRange(right, 0xa1a, 0xa21) || right == 0xa22 || InHalfOpenRange(right, 0xa24, 0xc12);
 }
 
 // 0x4f48e0(personaje): en un jugador, las velocidades (0x4f3f80) y la acción de tirar por las manos. Montado en Uniria

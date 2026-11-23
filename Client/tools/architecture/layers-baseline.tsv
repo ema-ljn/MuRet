@@ -18,7 +18,6 @@ Scenes/ActorCharacterSet.cpp	Scenes/HelperTable.h	game/Actors	game/Pets
 Scenes/ActorCharacterSet.cpp	Scenes/WorldEntry.h	game/Actors	game/Session
 Scenes/ActorCharacterSet.cpp	Scenes/WorldTransitionSupport.h	game/Actors	game/Session
 Scenes/ActorCombat.cpp	Scenes/ActorState.h	game/Combat	game/Actors
-Scenes/ActorCombat.cpp	Scenes/CharacterDrawing.h	game/Combat	game/Actors
 Scenes/ActorCombat.cpp	Scenes/WorldEntry.h	game/Combat	game/Session
 Scenes/ActorCreation.cpp	Scenes/HelperTable.h	game/Actors	game/Pets
 Scenes/ActorDying.cpp	Scenes/SceneId.h	game/Actors	game/Scenes
@@ -282,10 +281,8 @@ Scenes/EventNpcWindows.cpp	Scenes/GameHud.h	game/Events	game/Hud
 Scenes/EventNpcWindows.cpp	Scenes/GameUi.h	game/Events	game/Hud
 Scenes/EventNpcWindows.cpp	Scenes/GameWindowDrawing.h	game/Events	game/Hud
 Scenes/EventPackets.cpp	Scenes/ActorState.h	game/Events	game/Actors
-Scenes/EventPackets.cpp	Scenes/CharacterDrawing.h	game/Events	game/Actors
 Scenes/EventPackets.cpp	Scenes/GamePanels.h	game/Events	game/Hud
 Scenes/EventPackets.cpp	World/ModelEffects.h	game/Events	game/Effects
-Scenes/FaunaBirdHandlers.cpp	Scenes/CharacterDrawing.h	game/Fauna	game/Actors
 Scenes/FaunaDrawing.cpp	Scenes/CharacterDrawing.h	game/Fauna	game/Actors
 Scenes/FaunaEffects.cpp	Scenes/FaunaJointCreation.h	game/Fauna	game/Joints
 Scenes/FaunaEffects.cpp	World/ModelEffects.h	game/Fauna	game/Effects
@@ -355,7 +352,6 @@ Scenes/GameChat.cpp	Scenes/SocialState.h	game/Chat	game/Social
 Scenes/GameChat.cpp	UI/FriendWindows.h	game/Chat	game/Messenger
 Scenes/GameCommandsWindow.cpp	Scenes/ActionSend.h	game/Hud	game/Actors
 Scenes/GameCommandsWindow.cpp	Scenes/ActorState.h	game/Hud	game/Actors
-Scenes/GameCommandsWindow.cpp	Scenes/CharacterDrawing.h	game/Hud	game/Actors
 Scenes/GameCommandsWindow.cpp	Scenes/ChatBubbles.h	game/Hud	game/Chat
 Scenes/GameCommandsWindow.cpp	Scenes/ChatReceive.h	game/Hud	game/Chat
 Scenes/GameCommandsWindow.cpp	Scenes/GameChat.h	game/Hud	game/Chat
@@ -495,7 +491,6 @@ Scenes/GameMovement.cpp	Scenes/ActorMotion.h	game/Movement	game/Actors
 Scenes/GameMovement.cpp	Scenes/ActorState.h	game/Movement	game/Actors
 Scenes/GameMovement.cpp	Scenes/ActorWalk.h	game/Movement	game/Actors
 Scenes/GameMovement.cpp	Scenes/CameraTour.h	game/Movement	game/Events
-Scenes/GameMovement.cpp	Scenes/CharacterDrawing.h	game/Movement	game/Actors
 Scenes/GameMovement.cpp	Scenes/CrywolfContract.h	game/Movement	game/Events
 Scenes/GameMovement.cpp	Scenes/EventChipWindow.h	game/Movement	game/Events
 Scenes/GameMovement.cpp	Scenes/GameDrawTail.h	game/Movement	game/Scenes
@@ -929,7 +924,6 @@ Scenes/OwnInventory.cpp	Scenes/OwnCharacterRecord.h	game/Items	game/Player
 Scenes/OwnItemPlacement.cpp	Scenes/ActorActions.h	game/Items	game/Actors
 Scenes/OwnItemPlacement.cpp	Scenes/ActorEquipment.h	game/Items	game/Actors
 Scenes/OwnItemPlacement.cpp	Scenes/ActorState.h	game/Items	game/Actors
-Scenes/OwnItemPlacement.cpp	Scenes/CharacterDrawing.h	game/Items	game/Actors
 Scenes/OwnItemPlacement.cpp	Scenes/DarkHorse.h	game/Items	game/Pets
 Scenes/OwnItemPlacement.cpp	Scenes/HelperTable.h	game/Items	game/Pets
 Scenes/OwnItemPlacement.cpp	Scenes/OwnCharacterRecord.h	game/Items	game/Player
@@ -1063,7 +1057,6 @@ Scenes/SiegePanelSteps.cpp	Scenes/GameUi.h	game/CastleSiege	game/Hud
 Scenes/Skill4e9c50.cpp	Scenes/ActorState.h	game/Skills	game/Actors
 Scenes/Skill4f5290.cpp	Scenes/ActorCombat.h	game/Skills	game/Combat
 Scenes/Skill4f5290.cpp	Scenes/ActorState.h	game/Skills	game/Actors
-Scenes/Skill4f5290.cpp	Scenes/CharacterDrawing.h	game/Skills	game/Actors
 Scenes/Skill4f5290.cpp	Scenes/CombatActionSpeeds.h	game/Skills	game/Combat
 Scenes/Skill4f5290.h	Scenes/ActorCombat.h	game/Skills	game/Combat
 Scenes/Skill551f40.cpp	Scenes/GameMovementState.h	game/Skills	game/Movement
@@ -1092,7 +1085,6 @@ Scenes/SkillReplies.cpp	Scenes/ActorEffectFlags.h	game/Skills	game/Actors
 Scenes/SkillReplies.cpp	Scenes/ActorFlags.h	game/Skills	game/Actors
 Scenes/SkillReplies.cpp	Scenes/ActorState.h	game/Skills	game/Actors
 Scenes/SkillReplies.cpp	Scenes/BlastEffectCalls.h	game/Skills	game/Combat
-Scenes/SkillReplies.cpp	Scenes/CharacterDrawing.h	game/Skills	game/Actors
 Scenes/SkillReplies.cpp	Scenes/CombatActionSpeeds.h	game/Skills	game/Combat
 Scenes/SkillReplies.cpp	Scenes/FaunaJointCreation.h	game/Skills	game/Joints
 Scenes/SkillReplies.cpp	Scenes/GameDrawTail.h	game/Skills	game/Scenes

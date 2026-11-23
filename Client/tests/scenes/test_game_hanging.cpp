@@ -4,7 +4,6 @@
 
 #include "Data/Models/Model.h"
 #include "Render/ModelBatch.h"
-#include "Render/Models/Animation.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/Pose.h"

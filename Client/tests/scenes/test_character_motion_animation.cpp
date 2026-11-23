@@ -74,7 +74,7 @@ TEST(CharacterMotionAnimationTest, AttachmentsAdvanceWingsAtTheRateOfTheBodyActi
     WalkingModels models;
     models.skeleton.actions[0] = {.repeats = true, .speed = 0.8f, .keyCount = 20};
     Client::GameLogic::CharacterAppearance appearance;
-    appearance.wings = 0x1a12;
+    appearance.wings = std::uint16_t{0x1a12};
     Client::Scenes::CharacterAnimation animation;
     animation.body.action = 30;
 

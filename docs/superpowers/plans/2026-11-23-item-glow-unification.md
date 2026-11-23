@@ -23,9 +23,9 @@ the selection GL trace golden (`Client/tests/scenes/test_golden_character_drawin
 lanes".
 
 Measured on `refactor/client` at 642ebe5 (2026-11-23) against the decompilation of `main.exe` c32bbd5f in the research
-repo (`client-research/mainexe-vmxp-c32bbd5f/decompiled/functions/`). Nothing here was built or run: every MuRet claim
-comes from reading the code and every claim about the original from its pseudocode and ASM. Task 1 turns the list of
-differences into a test.
+repo (`client-research/mainexe-vmxp-c32bbd5f/decompiled/functions/`). Every MuRet claim comes from reading the code
+and every claim about the original from its pseudocode and ASM. Task 1 turned the list of differences into a test that
+draws through both ports: it confirms the five, narrows the fifth and found a sixth.
 
 ## The answer in short
 
@@ -145,9 +145,17 @@ On the worn parts of a player, which run on the first port, MuRet does not do wh
 | --- | --- | --- |
 | 1 | trims the level with the options' detail and turns excellent and ancient off at 0 (P-C91, already recorded) | always detail 4 |
 | 2 | levels 3 to 6 pulse red and blue with `0x7d36ba8` | the plain light, no pulse (`ItemGlow.h` records it under P-C18) |
-| 3 | the base pass is `0x609640`: chrome under the armor, pants, gloves and boots `0x1221`, `0x1226`, `0x1229` and their families (12 models), the look of the `0x101b` family in mode `0x102` | the plain base pass for every model (P-C14 e) |
+| 3 | the base pass is `0x609640`: chrome under the armor, pants, gloves and boots `0x1221`, `0x1226`, `0x1229` and their families (12 models), and the `0x101b` family when the object's `+4` is `0x102` | the plain base pass for every model (P-C14 e) |
 | 4 | an ancient part draws `rand() % 100` from the CRT while its pulse is at the floor | no `rand()`: the CRT stream differs from the original's |
 | 5 | the shine UVs use the clock as `0x4ecc30` truncates it, in x87 precision | whole milliseconds and `float` math |
+
+What Task 1 measured: difference 4 leaves the batch identical and only the CRT stream differs. Difference 5 is visible
+only on an odd millisecond above 2^24 ms (about 4.7 hours of clock), where the original and the full port read the
+clock as a `float` and lose its last bit; below that the shine UVs differ by less than 1e-4.
+
+A sixth difference goes the other way. On the class armors of classes 1 and up, the first port puts the class skin
+(`+0x98`) on the skin mesh and the full port puts skin 0, because `RetainedObjectMeshDraws` draws every object with
+skin 0. The first port is right here; Task 3 adds the skin to the full port.
 
 In both ports: the state flags block of step 3 (`0x60c5d1..0x60c740`) is not ported. No source cites that range, no
 source has those tints, and the reference counts 379 of the 6,442 bytes of `0x60b3d0` as missing. A poisoned or frozen
@@ -207,8 +215,8 @@ by the two lanes' rule no task runs the day its files are being moved.
 ### Decisions for Emanuel
 
 1. **The order above, or strictly AR6.** Decided (Emanuel, 2026-11-23): the port fixes now, the deletions before
-   AR4.1. Task 1 starts when #424 merges: it moves `IModelLibrary` out of `CharacterDrawing.h` into
-   `Render/Models/IModelLibrary.h`, so the signatures below name `Render::Models::IModelLibrary` from then on.
+   AR4.1. #424 merged first (2026-11-23): it moved `IModelLibrary` out of `CharacterDrawing.h` into
+   `Render/Models/IModelLibrary.h`, so the signatures below name `Render::Models::IModelLibrary`.
 2. **Where the port fixes land.** Recommended: `refactor/client`, because the behavior golden and its harness only
    exist there; `main` has had no port PR since #403.
 3. **The name.** Recommended: `ItemDrawing` for the unit and `ItemGlow` for its level table. `ItemGlow` for the whole
@@ -256,28 +264,29 @@ gets its step list in its own PR description before it starts.
 
 ### Task 1: pin where the two item draws differ
 
-No production code changes. Title: `test(AR6): pin where the two item draws differ`.
+Done in #428. No production code changes. Title: `test(AR6): pin where the two item draws differ`.
 
 **Files:**
 - Create: `Client/tests/scenes/test_item_draw_equivalence.cpp` (`muret_add_module_tests()` picks it up)
 
 **Interfaces:**
-- Consumes: `DrawCharacter(batch, models, character, clock, CharacterDrawPass::Parts)`; `SkinObjectMeshes(models,
-  object, bones)`; `DrawItemFromMeshes(batch, models, object, clock, meshes, level, excellent, ancient, detail,
-  context)`; the recording `ModelBatch`.
-- Produces: `struct ItemDrawCase { std::uint16_t model; std::uint8_t level, excellent, ancient, characterClass, detail;
-  bool outlined; float alpha; }` and `std::optional<std::string> FirstDifference(const ItemDrawCase&)`, which draws one
-  worn part through each port over the same pose and returns the first command that differs (pass index, mesh, then
-  blend, slot, color or UV), or nothing.
+- Consumes: `DrawCharacter(batch, models, character, clock, CharacterDrawPass::Parts)`; `PoseCharacterBody`;
+  `DrawObjectOutline`; `SkinObjectMeshes(models, object, bones)`; `DrawItemFromMeshes(batch, models, object, clock,
+  meshes, level, excellent, ancient, detail, context)`; the recording `ModelBatch`; `CrtRandom`.
+- Produces: `struct ItemDrawCase { const char* name; std::uint16_t model; std::uint8_t level; bool excellent, ancient;
+  std::uint8_t characterClass, detail; bool outlined; float alpha; std::int64_t clock; }`, `enum class Aspect { Same,
+  Count, State, Position, Uv, Color, Random }` and `FirstDifference(first, full)`, which compares the two batches
+  vertex by vertex (texture and blend, position, UV, color), then their size, then the CRT state, and returns the
+  first aspect that differs. Each row expects an aspect and the number of the difference that explains it.
 
-- [ ] **Step 1: Write the test table.** One parameterized test over: levels 0 to 15; plain, excellent, ancient;
-  models `Male17` armor, one of `0x1221`, `0x1226`, `0x1229`, and `0x121b`; classes 0 and 1; detail 4 and 0; outlined
-  and not; alpha 1 and 0.5. Each row states its expectation: `Same`, or `Differs` with the number of the difference in
-  "Where the two ports differ".
-- [ ] **Step 2: Run it on CI** and correct the expectations to what the two ports really do. A difference outside the
-  five numbered ones is a finding: add it to this document's table in the same PR.
-- [ ] **Step 3: Commit.** The test passes: it documents today's differences, and Task 4 turns every `Differs` row
-  into `Same` or deletes the row with the first port.
+- [x] **Step 1: Write the test table.** 31 rows: levels 0 to 15; excellent at detail 4 and 0, level 9 at detail 1;
+  ancient with its pulse at the floor and on; level 13 on an odd clock above 2^24 ms; outlined; alpha 0.5 and 0.01;
+  the armors `0x1222` (`Male17`), `0x121b` and `0x1221`; the class armor `0x221a` for class 0, `0x221b` for class 1
+  and `0x221f` for a second class (`0x08`). The skeleton and the parts are loaded from `Client/assets/Data`.
+- [x] **Step 2: Run it** and correct the expectations to what the two ports really do. Differences 1 to 4 showed as
+  planned, the fifth only on an odd clock above 2^24 ms, and a sixth (the class skin) was added to the table above.
+- [x] **Step 3: Commit.** The test passes: it documents today's differences, and Task 4 turns every row that names a
+  difference into `Same`, or deletes it with the first port.
 
 ### Task 2: the options' glow detail reaches every item draw (P-C91)
 
@@ -388,10 +397,10 @@ using WornParts = std::array<std::optional<ItemPart>, 6>;
 
 Port fix, the one that changes what is seen. `GameCharacters.cpp:463`, `LoginScene.cpp:1763` and
 `CharacterSelectScene.cpp:1667` draw the parts with `DrawWornParts` over an `ItemPartOwner` filled from the
-`DrawnCharacter` and its `ActorState`. Closes differences 1 to 5 and P-C91. Gate: `test_golden_character_drawing`
-passes untouched, and every `Differs` row of Task 1 is `Same`. Its tests also pin that two draws inside one original
-frame leave the CRT state and the `+0xc0` selections as one draw does. The behavior goldens that change are rewritten
-and listed with the reason for each.
+`DrawnCharacter` and its `ActorState`. Closes differences 1 to 6 and P-C91. Gate: `test_golden_character_drawing`
+passes untouched, and every row of Task 1 that names a difference is `Same`. Its tests also pin that two draws inside
+one original frame leave the CRT state and the `+0xc0` selections as one draw does. The behavior goldens that change
+are rewritten and listed with the reason for each.
 
 ### Task 5: delete the first port
 
@@ -425,10 +434,10 @@ ancient passes off with `0x20` or `0x4000`.
 ## Self-review
 
 - **Evidence coverage:** each row of "What is ported twice" has a task that removes its duplicate (Tasks 2, 4, 5, 6
-  and 7); each numbered difference is closed by Task 2 or Task 4; the block missing in both ports is Task 8.
-- **Not verified:** the list of differences comes from reading both ports, not from running them: Task 1 exists to
-  replace it with a test. The 0.6 and 0.7 factors of levels 3 to 6 are the ones the full port already uses; the
-  constants `0x6b8a20` and `0x6b8a5c` were not read from `.rdata` again here.
+  and 7); each numbered difference is closed by Task 2, 3 or 4; the block missing in both ports is Task 8.
+- **Verified by running:** Task 1 draws both ports and pins the six differences. **Not verified:** the 0.6 and 0.7
+  factors of levels 3 to 6 are the ones the full port already uses; the constants `0x6b8a20` and `0x6b8a5c` were not
+  read from `.rdata` again here.
 - **Consistent names:** `DrawItemFromMeshes`, `DrawItemPart`, `DrawWornParts`, `ItemPartOwner`, `ItemPart`,
   `WornParts`, `ItemDrawContext::glowDetail` and `ItemDrawing.{h,cpp}` are used the same way throughout.
 - **Out of scope:** the other things called glow in the client (street lights, monster and skull effects, joints, the

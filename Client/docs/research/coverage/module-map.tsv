@@ -350,8 +350,8 @@ Protocol/OptionData.cpp	57	Protocol	game/Protocol	high	engine or protocol layer,
 Protocol/OptionData.h	45	Protocol	game/Protocol	high	engine or protocol layer, no game state
 Protocol/Outgoing.cpp	23	Protocol	game/Protocol	high	engine or protocol layer, no game state
 Protocol/Outgoing.h	35	Protocol	game/Protocol	high	engine or protocol layer, no game state
-Protocol/PacketFields.cpp	50	Protocol	game/Protocol	high	engine or protocol layer, no game state
-Protocol/PacketFields.h	42	Protocol	game/Protocol	high	engine or protocol layer, no game state
+Protocol/PacketFields.cpp	50	Protocol	engine/Network	high	packet field reading: knows only the C1 to C4 framing, the opcode and the subcode (AR1.1)
+Protocol/PacketFields.h	42	Protocol	engine/Network	high	packet field reading: knows only the C1 to C4 framing, the opcode and the subcode (AR1.1)
 Protocol/Party.cpp	139	Protocol	game/Protocol	high	engine or protocol layer, no game state
 Protocol/Party.h	100	Protocol	game/Protocol	high	engine or protocol layer, no game state
 Protocol/PersonalShop.cpp	280	Protocol	game/Protocol	high	engine or protocol layer, no game state
@@ -360,7 +360,7 @@ Protocol/Pet/PetInfo.cpp	33	Protocol	game/Protocol	high	engine or protocol layer
 Protocol/Pet/PetInfo.h	65	Protocol	game/Protocol	high	engine or protocol layer, no game state
 Protocol/Pet/PetOrders.cpp	60	Protocol	game/Protocol	high	engine or protocol layer, no game state
 Protocol/Pet/PetOrders.h	56	Protocol	game/Protocol	high	engine or protocol layer, no game state
-Protocol/ProtocolError.h	15	Protocol	game/Protocol	high	engine or protocol layer, no game state
+Protocol/ProtocolError.h	15	Protocol	engine/Network	high	the errors of reading or writing a packet, no game knowledge (AR1.1)
 Protocol/Quest.cpp	117	Protocol	game/Protocol	high	engine or protocol layer, no game state
 Protocol/Quest.h	80	Protocol	game/Protocol	high	engine or protocol layer, no game state
 Protocol/SiegeControls.cpp	31	Protocol	game/Protocol	high	engine or protocol layer, no game state

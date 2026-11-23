@@ -761,6 +761,21 @@ pairs of those modules.
 - `tests/support/` gains what is copied today: `LetterMeasure` (40 files), two fake `IModelLibrary` (null and triangle;
   60 files today), a `GameHudContext` builder (built by hand 42 times) and the tests' numeric helpers (`F32` in 41
   files).
+- The map constants of `Maps/MapId.h` become an opaque `enum class MapId : std::int32_t {}` with the same names, once
+  AR4 has named the loose literals (CODING_RULES §7, "Types and aliases"). The compiler then finds every signature
+  that changed, but not a byte compared with a number, so the PR starts with an inventory of each map representation
+  and the operation at each of its boundaries:
+  - the signed runtime map, which the logout callback sets to −1 and the gate check compares whole (a test pins that
+    256 never matches map 0);
+  - the packet's byte, where 0xff is map 255 and its folder is `World256`, and the low-byte projections, where −1
+    becomes 255;
+  - the banner's signed 16-bit field, sign-extended to compare and truncated on write;
+  - the folder and asset variant numbers, and the byte comparisons a type change does not catch (`HasOwnTiles` in
+    `World/WorldTerrain.cpp`, the 54 and 55 that reach `Render::Frame::SceneWorld`).
+
+  `MapId` stays in the game: the engine's byte (`SceneWorld::map`) does not name it, and the game converts on its side.
+  The 112 `std::uint8_t map` parameters are not widened. Tests keep the original's literal values in their
+  expectations, so renumbering production and tests together cannot hide a regression.
 
 ## Epic AR7: wrap-up
 

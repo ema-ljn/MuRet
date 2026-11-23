@@ -1102,7 +1102,7 @@ Result DrawThePart(MonsterFrame& frame, std::uint16_t model, std::uint8_t level,
     resources.ownerContext = &actor;
     resources.poseBones = [&actor]() { return std::span<const BoneTransform>(actor.bodyPose); };
     return DrawItemFromMeshes(frame.batch, frame.fauna, object, frame.pass.frameClock, meshes,
-                              static_cast<std::uint8_t>(level & 15), excellent, ancient, 4, resources);
+                              static_cast<std::uint8_t>(level & 15), excellent, ancient, resources);
 }
 
 // 0x50d363..0x50d4f5: las partes de un personaje que no es el 0x20a, sin +0x3e3 (0x50d36e). En Chaos Castle (18 a 23),

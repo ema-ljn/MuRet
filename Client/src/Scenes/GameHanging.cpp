@@ -729,7 +729,7 @@ Result HangItem(const Frame& frame, const glm::vec3& offset, ActorItemPart& part
     if (!resources.poseBones)
         resources.poseBones = [&carry]() { return std::span<const BoneTransform>(carry.bones); };
     if (auto drawn = DrawItemFromMeshes(pass.batch, pass.models, object, pass.frameClock, carry.meshes,
-                                        static_cast<std::uint8_t>(level & 15), excellent, 0, 4, resources);
+                                        static_cast<std::uint8_t>(level & 15), excellent, 0, resources);
         !drawn.HasValue())
         return drawn;
     return ItemSprites(frame, model, origin);

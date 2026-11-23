@@ -760,7 +760,7 @@ Core::Expected<void, std::string> DrawUiItemModel(UiItemResources& resources, Re
     // 0x60b3d0 desempaca el nivel: (nivel >> 3) & 15.
     const auto level = static_cast<std::uint8_t>((placement.level >> 3) & 15);
     return DrawItemFromMeshes(resources.batch, resources.models, object, resources.frameClock,
-                              resources.poseCarry.meshes, level, excellent, set, 4, context);
+                              resources.poseCarry.meshes, level, excellent, set, context);
 }
 
 void CloseUiItemPass(UiItemResources& resources)

@@ -8,6 +8,7 @@
 #include "Render/Models/Cloth.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/IModelLibrary.h"
+#include "Render/Models/ItemGlow.h"
 #include "Render/Models/ObjectState.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Render/Models/Pose.h"
@@ -295,14 +296,15 @@ struct ItemDrawContext
     std::function<Core::Expected<void, std::string>(std::uint16_t, std::int32_t, const DrawnObject&)> createEffect{};
     // Recibe sólo los stores nativos de alpha, separado del alpha temporal de dibujo.
     float* storedAlpha = nullptr;
+    // 0x6c9dcc, the options' glow detail.
+    std::uint8_t glowDetail = Render::Models::DefaultGlowDetail;
 };
 
 // 60b3d0: cuerpo y opciones sobre los huesos/mallas que publicó el caller, sin volver a posar.
 [[nodiscard]] Core::Expected<void, std::string>
 DrawItemFromMeshes(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models, const DrawnObject& object,
                    Core::Duration frameClock, std::span<const Render::Models::SkinnedMesh> meshes, std::uint8_t level,
-                   std::uint8_t excellent, std::uint8_t ancient, std::uint8_t detail = 4,
-                   const ItemDrawContext& context = {});
+                   std::uint8_t excellent, std::uint8_t ancient, const ItemDrawContext& context = {});
 
 // 0x50d2aa..0x50d35e: un 0x20a con el subtipo 0xd1..0xd3 no lleva sus seis partes sino el cuerpo entero del esqueleto
 // (`model`, el subtipo: Skill\Skeleton01..03, que carga 0x615e36), sobre el cuerpo posado, con 0x60cf70(c, subtipo,

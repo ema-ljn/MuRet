@@ -311,12 +311,39 @@ TEST(GameFloorItemDrawingTest, DisabledGlowDetailSuppressesTheExcellentOptionPas
     Client::World::SphereFrustum frustum;
     auto item = Item(0x212);
     item.excellent = 1;
+    Client::Scenes::ItemDrawContext items;
+    items.glowDetail = 0;
     Client::Scenes::FloorItemDrawContext context{.batch = batch, .models = models, .frustum = frustum};
-    context.glowDetail = 0;
     context.project = Project;
+    context.itemContext = &items;
     const auto result = Client::Scenes::DrawFloorItems(std::span(&item, 1), context);
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_EQ(batch.Vertices().size(), 3u);
+}
+
+// 0x60b573: with the options' glow detail (0x6c9dcc) at 1, a level 13 item on the floor draws as a level 7 one: its
+// mesh and the 0x44 pass.
+TEST(GameFloorItemDrawingTest, TheGlowDetailOfTheOptionsTrimsTheLevel)
+{
+    for (const std::uint8_t detail : {std::uint8_t{4}, std::uint8_t{1}})
+    {
+        SCOPED_TRACE(static_cast<int>(detail));
+        FloorModels models;
+        Client::Render::ModelBatch batch;
+        Client::World::SphereFrustum frustum;
+        auto item = Item(0x212);
+        item.value = 13 << 3;
+        Client::Scenes::ItemDrawContext items;
+        items.glowDetail = detail;
+        Client::Scenes::FloorItemDrawContext context{.batch = batch, .models = models, .frustum = frustum};
+        context.project = Project;
+        context.itemContext = &items;
+
+        const auto result = Client::Scenes::DrawFloorItems(std::span(&item, 1), context);
+
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        EXPECT_EQ(batch.Vertices().size(), detail == 4 ? 12u : 6u);
+    }
 }
 
 TEST(GameFloorItemDrawingTest, AncientLowPulseDrawConsumesOneNativeRandomAndPublishesTheModelSelection)

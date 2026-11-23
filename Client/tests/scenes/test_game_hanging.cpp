@@ -384,6 +384,29 @@ TEST_F(GameHangingTest, TheHandSwordFlareUsesTheLevelLight)
     }
 }
 
+// 0x60b573: with the options' glow detail (0x6c9dcc) at 1, a level 13 sword in the hand draws as a level 7 one: the
+// mesh and the 0x44 pass.
+TEST_F(GameHangingTest, TheGlowDetailOfTheOptionsTrimsTheLevelOfWhatHangs)
+{
+    const HangingModels models({BladeSword});
+    m_actor.hands[0].model = BladeSword;
+    m_actor.hands[0].level = 13;
+    for (const std::uint8_t detail : {std::uint8_t{4}, std::uint8_t{1}})
+    {
+        SCOPED_TRACE(static_cast<int>(detail));
+        m_batch.Begin(Client::Render::Pass3D{});
+        Client::Scenes::ItemDrawContext items;
+        items.glowDetail = detail;
+        GameHangingPass pass = Pass(models);
+        pass.itemContext = &items;
+
+        const auto result = Client::Scenes::DrawGameHanging(m_actor, pass);
+
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        EXPECT_EQ(m_batch.Vertices().size(), detail == 4 ? 12u : 6u);
+    }
+}
+
 // 0x50f6d6..0x50f74b: Staff08 lleva Shiny02 en el hueso 27 y destellos del 28 al 37 de su propia pose,
 // que 0x509340 dejó en el buffer global (0x5092d0): su raíz es el hueso 33 del cuerpo. 0x607b60 le saca
 // un rand() más.

@@ -1923,7 +1923,8 @@ void LoginScene::DrawTheTail(SceneCanvas& canvas, ActorState& actor, const Drawn
                                                .joints = world.DrawTail().joints,
                                                .effects = world.Map().effects,
                                                .map = world.Runtime().map,
-                                               .originalFrame = originalFrame});
+                                               .originalFrame = originalFrame,
+                                               .glowDetail = world.Runtime().ui.glowDetail});
         const GameCharacterPass pass{.dynamicLighting = &world.DynamicLighting().Lighting(),
                                      .clothWorld = &cloth,
                                      .frameClock = canvas.frameClock,

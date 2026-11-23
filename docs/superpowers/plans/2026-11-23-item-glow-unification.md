@@ -290,18 +290,20 @@ Done in #428. No production code changes. Title: `test(AR6): pin where the two i
 
 ### Task 2: the options' glow detail reaches every item draw (P-C91)
 
-Port fix. Title: `fix(client): apply the glow detail option to every item draw`.
+Done. Port fix. Title: `fix(client): apply the glow detail option to every item draw`.
 
 **Files:**
-- Modify: `Client/src/Scenes/CharacterDrawing.h` (`ItemDrawContext`, `DrawItemFromMeshes`), `CharacterDrawing.cpp:1729`,
-  `ItemDrawResources.{h,cpp}`, and the six callers: `UiItemDrawing.cpp:762`, `MonsterDrawing.cpp:1103`,
-  `GameHanging.cpp:731`, `GameFloorItemDrawing.cpp:109`, `GameDrawTail.cpp:566`, `CharacterDrawing.cpp:1862`
-- Modify: the five places that build the context: `GameSceneTail.cpp:89`, `LoginScene.cpp:1910`,
-  `CharacterSelectScene.cpp:1712` (through `FillItemDrawContexts`), `GameSceneUi.cpp:453` and `GameScene.cpp:1224` (by
-  hand)
+- Modify: `Client/src/Scenes/CharacterDrawing.h` (`ItemDrawContext`, `DrawItemFromMeshes`), `CharacterDrawing.cpp`
+  (`DrawItemFromMeshes` and its caller `DrawSkeletonBody`), `ItemDrawResources.{h,cpp}`, `GameDrawTail.h`
+  (`FloorItemDrawContext::glowDetail` goes), and the five other callers: `UiItemDrawing.cpp`, `MonsterDrawing.cpp`,
+  `GameHanging.cpp`, `GameFloorItemDrawing.cpp`, `GameDrawTail.cpp`
+- Modify: the three places that fill the context, all through `FillItemDrawContexts`: `GameScene::FillTheItemContexts`
+  (`GameSceneTail.cpp`, which `GameScene.cpp` and `GameSceneUi.cpp` call), `LoginScene.cpp` and
+  `CharacterSelectScene.cpp`
 - Modify: `Client/docs/research/08-pendientes.md` (P-C91: what is left is the worn parts, closed by Task 4)
-- Test: `Client/tests/scenes/test_game_item_glow_effects.cpp`, and one case in `test_ui_item_drawing.cpp`,
-  `test_monster_drawing.cpp`, `test_game_hanging.cpp`, `test_game_floor_item_drawing.cpp` and `test_game_draw_tail.cpp`
+- Test: `Client/tests/scenes/test_item_glow_detail.cpp` (new), and one case in `test_ui_item_drawing.cpp`,
+  `test_monster_drawing.cpp`, `test_game_hanging.cpp`, `test_game_floor_item_drawing.cpp`,
+  `test_game_special_model_effects.cpp` (the effect items) and `test_game_character_render.cpp` (the skeleton body)
 
 **Interfaces:**
 - Produces: `std::uint8_t ItemDrawContext::glowDetail = Render::Models::DefaultGlowDetail;` (`0x6c9dcc`) and the same
@@ -309,14 +311,14 @@ Port fix. Title: `fix(client): apply the glow detail option to every item draw`.
   its `WorldRuntime` (the option is a global: it stays between scenes). `DrawItemFromMeshes` loses its
   `detail` parameter. `FloorItemDrawContext::glowDetail` goes.
 
-- [ ] **Step 1: Write the failing tests.** `DrawItemFromMeshes` with a level 13 excellent item and
-  `context.glowDetail` 0, 1, 2, 3 and 4 draws the passes of levels 5, 7, 9, 11 and 13, and the `0x42` pass only above
-  0. One test per caller sets the detail to 1 in its resources and expects a level 13 item that is not excellent to
-  draw the base and one `0x44` pass.
-- [ ] **Step 2: Run them and see them fail** (five callers pass 4).
-- [ ] **Step 3: Move the detail into the context** and delete the parameter.
-- [ ] **Step 4: Run the tests and the behavior golden.** The golden stays identical: every scene runs with detail 4.
-- [ ] **Step 5: Commit.**
+- [x] **Step 1: Write the failing tests.** `DrawItemFromMeshes` with a level 13 excellent item and
+  `context.glowDetail` 0, 1, 2 and 3 draws what a level 5, 7, 9 and 11 item draws at detail 4, with the `0x42` pass
+  only above 0. One test per caller sets the detail to 1 in its context and expects a level 13 item that is not
+  excellent to draw the base and one `0x44` pass.
+- [x] **Step 2: Run them and see them fail.** The six caller tests failed with the passes of level 13.
+- [x] **Step 3: Move the detail into the context** and delete the parameter.
+- [x] **Step 4: Run the tests and the behavior golden.** The golden stays identical: every scene runs with detail 4.
+- [x] **Step 5: Commit.**
 
 ### Task 3: the part draw and the parts loop for every actor
 

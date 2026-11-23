@@ -43,6 +43,7 @@ void FillItemDrawContexts(ItemSpecialDrawContext& special, ItemDrawContext& item
     item.originalFrame = resources.originalFrame;
     item.modelState = &resources.modelState;
     item.map = resources.map;
+    item.glowDetail = resources.glowDetail;
     item.poseBones = [carry]() { return std::span<const Render::Models::BoneTransform>(carry->bones); };
     item.createJoint = [joints = resources.joints, random = &resources.random](
                            const World::FishEffectRequest& request) -> Core::Expected<void, std::string>

@@ -2,6 +2,7 @@
 
 #include "App/WindowState.h"
 #include "Core/IClock.h"
+#include "Render/Frame/SceneWorld.h"
 #include "Render/ModelBatch.h"
 #include "Render/ModelVertex.h"
 #include "Render/Pass3D.h"
@@ -11,7 +12,6 @@
 #include "Scenes/IFrameTarget.h"
 #include "Scenes/IWorldView.h"
 #include "Scenes/SceneCanvas.h"
-#include "Scenes/SceneWorlds.h"
 #include "support/RecordingTextDrawer.h"
 
 #include <gtest/gtest.h>
@@ -54,7 +54,7 @@ struct FrameEvent
     // Text: lo que pidió la escena.
     RecordedText text;
     // World.
-    Scenes::SceneWorld world{};
+    Render::Frame::SceneWorld world{};
     float alpha = 0.0f;
     // World y Models: el pase.
     std::optional<Render::Pass3D> pass;
@@ -74,8 +74,9 @@ class RecordingFrameTarget final : public Scenes::IFrameTarget
 {
 public:
     explicit RecordingFrameTarget(App::PixelSize screen = {.width = 640, .height = 480})
-        : m_screen(screen), m_text(m_sprites), m_world([this](Scenes::SceneWorld world, const Render::Pass3D& pass,
-                                                              float alpha) { RecordWorld(world, pass, alpha); })
+        : m_screen(screen), m_text(m_sprites),
+          m_world([this](Render::Frame::SceneWorld world, const Render::Pass3D& pass, float alpha)
+                  { RecordWorld(world, pass, alpha); })
     {
     }
 
@@ -147,13 +148,13 @@ private:
     public:
         template <typename Draw> explicit WorldRecorder(Draw draw) : m_draw(std::move(draw)) {}
 
-        void Draw(Scenes::SceneWorld world, const Render::Pass3D& pass, float alpha) override
+        void Draw(Render::Frame::SceneWorld world, const Render::Pass3D& pass, float alpha) override
         {
             m_draw(world, pass, alpha);
         }
 
     private:
-        std::function<void(Scenes::SceneWorld, const Render::Pass3D&, float)> m_draw;
+        std::function<void(Render::Frame::SceneWorld, const Render::Pass3D&, float)> m_draw;
     };
 
     // Anota los quads del lote que no se anotaron todavía, en orden.
@@ -227,7 +228,7 @@ private:
         m_models.SetState(state);
     }
 
-    void RecordWorld(Scenes::SceneWorld world, const Render::Pass3D& pass, float alpha)
+    void RecordWorld(Render::Frame::SceneWorld world, const Render::Pass3D& pass, float alpha)
     {
         if (!FrameOpen())
         {

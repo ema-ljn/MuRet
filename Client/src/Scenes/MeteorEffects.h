@@ -18,6 +18,7 @@ class ModelBatch;
 
 namespace Client::Render::Models
 {
+class IModelLibrary;
 struct Skeleton;
 } // namespace Client::Render::Models
 
@@ -28,7 +29,6 @@ struct ModelEffect;
 
 namespace Client::Scenes
 {
-class IModelLibrary;
 struct DrawnObject;
 struct HighEffectStepContext;
 
@@ -69,6 +69,6 @@ void BeginTheMeteor(World::ModelEffect& effect);
 //   +0x6c; después +0x6c vuelve a 1. T es el reloj del mundo (0x5767b88): sin él, corta.
 // Devuelve true si es uno de los dos; false con otro tipo (sigue el pase común).
 [[nodiscard]] Core::Expected<bool, std::string>
-DrawTheMeteorBody(Render::ModelBatch& batch, const IModelLibrary& models, World::ModelEffect& effect,
+DrawTheMeteorBody(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models, World::ModelEffect& effect,
                   const DrawnObject& object, Core::Duration frameClock, std::optional<float> worldClock);
 } // namespace Client::Scenes

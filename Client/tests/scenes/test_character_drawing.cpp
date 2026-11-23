@@ -1,3 +1,4 @@
+#include "Render/Models/IModelLibrary.h"
 #include "Scenes/CharacterDrawing.h"
 
 #include "Data/Models/Model.h"
@@ -53,6 +54,7 @@ using Client::Render::ModelDrawState;
 using Client::Render::TextureSlot;
 using Client::Render::Models::ActionInfo;
 using Client::Render::Models::BoneKey;
+using Client::Render::Models::IModelLibrary;
 using Client::Render::Models::RoundedCos;
 using Client::Render::Models::RoundedSin;
 using Client::Render::Models::Skeleton;
@@ -62,7 +64,6 @@ using Client::Scenes::DrawDarkHorse;
 using Client::Scenes::DrawnCharacter;
 using Client::Scenes::DrawnObject;
 using Client::Scenes::DrawObject;
-using Client::Scenes::IModelLibrary;
 using Client::Scenes::MeshSlotOf;
 using Client::Scenes::SkinIndexOf;
 

@@ -1,3 +1,4 @@
+#include "Render/Models/IModelLibrary.h"
 #include "Scenes/VertexEffects.h"
 
 #include "Data/Models/Model.h"
@@ -32,7 +33,7 @@
 
 namespace
 {
-class VertexModels final : public Client::Scenes::IModelLibrary
+class VertexModels final : public Client::Render::Models::IModelLibrary
 {
 public:
     VertexModels()

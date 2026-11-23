@@ -6,6 +6,7 @@
 #include "Data/Models/Model.h"
 #include "Data/Models/ModelFiles.h"
 #include "Render/ITextureStore.h"
+#include "Render/Models/IModelLibrary.h"
 #include "Render/Models/ModelTextureSlots.h"
 #include "Render/Models/Skeleton.h"
 #include "Render/Pass3D.h"
@@ -52,7 +53,7 @@ inline constexpr Render::TextureSlot SelectionModelsFirstSlot{0x6f8};
 
 // Los seis modelos con su esqueleto y el slot de cada malla. La velocidad de las acciones 0 y 1 de
 // los NewFace es 0,3 (0x3e99999a, al final de 0x61ca30).
-class SelectionModels final : public IModelLibrary
+class SelectionModels final : public Render::Models::IModelLibrary
 {
 public:
     // Lee los seis desde `dataRoot` y les da sus texturas siguiendo a `gameSlots` (la tabla de la
@@ -92,23 +93,24 @@ using CreatePreview = ActorState;
 struct ActorConstructionContext;
 // 0x63e3e0: el constructor completo, incluido el terreno y el rand() compartido.
 [[nodiscard]] Core::Expected<void, std::string> RebuildPreview(CreatePreview& preview, std::uint8_t characterClass,
-                                                               const IModelLibrary& models,
+                                                               const Render::Models::IModelLibrary& models,
                                                                const ActorConstructionContext& construction,
                                                                Render::Models::ClothWorld& cloth);
 
 // Adaptador de presentación sin terreno; main usa RebuildPreview con el constructor completo.
-void ChoosePreviewClass(CreatePreview& preview, std::uint8_t characterClass, const IModelLibrary& models);
+void ChoosePreviewClass(CreatePreview& preview, std::uint8_t characterClass,
+                        const Render::Models::IModelLibrary& models);
 
 // Un paso de 0x63e430: 0x4f9580 lo avanza (la velocidad de la acción por 2 con los NewFace) y, si la
 // acción terminó, la 0. Corre además de 0x508ea0 desde la lógica de la escena: con la ventana arriba
 // avanza dos veces, y con un aviso, solo desde la escena.
-void StepPreview(CreatePreview& preview, const IModelLibrary& models);
+void StepPreview(CreatePreview& preview, const Render::Models::IModelLibrary& models);
 
 // 0x63e460: el corrimiento de la clase queda en el actor por cada frame original. La cámara lee
 // la posición anterior a ese corrimiento; los dibujos intermedios conservan la del último frame.
 // El color es 4,8 por vértice (0x6002e0).
-[[nodiscard]] DrawnObject DrawnPreview(CreatePreview& preview, const IModelLibrary& models, float stepAlpha,
-                                       int originalFrames = 1);
+[[nodiscard]] DrawnObject DrawnPreview(CreatePreview& preview, const Render::Models::IModelLibrary& models,
+                                       float stepAlpha, int originalFrames = 1);
 
 // 0x6338a0(objeto, (10, −500, 48), (−90, 0, 0)) con el fov en 10 (0x63e460) y el near y el far de la
 // escena 4. La posición, la del objeto de antes del corrimiento de su clase.

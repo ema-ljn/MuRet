@@ -1,3 +1,4 @@
+#include "Network/Xor32Packet.h"
 #include "Scenes/CastleSiegeReceive.h"
 #include "Scenes/GamePanels.h"
 #include "Scenes/CastleWindows.h"
@@ -6,7 +7,6 @@
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
 #include "Data/Text/TextTable.h"
-#include "Network/Crypto/Xor32.h"
 #include "Protocol/CastleSiege.h"
 #include "Protocol/Outgoing.h"
 #include "Render/Models/Cloth.h"
@@ -44,7 +44,7 @@
 namespace
 {
 namespace Castle = Client::Protocol::CastleSiege;
-using Client::Network::Crypto::Xor32Decode;
+using Client::Network::Xor32Decode;
 using Client::Render::Models::CrtRandom;
 using Client::Render::Text::FontKind;
 using Client::Render::Text::ITextMeasure;

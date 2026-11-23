@@ -1,3 +1,4 @@
+#include "Render/Models/IModelLibrary.h"
 #include "Scenes/GameInventoryHud.h"
 
 #include "App/WindowState.h"
@@ -125,7 +126,7 @@ std::optional<Corners> NthQuadOf(const SpriteBatch& sprites, std::uint16_t slot,
 
 // Los modelos inventados del pase de la UI: un triángulo con el vértice 0 en el origen de su hueso, que cae en la
 // posición del objeto.
-class UiModels final : public Client::Scenes::IModelLibrary
+class UiModels final : public Client::Render::Models::IModelLibrary
 {
 public:
     UiModels()

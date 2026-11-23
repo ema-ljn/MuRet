@@ -43,11 +43,13 @@ App/VSyncMode.h	19	App	engine/Platform	high	included by Render, UI and Platform
 App/WindowState.cpp	39	App	engine/Platform	high	included by Render, UI and Platform
 App/WindowState.h	44	App	engine/Platform	high	included by Render, UI and Platform
 App/WorldEvent.h	153	App	game/Session	medium	the session with the servers
+Audio/ISoundCatalog.h	19	Audio	engine/Audio	high	the sound lookup the platform audio asks for; the game's catalog implements it (AR1.1)
 Audio/Music.cpp	185	Audio	engine/Audio	high	engine or protocol layer, no game state
 Audio/Music.h	41	Audio	engine/Audio	high	engine or protocol layer, no game state
 Audio/Playback.h	28	Audio	engine/Audio	high	engine or protocol layer, no game state
 Audio/SoundCatalog.cpp	657	Audio	game/Sound	medium	MU's sound catalog; the engine receives the definitions at startup (2026-11-21 review)
 Audio/SoundCatalog.h	22	Audio	game/Sound	medium	MU's sound catalog; the engine receives the definitions at startup (2026-11-21 review)
+Audio/SoundDefinition.h	15	Audio	engine/Audio	high	what the platform audio needs to know of one sound (AR1.1)
 Core/Ascii.cpp	28	Core	engine/Core	high	engine or protocol layer, no game state
 Core/Ascii.h	22	Core	engine/Core	high	engine or protocol layer, no game state
 Core/ByteReader.cpp	89	Core	engine/Core	high	engine or protocol layer, no game state
@@ -247,6 +249,8 @@ Network/SystemResolver.cpp	32	Network	engine/Network	high	engine or protocol lay
 Network/SystemResolver.h	24	Network	engine/Network	high	engine or protocol layer, no game state
 Network/SystemSocket.cpp	157	Network	engine/Network	high	engine or protocol layer, no game state
 Network/SystemSocket.h	70	Network	engine/Network	high	engine or protocol layer, no game state
+Network/Xor32Packet.cpp	40	Network	engine/Network	high	XOR32 over a whole C1 or C2, on top of the Crypto bytes (AR1.1)
+Network/Xor32Packet.h	12	Network	engine/Network	high	XOR32 over a whole C1 or C2, on top of the Crypto bytes (AR1.1)
 Platform/BasePath.cpp	28	Platform	engine/Platform	high	engine or protocol layer, no game state
 Platform/BasePath.h	14	Platform	engine/Platform	high	engine or protocol layer, no game state
 Platform/Clipboard.cpp	60	Platform	engine/Platform	high	engine or protocol layer, no game state
@@ -350,8 +354,8 @@ Protocol/OptionData.cpp	57	Protocol	game/Protocol	high	engine or protocol layer,
 Protocol/OptionData.h	45	Protocol	game/Protocol	high	engine or protocol layer, no game state
 Protocol/Outgoing.cpp	23	Protocol	game/Protocol	high	engine or protocol layer, no game state
 Protocol/Outgoing.h	35	Protocol	game/Protocol	high	engine or protocol layer, no game state
-Protocol/PacketFields.cpp	50	Protocol	game/Protocol	high	engine or protocol layer, no game state
-Protocol/PacketFields.h	42	Protocol	game/Protocol	high	engine or protocol layer, no game state
+Protocol/PacketFields.cpp	50	Protocol	engine/Network	high	packet field reading: knows only the C1 to C4 framing, the opcode and the subcode (AR1.1)
+Protocol/PacketFields.h	42	Protocol	engine/Network	high	packet field reading: knows only the C1 to C4 framing, the opcode and the subcode (AR1.1)
 Protocol/Party.cpp	139	Protocol	game/Protocol	high	engine or protocol layer, no game state
 Protocol/Party.h	100	Protocol	game/Protocol	high	engine or protocol layer, no game state
 Protocol/PersonalShop.cpp	280	Protocol	game/Protocol	high	engine or protocol layer, no game state
@@ -360,7 +364,7 @@ Protocol/Pet/PetInfo.cpp	33	Protocol	game/Protocol	high	engine or protocol layer
 Protocol/Pet/PetInfo.h	65	Protocol	game/Protocol	high	engine or protocol layer, no game state
 Protocol/Pet/PetOrders.cpp	60	Protocol	game/Protocol	high	engine or protocol layer, no game state
 Protocol/Pet/PetOrders.h	56	Protocol	game/Protocol	high	engine or protocol layer, no game state
-Protocol/ProtocolError.h	15	Protocol	game/Protocol	high	engine or protocol layer, no game state
+Protocol/ProtocolError.h	15	Protocol	engine/Network	high	the errors of reading or writing a packet, no game knowledge (AR1.1)
 Protocol/Quest.cpp	117	Protocol	game/Protocol	high	engine or protocol layer, no game state
 Protocol/Quest.h	80	Protocol	game/Protocol	high	engine or protocol layer, no game state
 Protocol/SiegeControls.cpp	31	Protocol	game/Protocol	high	engine or protocol layer, no game state
@@ -375,6 +379,8 @@ Protocol/World.cpp	101	Protocol	game/Protocol	high	engine or protocol layer, no 
 Protocol/World.h	75	Protocol	game/Protocol	high	engine or protocol layer, no game state
 Render/Billboard.cpp	116	Render	engine/Render	high	engine or protocol layer, no game state
 Render/Billboard.h	52	Render	engine/Render	high	engine or protocol layer, no game state
+Render/Frame/IScreenReader.h	19	Render/Frame	engine/Render/Frame	high	the screenshot's read of the drawn frame, implemented by GL (AR1.1)
+Render/Frame/SceneWorld.h	11	Render/Frame	engine/Render/Frame	high	the map the scene hands to the 3D pass (AR1.1)
 Render/Gl/GlFrameTarget.cpp	114	Render	engine/Render	high	engine or protocol layer, no game state
 Render/Gl/GlFrameTarget.h	82	Render	engine/Render	high	engine or protocol layer, no game state
 Render/Gl/GlFramebuffer.cpp	87	Render	engine/Render	high	engine or protocol layer, no game state
@@ -397,6 +403,7 @@ Render/Gl/Shaders.h	143	Render	engine/Render	high	engine or protocol layer, no g
 Render/Gl/TextureTable.cpp	59	Render	engine/Render	high	engine or protocol layer, no game state
 Render/Gl/TextureTable.h	51	Render	engine/Render	high	engine or protocol layer, no game state
 Render/IParticleDrawBackend.h	50	Render	engine/Render	high	engine or protocol layer, no game state
+Render/ITextureSlots.h	16	Render	engine/Render	high	the texture slot lookup the particle backend needs, without the model library (AR1.1)
 Render/ITextureStore.h	28	Render	engine/Render	high	engine or protocol layer, no game state
 Render/ModelBatch.cpp	114	Render	engine/Render	high	engine or protocol layer, no game state
 Render/ModelBatch.h	215	Render	engine/Render	high	engine or protocol layer, no game state
@@ -414,6 +421,7 @@ Render/Models/Cloth.cpp	893	Render	engine/Models	medium	model simulation (skelet
 Render/Models/Cloth.h	292	Render	engine/Models	medium	model simulation (skeleton, pose, cloth, x87 math), not drawing
 Render/Models/HalfLifeMath.cpp	175	Render	engine/Math	high	the original's x87 math; used by Render, Models, GameLogic and World
 Render/Models/HalfLifeMath.h	47	Render	engine/Math	high	the original's x87 math; used by Render, Models, GameLogic and World
+Render/Models/IModelLibrary.h	49	Render/Models	engine/Models	high	the loaded models drawing asks for, below the game modules that draw them (AR1.1)
 Render/Models/ItemGlow.cpp	59	Render	engine/Models	medium	model simulation (skeleton, pose, cloth, x87 math), not drawing
 Render/Models/ItemGlow.h	47	Render	engine/Models	medium	model simulation (skeleton, pose, cloth, x87 math), not drawing
 Render/Models/LogicalAccess.cpp	47	Render	engine/Models	medium	model simulation (skeleton, pose, cloth, x87 math), not drawing
@@ -819,12 +827,12 @@ Scenes/HudItems.cpp	226	Scenes	game/Items	high	item queries (quick slots, arrow 
 Scenes/HudItems.h	73	Scenes	game/Items	high	item queries (quick slots, arrow count, max durability) used by the HUD, tooltips and windows (AR0.1 review)
 Scenes/HudText.cpp	28	Scenes	game/Hud	high	game UI step/frame order, HUD (addr.), character/inventory windows, panels, misc windows
 Scenes/HudText.h	21	Scenes	game/Hud	high	game UI step/frame order, HUD (addr.), character/inventory windows, panels, misc windows
-Scenes/IFrameTarget.h	20	Scenes	game/Scenes	high	scene<->GL contract; should move below Scenes (Render/UI), see layering
+Scenes/IFrameTarget.h	20	Scenes	engine/Render/Frame	high	the scene to GL frame contract, below the scenes (AR1.1)
 Scenes/IScene.h	63	Scenes	game/Scenes	medium	scene machine: IScene/SceneManager/transitions/loop timing (CL5.4); include graph pulls to FrontEndScenes (4 vs 2 own)
-Scenes/ITextDrawer.h	35	Scenes	game/Scenes	high	scene<->GL contract; should move below Scenes (Render/UI), see layering
+Scenes/ITextDrawer.h	35	Scenes	engine/Render/Frame	high	the scene to GL frame contract, below the scenes (AR1.1)
 Scenes/IWorldEntryPublisher.h	14	Scenes	game/Session	high	top-level packet/transition application that reaches every feature: durable globals, map load, world entry F3 03, map tr
 Scenes/IWorldTransitionPublisher.h	12	Scenes	game/Session	high	top-level packet/transition application that reaches every feature: durable globals, map load, world entry F3 03, map tr
-Scenes/IWorldView.h	28	Scenes	game/Scenes	high	scene<->GL contract; should move below Scenes (Render/UI), see layering
+Scenes/IWorldView.h	28	Scenes	engine/Render/Frame	high	the scene to GL frame contract, below the scenes (AR1.1)
 Scenes/IcarusObjectFrame.cpp	79	Scenes	game/MapScripts/Icarus	high	what that map does, like TrinityCore's per-zone scripts (2026-11-21 review)
 Scenes/IcarusObjectFrame.h	27	Scenes	game/MapScripts/Icarus	high	what that map does, like TrinityCore's per-zone scripts (2026-11-21 review)
 Scenes/IcarusObjectStep.cpp	213	Scenes	game/MapScripts/Icarus	high	what that map does, like TrinityCore's per-zone scripts (2026-11-21 review)
@@ -1029,13 +1037,13 @@ Scenes/RingEffects.cpp	177	Scenes	game/Effects	high	model effects; uses Joints a
 Scenes/RingEffects.h	51	Scenes	game/Effects	high	model effects; uses Joints and Particles (2026-11-21 review)
 Scenes/SceneCameras.cpp	57	Scenes	game/Camera	medium	the camera (2026-11-21 review)
 Scenes/SceneCameras.h	40	Scenes	game/Camera	medium	the camera (2026-11-21 review)
-Scenes/SceneCanvas.h	40	Scenes	game/Scenes	medium	scene<->GL contract; should move below Scenes (Render/UI), see layering; include graph pulls to FrontEndScenes (8 vs 7 o
+Scenes/SceneCanvas.h	40	Scenes	engine/Render/Frame	high	the scene to GL frame contract, below the scenes (AR1.1)
 Scenes/SceneContext.h	87	Scenes	game/Scenes	high	what the scenes share: data folder, texture store, log, clock (AR0.1 review)
 Scenes/SceneId.h	39	Scenes	game/Scenes	medium	scene machine: IScene/SceneManager/transitions/loop timing (CL5.4); include graph pulls to FrontEndScenes (11 vs 5 own)
 Scenes/SceneManager.cpp	304	Scenes	game/Scenes	high	scene machine: IScene/SceneManager/transitions/loop timing (CL5.4)
 Scenes/SceneManager.h	149	Scenes	game/Scenes	high	scene machine: IScene/SceneManager/transitions/loop timing (CL5.4)
-Scenes/SceneText.cpp	64	Scenes	game/Scenes	high	scene<->GL contract; should move below Scenes (Render/UI), see layering
-Scenes/SceneText.h	61	Scenes	game/Scenes	high	scene<->GL contract; should move below Scenes (Render/UI), see layering
+Scenes/SceneText.cpp	64	Scenes	engine/Render/Frame	high	the scene to GL frame contract, below the scenes (AR1.1)
+Scenes/SceneText.h	61	Scenes	engine/Render/Frame	high	the scene to GL frame contract, below the scenes (AR1.1)
 Scenes/SceneTextures.cpp	80	Scenes	game/Assets	medium	models and textures, out of Kernel (2026-11-21 review)
 Scenes/SceneTextures.h	58	Scenes	game/Assets	medium	models and textures, out of Kernel (2026-11-21 review)
 Scenes/SceneTransitions.h	46	Scenes	game/Scenes	high	scene machine: IScene/SceneManager/transitions/loop timing (CL5.4)
@@ -1113,9 +1121,9 @@ Scenes/TerrainTiles.cpp	190	Scenes	game/Assets	medium	models and textures, out o
 Scenes/TerrainTiles.h	81	Scenes	game/Assets	medium	models and textures, out of Kernel (2026-11-21 review)
 Scenes/TestScene.cpp	55	Scenes	game/Scenes	high	scene machine: IScene/SceneManager/transitions/loop timing (CL5.4)
 Scenes/TestScene.h	48	Scenes	game/Scenes	high	scene machine: IScene/SceneManager/transitions/loop timing (CL5.4)
-Scenes/TextCacheDrawer.cpp	62	Scenes	game/Scenes	high	scene<->GL contract; should move below Scenes (Render/UI), see layering
-Scenes/TextCacheDrawer.h	48	Scenes	game/Scenes	high	scene<->GL contract; should move below Scenes (Render/UI), see layering
-Scenes/TextureMetadata.h	24	Scenes	game/Assets	high	models and textures, out of Kernel (2026-11-21 review)
+Scenes/TextCacheDrawer.cpp	62	Scenes	engine/Render/Frame	high	the scene to GL frame contract, below the scenes (AR1.1)
+Scenes/TextCacheDrawer.h	48	Scenes	engine/Render/Frame	high	the scene to GL frame contract, below the scenes (AR1.1)
+Scenes/TextureMetadata.h	24	Scenes	engine/Models	high	the CPU size and components of a decoded texture, which IModelLibrary returns (AR1.1)
 Scenes/TextureSets.h	540	Scenes	game/Assets	medium	models and textures, out of Kernel (2026-11-21 review)
 Scenes/TooltipLines.h	64	Scenes	game/Tooltips	high	item, skill and pet tooltips, above Items, Skills and Pets (2026-11-21 review)
 Scenes/TooltipWriter.cpp	146	Scenes	game/Tooltips	high	item, skill and pet tooltips, above Items, Skills and Pets (2026-11-21 review)

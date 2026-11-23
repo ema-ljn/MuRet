@@ -1,6 +1,6 @@
+#include "Render/Models/IModelLibrary.h"
 #include "World/ParticleDrawing.h"
 #include "Scenes/ParticleDrawServices.h"
-#include "Scenes/CharacterDrawing.h"
 #include "Scenes/TextureMetadata.h"
 #include "Render/IParticleDrawBackend.h"
 #include "Render/ParticleBillboardRequest.h"
@@ -47,17 +47,17 @@ using Matrix = Client::Render::Models::OriginalMatrix;
 constexpr Matrix Identity{1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0};
 static_assert(!std::is_default_constructible_v<Request>);
 static_assert(!std::is_default_constructible_v<Client::Scenes::ParticleDrawServices>);
-static_assert(!std::is_constructible_v<Client::Scenes::ParticleDrawServices, const Client::Scenes::IModelLibrary&&,
-                                       std::reference_wrapper<Client::Render::IParticleDrawBackend>,
-                                       std::reference_wrapper<const Matrix>>);
+static_assert(!std::is_constructible_v<
+              Client::Scenes::ParticleDrawServices, const Client::Render::Models::IModelLibrary&&,
+              std::reference_wrapper<Client::Render::IParticleDrawBackend>, std::reference_wrapper<const Matrix>>);
 static_assert(!std::is_constructible_v<Client::Scenes::ParticleDrawServices,
-                                       std::reference_wrapper<const Client::Scenes::IModelLibrary>,
+                                       std::reference_wrapper<const Client::Render::Models::IModelLibrary>,
                                        Client::Render::IParticleDrawBackend&&, std::reference_wrapper<const Matrix>>);
 
 static_assert(!std::is_constructible_v<std::reference_wrapper<const glm::vec3>, glm::vec3&&>);
 static_assert(!std::is_constructible_v<std::reference_wrapper<const Matrix>, Matrix&&>);
 
-struct Library final : Client::Scenes::IModelLibrary
+struct Library final : Client::Render::Models::IModelLibrary
 {
     explicit Library(std::vector<std::string>& log) : events(log) {}
     std::vector<std::string>& events;
@@ -220,8 +220,8 @@ protected:
 TEST_F(ParticleDrawingTest, PublicUnsignedMetadataKeepsHighBitSelectorsDistinctFromSlot16)
 {
     using MetadataQuery =
-        std::optional<Client::Scenes::TextureMetadata> (Client::Scenes::IModelLibrary::*)(std::uint32_t) const;
-    EXPECT_TRUE((std::is_same_v<decltype(&Client::Scenes::IModelLibrary::TextureMetadataOf), MetadataQuery>));
+        std::optional<Client::Scenes::TextureMetadata> (Client::Render::Models::IModelLibrary::*)(std::uint32_t) const;
+    EXPECT_TRUE((std::is_same_v<decltype(&Client::Render::Models::IModelLibrary::TextureMetadataOf), MetadataQuery>));
     m_library.Put(-1, {8, 16}, std::uint8_t{3});
     m_library.Put(std::numeric_limits<std::int32_t>::min(), {32, 64}, std::uint8_t{255});
     m_library.Put(0xffff, {1, 2}, std::uint8_t{1});

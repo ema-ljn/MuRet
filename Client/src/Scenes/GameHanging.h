@@ -27,6 +27,11 @@ class FrameSprites;
 class Particles;
 } // namespace Client::World
 
+namespace Client::Render::Models
+{
+class IModelLibrary;
+}
+
 // Lo que cuelga de un jugador en el dibujo del juego (0x50ba30, de 0x50db57 a 0x50e9fa): el arma a la
 // espalda, la capa de los GM, las alas, Helper02 y el lazo de las manos, cada cosa salvo la capa con 0x509340 (posada
 // sobre el buffer global de la pose, dibujada con 0x60b3d0 y con los sprites de su modelo). Lo que pide un efecto o un
@@ -34,7 +39,6 @@ class Particles;
 // el juego".
 namespace Client::Scenes
 {
-class IModelLibrary;
 struct ActorState;
 struct FaunaDrawCarry;
 struct ItemDrawContext;
@@ -43,7 +47,7 @@ struct GuildState;
 struct GameHangingPass
 {
     Render::ModelBatch& batch;
-    const IModelLibrary& models;
+    const Render::Models::IModelLibrary& models;
     // Los huesos del cuerpo de este frame: el buffer propio del personaje (+0x120).
     std::span<const Render::Models::BoneTransform> body;
     // El rand() global de 0x69fd70.

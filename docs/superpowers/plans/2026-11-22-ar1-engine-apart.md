@@ -5,7 +5,7 @@
 
 **Goal:** the engine (`Core`, `Math`, `Crt`, `Crypto`, `Diagnostics`, `Input`, `Audio`, `Network`, `Data`, `Platform`,
 `Pathfinding`, `Network/XorRemap`, `Render`, `Models`) lives in `Client/src/engine/`, one shared library per module (`.dll` on Windows, `.so` on
-Linux) with a switch for a single binary, and no engine file includes `game/` or `app/`, without changing a byte of
+Linux) except `XorRemap`, which only the executable links, statically, with a switch for a single binary, and no engine file includes `game/` or `app/`, without changing a byte of
 behavior.
 
 **Architecture:** first the design (AR1.1): cut the 11 engine includes of the game, give the engine types that live in
@@ -46,8 +46,8 @@ Measured on `refactor/client` at 75c33064 (2026-11-22). AR1.3, the command line,
   bodies and its tests pin NaN, infinity and 2^40.
 - `IsKalimaMap` includes Kalima 7 (map 36) but most copies check only 24 to 29: those must keep 24 to 29. Task 5 pins
   36 and 30 to 35 in its tests.
-- A sound registered while effects are off, or an id the catalog does not know: the engine must keep ignoring both after
-  the lookup moves to the game. Task 1 tests the free function with a recording playback.
+- A sound registered while effects are off, or an id the catalog does not know: the engine must keep ignoring both once
+  the catalog comes from the game. Task 1 tests `SdlAudio` with a recording catalog.
 - An `.ini` that still has `[Server] Obfuscation`: the player gets an error with its line that says how to build without
   the `XorRemap` layer, never a silent default. Task 4 tests it.
 - A design PR whose deleted and created files git pairs as a rename (`-M50%`): CI's pure-move check fails it. Each task
@@ -72,19 +72,21 @@ Measured on `refactor/client` at 75c33064 (2026-11-22). AR1.3, the command line,
 | master plan | this plan | why |
 | --- | --- | --- |
 | `App/WindowState`, `VSyncMode`, `Resolution` and the frame contracts move in AR1.1 | their map rows already say `engine/Platform`; the frame contracts' rows change to `engine/Render/Frame`; `move.py` moves them in AR1.2 | a hand move in a design PR fails CI's pure-move check, and `src/Platform/*.cpp` goes to `ClientPlatform`, which `ClientLib` does not link |
-| `IPlayback::Register(SoundDefinition)` | the same, plus `Audio::RegisterSound(IPlayback&, id, path)` in the catalog | the lookup (`FindSound(id, path)`) is the catalog's; the game calls the free function and the engine plays what it is given |
-| `FoxAnti` in the names (`FoxAntiObfuscation`, `MURET_FOXANTI`, `MuRetFoxAnti`, `engine/Network/FoxAnti`) | `XorRemap` (`XorRemapObfuscation`, `MURET_XOR_REMAP`, `XorRemap`, `engine/Network/XorRemap`) | Emanuel, 2026-11-22: not a DLL any more but a layer named after what it does |
+| `IPlayback::Register(SoundDefinition)` | `SdlAudio::Create` takes an `Audio::ISoundCatalog` (engine) that the game's catalog implements (`GameSoundCatalog()`); `IPlayback::RegisterSound(id, path)` stays | found while doing Task 1: the doubles that record `RegisterSound` (fauna, spearman) assert the path their caller passed, which `Register(SoundDefinition)` would replace with the catalog's; with a port the engine owns, no caller or double changes |
+| `FoxAnti` in the names (`FoxAntiObfuscation`, `MURET_FOXANTI`, `MuRetFoxAnti`, `engine/Network/FoxAnti`) | `XorRemap` (`XorRemapObfuscation`, `MU_XOR_REMAP`, `XorRemap`, `engine/Network/XorRemap`) | Emanuel, 2026-11-22: not a DLL any more but a layer named after what it does |
 | `LabFoxAntiTables()` defined in `MakeObfuscationFoxAnti.cpp` | `constexpr` in `App/LabXorRemapTables.h` | the layer's tests build the lab tables too, and they do not link the executable's sources |
 | `Core/WrappingInt.h` and `UI::Rect::Contains` in the kit | left out | no copy of a wrapping integer was found, and `Rect::Contains` already exists (`UI/Widget.h`) |
 | the 189 loose map comparisons switch to names | `MapId.h` replaces the 77 duplicated constants and the predicates; the loose literals switch in each module's AR4 design PR | each literal needs a judgment (is it a map?); AR4 reads those files anyway |
 | map enum | `inline constexpr std::int32_t` constants in AR1; AR6 turns them into an opaque `enum class MapId : std::int32_t {}` with the same names | the size of the change, not casts: about 228 parameters and 30 fields change type, 182 loose literals in `Client/src` and 506 in the tests stop compiling, so the type changes once AR4 has named the literals (types review, 2026-11-23) |
-| one static target per module | one shared library per engine module, `MURET_MONOLITHIC` for a single binary (ADR in Task 6) | Emanuel, 2026-11-22: DLLs on Windows and the same on Linux, as large engines do (Unreal, O3DE, Source) |
+| one static target per module | one shared library per engine module, `MU_MONOLITHIC` for a single binary (ADR in Task 6) | Emanuel, 2026-11-22: DLLs on Windows and the same on Linux, as large engines do (Unreal, O3DE, Source) |
 | `MuRet<Module>` targets (`MuRetCore`…) | no prefix: `Core.dll`, `Audio.dll`…, the executable `main.exe` | Emanuel, 2026-11-22: like the original's `main.exe` |
 | `MuRetTables`, `MuRetMaps`, `MuRetSound` targets in AR1.2 | the three game modules move in AR1.2 but stay in `ClientLib` | the game's library shape (one `Game` or a few) is the ADR's AR4 question |
+| `MURET_`/`muret_` options, functions, macros and environment variables | `MU_`/`mu_`, and `MU_CLIENT_` for the client's own (Task 1b) | Emanuel, 2026-11-23: MuRet was a mistaken name; `cmake/` is shared with the DataServer, so the prefix names the game, not the client |
+| `MuRetFoxAnti`, an optional library inside Network | `XorRemap`, a static target that only `main.exe` links, never a DLL (Task 6) | Emanuel, 2026-11-23: easy to remove, but not shipped as a DLL that says what it is |
 
 ---
 
-## AR1.1 (design): five PRs
+## AR1.1 (design): six PRs
 
 ### Task 1: the engine stops including the game
 
@@ -108,9 +110,8 @@ IFrameTarget,IWorldView}.h` (6); `Render/Gl/GlScreenReader.h` → `Scenes/Screen
   (141 files in `src` and `tests`); map row of `Scenes/TextureMetadata.h` to `engine/Models`
 - Create: `Client/src/Network/Xor32Packet.{h,cpp}`; modify `Network/Crypto/Xor32.{h,cpp}` and the about 80 callers of
   the `Packet` overloads
-- Create: `Client/src/Audio/SoundDefinition.h`; modify `Audio/Playback.h`, `Audio/SoundCatalog.{h,cpp}`,
-  `Platform/SdlAudio.{h,cpp}`, `main.cpp`, `Scenes/{FaunaModels,GameScene,MapLoad}.cpp`, `tests/audio/test_sound_catalog.cpp`,
-  `tests/platform/test_sdl_audio.cpp`, `tests/scenes/{test_fauna_models,test_game_scene}.cpp`
+- Create: `Client/src/Audio/SoundDefinition.h`, `Client/src/Audio/ISoundCatalog.h`; modify `Audio/SoundCatalog.{h,cpp}`,
+  `Platform/SdlAudio.{h,cpp}`, `main.cpp`, `tests/audio/test_sound_catalog.cpp`, `tests/platform/test_sdl_audio.cpp`
 - Regenerate: `Client/tools/architecture/layers-baseline.tsv`
 
 **Interfaces:**
@@ -128,9 +129,10 @@ IFrameTarget,IWorldView}.h` (6); `Render/Gl/GlScreenReader.h` → `Scenes/Screen
 - Produces: `Client::Network::Xor32Encode(Packet) -> Packet` and `Xor32Decode(Packet) -> Packet`. `Network::Crypto`
   keeps only `Xor32Key`, `Xor32EncodeBytes` and `Xor32DecodeBytes`, and `Xor32.h` no longer includes `Network/Packet.h`.
 - Produces: `Client::Audio::SoundDefinition` (fields as today: `id`, `path`, `voices`, `positional`) in
-  `Audio/SoundDefinition.h`; `IPlayback::Register(const SoundDefinition&)` with an empty default, replacing
-  `RegisterSound(std::int32_t, std::string_view)`; `Audio::RegisterSound(IPlayback& playback, std::int32_t id,
-  std::string_view path)` in `SoundCatalog.h`.
+  `Audio/SoundDefinition.h`; `Client::Audio::ISoundCatalog` in `Audio/ISoundCatalog.h` with `Find(std::int32_t id,
+  std::string_view path) const -> std::optional<SoundDefinition>` and `StartupSounds() const ->
+  std::span<const SoundDefinition>`; `const ISoundCatalog& GameSoundCatalog()` in `SoundCatalog.h`;
+  `SdlAudio::Create(dataRoot, const Audio::ISoundCatalog& catalog, effectsEnabled, musicEnabled)`.
 
 - [ ] **Step 1: Write the failing check test** in `test_check_layers.py`:
 
@@ -149,26 +151,21 @@ def test_write_baseline_refuses_a_clean_root_violation(self):
 - [ ] **Step 2: Run it and see it fail:** `python3 -I -m unittest Client/tools/architecture/test_check_layers.py -v`,
   failing with "unrecognized arguments: --clean-root".
 - [ ] **Step 3: Implement `--clean-root` and `clean_root_violations`.** Run the tests: pass.
-- [ ] **Step 4: Write the failing sound test** in `tests/audio/test_sound_catalog.cpp`, with a playback double that
-  records each `Register`:
+- [ ] **Step 4: Write the failing sound tests.** In `tests/audio/test_sound_catalog.cpp`:
 
 ```cpp
-TEST(SoundCatalogTest, RegistersAKnownSoundWithTheCatalogDefinition)  // first StartupSounds() entry: one Register, same id, voices and path
-TEST(SoundCatalogTest, SkipsANegativeId)                              // Register never called
-TEST(SoundCatalogTest, SkipsASoundTheCatalogDoesNotKnow)              // id 0x7fffffff
-TEST(SoundCatalogTest, SkipsAPathThatDoesNotMatchTheId)               // known id, another sound's path
+TEST(SoundCatalogTest, GameCatalogFindsWhatFindSoundFinds)      // 0x146 with "Sound\mShadowAttack2.wav"; unknown path and id: none
+TEST(SoundCatalogTest, GameCatalogStartsTheNativeStartupSounds) // same span as StartupSounds()
 ```
 
-  In `tests/platform/test_sdl_audio.cpp`, on the disk driver with effects off, `Register` of a known sound and then
-  `PlaySound` of its id leave the output silent. It fails to compile (`Register` and `Audio::RegisterSound(IPlayback&,
-  …)` do not exist).
-- [ ] **Step 5: Move the lookup to the game.** `Audio::RegisterSound` returns when `id < 0`, calls `FindSound(id, path)`
-  and calls `playback.Register(*definition)` only when there is one with `voices != 0`. `SdlAudio::Register` keeps the
-  rest of today's body: returns when effects are off, then `try_emplace(sound.id)` and `LoadSound(sound.path)`.
-  `SdlAudio::Create` loses the `StartupSounds()` loop and the catalog include; `main.cpp` runs that loop with
-  `Audio::RegisterSound(*audio, sound.id, sound.path)` right after `Create`, before anything else touches the audio.
-  The three game callers switch to the free function. A test double that recorded `RegisterSound(id, path)` records
-  `Register(sound)`: it now sees only what the catalog knows, with the catalog's path. Run the audio and platform tests.
+  In `tests/platform/test_sdl_audio.cpp`, with a catalog double that records each `Find` and knows one sound:
+  `PlaysOnlySoundsTheInjectedCatalogKnows` (disk driver: the known sound is audible, another id is silent, lookups
+  `{7, 8}`) and `IgnoresRegistrationsWhileEffectsAreOff` (no lookup). They fail to compile (`ISoundCatalog` does not
+  exist).
+- [ ] **Step 5: Inject the catalog.** `SdlAudio::Create` takes the catalog and keeps its `StartupSounds()` loop over
+  `catalog.StartupSounds()`; `RegisterSound` keeps its body with `catalog.Find(id, path)` in place of `FindSound`, and
+  `SdlAudio` stops including `Audio/SoundCatalog.h`. `main.cpp` passes `Audio::GameSoundCatalog()`. Run the audio
+  tests; the platform ones run in CI.
 - [ ] **Step 6: Split the frame contracts and `IModelLibrary`, and move the `Packet` overloads,** per Interfaces. A file
   that includes `Scenes/CharacterDrawing.h` and uses no other name it declares includes
   `Render/Models/IModelLibrary.h` instead (a script lists them; it goes in the PR description, not in the repo).
@@ -178,6 +175,23 @@ TEST(SoundCatalogTest, SkipsAPathThatDoesNotMatchTheId)               // known i
   --write-baseline`. The baseline diff only removes rows, among them the 11 engine ones; then the same command without
   `--write-baseline` and with `--clean-root engine` prints `0 new`.
 - [ ] **Step 8: Push, open the PR and let CI build.** Expected: all jobs green, the characterization tests unchanged.
+
+### Task 1b: the `MU_` prefix
+
+PR `refactor(AR1.1): rename the MURET_ prefix to MU_`, branch `refactor/ar1.1-mu-prefix`. Before Task 2, so Tasks 4
+and 8 create their options and functions with the new prefix. A rename only: no behavior, no file moves.
+
+- **The rule** (Emanuel, 2026-11-23): `MURET_CLIENT_` becomes `MU_CLIENT_`, every other `MURET_` becomes `MU_`, and
+  `muret_` becomes `mu_` (`muret_set_warnings` → `mu_set_warnings`, `muret_llvm_libc` → `mu_llvm_libc`).
+- **Where:** the CMake files and `CMakePresets.json` (Server/DataServer and labs/ too), the workflows, sources and tests
+  (macros, compile definitions, environment variables), the research scripts (`MURET_MAIN_EXE` and the capture
+  variables), and the live docs: `AGENTS.md`, `CLAUDE.md`, the READMEs, `docs/CODING_RULES.md`, the skills,
+  `Client/modules.tsv`. Dated documents (plans, specs, ADRs, audits, `docs/learning/`, the research notes) keep the
+  names they had, as history.
+- **Out of scope:** the CMake project name `MuRet`, the repository and the skill names (`muret-module`…).
+- **Check:** `git grep -n -E "\bMURET_|\bmuret_"` lists only dated documents; CI green with the golden unchanged. The
+  PR lists the environment variables to rename on Emanuel's machines and the VM, and says that an existing build folder
+  needs a fresh configure, since the cache variables change name.
 
 ### Task 2: `CrtRandom` and `PixelSize` get their own headers
 
@@ -250,7 +264,7 @@ Skills: `cpp-pro`, `clean-architecture` (composition root), `superpowers:test-dr
 **The name** (Emanuel, 2026-11-22: not a DLL any more but a layer of our own, easy to take out, named after what it
 does). It XORs every byte that comes in and remaps opcodes, and around that it rebuilds the server list, the server
 code of the selection and the F3 11 head, so our names say `XorRemap`: `XorRemapObfuscation` next to `IObfuscation` and
-`IdentityObfuscation`, `XorRemapTables`, the option `MURET_XOR_REMAP`, the target `XorRemap` and the module
+`IdentityObfuscation`, `XorRemapTables`, the option `MU_XOR_REMAP`, the target `XorRemap` and the module
 `engine/Network/XorRemap` (its row in `Client/modules.tsv` and the map targets change in this PR). Only the citations keep
 `FoxAnti.dll`, because that is the original file they cite, and so does `tests/vectors/net/tools/foxanti_cases.c`,
 which drives the research's port of that DLL.
@@ -286,11 +300,11 @@ below starts from it, and every file it creates is born with the new name.
   {0x10, 0x1D}, {0x19, 0xA5}, {0x1E, 0xA6}; {0xD3, 0xA3}, {0xD7, 0xA4}; F4, 02, 06, 03, F3, 11; 11; 0x190 … 0xA0;
   0x14; the 8 ladder steps).
 - Produces: `std::unique_ptr<const Network::IObfuscation> Client::App::MakeObfuscation()`. CMake option
-  `MURET_XOR_REMAP` (default `ON`) sets `MURET_MAKE_OBFUSCATION_SOURCE`, which `Main` and `test_make_obfuscation`
+  `MU_XOR_REMAP` (default `ON`) sets `MU_MAKE_OBFUSCATION_SOURCE`, which `Main` and `test_make_obfuscation`
   compile: `ON` is `MakeObfuscationXorRemap.cpp`, and both link `XorRemap`, a static library with
   `Network/XorRemapObfuscation.cpp` that links `ClientLib`; `OFF` is `MakeObfuscationNone.cpp`, and no source of the
   layer is built. `ClientLib`'s glob excludes `Network/XorRemapObfuscation.cpp` and `App/MakeObfuscation*.cpp`.
-- Produces: `muret_add_module_tests(XOR_REMAP <file> …)`: those files build only with `MURET_XOR_REMAP`, link
+- Produces: `mu_add_module_tests(XOR_REMAP <file> …)`: those files build only with `MU_XOR_REMAP`, link
   `XorRemap`, and count as registered either way (like `OTHER_SYSTEM`).
 
 - [ ] **Step 1: Write the failing tests.** In `test_config.cpp`:
@@ -300,23 +314,23 @@ TEST(ConfigTest, RejectsTheRemovedObfuscationKey)
 {
     const auto error = ErrorOf("[Server]\nObfuscation = foxanti\n");
     EXPECT_EQ(error.line, 2u);
-    EXPECT_NE(error.message.find("MURET_XOR_REMAP"), std::string::npos);
+    EXPECT_NE(error.message.find("MU_XOR_REMAP"), std::string::npos);
 }
 ```
 
   In `test_xor_remap_obfuscation.cpp`: `XorRemapObfuscation(LabXorRemapTables())` passes every current case, and
   `TEST(XorRemapObfuscationTest, UsesTheInjectedInboundXor)` builds tables with `inboundXor = std::byte{0x55}` and
   expects `InboundMask` to return 0x55. A new `tests/app/test_make_obfuscation.cpp` expects `InboundMask(std::byte{0xC1})`
-  to be 0xAA with the option on and 0 with it off (one file, compiled with `MURET_MAKE_OBFUSCATION_SOURCE`; the
+  to be 0xAA with the option on and 0 with it off (one file, compiled with `MU_MAKE_OBFUSCATION_SOURCE`; the
   expectation comes from a definition CMake passes).
 - [ ] **Step 2: Run them and see them fail** (the key is still known; no constructor with tables).
 - [ ] **Step 3: Rename, inject the tables and add `MakeObfuscation`.** `main.cpp` keeps the result next to the
   connection (where `Online` lives) and passes `const Network::IObfuscation&` to `Online`. The config's unknown-key path
   gets a special message for `[Server] Obfuscation`: `Obfuscation no longer exists: the server's packet shape is chosen
-  when building (-DMURET_XOR_REMAP=OFF for a server that speaks like main.exe)`.
+  when building (-DMU_XOR_REMAP=OFF for a server that speaks like main.exe)`.
 - [ ] **Step 4: Split the tests.** A file where every test needs the layer goes whole into its folder's `XOR_REMAP`
   list; otherwise those tests move to `<file>_xor_remap.cpp` (new file, so no rename) and that file goes in the list.
-- [ ] **Step 5: CI and docs.** The job "Windows (MSVC, Release, matemática)" adds `-DMURET_XOR_REMAP=OFF` to its
+- [ ] **Step 5: CI and docs.** The job "Windows (MSVC, Release, matemática)" adds `-DMU_XOR_REMAP=OFF` to its
   configure. `Client/README.md` drops the key from the `.ini` table and example and says how to build without the layer.
 - [ ] **Step 6: Check** `grep -rn "FoxAnti" Client/src Client/tests` shows it only in citations of `FoxAnti.dll` and in
   `foxanti_cases.c`, no file outside the layer, `App/MakeObfuscationXorRemap.cpp`,
@@ -398,11 +412,14 @@ large projects do. It goes in its own PR (`docs(AR1): decide modules as shared l
 - **The decision to write:** every engine module is a shared library (`Core`, `Audio`, `Render`…), and the
   OpenGL backend (`Render/Gl`) is its own, `OpenGL`, as module `engine/Render/Gl` (layer 5) in `modules.tsv`, so
   changing the renderer means changing one library. The game becomes few libraries, starting with one, `Game`, in
-  AR4; the executable keeps the original's name, `main.exe` (`main` on Linux). `MURET_MONOLITHIC=ON` builds every module static into one binary.
+  AR4; the executable keeps the original's name, `main.exe` (`main` on Linux). `MU_MONOLITHIC=ON` builds every module static into one binary.
+- **XorRemap is not a library of its own** (Emanuel, 2026-11-23): easy to remove, but not shipped as a DLL that says
+  what it is. It stays a module in the code (`engine/Network/XorRemap`, its folder, `MU_XOR_REMAP`) and a static target
+  that only `main.exe` and its tests link, so no shipped file names it and no library exports it.
 - **The names** (Emanuel, 2026-11-22: no MuRet prefix): the libraries are `Core.dll`, `Audio.dll`, `Render.dll`,
-  `OpenGL.dll`, `XorRemap.dll` and so on, the game `Game.dll`, and the executable `main.exe`, like the original. CMake
+  `OpenGL.dll` and so on, the game `Game.dll`, and the executable `main.exe`, like the original. CMake
   targets use the same words; on Linux CMake gives the usual `libCore.so`. The export macros follow Unreal (`CORE_API`).
-  Only the CMake options and functions keep `MURET_`/`muret_`, as the build's own namespace, like today.
+  CMake options and functions, macros and environment variables use `MU_`/`mu_` (Emanuel, 2026-11-23; Task 1b).
 - **The rules it fixes:** exports with CMake's `generate_export_header` per module (`CORE_API` in
   `Core/CoreExport.h`, generated), `CXX_VISIBILITY_PRESET hidden` and `VISIBILITY_INLINES_HIDDEN` on both systems and
   `-Wl,--no-undefined` on Linux, so a missing export or dependency fails on both CI machines; no mutable state defined in
@@ -421,6 +438,9 @@ PR `refactor(AR1.2): move the engine to Client/src/engine`, branch `refactor/ar1
 - [ ] **Step 2: Do by hand only what it printed:** `target_include_directories(ClientLib PUBLIC src src/engine src/game)`,
   and the `list(FILTER … REGEX)` lines and globs that named an emptied folder (`/src/Platform/` →
   `/src/engine/Platform/`, `/src/Render/Gl/`, `/src/Render/Models/RoundedMath/`, `Network/XorRemapObfuscation.cpp`).
+  move.py moves only sources, so also move `src/Render/Models/RoundedMath/CMakeLists.txt` next to its
+  `RoundedMath.cpp` (and its `add_subdirectory`), and point the `SdlAudio.cpp` row of
+  `Client/tools/architecture/rounded-math-exceptions.tsv` at the new path (review of #424).
 - [ ] **Step 3: Check** `check_pure_move.py --base origin/refactor/client --head HEAD` lists nothing, `check_layers.py
   --clean-root engine` prints `0 new`, and `git diff -M50% --diff-filter=M` only touches include lines and build paths.
   Push and let CI build. Expected: green, the golden unchanged.
@@ -432,19 +452,20 @@ PR `build(AR1.2): build each engine module as a shared library`, branch `refacto
 `cpp-pro`. Starts after Emanuel's yes to the Task 6 ADR.
 
 **Interfaces:**
-- Produces: `muret_add_module(<target> MODULE <module> [LINK <targets>…])` in `cmake/AddModule.cmake`: `SHARED`, or
-  `STATIC` with `MURET_MONOLITHIC`; sources and `FILE_SET HEADERS` from the module's folder, include root
+- Produces: `mu_add_module(<target> MODULE <module> [LINK <targets>…])` in `cmake/AddModule.cmake`: `SHARED`, or
+  `STATIC` with `MU_MONOLITHIC`; sources and `FILE_SET HEADERS` from the module's folder, include root
   `Client/src/engine`, `VERIFY_INTERFACE_HEADER_SETS ON`; `generate_export_header` with `EXPORT_MACRO_NAME` `<MODULE>_API`
   (`STATIC_DEFINE` set when monolithic), its header in a second `FILE_SET`; hidden visibility; `--no-undefined` on Linux;
-  `muret_set_fidelity_flags`; `muret_reuse_precompiled_headers(<target> StdPch)`.
+  `mu_set_fidelity_flags`; `mu_reuse_precompiled_headers(<target> StdPch)`.
 - Produces: libraries (target name = file name, no prefix) `Core`, `Math`, `Crt`, `Crypto`, `Diagnostics`, `Input`, `Audio`,
-  `Network`, `Data`, `Platform`, `Pathfinding`, `XorRemap` (only with `MURET_XOR_REMAP`),
-  `Render`, `OpenGL` and `Models`, each linking only what its `may_use` row allows. `ClientLib` (game and
+  `Network`, `Data`, `Platform`, `Pathfinding`, `Render`, `OpenGL` and `Models`, each linking only what its `may_use`
+  row allows. `XorRemap` (only with `MU_XOR_REMAP`) stays `STATIC` in both shapes, with no export macro, and only `Main`
+  and its `XOR_REMAP` tests link it. `ClientLib` (game and
   app until AR4 and AR5) stays static and links them; the `Main` target gets `OUTPUT_NAME main`; `ClientPlatform`, `ClientRender` and `ClientRoundedMath` disappear
   into `Platform`, `OpenGL` and `Math` (the latter keeps its own compile options).
 - Produces: the row `engine/Render/Gl` in `Client/modules.tsv` (layer 5, `may_use` `*layer<5`) and the `Render/Gl` rows of
   the map pointing to it; only `main.cpp` includes `Render/Gl/` today, so only the executable links `OpenGL`.
-- Produces: `muret_set_fidelity_flags(target)` in `cmake/` (`-ffp-contract=off` on GCC and Clang, whatever MSVC needs).
+- Produces: `mu_set_fidelity_flags(target)` in `cmake/` (`-ffp-contract=off` on GCC and Clang, whatever MSVC needs).
 - Produces: `StdPch` (static, one empty source, the standard-library list) with the modules' position-independent
   code, visibility and warnings, so GCC and MSVC accept the reuse; a second owner for the targets that see
   `SDL_OPENGL_1_FUNCTION_TYPEDEFS` unless the Windows job shows it is not needed.
@@ -461,7 +482,7 @@ PR `build(AR1.2): build each engine module as a shared library`, branch `refacto
   `inline` functions get none). A link a module's `may_use` row does not allow is a layer bug: stop and fix the code in a
   design PR, not the row.
 - [ ] **Step 4: Tests and CI.** The engine test folders link only their library and `EngineTestSupport`. The job
-  "Windows (MSVC, Release, matemática)" adds `-DMURET_MONOLITHIC=ON`, so both shapes build on every PR.
+  "Windows (MSVC, Release, matemática)" adds `-DMU_MONOLITHIC=ON`, so both shapes build on every PR.
 - [ ] **Step 5: Push and let CI build.** Expected: green on all jobs, `VERIFY_INTERFACE_HEADER_SETS` included, the golden
   unchanged; measure after and put both numbers in the PR description.
 
@@ -495,8 +516,8 @@ comments PR". The comments of `Client/src/engine/`, the three game modules and t
 
 - `check_layers.py --clean-root engine` prints `0 new` with no engine row in the baseline (CI runs it on every PR).
 - Every engine module is a shared library that links with `--no-undefined` and builds with
-  `VERIFY_INTERFACE_HEADER_SETS`; the client also builds as one binary (`MURET_MONOLITHIC=ON`) and with
-  `MURET_XOR_REMAP=OFF`.
+  `VERIFY_INTERFACE_HEADER_SETS`; the client also builds as one binary (`MU_MONOLITHIC=ON`) and with
+  `MU_XOR_REMAP=OFF`.
 - The behavior golden and every test are identical on the four CI configurations.
 - The reference regenerated on `refactor/client` gives the same port numbers as #422's (the AR1 start snapshot), except
   for paths (`reference_summary.py --nueva … --commiteada …`).

@@ -5,6 +5,7 @@
 #include "Network/ObfuscationError.h"
 #include "Network/Packet.h"
 #include "Network/PacketWriter.h"
+#include "Network/Xor32Packet.h"
 
 #include <algorithm>
 #include <array>
@@ -277,9 +278,9 @@ Packet FoxAntiObfuscation::BeforeSend(Packet packet) const
         WriteU16Le(code, SelectCode(U16LeAt(code, 0)));
         return packet;
     }
-    packet = Crypto::Xor32Decode(std::move(packet));
+    packet = Xor32Decode(std::move(packet));
     const std::span<std::byte> body = packet.MutableBody();
     body[0] = static_cast<std::byte>(Remap(ClearRemaps, std::to_integer<std::uint8_t>(body[0])));
-    return Crypto::Xor32Encode(std::move(packet));
+    return Xor32Encode(std::move(packet));
 }
 } // namespace Client::Network

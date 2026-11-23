@@ -1,11 +1,11 @@
 #include "Core/ByteReader.h"
 #include "Network/Crypto/SimpleModulus.h"
 #include "Network/Crypto/SimpleModulusKeyFile.h"
-#include "Network/Crypto/Xor32.h"
 #include "Network/EncryptedPacket.h"
 #include "Network/FoxAntiObfuscation.h"
 #include "Network/Packet.h"
 #include "Network/PacketSerials.h"
+#include "Network/Xor32Packet.h"
 #include "Protocol/BuildConstants.h"
 #include "Protocol/Connection/Hello.h"
 #include "Protocol/Connection/Keepalive.h"
@@ -51,9 +51,9 @@ using Client::Network::FoxAntiObfuscation;
 using Client::Network::Packet;
 using Client::Network::PacketSerials;
 using Client::Network::PacketType;
+using Client::Network::Xor32Decode;
 using Client::Network::Crypto::DecryptionKey;
 using Client::Network::Crypto::LoadDecryptionKey;
-using Client::Network::Crypto::Xor32Decode;
 using Client::Protocol::ProtocolError;
 using Client::Protocol::VersionSize;
 using Client::Protocol::Connection::HelloAccepted;

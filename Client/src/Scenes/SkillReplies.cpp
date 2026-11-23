@@ -15,7 +15,6 @@
 #include "Scenes/ActorFlags.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/BlastEffectCalls.h"
-#include "Scenes/CharacterDrawing.h"
 #include "Scenes/ChatReceive.h"
 #include "Scenes/CombatActionSpeeds.h"
 #include "Scenes/GameDrawTail.h"

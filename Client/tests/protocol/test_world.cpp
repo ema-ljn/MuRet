@@ -1,6 +1,6 @@
+#include "Network/Xor32Packet.h"
 #include "Protocol/World.h"
 
-#include "Network/Crypto/Xor32.h"
 #include "Network/Delivery.h"
 #include "Network/EncryptedPacket.h"
 #include "Network/Packet.h"
@@ -27,7 +27,7 @@ using Client::Network::Delivery;
 using Client::Network::EncryptPacket;
 using Client::Network::PacketSerials;
 using Client::Network::PacketType;
-using Client::Network::Crypto::Xor32Decode;
+using Client::Network::Xor32Decode;
 using Client::Protocol::ProtocolError;
 using Client::Protocol::World::ReadRegen;
 using Client::Protocol::World::ReadTeleport;

@@ -1,3 +1,5 @@
+#include "Network/Xor32Packet.h"
+#include "Render/Models/IModelLibrary.h"
 #include "Scenes/CharacterSelectScene.h"
 
 #include "App/SessionState.h"
@@ -10,7 +12,6 @@
 #include "Data/Text/FilterWords.h"
 #include "Input/InputState.h"
 #include "Input/Key.h"
-#include "Network/Crypto/Xor32.h"
 #include "Network/Packet.h"
 #include "Network/PacketSerials.h"
 #include "Protocol/Character/CharacterCreate.h"
@@ -25,7 +26,6 @@
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
 #include "Render/TextureSlot.h"
-#include "Scenes/CharacterDrawing.h"
 #include "Scenes/CharacterSlots.h"
 #include "Scenes/CreatePreview.h"
 #include "Scenes/DarkSpirit.h"
@@ -121,13 +121,13 @@ using Client::Input::Key;
 using Client::Render::TextureSlot;
 using Client::Render::Models::ActionInfo;
 using Client::Render::Models::BoneKey;
+using Client::Render::Models::IModelLibrary;
 using Client::Render::Models::Skeleton;
 using Client::Render::Models::SkeletonBone;
 using Client::Scenes::CharacterSelectScene;
 using Client::Scenes::CharacterSlotHeight;
 using Client::Scenes::CharacterSlots;
 using Client::Scenes::GameData;
-using Client::Scenes::IModelLibrary;
 using Client::Scenes::SceneContext;
 using Client::Scenes::SceneId;
 using Client::Scenes::SelectionTextureSet;
@@ -390,7 +390,7 @@ struct Harness
             {
                 continue;
             }
-            Client::Network::Packet clear = Client::Network::Crypto::Xor32Decode(packet);
+            Client::Network::Packet clear = Client::Network::Xor32Decode(packet);
             if (clear.Bytes().size() > 3 && clear.Bytes()[3] == std::byte{subcode})
             {
                 found.push_back(std::move(clear));
@@ -1141,8 +1141,7 @@ TEST(CharacterSelectSceneTest, ADeletionAsksTheCodeAndSendsIt)
     ASSERT_EQ(deletes.size(), 1u);
     const auto expected = Client::Protocol::Character::WriteCharacterDelete(
         Client::Tests::NameBytes("char0002"), Client::Protocol::Character::DeleteCodeFromText("1234"));
-    EXPECT_TRUE(
-        Client::Tests::SameBytes(deletes[0].Bytes(), Client::Network::Crypto::Xor32Decode(expected.packet).Bytes()));
+    EXPECT_TRUE(Client::Tests::SameBytes(deletes[0].Bytes(), Client::Network::Xor32Decode(expected.packet).Bytes()));
     EXPECT_TRUE(Draws(tested.Frame(), "espere"));
     EXPECT_FALSE(tested.scene->WantsTextInput());
 
@@ -2078,8 +2077,7 @@ TEST(CharacterSelectSceneTest, ACreationSendsF301AndTheNewOneEnters)
     const std::vector<Client::Network::Packet> creates = tested.CharacterPacketsSent(0x01);
     ASSERT_EQ(creates.size(), 1u);
     const auto expected = Client::Protocol::Character::WriteCharacterCreate(Client::Tests::NameBytes("char0003"), 1);
-    EXPECT_TRUE(
-        Client::Tests::SameBytes(creates[0].Bytes(), Client::Network::Crypto::Xor32Decode(expected.packet).Bytes()));
+    EXPECT_TRUE(Client::Tests::SameBytes(creates[0].Bytes(), Client::Network::Xor32Decode(expected.packet).Bytes()));
     std::vector<FrameEvent> events = tested.Frame();
     EXPECT_FALSE(ShowsTheCreateWindow(events));
     EXPECT_TRUE(Draws(events, "espere"));
@@ -2883,7 +2881,7 @@ std::vector<Client::Network::Packet> LogoutsSent(const Harness& tested)
         {
             continue;
         }
-        Client::Network::Packet clear = Client::Network::Crypto::Xor32Decode(packet);
+        Client::Network::Packet clear = Client::Network::Xor32Decode(packet);
         if (clear.Bytes().size() > 3 && clear.Bytes()[3] == std::byte{0x02})
         {
             found.push_back(std::move(clear));

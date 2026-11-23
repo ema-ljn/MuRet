@@ -8,6 +8,7 @@
 #include "Render/ITextureStore.h"
 #include "Render/ModelBatch.h"
 #include "Render/Models/Cloth.h"
+#include "Render/Models/IModelLibrary.h"
 #include "Render/Models/ModelTextureSlots.h"
 #include "Render/Models/Skinning.h"
 #include "Render/Pass3D.h"
@@ -135,7 +136,7 @@ SelectionWorld::~SelectionWorld() = default;
 
 Core::Expected<void, std::string> SelectionWorld::Load(const std::filesystem::path& dataRoot, std::uint8_t map,
                                                        const Render::Models::ModelTextureSlots* gameSlots,
-                                                       const IModelLibrary* globalModels)
+                                                       const Render::Models::IModelLibrary* globalModels)
 {
     if (m_tiles.LoadedMap() != map)
     {

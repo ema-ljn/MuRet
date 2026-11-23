@@ -1,4 +1,5 @@
 #include "Scenes/CharacterDrawing.h"
+#include "Render/Models/IModelLibrary.h"
 #include "Scenes/CrywolfAltarDrawing.h"
 #include "World/ModelEffects.h"
 
@@ -175,7 +176,7 @@ Render::Color ShineColorOf(Render::Models::ShinePass pass, std::uint16_t model, 
 struct CharacterFrame
 {
     Render::ModelBatch& batch;
-    const IModelLibrary& models;
+    const Render::Models::IModelLibrary& models;
     const DrawnCharacter& character;
     Core::Duration clock{};
     std::minstd_rand& random;
@@ -564,10 +565,11 @@ void DrawPasses(const CharacterFrame& frame, std::span<const MeshDraw> draws, co
 // Las mallas de `modelId` que se dibujan, pasadas al mundo con `bones` y `object` en `skinned` (una
 // por malla): cada una con su papel, su textura (la piel y el pelo de `characterClass`), `shade` y
 // `state`. Las de H, la oculta (0x12d), las rotas y las que no se pueden pasar al mundo no van.
-std::vector<MeshDraw> MeshDrawsOf(const IModelLibrary& models, std::uint16_t modelId, const Data::Models::Model& model,
-                                  std::span<const BoneTransform> bones, const Render::Models::ObjectTransform& object,
-                                  std::uint8_t characterClass, Render::Color shade, const ObjectState& state,
-                                  Core::Duration clock, std::vector<Render::Models::SkinnedMesh>& skinned)
+std::vector<MeshDraw> MeshDrawsOf(const Render::Models::IModelLibrary& models, std::uint16_t modelId,
+                                  const Data::Models::Model& model, std::span<const BoneTransform> bones,
+                                  const Render::Models::ObjectTransform& object, std::uint8_t characterClass,
+                                  Render::Color shade, const ObjectState& state, Core::Duration clock,
+                                  std::vector<Render::Models::SkinnedMesh>& skinned)
 {
     const std::span<const Render::TextureSlot> slots = models.MeshTextures(modelId);
     skinned.assign(model.meshes.size(), Render::Models::SkinnedMesh{});
@@ -1037,7 +1039,8 @@ std::size_t HangingRandomCount(std::uint16_t model)
     return 0;
 }
 
-std::vector<BoneTransform> PoseCharacterBody(const IModelLibrary& models, const DrawnCharacter& character)
+std::vector<BoneTransform> PoseCharacterBody(const Render::Models::IModelLibrary& models,
+                                             const DrawnCharacter& character)
 {
     const Render::Models::Skeleton* skeleton = models.SkeletonOf(Data::Models::PlayerSkeletonModel);
     if (skeleton == nullptr)
@@ -1057,8 +1060,8 @@ std::vector<BoneTransform> PoseCharacterBody(const IModelLibrary& models, const 
     return body;
 }
 
-void DrawCharacter(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnCharacter& character,
-                   Core::Duration frameClock, CharacterDrawPass pass)
+void DrawCharacter(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models,
+                   const DrawnCharacter& character, Core::Duration frameClock, CharacterDrawPass pass)
 {
     const std::vector<BoneTransform> body = PoseCharacterBody(models, character);
     if (body.empty())
@@ -1094,9 +1097,11 @@ namespace
 constexpr std::uint8_t ChaosCastleBodySkinClass = 0;
 } // namespace
 
-Core::Expected<void, std::string> DrawChaosCastleBody(Render::ModelBatch& batch, const IModelLibrary& models,
-                                                      const IModelLibrary& angelModels, const DrawnCharacter& character,
-                                                      Core::Duration frameClock, std::uint32_t flags)
+Core::Expected<void, std::string> DrawChaosCastleBody(Render::ModelBatch& batch,
+                                                      const Render::Models::IModelLibrary& models,
+                                                      const Render::Models::IModelLibrary& angelModels,
+                                                      const DrawnCharacter& character, Core::Duration frameClock,
+                                                      std::uint32_t flags)
 {
     if (!(character.alpha > PartBoxAlphaThreshold))
         return {};
@@ -1182,7 +1187,7 @@ MeshDraw RetainedMeshDraw(const DrawnObject& object, Core::Duration frameClock, 
     return draw;
 }
 
-std::vector<MeshDraw> RetainedObjectMeshDraws(const IModelLibrary& models, const DrawnObject& object,
+std::vector<MeshDraw> RetainedObjectMeshDraws(const Render::Models::IModelLibrary& models, const DrawnObject& object,
                                               Core::Duration frameClock,
                                               std::span<const Render::Models::SkinnedMesh> meshes,
                                               bool forceVisible = false, bool rawMesh = false,
@@ -1208,7 +1213,8 @@ std::vector<MeshDraw> RetainedObjectMeshDraws(const IModelLibrary& models, const
 }
 } // namespace
 
-std::vector<Render::Models::SkinnedMesh> WorldScratchOf(const IModelLibrary& models, const DrawnObject& object)
+std::vector<Render::Models::SkinnedMesh> WorldScratchOf(const Render::Models::IModelLibrary& models,
+                                                        const DrawnObject& object)
 {
     const Data::Models::Model* model = models.Find(object.model);
     const Render::Models::Skeleton* skeleton = models.SkeletonOf(object.model);
@@ -1231,8 +1237,8 @@ namespace
 // Las mallas de un objeto del mundo posado como 0x5ffdf0 con el segundo argumento en 0, con su alpha y su luz por
 // vértice, o ninguna si 0x5ffdf0 no lo dibuja (el alpha por debajo de 0,01, 0x6b88d4) o falta su modelo. Sin el scratch
 // publicado, lo arma WorldScratchOf en `skinned`.
-std::vector<MeshDraw> ObjectMeshDraws(const IModelLibrary& models, const DrawnObject& object, Core::Duration clock,
-                                      std::vector<Render::Models::SkinnedMesh>& skinned)
+std::vector<MeshDraw> ObjectMeshDraws(const Render::Models::IModelLibrary& models, const DrawnObject& object,
+                                      Core::Duration clock, std::vector<Render::Models::SkinnedMesh>& skinned)
 {
     if (!object.retainedMeshes.empty())
         return RetainedObjectMeshDraws(models, object, clock, object.retainedMeshes);
@@ -1266,7 +1272,7 @@ constexpr std::array<std::size_t, 2> DarkSpiritMeshes{3, 2};
 constexpr Render::Color DarkSpiritShadowColor{0.0f, 0.0f, 0.0f, 1.0f};
 } // namespace
 
-void DrawObject(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnObject& object,
+void DrawObject(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models, const DrawnObject& object,
                 Core::Duration frameClock)
 {
     std::vector<Render::Models::SkinnedMesh> skinned;
@@ -1276,8 +1282,8 @@ void DrawObject(Render::ModelBatch& batch, const IModelLibrary& models, const Dr
     }
 }
 
-void DrawObjectWithTexture(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnObject& object,
-                           Core::Duration frameClock, Render::TextureSlot texture)
+void DrawObjectWithTexture(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models,
+                           const DrawnObject& object, Core::Duration frameClock, Render::TextureSlot texture)
 {
     std::vector<Render::Models::SkinnedMesh> skinned;
     for (MeshDraw draw : ObjectMeshDraws(models, object, frameClock, skinned))
@@ -1287,8 +1293,9 @@ void DrawObjectWithTexture(Render::ModelBatch& batch, const IModelLibrary& model
     }
 }
 
-void DrawObjectFromMeshes(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnObject& object,
-                          Core::Duration frameClock, std::span<const Render::Models::SkinnedMesh> meshes,
+void DrawObjectFromMeshes(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models,
+                          const DrawnObject& object, Core::Duration frameClock,
+                          std::span<const Render::Models::SkinnedMesh> meshes,
                           std::optional<Render::Models::ShinePass> shine)
 {
     SetFade fade{object.alpha, 1.0f};
@@ -1313,7 +1320,8 @@ void DrawObjectFromMeshes(Render::ModelBatch& batch, const IModelLibrary& models
     }
 }
 
-std::vector<Render::Models::SkinnedMesh> SkinObjectMeshes(const IModelLibrary& models, const DrawnObject& object,
+std::vector<Render::Models::SkinnedMesh> SkinObjectMeshes(const Render::Models::IModelLibrary& models,
+                                                          const DrawnObject& object,
                                                           std::span<const BoneTransform> bones, float boneScale)
 {
     const Data::Models::Model* model = models.Find(object.model);
@@ -1329,8 +1337,8 @@ std::vector<Render::Models::SkinnedMesh> SkinObjectMeshes(const IModelLibrary& m
     return skinned;
 }
 
-void DrawObjectOutline(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnObject& object,
-                       Core::Duration frameClock, std::span<const BoneTransform> bones,
+void DrawObjectOutline(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models,
+                       const DrawnObject& object, Core::Duration frameClock, std::span<const BoneTransform> bones,
                        std::span<const ObjectOutlinePass> passes)
 {
     const Data::Models::Model* model = models.Find(object.model);
@@ -1351,9 +1359,9 @@ void DrawObjectOutline(Render::ModelBatch& batch, const IModelLibrary& models, c
     }
 }
 
-void DrawObjectOutlineOfTheFirstMesh(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnObject& object,
-                                     Core::Duration frameClock, std::span<const BoneTransform> bones,
-                                     std::span<const ObjectOutlinePass> passes)
+void DrawObjectOutlineOfTheFirstMesh(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models,
+                                     const DrawnObject& object, Core::Duration frameClock,
+                                     std::span<const BoneTransform> bones, std::span<const ObjectOutlinePass> passes)
 {
     const Data::Models::Model* model = models.Find(object.model);
     if (model == nullptr || model->meshes.empty())
@@ -1383,7 +1391,7 @@ void DrawObjectOutlineOfTheFirstMesh(Render::ModelBatch& batch, const IModelLibr
         OutlineMeshAround(batch, object.transform, OutlinePass{pass.boneScale, pass.color}, draw, bones);
 }
 
-void DrawObjectShadow(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnObject& object,
+void DrawObjectShadow(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models, const DrawnObject& object,
                       std::span<const Render::Models::SkinnedMesh> meshes, std::int32_t map)
 {
     const bool kalima =
@@ -1576,12 +1584,11 @@ Core::Expected<WavedMesh, std::string> WavedItemMesh(const Data::Models::Mesh& i
 }
 } // namespace
 
-Core::Expected<void, std::string> DrawItemMeshPass(Render::ModelBatch& batch, const IModelLibrary& models,
-                                                   const DrawnObject& object, Core::Duration frameClock,
-                                                   std::span<const Render::Models::SkinnedMesh> meshes,
-                                                   std::int16_t mesh, std::uint32_t flags,
-                                                   std::optional<Render::TextureSlot> texture, glm::vec3* storedColor,
-                                                   std::optional<float> worldClock)
+Core::Expected<void, std::string>
+DrawItemMeshPass(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models, const DrawnObject& object,
+                 Core::Duration frameClock, std::span<const Render::Models::SkinnedMesh> meshes, std::int16_t mesh,
+                 std::uint32_t flags, std::optional<Render::TextureSlot> texture, glm::vec3* storedColor,
+                 std::optional<float> worldClock)
 {
     const auto* model = models.Find(object.model);
     if (!model)
@@ -1688,11 +1695,10 @@ Core::Expected<Core::Duration, std::string> ItemFrameClock(Core::Duration clock,
     return Core::Duration(static_cast<std::int64_t>(nanos));
 }
 
-Core::Expected<void, std::string> DrawItemOptionPasses(Render::ModelBatch& batch, const IModelLibrary& models,
-                                                       const DrawnObject& base, Core::Duration frameClock,
-                                                       std::span<const Render::Models::SkinnedMesh> meshes,
-                                                       const Render::Models::ItemGlow& glow,
-                                                       const ItemDrawContext& context)
+Core::Expected<void, std::string>
+DrawItemOptionPasses(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models, const DrawnObject& base,
+                     Core::Duration frameClock, std::span<const Render::Models::SkinnedMesh> meshes,
+                     const Render::Models::ItemGlow& glow, const ItemDrawContext& context)
 {
     const auto draws = RetainedObjectMeshDraws(models, base, frameClock, meshes, false, false, true);
     // 0x60cbff..0x60cc1c: T es el float del reloj del mundo; sin él, el reloj del frame. El alpha es el pulso en un
@@ -1726,12 +1732,11 @@ Core::Expected<void, std::string> DrawItemOptionPasses(Render::ModelBatch& batch
 }
 } // namespace
 
-Core::Expected<void, std::string> DrawItemFromMeshes(Render::ModelBatch& batch, const IModelLibrary& models,
-                                                     const DrawnObject& object, Core::Duration frameClock,
-                                                     std::span<const Render::Models::SkinnedMesh> meshes,
-                                                     std::uint8_t packedLevel, std::uint8_t excellent,
-                                                     std::uint8_t ancient, std::uint8_t detail,
-                                                     const ItemDrawContext& context)
+Core::Expected<void, std::string>
+DrawItemFromMeshes(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models, const DrawnObject& object,
+                   Core::Duration frameClock, std::span<const Render::Models::SkinnedMesh> meshes,
+                   std::uint8_t packedLevel, std::uint8_t excellent, std::uint8_t ancient, std::uint8_t detail,
+                   const ItemDrawContext& context)
 {
     const auto clock = ItemFrameClock(frameClock, context);
     if (!clock.HasValue())
@@ -1792,11 +1797,10 @@ Core::Expected<void, std::string> DrawItemFromMeshes(Render::ModelBatch& batch, 
     return DrawItemOptionPasses(batch, models, base, frameClock, meshes, glow, context);
 }
 
-Core::Expected<void, std::string> DrawSkeletonBody(Render::ModelBatch& batch, const IModelLibrary& models,
-                                                   const DrawnCharacter& character, Core::Duration frameClock,
-                                                   std::uint16_t model, std::uint8_t level,
-                                                   const Render::Models::ObjectState& state, bool vertexLight,
-                                                   const ItemDrawContext& context)
+Core::Expected<void, std::string>
+DrawSkeletonBody(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models,
+                 const DrawnCharacter& character, Core::Duration frameClock, std::uint16_t model, std::uint8_t level,
+                 const Render::Models::ObjectState& state, bool vertexLight, const ItemDrawContext& context)
 {
     // 0x60cf99: con el alpha en 0,01 o menos (o NaN), nada.
     if (!(character.alpha > PartBoxAlphaThreshold))
@@ -1863,8 +1867,8 @@ Core::Expected<void, std::string> DrawSkeletonBody(Render::ModelBatch& batch, co
                               resources);
 }
 
-void DrawSubtractiveMesh(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnObject& object,
-                         Core::Duration frameClock)
+void DrawSubtractiveMesh(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models,
+                         const DrawnObject& object, Core::Duration frameClock)
 {
     if (object.state.blendMesh != Render::Models::EveryMeshBlends)
     {
@@ -1885,7 +1889,7 @@ void DrawSubtractiveMesh(Render::ModelBatch& batch, const IModelLibrary& models,
     }
 }
 
-void DrawWaterspout(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnObject& object,
+void DrawWaterspout(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models, const DrawnObject& object,
                     Core::Duration frameClock)
 {
     // 0x600a62..0x600abd: las mallas 0 a 2, con +0x64, +0x68 y U = V = 0.
@@ -1911,7 +1915,8 @@ void DrawWaterspout(Render::ModelBatch& batch, const IModelLibrary& models, cons
     }
 }
 
-Core::Expected<void, std::string> DrawCrywolfAltarMeshes(Render::ModelBatch& batch, const IModelLibrary& models,
+Core::Expected<void, std::string> DrawCrywolfAltarMeshes(Render::ModelBatch& batch,
+                                                         const Render::Models::IModelLibrary& models,
                                                          DrawnObject& object, Core::Duration frameClock,
                                                          World::ObjectModelStepState* modelState)
 {
@@ -1943,7 +1948,7 @@ Core::Expected<void, std::string> DrawCrywolfAltarMeshes(Render::ModelBatch& bat
     return {};
 }
 
-void DrawTarkanChrome(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnObject& object,
+void DrawTarkanChrome(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models, const DrawnObject& object,
                       Core::Duration frameClock)
 {
     ObjectState state = object.state;
@@ -1972,7 +1977,8 @@ void DrawTarkanChrome(Render::ModelBatch& batch, const IModelLibrary& models, co
     }
 }
 
-Core::Expected<void, std::string> DrawAidaMeshPass(Render::ModelBatch& batch, const IModelLibrary& models,
+Core::Expected<void, std::string> DrawAidaMeshPass(Render::ModelBatch& batch,
+                                                   const Render::Models::IModelLibrary& models,
                                                    const DrawnObject& object, std::int16_t type, float worldClock,
                                                    Core::Duration frameClock)
 {
@@ -2009,8 +2015,8 @@ Core::Expected<void, std::string> DrawAidaMeshPass(Render::ModelBatch& batch, co
     return DrawItemMeshPass(batch, models, pass, frameClock, meshes, 0, glowing ? GlowFlags : BaseFlags);
 }
 
-void DrawDarkHorse(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnObject& horse, std::int32_t map,
-                   Core::Duration frameClock)
+void DrawDarkHorse(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models, const DrawnObject& horse,
+                   std::int32_t map, Core::Duration frameClock)
 {
     DrawnObject white = horse;
     white.color = glm::vec3(1.0f);
@@ -2065,7 +2071,7 @@ void DrawDarkHorse(Render::ModelBatch& batch, const IModelLibrary& models, const
     }
 }
 
-void DrawDarkSpirit(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnObject& spirit,
+void DrawDarkSpirit(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models, const DrawnObject& spirit,
                     float groundHeight, Core::Duration frameClock, std::int32_t map)
 {
     std::vector<Render::Models::SkinnedMesh> skinned;
@@ -2102,8 +2108,8 @@ void DrawDarkSpirit(Render::ModelBatch& batch, const IModelLibrary& models, cons
     }
 }
 
-void DrawBloodCastleShadow(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnObject& object,
-                           float groundHeight, Core::Duration frameClock)
+void DrawBloodCastleShadow(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models,
+                           const DrawnObject& object, float groundHeight, Core::Duration frameClock)
 {
     // 0x4eff40(+0x64, 2, −1, −1): sin la malla 2 ni las que tienen la textura del blendMesh (+2 de la malla).
     constexpr std::size_t SkippedMesh = 2;
@@ -2130,7 +2136,8 @@ constexpr std::int32_t CastleSiegeMap = 0x1e;
 // Las mallas que dejó 0x5ffdf0: el scratch que publicó la pose o, sin él, todas las del modelo posadas como
 // las posa DrawObject (WorldScratchOf), también las que no tienen textura (0x4ecc30 suelto y 0x4eff40 no miran el
 // script). Sin el modelo, sin el esqueleto o sin la pose, ninguna.
-std::span<const Render::Models::SkinnedMesh> PosedMeshesOf(const IModelLibrary& models, const DrawnObject& object,
+std::span<const Render::Models::SkinnedMesh> PosedMeshesOf(const Render::Models::IModelLibrary& models,
+                                                           const DrawnObject& object,
                                                            std::vector<Render::Models::SkinnedMesh>& skinned)
 {
     if (!object.retainedMeshes.empty())
@@ -2175,7 +2182,8 @@ float CastleSiegeScroll(std::int32_t clock)
 }
 } // namespace
 
-Core::Expected<void, std::string> DrawChromeShell(Render::ModelBatch& batch, const IModelLibrary& models,
+Core::Expected<void, std::string> DrawChromeShell(Render::ModelBatch& batch,
+                                                  const Render::Models::IModelLibrary& models,
                                                   const DrawnObject& object, Core::Duration frameClock)
 {
     // 0x6003d1..0x600401: 0x4ecc30(malla, 0x4040, 0,5f (0x3f000000), +0x64, +0x68, +0x6c · 8f (0x6b86c4), +0x70 · 2,
@@ -2209,7 +2217,7 @@ Core::Expected<void, std::string> DrawChromeShell(Render::ModelBatch& batch, con
     return {};
 }
 
-Core::Expected<void, std::string> DrawFenrirBody(Render::ModelBatch& batch, const IModelLibrary& models,
+Core::Expected<void, std::string> DrawFenrirBody(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models,
                                                  const DrawnObject& fenrir, std::int32_t map, bool charging,
                                                  Core::Duration frameClock)
 {
@@ -2260,7 +2268,8 @@ Core::Expected<void, std::string> DrawFenrirBody(Render::ModelBatch& batch, cons
     return {};
 }
 
-Core::Expected<void, std::string> DrawCastleWeaponBody(Render::ModelBatch& batch, const IModelLibrary& models,
+Core::Expected<void, std::string> DrawCastleWeaponBody(Render::ModelBatch& batch,
+                                                       const Render::Models::IModelLibrary& models,
                                                        World::ModelEffect& effect, const DrawnObject& input,
                                                        Core::Duration frameClock, const VertexEffectEmitter& emit)
 {
@@ -2351,7 +2360,8 @@ Core::Expected<void, std::string> DrawCastleWeaponBody(Render::ModelBatch& batch
     return {};
 }
 
-Core::Expected<bool, std::string> DrawCastleSiegeBody(Render::ModelBatch& batch, const IModelLibrary& models,
+Core::Expected<bool, std::string> DrawCastleSiegeBody(Render::ModelBatch& batch,
+                                                      const Render::Models::IModelLibrary& models,
                                                       const DrawnObject& object, const CastleSiegeBodyPass& pass,
                                                       Core::Duration frameClock)
 {
@@ -2494,7 +2504,8 @@ Core::Expected<bool, std::string> DrawCastleSiegeBody(Render::ModelBatch& batch,
     return true;
 }
 
-std::vector<Render::Models::OriginalMatrix> PosedWorldBones(const IModelLibrary& models, const DrawnObject& object)
+std::vector<Render::Models::OriginalMatrix> PosedWorldBones(const Render::Models::IModelLibrary& models,
+                                                            const DrawnObject& object)
 {
     const Render::Models::Skeleton* skeleton = models.SkeletonOf(object.model);
     if (skeleton == nullptr)
@@ -2527,8 +2538,8 @@ std::vector<Render::Models::OriginalMatrix> PosedWorldBones(const IModelLibrary&
     return world;
 }
 
-std::optional<glm::vec3> PosedBonePoint(const IModelLibrary& models, const DrawnObject& object, std::size_t bone,
-                                        const glm::vec3& offset)
+std::optional<glm::vec3> PosedBonePoint(const Render::Models::IModelLibrary& models, const DrawnObject& object,
+                                        std::size_t bone, const glm::vec3& offset)
 {
     const Render::Models::Skeleton* skeleton = models.SkeletonOf(object.model);
     // 0x4eb973: la pose saltea los dummy sin escribirlos; el buffer global queda con el de antes.

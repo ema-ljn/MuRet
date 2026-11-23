@@ -1,3 +1,4 @@
+#include "Render/Models/IModelLibrary.h"
 #include "Scenes/GameCharacters.h"
 
 #include "Data/Terrain/TerrainGrid.h"
@@ -164,7 +165,7 @@ TEST(GameCharactersTest, TheFirstSeenCharacterStopsThePass)
 
 constexpr std::uint16_t Boots = Client::Data::Models::ItemModel(11, 0);
 
-class UnarmedModels final : public Client::Scenes::IModelLibrary
+class UnarmedModels final : public Client::Render::Models::IModelLibrary
 {
 public:
     UnarmedModels()

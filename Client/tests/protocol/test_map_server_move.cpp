@@ -1,6 +1,6 @@
+#include "Network/Xor32Packet.h"
 #include "Protocol/Connection/MapServerMove.h"
 
-#include "Network/Crypto/Xor32.h"
 #include "Network/Delivery.h"
 #include "Network/Packet.h"
 #include "Protocol/BuildConstants.h"
@@ -28,7 +28,7 @@ namespace
 {
 using Client::Network::Delivery;
 using Client::Network::Packet;
-using Client::Network::Crypto::Xor32Decode;
+using Client::Network::Xor32Decode;
 using Client::Protocol::ClientSerial;
 using Client::Protocol::ClientVersion;
 using Client::Protocol::Outgoing;

@@ -1,5 +1,5 @@
-#include "Network/Crypto/Xor32.h"
 #include "Network/Packet.h"
+#include "Network/Xor32Packet.h"
 #include "Protocol/Character/CharacterList.h"
 #include "Protocol/Character/CharacterSelect.h"
 #include "Protocol/Character/Opcodes.h"
@@ -32,7 +32,7 @@ namespace
 {
 using Client::Network::Packet;
 using Client::Network::PacketType;
-using Client::Network::Crypto::Xor32Decode;
+using Client::Network::Xor32Decode;
 using Client::Protocol::Character::CharacterList;
 using Client::Protocol::Character::CharacterOpcode;
 using Client::Protocol::Character::EntrySize;

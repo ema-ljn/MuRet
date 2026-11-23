@@ -1,4 +1,5 @@
 #include "Scenes/GameDrawTail.h"
+#include "Render/Models/IModelLibrary.h"
 #include "Scenes/VertexEffects.h"
 #include "Scenes/CrywolfMissileDrawing.h"
 #include "Scenes/KalimaObjectServices.h"
@@ -409,7 +410,8 @@ Core::Expected<bool, std::string> DrawMovingLightEffect(Render::ModelBatch& batc
 // float, y más el origen, en float (0x4ebdf8..0x4ebf02), como SkinMesh. Los sprites de 0x60b3d0 leen esos huesos
 // con 0x4ec110: con Translate en 0, más la posición del objeto (0x60be6e, 0x60c0e9); con 1, por la escala y más
 // el origen (0x60c44b).
-Core::Expected<void, std::string> PublishEffectItem(const IModelLibrary& models, const DrawnObject& object,
+Core::Expected<void, std::string> PublishEffectItem(const Render::Models::IModelLibrary& models,
+                                                    const DrawnObject& object,
                                                     const ModelEffectDrawResources* resources)
 {
     if (models.Find(object.model) == nullptr || models.SkeletonOf(object.model) == nullptr)
@@ -421,7 +423,8 @@ Core::Expected<void, std::string> PublishEffectItem(const IModelLibrary& models,
     return resources->onUntranslatedPose(posed);
 }
 Core::Expected<std::span<const Render::Models::SkinnedMesh>, std::string>
-EffectItemMeshes(const IModelLibrary& models, const DrawnObject& object, const ModelEffectDrawResources* resources)
+EffectItemMeshes(const Render::Models::IModelLibrary& models, const DrawnObject& object,
+                 const ModelEffectDrawResources* resources)
 {
     if (resources == nullptr || !resources->posedMeshes)
         return Core::Unexpected(std::string("0x4ebc80: falta el scratch retenido del efecto con ítem"));
@@ -431,7 +434,8 @@ EffectItemMeshes(const IModelLibrary& models, const DrawnObject& object, const M
         return Core::Unexpected(std::string("0x4ebc80: el scratch no cubre las mallas del efecto con ítem"));
     return meshes;
 }
-Core::Expected<void, std::string> DrawBloodCastleModelEffect(Render::ModelBatch& batch, const IModelLibrary& models,
+Core::Expected<void, std::string> DrawBloodCastleModelEffect(Render::ModelBatch& batch,
+                                                             const Render::Models::IModelLibrary& models,
                                                              World::ModelEffect& effect, Core::Duration frameClock,
                                                              const ModelEffectDrawResources* resources)
 {
@@ -496,7 +500,8 @@ Core::Expected<void, std::string> InitializeEffectItem(World::ModelEffect& effec
     effect.objectState = Render::Models::NativeItemObjectState(static_cast<std::uint16_t>(effect.type), clock, randoms);
     return {};
 }
-Core::Expected<void, std::string> DrawItemModelEffect(Render::ModelBatch& batch, const IModelLibrary& models,
+Core::Expected<void, std::string> DrawItemModelEffect(Render::ModelBatch& batch,
+                                                      const Render::Models::IModelLibrary& models,
                                                       World::ModelEffect& effect,
                                                       const World::TerrainLighting* lighting, Core::Duration clock,
                                                       const ModelEffectDrawResources* resources)
@@ -578,7 +583,7 @@ Core::Expected<void, std::string> DrawItemModelEffect(Render::ModelBatch& batch,
 }
 
 Core::Expected<void, std::string>
-DrawPlainModelEffect(Render::ModelBatch& batch, World::ModelEffect& effect, const IModelLibrary& models,
+DrawPlainModelEffect(Render::ModelBatch& batch, World::ModelEffect& effect, const Render::Models::IModelLibrary& models,
                      const World::TerrainLighting* lighting, Core::Duration frameClock, float alpha,
                      const ModelEffectDrawResources* resources, std::uint64_t physicalSlot)
 {
@@ -734,7 +739,7 @@ DrawPlainModelEffect(Render::ModelBatch& batch, World::ModelEffect& effect, cons
 }
 
 Core::Expected<void, std::string>
-DrawGameModelEffectsChecked(Render::ModelBatch& batch, const IModelLibrary& models,
+DrawGameModelEffectsChecked(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models,
                             std::span<World::ModelEffect> effects, const World::SphereFrustum& frustum,
                             const World::TerrainLighting* lighting, Core::Duration frameClock, float alpha,
                             const ModelEffectDrawResources* resources, std::uint8_t mode)
@@ -823,21 +828,19 @@ DrawGameModelEffectsChecked(Render::ModelBatch& batch, const IModelLibrary& mode
 }
 } // namespace
 
-Core::Expected<void, std::string> DrawGameModelEffects(Render::ModelBatch& batch, const IModelLibrary& models,
-                                                       std::span<World::ModelEffect> effects,
-                                                       const World::SphereFrustum& frustum,
-                                                       const World::TerrainLighting* lighting,
-                                                       Core::Duration frameClock, float alpha, std::uint8_t mode)
+Core::Expected<void, std::string>
+DrawGameModelEffects(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models,
+                     std::span<World::ModelEffect> effects, const World::SphereFrustum& frustum,
+                     const World::TerrainLighting* lighting, Core::Duration frameClock, float alpha, std::uint8_t mode)
 {
     return DrawGameModelEffectsChecked(batch, models, effects, frustum, lighting, frameClock, alpha, nullptr, mode);
 }
 
-Core::Expected<void, std::string> DrawGameModelEffects(Render::ModelBatch& batch, const IModelLibrary& models,
-                                                       std::span<World::ModelEffect> effects,
-                                                       const World::SphereFrustum& frustum,
-                                                       const World::TerrainLighting* lighting,
-                                                       Core::Duration frameClock, float alpha,
-                                                       const ModelEffectDrawResources& resources, std::uint8_t mode)
+Core::Expected<void, std::string>
+DrawGameModelEffects(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models,
+                     std::span<World::ModelEffect> effects, const World::SphereFrustum& frustum,
+                     const World::TerrainLighting* lighting, Core::Duration frameClock, float alpha,
+                     const ModelEffectDrawResources& resources, std::uint8_t mode)
 {
     return DrawGameModelEffectsChecked(batch, models, effects, frustum, lighting, frameClock, alpha, &resources, mode);
 }

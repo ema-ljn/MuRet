@@ -126,6 +126,32 @@ class CheckLayersTest(unittest.TestCase):
         code, _ = self.run_check()
         self.assertEqual(code, 0)
 
+    def test_clean_root_violation_fails_even_in_the_baseline(self):
+        self.source('Core/A.h', 'Scenes/B.h')
+        self.source('Scenes/B.h')
+        self.baseline_rows.append({'file': 'Core/A.h', 'include': 'Scenes/B.h', 'from_module': 'engine/Core',
+                                   'to_module': 'game/Scenes'})
+        code, output = self.run_check('--clean-root', 'engine')
+        self.assertEqual(code, 1)
+        self.assertIn('Core/A.h -> Scenes/B.h', output)
+
+    def test_clean_root_ignores_other_roots(self):
+        self.modules.append(module('game/Chat', 9, 'Chat/**'))
+        self.source('Guild/G.cpp', 'Chat/C.h')
+        self.source('Chat/C.h')
+        self.baseline_rows.append({'file': 'Guild/G.cpp', 'include': 'Chat/C.h', 'from_module': 'game/Guild',
+                                   'to_module': 'game/Chat'})
+        code, _ = self.run_check('--clean-root', 'engine')
+        self.assertEqual(code, 0)
+
+    def test_write_baseline_refuses_a_clean_root_violation(self):
+        self.source('Core/A.h', 'Scenes/B.h')
+        self.source('Scenes/B.h')
+        code, output = self.run_check('--write-baseline', '--clean-root', 'engine')
+        self.assertEqual(code, 1)
+        self.assertIn('Core/A.h -> Scenes/B.h', output)
+        self.assertNotIn('Core/A.h', (self.dir / 'baseline.tsv').read_text(encoding='utf-8'))
+
     def test_cycle_between_two_modules(self):
         self.modules += [module('game/A', 9, 'A/**'), module('game/B', 9, 'B/**')]
         self.source('A/x.h', 'B/y.h')
@@ -175,11 +201,43 @@ class CheckLayersTest(unittest.TestCase):
         self.assertEqual(code, 1)
         self.assertIn('engine/Core/Expected.h -> game/Guild/GuildState.h', output)
 
-    def test_only_quoted_includes_inside_src_are_edges(self):
-        self.source('Core/A.h', 'SDL3/SDL.h', extra='#include <vector>\n// #include "Scenes/B.h"\n')
+    def test_includes_outside_src_are_not_edges(self):
+        (self.dir / 'Outside.h').write_text('', encoding='utf-8')
+        self.source('Core/A.h', 'SDL3/SDL.h', '../../Outside.h',
+                    extra='#include <vector>\n// #include "Scenes/B.h"\n')
         self.source('Scenes/B.h')
         graph, _ = self.load()
         self.assertEqual(graph['Core/A.h'], set())
+
+    def test_clean_root_rejects_a_game_include_however_it_is_spelled(self):
+        self.source('Scenes/B.h')
+        self.source('Core/Neighbor.h')
+        self.mapped('Core/Neighbor.h', 'game/Scenes')
+        spellings = {'"Scenes/B.h"': 'Scenes/B.h', '<Scenes/B.h>': 'Scenes/B.h', '"../Scenes/B.h"': 'Scenes/B.h',
+                     '"Neighbor.h"': 'Core/Neighbor.h'}
+        for spelling, include in spellings.items():
+            with self.subTest(spelling=spelling):
+                self.source('Core/A.h', extra=f'#include {spelling}\n')
+                code, output = self.run_check('--clean-root', 'engine')
+                self.assertEqual(code, 1)
+                self.assertIn(f'Core/A.h -> {include}', output)
+
+    def test_quoted_include_prefers_the_includers_folder(self):
+        self.source('Core/B.h')
+        self.source('Scenes/B.h')
+        self.source('Core/A.h', 'B.h')
+        self.source('Scenes/C.h', '<B.h>')
+        graph, _ = self.load()
+        self.assertEqual(graph['Core/A.h'], {'Core/B.h'})
+        self.assertEqual(graph['Scenes/C.h'], set())
+
+    def test_unknown_clean_root_fails_before_writing_the_baseline(self):
+        self.source('Core/A.h', 'Scenes/B.h')
+        self.source('Scenes/B.h')
+        code, output = self.run_check('--write-baseline', '--clean-root', 'engine/')
+        self.assertEqual(code, 1)
+        self.assertIn("unknown --clean-root 'engine/'", output)
+        self.assertNotIn('Core/A.h', (self.dir / 'baseline.tsv').read_text(encoding='utf-8'))
 
 
 if __name__ == '__main__':

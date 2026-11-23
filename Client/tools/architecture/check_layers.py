@@ -2,20 +2,22 @@
 
 A file's module comes from its row in the module map or, for a file the map does not have yet, from the longest
 matching glob in folders_today. An include may stay inside its module or go to a module that the includer's may_use
-names, directly or as *layer<N. Violations listed in the baseline do not fail the check; new ones do.
+names, directly or as *layer<N. Violations listed in the baseline do not fail the check; new ones do. A root given
+with --clean-root may have none: its violations fail even when the baseline lists them, and are never written to it.
 
     python3 -I Client/tools/architecture/check_layers.py --src Client/src --modules Client/modules.tsv \\
-        --map <module-map.tsv> --baseline Client/tools/architecture/layers-baseline.tsv [--write-baseline]
+        --map <module-map.tsv> --baseline Client/tools/architecture/layers-baseline.tsv [--clean-root engine] [--write-baseline]
 """
 import argparse
 import csv
 import fnmatch
 import pathlib
+import posixpath
 import re
 import sys
 from dataclasses import dataclass
 
-INCLUDE = re.compile(r'^\s*#\s*include\s+"([^"]+)"', re.MULTILINE)
+INCLUDE = re.compile(r'^\s*#\s*include\s*(?:"([^"]+)"|<([^>]+)>)', re.MULTILINE)
 SOURCE_SUFFIXES = ('.h', '.cpp')
 LAYER_BOUND = re.compile(r'\*layer<(\d+)')
 BASELINE_COLUMNS = ('file', 'include', 'from_module', 'to_module')
@@ -68,22 +70,28 @@ def load_module_map(path: pathlib.Path, modules: dict[str, Module]) -> ModuleMap
     return module_map_from_rows(_read_tsv(path), modules)
 
 
-def _resolve(include: str, src: pathlib.Path, roots: tuple[str, ...]) -> str | None:
-    for candidate in (include, *(f'{root}/{include}' for root in roots)):
-        if (src / candidate).is_file():
-            return candidate
+def _resolve(quoted: str, angled: str, folder: str, src: pathlib.Path, roots: tuple[str, ...]) -> str | None:
+    """Where the compiler finds the include: a quoted one first next to its includer, then src, then each root."""
+    include = quoted or angled
+    nearby = (posixpath.join(folder, include),) if quoted else ()
+    for candidate in (*nearby, include, *(f'{root}/{include}' for root in roots)):
+        normal = posixpath.normpath(candidate)
+        if not normal.startswith(('../', '/')) and (src / normal).is_file():
+            return normal
     return None
 
 
 def include_graph(src: pathlib.Path, roots: tuple[str, ...] = ()) -> dict[str, set[str]]:
-    """Each file's includes, as paths under src. An include is relative to src or, once moved, to a root's folder."""
+    """Each file's includes that resolve to a file under src, as paths under src, however they are spelled."""
     graph = {}
     for file in sorted(src.rglob('*')):
         if file.suffix not in SOURCE_SUFFIXES or not file.is_file():
             continue
         text = file.read_text(encoding='utf-8', errors='replace')
-        resolved = (_resolve(include, src, roots) for include in INCLUDE.findall(text))
-        graph[file.relative_to(src).as_posix()] = {path for path in resolved if path}
+        path = file.relative_to(src).as_posix()
+        folder = posixpath.dirname(path)
+        resolved = (_resolve(quoted, angled, folder, src, roots) for quoted, angled in INCLUDE.findall(text))
+        graph[path] = {include for include in resolved if include}
     return graph
 
 
@@ -167,6 +175,11 @@ def write_baseline(path: pathlib.Path, found: list[tuple[str, str, str, str]]) -
         writer.writerows(found)
 
 
+def clean_root_violations(found: list[tuple[str, str, str, str]],
+                          roots: tuple[str, ...]) -> list[tuple[str, str, str, str]]:
+    return [violation for violation in found if violation[2].split('/')[0] in roots]
+
+
 def _print_violations(rows: list[tuple[str, str, str, str]]) -> None:
     for file, include, source, target in rows:
         print(f'  {file} -> {include} ({source} -> {target})')
@@ -179,6 +192,8 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser.add_argument('--map', type=pathlib.Path, required=True)
     parser.add_argument('--baseline', type=pathlib.Path, required=True)
     parser.add_argument('--write-baseline', action='store_true')
+    parser.add_argument('--clean-root', action='append', default=[], metavar='ROOT',
+                        help='a root that may have no violation, not even in the baseline')
     return parser.parse_args(argv)
 
 
@@ -186,7 +201,12 @@ def main(argv: list[str] | None = None) -> int:
     args = _parse_args(argv)
     modules = load_modules(args.modules)
     module_map = load_module_map(args.map, modules)
-    graph = include_graph(args.src, roots_of(modules))
+    roots = roots_of(modules)
+    unknown = [root for root in args.clean_root if root not in roots]
+    if unknown:
+        print(f'unknown --clean-root {", ".join(map(repr, unknown))}; the roots are {", ".join(roots)}')
+        return 1
+    graph = include_graph(args.src, roots)
 
     missing = unmapped(graph, module_map)
     if missing:
@@ -196,6 +216,11 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     found = violations(graph, module_map)
+    unclean = clean_root_violations(found, tuple(args.clean_root))
+    if unclean:
+        print(f'{len(unclean)} violations from a clean root ({", ".join(args.clean_root)}), baseline or not:')
+        _print_violations(unclean)
+        return 1
     if args.write_baseline:
         write_baseline(args.baseline, found)
         print(f'wrote {len(found)} violations to {args.baseline}')

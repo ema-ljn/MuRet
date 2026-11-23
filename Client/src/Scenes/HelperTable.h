@@ -20,6 +20,7 @@
 namespace Client::Render::Models
 {
 class CrtRandom;
+class IModelLibrary;
 struct SkinnedMesh;
 } // namespace Client::Render::Models
 
@@ -41,7 +42,6 @@ struct WorldTerrain;
 namespace Client::Scenes
 {
 struct ActorState;
-class IModelLibrary;
 class WorldState;
 struct DrawnObject;
 
@@ -110,7 +110,7 @@ struct HelperStepContext
     WorldState& world;
     // Los modelos (0x5769ad8 + tipo · 0xe0), por las acciones que leen 0x4ea030 y 0x4ec200: los de Skill\ que carga
     // 0x615700 y Player\Helper01.bmd (el 0x1c12) de 0x60ff50. nullptr, o sin el del tipo: corta con uno vivo.
-    const IModelLibrary* models = nullptr;
+    const Render::Models::IModelLibrary* models = nullptr;
     Render::Models::CrtRandom& random;
     // El reloj del mundo (0x5767b88, en ms), con que 0x53fe70 gira las 5f2 al crearlas.
     float worldClock = 0.0f;
@@ -161,7 +161,7 @@ struct HelperStepContext
 struct HelperDrawContext
 {
     Render::ModelBatch& batch;
-    const IModelLibrary& models;
+    const Render::Models::IModelLibrary& models;
     WorldState& world;
     Render::Models::CrtRandom& random;
     Core::Duration frameClock{};

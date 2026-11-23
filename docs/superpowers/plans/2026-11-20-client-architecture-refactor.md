@@ -51,6 +51,10 @@ bags.
   rounding of a `float`. Moves clean nothing up.
 - Large PRs per milestone (Emanuel, 2026-11-11), with the move, the comments and the design in separate PRs (the move
   and the comments are reviewed by script; the design, by eye).
+- Names (Emanuel, 2026-11-22 and 2026-11-23): no `MuRet` prefix. Targets and binaries take the module's word
+  (`Core.dll`, `Game.dll`, `main.exe`); CMake options and functions, macros and environment variables use `MU_`/`mu_`,
+  and `MU_CLIENT_` for the client's own. The `MURET_` and `MuRet` names below predate that; each epic's detailed plan
+  uses the new ones.
 
 ## Review Focus
 
@@ -651,9 +655,14 @@ the `engine` root. AR1.3 does not hold AR2 back: it only has to land before AR5.
 
 ### AR2.1 (design): packet layouts
 
-- `Protocol/Field.h`: `Field<T, Offset, Endian>` and a `PacketLayout` with type (C1 to C4), opcode, subcode, minimum
-  length and the address of the original reader; a reader that accumulates the first error (without the 83
-  `if (!fields.HasValue())` and the 172 hand-written `TooShort`). `Core::ByteReader` stays for variable-length lists.
+- `engine/Network/Field.h` (`Client::Network`): `Field<T, Offset, Endian>` and a `PacketLayout` with type (C1 to C4),
+  opcode, subcode, minimum length and the address of the original reader; a reader that accumulates the first error
+  (without the 83 `if (!fields.HasValue())` and the 172 hand-written `TooShort`). `Core::ByteReader` stays for
+  variable-length lists.
+- **Where the reading lives** (Emanuel, 2026-11-23): in the engine, like XorRemap. `Field`, `PacketLayout`, the reader,
+  `ReadList` and today's `ProtocolError.h` and `PacketFields.{h,cpp}` know only the C1 to C4 framing, the opcode and
+  the subcode, which `Network/Packet.h` already holds. What is MU's stays in the game: each concrete layout and its
+  writer in `game/Protocol/<Module>/`, and the opcode tables in `game/Session`.
 - The four ways of reading become one: the 11 copies of `FieldsOf` and the two private `Fields` classes in
   `Protocol/Events.cpp` and `Protocol/CastleSiege.cpp` are deleted; the three list reads in `CastleSiege.cpp` become a
   `ReadList<Record, Size>`.

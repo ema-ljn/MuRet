@@ -1,10 +1,10 @@
 #include "Protocol/Letters.h"
 
 #include "Core/Expected.h"
-#include "Network/Crypto/Xor32.h"
 #include "Network/Delivery.h"
 #include "Network/Packet.h"
 #include "Network/PacketWriter.h"
+#include "Network/Xor32Packet.h"
 #include "Protocol/Outgoing.h"
 #include "Protocol/PacketFields.h"
 #include "Protocol/ProtocolError.h"
@@ -63,7 +63,7 @@ std::string TextAt(std::span<const std::byte> bytes, std::size_t at, std::size_t
 // Un C2 con el XOR32 desde el byte 4, que la Connection cifra como C4.
 Outgoing EncryptedC2(const Network::PacketWriter& writer)
 {
-    return {Network::Crypto::Xor32Encode(writer.Finish().Value()), Network::Delivery::Encrypted};
+    return {Network::Xor32Encode(writer.Finish().Value()), Network::Delivery::Encrypted};
 }
 } // namespace
 

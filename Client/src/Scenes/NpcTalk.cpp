@@ -7,7 +7,6 @@
 #include "Render/Models/Skeleton.h"
 #include "Scenes/ActorActions.h"
 #include "Scenes/ActorState.h"
-#include "Scenes/CharacterDrawing.h"
 #include "Scenes/CrywolfContract.h"
 #include "Scenes/GameMessages.h"
 #include "Scenes/GameMovement.h"

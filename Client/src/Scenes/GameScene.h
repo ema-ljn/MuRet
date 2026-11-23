@@ -57,10 +57,14 @@ struct ObjectModelStepState;
 struct WorldObject;
 } // namespace Client::World
 
+namespace Client::Render::Models
+{
+class IModelLibrary;
+}
+
 namespace Client::Scenes
 {
 struct ArrowStepContext;
-class IModelLibrary;
 struct GameProjection;
 struct GameSceneFrameProjection;
 struct GameDrawTailState;
@@ -96,8 +100,8 @@ public:
     // slots de la carga (GameModels::TextureSlots), que siguen los modelos especiales del mapa (WorldModels);
     // sin ella, desde 0x69. Sin Text.bmd (`texts`), el HUD corta con error en el primer texto que dibuja. `chat` es lo
     // que lee la entrada del chat; vacío, sin filtro y sin los nombres de los conjuntos.
-    GameScene(const SceneContext& context, App::ServerSession* session, const IModelLibrary* models = nullptr,
-              const Data::Tables::ItemTable* items = nullptr,
+    GameScene(const SceneContext& context, App::ServerSession* session,
+              const Render::Models::IModelLibrary* models = nullptr, const Data::Tables::ItemTable* items = nullptr,
               const Render::Models::ModelTextureSlots* gameSlots = nullptr,
               const Data::Tables::GateTable* gates = nullptr, const Data::Tables::SkillTable* skills = nullptr,
               const Data::Text::TextTable* texts = nullptr, GameChatTables chat = {});
@@ -222,7 +226,7 @@ private:
 
     SceneContext m_context;
     App::ServerSession* m_session;
-    const IModelLibrary* m_models;
+    const Render::Models::IModelLibrary* m_models;
     const Data::Tables::ItemTable* m_items;
     const Render::Models::ModelTextureSlots* m_gameSlots;
     const Data::Tables::GateTable* m_gates;

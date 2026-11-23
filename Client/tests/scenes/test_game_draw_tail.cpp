@@ -1,3 +1,4 @@
+#include "Render/Models/IModelLibrary.h"
 #include "Scenes/WorldObjectsDrawing.h"
 #include "Core/Expected.h"
 #include "Data/Models/Model.h"
@@ -49,7 +50,7 @@
 
 namespace
 {
-class LookupCounter final : public Client::Scenes::IModelLibrary
+class LookupCounter final : public Client::Render::Models::IModelLibrary
 {
 public:
     const Client::Data::Models::Model* Find(std::uint16_t) const override
@@ -67,7 +68,7 @@ public:
     }
     mutable int lookups = 0;
 };
-class TriangleModels final : public Client::Scenes::IModelLibrary
+class TriangleModels final : public Client::Render::Models::IModelLibrary
 {
 public:
     TriangleModels()
@@ -102,7 +103,7 @@ public:
     std::optional<std::uint16_t> missingModel;
 };
 // Dos triángulos, cada uno con su textura (0 y 1), con un hueso.
-class TwoMeshModels final : public Client::Scenes::IModelLibrary
+class TwoMeshModels final : public Client::Render::Models::IModelLibrary
 {
 public:
     TwoMeshModels()
@@ -140,7 +141,7 @@ public:
     std::array<Client::Render::TextureSlot, 2> textures{Client::Render::TextureSlot{0x400},
                                                         Client::Render::TextureSlot{0x401}};
 };
-class RetainedDummyModels final : public Client::Scenes::IModelLibrary
+class RetainedDummyModels final : public Client::Render::Models::IModelLibrary
 {
 public:
     RetainedDummyModels()

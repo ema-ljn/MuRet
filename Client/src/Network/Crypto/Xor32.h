@@ -1,7 +1,5 @@
 #pragma once
 
-#include "Network/Packet.h"
-
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -36,9 +34,4 @@ inline constexpr std::array<std::uint8_t, 32> Xor32Key{
 // el corrimiento natural sería 2).
 void Xor32EncodeBytes(std::span<std::byte> bytes, std::size_t first, std::size_t keyShift);
 void Xor32DecodeBytes(std::span<std::byte> bytes, std::size_t first, std::size_t keyShift);
-
-// Un C1 o un C2 entero, desde el byte que sigue al opcode. Un C3 o un C4 vuelve igual: lo que
-// lleva adentro se cifra antes de envolverlo (CL2.3).
-[[nodiscard]] Packet Xor32Encode(Packet packet);
-[[nodiscard]] Packet Xor32Decode(Packet packet);
 } // namespace Client::Network::Crypto

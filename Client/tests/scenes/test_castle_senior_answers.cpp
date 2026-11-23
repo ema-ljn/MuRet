@@ -1,8 +1,8 @@
+#include "Network/Xor32Packet.h"
 #include "Scenes/CastleSeniorAnswers.h"
 
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
-#include "Network/Crypto/Xor32.h"
 #include "Protocol/Outgoing.h"
 #include "UI/CastleSiegeState.h"
 
@@ -25,7 +25,7 @@
 // miran el mapa ni sacan rand().
 namespace
 {
-using Client::Network::Crypto::Xor32Decode;
+using Client::Network::Xor32Decode;
 using Client::Scenes::CastleAnswerContext;
 using Client::Tests::Bytes;
 using Client::Tests::SameBytes;

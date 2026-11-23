@@ -22,6 +22,7 @@
 namespace Client::Render::Models
 {
 class CrtRandom;
+class IModelLibrary;
 struct Skeleton;
 } // namespace Client::Render::Models
 
@@ -32,7 +33,6 @@ class ITextMeasure;
 
 namespace Client::Scenes
 {
-class IModelLibrary;
 class WorldState;
 struct InventoryServices;
 struct HeroMovementInput
@@ -106,7 +106,7 @@ struct HeroMovementContext
     const Render::Text::ITextMeasure* measure = nullptr;
     App::PixelSize screen{640, 480};
     // La biblioteca base para acciones de personajes transformados que no estén en FaunaResources.
-    const IModelLibrary* models = nullptr;
+    const Render::Models::IModelLibrary* models = nullptr;
     // 0x599ef0 → 0x61c210/0x61c170: opciones y macros antes de entrar a Castle Siege o Land of Trial.
     std::function<Core::Expected<void, std::string>()> saveOptionsAndMacros{};
 };

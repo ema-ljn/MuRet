@@ -1,3 +1,4 @@
+#include "Network/Xor32Packet.h"
 #include "Scenes/PetTooltip.h"
 
 #include "App/WindowState.h"
@@ -5,7 +6,6 @@
 #include "Data/Tables/ItemTable.h"
 #include "Data/Tables/SkillTable.h"
 #include "Data/Text/TextTable.h"
-#include "Network/Crypto/Xor32.h"
 #include "Network/Packet.h"
 #include "Protocol/Outgoing.h"
 #include "Protocol/Pet/PetInfo.h"
@@ -252,7 +252,7 @@ protected:
     // El A9 que salió, en claro.
     std::vector<std::byte> SentBytes(std::size_t index) const
     {
-        const Client::Network::Packet decoded = Client::Network::Crypto::Xor32Decode(m_sent.at(index).packet);
+        const Client::Network::Packet decoded = Client::Network::Xor32Decode(m_sent.at(index).packet);
         const std::span<const std::byte> bytes = decoded.Bytes();
         return {bytes.begin(), bytes.end()};
     }

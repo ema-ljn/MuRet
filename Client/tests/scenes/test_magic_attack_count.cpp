@@ -1,3 +1,4 @@
+#include "Render/Models/IModelLibrary.h"
 #include "Scenes/MagicAttackCount.h"
 
 #include "Core/Expected.h"
@@ -11,7 +12,6 @@
 #include "Render/Models/Skeleton.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/ActorState.h"
-#include "Scenes/CharacterDrawing.h"
 #include "Scenes/FaunaModels.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/HandShine.h"
@@ -63,7 +63,7 @@ constexpr std::size_t MonsterActionCount = 0x97;
 constexpr std::uint32_t SkillCloseRandoms = 1;
 constexpr std::uint32_t OwnRecordCloseRandoms = 0xf08;
 
-class PlayerModels final : public Client::Scenes::IModelLibrary
+class PlayerModels final : public Client::Render::Models::IModelLibrary
 {
 public:
     const Client::Data::Models::Model* Find(std::uint16_t) const override
@@ -82,7 +82,7 @@ public:
 };
 
 // Lo que 0x612d90 deja en WorldState::FaunaResources para un monstruo: solo sus acciones.
-class MonsterModels final : public Client::Scenes::IModelLibrary
+class MonsterModels final : public Client::Render::Models::IModelLibrary
 {
 public:
     MonsterModels()

@@ -5,10 +5,10 @@
 #include "Data/Models/Model.h"
 #include "Data/Models/ModelTextureCalls.h"
 #include "Render/ITextureStore.h"
+#include "Render/Models/IModelLibrary.h"
 #include "Render/Models/ModelTextureSlots.h"
 #include "Render/Models/Skeleton.h"
 #include "Render/TextureSlot.h"
-#include "Scenes/CharacterDrawing.h"
 #include "Scenes/TextureMetadata.h"
 
 #include <glm/ext/vector_float2.hpp>
@@ -26,7 +26,7 @@
 // y enlaces de mallas a texturas para las escenas. Contrato en 06 § El modelo en el binario.
 namespace Client::Scenes
 {
-class GameModels final : public IModelLibrary
+class GameModels final : public Render::Models::IModelLibrary
 {
 public:
     // Reconstruye las tablas de modelos y los enlaces de 0x60f7d0, 0x611850 y 0x615700 en sus fases.

@@ -6,11 +6,11 @@
 #include "Data/Textures/Sampling.h"
 #include "GameLogic/CharacterAppearance.h"
 #include "Render/Models/Cloth.h"
+#include "Render/Models/IModelLibrary.h"
 #include "Render/Models/ObjectState.h"
 #include "Render/Models/Pose.h"
 #include "Render/Models/Skeleton.h"
 #include "Render/TextureSlot.h"
-#include "Scenes/CharacterDrawing.h"
 #include "Scenes/DarkSpirit.h"
 
 #include <glm/ext/vector_float3.hpp>
@@ -56,7 +56,7 @@ inline constexpr Render::TextureSlot LoginLogoFirstSlot{0x455};
 
 // Un modelo suelto con su esqueleto y el slot de cada malla, como los guarda la tabla del original para
 // el logo: lo que DrawObject pide de una biblioteca. Vacío, no tiene ninguno.
-class SingleModelLibrary final : public IModelLibrary
+class SingleModelLibrary final : public Render::Models::IModelLibrary
 {
 public:
     void Set(std::uint16_t model, Data::Models::Model data, Render::Models::Skeleton skeleton,

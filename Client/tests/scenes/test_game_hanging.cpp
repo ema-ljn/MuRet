@@ -1,3 +1,4 @@
+#include "Render/Models/IModelLibrary.h"
 #include "Scenes/GameHanging.h"
 #include "Scenes/GuildState.h"
 
@@ -160,7 +161,7 @@ float FirstLum()
     return static_cast<float>(static_cast<double>(81.0f) * static_cast<double>(0.01f));
 }
 
-class HangingModels final : public Client::Scenes::IModelLibrary
+class HangingModels final : public Client::Render::Models::IModelLibrary
 {
 public:
     explicit HangingModels(std::set<std::uint16_t> items) : m_items(std::move(items))
@@ -237,7 +238,7 @@ protected:
         m_actor.hands[1].bone = 0x2a;
     }
 
-    GameHangingPass Pass(const Client::Scenes::IModelLibrary& models)
+    GameHangingPass Pass(const Client::Render::Models::IModelLibrary& models)
     {
         return {.batch = m_batch,
                 .models = models,

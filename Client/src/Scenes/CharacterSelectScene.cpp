@@ -1,4 +1,5 @@
 #include "Scenes/CharacterSelectScene.h"
+#include "Render/Models/IModelLibrary.h"
 #include "Scenes/FaunaDrawing.h"
 #include "Render/Models/HalfLifeMath.h"
 #include <span>
@@ -16,6 +17,7 @@
 #include "Protocol/Character/CharacterList.h"
 #include "Protocol/Character/CharacterName.h"
 #include "Protocol/Connection/Logout.h"
+#include "Render/Frame/SceneWorld.h"
 #include "Render/Models/Animation.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
@@ -181,7 +183,7 @@ Render::OriginalQuad Background(std::uint16_t slot, float x)
 } // namespace
 
 CharacterSelectScene::CharacterSelectScene(const SceneContext& context, const GameData& data,
-                                           const IModelLibrary& models, App::ServerSession* session,
+                                           const Render::Models::IModelLibrary& models, App::ServerSession* session,
                                            const Render::Models::ModelTextureSlots* gameSlots)
     : m_context(context), m_texts(data.text ? &*data.text : nullptr),
       m_items(data.items ? &data.items->table : nullptr), m_models(models), m_session(session),
@@ -210,7 +212,7 @@ CharacterSelectScene::CharacterSelectScene(const SceneContext& context, const Ga
 CharacterSelectScene::CharacterSelectScene(const SceneContext& context, const GameData& data, GameModels& models,
                                            App::ServerSession* session,
                                            const Render::Models::ModelTextureSlots* gameSlots)
-    : CharacterSelectScene(context, data, static_cast<const IModelLibrary&>(models), session, gameSlots)
+    : CharacterSelectScene(context, data, static_cast<const Render::Models::IModelLibrary&>(models), session, gameSlots)
 {
     m_startupModels = &models;
 }
@@ -1258,7 +1260,7 @@ void CharacterSelectScene::Render(SceneCanvas& canvas, float alpha)
     // trapecio del terreno.
     World::GameCameraInput& cameraInput = CameraInputState();
     cameraInput.scene = World::CullingScene::CharacterSelect;
-    const std::optional<SceneWorld> world = WorldOf(SceneId::CharacterSelect);
+    const std::optional<Render::Frame::SceneWorld> world = WorldOf(SceneId::CharacterSelect);
     const std::uint8_t map = world ? world->map : 0;
     cameraInput.map = map;
     const Render::Camera3D camera = StepTheCameraAndTheTrapezoid(cameraInput, canvas.frameClock);

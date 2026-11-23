@@ -1,6 +1,6 @@
+#include "Network/Xor32Packet.h"
 #include "Protocol/SiegeControls.h"
 
-#include "Network/Crypto/Xor32.h"
 #include "Network/Delivery.h"
 #include "Protocol/Outgoing.h"
 
@@ -14,7 +14,7 @@
 namespace
 {
 namespace Controls = Client::Protocol::SiegeControls;
-using Client::Network::Crypto::Xor32Decode;
+using Client::Network::Xor32Decode;
 using Client::Tests::Bytes;
 using Client::Tests::SameBytes;
 

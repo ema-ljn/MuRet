@@ -1,3 +1,4 @@
+#include "Network/Xor32Packet.h"
 #include "Scenes/CastleWindows.h"
 
 #include "App/WindowState.h"
@@ -7,7 +8,6 @@
 #include "Core/StderrSink.h"
 #include "Data/Text/TextTable.h"
 #include "Input/InputState.h"
-#include "Network/Crypto/Xor32.h"
 #include "Protocol/OptionData.h"
 #include "Protocol/Outgoing.h"
 #include "Protocol/CastleSiege.h"
@@ -240,7 +240,7 @@ TEST_F(CastleWindowsTest, HuntEntryWithExactlyTheFeeIsDeniedButOneMoreIsAccepted
     stepped = Client::Scenes::StepTheCastleWindow(Context(11, 11), Client::UI::SecondCastleSiegePanel);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     ASSERT_EQ(m_requests.sent.size(), 1u);
-    EXPECT_TRUE(SameBytes(Client::Network::Crypto::Xor32Decode(m_requests.sent[0].packet).Bytes(),
+    EXPECT_TRUE(SameBytes(Client::Network::Xor32Decode(m_requests.sent[0].packet).Bytes(),
                           Bytes({0xc1, 8, 0xb9, 5, 100, 0, 0, 0})));
     EXPECT_EQ(m_world->Runtime().panels.delegated.secondCastleSiege, 1);
     ExpectRandoms(3848 * 2);
@@ -256,7 +256,7 @@ TEST_F(CastleWindowsTest, TheOtherHuntModeEntersBeforeClosingWithoutReadingMoney
     const auto stepped = Client::Scenes::StepTheCastleWindow(Context(11, 11), Client::UI::SecondCastleSiegePanel);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     ASSERT_EQ(m_requests.sent.size(), 2u);
-    EXPECT_TRUE(SameBytes(Client::Network::Crypto::Xor32Decode(m_requests.sent[0].packet).Bytes(),
+    EXPECT_TRUE(SameBytes(Client::Network::Xor32Decode(m_requests.sent[0].packet).Bytes(),
                           Bytes({0xc1, 8, 0xb9, 5, 4, 3, 2, 1})));
     EXPECT_TRUE(SameBytes(m_requests.sent[1].packet.Bytes(), Bytes({0xc1, 3, 0x31})));
     EXPECT_EQ(m_world->Runtime().panels.delegated.secondCastleSiege, 0);
@@ -280,8 +280,7 @@ TEST_F(CastleWindowsTest, RegistrationChecksTheUnsignedLevelInsideItsLogicalAcce
     stepped = Client::Scenes::StepTheCastleWindow(Context(11, 11), Client::UI::CastleSiegePanel);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     ASSERT_EQ(m_requests.sent.size(), 1u);
-    EXPECT_TRUE(
-        SameBytes(Client::Network::Crypto::Xor32Decode(m_requests.sent[0].packet).Bytes(), Bytes({0xc1, 4, 0xb2, 1})));
+    EXPECT_TRUE(SameBytes(Client::Network::Xor32Decode(m_requests.sent[0].packet).Bytes(), Bytes({0xc1, 4, 0xb2, 1})));
     ExpectRandoms(3848 * 2);
 }
 
@@ -395,7 +394,7 @@ TEST_F(CastleWindowsTest, SeniorMoneyRunsFromItsButtonThroughTheSharedEditAndEnt
     const auto entered = Client::Scenes::PressEnterInTheGame(chat);
     ASSERT_TRUE(entered.HasValue()) << entered.Error();
     ASSERT_EQ(m_requests.sent.size(), 1u);
-    EXPECT_TRUE(SameBytes(Client::Network::Crypto::Xor32Decode(m_requests.sent[0].packet).Bytes(),
+    EXPECT_TRUE(SameBytes(Client::Network::Xor32Decode(m_requests.sent[0].packet).Bytes(),
                           Bytes({0xc1, 8, 0xb2, 0x10, 4, 3, 2, 1})));
     EXPECT_EQ(dialog.opened, 0u);
     EXPECT_TRUE(runtime.chat.input.dialogEdit.text.Value().empty());
@@ -419,8 +418,8 @@ TEST_F(CastleWindowsTest, RegisteringAMarkUsesTheFirstMatchingSlotEvenWithZeroDu
     const auto stepped = Client::Scenes::StepTheCastleWindow(Context(11, 11), Client::UI::CastleSiegePanel);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     ASSERT_EQ(m_requests.sent.size(), 1u);
-    EXPECT_TRUE(SameBytes(Client::Network::Crypto::Xor32Decode(m_requests.sent[0].packet).Bytes(),
-                          Bytes({0xc1, 5, 0xb2, 4, 3})));
+    EXPECT_TRUE(
+        SameBytes(Client::Network::Xor32Decode(m_requests.sent[0].packet).Bytes(), Bytes({0xc1, 5, 0xb2, 4, 3})));
     ExpectRandoms(3848);
 }
 
@@ -446,8 +445,8 @@ TEST_F(CastleWindowsTest, SeniorCraftFindsTheLastFourByFiveRectangleUsingTypeIns
     auto stepped = Client::Scenes::StepTheCastleWindow(Context(11, 11), Client::UI::CastleSiegeListPanel);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     ASSERT_EQ(m_requests.sent.size(), 1u);
-    EXPECT_TRUE(SameBytes(Client::Network::Crypto::Xor32Decode(m_requests.sent[0].packet).Bytes(),
-                          Bytes({0xc1, 4, 0x86, 0x12})));
+    EXPECT_TRUE(
+        SameBytes(Client::Network::Xor32Decode(m_requests.sent[0].packet).Bytes(), Bytes({0xc1, 4, 0x86, 0x12})));
     m_world->Inventory().cells[63].id = 0;
     Release(runtime.castleSiege.senior.buttons[6]);
     stepped = Client::Scenes::StepTheCastleWindow(Context(11, 11), Client::UI::CastleSiegeListPanel);

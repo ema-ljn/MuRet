@@ -39,8 +39,8 @@ namespace
 using Record = std::span<const std::byte, Data::Tables::ItemRecordSize>;
 
 // 0x5b089c..0x5b0944: las flechas y los virotes cierran la ayuda; las franjas de tipos.
-constexpr std::int32_t ArrowsItem = 0x807;
-constexpr std::int32_t BoltsItem = 0x80f;
+constexpr std::int32_t BoltsItem = 0x807;
+constexpr std::int32_t ArrowsItem = 0x80f;
 constexpr std::int32_t FifthKind = 5;
 // 0x5b0932..0x5b0944 y 0x5b0ae2..0x5b0aee: la quinta franja, la de los pergaminos.
 constexpr std::int32_t FirstScroll = 0x1e00;
@@ -476,7 +476,7 @@ Core::Expected<void, std::string> DrawTheItemHelp(GameHudContext& context)
     const std::int32_t item = panels.helpItem;
     const std::int32_t screenWidth = context.sprites.Screen().width;
     const std::optional<ItemKind> kind =
-        item == ArrowsItem || item == BoltsItem ? std::nullopt : KindOf(item, screenWidth);
+        item == BoltsItem || item == ArrowsItem ? std::nullopt : KindOf(item, screenWidth);
     if (!kind)
     {
         // 0x5b10c2: 0x77f3b08 en 0.

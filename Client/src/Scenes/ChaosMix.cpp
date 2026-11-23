@@ -58,7 +58,7 @@ constexpr std::int32_t FirstWings = 0x1800;
 constexpr std::int32_t LastFirstWings = 0x1802;
 constexpr std::int32_t FirstSpecialWings = 0x1803;
 constexpr std::int32_t LastSpecialWings = 0x1806;
-constexpr std::int32_t FirstArmor = 0xc00;
+constexpr std::int32_t WeaponsEnd = 0xc00;
 // Las opciones excelentes que cuentan (0x50 a 0x53), las de las alas (0x50, 0x51 y 0x55) y la suerte (0x54).
 constexpr std::uint8_t ExcellentOptionFrom = 0x50;
 constexpr std::uint8_t ExcellentOptionTo = 0x53;
@@ -358,9 +358,9 @@ Core::Expected<void, std::string> CountTheItem(Tally& tally, NpcWindowState& npc
             WithTheFirstExcellent(item, "0x5fd63c",
                                   [&]() -> Core::Expected<void, std::string>
                                   {
-                                      if (type >= 0 && type < FirstArmor)
+                                      if (type >= 0 && type < WeaponsEnd)
                                           ++tally.excellentWeapons;
-                                      else if (type >= FirstArmor)
+                                      else if (type >= WeaponsEnd)
                                           ++tally.excellentArmors;
                                       auto price = PriceOf(item, items, InventoryPrice, runtime, "0x5fd671");
                                       if (!price.HasValue())

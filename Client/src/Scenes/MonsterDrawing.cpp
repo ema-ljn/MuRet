@@ -28,6 +28,7 @@
 #include "Scenes/GameItemSpecialDrawing.h"
 #include "Scenes/GuildMarkEffects.h"
 #include "Scenes/HighModelEffects.h"
+#include "Scenes/ItemDrawing.h"
 #include "Scenes/KalimaSiegeHelpers.h"
 #include "Scenes/MonsterBody.h"
 #include "Scenes/MonsterBodyPasses.h"

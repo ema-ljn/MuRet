@@ -1,4 +1,4 @@
-#include "Scenes/CharacterDrawing.h"
+#include "Scenes/ItemDrawing.h"
 
 #include "Core/Expected.h"
 #include "Core/IClock.h"
@@ -6,6 +6,7 @@
 #include "Render/Models/ObjectState.h"
 #include "Render/Models/OriginalRetainedMath.h"
 #include "Render/Models/Skinning.h"
+#include "Scenes/CharacterDrawing.h"
 #include "Scenes/GameItemSpecialDrawing.h"
 
 #include <glm/ext/vector_float3.hpp>

@@ -845,6 +845,7 @@ Scenes/MonsterDrawing.cpp	Scenes/GameCharacterEffects.h	game/Monsters	game/Actor
 Scenes/MonsterDrawing.cpp	Scenes/GameCharacters.h	game/Monsters	game/Actors
 Scenes/MonsterDrawing.cpp	Scenes/GameHanging.h	game/Monsters	game/Actors
 Scenes/MonsterDrawing.cpp	Scenes/GameItemSpecialDrawing.h	game/Monsters	game/Actors
+Scenes/MonsterDrawing.cpp	Scenes/ItemDrawing.h	game/Monsters	game/Actors
 Scenes/MonsterDrawing.cpp	Scenes/VertexEffects.h	game/Monsters	game/Actors
 Scenes/MonsterDrawing.cpp	World/ChaosCastle.h	game/Monsters	game/Events
 Scenes/MonsterDrawing.h	Scenes/ActorState.h	game/Monsters	game/Actors

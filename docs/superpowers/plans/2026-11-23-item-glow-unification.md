@@ -326,8 +326,10 @@ Done. Port work: it removes the cut at `0x50d431`. Players are not switched yet;
 `feat(client): draw the worn parts of any class with the part draw`.
 
 **Files:**
-- Create: `Client/src/Scenes/ItemDrawing.cpp` (target `game/Actors/Drawing`, its row in `module-map.tsv`)
-- Modify: `Client/src/Scenes/CharacterDrawing.h` (the declarations below, and `DrawnObject::skin`),
+- Create: `Client/src/Scenes/ItemDrawing.h`, `Client/src/Scenes/ItemDrawing.cpp` (target `game/Actors/Drawing`, their
+  rows in `module-map.tsv`)
+- Modify: `Client/tools/architecture/layers-baseline.tsv` (one row: `MonsterDrawing.cpp` → `ItemDrawing.h`)
+- Modify: `Client/src/Scenes/CharacterDrawing.h` (`DrawnObject::skin`),
   `CharacterDrawing.cpp` (`TextureOf` and `MeshDrawsOf` take the skin; every object draw uses `DrawnObject::skin`),
   `MonsterDrawing.cpp` (`DrawThePart` goes; `DrawTheParts` calls `DrawWornParts`)
 - Modify: `Client/docs/research/08-pendientes.md` (P-C542: the skin stays in the model record in the original)
@@ -335,7 +337,7 @@ Done. Port work: it removes the cut at `0x50d431`. Players are not switched yet;
   `DrawWornParts`
 
 **Interfaces:**
-- Produces, in `CharacterDrawing.h`:
+- Produces, in `ItemDrawing.h`:
 
 ```cpp
 // What 0x60cf70 reads from the object that owns the part, and the two fields it writes.
@@ -389,10 +391,11 @@ using WornParts = std::array<std::optional<ItemPart>, 6>;
 
 What the code does differently from the first version of this task:
 
-- **The declarations live in `CharacterDrawing.h`, not in a new `ItemDrawing.h`.** `MonsterDrawing.cpp`
-  (`game/Monsters`) already includes `CharacterDrawing.h` (`game/Actors`), a row of the layer baseline; including a
-  new header of `game/Actors` is a new row, and `check_layers.py` refuses it. Task 7 meets the same wall when the item
-  draw leaves `CharacterDrawing.h`: every caller of `DrawItemFromMeshes` outside `game/Actors` would add a row.
+- **`ItemDrawing.h` adds one row to the layer baseline.** `MonsterDrawing.cpp` (`game/Monsters`) already includes
+  `CharacterDrawing.h` (`game/Actors`), a baseline row; including the new header of `game/Actors` is a new row, which
+  `check_layers.py` refuses. Emanuel decided (2026-11-23) that the item draw keeps its own header and the baseline
+  records its rows (`--write-baseline`, checked to add only them), instead of the declarations waiting in
+  `CharacterDrawing.h` until AR4 moves the modules. The rows leave the baseline with the move of `game/Monsters`.
 - **`DrawThePart` is gone.** It had one caller; `DrawTheParts` keeps its guards (`+0x3e3`, Chaos Castle) and fills
   the owner and the context once per actor. The guard on a model outside the zeroed records (`0x50d431`) moved into
   `DrawWornParts`, since it holds for players too.
@@ -448,10 +451,9 @@ Refactor, golden identical. The `0x620` case of `World/ScepterGlow.cpp` goes nex
 Refactor, golden identical. `DrawItemFromMeshes` and its helpers (`CharacterDrawing.cpp:1418..1793`) move into
 `ItemDrawing.cpp`. `DrawSkeletonBody`, `DrawChaosCastleBody`, the UI item, the floor item and the effect items call
 `DrawItemPart` where their hand-written block is the same three steps (the alpha gate `0x60cf99`, `0x5ffce0`,
-`0x4ebc80`); a caller whose block differs stays and the PR says why, with the address. Before it starts, Emanuel
-decides where the declarations go: a new header of `game/Actors` included by the callers in other modules adds rows the
-layer check refuses (Task 3), so either they stay in `CharacterDrawing.h` until AR4 moves the modules, or the PR
-records those rows in the baseline and says why.
+`0x4ebc80`); a caller whose block differs stays and the PR says why, with the address. The declarations of the item
+draw go to `ItemDrawing.h`; each caller outside `game/Actors` that now includes it adds its row to the layer baseline,
+as in Task 3, and the PR lists them.
 
 ### Task 8: the state flags block
 

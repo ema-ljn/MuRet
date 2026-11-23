@@ -845,6 +845,7 @@ Scenes/InventoryReply.h	37	Scenes	game/Items	high	inventory grids, cursor item, 
 Scenes/ItemDrawResources.cpp	73	Scenes	game/Actors/Drawing	high	(addr.) player draw: body, cloth, hanging items, item glows, weapon trails
 Scenes/ItemDrawResources.h	53	Scenes	game/Actors/Drawing	high	(addr.) player draw: body, cloth, hanging items, item glows, weapon trails
 Scenes/ItemDrawing.cpp	164	Scenes	game/Actors/Drawing	high	(addr.) item draw of a worn part and the worn parts loop for every actor, with the class skin
+Scenes/ItemDrawing.h	67	Scenes	game/Actors/Drawing	high	(addr.) item draw of a worn part and the worn parts loop for every actor, with the class skin
 Scenes/ItemHelpLevels.cpp	158	Scenes	game/Tooltips	high	item, skill and pet tooltips, above Items, Skills and Pets (2026-11-21 review)
 Scenes/ItemHelpLevels.h	63	Scenes	game/Tooltips	high	item, skill and pet tooltips, above Items, Skills and Pets (2026-11-21 review)
 Scenes/ItemNames.cpp	309	Scenes	game/Items	high	inventory grids, cursor item, floor items, item names/prices, UI item 3D

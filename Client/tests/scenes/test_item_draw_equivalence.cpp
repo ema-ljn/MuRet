@@ -17,6 +17,7 @@
 #include "Render/TextureSlot.h"
 #include "Scenes/GameItemRenderState.h"
 #include "Scenes/GameItemSpecialDrawing.h"
+#include "Scenes/ItemDrawing.h"
 #include "Scenes/SceneCameras.h"
 
 #include "support/GoldenDir.h"

@@ -1,4 +1,4 @@
-#include "Scenes/CharacterDrawing.h"
+#include "Scenes/ItemDrawing.h"
 
 #include "Core/Expected.h"
 #include "Data/Models/Model.h"
@@ -11,6 +11,7 @@
 #include "Render/Pass3D.h"
 #include "Render/SpriteVertex.h"
 #include "Render/TextureSlot.h"
+#include "Scenes/CharacterDrawing.h"
 #include "Scenes/GameItemSpecialDrawing.h"
 
 #include <gtest/gtest.h>

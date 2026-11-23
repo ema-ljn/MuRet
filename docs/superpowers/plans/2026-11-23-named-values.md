@@ -82,9 +82,10 @@ decided "no code generator for now"); data moved to TSV (a second source of trut
    list: `Protocol/Opcodes.h` for the GameServer (head codes and their subcodes) and `Protocol/Connection/Opcodes.h`
    for the ConnectServer, numbers only, included by the layouts and the table and never by a handler. Per module keeps
    `0xf3` defined in four headers.
-2. **The check starts now (recommended) or with AR4.1.** Now: its baseline records today's ~1,100 duplicates and every
-   later PR, port PRs included, is measured against it. With AR4.1: no tool until the first non-item homes exist, and
-   the port can add duplicates meanwhile.
+2. **The check starts now (recommended) or with AR4.1.** Now: opcodes and subcodes fail outside `game/Protocol` from
+   day one, every other space is reported (`watch`) with today's ~1,100 duplicates in the baseline, and each space
+   starts failing the day its home lands, in the PR that creates it. With AR4.1: no tool until then; the port can add
+   opcodes outside `Protocol/` and duplicates meanwhile, and they enter the first baseline as debt.
 
 Recommended and written into the tasks unless Emanuel says otherwise: the three engine files that compare a game value
 take it as data in AR1.1 (Task 3); `Math/FloatConstants.h` and `Math/Angles.h` are a task of their own after AR1 Task 5
@@ -221,12 +222,15 @@ PR `ci(AR1.1): check that each named value has one home`, branch `refactor/ar1.1
     exists, then `type=<regex>`, with an optional `values=<lo>..<hi>`. `policy` is `home-only` (a definition by
     literal outside the home fails), `single-definition` (a (space, value) defined by literal in two files fails, or
     anywhere once the home defines it) or `watch` (reported, never fails).
-  - First rows: `opcode` and `subcode` (`game/Protocol`, `home-only`), `map` (`single-definition` now; `home-only`
-    once `Maps/MapId.h` lands), `character-class`, `sound`, `model`, `texture`, `text` (`values=0..9999`, so a color
-    named `WhiteText` is out), `skill`, `player-action` (`single-definition`), `number` (the numeric float names,
-    `watch` until Task 4).
+  - First rows: `opcode` and `subcode` (`game/Protocol`, `home-only`: the home exists today). The spaces whose home
+    does not exist yet start as `watch`, so a port PR is never asked to use a header nobody has written: `map` (until
+    `Maps/MapId.h`, AR1 Task 5), `item-code` and `item-model` (until the item plan's Task 9), `number` (until Task 4),
+    `character-class` (until Task 7), `sound`, `model`, `texture`, `text` (`values=0..9999`, so a color named
+    `WhiteText` is out), `skill`, `player-action` (until their AR4 milestone, Task 8). The PR that creates a home
+    switches its row to `single-definition` or `home-only` and lowers the baseline in the same diff.
   - `named-values-baseline.tsv`, columns `space`, `file`, `name`, `value`: today's violations, about 1,100 rows
     (placement section 3.1). A row that no longer happens fails, so the file only shrinks.
+  - A `watch` space prints its new rows as a report and exits 0.
   - An alias (an initializer that names another constant) never fails. A definition of any game space in a file whose
     module is under `engine/` fails with or without a baseline row once Task 3 lands (`--clean-root engine`, as
     `check_layers.py`).
@@ -237,7 +241,8 @@ PR `ci(AR1.1): check that each named value has one home`, branch `refactor/ar1.1
   (`FirstEventMap` 18 and 24 in two files of the `map` space: two values, no duplicate),
   `test_subcodes_repeat_inside_protocol` (two `…Subcode = 0x01` in `Protocol/` pass),
   `test_values_bound_drops_a_color`, `test_comments_and_strings_are_ignored`, `test_stale_baseline_row_fails`,
-  `test_write_baseline_round_trip`, `test_engine_file_defining_a_game_value_fails`.
+  `test_write_baseline_round_trip`, `test_engine_file_defining_a_game_value_fails`,
+  `test_watch_space_reports_and_passes`.
 - [ ] **Step 2: Run** `python3 -I -m unittest discover -s Client/tools/architecture -p 'test_check_named_values.py' -v`;
   expected: every test fails on the missing module.
 - [ ] **Step 3: Implement** the check; run the tests; expected: PASS.

@@ -36,6 +36,8 @@ antes de commitear.
 - **Las constantes del wire** (heads, tamaños, offsets) son constantes con nombre en `Protocol/`,
   con un comentario que cita la sección del research que las fija
   (por ejemplo `// 05-protocolo § tabla de heads`).
+- A number whose meaning is fixed outside the file (an opcode, an item code, a map, a sound, a `Text.bmd` line) is
+  named once, in its space's home: §7, "Named values".
 - `0` y `1` en contextos booleanos o triviales están bien. `0x3BC`, `55960` y `5000` no.
 
 ## 4. Código reutilizable
@@ -312,6 +314,41 @@ only where values must not be mixed. The principles hold across MuRet; the `Clie
 `Core::Result`, `Core::Status` and `Core::Id` arrive with AR1.1's common kit; until then new code keeps the long
 spelling. Existing code adopts these rules module by module in the refactor's design PRs, never in a move or comments
 PR.
+
+### Named values (2026-11-23)
+
+A value whose numbering is fixed outside the file that uses it (by the wire, a `Data\` file, a load order or an
+enumeration of the original) belongs to a space. Today the same number is named again in each file that needs it,
+often under another name (`0xf3` is defined six times under three names; map 23 is `LastChaosCastleMap` 25 times).
+These rules give each space one place to look without changing what the original computes. The homes below are the
+client's.
+
+1. **One home per space, never one home for all.** Opcodes and subcodes in one list per server in `game/Protocol`, as
+   TrinityCore and cMaNGOS keep theirs; packet layouts in `game/Protocol/<Module>/`; table rows and their keys (item
+   codes and item models, skills, the text lines several modules print) in `game/Tables`; maps in `game/Maps`; sounds
+   in `game/Sound`; the other models and the textures in `game/Assets`; the numbers the x87 code shares in
+   `engine/Math`. No `Constants.h`, `Offsets.h` or `Ids.h` across spaces.
+2. **Identity once, role anywhere.** The home names what the value is (`Models::HornOfDinorant`). A file names what it
+   means there (`HeightOffsetPet`) with its own type and the home's name as its initializer, never the literal again.
+   One file may keep an identity private; the second file that needs it moves it home. A closed set, an opcode and a
+   group bound are born in their home.
+3. **Two spaces, two names.** A number that means two things has a name in each space (`0x1c15` is an item code and an
+   item model), and going from one to the other is a named function (`ModelOf`).
+4. **The site keeps its shape.** The comparison, its operator, its cast and its citation stay; the local name keeps the
+   type the literal had there. A predicate replaces a comparison only where the original's code at that address
+   matches it. A shared name is not a shared identity (`FirstEventMap` is 18 in `GameCharacters.cpp` and 24 in
+   `InventoryMoves.cpp`), and two meanings of one value are not merged.
+5. **A layout carries its offsets** (§14). An offset constant outside its layout is a missing accessor.
+6. **What stays local:** one window's geometry and colors, one effect's parameters (also as float bit patterns), one
+   model's bones and actions, a sentinel beside its record. An address of the original is a comment, and from AR3.1 a
+   row of `globals.tsv`.
+7. **The engine names no game value**: it receives it as a parameter or in a table the game fills.
+
+`Client/tools/architecture/named-values.tsv` lists the spaces and their homes, and `check_named_values.py` checks
+rules 1, 2 and 7 in CI with a baseline that only shrinks; both arrive in AR1.1, and a space whose home does not exist
+yet is reported, not failed, until the PR that creates its home. Existing code adopts these rules in the refactor's
+design PRs, never in a move or comments PR. The plan is
+[`2026-11-23-named-values.md`](superpowers/plans/2026-11-23-named-values.md).
 
 ## 8. Sin fugas ni estado colgado
 

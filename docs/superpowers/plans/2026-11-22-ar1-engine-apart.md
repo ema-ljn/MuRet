@@ -83,10 +83,11 @@ Measured on `refactor/client` at 75c33064 (2026-11-22). AR1.3, the command line,
 | `MuRetTables`, `MuRetMaps`, `MuRetSound` targets in AR1.2 | the three game modules move in AR1.2 but stay in `ClientLib` | the game's library shape (one `Game` or a few) is the ADR's AR4 question |
 | `MURET_`/`muret_` options, functions, macros and environment variables | `MU_`/`mu_`, and `MU_CLIENT_` for the client's own (Task 1b) | Emanuel, 2026-11-23: MuRet was a mistaken name; `cmake/` is shared with the DataServer, so the prefix names the game, not the client |
 | `MuRetFoxAnti`, an optional library inside Network | `XorRemap`, a static target that only `main.exe` links, never a DLL (Task 6) | Emanuel, 2026-11-23: easy to remove, but not shipped as a DLL that says what it is |
+| nothing on named values | the engine stops naming game values (Task 5b) and the shared float numbers get one home (Task 5c) | Emanuel, 2026-11-23: one home per space of named values (CODING_RULES §7, "Named values"; the [named-values plan](2026-11-23-named-values.md), Tasks 3 and 4) |
 
 ---
 
-## AR1.1 (design): six PRs
+## AR1.1 (design): eight PRs
 
 ### Task 1: the engine stops including the game
 
@@ -400,6 +401,41 @@ EXPECT_TRUE(IsKalimaMap(24)); EXPECT_TRUE(IsKalimaMap(29)); EXPECT_FALSE(IsKalim
   `FirstKalimaMap`/`LastKalimaMap`; only a check that also takes 36 becomes `IsKalimaMap`.
 - [ ] **Step 5: Check** `grep -rn "constexpr std::int32_t \(First\|Last\)\(ChaosCastle\|BloodCastle\|Kalima\)Map"
   Client/src` prints only `Maps/MapId.h`, the `git diff -M50%` check, then push and let CI build.
+- [ ] **Step 6:** `Maps/MapId.h` is the `map` space's home: its row in `Client/tools/architecture/named-values.tsv`
+  switches from `watch` to `single-definition` and the baseline loses the rows this PR replaced, in the same diff.
+
+### Task 5b: the engine stops naming game values
+
+PR `refactor(AR1.1): pass the game values the engine compared as data`, branch `refactor/ar1.1-engine-game-values`.
+After the [named-values plan](2026-11-23-named-values.md)'s Task 2 (`check_named_values.py`) and before the move.
+Details: that plan's Task 3.
+
+Three engine functions compare a game value. The comparison keeps the original's order, and the value or the decision
+comes from the game:
+
+| site | today | after |
+| --- | --- | --- |
+| `Render/Models/Cloth.cpp:60,517` | `LoginMap = 0x37`; `else if (map == LoginMap)` chooses the wind (`0x4551f4`) | the cloth update takes the map it compares, or the login-map flag, from the game; the `rand()` call stays where it is |
+| `Render/Models/Skinning.cpp:157-163` | `ShadowSpreadOf(map)` with `CastleSiegeMap = 0x1e` | `ShadowSpreadOf` moves to `game/Actors`, beside its callers in `Scenes/CharacterDrawing.cpp`; the engine takes the spread |
+| `Render/Models/Animation.cpp:23-24,92-95` | `WingKeysPerOriginalFrame(action)` (`0x50ba30`) with `FastWingAction` `0x1e` and `0x1f` | moves to `game/Actors`, beside its callers (`Scenes/CharacterAnimation.cpp`, `Scenes/GameHanging.cpp`); the engine takes the keys per frame |
+
+Each moved function keeps its tests, and a test compares the old and the new result over every map id and every
+action (0 to 255). Done when `check_named_values.py --clean-root engine` finds no game space in `engine/`.
+
+### Task 5c: the numbers the x87 code shares
+
+PR `refactor(AR1.1): give the shared float numbers one home`, branch `refactor/ar1.1-float-constants`. After Task 5.
+Details: the [named-values plan](2026-11-23-named-values.md)'s Task 4.
+
+`Client/src/Math/FloatConstants.h` and `Client/src/Math/Angles.h` (`engine/Math`, `Client::Math`), with numeric names
+only (`Tenth`, `Half`, `Hundredth`, `FullTurn`, the degree-to-radian factors) and **one name per representation**: a
+`float` from its bit pattern, and another name for the `double` widened from that `float` (`Hundredth` is a `float`
+in `Render/Models/Cloth.cpp:39` and such a `double` in `Scenes/CameraTour.cpp:54`). The two degree-to-radian factors
+that differ in the last bit (`Render/Models/OriginalRotation.cpp:16` `0x3C8EFA35`, `Render/Models/Pose.cpp:24`
+`0x3c8efa36`) stay two names. A script replaces only the private definitions whose type and initializer are
+token-identical to the home's; role names (`Fade`, `Growth`) are not touched. Gate: the behavior golden in Debug and
+`math-release` on Linux and Windows, and the reference gives the same numbers. The registry's `number` space becomes
+`home-only`.
 
 ---
 
@@ -522,6 +558,7 @@ comments PR". The comments of `Client/src/engine/`, the three game modules and t
 ## AR1 is done when
 
 - `check_layers.py --clean-root engine` prints `0 new` with no engine row in the baseline (CI runs it on every PR).
+- No engine file defines a game value: `check_named_values.py --clean-root engine` finds no game space in `engine/`.
 - Every engine module is a shared library that links with `--no-undefined` and builds with
   `VERIFY_INTERFACE_HEADER_SETS`; the client also builds as one binary (`MU_MONOLITHIC=ON`) and with
   `MU_XOR_REMAP=OFF`.

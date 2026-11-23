@@ -77,7 +77,7 @@ Measured on `refactor/client` at 75c33064 (2026-11-22). AR1.3, the command line,
 | `LabFoxAntiTables()` defined in `MakeObfuscationFoxAnti.cpp` | `constexpr` in `App/LabXorRemapTables.h` | the layer's tests build the lab tables too, and they do not link the executable's sources |
 | `Core/WrappingInt.h` and `UI::Rect::Contains` in the kit | left out | no copy of a wrapping integer was found, and `Rect::Contains` already exists (`UI/Widget.h`) |
 | the 189 loose map comparisons switch to names | `MapId.h` replaces the 77 duplicated constants and the predicates; the loose literals switch in each module's AR4 design PR | each literal needs a judgment (is it a map?); AR4 reads those files anyway |
-| map enum | `inline constexpr std::int32_t` constants | `WorldRuntime::map` is `std::int32_t`; an `enum class` needs a cast at each comparison |
+| map enum | `inline constexpr std::int32_t` constants in AR1; AR6 turns them into an opaque `enum class MapId : std::int32_t {}` with the same names | the size of the change, not casts: about 228 parameters and 30 fields change type, 182 loose literals in `Client/src` and 506 in the tests stop compiling, so the type changes once AR4 has named the literals (types review, 2026-11-23) |
 | one static target per module | one shared library per engine module, `MURET_MONOLITHIC` for a single binary (ADR in Task 6) | Emanuel, 2026-11-22: DLLs on Windows and the same on Linux, as large engines do (Unreal, O3DE, Source) |
 | `MuRet<Module>` targets (`MuRetCore`…) | no prefix: `Core.dll`, `Audio.dll`…, the executable `main.exe` | Emanuel, 2026-11-22: like the original's `main.exe` |
 | `MuRetTables`, `MuRetMaps`, `MuRetSound` targets in AR1.2 | the three game modules move in AR1.2 but stay in `ClientLib` | the game's library shape (one `Game` or a few) is the ADR's AR4 question |
@@ -330,6 +330,8 @@ PR `refactor(AR1.1): add the common kit`, branch `refactor/ar1.1-common-kit`. Sk
 
 **Files:**
 - Modify: `Core/Expected.h`, `tests/core/test_expected.cpp`
+- Create: `Client/src/Core/Id.h` (module `engine/Core`), `tests/core/test_id.cpp`; a `PrintTo` for `Core::Id` in
+  `tests/support/`
 - Modify: `Data/Text/TextTable.h`, `tests/data/test_text_table.cpp`; `UI/ChatCommands.cpp`, `UI/Emotes.cpp`
 - Create: `Client/src/Maps/MapId.h` (module `game/Maps`); `tests/world/test_map_id.cpp`
 - Modify: the files that define `First/Last{BloodCastle,ChaosCastle,Kalima}Map` as `std::int32_t` (30 in `Scenes`, 2 in
@@ -341,6 +343,12 @@ PR `refactor(AR1.1): add the common kit`, branch `refactor/ar1.1-common-kit`. Sk
   meaning: `AndThen(F)` (F takes the value, or nothing for `void`, and returns an `Expected<U, E>`), `Transform(F)`
   (returns `Expected<U, E>` with `F`'s result), `OrElse(F)` (F takes the error and returns an `Expected<T, G>`). No
   caller changes in AR1: each module adopts them in its own design PR.
+- Produces, in `Core/Expected.h`: `template <typename T> using Result = Expected<T, std::string>;` and
+  `using Status = Result<void>;` (CODING_RULES §7, "Types and aliases"). No caller changes in AR1.
+- Produces, in `Core/Id.h`: `template <class Tag, std::integral Rep> class Id` with `constexpr explicit Id(Rep)`, a
+  default constructor that holds `Rep{}`, `[[nodiscard]] constexpr Rep Value() const noexcept`, a defaulted
+  `operator<=>` (which also gives `==`), and a `std::hash<Core::Id<Tag, Rep>>` specialization; no arithmetic and no
+  implicit conversion either way. No user in AR1: modules adopt it in their design PRs.
 - Produces: `std::string_view Client::Data::Text::TextOr(const TextTable& texts, std::size_t index, std::string_view
   fallback = {})`, `texts.Text(index).value_or(fallback)`. It replaces the `TextAt` of `ChatCommands.cpp` and
   `Emotes.cpp`, the only identical copies.
@@ -351,7 +359,11 @@ PR `refactor(AR1.1): add the common kit`, branch `refactor/ar1.1-common-kit`. Sk
 
 - [ ] **Step 1: Write the failing tests.** `test_expected.cpp`: `AndThen` runs only on a value and passes an error
   through untouched; `Transform` maps the value and keeps the error; `OrElse` runs only on an error; each for `void`
-  too, and a move-only value goes through `&&` without a copy. `test_map_id.cpp`:
+  too, and a move-only value goes through `&&` without a copy; `static_assert`s that `Status` is
+  `Expected<void, std::string>` and `Result<int>` is `Expected<int, std::string>`. `test_id.cpp`: two ids with the same
+  value compare equal and order like their values, `Id{}` holds 0, a `std::unordered_set` finds an id, and
+  `static_assert`s that `sizeof(Id) == sizeof(Rep)`, that it is trivially copyable, that an `Id` does not convert from
+  or to `Rep` implicitly, and that two `Id`s with different tags do not convert into each other. `test_map_id.cpp`:
 
 ```cpp
 EXPECT_FALSE(IsBloodCastle(10)); EXPECT_TRUE(IsBloodCastle(11)); EXPECT_TRUE(IsBloodCastle(17)); EXPECT_FALSE(IsBloodCastle(18));

@@ -752,6 +752,10 @@ pairs of those modules.
 - `tests/support/` gains what is copied today: `LetterMeasure` (40 files), two fake `IModelLibrary` (null and triangle;
   60 files today), a `GameHudContext` builder (built by hand 42 times) and the tests' numeric helpers (`F32` in 41
   files).
+- The map constants of `Maps/MapId.h` become an opaque `enum class MapId : std::int32_t {}` with the same names, once
+  AR4 has named the loose literals: the compiler then lists any it missed. The 112 `std::uint8_t map` parameters are
+  not widened; each place that narrows the runtime map to a byte says so with one named function, because −1 becomes
+  255 there (CODING_RULES §7, "Types and aliases").
 
 ## Epic AR7: wrap-up
 

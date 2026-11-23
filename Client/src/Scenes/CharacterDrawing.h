@@ -21,6 +21,7 @@
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
@@ -203,6 +204,8 @@ struct DrawnObject
     float alpha = 1.0f;
     // +0xe8: la luz por vértice, que 0x5ffce0 copia a +0x44 del modelo.
     bool vertexLight = false;
+    // +0x98 of the model (0x50d431): the skin mesh goes on 0x12e + skin and the hair mesh on 0x12f + skin.
+    std::uint8_t skin = 0;
     // model+88: selección compartida publicada por el paso de objetos, sin luz y con UV corridas.
     std::optional<std::int16_t> unlitMesh{};
     // Scratch publicado por la pose del caller; los renderers especializados tampoco vuelven a posar.
@@ -305,6 +308,50 @@ struct ItemDrawContext
 DrawItemFromMeshes(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models, const DrawnObject& object,
                    Core::Duration frameClock, std::span<const Render::Models::SkinnedMesh> meshes, std::uint8_t level,
                    std::uint8_t excellent, std::uint8_t ancient, const ItemDrawContext& context = {});
+
+// What 0x60cf70 reads from the object that owns the part, and the two fields it writes.
+struct ItemPartOwner
+{
+    std::uint16_t type = 0;                                 // +2: 0xc5 outlines only its first mesh
+    Render::Models::ObjectTransform transform;              // +0xc, +0x10, +0x1c
+    std::span<const Render::Models::BoneTransform> bones;   // +0x120
+    glm::vec3 light{1.0f};                                  // +0x3b4
+    float alpha = 1.0f;                                     // +0x174
+    std::int16_t hiddenMesh = Render::Models::NoHiddenMesh; // +0x58, the outline only
+    std::int16_t blendMesh = Render::Models::NoBlendMesh;   // +0x64
+    float* blendMeshLight = nullptr;                        // +0x68: read, and written by the class 4 helm
+    glm::vec3* storedLight = nullptr;                       // the light the 0x121b case writes (0x60ad23)
+    glm::vec2 uv{};                                         // +0x6c, +0x70
+    std::uint32_t stateFlags = 0;                           // +0x78: no outline with 0x4000
+    bool vertexLight = false;                               // +0xe8
+    std::span<const ObjectOutlinePass> outline;             // empty when the mode is not 1
+    float boneScale = 1.0f;                                 // 0x6c881c by the mode
+};
+
+struct ItemPart
+{
+    std::uint16_t model = 0;
+    std::uint8_t level = 0;
+    std::uint8_t excellent = 0;
+    std::uint8_t ancient = 0;
+    std::uint8_t skin = 0; // model + 0x98
+};
+
+// 0x60cf70
+[[nodiscard]] Core::Expected<void, std::string> DrawItemPart(Render::ModelBatch& batch,
+                                                             const Render::Models::IModelLibrary& models,
+                                                             const ItemPartOwner& owner, const ItemPart& part,
+                                                             Core::Duration frameClock, const ItemDrawContext& context,
+                                                             const std::function<void(const glm::vec3&)>& onPartBox);
+
+// +0x1f8 + k * 0x20: the head, the helm, the armor, the pants, the gloves and the boots. Without a model, no part.
+using WornParts = std::array<std::optional<ItemPart>, 6>;
+
+// 0x50d3dc..0x50d4f5: from the boots to the head, the class skin in each model and the class 4 helm.
+[[nodiscard]] Core::Expected<void, std::string>
+DrawWornParts(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models, const ItemPartOwner& owner,
+              const WornParts& parts, std::uint8_t characterClass, Core::Duration frameClock,
+              const ItemDrawContext& context, const std::function<void(const glm::vec3&)>& onPartBox);
 
 // 0x50d2aa..0x50d35e: un 0x20a con el subtipo 0xd1..0xd3 no lleva sus seis partes sino el cuerpo entero del esqueleto
 // (`model`, el subtipo: Skill\Skeleton01..03, que carga 0x615e36), sobre el cuerpo posado, con 0x60cf70(c, subtipo,

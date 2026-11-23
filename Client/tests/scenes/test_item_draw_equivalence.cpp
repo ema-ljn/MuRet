@@ -10,7 +10,6 @@
 #include "Render/ModelVertex.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/IModelLibrary.h"
-#include "Render/Models/ObjectState.h"
 #include "Render/Models/Pose.h"
 #include "Render/Models/Skeleton.h"
 #include "Render/Pass3D.h"
@@ -44,8 +43,8 @@
 #include <vector>
 
 // Task 1 of docs/superpowers/plans/2026-11-23-item-glow-unification.md: one worn part drawn by the first port
-// (DrawCharacter, CharacterDrawPass::Parts) and by the full port (DrawItemFromMeshes, as DrawThePart calls it) over
-// the same pose, and the first thing that differs. Each row names the difference of the plan that explains it.
+// (DrawCharacter, CharacterDrawPass::Parts) and by the full port (DrawWornParts) over the same pose, and the first
+// thing that differs. Each row names the difference of the plan that explains it.
 namespace
 {
 using Client::Data::Models::LoadModelFile;
@@ -63,16 +62,19 @@ using Client::Render::Models::CrtRandom;
 using Client::Render::Models::IModelLibrary;
 using Client::Render::Models::Skeleton;
 using Client::Scenes::DrawnCharacter;
-using Client::Scenes::DrawnObject;
 using Client::Scenes::ItemDrawContext;
+using Client::Scenes::ItemPart;
+using Client::Scenes::ItemPartOwner;
 using Client::Scenes::ItemSpecialDrawContext;
 using Client::Scenes::ObjectOutlinePass;
+using Client::Scenes::WornParts;
 
 constexpr std::uint16_t ArmorMale17 = 0x1212 + 16;
 constexpr std::uint16_t ArmorMale10 = 0x1212 + 9;
 constexpr std::uint16_t ArmorChrome = 0x1221;
 constexpr std::uint16_t ArmorClass = 0x221a;
 constexpr std::uint8_t SecondClassBit = 8;
+constexpr std::size_t ArmorPart = 2;
 
 // The clock of the selection trace, where the ancient pulse is at its floor (0.0029), and one where it is not (0.9).
 constexpr std::int64_t TraceClock = 26437420;
@@ -303,7 +305,8 @@ Drawn DrawFirst(const PartModels& models, const ItemDrawCase& drawn)
     return result;
 }
 
-// What DrawThePart (MonsterDrawing.cpp) does for one part, with the outline of a player (+0x88 in 1, +0x94 in 1.2).
+// What the worn parts draw (DrawWornParts) does for one armor, with the outline of a player (+0x88 in 1, +0x94 in
+// 1.2).
 Drawn DrawFull(const PartModels& models, const ItemDrawCase& drawn)
 {
     Drawn result;
@@ -311,30 +314,28 @@ Drawn DrawFull(const PartModels& models, const ItemDrawCase& drawn)
     const DrawnCharacter character = CharacterOf(drawn);
     const auto body = Client::Scenes::PoseCharacterBody(models, character);
     const Client::Core::Duration clock = std::chrono::milliseconds{drawn.clock};
-    if (!(character.alpha > 0.01f))
-    {
-        result.random = CrtRandom{}.State();
-        return result;
-    }
-    DrawnObject object;
-    object.model = drawn.model;
-    object.transform = character.object;
-    object.state = Client::Render::Models::ObjectState{};
-    object.color = character.light;
-    object.alpha = character.alpha;
+    constexpr float PlayerOutlineScale = 1.2f;
+    const auto inner = static_cast<float>(static_cast<double>(PlayerOutlineScale) -
+                                          static_cast<double>(std::bit_cast<float>(0x3ca3d70au)));
+    const std::array<ObjectOutlinePass, 2> passes{
+        {{PlayerOutlineScale,
+          Client::Render::Color{std::bit_cast<float>(0x3dcccccdu), std::bit_cast<float>(0x3cf5c28fu), 0.0f, 1.0f}},
+         {inner,
+          Client::Render::Color{std::bit_cast<float>(0x3f333333u), std::bit_cast<float>(0x3e4ccccdu), 0.0f, 1.0f}}}};
+    float blendMeshLight = 1.0f;
+    ItemPartOwner owner;
+    owner.transform = character.object;
+    owner.bones = body;
+    owner.light = character.light;
+    owner.alpha = character.alpha;
+    owner.blendMeshLight = &blendMeshLight;
     if (drawn.outlined)
-    {
-        constexpr float PlayerOutlineScale = 1.2f;
-        const auto inner = static_cast<float>(static_cast<double>(PlayerOutlineScale) -
-                                              static_cast<double>(std::bit_cast<float>(0x3ca3d70au)));
-        const std::array<ObjectOutlinePass, 2> passes{
-            {{PlayerOutlineScale,
-              Client::Render::Color{std::bit_cast<float>(0x3dcccccdu), std::bit_cast<float>(0x3cf5c28fu), 0.0f, 1.0f}},
-             {inner, Client::Render::Color{std::bit_cast<float>(0x3f333333u), std::bit_cast<float>(0x3e4ccccdu), 0.0f,
-                                           1.0f}}}};
-        Client::Scenes::DrawObjectOutline(result.batch, models, object, clock, body, passes);
-    }
-    const auto meshes = Client::Scenes::SkinObjectMeshes(models, object, body);
+        owner.outline = passes;
+    WornParts parts{};
+    parts[ArmorPart] = ItemPart{.model = drawn.model,
+                                .level = drawn.level,
+                                .excellent = drawn.excellent ? std::uint8_t{1} : std::uint8_t{0},
+                                .ancient = drawn.ancient ? std::uint8_t{1} : std::uint8_t{0}};
     const auto worldClock = static_cast<float>(drawn.clock);
     CrtRandom random;
     Client::Scenes::GameItemRenderState render;
@@ -349,9 +350,8 @@ Drawn DrawFull(const PartModels& models, const ItemDrawCase& drawn)
     context.glowPulse = render.glowPulse;
     context.selections = &render.selections;
     context.glowDetail = drawn.detail;
-    const auto done = Client::Scenes::DrawItemFromMeshes(result.batch, models, object, clock, meshes, drawn.level,
-                                                         drawn.excellent ? std::uint8_t{1} : std::uint8_t{0},
-                                                         drawn.ancient ? std::uint8_t{1} : std::uint8_t{0}, context);
+    const auto done =
+        Client::Scenes::DrawWornParts(result.batch, models, owner, parts, drawn.characterClass, clock, context, {});
     EXPECT_TRUE(done.HasValue()) << (done.HasValue() ? std::string{} : done.Error());
     result.random = random.State();
     return result;
@@ -400,8 +400,7 @@ INSTANTIATE_TEST_SUITE_P(
         Row{{.name = "Male10Level0", .model = ArmorMale10}, Same},
         Row{{.name = "ArmorChromeLevel0", .model = ArmorChrome}, {Aspect::State, 3}},
         Row{{.name = "ClassArmorClass0", .model = ArmorClass}, Same},
-        Row{{.name = "ClassArmorClass1", .model = ArmorClass + 1, .characterClass = 1}, {Aspect::State, 6}},
-        Row{{.name = "ClassArmorSecondClass", .model = ArmorClass + 5, .characterClass = SecondClassBit},
-            {Aspect::State, 6}}),
+        Row{{.name = "ClassArmorClass1", .model = ArmorClass + 1, .characterClass = 1}, Same},
+        Row{{.name = "ClassArmorSecondClass", .model = ArmorClass + 5, .characterClass = SecondClassBit}, Same}),
     [](const ::testing::TestParamInfo<Row>& param) { return std::string(param.param.drawn.name); });
 } // namespace

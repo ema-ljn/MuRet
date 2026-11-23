@@ -81,8 +81,8 @@ Core::Expected<void, std::string> AddDynamicLight(TerrainLighting* destination, 
 
 namespace
 {
-Core::Expected<void, std::string> EmitParticle(const ObjectStepGlobals& globals, const glm::vec3& angles,
-                                               const glm::vec3& position, const glm::vec3& light, std::int32_t type,
+Core::Expected<void, std::string> EmitParticle(const ObjectStepGlobals& globals, const glm::vec3& position,
+                                               const glm::vec3& angles, const glm::vec3& light, std::int32_t type,
                                                std::int32_t subtype, Render::Models::CrtRandom& random)
 {
     if (globals.particles == nullptr)
@@ -180,7 +180,7 @@ Core::Expected<void, std::string> EmitObjectFire(std::int32_t fireClass, const g
         if ((random.Next() & 1) == 0)
         {
             const int subtype = random.Next() & 3;
-            const auto emitted = EmitParticle(globals, angles, position, light, FireParticle, subtype, random);
+            const auto emitted = EmitParticle(globals, position, angles, light, FireParticle, subtype, random);
             if (!emitted.HasValue())
             {
                 return emitted;
@@ -190,7 +190,7 @@ Core::Expected<void, std::string> EmitObjectFire(std::int32_t fireClass, const g
     }
     if ((fireClass == 1 || fireClass == 2) && (random.Next() & 1) == 0)
     {
-        return EmitParticle(globals, angles, position, objectLight, BreathParticle,
+        return EmitParticle(globals, position, angles, objectLight, BreathParticle,
                             fireClass == 1 ? 0 : WorldSmokeSubtype, random);
     }
     return {};

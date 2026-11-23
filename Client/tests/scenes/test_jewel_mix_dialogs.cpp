@@ -1,8 +1,8 @@
+#include "Network/Xor32Packet.h"
 #include "Scenes/GameDialogSteps.h"
 
 #include "Core/Expected.h"
 #include "Input/InputState.h"
-#include "Network/Crypto/Xor32.h"
 #include "Network/Delivery.h"
 #include "Network/Packet.h"
 #include "Protocol/Outgoing.h"
@@ -40,7 +40,7 @@
 // Devias (2) y Noria (3), el mapa del NPC de las joyas.
 namespace
 {
-using Client::Network::Crypto::Xor32Decode;
+using Client::Network::Xor32Decode;
 using Client::Render::Models::CrtRandom;
 using Client::Scenes::GameUiContext;
 using Client::Scenes::WorldState;

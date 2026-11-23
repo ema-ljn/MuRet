@@ -1,3 +1,4 @@
+#include "Network/Xor32Packet.h"
 #include "Scenes/GameInventoryHud.h"
 
 #include "App/WindowState.h"
@@ -10,7 +11,6 @@
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainGrid.h"
 #include "Data/Text/TextTable.h"
-#include "Network/Crypto/Xor32.h"
 #include "Protocol/Inventory.h"
 #include "Protocol/Outgoing.h"
 #include "Protocol/Trade.h"
@@ -295,7 +295,7 @@ protected:
              .send = [&sent](Client::Protocol::Outgoing packet) { sent.push_back(std::move(packet)); }});
         ASSERT_TRUE(asked.HasValue()) << asked.Error();
         ASSERT_EQ(sent.size(), 1U);
-        const auto plain = Client::Network::Crypto::Xor32Decode(sent[0].packet);
+        const auto plain = Client::Network::Xor32Decode(sent[0].packet);
         ASSERT_EQ(plain.Bytes().size(), 5U);
         EXPECT_EQ(plain.Bytes()[2], std::byte{0x36});
         EXPECT_EQ(plain.Bytes()[3], std::byte{0x04});

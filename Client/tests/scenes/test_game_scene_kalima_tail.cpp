@@ -1,3 +1,4 @@
+#include "Render/Models/IModelLibrary.h"
 #include "Scenes/GameTailPasses.h"
 
 #include "Core/Expected.h"
@@ -64,7 +65,7 @@ public:
     GameTailStage failingStage = GameTailStage::KalimaWater;
     std::uint8_t failingMode = 255;
 };
-class SpriteTextures final : public Client::Scenes::IModelLibrary
+class SpriteTextures final : public Client::Render::Models::IModelLibrary
 {
 public:
     const Client::Data::Models::Model* Find(std::uint16_t) const override

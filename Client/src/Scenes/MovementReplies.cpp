@@ -13,7 +13,6 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/ActorWalk.h"
 #include "Scenes/BlastEffectCalls.h"
-#include "Scenes/CharacterDrawing.h"
 #include "Scenes/CrywolfContract.h"
 #include "Scenes/DamageNumbers.h"
 #include "Scenes/GameDrawTail.h"

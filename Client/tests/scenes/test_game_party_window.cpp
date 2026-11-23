@@ -1,3 +1,4 @@
+#include "Network/Xor32Packet.h"
 #include "Scenes/GamePartyWindow.h"
 
 #include "App/WindowState.h"
@@ -26,7 +27,6 @@
 #include "support/RecordingTextDrawer.h"
 #include "support/SceneDataFiles.h"
 
-#include "Network/Crypto/Xor32.h"
 #include "Network/Packet.h"
 #include "Protocol/Outgoing.h"
 
@@ -152,7 +152,7 @@ public:
     // El 43 que echa, como sale: los bytes sin el XOR32.
     void SendGamePacket(Client::Protocol::Outgoing outgoing) override
     {
-        const Client::Network::Packet decoded = Client::Network::Crypto::Xor32Decode(outgoing.packet);
+        const Client::Network::Packet decoded = Client::Network::Xor32Decode(outgoing.packet);
         std::string bytes;
         for (const std::byte b : decoded.Bytes())
             bytes += std::format("{:02X} ", std::to_integer<unsigned>(b));

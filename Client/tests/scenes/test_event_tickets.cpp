@@ -1,7 +1,7 @@
+#include "Network/Xor32Packet.h"
 #include "Scenes/GameUi.h"
 
 #include "Input/InputState.h"
-#include "Network/Crypto/Xor32.h"
 #include "Protocol/Outgoing.h"
 #include "Render/Models/Cloth.h"
 #include "Scenes/InventoryMoves.h"
@@ -63,7 +63,7 @@ TEST(EventTicketsTest, TheRightClickRequestsEachEventAndKeepsOnlyTheChaosTicket)
                                                             .inventory = &services});
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         ASSERT_EQ(sent.size(), 1u);
-        const auto decoded = Client::Network::Crypto::Xor32Decode(sent[0].packet);
+        const auto decoded = Client::Network::Xor32Decode(sent[0].packet);
         EXPECT_TRUE(Client::Tests::SameBytes(decoded.Bytes(), Client::Tests::Bytes({0xc1, 4, 0x91, kind})));
         EXPECT_FALSE(runtime.ui.rightClick);
         EXPECT_EQ(item.id, type);

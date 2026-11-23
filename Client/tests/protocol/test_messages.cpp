@@ -1,5 +1,5 @@
+#include "Network/Xor32Packet.h"
 #include "Protocol/Messages.h"
-#include "Network/Crypto/Xor32.h"
 #include "Network/Delivery.h"
 #include "Protocol/OptionData.h"
 
@@ -160,6 +160,6 @@ TEST(MessagesProtocolTest, WritesTheOptionData)
     std::vector<std::byte> expected = Bytes({0xc1, 0x1c, 0xf3, 0x30});
     for (const std::uint8_t value : body)
         expected.push_back(std::byte{value});
-    EXPECT_TRUE(SameBytes(Client::Network::Crypto::Xor32Decode(outgoing.packet).Bytes(), expected));
+    EXPECT_TRUE(SameBytes(Client::Network::Xor32Decode(outgoing.packet).Bytes(), expected));
 }
 } // namespace

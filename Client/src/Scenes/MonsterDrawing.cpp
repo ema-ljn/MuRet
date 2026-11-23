@@ -5,6 +5,7 @@
 #include "Data/Models/Model.h"
 #include "GameLogic/CharacterAppearance.h"
 #include "Render/ModelBatch.h"
+#include "Render/Models/IModelLibrary.h"
 #include "Render/SpriteVertex.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/HalfLifeMath.h"
@@ -270,8 +271,8 @@ std::optional<std::int16_t> PoseKeyOf(const Render::Models::Skeleton& skeleton,
 struct MonsterFrame
 {
     Render::ModelBatch& batch;
-    const IModelLibrary& items;
-    const IModelLibrary& fauna;
+    const Render::Models::IModelLibrary& items;
+    const Render::Models::IModelLibrary& fauna;
     WorldState& world;
     ActorState& actor;
     const GameCharacterPass& pass;
@@ -863,7 +864,7 @@ Result DrawThePhoenix(MonsterFrame& frame)
 }
 
 // Lo que 0x509340 lee del frame de 0x50ba30, con la biblioteca `models`.
-GameHangingPass HangingPassOf(MonsterFrame& frame, const IModelLibrary& models)
+GameHangingPass HangingPassOf(MonsterFrame& frame, const Render::Models::IModelLibrary& models)
 {
     const GameCharacterPass& pass = frame.pass;
     return GameHangingPass{.batch = frame.batch,
@@ -1534,14 +1535,14 @@ Core::Expected<float, std::string> ShadowGroundOf(const WorldState& world, const
     return F32(*ground);
 }
 
-Core::Expected<void, std::string> DrawGameMonster(Render::ModelBatch& batch, const IModelLibrary& models,
-                                                  WorldState& world, std::size_t slot, const GameCharacterPass& pass,
-                                                  bool originalFrame)
+Core::Expected<void, std::string> DrawGameMonster(Render::ModelBatch& batch,
+                                                  const Render::Models::IModelLibrary& models, WorldState& world,
+                                                  std::size_t slot, const GameCharacterPass& pass, bool originalFrame)
 {
     ActorState& stored = world.Actors()[slot];
     if (pass.clothWorld == nullptr)
         return Core::Unexpected<std::string>("0x50db57: falta el flujo global de rand del dibujo de los personajes");
-    const IModelLibrary& fauna = world.FaunaResources();
+    const Render::Models::IModelLibrary& fauna = world.FaunaResources();
     const Render::Models::Skeleton* skeleton = fauna.SkeletonOf(stored.type);
     if (skeleton == nullptr)
         return Core::Unexpected(std::format("0x50ba82: falta el modelo {:#x}", stored.type));

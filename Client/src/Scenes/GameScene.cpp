@@ -1,4 +1,5 @@
 #include "Scenes/GameScene.h"
+#include "Render/Models/IModelLibrary.h"
 #include "Scenes/MapBanner.h"
 #include "Scenes/SiegeBattleUi.h"
 #include "Scenes/MonsterSounds.h"
@@ -208,10 +209,10 @@ std::uint8_t HeroCellAttribute(ActorState& hero, const Data::Terrain::TerrainAtt
 }
 } // namespace
 
-GameScene::GameScene(const SceneContext& context, App::ServerSession* session, const IModelLibrary* models,
-                     const Data::Tables::ItemTable* items, const Render::Models::ModelTextureSlots* gameSlots,
-                     const Data::Tables::GateTable* gates, const Data::Tables::SkillTable* skills,
-                     const Data::Text::TextTable* texts, GameChatTables chat)
+GameScene::GameScene(const SceneContext& context, App::ServerSession* session,
+                     const Render::Models::IModelLibrary* models, const Data::Tables::ItemTable* items,
+                     const Render::Models::ModelTextureSlots* gameSlots, const Data::Tables::GateTable* gates,
+                     const Data::Tables::SkillTable* skills, const Data::Text::TextTable* texts, GameChatTables chat)
     : m_context(context), m_session(session), m_models(models), m_items(items), m_gameSlots(gameSlots), m_gates(gates),
       m_skills(skills), m_texts(texts), m_chatTables(chat), m_windowTextures(context.textures, WindowTextureSet),
       m_sandTextures(context.textures, SandTextureSet), m_guildMarks(context.textures), m_tiles(context.textures)

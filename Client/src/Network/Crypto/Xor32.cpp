@@ -1,7 +1,5 @@
 #include "Network/Crypto/Xor32.h"
 
-#include "Network/Packet.h"
-
 #include <algorithm>
 #include <cstddef>
 #include <span>
@@ -21,12 +19,6 @@ std::byte KeyAt(std::size_t index, std::size_t keyShift)
 {
     return static_cast<std::byte>(Xor32Key[(index + keyShift) & KeyMask]);
 }
-
-// A este nivel solo C1 y C2 lo llevan.
-bool HasXor32(PacketType type)
-{
-    return type == PacketType::C1 || type == PacketType::C2;
-}
 } // namespace
 
 void Xor32EncodeBytes(std::span<std::byte> bytes, std::size_t first, std::size_t keyShift)
@@ -45,25 +37,5 @@ void Xor32DecodeBytes(std::span<std::byte> bytes, std::size_t first, std::size_t
     {
         bytes[i - 1] ^= KeyAt(i - 1, keyShift) ^ bytes[i - 2];
     }
-}
-
-// MutableBody() empieza en el opcode: su byte j es el HeaderSize + j del paquete, así que la clave va
-// corrida en HeaderSize, y el opcode, su byte 0, queda en claro.
-Packet Xor32Encode(Packet packet)
-{
-    if (HasXor32(packet.Type()))
-    {
-        Xor32EncodeBytes(packet.MutableBody(), FirstChainable, HeaderSize(packet.Type()));
-    }
-    return packet;
-}
-
-Packet Xor32Decode(Packet packet)
-{
-    if (HasXor32(packet.Type()))
-    {
-        Xor32DecodeBytes(packet.MutableBody(), FirstChainable, HeaderSize(packet.Type()));
-    }
-    return packet;
 }
 } // namespace Client::Network::Crypto

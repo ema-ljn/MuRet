@@ -1,6 +1,6 @@
+#include "Network/Xor32Packet.h"
 #include "Protocol/Chat/ChatSend.h"
 
-#include "Network/Crypto/Xor32.h"
 #include "Network/Delivery.h"
 #include "Protocol/Outgoing.h"
 
@@ -19,7 +19,7 @@
 namespace
 {
 using Client::Network::Delivery;
-using Client::Network::Crypto::Xor32Decode;
+using Client::Network::Xor32Decode;
 using Client::Protocol::Chat::ChatNameSize;
 using Client::Protocol::Chat::ChatTextBytes;
 using Client::Protocol::Chat::ChatTextLimit;

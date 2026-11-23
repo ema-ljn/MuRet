@@ -2,9 +2,9 @@
 #include "Core/Expected.h"
 #include "Data/Textures/TextureSet.h"
 #include "Render/ITextureStore.h"
+#include "Render/Models/IModelLibrary.h"
 #include "Render/Models/ModelTextureSlots.h"
 #include "Render/TextureSlot.h"
-#include "Scenes/CharacterDrawing.h"
 #include <cstdint>
 #include "Scenes/TextureMetadata.h"
 #include <limits>
@@ -21,7 +21,8 @@ Render::ITextureStore* ModelTextureTable::Store() const
 {
     return m_store;
 }
-void ModelTextureTable::Seed(const Render::Models::ModelTextureSlots& slots, const IModelLibrary* models)
+void ModelTextureTable::Seed(const Render::Models::ModelTextureSlots& slots,
+                             const Render::Models::IModelLibrary* models)
 {
     if (m_seeded)
         return;

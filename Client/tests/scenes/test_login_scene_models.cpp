@@ -1,3 +1,4 @@
+#include "Render/Models/IModelLibrary.h"
 #include "Scenes/LoginScene.h"
 #include "Scenes/WorldState.h"
 
@@ -81,10 +82,10 @@ using Client::Render::ModelVertex;
 using Client::Render::TextureSlot;
 using Client::Render::Models::ActionInfo;
 using Client::Render::Models::BoneKey;
+using Client::Render::Models::IModelLibrary;
 using Client::Render::Models::Skeleton;
 using Client::Render::Models::SkeletonBone;
 using Client::Scenes::GameData;
-using Client::Scenes::IModelLibrary;
 using Client::Scenes::LoginCharacterLight;
 using Client::Scenes::LoginCharacterTransform;
 using Client::Scenes::LoginLogo;

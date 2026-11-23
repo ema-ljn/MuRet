@@ -10,7 +10,6 @@
 #include "Scenes/ActorActions.h"
 #include "Scenes/ActorEquipment.h"
 #include "Scenes/ActorState.h"
-#include "Scenes/CharacterDrawing.h"
 #include "Scenes/DarkHorse.h"
 #include "Scenes/HelperTable.h"
 #include "Scenes/MonsterCreation.h"

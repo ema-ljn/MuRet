@@ -1,3 +1,4 @@
+#include "Render/Models/IModelLibrary.h"
 #include "Scenes/UiItemDrawing.h"
 
 #include "App/WindowState.h"
@@ -378,7 +379,7 @@ TEST(UiItemDrawingTest, TheScaleTableRewritesTheLevelAndTheAngles)
 namespace
 {
 // Un triángulo con el vértice 0 en el origen del hueso: la x, la y y la z del primero son la posición del objeto.
-class UiModels final : public Client::Scenes::IModelLibrary
+class UiModels final : public Client::Render::Models::IModelLibrary
 {
 public:
     UiModels()

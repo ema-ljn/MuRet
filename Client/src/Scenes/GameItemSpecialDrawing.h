@@ -26,9 +26,13 @@ namespace Client::World
 {
 class FrameSprites;
 }
-namespace Client::Scenes
+namespace Client::Render::Models
 {
 class IModelLibrary;
+}
+
+namespace Client::Scenes
+{
 struct DrawnObject;
 
 // Los argumentos y globales públicos que lee 609640; pulse conserva 6c9de4/6c9de8.
@@ -50,7 +54,7 @@ struct ItemSpecialDrawContext
 
 // 609640 completo, incluido RenderBody del default, sobre la pose retenida del caller.
 [[nodiscard]] Core::Expected<void, std::string>
-DrawSpecialItemMeshes(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnObject& object,
+DrawSpecialItemMeshes(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models, const DrawnObject& object,
                       Core::Duration frameClock, std::span<const Render::Models::SkinnedMesh> meshes,
                       const ItemSpecialDrawContext& context = {});
 } // namespace Client::Scenes

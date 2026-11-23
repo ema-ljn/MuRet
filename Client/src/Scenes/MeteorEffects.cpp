@@ -5,6 +5,7 @@
 #include "Render/ModelBatch.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/HalfLifeMath.h"
+#include "Render/Models/IModelLibrary.h"
 #include "Render/Models/OriginalRetainedMath.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Render/Models/Pose.h"
@@ -259,7 +260,8 @@ Core::Expected<void, std::string> StepTheMeteor(World::ModelEffect& effect, cons
     return SparkTheBones(effect, *skeleton, context);
 }
 
-Core::Expected<bool, std::string> DrawTheMeteorBody(Render::ModelBatch& batch, const IModelLibrary& models,
+Core::Expected<bool, std::string> DrawTheMeteorBody(Render::ModelBatch& batch,
+                                                    const Render::Models::IModelLibrary& models,
                                                     World::ModelEffect& effect, const DrawnObject& object,
                                                     Core::Duration frameClock, std::optional<float> worldClock)
 {

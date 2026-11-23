@@ -21,6 +21,7 @@
 namespace Client::Render::Models
 {
 class CrtRandom;
+class IModelLibrary;
 struct Skeleton;
 } // namespace Client::Render::Models
 namespace Client::Render::Text
@@ -48,7 +49,6 @@ struct WorldTerrain;
 // (0x505de0)".
 namespace Client::Scenes
 {
-class IModelLibrary;
 class WorldState;
 class PlayerActionSpeeds;
 
@@ -87,7 +87,7 @@ struct CharacterStepContext
     const Data::Tables::SkillTable* skills = nullptr;
     // Los esqueletos de los demás modelos, para 0x4f5660 (SetActorDie) con el que se muere desde el paso 15 (CL9 hito
     // 3). nullptr: un modelo que no es el 0x20a corta ahí.
-    const IModelLibrary* models = nullptr;
+    const Render::Models::IModelLibrary* models = nullptr;
     // La carga de la escena 2 o 4; vacío, el mapa del juego. El TerrainWall se escribe ahí mismo.
     const World::WorldTerrain* terrain = nullptr;
     const Render::Models::Skeleton* darkSpiritSkeleton = nullptr;

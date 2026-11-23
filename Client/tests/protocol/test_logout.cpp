@@ -1,6 +1,6 @@
+#include "Network/Xor32Packet.h"
 #include "Protocol/Connection/Logout.h"
 
-#include "Network/Crypto/Xor32.h"
 #include "Network/Delivery.h"
 #include "Network/Packet.h"
 #include "Protocol/Outgoing.h"
@@ -74,7 +74,7 @@ TEST(LogoutTest, WritesTheClearLogoutReport)
     const Outgoing report = WriteClearLogoutReport();
 
     EXPECT_EQ(report.delivery, Delivery::Encrypted);
-    const Client::Network::Packet clear = Client::Network::Crypto::Xor32Decode(report.packet);
+    const Client::Network::Packet clear = Client::Network::Xor32Decode(report.packet);
     EXPECT_TRUE(SameBytes(clear.Bytes(), Bytes({0xC1, 0x06, 0xF1, 0x03, 0x00, 0xF1})));
 }
 
@@ -84,7 +84,7 @@ TEST(LogoutTest, WritesTheLogoutRequest)
     const Outgoing request = WriteLogoutRequest(LogoutReturnsToServerList);
 
     EXPECT_EQ(request.delivery, Delivery::Encrypted);
-    const Client::Network::Packet clear = Client::Network::Crypto::Xor32Decode(request.packet);
+    const Client::Network::Packet clear = Client::Network::Xor32Decode(request.packet);
     EXPECT_TRUE(SameBytes(clear.Bytes(), Bytes({0xC1, 0x05, 0xF1, 0x02, 0x02})));
 }
 

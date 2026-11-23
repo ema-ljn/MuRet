@@ -11,7 +11,6 @@
 #include "Render/Models/Animation.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
-#include "Scenes/CharacterDrawing.h"
 #include "Scenes/ChatReceive.h"
 #include "Scenes/ChatBubbles.h"
 #include "Scenes/CrywolfContract.h"

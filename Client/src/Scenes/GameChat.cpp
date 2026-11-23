@@ -9,10 +9,10 @@
 #include "Protocol/Duel.h"
 #include "Protocol/Movement.h"
 #include "Render/Models/Cloth.h"
+#include "Render/Models/IModelLibrary.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActionSend.h"
 #include "Scenes/ActorState.h"
-#include "Scenes/CharacterDrawing.h"
 #include "Scenes/Emote.h"
 #include "Scenes/FaunaModels.h"
 #include "Scenes/GameCommandsWindow.h"
@@ -225,9 +225,9 @@ Core::Expected<void, std::string> DoTheEmotes(const GameChatContext& context, st
         return {};
     // 0x576abf→0x4ea030 lee el arreglo global: los modelos cargados por el viewport también están disponibles.
     // Fauna conserva esos recursos por separado y puede existir antes de ligar los modelos del primer dibujo.
-    const IModelLibrary* models = context.world.FaunaResources().SkeletonOf(hero.type) != nullptr
-                                      ? &context.world.FaunaResources()
-                                      : context.models;
+    const Render::Models::IModelLibrary* models = context.world.FaunaResources().SkeletonOf(hero.type) != nullptr
+                                                      ? &context.world.FaunaResources()
+                                                      : context.models;
     if (models == nullptr)
         return Core::Unexpected(std::string("0x576a60: el emote sin los modelos (0x4ea030)"));
     const ActionSender send = [&context](std::uint8_t direction, std::uint8_t action)

@@ -1,9 +1,9 @@
+#include "Render/Models/IModelLibrary.h"
 #include "Scenes/CharacterAnimation.h"
 
 #include "Data/Models/Model.h"
 #include "Render/Models/Skeleton.h"
 #include "Render/TextureSlot.h"
-#include "Scenes/CharacterDrawing.h"
 #include "Scenes/PlayerActionSpeeds.h"
 #include "support/PlayerActors.h"
 
@@ -14,7 +14,7 @@
 
 namespace
 {
-class WalkingModels : public Client::Scenes::IModelLibrary
+class WalkingModels : public Client::Render::Models::IModelLibrary
 {
 public:
     const Client::Data::Models::Model* Find(std::uint16_t) const override

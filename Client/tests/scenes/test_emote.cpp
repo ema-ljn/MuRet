@@ -1,15 +1,15 @@
+#include "Network/Xor32Packet.h"
+#include "Render/Models/IModelLibrary.h"
 #include "Scenes/Emote.h"
 
 #include "Data/Models/Model.h"
 #include "Data/Models/PlayerModels.h"
-#include "Network/Crypto/Xor32.h"
 #include "Network/Delivery.h"
 #include "Protocol/Movement.h"
 #include "Protocol/Outgoing.h"
 #include "Render/Models/Skeleton.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/ActorState.h"
-#include "Scenes/CharacterDrawing.h"
 #include "UI/Emotes.h"
 
 #include "support/Bytes.h"
@@ -40,7 +40,7 @@ constexpr std::uint8_t ElfClass = 2;
 constexpr std::uint16_t TransformedModel = 0x30;
 
 // Player.bmd con 205 acciones y el modelo de un transformado, con las que diga el test; ninguno más.
-class EmoteModels final : public Client::Scenes::IModelLibrary
+class EmoteModels final : public Client::Render::Models::IModelLibrary
 {
 public:
     const Client::Data::Models::Model* Find(std::uint16_t) const override
@@ -79,7 +79,7 @@ protected:
         for (const Client::Protocol::Outgoing& sent : m_sent)
         {
             EXPECT_EQ(sent.delivery, Client::Network::Delivery::Clear);
-            EXPECT_TRUE(SameBytes(Client::Network::Crypto::Xor32Decode(sent.packet).Bytes(),
+            EXPECT_TRUE(SameBytes(Client::Network::Xor32Decode(sent.packet).Bytes(),
                                   Bytes({0xc1, 5, 0x18, direction, action})));
         }
     }

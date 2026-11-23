@@ -6,17 +6,6 @@ App/ServerSession.cpp	App/SessionState.h	game/Session	app
 App/ServerSession.h	App/IChatRoomLinks.h	game/Session	app
 App/ServerSession.h	App/ServerAddress.h	game/Session	app
 App/ServerSession.h	App/SessionState.h	game/Session	app
-Network/Crypto/Xor32.cpp	Network/Packet.h	engine/Crypto	engine/Network
-Network/Crypto/Xor32.h	Network/Packet.h	engine/Crypto	engine/Network
-Platform/SdlAudio.cpp	Audio/SoundCatalog.h	engine/Platform	game/Sound
-Render/Gl/GlFrameTarget.cpp	Scenes/SceneCanvas.h	engine/Render	game/Scenes
-Render/Gl/GlFrameTarget.cpp	Scenes/SceneText.h	engine/Render	game/Scenes
-Render/Gl/GlFrameTarget.h	Scenes/IFrameTarget.h	engine/Render	game/Scenes
-Render/Gl/GlFrameTarget.h	Scenes/IWorldView.h	engine/Render	game/Scenes
-Render/Gl/GlFrameTarget.h	Scenes/SceneCanvas.h	engine/Render	game/Scenes
-Render/Gl/GlFrameTarget.h	Scenes/SceneText.h	engine/Render	game/Scenes
-Render/Gl/GlScreenReader.h	Scenes/Screenshots.h	engine/Render	game/Scenes
-Render/ModelBatchParticleBackend.cpp	Scenes/CharacterDrawing.h	engine/Render	game/Actors
 Scenes/ActionReply.cpp	Scenes/ActorCombat.h	game/Actors	game/Combat
 Scenes/ActionReply.cpp	Scenes/ChatReceive.h	game/Actors	game/Chat
 Scenes/ActionReply.cpp	Scenes/MonsterCreation.h	game/Actors	game/Monsters
@@ -29,7 +18,6 @@ Scenes/ActorCharacterSet.cpp	Scenes/HelperTable.h	game/Actors	game/Pets
 Scenes/ActorCharacterSet.cpp	Scenes/WorldEntry.h	game/Actors	game/Session
 Scenes/ActorCharacterSet.cpp	Scenes/WorldTransitionSupport.h	game/Actors	game/Session
 Scenes/ActorCombat.cpp	Scenes/ActorState.h	game/Combat	game/Actors
-Scenes/ActorCombat.cpp	Scenes/CharacterDrawing.h	game/Combat	game/Actors
 Scenes/ActorCombat.cpp	Scenes/WorldEntry.h	game/Combat	game/Session
 Scenes/ActorCreation.cpp	Scenes/HelperTable.h	game/Actors	game/Pets
 Scenes/ActorDying.cpp	Scenes/SceneId.h	game/Actors	game/Scenes
@@ -231,7 +219,6 @@ Scenes/CharacterStep.h	Scenes/GameDrawTail.h	game/Actors	game/Scenes
 Scenes/CharacterStep.h	Scenes/SceneId.h	game/Actors	game/Scenes
 Scenes/ChatBubbleDraw.cpp	Scenes/ActorState.h	game/Chat	game/Actors
 Scenes/ChatBubbleDraw.cpp	Scenes/GameProjection.h	game/Chat	game/Scenes
-Scenes/ChatBubbleDraw.cpp	Scenes/ITextDrawer.h	game/Chat	game/Scenes
 Scenes/ChatBubbleDraw.cpp	Scenes/PersonalShopTitles.h	game/Chat	game/PersonalShop
 Scenes/ChatBubbleDraw.cpp	Scenes/ShopSigns.h	game/Chat	game/PersonalShop
 Scenes/ChatBubbles.cpp	Scenes/ActorState.h	game/Chat	game/Actors
@@ -294,10 +281,8 @@ Scenes/EventNpcWindows.cpp	Scenes/GameHud.h	game/Events	game/Hud
 Scenes/EventNpcWindows.cpp	Scenes/GameUi.h	game/Events	game/Hud
 Scenes/EventNpcWindows.cpp	Scenes/GameWindowDrawing.h	game/Events	game/Hud
 Scenes/EventPackets.cpp	Scenes/ActorState.h	game/Events	game/Actors
-Scenes/EventPackets.cpp	Scenes/CharacterDrawing.h	game/Events	game/Actors
 Scenes/EventPackets.cpp	Scenes/GamePanels.h	game/Events	game/Hud
 Scenes/EventPackets.cpp	World/ModelEffects.h	game/Events	game/Effects
-Scenes/FaunaBirdHandlers.cpp	Scenes/CharacterDrawing.h	game/Fauna	game/Actors
 Scenes/FaunaDrawing.cpp	Scenes/CharacterDrawing.h	game/Fauna	game/Actors
 Scenes/FaunaEffects.cpp	Scenes/FaunaJointCreation.h	game/Fauna	game/Joints
 Scenes/FaunaEffects.cpp	World/ModelEffects.h	game/Fauna	game/Effects
@@ -310,8 +295,6 @@ Scenes/FaunaJointCreation.cpp	World/IFishStepServices.h	game/Joints	game/Fauna
 Scenes/FaunaJointCreation.cpp	World/ModelEffects.h	game/Joints	game/Effects
 Scenes/FaunaJointCreation.h	Scenes/GameDrawTail.h	game/Joints	game/Scenes
 Scenes/FaunaJointCreation.h	World/IFishStepServices.h	game/Joints	game/Fauna
-Scenes/FaunaModels.cpp	Scenes/CharacterDrawing.h	game/Assets	game/Actors
-Scenes/FaunaModels.h	Scenes/CharacterDrawing.h	game/Assets	game/Actors
 Scenes/FaunaMotion.cpp	World/ObjectAlpha.h	game/Fauna	game/Effects
 Scenes/FaunaStep.cpp	Scenes/CharacterDrawing.h	game/Fauna	game/Actors
 Scenes/FireBreathEffect.cpp	World/WorldObjectStepServices.h	game/Effects	game/WorldObjects
@@ -325,7 +308,6 @@ Scenes/FloorItemActions.cpp	Scenes/OwnCharacterRecord.h	game/Items	game/Player
 Scenes/FloorItemNames.cpp	Scenes/GameDrawTail.h	game/Items	game/Scenes
 Scenes/FloorItemNames.cpp	Scenes/GameHud.h	game/Items	game/Hud
 Scenes/FloorItemNames.cpp	Scenes/HudText.h	game/Items	game/Hud
-Scenes/FloorItemNames.cpp	Scenes/ITextDrawer.h	game/Items	game/Scenes
 Scenes/FloorItemNames.cpp	Scenes/ItemTooltipParts.h	game/Items	game/Tooltips
 Scenes/FloorItemPackets.cpp	Scenes/CharacterDrawing.h	game/Items	game/Actors
 Scenes/FloorItemPackets.cpp	Scenes/GameDrawTail.h	game/Items	game/Scenes
@@ -362,7 +344,6 @@ Scenes/GameCharacters.cpp	Scenes/SocialState.h	game/Actors	game/Social
 Scenes/GameCharacters.h	Scenes/GameDrawTail.h	game/Actors	game/Scenes
 Scenes/GameChat.cpp	Scenes/ActionSend.h	game/Chat	game/Actors
 Scenes/GameChat.cpp	Scenes/ActorState.h	game/Chat	game/Actors
-Scenes/GameChat.cpp	Scenes/CharacterDrawing.h	game/Chat	game/Actors
 Scenes/GameChat.cpp	Scenes/Emote.h	game/Chat	game/Actors
 Scenes/GameChat.cpp	Scenes/GameCommandsWindow.h	game/Chat	game/Hud
 Scenes/GameChat.cpp	Scenes/GamePanels.h	game/Chat	game/Hud
@@ -371,7 +352,6 @@ Scenes/GameChat.cpp	Scenes/SocialState.h	game/Chat	game/Social
 Scenes/GameChat.cpp	UI/FriendWindows.h	game/Chat	game/Messenger
 Scenes/GameCommandsWindow.cpp	Scenes/ActionSend.h	game/Hud	game/Actors
 Scenes/GameCommandsWindow.cpp	Scenes/ActorState.h	game/Hud	game/Actors
-Scenes/GameCommandsWindow.cpp	Scenes/CharacterDrawing.h	game/Hud	game/Actors
 Scenes/GameCommandsWindow.cpp	Scenes/ChatBubbles.h	game/Hud	game/Chat
 Scenes/GameCommandsWindow.cpp	Scenes/ChatReceive.h	game/Hud	game/Chat
 Scenes/GameCommandsWindow.cpp	Scenes/GameChat.h	game/Hud	game/Chat
@@ -391,7 +371,6 @@ Scenes/GameDialogDrawing.cpp	Scenes/ChatBubbles.h	game/Hud	game/Chat
 Scenes/GameDialogDrawing.cpp	Scenes/EventDrawing.h	game/Hud	game/Events
 Scenes/GameDialogDrawing.cpp	Scenes/GameMovementState.h	game/Hud	game/Movement
 Scenes/GameDialogDrawing.cpp	Scenes/GuildState.h	game/Hud	game/Guild
-Scenes/GameDialogDrawing.cpp	Scenes/ITextDrawer.h	game/Hud	game/Scenes
 Scenes/GameDialogDrawing.cpp	Scenes/JewelBundleList.h	game/Hud	game/ChaosMix
 Scenes/GameDialogDrawing.cpp	Scenes/NpcWindowState.h	game/Hud	game/Npc
 Scenes/GameDialogDrawing.cpp	Scenes/SocialState.h	game/Hud	game/Social
@@ -437,7 +416,6 @@ Scenes/GameHover.cpp	Scenes/ActorState.h	game/Hud	game/Actors
 Scenes/GameHover.cpp	Scenes/ChatBubbles.h	game/Hud	game/Chat
 Scenes/GameHover.cpp	Scenes/FloorItemNames.h	game/Hud	game/Items
 Scenes/GameHover.cpp	Scenes/GameDrawTail.h	game/Hud	game/Scenes
-Scenes/GameHover.cpp	Scenes/ITextDrawer.h	game/Hud	game/Scenes
 Scenes/GameHover.cpp	Scenes/PersonalShopTitles.h	game/Hud	game/PersonalShop
 Scenes/GameHover.cpp	Scenes/SocialState.h	game/Hud	game/Social
 Scenes/GameHud.cpp	Scenes/ActorState.h	game/Hud	game/Actors
@@ -475,7 +453,6 @@ Scenes/GameHud.cpp	UI/ChatLog.h	game/Hud	game/Chat
 Scenes/GameHud.cpp	UI/ChatLogDraw.h	game/Hud	game/Chat
 Scenes/GameHud.cpp	UI/LetterWindowsDraw.h	game/Hud	game/Messenger
 Scenes/GameHud.cpp	World/ItemState.h	game/Hud	game/Items
-Scenes/GameHud.h	Scenes/ITextDrawer.h	game/Hud	game/Scenes
 Scenes/GameInventoryHud.cpp	Scenes/ActorState.h	game/Hud	game/Actors
 Scenes/GameInventoryHud.cpp	Scenes/CastleWindows.h	game/Hud	game/CastleSiege
 Scenes/GameInventoryHud.cpp	Scenes/CharacterDrawing.h	game/Hud	game/Actors
@@ -506,9 +483,6 @@ Scenes/GameLetters.cpp	Scenes/GameUi.h	game/Messenger	game/Hud
 Scenes/GameLetters.h	App/IChatRoomLinks.h	game/Messenger	app
 Scenes/GameLetters.h	App/WorldEvent.h	game/Messenger	game/Session
 Scenes/GameMessages.cpp	Scenes/ActorState.h	game/Chat	game/Actors
-Scenes/GameMessages.cpp	Scenes/ITextDrawer.h	game/Chat	game/Scenes
-Scenes/GameMessages.h	Scenes/ITextDrawer.h	game/Chat	game/Scenes
-Scenes/GameModels.h	Scenes/CharacterDrawing.h	game/Assets	game/Actors
 Scenes/GameMoveWindow.cpp	Scenes/ActorState.h	game/Hud	game/Actors
 Scenes/GameMoveWindow.cpp	Scenes/GameChat.h	game/Hud	game/Chat
 Scenes/GameMoveWindow.cpp	UI/ChatCommands.h	game/Hud	game/Chat
@@ -517,7 +491,6 @@ Scenes/GameMovement.cpp	Scenes/ActorMotion.h	game/Movement	game/Actors
 Scenes/GameMovement.cpp	Scenes/ActorState.h	game/Movement	game/Actors
 Scenes/GameMovement.cpp	Scenes/ActorWalk.h	game/Movement	game/Actors
 Scenes/GameMovement.cpp	Scenes/CameraTour.h	game/Movement	game/Events
-Scenes/GameMovement.cpp	Scenes/CharacterDrawing.h	game/Movement	game/Actors
 Scenes/GameMovement.cpp	Scenes/CrywolfContract.h	game/Movement	game/Events
 Scenes/GameMovement.cpp	Scenes/EventChipWindow.h	game/Movement	game/Events
 Scenes/GameMovement.cpp	Scenes/GameDrawTail.h	game/Movement	game/Scenes
@@ -614,7 +587,6 @@ Scenes/GameUi.cpp	UI/ChatLog.h	game/Hud	game/Chat
 Scenes/GameUi.cpp	UI/ChatLogWindow.h	game/Hud	game/Chat
 Scenes/GameUi.cpp	World/ItemState.h	game/Hud	game/Items
 Scenes/GameUi.h	Scenes/ActorPickingBox.h	game/Hud	game/Actors
-Scenes/GameWindowDrawing.cpp	Scenes/ITextDrawer.h	game/Hud	game/Scenes
 Scenes/GridItemUse.cpp	Scenes/OwnCharacterRecord.h	game/Items	game/Player
 Scenes/GroundEffectFrame.cpp	Scenes/WorldObjectsDrawing.h	game/Effects	game/WorldObjects
 Scenes/GroundEffectFrame.cpp	World/KalimaWorld.h	game/Effects	game/Events
@@ -622,7 +594,6 @@ Scenes/GroundEffectFrame.h	World/KalimaWorld.h	game/Effects	game/Events
 Scenes/GuildDrawing.cpp	Scenes/GameHud.h	game/Guild	game/Hud
 Scenes/GuildDrawing.cpp	Scenes/GamePanels.h	game/Guild	game/Hud
 Scenes/GuildDrawing.cpp	Scenes/GameWindowDrawing.h	game/Guild	game/Hud
-Scenes/GuildDrawing.cpp	Scenes/ITextDrawer.h	game/Guild	game/Scenes
 Scenes/GuildDrawing.cpp	UI/ChatInput.h	game/Guild	game/Chat
 Scenes/GuildMarkEffects.cpp	Scenes/ActorState.h	game/Effects	game/Actors
 Scenes/GuildPanels.cpp	Scenes/ActorState.h	game/Guild	game/Actors
@@ -643,14 +614,12 @@ Scenes/GuildWindow.cpp	Scenes/GameHud.h	game/Guild	game/Hud
 Scenes/GuildWindow.cpp	Scenes/GameMessages.h	game/Guild	game/Chat
 Scenes/GuildWindow.cpp	Scenes/GameUi.h	game/Guild	game/Hud
 Scenes/GuildWindow.cpp	Scenes/GameWindowDrawing.h	game/Guild	game/Hud
-Scenes/GuildWindow.cpp	Scenes/ITextDrawer.h	game/Guild	game/Scenes
 Scenes/GuildWindow.cpp	UI/ChatInput.h	game/Guild	game/Chat
 Scenes/GuildWindow.cpp	UI/ChatLog.h	game/Guild	game/Chat
 Scenes/GuildWindow.cpp	UI/ChatLogWindow.h	game/Guild	game/Chat
 Scenes/GuildWindowTabs.cpp	Scenes/ActorState.h	game/Guild	game/Actors
 Scenes/GuildWindowTabs.cpp	Scenes/GameHud.h	game/Guild	game/Hud
 Scenes/GuildWindowTabs.cpp	Scenes/GameWindowDrawing.h	game/Guild	game/Hud
-Scenes/GuildWindowTabs.cpp	Scenes/ITextDrawer.h	game/Guild	game/Scenes
 Scenes/HandBoltJoints.cpp	Scenes/ActorState.h	game/Joints	game/Actors
 Scenes/HandBoltJoints.cpp	Scenes/GameDrawTail.h	game/Joints	game/Scenes
 Scenes/HandShine.cpp	Scenes/ActorState.h	game/Effects	game/Actors
@@ -718,7 +687,6 @@ Scenes/HighModelEffects.cpp	Scenes/GameDrawTail.h	game/Effects	game/Scenes
 Scenes/HighModelEffects.cpp	Scenes/SkillHits.h	game/Effects	game/Skills
 Scenes/HighModelEffects.cpp	World/SiegeStoneEffects.h	game/Effects	game/CastleSiege
 Scenes/HighModelEffects.cpp	World/WorldObjectStepServices.h	game/Effects	game/WorldObjects
-Scenes/HudText.cpp	Scenes/ITextDrawer.h	game/Hud	game/Scenes
 Scenes/IcarusObjectFrame.cpp	Scenes/ObjectFrameSprites.h	game/MapScripts	game/WorldObjects
 Scenes/IcarusObjectFrame.cpp	Scenes/WorldObjectsDrawing.h	game/MapScripts	game/WorldObjects
 Scenes/IcarusObjectFrame.cpp	World/WorldObjects.h	game/MapScripts	game/WorldObjects
@@ -769,7 +737,6 @@ Scenes/ItemTooltipStats.cpp	World/ItemState.h	game/Tooltips	game/Items
 Scenes/ItemTooltips.cpp	Scenes/GameHud.h	game/Tooltips	game/Hud
 Scenes/ItemTooltips.cpp	Scenes/GamePanels.h	game/Tooltips	game/Hud
 Scenes/ItemTooltips.cpp	Scenes/HudItems.h	game/Tooltips	game/Items
-Scenes/ItemTooltips.cpp	Scenes/ITextDrawer.h	game/Tooltips	game/Scenes
 Scenes/ItemTooltips.cpp	Scenes/ItemPrice.h	game/Tooltips	game/Items
 Scenes/ItemTooltips.cpp	World/ItemState.h	game/Tooltips	game/Items
 Scenes/ItemTooltips.h	World/ItemState.h	game/Tooltips	game/Items
@@ -777,7 +744,6 @@ Scenes/JavelinEffect.cpp	Scenes/ActorState.h	game/Effects	game/Actors
 Scenes/JavelinEffect.cpp	World/WorldObjectStepServices.h	game/Effects	game/WorldObjects
 Scenes/JewelBundleList.cpp	Scenes/GameHud.h	game/ChaosMix	game/Hud
 Scenes/JewelBundleList.cpp	Scenes/GameUi.h	game/ChaosMix	game/Hud
-Scenes/JewelBundleList.cpp	Scenes/ITextDrawer.h	game/ChaosMix	game/Scenes
 Scenes/JewelBundleList.cpp	Scenes/NpcWindowState.h	game/ChaosMix	game/Npc
 Scenes/JewelBundleList.h	Scenes/NpcWindowState.h	game/ChaosMix	game/Npc
 Scenes/JewelMix.cpp	Scenes/GameUi.h	game/ChaosMix	game/Hud
@@ -828,7 +794,6 @@ Scenes/LoginActor.cpp	Scenes/ActorState.h	game/FrontEnd	game/Actors
 Scenes/LoginActor.cpp	Scenes/SceneId.h	game/FrontEnd	game/Scenes
 Scenes/LoginModels.cpp	GameLogic/CharacterAppearance.h	game/FrontEnd	game/Actors
 Scenes/LoginModels.h	GameLogic/CharacterAppearance.h	game/FrontEnd	game/Actors
-Scenes/LoginModels.h	Scenes/CharacterDrawing.h	game/FrontEnd	game/Actors
 Scenes/LoginScene.cpp	App/LoopTiming.h	game/Scenes	app
 Scenes/LoginScene.cpp	App/ServerAddress.h	game/Scenes	app
 Scenes/LoginScene.cpp	App/SessionState.h	game/Scenes	app
@@ -848,7 +813,6 @@ Scenes/ModelBody.cpp	Scenes/ActorConstruction.h	game/Monsters	game/Actors
 Scenes/ModelBody.cpp	Scenes/ActorState.h	game/Monsters	game/Actors
 Scenes/ModelEffects.cpp	Scenes/ActorState.h	game/Monsters	game/Actors
 Scenes/ModelEffects.cpp	Scenes/GameDrawTail.h	game/Monsters	game/Scenes
-Scenes/ModelTextureTable.cpp	Scenes/CharacterDrawing.h	game/Assets	game/Actors
 Scenes/MonsterAttackStep.cpp	Scenes/ActorState.h	game/Monsters	game/Actors
 Scenes/MonsterAttackStep.cpp	Scenes/BlastEffectCalls.h	game/Monsters	game/Combat
 Scenes/MonsterAttackStep.cpp	Scenes/CharacterDrawing.h	game/Monsters	game/Actors
@@ -960,7 +924,6 @@ Scenes/OwnInventory.cpp	Scenes/OwnCharacterRecord.h	game/Items	game/Player
 Scenes/OwnItemPlacement.cpp	Scenes/ActorActions.h	game/Items	game/Actors
 Scenes/OwnItemPlacement.cpp	Scenes/ActorEquipment.h	game/Items	game/Actors
 Scenes/OwnItemPlacement.cpp	Scenes/ActorState.h	game/Items	game/Actors
-Scenes/OwnItemPlacement.cpp	Scenes/CharacterDrawing.h	game/Items	game/Actors
 Scenes/OwnItemPlacement.cpp	Scenes/DarkHorse.h	game/Items	game/Pets
 Scenes/OwnItemPlacement.cpp	Scenes/HelperTable.h	game/Items	game/Pets
 Scenes/OwnItemPlacement.cpp	Scenes/OwnCharacterRecord.h	game/Items	game/Player
@@ -975,7 +938,6 @@ Scenes/OwnStatHelpers.cpp	Scenes/FullSetScan.h	game/Player	game/Actors
 Scenes/OwnStatHelpers.cpp	Scenes/OwnItemOptions.h	game/Player	game/Items
 Scenes/OwnStatHelpers.cpp	World/ItemState.h	game/Player	game/Items
 Scenes/OwnStatHelpers.h	World/ItemState.h	game/Player	game/Items
-Scenes/ParticleDrawServices.cpp	Scenes/CharacterDrawing.h	game/Effects	game/Actors
 Scenes/PartyActors.cpp	Scenes/ActorState.h	game/Party	game/Actors
 Scenes/PartyActors.cpp	Scenes/GameUi.h	game/Party	game/Hud
 Scenes/PersonalShopLists.cpp	Scenes/ActorState.h	game/PersonalShop	game/Actors
@@ -1014,7 +976,6 @@ Scenes/PetStats.cpp	Scenes/WorldEntry.h	game/Pets	game/Session
 Scenes/PetStats.cpp	World/ItemState.h	game/Pets	game/Items
 Scenes/PetTooltip.cpp	Scenes/GameHud.h	game/Tooltips	game/Hud
 Scenes/PetTooltip.cpp	Scenes/GamePanels.h	game/Tooltips	game/Hud
-Scenes/PetTooltip.cpp	Scenes/ITextDrawer.h	game/Tooltips	game/Scenes
 Scenes/PetTooltip.cpp	Scenes/ItemPrice.h	game/Tooltips	game/Items
 Scenes/PetTooltip.cpp	Scenes/OwnItemPlacement.h	game/Tooltips	game/Items
 Scenes/PetTooltip.cpp	World/ItemState.h	game/Tooltips	game/Items
@@ -1052,7 +1013,6 @@ Scenes/SecondGuildWindow.cpp	Scenes/ActorState.h	game/Guild	game/Actors
 Scenes/SecondGuildWindow.cpp	Scenes/GameHud.h	game/Guild	game/Hud
 Scenes/SecondGuildWindow.cpp	Scenes/GameUi.h	game/Guild	game/Hud
 Scenes/SecondGuildWindow.cpp	Scenes/GameWindowDrawing.h	game/Guild	game/Hud
-Scenes/SecondGuildWindow.cpp	Scenes/ITextDrawer.h	game/Guild	game/Scenes
 Scenes/SecondGuildWindow.cpp	UI/ChatInput.h	game/Guild	game/Chat
 Scenes/SecondGuildWindow.cpp	UI/ChatLogWindow.h	game/Guild	game/Chat
 Scenes/SecondGuildWindow.cpp	UI/NameChecks.h	game/Guild	game/FrontEnd
@@ -1081,7 +1041,6 @@ Scenes/SessionEventApplier.cpp	App/FaithfulPacer.h	game/Session	app
 Scenes/SessionEventApplier.cpp	Scenes/SceneId.h	game/Session	game/Scenes
 Scenes/ShopSigns.cpp	Scenes/ActorState.h	game/PersonalShop	game/Actors
 Scenes/ShopSigns.cpp	Scenes/GameProjection.h	game/PersonalShop	game/Scenes
-Scenes/ShopSigns.cpp	Scenes/ITextDrawer.h	game/PersonalShop	game/Scenes
 Scenes/ShopSigns.cpp	Scenes/SocialState.h	game/PersonalShop	game/Social
 Scenes/SiegeBattleUi.cpp	Scenes/ActorState.h	game/CastleSiege	game/Actors
 Scenes/SiegeBattleUi.cpp	Scenes/ChatReceive.h	game/CastleSiege	game/Chat
@@ -1098,7 +1057,6 @@ Scenes/SiegePanelSteps.cpp	Scenes/GameUi.h	game/CastleSiege	game/Hud
 Scenes/Skill4e9c50.cpp	Scenes/ActorState.h	game/Skills	game/Actors
 Scenes/Skill4f5290.cpp	Scenes/ActorCombat.h	game/Skills	game/Combat
 Scenes/Skill4f5290.cpp	Scenes/ActorState.h	game/Skills	game/Actors
-Scenes/Skill4f5290.cpp	Scenes/CharacterDrawing.h	game/Skills	game/Actors
 Scenes/Skill4f5290.cpp	Scenes/CombatActionSpeeds.h	game/Skills	game/Combat
 Scenes/Skill4f5290.h	Scenes/ActorCombat.h	game/Skills	game/Combat
 Scenes/Skill551f40.cpp	Scenes/GameMovementState.h	game/Skills	game/Movement
@@ -1127,7 +1085,6 @@ Scenes/SkillReplies.cpp	Scenes/ActorEffectFlags.h	game/Skills	game/Actors
 Scenes/SkillReplies.cpp	Scenes/ActorFlags.h	game/Skills	game/Actors
 Scenes/SkillReplies.cpp	Scenes/ActorState.h	game/Skills	game/Actors
 Scenes/SkillReplies.cpp	Scenes/BlastEffectCalls.h	game/Skills	game/Combat
-Scenes/SkillReplies.cpp	Scenes/CharacterDrawing.h	game/Skills	game/Actors
 Scenes/SkillReplies.cpp	Scenes/CombatActionSpeeds.h	game/Skills	game/Combat
 Scenes/SkillReplies.cpp	Scenes/FaunaJointCreation.h	game/Skills	game/Joints
 Scenes/SkillReplies.cpp	Scenes/GameDrawTail.h	game/Skills	game/Scenes
@@ -1137,7 +1094,6 @@ Scenes/SkillReplies.cpp	Scenes/WorldEntry.h	game/Skills	game/Session
 Scenes/SkillReplies.cpp	Scenes/WorldTransitionSupport.h	game/Skills	game/Session
 Scenes/SkillReplies.cpp	World/ModelEffects.h	game/Skills	game/Effects
 Scenes/SkillTooltip.cpp	Scenes/GameHud.h	game/Tooltips	game/Hud
-Scenes/SkillTooltip.cpp	Scenes/ITextDrawer.h	game/Tooltips	game/Scenes
 Scenes/SkillTooltip.cpp	World/ItemState.h	game/Tooltips	game/Items
 Scenes/SkinShells.cpp	Scenes/ActorPickingBox.h	game/Effects	game/Actors
 Scenes/SkinShells.cpp	Scenes/ActorState.h	game/Effects	game/Actors
@@ -1247,8 +1203,6 @@ Scenes/WorldMap.h	World/WorldObjectRegistrations.h	game/Kernel	game/WorldObjects
 Scenes/WorldMap.h	World/WorldObjects.h	game/Kernel	game/WorldObjects
 Scenes/WorldMap.h	World/WorldTerrain.h	game/Kernel	game/Terrain
 Scenes/WorldModelPose.cpp	Scenes/ActorState.h	game/WorldObjects	game/Actors
-Scenes/WorldModels.cpp	Scenes/CharacterDrawing.h	game/Assets	game/Actors
-Scenes/WorldModels.h	Scenes/CharacterDrawing.h	game/Assets	game/Actors
 Scenes/WorldObjectsDrawing.cpp	Scenes/ActorState.h	game/WorldObjects	game/Actors
 Scenes/WorldObjectsDrawing.cpp	Scenes/AidaObjectServices.h	game/WorldObjects	game/MapScripts
 Scenes/WorldObjectsDrawing.cpp	Scenes/CastleSiegeObjectServices.h	game/WorldObjects	game/MapScripts
@@ -1346,39 +1300,18 @@ Scenes/WorldState.h	World/Particles.h	game/Kernel	game/Particles
 Scenes/WorldTexts.cpp	Scenes/GameProjection.h	game/Hud	game/Scenes
 Scenes/WorldTransitionSupport.cpp	Scenes/GameDrawTail.h	game/Session	game/Scenes
 Scenes/WorldTransitionSupport.cpp	Scenes/SceneId.h	game/Session	game/Scenes
-UI/Button.cpp	Scenes/ITextDrawer.h	game/Ui	game/Scenes
-UI/Button.h	Scenes/ITextDrawer.h	game/Ui	game/Scenes
-UI/CharacterBalloons.cpp	Scenes/ITextDrawer.h	game/FrontEnd	game/Scenes
-UI/CharacterBalloons.h	Scenes/ITextDrawer.h	game/FrontEnd	game/Scenes
-UI/ChatLogDraw.cpp	Scenes/ITextDrawer.h	game/Chat	game/Scenes
-UI/CreateCharacterWindow.cpp	Scenes/ITextDrawer.h	game/FrontEnd	game/Scenes
-UI/CreateCharacterWindow.h	Scenes/ITextDrawer.h	game/FrontEnd	game/Scenes
-UI/CreditsWindow.cpp	Scenes/ITextDrawer.h	game/FrontEnd	game/Scenes
-UI/CreditsWindow.h	Scenes/ITextDrawer.h	game/FrontEnd	game/Scenes
-UI/EscapeWindow.cpp	Scenes/ITextDrawer.h	game/FrontEnd	game/Scenes
-UI/EscapeWindow.h	Scenes/ITextDrawer.h	game/FrontEnd	game/Scenes
 UI/FriendWindows.cpp	UI/ChatInput.h	game/Messenger	game/Chat
 UI/FriendWindows.h	UI/ChatInput.h	game/Messenger	game/Chat
-UI/FriendWindowsDraw.cpp	Scenes/ITextDrawer.h	game/Messenger	game/Scenes
 UI/GameDialogs.cpp	World/ItemState.h	game/Ui	game/Items
 UI/GameDialogs.h	World/ItemState.h	game/Ui	game/Items
 UI/GameUiState.h	UI/ChatLog.h	game/Ui	game/Chat
-UI/HudPrimitives.cpp	Scenes/ITextDrawer.h	game/Ui	game/Scenes
-UI/HudPrimitives.h	Scenes/ITextDrawer.h	game/Ui	game/Scenes
 UI/LetterWindows.cpp	UI/ChatLog.h	game/Messenger	game/Chat
-UI/LetterWindowsDraw.cpp	Scenes/ITextDrawer.h	game/Messenger	game/Scenes
 UI/LetterWindowsDraw.cpp	UI/ChatLog.h	game/Messenger	game/Chat
 UI/LoginWindow.cpp	App/Credentials.h	game/FrontEnd	game/Session
-UI/LoginWindow.cpp	Scenes/ITextDrawer.h	game/FrontEnd	game/Scenes
 UI/LoginWindow.h	App/Credentials.h	game/FrontEnd	game/Session
-UI/LoginWindow.h	Scenes/ITextDrawer.h	game/FrontEnd	game/Scenes
-UI/MessageArea.cpp	Scenes/ITextDrawer.h	game/Ui	game/Scenes
 UI/MessageLog.cpp	UI/ChatLog.h	game/Ui	game/Chat
 UI/MessageLog.h	UI/ChatLog.h	game/Ui	game/Chat
-UI/NoticeWindow.cpp	Scenes/ITextDrawer.h	game/Ui	game/Scenes
-UI/NoticeWindow.h	Scenes/ITextDrawer.h	game/Ui	game/Scenes
 UI/OldControls.cpp	UI/ChatLogWindow.h	game/Ui	game/Chat
-UI/OldWindowDraw.cpp	Scenes/ITextDrawer.h	game/Ui	game/Scenes
 UI/OldWindowDraw.cpp	UI/ChatInput.h	game/Ui	game/Chat
 UI/OldWindowDraw.cpp	UI/ChatLog.h	game/Ui	game/Chat
 UI/OldWindowDraw.cpp	UI/ChatLogWindow.h	game/Ui	game/Chat
@@ -1392,14 +1325,7 @@ UI/OldWindows.cpp	UI/LetterWindows.h	game/Ui	game/Messenger
 UI/OldWindows.h	UI/ChatInput.h	game/Ui	game/Chat
 UI/OldWindows.h	UI/FriendModel.h	game/Ui	game/Messenger
 UI/OldWindows.h	UI/LetterModel.h	game/Ui	game/Messenger
-UI/OptionsWindow.cpp	Scenes/ITextDrawer.h	game/FrontEnd	game/Scenes
-UI/OptionsWindow.h	Scenes/ITextDrawer.h	game/FrontEnd	game/Scenes
 UI/PanelDialog.cpp	UI/ChatLogWindow.h	game/Ui	game/Chat
-UI/SelectionBar.cpp	Scenes/ITextDrawer.h	game/FrontEnd	game/Scenes
-UI/SelectionBar.h	Scenes/ITextDrawer.h	game/FrontEnd	game/Scenes
-UI/ServerListWindow.cpp	Scenes/ITextDrawer.h	game/FrontEnd	game/Scenes
-UI/ServerListWindow.h	Scenes/ITextDrawer.h	game/FrontEnd	game/Scenes
-UI/SlideBanner.cpp	Scenes/ITextDrawer.h	game/Ui	game/Scenes
 UI/SlideBanner.cpp	UI/ChatLogWindow.h	game/Ui	game/Chat
 World/AtlansObjectStep.cpp	World/WorldObjects.h	game/MapScripts	game/WorldObjects
 World/BlastModelEffects.cpp	World/IFishStepServices.h	game/Effects	game/Fauna

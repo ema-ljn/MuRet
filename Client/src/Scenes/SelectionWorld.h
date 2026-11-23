@@ -7,6 +7,7 @@
 #include "Render/ITextureStore.h"
 #include "Render/ModelBatch.h"
 #include "Render/Models/Cloth.h"
+#include "Render/Models/IModelLibrary.h"
 #include "Render/Models/ModelTextureSlots.h"
 #include "Render/Models/Skeleton.h"
 #include "Render/Pass3D.h"
@@ -56,10 +57,13 @@ class WorldState;
 
 // Las texturas que la selección le presta a los sprites y a las partículas: las de su juego (0x61ca30:
 // Impack03 en 0x719 y chasellight en 0x729) y, detrás, las del mundo con las globales de la carga.
-class SelectionTextureLibrary final : public IModelLibrary
+class SelectionTextureLibrary final : public Render::Models::IModelLibrary
 {
 public:
-    SelectionTextureLibrary(const IModelLibrary& world, const SceneTextures& scene) : m_world(world), m_scene(scene) {}
+    SelectionTextureLibrary(const Render::Models::IModelLibrary& world, const SceneTextures& scene)
+        : m_world(world), m_scene(scene)
+    {
+    }
     [[nodiscard]] const Data::Models::Model* Find(std::uint16_t model) const override;
     [[nodiscard]] const Render::Models::Skeleton* SkeletonOf(std::uint16_t model) const override;
     [[nodiscard]] std::span<const Render::TextureSlot> MeshTextures(std::uint16_t model) const override;
@@ -68,7 +72,7 @@ public:
     [[nodiscard]] std::optional<glm::vec2> TextureSize(Render::TextureSlot slot) const override;
 
 private:
-    const IModelLibrary& m_world;
+    const Render::Models::IModelLibrary& m_world;
     const SceneTextures& m_scene;
 };
 
@@ -99,7 +103,7 @@ public:
     // tiene ya; `globalModels` y `gameSlots` son los de la carga y tienen que vivir hasta Release.
     [[nodiscard]] Core::Expected<void, std::string> Load(const std::filesystem::path& dataRoot, std::uint8_t map,
                                                          const Render::Models::ModelTextureSlots* gameSlots,
-                                                         const IModelLibrary* globalModels);
+                                                         const Render::Models::IModelLibrary* globalModels);
     void Release();
     [[nodiscard]] bool IsLoaded() const;
     [[nodiscard]] const WorldModels& Models() const;

@@ -1,9 +1,9 @@
+#include "Network/Xor32Packet.h"
 #include "Scenes/GameSocialSteps.h"
 
 #include "Core/Expected.h"
 #include "Data/Text/TextTable.h"
 #include "Input/InputState.h"
-#include "Network/Crypto/Xor32.h"
 #include "Network/Delivery.h"
 #include "Network/Packet.h"
 #include "Protocol/OptionData.h"
@@ -68,7 +68,7 @@ public:
 
     static Sent Plain(const Client::Protocol::Outgoing& outgoing)
     {
-        const Client::Network::Packet plain = Client::Network::Crypto::Xor32Decode(outgoing.packet);
+        const Client::Network::Packet plain = Client::Network::Xor32Decode(outgoing.packet);
         Sent packet{.encrypted = outgoing.delivery == Client::Network::Delivery::Encrypted, .bytes = {}};
         for (const std::byte b : plain.Bytes())
             packet.bytes.push_back(std::to_integer<std::uint8_t>(b));

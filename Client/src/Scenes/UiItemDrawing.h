@@ -29,12 +29,12 @@ class ModelBatch;
 namespace Client::Render::Models
 {
 class CrtRandom;
-}
+class IModelLibrary;
+} // namespace Client::Render::Models
 
 namespace Client::Scenes
 {
 struct GameDrawTailState;
-class IModelLibrary;
 struct FaunaDrawCarry;
 struct ItemDrawContext;
 
@@ -116,7 +116,7 @@ struct UiItemPass
 struct UiItemResources
 {
     Render::ModelBatch& batch;
-    const IModelLibrary& models;
+    const Render::Models::IModelLibrary& models;
     FaunaDrawCarry& poseCarry;
     const ItemDrawContext& itemContext;
     Core::Duration frameClock{};

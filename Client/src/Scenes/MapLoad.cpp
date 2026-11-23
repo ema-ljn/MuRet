@@ -1,6 +1,7 @@
 #include "Scenes/MapLoad.h"
 
 #include "Audio/SoundCatalog.h"
+#include "Audio/SoundDefinition.h"
 
 #include "Core/Expected.h"
 #include "Data/Terrain/TerrainGrid.h"

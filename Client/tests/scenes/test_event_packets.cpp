@@ -1,3 +1,4 @@
+#include "Render/Models/IModelLibrary.h"
 #include "Scenes/EventPackets.h"
 
 #include "Core/Expected.h"
@@ -157,7 +158,7 @@ Client::Data::Tables::ItemTable EventItems()
 }
 
 // Los modelos por tipo de 0x4ea030: Player.bmd y uno de transformado con dos acciones.
-class EventModels final : public Client::Scenes::IModelLibrary
+class EventModels final : public Client::Render::Models::IModelLibrary
 {
 public:
     explicit EventModels(const Client::Render::Models::Skeleton& player) : m_player(player)

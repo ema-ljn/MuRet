@@ -1,3 +1,4 @@
+#include "Render/Models/IModelLibrary.h"
 #include "Scenes/KalimaObjectServices.h"
 
 #include "Core/Expected.h"
@@ -33,7 +34,7 @@
 
 namespace
 {
-class KalimaModel final : public Client::Scenes::IModelLibrary
+class KalimaModel final : public Client::Render::Models::IModelLibrary
 {
 public:
     explicit KalimaModel(bool twoMeshes = false)

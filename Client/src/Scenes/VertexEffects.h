@@ -15,6 +15,7 @@ struct Model;
 namespace Client::Render::Models
 {
 class CrtRandom;
+class IModelLibrary;
 struct SkinnedMesh;
 } // namespace Client::Render::Models
 namespace Client::World
@@ -25,7 +26,6 @@ class Particles;
 } // namespace Client::World
 namespace Client::Scenes
 {
-class IModelLibrary;
 struct ActorState;
 struct DrawnObject;
 struct JointState;
@@ -80,7 +80,7 @@ struct VertexEffectTables
 
 // EmitVertexEffectsOf con el modelo de `object` (sin él, nada), su escala y sólo la tabla de los efectos con modelo.
 [[nodiscard]] Core::Expected<void, std::string>
-EmitVertexEffects(const IModelLibrary& models, const DrawnObject& object,
+EmitVertexEffects(const Render::Models::IModelLibrary& models, const DrawnObject& object,
                   std::span<const Render::Models::SkinnedMesh> meshes, std::int32_t mesh, std::int32_t type,
                   std::int32_t subtype, World::ModelEffects& effects, Render::Models::CrtRandom& random);
 } // namespace Client::Scenes

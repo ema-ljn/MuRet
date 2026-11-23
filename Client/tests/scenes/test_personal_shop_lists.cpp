@@ -1,3 +1,4 @@
+#include "Network/Xor32Packet.h"
 #include "Scenes/PersonalShopLists.h"
 
 #include "Core/ILogSink.h"
@@ -5,7 +6,6 @@
 #include "Data/Models/PlayerModels.h"
 #include "Data/Tables/ItemTable.h"
 #include "Data/Text/TextTable.h"
-#include "Network/Crypto/Xor32.h"
 #include "Network/Delivery.h"
 #include "Protocol/Inventory.h"
 #include "Protocol/Outgoing.h"
@@ -94,7 +94,7 @@ Client::Protocol::Inventory::ItemData ItemBytes(std::uint16_t type, std::uint8_t
 
 std::vector<std::uint8_t> PlainBytes(const Client::Protocol::Outgoing& sent)
 {
-    const auto plain = Client::Network::Crypto::Xor32Decode(sent.packet);
+    const auto plain = Client::Network::Xor32Decode(sent.packet);
     std::vector<std::uint8_t> bytes;
     for (const std::byte b : plain.Bytes())
         bytes.push_back(std::to_integer<std::uint8_t>(b));

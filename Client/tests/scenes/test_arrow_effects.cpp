@@ -1,5 +1,5 @@
+#include "Network/Xor32Packet.h"
 #include "Scenes/ArrowEffects.h"
-#include "Network/Crypto/Xor32.h"
 
 #include "Core/Expected.h"
 #include "Data/Terrain/TerrainAttributes.h"
@@ -1980,7 +1980,7 @@ TEST(ArrowEffectsTest, TheLastAquagoldStepSendsTheNearbySkillHits)
     const auto stepped = StepArrow(arrow, nullptr, tested.StepContext());
     ASSERT_TRUE(stepped.HasValue()) << ErrorOf(stepped);
     ASSERT_EQ(tested.sent.size(), 1u);
-    const auto clear = Client::Network::Crypto::Xor32Decode(tested.sent[0].packet);
+    const auto clear = Client::Network::Xor32Decode(tested.sent[0].packet);
     const std::vector<std::byte> expected{std::byte{0xc1}, std::byte{11},   std::byte{0x10}, std::byte{0x18},
                                           std::byte{9},    std::byte{9},    std::byte{7},    std::byte{1},
                                           std::byte{0x12}, std::byte{0x34}, std::byte{0}};

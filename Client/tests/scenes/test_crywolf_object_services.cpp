@@ -1,3 +1,4 @@
+#include "Render/Models/IModelLibrary.h"
 #include "Scenes/CrywolfObjectServices.h"
 
 #include "Core/Expected.h"
@@ -141,7 +142,7 @@ float F32(double value)
 }
 
 // Una biblioteca sin modelos: el dibujo de 0x6046a0 solo cuenta y no dibuja.
-struct NoModels final : Client::Scenes::IModelLibrary
+struct NoModels final : Client::Render::Models::IModelLibrary
 {
     const Client::Data::Models::Model* Find(std::uint16_t) const override
     {
@@ -157,7 +158,7 @@ struct NoModels final : Client::Scenes::IModelLibrary
     }
 };
 // Dos mallas: el caso51 sólo debe repetir la0. Cada consulta durante un pase observa model+88.
-struct AltarModels final : Client::Scenes::IModelLibrary
+struct AltarModels final : Client::Render::Models::IModelLibrary
 {
     explicit AltarModels(Client::World::ObjectModelStepState& state) : shared(state)
     {

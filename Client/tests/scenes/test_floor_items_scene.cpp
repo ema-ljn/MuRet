@@ -7,7 +7,7 @@
 #include "Data/Tables/ItemTable.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainHeights.h"
-#include "Network/Crypto/Xor32.h"
+#include "Network/Xor32Packet.h"
 #include "Protocol/FloorItems.h"
 #include "Protocol/Inventory.h"
 #include "Render/Models/Cloth.h"
@@ -75,7 +75,7 @@
 namespace
 {
 using Client::Core::Expected;
-using Client::Network::Crypto::Xor32Decode;
+using Client::Network::Xor32Decode;
 using Client::Protocol::FloorItems::FloorItemEntry;
 using Client::Protocol::FloorItems::FloorItemsCreate;
 using Client::Protocol::Inventory::ItemData;

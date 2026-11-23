@@ -1,3 +1,4 @@
+#include "Network/Xor32Packet.h"
 #include "Scenes/GameGates.h"
 
 #include "Core/Expected.h"
@@ -12,7 +13,6 @@
 #include "Scenes/GameDialogSteps.h"
 #include "Protocol/OptionData.h"
 #include "Protocol/Outgoing.h"
-#include "Network/Crypto/Xor32.h"
 #include "UI/MacroFile.h"
 #include "support/Bytes.h"
 #include "support/SameBytes.h"
@@ -313,7 +313,7 @@ TEST(GameGatesTest, SiegeDestinationsSaveOptionsAndMacrosBeforeCleaningTheTarget
         ASSERT_TRUE(result.HasValue()) << result.Error();
         ASSERT_EQ(options.size(), 1u);
         EXPECT_TRUE(Client::Tests::SameBytes(
-            Client::Network::Crypto::Xor32Decode(options.front().packet).Bytes(),
+            Client::Network::Xor32Decode(options.front().packet).Bytes(),
             Client::Tests::Bytes({0xc1, 0x1c, 0xf3, 0x30, 0,    0, 0, 0x11, 0, 0, 0, 0, 0, 0,
                                   0x16, 1,    5,    9,    0x35, 0, 0, 0,    0, 0, 0, 0, 0, 0})));
         EXPECT_EQ(macros, "uno\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n");

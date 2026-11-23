@@ -1,3 +1,4 @@
+#include "Render/Models/IModelLibrary.h"
 #include "Scenes/HelperTable.h"
 
 #include "Core/Expected.h"
@@ -69,6 +70,7 @@ using Client::Render::TextureSlot;
 using Client::Render::Models::ActionInfo;
 using Client::Render::Models::BoneKey;
 using Client::Render::Models::CrtRandom;
+using Client::Render::Models::IModelLibrary;
 using Client::Render::Models::RoundedCos;
 using Client::Render::Models::RoundedSin;
 using Client::Render::Models::Skeleton;
@@ -86,7 +88,6 @@ using Client::Scenes::HelperCount;
 using Client::Scenes::HelperDrawContext;
 using Client::Scenes::HelperState;
 using Client::Scenes::HelperStepContext;
-using Client::Scenes::IModelLibrary;
 using Client::Scenes::JointState;
 using Client::Scenes::SceneId;
 using Client::Scenes::StepHelpers;

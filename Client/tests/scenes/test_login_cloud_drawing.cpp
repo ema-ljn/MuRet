@@ -1,3 +1,4 @@
+#include "Render/Models/IModelLibrary.h"
 #include "support/CheckedWorldObjectProjection.h"
 #include "support/PlayerActors.h"
 
@@ -54,7 +55,7 @@ constexpr std::int16_t CloudMarker = 0x54;
 constexpr std::int16_t MeteorMarker = 0x59;
 constexpr std::int32_t CloudType = 0x622;
 constexpr std::int32_t CloudSubtype = 10;
-class CloudTextures final : public Client::Scenes::IModelLibrary
+class CloudTextures final : public Client::Render::Models::IModelLibrary
 {
 public:
     const Client::Data::Models::Model* Find(std::uint16_t) const override

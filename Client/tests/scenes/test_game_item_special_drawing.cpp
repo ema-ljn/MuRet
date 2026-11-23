@@ -1,3 +1,4 @@
+#include "Render/Models/IModelLibrary.h"
 #include "Scenes/GameItemSpecialDrawing.h"
 #include "Core/Expected.h"
 #include "Core/ILogSink.h"
@@ -27,7 +28,7 @@
 #include <vector>
 namespace
 {
-class SpecialModels final : public Client::Scenes::IModelLibrary
+class SpecialModels final : public Client::Render::Models::IModelLibrary
 {
 public:
     SpecialModels()

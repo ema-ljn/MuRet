@@ -1,3 +1,5 @@
+#include "Network/Xor32Packet.h"
+#include "Render/Models/IModelLibrary.h"
 #include "Scenes/GameScene.h"
 
 #include "App/PacingMode.h"
@@ -22,7 +24,6 @@
 #include "Input/InputState.h"
 #include "Input/InputEvent.h"
 #include "Input/Key.h"
-#include "Network/Crypto/Xor32.h"
 #include "Network/PacketSerials.h"
 #include "Render/ModelBatch.h"
 #include "Render/Models/Animation.h"
@@ -34,7 +35,6 @@
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/ActorState.h"
-#include "Scenes/CharacterDrawing.h"
 #include "Scenes/ChatBubbles.h"
 #include "Scenes/DarkHorse.h"
 #include "Scenes/EventGlobals.h"
@@ -356,7 +356,7 @@ TEST_P(GameSceneNpcDialogCloseTest, EscapeSendsTheNpcCloseThroughTheSceneSession
     const auto received = Client::Tests::AsTheGameServerReceives(online->socket.sent, serials);
     ASSERT_EQ(received.packets.size(), 1u);
     const std::uint8_t opcode = kind == 0 ? 0x82 : kind == 1 ? 0x87 : 0x31;
-    const auto plain = Client::Network::Crypto::Xor32Decode(received.packets[0]);
+    const auto plain = Client::Network::Xor32Decode(received.packets[0]);
     EXPECT_TRUE(Client::Tests::SameBytes(plain.Bytes(), Client::Tests::Bytes({0xc1, 3, opcode})));
 }
 
@@ -596,7 +596,7 @@ TEST(GameSceneTest, TheWorldWaitAgesItsRibbonOnce)
 }
 
 // Solo el esqueleto del caballo oscuro (0xbf), con una acción de una key en un hueso.
-class HorseSkeletonOnly final : public Client::Scenes::IModelLibrary
+class HorseSkeletonOnly final : public Client::Render::Models::IModelLibrary
 {
 public:
     HorseSkeletonOnly()

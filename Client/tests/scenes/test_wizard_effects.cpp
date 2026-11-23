@@ -1,3 +1,4 @@
+#include "Render/Models/IModelLibrary.h"
 #include "Scenes/WizardEffects.h"
 
 #include "Data/Models/Model.h"
@@ -35,7 +36,7 @@ using Client::Scenes::ActorState;
 
 // Los esqueletos del juego (0x5769ad8 + tipo · 0xe0): Player.bmd con 0xc3 acciones y un monstruo con 6; el resto no
 // está (el registro sin acciones).
-class PushedModels final : public Client::Scenes::IModelLibrary
+class PushedModels final : public Client::Render::Models::IModelLibrary
 {
 public:
     static constexpr std::uint16_t Monster = 0x10;

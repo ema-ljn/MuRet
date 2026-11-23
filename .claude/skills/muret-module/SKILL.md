@@ -38,6 +38,9 @@ rank above this skill.
 - Windows and the module's own logic in files named after what they do.
 - Something several modules need from outside (send a packet, request a sound, an on-screen message) comes through a
   `Kernel` port, not a bag of `std::function`.
+- A value of a shared space (an opcode, an item code, a map, a sound, a model, a text line other modules print) is not
+  defined again here: the module names its role with the home's name as the initializer, and a space the module owns
+  has its home here ([CODING_RULES §7, "Named values"](../../../docs/CODING_RULES.md#named-values-2026-11-23)).
 
 ## When check_layers.py fails
 

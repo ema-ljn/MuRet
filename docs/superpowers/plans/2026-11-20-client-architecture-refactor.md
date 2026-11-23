@@ -668,6 +668,12 @@ the `engine` root. AR1.3 does not hold AR2 back: it only has to land before AR5.
   `ReadList<Record, Size>`.
 - `Protocol/` is organized by module (`Protocol/Guild/`, `Protocol/Items/`…), like `WorldPackets::<Feature>` in
   TrinityCore.
+- **One opcode list per server** (Emanuel, 2026-11-23, as TrinityCore and cMaNGOS keep theirs): `Protocol/Opcodes.h`
+  holds every GameServer head code once with its subcodes under it, and `Protocol/Connection/Opcodes.h` the
+  ConnectServer's. Numbers only, included by the layouts and the tables, never by a handler; the sizes that sit beside
+  the codes today (`Protocol/Character/Opcodes.h:25-29`) go to their layouts. The 22 opcode values defined twice or
+  more disappear, and a test checks that each head code of `0x4e2b10`'s switch is in the list once (Task 5 of the
+  [named-values plan](2026-11-23-named-values.md), with how the list grows).
 - **No code generator** for now (OpenMU generates from XML): the C++ descriptors already keep the offsets in one place.
   When AR2 closes we review whether the remaining repetition justifies one (CODING_RULES §10).
 
@@ -680,6 +686,11 @@ the `engine` root. AR1.3 does not hold AR2 back: it only has to land before AR5.
 - `Unported{va}` for every `case` without a handler; a test compares the table with the research's list of `case`s
   (04-protocolo and the `0x4e2b10` switch), so a missing packet is a visible row.
 - `Route<&Fn>` deduces from the handler's signature the layout and the parts of the `GameContext` to pass.
+- A `name` column (`std::string_view`) for the line the `Dispatcher` writes for an unknown code and for a packet log.
+  Every code of `Protocol/Opcodes.h` is in exactly one row: a handler, an `Unported{va}`, or a `SentOnly` row for a
+  code the client only writes (TrinityCore's `Handle_NULL` and `Handle_ServerSide`); a test fails on a code with no
+  row. A `when` column only if `0x4e2b10` checks the scene before the handler, verified there first (Task 6 of the
+  [named-values plan](2026-11-23-named-values.md)).
 - `ServerSession` (2,878 lines) is split: `Session/Connection` (keepalive, serial, keys, the login and server change
   flow) and routing through the table. The first modules to switch to one handler per packet are login, selection,
   movement and the viewport.
@@ -706,6 +717,9 @@ the `engine` root. AR1.3 does not hold AR2 back: it only has to land before AR5.
 - `game/Kernel/GameContext.h`: the composition root of the state (`ActorPool`, `PlayerState`, `MapState`, the frame
   scratch, fauna and, for now, the whole `WorldRuntime`); `WorldState` stays as a facade while the migration lasts.
   `GameContext::Hero()` replaces the 210 `Actors()[…hero]`.
+- `game/Kernel` gains `enum class CharacterClass : std::uint8_t` and `BaseClassOf` (the original's `& 7`); the 77
+  private class constants take it, and where the original compares the unmasked register the raw integer stays (Task
+  7 of the [named-values plan](2026-11-23-named-values.md)).
 
 ### AR3.2 (design): the first parts of `WorldRuntime` to their modules
 
@@ -738,9 +752,22 @@ repetition and the spec's knots that belong to it). Before each milestone the ma
 | **AR4.4** | `Items`, `Tooltips`, `Npc`, `Quests`, `ChaosMix`, `Warehouse`, `PetTrainer`, `Party`, `Social`, `Messenger`, `PersonalShop`, `Chat`, `Guild` | 48k | `LetterPortrait` builds the actor through `Actors.h`, not its internals; `InventoryServices` (10 callbacks, 32 files) becomes ports; `SocialState` splits into trade, party and duel, except what is contiguous |
 | **AR4.5** | `Ui` (the kit), `Hud` (+ dialogs), `Events` (one submodule per event), `CastleSiege`, `FrontEnd` | 48k | `PanelRegistry` with one `IPanel` per module and the exclusion rules as a table; the HUD stops drawing each module's windows by hand; `GamePanels` is deleted, with the ~85 `std::function` it rebuilds every frame (ADR 0026); `EventPackets.cpp` (1,740 lines) is split among each event's submodules |
 
-**Each milestone is done when** its modules have no violations in `check_layers.py` (they leave the baseline), the
-behavior golden is identical, the reference gives the same port numbers and a regenerated `scenes-cycles.tsv` has no
-pairs of those modules.
+**Named values in each milestone** (Task 8 of the [named-values plan](2026-11-23-named-values.md)): the design
+creates the homes of the spaces its modules own, moves the values a second file needs, and lists the literals it
+leaves and why.
+
+| milestone | homes |
+| --- | --- |
+| AR4.1 | `Sound/SoundIds.h` and `Audio::SoundId` (`0x19` once); `Assets/ModelIds.h` and `ModelId` for the non-item models (`0x20a` once); `PlayerBones` and `PlayerActions` beside the player catalog; `CellSize` in `Terrain` |
+| AR4.2 | `Tables/SkillRecord.h` and `Tables/SkillId.h`; a monster's own bones stay with it |
+| AR4.3 | the shared texture slots as `Render::TextureSlot` in `game/Assets` (`0x5ac` once); a `<Map>.h` per map script for its ids; effect type and subtype stay `int` |
+| AR4.4 | `<Module>Texts.h` for the lines two files of a module print, `Tables/TextIndex.h` for the lines several modules print; the 145 lines passed by their address become indices |
+| AR4.5 | the kit's metrics and palette in `game/Ui`, `Render::PackedColor`; each event's ids in `<Event>.h` |
+
+**Each milestone is done when** its modules have no violations in `check_layers.py` (they leave the baseline), their
+rows leave `check_named_values.py`'s baseline for the spaces the milestone gave a home, the behavior golden is
+identical, the reference gives the same port numbers and a regenerated `scenes-cycles.tsv` has no pairs of those
+modules.
 
 ## Epic AR5: scenes as frame scripts
 
@@ -776,10 +803,14 @@ pairs of those modules.
   `MapId` stays in the game: the engine's byte (`SceneWorld::map`) does not name it, and the game converts on its side.
   The 112 `std::uint8_t map` parameters are not widened. Tests keep the original's literal values in their
   expectations, so renumbering production and tests together cannot hide a regression.
+- The float constants still named by their number after AR1.1's `Math/FloatConstants.h` take its names where type and
+  initializer are token-identical, and `Client/tools/architecture/named-values.tsv` matches its spaces by type instead
+  of by name (Task 9 of the [named-values plan](2026-11-23-named-values.md)).
 
 ## Epic AR7: wrap-up
 
 - `check_layers.py` without a baseline (zero violations, zero cycles between modules).
+- `check_named_values.py` without a baseline for the `home-only` spaces, as `check_layers.py`.
 - clang-tidy's `readability-function-size` with the spec's sizes, in ratchet mode: only new or changed code, and the
   transcriptions of the original's `switch`es in an exception list.
 - `Client/README.md` with the module map; the AR0 ADR becomes accepted.

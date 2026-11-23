@@ -36,7 +36,7 @@ Measured on `refactor/client` at e1004fe (2026-11-23) against `main.exe` c32bbd5
 | The in-memory item (`0x54bf40`) | named fields | `World/ItemState.h` names them by offset (`byte0a`, `word0c`, `word12`) | the same fields with their meaning, the offset in the comment | 4 |
 | Item ids and group ranges | a literal in each comparison | 364 private constants for 81 ids (`0x1c15`: 22 definitions, 10 names, 2 meanings), five of them misnamed | one taxonomy header (groups, codes, models, the most repeated ids); every comparison stays where it is | 1, 9, 12 |
 | Type and model | two spaces of one integer | the same, with nothing to tell them apart | codes and models in two namespaces, a model written as `ModelOf(code)`; `ModelId` arrives in AR4 as the types rule says | 9, 12 |
-| The load lists | 37 loops and 203 calls | 562 literal rows in `Data/Models/PlayerModels.cpp` | the same 562 rows in the same order, written as 240 loops and calls | 5, 6 |
+| The load lists | 37 loops and 198 single calls | 562 literal rows in `Data/Models/PlayerModels.cpp` | the same 562 rows in the same order, written as about 245 loops and calls | 5, 6 |
 | A model slot | one record of 0xe0 bytes | six containers; `RoleOf` parses the texture script per mesh per draw | one `LoadedModel` per slot, mesh traits computed at load, bone keys kept once | 11 |
 | The object state (`0x607b60`) | one function | four files; the floor copy misses four scales | one function, the floor scales fixed first | 7, 13 |
 | Draw and glow (`0x60b3d0`) | one function | two ports | the item draw plan, Tasks 4 to 8, unchanged; this plan adds two notes to its Task 7 | 14 |
@@ -62,16 +62,24 @@ with the wearer's bones as in the original. The only repeated bones are the anim
 
 ## Decisions for Emanuel
 
-1. **Where the item taxonomy lives (Task 9).** Recommended: a small module of its own, `game/ItemKinds` at layer 6,
-   next to `game/Maps`, which does the same for maps. Most files that compare item ids do not read the table, and
-   `game/Items` (the inventory, layer 9) cannot be included by `Actors`, `Player` or `Skills`. The alternative is
-   `game/Tables`, next to `ItemRecord`: one module less, but the tables module then also owns predicates.
+1. **Where the item taxonomy lives (Task 9).** Recommended: `game/Tables`, as `Tables/ItemCode.h` next to
+   `ItemRecord`. The item code is the key of `Item.bmd` (16 sections of 512, `ItemTable.h:20-22`) and the index of
+   `ItemRecordAt`; `Tables` is at layer 6, so every module that compares ids can include it (`game/Items`, at layer 9,
+   cannot be included by `Actors` or `Player`); and `FirstItemModel`, `ItemModelsPerGroup` and `ItemModel()`
+   (`PlayerModels.h:23-29`), which decision 2 also sends to `game/Tables`, move into the same header instead of being
+   defined twice. The alternative is a module of its own, `game/ItemKinds` at layer 6: it reads well, but it cannot
+   include `Tables` (same layer), and a new module is a new row in every list of the 58 modules (CODING_RULES §5, the
+   design spec, ADR 0023, the `muret-module` skill) and in AR1.2's move list.
 2. **Where MU's model catalog lives (Task 10), before AR1.2 moves the engine.** The map sends `PlayerModels`,
    `ModelLoadCalls`, `ModelTextureCalls` and `PlayerActions` to `engine/Data` and `Attachment` to `engine/Models`. Which
    file `main.exe` loads into which slot, and which bone of `Player.bmd` is the right hand, are MU content, as the
-   packet layouts are. Recommended: retarget them to `game/Tables` (layer 6, because `WorldState.cpp` in `game/Kernel`
-   includes `PlayerModels.h`) and `Attachment` to `game/Actors`, which needs `MakePlayerSkeleton` out of the engine
-   first. The alternative is to leave them in `engine/` for AR1.2 and move them again in AR4.1.
+   packet layouts and the sound catalog are, and CODING_RULES §7 rule 5 says the engine never names a game id
+   (`Attachment.h:37,46` names `0x1c13` and `0x1c30`). Recommended: retarget the four to `game/Tables` (layer 6,
+   because `Scenes/WorldState.cpp` in `game/Kernel` includes `PlayerModels.h`) and `Attachment` to `game/Actors`. The
+   only engine file that includes the catalog is `Render/Models/Skeleton.cpp:5-6`, for `MakePlayerSkeleton`, so that
+   function leaves the engine first; `Attachment` has no engine user (`CharacterDrawing.cpp` and `GameHanging.cpp`
+   use it). The alternative is to leave them in `engine/` for AR1.2 and move them again in AR4.1: about 75 include
+   lines and a namespace rewritten twice.
 
 Already decided elsewhere, so not asked again: no strong `ItemType` (types review A5, both readings of the stored id are
 behavior) and `ModelId` as `Core::Id<ModelIdTag, std::uint16_t>` in AR4 (types review F2, CODING_RULES §7 rule 5);
@@ -89,7 +97,7 @@ each task is its own PR and starts after Emanuel's yes.
 - The representation is the one the port has today (CODING_RULES §7, rule 6). A conversion stays at the place where
   the cast is today; a new helper never moves a sign extension or a truncation.
 - No file is renamed outside `move.py`. A new file is born in the folder it keeps inside its root (`Tables/`,
-  `ItemKinds/`, `Assets/`), with that folder's namespace, its row in `Client/docs/research/coverage/module-map.tsv`
+  `Assets/`), with that folder's namespace, its row in `Client/docs/research/coverage/module-map.tsv`
   (`confidence` `high`, `why` ending in `(item vocabulary)`) and the folder's glob in `Client/modules.tsv`
   `folders_today`. `check_layers.py` prints `0 new`, or the PR says which row it adds and why.
 - Everything in English; a comment only if strictly necessary, one line, keeping the `0x…` citations. New code calls
@@ -97,21 +105,25 @@ each task is its own PR and starts after Emanuel's yes.
 - PRs target `refactor/client`, one task per PR; Emanuel says yes before the next one starts. No task runs while an AR
   move PR touches its files. Tasks 7 and 8 wait for #428, #429 and #430 to merge, because they touch the same files.
 - GitHub CI is the build and the final word: the cloud container builds only the client without SDL and GL.
+- `ctest -R` matches GoogleTest names (`Suite.Case`, from `gtest_discover_tests`), never the executable's name: each
+  filter below names suites. "No tests were found" exits 0 and is a failure of the step, not a pass.
 
 ## Review Focus
 
 - **An empty slot reaching a predicate.** The stored id `0xffff` is `-1` where the port reads it signed and `65535`
-  where it reads it unsigned; a new name must not change which. Task 9 runs every group predicate over all 65,536
-  values against the literal comparison it replaces.
-- **Half-open against closed bounds.** `InRange` means `[first, last]` in 18 files and `[first, end)` in 2. Task 1
-  renames the two half-open ones and Task 9 tests each range at `first - 1`, `first`, `end - 1` and `end`.
+  where it reads it unsigned; a new name must not change which. Task 9 pins `SignedItemCode(0xffff) == -1` and changes
+  no read of the stored id; Task 15 runs each group predicate over all 65,536 ids against the comparison of each site
+  that adopts it.
+- **Half-open against closed bounds.** The three-argument `InRange` means `[first, last]` in 18 files and
+  `[first, end)` in 2. Task 1 renames the two half-open ones; Task 15 tests each group predicate at `first - 1`,
+  `first`, `end - 1` and `end`.
 - **The sign and byte order of the row.** `+0x40` is a signed 32-bit price and the words are little endian. Task 2
   pins a negative price and the low byte first.
 - **The order of the load lists.** A fold that swaps two rows loads the same files in another order. Task 5 pins the
   562 rows in order before Task 6 touches them.
 - **A port fix that reaches too far.** The floor scale changes for four models only and the Heart's level for one
-  model only. Task 7 compares the floor scale with the shared function for every model id below `0x2260`, and Task 8
-  draws the Heart at all 16 levels.
+  model only. Task 7 compares the floor scale with the shared function for every item type, and Task 8 draws the Heart
+  at all 16 levels.
 
 ---
 
@@ -121,8 +133,8 @@ each task is its own PR and starts after Emanuel's yes.
 | --- | --- | --- |
 | Now, independent of AR1 | 1, 2, 3, 4, 5, 6 | refactor, scope `refactor(items)` |
 | After #428, #429 and #430 merge | 7, 8 | port, scope `fix(items)` |
-| After decision 1 | 9 | refactor |
 | After decision 2, before AR1.2's move (AR1 plan, Task 7) | 10 | design, scope `refactor(AR1.1)` |
+| After decision 1 and Task 10 | 9 | refactor |
 | AR4.1 and AR4.4 design PRs | 11, 12 | refactor, inside each milestone |
 | AR6, after the item draw plan's Task 7 | 13, 14, 15 | refactor |
 
@@ -135,7 +147,7 @@ PR `refactor(items): name item constants and range helpers after what they hold`
 
 **Files:**
 - Modify: `Client/src/Scenes/HeroSkillsKnight.cpp:49-50,104,110`, `Client/src/Scenes/ItemTooltipOptions.cpp:52,57-61,319-323`,
-  `Client/src/Scenes/HeroSkillCasts.cpp:65-66` and their uses, `Client/src/Scenes/ChaosMix.cpp:61,361,363`,
+  `Client/src/Scenes/HeroSkillCasts.cpp:65-66,259` and their uses, `Client/src/Scenes/ChaosMix.cpp:61,361,363`,
   `Client/src/Scenes/Skill55faa0.cpp:35` and `Client/src/Scenes/GameMovement.cpp:368` and their uses
 
 **Interfaces:**
@@ -147,7 +159,7 @@ PR `refactor(items): name item constants and range helpers after what they hold`
 | `ItemTooltipOptions.cpp` | `FirstShield = 0xa00`, `ShieldsEnd = 0xc00` | `FirstStaff`, `StaffsEnd` | group 5 in type space, `0x5b7ae8..0x5b7af4` |
 | `ItemTooltipOptions.cpp` | `WithBlocking{0x1f, 0x17, 0x15}`, `BlockingText = 79` | `MagicSwords`, `MagicDamageText` | swords 0:31, 0:23, 0:21 (`0x5b7af6..0x5b7b06`); text 79 is "Aumenta daño magico en %d%%", printed with `byte16`, the magic power |
 | `ItemTooltipOptions.cpp` | `FirstHelm = 0x1400`, `HelmText = 93` | `FirstGloves`, `GlovesText` | group 10, `0x5b7a65` |
-| `HeroSkillCasts.cpp` | `ThirdMount = 0x1c16`, `DarkHorse = 0x1c37` | `DarkHorseModel`, `FenrirModel` | `ModelOf` of 13:4 Dark Horse and 13:37 Horn of Doom (Fenrir) |
+| `HeroSkillCasts.cpp` | `ThirdMount = 0x1c16`, `DarkHorse = 0x1c37`, "con el caballo" at `:259` | `DarkHorseModel`, `FenrirModel`, "with Fenrir" | `ModelOf` of 13:4 Dark Horse and 13:37 Horn of Doom (Fenrir); `:259` is `0x55bda6` `CMP [ESI+0x318],0x1c37` |
 | `ChaosMix.cpp` | `FirstArmor = 0xc00` | `WeaponsEnd` | the code splits groups 0 to 5 from the rest |
 | `Skill55faa0.cpp`, `GameMovement.cpp` | `InRange(value, first, end)`, half-open | `InHalfOpenRange` | the other 18 `InRange` are closed |
 
@@ -156,8 +168,8 @@ PR `refactor(items): name item constants and range helpers after what they hold`
 - [ ] **Step 2: Check the diff is names only:** `git diff -U0 | grep '^[-+][^-+]'` shows, per pair of lines, the same
   text with one identifier or comment word changed.
 - [ ] **Step 3: Run the tests of those files:**
-  `ctest --preset linux-x64-debug -R '^(test_hero_skills_knight|test_item_tooltips|test_hero_skill_casts|test_chaos_mix|test_game_movement)$'`.
-  Expected: PASS, no test file changed. Push; CI green with the golden unchanged.
+  `ctest --preset linux-x64-debug -R '^(HeroSkillsKnight(Helpers)?Test|ItemTooltipsTest|PersonalShopPriceTest|HeroSkillCastsTest|ChaosMix(KindForMode)?Test|MixQuoteTest|MixRoomTest|GameMovementTest|HeroArrivalSkillTest)\.'`
+  (`HeroArrivalSkillTest` is the one that covers `Skill55faa0.cpp`). Expected: PASS, no test file changed. Push; CI green with the golden unchanged.
 - [ ] **Step 4: Commit** `refactor(items): name item constants and range helpers after what they hold`.
 
 ### Task 2: `ItemRecord`, the `Item.bmd` row with names
@@ -183,7 +195,7 @@ PR `refactor(items): read the Item.bmd row through named accessors`, branch `ref
     `DamageMin = 0x26`, `DamageMax = 0x27`, `DefenseRate = 0x28`, `Defense = 0x29`, `MagicDefense = 0x2a`,
     `AttackSpeed = 0x2b`, `WalkSpeed = 0x2c`, `Durability = 0x2d`, `StaffDurability = 0x2e`, `MagicPower = 0x2f`,
     `RequiredStrength = 0x30`, `RequiredAgility = 0x32`, `RequiredEnergy = 0x34`, `RequiredVitality = 0x36`,
-    `RequiredLeadership = 0x38`, `RequiredLevel = 0x3a`, `Value = 0x3c`, `Zen = 0x40`, `SetStatKind = 0x44`,
+    `RequiredLeadership = 0x38`, `RequiredLevel = 0x3a`, `PriceValue = 0x3c`, `FixedPrice = 0x40`, `SetStatKind = 0x44`,
     `Classes = 0x45` (5 bytes), `Resistances = 0x4a` (7 bytes), and
     `static_assert(Resistances + 7 <= Data::Tables::ItemRecordSize)`.
   - `enum class ItemClassColumn : std::uint8_t { DarkWizard, DarkKnight, Elf, MagicGladiator, DarkLord };` (the
@@ -192,10 +204,10 @@ PR `refactor(items): read the Item.bmd row through named accessors`, branch `ref
     and `[[nodiscard]] … const noexcept` accessors, each at the width of its field: `NameBytes()` →
     `std::span<const std::byte, 30>`; `TwoHanded()`, `EquipmentSlot()`, `Skill()`, `Width()`, `Height()`,
     `DamageMin()`, `DamageMax()`, `DefenseRate()`, `Defense()`, `MagicDefense()`, `AttackSpeed()`, `WalkSpeed()`,
-    `Durability()`, `StaffDurability()`, `MagicPower()`, `Value()`, `SetStatKind()` → `std::uint8_t`; `Level()`,
+    `Durability()`, `StaffDurability()`, `MagicPower()`, `PriceValue()`, `SetStatKind()` → `std::uint8_t`; `Level()`,
     `RequiredStrength()`, `RequiredAgility()`, `RequiredEnergy()`, `RequiredVitality()`, `RequiredLeadership()`,
-    `RequiredLevel()` → `std::uint16_t` (little endian); `Zen()` → `std::int32_t` (little endian, signed, as
-    `0x54d0f0` reads it); `ClassRequirement(ItemClassColumn)` → `std::uint8_t`; `Resistances()` →
+    `RequiredLevel()` → `std::uint16_t` (little endian); `FixedPrice()` → `std::int32_t` (little endian, signed, as
+    `0x54d0f0` reads it: `CDQ`, `JL`); `ClassRequirement(ItemClassColumn)` → `std::uint8_t`; `Resistances()` →
     `std::array<std::uint8_t, 7>`.
   - `[[nodiscard]] std::optional<ItemRecord> ItemRecordAt(const Data::Tables::ItemTable& table, std::size_t type) noexcept;`
     and the `const ItemTable&&` overload deleted, as `RecordTable::Record` does: the record points into the table.
@@ -218,12 +230,12 @@ TEST(ItemRecordTest, ReadsEveryFieldAtItsOffset) // plain[i] = i for every i
     EXPECT_EQ(record.RequiredStrength(), 0x3130);
     EXPECT_EQ(record.RequiredLeadership(), 0x3938);
     EXPECT_EQ(record.RequiredLevel(), 0x3b3a);
-    EXPECT_EQ(record.Zen(), 0x43424140);
+    EXPECT_EQ(record.FixedPrice(), 0x43424140);
     EXPECT_EQ(record.ClassRequirement(ItemClassColumn::DarkLord), 0x49);
     EXPECT_EQ(record.Resistances(), (std::array<std::uint8_t, 7>{0x4a, 0x4b, 0x4c, 0x4d, 0x4e, 0x4f, 0x50}));
     // and one EXPECT per remaining accessor, each equal to its offset
 }
-TEST(ItemRecordTest, ZenKeepsItsSign) // FF FF FF FF at +0x40 → -1
+TEST(ItemRecordTest, TheFixedPriceKeepsItsSign) // FF FF FF FF at +0x40 → -1
 TEST(ItemRecordTest, ATypeOutsideTheTableHasNoRecord) // ItemCount → nullopt, ItemCount - 1 → a record
 ```
 
@@ -236,10 +248,11 @@ TEST(ItemRecordTest, ATypeOutsideTheTableHasNoRecord) // ItemCount → nullopt, 
   with `Tables/ItemRecord.h` not found.
 - [ ] **Step 3: Implement `ItemRecord` and `ItemRecordAt`.** Words and the price are read byte by byte, low byte
   first, never by reinterpreting the bytes.
-- [ ] **Step 4: Run** `ctest --preset linux-x64-debug -R '^test_(item_record|golden_item_table)$'`. Expected: PASS.
+- [ ] **Step 4: Run** `ctest --preset linux-x64-debug -R '^(ItemRecordTest|GoldenItemTable|MemoryItemTable)\.'`. Expected:
+  PASS.
 - [ ] **Step 5: Adopt it in `World/ItemState.cpp` and `tests/support/ItemFiles.h`:** `CopyMetadata` and the
   requirement code read `ItemRecord` accessors; the support helper writes through `ItemRecordLayout`. Run
-  `ctest --preset linux-x64-debug -R '^test_item_state$'` (expected: PASS, unchanged) and `check_layers.py` (expected:
+  `ctest --preset linux-x64-debug -R '^(ItemStateTest|ItemStateDeathTest|GoldenItemState)\.'` (expected: PASS, unchanged) and `check_layers.py` (expected:
   `0 new`; `game/Items` may use `game/Tables`).
 - [ ] **Step 6: Commit** `refactor(items): read the Item.bmd row through named accessors`; push; CI green with the
   golden unchanged.
@@ -254,21 +267,24 @@ PR `refactor(items): read Item.bmd rows only through ItemRecord`, branch `refact
   `InventoryMoves.cpp`, `OwnItemPlacement.cpp`, `GameInventoryHud.cpp`, `ItemTooltips.cpp`, `OwnStatHelpers.cpp`,
   `HudItems.cpp`, `ItemTooltipRequirements.cpp`, `ItemNames.cpp`, `FloorItemNames.cpp`, `GameCharacterHud.cpp`,
   `GridItemUse.cpp`, `OwnDerivedStats.cpp`, `ItemTooltipOptions.cpp`, `ItemTooltipParts.cpp`, `GameHud.cpp`,
-  `GameItemHelp.cpp`, `NpcWindowSteps.cpp`, `PetTrainer.cpp`, and `UI/ChatCommands.cpp`
+  `GameItemHelp.cpp`, `NpcWindowSteps.cpp`, `PetTrainer.cpp`, `ItemTooltipName.cpp` (`:351`, through
+  `ItemRecordName(frame.record)`), and `UI/ChatCommands.cpp`; and the headers that carry the raw row:
+  `ItemTooltipParts.h:29,35` (`frame.record`, `RecordByte`), `HudItems.h:67,72`, `ItemHelpLevels.h:62`
 
 **Interfaces:**
 - Consumes: Task 2's `ItemRecordAt` and accessors.
 - Produces: no new name. The three file-local `ItemRecordOf` (`GameHud.cpp:221`, `OwnItemPlacement.cpp:107`,
-  `InventoryMoves.cpp:291`) and the private byte and word readers (`ItemPrice.cpp:259-274`, `ItemHelpLevels.cpp:56-64`,
+  `InventoryMoves.cpp:291`) and the private byte and word readers (`ItemPrice.cpp:259-275`, `ItemHelpLevels.cpp:56-65`,
   `ItemTooltipOptions.cpp:182`, `ItemTooltipParts.cpp:46`) go. Each site keeps its own "missing row" message and its
-  own reading of the byte (`!= 0`, `== 0`, added to a text index). A site whose meaning differs from the field's name
+  own reading of the byte (`!= 0`, `== 0`, added to a text index). `frame.record` and the header parameters become
+  `ItemRecord`; `RecordByte` (`ItemTooltipParts.h`, used by the options, requirements and stats tooltips) goes with them. A site whose meaning differs from the field's name
   keeps a local name for it: `const auto prize = record->Durability();` in `ItemNames.cpp`.
 
 - [ ] **Step 1: Replace** each `items…->Record(type)` and its offset constant with `ItemRecordAt` and the accessor.
 - [ ] **Step 2: Check nothing reads the row by offset any more:**
   `grep -rnE 'items(->|\.)Record\(' Client/src` prints nothing, and
-  `grep -rnwE 'TwoHandedAt|TwoHandedByte|TwoHands|WeaponMarkOffset|ItemLevelAt|ItemLevelWord|ItemEquipSlotOffset|ItemWidthOffset|ItemHeightOffset|HeightByte|DurabilityAt|StaffDurabilityAt|FixedPriceAt|PotionValueAt|ItemStatKindOffset|SetStatByte|FirstClassByte|MagicGladiatorByte|ItemDarkLordOffset|FirstResistanceByte|RequiredLevelOffset|BaseDurabilityOffset|EventTicketPrizeOffset' Client/src`
-  prints nothing.
+  `grep -rnwE 'TwoHandedAt|TwoHandedByte|TwoHands|WeaponMarkOffset|ItemLevelAt|ItemLevelWord|ItemEquipSlotOffset|ItemWidthOffset|ItemHeightOffset|HeightByte|DurabilityAt|StaffDurabilityAt|FixedPriceAt|PotionValueAt|ItemStatKindOffset|SetStatByte|FirstClassByte|MagicGladiatorByte|ItemDarkLordOffset|FirstResistanceByte|RequiredLevelOffset|BaseDurabilityOffset|EventTicketPrizeOffset|AgilityWord|AttackSpeedByte|DefenseByte|DefenseRateByte|DurabilityByte|EnergyWord|ItemNamedByte|LeadershipWord|MagicByte|MagicDurabilityByte|MaxDamageByte|MinDamageByte|RequiredLevelWord|StaffDurabilityByte|StrengthWord|VitalityWord|WalkSpeedByte|RecordByte' Client/src`
+  prints nothing, and the constants `Width` and `Height` that held `0x24` and `0x25` are gone (`grep -rnE 'Width = 0x24|Height = 0x25' Client/src`).
 - [ ] **Step 3: Run** `check_layers.py` (expected: `0 new`; every reader is in a `game` module at layer 7 or above)
   and push: CI runs the scene tests of all 26 files. Expected: green, the golden unchanged.
 - [ ] **Step 4: Commit** `refactor(items): read Item.bmd rows only through ItemRecord`.
@@ -299,14 +315,14 @@ PR `refactor(items): name the fields of the in-memory item after what 0x54bf40 p
 | `itemClass` | `part` | +0x08 | `0x54cf08..0x54d053` |
 
   `id`, `scalar1Low`, `flags1b`, `flags1c` keep their names: their other bits are not verified. The comment "Nombres
-  neutros…" goes.
+  neutros…" goes, and `Classify` (`ItemState.cpp:603`), which fills `part`, becomes `PartOf`.
 
 - [ ] **Step 1: Rename the members in `ItemState.h`.** Not by text replacement: `word0c`, `word0e` and `word12` are
   also members of the pet record in `Scenes/WorldRuntime.h:300-303` and `word12` of `Data/Tables/QuestTable.h:80`.
 - [ ] **Step 2: Build** `ClientLib` and the test targets; fix each error at the line the compiler names.
 - [ ] **Step 3: Check** `grep -rnwE 'byte0a|byte10|byte16|byte17|word14|word18|word1e|word20|word22|word24|word26|word28|itemClass' Client/src Client/tests`
   prints nothing, and the remaining `word0c`, `word0e`, `word12` are the pet record's and the quest table's.
-- [ ] **Step 4: Run** `ctest --preset linux-x64-debug -R '^test_item_state$'` and push. Expected: PASS; CI green, the
+- [ ] **Step 4: Run** `ctest --preset linux-x64-debug -R '^(ItemStateTest|ItemStateDeathTest|GoldenItemState)\.'` and push. Expected: PASS; CI green, the
   golden unchanged.
 - [ ] **Step 5: Commit** `refactor(items): name the fields of the in-memory item after what 0x54bf40 puts in them`.
 
@@ -333,7 +349,7 @@ EXPECT_EQ(SkillModelFiles().size(), 106u);
 EXPECT_EQ(LoadListHash(SkillModelFiles()), 0x377accd992f48473ULL);
 ```
 
-- [ ] **Step 2: Run it on the unchanged lists:** `ctest --preset linux-x64-debug -R '^test_player_models$'`. Expected:
+- [ ] **Step 2: Run it on the unchanged lists:** `ctest --preset linux-x64-debug -R '^PlayerModelsTest\.'`. Expected:
   PASS. A failure here means the test's encoding differs from the one above, not the lists.
 - [ ] **Step 3: Check it bites:** swap two rows of `ItemFiles` locally; the test fails; undo.
 - [ ] **Step 4: Commit** `test(items): pin the order of the three model load lists`.
@@ -365,15 +381,24 @@ template <std::size_t Size> struct FileList
 };
 ```
 
-  `PlayerFiles`, `ItemFiles` and `SkillFiles` are built by `consteval` functions that end with
-  `static_assert`-checked counts 213, 243 and 106. One entry per loop or single call, with its call VA as the trailing
-  comment: the rows that share a VA comment today are one loop. `PlayerModelFiles()`, `ItemModelFiles()` and
+  `PlayerFiles`, `ItemFiles` and `SkillFiles` are namespace-scope `constexpr` variables built by `constexpr`
+  functions, as `CallList` is; their counts 213, 243 and 106 are `static_assert`ed on those variables, as
+  `ModelTextureCalls.cpp:134-137` does (inside the builder the list is not a constant expression). `firstModel + turn`
+  is written with `static_cast<std::uint16_t>`. One entry per loop or single call, with its call VA as the trailing
+  comment: the rows that share a VA comment today are one loop. Five loops branch inside their body and are written as
+  consecutive entries that share the loop's VA, in the original's order, never with a skip parameter:
+  `0x60ef49..0x60f072` (numbers 18 to 21: at 20 the five `*MaleTest` files, no helm at 21, `t_PantMale` at 19),
+  `0x60f07d..0x60f105` (22 to 25, no helm at 24), `0x6113f7..0x611423` (`EventBloodCastle` 0 to 3: models `0x1c22`
+  to `0x1c24`, then `0x2245`), `0x61169f..0x6116c8` (`Gem` 1 to 13 without 9) and `0x6116fb..0x61171a`
+  (`SkillScroll.bmd` with number `-1` into four models, `0x1a27` to `0x1a2a`). `PlayerModelFiles()`, `ItemModelFiles()` and
   `SkillModelFiles()` keep their signatures. The folder strings are defined once, in `PlayerModels.cpp`.
-  `SiegeModelFiles()` goes: it repeats 15 rows of `SkillFiles` (`0x6161ea..0x616854`) and only a test reads it; that
-  test checks the same slots in `SkillModelFiles()`.
+  `SiegeModelFiles()` goes: it repeats 15 rows of `SkillFiles` (rows 41, 42, 55, 56, 58, 59 and 88 to 96,
+  `0x6161ea..0x616854`) and only two tests of `test_model_load_calls.cpp` read it
+  (`SiegeModelPathsAndNumbersFollowTheNativeBmdCalls`, `TheFinalSkillQueriesKeepTheFirstTextureFolderThroughTheNativeNameCache`);
+  they check the same slots in `SkillModelFiles()`. `SiegeBeforeSkillTextureCalls` stays: `GameModels.cpp:155` uses it.
 
 - [ ] **Step 1: Fold each list**, one loop at a time, running Task 5's test after each list.
-- [ ] **Step 2: Run** `ctest --preset linux-x64-debug -R '^test_(player_models|model_load_calls|model_texture_calls)$'`.
+- [ ] **Step 2: Run** `ctest --preset linux-x64-debug -R '^(PlayerModelsTest|ModelLoadCallsTest|ModelTextureCallsTest)\.'`.
   Expected: PASS, with Task 5's hashes unchanged. `ModelTextureCalls.cpp` is not touched.
 - [ ] **Step 3: Push.** CI green, `test_golden_game_models` and the behavior golden unchanged.
 - [ ] **Step 4: Commit** `refactor(items): write the model load lists as the loops of 0x60dbe0, 0x60ff50 and 0x615700`.
@@ -397,11 +422,12 @@ PR `fix(items): give floor items the scales 0x607b60 gives four models`, branch 
 - [ ] **Step 1: Write the failing tests.** `TEST(ObjectStateTest, TheItemScaleOf0x607b60)`: `0x1a15` → 0.5f, `0x1e27` →
   0.5f, `0x1e13` → 1.0f, `0x2012` → 0.7f, `0x812` → 0.7f, `0xe11` → 0.7f, `0xe12` → 0.8f, `0x222` → 0.8f, `0x811` →
   0.8f. In the floor scene test, `ADroppedSmallHealingPotionKeepsScaleOne`: a created floor item of 14:1 has `scale`
-  1.0f, and for every model id in `[0, 0x2260)` the created item's scale equals `ItemObjectScale(model)`.
+  1.0f, and for every item type in `[0, 0x2000)` the created item's scale equals `ItemObjectScale` of the created
+  item's model (after `0x608350`'s remaps).
 - [ ] **Step 2: Run them to see them fail:** the floor test fails for `0x1a15`, `0x1e13`, `0x1e27` and `0x2012` with
   0.8.
 - [ ] **Step 3: Implement** `ItemObjectScale` and point both callers at it.
-- [ ] **Step 4: Run** `ctest --preset linux-x64-debug -R '^test_(object_state|floor_items_scene|game_draw_tail)$'`.
+- [ ] **Step 4: Run** `ctest --preset linux-x64-debug -R '^(ObjectStateTest|FloorItemsSceneTest|FloorItemNameTest|GameDrawTailTest)\.'`.
   Expected: PASS.
 - [ ] **Step 5: Push.** If a behavior golden changes (a scene that drops one of the four), rewrite it and list it in
   the description with this reason.
@@ -425,58 +451,62 @@ PR `fix(items): draw the Heart with the level 8 that 0x60b3d0 gives it`, branch 
   with the models and context of `HelpersOverrideThePackedItemLevelBeforeChoosingTheirPasses`, the floor item
   `0x1e1e` with `value = level << 3` adds 6 vertices for every level 0 to 15 (levels 0 and 2 are remapped to `0x223a`
   and `0x223b` first, which already glow at 8).
-- [ ] **Step 2: Run it to see it fail** at level 1 with 3 vertices.
+- [ ] **Step 2: Run it to see it fail:** today the Heart draws 3 vertices at levels 1, 3 to 6, 14 and 15, 9 at levels 9
+  and 10, and 12 at levels 11 to 13.
 - [ ] **Step 3: Add `model == 0x1e1e`** to the level-8 condition.
-- [ ] **Step 4: Run** `ctest --preset linux-x64-debug -R '^test_(game_floor_item_drawing|ui_item_drawing|item_draw_equivalence)$'`.
+- [ ] **Step 4: Run**
+  `ctest --preset linux-x64-debug -R '(^GameFloorItemDrawingTest|^GoldenGameFloorItemDrawing|^UiItemDrawingTest|ItemDrawEquivalence)\.'`.
   Expected: PASS. Push; list any behavior golden that changes.
 - [ ] **Step 5: Commit** `fix(items): draw the Heart with the level 8 that 0x60b3d0 gives it`.
 
 ### Task 9: the item taxonomy
 
 PR `refactor(items): give item groups, codes and models one home`, branch `refactor/items-taxonomy`. Starts after
-decision 1; the paths below are for the recommended `game/ItemKinds` (with `game/Tables` they are `Tables/ItemCode.h`
-and `Client::Tables`).
+decision 1 and Task 10: it renames `LordsCape` in `Attachment.h`, an engine file until Task 10 retargets it. The paths
+below are for the recommended `game/Tables`.
 
 **Files:**
-- Create: `Client/src/ItemKinds/ItemCode.h` (module `game/ItemKinds`, layer 6, `may_use` `*layer<6`, a new row in
-  `Client/modules.tsv` with `folders_today` `ItemKinds/**`); its row in the module map
+- Create: `Client/src/Tables/ItemCode.h` (module `game/Tables`, namespace `Client::Tables`; code in `Client::Data`
+  writes `Client::Tables::` in full until AR1 Task 9) and its row in the module map; the note of `game/Tables` in
+  `Client/modules.tsv` and the layer-6 row of CODING_RULES §5 say the tables module also names item groups and ids
 - Create: `Client/tests/gamelogic/test_item_code.cpp`
-- Modify: the files that define a private constant for one of the ids named below (identity report, section 3.4: about
-  110 definitions) and the eight definitions of `0x212` (section 3.5)
+- Modify: `Client/src/Data/Models/PlayerModels.h:23-29` (`FirstItemModel`, `ItemModelsPerGroup` and `ItemModel()`
+  move to `ItemCode.h`, unchanged; their users include it), the files that define a private constant for one of the ids
+  named below (identity report, section 3.4: about 110 definitions) and the eight definitions of `0x212` (section 3.5)
 
 **Interfaces:**
-- Consumes: `Data::Models::FirstItemModel` (today `PlayerModels.h:24`).
-- Produces, in `Client::ItemKinds`:
+- Produces, in `Client::Tables`:
   - `enum class ItemGroup : std::uint8_t { Swords, Axes, Maces, Spears, Bows, Staffs, Shields, Helms, Armors, Pants,
-    Gloves, Boots, Wings, Helpers, Potions, Scrolls };` and `inline constexpr std::int32_t ItemsPerGroup = 512;`
+    Gloves, Boots, Wings, Helpers, Potions, Scrolls };`
+  - From `PlayerModels.h`, unchanged: `FirstItemModel = 0x212`, `ItemModelsPerGroup = 512`,
+    `ItemModel(std::uint8_t group, std::uint16_t index)` (`0x60ff50`).
   - `[[nodiscard]] constexpr std::int16_t ItemCode(ItemGroup group, std::int32_t index) noexcept;` (group · 512 +
     index), `[[nodiscard]] constexpr std::int16_t SignedItemCode(std::uint16_t id) noexcept;` (the `MOVSX` of the
-    stored id), `[[nodiscard]] constexpr std::int16_t ModelOf(std::int16_t code) noexcept;` (code + `0x212`,
-    `0x60ff50`)
-  - `[[nodiscard]] constexpr bool IsCodeIn(ItemGroup group, std::int32_t code) noexcept;` and
-    `[[nodiscard]] constexpr bool IsModelIn(ItemGroup group, std::int32_t model) noexcept;`, half-open over the group
-    (`[group · 512, group · 512 + 512)`, and the same plus `0x212`), on a value the caller has already read signed
+    stored id), `[[nodiscard]] constexpr std::int16_t ModelOf(std::int16_t code) noexcept;` (code + `FirstItemModel`).
+    Each return is a `static_cast<std::int16_t>` and the group an explicit cast, as `ItemModel` does: CI builds with
+    `-Wconversion` and `/W4 /WX`.
   - `namespace Codes` with `inline constexpr std::int16_t` names from `Item.bmd`: `HornOfUnilia` (13:2),
     `HornOfDinorant` (13:3), `DarkHorse` (13:4), `DarkRaven` (13:5), `CapeOfLord` (13:30), `HornOfDoom` (13:37),
     `WingsOfDarkness` (12:6), `Heart` (14:12), `Zen` (14:15), `RemedyOfLove` (14:20), `Rena` (14:21),
     `JewelOfCreation` (14:22), `ScrollOfTheEmperor` (14:23); and `namespace Models` with the same names as
     `ModelOf(Codes::…)`. So `0x1c15` is `Codes::Rena` or `Models::HornOfDinorant`, never both under one spelling.
-  - Model-space values stay `std::int16_t` until AR4 brings `ModelId`; that PR converts `Models`.
+  - Model-space values stay `std::int16_t` until AR4 brings `ModelId`; that PR converts `Models`. Group predicates are
+    not in this task: no site adopts one here (Task 15).
 
-- [ ] **Step 1: Write the failing tests:** `ItemCodeTest.TheExampleSwords` (`ItemCode(Swords, 16) == 16`,
+- [ ] **Step 1: Write the failing tests:** `ItemCodeTest.TheExampleSwords` (`ItemCode(ItemGroup::Swords, 16) == 16`,
   `ModelOf(16) == 0x222`, `ModelOf(22) == 0x228`); `ItemCodeTest.TheTwoSpacesOf0x1c15` (`Codes::Rena == 0x1c15`,
-  `Models::HornOfDinorant == 0x1c15`, `Codes::HornOfDinorant == 0x1a03`); `ItemCodeTest.EachGroupRangeAtItsEdges`
-  (for every group: `first - 1` out, `first` in, `first + 511` in, `first + 512` out, in both spaces);
-  `ItemCodeTest.AnEmptySlotIsInNoGroup` (`SignedItemCode(0xffff) == -1`, and over all 65,536 ids
-  `IsCodeIn(g, SignedItemCode(id))` equals `SignedItemCode(id) >= g · 512 && SignedItemCode(id) < g · 512 + 512`).
+  `Models::HornOfDinorant == 0x1c15`, `Codes::HornOfDinorant == 0x1a03`); `ItemCodeTest.ModelOfAgreesWithItemModel`
+  (for every group and index `0..511`, `ModelOf(ItemCode(g, i))` read as `std::uint16_t` equals `ItemModel(g, i)`);
+  `ItemCodeTest.AnEmptySlotReadsAsMinusOne` (`SignedItemCode(0xffff) == -1`, `SignedItemCode(0x7fff) == 0x7fff`).
 - [ ] **Step 2: Run them to see them fail**, then implement `ItemCode.h`; run
-  `ctest --preset linux-x64-debug -R '^test_item_code$'`. Expected: PASS.
+  `ctest --preset linux-x64-debug -R '^(ItemCodeTest|PlayerModelsTest)\.'`. Expected: PASS.
 - [ ] **Step 3: Replace the private definitions** of the named ids and of `0x212` with the header's names, leaving
   each comparison where it is, with its shape and its cast. A definition whose value is the id but whose meaning at
   its site is something else (`HeightOffsetPet`, `Counted1c14`) becomes a local alias of the header's name, such as
   `constexpr auto HeightOffsetPet = Models::HornOfDinorant;`, and keeps its name.
-- [ ] **Step 4: Check** `check_layers.py` prints `0 new` (every user is in a module above layer 6) and push. CI green,
-  the golden unchanged.
+- [ ] **Step 4: Check** `check_layers.py` prints `0 new` (every user is in a module above layer 6, or in
+  `game/Tables`; `Protocol/Events.h` keeps its literal, since `Protocol` is at layer 6 too) and push. CI green, the
+  golden unchanged.
 - [ ] **Step 5: Commit** `refactor(items): give item groups, codes and models one home`.
 
 ### Task 10: MU's model catalog leaves the engine before AR1.2 (if decision 2 says so)
@@ -485,21 +515,27 @@ PR `refactor(AR1.1): keep MU's model catalog out of the engine`, branch `refacto
 
 **Files:**
 - Create: `Client/src/Assets/PlayerSkeleton.{h,cpp}` (module `game/Assets`, namespace `Client::Assets`) with
-  `MakePlayerSkeleton`, moved out of `Render/Models/Skeleton.cpp:76-98`
+  `MakePlayerSkeleton`, moved out of `Render/Models/Skeleton.cpp:76-98`; `Assets/**` in the `folders_today` of
+  `game/Assets` in `Client/modules.tsv`; their rows in the module map
+- Create: `Client/tests/gamelogic/test_player_skeleton.cpp` with the four `MakePlayerSkeleton` tests of
+  `tests/render/test_skeleton.cpp:132-184` as `PlayerSkeletonTest` (AR1 Task 8 links the engine test folders to the
+  engine libraries only)
 - Modify: `Render/Models/Skeleton.{h,cpp}` (no `PlayerModels.h` or `PlayerActions.h` include), `Scenes/GameModels.cpp:118`,
-  `tests/render/test_skeleton.cpp`, `tests/scenes/test_character_step.cpp`, `tests/scenes/test_golden_character_drawing.cpp`,
-  `tests/data/test_golden_model_files.cpp`
-- Modify: the `target` of ten rows in `Client/docs/research/coverage/module-map.tsv`: `Data/Models/PlayerModels.*`,
-  `ModelLoadCalls.*`, `ModelTextureCalls.*`, `PlayerActions.*` to `game/Tables`; `Render/Models/Attachment.*` to
-  `game/Actors`
+  `tests/render/test_skeleton.cpp`, `tests/scenes/test_character_step.cpp`, `tests/scenes/test_golden_character_drawing.cpp`
+- Modify: ten rows of `Client/docs/research/coverage/module-map.tsv`: `Data/Models/PlayerModels.*`,
+  `ModelLoadCalls.*`, `ModelTextureCalls.*`, `PlayerActions.*` to `game/Tables`, `Render/Models/Attachment.*` to
+  `game/Actors`, each with `confidence` `high` and a `why` ending in `(item vocabulary)`
 
-- [ ] **Step 1:** Move the function and its includes; the four test files include the new header.
+- [ ] **Step 1:** Move the function, its tests and its includes; the callers include the new header.
 - [ ] **Step 2: Check** `check_layers.py --clean-root engine` prints `0 new` and `grep -rn 'PlayerModels.h\|PlayerActions.h' Client/src/Render`
   prints nothing.
-- [ ] **Step 3: Run** `ctest --preset linux-x64-debug -R '^test_(skeleton|golden_model_files|character_step)$'`; push;
-  CI green, the golden unchanged.
-- [ ] **Step 4: Commit** `refactor(AR1.1): keep MU's model catalog out of the engine`. AR1.2's `move.py` then takes
-  the rows to `game/`.
+- [ ] **Step 3: Run**
+  `ctest --preset linux-x64-debug -R '^(SkeletonTest|PlayerSkeletonTest|GoldenModelFiles|CharacterStepTest|GoldenCharacterStep|GoldenCharacterDrawing)\.'`;
+  push; CI green, the golden unchanged.
+- [ ] **Step 4: Commit** `refactor(AR1.1): keep MU's model catalog out of the engine`. AR1.2's `move.py` then takes the
+  four catalog files to `game/Tables`; `Attachment` stays in `src/Render/Models/` until AR4 moves `game/Actors`, so it
+  also moves once. Other engine files still name item models (`ObjectState.cpp:73`, `PassColors`, `ItemGlow`,
+  `Animation.h:66`): those are the item draw plan's decision 4 and AR4.
 
 ### Task 11: one record per model slot (AR4.1, `Assets` design PR)
 
@@ -546,10 +582,14 @@ belong to its Task 7, which moves the item draw into `ItemDrawing.cpp`:
 
 - `PassColors.cpp` in the original's form: the armor set index for groups 7 to 11 plus the single models, 69 rows
   instead of 209, with an equality test against today's tables for every id below `0x2400` before they go.
-- Named kind predicates (`IsBowModel`, `IsCrossbowModel`…), one per distinct shape; a site adopts one only when its ASM
-  matches, and the PR cites it.
+- Group predicates `IsCodeIn(ItemGroup, std::int32_t)` and `IsModelIn(ItemGroup, std::int32_t)` in `Tables/ItemCode.h`
+  (half-open over the group, on a value the caller has already read signed) and named kind predicates (`IsBowModel`,
+  `IsCrossbowModel`…), one per distinct shape; a site adopts one only when its ASM matches, and the PR cites it. Each
+  is tested against the comparison of every site that adopts it, over all 65,536 ids and at its edges.
 - One `LevelOf` (`(x >> 3) & 15`, 8 definitions and 31 inline copies) and one excellent mask (`& 0x3f`, 7 definitions),
-  and the closed `InRange` named `InClosedRange`.
+  and the 18 closed three-argument `InRange` helpers named `InClosedRange`. The other four `InRange` overloads
+  (`CastleSiegeBlessing.cpp:19` and `CastleWeaponEffects.cpp:55` take distances, `CharacterDrawing.cpp:432` and
+  `GameSocialSteps.cpp:63` are half-open over a count and a rectangle) are not item ranges and keep their names.
 
 ## Self-review
 
@@ -557,8 +597,11 @@ belong to its Task 7, which moves the item draw into `ItemDrawing.cpp`:
   15), type and model (9, 12), the load lists (5, 6, 10), the model slot (11), the object state (7, 13), the draw
   (14 and the item draw plan).
 - Names are consistent across tasks: `ItemRecordAt`, `ItemRecordLayout`, `ItemObjectScale`, `ItemCode`,
-  `SignedItemCode`, `ModelOf`, `IsCodeIn`, `IsModelIn`, `Codes::`, `Models::`, `LoadedModel`, `MeshTraits`.
-- Each Review Focus line has its test in the task that owns the code: Task 9 (empty slot, edges), Task 1 and Task 9
+  `SignedItemCode`, `ModelOf`, `ItemModel`, `Codes::`, `Models::`, `IsCodeIn`, `IsModelIn`, `LoadedModel`, `MeshTraits`.
+- Each Review Focus line has its test in the task that owns the code: Tasks 9 and 15 (empty slot), Tasks 1 and 15
   (bounds), Task 2 (sign and byte order), Task 5 (order), Tasks 7 and 8 (reach).
+- Checked against the ASM on 2026-11-23 by three reviewers (Tasks 1 to 4, Tasks 5 to 8, modules and C++); their
+  corrections are in: suite-name `ctest` filters, the five branching load loops, the reader list of Task 3, the
+  taxonomy in `game/Tables`, Task 9 after Task 10, and the price fields' names.
 - Tasks 11 to 15 are outlines on purpose: their files move in AR1.2 and AR4, and each gets its steps when its milestone
   opens, as the master plan does with AR1.

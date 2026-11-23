@@ -5,7 +5,7 @@
 
 **Goal:** the engine (`Core`, `Math`, `Crt`, `Crypto`, `Diagnostics`, `Input`, `Audio`, `Network`, `Data`, `Platform`,
 `Pathfinding`, `Network/XorRemap`, `Render`, `Models`) lives in `Client/src/engine/`, one shared library per module (`.dll` on Windows, `.so` on
-Linux) with a switch for a single binary, and no engine file includes `game/` or `app/`, without changing a byte of
+Linux) except `XorRemap`, which only the executable links, statically, with a switch for a single binary, and no engine file includes `game/` or `app/`, without changing a byte of
 behavior.
 
 **Architecture:** first the design (AR1.1): cut the 11 engine includes of the game, give the engine types that live in
@@ -82,6 +82,7 @@ Measured on `refactor/client` at 75c33064 (2026-11-22). AR1.3, the command line,
 | `MuRet<Module>` targets (`MuRetCore`…) | no prefix: `Core.dll`, `Audio.dll`…, the executable `main.exe` | Emanuel, 2026-11-22: like the original's `main.exe` |
 | `MuRetTables`, `MuRetMaps`, `MuRetSound` targets in AR1.2 | the three game modules move in AR1.2 but stay in `ClientLib` | the game's library shape (one `Game` or a few) is the ADR's AR4 question |
 | `MURET_`/`muret_` options, functions, macros and environment variables | `MU_`/`mu_`, and `MU_CLIENT_` for the client's own (Task 1b) | Emanuel, 2026-11-23: MuRet was a mistaken name; `cmake/` is shared with the DataServer, so the prefix names the game, not the client |
+| `MuRetFoxAnti`, an optional library inside Network | `XorRemap`, a static target that only `main.exe` links, never a DLL (Task 6) | Emanuel, 2026-11-23: easy to remove, but not shipped as a DLL that says what it is |
 
 ---
 
@@ -405,8 +406,11 @@ large projects do. It goes in its own PR (`docs(AR1): decide modules as shared l
   OpenGL backend (`Render/Gl`) is its own, `OpenGL`, as module `engine/Render/Gl` (layer 5) in `modules.tsv`, so
   changing the renderer means changing one library. The game becomes few libraries, starting with one, `Game`, in
   AR4; the executable keeps the original's name, `main.exe` (`main` on Linux). `MU_MONOLITHIC=ON` builds every module static into one binary.
+- **XorRemap is not a library of its own** (Emanuel, 2026-11-23): easy to remove, but not shipped as a DLL that says
+  what it is. It stays a module in the code (`engine/Network/XorRemap`, its folder, `MU_XOR_REMAP`) and a static target
+  that only `main.exe` and its tests link, so no shipped file names it and no library exports it.
 - **The names** (Emanuel, 2026-11-22: no MuRet prefix): the libraries are `Core.dll`, `Audio.dll`, `Render.dll`,
-  `OpenGL.dll`, `XorRemap.dll` and so on, the game `Game.dll`, and the executable `main.exe`, like the original. CMake
+  `OpenGL.dll` and so on, the game `Game.dll`, and the executable `main.exe`, like the original. CMake
   targets use the same words; on Linux CMake gives the usual `libCore.so`. The export macros follow Unreal (`CORE_API`).
   CMake options and functions, macros and environment variables use `MU_`/`mu_` (Emanuel, 2026-11-23; Task 1b).
 - **The rules it fixes:** exports with CMake's `generate_export_header` per module (`CORE_API` in
@@ -444,8 +448,9 @@ PR `build(AR1.2): build each engine module as a shared library`, branch `refacto
   (`STATIC_DEFINE` set when monolithic), its header in a second `FILE_SET`; hidden visibility; `--no-undefined` on Linux;
   `mu_set_fidelity_flags`; `mu_reuse_precompiled_headers(<target> StdPch)`.
 - Produces: libraries (target name = file name, no prefix) `Core`, `Math`, `Crt`, `Crypto`, `Diagnostics`, `Input`, `Audio`,
-  `Network`, `Data`, `Platform`, `Pathfinding`, `XorRemap` (only with `MU_XOR_REMAP`),
-  `Render`, `OpenGL` and `Models`, each linking only what its `may_use` row allows. `ClientLib` (game and
+  `Network`, `Data`, `Platform`, `Pathfinding`, `Render`, `OpenGL` and `Models`, each linking only what its `may_use`
+  row allows. `XorRemap` (only with `MU_XOR_REMAP`) stays `STATIC` in both shapes, with no export macro, and only `Main`
+  and its `XOR_REMAP` tests link it. `ClientLib` (game and
   app until AR4 and AR5) stays static and links them; the `Main` target gets `OUTPUT_NAME main`; `ClientPlatform`, `ClientRender` and `ClientRoundedMath` disappear
   into `Platform`, `OpenGL` and `Math` (the latter keeps its own compile options).
 - Produces: the row `engine/Render/Gl` in `Client/modules.tsv` (layer 5, `may_use` `*layer<5`) and the `Render/Gl` rows of

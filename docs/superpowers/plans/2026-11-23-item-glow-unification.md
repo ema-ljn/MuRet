@@ -259,7 +259,7 @@ by the two lanes' rule no task runs the day its files are being moved.
 
 ## Tasks
 
-Tasks 1 to 3 are specified here. Tasks 4 to 8 are milestones: the list Task 1 produces decides their steps, and each
+Tasks 1 to 3 are specified here and done. Tasks 4 to 8 are milestones: the list Task 1 produces decides their steps, and each
 gets its step list in its own PR description before it starts.
 
 ### Task 1: pin where the two item draws differ
@@ -322,14 +322,19 @@ Done. Port fix. Title: `fix(client): apply the glow detail option to every item 
 
 ### Task 3: the part draw and the parts loop for every actor
 
-Port work: it removes the cut at `0x50d431`. Players are not switched yet, so no golden should move. Title:
+Done. Port work: it removes the cut at `0x50d431`. Players are not switched yet; no golden moved. Title:
 `feat(client): draw the worn parts of any class with the part draw`.
 
 **Files:**
-- Create: `Client/src/Scenes/ItemDrawing.h`, `Client/src/Scenes/ItemDrawing.cpp` (target `game/Actors/Drawing`)
-- Modify: `Client/src/Scenes/MonsterDrawing.cpp:1046..1145` (`DrawThePart` and `DrawTheParts` call the new functions),
-  `Client/src/Scenes/CharacterDrawing.{h,cpp}` (`DrawnObject::skin`, used by `RetainedObjectMeshDraws`)
-- Test: `Client/tests/scenes/test_item_drawing.cpp`
+- Create: `Client/src/Scenes/ItemDrawing.h`, `Client/src/Scenes/ItemDrawing.cpp` (target `game/Actors/Drawing`, their
+  rows in `module-map.tsv`)
+- Modify: `Client/tools/architecture/layers-baseline.tsv` (one row: `MonsterDrawing.cpp` → `ItemDrawing.h`)
+- Modify: `Client/src/Scenes/CharacterDrawing.h` (`DrawnObject::skin`),
+  `CharacterDrawing.cpp` (`TextureOf` and `MeshDrawsOf` take the skin; every object draw uses `DrawnObject::skin`),
+  `MonsterDrawing.cpp` (`DrawThePart` goes; `DrawTheParts` calls `DrawWornParts`)
+- Modify: `Client/docs/research/08-pendientes.md` (P-C542: the skin stays in the model record in the original)
+- Test: `Client/tests/scenes/test_item_drawing.cpp` (new); `test_item_draw_equivalence.cpp` draws its full port with
+  `DrawWornParts`
 
 **Interfaces:**
 - Produces, in `ItemDrawing.h`:
@@ -380,20 +385,41 @@ using WornParts = std::array<std::optional<ItemPart>, 6>;
                                                               const std::function<void(const glm::vec3&)>& onPartBox);
 ```
 
-- `DrawThePart` and `DrawTheParts` keep their signatures. `DrawTheParts` keeps its guards (`+0x3e3`, Chaos Castle, the
-  model outside the zeroed records) and loses the cut on `actor.characterClass != 0`.
+- `DrawnObject::skin` (`+0x98` of the model, read by `0x4ecc30` at `0x4eccbd`): the skin mesh goes on `0x12e + skin`
+  and the hair mesh on `0x12f + skin` in every draw of the full port (`RetainedObjectMeshDraws`, `DrawObjectOutline`,
+  the outline of the `0xc5`, the special passes).
 
-- [ ] **Step 1: Write the failing tests.** For `DrawItemPart`: alpha 0.01 draws nothing; a missing model draws nothing
-  and calls `onPartBox`; with `outline` set, two outline passes come before the base, and none with `stateFlags`
-  `0x4000`. For `DrawWornParts`: the order is boots, gloves, pants, armor, helm, head; classes 1 to 4 and `0x09` (a
-  second class) put the skin mesh on slot `0x12e + SkinIndexOf(class)`; the class 4 helm leaves `*blendMeshLight`
-  written for the head of this frame and the boots of the next one.
-- [ ] **Step 2: Run them and see them fail.**
-- [ ] **Step 3: Cut `DrawThePart`'s body into `DrawItemPart` and `DrawTheParts`' loop into `DrawWornParts`**, with the
-  helm block (`0x50d43d..0x50d4a4`) ported from the ASM. `DrawThePart` and `DrawTheParts` fill an `ItemPartOwner` from
-  their `ActorState`. Add the skin to `DrawnObject`.
-- [ ] **Step 4: Run the tests, `test_monster_drawing` and the behavior golden**, all identical.
-- [ ] **Step 5: Commit.**
+What the code does differently from the first version of this task:
+
+- **`ItemDrawing.h` adds one row to the layer baseline.** `MonsterDrawing.cpp` (`game/Monsters`) already includes
+  `CharacterDrawing.h` (`game/Actors`), a baseline row; including the new header of `game/Actors` is a new row, which
+  `check_layers.py` refuses. Emanuel decided (2026-11-23) that the item draw keeps its own header and the baseline
+  records its rows (`--write-baseline`, checked to add only them), instead of the declarations waiting in
+  `CharacterDrawing.h` until AR4 moves the modules. The rows leave the baseline with the move of `game/Monsters`.
+- **`DrawThePart` is gone.** It had one caller; `DrawTheParts` keeps its guards (`+0x3e3`, Chaos Castle) and fills
+  the owner and the context once per actor. The guard on a model outside the zeroed records (`0x50d431`) moved into
+  `DrawWornParts`, since it holds for players too.
+- **The helm reads the world clock from `context.special->worldClock`** (`[0x5767b88]`); without it,
+  `DrawWornParts` stops with `0x50d44b`. The light is `F32(SineProductPC53(D(T) · D(0.001f), 0.1f) + D(0.7f))`.
+- **The light comes back to the owner.** The original's object is the owner, so a `+0x68` that `0x60b3d0` writes
+  (`ModelLightOf`, the `StateLight` cases) stays for the next parts. `DrawItemPart` copies `DrawnObject::state.light`
+  back to `*owner.blendMeshLight` after the draw. No part of a monster writes it, so their draws do not change.
+- **The pants with a cloth cut.** `0x1424`, `0x1425` and `0x1428` put a cloth on the part (`0x60d198`, `0x455e30`);
+  `DrawItemPart` stops with that address after the picking box. They are not parts of any monster.
+
+- [x] **Step 1: Write the failing tests.** Eleven: alpha 0.01 draws nothing; a missing model draws nothing and
+  publishes the box; the outline before the part and none with `0x4000`; the order from the boots to the head; the
+  skin and hair meshes of classes 0 to 4, `0x09` and `0x0c`; the class 4 helm lighting the head of this frame and the
+  boots of the next one (`0.7f` exactly at clock 0); a class other than 4, or no helm, leaving `+0x68` alone; the mask
+  of a masked helm for classes 4 and `0x0c`; the helm without a world clock; a model outside the zeroed records; the
+  pants with a cloth.
+- [x] **Step 2: Run them and see them fail.** They did not link; with the skin and the helm light removed again, the
+  three tests that pin them fail.
+- [x] **Step 3: Cut `DrawThePart`'s body into `DrawItemPart` and `DrawTheParts`' loop into `DrawWornParts`.**
+- [x] **Step 4: Run the tests, `test_monster_drawing` and the behavior golden.** All identical. In
+  `test_item_draw_equivalence`, the rows `ClassArmorClass1` and `ClassArmorSecondClass` are now `Same`: difference 6
+  is closed in the part draw, which players reach in Task 4.
+- [x] **Step 5: Commit.**
 
 ### Task 4: the worn parts of a player on the unified path
 
@@ -425,7 +451,9 @@ Refactor, golden identical. The `0x620` case of `World/ScepterGlow.cpp` goes nex
 Refactor, golden identical. `DrawItemFromMeshes` and its helpers (`CharacterDrawing.cpp:1418..1793`) move into
 `ItemDrawing.cpp`. `DrawSkeletonBody`, `DrawChaosCastleBody`, the UI item, the floor item and the effect items call
 `DrawItemPart` where their hand-written block is the same three steps (the alpha gate `0x60cf99`, `0x5ffce0`,
-`0x4ebc80`); a caller whose block differs stays and the PR says why, with the address.
+`0x4ebc80`); a caller whose block differs stays and the PR says why, with the address. The declarations of the item
+draw go to `ItemDrawing.h`; each caller outside `game/Actors` that now includes it adds its row to the layer baseline,
+as in Task 3, and the PR lists them.
 
 ### Task 8: the state flags block
 

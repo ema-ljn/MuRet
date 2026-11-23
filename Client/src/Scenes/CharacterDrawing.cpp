@@ -417,15 +417,30 @@ struct MeshTexture
     std::optional<Render::TextureSlot> slot;
 };
 
+std::optional<Render::TextureSlot> SkinSlotOf(Render::TextureSlot assigned, std::uint8_t skin)
+{
+    switch (assigned.value)
+    {
+    case Data::Models::HiddenTextureSlot:
+        return std::nullopt;
+    case Data::Models::SkinTextureSlot:
+        return Render::TextureSlot{static_cast<std::uint16_t>(Data::Models::SkinTextureSlot + skin)};
+    case Data::Models::HairTextureSlot:
+        return Render::TextureSlot{static_cast<std::uint16_t>(Data::Models::SkinTextureSlot + 1 + skin)};
+    default:
+        return assigned;
+    }
+}
+
 MeshTexture TextureOf(const Data::Models::Mesh& mesh, std::span<const Render::TextureSlot> slots, std::size_t index,
-                      std::uint8_t characterClass)
+                      std::uint8_t skin)
 {
     const std::optional<Render::TextureSlot> assigned = AssignedSlot(mesh, slots, index);
     if (!assigned)
     {
         return {};
     }
-    const std::optional<Render::TextureSlot> slot = MeshSlotOf(*assigned, characterClass);
+    const std::optional<Render::TextureSlot> slot = SkinSlotOf(*assigned, skin);
     return MeshTexture{slot.has_value(), slot};
 }
 
@@ -563,12 +578,12 @@ void DrawPasses(const CharacterFrame& frame, std::span<const MeshDraw> draws, co
 }
 
 // Las mallas de `modelId` que se dibujan, pasadas al mundo con `bones` y `object` en `skinned` (una
-// por malla): cada una con su papel, su textura (la piel y el pelo de `characterClass`), `shade` y
+// por malla): cada una con su papel, su textura (la piel y el pelo `skin`, +0x98 del modelo), `shade` y
 // `state`. Las de H, la oculta (0x12d), las rotas y las que no se pueden pasar al mundo no van.
 std::vector<MeshDraw> MeshDrawsOf(const Render::Models::IModelLibrary& models, std::uint16_t modelId,
                                   const Data::Models::Model& model, std::span<const BoneTransform> bones,
-                                  const Render::Models::ObjectTransform& object, std::uint8_t characterClass,
-                                  Render::Color shade, const ObjectState& state, Core::Duration clock,
+                                  const Render::Models::ObjectTransform& object, std::uint8_t skin, Render::Color shade,
+                                  const ObjectState& state, Core::Duration clock,
                                   std::vector<Render::Models::SkinnedMesh>& skinned)
 {
     const std::span<const Render::TextureSlot> slots = models.MeshTextures(modelId);
@@ -579,7 +594,7 @@ std::vector<MeshDraw> MeshDrawsOf(const Render::Models::IModelLibrary& models, s
     {
         const Data::Models::Mesh& mesh = model.meshes[index];
         const MeshRole role = RoleOf(modelId, mesh, index);
-        const MeshTexture texture = TextureOf(mesh, slots, index, characterClass);
+        const MeshTexture texture = TextureOf(mesh, slots, index, skin);
         if (role.hidden || !texture.drawn || !IndicesInRange(mesh) ||
             !Render::Models::SkinMesh(mesh, bones, object, skinned[index]))
         {
@@ -618,9 +633,10 @@ void DrawModel(const CharacterFrame& frame, std::uint16_t modelId, std::span<con
         use.hanging ? frame.character.hangingLight.value_or(frame.character.light) : frame.character.light;
     const glm::vec3 shade = light * use.glow.baseFactor;
     std::vector<Render::Models::SkinnedMesh> skinned;
-    std::vector<MeshDraw> draws = MeshDrawsOf(
-        frame.models, modelId, *model, bones, frame.character.object, frame.character.appearance.characterClass,
-        Render::Color{shade.x, shade.y, shade.z, 1.0f}, use.object, frame.clock, skinned);
+    std::vector<MeshDraw> draws =
+        MeshDrawsOf(frame.models, modelId, *model, bones, frame.character.object,
+                    SkinIndexOf(frame.character.appearance.characterClass),
+                    Render::Color{shade.x, shade.y, shade.z, 1.0f}, use.object, frame.clock, skinned);
     for (MeshDraw& draw : draws)
     {
         draw.alpha = frame.character.alpha;
@@ -996,10 +1012,6 @@ void DrawHands(const CharacterFrame& frame, std::span<const BoneTransform> body)
     }
 }
 
-// Un objeto del mundo no tiene la piel de una clase: sus mallas no van a los slots de la piel ni del
-// pelo (ninguna se llama así).
-constexpr std::uint8_t ObjectClass = 0;
-
 // La semilla de los rand() de un frame: el reloj en ms. El original usa el rand() de todo el cliente,
 // que no se puede repetir.
 std::uint_fast32_t RandomSeedOf(Core::Duration clock)
@@ -1010,18 +1022,7 @@ std::uint_fast32_t RandomSeedOf(Core::Duration clock)
 
 std::optional<Render::TextureSlot> MeshSlotOf(Render::TextureSlot assigned, std::uint8_t characterClass)
 {
-    const std::uint8_t skin = SkinIndexOf(characterClass);
-    switch (assigned.value)
-    {
-    case Data::Models::HiddenTextureSlot:
-        return std::nullopt;
-    case Data::Models::SkinTextureSlot:
-        return Render::TextureSlot{static_cast<std::uint16_t>(Data::Models::SkinTextureSlot + skin)};
-    case Data::Models::HairTextureSlot:
-        return Render::TextureSlot{static_cast<std::uint16_t>(Data::Models::SkinTextureSlot + 1 + skin)};
-    default:
-        return assigned;
-    }
+    return SkinSlotOf(assigned, SkinIndexOf(characterClass));
 }
 
 // 0x607b60 no saca rand fuera de estos cuatro casos: uno para Sword15 y Staff08,
@@ -1094,7 +1095,7 @@ void DrawCharacter(Render::ModelBatch& batch, const Render::Models::IModelLibrar
 namespace
 {
 // La piel con que va la malla skin_ del Angel: la 0 (+0x98 del 0x1f7 en 0).
-constexpr std::uint8_t ChaosCastleBodySkinClass = 0;
+constexpr std::uint8_t ChaosCastleBodySkin = 0;
 } // namespace
 
 Core::Expected<void, std::string> DrawChaosCastleBody(Render::ModelBatch& batch,
@@ -1129,7 +1130,7 @@ Core::Expected<void, std::string> DrawChaosCastleBody(Render::ModelBatch& batch,
         const CharacterFrame frame{batch, angelModels, character, frameClock, random};
         std::vector<Render::Models::SkinnedMesh> outlineMeshes;
         std::vector<MeshDraw> draws =
-            MeshDrawsOf(angelModels, ChaosCastleBodyModel, *model, body, character.object, ChaosCastleBodySkinClass,
+            MeshDrawsOf(angelModels, ChaosCastleBodyModel, *model, body, character.object, ChaosCastleBodySkin,
                         Render::Color{character.light.x, character.light.y, character.light.z, 1.0f}, state, frameClock,
                         outlineMeshes);
         for (MeshDraw& draw : draws)
@@ -1202,7 +1203,7 @@ std::vector<MeshDraw> RetainedObjectMeshDraws(const Render::Models::IModelLibrar
     {
         const auto& mesh = model->meshes[index];
         const auto role = RoleOf(object.model, mesh, index);
-        const auto texture = TextureOf(mesh, slots, index, ObjectClass);
+        const auto texture = TextureOf(mesh, slots, index, object.skin);
         if ((!rawMesh && role.hidden) || !texture.drawn || !IndicesInRange(mesh) ||
             meshes[index].positions.size() < mesh.vertices.size() || meshes[index].normals.size() < mesh.normals.size())
             continue;
@@ -1345,7 +1346,7 @@ void DrawObjectOutline(Render::ModelBatch& batch, const Render::Models::IModelLi
     if (model == nullptr)
         return;
     std::vector<Render::Models::SkinnedMesh> skinned;
-    const std::vector<MeshDraw> draws = MeshDrawsOf(models, object.model, *model, bones, object.transform, ObjectClass,
+    const std::vector<MeshDraw> draws = MeshDrawsOf(models, object.model, *model, bones, object.transform, object.skin,
                                                     Render::Color{object.color.x, object.color.y, object.color.z, 1.0f},
                                                     object.state, frameClock, skinned);
     for (const ObjectOutlinePass& pass : passes)
@@ -1371,7 +1372,7 @@ void DrawObjectOutlineOfTheFirstMesh(Render::ModelBatch& batch, const Render::Mo
     MeshRole role = RoleOf(object.model, mesh, 0);
     role.hidden = false;
     role.blendScript = false;
-    const MeshTexture texture = TextureOf(mesh, models.MeshTextures(object.model), 0, ObjectClass);
+    const MeshTexture texture = TextureOf(mesh, models.MeshTextures(object.model), 0, object.skin);
     Render::Models::SkinnedMesh skinned;
     if (!texture.drawn || !IndicesInRange(mesh) || !Render::Models::SkinMesh(mesh, bones, object.transform, skinned))
         return;
@@ -1619,7 +1620,7 @@ DrawItemMeshPass(Render::ModelBatch& batch, const Render::Models::IModelLibrary&
             continue;
         if (auto valid = ValidateItemMesh(input, meshes, index, slots.size(), texture.has_value()); !valid.HasValue())
             return valid;
-        const auto assigned = TextureOf(input, slots, index, ObjectClass);
+        const auto assigned = TextureOf(input, slots, index, object.skin);
         if (!assigned.drawn)
             continue;
         Render::Models::SkinnedMesh flattened;
@@ -1821,7 +1822,7 @@ DrawSkeletonBody(Render::ModelBatch& batch, const Render::Models::IModelLibrary&
         return {};
     }
     // Al esqueleto nadie le escribe la piel (+0x98 del modelo): la deja en 0 0x60dbe0, como al Angel.
-    constexpr std::uint8_t SkeletonBodySkinClass = 0;
+    constexpr std::uint8_t SkeletonBodySkin = 0;
     if (character.outlined)
     {
         // 0x60d04d: el contorno, con la malla oculta +0x58 del objeto (0x60ce68), antes de 0x5ffce0 y de 0x60b3d0.
@@ -1829,7 +1830,7 @@ DrawSkeletonBody(Render::ModelBatch& batch, const Render::Models::IModelLibrary&
         const CharacterFrame frame{batch, models, character, frameClock, random};
         std::vector<Render::Models::SkinnedMesh> outlineMeshes;
         std::vector<MeshDraw> draws =
-            MeshDrawsOf(models, model, *found, body, character.object, SkeletonBodySkinClass,
+            MeshDrawsOf(models, model, *found, body, character.object, SkeletonBodySkin,
                         Render::Color{character.light.x, character.light.y, character.light.z, 1.0f}, state, frameClock,
                         outlineMeshes);
         for (MeshDraw& draw : draws)

@@ -203,6 +203,8 @@ struct DrawnObject
     float alpha = 1.0f;
     // +0xe8: la luz por vértice, que 0x5ffce0 copia a +0x44 del modelo.
     bool vertexLight = false;
+    // +0x98 of the model (0x50d431): the skin mesh goes on 0x12e + skin and the hair mesh on 0x12f + skin.
+    std::uint8_t skin = 0;
     // model+88: selección compartida publicada por el paso de objetos, sin luz y con UV corridas.
     std::optional<std::int16_t> unlitMesh{};
     // Scratch publicado por la pose del caller; los renderers especializados tampoco vuelven a posar.

@@ -36,7 +36,7 @@ exists most files do not use it.
 
 | Kind | Today (census, placement) | Home | Type | Lands in |
 | --- | --- | --- | --- | --- |
-| Opcodes and subcodes | 269 definitions, 309 of 346 protocol values in `Protocol/**` headers; 22 opcode values defined twice or more (`0xf3`: 4 names) | **one list per server** in `game/Protocol` | `std::uint8_t` now; `Opcode`, `Subcode` (types review F5) in AR2.1 | Task 5, Task 6 |
+| Opcodes and subcodes | 269 definitions, 309 of 346 protocol values in `Protocol/**` headers; 22 opcode values defined twice or more (`0xf3`: 6 definitions, 3 names) | **one list per server** in `game/Protocol` | `std::uint8_t` now; `Opcode`, `Subcode` (types review F5) in AR2.1 | Task 5, Task 6 |
 | Packet offsets and sizes | 78 offsets, 76 private to a `Protocol/*.cpp`; sizes beside opcodes (`Protocol/Character/Opcodes.h:25-29`) | the packet's layout, `game/Protocol/<Module>/` | `Field<T, Offset, Endian>` | AR2.1 (planned) |
 | Item codes, models, group bounds | 455 definitions for 135 values; `0x1c15` 22 times | `Tables/ItemCode.h` | item plan | item plan Tasks 1, 9 |
 | `Item.bmd` and other table rows | 155 offsets read outside `Data/`; only `GateRecord` is typed | `game/Tables`, one record view per table | accessor per field | item plan Tasks 2, 3; Task 8 (`SkillRecord`) |
@@ -263,9 +263,9 @@ value or the decision arrives from the game:
 
 | Site | Today | After |
 | --- | --- | --- |
-| `Render/Models/Cloth.cpp:59,517` | `LoginMap = 0x37`; `else if (map == LoginMap)` chooses the wind (`0x4551f4`) | the cloth update takes the map it compares as a field the game fills, or the login-map flag; the `rand()` call stays where it is |
-| `Render/Models/Skinning.cpp:159-164` | `ShadowSpreadOf(map)` with `CastleSiegeMap = 0x1e` | `ShadowSpreadOf` moves to the game (`game/Actors`, beside its caller); the engine takes the spread |
-| `Render/Models/Animation.cpp:23-24,94` | `FastWingAction = 0x1e`, `0x1f` in `WingKeysPerOriginalFrame(action)` (`0x50ba30`) | the function moves to the game beside the wings; the engine takes the keys per frame |
+| `Render/Models/Cloth.cpp:60,517` | `LoginMap = 0x37`; `else if (map == LoginMap)` chooses the wind (`0x4551f4`) | the cloth update takes the map it compares as a field the game fills, or the login-map flag; the `rand()` call stays where it is |
+| `Render/Models/Skinning.cpp:157-163` | `ShadowSpreadOf(map)` with `CastleSiegeMap = 0x1e` | `ShadowSpreadOf` moves to the game (`game/Actors`, beside its caller); the engine takes the spread |
+| `Render/Models/Animation.cpp:23-24,92-95` | `FastWingAction = 0x1e`, `0x1f` in `WingKeysPerOriginalFrame(action)` (`0x50ba30`) | the function moves to the game beside the wings; the engine takes the keys per frame |
 
 The two FoxAnti opcodes (`Network/FoxAntiObfuscation.cpp:51,101`) are already AR1 Task 4's ("its MU values come
 injected"). Each moved function keeps its tests; a test compares old and new over every map id (0..255) and action

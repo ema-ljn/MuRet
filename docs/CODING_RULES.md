@@ -261,36 +261,53 @@ piecemeal", porque es mucho; acá son dos archivos, y alinearlos al tocarlos no 
 
 A long type written again and again, an id passed as a bare integer and a loose `true` at a call make the reader stop.
 These rules name things without changing what the original computes: an alias is the same type, and a new type goes
-only where values must not be mixed.
+only where values must not be mixed. The principles hold across MuRet; the `Client::Core` names and the `In/` and
+`Out/` folders are the client's.
 
 1. **`using`, never `typedef`.** An alias names a role, not a shape: `PacketSender`, not `OutgoingFunction`.
 2. **One home.** An alias that several files use lives in the header that owns the concept, next to its enum, constant
    or table, never in a common header. A `.cpp` does not redefine an alias that a header could give it.
-3. **Results.** `Core::Result<T>` and `Core::Status` always mean that the error is a `std::string` message
-   (`Core::Expected<T, std::string>` and `Core::Expected<void, std::string>`). An error enum with about 20 uses or more
-   gets its own alias next to it (`ProtocolResult<T>` beside `ProtocolError`). The name `Result` is not reused for
-   another error.
-4. **An alias protects nothing.** Two values that must not be mixed, such as an actor key and a slot, need an
-   `enum class` or a type of their own. No alias for an id (`using SkillId = std::uint8_t`): it checks nothing and
-   hides the width the reader needs for the deliberate wraparounds (`static_cast<std::uint8_t>(a + b)`).
-5. **Ids.** An id from a closed set fixed by the game (the character class, the scene, the packet kind) is an
-   `enum class` whose underlying type is its stored width. An id from an open space (sound, model, texture) is
-   `Core::Id<Tag, Rep>`, or an opaque `enum class X : Rep {}` with `inline constexpr` constants when it is switched on or
-   used as a template argument (map, opcode). A typed id is built with braces (`ModelId{0x20a}`) and unwrapped with
-   `Value()` or one named function, at the place where the cast was.
-6. **Quantities and layouts stay numbers.** Quantities and units keep their primitive type, and the name carries the
-   unit (`delayMs`, `angleDegrees`): the port spells the x87 intermediates by hand (`F32`, `D`), and a unit type would
-   choose them by itself. Packet and file layouts keep their fixed-width integers. The conversion to a typed id happens
-   once, at the boundary (`In/`), never by reinterpreting bytes.
+3. **Results.** `Client::Core::Result<T>` and `Client::Core::Status` are reserved for errors that are a `std::string`
+   message (`Core::Expected<T, std::string>` and `Core::Expected<void, std::string>`) and never mean anything else. A
+   domain whose callers act on the error keeps its own type: an error enum (`ProtocolError`), a structured result
+   (`SocketApi::Result`) or a system error. An error enum used about 20 times or more (a guide, not a threshold) gets
+   its own alias next to it (`ProtocolResult<T>` beside `ProtocolError`).
+4. **An alias protects nothing.** An alias of a primitive (`using SkillId = std::uint8_t`) separates nothing and hides
+   the width the reader needs for the deliberate wraparounds (`static_cast<std::uint8_t>(a + b)`). Two values that must
+   not be mixed, such as an actor key and a pool slot, need a type of their own. An alias of a tagged type
+   (`using SoundId = Core::Id<struct SoundIdTag, std::int32_t>`) keeps that type and is fine.
+5. **Ids.**
+   - A closed set fixed by the game (the character class, the scene, the packet kind) is an `enum class` whose
+     underlying type is its stored width. A value from outside becomes one through a single function that says what
+     an unknown value does, as `PacketTypeFromByte` does.
+   - An open space (sound, model, texture) is `Core::Id<Tag, Rep>`. It separates domains and nothing more: every value
+     the original accepts is still accepted, and whether some value means "none" is the domain's decision (texture
+     slot 0 is a slot, world object identity 0 is none).
+   - An open id that is switched on or used as a template argument (map, opcode) is an opaque
+     `enum class X : Rep {}` with `inline constexpr` constants. It holds any value of `Rep`, its constants are not all
+     its values, and a `switch` over it gets no warning for a missing case. `Core::Id` keeps its value private, so it
+     cannot be a template argument.
+   - A typed id is built with braces (`ModelId{0x20a}`), which reject a narrowing conversion, and unwrapped with
+     `Value()` or one named function, at the place where the cast was.
+   - The engine never names a game id. The game converts to the engine's representation on its side.
+6. **Fidelity sets the representation.** Where the original fixes the width, the sign, the byte order, a promotion, a
+   wraparound or the x87 rounding, the value stays the primitive the port reproduces, and the name carries the unit
+   (`delayMs`, `angleDegrees`): the port spells the x87 intermediates by hand (`F32`, `D`), and a unit type would
+   choose them by itself. Elsewhere a vocabulary type is fine, such as `Core::Duration` (`std::chrono::nanoseconds`) for
+   the loop's time. Packet and file layouts keep their fixed-width integers. Each conversion happens once, at its
+   boundary (reading or writing a packet, a file, an engine-facing API; in the client, a module's `In/` and `Out/`),
+   with the operation the original does there: a sign extension, a truncation, the low byte. Never by reinterpreting
+   bytes.
 7. **No alias** for a type used once, for one that only hides a `const`, a reference or the ownership
    (`std::unique_ptr`, `&`, `*`, `std::reference_wrapper`), or for a standard type that is already vocabulary
-   (`std::optional<T>`, `std::function<void()>`).
-8. **Flags.** A literal `true` or `false` far from its declaration does not read. One flag is a two-value `enum class`
-   (`StopAt::Start`); two or more are an options struct filled with designated initializers
-   (`{.effects = false, .music = false}`). A setter, or a function whose callers pass named variables, keeps its
-   `bool`.
-9. **`[[nodiscard]]`.** `Core::Expected` is a `[[nodiscard]]` class, so a function that returns it does not repeat the
-   attribute.
+   (`std::optional<T>`, `std::function<void()>`). A named deleter or a callback role hides nothing: it says what the
+   type is for.
+8. **Flags, by meaning.** Exclusive modes are an `enum class` (`StopAt::Start`). Independent settings are an options
+   struct filled with designated initializers (`{.effects = false, .music = false}`), whose defaults are the defaults
+   the parameters had. A clear predicate or a setter keeps its `bool`. A literal `true` or `false` far from its
+   declaration is the sign that a call needs one of the first two.
+9. **`[[nodiscard]]`.** `Core::Expected` is a `[[nodiscard]]` class, so a function that returns it by value does not
+   repeat the attribute. A function that returns a pointer or a reference, or that needs its own message, keeps it.
 
 `Core::Result`, `Core::Status` and `Core::Id` arrive with AR1.1's common kit; until then new code keeps the long
 spelling. Existing code adopts these rules module by module in the refactor's design PRs, never in a move or comments

@@ -359,10 +359,14 @@ PR `refactor(AR1.1): add the common kit`, branch `refactor/ar1.1-common-kit`. Sk
   caller changes in AR1: each module adopts them in its own design PR.
 - Produces, in `Core/Expected.h`: `template <typename T> using Result = Expected<T, std::string>;` and
   `using Status = Result<void>;` (CODING_RULES §7, "Types and aliases"). No caller changes in AR1.
-- Produces, in `Core/Id.h`: `template <class Tag, std::integral Rep> class Id` with `constexpr explicit Id(Rep)`, a
-  default constructor that holds `Rep{}`, `[[nodiscard]] constexpr Rep Value() const noexcept`, a defaulted
-  `operator<=>` (which also gives `==`), and a `std::hash<Core::Id<Tag, Rep>>` specialization; no arithmetic and no
-  implicit conversion either way. No user in AR1: modules adopt it in their design PRs.
+- Produces, in `Core/Id.h`: `template <class Tag, IdRepresentation Rep> class Id`, where the concept
+  `IdRepresentation` accepts only `std::int8_t`, `std::uint8_t`, `std::int16_t`, `std::uint16_t`, `std::int32_t` and
+  `std::uint32_t` (no `bool`, no character type, nothing cv-qualified). It has `constexpr explicit Id(Rep)`,
+  `[[nodiscard]] constexpr Rep Value() const noexcept` and a defaulted `operator==`, and nothing else: no default
+  constructor (whether a value means "none" is each domain's decision: texture slot 0 is a slot, world object identity
+  0 is none), no ordering and no `std::hash` until a consumer needs them, no arithmetic and no implicit conversion
+  either way. It separates domains; it does not promise a wire layout or a calling convention. No user in AR1: modules
+  adopt it in their design PRs.
 - Produces: `std::string_view Client::Data::Text::TextOr(const TextTable& texts, std::size_t index, std::string_view
   fallback = {})`, `texts.Text(index).value_or(fallback)`. It replaces the `TextAt` of `ChatCommands.cpp` and
   `Emotes.cpp`, the only identical copies.
@@ -374,10 +378,12 @@ PR `refactor(AR1.1): add the common kit`, branch `refactor/ar1.1-common-kit`. Sk
 - [ ] **Step 1: Write the failing tests.** `test_expected.cpp`: `AndThen` runs only on a value and passes an error
   through untouched; `Transform` maps the value and keeps the error; `OrElse` runs only on an error; each for `void`
   too, and a move-only value goes through `&&` without a copy; `static_assert`s that `Status` is
-  `Expected<void, std::string>` and `Result<int>` is `Expected<int, std::string>`. `test_id.cpp`: two ids with the same
-  value compare equal and order like their values, `Id{}` holds 0, a `std::unordered_set` finds an id, and
-  `static_assert`s that `sizeof(Id) == sizeof(Rep)`, that it is trivially copyable, that an `Id` does not convert from
-  or to `Rep` implicitly, and that two `Id`s with different tags do not convert into each other. `test_map_id.cpp`:
+  `Expected<void, std::string>` and `Result<int>` is `Expected<int, std::string>`. `test_id.cpp`: two ids compare equal
+  exactly when their values do, and `Value()` returns what was given; `static_assert`s that the tested instantiations
+  have `sizeof(Rep)` and are trivially copyable, that an `Id` is not default-constructible, that it does not convert
+  from or to `Rep` implicitly, that two `Id`s with different tags do not convert into each other, that braces from a
+  non-constant `std::int32_t` do not build an `Id<Tag, std::uint8_t>` (through a concept, since a narrowing outside a
+  template is a hard error), and that `IdRepresentation<bool>`, `<char>` and `<const std::int32_t>` are false. `test_map_id.cpp`:
 
 ```cpp
 EXPECT_FALSE(IsBloodCastle(10)); EXPECT_TRUE(IsBloodCastle(11)); EXPECT_TRUE(IsBloodCastle(17)); EXPECT_FALSE(IsBloodCastle(18));

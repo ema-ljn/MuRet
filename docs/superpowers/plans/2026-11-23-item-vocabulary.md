@@ -155,11 +155,11 @@ PR `refactor(items): name item constants and range helpers after what they hold`
 
 | File | Today | Becomes | Why (evidence) |
 | --- | --- | --- | --- |
-| `HeroSkillsKnight.cpp` | `FirstShield = 0xc12`, `ShieldsEnd = 0xe12`, the lambda `shield`, "un escudo" in the comment of `TheHandsAllow` | `FirstStaffModel`, `StaffModelsEnd`, `staff`, "a staff" | group 5 in model space, `0x581931..0x58194e` |
+| `HeroSkillsKnight.cpp` | `FirstShield = 0xc12`, `ShieldsEnd = 0xe12`, the lambda `shield`, "un escudo" in the comment of `TheHandsAllow` | `FirstStaffModel`, `StaffModelsEnd`, `staff`, "un bastón" | group 5 in model space, `0x581931..0x58194e` |
 | `ItemTooltipOptions.cpp` | `FirstShield = 0xa00`, `ShieldsEnd = 0xc00` | `FirstStaff`, `StaffsEnd` | group 5 in type space, `0x5b7ae8..0x5b7af4` |
 | `ItemTooltipOptions.cpp` | `WithBlocking{0x1f, 0x17, 0x15}`, `BlockingText = 79` | `MagicSwords`, `MagicDamageText` | swords 0:31, 0:23, 0:21 (`0x5b7af6..0x5b7b06`); text 79 is "Aumenta daño magico en %d%%", printed with `byte16`, the magic power |
-| `ItemTooltipOptions.cpp` | `FirstHelm = 0x1400`, `HelmText = 93` | `FirstGloves`, `GlovesText` | group 10, `0x5b7a65` |
-| `HeroSkillCasts.cpp` | `ThirdMount = 0x1c16`, `DarkHorse = 0x1c37`, "con el caballo" at `:259` | `DarkHorseModel`, `FenrirModel`, "with Fenrir" | `ModelOf` of 13:4 Dark Horse and 13:37 Horn of Doom (Fenrir); `:259` is `0x55bda6` `CMP [ESI+0x318],0x1c37` |
+| `ItemTooltipOptions.cpp` | `FirstHelm = 0x1400`, `HelmText = 93`, "los cascos" | `FirstGloves`, `GlovesText`, "los guantes" | group 10, `0x5b7a65` |
+| `HeroSkillCasts.cpp` | `ThirdMount = 0x1c16`, `DarkHorse = 0x1c37`, "con el caballo" at `:259` | `DarkHorsePet`, `FenrirPet`, "con Fenrir" (`DarkHorseModel` is `0xbf` in `Scenes/DarkHorse.h`) | `ModelOf` of 13:4 Dark Horse and 13:37 Horn of Doom (Fenrir); `:259` is `0x55bda6` `CMP [ESI+0x318],0x1c37` |
 | `ChaosMix.cpp` | `FirstArmor = 0xc00` | `WeaponsEnd` | the code splits groups 0 to 5 from the rest |
 | `Skill55faa0.cpp`, `GameMovement.cpp` | `InRange(value, first, end)`, half-open | `InHalfOpenRange` | the other 18 `InRange` are closed |
 

@@ -76,13 +76,15 @@ runtime); XML plus code generation like OpenMU (it pays with four consumers; MuR
 decided "no code generator for now"); data moved to TSV (a second source of truth beside `Item.bmd`); clang-tidy's
 `readability-magic-numbers` (it flags unnamed literals, not a value named 22 times); `std::to_underlying` (C++23).
 
-## Decisions for Emanuel
+## Decisions
 
-1. **Opcodes: one list per server, as TrinityCore (recommended), or per module, as the master plan says today.** One
+Emanuel chose both recommendations on 2026-11-23.
+
+1. **Opcodes: one list per server, as TrinityCore (chosen), or per module, as the master plan says today.** One
    list: `Protocol/Opcodes.h` for the GameServer (head codes and their subcodes) and `Protocol/Connection/Opcodes.h`
    for the ConnectServer, numbers only, included by the layouts and the table and never by a handler. Per module keeps
    `0xf3` defined in four headers.
-2. **The check starts now (recommended) or with AR4.1.** Now: opcodes and subcodes fail outside `game/Protocol` from
+2. **The check starts now (chosen) or with AR4.1.** Now: opcodes and subcodes fail outside `game/Protocol` from
    day one, every other space is reported (`watch`) with today's ~1,100 duplicates in the baseline, and each space
    starts failing the day its home lands, in the PR that creates it. With AR4.1: no tool until then; the port can add
    opcodes outside `Protocol/` and duplicates meanwhile, and they enter the first baseline as debt.
@@ -156,8 +158,8 @@ PR `docs(rules): give each space of named values one home`, branch `docs/rules-n
 **Files:**
 - Modify: `docs/CODING_RULES.md` (a subsection "Named values" after "Types and aliases" in §7; §3 "Nada hardcodeado"
   points to it)
-- Modify: `docs/superpowers/plans/2026-11-20-client-architecture-refactor.md`: AR2.1 (the codes in one list per server
-  if decision 1 says so; sizes apart from codes), AR2.2 (the name column, the coverage test), AR3.1 (`CharacterClass`),
+- Modify: `docs/superpowers/plans/2026-11-20-client-architecture-refactor.md`: AR2.1 (the codes in one list per server;
+  sizes apart from codes), AR2.2 (the name column, the coverage test), AR3.1 (`CharacterClass`),
   each AR4 milestone (its homes, Task 8's table), AR6 (the float sweep), AR7 (the check without a baseline)
 - Modify: `docs/superpowers/plans/2026-11-22-ar1-engine-apart.md` (Tasks 3 and 4 of this plan as AR1.1 tasks 5b and 5c;
   "AR1 is done when" adds: no engine file defines a game value)
@@ -281,7 +283,7 @@ definitions whose type and initializer are token-identical to the home's; role n
 are not touched. Gate: the behavior golden in Debug and Release math on Linux and Windows; the reference gives the
 same numbers. The registry's `number` space becomes `home-only`.
 
-### Task 5: one opcode list per server (AR2.1, if decision 1 says so)
+### Task 5: one opcode list per server (AR2.1)
 
 Inside AR2.1's design PR. Create `Client/src/Protocol/Opcodes.h` (`game/Protocol`): every GameServer head code once,
 named after the research's `04-protocolo.md` section that describes it, and its subcodes grouped under it; the
@@ -290,6 +292,13 @@ go to their layouts (today that header rebuilds 294 of 684 `.cpp` through one in
 values defined twice disappear; the FoxAnti layer and the XorRemap lab tables take their codes from it. Representation
 as the types review F5 sets it (`Opcode`, `Subcode`, `PacketCode`, stored as one byte). A test lists every head code of
 `0x4e2b10`'s switch and checks each is in the list once.
+
+The binary bounds the list: `0x4e2b10`'s switch has 141 head codes and 138 nested cases (the research repo's
+`dispatcher-0x4E2B10.md`), plus the codes the client only writes, each one byte, so it closes when the port does.
+TrinityCore's `Opcodes.h` has 2,694 lines. Its cost is who includes it, the layouts and the table only, never its
+length. If one head code's subcodes ever make the file hard to read, split it inside the same home:
+`Protocol/Opcodes/<HeadCode>.h`, included by `Protocol/Opcodes.h`; the registry's home becomes that folder, and the
+table's `static_assert` and the coverage test do not change.
 
 ### Task 6: the table's name and coverage (AR2.2)
 

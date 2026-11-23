@@ -1,7 +1,6 @@
 #include "Network/FoxAntiObfuscation.h"
 
 #include "Network/Crypto/SimpleModulus.h"
-#include "Network/Crypto/Xor32.h"
 #include "Network/EncryptedPacket.h"
 #include "Network/IObfuscation.h"
 #include "Network/ObfuscationError.h"
@@ -10,6 +9,7 @@
 #include "Network/PacketReader.h"
 #include "Network/PacketSerials.h"
 
+#include "Network/Xor32Packet.h"
 #include "support/BytePattern.h"
 #include "support/Bytes.h"
 #include "support/MuClientNetFixtures.h"
@@ -50,10 +50,10 @@ using Client::Network::PacketError;
 using Client::Network::PacketReader;
 using Client::Network::PacketSerials;
 using Client::Network::PacketType;
+using Client::Network::Xor32Decode;
+using Client::Network::Xor32Encode;
 using Client::Network::Crypto::EncryptBlock;
 using Client::Network::Crypto::PlainBlockSize;
-using Client::Network::Crypto::Xor32Decode;
-using Client::Network::Crypto::Xor32Encode;
 using Client::Tests::BytePattern;
 using Client::Tests::Bytes;
 using Client::Tests::IdentityPair;

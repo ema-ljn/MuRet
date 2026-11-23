@@ -1,5 +1,6 @@
 #include "Scenes/FaunaJointCreation.h"
 #include "Core/Expected.h"
+#include "Render/Models/IModelLibrary.h"
 #include "Scenes/GameDrawTail.h"
 #include "World/Ftol.h"
 #include "World/IFishStepServices.h"
@@ -2163,7 +2164,8 @@ StepJointsChecked(std::span<JointState> joints, Render::Models::CrtRandom* rando
                   World::TerrainLighting* lighting, const std::function<void(std::int32_t)>& soundRequest,
                   const std::function<double(float, float)>& terrainHeight, std::span<const ActorState> actors,
                   const JointKernels::EffectHit& effectHit, World::ModelEffects* effects, const ActorState* hero,
-                  WorldState* world, const JointKernels::VolleyServices* volley, const IModelLibrary* models)
+                  WorldState* world, const JointKernels::VolleyServices* volley,
+                  const Render::Models::IModelLibrary* models)
 {
     // [ebp−0xe8]: la matriz del último joint de esta vuelta que la calculó (0x53590e).
     std::optional<Render::Models::OriginalMatrix> frameMatrix;
@@ -2383,7 +2385,7 @@ StepJoints(std::span<JointState> joints, Render::Models::CrtRandom& random, Rend
            World::TerrainLighting* lighting, const std::function<void(std::int32_t)>& soundRequest,
            const std::function<double(float, float)>& terrainHeight, std::span<const ActorState> actors,
            const JointKernels::EffectHit& effectHit, World::ModelEffects* effects, const ActorState* hero,
-           WorldState* world, const JointKernels::VolleyServices* volley, const IModelLibrary* models)
+           WorldState* world, const JointKernels::VolleyServices* volley, const Render::Models::IModelLibrary* models)
 {
     return StepJointsChecked(joints, &random, cloth, particles, worldClock, sprites, lighting, soundRequest,
                              terrainHeight, actors, effectHit, effects, hero, world, volley, models);

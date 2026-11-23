@@ -24,8 +24,9 @@ class ModelBatch;
 
 namespace Client::Render::Models
 {
+class IModelLibrary;
 struct SkinnedMesh;
-}
+} // namespace Client::Render::Models
 
 // El personaje del retrato de las cartas (vtable 0x6ba008, 0x495e50): el objeto que la ventana de leer (+0xb0) y la de
 // escribir (+0xb4) llevan, con su personaje propio (+0x7c), su ayudante propio (+0x4b4) y lo que lo arma, lo viste, lo
@@ -36,7 +37,6 @@ namespace Client::Scenes
 {
 struct DrawnObject;
 struct GameHudContext;
-class IModelLibrary;
 struct WorldEntryResources;
 
 struct LetterPortrait
@@ -135,7 +135,7 @@ struct LetterPortraitDraw
     GameCharacterPass characters{};
     // Los modelos de los ayudantes (los del mundo, como DrawHelpers) y lo que lee 0x445260: la pose al buffer global
     // (0x68b181c), sus mallas posadas, timeGetTime() y el buffer global de la pose.
-    const IModelLibrary* helperModels = nullptr;
+    const Render::Models::IModelLibrary* helperModels = nullptr;
     std::function<Core::Expected<void, std::string>(const DrawnObject&)> onHelperPose{};
     std::function<std::span<const Render::Models::SkinnedMesh>()> posedMeshes{};
     std::function<std::uint32_t()> systemTime{};

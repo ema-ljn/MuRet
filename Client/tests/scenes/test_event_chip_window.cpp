@@ -1,10 +1,10 @@
+#include "Network/Xor32Packet.h"
 #include "Scenes/EventChipWindow.h"
 
 #include "App/WindowState.h"
 #include "Core/Expected.h"
 #include "Data/Text/TextTable.h"
 #include "Input/InputState.h"
-#include "Network/Crypto/Xor32.h"
 #include "Protocol/Events.h"
 #include "Protocol/Outgoing.h"
 #include "Render/Models/LogicalAccess.h"
@@ -136,7 +136,7 @@ int Centered(int x, std::string_view text)
 
 std::vector<std::byte> Decoded(const Client::Protocol::Outgoing& packet)
 {
-    const auto plain = Client::Network::Crypto::Xor32Decode(packet.packet);
+    const auto plain = Client::Network::Xor32Decode(packet.packet);
     const auto bytes = plain.Bytes();
     return {bytes.begin(), bytes.end()};
 }

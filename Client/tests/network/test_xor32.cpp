@@ -3,6 +3,7 @@
 #include "Network/Packet.h"
 #include "Network/PacketWriter.h"
 
+#include "Network/Xor32Packet.h"
 #include "support/BytePattern.h"
 #include "support/Bytes.h"
 #include "support/NetVectors.h"
@@ -24,9 +25,9 @@ namespace
 {
 using Client::Network::Packet;
 using Client::Network::PacketWriter;
-using Client::Network::Crypto::Xor32Decode;
+using Client::Network::Xor32Decode;
+using Client::Network::Xor32Encode;
 using Client::Network::Crypto::Xor32DecodeBytes;
-using Client::Network::Crypto::Xor32Encode;
 using Client::Network::Crypto::Xor32EncodeBytes;
 using Client::Network::Crypto::Xor32Key;
 using Client::Tests::BytePattern;

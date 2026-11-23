@@ -12,9 +12,13 @@ namespace Client::Render
 {
 class ITextureStore;
 }
-namespace Client::Scenes
+namespace Client::Render::Models
 {
 class IModelLibrary;
+}
+
+namespace Client::Scenes
+{
 // Registro físico durable de 60d550/63c150. El cursor puede retroceder; los nombres siguen vivos.
 class ModelTextureTable final
 {
@@ -22,7 +26,7 @@ public:
     void Bind(Render::ITextureStore& store);
     // El backend que ligó Bind; nullptr antes.
     [[nodiscard]] Render::ITextureStore* Store() const;
-    void Seed(const Render::Models::ModelTextureSlots& slots, const IModelLibrary* models);
+    void Seed(const Render::Models::ModelTextureSlots& slots, const Render::Models::IModelLibrary* models);
     [[nodiscard]] Render::Models::ModelTextureSlots& Slots();
     [[nodiscard]] const Render::Models::ModelTextureSlots& Slots() const;
     [[nodiscard]] Core::Expected<void, std::string> Upload(const Data::Textures::LoadedTexture& texture);

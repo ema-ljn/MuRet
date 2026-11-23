@@ -1,3 +1,4 @@
+#include "Network/Xor32Packet.h"
 #include "Scenes/SiegeBattleUi.h"
 #include "Protocol/OptionData.h"
 
@@ -5,7 +6,6 @@
 #include "Data/Tables/SkillTable.h"
 #include "Input/InputState.h"
 #include "Input/Key.h"
-#include "Network/Crypto/Xor32.h"
 #include "Network/Packet.h"
 #include "Protocol/Outgoing.h"
 #include "Render/Models/Cloth.h"
@@ -134,7 +134,7 @@ protected:
         ASSERT_LT(index, requests.packets.size());
         auto packet = requests.packets[index].packet;
         if (xor32)
-            packet = Client::Network::Crypto::Xor32Decode(std::move(packet));
+            packet = Client::Network::Xor32Decode(std::move(packet));
         EXPECT_TRUE(SameBytes(packet.Bytes(), bytes));
     }
     std::unique_ptr<Client::Scenes::WorldState> world = std::make_unique<Client::Scenes::WorldState>();

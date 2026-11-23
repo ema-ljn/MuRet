@@ -1,3 +1,4 @@
+#include "Render/Models/IModelLibrary.h"
 #include "Scenes/GameCharacterEffects.h"
 
 #include "Core/IClock.h"
@@ -1504,7 +1505,7 @@ TEST_F(GameCharacterEffectsTest, TheGuildMarkRisesWithPlus369OutsideTheEventMaps
 }
 
 // Un cuervo sintético: un hueso y cinco mallas de un triángulo, para ver qué mallas dibuja y la sombra.
-class RavenModels final : public Client::Scenes::IModelLibrary
+class RavenModels final : public Client::Render::Models::IModelLibrary
 {
 public:
     RavenModels()

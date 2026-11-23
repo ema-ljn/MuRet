@@ -14,7 +14,7 @@
 #include "Network/SocketApi.h"
 #include "Network/SystemResolver.h"
 #include "Network/SystemSocket.h"
-#include "Network/Crypto/Xor32.h"
+#include "Network/Xor32Packet.h"
 #include "Protocol/Character/CharacterSelect.h"
 #include "Protocol/Connection/Login.h"
 
@@ -65,7 +65,7 @@ using Client::Network::Connection;
 using Client::Network::FoxAntiObfuscation;
 using Client::Network::SystemResolver;
 using Client::Network::SystemSocket;
-using Client::Network::Crypto::Xor32Decode;
+using Client::Network::Xor32Decode;
 using Client::Network::SocketApi::NetworkInit;
 using Client::Protocol::Character::WriteCharacterSelect;
 using Client::Protocol::Connection::LoginRequest;

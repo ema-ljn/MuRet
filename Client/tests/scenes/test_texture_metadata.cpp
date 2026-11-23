@@ -1,6 +1,6 @@
+#include "Render/Models/IModelLibrary.h"
 #include "Scenes/TextureMetadata.h"
 #include "Scenes/GameModels.h"
-#include "Scenes/CharacterDrawing.h"
 #include "Scenes/TextureSets.h"
 #include "Core/Expected.h"
 #include "Core/Log.h"
@@ -107,7 +107,7 @@ TEST(TextureMetadataConversionTest, DecodedRgbAndRgbaUseBufferDimensionsAndActua
     EXPECT_EQ(rgbaMetadata.components, 4);
 }
 
-class LibraryWithoutTextureMetadata final : public Client::Scenes::IModelLibrary
+class LibraryWithoutTextureMetadata final : public Client::Render::Models::IModelLibrary
 {
 public:
     const Client::Data::Models::Model* Find(std::uint16_t) const override
@@ -138,7 +138,7 @@ TEST_F(TextureMetadataTest, LoadedEffectsUseExactRawSelectorsAndShareTheLegacySi
 {
     Client::Scenes::GameModels models;
     ASSERT_TRUE(models.Load(m_folder.Path(), m_store, m_log).HasValue());
-    const Client::Scenes::IModelLibrary& library = models;
+    const Client::Render::Models::IModelLibrary& library = models;
     const auto metadata = library.TextureMetadataOf(0x5ac);
     ASSERT_TRUE(metadata.has_value());
     EXPECT_EQ(metadata->size, (glm::vec2{16, 16}));
@@ -192,7 +192,7 @@ TEST_F(TextureMetadataTest, OnlyUploadedEffectsPublishTheSlotOfTheirSelector)
     Client::Scenes::GameModels models;
     EXPECT_FALSE(models.TextureSlotOf(0x5ac).has_value()) << "antes de cargar";
     ASSERT_TRUE(models.Load(m_folder.Path(), m_store, m_log).HasValue());
-    const Client::Scenes::IModelLibrary& library = models;
+    const Client::Render::Models::IModelLibrary& library = models;
     EXPECT_EQ(library.TextureSlotOf(0x5ac), std::optional(Client::Render::TextureSlot{0x5ac}));
     EXPECT_EQ(library.TextureSlotOf(0x622), std::optional(Client::Render::TextureSlot{0x622}));
     EXPECT_FALSE(library.TextureSlotOf(0x5fd).has_value());

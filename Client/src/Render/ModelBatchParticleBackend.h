@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Render/IParticleDrawBackend.h"
+#include "Render/ITextureSlots.h"
 #include "Render/ModelBatchParticleState.h"
 #include "Render/ModelVertex.h"
 #include "Render/Models/OriginalRotation.h"
@@ -17,10 +18,6 @@
 #include <optional>
 #include <span>
 
-namespace Client::Scenes
-{
-class IModelLibrary;
-}
 namespace Client::Render
 {
 class ModelBatch;
@@ -37,7 +34,7 @@ class ModelBatchParticleBackend : public IParticleDrawBackend
 {
 public:
     ModelBatchParticleBackend(std::reference_wrapper<ModelBatch> batch,
-                              std::reference_wrapper<const Scenes::IModelLibrary> models,
+                              std::reference_wrapper<const ITextureSlots> textures,
                               ModelBatchParticleState initialState);
     ~ModelBatchParticleBackend() override;
     ModelBatchParticleBackend(const ModelBatchParticleBackend&) = delete;
@@ -88,7 +85,7 @@ private:
     [[nodiscard]] Result BeginQuad(ModelCoordinateSpace space);
 
     const std::reference_wrapper<ModelBatch> m_batch;
-    const std::reference_wrapper<const Scenes::IModelLibrary> m_models;
+    const std::reference_wrapper<const ITextureSlots> m_textures;
     ModelBatchParticleState m_state;
     std::optional<std::uint64_t> m_observedSerial;
     // Scratch único del quad en curso; un fallo conserva el prefijo hasta destruir su dueño.

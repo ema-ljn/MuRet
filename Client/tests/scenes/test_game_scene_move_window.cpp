@@ -1,3 +1,4 @@
+#include "Network/Xor32Packet.h"
 #include "Scenes/GameScene.h"
 
 #include "Data/Models/PlayerModels.h"
@@ -6,7 +7,6 @@
 #include "Input/InputEvent.h"
 #include "Input/InputState.h"
 #include "Input/Key.h"
-#include "Network/Crypto/Xor32.h"
 #include "Network/PacketSerials.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Text/FontSet.h"
@@ -120,7 +120,7 @@ TEST(GameSceneMoveWindowTest, AClickOnADestinationSaysTheMoveTextOfTheScene)
         Client::Tests::AsTheGameServerReceives(std::span(online.socket.sent).subspan(sentBefore), serials);
     ASSERT_EQ(received.packets.size(), 1u);
     EXPECT_TRUE(Client::Tests::SameBytes(
-        Client::Network::Crypto::Xor32Decode(received.packets[0]).Bytes(),
+        Client::Network::Xor32Decode(received.packets[0]).Bytes(),
         Client::Tests::Bytes({0xc1, 0x1a, 0x00, 'H', 'e', 'r', 'o', 'e', 0,   0,   0,   0,   0,
                               '/',  'm',  'o',  'v', 'e', 'r', ' ', 'C', 'a', 'm', 'p', 'o', 0})));
 }

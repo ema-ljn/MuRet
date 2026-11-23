@@ -190,13 +190,14 @@ jobs:
           python -m unittest discover -s Client/docs/research/scripts/tools -p 'test_commit_waves.py' -v
 
       # Client refactor (AR0.1): a new include that breaks the module layers, or a file without a module, fails.
+      # Since AR1.1 the engine has none at all: its violations fail even if the baseline lists them.
       - name: Client layers
         if: matrix.kind == 'includes'
         run: |
           python3 -I -m unittest discover -s Client/tools/architecture -p 'test_*.py' -v
           python3 -I Client/tools/architecture/check_layers.py --src Client/src --modules Client/modules.tsv \
             --map Client/docs/research/coverage/module-map.tsv \
-            --baseline Client/tools/architecture/layers-baseline.tsv
+            --baseline Client/tools/architecture/layers-baseline.tsv --clean-root engine
 
       # ADR 0027: math that the C library or glm rounds, called by name instead of through RoundedMath.h, fails.
       - name: Client rounded math

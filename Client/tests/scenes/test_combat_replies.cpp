@@ -1,3 +1,4 @@
+#include "Render/Models/IModelLibrary.h"
 #include "Scenes/CombatReplies.h"
 
 #include "Core/Expected.h"
@@ -74,7 +75,7 @@ public:
 };
 
 // Los esqueletos de 0x4ea030 para los monstruos de los tests (Player.bmd va aparte, en el contexto).
-class CombatModels final : public Client::Scenes::IModelLibrary
+class CombatModels final : public Client::Render::Models::IModelLibrary
 {
 public:
     const Client::Data::Models::Model* Find(std::uint16_t /*model*/) const override

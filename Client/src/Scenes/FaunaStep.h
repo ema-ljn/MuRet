@@ -16,6 +16,7 @@
 namespace Client::Render::Models
 {
 struct ClothWorld;
+class IModelLibrary;
 struct Skeleton;
 } // namespace Client::Render::Models
 namespace Client::World
@@ -25,7 +26,6 @@ struct TerrainLighting;
 } // namespace Client::World
 namespace Client::Scenes
 {
-class IModelLibrary;
 struct WorldRuntime;
 // Los servicios opcionales fallan al alcanzarse: no simulan efectos con un éxito vacío.
 struct FaunaStepEffects
@@ -44,7 +44,7 @@ struct FaunaStepContext
     const std::uint8_t& heroFlag;
     const World::WorldTerrain& terrain;
     World::TerrainLighting& lighting;
-    const IModelLibrary& models;
+    const Render::Models::IModelLibrary& models;
     Render::Models::ClothWorld& cloth;
     float worldTime;
     FaunaStepEffects effects{};

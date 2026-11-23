@@ -1,3 +1,4 @@
+#include "Render/Models/IModelLibrary.h"
 #include "Scenes/CharacterDrawing.h"
 
 #include "App/WindowState.h"
@@ -57,13 +58,13 @@ using Client::Render::ModelBatch;
 using Client::Render::ModelVertex;
 using Client::Render::TextureSlot;
 using Client::Render::Models::AnimationState;
+using Client::Render::Models::IModelLibrary;
 using Client::Render::Models::MakePlayerSkeleton;
 using Client::Render::Models::MakeSkeleton;
 using Client::Render::Models::ObjectTransform;
 using Client::Render::Models::Skeleton;
 using Client::Scenes::DrawCharacter;
 using Client::Scenes::DrawnCharacter;
-using Client::Scenes::IModelLibrary;
 using Client::Scenes::SelectionCamera;
 using Client::Scenes::WorldViewport;
 using Client::Tests::GlTrace;

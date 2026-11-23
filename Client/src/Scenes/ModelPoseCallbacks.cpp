@@ -3,13 +3,15 @@
 #include "Core/Expected.h"
 #include "Core/IClock.h"
 #include "Data/Models/Model.h"
+#include "Render/Models/IModelLibrary.h"
 #include "Scenes/CharacterDrawing.h"
 
 #include <string>
 
 namespace Client::Scenes
 {
-Core::Expected<void, std::string> DrawPublishedObject(Render::ModelBatch& batch, const IModelLibrary& models,
+Core::Expected<void, std::string> DrawPublishedObject(Render::ModelBatch& batch,
+                                                      const Render::Models::IModelLibrary& models,
                                                       const DrawnObject& object, Core::Duration frameClock,
                                                       const TailMeshProvider& posedMeshes)
 {

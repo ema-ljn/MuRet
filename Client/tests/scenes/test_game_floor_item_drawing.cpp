@@ -1,6 +1,7 @@
 #include "Core/Expected.h"
 #include "Core/Log.h"
 #include "Core/ILogSink.h"
+#include "Render/Models/IModelLibrary.h"
 #include "Scenes/GameModels.h"
 #include "Scenes/FaunaDrawing.h"
 #include "support/FakeTextureStore.h"
@@ -40,7 +41,7 @@
 
 namespace
 {
-class FloorModels final : public Client::Scenes::IModelLibrary
+class FloorModels final : public Client::Render::Models::IModelLibrary
 {
 public:
     FloorModels()

@@ -1,4 +1,5 @@
 #include "Core/Expected.h"
+#include "Render/Models/IModelLibrary.h"
 #include "Scenes/FaunaStep.h"
 
 #include "Data/Terrain/TerrainAttributes.h"
@@ -28,7 +29,7 @@
 
 namespace
 {
-class Models : public Client::Scenes::IModelLibrary
+class Models : public Client::Render::Models::IModelLibrary
 {
 public:
     Client::Render::Models::Skeleton skeleton;

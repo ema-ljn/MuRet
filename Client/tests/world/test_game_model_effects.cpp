@@ -1,3 +1,4 @@
+#include "Render/Models/IModelLibrary.h"
 #include "World/GameModelEffects.h"
 
 #include "Core/Expected.h"
@@ -179,7 +180,7 @@ TEST(GameModelEffectsTest, TheShortBowTrailPublishesAndAdvancesAnimationEvenOnIt
 // del mundo. En el segundo, 0x52d66a..0x52d693 la filtra por blendMesh.
 TEST(GameModelEffectsTest, TheShortBowTrailDrawsPiercingBmdInBothNativePasses)
 {
-    class TriangleModels final : public Client::Scenes::IModelLibrary
+    class TriangleModels final : public Client::Render::Models::IModelLibrary
     {
     public:
         TriangleModels()

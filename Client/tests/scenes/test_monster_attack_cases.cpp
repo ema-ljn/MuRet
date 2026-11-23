@@ -6,6 +6,7 @@
 #include "Data/Tables/ItemSetTables.h"
 #include "Data/Tables/ItemTable.h"
 #include "Render/Models/Cloth.h"
+#include "Render/Models/IModelLibrary.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/OriginalRotation.h"
@@ -114,7 +115,7 @@ std::uint32_t SeedForSecondRandomParity(bool odd)
 }
 
 // El esqueleto del 0x20a para los modelos que el alta no carga (la biblioteca del mapa, detrás de FaunaResources).
-class AnyModels final : public Client::Scenes::IModelLibrary
+class AnyModels final : public Client::Render::Models::IModelLibrary
 {
 public:
     [[nodiscard]] const Client::Data::Models::Model* Find(std::uint16_t /*model*/) const override

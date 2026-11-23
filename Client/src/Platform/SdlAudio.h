@@ -1,10 +1,12 @@
 #pragma once
 
+#include "Audio/ISoundCatalog.h"
 #include "Audio/Playback.h"
 #include "Core/Expected.h"
 
 #include <cstdint>
 #include <filesystem>
+#include <functional>
 #include <memory>
 #include <optional>
 #include <string>
@@ -17,8 +19,10 @@ namespace Client::Platform
 class SdlAudio final : public Audio::IPlayback
 {
 public:
+    // The catalog must outlive the playback: RegisterSound looks sounds up in it.
     [[nodiscard]] static Core::Expected<std::unique_ptr<SdlAudio>, std::string>
-    Create(const std::filesystem::path& dataRoot, bool effectsEnabled = true, bool musicEnabled = true);
+    Create(const std::filesystem::path& dataRoot, std::reference_wrapper<const Audio::ISoundCatalog> catalog,
+           bool effectsEnabled = true, bool musicEnabled = true);
 
     ~SdlAudio() override;
     SdlAudio(const SdlAudio&) = delete;

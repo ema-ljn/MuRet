@@ -1,3 +1,5 @@
+#include "Network/Xor32Packet.h"
+#include "Render/Models/IModelLibrary.h"
 #include "Scenes/SocialRequests.h"
 
 #include "Core/Expected.h"
@@ -10,7 +12,6 @@
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainGrid.h"
 #include "Data/Text/TextTable.h"
-#include "Network/Crypto/Xor32.h"
 #include "Network/Delivery.h"
 #include "Protocol/Outgoing.h"
 #include "Protocol/Viewport.h"
@@ -22,7 +23,6 @@
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Scenes/ActionSend.h"
 #include "Scenes/ActorState.h"
-#include "Scenes/CharacterDrawing.h"
 #include "Scenes/GameChat.h"
 #include "Scenes/GameCommandsWindow.h"
 #include "Scenes/GameMovementState.h"
@@ -235,7 +235,7 @@ protected:
     {
         ASSERT_LT(at, m_sent.size());
         EXPECT_EQ(m_sent[at].delivery, Client::Network::Delivery::Encrypted);
-        EXPECT_TRUE(Client::Tests::SameBytes(Client::Network::Crypto::Xor32Decode(m_sent[at].packet).Bytes(),
+        EXPECT_TRUE(Client::Tests::SameBytes(Client::Network::Xor32Decode(m_sent[at].packet).Bytes(),
                                              Client::Tests::Bytes(bytes)));
     }
 
@@ -648,7 +648,7 @@ TEST_P(CommandsWindowTest, TheWhisperAndTheDuelCommands)
 }
 
 // Player.bmd para todos los tipos: la animación del comando 8 (0x4ea030).
-class CommandModels final : public Client::Scenes::IModelLibrary
+class CommandModels final : public Client::Render::Models::IModelLibrary
 {
 public:
     const Client::Data::Models::Model* Find(std::uint16_t) const override
@@ -711,7 +711,7 @@ protected:
     {
         ASSERT_LT(at, m_sent.size());
         EXPECT_EQ(m_sent[at].delivery, Client::Network::Delivery::Clear);
-        EXPECT_TRUE(Client::Tests::SameBytes(Client::Network::Crypto::Xor32Decode(m_sent[at].packet).Bytes(),
+        EXPECT_TRUE(Client::Tests::SameBytes(Client::Network::Xor32Decode(m_sent[at].packet).Bytes(),
                                              Client::Tests::Bytes(bytes)));
     }
 
@@ -796,7 +796,7 @@ TEST_P(GuildCommandsTest, TheHostilityCommandsSendTheirRequests)
     ASSERT_EQ(m_sent.size(), 3U);
     const auto direction = Client::Scenes::ActionDirection(Hero().angles.z);
     ASSERT_TRUE(direction.has_value());
-    EXPECT_TRUE(Client::Tests::SameBytes(Client::Network::Crypto::Xor32Decode(m_sent[1].packet).Bytes(),
+    EXPECT_TRUE(Client::Tests::SameBytes(Client::Network::Xor32Decode(m_sent[1].packet).Bytes(),
                                          Client::Tests::Bytes({0xc1, 0x05, 0x18, *direction, 0x92})));
     ExpectSentInTheClear(2, {0xc1, 0x07, 0xe5, 0x02, 0x02, 0x04, 0x56});
     EXPECT_EQ(LastMessage(), "fin con Brezal");
@@ -889,7 +889,7 @@ TEST_P(GuildCommandsTest, TheRelationChatCommandsSendTheirRequests)
     ASSERT_EQ(m_sent.size(), 4U);
     const auto direction = Client::Scenes::ActionDirection(Hero().angles.z);
     ASSERT_TRUE(direction.has_value());
-    EXPECT_TRUE(Client::Tests::SameBytes(Client::Network::Crypto::Xor32Decode(m_sent[2].packet).Bytes(),
+    EXPECT_TRUE(Client::Tests::SameBytes(Client::Network::Xor32Decode(m_sent[2].packet).Bytes(),
                                          Client::Tests::Bytes({0xc1, 0x05, 0x18, *direction, 0x92})));
     ExpectSentInTheClear(3, {0xc1, 0x07, 0xe5, 0x02, 0x02, 0x04, 0x56});
     EXPECT_EQ(m_random.State(), Client::Tests::AfterDraws(Seed, 4 * CellRandoms).State());

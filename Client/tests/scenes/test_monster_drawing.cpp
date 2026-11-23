@@ -1,3 +1,4 @@
+#include "Render/Models/IModelLibrary.h"
 #include "Scenes/MonsterDrawing.h"
 
 #include "Core/Expected.h"
@@ -86,7 +87,7 @@ std::uint32_t AfterRandoms(std::size_t count)
     return random.State();
 }
 
-class MonsterModels final : public Client::Scenes::IModelLibrary
+class MonsterModels final : public Client::Render::Models::IModelLibrary
 {
 public:
     MonsterModels()
@@ -1831,10 +1832,10 @@ TEST_F(MonsterDrawingTest, InChaosCastleTheHeroFlagFadesTheStoredAlpha)
 
 // Las partes de los NPC del alta (0x5141e0): la biblioteca del monstruo con un triángulo propio por cada modelo de
 // parte, corrido en x por el número del modelo menos 0x1d0, para ver el orden; `missing` no está cargado.
-class PartModels final : public Client::Scenes::IModelLibrary
+class PartModels final : public Client::Render::Models::IModelLibrary
 {
 public:
-    explicit PartModels(const Client::Scenes::IModelLibrary& body) : m_body(body)
+    explicit PartModels(const Client::Render::Models::IModelLibrary& body) : m_body(body)
     {
         for (std::uint16_t model = 0x1da; model <= 0x1f0; ++model)
         {
@@ -1865,7 +1866,7 @@ public:
     std::uint16_t missing = 0;
 
 private:
-    const Client::Scenes::IModelLibrary& m_body;
+    const Client::Render::Models::IModelLibrary& m_body;
     std::vector<Client::Data::Models::Model> m_parts;
 };
 

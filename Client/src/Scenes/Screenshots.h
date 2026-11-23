@@ -3,6 +3,7 @@
 #include "App/WindowState.h"
 #include "Core/Expected.h"
 #include "Core/LocalTime.h"
+#include "Render/Frame/IScreenReader.h"
 
 #include <cstdint>
 #include <filesystem>
@@ -10,7 +11,6 @@
 #include <optional>
 #include <string>
 #include <string_view>
-#include <vector>
 
 namespace Client::Input
 {
@@ -38,16 +38,6 @@ namespace Client::Scenes
 {
 class WorldState;
 struct SceneCanvas;
-
-// 0x6202e0: el glReadPixels de la captura, del lado de GL (Render/Gl/GlScreenReader.h).
-class IScreenReader
-{
-public:
-    virtual ~IScreenReader() = default;
-    // glReadPixels(0, 0, ancho, alto, GL_RGB, GL_UNSIGNED_BYTE) de lo dibujado en el frame: `screen.height` filas de
-    // `screen.width` × 3 bytes, desde la de abajo y sin relleno entre filas (Q-C631).
-    [[nodiscard]] virtual std::vector<std::uint8_t> ReadTheScreen(App::PixelSize screen) = 0;
-};
 
 // Los globales de la captura, en la .bss: los leen y escriben solo 0x637700 y 0x6202e0.
 struct ScreenshotState
@@ -113,8 +103,8 @@ public:
     // la lectura (0x6202e0), el JPEG con calidad 100 (0x63b150, Data::Textures::WriteJpegFile), el contador, y con
     // Shift, el mensaje (con el 0x7d3a194 vacío), que ya no sale; el pedido, apagado. Un archivo que no abre no es un
     // error (el original no lo mira); que libjpeg corte, sí.
-    [[nodiscard]] Core::Expected<void, std::string> AfterTheDraw(const ScreenshotFrameContext& context,
-                                                                 SceneCanvas& canvas, IScreenReader& reader);
+    [[nodiscard]] Core::Expected<void, std::string>
+    AfterTheDraw(const ScreenshotFrameContext& context, SceneCanvas& canvas, Render::Frame::IScreenReader& reader);
 
     // El fin de una vuelta del bucle sin minimizar (SceneManager::FinishTheLoop). Si no hubo dibujo y la captura está
     // pedida, el original la toma igual de un frame que no presenta (0x6385aa con el 0 del dibujo de la escena,

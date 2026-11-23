@@ -45,7 +45,8 @@ Run it like CI does:
 
 ```bash
 python3 -I Client/tools/architecture/check_layers.py --src Client/src --modules Client/modules.tsv \
-  --map Client/docs/research/coverage/module-map.tsv --baseline Client/tools/architecture/layers-baseline.tsv
+  --map Client/docs/research/coverage/module-map.tsv --baseline Client/tools/architecture/layers-baseline.tsv \
+  --clean-root engine
 ```
 
 - **A file has no module:** add its row to the map (above).
@@ -55,6 +56,9 @@ python3 -I Client/tools/architecture/check_layers.py --src Client/src --modules 
 - **A new include reaches a module of the same layer:** if the use is one-way and makes sense, add the module to the
   includer's `may_use` in `modules.tsv` and say why in the PR. If the other module already includes this one, that is a
   cycle: move what both share down to `Kernel` or merge them (spec, criterion 6).
+- **A violation from the engine:** CI runs with `--clean-root engine`, so an include from `engine/` that breaks a
+  layer fails even if the baseline lists it, and `--write-baseline` refuses to record it. Invert it with a port in the
+  engine (AR1.1 did it for the sound catalog, the frame contracts and the model library).
 - **Baseline rows that no longer happen:** rerun with `--write-baseline` and commit the smaller baseline.
 - After changing the map or `modules.tsv`, rerun the check and its tests:
   `python3 -I -m unittest discover -s Client/tools/architecture -p 'test_check_layers.py'`.

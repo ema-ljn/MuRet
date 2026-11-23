@@ -1,4 +1,5 @@
 #include "Scenes/WorldObjectsDrawing.h"
+#include "Render/Models/IModelLibrary.h"
 #include "Scenes/VertexEffects.h"
 
 #include "Scenes/ActorState.h"
@@ -166,9 +167,9 @@ World::ObjectDraw ObjectDrawAt(const World::WorldObject& object, const World::Te
 
 // 0x602e90 con `draw`: el modelo posado como 0x5ffdf0 y dibujado como 0x6002e0 sin casos por tipo, con su
 // animación `alpha` de un paso más. Devuelve lo que se posó.
-DrawnObject DrawTheObject(Render::ModelBatch& batch, const IModelLibrary& models, const World::WorldObject& object,
-                          const World::ObjectDraw& draw, Core::Duration frameClock, float alpha,
-                          const World::ObjectModelStepState* modelState = nullptr,
+DrawnObject DrawTheObject(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models,
+                          const World::WorldObject& object, const World::ObjectDraw& draw, Core::Duration frameClock,
+                          float alpha, const World::ObjectModelStepState* modelState = nullptr,
                           const FaunaDrawCarry* retainedPose = nullptr)
 {
     const Render::Models::Skeleton* skeleton = models.SkeletonOf(static_cast<std::uint16_t>(object.type));
@@ -340,7 +341,8 @@ Core::Expected<void, std::string> WalkTheObjectSectors(std::span<World::WorldObj
 }
 
 Core::Expected<void, std::string> StepGameWorldObjects(std::span<World::WorldObject> objects, std::uint8_t map,
-                                                       const IModelLibrary& models, Render::Models::CrtRandom& random,
+                                                       const Render::Models::IModelLibrary& models,
+                                                       Render::Models::CrtRandom& random,
                                                        const World::ObjectStepGlobals& globals,
                                                        const AfterObjectStep& after, const AfterObjectStep& collapse)
 {
@@ -360,8 +362,8 @@ Core::Expected<void, std::string> StepGameWorldObjects(std::span<World::WorldObj
     return WalkTheObjectSectors(objects, seenStep, collapse);
 }
 
-void StepWorldObjects(std::span<World::WorldObject> objects, std::uint8_t map, const IModelLibrary& models,
-                      const SpecialObjectStep& special)
+void StepWorldObjects(std::span<World::WorldObject> objects, std::uint8_t map,
+                      const Render::Models::IModelLibrary& models, const SpecialObjectStep& special)
 {
     for (const std::size_t index : World::DrawOrder(objects))
     {
@@ -374,9 +376,10 @@ void StepWorldObjects(std::span<World::WorldObject> objects, std::uint8_t map, c
     }
 }
 
-void DrawWorldObjects(Render::ModelBatch& batch, const IModelLibrary& models, std::span<World::WorldObject> objects,
-                      const World::TerrainPolygon& polygon, const World::TerrainLighting* lighting, std::uint8_t map,
-                      Core::Duration frameClock, float alpha, const ObjectFrameEffects& effects)
+void DrawWorldObjects(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models,
+                      std::span<World::WorldObject> objects, const World::TerrainPolygon& polygon,
+                      const World::TerrainLighting* lighting, std::uint8_t map, Core::Duration frameClock, float alpha,
+                      const ObjectFrameEffects& effects)
 {
     // El buffer global de la pose, en el orden en que lo pisan: lo de antes de los objetos y cada objeto
     // que 0x5ffdf0 posa. Solo hace falta con los sprites del farol.
@@ -503,9 +506,9 @@ bool OwnLevelAllows(const GameObjectPass& pass)
 // y su rand); los cuatro últimos, antes del cuerpo, un RenderBody(2) con Chrome01 (0x5c0) forzado, la luz
 // del modelo en (1; 0,2; 0,1) y el model+0x88 en 2 (0x13 y 0x14) o en 1 (3 y 4): esa malla sin luz y con la
 // U y la V del objeto. Después +0x88 vuelve a 0xff, que en el 4 es lo que esos tipos ya tenían.
-void DrawLostTowerChrome(Render::ModelBatch& batch, const IModelLibrary& models, const World::WorldObject& object,
-                         const World::ObjectDraw& draw, Core::Duration frameClock, const GameObjectPass& pass,
-                         const FaunaDrawCarry* retained)
+void DrawLostTowerChrome(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models,
+                         const World::WorldObject& object, const World::ObjectDraw& draw, Core::Duration frameClock,
+                         const GameObjectPass& pass, const FaunaDrawCarry* retained)
 {
     const std::int16_t type = object.type;
     const bool chrome = type == 0x13 || type == 0x14 || type == 3 || type == 4;
@@ -531,8 +534,8 @@ void DrawLostTowerChrome(Render::ModelBatch& batch, const IModelLibrary& models,
 // gotas con el pool compartido. `posed`: si 0x602e90 llamó a 0x6002e0, cuyo marco queda en la pila que leen
 // los sprites del 0x38 del 0 y del 9 del 4, y si 0x5ffdf0 dejó el +0xa8 del modelo del 0x67 del 2.
 Core::Expected<void, std::string> FrameCaseOf(World::WorldObject& object, const GameObjectPass& pass,
-                                              const IModelLibrary& models, const DrawnObject& drawn, int commonRandom,
-                                              bool posed)
+                                              const Render::Models::IModelLibrary& models, const DrawnObject& drawn,
+                                              int commonRandom, bool posed)
 {
     const std::uint8_t map = pass.map;
     if (World::IsKalimaMap(map))
@@ -581,11 +584,10 @@ Core::Expected<void, std::string> FrameCaseOf(World::WorldObject& object, const 
 }
 } // namespace
 
-Core::Expected<void, std::string> DrawGameWorldObjects(Render::ModelBatch& batch, const IModelLibrary& models,
-                                                       std::span<World::WorldObject> objects,
-                                                       const World::TerrainPolygon& polygon,
-                                                       const World::TerrainLighting* lighting,
-                                                       Core::Duration frameClock, const GameObjectPass& pass)
+Core::Expected<void, std::string>
+DrawGameWorldObjects(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models,
+                     std::span<World::WorldObject> objects, const World::TerrainPolygon& polygon,
+                     const World::TerrainLighting* lighting, Core::Duration frameClock, const GameObjectPass& pass)
 {
     const bool bloodCastle = pass.map >= FirstBloodCastleMap && pass.map <= LastBloodCastleMap;
     if (pass.map > LostTowerMap && pass.map != ArenaMap && pass.map != AtlansMap && pass.map != TarkanMap &&
@@ -782,7 +784,7 @@ Core::Expected<void, std::string> DrawGroundEffects(Render::ModelBatch& batch, s
     return {};
 }
 
-void StepModelEffects(std::span<World::ModelEffect> effects, const IModelLibrary& models)
+void StepModelEffects(std::span<World::ModelEffect> effects, const Render::Models::IModelLibrary& models)
 {
     for (World::ModelEffect& effect : effects)
     {
@@ -793,18 +795,19 @@ void StepModelEffects(std::span<World::ModelEffect> effects, const IModelLibrary
     }
 }
 
-void DrawModelEffects(Render::ModelBatch& batch, const IModelLibrary& models, std::span<World::ModelEffect> effects,
-                      const World::SphereFrustum& frustum, const World::TerrainLighting* lighting,
-                      Core::Duration frameClock, float alpha)
+void DrawModelEffects(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models,
+                      std::span<World::ModelEffect> effects, const World::SphereFrustum& frustum,
+                      const World::TerrainLighting* lighting, Core::Duration frameClock, float alpha)
 {
     // Sin callback no existe una salida de error: preserva la API legacy de7argumentos.
     static_cast<void>(DrawModelEffects(batch, models, effects, frustum, lighting, frameClock, alpha, {}, {}));
 }
 
 Core::Expected<void, std::string>
-DrawModelEffects(Render::ModelBatch& batch, const IModelLibrary& models, std::span<World::ModelEffect> effects,
-                 const World::SphereFrustum& frustum, const World::TerrainLighting* lighting, Core::Duration frameClock,
-                 float alpha, const TailPoseObserver& onPose, const TailMeshProvider& posedMeshes)
+DrawModelEffects(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models,
+                 std::span<World::ModelEffect> effects, const World::SphereFrustum& frustum,
+                 const World::TerrainLighting* lighting, Core::Duration frameClock, float alpha,
+                 const TailPoseObserver& onPose, const TailMeshProvider& posedMeshes)
 {
     for (World::ModelEffect& effect : effects)
     {
@@ -917,8 +920,9 @@ Render::ModelBlend SpriteBlend(const World::Sprite& sprite)
 }
 } // namespace
 
-void DrawFrameSprites(Render::ModelBatch& batch, World::FrameSprites& sprites, const IModelLibrary& textures,
-                      const Render::Models::OriginalMatrix& view, std::uint8_t mode)
+void DrawFrameSprites(Render::ModelBatch& batch, World::FrameSprites& sprites,
+                      const Render::Models::IModelLibrary& textures, const Render::Models::OriginalMatrix& view,
+                      std::uint8_t mode)
 {
     for (World::Sprite& sprite : sprites.Sprites())
     {
@@ -969,7 +973,7 @@ void DrawFrameSprites(Render::ModelBatch& batch, World::FrameSprites& sprites, c
 }
 
 Core::Expected<void, World::ParticleDrawingFailure>
-DrawParticles(Render::ModelBatch& batch, World::Particles& particles, const IModelLibrary& textures,
+DrawParticles(Render::ModelBatch& batch, World::Particles& particles, const Render::Models::IModelLibrary& textures,
               const Render::Models::OriginalMatrix& view, float worldClock, std::uint8_t mode)
 {
     bool restoreTextureEnv = false;

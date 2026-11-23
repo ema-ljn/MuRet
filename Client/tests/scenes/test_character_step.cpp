@@ -1,3 +1,4 @@
+#include "Network/Xor32Packet.h"
 #include "Scenes/CharacterStep.h"
 
 #include "Core/Expected.h"
@@ -6,7 +7,6 @@
 #include "Data/Tables/ItemTable.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainGrid.h"
-#include "Network/Crypto/Xor32.h"
 #include "Network/Delivery.h"
 #include "Protocol/Outgoing.h"
 #include "Render/ModelBatch.h"
@@ -700,8 +700,8 @@ TEST(CharacterStepTest, AHiddenRavenTargetSendsTheA7ThatStopsTheAttack)
                 }
                 ASSERT_EQ(sent.size(), 1u);
                 EXPECT_EQ(sent[0].delivery, Client::Network::Delivery::Clear);
-                EXPECT_EQ(Client::Network::Crypto::Xor32Decode(sent[0].packet).Bytes().size(), 7u);
-                EXPECT_TRUE(Client::Tests::SameBytes(Client::Network::Crypto::Xor32Decode(sent[0].packet).Bytes(),
+                EXPECT_EQ(Client::Network::Xor32Decode(sent[0].packet).Bytes().size(), 7u);
+                EXPECT_TRUE(Client::Tests::SameBytes(Client::Network::Xor32Decode(sent[0].packet).Bytes(),
                                                      Client::Tests::Bytes({0xc1, 7, 0xa7, 0, 0x78, 0xff, 0xff})));
                 EXPECT_EQ(actor.darkSpirit->target3b0, 0xffff);
             }

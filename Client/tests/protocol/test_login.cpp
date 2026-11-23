@@ -1,6 +1,6 @@
+#include "Network/Xor32Packet.h"
 #include "Protocol/Connection/Login.h"
 
-#include "Network/Crypto/Xor32.h"
 #include "Network/Delivery.h"
 #include "Network/EncryptedPacket.h"
 #include "Network/Packet.h"
@@ -34,7 +34,7 @@ using Client::Network::Delivery;
 using Client::Network::EncryptPacket;
 using Client::Network::Packet;
 using Client::Network::PacketSerials;
-using Client::Network::Crypto::Xor32Decode;
+using Client::Network::Xor32Decode;
 using Client::Protocol::ClientSerial;
 using Client::Protocol::ClientVersion;
 using Client::Protocol::Outgoing;
@@ -210,7 +210,7 @@ TEST(LoginTest, WritesTheClearWorldEntryReport)
     const Outgoing report = WriteClearWorldEntryReport();
 
     EXPECT_EQ(report.delivery, Delivery::Encrypted);
-    const Client::Network::Packet clear = Client::Network::Crypto::Xor32Decode(report.packet);
+    const Client::Network::Packet clear = Client::Network::Xor32Decode(report.packet);
     EXPECT_TRUE(SameBytes(clear.Bytes(), Bytes({0xC1, 0x06, 0xF1, 0x03, 0x00, 0xF3})));
 }
 } // namespace

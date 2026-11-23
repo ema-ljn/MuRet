@@ -2,7 +2,7 @@
 
 #include "App/WindowState.h"
 #include "Platform/GlLoader.h"
-#include "Scenes/Screenshots.h"
+#include "Render/Frame/IScreenReader.h"
 
 #include <cstdint>
 #include <vector>
@@ -11,7 +11,7 @@
 // atrás, después del dibujo del frame y antes del swap. Necesita el contexto vivo.
 namespace Client::Render::Gl
 {
-class GlScreenReader final : public Scenes::IScreenReader
+class GlScreenReader final : public Frame::IScreenReader
 {
 public:
     // La tabla de GL vive más.

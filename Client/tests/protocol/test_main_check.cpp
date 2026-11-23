@@ -1,6 +1,6 @@
+#include "Network/Xor32Packet.h"
 #include "Protocol/Connection/MainCheck.h"
 
-#include "Network/Crypto/Xor32.h"
 #include "Network/Delivery.h"
 #include "Network/Packet.h"
 #include "Protocol/Outgoing.h"
@@ -143,7 +143,7 @@ TEST(MainCheckTest, WritesTheReply)
     EXPECT_EQ(reply.delivery, Delivery::Encrypted);
     ASSERT_EQ(reply.packet.Bytes().size(), 8U);
     EXPECT_EQ(reply.packet.Bytes()[3], std::byte{0x8A});
-    const Client::Network::Packet clear = Client::Network::Crypto::Xor32Decode(reply.packet);
+    const Client::Network::Packet clear = Client::Network::Xor32Decode(reply.packet);
     EXPECT_TRUE(SameBytes(clear.Bytes(), Bytes({0xC1, 0x08, 0x03, 0x00, 0x0E, 0x3B, 0x61, 0x9B})));
 }
 } // namespace

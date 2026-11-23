@@ -1,6 +1,6 @@
+#include "Network/Xor32Packet.h"
 #include "Protocol/Events.h"
 
-#include "Network/Crypto/Xor32.h"
 #include "Network/Delivery.h"
 #include "Network/Packet.h"
 #include "Protocol/Outgoing.h"
@@ -30,7 +30,7 @@ namespace
 {
 namespace Events = Client::Protocol::Events;
 using Client::Network::Delivery;
-using Client::Network::Crypto::Xor32Decode;
+using Client::Network::Xor32Decode;
 using Client::Protocol::ProtocolError;
 using Client::Tests::Bytes;
 using Client::Tests::ErrorOf;

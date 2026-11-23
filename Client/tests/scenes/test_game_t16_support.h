@@ -1,6 +1,7 @@
 #pragma once
 
 #include "App/ServerSession.h"
+#include "Network/Xor32Packet.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/SceneManager.h"
 #include "Scenes/CharacterSelectScene.h"
@@ -12,7 +13,6 @@
 #include "Core/Log.h"
 #include "Input/InputState.h"
 #include "Network/PacketSerials.h"
-#include "Network/Crypto/Xor32.h"
 #include "Render/Models/Cloth.h"
 #include "Scenes/GameData.h"
 #include "Scenes/LoadingScene.h"
@@ -290,7 +290,7 @@ protected:
         auto received = AsTheGameServerReceives(m_online->socket.sent, m_outgoing);
         m_online->socket.sent.clear();
         for (auto& packet : received.packets)
-            packet = Network::Crypto::Xor32Decode(std::move(packet));
+            packet = Network::Xor32Decode(std::move(packet));
         return received;
     }
 

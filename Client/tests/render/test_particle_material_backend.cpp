@@ -4,8 +4,8 @@
 #include "Data/Textures/Texture.h"
 #include "Render/ModelBatch.h"
 #include "Render/ModelBatchParticleState.h"
+#include "Render/Models/IModelLibrary.h"
 #include "Render/Pass3D.h"
-#include "Scenes/CharacterDrawing.h"
 #include "Data/Models/Model.h"
 #include "Render/Models/Skeleton.h"
 #include "Render/TextureEnvMode.h"
@@ -28,7 +28,7 @@
 
 namespace
 {
-class MaterialModels : public Client::Scenes::IModelLibrary
+class MaterialModels : public Client::Render::Models::IModelLibrary
 {
 public:
     const Client::Data::Models::Model* Find(std::uint16_t) const override
@@ -144,11 +144,11 @@ TEST(ParticleMaterialBackendTest, OnlyTheAdapterThatOpenedAQuadCanWriteOrFinishI
 TEST(ParticleMaterialBackendTest, PhysicalSlotLookupKeepsPublicUnsignedRaw32Api)
 {
     using SlotLookup =
-        std::optional<Client::Render::TextureSlot> (Client::Scenes::IModelLibrary::*)(std::uint32_t) const;
+        std::optional<Client::Render::TextureSlot> (Client::Render::Models::IModelLibrary::*)(std::uint32_t) const;
     using MetadataLookup =
-        std::optional<Client::Scenes::TextureMetadata> (Client::Scenes::IModelLibrary::*)(std::uint32_t) const;
-    EXPECT_TRUE((std::is_same_v<decltype(&Client::Scenes::IModelLibrary::TextureSlotOf), SlotLookup>));
-    EXPECT_TRUE((std::is_same_v<decltype(&Client::Scenes::IModelLibrary::TextureMetadataOf), MetadataLookup>));
+        std::optional<Client::Scenes::TextureMetadata> (Client::Render::Models::IModelLibrary::*)(std::uint32_t) const;
+    EXPECT_TRUE((std::is_same_v<decltype(&Client::Render::Models::IModelLibrary::TextureSlotOf), SlotLookup>));
+    EXPECT_TRUE((std::is_same_v<decltype(&Client::Render::Models::IModelLibrary::TextureMetadataOf), MetadataLookup>));
     Client::Render::ModelBatch batch;
     batch.Begin(Client::Render::Pass3D{});
     SlotLookupModels models;

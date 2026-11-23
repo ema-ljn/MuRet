@@ -3,6 +3,7 @@
 #include "Core/Log.h"
 #include "Data/Models/Model.h"
 #include "Render/ModelBatch.h"
+#include "Render/Models/IModelLibrary.h"
 #include "Scenes/FaunaDrawing.h"
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/GameDrawTail.h"
@@ -40,7 +41,7 @@
 namespace
 {
 // El batch usa el mismo walker de producción; la falta de esqueleto permite aislar los servicios.
-class ObjectModels final : public Client::Scenes::IModelLibrary
+class ObjectModels final : public Client::Render::Models::IModelLibrary
 {
 public:
     const Client::Data::Models::Model* Find(std::uint16_t) const override

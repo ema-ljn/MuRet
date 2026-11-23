@@ -1,3 +1,4 @@
+#include "Network/Xor32Packet.h"
 #include "Scenes/GameChat.h"
 
 #include "Input/Key.h"
@@ -9,7 +10,6 @@
 #include "Data/Models/PlayerModels.h"
 #include "Data/Text/TextTable.h"
 #include "Input/TextInputEvent.h"
-#include "Network/Crypto/Xor32.h"
 #include "Protocol/Outgoing.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/ModelTextureSlots.h"
@@ -119,7 +119,7 @@ struct Said
 
 Said Decode(const Client::Protocol::Outgoing& sent)
 {
-    const auto plain = Client::Network::Crypto::Xor32Decode(sent.packet);
+    const auto plain = Client::Network::Xor32Decode(sent.packet);
     const auto bytes = plain.Bytes();
     Said said;
     said.opcode = std::to_integer<std::uint8_t>(bytes[2]);
@@ -204,7 +204,7 @@ protected:
 // Un C1 05 18 [direction] [action] en claro, con el XOR32.
 bool IsTheAction(const Client::Protocol::Outgoing& sent, std::uint8_t direction, std::uint8_t action)
 {
-    return Client::Tests::SameBytes(Client::Network::Crypto::Xor32Decode(sent.packet).Bytes(),
+    return Client::Tests::SameBytes(Client::Network::Xor32Decode(sent.packet).Bytes(),
                                     Client::Tests::Bytes({0xc1, 5, 0x18, direction, action}));
 }
 
@@ -1330,7 +1330,7 @@ TEST_F(GameChat, TradeWithTheChosenSaysWhoWasAsked)
     runtime.selectedTargets[2] = static_cast<std::int32_t>(runtime.hero + 1);
     ASSERT_TRUE(Type("\r/comerciar\r").HasValue());
     ASSERT_EQ(sent.size(), 1u);
-    EXPECT_EQ(Client::Network::Crypto::Xor32Decode(sent[0].packet).Bytes()[2], std::byte{0x36});
+    EXPECT_EQ(Client::Network::Xor32Decode(sent[0].packet).Bytes()[2], std::byte{0x36});
     EXPECT_EQ(runtime.chat.log.entries.front().text, "pediste comerciar con Brezal");
 }
 

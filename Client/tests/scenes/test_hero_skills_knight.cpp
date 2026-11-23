@@ -1,9 +1,9 @@
+#include "Network/Xor32Packet.h"
 #include "Scenes/HeroSkillsKnight.h"
 
 #include "Core/Expected.h"
 #include "Data/Tables/SkillTable.h"
 #include "Data/Terrain/TerrainAttributes.h"
-#include "Network/Crypto/Xor32.h"
 #include "Network/Delivery.h"
 #include "Network/Packet.h"
 #include "Protocol/Outgoing.h"
@@ -187,7 +187,7 @@ struct KnightHero
     }
     std::vector<std::uint8_t> Sent(std::size_t index) const
     {
-        const Client::Network::Packet clear = Client::Network::Crypto::Xor32Decode(sent.at(index).packet);
+        const Client::Network::Packet clear = Client::Network::Xor32Decode(sent.at(index).packet);
         std::vector<std::uint8_t> bytes;
         for (const std::byte value : clear.Bytes())
             bytes.push_back(std::to_integer<std::uint8_t>(value));

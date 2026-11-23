@@ -1,3 +1,4 @@
+#include "Render/Models/IModelLibrary.h"
 #include "Scenes/MonsterBody.h"
 
 #include "Core/Expected.h"
@@ -119,7 +120,7 @@ void ExpectSameJoints(std::span<const Client::Scenes::JointState> actual,
     }
 }
 
-class BodyModels final : public Client::Scenes::IModelLibrary
+class BodyModels final : public Client::Render::Models::IModelLibrary
 {
 public:
     BodyModels()

@@ -1,3 +1,4 @@
+#include "Render/Models/IModelLibrary.h"
 #include "Scenes/SkillReplies.h"
 
 #include "Core/Expected.h"
@@ -95,7 +96,7 @@ Client::Data::Tables::SkillTable SkillsHiding(std::initializer_list<std::uint8_t
 }
 
 // El esqueleto de los jugadores y el de un monstruo inventado.
-class SkillModels final : public Client::Scenes::IModelLibrary
+class SkillModels final : public Client::Render::Models::IModelLibrary
 {
 public:
     const Client::Data::Models::Model* Find(std::uint16_t) const override

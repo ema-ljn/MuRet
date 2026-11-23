@@ -1,8 +1,8 @@
+#include "Network/Xor32Packet.h"
 #include "Scenes/HeroAttack.h"
 
 #include "Core/Expected.h"
 #include "Data/Terrain/TerrainAttributes.h"
-#include "Network/Crypto/Xor32.h"
 #include "Network/Packet.h"
 #include "Protocol/Combat.h"
 #include "Protocol/Movement.h"
@@ -53,7 +53,7 @@ void Name(ActorState& actor, std::string_view name)
 
 std::vector<std::byte> Plain(const Client::Network::Packet& packet)
 {
-    const auto decoded = Client::Network::Crypto::Xor32Decode(packet);
+    const auto decoded = Client::Network::Xor32Decode(packet);
     return {decoded.Bytes().begin(), decoded.Bytes().end()};
 }
 

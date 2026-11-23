@@ -46,8 +46,8 @@ Measured on `refactor/client` at 75c33064 (2026-11-22). AR1.3, the command line,
   bodies and its tests pin NaN, infinity and 2^40.
 - `IsKalimaMap` includes Kalima 7 (map 36) but most copies check only 24 to 29: those must keep 24 to 29. Task 5 pins
   36 and 30 to 35 in its tests.
-- A sound registered while effects are off, or an id the catalog does not know: the engine must keep ignoring both after
-  the lookup moves to the game. Task 1 tests the free function with a recording playback.
+- A sound registered while effects are off, or an id the catalog does not know: the engine must keep ignoring both once
+  the catalog comes from the game. Task 1 tests `SdlAudio` with a recording catalog.
 - An `.ini` that still has `[Server] Obfuscation`: the player gets an error with its line that says how to build without
   the `XorRemap` layer, never a silent default. Task 4 tests it.
 - A design PR whose deleted and created files git pairs as a rename (`-M50%`): CI's pure-move check fails it. Each task
@@ -72,7 +72,7 @@ Measured on `refactor/client` at 75c33064 (2026-11-22). AR1.3, the command line,
 | master plan | this plan | why |
 | --- | --- | --- |
 | `App/WindowState`, `VSyncMode`, `Resolution` and the frame contracts move in AR1.1 | their map rows already say `engine/Platform`; the frame contracts' rows change to `engine/Render/Frame`; `move.py` moves them in AR1.2 | a hand move in a design PR fails CI's pure-move check, and `src/Platform/*.cpp` goes to `ClientPlatform`, which `ClientLib` does not link |
-| `IPlayback::Register(SoundDefinition)` | the same, plus `Audio::RegisterSound(IPlayback&, id, path)` in the catalog | the lookup (`FindSound(id, path)`) is the catalog's; the game calls the free function and the engine plays what it is given |
+| `IPlayback::Register(SoundDefinition)` | `SdlAudio::Create` takes an `Audio::ISoundCatalog` (engine) that the game's catalog implements (`GameSoundCatalog()`); `IPlayback::RegisterSound(id, path)` stays | found while doing Task 1: the doubles that record `RegisterSound` (fauna, spearman) assert the path their caller passed, which `Register(SoundDefinition)` would replace with the catalog's; with a port the engine owns, no caller or double changes |
 | `FoxAnti` in the names (`FoxAntiObfuscation`, `MURET_FOXANTI`, `MuRetFoxAnti`, `engine/Network/FoxAnti`) | `XorRemap` (`XorRemapObfuscation`, `MU_XOR_REMAP`, `XorRemap`, `engine/Network/XorRemap`) | Emanuel, 2026-11-22: not a DLL any more but a layer named after what it does |
 | `LabFoxAntiTables()` defined in `MakeObfuscationFoxAnti.cpp` | `constexpr` in `App/LabXorRemapTables.h` | the layer's tests build the lab tables too, and they do not link the executable's sources |
 | `Core/WrappingInt.h` and `UI::Rect::Contains` in the kit | left out | no copy of a wrapping integer was found, and `Rect::Contains` already exists (`UI/Widget.h`) |
@@ -110,9 +110,8 @@ IFrameTarget,IWorldView}.h` (6); `Render/Gl/GlScreenReader.h` → `Scenes/Screen
   (141 files in `src` and `tests`); map row of `Scenes/TextureMetadata.h` to `engine/Models`
 - Create: `Client/src/Network/Xor32Packet.{h,cpp}`; modify `Network/Crypto/Xor32.{h,cpp}` and the about 80 callers of
   the `Packet` overloads
-- Create: `Client/src/Audio/SoundDefinition.h`; modify `Audio/Playback.h`, `Audio/SoundCatalog.{h,cpp}`,
-  `Platform/SdlAudio.{h,cpp}`, `main.cpp`, `Scenes/{FaunaModels,GameScene,MapLoad}.cpp`, `tests/audio/test_sound_catalog.cpp`,
-  `tests/platform/test_sdl_audio.cpp`, `tests/scenes/{test_fauna_models,test_game_scene}.cpp`
+- Create: `Client/src/Audio/SoundDefinition.h`, `Client/src/Audio/ISoundCatalog.h`; modify `Audio/SoundCatalog.{h,cpp}`,
+  `Platform/SdlAudio.{h,cpp}`, `main.cpp`, `tests/audio/test_sound_catalog.cpp`, `tests/platform/test_sdl_audio.cpp`
 - Regenerate: `Client/tools/architecture/layers-baseline.tsv`
 
 **Interfaces:**
@@ -130,9 +129,10 @@ IFrameTarget,IWorldView}.h` (6); `Render/Gl/GlScreenReader.h` → `Scenes/Screen
 - Produces: `Client::Network::Xor32Encode(Packet) -> Packet` and `Xor32Decode(Packet) -> Packet`. `Network::Crypto`
   keeps only `Xor32Key`, `Xor32EncodeBytes` and `Xor32DecodeBytes`, and `Xor32.h` no longer includes `Network/Packet.h`.
 - Produces: `Client::Audio::SoundDefinition` (fields as today: `id`, `path`, `voices`, `positional`) in
-  `Audio/SoundDefinition.h`; `IPlayback::Register(const SoundDefinition&)` with an empty default, replacing
-  `RegisterSound(std::int32_t, std::string_view)`; `Audio::RegisterSound(IPlayback& playback, std::int32_t id,
-  std::string_view path)` in `SoundCatalog.h`.
+  `Audio/SoundDefinition.h`; `Client::Audio::ISoundCatalog` in `Audio/ISoundCatalog.h` with `Find(std::int32_t id,
+  std::string_view path) const -> std::optional<SoundDefinition>` and `StartupSounds() const ->
+  std::span<const SoundDefinition>`; `const ISoundCatalog& GameSoundCatalog()` in `SoundCatalog.h`;
+  `SdlAudio::Create(dataRoot, const Audio::ISoundCatalog& catalog, effectsEnabled, musicEnabled)`.
 
 - [ ] **Step 1: Write the failing check test** in `test_check_layers.py`:
 
@@ -151,26 +151,21 @@ def test_write_baseline_refuses_a_clean_root_violation(self):
 - [ ] **Step 2: Run it and see it fail:** `python3 -I -m unittest Client/tools/architecture/test_check_layers.py -v`,
   failing with "unrecognized arguments: --clean-root".
 - [ ] **Step 3: Implement `--clean-root` and `clean_root_violations`.** Run the tests: pass.
-- [ ] **Step 4: Write the failing sound test** in `tests/audio/test_sound_catalog.cpp`, with a playback double that
-  records each `Register`:
+- [ ] **Step 4: Write the failing sound tests.** In `tests/audio/test_sound_catalog.cpp`:
 
 ```cpp
-TEST(SoundCatalogTest, RegistersAKnownSoundWithTheCatalogDefinition)  // first StartupSounds() entry: one Register, same id, voices and path
-TEST(SoundCatalogTest, SkipsANegativeId)                              // Register never called
-TEST(SoundCatalogTest, SkipsASoundTheCatalogDoesNotKnow)              // id 0x7fffffff
-TEST(SoundCatalogTest, SkipsAPathThatDoesNotMatchTheId)               // known id, another sound's path
+TEST(SoundCatalogTest, GameCatalogFindsWhatFindSoundFinds)      // 0x146 with "Sound\mShadowAttack2.wav"; unknown path and id: none
+TEST(SoundCatalogTest, GameCatalogStartsTheNativeStartupSounds) // same span as StartupSounds()
 ```
 
-  In `tests/platform/test_sdl_audio.cpp`, on the disk driver with effects off, `Register` of a known sound and then
-  `PlaySound` of its id leave the output silent. It fails to compile (`Register` and `Audio::RegisterSound(IPlayback&,
-  …)` do not exist).
-- [ ] **Step 5: Move the lookup to the game.** `Audio::RegisterSound` returns when `id < 0`, calls `FindSound(id, path)`
-  and calls `playback.Register(*definition)` only when there is one with `voices != 0`. `SdlAudio::Register` keeps the
-  rest of today's body: returns when effects are off, then `try_emplace(sound.id)` and `LoadSound(sound.path)`.
-  `SdlAudio::Create` loses the `StartupSounds()` loop and the catalog include; `main.cpp` runs that loop with
-  `Audio::RegisterSound(*audio, sound.id, sound.path)` right after `Create`, before anything else touches the audio.
-  The three game callers switch to the free function. A test double that recorded `RegisterSound(id, path)` records
-  `Register(sound)`: it now sees only what the catalog knows, with the catalog's path. Run the audio and platform tests.
+  In `tests/platform/test_sdl_audio.cpp`, with a catalog double that records each `Find` and knows one sound:
+  `PlaysOnlySoundsTheInjectedCatalogKnows` (disk driver: the known sound is audible, another id is silent, lookups
+  `{7, 8}`) and `IgnoresRegistrationsWhileEffectsAreOff` (no lookup). They fail to compile (`ISoundCatalog` does not
+  exist).
+- [ ] **Step 5: Inject the catalog.** `SdlAudio::Create` takes the catalog and keeps its `StartupSounds()` loop over
+  `catalog.StartupSounds()`; `RegisterSound` keeps its body with `catalog.Find(id, path)` in place of `FindSound`, and
+  `SdlAudio` stops including `Audio/SoundCatalog.h`. `main.cpp` passes `Audio::GameSoundCatalog()`. Run the audio
+  tests; the platform ones run in CI.
 - [ ] **Step 6: Split the frame contracts and `IModelLibrary`, and move the `Packet` overloads,** per Interfaces. A file
   that includes `Scenes/CharacterDrawing.h` and uses no other name it declares includes
   `Render/Models/IModelLibrary.h` instead (a script lists them; it goes in the PR description, not in the repo).
@@ -431,6 +426,9 @@ PR `refactor(AR1.2): move the engine to Client/src/engine`, branch `refactor/ar1
 - [ ] **Step 2: Do by hand only what it printed:** `target_include_directories(ClientLib PUBLIC src src/engine src/game)`,
   and the `list(FILTER … REGEX)` lines and globs that named an emptied folder (`/src/Platform/` →
   `/src/engine/Platform/`, `/src/Render/Gl/`, `/src/Render/Models/RoundedMath/`, `Network/XorRemapObfuscation.cpp`).
+  move.py moves only sources, so also move `src/Render/Models/RoundedMath/CMakeLists.txt` next to its
+  `RoundedMath.cpp` (and its `add_subdirectory`), and point the `SdlAudio.cpp` row of
+  `Client/tools/architecture/rounded-math-exceptions.tsv` at the new path (review of #424).
 - [ ] **Step 3: Check** `check_pure_move.py --base origin/refactor/client --head HEAD` lists nothing, `check_layers.py
   --clean-root engine` prints `0 new`, and `git diff -M50% --diff-filter=M` only touches include lines and build paths.
   Push and let CI build. Expected: green, the golden unchanged.

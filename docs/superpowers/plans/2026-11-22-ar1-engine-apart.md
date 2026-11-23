@@ -404,6 +404,9 @@ PR `refactor(AR1.2): move the engine to Client/src/engine`, branch `refactor/ar1
 - [ ] **Step 2: Do by hand only what it printed:** `target_include_directories(ClientLib PUBLIC src src/engine src/game)`,
   and the `list(FILTER … REGEX)` lines and globs that named an emptied folder (`/src/Platform/` →
   `/src/engine/Platform/`, `/src/Render/Gl/`, `/src/Render/Models/RoundedMath/`, `Network/XorRemapObfuscation.cpp`).
+  move.py moves only sources, so also move `src/Render/Models/RoundedMath/CMakeLists.txt` next to its
+  `RoundedMath.cpp` (and its `add_subdirectory`), and point the `SdlAudio.cpp` row of
+  `Client/tools/architecture/rounded-math-exceptions.tsv` at the new path (review of #424).
 - [ ] **Step 3: Check** `check_pure_move.py --base origin/refactor/client --head HEAD` lists nothing, `check_layers.py
   --clean-root engine` prints `0 new`, and `git diff -M50% --diff-filter=M` only touches include lines and build paths.
   Push and let CI build. Expected: green, the golden unchanged.

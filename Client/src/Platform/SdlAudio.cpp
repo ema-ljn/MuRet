@@ -18,6 +18,7 @@
 #include <cmath>
 #include <cstdint>
 #include <filesystem>
+#include <functional>
 #include <limits>
 #include <memory>
 #include <optional>
@@ -174,11 +175,11 @@ struct SdlAudio::Impl
 
 SdlAudio::SdlAudio(std::unique_ptr<Impl> impl) : m_impl(std::move(impl)) {}
 
-Core::Expected<std::unique_ptr<SdlAudio>, std::string> SdlAudio::Create(const std::filesystem::path& dataRoot,
-                                                                        const Audio::ISoundCatalog& catalog,
-                                                                        bool effectsEnabled, bool musicEnabled)
+Core::Expected<std::unique_ptr<SdlAudio>, std::string>
+SdlAudio::Create(const std::filesystem::path& dataRoot, std::reference_wrapper<const Audio::ISoundCatalog> catalog,
+                 bool effectsEnabled, bool musicEnabled)
 {
-    auto impl = std::make_unique<Impl>(catalog);
+    auto impl = std::make_unique<Impl>(catalog.get());
     impl->dataRoot = dataRoot;
     impl->effectsEnabled = effectsEnabled;
     if (!effectsEnabled && !musicEnabled)
@@ -215,7 +216,7 @@ Core::Expected<std::unique_ptr<SdlAudio>, std::string> SdlAudio::Create(const st
     auto audio = std::unique_ptr<SdlAudio>(new SdlAudio(std::move(impl)));
     if (effectsEnabled)
     {
-        for (const Audio::SoundDefinition& sound : catalog.StartupSounds())
+        for (const Audio::SoundDefinition& sound : catalog.get().StartupSounds())
         {
             audio->RegisterSound(sound.id, sound.path);
         }

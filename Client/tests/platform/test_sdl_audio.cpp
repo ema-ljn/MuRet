@@ -18,6 +18,7 @@
 #include <string>
 #include <string_view>
 #include <thread>
+#include <utility>
 #include <vector>
 
 #include <gtest/gtest.h>
@@ -169,6 +170,14 @@ private:
     Client::Audio::SoundDefinition m_known;
     mutable std::vector<std::int32_t> m_lookups;
 };
+
+template <typename Catalog>
+concept CreatableWith = requires(const std::filesystem::path& root, Catalog&& catalog) {
+    Client::Platform::SdlAudio::Create(root, std::forward<Catalog>(catalog));
+};
+
+static_assert(CreatableWith<const RecordingCatalog&>);
+static_assert(!CreatableWith<RecordingCatalog>, "a temporary catalog would dangle once Create returns");
 } // namespace
 
 TEST(SdlAudioTest, WritesLoopedSyntheticAudioToDiskDriver)

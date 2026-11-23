@@ -1,5 +1,6 @@
 #include "Render/Models/Cloth.h"
 
+#include "Render/Models/HalfLifeMath.h"
 #include "Render/TextureSlot.h"
 #include "support/ClothVectors.h"
 
@@ -24,6 +25,7 @@
 namespace
 {
 using Client::Render::TextureSlot;
+using Client::Render::Models::BoneTransform;
 using Client::Render::Models::Cloth;
 using Client::Render::Models::ClothBlend;
 using Client::Render::Models::ClothBody;
@@ -31,6 +33,7 @@ using Client::Render::Models::ClothCorner;
 using Client::Render::Models::ClothFlare;
 using Client::Render::Models::ClothParticle;
 using Client::Render::Models::ClothShape;
+using Client::Render::Models::ClothWindSource;
 using Client::Render::Models::ClothWorld;
 using Client::Render::Models::CrtRandom;
 using Client::Render::Models::FaceBlendOf;
@@ -216,6 +219,7 @@ void ExpectTheDirectCase(const std::string& name)
             }
         }
         const float dt = frame.dt.value_or(std::bit_cast<float>(0x3ba3d70au));
+        const auto fallbackWind = frame.map == 0x37 ? ClothWindSource::Randomized : ClothWindSource::Base;
         std::size_t next = 0;
         for (std::size_t c = 0; c < cloths.size(); ++c)
         {
@@ -227,7 +231,7 @@ void ExpectTheDirectCase(const std::string& name)
             bool ok = true;
             for (int iteration = 0; iteration < 5 && ok; ++iteration)
             {
-                ok = cloths[c].Step(dt, body, world, frame.map);
+                ok = cloths[c].Step(dt, body, world, fallbackWind);
                 ASSERT_LT(next, frame.events.size()) << where;
                 ASSERT_EQ(frame.events[next].kind, ClothVectorEvent::Kind::Step) << where;
                 const ClothVectorStep& step = frame.events[next].step;
@@ -307,6 +311,67 @@ TEST(ClothTest, TheObjectAnglesMatchTheBinaryStepByStep)
 TEST(ClothTest, AStretchUnderTwentyTimesIsPulledBack)
 {
     ExpectTheDirectCase("i_direct_stretch.txt");
+}
+
+template <typename ClothType>
+constexpr bool AcceptsAMapId = requires(ClothType& cloth, const ClothBody& body, ClothWorld& world, std::uint8_t map) {
+    cloth.Step(0.0f, body, world, map);
+} || requires(ClothType& cloth, const ClothBody& body, ClothWorld& world, std::uint8_t map) {
+    cloth.Simulate(0.0f, 1, body, world, map);
+};
+
+TEST(ClothTest, SimulationTakesAWindDecision)
+{
+    EXPECT_FALSE(AcceptsAMapId<Cloth>);
+}
+
+TEST(ClothTest, RandomizedWindSamplesBeforeTheCounterCloses)
+{
+    const std::array bones{BoneTransform{1.0f}};
+    const ClothBody body{.bones = bones};
+    for (const auto openAccesses : {0, 1})
+    {
+        SCOPED_TRACE(openAccesses);
+        Cloth cloth;
+        cloth.Build(ClothShape{.width = 20.0f, .height = 20.0f}, body);
+        ClothWorld world{.random = CrtRandom(7), .windBase = 0.3f, .openCounterAccesses = openAccesses};
+
+        ASSERT_TRUE(cloth.Step(0.0f, body, world, ClothWindSource::Randomized));
+
+        EXPECT_EQ(Bits(cloth.Wind()), 0x3f1eb852u);
+        EXPECT_EQ(world.random.State(), openAccesses == 0 ? 3164688850u : 4029102u);
+        EXPECT_EQ(world.openCounterAccesses, openAccesses);
+    }
+}
+
+TEST(ClothTest, WindBytesTakePrecedenceOverRandomizedWind)
+{
+    const std::array bones{BoneTransform{1.0f}};
+    const ClothBody body{.bones = bones};
+    Cloth cloth;
+    cloth.Build(ClothShape{.width = 20.0f, .height = 20.0f, .flags = 0x200}, body);
+    cloth.SetWindBytes(10, 50);
+    ClothWorld world{.random = CrtRandom(7), .windBase = 0.3f};
+
+    ASSERT_TRUE(cloth.Step(0.0f, body, world, ClothWindSource::Randomized));
+
+    EXPECT_EQ(Bits(cloth.Wind()), 0x3e570a3du);
+    EXPECT_EQ(world.random.State(), 3164688850u);
+}
+
+TEST(ClothTest, AnInvalidGridBoneLeavesWindAndRandomStateAlone)
+{
+    Cloth cloth;
+    const ClothBody body{};
+    cloth.Build(ClothShape{.flags = 0x200}, body);
+    const glm::vec3 wind{1.0f, 2.0f, 3.0f};
+    ClothWorld world{.random = CrtRandom(7), .windBase = 0.3f, .wind = wind};
+
+    ASSERT_TRUE(cloth.Step(0.0f, body, world, ClothWindSource::Randomized));
+
+    EXPECT_EQ(Bits(cloth.Wind()), 0u);
+    ExpectSameBits(world.wind, wind, "invalid grid bone");
+    EXPECT_EQ(world.random.State(), 7u);
 }
 
 // Un renglón roto en un archivo de vectores da un error con el renglón, no una excepción.

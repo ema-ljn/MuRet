@@ -8,6 +8,7 @@
 #include "Render/SpriteVertex.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/ClothCarry.h"
+#include "Scenes/ClothWind.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -216,7 +217,7 @@ void CharacterCloth::FrameTheMonsterCloth(Render::ModelBatch& batch, std::uint16
     }
     m_simulatedBody = SimulatedBodyOf(body);
     // 0x50c337 y 0x50c648: 0x455190(0,005f, 5) sobre la primera, con el dt fijo.
-    if (!m_cloths[0].Simulate(StepTime, StepsPerFrame, body, world, map))
+    if (!m_cloths[0].Simulate(StepTime, StepsPerFrame, body, world, Maps::ClothWindForMap(map)))
     {
         // 0x4fb1a0(personaje, objeto, 0): las suelta; el frame siguiente, con +0x190 en 0, la vuelve a armar.
         for (Cloth& released : m_cloths)
@@ -404,6 +405,7 @@ void CharacterCloth::RunTheBlock(Render::ModelBatch* batch, const ClothWearer& w
     }
     // El cuerpo de esta simulación, del que un dibujo intermedio lleva cada tela (#307).
     m_simulatedBody = SimulatedBodyOf(body);
+    const auto fallbackWind = Maps::ClothWindForMap(map);
     // 0x50da67..0x50db57: cada tela, sus cinco pasos y su dibujo; la tercera del Dark Lord, solo con la
     // capa o con el color de un duelo.
     for (std::size_t index = 0; index < m_count; ++index)
@@ -415,7 +417,7 @@ void CharacterCloth::RunTheBlock(Render::ModelBatch* batch, const ClothWearer& w
         }
         const float dt = (wearer.objectFlags & Still) != 0 ? 0.0f : StepTime;
         Cloth& cloth = m_cloths[index];
-        if (!cloth.Simulate(dt, StepsPerFrame, body, world, map))
+        if (!cloth.Simulate(dt, StepsPerFrame, body, world, fallbackWind))
         {
             // 0x4fb1a0: las suelta todas; el frame siguiente, con +0x190 en 0, las vuelve a armar.
             for (Cloth& released : m_cloths)

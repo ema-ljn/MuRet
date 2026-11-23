@@ -40,7 +40,7 @@ constexpr float Hundredth = Bits(0x3c23d70a);          // 0x6b88d4 y 0x6b86c0: 0
 constexpr float Tenth = Bits(0x3dcccccd);              // 0x6b87b8: 0,1
 constexpr float GravityScale = Bits(0x42c80000);       // 0x6b86b4: 100
 constexpr float OneEighty = Bits(0x43340000);          // 0x6b86bc: 180
-constexpr float MapWindStep = Bits(0x3ca3d70a);        // 0x6b89e4: 0,02
+constexpr float RandomizedWindStep = Bits(0x3ca3d70a); // 0x6b89e4: 0.02
 constexpr float Degree = Bits(0x3c8efa35);             // 0x6b8cf8 y 0x6ba360: π/180
 constexpr float Thousandth = Bits(0x3a83126f);         // 0x6b89c8: 0,001
 constexpr float ThirtySecond = Bits(0x3d000000);       // 0x6b8880: 1/32
@@ -56,8 +56,6 @@ constexpr float WindCeiling = Bits(0x3f800000);        // 0x6b87d4: 1
 constexpr double MeshSpringSpan = 10.0;                // 0x6b8d30, un double
 constexpr float MeshNeighbourReach = Bits(0x3f99999a); // 0x6b8bb0: 1,2
 
-// El mapa del login (el 55): la tercera tela saca su viento de rand() (0x4551f4).
-constexpr std::uint8_t LoginMap = 0x37;
 constexpr std::uint32_t WindModeMask = 0x300;
 constexpr std::uint32_t WindRises = 0x100;
 constexpr std::uint32_t WindFromBytes = 0x200;
@@ -488,11 +486,11 @@ void Cloth::AnchorTheTopRow(const BoneTransform& matrix, const ClothBody& body)
     }
 }
 
-bool Cloth::Simulate(float dt, int steps, const ClothBody& body, ClothWorld& world, std::uint8_t map)
+bool Cloth::Simulate(float dt, int steps, const ClothBody& body, ClothWorld& world, ClothWindSource fallbackWind)
 {
     for (int step = 0; step < steps; ++step)
     {
-        if (!Step(dt, body, world, map))
+        if (!Step(dt, body, world, fallbackWind))
         {
             return false;
         }
@@ -500,7 +498,7 @@ bool Cloth::Simulate(float dt, int steps, const ClothBody& body, ClothWorld& wor
     return true;
 }
 
-bool Cloth::Step(float dt, const ClothBody& body, ClothWorld& world, std::uint8_t map)
+bool Cloth::Step(float dt, const ClothBody& body, ClothWorld& world, ClothWindSource fallbackWind)
 {
     const bool onTheMesh = m_mesh >= 0;
     if (!onTheMesh && static_cast<std::size_t>(m_bone) >= body.bones.size())
@@ -514,9 +512,9 @@ bool Cloth::Step(float dt, const ClothBody& body, ClothWorld& world, std::uint8_
         const int range = m_windRange == 0 ? 1 : m_windRange;
         m_wind = F(static_cast<double>(world.random.Next() % range + m_windMinimum) * D(Hundredth));
     }
-    else if (map == LoginMap)
+    else if (fallbackWind == ClothWindSource::Randomized)
     {
-        m_wind = F(static_cast<double>(world.random.Next() % 40 + 10) * D(MapWindStep));
+        m_wind = F(static_cast<double>(world.random.Next() % 40 + 10) * D(RandomizedWindStep));
     }
     else
     {

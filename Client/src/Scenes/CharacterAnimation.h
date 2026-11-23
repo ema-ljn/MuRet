@@ -5,6 +5,8 @@
 #include "Render/Models/IModelLibrary.h"
 #include "Render/Models/Pose.h"
 
+#include <cstdint>
+
 // Lo que avanza de un personaje en cada paso de lógica (Client/docs/research/06-render-escenas-y-ui.md,
 // "Cuánto avanza la animación"): el cuerpo con la velocidad de su acción, y la mascota y las alas por
 // tiempo (Q-C20). Lo comparten la selección y el login.
@@ -17,6 +19,9 @@ struct CharacterAnimation
     Render::Models::TimedAnimation pet;
     Render::Models::TimedAnimation wings;
 };
+
+// 0x50ba30: the body action selects the wing speed (+0x308 in the part at +0x2f8).
+[[nodiscard]] float WingKeysPerOriginalFrame(std::uint8_t characterAction);
 
 // Un paso: 0x4ec200 con el cuerpo de Player.bmd a la velocidad de su acción (con la regla de `scene`:
 // la selección decide "terminó" con el frame + 2, Q-C21), y la mascota y las alas un paso de tiempo,

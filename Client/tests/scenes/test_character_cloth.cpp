@@ -319,6 +319,26 @@ LoginLord ReadTheLoginLord()
     return lord;
 }
 
+TEST(CharacterClothTest, TheGridMonsterRandomizesWindOnlyOnTheLoginMap)
+{
+    const LoginLord lord = ReadTheLoginLord();
+    for (unsigned map = 0; map <= 0xff; ++map)
+    {
+        SCOPED_TRACE(map);
+        CharacterCloth cloth;
+        ClothWorld world{.random = CrtRandom(7), .windBase = 0.3f, .openCounterAccesses = 1};
+        ModelBatch batch;
+        batch.Begin(Client::Render::Pass3D{});
+
+        cloth.FrameTheMonsterCloth(batch, 0x4a, lord.body, world, static_cast<std::uint8_t>(map), 0.0f);
+
+        ASSERT_EQ(cloth.Cloths().size(), 1u);
+        const bool login = map == 0x37;
+        EXPECT_EQ(Bits(cloth.Cloths()[0].Wind()), login ? 0x3e6147aeu : Bits(world.windBase));
+        EXPECT_EQ(world.random.State(), login ? 3164688850u : 7u);
+    }
+}
+
 void ExpectTheSameCloths(const CharacterCloth& ours, const CharacterCloth& reference)
 {
     ASSERT_EQ(ours.Cloths().size(), reference.Cloths().size());

@@ -109,11 +109,20 @@ TEST(SkinningTest, AnOutlineScaleOfOneIsTheNormalSkinning)
     EXPECT_EQ(scaled.positions, normal.positions);
 }
 
+template <typename Vector>
+concept ProjectsWithoutSpread =
+    requires(const Vector& point, const Vector& origin) { FlattenOnTheGround(point, origin); };
+
+TEST(SkinningTest, TheCallerSuppliesTheShadowSpread)
+{
+    EXPECT_FALSE(ProjectsWithoutSpread<glm::vec3>);
+}
+
 // 0x4eff40, la sombra: con x' y z' desde la posición del objeto, X = (x' + 2000) · z' / (z' − 4000) +
 // x' + px, la y queda, y Z = pz + 5.
 TEST(SkinningTest, TheShadowFlattensOnTheGround)
 {
-    const glm::vec3 flat = FlattenOnTheGround({110.0f, 77.0f, 80.0f}, {10.0f, 20.0f, 30.0f});
+    const glm::vec3 flat = FlattenOnTheGround({110.0f, 77.0f, 80.0f}, {10.0f, 20.0f, 30.0f}, 2000.0f);
 
     EXPECT_NEAR(flat.x, (100.0f + 2000.0f) * 50.0f / (50.0f - 4000.0f) + 100.0f + 10.0f, 1e-3f);
     EXPECT_FLOAT_EQ(flat.y, 77.0f);

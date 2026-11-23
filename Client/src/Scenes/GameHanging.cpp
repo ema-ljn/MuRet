@@ -14,6 +14,7 @@
 #include "Render/Models/Skeleton.h"
 #include "Scenes/ActorName.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/CharacterAnimation.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/FaunaDrawing.h"
 #include "Scenes/FaunaJointCreation.h"
@@ -790,7 +791,7 @@ Result HangTheBack(Frame& frame, bool back, std::uint8_t& petExcellent)
     ActorItemPart& wings = actor.wings;
     const float savedFrame = wings.animation.frame;
     wings.bone = WingsBone;
-    wings.speed = Render::Models::WingKeysPerOriginalFrame(actor.animation.action);
+    wings.speed = WingKeysPerOriginalFrame(actor.animation.action);
     const bool placed = model >= 0x212 && model < 0x1012;
     if (placed)
         wings.speed = PlayerActionSpeed(frame.pass, 1);
@@ -813,7 +814,7 @@ Result HangTheEventWeapon(Frame& frame, bool back, std::uint8_t& petExcellent)
     petExcellent = 0;
     ActorItemPart& wings = actor.wings;
     wings.bone = WingsBone;
-    wings.speed = Render::Models::WingKeysPerOriginalFrame(actor.animation.action);
+    wings.speed = WingKeysPerOriginalFrame(actor.animation.action);
     std::int32_t model = static_cast<std::int16_t>(actor.hands[BackItemOf(actor, back).hand].model);
     const auto weapon = static_cast<std::size_t>(actor.byte360);
     if (weapon >= 1 && weapon <= EventWeapons.size())
@@ -835,7 +836,7 @@ Result HangWingsAndPet(Frame& frame, std::uint8_t petExcellent)
     if (wings.model != NoItemModel)
     {
         wings.bone = WingsBone;
-        wings.speed = Render::Models::WingKeysPerOriginalFrame(actor.animation.action);
+        wings.speed = WingKeysPerOriginalFrame(actor.animation.action);
         if (auto hung = HangItem(frame, {0.0f, 0.0f, 15.0f}, wings, static_cast<std::int16_t>(wings.model), wings.level,
                                  wings.flags1b, false);
             !hung.HasValue())

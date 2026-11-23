@@ -19,12 +19,6 @@ constexpr float One = 1.0f;
 constexpr float SelectionLookAhead = 2.0f;
 constexpr float HoldBeforeTheEnd = 0.01f;
 
-// Las acciones en que las alas van a 1 key por frame (0x50ba30) y lo que van en las otras.
-constexpr std::uint8_t FastWingAction = 0x1e;
-constexpr std::uint8_t OtherFastWingAction = 0x1f;
-constexpr float FastWingKeys = 1.0f;
-constexpr float WingKeys = 0.25f;
-
 // El __ftol del original: trunca hacia 0. Fuera de lo que entra en un int, el original da los 32 bits
 // de abajo de su entero de 64 (FISTP qword); acá el int más chico. Un frame no llega ahí.
 int Truncate(float value)
@@ -87,11 +81,6 @@ void SetAction(AnimationState& state, const Skeleton& skeleton, std::uint8_t act
     state.previousKey = static_cast<std::int16_t>(Truncate(state.frame));
     state.action = action;
     state.frame = Zero;
-}
-
-float WingKeysPerOriginalFrame(std::uint8_t characterAction)
-{
-    return characterAction == FastWingAction || characterAction == OtherFastWingAction ? FastWingKeys : WingKeys;
 }
 
 void AdvanceByTime(TimedAnimation& animation, const ActionInfo& action, float keysPerOriginalFrame,

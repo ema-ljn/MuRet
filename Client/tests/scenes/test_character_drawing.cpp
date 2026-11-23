@@ -462,6 +462,27 @@ TEST(CharacterDrawingTest, TheShadowGoesFirstBlackAndFlat)
     }
 }
 
+// 0x4eff8d..0x4eff9f: player shadows use a spread of 2500 on map 30 and 2000 on every other map.
+TEST(CharacterDrawingTest, ThePlayerShadowWidensOnlyInCastleSiege)
+{
+    DrawnCharacter character;
+    character.appearance = Client::GameLogic::ClassAppearance(0, 0);
+    character.object.position = {100.0f, 200.0f, 163.0f};
+    OneModel models(Client::Data::Models::PlayerShadowModel);
+    models.FirstMesh().vertices[0].position = {100.0f, 0.0f, 50.0f};
+
+    for (std::int32_t map = 0; map <= 255; ++map)
+    {
+        SCOPED_TRACE(map);
+        character.map = static_cast<std::uint8_t>(map);
+        const ModelBatch batch = Drawn(models, character);
+
+        ASSERT_EQ(batch.Vertices().size(), 3u);
+        const float x = map == 30 ? 0x1.4e2d5ep+7f : 0x1.5ad5ep+7f;
+        EXPECT_EQ(batch.Vertices()[0].position, glm::vec3(x, 200.0f, 168.0f));
+    }
+}
+
 // La sombra va antes de las partes (0x50ba30 la dibuja antes del lazo de las partes): con las dos,
 // el primer tramo es el de la sombra.
 TEST(CharacterDrawingTest, TheShadowGoesBeforeTheParts)

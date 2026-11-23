@@ -130,7 +130,7 @@ TEST(MeshClothTest, AStepPushesEveryParticleAlikeAndAnchorsToTheMesh)
     const std::vector<BoneTransform> bones(Bone + 1, BoneTransform(1.0f));
     const ClothBody body{.bones = bones, .angles = {0.0f, 0.0f, 90.0f}, .meshVertices = moved};
 
-    ASSERT_TRUE(cloth.Step(0.005f, body, world, 0));
+    ASSERT_TRUE(cloth.Step(0.005f, body, world, Client::Render::Models::ClothWindSource::Base));
 
     CrtRandom expected(1);
     for (int i = 0; i < 4; ++i)

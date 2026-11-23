@@ -153,12 +153,4 @@ glm::vec3 FlattenOnTheGround(const glm::vec3& world, const glm::vec3& objectPosi
     const double flatX = (x + spread) * z / (z - Horizon) + x + objectPosition.x;
     return {static_cast<float>(flatX), (world.y - objectPosition.y) + objectPosition.y, objectPosition.z + Lift};
 }
-
-float ShadowSpreadOf(std::int32_t map)
-{
-    constexpr std::int32_t CastleSiegeMap = 0x1e;
-    constexpr float Spread = 2000.0f;
-    constexpr float CastleSiegeSpread = 2500.0f;
-    return map == CastleSiegeMap ? CastleSiegeSpread : Spread;
-}
 } // namespace Client::Render::Models

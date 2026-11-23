@@ -56,6 +56,12 @@ struct ClothWorld
     std::uint32_t waterTextureFrame = 0;
 };
 
+enum class ClothWindSource
+{
+    Base,
+    Randomized,
+};
+
 // 0x456b10: el paseo del viento base, b = f(b + (rand() % 200 − 100) · 0,001), entre −0,2 y 1.
 void WalkTheWind(ClothWorld& world);
 
@@ -188,10 +194,11 @@ public:
     void Release();
 
     // 0x455190(dt, steps): los pasos de 0x4551d0 hasta el primero que da false (la tela se rompió).
-    [[nodiscard]] bool Simulate(float dt, int steps, const ClothBody& body, ClothWorld& world, std::uint8_t map);
+    [[nodiscard]] bool Simulate(float dt, int steps, const ClothBody& body, ClothWorld& world,
+                                ClothWindSource fallbackWind);
     // 0x4551d0: el viento, las fuerzas, los resortes que tiran, el anclaje, la integración, las
     // esferas, la relajación y la restricción. false si un resorte pasó de 20 veces su largo.
-    [[nodiscard]] bool Step(float dt, const ClothBody& body, ClothWorld& world, std::uint8_t map);
+    [[nodiscard]] bool Step(float dt, const ClothBody& body, ClothWorld& world, ClothWindSource fallbackWind);
 
     // El dibujo de la tela sobre la malla (0x4568f0, la vtable 0x6b8d04 + 0x18): cada partícula a su vértice de
     // 0x5786f9c, que dibuja después el RenderBody del modelo. Nada si `vertices` es más corto.

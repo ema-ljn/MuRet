@@ -147,8 +147,6 @@ map	GameLogic/CharacterPosition.cpp	FirstHighMap	0x8
 map	GameLogic/CharacterPosition.cpp	SecondHighMap	0xa
 map	GameLogic/MovementSpeed.cpp	FirstOverrideMap	0x12
 map	GameLogic/MovementSpeed.cpp	LastOverrideMap	0x17
-map	Render/Models/Cloth.cpp	LoginMap	0x37
-map	Render/Models/Skinning.cpp	CastleSiegeMap	0x1e
 map	Scenes/ActorActions.cpp	AtlansMap	0x7
 map	Scenes/ActorActions.cpp	FirstArmedSafeMap	0xb
 map	Scenes/ActorActions.cpp	FirstKalimaMap	0x18
@@ -627,8 +625,6 @@ opcode	Network/FoxAntiObfuscation.cpp	ServerOpcode	0xf4
 player-action	Protocol/Combat.h	AttackAction	0x78
 player-action	Protocol/Movement.h	FacingAction	0x7a
 player-action	Protocol/Movement.h	SittingAction	0x82
-player-action	Render/Models/Animation.cpp	FastWingAction	0x1e
-player-action	Render/Models/Animation.cpp	OtherFastWingAction	0x1f
 player-action	Scenes/ActionReply.cpp	FirstStopAction	0x7a
 player-action	Scenes/ActionReply.cpp	FirstStrikeAction	0x78
 player-action	Scenes/ActorActions.cpp	DefaultModelStandAction	0x0

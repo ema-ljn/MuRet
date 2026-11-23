@@ -63,10 +63,8 @@ private:
     Core::Duration m_carry{};
 };
 
-// Lo que avanzan por frame del original la mascota Helper02 (0x1c13, personaje + 0x318) y las alas
-// (personaje + 0x2f8): 0,5, y 0,25 o 1 con el personaje en la acción 0x1e o 0x1f (0x50ba30).
+// 0x50ba30: Helper02 (0x1c13, character + 0x318) advances by half a key per original frame.
 inline constexpr float PetKeysPerOriginalFrame = 0.5f;
-[[nodiscard]] float WingKeysPerOriginalFrame(std::uint8_t characterAction);
 
 // Una animación que avanza por tiempo: el estado, y lo que todavía no llega a un frame del original.
 struct TimedAnimation

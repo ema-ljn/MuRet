@@ -10110,7 +10110,7 @@ que `WorldEntry`, `WorldTransitionSupport` y `SessionEventApplier` atan a `App::
 (`TowerGatePlane`). El paso: `World::StepCastleSiegePrelude`, `World::StepCastleSiegeObject` y
 `World::StepCastleSiegeSeenObject` (`CastleSiegeObjectStep`), con `World::ApplyCastleSiegeObjectState`. El frame:
 `Scenes::StepCastleSiegeObjectFrame` (`CastleSiegeObjectServices`). El dibujo: `Scenes::DrawCastleSiegeBody`
-(`CharacterDrawing`) desde `DrawGameWorldObjects`, y `Render::Models::ShadowSpreadOf`. El efecto: `StepGatePlane` y
+(`CharacterDrawing`) desde `DrawGameWorldObjects`, y `ShadowSpreadOf` en `CharacterDrawing.cpp`. El efecto: `StepGatePlane` y
 `ModelEffects::CreateGatePlane`. La niebla: `World::InTheCastleSiegeFog` y `Render::ModelFog`, que
 `GameScene::DrawTheWorldPass` pone en el lote con `ModelBatch::SetFog` y saca después de la cola.
 Cada cambio de niebla llega al shader en el orden del lote, incluso si le sigue un pase sin geometría.

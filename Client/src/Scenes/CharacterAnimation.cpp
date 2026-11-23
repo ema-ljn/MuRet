@@ -9,8 +9,23 @@
 #include "Render/Models/Skeleton.h"
 #include "Scenes/PlayerActionSpeeds.h"
 
+#include <cstdint>
+
 namespace Client::Scenes
 {
+namespace
+{
+constexpr std::uint8_t FastWingAction = 0x1e;
+constexpr std::uint8_t OtherFastWingAction = 0x1f;
+constexpr float FastWingKeys = 1.0f;
+constexpr float WingKeys = 0.25f;
+} // namespace
+
+float WingKeysPerOriginalFrame(std::uint8_t characterAction)
+{
+    return characterAction == FastWingAction || characterAction == OtherFastWingAction ? FastWingKeys : WingKeys;
+}
+
 bool StepCharacterAnimation(CharacterAnimation& animation, const GameLogic::CharacterAppearance& appearance,
                             const Render::Models::IModelLibrary& models, Render::Models::AnimationScene scene)
 {
@@ -43,8 +58,7 @@ void StepCharacterAttachments(CharacterAnimation& animation, const GameLogic::Ch
         if (wings != nullptr && !wings->actions.empty())
         {
             Render::Models::AdvanceByTime(animation.wings, wings->actions[0],
-                                          Render::Models::WingKeysPerOriginalFrame(animation.body.action),
-                                          App::LogicStep);
+                                          WingKeysPerOriginalFrame(animation.body.action), App::LogicStep);
         }
     }
 }

@@ -9,6 +9,7 @@
 #include "Render/Models/Cloth.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/Skeleton.h"
+#include "Render/Models/Skinning.h"
 #include "Render/Pass3D.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/ActorState.h"
@@ -45,6 +46,7 @@ namespace
 {
 using Client::Render::Models::Cloth;
 using Client::Render::Models::ClothBody;
+using Client::Render::Models::ClothWindSource;
 using Client::Render::Models::ClothWorld;
 using Client::Scenes::ActorState;
 using Client::Scenes::GameCharacterPass;
@@ -131,6 +133,31 @@ std::vector<glm::vec3> RobeAt(const glm::vec3& position)
             position + glm::vec3(212.0f, 0.0f, 10.0f), position + glm::vec3(212.0f, 0.0f, 0.0f)};
 }
 
+TEST(MonsterMeshClothTest, TheMeshRobeUsesTheMapWind)
+{
+    Client::Data::Models::Model model;
+    model.meshes = {Triangle(), Triangle(), Robe()};
+    const std::vector<Client::Render::Models::BoneTransform> bones(19, Client::Render::Models::BoneTransform{1.0f});
+    const ClothBody body{.bones = bones};
+    for (const std::uint8_t map : std::array<std::uint8_t, 3>{0x36, 0x37, 0x38})
+    {
+        SCOPED_TRACE(static_cast<unsigned>(map));
+        Client::Scenes::MonsterMeshCloth cloth;
+        std::array<Client::Render::Models::SkinnedMesh, 3> meshes;
+        meshes[2].positions = RobeAt({0.0f, 0.0f, 0.0f});
+        ClothWorld world;
+        world.windBase = 0.3f;
+
+        ASSERT_TRUE(cloth.Frame(model, Spider, meshes, body, world, map).HasValue());
+
+        ASSERT_TRUE(cloth.Cloth().has_value());
+        const bool login = map == 0x37;
+        const auto wind = std::bit_cast<std::uint32_t>(cloth.Cloth()->Wind());
+        EXPECT_EQ(wind, login ? 0x3f51eb85u : std::bit_cast<std::uint32_t>(world.windBase));
+        EXPECT_EQ(world.random.State(), AfterRandoms(login ? FrameRandoms + 5 : FrameRandoms));
+    }
+}
+
 // Lo que arman 0x6a0210, el +0x24 y los dos 0x455cd0 (0x50bb0b..0x50bb84).
 Cloth BuiltRobe(std::span<const glm::vec3> vertices)
 {
@@ -150,7 +177,8 @@ bool StepTheRobe(Cloth& cloth, const ActorState& actor, std::span<const glm::vec
                          .scale = actor.scale,
                          .position = actor.position,
                          .meshVertices = vertices};
-    return cloth.Simulate(std::bit_cast<float>(0x3ba3d70au), 5, body, world, map);
+    const auto fallbackWind = map == 0x37 ? ClothWindSource::Randomized : ClothWindSource::Base;
+    return cloth.Simulate(std::bit_cast<float>(0x3ba3d70au), 5, body, world, fallbackWind);
 }
 
 class MonsterClothTest : public testing::Test

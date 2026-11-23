@@ -32,7 +32,6 @@ using Client::Render::Models::PetKeysPerOriginalFrame;
 using Client::Render::Models::SetAction;
 using Client::Render::Models::Skeleton;
 using Client::Render::Models::TimedAnimation;
-using Client::Render::Models::WingKeysPerOriginalFrame;
 
 using namespace std::chrono_literals;
 
@@ -357,16 +356,6 @@ TEST(AnimationTest, ANegativeTimeCountsZero)
     AdvanceByTime(pet, Repeating(7), PetKeysPerOriginalFrame, OriginalFrameTime);
 
     EXPECT_FLOAT_EQ(pet.state.frame, 0.5f);
-}
-
-// Las alas, 0,25 por frame del original, y 1 con el personaje en la acción 0x1e o 0x1f (0x50ba30).
-TEST(AnimationTest, TheWingsRunFasterInThirtyAndThirtyOne)
-{
-    EXPECT_EQ(WingKeysPerOriginalFrame(0x1e), 1.0f);
-    EXPECT_EQ(WingKeysPerOriginalFrame(0x1f), 1.0f);
-    EXPECT_EQ(WingKeysPerOriginalFrame(0x1d), 0.25f);
-    EXPECT_EQ(WingKeysPerOriginalFrame(0x20), 0.25f);
-    EXPECT_EQ(WingKeysPerOriginalFrame(0), 0.25f);
 }
 
 // La copia del render con alpha 1 es un paso, y guarda la key que cruza como el paso. El estado no

@@ -485,6 +485,10 @@ below are for the recommended `game/Tables`.
     stored id), `[[nodiscard]] constexpr std::int16_t ModelOf(std::int16_t code) noexcept;` (code + `FirstItemModel`).
     Each return is a `static_cast<std::int16_t>` and the group an explicit cast, as `ItemModel` does: CI builds with
     `-Wconversion` and `/W4 /WX`.
+  - The group bounds: `[[nodiscard]] constexpr std::int16_t FirstCodeOf(ItemGroup group) noexcept;` (group · 512),
+    `[[nodiscard]] constexpr std::int16_t FirstModelOf(ItemGroup group) noexcept;` (`ModelOf(FirstCodeOf(group))`) and
+    `inline constexpr std::int16_t ItemCodesEnd = 0x2000;`. A group ends where the next one starts: the staffs are
+    `[FirstCodeOf(ItemGroup::Staffs), FirstCodeOf(ItemGroup::Shields))`.
   - `namespace Codes` with `inline constexpr std::int16_t` names from `Item.bmd`: `HornOfUnilia` (13:2),
     `HornOfDinorant` (13:3), `DarkHorse` (13:4), `DarkRaven` (13:5), `CapeOfLord` (13:30), `HornOfDoom` (13:37),
     `WingsOfDarkness` (12:6), `Heart` (14:12), `Zen` (14:15), `RemedyOfLove` (14:20), `Rena` (14:21),
@@ -497,13 +501,19 @@ below are for the recommended `game/Tables`.
   `ModelOf(16) == 0x222`, `ModelOf(22) == 0x228`); `ItemCodeTest.TheTwoSpacesOf0x1c15` (`Codes::Rena == 0x1c15`,
   `Models::HornOfDinorant == 0x1c15`, `Codes::HornOfDinorant == 0x1a03`); `ItemCodeTest.ModelOfAgreesWithItemModel`
   (for every group and index `0..511`, `ModelOf(ItemCode(g, i))` read as `std::uint16_t` equals `ItemModel(g, i)`);
-  `ItemCodeTest.AnEmptySlotReadsAsMinusOne` (`SignedItemCode(0xffff) == -1`, `SignedItemCode(0x7fff) == 0x7fff`).
+  `ItemCodeTest.AnEmptySlotReadsAsMinusOne` (`SignedItemCode(0xffff) == -1`, `SignedItemCode(0x7fff) == 0x7fff`);
+  `ItemCodeTest.TheGroupBoundsOfTask1` (`FirstCodeOf(Staffs) == 0xa00`, `FirstCodeOf(Shields) == 0xc00`,
+  `FirstCodeOf(Gloves) == 0x1400`, `FirstCodeOf(Boots) == 0x1600`, `FirstModelOf(Staffs) == 0xc12`,
+  `FirstModelOf(Shields) == 0xe12`).
 - [ ] **Step 2: Run them to see them fail**, then implement `ItemCode.h`; run
   `ctest --preset linux-x64-debug -R '^(ItemCodeTest|PlayerModelsTest)\.'`. Expected: PASS.
 - [ ] **Step 3: Replace the private definitions** of the named ids and of `0x212` with the header's names, leaving
   each comparison where it is, with its shape and its cast. A definition whose value is the id but whose meaning at
   its site is something else (`HeightOffsetPet`, `Counted1c14`) becomes a local alias of the header's name, such as
-  `constexpr auto HeightOffsetPet = Models::HornOfDinorant;`, and keeps its name.
+  `constexpr auto HeightOffsetPet = Models::HornOfDinorant;`, and keeps its name. The private constants that hold a
+  group's first code or first model (identity report, section 3.4, by value; Task 1's `FirstStaff`, `StaffsEnd`,
+  `FirstGloves`, `FirstStaffModel`, `StaffModelsEnd` and `WeaponsEnd` among them) take their value from the bounds the
+  same way: `constexpr auto FirstGloves = FirstCodeOf(ItemGroup::Gloves);`.
 - [ ] **Step 4: Check** `check_layers.py` prints `0 new` (every user is in a module above layer 6, or in
   `game/Tables`; `Protocol/Events.h` keeps its literal, since `Protocol` is at layer 6 too) and push. CI green, the
   golden unchanged.

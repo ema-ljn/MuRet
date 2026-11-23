@@ -2066,3 +2066,27 @@ TEST(MonsterDecorations, EachListedMonsterCutsWithItsBranch)
     EXPECT_FALSE(Client::Scenes::WearsClothOnTheMesh(0x58));
 }
 } // namespace
+
+// 0x60b573: with the options' glow detail (0x6c9dcc) at 1, each level 13 part draws as a level 7 one: its body and
+// the 0x44 pass.
+TEST_F(MonsterPartsTest, TheGlowDetailOfTheOptionsTrimsTheLevelOfEachPart)
+{
+    for (const std::uint8_t detail : {std::uint8_t{4}, std::uint8_t{1}})
+    {
+        SCOPED_TRACE(static_cast<int>(detail));
+        m_batch.Begin(Client::Render::Pass3D{});
+        ActorState& npc = Npc(DressedNpcs[0]);
+        for (auto& part : npc.body)
+            part.level = 13;
+        Client::Scenes::ItemDrawContext items;
+        items.glowDetail = detail;
+        GameCharacterPass pass = Pass();
+        pass.itemContext = &items;
+
+        const auto result = Draw(pass);
+
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        // The body, the shadow and three parts.
+        EXPECT_EQ(m_batch.Vertices().size(), 6u + 3u * (detail == 4 ? 12u : 6u));
+    }
+}

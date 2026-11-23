@@ -1720,7 +1720,8 @@ void CharacterSelectScene::DrawTheTail(SceneCanvas& canvas, ActorState& actor, s
                                            .joints = m_world.FrameTail().joints,
                                            .effects = m_world.FrameEffects(),
                                            .map = world.Runtime().map,
-                                           .originalFrame = originalFrame});
+                                           .originalFrame = originalFrame,
+                                           .glowDetail = world.Runtime().ui.glowDetail});
     constexpr std::uint8_t RedPk = 6;
     const float base = slot == world.Runtime().hero ? HeroLight : CharacterLight;
     actor.drawnLight = actor.pk >= RedPk ? glm::vec3{1.0f, 0.1f, 0.1f} : glm::vec3(base) + actor.light;

@@ -106,9 +106,9 @@ Core::Expected<void, std::string> RenderItem(FaunaDrawCarry& local, FloorItemSta
     resources.ownerContext = &item;
     if (!context.onPose)
         resources.poseBones = [&local]() -> std::span<const Render::Models::BoneTransform> { return local.bones; };
-    const auto result = DrawItemFromMeshes(context.batch, context.models, object, context.frameClock, meshes,
-                                           item.type == Money ? 0 : Level(item), item.excellent, item.ancient,
-                                           context.glowDetail, resources);
+    const auto result =
+        DrawItemFromMeshes(context.batch, context.models, object, context.frameClock, meshes,
+                           item.type == Money ? 0 : Level(item), item.excellent, item.ancient, resources);
     item.objectState = object.state;
     item.alpha = object.alpha;
     return result;

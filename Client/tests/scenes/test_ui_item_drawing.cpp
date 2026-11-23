@@ -513,6 +513,27 @@ TEST(UiItemDrawingTest, TheSetRandomWaitsForTheUnroundedPulse)
     }
 }
 
+// 0x60b573: with the options' glow detail (0x6c9dcc) at 1, a level 13 item draws as a level 7 one: the body and the
+// 0x44 pass.
+TEST(UiItemDrawingTest, TheGlowDetailOfTheOptionsTrimsTheLevel)
+{
+    for (const std::uint8_t detail : {std::uint8_t{4}, std::uint8_t{1}})
+    {
+        SCOPED_TRACE(static_cast<int>(detail));
+        UiDrawing drawing;
+        drawing.context.glowDetail = detail;
+        Client::Scenes::UiItemResources resources = drawing.Resources({640, 480});
+        glm::vec3 angles{};
+        const auto placed = Place(0xa12, 13 << 3, angles);
+        ASSERT_TRUE(placed.HasValue()) << placed.Error();
+
+        const auto drawn = Client::Scenes::DrawUiItemModel(resources, drawing.random, placed.Value(), 0, 0);
+
+        ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+        EXPECT_EQ(drawing.batch.Vertices().size(), detail == 4 ? 12u : 6u);
+    }
+}
+
 // Sin el modelo que dibuja o sin el esqueleto del que posa, corta (el original no dibujaría nada).
 TEST(UiItemDrawingTest, AMissingModelStopsWithItsAddress)
 {

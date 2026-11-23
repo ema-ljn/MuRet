@@ -1732,12 +1732,14 @@ DrawItemOptionPasses(Render::ModelBatch& batch, const Render::Models::IModelLibr
 }
 } // namespace
 
-Core::Expected<void, std::string>
-DrawItemFromMeshes(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models, const DrawnObject& object,
-                   Core::Duration frameClock, std::span<const Render::Models::SkinnedMesh> meshes,
-                   std::uint8_t packedLevel, std::uint8_t excellent, std::uint8_t ancient, std::uint8_t detail,
-                   const ItemDrawContext& context)
+Core::Expected<void, std::string> DrawItemFromMeshes(Render::ModelBatch& batch,
+                                                     const Render::Models::IModelLibrary& models,
+                                                     const DrawnObject& object, Core::Duration frameClock,
+                                                     std::span<const Render::Models::SkinnedMesh> meshes,
+                                                     std::uint8_t packedLevel, std::uint8_t excellent,
+                                                     std::uint8_t ancient, const ItemDrawContext& context)
 {
+    const std::uint8_t detail = context.glowDetail;
     const auto clock = ItemFrameClock(frameClock, context);
     if (!clock.HasValue())
         return Core::Unexpected(clock.Error());
@@ -1863,8 +1865,7 @@ DrawSkeletonBody(Render::ModelBatch& batch, const Render::Models::IModelLibrary&
     special.flags = SkeletonBodyFlags;
     special.publishedObject = &object;
     resources.special = &special;
-    return DrawItemFromMeshes(batch, models, object, frameClock, meshes, level, 0, 0, Render::Models::DefaultGlowDetail,
-                              resources);
+    return DrawItemFromMeshes(batch, models, object, frameClock, meshes, level, 0, 0, resources);
 }
 
 void DrawSubtractiveMesh(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models,

@@ -348,9 +348,10 @@ Drawn DrawFull(const PartModels& models, const ItemDrawCase& drawn)
     context.special = &special;
     context.glowPulse = render.glowPulse;
     context.selections = &render.selections;
-    const auto done = Client::Scenes::DrawItemFromMeshes(
-        result.batch, models, object, clock, meshes, drawn.level, drawn.excellent ? std::uint8_t{1} : std::uint8_t{0},
-        drawn.ancient ? std::uint8_t{1} : std::uint8_t{0}, drawn.detail, context);
+    context.glowDetail = drawn.detail;
+    const auto done = Client::Scenes::DrawItemFromMeshes(result.batch, models, object, clock, meshes, drawn.level,
+                                                         drawn.excellent ? std::uint8_t{1} : std::uint8_t{0},
+                                                         drawn.ancient ? std::uint8_t{1} : std::uint8_t{0}, context);
     EXPECT_TRUE(done.HasValue()) << (done.HasValue() ? std::string{} : done.Error());
     result.random = random.State();
     return result;

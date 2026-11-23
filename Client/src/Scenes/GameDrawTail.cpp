@@ -568,7 +568,7 @@ Core::Expected<void, std::string> DrawItemModelEffect(Render::ModelBatch& batch,
         itemContext.ownerContext = &effect; // Dueño opaco real; no reinterpretar como FaunaObject.
         itemContext.storedAlpha = &effect.alpha;
         const auto drawn =
-            DrawItemFromMeshes(batch, models, object, clock, meshes.Value(), *effect.itemLevel, 0, 0, 4, itemContext);
+            DrawItemFromMeshes(batch, models, object, clock, meshes.Value(), *effect.itemLevel, 0, 0, itemContext);
         effect.objectState = object.state;
         if (!drawn.HasValue())
             return drawn;

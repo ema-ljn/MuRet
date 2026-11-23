@@ -98,7 +98,6 @@ struct FloorItemDrawContext
     std::span<const std::int32_t> randomTable{};
     float worldClock = 0;
     std::function<Core::Expected<float, std::string>(float, float)> waterHeight{};
-    std::uint8_t glowDetail = 4;
     const ItemDrawContext* itemContext = nullptr;
 };
 

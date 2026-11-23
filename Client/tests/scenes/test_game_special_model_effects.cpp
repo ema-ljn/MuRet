@@ -509,6 +509,36 @@ TEST(GameSpecialModelEffectsTest, FallenItemSamplesTerrainBeforePublishingItsIni
     EXPECT_EQ(effect.type, 0xfa);
 }
 
+// 0x60b573: with the options' glow detail (0x6c9dcc) at 1, a level 13 falling item draws as a level 7 one: its mesh
+// and the 0x44 pass.
+TEST(GameSpecialModelEffectsTest, TheGlowDetailOfTheOptionsTrimsTheLevelOfAnEffectItem)
+{
+    for (const std::uint8_t detail : {std::uint8_t{4}, std::uint8_t{1}})
+    {
+        SCOPED_TRACE(static_cast<int>(detail));
+        TriangleModels models;
+        Client::Scenes::FaunaDrawCarry carry;
+        Client::Render::ModelBatch batch;
+        auto heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
+        std::int16_t itemType = 0;
+        std::uint8_t itemLevel = 13;
+        auto effect = ItemEffect(0xfa, itemType, itemLevel);
+        Client::Scenes::ItemDrawContext items;
+        items.glowDetail = detail;
+        Client::Scenes::ModelEffectDrawResources resources{*heights};
+        resources.itemContext = &items;
+        resources.onUntranslatedPose = [&](const Client::Scenes::DrawnObject& object)
+        { return Client::Scenes::PublishFaunaPose(carry, models, object, false); };
+        resources.posedMeshes = [&] { return std::span<const Client::Render::Models::SkinnedMesh>(carry.meshes); };
+
+        const auto result =
+            Client::Scenes::DrawGameModelEffects(batch, models, std::span(&effect, 1), {}, nullptr, {}, 0, resources);
+
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        EXPECT_EQ(batch.Vertices().size(), detail == 4 ? 12u : 6u);
+    }
+}
+
 TEST(GameSpecialModelEffectsTest, ItemInitializationIsDurableAndCapturedAlphaControlsDrawing)
 {
     for (const std::int16_t type : std::array<std::int16_t, 2>{0xf4, 0xfa})

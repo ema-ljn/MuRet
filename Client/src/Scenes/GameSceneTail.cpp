@@ -95,7 +95,8 @@ void GameScene::FillTheItemContexts(ItemSpecialDrawContext& special, ItemDrawCon
                                            .joints = FrameTail().joints,
                                            .effects = FrameEffects(),
                                            .map = m_context.world->Runtime().map,
-                                           .originalFrame = frames > 0});
+                                           .originalFrame = frames > 0,
+                                           .glowDetail = m_context.world->Runtime().ui.glowDetail});
 }
 
 Core::Expected<void, std::string> GameScene::DrawTheTail(SceneCanvas& canvas, const Render::Pass3D& pass,
@@ -120,8 +121,6 @@ Core::Expected<void, std::string> GameScene::DrawTheTail(SceneCanvas& canvas, co
         floor.lighting = &FrameLighting();
         floor.frameClock = canvas.frameClock;
         floor.map = runtime.map;
-        // 0x6c9dcc: el brillo de las opciones (0x62589b), que 0x60b3d0 lee.
-        floor.glowDetail = runtime.ui.glowDetail;
         floor.project = [&](const glm::vec3& point) { return ProjectGamePoint(projection.Value(), point); };
         floor.onPose = [&](const DrawnObject& object)
         { return PublishFaunaFloorPose(FramePoseCarry(), *m_models, object); };

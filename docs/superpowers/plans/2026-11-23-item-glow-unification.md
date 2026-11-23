@@ -23,9 +23,9 @@ the selection GL trace golden (`Client/tests/scenes/test_golden_character_drawin
 lanes".
 
 Measured on `refactor/client` at 642ebe5 (2026-11-23) against the decompilation of `main.exe` c32bbd5f in the research
-repo (`client-research/mainexe-vmxp-c32bbd5f/decompiled/functions/`). Nothing here was built or run: the cloud container
-cannot build the client, so every MuRet claim comes from reading the code and every claim about the original from its
-pseudocode and ASM. Task 1 turns the list of differences into a test.
+repo (`client-research/mainexe-vmxp-c32bbd5f/decompiled/functions/`). Nothing here was built or run: every MuRet claim
+comes from reading the code and every claim about the original from its pseudocode and ASM. Task 1 turns the list of
+differences into a test.
 
 ## The answer in short
 
@@ -206,7 +206,9 @@ by the two lanes' rule no task runs the day its files are being moved.
 
 ### Decisions for Emanuel
 
-1. **The order above, or strictly AR6.** Recommended: the port fixes now, the deletions before AR4.1.
+1. **The order above, or strictly AR6.** Decided (Emanuel, 2026-11-23): the port fixes now, the deletions before
+   AR4.1. Task 1 starts when #424 merges: it moves `IModelLibrary` out of `CharacterDrawing.h` into
+   `Render/Models/IModelLibrary.h`, so the signatures below name `Render::Models::IModelLibrary` from then on.
 2. **Where the port fixes land.** Recommended: `refactor/client`, because the behavior golden and its harness only
    exist there; `main` has had no port PR since #403.
 3. **The name.** Recommended: `ItemDrawing` for the unit and `ItemGlow` for its level table. `ItemGlow` for the whole
@@ -230,7 +232,7 @@ by the two lanes' rule no task runs the day its files are being moved.
 - Everything in English; a comment only if strictly necessary, one line, keeping the `// 0x…` citations. New code calls
   `RoundedMath.h`, never `std::sin` or glm trig.
 - PRs target `refactor/client`. One task per PR, and each PR is one step: Emanuel says yes before the next one starts.
-- The cloud container cannot build the client: GitHub CI is the build and the final word.
+- GitHub CI is the build and the final word: the cloud container builds only the client without SDL and GL.
 
 ## Review Focus
 

@@ -509,11 +509,12 @@ below are for the recommended `game/Tables`.
   `ctest --preset linux-x64-debug -R '^(ItemCodeTest|PlayerModelsTest)\.'`. Expected: PASS.
 - [ ] **Step 3: Replace the private definitions** of the named ids and of `0x212` with the header's names, leaving
   each comparison where it is, with its shape and its cast. A definition whose value is the id but whose meaning at
-  its site is something else (`HeightOffsetPet`, `Counted1c14`) becomes a local alias of the header's name, such as
-  `constexpr auto HeightOffsetPet = Models::HornOfDinorant;`, and keeps its name. The private constants that hold a
+  its site is something else (`HeightOffsetPet`, `Counted1c14`) keeps its name and its declared type and takes the
+  header's name as its initializer, such as `constexpr std::uint16_t HeightOffsetPet = Models::HornOfDinorant;`: only
+  what is right of `=` changes, so every expression that uses it sees the same type. The private constants that hold a
   group's first code or first model (identity report, section 3.4, by value; Task 1's `FirstStaff`, `StaffsEnd`,
   `FirstGloves`, `FirstStaffModel`, `StaffModelsEnd` and `WeaponsEnd` among them) take their value from the bounds the
-  same way: `constexpr auto FirstGloves = FirstCodeOf(ItemGroup::Gloves);`.
+  same way, keeping their type: `constexpr std::int32_t FirstGloves = FirstCodeOf(ItemGroup::Gloves);`.
 - [ ] **Step 4: Check** `check_layers.py` prints `0 new` (every user is in a module above layer 6, or in
   `game/Tables`; `Protocol/Events.h` keeps its literal, since `Protocol` is at layer 6 too) and push. CI green, the
   golden unchanged.

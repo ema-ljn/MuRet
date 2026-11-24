@@ -3,9 +3,11 @@
 #include "Core/IClock.h"
 #include "Render/Models/Animation.h"
 #include "Render/Models/Cloth.h"
+#include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "UI/SlideBanner.h"
 
 #include <gtest/gtest.h>
 
@@ -13,6 +15,7 @@
 #include <cstdint>
 #include <memory>
 #include <optional>
+#include <string>
 
 // Client::Scenes::StepTheWinMainLoop y CloseTheFrameCounter: los rand() de la vuelta de WinMain (P-C61, Q-C461),
 // leídos del ASM de 0x4bbc57..0x4be02f y de 0x63950d..0x63b066.
@@ -269,5 +272,96 @@ TEST(WinMainLoopTest, TheGameMusicStepsBeforeTheFrameCounterCloses)
     tail.FinishAt(FirstTurn, OriginalFramePace::ByTheClock, true);
 
     EXPECT_EQ(tail.world->Runtime().lastSoundId, std::optional<std::int32_t>(ForestSound));
+}
+
+TEST(WinMainLoopTest, TheCrywolfSoundNeedsItsMapAndItsStage)
+{
+    struct Case
+    {
+        std::int32_t map;
+        std::uint8_t stage;
+    };
+    constexpr std::int32_t AidaMap = 33;
+    for (const auto [map, stage] : {Case{CrywolfMap, 4}, Case{CrywolfMap, 6}, Case{AidaMap, CrywolfResultStage}})
+    {
+        LoopTail tail;
+        auto& runtime = tail.world->Runtime();
+        runtime.map = map;
+        runtime.crywolf.stage = stage;
+
+        tail.FinishAt(FirstTurn, OriginalFramePace::ByTheClock, true);
+
+        EXPECT_FALSE(runtime.lastSoundId.has_value());
+    }
+}
+
+// In the safe zone of Devias the map's music asks whether the hero is in the church: four reads of its cell, each
+// closed with 4 rand() of the loop's CRT.
+TEST(WinMainLoopTest, TheMapMusicReadsTheDeviasChurchWithTheLoopsRandom)
+{
+    struct Case
+    {
+        std::uint8_t safeZone;
+        int draws;
+    };
+    constexpr std::int32_t DeviasMap = 2;
+    for (const auto [safeZone, draws] : {Case{1, 16 + 9}, Case{0, 9}})
+    {
+        LoopTail tail;
+        auto& runtime = tail.world->Runtime();
+        runtime.map = DeviasMap;
+        auto& hero = tail.world->Actors()[runtime.hero];
+        hero.safeZone = safeZone;
+        hero.cellX = 205;
+        hero.cellY = 13;
+
+        tail.FinishAt(FirstTurn, OriginalFramePace::ByTheClock, true);
+
+        EXPECT_EQ(tail.random.State(), After(draws).State());
+    }
+}
+
+// P-C80: a due timer runs once, after the frame counter of the frame it fell due in and before the next turn, with
+// the loop's time in ms. In the game it reads the focus (1), the own level (OwnRecordCloseRandoms), picks a text (1)
+// and reads the focus again (1).
+TEST(WinMainLoopTest, TheSlideTimerRunsBetweenTheFrameCounterAndTheNextTurn)
+{
+    constexpr int Texts = 16;
+    constexpr std::uint32_t Period = 60'000;
+    constexpr int UntilThePick = 9 + 4 + 1 + Client::Render::Models::OwnRecordCloseRandoms;
+    LoopTail tail;
+    auto& banner = tail.world->Runtime().hud.slides;
+    banner.maxLevels[0] = 15;
+    banner.counts[0] = Texts;
+    for (int text = 0; text < Texts; ++text)
+        banner.texts[0].push_back(std::to_string(text));
+    banner.timerPeriod = Period;
+    banner.timerDue = std::uint32_t{90};
+    tail.FinishAt(FirstTurn, OriginalFramePace::ByTheClock, true);
+    ASSERT_EQ(tail.random.State(), After(9).State());
+
+    // 93 ms: the timer fell due in the first of the two frames.
+    tail.FinishAt(2 * OriginalFrameTime, OriginalFramePace::ByTheClock, true);
+
+    EXPECT_EQ(tail.random.State(), After(UntilThePick + 1 + 1 + 5 + 9).State());
+    ASSERT_EQ(banner.normal.entries.size(), 1U);
+    EXPECT_EQ(banner.normal.entries.begin()->second.text, std::to_string(After(UntilThePick).Next() % Texts));
+    EXPECT_EQ(banner.timerDue, std::optional<std::uint32_t>(93 + Period));
+}
+
+TEST(WinMainLoopTest, OutsideTheGameADueSlideTimerOnlyReadsTheFocus)
+{
+    LoopTail tail;
+    auto& banner = tail.world->Runtime().hud.slides;
+    banner.maxLevels[0] = 15;
+    banner.counts[0] = 1;
+    banner.texts[0].emplace_back("text");
+    banner.timerPeriod = 60'000;
+    banner.timerDue = std::uint32_t{0};
+
+    tail.FinishAt(FirstTurn);
+
+    EXPECT_EQ(tail.random.State(), After(4 + 2 + 5).State());
+    EXPECT_TRUE(banner.normal.entries.empty());
 }
 } // namespace

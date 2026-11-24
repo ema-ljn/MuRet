@@ -2248,8 +2248,9 @@ en `HudState` (`hud.slides`), con `LoadTheSlides` (`0x46b3b0`), `ResetTheSlideQu
 `PickASlide` (`0x46b680`), `QueueTheSlide` (`0x46b720` sin la escena), `StepTheSlides` (`0x46b7b0`, en
 `Scenes/GameUi`) y `DrawTheSlides` (`0x46b090`, en `Scenes/GameHud`). `Scenes/Slides` tiene el arranque
 (`StartTheSlides`, en el primer paso de `GameScene`), el cuerpo del timer (`QueueATimedSlide`, con los 3.848
-`rand()` del registro propio y el de `0x46b680`) y el timer (`RunTheSlideTimer`): `main.cpp` lo corre entre el cierre
-del contador de una vuelta de `WinMain` y la siguiente, una vez por vuelta si venció, con los dos `rand()` del foco.
+`rand()` del registro propio y el de `0x46b680`) y el timer (`RunTheSlideTimer`): `Scenes::FinishTheWinMainLoop` lo
+corre entre el cierre del contador de una vuelta de `WinMain` y la siguiente, una vez por vuelta si venció, con los
+dos `rand()` del foco.
 Ese momento es *inferido* (08, P-C80). El `0D` de 10 a 15 encola en `Scenes/ChatReceive`.
 
 **La entrada del chat: escribir, mandar y las macros** (CL8 hito 3, *estático*; `Scenes/GameChat.cpp`,

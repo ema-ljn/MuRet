@@ -51,9 +51,9 @@ void CloseTheFrameCounter(Render::Models::CrtRandom& random);
 void StepWorldAmbience(WorldRuntime& runtime, Render::Models::CrtRandom& random);
 
 // The end of a loop turn. 0x63b0b7: the tail of 0x63945d switches off the dialogs' Enter (0x5763588). Then, once per
-// frame of the original in this turn: in the game scene the ambience and the music (0x430250), the frame counter of
-// 0x63945d, the Slide banner's WM_TIMER 0x3eb if it is due (P-C80; once, with the loop's time in ms as timeGetTime)
-// and the counters of the next turn (P-C61).
+// frame of the original in this turn: in the game scene the ambience, the map's music and Crywolf's (0x430250); the
+// frame counter of 0x63945d; the Slide banner's WM_TIMER 0x3eb if it is due (P-C80; once, with the loop's time in ms
+// as timeGetTime); and the counters of the next turn (P-C61).
 void FinishTheWinMainLoop(WinMainLoopState& loop, WorldState& world, Render::Models::CrtRandom& random,
                           Core::Duration now, Render::Models::OriginalFramePace pace, bool gameScene);
 } // namespace Client::Scenes

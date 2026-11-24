@@ -617,12 +617,12 @@ Scenes/CreatePreview.h	121	Scenes	game/FrontEnd	medium	login and selection logic
 Scenes/CrywolfAltarDrawing.h	27	Scenes	game/MapScripts/Crywolf	medium	what that map does, like TrinityCore's per-zone scripts (2026-11-21 review)
 Scenes/CrywolfContract.cpp	262	Scenes	game/Events/Crywolf	medium	one submodule per event (2026-11-21 review)
 Scenes/CrywolfContract.h	113	Scenes	game/Events/Crywolf	medium	one submodule per event (2026-11-21 review)
-Scenes/CrywolfDeathSpiritEffects.cpp	139	Scenes	game/Events/Crywolf	high	one submodule per event (2026-11-21 review)
-Scenes/CrywolfDeathSpiritEffects.h	30	Scenes	game/Events/Crywolf	high	one submodule per event (2026-11-21 review)
+Scenes/CrywolfDeathSpiritEffects.cpp	139	Scenes	game/Effects	high	a case of the effect switch (addr.), named after its first user
+Scenes/CrywolfDeathSpiritEffects.h	30	Scenes	game/Effects	high	a case of the effect switch (addr.), named after its first user
 Scenes/CrywolfInterfaceDrawing.cpp	708	Scenes	game/Events/Crywolf	high	one submodule per event (2026-11-21 review)
 Scenes/CrywolfInterfaceDrawing.h	33	Scenes	game/Events/Crywolf	high	one submodule per event (2026-11-21 review)
-Scenes/CrywolfMissileDrawing.cpp	78	Scenes	game/Events/Crywolf	high	one submodule per event (2026-11-21 review)
-Scenes/CrywolfMissileDrawing.h	28	Scenes	game/Events/Crywolf	high	one submodule per event (2026-11-21 review)
+Scenes/CrywolfMissileDrawing.cpp	78	Scenes	game/Effects	high	a case of the effect switch (addr.), named after its first user
+Scenes/CrywolfMissileDrawing.h	28	Scenes	game/Effects	high	a case of the effect switch (addr.), named after its first user
 Scenes/CrywolfObjectServices.cpp	268	Scenes	game/MapScripts/Crywolf	high	what that map does, like TrinityCore's per-zone scripts (2026-11-21 review)
 Scenes/CrywolfObjectServices.h	40	Scenes	game/MapScripts/Crywolf	high	what that map does, like TrinityCore's per-zone scripts (2026-11-21 review)
 Scenes/DamageNumbers.cpp	37	Scenes	game/Combat	high	character attack step (addr.)/(addr.), hits, combat/skill replies, damage numbers

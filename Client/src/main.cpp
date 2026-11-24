@@ -8,7 +8,7 @@
 #include "App/GameLoop.h"
 #include "App/ISessionEventSink.h"
 #include "App/LoopTiming.h"
-#include "App/ObfuscationMode.h"
+#include "App/MakeObfuscation.h"
 #include "App/Resolution.h"
 #include "App/ServerAddress.h"
 #include "App/ServerSession.h"
@@ -31,11 +31,9 @@
 #include "Input/Key.h"
 #include "Network/Connection.h"
 #include "Network/IObfuscation.h"
-#include "Network/IdentityObfuscation.h"
 #include "Network/SocketApi.h"
 #include "Network/SystemResolver.h"
 #include "Network/SystemSocket.h"
-#include "Network/XorRemapObfuscation.h"
 #include "Platform/BasePath.h"
 #include "Platform/Clipboard.h"
 #include "Platform/DisplayModes.h"
@@ -343,18 +341,7 @@ std::optional<Platform::Window> OpenWindow(const Platform::SdlContext& sdl, cons
     return window;
 }
 
-// La ofuscación de [Server] Obfuscation (pregunta 8 del plan de la CL4): la de FoxAnti es la de
-// `foxAnti`, que vive en Online, y la identidad es una sola para todos.
-const Network::IObfuscation& ChooseObfuscation(App::ObfuscationMode mode, const Network::FoxAntiObfuscation& foxAnti)
-{
-    if (mode == App::ObfuscationMode::FoxAnti)
-    {
-        return foxAnti;
-    }
-    return Network::IdentityObfuscation::Shared();
-}
-
-// Fase 4, con un servidor: el socket, la conexión con la ofuscación de la config, la sesión, que
+// Fase 4, con un servidor: el socket, la conexión con la ofuscación del build, la sesión, que
 // empieza la LoginScene al entrar, y con --auto-login el AutoLogin. Los miembros mueren al revés de
 // como se declaran (el AutoLogin antes que la sesión que guarda), y todo antes que el NetworkInit,
 // declarado antes en main.
@@ -364,9 +351,9 @@ const Network::IObfuscation& ChooseObfuscation(App::ObfuscationMode mode, const 
 // sockets con el mismo resolver, que muere después de la sesión que los guarda.
 struct Online
 {
-    Online(const ServerStartup& server, App::ObfuscationMode obfuscation, Core::IClock& clock, Core::Log& log,
+    Online(const ServerStartup& server, const Network::IObfuscation& obfuscation, Core::IClock& clock, Core::Log& log,
            App::ISessionEventSink& eventSink)
-        : connection(socket, ChooseObfuscation(obfuscation, foxAnti), clock, log, std::random_device{}()),
+        : connection(socket, obfuscation, clock, log, std::random_device{}()),
           session(connection, clock, log, server.keys,
                   App::SessionSettings{.connectServer = server.connectServer, .mainCheckFile = server.mainCheckFile},
                   eventSink)
@@ -375,10 +362,10 @@ struct Online
         {
             autoLogin.emplace(session, *server.credentials, log);
         }
-        // Las salas del chat con un amigo (0x49de50): un socket por sala, con la ofuscación de la config.
+        // Las salas del chat con un amigo (0x49de50): un socket por sala, con la ofuscación del build.
         session.EnableChatRooms(
             App::ChatRoomSockets{.make = [this] { return std::make_unique<Network::SystemSocket>(resolver); },
-                                 .obfuscation = &ChooseObfuscation(obfuscation, foxAnti),
+                                 .obfuscation = &obfuscation,
                                  .paddingSeed = std::random_device{}()});
     }
 
@@ -399,7 +386,6 @@ struct Online
 
     Network::SystemResolver resolver;
     Network::SystemSocket socket{resolver};
-    const Network::FoxAntiObfuscation foxAnti;
     Network::Connection connection;
     App::ServerSession session;
     std::optional<App::AutoLogin> autoLogin;
@@ -731,10 +717,12 @@ int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Wind
         .texts = scenes.data.text ? &*scenes.data.text : nullptr,
         .skills = scenes.data.skills ? &*scenes.data.skills : nullptr};
     Scenes::SessionEventApplier eventApplier(worldEntry);
+    // The server's packet shape is chosen when building (MU_XOR_REMAP); it outlives the connection.
+    const std::unique_ptr<const Network::IObfuscation> obfuscation = App::MakeObfuscation();
     std::optional<Online> online;
     if (startup.server)
     {
-        online.emplace(*startup.server, startup.config.obfuscation, clock, log, eventApplier);
+        online.emplace(*startup.server, *obfuscation, clock, log, eventApplier);
     }
     App::ServerSession* session = online ? &online->session : nullptr;
     Platform::Clipboard clipboard;

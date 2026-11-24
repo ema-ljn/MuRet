@@ -9,8 +9,8 @@ App/CommandLineSystem.h	49	App	app/App	high	engine or protocol layer, no game st
 App/CommandLineValues.cpp	221	App	app/App	high	engine or protocol layer, no game state
 App/CommandLineValues.h	48	App	app/App	high	engine or protocol layer, no game state
 App/CommandLineWindows.cpp	103	App	app/App	high	engine or protocol layer, no game state
-App/Config.cpp	643	App	app/App	high	engine or protocol layer, no game state
-App/Config.h	130	App	app/App	high	engine or protocol layer, no game state
+App/Config.cpp	628	App	app/App	high	engine or protocol layer, no game state
+App/Config.h	125	App	app/App	high	engine or protocol layer, no game state
 App/ConfigError.h	16	App	app/App	high	engine or protocol layer, no game state
 App/ConnectionKeyFiles.cpp	117	App	game/Session	medium	the session with the servers
 App/ConnectionKeyFiles.h	29	App	game/Session	medium	the session with the servers
@@ -29,8 +29,11 @@ App/GameLoop.h	82	App	app/App	high	engine or protocol layer, no game state
 App/IChatRoomLinks.h	37	App	app/App	high	engine or protocol layer, no game state
 App/ILoopClient.h	40	App	app/App	high	engine or protocol layer, no game state
 App/ISessionEventSink.h	41	App	game/Session	medium	the session with the servers
+App/LabXorRemapTables.h	46	App	app/App	high	composition root: the lab server's values for the XOR and remap layer (AR1.1)
 App/LoopTiming.h	43	App	app/App	high	engine or protocol layer, no game state
-App/ObfuscationMode.h	18	App	app/App	high	engine or protocol layer, no game state
+App/MakeObfuscation.h	12	App	app/App	high	composition root: the build's choice of obfuscation layer (AR1.1)
+App/MakeObfuscationNone.cpp	14	App	app/App	high	composition root: the factory of a build without the XOR and remap layer (AR1.1)
+App/MakeObfuscationXorRemap.cpp	15	App	app/App	high	composition root: the factory of a build with the XOR and remap layer (AR1.1)
 App/PacingMode.h	18	App	app/App	high	engine or protocol layer, no game state
 App/Resolution.cpp	36	App	engine/Platform	high	included by Render, UI and Platform
 App/Resolution.h	36	App	engine/Platform	high	included by Render, UI and Platform
@@ -227,8 +230,9 @@ Network/Crypto/Xor32.h	44	Network	engine/Crypto	high	MU byte ciphers, apart from
 Network/Delivery.h	19	Network	engine/Network	high	engine or protocol layer, no game state
 Network/EncryptedPacket.cpp	197	Network	engine/Network	high	engine or protocol layer, no game state
 Network/EncryptedPacket.h	57	Network	engine/Network	high	engine or protocol layer, no game state
-Network/XorRemapObfuscation.cpp	285	Network	engine/Network/FoxAnti	high	the lab server's FoxAnti layer: optional, linked only by app; Network keeps the IObfuscation contract and the identity (2026-11-21 review)
-Network/XorRemapObfuscation.h	42	Network	engine/Network/FoxAnti	high	the lab server's FoxAnti layer: optional, linked only by app; Network keeps the IObfuscation contract and the identity (2026-11-21 review)
+Network/XorRemapObfuscation.cpp	239	Network	engine/Network/XorRemap	high	the lab server's XOR and remap layer: optional, linked only by app; Network keeps the IObfuscation contract and the identity (2026-11-21 review)
+Network/XorRemapObfuscation.h	48	Network	engine/Network/XorRemap	high	the lab server's XOR and remap layer: optional, linked only by app; Network keeps the IObfuscation contract and the identity (2026-11-21 review)
+Network/XorRemapTables.h	40	Network	engine/Network/XorRemap	high	the values the layer translates with, injected by the composition root (AR1.1)
 Network/IObfuscation.h	60	Network	engine/Network	high	engine or protocol layer, no game state
 Network/IResolver.h	34	Network	engine/Network	high	engine or protocol layer, no game state
 Network/ISocket.h	67	Network	engine/Network	high	engine or protocol layer, no game state
@@ -1444,4 +1448,4 @@ World/WorldObjects.cpp	970	World	game/WorldObjects	medium	rule ^(Birds|Fish|IBir
 World/WorldObjects.h	300	World	game/WorldObjects	medium	rule ^(Birds|Fish|IBird|IFish|Leaf|Leaves|ILe
 World/WorldTerrain.cpp	399	World	game/Terrain	medium	the terrain, out of Kernel (2026-11-21 review)
 World/WorldTerrain.h	133	World	game/Terrain	medium	the terrain, out of Kernel (2026-11-21 review)
-main.cpp	1010	main.cpp	app	high	composition root
+main.cpp	974	main.cpp	app	high	composition root

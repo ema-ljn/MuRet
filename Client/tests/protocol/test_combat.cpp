@@ -2,7 +2,6 @@
 #include "Protocol/Combat.h"
 
 #include "Network/Delivery.h"
-#include "Network/XorRemapObfuscation.h"
 #include "Protocol/ProtocolError.h"
 
 #include "support/Bytes.h"
@@ -12,9 +11,7 @@
 
 #include <gtest/gtest.h>
 
-#include <cstddef>
 #include <cstdint>
-#include <utility>
 
 namespace
 {
@@ -28,15 +25,11 @@ namespace Combat = Client::Protocol::Combat;
 
 // 0x5650c0 (0x565a49..0x56601e): C1 07 D7 claveH claveL 78 rumbo, XOR32; FoxAnti lo saca como A4, el PMSG_ATTACK de la
 // GS (CGAttack 0x4254d0: NumberH NumberL AttackAction DirDis).
-TEST(CombatProtocolTest, TheAttackIsAnXor32D7ThatFoxAntiSendsAsA4)
+TEST(CombatProtocolTest, TheAttackIsAnXor32D7)
 {
-    auto sent = Combat::WriteAttack(0x1234, Combat::AttackAction, 5);
+    const auto sent = Combat::WriteAttack(0x1234, Combat::AttackAction, 5);
     EXPECT_EQ(sent.delivery, Client::Network::Delivery::Clear);
     EXPECT_TRUE(SameBytes(Xor32Decode(sent.packet).Bytes(), Bytes({0xc1, 0x07, 0xd7, 0x12, 0x34, 0x78, 0x05})));
-    Client::Network::FoxAntiObfuscation foxAnti;
-    const auto wire = foxAnti.BeforeSend(std::move(sent.packet));
-    EXPECT_EQ(wire.Bytes()[2], std::byte{0xa4});
-    EXPECT_EQ(wire.Bytes().size(), 7u);
 }
 
 // La clave viaja entera: +0x1f4 de un monstruo con el bit 15 no se enmascara (0x565a8c..0x565b5a).
@@ -49,13 +42,10 @@ TEST(CombatProtocolTest, TheAttackKeepsTheWholeKey)
 // 0x59cf88..0x59d2ae: el DF del elfo, C1 05 DF X Y con el XOR32 sobre X e Y, en claro y sin que FoxAnti lo toque.
 TEST(CombatProtocolTest, TheElfCellIsAFiveByteDf)
 {
-    auto sent = Combat::WriteElfCell(183, 115);
+    const auto sent = Combat::WriteElfCell(183, 115);
     EXPECT_EQ(sent.delivery, Client::Network::Delivery::Clear);
     EXPECT_TRUE(SameBytes(Xor32Decode(sent.packet).Bytes(), Bytes({0xc1, 0x05, 0xdf, 183, 115})));
     EXPECT_FALSE(SameBytes(sent.packet.Bytes(), Bytes({0xc1, 0x05, 0xdf, 183, 115})));
-    Client::Network::FoxAntiObfuscation foxAnti;
-    const auto wire = foxAnti.BeforeSend(std::move(sent.packet));
-    EXPECT_EQ(wire.Bytes()[2], std::byte{0xdf});
 }
 
 // 0x4cf2aa..0x4cf4a5 y 0x4cfd12..0x4cff5c: con el flag de descifrado en 0, C1 06 F1 03 00 y el opcode, en C3.

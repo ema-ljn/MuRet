@@ -27,7 +27,7 @@ Hay dos tareas diferentes, ambas necesarias:
 | Repetir los 59 tests que se saltearon | Recuperar archivos archivados, verificar sus hashes y activar tres variables. Se puede hacer en el host, sin arrancar el original. |
 | Validar H1/H9 en el original actual | Sesión nueva de la VM con el cliente c32, acciones y evidencia correlacionadas. Las referencias históricas no sustituyen esta sesión. |
 
-El [manifest](cl9-vm-evidence.json) enumera los **59 nombres de CTest**, sus 23 fuentes, dependencias y hashes.
+El [manifest](cl9-vm-evidence.json) enumera los **59 nombres de CTest**, sus 25 fuentes, dependencias y hashes.
 Se reparten en **20 memoria/modelos, 25 red y 14 trazas gráficas**. Comparten 39 dumps, 17 archivos de red
 (log, dos claves y catorce archivos de siete pares de inventario) y dos trazas descomprimidas. Un caso de Raven hereda el gate
 de memoria pero no consume un dump; no necesita una captura nueva. `Data\` completo ya está en

@@ -12,19 +12,15 @@
 #include "Core/Expected.h"
 #include "Core/IClock.h"
 #include "Core/ILogSink.h"
-#include "Core/Log.h"
 #include "Input/InputState.h"
 #include "Network/CloseReason.h"
-#include "Network/Connection.h"
 #include "Network/Crypto/SimpleModulus.h"
-#include "Network/IObfuscation.h"
 #include "Network/IdentityObfuscation.h"
 #include "Network/LinkState.h"
 #include "Network/Packet.h"
 #include "Network/PacketSerials.h"
 #include "Network/SocketError.h"
 #include "Network/Xor32Packet.h"
-#include "Network/XorRemapObfuscation.h"
 #include "Protocol/BuildConstants.h"
 #include "Protocol/CastleBattle.h"
 #include "Protocol/CastleSiege.h"
@@ -56,7 +52,6 @@
 #include "Protocol/Character/Opcodes.h"
 #include "Protocol/Connection/Keepalive.h"
 #include "Protocol/Connection/Login.h"
-#include "Protocol/Connection/Opcodes.h"
 #include "Protocol/Connection/ServerList.h"
 #include "Scenes/IScene.h"
 #include "Scenes/SceneId.h"
@@ -77,6 +72,7 @@
 #include "support/SessionPackets.h"
 #include "support/TemporaryFolder.h"
 #include "support/TestGameServer.h"
+#include "test_server_session_support.h"
 
 #include <gtest/gtest.h>
 
@@ -128,16 +124,12 @@ using Client::App::TickCountMs;
 using Client::App::WindowState;
 using Client::App::WorldEvent;
 using Client::Core::Duration;
-using Client::Core::Log;
 using Client::Core::LogLevel;
 using Client::Input::InputState;
 using Client::Network::CloseReason;
 using Client::Network::CloseReasonText;
-using Client::Network::Connection;
-using Client::Network::FoxAntiObfuscation;
 using Client::Network::HeaderSize;
 using Client::Network::IdentityObfuscation;
-using Client::Network::IObfuscation;
 using Client::Network::LinkState;
 using Client::Network::Packet;
 using Client::Network::PacketSerials;
@@ -150,7 +142,6 @@ using Client::Network::Crypto::EncryptBlock;
 using Client::Network::Crypto::PlainBlockSize;
 using Client::Protocol::ClientVersion;
 using Client::Protocol::Character::CharacterEntry;
-using Client::Protocol::Character::CharacterOpcode;
 using Client::Protocol::Character::CharacterSelectResult;
 using Client::Protocol::Character::CreateSubcode;
 using Client::Protocol::Character::DeleteCodeSize;
@@ -163,7 +154,6 @@ using Client::Protocol::Character::WriteCharacterDelete;
 using Client::Protocol::Character::WriteCharacterSelect;
 using Client::Protocol::Connection::Keepalive;
 using Client::Protocol::Connection::KeepaliveAdjust20;
-using Client::Protocol::Connection::KeepaliveOpcode;
 using Client::Protocol::Connection::LoginRequest;
 using Client::Protocol::Connection::ServerEntry;
 using Client::Protocol::Connection::WriteKeepalive;
@@ -174,13 +164,10 @@ using Client::Scenes::SceneManager;
 using Client::Tests::AddressReply;
 using Client::Tests::BusyReply;
 using Client::Tests::Bytes;
-using Client::Tests::BytesOf;
 using Client::Tests::CharacterEntryFields;
 using Client::Tests::CharacterListBytes;
-using Client::Tests::FakeClock;
 using Client::Tests::FakeSocket;
 using Client::Tests::FromTheGameServer;
-using Client::Tests::GameClientKeys;
 using Client::Tests::GameHello;
 using Client::Tests::GameServerEncryption;
 using Client::Tests::GameServerReceived;
@@ -194,27 +181,33 @@ using Client::Tests::NameBytes;
 using Client::Tests::NoticeBytes;
 using Client::Tests::PetInfoRequest;
 using Client::Tests::RecordingFrameTarget;
-using Client::Tests::RecordingSink;
 using Client::Tests::SameBytes;
 using Client::Tests::SameBytesWithoutValues;
 using Client::Tests::ServerList;
+using Client::Tests::ServerSessionSupport::Account;
+using Client::Tests::ServerSessionSupport::ByteVector;
+using Client::Tests::ServerSessionSupport::ConnectHost;
+using Client::Tests::ServerSessionSupport::ConnectPort;
+using Client::Tests::ServerSessionSupport::EncryptedWorldSequence;
+using Client::Tests::ServerSessionSupport::ExpectInventory;
+using Client::Tests::ServerSessionSupport::ExpectWorldEntry;
+using Client::Tests::ServerSessionSupport::ExpectWorldSequence;
+using Client::Tests::ServerSessionSupport::GameHost;
+using Client::Tests::ServerSessionSupport::GamePort;
+using Client::Tests::ServerSessionSupport::Harness;
+using Client::Tests::ServerSessionSupport::InventoryReply;
+using Client::Tests::ServerSessionSupport::LabServerCode;
+using Client::Tests::ServerSessionSupport::Lines;
+using Client::Tests::ServerSessionSupport::OtherWorldEntryReply;
+using Client::Tests::ServerSessionSupport::PaddingSeed;
+using Client::Tests::ServerSessionSupport::Password;
+using Client::Tests::ServerSessionSupport::Settings;
+using Client::Tests::ServerSessionSupport::TheCredentials;
+using Client::Tests::ServerSessionSupport::TwoCharacters;
+using Client::Tests::ServerSessionSupport::WorldEntryReply;
 
 using std::chrono::milliseconds;
 using std::chrono::seconds;
-
-using ByteVector = std::vector<std::byte>;
-using Lines = std::vector<std::string>;
-
-constexpr std::string_view ConnectHost = "10.0.0.1";
-constexpr std::uint16_t ConnectPort = 44405;
-constexpr std::string_view GameHost = "10.0.0.2";
-constexpr std::uint16_t GamePort = 55901;
-
-// La semilla del relleno de lo que cifra la conexión: fija.
-constexpr std::uint32_t PaddingSeed = 1;
-
-// Lo que dura un frame de los tests del keepalive: un paso de la lógica, como un bucle a 25 Hz.
-constexpr Duration Frame = milliseconds{40};
 
 // Lo que dice el log de cada keepalive que sale.
 constexpr std::string_view KeepaliveSent = "se encoló el keepalive";
@@ -225,21 +218,8 @@ constexpr std::size_t KeepalivePaddingIndex = 3;
 constexpr std::size_t KeepaliveSpeedsIndex = 8;
 constexpr std::size_t KeepaliveSpeedsSize = 4;
 
-// El código de servidor del 0 del laboratorio, como lo deja FoxAnti (el 0 más su delta, 400).
-constexpr std::uint16_t LabServerCode = 400;
-
-// La cuenta y la clave sintéticas de los fixtures del login (MuClientNetFixtures.h).
-constexpr std::string_view Account = "user0001";
-constexpr std::string_view Password = "pass0002";
-
 // Otra versión que la del cliente: la que manda el cliente del muproxy.log (BuildConstants.h).
 constexpr std::string_view OtherVersion = "09908";
-
-// La lista del laboratorio como llega al cable, antes de que FoxAnti la pase a F4 06: un servidor.
-ByteVector LabServerList()
-{
-    return Bytes({0xC2, 0x00, 0x0A, 0xF4, 0x02, 0x01, 0x00, 0x00, 0x00, 0xCC});
-}
 
 // Un C3 de un bloque con un solo byte útil, el serial 0: pasa el checksum y no trae el opcode, así
 // que no descifra con TooShort.
@@ -252,392 +232,15 @@ ByteVector OnlyTheSerial()
     return bytes;
 }
 
-SessionSettings Settings()
-{
-    return SessionSettings{{std::string(ConnectHost), ConnectPort}};
-}
-
-// La cuenta y la clave sintéticas, como las manda la ventana de la cuenta o el AutoLogin.
-Credentials TheCredentials()
-{
-    return Credentials{std::string(Account), std::string(Password)};
-}
-
-// Dos personajes sintéticos, en los lugares 0 y 3, como los manda el GS en la lista (F3 00).
-std::vector<CharacterEntryFields> TwoCharacters()
-{
-    return {{0, "char0001"}, {3, "char0002"}};
-}
-
-// Una sesión con su conexión y lo que la rodea. La ofuscación es de quien la arma y vive más. La
-// sesión abre el GameServer con las claves del cliente de TestGameServer.h.
-struct Harness
-{
-    explicit Harness(const IObfuscation& obfuscation, SessionSettings settings = Settings())
-        : connection(socket, obfuscation, clock, log, PaddingSeed),
-          session(connection, clock, log, GameClientKeys(), std::move(settings), eventSink)
-    {
-    }
-
-    // Las líneas de aviso, enteras.
-    [[nodiscard]] Lines Warnings() const
-    {
-        Lines warnings;
-        for (std::size_t index = 0; index < sink.lines.size(); ++index)
-        {
-            if (sink.levels[index] == LogLevel::Warning)
-            {
-                warnings.push_back(sink.lines[index]);
-            }
-        }
-        return warnings;
-    }
-
-    // Si alguna línea de `level` tiene `part`.
-    [[nodiscard]] bool Logged(LogLevel level, std::string_view part) const
-    {
-        for (std::size_t index = 0; index < sink.lines.size(); ++index)
-        {
-            if (sink.levels[index] == level && sink.lines[index].find(part) != std::string::npos)
-            {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    // Las líneas del log que dicen el host o el puerto de uno de los dos servidores: la dirección
-    // es del servidor, y el log no la dice (ServerSession.cpp, OnServerAddress).
-    [[nodiscard]] Lines LinesWithAnAddress() const
-    {
-        const std::string parts[] = {std::string(ConnectHost), std::string(GameHost), std::to_string(ConnectPort),
-                                     std::to_string(GamePort)};
-        Lines found;
-        for (const std::string& line : sink.lines)
-        {
-            const auto says = [&line](const std::string& part) { return line.find(part) != std::string::npos; };
-            if (std::ranges::any_of(parts, says))
-            {
-                found.push_back(line);
-            }
-        }
-        return found;
-    }
-
-    // Start y el Poll del saludo, que llega con el connect: espera la lista.
-    void ReachServerList()
-    {
-        session.Start();
-        socket.reads = {Hello()};
-        static_cast<void>(session.Poll());
-        ASSERT_EQ(session.State(), SessionState::WaitingServerList);
-    }
-
-    // Y la lista, de un servidor: espera la elección.
-    void ReachChoosingServer()
-    {
-        ASSERT_NO_FATAL_FAILURE(ReachServerList());
-        socket.reads = {ServerList({LabServerCode})};
-        static_cast<void>(session.Poll());
-        ASSERT_EQ(session.State(), SessionState::ChoosingServer);
-    }
-
-    // Y la elección, el de la lista: espera la dirección.
-    void ReachServerAddress()
-    {
-        ASSERT_NO_FATAL_FAILURE(ReachChoosingServer());
-        session.ChooseServer(LabServerCode);
-        ASSERT_EQ(session.State(), SessionState::WaitingServerAddress);
-    }
-
-    // Y la dirección: conecta al GameServer. Lo que sale desde acá es para el GS.
-    void ReachGameServer()
-    {
-        ASSERT_NO_FATAL_FAILURE(ReachServerAddress());
-        socket.reads = {AddressReply(GameHost, GamePort)};
-        static_cast<void>(session.Poll());
-        ASSERT_EQ(session.State(), SessionState::ConnectingGameServer);
-        gameServerStart = socket.sent.size();
-    }
-
-    // Y el Opened del GS: espera su saludo.
-    void ReachGameHello()
-    {
-        ASSERT_NO_FATAL_FAILURE(ReachGameServer());
-        static_cast<void>(session.Poll());
-        ASSERT_EQ(session.State(), SessionState::WaitingGameHello);
-    }
-
-    // Y el saludo, cifrado como lo manda el GS del laboratorio: espera la cuenta y la clave.
-    void ReachWaitingCredentials()
-    {
-        ASSERT_NO_FATAL_FAILURE(ReachGameHello());
-        socket.reads = {FromTheGameServer(GameHello(1, ClientVersion), gameServerSends)};
-        static_cast<void>(session.Poll());
-        ASSERT_EQ(session.State(), SessionState::WaitingCredentials);
-    }
-
-    // Y la cuenta y la clave: el login salió.
-    void ReachLoginResult()
-    {
-        ASSERT_NO_FATAL_FAILURE(ReachWaitingCredentials());
-        session.SubmitCredentials(TheCredentials());
-        ASSERT_EQ(session.State(), SessionState::WaitingLoginResult);
-    }
-
-    // Y el login aceptado.
-    void ReachLoggedIn()
-    {
-        ASSERT_NO_FATAL_FAILURE(ReachLoginResult());
-        socket.reads = {FromTheGameServer(LoginResult(1), gameServerSends)};
-        static_cast<void>(session.Poll());
-        ASSERT_EQ(session.State(), SessionState::LoggedIn);
-    }
-
-    // Y el pedido de la lista de personajes: espera la lista.
-    void ReachWaitingCharacterList()
-    {
-        ASSERT_NO_FATAL_FAILURE(ReachLoggedIn());
-        session.RequestCharacterList();
-        ASSERT_EQ(session.State(), SessionState::WaitingCharacterList);
-    }
-
-    // Y la lista, en claro como la manda el GS (04 § La selección de personaje): espera la elección.
-    void ReachChoosingCharacter(const std::vector<CharacterEntryFields>& characters = TwoCharacters())
-    {
-        ASSERT_NO_FATAL_FAILURE(ReachWaitingCharacterList());
-        socket.reads = {CharacterListBytes(characters)};
-        static_cast<void>(session.Poll());
-        ASSERT_EQ(session.State(), SessionState::ChoosingCharacter);
-    }
-
-    // Y la elección del lugar 0 y la entrada: el F3 03 salió (0x3c).
-    void ReachEnteringWorld()
-    {
-        ASSERT_NO_FATAL_FAILURE(ReachChoosingCharacter());
-        session.ChooseCharacter(std::uint8_t{0});
-        session.EnterWorld();
-        ASSERT_EQ(session.State(), SessionState::EnteringWorld);
-    }
-
-    // Los F3 de `subcode` que le llegaron al GS, sin el XOR32, en orden.
-    [[nodiscard]] std::vector<Packet> CharacterPacketsSent(std::uint8_t subcode) const
-    {
-        std::vector<Packet> found;
-        for (const Packet& packet : GameServerReads().packets)
-        {
-            Packet clear = Xor32Decode(packet);
-            if (clear.Type() == PacketType::C1 && clear.Opcode() == CharacterOpcode && clear.Bytes().size() > 3 &&
-                std::to_integer<std::uint8_t>(clear.Bytes()[3]) == subcode)
-            {
-                found.push_back(std::move(clear));
-            }
-        }
-        return found;
-    }
-
-    // El login aceptado en el instante `time` del reloj, que empieza en 0.
-    void LogInAt(Duration time)
-    {
-        ASSERT_NO_FATAL_FAILURE(ReachLoginResult());
-        AdvanceTo(time);
-        socket.reads = {FromTheGameServer(LoginResult(1), gameServerSends)};
-        static_cast<void>(session.Poll());
-        ASSERT_EQ(session.State(), SessionState::LoggedIn);
-    }
-
-    void AdvanceTo(Duration time)
-    {
-        clock.Advance(time - clock.Now());
-    }
-
-    // Un Poll en cada Frame desde ahora hasta `time`, el de `time` incluido.
-    void PollEachFrameUntil(Duration time)
-    {
-        while (clock.Now() + Frame <= time)
-        {
-            clock.Advance(Frame);
-            static_cast<void>(session.Poll());
-        }
-    }
-
-    // Los keepalives que le llegaron al GS, descifrados y sin el XOR32, en orden. Todo lo que le
-    // llegó tiene que estar en orden, incluidos los keepalives previos al login, que también
-    // consumen un serial de la conexión.
-    [[nodiscard]] std::vector<Packet> Keepalives() const
-    {
-        const GameServerReceived received = GameServerReads();
-        EXPECT_TRUE(
-            std::ranges::all_of(received.serials, [](SerialCheck serial) { return serial == SerialCheck::InOrder; }));
-        std::vector<Packet> keepalives;
-        for (const Packet& packet : received.packets)
-        {
-            Packet clear = Xor32Decode(packet);
-            if (clear.Opcode() == KeepaliveOpcode)
-            {
-                keepalives.push_back(std::move(clear));
-            }
-        }
-        return keepalives;
-    }
-
-    // Cuántas líneas de `level` tienen `part`.
-    [[nodiscard]] std::size_t CountLogged(LogLevel level, std::string_view part) const
-    {
-        std::size_t count = 0;
-        for (std::size_t index = 0; index < sink.lines.size(); ++index)
-        {
-            if (sink.levels[index] == level && sink.lines[index].find(part) != std::string::npos)
-            {
-                ++count;
-            }
-        }
-        return count;
-    }
-
-    // Lo que le llegó al GS desde que se abrió, como lo lee él: cada C3 descifrado, con sus
-    // seriales desde 0.
-    [[nodiscard]] GameServerReceived GameServerReads() const
-    {
-        PacketSerials serials;
-        return Client::Tests::AsTheGameServerReceives(std::span(socket.sent).subspan(gameServerStart), serials);
-    }
-
-    // Si alguna línea del log trae la cuenta o la clave.
-    [[nodiscard]] bool LoggedTheCredentials() const
-    {
-        return std::ranges::any_of(
-            sink.lines, [](const std::string& line)
-            { return line.find(Account) != std::string::npos || line.find(Password) != std::string::npos; });
-    }
-
-    FakeSocket socket;
-    FakeClock clock;
-    RecordingSink sink;
-    Log log{sink, LogLevel::Debug};
-    Connection connection;
-    Client::Tests::RecordingSessionEventSink eventSink;
-    ServerSession session;
-    std::size_t gameServerStart = 0; // dónde empieza en `socket.sent` lo que va al GS
-    PacketSerials gameServerSends;   // los seriales de lo que cifra el GS
-};
-
 // El esquema de la alternativa real debe poseer entradas y siete bytes opacos, no vistas al Packet.
 // El runtime de abajo comprueba lifecycle y valores; por sí solo no demuestra ausencia de vistas.
 static_assert(std::is_same_v<std::variant_alternative_t<1, WorldEvent>, InventoryList>);
 static_assert(std::is_same_v<decltype(InventoryList::items), std::vector<Client::Protocol::Character::InventoryEntry>>);
 static_assert(std::is_same_v<decltype(Client::Protocol::Character::InventoryEntry::item), std::array<std::byte, 7>>);
 
-// Wire sintético independiente de lectores/writers: mínimo 0x34, padding distinto y 23 campos.
-ByteVector WorldEntryReply()
-{
-    return Bytes({0xC1, 0x34, 0xF3, 0x03, 0x81, 0x2A, 0x20, 0x00, 0xEF, 0xCD, 0xAB, 0x89, 0x76,
-                  0x54, 0x32, 0x10, 0x11, 0x91, 0x22, 0xA2, 0x33, 0xB3, 0x44, 0xC4, 0x55, 0xD5,
-                  0x66, 0xE6, 0x77, 0xF7, 0x88, 0x18, 0x99, 0x29, 0xAA, 0x3A, 0xBB, 0x4B, 0xDE,
-                  0xAD, 0x98, 0xBA, 0xDC, 0xFE, 0x80, 0xFE, 0xCC, 0x5C, 0xDD, 0x6D, 0xFF, 0xFF});
-}
-
-ByteVector OtherWorldEntryReply()
-{
-    ByteVector bytes = WorldEntryReply();
-    bytes[4] = std::byte{0};
-    bytes[5] = std::byte{0xFF};
-    bytes[6] = std::byte{0xFF};
-    bytes[7] = std::byte{0xFF};
-    return bytes;
-}
-
-// C2 se cifra como C4 incluso siendo corto (support/TestGameServer.h); ningún dato es un ítem real.
-ByteVector InventoryReply()
-{
-    return Bytes({0xC2, 0x00, 0x1E, 0xF3, 0x10, 0x03, 0xFF, 0x00, 0x80, 0xFF, 0x01, 0x7F, 0xAA, 0x55, 0x0C,
-                  0xFE, 0xDC, 0xBA, 0x98, 0x76, 0x54, 0x32, 0xFF, 0x81, 0x02, 0x40, 0xF0, 0x0F, 0xCC, 0x33});
-}
-
 ByteVector EmptyInventoryReply()
 {
     return Bytes({0xC2, 0x00, 0x06, 0xF3, 0x10, 0x00});
-}
-
-void ExpectWorldEntry(const WorldEvent& event)
-{
-    const auto* entry = std::get_if<CharacterSelectResult>(&event);
-    ASSERT_NE(entry, nullptr);
-    EXPECT_EQ(entry->x, 0x81);
-    EXPECT_EQ(entry->y, 0x2A);
-    EXPECT_EQ(entry->map, 32); // La recepción no aplica el remapeo 32 -> 9.
-    EXPECT_EQ(entry->direction, 0);
-    EXPECT_EQ(entry->experience, 0x89ABCDEFu);
-    EXPECT_EQ(entry->nextExperience, 0x10325476u);
-    EXPECT_EQ(entry->levelUpPoints, 0x9111);
-    EXPECT_EQ(entry->strength, 0xA222);
-    EXPECT_EQ(entry->agility, 0xB333);
-    EXPECT_EQ(entry->vitality, 0xC444);
-    EXPECT_EQ(entry->energy, 0xD555);
-    EXPECT_EQ(entry->life, 0xE666);
-    EXPECT_EQ(entry->maxLife, 0xF777);
-    EXPECT_EQ(entry->mana, 0x1888);
-    EXPECT_EQ(entry->maxMana, 0x2999);
-    EXPECT_EQ(entry->bp, 0x3AAA);
-    EXPECT_EQ(entry->maxBp, 0x4BBB);
-    EXPECT_EQ(entry->zen, 0xFEDCBA98u);
-    EXPECT_EQ(entry->pk, 0x80);
-    EXPECT_EQ(entry->controlCode, 0xFE);
-    EXPECT_EQ(entry->addedPoints, 0x5CCC);
-    EXPECT_EQ(entry->maxAddedPoints, 0x6DDD);
-    EXPECT_EQ(entry->leadership, 0xFFFF);
-}
-
-void ExpectInventory(const WorldEvent& event)
-{
-    const auto* inventory = std::get_if<InventoryList>(&event);
-    ASSERT_NE(inventory, nullptr);
-    ASSERT_EQ(inventory->items.size(), 3u);
-    EXPECT_EQ(inventory->items[0].slot, 0xFF);
-    EXPECT_TRUE(SameBytes(inventory->items[0].item, Bytes({0x00, 0x80, 0xFF, 0x01, 0x7F, 0xAA, 0x55})));
-    EXPECT_EQ(inventory->items[1].slot, 0x0C);
-    EXPECT_TRUE(SameBytes(inventory->items[1].item, Bytes({0xFE, 0xDC, 0xBA, 0x98, 0x76, 0x54, 0x32})));
-    EXPECT_EQ(inventory->items[2].slot, 0xFF);
-    EXPECT_TRUE(SameBytes(inventory->items[2].item, Bytes({0x81, 0x02, 0x40, 0xF0, 0x0F, 0xCC, 0x33})));
-}
-
-ByteVector EncryptedWorldSequence(Harness& tested)
-{
-    return Join({FromTheGameServer(WorldEntryReply(), tested.gameServerSends),
-                 FromTheGameServer(InventoryReply(), tested.gameServerSends),
-                 FromTheGameServer(OtherWorldEntryReply(), tested.gameServerSends)});
-}
-
-void ExpectWorldSequence(std::span<const WorldEvent> events)
-{
-    ASSERT_EQ(events.size(), 3u);
-    ASSERT_NO_FATAL_FAILURE(ExpectWorldEntry(events[0]));
-    ASSERT_NO_FATAL_FAILURE(ExpectInventory(events[1]));
-    const auto* other = std::get_if<CharacterSelectResult>(&events[2]);
-    ASSERT_NE(other, nullptr);
-    EXPECT_EQ(other->x, 0);
-    EXPECT_EQ(other->y, 0xFF);
-    EXPECT_EQ(other->map, 0xFF);
-    EXPECT_EQ(other->direction, 0xFF);
-    EXPECT_EQ(other->experience, 0x89ABCDEFu);
-    EXPECT_EQ(other->nextExperience, 0x10325476u);
-    EXPECT_EQ(other->levelUpPoints, 0x9111);
-    EXPECT_EQ(other->strength, 0xA222);
-    EXPECT_EQ(other->agility, 0xB333);
-    EXPECT_EQ(other->vitality, 0xC444);
-    EXPECT_EQ(other->energy, 0xD555);
-    EXPECT_EQ(other->life, 0xE666);
-    EXPECT_EQ(other->maxLife, 0xF777);
-    EXPECT_EQ(other->mana, 0x1888);
-    EXPECT_EQ(other->maxMana, 0x2999);
-    EXPECT_EQ(other->bp, 0x3AAA);
-    EXPECT_EQ(other->maxBp, 0x4BBB);
-    EXPECT_EQ(other->zen, 0xFEDCBA98u);
-    EXPECT_EQ(other->pk, 0x80);
-    EXPECT_EQ(other->controlCode, 0xFE);
-    EXPECT_EQ(other->addedPoints, 0x5CCC);
-    EXPECT_EQ(other->maxAddedPoints, 0x6DDD);
-    EXPECT_EQ(other->leadership, 0xFFFF);
 }
 
 // El contexto se observa dentro del handler, antes de cualquier transición posterior.
@@ -1433,25 +1036,6 @@ TEST(ServerSessionTest, WorldEventsPreserveTheNextKeepaliveBytesAndTimerPhase)
     EXPECT_EQ(tested.session.State(), SessionState::LoggedIn);
 }
 
-// La procedencia cifrada debe sobrevivir a la máscara entrante antes de framing y descifrado.
-TEST(ServerSessionTest, WorldEventsSurviveTheRealFoxAntiTransport)
-{
-    const FoxAntiObfuscation obfuscation;
-    Harness tested(obfuscation);
-    ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
-    ByteVector wire = EncryptedWorldSequence(tested);
-    for (std::byte& value : wire)
-    {
-        value ^= std::byte{0xAA}; // Máscara entrante del laboratorio antes del framing/descifrado.
-    }
-    tested.socket.reads = {wire};
-    static_cast<void>(tested.session.Poll());
-
-    ASSERT_NO_FATAL_FAILURE(ExpectWorldSequence(tested.eventSink.TakeWorldEvents()));
-    EXPECT_EQ(tested.session.State(), SessionState::LoggedIn);
-    EXPECT_TRUE(tested.eventSink.TakeCharacterEvents().empty());
-}
-
 TEST(ServerSessionTest, StartsIdle)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -1537,29 +1121,6 @@ TEST(ServerSessionTest, WaitsForTheChoiceAfterTheList)
     EXPECT_EQ(tested.session.State(), SessionState::ChoosingServer);
     EXPECT_TRUE(SameBytes(tested.socket.sent, Join({PetInfoRequest(), ListRequest()})));
     EXPECT_TRUE(tested.Logged(LogLevel::Info, "la lista trae 3 servidores: se espera la elección"));
-}
-
-// La lista del laboratorio, con FoxAnti: la conexión la pasa a F4 06, ChooseServer(400) sale como
-// C1 06 F4 03 00 00, porque FoxAnti lo pasa de vuelta al 0 del ConnectServer.
-TEST(ServerSessionTest, ChoosingSendsTheCode)
-{
-    const FoxAntiObfuscation foxAnti;
-    Harness tested(foxAnti);
-    tested.session.Start();
-    tested.socket.reads = {Hello()};
-    static_cast<void>(tested.session.Poll());
-    tested.socket.reads = {LabServerList()};
-    static_cast<void>(tested.session.Poll());
-    ASSERT_EQ(tested.session.State(), SessionState::ChoosingServer);
-    ASSERT_EQ(tested.session.ServerList().size(), 1u);
-    EXPECT_EQ(tested.session.ServerList()[0].code, LabServerCode);
-
-    tested.session.ChooseServer(LabServerCode);
-
-    EXPECT_EQ(tested.session.State(), SessionState::WaitingServerAddress);
-    EXPECT_EQ(tested.session.ChosenServer(), std::optional<std::uint16_t>{LabServerCode});
-    EXPECT_TRUE(SameBytes(tested.socket.sent,
-                          Join({PetInfoRequest(), ListRequest(), Bytes({0xC1, 0x06, 0xF4, 0x03, 0x00, 0x00})})));
 }
 
 // Cualquiera de la lista, no el primero: sin FoxAnti, el 402 sale como 92 01.

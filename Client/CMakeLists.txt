@@ -38,6 +38,9 @@ if(WIN32)
 else()
     list(APPEND client_sources "${CMAKE_CURRENT_SOURCE_DIR}/src/App/CommandLinePosix.cpp")
 endif()
+# The XOR and remap layer is its own target, and MU_XOR_REMAP picks Main's MakeObfuscation (below).
+list(FILTER client_sources EXCLUDE REGEX "/src/Network/XorRemapObfuscation\\.cpp$")
+list(FILTER client_sources EXCLUDE REGEX "/src/App/MakeObfuscation[^/]*\\.cpp$")
 add_library(ClientLib STATIC ${client_sources})
 target_include_directories(ClientLib PUBLIC src)
 target_compile_features(ClientLib PUBLIC cxx_std_20)
@@ -110,11 +113,27 @@ target_link_libraries(ClientRender PUBLIC ClientPlatform PRIVATE glm::glm-header
 mu_set_warnings(ClientRender)
 mu_reuse_precompiled_headers(ClientRender ClientPlatform)
 
+# Only Main, test_make_obfuscation and the layer's tests link XorRemap; MU_MAKE_OBFUSCATION_SOURCE defines
+# App/MakeObfuscation.h for the first two.
+option(MU_XOR_REMAP "Build the XOR and remap layer the lab server expects" ON)
+if(MU_XOR_REMAP)
+    add_library(XorRemap STATIC src/Network/XorRemapObfuscation.cpp)
+    target_link_libraries(XorRemap PUBLIC ClientLib)
+    mu_set_warnings(XorRemap)
+    set(MU_MAKE_OBFUSCATION_SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/src/App/MakeObfuscationXorRemap.cpp")
+else()
+    set(MU_MAKE_OBFUSCATION_SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/src/App/MakeObfuscationNone.cpp")
+endif()
+
 add_executable(Main
     src/main.cpp
+    ${MU_MAKE_OBFUSCATION_SOURCE}
 )
 # El frame de las escenas (Render/Gl/GlFrameTarget, CL5.4) es de ClientRender.
 target_link_libraries(Main PRIVATE ClientRender ClientPlatform ClientLib)
+if(MU_XOR_REMAP)
+    target_link_libraries(Main PRIVATE XorRemap)
+endif()
 # La versión que muestra el login (el texto 456 de Text.bmd, CL5.4): la del proyecto.
 target_compile_definitions(Main PRIVATE MU_VERSION="${PROJECT_VERSION}")
 mu_set_warnings(Main)

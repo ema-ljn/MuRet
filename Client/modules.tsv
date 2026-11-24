@@ -10,7 +10,7 @@ engine/Network	engine	2	Network/**	*layer<2	socket, packet framing, Connection, 
 engine/Data	engine	2	Data/**	*layer<2	the Data formats: BMD, OZJ, OZT, JPEG, terrain, the table reader
 engine/Platform	engine	3	Platform/**	*layer<3	SDL3: window, GL context, events, audio, WindowState, Resolution, clipboard
 engine/Pathfinding	engine	3		*layer<3	the original's A* over the terrain wall grid
-engine/Network/FoxAnti	engine	3		*layer<3	the lab's FoxAnti layer, an optional library inside Network; removed at compile time (MU_FOXANTI)
+engine/Network/XorRemap	engine	3		*layer<3	the lab server's XOR and remap layer, an optional library inside Network; removed at compile time (MU_XOR_REMAP)
 engine/Render	engine	4	Render/**	*layer<4	SpriteBatch, ModelBatch, text, frame contracts, Gl
 engine/Models	engine	5	Render/Models/**	*layer<5	skeleton, pose, animation, skinning, cloth, IModelLibrary
 game/Protocol	game	6	Protocol/**	*layer<6	packet layouts and writers, per module

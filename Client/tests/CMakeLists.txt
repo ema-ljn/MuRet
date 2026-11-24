@@ -99,21 +99,37 @@ function(mu_add_test)
         PROPERTIES ${test_properties})
 endfunction()
 
-# mu_add_module_tests([OTHER_SYSTEM <file> ...] [LINK_LIBS lib ...] [LABEL <label>]
-# [TIMEOUT <seconds>]): one executable for each test_*.cpp of the calling folder, named after the
-# file (test_packet_reader), with the rest passed on to mu_add_test. A new test joins on
-# reconfigure. OTHER_SYSTEM lists the tests of another system's code, which this one does not build.
+# mu_add_module_tests([OTHER_SYSTEM <file> ...] [XOR_REMAP <file> ...] [EXCLUDE <file> ...] [LINK_LIBS lib ...]
+# [LABEL <label>] [TIMEOUT <seconds>]): one executable for each test_*.cpp of the calling folder, named after the
+# file (test_packet_reader), with the rest passed on to mu_add_test. A new test joins on reconfigure. OTHER_SYSTEM
+# lists the tests of another system's code, which this one does not build. XOR_REMAP lists the tests of the XOR and
+# remap layer: they build and link XorRemap only with MU_XOR_REMAP. EXCLUDE lists the tests the folder registers
+# itself with mu_add_test.
 function(mu_add_module_tests)
-    cmake_parse_arguments(MAMT "" "" "OTHER_SYSTEM" ${ARGN})
+    cmake_parse_arguments(MAMT "" "" "OTHER_SYSTEM;XOR_REMAP;EXCLUDE;LINK_LIBS" ${ARGN})
     file(GLOB tests CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/test_*.cpp")
+    foreach(excluded_test IN LISTS MAMT_EXCLUDE)
+        list(REMOVE_ITEM tests "${CMAKE_CURRENT_SOURCE_DIR}/${excluded_test}")
+    endforeach()
     foreach(other_system_test IN LISTS MAMT_OTHER_SYSTEM)
         set(other_system_path "${CMAKE_CURRENT_SOURCE_DIR}/${other_system_test}")
         list(REMOVE_ITEM tests "${other_system_path}")
-        set_property(GLOBAL APPEND PROPERTY MU_OTHER_SYSTEM_TEST_SOURCES "${other_system_path}")
+        set_property(GLOBAL APPEND PROPERTY MU_UNBUILT_TEST_SOURCES "${other_system_path}")
+    endforeach()
+    foreach(xor_remap_test IN LISTS MAMT_XOR_REMAP)
+        set(xor_remap_path "${CMAKE_CURRENT_SOURCE_DIR}/${xor_remap_test}")
+        list(REMOVE_ITEM tests "${xor_remap_path}")
+        if(MU_XOR_REMAP)
+            get_filename_component(test_name ${xor_remap_path} NAME_WE)
+            mu_add_test(NAME ${test_name} SOURCES ${xor_remap_path} LINK_LIBS ${MAMT_LINK_LIBS} XorRemap
+                ${MAMT_UNPARSED_ARGUMENTS})
+        else()
+            set_property(GLOBAL APPEND PROPERTY MU_UNBUILT_TEST_SOURCES "${xor_remap_path}")
+        endif()
     endforeach()
     foreach(test_source IN LISTS tests)
         get_filename_component(test_name ${test_source} NAME_WE)
-        mu_add_test(NAME ${test_name} SOURCES ${test_source} ${MAMT_UNPARSED_ARGUMENTS})
+        mu_add_test(NAME ${test_name} SOURCES ${test_source} LINK_LIBS ${MAMT_LINK_LIBS} ${MAMT_UNPARSED_ARGUMENTS})
     endforeach()
 endfunction()
 
@@ -138,8 +154,8 @@ add_subdirectory(world)
 # CMakeLists.txt) no correría nunca y nadie lo notaría: el configure se corta y lo nombra.
 file(GLOB_RECURSE all_test_sources CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/test_*.cpp")
 get_property(registered_test_sources GLOBAL PROPERTY MU_REGISTERED_TEST_SOURCES)
-get_property(other_system_test_sources GLOBAL PROPERTY MU_OTHER_SYSTEM_TEST_SOURCES)
-list(REMOVE_ITEM all_test_sources ${registered_test_sources} ${other_system_test_sources})
+get_property(unbuilt_test_sources GLOBAL PROPERTY MU_UNBUILT_TEST_SOURCES)
+list(REMOVE_ITEM all_test_sources ${registered_test_sources} ${unbuilt_test_sources})
 if(all_test_sources)
     list(JOIN all_test_sources "\n  " unregistered)
     message(FATAL_ERROR "Tests sin ejecutable (falta su CMakeLists.txt o su add_subdirectory):\n  ${unregistered}")

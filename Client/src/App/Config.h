@@ -2,7 +2,6 @@
 
 #include "App/CommandLine.h"
 #include "App/ConfigError.h"
-#include "App/ObfuscationMode.h"
 #include "App/PacingMode.h"
 #include "App/ServerAddress.h"
 #include "App/VSyncMode.h"
@@ -22,7 +21,6 @@
 //   [Server]
 //   Host = 10.0.0.1            ; de 1 a 255 bytes y sin espacios (Q-C37)
 //   Port = 44405               ; de 1 a 65535
-//   Obfuscation = foxanti      ; foxanti (la del laboratorio) o none
 //   [Video]
 //   Width = 640
 //   Height = 480
@@ -38,7 +36,7 @@
 //   [Log]
 //   Path = muret-client.log
 //
-// Las secciones, las claves y los valores de Obfuscation, VSync y Pacing no distinguen
+// Las secciones, las claves y los valores de VSync y Pacing no distinguen
 // mayúsculas. Un `;` al principio de la línea, o después de un espacio, empieza un comentario; `#`
 // no es comentario, y una línea que empieza con `#` es error. Se acepta el BOM de UTF-8 y el fin de
 // línea de Windows. Un par de comillas dobles alrededor de una ruta o del host se saca (lo que da
@@ -73,9 +71,6 @@ struct ClientConfig
     // [Server] Host y Port. Vacío si no está ninguno de los dos; con uno solo, el otro queda en su
     // valor por defecto (host vacío, puerto DefaultConnectPort).
     std::optional<ServerAddress> server;
-    // [Server] Obfuscation (pregunta 8 del plan de la CL4). No arma `server`: es de la conexión,
-    // no de la dirección, y /u /p no la cambia.
-    ObfuscationMode obfuscation = ObfuscationMode::FoxAnti;
     // [Video] Width y Height, de 1 a MaxWindowSize; 640 × 480 por defecto (la tabla de la CL3.4 en
     // el plan de la CL3). Para abrir la ventana tienen que ser una resolución que valga
     // (App/Resolution.h): eso lo mira main.cpp, con los modos del monitor, después de SDL_Init.

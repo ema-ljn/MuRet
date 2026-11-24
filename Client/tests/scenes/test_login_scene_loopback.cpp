@@ -2,6 +2,7 @@
 
 #include "App/AutoLogin.h"
 #include "App/Credentials.h"
+#include "App/LabXorRemapTables.h"
 #include "App/ServerAddress.h"
 #include "App/ServerSession.h"
 #include "App/SessionState.h"
@@ -59,6 +60,7 @@ namespace
 {
 using Client::App::AutoLogin;
 using Client::App::Credentials;
+using Client::App::LabXorRemapTables;
 using Client::App::ServerAddress;
 using Client::App::ServerSession;
 using Client::App::SessionSettings;
@@ -67,9 +69,9 @@ using Client::Core::Log;
 using Client::Core::LogLevel;
 using Client::Input::InputState;
 using Client::Network::Connection;
-using Client::Network::FoxAntiObfuscation;
 using Client::Network::SystemResolver;
 using Client::Network::SystemSocket;
+using Client::Network::XorRemapObfuscation;
 using Client::Network::SocketApi::NetworkInit;
 using Client::Scenes::GameData;
 using Client::Scenes::IScene;
@@ -112,8 +114,8 @@ TEST(LoginSceneLoopbackTest, GoesToTheSelectionWhenTheLoginIsAccepted)
     clock.Advance(std::chrono::milliseconds{123456});
     RecordingSink sink;
     Log log(sink, LogLevel::Debug);
-    const FoxAntiObfuscation foxAnti;
-    Connection connection(socket, foxAnti, clock, log, PaddingSeed);
+    const XorRemapObfuscation xorRemap{LabXorRemapTables()};
+    Connection connection(socket, xorRemap, clock, log, PaddingSeed);
     Client::Tests::RecordingSessionEventSink eventSink;
     ServerSession session(connection, clock, log, GameClientKeys(),
                           SessionSettings{ServerAddress{std::string(Loopback), servers.ConnectServerPort()}},

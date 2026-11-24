@@ -1,5 +1,6 @@
 #include "Network/XorRemapObfuscation.h"
 
+#include "App/LabXorRemapTables.h"
 #include "Network/Crypto/SimpleModulus.h"
 #include "Network/EncryptedPacket.h"
 #include "Network/IObfuscation.h"
@@ -8,8 +9,9 @@
 #include "Network/PacketError.h"
 #include "Network/PacketReader.h"
 #include "Network/PacketSerials.h"
-
 #include "Network/Xor32Packet.h"
+#include "Network/XorRemapTables.h"
+
 #include "support/BytePattern.h"
 #include "support/Bytes.h"
 #include "support/MuClientNetFixtures.h"
@@ -31,7 +33,7 @@
 #include <utility>
 #include <vector>
 
-// Client::Network::FoxAntiObfuscation: la capa de paquetes de FoxAnti, con los ejemplos del cable
+// Client::Network::XorRemapObfuscation: la capa de paquetes de FoxAnti, con los ejemplos del cable
 // del 03, la máscara por paquete en el PacketReader (Q-C18), los remapeos, la ida y vuelta de los
 // códigos de servidor (Q-C17) y los largos que el original no mira (Q-C09). Plan de la CL2, CL2.4.
 //
@@ -40,9 +42,9 @@
 // foxanti_cases.c: los nombres de los casos (A1, B.1E.iv, ...) son los de ese programa.
 namespace
 {
+using Client::App::LabXorRemapTables;
 using Client::Network::DecryptPacket;
 using Client::Network::EncryptPacket;
-using Client::Network::FoxAntiObfuscation;
 using Client::Network::MaxPacketSize;
 using Client::Network::ObfuscationError;
 using Client::Network::Packet;
@@ -52,6 +54,8 @@ using Client::Network::PacketSerials;
 using Client::Network::PacketType;
 using Client::Network::Xor32Decode;
 using Client::Network::Xor32Encode;
+using Client::Network::XorRemapObfuscation;
+using Client::Network::XorRemapTables;
 using Client::Network::Crypto::EncryptBlock;
 using Client::Network::Crypto::PlainBlockSize;
 using Client::Tests::BytePattern;
@@ -66,6 +70,12 @@ using ByteVector = std::vector<std::byte>;
 
 // El XOR que el servidor del laboratorio le aplica a cada byte de lo que manda.
 constexpr std::byte LabMask{0xAA};
+
+// The layer with the lab server's tables, the only server it is tested against.
+XorRemapObfuscation LabXorRemap()
+{
+    return XorRemapObfuscation{LabXorRemapTables()};
+}
 
 // Un Packet con estos bytes. Si no lo forman, el test falla (y Value() corta el programa).
 Packet PacketOf(ByteVector bytes)
@@ -160,27 +170,26 @@ ByteVector ServerSelect(std::uint16_t code)
 
 // --- Los del cable del 03 ---
 
-TEST(FoxAntiObfuscationTest, TheLabServerListBecomesTheOneMainExeReads)
+TEST(XorRemapObfuscationTest, TheLabServerListBecomesTheOneMainExeReads)
 {
-    const auto list = FoxAntiObfuscation{}.AfterCut(PacketOf(LabServerList()));
+    const auto list = LabXorRemap().AfterCut(PacketOf(LabServerList()));
 
     ASSERT_TRUE(list.HasValue());
     EXPECT_TRUE(SameBytes(list.Value().Bytes(), MainExeServerList()));
 }
 
 // main.exe manda su código, 400, y al cable sale el 0 que espera el laboratorio.
-TEST(FoxAntiObfuscationTest, TheChosenServerGoesOutWithTheLabCode)
+TEST(XorRemapObfuscationTest, TheChosenServerGoesOutWithTheLabCode)
 {
-    const Packet sent = FoxAntiObfuscation{}.BeforeSend(PacketOf(ServerSelect(400)));
+    const Packet sent = LabXorRemap().BeforeSend(PacketOf(ServerSelect(400)));
 
     EXPECT_TRUE(SameBytes(sent.Bytes(), ServerSelect(0)));
 }
 
 // El primer F3 11 de la sesión real (04, "F3 11, S->C"): el handler encuentra el slot en pkt[6].
-TEST(FoxAntiObfuscationTest, TheSkillListGetsTheByteMainExeExpects)
+TEST(XorRemapObfuscationTest, TheSkillListGetsTheByteMainExeExpects)
 {
-    const auto list =
-        FoxAntiObfuscation{}.BeforeDispatch(PacketOf(Bytes({0xC1, 0x08, 0xF3, 0x11, 0xFE, 0x04, 0x16, 0x68})));
+    const auto list = LabXorRemap().BeforeDispatch(PacketOf(Bytes({0xC1, 0x08, 0xF3, 0x11, 0xFE, 0x04, 0x16, 0x68})));
 
     ASSERT_TRUE(list.HasValue());
     EXPECT_TRUE(SameBytes(list.Value().Bytes(), Bytes({0xC1, 0x09, 0xF3, 0x11, 0xFE, 0x00, 0x04, 0x16, 0x68})));
@@ -189,26 +198,26 @@ TEST(FoxAntiObfuscationTest, TheSkillListGetsTheByteMainExeExpects)
 // --- La máscara (Q-C18) ---
 
 // 6B, 68, 69 y 6E son C1 a C4 con el 0xAA. Nada más lo lleva: tampoco un C1 a C4 en claro.
-TEST(FoxAntiObfuscationTest, OnlyTheFourMaskedTypesAreMasked)
+TEST(XorRemapObfuscationTest, OnlyTheFourMaskedTypesAreMasked)
 {
-    const FoxAntiObfuscation foxAnti;
+    const XorRemapObfuscation xorRemap = LabXorRemap();
     for (int value = 0; value < 256; ++value)
     {
         const bool masked = value == 0x6B || value == 0x68 || value == 0x69 || value == 0x6E;
-        EXPECT_EQ(foxAnti.InboundMask(static_cast<std::byte>(value)), masked ? LabMask : std::byte{0})
+        EXPECT_EQ(xorRemap.InboundMask(static_cast<std::byte>(value)), masked ? LabMask : std::byte{0})
             << "byte " << value;
     }
 }
 
 // Los tres que el original deja pasar (C1 con opcode 00, C1 con F4 y C2 con F4: los del
 // ConnectServer) llegan en claro y salen igual, también juntos en una lectura.
-TEST(FoxAntiObfuscationTest, TheThreeExemptPacketsComeInClear)
+TEST(XorRemapObfuscationTest, TheThreeExemptPacketsComeInClear)
 {
     const ByteVector hello = Bytes({0xC1, 0x04, 0x00, 0x01});
     const ByteVector address = Bytes({0xC1, 0x16, 0xF4, 0x03, '1', '7',  '2',  '.',  '1',  '6',  '.',
                                       '1',  '9',  '8',  '.',  '1', 0x00, 0x00, 0x00, 0x00, 0x5D, 0xDA});
-    const FoxAntiObfuscation foxAnti;
-    PacketReader reader(foxAnti);
+    const XorRemapObfuscation xorRemap = LabXorRemap();
+    PacketReader reader(xorRemap);
 
     reader.Feed(Join({hello, address, LabServerList()}));
     const Drained drained = Drain(reader);
@@ -222,11 +231,11 @@ TEST(FoxAntiObfuscationTest, TheThreeExemptPacketsComeInClear)
 
 // Un C3 (FIX_C3_SERIAL0) y un C4 (c4-serial2.bin, de 421 bytes, con el tamaño en dos bytes) con el
 // 0xAA: el tamaño también viaja enmascarado.
-TEST(FoxAntiObfuscationTest, MaskedC3AndC4AreCut)
+TEST(XorRemapObfuscationTest, MaskedC3AndC4AreCut)
 {
     const ByteVector c4 = ReadNetVector("c4-serial2.bin");
-    const FoxAntiObfuscation foxAnti;
-    PacketReader reader(foxAnti);
+    const XorRemapObfuscation xorRemap = LabXorRemap();
+    PacketReader reader(xorRemap);
 
     reader.Feed(Join({Masked(NoticeSerial0()), Masked(c4)}));
     const Drained drained = Drain(reader);
@@ -240,15 +249,15 @@ TEST(FoxAntiObfuscationTest, MaskedC3AndC4AreCut)
 
 // Q-C18: el original decide el 0xAA por el primero de la lectura, y deshace el del segundo como si
 // fuera del primero. Por paquete salen los dos bien, en cualquier orden.
-TEST(FoxAntiObfuscationTest, AnExemptPacketAndAMaskedOneInTheSameReadGiveBoth)
+TEST(XorRemapObfuscationTest, AnExemptPacketAndAMaskedOneInTheSameReadGiveBoth)
 {
     const ByteVector exempt = Bytes({0xC1, 0x04, 0xF4, 0x05});
     const ByteVector chat = Bytes({0xC1, 0x05, 0x42, 0x99, 0x10});
-    const FoxAntiObfuscation foxAnti;
+    const XorRemapObfuscation xorRemap = LabXorRemap();
 
     for (const bool exemptFirst : {true, false})
     {
-        PacketReader reader(foxAnti);
+        PacketReader reader(xorRemap);
         reader.Feed(exemptFirst ? Join({exempt, Masked(chat)}) : Join({Masked(chat), exempt}));
         const Drained drained = Drain(reader);
 
@@ -263,7 +272,7 @@ TEST(FoxAntiObfuscationTest, AnExemptPacketAndAMaskedOneInTheSameReadGiveBoth)
 // Un paquete enmascarado partido entre dos lecturas sigue con el XOR que eligió su primer byte, y
 // el que viene detrás en la segunda, en claro, no lo hereda. Un C2 y un C4 cortados después de su
 // primer y de su segundo byte (la cabecera a medias), y un C1 a mitad del cuerpo.
-TEST(FoxAntiObfuscationTest, AMaskedPacketSplitBetweenTwoReadsGivesTheSame)
+TEST(XorRemapObfuscationTest, AMaskedPacketSplitBetweenTwoReadsGivesTheSame)
 {
     struct Split
     {
@@ -278,13 +287,13 @@ TEST(FoxAntiObfuscationTest, AMaskedPacketSplitBetweenTwoReadsGivesTheSame)
         {"C2 tras 1", c2, 1}, {"C2 tras 2", c2, 2}, {"C4 tras 1", c4, 1}, {"C4 tras 2", c4, 2}, {"C1 tras 5", c1, 5},
     };
     const ByteVector next = Bytes({0xC1, 0x04, 0x00, 0x01});
-    const FoxAntiObfuscation foxAnti;
+    const XorRemapObfuscation xorRemap = LabXorRemap();
 
     for (const Split& split : splits)
     {
         SCOPED_TRACE(split.name);
         const ByteVector wire = Masked(split.packet);
-        PacketReader reader(foxAnti);
+        PacketReader reader(xorRemap);
 
         reader.Feed(std::span<const std::byte>(wire).first(split.firstRead));
         const Drained first = Drain(reader);
@@ -301,13 +310,13 @@ TEST(FoxAntiObfuscationTest, AMaskedPacketSplitBetweenTwoReadsGivesTheSame)
 }
 
 // De a un byte también: la máscara se elige una vez por paquete y no se pierde entre lecturas.
-TEST(FoxAntiObfuscationTest, MaskedPacketsOneByteAtATimeGiveTheSame)
+TEST(XorRemapObfuscationTest, MaskedPacketsOneByteAtATimeGiveTheSame)
 {
     const ByteVector c2 = Bytes({0xC2, 0x00, 0x06, 0x20, 0x03, 0x04});
     const ByteVector exempt = Bytes({0xC1, 0x04, 0xF4, 0x05});
     const ByteVector wire = Join({Masked(c2), exempt, Masked(NoticeSerial0())});
-    const FoxAntiObfuscation foxAnti;
-    PacketReader reader(foxAnti);
+    const XorRemapObfuscation xorRemap = LabXorRemap();
+    PacketReader reader(xorRemap);
     std::vector<ByteVector> packets;
 
     for (std::size_t i = 0; i < wire.size(); ++i)
@@ -325,10 +334,10 @@ TEST(FoxAntiObfuscationTest, MaskedPacketsOneByteAtATimeGiveTheSame)
 }
 
 // Un primer byte que no es un tipo, ni en claro ni con el 0xAA, sigue siendo InvalidType.
-TEST(FoxAntiObfuscationTest, AFirstByteThatIsNoTypeIsStillInvalid)
+TEST(XorRemapObfuscationTest, AFirstByteThatIsNoTypeIsStillInvalid)
 {
-    const FoxAntiObfuscation foxAnti;
-    PacketReader reader(foxAnti);
+    const XorRemapObfuscation xorRemap = LabXorRemap();
+    PacketReader reader(xorRemap);
 
     reader.Feed(Bytes({0x6A, 0x04, 0x00, 0x01}));
     const Drained drained = Drain(reader);
@@ -337,10 +346,10 @@ TEST(FoxAntiObfuscationTest, AFirstByteThatIsNoTypeIsStillInvalid)
 }
 
 // Un lector movido sigue con la ofuscación del original.
-TEST(FoxAntiObfuscationTest, AMovedReaderKeepsItsObfuscation)
+TEST(XorRemapObfuscationTest, AMovedReaderKeepsItsObfuscation)
 {
-    const FoxAntiObfuscation foxAnti;
-    PacketReader original(foxAnti);
+    const XorRemapObfuscation xorRemap = LabXorRemap();
+    PacketReader original(xorRemap);
     PacketReader moved(std::move(original));
     const ByteVector chat = Bytes({0xC1, 0x05, 0x42, 0x99, 0x10});
 
@@ -354,16 +363,16 @@ TEST(FoxAntiObfuscationTest, AMovedReaderKeepsItsObfuscation)
 // Q-C03 y Q-C18: una lectura que termina en los primeros bytes de un paquete enmascarado que va
 // detrás de uno entero. El Feed siguiente compacta el buffer con ese paquete desenmascarado a
 // medias, y no tiene que desenmascarar de nuevo lo que ya desenmascaró.
-TEST(FoxAntiObfuscationTest, AMaskedPacketSplitBehindAWholeOneGivesTheSame)
+TEST(XorRemapObfuscationTest, AMaskedPacketSplitBehindAWholeOneGivesTheSame)
 {
     const ByteVector exempt = Bytes({0xC1, 0x04, 0xF4, 0x05});
     const ByteVector c2 = Bytes({0xC2, 0x00, 0x06, 0x20, 0x03, 0x04});
     const ByteVector wire = Join({exempt, Masked(c2), Masked(c2)});
-    const FoxAntiObfuscation foxAnti;
+    const XorRemapObfuscation xorRemap = LabXorRemap();
     for (const std::size_t inFirstRead : {std::size_t{1}, std::size_t{2}, std::size_t{4}})
     {
         SCOPED_TRACE(inFirstRead);
-        PacketReader reader(foxAnti);
+        PacketReader reader(xorRemap);
         const std::size_t cut = exempt.size() + inFirstRead;
 
         reader.Feed(std::span<const std::byte>(wire).first(cut));
@@ -382,14 +391,14 @@ TEST(FoxAntiObfuscationTest, AMaskedPacketSplitBehindAWholeOneGivesTheSame)
 
 // Un lector movido a mitad de un paquete enmascarado, construido y asignado, sigue con lo que ya
 // desenmascaró, con la máscara de ese paquete y con la ofuscación para el que viene detrás.
-TEST(FoxAntiObfuscationTest, AReaderMovedInTheMiddleOfAMaskedPacketGoesOn)
+TEST(XorRemapObfuscationTest, AReaderMovedInTheMiddleOfAMaskedPacketGoesOn)
 {
     const ByteVector c2 = Bytes({0xC2, 0x00, 0x06, 0x20, 0x03, 0x04});
     const ByteVector wire = Join({Masked(c2), Masked(c2)});
     const std::span<const std::byte> view(wire);
-    const FoxAntiObfuscation foxAnti;
+    const XorRemapObfuscation xorRemap = LabXorRemap();
 
-    PacketReader original(foxAnti);
+    PacketReader original(xorRemap);
     original.Feed(view.first(2));
     ASSERT_TRUE(Drain(original).packets.empty());
     PacketReader constructed(std::move(original));
@@ -408,18 +417,18 @@ TEST(FoxAntiObfuscationTest, AReaderMovedInTheMiddleOfAMaskedPacketGoesOn)
 
 // Uno del que se movió, construyendo o asignando, queda como nuevo y con su ofuscación: un paquete
 // enmascarado entero sale bien, sin lo que había desenmascarado antes.
-TEST(FoxAntiObfuscationTest, AReaderMovedFromInTheMiddleOfAMaskedPacketStartsOver)
+TEST(XorRemapObfuscationTest, AReaderMovedFromInTheMiddleOfAMaskedPacketStartsOver)
 {
     const ByteVector c2 = Bytes({0xC2, 0x00, 0x06, 0x20, 0x03, 0x04});
     const ByteVector masked = Masked(c2);
     const std::span<const std::byte> view(masked);
-    const FoxAntiObfuscation foxAnti;
+    const XorRemapObfuscation xorRemap = LabXorRemap();
 
-    PacketReader movedByConstruction(foxAnti);
+    PacketReader movedByConstruction(xorRemap);
     movedByConstruction.Feed(view.first(4));
     ASSERT_TRUE(Drain(movedByConstruction).packets.empty());
     const PacketReader constructed(std::move(movedByConstruction));
-    PacketReader movedByAssignment(foxAnti);
+    PacketReader movedByAssignment(xorRemap);
     movedByAssignment.Feed(view.first(4));
     ASSERT_TRUE(Drain(movedByAssignment).packets.empty());
     PacketReader assigned;
@@ -437,18 +446,29 @@ TEST(FoxAntiObfuscationTest, AReaderMovedFromInTheMiddleOfAMaskedPacketStartsOve
     EXPECT_EQ(assigned.Pending(), 4u);
 }
 
+// The XOR comes from the tables, not from the layer.
+TEST(XorRemapObfuscationTest, UsesTheInjectedInboundXor)
+{
+    XorRemapTables tables = LabXorRemapTables();
+    tables.inboundXor = std::byte{0x55};
+    const XorRemapObfuscation xorRemap{tables};
+
+    EXPECT_EQ(xorRemap.InboundMask(std::byte{0xC1} ^ std::byte{0x55}), std::byte{0x55});
+    EXPECT_EQ(xorRemap.InboundMask(std::byte{0xC1} ^ LabMask), std::byte{0});
+}
+
 // Un lector guarda un puntero a su ofuscación, así que no acepta una temporal, que moriría antes
 // que él. Una IObfuscation tampoco se asigna a través de la base; una hija sí se copia.
-static_assert(!std::is_constructible_v<PacketReader, FoxAntiObfuscation>);
-static_assert(std::is_constructible_v<PacketReader, const FoxAntiObfuscation&>);
+static_assert(!std::is_constructible_v<PacketReader, XorRemapObfuscation>);
+static_assert(std::is_constructible_v<PacketReader, const XorRemapObfuscation&>);
 static_assert(!std::is_copy_assignable_v<Client::Network::IObfuscation>);
-static_assert(std::is_copy_constructible_v<FoxAntiObfuscation>);
+static_assert(std::is_copy_constructible_v<XorRemapObfuscation>);
 
 // --- Los remapeos, contra la FoxAnti mínima ---
 
 // send_forward: lo que se cifra, [serial][opcode][campos con XOR32][relleno]. Con 0x10, 0x19 y
 // 0x1E cambia el opcode, y los campos y el relleno, que se encadenan con él, también.
-TEST(FoxAntiObfuscationTest, BeforeEncryptRemapsLikeTheMinimalFoxAnti)
+TEST(XorRemapObfuscationTest, BeforeEncryptRemapsLikeTheMinimalFoxAnti)
 {
     const std::vector<ReferenceCase> cases{
         {"B.10.i", Bytes({0x00, 0x10, 0xA5}), Bytes({0x00, 0x1D, 0xA8})},
@@ -472,11 +492,11 @@ TEST(FoxAntiObfuscationTest, BeforeEncryptRemapsLikeTheMinimalFoxAnti)
         {"B.1C.iii", Bytes({0x07, 0x1C, 0x90, 0x3E, 0x93, 0x20, 0x6A, 0x0F, 0xF4, 0x6A, 0xB1, 0x82, 0x5C}),
          Bytes({0x07, 0x1C, 0x90, 0x3E, 0x93, 0x20, 0x6A, 0x0F, 0xF4, 0x6A, 0xB1, 0x82, 0x5C})},
     };
-    const FoxAntiObfuscation foxAnti;
+    const XorRemapObfuscation xorRemap = LabXorRemap();
     for (const ReferenceCase& reference : cases)
     {
         ByteVector sealed = reference.in;
-        foxAnti.BeforeEncrypt(sealed);
+        xorRemap.BeforeEncrypt(sealed);
         EXPECT_TRUE(SameBytes(sealed, reference.out)) << reference.name;
     }
 }
@@ -484,7 +504,7 @@ TEST(FoxAntiObfuscationTest, BeforeEncryptRemapsLikeTheMinimalFoxAnti)
 // EncryptPacket con FoxAnti cifra lo que dejó BeforeEncrypt, relleno incluido: el C1 05 1E de
 // B.1E.iv, con el serial 3 y el relleno A5, sale como un C3 de 13 cuyo bloque es [03 A6 06 BA 1D]
 // y tres ceros, con 4 útiles (el relleno no cuenta).
-TEST(FoxAntiObfuscationTest, EncryptPacketCiphersWhatBeforeEncryptLeft)
+TEST(XorRemapObfuscationTest, EncryptPacketCiphersWhatBeforeEncryptLeft)
 {
     const auto identity = IdentityPair();
     PacketSerials serials;
@@ -492,10 +512,10 @@ TEST(FoxAntiObfuscationTest, EncryptPacketCiphersWhatBeforeEncryptLeft)
     {
         [[maybe_unused]] const std::uint8_t serial = serials.TakeSend();
     }
-    const FoxAntiObfuscation foxAnti;
+    const XorRemapObfuscation xorRemap = LabXorRemap();
 
     const auto encrypted = EncryptPacket(PacketOf(Bytes({0xC1, 0x05, 0x1E, 0xBE, 0x02})), identity.encryption, serials,
-                                         foxAnti, std::byte{0xA5});
+                                         xorRemap, std::byte{0xA5});
 
     ByteVector block = Bytes({0x03, 0xA6, 0x06, 0xBA, 0x1D, 0x00, 0x00, 0x00});
     const std::array cipher = EncryptBlock(identity.encryption, std::span(block).first<PlainBlockSize>(), 4);
@@ -508,7 +528,7 @@ TEST(FoxAntiObfuscationTest, EncryptPacketCiphersWhatBeforeEncryptLeft)
 // encode_outbound: un C1 con XOR32 que sale al cable. Con D3 y D7 cambia el opcode y los campos,
 // que se encadenan con él; con 20, nada. Los largos 3 y 4 son los bordes del XOR32: sin campos, y
 // con uno solo. El de 40 da la vuelta a la clave de 32.
-TEST(FoxAntiObfuscationTest, BeforeSendRemapsLikeTheMinimalFoxAnti)
+TEST(XorRemapObfuscationTest, BeforeSendRemapsLikeTheMinimalFoxAnti)
 {
     const std::vector<ReferenceCase> cases{
         {"A4.D3.L3", Bytes({0xC1, 0x03, 0xD3}), Bytes({0xC1, 0x03, 0xA3})},
@@ -539,18 +559,18 @@ TEST(FoxAntiObfuscationTest, BeforeSendRemapsLikeTheMinimalFoxAnti)
         {"A6.net.partial", Bytes({0xC1, 0x0A, 0xD3, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07}),
          Bytes({0xC1, 0x0A, 0xA3, 0x71, 0x72, 0x73, 0x74, 0x75, 0x76, 0x77})},
     };
-    const FoxAntiObfuscation foxAnti;
+    const XorRemapObfuscation xorRemap = LabXorRemap();
     for (const ReferenceCase& reference : cases)
     {
-        EXPECT_TRUE(SameBytes(foxAnti.BeforeSend(PacketOf(reference.in)).Bytes(), reference.out)) << reference.name;
+        EXPECT_TRUE(SameBytes(xorRemap.BeforeSend(PacketOf(reference.in)).Bytes(), reference.out)) << reference.name;
     }
 }
 
 // Lo que hace un remapeo, en claro: sin el XOR32, el paquete es el mismo con el otro opcode. Cada
 // opcode de 0 a 255 en un C1 de 40 bytes: solo D3 y D7 cambian.
-TEST(FoxAntiObfuscationTest, BeforeSendOnlyChangesTheOpcodeOfD3AndD7)
+TEST(XorRemapObfuscationTest, BeforeSendOnlyChangesTheOpcodeOfD3AndD7)
 {
-    const FoxAntiObfuscation foxAnti;
+    const XorRemapObfuscation xorRemap = LabXorRemap();
     for (int opcode = 0; opcode < 256; ++opcode)
     {
         ByteVector plain = BytePattern(40, 7, 3);
@@ -560,7 +580,7 @@ TEST(FoxAntiObfuscationTest, BeforeSendOnlyChangesTheOpcodeOfD3AndD7)
         ByteVector expected = plain;
         expected[2] = opcode == 0xD3 ? std::byte{0xA3} : opcode == 0xD7 ? std::byte{0xA4} : plain[2];
 
-        const Packet sent = foxAnti.BeforeSend(Xor32Encode(PacketOf(plain)));
+        const Packet sent = xorRemap.BeforeSend(Xor32Encode(PacketOf(plain)));
 
         EXPECT_TRUE(SameBytes(Xor32Decode(PacketOf(BytesOf(sent))).Bytes(), expected)) << "opcode " << opcode;
     }
@@ -570,10 +590,10 @@ TEST(FoxAntiObfuscationTest, BeforeSendOnlyChangesTheOpcodeOfD3AndD7)
 // identidad, se descifra, y sin el XOR32 es el mismo con el otro opcode. Cada opcode en un C1 de 13
 // bytes (lo útil no llena el bloque, y el relleno va cifrado) y de 9 (lo útil llena el bloque, y el
 // relleno queda afuera).
-TEST(FoxAntiObfuscationTest, AnEncryptedPacketOnlyChangesTheOpcodeOf10And19And1E)
+TEST(XorRemapObfuscationTest, AnEncryptedPacketOnlyChangesTheOpcodeOf10And19And1E)
 {
     const auto keys = IdentityPair();
-    const FoxAntiObfuscation foxAnti;
+    const XorRemapObfuscation xorRemap = LabXorRemap();
     for (const std::size_t size : {std::size_t{13}, std::size_t{9}})
     {
         for (int opcode = 0; opcode < 256; ++opcode)
@@ -591,7 +611,7 @@ TEST(FoxAntiObfuscationTest, AnEncryptedPacketOnlyChangesTheOpcodeOf10And19And1E
             PacketSerials receiving;
 
             const auto encrypted =
-                EncryptPacket(Xor32Encode(PacketOf(plain)), keys.encryption, sending, foxAnti, std::byte{0xA5});
+                EncryptPacket(Xor32Encode(PacketOf(plain)), keys.encryption, sending, xorRemap, std::byte{0xA5});
             ASSERT_TRUE(encrypted.HasValue());
             const auto decrypted = DecryptPacket(encrypted.Value(), keys.decryption, receiving);
             ASSERT_TRUE(decrypted.HasValue());
@@ -609,7 +629,7 @@ TEST(FoxAntiObfuscationTest, AnEncryptedPacketOnlyChangesTheOpcodeOf10And19And1E
 // también. La escalera es solo del C1 F4 03 de 6 bytes: uno de 8, o uno de 6 con otro subcódigo,
 // sale como vino aunque traiga un código de 400. Y un C3 o un C4 cuyo primer byte cifrado se lee
 // como D3 o D7 tampoco cambia.
-TEST(FoxAntiObfuscationTest, WhatIsNotRemappedGoesOutUntouched)
+TEST(XorRemapObfuscationTest, WhatIsNotRemappedGoesOutUntouched)
 {
     const std::vector<ByteVector> untouched{
         NoticeSerial0(),
@@ -623,16 +643,16 @@ TEST(FoxAntiObfuscationTest, WhatIsNotRemappedGoesOutUntouched)
         Bytes({0xC3, 0x05, 0xD7, 0x01, 0x02}),
         Bytes({0xC4, 0x00, 0x06, 0xD3, 0x01, 0x02}),
     };
-    const FoxAntiObfuscation foxAnti;
+    const XorRemapObfuscation xorRemap = LabXorRemap();
     for (std::size_t k = 0; k < untouched.size(); ++k)
     {
-        EXPECT_TRUE(SameBytes(foxAnti.BeforeSend(PacketOf(untouched[k])).Bytes(), untouched[k])) << "paquete " << k;
+        EXPECT_TRUE(SameBytes(xorRemap.BeforeSend(PacketOf(untouched[k])).Bytes(), untouched[k])) << "paquete " << k;
     }
 }
 
 // Lo que se cifra del aviso F1 03 y de un login (C1 31 F1 01, 49 bytes, con campos de prueba y
 // XOR32), con su serial y su relleno: el opcode F1 no se remapea, y queda igual byte por byte.
-TEST(FoxAntiObfuscationTest, TheNoticeAndALoginGoEncryptedUntouched)
+TEST(XorRemapObfuscationTest, TheNoticeAndALoginGoEncryptedUntouched)
 {
     ByteVector login = BytePattern(49, 29, 17);
     login[0] = std::byte{0xC1};
@@ -640,7 +660,7 @@ TEST(FoxAntiObfuscationTest, TheNoticeAndALoginGoEncryptedUntouched)
     login[2] = std::byte{0xF1};
     login[3] = std::byte{0x01};
     const Packet loginWithXor32 = Xor32Encode(PacketOf(login));
-    const FoxAntiObfuscation foxAnti;
+    const XorRemapObfuscation xorRemap = LabXorRemap();
 
     for (const ByteVector& c1 : {NoticeBytes(), BytesOf(loginWithXor32)})
     {
@@ -649,14 +669,14 @@ TEST(FoxAntiObfuscationTest, TheNoticeAndALoginGoEncryptedUntouched)
         sealed.push_back(std::byte{0xA5});
         const ByteVector before = sealed;
 
-        foxAnti.BeforeEncrypt(sealed);
+        xorRemap.BeforeEncrypt(sealed);
 
         EXPECT_TRUE(SameBytes(sealed, before)) << "un C1 de " << c1.size() << " bytes";
     }
 }
 
 // Lo que no es la lista ni el F3 11 pasa igual, al cortarse y antes del dispatcher.
-TEST(FoxAntiObfuscationTest, OtherIncomingPacketsPassUntouched)
+TEST(XorRemapObfuscationTest, OtherIncomingPacketsPassUntouched)
 {
     const std::vector<ByteVector> untouched{
         Bytes({0xC1, 0x04, 0x00, 0x01}),             // el saludo del ConnectServer
@@ -669,13 +689,13 @@ TEST(FoxAntiObfuscationTest, OtherIncomingPacketsPassUntouched)
         Bytes({0xC1, 0x05, 0xF3, 0x12, 0x00}),       // otro subcódigo de F3
         NoticeSerial0(),                             // un C3: lo de adentro va cifrado
     };
-    const FoxAntiObfuscation foxAnti;
+    const XorRemapObfuscation xorRemap = LabXorRemap();
     for (std::size_t k = 0; k < untouched.size(); ++k)
     {
-        const auto afterCut = foxAnti.AfterCut(PacketOf(untouched[k]));
+        const auto afterCut = xorRemap.AfterCut(PacketOf(untouched[k]));
         ASSERT_TRUE(afterCut.HasValue()) << "paquete " << k;
         EXPECT_TRUE(SameBytes(afterCut.Value().Bytes(), untouched[k])) << "paquete " << k;
-        const auto beforeDispatch = foxAnti.BeforeDispatch(PacketOf(untouched[k]));
+        const auto beforeDispatch = xorRemap.BeforeDispatch(PacketOf(untouched[k]));
         ASSERT_TRUE(beforeDispatch.HasValue()) << "paquete " << k;
         EXPECT_TRUE(SameBytes(beforeDispatch.Value().Bytes(), untouched[k])) << "paquete " << k;
     }
@@ -685,7 +705,7 @@ TEST(FoxAntiObfuscationTest, OtherIncomingPacketsPassUntouched)
 
 // La escalera de encode_outbound: los bordes de cada uno de sus 8 rangos, y uno debajo y otro
 // arriba (la tabla de test_encode_outbound_ladder de mu-client, y los casos A2).
-TEST(FoxAntiObfuscationTest, TheServerCodeLadderIsTheOriginalOne)
+TEST(XorRemapObfuscationTest, TheServerCodeLadderIsTheOriginalOne)
 {
     struct Step
     {
@@ -697,10 +717,11 @@ TEST(FoxAntiObfuscationTest, TheServerCodeLadderIsTheOriginalOne)
         {0x140, 0x046}, {0x153, 0x059}, {0x154, 0x03C}, {0x167, 0x04F}, {0x168, 0x032}, {0x17B, 0x045}, {0x17C, 0x00A},
         {0x18F, 0x01D}, {0x190, 0x000}, {0x1A3, 0x013}, {0x1A4, 0x1A4}, {0x000, 0x000},
     };
-    const FoxAntiObfuscation foxAnti;
+    const XorRemapObfuscation xorRemap = LabXorRemap();
     for (const Step& step : steps)
     {
-        EXPECT_TRUE(SameBytes(foxAnti.BeforeSend(PacketOf(ServerSelect(step.chosen))).Bytes(), ServerSelect(step.sent)))
+        EXPECT_TRUE(
+            SameBytes(xorRemap.BeforeSend(PacketOf(ServerSelect(step.chosen))).Bytes(), ServerSelect(step.sent)))
             << "código " << step.chosen;
     }
 }
@@ -723,7 +744,7 @@ TEST(FoxAntiObfuscationTest, TheServerCodeLadderIsTheOriginalOne)
 // Contra la FoxAnti mínima (A3): cada código de 0 a 110 como única entrada de la lista, lo que
 // queda en la lista de main.exe, y lo que sale al cable cuando main.exe lo elige. En cada rango los
 // dos suben de a uno con el código, salvo desde el 98, que queda en 0.
-TEST(FoxAntiObfuscationTest, ServerCodesComeBackTheSameOnlyFrom0To20)
+TEST(XorRemapObfuscationTest, ServerCodesComeBackTheSameOnlyFrom0To20)
 {
     struct RoundTrip
     {
@@ -738,7 +759,7 @@ TEST(FoxAntiObfuscationTest, ServerCodesComeBackTheSameOnlyFrom0To20)
         {43, 53, 0x143, 0x49, 1},  {54, 64, 0x130, 0x54, 1},   {65, 75, 0x11D, 0x5F, 1}, {76, 86, 0x10A, 0x6A, 1},
         {87, 97, 0x0F7, 0x0F7, 1}, {98, 110, 0x000, 0x000, 0},
     };
-    const FoxAntiObfuscation foxAnti;
+    const XorRemapObfuscation xorRemap = LabXorRemap();
     for (const RoundTrip& range : ranges)
     {
         for (std::uint16_t code = range.first; code <= range.last; ++code)
@@ -747,12 +768,12 @@ TEST(FoxAntiObfuscationTest, ServerCodesComeBackTheSameOnlyFrom0To20)
             const auto expectedList = static_cast<std::uint16_t>(range.firstList + offset);
             const auto expectedSent = static_cast<std::uint16_t>(range.firstSent + offset);
 
-            const auto list = foxAnti.AfterCut(PacketOf(LabListWithCode(code)));
+            const auto list = xorRemap.AfterCut(PacketOf(LabListWithCode(code)));
             ASSERT_TRUE(list.HasValue()) << "código " << code;
             const std::span<const std::byte> entry = list.Value().Bytes().subspan(7);
             const auto listed =
                 static_cast<std::uint16_t>(std::to_integer<int>(entry[0]) | (std::to_integer<int>(entry[1]) << 8));
-            const Packet sent = foxAnti.BeforeSend(PacketOf(ServerSelect(listed)));
+            const Packet sent = xorRemap.BeforeSend(PacketOf(ServerSelect(listed)));
 
             EXPECT_EQ(listed, expectedList) << "código " << code;
             EXPECT_TRUE(SameBytes(sent.Bytes(), ServerSelect(expectedSent))) << "código " << code;
@@ -764,7 +785,7 @@ TEST(FoxAntiObfuscationTest, ServerCodesComeBackTheSameOnlyFrom0To20)
 // Las listas de más de una entrada, con la carga copiada y el cuarto byte en 0 (C2 y C5), la
 // vacía (C3), lo que viene detrás de las entradas, que queda en 0 (C4), y los dos casos de
 // test_decode_inbound de mu-client, con el tamaño que miden.
-TEST(FoxAntiObfuscationTest, ServerListsAreTranslatedLikeTheMinimalFoxAnti)
+TEST(XorRemapObfuscationTest, ServerListsAreTranslatedLikeTheMinimalFoxAnti)
 {
     const std::vector<ReferenceCase> cases{
         {"C1", LabServerList(), MainExeServerList()},
@@ -786,10 +807,10 @@ TEST(FoxAntiObfuscationTest, ServerListsAreTranslatedLikeTheMinimalFoxAnti)
         {"mu-client 0x62", Bytes({0xC2, 0x00, 0x0A, 0xF4, 0x02, 0x01, 0x62, 0x00, 0x33, 0x00}),
          Bytes({0xC2, 0x00, 0x0B, 0xF4, 0x06, 0x00, 0x01, 0x00, 0x00, 0x33, 0x00})},
     };
-    const FoxAntiObfuscation foxAnti;
+    const XorRemapObfuscation xorRemap = LabXorRemap();
     for (const ReferenceCase& reference : cases)
     {
-        const auto list = foxAnti.AfterCut(PacketOf(reference.in));
+        const auto list = xorRemap.AfterCut(PacketOf(reference.in));
         ASSERT_TRUE(list.HasValue()) << reference.name;
         EXPECT_TRUE(SameBytes(list.Value().Bytes(), reference.out)) << reference.name;
     }
@@ -797,7 +818,7 @@ TEST(FoxAntiObfuscationTest, ServerListsAreTranslatedLikeTheMinimalFoxAnti)
 
 // Los F3 11 de reset_queue: los dos de la FoxAnti mínima con muestras vivas (D1 y D2), el más corto
 // que se puede (D3) y uno de 20 bytes (D4), como el segundo de la sesión real.
-TEST(FoxAntiObfuscationTest, SkillListsGetTheirByteLikeTheMinimalFoxAnti)
+TEST(XorRemapObfuscationTest, SkillListsGetTheirByteLikeTheMinimalFoxAnti)
 {
     const std::vector<ReferenceCase> cases{
         {"D1", Bytes({0xC1, 0x08, 0xF3, 0x11, 0xFE, 0x04, 0x16, 0x68}),
@@ -810,10 +831,10 @@ TEST(FoxAntiObfuscationTest, SkillListsGetTheirByteLikeTheMinimalFoxAnti)
          Bytes({0xC1, 0x15, 0xF3, 0x11, 0x05, 0x00, 0x01, 0x0C, 0x17, 0x22, 0x2D,
                 0x38, 0x43, 0x4E, 0x59, 0x64, 0x6F, 0x7A, 0x85, 0x90, 0x9B})},
     };
-    const FoxAntiObfuscation foxAnti;
+    const XorRemapObfuscation xorRemap = LabXorRemap();
     for (const ReferenceCase& reference : cases)
     {
-        const auto list = foxAnti.BeforeDispatch(PacketOf(reference.in));
+        const auto list = xorRemap.BeforeDispatch(PacketOf(reference.in));
         ASSERT_TRUE(list.HasValue()) << reference.name;
         EXPECT_TRUE(SameBytes(list.Value().Bytes(), reference.out)) << reference.name;
     }
@@ -822,16 +843,16 @@ TEST(FoxAntiObfuscationTest, SkillListsGetTheirByteLikeTheMinimalFoxAnti)
 // --- Los largos que el original no mira (Q-C09) ---
 
 // C1 04 F3 11 tumba al original: reset_queue copia len - 5 bytes, que con 4 da la vuelta.
-TEST(FoxAntiObfuscationTest, ASkillListWithoutPkt4IsInvalid)
+TEST(XorRemapObfuscationTest, ASkillListWithoutPkt4IsInvalid)
 {
-    const auto list = FoxAntiObfuscation{}.BeforeDispatch(PacketOf(Bytes({0xC1, 0x04, 0xF3, 0x11})));
+    const auto list = LabXorRemap().BeforeDispatch(PacketOf(Bytes({0xC1, 0x04, 0xF3, 0x11})));
 
     ASSERT_FALSE(list.HasValue());
     EXPECT_EQ(list.Error(), ObfuscationError::InvalidPacket);
 }
 
 // Uno de 255 bytes pasaría a 256, que no entra en el byte del tamaño: el original lo deja en 0.
-TEST(FoxAntiObfuscationTest, ASkillListOf255BytesIsInvalid)
+TEST(XorRemapObfuscationTest, ASkillListOf255BytesIsInvalid)
 {
     ByteVector bytes(255, std::byte{0x11});
     bytes[0] = std::byte{0xC1};
@@ -839,14 +860,14 @@ TEST(FoxAntiObfuscationTest, ASkillListOf255BytesIsInvalid)
     bytes[2] = std::byte{0xF3};
     bytes[3] = std::byte{0x11};
 
-    const auto list = FoxAntiObfuscation{}.BeforeDispatch(PacketOf(bytes));
+    const auto list = LabXorRemap().BeforeDispatch(PacketOf(bytes));
 
     ASSERT_FALSE(list.HasValue());
     EXPECT_EQ(list.Error(), ObfuscationError::InvalidPacket);
 }
 
 // El de 254, el más largo que entra, pasa a 255.
-TEST(FoxAntiObfuscationTest, ASkillListOf254BytesBecomes255)
+TEST(XorRemapObfuscationTest, ASkillListOf254BytesBecomes255)
 {
     ByteVector bytes(254, std::byte{0x11});
     bytes[0] = std::byte{0xC1};
@@ -854,7 +875,7 @@ TEST(FoxAntiObfuscationTest, ASkillListOf254BytesBecomes255)
     bytes[2] = std::byte{0xF3};
     bytes[3] = std::byte{0x11};
 
-    const auto list = FoxAntiObfuscation{}.BeforeDispatch(PacketOf(bytes));
+    const auto list = LabXorRemap().BeforeDispatch(PacketOf(bytes));
 
     ASSERT_TRUE(list.HasValue());
     EXPECT_EQ(list.Value().Bytes().size(), 255u);
@@ -865,7 +886,7 @@ TEST(FoxAntiObfuscationTest, ASkillListOf254BytesBecomes255)
 // Una cantidad que no entra en el paquete: el original lee hasta ~1 KB de más. También la lista sin
 // cantidad, y una a la que le falta el cuarto byte de su última entrada, que el original no lee
 // pero es una lista mal armada.
-TEST(FoxAntiObfuscationTest, AListWhoseCountDoesNotFitIsInvalid)
+TEST(XorRemapObfuscationTest, AListWhoseCountDoesNotFitIsInvalid)
 {
     const std::vector<ByteVector> lists{
         Bytes({0xC2, 0x00, 0x0A, 0xF4, 0x02, 0x02, 0x00, 0x00, 0x00, 0xCC}),
@@ -873,10 +894,10 @@ TEST(FoxAntiObfuscationTest, AListWhoseCountDoesNotFitIsInvalid)
         Bytes({0xC2, 0x00, 0x05, 0xF4, 0x02}),
         Bytes({0xC2, 0x00, 0x09, 0xF4, 0x02, 0x01, 0x00, 0x00, 0x00}),
     };
-    const FoxAntiObfuscation foxAnti;
+    const XorRemapObfuscation xorRemap = LabXorRemap();
     for (std::size_t k = 0; k < lists.size(); ++k)
     {
-        const auto list = foxAnti.AfterCut(PacketOf(lists[k]));
+        const auto list = xorRemap.AfterCut(PacketOf(lists[k]));
         ASSERT_FALSE(list.HasValue()) << "lista " << k;
         EXPECT_EQ(list.Error(), ObfuscationError::InvalidPacket) << "lista " << k;
     }
@@ -884,9 +905,9 @@ TEST(FoxAntiObfuscationTest, AListWhoseCountDoesNotFitIsInvalid)
 
 // Una lista de MaxPacketSize bytes pasaría a uno más, que el lector no deja pasar; una de uno menos
 // queda justo en MaxPacketSize.
-TEST(FoxAntiObfuscationTest, AListThatWouldNotFitIsInvalid)
+TEST(XorRemapObfuscationTest, AListThatWouldNotFitIsInvalid)
 {
-    const FoxAntiObfuscation foxAnti;
+    const XorRemapObfuscation xorRemap = LabXorRemap();
     for (const std::size_t size : {MaxPacketSize, MaxPacketSize - 1})
     {
         ByteVector bytes(size);
@@ -897,7 +918,7 @@ TEST(FoxAntiObfuscationTest, AListThatWouldNotFitIsInvalid)
         bytes[4] = std::byte{0x02};
         bytes[5] = std::byte{0x01};
 
-        const auto list = foxAnti.AfterCut(PacketOf(bytes));
+        const auto list = xorRemap.AfterCut(PacketOf(bytes));
 
         ASSERT_EQ(list.HasValue(), size < MaxPacketSize) << "tamaño " << size;
         if (list.HasValue())
@@ -913,42 +934,42 @@ TEST(FoxAntiObfuscationTest, AListThatWouldNotFitIsInvalid)
 }
 
 // BeforeEncrypt con menos de dos bytes no tiene opcode: no toca nada.
-TEST(FoxAntiObfuscationTest, BeforeEncryptWithoutAnOpcodeDoesNothing)
+TEST(XorRemapObfuscationTest, BeforeEncryptWithoutAnOpcodeDoesNothing)
 {
     ByteVector onlySerial = Bytes({0x10});
 
-    FoxAntiObfuscation{}.BeforeEncrypt(onlySerial);
-    FoxAntiObfuscation{}.BeforeEncrypt(std::span<std::byte>{});
+    LabXorRemap().BeforeEncrypt(onlySerial);
+    LabXorRemap().BeforeEncrypt(std::span<std::byte>{});
 
     EXPECT_TRUE(SameBytes(onlySerial, Bytes({0x10})));
 }
 
 // Con el serial y el opcode solos, el opcode se remapea igual, como en send_forward.
-TEST(FoxAntiObfuscationTest, BeforeEncryptRemapsAnOpcodeWithNothingAfterIt)
+TEST(XorRemapObfuscationTest, BeforeEncryptRemapsAnOpcodeWithNothingAfterIt)
 {
     ByteVector serialAndOpcode = Bytes({0x10, 0x10});
 
-    FoxAntiObfuscation{}.BeforeEncrypt(serialAndOpcode);
+    LabXorRemap().BeforeEncrypt(serialAndOpcode);
 
     EXPECT_TRUE(SameBytes(serialAndOpcode, Bytes({0x10, 0x1D})));
 }
 
 // Fixture directo de la transformación: AfterCut recibe normalmente una lista clara, antes
 // del decoder. El true acá comprueba que reconstruir no borra metadata ya presente.
-TEST(FoxAntiObfuscationTest, RebuildingTheServerListPreservesDecryptionProvenance)
+TEST(XorRemapObfuscationTest, RebuildingTheServerListPreservesDecryptionProvenance)
 {
     for (const bool wasDecrypted : {false, true})
     {
         auto packet = Packet::FromBytes(LabServerList(), wasDecrypted);
         ASSERT_TRUE(packet.HasValue());
-        const auto translated = FoxAntiObfuscation{}.AfterCut(std::move(packet).Value());
+        const auto translated = LabXorRemap().AfterCut(std::move(packet).Value());
         ASSERT_TRUE(translated.HasValue());
         EXPECT_EQ(translated.Value().WasDecrypted(), wasDecrypted);
         EXPECT_TRUE(SameBytes(translated.Value().Bytes(), MainExeServerList()));
     }
 }
 
-TEST(FoxAntiObfuscationTest, RebuildingTheSkillListPreservesDecryptionProvenance)
+TEST(XorRemapObfuscationTest, RebuildingTheSkillListPreservesDecryptionProvenance)
 {
     const auto identity = IdentityPair();
     const auto plain = Bytes({0xC1, 0x08, 0xF3, 0x11, 0xFE, 0x04, 0x16, 0x68});
@@ -965,7 +986,7 @@ TEST(FoxAntiObfuscationTest, RebuildingTheSkillListPreservesDecryptionProvenance
             ASSERT_TRUE(decoded.HasValue());
             packet = std::move(decoded).Value().packet;
         }
-        const auto translated = FoxAntiObfuscation{}.BeforeDispatch(std::move(packet));
+        const auto translated = LabXorRemap().BeforeDispatch(std::move(packet));
         ASSERT_TRUE(translated.HasValue());
         EXPECT_EQ(translated.Value().WasDecrypted(), encrypted);
         EXPECT_TRUE(

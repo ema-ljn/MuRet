@@ -620,8 +620,6 @@ number	World/WorldObjectStepServices.cpp	Tenth	f32:0x3dcccccd
 number	World/WorldObjects.cpp	FullTurn	0x168
 number	World/WorldObjects.cpp	Tenth	f32:0x3dcccccd
 number	World/WorldObjects.cpp	Thousandth	f32:0x3a83126f
-opcode	Network/XorRemapObfuscation.cpp	CharacterOpcode	0xf3
-opcode	Network/XorRemapObfuscation.cpp	ServerOpcode	0xf4
 player-action	Protocol/Combat.h	AttackAction	0x78
 player-action	Protocol/Movement.h	FacingAction	0x7a
 player-action	Protocol/Movement.h	SittingAction	0x82

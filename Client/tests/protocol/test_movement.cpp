@@ -2,7 +2,6 @@
 #include "Protocol/Movement.h"
 
 #include "Network/Delivery.h"
-#include "Network/XorRemapObfuscation.h"
 #include "Protocol/ProtocolError.h"
 
 #include "support/Bytes.h"
@@ -45,15 +44,12 @@ using Client::Tests::SameBytes;
 TEST(MovementTest, TheDocumentedWireBytesMatchForAnExplicitFarTarget)
 {
     constexpr std::array<Cell, 4> Path{{{0xb6, 0x73}, {0xb5, 0x73}, {0xb4, 0x74}, {0xb3, 0x74}}};
-    auto sent = WriteWalk(Path, {0, 0}, 0.0f);
+    const auto sent = WriteWalk(Path, {0, 0}, 0.0f);
     ASSERT_TRUE(sent.HasValue());
     EXPECT_EQ(sent.Value().delivery, Client::Network::Delivery::Clear);
     EXPECT_TRUE(
         SameBytes(Xor32Decode(sent.Value().packet).Bytes(), Bytes({0xc1, 0x08, 0xd3, 0xb6, 0x73, 0x73, 0x76, 0x70})));
     EXPECT_TRUE(SameBytes(sent.Value().packet.Bytes(), Bytes({0xc1, 0x08, 0xd3, 0xec, 0x23, 0xe2, 0x0b, 0x08})));
-    Client::Network::FoxAntiObfuscation foxAnti;
-    const auto wire = foxAnti.BeforeSend(std::move(sent.Value().packet));
-    EXPECT_TRUE(SameBytes(wire.Bytes(), Bytes({0xc1, 0x08, 0xa3, 0x9c, 0x53, 0x92, 0x7b, 0x78})));
 }
 
 // Expectativas estáticas: tabla 0x6c82a4 y empaquetado 0x56b006..0x56b0a4.

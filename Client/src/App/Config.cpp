@@ -3,7 +3,6 @@
 #include "App/CommandLine.h"
 #include "App/ConfigError.h"
 #include "App/LoopTiming.h"
-#include "App/ObfuscationMode.h"
 #include "App/PacingMode.h"
 #include "App/ServerAddress.h"
 #include "App/VSyncMode.h"
@@ -41,7 +40,6 @@ enum class Key : std::uint8_t
     DataPath,
     ServerHost,
     ServerPort,
-    ServerObfuscation,
     VideoWidth,
     VideoHeight,
     VideoVSync,
@@ -66,7 +64,6 @@ constexpr std::array KnownKeys = {
     KnownKey{"Data", "Path", Key::DataPath},
     KnownKey{"Server", "Host", Key::ServerHost},
     KnownKey{"Server", "Port", Key::ServerPort},
-    KnownKey{"Server", "Obfuscation", Key::ServerObfuscation},
     KnownKey{"Video", "Width", Key::VideoWidth},
     KnownKey{"Video", "Height", Key::VideoHeight},
     KnownKey{"Video", "VSync", Key::VideoVSync},
@@ -137,6 +134,12 @@ bool IsKnownSection(std::string_view section)
 {
     return std::ranges::any_of(KnownKeys, [section](const KnownKey& known)
                                { return EqualsIgnoringAsciiCase(known.section, section); });
+}
+
+// [Server] Obfuscation is gone: the build chooses the server's packet shape (App/MakeObfuscation.h).
+bool IsRemovedObfuscationKey(std::string_view section, std::string_view name)
+{
+    return EqualsIgnoringAsciiCase(section, "Server") && EqualsIgnoringAsciiCase(name, "Obfuscation");
 }
 
 // La posición en KnownKeys, o KnownKeys.size() si no está.
@@ -224,19 +227,6 @@ Core::Expected<PacingMode, std::string> ParsePacing(std::string_view value)
     return Unexpected(std::string("tiene que ser decoupled o faithful"));
 }
 
-Core::Expected<ObfuscationMode, std::string> ParseObfuscation(std::string_view value)
-{
-    if (EqualsIgnoringAsciiCase(value, "foxanti"))
-    {
-        return ObfuscationMode::FoxAnti;
-    }
-    if (EqualsIgnoringAsciiCase(value, "none"))
-    {
-        return ObfuscationMode::None;
-    }
-    return Unexpected(std::string("tiene que ser foxanti o none"));
-}
-
 // El archivo es UTF-8, y path(std::string) en Windows lee la página de códigos ANSI: una carpeta
 // con una letra que no sea ASCII quedaría mal. Core::PathFromUtf8 la lee como UTF-8 y rechaza el
 // texto que no lo es.
@@ -320,17 +310,6 @@ std::optional<std::string> Store(ClientConfig& config, Key key, std::string_view
             config.server.emplace();
         }
         config.server->port = port.Value();
-        return std::nullopt;
-    }
-    case Key::ServerObfuscation:
-    {
-        // No arma config.server: la ofuscación no es parte de la dirección.
-        const auto obfuscation = ParseObfuscation(value);
-        if (!obfuscation.HasValue())
-        {
-            return obfuscation.Error();
-        }
-        config.obfuscation = obfuscation.Value();
         return std::nullopt;
     }
     case Key::VideoWidth:
@@ -509,6 +488,12 @@ Core::Expected<ClientConfig, ConfigError> ParseConfig(std::string_view text)
             return Unexpected(ErrorAt(lineNumber, std::format("{} está antes de la primera sección", name)));
         }
         const std::size_t index = FindKey(section, name);
+        if (index == KnownKeys.size() && IsRemovedObfuscationKey(section, name))
+        {
+            return Unexpected(ErrorAt(lineNumber, "Obfuscation no longer exists: the server's packet shape is chosen "
+                                                  "when building (-DMU_XOR_REMAP=OFF for a server that speaks like "
+                                                  "main.exe)"));
+        }
         if (index == KnownKeys.size())
         {
             return Unexpected(ErrorAt(lineNumber, std::format("no existe la clave {} en [{}]", name, section)));

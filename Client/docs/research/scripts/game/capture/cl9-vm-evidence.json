@@ -871,8 +871,8 @@
       "profile": "historical_memory_2f16"
     },
     {
-      "name": "GoldenConnection.DeliversWhatTheGameServerAnswered",
-      "source": "Client/tests/network/test_golden_connection.cpp",
+      "name": "GoldenConnectionXorRemap.DeliversWhatTheGameServerAnswered",
+      "source": "Client/tests/network/test_golden_connection_xor_remap.cpp",
       "group": "wire",
       "required_outputs": [
         "wire/muproxy.log",
@@ -911,8 +911,8 @@
       "profile": "archived_wire"
     },
     {
-      "name": "GoldenEncryptedPacket.DecryptsWhatTheGameServerAnswered",
-      "source": "Client/tests/network/test_golden_encrypted_packet.cpp",
+      "name": "GoldenEncryptedPacketXorRemap.DecryptsWhatTheGameServerAnswered",
+      "source": "Client/tests/network/test_golden_encrypted_packet_xor_remap.cpp",
       "group": "wire",
       "required_outputs": [
         "wire/muproxy.log",
@@ -925,8 +925,8 @@
       "profile": "archived_wire"
     },
     {
-      "name": "GoldenEncryptedPacket.ReadsAllSevenInventoryCapturesAgainstTheIndependentReference",
-      "source": "Client/tests/network/test_golden_encrypted_packet.cpp",
+      "name": "GoldenEncryptedPacketXorRemap.ReadsAllSevenInventoryCapturesAgainstTheIndependentReference",
+      "source": "Client/tests/network/test_golden_encrypted_packet_xor_remap.cpp",
       "group": "wire",
       "required_outputs": [
         "wire/muproxy.log",
@@ -968,8 +968,8 @@
       "profile": "archived_wire"
     },
     {
-      "name": "GoldenFoxAntiObfuscation.CutsWhatBothServersAnswered",
-      "source": "Client/tests/network/test_golden_fox_anti_obfuscation.cpp",
+      "name": "GoldenXorRemapObfuscation.CutsWhatBothServersAnswered",
+      "source": "Client/tests/network/test_golden_xor_remap_obfuscation.cpp",
       "group": "wire",
       "required_outputs": [
         "wire/muproxy.log"
@@ -980,8 +980,8 @@
       "profile": "archived_wire"
     },
     {
-      "name": "GoldenFoxAntiObfuscation.OneByteAtATimeGivesTheSamePackets",
-      "source": "Client/tests/network/test_golden_fox_anti_obfuscation.cpp",
+      "name": "GoldenXorRemapObfuscation.OneByteAtATimeGivesTheSamePackets",
+      "source": "Client/tests/network/test_golden_xor_remap_obfuscation.cpp",
       "group": "wire",
       "required_outputs": [
         "wire/muproxy.log"
@@ -992,8 +992,8 @@
       "profile": "archived_wire"
     },
     {
-      "name": "GoldenFoxAntiObfuscation.TheLabServerListsBecomeTheOnesMainExeReads",
-      "source": "Client/tests/network/test_golden_fox_anti_obfuscation.cpp",
+      "name": "GoldenXorRemapObfuscation.TheLabServerListsBecomeTheOnesMainExeReads",
+      "source": "Client/tests/network/test_golden_xor_remap_obfuscation.cpp",
       "group": "wire",
       "required_outputs": [
         "wire/muproxy.log"
@@ -1004,8 +1004,8 @@
       "profile": "archived_wire"
     },
     {
-      "name": "GoldenFoxAntiObfuscation.EverythingTheGameServerAnsweredReachesTheDispatcher",
-      "source": "Client/tests/network/test_golden_fox_anti_obfuscation.cpp",
+      "name": "GoldenXorRemapObfuscation.EverythingTheGameServerAnsweredReachesTheDispatcher",
+      "source": "Client/tests/network/test_golden_xor_remap_obfuscation.cpp",
       "group": "wire",
       "required_outputs": [
         "wire/muproxy.log"
@@ -1016,8 +1016,8 @@
       "profile": "archived_wire"
     },
     {
-      "name": "GoldenFoxAntiObfuscation.TheChosenServerIsWhatTheOriginalClientSent",
-      "source": "Client/tests/network/test_golden_fox_anti_obfuscation.cpp",
+      "name": "GoldenXorRemapObfuscation.TheChosenServerIsWhatTheOriginalClientSent",
+      "source": "Client/tests/network/test_golden_xor_remap_obfuscation.cpp",
       "group": "wire",
       "required_outputs": [
         "wire/muproxy.log"
@@ -1193,12 +1193,11 @@
       "profile": "archived_wire"
     },
     {
-      "name": "GoldenLogin.ReadsTheListsOfTheConnectServerAfterFoxAnti",
-      "source": "Client/tests/protocol/test_golden_login.cpp",
+      "name": "GoldenXorRemapObfuscation.ReadServerListReadsTheListsOnlyAfterTheLayer",
+      "source": "Client/tests/network/test_golden_xor_remap_obfuscation.cpp",
       "group": "wire",
       "required_outputs": [
-        "wire/muproxy.log",
-        "wire/Dec1.dat"
+        "wire/muproxy.log"
       ],
       "historical_constraints": [
         "ports44405/55901 and0xAA FoxAnti mask as used by this corpus; matching client/server key pairs, do not print payloads",

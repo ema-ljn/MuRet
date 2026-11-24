@@ -504,7 +504,7 @@ byte 0, el bit `0x80` del byte 3 y el nibble alto del byte 5) y pone el ítem en
 al 11, con `0x512a30` sobre el héroe publicado) o en una grilla (del 12 en adelante). Ninguna llamada
 escribe el paquete: la cantidad releída es la misma.
 
-El golden `GoldenEncryptedPacket.ReadsAllSevenInventoryCapturesAgainstTheIndependentReference`
+El golden `GoldenEncryptedPacketXorRemap.ReadsAllSevenInventoryCapturesAgainstTheIndependentReference`
 contrasta las siete capturas F3/10 del log del laboratorio (SHA-256
 `f09225602bdd1cb0cf8184eda60639de0871ed59d5d4a6fe9bec14b013f0dfb0`): cantidades 5, 5, 2, 5, 5,
 5 y 6; slots 0/12/14/17/23 para cinco, 0/1 para dos y el slot 28 adicional para seis. Procesa

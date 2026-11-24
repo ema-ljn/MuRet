@@ -15,10 +15,7 @@
 #include "Network/PacketSerials.h"
 #include "Network/SendQueue.h"
 #include "Network/SocketError.h"
-#include "Network/XorRemapObfuscation.h"
-#include "Protocol/Connection/ServerList.h"
 #include "Protocol/Dispatcher.h"
-#include "Protocol/Outgoing.h"
 
 #include "support/Bytes.h"
 #include "support/ClaimsMoreSocket.h"
@@ -29,6 +26,7 @@
 #include "support/RecordingSink.h"
 #include "support/SameBytes.h"
 #include "support/TestGameServer.h"
+#include "test_connection_support.h"
 
 #include <gtest/gtest.h>
 
@@ -47,7 +45,6 @@
 #include <string>
 #include <string_view>
 #include <type_traits>
-#include <utility>
 #include <variant>
 #include <vector>
 
@@ -59,14 +56,12 @@ using namespace std::chrono_literals;
 using Client::Core::Expected;
 using Client::Core::Log;
 using Client::Core::LogLevel;
-using Client::Network::Closed;
 using Client::Network::CloseReason;
 using Client::Network::CloseReasonText;
 using Client::Network::Connection;
 using Client::Network::ConnectTimeout;
 using Client::Network::Delivery;
 using Client::Network::Event;
-using Client::Network::FoxAntiObfuscation;
 using Client::Network::HeaderSize;
 using Client::Network::IdentityObfuscation;
 using Client::Network::IObfuscation;
@@ -83,13 +78,11 @@ using Client::Network::ReceiveChunkSize;
 using Client::Network::SerialCheck;
 using Client::Network::SlowConnectStart;
 using Client::Network::SocketError;
-using Client::Network::Undecryptable;
 using Client::Network::Crypto::CipherBlockSize;
 using Client::Network::Crypto::CryptoError;
 using Client::Network::Crypto::CryptoErrorText;
 using Client::Network::Crypto::DecryptBlock;
 using Client::Network::Crypto::PlainBlockSize;
-using Client::Protocol::Connection::WriteServerSelect;
 using Client::Tests::AsTheGameServerReceives;
 using Client::Tests::Bytes;
 using Client::Tests::ClaimsMoreSocket;
@@ -103,21 +96,16 @@ using Client::Tests::PacketOf;
 using Client::Tests::RecordingSink;
 using Client::Tests::SameBytes;
 using Client::Tests::SameBytesWithoutValues;
-
-using ByteVector = std::vector<std::byte>;
-using Lines = std::vector<std::string>;
-
-// El ConnectServer y el GameServer de los tests: cualquier dirección, el FakeSocket no conecta.
-constexpr std::string_view ConnectHost = "127.0.0.1";
-constexpr std::uint16_t ConnectPort = 44405;
-constexpr std::string_view GameHost = "10.0.0.2";
-constexpr std::uint16_t GamePort = 55901;
-
-// La conexión del ConnectServer, sin claves: con ella, un C3/C4 que llega es Undecryptable.
-constexpr std::nullopt_t NoKeys = std::nullopt;
-
-// La semilla del relleno de lo que se cifra: fija, para que un test dé siempre lo mismo.
-constexpr std::uint32_t PaddingSeed = 1;
+using Client::Tests::ConnectionSupport::ByteVector;
+using Client::Tests::ConnectionSupport::ConnectHost;
+using Client::Tests::ConnectionSupport::ConnectionTest;
+using Client::Tests::ConnectionSupport::ConnectPort;
+using Client::Tests::ConnectionSupport::Describe;
+using Client::Tests::ConnectionSupport::GameHost;
+using Client::Tests::ConnectionSupport::GamePort;
+using Client::Tests::ConnectionSupport::Lines;
+using Client::Tests::ConnectionSupport::NoKeys;
+using Client::Tests::ConnectionSupport::PaddingSeed;
 
 // Un error del sistema para el log de un SocketFailed: el número no importa, solo que se vea.
 constexpr int SomeSystemError = 12345;
@@ -151,46 +139,6 @@ ByteVector Join(std::initializer_list<ByteVector> parts)
         joined.insert(joined.end(), part.begin(), part.end());
     }
     return joined;
-}
-
-std::string HexOf(std::span<const std::byte> bytes)
-{
-    std::string text;
-    for (const std::byte value : bytes)
-    {
-        text += std::format("{}{:02X}", text.empty() ? "" : " ", std::to_integer<int>(value));
-    }
-    return text;
-}
-
-// Un lote de Poll en palabras: "Opened", los bytes de cada paquete ("C1 04 00 01") y
-// "Closed(PeerClosed)". Así un test compara el lote entero, en orden, y si falla, el mensaje dice
-// qué llegó. Son bytes escritos en el test, no del cable.
-Lines Describe(const std::vector<Event>& events)
-{
-    Lines lines;
-    for (const Event& event : events)
-    {
-        if (std::holds_alternative<Opened>(event))
-        {
-            lines.emplace_back("Opened");
-        }
-        else if (const Closed* closed = std::get_if<Closed>(&event))
-        {
-            lines.push_back("Closed(" + ::testing::PrintToString(closed->reason) + ")");
-        }
-        else if (const Undecryptable* undecryptable = std::get_if<Undecryptable>(&event))
-        {
-            lines.push_back("Undecryptable(" +
-                            (undecryptable->error ? ::testing::PrintToString(*undecryptable->error) : "sin claves") +
-                            ")");
-        }
-        else
-        {
-            lines.push_back(HexOf(std::get<Packet>(event).Bytes()));
-        }
-    }
-    return lines;
 }
 
 // El byte de relleno de un C3 de un solo bloque: el que sigue a lo útil, que el GameServer ve al
@@ -259,73 +207,11 @@ private:
 
 // La conexión guarda referencias: una ofuscación temporal no compila, porque moriría antes, y no se
 // copia ni se mueve.
-static_assert(!std::is_constructible_v<Connection, FakeSocket&, FoxAntiObfuscation, FakeClock&, Log&, std::uint32_t>);
+static_assert(!std::is_constructible_v<Connection, FakeSocket&, IdentityObfuscation, FakeClock&, Log&, std::uint32_t>);
 static_assert(
-    std::is_constructible_v<Connection, FakeSocket&, const FoxAntiObfuscation&, FakeClock&, Log&, std::uint32_t>);
+    std::is_constructible_v<Connection, FakeSocket&, const IdentityObfuscation&, FakeClock&, Log&, std::uint32_t>);
 static_assert(!std::is_copy_constructible_v<Connection>);
 static_assert(!std::is_move_constructible_v<Connection>);
-
-class ConnectionTest : public ::testing::Test
-{
-protected:
-    // Open al ConnectServer y el Poll que da el Opened.
-    void OpenAndConnect(Connection& connection)
-    {
-        connection.Open(ConnectHost, ConnectPort, NoKeys);
-        ASSERT_EQ(Describe(connection.Poll()), Lines{"Opened"});
-    }
-
-    void OpenAndConnect()
-    {
-        OpenAndConnect(m_connection);
-    }
-
-    // Open al GameServer, con las claves, y el Poll que da el Opened.
-    void OpenTheGameServer(Connection& connection)
-    {
-        connection.Open(GameHost, GamePort, GameClientKeys());
-        ASSERT_EQ(Describe(connection.Poll()), Lines{"Opened"});
-    }
-
-    void OpenTheGameServer()
-    {
-        OpenTheGameServer(m_connection);
-    }
-
-    // Si alguna línea de aviso tiene `part`.
-    [[nodiscard]] bool HasWarning(std::string_view part) const
-    {
-        for (std::size_t index = 0; index < m_sink.lines.size(); ++index)
-        {
-            if (m_sink.levels[index] == LogLevel::Warning && m_sink.lines[index].find(part) != std::string::npos)
-            {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    // Las líneas de aviso, enteras: un test que las compara así ve también que no traen los bytes
-    // del paquete, que en el login llevan la cuenta y la clave.
-    [[nodiscard]] Lines Warnings() const
-    {
-        Lines warnings;
-        for (std::size_t index = 0; index < m_sink.lines.size(); ++index)
-        {
-            if (m_sink.levels[index] == LogLevel::Warning)
-            {
-                warnings.push_back(m_sink.lines[index]);
-            }
-        }
-        return warnings;
-    }
-
-    FakeSocket m_socket;
-    FakeClock m_clock;
-    RecordingSink m_sink;
-    Log m_log{m_sink, LogLevel::Debug};
-    Connection m_connection{m_socket, IdentityObfuscation::Shared(), m_clock, m_log, PaddingSeed};
-};
 
 TEST_F(ConnectionTest, OpensWhenTheSocketConnects)
 {
@@ -597,87 +483,6 @@ TEST_F(ConnectionTest, ASocketThatClaimsMoreThanTheBufferDoesNotReadPastIt)
     EXPECT_EQ(connection.State(), LinkState::Open);
 }
 
-// 04 § El flujo de conexión: la lista del laboratorio llega al cable como F4 02, y FoxAnti la pasa
-// a la F4 06 que lee main.exe, con el código 400.
-TEST_F(ConnectionTest, WithFoxAntiTheListArrivesAsF406)
-{
-    const FoxAntiObfuscation foxAnti;
-    Connection connection(m_socket, foxAnti, m_clock, m_log, PaddingSeed);
-    OpenAndConnect(connection);
-    m_socket.reads = {Bytes({0xC2, 0x00, 0x0A, 0xF4, 0x02, 0x01, 0x00, 0x00, 0x00, 0xCC})};
-
-    EXPECT_EQ(Describe(connection.Poll()), Lines{"C2 00 0B F4 06 00 01 90 01 00 00"});
-}
-
-// Y la elección del 400 vuelve al código del laboratorio en el BeforeSend.
-TEST_F(ConnectionTest, WithFoxAntiTheChoiceLeavesAsF40300)
-{
-    const FoxAntiObfuscation foxAnti;
-    Connection connection(m_socket, foxAnti, m_clock, m_log, PaddingSeed);
-    OpenAndConnect(connection);
-
-    Client::Protocol::Outgoing select = WriteServerSelect(400);
-    connection.Send(std::move(select.packet), select.delivery);
-
-    EXPECT_TRUE(SameBytes(m_socket.sent, Bytes({0xC1, 0x06, 0xF4, 0x03, 0x00, 0x00})));
-}
-
-// BeforeDispatch también corre: FoxAnti le mete a un C1 F3 11 el byte que main.exe espera en
-// pkt[5].
-TEST_F(ConnectionTest, WithFoxAntiTheSkillListGetsItsByteBeforeTheDispatch)
-{
-    const FoxAntiObfuscation foxAnti;
-    Connection connection(m_socket, foxAnti, m_clock, m_log, PaddingSeed);
-    OpenAndConnect(connection);
-    m_socket.reads = {Bytes({0xC1, 0x05, 0xF3, 0x11, 0x07})};
-
-    EXPECT_EQ(Describe(connection.Poll()), Lines{"C1 06 F3 11 07 00"});
-}
-
-// Un F3 11 que termina antes de pkt[4] no se traduce en BeforeDispatch (FoxAnti no valida los
-// largos, Q-C09): se descarta con un aviso que dice el tipo y el opcode, y la conexión sigue.
-TEST_F(ConnectionTest, WithFoxAntiASkillListThatDoesNotTranslateIsDropped)
-{
-    const FoxAntiObfuscation foxAnti;
-    Connection connection(m_socket, foxAnti, m_clock, m_log, PaddingSeed);
-    OpenAndConnect(connection);
-    m_socket.reads = {Join({Bytes({0xC1, 0x04, 0xF3, 0x11}), Hello()})};
-
-    EXPECT_EQ(Describe(connection.Poll()), Lines{"C1 04 00 01"});
-    EXPECT_EQ(connection.State(), LinkState::Open);
-    EXPECT_EQ(Warnings(), Lines{"[warning] se descarta un C1 F3 que llegó: la ofuscación no lo traduce"});
-}
-
-// El GameServer del laboratorio manda cada byte con el 0xAA (03 § La capa de FoxAnti): el corte lo
-// saca con la máscara de la ofuscación de la conexión, también después de volver a abrir.
-TEST_F(ConnectionTest, WithFoxAntiWhatArrivesFromTheGameServerIsUnmasked)
-{
-    const FoxAntiObfuscation foxAnti;
-    Connection connection(m_socket, foxAnti, m_clock, m_log, PaddingSeed);
-    const ByteVector maskedHello = Bytes({0xC1 ^ 0xAA, 0x04 ^ 0xAA, 0x00 ^ 0xAA, 0x01 ^ 0xAA});
-    OpenAndConnect(connection);
-    m_socket.reads = {maskedHello};
-    EXPECT_EQ(Describe(connection.Poll()), Lines{"C1 04 00 01"});
-
-    connection.Open(GameHost, GamePort, NoKeys);
-    m_socket.reads = {maskedHello};
-    EXPECT_EQ(Describe(connection.Poll()), (Lines{"Opened", "C1 04 00 01"}));
-}
-
-// Un InvalidPacket de la ofuscación no corta: el largo lo dio la cabecera, así que el siguiente se
-// sabe dónde empieza. Esta lista dice dos entradas y trae una.
-TEST_F(ConnectionTest, AListThatDoesNotTranslateIsDropped)
-{
-    const FoxAntiObfuscation foxAnti;
-    Connection connection(m_socket, foxAnti, m_clock, m_log, PaddingSeed);
-    OpenAndConnect(connection);
-    m_socket.reads = {Join({Bytes({0xC2, 0x00, 0x0A, 0xF4, 0x02, 0x02, 0x00, 0x00, 0x00, 0xCC}), Hello()})};
-
-    EXPECT_EQ(Describe(connection.Poll()), Lines{"C1 04 00 01"});
-    EXPECT_EQ(connection.State(), LinkState::Open);
-    EXPECT_EQ(Warnings(), Lines{"[warning] se descarta un C2 F4 que llegó: la ofuscación no lo traduce"});
-}
-
 // Un error del corte sí: después de una cabecera mala no se sabe dónde empieza el próximo paquete
 // (Q-C38). Lo que se cortó antes sale, y el Closed va último.
 TEST_F(ConnectionTest, ABadHeaderCloses)
@@ -699,7 +504,7 @@ TEST_F(ConnectionTest, AnEncryptedPacketWithoutKeysIsUndecryptable)
     OpenAndConnect();
     m_socket.reads = {Join({Bytes({0xC3, 0x05, 0x11, 0x22, 0x33}), Hello()})};
 
-    EXPECT_EQ(Describe(m_connection.Poll()), (Lines{"Undecryptable(sin claves)", "C1 04 00 01"}));
+    EXPECT_EQ(Describe(m_connection.Poll()), (Lines{"Undecryptable(no keys)", "C1 04 00 01"}));
     EXPECT_EQ(m_connection.State(), LinkState::Open);
     EXPECT_EQ(Warnings(), Lines{"[warning] se descarta un C3 que llegó: esta conexión no tiene claves"});
 }
@@ -793,7 +598,7 @@ TEST_F(ConnectionTest, OpeningWithoutKeysForgetsTheOldOnes)
     PacketSerials server;
     m_socket.reads = {FromTheGameServer(Hello(), server)};
 
-    EXPECT_EQ(Describe(m_connection.Poll()), Lines{"Undecryptable(sin claves)"});
+    EXPECT_EQ(Describe(m_connection.Poll()), Lines{"Undecryptable(no keys)"});
     m_connection.Send(PacketOf(Bytes({0xC1, 0x04, 0x0E, 0x00})), Delivery::Encrypted);
     EXPECT_TRUE(m_socket.sent.empty());
     EXPECT_EQ(Warnings(), (Lines{"[warning] se descarta un C3 que llegó: esta conexión no tiene claves",
@@ -851,45 +656,6 @@ TEST_F(ConnectionTest, ASerialOutOfOrderIsResyncedOnce)
                                 "sigue desde el suyo"});
 }
 
-// El GameServer del laboratorio manda también los C3 con el 0xAA de FoxAnti: el corte lo saca y
-// después se descifra. Y lo descifrado pasa por BeforeDispatch: un F3 11 recibe su byte.
-TEST_F(ConnectionTest, WithFoxAntiWhatArrivesEncryptedIsUnmaskedDecryptedAndTranslated)
-{
-    const FoxAntiObfuscation foxAnti;
-    Connection connection(m_socket, foxAnti, m_clock, m_log, PaddingSeed);
-    OpenTheGameServer(connection);
-    PacketSerials server;
-    ByteVector masked =
-        Join({FromTheGameServer(Hello(), server), FromTheGameServer(Bytes({0xC1, 0x05, 0xF3, 0x11, 0x07}), server)});
-    for (std::byte& value : masked)
-    {
-        value ^= std::byte{0xAA};
-    }
-    m_socket.reads = {masked};
-
-    const auto events = connection.Poll();
-    ASSERT_EQ(Describe(events), (Lines{"C1 04 00 01", "C1 06 F3 11 07 00"}));
-    EXPECT_TRUE(std::get<Packet>(events[0]).WasDecrypted());
-    EXPECT_TRUE(std::get<Packet>(events[1]).WasDecrypted());
-    EXPECT_EQ(Warnings(), Lines{});
-}
-
-// Lo que se cifra pasa por el BeforeEncrypt de la ofuscación: FoxAnti pasa el opcode 0x10 a 0x1D
-// (03 § La capa de FoxAnti), y el GameServer lo ve así al descifrar.
-TEST_F(ConnectionTest, WithFoxAntiWhatIsEncryptedIsRemapped)
-{
-    const FoxAntiObfuscation foxAnti;
-    Connection connection(m_socket, foxAnti, m_clock, m_log, PaddingSeed);
-    OpenTheGameServer(connection);
-
-    connection.Send(PacketOf(Bytes({0xC1, 0x05, 0x10, 0x11, 0x22})), Delivery::Encrypted);
-
-    PacketSerials server;
-    const GameServerReceived received = AsTheGameServerReceives(m_socket.sent, server);
-    ASSERT_EQ(received.packets.size(), 1u);
-    EXPECT_EQ(received.packets[0].Opcode(), std::optional<std::uint8_t>{std::uint8_t{0x1D}});
-}
-
 // En el orden del original (03, "Cadena de recepción"): AfterCut ve el C3 todavía cifrado, y
 // BeforeDispatch, el C1 ya descifrado. Con FoxAnti no se ve, porque su AfterCut solo toca la lista
 // del ConnectServer.
@@ -917,22 +683,6 @@ TEST_F(ConnectionTest, WhatIsEncryptedIsEncryptedBeforeBeforeSend)
     connection.Send(PacketOf(Bytes({0xC1, 0x04, 0x0E, 0x00})), Delivery::Encrypted);
 
     EXPECT_EQ(seen, (Lines{"BeforeEncrypt", "BeforeSend C3"}));
-}
-
-// El BeforeSend de FoxAnti pasa un C1 en claro con D3 a A3 (03 § La capa de FoxAnti), pero deja
-// los C3/C4 como están (encode_outbound): un D3 que va cifrado le llega al GameServer como D3.
-TEST_F(ConnectionTest, WithFoxAntiAnEncryptedD3IsNotRemapped)
-{
-    const FoxAntiObfuscation foxAnti;
-    Connection connection(m_socket, foxAnti, m_clock, m_log, PaddingSeed);
-    OpenTheGameServer(connection);
-
-    connection.Send(PacketOf(Bytes({0xC1, 0x05, 0xD3, 0x11, 0x22})), Delivery::Encrypted);
-
-    PacketSerials server;
-    const GameServerReceived received = AsTheGameServerReceives(m_socket.sent, server);
-    ASSERT_EQ(received.packets.size(), 1u);
-    EXPECT_EQ(received.packets[0].Opcode(), std::optional<std::uint8_t>{std::uint8_t{0xD3}});
 }
 
 // El relleno de cada paquete cifrado es el byte de abajo de lo que da un std::mt19937 con la
@@ -1281,103 +1031,8 @@ TEST_F(ConnectionTest, MixedOriginsSurviveEverySplitAndReachTheHandler)
     }
 }
 
-// La máscara se decide por paquete. Un claro exento y uno enmascarado pueden tener el mismo
-// payload final sin compartir ni su máscara ni su procedencia de descifrado.
-TEST_F(ConnectionTest, FoxAntiMixedOriginsSurviveEverySplit)
-{
-    const FoxAntiObfuscation foxAnti;
-    Connection connection(m_socket, foxAnti, m_clock, m_log, PaddingSeed);
-    const ByteVector c2 = Bytes({0xC2, 0x00, 0x06, 0xF3, 0x03, 0x42});
-    const ByteVector skillList = Bytes({0xC1, 0x08, 0xF3, 0x11, 0xFE, 0x04, 0x16, 0x68});
-    PacketSerials server;
-    ByteVector c3 = FromTheGameServer(Hello(), server);
-    ByteVector c4 = FromTheGameServer(c2, server);
-    ByteVector encryptedSkills = FromTheGameServer(skillList, server);
-    ByteVector maskedC1 = Hello();
-    for (ByteVector* part : {&c3, &c4, &maskedC1, &encryptedSkills})
-    {
-        for (std::byte& value : *part)
-        {
-            value ^= std::byte{0xAA};
-        }
-    }
-    // Las dos listas llevan los mismos datos; BeforeDispatch inserta el 00 en ambas y sólo
-    // la que llegó cifrada conserva true al alcanzar el handler, después de cualquier split.
-    const ByteVector stream = Join({Hello(), c3, maskedC1, c2, c4, skillList, encryptedSkills});
-    const Lines expected{"C1 04 00 01",
-                         "C1 04 00 01",
-                         "C1 04 00 01",
-                         "C2 00 06 F3 03 42",
-                         "C2 00 06 F3 03 42",
-                         "C1 09 F3 11 FE 00 04 16 68",
-                         "C1 09 F3 11 FE 00 04 16 68"};
-    const std::vector<bool> origins{false, true, false, false, true, false, true};
-    for (std::size_t split = 0; split <= stream.size(); ++split)
-    {
-        SCOPED_TRACE(split);
-        OpenTheGameServer(connection);
-        m_socket.reads = {ByteVector(stream.begin(), stream.begin() + static_cast<std::ptrdiff_t>(split))};
-        std::vector<Event> events = connection.Poll();
-        EXPECT_TRUE(connection.Poll().empty());
-        m_socket.reads = {ByteVector(stream.begin() + static_cast<std::ptrdiff_t>(split), stream.end())};
-        for (Event& event : connection.Poll())
-        {
-            events.push_back(std::move(event));
-        }
-        ASSERT_EQ(Describe(events), expected);
-        Lines handledBytes;
-        std::vector<bool> handledOrigins;
-        Client::Protocol::Dispatcher dispatcher(m_log);
-        const auto record = [&](const Packet& packet)
-        {
-            handledBytes.push_back(HexOf(packet.Bytes()));
-            handledOrigins.push_back(packet.WasDecrypted());
-        };
-        ASSERT_TRUE(dispatcher.On(0x00, record));
-        ASSERT_TRUE(dispatcher.On(0xF3, 0x03, record));
-        ASSERT_TRUE(dispatcher.On(0xF3, 0x11, record));
-        for (const Event& event : events)
-        {
-            EXPECT_EQ(dispatcher.Dispatch(std::get<Packet>(event)), Client::Protocol::DispatchResult::Handled);
-        }
-        EXPECT_EQ(handledBytes, expected);
-        EXPECT_EQ(handledOrigins, origins);
-        EXPECT_EQ(Warnings(), Lines{});
-    }
-}
-
 TEST_F(ConnectionTest, FailedDecryptionDoesNotContaminateTheNextClearPacket)
 {
-    const FoxAntiObfuscation foxAnti;
-    for (const IObfuscation* obfuscation :
-         {static_cast<const IObfuscation*>(&IdentityObfuscation::Shared()), static_cast<const IObfuscation*>(&foxAnti)})
-    {
-        Connection connection(m_socket, *obfuscation, m_clock, m_log, PaddingSeed);
-        OpenTheGameServer(connection);
-        PacketSerials server;
-        ByteVector good = FromTheGameServer(Hello(), server);
-        ByteVector bad = FromTheGameServer(Hello(), server);
-        const std::size_t checksum = HeaderSize(PacketType::C3) + CipherBlockSize - 1;
-        bad[checksum] ^= std::byte{0xFF};
-        if (obfuscation == &foxAnti)
-        {
-            for (ByteVector* part : {&good, &bad})
-            {
-                for (std::byte& value : *part)
-                {
-                    value ^= std::byte{0xAA};
-                }
-            }
-            EXPECT_EQ(foxAnti.InboundMask(good.front()), std::byte{0xAA});
-            EXPECT_EQ(foxAnti.InboundMask(bad.front()), std::byte{0xAA});
-        }
-        // El último Hello queda claro: además de la procedencia, cambia la máscara tras el error.
-        EXPECT_EQ(obfuscation->InboundMask(Hello().front()), std::byte{0});
-        m_socket.reads = {Join({good, bad, Hello()})};
-        const auto events = connection.Poll();
-        ASSERT_EQ(Describe(events), (Lines{"C1 04 00 01", "Undecryptable(ChecksumMismatch)", "C1 04 00 01"}));
-        EXPECT_TRUE(std::get<Packet>(events[0]).WasDecrypted());
-        EXPECT_FALSE(std::get<Packet>(events[2]).WasDecrypted());
-    }
+    ExpectAFailedDecryptionDoesNotContaminateTheNextClearPacket(IdentityObfuscation::Shared(), std::byte{0});
 }
 } // namespace

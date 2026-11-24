@@ -155,10 +155,10 @@ constexpr std::string_view LogFileName = "muret-client.log";
 
 // La versión que muestra el login en el texto 456 (02 § Del launcher al juego): la del proyecto,
 // del CMake.
-#ifndef MURET_VERSION
-#error "MURET_VERSION la define el CMake de Main"
+#ifndef MU_VERSION
+#error "MU_VERSION la define el CMake de Main"
 #endif
-constexpr std::string_view Version = MURET_VERSION;
+constexpr std::string_view Version = MU_VERSION;
 
 // Lo que necesita la sesión con los servidores (CL4.5), leído en la fase 1 si hay un host. Sin
 // operator<< ni log: la cuenta y la clave no se imprimen (pregunta 7), y las claves tampoco.

@@ -4,7 +4,7 @@
 giro), del código real del main.exe, con ángulos y vectores al azar (de −720 a 720 grados, con negativos,
 múltiplos de 45 y ceros) y floats por sus bits.
 
-Uso: make_rotation_vectors.py <salida> [casos, 400 por defecto]  (con MURET_MAIN_EXE, como emu.py)"""
+Uso: make_rotation_vectors.py <salida> [casos, 400 por defecto]  (con MU_MAIN_EXE, como emu.py)"""
 import os
 import random
 import struct

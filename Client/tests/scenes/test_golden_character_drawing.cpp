@@ -37,8 +37,8 @@
 #include <utility>
 #include <vector>
 
-// Client::Scenes::DrawCharacter contra la traza de la selección (MURET_CLIENT_GL_TRACE_DIR y
-// MURET_CLIENT_GOLDEN_DIR): el personaje de la traza (las partes Male17 de nivel 13, el pantalón 02,
+// Client::Scenes::DrawCharacter contra la traza de la selección (MU_CLIENT_GL_TRACE_DIR y
+// MU_CLIENT_GOLDEN_DIR): el personaje de la traza (las partes Male17 de nivel 13, el pantalón 02,
 // Sword17 de nivel 13 en la mano derecha y Helper02) en los cinco swaps, con sus frames, sus relojes
 // y su lugar (06). Cada bloque que el original le mandó a GL por ese personaje (cada malla y cada pase
 // de brillo) tiene que estar en el lote de MuRet como un tramo de triángulos seguidos, con las mismas

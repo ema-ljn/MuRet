@@ -10,7 +10,7 @@
 #include <string>
 #include <type_traits>
 
-// Labs::HiddenGlWindow y la regla de MURET_CLIENT_REQUIRE_GL (la pregunta 9 del plan de la CL5).
+// Labs::HiddenGlWindow y la regla de MU_CLIENT_REQUIRE_GL (la pregunta 9 del plan de la CL5).
 namespace
 {
 using Labs::IsGlRequired;

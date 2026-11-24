@@ -10,7 +10,7 @@ opcode) y los D3 con que contesta el servidor.
 
 Los A3 y los D3 son celdas, direcciones e ids de objeto: no llevan nombres.
 
-Uso: walk_stats.py [cable]      (sin cable, el muproxy.log de MURET_CLIENT_WIRE_DIR)
+Uso: walk_stats.py [cable]      (sin cable, el muproxy.log de MU_CLIENT_WIRE_DIR)
 """
 import collections
 import os

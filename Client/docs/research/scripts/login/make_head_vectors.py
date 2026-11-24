@@ -15,7 +15,7 @@ negativos, el 0, el 180 y el 360 cerca) y el rand() de la CRT sigue; así se cub
 ángulos. De cada paso se guarda el estado del rand(), la cabeza y el blanco que entraron (en 'pairs') y
 los que quedaron, en hexadecimal.
 
-Uso: make_head_vectors.py <salida>  (con MURET_MAIN_EXE)"""
+Uso: make_head_vectors.py <salida>  (con MU_MAIN_EXE)"""
 import os
 import struct
 import sys
@@ -23,7 +23,7 @@ import sys
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
 import emulate_cloth as ec  # noqa: E402
 
-EXE = os.environ['MURET_MAIN_EXE']
+EXE = os.environ['MU_MAIN_EXE']
 BLOCK_START, BLOCK_END = 0x5068eb, 0x5069ab
 HERO = 0x743a170
 HEAD, TARGET = 0x28, 0x34

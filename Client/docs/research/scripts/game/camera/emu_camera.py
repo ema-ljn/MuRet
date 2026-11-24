@@ -8,7 +8,7 @@
 paso (0x636838). Cada caso imprime la cámara de uno o más frames; `lorencia` la compara con la
 traza (glTranslatef de lorencia-Frame_016215.txt), bit a bit.
 
-Uso: emu_camera.py [caso ...]      (con MURET_MAIN_EXE; sin casos, todos)
+Uso: emu_camera.py [caso ...]      (con MU_MAIN_EXE; sin casos, todos)
 Casos: lorencia, zoom, bit40, rect, level, tour, map5, webzen, shake, scene24.
 """
 import os

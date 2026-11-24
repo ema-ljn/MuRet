@@ -21,7 +21,7 @@
 #include <vector>
 
 // Lo que comparten los tests de cl5.0-pipeline/gl/ que abren GL: la regla de la pregunta 9 del plan
-// de la CL5 (sin GL se saltean, salvo con MURET_CLIENT_REQUIRE_GL=1) y lo que se dibuja y se lee.
+// de la CL5 (sin GL se saltean, salvo con MU_CLIENT_REQUIRE_GL=1) y lo que se dibuja y se lee.
 namespace Labs
 {
 // Para los mensajes de GoogleTest: (r, g, b, a).
@@ -98,7 +98,7 @@ inline Quadrants ReadQuadrants(const LabFramebuffer& framebuffer)
 }
 
 // La base de los tests que abren GL. SetUp() abre la ventana escondida; si no puede, saltea el test
-// o, con MURET_CLIENT_REQUIRE_GL=1, lo hace fallar con el motivo.
+// o, con MU_CLIENT_REQUIRE_GL=1, lo hace fallar con el motivo.
 class LabGlTest : public ::testing::Test
 {
 protected:

@@ -26,7 +26,7 @@ def main():
     ap.add_argument('jump_table', help='la VA de la tabla de punteros')
     ap.add_argument('count', help='cuántos casos (0x.. o decimal)')
     ap.add_argument('base', nargs='?', default='0', help='el caso del índice 0 (0x.. o decimal)')
-    ap.add_argument('--exe', help='el main.exe (por defecto, MURET_MAIN_EXE)')
+    ap.add_argument('--exe', help='el main.exe (por defecto, MU_MAIN_EXE)')
     args = ap.parse_args()
     img = image.Image(args.exe)
     jump = int(args.jump_table, 16)

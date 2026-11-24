@@ -6,7 +6,7 @@ gasta 8 rand() por frame, también en el login (escena 2) y en la selección (es
 plan de la CL7). Corre tres frames seguidos en la escena 5 y uno en cada escena, con el arnés de
 ../camera/emu_camera.py, y da lo que gastó cada uno desde el estado 1.
 
-Uso: camera_rand.py      (con MURET_MAIN_EXE)
+Uso: camera_rand.py      (con MU_MAIN_EXE)
 """
 import os
 import sys

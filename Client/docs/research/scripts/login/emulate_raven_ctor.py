@@ -2,7 +2,7 @@ import os
 import struct, sys, json
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
 import emulate_cloth as ec
-EXE = os.environ['MURET_MAIN_EXE']
+EXE = os.environ['MU_MAIN_EXE']
 emu = ec.ClothEmulator(EXE)
 uc = emu.uc
 emu.rand_main = ec.Rand({'msvc_state': 99})

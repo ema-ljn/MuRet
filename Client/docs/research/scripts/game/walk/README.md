@@ -1,7 +1,7 @@
 # Caminar (CL7.4)
 
 El camino, el paquete y el paso del héroe con el código real (06 § Caminar). El `.att` de Lorencia es el
-del `Data\`; el cable, el de `MURET_CLIENT_WIRE_DIR`. Todos necesitan `MURET_MAIN_EXE`.
+del `Data\`; el cable, el de `MU_CLIENT_WIRE_DIR`. Todos necesitan `MU_MAIN_EXE`.
 
 | Script | Qué reproduce | Necesita además | Sub-ola |
 | --- | --- | --- | --- |

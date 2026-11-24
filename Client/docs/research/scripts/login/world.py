@@ -1,5 +1,5 @@
 import struct, os
-DATA=os.environ.get('MURET_CLIENT_DATA', os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', '..', '..', 'assets', 'Data'))
+DATA=os.environ.get('MU_CLIENT_DATA', os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', '..', '..', 'assets', 'Data'))
 KEY=bytes([0xD1,0x73,0x52,0xF6,0xD2,0x9A,0xCB,0x27,0x3E,0xAF,0x59,0x31,0x37,0xB3,0xE7,0xA2])
 def k16(b):
     out=bytearray(len(b)); prev=0x5E

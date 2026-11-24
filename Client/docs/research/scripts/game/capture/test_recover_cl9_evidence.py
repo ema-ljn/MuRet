@@ -398,9 +398,9 @@ class RecoverEvidenceTest(unittest.TestCase):
         generator = self.root / 'generator.py'
         generator.write_text(
             "import os, pathlib, sys\n"
-            "assert os.environ['MURET_MAIN_EXE'].endswith('main.exe')\n"
-            "assert os.environ['MURET_C3C4_REFERENCE'].endswith('c3c4_reference.py')\n"
-            "assert os.environ['MURET_CLIENT_GOLDEN_DIR']\n"
+            "assert os.environ['MU_MAIN_EXE'].endswith('main.exe')\n"
+            "assert os.environ['MU_C3C4_REFERENCE'].endswith('c3c4_reference.py')\n"
+            "assert os.environ['MU_CLIENT_GOLDEN_DIR']\n"
             "out = pathlib.Path(sys.argv[sys.argv.index('--output-dir') + 1])\n"
             "out.mkdir(parents=True, exist_ok=True)\n"
             "(out / 'inventory-capture-0.c4').write_bytes(b'sidecar sintetico')\n"

@@ -97,7 +97,7 @@ constexpr App::PixelSize Screen{.width = 640, .height = 480};
 
 std::filesystem::path CharacterizationDir()
 {
-    return MURET_CHARACTERIZATION_DIR;
+    return MU_CHARACTERIZATION_DIR;
 }
 
 bool EnvironmentFlag(const char* name)
@@ -603,7 +603,7 @@ Core::Expected<std::vector<FrameDigest>, std::string> ReadGolden(const std::file
     if (!file)
     {
         return Core::Unexpected(
-            std::format("{} does not open: write it with MURET_CHARACTERIZATION_WRITE=1", path.string()));
+            std::format("{} does not open: write it with MU_CHARACTERIZATION_WRITE=1", path.string()));
     }
     std::vector<FrameDigest> digests;
     std::string line;
@@ -675,7 +675,7 @@ protected:
         {
             return {};
         }
-        const bool trace = EnvironmentFlag("MURET_CHARACTERIZATION_TRACE");
+        const bool trace = EnvironmentFlag("MU_CHARACTERIZATION_TRACE");
         auto client = std::make_unique<ScriptedClient>(m_dataRoot, *m_data);
         const auto started = client->Start();
         EXPECT_TRUE(started.HasValue()) << started.Error();
@@ -702,12 +702,12 @@ protected:
         return digests;
     }
 
-    // Compares `scene` with its golden, or writes it with MURET_CHARACTERIZATION_WRITE=1.
+    // Compares `scene` with its golden, or writes it with MU_CHARACTERIZATION_WRITE=1.
     void ExpectTheGolden(std::string_view scene)
     {
         const std::vector<FrameDigest> digests = Run(scene);
         const std::filesystem::path golden = CharacterizationDir() / "golden" / std::format("{}.tsv", scene);
-        if (EnvironmentFlag("MURET_CHARACTERIZATION_WRITE"))
+        if (EnvironmentFlag("MU_CHARACTERIZATION_WRITE"))
         {
             std::ofstream(golden, std::ios::binary) << GoldenText(digests);
             std::printf("wrote %s\n", golden.string().c_str());

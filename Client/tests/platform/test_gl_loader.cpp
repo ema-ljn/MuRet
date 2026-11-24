@@ -189,8 +189,8 @@ TEST_F(GlLoaderDriverTest, AFullDriverGivesEveryFunction)
 
     ASSERT_TRUE(gl.HasValue()) << gl.Error();
     EXPECT_EQ(s_driver.requested, (std::vector<std::string>(GlFunctionNames.begin(), GlFunctionNames.end())));
-#define MURET_EXPECT_LOADED(type, member, name) EXPECT_NE(gl.Value().member, nullptr) << name;
-    MURET_GL_FUNCTIONS(MURET_EXPECT_LOADED)
-#undef MURET_EXPECT_LOADED
+#define MU_EXPECT_LOADED(type, member, name) EXPECT_NE(gl.Value().member, nullptr) << name;
+    MU_GL_FUNCTIONS(MU_EXPECT_LOADED)
+#undef MU_EXPECT_LOADED
 }
 } // namespace

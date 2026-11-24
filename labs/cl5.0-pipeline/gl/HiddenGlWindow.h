@@ -25,12 +25,12 @@ namespace Labs
 {
 // Con "1", un test que no puede abrir OpenGL falla en vez de saltearse: el paso de Xvfb del CI la
 // pone, para que un Xvfb mal armado no deje los tests salteados en silencio.
-inline constexpr const char* RequireGlVariable = "MURET_CLIENT_REQUIRE_GL";
+inline constexpr const char* RequireGlVariable = "MU_CLIENT_REQUIRE_GL";
 
 // La regla, separada de la lectura del entorno para probarla: solo "1" pide GL.
 [[nodiscard]] bool IsGlRequired(const std::optional<std::string>& value);
 
-// El valor de MURET_CLIENT_REQUIRE_GL, o std::nullopt si no está.
+// El valor de MU_CLIENT_REQUIRE_GL, o std::nullopt si no está.
 [[nodiscard]] std::optional<std::string> ReadRequireGl();
 
 class HiddenGlWindow

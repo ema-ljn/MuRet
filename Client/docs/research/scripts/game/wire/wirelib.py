@@ -1,6 +1,6 @@
 """Lee un cable del laboratorio y da cada paquete en claro, con la cabecera C1/C2 rearmada.
 
-El cable es el muproxy.log de MURET_CLIENT_WIRE_DIR (o un log armado con pcap2log.py desde el PCAP de la
+El cable es el muproxy.log de MU_CLIENT_WIRE_DIR (o un log armado con pcap2log.py desde el PCAP de la
 PR #45): una línea por segmento, "HH:MM:SS.mmm puerto sentido len=N hex", y "puerto ACC" en cada
 conexión nueva. Por sentido, los segmentos se juntan y se cortan en paquetes (03, El corte):
 - S->C: el XOR 0xAA del servidor del laboratorio se decide por paquete, por el primer byte (C1..C4 van
@@ -8,7 +8,7 @@ conexión nueva. Por sentido, los segmentos se juntan y se cortan en paquetes (0
 - C->S: C1 y C2 llevan el XOR32 del envío desde el byte que sigue al opcode; C3 se descifra con
   Dec1.dat y adentro va un C1 con XOR32.
 Los C3 y C4 necesitan además c3c4_reference.py, el SimpleModulus del repo de research, en
-MURET_C3C4_REFERENCE, y el main.exe (la tabla XOR de 0x6d84fc) en MURET_MAIN_EXE. Sin la referencia,
+MU_C3C4_REFERENCE, y el main.exe (la tabla XOR de 0x6d84fc) en MU_MAIN_EXE. Sin la referencia,
 se saltean con un aviso.
 
 El cable lleva el login, el chat y los nombres de los personajes: nada de lo que sale de acá va a Git
@@ -73,7 +73,7 @@ class _Keys:
     def get(self):
         if not self.loaded:
             self.loaded = True
-            path = os.environ.get('MURET_C3C4_REFERENCE')
+            path = os.environ.get('MU_C3C4_REFERENCE')
             if path and os.path.isfile(path):
                 spec = importlib.util.spec_from_file_location('c3c4_reference', path)
                 c3 = importlib.util.module_from_spec(spec)
@@ -86,7 +86,7 @@ class _Keys:
                 self.c3 = c3
         if self.c3 is None and not self.warned:
             self.warned = True
-            print('aviso: sin MURET_C3C4_REFERENCE (c3c4_reference.py) los C3 y C4 se saltean', file=sys.stderr)
+            print('aviso: sin MU_C3C4_REFERENCE (c3c4_reference.py) los C3 y C4 se saltean', file=sys.stderr)
         return self.c3
 
 

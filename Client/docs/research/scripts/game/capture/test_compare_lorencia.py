@@ -1,6 +1,6 @@
 """Contrato offline del comparador; los datos sintéticos no prueban el original.
 
-Ejecutar con MURET_COMPARE_LORENCIA apuntando al ejecutable compilado del comparador.
+Ejecutar con MU_COMPARE_LORENCIA apuntando al ejecutable compilado del comparador.
 Los bits esperados caracterizan el puerto anterior al refactor, no una captura del juego.
 """
 
@@ -58,11 +58,11 @@ def make_capture(overrides=None, missing=(), newline='\n'):
     return newline.join(lines) + newline
 
 
-@unittest.skipUnless(os.environ.get('MURET_COMPARE_LORENCIA'),
-                     'requiere el ejecutable MURET_COMPARE_LORENCIA')
+@unittest.skipUnless(os.environ.get('MU_COMPARE_LORENCIA'),
+                     'requiere el ejecutable MU_COMPARE_LORENCIA')
 class CompareLorenciaTest(unittest.TestCase):
     def setUp(self):
-        self.binary = str(Path(os.environ['MURET_COMPARE_LORENCIA']).resolve())
+        self.binary = str(Path(os.environ['MU_COMPARE_LORENCIA']).resolve())
         self.temporary = tempfile.TemporaryDirectory()
         self.addCleanup(self.temporary.cleanup)
         self.directory = Path(self.temporary.name)

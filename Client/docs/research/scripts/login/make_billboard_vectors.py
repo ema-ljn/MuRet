@@ -5,7 +5,7 @@ sprites y las partículas, con la vista de la cámara (0x7d366f0, 3 × 4 por fil
 la textura (0x7d3a1c0 + slot · 0x38) al azar, y las llamadas a GL que hace (glColor, glTexCoord2f y
 glVertex3fv), con cada float por sus bits.
 
-Uso: make_billboard_vectors.py <salida> [casos, 300 por defecto]  (con MURET_MAIN_EXE, como emu.py)"""
+Uso: make_billboard_vectors.py <salida> [casos, 300 por defecto]  (con MU_MAIN_EXE, como emu.py)"""
 import math
 import os
 import random

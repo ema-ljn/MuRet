@@ -25,7 +25,7 @@ class CaptureReadersTest(unittest.TestCase):
         cls.addClassCleanup(cls.temporary.cleanup)
         cls.build = Path(cls.temporary.name)
         shutil.copyfile(DIRECTORY / 'test_capture_windows.h', cls.build / 'windows.h')
-        cls.sources = Path(os.environ.get('MURET_CAPTURE_SOURCE_DIR', DIRECTORY))
+        cls.sources = Path(os.environ.get('MU_CAPTURE_SOURCE_DIR', DIRECTORY))
         cls.binaries = {}
         for name in ('passive_camera', 'passive_cl7', 'read_fpu'):
             source = cls.sources / f'{name}.cpp'
@@ -66,7 +66,7 @@ class CaptureReadersTest(unittest.TestCase):
                     else ['42', '--output', '/dev/full' if full else str(output)])
         result = subprocess.run(
             [str(self.binaries[name]), *args], capture_output=True, text=True, check=False,
-            env={**os.environ, 'MURET_CAPTURE_SCENARIO': scenario, 'MURET_CAPTURE_TRACE': str(trace)},
+            env={**os.environ, 'MU_CAPTURE_SCENARIO': scenario, 'MU_CAPTURE_TRACE': str(trace)},
             timeout=10,
         )
         text = '' if full or '--output' not in args else output.read_text()

@@ -12,10 +12,10 @@
 // laboratorio.
 namespace Client::Tests
 {
-// La carpeta de los vectores. CMake la pasa en MURET_CLIENT_NET_VECTORS_DIR.
+// La carpeta de los vectores. CMake la pasa en MU_CLIENT_NET_VECTORS_DIR.
 inline std::filesystem::path NetVectorsDir()
 {
-    return MURET_CLIENT_NET_VECTORS_DIR;
+    return MU_CLIENT_NET_VECTORS_DIR;
 }
 
 // Los bytes del vector `name` (por ejemplo "c2-long.bin"). Si no está, el test falla y devuelve

@@ -16,7 +16,7 @@
 // Las dos primeras van aparte: con ellas se pregunta qué contexto dio el driver. Son de la 1.0,
 // así que las tiene cualquiera, y LoadGlFunctions las pide antes que el resto: un driver viejo dice
 // su versión, y no la primera función de la 3.3 que le falta.
-#define MURET_GL_QUERY_FUNCTIONS(X)                                                                                    \
+#define MU_GL_QUERY_FUNCTIONS(X)                                                                                       \
     X(PFNGLGETSTRINGPROC, getString, "glGetString")                                                                    \
     X(PFNGLGETINTEGERVPROC, getIntegerv, "glGetIntegerv")
 
@@ -34,7 +34,7 @@
 //                                         fragment shader (GlShader y GlRenderer)
 //   glUniform1f, glUniform3f              la niebla del 3D: el inicio, el fin y el color (GlModelRenderer)
 //   glGenVertexArrays a glDrawArrays      el VAO, el VBO y el dibujo (GlRenderer)
-#define MURET_GL_RENDER_FUNCTIONS(X)                                                                                   \
+#define MU_GL_RENDER_FUNCTIONS(X)                                                                                      \
     X(PFNGLVIEWPORTPROC, viewport, "glViewport")                                                                       \
     X(PFNGLCLEARCOLORPROC, clearColor, "glClearColor")                                                                 \
     X(PFNGLCLEARPROC, clear, "glClear")                                                                                \
@@ -86,4 +86,4 @@
     X(PFNGLDRAWARRAYSPROC, drawArrays, "glDrawArrays")
 
 // Todas, en el orden en que se piden.
-#define MURET_GL_FUNCTIONS(X) MURET_GL_QUERY_FUNCTIONS(X) MURET_GL_RENDER_FUNCTIONS(X)
+#define MU_GL_FUNCTIONS(X) MU_GL_QUERY_FUNCTIONS(X) MU_GL_RENDER_FUNCTIONS(X)

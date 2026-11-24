@@ -5,7 +5,7 @@ que crea el código real de 0x518cf0 en la escena 2 del mapa 0x37, con el objeto
 es uno de mentira con la acción de Dragon.bmd (41 keys, sin lock_positions), 3 mallas y 93 huesos.
 Todos los floats van por sus bits.
 
-Uso: make_dragon_vectors.py <salida> [pasos, 1500 por defecto]  (con MURET_MAIN_EXE, como emu.py)"""
+Uso: make_dragon_vectors.py <salida> [pasos, 1500 por defecto]  (con MU_MAIN_EXE, como emu.py)"""
 import os
 import sys
 

@@ -11,7 +11,7 @@ Como script: el caso del cable (b6,73) con tres pasos, 15 celdas que salen como 
 ángulo con una celda, el blanco al lado del final, PathNum 0 y el bit 0x20 de +0x78. Es la base de
 make_walk_packet_vectors.py de la CL7.4 B.
 
-Uso: emu_send.py      (con MURET_MAIN_EXE)
+Uso: emu_send.py      (con MU_MAIN_EXE)
 """
 import os
 import sys

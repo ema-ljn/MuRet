@@ -36,7 +36,7 @@
 #include <vector>
 
 // Client::Network::Connection contra el cable del laboratorio (support/WireCapture.h,
-// MURET_CLIENT_WIRE_DIR) y las claves reales del cliente, Enc1.dat y Dec2.dat (el plan de la CL4,
+// MU_CLIENT_WIRE_DIR) y las claves reales del cliente, Enc1.dat y Dec2.dat (el plan de la CL4,
 // CL4.4, PR A). Lo que contestó el GameServer, leído por un FakeSocket con las lecturas del cable,
 // sale descifrado como lo dan DecryptPacket y el BeforeDispatch de FoxAnti. Lo que mandó el
 // cliente original, descifrado con Dec1.dat, la del servidor, y mandado otra vez Encrypted, sale

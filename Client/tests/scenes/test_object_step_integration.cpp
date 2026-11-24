@@ -64,7 +64,7 @@ TEST(ObjectStepIntegrationTest, EveryRealLorenciaAndDeviasObjectCanStepWithDurab
     for (const std::uint8_t map : {std::uint8_t{0}, std::uint8_t{2}})
     {
         SCOPED_TRACE(map);
-        const auto loaded = Client::World::LoadWorldObjects(std::filesystem::path{MURET_CLIENT_REPO_DATA_DIR}, map);
+        const auto loaded = Client::World::LoadWorldObjects(std::filesystem::path{MU_CLIENT_REPO_DATA_DIR}, map);
         ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
         auto created = Client::World::CreateWorldObjects(loaded.Value(), map, Client::World::ObjectScene::Other);
         ASSERT_FALSE(created.failure.has_value());
@@ -96,7 +96,7 @@ TEST(ObjectStepIntegrationTest, EveryRealLorenciaAndDeviasObjectCanStepWithDurab
 }
 TEST(ObjectStepIntegrationTest, RealNoriaObjectsDrawAndStepWithTheFairyJointsAndTerrainParticles)
 {
-    const std::filesystem::path root{MURET_CLIENT_REPO_DATA_DIR};
+    const std::filesystem::path root{MU_CLIENT_REPO_DATA_DIR};
     Client::Tests::FakeTextureStore textures;
     Client::Tests::RecordingSink sink;
     Client::Core::Log log(sink, Client::Core::LogLevel::Debug);

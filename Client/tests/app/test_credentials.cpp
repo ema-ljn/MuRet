@@ -111,6 +111,6 @@ TEST(CredentialsTest, TenBytesFit)
 TEST(CredentialsTest, SystemEnvironmentReadsTheProcess)
 {
     EXPECT_TRUE(SystemEnvironment("PATH").has_value());
-    EXPECT_FALSE(SystemEnvironment("MURET_CLIENT_NO_EXISTE_ESTA_VARIABLE").has_value());
+    EXPECT_FALSE(SystemEnvironment("MU_CLIENT_NO_EXISTE_ESTA_VARIABLE").has_value());
 }
 } // namespace

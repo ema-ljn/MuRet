@@ -21,7 +21,7 @@
 #include <vector>
 
 // Los paquetes de la selección de personaje contra el cable del laboratorio (support/WireCapture.h,
-// MURET_CLIENT_WIRE_DIR; el plan de la CL6, CL6.3, paso 2): los F3 00 y F3 03 que mandó el cliente
+// MU_CLIENT_WIRE_DIR; el plan de la CL6, CL6.3, paso 2): los F3 00 y F3 03 que mandó el cliente
 // original, en claro con su XOR32, contra los de MuRet; y las listas que contestó el GameServer, sin
 // el 0xAA de FoxAnti, leídas con ReadCharacterList.
 //

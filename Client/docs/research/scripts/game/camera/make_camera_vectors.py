@@ -4,7 +4,7 @@
 Toda expectativa sale de CameraEmu sobre main.exe c32bbd5f; no se importa
 camera_reference. Formato: Client/tests/vectors/game/README.md. Uso:
     python -I /ruta/al/repo/Client/docs/research/scripts/game/camera/make_camera_vectors.py salida
-Requiere MURET_MAIN_EXE, unicorn y pefile (scripts/README.md, El entorno).
+Requiere MU_MAIN_EXE, unicorn y pefile (scripts/README.md, El entorno).
 """
 import argparse
 import hashlib
@@ -42,7 +42,7 @@ FIXED_HEIGHTS = (700.0, 1200.0, 1201.0)
 def verify_exe():
     digest = hashlib.sha256(Path(EXE).read_bytes()).hexdigest()
     if digest != EXE_SHA256:
-        raise SystemExit('MURET_MAIN_EXE: SHA-256 distinto del build c32bbd5f: ' + digest)
+        raise SystemExit('MU_MAIN_EXE: SHA-256 distinto del build c32bbd5f: ' + digest)
 
 
 def cases():

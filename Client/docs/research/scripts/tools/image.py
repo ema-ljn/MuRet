@@ -1,6 +1,6 @@
 """La imagen del main.exe como la mapea Windows, para las herramientas que leen bytes del binario.
 
-El exe sale de MURET_MAIN_EXE (el c32bbd5f; ver ../README.md § El entorno) o del --exe de cada
+El exe sale de MU_MAIN_EXE (el c32bbd5f; ver ../README.md § El entorno) o del --exe de cada
 herramienta. Las direcciones son VAs (base 0x400000).
 """
 import hashlib
@@ -14,9 +14,9 @@ C32BBD5F = 'c32bbd5f16ca400c7cfc71fa5f4cd573c57f146dd19a6da52fdd1007abaca26a'
 
 
 def exe_path(given=None):
-    path = given or os.environ.get('MURET_MAIN_EXE')
+    path = given or os.environ.get('MU_MAIN_EXE')
     if not path:
-        sys.exit('falta el main.exe: MURET_MAIN_EXE o --exe (ver scripts/README.md, El entorno)')
+        sys.exit('falta el main.exe: MU_MAIN_EXE o --exe (ver scripts/README.md, El entorno)')
     if not os.path.isfile(path):
         sys.exit('no existe el main.exe: %s' % path)
     return path

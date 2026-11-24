@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """El grafo de llamadas del main.exe, leído de la caché que arma regen_cache.py.
 
-La caché vive en MURET_RESEARCH_CACHE (por defecto .research-cache/ en la raíz del repo, fuera de
+La caché vive en MU_RESEARCH_CACHE (por defecto .research-cache/ en la raíz del repo, fuera de
 Git) y tiene:
 - all.txt: el listado de `objdump -d -M intel --no-show-raw-insn` de la sección .text;
 - cg.pkl: la dirección y el texto de cada instrucción del listado, y los comienzos de función;
@@ -31,7 +31,7 @@ DIRECT_CALL = re.compile(r'call\s+0x([0-9a-f]+)$')
 
 
 def cache_dir():
-    return os.environ.get('MURET_RESEARCH_CACHE') or DEFAULT_CACHE
+    return os.environ.get('MU_RESEARCH_CACHE') or DEFAULT_CACHE
 
 
 def cache_file(name):
@@ -106,8 +106,8 @@ class CallGraph:
 def load():
     path = cache_file(GRAPH)
     if not os.path.isfile(path):
-        sys.exit('no está la caché %s: correr tools/regen_cache.py (con MURET_MAIN_EXE)' % path)
-    exe = os.environ.get('MURET_MAIN_EXE')
+        sys.exit('no está la caché %s: correr tools/regen_cache.py (con MU_MAIN_EXE)' % path)
+    exe = os.environ.get('MU_MAIN_EXE')
     source = cache_file(SOURCE)
     if exe and os.path.isfile(exe) and os.path.isfile(source):
         sys.path.insert(0, HERE)

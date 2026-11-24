@@ -39,7 +39,7 @@ def show(img, va, kind):
 def main():
     ap = argparse.ArgumentParser(description='Lee constantes de la imagen del main.exe.')
     ap.add_argument('values', nargs='+', help='VA[:tipo], con tipo f, d, i, s o p')
-    ap.add_argument('--exe', help='el main.exe (por defecto, MURET_MAIN_EXE)')
+    ap.add_argument('--exe', help='el main.exe (por defecto, MU_MAIN_EXE)')
     args = ap.parse_args()
     img = image.Image(args.exe)
     for text in args.values:

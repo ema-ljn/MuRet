@@ -21,7 +21,7 @@ import image  # noqa: E402
 def main():
     ap = argparse.ArgumentParser(description='Dónde está un texto en el main.exe y qué push lo usan.')
     ap.add_argument('texts', nargs='+')
-    ap.add_argument('--exe', help='el main.exe (por defecto, MURET_MAIN_EXE)')
+    ap.add_argument('--exe', help='el main.exe (por defecto, MU_MAIN_EXE)')
     args = ap.parse_args()
     img = image.Image(args.exe)
     data = img.bytes

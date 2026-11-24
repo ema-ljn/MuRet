@@ -57,7 +57,7 @@ target_link_libraries(ClientLib PUBLIC ClientRoundedMath)
 if(WIN32)
     target_link_libraries(ClientLib PRIVATE ws2_32)
 endif()
-muret_set_warnings(ClientLib)
+mu_set_warnings(ClientLib)
 # Las cuentas que copian las del original (la pose, el skinning, la tela) van con un redondeo por
 # operación, como la x87: sin contraer a*b + c en un FMA. GCC contrae por defecto (-ffp-contract=fast)
 # y Clang dentro de una expresión (on), y con FMA disponible (-march=native, ARM64) la tela deja de dar
@@ -65,7 +65,7 @@ muret_set_warnings(ClientLib)
 if(NOT MSVC)
     target_compile_options(ClientLib PRIVATE -ffp-contract=off)
 endif()
-muret_precompile_headers(ClientLib)
+mu_precompile_headers(ClientLib)
 # libjpeg avisa de sus errores con longjmp, y JpegImage.cpp y JpegWriter.cpp lo reciben con setjmp.
 # MSVC avisa de cualquier setjmp en C++ (C4611: longjmp no corre destructores); los dos archivos
 # están armados para que no haya ninguno en el medio (Decompress y Compress).
@@ -95,10 +95,10 @@ endif()
 # siempre. Con ellos se tipan los punteros que da SDL_GL_GetProcAddress, y GlLoader.h los expone:
 # por eso es PUBLIC (Main y los tests de platform/ los ven).
 target_compile_definitions(ClientPlatform PUBLIC SDL_OPENGL_1_FUNCTION_TYPEDEFS)
-muret_set_warnings(ClientPlatform)
+mu_set_warnings(ClientPlatform)
 # Su propio precompiled header y no el de ClientLib: SDL_OPENGL_1_FUNCTION_TYPEDEFS cambia las
 # definiciones (cmake/PrecompiledHeaders.cmake). ClientRender y Main ven las mismas y lo reusan.
-muret_precompile_headers(ClientPlatform)
+mu_precompile_headers(ClientPlatform)
 
 # Render/Gl (CL5.1): lo que habla con OpenGL. Los nombres de GL con RAII, los shaders, las texturas,
 # el framebuffer de los tests y el pipeline del 2D. Llama a GL por la tabla de ClientPlatform
@@ -107,8 +107,8 @@ muret_precompile_headers(ClientPlatform)
 file(GLOB_RECURSE render_gl_sources CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/Render/Gl/*.cpp")
 add_library(ClientRender STATIC ${render_gl_sources})
 target_link_libraries(ClientRender PUBLIC ClientPlatform PRIVATE glm::glm-header-only)
-muret_set_warnings(ClientRender)
-muret_reuse_precompiled_headers(ClientRender ClientPlatform)
+mu_set_warnings(ClientRender)
+mu_reuse_precompiled_headers(ClientRender ClientPlatform)
 
 add_executable(Main
     src/main.cpp
@@ -116,11 +116,11 @@ add_executable(Main
 # El frame de las escenas (Render/Gl/GlFrameTarget, CL5.4) es de ClientRender.
 target_link_libraries(Main PRIVATE ClientRender ClientPlatform ClientLib)
 # La versión que muestra el login (el texto 456 de Text.bmd, CL5.4): la del proyecto.
-target_compile_definitions(Main PRIVATE MURET_VERSION="${PROJECT_VERSION}")
-muret_set_warnings(Main)
-muret_reuse_precompiled_headers(Main ClientPlatform)
+target_compile_definitions(Main PRIVATE MU_VERSION="${PROJECT_VERSION}")
+mu_set_warnings(Main)
+mu_reuse_precompiled_headers(Main ClientPlatform)
 
-if(MURET_BUILD_TESTS)
+if(MU_BUILD_TESTS)
     add_subdirectory(tests)
 
     # Main arranca (encuentra SDL3, en Windows la DLL) y rechaza un argumento malo antes de abrir
@@ -168,7 +168,7 @@ if(MURET_BUILD_TESTS)
     add_test(NAME Client.Main.ConnectWithoutCredentialsNamesThem
         COMMAND Main --host 127.0.0.1 --port 44405 --auto-login)
     set_tests_properties(Client.Main.ConnectWithoutCredentialsNamesThem PROPERTIES
-        PASS_REGULAR_EXPRESSION "falta MURET_CLIENT_ACCOUNT; falta MURET_CLIENT_PASSWORD")
+        PASS_REGULAR_EXPRESSION "falta MU_CLIENT_ACCOUNT; falta MU_CLIENT_PASSWORD")
     # --auto-login sin un host no tiene a qué entrar: Resolve lo dice antes de abrir la ventana.
     add_test(NAME Client.Main.AutoLoginWithoutAServerSaysSo COMMAND Main --auto-login)
     set_tests_properties(Client.Main.AutoLoginWithoutAServerSaysSo PROPERTIES
@@ -194,9 +194,9 @@ if(MURET_BUILD_TESTS)
         Client.Main.NamesTheMissingDataFolder Client.Main.ReadsTheDataPathInUtf8
         Client.Main.ConnectWithoutCredentialsNamesThem Client.Main.AutoLoginWithoutAServerSaysSo
         Client.Main.ConnectWithoutKeysNamesThem Client.Main.ScenesWithoutTheTextTableNameIt PROPERTIES
-        ENVIRONMENT_MODIFICATION "MURET_CLIENT_ACCOUNT=unset:;MURET_CLIENT_PASSWORD=unset:")
+        ENVIRONMENT_MODIFICATION "MU_CLIENT_ACCOUNT=unset:;MU_CLIENT_PASSWORD=unset:")
     if(WIN32)
         set_tests_properties(Client.Main.RejectsBadLauncherPort PROPERTIES
-            ENVIRONMENT_MODIFICATION "MURET_CLIENT_ACCOUNT=unset:;MURET_CLIENT_PASSWORD=unset:")
+            ENVIRONMENT_MODIFICATION "MU_CLIENT_ACCOUNT=unset:;MU_CLIENT_PASSWORD=unset:")
     endif()
 endif()

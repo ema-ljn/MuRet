@@ -22,7 +22,7 @@
 #include <utility>
 #include <vector>
 
-// El PacketReader contra el cable del laboratorio (support/WireCapture.h, MURET_CLIENT_WIRE_DIR):
+// El PacketReader contra el cable del laboratorio (support/WireCapture.h, MU_CLIENT_WIRE_DIR):
 // cada lectura entra tal como la devolvió recv, y lo que sale tiene que ser el flujo entero,
 // cortado en paquetes, sin bytes de más.
 //

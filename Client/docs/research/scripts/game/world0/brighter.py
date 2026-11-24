@@ -11,7 +11,7 @@ cuadrado de ±3: sin identificar (la CL7.L4).
 
 Necesita Pillow, para el JPEG del OZJ (requirements.txt).
 
-Uso: brighter.py      (con MURET_CLIENT_GL_TRACE_DIR y el Data\\)
+Uso: brighter.py      (con MU_CLIENT_GL_TRACE_DIR y el Data\\)
 """
 import collections
 import io

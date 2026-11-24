@@ -5,7 +5,7 @@ del caso 0x620 de 0x509340 (0x50a169..0x50a398), con un hueso 0 al azar en el bu
 de la CRT desde una semilla al azar. Corre 0x4ec110 y 0x5491e0 reales y lee los cinco sprites que deja
 en la tabla de 0x760f990, con cada float por sus bits, y el estado del rand() al final.
 
-Uso: make_scepter_vectors.py <salida> [casos, 300 por defecto]  (con MURET_MAIN_EXE, como emu.py)"""
+Uso: make_scepter_vectors.py <salida> [casos, 300 por defecto]  (con MU_MAIN_EXE, como emu.py)"""
 import math
 import os
 import random

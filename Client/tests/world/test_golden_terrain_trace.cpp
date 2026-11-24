@@ -51,7 +51,7 @@
 #include <utility>
 #include <vector>
 
-// Client::World::DrawTerrainCell contra el terreno de la traza de Lorencia (MURET_CLIENT_GL_TRACE_DIR,
+// Client::World::DrawTerrainCell contra el terreno de la traza de Lorencia (MU_CLIENT_GL_TRACE_DIR,
 // 06 § Terreno): cada fan de cuatro vértices del pase del terreno, con su geometría, sus UV, su
 // textura, su alfa y su luz, contra lo que MuRet arma para esa celda con el Data\ de World1.
 namespace

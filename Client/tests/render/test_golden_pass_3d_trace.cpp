@@ -25,7 +25,7 @@
 #include <vector>
 
 // Client::Render::MakePass3D contra los pases 3D de las trazas de GL del laboratorio
-// (MURET_CLIENT_GL_TRACE_DIR; 06 § Cámara): cada glViewport, el glMultMatrixd de su perspectiva y
+// (MU_CLIENT_GL_TRACE_DIR; 06 § Cámara): cada glViewport, el glMultMatrixd de su perspectiva y
 // los glRotatef y el glTranslatef de su vista. En la selección, los dos pases con la cámara de la
 // escena 4 (SelectionCamera): la franja de arriba, 0x620db0(0, 0, 640, 48), y el mundo,
 // 0x620db0(0, 25, 640, 430). En Lorencia la cámara se mueve: el pase del mundo,

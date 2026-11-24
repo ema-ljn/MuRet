@@ -28,8 +28,8 @@ struct Credentials
 };
 
 // Las dos variables de la pregunta 7.
-inline constexpr std::string_view AccountVariable = "MURET_CLIENT_ACCOUNT";
-inline constexpr std::string_view PasswordVariable = "MURET_CLIENT_PASSWORD";
+inline constexpr std::string_view AccountVariable = "MU_CLIENT_ACCOUNT";
+inline constexpr std::string_view PasswordVariable = "MU_CLIENT_PASSWORD";
 
 // Lo que mide como mucho cada una: el campo del login. Con más, WriteLoginRequest daría
 // FieldTooLong.

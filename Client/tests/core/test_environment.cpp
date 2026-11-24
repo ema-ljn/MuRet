@@ -11,6 +11,6 @@ using Client::Core::ReadEnvironmentVariable;
 TEST(EnvironmentTest, ReadsTheProcess)
 {
     EXPECT_TRUE(ReadEnvironmentVariable("PATH").has_value());
-    EXPECT_FALSE(ReadEnvironmentVariable("MURET_CLIENT_NO_EXISTE_ESTA_VARIABLE").has_value());
+    EXPECT_FALSE(ReadEnvironmentVariable("MU_CLIENT_NO_EXISTE_ESTA_VARIABLE").has_value());
 }
 } // namespace

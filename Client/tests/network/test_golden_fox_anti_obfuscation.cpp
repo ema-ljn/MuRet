@@ -25,7 +25,7 @@
 #include <vector>
 
 // FoxAntiObfuscation contra el cable del laboratorio (support/WireCapture.h,
-// MURET_CLIENT_WIRE_DIR): lo que contestaron el ConnectServer y el GameServer, cortado con el 0xAA
+// MU_CLIENT_WIRE_DIR): lo que contestaron el ConnectServer y el GameServer, cortado con el 0xAA
 // por paquete, y las traducciones de la lista, del F3 11 y del código de servidor que eligió el
 // cliente. Plan de la CL2, CL2.4, paso 4.
 //

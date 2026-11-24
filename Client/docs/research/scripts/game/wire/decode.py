@@ -10,7 +10,7 @@ bytes. --all saca todo, con el login, el chat y los nombres: esa salida no va a 
 
 Uso:
     decode.py [cable] [--port 55901|all] [--heads 1c,f304] [--wire] [--count] [--all]
-    (sin cable, el muproxy.log de MURET_CLIENT_WIRE_DIR; un PCAP pasa antes por pcap2log.py)
+    (sin cable, el muproxy.log de MU_CLIENT_WIRE_DIR; un PCAP pasa antes por pcap2log.py)
 """
 import argparse
 import collections
@@ -33,7 +33,7 @@ def parse_heads(text):
 
 def main():
     ap = argparse.ArgumentParser(description='Los paquetes del cable en claro.')
-    ap.add_argument('log', nargs='?', help='el cable (por defecto, el muproxy.log de MURET_CLIENT_WIRE_DIR)')
+    ap.add_argument('log', nargs='?', help='el cable (por defecto, el muproxy.log de MU_CLIENT_WIRE_DIR)')
     ap.add_argument('--port', default=wirelib.GAME_PORT, help='el puerto (55901 el GS; all, todos)')
     ap.add_argument('--heads', help='solo estos opcodes, en hexadecimal: 1c,f304,f312')
     ap.add_argument('--wire', action='store_true', help='agregar el paquete como viajó')

@@ -1,6 +1,6 @@
 import os
 import struct, sys
-B=os.environ['MURET_MAIN_EXE']
+B=os.environ['MU_MAIN_EXE']
 data=open(B,'rb').read()
 pe=struct.unpack_from('<I',data,0x3c)[0]
 nsec=struct.unpack_from('<H',data,pe+6)[0]

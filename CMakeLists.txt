@@ -13,8 +13,8 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # compile_commands.json para clangd / clang-tidy.
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-option(MURET_WARNINGS_AS_ERRORS "Tratar los warnings como errores" OFF)
-option(MURET_BUILD_TESTS "Compilar los tests de GoogleTest" ON)
+option(MU_WARNINGS_AS_ERRORS "Tratar los warnings como errores" OFF)
+option(MU_BUILD_TESTS "Compilar los tests de GoogleTest" ON)
 
 # Los fuentes están en UTF-8 (comentarios y mensajes en castellano). Sin /utf-8, MSVC los lee con
 # la página de códigos de Windows: los acentos de los mensajes salen rotos y algunos bytes dan

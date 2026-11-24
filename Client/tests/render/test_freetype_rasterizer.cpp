@@ -28,7 +28,7 @@
 #include <vector>
 
 // Client::Render::Text::FreeTypeRasterizer: las fuentes de WinMain con FreeType en un bit
-// (pregunta 7 del plan de la CL5). Los tests con fuente leen MURET_CLIENT_FONT_FILE (en CI, una
+// (pregunta 7 del plan de la CL5). Los tests con fuente leen MU_CLIENT_FONT_FILE (en CI, una
 // fuente del runner) y se saltean sin la variable; no se comparan con GDI, sino consigo mismos
 // (Q-C76). Los de abrir un archivo que no es una fuente corren siempre.
 namespace

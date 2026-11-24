@@ -218,7 +218,7 @@ std::optional<std::string> ReadTheFile(const std::filesystem::path& path, WorldO
 
 std::filesystem::path World55VectorsDir()
 {
-    return MURET_CLIENT_WORLD55_VECTORS_DIR;
+    return MU_CLIENT_WORLD55_VECTORS_DIR;
 }
 
 std::optional<std::string> ReadWorldObjectVectors(const std::filesystem::path& path, WorldObjectVectors& out)

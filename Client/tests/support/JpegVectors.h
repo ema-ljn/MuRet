@@ -15,10 +15,10 @@
 // la carpeta golden.
 namespace Client::Tests
 {
-// La carpeta de los vectores. CMake la pasa en MURET_CLIENT_JPEG_VECTORS_DIR.
+// La carpeta de los vectores. CMake la pasa en MU_CLIENT_JPEG_VECTORS_DIR.
 inline std::filesystem::path JpegVectorsDir()
 {
-    return MURET_CLIENT_JPEG_VECTORS_DIR;
+    return MU_CLIENT_JPEG_VECTORS_DIR;
 }
 
 // Los bytes del vector `name` (por ejemplo "gray.jpg"). Si no está, el test falla y devuelve nada.

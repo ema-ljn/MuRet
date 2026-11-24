@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Arma la caché de las herramientas del binario desde el main.exe: el listado y el grafo de llamadas.
 
-Lee el exe de MURET_MAIN_EXE (o --exe) y escribe en MURET_RESEARCH_CACHE (por defecto
+Lee el exe de MU_MAIN_EXE (o --exe) y escribe en MU_RESEARCH_CACHE (por defecto
 .research-cache/ en la raíz del repo, que Git ignora):
 - all.txt: `objdump -d -M intel --no-show-raw-insn <exe>` (GNU binutils; con el c32bbd5f da el
   mismo listado que usó el barrido de Lorencia, 894.896 líneas de .text). objdump se queja de la
@@ -27,7 +27,7 @@ import image  # noqa: E402
 
 def main():
     ap = argparse.ArgumentParser(description='Arma all.txt y cg.pkl desde el main.exe.')
-    ap.add_argument('--exe', help='el main.exe (por defecto, MURET_MAIN_EXE)')
+    ap.add_argument('--exe', help='el main.exe (por defecto, MU_MAIN_EXE)')
     args = ap.parse_args()
     exe = image.exe_path(args.exe)
     objdump = shutil.which('objdump')

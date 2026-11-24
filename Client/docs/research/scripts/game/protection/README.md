@@ -5,7 +5,7 @@ El original guarda la celda del héroe, el contador de warp `0x77f3b04`, el cont
 acceso que se cierra las vuelve a cifrar con `rand()`. MuRet guarda los valores en claro pero gasta
 los mismos `rand()` en el mismo lugar (decisión 3 del plan; 06 § La tabla de protección, Q-C125).
 
-Los dos necesitan `MURET_MAIN_EXE`. El `rand()` es el de la CRT (`0x69fd70`) desde el estado 1.
+Los dos necesitan `MU_MAIN_EXE`. El `rand()` es el de la CRT (`0x69fd70`) desde el estado 1.
 
 | Script | Qué reproduce | Sub-ola |
 | --- | --- | --- |

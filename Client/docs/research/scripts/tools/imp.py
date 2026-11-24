@@ -20,7 +20,7 @@ import image  # noqa: E402
 def main():
     ap = argparse.ArgumentParser(description='Los imports del main.exe por slot de la IAT.')
     ap.add_argument('slots', nargs='*', help='VAs de slots de la IAT, en hexadecimal')
-    ap.add_argument('--exe', help='el main.exe (por defecto, MURET_MAIN_EXE)')
+    ap.add_argument('--exe', help='el main.exe (por defecto, MU_MAIN_EXE)')
     args = ap.parse_args()
     pe = pefile.PE(image.exe_path(args.exe))
     want = {int(a, 16) for a in args.slots}

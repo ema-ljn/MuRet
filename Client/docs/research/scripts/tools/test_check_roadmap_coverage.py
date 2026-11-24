@@ -3,9 +3,9 @@
 
 Parte de la matriz del repo, le hace un cambio por caso en una copia temporal y comprueba que el
 verificador lo rechace (o lo acepte, cuando el caso es válido). El inventario sale de la variable
-MURET_MAINEXE_INVENTORY (la ruta al inventory.tsv del research, scripts/README.md, El entorno).
+MU_MAINEXE_INVENTORY (la ruta al inventory.tsv del research, scripts/README.md, El entorno).
 
-    MURET_MAINEXE_INVENTORY="$RESEARCH/client-research/mainexe-vmxp-c32bbd5f/decompiled/inventory.tsv" \\
+    MU_MAINEXE_INVENTORY="$RESEARCH/client-research/mainexe-vmxp-c32bbd5f/decompiled/inventory.tsv" \\
         python3 -I Client/docs/research/scripts/tools/test_check_roadmap_coverage.py
 """
 import os
@@ -18,10 +18,10 @@ sys.path.insert(0, HERE)
 import check_roadmap_coverage as C  # noqa: E402
 
 MAPPING = os.path.join(HERE, '..', '..', 'coverage', 'mainexe-roadmap.tsv')
-INVENTORY = os.environ.get('MURET_MAINEXE_INVENTORY', '')
+INVENTORY = os.environ.get('MU_MAINEXE_INVENTORY', '')
 
 
-@unittest.skipUnless(os.path.isfile(INVENTORY), 'falta MURET_MAINEXE_INVENTORY')
+@unittest.skipUnless(os.path.isfile(INVENTORY), 'falta MU_MAINEXE_INVENTORY')
 class CheckRoadmapCoverage(unittest.TestCase):
     @classmethod
     def setUpClass(cls):

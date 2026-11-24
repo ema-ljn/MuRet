@@ -3,7 +3,7 @@
 `0x635ae0` corre una vez por frame dibujado, dentro del dibujo de la escena (`0x6371a0` → `0x637241`),
 también en el login (`0x6350b0`) y en la selección (`0x634680`). Ver 06 § La cámara del juego.
 
-Todos necesitan `MURET_MAIN_EXE`; `att_survey.py`, solo el `Data\`.
+Todos necesitan `MU_MAIN_EXE`; `att_survey.py`, solo el `Data\`.
 
 | Script | Qué reproduce | Sub-ola |
 | --- | --- | --- |

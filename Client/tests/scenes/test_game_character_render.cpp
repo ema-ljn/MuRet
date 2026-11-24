@@ -1,3 +1,4 @@
+#include "Render/Models/IModelLibrary.h"
 #include "Scenes/GameCharacters.h"
 
 #include "Core/IClock.h"
@@ -156,7 +157,7 @@ void ExpectSameSprites(std::span<const Client::World::Sprite> actual, std::span<
     }
 }
 
-class CharacterModels final : public Client::Scenes::IModelLibrary
+class CharacterModels final : public Client::Render::Models::IModelLibrary
 {
 public:
     CharacterModels()
@@ -1220,6 +1221,33 @@ TEST_F(GameCharacterRenderTest, TheSkeletonNpcOfLorenciaGlowsWithItsWordOf1d6)
                 EXPECT_EQ(commands[2].state.blend, Client::Render::ModelBlend::Additive);
             }
         }
+    }
+}
+
+// 0x60b573: with the options' glow detail (0x6c9dcc) at 1, the level 13 skeleton of Lorencia draws as a level 7 one:
+// its body and the 0x44 pass.
+TEST_F(GameCharacterRenderTest, TheGlowDetailOfTheOptionsTrimsTheLevelOfTheSkeletonBody)
+{
+    for (const std::uint8_t detail : {std::uint8_t{4}, std::uint8_t{1}})
+    {
+        SCOPED_TRACE(static_cast<int>(detail));
+        m_world->Runtime().map = 0;
+        m_world->Runtime().hero = 42;
+        ActorState& actor = Player(7);
+        actor.byte88 = 4;
+        actor.subtype = SkeletonBodyModel;
+        actor.level = 13;
+        m_batch.Begin(Client::Render::Pass3D{});
+        Client::Scenes::ItemDrawContext items;
+        items.glowDetail = detail;
+        GameCharacterPass pass = Pass();
+        pass.itemContext = &items;
+
+        const auto result = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, pass);
+
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        // The shadow, the body and its passes.
+        EXPECT_EQ(m_batch.Commands().size(), detail == 4 ? 5u : 3u);
     }
 }
 

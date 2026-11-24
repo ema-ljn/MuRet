@@ -1,11 +1,11 @@
 #include "Render/Models/ObjectState.h"
 
 #include "Core/IClock.h"
+#include "Render/Models/RoundedMath.h"
 
 #include <glm/ext/vector_float2.hpp>
 
 #include <chrono>
-#include <cmath>
 #include <cstdint>
 #include <optional>
 #include <ratio>
@@ -22,7 +22,7 @@ double MillisecondsOf(Core::Duration clock)
 // sin(T · speed) · amplitude + offset, con los floats del original y el seno en la FPU.
 float PulseAt(Core::Duration clock, float speed, float amplitude, float offset)
 {
-    return static_cast<float>(std::sin(MillisecondsOf(clock) * static_cast<double>(speed)) *
+    return static_cast<float>(RoundedSin(MillisecondsOf(clock) * static_cast<double>(speed)) *
                                   static_cast<double>(amplitude) +
                               static_cast<double>(offset));
 }
@@ -162,7 +162,7 @@ std::optional<float> TypeLightOf(std::uint16_t type, Core::Duration clock)
         return PulseAt(clock, 0.001f, 1.0f, 1.1f);
     case 0x1a17: // Wing06: (sin(0,001 · T) + 1) · 0,25 (0x6b87d4, 0x6b89e0)
         return static_cast<float>(
-            (std::sin(MillisecondsOf(clock) * static_cast<double>(0.001f)) + static_cast<double>(1.0f)) *
+            (RoundedSin(MillisecondsOf(clock) * static_cast<double>(0.001f)) + static_cast<double>(1.0f)) *
             static_cast<double>(0.25f));
     case 0xc1d: // Staff12: la misma de 0x607b60
         return FastPulse(clock);

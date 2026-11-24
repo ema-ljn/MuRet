@@ -1,3 +1,4 @@
+#include "Render/Models/IModelLibrary.h"
 #include "Scenes/FaunaJointCreation.h"
 
 #include "Core/Expected.h"
@@ -294,7 +295,7 @@ struct FallingStar
         return Client::Scenes::CreateFaunaJoint(joints, request, random, Client::Scenes::JointOwnerKind::ModelEffect);
     }
 
-    Client::Core::Expected<void, std::string> Step(const Client::Scenes::IModelLibrary* models = nullptr,
+    Client::Core::Expected<void, std::string> Step(const Client::Render::Models::IModelLibrary* models = nullptr,
                                                    Client::Scenes::WorldState* world = nullptr)
     {
         return Client::Scenes::StepJoints(
@@ -506,7 +507,7 @@ struct Falling
         return Client::Scenes::CreateFaunaJoint(joints, request, random, kind);
     }
 
-    Client::Core::Expected<void, std::string> Step(const Client::Scenes::IModelLibrary* models = nullptr,
+    Client::Core::Expected<void, std::string> Step(const Client::Render::Models::IModelLibrary* models = nullptr,
                                                    Client::Scenes::WorldState* world = nullptr)
     {
         return Client::Scenes::StepJoints(
@@ -533,7 +534,7 @@ struct Falling
 
 // El 0x20b (Player\Shadow01) de prueba: una malla de tres vértices del hueso 0 y 30 triángulos (90 esquinas), un hueso
 // sin padre con su key en el origen y una acción de una key. Los demás modelos no están.
-class ShadowModels final : public Client::Scenes::IModelLibrary
+class ShadowModels final : public Client::Render::Models::IModelLibrary
 {
 public:
     ShadowModels()
@@ -564,7 +565,7 @@ public:
 };
 
 // Lo que no tiene el 0x20b: ni modelo ni esqueleto.
-class NoModels final : public Client::Scenes::IModelLibrary
+class NoModels final : public Client::Render::Models::IModelLibrary
 {
 public:
     const Client::Data::Models::Model* Find(std::uint16_t) const override

@@ -29,7 +29,8 @@ class ModelBatch;
 namespace Client::Render::Models
 {
 class CrtRandom;
-}
+class IModelLibrary;
+} // namespace Client::Render::Models
 namespace Client::World
 {
 class Leaves;
@@ -47,7 +48,6 @@ struct TerrainHeights;
 // la primera dirección no portada; una tabla vacía no acredita su camino vivo.
 namespace Client::Scenes
 {
-class IModelLibrary;
 struct ItemDrawContext;
 struct DrawnObject;
 struct FloorItemState
@@ -85,7 +85,7 @@ struct FloorItemState
 struct FloorItemDrawContext
 {
     Render::ModelBatch& batch;
-    const IModelLibrary& models;
+    const Render::Models::IModelLibrary& models;
     const World::SphereFrustum& frustum;
     const World::TerrainLighting* lighting = nullptr;
     Core::Duration frameClock{};
@@ -98,7 +98,6 @@ struct FloorItemDrawContext
     std::span<const std::int32_t> randomTable{};
     float worldClock = 0;
     std::function<Core::Expected<float, std::string>(float, float)> waterHeight{};
-    std::uint8_t glowDetail = 4;
     const ItemDrawContext* itemContext = nullptr;
 };
 
@@ -233,9 +232,10 @@ DrawDamage(Render::ModelBatch& batch, std::span<const DamageNumberState> damage,
                                                                const Render::Models::OriginalMatrix& view,
                                                                std::int32_t weatherState = 0);
 [[nodiscard]] Core::Expected<void, std::string>
-DrawGameModelEffects(Render::ModelBatch& batch, const IModelLibrary& models, std::span<World::ModelEffect> effects,
-                     const World::SphereFrustum& frustum, const World::TerrainLighting* lighting,
-                     Core::Duration frameClock, float alpha, std::uint8_t mode = 0);
+DrawGameModelEffects(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models,
+                     std::span<World::ModelEffect> effects, const World::SphereFrustum& frustum,
+                     const World::TerrainLighting* lighting, Core::Duration frameClock, float alpha,
+                     std::uint8_t mode = 0);
 struct GameObjectPass;
 struct ModelEffectDrawResources
 {
@@ -264,8 +264,8 @@ struct ModelEffectDrawResources
     std::function<std::span<const Render::Models::BoneTransform>()> posedBones{};
 };
 [[nodiscard]] Core::Expected<void, std::string>
-DrawGameModelEffects(Render::ModelBatch& batch, const IModelLibrary& models, std::span<World::ModelEffect> effects,
-                     const World::SphereFrustum& frustum, const World::TerrainLighting* lighting,
-                     Core::Duration frameClock, float alpha, const ModelEffectDrawResources& resources,
-                     std::uint8_t mode = 0);
+DrawGameModelEffects(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models,
+                     std::span<World::ModelEffect> effects, const World::SphereFrustum& frustum,
+                     const World::TerrainLighting* lighting, Core::Duration frameClock, float alpha,
+                     const ModelEffectDrawResources& resources, std::uint8_t mode = 0);
 } // namespace Client::Scenes

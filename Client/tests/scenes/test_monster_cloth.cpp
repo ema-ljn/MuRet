@@ -1,3 +1,4 @@
+#include "Render/Models/IModelLibrary.h"
 #include "Scenes/MonsterCloth.h"
 
 #include "Core/Expected.h"
@@ -85,7 +86,7 @@ Client::Data::Models::Mesh Robe()
     return mesh;
 }
 
-class ClothModels final : public Client::Scenes::IModelLibrary
+class ClothModels final : public Client::Render::Models::IModelLibrary
 {
 public:
     ClothModels()

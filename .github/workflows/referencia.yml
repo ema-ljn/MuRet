@@ -77,11 +77,13 @@ jobs:
           python3 -I "$tools/build_client_reference.py" --research "$RUNNER_TEMP/research" --ref "$COMMIT" \
             --matriz "$RUNNER_TEMP/matriz.tsv" --filas "$RUNNER_TEMP/filas.tsv" --out "$RUNNER_TEMP/referencia"
 
+      # Also in the log, where the API reads it: two runs can be compared without downloading their artifacts.
       - name: El resumen
         run: |
+          set -o pipefail
           python3 -I Client/docs/research/scripts/tools/reference_summary.py \
             --nueva "$RUNNER_TEMP/referencia" --commiteada Client/docs/research/coverage/referencia \
-            >> "$GITHUB_STEP_SUMMARY"
+            | tee -a "$GITHUB_STEP_SUMMARY"
 
       - uses: actions/upload-artifact@v7
         with:

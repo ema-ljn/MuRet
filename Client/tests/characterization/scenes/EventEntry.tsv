@@ -1,0 +1,40 @@
+frame	event	value
+# The ConnectServer: its hello, the list with server 400 and the address of that GameServer. AutoLogin chooses it.
+12	gs	c1 04 00 01
+14	gs	c2 00 0b f4 06 00 01 90 01 00 00
+16	gs	c1 16 f4 03 31 30 2e 30 2e 30 2e 32 00 00 00 00 00 00 00 00 5d da
+# The GameServer: its hello with version 10209, the accepted login (AutoLogin sends the account) and a list with
+# char0001, a level 20 Dark Wizard (the first Devil Square takes levels 15 to 130), in slot 0.
+18	gs	c1 0c f1 00 01 00 05 31 30 32 30 39
+20	gs	c1 05 f1 01 01
+22	gs	c1 29 f3 00 00 00 01 00 63 68 61 72 30 30 30 31 00 00 ee 14 00 00 00 00 00 00 00 03 00 00 00 00 00 00 00 00 00 00 00 00 ff
+# A click on the character and Enter.
+30	mouse	125 353
+31	button-down	left
+32	button-up	left
+34	key-down	Enter
+35	key-up	Enter
+# The world entry in Lorencia at (133, 127), with 60 life and mana and 2000 zen, and a Devil's Invitation (14, 19)
+# in inventory slot 12.
+38	gs-encrypted	c1 34 f3 03 85 7f 00 00 00 00 00 00 6e 00 00 00 00 00 12 00 12 00 0f 00 1e 00 3c 00 3c 00 3c 00 3c 00 00 00 00 00 00 00 d0 07 00 00 03 00 00 00 00 00 ff ff
+39	gs-encrypted	c2 00 0e f3 10 01 0c 13 00 00 00 00 e0 00
+# The server's notice (0D, type 0): "Devil Square opens in 1 minute".
+42	gs	c1 2c 0d 00 00 00 00 00 00 00 00 00 00 44 65 76 69 6c 20 53 71 75 61 72 65 20 6f 70 65 6e 73 20 69 6e 20 31 20 6d 69 6e 75 74 65 00
+# Charon (type 237, key 0x65) comes into view at (130, 127). A click on him: the hero walks to him and talks (30);
+# he opens the Devil Square window, with the inventory beside it.
+45	gs	c2 00 15 13 01 80 65 00 ed 00 00 00 00 82 7f 82 7f 00 00 00 00
+50	mouse	220 135
+52	button-down	left
+53	button-up	left
+75	gs-encrypted	c1 08 30 04 00 00 00 00
+# A click on the first square sends the entry with the invitation's place (90). The server accepts it (90 with 0),
+# which closes the windows, and moves the hero through gate 58 to Devil Square (map 9) at (137, 95) (1C).
+80	mouse	355 200
+84	button-down	left
+85	button-up	left
+87	gs	c1 04 90 00
+89	gs-encrypted	c1 08 1c 3a 09 89 5f 01
+# The countdown before the event starts (92, type 0).
+110	gs	c1 04 92 00
+# 40 idle frames.
+150	end	

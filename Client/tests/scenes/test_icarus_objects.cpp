@@ -1,4 +1,5 @@
 #include "Scenes/IcarusObjectFrame.h"
+#include "Render/Models/RoundedMath.h"
 #include "Scenes/IcarusObjectStep.h"
 
 #include "Core/Expected.h"
@@ -24,7 +25,6 @@
 
 #include <array>
 #include <bit>
-#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
@@ -38,6 +38,7 @@
 namespace
 {
 using Client::Render::Models::CrtRandom;
+using Client::Render::Models::RoundedSin;
 using Client::Scenes::GameObjectPass;
 using Client::Scenes::IcarusObjectServices;
 using Client::Scenes::JointState;
@@ -504,7 +505,7 @@ TEST(IcarusObjectsTest, ThePreludeSometimesDropsAFlareAroundTheHero)
     EXPECT_EQ(alive[0]->type, Client::World::IcarusFlareEffect);
     EXPECT_EQ(alive[0]->transform.position, glm::vec3(x, y, -700.0f));
     EXPECT_EQ(alive[0]->transform.angles, glm::vec3(0.0f));
-    EXPECT_EQ(alive[0]->velocity.z, F32(std::sin(std::bit_cast<double>(0x3ff38c3540000000ull)) * (speed * 0.5)));
+    EXPECT_EQ(alive[0]->velocity.z, F32(RoundedSin(std::bit_cast<double>(0x3ff38c3540000000ull)) * (speed * 0.5)));
 }
 
 // Sin la tabla de uniones, el preludio corta con 0x530860 después de la luz y la nube.

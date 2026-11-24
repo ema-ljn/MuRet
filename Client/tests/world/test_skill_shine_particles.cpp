@@ -1,6 +1,7 @@
 #include "World/Particles.h"
 
 #include "Render/Models/Cloth.h"
+#include "Render/Models/RoundedMath.h"
 #include "World/ParticleOwner.h"
 #include "World/PortableParticleTrigonometry.h"
 
@@ -12,7 +13,6 @@
 #include <gtest/gtest.h>
 
 #include <bit>
-#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
@@ -24,6 +24,7 @@
 namespace
 {
 using Client::Render::Models::CrtRandom;
+using Client::Render::Models::RoundedSin;
 using Client::World::Particle;
 using Client::World::ParticleOwner;
 using Client::World::ParticleOwnerKind;
@@ -109,7 +110,7 @@ TEST(SkillShineParticlesTest, TheShineSwellsWithItsLifeAndFollowsTheBone)
         const int life = 18 - step;
         EXPECT_EQ(shine.life, life);
         EXPECT_EQ(shine.alive, step < 18);
-        EXPECT_EQ(shine.scale, static_cast<float>(std::sin(static_cast<double>(life) * frequency) * 3.0));
+        EXPECT_EQ(shine.scale, static_cast<float>(RoundedSin(static_cast<double>(life) * frequency) * 3.0));
         EXPECT_EQ(shine.position, (glm::vec3{100.0f + static_cast<float>(life), 200.0f, 50.0f}));
         EXPECT_EQ(random.State(), wind.State());
     }

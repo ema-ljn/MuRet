@@ -1,3 +1,4 @@
+#include "Render/Models/IModelLibrary.h"
 #include "Scenes/GameDrawTail.h"
 
 #include "Core/Expected.h"
@@ -34,7 +35,7 @@
 
 namespace
 {
-class NoModels final : public Client::Scenes::IModelLibrary
+class NoModels final : public Client::Render::Models::IModelLibrary
 {
 public:
     const Client::Data::Models::Model* Find(std::uint16_t) const override
@@ -50,7 +51,7 @@ public:
         return {};
     }
 };
-class TriangleModels final : public Client::Scenes::IModelLibrary
+class TriangleModels final : public Client::Render::Models::IModelLibrary
 {
 public:
     TriangleModels()
@@ -103,7 +104,7 @@ public:
 // Un triángulo del hueso 0 con vértices que redondean y `bones` huesos sin giro: la raíz en `root` y los demás,
 // hijos de la raíz, en su origen. Con los ángulos del efecto en 0, la pose de 0x4eb860 sin trasladar da la
 // identidad con esa traslación, sin la escala ni el origen del efecto.
-class PosedItemModels final : public Client::Scenes::IModelLibrary
+class PosedItemModels final : public Client::Render::Models::IModelLibrary
 {
 public:
     PosedItemModels(std::size_t bones, const glm::vec3& root)
@@ -506,6 +507,36 @@ TEST(GameSpecialModelEffectsTest, FallenItemSamplesTerrainBeforePublishingItsIni
     EXPECT_FLOAT_EQ(batch.Vertices()[0].color.alpha, 0.4f);
     ExpectItemInitialization(effect, 0.8f, -1);
     EXPECT_EQ(effect.type, 0xfa);
+}
+
+// 0x60b573: with the options' glow detail (0x6c9dcc) at 1, a level 13 falling item draws as a level 7 one: its mesh
+// and the 0x44 pass.
+TEST(GameSpecialModelEffectsTest, TheGlowDetailOfTheOptionsTrimsTheLevelOfAnEffectItem)
+{
+    for (const std::uint8_t detail : {std::uint8_t{4}, std::uint8_t{1}})
+    {
+        SCOPED_TRACE(static_cast<int>(detail));
+        TriangleModels models;
+        Client::Scenes::FaunaDrawCarry carry;
+        Client::Render::ModelBatch batch;
+        auto heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
+        std::int16_t itemType = 0;
+        std::uint8_t itemLevel = 13;
+        auto effect = ItemEffect(0xfa, itemType, itemLevel);
+        Client::Scenes::ItemDrawContext items;
+        items.glowDetail = detail;
+        Client::Scenes::ModelEffectDrawResources resources{*heights};
+        resources.itemContext = &items;
+        resources.onUntranslatedPose = [&](const Client::Scenes::DrawnObject& object)
+        { return Client::Scenes::PublishFaunaPose(carry, models, object, false); };
+        resources.posedMeshes = [&] { return std::span<const Client::Render::Models::SkinnedMesh>(carry.meshes); };
+
+        const auto result =
+            Client::Scenes::DrawGameModelEffects(batch, models, std::span(&effect, 1), {}, nullptr, {}, 0, resources);
+
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        EXPECT_EQ(batch.Vertices().size(), detail == 4 ? 12u : 6u);
+    }
 }
 
 TEST(GameSpecialModelEffectsTest, ItemInitializationIsDurableAndCapturedAlphaControlsDrawing)

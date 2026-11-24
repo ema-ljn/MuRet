@@ -4,15 +4,15 @@
 #include "Data/Models/PlayerModels.h"
 #include "GameLogic/CharacterAppearance.h"
 #include "Render/Models/Animation.h"
+#include "Render/Models/IModelLibrary.h"
 #include "Render/Models/Pose.h"
 #include "Render/Models/Skeleton.h"
-#include "Scenes/CharacterDrawing.h"
 #include "Scenes/PlayerActionSpeeds.h"
 
 namespace Client::Scenes
 {
 bool StepCharacterAnimation(CharacterAnimation& animation, const GameLogic::CharacterAppearance& appearance,
-                            const IModelLibrary& models, Render::Models::AnimationScene scene)
+                            const Render::Models::IModelLibrary& models, Render::Models::AnimationScene scene)
 {
     bool finished = false;
     const Render::Models::Skeleton* skeleton = models.SkeletonOf(Data::Models::PlayerSkeletonModel);
@@ -26,7 +26,7 @@ bool StepCharacterAnimation(CharacterAnimation& animation, const GameLogic::Char
 }
 
 void StepCharacterAttachments(CharacterAnimation& animation, const GameLogic::CharacterAppearance& appearance,
-                              const IModelLibrary& models)
+                              const Render::Models::IModelLibrary& models)
 {
     if (appearance.pet)
     {
@@ -49,8 +49,9 @@ void StepCharacterAttachments(CharacterAnimation& animation, const GameLogic::Ch
     }
 }
 
-Render::Models::AnimationState BodyBetweenSteps(const CharacterAnimation& animation, const IModelLibrary& models,
-                                                float alpha, const PlayerActionSpeeds* speeds)
+Render::Models::AnimationState BodyBetweenSteps(const CharacterAnimation& animation,
+                                                const Render::Models::IModelLibrary& models, float alpha,
+                                                const PlayerActionSpeeds* speeds)
 {
     const Render::Models::Skeleton* skeleton = models.SkeletonOf(Data::Models::PlayerSkeletonModel);
     if (skeleton == nullptr || animation.body.action >= skeleton->actions.size())

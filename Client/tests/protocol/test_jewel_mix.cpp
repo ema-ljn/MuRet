@@ -1,6 +1,6 @@
+#include "Network/Xor32Packet.h"
 #include "Protocol/JewelMix.h"
 
-#include "Network/Crypto/Xor32.h"
 #include "Network/Delivery.h"
 
 #include "support/Bytes.h"
@@ -15,7 +15,7 @@
 namespace
 {
 using Client::Network::Delivery;
-using Client::Network::Crypto::Xor32Decode;
+using Client::Network::Xor32Decode;
 using Client::Tests::Bytes;
 using Client::Tests::SameBytes;
 namespace JewelMix = Client::Protocol::JewelMix;

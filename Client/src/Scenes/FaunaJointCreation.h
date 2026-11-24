@@ -16,6 +16,7 @@ namespace Client::Render::Models
 {
 class CrtRandom;
 struct ClothWorld;
+class IModelLibrary;
 } // namespace Client::Render::Models
 
 namespace Client::World
@@ -36,7 +37,6 @@ struct TerrainLighting;
 // aliasActorState. Pool lleno no lee los argumentos ni RNG.
 namespace Client::Scenes
 {
-class IModelLibrary;
 
 // El 618/0 y el 618/1 que el que mató lanza desde el blanco (0x505169, 0x5051a4): con el ActorState del que pega como
 // dueño, giran 20 pasos y después vuelven hacia él (0x538313), con la luz dinámica, el rayo 0x5d5/0 de cada paso y, al
@@ -87,5 +87,5 @@ StepJoints(std::span<JointState> joints, Render::Models::CrtRandom& random, Rend
            const std::function<double(float, float)>& terrainHeight = {}, std::span<const ActorState> actors = {},
            const JointKernels::EffectHit& effectHit = {}, World::ModelEffects* effects = nullptr,
            const ActorState* hero = nullptr, WorldState* world = nullptr,
-           const JointKernels::VolleyServices* volley = nullptr, const IModelLibrary* models = nullptr);
+           const JointKernels::VolleyServices* volley = nullptr, const Render::Models::IModelLibrary* models = nullptr);
 } // namespace Client::Scenes

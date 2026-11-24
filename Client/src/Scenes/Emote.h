@@ -6,12 +6,16 @@
 
 #include <string>
 
+namespace Client::Render::Models
+{
+class IModelLibrary;
+}
+
 // El emote de un personaje (CL9 hito 1; 06 § El chat, "El emote"): 0x576a60 y lo que hace cada caso de 0x576eb0 con
 // lo que encontró UI::FindTheEmote. Ninguna de las dos saca rand(), y un C1 no lo saca. *Estático*.
 namespace Client::Scenes
 {
 struct ActorState;
-class IModelLibrary;
 
 struct EmoteContext
 {
@@ -19,7 +23,7 @@ struct EmoteContext
     ActorState& hero;
     // Los modelos: 0x4ea030 mira las acciones del modelo del tipo del personaje (+2; 0x5769ad8 + tipo · 0xe0, su +0x26,
     // en 0x4ea036..0x4ea054), Player.bmd con un jugador y otro con un transformado (0x45).
-    const IModelLibrary& models;
+    const Render::Models::IModelLibrary& models;
     ActionSender send;
 };
 

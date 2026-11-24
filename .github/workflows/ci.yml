@@ -83,6 +83,7 @@ jobs:
             extra-configure: >-
               -DCMAKE_EXE_LINKER_FLAGS=-Wl,--strip-debug -DCMAKE_CXX_FLAGS_DEBUG=
               -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+            ccache-key: ccache-ubuntu-24.04
             font-file: /usr/share/fonts/truetype/dejavu/DejaVuSans.ttf
           # Con Ninja y cl desde el entorno de MSVC (paso "Entorno de MSVC"), no con MSBuild: MSBuild
           # compilaba ClientLib en un solo núcleo (21 minutos) y no lo mejoraron ni /MP ni 4
@@ -106,6 +107,7 @@ jobs:
             # De a 4, cada test de tests/scenes tardó 3 a 4 min en compilar (memoria): el build sin caché
             # pasó las 2 h. De a 2, 31 a 34 s cada uno y 53 min el build entero sin caché (#379).
             build-jobs: '2'
+            ccache-key: ccache-windows-2022
             font-file: 'C:\Windows\Fonts\arial.ttf'
           # Que cada archivo del cliente incluya lo que usa (docs/CODING_RULES.md § 7). Antes iba al
           # final del job de Linux y le sumaba 12 a 18 minutos; clang-tidy solo lee el
@@ -121,14 +123,21 @@ jobs:
             font-file: /usr/share/fonts/truetype/dejavu/DejaVuSans.ttf
           # El perfil matemático retenido en MSVC x64 Release (ADR 0014). Antes iba después de los
           # tests de Windows y le sumaba 26 a 31 minutos.
+          # Ninja, ccache and two jobs, as in Windows Debug: with MSBuild, building Main took 31 of
+          # this job's 33 minutes (#407). Its own ccache key: Debug objects never match Release.
           - name: Windows (MSVC, Release, matemática)
             kind: math-release
             os: windows-2022
-            configure-preset: windows-x64
-            build-preset: windows-x64-release
-            test-preset: windows-x64-release
+            configure-preset: windows-x64-ninja-release
+            build-preset: windows-x64-ninja-release
+            test-preset: windows-x64-ninja-release
             precompiled-headers: 'ON'
-            extra-configure: ''
+            extra-configure: -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+            build-jobs: '2'
+            build-targets: >-
+              --target Main test_original_angles test_original_retained_math test_rounded_math
+              test_rounded_transforms test_half_life_math
+            ccache-key: ccache-release-windows-2022
             font-file: 'C:\Windows\Fonts\arial.ttf'
     env:
       VCPKG_DISABLE_METRICS: 1
@@ -147,14 +156,71 @@ jobs:
         with:
           fetch-depth: 2
 
+      # A PR that changes nothing the build reads (docs, the Python tools, the agents' files) skips the rest of the
+      # job except the Python checks, and the job still ends green. Not a job-level if: it is evaluated before the
+      # matrix expands, so the required checks ("Linux (GCC, Debug)"...) would never report. Outside a PR, all runs.
+      - name: What the PR changes
+        id: scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          build=true
+          if [ "$GITHUB_EVENT_NAME" = pull_request ]; then
+            build=false
+            while IFS= read -r path; do
+              case "$path" in
+                *.md | docs/* | Client/docs/* | Client/tools/* | .claude/* | .git-blame-ignore-revs) ;;
+                .github/workflows/referencia.yml) ;;
+                *) build=true; echo "Builds because of $path"; break ;;
+              esac
+            done < <(git diff --name-only HEAD^1 HEAD)
+          fi
+          echo "build=$build" | tee -a "$GITHUB_OUTPUT"
+
       - name: Tests de las herramientas de evidencia CL9
         if: matrix.kind == 'build'
         run: python -m unittest discover -s Client/docs/research/scripts/game/capture -p 'test_*evidence.py' -v
 
-      # El resumen de la action de la referencia (.github/workflows/referencia.yml), con tablas inventadas.
-      - name: Tests del resumen de la referencia
+      # The reference tools (.github/workflows/referencia.yml): its summary, the anchors of the hand-classified
+      # cuts and the matrix's commit waves (AR0.2), with made-up tables and git repos.
+      - name: Reference tools tests
         if: matrix.kind == 'build'
-        run: python -m unittest discover -s Client/docs/research/scripts/tools -p 'test_reference_summary.py' -v
+        run: |
+          python -m unittest discover -s Client/docs/research/scripts/tools -p 'test_reference_*.py' -v
+          python -m unittest discover -s Client/docs/research/scripts/tools -p 'test_commit_waves.py' -v
+
+      # Client refactor (AR0.1): a new include that breaks the module layers, or a file without a module, fails.
+      # Since AR1.1 the engine has none at all: its violations fail even if the baseline lists them.
+      - name: Client layers
+        if: matrix.kind == 'includes'
+        run: |
+          python3 -I -m unittest discover -s Client/tools/architecture -p 'test_*.py' -v
+          python3 -I Client/tools/architecture/check_layers.py --src Client/src --modules Client/modules.tsv \
+            --map Client/docs/research/coverage/module-map.tsv \
+            --baseline Client/tools/architecture/layers-baseline.tsv --clean-root engine
+
+      # ADR 0027: math that the C library or glm rounds, called by name instead of through RoundedMath.h, fails.
+      - name: Client rounded math
+        if: matrix.kind == 'includes'
+        run: |
+          python3 -I Client/tools/architecture/check_rounded_math.py --src Client/src Client/tests \
+            --exceptions Client/tools/architecture/rounded-math-exceptions.tsv
+
+      # Client refactor (AR0.2): in a PR titled type(ARn) or type(ARn.m), a moved file may only change its includes;
+      # in a docs(ARn.m) PR, only comments may change and every cited address stays cited. HEAD^1 is the base.
+      - name: Refactor moves and comments
+        if: matrix.kind == 'includes' && github.event_name == 'pull_request'
+        env:
+          TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          if [[ ! "$TITLE" =~ ^[a-z]+\(AR[0-9]+(\.[0-9]+)?\)!?: ]]; then
+            echo "Not a refactor PR: nothing to check."
+            exit 0
+          fi
+          python3 -I Client/tools/architecture/check_pure_move.py --base HEAD^1 --head HEAD
+          if [[ "$TITLE" =~ ^docs\(AR[0-9]+\.[0-9]+\): ]]; then
+            python3 -I Client/tools/architecture/check_comments_only.py --base HEAD^1 --head HEAD
+          fi
 
       # Lo que los puertos sdl3 y alsa de vcpkg piden del sistema, los headers de OpenGL/EGL,
       # y Xvfb + Mesa (llvmpipe) para abrir la ventana sin pantalla. NASM lo
@@ -162,7 +228,7 @@ jobs:
       # (en Windows sí lo baja). ccache, para no recompilar lo que no cambió. clang-tidy-18, para
       # el job de los includes.
       - name: Paquetes del sistema (Linux)
-        if: runner.os == 'Linux'
+        if: steps.scope.outputs.build == 'true' && runner.os == 'Linux'
         # Con los mismos reintentos que el paso del formato.
         run: |
           for attempt in 1 2 3 4 5; do
@@ -183,7 +249,7 @@ jobs:
       # La DejaVu de MURET_CLIENT_FONT_FILE viene en la imagen de ubuntu-24.04; si una imagen nueva
       # no la trae, se instala.
       - name: Fuente de los tests (Linux)
-        if: runner.os == 'Linux' && matrix.kind == 'build'
+        if: steps.scope.outputs.build == 'true' && runner.os == 'Linux' && matrix.kind == 'build'
         run: |
           if [ ! -f "$MURET_CLIENT_FONT_FILE" ]; then
             sudo apt-get install -y fonts-dejavu-core
@@ -196,7 +262,7 @@ jobs:
       # no usa (Android, .NET, Haskell y CodeQL; el SDK de Android se puede borrar justamente para
       # esto, actions/runner-images) y se muestra el disco y la memoria antes de compilar.
       - name: Espacio en disco (Linux)
-        if: runner.os == 'Linux' && matrix.kind == 'build'
+        if: steps.scope.outputs.build == 'true' && runner.os == 'Linux' && matrix.kind == 'build'
         run: |
           df -h /
           sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /usr/local/.ghcup \
@@ -207,6 +273,7 @@ jobs:
       # vcpkg clonado entero (con historia: el versionado lo necesita) y parado en la
       # builtin-baseline de vcpkg.json, para que CI use las mismas versiones que todos.
       - name: vcpkg en la baseline de vcpkg.json
+        if: steps.scope.outputs.build == 'true'
         shell: bash
         run: |
           temp="$(cygpath -m "$RUNNER_TEMP" 2>/dev/null || echo "$RUNNER_TEMP")"
@@ -220,11 +287,11 @@ jobs:
           echo "RUNNER_IMAGE=${ImageOS:-unknown}-${ImageVersion:-unknown}" >> "$GITHUB_ENV"
 
       - name: Bootstrap de vcpkg (Linux)
-        if: runner.os == 'Linux'
+        if: steps.scope.outputs.build == 'true' && runner.os == 'Linux'
         run: '"$VCPKG_ROOT/bootstrap-vcpkg.sh" -disableMetrics'
 
       - name: Bootstrap de vcpkg (Windows)
-        if: runner.os == 'Windows'
+        if: steps.scope.outputs.build == 'true' && runner.os == 'Windows'
         shell: pwsh
         run: '& (Join-Path $env:VCPKG_ROOT "bootstrap-vcpkg.bat") -disableMetrics'
 
@@ -232,6 +299,7 @@ jobs:
       # existe no se vuelve a guardar, así que lleva la imagen del runner: cuando cambia el
       # compilador, la primera corrida recompila y guarda una caché nueva.
       - name: Caché de binarios de vcpkg
+        if: steps.scope.outputs.build == 'true'
         uses: actions/cache@v6
         with:
           path: ${{ runner.temp }}/vcpkg-cache
@@ -246,7 +314,7 @@ jobs:
       # nuevas del PATH van en el mismo orden que les da vcvars64.bat (GITHUB_PATH antepone cada
       # línea a las anteriores, por eso se escriben al revés).
       - name: Entorno de MSVC (Windows)
-        if: runner.os == 'Windows' && matrix.kind == 'build'
+        if: steps.scope.outputs.build == 'true' && runner.os == 'Windows'
         shell: pwsh
         run: |
           $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
@@ -280,7 +348,7 @@ jobs:
       # recompilarse. En Windows, la versión que soporta cl oficialmente (desde la 4.13), con su
       # SHA-256; en Linux, la de apt.
       - name: ccache (Windows)
-        if: runner.os == 'Windows' && matrix.kind == 'build'
+        if: steps.scope.outputs.build == 'true' && runner.os == 'Windows'
         shell: pwsh
         run: |
           $version = '4.13.5'
@@ -299,12 +367,12 @@ jobs:
       # Cada corrida guarda la suya al final (paso "Guardar la caché de ccache"), también si falló.
       - name: Restaurar la caché de ccache
         id: ccache
-        if: matrix.kind == 'build'
+        if: steps.scope.outputs.build == 'true' && matrix.kind != 'includes'
         uses: actions/cache/restore@v6
         with:
           path: ${{ runner.temp }}/ccache
-          key: ccache-${{ matrix.os }}-${{ github.run_id }}-${{ github.run_attempt }}
-          restore-keys: ccache-${{ matrix.os }}-
+          key: ${{ matrix.ccache-key }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: ${{ matrix.ccache-key }}-
 
       # pch_defines,time_macros: lo que ccache pide para cachear con precompiled headers. El modo
       # depend toma los includes de /showIncludes o -MD (que Ninja ya pide) en vez de correr el
@@ -313,7 +381,7 @@ jobs:
       # con cada imagen nueva del runner aunque el compilador sea el mismo (#379: con la imagen de
       # Windows del 16/11, 3 aciertos de 1462). Con el contenido, solo un compilador distinto vacía la caché.
       - name: Configurar ccache
-        if: matrix.kind == 'build'
+        if: steps.scope.outputs.build == 'true' && matrix.kind != 'includes'
         shell: bash
         run: |
           dir="$(cygpath -m "$RUNNER_TEMP" 2>/dev/null || echo "$RUNNER_TEMP")/ccache"
@@ -329,6 +397,7 @@ jobs:
           ccache --zero-stats
 
       - name: Configurar
+        if: steps.scope.outputs.build == 'true'
         run: >-
           cmake --preset ${{ matrix.configure-preset }} -DMURET_WARNINGS_AS_ERRORS=ON
           -DMURET_PRECOMPILED_HEADERS=${{ matrix.precompiled-headers }} ${{ matrix.extra-configure }}
@@ -338,7 +407,7 @@ jobs:
       # vez de al final del build entero. Lo que se compila acá el paso siguiente ya no lo repite.
       # Con más de 40 archivos de test tocados va directo al build entero.
       - name: Compilar y probar primero lo que cambió (PR)
-        if: matrix.kind == 'build' && github.event_name == 'pull_request'
+        if: steps.scope.outputs.build == 'true' && matrix.kind == 'build' && github.event_name == 'pull_request'
         shell: bash
         run: |
           set -euo pipefail
@@ -349,6 +418,24 @@ jobs:
             echo "Más de 40: se compila todo en el paso siguiente."
             exit 0
           fi
+          build="build/${{ matrix.configure-preset }}"
+          # A test of the other system's code (muret_add_module_tests OTHER_SYSTEM) has no target here.
+          # A set, not grep -q: grep would stop reading early and, with pipefail, drop a test at random.
+          ninja_targets="$(ninja -C "$build" -t targets all)"
+          declare -A known=()
+          while IFS= read -r name; do known["$name"]=1; done \
+            < <(printf '%s\n' "$ninja_targets" | tr -d '\r' | sed -n 's/^\(test_[^:]*\): phony$/\1/p')
+          [ "${#known[@]}" -gt 0 ] || { echo "Ninja listed no test targets in $build"; exit 1; }
+          kept=()
+          for path in "${changed[@]}"; do
+            name="$(basename "$path" .cpp)"
+            if [ -n "${known[$name]:-}" ]; then
+              kept+=("$path")
+            else
+              echo "No target on this system: $path"
+            fi
+          done
+          changed=("${kept[@]}")
           targets=(ClientLib)
           for path in "${changed[@]}"; do
             targets+=("$(basename "$path" .cpp)")
@@ -357,7 +444,6 @@ jobs:
           [ "${#changed[@]}" -gt 0 ] || exit 0
           # Las suites de esos ejecutables, para correr con CTest solo sus tests (cada TEST es un
           # test de CTest con el nombre de su suite, ver Client/tests/CMakeLists.txt).
-          build="build/${{ matrix.configure-preset }}"
           suites=()
           for path in "${changed[@]}"; do
             module="$(basename "$(dirname "$path")")"
@@ -372,9 +458,10 @@ jobs:
           echo "Suites: $regex"
           ctest --preset ${{ matrix.test-preset }} --parallel "$MURET_CI_JOBS" -R "$regex" --no-tests=error
 
+      # math-release builds only Main and the two tests of the math profile.
       - name: Compilar
-        if: matrix.kind == 'build'
-        run: cmake --build --preset ${{ matrix.build-preset }}
+        if: steps.scope.outputs.build == 'true' && matrix.kind != 'includes'
+        run: cmake --build --preset ${{ matrix.build-preset }} ${{ matrix.build-targets }}
 
       # Se guarda también si el build falló: el push que lo arregla encuentra compilado todo lo
       # que llegó a compilar esta corrida.
@@ -387,7 +474,7 @@ jobs:
 
       # Cuánto dejó el build, también si falló, para ver de antemano si el disco vuelve a quedar justo.
       - name: Disco y memoria después de compilar (Linux)
-        if: always() && runner.os == 'Linux' && matrix.kind == 'build'
+        if: always() && steps.scope.outputs.build == 'true' && runner.os == 'Linux' && matrix.kind == 'build'
         run: |
           df -h /
           free -h
@@ -396,19 +483,17 @@ jobs:
       # De a cuatro procesos: cada TEST corre en su propio proceso (gtest_discover_tests) y los que
       # escriben en la carpeta temporal usan nombres al azar.
       - name: Tests
-        if: matrix.kind == 'build'
+        if: steps.scope.outputs.build == 'true' && matrix.kind == 'build'
         run: ctest --preset ${{ matrix.test-preset }} --parallel ${{ env.MURET_CI_JOBS }}
 
-      # Con el módulo retenido presente, Windows verifica también Main y sus hojas en Release.
-      # Un build fallido corta antes de CTest; cero casos seleccionados también hace fallar el job.
+      # Main and the tests come from "Compilar". Zero selected tests also fails the job, so a
+      # move or a rename of these tests cannot turn the check off. The rounded math runs here too:
+      # the optimizer must not change its bits.
       - name: Perfil matemático en MSVC Release
-        if: matrix.kind == 'math-release' && hashFiles('Client/src/Render/Models/OriginalRetainedMath.cpp') != ''
-        shell: pwsh
-        run: |
-          cmake --build build/windows-x64 --config Release --parallel 4 --target Main test_original_angles test_original_retained_math
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          ctest --test-dir build/windows-x64 -C Release -R '^(OriginalAnglesTest|OriginalRetainedMathTest)\.' --output-on-failure --no-tests=error
-          exit $LASTEXITCODE
+        if: steps.scope.outputs.build == 'true' && matrix.kind == 'math-release'
+        run: >-
+          ctest --preset ${{ matrix.test-preset }} --no-tests=error
+          -R '^(OriginalAnglesTest|OriginalRetainedMathTest|RoundedMathTest|RoundedTransformsTest|HalfLifeMathTest)\.'
 
       # Los tests con la etiqueta gl (desde la CL5.0, los de labs/cl5.0-pipeline/gl/) abren una
       # ventana escondida con OpenGL 3.3 core, dibujan en un framebuffer y leen los píxeles. En el
@@ -418,7 +503,7 @@ jobs:
       # también falla. La etiqueta es una regex: '^gl$' no toma otra que la contenga. En Windows
       # no va: el runner tiene solo el OpenGL 1.1 de GDI.
       - name: Tests de GL en Xvfb (Linux)
-        if: runner.os == 'Linux' && matrix.kind == 'build'
+        if: steps.scope.outputs.build == 'true' && runner.os == 'Linux' && matrix.kind == 'build'
         env:
           MURET_CLIENT_REQUIRE_GL: 1
         run: xvfb-run -a -s '-screen 0 800x600x24' ctest --preset ${{ matrix.test-preset }} -L '^gl$' --no-tests=error
@@ -428,7 +513,7 @@ jobs:
       # Con --vsync off, el bucle de la CL3.2 corre sin esperar el retrazo; con --pacing faithful,
       # al ritmo del original (VSync apagado, como pide ese modo).
       - name: Ventana de la CL0.3 en Xvfb (Linux)
-        if: runner.os == 'Linux' && matrix.kind == 'build'
+        if: steps.scope.outputs.build == 'true' && runner.os == 'Linux' && matrix.kind == 'build'
         run: |
           xvfb-run -a -s '-screen 0 800x600x24' build/${{ matrix.configure-preset }}/Client/Main --frames 60
           xvfb-run -a -s '-screen 0 800x600x24' build/${{ matrix.configure-preset }}/Client/Main --frames 60 --vsync off
@@ -444,7 +529,7 @@ jobs:
       # headers, que no están en esa base, de a uno; para cada uno, clang-tidy toma el comando del
       # .cpp más parecido.
       - name: Includes con clang-tidy (Linux)
-        if: matrix.kind == 'includes'
+        if: steps.scope.outputs.build == 'true' && matrix.kind == 'includes'
         run: |
           clang-tidy-18 --version
           build=build/${{ matrix.configure-preset }}
@@ -460,7 +545,7 @@ jobs:
       # sort a secas puede ser el de System32. awk y no head: head cortaría el pipe antes de que sort
       # termine de escribir, y con pipefail el paso fallaría.
       - name: Lo más lento del build
-        if: always() && matrix.kind == 'build'
+        if: always() && steps.scope.outputs.build == 'true' && matrix.kind != 'includes'
         shell: bash
         run: |
           log="build/${{ matrix.configure-preset }}/.ninja_log"

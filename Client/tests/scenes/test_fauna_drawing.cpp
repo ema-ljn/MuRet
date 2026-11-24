@@ -1,3 +1,4 @@
+#include "Render/Models/IModelLibrary.h"
 #include "Scenes/FaunaDrawing.h"
 
 #include "Data/Models/Model.h"
@@ -32,7 +33,7 @@
 
 namespace
 {
-class Models : public Client::Scenes::IModelLibrary
+class Models : public Client::Render::Models::IModelLibrary
 {
 public:
     Client::Data::Models::Model model = Client::Tests::SampleModel();

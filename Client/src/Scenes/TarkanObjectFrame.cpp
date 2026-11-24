@@ -1,6 +1,7 @@
 #include "Scenes/TarkanObjectFrame.h"
 
 #include "Core/Expected.h"
+#include "Render/Models/RoundedMath.h"
 #include "Scenes/ObjectFrameSprites.h"
 #include "Scenes/WorldObjectsDrawing.h"
 #include "Render/Models/Cloth.h"
@@ -14,7 +15,6 @@
 #include <glm/ext/vector_float3.hpp>
 
 #include <bit>
-#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <format>
@@ -56,7 +56,7 @@ constexpr std::size_t ImpactBone = 2;
 
 double Pulse(double phase)
 {
-    return (std::sin(phase * PulseRate) * PulseAmplitude) + PulseBase;
+    return (Render::Models::RoundedSin(phase * PulseRate) * PulseAmplitude) + PulseBase;
 }
 
 Core::Expected<void, std::string> Sprite(const GameObjectPass& pass, std::uint16_t texture, std::size_t bone,

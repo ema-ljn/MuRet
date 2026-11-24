@@ -5,9 +5,10 @@ Lo usa la action de la referencia (.github/workflows/referencia.yml) para la pá
   python3 -I Client/docs/research/scripts/tools/reference_summary.py \
       --nueva "$RUNNER_TEMP/referencia" --commiteada Client/docs/research/coverage/referencia
 
-Tres secciones: cuánto falta para portar (las cotas de metricas.tsv), cuánto falta para cerrarlo contra el ASM (las
-funciones vivas que cumplen todo lo de closed_against_asm) y el estado de las trazas (cortes, huecos y la diferencia
-con la referencia commiteada). Solo la biblioteca estándar. Las columnas, en coverage/referencia/LEEME.md.
+Cuatro secciones: cuánto falta para portar (las cotas de metricas.tsv), cuánto falta para cerrarlo contra el ASM (las
+funciones vivas que cumplen todo lo de closed_against_asm), what is missing per module (the `module` scope of
+metricas.tsv) y el estado de las trazas (cortes, huecos y la diferencia con la referencia commiteada). Solo la
+biblioteca estándar. Las columnas, en coverage/referencia/LEEME.md.
 """
 import argparse
 import collections
@@ -128,9 +129,9 @@ def pct(part, whole):
     return '—' if not whole else es(100 * part / whole) + ' %'
 
 
-def table(header, rows):
+def table(header, rows, limit=LONG_LIST):
     lines = ['| ' + ' | '.join(header) + ' |', '|' + '|'.join(' --- ' for _ in header) + '|']
-    shown = rows[:LONG_LIST]
+    shown = rows[:limit]
     lines += ['| ' + ' | '.join(str(cell) for cell in row) + ' |' for row in shown]
     if len(rows) > len(shown):
         lines.append(f'\ny {len(rows) - len(shown)} más.')
@@ -211,6 +212,35 @@ def traces_section(metrics, committed, cortes, huecos):
     return '\n'.join(out)
 
 
+def module_section(metrics):
+    names = [('lines', 'Lines'), ('cited_functions', 'Cited functions'), ('cited_kb', 'Cited KB'),
+             ('live_cuts', 'Live cuts'), ('closing_cuts', 'Closing cuts'), ('gaps', 'Gaps'), ('gap_kb', 'Gap KB'),
+             ('vm_steps', 'VM steps'), ('open_08_ids', 'Open 08')]
+    values = collections.defaultdict(dict)
+    for r in metrics:
+        if r['ambito'] == 'module':
+            values[r['clave']][r['metrica']] = float(r['valor'])
+    out = ['## What is missing, per module', '',
+           'Each function, cut and gap counted in the module of the files that cite it, or else in that of its cited '
+           'callers (LEEME.md, Per module); `unassigned` holds what no module claims, so each column adds up to the '
+           'total.', '']
+    if not values:
+        return '\n'.join(out + ['None.'])
+
+    def cell(value):
+        return es(value) if value % 1 else es(int(value))
+
+    def row(label, found):
+        return [label] + [cell(found[m]) if m in found else '—' for m, _ in names]
+
+    total = collections.Counter()
+    for found in values.values():
+        total.update(found)
+    order = sorted(values, key=lambda k: (k == 'unassigned', k))
+    rows = [row('**Total**', {m: round(v, 1) for m, v in total.items()})] + [row(k, values[k]) for k in order]
+    return '\n'.join(out + [table(['Module'] + [n for _, n in names], rows, limit=None)])
+
+
 def render(new_dir, committed_dir):
     new_dir, committed_dir = pathlib.Path(new_dir), pathlib.Path(committed_dir)
     metrics = load_tsv(new_dir / 'metricas.tsv')
@@ -222,7 +252,7 @@ def render(new_dir, committed_dir):
         info = json.loads(generated.read_text(encoding='utf-8'))
         title += f" sobre `{str(info.get('ref', ''))[:8]}` ({info.get('fecha_commit', '')})"
     return '\n\n'.join([title, porting_section(metrics), closure_section(load_tsv(new_dir / 'funciones.tsv')),
-                        traces_section(metrics, committed, load_tsv(new_dir / 'cortes.tsv'),
+                        module_section(metrics), traces_section(metrics, committed, load_tsv(new_dir / 'cortes.tsv'),
                                        load_tsv(new_dir / 'huecos.tsv'))]) + '\n'
 
 

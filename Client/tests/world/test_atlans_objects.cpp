@@ -1,5 +1,6 @@
 #include "Render/Models/Cloth.h"
 #include "Render/Models/ObjectState.h"
+#include "Render/Models/RoundedMath.h"
 #include "World/AtlansObjectStep.h"
 #include "World/Particles.h"
 #include "World/WorldObjects.h"
@@ -9,7 +10,6 @@
 #include <gtest/gtest.h>
 
 #include <bit>
-#include <cmath>
 #include <cstdint>
 #include <string>
 
@@ -17,6 +17,7 @@
 namespace
 {
 using Client::Render::Models::CrtRandom;
+using Client::Render::Models::RoundedSin;
 using Client::World::ObjectStepGlobals;
 using Client::World::Particles;
 using Client::World::StepAtlansObject;
@@ -45,7 +46,7 @@ CrtRandom After(std::uint32_t seed, int draws)
 float Swing(float clock, std::uint32_t rate, float factor, double addend)
 {
     const double argument = static_cast<double>(clock) * static_cast<double>(std::bit_cast<float>(rate));
-    return static_cast<float>(std::sin(argument) * static_cast<double>(factor) + addend);
+    return static_cast<float>(RoundedSin(argument) * static_cast<double>(factor) + addend);
 }
 
 constexpr std::uint32_t SlowRate = 0x3b03126fu;              // 0x6b89bc, 0,002f
@@ -129,7 +130,7 @@ TEST(AtlansObjectsTest, TheLightsSwingWithTheWorldClock)
         EXPECT_EQ(lamp.state.blendMesh, 1);
         const double argument =
             static_cast<double>(globals.worldClock) * static_cast<double>(std::bit_cast<float>(FastRate));
-        EXPECT_EQ(lamp.state.light, static_cast<float>((std::sin(argument) + 1.0) * 0.5));
+        EXPECT_EQ(lamp.state.light, static_cast<float>((RoundedSin(argument) + 1.0) * 0.5));
     }
 
     WorldObject statue = Object(0x26);

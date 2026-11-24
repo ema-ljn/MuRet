@@ -14,11 +14,15 @@ namespace Client::Render
 class ModelBatch;
 }
 
+namespace Client::Render::Models
+{
+class IModelLibrary;
+}
+
 // Los monstruos y los NPC en el dibujo del juego (0x50ba30 con un tipo que no es el 0x20a, CL9 hito 2). Contrato: 06
 // § El dibujo del juego, "El dibujo de los monstruos y los NPC".
 namespace Client::Scenes
 {
-class IModelLibrary;
 class WorldState;
 struct GameCharacterPass;
 
@@ -102,7 +106,8 @@ struct GameCharacterPass;
 //   (DrawGameRaven, con pass.polygon).
 // `models` tiene los ítems y Player.bmd (las manos); el modelo del tipo sale de WorldState::FaunaResources. Entre
 // frames del original, todo sobre una copia del personaje y del rand().
-[[nodiscard]] Core::Expected<void, std::string> DrawGameMonster(Render::ModelBatch& batch, const IModelLibrary& models,
+[[nodiscard]] Core::Expected<void, std::string> DrawGameMonster(Render::ModelBatch& batch,
+                                                                const Render::Models::IModelLibrary& models,
                                                                 WorldState& world, std::size_t slot,
                                                                 const GameCharacterPass& pass, bool originalFrame);
 } // namespace Client::Scenes

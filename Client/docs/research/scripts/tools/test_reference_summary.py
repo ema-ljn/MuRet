@@ -120,6 +120,23 @@ class ReferenceSummaryTest(unittest.TestCase):
         # Una VA del main.exe acá contaría como cita de documentación en la referencia que la action mide.
         self.assertEqual(ADDR.findall(pathlib.Path(__file__).read_text(encoding='utf-8')), [])
 
+    def test_render_shows_module_table(self):
+        with tempfile.TemporaryDirectory() as root:
+            folder = pathlib.Path(root)
+            write(folder / 'funciones.tsv', FUNCIONES, [closed()])
+            write(folder / 'metricas.tsv', METRICAS,
+                  [metric('module', 'game/Items', 'live_cuts', 3), metric('module', 'game/Items', 'gap_kb', 4.5),
+                   metric('module', 'unassigned', 'live_cuts', 1), metric('module', 'game/Guild', 'live_cuts', 2)])
+            write(folder / 'cortes.tsv', CORTES, [])
+            write(folder / 'huecos.tsv', HUECOS, [])
+            text = rs.render(folder, folder)
+        self.assertIn('## What is missing, per module', text)
+        section = text[text.index('| Module |'):]
+        self.assertLess(section.index('game/Guild'), section.index('game/Items'))
+        self.assertLess(section.index('game/Items'), section.index('unassigned'))
+        self.assertIn('| **Total** | — | — | — | 6 |', section)
+        self.assertIn('| game/Items | — | — | — | 3 | — | — | 4,5 |', section)
+
     def test_render_sections(self):
         with tempfile.TemporaryDirectory() as root:
             new = pathlib.Path(root, 'nueva')

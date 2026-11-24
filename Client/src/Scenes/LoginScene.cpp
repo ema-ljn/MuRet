@@ -1,5 +1,6 @@
 #include "Scenes/LoginScene.h"
 #include "Render/Models/HalfLifeMath.h"
+#include "Render/Models/IModelLibrary.h"
 #include "Render/Models/Skinning.h"
 #include "Scenes/FaunaDrawing.h"
 #include "Scenes/FaunaJointCreation.h"
@@ -255,10 +256,13 @@ constexpr glm::vec3 DragonOwnerPosition{5600.0f, 23000.0f, 0.0f};
 
 // Los modelos de los objetos del login: los del mundo y el logo (0xa2), que la tabla del original guarda
 // junto con los demás.
-class LoginObjectModels final : public IModelLibrary
+class LoginObjectModels final : public Render::Models::IModelLibrary
 {
 public:
-    LoginObjectModels(const IModelLibrary& world, const IModelLibrary& logo) : m_world(world), m_logo(logo) {}
+    LoginObjectModels(const Render::Models::IModelLibrary& world, const Render::Models::IModelLibrary& logo)
+        : m_world(world), m_logo(logo)
+    {
+    }
 
     [[nodiscard]] const Data::Models::Model* Find(std::uint16_t model) const override
     {
@@ -274,22 +278,25 @@ public:
     }
 
 private:
-    [[nodiscard]] const IModelLibrary& Of(std::uint16_t model) const
+    [[nodiscard]] const Render::Models::IModelLibrary& Of(std::uint16_t model) const
     {
         return model == LoginLogoModel ? m_logo : m_world;
     }
 
-    const IModelLibrary& m_world;
-    const IModelLibrary& m_logo;
+    const Render::Models::IModelLibrary& m_world;
+    const Render::Models::IModelLibrary& m_logo;
 };
 
 // Los modelos de los efectos con modelo del login: la tabla del original es una sola, con los de Object56\ (el
 // dragón, 0x616ec0) y los de los efectos (Skill\Fire01 del meteoro 0xc2, 0x615700); MuRet busca primero en el mundo y
 // después en los de la carga.
-class LoginEffectModels final : public IModelLibrary
+class LoginEffectModels final : public Render::Models::IModelLibrary
 {
 public:
-    LoginEffectModels(const IModelLibrary& world, const IModelLibrary& loaded) : m_world(world), m_loaded(loaded) {}
+    LoginEffectModels(const Render::Models::IModelLibrary& world, const Render::Models::IModelLibrary& loaded)
+        : m_world(world), m_loaded(loaded)
+    {
+    }
 
     [[nodiscard]] const Data::Models::Model* Find(std::uint16_t model) const override
     {
@@ -305,13 +312,13 @@ public:
     }
 
 private:
-    [[nodiscard]] const IModelLibrary& Of(std::uint16_t model) const
+    [[nodiscard]] const Render::Models::IModelLibrary& Of(std::uint16_t model) const
     {
         return m_world.Find(model) != nullptr ? m_world : m_loaded;
     }
 
-    const IModelLibrary& m_world;
-    const IModelLibrary& m_loaded;
+    const Render::Models::IModelLibrary& m_world;
+    const Render::Models::IModelLibrary& m_loaded;
 };
 
 // El logo de 0x606660 como uno más de la lista: sin luz por vértice, como lo deja su caso.
@@ -343,7 +350,7 @@ std::string PlaceVersion(std::string_view text, std::string_view version)
     return placed;
 }
 
-LoginScene::LoginScene(const SceneContext& context, const GameData& data, const IModelLibrary& models,
+LoginScene::LoginScene(const SceneContext& context, const GameData& data, const Render::Models::IModelLibrary& models,
                        App::ServerSession* session, std::string_view version, std::mt19937::result_type seed,
                        const Render::Models::ModelTextureSlots* gameSlots)
     : m_context(context), m_localWorld(context.world == nullptr ? std::make_unique<WorldState>() : nullptr),
@@ -1916,7 +1923,8 @@ void LoginScene::DrawTheTail(SceneCanvas& canvas, ActorState& actor, const Drawn
                                                .joints = world.DrawTail().joints,
                                                .effects = world.Map().effects,
                                                .map = world.Runtime().map,
-                                               .originalFrame = originalFrame});
+                                               .originalFrame = originalFrame,
+                                               .glowDetail = world.Runtime().ui.glowDetail});
         const GameCharacterPass pass{.dynamicLighting = &world.DynamicLighting().Lighting(),
                                      .clothWorld = &cloth,
                                      .frameClock = canvas.frameClock,

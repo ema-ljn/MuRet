@@ -1,5 +1,8 @@
 #include "Audio/SoundCatalog.h"
 
+#include "Audio/ISoundCatalog.h"
+#include "Audio/SoundDefinition.h"
+
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -653,5 +656,28 @@ std::span<const SoundDefinition> WorldSoundsForMap(std::int32_t map)
             return {Catalog.data() + set.firstSound, set.soundCount};
     }
     return {};
+}
+
+namespace
+{
+class GameCatalog final : public ISoundCatalog
+{
+public:
+    [[nodiscard]] std::optional<SoundDefinition> Find(std::int32_t id, std::string_view path) const override
+    {
+        return FindSound(id, path);
+    }
+
+    [[nodiscard]] std::span<const SoundDefinition> StartupSounds() const override
+    {
+        return Audio::StartupSounds();
+    }
+};
+} // namespace
+
+const ISoundCatalog& GameSoundCatalog()
+{
+    static const GameCatalog catalog{};
+    return catalog;
 }
 } // namespace Client::Audio

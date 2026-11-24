@@ -7,6 +7,7 @@
 #include "Data/Textures/JpegWriter.h"
 #include "Input/InputState.h"
 #include "Input/Key.h"
+#include "Render/Frame/IScreenReader.h"
 #include "Scenes/GameMessages.h"
 #include "Scenes/SceneCanvas.h"
 #include "Scenes/WorldRuntime.h"
@@ -125,7 +126,7 @@ Core::Expected<void, std::string> Screenshots::BeforeTheDraw(const ScreenshotFra
 }
 
 Core::Expected<void, std::string> Screenshots::AfterTheDraw(const ScreenshotFrameContext& context, SceneCanvas& canvas,
-                                                            IScreenReader& reader)
+                                                            Render::Frame::IScreenReader& reader)
 {
     if (!m_state.requested || !m_pending)
         return {};

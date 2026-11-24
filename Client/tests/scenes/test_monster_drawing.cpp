@@ -1,3 +1,4 @@
+#include "Render/Models/IModelLibrary.h"
 #include "Scenes/MonsterDrawing.h"
 
 #include "Core/Expected.h"
@@ -13,6 +14,7 @@
 #include "Render/Models/Attachment.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/HalfLifeMath.h"
+#include "Render/Models/RoundedMath.h"
 #include "Render/Models/Skeleton.h"
 #include "Render/Pass3D.h"
 #include "Render/TextureSlot.h"
@@ -63,6 +65,7 @@
 // ejecutar el original. Un modelo sintético de un triángulo en el hueso 0 deja ver el cuerpo, el contorno y la sombra.
 namespace
 {
+using Client::Render::Models::RoundedSin;
 using Client::Scenes::ActorState;
 using Client::Scenes::GameCharacterPass;
 
@@ -84,7 +87,7 @@ std::uint32_t AfterRandoms(std::size_t count)
     return random.State();
 }
 
-class MonsterModels final : public Client::Scenes::IModelLibrary
+class MonsterModels final : public Client::Render::Models::IModelLibrary
 {
 public:
     MonsterModels()
@@ -559,7 +562,7 @@ TEST_F(MonsterDrawingTest, TheArchangelsMarkTheFloorUnderThem)
         EXPECT_EQ(decal.state.blend, Client::Render::ModelBlend::Additive);
         ASSERT_TRUE(decal.state.texture.has_value());
         EXPECT_EQ(decal.state.texture->value, 0x61e);
-        const double pulse = std::sin(1000.0 * static_cast<double>(std::bit_cast<float>(0x3ac49ba6u))) *
+        const double pulse = RoundedSin(1000.0 * static_cast<double>(std::bit_cast<float>(0x3ac49ba6u))) *
                                  static_cast<double>(std::bit_cast<float>(0x3e99999au)) +
                              static_cast<double>(std::bit_cast<float>(0x3f4ccccdu));
         ExpectColor(m_batch.Vertices()[6], static_cast<float>(pulse * 0.5), static_cast<float>(pulse * 0.5),
@@ -1829,10 +1832,10 @@ TEST_F(MonsterDrawingTest, InChaosCastleTheHeroFlagFadesTheStoredAlpha)
 
 // Las partes de los NPC del alta (0x5141e0): la biblioteca del monstruo con un triángulo propio por cada modelo de
 // parte, corrido en x por el número del modelo menos 0x1d0, para ver el orden; `missing` no está cargado.
-class PartModels final : public Client::Scenes::IModelLibrary
+class PartModels final : public Client::Render::Models::IModelLibrary
 {
 public:
-    explicit PartModels(const Client::Scenes::IModelLibrary& body) : m_body(body)
+    explicit PartModels(const Client::Render::Models::IModelLibrary& body) : m_body(body)
     {
         for (std::uint16_t model = 0x1da; model <= 0x1f0; ++model)
         {
@@ -1863,7 +1866,7 @@ public:
     std::uint16_t missing = 0;
 
 private:
-    const Client::Scenes::IModelLibrary& m_body;
+    const Client::Render::Models::IModelLibrary& m_body;
     std::vector<Client::Data::Models::Model> m_parts;
 };
 
@@ -2063,3 +2066,27 @@ TEST(MonsterDecorations, EachListedMonsterCutsWithItsBranch)
     EXPECT_FALSE(Client::Scenes::WearsClothOnTheMesh(0x58));
 }
 } // namespace
+
+// 0x60b573: with the options' glow detail (0x6c9dcc) at 1, each level 13 part draws as a level 7 one: its body and
+// the 0x44 pass.
+TEST_F(MonsterPartsTest, TheGlowDetailOfTheOptionsTrimsTheLevelOfEachPart)
+{
+    for (const std::uint8_t detail : {std::uint8_t{4}, std::uint8_t{1}})
+    {
+        SCOPED_TRACE(static_cast<int>(detail));
+        m_batch.Begin(Client::Render::Pass3D{});
+        ActorState& npc = Npc(DressedNpcs[0]);
+        for (auto& part : npc.body)
+            part.level = 13;
+        Client::Scenes::ItemDrawContext items;
+        items.glowDetail = detail;
+        GameCharacterPass pass = Pass();
+        pass.itemContext = &items;
+
+        const auto result = Draw(pass);
+
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        // The body, the shadow and three parts.
+        EXPECT_EQ(m_batch.Vertices().size(), 6u + 3u * (detail == 4 ? 12u : 6u));
+    }
+}

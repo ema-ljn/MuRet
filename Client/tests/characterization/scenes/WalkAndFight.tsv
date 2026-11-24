@@ -1,0 +1,47 @@
+frame	event	value
+# The ConnectServer: its hello, the list with server 400 and the address of that GameServer. AutoLogin chooses it.
+12	gs	c1 04 00 01
+14	gs	c2 00 0b f4 06 00 01 90 01 00 00
+16	gs	c1 16 f4 03 31 30 2e 30 2e 30 2e 32 00 00 00 00 00 00 00 00 5d da
+# The GameServer: its hello with version 10209, the accepted login (AutoLogin sends the account) and a list with
+# char0001, a level 1 Dark Wizard, in slot 0.
+18	gs	c1 0c f1 00 01 00 05 31 30 32 30 39
+20	gs	c1 05 f1 01 01
+22	gs	c1 29 f3 00 00 00 01 00 63 68 61 72 30 30 30 31 00 00 ee 01 00 00 00 00 00 00 00 03 00 00 00 00 00 00 00 00 00 00 00 00 ff
+# A click on the character and Enter.
+30	mouse	125 353
+31	button-down	left
+32	button-up	left
+34	key-down	Enter
+35	key-up	Enter
+# The world entry in Lorencia at (175, 127), outside the safe zone, with 60 life and mana and 2000 zen, and an
+# empty inventory.
+38	gs-encrypted	c1 34 f3 03 af 7f 00 00 00 00 00 00 6e 00 00 00 00 00 12 00 12 00 0f 00 1e 00 3c 00 3c 00 3c 00 3c 00 00 00 00 00 00 00 d0 07 00 00 03 00 00 00 00 00 ff ff
+39	gs-encrypted	c2 00 06 f3 10 00
+# The skill list: Energy Ball (17) in slot 0.
+41	gs	c1 09 f3 11 01 00 00 11 00
+# Hold the left button on the ground: the hero walks to (176, 124).
+44	mouse	250 280
+45	button-down	left
+60	button-up	left
+# A spider (type 3, key 0xc8) comes into view at (179, 124).
+85	gs	c2 00 15 13 01 80 c8 00 03 00 00 00 00 b3 7c b3 7c 00 00 00 00
+# A right click on it casts the Energy Ball (the client sends 19). The server answers with the skill, 15 damage,
+# the experience and the death; later the spider leaves the view and drops a Jewel of Bless (14, 13) on its cell.
+88	mouse	450 260
+89	button-down	right
+91	button-up	right
+93	gs-encrypted	c1 08 19 11 00 05 80 c8
+95	gs	c1 08 d7 00 c8 00 0f 00
+97	gs-encrypted	c1 09 16 00 c8 00 32 00 0f
+98	gs	c1 08 17 00 c8 11 00 05
+140	gs	c1 06 14 01 00 c8
+142	gs	c2 00 10 20 01 80 01 b3 7c 0d 00 00 00 00 e0 00
+# A click on the jewel: the hero walks to it and asks for it (22). It goes to inventory slot 12 and leaves the floor.
+170	mouse	450 265
+172	button-down	left
+173	button-up	left
+199	gs-encrypted	c1 0b 22 0c 0d 00 00 00 00 e0 00
+200	gs	c2 00 07 21 01 00 01
+# 30 idle frames.
+230	end	

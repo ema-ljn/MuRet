@@ -36,18 +36,17 @@ bool IsControl(char c)
 
 Core::Expected<std::uint16_t, std::string> ParsePort(std::string_view text)
 {
-    // Los dígitos se miran antes por el mensaje: sin esto, "12a" (from_chars se para en la "a") y
-    // "-1" (sin signo no lo acepta) dirían "va de 1 a 65535".
+    // Digits first, for the message: "12a" (from_chars stops at the "a") and "-1" would say "from 1 to 65535".
     if (text.empty() || !std::ranges::all_of(text, IsDigit))
     {
-        return Unexpected(std::string("el puerto tiene que ser un número"));
+        return Unexpected(std::string("the port must be a number"));
     }
-    // Con solo dígitos, from_chars lee todo, y el único error que queda es el de 16 bits.
+    // With only digits, from_chars reads them all, and the only error left is the 16 bits.
     std::uint16_t port = 0;
     const auto result = std::from_chars(text.data(), text.data() + text.size(), port);
     if (result.ec != std::errc{} || port == 0)
     {
-        return Unexpected(std::string("el puerto va de 1 a 65535"));
+        return Unexpected(std::string("the port must be from 1 to 65535"));
     }
     return port;
 }
@@ -56,19 +55,19 @@ Core::Expected<std::string, std::string> ParseHost(std::string_view text)
 {
     if (text.empty() || text.size() > MaxHostBytes)
     {
-        return Unexpected(std::format("el host va de 1 a {} bytes", MaxHostBytes));
+        return Unexpected(std::format("the host must be 1 to {} bytes", MaxHostBytes));
     }
     if (std::ranges::any_of(text, IsSpace))
     {
-        return Unexpected(std::string("el host no puede tener espacios"));
+        return Unexpected(std::string("the host cannot have spaces"));
     }
     if (std::ranges::any_of(text, IsControl))
     {
-        return Unexpected(std::string("el host no puede tener caracteres de control"));
+        return Unexpected(std::string("the host cannot have control characters"));
     }
     if (std::ranges::any_of(text, [](char c) { return static_cast<unsigned char>(c) >= 0x80; }))
     {
-        return Unexpected(std::string("el host tiene que ser ASCII (un nombre con acentos va en punycode)"));
+        return Unexpected(std::string("the host must be ASCII (a name with accents goes in punycode)"));
     }
     return std::string(text);
 }

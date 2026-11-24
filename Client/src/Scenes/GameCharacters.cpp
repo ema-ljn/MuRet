@@ -1,4 +1,5 @@
 #include "Scenes/GameCharacters.h"
+#include "Render/Models/IModelLibrary.h"
 #include "Render/Models/ObjectState.h"
 #include "Scenes/CastleSiegeBlessing.h"
 
@@ -303,7 +304,8 @@ bool WearsTheSkeletonBody(const ActorState& actor)
 // (0x50d58b), sin las partes ni la marca del gremio. Con +0x88 en 4 y el mapa 0, el nivel es el word +0x1d6 · 8, que
 // 0x60b3d0 lee con >> 3 y & 0xf (0x60b3de); si no, 0. El objeto es el propio personaje: +0x64, +0x68, +0x6c, +0x70 y
 // la malla oculta +0x58 del contorno.
-Core::Expected<void, std::string> DrawTheSkeletonBody(Render::ModelBatch& batch, const IModelLibrary& models,
+Core::Expected<void, std::string> DrawTheSkeletonBody(Render::ModelBatch& batch,
+                                                      const Render::Models::IModelLibrary& models,
                                                       const ActorState& actor, const DrawnCharacter& character,
                                                       const GameCharacterPass& pass)
 {
@@ -349,9 +351,9 @@ float AddX87(float value, float offset)
 // glColor3f(1, 1, 1), el slot de la marca, y el quad de 0x621320 en el mundo: la posición (+0x10, glTranslatef) más
 // R_ConcatTransforms(hueso 26, AngleMatrix(giro) con la traslación) por cada esquina; el culling se apaga (0x6208f0).
 // Los huesos son los del cuerpo de este dibujo, que 0x5ffdf0 ya dejó en +0x120. Sin la escala del cuerpo.
-Core::Expected<void, std::string> DrawTheMarkQuad(Render::ModelBatch& batch, const IModelLibrary& models,
-                                                  const ActorState& actor, const DrawnCharacter& character,
-                                                  Render::TextureSlot slot)
+Core::Expected<void, std::string> DrawTheMarkQuad(Render::ModelBatch& batch,
+                                                  const Render::Models::IModelLibrary& models, const ActorState& actor,
+                                                  const DrawnCharacter& character, Render::TextureSlot slot)
 {
     const std::vector<Render::Models::BoneTransform> body = PoseCharacterBody(models, character);
     if (body.size() <= GuildMarkBone)
@@ -394,9 +396,10 @@ Core::Expected<void, std::string> DrawTheMarkQuad(Render::ModelBatch& batch, con
 // 0x50d4fb..0x50d588: fuera de Chaos Castle, con un gremio (+0x1f2 desde 0, que escriben el 65 y el 5D), el 0x20a,
 // el alpha distinto de 0 y, salvo el 0x7cf (el gremio que se crea), la clave de su entrada en la tabla (0x447b30), sin
 // la bandera 0x4000 de +0x78: la marca de 0x5f16a0(+0x1f2, 1) en el quad de 0x5091e0.
-Core::Expected<void, std::string> DrawTheGuildMark(Render::ModelBatch& batch, const IModelLibrary& models,
-                                                   const ActorState& actor, const DrawnCharacter& character,
-                                                   const GameCharacterPass& pass, const GuildState& guild)
+Core::Expected<void, std::string> DrawTheGuildMark(Render::ModelBatch& batch,
+                                                   const Render::Models::IModelLibrary& models, const ActorState& actor,
+                                                   const DrawnCharacter& character, const GameCharacterPass& pass,
+                                                   const GuildState& guild)
 {
     const auto index = static_cast<std::int16_t>(actor.word1f2);
     if (InChaosCastle(character.map) || index < 0 || actor.type != Data::Models::PlayerSkeletonModel ||
@@ -434,7 +437,7 @@ Core::Expected<glm::vec3, std::string> LightTheBody(WorldState& world, ActorStat
     return terrainLight;
 }
 
-Core::Expected<void, std::string> DrawTheBody(Render::ModelBatch& batch, const IModelLibrary& models,
+Core::Expected<void, std::string> DrawTheBody(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models,
                                               const ActorState& actor, const DrawnCharacter& character,
                                               const GameCharacterPass& pass, bool hero, const GuildState& guild)
 {
@@ -480,10 +483,11 @@ Core::Expected<void, std::string> DrawTheBody(Render::ModelBatch& batch, const I
 // como los dejó el último frame. `modelOrigin` es la posición que 0x6001b0 copió al registro del 0x20a (0x600247..
 // 0x600256, en 0x50bbf7), antes de las guardas y del suelo de la sombra (0x50bcaf): nada la vuelve a escribir dentro de
 // 0x50ba30 y la cola la lee con 0x4ec110 sobre [ebp−0x14] (0x50ba7f).
-Core::Expected<void, std::string> DrawTheTail(Render::ModelBatch& batch, const IModelLibrary& models, WorldState& world,
-                                              ActorState& actor, std::size_t slot, const DrawnCharacter& character,
-                                              const GameCharacterPass& pass, const FullSetScan& scan,
-                                              const glm::vec3& modelOrigin, bool originalFrame, bool gameScene)
+Core::Expected<void, std::string> DrawTheTail(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models,
+                                              WorldState& world, ActorState& actor, std::size_t slot,
+                                              const DrawnCharacter& character, const GameCharacterPass& pass,
+                                              const FullSetScan& scan, const glm::vec3& modelOrigin, bool originalFrame,
+                                              bool gameScene)
 {
     const std::vector<Render::Models::BoneTransform> body = PoseCharacterBody(models, character);
     // 0x509340 posa en los huesos propios (+0x120), que lee el paso siguiente (0x506d25, la burbuja de Atlans).
@@ -590,8 +594,8 @@ private:
 };
 
 // `slot` es su lugar en el pool, o ActorPoolSize fuera de él; `cloth`, su tela.
-Core::Expected<void, std::string> DrawOne(Render::ModelBatch& batch, const IModelLibrary& models, WorldState& world,
-                                          ActorState& actor, std::size_t slot, CharacterCloth* cloth,
+Core::Expected<void, std::string> DrawOne(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models,
+                                          WorldState& world, ActorState& actor, std::size_t slot, CharacterCloth* cloth,
                                           const GameCharacterPass& pass, bool originalFrame)
 {
     if ((actor.flags7c & HiddenCharacterFlag) != 0)
@@ -666,8 +670,8 @@ Core::Expected<void, std::string> DrawOne(Render::ModelBatch& batch, const IMode
     return DrawTheTail(batch, models, world, actor, slot, character, pass, scan, modelOrigin, originalFrame, true);
 }
 
-Core::Expected<void, std::string> DrawThePool(Render::ModelBatch& batch, const IModelLibrary& models, WorldState& world,
-                                              const GameCharacterPass& pass, bool originalFrame)
+Core::Expected<void, std::string> DrawThePool(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models,
+                                              WorldState& world, const GameCharacterPass& pass, bool originalFrame)
 {
     const std::size_t hero = world.Runtime().hero;
     for (std::size_t slot = 0; slot < DrawnActorCount; ++slot)
@@ -725,8 +729,9 @@ void FinishTheCastleFrame(WorldRuntime* runtime, Data::Terrain::TerrainLayer<std
     runtime->castleGatesClosed = 0;
 }
 
-Core::Expected<void, std::string> DrawGameCharacters(Render::ModelBatch& batch, const IModelLibrary& models,
-                                                     WorldState& world, const GameCharacterPass& pass)
+Core::Expected<void, std::string> DrawGameCharacters(Render::ModelBatch& batch,
+                                                     const Render::Models::IModelLibrary& models, WorldState& world,
+                                                     const GameCharacterPass& pass)
 {
     if (pass.originalFrames < 0 || pass.originalFrames > Render::Models::MaxOriginalFramesPerDraw)
         return Core::Unexpected<std::string>(
@@ -766,16 +771,16 @@ Core::Expected<void, std::string> DrawGameCharacters(Render::ModelBatch& batch, 
     return {};
 }
 
-Core::Expected<void, std::string> DrawCharacterOutsideThePool(Render::ModelBatch& batch, const IModelLibrary& models,
-                                                              WorldState& world, ActorState& actor,
-                                                              CharacterCloth& cloth, const GameCharacterPass& pass,
-                                                              bool originalFrame)
+Core::Expected<void, std::string>
+DrawCharacterOutsideThePool(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models, WorldState& world,
+                            ActorState& actor, CharacterCloth& cloth, const GameCharacterPass& pass, bool originalFrame)
 {
     return DrawOne(batch, models, world, actor, ActorPoolSize, &cloth, pass, originalFrame);
 }
 
-Core::Expected<void, std::string> DrawCharacterTail(Render::ModelBatch& batch, const IModelLibrary& models,
-                                                    WorldState& world, ActorState& actor, std::size_t slot,
+Core::Expected<void, std::string> DrawCharacterTail(Render::ModelBatch& batch,
+                                                    const Render::Models::IModelLibrary& models, WorldState& world,
+                                                    ActorState& actor, std::size_t slot,
                                                     const DrawnCharacter& character, const GameCharacterPass& pass,
                                                     const FullSetScan& scan, bool originalFrame)
 {

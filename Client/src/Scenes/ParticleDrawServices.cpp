@@ -1,5 +1,5 @@
 #include "Scenes/ParticleDrawServices.h"
-#include "Scenes/CharacterDrawing.h"
+#include "Render/Models/IModelLibrary.h"
 #include "Scenes/TextureMetadata.h"
 #include "Core/Expected.h"
 #include "Render/Billboard.h"
@@ -28,7 +28,7 @@ Result Checked(Render::IParticleDrawBackend::Result result, Phase phase)
     return {};
 }
 } // namespace
-ParticleDrawServices::ParticleDrawServices(std::reference_wrapper<const IModelLibrary> models,
+ParticleDrawServices::ParticleDrawServices(std::reference_wrapper<const Render::Models::IModelLibrary> models,
                                            std::reference_wrapper<Render::IParticleDrawBackend> backend,
                                            std::reference_wrapper<const Render::Models::OriginalMatrix> view)
     : m_models(models), m_backend(backend), m_view(view)

@@ -38,7 +38,8 @@ struct CharacterSelectResult;
 namespace Client::Render::Models
 {
 struct ClothWorld;
-}
+class IModelLibrary;
+} // namespace Client::Render::Models
 
 namespace Client::Render::Text
 {
@@ -56,7 +57,6 @@ struct GameCameraInput;
 // de 0x4c3940), "El héroe" y "La carga del mapa"; 04-protocolo.md, "La entrada al mundo".
 namespace Client::Scenes
 {
-class IModelLibrary;
 class IWorldEntryPublisher;
 class SelectionState;
 class WorldState;
@@ -76,7 +76,7 @@ struct WorldEntryResources
     // El mundo en curso, el héroe publicado y el atributo de su celda, como los lee la cámara.
     World::GameCameraInput& cameraInput;
     // Player.bmd (SkeletonOf(0x20a)), que 0x4f2250 necesita para elegir la acción.
-    const IModelLibrary& models;
+    const Render::Models::IModelLibrary& models;
     // Item.bmd, para la matriz de armas de 0x4f2250 y para 0x550d10; nullptr si no se cargó.
     const Data::Tables::ItemTable* items = nullptr;
     // ItemSetType.bmd e ItemSetOption.bmd (0x40c600), para 0x40e1b0 desde 0x550d10; nullptr si no se

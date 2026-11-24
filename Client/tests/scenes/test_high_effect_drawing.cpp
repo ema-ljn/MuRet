@@ -1,3 +1,4 @@
+#include "Render/Models/IModelLibrary.h"
 #include "Scenes/HighEffectDrawing.h"
 
 #include "Core/Expected.h"
@@ -58,7 +59,7 @@ constexpr glm::vec3 FourthBonePoint{-70.0f, 80.0f, 90.0f};
 constexpr Client::Render::TextureSlot OwnTexture{0x400};
 
 // Un triángulo con su textura y un hueso.
-class TriangleModels final : public Client::Scenes::IModelLibrary
+class TriangleModels final : public Client::Render::Models::IModelLibrary
 {
 public:
     TriangleModels()

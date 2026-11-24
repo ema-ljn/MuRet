@@ -1,8 +1,8 @@
+#include "Network/Xor32Packet.h"
 #include "Scenes/CrywolfContract.h"
 
 #include "Core/Expected.h"
 #include "Data/Text/TextTable.h"
-#include "Network/Crypto/Xor32.h"
 #include "Protocol/Outgoing.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/GameMovementState.h"
@@ -32,7 +32,7 @@
 // 0.97 no tiene Crywolf). Text.bmd es inventado. Nada de esto saca rand().
 namespace
 {
-using Client::Network::Crypto::Xor32Decode;
+using Client::Network::Xor32Decode;
 using Client::Scenes::ActorState;
 using Client::Scenes::AltarClick;
 using Client::Scenes::ContractMessage;

@@ -1,3 +1,4 @@
+#include "Render/Models/IModelLibrary.h"
 #include "Scenes/ActionReply.h"
 
 #include "Core/Expected.h"
@@ -12,7 +13,6 @@
 #include "Render/TextureSlot.h"
 #include "Scenes/ActionSend.h"
 #include "Scenes/ActorState.h"
-#include "Scenes/CharacterDrawing.h"
 #include "Scenes/FaunaModels.h"
 #include "Scenes/ModelBody.h"
 #include "Scenes/SelectionState.h"
@@ -53,7 +53,7 @@ constexpr std::uint16_t SmallModel = 0x20;
 constexpr std::uint16_t TransformedModel = 0x154;
 constexpr std::uint32_t SittingFlag = 0x200000;
 
-class ReplyModels final : public Client::Scenes::IModelLibrary
+class ReplyModels final : public Client::Render::Models::IModelLibrary
 {
 public:
     ReplyModels()

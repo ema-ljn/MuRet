@@ -1,393 +1,925 @@
 ref	ambito	clave	metrica	valor	unidad	fuente	nota
-536dfcc2	inventario	excluded	funciones	136	func	matriz congelada	
-536dfcc2	inventario	excluded	kb	37.8	KB	matriz congelada	
-536dfcc2	inventario	game muerta	funciones	305	func	matriz congelada	
-536dfcc2	inventario	game muerta	kb	76.1	KB	matriz congelada	
-536dfcc2	inventario	game viva	funciones	3278	func	matriz congelada	
-536dfcc2	inventario	game viva	kb	2197	KB	matriz congelada	
-536dfcc2	inventario	library	funciones	1891	func	matriz congelada	
-536dfcc2	inventario	library	kb	124.7	KB	matriz congelada	
-536dfcc2	inventario	thunk	funciones	38	func	matriz congelada	
-536dfcc2	inventario	thunk	kb	0.2	KB	matriz congelada	
-536dfcc2	avance	total	funciones_vivas	3278	func	matriz regenerada sin MENTION_ONLY, ola congelada	
-536dfcc2	avance	total	kb_vivos	2197	KB	matriz regenerada sin MENTION_ONLY, ola congelada	
-536dfcc2	avance	total	funciones_citadas	2242	func	matriz regenerada sin MENTION_ONLY, ola congelada	
-536dfcc2	avance	total	cota_alta	91.5	%	matriz regenerada sin MENTION_ONLY, ola congelada	
-536dfcc2	avance	total	cota_media	89.5	%	matriz regenerada sin MENTION_ONLY, ola congelada	
-536dfcc2	avance	total	cota_baja	87.5	%	matriz regenerada sin MENTION_ONLY, ola congelada	
-536dfcc2	avance	total	cota_baja_con_test	77.9	%	matriz regenerada sin MENTION_ONLY, ola congelada	
-536dfcc2	avance	total	falta_cota_baja	273.7	KB	matriz regenerada sin MENTION_ONLY, ola congelada	
-536dfcc2	avance-ola	CL1	funciones_vivas	11	func	ola congelada	
-536dfcc2	avance-ola	CL1	kb_vivos	4.2	KB	ola congelada	
-536dfcc2	avance-ola	CL1	funciones_citadas	10	func	ola congelada	
-536dfcc2	avance-ola	CL1	cota_alta	100	%	ola congelada	
-536dfcc2	avance-ola	CL1	cota_media	99.5	%	ola congelada	
-536dfcc2	avance-ola	CL1	cota_baja	99	%	ola congelada	
-536dfcc2	avance-ola	CL1	cota_baja_con_test	39.4	%	ola congelada	
-536dfcc2	avance-ola	CL1	falta_cota_baja	0	KB	ola congelada	
-536dfcc2	avance-ola	CL2	funciones_vivas	49	func	ola congelada	
-536dfcc2	avance-ola	CL2	kb_vivos	19.2	KB	ola congelada	
-536dfcc2	avance-ola	CL2	funciones_citadas	24	func	ola congelada	
-536dfcc2	avance-ola	CL2	cota_alta	94.2	%	ola congelada	
-536dfcc2	avance-ola	CL2	cota_media	79.1	%	ola congelada	
-536dfcc2	avance-ola	CL2	cota_baja	64	%	ola congelada	
-536dfcc2	avance-ola	CL2	cota_baja_con_test	50.7	%	ola congelada	
-536dfcc2	avance-ola	CL2	falta_cota_baja	6.9	KB	ola congelada	
-536dfcc2	avance-ola	CL3	funciones_vivas	117	func	ola congelada	
-536dfcc2	avance-ola	CL3	kb_vivos	82.7	KB	ola congelada	
-536dfcc2	avance-ola	CL3	funciones_citadas	38	func	ola congelada	
-536dfcc2	avance-ola	CL3	cota_alta	98.4	%	ola congelada	
-536dfcc2	avance-ola	CL3	cota_media	94.5	%	ola congelada	
-536dfcc2	avance-ola	CL3	cota_baja	90.6	%	ola congelada	
-536dfcc2	avance-ola	CL3	cota_baja_con_test	85	%	ola congelada	
-536dfcc2	avance-ola	CL3	falta_cota_baja	7.8	KB	ola congelada	
-536dfcc2	avance-ola	CL4	funciones_vivas	18	func	ola congelada	
-536dfcc2	avance-ola	CL4	kb_vivos	18.9	KB	ola congelada	
-536dfcc2	avance-ola	CL4	funciones_citadas	13	func	ola congelada	
-536dfcc2	avance-ola	CL4	cota_alta	99.1	%	ola congelada	
-536dfcc2	avance-ola	CL4	cota_media	97.7	%	ola congelada	
-536dfcc2	avance-ola	CL4	cota_baja	96.2	%	ola congelada	
-536dfcc2	avance-ola	CL4	cota_baja_con_test	93.6	%	ola congelada	
-536dfcc2	avance-ola	CL4	falta_cota_baja	0.7	KB	ola congelada	
-536dfcc2	avance-ola	CL5	funciones_vivas	150	func	ola congelada	
-536dfcc2	avance-ola	CL5	kb_vivos	34.3	KB	ola congelada	
-536dfcc2	avance-ola	CL5	funciones_citadas	61	func	ola congelada	
-536dfcc2	avance-ola	CL5	cota_alta	97.1	%	ola congelada	
-536dfcc2	avance-ola	CL5	cota_media	82.7	%	ola congelada	
-536dfcc2	avance-ola	CL5	cota_baja	68.4	%	ola congelada	
-536dfcc2	avance-ola	CL5	cota_baja_con_test	61.4	%	ola congelada	
-536dfcc2	avance-ola	CL5	falta_cota_baja	10.9	KB	ola congelada	
-536dfcc2	avance-ola	CL6	funciones_vivas	161	func	ola congelada	
-536dfcc2	avance-ola	CL6	kb_vivos	72.1	KB	ola congelada	
-536dfcc2	avance-ola	CL6	funciones_citadas	110	func	ola congelada	
-536dfcc2	avance-ola	CL6	cota_alta	96.9	%	ola congelada	
-536dfcc2	avance-ola	CL6	cota_media	90.4	%	ola congelada	
-536dfcc2	avance-ola	CL6	cota_baja	83.9	%	ola congelada	
-536dfcc2	avance-ola	CL6	cota_baja_con_test	74.8	%	ola congelada	
-536dfcc2	avance-ola	CL6	falta_cota_baja	11.6	KB	ola congelada	
-536dfcc2	avance-ola	CL7	funciones_vivas	675	func	ola congelada	
-536dfcc2	avance-ola	CL7	kb_vivos	571.7	KB	ola congelada	
-536dfcc2	avance-ola	CL7	funciones_citadas	484	func	ola congelada	
-536dfcc2	avance-ola	CL7	cota_alta	93.5	%	ola congelada	
-536dfcc2	avance-ola	CL7	cota_media	91	%	ola congelada	
-536dfcc2	avance-ola	CL7	cota_baja	88.4	%	ola congelada	
-536dfcc2	avance-ola	CL7	cota_baja_con_test	83.7	%	ola congelada	
-536dfcc2	avance-ola	CL7	falta_cota_baja	66.1	KB	ola congelada	
-536dfcc2	avance-ola	CL8	funciones_vivas	1000	func	ola congelada	
-536dfcc2	avance-ola	CL8	kb_vivos	756.8	KB	ola congelada	
-536dfcc2	avance-ola	CL8	funciones_citadas	695	func	ola congelada	
-536dfcc2	avance-ola	CL8	cota_alta	94	%	ola congelada	
-536dfcc2	avance-ola	CL8	cota_media	92.2	%	ola congelada	
-536dfcc2	avance-ola	CL8	cota_baja	90.5	%	ola congelada	
-536dfcc2	avance-ola	CL8	cota_baja_con_test	82.7	%	ola congelada	
-536dfcc2	avance-ola	CL8	falta_cota_baja	72.1	KB	ola congelada	
-536dfcc2	avance-ola	CL9	funciones_vivas	1030	func	ola congelada	
-536dfcc2	avance-ola	CL9	kb_vivos	557.3	KB	ola congelada	
-536dfcc2	avance-ola	CL9	funciones_citadas	758	func	ola congelada	
-536dfcc2	avance-ola	CL9	cota_alta	84.3	%	ola congelada	
-536dfcc2	avance-ola	CL9	cota_media	84.3	%	ola congelada	
-536dfcc2	avance-ola	CL9	cota_baja	84.3	%	ola congelada	
-536dfcc2	avance-ola	CL9	cota_baja_con_test	65.6	%	ola congelada	
-536dfcc2	avance-ola	CL9	falta_cota_baja	87.6	KB	ola congelada	
-536dfcc2	avance-ola	CL10	funciones_vivas	24	func	ola congelada	
-536dfcc2	avance-ola	CL10	kb_vivos	10.3	KB	ola congelada	
-536dfcc2	avance-ola	CL10	funciones_citadas	6	func	ola congelada	
-536dfcc2	avance-ola	CL10	cota_alta	28.7	%	ola congelada	
-536dfcc2	avance-ola	CL10	cota_media	28.7	%	ola congelada	
-536dfcc2	avance-ola	CL10	cota_baja	28.7	%	ola congelada	
-536dfcc2	avance-ola	CL10	cota_baja_con_test	1.4	%	ola congelada	
-536dfcc2	avance-ola	CL10	falta_cota_baja	7.4	KB	ola congelada	
-536dfcc2	avance-ola	CL11	funciones_vivas	43	func	ola congelada	
-536dfcc2	avance-ola	CL11	kb_vivos	69.6	KB	ola congelada	
-536dfcc2	avance-ola	CL11	funciones_citadas	43	func	ola congelada	
-536dfcc2	avance-ola	CL11	cota_alta	96.3	%	ola congelada	
-536dfcc2	avance-ola	CL11	cota_media	96.3	%	ola congelada	
-536dfcc2	avance-ola	CL11	cota_baja	96.3	%	ola congelada	
-536dfcc2	avance-ola	CL11	cota_baja_con_test	95.5	%	ola congelada	
-536dfcc2	avance-ola	CL11	falta_cota_baja	2.6	KB	ola congelada	
-536dfcc2	avance-cl9-hito	hito 1	funciones_vivas	14	func	plan CL9	
-536dfcc2	avance-cl9-hito	hito 1	kb_vivos	8	KB	plan CL9	
-536dfcc2	avance-cl9-hito	hito 1	funciones_citadas	14	func	plan CL9	
-536dfcc2	avance-cl9-hito	hito 1	cota_alta	95.1	%	plan CL9	
-536dfcc2	avance-cl9-hito	hito 1	cota_media	95.1	%	plan CL9	
-536dfcc2	avance-cl9-hito	hito 1	cota_baja	95.1	%	plan CL9	
-536dfcc2	avance-cl9-hito	hito 1	cota_baja_con_test	88.2	%	plan CL9	
-536dfcc2	avance-cl9-hito	hito 1	falta_cota_baja	0.4	KB	plan CL9	
-536dfcc2	avance-cl9-hito	hito 2	funciones_vivas	36	func	plan CL9	
-536dfcc2	avance-cl9-hito	hito 2	kb_vivos	33.8	KB	plan CL9	
-536dfcc2	avance-cl9-hito	hito 2	funciones_citadas	36	func	plan CL9	
-536dfcc2	avance-cl9-hito	hito 2	cota_alta	96.8	%	plan CL9	
-536dfcc2	avance-cl9-hito	hito 2	cota_media	96.8	%	plan CL9	
-536dfcc2	avance-cl9-hito	hito 2	cota_baja	96.8	%	plan CL9	
-536dfcc2	avance-cl9-hito	hito 2	cota_baja_con_test	95	%	plan CL9	
-536dfcc2	avance-cl9-hito	hito 2	falta_cota_baja	1.1	KB	plan CL9	
-536dfcc2	avance-cl9-hito	hito 3	funciones_vivas	13	func	plan CL9	
-536dfcc2	avance-cl9-hito	hito 3	kb_vivos	11.5	KB	plan CL9	
-536dfcc2	avance-cl9-hito	hito 3	funciones_citadas	13	func	plan CL9	
-536dfcc2	avance-cl9-hito	hito 3	cota_alta	81.3	%	plan CL9	
-536dfcc2	avance-cl9-hito	hito 3	cota_media	81.3	%	plan CL9	
-536dfcc2	avance-cl9-hito	hito 3	cota_baja	81.3	%	plan CL9	
-536dfcc2	avance-cl9-hito	hito 3	cota_baja_con_test	81.3	%	plan CL9	
-536dfcc2	avance-cl9-hito	hito 3	falta_cota_baja	2.1	KB	plan CL9	
-536dfcc2	avance-cl9-hito	hito 4	funciones_vivas	54	func	plan CL9	
-536dfcc2	avance-cl9-hito	hito 4	kb_vivos	59.3	KB	plan CL9	
-536dfcc2	avance-cl9-hito	hito 4	funciones_citadas	52	func	plan CL9	
-536dfcc2	avance-cl9-hito	hito 4	cota_alta	93.1	%	plan CL9	
-536dfcc2	avance-cl9-hito	hito 4	cota_media	92.9	%	plan CL9	
-536dfcc2	avance-cl9-hito	hito 4	cota_baja	92.8	%	plan CL9	
-536dfcc2	avance-cl9-hito	hito 4	cota_baja_con_test	88.4	%	plan CL9	
-536dfcc2	avance-cl9-hito	hito 4	falta_cota_baja	4.3	KB	plan CL9	
-536dfcc2	avance-cl9-hito	hito 5	funciones_vivas	8	func	plan CL9	
-536dfcc2	avance-cl9-hito	hito 5	kb_vivos	12.3	KB	plan CL9	
-536dfcc2	avance-cl9-hito	hito 5	funciones_citadas	7	func	plan CL9	
-536dfcc2	avance-cl9-hito	hito 5	cota_alta	94.5	%	plan CL9	
-536dfcc2	avance-cl9-hito	hito 5	cota_media	94.5	%	plan CL9	
-536dfcc2	avance-cl9-hito	hito 5	cota_baja	94.5	%	plan CL9	
-536dfcc2	avance-cl9-hito	hito 5	cota_baja_con_test	87.2	%	plan CL9	
-536dfcc2	avance-cl9-hito	hito 5	falta_cota_baja	0.7	KB	plan CL9	
-536dfcc2	avance-cl9-hito	hito 6	funciones_vivas	68	func	plan CL9	
-536dfcc2	avance-cl9-hito	hito 6	kb_vivos	39.1	KB	plan CL9	
-536dfcc2	avance-cl9-hito	hito 6	funciones_citadas	49	func	plan CL9	
-536dfcc2	avance-cl9-hito	hito 6	cota_alta	82.2	%	plan CL9	
-536dfcc2	avance-cl9-hito	hito 6	cota_media	82.2	%	plan CL9	
-536dfcc2	avance-cl9-hito	hito 6	cota_baja	82.2	%	plan CL9	
-536dfcc2	avance-cl9-hito	hito 6	cota_baja_con_test	74.6	%	plan CL9	
-536dfcc2	avance-cl9-hito	hito 6	falta_cota_baja	7	KB	plan CL9	
-536dfcc2	avance-cl9-hito	hito 7	funciones_vivas	109	func	plan CL9	
-536dfcc2	avance-cl9-hito	hito 7	kb_vivos	34.9	KB	plan CL9	
-536dfcc2	avance-cl9-hito	hito 7	funciones_citadas	62	func	plan CL9	
-536dfcc2	avance-cl9-hito	hito 7	cota_alta	76	%	plan CL9	
-536dfcc2	avance-cl9-hito	hito 7	cota_media	75.8	%	plan CL9	
-536dfcc2	avance-cl9-hito	hito 7	cota_baja	75.5	%	plan CL9	
-536dfcc2	avance-cl9-hito	hito 7	cota_baja_con_test	66.8	%	plan CL9	
-536dfcc2	avance-cl9-hito	hito 7	falta_cota_baja	8.5	KB	plan CL9	
-536dfcc2	avance-cl9-hito	hito 8	funciones_vivas	189	func	plan CL9	
-536dfcc2	avance-cl9-hito	hito 8	kb_vivos	77.7	KB	plan CL9	
-536dfcc2	avance-cl9-hito	hito 8	funciones_citadas	102	func	plan CL9	
-536dfcc2	avance-cl9-hito	hito 8	cota_alta	74.8	%	plan CL9	
-536dfcc2	avance-cl9-hito	hito 8	cota_media	73.5	%	plan CL9	
-536dfcc2	avance-cl9-hito	hito 8	cota_baja	72.2	%	plan CL9	
-536dfcc2	avance-cl9-hito	hito 8	cota_baja_con_test	56.9	%	plan CL9	
-536dfcc2	avance-cl9-hito	hito 8	falta_cota_baja	21.6	KB	plan CL9	
-536dfcc2	avance-cl9-hito	hito 9	funciones_vivas	312	func	plan CL9	
-536dfcc2	avance-cl9-hito	hito 9	kb_vivos	89.2	KB	plan CL9	
-536dfcc2	avance-cl9-hito	hito 9	funciones_citadas	312	func	plan CL9	
-536dfcc2	avance-cl9-hito	hito 9	cota_alta	97.8	%	plan CL9	
-536dfcc2	avance-cl9-hito	hito 9	cota_media	97.8	%	plan CL9	
-536dfcc2	avance-cl9-hito	hito 9	cota_baja	97.8	%	plan CL9	
-536dfcc2	avance-cl9-hito	hito 9	cota_baja_con_test	32.3	%	plan CL9	
-536dfcc2	avance-cl9-hito	hito 9	falta_cota_baja	1.9	KB	plan CL9	
-536dfcc2	avance-cl9-hito	hito 10	funciones_vivas	79	func	plan CL9	
-536dfcc2	avance-cl9-hito	hito 10	kb_vivos	39.1	KB	plan CL9	
-536dfcc2	avance-cl9-hito	hito 10	funciones_citadas	79	func	plan CL9	
-536dfcc2	avance-cl9-hito	hito 10	cota_alta	95.6	%	plan CL9	
-536dfcc2	avance-cl9-hito	hito 10	cota_media	95.6	%	plan CL9	
-536dfcc2	avance-cl9-hito	hito 10	cota_baja	95.6	%	plan CL9	
-536dfcc2	avance-cl9-hito	hito 10	cota_baja_con_test	63	%	plan CL9	
-536dfcc2	avance-cl9-hito	hito 10	falta_cota_baja	1.7	KB	plan CL9	
-536dfcc2	avance-cl9-hito	hito 11	funciones_vivas	30	func	plan CL9	
-536dfcc2	avance-cl9-hito	hito 11	kb_vivos	15.2	KB	plan CL9	
-536dfcc2	avance-cl9-hito	hito 11	funciones_citadas	25	func	plan CL9	
-536dfcc2	avance-cl9-hito	hito 11	cota_alta	91.4	%	plan CL9	
-536dfcc2	avance-cl9-hito	hito 11	cota_media	91.4	%	plan CL9	
-536dfcc2	avance-cl9-hito	hito 11	cota_baja	91.4	%	plan CL9	
-536dfcc2	avance-cl9-hito	hito 11	cota_baja_con_test	72	%	plan CL9	
-536dfcc2	avance-cl9-hito	hito 11	falta_cota_baja	1.3	KB	plan CL9	
-536dfcc2	avance-cl9-hito	hito 12	funciones_vivas	173	func	plan CL9	
-536dfcc2	avance-cl9-hito	hito 12	kb_vivos	72.7	KB	plan CL9	
-536dfcc2	avance-cl9-hito	hito 12	funciones_citadas	62	func	plan CL9	
-536dfcc2	avance-cl9-hito	hito 12	cota_alta	59	%	plan CL9	
-536dfcc2	avance-cl9-hito	hito 12	cota_media	59	%	plan CL9	
-536dfcc2	avance-cl9-hito	hito 12	cota_baja	59	%	plan CL9	
-536dfcc2	avance-cl9-hito	hito 12	cota_baja_con_test	47.9	%	plan CL9	
-536dfcc2	avance-cl9-hito	hito 12	falta_cota_baja	29.8	KB	plan CL9	
-536dfcc2	avance-cl9-hito	hito 13	funciones_vivas	31	func	plan CL9	
-536dfcc2	avance-cl9-hito	hito 13	kb_vivos	22.3	KB	plan CL9	
-536dfcc2	avance-cl9-hito	hito 13	funciones_citadas	17	func	plan CL9	
-536dfcc2	avance-cl9-hito	hito 13	cota_alta	55.9	%	plan CL9	
-536dfcc2	avance-cl9-hito	hito 13	cota_media	55.9	%	plan CL9	
-536dfcc2	avance-cl9-hito	hito 13	cota_baja	55.9	%	plan CL9	
-536dfcc2	avance-cl9-hito	hito 13	cota_baja_con_test	23.9	%	plan CL9	
-536dfcc2	avance-cl9-hito	hito 13	falta_cota_baja	9.8	KB	plan CL9	
-536dfcc2	avance-cl8-subola	CL8.1	funciones_vivas	52	func	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
-536dfcc2	avance-cl8-subola	CL8.1	kb_vivos	40	KB	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
-536dfcc2	avance-cl8-subola	CL8.1	funciones_citadas	51	func	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
-536dfcc2	avance-cl8-subola	CL8.1	cota_alta	96	%	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
-536dfcc2	avance-cl8-subola	CL8.1	cota_media	95.9	%	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
-536dfcc2	avance-cl8-subola	CL8.1	cota_baja	95.9	%	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
-536dfcc2	avance-cl8-subola	CL8.1	cota_baja_con_test	83.9	%	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
-536dfcc2	avance-cl8-subola	CL8.1	falta_cota_baja	1.7	KB	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
-536dfcc2	avance-cl8-subola	CL8.2	funciones_vivas	104	func	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
-536dfcc2	avance-cl8-subola	CL8.2	kb_vivos	101	KB	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
-536dfcc2	avance-cl8-subola	CL8.2	funciones_citadas	91	func	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
-536dfcc2	avance-cl8-subola	CL8.2	cota_alta	96.6	%	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
-536dfcc2	avance-cl8-subola	CL8.2	cota_media	95.8	%	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
-536dfcc2	avance-cl8-subola	CL8.2	cota_baja	95.1	%	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
-536dfcc2	avance-cl8-subola	CL8.2	cota_baja_con_test	88.3	%	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
-536dfcc2	avance-cl8-subola	CL8.2	falta_cota_baja	5	KB	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
-536dfcc2	avance-cl8-subola	CL8.3	funciones_vivas	258	func	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
-536dfcc2	avance-cl8-subola	CL8.3	kb_vivos	180.9	KB	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
-536dfcc2	avance-cl8-subola	CL8.3	funciones_citadas	168	func	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
-536dfcc2	avance-cl8-subola	CL8.3	cota_alta	97.2	%	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
-536dfcc2	avance-cl8-subola	CL8.3	cota_media	93.9	%	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
-536dfcc2	avance-cl8-subola	CL8.3	cota_baja	90.6	%	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
-536dfcc2	avance-cl8-subola	CL8.3	cota_baja_con_test	82.4	%	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
-536dfcc2	avance-cl8-subola	CL8.3	falta_cota_baja	17.1	KB	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
-536dfcc2	avance-cl8-subola	CL8.4	funciones_vivas	100	func	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
-536dfcc2	avance-cl8-subola	CL8.4	kb_vivos	247.4	KB	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
-536dfcc2	avance-cl8-subola	CL8.4	funciones_citadas	93	func	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
-536dfcc2	avance-cl8-subola	CL8.4	cota_alta	96.5	%	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
-536dfcc2	avance-cl8-subola	CL8.4	cota_media	95.9	%	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
-536dfcc2	avance-cl8-subola	CL8.4	cota_baja	95.3	%	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
-536dfcc2	avance-cl8-subola	CL8.4	cota_baja_con_test	92.8	%	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
-536dfcc2	avance-cl8-subola	CL8.4	falta_cota_baja	11.7	KB	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
-536dfcc2	avance	sin el chat	cota_alta	91.3	%	sin las funciones enteras de A y B	
-536dfcc2	avance	sin el chat	cota_baja	87.1	%	sin las funciones enteras de A y B	
-536dfcc2	avance	sin el chat	cota_baja_con_test	78.1	%	sin las funciones enteras de A y B	
-536dfcc2	faltante	sin clasificar	funciones	449	func	triage de la auditoría	
-536dfcc2	faltante	sin clasificar	kb	54.1	KB	triage de la auditoría	
-536dfcc2	faltante	clon byte a byte de una citada	funciones	312	func	triage de la auditoría	
-536dfcc2	faltante	clon byte a byte de una citada	kb	45.7	KB	triage de la auditoría	
-536dfcc2	faltante	pendiente CL9	funciones	114	func	triage de la auditoría	
-536dfcc2	faltante	pendiente CL9	kb	36.3	KB	triage de la auditoría	
-536dfcc2	faltante	portada sin cita 0x	funciones	63	func	triage de la auditoría	
-536dfcc2	faltante	portada sin cita 0x	kb	21.6	KB	triage de la auditoría	
-536dfcc2	faltante	STL	funciones	55	func	triage de la auditoría	
-536dfcc2	faltante	STL	kb	10.4	KB	triage de la auditoría	
-536dfcc2	faltante	plataforma	funciones	20	func	triage de la auditoría	
-536dfcc2	faltante	plataforma	kb	8.9	KB	triage de la auditoría	
-536dfcc2	faltante	herramienta de desarrollo	funciones	19	func	triage de la auditoría	
-536dfcc2	faltante	herramienta de desarrollo	kb	8.5	KB	triage de la auditoría	
-536dfcc2	faltante	sin uso en el original	funciones	2	func	triage de la auditoría	
-536dfcc2	faltante	sin uso en el original	kb	3.9	KB	triage de la auditoría	
-536dfcc2	faltante	falta	funciones	1	func	triage de la auditoría	
-536dfcc2	faltante	falta	kb	2.5	KB	triage de la auditoría	
-536dfcc2	faltante	sin confirmar	funciones	1	func	triage de la auditoría	
-536dfcc2	faltante	sin confirmar	kb	0.5	KB	triage de la auditoría	
-536dfcc2	faltante	fracción de cortes de las citadas	kb	81.1	KB	matriz	
-536dfcc2	avance	total	explicado	92.1	%	cota baja + clones, portadas sin 0x, plataforma, herramientas, STL y sin uso	
-536dfcc2	huecos	la llama código citado	bloques	184	bloques	huecos.tsv	
-536dfcc2	huecos	la llama código citado	funciones	383	func	huecos.tsv	
-536dfcc2	huecos	la llama código citado	kb	57.1	KB	huecos.tsv	
-536dfcc2	huecos	la llama sólo código sin citar	bloques	83	bloques	huecos.tsv	
-536dfcc2	huecos	la llama sólo código sin citar	funciones	149	func	huecos.tsv	
-536dfcc2	huecos	la llama sólo código sin citar	kb	26.4	KB	huecos.tsv	
-536dfcc2	huecos	sin llamador directo	bloques	27	bloques	huecos.tsv	
-536dfcc2	huecos	sin llamador directo	funciones	34	func	huecos.tsv	
-536dfcc2	huecos	sin llamador directo	kb	10.2	KB	huecos.tsv	
-536dfcc2	cortes	P	sitios	0	sitios	censo de cortes (auditoría)	
-536dfcc2	cortes	O	sitios	0	sitios	censo de cortes (auditoría)	
-536dfcc2	cortes	V	sitios	7	sitios	censo de cortes (auditoría)	
-536dfcc2	cortes	X	sitios	20	sitios	censo de cortes (auditoría)	
-536dfcc2	cortes	R	sitios	234	sitios	censo de cortes (auditoría)	
-536dfcc2	cortes	S	sitios	437	sitios	censo de cortes (auditoría)	
-536dfcc2	cortes	G	sitios	978	sitios	censo de cortes (auditoría)	
-536dfcc2	cortes	D	sitios	70	sitios	censo de cortes (auditoría)	
-536dfcc2	cortes	I	sitios	13	sitios	censo de cortes (auditoría)	
-536dfcc2	cortes	H	sitios	2	sitios	censo de cortes (auditoría)	
-536dfcc2	cortes	total	sitios	1761	sitios	censo de cortes (auditoría)	
-536dfcc2	cortes	cierran el cliente	sitios	5	sitios	censo + informe 4.1	
-536dfcc2	cortes-ola	-	sitios	62	sitios	ola de la función del original que contiene la VA	
-536dfcc2	cortes-ola	CL2	sitios	3	sitios	ola de la función del original que contiene la VA	
-536dfcc2	cortes-ola	CL3	sitios	2	sitios	ola de la función del original que contiene la VA	
-536dfcc2	cortes-ola	CL4	sitios	1	sitios	ola de la función del original que contiene la VA	
-536dfcc2	cortes-ola	CL6	sitios	24	sitios	ola de la función del original que contiene la VA	
-536dfcc2	cortes-ola	CL7	sitios	1098	sitios	ola de la función del original que contiene la VA	
-536dfcc2	cortes-ola	CL8	sitios	298	sitios	ola de la función del original que contiene la VA	
-536dfcc2	cortes-ola	CL9	sitios	215	sitios	ola de la función del original que contiene la VA	
-536dfcc2	cortes-ola	CL10	sitios	1	sitios	ola de la función del original que contiene la VA	
-536dfcc2	cortes-ola	CL11	sitios	55	sitios	ola de la función del original que contiene la VA	
-536dfcc2	vm	?	pasos	1	pasos	lista única (cota superior)	
-536dfcc2	vm	CL10	pasos	1	pasos	lista única (cota superior)	
-536dfcc2	vm	CL11	pasos	18	pasos	lista única (cota superior)	
-536dfcc2	vm	CL2	pasos	1	pasos	lista única (cota superior)	
-536dfcc2	vm	CL3	pasos	4	pasos	lista única (cota superior)	
-536dfcc2	vm	CL4	pasos	2	pasos	lista única (cota superior)	
-536dfcc2	vm	CL5	pasos	6	pasos	lista única (cota superior)	
-536dfcc2	vm	CL6	pasos	13	pasos	lista única (cota superior)	
-536dfcc2	vm	CL7	pasos	34	pasos	lista única (cota superior)	
-536dfcc2	vm	CL8	pasos	35	pasos	lista única (cota superior)	
-536dfcc2	vm	CL9	pasos	119	pasos	lista única (cota superior)	
-536dfcc2	vm	total	pasos	234	pasos	lista única (cota superior)	
-536dfcc2	vm	total	bloquean_codigo	11	pasos	lista única	
-536dfcc2	08	CL10	abierta	1	filas	pendientes-08	
-536dfcc2	08	CL11	abierta	29	filas	pendientes-08	
-536dfcc2	08	CL11	cerrada	2	filas	pendientes-08	
-536dfcc2	08	CL3	abierta	1	filas	pendientes-08	
-536dfcc2	08	CL4	abierta	2	filas	pendientes-08	
-536dfcc2	08	CL4	cerrada	1	filas	pendientes-08	
-536dfcc2	08	CL5	abierta	1	filas	pendientes-08	
-536dfcc2	08	CL5	cerrada	1	filas	pendientes-08	
-536dfcc2	08	CL6	abierta	9	filas	pendientes-08	
-536dfcc2	08	CL6	cerrada	3	filas	pendientes-08	
-536dfcc2	08	CL7	abierta	33	filas	pendientes-08	
-536dfcc2	08	CL7	cerrada	2	filas	pendientes-08	
-536dfcc2	08	CL8	abierta	41	filas	pendientes-08	
-536dfcc2	08	CL8	cerrada	14	filas	pendientes-08	
-536dfcc2	08	CL9	abierta	129	filas	pendientes-08	
-536dfcc2	08	CL9	cerrada	36	filas	pendientes-08	
-536dfcc2	08-abiertas	codigo	filas	98	filas	pendientes-08 (código es cota superior)	
-536dfcc2	08-abiertas	datos	filas	2	filas	pendientes-08 (código es cota superior)	
-536dfcc2	08-abiertas	otro	filas	5	filas	pendientes-08 (código es cota superior)	
-536dfcc2	08-abiertas	servidor	filas	17	filas	pendientes-08 (código es cota superior)	
-536dfcc2	08-abiertas	vm	filas	124	filas	pendientes-08 (código es cota superior)	
-536dfcc2	07	bug	con algo pendiente	28	filas	07-quirks-y-bugs	
-536dfcc2	07	bug	registrada	198	filas	07-quirks-y-bugs	
-536dfcc2	07	bug latente	registrada	5	filas	07-quirks-y-bugs	
-536dfcc2	07	contrato	con algo pendiente	20	filas	07-quirks-y-bugs	
-536dfcc2	07	contrato	registrada	179	filas	07-quirks-y-bugs	
-536dfcc2	07	código muerto	registrada	5	filas	07-quirks-y-bugs	
-536dfcc2	07	diseño	con algo pendiente	22	filas	07-quirks-y-bugs	
-536dfcc2	07	diseño	registrada	112	filas	07-quirks-y-bugs	
-536dfcc2	07	efecto latente	registrada	9	filas	07-quirks-y-bugs	
-536dfcc2	07	efecto visible	registrada	6	filas	07-quirks-y-bugs	
-536dfcc2	07	estado que queda	registrada	11	filas	07-quirks-y-bugs	
-536dfcc2	07	interno	con algo pendiente	1	filas	07-quirks-y-bugs	
-536dfcc2	07	interno	registrada	16	filas	07-quirks-y-bugs	
-536dfcc2	07	otras	con algo pendiente	3	filas	07-quirks-y-bugs	
-536dfcc2	07	otras	registrada	74	filas	07-quirks-y-bugs	
-536dfcc2	07	otras	retirada	1	filas	07-quirks-y-bugs	
-536dfcc2	07	quirk	con algo pendiente	3	filas	07-quirks-y-bugs	
-536dfcc2	07	quirk	registrada	15	filas	07-quirks-y-bugs	
-536dfcc2	07	visible	con algo pendiente	5	filas	07-quirks-y-bugs	
-536dfcc2	07	visible	registrada	112	filas	07-quirks-y-bugs	
-536dfcc2	chat	A+B vivo	entradas	254	entradas	auditoría del chat	
-536dfcc2	chat	A+B vivo	bytes	137715	B	auditoría del chat	
-536dfcc2	chat	A+B vivo	pct_codigo_juego	5.9	%	sobre 2.273 KB con lo muerto	
-536dfcc2	chat	A+B vivo	citado_sin_corte	99.2	%	auditoría del chat	
-536dfcc2	chat	A+B vivo	con_test	79.4	%	auditoría del chat	
-536dfcc2	chat	amigos (C)	bytes	18239	B	auditoría del chat	
-536dfcc2	chat	amigos (C)	citado_sin_corte	99.3	%	auditoría del chat	
-536dfcc2	chat	amigos (C)	con_test	81.5	%	auditoría del chat	
-536dfcc2	sustitutos	fila-07	filas	108	filas	auditoría	
-536dfcc2	sustitutos	juego	filas	16	filas	auditoría	
-536dfcc2	sustitutos	plataforma	filas	19	filas	auditoría	
-536dfcc2	sin-cablear	diferido	abierta-08	4	filas	auditoría	
-536dfcc2	sin-cablear	diferido	chat	1	filas	auditoría	
-536dfcc2	sin-cablear	diferido	comentario-viejo	13	filas	auditoría	
-536dfcc2	sin-cablear	diferido	corte-vivo	2	filas	auditoría	
-536dfcc2	sin-cablear	diferido	describe-corte	18	filas	auditoría	
-536dfcc2	sin-cablear	diferido	historico	17	filas	auditoría	
-536dfcc2	sin-cablear	diferido	pendiente	2	filas	auditoría	
-536dfcc2	sin-cablear	diferido	suena	44	filas	auditoría	
-536dfcc2	sin-cablear	funcion-sin-llamador	accesor	56	filas	auditoría	
-536dfcc2	sin-cablear	funcion-sin-llamador	falso-positivo	1	filas	auditoría	
-536dfcc2	sin-cablear	funcion-sin-llamador	feature-sin-cablear	6	filas	auditoría	
-536dfcc2	sin-cablear	funcion-sin-llamador	helper	6	filas	auditoría	
-536dfcc2	sin-cablear	funcion-sin-llamador	legacy-sustituido	9	filas	auditoría	
-536dfcc2	sin-cablear	no-portado	historico	2	filas	auditoría	
-536dfcc2	sin-cablear	no-portado	pendiente	1	filas	auditoría	
-536dfcc2	sin-cablear	pedido-sin-consumidor	feature-sin-cablear	3	filas	auditoría	
-536dfcc2	muret	Client/src	archivos	1421	archivos	ls-tree	
-536dfcc2	muret	Client/src	lineas	270726	líneas	ls-tree	
-536dfcc2	muret	Client/tests	archivos	747	archivos	ls-tree	
-536dfcc2	muret	Client/tests	tests	8766	TEST	TEST, TEST_F y TEST_P	
-536dfcc2	citas	src	corte	2565	citas	trazas	
-536dfcc2	citas	src	impl	40447	citas	trazas	
-536dfcc2	citas	tests	test	13160	citas	trazas	
-536dfcc2	citas	tests	test-corte	433	citas	trazas	
-536dfcc2	citas	docs	doc	29844	citas	trazas-docs	
-536dfcc2	citas	src	pendiente	31	citas	citas que no son corte pero dicen que no está portado	
+75c33064	inventario	excluded	funciones	136	func	matriz congelada	
+75c33064	inventario	excluded	kb	37.8	KB	matriz congelada	
+75c33064	inventario	game muerta	funciones	305	func	matriz congelada	
+75c33064	inventario	game muerta	kb	76.1	KB	matriz congelada	
+75c33064	inventario	game viva	funciones	3278	func	matriz congelada	
+75c33064	inventario	game viva	kb	2197	KB	matriz congelada	
+75c33064	inventario	library	funciones	1891	func	matriz congelada	
+75c33064	inventario	library	kb	124.7	KB	matriz congelada	
+75c33064	inventario	thunk	funciones	38	func	matriz congelada	
+75c33064	inventario	thunk	kb	0.2	KB	matriz congelada	
+75c33064	avance	total	funciones_vivas	3278	func	matriz regenerada sin MENTION_ONLY, ola congelada	
+75c33064	avance	total	kb_vivos	2197	KB	matriz regenerada sin MENTION_ONLY, ola congelada	
+75c33064	avance	total	funciones_citadas	2242	func	matriz regenerada sin MENTION_ONLY, ola congelada	
+75c33064	avance	total	cota_alta	91.5	%	matriz regenerada sin MENTION_ONLY, ola congelada	
+75c33064	avance	total	cota_media	89.5	%	matriz regenerada sin MENTION_ONLY, ola congelada	
+75c33064	avance	total	cota_baja	87.5	%	matriz regenerada sin MENTION_ONLY, ola congelada	
+75c33064	avance	total	cota_baja_con_test	77.9	%	matriz regenerada sin MENTION_ONLY, ola congelada	
+75c33064	avance	total	falta_cota_baja	273.7	KB	matriz regenerada sin MENTION_ONLY, ola congelada	
+75c33064	avance-ola	CL1	funciones_vivas	11	func	ola congelada	
+75c33064	avance-ola	CL1	kb_vivos	4.2	KB	ola congelada	
+75c33064	avance-ola	CL1	funciones_citadas	10	func	ola congelada	
+75c33064	avance-ola	CL1	cota_alta	100	%	ola congelada	
+75c33064	avance-ola	CL1	cota_media	99.5	%	ola congelada	
+75c33064	avance-ola	CL1	cota_baja	99	%	ola congelada	
+75c33064	avance-ola	CL1	cota_baja_con_test	39.4	%	ola congelada	
+75c33064	avance-ola	CL1	falta_cota_baja	0	KB	ola congelada	
+75c33064	avance-ola	CL2	funciones_vivas	49	func	ola congelada	
+75c33064	avance-ola	CL2	kb_vivos	19.2	KB	ola congelada	
+75c33064	avance-ola	CL2	funciones_citadas	24	func	ola congelada	
+75c33064	avance-ola	CL2	cota_alta	94.2	%	ola congelada	
+75c33064	avance-ola	CL2	cota_media	79.1	%	ola congelada	
+75c33064	avance-ola	CL2	cota_baja	64	%	ola congelada	
+75c33064	avance-ola	CL2	cota_baja_con_test	50.7	%	ola congelada	
+75c33064	avance-ola	CL2	falta_cota_baja	6.9	KB	ola congelada	
+75c33064	avance-ola	CL3	funciones_vivas	117	func	ola congelada	
+75c33064	avance-ola	CL3	kb_vivos	82.7	KB	ola congelada	
+75c33064	avance-ola	CL3	funciones_citadas	38	func	ola congelada	
+75c33064	avance-ola	CL3	cota_alta	98.4	%	ola congelada	
+75c33064	avance-ola	CL3	cota_media	94.5	%	ola congelada	
+75c33064	avance-ola	CL3	cota_baja	90.6	%	ola congelada	
+75c33064	avance-ola	CL3	cota_baja_con_test	85	%	ola congelada	
+75c33064	avance-ola	CL3	falta_cota_baja	7.8	KB	ola congelada	
+75c33064	avance-ola	CL4	funciones_vivas	18	func	ola congelada	
+75c33064	avance-ola	CL4	kb_vivos	18.9	KB	ola congelada	
+75c33064	avance-ola	CL4	funciones_citadas	13	func	ola congelada	
+75c33064	avance-ola	CL4	cota_alta	99.1	%	ola congelada	
+75c33064	avance-ola	CL4	cota_media	97.7	%	ola congelada	
+75c33064	avance-ola	CL4	cota_baja	96.2	%	ola congelada	
+75c33064	avance-ola	CL4	cota_baja_con_test	93.6	%	ola congelada	
+75c33064	avance-ola	CL4	falta_cota_baja	0.7	KB	ola congelada	
+75c33064	avance-ola	CL5	funciones_vivas	150	func	ola congelada	
+75c33064	avance-ola	CL5	kb_vivos	34.3	KB	ola congelada	
+75c33064	avance-ola	CL5	funciones_citadas	61	func	ola congelada	
+75c33064	avance-ola	CL5	cota_alta	97.6	%	ola congelada	
+75c33064	avance-ola	CL5	cota_media	83	%	ola congelada	
+75c33064	avance-ola	CL5	cota_baja	68.4	%	ola congelada	
+75c33064	avance-ola	CL5	cota_baja_con_test	61.4	%	ola congelada	
+75c33064	avance-ola	CL5	falta_cota_baja	10.9	KB	ola congelada	
+75c33064	avance-ola	CL6	funciones_vivas	161	func	ola congelada	
+75c33064	avance-ola	CL6	kb_vivos	72.1	KB	ola congelada	
+75c33064	avance-ola	CL6	funciones_citadas	110	func	ola congelada	
+75c33064	avance-ola	CL6	cota_alta	96.9	%	ola congelada	
+75c33064	avance-ola	CL6	cota_media	90.4	%	ola congelada	
+75c33064	avance-ola	CL6	cota_baja	83.9	%	ola congelada	
+75c33064	avance-ola	CL6	cota_baja_con_test	74.8	%	ola congelada	
+75c33064	avance-ola	CL6	falta_cota_baja	11.6	KB	ola congelada	
+75c33064	avance-ola	CL7	funciones_vivas	675	func	ola congelada	
+75c33064	avance-ola	CL7	kb_vivos	571.7	KB	ola congelada	
+75c33064	avance-ola	CL7	funciones_citadas	484	func	ola congelada	
+75c33064	avance-ola	CL7	cota_alta	93.5	%	ola congelada	
+75c33064	avance-ola	CL7	cota_media	91	%	ola congelada	
+75c33064	avance-ola	CL7	cota_baja	88.4	%	ola congelada	
+75c33064	avance-ola	CL7	cota_baja_con_test	83.7	%	ola congelada	
+75c33064	avance-ola	CL7	falta_cota_baja	66.1	KB	ola congelada	
+75c33064	avance-ola	CL8	funciones_vivas	1000	func	ola congelada	
+75c33064	avance-ola	CL8	kb_vivos	756.8	KB	ola congelada	
+75c33064	avance-ola	CL8	funciones_citadas	695	func	ola congelada	
+75c33064	avance-ola	CL8	cota_alta	94	%	ola congelada	
+75c33064	avance-ola	CL8	cota_media	92.2	%	ola congelada	
+75c33064	avance-ola	CL8	cota_baja	90.5	%	ola congelada	
+75c33064	avance-ola	CL8	cota_baja_con_test	82.7	%	ola congelada	
+75c33064	avance-ola	CL8	falta_cota_baja	72.1	KB	ola congelada	
+75c33064	avance-ola	CL9	funciones_vivas	1030	func	ola congelada	
+75c33064	avance-ola	CL9	kb_vivos	557.3	KB	ola congelada	
+75c33064	avance-ola	CL9	funciones_citadas	758	func	ola congelada	
+75c33064	avance-ola	CL9	cota_alta	84.3	%	ola congelada	
+75c33064	avance-ola	CL9	cota_media	84.3	%	ola congelada	
+75c33064	avance-ola	CL9	cota_baja	84.3	%	ola congelada	
+75c33064	avance-ola	CL9	cota_baja_con_test	65.6	%	ola congelada	
+75c33064	avance-ola	CL9	falta_cota_baja	87.6	KB	ola congelada	
+75c33064	avance-ola	CL10	funciones_vivas	24	func	ola congelada	
+75c33064	avance-ola	CL10	kb_vivos	10.3	KB	ola congelada	
+75c33064	avance-ola	CL10	funciones_citadas	6	func	ola congelada	
+75c33064	avance-ola	CL10	cota_alta	28.7	%	ola congelada	
+75c33064	avance-ola	CL10	cota_media	28.7	%	ola congelada	
+75c33064	avance-ola	CL10	cota_baja	28.7	%	ola congelada	
+75c33064	avance-ola	CL10	cota_baja_con_test	1.4	%	ola congelada	
+75c33064	avance-ola	CL10	falta_cota_baja	7.4	KB	ola congelada	
+75c33064	avance-ola	CL11	funciones_vivas	43	func	ola congelada	
+75c33064	avance-ola	CL11	kb_vivos	69.6	KB	ola congelada	
+75c33064	avance-ola	CL11	funciones_citadas	43	func	ola congelada	
+75c33064	avance-ola	CL11	cota_alta	96.3	%	ola congelada	
+75c33064	avance-ola	CL11	cota_media	96.3	%	ola congelada	
+75c33064	avance-ola	CL11	cota_baja	96.3	%	ola congelada	
+75c33064	avance-ola	CL11	cota_baja_con_test	95.5	%	ola congelada	
+75c33064	avance-ola	CL11	falta_cota_baja	2.6	KB	ola congelada	
+75c33064	avance-cl9-hito	hito 1	funciones_vivas	14	func	plan CL9	
+75c33064	avance-cl9-hito	hito 1	kb_vivos	8	KB	plan CL9	
+75c33064	avance-cl9-hito	hito 1	funciones_citadas	14	func	plan CL9	
+75c33064	avance-cl9-hito	hito 1	cota_alta	95.1	%	plan CL9	
+75c33064	avance-cl9-hito	hito 1	cota_media	95.1	%	plan CL9	
+75c33064	avance-cl9-hito	hito 1	cota_baja	95.1	%	plan CL9	
+75c33064	avance-cl9-hito	hito 1	cota_baja_con_test	88.2	%	plan CL9	
+75c33064	avance-cl9-hito	hito 1	falta_cota_baja	0.4	KB	plan CL9	
+75c33064	avance-cl9-hito	hito 2	funciones_vivas	36	func	plan CL9	
+75c33064	avance-cl9-hito	hito 2	kb_vivos	33.8	KB	plan CL9	
+75c33064	avance-cl9-hito	hito 2	funciones_citadas	36	func	plan CL9	
+75c33064	avance-cl9-hito	hito 2	cota_alta	96.8	%	plan CL9	
+75c33064	avance-cl9-hito	hito 2	cota_media	96.8	%	plan CL9	
+75c33064	avance-cl9-hito	hito 2	cota_baja	96.8	%	plan CL9	
+75c33064	avance-cl9-hito	hito 2	cota_baja_con_test	95	%	plan CL9	
+75c33064	avance-cl9-hito	hito 2	falta_cota_baja	1.1	KB	plan CL9	
+75c33064	avance-cl9-hito	hito 3	funciones_vivas	13	func	plan CL9	
+75c33064	avance-cl9-hito	hito 3	kb_vivos	11.5	KB	plan CL9	
+75c33064	avance-cl9-hito	hito 3	funciones_citadas	13	func	plan CL9	
+75c33064	avance-cl9-hito	hito 3	cota_alta	81.3	%	plan CL9	
+75c33064	avance-cl9-hito	hito 3	cota_media	81.3	%	plan CL9	
+75c33064	avance-cl9-hito	hito 3	cota_baja	81.3	%	plan CL9	
+75c33064	avance-cl9-hito	hito 3	cota_baja_con_test	81.3	%	plan CL9	
+75c33064	avance-cl9-hito	hito 3	falta_cota_baja	2.1	KB	plan CL9	
+75c33064	avance-cl9-hito	hito 4	funciones_vivas	54	func	plan CL9	
+75c33064	avance-cl9-hito	hito 4	kb_vivos	59.3	KB	plan CL9	
+75c33064	avance-cl9-hito	hito 4	funciones_citadas	52	func	plan CL9	
+75c33064	avance-cl9-hito	hito 4	cota_alta	93.1	%	plan CL9	
+75c33064	avance-cl9-hito	hito 4	cota_media	92.9	%	plan CL9	
+75c33064	avance-cl9-hito	hito 4	cota_baja	92.8	%	plan CL9	
+75c33064	avance-cl9-hito	hito 4	cota_baja_con_test	88.4	%	plan CL9	
+75c33064	avance-cl9-hito	hito 4	falta_cota_baja	4.3	KB	plan CL9	
+75c33064	avance-cl9-hito	hito 5	funciones_vivas	8	func	plan CL9	
+75c33064	avance-cl9-hito	hito 5	kb_vivos	12.3	KB	plan CL9	
+75c33064	avance-cl9-hito	hito 5	funciones_citadas	7	func	plan CL9	
+75c33064	avance-cl9-hito	hito 5	cota_alta	94.5	%	plan CL9	
+75c33064	avance-cl9-hito	hito 5	cota_media	94.5	%	plan CL9	
+75c33064	avance-cl9-hito	hito 5	cota_baja	94.5	%	plan CL9	
+75c33064	avance-cl9-hito	hito 5	cota_baja_con_test	87.2	%	plan CL9	
+75c33064	avance-cl9-hito	hito 5	falta_cota_baja	0.7	KB	plan CL9	
+75c33064	avance-cl9-hito	hito 6	funciones_vivas	68	func	plan CL9	
+75c33064	avance-cl9-hito	hito 6	kb_vivos	39.1	KB	plan CL9	
+75c33064	avance-cl9-hito	hito 6	funciones_citadas	49	func	plan CL9	
+75c33064	avance-cl9-hito	hito 6	cota_alta	82.2	%	plan CL9	
+75c33064	avance-cl9-hito	hito 6	cota_media	82.2	%	plan CL9	
+75c33064	avance-cl9-hito	hito 6	cota_baja	82.2	%	plan CL9	
+75c33064	avance-cl9-hito	hito 6	cota_baja_con_test	74.6	%	plan CL9	
+75c33064	avance-cl9-hito	hito 6	falta_cota_baja	7	KB	plan CL9	
+75c33064	avance-cl9-hito	hito 7	funciones_vivas	109	func	plan CL9	
+75c33064	avance-cl9-hito	hito 7	kb_vivos	34.9	KB	plan CL9	
+75c33064	avance-cl9-hito	hito 7	funciones_citadas	62	func	plan CL9	
+75c33064	avance-cl9-hito	hito 7	cota_alta	76	%	plan CL9	
+75c33064	avance-cl9-hito	hito 7	cota_media	75.8	%	plan CL9	
+75c33064	avance-cl9-hito	hito 7	cota_baja	75.5	%	plan CL9	
+75c33064	avance-cl9-hito	hito 7	cota_baja_con_test	66.8	%	plan CL9	
+75c33064	avance-cl9-hito	hito 7	falta_cota_baja	8.5	KB	plan CL9	
+75c33064	avance-cl9-hito	hito 8	funciones_vivas	189	func	plan CL9	
+75c33064	avance-cl9-hito	hito 8	kb_vivos	77.7	KB	plan CL9	
+75c33064	avance-cl9-hito	hito 8	funciones_citadas	102	func	plan CL9	
+75c33064	avance-cl9-hito	hito 8	cota_alta	74.8	%	plan CL9	
+75c33064	avance-cl9-hito	hito 8	cota_media	73.5	%	plan CL9	
+75c33064	avance-cl9-hito	hito 8	cota_baja	72.2	%	plan CL9	
+75c33064	avance-cl9-hito	hito 8	cota_baja_con_test	56.9	%	plan CL9	
+75c33064	avance-cl9-hito	hito 8	falta_cota_baja	21.6	KB	plan CL9	
+75c33064	avance-cl9-hito	hito 9	funciones_vivas	312	func	plan CL9	
+75c33064	avance-cl9-hito	hito 9	kb_vivos	89.2	KB	plan CL9	
+75c33064	avance-cl9-hito	hito 9	funciones_citadas	312	func	plan CL9	
+75c33064	avance-cl9-hito	hito 9	cota_alta	97.8	%	plan CL9	
+75c33064	avance-cl9-hito	hito 9	cota_media	97.8	%	plan CL9	
+75c33064	avance-cl9-hito	hito 9	cota_baja	97.8	%	plan CL9	
+75c33064	avance-cl9-hito	hito 9	cota_baja_con_test	32.3	%	plan CL9	
+75c33064	avance-cl9-hito	hito 9	falta_cota_baja	1.9	KB	plan CL9	
+75c33064	avance-cl9-hito	hito 10	funciones_vivas	79	func	plan CL9	
+75c33064	avance-cl9-hito	hito 10	kb_vivos	39.1	KB	plan CL9	
+75c33064	avance-cl9-hito	hito 10	funciones_citadas	79	func	plan CL9	
+75c33064	avance-cl9-hito	hito 10	cota_alta	95.6	%	plan CL9	
+75c33064	avance-cl9-hito	hito 10	cota_media	95.6	%	plan CL9	
+75c33064	avance-cl9-hito	hito 10	cota_baja	95.6	%	plan CL9	
+75c33064	avance-cl9-hito	hito 10	cota_baja_con_test	63	%	plan CL9	
+75c33064	avance-cl9-hito	hito 10	falta_cota_baja	1.7	KB	plan CL9	
+75c33064	avance-cl9-hito	hito 11	funciones_vivas	30	func	plan CL9	
+75c33064	avance-cl9-hito	hito 11	kb_vivos	15.2	KB	plan CL9	
+75c33064	avance-cl9-hito	hito 11	funciones_citadas	25	func	plan CL9	
+75c33064	avance-cl9-hito	hito 11	cota_alta	91.4	%	plan CL9	
+75c33064	avance-cl9-hito	hito 11	cota_media	91.4	%	plan CL9	
+75c33064	avance-cl9-hito	hito 11	cota_baja	91.4	%	plan CL9	
+75c33064	avance-cl9-hito	hito 11	cota_baja_con_test	72	%	plan CL9	
+75c33064	avance-cl9-hito	hito 11	falta_cota_baja	1.3	KB	plan CL9	
+75c33064	avance-cl9-hito	hito 12	funciones_vivas	173	func	plan CL9	
+75c33064	avance-cl9-hito	hito 12	kb_vivos	72.7	KB	plan CL9	
+75c33064	avance-cl9-hito	hito 12	funciones_citadas	62	func	plan CL9	
+75c33064	avance-cl9-hito	hito 12	cota_alta	59	%	plan CL9	
+75c33064	avance-cl9-hito	hito 12	cota_media	59	%	plan CL9	
+75c33064	avance-cl9-hito	hito 12	cota_baja	59	%	plan CL9	
+75c33064	avance-cl9-hito	hito 12	cota_baja_con_test	47.9	%	plan CL9	
+75c33064	avance-cl9-hito	hito 12	falta_cota_baja	29.8	KB	plan CL9	
+75c33064	avance-cl9-hito	hito 13	funciones_vivas	31	func	plan CL9	
+75c33064	avance-cl9-hito	hito 13	kb_vivos	22.3	KB	plan CL9	
+75c33064	avance-cl9-hito	hito 13	funciones_citadas	17	func	plan CL9	
+75c33064	avance-cl9-hito	hito 13	cota_alta	55.9	%	plan CL9	
+75c33064	avance-cl9-hito	hito 13	cota_media	55.9	%	plan CL9	
+75c33064	avance-cl9-hito	hito 13	cota_baja	55.9	%	plan CL9	
+75c33064	avance-cl9-hito	hito 13	cota_baja_con_test	23.9	%	plan CL9	
+75c33064	avance-cl9-hito	hito 13	falta_cota_baja	9.8	KB	plan CL9	
+75c33064	avance-cl8-subola	CL8.1	funciones_vivas	52	func	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
+75c33064	avance-cl8-subola	CL8.1	kb_vivos	40	KB	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
+75c33064	avance-cl8-subola	CL8.1	funciones_citadas	51	func	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
+75c33064	avance-cl8-subola	CL8.1	cota_alta	96	%	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
+75c33064	avance-cl8-subola	CL8.1	cota_media	95.9	%	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
+75c33064	avance-cl8-subola	CL8.1	cota_baja	95.9	%	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
+75c33064	avance-cl8-subola	CL8.1	cota_baja_con_test	83.9	%	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
+75c33064	avance-cl8-subola	CL8.1	falta_cota_baja	1.7	KB	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
+75c33064	avance-cl8-subola	CL8.2	funciones_vivas	104	func	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
+75c33064	avance-cl8-subola	CL8.2	kb_vivos	101	KB	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
+75c33064	avance-cl8-subola	CL8.2	funciones_citadas	91	func	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
+75c33064	avance-cl8-subola	CL8.2	cota_alta	96.6	%	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
+75c33064	avance-cl8-subola	CL8.2	cota_media	95.8	%	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
+75c33064	avance-cl8-subola	CL8.2	cota_baja	95.1	%	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
+75c33064	avance-cl8-subola	CL8.2	cota_baja_con_test	88.3	%	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
+75c33064	avance-cl8-subola	CL8.2	falta_cota_baja	5	KB	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
+75c33064	avance-cl8-subola	CL8.3	funciones_vivas	258	func	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
+75c33064	avance-cl8-subola	CL8.3	kb_vivos	180.9	KB	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
+75c33064	avance-cl8-subola	CL8.3	funciones_citadas	168	func	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
+75c33064	avance-cl8-subola	CL8.3	cota_alta	97.2	%	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
+75c33064	avance-cl8-subola	CL8.3	cota_media	93.9	%	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
+75c33064	avance-cl8-subola	CL8.3	cota_baja	90.6	%	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
+75c33064	avance-cl8-subola	CL8.3	cota_baja_con_test	82.4	%	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
+75c33064	avance-cl8-subola	CL8.3	falta_cota_baja	17.1	KB	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
+75c33064	avance-cl8-subola	CL8.4	funciones_vivas	100	func	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
+75c33064	avance-cl8-subola	CL8.4	kb_vivos	247.4	KB	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
+75c33064	avance-cl8-subola	CL8.4	funciones_citadas	93	func	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
+75c33064	avance-cl8-subola	CL8.4	cota_alta	96.5	%	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
+75c33064	avance-cl8-subola	CL8.4	cota_media	95.9	%	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
+75c33064	avance-cl8-subola	CL8.4	cota_baja	95.3	%	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
+75c33064	avance-cl8-subola	CL8.4	cota_baja_con_test	92.8	%	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
+75c33064	avance-cl8-subola	CL8.4	falta_cota_baja	11.7	KB	plan CL8 (olas_por_lector), sólo funciones de ola CL8	
+75c33064	avance	sin el chat	cota_alta	91.4	%	sin las funciones enteras de A y B	
+75c33064	avance	sin el chat	cota_baja	87.1	%	sin las funciones enteras de A y B	
+75c33064	avance	sin el chat	cota_baja_con_test	78.1	%	sin las funciones enteras de A y B	
+75c33064	faltante	sin clasificar	funciones	449	func	triage de la auditoría	
+75c33064	faltante	sin clasificar	kb	54.1	KB	triage de la auditoría	
+75c33064	faltante	clon byte a byte de una citada	funciones	312	func	triage de la auditoría	
+75c33064	faltante	clon byte a byte de una citada	kb	45.7	KB	triage de la auditoría	
+75c33064	faltante	pendiente CL9	funciones	114	func	triage de la auditoría	
+75c33064	faltante	pendiente CL9	kb	36.3	KB	triage de la auditoría	
+75c33064	faltante	portada sin cita 0x	funciones	63	func	triage de la auditoría	
+75c33064	faltante	portada sin cita 0x	kb	21.6	KB	triage de la auditoría	
+75c33064	faltante	STL	funciones	55	func	triage de la auditoría	
+75c33064	faltante	STL	kb	10.4	KB	triage de la auditoría	
+75c33064	faltante	plataforma	funciones	20	func	triage de la auditoría	
+75c33064	faltante	plataforma	kb	8.9	KB	triage de la auditoría	
+75c33064	faltante	herramienta de desarrollo	funciones	19	func	triage de la auditoría	
+75c33064	faltante	herramienta de desarrollo	kb	8.5	KB	triage de la auditoría	
+75c33064	faltante	sin uso en el original	funciones	2	func	triage de la auditoría	
+75c33064	faltante	sin uso en el original	kb	3.9	KB	triage de la auditoría	
+75c33064	faltante	falta	funciones	1	func	triage de la auditoría	
+75c33064	faltante	falta	kb	2.5	KB	triage de la auditoría	
+75c33064	faltante	sin confirmar	funciones	1	func	triage de la auditoría	
+75c33064	faltante	sin confirmar	kb	0.5	KB	triage de la auditoría	
+75c33064	faltante	fracción de cortes de las citadas	kb	81.1	KB	matriz	
+75c33064	avance	total	explicado	92.1	%	cota baja + clones, portadas sin 0x, plataforma, herramientas, STL y sin uso	
+75c33064	huecos	la llama código citado	bloques	184	bloques	huecos.tsv	
+75c33064	huecos	la llama código citado	funciones	383	func	huecos.tsv	
+75c33064	huecos	la llama código citado	kb	57.1	KB	huecos.tsv	
+75c33064	huecos	la llama sólo código sin citar	bloques	83	bloques	huecos.tsv	
+75c33064	huecos	la llama sólo código sin citar	funciones	149	func	huecos.tsv	
+75c33064	huecos	la llama sólo código sin citar	kb	26.4	KB	huecos.tsv	
+75c33064	huecos	sin llamador directo	bloques	27	bloques	huecos.tsv	
+75c33064	huecos	sin llamador directo	funciones	34	func	huecos.tsv	
+75c33064	huecos	sin llamador directo	kb	10.2	KB	huecos.tsv	
+75c33064	cortes	P	sitios	0	sitios	censo de cortes (auditoría)	
+75c33064	cortes	O	sitios	0	sitios	censo de cortes (auditoría)	
+75c33064	cortes	V	sitios	7	sitios	censo de cortes (auditoría)	
+75c33064	cortes	X	sitios	20	sitios	censo de cortes (auditoría)	
+75c33064	cortes	R	sitios	234	sitios	censo de cortes (auditoría)	
+75c33064	cortes	S	sitios	437	sitios	censo de cortes (auditoría)	
+75c33064	cortes	G	sitios	978	sitios	censo de cortes (auditoría)	
+75c33064	cortes	D	sitios	70	sitios	censo de cortes (auditoría)	
+75c33064	cortes	I	sitios	13	sitios	censo de cortes (auditoría)	
+75c33064	cortes	H	sitios	2	sitios	censo de cortes (auditoría)	
+75c33064	cortes	total	sitios	1761	sitios	censo de cortes (auditoría)	
+75c33064	cortes	cierran el cliente	sitios	5	sitios	censo + informe 4.1	
+75c33064	entradas	cortes-vivos	unresolved-entries	0	filas	hand rows whose cut reference_anchors.py did not find	
+75c33064	cortes-ola	-	sitios	62	sitios	ola de la función del original que contiene la VA	
+75c33064	cortes-ola	CL2	sitios	3	sitios	ola de la función del original que contiene la VA	
+75c33064	cortes-ola	CL3	sitios	2	sitios	ola de la función del original que contiene la VA	
+75c33064	cortes-ola	CL4	sitios	1	sitios	ola de la función del original que contiene la VA	
+75c33064	cortes-ola	CL6	sitios	24	sitios	ola de la función del original que contiene la VA	
+75c33064	cortes-ola	CL7	sitios	1098	sitios	ola de la función del original que contiene la VA	
+75c33064	cortes-ola	CL8	sitios	298	sitios	ola de la función del original que contiene la VA	
+75c33064	cortes-ola	CL9	sitios	215	sitios	ola de la función del original que contiene la VA	
+75c33064	cortes-ola	CL10	sitios	1	sitios	ola de la función del original que contiene la VA	
+75c33064	cortes-ola	CL11	sitios	55	sitios	ola de la función del original que contiene la VA	
+75c33064	module	app	lines	3675	lines	module-map.tsv	
+75c33064	module	app	cited_functions	15	func	module-map.tsv	
+75c33064	module	app	cited_kb	5.3	KB	module-map.tsv	
+75c33064	module	app	live_cuts	0	sites	module-map.tsv	
+75c33064	module	app	closing_cuts	0	sites	module-map.tsv	
+75c33064	module	app	gaps	2	blocks	module-map.tsv	
+75c33064	module	app	gap_kb	0.2	KB	module-map.tsv	
+75c33064	module	app	vm_steps	0	steps	module-map.tsv	
+75c33064	module	app	open_08_ids	0	rows	module-map.tsv	
+75c33064	module	engine/Audio	lines	257	lines	module-map.tsv	
+75c33064	module	engine/Audio	cited_functions	1	func	module-map.tsv	
+75c33064	module	engine/Audio	cited_kb	0.3	KB	module-map.tsv	
+75c33064	module	engine/Audio	live_cuts	0	sites	module-map.tsv	
+75c33064	module	engine/Audio	closing_cuts	0	sites	module-map.tsv	
+75c33064	module	engine/Audio	gaps	0	blocks	module-map.tsv	
+75c33064	module	engine/Audio	gap_kb	0	KB	module-map.tsv	
+75c33064	module	engine/Audio	vm_steps	0	steps	module-map.tsv	
+75c33064	module	engine/Audio	open_08_ids	0	rows	module-map.tsv	
+75c33064	module	engine/Core	lines	1376	lines	module-map.tsv	
+75c33064	module	engine/Core	cited_functions	2	func	module-map.tsv	
+75c33064	module	engine/Core	cited_kb	0.3	KB	module-map.tsv	
+75c33064	module	engine/Core	live_cuts	0	sites	module-map.tsv	
+75c33064	module	engine/Core	closing_cuts	0	sites	module-map.tsv	
+75c33064	module	engine/Core	gaps	2	blocks	module-map.tsv	
+75c33064	module	engine/Core	gap_kb	0.5	KB	module-map.tsv	
+75c33064	module	engine/Core	vm_steps	0	steps	module-map.tsv	
+75c33064	module	engine/Core	open_08_ids	0	rows	module-map.tsv	
+75c33064	module	engine/Crt	lines	793	lines	module-map.tsv	
+75c33064	module	engine/Crt	cited_functions	7	func	module-map.tsv	
+75c33064	module	engine/Crt	cited_kb	2.3	KB	module-map.tsv	
+75c33064	module	engine/Crt	live_cuts	2	sites	module-map.tsv	
+75c33064	module	engine/Crt	closing_cuts	0	sites	module-map.tsv	
+75c33064	module	engine/Crt	gaps	0	blocks	module-map.tsv	
+75c33064	module	engine/Crt	gap_kb	0	KB	module-map.tsv	
+75c33064	module	engine/Crt	vm_steps	0	steps	module-map.tsv	
+75c33064	module	engine/Crt	open_08_ids	1	rows	module-map.tsv	
+75c33064	module	engine/Crypto	lines	720	lines	module-map.tsv	
+75c33064	module	engine/Crypto	cited_functions	9	func	module-map.tsv	
+75c33064	module	engine/Crypto	cited_kb	2.2	KB	module-map.tsv	
+75c33064	module	engine/Crypto	live_cuts	0	sites	module-map.tsv	
+75c33064	module	engine/Crypto	closing_cuts	0	sites	module-map.tsv	
+75c33064	module	engine/Crypto	gaps	2	blocks	module-map.tsv	
+75c33064	module	engine/Crypto	gap_kb	0.2	KB	module-map.tsv	
+75c33064	module	engine/Crypto	vm_steps	0	steps	module-map.tsv	
+75c33064	module	engine/Crypto	open_08_ids	0	rows	module-map.tsv	
+75c33064	module	engine/Data	lines	4528	lines	module-map.tsv	
+75c33064	module	engine/Data	cited_functions	18	func	module-map.tsv	
+75c33064	module	engine/Data	cited_kb	30.4	KB	module-map.tsv	
+75c33064	module	engine/Data	live_cuts	2	sites	module-map.tsv	
+75c33064	module	engine/Data	closing_cuts	0	sites	module-map.tsv	
+75c33064	module	engine/Data	gaps	1	blocks	module-map.tsv	
+75c33064	module	engine/Data	gap_kb	0.5	KB	module-map.tsv	
+75c33064	module	engine/Data	vm_steps	4	steps	module-map.tsv	
+75c33064	module	engine/Data	open_08_ids	0	rows	module-map.tsv	
+75c33064	module	engine/Diagnostics	lines	2663	lines	module-map.tsv	
+75c33064	module	engine/Diagnostics	cited_functions	16	func	module-map.tsv	
+75c33064	module	engine/Diagnostics	cited_kb	9.3	KB	module-map.tsv	
+75c33064	module	engine/Diagnostics	live_cuts	0	sites	module-map.tsv	
+75c33064	module	engine/Diagnostics	closing_cuts	0	sites	module-map.tsv	
+75c33064	module	engine/Diagnostics	gaps	7	blocks	module-map.tsv	
+75c33064	module	engine/Diagnostics	gap_kb	1.8	KB	module-map.tsv	
+75c33064	module	engine/Diagnostics	vm_steps	1	steps	module-map.tsv	
+75c33064	module	engine/Diagnostics	open_08_ids	1	rows	module-map.tsv	
+75c33064	module	engine/Input	lines	731	lines	module-map.tsv	
+75c33064	module	engine/Input	cited_functions	1	func	module-map.tsv	
+75c33064	module	engine/Input	cited_kb	0.6	KB	module-map.tsv	
+75c33064	module	engine/Input	live_cuts	0	sites	module-map.tsv	
+75c33064	module	engine/Input	closing_cuts	0	sites	module-map.tsv	
+75c33064	module	engine/Input	gaps	0	blocks	module-map.tsv	
+75c33064	module	engine/Input	gap_kb	0	KB	module-map.tsv	
+75c33064	module	engine/Input	vm_steps	1	steps	module-map.tsv	
+75c33064	module	engine/Input	open_08_ids	0	rows	module-map.tsv	
+75c33064	module	engine/Math	lines	1916	lines	module-map.tsv	
+75c33064	module	engine/Math	cited_functions	10	func	module-map.tsv	
+75c33064	module	engine/Math	cited_kb	1.9	KB	module-map.tsv	
+75c33064	module	engine/Math	live_cuts	0	sites	module-map.tsv	
+75c33064	module	engine/Math	closing_cuts	0	sites	module-map.tsv	
+75c33064	module	engine/Math	gaps	0	blocks	module-map.tsv	
+75c33064	module	engine/Math	gap_kb	0	KB	module-map.tsv	
+75c33064	module	engine/Math	vm_steps	1	steps	module-map.tsv	
+75c33064	module	engine/Math	open_08_ids	1	rows	module-map.tsv	
+75c33064	module	engine/Models	lines	3565	lines	module-map.tsv	
+75c33064	module	engine/Models	cited_functions	35	func	module-map.tsv	
+75c33064	module	engine/Models	cited_kb	9.8	KB	module-map.tsv	
+75c33064	module	engine/Models	live_cuts	0	sites	module-map.tsv	
+75c33064	module	engine/Models	closing_cuts	0	sites	module-map.tsv	
+75c33064	module	engine/Models	gaps	9	blocks	module-map.tsv	
+75c33064	module	engine/Models	gap_kb	1.5	KB	module-map.tsv	
+75c33064	module	engine/Models	vm_steps	4	steps	module-map.tsv	
+75c33064	module	engine/Models	open_08_ids	2	rows	module-map.tsv	
+75c33064	module	engine/Network	lines	3108	lines	module-map.tsv	
+75c33064	module	engine/Network	cited_functions	4	func	module-map.tsv	
+75c33064	module	engine/Network	cited_kb	0.7	KB	module-map.tsv	
+75c33064	module	engine/Network	live_cuts	0	sites	module-map.tsv	
+75c33064	module	engine/Network	closing_cuts	0	sites	module-map.tsv	
+75c33064	module	engine/Network	gaps	1	blocks	module-map.tsv	
+75c33064	module	engine/Network	gap_kb	0.4	KB	module-map.tsv	
+75c33064	module	engine/Network	vm_steps	0	steps	module-map.tsv	
+75c33064	module	engine/Network	open_08_ids	0	rows	module-map.tsv	
+75c33064	module	engine/Network/FoxAnti	lines	329	lines	module-map.tsv	
+75c33064	module	engine/Network/FoxAnti	cited_functions	0	func	module-map.tsv	
+75c33064	module	engine/Network/FoxAnti	cited_kb	0	KB	module-map.tsv	
+75c33064	module	engine/Network/FoxAnti	live_cuts	0	sites	module-map.tsv	
+75c33064	module	engine/Network/FoxAnti	closing_cuts	0	sites	module-map.tsv	
+75c33064	module	engine/Network/FoxAnti	gaps	0	blocks	module-map.tsv	
+75c33064	module	engine/Network/FoxAnti	gap_kb	0	KB	module-map.tsv	
+75c33064	module	engine/Network/FoxAnti	vm_steps	0	steps	module-map.tsv	
+75c33064	module	engine/Network/FoxAnti	open_08_ids	0	rows	module-map.tsv	
+75c33064	module	engine/Pathfinding	lines	620	lines	module-map.tsv	
+75c33064	module	engine/Pathfinding	cited_functions	6	func	module-map.tsv	
+75c33064	module	engine/Pathfinding	cited_kb	2.9	KB	module-map.tsv	
+75c33064	module	engine/Pathfinding	live_cuts	0	sites	module-map.tsv	
+75c33064	module	engine/Pathfinding	closing_cuts	0	sites	module-map.tsv	
+75c33064	module	engine/Pathfinding	gaps	1	blocks	module-map.tsv	
+75c33064	module	engine/Pathfinding	gap_kb	0.1	KB	module-map.tsv	
+75c33064	module	engine/Pathfinding	vm_steps	1	steps	module-map.tsv	
+75c33064	module	engine/Pathfinding	open_08_ids	1	rows	module-map.tsv	
+75c33064	module	engine/Platform	lines	2523	lines	module-map.tsv	
+75c33064	module	engine/Platform	cited_functions	1	func	module-map.tsv	
+75c33064	module	engine/Platform	cited_kb	0.5	KB	module-map.tsv	
+75c33064	module	engine/Platform	live_cuts	0	sites	module-map.tsv	
+75c33064	module	engine/Platform	closing_cuts	0	sites	module-map.tsv	
+75c33064	module	engine/Platform	gaps	1	blocks	module-map.tsv	
+75c33064	module	engine/Platform	gap_kb	0.2	KB	module-map.tsv	
+75c33064	module	engine/Platform	vm_steps	0	steps	module-map.tsv	
+75c33064	module	engine/Platform	open_08_ids	0	rows	module-map.tsv	
+75c33064	module	engine/Render	lines	6120	lines	module-map.tsv	
+75c33064	module	engine/Render	cited_functions	44	func	module-map.tsv	
+75c33064	module	engine/Render	cited_kb	11.7	KB	module-map.tsv	
+75c33064	module	engine/Render	live_cuts	2	sites	module-map.tsv	
+75c33064	module	engine/Render	closing_cuts	0	sites	module-map.tsv	
+75c33064	module	engine/Render	gaps	4	blocks	module-map.tsv	
+75c33064	module	engine/Render	gap_kb	0.4	KB	module-map.tsv	
+75c33064	module	engine/Render	vm_steps	5	steps	module-map.tsv	
+75c33064	module	engine/Render	open_08_ids	4	rows	module-map.tsv	
+75c33064	module	game/Actors	lines	18858	lines	module-map.tsv	
+75c33064	module	game/Actors	cited_functions	118	func	module-map.tsv	
+75c33064	module	game/Actors	cited_kb	112.9	KB	module-map.tsv	
+75c33064	module	game/Actors	live_cuts	208	sites	module-map.tsv	
+75c33064	module	game/Actors	closing_cuts	0	sites	module-map.tsv	
+75c33064	module	game/Actors	gaps	5	blocks	module-map.tsv	
+75c33064	module	game/Actors	gap_kb	1	KB	module-map.tsv	
+75c33064	module	game/Actors	vm_steps	35	steps	module-map.tsv	
+75c33064	module	game/Actors	open_08_ids	40	rows	module-map.tsv	
+75c33064	module	game/Assets	lines	4283	lines	module-map.tsv	
+75c33064	module	game/Assets	cited_functions	12	func	module-map.tsv	
+75c33064	module	game/Assets	cited_kb	37.2	KB	module-map.tsv	
+75c33064	module	game/Assets	live_cuts	14	sites	module-map.tsv	
+75c33064	module	game/Assets	closing_cuts	1	sites	module-map.tsv	
+75c33064	module	game/Assets	gaps	9	blocks	module-map.tsv	
+75c33064	module	game/Assets	gap_kb	4.4	KB	module-map.tsv	
+75c33064	module	game/Assets	vm_steps	2	steps	module-map.tsv	
+75c33064	module	game/Assets	open_08_ids	2	rows	module-map.tsv	
+75c33064	module	game/Camera	lines	499	lines	module-map.tsv	
+75c33064	module	game/Camera	cited_functions	4	func	module-map.tsv	
+75c33064	module	game/Camera	cited_kb	3.3	KB	module-map.tsv	
+75c33064	module	game/Camera	live_cuts	0	sites	module-map.tsv	
+75c33064	module	game/Camera	closing_cuts	0	sites	module-map.tsv	
+75c33064	module	game/Camera	gaps	0	blocks	module-map.tsv	
+75c33064	module	game/Camera	gap_kb	0	KB	module-map.tsv	
+75c33064	module	game/Camera	vm_steps	3	steps	module-map.tsv	
+75c33064	module	game/Camera	open_08_ids	3	rows	module-map.tsv	
+75c33064	module	game/CastleSiege	lines	7692	lines	module-map.tsv	
+75c33064	module	game/CastleSiege	cited_functions	69	func	module-map.tsv	
+75c33064	module	game/CastleSiege	cited_kb	57	KB	module-map.tsv	
+75c33064	module	game/CastleSiege	live_cuts	64	sites	module-map.tsv	
+75c33064	module	game/CastleSiege	closing_cuts	1	sites	module-map.tsv	
+75c33064	module	game/CastleSiege	gaps	11	blocks	module-map.tsv	
+75c33064	module	game/CastleSiege	gap_kb	7.5	KB	module-map.tsv	
+75c33064	module	game/CastleSiege	vm_steps	0	steps	module-map.tsv	
+75c33064	module	game/CastleSiege	open_08_ids	3	rows	module-map.tsv	
+75c33064	module	game/ChaosMix	lines	2690	lines	module-map.tsv	
+75c33064	module	game/ChaosMix	cited_functions	40	func	module-map.tsv	
+75c33064	module	game/ChaosMix	cited_kb	20.3	KB	module-map.tsv	
+75c33064	module	game/ChaosMix	live_cuts	12	sites	module-map.tsv	
+75c33064	module	game/ChaosMix	closing_cuts	0	sites	module-map.tsv	
+75c33064	module	game/ChaosMix	gaps	3	blocks	module-map.tsv	
+75c33064	module	game/ChaosMix	gap_kb	4.5	KB	module-map.tsv	
+75c33064	module	game/ChaosMix	vm_steps	2	steps	module-map.tsv	
+75c33064	module	game/ChaosMix	open_08_ids	4	rows	module-map.tsv	
+75c33064	module	game/Chat	lines	5718	lines	module-map.tsv	
+75c33064	module	game/Chat	cited_functions	79	func	module-map.tsv	
+75c33064	module	game/Chat	cited_kb	92.7	KB	module-map.tsv	
+75c33064	module	game/Chat	live_cuts	28	sites	module-map.tsv	
+75c33064	module	game/Chat	closing_cuts	0	sites	module-map.tsv	
+75c33064	module	game/Chat	gaps	8	blocks	module-map.tsv	
+75c33064	module	game/Chat	gap_kb	1.5	KB	module-map.tsv	
+75c33064	module	game/Chat	vm_steps	10	steps	module-map.tsv	
+75c33064	module	game/Chat	open_08_ids	12	rows	module-map.tsv	
+75c33064	module	game/Combat	lines	1822	lines	module-map.tsv	
+75c33064	module	game/Combat	cited_functions	15	func	module-map.tsv	
+75c33064	module	game/Combat	cited_kb	10.7	KB	module-map.tsv	
+75c33064	module	game/Combat	live_cuts	17	sites	module-map.tsv	
+75c33064	module	game/Combat	closing_cuts	0	sites	module-map.tsv	
+75c33064	module	game/Combat	gaps	0	blocks	module-map.tsv	
+75c33064	module	game/Combat	gap_kb	0	KB	module-map.tsv	
+75c33064	module	game/Combat	vm_steps	3	steps	module-map.tsv	
+75c33064	module	game/Combat	open_08_ids	4	rows	module-map.tsv	
+75c33064	module	game/Effects	lines	16262	lines	module-map.tsv	
+75c33064	module	game/Effects	cited_functions	28	func	module-map.tsv	
+75c33064	module	game/Effects	cited_kb	44.2	KB	module-map.tsv	
+75c33064	module	game/Effects	live_cuts	260	sites	module-map.tsv	
+75c33064	module	game/Effects	closing_cuts	2	sites	module-map.tsv	
+75c33064	module	game/Effects	gaps	0	blocks	module-map.tsv	
+75c33064	module	game/Effects	gap_kb	0	KB	module-map.tsv	
+75c33064	module	game/Effects	vm_steps	1	steps	module-map.tsv	
+75c33064	module	game/Effects	open_08_ids	13	rows	module-map.tsv	
+75c33064	module	game/Events	lines	7638	lines	module-map.tsv	
+75c33064	module	game/Events	cited_functions	99	func	module-map.tsv	
+75c33064	module	game/Events	cited_kb	41.8	KB	module-map.tsv	
+75c33064	module	game/Events	live_cuts	59	sites	module-map.tsv	
+75c33064	module	game/Events	closing_cuts	0	sites	module-map.tsv	
+75c33064	module	game/Events	gaps	1	blocks	module-map.tsv	
+75c33064	module	game/Events	gap_kb	0	KB	module-map.tsv	
+75c33064	module	game/Events	vm_steps	11	steps	module-map.tsv	
+75c33064	module	game/Events	open_08_ids	13	rows	module-map.tsv	
+75c33064	module	game/Fauna	lines	3129	lines	module-map.tsv	
+75c33064	module	game/Fauna	cited_functions	2	func	module-map.tsv	
+75c33064	module	game/Fauna	cited_kb	2.4	KB	module-map.tsv	
+75c33064	module	game/Fauna	live_cuts	15	sites	module-map.tsv	
+75c33064	module	game/Fauna	closing_cuts	0	sites	module-map.tsv	
+75c33064	module	game/Fauna	gaps	0	blocks	module-map.tsv	
+75c33064	module	game/Fauna	gap_kb	0	KB	module-map.tsv	
+75c33064	module	game/Fauna	vm_steps	0	steps	module-map.tsv	
+75c33064	module	game/Fauna	open_08_ids	0	rows	module-map.tsv	
+75c33064	module	game/FrontEnd	lines	6741	lines	module-map.tsv	
+75c33064	module	game/FrontEnd	cited_functions	81	func	module-map.tsv	
+75c33064	module	game/FrontEnd	cited_kb	26	KB	module-map.tsv	
+75c33064	module	game/FrontEnd	live_cuts	6	sites	module-map.tsv	
+75c33064	module	game/FrontEnd	closing_cuts	0	sites	module-map.tsv	
+75c33064	module	game/FrontEnd	gaps	8	blocks	module-map.tsv	
+75c33064	module	game/FrontEnd	gap_kb	0.7	KB	module-map.tsv	
+75c33064	module	game/FrontEnd	vm_steps	3	steps	module-map.tsv	
+75c33064	module	game/FrontEnd	open_08_ids	4	rows	module-map.tsv	
+75c33064	module	game/Guild	lines	5328	lines	module-map.tsv	
+75c33064	module	game/Guild	cited_functions	106	func	module-map.tsv	
+75c33064	module	game/Guild	cited_kb	61.1	KB	module-map.tsv	
+75c33064	module	game/Guild	live_cuts	38	sites	module-map.tsv	
+75c33064	module	game/Guild	closing_cuts	0	sites	module-map.tsv	
+75c33064	module	game/Guild	gaps	5	blocks	module-map.tsv	
+75c33064	module	game/Guild	gap_kb	1.4	KB	module-map.tsv	
+75c33064	module	game/Guild	vm_steps	2	steps	module-map.tsv	
+75c33064	module	game/Guild	open_08_ids	6	rows	module-map.tsv	
+75c33064	module	game/Hero	lines	792	lines	module-map.tsv	
+75c33064	module	game/Hero	cited_functions	4	func	module-map.tsv	
+75c33064	module	game/Hero	cited_kb	24	KB	module-map.tsv	
+75c33064	module	game/Hero	live_cuts	12	sites	module-map.tsv	
+75c33064	module	game/Hero	closing_cuts	0	sites	module-map.tsv	
+75c33064	module	game/Hero	gaps	0	blocks	module-map.tsv	
+75c33064	module	game/Hero	gap_kb	0	KB	module-map.tsv	
+75c33064	module	game/Hero	vm_steps	1	steps	module-map.tsv	
+75c33064	module	game/Hero	open_08_ids	1	rows	module-map.tsv	
+75c33064	module	game/Hud	lines	13753	lines	module-map.tsv	
+75c33064	module	game/Hud	cited_functions	120	func	module-map.tsv	
+75c33064	module	game/Hud	cited_kb	188	KB	module-map.tsv	
+75c33064	module	game/Hud	live_cuts	59	sites	module-map.tsv	
+75c33064	module	game/Hud	closing_cuts	0	sites	module-map.tsv	
+75c33064	module	game/Hud	gaps	8	blocks	module-map.tsv	
+75c33064	module	game/Hud	gap_kb	2.5	KB	module-map.tsv	
+75c33064	module	game/Hud	vm_steps	12	steps	module-map.tsv	
+75c33064	module	game/Hud	open_08_ids	15	rows	module-map.tsv	
+75c33064	module	game/Items	lines	9088	lines	module-map.tsv	
+75c33064	module	game/Items	cited_functions	56	func	module-map.tsv	
+75c33064	module	game/Items	cited_kb	157.9	KB	module-map.tsv	
+75c33064	module	game/Items	live_cuts	81	sites	module-map.tsv	
+75c33064	module	game/Items	closing_cuts	0	sites	module-map.tsv	
+75c33064	module	game/Items	gaps	2	blocks	module-map.tsv	
+75c33064	module	game/Items	gap_kb	0.9	KB	module-map.tsv	
+75c33064	module	game/Items	vm_steps	9	steps	module-map.tsv	
+75c33064	module	game/Items	open_08_ids	12	rows	module-map.tsv	
+75c33064	module	game/Joints	lines	8196	lines	module-map.tsv	
+75c33064	module	game/Joints	cited_functions	11	func	module-map.tsv	
+75c33064	module	game/Joints	cited_kb	48.5	KB	module-map.tsv	
+75c33064	module	game/Joints	live_cuts	179	sites	module-map.tsv	
+75c33064	module	game/Joints	closing_cuts	0	sites	module-map.tsv	
+75c33064	module	game/Joints	gaps	0	blocks	module-map.tsv	
+75c33064	module	game/Joints	gap_kb	0	KB	module-map.tsv	
+75c33064	module	game/Joints	vm_steps	2	steps	module-map.tsv	
+75c33064	module	game/Joints	open_08_ids	2	rows	module-map.tsv	
+75c33064	module	game/Kernel	lines	1294	lines	module-map.tsv	
+75c33064	module	game/Kernel	cited_functions	14	func	module-map.tsv	
+75c33064	module	game/Kernel	cited_kb	2.5	KB	module-map.tsv	
+75c33064	module	game/Kernel	live_cuts	0	sites	module-map.tsv	
+75c33064	module	game/Kernel	closing_cuts	0	sites	module-map.tsv	
+75c33064	module	game/Kernel	gaps	2	blocks	module-map.tsv	
+75c33064	module	game/Kernel	gap_kb	0.1	KB	module-map.tsv	
+75c33064	module	game/Kernel	vm_steps	0	steps	module-map.tsv	
+75c33064	module	game/Kernel	open_08_ids	0	rows	module-map.tsv	
+75c33064	module	game/MapScripts	lines	3082	lines	module-map.tsv	
+75c33064	module	game/MapScripts	cited_functions	11	func	module-map.tsv	
+75c33064	module	game/MapScripts	cited_kb	12.4	KB	module-map.tsv	
+75c33064	module	game/MapScripts	live_cuts	69	sites	module-map.tsv	
+75c33064	module	game/MapScripts	closing_cuts	0	sites	module-map.tsv	
+75c33064	module	game/MapScripts	gaps	0	blocks	module-map.tsv	
+75c33064	module	game/MapScripts	gap_kb	0	KB	module-map.tsv	
+75c33064	module	game/MapScripts	vm_steps	0	steps	module-map.tsv	
+75c33064	module	game/MapScripts	open_08_ids	1	rows	module-map.tsv	
+75c33064	module	game/Maps	lines	168	lines	module-map.tsv	
+75c33064	module	game/Maps	cited_functions	1	func	module-map.tsv	
+75c33064	module	game/Maps	cited_kb	0.1	KB	module-map.tsv	
+75c33064	module	game/Maps	live_cuts	0	sites	module-map.tsv	
+75c33064	module	game/Maps	closing_cuts	0	sites	module-map.tsv	
+75c33064	module	game/Maps	gaps	0	blocks	module-map.tsv	
+75c33064	module	game/Maps	gap_kb	0	KB	module-map.tsv	
+75c33064	module	game/Maps	vm_steps	0	steps	module-map.tsv	
+75c33064	module	game/Maps	open_08_ids	0	rows	module-map.tsv	
+75c33064	module	game/Messenger	lines	7759	lines	module-map.tsv	
+75c33064	module	game/Messenger	cited_functions	273	func	module-map.tsv	
+75c33064	module	game/Messenger	cited_kb	113.9	KB	module-map.tsv	
+75c33064	module	game/Messenger	live_cuts	27	sites	module-map.tsv	
+75c33064	module	game/Messenger	closing_cuts	0	sites	module-map.tsv	
+75c33064	module	game/Messenger	gaps	8	blocks	module-map.tsv	
+75c33064	module	game/Messenger	gap_kb	2.7	KB	module-map.tsv	
+75c33064	module	game/Messenger	vm_steps	2	steps	module-map.tsv	
+75c33064	module	game/Messenger	open_08_ids	2	rows	module-map.tsv	
+75c33064	module	game/Monsters	lines	15169	lines	module-map.tsv	
+75c33064	module	game/Monsters	cited_functions	84	func	module-map.tsv	
+75c33064	module	game/Monsters	cited_kb	129.8	KB	module-map.tsv	
+75c33064	module	game/Monsters	live_cuts	163	sites	module-map.tsv	
+75c33064	module	game/Monsters	closing_cuts	0	sites	module-map.tsv	
+75c33064	module	game/Monsters	gaps	2	blocks	module-map.tsv	
+75c33064	module	game/Monsters	gap_kb	1.3	KB	module-map.tsv	
+75c33064	module	game/Monsters	vm_steps	14	steps	module-map.tsv	
+75c33064	module	game/Monsters	open_08_ids	21	rows	module-map.tsv	
+75c33064	module	game/Movement	lines	2020	lines	module-map.tsv	
+75c33064	module	game/Movement	cited_functions	5	func	module-map.tsv	
+75c33064	module	game/Movement	cited_kb	22	KB	module-map.tsv	
+75c33064	module	game/Movement	live_cuts	26	sites	module-map.tsv	
+75c33064	module	game/Movement	closing_cuts	1	sites	module-map.tsv	
+75c33064	module	game/Movement	gaps	0	blocks	module-map.tsv	
+75c33064	module	game/Movement	gap_kb	0	KB	module-map.tsv	
+75c33064	module	game/Movement	vm_steps	0	steps	module-map.tsv	
+75c33064	module	game/Movement	open_08_ids	0	rows	module-map.tsv	
+75c33064	module	game/Npc	lines	2598	lines	module-map.tsv	
+75c33064	module	game/Npc	cited_functions	21	func	module-map.tsv	
+75c33064	module	game/Npc	cited_kb	47.3	KB	module-map.tsv	
+75c33064	module	game/Npc	live_cuts	11	sites	module-map.tsv	
+75c33064	module	game/Npc	closing_cuts	0	sites	module-map.tsv	
+75c33064	module	game/Npc	gaps	2	blocks	module-map.tsv	
+75c33064	module	game/Npc	gap_kb	0.3	KB	module-map.tsv	
+75c33064	module	game/Npc	vm_steps	0	steps	module-map.tsv	
+75c33064	module	game/Npc	open_08_ids	1	rows	module-map.tsv	
+75c33064	module	game/Particles	lines	7673	lines	module-map.tsv	
+75c33064	module	game/Particles	cited_functions	6	func	module-map.tsv	
+75c33064	module	game/Particles	cited_kb	34.7	KB	module-map.tsv	
+75c33064	module	game/Particles	live_cuts	0	sites	module-map.tsv	
+75c33064	module	game/Particles	closing_cuts	0	sites	module-map.tsv	
+75c33064	module	game/Particles	gaps	0	blocks	module-map.tsv	
+75c33064	module	game/Particles	gap_kb	0	KB	module-map.tsv	
+75c33064	module	game/Particles	vm_steps	0	steps	module-map.tsv	
+75c33064	module	game/Particles	open_08_ids	0	rows	module-map.tsv	
+75c33064	module	game/Party	lines	805	lines	module-map.tsv	
+75c33064	module	game/Party	cited_functions	5	func	module-map.tsv	
+75c33064	module	game/Party	cited_kb	6.1	KB	module-map.tsv	
+75c33064	module	game/Party	live_cuts	5	sites	module-map.tsv	
+75c33064	module	game/Party	closing_cuts	0	sites	module-map.tsv	
+75c33064	module	game/Party	gaps	0	blocks	module-map.tsv	
+75c33064	module	game/Party	gap_kb	0	KB	module-map.tsv	
+75c33064	module	game/Party	vm_steps	1	steps	module-map.tsv	
+75c33064	module	game/Party	open_08_ids	1	rows	module-map.tsv	
+75c33064	module	game/PersonalShop	lines	1986	lines	module-map.tsv	
+75c33064	module	game/PersonalShop	cited_functions	41	func	module-map.tsv	
+75c33064	module	game/PersonalShop	cited_kb	17.4	KB	module-map.tsv	
+75c33064	module	game/PersonalShop	live_cuts	12	sites	module-map.tsv	
+75c33064	module	game/PersonalShop	closing_cuts	0	sites	module-map.tsv	
+75c33064	module	game/PersonalShop	gaps	10	blocks	module-map.tsv	
+75c33064	module	game/PersonalShop	gap_kb	3.7	KB	module-map.tsv	
+75c33064	module	game/PersonalShop	vm_steps	4	steps	module-map.tsv	
+75c33064	module	game/PersonalShop	open_08_ids	3	rows	module-map.tsv	
+75c33064	module	game/PetTrainer	lines	1146	lines	module-map.tsv	
+75c33064	module	game/PetTrainer	cited_functions	14	func	module-map.tsv	
+75c33064	module	game/PetTrainer	cited_kb	12	KB	module-map.tsv	
+75c33064	module	game/PetTrainer	live_cuts	6	sites	module-map.tsv	
+75c33064	module	game/PetTrainer	closing_cuts	0	sites	module-map.tsv	
+75c33064	module	game/PetTrainer	gaps	0	blocks	module-map.tsv	
+75c33064	module	game/PetTrainer	gap_kb	0	KB	module-map.tsv	
+75c33064	module	game/PetTrainer	vm_steps	0	steps	module-map.tsv	
+75c33064	module	game/PetTrainer	open_08_ids	0	rows	module-map.tsv	
+75c33064	module	game/Pets	lines	4036	lines	module-map.tsv	
+75c33064	module	game/Pets	cited_functions	27	func	module-map.tsv	
+75c33064	module	game/Pets	cited_kb	25.6	KB	module-map.tsv	
+75c33064	module	game/Pets	live_cuts	20	sites	module-map.tsv	
+75c33064	module	game/Pets	closing_cuts	0	sites	module-map.tsv	
+75c33064	module	game/Pets	gaps	0	blocks	module-map.tsv	
+75c33064	module	game/Pets	gap_kb	0	KB	module-map.tsv	
+75c33064	module	game/Pets	vm_steps	0	steps	module-map.tsv	
+75c33064	module	game/Pets	open_08_ids	2	rows	module-map.tsv	
+75c33064	module	game/Player	lines	3314	lines	module-map.tsv	
+75c33064	module	game/Player	cited_functions	32	func	module-map.tsv	
+75c33064	module	game/Player	cited_kb	17.7	KB	module-map.tsv	
+75c33064	module	game/Player	live_cuts	30	sites	module-map.tsv	
+75c33064	module	game/Player	closing_cuts	0	sites	module-map.tsv	
+75c33064	module	game/Player	gaps	0	blocks	module-map.tsv	
+75c33064	module	game/Player	gap_kb	0	KB	module-map.tsv	
+75c33064	module	game/Player	vm_steps	2	steps	module-map.tsv	
+75c33064	module	game/Player	open_08_ids	1	rows	module-map.tsv	
+75c33064	module	game/Protocol	lines	11198	lines	module-map.tsv	
+75c33064	module	game/Protocol	cited_functions	55	func	module-map.tsv	
+75c33064	module	game/Protocol	cited_kb	46.2	KB	module-map.tsv	
+75c33064	module	game/Protocol	live_cuts	1	sites	module-map.tsv	
+75c33064	module	game/Protocol	closing_cuts	0	sites	module-map.tsv	
+75c33064	module	game/Protocol	gaps	10	blocks	module-map.tsv	
+75c33064	module	game/Protocol	gap_kb	6.1	KB	module-map.tsv	
+75c33064	module	game/Protocol	vm_steps	4	steps	module-map.tsv	
+75c33064	module	game/Protocol	open_08_ids	5	rows	module-map.tsv	
+75c33064	module	game/Quests	lines	2135	lines	module-map.tsv	
+75c33064	module	game/Quests	cited_functions	28	func	module-map.tsv	
+75c33064	module	game/Quests	cited_kb	16.6	KB	module-map.tsv	
+75c33064	module	game/Quests	live_cuts	7	sites	module-map.tsv	
+75c33064	module	game/Quests	closing_cuts	0	sites	module-map.tsv	
+75c33064	module	game/Quests	gaps	0	blocks	module-map.tsv	
+75c33064	module	game/Quests	gap_kb	0	KB	module-map.tsv	
+75c33064	module	game/Quests	vm_steps	2	steps	module-map.tsv	
+75c33064	module	game/Quests	open_08_ids	2	rows	module-map.tsv	
+75c33064	module	game/Scenes	lines	11794	lines	module-map.tsv	
+75c33064	module	game/Scenes	cited_functions	61	func	module-map.tsv	
+75c33064	module	game/Scenes	cited_kb	58.4	KB	module-map.tsv	
+75c33064	module	game/Scenes	live_cuts	50	sites	module-map.tsv	
+75c33064	module	game/Scenes	closing_cuts	0	sites	module-map.tsv	
+75c33064	module	game/Scenes	gaps	32	blocks	module-map.tsv	
+75c33064	module	game/Scenes	gap_kb	7	KB	module-map.tsv	
+75c33064	module	game/Scenes	vm_steps	18	steps	module-map.tsv	
+75c33064	module	game/Scenes	open_08_ids	13	rows	module-map.tsv	
+75c33064	module	game/Session	lines	6607	lines	module-map.tsv	
+75c33064	module	game/Session	cited_functions	34	func	module-map.tsv	
+75c33064	module	game/Session	cited_kb	34.6	KB	module-map.tsv	
+75c33064	module	game/Session	live_cuts	9	sites	module-map.tsv	
+75c33064	module	game/Session	closing_cuts	0	sites	module-map.tsv	
+75c33064	module	game/Session	gaps	8	blocks	module-map.tsv	
+75c33064	module	game/Session	gap_kb	1.3	KB	module-map.tsv	
+75c33064	module	game/Session	vm_steps	3	steps	module-map.tsv	
+75c33064	module	game/Session	open_08_ids	2	rows	module-map.tsv	
+75c33064	module	game/Skills	lines	9067	lines	module-map.tsv	
+75c33064	module	game/Skills	cited_functions	55	func	module-map.tsv	
+75c33064	module	game/Skills	cited_kb	138.6	KB	module-map.tsv	
+75c33064	module	game/Skills	live_cuts	99	sites	module-map.tsv	
+75c33064	module	game/Skills	closing_cuts	0	sites	module-map.tsv	
+75c33064	module	game/Skills	gaps	3	blocks	module-map.tsv	
+75c33064	module	game/Skills	gap_kb	0.2	KB	module-map.tsv	
+75c33064	module	game/Skills	vm_steps	9	steps	module-map.tsv	
+75c33064	module	game/Skills	open_08_ids	10	rows	module-map.tsv	
+75c33064	module	game/Social	lines	2378	lines	module-map.tsv	
+75c33064	module	game/Social	cited_functions	21	func	module-map.tsv	
+75c33064	module	game/Social	cited_kb	53.6	KB	module-map.tsv	
+75c33064	module	game/Social	live_cuts	7	sites	module-map.tsv	
+75c33064	module	game/Social	closing_cuts	0	sites	module-map.tsv	
+75c33064	module	game/Social	gaps	1	blocks	module-map.tsv	
+75c33064	module	game/Social	gap_kb	0	KB	module-map.tsv	
+75c33064	module	game/Social	vm_steps	1	steps	module-map.tsv	
+75c33064	module	game/Social	open_08_ids	1	rows	module-map.tsv	
+75c33064	module	game/Sound	lines	904	lines	module-map.tsv	
+75c33064	module	game/Sound	cited_functions	2	func	module-map.tsv	
+75c33064	module	game/Sound	cited_kb	2.6	KB	module-map.tsv	
+75c33064	module	game/Sound	live_cuts	0	sites	module-map.tsv	
+75c33064	module	game/Sound	closing_cuts	0	sites	module-map.tsv	
+75c33064	module	game/Sound	gaps	0	blocks	module-map.tsv	
+75c33064	module	game/Sound	gap_kb	0	KB	module-map.tsv	
+75c33064	module	game/Sound	vm_steps	0	steps	module-map.tsv	
+75c33064	module	game/Sound	open_08_ids	0	rows	module-map.tsv	
+75c33064	module	game/Tables	lines	2407	lines	module-map.tsv	
+75c33064	module	game/Tables	cited_functions	23	func	module-map.tsv	
+75c33064	module	game/Tables	cited_kb	6.3	KB	module-map.tsv	
+75c33064	module	game/Tables	live_cuts	1	sites	module-map.tsv	
+75c33064	module	game/Tables	closing_cuts	0	sites	module-map.tsv	
+75c33064	module	game/Tables	gaps	1	blocks	module-map.tsv	
+75c33064	module	game/Tables	gap_kb	0.1	KB	module-map.tsv	
+75c33064	module	game/Tables	vm_steps	0	steps	module-map.tsv	
+75c33064	module	game/Tables	open_08_ids	0	rows	module-map.tsv	
+75c33064	module	game/Terrain	lines	4294	lines	module-map.tsv	
+75c33064	module	game/Terrain	cited_functions	30	func	module-map.tsv	
+75c33064	module	game/Terrain	cited_kb	12.5	KB	module-map.tsv	
+75c33064	module	game/Terrain	live_cuts	12	sites	module-map.tsv	
+75c33064	module	game/Terrain	closing_cuts	0	sites	module-map.tsv	
+75c33064	module	game/Terrain	gaps	4	blocks	module-map.tsv	
+75c33064	module	game/Terrain	gap_kb	0.8	KB	module-map.tsv	
+75c33064	module	game/Terrain	vm_steps	3	steps	module-map.tsv	
+75c33064	module	game/Terrain	open_08_ids	3	rows	module-map.tsv	
+75c33064	module	game/Tooltips	lines	5723	lines	module-map.tsv	
+75c33064	module	game/Tooltips	cited_functions	29	func	module-map.tsv	
+75c33064	module	game/Tooltips	cited_kb	52.7	KB	module-map.tsv	
+75c33064	module	game/Tooltips	live_cuts	52	sites	module-map.tsv	
+75c33064	module	game/Tooltips	closing_cuts	0	sites	module-map.tsv	
+75c33064	module	game/Tooltips	gaps	0	blocks	module-map.tsv	
+75c33064	module	game/Tooltips	gap_kb	0	KB	module-map.tsv	
+75c33064	module	game/Tooltips	vm_steps	6	steps	module-map.tsv	
+75c33064	module	game/Tooltips	open_08_ids	5	rows	module-map.tsv	
+75c33064	module	game/Ui	lines	12438	lines	module-map.tsv	
+75c33064	module	game/Ui	cited_functions	330	func	module-map.tsv	
+75c33064	module	game/Ui	cited_kb	111.3	KB	module-map.tsv	
+75c33064	module	game/Ui	live_cuts	46	sites	module-map.tsv	
+75c33064	module	game/Ui	closing_cuts	0	sites	module-map.tsv	
+75c33064	module	game/Ui	gaps	7	blocks	module-map.tsv	
+75c33064	module	game/Ui	gap_kb	2.8	KB	module-map.tsv	
+75c33064	module	game/Ui	vm_steps	6	steps	module-map.tsv	
+75c33064	module	game/Ui	open_08_ids	10	rows	module-map.tsv	
+75c33064	module	game/Warehouse	lines	554	lines	module-map.tsv	
+75c33064	module	game/Warehouse	cited_functions	3	func	module-map.tsv	
+75c33064	module	game/Warehouse	cited_kb	9.2	KB	module-map.tsv	
+75c33064	module	game/Warehouse	live_cuts	1	sites	module-map.tsv	
+75c33064	module	game/Warehouse	closing_cuts	0	sites	module-map.tsv	
+75c33064	module	game/Warehouse	gaps	0	blocks	module-map.tsv	
+75c33064	module	game/Warehouse	gap_kb	0	KB	module-map.tsv	
+75c33064	module	game/Warehouse	vm_steps	1	steps	module-map.tsv	
+75c33064	module	game/Warehouse	open_08_ids	0	rows	module-map.tsv	
+75c33064	module	game/Weather	lines	1009	lines	module-map.tsv	
+75c33064	module	game/Weather	cited_functions	3	func	module-map.tsv	
+75c33064	module	game/Weather	cited_kb	1.4	KB	module-map.tsv	
+75c33064	module	game/Weather	live_cuts	3	sites	module-map.tsv	
+75c33064	module	game/Weather	closing_cuts	0	sites	module-map.tsv	
+75c33064	module	game/Weather	gaps	0	blocks	module-map.tsv	
+75c33064	module	game/Weather	gap_kb	0	KB	module-map.tsv	
+75c33064	module	game/Weather	vm_steps	0	steps	module-map.tsv	
+75c33064	module	game/Weather	open_08_ids	0	rows	module-map.tsv	
+75c33064	module	game/WorldObjects	lines	4388	lines	module-map.tsv	
+75c33064	module	game/WorldObjects	cited_functions	21	func	module-map.tsv	
+75c33064	module	game/WorldObjects	cited_kb	12.7	KB	module-map.tsv	
+75c33064	module	game/WorldObjects	live_cuts	46	sites	module-map.tsv	
+75c33064	module	game/WorldObjects	closing_cuts	0	sites	module-map.tsv	
+75c33064	module	game/WorldObjects	gaps	4	blocks	module-map.tsv	
+75c33064	module	game/WorldObjects	gap_kb	0.7	KB	module-map.tsv	
+75c33064	module	game/WorldObjects	vm_steps	1	steps	module-map.tsv	
+75c33064	module	game/WorldObjects	open_08_ids	1	rows	module-map.tsv	
+75c33064	module	unassigned	lines	0	lines	module-map.tsv	
+75c33064	module	unassigned	cited_functions	0	func	module-map.tsv	
+75c33064	module	unassigned	cited_kb	0	KB	module-map.tsv	
+75c33064	module	unassigned	live_cuts	0	sites	module-map.tsv	
+75c33064	module	unassigned	closing_cuts	0	sites	module-map.tsv	
+75c33064	module	unassigned	gaps	110	blocks	module-map.tsv	
+75c33064	module	unassigned	gap_kb	36.6	KB	module-map.tsv	
+75c33064	module	unassigned	vm_steps	44	steps	module-map.tsv	
+75c33064	module	unassigned	open_08_ids	18	rows	module-map.tsv	
+75c33064	vm	?	pasos	1	pasos	lista única (cota superior)	
+75c33064	vm	CL10	pasos	1	pasos	lista única (cota superior)	
+75c33064	vm	CL11	pasos	18	pasos	lista única (cota superior)	
+75c33064	vm	CL2	pasos	1	pasos	lista única (cota superior)	
+75c33064	vm	CL3	pasos	4	pasos	lista única (cota superior)	
+75c33064	vm	CL4	pasos	2	pasos	lista única (cota superior)	
+75c33064	vm	CL5	pasos	6	pasos	lista única (cota superior)	
+75c33064	vm	CL6	pasos	13	pasos	lista única (cota superior)	
+75c33064	vm	CL7	pasos	34	pasos	lista única (cota superior)	
+75c33064	vm	CL8	pasos	35	pasos	lista única (cota superior)	
+75c33064	vm	CL9	pasos	119	pasos	lista única (cota superior)	
+75c33064	vm	total	pasos	234	pasos	lista única (cota superior)	
+75c33064	vm	total	bloquean_codigo	11	pasos	lista única	
+75c33064	08	CL10	abierta	1	filas	pendientes-08	
+75c33064	08	CL11	abierta	29	filas	pendientes-08	
+75c33064	08	CL11	cerrada	2	filas	pendientes-08	
+75c33064	08	CL3	abierta	1	filas	pendientes-08	
+75c33064	08	CL4	abierta	2	filas	pendientes-08	
+75c33064	08	CL4	cerrada	1	filas	pendientes-08	
+75c33064	08	CL5	abierta	1	filas	pendientes-08	
+75c33064	08	CL5	cerrada	1	filas	pendientes-08	
+75c33064	08	CL6	abierta	9	filas	pendientes-08	
+75c33064	08	CL6	cerrada	3	filas	pendientes-08	
+75c33064	08	CL7	abierta	33	filas	pendientes-08	
+75c33064	08	CL7	cerrada	2	filas	pendientes-08	
+75c33064	08	CL8	abierta	41	filas	pendientes-08	
+75c33064	08	CL8	cerrada	14	filas	pendientes-08	
+75c33064	08	CL9	abierta	129	filas	pendientes-08	
+75c33064	08	CL9	cerrada	36	filas	pendientes-08	
+75c33064	08-abiertas	codigo	filas	98	filas	pendientes-08 (código es cota superior)	
+75c33064	08-abiertas	datos	filas	2	filas	pendientes-08 (código es cota superior)	
+75c33064	08-abiertas	otro	filas	5	filas	pendientes-08 (código es cota superior)	
+75c33064	08-abiertas	servidor	filas	17	filas	pendientes-08 (código es cota superior)	
+75c33064	08-abiertas	vm	filas	124	filas	pendientes-08 (código es cota superior)	
+75c33064	07	bug	con algo pendiente	28	filas	07-quirks-y-bugs	
+75c33064	07	bug	registrada	198	filas	07-quirks-y-bugs	
+75c33064	07	bug latente	registrada	5	filas	07-quirks-y-bugs	
+75c33064	07	contrato	con algo pendiente	20	filas	07-quirks-y-bugs	
+75c33064	07	contrato	registrada	179	filas	07-quirks-y-bugs	
+75c33064	07	código muerto	registrada	5	filas	07-quirks-y-bugs	
+75c33064	07	diseño	con algo pendiente	22	filas	07-quirks-y-bugs	
+75c33064	07	diseño	registrada	112	filas	07-quirks-y-bugs	
+75c33064	07	efecto latente	registrada	9	filas	07-quirks-y-bugs	
+75c33064	07	efecto visible	registrada	6	filas	07-quirks-y-bugs	
+75c33064	07	estado que queda	registrada	11	filas	07-quirks-y-bugs	
+75c33064	07	interno	con algo pendiente	1	filas	07-quirks-y-bugs	
+75c33064	07	interno	registrada	16	filas	07-quirks-y-bugs	
+75c33064	07	otras	con algo pendiente	3	filas	07-quirks-y-bugs	
+75c33064	07	otras	registrada	74	filas	07-quirks-y-bugs	
+75c33064	07	otras	retirada	1	filas	07-quirks-y-bugs	
+75c33064	07	quirk	con algo pendiente	3	filas	07-quirks-y-bugs	
+75c33064	07	quirk	registrada	15	filas	07-quirks-y-bugs	
+75c33064	07	visible	con algo pendiente	5	filas	07-quirks-y-bugs	
+75c33064	07	visible	registrada	112	filas	07-quirks-y-bugs	
+75c33064	chat	A+B vivo	entradas	254	entradas	auditoría del chat	
+75c33064	chat	A+B vivo	bytes	137715	B	auditoría del chat	
+75c33064	chat	A+B vivo	pct_codigo_juego	5.9	%	sobre 2.273 KB con lo muerto	
+75c33064	chat	A+B vivo	citado_sin_corte	99.2	%	auditoría del chat	
+75c33064	chat	A+B vivo	con_test	79.4	%	auditoría del chat	
+75c33064	chat	amigos (C)	bytes	18239	B	auditoría del chat	
+75c33064	chat	amigos (C)	citado_sin_corte	99.3	%	auditoría del chat	
+75c33064	chat	amigos (C)	con_test	81.5	%	auditoría del chat	
+75c33064	sustitutos	fila-07	filas	108	filas	auditoría	
+75c33064	sustitutos	juego	filas	16	filas	auditoría	
+75c33064	sustitutos	plataforma	filas	19	filas	auditoría	
+75c33064	sin-cablear	diferido	abierta-08	4	filas	auditoría	
+75c33064	sin-cablear	diferido	chat	1	filas	auditoría	
+75c33064	sin-cablear	diferido	comentario-viejo	13	filas	auditoría	
+75c33064	sin-cablear	diferido	corte-vivo	2	filas	auditoría	
+75c33064	sin-cablear	diferido	describe-corte	18	filas	auditoría	
+75c33064	sin-cablear	diferido	historico	17	filas	auditoría	
+75c33064	sin-cablear	diferido	pendiente	2	filas	auditoría	
+75c33064	sin-cablear	diferido	suena	44	filas	auditoría	
+75c33064	sin-cablear	funcion-sin-llamador	accesor	56	filas	auditoría	
+75c33064	sin-cablear	funcion-sin-llamador	falso-positivo	1	filas	auditoría	
+75c33064	sin-cablear	funcion-sin-llamador	feature-sin-cablear	6	filas	auditoría	
+75c33064	sin-cablear	funcion-sin-llamador	helper	6	filas	auditoría	
+75c33064	sin-cablear	funcion-sin-llamador	legacy-sustituido	9	filas	auditoría	
+75c33064	sin-cablear	no-portado	historico	2	filas	auditoría	
+75c33064	sin-cablear	no-portado	pendiente	1	filas	auditoría	
+75c33064	sin-cablear	pedido-sin-consumidor	feature-sin-cablear	3	filas	auditoría	
+75c33064	muret	Client/src	archivos	1431	archivos	ls-tree	
+75c33064	muret	Client/src	lineas	271359	líneas	ls-tree	
+75c33064	muret	Client/tests	archivos	755	archivos	ls-tree	
+75c33064	muret	Client/tests	tests	8817	TEST	TEST, TEST_F y TEST_P	
+75c33064	citas	src	corte	2565	citas	trazas	
+75c33064	citas	src	impl	40447	citas	trazas	
+75c33064	citas	tests	test	13160	citas	trazas	
+75c33064	citas	tests	test-corte	433	citas	trazas	
+75c33064	citas	docs	doc	29879	citas	trazas-docs	
+75c33064	citas	src	pendiente	31	citas	citas que no son corte pero dicen que no está portado	
 3495be9	serie	total	cota_baja	54	%	frozen.py	MENTION_ONLY vieja (comparable con la serie)
 3495be9	serie	total	cota_media	60.1	%	frozen.py	MENTION_ONLY vieja (comparable con la serie)
 3495be9	serie	total	cota_alta	66.3	%	frozen.py	MENTION_ONLY vieja (comparable con la serie)
@@ -412,7 +944,7 @@ c18eec8nm	serie	total	cota_baja_con_test	77.6	%	frozen.py	MENTION_ONLY corregida
 753d816nm	serie	total	cota_media	89.5	%	frozen.py	MENTION_ONLY corregida
 753d816nm	serie	total	cota_alta	91.7	%	frozen.py	MENTION_ONLY corregida
 753d816nm	serie	total	cota_baja_con_test	77.6	%	frozen.py	MENTION_ONLY corregida
-536dfccnm	serie	total	cota_baja	87.5	%	esta corrida	MENTION_ONLY corregida
-536dfccnm	serie	total	cota_media	89.5	%	esta corrida	MENTION_ONLY corregida
-536dfccnm	serie	total	cota_alta	91.5	%	esta corrida	MENTION_ONLY corregida
-536dfccnm	serie	total	cota_baja_con_test	77.9	%	esta corrida	MENTION_ONLY corregida
+75c3306nm	serie	total	cota_baja	87.5	%	esta corrida	MENTION_ONLY corregida
+75c3306nm	serie	total	cota_media	89.5	%	esta corrida	MENTION_ONLY corregida
+75c3306nm	serie	total	cota_alta	91.5	%	esta corrida	MENTION_ONLY corregida
+75c3306nm	serie	total	cota_baja_con_test	77.9	%	esta corrida	MENTION_ONLY corregida

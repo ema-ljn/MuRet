@@ -1,3 +1,4 @@
+#include "Network/Xor32Packet.h"
 #include "Scenes/GameMovement.h"
 
 #include "Core/Expected.h"
@@ -8,7 +9,6 @@
 #include "Data/Terrain/TerrainMapping.h"
 #include "GameLogic/Path.h"
 #include "GameLogic/PathCell.h"
-#include "Network/Crypto/Xor32.h"
 #include "Network/Packet.h"
 #include "Protocol/Movement.h"
 #include "Render/Models/Cloth.h"
@@ -196,7 +196,7 @@ protected:
             {
                 return Client::Core::Unexpected(std::string("El callback recibió un camino D3 inválido"));
             }
-            const auto decoded = Client::Network::Crypto::Xor32Decode(packet.Value().packet);
+            const auto decoded = Client::Network::Xor32Decode(packet.Value().packet);
             m_packets.emplace_back(decoded.Bytes().begin(), decoded.Bytes().end());
             m_sentPath.assign(cells.begin(), cells.end());
             m_sentTarget = target;

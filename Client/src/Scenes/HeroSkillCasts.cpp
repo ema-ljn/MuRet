@@ -62,8 +62,8 @@ namespace
 constexpr std::size_t ManaOffset = 0x22;
 constexpr std::size_t StaminaOffset = 0x24;
 constexpr std::size_t RangeOffset = 0x26;
-constexpr std::uint16_t ThirdMount = 0x1c16;
-constexpr std::uint16_t DarkHorse = 0x1c37;
+constexpr std::uint16_t DarkHorsePet = 0x1c16;
+constexpr std::uint16_t FenrirPet = 0x1c37;
 constexpr std::int32_t FirstBloodCastleMap = 11;
 constexpr std::int32_t LastBloodCastleMap = 17;
 constexpr float CellReciprocal = std::bit_cast<float>(std::uint32_t{0x3c23d70a});    // [0x6b86c0], 0,01
@@ -248,7 +248,7 @@ std::optional<std::uint8_t> PlayerActionOf(std::uint8_t skill, const ActorState&
     case 0x2c:
         return std::uint8_t{0x85};
     case 0x2f:
-        return caster.pet.model == DarkHorse ? std::uint8_t{0x5f} : std::uint8_t{0x42};
+        return caster.pet.model == FenrirPet ? std::uint8_t{0x5f} : std::uint8_t{0x42};
     case 0x31:
         return runtime.map == 8 || runtime.map == 10 ? std::uint8_t{0x41} : std::uint8_t{0x40};
     case 0x3c:
@@ -256,9 +256,9 @@ std::optional<std::uint8_t> PlayerActionOf(std::uint8_t skill, const ActorState&
     case 0x4a:
         return std::nullopt;
     default:
-        // 0x55bda6..0x55bdd8: con el caballo fuera de la zona segura, la 0x5d; si no, 0x7758584 + 0x25 (el lugar o la
+        // 0x55bda6..0x55bdd8: con Fenrir fuera de la zona segura, la 0x5d; si no, 0x7758584 + 0x25 (el lugar o la
         // skill que quedó ahí, no la skill leída).
-        if (caster.pet.model == DarkHorse && caster.safeZone == 0)
+        if (caster.pet.model == FenrirPet && caster.safeZone == 0)
             return std::uint8_t{0x5d};
         return static_cast<std::uint8_t>(runtime.movement.weaponSkill.slot + 0x25u);
     }
@@ -380,7 +380,7 @@ Core::Expected<float, std::string> SkillRangeOf(std::uint8_t skill, const ActorS
                                                 const HeroSkillContext& context)
 {
     auto range = SkillRangeOf(skill, context);
-    if (range.HasValue() && caster.pet.model == ThirdMount)
+    if (range.HasValue() && caster.pet.model == DarkHorsePet)
         range.Value() += 2.0f;
     return range;
 }
@@ -543,7 +543,7 @@ Core::Expected<void, std::string> CastTheSkillAtTheTarget(ActorState& caster, Ac
     }
     // 0x55c62c..0x55c662.
     caster.byte381 = 1;
-    if ((hero.flags78 & HiddenFlag20) == HiddenFlag20 || caster.pet.model == ThirdMount)
+    if ((hero.flags78 & HiddenFlag20) == HiddenFlag20 || caster.pet.model == DarkHorsePet)
         return {};
     const auto cellX =
         World::OriginalFtolLow(static_cast<double>(caster.attackPosition.x) * static_cast<double>(CellReciprocal));

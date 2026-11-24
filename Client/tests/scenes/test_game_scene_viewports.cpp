@@ -11,6 +11,7 @@
 #include "Protocol/Character/CharacterSelectResult.h"
 #include "Render/ModelVertex.h"
 #include "Render/Models/Cloth.h"
+#include "Render/Models/RoundedTransforms.h"
 #include "Render/Pass3D.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/IWorldEntryPublisher.h"
@@ -38,7 +39,6 @@
 #include "support/RecordingFrameTarget.h"
 #include "support/RecordingSink.h"
 
-#include <glm/ext/matrix_clip_space.hpp>
 #include <glm/ext/matrix_float4x4.hpp>
 #include <glm/ext/vector_float3.hpp>
 #include <glm/ext/vector_int4.hpp>
@@ -416,7 +416,7 @@ TEST_P(GameSceneViewportTest, TheInventoryItemsGoInTheUiPassAfterTheWorld)
     const Client::Render::Pass3D& pass = *events[ui].pass;
     EXPECT_EQ(pass.viewport, glm::ivec4(0, 0, viewport.screen.width, viewport.screen.height));
     const float aspect = static_cast<float>(static_cast<double>(viewport.screen.width) / viewport.screen.height);
-    EXPECT_EQ(pass.projection, glm::perspective(glm::radians(1.0f), aspect, 20.0f, 2000.0f));
+    EXPECT_EQ(pass.projection, Client::Render::Models::RoundedPerspective(glm::radians(1.0f), aspect, 20.0f, 2000.0f));
     EXPECT_EQ(pass.view, glm::mat4(1.0f));
     ASSERT_FALSE(events[ui].modelVertices.empty());
     for (const Client::Render::ModelVertex& vertex : events[ui].modelVertices)

@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Core/IClock.h"
+#include "Render/Models/IModelLibrary.h"
 #include "Render/Models/OriginalRetainedMath.h"
 #include "Render/Models/Skinning.h"
 #include "Render/TextureSlot.h"
@@ -31,8 +32,9 @@ float F32(double value)
 class EarlyItemRenderer
 {
 public:
-    EarlyItemRenderer(Render::ModelBatch& batch, const IModelLibrary& models, DrawnObject& input, Core::Duration clock,
-                      std::span<const Render::Models::SkinnedMesh> meshes, const ItemDrawContext& drawContext)
+    EarlyItemRenderer(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models, DrawnObject& input,
+                      Core::Duration clock, std::span<const Render::Models::SkinnedMesh> meshes,
+                      const ItemDrawContext& drawContext)
         : object(input), context(drawContext), m_batch(batch), m_models(models), m_clock(clock), m_meshes(meshes)
     {
         time = drawContext.special && drawContext.special->worldClock
@@ -83,7 +85,7 @@ public:
 
 private:
     Render::ModelBatch& m_batch;
-    const IModelLibrary& m_models;
+    const Render::Models::IModelLibrary& m_models;
     Core::Duration m_clock;
     std::span<const Render::Models::SkinnedMesh> m_meshes;
 };
@@ -225,8 +227,9 @@ Result EarlyCase(EarlyItemRenderer& draw, int level, std::uint8_t packedLevel)
     }
 }
 } // namespace
-Core::Expected<bool, std::string> DrawEarlyItemGlow(Render::ModelBatch& batch, const IModelLibrary& models,
-                                                    DrawnObject& object, Core::Duration clock,
+Core::Expected<bool, std::string> DrawEarlyItemGlow(Render::ModelBatch& batch,
+                                                    const Render::Models::IModelLibrary& models, DrawnObject& object,
+                                                    Core::Duration clock,
                                                     std::span<const Render::Models::SkinnedMesh> meshes, int level,
                                                     std::uint8_t packedLevel, const ItemDrawContext& context)
 {

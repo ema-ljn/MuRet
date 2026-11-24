@@ -1,8 +1,7 @@
 #include "Scenes/GameItemRenderState.h"
 
 #include "Render/Models/Cloth.h"
-
-#include <cmath>
+#include "Render/Models/RoundedMath.h"
 
 namespace Client::Scenes
 {
@@ -23,6 +22,7 @@ void UpdateGameItemGlowPulse(GameItemRenderState& state, float worldClock)
     constexpr float Frequency = 0.004f;
     constexpr float Amplitude = 0.15f;
     constexpr float Base = 0.6f;
-    state.glowPulse = static_cast<float>(std::sin(static_cast<double>(worldClock) * Frequency) * Amplitude + Base);
+    state.glowPulse =
+        static_cast<float>(Render::Models::RoundedSin(static_cast<double>(worldClock) * Frequency) * Amplitude + Base);
 }
 } // namespace Client::Scenes

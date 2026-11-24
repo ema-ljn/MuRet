@@ -1,3 +1,4 @@
+#include "Render/Models/IModelLibrary.h"
 #include "Scenes/UiItemDrawing.h"
 
 #include "App/WindowState.h"
@@ -6,6 +7,7 @@
 #include "Data/Tables/ItemTable.h"
 #include "Render/ModelBatch.h"
 #include "Render/Models/Cloth.h"
+#include "Render/Models/RoundedTransforms.h"
 #include "Render/Models/Skeleton.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/CharacterDrawing.h"
@@ -14,7 +16,6 @@
 #include "Scenes/GameProjection.h"
 #include "support/TableFiles.h"
 
-#include <glm/ext/matrix_clip_space.hpp>
 #include <glm/ext/matrix_float4x4.hpp>
 #include <glm/ext/vector_float3.hpp>
 #include <glm/ext/vector_int2.hpp>
@@ -112,7 +113,8 @@ TEST(UiItemDrawingTest, TheUiPassCoversTheWholeScreenWithOneDegree)
         EXPECT_EQ(pass.pass.view, glm::mat4(1.0f));
         EXPECT_FLOAT_EQ(pass.pass.farPlane, 2000.0f);
         const float aspect = static_cast<float>(static_cast<double>(probe.screen.width) / probe.screen.height);
-        EXPECT_EQ(pass.pass.projection, glm::perspective(glm::radians(1.0f), aspect, 20.0f, 2000.0f));
+        EXPECT_EQ(pass.pass.projection,
+                  Client::Render::Models::RoundedPerspective(glm::radians(1.0f), aspect, 20.0f, 2000.0f));
         EXPECT_EQ(BitsOf(pass.projection.horizontalScale), probe.horizontal);
         EXPECT_EQ(BitsOf(pass.projection.verticalScale), probe.vertical);
         EXPECT_EQ(pass.projection.centerX, probe.screen.width / 2);
@@ -377,7 +379,7 @@ TEST(UiItemDrawingTest, TheScaleTableRewritesTheLevelAndTheAngles)
 namespace
 {
 // Un triángulo con el vértice 0 en el origen del hueso: la x, la y y la z del primero son la posición del objeto.
-class UiModels final : public Client::Scenes::IModelLibrary
+class UiModels final : public Client::Render::Models::IModelLibrary
 {
 public:
     UiModels()
@@ -508,6 +510,27 @@ TEST(UiItemDrawingTest, TheSetRandomWaitsForTheUnroundedPulse)
         {
             EXPECT_EQ(drawing.selections.at(0x220), static_cast<std::int32_t>(selection));
         }
+    }
+}
+
+// 0x60b573: with the options' glow detail (0x6c9dcc) at 1, a level 13 item draws as a level 7 one: the body and the
+// 0x44 pass.
+TEST(UiItemDrawingTest, TheGlowDetailOfTheOptionsTrimsTheLevel)
+{
+    for (const std::uint8_t detail : {std::uint8_t{4}, std::uint8_t{1}})
+    {
+        SCOPED_TRACE(static_cast<int>(detail));
+        UiDrawing drawing;
+        drawing.context.glowDetail = detail;
+        Client::Scenes::UiItemResources resources = drawing.Resources({640, 480});
+        glm::vec3 angles{};
+        const auto placed = Place(0xa12, 13 << 3, angles);
+        ASSERT_TRUE(placed.HasValue()) << placed.Error();
+
+        const auto drawn = Client::Scenes::DrawUiItemModel(resources, drawing.random, placed.Value(), 0, 0);
+
+        ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+        EXPECT_EQ(drawing.batch.Vertices().size(), detail == 4 ? 12u : 6u);
     }
 }
 

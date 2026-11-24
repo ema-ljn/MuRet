@@ -1,3 +1,4 @@
+#include "Render/Models/IModelLibrary.h"
 #include "Scenes/HighModelEffects.h"
 
 #include "Core/Expected.h"
@@ -71,7 +72,7 @@ int DrawsSince(std::uint32_t seed, const CrtRandom& random)
 }
 
 // Un BMD con `actions` acciones de 10 keys, para 0x4ea030 y 0x4ec200.
-class ActionModels final : public Client::Scenes::IModelLibrary
+class ActionModels final : public Client::Render::Models::IModelLibrary
 {
 public:
     explicit ActionModels(std::size_t actions)
@@ -103,12 +104,12 @@ struct HighWorld
         world->Actors()[HeroSlot].position = {5000, 5000, 0};
     }
 
-    HighEffectContext Context(const Client::Scenes::IModelLibrary* models = nullptr)
+    HighEffectContext Context(const Client::Render::Models::IModelLibrary* models = nullptr)
     {
         return {.world = *world, .random = random, .worldClock = clock, .models = models};
     }
 
-    HighEffectStepContext StepContext(const Client::Scenes::IModelLibrary* models = nullptr)
+    HighEffectStepContext StepContext(const Client::Render::Models::IModelLibrary* models = nullptr)
     {
         return {.world = *world, .random = random, .services = services, .worldClock = clock, .models = models};
     }

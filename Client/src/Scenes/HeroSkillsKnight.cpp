@@ -46,8 +46,8 @@ namespace
 constexpr std::uint16_t PlayerType = 0x20a;
 constexpr std::uint8_t LordClass = 4;
 constexpr std::int16_t NoWeapon = -1;
-constexpr std::int16_t FirstShield = 0xc12;
-constexpr std::int16_t ShieldsEnd = 0xe12;
+constexpr std::int16_t FirstStaffModel = 0xc12;
+constexpr std::int16_t StaffModelsEnd = 0xe12;
 constexpr std::uint16_t UniriaModel = 0x1c14;
 constexpr std::uint16_t DarkHorseModel = 0x1c16;
 constexpr std::uint16_t FenrirModel = 0x1c37;
@@ -101,14 +101,14 @@ std::size_t SlotOf(const WorldState& world, const ActorState& hero)
     return static_cast<std::size_t>(&hero - actors.data());
 }
 
-// 0x581912..0x58197a: sin arma derecha, o con un escudo (0xc12 a 0xe11, MOVSX) en una de las manos del héroe publicado,
+// 0x581912..0x58197a: sin arma derecha, o con un bastón (0xc12 a 0xe11, MOVSX) en una de las manos del héroe publicado,
 // solo siguen las skills de la lista.
 bool TheHandsAllow(const ActorState& published, std::uint8_t skill)
 {
     const auto right = static_cast<std::int16_t>(published.hands[0].model);
     const auto left = static_cast<std::int16_t>(published.hands[1].model);
-    const auto shield = [](std::int16_t model) { return model >= FirstShield && model < ShieldsEnd; };
-    if (right != NoWeapon && !shield(right) && !shield(left))
+    const auto staff = [](std::int16_t model) { return model >= FirstStaffModel && model < StaffModelsEnd; };
+    if (right != NoWeapon && !staff(right) && !staff(left))
         return true;
     switch (skill)
     {

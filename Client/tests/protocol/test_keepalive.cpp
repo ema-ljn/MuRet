@@ -1,6 +1,6 @@
+#include "Network/Xor32Packet.h"
 #include "Protocol/Connection/Keepalive.h"
 
-#include "Network/Crypto/Xor32.h"
 #include "Network/Delivery.h"
 #include "Network/EncryptedPacket.h"
 #include "Network/Packet.h"
@@ -28,7 +28,7 @@ using Client::Network::Delivery;
 using Client::Network::EncryptPacket;
 using Client::Network::Packet;
 using Client::Network::PacketSerials;
-using Client::Network::Crypto::Xor32Decode;
+using Client::Network::Xor32Decode;
 using Client::Protocol::Outgoing;
 using Client::Protocol::Connection::KeepaliveAdjust20;
 using Client::Protocol::Connection::KeepaliveAdjust25;

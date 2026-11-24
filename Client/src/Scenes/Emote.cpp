@@ -2,9 +2,9 @@
 
 #include "Core/Expected.h"
 #include "Render/Models/Animation.h"
+#include "Render/Models/IModelLibrary.h"
 #include "Scenes/ActionSend.h"
 #include "Scenes/ActorState.h"
-#include "Scenes/CharacterDrawing.h"
 #include "UI/Emotes.h"
 
 #include <cstdint>

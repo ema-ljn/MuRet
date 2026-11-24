@@ -36,6 +36,8 @@ antes de commitear.
 - **Las constantes del wire** (heads, tamaños, offsets) son constantes con nombre en `Protocol/`,
   con un comentario que cita la sección del research que las fija
   (por ejemplo `// 05-protocolo § tabla de heads`).
+- A number whose meaning is fixed outside the file (an opcode, an item code, a map, a sound, a `Text.bmd` line) is
+  named once, in its space's home: §7, "Named values".
 - `0` y `1` en contextos booleanos o triviales están bien. `0x3BC`, `55960` y `5000` no.
 
 ## 4. Código reutilizable
@@ -65,11 +67,55 @@ namespace:
   tienen nada que ver.
 - Nombrá con precisión: si un nombre necesita un comentario para entenderse, elegí otro.
 
+### The client's layers (2026-11-21)
+
+The client is split into 58 modules in three roots, `engine/`, `game/` and `app/`
+([spec](superpowers/specs/2026-11-20-client-architecture-design.md),
+[ADR 0023](adr/0023-client-module-architecture.md)). A module uses only modules of a lower layer;
+inside a layer, only the ones its `may_use` names in [`Client/modules.tsv`](../Client/modules.tsv).
+No cycles between modules.
+
+| Layer | Modules | Does | Does not |
+| ---: | --- | --- | --- |
+| 0 | `engine/Core` | `Expected`, `ByteReader`, the log, `IClock`, text encodings | depend on anything |
+| 1 | `engine/Math`, `Crt`, `Crypto` | the original's x87 math, what mimics the MSVC 6 runtime (`rand`, sort, `sprintf`), MU's byte ciphers | touch sockets, files or game state |
+| 2 | `engine/Diagnostics`, `Input`, `Audio`, `Network`, `Data` | the crash handler, input per frame, playing sounds, sockets and framing, reading the `Data\` formats | know which sounds MU has or what a packet means; see SDL |
+| 3 | `engine/Platform`, `Pathfinding`, `Obfuscation` | SDL3 (window, GL context, events), the original's A*, the FoxAnti layer | see game state |
+| 4 | `engine/Render` | sprite and model batches, text, the frame contracts, GL | know actors or scenes |
+| 5 | `engine/Models` | skeleton, pose, animation, skinning, cloth | decide what the game draws |
+| 6 | `game/Protocol`, `Tables`, `Maps` | packet layouts and writers, MU's tables, map ids and their predicates | include each other or hold behavior |
+| 7 | `game/Kernel` | the `GameContext`, the shared state and the ports (send a packet, request a sound, an on-screen message) | hold feature logic |
+| 8 | `game/Assets`, `Terrain`, `Sound`, `Camera`, `Ui` | the game services and the widget kit | know actors or game modules |
+| 9 | the game modules (`Actors` … `FrontEnd`) | one vertical slice per feature: state, handlers, actions, windows | include another module's internals or know the session |
+| 10 | `game/Session` | the connection, keepalive, the opcode table and routing | hold game logic |
+| 11 | `game/Scenes` | the frame scripts (login, selection, loading, game) and the `SceneManager` | do the work: they call the modules in the original's order |
+| 12 | `app` | `main.cpp`, config, command line, the loop, the composition root | |
+
+- **Checked in CI.** `Client/tools/architecture/check_layers.py` reads the includes, takes each
+  file's module from [`module-map.tsv`](../Client/docs/research/coverage/module-map.tsv) and fails
+  on a new include that breaks the table, or on a file without a module. The old ones are in
+  `layers-baseline.tsv` and leave it as the refactor moves each module.
+- **Anatomy of a game module:** `<Module>.h` is what other modules may use, `<Module>Fwd.h` its
+  forward declarations and `<Module>Defines.h` its enums and ids, with no logic. `<Module>State.h`
+  holds the part of the original's globals the module owns. `In/` has one handler per incoming
+  packet: a free function that receives the packet already read and the state it touches, in its
+  signature. `Out/` has one action per player intent, which sends its packet.
+- **Reference sizes,** for review and not for cutting blindly: a handler up to ~80 lines, a file up
+  to ~400, a function up to ~60. A transcription of one of the original's `switch`es is marked and
+  may stay long, with one function per long `case`.
+- **Interfaces** only at the engine's edges and where a test needs one. An interface with a single
+  implementation is noise. A port lives in the module that uses it (`Kernel`) and is implemented
+  above it (`Session`, `Sound`, `Ui`).
+- **Fan-outs are ordered lists** that `app/` assembles in the original's order. No registration at
+  runtime and no static constructors: the order of calls and of `rand()` is part of the contract.
+
 ## 6. Una clase por archivo
 
 - Cada clase o struct importante tiene su **propio archivo**, con el nombre de la clase.
 - Header e implementación separados (`.h` / `.cpp`). Structs chicos muy pegados a una sola clase
   pueden quedarse en el header de esa clase.
+- In a client game module, each packet handler and each action is a free function in its own file,
+  in `In/` or `Out/` (§5).
 
 ## 7. Estilo consistente
 
@@ -88,6 +134,14 @@ namespace:
   ([`cmake/PrecompiledHeaders.cmake`](../cmake/PrecompiledHeaders.cmake)), con la biblioteca
   estándar. Son para compilar más rápido, no reemplazan ningún include, y el job de Linux del CI
   compila sin ellos para que lo que falte falle.
+- **No common header.** There is no `Common.h`, `Define.h` or umbrella header that gathers other
+  headers so files can include one line (cMaNGOS's `Common.h` has 27 includes and 259 users, and 482
+  of its 511 scripts include only `sc_common.h`). It hides what each file uses, which
+  `check_layers.py` and the module refactor need to see, and touching it recompiles everything;
+  speed is the precompiled header's job. What several files share goes into a small header with one
+  topic: `<Module>Fwd.h`, `<Module>Defines.h`, the ids of a map or event (`<Map>.h`, like
+  TrinityCore's `molten_core.h`), or one header of `engine/Core` or `engine/Math`. clangd adds the
+  include when a symbol is completed (`--header-insertion=iwyu`, its default).
 - Lo verifica `misc-include-cleaner` de clang-tidy 18 en `Client/`: el job de Linux del CI lo
   corre y corta con cualquier hallazgo, sea un include que falta o uno que sobra. El check mira
   solo el archivo principal de cada compilación, así que los headers van aparte, de a uno. A mano
@@ -205,6 +259,97 @@ piecemeal", porque es mucho; acá son dos archivos, y alinearlos al tocarlos no 
 2. Los helpers privados de un archivo van en un namespace anónimo.
 3. Nada de `using namespace` en un header.
 
+### Types and aliases (2026-11-23)
+
+A long type written again and again, an id passed as a bare integer and a loose `true` at a call make the reader stop.
+These rules name things without changing what the original computes: an alias is the same type, and a new type goes
+only where values must not be mixed. The principles hold across MuRet; the `Client::Core` names and the `In/` and
+`Out/` folders are the client's.
+
+1. **`using`, never `typedef`.** An alias names a role, not a shape: `PacketSender`, not `OutgoingFunction`.
+2. **One home.** An alias that several files use lives in the header that owns the concept, next to its enum, constant
+   or table, never in a common header. A `.cpp` does not redefine an alias that a header could give it.
+3. **Results.** `Client::Core::Result<T>` and `Client::Core::Status` are reserved for errors that are a `std::string`
+   message (`Core::Expected<T, std::string>` and `Core::Expected<void, std::string>`) and never mean anything else. A
+   domain whose callers act on the error keeps its own type: an error enum (`ProtocolError`), a structured result
+   (`SocketApi::Result`) or a system error. An error enum used about 20 times or more (a guide, not a threshold) gets
+   its own alias next to it (`ProtocolResult<T>` beside `ProtocolError`).
+4. **An alias protects nothing.** An alias of a primitive (`using SkillId = std::uint8_t`) separates nothing and hides
+   the width the reader needs for the deliberate wraparounds (`static_cast<std::uint8_t>(a + b)`). Two values that must
+   not be mixed, such as an actor key and a pool slot, need a type of their own. An alias of a tagged type
+   (`using SoundId = Core::Id<struct SoundIdTag, std::int32_t>`) keeps that type and is fine.
+5. **Ids.**
+   - A closed set fixed by the game (the character class, the scene, the packet kind) is an `enum class` whose
+     underlying type is its stored width. A value from outside becomes one through a single function that says what
+     an unknown value does, as `PacketTypeFromByte` does.
+   - An open space (sound, model, texture) is `Core::Id<Tag, Rep>`. It separates domains and nothing more: every value
+     the original accepts is still accepted, and whether some value means "none" is the domain's decision (texture
+     slot 0 is a slot, world object identity 0 is none).
+   - An open id that is switched on or passed by value as a template argument (map, opcode) is a scoped enum without
+     enumerators, `enum class X : Rep {}`, with `inline constexpr` constants. It holds any value of `Rep`, its
+     constants are not all its values, and a `switch` over it gets no warning for a missing case. A `Core::Id` type can
+     be a template type argument, but its private member keeps a `Core::Id` value from being a template argument.
+   - A typed id is built with braces (`ModelId{0x20a}`), which reject a narrowing conversion, and unwrapped with
+     `Value()` or one named function, at the place where the cast was.
+   - The engine never names a game id. The game converts to the engine's representation on its side.
+6. **Fidelity sets the representation.** Where the original fixes the width, the sign, the byte order, a promotion, a
+   wraparound or the x87 rounding, the value stays the primitive the port reproduces, and the name carries the unit
+   (`delayMs`, `angleDegrees`): the port spells the x87 intermediates by hand (`F32`, `D`), and a unit type would
+   choose them by itself. Elsewhere a vocabulary type is fine, such as `Core::Duration` (`std::chrono::nanoseconds`) for
+   the loop's time. Packet and file layouts keep their fixed-width integers. Each conversion happens once, at its
+   boundary (reading or writing a packet, a file, an engine-facing API; in the client, a module's `In/` and `Out/`),
+   with the operation the original does there: a sign extension, a truncation, the low byte. Never by reinterpreting
+   bytes.
+7. **No alias** for a type used once, for one that only hides a `const`, a reference or the ownership
+   (`std::unique_ptr`, `&`, `*`, `std::reference_wrapper`), or for a standard type that is already vocabulary
+   (`std::optional<T>`, `std::function<void()>`). A named deleter or a callback role hides nothing: it says what the
+   type is for.
+8. **Flags, by meaning.** Exclusive modes are an `enum class` (`StopAt::Start`). Independent settings are an options
+   struct filled with designated initializers (`{.effects = false, .music = false}`), whose defaults are the defaults
+   the parameters had. A clear predicate or a setter keeps its `bool`. A literal `true` or `false` far from its
+   declaration is the sign that a call needs one of the first two.
+9. **`[[nodiscard]]`.** `Core::Expected` is a `[[nodiscard]]` class, so a function that returns it by value does not
+   repeat the attribute. A function that returns a pointer or a reference, or that needs its own message, keeps it.
+
+`Core::Result`, `Core::Status` and `Core::Id` arrive with AR1.1's common kit; until then new code keeps the long
+spelling. Existing code adopts these rules module by module in the refactor's design PRs, never in a move or comments
+PR.
+
+### Named values (2026-11-23)
+
+A value whose numbering is fixed outside the file that uses it (by the wire, a `Data\` file, a load order or an
+enumeration of the original) belongs to a space. Today the same number is named again in each file that needs it,
+often under another name (`0xf3` is defined six times under three names; map 23 is `LastChaosCastleMap` 25 times).
+These rules give each space one place to look without changing what the original computes. The homes below are the
+client's.
+
+1. **One home per space, never one home for all.** Opcodes and subcodes in one list per server in `game/Protocol`, as
+   TrinityCore and cMaNGOS keep theirs; packet layouts in `game/Protocol/<Module>/`; table rows and their keys (item
+   codes and item models, skills, the text lines several modules print) in `game/Tables`; maps in `game/Maps`; sounds
+   in `game/Sound`; the other models and the textures in `game/Assets`; the numbers the x87 code shares in
+   `engine/Math`. No `Constants.h`, `Offsets.h` or `Ids.h` across spaces.
+2. **Identity once, role anywhere.** The home names what the value is (`Models::HornOfDinorant`). A file names what it
+   means there (`HeightOffsetPet`) with its own type and the home's name as its initializer, never the literal again.
+   One file may keep an identity private; the second file that needs it moves it home. A closed set, an opcode and a
+   group bound are born in their home.
+3. **Two spaces, two names.** A number that means two things has a name in each space (`0x1c15` is an item code and an
+   item model), and going from one to the other is a named function (`ModelOf`).
+4. **The site keeps its shape.** The comparison, its operator, its cast and its citation stay; the local name keeps the
+   type the literal had there. A predicate replaces a comparison only where the original's code at that address
+   matches it. A shared name is not a shared identity (`FirstEventMap` is 18 in `GameCharacters.cpp` and 24 in
+   `InventoryMoves.cpp`), and two meanings of one value are not merged.
+5. **A layout carries its offsets** (§14). An offset constant outside its layout is a missing accessor.
+6. **What stays local:** one window's geometry and colors, one effect's parameters (also as float bit patterns), one
+   model's bones and actions, a sentinel beside its record. An address of the original is a comment, and from AR3.1 a
+   row of `globals.tsv`.
+7. **The engine names no game value**: it receives it as a parameter or in a table the game fills.
+
+`Client/tools/architecture/named-values.tsv` lists the spaces and their homes, and `check_named_values.py` checks
+rules 1, 2 and 7 in CI with a baseline that only shrinks; both arrive in AR1.1, and a space whose home does not exist
+yet is reported, not failed, until the PR that creates its home. Existing code adopts these rules in the refactor's
+design PRs, never in a move or comments PR. The plan is
+[`2026-11-23-named-values.md`](superpowers/plans/2026-11-23-named-values.md).
+
 ## 8. Sin fugas ni estado colgado
 
 - Todo recurso tiene un dueño claro y un camino claro de liberación.
@@ -288,6 +433,18 @@ scene costs 2.5 to 3.2 ms of CPU of a 40 ms frame at `-O2`, and EASTL ties with 
   errors and MuRet's own fixed formats whose output equals the CRT's (`{}` of an integer or a
   text). A floating-point value the player sees is never printed with `std::format`: `{}` gives the
   shortest representation, and `%f` does not.
+- **Math.** IEEE 754 fixes `+`, `-`, `*`, `/` and the square root. Each C library rounds the sine,
+  the cosine, the logarithm and their kind in its own way, and glm calls them inside `glm::rotate`,
+  `glm::perspective`, `glm::slerp`, `glm::angleAxis` and `glm::quat(vec3)`: the same frame gave
+  other pixels on Windows and on Linux. The client takes them correctly rounded
+  ([ADR 0027](adr/0027-correctly-rounded-math.md)): `RoundedSin`, `RoundedCos`, `RoundedTan`,
+  `RoundedAcos` and `RoundedLog10` from `Render/Models/RoundedMath.h`, `RoundedRotate` and
+  `RoundedPerspective` from `RoundedTransforms.h`. Never `std::sin`, `std::cos`, `std::atan2`,
+  `std::exp`, `std::log`, `std::pow` or their kind, with or without `std::`, in `Client/src` or
+  `Client/tests`. A function the module lacks is added to it, with its MPFR hash. `std::sqrt`,
+  `std::fabs`, `std::floor`, `std::fmod` and `std::ldexp` give the same bits everywhere and stay.
+  `Client/tools/architecture/check_rounded_math.py` checks the names in CI; the one call it lets
+  through is in `rounded-math-exceptions.tsv`, with its reason.
 
 ## 11. Documentar el uso, no las tripas
 
@@ -344,3 +501,19 @@ each frame ([ADR 0026](adr/0026-keep-the-standard-library.md)).
   ([08-quirks-y-bugs](../Server/DataServer/docs/research/08-quirks-y-bugs.md)).
 - Primero el test en rojo, después el código. No se saltea, desactiva ni pone en cuarentena un
   test para que CI quede verde.
+
+## 14. Addresses, offsets and citations (MuRet's own, 2026-11-21)
+
+- **Citations to the original stay in comments,** on one line: the address and at most a short
+  label (`// 0x4d3200`). Tracking counts them (`build_roadmap_matrix.py`, the coverage reference),
+  so a move or a comment cleanup never drops one.
+- **A layout that matters carries its offsets in the type.** A packet is described with
+  `Field<T, Offset, Endian>` and a `static_assert` on its size (from AR2.1; until then its offsets
+  are named constants in `Protocol/`, §3). A `Data\` format gets `static_assert(offsetof(...))` and
+  `static_assert(sizeof(...))`.
+- **In-memory state does not copy the original's layout,** so a `static_assert` proves nothing
+  there. A global named by its address (`dword723bd8`) gets a name that says what it is; the
+  address stays in its comment and, from AR3.1, in `globals.tsv`.
+- **Contiguous data is not split.** A struct that copies contiguous memory of the original because
+  an overflow, a copy or a reset crosses it stays whole, marked with
+  `// Contiguous in the original: …` and its row in the 07 of the research.

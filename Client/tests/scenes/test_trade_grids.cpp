@@ -1,3 +1,4 @@
+#include "Network/Xor32Packet.h"
 #include "Scenes/GameUi.h"
 
 #include "Core/Expected.h"
@@ -10,7 +11,6 @@
 #include "Data/Terrain/TerrainGrid.h"
 #include "Data/Text/TextTable.h"
 #include "Input/InputState.h"
-#include "Network/Crypto/Xor32.h"
 #include "Network/Delivery.h"
 #include "Protocol/Inventory.h"
 #include "Protocol/Outgoing.h"
@@ -141,7 +141,7 @@ struct Sent
 
 Sent PlainOf(const Client::Protocol::Outgoing& outgoing)
 {
-    const auto plain = Client::Network::Crypto::Xor32Decode(outgoing.packet);
+    const auto plain = Client::Network::Xor32Decode(outgoing.packet);
     Sent sent{.encrypted = outgoing.delivery == Client::Network::Delivery::Encrypted, .bytes = {}};
     for (const std::byte b : plain.Bytes())
         sent.bytes.push_back(std::to_integer<std::uint8_t>(b));

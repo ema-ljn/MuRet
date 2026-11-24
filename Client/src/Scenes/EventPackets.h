@@ -17,6 +17,7 @@
 namespace Client::Render::Models
 {
 class CrtRandom;
+class IModelLibrary;
 struct Skeleton;
 } // namespace Client::Render::Models
 
@@ -32,7 +33,6 @@ class ITextMeasure;
 // que el original hace fuera de sus tablas se descarta (EventPacketResult::discarded).
 namespace Client::Scenes
 {
-class IModelLibrary;
 class WorldState;
 struct EventMapObject;
 struct InventoryServices;
@@ -56,7 +56,7 @@ struct EventPacketContext
     const Render::Models::Skeleton* playerSkeleton = nullptr;
     // Los modelos por tipo: 0x4ea030 lee las acciones del modelo del tipo del personaje (+2), como la 0xca del héroe
     // en el BD 03, que con un anillo de transformación no es Player.bmd. Sin ellos, ese caso corta.
-    const IModelLibrary* models = nullptr;
+    const Render::Models::IModelLibrary* models = nullptr;
     // El C1 03 31 de cerrar el NPC de evento (0x658a18 y 0x658c0e) desde el 90 y los cierres de todos los paneles.
     // Vacío, cerrarlo corta.
     std::function<void()> sendWindowClose{};

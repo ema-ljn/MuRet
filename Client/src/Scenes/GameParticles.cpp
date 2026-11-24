@@ -1,4 +1,5 @@
 #include "Scenes/GameParticles.h"
+#include "Render/Models/IModelLibrary.h"
 #include "World/PortableParticleTrigonometry.h"
 
 #include "Core/Expected.h"
@@ -89,9 +90,9 @@ Core::Expected<void, std::string> EmitDrop(const WaterspoutDrop& drop, const Wor
     return {};
 }
 
-Core::Expected<glm::vec3, std::string> PosedDropPoint(const IModelLibrary& models, const DrawnObject& drawn,
-                                                      std::size_t bone, const glm::vec3& offset,
-                                                      const FaunaDrawCarry* retainedPose)
+Core::Expected<glm::vec3, std::string> PosedDropPoint(const Render::Models::IModelLibrary& models,
+                                                      const DrawnObject& drawn, std::size_t bone,
+                                                      const glm::vec3& offset, const FaunaDrawCarry* retainedPose)
 {
     if (retainedPose != nullptr)
     {
@@ -149,8 +150,8 @@ Core::Expected<void, std::string> StepGameWaterspoutFrame(World::WorldObject& ob
 
 Core::Expected<void, std::string> StepGameWaterspoutFrame(World::WorldObject& object, World::Particles& particles,
                                                           Render::Models::CrtRandom& random, const float& worldClock,
-                                                          const IModelLibrary& models, const DrawnObject& drawn,
-                                                          const FaunaDrawCarry* retainedPose)
+                                                          const Render::Models::IModelLibrary& models,
+                                                          const DrawnObject& drawn, const FaunaDrawCarry* retainedPose)
 {
     const auto point = [&models, &drawn, retainedPose](std::size_t bone, const glm::vec3& offset)
     { return PosedDropPoint(models, drawn, bone, offset, retainedPose); };
@@ -203,7 +204,8 @@ Core::Expected<void, std::string> StepGameParticles(
     return {};
 }
 
-std::function<std::optional<float>(std::int32_t)> ParticleTextureHeightsOf(const IModelLibrary& textures)
+std::function<std::optional<float>(std::int32_t)>
+ParticleTextureHeightsOf(const Render::Models::IModelLibrary& textures)
 {
     return [&textures](std::int32_t slot) -> std::optional<float>
     {
@@ -343,7 +345,7 @@ std::function<std::optional<glm::vec3>(const World::Particle&)> ParticleOwnerBon
 }
 
 Core::Expected<void, std::string> DrawGameParticles(Render::ModelBatch& batch, World::Particles& particles,
-                                                    const IModelLibrary& textures,
+                                                    const Render::Models::IModelLibrary& textures,
                                                     const Render::Models::OriginalMatrix& view, float worldClock,
                                                     std::uint8_t mode)
 {

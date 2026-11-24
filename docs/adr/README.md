@@ -93,6 +93,7 @@ por los efectos originales (2026-11-19, decisión de Emanuel).
 | ADR | Title | Status |
 | --- | --- | --- |
 | [0026](0026-keep-the-standard-library.md) | The client keeps the C++ standard library | accepted, decided by Emanuel (2026-11-21) |
+| [0027](0027-correctly-rounded-math.md) | The client's math is correctly rounded | accepted, decided by Emanuel (2026-11-21) |
 
 Numbers 0023 to 0025 are taken by open branches (the refactor's module architecture and CL11 drafts).
 
@@ -101,3 +102,9 @@ Numbers 0023 to 0025 are taken by open branches (the refactor's module architect
 | ADR | Título | Estado |
 | --- | --- | --- |
 | [0016](0016-texto-occidental-en-windows-1252.md) | entrada y dibujo occidental con Windows-1252 de XP; activos y wire en bytes | propuesto junto con la corrección de entrada y rasterizador, 2026-11-15 |
+
+## The client refactor
+
+| ADR | Title | Status |
+| --- | --- | --- |
+| [0023](0023-client-module-architecture.md) | The client in modules: three roots, layers and one handler per packet | proposed in AR0.1 (2026-11-21); accepted when the refactor closes (AR7) |

@@ -15,6 +15,7 @@
 namespace Client::Render::Models
 {
 class CrtRandom;
+class IModelLibrary;
 struct Skeleton;
 } // namespace Client::Render::Models
 
@@ -23,7 +24,6 @@ struct Skeleton;
 // salvo cuando el clic de ataque sale sin flechas (MoveHeroEnd::Leave, 0x59d666).
 namespace Client::Scenes
 {
-class IModelLibrary;
 class WorldState;
 struct ActorState;
 struct InventoryServices;
@@ -40,7 +40,7 @@ struct HeroSkillContext
     const Data::Tables::ItemTable* items = nullptr;
     // Los esqueletos de los otros modelos, que 0x4ea030 lee en el 0x4f4a10 de un héroe que no es un jugador (con un
     // anillo de transformación; la flecha de 0x564f2f). nullptr: ese 0x4f4a10 corta (0x4ea030).
-    const IModelLibrary* models = nullptr;
+    const Render::Models::IModelLibrary* models = nullptr;
     // GetTickCount (0x6b8144), que leen el freno de 300 ms de los envíos (0x576791c, PassesTheActionBrake). Vacío: el
     // envío que lo mira corta.
     std::function<std::uint32_t()> tickCount{};

@@ -2,6 +2,7 @@
 
 #include "Render/Models/Animation.h"
 #include "Render/Models/Cloth.h"
+#include "Render/Models/IModelLibrary.h"
 #include "Render/Pass3D.h"
 #include "Scenes/FaunaDrawing.h"
 #include "World/GameCamera.h"
@@ -31,12 +32,12 @@
 #include "World/Sprites.h"
 #include "World/WorldObjects.h"
 #include "Data/Terrain/TerrainObjects.h"
+#include "Render/Frame/SceneWorld.h"
 #include "Scenes/LoginModels.h"
 #include "Scenes/SceneCanvas.h"
 #include "Scenes/SceneContext.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/SceneTextures.h"
-#include "Scenes/SceneWorlds.h"
 #include "Scenes/WorldModels.h"
 #include "Scenes/WorldState.h"
 #include "UI/CreditsWindow.h"
@@ -94,7 +95,7 @@ public:
     // Main: los tests la fijan.
     // `gameSlots`, la tabla de slots de la carga (GameModels::TextureSlots), que el mundo sigue desde
     // 0x41c como la global del original; sin ella, una vacía.
-    LoginScene(const SceneContext& context, const GameData& data, const IModelLibrary& models,
+    LoginScene(const SceneContext& context, const GameData& data, const Render::Models::IModelLibrary& models,
                App::ServerSession* session, std::string_view version, std::mt19937::result_type seed,
                const Render::Models::ModelTextureSlots* gameSlots = nullptr);
 
@@ -261,13 +262,13 @@ private:
     // Los de los avisos y el área vieja (0x554810 y 0x5554e0): con cero, el dibujo va sobre copias.
     Render::Models::OriginalFrameCarry m_messageFrames;
     std::vector<std::optional<int>> m_objectEffectRandoms;
-    const IModelLibrary& m_models;
+    const Render::Models::IModelLibrary& m_models;
     App::ServerSession* m_session;
     const Data::Text::TextTable* m_texts;
     SceneTextures m_textures;
     SceneTextures m_windowTextures;
     // El de SceneWorlds.h: el 55.
-    std::optional<SceneWorld> m_world;
+    std::optional<Render::Frame::SceneWorld> m_world;
     LoadedWorld m_terrain;
     // El rango de bloques del terreno con la cámara del login (0x5fbb00): la carga lo inicializa; cada dibujo
     // lo actualiza para el paso siguiente. El trapecio (0x5fb570) es el global de WorldRuntime.

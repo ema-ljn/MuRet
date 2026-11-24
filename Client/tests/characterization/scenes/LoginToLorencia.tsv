@@ -1,0 +1,21 @@
+frame	event	value
+# The ConnectServer: its hello, the list with server 400 and the address of that GameServer. AutoLogin chooses it.
+12	gs	c1 04 00 01
+14	gs	c2 00 0b f4 06 00 01 90 01 00 00
+16	gs	c1 16 f4 03 31 30 2e 30 2e 30 2e 32 00 00 00 00 00 00 00 00 5d da
+# The GameServer: its hello with version 10209, the accepted login (AutoLogin sends the account) and a list with
+# char0001, a level 1 Dark Wizard, in slot 0.
+18	gs	c1 0c f1 00 01 00 05 31 30 32 30 39
+20	gs	c1 05 f1 01 01
+22	gs	c1 29 f3 00 00 00 01 00 63 68 61 72 30 30 30 31 00 00 ee 01 00 00 00 00 00 00 00 03 00 00 00 00 00 00 00 00 00 00 00 00 ff
+# A click on the character and Enter.
+30	mouse	125 353
+31	button-down	left
+32	button-up	left
+34	key-down	Enter
+35	key-up	Enter
+# The world entry in Lorencia at (133, 127), with 60 life and mana and 2000 zen, and an empty inventory.
+38	gs-encrypted	c1 34 f3 03 85 7f 00 00 00 00 00 00 6e 00 00 00 00 00 12 00 12 00 0f 00 1e 00 3c 00 3c 00 3c 00 3c 00 00 00 00 00 00 00 d0 07 00 00 03 00 00 00 00 00 ff ff
+39	gs-encrypted	c2 00 06 f3 10 00
+# 100 idle frames in Lorencia.
+138	end	

@@ -6,6 +6,7 @@
 #include "Render/ModelVertex.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/HalfLifeMath.h"
+#include "Render/Models/IModelLibrary.h"
 #include "Render/Models/ObjectState.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Render/Models/Pose.h"
@@ -309,7 +310,7 @@ void SkinTheScratch(FaunaDrawCarry& carry, const Data::Models::Model& model,
     }
 }
 } // namespace
-Core::Expected<void, std::string> PublishFaunaPose(FaunaDrawCarry& carry, const IModelLibrary& models,
+Core::Expected<void, std::string> PublishFaunaPose(FaunaDrawCarry& carry, const Render::Models::IModelLibrary& models,
                                                    const DrawnObject& object, bool translated)
 {
     if (object.alpha < VisibleAlpha)
@@ -338,8 +339,8 @@ Core::Expected<void, std::string> PublishFaunaPose(FaunaDrawCarry& carry, const 
         return Core::Unexpected(std::string("5ffdf0: pose de fauna inválida"));
     return PublishFaunaPoseRaw(carry, models, object.model, bones, object.transform, translated);
 }
-Core::Expected<void, std::string> PublishFaunaFloorPose(FaunaDrawCarry& carry, const IModelLibrary& models,
-                                                        const DrawnObject& object)
+Core::Expected<void, std::string>
+PublishFaunaFloorPose(FaunaDrawCarry& carry, const Render::Models::IModelLibrary& models, const DrawnObject& object)
 {
     const auto* skeleton = models.SkeletonOf(object.model);
     if (skeleton == nullptr)
@@ -353,16 +354,15 @@ Core::Expected<void, std::string> PublishFaunaFloorPose(FaunaDrawCarry& carry, c
     return PublishFaunaPoseRaw(carry, models, object.model, bones, object.transform, false,
                                object.alpha > VisibleAlpha);
 }
-Core::Expected<void, std::string> TransformFaunaPose(FaunaDrawCarry& carry, const IModelLibrary& models,
+Core::Expected<void, std::string> TransformFaunaPose(FaunaDrawCarry& carry, const Render::Models::IModelLibrary& models,
                                                      const DrawnObject& object)
 {
     return PublishFaunaPoseRaw(carry, models, object.model, carry.bones, object.transform, false);
 }
-Core::Expected<void, std::string> PublishFaunaPoseRaw(FaunaDrawCarry& carry, const IModelLibrary& models,
-                                                      std::uint16_t modelId,
-                                                      std::span<const Render::Models::BoneTransform> bones,
-                                                      const Render::Models::ObjectTransform& transform, bool translated,
-                                                      bool skin)
+Core::Expected<void, std::string>
+PublishFaunaPoseRaw(FaunaDrawCarry& carry, const Render::Models::IModelLibrary& models, std::uint16_t modelId,
+                    std::span<const Render::Models::BoneTransform> bones,
+                    const Render::Models::ObjectTransform& transform, bool translated, bool skin)
 {
     const auto* model = models.Find(modelId);
     const auto* skeleton = models.SkeletonOf(modelId);

@@ -53,6 +53,12 @@
         "VCPKG_TARGET_TRIPLET": "x64-windows"
       },
       "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Windows" }
+    },
+    {
+      "name": "windows-x64-ninja-release",
+      "displayName": "Windows x64 Release (Ninja, from an MSVC x64 console)",
+      "inherits": "windows-x64-ninja-debug",
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "Release" }
     }
   ],
   "buildPresets": [
@@ -62,7 +68,8 @@
     { "name": "windows-x64-debug", "configurePreset": "windows-x64", "configuration": "Debug" },
     { "name": "windows-x64-release", "configurePreset": "windows-x64", "configuration": "Release" },
     { "name": "windows-x64-relwithdebinfo", "configurePreset": "windows-x64", "configuration": "RelWithDebInfo" },
-    { "name": "windows-x64-ninja-debug", "configurePreset": "windows-x64-ninja-debug" }
+    { "name": "windows-x64-ninja-debug", "configurePreset": "windows-x64-ninja-debug" },
+    { "name": "windows-x64-ninja-release", "configurePreset": "windows-x64-ninja-release" }
   ],
   "testPresets": [
     { "name": "linux-x64-debug", "configurePreset": "linux-x64-debug", "output": { "outputOnFailure": true } },
@@ -71,6 +78,7 @@
     { "name": "windows-x64-debug", "configurePreset": "windows-x64", "configuration": "Debug", "output": { "outputOnFailure": true } },
     { "name": "windows-x64-release", "configurePreset": "windows-x64", "configuration": "Release", "output": { "outputOnFailure": true } },
     { "name": "windows-x64-relwithdebinfo", "configurePreset": "windows-x64", "configuration": "RelWithDebInfo", "output": { "outputOnFailure": true } },
-    { "name": "windows-x64-ninja-debug", "configurePreset": "windows-x64-ninja-debug", "output": { "outputOnFailure": true } }
+    { "name": "windows-x64-ninja-debug", "configurePreset": "windows-x64-ninja-debug", "output": { "outputOnFailure": true } },
+    { "name": "windows-x64-ninja-release", "configurePreset": "windows-x64-ninja-release", "output": { "outputOnFailure": true } }
   ]
 }

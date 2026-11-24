@@ -1,9 +1,9 @@
+#include "Network/Xor32Packet.h"
 #include "Scenes/SecondGuildWindow.h"
 
 #include "App/WindowState.h"
 #include "Core/Expected.h"
 #include "Data/Text/TextTable.h"
-#include "Network/Crypto/Xor32.h"
 #include "Protocol/Guild.h"
 #include "Protocol/Outgoing.h"
 #include "Render/Models/Cloth.h"
@@ -125,7 +125,7 @@ int NewMarkSlot()
 
 std::vector<std::byte> PlainOf(const Client::Protocol::Outgoing& sent)
 {
-    const auto plain = Client::Network::Crypto::Xor32Decode(sent.packet);
+    const auto plain = Client::Network::Xor32Decode(sent.packet);
     return {plain.Bytes().begin(), plain.Bytes().end()};
 }
 

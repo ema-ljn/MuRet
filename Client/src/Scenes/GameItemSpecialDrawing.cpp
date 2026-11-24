@@ -4,6 +4,7 @@
 #include "Data/Models/Model.h"
 #include "Render/ModelBatch.h"
 #include "Render/Models/Cloth.h"
+#include "Render/Models/IModelLibrary.h"
 #include "Render/Models/OriginalRetainedMath.h"
 #include "Render/Models/Skinning.h"
 #include "Render/TextureSlot.h"
@@ -41,8 +42,9 @@ float F32(double value)
 class ItemRenderer
 {
 public:
-    ItemRenderer(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnObject& input, float nativeClock,
-                 std::span<const Render::Models::SkinnedMesh> meshes, const ItemSpecialDrawContext& context)
+    ItemRenderer(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models, const DrawnObject& input,
+                 float nativeClock, std::span<const Render::Models::SkinnedMesh> meshes,
+                 const ItemSpecialDrawContext& context)
         : object(input), time(nativeClock), m_batch(batch), m_models(models),
           m_clock(
               std::chrono::duration_cast<Core::Duration>(std::chrono::duration<long double, std::milli>(nativeClock))),
@@ -121,7 +123,7 @@ public:
 
 private:
     Render::ModelBatch& m_batch;
-    const IModelLibrary& m_models;
+    const Render::Models::IModelLibrary& m_models;
     Core::Duration m_clock;
     std::span<const Render::Models::SkinnedMesh> m_meshes;
     const ItemSpecialDrawContext& m_context;
@@ -593,7 +595,8 @@ Result Dispatch(ItemRenderer& draw, const ItemSpecialDrawContext& context)
     return draw.Pass(Body, flags);
 }
 } // namespace
-Core::Expected<void, std::string> DrawSpecialItemMeshes(Render::ModelBatch& batch, const IModelLibrary& models,
+Core::Expected<void, std::string> DrawSpecialItemMeshes(Render::ModelBatch& batch,
+                                                        const Render::Models::IModelLibrary& models,
                                                         const DrawnObject& object, Core::Duration frameClock,
                                                         std::span<const Render::Models::SkinnedMesh> meshes,
                                                         const ItemSpecialDrawContext& context)

@@ -5,6 +5,7 @@
 #include "Data/Terrain/TerrainGrid.h"
 #include "Render/ModelBatch.h"
 #include "Render/ModelVertex.h"
+#include "Render/Models/RoundedMath.h"
 #include "Render/SpriteVertex.h"
 #include "Render/TextureSlot.h"
 
@@ -14,7 +15,6 @@
 #include <array>
 #include <bit>
 #include <chrono>
-#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <format>
@@ -284,8 +284,8 @@ void UpdateWaves(TerrainWater& water, Core::Duration clock, const TerrainRange& 
             const auto cell = static_cast<std::size_t>((y * static_cast<int>(TerrainSide)) + x);
             if (cell < water.waves.size())
             {
-                water.waves[cell] =
-                    static_cast<float>(std::sin((static_cast<double>(x) * column) + phase) * WaveHeight);
+                water.waves[cell] = static_cast<float>(
+                    Render::Models::RoundedSin((static_cast<double>(x) * column) + phase) * WaveHeight);
             }
         }
     }

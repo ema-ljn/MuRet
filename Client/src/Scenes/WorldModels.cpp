@@ -1,4 +1,5 @@
 #include "Scenes/WorldModels.h"
+#include "Render/Models/IModelLibrary.h"
 #include "Scenes/ModelTextureTable.h"
 
 #include "Core/Expected.h"
@@ -13,7 +14,6 @@
 #include "Render/Models/Skeleton.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/LorenciaModelFiles.h"
-#include "Scenes/CharacterDrawing.h"
 #include "Scenes/TextureMetadata.h"
 #include "Scenes/WorldSpecialModels.h"
 
@@ -64,7 +64,7 @@ struct TextureUploadState
 Core::Expected<void, std::string> WorldModels::Load(const std::filesystem::path& dataRoot, std::uint8_t map,
                                                     Render::ITextureStore& textures, Core::Log& log,
                                                     const Render::Models::ModelTextureSlots* gameSlots,
-                                                    const IModelLibrary* globalModels,
+                                                    const Render::Models::IModelLibrary* globalModels,
                                                     ModelTextureTable* sharedTextures)
 {
     Release();

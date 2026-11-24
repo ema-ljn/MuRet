@@ -1,3 +1,4 @@
+#include "Render/Models/IModelLibrary.h"
 #include "Scenes/MonsterBody.h"
 
 #include "Core/Expected.h"
@@ -6,6 +7,7 @@
 #include "Render/ModelBatch.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/HalfLifeMath.h"
+#include "Render/Models/RoundedMath.h"
 #include "Render/Models/Skeleton.h"
 #include "Render/Models/Skinning.h"
 #include "Render/Pass3D.h"
@@ -28,7 +30,6 @@
 #include <algorithm>
 #include <array>
 #include <bit>
-#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
@@ -46,6 +47,7 @@
 namespace
 {
 using Client::Render::ModelBlend;
+using Client::Render::Models::RoundedSin;
 using Client::Scenes::ActorState;
 
 constexpr std::size_t MeshCount = 7;
@@ -118,7 +120,7 @@ void ExpectSameJoints(std::span<const Client::Scenes::JointState> actual,
     }
 }
 
-class BodyModels final : public Client::Scenes::IModelLibrary
+class BodyModels final : public Client::Render::Models::IModelLibrary
 {
 public:
     BodyModels()
@@ -406,7 +408,7 @@ TEST_F(MonsterBodyTest, TheKalimaTrapAddsTheWaterAndTheSameTrapInLorenciaDoesNot
         ASSERT_EQ(m_batch.Vertices().size(), 2 * WholeBody);
         ExpectColor(0, 0.2f, 0.4f, 0.6f);
         const auto water = static_cast<float>(
-            std::sin(static_cast<double>(Clock) * static_cast<double>(std::bit_cast<float>(0x3b03126fu))) *
+            RoundedSin(static_cast<double>(Clock) * static_cast<double>(std::bit_cast<float>(0x3b03126fu))) *
                 static_cast<double>(std::bit_cast<float>(0x3dcccccdu)) +
             static_cast<double>(std::bit_cast<float>(0x3e99999au)));
         EXPECT_NEAR(m_color.x, water, 1e-6f);
@@ -869,7 +871,7 @@ TEST_F(MonsterBodyTest, TheEdgeClassOf183OnlyCutsWhenItMarksTheSilhouette)
 // pruebas).
 double WaveAt(float clock, std::uint32_t rate, std::uint32_t factor, std::uint32_t base)
 {
-    return std::sin(static_cast<double>(clock) * static_cast<double>(std::bit_cast<float>(rate))) *
+    return RoundedSin(static_cast<double>(clock) * static_cast<double>(std::bit_cast<float>(rate))) *
                static_cast<double>(std::bit_cast<float>(factor)) +
            static_cast<double>(std::bit_cast<float>(base));
 }
@@ -970,7 +972,7 @@ TEST_F(MonsterBodyTest, The185WavesItsMesh1AlongItsNormals)
             SCOPED_TRACE(corner);
             const double phase = static_cast<double>(931 * static_cast<int>(corner) + 2024);
             const auto z =
-                static_cast<float>(std::sin(phase * static_cast<double>(std::bit_cast<float>(0x3be56042u))) * 28.0);
+                static_cast<float>(RoundedSin(phase * static_cast<double>(std::bit_cast<float>(0x3be56042u))) * 28.0);
             for (const std::size_t first : {WholeBody - Triangle, WholeBody})
             {
                 EXPECT_NEAR(m_batch.Vertices()[first + corner].position.z, z, 1e-5f);

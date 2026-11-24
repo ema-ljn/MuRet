@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Data/Models/Model.h"
 #include "Render/Models/Cloth.h"
+#include "Render/Models/IModelLibrary.h"
 #include "Render/Models/Skinning.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterDrawing.h"
@@ -375,7 +376,8 @@ Core::Expected<void, std::string> EmitVertexEffectsOf(const Data::Models::Model&
     return {};
 }
 
-Core::Expected<void, std::string> EmitVertexEffects(const IModelLibrary& models, const DrawnObject& object,
+Core::Expected<void, std::string> EmitVertexEffects(const Render::Models::IModelLibrary& models,
+                                                    const DrawnObject& object,
                                                     std::span<const Render::Models::SkinnedMesh> meshes,
                                                     std::int32_t mesh, std::int32_t type, std::int32_t subtype,
                                                     World::ModelEffects& effects, Render::Models::CrtRandom& random)

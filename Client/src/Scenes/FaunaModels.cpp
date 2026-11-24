@@ -1,6 +1,7 @@
 #include "Scenes/FaunaModels.h"
 
 #include "Audio/Playback.h"
+#include "Render/Models/IModelLibrary.h"
 #include "Scenes/MonsterSounds.h"
 
 #include "Core/Expected.h"
@@ -13,7 +14,6 @@
 #include "Render/Models/ModelTextureSlots.h"
 #include "Render/Models/Skeleton.h"
 #include "Render/TextureSlot.h"
-#include "Scenes/CharacterDrawing.h"
 #include "Scenes/ConstructedBmdPrefix.h"
 #include "Scenes/ModelTextureTable.h"
 #include "Scenes/MonsterModelTable.h"
@@ -77,7 +77,7 @@ FaunaModels::~FaunaModels()
 {
     Release();
 }
-void FaunaModels::Bind(const IModelLibrary* base)
+void FaunaModels::Bind(const Render::Models::IModelLibrary* base)
 {
     m_base = base;
 }

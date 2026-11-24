@@ -11,6 +11,7 @@
 #include "Protocol/Movement.h"
 #include "Protocol/Viewport.h"
 #include "Render/Models/Cloth.h"
+#include "Render/Models/IModelLibrary.h"
 #include "Render/Models/Skeleton.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
@@ -21,7 +22,6 @@
 #include "Scenes/ActorShock.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/AttackStep.h"
-#include "Scenes/CharacterDrawing.h"
 #include "Scenes/CharacterStep.h"
 #include "Scenes/ChatReceive.h"
 #include "Scenes/CombatReplies.h"
@@ -109,7 +109,7 @@ int DrawsSince(std::uint32_t state, const CrtRandom& random)
 }
 
 // La biblioteca del mapa, detrás de FaunaResources: Player.bmd, también en el modelo del monstruo de Lorencia.
-class MonsterModels final : public Client::Scenes::IModelLibrary
+class MonsterModels final : public Client::Render::Models::IModelLibrary
 {
 public:
     [[nodiscard]] const Client::Data::Models::Model* Find(std::uint16_t /*model*/) const override

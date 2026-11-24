@@ -1,3 +1,4 @@
+#include "Render/Models/IModelLibrary.h"
 #include "Scenes/GameHanging.h"
 #include "Scenes/GuildState.h"
 
@@ -160,7 +161,7 @@ float FirstLum()
     return static_cast<float>(static_cast<double>(81.0f) * static_cast<double>(0.01f));
 }
 
-class HangingModels final : public Client::Scenes::IModelLibrary
+class HangingModels final : public Client::Render::Models::IModelLibrary
 {
 public:
     explicit HangingModels(std::set<std::uint16_t> items) : m_items(std::move(items))
@@ -237,7 +238,7 @@ protected:
         m_actor.hands[1].bone = 0x2a;
     }
 
-    GameHangingPass Pass(const Client::Scenes::IModelLibrary& models)
+    GameHangingPass Pass(const Client::Render::Models::IModelLibrary& models)
     {
         return {.batch = m_batch,
                 .models = models,
@@ -380,6 +381,29 @@ TEST_F(GameHangingTest, TheHandSwordFlareUsesTheLevelLight)
         m_actor.level = static_cast<std::uint16_t>(red ? 0 : 4);
         ASSERT_TRUE(Client::Scenes::DrawGameHanging(m_actor, Pass(models)).HasValue());
         EXPECT_TRUE(LiveSprites().empty());
+    }
+}
+
+// 0x60b573: with the options' glow detail (0x6c9dcc) at 1, a level 13 sword in the hand draws as a level 7 one: the
+// mesh and the 0x44 pass.
+TEST_F(GameHangingTest, TheGlowDetailOfTheOptionsTrimsTheLevelOfWhatHangs)
+{
+    const HangingModels models({BladeSword});
+    m_actor.hands[0].model = BladeSword;
+    m_actor.hands[0].level = 13;
+    for (const std::uint8_t detail : {std::uint8_t{4}, std::uint8_t{1}})
+    {
+        SCOPED_TRACE(static_cast<int>(detail));
+        m_batch.Begin(Client::Render::Pass3D{});
+        Client::Scenes::ItemDrawContext items;
+        items.glowDetail = detail;
+        GameHangingPass pass = Pass(models);
+        pass.itemContext = &items;
+
+        const auto result = Client::Scenes::DrawGameHanging(m_actor, pass);
+
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        EXPECT_EQ(m_batch.Vertices().size(), detail == 4 ? 12u : 6u);
     }
 }
 

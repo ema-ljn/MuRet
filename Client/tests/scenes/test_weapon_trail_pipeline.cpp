@@ -1,3 +1,4 @@
+#include "Render/Models/IModelLibrary.h"
 #include "Scenes/CharacterStep.h"
 
 #include "Data/Models/Model.h"
@@ -6,7 +7,6 @@
 #include "Render/Models/Skeleton.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/ActorState.h"
-#include "Scenes/CharacterDrawing.h"
 #include "Scenes/FaunaModels.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/WorldMap.h"
@@ -28,7 +28,7 @@
 
 namespace
 {
-class RibbonModels final : public Client::Scenes::IModelLibrary
+class RibbonModels final : public Client::Render::Models::IModelLibrary
 {
 public:
     RibbonModels()

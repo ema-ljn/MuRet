@@ -2,10 +2,10 @@
 
 #include "Core/IClock.h"
 #include "Network/Connection.h"
-#include "Network/Crypto/Xor32.h"
 #include "Network/EncryptedPacket.h"
 #include "Network/Packet.h"
 #include "Network/PacketSerials.h"
+#include "Network/Xor32Packet.h"
 #include "Protocol/BuildConstants.h"
 #include "Protocol/Character/Opcodes.h"
 #include "Protocol/Connection/Opcodes.h"
@@ -112,7 +112,7 @@ bool IsEncrypted(const Network::Packet& packet)
 // Si `plain`, sin su XOR32, es un F1 01 del largo del login.
 bool IsLoginRequest(const Network::Packet& plain)
 {
-    const Network::Packet clear = Network::Crypto::Xor32Decode(plain);
+    const Network::Packet clear = Network::Xor32Decode(plain);
     const std::span<const std::byte> bytes = clear.Bytes();
     return clear.Type() == Network::PacketType::C1 && bytes.size() == LoginSize &&
            clear.Opcode() == Protocol::Connection::JoinOpcode &&
@@ -121,7 +121,7 @@ bool IsLoginRequest(const Network::Packet& plain)
 // Si `plain`, sin su XOR32, es un keepalive (0E) de su largo.
 bool IsKeepalive(const Network::Packet& plain)
 {
-    const Network::Packet clear = Network::Crypto::Xor32Decode(plain);
+    const Network::Packet clear = Network::Xor32Decode(plain);
     return clear.Type() == Network::PacketType::C1 && clear.Bytes().size() == KeepaliveSize &&
            clear.Opcode() == Protocol::Connection::KeepaliveOpcode;
 }
@@ -378,7 +378,7 @@ void FakeServers::OnKeepalive()
 // lista, que guarda.
 void FakeServers::OnCharacterPacket(const Network::Packet& packet)
 {
-    Network::Packet clear = Network::Crypto::Xor32Decode(packet);
+    Network::Packet clear = Network::Xor32Decode(packet);
     const std::span<const std::byte> bytes = clear.Bytes();
     const bool isCharacter = clear.Type() == Network::PacketType::C1 &&
                              clear.Opcode() == Protocol::Character::CharacterOpcode && bytes.size() > SubcodeIndex;

@@ -2,6 +2,7 @@
 
 #include "Data/Models/Model.h"
 #include "Render/Models/HalfLifeMath.h"
+#include "Render/Models/RoundedMath.h"
 #include "Render/TextureSlot.h"
 
 #include <glm/ext/vector_float3.hpp>
@@ -92,14 +93,14 @@ float At(const BoneTransform& m, int row, int column)
 BoneTransform OriginalAngleMatrix(const glm::vec3& angles)
 {
     const double a2 = D(angles.z) * D(Degree);
-    const float sy = F(std::sin(a2));
-    const double cy = std::cos(a2);
+    const float sy = F(RoundedSin(a2));
+    const double cy = RoundedCos(a2);
     const double a1 = D(angles.y) * D(Degree);
-    const float sp = F(std::sin(a1));
-    const float cp = F(std::cos(a1));
+    const float sp = F(RoundedSin(a1));
+    const float cp = F(RoundedCos(a1));
     const double a0 = D(angles.x) * D(Degree);
-    const float sr = F(std::sin(a0));
-    const float cr = F(std::cos(a0));
+    const float sr = F(RoundedSin(a0));
+    const float cr = F(RoundedCos(a0));
     BoneTransform m(0.0f);
     m[0][0] = F(D(cp) * cy);
     m[0][1] = F(D(cp) * D(sy));
@@ -522,8 +523,8 @@ bool Cloth::Step(float dt, const ClothBody& body, ClothWorld& world, std::uint8_
         m_wind = world.windBase;
     }
     const double angle = (D(body.angles.z) + D(OneEighty)) * D(Degree);
-    world.wind.x = F(std::sin(angle) * D(m_wind));
-    world.wind.y = F(-(std::cos(angle) * D(m_wind)));
+    world.wind.x = F(RoundedSin(angle) * D(m_wind));
+    world.wind.y = F(-(RoundedCos(angle) * D(m_wind)));
 
     // 0x4555d0: las fuerzas (+0x14), los resortes, el anclaje (+0xc) y la integración; las de la vtable
     // 0x6b8d04, sobre la malla.
@@ -845,7 +846,7 @@ std::vector<ClothCorner> Cloth::Corners(bool front) const
 
 float Cloth::GlowAt(float worldTime)
 {
-    return F(std::sin(D(worldTime) * D(Thousandth)) * D(Tenth) + D(GlowBase));
+    return F(RoundedSin(D(worldTime) * D(Thousandth)) * D(Tenth) + D(GlowBase));
 }
 
 std::vector<ClothFlare> Cloth::Flares(float glow) const

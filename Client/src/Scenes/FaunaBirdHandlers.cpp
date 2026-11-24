@@ -1,9 +1,9 @@
+#include "Render/Models/IModelLibrary.h"
 #include "Scenes/FaunaStep.h"
 
 #include "Render/Models/Cloth.h"
 #include "Render/Models/OriginalRetainedMath.h"
 #include "Render/Models/OriginalRotation.h"
-#include "Scenes/CharacterDrawing.h"
 #include "Scenes/FaunaMotion.h"
 #include "Scenes/FaunaObject.h"
 #include "Scenes/FaunaState.h"

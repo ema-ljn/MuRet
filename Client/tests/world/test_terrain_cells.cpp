@@ -1,4 +1,5 @@
 #include "World/TerrainCells.h"
+#include "Render/Models/RoundedMath.h"
 #include "World/TerrainCulling.h"
 
 #include "Data/Terrain/TerrainAttributes.h"
@@ -19,7 +20,6 @@
 
 #include <array>
 #include <bit>
-#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -49,6 +49,7 @@ using Client::World::TerrainWater;
 using Client::World::UpdateWaves;
 using Client::World::WaterOffsetAt;
 using namespace std::chrono_literals;
+using Client::Render::Models::RoundedSin;
 
 constexpr std::uint8_t CellX = 7;
 constexpr std::uint8_t CellY = 9;
@@ -315,7 +316,7 @@ TEST(TerrainCellsTest, TheWavesFollowTheColumn)
     const double phase = static_cast<double>(1234567 % 720000) * static_cast<double>(std::bit_cast<float>(0x3B03126Fu));
     for (const std::uint8_t x : {std::uint8_t{4}, std::uint8_t{9}, std::uint8_t{11}})
     {
-        const auto expected = static_cast<float>(std::sin((static_cast<double>(x) * 5.0) + phase) * 10.0);
+        const auto expected = static_cast<float>(RoundedSin((static_cast<double>(x) * 5.0) + phase) * 10.0);
         EXPECT_EQ(water.waves[CellIndex(x, 13)], expected) << static_cast<int>(x);
         EXPECT_EQ(water.waves[CellIndex(x, 19)], expected) << static_cast<int>(x);
     }

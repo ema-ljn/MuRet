@@ -11,4 +11,4 @@ model	game/Assets	name=(?!.*(?:Item|Weapon|Sword|Axe|Mace|Spear|Bow|Staff|Shield
 texture	game/Assets	type=(?:Client::)?(?:Render::)?TextureSlot;values=0..65534	watch	Strong texture slots. The unbound sentinel stays with its type.
 text	game/Tables	name=.*(?:Text|TextId|TextIndex|TextLine);values=0..9999	watch	Text.bmd line numbers. The value range keeps packed colors out.
 skill	game/Tables	name=.*(?:Skill|SkillId);values=0..65535	watch	Skill.bmd IDs.
-player-action	game/Assets	name=.*(?:Action|ActionId);values=0..255	watch	Player action IDs and range bounds.
+player-action	game/Tables	name=.*(?:Action|ActionId);values=0..255	watch	Player action IDs and range bounds.

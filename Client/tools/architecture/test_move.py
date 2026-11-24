@@ -9,6 +9,8 @@ from scratch_repo import ScratchRepo, run_main
 
 MAP = 'Client/docs/research/coverage/module-map.tsv'
 BASELINE = 'Client/tools/architecture/layers-baseline.tsv'
+NAMED_VALUES = 'Client/tools/architecture/named-values.tsv'
+NAMED_VALUES_BASELINE = 'Client/tools/architecture/named-values-baseline.tsv'
 MOVES = 'Client/docs/research/coverage/referencia/entradas/moves.tsv'
 WINDOW = 'Client/src/Scenes/GuildWindow.cpp'
 WINDOW_TEXT = '#include "Scenes/GuildState.h"\n#include "Core/Expected.h"\n\nint Draw(); // Scenes/GuildState.h\n'
@@ -31,6 +33,12 @@ class MoveTest(unittest.TestCase):
                              'Scenes/GuildWindow.cpp\t4\tScenes\tgame/Guild/Window\tmedium\t\n')
         self.repo.write(BASELINE, 'file\tinclude\tfrom_module\tto_module\n'
                                   'Core/Expected.h\tScenes/GuildState.h\tengine/Core\tgame/Guild\n')
+        self.repo.write(NAMED_VALUES, 'space\thome\tmatch\tpolicy\tnote\n'
+                                      'rank\tScenes/GuildState.h\tname=.*Rank\twatch\t\n'
+                                      'opcode\tgame/Protocol\tname=.*Opcode\thome-only\t\n')
+        self.repo.write(NAMED_VALUES_BASELINE, 'space\tfile\tname\tvalue\n'
+                                               'rank\tCore/Expected.h\tFirstRank\t0x1\n'
+                                               'rank\tScenes/GuildWindow.cpp\tFirstRank\t0x1\n')
         self.repo.write(MOVES, 'commit\tfrom\tto\n')
         self.repo.write('.git-blame-ignore-revs', '# Commits that git blame skips.\n')
         self.repo.commit('base')
@@ -68,6 +76,22 @@ class MoveTest(unittest.TestCase):
         self.assertIn('#include "Core/Expected.h"', self.repo.read('Client/src/Scenes/GuildState.h'))
         self.assertIn('engine/Core/Expected.h\t1\tengine/Core\tengine/Core', self.repo.read(MAP))
         self.assertEqual(self.repo.read('.github/workflows/ci.yml'), 'paths: [Client/src/engine/Core/Expected.h]\n')
+
+    def test_move_rewrites_the_named_values_files(self):
+        code, output = self.move('--modules', 'game/Guild')
+        self.assertEqual(code, 0, output)
+        self.assertEqual(self.repo.read(NAMED_VALUES_BASELINE).splitlines()[1:],
+                         ['rank\tCore/Expected.h\tFirstRank\t0x1',
+                          'rank\tgame/Guild/Window/GuildWindow.cpp\tFirstRank\t0x1'])
+        self.assertEqual([line.split('\t')[1] for line in self.repo.read(NAMED_VALUES).splitlines()[1:]],
+                         ['game/Guild/GuildState.h', 'game/Protocol'])
+
+    def test_move_keeps_the_named_values_baseline_sorted(self):
+        code, output = self.move('--root', 'engine')
+        self.assertEqual(code, 0, output)
+        self.assertEqual(self.repo.read(NAMED_VALUES_BASELINE).splitlines()[1:],
+                         ['rank\tScenes/GuildWindow.cpp\tFirstRank\t0x1',
+                          'rank\tengine/Core/Expected.h\tFirstRank\t0x1'])
 
     def test_record_adds_the_squash(self):
         self.move('--modules', 'game/Guild')

@@ -6,8 +6,9 @@
 A move runs git mv on every file whose target is one of the modules (or is under the root) to
 Client/src/<target>/<name>. It rewrites the #include lines naming a moved file whose path inside its root changed
 (Scenes/X.h -> game/Guild/X.h is included as "Guild/X.h"; Core/X.h -> engine/Core/X.h keeps "Core/X.h"), the moved
-paths in CMakeLists.txt, *.cmake and the workflows, the file column of the map and of the layer baseline, and adds
-each move to moves.tsv without its commit. It lists the lines of those build files that still name a folder the move
+paths in CMakeLists.txt, *.cmake and the workflows, the file column of the map, of the layer baseline and of the
+named-values baseline, and a home of named-values.tsv that names a moved header, and adds each move to moves.tsv
+without its commit. It lists the lines of those build files that still name a folder the move
 emptied, to fix by hand. After the squash, --record adds it to .git-blame-ignore-revs and to the rows of moves.tsv.
 """
 import argparse
@@ -19,6 +20,8 @@ import sys
 SRC = 'Client/src'
 MAP = 'Client/docs/research/coverage/module-map.tsv'
 BASELINE = 'Client/tools/architecture/layers-baseline.tsv'
+NAMED_VALUES = 'Client/tools/architecture/named-values.tsv'
+NAMED_VALUES_BASELINE = 'Client/tools/architecture/named-values-baseline.tsv'
 MOVES = 'Client/docs/research/coverage/referencia/entradas/moves.tsv'
 IGNORE_REVS = '.git-blame-ignore-revs'
 SOURCES = ('.h', '.cpp', '.hpp', '.inc')
@@ -159,6 +162,15 @@ def run_move(repo: Repo, modules: list[str], root: str | None) -> int:
         row['file'] = new_of.get(row['file'], row['file'])
         row['include'] = new_of.get(row['include'], row['include'])
     write_tsv(repo, BASELINE, baseline_columns, baseline)
+    space_columns, spaces = read_tsv(repo, NAMED_VALUES)
+    for row in spaces:
+        row['home'] = new_of.get(row['home'], row['home'])
+    write_tsv(repo, NAMED_VALUES, space_columns, spaces)
+    named_columns, named = read_tsv(repo, NAMED_VALUES_BASELINE)
+    for row in named:
+        row['file'] = new_of.get(row['file'], row['file'])
+    named.sort(key=lambda row: tuple(row[column] for column in named_columns))
+    write_tsv(repo, NAMED_VALUES_BASELINE, named_columns, named)
     move_columns, recorded = read_tsv(repo, MOVES)
     recorded += [{'commit': '', 'from': f'{SRC}/{old}', 'to': f'{SRC}/{new}'} for old, new in moves]
     write_tsv(repo, MOVES, move_columns, recorded)

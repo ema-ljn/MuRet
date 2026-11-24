@@ -673,6 +673,7 @@ player-action	Scenes/DarkSpirit.cpp	AttackAction	0x3
 player-action	Scenes/Emote.cpp	FirstStandAction	0x1
 player-action	Scenes/Emote.cpp	LastStandAction	0xc
 player-action	Scenes/EventPackets.cpp	SittingAction	0xca
+player-action	Scenes/FaunaModels.cpp	NotRepeatedAction	0x6
 player-action	Scenes/GameCharacterEffects.cpp	FirstEffectAction	0x51
 player-action	Scenes/GameCharacterEffects.cpp	LastCounterAction	0xc
 player-action	Scenes/GameCharacterEffects.cpp	LightningAction	0x94
@@ -716,6 +717,7 @@ player-action	Scenes/ObjectFrameSprites.cpp	SwitchedAction	0x1
 player-action	Scenes/QuestReplies.cpp	ClassPrizeAction	0xb8
 player-action	Scenes/WizardEffects.cpp	MonsterPushAction	0x5
 player-action	Scenes/WizardEffects.cpp	PlayerPushAction	0xc2
+player-action	Scenes/WorldModels.cpp	DungeonAction	0x1
 player-action	UI/LetterWindows.cpp	NextAction	0x1
 player-action	UI/LetterWindows.cpp	WritePortraitAction	0x7a
 player-action	World/BlastModelEffects.cpp	NoAction	0xff

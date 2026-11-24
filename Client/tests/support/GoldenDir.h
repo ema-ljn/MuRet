@@ -12,7 +12,7 @@
 //
 // Es la del repo, Client/assets/Data, la misma que la del laboratorio
 // (analysis/decompilacion-maxima/assets/original-data de EmaNLJN/mu-online-reverse-lab, por
-// SHA-256). MURET_CLIENT_GOLDEN_DIR apunta a otra, si hace falta. La regla:
+// SHA-256). MU_CLIENT_GOLDEN_DIR apunta a otra, si hace falta. La regla:
 //   - si la variable no está o está vacía, el test lee la del repo (D-C9, desde el 2026-11-04);
 //   - si la carpeta no existe, o le falta el archivo que el test pide, el test falla.
 // Las otras carpetas de este archivo (los volcados, el cable, las trazas) están fuera del repo, y
@@ -22,7 +22,7 @@ namespace Client::Tests
 // La Data del repo, Client/assets/Data.
 std::filesystem::path RepoDataDir();
 
-// El valor de MURET_CLIENT_GOLDEN_DIR, o la Data del repo si no está o está vacía.
+// El valor de MU_CLIENT_GOLDEN_DIR, o la Data del repo si no está o está vacía.
 std::filesystem::path GoldenDir();
 
 // La regla de GoldenDir, separada de la lectura del entorno para poder testearla.
@@ -86,7 +86,7 @@ enum class DumpState
 };
 DumpState CheckDump(const std::filesystem::path& root, std::string_view folder, std::string_view name);
 
-// Los volcados de memoria. MURET_CLIENT_MEMORY_DIR apunta a la carpeta de las capturas: en el
+// Los volcados de memoria. MU_CLIENT_MEMORY_DIR apunta a la carpeta de las capturas: en el
 // repo de research, client-research/mu-golden/memoria-cliente, fuera de Git.
 //
 // La regla es la de la carpeta golden. Un test de memoria necesita las dos: compara lo que MuRet
@@ -103,7 +103,7 @@ protected:
     std::filesystem::path m_dumpRoot;
 };
 
-// El cable del laboratorio. MURET_CLIENT_WIRE_DIR apunta a una carpeta, fuera de Git, con:
+// El cable del laboratorio. MU_CLIENT_WIRE_DIR apunta a una carpeta, fuera de Git, con:
 //   - el muproxy.log que el proxy del laboratorio escribió entre el cliente original y los
 //     servidores (en EmaNLJN/mu-online-reverse-lab, analysis/mainexe/evidence/): lleva el login del
 //     jugador;
@@ -138,7 +138,7 @@ protected:
     std::filesystem::path m_wireRoot;
 };
 
-// Las trazas de GL del laboratorio. MURET_CLIENT_GL_TRACE_DIR apunta a una carpeta, fuera de Git, con
+// Las trazas de GL del laboratorio. MU_CLIENT_GL_TRACE_DIR apunta a una carpeta, fuera de Git, con
 // las trazas de GLIntercept descomprimidas (gunzip -k): character-selection-Frame_003207.txt y
 // lorencia-Frame_016215.txt, de graphics-01/ en el PR #45 de EmaNLJN/mu-online-reverse-lab
 // (pregunta 12 del plan de la CL6). La regla es la de la carpeta golden, y la variable va solo en el
@@ -155,7 +155,7 @@ protected:
     std::filesystem::path m_traceRoot;
 };
 
-// La fuente de los tests de FreeType (CL5.3). MURET_CLIENT_FONT_FILE apunta a un archivo
+// La fuente de los tests de FreeType (CL5.3). MU_CLIENT_FONT_FILE apunta a un archivo
 // TrueType, fuera de Git: en CI, una fuente del runner (DejaVu en Ubuntu, una de C:\Windows\Fonts
 // en Windows). La regla es la de la carpeta golden: sin la variable, o vacía, el test se saltea; si
 // apunta a algo que no es un archivo, falla.

@@ -130,11 +130,11 @@ La serie, la metadata, el JSON y el informe se leen o escriben explícitamente c
 Desde esta carpeta, con el comparador compilado:
 
 ```bash
-MURET_COMPARE_LORENCIA=/ruta/al/compare_lorencia \
+MU_COMPARE_LORENCIA=/ruta/al/compare_lorencia \
   python3 -m unittest discover -s . -p 'test_*.py'
 ```
 
-Incluye 11 tests del analizador y 13 del comparador. Sin `MURET_COMPARE_LORENCIA`, los del
+Incluye 11 tests del analizador y 13 del comparador. Sin `MU_COMPARE_LORENCIA`, los del
 comparador se omiten explícitamente. Los datos sintéticos caracterizan las herramientas;
 no son evidencia del cliente original.
 
@@ -168,7 +168,7 @@ i686-w64-mingw32-g++ -std=c++20 -O2 -Wall -Wextra -Wconversion -Wshadow \
   -Wold-style-cast -Werror -D_WIN32_WINNT=0x0501 -DWINVER=0x0501 \
   -D__USE_MINGW_ANSI_STDIO=0 -fno-exceptions -fno-rtti -static -mwindows \
   -Wl,--major-subsystem-version,5,--minor-subsystem-version,1 \
-  passive_combat.cpp -o "$MURET_LAB_OUTPUT/passive_combat.exe" -luser32
+  passive_combat.cpp -o "$MU_LAB_OUTPUT/passive_combat.exe" -luser32
 ```
 
 ```text

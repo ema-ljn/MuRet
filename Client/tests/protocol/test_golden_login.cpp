@@ -34,7 +34,7 @@
 #include <vector>
 
 // Los paquetes del login contra el cable del laboratorio (support/WireCapture.h,
-// MURET_CLIENT_WIRE_DIR): los C3 que mandó el cliente original, descifrados con Dec1.dat (la clave
+// MU_CLIENT_WIRE_DIR): los C3 que mandó el cliente original, descifrados con Dec1.dat (la clave
 // del servidor) y sin el XOR32, y lo que le contestaron el ConnectServer y el GameServer, leído con
 // Protocol.
 //

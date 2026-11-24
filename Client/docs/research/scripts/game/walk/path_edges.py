@@ -9,7 +9,7 @@
 Son los de InTheSafeZoneTheSecondTryWalksThroughCharacters y AnOccupiedGoalEndsOnTheDiagonalByTheTieOrder
 de la CL7.4 A.
 
-Uso: path_edges.py      (con MURET_MAIN_EXE y el Data\\)
+Uso: path_edges.py      (con MU_MAIN_EXE y el Data\\)
 """
 import os
 import sys

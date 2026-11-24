@@ -1,7 +1,7 @@
 import os
 # Simulacion en Python (no emulacion del main.exe) de las brasas del login, segun 0x42b1e0/0x5303a0.
 import random, struct, statistics
-raw = open(os.path.join(os.environ.get('MURET_CLIENT_DATA', os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', '..', '..', 'assets', 'Data')), 'world56', 'TerrainHeight.OZB'),'rb').read()
+raw = open(os.path.join(os.environ.get('MU_CLIENT_DATA', os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', '..', '..', 'assets', 'Data')), 'world56', 'TerrainHeight.OZB'),'rb').read()
 H = [b*3.0 for b in raw[0x43c:0x43c+65536]]
 def height(x, y):
     if x < 0 or y < 0: return 0.0

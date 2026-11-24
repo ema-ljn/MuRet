@@ -7,4 +7,4 @@ add_executable(DataServer
 )
 
 target_compile_features(DataServer PRIVATE cxx_std_20)
-muret_set_warnings(DataServer)
+mu_set_warnings(DataServer)

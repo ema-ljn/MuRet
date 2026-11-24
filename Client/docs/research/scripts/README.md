@@ -44,7 +44,7 @@ git -C "$LAB" fetch --depth 1 origin pull/45/head:pr45     # la rama de la PR #4
 
 ### Cada entrada
 
-**El `main.exe`** (`MURET_MAIN_EXE`). El build `c32bbd5f`, el de las direcciones del research:
+**El `main.exe`** (`MU_MAIN_EXE`). El build `c32bbd5f`, el de las direcciones del research:
 `$RESEARCH/client-research/mainexe-vmxp-c32bbd5f/original/main.exe`, de 3.058.308 bytes, con SHA-256
 `c32bbd5f16ca400c7cfc71fa5f4cd573c57f146dd19a6da52fdd1007abaca26a` (en `SHA256SUMS` y
 `reports/build-identity.md` de la misma carpeta). Está en `master` y en las dos ramas `x-…` del repo.
@@ -57,11 +57,11 @@ motor; y el paquete entero, `client-research/mainexe-vmxp-c32bbd5f-decompilation
 `82f417fe…`, en el `.sha256` de al lado). Es una guía: la última palabra es el asm, que da
 [`tools/`](tools/README.md).
 
-**El `Data\`** (`MURET_CLIENT_DATA`, opcional). El de este repo, `Client/assets/Data/` (el original
+**El `Data\`** (`MU_CLIENT_DATA`, opcional). El de este repo, `Client/assets/Data/` (el original
 entero; AGENTS.md). Es el mismo que `$LAB/analysis/decompilacion-maxima/assets/original-data/` en `main`.
 Sin la variable, los scripts usan el del repo.
 
-**Las trazas de GL** (`MURET_CLIENT_GL_TRACE_DIR`). GLIntercept 1.34 sobre el original, en la selección y
+**Las trazas de GL** (`MU_CLIENT_GL_TRACE_DIR`). GLIntercept 1.34 sobre el original, en la selección y
 en Lorencia: `reports/gameserver-passive-2026-10-30/graphics-01/character-selection-Frame_003207.txt.gz` y
 `lorencia-Frame_016215.txt.gz`, en la rama de la PR #45. Se descomprimen en una carpeta propia:
 
@@ -72,7 +72,7 @@ for f in character-selection-Frame_003207 lorencia-Frame_016215; do
 done
 ```
 
-**El cable y las claves** (`MURET_CLIENT_WIRE_DIR`). Una carpeta con tres enlaces, como la de los tests
+**El cable y las claves** (`MU_CLIENT_WIRE_DIR`). Una carpeta con tres enlaces, como la de los tests
 del cliente ([`Client/README.md`, Tests](../../../README.md#tests)): el `muproxy.log` que escribió el
 proxy del laboratorio, `$LAB/analysis/mainexe/evidence/muproxy.log` (en `main` y en todas las ramas), y las
 claves del servidor con que se capturó, `$RESEARCH/gameserver/evidence/keyfiles/Dec1.dat` y `Enc2.dat`
@@ -85,7 +85,7 @@ ln -s "$LAB/analysis/mainexe/evidence/muproxy.log" /ruta/a/cable/
 ln -s "$RESEARCH/gameserver/evidence/keyfiles/Dec1.dat" "$RESEARCH/gameserver/evidence/keyfiles/Enc2.dat" /ruta/a/cable/
 ```
 
-**El SimpleModulus del C3/C4** (`MURET_C3C4_REFERENCE`). Para descifrar los C3 y C4 del cable,
+**El SimpleModulus del C3/C4** (`MU_C3C4_REFERENCE`). Para descifrar los C3 y C4 del cable,
 `game/wire/` usa la referencia del laboratorio, `$RESEARCH/client-research/analysis/mainexe/scripts/c3c4_reference.py`
 (la misma que `$LAB/analysis/mainexe/scripts/c3c4_reference.py`). Sin ella, los C1 y C2 se leen igual.
 
@@ -101,14 +101,14 @@ mkdir -p /ruta/a/pr45 && cd /ruta/a/pr45
 git -C "$LAB" show pr45:reports/gameserver-passive-2026-10-30/capture_20261030T192219Z_8920d1.tar.gz | tar xz
 ```
 
-**Los volcados de memoria** (`MURET_CLIENT_MEMORY_DIR`). La memoria del original con los archivos ya
+**Los volcados de memoria** (`MU_CLIENT_MEMORY_DIR`). La memoria del original con los archivos ya
 cargados: `$RESEARCH/client-research/mu-golden/memoria-cliente/`, en `master`, con una carpeta por captura
 (`2026-10-09-devias`, `2026-10-09-lorencia`, `2026-10-09-lorencia-obj`), cada una con su `SHA256SUMS`. Son
 del 2026-10-09, con el build `2f16a9c6`. El laboratorio (`$LAB`) no los tiene: solo los scripts que los
 leyeron (`analysis/mainexe/scripts/memoria_cliente.py`, `obj_memoria.py`). Este repo no los versiona
 (AGENTS.md).
 
-**La caché del binario** (`MURET_RESEARCH_CACHE`). El listado de `objdump` y el grafo de llamadas que
+**La caché del binario** (`MU_RESEARCH_CACHE`). El listado de `objdump` y el grafo de llamadas que
 leen `tools/` y `game/maps/`. No viene de ningún repo: la arma `tools/regen_cache.py` desde el exe, en
 `.research-cache/` de la raíz (que Git ignora) si la variable no está.
 
@@ -121,28 +121,28 @@ salidas del barrido de Lorencia, que quedaron fuera de Git (lo que vale de ellos
 
 | Variable | Qué es | La leen |
 | --- | --- | --- |
-| `MURET_MAIN_EXE` | la ruta del `main.exe` `c32bbd5f` | toda emulación, `tools/` |
-| `MURET_CLIENT_DATA` | el `Data\`; sin ella, `Client/assets/Data` | `login/`, `game/` |
-| `MURET_CLIENT_GL_TRACE_DIR` | la carpeta con las dos trazas descomprimidas | `login/frustum_reference.py`, `check_selection.py`, `game/world0/` |
-| `MURET_CLIENT_WIRE_DIR` | la carpeta con `muproxy.log`, `Dec1.dat` y `Enc2.dat` | `game/wire/`, `game/walk/wire_vs_path.py` |
-| `MURET_CLIENT_MEMORY_DIR` | la carpeta `memoria-cliente`, con una carpeta por captura | `game/world0/slots.py`, `trace_tex.py`, `game/maps/terrain_light.py` |
-| `MURET_C3C4_REFERENCE` | la ruta de `c3c4_reference.py` | `game/wire/` (solo los C3 y C4) |
-| `MURET_RESEARCH_CACHE` | la carpeta de la caché del binario; sin ella, `.research-cache/` en la raíz | `tools/`, `game/maps/mapcmp.py`, `map0.py` |
-| `MURET_CLOTH_CASES` | adónde escribe `run_cloth_cases.py` sus casos; sin ella, `cloth-cases/` en la carpeta actual | `run_cloth_cases.py` |
-| `MURET_MAINEXE_INVENTORY` | el `inventory.tsv` del decompilado, en `$RESEARCH/client-research/mainexe-vmxp-c32bbd5f/decompiled/` | `tools/test_check_roadmap_coverage.py` |
+| `MU_MAIN_EXE` | la ruta del `main.exe` `c32bbd5f` | toda emulación, `tools/` |
+| `MU_CLIENT_DATA` | el `Data\`; sin ella, `Client/assets/Data` | `login/`, `game/` |
+| `MU_CLIENT_GL_TRACE_DIR` | la carpeta con las dos trazas descomprimidas | `login/frustum_reference.py`, `check_selection.py`, `game/world0/` |
+| `MU_CLIENT_WIRE_DIR` | la carpeta con `muproxy.log`, `Dec1.dat` y `Enc2.dat` | `game/wire/`, `game/walk/wire_vs_path.py` |
+| `MU_CLIENT_MEMORY_DIR` | la carpeta `memoria-cliente`, con una carpeta por captura | `game/world0/slots.py`, `trace_tex.py`, `game/maps/terrain_light.py` |
+| `MU_C3C4_REFERENCE` | la ruta de `c3c4_reference.py` | `game/wire/` (solo los C3 y C4) |
+| `MU_RESEARCH_CACHE` | la carpeta de la caché del binario; sin ella, `.research-cache/` en la raíz | `tools/`, `game/maps/mapcmp.py`, `map0.py` |
+| `MU_CLOTH_CASES` | adónde escribe `run_cloth_cases.py` sus casos; sin ella, `cloth-cases/` en la carpeta actual | `run_cloth_cases.py` |
+| `MU_MAINEXE_INVENTORY` | el `inventory.tsv` del decompilado, en `$RESEARCH/client-research/mainexe-vmxp-c32bbd5f/decompiled/` | `tools/test_check_roadmap_coverage.py` |
 
-Las de los tests del cliente (`MURET_CLIENT_GOLDEN_DIR`, `MURET_CLIENT_FONT_FILE`,
-`MURET_CLIENT_REQUIRE_GL`, y las mismas de las trazas, el cable y los volcados) están en
+Las de los tests del cliente (`MU_CLIENT_GOLDEN_DIR`, `MU_CLIENT_FONT_FILE`,
+`MU_CLIENT_REQUIRE_GL`, y las mismas de las trazas, el cable y los volcados) están en
 [`Client/README.md`, Tests](../../../README.md#tests). Un archivo para tenerlas todas, fuera del repo:
 
 ```bash
 # muret-env.sh: source muret-env.sh
-export MURET_MAIN_EXE=$RESEARCH/client-research/mainexe-vmxp-c32bbd5f/original/main.exe
-export MURET_CLIENT_GOLDEN_DIR=$LAB/analysis/decompilacion-maxima/assets/original-data   # los tests
-export MURET_CLIENT_GL_TRACE_DIR=/ruta/a/trazas
-export MURET_CLIENT_WIRE_DIR=/ruta/a/cable
-export MURET_CLIENT_MEMORY_DIR=$RESEARCH/client-research/mu-golden/memoria-cliente
-export MURET_C3C4_REFERENCE=$RESEARCH/client-research/analysis/mainexe/scripts/c3c4_reference.py
+export MU_MAIN_EXE=$RESEARCH/client-research/mainexe-vmxp-c32bbd5f/original/main.exe
+export MU_CLIENT_GOLDEN_DIR=$LAB/analysis/decompilacion-maxima/assets/original-data   # los tests
+export MU_CLIENT_GL_TRACE_DIR=/ruta/a/trazas
+export MU_CLIENT_WIRE_DIR=/ruta/a/cable
+export MU_CLIENT_MEMORY_DIR=$RESEARCH/client-research/mu-golden/memoria-cliente
+export MU_C3C4_REFERENCE=$RESEARCH/client-research/analysis/mainexe/scripts/c3c4_reference.py
 ```
 
 ### Python
@@ -165,7 +165,7 @@ python3 -m venv /ruta/al/venv
 
 `-I` deja afuera las variables `PYTHON*`, el site del usuario y la carpeta del script y la actual en
 `sys.path`: así un archivo con nombre de módulo que esté al lado de una captura o de un volcado (un
-`json.py` en una carpeta extraída) no se importa por accidente. Las `MURET_*` se leen igual. Cada script
+`json.py` en una carpeta extraída) no se importa por accidente. Las `MU_*` se leen igual. Cada script
 agrega a `sys.path`, explícitamente, solo las carpetas de este repo que importa. Lo que viene de afuera
 (el PCAP, las trazas) se extrae en una carpeta propia y se le pasa al script como ruta.
 

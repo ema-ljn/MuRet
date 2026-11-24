@@ -12,7 +12,7 @@ lo que el dibujo le pide a GL (glColor3f, glTranslatef, glBegin, glTexCoord2f, g
 textura de 0x620780. También se guardan unas alturas sueltas de 0x5f93c0, como las devuelve en la x87
 (los 8 bytes del double), para probar la altura sola.
 
-Uso: make_leaf_vectors.py <salida> [casos, 3 por defecto]  (con MURET_MAIN_EXE, como emu.py)"""
+Uso: make_leaf_vectors.py <salida> [casos, 3 por defecto]  (con MU_MAIN_EXE, como emu.py)"""
 import os
 import random
 import struct

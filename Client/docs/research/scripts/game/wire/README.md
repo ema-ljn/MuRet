@@ -3,13 +3,13 @@
 Los paquetes que el original mandó y recibió, en claro, para comparar con lo que MuRet lee y escribe
 (03 § El corte y § C3/C4, 04). Hay dos capturas:
 
-- el `muproxy.log` de `MURET_CLIENT_WIRE_DIR`, con las claves del servidor (`Dec1.dat`, `Enc2.dat`) en la
+- el `muproxy.log` de `MU_CLIENT_WIRE_DIR`, con las claves del servidor (`Dec1.dat`, `Enc2.dat`) en la
   misma carpeta;
 - el PCAP de la sesión de la PR #45 del laboratorio (`network.pcap`), que `pcap2log.py` pasa al formato
   del `muproxy.log`.
 
-Los C3 y C4 necesitan `MURET_C3C4_REFERENCE` (el `c3c4_reference.py` del repo de research) y
-`MURET_MAIN_EXE` (la tabla XOR de `0x6d84fc`). Sin ellos, los C1 y C2 se leen igual y los C3 y C4 se
+Los C3 y C4 necesitan `MU_C3C4_REFERENCE` (el `c3c4_reference.py` del repo de research) y
+`MU_MAIN_EXE` (la tabla XOR de `0x6d84fc`). Sin ellos, los C1 y C2 se leen igual y los C3 y C4 se
 saltean con un aviso. De dónde sale cada archivo: [`../../README.md`, El entorno](../../README.md#el-entorno).
 
 **Privacidad.** Las dos capturas llevan el login, el chat y los nombres de los personajes. Por defecto
@@ -44,11 +44,11 @@ Para el golden de inventario, definir las tres variables de arriba y generar los
 carpeta del cable (puede invocarse desde cualquier carpeta, con la ruta del script):
 
 ```bash
-python3 -I Client/docs/research/scripts/game/wire/inventory_fixture.py --output-dir "$MURET_CLIENT_WIRE_DIR"
+python3 -I Client/docs/research/scripts/game/wire/inventory_fixture.py --output-dir "$MU_CLIENT_WIRE_DIR"
 ctest --preset linux-x64-debug -R '^GoldenEncryptedPacket\.'
 ```
 
-`--log` permite elegir otro log; las claves siguen en `MURET_CLIENT_WIRE_DIR`. El generador exige
+`--log` permite elegir otro log; las claves siguen en `MU_CLIENT_WIRE_DIR`. El generador exige
 los siete casos conocidos: cinco de 5 entradas, uno de 2 y uno de 6. Escribe únicamente
 `inventory-capture-0.c4` a `inventory-capture-6.c4`, `inventory-reference-0.c2` a
 `inventory-reference-6.c2` y `inventory-fixture-manifest.json` con metadatos y SHA-256. El C4 tiene

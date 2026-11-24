@@ -37,7 +37,7 @@ SDL_FunctionPointer LoadFromOpenGl32(const char* name)
 }
 #endif
 
-// La versión y el perfil del contexto actual, con las dos de MURET_GL_QUERY_FUNCTIONS. Vacío si
+// La versión y el perfil del contexto actual, con las dos de MU_GL_QUERY_FUNCTIONS. Vacío si
 // sirve. GL_VERSION va también en el mensaje: antes de la 3.0, GL_MAJOR_VERSION no existe y da 0.0.
 std::string CheckContext(const GlFunctions& gl)
 {
@@ -106,19 +106,19 @@ Core::Expected<GlFunctions, std::string> LoadGlFunctions(GlProcLookup lookup)
     GlFunctions gl;
     std::string error;
     // Una línea por función de la lista: la primera que falta corta.
-#define MURET_GL_LOAD(type, member, name)                                                                              \
+#define MU_GL_LOAD(type, member, name)                                                                                 \
     if (!LoadGlFunction(gl.member, name, error, lookup))                                                               \
     {                                                                                                                  \
         return Core::Unexpected(std::move(error));                                                                     \
     }
-    MURET_GL_QUERY_FUNCTIONS(MURET_GL_LOAD)
+    MU_GL_QUERY_FUNCTIONS(MU_GL_LOAD)
     std::string contextError = CheckContext(gl);
     if (!contextError.empty())
     {
         return Core::Unexpected(std::move(contextError));
     }
-    MURET_GL_RENDER_FUNCTIONS(MURET_GL_LOAD)
-#undef MURET_GL_LOAD
+    MU_GL_RENDER_FUNCTIONS(MU_GL_LOAD)
+#undef MU_GL_LOAD
     return gl;
 }
 

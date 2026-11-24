@@ -12,7 +12,7 @@ la chispa entera (el lugar 0 de 0x743a198, que se vacía antes de cada paso), en
 
 El mapa de alturas y los atributos salen de una fórmula entera, como en make_leaf_vectors.py.
 
-Uso: make_raven_vectors.py <salida>  (con MURET_MAIN_EXE)"""
+Uso: make_raven_vectors.py <salida>  (con MU_MAIN_EXE)"""
 import os
 import struct
 import sys
@@ -20,7 +20,7 @@ import sys
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
 import emulate_cloth as ec  # noqa: E402
 
-EXE = os.environ['MURET_MAIN_EXE']
+EXE = os.environ['MU_MAIN_EXE']
 CTOR, STEP, SOUND = 0x4167b0, 0x416a20, 0x41ed10
 PARTICLES, PARTICLE_SIZE = 0x743a198, 0x78
 HEIGHTS, ATTRIBUTES = 0x7accca4, 0x7d0d348

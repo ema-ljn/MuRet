@@ -8,7 +8,7 @@ al lado del final (la dirección final no es la del último paso). Con el muprox
 171 caminos del barrido C, con 2 distintos (una celda ocupada que el cable no muestra): es
 TheWireWalksMatch de la CL7.4 A. Imprime solo celdas y direcciones.
 
-Uso: wire_vs_path.py [mundo] [cable]      (con MURET_MAIN_EXE, el Data\\ y MURET_CLIENT_WIRE_DIR)
+Uso: wire_vs_path.py [mundo] [cable]      (con MU_MAIN_EXE, el Data\\ y MU_CLIENT_WIRE_DIR)
 """
 import collections
 import os

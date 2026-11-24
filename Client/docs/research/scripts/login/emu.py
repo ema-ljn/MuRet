@@ -2,7 +2,7 @@ import os
 import struct, pefile
 from unicorn import Uc, UC_ARCH_X86, UC_MODE_32, UC_HOOK_CODE, UC_HOOK_MEM_UNMAPPED, UcError
 from unicorn.x86_const import *
-EXE=os.environ['MURET_MAIN_EXE']
+EXE=os.environ['MU_MAIN_EXE']
 OP_NEW, OP_FREE, RAND = 0x69f403, 0x69eff0, 0x69fd70
 GDT_BASE, TEB_BASE = 0x00010000, 0x00011000
 STUB_BASE = 0x00020000

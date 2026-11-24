@@ -7,7 +7,7 @@ Es el nombre del mensaje de llegada ("<mapa>" + el texto 484, en 0x555190) que m
 (06, Los cambios de mapa; la CL7.5 D): el 30 + mapa del 0 al 9, el 55 en el 10, el 56 del 11 al 17, ...
 Usa el arnés del login (scripts/login/emu.py); el texto mismo no se lee (Text.bmd no se carga).
 
-Uso: mapname.py      (con MURET_MAIN_EXE)
+Uso: mapname.py      (con MU_MAIN_EXE)
 """
 import os
 import sys

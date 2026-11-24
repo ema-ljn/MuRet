@@ -1,11 +1,11 @@
 """Lo que comparten los scripts del juego: dónde está cada entrada y los lectores del Data\\.
 
 Cada entrada sale de una variable de entorno (ver ../README.md, El entorno):
-- MURET_MAIN_EXE: el main.exe c32bbd5f;
-- MURET_CLIENT_DATA: el Data\\ del cliente; sin ella, Client/assets/Data del repo;
-- MURET_CLIENT_GL_TRACE_DIR: las trazas de GLIntercept (lorencia-Frame_016215.txt, ...);
-- MURET_CLIENT_WIRE_DIR: el cable (muproxy.log) y las claves del servidor (Dec1.dat, Enc2.dat);
-- MURET_CLIENT_MEMORY_DIR: los volcados de memoria, una carpeta por captura.
+- MU_MAIN_EXE: el main.exe c32bbd5f;
+- MU_CLIENT_DATA: el Data\\ del cliente; sin ella, Client/assets/Data del repo;
+- MU_CLIENT_GL_TRACE_DIR: las trazas de GLIntercept (lorencia-Frame_016215.txt, ...);
+- MU_CLIENT_WIRE_DIR: el cable (muproxy.log) y las claves del servidor (Dec1.dat, Enc2.dat);
+- MU_CLIENT_MEMORY_DIR: los volcados de memoria, una carpeta por captura.
 
 Importarlo agrega a sys.path la carpeta de scripts/ (emulate_cloth.py) y la de tools/ (cg.py). Con
 `python -I` la carpeta del script no entra sola en sys.path: cada script agrega la de game/ antes de
@@ -43,32 +43,32 @@ def _need_file(path, var):
 
 
 def main_exe():
-    return _need_file(_need('MURET_MAIN_EXE', 'el main.exe c32bbd5f'), 'MURET_MAIN_EXE')
+    return _need_file(_need('MU_MAIN_EXE', 'el main.exe c32bbd5f'), 'MU_MAIN_EXE')
 
 
 def data_dir():
-    return os.environ.get('MURET_CLIENT_DATA') or DEFAULT_DATA
+    return os.environ.get('MU_CLIENT_DATA') or DEFAULT_DATA
 
 
 def gl_trace(name=LORENCIA_TRACE):
-    return _need_file(os.path.join(_need('MURET_CLIENT_GL_TRACE_DIR', 'las trazas de GL'), name),
-                      'MURET_CLIENT_GL_TRACE_DIR')
+    return _need_file(os.path.join(_need('MU_CLIENT_GL_TRACE_DIR', 'las trazas de GL'), name),
+                      'MU_CLIENT_GL_TRACE_DIR')
 
 
 def wire_file(name='muproxy.log'):
-    return _need_file(os.path.join(_need('MURET_CLIENT_WIRE_DIR', 'el cable y las claves'), name),
-                      'MURET_CLIENT_WIRE_DIR')
+    return _need_file(os.path.join(_need('MU_CLIENT_WIRE_DIR', 'el cable y las claves'), name),
+                      'MU_CLIENT_WIRE_DIR')
 
 
 def memory_file(name, capture=LORENCIA_DUMP):
-    return _need_file(os.path.join(_need('MURET_CLIENT_MEMORY_DIR', 'los volcados de memoria'), capture, name),
-                      'MURET_CLIENT_MEMORY_DIR')
+    return _need_file(os.path.join(_need('MU_CLIENT_MEMORY_DIR', 'los volcados de memoria'), capture, name),
+                      'MU_CLIENT_MEMORY_DIR')
 
 
 def use_login_harness():
     """Deja importar los módulos de scripts/login (emu, draw_emu, world, bmd) con el mismo Data\\."""
     main_exe()
-    os.environ.setdefault('MURET_CLIENT_DATA', data_dir())
+    os.environ.setdefault('MU_CLIENT_DATA', data_dir())
     if LOGIN not in sys.path:
         sys.path.insert(0, LOGIN)
 

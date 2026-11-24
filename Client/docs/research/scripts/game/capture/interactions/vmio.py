@@ -10,12 +10,12 @@ import subprocess
 
 
 def root() -> Path:
-    return Path(os.environ["MURET_VM_OUTPUT_DIR"]).expanduser().resolve(strict=True)
+    return Path(os.environ["MU_VM_OUTPUT_DIR"]).expanduser().resolve(strict=True)
 
 
 def guest(operation: str, *args: str, timeout: int = 40) -> str:
     result = subprocess.run(
-        ["vmguest", operation, os.environ["MURET_VM_VMX"], *args],
+        ["vmguest", operation, os.environ["MU_VM_VMX"], *args],
         env=os.environ.copy(), capture_output=True, text=True, timeout=timeout,
     )
     if result.returncode:
@@ -38,7 +38,7 @@ def pull(source: str, name: str) -> Path:
 
 
 def guest_path(name: str) -> str:
-    return os.environ["MURET_VM_GUEST_DIR"].rstrip("\\") + "\\" + name
+    return os.environ["MU_VM_GUEST_DIR"].rstrip("\\") + "\\" + name
 
 
 def vbs(name: str, text: str, wait: bool = True) -> str:
@@ -61,6 +61,6 @@ def control(mode: str, pipe: str, command_file: str, output_name: str) -> str:
     if Path(output_name).name != output_name:
         raise ValueError("output_name must be a plain output filename")
     output = guest_path(output_name)
-    guest("runProgramInGuest", os.environ["MURET_VM_CONTROL_EXE"],
+    guest("runProgramInGuest", os.environ["MU_VM_CONTROL_EXE"],
           mode, pipe, command_file, output)
     return pull(output, output_name).read_text(errors="replace")

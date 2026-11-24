@@ -15,7 +15,7 @@ test le da a MuRet. Cada float va como los 8 dígitos hexadecimales de sus bits.
 | `created …`, `step k …` | la escala (`+0xc`), la posición (`+0x10`), los ángulos (`+0x1c`), la malla oculta (`+0x58`), el blendMesh (`+0x64`), su luz (`+0x68`), la U y la V (`+0x6c`, `+0x70`), la velocidad (`+0xd8`), la luz por vértice (`+0xe8`), la luz (`+0xf4`), el alpha (`+0x174`), su meta (`+0x170`), el frame (`+0x114`) y la acción (`+0x111`) |
 | `draw n` y `call …` | las `n` llamadas de un dibujo: `RenderBody(modo, alpha, blendMesh, luz, U, V, malla oculta, −1)` o `RenderMesh(malla, banderas, alpha, blendMesh, luz, U, V, −1)`, el color y la luz por vértice |
 
-Cómo se sacan, con `main.exe` en `MURET_MAIN_EXE`, unicorn y el `Data\` del laboratorio:
+Cómo se sacan, con `main.exe` en `MU_MAIN_EXE`, unicorn y el `Data\` del laboratorio:
 
 ```bash
 python make_world55_vectors.py Client/tests/vectors/world55/objects.txt
@@ -23,7 +23,7 @@ python make_world55_vectors.py Client/tests/vectors/world55/objects.txt
 
 ## Los demás archivos
 
-Cada uno lo saca su script, también con unicorn sobre el código real y `MURET_MAIN_EXE`, y lo lee
+Cada uno lo saca su script, también con unicorn sobre el código real y `MU_MAIN_EXE`, y lo lee
 un test, bit a bit:
 
 | Archivo | Qué tiene | Script | Test |

@@ -14,11 +14,11 @@
 
 namespace
 {
-constexpr const char* GoldenDirVariable = "MURET_CLIENT_GOLDEN_DIR";
-constexpr const char* MemoryDirVariable = "MURET_CLIENT_MEMORY_DIR";
-constexpr const char* WireDirVariable = "MURET_CLIENT_WIRE_DIR";
-constexpr const char* FontFileVariable = "MURET_CLIENT_FONT_FILE";
-constexpr const char* GlTraceDirVariable = "MURET_CLIENT_GL_TRACE_DIR";
+constexpr const char* GoldenDirVariable = "MU_CLIENT_GOLDEN_DIR";
+constexpr const char* MemoryDirVariable = "MU_CLIENT_MEMORY_DIR";
+constexpr const char* WireDirVariable = "MU_CLIENT_WIRE_DIR";
+constexpr const char* FontFileVariable = "MU_CLIENT_FONT_FILE";
+constexpr const char* GlTraceDirVariable = "MU_CLIENT_GL_TRACE_DIR";
 } // namespace
 
 namespace Client::Tests
@@ -49,7 +49,7 @@ GoldenDirState CheckGoldenDir(const std::optional<std::filesystem::path>& dir)
 
 std::filesystem::path RepoDataDir()
 {
-    return std::filesystem::path(MURET_CLIENT_REPO_DATA_DIR);
+    return std::filesystem::path(MU_CLIENT_REPO_DATA_DIR);
 }
 
 std::filesystem::path GoldenDirOrRepoData(const std::optional<std::string>& value)

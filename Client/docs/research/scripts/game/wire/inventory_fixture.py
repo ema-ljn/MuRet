@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Genera solo los siete pares F3/10 del cable local, fuera del repositorio.
 
-Requiere MURET_CLIENT_WIRE_DIR, MURET_C3C4_REFERENCE y MURET_MAIN_EXE; el EXE se
+Requiere MU_CLIENT_WIRE_DIR, MU_C3C4_REFERENCE y MU_MAIN_EXE; el EXE se
 lee como datos para la referencia matemática, nunca se ejecuta. No imprime bytes.
 """
 import argparse
@@ -74,18 +74,18 @@ def collect(source, wirelib):
 
 
 def inputs(log):
-    required = ('MURET_CLIENT_WIRE_DIR', 'MURET_C3C4_REFERENCE', 'MURET_MAIN_EXE')
+    required = ('MU_CLIENT_WIRE_DIR', 'MU_C3C4_REFERENCE', 'MU_MAIN_EXE')
     for name in required:
         if not os.environ.get(name):
             raise ValueError('falta ' + name)
-    wire_dir = Path(os.environ['MURET_CLIENT_WIRE_DIR'])
+    wire_dir = Path(os.environ['MU_CLIENT_WIRE_DIR'])
     source = log or wire_dir / 'muproxy.log'
     files = {
         'log': source,
         'dec1': wire_dir / 'Dec1.dat',
         'enc2': wire_dir / 'Enc2.dat',
-        'reference': Path(os.environ['MURET_C3C4_REFERENCE']),
-        'main_exe': Path(os.environ['MURET_MAIN_EXE']),
+        'reference': Path(os.environ['MU_C3C4_REFERENCE']),
+        'main_exe': Path(os.environ['MU_MAIN_EXE']),
         'wirelib': Path(__file__).resolve().with_name('wirelib.py'),
     }
     for path in files.values():
@@ -95,7 +95,7 @@ def inputs(log):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--log', type=Path, help='log alternativo; las claves siguen en MURET_CLIENT_WIRE_DIR')
+    parser.add_argument('--log', type=Path, help='log alternativo; las claves siguen en MU_CLIENT_WIRE_DIR')
     parser.add_argument('--output-dir', type=Path, required=True, help='directorio externo para los sidecars privados')
     args = parser.parse_args()
     try:

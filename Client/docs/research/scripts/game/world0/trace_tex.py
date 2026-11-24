@@ -10,7 +10,7 @@ La textura de GL de la traza y la del volcado difieren en un corrimiento fijo, p
 distintas: 595 con la traza y el volcado del laboratorio (el slot es el de GL + 595). Es lo que lee el
 test de los 120 bloques de objetos de la CL7.L2 (el slot, la mezcla y el orden).
 
-Uso: trace_tex.py [corrimiento]      (con MURET_CLIENT_GL_TRACE_DIR y MURET_CLIENT_MEMORY_DIR)
+Uso: trace_tex.py [corrimiento]      (con MU_CLIENT_GL_TRACE_DIR y MU_CLIENT_MEMORY_DIR)
 """
 import os
 import sys

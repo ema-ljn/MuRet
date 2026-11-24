@@ -7,7 +7,7 @@ Corre el tramo solo, con el vecino en EAX/EBX, la meta en [EBP+0x10]/[EBP+0x14] 
 con dx = dy = 1, 0x4eb2c2 pone la dy en 0 y la diagonal de al lado de la meta da h = 18 / 4 = 4, lo
 mismo que el vecino de al lado (TheDiagonalNextToTheGoalCostsLikeTheSide de la CL7.4 A).
 
-Uso: heuristic.py      (con MURET_MAIN_EXE)
+Uso: heuristic.py      (con MU_MAIN_EXE)
 """
 import os
 import sys

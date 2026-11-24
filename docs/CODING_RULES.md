@@ -146,7 +146,7 @@ No cycles between modules.
   corre y corta con cualquier hallazgo, sea un include que falta o uno que sobra. El check mira
   solo el archivo principal de cada compilación, así que los headers van aparte, de a uno. A mano
   se corre así, con el `compile_commands.json` de un build sin precompiled headers
-  (`-DMURET_PRECOMPILED_HEADERS=OFF`): clang-tidy no lee el `.gch` de GCC y corta con un error.
+  (`-DMU_PRECOMPILED_HEADERS=OFF`): clang-tidy no lee el `.gch` de GCC y corta con un error.
 
   ```bash
   run-clang-tidy-18 -p build/linux-x64-debug -quiet -checks='-*,misc-include-cleaner' \
@@ -234,11 +234,11 @@ piecemeal", porque es mucho; acá son dos archivos, y alinearlos al tocarlos no 
   módulo: `Client/tests/network/test_packet_reader.cpp`, `test_golden_item_table.cpp`. Seguimos con
   GoogleTest (D-C9), y la suite lleva el nombre de la clase: `TEST(PacketReaderTest, CutsAC1)`.
   Así `ctest -R PacketReader` sigue filtrando como antes.
-- Un ejecutable por archivo de test, como `mu_add_test` en MuMain: `muret_add_test` en
+- Un ejecutable por archivo de test, como en MuMain: `mu_add_test` en
   `Client/tests/CMakeLists.txt` lo arma, lo enlaza con `ClientLib`, `ClientTestSupport` (los `.cpp`
   de `tests/support/` que no son tests) y GoogleTest, le pone los warnings y registra cada `TEST` en
-  CTest. Cada `TEST` tiene un tope de tiempo (`MURET_TEST_CASE_TIMEOUT`), como el `TIMEOUT` de
-  `mu_add_test`. Cada módulo de `tests/` tiene su `CMakeLists.txt`.
+  CTest. Cada `TEST` tiene un tope de tiempo (`MU_TEST_CASE_TIMEOUT`), como el `TIMEOUT` de
+  `mu_add_test` en MuMain. Cada módulo de `tests/` tiene su `CMakeLists.txt`.
 - Los fuentes se juntan con un glob y `CONFIGURE_DEPENDS`: `ClientLib` toma todo `src/` con
   `file(GLOB_RECURSE)`, menos `main.cpp` (y, desde la CL3.1, `src/Platform/`, que es de
   `ClientPlatform`, sacado con `list(FILTER ... EXCLUDE REGEX)` como hace MuMain), y cada módulo de

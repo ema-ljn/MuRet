@@ -24,7 +24,7 @@ HANDLE const Thread = reinterpret_cast<HANDLE>(2);
 
 bool Scenario(const char* name)
 {
-    const char* selected = std::getenv("MURET_CAPTURE_SCENARIO");
+    const char* selected = std::getenv("MU_CAPTURE_SCENARIO");
     return selected != nullptr && std::strcmp(selected, name) == 0;
 }
 
@@ -44,7 +44,7 @@ struct Trace
 {
     ~Trace()
     {
-        const char* path = std::getenv("MURET_CAPTURE_TRACE");
+        const char* path = std::getenv("MU_CAPTURE_TRACE");
         FILE* file = path == nullptr ? nullptr : std::fopen(path, "w");
         if (file == nullptr)
             return;

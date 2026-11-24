@@ -26,7 +26,7 @@ namespace Client::Tests
 {
 // Con "1", un test que no puede abrir OpenGL falla en vez de saltearse: el paso de Xvfb del CI la
 // pone, para que un Xvfb mal armado no deje los tests salteados en silencio.
-inline constexpr const char* RequireGlVariable = "MURET_CLIENT_REQUIRE_GL";
+inline constexpr const char* RequireGlVariable = "MU_CLIENT_REQUIRE_GL";
 
 // La regla, separada de la lectura del entorno para probarla: solo "1" pide GL.
 [[nodiscard]] bool IsGlRequired(const std::optional<std::string>& value);
@@ -71,7 +71,7 @@ private:
 };
 
 // La base de los tests que abren GL. SetUp() abre el contexto; si no puede, saltea el test o, con
-// MURET_CLIENT_REQUIRE_GL=1, lo hace fallar con el motivo.
+// MU_CLIENT_REQUIRE_GL=1, lo hace fallar con el motivo.
 class GlTest : public ::testing::Test
 {
 protected:

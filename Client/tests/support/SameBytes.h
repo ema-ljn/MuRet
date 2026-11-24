@@ -32,7 +32,7 @@ inline ::testing::AssertionResult SameBytes(std::span<const std::byte> actual, s
 
 // Como SameBytes, pero el mensaje dice dónde difieren y no qué valen: los tamaños, o la posición del
 // primer byte distinto. Es para los bytes del cable, que llevan el login del jugador
-// (MURET_CLIENT_WIRE_DIR): un test que falla no imprime un payload.
+// (MU_CLIENT_WIRE_DIR): un test que falla no imprime un payload.
 inline ::testing::AssertionResult SameBytesWithoutValues(std::span<const std::byte> actual,
                                                          std::span<const std::byte> expected)
 {

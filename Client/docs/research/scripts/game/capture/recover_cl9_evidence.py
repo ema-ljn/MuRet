@@ -325,11 +325,11 @@ def generate_inventory(output, main_exe, data_root, records):
         stage = Path(directory)
         for name in ('muproxy.log', 'Dec1.dat', 'Enc2.dat'):
             publish(stage / 'wire' / name, (output / 'wire' / name).read_bytes())
-        environment = {**os.environ, 'MURET_MAIN_EXE': str(main_exe),
-                       'MURET_CLIENT_WIRE_DIR': str(stage / 'wire'),
-                       'MURET_C3C4_REFERENCE': str(output / 'tools/c3c4_reference.py'),
-                       'MURET_CLIENT_GOLDEN_DIR': str(data_root),
-                       'MURET_CLIENT_DATA': str(data_root), 'PYTHONDONTWRITEBYTECODE': '1'}
+        environment = {**os.environ, 'MU_MAIN_EXE': str(main_exe),
+                       'MU_CLIENT_WIRE_DIR': str(stage / 'wire'),
+                       'MU_C3C4_REFERENCE': str(output / 'tools/c3c4_reference.py'),
+                       'MU_CLIENT_GOLDEN_DIR': str(data_root),
+                       'MU_CLIENT_DATA': str(data_root), 'PYTHONDONTWRITEBYTECODE': '1'}
         result = subprocess.run([sys.executable, '-I', '-B', str(INVENTORY_SCRIPT),
                                  '--output-dir', str(stage / 'wire')], env=environment,
                                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
@@ -351,13 +351,13 @@ def file_rows(output, records):
 
 
 def environment_files(output, data_root, main_exe):
-    values = {'MURET_CLIENT_MEMORY_DIR': str(output / 'memory'),
-              'MURET_CLIENT_WIRE_DIR': str(output / 'wire'),
-              'MURET_CLIENT_GL_TRACE_DIR': str(output / 'gl'),
-              'MURET_C3C4_REFERENCE': str(output / 'tools/c3c4_reference.py'),
-              'MURET_CLIENT_GOLDEN_DIR': str(data_root), 'MURET_CLIENT_DATA': str(data_root)}
+    values = {'MU_CLIENT_MEMORY_DIR': str(output / 'memory'),
+              'MU_CLIENT_WIRE_DIR': str(output / 'wire'),
+              'MU_CLIENT_GL_TRACE_DIR': str(output / 'gl'),
+              'MU_C3C4_REFERENCE': str(output / 'tools/c3c4_reference.py'),
+              'MU_CLIENT_GOLDEN_DIR': str(data_root), 'MU_CLIENT_DATA': str(data_root)}
     if main_exe is not None:
-        values['MURET_MAIN_EXE'] = str(main_exe)
+        values['MU_MAIN_EXE'] = str(main_exe)
     shell = MARKER + ''.join('export ' + key + '=' + shlex.quote(value) + '\n' for key, value in values.items())
     powershell = MARKER + ''.join("$env:" + key + " = '" + value.replace("'", "''") + "'\n"
                                  for key, value in values.items())

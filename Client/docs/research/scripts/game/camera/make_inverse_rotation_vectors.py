@@ -5,7 +5,7 @@ Reusa los 400 vectores y matrices de world55/rotation.txt y agrega tres
 cancelaciones sintéticas con 2^70. Toda salida viene del código del main.exe,
 emulado con el mismo arnés de login/make_rotation_vectors.py, en x87 PC53.
 Uso: python -I /ruta/al/script/make_inverse_rotation_vectors.py salida
-Requiere MURET_MAIN_EXE, unicorn y pefile; ver scripts/README.md, El entorno.
+Requiere MU_MAIN_EXE, unicorn y pefile; ver scripts/README.md, El entorno.
 """
 import argparse
 import hashlib
@@ -31,7 +31,7 @@ def verify_exe():
     exe = common.main_exe()
     digest = hashlib.sha256(Path(exe).read_bytes()).hexdigest()
     if digest != EXE_SHA256:
-        raise SystemExit('MURET_MAIN_EXE: SHA-256 distinto del build c32bbd5f: ' + digest)
+        raise SystemExit('MU_MAIN_EXE: SHA-256 distinto del build c32bbd5f: ' + digest)
 
 
 def rotation_cases():

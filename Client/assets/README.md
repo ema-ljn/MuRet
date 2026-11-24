@@ -22,7 +22,7 @@ otra instalación, con los nombres con las mismas mayúsculas.
 ## Usarla
 
 Es la base del proyecto: no hace falta otra copia (2026-11-04). Los tests la leen solos, sin
-`MURET_CLIENT_GOLDEN_DIR` (D-C9). A `Main` se le pasa como cualquier carpeta de datos:
+`MU_CLIENT_GOLDEN_DIR` (D-C9). A `Main` se le pasa como cualquier carpeta de datos:
 
 ```bash
 ./build/linux-x64-debug/Client/Main --data Client/assets/Data

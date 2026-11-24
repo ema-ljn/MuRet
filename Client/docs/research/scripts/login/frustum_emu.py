@@ -9,7 +9,7 @@ Lo que no es del binario:
     glRotatef(X), glRotatef(Z) y glTranslatef de 0x620db0, calculada en float como Mesa
     (s, c = (float) sin/cos en double; productos en float). El driver real puede diferir en el ulp;
   - 0x5bb8d0 (el ancho de pantalla en 640 que deja la UI): devuelve 640 (sin ventanas abiertas).
-Uso: frustum_emu.py lorencia|selection|login [json de salida]  (con MURET_MAIN_EXE, como emu.py)
+Uso: frustum_emu.py lorencia|selection|login [json de salida]  (con MU_MAIN_EXE, como emu.py)
 """
 import json, math, os, struct, sys
 HERE = os.path.dirname(os.path.abspath(__file__))

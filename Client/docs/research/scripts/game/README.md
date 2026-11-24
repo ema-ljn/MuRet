@@ -28,12 +28,12 @@ pase del mundo de un frame de una traza.
 Cómo conseguir cada entrada y qué variable la nombra: [`../README.md`, El entorno](../README.md#el-entorno).
 En corto:
 
-- las emulaciones necesitan `MURET_MAIN_EXE` (el `c32bbd5f`), `unicorn` y `pefile`. Usan el emulador
+- las emulaciones necesitan `MU_MAIN_EXE` (el `c32bbd5f`), `unicorn` y `pefile`. Usan el emulador
   de la tela (`../emulate_cloth.py`, `ClothEmulator`) o el arnés del login (`../login/emu.py` y
   `draw_emu.py`): ninguna copia propia;
-- el `Data\` es el del repo (`Client/assets/Data`), o el de `MURET_CLIENT_DATA`;
-- las trazas de GL, el cable y los volcados, de `MURET_CLIENT_GL_TRACE_DIR`, `MURET_CLIENT_WIRE_DIR` y
-  `MURET_CLIENT_MEMORY_DIR`; los C3 y C4 del cable, además, de `MURET_C3C4_REFERENCE`;
+- el `Data\` es el del repo (`Client/assets/Data`), o el de `MU_CLIENT_DATA`;
+- las trazas de GL, el cable y los volcados, de `MU_CLIENT_GL_TRACE_DIR`, `MU_CLIENT_WIRE_DIR` y
+  `MU_CLIENT_MEMORY_DIR`; los C3 y C4 del cable, además, de `MU_C3C4_REFERENCE`;
 - `maps/mapcmp.py` y `maps/map0.py` leen la caché de [`../tools/`](../tools/README.md)
   (`regen_cache.py`).
 
@@ -41,7 +41,7 @@ Con `python -I`, desde fuera de las carpetas de los scripts (por ejemplo, la ra�
 agrega a `sys.path` solo lo que importa.
 
 ```bash
-export MURET_MAIN_EXE=/ruta/a/main.exe
+export MU_MAIN_EXE=/ruta/a/main.exe
 PY="python -I"
 $PY Client/docs/research/scripts/game/camera/emu_camera.py lorencia     # "igual a la traza (bits): True"
 $PY Client/docs/research/scripts/game/camera/camera_reference.py        # "frames 2400, distintos 0"

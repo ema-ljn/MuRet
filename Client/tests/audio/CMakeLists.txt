@@ -1,1 +1,1 @@
-muret_add_module_tests()
+mu_add_module_tests()

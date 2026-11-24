@@ -343,7 +343,7 @@ protected:
     // En el heap: el WorldState pasa de 340 KB (el stack de Windows es de 1 MB).
     std::unique_ptr<WorldState> ownedWorld = std::make_unique<WorldState>();
     WorldState& world = *ownedWorld;
-    std::filesystem::path dataRoot{MURET_CLIENT_REPO_DATA_DIR};
+    std::filesystem::path dataRoot{MU_CLIENT_REPO_DATA_DIR};
     CrtRandom random{1};
     Client::Data::Text::TextTable texts = Client::Tests::MakeTextTable(EventTexts());
     LetterMeasure letters;

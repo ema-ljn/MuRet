@@ -14,7 +14,7 @@ arreglo propio del modelo 0x20a.
 tres caminos en Lorencia: una recta sin botas, una con botas +5 (corre) y un codo. Es la base de
 make_movement_vectors.py de la CL7.4 C.
 
-Uso: emu_walk.py      (con MURET_MAIN_EXE y el Data\\)
+Uso: emu_walk.py      (con MU_MAIN_EXE y el Data\\)
 """
 import os
 import struct

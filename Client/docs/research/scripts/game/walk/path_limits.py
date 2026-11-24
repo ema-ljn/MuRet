@@ -7,7 +7,7 @@ cada una; después el camino entero de PathFinding2 en saltos de caballo (2, 1) 
 corte en 15 celdas. Es lo que fija TheExactSearchGivesUpAfter500AndTheNearestAfter50 y
 OnlyTheFirstFifteenCellsAreKept de la CL7.4 A.
 
-Uso: path_limits.py      (con MURET_MAIN_EXE)
+Uso: path_limits.py      (con MU_MAIN_EXE)
 """
 import os
 import sys

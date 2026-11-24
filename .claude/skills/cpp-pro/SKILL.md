@@ -46,7 +46,7 @@ que instaló vcpkg gana sobre la documentación.
 | Dependencias con `FetchContent` o Conan | Solo `vcpkg.json` en modo manifiesto, con la `builtin-baseline` fija. Una dependencia nueva se justifica (regla 10) y, si pesa, lleva un ADR. |
 | Tests con Catch2 | GoogleTest y CTest (`gtest_discover_tests`). Primero el test en rojo (regla 13). |
 | Nombres en `snake_case`, miembros con `_` al final | Tipos, funciones y constantes en `PascalCase`; variables, parámetros y campos públicos de un `struct` en `camelCase`; miembros privados y protegidos con `m_` (`m_buffer`), interfaces con `I` (`IObfuscation`) y estáticos con `s_` (regla 7). Tests en `test_<snake_case>.cpp`, un ejecutable por archivo. |
-| `-Wall -Wextra -Wpedantic` | Ya están, con más, en `cmake/CompilerWarnings.cmake` (`muret_set_warnings`). CI compila con `MURET_WARNINGS_AS_ERRORS=ON`. |
+| `-Wall -Wextra -Wpedantic` | Ya están, con más, en `cmake/CompilerWarnings.cmake` (`mu_set_warnings`). CI compila con `MU_WARNINGS_AS_ERRORS=ON`. |
 | Correr ASan y UBSan siempre | Todavía no hay un preset con sanitizers. Para probar a mano en Linux, configurá otro directorio de build con `-DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer"`. Un preset nuevo es andamiaje: se propone en su PR, no se mete de paso. |
 | SIMD, allocators propios, lock-free, módulos, corrutinas | Solo cuando una ola lo pida. Regla 12: medir antes de optimizar, y solo en los caminos calientes. La red va con IOCP y epoll a mano (D-3 del roadmap), no con corrutinas. |
 | Pools de hilos y estado compartido | Regla 8: cada dato tiene un hilo dueño; el estado del servidor lo toca solo el hilo de lógica. |

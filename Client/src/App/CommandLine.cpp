@@ -64,7 +64,7 @@ void AddOptions(CLI::App& app, OptionTexts& texts)
     AddValue(app, OptionNames::Port, texts.port, "PORT",
              "The ConnectServer's port, instead of [Server] Port (needs --host)");
     AddFlag(app, OptionNames::AutoLogin, texts.autoLogin,
-            "Pick the first server and log in with MURET_CLIENT_ACCOUNT and MURET_CLIENT_PASSWORD, without the UI "
+            "Pick the first server and log in with MU_CLIENT_ACCOUNT and MU_CLIENT_PASSWORD, without the UI "
             "(needs a server)");
     AddValue(app, OptionNames::Config, texts.configPath, "PATH", "Read this config instead of muret-client.ini");
     AddValue(app, OptionNames::Data, texts.dataPath, "PATH",

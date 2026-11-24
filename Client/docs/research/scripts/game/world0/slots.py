@@ -9,7 +9,7 @@ fish.tga en 0x69 y 0x6a; 09 § Las texturas de las trazas ya tienen archivo).
 
 El volcado es del 2026-10-09, con el build 2f16a9c6 (el .text es el mismo que el del c32bbd5f).
 
-Uso: slots.py [lor_slots.bin]      (por defecto, el de MURET_CLIENT_MEMORY_DIR/2026-10-09-lorencia)
+Uso: slots.py [lor_slots.bin]      (por defecto, el de MU_CLIENT_MEMORY_DIR/2026-10-09-lorencia)
 """
 import os
 import struct

@@ -20,7 +20,7 @@ def main():
     ap = argparse.ArgumentParser(description='Desensambla [inicio, fin) del main.exe.')
     ap.add_argument('start', help='la VA de inicio, en hexadecimal')
     ap.add_argument('end', help='la VA de fin, en hexadecimal')
-    ap.add_argument('--exe', help='el main.exe (por defecto, MURET_MAIN_EXE)')
+    ap.add_argument('--exe', help='el main.exe (por defecto, MU_MAIN_EXE)')
     args = ap.parse_args()
     img = image.Image(args.exe)
     start, end = int(args.start, 16), int(args.end, 16)

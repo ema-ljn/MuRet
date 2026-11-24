@@ -45,8 +45,8 @@ from unicorn.x86_const import (UC_X86_REG_EAX, UC_X86_REG_EBX, UC_X86_REG_ECX,
 
 # El main.exe c32bbd5f (client-research/mainexe-vmxp-c32bbd5f/original/main.exe en
 # mu-server-repack-research-102i; el de analysis/mainexe/originals/ es el otro build, 2f16a9c6), con --exe
-# o en MURET_MAIN_EXE; Player.bmd, el de la Data del repo.
-DEFAULT_EXE = os.environ.get('MURET_MAIN_EXE', 'main.exe')
+# o en MU_MAIN_EXE; Player.bmd, el de la Data del repo.
+DEFAULT_EXE = os.environ.get('MU_MAIN_EXE', 'main.exe')
 PLAYER_BMD_CANDIDATES = [
     os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', '..', 'assets', 'Data', 'player',
                  'Player.bmd'),

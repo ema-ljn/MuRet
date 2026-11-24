@@ -48,7 +48,7 @@ caso. El siguiente `case` cierra el anterior.
 
 ## Regenerar
 
-Con `MURET_MAIN_EXE` apuntando al build descrito en
+Con `MU_MAIN_EXE` apuntando al build descrito en
 [`scripts/README.md`, El entorno](../../../docs/research/scripts/README.md#el-entorno), y un entorno
 Python con `unicorn` y `pefile`, desde la raíz del repo:
 
@@ -91,7 +91,7 @@ completas para impedir truncamientos diferentes entre Linux y Windows.
 | `case …` | vector xyz, matriz de 12 floats por filas (3 × 4), salida inversa xyz; todos como ocho dígitos hexadecimales de sus bits |
 | `end` | fin del archivo |
 
-Para regenerarlo, con el mismo entorno y `MURET_MAIN_EXE` que la cámara:
+Para regenerarlo, con el mismo entorno y `MU_MAIN_EXE` que la cámara:
 
 ```bash
 python -I Client/docs/research/scripts/game/camera/make_inverse_rotation_vectors.py Client/tests/vectors/game/inverse_rotation.txt

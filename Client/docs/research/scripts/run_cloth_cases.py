@@ -2,7 +2,7 @@
 r"""Corre cada caso de prueba en el oráculo (emulate_cloth.py, el código real) y en la
 reimplementación del contrato (cloth_reference.py), y los compara bit a bit.
 
-    python run_cloth_cases.py      # escribe cloth-cases/<caso>.json (o MURET_CLOTH_CASES) y el resultado
+    python run_cloth_cases.py      # escribe cloth-cases/<caso>.json (o MU_CLOTH_CASES) y el resultado
 
 Los casos salen del ejemplo del login (los mismos huesos) cambiando lo que cada rama de 0x50ba30 y
 de la tela mira.
@@ -166,7 +166,7 @@ def cases():
 
 
 def main():
-    out_dir = os.environ.get('MURET_CLOTH_CASES', 'cloth-cases')
+    out_dir = os.environ.get('MU_CLOTH_CASES', 'cloth-cases')
     os.makedirs(out_dir, exist_ok=True)
     failures = 0
     for name, spec in cases().items():

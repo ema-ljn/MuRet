@@ -72,7 +72,7 @@ template <typename T> T As(std::int64_t value)
 
 std::filesystem::path ClothVectorsDir()
 {
-    return MURET_CLIENT_CLOTH_VECTORS_DIR;
+    return MU_CLIENT_CLOTH_VECTORS_DIR;
 }
 
 namespace

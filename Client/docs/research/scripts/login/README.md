@@ -8,12 +8,12 @@ escrita solo desde la lectura del asm y las cuentas sobre el `Data\` del mapa 55
 
 - **Las emulaciones** (`emu.py`, `draw_emu.py`, `dragon_emu.py`, `run_objs.py`, `run_draw.py`,
   `emulate_raven.py`, `emulate_raven_ctor.py`, `frustum_emu.py`, `check_selection.py`) necesitan `unicorn` y `pefile`, y la ruta del
-  `main.exe` (`c32bbd5f`) en `MURET_MAIN_EXE`. Las del cuervo usan el emulador de la tela
+  `main.exe` (`c32bbd5f`) en `MU_MAIN_EXE`. Las del cuervo usan el emulador de la tela
   (`../emulate_cloth.py`).
 - **Las cuentas geométricas** (`cam.py`, `pose.py`, `objvis.py`, `terrain_count.py`, `dragon_screen.py`)
   necesitan `numpy`.
-- **El `Data\`** es el del repo (`Client/assets/Data`), o el de `MURET_CLIENT_DATA`. Las trazas de GL
-  (`frustum_reference.py`, `check_selection.py`), las de `MURET_CLIENT_GL_TRACE_DIR`.
+- **El `Data\`** es el del repo (`Client/assets/Data`), o el de `MU_CLIENT_DATA`. Las trazas de GL
+  (`frustum_reference.py`, `check_selection.py`), las de `MU_CLIENT_GL_TRACE_DIR`.
 - Lo que escriben (`dragon_traj.json`, `objs_draw.json`) va a la carpeta actual y no se guarda acá:
   se vuelve a sacar del binario. Los vectores de los tests (`Client/tests/vectors/`) los arma cada
   sub-ola de la CL7 desde estas salidas, con su conversor, como `make_cloth_vectors.py` en la tela.
@@ -23,7 +23,7 @@ escrita solo desde la lectura del asm y las cuentas sobre el `Data\` del mapa 55
   defecto `0x12345677`, que no lo es).
 
 ```bash
-export MURET_MAIN_EXE=/ruta/a/main.exe
+export MU_MAIN_EXE=/ruta/a/main.exe
 python dragon_emu.py 1500           # el dragón: 0x518cf0 y 1.500 pasos de 0x5208a0
 python emulate_raven.py 7 600 cell0 > raven.json
 python raven_reference.py 7 600 cell0 raven.json   # "bit a bit igual en todos los pasos"

@@ -9,7 +9,7 @@ crearse, lo que cambia en tres pasos y lo que pide cada paso y el dibujo, y escr
 objs0_emu.json en la carpeta actual (fuera del repo). Es la base de make_world0_vectors.py de la CL7.L2,
 como run_objs.py lo fue de make_world55_vectors.py.
 
-Uso: run_objs0.py [tipo ...]      (en hexadecimal; por defecto los 30 con caso; con MURET_MAIN_EXE y el Data\\)
+Uso: run_objs0.py [tipo ...]      (en hexadecimal; por defecto los 30 con caso; con MU_MAIN_EXE y el Data\\)
 """
 import json
 import os

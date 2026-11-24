@@ -10,7 +10,7 @@ constructor real (0x4167b0); además le da al dueño sus huesos propios (+0x120:
 0x20a · 0xe0) la escala (+0x68) y la posición (+0x6c) que leen 0x4178d2 y 0x4179a5 (Q-C412). El dueño cambia de
 zona en los pasos que dice el caso. De cada paso se guarda lo mismo que en raven.txt, sin la chispa.
 
-Uso: make_raven_safe_zone_vectors.py <salida>  (con MURET_MAIN_EXE)"""
+Uso: make_raven_safe_zone_vectors.py <salida>  (con MU_MAIN_EXE)"""
 import os
 import struct
 import sys
@@ -18,7 +18,7 @@ import sys
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
 import emulate_cloth as ec  # noqa: E402
 
-EXE = os.environ['MURET_MAIN_EXE']
+EXE = os.environ['MU_MAIN_EXE']
 CTOR, STEP, SOUND = 0x4167b0, 0x416a20, 0x41ed10
 PARTICLES, PARTICLE_SIZE = 0x743a198, 0x78
 HEIGHTS, ATTRIBUTES = 0x7accca4, 0x7d0d348

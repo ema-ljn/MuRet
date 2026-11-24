@@ -13,7 +13,7 @@ import emulate_cloth as ec  # noqa: E402
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import world  # noqa: E402
 
-EXE = os.environ['MURET_MAIN_EXE']
+EXE = os.environ['MU_MAIN_EXE']
 MOVE_PET = 0x416a20
 SOUND = 0x41ed10
 PARTICLE = 0x53fe70

@@ -143,9 +143,9 @@ jobs:
       VCPKG_DISABLE_METRICS: 1
       # La fuente de los tests de FreeType (CL5.3, support/GoldenDir.h): una del runner. Con la
       # variable puesta, un archivo que falta o que no es una fuente hace fallar los tests.
-      MURET_CLIENT_FONT_FILE: ${{ matrix.font-file }}
+      MU_CLIENT_FONT_FILE: ${{ matrix.font-file }}
       # Los cuatro núcleos del runner, para CTest (Ninja ya los usa todos).
-      MURET_CI_JOBS: 4
+      MU_CI_JOBS: 4
       # Cuántas compilaciones a la vez en cmake --build; vacía, lo que elija Ninja.
       CMAKE_BUILD_PARALLEL_LEVEL: ${{ matrix.build-jobs }}
 
@@ -253,15 +253,15 @@ jobs:
             sleep $((attempt * 30))
           done
 
-      # La DejaVu de MURET_CLIENT_FONT_FILE viene en la imagen de ubuntu-24.04; si una imagen nueva
+      # La DejaVu de MU_CLIENT_FONT_FILE viene en la imagen de ubuntu-24.04; si una imagen nueva
       # no la trae, se instala.
       - name: Fuente de los tests (Linux)
         if: steps.scope.outputs.build == 'true' && runner.os == 'Linux' && matrix.kind == 'build'
         run: |
-          if [ ! -f "$MURET_CLIENT_FONT_FILE" ]; then
+          if [ ! -f "$MU_CLIENT_FONT_FILE" ]; then
             sudo apt-get install -y fonts-dejavu-core
           fi
-          test -f "$MURET_CLIENT_FONT_FILE"
+          test -f "$MU_CLIENT_FONT_FILE"
 
       # El build de Debug con los ~600 ejecutables de test no entra en el disco libre del runner, y
       # cuando el disco se llena el runner pierde la conexión sin dejar el log ("The hosted runner lost
@@ -406,8 +406,8 @@ jobs:
       - name: Configurar
         if: steps.scope.outputs.build == 'true'
         run: >-
-          cmake --preset ${{ matrix.configure-preset }} -DMURET_WARNINGS_AS_ERRORS=ON
-          -DMURET_PRECOMPILED_HEADERS=${{ matrix.precompiled-headers }} ${{ matrix.extra-configure }}
+          cmake --preset ${{ matrix.configure-preset }} -DMU_WARNINGS_AS_ERRORS=ON
+          -DMU_PRECOMPILED_HEADERS=${{ matrix.precompiled-headers }} ${{ matrix.extra-configure }}
 
       # En un PR, primero ClientLib y los tests cuyos test_*.cpp tocó el PR, y esos tests. Un error
       # en lo que cambió (un C4242 de MSVC, una pila que no alcanza) aparece a los pocos minutos en
@@ -426,7 +426,7 @@ jobs:
             exit 0
           fi
           build="build/${{ matrix.configure-preset }}"
-          # A test of the other system's code (muret_add_module_tests OTHER_SYSTEM) has no target here.
+          # A test of the other system's code (mu_add_module_tests OTHER_SYSTEM) has no target here.
           # A set, not grep -q: grep would stop reading early and, with pipefail, drop a test at random.
           ninja_targets="$(ninja -C "$build" -t targets all)"
           declare -A known=()
@@ -463,7 +463,7 @@ jobs:
           [ "${#suites[@]}" -gt 0 ] || exit 0
           regex="^($(printf '%s\n' "${suites[@]}" | awk '!seen[$0]++' | paste -sd '|' -))\\."
           echo "Suites: $regex"
-          ctest --preset ${{ matrix.test-preset }} --parallel "$MURET_CI_JOBS" -R "$regex" --no-tests=error
+          ctest --preset ${{ matrix.test-preset }} --parallel "$MU_CI_JOBS" -R "$regex" --no-tests=error
 
       # math-release builds only Main and the two tests of the math profile.
       - name: Compilar
@@ -491,7 +491,7 @@ jobs:
       # escriben en la carpeta temporal usan nombres al azar.
       - name: Tests
         if: steps.scope.outputs.build == 'true' && matrix.kind == 'build'
-        run: ctest --preset ${{ matrix.test-preset }} --parallel ${{ env.MURET_CI_JOBS }}
+        run: ctest --preset ${{ matrix.test-preset }} --parallel ${{ env.MU_CI_JOBS }}
 
       # Main and the tests come from "Compilar". Zero selected tests also fails the job, so a
       # move or a rename of these tests cannot turn the check off. The rounded math runs here too:
@@ -505,14 +505,14 @@ jobs:
       # Los tests con la etiqueta gl (desde la CL5.0, los de labs/cl5.0-pipeline/gl/) abren una
       # ventana escondida con OpenGL 3.3 core, dibujan en un framebuffer y leen los píxeles. En el
       # paso de Tests se saltean porque no hay pantalla; acá corren en Xvfb con
-      # MURET_CLIENT_REQUIRE_GL=1, que los hace fallar si el Xvfb no da el contexto, en vez de
+      # MU_CLIENT_REQUIRE_GL=1, que los hace fallar si el Xvfb no da el contexto, en vez de
       # dejarlos salteados en silencio. Con --no-tests=error, si ningún test lleva la etiqueta,
       # también falla. La etiqueta es una regex: '^gl$' no toma otra que la contenga. En Windows
       # no va: el runner tiene solo el OpenGL 1.1 de GDI.
       - name: Tests de GL en Xvfb (Linux)
         if: steps.scope.outputs.build == 'true' && runner.os == 'Linux' && matrix.kind == 'build'
         env:
-          MURET_CLIENT_REQUIRE_GL: 1
+          MU_CLIENT_REQUIRE_GL: 1
         run: xvfb-run -a -s '-screen 0 800x600x24' ctest --preset ${{ matrix.test-preset }} -L '^gl$' --no-tests=error
 
       # El hola mundo de la CL0.3: abre la ventana con OpenGL 3.3 core, dibuja 60 frames y sale.

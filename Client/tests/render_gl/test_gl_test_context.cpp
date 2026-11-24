@@ -9,7 +9,7 @@
 #include <string>
 #include <type_traits>
 
-// Client::Tests::GlTestContext y la regla de MURET_CLIENT_REQUIRE_GL (la pregunta 9 del plan de la
+// Client::Tests::GlTestContext y la regla de MU_CLIENT_REQUIRE_GL (la pregunta 9 del plan de la
 // CL5), como los de HiddenGlWindow en el lab de la CL5.0.
 namespace
 {
@@ -55,8 +55,8 @@ TEST_F(GlTestContextTest, OpensAThreeThreeCoreContext)
 TEST_F(GlTestContextTest, LoadsEveryFunction)
 {
     const Client::Platform::GlFunctions& gl = Gl();
-#define MURET_EXPECT_LOADED(type, member, name) EXPECT_NE(gl.member, nullptr) << name;
-    MURET_GL_FUNCTIONS(MURET_EXPECT_LOADED)
-#undef MURET_EXPECT_LOADED
+#define MU_EXPECT_LOADED(type, member, name) EXPECT_NE(gl.member, nullptr) << name;
+    MU_GL_FUNCTIONS(MU_EXPECT_LOADED)
+#undef MU_EXPECT_LOADED
 }
 } // namespace

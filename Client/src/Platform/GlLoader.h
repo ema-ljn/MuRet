@@ -8,13 +8,13 @@
 // otro archivo incluye SDL_opengl.h.
 #if defined(_WIN32) && !defined(APIENTRY)
 #define APIENTRY __stdcall
-#define MURET_GL_LOADER_DEFINED_APIENTRY
+#define MU_GL_LOADER_DEFINED_APIENTRY
 #endif
 #include <SDL3/SDL_opengl.h> // IWYU pragma: export
-#ifdef MURET_GL_LOADER_DEFINED_APIENTRY
+#ifdef MU_GL_LOADER_DEFINED_APIENTRY
 #undef APIENTRY
 #undef APIENTRYP
-#undef MURET_GL_LOADER_DEFINED_APIENTRY
+#undef MU_GL_LOADER_DEFINED_APIENTRY
 #endif
 
 #include "Platform/GlFunctionList.h"
@@ -42,18 +42,18 @@ inline constexpr int GlMinorVersion = 3;
 // "3.3", para los mensajes de error.
 [[nodiscard]] const std::string& GlVersionText();
 
-// Un puntero por función de MURET_GL_FUNCTIONS. Un GlFunctions{} los tiene todos en nulo.
+// Un puntero por función de MU_GL_FUNCTIONS. Un GlFunctions{} los tiene todos en nulo.
 struct GlFunctions
 {
-#define MURET_GL_MEMBER(type, member, name) type member = nullptr;
-    MURET_GL_FUNCTIONS(MURET_GL_MEMBER)
-#undef MURET_GL_MEMBER
+#define MU_GL_MEMBER(type, member, name) type member = nullptr;
+    MU_GL_FUNCTIONS(MU_GL_MEMBER)
+#undef MU_GL_MEMBER
 };
 
 // Los nombres de GL de la tabla, en el orden en que se piden.
-#define MURET_GL_NAME(type, member, name) std::string_view{name},
-inline constexpr std::array GlFunctionNames{MURET_GL_FUNCTIONS(MURET_GL_NAME)};
-#undef MURET_GL_NAME
+#define MU_GL_NAME(type, member, name) std::string_view{name},
+inline constexpr std::array GlFunctionNames{MU_GL_FUNCTIONS(MU_GL_NAME)};
+#undef MU_GL_NAME
 
 // En Windows, algunos drivers devuelven 1, 2, 3 o -1 en vez de nulo para una función que no
 // tienen (o para una de la 1.1, que wglGetProcAddress no da), y SDL no los filtra: busca en
@@ -96,7 +96,7 @@ template <typename Function>
     return true;
 }
 
-// Con un contexto actual: pide las dos de MURET_GL_QUERY_FUNCTIONS, mira que el contexto sea 3.3 o
+// Con un contexto actual: pide las dos de MU_GL_QUERY_FUNCTIONS, mira que el contexto sea 3.3 o
 // más y core, y recién ahí pide el resto. El error dice qué faltó: la versión que dio el driver, el
 // perfil o la primera función que no tiene.
 [[nodiscard]] Core::Expected<GlFunctions, std::string> LoadGlFunctions(GlProcLookup lookup = GlProcAddress);

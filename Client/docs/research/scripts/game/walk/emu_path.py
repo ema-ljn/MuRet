@@ -12,7 +12,7 @@ make_path_vectors.py.
 Como script, unos casos sobre el .att de Lorencia (world1): rectas, diagonales, el mismo punto, lejos,
 la fila y la columna 0 (que fallan) y un caso del cable.
 
-Uso: emu_path.py      (con MURET_MAIN_EXE y el Data\\)
+Uso: emu_path.py      (con MU_MAIN_EXE y el Data\\)
 """
 import os
 import struct

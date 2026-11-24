@@ -108,7 +108,7 @@ cmake --preset linux-x64-debug && cmake --build --preset linux-x64-debug && ctes
 cmake --preset windows-x64 && cmake --build --preset windows-x64-debug && ctest --preset windows-x64-debug
 ```
 
-Los tests son de GoogleTest y los corre CTest. Los golden del cliente leen `MURET_CLIENT_GOLDEN_DIR`
+Los tests son de GoogleTest y los corre CTest. Los golden del cliente leen `MU_CLIENT_GOLDEN_DIR`
 y se saltean sin ella ([`Client/README.md`](Client/README.md#tests)). El CI
 (`.github/workflows/ci.yml`) compila con warnings como errores y corre los tests en Linux y Windows.
 

@@ -11,7 +11,7 @@ plan de la CL7:
 El rand() es el de la CRT (0x69fd70) desde el estado 1; la salida es lo que gastó y el estado que
 quedó. Es la base de los vectores de la CL7.P (una clase de acceso por test).
 
-Uso: protection_rand.py      (con MURET_MAIN_EXE)
+Uso: protection_rand.py      (con MU_MAIN_EXE)
 """
 import os
 import sys

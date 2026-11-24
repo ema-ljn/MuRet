@@ -51,7 +51,7 @@
 #include <string_view>
 #include <vector>
 
-// Client::Scenes::GameModels contra el Data\ del laboratorio (MURET_CLIENT_GOLDEN_DIR): los modelos
+// Client::Scenes::GameModels contra el Data\ del laboratorio (MU_CLIENT_GOLDEN_DIR): los modelos
 // del personaje y de los ítems que lee la carga, con su esqueleto y sus texturas (06 § El modelo en
 // el binario).
 namespace

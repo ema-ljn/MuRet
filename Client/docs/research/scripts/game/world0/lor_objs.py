@@ -9,7 +9,7 @@ floats de la luz dinámica del terreno que tocó (0x7b4ccc4), con los rand() que
 que la CL7.L2 deja en su lista para la L4 (la luz) y la L5 (las partículas). Usa el arnés del login
 (scripts/login/emu.py).
 
-Uso: lor_objs.py      (con MURET_MAIN_EXE y el Data\\; tarda unos segundos por tipo)
+Uso: lor_objs.py      (con MU_MAIN_EXE y el Data\\; tarda unos segundos por tipo)
 """
 import os
 import sys

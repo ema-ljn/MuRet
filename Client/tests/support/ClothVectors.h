@@ -133,7 +133,7 @@ struct ClothVectors
     std::vector<ClothVectorFrame> frames;
 };
 
-// La carpeta de los vectores, en el repo (MURET_CLIENT_CLOTH_VECTORS_DIR).
+// La carpeta de los vectores, en el repo (MU_CLIENT_CLOTH_VECTORS_DIR).
 [[nodiscard]] std::filesystem::path ClothVectorsDir();
 
 // Lee un archivo de vectores. Devuelve el error del primer renglón que no entiende.

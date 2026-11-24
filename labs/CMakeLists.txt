@@ -14,11 +14,11 @@ add_library(MuRetLabs STATIC
 )
 target_include_directories(MuRetLabs PUBLIC 0.0-enlace)
 target_compile_features(MuRetLabs PUBLIC cxx_std_20)
-muret_set_warnings(MuRetLabs)
+mu_set_warnings(MuRetLabs)
 
 add_executable(Lab00HeadOffsetTest 0.0-enlace/HeadOffsetTest.cpp)
 target_link_libraries(Lab00HeadOffsetTest PRIVATE MuRetLabs)
-muret_set_warnings(Lab00HeadOffsetTest)
+mu_set_warnings(Lab00HeadOffsetTest)
 add_test(NAME Lab00.HeadOffset COMMAND Lab00HeadOffsetTest)
 
 # Jefe de la 0.0 (actividad 10): los mismos objetos en dos órdenes. Sin optimizar, nadie expande
@@ -31,7 +31,7 @@ add_executable(Lab00OdrAB 0.0-enlace/jefe/OdrMain.cpp 0.0-enlace/jefe/OdrA.cpp 0
 add_executable(Lab00OdrBA 0.0-enlace/jefe/OdrMain.cpp 0.0-enlace/jefe/OdrB.cpp 0.0-enlace/jefe/OdrA.cpp)
 foreach(target Lab00OdrAB Lab00OdrBA)
     target_compile_options(${target} PRIVATE ${lab00_no_inline})
-    muret_set_warnings(${target})
+    mu_set_warnings(${target})
 endforeach()
 
 # Las dos unidades dan lo mismo, y qué dan depende del orden: la ODR rota, sin diagnóstico.
@@ -49,7 +49,7 @@ add_library(MuRetLabsCl20 STATIC
 )
 target_include_directories(MuRetLabsCl20 PUBLIC cl2.0-flujos)
 target_compile_features(MuRetLabsCl20 PUBLIC cxx_std_20)
-muret_set_warnings(MuRetLabsCl20)
+mu_set_warnings(MuRetLabsCl20)
 
 # La CL3.0 (docs/learning/ola-cl3.0-el-bucle-de-juego.md): el paso fijo con acumulador y el reloj de
 # GetTickCount; el bucle del original va en el jefe, dentro de su test.
@@ -59,7 +59,7 @@ add_library(MuRetLabsCl30 STATIC
 )
 target_include_directories(MuRetLabsCl30 PUBLIC cl3.0-bucle)
 target_compile_features(MuRetLabsCl30 PUBLIC cxx_std_20)
-muret_set_warnings(MuRetLabsCl30)
+mu_set_warnings(MuRetLabsCl30)
 
 # La CL4.0 (docs/learning/ola-cl4.0-sockets-no-bloqueantes.md): el socket con RAII, el par en
 # 127.0.0.1 y la cola con cursor. En Windows, los sockets son de Winsock 2 (ws2_32).
@@ -73,7 +73,7 @@ target_compile_features(MuRetLabsCl40 PUBLIC cxx_std_20)
 if(WIN32)
     target_link_libraries(MuRetLabsCl40 PUBLIC ws2_32)
 endif()
-muret_set_warnings(MuRetLabsCl40)
+mu_set_warnings(MuRetLabsCl40)
 
 # La CL5.0 (docs/learning/ola-cl5.0-el-pipeline-grafico.md): el quad de 0x621b60, la matriz de
 # gluOrtho2D escrita a mano y el fan pasado a triángulos. Sin GL: corre en los dos sistemas. Desde
@@ -86,7 +86,7 @@ add_library(MuRetLabsCl50 STATIC
 target_include_directories(MuRetLabsCl50 PUBLIC cl5.0-pipeline)
 target_compile_features(MuRetLabsCl50 PUBLIC cxx_std_20)
 target_link_libraries(MuRetLabsCl50 PUBLIC ClientLib)
-muret_set_warnings(MuRetLabsCl50)
+mu_set_warnings(MuRetLabsCl50)
 
 # Lo de la CL5.0 que habla con OpenGL (cl5.0-pipeline/gl/): la ventana escondida con el contexto
 # 3.3 core, la tabla de funciones del lab, los nombres de GL con RAII, el framebuffer y el quad
@@ -102,7 +102,7 @@ add_library(MuRetLabsCl50Gl STATIC
 )
 target_include_directories(MuRetLabsCl50Gl PUBLIC cl5.0-pipeline/gl)
 target_link_libraries(MuRetLabsCl50Gl PUBLIC MuRetLabsCl50 ClientPlatform)
-muret_set_warnings(MuRetLabsCl50Gl)
+mu_set_warnings(MuRetLabsCl50Gl)
 
 # La CL6.0 (docs/learning/ola-cl6.0-huesos-y-cuaterniones.md): los cuaterniones de Half-Life a mano
 # (AngleQuaternion y QuaternionMatrix), el slerp de 0x5fce90 y una cadena de huesos con el skinning
@@ -114,9 +114,9 @@ add_library(MuRetLabsCl60 STATIC
 )
 target_include_directories(MuRetLabsCl60 PUBLIC cl6.0-huesos)
 target_compile_features(MuRetLabsCl60 PUBLIC cxx_std_20)
-muret_set_warnings(MuRetLabsCl60)
+mu_set_warnings(MuRetLabsCl60)
 
-if(MURET_BUILD_TESTS)
+if(MU_BUILD_TESTS)
     find_package(GTest CONFIG REQUIRED)
     include(GoogleTest)
 
@@ -131,7 +131,7 @@ if(MURET_BUILD_TESTS)
         cl2.0-flujos/jefe/test_old_cut.cpp
     )
     target_link_libraries(LabCl20Tests PRIVATE MuRetLabsCl20 GTest::gtest GTest::gtest_main)
-    muret_set_warnings(LabCl20Tests)
+    mu_set_warnings(LabCl20Tests)
     gtest_discover_tests(LabCl20Tests TEST_PREFIX "LabCl20.")
 
     # Los de la CL3.0, con el prefijo LabCl30. y en un solo ejecutable, como los de la CL2.0.
@@ -141,7 +141,7 @@ if(MURET_BUILD_TESTS)
         cl3.0-bucle/jefe/test_original_loop.cpp
     )
     target_link_libraries(LabCl30Tests PRIVATE MuRetLabsCl30 GTest::gtest GTest::gtest_main)
-    muret_set_warnings(LabCl30Tests)
+    mu_set_warnings(LabCl30Tests)
     gtest_discover_tests(LabCl30Tests TEST_PREFIX "LabCl30.")
 
     # Los de la CL4.0, con el prefijo LabCl40.: los del socket y el par usan sockets de verdad en
@@ -153,7 +153,7 @@ if(MURET_BUILD_TESTS)
         cl4.0-sockets/jefe/test_original_drain.cpp
     )
     target_link_libraries(LabCl40Tests PRIVATE MuRetLabsCl40 GTest::gtest GTest::gtest_main)
-    muret_set_warnings(LabCl40Tests)
+    mu_set_warnings(LabCl40Tests)
     gtest_discover_tests(LabCl40Tests TEST_PREFIX "LabCl40.")
 
     # glm (vcpkg.json): la CL5.0 compara su matriz a mano con glm::ortho. Solo los headers: el
@@ -168,12 +168,12 @@ if(MURET_BUILD_TESTS)
         cl5.0-pipeline/jefe/test_original_pipeline.cpp
     )
     target_link_libraries(LabCl50Tests PRIVATE MuRetLabsCl50 glm::glm-header-only GTest::gtest GTest::gtest_main)
-    muret_set_warnings(LabCl50Tests)
+    mu_set_warnings(LabCl50Tests)
     gtest_discover_tests(LabCl50Tests TEST_PREFIX "LabCl50.")
 
     # Los de cl5.0-pipeline/gl/, con el prefijo LabCl50Gl. y la etiqueta gl de CTest: los que
     # dibujan abren una ventana escondida con un contexto 3.3 core. Sin pantalla o sin 3.3 se
-    # saltean, salvo con MURET_CLIENT_REQUIRE_GL=1, que los hace fallar: el paso de Xvfb del CI
+    # saltean, salvo con MU_CLIENT_REQUIRE_GL=1, que los hace fallar: el paso de Xvfb del CI
     # corre `ctest -L '^gl$'` con esa variable (la pregunta 9 del plan de la CL5). Cada uno tiene
     # 60 s: un driver colgado en Xvfb falla el test en vez de frenar el CI hasta su tope de 6 h.
     add_executable(LabCl50GlTests
@@ -183,7 +183,7 @@ if(MURET_BUILD_TESTS)
         cl5.0-pipeline/gl/test_lab_texture.cpp
     )
     target_link_libraries(LabCl50GlTests PRIVATE MuRetLabsCl50Gl GTest::gtest GTest::gtest_main)
-    muret_set_warnings(LabCl50GlTests)
+    mu_set_warnings(LabCl50GlTests)
     gtest_discover_tests(LabCl50GlTests TEST_PREFIX "LabCl50Gl." PROPERTIES LABELS gl TIMEOUT 60)
 
     # Los de la CL6.0, con el prefijo LabCl60.: comparan lo de a mano con glm::quat, glm::mat3_cast,
@@ -195,6 +195,6 @@ if(MURET_BUILD_TESTS)
         cl6.0-huesos/jefe/test_original_pose.cpp
     )
     target_link_libraries(LabCl60Tests PRIVATE MuRetLabsCl60 glm::glm-header-only GTest::gtest GTest::gtest_main)
-    muret_set_warnings(LabCl60Tests)
+    mu_set_warnings(LabCl60Tests)
     gtest_discover_tests(LabCl60Tests TEST_PREFIX "LabCl60.")
 endif()

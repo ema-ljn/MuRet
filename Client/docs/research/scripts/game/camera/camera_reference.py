@@ -7,7 +7,7 @@ Render/Models/OriginalRotation (OriginalAngleMatrix, 0x5fc8f0) más un VectorIRo
 Cubre el camino normal: sin la vista de arriba, sin el CCameraMove, sin el desvío de 0x724588 y sin el
 mapa 6 con "webzen". Imprime los frames distintos (hasta 10) y el total.
 
-Uso: camera_reference.py [casos] [frames]      (con MURET_MAIN_EXE; por defecto 60 casos de 40 frames)"""
+Uso: camera_reference.py [casos] [frames]      (con MU_MAIN_EXE; por defecto 60 casos de 40 frames)"""
 import math
 import os
 import random

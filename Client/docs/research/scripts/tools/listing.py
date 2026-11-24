@@ -22,7 +22,7 @@ def main():
     lo, hi = int(sys.argv[1], 16), int(sys.argv[2], 16)
     path = cg.cache_file(cg.LISTING)
     if not os.path.isfile(path):
-        sys.exit('no está %s: correr tools/regen_cache.py (con MURET_MAIN_EXE)' % path)
+        sys.exit('no está %s: correr tools/regen_cache.py (con MU_MAIN_EXE)' % path)
     with open(path, encoding='utf-8', errors='replace') as f:
         for line in f:
             m = ADDRESS.match(line)

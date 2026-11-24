@@ -30,7 +30,7 @@
 #include <vector>
 
 // DecryptPacket y EncryptPacket contra el cable del laboratorio (support/WireCapture.h,
-// MURET_CLIENT_WIRE_DIR) y las claves reales: los C3 que mandó el cliente original se descifran
+// MU_CLIENT_WIRE_DIR) y las claves reales: los C3 que mandó el cliente original se descifran
 // con Dec1.dat, la del servidor, y los C3/C4 que le contestó el GameServer, con Dec2.dat, la del
 // cliente. Cada paquete se corta con el PacketReader (CutPackets de support/WirePackets.h), y lo
 // del GameServer, con el 0xAA de FoxAnti: el --golden de c3c4_reference.py mira solo el primero de

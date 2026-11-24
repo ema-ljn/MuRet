@@ -7,14 +7,14 @@ Los float de Python son binary64 y redondean cada operación al más cercano, co
 dominio (sin desbordes ni subnormales); cada FSTP float pasa por struct. No comparte código con
 World::FaceNormal ni con World::ShadeTerrainLight: es un cálculo aparte, no una observación del original.
 
-Con MURET_CLIENT_MEMORY_DIR compara además, celda por celda, los volcados de 0x078ecc10 (lor_light.bin y
+Con MU_CLIENT_MEMORY_DIR compara además, celda por celda, los volcados de 0x078ecc10 (lor_light.bin y
 s31_light.bin) con la luz del OZJ sin sombrear y con la sombreada. Son la luz sin sombrear, la que
 0x5f8d90 lee; la sombreada (0x7c0ccc4) no se volcó. Con el Data\\ del repo: 0 celdas distintas de la
 luz sin sombrear en los dos mapas; de la sombreada, 14.736 en Lorencia y 29.446 en Devias.
 
 Necesita Pillow, para el JPEG del OZJ (requirements.txt).
 
-Uso: terrain_light.py      (con el Data\\; MURET_CLIENT_MEMORY_DIR, opcional)
+Uso: terrain_light.py      (con el Data\\; MU_CLIENT_MEMORY_DIR, opcional)
 """
 import io
 import math
@@ -153,7 +153,7 @@ def main():
     for x, y in LOGIN_POINTS:
         values = light_at(light, heights, 55, x, y)
         print('mapa 55, punto (%g, %g): %s' % (x, y, ', '.join('0x%08x' % bits(v) for v in values)))
-    if os.environ.get('MURET_CLIENT_MEMORY_DIR'):
+    if os.environ.get('MU_CLIENT_MEMORY_DIR'):
         for world_map, capture, name in DUMPS:
             compare_with_memory(world_map, capture, name)
 

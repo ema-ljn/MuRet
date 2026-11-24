@@ -16,7 +16,7 @@ Uso:
     frustum_reference.py lorencia [traza.txt]   # compara con las celdas opacas de la traza
     frustum_reference.py selection [traza.txt]  # lo mismo con la de la selección
     frustum_reference.py login                  # el rango de bloques y la cuenta del login
-Las trazas, de MURET_CLIENT_GL_TRACE_DIR; el .att, de MURET_CLIENT_DATA (world.py).
+Las trazas, de MU_CLIENT_GL_TRACE_DIR; el .att, de MU_CLIENT_DATA (world.py).
     frustum_reference.py --camera fov far ax ay az cx cy cz --hero hx hy hz --scene S --map M
 """
 import argparse
@@ -381,7 +381,7 @@ def main():
     if a.list:
         print(drawn)
     if a.case in TRACES and not a.camera:
-        trace = a.trace or os.path.join(os.environ.get('MURET_CLIENT_GL_TRACE_DIR', '.'), TRACES[a.case])
+        trace = a.trace or os.path.join(os.environ.get('MU_CLIENT_GL_TRACE_DIR', '.'), TRACES[a.case])
         sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
         import trace_cells
         tc = trace_cells.read(trace)

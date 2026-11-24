@@ -167,7 +167,7 @@ it. CI keeps building Debug, with its checks.
 Los headers de la biblioteca estándar (y GoogleTest en los tests) se precompilan
 (`cmake/PrecompiledHeaders.cmake`): un build limpio usa como un cuarto menos de CPU. Para compilar
 como el job de Linux del CI, que verifica que cada archivo incluya lo que usa, configurá con
-`-DMURET_PRECOMPILED_HEADERS=OFF`. Ese job corre además `misc-include-cleaner` de clang-tidy 18
+`-DMU_PRECOMPILED_HEADERS=OFF`. Ese job corre además `misc-include-cleaner` de clang-tidy 18
 sobre `Client/`; cómo correrlo a mano lo dice la regla 7 de
 [`docs/CODING_RULES.md`](../docs/CODING_RULES.md).
 
@@ -248,28 +248,28 @@ muestra en sus lugares (CL6.3).
 Con un host, de `--host` o de `[Server] Host`, `Main` necesita antes de abrir la ventana las claves
 de la conexión y, con `--auto-login`, antes que ellas, la cuenta y la clave del entorno:
 
-1. Solo con `--auto-login`: la cuenta y la clave del login, en `MURET_CLIENT_ACCOUNT` y
-   `MURET_CLIENT_PASSWORD`. Sin `--auto-login` se teclean en la ventana de la cuenta y el entorno
+1. Solo con `--auto-login`: la cuenta y la clave del login, en `MU_CLIENT_ACCOUNT` y
+   `MU_CLIENT_PASSWORD`. Sin `--auto-login` se teclean en la ventana de la cuenta y el entorno
    no se mira. No van en la config, que es un archivo, ni en la línea de comandos, que queda en el
    historial y en `ps`. Cada una va de 1 a 10 bytes, el campo del login: si falta, está vacía o
    pasa de 10, el error nombra la variable y nunca trae su valor. Se cargan sin que se vean en la
    pantalla:
 
    ```bash
-   IFS= read -rs -p "cuenta: " MURET_CLIENT_ACCOUNT; echo
-   IFS= read -rs -p "clave: " MURET_CLIENT_PASSWORD; echo
-   export MURET_CLIENT_ACCOUNT MURET_CLIENT_PASSWORD
+   IFS= read -rs -p "cuenta: " MU_CLIENT_ACCOUNT; echo
+   IFS= read -rs -p "clave: " MU_CLIENT_PASSWORD; echo
+   export MU_CLIENT_ACCOUNT MU_CLIENT_PASSWORD
    ```
 
    ```powershell
    # -MaskInput es de PowerShell 7.1 o más nuevo.
-   $env:MURET_CLIENT_ACCOUNT = Read-Host "cuenta" -MaskInput
-   $env:MURET_CLIENT_PASSWORD = Read-Host "clave" -MaskInput
+   $env:MU_CLIENT_ACCOUNT = Read-Host "cuenta" -MaskInput
+   $env:MU_CLIENT_PASSWORD = Read-Host "clave" -MaskInput
    ```
 
    Con `IFS=`, `read` no les saca los espacios del principio ni del final. Al terminar, la clave
-   se borra del entorno de la consola: `unset MURET_CLIENT_PASSWORD` en bash, o
-   `Remove-Item Env:MURET_CLIENT_PASSWORD` en PowerShell.
+   se borra del entorno de la consola: `unset MU_CLIENT_PASSWORD` en bash, o
+   `Remove-Item Env:MU_CLIENT_PASSWORD` en PowerShell.
 
 2. Las claves de la conexión con el GameServer, `Enc1.dat` y `Dec2.dat`, de la carpeta de datos
    (`--data` o `[Data] Path`), sin mirar mayúsculas. Sin carpeta, o si alguna no está o no carga,
@@ -351,7 +351,7 @@ falta correr está en P-C16 y P-C21 del [08](docs/research/08-pendientes.md).
    (06 § La cuenta y la clave). Anotar si MuRet vuelve a la lista o se cierra, y si antes sale un aviso.
    Hacer lo mismo con el cliente original en la VM.
 9. Cerrar la ventana y, si se usó `--auto-login`, borrar la clave del entorno
-   (`unset MURET_CLIENT_PASSWORD`).
+   (`unset MU_CLIENT_PASSWORD`).
 
 El log (`muret-client.log`, junto al ejecutable) no trae la cuenta, la clave ni las direcciones:
 se puede compartir. Las capturas de pantalla quedan fuera de Git.
@@ -476,11 +476,11 @@ los del lector. Lo que comparten está en `tests/support/` (la biblioteca `Clien
 
 Los tests golden leen archivos reales del cliente original: los de `Client/assets/Data/`, sin
 nada que configurar, también en CI. Para probar con otra copia de `Data\` (`Enc1.dat`, `Player\`,
-`World1\`…), `MURET_CLIENT_GOLDEN_DIR` apunta a ella, al correr o al configurar:
+`World1\`…), `MU_CLIENT_GOLDEN_DIR` apunta a ella, al correr o al configurar:
 
 ```bash
-MURET_CLIENT_GOLDEN_DIR=/ruta/a/Data ctest --preset linux-x64-debug
-cmake --preset linux-x64-debug -DMURET_CLIENT_GOLDEN_DIR=/ruta/a/Data   # queda en la caché
+MU_CLIENT_GOLDEN_DIR=/ruta/a/Data ctest --preset linux-x64-debug
+cmake --preset linux-x64-debug -DMU_CLIENT_GOLDEN_DIR=/ruta/a/Data   # queda en la caché
 ```
 
 Si la carpeta no existe, o le falta el archivo que el test pide, fallan.
@@ -501,13 +501,13 @@ La variable apunta a esa carpeta, la que tiene una carpeta por captura (`2026-10
 y la de los volcados va solo en el entorno:
 
 ```bash
-MURET_CLIENT_GOLDEN_DIR=/ruta/a/Data MURET_CLIENT_MEMORY_DIR=/ruta/a/memoria-cliente ctest --preset linux-x64-debug
+MU_CLIENT_GOLDEN_DIR=/ruta/a/Data MU_CLIENT_MEMORY_DIR=/ruta/a/memoria-cliente ctest --preset linux-x64-debug
 ```
 
 Los de la red leen el cable del laboratorio: el `muproxy.log` que su proxy escribió entre el
 cliente original y los servidores, en `analysis/mainexe/evidence/` de `mu-online-reverse-lab`.
 Lleva el login del jugador, así que queda fuera de Git, y los tests cuentan paquetes y no imprimen
-un byte del cable, ni al fallar. `MURET_CLIENT_WIRE_DIR` apunta a la carpeta que lo tiene, con la
+un byte del cable, ni al fallar. `MU_CLIENT_WIRE_DIR` apunta a la carpeta que lo tiene, con la
 misma regla, solo en el entorno, y no necesita las otras dos.
 
 Desde la CL2.3, la carpeta del cable también tiene las claves del servidor con el que se capturó,
@@ -520,7 +520,7 @@ mkdir -p /ruta/a/cable
 ln -s /ruta/a/mu-online-reverse-lab/analysis/mainexe/evidence/muproxy.log /ruta/a/cable/
 ln -s /ruta/a/mu-server-repack-research-102i/gameserver/evidence/keyfiles/Dec1.dat /ruta/a/cable/
 ln -s /ruta/a/mu-server-repack-research-102i/gameserver/evidence/keyfiles/Enc2.dat /ruta/a/cable/
-MURET_CLIENT_WIRE_DIR=/ruta/a/cable ctest --preset linux-x64-debug
+MU_CLIENT_WIRE_DIR=/ruta/a/cable ctest --preset linux-x64-debug
 ```
 
 Los tests que comparan estas claves con las del cliente, `Enc1.dat` y `Dec2.dat`, necesitan
@@ -531,10 +531,10 @@ referencia Python independiente, byte a byte y sin imprimir valores. Antes de co
 sus sidecars privados en la carpeta del cable, con el entorno del laboratorio:
 
 ```bash
-export MURET_CLIENT_WIRE_DIR=/ruta/a/cable
-export MURET_C3C4_REFERENCE=/ruta/a/c3c4_reference.py
-export MURET_MAIN_EXE=/ruta/a/main.exe
-python3 -I Client/docs/research/scripts/game/wire/inventory_fixture.py --output-dir "$MURET_CLIENT_WIRE_DIR"
+export MU_CLIENT_WIRE_DIR=/ruta/a/cable
+export MU_C3C4_REFERENCE=/ruta/a/c3c4_reference.py
+export MU_MAIN_EXE=/ruta/a/main.exe
+python3 -I Client/docs/research/scripts/game/wire/inventory_fixture.py --output-dir "$MU_CLIENT_WIRE_DIR"
 ctest --preset linux-x64-debug -R '^GoldenEncryptedPacket\.'
 ```
 
@@ -552,30 +552,30 @@ Los de las trazas de GL (desde la CL6.2: `GoldenSkinningTrace`, `GoldenShineTrac
 que el original le mandó a GL. Leen las trazas de GLIntercept de la selección y de Lorencia
 (`character-selection-Frame_003207.txt` y `lorencia-Frame_016215.txt`, de `graphics-01/` en
 `mu-online-reverse-lab`, descomprimidas con `gunzip -k`), que quedan fuera de Git.
-`MURET_CLIENT_GL_TRACE_DIR` apunta a la carpeta que las tiene, solo en el entorno: sin la variable
+`MU_CLIENT_GL_TRACE_DIR` apunta a la carpeta que las tiene, solo en el entorno: sin la variable
 se saltean, y si no es una carpeta o le falta una traza, fallan. Necesitan también la carpeta golden:
 
 ```bash
-MURET_CLIENT_GL_TRACE_DIR=/ruta/a/trazas ctest --preset linux-x64-debug -R Trace
+MU_CLIENT_GL_TRACE_DIR=/ruta/a/trazas ctest --preset linux-x64-debug -R Trace
 ```
 
 Los de `tests/render_gl/` (desde la CL5.1) abren una ventana escondida con un contexto 3.3 core
 (`tests/support/GlTestContext.h`), dibujan en un framebuffer de 64 × 64 y leen los píxeles. Llevan
-la etiqueta `gl`. Sin pantalla o sin OpenGL 3.3 se saltean, y con `MURET_CLIENT_REQUIRE_GL=1`
+la etiqueta `gl`. Sin pantalla o sin OpenGL 3.3 se saltean, y con `MU_CLIENT_REQUIRE_GL=1`
 fallan con el motivo: así los corre el CI, en Xvfb, junto con los del lab de la CL5.0:
 
 ```bash
-MURET_CLIENT_REQUIRE_GL=1 xvfb-run -a ctest --preset linux-x64-debug -L '^gl$' --no-tests=error
+MU_CLIENT_REQUIRE_GL=1 xvfb-run -a ctest --preset linux-x64-debug -L '^gl$' --no-tests=error
 ```
 
 Los de FreeType (`FreeTypeRasterizerTest`, desde la CL5.3) necesitan una fuente TrueType, que
-MuRet no versiona: `MURET_CLIENT_FONT_FILE` apunta al archivo, con la regla de las carpetas (sin
+MuRet no versiona: `MU_CLIENT_FONT_FILE` apunta al archivo, con la regla de las carpetas (sin
 la variable se saltean; si no es un archivo, o FreeType no lo abre, fallan). No comparan con GDI:
 miden y dibujan con esa fuente y miran que no haya suavizado, el alto de la celda y los avances.
 En CI es una fuente del runner:
 
 ```bash
-export MURET_CLIENT_FONT_FILE=/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf
+export MU_CLIENT_FONT_FILE=/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf
 ctest --preset linux-x64-debug -R FreeType
 ```
 

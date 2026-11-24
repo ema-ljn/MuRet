@@ -155,7 +155,7 @@ def main():
     import image
 
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--exe', help='main.exe c32bbd5f (o MURET_MAIN_EXE)')
+    parser.add_argument('--exe', help='main.exe c32bbd5f (o MU_MAIN_EXE)')
     parser.add_argument('--sites', action='store_true', help='una fila por llamada directa')
     args = parser.parse_args()
     executable = image.exe_path(args.exe)

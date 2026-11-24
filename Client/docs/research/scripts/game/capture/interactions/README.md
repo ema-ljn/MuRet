@@ -63,10 +63,10 @@ Desde esta carpeta, con MinGW-w64 i686 y un directorio de salida privado existen
 ```bash
 i686-w64-mingw32-gcc -std=c11 -O2 -Wall -Wextra -D__USE_MINGW_ANSI_STDIO=0 \
   -static -mwindows -Wl,--major-subsystem-version,5,--minor-subsystem-version,1 \
-  xp-input.c -o "$MURET_LAB_OUTPUT/xp-input.exe" -luser32
+  xp-input.c -o "$MU_LAB_OUTPUT/xp-input.exe" -luser32
 i686-w64-mingw32-gcc -std=c11 -O2 -Wall -Wextra -D__USE_MINGW_ANSI_STDIO=0 \
   -static -mwindows -Wl,--major-subsystem-version,5,--minor-subsystem-version,1 \
-  xp-debug-control.c -o "$MURET_LAB_OUTPUT/xp-debug-control.exe" -ldbgeng -lole32 -luuid
+  xp-debug-control.c -o "$MU_LAB_OUTPUT/xp-debug-control.exe" -ldbgeng -lole32 -luuid
 ```
 
 Recompilados con GCC 16-win32 de la imagen local del laboratorio, sin red. Inspeccionar los PE32
@@ -113,15 +113,15 @@ wrapper local del laboratorio que obtiene la contraseña del keyring; no se incl
 se reemplaza por `vmrun -gu/-gp`. Configurar fuera del repo:
 
 ```bash
-export MURET_VM_VMX='/ruta/absoluta/VMXP.vmx'
+export MU_VM_VMX='/ruta/absoluta/VMXP.vmx'
 export VMWARE_GUEST_USER='usuario-del-guest'
-export MURET_VM_OUTPUT_DIR='/capturas-privadas/sesion-nueva'
-export MURET_VM_GUEST_DIR='C:\Capture\sesion-nueva'
-export MURET_VM_CONTROL_EXE='C:\Capture\tools\xp-debug-control.exe'
+export MU_VM_OUTPUT_DIR='/capturas-privadas/sesion-nueva'
+export MU_VM_GUEST_DIR='C:\Capture\sesion-nueva'
+export MU_VM_CONTROL_EXE='C:\Capture\tools\xp-debug-control.exe'
 ```
 
 Crear los directorios por el procedimiento habitual y comprobar Tools con
-`vmrun -T ws checkToolsState "$MURET_VM_VMX"`. Operaciones secuenciales; el VMX va inmediatamente
+`vmrun -T ws checkToolsState "$MU_VM_VMX"`. Operaciones secuenciales; el VMX va inmediatamente
 después del nombre de operación. Ejemplo Python desde esta carpeta, con el binario ya desplegado:
 
 ```python
@@ -137,7 +137,7 @@ print(local.read_text())
 `vbs(nombre, texto)` conserva los pequeños scripts de coordinación ASCII/CRLF con `wscript //B`,
 sin mostrar consola; ejecutar sólo el texto revisado y autorizado. No transporta contraseñas.
 
-Para una captura visual, la interfaz usada fue `vmcli "$MURET_VM_VMX" MKS captureScreenshot
+Para una captura visual, la interfaz usada fue `vmcli "$MU_VM_VMX" MKS captureScreenshot
 /capturas-privadas/estado.png`, sin acceder a memoria. No usar estos helpers para cambiar snapshots,
 matar procesos o alterar protecciones. Iniciar sesión sigue siendo tarea de la persona.
 
@@ -190,12 +190,12 @@ un servicio temporal del usuario, con strace limitado a señales. Las variables 
 no habilitar una unidad permanente ni usar este procedimiento sobre el original.
 
 ```bash
-systemd-run --user --unit=UNIDAD_NUEVA --working-directory="$MURET_LAB_OUTPUT" \
+systemd-run --user --unit=UNIDAD_NUEVA --working-directory="$MU_LAB_OUTPUT" \
   --setenv=DISPLAY --setenv=XAUTHORITY --setenv=SDL_VIDEODRIVER=x11 \
-  --property="StandardOutput=append:$MURET_LAB_OUTPUT/cliente.log" \
+  --property="StandardOutput=append:$MU_LAB_OUTPUT/cliente.log" \
   --property=StandardError=inherit \
-  strace -ff -e trace=none -e signal=all -o "$MURET_LAB_OUTPUT/signals" \
-  "$MURET_BIN" --config "$MURET_PRIVATE_CONFIG"
+  strace -ff -e trace=none -e signal=all -o "$MU_LAB_OUTPUT/signals" \
+  "$MU_BIN" --config "$MU_PRIVATE_CONFIG"
 systemctl --user show UNIDAD_NUEVA -p ActiveState -p ExecMainStatus
 ```
 

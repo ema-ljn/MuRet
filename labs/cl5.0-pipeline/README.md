@@ -25,17 +25,17 @@ Las tres misiones van en la biblioteca `MuRetLabsCl50`, sin GL (desde la CL5.2 e
 donde quedaron las cuentas del quad), y sus tests y el jefe en `LabCl50Tests`, con el prefijo
 `LabCl50.` en CTest: son 20. Lo de `gl/` va en `MuRetLabsCl50Gl`, que enlaza `ClientPlatform`, y sus
 tests en `LabCl50GlTests`, con el prefijo `LabCl50Gl.` y la etiqueta `gl`: son 11, y 4 de ellos
-abren GL. Sin pantalla esos 4 se saltean, y con `MURET_CLIENT_REQUIRE_GL=1` fallan (la pregunta 9
+abren GL. Sin pantalla esos 4 se saltean, y con `MU_CLIENT_REQUIRE_GL=1` fallan (la pregunta 9
 del plan); el CI los corre en Xvfb con la variable:
 
 ```bash
 cmake --preset linux-x64-debug && cmake --build --preset linux-x64-debug
 ctest --preset linux-x64-debug -R "LabCl50"
-MURET_CLIENT_REQUIRE_GL=1 xvfb-run -a ctest --preset linux-x64-debug -L '^gl$'
+MU_CLIENT_REQUIRE_GL=1 xvfb-run -a ctest --preset linux-x64-debug -L '^gl$'
 ```
 
 Sin pantalla, el salteo dice qué faltó: "sin OpenGL 3.3 core (SDL_Init falló: No available video
-device): test salteado; con MURET_CLIENT_REQUIRE_GL=1 falla". Con la variable, el mismo motivo va
+device): test salteado; con MU_CLIENT_REQUIRE_GL=1 falla". Con la variable, el mismo motivo va
 en el fallo.
 
 ## Lo que `gl/` toma del cliente
@@ -48,7 +48,7 @@ necesita.
 
 Hasta la CL5.1 el lab tenía su propia tabla de 41 funciones y una copia del pedido, del reintento en
 `opengl32.dll` de Windows, de los chequeos de la versión y del perfil y de la lectura de
-`MURET_CLIENT_REQUIRE_GL`. La CL5.1 se las llevó al cliente: la tabla es la X-macro de
+`MU_CLIENT_REQUIRE_GL`. La CL5.1 se las llevó al cliente: la tabla es la X-macro de
 `Platform/GlFunctionList.h`, `LoadGlFunctions` mira la versión y el perfil antes de pedir el resto,
 el pedido de cada función es `Platform::LoadGlFunction`, y la variable se lee con
 `Core::ReadEnvironmentVariable`. En `gl/LabGl.h` queda una sola función, `glDrawElements`, que el

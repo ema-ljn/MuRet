@@ -539,6 +539,7 @@ inline constexpr std::uint8_t CrywolfWarState = 2;
 | `LastLitCrywolfState` (2) | `EventPackets.cpp:246` | stays, as the bound of `>`, initialized with `CrywolfWarState` |
 | `SmokeState` (1), the literals 0 and 2 | `CrywolfObjectServices.cpp:32,178,246`, `WorldObjectsDrawing.cpp:703` | `CrywolfOccupiedState`, `CrywolfPeaceState`, `CrywolfWarState` |
 | `> 2`, `!= 0`, `== 1` | `MapLoad.cpp:283,325,328` | the same operators, with the names |
+| `== 0`, and the two zeros of the reset | `EventPackets.cpp:1260,1625-1626` | `CrywolfPeaceState`; the reset writes `CrywolfPeaceState` and `CrywolfNoStage` |
 
 - [ ] **Step 1: Write the failing tests.**
 
@@ -632,15 +633,18 @@ Title: `feat(AR0.2): report the cycles of the declared may_use graph`.
 - Modify: `Client/tools/architecture/check_layers.py`, `Client/tools/architecture/test_check_layers.py`
 
 **Interfaces:**
-- Produces: `def declared_cycles(modules: dict[str, Module]) -> list[list[str]]`. Its edges are the module names in
-  each `may_use` (a `*layer<N` entry cannot close a cycle and is skipped); it returns the strongly connected
-  components of more than one module, each sorted, as `cycles` does for the include graph. `main` prints
-  `declared cycle of N modules: …` for each, after the include cycles, and its exit code does not change.
+- Produces: `def declared_cycles(modules: dict[str, Module]) -> list[list[str]]`. Its edges are what
+  `Module.may_include` allows, so a name and a `*layer<N` bound count alike: a module that names a higher one closes
+  a cycle with that module's bound, and a bound above the module's own layer permits its own layer. It returns the
+  strongly connected components of more than one module, each sorted, as `cycles` does for the include graph. `main`
+  prints `declared cycle of N modules: …` for each, after the include cycles, and its exit code does not change.
 
 - [ ] **Step 1: Write the failing tests:** `test_declared_cycle_between_two_modules` (each names the other: one
   cycle of two), `test_declared_ring_of_three_is_one_cycle`, `test_one_way_permission_is_no_declared_cycle`,
-  `test_layer_bound_is_not_a_declared_edge`, and `test_declared_cycle_does_not_fail_the_check` (exit code 0, the line
-  printed).
+  `test_layer_bounds_of_the_own_layer_declare_no_cycle`,
+  `test_name_of_a_higher_module_closes_a_cycle_with_its_layer_bound`,
+  `test_layer_bound_above_the_own_layer_declares_a_cycle`, and `test_declared_cycle_does_not_fail_the_check` (exit
+  code 0, the line printed).
 - [ ] **Step 2: Run them and see them fail.**
 - [ ] **Step 3: Implement**, sharing the component code with `cycles`.
 - [ ] **Step 4: Run** the tests and the check on the repo. Expected today:

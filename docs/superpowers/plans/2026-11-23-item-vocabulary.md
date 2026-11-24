@@ -316,6 +316,9 @@ PR `refactor(items): name the fields of the in-memory item after what 0x54bf40 p
 
   `id`, `scalar1Low`, `flags1b`, `flags1c` keep their names: their other bits are not verified. The comment "Nombres
   neutros…" goes, and `Classify` (`ItemState.cpp:603`), which fills `part`, becomes `PartOf`.
+  After the rename, `Scenes/InventoryMoves.cpp:1435` reads `item.requiredLeadership > strength`. That is the original:
+  `0x5c35ad` compares the required leadership with the strength (Q-C475 in `07-quirks-y-bugs.md`, pinned by
+  `CursorItemTest.HoveringTheEquipmentMarksWhatTheHeroCannotUse`), so the line stays as it is.
 
 - [ ] **Step 1: Rename the members in `ItemState.h`.** Not by text replacement: `word0c`, `word0e` and `word12` are
   also members of the pet record in `Scenes/WorldRuntime.h:300-303` and `word12` of `Data/Tables/QuestTable.h:80`.
@@ -515,6 +518,10 @@ below are for the recommended `game/Tables`.
   group's first code or first model (identity report, section 3.4, by value; Task 1's `FirstStaff`, `StaffsEnd`,
   `FirstGloves`, `FirstStaffModel`, `StaffModelsEnd` and `WeaponsEnd` among them) take their value from the bounds the
   same way, keeping their type: `constexpr std::int32_t FirstGloves = FirstCodeOf(ItemGroup::Gloves);`.
+  The two constants that hold `0x1e1e` are the Heart's model (14:12), not the exception above: `Zen` in
+  `Scenes/UiItemDrawing.cpp:229` (the Zen is 14:15, model `0x1e21`) and `LeveledModel` in `Scenes/ItemDrawing.cpp:43`
+  (`0x60cf9f` swaps the Heart's model by level). Both become `HeartModel`, keep their type and take
+  `Models::Heart` as their initializer.
 - [ ] **Step 4: Check** `check_layers.py` prints `0 new` (every user is in a module above layer 6, or in
   `game/Tables`; `Protocol/Events.h` keeps its literal, since `Protocol` is at layer 6 too) and push. CI green, the
   golden unchanged.

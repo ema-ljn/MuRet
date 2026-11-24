@@ -199,6 +199,13 @@ jobs:
             --map Client/docs/research/coverage/module-map.tsv \
             --baseline Client/tools/architecture/layers-baseline.tsv --clean-root engine
 
+      - name: Client named values
+        if: matrix.kind == 'includes'
+        run: |
+          python3 -I Client/tools/architecture/check_named_values.py --src Client/src --modules Client/modules.tsv \
+            --map Client/docs/research/coverage/module-map.tsv --spaces Client/tools/architecture/named-values.tsv \
+            --baseline Client/tools/architecture/named-values-baseline.tsv
+
       # ADR 0027: math that the C library or glm rounds, called by name instead of through RoundedMath.h, fails.
       - name: Client rounded math
         if: matrix.kind == 'includes'

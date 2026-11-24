@@ -24,8 +24,9 @@ file belongs to is the [`muret-module`](../muret-module/SKILL.md) skill.
 
    It runs `git mv` to `Client/src/<target>/<name>`, rewrites the `#include` lines whose path inside its root changed
    (`"Scenes/GuildState.h"` becomes `"Guild/GuildState.h"`; `"Core/Expected.h"` stays when only its root changes), the
-   moved paths in `CMakeLists.txt`, `*.cmake` and the workflows, the `file` column of the map and of
-   `layers-baseline.tsv`, and adds each move to `entradas/moves.tsv` without its commit.
+   moved paths in `CMakeLists.txt`, `*.cmake` and the workflows, the `file` column of the map, of
+   `layers-baseline.tsv` and of `named-values-baseline.tsv`, a `home` of `named-values.tsv` that names a moved header,
+   and adds each move to `entradas/moves.tsv` without its commit.
 3. Read what it printed and do by hand only that:
    - `names src/X/, which the move emptied`: a folder in a build file (a `list(FILTER … REGEX "/src/Platform/")`) that
      now has to name the new folder.

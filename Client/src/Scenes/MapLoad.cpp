@@ -8,6 +8,7 @@
 #include "Data/Terrain/TerrainObjects.h"
 #include "Data/WorldFolder.h"
 #include "Data/WorldLoadIdentity.h"
+#include "Protocol/Events.h"
 #include "Render/Models/Cloth.h"
 #include "Scenes/ActorCreation.h"
 #include "Scenes/ActorState.h"
@@ -280,7 +281,7 @@ Core::Expected<void, std::string> LoadMap(std::uint8_t argumentMap, const MapLoa
         for (const Audio::SoundDefinition& sound : Audio::WorldSoundsForMap(map))
             runtime.audio->RegisterSound(sound.id, sound.path);
     const std::uint8_t crywolfState = runtime.crywolf.state;
-    const bool reusePreviousPaths = map == CrywolfMap && crywolfState > 2;
+    const bool reusePreviousPaths = map == CrywolfMap && crywolfState > Protocol::Events::CrywolfWarState;
     WorldMap& loaded = context.world.Map();
     // Invalidación interna por intento, también si falla antes de alcanzar4377a0. No consume CRT.
     ++loaded.loadRevision;
@@ -322,10 +323,11 @@ Core::Expected<void, std::string> LoadMap(std::uint8_t argumentMap, const MapLoa
             names.reusePreviousPaths = true;
             names.lightName = "TerrainHeight";
         }
-        else if (crywolfState != 0)
+        else if (crywolfState != Protocol::Events::CrywolfPeaceState)
         {
             names.attributesNumber = static_cast<std::int32_t>(Data::WorldFolderNumber(CrywolfMap)) * 10 + crywolfState;
-            names.lightName = crywolfState == 1 ? "TerrainLight1" : "TerrainLight2";
+            names.lightName =
+                crywolfState == Protocol::Events::CrywolfOccupiedState ? "TerrainLight1" : "TerrainLight2";
         }
     }
     // 61a6ea/61a8af: el estado activo elige312 yTerrainLight2; elMAP yOBJ conservan el mundo31.

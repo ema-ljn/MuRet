@@ -1,12 +1,14 @@
 #include "Scenes/CrywolfInterfaceDrawing.h"
 
 #include "Core/Expected.h"
+#include "Protocol/Events.h"
 #include "Render/OriginalQuad.h"
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/TextStyle.h"
 #include "Render/TextureSlot.h"
+#include "Scenes/CrywolfContract.h"
 #include "Scenes/GameHud.h"
 #include "Scenes/HudText.h"
 #include "Scenes/WorldRuntime.h"
@@ -39,11 +41,6 @@ float F32(double value)
 {
     return static_cast<float>(value);
 }
-
-// 0x435a00 (la etapa 0x723c05 en 3 o 4) y 0x4303c0 (el mapa 0x6c9dd0 en 0x22); 0x430180 solo con la 3.
-constexpr std::uint8_t DefenseStage = 3;
-constexpr std::uint8_t WarningStage = 4;
-constexpr std::int32_t CrywolfMap = 0x22;
 
 // [ebp-0x1d8]..[ebp-0xac]: los 300 bytes del buffer de wsprintfA ([0x6b851c]).
 constexpr std::size_t TextBuffer = 300;
@@ -500,7 +497,7 @@ bool TipTimerFires(CrywolfInterface& ui, std::uint32_t now)
 // 0x430180: los consejos de la etapa 3.
 Result DrawTheTips(GameHudContext& context, CrywolfInterface& ui, std::uint8_t stage)
 {
-    if (stage != DefenseStage)
+    if (stage != Protocol::Events::CrywolfReadyStage)
         return {};
     HudState& hud = context.hud;
     hud.dcFont = FontKind::Bold;
@@ -656,17 +653,15 @@ Result DrawTheCrywolfInterface(GameHudContext& context)
             return results;
     }
     DrawTheNotice(context.sprites, ui);
-    const std::uint8_t stage = runtime.crywolf.stage;
-    if ((stage != DefenseStage && stage != WarningStage) || runtime.map != CrywolfMap)
+    if (!InTheCrywolfDefense(runtime))
         return {};
-    return DrawTheState(context, ui, stage);
+    return DrawTheState(context, ui, runtime.crywolf.stage);
 }
 
 Core::Expected<void, std::string> DrawTheCrywolfContract(GameHudContext& context)
 {
     WorldRuntime& runtime = context.world.Runtime();
-    const std::uint8_t stage = runtime.crywolf.stage;
-    if ((stage != DefenseStage && stage != WarningStage) || runtime.map != CrywolfMap)
+    if (!InTheCrywolfDefense(runtime))
         return {};
     // 0x436264..0x43626e: antes de mirar la ventana.
     context.hud.textColors = Render::Text::TextColors{.text = TitleColor, .background = 0};

@@ -222,6 +222,17 @@ inline constexpr std::uint8_t CrywolfStartStage = 4;
 inline constexpr std::uint8_t CrywolfEndStage = 5;
 inline constexpr std::uint8_t CrywolfEndCycleStage = 6;
 
+// The values of CrywolfState::state (0x723c04), named after the later source's CRYWOLF_OCCUPATION_STATE_TYPE.
+inline constexpr std::uint8_t CrywolfPeaceState = 0;
+inline constexpr std::uint8_t CrywolfOccupiedState = 1;
+inline constexpr std::uint8_t CrywolfWarState = 2;
+
+// 0x435a00: the stage is the ready one or the started one.
+[[nodiscard]] constexpr bool CrywolfIsReadyOrStarted(std::uint8_t stage)
+{
+    return stage == CrywolfReadyStage || stage == CrywolfStartStage;
+}
+
 // 0x4e5990 → 0x4e0fe0 (BD 02): 0x430000(dword de pkt+4, pkt[8], pkt[9], pkt[0xa], pkt[0xb], pkt[0xc]), la luz
 // (0x723c08) y los cinco altares (0x6c73cc..0x6c73d0).
 struct CrywolfAltars

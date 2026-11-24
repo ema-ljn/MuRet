@@ -12,6 +12,7 @@
 #include <gtest/gtest.h>
 
 #include <cstdint>
+#include <initializer_list>
 #include <span>
 #include <string>
 #include <utility>
@@ -230,6 +231,33 @@ TEST_F(ChatLogDrawTest, InCrywolfTheListMovesAndRowsHangBelow)
     EXPECT_EQ(m_frame.y, 0x12f);
     ASSERT_EQ(m_text.texts.size(), 2u);
     EXPECT_EQ(m_text.texts[0].x, 0xba + 10);
+    EXPECT_EQ(m_text.texts[0].y, 0x12f + 0x65);
+}
+
+// 0x45cbb0 reads 0x723c05: only 3 and 4 move the list; with any other stage the row stays above the bottom edge.
+TEST_F(ChatLogDrawTest, OnlyTheCrywolfStagesThreeAndFourMoveTheList)
+{
+    Push("Ana", "hola", 0);
+
+    for (const std::uint8_t stage : std::initializer_list<std::uint8_t>{0, 1, 2, 5, 6, 0xff})
+    {
+        m_text.texts.clear();
+        m_view.crywolfStage = stage;
+
+        Draw();
+
+        EXPECT_EQ(m_frame.y, 0x1a4) << "stage " << int{stage};
+        ASSERT_EQ(m_text.texts.size(), 2u) << "stage " << int{stage};
+        EXPECT_EQ(m_text.texts[0].y, 0x1a4 - 0x10) << "stage " << int{stage};
+    }
+
+    m_text.texts.clear();
+    m_view.crywolfStage = 4;
+
+    Draw();
+
+    EXPECT_EQ(m_frame.y, 0x12f);
+    ASSERT_EQ(m_text.texts.size(), 2u);
     EXPECT_EQ(m_text.texts[0].y, 0x12f + 0x65);
 }
 } // namespace

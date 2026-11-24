@@ -1,6 +1,7 @@
 #include "Scenes/ModelEffects.h"
 
 #include "Core/Expected.h"
+#include "Protocol/Events.h"
 #include "Render/Models/Animation.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/HalfLifeMath.h"
@@ -1189,7 +1190,7 @@ Result StepTheCrywolfHelper(ModelEffectsPass& pass)
     const float frame = actor.animation.frame;
     const glm::vec3 ember{Bits(0x3f666666u), Bits(0x3e4ccccdu), Tenth};
     const std::uint8_t stage = pass.world.Runtime().crywolf.stage;
-    constexpr std::uint8_t Siege = 4;
+    constexpr std::uint8_t Siege = Protocol::Events::CrywolfStartStage;
     switch (actor.type)
     {
     case 0x1ab:

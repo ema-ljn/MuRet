@@ -104,6 +104,26 @@ protected:
     std::vector<Client::Protocol::Outgoing> sent;
 };
 
+// 0x435a00 && 0x4303c0: the stage 3 or 4, in the map 34.
+TEST_F(CrywolfContractTest, TheDefenseNeedsTheStageAndTheMap)
+{
+    constexpr std::int32_t AidaMap = 33;
+    constexpr std::int32_t MapAfterCrywolf = 35;
+    for (int stage = 0; stage <= 0xff; ++stage)
+    {
+        Enter(CrywolfMap, static_cast<std::uint8_t>(stage));
+        EXPECT_EQ(Client::Scenes::InTheCrywolfDefense(Runtime()), stage == 3 || stage == 4) << "stage " << stage;
+    }
+    for (const std::int32_t map : {0, AidaMap, MapAfterCrywolf})
+    {
+        for (const std::uint8_t stage : std::initializer_list<std::uint8_t>{3, 4})
+        {
+            Enter(map, stage);
+            EXPECT_FALSE(Client::Scenes::InTheCrywolfDefense(Runtime())) << "map " << map << ", stage " << int{stage};
+        }
+    }
+}
+
 // 0x435b00: solo con la etapa 3 o 4 en el 34 y sin la salida pedida. Con otro mensaje que 0x38, el texto 1950 + n y la
 // ventana 2 (la 1 con 0x39); el renglón 0 vacía el 1 y el valor queda en 0x723be0.
 TEST_F(CrywolfContractTest, TheMessageNeedsTheDefenseInCrywolf)

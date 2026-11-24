@@ -2990,7 +2990,8 @@ apaga los ayudantes (el 8) o el cuervo (el `0x1a05` del 1). Con un ítem en el c
 Dark Lord con `+0x49`, el elfo y los arcos, el Magic Gladiator con las dos manos), los requisitos contra el registro
 (en words que dan la vuelta; con el `0x1a5`, además, el nivel del cuervo `[0x723968]` · 15 + `0xb9` contra el
 liderazgo sin agregados, por `0x4221a0`, Q-C775), el mapa (Atlans, Icarus y Chaos Castle con las monturas), Crywolf (las etapas 3 y 4
-con `0x200000` en `+0x7c`) y la montura en uso. Si va, la marca 2 y, con el clic, `0x78abaac` en 1, el destino
+por `0x435a00`, llamada desde `0x5bf0f6`, con `0x200000` en `+0x7c`) y la montura en uso. Si va, la marca 2 y, con el
+clic, `0x78abaac` en 1, el destino
 (`0x77f3cc8`; un arma de una mano o un bastón al 1 con la derecha vacía va al 0), el aviso 1862 de Fenrir y, sin la
 traba, el `24`. Si no va, la marca 3 y, con el clic y sin la traba, `0x5be150`. Desde otra grilla (`0x5bf236` con
 `0x78ab9b8` distinto del inventario; CL9 hito 6, fase 5, `Scenes::DropOnTheEquipment`, test

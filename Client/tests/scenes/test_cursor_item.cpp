@@ -735,6 +735,48 @@ TEST_F(CursorItemTest, TheOldDarkRavenAsksForTheLeadershipOfTheRavenLevel)
     EXPECT_EQ(mark(), 2);
 }
 
+// 0x5bf0f6..0x5bf185: with 0x435a00 (0x723c05 in 3 or 4) and the hero's 0x200000 in +0x7c, the horn does not go on the
+// pet's slot and the Dark Raven does not go on the left hand. The items and their shapes are invented.
+TEST_F(CursorItemTest, TheCrywolfLockNeedsTheStageThreeOrFourAndTheHerosFlag)
+{
+    constexpr std::uint16_t Horn = 0x1a03;
+    constexpr std::uint16_t Raven = 0x1a05;
+    constexpr std::size_t PetSlot = 8;
+    constexpr std::size_t LeftHand = 1;
+    constexpr std::uint32_t LockFlag = 0x200000;
+    constexpr std::uint32_t EveryOtherFlag = ~LockFlag;
+    constexpr std::int32_t Fits = 2;
+    constexpr std::int32_t DoesNotFit = 3;
+    items = ItemTableOf({{Horn, 1, 1, std::uint8_t{PetSlot}}, {Raven, 1, 1, std::uint8_t{LeftHand}}});
+    world.Actors()[0].characterClass = DarkKnight;
+    Scenes::WorldRuntime& runtime = world.Runtime();
+    Scenes::OwnCharacterRecord& own = world.OwnCharacter();
+    const auto mark = [&](std::uint16_t type, std::size_t slot, std::uint8_t stage, std::uint32_t flags)
+    {
+        runtime.cursorItem = Invented(type);
+        runtime.cursorItemCount = 1;
+        runtime.crywolf.stage = stage;
+        world.Actors()[0].flags7c = flags;
+        const auto dropped = Scenes::DropOnTheEquipment(Moves(), slot);
+        EXPECT_TRUE(dropped.HasValue()) << dropped.Error();
+        return std::int32_t{own.equipment[slot].warning};
+    };
+
+    for (const std::uint8_t stage : std::initializer_list<std::uint8_t>{3, 4})
+    {
+        EXPECT_EQ(mark(Horn, PetSlot, stage, LockFlag), DoesNotFit) << "stage " << int{stage};
+        EXPECT_EQ(mark(Raven, LeftHand, stage, LockFlag), DoesNotFit) << "stage " << int{stage};
+        EXPECT_EQ(mark(Horn, PetSlot, stage, 0xffffffffu), DoesNotFit) << "stage " << int{stage};
+        EXPECT_EQ(mark(Horn, PetSlot, stage, EveryOtherFlag), Fits) << "stage " << int{stage};
+        EXPECT_EQ(mark(Raven, LeftHand, stage, 0), Fits) << "stage " << int{stage};
+    }
+    for (const std::uint8_t stage : std::initializer_list<std::uint8_t>{0, 1, 2, 5, 6, 0xff})
+    {
+        EXPECT_EQ(mark(Horn, PetSlot, stage, LockFlag), Fits) << "stage " << int{stage};
+        EXPECT_EQ(mark(Raven, LeftHand, stage, LockFlag), Fits) << "stage " << int{stage};
+    }
+}
+
 // 0x5c2c65..0x5c2dd0: levantar del equipo deja el lugar en 0xffff (con +0x3c como estaba), viste al héroe y pide el
 // sonido. En Icarus, las únicas alas no se sacan.
 TEST_F(CursorItemTest, PickingUpFromTheEquipmentEmptiesThePlace)

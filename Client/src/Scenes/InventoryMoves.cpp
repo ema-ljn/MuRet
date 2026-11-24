@@ -5,6 +5,7 @@
 #include "Data/Models/PlayerModels.h"
 #include "Data/Tables/ItemTable.h"
 #include "GameLogic/PathCell.h"
+#include "Protocol/Events.h"
 #include "Protocol/FloorItems.h"
 #include "Protocol/Inventory.h"
 #include "Protocol/PersonalShop.h"
@@ -191,8 +192,6 @@ constexpr std::int32_t AtlansMap = 7;
 constexpr std::int32_t IcarusMap = 10;
 constexpr std::int32_t FirstChaosCastleMap = 18;
 constexpr std::int32_t LastChaosCastleMap = 23;
-constexpr std::uint8_t FirstCrywolfLockStage = 3;
-constexpr std::uint8_t LastCrywolfLockStage = 4;
 constexpr std::uint32_t CrywolfLockFlag = 0x200000;
 constexpr std::uint16_t FirstRidingAction = 0xc5;
 constexpr std::uint16_t LastRidingAction = 0xc8;
@@ -810,8 +809,8 @@ Core::Expected<bool, std::string> FitsTheSlot(const InventoryMoveContext& contex
         lookAtTheMount = false;
     else
         lookAtTheMount = true;
-    const bool crywolfLock = runtime.crywolf.stage >= FirstCrywolfLockStage &&
-                             runtime.crywolf.stage <= LastCrywolfLockStage &&
+    // 0x5bf0f6..0x5bf112: 0x435a00 and the hero's 0x200000 in +0x7c.
+    const bool crywolfLock = Protocol::Events::CrywolfIsReadyOrStarted(runtime.crywolf.stage) &&
                              (hero.flags7c & CrywolfLockFlag) == CrywolfLockFlag;
     if (lookAtTheMount && !crywolfLock)
     {

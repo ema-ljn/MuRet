@@ -37,6 +37,12 @@ using Client::Tests::ErrorOf;
 using Client::Tests::PacketOf;
 using Client::Tests::SameBytes;
 
+// The values of 0x723c05 and 0x723c04 as the BD 00 carries them.
+static_assert(Events::CrywolfNoStage == 0 && Events::CrywolfFirstNoticeStage == 1 &&
+              Events::CrywolfSecondNoticeStage == 2 && Events::CrywolfReadyStage == 3 &&
+              Events::CrywolfStartStage == 4 && Events::CrywolfEndStage == 5 && Events::CrywolfEndCycleStage == 6);
+static_assert(Events::CrywolfPeaceState == 0 && Events::CrywolfOccupiedState == 1 && Events::CrywolfWarState == 2);
+
 template <typename T> T Read(std::vector<std::byte> bytes)
 {
     const auto read = Events::ReadEventPacket(PacketOf(std::move(bytes)));
@@ -226,6 +232,14 @@ TEST(EventsProtocolTest, ReadsTheSubcodedOnes)
               ProtocolError::WrongPacket);
     EXPECT_EQ(ErrorOf(Events::ReadEventPacket(PacketOf(Bytes({0xC1, 0x06, 0xBD, 0x01, 0x02, 0x05})))),
               ProtocolError::WrongPacket);
+}
+
+// 0x435a00: 0x723c05 is 3 or 4.
+TEST(EventsProtocolTest, OnlyTheReadyAndTheStartedStagesAreTheDefense)
+{
+    for (int stage = 0; stage <= 0xff; ++stage)
+        EXPECT_EQ(Events::CrywolfIsReadyOrStarted(static_cast<std::uint8_t>(stage)), stage == 3 || stage == 4)
+            << "stage " << stage;
 }
 
 // Los BD de la interfaz de Crywolf (0x4e620c): 02 (0x4e0fe0), 04, 05, 07, 08 (0x4e1680) y 09 con los bytes que lee el

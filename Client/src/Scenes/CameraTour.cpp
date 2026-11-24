@@ -3,6 +3,7 @@
 #include "Scenes/ArrivalSparks.h"
 
 #include "Core/Expected.h"
+#include "Protocol/Events.h"
 #include "Scenes/ActorCreation.h"
 #include "Scenes/ActorMotion.h"
 #include "Scenes/ActorState.h"
@@ -39,8 +40,8 @@ namespace
 using Result = Core::Expected<void, std::string>;
 
 // 0x4033d0 y 0x4033f0: la etapa del recorrido y la que lo deshace.
-constexpr std::int32_t TourStage = 2;
-constexpr std::int32_t UndoStage = 3;
+constexpr std::int32_t TourStage = Protocol::Events::CrywolfSecondNoticeStage;
+constexpr std::int32_t UndoStage = Protocol::Events::CrywolfReadyStage;
 // 0x403400: 0x404c90(5000).
 constexpr std::int32_t TourDelay = 5000;
 // 0x403d60 y +0x14c en 0x403300: la primera clave del guion.

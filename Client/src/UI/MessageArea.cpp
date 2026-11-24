@@ -1,6 +1,7 @@
 #include "UI/MessageArea.h"
 
 #include "App/WindowState.h"
+#include "Protocol/Events.h"
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
 #include "Render/Text/FontSet.h"
@@ -250,7 +251,10 @@ void DrawTheMessageArea(const MessageAreaState& area, MessageFrameState& frame, 
             context.textColors.background = context.textColors.text;
             context.textColors.text = background;
         }
-        const int drawnY = view.crywolfStage == 3 || view.crywolfStage == 4 ? y + CrywolfOffset : y;
+        const int drawnY = view.crywolfStage == Protocol::Events::CrywolfReadyStage ||
+                                   view.crywolfStage == Protocol::Events::CrywolfStartStage
+                               ? y + CrywolfOffset
+                               : y;
         if (!line.empty())
             context.text.Draw(0, drawnY, line,
                               Render::Text::TextStyle{.font = context.dcFont, .colors = context.textColors});

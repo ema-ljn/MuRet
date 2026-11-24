@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Data/Models/PlayerModels.h"
 #include "Data/Text/TextTable.h"
+#include "Protocol/Events.h"
 #include "Protocol/Viewport.h"
 #include "Render/Models/Animation.h"
 #include "Render/Models/Cloth.h"
@@ -438,7 +439,7 @@ Core::Expected<void, std::string> ArriveAsNew(ActorState& actor, const WorldEntr
     case 0x158:
     case 0x159:
         // 0x4c9883: la etapa 3 no llega a ningún constructor ni toca el RNG.
-        if (runtime.events.cameraTour.stage == 3)
+        if (runtime.events.cameraTour.stage == Protocol::Events::CrywolfReadyStage)
         {
             actor.alpha = 1.0f;
             return {};

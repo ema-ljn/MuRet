@@ -25,9 +25,7 @@ namespace
 {
 using Result = Core::Expected<void, std::string>;
 
-// 0x435a00 (la etapa 0x723c05 en 3 o 4) y 0x4303c0 (el mapa 0x6c9dd0 en 0x22).
-constexpr std::uint8_t DefenseStage = 3;
-constexpr std::uint8_t WarningStage = 4;
+// 0x4303c0: the map 0x6c9dd0 is 0x22.
 constexpr std::int32_t CrywolfMap = 0x22;
 
 // 0x435b5c y 0x435b6c: las dos ventanas.
@@ -64,12 +62,6 @@ constexpr std::uint16_t LastAltarType = 0x208;
 constexpr std::uint8_t ClassBits = 7;
 constexpr std::uint8_t ElfClass = 2;
 
-bool InTheDefense(const WorldRuntime& runtime)
-{
-    const std::uint8_t stage = runtime.crywolf.stage;
-    return (stage == DefenseStage || stage == WarningStage) && runtime.map == CrywolfMap;
-}
-
 bool Inside(const Box& box, std::int32_t x, std::int32_t y)
 {
     return x > box.left && x < box.right && y > box.top && y < box.bottom;
@@ -89,9 +81,14 @@ bool Contracted(const CrywolfInterface& ui, std::size_t altar)
 }
 } // namespace
 
+bool InTheCrywolfDefense(const WorldRuntime& runtime)
+{
+    return Protocol::Events::CrywolfIsReadyOrStarted(runtime.crywolf.stage) && runtime.map == CrywolfMap;
+}
+
 Result ShowTheContractMessage(WorldRuntime& runtime, const Data::Text::TextTable* texts, const ContractMessage& message)
 {
-    if (!InTheDefense(runtime) || runtime.ui.logoutRequested)
+    if (!InTheCrywolfDefense(runtime) || runtime.ui.logoutRequested)
         return {};
     CrywolfInterface& ui = runtime.crywolf.ui;
     if (message.line < 0 || static_cast<std::size_t>(message.line) >= ui.contractLines.size())
@@ -142,7 +139,7 @@ Result ShowTheContractMessage(WorldRuntime& runtime, const Data::Text::TextTable
 
 bool SetTheAltar(WorldRuntime& runtime, std::int32_t altar, std::uint8_t value)
 {
-    if (!InTheDefense(runtime))
+    if (!InTheCrywolfDefense(runtime))
         return true;
     CrywolfInterface& ui = runtime.crywolf.ui;
     // 0x435aeb: sin tope en el original (Q-C1347).
@@ -211,7 +208,7 @@ Result StepTheContractWindow(const ContractWindowContext& context)
 Core::Expected<AltarClick, std::string> ClickTheCrywolfAltar(WorldRuntime& runtime, const Data::Text::TextTable* texts,
                                                              const ActorState& hero, const ActorState& target)
 {
-    if (!InTheDefense(runtime))
+    if (!InTheCrywolfDefense(runtime))
         return AltarClick::NotAnAltar;
     if (target.type < FirstAltarType || target.type > LastAltarType)
         return AltarClick::NotAnAltar;
@@ -249,7 +246,7 @@ bool CrywolfAltarGoal(const WorldState& world)
 {
     // 0x4eac0a..0x4eac1a.
     const WorldRuntime& runtime = world.Runtime();
-    if (!InTheDefense(runtime))
+    if (!InTheCrywolfDefense(runtime))
         return false;
     // 0x4eac1c..0x4eac3f: [0x743a16c] + 0x438 · [0x6c8e54] + 2, con CMP de 16 bits con signo.
     const std::int32_t chosen = runtime.movement.chosenNpc;

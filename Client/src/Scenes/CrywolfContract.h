@@ -47,6 +47,9 @@ struct ContractMessage
     std::int32_t altar = -1;
 };
 
+// 0x435a00 && 0x4303c0: the stage is the ready one or the started one, in Crywolf's map.
+[[nodiscard]] bool InTheCrywolfDefense(const WorldRuntime& runtime);
+
 // 0x435b00: con la etapa en 3 o 4 (0x435a00), en el mapa 34 (0x4303c0) y sin la salida pedida (0x576793c). Con 0x38,
 // wsprintfA(renglón, texto 2006, altar & 0xf) y la ventana 1; con otro, strcpy(renglón, texto 1950 + n) y la ventana
 // 2, que el 0x39 pasa a 1. Con el renglón 0 vacía el 1; al final, 0x723be0 = valor. Fuera de su guarda no hace nada.

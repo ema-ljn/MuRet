@@ -440,7 +440,10 @@ inline constexpr OpcodeTable GameServerOpcodes{
 `GameScene` stops doing nine jobs: it becomes **the ordered list** of steps and draws of the game
 frame, each with its address (`0x5208a0` → effects, …), calling into the modules. The order of the
 original's calls lives in one place (the script), and the work in the modules. The same goes for
-login and selection, and `main.cpp` (1,010 lines) moves to `app/App` as the composition root.
+login and selection. `main.cpp` (1,010 lines) stops composing the running client: `App::GameClient`, in
+`app/App`, is the composition root that `main` builds with the real devices and the behavior golden with
+doubles, and `main.cpp` keeps the phases of the startup
+([plan](../plans/2026-11-24-thin-main.md)).
 
 ### Addresses, offsets and citations
 

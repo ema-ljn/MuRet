@@ -198,7 +198,7 @@ map	Scenes/CombatReplies.cpp	FirstBloodCastleMap	0xb
 map	Scenes/CombatReplies.cpp	FirstChaosCastleMap	0x12
 map	Scenes/CombatReplies.cpp	LastChaosCastleMap	0x17
 map	Scenes/CrywolfContract.cpp	CrywolfMap	0x22
-map	Scenes/CrywolfInterfaceDrawing.cpp	CrywolfMap	0x22
+map	Scenes/CrywolfMusic.cpp	CrywolfMap	0x22
 map	Scenes/DarkSpirit.cpp	LoginMap	0x37
 map	Scenes/EventDrawing.cpp	FirstBloodCastleMap	0xb
 map	Scenes/EventDrawing.cpp	FirstChaosCastleMap	0x12

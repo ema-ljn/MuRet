@@ -1,7 +1,7 @@
 #include "Scenes/ActorEffectFlags.h"
 
 #include "Core/Expected.h"
-#include "App/WindowState.h"
+#include "Core/PixelSize.h"
 #include "Data/Models/PlayerModels.h"
 #include "Render/Models/Cloth.h"
 #include "Scenes/ActorFlags.h"
@@ -85,7 +85,7 @@ Core::Expected<void, std::string> ShowTheBlessingNotice(const WorldEntryResource
     const auto text = resources.texts->Text(BlessingNoticeText);
     if (!text)
         return Cut("0x4e68f5: Text.bmd no ofrece el registro 1828 del aviso");
-    const App::PixelSize screen = resources.screen ? resources.screen() : App::PixelSize{640, 480};
+    const Core::PixelSize screen = resources.screen ? resources.screen() : Core::PixelSize{640, 480};
     // 0x5767b6c es una ancla de nombre vacía. Incluso un Text1828 vacío debe envejecer el log y añadir su fila.
     return AddGameMessage(resources.world.Runtime(), *resources.textMeasure, screen, {}, *text, SystemMessage);
 }

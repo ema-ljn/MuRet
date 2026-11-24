@@ -2,9 +2,9 @@
 #include "Scenes/CastleWindows.h"
 
 #include "Core/Expected.h"
+#include "Core/PixelSize.h"
 #include "Protocol/Guild.h"
 #include "Protocol/Outgoing.h"
-#include "App/WindowState.h"
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/GameMessages.h"
@@ -62,7 +62,7 @@ UI::PanelDialogAnswer AnswerOf(WorldState& world, const GuildSender& send)
 Core::Expected<std::uint32_t, std::string> PopUpThePanelDialog(WorldRuntime& runtime,
                                                                const UI::PanelDialogRequest& request,
                                                                const Render::Text::ITextMeasure& measure,
-                                                               App::PixelSize screen, std::uint32_t now)
+                                                               Core::PixelSize screen, std::uint32_t now)
 {
     UI::PanelDialogState& dialog = runtime.panels.delegated.panelDialog;
     switch (UI::OpenThePanelDialog(dialog, request, measure, runtime.hud.dcFont, now))

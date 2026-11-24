@@ -1,8 +1,8 @@
+#include "Crt/CrtRandom.h"
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/GameDrawTail.h"
 #include "Core/Expected.h"
 #include "Render/ModelBatch.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Pass3D.h"
 #include "World/IParticleTrigonometry.h"
 #include "World/ModelEffects.h"
@@ -34,7 +34,7 @@ TEST(CrywolfArrowDependenciesTest, TheJointCopiesItsRequestAndKeepsTheNativeKeyL
     std::vector<Client::Scenes::JointState> joints(1);
     Client::World::ModelEffect owner;
     owner.alive = true;
-    Client::Render::Models::CrtRandom random(7);
+    Client::Crt::CrtRandom random(7);
     glm::vec3 position{100, 200, 300}, target{400, 500, 600}, angles{};
     const auto result =
         Client::Scenes::CreateFaunaJoint(joints, {0x610, position, target, angles, 13, &owner, 20, 40, 0, 0, -1},
@@ -77,7 +77,7 @@ TEST(CrywolfArrowDependenciesTest, TheJointMovesBeforeCheckingItsOwnerAndStillRu
             joint.drawEnabled = 3;
             joint.light = {.7f, .7f, .3f};
             auto lighting = std::make_unique<Client::World::TerrainLighting>();
-            Client::Render::Models::CrtRandom random(7), expected(7);
+            Client::Crt::CrtRandom random(7), expected(7);
             expected.Discard(1);
             const auto result =
                 Client::Scenes::StepJoints(joints, random, nullptr, nullptr, 0, nullptr, lighting.get());
@@ -101,7 +101,7 @@ TEST(CrywolfArrowDependenciesTest, TheJointMovesBeforeCheckingItsOwnerAndStillRu
 TEST(CrywolfArrowDependenciesTest, TheFallingOrbitUsesFourDrawsAndDrawsAtLifeForty)
 {
     auto particles = std::make_unique<Client::World::Particles>();
-    Client::Render::Models::CrtRandom random(7), expected(7);
+    Client::Crt::CrtRandom random(7), expected(7);
     const int rise = expected.Next() % 100, phase = expected.Next() % 300 - 150, scale = expected.Next() % 6,
               rotation = expected.Next() % 360;
     Trigonometry trig;
@@ -138,7 +138,7 @@ TEST(CrywolfArrowDependenciesTest, TheFallingOrbitDescendsAndMovesOnlyItsAnchorX
     p.start = {100, 200, 300};
     p.verticalSpeed = 3;
     p.light = {.4f, 1, .2f};
-    Client::Render::Models::CrtRandom random(7);
+    Client::Crt::CrtRandom random(7);
     Trigonometry trig;
     const float clock = 0;
     const std::int32_t map = 34;
@@ -153,7 +153,7 @@ TEST(CrywolfArrowDependenciesTest, TheFullPoolsDoNotReadTheOwnerOrAdvanceTheCons
 {
     std::vector<Client::Scenes::JointState> joints(1);
     joints[0].alive = true;
-    Client::Render::Models::CrtRandom random(7);
+    Client::Crt::CrtRandom random(7);
     glm::vec3 empty{};
     const auto joint =
         Client::Scenes::CreateFaunaJoint(joints, {0x610, empty, empty, empty, 13, nullptr, 20, 40, 0, 0, -1}, random,

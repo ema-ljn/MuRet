@@ -9,7 +9,7 @@ namespace Client::Data::Terrain
 struct TerrainAttributes;
 }
 
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
 }
@@ -34,7 +34,7 @@ struct ObjectCollapseContext
     // El pedido (0x6c9dd4..0x6c9de0), el mapa en curso (0x6c9dd0), el área de Chaos Castle (0x6c634c) y el último
     // sonido (0x41ed10, CL10).
     WorldRuntime& runtime;
-    Render::Models::CrtRandom& random;
+    Crt::CrtRandom& random;
     // 0x53fe70: el polvo 5f3/0 de la puerta de Blood Castle y la piedra 5f6/0 de Chaos Castle. Sin el pool, corta
     // donde lo pide.
     World::Particles* particles = nullptr;

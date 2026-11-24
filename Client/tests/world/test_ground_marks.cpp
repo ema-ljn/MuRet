@@ -1,8 +1,8 @@
 #include "World/GroundMarks.h"
 
+#include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainHeights.h"
 #include "Render/ModelBatch.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Pass3D.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/WorldRuntime.h"
@@ -22,11 +22,11 @@
 // envejece 0x549090 y dibuja 0x549130 (06 § Las marcas del suelo).
 namespace
 {
+using Client::Crt::CrtRandom;
 using Client::Render::ModelBatch;
 using Client::Render::ModelBlend;
 using Client::Render::ModelDrawState;
 using Client::Render::TextureSlot;
-using Client::Render::Models::CrtRandom;
 using Client::World::AddGroundMark;
 using Client::World::DrawGroundMarks;
 using Client::World::GroundMark;

@@ -4,6 +4,7 @@
 #include "Core/Expected.h"
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Models/Model.h"
 #include "Data/Models/PlayerModels.h"
 #include "Protocol/Viewport.h"
@@ -118,7 +119,7 @@ std::uint32_t SeedFor(std::initializer_list<bool> evens)
 {
     for (std::uint32_t seed = 1;; ++seed)
     {
-        Client::Render::Models::CrtRandom random(seed);
+        Client::Crt::CrtRandom random(seed);
         static_cast<void>(random.Next());
         bool matches = true;
         for (const bool even : evens)
@@ -256,7 +257,7 @@ TEST_F(MagicAttackCountTest, TheCasterRaisesTheShineAndKeepsTheSkill)
     EXPECT_EQ(Caster().byte38e, Magic);
     EXPECT_EQ(Caster().byte38eAccesses, 0);
     EXPECT_EQ(Caster().byte381, 1);
-    Client::Render::Models::CrtRandom expected(seed);
+    Client::Crt::CrtRandom expected(seed);
     expected.Discard(SkillCloseRandoms);
     EXPECT_EQ(m_cloth.random.State(), expected.State());
 }
@@ -266,7 +267,7 @@ TEST_F(MagicAttackCountTest, TheCasterRaisesTheShineAndKeepsTheSkill)
 // sube; sin +0x384, ni golpe ni número.
 TEST_F(MagicAttackCountTest, EachTargetIsShockedOnAnEvenDrawAndShowsItsDamage)
 {
-    m_cloth.random = Client::Render::Models::CrtRandom(SeedFor({true, false}));
+    m_cloth.random = Client::Crt::CrtRandom(SeedFor({true, false}));
     Target(FirstSlot).damage = 0x30;
     Target(SecondSlot).damage = 0x11;
     ASSERT_TRUE(Apply({FirstKey, SecondKey}).HasValue());
@@ -285,7 +286,7 @@ TEST_F(MagicAttackCountTest, EachTargetIsShockedOnAnEvenDrawAndShowsItsDamage)
     EXPECT_EQ(m_world->OwnCharacter().life, 100);
 
     m_world->DrawTail().damage = {};
-    m_cloth.random = Client::Render::Models::CrtRandom(SeedFor({true}));
+    m_cloth.random = Client::Crt::CrtRandom(SeedFor({true}));
     Target(FirstSlot).damage = 0;
     Target(FirstSlot).animation.action = 0;
     ASSERT_TRUE(Apply({FirstKey}).HasValue());
@@ -298,16 +299,16 @@ TEST_F(MagicAttackCountTest, EachTargetIsShockedOnAnEvenDrawAndShowsItsDamage)
 TEST_F(MagicAttackCountTest, ThePlayerLosesItsLifeDownToZero)
 {
     const std::uint32_t seed = SeedFor({false});
-    m_cloth.random = Client::Render::Models::CrtRandom(seed);
+    m_cloth.random = Client::Crt::CrtRandom(seed);
     ASSERT_TRUE(Apply({PlayerKey}).HasValue());
     EXPECT_EQ(m_world->OwnCharacter().life, 100 - 0x30);
     EXPECT_EQ(m_world->Runtime().ownRecordDepth, 0);
-    Client::Render::Models::CrtRandom expected(seed);
+    Client::Crt::CrtRandom expected(seed);
     expected.Discard(SkillCloseRandoms + 1 + OwnRecordCloseRandoms);
     EXPECT_EQ(m_cloth.random.State(), expected.State());
 
     m_world->OwnCharacter().life = 0x20;
-    m_cloth.random = Client::Render::Models::CrtRandom(seed);
+    m_cloth.random = Client::Crt::CrtRandom(seed);
     ASSERT_TRUE(Apply({PlayerKey}).HasValue());
     EXPECT_EQ(m_world->OwnCharacter().life, 0);
 }
@@ -331,7 +332,7 @@ TEST_F(MagicAttackCountTest, AnUnknownCasterIsTheGhostSlot)
         const std::size_t linesBefore = m_sink.lines.size();
         // El blanco con rand() par: el golpe de 0x4f53a0 y el rand() de su sonido.
         const std::uint32_t seed = SeedFor({true});
-        m_cloth.random = Client::Render::Models::CrtRandom(seed);
+        m_cloth.random = Client::Crt::CrtRandom(seed);
         const auto applied = Apply({FirstKey}, 0x0999);
         ASSERT_TRUE(applied.HasValue()) << applied.Error();
         const ActorState& ghost = m_world->Actors()[Ghost];
@@ -366,7 +367,7 @@ TEST_F(MagicAttackCountTest, AMonsterCasterTakesTheActionOfItsModel)
         Target(FirstSlot).damage = 0;
         // El blanco con rand() impar: sin golpe; sin +0x384, sin número.
         const std::uint32_t seed = SeedFor({false});
-        m_cloth.random = Client::Render::Models::CrtRandom(seed);
+        m_cloth.random = Client::Crt::CrtRandom(seed);
         const auto applied = Apply({FirstKey});
         ASSERT_TRUE(applied.HasValue()) << applied.Error();
         EXPECT_EQ(Caster().animation.action, 0x96);

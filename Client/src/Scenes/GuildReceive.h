@@ -1,7 +1,7 @@
 #pragma once
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Core/PixelSize.h"
 #include "Protocol/Guild.h"
 #include "Scenes/GuildPanels.h"
 
@@ -13,9 +13,13 @@ namespace Client::Data::Text
 class TextTable;
 }
 
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
+} // namespace Client::Crt
+
+namespace Client::Render::Models
+{
 class IModelLibrary;
 } // namespace Client::Render::Models
 
@@ -36,11 +40,11 @@ struct GuildReceiveContext
 {
     WorldState& world;
     // El rand() de la CRT: lo sacan las consultas del registro de los paneles (0x6599a0 y 0x65cae0).
-    Render::Models::CrtRandom& random;
+    Crt::CrtRandom& random;
     // Con qué se miden los mensajes (0x555190, 0x554610) y los renglones del diálogo (0x6600d0); sin medidor, lo que
     // los usa corta.
     const Render::Text::ITextMeasure* measure = nullptr;
-    App::PixelSize screen{640, 480};
+    Core::PixelSize screen{640, 480};
     // Text.bmd: los textos de los resultados y de los diálogos.
     const Data::Text::TextTable* texts = nullptr;
     // 0x57678bc: la clave del jugador (el E6 la compara).

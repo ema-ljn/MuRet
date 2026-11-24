@@ -9,7 +9,7 @@
 #include <functional>
 #include <string>
 
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
 }
@@ -45,6 +45,6 @@ struct SkillHitsRequest
 // 0x69fd3c; fuera del entero, corta en 0x517deb) y en C3: sus dos rand() (el relleno y el serial) salen también sin
 // `send`. true.
 [[nodiscard]] Core::Expected<bool, std::string>
-HitTheTargetsAround(const SkillHitsRequest& request, WorldState& world, Render::Models::CrtRandom& random,
+HitTheTargetsAround(const SkillHitsRequest& request, WorldState& world, Crt::CrtRandom& random,
                     const std::function<void(Protocol::Outgoing)>& send);
 } // namespace Client::Scenes

@@ -1,6 +1,6 @@
 #include "UI/GameCursor.h"
 
-#include "App/WindowState.h"
+#include "Core/PixelSize.h"
 #include "Input/InputState.h"
 #include "Input/Key.h"
 #include "Render/OriginalQuad.h"
@@ -41,7 +41,7 @@ int ScaledTo(std::uint32_t word, std::uint32_t logical, int size)
 }
 } // namespace
 
-Point MouseIn640x480(const Input::InputState& input, App::PixelSize screen)
+Point MouseIn640x480(const Input::InputState& input, Core::PixelSize screen)
 {
     constexpr std::uint32_t Width640 = 640;
     constexpr std::uint32_t Height480 = 480;
@@ -73,7 +73,7 @@ Render::OriginalQuad CursorQuad(Point mouse, bool leftDown)
                                 .alpha = 0.0f};
 }
 
-void DrawGameCursor(Render::SpriteBatch& sprites, const Input::InputState& input, App::PixelSize screen)
+void DrawGameCursor(Render::SpriteBatch& sprites, const Input::InputState& input, Core::PixelSize screen)
 {
     sprites.SetBlend(Render::BlendMode::Alpha);
     sprites.SetColor(Render::Color{});

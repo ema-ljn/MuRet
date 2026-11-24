@@ -2,6 +2,7 @@
 #include "Scenes/GameCharacters.h"
 
 #include "Core/IClock.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Models/Model.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainGrid.h"
@@ -65,7 +66,7 @@ constexpr std::uint16_t UnloadedSkeletonBody = 0xd1;
 // El estado del rand() de la CRT con la semilla 1 después de `count` llamadas.
 std::uint32_t AfterRandoms(std::size_t count)
 {
-    Client::Render::Models::CrtRandom random{1};
+    Client::Crt::CrtRandom random{1};
     for (std::size_t call = 0; call < count; ++call)
         static_cast<void>(random.Next());
     return random.State();
@@ -578,7 +579,7 @@ TEST_F(GameCharacterRenderTest, TheSharedRandomAdvancesOnlyForThe607b60CasesThat
         SCOPED_TRACE(value.model);
         Client::Scenes::DrawnCharacter character;
         character.appearance.rightHand = Client::GameLogic::WornItem{value.model, 0, false, false};
-        m_clothWorld.random = Client::Render::Models::CrtRandom{1};
+        m_clothWorld.random = Client::Crt::CrtRandom{1};
         character.originalRandom = &m_clothWorld.random;
         m_batch.Begin(Client::Render::Pass3D{});
 
@@ -609,7 +610,7 @@ TEST_F(GameCharacterRenderTest, TheMonster55WearsTheClothOfThe0x37)
         SCOPED_TRACE(map);
         m_world->Runtime().map = map;
         Player(0).word376 = 0x37;
-        m_clothWorld.random = Client::Render::Models::CrtRandom{1};
+        m_clothWorld.random = Client::Crt::CrtRandom{1};
         std::array<Client::Scenes::CharacterCloth, 401> cloths;
         GameCharacterPass pass = Pass();
         pass.cloths = cloths;
@@ -921,7 +922,7 @@ TEST_F(GameCharacterRenderTest, ZeroOriginalFramesDoNotCreateFirstUseClassThreeO
             SCOPED_TRACE(static_cast<int>(characterClass));
             SCOPED_TRACE(static_cast<int>(pace));
             Player(0).characterClass = characterClass;
-            m_clothWorld.random = Client::Render::Models::CrtRandom{1};
+            m_clothWorld.random = Client::Crt::CrtRandom{1};
             std::array<Client::Scenes::CharacterCloth, 401> cloths;
             Client::World::FrameSprites sprites;
             GameCharacterPass pass = Pass();
@@ -1087,7 +1088,7 @@ TEST_F(GameCharacterRenderTest, MissingClothKeepsTheShadowPartsScanAndHeroLightP
         actor.characterClass = characterClass;
         m_world->OwnCharacter().speedAdjustBits = 1;
         m_world->Runtime().fullSetScan = Client::Scenes::Scan505820{123, 42};
-        m_clothWorld.random = Client::Render::Models::CrtRandom{1};
+        m_clothWorld.random = Client::Crt::CrtRandom{1};
         m_batch.Begin(Client::Render::Pass3D{});
 
         const auto result = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
@@ -1201,7 +1202,7 @@ TEST_F(GameCharacterRenderTest, TheSkeletonNpcOfLorenciaGlowsWithItsWordOf1d6)
             actor.byte88 = kind;
             actor.subtype = SkeletonBodyModel;
             actor.level = 7;
-            m_clothWorld.random = Client::Render::Models::CrtRandom{1};
+            m_clothWorld.random = Client::Crt::CrtRandom{1};
             m_batch.Begin(Client::Render::Pass3D{});
 
             const auto result = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
@@ -1294,7 +1295,7 @@ TEST_F(GameCharacterRenderTest, InChaosCastleAPlayerWearsTheAngelAndOnlyTheHeroA
         ActorState& actor = Player(slot);
         actor.byte88 = 1;
         m_world->Runtime().hero = slot == 0 ? 0 : 42;
-        m_clothWorld.random = Client::Render::Models::CrtRandom{1};
+        m_clothWorld.random = Client::Crt::CrtRandom{1};
         m_batch.Begin(Client::Render::Pass3D{});
 
         const auto result = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, Pass());

@@ -1,11 +1,11 @@
 #include "World/KalimaParticleKernels.h"
 #include "Core/Expected.h"
 
+#include "Crt/CrtRandom.h"
 #include "World/Ftol.h"
 #include "World/IParticleTrigonometry.h"
 #include "World/ParticleOwner.h"
 #include "World/Particles.h"
-#include "Render/Models/Cloth.h"
 
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
@@ -45,7 +45,7 @@ void FadeLight(Particle& p, double factor)
     for (int axis = 0; axis < 3; ++axis)
         p.light[axis] = F32(static_cast<double>(p.light[axis]) * factor);
 }
-void Jitter(Particle& p, Render::Models::CrtRandom& random, int xySpan, int zSpan)
+void Jitter(Particle& p, Crt::CrtRandom& random, int xySpan, int zSpan)
 {
     for (int axis = 0; axis < 3; ++axis)
     {
@@ -56,7 +56,7 @@ void Jitter(Particle& p, Render::Models::CrtRandom& random, int xySpan, int zSpa
 }
 // 0x540151..0x54018f: el 5ac/0 (y el /2 y el /8, que 0x53ffa5 y 0x53ffae mandan al mismo 0x540151) son las mismas
 // instrucciones que el /6 (0x54003c); el /7 (0x53ffd9) vive 30 más y su escala es rand() % 15 + 30.
-void CreateFlare(Particle& p, Render::Models::CrtRandom& random)
+void CreateFlare(Particle& p, Crt::CrtRandom& random)
 {
     const bool six = p.subtype != FlareSeven;
     p.life = random.Next() % LifeSpan + (six ? LifeSpan : LongLife);
@@ -76,7 +76,7 @@ constexpr double KundunFallTurn = 4.0; // 0x6b8a44
 // 0x544095..0x54414c: después de lo de la neblina, la textura cra_04 (0x5ae), la luz del argumento (pisa la de la
 // escena), vida 12, otro giro, vz 2, la escala (rand() % 3 + 3) · 0,18f y otro corrimiento de ±10, ±10 y ±20. Cinco
 // rand() más: once en total.
-void CreateBootsMist(Particle& p, Render::Models::CrtRandom& random, const glm::vec3& lightArgument)
+void CreateBootsMist(Particle& p, Crt::CrtRandom& random, const glm::vec3& lightArgument)
 {
     constexpr std::int32_t BootsTexture = 0x5ae;
     constexpr std::int32_t BootsLife = 12;
@@ -91,7 +91,7 @@ void CreateBootsMist(Particle& p, Render::Models::CrtRandom& random, const glm::
     p.scale = F32(static_cast<double>(random.Next() % ScaleSpan + ScaleSpan) * ScaleStep);
     Jitter(p, random, ShortLife, 40);
 }
-Core::Expected<void, ParticleError> CreateWaterfall(Particle& p, Render::Models::CrtRandom& random,
+Core::Expected<void, ParticleError> CreateWaterfall(Particle& p, Crt::CrtRandom& random,
                                                     std::optional<std::int32_t> scene)
 {
     if (p.type == KalimaWaterfallLast && p.subtype == 1)
@@ -161,7 +161,7 @@ Core::Expected<void, ParticleError> CreateWaterfall(Particle& p, Render::Models:
 // 0x544295..0x544318 (6f2/2, 6f3/2) y 0x543e14..0x543e97 (6f4/4), las salpicaduras del joint de Kundun: la vida 6, la
 // subida (+0x50) ((rand() % 100) · 0,01f · 4 + ángulo x · 1,2f, sumada en la x87 en ese orden), la escala
 // (rand() % 6) · paso + la del pedido, el giro y la partida en la posición. Tres rand().
-void CreateKundunSplash(Particle& p, Render::Models::CrtRandom& random, double scaleStep)
+void CreateKundunSplash(Particle& p, Crt::CrtRandom& random, double scaleStep)
 {
     constexpr std::int32_t SplashLife = 6;
     constexpr int RiseSpan = 100, ScaleSpan = 6;
@@ -205,7 +205,7 @@ Core::Expected<void, ParticleError> StepKundunSplash(Particle& p, IParticleTrigo
         FadeLight(p, Brighten);
     return {};
 }
-void StepFlareSix(Particle& p, Render::Models::CrtRandom& random)
+void StepFlareSix(Particle& p, Crt::CrtRandom& random)
 {
     constexpr int WalkSpan = 2001, WalkCenter = 1000;
     const float x = F32(static_cast<double>(random.Next() % WalkSpan - WalkCenter) * WalkFactor);
@@ -226,7 +226,7 @@ void StepFlareSix(Particle& p, Render::Models::CrtRandom& random)
 // 0x544c19/0x544c44..0x544dd6: el 5ac/0 con k = 0,5f. La x se guarda en float cuatro veces y la y una;
 // la z suma k · 5 y el 0x7609bc0 por k, que nada escribe (cero). La escala baja 0,05f, la luz la copia y
 // muere con la escala guardada en 0,1f o menos (o NaN).
-void StepFlareZero(Particle& p, Render::Models::CrtRandom& random, const glm::vec2& wind)
+void StepFlareZero(Particle& p, Crt::CrtRandom& random, const glm::vec2& wind)
 {
     constexpr int WalkSpan = 2001, WalkCenter = 1000;
     constexpr double Half = 0.5, Lift = 5.0, Unwritten = 0.0;
@@ -340,7 +340,7 @@ void StepFanta(Particle& p)
     p.position.z = F32(static_cast<double>(p.position.z) + 1);
     p.light = glm::vec3(F32(static_cast<double>(p.life) * FantaLight));
 }
-void StepWaterfall(Particle& p, Render::Models::CrtRandom& random)
+void StepWaterfall(Particle& p, Crt::CrtRandom& random)
 {
     if (p.type == KalimaWaterfallMist)
     {
@@ -435,7 +435,7 @@ bool IsKalimaParticle(std::int32_t type, std::int32_t subtype)
              subtype == FlareSeven || subtype == FlareEight || subtype == FlareNine)) ||
            (subtype == 0 && type >= KalimaWaterfallFirst && type <= KalimaWaterfallLast);
 }
-Core::Expected<void, ParticleError> CreateKalimaParticle(Particle& p, Render::Models::CrtRandom& random,
+Core::Expected<void, ParticleError> CreateKalimaParticle(Particle& p, Crt::CrtRandom& random,
                                                          std::optional<std::int32_t> scene)
 {
     if (p.type == KalimaFlare)
@@ -538,9 +538,9 @@ Core::Expected<void, ParticleError> CreateKalimaParticle(Particle& p, Render::Mo
     Jitter(p, random, 40, ShortLife);
     return {};
 }
-Core::Expected<void, ParticleError> StepKalimaParticle(Particle& p, Render::Models::CrtRandom& random,
-                                                       const float* clock, IParticleTrigonometry* trigonometry,
-                                                       const glm::vec2& wind, const ParticleOwnerStates& ownerStates)
+Core::Expected<void, ParticleError> StepKalimaParticle(Particle& p, Crt::CrtRandom& random, const float* clock,
+                                                       IParticleTrigonometry* trigonometry, const glm::vec2& wind,
+                                                       const ParticleOwnerStates& ownerStates)
 {
     if (p.type == KalimaFlare)
     {

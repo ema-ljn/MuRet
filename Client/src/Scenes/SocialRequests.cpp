@@ -1,12 +1,12 @@
 #include "Scenes/SocialRequests.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Protocol/Duel.h"
 #include "Protocol/Outgoing.h"
 #include "Protocol/Party.h"
 #include "Protocol/PersonalShop.h"
 #include "Protocol/Trade.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActionSend.h"
 #include "Scenes/ActorState.h"
@@ -58,7 +58,7 @@ constexpr std::size_t PersonalShopText = 493;
 constexpr std::size_t NotTheLeaderText = 257;
 
 // Lo que lee una celda protegida: abre su entrada y la cierra, con los rand() de su cierre.
-std::int32_t ReadCell(std::uint8_t value, std::uint8_t& depth, Render::Models::CrtRandom& random)
+std::int32_t ReadCell(std::uint8_t value, std::uint8_t& depth, Crt::CrtRandom& random)
 {
     const Render::Models::LogicalAccess access(depth, random, Render::Models::SmallLogicalCloseRandoms);
     return value;
@@ -213,7 +213,7 @@ bool IsTheDuelRival(const WorldState& world, std::size_t index)
     return ChatNameOf(world.Actors()[index]) == NameUntilZero(world.Runtime().social.duel.rivalName);
 }
 
-CellDistance CellDistanceToTheHero(WorldState& world, Render::Models::CrtRandom& random, std::size_t index)
+CellDistance CellDistanceToTheHero(WorldState& world, Crt::CrtRandom& random, std::size_t index)
 {
     const auto actors = world.Actors();
     ActorState& other = actors[index];
@@ -232,7 +232,7 @@ bool CanBeAsked(const WorldState& world, std::size_t index)
            (actor.type == PlayerType || actor.byte3e3 != 0);
 }
 
-bool NextToTheHero(WorldState& world, Render::Models::CrtRandom& random, std::size_t index)
+bool NextToTheHero(WorldState& world, Crt::CrtRandom& random, std::size_t index)
 {
     const auto actors = world.Actors();
     ActorState& other = actors[index];

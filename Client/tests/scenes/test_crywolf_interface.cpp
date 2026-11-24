@@ -1,9 +1,9 @@
 #include "Scenes/CrywolfInterfaceDrawing.h"
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Core/PixelSize.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Text/TextTable.h"
-#include "Render/Models/Cloth.h"
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
 #include "Render/Text/FontSet.h"
@@ -35,11 +35,11 @@
 // (*estático*; lo que la VM tiene que confirmar está en 08, P-C298). GS 0.97 no tiene Crywolf. Text.bmd es inventado.
 namespace
 {
+using Client::Crt::CrtRandom;
 using Client::Render::BlendMode;
 using Client::Render::Color;
 using Client::Render::SpriteBatch;
 using Client::Render::SpriteVertex;
-using Client::Render::Models::CrtRandom;
 using Client::Render::Text::FontKind;
 using Client::Scenes::CrywolfInterface;
 using Client::Scenes::GameHudContext;
@@ -47,7 +47,7 @@ using Client::Scenes::WorldState;
 using Client::Tests::RecordedText;
 using Client::Tests::RecordingTextDrawer;
 
-constexpr Client::App::PixelSize Screen640{640, 480};
+constexpr Client::Core::PixelSize Screen640{640, 480};
 constexpr std::int32_t CrywolfMap = 34;
 constexpr std::uint16_t DigitsSlot = 1;
 

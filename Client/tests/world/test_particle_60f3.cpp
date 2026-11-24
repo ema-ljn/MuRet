@@ -1,9 +1,9 @@
+#include "Crt/CrtRandom.h"
 #include "Render/Models/IModelLibrary.h"
 #include "World/Particles.h"
 #include "World/IParticleTrigonometry.h"
 #include "World/ParticleDrawing.h"
 #include "World/IParticleDrawingServices.h"
-#include "Render/Models/Cloth.h"
 #include "Render/ParticleBillboardRequest.h"
 #include "Core/Expected.h"
 #include "Scenes/ParticleDrawServices.h"
@@ -172,7 +172,7 @@ TEST(Particle60f3Test, FourRandomValuesInitializeAndRetainResidualFields)
     p.field38 = 123;
     p.rotationFactor = 7;
     p.field64 = {8, 9};
-    Render::Models::CrtRandom random(7);
+    Crt::CrtRandom random(7);
     const float clock = 0;
     [[maybe_unused]] Trigonometry trig;
     const auto result =
@@ -198,7 +198,7 @@ TEST(Particle60f3Test, FullPoolReturnsBeforeAdmissionOrRandom)
     World::Particles particles;
     for (auto& p : particles.All())
         p.alive = true;
-    Render::Models::CrtRandom random(7);
+    Crt::CrtRandom random(7);
     const float clock = 0;
     [[maybe_unused]] Trigonometry trig;
     const auto result = particles.CreateChecked(Type, {}, {}, {}, 3, 2, std::cref(clock), random, 0, trig);
@@ -276,7 +276,7 @@ TEST(Particle60f3Test, StepAtZeroAngleUsesPersistentBasesAndFadesAfterDecrement)
     p.verticalSpeed = 2;
     p.scale = 1;
     p.light = {1, 2, 4};
-    Render::Models::CrtRandom random(7);
+    Crt::CrtRandom random(7);
     const float clock = 0;
     [[maybe_unused]] Trigonometry trig;
     const auto result = World::StepParticlesChecked(particles, random, std::cref(clock), nullptr, trig);
@@ -310,7 +310,7 @@ TEST(Particle60f3Test, CommonMovementRemainsVisibleBeforeTrigonometryError)
     p.light = {1, 2, 4};
     particles.All()[1] = p;
     MovementFailureTrigonometry trig(p);
-    Render::Models::CrtRandom random(7);
+    Crt::CrtRandom random(7);
     const float clock = 0;
 
     const auto result = World::StepParticlesChecked(particles, random, std::cref(clock), nullptr, trig);
@@ -347,7 +347,7 @@ TEST(Particle60f3Test, ExpirationStillFinishesCaseAndVisitsFollowingSlot)
         p.verticalSpeed = 2;
         p.scale = 0;
     }
-    Render::Models::CrtRandom random(7);
+    Crt::CrtRandom random(7);
     const float clock = 0;
     [[maybe_unused]] Trigonometry trig;
     ASSERT_TRUE(World::StepParticlesChecked(particles, random, std::cref(clock), nullptr, trig).HasValue());
@@ -369,7 +369,7 @@ TEST(Particle60f3Test, SignedLifeWrapKeepsSlotAlive)
     p.type = Type;
     p.subtype = 3;
     p.life = std::numeric_limits<std::int32_t>::min();
-    Render::Models::CrtRandom random(7);
+    Crt::CrtRandom random(7);
     const float clock = 0;
     [[maybe_unused]] Trigonometry trig;
     p.velocity.x = -2147483648.0f;
@@ -409,7 +409,7 @@ TEST(Particle60f3Test, AliasInputsAreReadInPrefixOrderAndResidualSlotCanBeReused
     p.field38 = 42;
     p.rotationFactor = 13;
     p.field64 = {14, 15};
-    Render::Models::CrtRandom random(7);
+    Crt::CrtRandom random(7);
     const float clock = 0;
     [[maybe_unused]] Trigonometry trig;
     const auto created =
@@ -432,7 +432,7 @@ TEST(Particle60f3Test, AliasInputsAreReadInPrefixOrderAndResidualSlotCanBeReused
 TEST(Particle60f3Test, LegacyAndUnaccreditedCreationSubtypesRemainRejected)
 {
     World::Particles particles;
-    Render::Models::CrtRandom random(7);
+    Crt::CrtRandom random(7);
     const float clock = 0;
     [[maybe_unused]] Trigonometry trig;
     const auto legacy = particles.CreateChecked(Type, {}, {}, {}, 3, 1, clock, random, 0);
@@ -453,7 +453,7 @@ TEST(Particle60f3Test, LegacyStepDoesNotAcquireNewAdmission)
     p.type = Type;
     p.subtype = 3;
     p.life = 60;
-    Render::Models::CrtRandom random(7);
+    Crt::CrtRandom random(7);
     const auto result = World::StepParticlesChecked(particles, random, nullptr);
     ASSERT_FALSE(result.HasValue());
     EXPECT_EQ(result.Error(), World::ParticleError::UnsupportedType);
@@ -686,7 +686,7 @@ TEST(Particle60f3Test, TrigErrorsPreserveTheirExactPrefixAndStopThePass)
         trig.failCosine = !failSine;
         trig.sineProduct = 20 + 0x1p-48;
         trig.observed = &p;
-        Render::Models::CrtRandom random(7);
+        Crt::CrtRandom random(7);
         const float clock = 0;
         const auto result = World::StepParticlesChecked(particles, random, std::cref(clock), nullptr, trig);
         ASSERT_FALSE(result.HasValue());
@@ -720,7 +720,7 @@ TEST(Particle60f3Test, Product53IsAddedBeforeTheSinglePositionStore)
     trig.argument = 0x1.99999ap-4;
     trig.sineProduct = 20 + 0x1p-48;
     trig.observed = &p;
-    Render::Models::CrtRandom random(7);
+    Crt::CrtRandom random(7);
     const float clock = 0;
     ASSERT_TRUE(World::StepParticlesChecked(particles, random, std::cref(clock), nullptr, trig).HasValue());
     EXPECT_EQ(p.position.x, 0x1p-48f);
@@ -732,7 +732,7 @@ TEST(Particle60f3Test, Product53IsAddedBeforeTheSinglePositionStore)
 TEST(Particle60f3Test, CompleteCreateStepDrawChainKeepsCommonMovementAndEarlyDrawGate)
 {
     World::Particles particles;
-    Render::Models::CrtRandom random(7);
+    Crt::CrtRandom random(7);
     const float clock = 0;
     Trigonometry trig;
     trig.argument = -0x1.b9999a08p+2;
@@ -764,7 +764,7 @@ TEST(Particle60f3Test, CompleteCreateStepDrawChainKeepsCommonMovementAndEarlyDra
 TEST(Particle60f3Test, TypedOverloadRetainsExistingCreationAndStepWithoutCallingTrig)
 {
     World::Particles particles;
-    Render::Models::CrtRandom random(7);
+    Crt::CrtRandom random(7);
     const float clock = 0;
     Trigonometry trig;
     trig.failSine = true;

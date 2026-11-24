@@ -5,6 +5,7 @@
 #include "Core/Expected.h"
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
+#include "Crt/CrtRandom.h"
 #include "Network/LinkState.h"
 #include "Network/PacketSerials.h"
 #include "Protocol/ProtocolError.h"
@@ -125,7 +126,7 @@ TEST(WeatherApplierTest, AllThreeBranchesChangeOnlyTheTargetAndConsumeNoRandom)
         .target = 777, .current = -123, .firstWave = 45, .secondWave = -67, .phase = 890};
     constexpr std::array<std::int32_t, 16> RainTargets{0, 6, 12, 18, 24, 30, 36, 42, 48, 54, 60, 66, 72, 78, 84, 90};
     constexpr std::uint32_t Seed = 0x5eed;
-    tested.cloth.random = Client::Render::Models::CrtRandom{Seed};
+    tested.cloth.random = Client::Crt::CrtRandom{Seed};
     for (int code = 0; code <= 0xff; ++code)
     {
         SCOPED_TRACE(code);

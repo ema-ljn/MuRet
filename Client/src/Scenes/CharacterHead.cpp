@@ -1,6 +1,6 @@
 #include "Scenes/CharacterHead.h"
 
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "Render/Models/OriginalAngles.h"
 
 #include <glm/ext/vector_float2.hpp>
@@ -23,7 +23,7 @@ float F32(double value)
 }
 } // namespace
 
-void StepCharacterHead(CharacterHead& head, bool sorts, Render::Models::CrtRandom& random)
+void StepCharacterHead(CharacterHead& head, bool sorts, Crt::CrtRandom& random)
 {
     // 0x5068fd: rand() & 0x8000001f con el arreglo del signo, el % 32 de C.
     if (sorts && random.Next() % SortOneIn == 0)

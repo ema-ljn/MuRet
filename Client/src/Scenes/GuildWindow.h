@@ -1,7 +1,7 @@
 #pragma once
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Core/PixelSize.h"
 #include "Render/Text/FontSet.h"
 #include "Scenes/GuildPanels.h"
 #include "Scenes/GuildState.h"
@@ -47,7 +47,7 @@ struct GuildWindowStepContext
     std::int32_t mouseX = 0;
     std::int32_t mouseY = 0;
     // La pantalla del aviso que deja salir de la alianza (0x555190 corta y mide en ella).
-    App::PixelSize screen{};
+    Core::PixelSize screen{};
     // Lo que manda (el E9) y la respuesta del diálogo que cancela: el GameServer de la sesión.
     GuildSender send{};
     // 0x553520(vk), el flanco de PgUp (0x21) y PgDn (0x22), y GetAsyncKeyState de las flechas de la lista (0x47b0f0).
@@ -77,7 +77,7 @@ void ClearTheGuildMembers(GuildWindowState& window);
 // +0x38): lo último que entró queda a la vista.
 [[nodiscard]] Core::Expected<void, std::string> AddTheGuildNotice(GuildWindowState& window,
                                                                   const Render::Text::ITextMeasure& measure,
-                                                                  Render::Text::FontKind font, App::PixelSize screen,
+                                                                  Render::Text::FontKind font, Core::PixelSize screen,
                                                                   std::string_view text);
 
 // 0x651790 → 0x480260, la vtable + 0x2c de la lista del aviso: como 0x47a410.

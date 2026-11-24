@@ -1,4 +1,4 @@
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "Render/Models/OriginalRotation.h"
 #include "World/KalimaParticleKernels.h"
 #include "World/Particles.h"
@@ -22,7 +22,7 @@
 // Castle Siege). El alta y el paso de la 6ec/0 son los de la 6ed/0 (CrywolfParticlesTest).
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::Tests::RecordedParticleDraw;
 using Client::World::Particle;
 using Client::World::Particles;

@@ -1,9 +1,9 @@
 #include "Scenes/OwnItemSets.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Tables/ItemSetTables.h"
 #include "Data/Tables/ItemTable.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/ItemSetOptionList.h"
@@ -33,12 +33,12 @@
 // con el PE c32bbd5f y los rand() del modelo de la CRT, ninguno de una corrida del original.
 namespace
 {
+using Client::Crt::CrtRandom;
 using Client::Data::Tables::ItemSetOptionRecordSize;
 using Client::Data::Tables::ItemSetOptionTableSize;
 using Client::Data::Tables::ItemSetTables;
 using Client::Data::Tables::ItemSetTypeRecordSize;
 using Client::Data::Tables::ItemSetTypeTableSize;
-using Client::Render::Models::CrtRandom;
 using Client::Render::Models::OwnRecordCloseRandoms;
 using Client::Scenes::ActorState;
 using Client::Scenes::ItemSetPiece;

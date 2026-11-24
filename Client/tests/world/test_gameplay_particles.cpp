@@ -1,6 +1,6 @@
 #include "World/Particles.h"
 
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "World/ParticleDrawing.h"
 #include "World/ParticleOwner.h"
 #include "World/PortableParticleTrigonometry.h"
@@ -24,7 +24,7 @@
 // Oráculos independientes del contrato final-runtime 53fe70/5446e0/548550, no del port.
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::Tests::DrawOneParticle;
 using Client::Tests::RecordedParticleDraw;
 using Client::World::Particle;

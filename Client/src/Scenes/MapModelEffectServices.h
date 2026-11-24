@@ -2,7 +2,7 @@
 
 #include "World/IWorldObjectCreationServices.h"
 
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
 }
@@ -16,12 +16,12 @@ namespace Client::Scenes
 class MapModelEffectServices final : public World::IWorldObjectCreationServices
 {
 public:
-    MapModelEffectServices(World::ModelEffects& effects, Render::Models::CrtRandom& random);
+    MapModelEffectServices(World::ModelEffects& effects, Crt::CrtRandom& random);
     bool CreateModelEffect(const World::WorldObjectModelEffectRequest& request,
                            World::WorldObject& source) noexcept override;
 
 private:
     World::ModelEffects& m_effects;
-    Render::Models::CrtRandom& m_random;
+    Crt::CrtRandom& m_random;
 };
 } // namespace Client::Scenes

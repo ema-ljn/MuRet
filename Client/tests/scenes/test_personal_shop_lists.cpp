@@ -3,6 +3,7 @@
 
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Models/PlayerModels.h"
 #include "Data/Tables/ItemTable.h"
 #include "Data/Text/TextTable.h"
@@ -53,7 +54,7 @@
 // el 3F: los paquetes salen del cliente. Nombres, títulos y textos inventados; cada caso en Lorencia y en Devias.
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::Scenes::WorldState;
 using Client::World::ItemState;
 namespace Shop = Client::Protocol::PersonalShop;

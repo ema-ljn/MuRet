@@ -1,6 +1,7 @@
 #include "Core/Expected.h"
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Models/Model.h"
 #include "Data/Models/PlayerModels.h"
 #include "Data/Tables/ItemSetTables.h"
@@ -60,7 +61,7 @@
 // los monstruos (0x4f5b70)".
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::Scenes::ActorState;
 
 constexpr std::uint32_t Seed = 0x0c19;
@@ -930,7 +931,7 @@ TEST_F(MonsterAttackCasesTest, TheSiegeEffectsKeepTheCallerInputsAndUseTheFirstF
         }
         else
         {
-            Client::Render::Models::CrtRandom expected(before);
+            Client::Crt::CrtRandom expected(before);
             EXPECT_EQ(cue.velocity, (glm::vec3{0.0f, -550.0f, 0.0f}));
             EXPECT_EQ(cue.copiedAngles, (glm::vec3{0.0f, 0.0f, static_cast<float>(expected.Next() % 360)}));
             EXPECT_EQ(cue.start, cue.transform.position);

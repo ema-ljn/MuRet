@@ -12,9 +12,13 @@
 #include <span>
 #include <string>
 
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
+} // namespace Client::Crt
+
+namespace Client::Render::Models
+{
 struct ClothWorld;
 class IModelLibrary;
 } // namespace Client::Render::Models
@@ -44,8 +48,8 @@ namespace Client::Scenes
 inline constexpr std::int32_t KillBeamJoint = 0x618;
 
 [[nodiscard]] Core::Expected<std::optional<std::size_t>, std::string>
-CreateFaunaJoint(std::span<JointState> joints, const World::FishEffectRequest& request,
-                 Render::Models::CrtRandom& random, JointOwnerKind ownerKind = JointOwnerKind::ByType,
+CreateFaunaJoint(std::span<JointState> joints, const World::FishEffectRequest& request, Crt::CrtRandom& random,
+                 JointOwnerKind ownerKind = JointOwnerKind::ByType,
                  const JointKernels::CreationServices* services = nullptr);
 // 535840: 697 y618/4 siguen el+40 del dueño;610/8 sigue position con z300;
 // 10f/3 usa vida/RNG, seno y color del dueño.614/10 y 614/14 giran e iteran su cola sin leer al dueño;
@@ -81,7 +85,7 @@ CreateFaunaJoint(std::span<JointState> joints, const World::FishEffectRequest& r
 // al suelo, posan el 0x20b de `models` con el modelo compartido de `world` y sueltan las cáscaras 0x137 de sus vértices
 // en la tabla de efectos (0x53c1c6).
 [[nodiscard]] Core::Expected<void, std::string>
-StepJoints(std::span<JointState> joints, Render::Models::CrtRandom& random, Render::Models::ClothWorld* cloth = nullptr,
+StepJoints(std::span<JointState> joints, Crt::CrtRandom& random, Render::Models::ClothWorld* cloth = nullptr,
            World::Particles* particles = nullptr, float worldClock = 0, World::FrameSprites* sprites = nullptr,
            World::TerrainLighting* lighting = nullptr, const std::function<void(std::int32_t)>& soundRequest = {},
            const std::function<double(float, float)>& terrainHeight = {}, std::span<const ActorState> actors = {},

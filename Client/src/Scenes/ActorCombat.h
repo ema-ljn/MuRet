@@ -9,9 +9,13 @@
 #include <optional>
 #include <string>
 
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
+} // namespace Client::Crt
+
+namespace Client::Render::Models
+{
 class IModelLibrary;
 struct Skeleton;
 } // namespace Client::Render::Models
@@ -31,7 +35,7 @@ using ModelSoundLookup = std::function<std::optional<ModelSounds>(std::uint16_t 
 struct ActorCombatContext
 {
     WorldState& world;
-    Render::Models::CrtRandom& random;
+    Crt::CrtRandom& random;
     const Render::Models::Skeleton* playerSkeleton = nullptr;
     const Render::Models::IModelLibrary* models = nullptr;
     const Data::Tables::ItemTable* items = nullptr;

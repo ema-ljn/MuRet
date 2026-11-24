@@ -1,7 +1,7 @@
 #include "Scenes/PkLevelReply.h"
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Core/PixelSize.h"
 #include "Protocol/Character/PkLevel.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/ChatBubbles.h"
@@ -114,7 +114,7 @@ Core::Expected<void, std::string> ApplyPkLevel(const Protocol::Character::PkLeve
         return Core::Unexpected(std::string("0x4d3bf6: 0x555190 sin el medidor de los textos"));
     // 0x4d3bd7..0x4d3bf6: otra vez 0x5110d0(clave), y 0x555190(+0x1d9 de ese personaje, texto, tipo).
     const std::string name = ChatNameOf(world.Actors()[ActorWithKey(world, packet.key)]);
-    const App::PixelSize screen = resources.screen ? resources.screen() : App::PixelSize{640, 480};
+    const Core::PixelSize screen = resources.screen ? resources.screen() : Core::PixelSize{640, 480};
     return AddGameMessage(world.Runtime(), *resources.textMeasure, screen, name, text, type);
 }
 } // namespace Client::Scenes

@@ -1,5 +1,5 @@
 #include "Core/Expected.h"
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Scenes/FaunaDrawing.h"
 #include "Scenes/NoriaObjectServices.h"
@@ -72,7 +72,7 @@ TEST(NoriaObjectServicesTest, TheFairyPublishesItsPairedRingsAndFiveWhiteFlaresB
     auto pose = Pose();
     Client::World::FrameSprites sprites;
     auto particles = std::make_unique<Client::World::Particles>();
-    Client::Render::Models::CrtRandom random(7);
+    Client::Crt::CrtRandom random(7);
     Client::Scenes::GameObjectPass pass;
     pass.random = &random;
     pass.sprites = &sprites;
@@ -105,7 +105,7 @@ TEST(NoriaObjectServicesTest, TheFairyInterleavesEachJointWithItsSparkEvenWhenTh
     auto particles = std::make_unique<Client::World::Particles>();
     for (auto& particle : particles->All())
         particle.alive = true;
-    Client::Render::Models::CrtRandom random(4);
+    Client::Crt::CrtRandom random(4);
     Client::Scenes::GameObjectPass pass;
     pass.random = &random;
     pass.sprites = &sprites;
@@ -135,7 +135,7 @@ TEST(NoriaObjectServicesTest, TheFairyInterleavesEachJointWithItsSparkEvenWhenTh
     const auto stepped = Client::Scenes::StepNoriaObjectFrame(object, 61, pass);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(calls, 8);
-    Client::Render::Models::CrtRandom expected(4);
+    Client::Crt::CrtRandom expected(4);
     for (int draw = 0; draw < 38; ++draw)
         static_cast<void>(expected.Next());
     EXPECT_EQ(random.State(), expected.State()); // 6 guardas+8*(2caller+2joint),sinRNG de5c5.
@@ -144,7 +144,7 @@ TEST(NoriaObjectServicesTest, AFailedShinyEmissionKeepsItsGuardAndTheSpritesAlre
 {
     auto pose = Pose();
     Client::World::FrameSprites sprites;
-    Client::Render::Models::CrtRandom random(7);
+    Client::Crt::CrtRandom random(7);
     Client::Scenes::GameObjectPass pass;
     pass.random = &random;
     pass.sprites = &sprites;
@@ -164,7 +164,7 @@ TEST(NoriaObjectServicesTest, AFailedLaterJointKeepsTheEarlierSparksAndTheirInte
     auto pose = Pose();
     Client::World::FrameSprites sprites;
     auto particles = std::make_unique<Client::World::Particles>();
-    Client::Render::Models::CrtRandom random(4);
+    Client::Crt::CrtRandom random(4);
     Client::Scenes::GameObjectPass pass;
     pass.random = &random;
     pass.sprites = &sprites;
@@ -188,7 +188,7 @@ TEST(NoriaObjectServicesTest, AFailedLaterJointKeepsTheEarlierSparksAndTheirInte
     EXPECT_TRUE(particles->All()[0].alive);
     EXPECT_TRUE(particles->All()[1].alive);
     EXPECT_FALSE(particles->All()[2].alive);
-    Client::Render::Models::CrtRandom expected(4);
+    Client::Crt::CrtRandom expected(4);
     for (int draw = 0; draw < 26; ++draw)
         static_cast<void>(expected.Next());
     EXPECT_EQ(random.State(), expected.State());

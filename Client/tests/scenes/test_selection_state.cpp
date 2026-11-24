@@ -2,6 +2,7 @@
 
 #include "App/CharacterEvent.h"
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainHeights.h"
 #include "Protocol/Character/CharacterList.h"
@@ -181,7 +182,7 @@ TEST_F(SelectionStateTest, TheListConstructsTheCompletePlayerAndKeepsItsHead)
 TEST_F(SelectionStateTest, TheNativeListConstructorUsesTheSharedRandomBeforeApplyingEquipment)
 {
     constexpr std::uint32_t Seed = 0x12345678;
-    Client::Render::Models::ClothWorld cloth{.random = Client::Render::Models::CrtRandom(Seed)};
+    Client::Render::Models::ClothWorld cloth{.random = Client::Crt::CrtRandom(Seed)};
     const auto skeleton = Client::Tests::PlayerActionsSkeleton();
     CharacterEntry entry = Entry(3);
     entry.classByte = 0x40;
@@ -198,7 +199,7 @@ TEST_F(SelectionStateTest, TheNativeListConstructorUsesTheSharedRandomBeforeAppl
 TEST_F(SelectionStateTest, TheRavenConstructorPrecedesTheGuardianAndKeepsTheListIdentity)
 {
     constexpr std::uint32_t Seed = 0x12345678;
-    Client::Render::Models::ClothWorld cloth{.random = Client::Render::Models::CrtRandom(Seed)};
+    Client::Render::Models::ClothWorld cloth{.random = Client::Crt::CrtRandom(Seed)};
     const auto skeleton = Client::Tests::PlayerActionsSkeleton();
     CharacterEntry entry;
     entry.slot = 4;
@@ -228,7 +229,7 @@ TEST_F(SelectionStateTest, TheRavenConstructorPrecedesTheGuardianAndKeepsTheList
 TEST_F(SelectionStateTest, ALaterPetOverrideKeepsTheHelperCreatedByTheEarlierPacketBits)
 {
     constexpr std::uint32_t Seed = 0x12345678;
-    Client::Render::Models::ClothWorld cloth{.random = Client::Render::Models::CrtRandom(Seed)};
+    Client::Render::Models::ClothWorld cloth{.random = Client::Crt::CrtRandom(Seed)};
     const auto skeleton = Client::Tests::PlayerActionsSkeleton();
     CharacterEntry entry;
     entry.equipment[11] = std::byte{1};
@@ -512,7 +513,7 @@ TEST_F(SelectionStateTest, MissingTablesFailExplicitlyEvenWhenTheSceneSkipsHeigh
 TEST_F(SelectionStateTest, MissingTablesKeepTheNativeConstructorRandomsAndPartialRecord)
 {
     constexpr std::uint32_t Seed = 0x12345678;
-    Client::Render::Models::ClothWorld cloth{.random = Client::Render::Models::CrtRandom(Seed)};
+    Client::Render::Models::ClothWorld cloth{.random = Client::Crt::CrtRandom(Seed)};
     m_state.BorrowTerrain(55, nullptr);
     const std::array<CharacterEvent, 1> events{List({Entry(3)})};
 

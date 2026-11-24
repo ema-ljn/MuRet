@@ -19,10 +19,10 @@
 #include <string>
 #include <vector>
 
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
-} // namespace Client::Render::Models
+} // namespace Client::Crt
 
 // Los objetos de un mundo (CL7.2): los del .obj como los arma 0x606660, su paso de 0x604ab0 y lo que
 // 0x6002e0 hace con cada uno. Contrato: 06 § El mundo del login; vectores del código real en
@@ -92,7 +92,7 @@ struct WorldObjectCreationContext
     // El binding y el servicio permanecen vivos y estables durante todo el batch; sus datos
     // prestados sí pueden cambiar. Se configura entre creaciones, no entre emisiones.
     IWorldObjectCreationServices* services = nullptr;
-    Render::Models::CrtRandom* random = nullptr; // El mismo estado CRT que usan los efectos y el mundo.
+    Crt::CrtRandom* random = nullptr; // El mismo estado CRT que usan los efectos y el mundo.
     // Byte vivo de 0x7239ec, con almacenamiento/valor/sincronización del caller. nullptr no fabrica
     // un valor inicial: conserva el gate hasta que el productor real preste este estado durable.
     const std::uint8_t* state7239Ec = nullptr;
@@ -232,7 +232,7 @@ struct ObjectStepGlobals
 // anteriores. En el 0x37 corre lo de StepWorldObject; los demás mapas cortan antes de tocar el objeto.
 [[nodiscard]] Core::Expected<void, std::string> StepWorldObjectChecked(WorldObject& object, std::uint8_t map,
                                                                        const Render::Models::Skeleton* skeleton,
-                                                                       Render::Models::CrtRandom& random,
+                                                                       Crt::CrtRandom& random,
                                                                        const ObjectStepGlobals& globals);
 
 // Lo que 0x5ffdf0 y 0x6002e0 hacen con un objeto en el dibujo.
@@ -282,8 +282,8 @@ inline constexpr std::int16_t Waterspout = 0x69;
 // hueso. MuRet no tiene las partículas del juego (0x743a198): corta en la primera (0x6030c7) después de
 // sus dos rand(). Sin un ftol acreditado del reloj, corta en 0x60301e con la luz ya en 1, sin tocar la V
 // ni sacar rand().
-[[nodiscard]] Core::Expected<void, std::string>
-StepTheWaterspoutFrame(WorldObject& object, Render::Models::CrtRandom& random, float worldClock);
+[[nodiscard]] Core::Expected<void, std::string> StepTheWaterspoutFrame(WorldObject& object, Crt::CrtRandom& random,
+                                                                       float worldClock);
 
 // El sector de 16 × 16 celdas de un objeto, de 0 a 15: el que le dio 0x606660 con la posición del
 // archivo por 0,000625f, el producto sin redondear (la x87) y el dword bajo de ftol. Fuera de la grilla,

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Core/PixelSize.h"
 #include "Data/Tables/ItemTable.h"
 #include "Data/Text/TextTable.h"
 #include "Protocol/Events.h"
@@ -14,9 +14,13 @@
 #include <string>
 #include <vector>
 
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
+} // namespace Client::Crt
+
+namespace Client::Render::Models
+{
 class IModelLibrary;
 struct Skeleton;
 } // namespace Client::Render::Models
@@ -42,14 +46,14 @@ struct EventPacketContext
 {
     WorldState& world;
     // El rand() de la CRT, que gastan los cierres de los paneles (0x657a90, 0x65cae0).
-    Render::Models::CrtRandom& random;
+    Crt::CrtRandom& random;
     // Text.bmd: sin la tabla, un aviso corta.
     const Data::Text::TextTable* texts = nullptr;
     // Item.bmd, del que 0x5b1c70 saca el nombre del ítem del 47; sin la tabla, ese aviso corta.
     const Data::Tables::ItemTable* items = nullptr;
     // El medidor y la pantalla de los mensajes (0x555190); sin medidor, un mensaje corta.
     const Render::Text::ITextMeasure* measure = nullptr;
-    App::PixelSize screen{640, 480};
+    Core::PixelSize screen{640, 480};
     // GetTickCount al aplicar el paquete (0x40ba60).
     std::uint32_t tickCount = 0;
     // Player.bmd, el esqueleto del 0x20a para 0x4ea030 desde 0x5111a0; sin él, ese caso corta.

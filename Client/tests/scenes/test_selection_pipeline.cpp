@@ -6,6 +6,7 @@
 #include "Core/Expected.h"
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Text/TextTable.h"
 #include "Data/Models/PlayerModels.h"
 #include "Input/InputState.h"
@@ -456,7 +457,7 @@ TEST_F(SelectionPipelineTest, AListPetReachesTheHelperBoundaryBeforeActorsPartic
     ASSERT_EQ(helpers[0].horse.alpha, 0.0f);
     constexpr std::uint32_t Seed = 16;
     constexpr int Counter = 41;
-    m_cloth.random = Client::Render::Models::CrtRandom(Seed);
+    m_cloth.random = Client::Crt::CrtRandom(Seed);
     m_cloth.logicSteps = Counter;
     const auto wind = m_cloth.wind;
     const auto animation = m_world.Actors()[0].animation;

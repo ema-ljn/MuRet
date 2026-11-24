@@ -1,6 +1,6 @@
 #include "Scenes/AidaObjectServices.h"
 
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Scenes/FaunaDrawing.h"
@@ -30,7 +30,7 @@
 // sus cortes.
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::Scenes::GameObjectPass;
 using Client::Scenes::StepAidaObjectFrame;
 using Client::World::Particle;

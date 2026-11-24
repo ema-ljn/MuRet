@@ -3,7 +3,7 @@
 #include "Scenes/IcarusObjectStep.h"
 
 #include "Core/Expected.h"
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Scenes/FaunaDrawing.h"
@@ -37,7 +37,7 @@
 // Icarus). Los valores esperados repiten las fórmulas del ASM con otro CrtRandom de la misma semilla.
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::Render::Models::RoundedSin;
 using Client::Scenes::GameObjectPass;
 using Client::Scenes::IcarusObjectServices;

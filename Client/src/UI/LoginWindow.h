@@ -1,7 +1,7 @@
 #pragma once
 
 #include "App/Credentials.h"
-#include "App/WindowState.h"
+#include "Core/PixelSize.h"
 #include "Data/Text/TextTable.h"
 #include "Input/InputState.h"
 #include "Render/SpriteBatch.h"
@@ -66,7 +66,7 @@ struct LoginLayout
 
 // 0x641700: 329 × 245 en ((W − 329) / 2, (H − 245) · 2 / 3); los campos de 156 × 23 en (+109,
 // +106) y (+109, +131); OK y cancelar de 54 × 30 en (+150, +178) y (+211, +178).
-[[nodiscard]] LoginLayout LayoutLogin(App::PixelSize screen);
+[[nodiscard]] LoginLayout LayoutLogin(Core::PixelSize screen);
 
 class LoginWindow final : public NewUiWindow
 {
@@ -81,7 +81,7 @@ public:
     void Close() override;
     [[nodiscard]] bool IsOpen() const override;
     // La ventana (`window` de LayoutLogin).
-    [[nodiscard]] Rect Bounds(App::PixelSize screen) const override;
+    [[nodiscard]] Rect Bounds(Core::PixelSize screen) const override;
     [[nodiscard]] LoginFocus Focus() const;
     // El título de arriba (0x641990): el texto 460 o 461 con el grupo y el número, ya armado.
     void SetTitle(std::string title);
@@ -92,22 +92,22 @@ public:
     // 0x6418b0 en el paso, con lo tecleado desde el paso anterior. Con Submit, la clave queda
     // vacía en la ventana; con Cancel, también; con EmptyAccount queda, como el emisor la deja. Lo
     // tecleado entra con o sin el foco de la UI; los clics, Enter y Esc, solo con él.
-    std::optional<LoginRequest> Step(const Input::InputState& input, App::PixelSize screen, NewUiTurn turn = {});
+    std::optional<LoginRequest> Step(const Input::InputState& input, Core::PixelSize screen, NewUiTurn turn = {});
     // Pone la mezcla normal (Q-C80) y dibuja el fondo, los campos, los botones, lo que tiene cada
     // campo (la clave con asteriscos), los rótulos y el título. El control activo del original
     // (0x468320) compone el caret como píxeles; no agrega el glifo "_" del camino legacy.
     // MuRet todavía no reproduce ese caret rectangular: el foco conserva la edición, sin señal visual.
-    void Draw(Render::SpriteBatch& sprites, Scenes::ITextDrawer& text, App::PixelSize screen);
+    void Draw(Render::SpriteBatch& sprites, Scenes::ITextDrawer& text, Core::PixelSize screen);
 
 private:
     [[nodiscard]] TextField& Focused();
     // Lo tecleado, byte por byte: TabChar pasa el foco, BackspaceChar borra en el campo del foco y
     // lo demás va a ese campo (TextField descarta lo que no es ASCII imprimible).
     void TypeInOrder(std::string_view typed);
-    void Place(App::PixelSize screen);
+    void Place(Core::PixelSize screen);
     LoginRequest Send();
     LoginRequest Cancel();
-    void DrawField(Scenes::ITextDrawer& text, const TextField& field, const Rect& area, App::PixelSize screen) const;
+    void DrawField(Scenes::ITextDrawer& text, const TextField& field, const Rect& area, Core::PixelSize screen) const;
 
     TextureSizes m_sizes;
     const Data::Text::TextTable* m_texts;

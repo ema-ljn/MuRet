@@ -1,7 +1,7 @@
 #include "World/SmokeParticleKernels.h"
 
 #include "Core/Expected.h"
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "World/Ftol.h"
 #include "World/IParticleTrigonometry.h"
 #include "World/Particles.h"
@@ -46,7 +46,7 @@ void KeepTheLight(Particle& particle)
 
 // 0x5418ca..0x541924 y 0x5422a5..0x5422ff: la escala ((rand() & 31) + 8) · escala · 0,01f, el ángulo x rand() % 360 y
 // el giro _ftol(reloj) % 360.
-void ShakeAtBirth(Particle& particle, Render::Models::CrtRandom& random, float clock)
+void ShakeAtBirth(Particle& particle, Crt::CrtRandom& random, float clock)
 {
     constexpr int ScaleMask = 31, ScaleBase = 8;
     const double argumentScale = static_cast<double>(particle.scale);
@@ -56,7 +56,7 @@ void ShakeAtBirth(Particle& particle, Render::Models::CrtRandom& random, float c
 }
 
 // 0x541c58..0x541c7d, 0x5424ff..0x542524 y 0x5426f2..0x542717: la velocidad vertical ((rand() & 31) + 60) · 0,1f.
-void RiseAtBirth(Particle& particle, Render::Models::CrtRandom& random)
+void RiseAtBirth(Particle& particle, Crt::CrtRandom& random)
 {
     constexpr int RiseMask = 31, RiseBase = 60;
     particle.verticalSpeed = F32(static_cast<double>((random.Next() & RiseMask) + RiseBase) * Tenth);
@@ -64,7 +64,7 @@ void RiseAtBirth(Particle& particle, Render::Models::CrtRandom& random)
 
 // 0x541981..0x541a00: vida 25, el giro y el ángulo x rand() % 360 y la partida (rand() % 50 − 25; rand() % 50 − 25;
 // −(rand() % 50)), que la /36 usa como distancia a su dueño.
-void TrailAtBirth(Particle& particle, Render::Models::CrtRandom& random)
+void TrailAtBirth(Particle& particle, Crt::CrtRandom& random)
 {
     constexpr std::int32_t TrailLife = 25;
     constexpr int Spread = 50, Center = 25;
@@ -87,7 +87,7 @@ void RiseLikeTheBreath(Particle& particle, double rise)
 
 // 0x54658b..0x546616 (/19) y 0x546630..0x5466bb (/20): la velocidad vertical suma rand() % 20 · 0,002f, la x y la y
 // (rand() % 100 − 20) · 0,01f, la z la velocidad y la escala rand() % 10 · 0,001f; el giro queda igual a la escala.
-void Shake(Particle& particle, Render::Models::CrtRandom& random)
+void Shake(Particle& particle, Crt::CrtRandom& random)
 {
     constexpr double RiseStep = static_cast<double>(std::bit_cast<float>(0x3b03126fu)); // 0x6ba3a4, 0,002f
     constexpr double GrowStep = static_cast<double>(std::bit_cast<float>(0x3a83126fu)); // 0x6ba128, 0,001f
@@ -158,7 +158,7 @@ void StepTheShrinking(Particle& particle)
 }
 // 0x542943..0x542a5f: la /0..2 guardan la luz, viven 55 (la /1, 30), el ángulo x (rand() & 3) − 2 y el giro
 // _ftol(reloj) % 360; los demás subtipos salen por 0x54304c con el prefijo.
-void CreateThePuff(Particle& particle, Render::Models::CrtRandom& random, float clock)
+void CreateThePuff(Particle& particle, Crt::CrtRandom& random, float clock)
 {
     constexpr std::int32_t LongLife = 55, ShortLife = 30, ShortSubtype = 1, LastSubtype = 2;
     constexpr int TiltMask = 3;
@@ -249,7 +249,7 @@ bool IsStormMist(std::int32_t type, std::int32_t subtype)
            (subtype == StormMistSubtype || subtype == DarkStormMistSubtype || subtype == ShortStormMistSubtype);
 }
 
-Core::Expected<void, ParticleError> CreateStormMist(Particle& particle, Render::Models::CrtRandom& random,
+Core::Expected<void, ParticleError> CreateStormMist(Particle& particle, Crt::CrtRandom& random,
                                                     const ParticleTerrainHeight& terrainHeight, const float* worldClock,
                                                     IParticleTrigonometry* trigonometry)
 {
@@ -312,7 +312,7 @@ bool IsSmokeParticle(std::int32_t type, std::int32_t subtype)
     }
 }
 
-void CreateSmokeParticle(Particle& particle, Render::Models::CrtRandom& random, float clock)
+void CreateSmokeParticle(Particle& particle, Crt::CrtRandom& random, float clock)
 {
     constexpr std::int32_t GlowLife = 12, ShakingLife = 40, BreathLife = 16, StoneLife = 32, FadingLife = 25;
     constexpr std::int32_t ShrinkingLife = 15, EmberLife = 20;
@@ -407,7 +407,7 @@ void CreateSmokeParticle(Particle& particle, Render::Models::CrtRandom& random, 
     }
 }
 
-Core::Expected<void, ParticleError> StepSmokeParticle(Particle& particle, Render::Models::CrtRandom& random,
+Core::Expected<void, ParticleError> StepSmokeParticle(Particle& particle, Crt::CrtRandom& random,
                                                       const ParticleOwnerStates& ownerStates)
 {
     constexpr double Fortieth = static_cast<double>(std::bit_cast<float>(0x3ccccccdu));     // 0x6ba1fc, 0,025f

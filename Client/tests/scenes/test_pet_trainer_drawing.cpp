@@ -1,10 +1,10 @@
 #include "Scenes/PetTrainerDrawing.h"
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Core/PixelSize.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Tables/ItemTable.h"
 #include "Data/Text/TextTable.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/SpriteBatch.h"
 #include "Render/Text/FontSet.h"
@@ -40,15 +40,15 @@
 // inventados y miden 6 columnas por letra; el mundo, en Lorencia (0) y Devias (2).
 namespace
 {
+using Client::Crt::CrtRandom;
 using Client::Render::SpriteBatch;
-using Client::Render::Models::CrtRandom;
 using Client::Render::Text::FontKind;
 using Client::Scenes::GameHudContext;
 using Client::Scenes::WorldState;
 using Client::Tests::RecordedText;
 using Client::World::ItemState;
 
-constexpr Client::App::PixelSize Screen640{640, 480};
+constexpr Client::Core::PixelSize Screen640{640, 480};
 constexpr std::uint32_t Seed = 0x7a1e5u;
 constexpr int Own = Client::Render::Models::OwnRecordCloseRandoms;
 constexpr std::array<std::int32_t, 3> Maps{0, 2, 3};

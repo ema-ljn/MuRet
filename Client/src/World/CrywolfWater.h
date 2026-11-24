@@ -8,7 +8,7 @@
 #include <functional>
 #include <string>
 
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
 }
@@ -23,7 +23,7 @@ struct CrywolfWaterContext
     // +0x18 y +0x1c del héroe (0x743a170): la z de la burbuja y sus ángulos.
     float heroZ = 0.0f;
     glm::vec3 heroAngles{0.0f};
-    Render::Models::CrtRandom* random = nullptr;
+    Crt::CrtRandom* random = nullptr;
     Particles* particles = nullptr;
     std::reference_wrapper<const float> worldClock;
 };

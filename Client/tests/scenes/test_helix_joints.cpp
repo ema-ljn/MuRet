@@ -1,7 +1,7 @@
 #include "Scenes/FaunaJointCreation.h"
 
 #include "Core/Expected.h"
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "Render/Models/OriginalRetainedMath.h"
 #include "Scenes/GameDrawTail.h"
 #include "World/IFishStepServices.h"
@@ -24,7 +24,7 @@
 // es múltiplo de 12 (0x53c3c6). El 0x62b/4 y /0xc pasan por los mismos.
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::Render::Models::Detail::CosineDoubleProductPC53;
 using Client::Render::Models::Detail::SineDoubleProductPC53;
 using Client::Scenes::JointOwnerKind;

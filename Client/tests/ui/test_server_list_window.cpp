@@ -1,6 +1,6 @@
 #include "UI/ServerListWindow.h"
 
-#include "App/WindowState.h"
+#include "Core/PixelSize.h"
 #include "Data/Text/TextTable.h"
 #include "Input/InputState.h"
 #include "Protocol/Connection/ServerList.h"
@@ -32,7 +32,7 @@
 // grupo elegido. Todo en píxeles, centrada como la ubica 0x65f300.
 namespace
 {
-using Client::App::PixelSize;
+using Client::Core::PixelSize;
 using Client::Input::InputState;
 using Client::Protocol::Connection::ServerEntry;
 using Client::Render::TextureSlot;

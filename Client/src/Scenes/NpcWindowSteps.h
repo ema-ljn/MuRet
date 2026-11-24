@@ -11,7 +11,7 @@
 // dos confirmaciones del ítem del cursor (0x5d8dee..0x5d9659) y el OK del zen del almacén (0x6270ed..0x6282c8). Los
 // llaman 0x5ee140 (Scenes::StepTheGameUi) y 0x623e70 (Scenes::StepTheOpenDialog). Contrato:
 // Client/docs/research/04-protocolo.md, "Las ventanas de los NPC", y 06 § El inventario.
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
 }
@@ -30,7 +30,7 @@ struct WorldRuntime;
 // 0x5e7aa0(modo): el teclado del almacén barajado (Scenes::ShuffleTheKeypad, 40 rand()), lo tecleado (0x78ab9fc..) en
 // 0 y el modo en 0x78abb20. En línea en soltar en el inventario con la traba (0x5cb3af..) y en el botón 2 del almacén
 // (0x5ea1aa..); lo llaman el OK del 0x73 (0x627c33, con 1) y el del 0x8f (0x628276, con 6).
-void OpenTheKeypad(WorldRuntime& runtime, Render::Models::CrtRandom& random, std::int32_t mode);
+void OpenTheKeypad(WorldRuntime& runtime, Crt::CrtRandom& random, std::int32_t mode);
 
 // 0x5ed960, con la tienda abierta (IsOpen(0x10000), su rand()). Con 0x78abb09: los dos botones del modo de reparar
 // (x + 0x19 y x + 0x55, y + 0x16d), el de reparar todo (x + 0x73), que manda C1 05 34 FF 00 en C3 sin gastar el clic,
@@ -41,8 +41,8 @@ void OpenTheKeypad(WorldRuntime& runtime, Render::Models::CrtRandom& random, std
 // 0x54d0f0 en el modo 2 de cada ítem gastado (la durabilidad debajo de la máxima, 0x5b1ba0) de los doce lugares del
 // equipo (con tipo) y de las 64 casillas del inventario (con +0x3c), salvo lo que no se repara (0x1a00 a 0x1a05,
 // 0x1a0a, 0x1a1f, 0x807, 0x80f, de 0x1c00 en adelante, 0x1807 a 0x1813, 0x1a0e a 0x1a14, 0x1c15 y 0x1a25).
-[[nodiscard]] Core::Expected<void, std::string>
-PriceTheRepairOfEverything(WorldState& world, Render::Models::CrtRandom& random, const Data::Tables::ItemTable* items);
+[[nodiscard]] Core::Expected<void, std::string> PriceTheRepairOfEverything(WorldState& world, Crt::CrtRandom& random,
+                                                                           const Data::Tables::ItemTable* items);
 
 // 0x5ea060, con el almacén abierto: el primero de los cuatro botones (x + 0x1a, 0x4c y 0x7e en y + 0x186, y x + 0xd7 en
 // y + 0x18b, de 0x18 × 0x18) bajo el mouse; con el clic, lo gasta y suena 0x19. 0 y 1: el diálogo 0x73 para meter o

@@ -9,7 +9,7 @@
 #include "support/TestGameServer.h"
 
 #include "Core/Expected.h"
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/WorldMap.h"
 #include "Scenes/WorldRuntime.h"
@@ -70,7 +70,7 @@ protected:
     }
 
     std::unique_ptr<Client::Scenes::WorldState> m_world = std::make_unique<Client::Scenes::WorldState>();
-    Client::Render::Models::CrtRandom m_random{Seed};
+    Client::Crt::CrtRandom m_random{Seed};
 };
 
 TEST_F(MapDataFailureTest, WorldThirtySixReachesItsMissingAttributesAfterTheMissingMapping)

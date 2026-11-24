@@ -1,14 +1,16 @@
 #include "App/WindowState.h"
 
+#include "Core/PixelSize.h"
+
 #include <gtest/gtest.h>
 
 // Client::App::Apply: qué cambia cada evento de la ventana (la tabla del paso 1 de la CL3.1).
 namespace
 {
 using Client::App::Apply;
-using Client::App::PixelSize;
 using Client::App::WindowEvent;
 using Client::App::WindowState;
+using Client::Core::PixelSize;
 
 TEST(WindowStateTest, CloseRequestedStopsRunning)
 {

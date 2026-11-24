@@ -1,7 +1,7 @@
 #include "World/DungeonObjectStep.h"
 
 #include "Core/Expected.h"
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "World/ModelEffects.h"
 #include "World/ObjectModelStepState.h"
 #include "World/OriginalFtol.h"
@@ -50,9 +50,8 @@ std::optional<float> LostTowerScroll(float worldClock)
     return F32(static_cast<double>(negated % ScrollPeriod) * Thousandth);
 }
 
-Core::Expected<void, std::string> Fire(const WorldObject& object, const glm::vec3& offset,
-                                       Render::Models::CrtRandom& random, const ObjectStepGlobals& globals,
-                                       const char* address)
+Core::Expected<void, std::string> Fire(const WorldObject& object, const glm::vec3& offset, Crt::CrtRandom& random,
+                                       const ObjectStepGlobals& globals, const char* address)
 {
     if (auto emitted = EmitObjectFire(0, object, offset, random, globals); !emitted.HasValue())
         return Core::Unexpected(std::format("{}: {}", address, emitted.Error()));
@@ -60,7 +59,7 @@ Core::Expected<void, std::string> Fire(const WorldObject& object, const glm::vec
 }
 } // namespace
 
-Core::Expected<void, std::string> StepDungeonObject(WorldObject& object, Render::Models::CrtRandom& random,
+Core::Expected<void, std::string> StepDungeonObject(WorldObject& object, Crt::CrtRandom& random,
                                                     const ObjectStepGlobals& globals)
 {
     switch (object.type)
@@ -107,7 +106,7 @@ Core::Expected<void, std::string> StepDungeonObject(WorldObject& object, Render:
     }
 }
 
-Core::Expected<void, std::string> StepLostTowerObject(WorldObject& object, Render::Models::CrtRandom& random,
+Core::Expected<void, std::string> StepLostTowerObject(WorldObject& object, Crt::CrtRandom& random,
                                                       const ObjectStepGlobals& globals)
 {
     switch (object.type)

@@ -1,6 +1,6 @@
 #include "Render/SpriteBatch.h"
 
-#include "App/WindowState.h"
+#include "Core/PixelSize.h"
 #include "Render/OriginalQuad.h"
 #include "Render/OriginalSkewedQuad.h"
 #include "Render/SpriteVertex.h"
@@ -38,7 +38,7 @@ void PrintTo(const TextureSlot& slot, std::ostream* out)
 
 namespace
 {
-using Client::App::PixelSize;
+using Client::Core::PixelSize;
 using Client::Render::BlendMode;
 using Client::Render::Color;
 using Client::Render::DesignScale;

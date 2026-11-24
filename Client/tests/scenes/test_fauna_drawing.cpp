@@ -1,6 +1,7 @@
 #include "Render/Models/IModelLibrary.h"
 #include "Scenes/FaunaDrawing.h"
 
+#include "Crt/CrtRandom.h"
 #include "Data/Models/Model.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainHeights.h"
@@ -137,7 +138,7 @@ TEST_F(FaunaDrawingTest, ButterflySpendsOneSharedDrawAndCreatesOneSprite)
 {
     Live(m_fauna.Birds()[0], 0xae);
     auto context = Context();
-    Client::Render::Models::CrtRandom expected;
+    Client::Crt::CrtRandom expected;
     static_cast<void>(expected.Next());
     const auto result = DrawGameBirds(m_batch, context);
     ASSERT_TRUE(result.HasValue()) << result.Error();

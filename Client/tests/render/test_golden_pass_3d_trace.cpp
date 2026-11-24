@@ -1,4 +1,4 @@
-#include "App/WindowState.h"
+#include "Core/PixelSize.h"
 #include "Render/Models/RoundedMath.h"
 #include "Render/Pass3D.h"
 #include "Scenes/SceneCameras.h"
@@ -34,7 +34,7 @@
 // la del 2D, que no son de una cámara de MuRet.
 namespace
 {
-using Client::App::PixelSize;
+using Client::Core::PixelSize;
 using Client::Render::Camera3D;
 using Client::Render::MakePass3D;
 using Client::Render::Pass3D;

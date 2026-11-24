@@ -2,6 +2,7 @@
 #include "World/GameModelEffects.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/CharacterDrawing.h"
@@ -16,7 +17,6 @@
 #include "Scenes/WorldMap.h"
 #include "World/IFishStepServices.h"
 #include "Data/Terrain/TerrainAttributes.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/OriginalRetainedMath.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Render/Models/Skeleton.h"
@@ -69,7 +69,7 @@ TEST(GameModelEffectsTest, TheVolleyPulseStepsLikeTheTrailAndRetiresWithItsArrow
     pulse.life = 10;
     pulse.transform.position = {1, 2, 3};
     pulse.owner.effect = &projectile;
-    Client::Render::Models::CrtRandom random(1);
+    Client::Crt::CrtRandom random(1);
     const std::int32_t map = 34;
     const Client::World::ModelEffectStepServices services{.map = &map};
 
@@ -108,7 +108,7 @@ TEST(GameModelEffectsTest, TheShortBowTrailFollowsThePhysicalArrowSlotAndRunsIts
     trail.life = 100;
     trail.transform.position = {1, 2, 3};
     trail.owner.effect = &arrow;
-    Client::Render::Models::CrtRandom random(1);
+    Client::Crt::CrtRandom random(1);
     const std::int32_t map = 0;
     const Client::World::ModelEffectStepServices services{.map = &map};
     auto result = Client::World::StepGameModelEffect(trail, nullptr, particles, 0, random, nullptr, services);
@@ -150,7 +150,7 @@ TEST(GameModelEffectsTest, TheShortBowTrailPublishesAndAdvancesAnimationEvenOnIt
     trail.transform.position = {1, 2, 3};
     Client::Render::Models::Skeleton skeleton;
     skeleton.actions.resize(1, {.repeats = false, .speed = 1, .keyCount = 2});
-    Client::Render::Models::CrtRandom random(1);
+    Client::Crt::CrtRandom random(1);
     const std::int32_t map = 0;
     int published = 0;
     Client::World::ModelEffectStepServices services{.map = &map};
@@ -264,7 +264,7 @@ TEST(GameModelEffectsTest, TheShortBowTrailOnlyDisturbsKalimaForThePublishedHero
             trail.type = 0x105;
             trail.life = 100;
             trail.owner.effect = &arrow;
-            Client::Render::Models::CrtRandom random(7);
+            Client::Crt::CrtRandom random(7);
             auto expected = random;
             (void)expected.Next();
             if (heroOwner && (map == 24 || map == 29 || map == 36))
@@ -289,7 +289,7 @@ TEST(GameModelEffectsTest, NoriaUpdatesLightAndPitchThenTheCommonLifeWithOneRand
     effect.life = 100;
     effect.turnDirection = 3.0f;
     Client::World::Particles particles;
-    Client::Render::Models::CrtRandom random(1);
+    Client::Crt::CrtRandom random(1);
     const auto result = Client::World::StepGameModelEffect(effect, nullptr, particles, 0.0f, random);
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_EQ(effect.light, glm::vec3(0.01f));
@@ -305,7 +305,7 @@ TEST(GameModelEffectsTest, MagicalTeleportCreatesEighteenSparksWithThreeAnglesEa
     effect.life = 10;
     effect.transform.position = {100.0f, 200.0f, 300.0f};
     Client::World::Particles particles;
-    Client::Render::Models::CrtRandom random(1);
+    Client::Crt::CrtRandom random(1);
     const auto result = Client::World::StepGameModelEffect(effect, nullptr, particles, 0.0f, random);
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_EQ(effect.life, 9);
@@ -328,7 +328,7 @@ TEST(GameModelEffectsTest, AFullSparkPoolConsumesOnlyTheModelEffectPrefix)
     Client::World::Particles particles;
     for (auto& particle : particles.All())
         particle.alive = true;
-    Client::Render::Models::CrtRandom random(1);
+    Client::Crt::CrtRandom random(1);
     ASSERT_TRUE(Client::World::StepGameModelEffect(effect, nullptr, particles, 0.0f, random).HasValue());
     EXPECT_EQ(effect.life, 9);
     EXPECT_EQ(random.State(), Client::Tests::AfterDraws(1, 1).State());
@@ -336,7 +336,7 @@ TEST(GameModelEffectsTest, AFullSparkPoolConsumesOnlyTheModelEffectPrefix)
 TEST(GameModelEffectsTest, TeleportSparksUseTheirOwnShrinkRatherThanTheRavenFade)
 {
     Client::World::Particles particles;
-    Client::Render::Models::CrtRandom random(1);
+    Client::Crt::CrtRandom random(1);
     const auto created =
         particles.CreateChecked(Client::World::SparkParticle, {}, {}, {1.0f, 0.5f, 0.25f}, 1, 12.0f, 0.0f, random);
     ASSERT_TRUE(created.HasValue());
@@ -354,7 +354,7 @@ TEST(GameModelEffectsTest, NoriaUsesTheStoredBlueArgumentAtANonzeroClock)
     effect.type = 324;
     effect.life = 100;
     Client::World::Particles particles;
-    Client::Render::Models::CrtRandom random(1);
+    Client::Crt::CrtRandom random(1);
     ASSERT_TRUE(Client::World::StepGameModelEffect(effect, nullptr, particles, 1000.0f, random).HasValue());
     EXPECT_EQ(std::bit_cast<std::uint32_t>(effect.light.x), 0x3e40c25fu);
     EXPECT_EQ(std::bit_cast<std::uint32_t>(effect.light.y), 0x3e55553du);
@@ -372,7 +372,7 @@ TEST(GameModelEffectsTest, TextureEffectsSkipTheNativeModelAnimationRange)
     skeleton.actions.resize(1);
     skeleton.actions[0].keyCount = 4;
     Client::World::Particles particles;
-    Client::Render::Models::CrtRandom random(1);
+    Client::Crt::CrtRandom random(1);
     ASSERT_TRUE(Client::World::StepGameModelEffect(effect, &skeleton, particles, 1000.0f, random).HasValue());
     EXPECT_EQ(effect.animation.frame, 1.0f);
     EXPECT_EQ(effect.life, 99);
@@ -391,7 +391,7 @@ TEST(GameModelEffectsTest, SparseParticleSlotsPreserveTheirPayloadAndConsumeOnly
     particles.All()[7].alive = false;
     particles.All()[5].field38 = 0x12345678;
     particles.All()[5].rotationFactor = 23.0f;
-    Client::Render::Models::CrtRandom random(1);
+    Client::Crt::CrtRandom random(1);
     ASSERT_TRUE(Client::World::StepGameModelEffect(effect, nullptr, particles, 0.0f, random).HasValue());
     EXPECT_EQ(particles.All()[5].scale, 12.0f);
     EXPECT_EQ(particles.All()[7].scale, 6.0f);
@@ -441,8 +441,8 @@ TEST(GameModelEffectsTest, TheButterflyFlutterKeepsItsHeightBandAndGlowsWithItsS
             Butterfly butterfly(0);
             butterfly.height = height;
             butterfly.effect.state = state;
-            Client::Render::Models::CrtRandom random(5);
-            Client::Render::Models::CrtRandom draws(5);
+            Client::Crt::CrtRandom random(5);
+            Client::Crt::CrtRandom draws(5);
             static_cast<void>(draws.Next()); // 0x5208c5.
             const int turn = draws.Next() % 10;
             float velocity = 0.0f;
@@ -484,8 +484,8 @@ TEST(GameModelEffectsTest, TheLargeButterflyDropsASparkOnEvenDraws)
     for (const std::uint32_t seed : {1u, 2u, 3u, 4u, 5u, 6u})
     {
         Butterfly butterfly(3);
-        Client::Render::Models::CrtRandom random(seed);
-        Client::Render::Models::CrtRandom draws(seed);
+        Client::Crt::CrtRandom random(seed);
+        Client::Crt::CrtRandom draws(seed);
         static_cast<void>(draws.Next()); // 0x5208c5.
         static_cast<void>(draws.Next()); // El giro.
         if ((draws.Next() & 31) == 0)
@@ -527,7 +527,7 @@ TEST(GameModelEffectsTest, TheButterflyNeedsTheTerrainHeightAndTheSpriteTable)
 {
     Butterfly heightless(0);
     heightless.services.terrainHeight = {};
-    Client::Render::Models::CrtRandom random(5);
+    Client::Crt::CrtRandom random(5);
     auto cut = Client::World::StepGameModelEffect(heightless.effect, nullptr, heightless.particles, 0.0f, random,
                                                   nullptr, heightless.services);
     ASSERT_FALSE(cut.HasValue());
@@ -560,7 +560,7 @@ std::uint32_t SeedWhereDraw(int draw, bool (*condition)(int))
 {
     for (std::uint32_t seed = 1;; ++seed)
     {
-        Client::Render::Models::CrtRandom random(seed);
+        Client::Crt::CrtRandom random(seed);
         for (int skipped = 0; skipped < draw; ++skipped)
             static_cast<void>(random.Next());
         if (condition(random.Next()))
@@ -578,7 +578,7 @@ TEST(GameModelEffectsTest, TheFallingStoneFallsAndBouncesOnTheGround)
     Client::World::Particles particles;
     Client::World::ModelEffectStepServices services;
     services.terrainHeight = [](float, float) { return 50.0; };
-    Client::Render::Models::CrtRandom random(1);
+    Client::Crt::CrtRandom random(1);
     ASSERT_TRUE(
         Client::World::StepGameModelEffect(falling, nullptr, particles, 0.0f, random, nullptr, services).HasValue());
     EXPECT_EQ(falling.transform.position, glm::vec3(1000.0f, 1000.0f, 98.0f));
@@ -614,7 +614,7 @@ TEST(GameModelEffectsTest, TheStatueStonesJumpFallTiltAndCutAtTheDust)
 {
     {
         Client::World::ModelEffects effects;
-        Client::Render::Models::CrtRandom random(7);
+        Client::Crt::CrtRandom random(7);
         const auto slot = effects.CreateDebris(Client::World::DebrisEffect, {1000.0f, 1000.0f, 100.0f}, glm::vec3(0.0f),
                                                glm::vec3(1.0f), random);
         ASSERT_TRUE(slot.has_value());
@@ -628,7 +628,7 @@ TEST(GameModelEffectsTest, TheStatueStonesJumpFallTiltAndCutAtTheDust)
         EXPECT_LE(stone.turnDirection, 10.0f);
         EXPECT_FALSE(stone.hasOwner);
         EXPECT_EQ(stone.disturbanceState, 0xffff);
-        Client::Render::Models::CrtRandom other(7);
+        Client::Crt::CrtRandom other(7);
         const auto first = effects.CreateDebris(Client::World::FirstDebrisEffect, glm::vec3(0.0f), glm::vec3(0.0f),
                                                 glm::vec3(1.0f), other);
         ASSERT_TRUE(first.has_value());
@@ -651,7 +651,7 @@ TEST(GameModelEffectsTest, TheStatueStonesJumpFallTiltAndCutAtTheDust)
     {
         Client::World::ModelEffect flying = stone();
         services.terrainHeight = [](float, float) { return 0.0; };
-        Client::Render::Models::CrtRandom random(quiet);
+        Client::Crt::CrtRandom random(quiet);
         ASSERT_TRUE(
             Client::World::StepGameModelEffect(flying, nullptr, particles, 0.0f, random, nullptr, services).HasValue());
         EXPECT_EQ(flying.velocity.y,
@@ -667,7 +667,7 @@ TEST(GameModelEffectsTest, TheStatueStonesJumpFallTiltAndCutAtTheDust)
     {
         Client::World::ModelEffect landing = stone();
         services.terrainHeight = [](float, float) { return 1000.0; };
-        Client::Render::Models::CrtRandom random(quiet);
+        Client::Crt::CrtRandom random(quiet);
         ASSERT_TRUE(Client::World::StepGameModelEffect(landing, nullptr, particles, 0.0f, random, nullptr, services)
                         .HasValue());
         EXPECT_EQ(landing.turnDirection, times(2.0, std::bit_cast<float>(0xbe4ccccdu)));
@@ -680,7 +680,7 @@ TEST(GameModelEffectsTest, TheStatueStonesJumpFallTiltAndCutAtTheDust)
         const std::uint32_t dusty = SeedWhereDraw(1, [](int draw) { return draw % 10 == 0; });
         Client::World::ModelEffect raising = stone();
         services.terrainHeight = [](float, float) { return 0.0; };
-        Client::Render::Models::CrtRandom random(dusty);
+        Client::Crt::CrtRandom random(dusty);
         const auto cut =
             Client::World::StepGameModelEffect(raising, nullptr, particles, 0.0f, random, nullptr, services);
         ASSERT_FALSE(cut.HasValue());
@@ -694,7 +694,7 @@ TEST(GameModelEffectsTest, TheStatueStonesJumpFallTiltAndCutAtTheDust)
     }
     services.terrainHeight = {};
     Client::World::ModelEffect blind = stone();
-    Client::Render::Models::CrtRandom random(quiet);
+    Client::Crt::CrtRandom random(quiet);
     const auto cut = Client::World::StepGameModelEffect(blind, nullptr, particles, 0.0f, random, nullptr, services);
     ASSERT_FALSE(cut.HasValue());
     EXPECT_NE(cut.Error().find("0x5253d9"), std::string::npos) << cut.Error();
@@ -714,7 +714,7 @@ TEST(GameModelEffectsTest, TheStoneChipsDragTiltBounceAndSometimesBurn)
         Client::World::Particles particles;
         Client::World::ModelEffectStepServices services;
         services.terrainHeight = [](float, float) { return 0.0; };
-        Client::Render::Models::CrtRandom random(cold);
+        Client::Crt::CrtRandom random(cold);
         ASSERT_TRUE(
             Client::World::StepGameModelEffect(chip, nullptr, particles, 0.0f, random, nullptr, services).HasValue());
         EXPECT_EQ(chip.velocity.x, static_cast<float>(10.0 * static_cast<double>(std::bit_cast<float>(0x3f666666u))));
@@ -731,7 +731,7 @@ TEST(GameModelEffectsTest, TheStoneChipsDragTiltBounceAndSometimesBurn)
         Client::World::Particles particles;
         Client::World::ModelEffectStepServices services;
         services.terrainHeight = [](float, float) { return 200.0; };
-        Client::Render::Models::CrtRandom random(burns);
+        Client::Crt::CrtRandom random(burns);
         ASSERT_TRUE(
             Client::World::StepGameModelEffect(chip, nullptr, particles, 0.0f, random, nullptr, services).HasValue());
         EXPECT_EQ(chip.transform.position.z, 200.0f);
@@ -741,7 +741,7 @@ TEST(GameModelEffectsTest, TheStoneChipsDragTiltBounceAndSometimesBurn)
         const auto& fire = particles.All()[0];
         ASSERT_TRUE(fire.alive);
         EXPECT_EQ(fire.type, 0x5d9);
-        Client::Render::Models::CrtRandom draws = Client::Tests::AfterDraws(burns, 2);
+        Client::Crt::CrtRandom draws = Client::Tests::AfterDraws(burns, 2);
         EXPECT_EQ(fire.subtype, draws.Next() % 3 + 1);
     }
 }
@@ -763,8 +763,7 @@ TEST(GameModelEffectsTest, TheColumnChipFallsAndBurnsLikeTheFirstOne)
             std::array<Client::World::ModelEffect, 2> chips{DungeonEffect(type, 40), DungeonEffect(type, 40)};
             std::array<std::unique_ptr<Client::World::Particles>, 2> particles{
                 std::make_unique<Client::World::Particles>(), std::make_unique<Client::World::Particles>()};
-            std::array<Client::Render::Models::CrtRandom, 2> randoms{Client::Render::Models::CrtRandom(seed),
-                                                                     Client::Render::Models::CrtRandom(seed)};
+            std::array<Client::Crt::CrtRandom, 2> randoms{Client::Crt::CrtRandom(seed), Client::Crt::CrtRandom(seed)};
             chips[0].subtype = Client::World::ColumnStoneChipSubtype;
             Client::World::ModelEffectStepServices services;
             services.terrainHeight = [](float, float) { return 0.0; };
@@ -791,7 +790,7 @@ TEST(GameModelEffectsTest, TheColumnChipFallsAndBurnsLikeTheFirstOne)
             EXPECT_EQ(twinFire.alive, seed == burns);
             if (seed == burns)
             {
-                Client::Render::Models::CrtRandom draws = Client::Tests::AfterDraws(seed, 2);
+                Client::Crt::CrtRandom draws = Client::Tests::AfterDraws(seed, 2);
                 EXPECT_EQ(fire.type, 0x5d9);
                 EXPECT_EQ(fire.subtype, draws.Next() % 3 + 1);
                 EXPECT_EQ(fire.light, column.light);
@@ -815,7 +814,7 @@ TEST(GameModelEffectsTest, TheSplintersStepLikeChipsAndNeverBurn)
         auto particles = std::make_unique<Client::World::Particles>();
         Client::World::ModelEffectStepServices services;
         services.terrainHeight = [](float, float) { return 0.0; };
-        Client::Render::Models::CrtRandom random(burns);
+        Client::Crt::CrtRandom random(burns);
         const auto stepped =
             Client::World::StepGameModelEffect(splinter, nullptr, *particles, 0.0f, random, nullptr, services);
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
@@ -839,7 +838,7 @@ TEST(GameModelEffectsTest, TheRisingStoneChipAcceleratesWithoutTerrainOrFire)
     chip.velocity = {0, 10, 0};
     chip.turnDirection = 8;
     const auto start = chip.transform.position;
-    Client::Render::Models::CrtRandom random(1);
+    Client::Crt::CrtRandom random(1);
 
     auto result = Client::World::StepGameModelEffect(chip, nullptr, *particles, 0.0f, random);
 
@@ -873,7 +872,7 @@ TEST(GameModelEffectsTest, TheSpinningStoneChipRisesAndTurnsTwentyEachStep)
     chip.transform.angles = {0, 0, 90};
     chip.velocity = {0, 10, 0};
     chip.turnDirection = 8;
-    Client::Render::Models::CrtRandom random(1);
+    Client::Crt::CrtRandom random(1);
     // La gemela: el movimiento con los ángulos de antes, el arrastre, la caída, el giro de 20 y la cola común
     // (StepModelEffect, 0x52cb98), escritos aparte.
     auto twin = chip;
@@ -922,7 +921,7 @@ TEST(GameModelEffectsTest, TheIceShardStepsLikeAChipAndSometimesBreathes)
         shard.velocity = {10.0f, 0.0f, 0.0f};
         shard.turnDirection = 5.0f;
         auto particles = std::make_unique<Client::World::Particles>();
-        Client::Render::Models::CrtRandom random(breathes);
+        Client::Crt::CrtRandom random(breathes);
         ASSERT_TRUE(
             Client::World::StepGameModelEffect(shard, nullptr, *particles, 0.0f, random, nullptr, services).HasValue());
         EXPECT_EQ(shard.velocity.x, static_cast<float>(10.0 * static_cast<double>(std::bit_cast<float>(0x3f666666u))));
@@ -941,7 +940,7 @@ TEST(GameModelEffectsTest, TheIceShardStepsLikeAChipAndSometimesBreathes)
     {
         Client::World::ModelEffect shard = DungeonEffect(Client::World::IceShardEffect, 40);
         auto particles = std::make_unique<Client::World::Particles>();
-        Client::Render::Models::CrtRandom random(cold);
+        Client::Crt::CrtRandom random(cold);
         ASSERT_TRUE(
             Client::World::StepGameModelEffect(shard, nullptr, *particles, 0.0f, random, nullptr, services).HasValue());
         EXPECT_FALSE(particles->Any());
@@ -950,7 +949,7 @@ TEST(GameModelEffectsTest, TheIceShardStepsLikeAChipAndSometimesBreathes)
     Client::World::ModelEffect owned = DungeonEffect(Client::World::IceShardEffect, 40);
     owned.subtype = 5;
     auto particles = std::make_unique<Client::World::Particles>();
-    Client::Render::Models::CrtRandom random(1);
+    Client::Crt::CrtRandom random(1);
     const auto cut = Client::World::StepGameModelEffect(owned, nullptr, *particles, 0.0f, random, nullptr, services);
     ASSERT_FALSE(cut.HasValue());
     EXPECT_NE(cut.Error().find("0x523974"), std::string::npos) << cut.Error();
@@ -976,12 +975,12 @@ TEST(GameModelEffectsTest, TheFlameJetSpitsSixFlamesASometimesChipAndItsLight)
         Client::World::ModelEffectStepServices services;
         services.effects = &effects;
         services.lighting = lighting.get();
-        Client::Render::Models::CrtRandom random(seed);
+        Client::Crt::CrtRandom random(seed);
         const auto stepped =
             Client::World::StepGameModelEffect(jet, nullptr, particles, 0.0f, random, nullptr, services);
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
 
-        Client::Render::Models::CrtRandom draws(seed);
+        Client::Crt::CrtRandom draws(seed);
         const auto luminosity =
             static_cast<float>(((draws.Next() & 3) + 7) * static_cast<double>(std::bit_cast<float>(0x3dcccccdu)));
         Client::World::Particles expectedParticles;
@@ -1049,12 +1048,12 @@ TEST(GameModelEffectsTest, TheFlameColumnSpitsFlamesEmbersSmokeAndItsChip)
         Client::World::ModelEffectStepServices services;
         services.effects = effects.get();
         services.lighting = lighting.get();
-        Client::Render::Models::CrtRandom random(Seed);
+        Client::Crt::CrtRandom random(Seed);
         const auto stepped =
             Client::World::StepGameModelEffect(column, nullptr, *particles, 0.0f, random, nullptr, services);
 
         // La réplica: el rand() de la luz local, las mismas partículas en un pool gemelo y el de la piedrita.
-        Client::Render::Models::CrtRandom draws(Seed);
+        Client::Crt::CrtRandom draws(Seed);
         const auto luminosity =
             static_cast<float>(((draws.Next() & 3) + 7) * static_cast<double>(std::bit_cast<float>(0x3dcccccdu)));
         auto twin = std::make_unique<Client::World::Particles>();
@@ -1172,8 +1171,8 @@ TEST(GameModelEffectsTest, TheHerosFlameJetHitsEveryTwentySteps)
             radii.push_back(radius);
             return {};
         };
-        Client::Render::Models::CrtRandom random(quiet);
-        Client::Render::Models::CrtRandom plainRandom(quiet);
+        Client::Crt::CrtRandom random(quiet);
+        Client::Crt::CrtRandom plainRandom(quiet);
 
         ASSERT_TRUE(
             Client::World::StepGameModelEffect(jet, nullptr, particles, 0.0f, random, nullptr, services).HasValue());
@@ -1196,7 +1195,7 @@ TEST(GameModelEffectsTest, TheHerosFlameJetHitsEveryTwentySteps)
     services.effects = &effects;
     services.lighting = lighting.get();
     services.hero = &hero;
-    Client::Render::Models::CrtRandom random(quiet);
+    Client::Crt::CrtRandom random(quiet);
     const auto cut = Client::World::StepGameModelEffect(jet, nullptr, particles, 0.0f, random, nullptr, services);
     ASSERT_FALSE(cut.HasValue());
     EXPECT_NE(cut.Error().find("0x52ae72"), std::string::npos) << cut.Error();
@@ -1213,7 +1212,7 @@ TEST(GameModelEffectsTest, TheFlameJetFadesItsLightAndCutsWithoutItsTables)
     Client::World::ModelEffectStepServices services;
     services.effects = &effects;
     services.lighting = lighting.get();
-    Client::Render::Models::CrtRandom random(3);
+    Client::Crt::CrtRandom random(3);
     ASSERT_LT(Client::Tests::AfterDraws(3, 0).Next() & 3, 2);
     ASSERT_TRUE(
         Client::World::StepGameModelEffect(fading, nullptr, particles, 0.0f, random, nullptr, services).HasValue());
@@ -1224,7 +1223,7 @@ TEST(GameModelEffectsTest, TheFlameJetFadesItsLightAndCutsWithoutItsTables)
     const std::uint32_t chips = SeedWhereDraw(25, [](int value) { return (value & 7) == 0; });
     Client::World::ModelEffect jet = DungeonEffect(Client::World::FlameJetEffect, 30);
     services.effects = nullptr;
-    Client::Render::Models::CrtRandom chipping(chips);
+    Client::Crt::CrtRandom chipping(chips);
     auto cut = Client::World::StepGameModelEffect(jet, nullptr, particles, 0.0f, chipping, nullptr, services);
     ASSERT_FALSE(cut.HasValue());
     EXPECT_NE(cut.Error().find("0x52adf2"), std::string::npos) << cut.Error();
@@ -1233,7 +1232,7 @@ TEST(GameModelEffectsTest, TheFlameJetFadesItsLightAndCutsWithoutItsTables)
     Client::World::ModelEffect dark = DungeonEffect(Client::World::FlameJetEffect, 30);
     Client::World::Particles more;
     services.lighting = nullptr;
-    Client::Render::Models::CrtRandom quietRandom(quiet);
+    Client::Crt::CrtRandom quietRandom(quiet);
     cut = Client::World::StepGameModelEffect(dark, nullptr, more, 0.0f, quietRandom, nullptr, services);
     ASSERT_FALSE(cut.HasValue());
     EXPECT_NE(cut.Error().find("0x52ae25"), std::string::npos) << cut.Error();
@@ -1257,7 +1256,7 @@ TEST(GameModelEffectsTest, TheIcarusFlareStepsTwiceAndLeavesTwoTrails)
     flare.velocity = {1.0f, 2.0f, 3.0f};
     flare.transform.scale = 3.0f;
     Client::World::Particles particles;
-    Client::Render::Models::CrtRandom random(1);
+    Client::Crt::CrtRandom random(1);
     ASSERT_TRUE(Client::World::StepGameModelEffect(flare, nullptr, particles, 0.0f, random).HasValue());
     EXPECT_EQ(flare.life, 398);
     const float sink = std::bit_cast<float>(0x3c23d70au);
@@ -1333,7 +1332,7 @@ TEST(GameModelEffectsTest, TheAidaWispTurnsWithTheClockAndLeavesATrailBeforeMovi
     ASSERT_NE(Client::Tests::AfterDraws(seed, 2).Next() % 40, 1);
     Client::World::ModelEffect wisp = AidaWisp();
     Client::World::Particles particles;
-    Client::Render::Models::CrtRandom random(seed);
+    Client::Crt::CrtRandom random(seed);
     const float clock = 12345.75f;
     ASSERT_TRUE(Client::World::StepGameModelEffect(wisp, nullptr, particles, clock, random).HasValue());
     EXPECT_EQ(random.State(), Client::Tests::AfterDraws(seed, 3).State());
@@ -1369,7 +1368,7 @@ TEST(GameModelEffectsTest, TheAidaWispTurnsWithTheClockAndLeavesATrailBeforeMovi
 TEST(GameModelEffectsTest, TheAidaWispFlipsItsTurnsAndShortensItsLifeFarFromItsStart)
 {
     const std::uint32_t seed = SeedWhereDraw(1, [](int value) { return value % 40 == 1; });
-    Client::Render::Models::CrtRandom draws(seed);
+    Client::Crt::CrtRandom draws(seed);
     static_cast<void>(draws.Next());
     static_cast<void>(draws.Next());
     const int yawTurn = draws.Next() % 3 + 5;
@@ -1378,7 +1377,7 @@ TEST(GameModelEffectsTest, TheAidaWispFlipsItsTurnsAndShortensItsLifeFarFromItsS
     Client::World::ModelEffect wisp = AidaWisp();
     wisp.start = {1000.0f, 1500.0f, 100.0f};
     Client::World::Particles particles;
-    Client::Render::Models::CrtRandom random(seed);
+    Client::Crt::CrtRandom random(seed);
     ASSERT_TRUE(Client::World::StepGameModelEffect(wisp, nullptr, particles, 5000.0f, random).HasValue());
     EXPECT_EQ(random.State(), draws.State());
     EXPECT_EQ(wisp.speed, second ? 1.0f : -1.0f);
@@ -1406,7 +1405,7 @@ TEST(GameModelEffectsTest, TheAidaWispFlipsItsTurnsAndShortensItsLifeFarFromItsS
 TEST(GameModelEffectsTest, TheGallopShockWaveGrowsShakesAndFadesWithThreeRandoms)
 {
     Client::World::ModelEffects effects;
-    Client::Render::Models::CrtRandom random(1);
+    Client::Crt::CrtRandom random(1);
     ASSERT_TRUE(effects.CreateGallopShockWave({100.5f, 200.25f, 300.0f}, {0.0f, 0.0f, 45.0f}, glm::vec3(1.0f), random)
                     .has_value());
     Client::World::ModelEffect& wave = effects.Effects()[0];
@@ -1454,9 +1453,9 @@ TEST(GameModelEffectsTest, TheOtherShockWavesGrowByTheirOwnSteps)
         wave.transform.position = {100.5f, 200.25f, 300.0f};
         wave.transform.scale = 1.0f;
         wave.light = glm::vec3(1.0f);
-        Client::Render::Models::CrtRandom random(1);
+        Client::Crt::CrtRandom random(1);
         ASSERT_TRUE(Client::World::StepGameModelEffect(wave, nullptr, particles, 0.0f, random).HasValue());
-        Client::Render::Models::CrtRandom replay(1);
+        Client::Crt::CrtRandom replay(1);
         static_cast<void>(replay.Next());
         glm::vec3 position{100.5f, 200.25f, 300.0f};
         float scale = 1.0f;
@@ -1499,7 +1498,7 @@ TEST(GameModelEffectsTest, TheLightningFlashesOnAndOffAndSpins)
     bolt.alpha = std::bit_cast<float>(0x3f333333u);
     bolt.transform.angles = {10.0f, 20.0f, 30.0f};
     Client::World::Particles particles;
-    Client::Render::Models::CrtRandom random(1);
+    Client::Crt::CrtRandom random(1);
     const auto step = [&]
     {
         const auto stepped = Client::World::StepGameModelEffect(bolt, nullptr, particles, 0.0f, random);
@@ -1556,7 +1555,7 @@ TEST(GameModelEffectsTest, TheLightningDecalFadesItsColourAndTurnsItsFramesByThe
     Client::World::ModelEffectStepServices services;
     services.systemTime = [&now]() { return now; };
     Client::World::Particles particles;
-    Client::Render::Models::CrtRandom random(1);
+    Client::Crt::CrtRandom random(1);
     const auto fade = [](float value)
     { return static_cast<float>(static_cast<double>(value) - static_cast<double>(0.05f)); };
     struct Case
@@ -1754,8 +1753,7 @@ struct QuakeSpoke
 
 // Los cinco rayos de 0x522004..0x5221ea con sus tres rand(): rand() % 150 + 100 de largo a (k · 72 + subtipo)°,
 // rand() % 50 + 40 de tamaño y (rand() % 30 − 15) + 45 de inclinación.
-std::array<QuakeSpoke, 5> QuakeSpokes(Client::Render::Models::CrtRandom& draws, const glm::vec3& start,
-                                      std::int32_t subtype)
+std::array<QuakeSpoke, 5> QuakeSpokes(Client::Crt::CrtRandom& draws, const glm::vec3& start, std::int32_t subtype)
 {
     std::array<QuakeSpoke, 5> spokes{};
     for (std::size_t spoke = 0; spoke < spokes.size(); ++spoke)
@@ -1790,7 +1788,7 @@ TEST(GameModelEffectsTest, TheEarthquakeAtElevenBurstsAndCracksTheGroundAroundIt
         Client::World::Particles particles;
 
         // Lo esperado, con otra CRT en el orden del ASM.
-        Client::Render::Models::CrtRandom draws(5);
+        Client::Crt::CrtRandom draws(5);
         static_cast<void>(draws.Next()); // 0x5208c5
         const glm::vec3 behind = QuakeTurned({-25.0f, -80.0f, 0.0f}, horseAngles);
         glm::vec3 start{Narrow(Wide(behind.x) + 5000.5), Narrow(Wide(behind.y) + 6000.25), 0.0f};
@@ -1829,7 +1827,7 @@ TEST(GameModelEffectsTest, TheEarthquakeAtElevenBurstsAndCracksTheGroundAroundIt
                                 .has_value());
         }
 
-        Client::Render::Models::CrtRandom random(5);
+        Client::Crt::CrtRandom random(5);
         const auto stepped =
             Client::World::StepGameModelEffect(quake, nullptr, particles, 0.0f, random, nullptr, scene.Services());
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
@@ -1868,11 +1866,11 @@ TEST(GameModelEffectsTest, TheEarthquakeSkipsItsFirstCracksForTheSeparateOwnerAn
         ModelEffect quake = Earthquake(3, 11, owner);
         QuakeScene scene;
         Client::World::Particles particles;
-        Client::Render::Models::CrtRandom random(9);
+        Client::Crt::CrtRandom random(9);
         ASSERT_TRUE(
             Client::World::StepGameModelEffect(quake, nullptr, particles, 0.0f, random, nullptr, scene.Services())
                 .HasValue());
-        Client::Render::Models::CrtRandom draws(9);
+        Client::Crt::CrtRandom draws(9);
         static_cast<void>(draws.Next());
         glm::vec3 start{5000.5f, 6000.25f, Narrow(QuakeGround(5000.5f, 6000.25f) + 25.0)};
         Client::World::Particles expectedParticles;
@@ -1916,12 +1914,12 @@ TEST(GameModelEffectsTest, TheEarthquakeInKalimaDisturbsTheWaterOrRisesHigher)
         auto water = std::make_unique<Client::World::KalimaWorld>(24);
         auto stillWater = water->CloneForFrame();
         Client::World::Particles particles;
-        Client::Render::Models::CrtRandom random(3);
+        Client::Crt::CrtRandom random(3);
         const auto stepped =
             Client::World::StepGameModelEffect(quake, nullptr, particles, 0.0f, random, water.get(), scene.Services());
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
 
-        Client::Render::Models::CrtRandom draws(3);
+        Client::Crt::CrtRandom draws(3);
         static_cast<void>(draws.Next());
         glm::vec3 start = state == 2 ? glm::vec3{4975.5f, 5920.25f, 0.0f} : glm::vec3{5000.5f, 6000.25f, 0.0f};
         auto expectedWater = std::make_unique<Client::World::KalimaWorld>(24);
@@ -1989,7 +1987,7 @@ TEST(GameModelEffectsTest, TheDarkLordAtThirteenDropsTwoTrailGroupsBeforeItsSoun
             scene.effects->Effects()[slot].type = OccupiedType;
             expected->Effects()[slot] = scene.effects->Effects()[slot];
         }
-        Client::Render::Models::CrtRandom draws(Seed);
+        Client::Crt::CrtRandom draws(Seed);
         static_cast<void>(draws.Next()); // Prólogo del padre.
         const glm::vec3 offset = QuakeTurned({-25.0f, -40.0f, 0.0f}, horseAngles);
         glm::vec3 base;
@@ -2011,7 +2009,7 @@ TEST(GameModelEffectsTest, TheDarkLordAtThirteenDropsTwoTrailGroupsBeforeItsSoun
             }
         }
         Client::World::Particles particles;
-        Client::Render::Models::CrtRandom random(Seed);
+        Client::Crt::CrtRandom random(Seed);
         auto services = scene.Services();
         services.sound = [&](std::int32_t sound)
         {
@@ -2036,7 +2034,7 @@ TEST(GameModelEffectsTest, TheDarkLordAtThirteenDropsTwoTrailGroupsBeforeItsSoun
         EXPECT_EQ(quake.previousPosition, before);
         ModelEffect plain = Earthquake(2, 13, horse);
         plain.transform.position = before;
-        Client::Render::Models::CrtRandom plainRandom(Seed);
+        Client::Crt::CrtRandom plainRandom(Seed);
         ASSERT_TRUE(Client::World::StepGameModelEffect(plain, nullptr, particles, 0.0f, plainRandom).HasValue());
         EXPECT_EQ(quake.transform.position, plain.transform.position);
         EXPECT_EQ(quake.velocity, plain.velocity);
@@ -2063,7 +2061,7 @@ TEST(GameModelEffectsTest, TheSecondTrailGroupAddsTheSignedRandomOffsetAsAnInteg
     QuakeScene scene;
     Client::World::Particles particles;
     // 0x5225fa: el tercer sorteo con semilla 48 da 26750. Su desplazamiento entero de Z vale cero.
-    Client::Render::Models::CrtRandom random(48);
+    Client::Crt::CrtRandom random(48);
     const auto result =
         Client::World::StepGameModelEffect(quake, nullptr, particles, 0.0f, random, nullptr, scene.Services());
     ASSERT_TRUE(result.HasValue()) << result.Error();
@@ -2081,7 +2079,7 @@ TEST(GameModelEffectsTest, TheSharedDispatcherStepsAndExpiresAnUnownedSpiritTrai
     ASSERT_TRUE(slot.has_value());
     ModelEffect& child = effects->Effects()[*slot];
     Client::World::Particles particles;
-    Client::Render::Models::CrtRandom random(1);
+    Client::Crt::CrtRandom random(1);
     for (int frame = 0; frame < 6; ++frame)
     {
         SCOPED_TRACE(frame);
@@ -2130,7 +2128,7 @@ TEST(GameModelEffectsTest, TheDarkLordEarthquakeEmitsItsBurstEvenWhenThePoolsAre
         const std::size_t burstIndex = lastEffectSlot ? effects.size() - 1 : 0;
         for (auto& occupied : effects.first(burstIndex))
             occupied.alive = true;
-        Client::Render::Models::CrtRandom random(1);
+        Client::Crt::CrtRandom random(1);
         auto services = scene.Services();
         int calls = 0;
         services.joint =
@@ -2197,7 +2195,7 @@ TEST(GameModelEffectsTest, TheEarthquakeBurstExpandsDriftsAndExpiresWithNegative
     QuakeScene scene;
     for (auto& cell : scene.lighting->cells)
         cell = {10.0f, 10.0f, 10.0f};
-    Client::Render::Models::CrtRandom random(1);
+    Client::Crt::CrtRandom random(1);
     auto services = scene.Services();
     int actionsPublished = 0;
     services.publishAction = [&](std::uint16_t type, std::uint8_t action)
@@ -2244,7 +2242,7 @@ TEST(GameModelEffectsTest, TheEarthquakeCutsTheDarkLordStateAndWhatItLacks)
         ModelEffect quake = Earthquake(0, 11, horse);
         QuakeScene scene;
         Client::World::Particles particles;
-        Client::Render::Models::CrtRandom random(1);
+        Client::Crt::CrtRandom random(1);
         const auto cut =
             Client::World::StepGameModelEffect(quake, nullptr, particles, 0.0f, random, nullptr, scene.Services());
         ASSERT_FALSE(cut.HasValue());
@@ -2262,7 +2260,7 @@ TEST(GameModelEffectsTest, TheEarthquakeCutsTheDarkLordStateAndWhatItLacks)
         auto services = scene.Services();
         take(scene, services);
         Client::World::Particles particles;
-        Client::Render::Models::CrtRandom random(1);
+        Client::Crt::CrtRandom random(1);
         const auto cut = Client::World::StepGameModelEffect(quake, nullptr, particles, 0.0f, random, nullptr, services);
         return cut.HasValue() ? std::string("sin corte") : cut.Error();
     };
@@ -2291,7 +2289,7 @@ TEST(GameModelEffectsTest, TheEarthquakeCutsTheDarkLordStateAndWhatItLacks)
     far.start = {5000.5f, -500.0f, 0.0f};
     QuakeScene scene;
     Client::World::Particles particles;
-    Client::Render::Models::CrtRandom random(1);
+    Client::Crt::CrtRandom random(1);
     const auto cut =
         Client::World::StepGameModelEffect(far, nullptr, particles, 0.0f, random, nullptr, scene.Services());
     ASSERT_FALSE(cut.HasValue());
@@ -2317,7 +2315,7 @@ TEST(GameModelEffectsTest, TheEarthquakeAtTenOpensFourRingsOfCracks)
         glm::vec3 local;
     };
     std::array<std::array<RingCrack, 5>, 4> plan{};
-    Client::Render::Models::CrtRandom draws(11);
+    Client::Crt::CrtRandom draws(11);
     static_cast<void>(draws.Next());
     std::array<glm::vec3, 5> points{};
     points.fill(quake.start);
@@ -2352,7 +2350,7 @@ TEST(GameModelEffectsTest, TheEarthquakeAtTenOpensFourRingsOfCracks)
     scene.attributes->cells[marked] = 0x08;
 
     auto expected = std::make_unique<ModelEffects>();
-    Client::Render::Models::CrtRandom replay(11);
+    Client::Crt::CrtRandom replay(11);
     static_cast<void>(replay.Next());
     points.fill(quake.start);
     sums.fill(0.0f);
@@ -2389,7 +2387,7 @@ TEST(GameModelEffectsTest, TheEarthquakeAtTenOpensFourRingsOfCracks)
     EXPECT_GE(walledCracks, 1u);
 
     Client::World::Particles particles;
-    Client::Render::Models::CrtRandom random(11);
+    Client::Crt::CrtRandom random(11);
     const auto stepped =
         Client::World::StepGameModelEffect(quake, nullptr, particles, 0.0f, random, nullptr, scene.Services());
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
@@ -2429,7 +2427,7 @@ TEST(GameModelEffectsTest, TheEarthquakeSwingsAroundItsStartBetweenItsBursts)
         ModelEffect quake = Earthquake(2, swing.life, {});
         quake.transform.angles = {10.0f, 0.0f, 375.0f};
         Client::World::Particles particles;
-        Client::Render::Models::CrtRandom random(1);
+        Client::Crt::CrtRandom random(1);
         ASSERT_TRUE(Client::World::StepGameModelEffect(quake, nullptr, particles, 0.0f, random).HasValue());
         EXPECT_EQ(quake.transform.angles, (glm::vec3{90.0f, 0.0f, 375.0f}));
         const double argument = (((20.0 - swing.phase) * swing.pace) * Pi) * InverseDegrees;
@@ -2486,7 +2484,7 @@ void ExpectCrackLight(const QuakeScene& scene, const ModelEffect& crack, const g
 
 float CrackLuminosity(std::uint32_t seed)
 {
-    Client::Render::Models::CrtRandom draws(seed);
+    Client::Crt::CrtRandom draws(seed);
     return Narrow(static_cast<double>((draws.Next() & 3) + 7) * CrackTenth);
 }
 } // namespace
@@ -2504,13 +2502,13 @@ TEST(GameModelEffectsTest, TheFirstCrackGlowsSinksAndShakesTheCamera)
         QuakeScene scene;
         scene.shake = 7.0f;
         Client::World::Particles particles;
-        Client::Render::Models::CrtRandom random(4);
+        Client::Crt::CrtRandom random(4);
         ASSERT_TRUE(
             Client::World::StepGameModelEffect(crack, nullptr, particles, 0.0f, random, nullptr, scene.Services())
                 .HasValue());
         EXPECT_EQ(crack.objectState.light, CrackGlow(static_cast<double>(life) * CrackTenth * CrackThird));
         EXPECT_EQ(crack.transform.position.z, life < 10 ? 299.5f : 300.0f);
-        Client::Render::Models::CrtRandom draws(4);
+        Client::Crt::CrtRandom draws(4);
         static_cast<void>(draws.Next());
         if (life == 18)
         {
@@ -2530,7 +2528,7 @@ TEST(GameModelEffectsTest, TheFirstCrackGlowsSinksAndShakesTheCamera)
     auto services = scene.Services();
     services.cameraShake = nullptr;
     Client::World::Particles particles;
-    Client::Render::Models::CrtRandom random(4);
+    Client::Crt::CrtRandom random(4);
     const auto cut = Client::World::StepGameModelEffect(crack, nullptr, particles, 0.0f, random, nullptr, services);
     ASSERT_FALSE(cut.HasValue());
     EXPECT_NE(cut.Error().find("0x5227ca"), std::string::npos) << cut.Error();
@@ -2554,7 +2552,7 @@ TEST(GameModelEffectsTest, TheQuietCracksOnlyGlowAndSink)
         ModelEffect crack = Crack(quiet.type, quiet.life, {});
         QuakeScene scene;
         Client::World::Particles particles;
-        Client::Render::Models::CrtRandom random(4);
+        Client::Crt::CrtRandom random(4);
         ASSERT_TRUE(
             Client::World::StepGameModelEffect(crack, nullptr, particles, 0.0f, random, nullptr, scene.Services())
                 .HasValue());
@@ -2577,7 +2575,7 @@ TEST(GameModelEffectsTest, TheWideCrackDropsChipsAndLightsTheGroundRed)
         ModelEffect crack = Crack(0xfc, 15, horse);
         QuakeScene scene;
         Client::World::Particles particles;
-        Client::Render::Models::CrtRandom random(6);
+        Client::Crt::CrtRandom random(6);
         ASSERT_TRUE(
             Client::World::StepGameModelEffect(crack, nullptr, particles, 0.0f, random, nullptr, scene.Services())
                 .HasValue());
@@ -2599,12 +2597,12 @@ TEST(GameModelEffectsTest, TheWideCrackDropsChipsAndLightsTheGroundRed)
         ModelEffect crack = Crack(0xfc, 7, self);
         QuakeScene scene;
         Client::World::Particles particles;
-        Client::Render::Models::CrtRandom random(seed);
+        Client::Crt::CrtRandom random(seed);
         ASSERT_TRUE(
             Client::World::StepGameModelEffect(crack, nullptr, particles, 0.0f, random, nullptr, scene.Services())
                 .HasValue());
         EXPECT_EQ(crack.objectState.light, CrackGlow(7.0 * CrackTenth));
-        Client::Render::Models::CrtRandom draws(seed);
+        Client::Crt::CrtRandom draws(seed);
         static_cast<void>(draws.Next());
         auto expected = std::make_unique<ModelEffects>();
         if (draws.Next() % 10 == 0)
@@ -2627,7 +2625,7 @@ TEST(GameModelEffectsTest, TheWideCrackDropsChipsAndLightsTheGroundRed)
         crack.transform.scale = 50.5f;
         QuakeScene scene;
         Client::World::Particles particles;
-        Client::Render::Models::CrtRandom random(6);
+        Client::Crt::CrtRandom random(6);
         ASSERT_TRUE(
             Client::World::StepGameModelEffect(crack, nullptr, particles, 0.0f, random, nullptr, scene.Services())
                 .HasValue());
@@ -2646,7 +2644,7 @@ TEST(GameModelEffectsTest, TheWideCrackDropsChipsAndLightsTheGroundRed)
         auto services = scene.Services();
         services.effects = nullptr;
         Client::World::Particles particles;
-        Client::Render::Models::CrtRandom random(seed);
+        Client::Crt::CrtRandom random(seed);
         const auto cut = Client::World::StepGameModelEffect(crack, nullptr, particles, 0.0f, random, nullptr, services);
         ASSERT_FALSE(cut.HasValue());
         EXPECT_NE(cut.Error().find("0x522a94"), std::string::npos) << cut.Error();
@@ -2657,7 +2655,7 @@ TEST(GameModelEffectsTest, TheWideCrackDropsChipsAndLightsTheGroundRed)
         auto services = scene.Services();
         services.lighting = nullptr;
         Client::World::Particles particles;
-        Client::Render::Models::CrtRandom random(6);
+        Client::Crt::CrtRandom random(6);
         const auto cut = Client::World::StepGameModelEffect(crack, nullptr, particles, 0.0f, random, nullptr, services);
         ASSERT_FALSE(cut.HasValue());
         EXPECT_NE(cut.Error().find("0x522af7"), std::string::npos) << cut.Error();
@@ -2668,7 +2666,7 @@ TEST(GameModelEffectsTest, TheWideCrackDropsChipsAndLightsTheGroundRed)
         ModelEffect crack = Crack(0xfc, 15, {.type = nullptr, .effect = nullptr, .angles = &angles});
         QuakeScene scene;
         Client::World::Particles particles;
-        Client::Render::Models::CrtRandom random(6);
+        Client::Crt::CrtRandom random(6);
         const auto cut =
             Client::World::StepGameModelEffect(crack, nullptr, particles, 0.0f, random, nullptr, scene.Services());
         ASSERT_FALSE(cut.HasValue());
@@ -2685,7 +2683,7 @@ TEST(GameModelEffectsTest, TheLongCrackLightsBlueForTheSeparateOwnerAndWhiteWith
         ModelEffect crack = Crack(0xff, 35, {.type = &separate, .effect = nullptr, .angles = nullptr});
         QuakeScene scene;
         Client::World::Particles particles;
-        Client::Render::Models::CrtRandom random(8);
+        Client::Crt::CrtRandom random(8);
         ASSERT_TRUE(
             Client::World::StepGameModelEffect(crack, nullptr, particles, 0.0f, random, nullptr, scene.Services())
                 .HasValue());
@@ -2702,7 +2700,7 @@ TEST(GameModelEffectsTest, TheLongCrackLightsBlueForTheSeparateOwnerAndWhiteWith
         ModelEffect crack = Crack(0xff, 12, {});
         QuakeScene scene;
         Client::World::Particles particles;
-        Client::Render::Models::CrtRandom random(seed);
+        Client::Crt::CrtRandom random(seed);
         ASSERT_TRUE(
             Client::World::StepGameModelEffect(crack, nullptr, particles, 0.0f, random, nullptr, scene.Services())
                 .HasValue());
@@ -2734,7 +2732,7 @@ TEST(GameModelEffectsTest, TheLastCrackDrawsARandomItNeverUses)
         ModelEffect crack = Crack(0x102, last.life, horse);
         QuakeScene scene;
         Client::World::Particles particles;
-        Client::Render::Models::CrtRandom random(2);
+        Client::Crt::CrtRandom random(2);
         ASSERT_TRUE(
             Client::World::StepGameModelEffect(crack, nullptr, particles, 0.0f, random, nullptr, scene.Services())
                 .HasValue());
@@ -2748,7 +2746,7 @@ TEST(GameModelEffectsTest, TheLastCrackDrawsARandomItNeverUses)
     auto services = scene.Services();
     services.lighting = nullptr;
     Client::World::Particles particles;
-    Client::Render::Models::CrtRandom random(2);
+    Client::Crt::CrtRandom random(2);
     const auto cut = Client::World::StepGameModelEffect(crack, nullptr, particles, 0.0f, random, nullptr, services);
     ASSERT_FALSE(cut.HasValue());
     EXPECT_NE(cut.Error().find("0x5212da"), std::string::npos) << cut.Error();
@@ -2791,8 +2789,8 @@ TEST(PiercingShotTest, ThreeEmissionsRetainActorRgbAndSpendSixteenDrawsEvenWithF
         ASSERT_TRUE(slot);
         auto& effect = effects->Effects()[*slot];
         effect.life = 1;
-        Render::Models::CrtRandom random(17);
-        Render::Models::CrtRandom expected(17);
+        Crt::CrtRandom random(17);
+        Crt::CrtRandom expected(17);
         static_cast<void>(expected.Next());
         const World::ModelEffectStepServices services{.sprites = &sprites, .effects = effects.get()};
         const auto stepped = World::StepGameModelEffect(effect, nullptr, particles, 0, random, nullptr, services);

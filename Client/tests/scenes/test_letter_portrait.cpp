@@ -3,6 +3,8 @@
 
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
+#include "Core/PixelSize.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Models/Model.h"
 #include "Data/Models/PlayerModels.h"
 #include "Data/Terrain/TerrainAttributes.h"
@@ -18,7 +20,6 @@
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
 #include "Render/TextureSlot.h"
-#include "App/WindowState.h"
 #include "Data/Text/TextTable.h"
 #include "Protocol/Letters.h"
 #include "Render/Text/FontSet.h"
@@ -80,10 +81,10 @@
 // 0x496530 con sus dos copias y 0x495a20, con los rand() en el orden del ASM, en Lorencia (0) y Devias (2).
 namespace
 {
+using Client::Crt::CrtRandom;
 using Client::Data::Models::PlayerSkeletonModel;
 using Client::GameLogic::BodyPart;
 using Client::GameLogic::ClassPartModel;
-using Client::Render::Models::CrtRandom;
 using Client::Scenes::ActorState;
 using Client::Scenes::LetterPortrait;
 using Client::Scenes::NoItemModel;
@@ -676,7 +677,7 @@ class PortraitDrawing
 public:
     explicit PortraitDrawing(Game& game) : m_game(game)
     {
-        sprites.Begin(Client::App::PixelSize{640, 480});
+        sprites.Begin(Client::Core::PixelSize{640, 480});
         lighting->cells.fill({0.25f, 0.5f, 0.75f});
     }
 
@@ -1017,7 +1018,7 @@ protected:
     Client::UI::OldWindowTexts m_oldTexts = Client::Scenes::OldWindowTextsOf(&m_texts);
     Client::UI::OldWindowMeasure m_oldMeasure{.measure = m_letters,
                                               .dcFont = Client::Render::Text::FontKind::Normal,
-                                              .screen = Client::App::PixelSize{640, 480}};
+                                              .screen = Client::Core::PixelSize{640, 480}};
 };
 
 // 0x497f50 de punta a punta: el retrato armado (0x4961d0), el héroe copiado (0x496530, con la clase por 0x513100),
@@ -1082,7 +1083,7 @@ TEST_F(LetterPortraitWindowsTest, ReceivingALetterDressesThePortrait)
         const Client::Scenes::ChatReceiveContext context{.world = game->world,
                                                          .random = game->cloth.random,
                                                          .measure = &m_letters,
-                                                         .screen = Client::App::PixelSize{640, 480},
+                                                         .screen = Client::Core::PixelSize{640, 480},
                                                          .scene = Client::Scenes::SceneId::Game,
                                                          .texts = &m_texts,
                                                          .worldEntry = &resources};

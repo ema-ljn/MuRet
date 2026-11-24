@@ -1,8 +1,8 @@
 #include "Scenes/KalimaSiegeHelpers.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Render/ModelBatch.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/OriginalRetainedMath.h"
 #include "Render/Models/OriginalRotation.h"
@@ -92,7 +92,7 @@ double WavePlus(float clock, float rate, double addend)
 }
 
 // rand() % 360 en un float, como FILD/FSTP.
-float RandomTurn(Render::Models::CrtRandom& random)
+float RandomTurn(Crt::CrtRandom& random)
 {
     constexpr int Turn = 360;
     return static_cast<float>(random.Next() % Turn);
@@ -126,7 +126,7 @@ public:
         return m_pass.worldClock;
     }
 
-    [[nodiscard]] Render::Models::CrtRandom& Random() const
+    [[nodiscard]] Crt::CrtRandom& Random() const
     {
         return m_pass.random;
     }

@@ -1,5 +1,5 @@
 #include "Core/Expected.h"
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "World/IParticleTrigonometry.h"
 #include "World/KalimaParticleKernels.h"
 #include "World/ParticleOwner.h"
@@ -23,7 +23,7 @@
 // valores esperados repiten las fórmulas del ASM con otro CrtRandom de la misma semilla.
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::World::Particle;
 using Client::World::ParticleError;
 using Client::World::Particles;

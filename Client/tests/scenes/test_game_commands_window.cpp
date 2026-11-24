@@ -1,12 +1,12 @@
 #include "Scenes/GameCommandsWindow.h"
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Core/PixelSize.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Text/TextTable.h"
 #include "Input/InputEvent.h"
 #include "Input/InputState.h"
 #include "Input/Key.h"
-#include "Render/Models/Cloth.h"
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
 #include "Render/Text/FontSet.h"
@@ -42,17 +42,17 @@
 // en Lorencia y en Devias.
 namespace
 {
+using Client::Crt::CrtRandom;
 using Client::Render::BlendMode;
 using Client::Render::Color;
 using Client::Render::SpriteBatch;
 using Client::Render::SpriteVertex;
-using Client::Render::Models::CrtRandom;
 using Client::Render::Text::FontKind;
 using Client::Scenes::GameHudContext;
 using Client::Scenes::GameUiContext;
 using Client::Scenes::WorldState;
 
-constexpr Client::App::PixelSize Screen640{640, 480};
+constexpr Client::Core::PixelSize Screen640{640, 480};
 constexpr std::uint32_t Seed = 0x5eedd00du;
 constexpr std::int32_t Lorencia = 0;
 constexpr std::int32_t Devias = 2;

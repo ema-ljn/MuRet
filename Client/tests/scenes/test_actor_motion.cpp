@@ -3,10 +3,10 @@
 #include "Render/Models/LogicalAccess.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "GameLogic/Path.h"
 #include "GameLogic/PathFinder.h"
 #include "Data/Terrain/TerrainGrid.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/Skeleton.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/ActorWalk.h"
@@ -42,7 +42,7 @@ protected:
         return value;
     }();
     Client::Render::Models::Skeleton m_skeleton = Client::Tests::PlayerActionsSkeleton();
-    Client::Render::Models::CrtRandom m_random{1};
+    Client::Crt::CrtRandom m_random{1};
     Client::Scenes::PlayerActionSpeeds m_speeds;
     std::unique_ptr<Client::World::TerrainWalls> m_walls = std::make_unique<Client::World::TerrainWalls>();
 };
@@ -259,7 +259,7 @@ TEST_F(ActorMotionTest, AnIdleTransformedActorReadsYAndXAndPreservesTheTwoCloseR
     actor.cellY = actor.targetY = 20;
     const Client::Scenes::ActorWalkContext walk{
         {m_runtime, Client::Scenes::SceneId::Game, m_skeleton, nullptr, m_random}, m_speeds, false};
-    Client::Render::Models::CrtRandom expected = m_random;
+    Client::Crt::CrtRandom expected = m_random;
     for (int access = 0; access < 2 * Client::Render::Models::SmallLogicalCloseRandoms; ++access)
         static_cast<void>(expected.Next());
 

@@ -1,7 +1,7 @@
 #include "World/CastleSiegeEmission.h"
 
 #include "Core/Expected.h"
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "World/CastleSiegeObjectStep.h"
 #include "World/ModelEffects.h"
 
@@ -15,7 +15,7 @@ namespace Client::World
 namespace
 {
 using Result = Core::Expected<void, std::string>;
-using Render::Models::CrtRandom;
+using Crt::CrtRandom;
 constexpr std::int32_t FirstBattleSound = 0x1e3;
 constexpr std::int32_t LastBattleSound = 0x1e7;
 constexpr std::int16_t NearStone = 0x12b;

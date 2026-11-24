@@ -1,11 +1,11 @@
 #include "Scenes/GameHelps.h"
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Core/PixelSize.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Tables/ItemSetTables.h"
 #include "Data/Tables/ItemTable.h"
 #include "Data/Text/TextTable.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
@@ -41,10 +41,10 @@
 // rasterizador falso: 6 columnas por letra y 13 filas. Los ítems, los textos y el personaje son inventados.
 namespace
 {
+using Client::Crt::CrtRandom;
 using Client::Render::BlendMode;
 using Client::Render::Color;
 using Client::Render::SpriteBatch;
-using Client::Render::Models::CrtRandom;
 using Client::Render::Text::FontKind;
 using Client::Scenes::GameHudContext;
 using Client::Scenes::ItemHelpLevels;
@@ -53,8 +53,8 @@ using Client::Tests::RecordedText;
 using Client::Tests::RecordingTextDrawer;
 using Client::Tests::TextMarkerSlot;
 
-constexpr Client::App::PixelSize Screen640{640, 480};
-constexpr Client::App::PixelSize Screen800{800, 600};
+constexpr Client::Core::PixelSize Screen640{640, 480};
+constexpr Client::Core::PixelSize Screen800{800, 600};
 constexpr Color White{1.0f, 1.0f, 1.0f, 1.0f};
 constexpr Color Red{1.0f, 0.2f, 0.1f, 1.0f};
 constexpr Color Green{0.1f, 1.0f, 0.5f, 1.0f};
@@ -497,7 +497,7 @@ TEST_P(GameItemHelpTest, AtAnotherResolution)
 // 0x5b0bf2: con más de 800 de ancho, 51 espacios; en 1.024, el divisor 103 y la x 2.160 / 103.
 TEST_P(GameItemHelpTest, AWiderScreenHasMoreSpaces)
 {
-    m_sprites.Begin(Client::App::PixelSize{1024, 768});
+    m_sprites.Begin(Client::Core::PixelSize{1024, 768});
     ASSERT_TRUE(Help(Sword).HasValue());
     EXPECT_EQ(m_text.texts[2].text, std::string(51, ' '));
     EXPECT_EQ(m_text.texts[4].text, "Niv");

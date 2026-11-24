@@ -2,13 +2,13 @@
 
 #include "Render/SpriteVertex.h"
 
+#include "Crt/CrtRandom.h"
 #include "Scenes/GameTailDrawingPrimitives.h"
 #include "Scenes/FaunaObject.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/JointKernels.h"
 #include "Core/Expected.h"
 #include "Render/ModelBatch.h"
-#include "Render/Models/Cloth.h"
 #include "Render/TextureSlot.h"
 #include "World/OriginalFtol.h"
 #include "World/Sprites.h"

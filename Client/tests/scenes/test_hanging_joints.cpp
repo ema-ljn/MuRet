@@ -1,7 +1,7 @@
 #include "Scenes/FaunaJointCreation.h"
 
 #include "Core/Expected.h"
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/GameDrawTail.h"
 #include "World/IFishStepServices.h"
@@ -26,7 +26,7 @@
 // esperados repiten las fórmulas del ASM de 0x530860 y 0x535840 con otro CrtRandom de la misma semilla.
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::Scenes::JointState;
 using Client::World::FishEffectRequest;
 

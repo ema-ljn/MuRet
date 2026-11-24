@@ -1,10 +1,10 @@
 #include "Scenes/UiItemDrawing.h"
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Core/PixelSize.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Tables/ItemTable.h"
 #include "Render/ModelBatch.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/ObjectState.h"
 #include "Render/Models/Pose.h"
 #include "Render/Models/RoundedTransforms.h"
@@ -686,7 +686,7 @@ Core::Expected<UiItemPlacement, std::string> PlaceUiItem(const UiItemCall& call,
     return placement;
 }
 
-Core::Expected<UiItemPass, std::string> MakeUiItemPass(App::PixelSize screen, float farPlane)
+Core::Expected<UiItemPass, std::string> MakeUiItemPass(Core::PixelSize screen, float farPlane)
 {
     // 0x5ac15f..0x5ac17f: fild del ancho, fidiv del alto y fstp; 0x6203c0(1, aspecto, 20, 2.000). 0x633110
     // (0x633199..0x6331d2): lo mismo con [0x6d5d40] y [0x6d5d44].
@@ -706,7 +706,7 @@ Core::Expected<UiItemPass, std::string> MakeUiItemPass(App::PixelSize screen, fl
     return made;
 }
 
-Core::Expected<void, std::string> DrawUiItemModel(UiItemResources& resources, Render::Models::CrtRandom& random,
+Core::Expected<void, std::string> DrawUiItemModel(UiItemResources& resources, Crt::CrtRandom& random,
                                                   const UiItemPlacement& placement, std::uint8_t excellent,
                                                   std::uint8_t set)
 {

@@ -1,7 +1,7 @@
 #include "World/MissileFireParticleKernels.h"
 
 #include "Core/Expected.h"
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "Render/Models/OriginalRetainedMath.h"
 #include "World/Particles.h"
 #include "World/PortableParticleTrigonometry.h"
@@ -24,7 +24,7 @@
 // los rand() contados contra Client::Tests::AfterDraws.
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::Render::Models::Detail::CosineProductPC53;
 using Client::Render::Models::Detail::SineProductPC53;
 using Client::Tests::AfterDraws;

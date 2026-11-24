@@ -1,7 +1,7 @@
 #pragma once
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Core/PixelSize.h"
 #include "Render/Text/IGlyphRasterizer.h"
 
 #include <array>
@@ -84,7 +84,7 @@ enum class ChatBubbleMode : std::uint8_t
 struct ChatBubbleMeasure
 {
     const Render::Text::ITextMeasure& measure;
-    App::PixelSize screen{};
+    Core::PixelSize screen{};
     // Text.bmd: los puestos del gremio y de la alianza. Sin él, un personaje con gremio corta.
     const Data::Text::TextTable* texts = nullptr;
 };
@@ -113,7 +113,7 @@ struct ChatBubbleStepInput
     // 0x7d3682c y 0x7d36828: el mouse en 640 × 480.
     std::int32_t mouseX = 0;
     std::int32_t mouseY = 0;
-    App::PixelSize screen{};
+    Core::PixelSize screen{};
 };
 
 // 0x557650, en cada paso del juego (0x6370f9, después de los ayudantes y antes de MoveHero, también en la espera):

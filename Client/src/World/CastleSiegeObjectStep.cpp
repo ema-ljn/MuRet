@@ -1,9 +1,9 @@
 #include "World/CastleSiegeObjectStep.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "World/CastleSiegeEmission.h"
 #include "World/ModelEffects.h"
-#include "Render/Models/Cloth.h"
 #include "World/WorldObjectMapCreation.h"
 #include "World/WorldObjectStepServices.h"
 #include "World/WorldObjects.h"
@@ -75,7 +75,7 @@ Core::Expected<void, std::string> StepCastleSiegePrelude(const CastleSiegePrelud
     return {};
 }
 
-Core::Expected<void, std::string> StepCastleSiegeObject(WorldObject& object, Render::Models::CrtRandom& random,
+Core::Expected<void, std::string> StepCastleSiegeObject(WorldObject& object, Crt::CrtRandom& random,
                                                         const ObjectStepGlobals& globals)
 {
     if (globals.siegeActive == nullptr)

@@ -8,10 +8,10 @@
 #include <cstdint>
 #include <string>
 
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
-} // namespace Client::Render::Models
+} // namespace Client::Crt
 
 // Los cuerpos de 0x444010 de las mascotas que no son el caballo oscuro: el Uniria (0xc6), el Dinorant (0x110), los
 // Fenrir (0x14a..0x14c) y el Guardian Angel (0x1c12). Corren después del alpha de 0x4e9980 y antes del avance de
@@ -54,6 +54,5 @@ SparkleTheGuardianAngel(const HelperState& helper, const ActorState& rider, cons
 // el paso (`riderStart`, 0x444080..0x44408b) si está a 150 o más, se mueve con su velocidad girada por sus ángulos
 // y (rand() & 15) − 8 en z, con rand() % 32 en 0 toma otra velocidad (y otro rumbo si está cerca), y sube o baja
 // 1,5 su velocidad en z para quedar entre 100 y 200 por encima del jinete.
-void FlyTheGuardianAngel(HelperState& helper, const ActorState& rider, glm::vec2 riderStart,
-                         Render::Models::CrtRandom& random);
+void FlyTheGuardianAngel(HelperState& helper, const ActorState& rider, glm::vec2 riderStart, Crt::CrtRandom& random);
 } // namespace Client::Scenes

@@ -1,6 +1,6 @@
 #include "UI/OldEditLines.h"
 
-#include "App/WindowState.h"
+#include "Core/PixelSize.h"
 #include "Core/Windows1252BestFit.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
@@ -96,7 +96,7 @@ std::int32_t MostFirstLine(const OldEdit& edit, std::int32_t lineCount)
 } // namespace
 
 void MakeTheEditMultiline(OldEdit& edit, const Render::Text::ITextMeasure& measure, Render::Text::FontKind dcFont,
-                          App::PixelSize screen)
+                          Core::PixelSize screen)
 {
     const double rx = RatioX(screen);
     const double ry = RatioY(screen);

@@ -1,9 +1,9 @@
 #include "Render/Gl/GlSpriteRenderer.h"
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
+#include "Core/PixelSize.h"
 #include "Data/Textures/Texture.h"
 #include "Data/Textures/TextureSet.h"
 #include "Platform/GlLoader.h"
@@ -31,7 +31,7 @@
 // apagada del quad sin textura y los slots que la tabla no tiene (06 § Primitivas 2D).
 namespace
 {
-using Client::App::PixelSize;
+using Client::Core::PixelSize;
 using Client::Data::Textures::LoadedTexture;
 using Client::Data::Textures::PixelFormat;
 using Client::Data::Textures::Texture;

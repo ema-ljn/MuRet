@@ -1,9 +1,9 @@
 #include "Scenes/GameHelps.h"
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Core/PixelSize.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Text/TextTable.h"
-#include "Render/Models/Cloth.h"
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
 #include "Render/Text/FontSet.h"
@@ -32,17 +32,17 @@
 // rasterizador falso: 6 columnas por letra y 13 filas (también el '\n'). Los textos son inventados.
 namespace
 {
+using Client::Crt::CrtRandom;
 using Client::Render::BlendMode;
 using Client::Render::Color;
 using Client::Render::SpriteBatch;
 using Client::Render::SpriteVertex;
-using Client::Render::Models::CrtRandom;
 using Client::Scenes::GameHudContext;
 using Client::Scenes::WorldState;
 using Client::Tests::RecordingTextDrawer;
 using Client::Tests::TextMarkerSlot;
 
-constexpr Client::App::PixelSize Screen640{640, 480};
+constexpr Client::Core::PixelSize Screen640{640, 480};
 constexpr Color White{1.0f, 1.0f, 1.0f, 1.0f};
 constexpr Color LightBlue{0.5f, 0.7f, 1.0f, 1.0f};
 
@@ -275,7 +275,7 @@ TEST_F(GameHelpsTest, TheItemHelpCutsWhereItDraws)
     ASSERT_FALSE(drawn.HasValue());
     EXPECT_NE(drawn.Error().find("0x5b098f"), std::string::npos);
 
-    m_sprites.Begin(Client::App::PixelSize{1600, 1200});
+    m_sprites.Begin(Client::Core::PixelSize{1600, 1200});
     const auto divided = Overlays();
     ASSERT_FALSE(divided.HasValue());
     EXPECT_NE(divided.Error().find("0x5b097b"), std::string::npos);

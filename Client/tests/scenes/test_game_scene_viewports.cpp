@@ -1,9 +1,10 @@
 #include "Scenes/GameScene.h"
 
-#include "App/WindowState.h"
 #include "Core/IClock.h"
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
+#include "Core/PixelSize.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Models/PlayerModels.h"
 #include "Data/Tables/ItemTable.h"
 #include "Input/InputEvent.h"
@@ -69,7 +70,7 @@ constexpr float SelectionFar = std::bit_cast<float>(std::uint32_t{0x4633ff9a});
 
 struct ViewportProbe
 {
-    Client::App::PixelSize screen;
+    Client::Core::PixelSize screen;
     glm::ivec4 viewport;
     float mouseX;
     float mouseY;
@@ -258,7 +259,7 @@ protected:
     Client::Tests::FakeTextureStore m_store;
     Client::Tests::FakeClock m_clock;
     Client::Input::InputState m_input;
-    Client::Render::Models::ClothWorld m_cloth{.random = Client::Render::Models::CrtRandom(0x1234)};
+    Client::Render::Models::ClothWorld m_cloth{.random = Client::Crt::CrtRandom(0x1234)};
     Client::Scenes::WorldState m_world;
     Client::Scenes::SelectionState m_selection{m_world};
     Client::World::GameCamera m_camera;

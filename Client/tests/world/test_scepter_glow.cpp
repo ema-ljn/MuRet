@@ -1,8 +1,8 @@
 #include "World/ScepterGlow.h"
 
 #include "Core/IClock.h"
+#include "Crt/CrtRandom.h"
 #include "Render/Models/Animation.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/OriginalRotation.h"
 #include "World/Sprites.h"
@@ -28,7 +28,7 @@
 // reales, los cinco sprites que deja y el rand() al final, bit a bit.
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::World::FrameSprites;
 using Client::World::Sprite;
 

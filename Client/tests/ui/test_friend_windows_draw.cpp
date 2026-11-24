@@ -1,9 +1,9 @@
 #include "UI/FriendWindowsDraw.h"
 
-#include "App/WindowState.h"
 #include "Core/Log.h"
 #include "Core/ILogSink.h"
 #include "Core/Expected.h"
+#include "Core/PixelSize.h"
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
 #include "Render/Text/FontSet.h"
@@ -48,7 +48,7 @@
 // abajo en 407, de 86 de alto. Los nombres y los textos son inventados.
 namespace
 {
-using Client::App::PixelSize;
+using Client::Core::PixelSize;
 using Client::Render::BlendMode;
 using Client::Render::Color;
 using Client::Render::DrawCommand;
@@ -896,9 +896,9 @@ TEST_F(FriendWindowsDrawTest, TheAddBoxDrawsItsEditWithTheCaret)
 
 TEST(OldEditBitmapIntegrationTest, PixelCaretInvertsTheRasterizedGlyphColumn)
 {
-    using Client::App::PixelSize;
     using Client::Core::Log;
     using Client::Core::LogLevel;
+    using Client::Core::PixelSize;
     using Client::Render::SpriteBatch;
     using Client::Render::TextureSlot;
     using Client::Render::Text::TextCache;

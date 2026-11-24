@@ -1,7 +1,7 @@
 #pragma once
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Core/PixelSize.h"
 #include "Data/Tables/ItemTable.h"
 #include "Data/Tables/SkillTable.h"
 #include "Protocol/Outgoing.h"
@@ -98,7 +98,7 @@ struct WorldEntryResources
     // Lo que miden los mensajes que llegan (00, 01, 02, 0C, 0D) al entrar al chat (0x555190, 0x554610, 0x45bb20): el
     // medidor del frame y el tamaño de la ventana. Sin medidor, un mensaje corta con error.
     const Render::Text::ITextMeasure* textMeasure = nullptr;
-    std::function<App::PixelSize()> screen{};
+    std::function<Core::PixelSize()> screen{};
     // 0x6d5dc8, la escena en curso, que miran el 00 (la 2) y el 0D (la 4 y la 5). Vacía, ninguna.
     std::function<std::optional<SceneId>()> scene{};
     // Text.bmd: el 482 del 0C y el 483 del 0D con 2. nullptr si no se cargó: esos mensajes cortan con error.

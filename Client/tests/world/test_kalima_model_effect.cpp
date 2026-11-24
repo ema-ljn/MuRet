@@ -1,9 +1,9 @@
+#include "Crt/CrtRandom.h"
 #include "World/ModelEffects.h"
 #include "World/KalimaWorld.h"
 #include "World/KalimaWaves.h"
 #include "World/GameModelEffects.h"
 #include "World/Particles.h"
-#include "Render/Models/Cloth.h"
 #include <gtest/gtest.h>
 #include <glm/ext/vector_float3.hpp>
 #include <memory>
@@ -11,7 +11,7 @@
 TEST(KalimaModelEffectTest, NativeNineUsesItsOwnRandomScaleAndTwoMovements)
 {
     auto effects = std::make_unique<Client::World::ModelEffects>();
-    Client::Render::Models::CrtRandom random(7);
+    Client::Crt::CrtRandom random(7);
     const auto made = effects->CreateKalimaEffect({6400, 6400, 1000}, {}, {0.3f, 0.8f, 1}, random);
     ASSERT_EQ(made, 0u);
     auto& effect = effects->Effects()[0];
@@ -34,7 +34,7 @@ TEST(KalimaModelEffectTest, ImpactWritesTheNativePlaneOnceBeforeTheSecondMovemen
 {
     auto effects = std::make_unique<Client::World::ModelEffects>();
     auto water = std::make_unique<Client::World::KalimaWorld>(24);
-    Client::Render::Models::CrtRandom random(7);
+    Client::Crt::CrtRandom random(7);
     ASSERT_EQ(effects->CreateKalimaEffect({6400, 6400, 351}, {}, {0.3f, 0.8f, 1}, random), 0u);
     auto& effect = effects->Effects()[0];
     Client::World::Particles particles;

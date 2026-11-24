@@ -2,6 +2,7 @@
 #include "Scenes/PersonalShopWindow.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Tables/ItemTable.h"
 #include "Data/Text/TextTable.h"
 #include "Input/InputState.h"
@@ -10,7 +11,6 @@
 #include "Protocol/OptionData.h"
 #include "Protocol/Outgoing.h"
 #include "Protocol/PersonalShop.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Scenes/GamePanels.h"
@@ -62,7 +62,7 @@
 // los ítems son inventados.
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::Scenes::EmptyOwnItemId;
 using Client::World::ItemState;
 

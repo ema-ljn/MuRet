@@ -21,7 +21,7 @@ namespace Client::Data::Tables
 struct ItemSetTables;
 }
 
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
 }
@@ -51,7 +51,7 @@ struct GamePanelTables
 class GamePanels
 {
 public:
-    GamePanels(WorldState& world, Render::Models::CrtRandom& random, GamePanelTables tables = {});
+    GamePanels(WorldState& world, Crt::CrtRandom& random, GamePanelTables tables = {});
     GamePanels(const GamePanels&) = delete;
     GamePanels& operator=(const GamePanels&) = delete;
     GamePanels(GamePanels&&) = delete;
@@ -82,8 +82,7 @@ public:
     void LendTheFriends(std::function<Core::Expected<void, std::string>()> opened);
     // Los cables de las ventanas de los NPC (UI::PanelContext::npcWindowOpened y npcWindowClosing): Scenes/NpcWindows.h
     // con el mundo, el rand(), los servicios del inventario y el envío.
-    void LendTheNpcWindows(WorldState& world, Render::Models::CrtRandom& random, InventoryServices services,
-                           NpcWindowSender send);
+    void LendTheNpcWindows(WorldState& world, Crt::CrtRandom& random, InventoryServices services, NpcWindowSender send);
 
     // CL9 hito 8: abrir el gremio pide la lista (C1 03 52), cerrar sus dos ventanas (0x6522f0 y 0x6570b0) y responder
     // al diálogo de los paneles (0x4d6b60 y 0x653c00), con `send`. Sin él, lo que lo usa corta.
@@ -109,8 +108,7 @@ public:
     // 0x65ac87, 0x65b359 y 0x5eb17f: el C1 04 F3 10 al abrir una tienda con 0x6c931c distinto de −1 y el 3F 07 al
     // cerrar la de otro con su dueño (Scenes::OpenThePersonalShop y CloseThePersonalShop), por `send`. Sin él, esos
     // envíos cortan; lo demás de abrir y cerrar las tiendas no lo necesita.
-    void LendThePersonalShops(WorldState& world, Render::Models::CrtRandom& random,
-                              std::function<void(Protocol::Outgoing)> send);
+    void LendThePersonalShops(WorldState& world, Crt::CrtRandom& random, std::function<void(Protocol::Outgoing)> send);
 
     // Todo lo que un cierre del original manda al GS desde 0x657a90, 0x657ab0, 0x657880 y 0x65cae0: el C1 03 31 de
     // las misiones y de los NPC de evento (`sendWindowClose`), el C1 03 3D del comercio (0x657fe1), el F3 10 y el
@@ -119,10 +117,10 @@ public:
     // prestan los caminos que abren o cierran ventanas fuera del paso de la UI: Esc (0x623f17), caminar (0x56b39d), el
     // 37 (0x659e46), el 3F 05 (0x65b319), la entrada, el teleport, el regen, los eventos, las misiones y la caja 0x9c.
     // Sin `send`, o sin `sendWindowClose`, quedan los cortes de cada uno.
-    void LendTheSession(WorldState& world, Render::Models::CrtRandom& random,
-                        std::function<void(Protocol::Outgoing)> send, std::function<void()> sendWindowClose);
+    void LendTheSession(WorldState& world, Crt::CrtRandom& random, std::function<void(Protocol::Outgoing)> send,
+                        std::function<void()> sendWindowClose);
     // Lo mismo con `requests` (SendGamePacket, SendGuildPacket para el gremio y SendWindowClose); con nullptr, nada.
-    void LendTheSession(WorldState& world, Render::Models::CrtRandom& random, IGameUiRequests* requests);
+    void LendTheSession(WorldState& world, Crt::CrtRandom& random, IGameUiRequests* requests);
 
 private:
     UI::PanelContext m_context;

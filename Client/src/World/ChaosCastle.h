@@ -9,7 +9,7 @@
 #include <functional>
 #include <string>
 
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
 }
@@ -50,7 +50,7 @@ struct ChaosCastleCellContext
     std::uint8_t area = 0xff;
     // +0x18 del héroe (0x743a170): la z de la piedra.
     float heroZ = 0.0f;
-    Render::Models::CrtRandom* random = nullptr;
+    Crt::CrtRandom* random = nullptr;
     Particles* particles = nullptr;
     std::reference_wrapper<const float> worldClock;
     // 0x7d325c8, el temblor de la cámara.
@@ -76,7 +76,7 @@ inline constexpr std::int32_t LastChaosCastleMap = 23;
 // Lo que 0x405490 mira del héroe (0x743a170) y la articulación 0x6ee/9 que pide (0x530860).
 struct ChaosCastlePreludeContext
 {
-    Render::Models::CrtRandom* random = nullptr;
+    Crt::CrtRandom* random = nullptr;
     glm::vec3 heroPosition{};
     glm::vec3 heroAngles{};
     // +0x3e2 del héroe: la zona segura.

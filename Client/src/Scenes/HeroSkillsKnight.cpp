@@ -1,11 +1,11 @@
 #include "Scenes/HeroSkillsKnight.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "GameLogic/PathFinder.h"
 #include "Protocol/Skill.h"
 #include "Render/Models/Animation.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/OriginalAngles.h"
 #include "Scenes/ActorName.h"
@@ -208,7 +208,7 @@ struct Cells
 };
 
 // 0x40b570 y 0x40b800 sobre +0x420 y después sobre +0x41c: la Y primero.
-Cells ReadTheCells(ActorState& hero, Render::Models::CrtRandom& random)
+Cells ReadTheCells(ActorState& hero, Crt::CrtRandom& random)
 {
     Cells cells;
     {

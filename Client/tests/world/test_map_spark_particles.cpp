@@ -1,6 +1,6 @@
 #include "World/Particles.h"
 
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 
 #include "support/ParticleDrawRecorder.h"
 
@@ -18,7 +18,7 @@
 // el caso de90grados usa el coseno32510b46 ya acreditado en rotation.txt, no el port como oráculo.
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::World::Particle;
 using Client::World::Particles;
 constexpr std::int32_t Spark = 0x5c6;

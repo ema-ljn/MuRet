@@ -7,6 +7,8 @@
 #include "Core/IClock.h"
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
+#include "Core/PixelSize.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Textures/TextureSet.h"
 #include "Input/InputState.h"
 #include "Render/TextureSlot.h"
@@ -320,7 +322,7 @@ struct Harness
         bool after = false;
         bool frameOpen = false;
         std::size_t journal = 0;
-        Client::App::PixelSize screen{};
+        Client::Core::PixelSize screen{};
     };
     std::vector<DrawHook> drawHooks;
     std::optional<std::string> beforeDrawFailure;
@@ -1238,7 +1240,7 @@ TEST(SceneManagerTest, AFailedPollDoesNotTakeTheOrder)
 class ChoosingSelection final : public IScene
 {
 public:
-    ChoosingSelection(Client::Scenes::WorldState& world, Client::Render::Models::CrtRandom& random, const bool& choose)
+    ChoosingSelection(Client::Scenes::WorldState& world, Client::Crt::CrtRandom& random, const bool& choose)
         : m_world(world), m_random(random), m_choose(choose)
     {
     }
@@ -1284,7 +1286,7 @@ public:
 
 private:
     Client::Scenes::WorldState& m_world;
-    Client::Render::Models::CrtRandom& m_random;
+    Client::Crt::CrtRandom& m_random;
     const bool& m_choose;
     bool m_chosen = false;
 };

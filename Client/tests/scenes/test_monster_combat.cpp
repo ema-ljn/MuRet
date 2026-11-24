@@ -1,6 +1,7 @@
 #include "Core/Expected.h"
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Models/Model.h"
 #include "Data/Models/PlayerModels.h"
 #include "Data/Terrain/TerrainGrid.h"
@@ -71,8 +72,8 @@
 // tabla de texturas falsa.
 namespace
 {
+using Client::Crt::CrtRandom;
 using Client::Data::Models::PlayerSkeletonModel;
-using Client::Render::Models::CrtRandom;
 using Client::Scenes::ActorState;
 using Client::Scenes::ModelSounds;
 using Client::Tests::MonsterRecordBytes;

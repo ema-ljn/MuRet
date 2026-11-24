@@ -1,7 +1,7 @@
 #include "Scenes/FaunaJointCreation.h"
 
 #include "Core/Expected.h"
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/GameDrawTail.h"
 #include "World/IFishStepServices.h"
@@ -23,7 +23,7 @@
 // /0xf salen de otra corrida (Fraction exacta y el seno con 80 dígitos, el x87.py del revisor).
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::Scenes::ActorState;
 using Client::Scenes::JointOwnerKind;
 using Client::Scenes::JointState;

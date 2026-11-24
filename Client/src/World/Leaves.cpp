@@ -1,6 +1,6 @@
 #include "World/Leaves.h"
 
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "Render/Models/OriginalRotation.h"
 #include "World/TerrainHeight.h"
 
@@ -36,12 +36,12 @@ float F32(double value)
 
 // rand() % n con el idiom de `and 0x8000000f` (n potencia de 2) o con cdq e idiv: con un rand() no
 // negativo, los dos son el resto.
-int Around(Render::Models::CrtRandom& random, int span, int shift)
+int Around(Crt::CrtRandom& random, int span, int shift)
 {
     return (random.Next() % span) + shift;
 }
 
-void Born(Leaf& leaf, const EmberWorld& world, Render::Models::CrtRandom& random, bool ember)
+void Born(Leaf& leaf, const EmberWorld& world, Crt::CrtRandom& random, bool ember)
 {
     constexpr std::int32_t DriftingLeafTexture = 100;
     leaf.type = ember ? EmberTexture : DriftingLeafTexture;
@@ -75,7 +75,7 @@ void Born(Leaf& leaf, const EmberWorld& world, Render::Models::CrtRandom& random
 // 0x5303a0: con el terreno por debajo (o un NaN), en el aire: cada componente de la velocidad suma
 // (rand() % 16 − 8) · 0,1 y la posición, la velocidad (la z, con la de z antes de guardarla en float). Si
 // no, queda en el suelo y se apaga de a 0,05; con el rojo en 0 o menos, muere.
-void Fall(Leaf& leaf, const EmberWorld& world, Render::Models::CrtRandom& random)
+void Fall(Leaf& leaf, const EmberWorld& world, Crt::CrtRandom& random)
 {
     const double ground =
         TerrainHeightAt(*world.heights, *world.attributes, leaf.position.x, leaf.position.y, world.fixedHeight);
@@ -137,7 +137,7 @@ void Leaves::Clear()
     }
 }
 
-void StepLoginEmbers(Leaves& leaves, const EmberWorld& world, Render::Models::CrtRandom& random)
+void StepLoginEmbers(Leaves& leaves, const EmberWorld& world, Crt::CrtRandom& random)
 {
     if (world.heights == nullptr || world.attributes == nullptr)
     {
@@ -161,12 +161,12 @@ void StepLoginEmbers(Leaves& leaves, const EmberWorld& world, Render::Models::Cr
     }
 }
 
-void SpawnDriftingLeaf(Leaf& leaf, const EmberWorld& world, Render::Models::CrtRandom& random)
+void SpawnDriftingLeaf(Leaf& leaf, const EmberWorld& world, Crt::CrtRandom& random)
 {
     Born(leaf, world, random, false);
 }
 
-void StepFallingLeaf(Leaf& leaf, const EmberWorld& world, Render::Models::CrtRandom& random)
+void StepFallingLeaf(Leaf& leaf, const EmberWorld& world, Crt::CrtRandom& random)
 {
     Fall(leaf, world, random);
 }

@@ -2,6 +2,7 @@
 
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Text/TextTable.h"
 #include "Data/Textures/Texture.h"
 #include "Data/Textures/TextureSet.h"
@@ -13,7 +14,6 @@
 #include "UI/PanelDialog.h"
 #include "Protocol/CastleBattle.h"
 #include "Protocol/Outgoing.h"
-#include "Render/Models/Cloth.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/CastleSiegeReceive.h"
 #include "Scenes/WorldRuntime.h"
@@ -43,7 +43,7 @@
 namespace
 {
 namespace Battle = Client::Protocol::CastleBattle;
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::Scenes::CastleReceiveContext;
 using Client::Scenes::WorldState;
 using Client::UI::SwitchHolderHalf;

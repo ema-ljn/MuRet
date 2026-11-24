@@ -10,9 +10,13 @@ namespace Client::Render
 {
 class ModelBatch;
 }
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
+} // namespace Client::Crt
+
+namespace Client::Render::Models
+{
 class IModelLibrary;
 } // namespace Client::Render::Models
 namespace Client::World
@@ -39,7 +43,7 @@ struct DrawnObject;
 [[nodiscard]] Core::Expected<void, std::string> ShedTheSkinShells(ActorState& owner, std::int32_t subtype,
                                                                   const Render::Models::IModelLibrary& models,
                                                                   WorldState& world, World::ModelEffects& effects,
-                                                                  Render::Models::CrtRandom& random);
+                                                                  Crt::CrtRandom& random);
 
 // 0x600557..0x6005e0, el caso del 0x137 en 0x6002e0 (después de posar): el /0 con el color del modelo en su luz (+0xf4)
 // y RenderBody(2) con Chrome01 (0x5c0); el /1 con el color en (0,1f; 0,5; 1) y RenderBody(0x42) con Chrome01; con otro

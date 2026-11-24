@@ -1,7 +1,7 @@
 #pragma once
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Core/PixelSize.h"
 #include "Platform/GlLoader.h"
 #include "Render/Gl/GlFramebuffer.h"
 #include "Render/Gl/GlRenderer.h"
@@ -73,7 +73,7 @@ inline std::array<Render::SpriteVertex, 6> Triangles(const TestQuad& quad)
 // La cámara de los tests del 3D (CL6.3), en el rectángulo `rect` de 640 × 480 de una pantalla de
 // `screen` píxeles: en el origen, sin girar (mira hacia −z con la y para arriba), 90° de fov, near 1
 // y far 100 (71,4 · 1,4). En la profundidad −d, el cuadrado de −d a d llena el viewport.
-inline Render::Pass3D TestPass(App::PixelSize screen, Render::ViewportRect rect = {0, 0, 640, 480})
+inline Render::Pass3D TestPass(Core::PixelSize screen, Render::ViewportRect rect = {0, 0, 640, 480})
 {
     Render::Camera3D camera;
     camera.fieldOfView = 90.0f;

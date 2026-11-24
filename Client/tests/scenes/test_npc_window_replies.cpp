@@ -5,6 +5,7 @@
 #include "Core/Expected.h"
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Models/PlayerModels.h"
 #include "Data/Tables/ItemSetTables.h"
 #include "Data/Tables/ItemTable.h"
@@ -61,9 +62,9 @@
 // textos son inventados.
 namespace
 {
+using Client::Crt::CrtRandom;
 using Client::Network::Delivery;
 using Client::Network::Xor32Decode;
-using Client::Render::Models::CrtRandom;
 using Client::Scenes::NpcWindowState;
 using Client::Scenes::WorldEntryResources;
 using Client::Tests::Bytes;

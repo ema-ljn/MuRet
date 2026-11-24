@@ -1,9 +1,9 @@
 #include "Scenes/SkillHits.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Protocol/Outgoing.h"
 #include "Protocol/Skill.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActorName.h"
 #include "Scenes/ActorState.h"
@@ -85,7 +85,7 @@ Protocol::Skill::SkillHitsSend CollectTheTargets(const SkillHitsRequest& request
 } // namespace
 
 Core::Expected<bool, std::string> HitTheTargetsAround(const SkillHitsRequest& request, WorldState& world,
-                                                      Render::Models::CrtRandom& random,
+                                                      Crt::CrtRandom& random,
                                                       const std::function<void(Protocol::Outgoing)>& send)
 {
     WorldRuntime& runtime = world.Runtime();

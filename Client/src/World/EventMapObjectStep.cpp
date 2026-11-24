@@ -1,7 +1,7 @@
 #include "World/EventMapObjectStep.h"
 
 #include "Core/Expected.h"
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "Render/Models/ObjectState.h"
 #include "World/OriginalFtol.h"
 #include "World/Particles.h"
@@ -70,8 +70,7 @@ float FlashCoordinate(int spread, float hero)
 }
 } // namespace
 
-Core::Expected<void, std::string> StepDevilSquarePrelude(Render::Models::CrtRandom& random,
-                                                         const ObjectStepGlobals& globals)
+Core::Expected<void, std::string> StepDevilSquarePrelude(Crt::CrtRandom& random, const ObjectStepGlobals& globals)
 {
     const std::optional<std::int32_t> clock = OriginalFtolLow(static_cast<double>(globals.worldClock));
     if (!clock)
@@ -96,7 +95,7 @@ Core::Expected<void, std::string> StepDevilSquarePrelude(Render::Models::CrtRand
     return {};
 }
 
-Core::Expected<void, std::string> StepBloodCastlePrelude(Render::Models::CrtRandom& random, const glm::vec3& hero,
+Core::Expected<void, std::string> StepBloodCastlePrelude(Crt::CrtRandom& random, const glm::vec3& hero,
                                                          Particles* particles, const float& worldClock)
 {
     // fild del entero y fadd del float del héroe; la z suma después los 250. Todo cabe exacto en la x87.

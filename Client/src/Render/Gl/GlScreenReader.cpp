@@ -1,6 +1,6 @@
 #include "Render/Gl/GlScreenReader.h"
 
-#include "App/WindowState.h"
+#include "Core/PixelSize.h"
 #include "Platform/GlLoader.h"
 
 #include <cstddef>
@@ -11,7 +11,7 @@ namespace Client::Render::Gl
 {
 GlScreenReader::GlScreenReader(const Platform::GlFunctions& gl) : m_gl(&gl) {}
 
-std::vector<std::uint8_t> GlScreenReader::ReadTheScreen(App::PixelSize screen)
+std::vector<std::uint8_t> GlScreenReader::ReadTheScreen(Core::PixelSize screen)
 {
     if (screen.width <= 0 || screen.height <= 0)
         return {};

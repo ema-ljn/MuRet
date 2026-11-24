@@ -3,9 +3,9 @@
 #include "World/WorldTerrain.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Protocol/Outgoing.h"
 #include "Protocol/Skill.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/OwnCharacterRecord.h"
@@ -31,7 +31,7 @@
 // manda (06, "La flecha").
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::Scenes::ActorState;
 using Client::Scenes::HitTheTargetsAround;
 using Client::Scenes::SkillHitsRequest;

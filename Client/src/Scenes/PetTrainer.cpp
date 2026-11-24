@@ -1,11 +1,11 @@
 #include "Scenes/PetTrainer.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Tables/ItemTable.h"
 #include "Protocol/Connection/Logout.h"
 #include "Protocol/NpcWindows.h"
 #include "Protocol/Outgoing.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ChaosMix.h"
 #include "Scenes/GameMovementState.h"
@@ -220,7 +220,7 @@ std::uint32_t TrainerMixPrice(std::uint8_t kind)
     return kind < MixPrices.size() ? MixPrices[kind] : 0u;
 }
 
-void ScanTheTrainerBox(WorldState& world, Render::Models::CrtRandom& random)
+void ScanTheTrainerBox(WorldState& world, Crt::CrtRandom& random)
 {
     WorldRuntime& runtime = world.Runtime();
     NpcWindowState& npc = runtime.npcWindows;

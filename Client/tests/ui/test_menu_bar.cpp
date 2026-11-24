@@ -1,6 +1,6 @@
 #include "UI/MenuBar.h"
 
-#include "App/WindowState.h"
+#include "Core/PixelSize.h"
 #include "Input/InputState.h"
 #include "Render/SpriteBatch.h"
 #include "UI/Widget.h"
@@ -17,7 +17,7 @@
 // derecha, adentro del adorno de deco.tga. Todo en píxeles.
 namespace
 {
-using Client::App::PixelSize;
+using Client::Core::PixelSize;
 using Client::Input::InputState;
 using Client::UI::LayoutMenuBar;
 using Client::UI::MenuBar;

@@ -1,6 +1,6 @@
 #include "Render/Pass3D.h"
 
-#include "App/WindowState.h"
+#include "Core/PixelSize.h"
 #include "Render/Models/RoundedTransforms.h"
 
 #include <glm/ext/matrix_float4x4.hpp>
@@ -33,7 +33,7 @@ constexpr glm::vec3 YAxis{0.0f, 1.0f, 0.0f};
 constexpr glm::vec3 ZAxis{0.0f, 0.0f, 1.0f};
 
 // 0x620db0: el rectángulo escalado en enteros y la y de GL desde abajo (0x620d10).
-glm::ivec4 ScaledViewport(App::PixelSize screen, const ViewportRect& rect)
+glm::ivec4 ScaledViewport(Core::PixelSize screen, const ViewportRect& rect)
 {
     const int x = rect.x * screen.width / OriginalWidth;
     const int y = rect.y * screen.height / OriginalHeight;
@@ -56,7 +56,7 @@ glm::mat4 CameraView(const Camera3D& camera)
 }
 } // namespace
 
-Pass3D MakePass3D(App::PixelSize screen, const ViewportRect& rect, const Camera3D& camera)
+Pass3D MakePass3D(Core::PixelSize screen, const ViewportRect& rect, const Camera3D& camera)
 {
     Pass3D pass;
     pass.screen = screen;

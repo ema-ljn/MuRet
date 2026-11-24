@@ -1,4 +1,5 @@
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Tables/ItemSetTables.h"
 #include "Data/Tables/ItemTable.h"
 #include "Input/InputEvent.h"
@@ -7,7 +8,6 @@
 #include "Protocol/Character/LevelUpPoint.h"
 #include "Protocol/Outgoing.h"
 #include "Protocol/Pet/PetInfo.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/FullSetScan.h"
 #include "Scenes/GameChat.h"
@@ -41,11 +41,11 @@
 // corrida del original. Cada caso corre en Lorencia y en Devias.
 namespace
 {
+using Client::Crt::CrtRandom;
 using Client::Input::InputEvent;
 using Client::Input::InputState;
 using Client::Input::Key;
 using Client::Protocol::Outgoing;
-using Client::Render::Models::CrtRandom;
 using Client::Render::Models::OwnRecordCloseRandoms;
 using Client::Scenes::GameUiContext;
 using Client::Scenes::WorldState;

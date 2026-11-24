@@ -15,9 +15,13 @@
 // (los casos de 0x5208a0 con el choque de 0x520170 y 0x517850). 06, "La flecha". CL9 hito 4: las skills de tiro
 // (0x53e741, la bandera de 0x53e2e0, el 0x13a, el 0x105 y las flechas 0xdb/3 y /4 y 0xe1/1) y el choque de las
 // flechas de skill (0x5201ed, con 0x517a20, Scenes/SkillHits).
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
+} // namespace Client::Crt
+
+namespace Client::Render::Models
+{
 struct Skeleton;
 } // namespace Client::Render::Models
 
@@ -46,8 +50,7 @@ class WorldState;
 // y Crywolf (0x42fd32 y 0x43252d); su 610/13 conserva al efecto de dueño. Con el subtipo 2 (la skill 0x34), antes el
 // 0x105 con la flecha de dueño y cuatro intentos de joint 0x610 (0x51a08a). Con la tabla llena, nada y sin rand().
 [[nodiscard]] Core::Expected<void, std::string> CreateTheArrowEffect(const World::ModelEffectArguments& arguments,
-                                                                     WorldState& world,
-                                                                     Render::Models::CrtRandom& random,
+                                                                     WorldState& world, Crt::CrtRandom& random,
                                                                      glm::vec3* callerAngles = nullptr);
 
 // 0x53e2b0(c, o, blanco, lugar, bandera, skill), como lo llama el paso del ataque (0x50377d, 0x5037d0, 0x504060 y
@@ -86,7 +89,7 @@ class WorldState;
 struct ArrowStepContext
 {
     WorldState& world;
-    Render::Models::CrtRandom& random;
+    Crt::CrtRandom& random;
     World::Particles* particles = nullptr;
     World::FrameSprites* sprites = nullptr;
     World::TerrainLighting* lighting = nullptr;

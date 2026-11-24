@@ -1,9 +1,9 @@
 #include "Scenes/NpcChatter.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Models/PlayerModels.h"
 #include "Render/Models/Animation.h"
-#include "Render/Models/Cloth.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterStep.h"
 #include "Scenes/ChatBubbles.h"

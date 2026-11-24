@@ -17,9 +17,13 @@
 #include <span>
 #include <string>
 
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
+} // namespace Client::Crt
+
+namespace Client::Render::Models
+{
 class IModelLibrary;
 struct SkinnedMesh;
 } // namespace Client::Render::Models
@@ -89,7 +93,7 @@ using HelperTable = std::array<HelperState, HelperCount>;
 // Devuelve el lugar, o nullopt si no creó. Los otros tipos cortan antes de 0x443d70.
 [[nodiscard]] Core::Expected<std::optional<std::size_t>, std::string>
 CreateHelper(WorldState& world, std::uint16_t type, const glm::vec3& position, std::size_t rider,
-             Render::Models::CrtRandom* random = nullptr);
+             Crt::CrtRandom* random = nullptr);
 
 // 0x443d70(tipo, posición, jinete, lugar, 0, 0) sobre un lugar: en los mapas 18 a 23 (`map`) o con el lugar vivo, nada
 // (false). Si no, lo arma como dice CreateHelper, con el jinete `rider` (su lugar en el pool, `riderSlot`, o
@@ -98,7 +102,7 @@ CreateHelper(WorldState& world, std::uint16_t type, const glm::vec3& position, s
 [[nodiscard]] Core::Expected<bool, std::string> ConstructHelper(HelperState& helper, std::uint16_t type,
                                                                 const glm::vec3& position, const ActorState& rider,
                                                                 std::size_t riderSlot, std::int32_t map,
-                                                                Render::Models::CrtRandom* random);
+                                                                Crt::CrtRandom* random);
 
 // 0x443d40(jinete): apaga el byte vivo de los lugares vivos de ese jinete. Lo demás queda.
 void TurnOffHelpersOf(HelperTable& helpers, std::size_t rider);
@@ -111,7 +115,7 @@ struct HelperStepContext
     // Los modelos (0x5769ad8 + tipo · 0xe0), por las acciones que leen 0x4ea030 y 0x4ec200: los de Skill\ que carga
     // 0x615700 y Player\Helper01.bmd (el 0x1c12) de 0x60ff50. nullptr, o sin el del tipo: corta con uno vivo.
     const Render::Models::IModelLibrary* models = nullptr;
-    Render::Models::CrtRandom& random;
+    Crt::CrtRandom& random;
     // El reloj del mundo (0x5767b88, en ms), con que 0x53fe70 gira las 5f2 al crearlas.
     float worldClock = 0.0f;
     // DAT_006d5dc8: solo la 5 apaga el ayudante sin jinete (0x44402a), y la 4 decide el final de la animación
@@ -163,7 +167,7 @@ struct HelperDrawContext
     Render::ModelBatch& batch;
     const Render::Models::IModelLibrary& models;
     WorldState& world;
-    Render::Models::CrtRandom& random;
+    Crt::CrtRandom& random;
     Core::Duration frameClock{};
     // Lo que va del último paso al próximo, para la animación (D-C4).
     float stepAlpha = 0.0f;

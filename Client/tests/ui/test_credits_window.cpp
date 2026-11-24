@@ -1,6 +1,6 @@
 #include "UI/CreditsWindow.h"
 
-#include "App/WindowState.h"
+#include "Core/PixelSize.h"
 #include "Data/Text/Credits.h"
 #include "Input/InputState.h"
 #include "Input/Key.h"
@@ -24,7 +24,7 @@
 // 0x63f630, 0x63ffe0, 0x6400b0, 0x63fe20 y 0x63f6b0; CL8, hito 8). Las tablas son inventadas.
 namespace
 {
-using Client::App::PixelSize;
+using Client::Core::PixelSize;
 using Client::Data::Text::CreditEntry;
 using Client::Input::InputState;
 using Client::Input::Key;

@@ -9,13 +9,14 @@
 #include <optional>
 #include <string>
 
+namespace Client::Crt
+{
+class CrtRandom;
+} // namespace Client::Crt
+
 namespace Client::Render
 {
 class ModelBatch;
-namespace Models
-{
-class CrtRandom;
-}
 } // namespace Client::Render
 
 // 06 § Kalima: dueño portable de4377a0/723c48. El mapa no sustituye su existencia.
@@ -28,7 +29,7 @@ struct KalimaFrameContext
     float worldTime;
     std::uint8_t heroTileX;
     std::uint8_t heroTileY;
-    Render::Models::CrtRandom& random;
+    Crt::CrtRandom& random;
     // Cada callback devuelve el valor por copia, después de cerrar su acceso lógico.
     // Update los invoca en los puntos nativos; no prelee ambos ejes.
     std::function<Core::Expected<std::int32_t, std::string>()> readHeroX{};
@@ -49,7 +50,7 @@ public:
                                                          std::uint8_t heroTileY);
     // 437860: coordenadas de tile, el radio en celdas de onda. Conserva el selector.
     [[nodiscard]] Core::Expected<void, std::string> Disturb(std::int32_t tileX, std::int32_t tileY, std::int32_t radius,
-                                                            std::int32_t amplitude, Render::Models::CrtRandom& random);
+                                                            std::int32_t amplitude, Crt::CrtRandom& random);
     // 4378e0/41dc80: clampa negativos; fuera del plano definido no inventa un alias.
     [[nodiscard]] std::optional<float> Height(float x, float y) const;
     [[nodiscard]] const KalimaWaveState& Waves() const;

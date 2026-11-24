@@ -1,9 +1,11 @@
 #include "App/WindowState.h"
 
+#include "Core/PixelSize.h"
+
 // Apply: la tabla de la CL3.1 (paso 1 del plan de la CL3). Cada evento toca un solo campo.
 namespace Client::App
 {
-WindowState Apply(WindowState state, WindowEvent event, PixelSize size)
+WindowState Apply(WindowState state, WindowEvent event, Core::PixelSize size)
 {
     switch (event)
     {

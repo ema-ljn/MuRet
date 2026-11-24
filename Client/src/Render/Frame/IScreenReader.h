@@ -1,6 +1,6 @@
 #pragma once
 
-#include "App/WindowState.h"
+#include "Core/PixelSize.h"
 
 #include <cstdint>
 #include <vector>
@@ -14,6 +14,6 @@ public:
     virtual ~IScreenReader() = default;
     // glReadPixels(0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE) of what the frame drew: `screen.height` rows of
     // `screen.width` × 3 bytes, from the bottom one and without padding between rows (Q-C631).
-    [[nodiscard]] virtual std::vector<std::uint8_t> ReadTheScreen(App::PixelSize screen) = 0;
+    [[nodiscard]] virtual std::vector<std::uint8_t> ReadTheScreen(Core::PixelSize screen) = 0;
 };
 } // namespace Client::Render::Frame

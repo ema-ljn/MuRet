@@ -1,9 +1,9 @@
+#include "Crt/CrtRandom.h"
 #include "World/Particles.h"
 #include "World/ParticleOwner.h"
 #include "World/PortableParticleTrigonometry.h"
 #include "World/ParticleDrawing.h"
 #include "World/IParticleDrawingServices.h"
-#include "Render/Models/Cloth.h"
 #include "Render/ParticleBillboardRequest.h"
 #include "Render/TextureEnvMode.h"
 #include "Core/Expected.h"
@@ -76,7 +76,7 @@ public:
 TEST(ParticleLifecycleCompositionTest, RealBackendOrbitAndMap8SharePoolAndDispatch)
 {
     World::Particles particles;
-    Render::Models::CrtRandom random(7);
+    Crt::CrtRandom random(7);
     World::PortableParticleTrigonometry trig;
     const float clock = 0;
     const auto orbit =
@@ -113,7 +113,7 @@ TEST(ParticleLifecycleCompositionTest, RealBackendOrbitAndMap8SharePoolAndDispat
 TEST(ParticleLifecycleCompositionTest, LegacyStillDeniesBothNewFamilies)
 {
     World::Particles particles;
-    Render::Models::CrtRandom random(7);
+    Crt::CrtRandom random(7);
     EXPECT_FALSE(particles.CreateChecked(0x60f, {}, {}, {}, 3, 1, 0, random).HasValue());
     EXPECT_FALSE(particles.CreateChecked(0x5f2, {}, {}, {}, 6, 1, 0, random).HasValue());
     EXPECT_EQ(random.State(), 7u);
@@ -137,7 +137,7 @@ TEST(ParticleLifecycleCompositionTest, PiercingSparkRetainsItsPhysicalParentAndM
     EXPECT_EQ(particle.field64, (glm::vec2{8, 9}));
     float clock = 0;
     World::PortableParticleTrigonometry trig;
-    Render::Models::CrtRandom random(3);
+    Crt::CrtRandom random(3);
     int calls = 0;
     bool parentAlive = true;
     const World::ParticleOwnerBones parent = [&](const World::Particle& child) -> std::optional<glm::vec3>

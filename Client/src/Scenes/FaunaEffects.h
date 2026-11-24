@@ -1,5 +1,6 @@
 #pragma once
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Render/Models/Cloth.h"
 #include "Scenes/FaunaModels.h"
 #include "Scenes/FaunaStep.h"
@@ -35,5 +36,5 @@ StepFaunaLightning(World::ModelEffect& effect, std::size_t physicalIndex, const 
 // Préstamos durables; load contiene referencias válidas hasta terminar el paso.
 [[nodiscard]] FaunaStepEffects BindFaunaStepEffects(FaunaModels& models, FaunaModelLoadContext load,
                                                     std::span<JointState> joints, World::ModelEffects& effects,
-                                                    Render::Models::CrtRandom& random);
+                                                    Crt::CrtRandom& random);
 } // namespace Client::Scenes

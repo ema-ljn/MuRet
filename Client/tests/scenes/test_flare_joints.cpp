@@ -1,7 +1,7 @@
 #include "Scenes/FaunaJointCreation.h"
 
 #include "Core/Expected.h"
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Scenes/BlastEffectCalls.h"
 #include "Scenes/CharacterStep.h"
@@ -27,7 +27,7 @@
 // pedido del 0x114/0 (0x51c1b8: 0x530860(0x5ac, posición, posición, ángulos, 0, 0, escala, −1, 0, 0, −1)).
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::Scenes::JointState;
 
 constexpr std::uint32_t Seed = 0x5acu;

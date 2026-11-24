@@ -1,6 +1,6 @@
 #include "UI/CreateCharacterWindow.h"
 
-#include "App/WindowState.h"
+#include "Core/PixelSize.h"
 #include "Input/InputState.h"
 #include "Input/Key.h"
 #include "Render/SpriteBatch.h"
@@ -28,7 +28,7 @@
 // 0x63d4e0, 0x63d7c0, 0x63d880 y 0x63e0a0), sin la vista previa. Los nombres son sintéticos.
 namespace
 {
-using Client::App::PixelSize;
+using Client::Core::PixelSize;
 using Client::Input::InputState;
 using Client::Input::Key;
 using Client::Tests::ClickAt;

@@ -1,8 +1,8 @@
 #include "Scenes/HighModelEffects.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Render/Models/Animation.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/IModelLibrary.h"
 #include "Render/Models/OriginalAngles.h"
@@ -56,7 +56,7 @@ namespace Client::Scenes
 {
 namespace
 {
-using Render::Models::CrtRandom;
+using Crt::CrtRandom;
 
 // El prefijo de los efectos del asedio (0x42d070, 0x42dcf0) y de Crywolf (0x4324c0, 0x4f5b70).
 constexpr std::int16_t SiegeAuraEffect = 0x134;     // el aura de la llegada del asedio (0x42d513, 0x42d5af)

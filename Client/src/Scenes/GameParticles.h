@@ -18,9 +18,13 @@ namespace Client::Render
 {
 class ModelBatch;
 }
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
+} // namespace Client::Crt
+
+namespace Client::Render::Models
+{
 class IModelLibrary;
 } // namespace Client::Render::Models
 namespace Client::World
@@ -46,14 +50,15 @@ using WaterspoutBonePoint =
 
 // 0x603011..0x60313f, después del rand() común de 0x602ef4: luz y V, guard de mitad de los frames,
 // y dos 5f2/0 con sus rand() intercalados y huesos 1 y 4. Pool lleno no consume rand() de Create.
-[[nodiscard]] Core::Expected<void, std::string>
-StepGameWaterspoutFrame(World::WorldObject& object, World::Particles& particles, Render::Models::CrtRandom& random,
-                        const float& worldClock, const WaterspoutBonePoint& bonePoint);
+[[nodiscard]] Core::Expected<void, std::string> StepGameWaterspoutFrame(World::WorldObject& object,
+                                                                        World::Particles& particles,
+                                                                        Crt::CrtRandom& random, const float& worldClock,
+                                                                        const WaterspoutBonePoint& bonePoint);
 
 // Con préstamo, 4ec110(Translate=0) lee la matriz global exacta, incluso dummy/alpha bajo.
 // Sin él sólo se acredita el hueso escrito por este modelo; falta de matriz corta tras X/Z.
 [[nodiscard]] Core::Expected<void, std::string>
-StepGameWaterspoutFrame(World::WorldObject& object, World::Particles& particles, Render::Models::CrtRandom& random,
+StepGameWaterspoutFrame(World::WorldObject& object, World::Particles& particles, Crt::CrtRandom& random,
                         const float& worldClock, const Render::Models::IModelLibrary& models, const DrawnObject& drawn,
                         const FaunaDrawCarry* retainedPose = nullptr);
 
@@ -66,7 +71,7 @@ StepGameWaterspoutFrame(World::WorldObject& object, World::Particles& particles,
 // que lee la 5f3 (World::ParticleTextureHeight), `lighting`, la luz dinámica (0x7b4ccc4) de la 5ed, y `actorHands`,
 // la mano del dueño de la 5fd (0x53fdb0, World::ParticleActorHands).
 [[nodiscard]] Core::Expected<void, std::string>
-StepGameParticles(World::Particles& particles, Render::Models::CrtRandom& random, const std::int32_t& map,
+StepGameParticles(World::Particles& particles, Crt::CrtRandom& random, const std::int32_t& map,
                   const std::function<double(float, float)>& terrainHeight = {}, const float& worldClock = 0.0f,
                   const std::function<World::WorldObject*(std::uint64_t)>& owners = {},
                   const std::function<std::optional<std::uint8_t>(std::uint64_t)>& actorActions = {},
@@ -78,7 +83,7 @@ StepGameParticles(World::Particles& particles, Render::Models::CrtRandom& random
 // `sprites` es la tabla de los sprites del frame (0x5491e0) donde la 5fc/2 deja su destello en cada paso; sin ella,
 // una 5fc/2 viva corta (World::ParticleError::MissingSprites).
 [[nodiscard]] Core::Expected<void, std::string> StepGameParticles(
-    World::Particles& particles, Render::Models::CrtRandom& random, const std::int32_t& map,
+    World::Particles& particles, Crt::CrtRandom& random, const std::int32_t& map,
     const std::function<double(float, float)>& terrainHeight, const float& worldClock,
     const std::function<World::WorldObject*(std::uint64_t)>& owners,
     const std::function<std::optional<std::uint8_t>(std::uint64_t)>& actorActions,

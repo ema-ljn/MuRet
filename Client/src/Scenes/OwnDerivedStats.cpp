@@ -1,8 +1,8 @@
 #include "Scenes/OwnDerivedStats.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Tables/ItemTable.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/FullSetScan.h"
 #include "Scenes/ItemSetOptionList.h"
@@ -246,7 +246,7 @@ Core::Expected<void, std::string> AddOwnItemStatBonuses(OwnCharacterRecord& own,
 }
 
 Core::Expected<void, std::string> AddCapeOfLordOptions(OwnCharacterRecord& own, std::uint8_t& ownRecordAccesses,
-                                                       Render::Models::CrtRandom& random)
+                                                       Crt::CrtRandom& random)
 {
     const World::ItemState& wings = own.equipment[WingsSlot];
     if (wings.id != CapeOfLordId)
@@ -267,7 +267,7 @@ Core::Expected<void, std::string> AddCapeOfLordOptions(OwnCharacterRecord& own, 
     return {};
 }
 
-Core::Expected<void, std::string> UpdateOwnDerivedStatsTail(OwnCharacterRecord& own, Render::Models::CrtRandom& random)
+Core::Expected<void, std::string> UpdateOwnDerivedStatsTail(OwnCharacterRecord& own, Crt::CrtRandom& random)
 {
     own.wordef8 = Low16(own.wordef0 - own.wordee6);
     own.wordefa = Low16(own.wordef2 - own.wordee6);

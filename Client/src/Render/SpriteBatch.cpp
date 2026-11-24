@@ -1,6 +1,6 @@
 #include "Render/SpriteBatch.h"
 
-#include "App/WindowState.h"
+#include "Core/PixelSize.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Render/OriginalQuad.h"
 #include "Render/OriginalSkewedQuad.h"
@@ -50,7 +50,7 @@ float F32(double value)
 }
 } // namespace
 
-void SpriteBatch::Begin(App::PixelSize screen)
+void SpriteBatch::Begin(Core::PixelSize screen)
 {
     m_screen = screen;
     m_vertices.clear();
@@ -165,7 +165,7 @@ void SpriteBatch::RotatedQuad(TextureSlot slot, float x, float y, float width, f
     Append(corners, FourOf(m_color), slot);
 }
 
-App::PixelSize SpriteBatch::Screen() const
+Core::PixelSize SpriteBatch::Screen() const
 {
     return m_screen;
 }

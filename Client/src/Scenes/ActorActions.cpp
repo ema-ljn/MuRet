@@ -1,12 +1,12 @@
 #include "Scenes/ActorActions.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Models/PlayerModels.h"
 #include "Data/Tables/ItemTable.h"
 #include "Data/Terrain/TerrainGrid.h"
 #include "Protocol/Movement.h"
 #include "Render/Models/Animation.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActionSend.h"
 #include "Scenes/ActorState.h"
@@ -298,7 +298,7 @@ Core::Expected<std::optional<std::uint8_t>, std::string> ChooseStand(ActorState&
 // 0x4f36be..0x4f37a5: el sufijo, con la acción ya puesta.
 Core::Expected<ActorStopResult, std::string> Suffix(const ActorState& actor, const ActorStopContext& context)
 {
-    Render::Models::CrtRandom& random = context.random;
+    Crt::CrtRandom& random = context.random;
     if (random.Next() % SuffixChance != 0)
     {
         return ActorStopResult{};

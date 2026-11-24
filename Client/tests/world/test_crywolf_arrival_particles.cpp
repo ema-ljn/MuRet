@@ -1,6 +1,6 @@
 #include "World/Particles.h"
 
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "World/ParticleDrawing.h"
 #include "World/PortableParticleTrigonometry.h"
 
@@ -24,7 +24,7 @@ namespace
 TEST(CrywolfArrivalParticlesTest, TheArrivalDustCompletesCreationStepAndDrawing)
 {
     auto particles = std::make_unique<Client::World::Particles>();
-    Client::Render::Models::CrtRandom random(7);
+    Client::Crt::CrtRandom random(7);
     const auto created = particles->CreateChecked(0x5f6, {100, 200, 300}, {}, {2, 3, 4}, 1, 5, 0, random);
     ASSERT_TRUE(created.HasValue());
     ASSERT_EQ(created.Value(), 0u);
@@ -58,7 +58,7 @@ TEST(CrywolfArrivalParticlesTest, TheArrivalDustCompletesCreationStepAndDrawing)
 TEST(CrywolfArrivalParticlesTest, TheDustTypesShareTheirBirthBySubtype)
 {
     auto particles = std::make_unique<Client::World::Particles>();
-    Client::Render::Models::CrtRandom random(7);
+    Client::Crt::CrtRandom random(7);
     auto created = particles->CreateChecked(0x5f3, {100, 200, 300}, {}, {2, 3, 4}, 1, 5, 0, random);
     ASSERT_TRUE(created.HasValue());
     ASSERT_EQ(created.Value(), 0u);
@@ -72,7 +72,7 @@ TEST(CrywolfArrivalParticlesTest, TheDustTypesShareTheirBirthBySubtype)
     EXPECT_EQ(brake.angles, (glm::vec3{41, 0, 200}));
     EXPECT_EQ(random.State(), 0x9974714du);
 
-    random = Client::Render::Models::CrtRandom(7);
+    random = Client::Crt::CrtRandom(7);
     created = particles->CreateChecked(0x5f6, {100, 200, 300}, {}, {1, 1, 1}, 0, 1.5f, 0, random);
     ASSERT_TRUE(created.HasValue());
     ASSERT_EQ(created.Value(), 1u);
@@ -85,7 +85,7 @@ TEST(CrywolfArrivalParticlesTest, TheDustTypesShareTheirBirthBySubtype)
     EXPECT_EQ(random.State(), Client::Tests::AfterDraws(7, 4).State());
     // La 5f3/0 con el mismo CRT en un pool gemelo: los mismos campos salvo el tipo.
     auto twin = std::make_unique<Client::World::Particles>();
-    Client::Render::Models::CrtRandom oracle(7);
+    Client::Crt::CrtRandom oracle(7);
     ASSERT_TRUE(twin->CreateChecked(0x5f3, {100, 200, 300}, {}, {1, 1, 1}, 0, 1.5f, 0, oracle).HasValue());
     const auto& dust = twin->All()[0];
     EXPECT_EQ(stone.velocity, dust.velocity);
@@ -94,7 +94,7 @@ TEST(CrywolfArrivalParticlesTest, TheDustTypesShareTheirBirthBySubtype)
 
     for (auto& particle : particles->All())
         particle.alive = true;
-    random = Client::Render::Models::CrtRandom(7);
+    random = Client::Crt::CrtRandom(7);
     for (const std::int32_t type : {0x5f3, 0x5f6})
         for (const std::int32_t subtype : {0, 1})
         {
@@ -102,7 +102,7 @@ TEST(CrywolfArrivalParticlesTest, TheDustTypesShareTheirBirthBySubtype)
             ASSERT_TRUE(full.HasValue());
             EXPECT_FALSE(full.Value().has_value());
         }
-    EXPECT_EQ(random.State(), Client::Render::Models::CrtRandom(7).State());
+    EXPECT_EQ(random.State(), Client::Crt::CrtRandom(7).State());
     particles->All()[5].alive = false;
     EXPECT_FALSE(particles->CreateChecked(0x5f3, {}, {}, {}, 2, 1, 0, random).HasValue());
 }
@@ -110,7 +110,7 @@ TEST(CrywolfArrivalParticlesTest, TheDustTypesShareTheirBirthBySubtype)
 TEST(CrywolfArrivalParticlesTest, ThePoundingBallKeepsItsCreationAndLastStep)
 {
     auto particles = std::make_unique<Client::World::Particles>();
-    Client::Render::Models::CrtRandom random(7);
+    Client::Crt::CrtRandom random(7);
     const auto created = particles->CreateChecked(0x640, {100, 200, 300}, {}, {2, 3, 4}, 1, 7, 0, random);
     ASSERT_TRUE(created.HasValue());
     ASSERT_EQ(created.Value(), 0u);
@@ -141,7 +141,7 @@ TEST(CrywolfArrivalParticlesTest, ThePoundingBallKeepsItsCreationAndLastStep)
 TEST(CrywolfArrivalParticlesTest, TheFireworkParticleDrawsItsPhysicalSlotTrail)
 {
     auto particles = std::make_unique<Client::World::Particles>();
-    Client::Render::Models::CrtRandom random(7);
+    Client::Crt::CrtRandom random(7);
     const auto created =
         particles->CreateChecked(0x60d, {100, 200, 300}, {10, 20, 30}, {1, 0.6f, 0.2f}, -1, 7, 0, random);
     ASSERT_TRUE(created.HasValue());

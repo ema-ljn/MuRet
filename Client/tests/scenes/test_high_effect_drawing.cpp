@@ -2,11 +2,11 @@
 #include "Scenes/HighEffectDrawing.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Models/Model.h"
 #include "Data/Terrain/TerrainHeights.h"
 #include "Render/ModelBatch.h"
 #include "Render/ModelVertex.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/Skeleton.h"
 #include "Render/Models/Skinning.h"
@@ -46,9 +46,9 @@
 // con modelo de los tipos altos".
 namespace
 {
+using Client::Crt::CrtRandom;
 using Client::Render::ModelBatch;
 using Client::Render::Models::BoneTransform;
-using Client::Render::Models::CrtRandom;
 using Client::Scenes::DrawnObject;
 using Client::World::ModelEffect;
 

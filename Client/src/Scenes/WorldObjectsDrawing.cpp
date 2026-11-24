@@ -22,13 +22,13 @@
 
 #include "Core/Expected.h"
 #include "Core/IClock.h"
+#include "Crt/CrtRandom.h"
 #include "Render/ModelBatch.h"
 #include "Render/ModelBatchParticleBackend.h"
 #include "Render/ModelBatchParticleState.h"
 #include "Render/ModelVertex.h"
 #include "Render/SpriteVertex.h"
 #include "Render/Models/Animation.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/ObjectState.h"
 #include "Render/Models/Skeleton.h"
@@ -343,8 +343,7 @@ Core::Expected<void, std::string> WalkTheObjectSectors(std::span<World::WorldObj
 
 Core::Expected<void, std::string> StepGameWorldObjects(std::span<World::WorldObject> objects, std::uint8_t map,
                                                        const Render::Models::IModelLibrary& models,
-                                                       Render::Models::CrtRandom& random,
-                                                       const World::ObjectStepGlobals& globals,
+                                                       Crt::CrtRandom& random, const World::ObjectStepGlobals& globals,
                                                        const AfterObjectStep& after, const AfterObjectStep& collapse)
 {
     const AfterObjectStep seenStep = [&](World::WorldObject& object) -> Core::Expected<void, std::string>

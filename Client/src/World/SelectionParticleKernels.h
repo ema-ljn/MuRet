@@ -5,7 +5,7 @@
 
 #include <cstdint>
 
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
 }
@@ -31,7 +31,7 @@ inline constexpr std::int32_t FloorFlameSubtype = 0;
 [[nodiscard]] bool IsSelectionParticle(std::int32_t type, std::int32_t subtype);
 // Después del prefijo de 0x53fe70 (Initialize): `scaleArgument` es el argumento de escala, que 622/1 suma
 // a +0x60 después de pisar +0x10. 622/0..5 consumen siete rand(), 5de/7 cinco o seis, 5de/0 dos y 729 seis.
-void CreateSelectionParticle(Particle& particle, float scaleArgument, Render::Models::CrtRandom& random);
+void CreateSelectionParticle(Particle& particle, float scaleArgument, Crt::CrtRandom& random);
 // Después de vida/movimiento de 0x5446e0, incluso en el tick que apaga alive. 622/0..5 leen su dueño (+0x40,
 // un objeto del mundo: +0x16c y +0x58) y el reloj del mundo; sin ellos, MissingOwner o MissingClock antes
 // de escribir nada.

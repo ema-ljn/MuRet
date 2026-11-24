@@ -1,6 +1,6 @@
 #pragma once
 
-#include "App/WindowState.h"
+#include "Core/PixelSize.h"
 #include "Data/Text/TextTable.h"
 #include "Input/InputState.h"
 #include "Render/SpriteBatch.h"
@@ -43,7 +43,7 @@ struct CreateWindowLayout
 
 // 0x63d4e0 con ((W − 454) / 2, (H − 406) / 2), la división de C; los atributos con el alto de la
 // clase `characterClass`.
-[[nodiscard]] CreateWindowLayout LayoutCreateWindow(App::PixelSize screen, std::uint8_t characterClass);
+[[nodiscard]] CreateWindowLayout LayoutCreateWindow(Core::PixelSize screen, std::uint8_t characterClass);
 
 enum class CreateWindowEvent : std::uint8_t
 {
@@ -68,7 +68,7 @@ public:
     void Close() override;
     [[nodiscard]] bool IsOpen() const override;
     // De toda la pantalla, como la base (0x669c70(W, H, −1, 0)): tiene el mouse en toda ella.
-    [[nodiscard]] Rect Bounds(App::PixelSize screen) const override;
+    [[nodiscard]] Rect Bounds(Core::PixelSize screen) const override;
 
     // La clase elegida, de 0 a 4 (+0x890).
     [[nodiscard]] std::uint8_t ChosenClass() const;
@@ -88,23 +88,23 @@ public:
     // Sin el foco (un aviso arriba, 0x65fc30): los botones siguen con su estado, sin el mouse
     // encima y sin clic; el EDIT sigue con el foco de Win32 (nadie se lo saca), así que lo que se
     // escribe entra al nombre.
-    std::optional<CreateWindowEvent> Step(const Input::InputState& input, App::PixelSize screen, NewUiTurn turn = {});
+    std::optional<CreateWindowEvent> Step(const Input::InputState& input, Core::PixelSize screen, NewUiTurn turn = {});
 
     // 0x66a050: la base negra de alfa 0x80 de toda la pantalla. La vista previa va entre esto y
     // Draw, que no se oscurece.
-    void DrawBase(Render::SpriteBatch& sprites, App::PixelSize screen) const;
+    void DrawBase(Render::SpriteBatch& sprites, Core::PixelSize screen) const;
     // 0x63e0a0 después de la vista previa: el fondo del nombre, la caja de los atributos y la franja,
     // los siete botones, los atributos, la descripción y el campo.
-    void Draw(Render::SpriteBatch& sprites, Scenes::ITextDrawer& text, App::PixelSize screen);
+    void Draw(Render::SpriteBatch& sprites, Scenes::ITextDrawer& text, Core::PixelSize screen);
 
 private:
-    void Place(App::PixelSize screen);
+    void Place(Core::PixelSize screen);
     void Choose(std::uint8_t characterClass);
     void TypeInto(const Input::InputState& input);
     void CopyTheName();
-    void DrawAttributes(Scenes::ITextDrawer& text, App::PixelSize screen) const;
-    void DrawDescription(Scenes::ITextDrawer& text, App::PixelSize screen) const;
-    void DrawTheName(Scenes::ITextDrawer& text, App::PixelSize screen) const;
+    void DrawAttributes(Scenes::ITextDrawer& text, Core::PixelSize screen) const;
+    void DrawDescription(Scenes::ITextDrawer& text, Core::PixelSize screen) const;
+    void DrawTheName(Scenes::ITextDrawer& text, Core::PixelSize screen) const;
 
     TextureSizes m_sizes;
     const Data::Text::TextTable* m_texts;

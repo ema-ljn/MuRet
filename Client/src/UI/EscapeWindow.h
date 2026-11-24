@@ -1,6 +1,6 @@
 #pragma once
 
-#include "App/WindowState.h"
+#include "Core/PixelSize.h"
 #include "Data/Text/TextTable.h"
 #include "Input/InputState.h"
 #include "Render/SpriteBatch.h"
@@ -37,7 +37,7 @@ struct EscapeWindowLayout
 
 // 0x6478c0 y 0x647c00 con `lines` líneas del marco (6 en el login, 10 en la selección) de
 // `lineHeight` (el alto del buffer de op1_back3, 0x66a4e0).
-[[nodiscard]] EscapeWindowLayout LayoutEscapeWindow(App::PixelSize screen, int lines, int lineHeight);
+[[nodiscard]] EscapeWindowLayout LayoutEscapeWindow(Core::PixelSize screen, int lines, int lineHeight);
 
 // 0x66a960: el fondo de piedra, el borde de arriba, el de abajo y los dos lados, en ese orden.
 [[nodiscard]] std::array<Render::UiImage, 5> EscapeFrameImages(Rect frame, const TextureSizes& sizes);
@@ -86,7 +86,7 @@ public:
     void Close() override;
     [[nodiscard]] bool IsOpen() const override;
     // De toda la pantalla: 0x647c00 mueve el marco y los botones, no el rectángulo.
-    [[nodiscard]] Rect Bounds(App::PixelSize screen) const override;
+    [[nodiscard]] Rect Bounds(Core::PixelSize screen) const override;
 
     // +0x408: los segundos que faltan para cerrar el juego, o nada sin cuenta.
     [[nodiscard]] std::optional<int> Countdown() const;
@@ -94,14 +94,14 @@ public:
 
     // Los botones (0x63c490) y, con el foco, 0x647d40 con los `elapsedMs` de este paso (el original
     // le pasa los del frame, hasta 200).
-    std::optional<EscapeWindowEvent> Step(const Input::InputState& input, App::PixelSize screen, double elapsedMs,
+    std::optional<EscapeWindowEvent> Step(const Input::InputState& input, Core::PixelSize screen, double elapsedMs,
                                           NewUiTurn turn = {});
     // 0x66a050 y 0x647ed0: el fondo negro, el marco y los botones con su rótulo (0x63c710, que no
     // dibuja el deshabilitado).
-    void Draw(Render::SpriteBatch& sprites, Scenes::ITextDrawer& text, App::PixelSize screen);
+    void Draw(Render::SpriteBatch& sprites, Scenes::ITextDrawer& text, Core::PixelSize screen);
 
 private:
-    void Place(App::PixelSize screen);
+    void Place(Core::PixelSize screen);
 
     TextureSizes m_sizes;
     const Data::Text::TextTable* m_texts = nullptr;

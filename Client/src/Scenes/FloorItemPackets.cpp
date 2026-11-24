@@ -1,10 +1,10 @@
 #include "Scenes/FloorItemPackets.h"
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Core/PixelSize.h"
+#include "Crt/CrtRandom.h"
 #include "Protocol/FloorItems.h"
 #include "Protocol/Inventory.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/ObjectState.h"
 #include "Scenes/CharacterDrawing.h"
@@ -173,7 +173,7 @@ Core::Expected<void, std::string> SystemLine(const WorldEntryResources& resource
 {
     if (resources.textMeasure == nullptr)
         return Core::Unexpected(std::format("{}: 0x555190 sin el medidor de los textos", where));
-    const App::PixelSize screen = resources.screen ? resources.screen() : App::PixelSize{640, 480};
+    const Core::PixelSize screen = resources.screen ? resources.screen() : Core::PixelSize{640, 480};
     return AddGameMessage(resources.world.Runtime(), *resources.textMeasure, screen, {}, text, UI::SystemMessage);
 }
 
@@ -247,8 +247,7 @@ Core::Expected<void, std::string> FruitFailureBox(WorldState& world, const Data:
 
 // 0x4de53a..0x4de7e4 (sumar) y 0x4de849..0x4dea4c (restar): el stat del registro propio, los puntos y el aviso.
 Core::Expected<void, std::string> EatTheFruit(const Protocol::FloorItems::StatFruit& fruit, WorldState& world,
-                                              Render::Models::CrtRandom& random, const Data::Text::TextTable* texts,
-                                              bool adding)
+                                              Crt::CrtRandom& random, const Data::Text::TextTable* texts, bool adding)
 {
     // 0x4deb74 y 0x4deb88: el stat del lugar y su texto (la energía, la vitalidad, la agilidad, la fuerza y el
     // comando).
@@ -476,7 +475,7 @@ void ApplyShortPickUpResult(WorldState& world)
 }
 
 Core::Expected<void, std::string> ApplyStatFruit(const Protocol::FloorItems::StatFruit& fruit, WorldState& world,
-                                                 Render::Models::CrtRandom& random, const Data::Text::TextTable* texts)
+                                                 Crt::CrtRandom& random, const Data::Text::TextTable* texts)
 {
     // 0x4de522..0x4de533, la tabla de 0x4deb4c por 0x4deb20.
     constexpr std::uint8_t LastStat = 4;

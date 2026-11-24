@@ -2,6 +2,7 @@
 
 #include "Core/IClock.h"
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "GameLogic/CharacterAppearance.h"
 #include "Render/ModelBatch.h"
 #include "Render/Models/Animation.h"
@@ -72,7 +73,7 @@ struct DrawnCharacter
     // +0x78: la tela no se simula ni se dibuja con 0x4000; con 0x1000 el dt es 0.
     std::uint32_t objectFlags = 0;
     // En el juego, los rand que pide el caso de 0x607b60 pertenecen al flujo global del cliente.
-    Render::Models::CrtRandom* originalRandom = nullptr;
+    Crt::CrtRandom* originalRandom = nullptr;
     // El que está bajo el mouse (DAT_006c8e30 en 0x510d00): sus partes llevan el contorno.
     bool outlined = false;
     // +0x88 del objeto: con 4 (un NPC), el contorno de 0x60cf70 va con otros colores; con 1 (un jugador), en

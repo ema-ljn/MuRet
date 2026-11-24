@@ -1,6 +1,6 @@
 #include "UI/NewUi.h"
 
-#include "App/WindowState.h"
+#include "Core/PixelSize.h"
 #include "Input/InputState.h"
 #include "UI/Widget.h"
 
@@ -16,7 +16,7 @@
 // 0x65f6c0, el foco y el mouse de 0x65fc30, el arrastre de 0x669f40 y el pegado de 0x65f720.
 namespace
 {
-using Client::App::PixelSize;
+using Client::Core::PixelSize;
 using Client::Input::InputState;
 using Client::UI::NewUi;
 using Client::UI::NewUiMode;

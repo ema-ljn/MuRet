@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Tables/ItemSetTables.h"
 #include "Data/Tables/ItemTable.h"
 #include "Protocol/Pet/PetInfo.h"
@@ -45,8 +46,8 @@
 // que lo cierra en 0 saca 3.848; lo de 0x550d10 se mide aparte sobre el mismo equipo.
 namespace
 {
+using Client::Crt::CrtRandom;
 using Client::Protocol::Pet::PetInfoReply;
-using Client::Render::Models::CrtRandom;
 using Client::Render::Models::OwnRecordCloseRandoms;
 using Client::Scenes::ActorState;
 using Client::Scenes::DarkSpirit;

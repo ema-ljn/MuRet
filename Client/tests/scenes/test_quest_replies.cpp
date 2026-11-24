@@ -2,6 +2,7 @@
 
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Models/PlayerModels.h"
 #include "Data/Text/DialogTable.h"
 #include "Data/Text/TextTable.h"
@@ -56,7 +57,7 @@ struct Replies
         Hero().key = HeroKey;
         Other().alive = true;
         Other().key = OtherKey;
-        cloth.random = Client::Render::Models::CrtRandom(Seed);
+        cloth.random = Client::Crt::CrtRandom(Seed);
         // La misión 1, un ítem para la clase 0: el diálogo 40 antes de aceptar y el 41 en curso sin el ítem.
         auto& record = world.Runtime().quest.records[1];
         record.entryCount = 1;
@@ -401,7 +402,7 @@ TEST(QuestRepliesTest, AFullJointPoolSkipsOnlyTheSparkles)
     const auto applied = Client::Scenes::ApplyQuestResult(Quest::QuestResult{Replies::OtherKey, Quest::PointsPrize, 1},
                                                           tested->Resources());
     ASSERT_TRUE(applied.HasValue()) << applied.Error();
-    EXPECT_EQ(tested->cloth.random.State(), Client::Render::Models::CrtRandom(Seed).State());
+    EXPECT_EQ(tested->cloth.random.State(), Client::Crt::CrtRandom(Seed).State());
     EXPECT_EQ(tested->world.Runtime().lastSoundId, 0x65);
     ExpectTheDecal(*tested, tested->Other());
 }

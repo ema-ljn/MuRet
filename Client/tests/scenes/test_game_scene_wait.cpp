@@ -6,6 +6,7 @@
 #include "App/ServerSession.h"
 #include "App/SessionState.h"
 #include "App/WindowState.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Models/PlayerModels.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainHeights.h"
@@ -57,7 +58,7 @@ class InitialGameWaitTest : public Client::Tests::GoldenDataTest
 {
 };
 
-void Advance(Client::Render::Models::CrtRandom& random, int count)
+void Advance(Client::Crt::CrtRandom& random, int count)
 {
     for (int index = 0; index < count; ++index)
         static_cast<void>(random.Next());
@@ -77,7 +78,7 @@ TEST_F(InitialGameWaitTest, TheFirstGameStepKeepsSelectionTerrainAndStepsActorsE
     online.session.ChooseCharacter(std::uint8_t{0});
 
     Client::Tests::FakeTextureStore textures;
-    Client::Render::Models::ClothWorld cloth{.random = Client::Render::Models::CrtRandom(0x1234)};
+    Client::Render::Models::ClothWorld cloth{.random = Client::Crt::CrtRandom(0x1234)};
     Client::Scenes::WorldState world;
     Client::Scenes::SelectionState selection(world);
     Client::World::GameCamera camera;

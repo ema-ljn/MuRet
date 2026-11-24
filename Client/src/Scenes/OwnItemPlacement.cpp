@@ -2,9 +2,9 @@
 
 #include "Core/Expected.h"
 #include "Core/Log.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Models/PlayerModels.h"
 #include "Data/Tables/ItemTable.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/Skeleton.h"
 #include "Scenes/ActorActions.h"
@@ -143,7 +143,7 @@ void AddTheDarkHorseOption(ItemState& item, const WorldEntryResources& resources
 // y lo cierra 0x40b4d0, con sus 3.848 rand() si queda sin accesos): (+0x1a / 20 con signo, sobre el word sin
 // signo) + 2 · el byte de abajo de [0x72397c] + 5, en un byte. El tag va después de cerrar (0x42281c, 0x42291c).
 void AddTheDarkHorseOption(ItemState& item, const WorldState& world, std::uint8_t& ownRecordDepth,
-                           Render::Models::CrtRandom& random)
+                           Crt::CrtRandom& random)
 {
     const std::uint8_t index = DarkHorseOptionPlace(item);
     const bool found = index != item.optionCount;

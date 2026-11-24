@@ -1,8 +1,8 @@
 #include "Scenes/GameLeafClouds.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "GameLogic/MovementSpeed.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/GameLeaves.h"
@@ -44,7 +44,7 @@ bool InsideMap31CloudArea(const glm::vec3& hero)
     return hero.x > CloudAreaMinX && hero.x < CloudAreaMaxX && hero.y > CloudAreaMinY && hero.y < CloudAreaMaxY;
 }
 
-float CloudCoordinate(float hero, int offset, int sign, Render::Models::CrtRandom& random)
+float CloudCoordinate(float hero, int offset, int sign, Crt::CrtRandom& random)
 {
     if (sign == 0)
         return hero;

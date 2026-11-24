@@ -1,7 +1,8 @@
 #include "Scenes/GameMoveWindow.h"
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Core/PixelSize.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Text/MoveRequirements.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/SpriteBatch.h"
@@ -92,7 +93,7 @@ MoveColumns ColumnsOf(std::int32_t screenWidth)
 }
 
 // 0x4485f0..0x448603 y 0x449062..0x44907a: el paso de la letra (0x7758568) por 640 sobre el ancho, sin signo.
-std::int32_t RowOf(App::PixelSize screen)
+std::int32_t RowOf(Core::PixelSize screen)
 {
     const auto step = static_cast<std::uint32_t>(Render::Text::FontStepFor(screen.width));
     return static_cast<std::int32_t>(step * 640u / static_cast<std::uint32_t>(screen.width));
@@ -110,7 +111,7 @@ struct MoveCheck
 
 // 0x448657..0x448787 y 0x4491df..0x449559: con el registro propio abierto, su zen (+0xecc), su nivel (+0xe) y su
 // clase (+0xb); después de cerrarlo, las comparaciones (el nivel con signo, el zen sin signo).
-MoveCheck CheckTheMove(WorldState& world, std::uint8_t& ownRecordDepth, Render::Models::CrtRandom& random,
+MoveCheck CheckTheMove(WorldState& world, std::uint8_t& ownRecordDepth, Crt::CrtRandom& random,
                        const Data::Text::MoveRequirement& move)
 {
     std::uint32_t money = 0;
@@ -207,7 +208,7 @@ Core::Expected<void, std::string> DrawTheMoveWindow(GameHudContext& context)
     HudState& hud = context.hud;
     WorldState& world = context.world;
     WorldRuntime& runtime = world.Runtime();
-    const App::PixelSize screen = sprites.Screen();
+    const Core::PixelSize screen = sprites.Screen();
     auto title = TextOf(context.texts, TitleText, "0x449142");
     if (!title.HasValue())
         return Core::Unexpected(title.Error());

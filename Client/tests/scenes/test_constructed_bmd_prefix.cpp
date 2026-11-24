@@ -1,6 +1,6 @@
 #include "Scenes/ConstructedBmdPrefix.h"
 
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "Render/Models/Skeleton.h"
 #include "Scenes/FaunaMotion.h"
 #include "Scenes/FaunaModels.h"
@@ -80,7 +80,7 @@ TEST(ConstructedBmdPrefixTest, TheProductionFaunaOwnerKeepsTheLoanAcrossRebindin
 
 TEST(ConstructedBmdPrefixTest, ZeroIsAReachableNativeCrtChoice)
 {
-    Client::Render::Models::CrtRandom random(302);
+    Client::Crt::CrtRandom random(302);
     const auto offset = static_cast<std::uint16_t>(random.Next() & 1023);
     ASSERT_EQ(offset, 0);
     ConstructedBmdPrefix prefix;

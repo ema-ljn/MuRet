@@ -1,10 +1,10 @@
 #include "World/ModelEffects.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainGrid.h"
 #include "Render/Models/Animation.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/ObjectState.h"
 #include "Render/Models/OriginalRotation.h"
@@ -231,7 +231,7 @@ std::optional<std::size_t> BeginModelEffect(std::span<ModelEffect> table, const 
 }
 
 std::optional<std::size_t> ModelEffects::CreateKalimaEffect(const glm::vec3& position, const glm::vec3& angles,
-                                                            const glm::vec3& light, Render::Models::CrtRandom& random)
+                                                            const glm::vec3& light, Crt::CrtRandom& random)
 {
     constexpr std::int16_t KalimaType = 9;
     constexpr std::int32_t KalimaLife = 30, ScaleSpan = 3;
@@ -258,7 +258,7 @@ std::optional<std::size_t> ModelEffects::CreateKalimaEffect(const glm::vec3& pos
 std::optional<std::size_t> ModelEffects::CreateButterflyEffect(const glm::vec3& position, const glm::vec3& angles,
                                                                const glm::vec3& light, std::int32_t subtype,
                                                                float ownerScale, bool selectionScene,
-                                                               Render::Models::CrtRandom& random)
+                                                               Crt::CrtRandom& random)
 {
     constexpr std::int32_t ButterflyLife = 250, LargeSubtype = 3;
     constexpr double OwnerPush = static_cast<double>(std::bit_cast<float>(0xc0a00000u)); // 0x6b95b4.
@@ -409,8 +409,7 @@ std::optional<std::uint16_t> OwnerTypeOf(const ModelEffectOwner& owner)
 std::optional<std::size_t> ModelEffects::CreateEarthquake(const glm::vec3& position, const glm::vec3& angles,
                                                           const glm::vec3& light, std::uint8_t state,
                                                           const ModelEffectOwner& owner, std::uint8_t& ownRecordDepth,
-                                                          std::uint8_t& ownRecordCount,
-                                                          Render::Models::CrtRandom& random)
+                                                          std::uint8_t& ownRecordCount, Crt::CrtRandom& random)
 {
     constexpr std::int32_t EarthquakeLife = 20, Subtypes = 100;
     constexpr double Yaw = 330.0;           // 0x6b8c8c
@@ -500,8 +499,7 @@ std::optional<std::size_t> ModelEffects::CreateEarthquakeCrack(std::int16_t type
 }
 
 std::optional<std::size_t> ModelEffects::CreateGallopShockWave(const glm::vec3& position, const glm::vec3& angles,
-                                                               const glm::vec3& light,
-                                                               Render::Models::CrtRandom& random)
+                                                               const glm::vec3& light, Crt::CrtRandom& random)
 {
     constexpr int ScaleSpan = 10;
     constexpr double ScaleBase = static_cast<double>(std::bit_cast<float>(0x41200000u)); // 0x6b87a8: 10.
@@ -565,7 +563,7 @@ Core::Expected<std::uint16_t, std::string> UnmaskedCellAttribute(const Data::Ter
 Core::Expected<std::optional<std::size_t>, std::string>
 ModelEffects::CreateGroundStone(std::int16_t type, const glm::vec3& position, const glm::vec3& angles,
                                 const glm::vec3& light, const Data::Terrain::TerrainAttributes* attributes,
-                                Render::Models::CrtRandom& random)
+                                Crt::CrtRandom& random)
 {
     if (type != FirstGroundStoneEffect && type != SecondGroundStoneEffect)
         return std::optional<std::size_t>{};
@@ -606,7 +604,7 @@ ModelEffects::CreateGroundStone(std::int16_t type, const glm::vec3& position, co
 
 std::optional<std::size_t> ModelEffects::CreateDebris(std::int16_t type, const glm::vec3& position,
                                                       const glm::vec3& angles, const glm::vec3& light,
-                                                      Render::Models::CrtRandom& random, std::int32_t subtype)
+                                                      Crt::CrtRandom& random, std::int32_t subtype)
 {
     constexpr int PushMask = 127, PushBase = 32, LifeMask = 15, LifeBase = 32, ScaleMask = 3, ScaleBase = 8;
     constexpr int Turn = 360, FallSpan = 5, FallBase = 2;
@@ -649,7 +647,7 @@ std::optional<std::size_t> ModelEffects::CreateDebris(std::int16_t type, const g
 }
 
 std::optional<std::size_t> ModelEffects::CreateFallingStone(const glm::vec3& position, const glm::vec3& angles,
-                                                            const glm::vec3& light, Render::Models::CrtRandom& random)
+                                                            const glm::vec3& light, Crt::CrtRandom& random)
 {
     constexpr int LifeMask = 15, LifeBase = 24, ScaleMask = 7, ScaleBase = 6, FallMask = 3;
     constexpr int SideMask = 63, SideCenter = 32, BackMask = 31, BackBase = 50, HeightMask = 127, HeightBase = 200;
@@ -678,7 +676,7 @@ std::optional<std::size_t> ModelEffects::CreateFallingStone(const glm::vec3& pos
 
 std::optional<std::size_t> ModelEffects::CreateFlameJet(const glm::vec3& position, const glm::vec3& angles,
                                                         const glm::vec3& light, std::uint8_t& ownRecordDepth,
-                                                        Render::Models::CrtRandom& random)
+                                                        Crt::CrtRandom& random)
 {
     constexpr std::int32_t FlameJetLife = 40;
     for (std::size_t slot = 0; slot < m_effects.size(); ++slot)
@@ -708,7 +706,7 @@ std::optional<std::size_t> ModelEffects::CreateFlameColumn(const ModelEffectArgu
 
 std::optional<std::size_t> ModelEffects::CreateOwnedFlameJet(const ModelEffectArguments& arguments,
                                                              std::uint8_t& ownRecordDepth, std::uint8_t ownRecordCount,
-                                                             Render::Models::CrtRandom& random)
+                                                             Crt::CrtRandom& random)
 {
     constexpr std::int32_t FlameJetLife = 40;
     if (arguments.type != FlameJetEffect || arguments.subtype != 0)
@@ -725,14 +723,14 @@ std::optional<std::size_t> ModelEffects::CreateOwnedFlameJet(const ModelEffectAr
 
 std::optional<std::size_t> ModelEffects::CreateStoneChip(std::int16_t type, const glm::vec3& position,
                                                          const glm::vec3& angles, const glm::vec3& light,
-                                                         Render::Models::CrtRandom& random)
+                                                         Crt::CrtRandom& random)
 {
     return CreateStoneChip(type, position, angles, light, random, 0);
 }
 
 std::optional<std::size_t> ModelEffects::CreateStoneChip(std::int16_t type, const glm::vec3& position,
                                                          const glm::vec3& angles, const glm::vec3& light,
-                                                         Render::Models::CrtRandom& random, std::int32_t subtype)
+                                                         Crt::CrtRandom& random, std::int32_t subtype)
 {
     // 0x51b659 → 0x51b72b: los pedazos 0xea y 0xeb de las rocas 0xe7..0xe9 (CL11, lote switch) van por el mismo
     // camino, con el subtipo 0.
@@ -787,7 +785,7 @@ std::optional<std::size_t> ModelEffects::CreateStoneChip(std::int16_t type, cons
 
 std::optional<std::size_t> ModelEffects::CreateGroundStoneChip(std::int16_t type, const glm::vec3& position,
                                                                const glm::vec3& angles, const glm::vec3& light,
-                                                               Render::Models::CrtRandom& random)
+                                                               Crt::CrtRandom& random)
 {
     if (type != FirstStoneChipEffect && type != SecondStoneChipEffect && type != 0xe5)
         return std::nullopt;
@@ -815,7 +813,7 @@ std::optional<std::size_t> ModelEffects::CreateGroundStoneChip(std::int16_t type
 }
 
 std::optional<std::size_t> ModelEffects::CreateIceShard(const glm::vec3& position, const glm::vec3& angles,
-                                                        const glm::vec3& light, Render::Models::CrtRandom& random)
+                                                        const glm::vec3& light, Crt::CrtRandom& random)
 {
     constexpr int PushMask = 255, PushBase = 64, LifeMask = 15, LifeBase = 32, ScaleMask = 3, ScaleBase = 8;
     constexpr int Degrees = 360, FallMask = 15, FallBase = 8;
@@ -848,7 +846,7 @@ std::optional<std::size_t> ModelEffects::CreateIceShard(const glm::vec3& positio
 
 std::optional<std::size_t> ModelEffects::CreateIcarusEffect(std::int16_t type, const glm::vec3& position,
                                                             const glm::vec3& angles, const glm::vec3& light,
-                                                            Render::Models::CrtRandom& random)
+                                                            Crt::CrtRandom& random)
 {
     if (type != IcarusCloudEffect && type != IcarusFlareEffect)
         return std::nullopt;
@@ -895,7 +893,7 @@ std::optional<std::size_t> ModelEffects::CreateIcarusEffect(std::int16_t type, c
 }
 
 std::optional<std::size_t> ModelEffects::CreateAidaWisp(const glm::vec3& position, const glm::vec3& angles,
-                                                        const glm::vec3& light, Render::Models::CrtRandom& random)
+                                                        const glm::vec3& light, Crt::CrtRandom& random)
 {
     constexpr std::int32_t WispLife = 1000;
     constexpr int Spread = 200, Turn = 360, ScaleSpan = 5, PushMask = 7;
@@ -1023,7 +1021,7 @@ float Shifted(int offset, float value)
 
 Core::Expected<std::optional<std::size_t>, std::string>
 ModelEffects::CreateLightning(const glm::vec3& position, const glm::vec3& angles, const glm::vec3& light, void* owner,
-                              Render::Models::CrtRandom& random, const std::function<glm::vec3(std::size_t)>& bonePoint,
+                              Crt::CrtRandom& random, const std::function<glm::vec3(std::size_t)>& bonePoint,
                               FrameSprites& sprites)
 {
     if (!bonePoint)
@@ -1254,7 +1252,7 @@ std::optional<std::size_t> ModelEffects::CreateFireworkEmitter(const ModelEffect
 }
 
 std::optional<std::size_t> ModelEffects::CreateFireworkFlare(const ModelEffectArguments& arguments,
-                                                             Render::Models::CrtRandom& random)
+                                                             Crt::CrtRandom& random)
 {
     const auto slot = Begin(arguments);
     if (!slot)
@@ -1288,7 +1286,7 @@ std::optional<std::size_t> ModelEffects::CreateCraterEffect(const ModelEffectArg
 }
 
 std::optional<std::size_t> ModelEffects::CreateCastleShockWave(const ModelEffectArguments& arguments,
-                                                               Render::Models::CrtRandom& random)
+                                                               Crt::CrtRandom& random)
 {
     const auto slot = Begin(arguments);
     if (!slot)
@@ -1338,7 +1336,7 @@ std::optional<std::size_t> ModelEffects::CreateCastleShockWave(const ModelEffect
 
 std::optional<std::size_t> ModelEffects::CreateNoriaEffect(std::int16_t type, const glm::vec3& position,
                                                            const glm::vec3& angles, glm::vec3& sourceLight,
-                                                           Render::Models::CrtRandom& random)
+                                                           Crt::CrtRandom& random)
 {
     constexpr std::int16_t FirstTowerEffect = 322;
     constexpr std::int16_t LastTowerEffect = 324;

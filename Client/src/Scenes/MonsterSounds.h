@@ -6,7 +6,7 @@
 #include <map>
 #include <optional>
 
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
 }
@@ -42,5 +42,5 @@ void WriteMonsterSounds(std::int32_t monster, ModelSoundTable& table);
 // es negativo) elige la `word` o la siguiente, con signo, más 5 con el subtipo 9 y más 0xd2. Sin la tabla, las diez
 // WORD en 0 (SoundsOrZeros): el rand() y el sonido 0xd2 (0xd7 con el subtipo 9). *Estático*.
 [[nodiscard]] std::optional<std::int32_t> DrawModelSound(const std::optional<ModelSounds>& sounds, std::size_t word,
-                                                         std::int32_t subtype, Render::Models::CrtRandom& random);
+                                                         std::int32_t subtype, Crt::CrtRandom& random);
 } // namespace Client::Scenes

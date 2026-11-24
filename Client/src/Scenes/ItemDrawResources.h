@@ -7,7 +7,7 @@
 #include <cstdint>
 #include <span>
 
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
 }
@@ -36,7 +36,7 @@ struct ItemSpecialDrawContext;
 struct ItemDrawResources
 {
     Core::Duration frameClock{};
-    Render::Models::CrtRandom& random;
+    Crt::CrtRandom& random;
     GameItemRenderState& itemRender;
     World::FrameSprites& sprites;
     FaunaDrawCarry& poseCarry;

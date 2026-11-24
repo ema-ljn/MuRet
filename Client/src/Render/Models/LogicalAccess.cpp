@@ -1,6 +1,6 @@
 #include "Render/Models/LogicalAccess.h"
 
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 
 #include <cstdint>
 
@@ -8,7 +8,7 @@
 // accesos es el byte que sigue a la copia cifrada de la entrada, así que suma y resta en 8 bits.
 namespace Client::Render::Models
 {
-LogicalAccess::LogicalAccess(std::uint8_t& depth, CrtRandom& random, std::uint16_t closeRandoms)
+LogicalAccess::LogicalAccess(std::uint8_t& depth, Crt::CrtRandom& random, std::uint16_t closeRandoms)
     : m_depth(depth), m_random(random), m_closeRandoms(closeRandoms)
 {
     // Abrir no gasta: lo que el research cuenta por cada abrir y cerrar es el cierre (3.848 en
@@ -17,7 +17,8 @@ LogicalAccess::LogicalAccess(std::uint8_t& depth, CrtRandom& random, std::uint16
     m_depth = static_cast<std::uint8_t>(m_depth + 1u);
 }
 
-LogicalAccess::LogicalAccess(std::uint8_t& depth, CrtRandom& random, std::uint16_t closeRandoms, std::uint32_t& left)
+LogicalAccess::LogicalAccess(std::uint8_t& depth, Crt::CrtRandom& random, std::uint16_t closeRandoms,
+                             std::uint32_t& left)
     : LogicalAccess(depth, random, closeRandoms)
 {
     m_left = &left;

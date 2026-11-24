@@ -6,7 +6,7 @@
 #include <cstdint>
 #include <string>
 
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
 }
@@ -21,7 +21,7 @@ class WorldState;
 struct SkillDelayContext
 {
     WorldState& world;
-    Render::Models::CrtRandom& random;
+    Crt::CrtRandom& random;
     // Skill.bmd (0x76bd1d8). nullptr: lo que lo lee corta.
     const Data::Tables::SkillTable* skills = nullptr;
 };

@@ -1,9 +1,9 @@
 #include "Render/Models/IModelLibrary.h"
 #include "Scenes/WizardEffects.h"
 
+#include "Crt/CrtRandom.h"
 #include "Data/Models/Model.h"
 #include "Data/Models/PlayerModels.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/Skeleton.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/ActorState.h"
@@ -76,7 +76,7 @@ TEST(WizardEffectsTest, TheFallingFirePushesWhoIsClose)
     auto world = std::make_unique<Client::Scenes::WorldState>();
     world->Runtime().hero = Hero;
     const PushedModels models;
-    Client::Render::Models::CrtRandom random(1);
+    Client::Crt::CrtRandom random(1);
     const Client::World::WizardEffectServices services =
         Client::Scenes::WizardEffectServicesOf(*world, random, Client::Scenes::WizardSceneParts{.models = &models});
     ASSERT_TRUE(services.pushAround);
@@ -122,7 +122,7 @@ TEST(WizardEffectsTest, TheFallingFirePushesWhoIsClose)
         EXPECT_EQ(untouched->animation.action, Standing);
         EXPECT_EQ(untouched->animation.frame, 2.0f);
     }
-    EXPECT_EQ(random.State(), Client::Render::Models::CrtRandom(1).State());
+    EXPECT_EQ(random.State(), Client::Crt::CrtRandom(1).State());
 
     // Sin los modelos del juego, el 0x20a que empuja no tiene Player.bmd: corta en 0x524afc.
     const Client::World::WizardEffectServices bare =
@@ -138,7 +138,7 @@ TEST(WizardEffectsTest, TheFallingFirePushesWhoIsClose)
 TEST(WizardEffectsTest, TheFallingMeteorDropsItsBurstIntoTheWorld)
 {
     auto world = std::make_unique<Client::Scenes::WorldState>();
-    Client::Render::Models::CrtRandom random(5);
+    Client::Crt::CrtRandom random(5);
     const Client::World::WizardEffectServices services =
         Client::Scenes::WizardEffectServicesOf(*world, random, Client::Scenes::WizardSceneParts{});
     ASSERT_TRUE(services.otherEffect);
@@ -188,7 +188,7 @@ TEST(WizardEffectsTest, TheHiddenCircleFansItsRaysIntoTheWorld)
     caster.alive = true;
     caster.byte1bc = 0;
     Client::World::FrameSprites sprites;
-    Client::Render::Models::CrtRandom random(21);
+    Client::Crt::CrtRandom random(21);
     const Client::World::WizardEffectServices services = Client::Scenes::WizardEffectServicesOf(
         *world, random,
         Client::Scenes::WizardSceneParts{.particles = &world->Particles(), .worldClock = 1000.0f, .sprites = &sprites});
@@ -200,7 +200,7 @@ TEST(WizardEffectsTest, TheHiddenCircleFansItsRaysIntoTheWorld)
     ASSERT_EQ(circle.life, 45);
 
     auto twin = std::make_unique<std::array<Client::Scenes::JointState, 500>>();
-    Client::Render::Models::CrtRandom oracle = random;
+    Client::Crt::CrtRandom oracle = random;
     static_cast<void>(oracle.Next()); // 0x5208c5
     glm::vec3 point{1000.0f, 2000.0f, 400.0f};
     for (int ray = 0; ray < 36; ++ray)

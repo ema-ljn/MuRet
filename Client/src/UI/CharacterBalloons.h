@@ -1,7 +1,7 @@
 #pragma once
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Core/PixelSize.h"
 #include "Data/Text/TextTable.h"
 #include "Render/SpriteBatch.h"
 #include "Render/UiImage.h"
@@ -89,7 +89,7 @@ public:
     // 0x63cf80 → 0x63ca20 en los cinco, con la mezcla que haya: la caja donde quedó y, después, el lugar nuevo y los
     // textos. Cada globo mostrado lleva su BalloonHead; corta sin él (0x63ca76).
     [[nodiscard]] Core::Expected<void, std::string>
-    Draw(Render::SpriteBatch& sprites, Scenes::ITextDrawer& text, App::PixelSize screen,
+    Draw(Render::SpriteBatch& sprites, Scenes::ITextDrawer& text, Core::PixelSize screen,
          std::span<const std::optional<BalloonHead>, BalloonCount> heads);
 
     [[nodiscard]] const std::array<CharacterBalloon, BalloonCount>& Balloons() const;

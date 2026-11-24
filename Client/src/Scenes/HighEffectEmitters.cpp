@@ -1,7 +1,7 @@
 #include "Scenes/HighEffectEmitters.h"
 
 #include "Core/Expected.h"
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/HighModelEffects.h"
@@ -23,10 +23,10 @@
 
 namespace Client::Scenes
 {
-Core::Expected<void, std::string> CreateHighJoint(WorldState& world, Render::Models::CrtRandom& random,
-                                                  std::int32_t type, glm::vec3 first, glm::vec3 second,
-                                                  glm::vec3 angles, std::int32_t subtype, World::ModelEffect* owner,
-                                                  float scale, std::uint32_t address, std::int32_t key)
+Core::Expected<void, std::string> CreateHighJoint(WorldState& world, Crt::CrtRandom& random, std::int32_t type,
+                                                  glm::vec3 first, glm::vec3 second, glm::vec3 angles,
+                                                  std::int32_t subtype, World::ModelEffect* owner, float scale,
+                                                  std::uint32_t address, std::int32_t key)
 {
     constexpr std::int32_t NoTarget = -1;
     const auto made = CreateFaunaJoint(
@@ -39,7 +39,7 @@ Core::Expected<void, std::string> CreateHighJoint(WorldState& world, Render::Mod
 }
 
 Core::Expected<std::optional<std::size_t>, std::string>
-CreateHighParticle(WorldState& world, Render::Models::CrtRandom& random, float worldClock, std::int32_t type,
+CreateHighParticle(WorldState& world, Crt::CrtRandom& random, float worldClock, std::int32_t type,
                    const glm::vec3& position, const glm::vec3& angles, const glm::vec3& light, std::int32_t subtype,
                    float scale, std::uint32_t address, World::ParticleOwner owner)
 {

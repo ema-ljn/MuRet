@@ -1,6 +1,6 @@
 #include "World/Particles.h"
 
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
@@ -16,7 +16,7 @@
 // Sólo proyección finita acreditada de OriginalRotation; no ABI/alias nativos universales.
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::World::Particle;
 using Client::World::Particles;
 

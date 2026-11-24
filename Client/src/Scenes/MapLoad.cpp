@@ -4,12 +4,12 @@
 #include "Audio/SoundDefinition.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainGrid.h"
 #include "Data/Terrain/TerrainObjects.h"
 #include "Data/WorldFolder.h"
 #include "Data/WorldLoadIdentity.h"
 #include "Protocol/Events.h"
-#include "Render/Models/Cloth.h"
 #include "Scenes/ActorCreation.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/EventMapObject.h"
@@ -126,7 +126,7 @@ Core::Expected<void, std::string> CreateTheObjects(std::span<const Data::Terrain
                                                    const char* source, WorldMap& loaded, std::int32_t map,
                                                    const MapLoadContext& context)
 {
-    Render::Models::CrtRandom& random = context.random;
+    Crt::CrtRandom& random = context.random;
     MapModelEffectServices services(loaded.effects, random);
     // 0x4294b0 lee el byte 0x7239ec en cada objeto del 30 (0x42b480); ningún paquete corre durante la carga.
     const std::uint8_t siegeState = context.world.Runtime().siegeActive ? 1 : 0;
@@ -151,7 +151,7 @@ Core::Expected<void, std::string> CreateTheObjects(std::span<const Data::Terrain
                             DescribeCreationError(created.failure->error));
 }
 
-void FillTheGrassOffsets(std::vector<float>& offsets, Render::Models::CrtRandom& random)
+void FillTheGrassOffsets(std::vector<float>& offsets, Crt::CrtRandom& random)
 {
     offsets.resize(Data::Terrain::TerrainCellCount);
     for (float& offset : offsets)

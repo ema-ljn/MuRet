@@ -8,7 +8,7 @@
 #include <functional>
 #include <string>
 
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
 }
@@ -27,7 +27,7 @@ namespace Client::Scenes
 {
 struct IcarusObjectServices
 {
-    Render::Models::CrtRandom& random;
+    Crt::CrtRandom& random;
     // +0x10 del héroe (0x743a170).
     const glm::vec3& heroPosition;
     // La luz dinámica durable (0x7b4ccc4).

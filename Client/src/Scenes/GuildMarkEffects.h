@@ -11,10 +11,10 @@
 // El 0x140, la marca que 0x510ef0 pone sobre un personaje con +0x369 en 1 (0x510f4d): su alta (0x51e0cb) y su paso
 // (0x529f0c). Su dibujo es el caso propio de 0x6002e0 (0x602005, DrawTheHighEffectBody de Scenes/HighEffectDrawing):
 // dos pases cromados. 06, "Los efectos con modelo de los tipos altos".
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
-} // namespace Client::Render::Models
+} // namespace Client::Crt
 
 namespace Client::World
 {
@@ -40,8 +40,8 @@ inline constexpr std::size_t GuildMarkBone = 20;
 // posición) en (FSIN(giro) · r + x, FCOS(giro) · r2 + y, z). Treinta rand(); los de la chispa, ninguno.
 [[nodiscard]] Core::Expected<void, std::string> BeginTheGuildMark(World::ModelEffect& effect, std::size_t slot,
                                                                   const ActorState& owner, const glm::vec3& bonePoint,
-                                                                  World::Particles& particles,
-                                                                  Render::Models::CrtRandom& random, float worldClock);
+                                                                  World::Particles& particles, Crt::CrtRandom& random,
+                                                                  float worldClock);
 
 // 0x510ef0 hasta 0x518cf0: +0x369 en 1 y +0x36c (un float) en 0 o un NaN, o el reloj del mundo más de 5000 después.
 [[nodiscard]] bool GuildMarkIsDue(const ActorState& actor, float worldClock);
@@ -51,8 +51,8 @@ inline constexpr std::size_t GuildMarkBone = 20;
 // a ser el reloj. `bonePoint` es el punto del hueso 20 del personaje con el modelo como lo dejó su dibujo.
 [[nodiscard]] Core::Expected<void, std::string> RaiseTheGuildMark(ActorState& actor, const glm::vec3& bonePoint,
                                                                   World::ModelEffects& effects,
-                                                                  World::Particles& particles,
-                                                                  Render::Models::CrtRandom& random, float worldClock);
+                                                                  World::Particles& particles, Crt::CrtRandom& random,
+                                                                  float worldClock);
 
 // 0x529f0c..0x52a176. Sin dueño (+0x108), la vida en 0. Con el alpha en 1 o más, la z de los ángulos 5 más. Con la
 // vida entre 121 y 124, cinco chispas 0x5c5/6 (escala 1,5f, 0x529f71); entre 96 y 120, el alpha 0,4f más hasta pasar 1

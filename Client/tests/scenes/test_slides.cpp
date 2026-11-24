@@ -1,7 +1,7 @@
 #include "Scenes/Slides.h"
 
+#include "Crt/CrtRandom.h"
 #include "Data/Text/SlideTable.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
@@ -17,7 +17,7 @@
 // el WM_TIMER 0x3eb entre dos vueltas de WinMain, con sus rand(). Los textos son inventados.
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::Render::Models::OwnRecordCloseRandoms;
 using Client::Scenes::WorldState;
 

@@ -1,5 +1,5 @@
 #include "Core/Expected.h"
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Scenes/ActorDying.h"
 #include "Scenes/ActorState.h"
@@ -19,7 +19,7 @@
 // Client::Scenes::StepActorDying: 0x4fb9e0, el paso del que se muere (+0x389), con 0x4fb2b0 y 0x51fd20. 06 § Morirse.
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::Scenes::ActorDyingContext;
 using Client::Scenes::ActorState;
 using Client::Scenes::SceneId;

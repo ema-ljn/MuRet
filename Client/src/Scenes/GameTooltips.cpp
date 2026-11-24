@@ -1,7 +1,7 @@
 #include "Scenes/GameTooltips.h"
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Core/PixelSize.h"
 #include "Data/Tables/ItemSetTables.h"
 #include "Data/Text/TextTable.h"
 #include "Render/Models/LogicalAccess.h"
@@ -208,7 +208,7 @@ Render::Text::TextColors LineColors(std::int32_t color)
 double DrawLine(GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text, std::int32_t boxPixels,
                 std::int32_t mode)
 {
-    const App::PixelSize screen = context.sprites.Screen();
+    const Core::PixelSize screen = context.sprites.Screen();
     const Render::Text::TextExtent extent = context.text.Measure(context.hud.dcFont, text);
     const Render::Text::TextStyle style{.font = context.hud.dcFont, .colors = context.hud.textColors};
     if (mode == LeftAlignedMode)
@@ -365,7 +365,7 @@ Core::Expected<void, std::string> DrawTheTooltipBox(GameHudContext& context, std
             std::format("0x5af0c5: la caja de {} renglones lee más allá de los 30 (0x7879f80)", count));
     TooltipLines& lines = context.hud.tooltip;
     Render::SpriteBatch& sprites = context.sprites;
-    const App::PixelSize screen = sprites.Screen();
+    const Core::PixelSize screen = sprites.Screen();
     const double rx = Render::ScaleX(1.0f, screen);
     const double ry = Render::ScaleY(1.0f, screen);
     // 0x5af0c5..0x5af139: la medida, hasta el primer renglón vacío.

@@ -1,8 +1,8 @@
 #include "UI/SlideBanner.h"
 
-#include "App/WindowState.h"
+#include "Core/PixelSize.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Text/SlideTable.h"
-#include "Render/Models/Cloth.h"
 #include "Render/SpriteBatch.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/TextStyle.h"
@@ -22,9 +22,9 @@
 // RecordingTextDrawer da 6 columnas por letra y 13 filas.
 namespace
 {
-using Client::App::PixelSize;
+using Client::Core::PixelSize;
+using Client::Crt::CrtRandom;
 using Client::Render::SpriteBatch;
-using Client::Render::Models::CrtRandom;
 using Client::Render::Text::FontKind;
 using Client::Render::Text::TextColors;
 using Client::Tests::RecordingTextDrawer;

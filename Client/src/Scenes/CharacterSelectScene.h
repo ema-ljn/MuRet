@@ -5,9 +5,9 @@
 #include "World/GameCamera.h"
 
 #include "App/ServerSession.h"
-#include "App/WindowState.h"
 #include "Core/Expected.h"
 #include "Core/IClock.h"
+#include "Core/PixelSize.h"
 #include "Data/Tables/ItemTable.h"
 #include "Scenes/CharacterStep.h"
 #include "Data/Text/TextTable.h"
@@ -284,7 +284,7 @@ private:
     // El que estaba bajo el mouse en el último paso, que lleva el contorno: como el DAT_006c8e30
     // que 0x59ec80 deja para el frame siguiente.
     std::optional<std::uint8_t> m_hovered;
-    App::PixelSize m_screen{640, 480};
+    Core::PixelSize m_screen{640, 480};
     // Los pasos desde que se entró: el reloj del doble clic.
     std::uint64_t m_steps = 0;
     std::optional<SceneId> m_next;

@@ -1,6 +1,6 @@
 #include "World/Particles.h"
 
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "World/BloodCastleParticleKernels.h"
 
 #include "support/ParticleDrawRecorder.h"
@@ -18,7 +18,7 @@ namespace
 TEST(SiegeWeaponParticlesTest, TheSmallImpactFlameKeepsAllSixConstructorDraws)
 {
     Client::World::Particles particles;
-    Client::Render::Models::CrtRandom random(1);
+    Client::Crt::CrtRandom random(1);
     const auto created =
         particles.CreateChecked(Client::World::TorchFlameParticle, {}, {}, {1, 1, 1}, 1, 2.0f, 0.0f, random);
     ASSERT_TRUE(created.HasValue());
@@ -28,7 +28,7 @@ TEST(SiegeWeaponParticlesTest, TheSmallImpactFlameKeepsAllSixConstructorDraws)
     EXPECT_EQ(particle.scale, 1.0f);
     EXPECT_EQ(particle.rotation, 107.0f);
     EXPECT_EQ(particle.velocity, (glm::vec3{1.6f, 0.0f, static_cast<float>(9.0 * static_cast<double>(0.2f))}));
-    Client::Render::Models::CrtRandom expected(1);
+    Client::Crt::CrtRandom expected(1);
     expected.Discard(6);
     EXPECT_EQ(random.State(), expected.State());
     const auto drawn = Client::Tests::DrawOneParticle(particle, glm::vec2{32, 32}, std::uint8_t{3});
@@ -40,7 +40,7 @@ TEST(SiegeWeaponParticlesTest, TheFlightFireUsesTheInputScaleAndItsRotatingAtlas
 {
     constexpr std::int32_t FlightFire = 5;
     Client::World::Particles particles;
-    Client::Render::Models::CrtRandom random(1);
+    Client::Crt::CrtRandom random(1);
     const auto created =
         particles.CreateChecked(Client::World::FireParticle, {}, {}, {1, 2, 3}, FlightFire, 2.0f, 0.0f, random);
     ASSERT_TRUE(created.HasValue());
@@ -59,7 +59,7 @@ TEST(SiegeWeaponParticlesTest, TheFlightFireUsesTheInputScaleAndItsRotatingAtlas
     EXPECT_EQ(particle.velocity.y, velocity);
     EXPECT_EQ(particle.light, (glm::vec3{1, 2, 3}));
     EXPECT_EQ(std::bit_cast<std::int32_t>(particle.field48), 0);
-    Client::Render::Models::CrtRandom expected(1);
+    Client::Crt::CrtRandom expected(1);
     expected.Discard(5); // 3alta y2viento, sinazarpropioen545842.
     EXPECT_EQ(random.State(), expected.State());
     const auto drawn = Client::Tests::DrawOneParticle(particle, glm::vec2{128, 32}, std::uint8_t{3});

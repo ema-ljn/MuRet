@@ -1,7 +1,7 @@
 #include "Scenes/GameCharacterEffects.h"
 
 #include "Core/Expected.h"
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "Render/Models/OriginalRetainedMath.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Render/Models/PassColors.h"
@@ -572,7 +572,7 @@ Result GlowingBoots(Tail& tail, std::int16_t boots, std::int32_t level)
 {
     ActorState& actor = tail.actor;
     const SavedLight light(actor, BootsLights[static_cast<std::size_t>(boots - FirstGlowingBoots)]);
-    Render::Models::CrtRandom& random = tail.pass.random;
+    Crt::CrtRandom& random = tail.pass.random;
     bool emits = false;
     float side = BootsSide;
     std::array<std::string_view, 3> calls{"0x510158", "0x5101a4", "0x5102a4"};
@@ -745,7 +745,7 @@ Result GuildMark(const Tail& tail)
     return {};
 }
 Core::Expected<void, std::string> RaiseSwellLifeChildren(const World::ModelEffect& effect, World::Particles* particles,
-                                                         World::ParticleOwner owner, Render::Models::CrtRandom& random)
+                                                         World::ParticleOwner owner, Crt::CrtRandom& random)
 {
     // 0x52a82b..0x52a89a: el selector corre aun con la tabla de partículas llena.
     const std::size_t bone = static_cast<std::size_t>(random.Next()) % SwellBones.size();
@@ -790,7 +790,7 @@ Core::Expected<void, std::string> DrawGameCharacterEffects(ActorState& actor, co
 }
 
 Core::Expected<void, std::string> StepFullSetFlare(World::ModelEffect& effect, std::span<JointState> joints,
-                                                   Render::Models::CrtRandom& random)
+                                                   Crt::CrtRandom& random)
 {
     if (!effect.alive)
         return {};
@@ -833,7 +833,7 @@ Core::Expected<void, std::string> StepFullSetFlare(World::ModelEffect& effect, s
 }
 
 Core::Expected<void, std::string> StepSkillFlare(World::ModelEffect& effect, std::span<JointState> joints,
-                                                 Render::Models::CrtRandom& random, World::Particles* particles,
+                                                 Crt::CrtRandom& random, World::Particles* particles,
                                                  World::ParticleOwner particleOwner)
 {
     if (!effect.alive)
@@ -908,7 +908,7 @@ bool StepsAsPetSummon(const World::ModelEffect& effect)
 }
 
 Core::Expected<void, std::string> StepPetSummon(World::ModelEffect& effect, std::span<JointState> joints,
-                                                Render::Models::CrtRandom& random)
+                                                Crt::CrtRandom& random)
 {
     if (!effect.alive)
         return {};
@@ -958,9 +958,8 @@ Core::Expected<void, std::string> StepPetSummon(World::ModelEffect& effect, std:
 // (0x418a26). Sin la pose (+0x120 en 0 hasta el primer dibujo), el 6 no hace nada. El final del grito (+0x38d en 15)
 // es EndTheShout.
 Core::Expected<void, std::string> DrawTheRavenAttack(DarkSpirit& spirit, const ActorState& owner,
-                                                     const Render::Models::Skeleton* skeleton,
-                                                     Render::Models::CrtRandom& random, World::Particles* particles,
-                                                     float worldClock, WorldState* world)
+                                                     const Render::Models::Skeleton* skeleton, Crt::CrtRandom& random,
+                                                     World::Particles* particles, float worldClock, WorldState* world)
 {
     if (spirit.state == FirstOrderState)
     {

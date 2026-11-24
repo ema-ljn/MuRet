@@ -2,6 +2,7 @@
 #include "Scenes/CombatReplies.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Models/Model.h"
 #include "Data/Tables/ItemTable.h"
 #include "Data/Tables/MonsterSkillTable.h"
@@ -9,7 +10,6 @@
 #include "Data/Terrain/TerrainGrid.h"
 #include "Data/Text/TextTable.h"
 #include "Protocol/Combat.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/OriginalAngles.h"
 #include "Render/Models/Skeleton.h"
 #include "Render/Text/FontSet.h"
@@ -52,7 +52,7 @@
 // son inventados.
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::Scenes::ActorCombatContext;
 using Client::Scenes::ActorState;
 using Client::Scenes::WorldState;

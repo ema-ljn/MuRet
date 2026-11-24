@@ -1,10 +1,10 @@
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Tables/ItemTable.h"
 #include "Data/Text/TextTable.h"
 #include "Network/Xor32Packet.h"
 #include "Protocol/FloorItems.h"
 #include "Protocol/Inventory.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/GamePanels.h"
 #include "Scenes/GridItemUse.h"
@@ -40,9 +40,9 @@
 namespace
 {
 using Client::Core::Expected;
+using Client::Crt::CrtRandom;
 using Client::Network::Xor32Decode;
 using Client::Protocol::FloorItems::UseItem;
-using Client::Render::Models::CrtRandom;
 using Client::Scenes::InventoryMoveContext;
 using Client::Scenes::InventoryServices;
 using Client::Scenes::WorldState;

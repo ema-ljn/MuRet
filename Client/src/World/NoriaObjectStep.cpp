@@ -1,7 +1,7 @@
 #include "World/NoriaObjectStep.h"
 
 #include "Core/Expected.h"
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "World/ObjectModelStepState.h"
 #include "World/OriginalFtol.h"
 #include "World/Particles.h"
@@ -15,7 +15,7 @@
 
 namespace Client::World
 {
-Core::Expected<void, std::string> StepNoriaObject(WorldObject& object, Render::Models::CrtRandom& random,
+Core::Expected<void, std::string> StepNoriaObject(WorldObject& object, Crt::CrtRandom& random,
                                                   const ObjectStepGlobals& globals)
 {
     constexpr float HalfThousandth = std::bit_cast<float>(0x3a03126fu);

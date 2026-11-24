@@ -1,4 +1,5 @@
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Tables/SkillTable.h"
 #include "Input/InputEvent.h"
 #include "Input/InputState.h"
@@ -7,7 +8,6 @@
 #include "Network/Xor32Packet.h"
 #include "Protocol/FloorItems.h"
 #include "Protocol/Outgoing.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Scenes/GameChat.h"
@@ -51,13 +51,13 @@
 
 namespace
 {
+using Client::Crt::CrtRandom;
 using Client::Input::InputEvent;
 using Client::Input::InputState;
 using Client::Input::Key;
 using Client::Input::MouseButton;
 using Client::Network::Xor32Decode;
 using Client::Protocol::FloorItems::UseItem;
-using Client::Render::Models::CrtRandom;
 using Client::Scenes::FramePickingContext;
 using Client::Scenes::GameUiContext;
 using Client::Scenes::WorldState;

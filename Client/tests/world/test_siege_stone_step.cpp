@@ -1,9 +1,9 @@
+#include "Crt/CrtRandom.h"
 #include "World/SiegeStoneEffects.h"
 #include "Core/Expected.h"
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
 #include "World/TerrainLighting.h"
-#include "Render/Models/Cloth.h"
 #include <gtest/gtest.h>
 #include <glm/ext/vector_float3.hpp>
 #include <memory>
@@ -43,7 +43,7 @@ struct Services
 TEST(SiegeStoneStepTest, StoneNotifiesOnlyAfterItsAgeAndWithTwoNonzeroKeyBytes)
 {
     World::Particles particles;
-    Render::Models::CrtRandom random(1);
+    Crt::CrtRandom random(1);
     Services state;
     int notifications = 0;
     state.services.notify = [&](std::uint8_t hi, std::uint8_t lo)
@@ -69,7 +69,7 @@ TEST(SiegeStoneStepTest, StoneNotifiesOnlyAfterItsAgeAndWithTwoNonzeroKeyBytes)
 TEST(SiegeStoneStepTest, IceCanNotifyAtTheFirstFlightTick)
 {
     World::Particles particles;
-    Render::Models::CrtRandom random(1);
+    Crt::CrtRandom random(1);
     Services state;
     int notifications = 0;
     state.services.notify = [&](auto, auto) { ++notifications; };
@@ -82,7 +82,7 @@ TEST(SiegeStoneStepTest, IceCanNotifyAtTheFirstFlightTick)
 TEST(SiegeStoneStepTest, InvisibleLandingStillSetsImpactAndConsumesShakeBeforeTheLifeEpilogue)
 {
     World::Particles particles;
-    Render::Models::CrtRandom random(1);
+    Crt::CrtRandom random(1);
     Services state;
     state.services.terrainHeight = [](float, float) { return 200.0; };
     auto effect = Flight(World::SiegeStoneEffect);
@@ -96,14 +96,14 @@ TEST(SiegeStoneStepTest, InvisibleLandingStillSetsImpactAndConsumesShakeBeforeTh
     EXPECT_EQ(effect.byte90, 0);
     EXPECT_EQ(effect.objectState.hiddenMesh, 99);
     EXPECT_EQ(effect.transform.position.z, 195);
-    Render::Models::CrtRandom expected(1);
+    Crt::CrtRandom expected(1);
     expected.Discard(5);
     EXPECT_EQ(random.State(), expected.State());
 }
 TEST(SiegeStoneStepTest, HeroCameraFollowsPersistentImpactEvenBelowTheCutoff)
 {
     World::Particles particles;
-    Render::Models::CrtRandom random(1);
+    Crt::CrtRandom random(1);
     Services state;
     int hero = 0;
     state.services.hero = &hero;
@@ -116,14 +116,14 @@ TEST(SiegeStoneStepTest, HeroCameraFollowsPersistentImpactEvenBelowTheCutoff)
     EXPECT_EQ(effect.life, 24);
     EXPECT_EQ(state.camera, effect.transform.position);
     EXPECT_FALSE(particles.All()[0].alive);
-    Render::Models::CrtRandom expected(1);
+    Crt::CrtRandom expected(1);
     expected.Discard(1);
     EXPECT_EQ(random.State(), expected.State());
 }
 TEST(SiegeStoneStepTest, AirCollisionPreservesTheOldImpactCutoff)
 {
     World::Particles particles;
-    Render::Models::CrtRandom random(1);
+    Crt::CrtRandom random(1);
     Services state;
     state.services.collide = [](World::ModelEffect& effect, float r, float h,
                                 bool mark) -> Core::Expected<bool, std::string>
@@ -154,7 +154,7 @@ TEST(SiegeStoneStepTest, AirCollisionPreservesTheOldImpactCutoff)
 TEST(SiegeStoneStepTest, VisibleLandingSoundsAtTheGroundAdjustedImpactPosition)
 {
     World::Particles particles;
-    Render::Models::CrtRandom random(1);
+    Crt::CrtRandom random(1);
     Services state;
     auto effects = std::make_unique<World::ModelEffects>();
     state.services.effects = effects.get();

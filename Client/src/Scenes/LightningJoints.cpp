@@ -1,5 +1,5 @@
 #include "Core/Expected.h"
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "Render/Models/OriginalAngles.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Scenes/ActorState.h"
@@ -29,10 +29,10 @@ namespace Client::Scenes::JointFamilies
 {
 namespace
 {
+using Crt::CrtRandom;
 using JointKernels::AppendJointTail;
 using JointKernels::D;
 using JointKernels::F32;
-using Render::Models::CrtRandom;
 
 constexpr float SharedSpeed = 50;         // 0x5309d9
 constexpr std::int32_t SharedPoints = 50; // 0x5309ec

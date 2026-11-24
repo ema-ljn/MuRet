@@ -11,7 +11,7 @@
 // comando ni entrada a un mapa lo pone. Después, el guion (0x4035f0): la cámara va de celda en celda (0x403d90,
 // 0x4034e0) y, en cada una, la etapa crea personajes con las claves 10000 en adelante (0x4039f0, el alta de los
 // monstruos del hito 2), los hace caminar (0x403760) y les cambia la acción (0x403900). *Estático*.
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
 }
@@ -26,7 +26,7 @@ class WorldState;
 struct CameraTourContext
 {
     WorldState& world;
-    Render::Models::CrtRandom& random;
+    Crt::CrtRandom& random;
     // timeGetTime, de 0x4033f0 y 0x404c90.
     std::uint32_t now = 0;
     // 0x5141e0 y 0x4ea030: el alta de los personajes del guion y sus acciones. nullptr corta en el primer alta.

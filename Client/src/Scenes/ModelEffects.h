@@ -6,9 +6,13 @@
 #include <cstdint>
 #include <string>
 
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
+} // namespace Client::Crt
+
+namespace Client::Render::Models
+{
 struct Skeleton;
 } // namespace Client::Render::Models
 
@@ -35,7 +39,7 @@ struct ModelEffectsPass
     ActorState& actor;
     std::size_t slot = 0;
     WorldState& world;
-    Render::Models::CrtRandom& random;
+    Crt::CrtRandom& random;
     // El modelo del tipo (0x5769ad8 + tipo · 0xe0): la cantidad de huesos de +0x22 y la velocidad de las acciones.
     const Render::Models::Skeleton& skeleton;
     World::Particles* particles = nullptr;

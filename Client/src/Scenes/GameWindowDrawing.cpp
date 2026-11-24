@@ -1,6 +1,6 @@
 #include "Scenes/GameWindowDrawing.h"
 
-#include "App/WindowState.h"
+#include "Core/PixelSize.h"
 #include "Render/OriginalQuad.h"
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
@@ -68,7 +68,7 @@ void KeepTheMeasure(GameHudContext& context, std::string_view text, std::int32_t
     std::int32_t width = extent.width;
     if (limit > 0 && width > limit)
         width = limit;
-    const App::PixelSize screen = context.sprites.Screen();
+    const Core::PixelSize screen = context.sprites.Screen();
     hud.arrowsTextWidth = Render::Text::DesignX(width, screen);
     hud.arrowsTextHeight = Render::Text::DesignY(extent.height, screen);
 }

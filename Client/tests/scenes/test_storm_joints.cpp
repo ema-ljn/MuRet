@@ -2,9 +2,9 @@
 #include "Scenes/FaunaJointCreation.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Models/Model.h"
 #include "Data/Models/PlayerModels.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Render/Models/Skeleton.h"
 #include "Render/TextureSlot.h"
@@ -39,7 +39,7 @@
 // la /5 del pulso del asedio (0x534bcb y el paso 0x53c0a5).
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::Scenes::JointState;
 
 constexpr std::uint32_t Seed = 0x632u;

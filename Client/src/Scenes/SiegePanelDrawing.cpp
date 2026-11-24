@@ -1,6 +1,7 @@
 #include "Scenes/SiegeBattleUi.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/RoundedMath.h"
 #include "Render/OriginalQuad.h"
@@ -50,7 +51,7 @@ void Quad(Render::SpriteBatch& sprites, std::uint16_t slot, float x, float y, fl
                                       .scaleSize = true,
                                       .scalePosition = true});
 }
-std::int32_t ReadCell(ActorState& actor, Render::Models::CrtRandom& random, bool x, std::uint8_t& depth)
+std::int32_t ReadCell(ActorState& actor, Crt::CrtRandom& random, bool x, std::uint8_t& depth)
 {
     const Render::Models::LogicalAccess access(depth, random, Render::Models::SmallLogicalCloseRandoms);
     return x ? actor.cellX : actor.cellY;

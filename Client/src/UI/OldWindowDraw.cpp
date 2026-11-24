@@ -1,7 +1,7 @@
 #include "UI/OldWindowDraw.h"
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Core/PixelSize.h"
 #include "Render/OriginalQuad.h"
 #include "Render/ScreenScale.h"
 #include "Render/SpriteBatch.h"
@@ -554,12 +554,12 @@ std::int32_t Truncate(double value)
 }
 
 // rx y ry (0x5762ea8 y 0x5762eac): W / 640 y H / 480 en float. Sin pantalla, 1.
-double RatioX(App::PixelSize screen)
+double RatioX(Core::PixelSize screen)
 {
     return screen.width > 0 ? static_cast<double>(Render::ScaleX(1.0f, screen)) : 1.0;
 }
 
-double RatioY(App::PixelSize screen)
+double RatioY(Core::PixelSize screen)
 {
     return screen.height > 0 ? static_cast<double>(Render::ScaleY(1.0f, screen)) : 1.0;
 }
@@ -644,7 +644,7 @@ void DrawTheButton(const OldWindowDrawContext& context, const OldButton& button,
     {
         const Render::Text::TextExtent extent = context.text.Measure(context.dcFont, *button.label);
         context.textColors = Render::Text::TextColors{.text = ButtonTextColor, .background = 0};
-        const App::PixelSize screen = sprites.Screen();
+        const Core::PixelSize screen = sprites.Screen();
         const std::int32_t top = base.y + (pressed ? 2 : 1);
         const std::int32_t left = base.x + (pressed ? 1 : 0);
         const std::int32_t y = Truncate(
@@ -838,7 +838,7 @@ void DrawTheOldEdit(const OldWindowDrawContext& context, OldEdit& edit, bool foc
     if (edit.base.state == HiddenWindow)
         return;
     Render::SpriteBatch& sprites = context.sprites;
-    const App::PixelSize screen = sprites.Screen();
+    const Core::PixelSize screen = sprites.Screen();
     const double rx = RatioX(screen);
     const double ry = RatioY(screen);
     // 0x468444: GetTextExtentPointA de "Q" en el DC, en píxeles, la primera vez.

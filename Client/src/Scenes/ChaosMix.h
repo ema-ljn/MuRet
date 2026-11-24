@@ -13,7 +13,7 @@
 // (0x5fd4f0 y el modo de 0x5fd4b0), lo que la mezcla pide de lugar en el inventario (0x5fd200) y la chance y el precio
 // que calcula su dibujo (0x5febf0). Las llama 0x5d8d50 con la caja abierta (0x5d8db6..0x5d8dda), el botón de mezclar
 // (0x5fe690) y el dibujo. Los globales quedan en NpcWindowState.
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
 }
@@ -35,8 +35,8 @@ ChaosBoxValue(std::span<const World::ItemState> grid, const Data::Tables::ItemTa
 // valor de los excelentes (0x7d2dc88), la suerte (0x7d2dc9c), la opción de las alas (0x7d2dc90) y, según el tipo, el
 // nivel (0x7d2dc8c), la capa (0x7d2dc84) y la chance de las alas (0x7d2dc94). Las alas de segundo nivel (y la capa
 // 0x18) abren el registro propio para leer el nivel (+0xe): 3.848 rand() al cerrarlo sin otros accesos.
-[[nodiscard]] Core::Expected<std::int32_t, std::string>
-ChaosMixKind(WorldState& world, Render::Models::CrtRandom& random, const Data::Tables::ItemTable* items);
+[[nodiscard]] Core::Expected<std::int32_t, std::string> ChaosMixKind(WorldState& world, Crt::CrtRandom& random,
+                                                                     const Data::Tables::ItemTable* items);
 
 // 0x5fd4b0: el tipo de 0x5fd4f0 filtrado por el modo de la caja (0x7d3a114): en el 0, la mezcla 1 (el arma del caos)
 // da 0; en el 1, solo la 1; en los demás, cualquiera.
@@ -44,7 +44,7 @@ ChaosMixKind(WorldState& world, Render::Models::CrtRandom& random, const Data::T
 
 // 0x5d8db6..0x5d8dda: con la caja abierta, en cada paso de 0x5d8d50, lo que vale la caja (0x7d2d378) y el tipo de la
 // mezcla (0x7d2dc98).
-[[nodiscard]] Core::Expected<void, std::string> ScanTheChaosBox(WorldState& world, Render::Models::CrtRandom& random,
+[[nodiscard]] Core::Expected<void, std::string> ScanTheChaosBox(WorldState& world, Crt::CrtRandom& random,
                                                                 const Data::Tables::ItemTable* items);
 
 // 0x5fd200(grilla, columnas, filas, ancho, alto): si hay un lugar de ancho × alto con todas las casillas sin tipo

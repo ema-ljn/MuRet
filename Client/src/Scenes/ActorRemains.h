@@ -7,9 +7,13 @@
 
 #include <string>
 
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
+} // namespace Client::Crt
+
+namespace Client::Render::Models
+{
 struct Skeleton;
 } // namespace Client::Render::Models
 
@@ -36,7 +40,7 @@ struct ActorRemainsContext
     glm::vec3 modelOrigin{};
     World::ModelEffects& effects;
     World::GroundMarkTable& marks;
-    Render::Models::CrtRandom& random;
+    Crt::CrtRandom& random;
 };
 
 // 0x52e810(c): con el hueso +0x54 del modelo en −1, nada. El 0x161 (el monstruo de hielo de Devias) apaga su byte vivo

@@ -1,8 +1,8 @@
 #pragma once
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
 #include "Core/Log.h"
+#include "Core/PixelSize.h"
 #include "Data/Models/Model.h"
 #include "Data/Models/ModelFiles.h"
 #include "Render/ITextureStore.h"
@@ -119,5 +119,5 @@ void StepPreview(CreatePreview& preview, const Render::Models::IModelLibrary& mo
 
 // 0x620db0(ftol(x / rx), ftol(y / ry), ftol(410 / rx), ftol(335 / ry)), con (x, y) la esquina de la
 // caja de la ventana en píxeles.
-[[nodiscard]] Render::ViewportRect PreviewViewport(const UI::Rect& box, App::PixelSize screen);
+[[nodiscard]] Render::ViewportRect PreviewViewport(const UI::Rect& box, Core::PixelSize screen);
 } // namespace Client::Scenes

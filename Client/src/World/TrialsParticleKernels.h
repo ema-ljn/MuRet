@@ -4,7 +4,7 @@
 
 #include <cstdint>
 
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
 }
@@ -23,7 +23,7 @@ inline constexpr std::int32_t TrialsSmokeSubtype = 22;
 // 0x544319 (6f2/3): vida 60, velocidad z −1, escala (rand() % 10 + 15) · escala · 0,02f, giro rand() % 360 y
 // la x y la z corridas rand() % 40 − 20 y rand() % 25 − 10. 0x5423e0 (5f2/22): vida 60, escala
 // ((rand() & 63) + 64) · escala · 0,005f, giro rand() % 360 y velocidad vertical ((rand() & 31) + 60) · 0,1f.
-void CreateTrialsParticle(Particle& particle, Render::Models::CrtRandom& random);
+void CreateTrialsParticle(Particle& particle, Crt::CrtRandom& random);
 
 // Después de la vida y el movimiento comunes de 0x5446e0. 0x54815d (6f2/3): la escala +0,005f, la velocidad
 // z −0,05f y la luz por 0,97f. 0x546706 (5f2/22): la luz (vida · 0,02f) por (0,9; 0,5; 0,5), la velocidad

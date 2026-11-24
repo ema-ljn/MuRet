@@ -1,7 +1,7 @@
 #include "World/EffectParticleKernels.h"
 
 #include "Core/Expected.h"
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "Render/Models/OriginalRotation.h"
 #include "World/IParticleTrigonometry.h"
 #include "World/NoriaParticleKernels.h"
@@ -109,7 +109,7 @@ Core::Expected<void, ParticleError> LightTheFlameByTheClock(Particle& particle, 
 // 0x541eb6..0x541fa2 (/1) y 0x541cf2..0x541d80 (/3): la escala ((rand() & 31) + 80) · 0,01f, la /1 corre la posición
 // ((rand() & 63) − 32; (rand() & 63) − 32; (rand() & 63) + 32), el ángulo x rand() % 90 − 45, el z rand() % 360 y la
 // velocidad (0; −((rand() & 7) + 40); 0). La /1 vive 50 con siete rand(); la /3, 10 con cuatro.
-void CreateTheSmoke(Particle& particle, Render::Models::CrtRandom& random)
+void CreateTheSmoke(Particle& particle, Crt::CrtRandom& random)
 {
     constexpr std::int32_t PoisonLife = 50, EffectLife = 10;
     constexpr int ScaleMask = 31, ScaleBase = 80, OffsetMask = 63, OffsetCenter = 32, TiltSpan = 90, TiltCenter = 45;
@@ -136,7 +136,7 @@ void CreateTheSmoke(Particle& particle, Render::Models::CrtRandom& random)
 
 // La tabla de 0x54448c, casos 1..6 (0x541603, 0x541693, 0x541750, 0x5417ba, 0x54166a y 0x5414a5). Los subtipos de
 // fuera de la tabla sólo tienen el prefijo.
-Core::Expected<void, ParticleError> CreateTheFlame(Particle& particle, Render::Models::CrtRandom& random,
+Core::Expected<void, ParticleError> CreateTheFlame(Particle& particle, Crt::CrtRandom& random,
                                                    const EffectParticleBirth& birth)
 {
     constexpr int GrowthMask = 31, GrowthBase = 32, RiseMask = 3, RiseBase = 4, TossSpan = 80;
@@ -224,7 +224,7 @@ Core::Expected<void, ParticleError> CreateTheFlame(Particle& particle, Render::M
 
 // La tabla de 0x5443c0 para las chispas sin kernel propio (subtipo − 1; la /0, la /14 y las de fuera de 1..15 sólo
 // tienen el prefijo).
-Core::Expected<void, ParticleError> CreateTheSpark(Particle& particle, Render::Models::CrtRandom& random,
+Core::Expected<void, ParticleError> CreateTheSpark(Particle& particle, Crt::CrtRandom& random,
                                                    const EffectParticleBirth& birth)
 {
     constexpr double Approach = static_cast<double>(std::bit_cast<float>(0x3e2aaaabu)); // 0x6ba05c, 1/6
@@ -366,7 +366,7 @@ void StepTheSmoke(Particle& particle)
 }
 
 // La tabla de 0x5482f4 (0x545d03..0x545e3f), después de su propia muerte con vida 0 o menos.
-Core::Expected<void, ParticleError> StepTheFlame(Particle& particle, Render::Models::CrtRandom& random,
+Core::Expected<void, ParticleError> StepTheFlame(Particle& particle, Crt::CrtRandom& random,
                                                  const ParticleOwnerStates& ownerStates)
 {
     constexpr std::int32_t KickLife = 10;
@@ -427,7 +427,7 @@ void CountDown(Particle& particle)
 }
 
 // La tabla de 0x548204 para las chispas sin kernel propio.
-Core::Expected<void, ParticleError> StepTheSpark(Particle& particle, Render::Models::CrtRandom& random,
+Core::Expected<void, ParticleError> StepTheSpark(Particle& particle, Crt::CrtRandom& random,
                                                  const ParticleOwnerStates& ownerStates)
 {
     constexpr double HitShrink = 0.5;                                                       // 0x6b882c
@@ -547,7 +547,7 @@ bool NeedsTerrainHeight(std::int32_t type, std::int32_t subtype)
     return IsStormMist(type, subtype);
 }
 
-Core::Expected<void, ParticleError> CreateEffectParticle(Particle& particle, Render::Models::CrtRandom& random,
+Core::Expected<void, ParticleError> CreateEffectParticle(Particle& particle, Crt::CrtRandom& random,
                                                          const EffectParticleBirth& birth)
 {
     if (particle.type == RingParticle)
@@ -583,7 +583,7 @@ Core::Expected<void, ParticleError> CreateEffectParticle(Particle& particle, Ren
     return CreateTheSpark(particle, random, birth);
 }
 
-Core::Expected<void, ParticleError> StepEffectParticle(Particle& particle, Render::Models::CrtRandom& random,
+Core::Expected<void, ParticleError> StepEffectParticle(Particle& particle, Crt::CrtRandom& random,
                                                        IParticleTrigonometry* trigonometry,
                                                        const ParticleOwnerStates& ownerStates)
 {

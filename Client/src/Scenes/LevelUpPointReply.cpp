@@ -1,6 +1,7 @@
 #include "Scenes/LevelUpPointReply.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Protocol/Character/LevelUpPoint.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/OwnCharacterRecord.h"
@@ -30,7 +31,7 @@ Core::Expected<void, std::string> ApplyLevelUpPointResult(const Character::Level
 {
     WorldState& world = resources.world;
     WorldRuntime& runtime = world.Runtime();
-    Render::Models::CrtRandom& random = resources.cloth.random;
+    Crt::CrtRandom& random = resources.cloth.random;
     if ((reply.result & AddedBits) != 0)
     {
         // 0x4d3216..0x4d32cd: la apertura en línea; 0x4d335a..0x4d3415, el cierre.

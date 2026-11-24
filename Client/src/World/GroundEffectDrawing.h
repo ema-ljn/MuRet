@@ -19,7 +19,7 @@ namespace Client::Render
 {
 class ModelBatch;
 }
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
 }
@@ -33,7 +33,7 @@ class KalimaWorld;
 struct GroundEffectResources
 {
     const Data::Terrain::TerrainHeights& heights;
-    Render::Models::CrtRandom& random;
+    Crt::CrtRandom& random;
     float worldClock = 0.0f;
     std::uint8_t map = 0;
     const KalimaWorld* kalima = nullptr;

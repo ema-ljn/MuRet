@@ -1,9 +1,9 @@
 #include "World/WizardModelEffects.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Render/Models/Animation.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/OriginalRetainedMath.h"
 #include "Render/Models/OriginalRotation.h"
@@ -40,7 +40,7 @@ namespace Client::World
 {
 namespace
 {
-using Render::Models::CrtRandom;
+using Crt::CrtRandom;
 
 float F32(double value)
 {
@@ -1602,7 +1602,7 @@ bool IsWizardModelEffect(std::int16_t type)
 }
 
 Core::Expected<std::optional<std::size_t>, std::string>
-CreateWizardModelEffect(ModelEffects& effects, const ModelEffectArguments& arguments, Render::Models::CrtRandom& random,
+CreateWizardModelEffect(ModelEffects& effects, const ModelEffectArguments& arguments, Crt::CrtRandom& random,
                         const WizardEffectServices& services, glm::vec3* callerLight)
 {
     if (!IsWizardModelEffect(arguments.type))
@@ -1617,8 +1617,7 @@ CreateWizardModelEffect(ModelEffects& effects, const ModelEffectArguments& argum
 }
 
 Core::Expected<void, std::string> StepWizardModelEffect(ModelEffect& effect, const Render::Models::Skeleton* skeleton,
-                                                        Render::Models::CrtRandom& random,
-                                                        const WizardEffectServices& services)
+                                                        Crt::CrtRandom& random, const WizardEffectServices& services)
 {
     if (!effect.alive)
         return {};

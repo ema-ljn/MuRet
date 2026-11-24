@@ -1,6 +1,6 @@
 #include "Render/Gl/GlScreenReader.h"
 
-#include "App/WindowState.h"
+#include "Core/PixelSize.h"
 #include "Platform/GlLoader.h"
 
 #include <gtest/gtest.h>
@@ -14,7 +14,7 @@
 // anota cuántos bytes pidió.
 namespace
 {
-using Client::App::PixelSize;
+using Client::Core::PixelSize;
 using Client::Render::Gl::GlScreenReader;
 
 // El GL_PACK_ALIGNMENT con el que GL arranca.

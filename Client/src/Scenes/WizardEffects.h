@@ -14,9 +14,13 @@
 #include <span>
 #include <string>
 
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
+} // namespace Client::Crt
+
+namespace Client::Render::Models
+{
 class IModelLibrary;
 } // namespace Client::Render::Models
 namespace Client::World
@@ -56,7 +60,7 @@ struct WizardSceneParts
     const Render::Models::IModelLibrary* models = nullptr;
 };
 
-[[nodiscard]] World::WizardEffectServices WizardEffectServicesOf(WorldState& world, Render::Models::CrtRandom& random,
+[[nodiscard]] World::WizardEffectServices WizardEffectServicesOf(WorldState& world, Crt::CrtRandom& random,
                                                                  const WizardSceneParts& parts);
 
 // Los de un llamador del paso de los personajes (0x4fd5f0, 0x4f97b0, 0x4e6380…): sin el temblor de la cámara.

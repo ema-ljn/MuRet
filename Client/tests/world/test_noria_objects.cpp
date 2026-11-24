@@ -1,4 +1,4 @@
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "World/ObjectModelStepState.h"
 #include "World/Particles.h"
 #include "World/WorldObjects.h"
@@ -31,7 +31,7 @@ TEST(NoriaObjectsTest, ClockCasesStoreTheirNativeUvAndSharedModelSelection)
         Client::World::ObjectStepGlobals globals;
         globals.worldClock = 1234.75f;
         globals.modelState = &models;
-        Client::Render::Models::CrtRandom random(7);
+        Client::Crt::CrtRandom random(7);
         const auto stepped = Client::World::StepWorldObjectChecked(object, 3, nullptr, random, globals);
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         EXPECT_FLOAT_EQ(object.state.uv.x, probe.u);
@@ -52,7 +52,7 @@ TEST(NoriaObjectsTest, NoriaNeverRunsTheLoginMarkersOrWhirlpools)
         Client::World::WorldObject object;
         object.type = type;
         object.transform.angles.z = 90.0f;
-        Client::Render::Models::CrtRandom random(7);
+        Client::Crt::CrtRandom random(7);
         ASSERT_TRUE(Client::World::StepWorldObjectChecked(object, 3, nullptr, random, {}).HasValue());
         EXPECT_EQ(object.transform.angles.z, 90.0f);
         EXPECT_EQ(object.state.hiddenMesh, -1);
@@ -70,7 +70,7 @@ TEST(NoriaObjectsTest, NoriaKeepsTheModelAndBlendPrefixWhenTheClockCannotConvert
         Client::World::ObjectStepGlobals globals;
         globals.modelState = &models;
         globals.worldClock = std::numeric_limits<float>::infinity();
-        Client::Render::Models::CrtRandom random(7);
+        Client::Crt::CrtRandom random(7);
         const auto stepped = Client::World::StepWorldObjectChecked(object, 3, nullptr, random, globals);
         ASSERT_FALSE(stepped.HasValue());
         if (type == 0x29)
@@ -90,7 +90,7 @@ TEST(NoriaObjectsTest, ARegisteredTowerEmitsItsMapSparkBeforeScrolling)
     Client::World::ObjectStepGlobals globals;
     globals.particles = particles.get();
     globals.worldClock = 1234.75f;
-    Client::Render::Models::CrtRandom random(7);
+    Client::Crt::CrtRandom random(7);
     const auto stepped = Client::World::StepWorldObjectChecked(object, 3, nullptr, random, globals);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     const auto& particle = particles->All().front();

@@ -1,12 +1,12 @@
 #include "Scenes/MonsterViewport.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Models/PlayerModels.h"
 #include "Data/Text/TextTable.h"
 #include "Protocol/Events.h"
 #include "Protocol/Viewport.h"
 #include "Render/Models/Animation.h"
-#include "Render/Models/Cloth.h"
 #include "Scenes/ActorCharacterSet.h"
 #include "Scenes/ActorConstruction.h"
 #include "Scenes/ActorCreation.h"
@@ -337,7 +337,7 @@ Core::Expected<void, std::string> ApplySummonRecord(const Protocol::Viewport::Su
 }
 
 // 0x4e0b7f..0x4e0b9b y 0x4e0dea..0x4e0e13: +0x428 en 0x96 y el ángulo rand() % 360.
-void TurnAtRandom(ActorState& actor, Render::Models::CrtRandom& random)
+void TurnAtRandom(ActorState& actor, Crt::CrtRandom& random)
 {
     constexpr std::int32_t FullTurn = 360;
     constexpr std::int32_t ObjectMark = 0x96;

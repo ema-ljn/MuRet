@@ -1,6 +1,6 @@
+#include "Crt/CrtRandom.h"
 #include "Scenes/WorldRuntime.h"
 #include "Audio/Playback.h"
-#include "Render/Models/Cloth.h"
 #include "Scenes/WinMainLoop.h"
 #include "UI/ChatInput.h"
 #include "UI/OldWindows.h"
@@ -91,7 +91,7 @@ TEST(WorldRuntimeAudioTest, TheInnStopsRainAndAtlantisStartsOnlyItsOwnAmbience)
     RecordingPlayback playback;
     WorldRuntime runtime;
     runtime.audio = &playback;
-    Render::Models::CrtRandom random(1);
+    Crt::CrtRandom random(1);
     runtime.map = 0;
     runtime.heroCellLayer = 4;
     runtime.leafWeather.current = 1;
@@ -114,8 +114,8 @@ TEST(WorldRuntimeAudioTest, TheInnStopsRainAndAtlantisStartsOnlyItsOwnAmbience)
 TEST(WorldRuntimeAudioTest, AmbienceDrawsEvenWithoutAnAudioSink)
 {
     WorldRuntime runtime;
-    Render::Models::CrtRandom random(1);
-    Render::Models::CrtRandom expected(1);
+    Crt::CrtRandom random(1);
+    Crt::CrtRandom expected(1);
     runtime.map = 3;
     expected.Discard(1);
     StepWorldAmbience(runtime, random);

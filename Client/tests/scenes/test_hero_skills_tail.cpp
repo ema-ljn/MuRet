@@ -2,13 +2,13 @@
 #include "Scenes/HeroSkillsTail.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Models/PlayerModels.h"
 #include "Data/Tables/SkillTable.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Network/Delivery.h"
 #include "Network/Packet.h"
 #include "Protocol/Outgoing.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/Skeleton.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/GameMovementState.h"
@@ -41,7 +41,7 @@
 // 0x57cfc0, en Blood Castle (11), Chaos Castle (18) y el asedio (30).
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::Scenes::HeroSkillContext;
 
 constexpr int OwnDraws = 3848;

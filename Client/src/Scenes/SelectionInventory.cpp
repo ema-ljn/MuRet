@@ -1,5 +1,6 @@
 #include "Scenes/SelectionInventory.h"
 
+#include "Crt/CrtRandom.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnInventory.h"
@@ -26,7 +27,7 @@ void Clear(std::span<World::ItemState> items)
 }
 } // namespace
 
-void ClearSelectionInventory(WorldState& world, Render::Models::CrtRandom& random)
+void ClearSelectionInventory(WorldState& world, Crt::CrtRandom& random)
 {
     {
         // El cierre de 0x5bc092 precede al acceso independiente de 0x633f96.

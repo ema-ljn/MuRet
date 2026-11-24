@@ -1,9 +1,9 @@
 #include "World/BlastModelEffects.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainGrid.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/OriginalRotation.h"
 #include "World/GameModelEffects.h"
 #include "World/IFishStepServices.h"
@@ -28,7 +28,7 @@
 
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::World::BlastEffectServices;
 using Client::World::FishEffectRequest;
 using Client::World::ModelEffect;

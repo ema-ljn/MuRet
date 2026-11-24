@@ -3,6 +3,7 @@
 #include "App/SessionState.h"
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Models/PlayerModels.h"
 #include "Data/Tables/ItemSetTables.h"
 #include "Data/Tables/ItemTable.h"
@@ -73,9 +74,9 @@
 // lugares (04, "El F3 10").
 namespace
 {
+using Client::Crt::CrtRandom;
 using Client::Protocol::Character::InventoryEntry;
 using Client::Protocol::Character::InventoryList;
-using Client::Render::Models::CrtRandom;
 using Client::Scenes::ActorState;
 using Client::Scenes::ApplyInventory;
 using Client::Scenes::EmptyOwnItemId;

@@ -1,5 +1,5 @@
 #include "Core/Expected.h"
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "Render/Models/OriginalAngles.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Scenes/ActorFlags.h"
@@ -121,7 +121,7 @@ void CreateCommonSparkle(JointState& joint)
 
 // 0x533915..0x53399b: la /0x29, vida 40, el ancho del pedido, 50 puntos, la luz (1 − a, 1 − b, 1) con a y b en
 // rand() % 300 · 0,001f (a guardada en float, b no) y vz en rand() % 5 + 5. Tres rand().
-void CreateFallingSparkle(JointState& joint, const World::FishEffectRequest& request, Render::Models::CrtRandom& random)
+void CreateFallingSparkle(JointState& joint, const World::FishEffectRequest& request, Crt::CrtRandom& random)
 {
     constexpr std::int32_t Life = 40, Points = 50, Spread = 300, Lift = 5;
     constexpr double Thousandth = static_cast<double>(std::bit_cast<float>(0x3a83126fu)); // 0x6ba128
@@ -229,7 +229,7 @@ bool IsSpark(std::int32_t type, std::int32_t subtype)
 }
 
 Core::Expected<void, std::string> CreateSparkJoint(JointState& joint, const World::FishEffectRequest& request,
-                                                   Render::Models::CrtRandom& random)
+                                                   Crt::CrtRandom& random)
 {
     if (request.type == HelperSparkJoint)
         return CreateHelperSpark(joint, request);

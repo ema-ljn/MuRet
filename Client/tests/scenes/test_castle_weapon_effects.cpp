@@ -1,3 +1,4 @@
+#include "Crt/CrtRandom.h"
 #include "Network/Xor32Packet.h"
 #include "Render/Models/IModelLibrary.h"
 #include "Scenes/CastleWeaponEffects.h"
@@ -60,7 +61,7 @@ class CastleWeaponEffectsTest : public testing::Test
 protected:
     std::unique_ptr<Client::Scenes::WorldState> world = std::make_unique<Client::Scenes::WorldState>();
     Client::Scenes::SelectionState selection{*world};
-    Client::Render::Models::ClothWorld cloth{.random = Client::Render::Models::CrtRandom{}};
+    Client::Render::Models::ClothWorld cloth{.random = Client::Crt::CrtRandom{}};
     Client::World::GameCamera camera;
     Client::World::GameCameraInput input;
     WeaponModels models;
@@ -101,7 +102,7 @@ TEST_F(CastleWeaponEffectsTest, ARemoteWeaponStillGivesItsProjectileToHeroAndCon
     EXPECT_EQ(effect.byte89, 1);
     EXPECT_EQ(source.animation.action, 1);
     EXPECT_EQ(world->Runtime().lastSoundId, 0x1ea);
-    Client::Render::Models::CrtRandom expected(1);
+    Client::Crt::CrtRandom expected(1);
     expected.Discard(1);
     EXPECT_EQ(cloth.random.State(), expected.State());
 }

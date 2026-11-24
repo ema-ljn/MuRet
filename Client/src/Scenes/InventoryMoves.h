@@ -22,7 +22,7 @@
 // respuestas 24, 26, 27, 28, 2A, F3 13 y F3 14. La grilla es la del inventario (0x78a9bb0, 8 × 8) con el equipo en los
 // lugares 0 a 11. La grilla de la tienda y del almacén y la caja del caos son de la CL9 hito 6; las otras (comercio,
 // tienda personal y la del entrenador) cortan con su dirección.
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
 }
@@ -118,7 +118,7 @@ struct GridCell
 struct InventoryMoveContext
 {
     WorldState& world;
-    Render::Models::CrtRandom& random;
+    Crt::CrtRandom& random;
     const InventoryServices& services;
 };
 
@@ -173,7 +173,7 @@ inline constexpr std::uint8_t TrainerBoxMoveGrid = 5;
 
 // 0x5cb3af..0x5cb455 y 0x5ea1ad..0x5ea227: el teclado del almacén (0x7879fc8, diez words) con 0 a 9 y veinte cambios
 // de dos teclas al azar (rand() % 10 dos veces, sin cambio si son la misma).
-void ShuffleTheKeypad(Render::Models::CrtRandom& random, std::array<std::uint16_t, WarehouseKeyCount>& keys);
+void ShuffleTheKeypad(Crt::CrtRandom& random, std::array<std::uint16_t, WarehouseKeyCount>& keys);
 
 // 0x5c52b1..0x5c5320, desde 0x5c4110: levanta el ítem de la casilla `cell` de la grilla (la de su columna y su
 // fila): el clic consumido, la copia al cursor desde la de arriba a la izquierda, la grilla de origen, el lugar,
@@ -361,12 +361,12 @@ PlaceMovedItem(std::uint8_t slot, const Protocol::Inventory::ItemData& item, con
 // durabilidad (+0x1a) de la casilla lugar − 12 de la grilla baja 1 si no es 0 y, en 0, la casilla queda vacía (tipo
 // 0xffff y +0x3c en 0). Fuera de la grilla el original escribe igual: MuRet corta (0x4d35f6).
 [[nodiscard]] Core::Expected<void, std::string> ApplyLifeRefill(const Protocol::Inventory::LifeRefill& refill,
-                                                                WorldState& world, Render::Models::CrtRandom& random);
+                                                                WorldState& world, Crt::CrtRandom& random);
 // 0x4d3820, el 27, con el registro propio abierto: 0xfe, el maná máximo (+0x28) y el BP máximo (+0x3a); 0xff, el
 // maná (+0x24) y el BP (+0x38); otro, el maná y la poción del lugar, como el 26 (0x4d3917). El 0xfd no es el fin de
 // la espera: es un lugar más.
 [[nodiscard]] Core::Expected<void, std::string> ApplyManaRefill(const Protocol::Inventory::ManaRefill& refill,
-                                                                WorldState& world, Render::Models::CrtRandom& random);
+                                                                WorldState& world, Crt::CrtRandom& random);
 // 0x4e31a3, el F3 14: la cuenta del cursor en 0, 0x5bc740 con el último argumento en 0 y el sonido 0x45.
 [[nodiscard]] Core::Expected<void, std::string> ApplyItemPut(const Protocol::Inventory::ItemPut& put,
                                                              const WorldEntryResources& resources);

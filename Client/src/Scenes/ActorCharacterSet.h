@@ -6,7 +6,7 @@
 #include <cstddef>
 #include <string>
 
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
 }
@@ -26,9 +26,8 @@ struct WorldEntryResources;
 // +0x31c en 0), después el caballo oscuro de b[11] & 1 (0x1c16 y el 0xbf) y Fenrir de b[11] & 4 (0x1c37, +0x31b en
 // b[15] & 3 y el ayudante 0x14a con 1, 0x14c con 2 y 0x14b con los demás), cada uno con 0x443fa0 en ese orden. La
 // selección (SelectionActor) y el juego lo comparten.
-[[nodiscard]] Core::Expected<void, std::string> CreateCharacterSetPets(WorldState& world, std::size_t slot,
-                                                                       GameLogic::Equipment equipment,
-                                                                       Render::Models::CrtRandom& random);
+[[nodiscard]] Core::Expected<void, std::string>
+CreateCharacterSetPets(WorldState& world, std::size_t slot, GameLogic::Equipment equipment, Crt::CrtRandom& random);
 
 // 0x5139f0(index, equipo, 0, 0) en el juego. `index` es lo que dio 0x5110d0: el 400 (el registro 401 del pool, que
 // existe) si no hay ninguno. Sin el tipo 0x20a en +2, nada. Si no, en este orden: las manos (el tipo de 12 bits,

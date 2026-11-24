@@ -1,11 +1,11 @@
 #include "Scenes/GameFriends.h"
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Core/PixelSize.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Text/TextTable.h"
 #include "Protocol/Friends.h"
 #include "Protocol/Outgoing.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
@@ -39,13 +39,13 @@
 // inventados.
 namespace
 {
+using Client::Crt::CrtRandom;
 using Client::Protocol::Friends::FriendAddResult;
 using Client::Protocol::Friends::FriendDeleteResult;
 using Client::Protocol::Friends::FriendList;
 using Client::Protocol::Friends::FriendRequest;
 using Client::Protocol::Friends::FriendRow;
 using Client::Protocol::Friends::FriendState;
-using Client::Render::Models::CrtRandom;
 using Client::Render::Text::FontKind;
 using Client::Render::Text::ITextMeasure;
 using Client::Render::Text::TextExtent;
@@ -112,7 +112,7 @@ protected:
         return ChatReceiveContext{.world = *m_world,
                                   .random = m_random,
                                   .measure = &m_letters,
-                                  .screen = Client::App::PixelSize{640, 480},
+                                  .screen = Client::Core::PixelSize{640, 480},
                                   .scene = Client::Scenes::SceneId::Game,
                                   .texts = &m_texts,
                                   .chosenSlot = std::nullopt};
@@ -137,7 +137,7 @@ protected:
         return Client::Scenes::OpenTheFriends(FriendsOpenContext{.world = *m_world,
                                                                  .random = m_random,
                                                                  .measure = &m_letters,
-                                                                 .screen = Client::App::PixelSize{640, 480},
+                                                                 .screen = Client::Core::PixelSize{640, 480},
                                                                  .texts = &m_texts},
                                               Client::Scenes::OldWindowGlobalsOf(Runtime()), View());
     }
@@ -218,7 +218,7 @@ protected:
     Client::Data::Text::TextTable m_texts;
     Client::UI::OldWindowTexts m_oldTexts = Client::Scenes::OldWindowTextsOf(&m_texts);
     Client::UI::OldWindowMeasure m_oldMeasure{
-        .measure = m_letters, .dcFont = FontKind::Normal, .screen = Client::App::PixelSize{640, 480}};
+        .measure = m_letters, .dcFont = FontKind::Normal, .screen = Client::Core::PixelSize{640, 480}};
     std::set<std::uint8_t> m_keys;
     std::vector<FriendSend> m_sent;
 };

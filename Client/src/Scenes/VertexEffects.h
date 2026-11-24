@@ -12,9 +12,13 @@ namespace Client::Data::Models
 {
 struct Model;
 }
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
+} // namespace Client::Crt
+
+namespace Client::Render::Models
+{
 class IModelLibrary;
 struct SkinnedMesh;
 } // namespace Client::Render::Models
@@ -76,11 +80,11 @@ struct VertexEffectTables
                                                                     std::span<const Render::Models::SkinnedMesh> meshes,
                                                                     const VertexEffectCall& call,
                                                                     const VertexEffectTables& tables,
-                                                                    Render::Models::CrtRandom& random);
+                                                                    Crt::CrtRandom& random);
 
 // EmitVertexEffectsOf con el modelo de `object` (sin él, nada), su escala y sólo la tabla de los efectos con modelo.
 [[nodiscard]] Core::Expected<void, std::string>
 EmitVertexEffects(const Render::Models::IModelLibrary& models, const DrawnObject& object,
                   std::span<const Render::Models::SkinnedMesh> meshes, std::int32_t mesh, std::int32_t type,
-                  std::int32_t subtype, World::ModelEffects& effects, Render::Models::CrtRandom& random);
+                  std::int32_t subtype, World::ModelEffects& effects, Crt::CrtRandom& random);
 } // namespace Client::Scenes

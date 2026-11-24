@@ -1,9 +1,9 @@
 #include "Scenes/CharacterStep.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainHeights.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/Skeleton.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/PlayerActionSpeeds.h"
@@ -57,7 +57,7 @@ protected:
         return Client::Scenes::StepCharacters({.world = m_world, .random = m_random, .playerSkeleton = &m_skeleton});
     }
     Client::Scenes::WorldState m_world;
-    Client::Render::Models::CrtRandom m_random{1};
+    Client::Crt::CrtRandom m_random{1};
     Client::Render::Models::Skeleton m_skeleton;
 };
 
@@ -140,7 +140,7 @@ TEST_F(GoldenCharacterMotionStep, RealWalkUpdatesSafeZoneFromTheCellAheadInLoren
         actor.path.cells[1] = {actor.targetX, actor.targetY};
         const auto original = actor.position;
         const auto skeleton = Client::Tests::PlayerActionsSkeleton();
-        Client::Render::Models::CrtRandom random(1);
+        Client::Crt::CrtRandom random(1);
         const auto stepped =
             Client::Scenes::StepCharacters({.world = world, .random = random, .playerSkeleton = &skeleton});
         ASSERT_TRUE(stepped.HasValue()) << (stepped.HasValue() ? "" : stepped.Error());

@@ -1,6 +1,6 @@
 #include "World/TerrainCulling.h"
 
-#include "App/WindowState.h"
+#include "Core/PixelSize.h"
 #include "Render/Pass3D.h"
 #include "Scenes/SceneCameras.h"
 
@@ -23,7 +23,7 @@ TEST(TerrainCullingTest, TheLoginSeesBlocksFrom0To128And120To248)
 {
     const auto camera = Client::Scenes::LoginCamera();
     const auto pass =
-        Client::Render::MakePass3D(Client::App::PixelSize{640, 480}, Client::Scenes::WorldViewport, camera);
+        Client::Render::MakePass3D(Client::Core::PixelSize{640, 480}, Client::Scenes::WorldViewport, camera);
     const auto range = TerrainRangeOf(pass.view, camera);
     EXPECT_EQ(range.firstX, 0);
     EXPECT_EQ(range.lastX, 128);

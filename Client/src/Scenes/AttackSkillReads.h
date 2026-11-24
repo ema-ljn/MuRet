@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
 }
@@ -18,7 +18,7 @@ struct CharacterStepContext;
 inline constexpr std::uint16_t SkillCloseRandoms = 1;
 
 // 0x517630 (thiscall sobre 0x57630c8) y sus copias en línea: abre +0x38e, lo lee y lo cierra.
-[[nodiscard]] std::uint8_t ReadTheSkill(ActorState& actor, Render::Models::CrtRandom& random);
+[[nodiscard]] std::uint8_t ReadTheSkill(ActorState& actor, Crt::CrtRandom& random);
 
 // 0x59fb80(skill, …): abre el registro propio ([0x7681eb4], 0x40ad90), busca `skill` entre los 64 bytes de +0x6c de
 // [0x7681eb0] y lo cierra (0x40b4d0: 3.848 rand() si queda en 0). Devuelve su lugar, o 0 si no está. Los otros

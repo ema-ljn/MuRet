@@ -1,9 +1,9 @@
 #include "World/GroundMarks.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainHeights.h"
 #include "Render/ModelBatch.h"
-#include "Render/Models/Cloth.h"
 #include "World/TerrainDecal.h"
 
 #include <glm/ext/vector_float3.hpp>
@@ -115,7 +115,7 @@ void StepMark(GroundMark& mark)
 } // namespace
 
 Core::Expected<void, std::string> AddGroundMark(GroundMarkTable& marks, const GroundMarkRequest& request,
-                                                Render::Models::CrtRandom& random)
+                                                Crt::CrtRandom& random)
 {
     GroundMark* weakest = nullptr;
     std::int32_t weakestLife = SearchLife;

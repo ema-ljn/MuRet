@@ -1,11 +1,11 @@
 #include "Network/Xor32Packet.h"
 #include "Scenes/GuildWindow.h"
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Core/PixelSize.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Text/TextTable.h"
 #include "Protocol/Outgoing.h"
-#include "Render/Models/Cloth.h"
 #include "Render/SpriteBatch.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/SpriteVertex.h"
@@ -57,16 +57,16 @@
 // son inventados.
 namespace
 {
+using Client::Crt::CrtRandom;
 using Client::Render::SpriteBatch;
 using Client::Render::SpriteVertex;
-using Client::Render::Models::CrtRandom;
 using Client::Scenes::GameHudContext;
 using Client::Scenes::GuildMarkTextures;
 using Client::Scenes::GuildState;
 using Client::Scenes::WorldState;
 
 constexpr std::uint32_t Seed = 23;
-constexpr Client::App::PixelSize Screen640{640, 480};
+constexpr Client::Core::PixelSize Screen640{640, 480};
 constexpr int NoTexture = -1;
 constexpr int Marker = -2;
 constexpr float Left = 450.0f;

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Core/PixelSize.h"
 #include "GameLogic/CharacterAppearance.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Pass3D.h"
@@ -101,14 +101,14 @@ void TurnThePortrait(LetterPortrait& portrait);
 // 0x5762eac) y truncado; gluPerspective(1, el ancho sobre el alto sin truncar, 2000, 20000) (0x6203c0, sin el × 1,4
 // de 0x620db0); y glRotatef(−90) en X, glRotatef(−90) en Z, glTranslatef(−10000, 0, −75) y glTranslatef(−X, −Y,
 // −Z), con 50 menos en Z con el caballo oscuro (0x1c16) en +0x318.
-[[nodiscard]] Render::Pass3D PortraitPass(App::PixelSize screen, const UI::OldWindowBase& base,
+[[nodiscard]] Render::Pass3D PortraitPass(Core::PixelSize screen, const UI::OldWindowBase& base,
                                           const ActorState& actor);
 
 // 0x4957a4..0x4959bf, lo de 0x495760 después del paso: el pase de PortraitPass, los ángulos en (0, 0, +0x6b0), la
 // escala por el zoom (+0x6bc · 0,7 y la del ayudante +0x688 · +0x6bc, que pisa 0x445260: Q-C1010), las luces en 1,
 // +0x3e4 en 1 y la zona segura (+0x3e2) con alas y +0x6a4 pasada de 0x82. Sin rand().
 [[nodiscard]] Render::Pass3D PlaceThePortrait(LetterPortrait& portrait, const UI::OldPortraitPart& part,
-                                              App::PixelSize screen);
+                                              Core::PixelSize screen);
 
 // 0x497c10 (la vtable + 0x14) sin lo de 2D, con `part` sin estar en blanco (+0x6c0): el frame (+0x114) por debajo de
 // +0x6a8 elige la acción que sigue (quieto, 1 de cada 4 con rand() % 4 la de +0x6a4; si no, la 0x7a si +0x6a4 no está
@@ -118,7 +118,7 @@ void TurnThePortrait(LetterPortrait& portrait);
 // DrawThePortraitModel.
 [[nodiscard]] Core::Expected<Render::Pass3D, std::string> PrepareThePortraitDraw(LetterPortrait& portrait,
                                                                                  UI::OldPortraitPart& part,
-                                                                                 App::PixelSize screen,
+                                                                                 Core::PixelSize screen,
                                                                                  const WorldEntryResources& resources);
 
 // Lo que el dibujo del retrato usa del dibujo del juego (el 2D de 0x637673, después del HUD).

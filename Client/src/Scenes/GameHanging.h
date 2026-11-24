@@ -12,13 +12,14 @@
 #include <span>
 #include <string>
 
+namespace Client::Crt
+{
+class CrtRandom;
+} // namespace Client::Crt
+
 namespace Client::Render
 {
 class ModelBatch;
-namespace Models
-{
-class CrtRandom;
-}
 } // namespace Client::Render
 
 namespace Client::World
@@ -51,7 +52,7 @@ struct GameHangingPass
     // Los huesos del cuerpo de este frame: el buffer propio del personaje (+0x120).
     std::span<const Render::Models::BoneTransform> body;
     // El rand() global de 0x69fd70.
-    Render::Models::CrtRandom& random;
+    Crt::CrtRandom& random;
     // El buffer global de la pose (0x68b181c) y la tabla de sprites del frame (0x5491e0). Hacen falta
     // solo si algo cuelga.
     FaunaDrawCarry* carry = nullptr;

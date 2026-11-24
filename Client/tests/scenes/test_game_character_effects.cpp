@@ -2,12 +2,12 @@
 #include "Scenes/GameCharacterEffects.h"
 
 #include "Core/IClock.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Models/Model.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainHeights.h"
 #include "Render/ModelBatch.h"
 #include "Render/ModelVertex.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/OriginalRetainedMath.h"
 #include "Render/Models/OriginalRotation.h"
@@ -59,7 +59,7 @@
 // CRT con la semilla 1.
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::Scenes::ActorState;
 using Client::Scenes::GameCharacterEffectsPass;
 using Client::Scenes::GameRavenPass;
@@ -1596,7 +1596,7 @@ protected:
     }
 
     ActorState m_owner;
-    Client::Render::Models::CrtRandom m_random;
+    Client::Crt::CrtRandom m_random;
     std::unique_ptr<Client::Scenes::WorldState> m_world = std::make_unique<Client::Scenes::WorldState>();
     RavenModels m_models;
     Client::World::WorldTerrain m_terrain;
@@ -1888,7 +1888,7 @@ TEST_F(GameRavenTest, TheAttackEffectNeedsAnOddCounterAndHeight)
     const auto low = Client::Scenes::DrawGameRaven(m_owner, Pass());
     EXPECT_TRUE(low.HasValue()) << low.Error();
     EXPECT_FALSE(m_world->Map().effects.Effects()[1].alive);
-    EXPECT_EQ(m_random.State(), Client::Render::Models::CrtRandom{}.State());
+    EXPECT_EQ(m_random.State(), Client::Crt::CrtRandom{}.State());
 
     m_owner.position.z = 0.0f;
     m_models.GrowBones(6);
@@ -1906,7 +1906,7 @@ TEST_F(GameRavenTest, TheShoutSparksFromEveryOtherBone)
     for (const std::uint32_t seed : {1u, 2u, 3u, 4u})
     {
         SCOPED_TRACE(seed);
-        m_random = Client::Render::Models::CrtRandom(seed);
+        m_random = Client::Crt::CrtRandom(seed);
         m_owner.darkSpirit->state = 6;
         m_owner.darkSpirit->byte38d = 0;
         m_owner.darkSpirit->angles = {0.0f, 0.0f, 120.0f};
@@ -1914,7 +1914,7 @@ TEST_F(GameRavenTest, TheShoutSparksFromEveryOtherBone)
         GameRavenPass pass = Pass();
         pass.particles = particles.get();
         pass.worldClock = 500.0f;
-        Client::Render::Models::CrtRandom expected = m_random;
+        Client::Crt::CrtRandom expected = m_random;
         const int first = expected.Next() & 1;
 
         const auto shout = Client::Scenes::DrawGameRaven(m_owner, pass);
@@ -1952,9 +1952,9 @@ TEST_F(GameRavenTest, TheShoutSparksFromEveryOtherBone)
 
     // Con el pool lleno, ninguna y sin sus rand(); sin las partículas, corta. La semilla 3 empieza por el hueso 0.
     constexpr std::uint32_t BoneZero = 3;
-    Client::Render::Models::CrtRandom afterOne(BoneZero);
+    Client::Crt::CrtRandom afterOne(BoneZero);
     ASSERT_EQ(afterOne.Next() & 1, 0);
-    m_random = Client::Render::Models::CrtRandom(BoneZero);
+    m_random = Client::Crt::CrtRandom(BoneZero);
     auto full = std::make_unique<Client::World::Particles>();
     for (auto& particle : full->All())
         particle.alive = true;
@@ -1962,7 +1962,7 @@ TEST_F(GameRavenTest, TheShoutSparksFromEveryOtherBone)
     crowded.particles = full.get();
     ASSERT_TRUE(Client::Scenes::DrawGameRaven(m_owner, crowded).HasValue());
     EXPECT_EQ(m_random.State(), afterOne.State());
-    m_random = Client::Render::Models::CrtRandom(BoneZero);
+    m_random = Client::Crt::CrtRandom(BoneZero);
     const auto missing = Client::Scenes::DrawGameRaven(m_owner, Pass());
     ASSERT_FALSE(missing.HasValue());
     EXPECT_NE(missing.Error().find("0x418a26"), std::string::npos) << missing.Error();
@@ -2017,7 +2017,7 @@ TEST_F(GameRavenTest, TheEndOfTheShoutLooksAtTheAttackTarget)
                                            bits(0x44832186u, 0x4484b4cau, 0x439962d4u)};
     ASSERT_EQ(carry.meshes[1].normals.size(), 1u);
     EXPECT_EQ(carry.meshes[1].normals[0], bits(0xbd78f129u, 0x3dd79713u, 0x3f307a40u));
-    Client::Render::Models::CrtRandom replay;
+    Client::Crt::CrtRandom replay;
     std::vector<Client::Scenes::JointState> twin(joints.size());
     for (std::size_t corner = 0; corner < 3; ++corner)
     {

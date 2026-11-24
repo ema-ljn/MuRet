@@ -1,7 +1,7 @@
 #include "Scenes/MonsterHelpers.h"
 
 #include "Core/Expected.h"
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "Render/ModelBatch.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/OriginalRetainedMath.h"
@@ -106,7 +106,7 @@ bool Idling(const ActorState& actor)
 }
 
 // rand() % 2: AND 0x80000001 con su corrección de signo, sobre un rand() que nunca es negativo.
-std::int32_t Coin(Render::Models::CrtRandom& random)
+std::int32_t Coin(Crt::CrtRandom& random)
 {
     return random.Next() & 1;
 }
@@ -183,7 +183,7 @@ Core::Unexpected<std::string> NoParticles(const ActorState& actor, std::uint32_t
 // tabla llena no crea nada ni saca rand(); con lugar, los rand() de su alta.
 Result CreateParticle(World::Particles* particles, const ActorState& actor, std::int32_t type, std::int32_t subtype,
                       const glm::vec3& position, const glm::vec3& angles, const glm::vec3& light, float scale,
-                      float worldClock, Render::Models::CrtRandom& random, std::uint32_t call)
+                      float worldClock, Crt::CrtRandom& random, std::uint32_t call)
 {
     if (particles == nullptr)
         return NoParticles(actor, call);
@@ -219,8 +219,8 @@ Result OwnedParticle(const MonsterHelperPass& pass, std::int32_t type, std::int3
 }
 
 // 4335c7..36dd: incluso con todos los efectos ocupados, primero lee boundsTop del blanco con índice firmado.
-Result EmitDeathSpiritSwing(WorldState& world, ActorState& actor, World::Particles* particles,
-                            Render::Models::CrtRandom& random, float clock)
+Result EmitDeathSpiritSwing(WorldState& world, ActorState& actor, World::Particles* particles, Crt::CrtRandom& random,
+                            float clock)
 {
     const auto targetSlot = static_cast<std::int16_t>(actor.attackTarget);
     if (targetSlot < 0 || targetSlot >= PoolSize)
@@ -1420,8 +1420,8 @@ struct SwingLeg
 };
 
 Result EmitSwing(WorldState& world, const ActorState& actor, const Swing& swing, World::Particles* particles,
-                 std::span<const SwingLeg> legs, Render::Models::CrtRandom& random, float worldClock,
-                 bool weaponBone = false, bool particle640 = false)
+                 std::span<const SwingLeg> legs, Crt::CrtRandom& random, float worldClock, bool weaponBone = false,
+                 bool particle640 = false)
 {
     const std::uint8_t bone = weaponBone ? actor.hands[0].bone : 0;
     float frame = swing.first;
@@ -1470,8 +1470,8 @@ Result EmitSwing(WorldState& world, const ActorState& actor, const Swing& swing,
 // hueso 16 (0x4ec110 en 0x68b1b1c, sin trasladar: el buffer ya está en el mundo) para la partícula 0x5d9/0 con el
 // frame del objeto en (5, 7), con esos ángulos, luz blanca y escala 1 (0x432d07), el punto (0, −150, 0) girado
 // (0x5fc8f0 y 0x5fcbd0), que no lee nadie, y dos rand() (0x432d6f y 0x432d74).
-Result SwingThe1b0(WorldState& world, const ActorState& actor, Render::Models::CrtRandom& random,
-                   World::Particles* particles, float worldClock)
+Result SwingThe1b0(WorldState& world, const ActorState& actor, Crt::CrtRandom& random, World::Particles* particles,
+                   float worldClock)
 {
     const auto swing = SwingOf(world, actor, 4);
     if (!swing.HasValue())
@@ -1609,8 +1609,8 @@ Core::Expected<void, std::string> DrawTheMonsterHelpers(MonsterHelperPass& pass)
 }
 
 Core::Expected<void, std::string> StepTheSwingsOf1abTo1b4(ActorState& actor, std::size_t slot, WorldState& world,
-                                                          Render::Models::CrtRandom& random,
-                                                          World::Particles* particles, float worldClock)
+                                                          Crt::CrtRandom& random, World::Particles* particles,
+                                                          float worldClock)
 {
     // 0x432bf1: antes de mirar el tipo.
     static_cast<void>(random.Next());

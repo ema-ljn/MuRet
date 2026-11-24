@@ -13,7 +13,7 @@
 // 0x44b4e0 reparte por el modo: 1 el menú (0x44b540), 2 recuperar la vida del caballo oscuro (0x1a04, el lugar 8 del
 // equipo) o del cuervo (0x1a05, el lugar 1) con el 34 (0x44b910), y 3 la caja, que mezcla el espíritu de una de las
 // dos con joyas (0x44d010, con 0x44ae10). El dibujo de los tres modos es Scenes/PetTrainerDrawing.h.
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
 }
@@ -50,7 +50,7 @@ void OpenTheTrainer(WorldState& world, std::int32_t mode);
 // (0x1c16) y una del caos (0x180f) es la 1, y el del cuervo (nivel 1) con 2, 2, 1 y 1 la 2. Con una de las dos, el
 // registro propio abierto (3.848 rand() al cerrarlo sin otros accesos) y 0x724585 en 1 si el zen (+0xecc, sin signo)
 // no alcanza para su precio (0x6b8c68: 5.000.000 y 1.000.000).
-void ScanTheTrainerBox(WorldState& world, Render::Models::CrtRandom& random);
+void ScanTheTrainerBox(WorldState& world, Crt::CrtRandom& random);
 
 // 0x6b8c68: el precio de la mezcla `kind` de la caja (0, 1 o 2).
 [[nodiscard]] std::uint32_t TrainerMixPrice(std::uint8_t kind);
@@ -83,7 +83,7 @@ struct PetRecoveryQuote
 struct PetQuoteContext
 {
     WorldState& world;
-    Render::Models::CrtRandom& random;
+    Crt::CrtRandom& random;
     std::uint8_t& ownRecordDepth;
     const Data::Tables::ItemTable* items = nullptr;
     bool writesGlobals = true;

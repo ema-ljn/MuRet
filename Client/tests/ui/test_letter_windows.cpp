@@ -1,7 +1,7 @@
 #include "UI/LetterModel.h"
 #include "UI/LetterWindows.h"
 
-#include "App/WindowState.h"
+#include "Core/PixelSize.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
 #include "UI/FriendModel.h"
@@ -167,7 +167,7 @@ TEST(ChatWindowTest, TheTextThatDoesNotFitIsLeftOut)
     const TenWide letters;
     const Client::UI::OldWindowMeasure measure{.measure = letters,
                                                .dcFont = Client::Render::Text::FontKind::Normal,
-                                               .screen = Client::App::PixelSize{640, 480}};
+                                               .screen = Client::Core::PixelSize{640, 480}};
     Client::UI::OldWindowManager manager;
 
     OldWindow chat;

@@ -3,7 +3,8 @@
 #include "Core/Expected.h"
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
-#include "App/WindowState.h"
+#include "Core/PixelSize.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Models/PlayerModels.h"
 #include "Data/Tables/ItemSetTables.h"
 #include "Data/Tables/ItemTable.h"
@@ -71,9 +72,9 @@
 // structs del ASM (support/ViewportPackets.h), en Lorencia (0) y Devias (2). Los nombres son inventados.
 namespace
 {
+using Client::Crt::CrtRandom;
 using Client::Data::Models::PlayerSkeletonModel;
 using Client::Protocol::Viewport::Players;
-using Client::Render::Models::CrtRandom;
 using Client::Scenes::ActorState;
 using Client::Tests::AfterDraws;
 using Client::Tests::ViewportPlayerRecord;
@@ -800,7 +801,7 @@ TEST_F(ViewportPlayersTest, TheHeroesBlessingFlagShowsText1828OnEveryApplication
     auto resources = game->Resources();
     resources.texts = &texts;
     resources.textMeasure = &measure;
-    resources.screen = [] { return Client::App::PixelSize{640, 480}; };
+    resources.screen = [] { return Client::Core::PixelSize{640, 480}; };
     constexpr std::uint32_t BlessingFlag = 0x2000000;
     const Client::Protocol::Viewport::TransformedRecord record{
         .key = HeroKey, .x = cell.x, .y = cell.y, .effects = BlessingFlag, .targetX = cell.x, .targetY = cell.y};

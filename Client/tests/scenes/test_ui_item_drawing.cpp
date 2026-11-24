@@ -1,12 +1,12 @@
 #include "Render/Models/IModelLibrary.h"
 #include "Scenes/UiItemDrawing.h"
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Core/PixelSize.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Models/Model.h"
 #include "Data/Tables/ItemTable.h"
 #include "Render/ModelBatch.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/RoundedTransforms.h"
 #include "Render/Models/Skeleton.h"
 #include "Render/TextureSlot.h"
@@ -42,7 +42,7 @@
 // valores esperados salen de la x87 a mano (los floats con sus bits); los modelos son inventados.
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::Scenes::UiItemBox;
 using Client::Scenes::UiItemCall;
 using Client::Scenes::UiItemPlacement;
@@ -99,7 +99,7 @@ TEST(UiItemDrawingTest, TheUiPassCoversTheWholeScreenWithOneDegree)
 {
     struct Case
     {
-        Client::App::PixelSize screen;
+        Client::Core::PixelSize screen;
         std::uint32_t horizontal;
         std::uint32_t vertical;
     };
@@ -128,7 +128,7 @@ TEST(UiItemDrawingTest, TheUnprojectedPointFollowsThePixelsOfEachResolution)
 {
     struct Case
     {
-        Client::App::PixelSize screen;
+        Client::Core::PixelSize screen;
         glm::ivec2 pixel;
         std::uint32_t x;
         std::uint32_t y;
@@ -423,7 +423,7 @@ struct UiDrawing
         context.special = &special;
         context.selections = &selections;
     }
-    Client::Scenes::UiItemResources Resources(Client::App::PixelSize screen)
+    Client::Scenes::UiItemResources Resources(Client::Core::PixelSize screen)
     {
         auto pass = Client::Scenes::MakeUiItemPass(screen);
         EXPECT_TRUE(pass.HasValue());
@@ -450,7 +450,7 @@ struct UiDrawing
 // los rand() de 0x607b60 (uno con el 0x220). El final de 0x5ac120 dibuja el lote una vez; sin ítems, nada.
 TEST(UiItemDrawingTest, TheFirstItemOpensTheUiPassAndTheEndDrawsIt)
 {
-    for (const Client::App::PixelSize screen : {Client::App::PixelSize{640, 480}, Client::App::PixelSize{1024, 768}})
+    for (const Client::Core::PixelSize screen : {Client::Core::PixelSize{640, 480}, Client::Core::PixelSize{1024, 768}})
     {
         SCOPED_TRACE(screen.width);
         UiDrawing drawing;

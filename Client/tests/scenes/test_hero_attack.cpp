@@ -2,11 +2,11 @@
 #include "Scenes/HeroAttack.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Network/Packet.h"
 #include "Protocol/Combat.h"
 #include "Protocol/Movement.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/Skeleton.h"
 #include "Scenes/ActorCombat.h"
 #include "Scenes/ActorState.h"
@@ -36,7 +36,7 @@
 // ataque al llegar, con los bytes del D3 de girar y del D7. Las claves y los nombres son inventados.
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::Scenes::ActorState;
 using Client::Scenes::WorldState;
 

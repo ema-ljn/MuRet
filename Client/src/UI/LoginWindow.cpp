@@ -1,7 +1,7 @@
 #include "UI/LoginWindow.h"
 
 #include "App/Credentials.h"
-#include "App/WindowState.h"
+#include "Core/PixelSize.h"
 #include "Data/Text/TextTable.h"
 #include "Input/InputEvent.h"
 #include "Input/InputState.h"
@@ -64,7 +64,7 @@ constexpr Render::Text::TextStyle LabelStyle{Render::Text::FontKind::OtherFace12
 constexpr Render::Text::TextStyle FieldStyle{Render::Text::FontKind::Normal, Render::Text::TextColors{0xffd2e6ff, 0}};
 } // namespace
 
-LoginLayout LayoutLogin(App::PixelSize screen)
+LoginLayout LayoutLogin(Core::PixelSize screen)
 {
     const int x = (screen.width - Width) / 2;
     const int y = (screen.height - Height) * 2 / 3;
@@ -122,12 +122,12 @@ const TextField& LoginWindow::Password() const
     return m_password;
 }
 
-Rect LoginWindow::Bounds(App::PixelSize screen) const
+Rect LoginWindow::Bounds(Core::PixelSize screen) const
 {
     return LayoutLogin(screen).window;
 }
 
-std::optional<LoginRequest> LoginWindow::Step(const Input::InputState& input, App::PixelSize screen, NewUiTurn turn)
+std::optional<LoginRequest> LoginWindow::Step(const Input::InputState& input, Core::PixelSize screen, NewUiTurn turn)
 {
     if (!m_open)
     {
@@ -175,7 +175,7 @@ std::optional<LoginRequest> LoginWindow::Step(const Input::InputState& input, Ap
     return std::nullopt;
 }
 
-void LoginWindow::Draw(Render::SpriteBatch& sprites, Scenes::ITextDrawer& text, App::PixelSize screen)
+void LoginWindow::Draw(Render::SpriteBatch& sprites, Scenes::ITextDrawer& text, Core::PixelSize screen)
 {
     if (!m_open)
     {
@@ -233,7 +233,7 @@ void LoginWindow::TypeInOrder(std::string_view typed)
     }
 }
 
-void LoginWindow::Place(App::PixelSize screen)
+void LoginWindow::Place(Core::PixelSize screen)
 {
     m_layout = LayoutLogin(screen);
     m_ok.MoveTo(Point{m_layout.ok.x, m_layout.ok.y});
@@ -268,7 +268,7 @@ LoginRequest LoginWindow::Cancel()
 }
 
 void LoginWindow::DrawField(Scenes::ITextDrawer& text, const TextField& field, const Rect& area,
-                            App::PixelSize screen) const
+                            Core::PixelSize screen) const
 {
     const int x = Render::Text::DesignX(area.x + FieldTextInset, screen);
     const int y = Render::Text::DesignY(area.y + FieldTextInset, screen);

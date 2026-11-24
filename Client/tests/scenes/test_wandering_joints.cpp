@@ -1,6 +1,7 @@
 #include "Scenes/FaunaJointCreation.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Render/Models/Cloth.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/GameDrawTail.h"
@@ -26,7 +27,7 @@
 // El 0x60f/7, /0xb y /0x19 (WanderingJoints.cpp): alta 0x533bbd, 0x533d5f y 0x533db8 y paso 0x53a87a..0x53b01f.
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::Scenes::ActorState;
 using Client::Scenes::JointOwnerKind;
 using Client::Scenes::JointState;

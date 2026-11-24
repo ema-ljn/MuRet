@@ -1,4 +1,4 @@
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "Render/Models/OriginalRetainedMath.h"
 #include "Render/TextureEnvMode.h"
 #include "World/BloodCastleParticleKernels.h"
@@ -20,8 +20,8 @@
 // órbita 60f/4 (06 § Los objetos de Devil Square y de Blood Castle).
 namespace
 {
+using Client::Crt::CrtRandom;
 using Client::Render::TextureEnvMode;
-using Client::Render::Models::CrtRandom;
 using Client::Tests::RecordedParticleDraw;
 using Client::World::Particle;
 using Client::World::Particles;

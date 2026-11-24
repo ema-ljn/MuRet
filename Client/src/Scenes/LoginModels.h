@@ -1,11 +1,11 @@
 #pragma once
 
 #include "Core/IClock.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Models/Model.h"
 #include "Data/Models/ModelFiles.h"
 #include "Data/Textures/Sampling.h"
 #include "GameLogic/CharacterAppearance.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/IModelLibrary.h"
 #include "Render/Models/ObjectState.h"
 #include "Render/Models/Pose.h"
@@ -130,6 +130,5 @@ inline constexpr std::uint8_t LoginCharacterStandingAction = 0x4a;
 [[nodiscard]] std::optional<std::uint8_t> LoginCharacterActionAt(Core::Duration frameClock, std::mt19937& random);
 // Con el rand() de la CRT (Render/Models/Cloth.h), el del original (0x634cca): el que usa el login con el
 // bucle.
-[[nodiscard]] std::optional<std::uint8_t> LoginCharacterActionAt(Core::Duration frameClock,
-                                                                 Render::Models::CrtRandom& random);
+[[nodiscard]] std::optional<std::uint8_t> LoginCharacterActionAt(Core::Duration frameClock, Crt::CrtRandom& random);
 } // namespace Client::Scenes

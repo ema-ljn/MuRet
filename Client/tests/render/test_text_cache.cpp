@@ -1,7 +1,7 @@
 #include "Render/Text/TextCache.h"
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Core/PixelSize.h"
 #include "Data/Textures/Sampling.h"
 #include "Data/Textures/Texture.h"
 #include "Render/SpriteBatch.h"
@@ -33,7 +33,7 @@
 // por letra, 13 filas, la tinta en el bloque de 3 × 4 de arriba a la izquierda de cada letra).
 namespace
 {
-using Client::App::PixelSize;
+using Client::Core::PixelSize;
 using Client::Data::Textures::Filter;
 using Client::Data::Textures::PixelFormat;
 using Client::Data::Textures::Wrap;

@@ -11,9 +11,13 @@
 #include <span>
 #include <string>
 
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
+} // namespace Client::Crt
+
+namespace Client::Render::Models
+{
 struct Skeleton;
 } // namespace Client::Render::Models
 
@@ -37,7 +41,7 @@ struct ActorStopContext
     // (0x4f2c52). nullptr si no se cargó: la matriz corta con error al leerlo.
     const Data::Tables::ItemTable* items = nullptr;
     // El rand() de la CRT: el sufijo saca uno siempre, y Fenrir hasta dos más (0x4f36be..0x4f3731).
-    Render::Models::CrtRandom& random;
+    Crt::CrtRandom& random;
     // 0x4f23c1: lee la celda visible en los mapas de vuelo de la escena 5.
     const Data::Terrain::TerrainLayer<std::uint16_t>* terrainWalls = nullptr;
     // El C1 18 de sentarse (0x4f2416..0x4f2bea). Vacío, sentarse corta con error después de poner la 0xca.

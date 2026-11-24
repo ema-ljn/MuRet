@@ -1,3 +1,4 @@
+#include "Crt/CrtRandom.h"
 #include "World/KalimaWorld.h"
 #include "World/KalimaResources.h"
 #include "World/KalimaWaves.h"
@@ -5,7 +6,6 @@
 #include "Data/Textures/Texture.h"
 #include "Render/ModelBatch.h"
 #include "Render/ModelVertex.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Pass3D.h"
 #include "Render/SpriteVertex.h"
@@ -27,9 +27,9 @@
 
 namespace
 {
+using Client::Crt::CrtRandom;
 using Client::Render::ModelBatch;
 using Client::Render::TextureSlot;
-using Client::Render::Models::CrtRandom;
 using Client::World::KalimaFrameContext;
 using Client::World::KalimaWorld;
 

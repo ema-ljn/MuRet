@@ -1,7 +1,7 @@
 #include "UI/LetterWindowsDraw.h"
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Core/PixelSize.h"
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
 #include "Render/Text/FontSet.h"
@@ -41,7 +41,7 @@
 // adentro de 360 × 156 y el cuerpo con el borde de abajo en 237, de 240 × 120. Los nombres y los textos son inventados.
 namespace
 {
-using Client::App::PixelSize;
+using Client::Core::PixelSize;
 using Client::Render::BlendMode;
 using Client::Render::Color;
 using Client::Render::DrawCommand;

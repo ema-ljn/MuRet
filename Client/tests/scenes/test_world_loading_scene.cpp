@@ -2,6 +2,7 @@
 
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
+#include "Crt/CrtRandom.h"
 #include "Input/InputState.h"
 #include "Render/Models/Cloth.h"
 #include "Render/TextureSlot.h"
@@ -31,9 +32,9 @@
 // mosaico de LSBg01 a 04 y el juego después de un frame (06 § La carga del mundo).
 namespace
 {
+using Client::Crt::CrtRandom;
 using Client::Render::TextureSlot;
 using Client::Render::Models::ClothWorld;
-using Client::Render::Models::CrtRandom;
 using Client::Scenes::SceneContext;
 using Client::Scenes::SceneId;
 using Client::Scenes::WorldLoadingScene;

@@ -1,8 +1,8 @@
 #pragma once
 
+#include "Crt/CrtRandom.h"
 #include "Data/Models/PlayerModels.h"
 #include "Data/Tables/ItemTable.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/Skeleton.h"
 #include "Scenes/ActorState.h"
 #include "support/TableFiles.h"
@@ -65,7 +65,7 @@ template <typename Predicate> std::uint32_t FirstSeedWhere(Predicate wanted)
 {
     for (std::uint32_t seed = 1;; ++seed)
     {
-        Render::Models::CrtRandom random(seed);
+        Crt::CrtRandom random(seed);
         if (wanted(random))
         {
             return seed;
@@ -74,9 +74,9 @@ template <typename Predicate> std::uint32_t FirstSeedWhere(Predicate wanted)
 }
 
 // Un CrtRandom sembrado con `seed` después de `draws` rand().
-inline Render::Models::CrtRandom AfterDraws(std::uint32_t seed, int draws)
+inline Crt::CrtRandom AfterDraws(std::uint32_t seed, int draws)
 {
-    Render::Models::CrtRandom random(seed);
+    Crt::CrtRandom random(seed);
     for (int draw = 0; draw < draws; ++draw)
     {
         static_cast<void>(random.Next());

@@ -1,8 +1,8 @@
 #include "World/WorldObjectStepServices.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainLight.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/OriginalAngles.h"
 #include "Render/Models/OriginalRetainedMath.h"
 #include "Render/Models/OriginalRotation.h"
@@ -83,7 +83,7 @@ namespace
 {
 Core::Expected<void, std::string> EmitParticle(const ObjectStepGlobals& globals, const glm::vec3& position,
                                                const glm::vec3& angles, const glm::vec3& light, std::int32_t type,
-                                               std::int32_t subtype, Render::Models::CrtRandom& random)
+                                               std::int32_t subtype, Crt::CrtRandom& random)
 {
     if (globals.particles == nullptr)
     {
@@ -150,7 +150,7 @@ void OpenHingedDoor(WorldObject& object, double opening)
 } // namespace
 
 Core::Expected<void, std::string> EmitObjectFire(std::int32_t fireClass, const WorldObject& object,
-                                                 const glm::vec3& offset, Render::Models::CrtRandom& random,
+                                                 const glm::vec3& offset, Crt::CrtRandom& random,
                                                  const ObjectStepGlobals& globals)
 {
     return EmitObjectFire(fireClass, object.transform.angles, object.transform.position, object.light, offset, random,
@@ -159,7 +159,7 @@ Core::Expected<void, std::string> EmitObjectFire(std::int32_t fireClass, const W
 
 Core::Expected<void, std::string> EmitObjectFire(std::int32_t fireClass, const glm::vec3& angles,
                                                  const glm::vec3& origin, const glm::vec3& objectLight,
-                                                 const glm::vec3& offset, Render::Models::CrtRandom& random,
+                                                 const glm::vec3& offset, Crt::CrtRandom& random,
                                                  const ObjectStepGlobals& globals)
 {
     const auto matrix = Render::Models::OriginalAngleMatrix(angles);
@@ -196,7 +196,7 @@ Core::Expected<void, std::string> EmitObjectFire(std::int32_t fireClass, const g
     return {};
 }
 
-Core::Expected<void, std::string> StepObjectLamp(const WorldObject& object, Render::Models::CrtRandom& random,
+Core::Expected<void, std::string> StepObjectLamp(const WorldObject& object, Crt::CrtRandom& random,
                                                  const ObjectStepGlobals& globals)
 {
     const bool candle = object.type == 0x96;
@@ -249,7 +249,7 @@ Core::Expected<void, std::string> StepDeviasObjectDoor(WorldObject& object, cons
     return {};
 }
 
-Core::Expected<void, std::string> StepAidaObject(WorldObject& object, Render::Models::CrtRandom& random,
+Core::Expected<void, std::string> StepAidaObject(WorldObject& object, Crt::CrtRandom& random,
                                                  const ObjectStepGlobals& globals)
 {
     // 0x6b8a24 (0,015f), 0x6b88d4 (0,01f), 0x6b87b4/0x6b8a20 (0,4f y 0,6f), 0x6b8a1c/0x6b8854 (0,9f y 0,2f).
@@ -315,7 +315,7 @@ Core::Expected<void, std::string> StepAidaObject(WorldObject& object, Render::Mo
     return {};
 }
 
-Core::Expected<void, std::string> StepLandOfTrialsObject(WorldObject& object, Render::Models::CrtRandom& random,
+Core::Expected<void, std::string> StepLandOfTrialsObject(WorldObject& object, Crt::CrtRandom& random,
                                                          const ObjectStepGlobals& globals)
 {
     constexpr std::uint32_t TimeMask = 0x3ff;
@@ -425,7 +425,7 @@ Core::Expected<void, std::string> StepLandOfTrialsObject(WorldObject& object, Re
     return {};
 }
 
-Core::Expected<void, std::string> StepCrywolfObject(WorldObject& object, Render::Models::CrtRandom& random,
+Core::Expected<void, std::string> StepCrywolfObject(WorldObject& object, Crt::CrtRandom& random,
                                                     const ObjectStepGlobals& globals)
 {
     // 0x430429..0x430437: (0,2f; 0,7f; 0,5f), en los bits del ASM.

@@ -1,7 +1,7 @@
 #include "Render/Gl/GlRenderer.h"
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Core/PixelSize.h"
 #include "Platform/GlLoader.h"
 #include "Render/Gl/GlName.h"
 #include "Render/Gl/GlShader.h"
@@ -87,13 +87,13 @@ Core::Expected<GlRenderer, std::string> GlRenderer::Create(const Platform::GlFun
 }
 
 void GlRenderer::Draw(std::span<const Render::SpriteVertex> vertices, const GlTexture& texture,
-                      App::PixelSize screen) const
+                      Core::PixelSize screen) const
 {
     Upload(vertices, screen);
     DrawRange(0, vertices.size(), &texture, false);
 }
 
-void GlRenderer::Upload(std::span<const Render::SpriteVertex> vertices, App::PixelSize screen) const
+void GlRenderer::Upload(std::span<const Render::SpriteVertex> vertices, Core::PixelSize screen) const
 {
     // gluOrtho2D(0, W, 0, H) es glm::ortho con near -1 y far 1 (la CL5.0 los comparó bit a bit).
     const glm::mat4 projection =

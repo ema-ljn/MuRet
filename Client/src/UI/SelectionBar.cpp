@@ -1,6 +1,6 @@
 #include "UI/SelectionBar.h"
 
-#include "App/WindowState.h"
+#include "Core/PixelSize.h"
 #include "Data/Text/TextTable.h"
 #include "Input/InputState.h"
 #include "Render/SpriteBatch.h"
@@ -78,7 +78,7 @@ Rect ButtonAt(int x, int y)
 }
 } // namespace
 
-SelectionBarLayout LayoutSelectionBar(App::PixelSize screen)
+SelectionBarLayout LayoutSelectionBar(Core::PixelSize screen)
 {
     // fild y fmul con el float: la x87 no redondea el producto, y un double lo guarda exacto.
     const int y = -static_cast<int>(static_cast<double>(screen.height) * static_cast<double>(HeightFactor)) - BarHeight;
@@ -130,12 +130,12 @@ bool SelectionBar::IsOpen() const
     return m_open;
 }
 
-Rect SelectionBar::Bounds(App::PixelSize screen) const
+Rect SelectionBar::Bounds(Core::PixelSize screen) const
 {
     return LayoutSelectionBar(screen).bar;
 }
 
-std::optional<SelectionBarClick> SelectionBar::Step(const Input::InputState& input, App::PixelSize screen,
+std::optional<SelectionBarClick> SelectionBar::Step(const Input::InputState& input, Core::PixelSize screen,
                                                     NewUiTurn turn)
 {
     if (!m_open)
@@ -171,7 +171,7 @@ std::optional<SelectionBarClick> SelectionBar::Step(const Input::InputState& inp
     return std::nullopt;
 }
 
-void SelectionBar::Draw(Render::SpriteBatch& sprites, Scenes::ITextDrawer& text, App::PixelSize screen,
+void SelectionBar::Draw(Render::SpriteBatch& sprites, Scenes::ITextDrawer& text, Core::PixelSize screen,
                         std::string_view serverNotice)
 {
     if (!m_open)
@@ -234,7 +234,7 @@ const Button& SelectionBar::DeleteButton() const
     return m_delete;
 }
 
-void SelectionBar::Place(App::PixelSize screen)
+void SelectionBar::Place(Core::PixelSize screen)
 {
     m_layout = LayoutSelectionBar(screen);
     m_create.MoveTo(Point{m_layout.create.x, m_layout.create.y});

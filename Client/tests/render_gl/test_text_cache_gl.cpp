@@ -1,9 +1,9 @@
 #include "Render/Text/TextCache.h"
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
+#include "Core/PixelSize.h"
 #include "Platform/GlLoader.h"
 #include "Render/Gl/GlFramebuffer.h"
 #include "Render/Gl/GlSpriteRenderer.h"
@@ -30,7 +30,7 @@
 // GlSpriteRenderer las dibuja con la fila 0 arriba.
 namespace
 {
-using Client::App::PixelSize;
+using Client::Core::PixelSize;
 using Client::Render::SpriteBatch;
 using Client::Render::TextureSlot;
 using Client::Render::Gl::GlSpriteRenderer;

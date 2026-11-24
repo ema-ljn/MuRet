@@ -1,6 +1,6 @@
 #include "Render/OriginalQuad.h"
 
-#include "App/WindowState.h"
+#include "Core/PixelSize.h"
 #include "Render/OriginalSkewedQuad.h"
 #include "Render/QuadCorner.h"
 #include "Render/ScreenScale.h"
@@ -15,7 +15,7 @@
 // SpriteBatch con ellas, en test_sprite_batch.cpp.
 namespace
 {
-using Client::App::PixelSize;
+using Client::Core::PixelSize;
 using Client::Render::FanCorners;
 using Client::Render::OriginalQuad;
 using Client::Render::OriginalSkewedQuad;

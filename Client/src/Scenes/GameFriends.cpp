@@ -1,7 +1,8 @@
 #include "Scenes/GameFriends.h"
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Core/PixelSize.h"
+#include "Crt/CrtRandom.h"
 #include "Protocol/FriendChat.h"
 #include "Protocol/Friends.h"
 #include "Protocol/Letters.h"
@@ -83,7 +84,7 @@ Core::Expected<std::string, std::string> TextOf(const Data::Text::TextTable* tex
 // 0x555190("", texto, 1): el nombre vacío es la cadena 0x6e57a4 en 0x491080 y los de la .bss 0x5767a94 y 0x5767a98 en
 // 0x4dc010 y 0x4dc3d0 (*estático*).
 Core::Expected<void, std::string> SystemMessage(WorldRuntime& runtime, const Render::Text::ITextMeasure* measure,
-                                                App::PixelSize screen, std::string_view text, std::string_view where)
+                                                Core::PixelSize screen, std::string_view text, std::string_view where)
 {
     if (measure == nullptr)
         return Core::Unexpected(std::string(where) + ": no hay con qué medir el mensaje");
@@ -175,7 +176,7 @@ Protocol::Outgoing FriendPacketOf(const UI::FriendSend& send)
     }
 }
 
-void SendAFriendPacket(IGameUiRequests& requests, Render::Models::CrtRandom& random, const UI::FriendSend& send)
+void SendAFriendPacket(IGameUiRequests& requests, Crt::CrtRandom& random, const UI::FriendSend& send)
 {
     if (send.kind == UI::FriendSendKind::LetterSend)
     {

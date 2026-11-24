@@ -1,8 +1,8 @@
 #include "Scenes/OwnStatHelpers.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Tables/ItemTable.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/FullSetScan.h"
 #include "Scenes/ItemSetOptionList.h"
@@ -27,8 +27,8 @@
 // rand(); el Item.bmd de estos tests es sintético (el real, en test_golden_own_stat_helpers.cpp).
 namespace
 {
+using Client::Crt::CrtRandom;
 using Client::Data::Tables::ItemTable;
-using Client::Render::Models::CrtRandom;
 using Client::Render::Models::OwnRecordCloseRandoms;
 using Client::Scenes::ItemDurabilityFactor;
 using Client::Scenes::ItemSetOptionList;

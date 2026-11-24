@@ -1,7 +1,7 @@
 #include "Scenes/FaunaJointCreation.h"
 
 #include "Core/Expected.h"
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "Scenes/GameDrawTail.h"
 #include "World/IFishStepServices.h"
 #include "World/ModelEffects.h"
@@ -21,7 +21,7 @@
 // −1)).
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::Scenes::JointOwnerKind;
 using Client::Scenes::JointState;
 

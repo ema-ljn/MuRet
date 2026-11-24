@@ -3,6 +3,7 @@
 #include "Render/Models/ObjectState.h"
 #include "Scenes/CastleSiegeBlessing.h"
 
+#include "Crt/CrtRandom.h"
 #include "Scenes/ActorPickingBox.h"
 
 #include "Core/Expected.h"
@@ -115,7 +116,7 @@ glm::vec3 HeroColor(std::uint8_t bits)
     return color;
 }
 
-glm::vec3 HeroBodyColor(WorldState& world, Render::Models::CrtRandom& random, bool originalFrame)
+glm::vec3 HeroBodyColor(WorldState& world, Crt::CrtRandom& random, bool originalFrame)
 {
     if (!originalFrame)
         return HeroColor(world.OwnCharacter().speedAdjustBits);
@@ -125,8 +126,7 @@ glm::vec3 HeroBodyColor(WorldState& world, Render::Models::CrtRandom& random, bo
     return HeroColor(world.OwnCharacter().speedAdjustBits);
 }
 
-FullSetScan ScanTheActor(WorldState& world, const ActorState& actor, Render::Models::CrtRandom& random,
-                         bool originalFrame)
+FullSetScan ScanTheActor(WorldState& world, const ActorState& actor, Crt::CrtRandom& random, bool originalFrame)
 {
     // 0x50c913: con +0x3e4 (el retrato de las cartas), sin 0x505820 ni conjunto: los globales quedan los del último y
     // la cola no los lee sin el conjunto.
@@ -141,7 +141,7 @@ FullSetScan ScanTheActor(WorldState& world, const ActorState& actor, Render::Mod
     }
     // Un dibujo entre frames no vuelve a consumir ni a publicar el scan del original.
     std::uint8_t depth = 1;
-    Render::Models::CrtRandom copy = random;
+    Crt::CrtRandom copy = random;
     return ScanFullSet(ScannedCharacterOf(actor), world.OwnCharacter(), depth, copy);
 }
 
@@ -500,10 +500,9 @@ Core::Expected<void, std::string> DrawTheTail(Render::ModelBatch& batch, const R
             world.PlacePlayerModel(actor, modelOrigin);
     }
     std::optional<ActorState> projectedActor;
-    std::optional<Render::Models::CrtRandom> projectedRandom;
+    std::optional<Crt::CrtRandom> projectedRandom;
     ActorState& drawn = originalFrame ? actor : projectedActor.emplace(actor);
-    Render::Models::CrtRandom& random =
-        originalFrame ? pass.clothWorld->random : projectedRandom.emplace(pass.clothWorld->random);
+    Crt::CrtRandom& random = originalFrame ? pass.clothWorld->random : projectedRandom.emplace(pass.clothWorld->random);
     const std::int32_t map = world.Runtime().map;
     const std::uint8_t heroByte1a1 = world.Actors()[world.Runtime().hero].byte1a1;
     const float worldClock = static_cast<float>(std::chrono::duration<double, std::milli>(pass.frameClock).count());

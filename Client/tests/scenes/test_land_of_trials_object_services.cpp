@@ -1,6 +1,6 @@
 #include "Scenes/LandOfTrialsObjectServices.h"
 
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/OriginalRetainedMath.h"
 #include "Render/Models/OriginalRotation.h"
@@ -23,7 +23,7 @@
 // de Land of Trials.
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::Scenes::GameObjectPass;
 using Client::Scenes::LandOfTrialsBody;
 using Client::Scenes::StepLandOfTrialsObjectFrame;

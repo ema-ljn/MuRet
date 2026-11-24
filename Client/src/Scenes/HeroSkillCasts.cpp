@@ -1,6 +1,7 @@
 #include "Scenes/HeroSkillCasts.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Models/PlayerModels.h"
 #include "Data/Tables/SkillTable.h"
 #include "GameLogic/PathFinder.h"
@@ -11,7 +12,6 @@
 #include "Protocol/Outgoing.h"
 #include "Protocol/Skill.h"
 #include "Render/Models/Animation.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/OriginalAngles.h"
 #include "Scenes/ActorCombat.h"
@@ -106,7 +106,7 @@ Render::Models::LogicalAccess EntryAccess(const HeroSkillContext& context, std::
 }
 
 // Una celda lógica (+0x41c o +0x420) con 0x40b570/0x412810 y 0x40b800: 4 rand() al cerrarla en 0.
-std::uint8_t ReadCell(std::uint8_t& depth, std::uint8_t cell, Render::Models::CrtRandom& random)
+std::uint8_t ReadCell(std::uint8_t& depth, std::uint8_t cell, Crt::CrtRandom& random)
 {
     const Render::Models::LogicalAccess access(depth, random, Render::Models::SmallLogicalCloseRandoms);
     return cell;

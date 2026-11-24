@@ -2,12 +2,12 @@
 #include "Scenes/GameUi.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Input/InputEvent.h"
 #include "Input/InputState.h"
 #include "Input/Key.h"
 #include "Network/Packet.h"
 #include "Protocol/Outgoing.h"
-#include "Render/Models/Cloth.h"
 #include "Scenes/InventoryMoves.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
@@ -40,7 +40,7 @@ TEST_P(GameDialogClosuresTest, EscapeClosesTheNpcThroughTheTransportBorrowedByTh
         runtime.panels.chaosBox = 1;
     else
         runtime.panels.delegated.trainer = 1;
-    Client::Render::Models::CrtRandom random(4242);
+    Client::Crt::CrtRandom random(4242);
     Client::Input::InputState input;
     input.Apply({.kind = Client::Input::InputEvent::Kind::KeyDown, .key = Client::Input::Key::Escape});
     const Client::Scenes::InventoryServices inventory;

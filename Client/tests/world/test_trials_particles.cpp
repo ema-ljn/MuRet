@@ -1,4 +1,4 @@
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "Render/Models/OriginalRetainedMath.h"
 #include "World/Particles.h"
 #include "World/PortableParticleTrigonometry.h"
@@ -18,7 +18,7 @@
 // (06 § Los objetos de Land of Trials).
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::World::Particle;
 using Client::World::Particles;
 

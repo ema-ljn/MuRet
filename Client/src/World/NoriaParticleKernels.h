@@ -7,7 +7,7 @@
 
 #include <cstdint>
 
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
 }
@@ -26,15 +26,14 @@ class FrameSprites;
 // Después del prefijo de 0x53fe70; `scale` es la del pedido (la /5 y la /6 la vuelven a poner en +0x10).
 // `ownerPosition` es la del dueño de la 5c5/5: sin ella, MissingOwner con el primer rand() sacado (Particles la pide
 // antes de tocar el lugar).
-[[nodiscard]] Core::Expected<void, ParticleError> CreateNoriaParticle(Particle& particle, float scale,
-                                                                      Render::Models::CrtRandom& random,
-                                                                      const glm::vec3* ownerPosition = nullptr);
+[[nodiscard]] Core::Expected<void, ParticleError>
+CreateNoriaParticle(Particle& particle, float scale, Crt::CrtRandom& random, const glm::vec3* ownerPosition = nullptr);
 // La 5c5/5 y la /6 piden la posición de su dueño (`ownerStates`): sin él, MissingOwner después de moverse.
 [[nodiscard]] Core::Expected<void, ParticleError> StepNoriaParticle(Particle& particle,
                                                                     const ParticleTerrainHeight& terrainHeight,
                                                                     const ParticleOwnerStates& ownerStates);
 // 0x546c0f..0x546c9e: sin la tabla de los sprites del frame (`sprites`), MissingSprites después de girar, sacar su
 // rand(), moverse y apagarse, antes del sprite.
-[[nodiscard]] Core::Expected<void, ParticleError>
-StepTheFallingShine(Particle& particle, Render::Models::CrtRandom& random, FrameSprites* sprites);
+[[nodiscard]] Core::Expected<void, ParticleError> StepTheFallingShine(Particle& particle, Crt::CrtRandom& random,
+                                                                      FrameSprites* sprites);
 } // namespace Client::World

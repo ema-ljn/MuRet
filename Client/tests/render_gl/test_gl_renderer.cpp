@@ -1,7 +1,7 @@
 #include "Render/Gl/GlRenderer.h"
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Core/PixelSize.h"
 #include "Data/Textures/Texture.h"
 #include "Platform/GlLoader.h"
 #include "Render/Gl/GlFramebuffer.h"
@@ -82,7 +82,7 @@ TEST_F(GlRendererTest, TheViewportIsTheScreen)
     const TestQuad screen{.right = static_cast<float>(Half), .top = static_cast<float>(Half)};
     const std::array<Client::Render::SpriteVertex, 6> vertices = Client::Tests::Triangles(screen);
 
-    m_renderer->Draw(vertices, white.Value(), Client::App::PixelSize{Half, Half});
+    m_renderer->Draw(vertices, white.Value(), Client::Core::PixelSize{Half, Half});
     ASSERT_EQ(Gl().getError(), static_cast<GLenum>(GL_NO_ERROR));
 
     EXPECT_EQ(Cells(2, 2), (std::vector<std::optional<Rgba8>>{Transparent, Transparent, White, Transparent}));

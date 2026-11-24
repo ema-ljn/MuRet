@@ -1,7 +1,7 @@
 #pragma once
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Core/PixelSize.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
 #include "UI/ChatInput.h"
@@ -620,7 +620,7 @@ struct OldWindowMeasure
 {
     const Render::Text::ITextMeasure& measure;
     Render::Text::FontKind dcFont = Render::Text::FontKind::Normal;
-    App::PixelSize screen{};
+    Core::PixelSize screen{};
 };
 
 // Lo que pide 0x48ee60(caso, x, y, dato, aux, banderas): x en −1 es 0 e y en −1, 0x14c. El dato es el título del marco

@@ -1,14 +1,14 @@
 #include "Scenes/SocialEvents.h"
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
 #include "Core/Log.h"
+#include "Core/PixelSize.h"
+#include "Crt/CrtRandom.h"
 #include "Protocol/Duel.h"
 #include "Protocol/Outgoing.h"
 #include "Protocol/Party.h"
 #include "Protocol/PersonalShop.h"
 #include "Protocol/Trade.h"
-#include "Render/Models/Cloth.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/ChatReceive.h"
 #include "Scenes/GameMessages.h"
@@ -164,7 +164,7 @@ Core::Expected<void, std::string> MessageText(const WorldEntryResources& resourc
 {
     if (resources.textMeasure == nullptr)
         return Core::Unexpected(std::format("{}: el mensaje sin el medidor de los textos", where));
-    const App::PixelSize screen = resources.screen ? resources.screen() : App::PixelSize{640, 480};
+    const Core::PixelSize screen = resources.screen ? resources.screen() : Core::PixelSize{640, 480};
     return AddGameMessage(resources.world.Runtime(), *resources.textMeasure, screen, {}, text, type);
 }
 
@@ -461,7 +461,7 @@ ApplyTradeRequest(const Protocol::Trade::TradeRequest& request, const WorldEntry
     return std::optional<Protocol::Outgoing>{};
 }
 
-Protocol::Outgoing ApplyClearTradeRequest(Render::Models::CrtRandom& random)
+Protocol::Outgoing ApplyClearTradeRequest(Crt::CrtRandom& random)
 {
     random.Discard(C3Randoms);
     return Protocol::Trade::WriteClearTradeRequestReport();
@@ -550,7 +550,7 @@ Core::Expected<void, std::string> ApplyTradeItemAdded(const Protocol::Trade::Tra
     // Sobre una copia, que reemplaza al comercio solo si 0x5bc470 queda dentro de lo definido; si no, también vuelven
     // los rand() que sacó 0x54bf40 (el Dark Horse).
     TradeState trade = runtime.social.trade;
-    const Render::Models::CrtRandom random = resources.cloth.random;
+    const Crt::CrtRandom random = resources.cloth.random;
     if (auto placed = PlaceItemInOtherGrid(trade.otherGrid, TradeGridColumns, added.slot, bytes, resources, Where);
         !placed.HasValue())
         return placed;
@@ -662,7 +662,7 @@ void ClearTheTradeForSelection(TradeState& trade)
     ClearTheGrid(trade.backup);
 }
 
-Core::Expected<void, std::string> CloseTheTradeGrids(WorldState& world, Render::Models::CrtRandom& random, bool aux,
+Core::Expected<void, std::string> CloseTheTradeGrids(WorldState& world, Crt::CrtRandom& random, bool aux,
                                                      const GamePacketSender& send)
 {
     TradeState& trade = world.Runtime().social.trade;

@@ -1,12 +1,12 @@
 #include "Scenes/LoadingScene.h"
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Core/PixelSize.h"
+#include "Crt/CrtRandom.h"
 #include "Input/InputState.h"
 #include "Render/SpriteBatch.h"
 #include "Render/TextureSlot.h"
 #include "Render/UiImage.h"
-#include "Render/Models/Cloth.h"
 #include "Scenes/FaunaModels.h"
 #include "Scenes/GameModels.h"
 #include "Scenes/SceneCanvas.h"
@@ -51,7 +51,7 @@ constexpr std::array<LoadingImage, 5> Images = {{
 // La barra (0x6402d0 y 0x6404b0), que 0x6407e0 dibuja después de las cinco.
 constexpr LoadingImage Bar{.slot = 0x723, .x = 72, .y = 482, .width = 656, .height = 15};
 
-Render::UiImage ImageOf(const LoadingImage& image, const SceneTextures& textures, App::PixelSize screen)
+Render::UiImage ImageOf(const LoadingImage& image, const SceneTextures& textures, Core::PixelSize screen)
 {
     const TextureBufferSize buffer = textures.BufferSize(Render::TextureSlot{image.slot});
     return Render::UiImage{.slot = Render::TextureSlot{image.slot},

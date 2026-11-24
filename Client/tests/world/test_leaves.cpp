@@ -1,9 +1,9 @@
 #include "World/Leaves.h"
 
+#include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainGrid.h"
 #include "Data/Terrain/TerrainHeights.h"
-#include "Render/Models/Cloth.h"
 #include "World/TerrainHeight.h"
 
 #include "support/WorldObjectVectors.h"
@@ -27,7 +27,7 @@
 // de alturas de una fórmula (tests/vectors/world55/leaves.txt, make_leaf_vectors.py), bit a bit.
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::World::Leaf;
 using Client::World::Leaves;
 

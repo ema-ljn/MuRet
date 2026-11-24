@@ -1,6 +1,6 @@
 #include "Scenes/MapModelEffectServices.h"
 
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "World/ModelEffects.h"
 #include "World/WorldObjects.h"
 
@@ -15,7 +15,7 @@ namespace
 TEST(MapModelEffectServicesTest, NoriaCopiesTheLightBeforeMutatingItsSourceAndConsumesThreeDraws)
 {
     Client::World::ModelEffects effects;
-    Client::Render::Models::CrtRandom random(1);
+    Client::Crt::CrtRandom random(1);
     Client::Scenes::MapModelEffectServices services(effects, random);
     Client::World::WorldObject source;
     source.light = {0.2f, 0.4f, 0.6f};
@@ -32,7 +32,7 @@ TEST(MapModelEffectServicesTest, NoriaCopiesTheLightBeforeMutatingItsSourceAndCo
 TEST(MapModelEffectServicesTest, TheLastTowerTypePreservesTheSourceAndUsesNoRandom)
 {
     Client::World::ModelEffects effects;
-    Client::Render::Models::CrtRandom random(1);
+    Client::Crt::CrtRandom random(1);
     Client::Scenes::MapModelEffectServices services(effects, random);
     Client::World::WorldObject source;
     source.light = {0.2f, 0.4f, 0.6f};
@@ -46,7 +46,7 @@ TEST(MapModelEffectServicesTest, AFullPhysicalPoolSkipsMutationAndRandomWithoutF
     Client::World::ModelEffects effects;
     for (auto& effect : effects.Effects())
         effect.alive = true;
-    Client::Render::Models::CrtRandom random(1);
+    Client::Crt::CrtRandom random(1);
     Client::Scenes::MapModelEffectServices services(effects, random);
     Client::World::WorldObject source;
     source.light = {0.2f, 0.4f, 0.6f};
@@ -63,7 +63,7 @@ TEST(MapModelEffectServicesTest, ReusingASlotRetainsFieldsThatTheNativeCreatorDo
     slot.reference = 23.0f;
     slot.animation.previousAction = 7;
     slot.seen = true;
-    Client::Render::Models::CrtRandom random(1);
+    Client::Crt::CrtRandom random(1);
     Client::Scenes::MapModelEffectServices services(effects, random);
     Client::World::WorldObject source;
     ASSERT_TRUE(services.CreateModelEffect({324, source.transform.position, 0.0f, 0}, source));

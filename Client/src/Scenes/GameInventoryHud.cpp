@@ -2,8 +2,8 @@
 #include "Render/Models/RoundedMath.h"
 #include "Scenes/CastleWindows.h"
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Core/PixelSize.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/PassColors.h"
 #include "Render/OriginalQuad.h"

@@ -2,9 +2,9 @@
 
 #include "Scenes/GameModels.h"
 
-#include "App/WindowState.h"
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
+#include "Core/PixelSize.h"
 #include "Input/InputState.h"
 #include "Render/QuadCorner.h"
 #include "Render/SpriteBatch.h"
@@ -45,9 +45,9 @@
 // 0x65f200), con un Data\ sintético y la tabla de texturas falsa.
 namespace
 {
-using Client::App::PixelSize;
 using Client::Core::Log;
 using Client::Core::LogLevel;
+using Client::Core::PixelSize;
 using Client::Input::InputState;
 using Client::Render::BlendMode;
 using Client::Render::DesignScale;

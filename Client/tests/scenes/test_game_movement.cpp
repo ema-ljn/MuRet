@@ -1,4 +1,5 @@
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "GameLogic/PathCell.h"
 #include "Network/Xor32Packet.h"
 #include "Render/Models/IModelLibrary.h"
@@ -7,7 +8,6 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/Skeleton.h"
 #include "Render/TextureSlot.h"
 #include "Data/Models/PlayerModels.h"
@@ -46,7 +46,7 @@
 
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::Scenes::HeroMovementContext;
 using Client::Scenes::StepHeroMovement;
 using Client::Scenes::WorldState;

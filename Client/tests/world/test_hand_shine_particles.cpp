@@ -1,7 +1,7 @@
 #include "World/Particles.h"
 
 #include "Core/Expected.h"
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "World/IParticleTrigonometry.h"
 #include "World/ParticleOwner.h"
 
@@ -76,7 +76,7 @@ protected:
     }
 
     std::unique_ptr<Particles> m_particles = std::make_unique<Particles>();
-    Client::Render::Models::CrtRandom m_random;
+    Client::Crt::CrtRandom m_random;
     ScriptedSine m_sine;
     float m_clock = 0.0f;
     std::vector<std::int32_t> m_handSubtypes;
@@ -139,7 +139,7 @@ TEST_F(HandShineTest, TheFirstOnePulsesWithItsLifeAndFollowsTheHand)
     EXPECT_EQ(shine.rotation, 0.0f);
     EXPECT_EQ(shine.position, glm::vec3(100.0f, 200.0f, 300.0f));
     EXPECT_EQ(m_handSubtypes, (std::vector<std::int32_t>{0}));
-    Client::Render::Models::CrtRandom expected(seed);
+    Client::Crt::CrtRandom expected(seed);
     static_cast<void>(expected.Next());
     static_cast<void>(expected.Next());
     EXPECT_EQ(m_random.State(), expected.State());

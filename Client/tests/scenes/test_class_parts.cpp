@@ -1,7 +1,7 @@
 #include "Scenes/ClassParts.h"
 
 #include "Core/Expected.h"
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "Render/Models/Skeleton.h"
 #include "Scenes/ActorActions.h"
 #include "Scenes/ActorState.h"
@@ -20,7 +20,7 @@
 // del ASM cotejado con el PE c32bbd5f; ninguno de una corrida del original.
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::Scenes::ActorItemPart;
 using Client::Scenes::ActorState;
 using Client::Scenes::ActorStopContext;

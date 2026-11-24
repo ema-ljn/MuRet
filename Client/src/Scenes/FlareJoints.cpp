@@ -1,5 +1,5 @@
 #include "Core/Expected.h"
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/JointFamilies.h"
@@ -37,7 +37,7 @@ Core::Expected<void, std::string> Advance(JointState& joint, const Render::Model
 }
 } // namespace
 
-void CreateFlareJoint(JointState& joint, const World::FishEffectRequest& request, Render::Models::CrtRandom& random)
+void CreateFlareJoint(JointState& joint, const World::FishEffectRequest& request, Crt::CrtRandom& random)
 {
     // 0x530c93: todos sin la cola común.
     joint.tailEnabled = false;

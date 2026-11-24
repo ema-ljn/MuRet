@@ -1,8 +1,8 @@
 #include "Scenes/ActorActions.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainGrid.h"
-#include "Render/Models/Cloth.h"
 #include "Scenes/ActorMotion.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/ActorWalk.h"
@@ -28,7 +28,7 @@ TEST(ActorMotionStopTest, SwimmingMapReadsTheVisiblePositionAttributeWithoutLogi
     Client::Scenes::WorldRuntime runtime{};
     runtime.map = 7;
     auto skeleton = Client::Tests::PlayerActionsSkeleton();
-    Client::Render::Models::CrtRandom random(1);
+    Client::Crt::CrtRandom random(1);
     const Client::Scenes::ActorStopContext context{runtime,    Client::Scenes::SceneId::Game, skeleton, nullptr, random,
                                                    walls.get()};
     const auto flying = Client::Scenes::SetActorStop(actor, context);
@@ -57,7 +57,7 @@ TEST(ActorMotionStopTest, PlayerSubtype209CarriesItsModelSoundsThroughArrivalSto
     Client::Scenes::WorldRuntime runtime{};
     runtime.map = 0;
     auto player = Client::Tests::PlayerActionsSkeleton();
-    Client::Render::Models::CrtRandom random(1);
+    Client::Crt::CrtRandom random(1);
     Client::Scenes::PlayerActionSpeeds speeds;
     const std::array<std::int16_t, 10> sounds{};
     const Client::Scenes::ActorWalkContext walk{

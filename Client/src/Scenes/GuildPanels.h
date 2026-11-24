@@ -1,7 +1,7 @@
 #pragma once
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Core/PixelSize.h"
 #include "Protocol/Outgoing.h"
 #include "UI/PanelDialog.h"
 #include "UI/PanelRegistry.h"
@@ -33,7 +33,7 @@ using GuildSender = std::function<void(Protocol::Outgoing)>;
 [[nodiscard]] Core::Expected<std::uint32_t, std::string> PopUpThePanelDialog(WorldRuntime& runtime,
                                                                              const UI::PanelDialogRequest& request,
                                                                              const Render::Text::ITextMeasure& measure,
-                                                                             App::PixelSize screen, std::uint32_t now);
+                                                                             Core::PixelSize screen, std::uint32_t now);
 
 // 0x4d6b60 (el 50: con 8 acepta, C1 06 51 01; con cualquier otro motivo, 00) y 0x653c00 (el E5: con 8, C1 08 E6 con 1;
 // con 0x10, con 0; con los demás, nada). Las dos devuelven 1: el diálogo se cierra. Sin `send`, corta.

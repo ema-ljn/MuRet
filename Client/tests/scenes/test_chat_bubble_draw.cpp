@@ -1,7 +1,7 @@
 #include "Scenes/ChatBubbleDraw.h"
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Core/PixelSize.h"
 #include "Data/Text/TextTable.h"
 #include "Render/SpriteBatch.h"
 #include "Render/Text/FontSet.h"
@@ -37,7 +37,7 @@
 // falso: 6 columnas por letra. Los nombres, los títulos y los textos (el 1104 también) son inventados.
 namespace
 {
-using Client::App::PixelSize;
+using Client::Core::PixelSize;
 using Client::Render::SpriteBatch;
 using Client::Render::Text::FontKind;
 using Client::Render::Text::TextColors;

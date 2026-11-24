@@ -1,7 +1,7 @@
 #pragma once
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Core/PixelSize.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
 #include "UI/Widget.h"
@@ -101,18 +101,18 @@ struct ShopSignBox
 // 0x452110: el punto 60 sobre el techo del dueño (+0x138 + z + 60, como el globo) proyectado con 0x6205b0 a 640 × 480 y
 // pasado a píxeles con IMUL y la división con signo; la x, menos la mitad del ancho, y la y, menos 36 · H / 480.
 [[nodiscard]] Core::Expected<UI::Point, std::string>
-PlaceTheShopSign(const GameProjection& projection, const ActorState& owner, std::int32_t width, App::PixelSize screen);
+PlaceTheShopSign(const GameProjection& projection, const ActorState& owner, std::int32_t width, Core::PixelSize screen);
 
 // 0x451e40, en el orden del mapa: para cada par que se pisa (comparaciones con signo), el primero sube hasta el borde
 // de arriba del otro si su borde de abajo está antes de la mitad del otro, y si no baja a su borde de abajo; la x no
 // cambia. Después cada uno contra los bordes, sin signo: la x en 0 o, desde W − ancho, en W − ancho − 4; la y en 0 o,
 // desde H − alto, en H − alto.
-void SpreadTheShopSigns(std::span<ShopSignBox> signs, App::PixelSize screen);
+void SpreadTheShopSigns(std::span<ShopSignBox> signs, Core::PixelSize screen);
 
 // 0x452e50(lugar, tamaño): el quad de un renglón, en píxeles. La x en 0 y, si x + ancho pasa de W (sin signo), en
 // W − ancho; la y en 0 y, si y + alto pasa de H − H · 47 / 480 (sin signo), en H − H · 47 / 480: sin restar el alto, y
 // con 480 donde 0x554000 tiene 640 (07 Q-C976).
-[[nodiscard]] UI::Point ShopSignRowAt(UI::Point at, std::int32_t width, std::int32_t rows, App::PixelSize screen);
+[[nodiscard]] UI::Point ShopSignRowAt(UI::Point at, std::int32_t width, std::int32_t rows, Core::PixelSize screen);
 
 // Los colores de un cartel (0x452a10, por el PK) y del título de un globo (0x451af0, 0x451b50 y 0x451bb0, que miran
 // también +0x370): el del nombre y el título, el del texto 1104 y el fondo.

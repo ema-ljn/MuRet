@@ -1,9 +1,9 @@
 #include "Scenes/NpcChatter.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Models/PlayerModels.h"
 #include "Data/Text/TextTable.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/Skeleton.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
@@ -33,7 +33,7 @@
 // 0x4fc8c0. Los textos son inventados; los índices y las ramas salen del ASM.
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::Scenes::ActorState;
 using Client::Scenes::CharacterStepContext;
 using Client::Scenes::ChatBubble;

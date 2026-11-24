@@ -1,6 +1,7 @@
 #include "Scenes/CharacterCloth.h"
 
 #include "Core/IClock.h"
+#include "Crt/CrtRandom.h"
 #include "Render/ModelBatch.h"
 #include "Render/ModelVertex.h"
 #include "Render/Models/Animation.h"
@@ -29,12 +30,12 @@
 // rearmado, el estado de cada una al final de sus cinco pasos y cada triángulo que dibuja.
 namespace
 {
+using Client::Crt::CrtRandom;
 using Client::Render::ModelBatch;
 using Client::Render::ModelBlend;
 using Client::Render::Models::Cloth;
 using Client::Render::Models::ClothBody;
 using Client::Render::Models::ClothWorld;
-using Client::Render::Models::CrtRandom;
 using Client::Scenes::CharacterCloth;
 using Client::Scenes::ClothWearer;
 using Client::Tests::ClothVectorEvent;

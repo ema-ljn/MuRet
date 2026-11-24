@@ -2,10 +2,10 @@
 #include "Scenes/GameParticles.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Models/Model.h"
 #include "Data/Textures/Texture.h"
 #include "Render/ModelBatch.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Render/Models/Skeleton.h"
 #include "Render/Pass3D.h"
@@ -45,7 +45,7 @@
 // P-C55 (a): contrato estático de 603011 y de los calls 637128/637558. Sin ejecutar el PE.
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::World::Particle;
 using Client::World::Particles;
 using Client::World::WorldObject;

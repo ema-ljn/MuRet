@@ -1,9 +1,10 @@
 #include "Scenes/GameLetters.h"
 
 #include "App/IChatRoomLinks.h"
-#include "App/WindowState.h"
 #include "App/WorldEvent.h"
 #include "Core/Expected.h"
+#include "Core/PixelSize.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Text/TextTable.h"
 #include "Network/Delivery.h"
 #include "Network/Packet.h"
@@ -12,7 +13,6 @@
 #include "Protocol/Letters.h"
 #include "Protocol/OptionData.h"
 #include "Protocol/Outgoing.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/SpriteBatch.h"
 #include "Render/Text/FontSet.h"
@@ -60,8 +60,8 @@
 // textos son inventados.
 namespace
 {
+using Client::Crt::CrtRandom;
 using Client::Protocol::Outgoing;
-using Client::Render::Models::CrtRandom;
 using Client::Render::Text::FontKind;
 using Client::Render::Text::ITextMeasure;
 using Client::Render::Text::TextExtent;
@@ -232,7 +232,7 @@ protected:
         return ChatReceiveContext{.world = *m_world,
                                   .random = m_random,
                                   .measure = &m_letters,
-                                  .screen = Client::App::PixelSize{640, 480},
+                                  .screen = Client::Core::PixelSize{640, 480},
                                   .scene = Client::Scenes::SceneId::Game,
                                   .texts = &m_texts,
                                   .chosenSlot = std::nullopt,
@@ -379,7 +379,7 @@ protected:
     Client::Data::Text::TextTable m_texts;
     Client::UI::OldWindowTexts m_oldTexts = Client::Scenes::OldWindowTextsOf(&m_texts);
     Client::UI::OldWindowMeasure m_oldMeasure{
-        .measure = m_letters, .dcFont = FontKind::Normal, .screen = Client::App::PixelSize{640, 480}};
+        .measure = m_letters, .dcFont = FontKind::Normal, .screen = Client::Core::PixelSize{640, 480}};
     std::vector<FriendSend> m_sent;
     std::vector<PortraitCallKind> m_portraitCalls;
     std::vector<std::vector<std::byte>> m_replayed;
@@ -1054,7 +1054,7 @@ TEST_P(GameLettersMapsTest, TheChatAndItsRowInTheWindowListAreDrawnInEveryMap)
     Client::UI::ShowTheWindowList(Manager(), 1);
 
     Client::Render::SpriteBatch sprites;
-    sprites.Begin(Client::App::PixelSize{640, 480});
+    sprites.Begin(Client::Core::PixelSize{640, 480});
     Client::Tests::RecordingTextDrawer text(sprites);
     FontKind font = FontKind::Bold;
     Client::Render::Text::TextColors colors{};
@@ -1121,7 +1121,7 @@ TEST_P(GameLettersMapsTest, TheLongLinesOfAChatAndOfALetterAreWrappedInEveryMap)
     EXPECT_EQ(chat.chat.lines.fixedCountValue, 2);
 
     Client::Render::SpriteBatch sprites;
-    sprites.Begin(Client::App::PixelSize{640, 480});
+    sprites.Begin(Client::Core::PixelSize{640, 480});
     Client::Tests::RecordingTextDrawer text(sprites);
     FontKind font = FontKind::Bold;
     Client::Render::Text::TextColors colors{};

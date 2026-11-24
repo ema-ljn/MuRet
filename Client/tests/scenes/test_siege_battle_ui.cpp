@@ -3,12 +3,12 @@
 #include "Protocol/OptionData.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Tables/SkillTable.h"
 #include "Input/InputState.h"
 #include "Input/Key.h"
 #include "Network/Packet.h"
 #include "Protocol/Outgoing.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
@@ -45,8 +45,8 @@
 namespace
 {
 using Client::Core::Expected;
+using Client::Crt::CrtRandom;
 using Client::Protocol::Outgoing;
-using Client::Render::Models::CrtRandom;
 using Client::Scenes::GameHudContext;
 using Client::Scenes::GameUiContext;
 using Client::Tests::Bytes;

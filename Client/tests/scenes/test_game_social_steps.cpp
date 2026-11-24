@@ -2,13 +2,13 @@
 #include "Scenes/GameSocialSteps.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Text/TextTable.h"
 #include "Input/InputState.h"
 #include "Network/Delivery.h"
 #include "Network/Packet.h"
 #include "Protocol/OptionData.h"
 #include "Protocol/Outgoing.h"
-#include "Render/Models/Cloth.h"
 #include "Scenes/GamePanels.h"
 #include "Scenes/GameUi.h"
 #include "Scenes/SocialState.h"
@@ -31,7 +31,7 @@
 // (0x5ebca0), contra su ASM. Los nombres son inventados.
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::Scenes::GameUiContext;
 using Client::Scenes::WorldState;
 

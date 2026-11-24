@@ -13,10 +13,10 @@
 #include <optional>
 #include <string>
 
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
-} // namespace Client::Render::Models
+} // namespace Client::Crt
 
 // Las marcas del suelo: la tabla de 100 lugares de 0x78 bytes en 0x760cab0..0x760f990, en la .bss, que llena
 // 0x548fe0, envejece 0x549090 en cada paso del juego y dibuja 0x549130 con el terreno (0x5fc365). La carga del
@@ -65,7 +65,7 @@ struct GroundMarkRequest
 // apaga el de menos vida (el primero, si empatan) y no pone la nueva, sin rand() (Q-C231). Corta con error,
 // sin tocar la tabla, si además ninguna vida baja de 9.999: el original escribe un 0 en la dirección del tipo.
 [[nodiscard]] Core::Expected<void, std::string> AddGroundMark(GroundMarkTable& marks, const GroundMarkRequest& request,
-                                                              Render::Models::CrtRandom& random);
+                                                              Crt::CrtRandom& random);
 
 // 0x549090, desde el paso del juego (0x63712d): a cada marca prendida le baja la vida. El 0x5e3 crece 0,004
 // de lado; el 0x5e3, el 0x5e4 y el 0x606 toman el color (0,1; 0; 0), se apagan sin vida y, con menos de 50,

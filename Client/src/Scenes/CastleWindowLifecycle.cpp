@@ -5,11 +5,12 @@
 #include "Core/Expected.h"
 #include "Core/IClock.h"
 #include "App/FaithfulPacer.h"
+#include "Core/PixelSize.h"
+#include "Crt/CrtRandom.h"
 #include "Scenes/WorldEntry.h"
 #include "Protocol/CastleSiege.h"
 #include "Protocol/Connection/Logout.h"
 #include "Protocol/NpcWindows.h"
-#include "Render/Models/Cloth.h"
 #include "Scenes/GameMessages.h"
 #include "Scenes/GamePanels.h"
 #include "Scenes/GameUi.h"
@@ -117,7 +118,7 @@ bool HeroCanCraftAtTheCastle(const WorldState& world)
     return static_cast<std::int16_t>(hero.word1f2) >= 0 && hero.guildStatus == GuildMaster;
 }
 
-void LendTheCastleLifecycleTo(UI::PanelContext& panels, WorldState& world, Render::Models::CrtRandom& /*random*/,
+void LendTheCastleLifecycleTo(UI::PanelContext& panels, WorldState& world, Crt::CrtRandom& /*random*/,
                               const CastleSender& send, CastleWindowServices services)
 {
     panels.castleWindowOpened = [&world, send](UI::PanelId id) -> Core::Expected<void, std::string>
@@ -145,9 +146,8 @@ void LendTheCastleLifecycleTo(UI::PanelContext& panels, WorldState& world, Rende
     panels.castleSeniorBlocked = [&world, services]() { return Warn(world.Runtime(), services, BusySeniorText); };
 }
 
-void LendTheCastlePanelServices(GamePanels& panels, WorldState& world, Render::Models::CrtRandom& random,
-                                const CastleSender& send, const WorldEntryResources* entryResources,
-                                CastleWindowServices services)
+void LendTheCastlePanelServices(GamePanels& panels, WorldState& world, Crt::CrtRandom& random, const CastleSender& send,
+                                const WorldEntryResources* entryResources, CastleWindowServices services)
 {
     panels.LendTheSession(world, random, send, {});
     if (send)
@@ -178,7 +178,7 @@ void LendTheCastlePanelServices(GamePanels& panels, const WorldEntryResources& r
                                &resources,
                                {.measure = resources.textMeasure,
                                 .texts = resources.texts,
-                                .screen = resources.screen ? resources.screen() : App::PixelSize{640, 480},
+                                .screen = resources.screen ? resources.screen() : Core::PixelSize{640, 480},
                                 .now = resources.clock != nullptr ? App::TickCountMs(resources.clock->Now()) : 0u});
     // La sesión puede prestar estos dos canales por separado; el de NPC conserva su Expected si send falla.
     if (resources.sendNpcWindowPacket)

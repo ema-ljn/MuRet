@@ -1,7 +1,7 @@
 #include "Scenes/OwnDamage.h"
 
+#include "Crt/CrtRandom.h"
 #include "Data/Tables/SkillTable.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ItemSetOptionList.h"
 #include "Scenes/OwnCharacterRecord.h"
@@ -24,7 +24,7 @@
 // inventados.
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::Render::Models::OwnRecordCloseRandoms;
 using Client::Scenes::AttackDamageOf;
 using Client::Scenes::ItemSetOptionList;

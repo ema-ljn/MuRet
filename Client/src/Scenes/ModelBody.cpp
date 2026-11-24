@@ -1,8 +1,8 @@
 #include "Scenes/ModelBody.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Render/Models/Animation.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/OriginalAngles.h"
 #include "Render/Models/Skeleton.h"
 #include "Scenes/ActorConstruction.h"
@@ -145,8 +145,7 @@ float ModelSpeedOf(std::uint16_t type, std::uint8_t action, float frame, float s
 
 Core::Expected<ModelActionEnd, std::string> FinishTheModelAction(ActorState& actor,
                                                                  const Render::Models::Skeleton& skeleton,
-                                                                 WorldRuntime& runtime,
-                                                                 Render::Models::CrtRandom& random)
+                                                                 WorldRuntime& runtime, Crt::CrtRandom& random)
 {
     const std::uint16_t type = actor.type;
     if (type == NamedModel)
@@ -216,7 +215,7 @@ void LookAtTheTarget(ActorState& actor, const ActorState& target)
 }
 
 Core::Expected<void, std::string> SetTheModelHeadTarget(ActorState& actor, std::span<const ActorState> pool,
-                                                        Render::Models::CrtRandom& random)
+                                                        Crt::CrtRandom& random)
 {
     const std::uint8_t action = actor.animation.action;
     if (action == DyingAction)

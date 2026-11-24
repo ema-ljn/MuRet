@@ -1,10 +1,10 @@
 #include "Scenes/FaunaJointCreation.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Protocol/Outgoing.h"
 #include "Protocol/Skill.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Scenes/ActorState.h"
@@ -39,7 +39,7 @@
 // (0x52a72a: 0x530860(0x61c, posición + 100 en z, lo mismo, +0x28, 0, +0x108, 150, +0x8a, +0x89, 0, −1)).
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::Scenes::ActorState;
 using Client::Scenes::JointState;
 

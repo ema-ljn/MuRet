@@ -1,6 +1,6 @@
 #include "Scenes/ChatBubbles.h"
 
-#include "App/WindowState.h"
+#include "Core/PixelSize.h"
 #include "Data/Text/TextTable.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
@@ -71,7 +71,7 @@ protected:
 
     [[nodiscard]] ChatBubbleMeasure Measure() const
     {
-        return ChatBubbleMeasure{.measure = m_letters, .screen = Client::App::PixelSize{640, 480}};
+        return ChatBubbleMeasure{.measure = m_letters, .screen = Client::Core::PixelSize{640, 480}};
     }
 
     std::unique_ptr<WorldState> m_world;

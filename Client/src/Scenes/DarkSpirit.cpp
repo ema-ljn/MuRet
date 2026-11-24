@@ -1,7 +1,7 @@
 #include "Scenes/DarkSpirit.h"
 
+#include "Crt/CrtRandom.h"
 #include "Render/Models/Animation.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/OriginalAngles.h"
@@ -208,7 +208,7 @@ void Land(DarkSpirit& spirit, const DarkSpiritOwner& owner)
 // 0x417b33..0x417e10: los estados 0 y 1, el vuelo libre hacia `destination` (el dueño o, con +0x1ad en 1, el blanco
 // de +8). +0x1ad en 0; la chispa mira las banderas del dueño y la altura, su mascota.
 void Fly(DarkSpirit& spirit, const DarkSpiritOwner& owner, const glm::vec3& destination, std::uint8_t map,
-         World::Particles& particles, float worldClock, Render::Models::CrtRandom& random)
+         World::Particles& particles, float worldClock, Crt::CrtRandom& random)
 {
     spirit.byte1ad = 0;
     const glm::vec3 start = spirit.position;
@@ -363,7 +363,7 @@ void Shout(DarkSpirit& spirit, const DarkSpiritTargets& targets)
 }
 } // namespace
 
-DarkSpirit CreateDarkSpirit(int cellX, int cellY, double groundHeight, Render::Models::CrtRandom& random,
+DarkSpirit CreateDarkSpirit(int cellX, int cellY, double groundHeight, Crt::CrtRandom& random,
                             DarkSpiritBirthAccesses accesses)
 {
     // 0x4167b0 lee Y y X del dueño, y 0x415be0 el contador: solo gastan si cierran en cero.
@@ -429,7 +429,7 @@ DrawnObject DrawnDarkSpirit(const DarkSpirit& spirit, const Render::Models::Skel
 
 DarkSpiritStepped StepDarkSpirit(DarkSpirit& spirit, const Render::Models::Skeleton& skeleton,
                                  const DarkSpiritOwner& owner, std::uint8_t map, World::Particles& particles,
-                                 float worldClock, Render::Models::CrtRandom& random, std::int32_t counter,
+                                 float worldClock, Crt::CrtRandom& random, std::int32_t counter,
                                  const DarkSpiritTargets& targets)
 {
     spirit.previousPosition = spirit.position;

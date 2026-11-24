@@ -1,6 +1,7 @@
 #include "Scenes/CharacterDrawing.h"
 
-#include "App/WindowState.h"
+#include "Core/PixelSize.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Models/Model.h"
 #include "Data/Models/ModelFiles.h"
 #include "Data/Models/ModelTextures.h"
@@ -8,7 +9,6 @@
 #include "GameLogic/CharacterAppearance.h"
 #include "Render/ModelBatch.h"
 #include "Render/ModelVertex.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/IModelLibrary.h"
 #include "Render/Models/Pose.h"
 #include "Render/Models/Skeleton.h"
@@ -48,6 +48,7 @@
 // thing that differs. Each row names the difference of the plan that explains it.
 namespace
 {
+using Client::Crt::CrtRandom;
 using Client::Data::Models::LoadModelFile;
 using Client::Data::Models::Model;
 using Client::Data::Models::ModelFile;
@@ -59,7 +60,6 @@ using Client::Render::ModelDrawCommand;
 using Client::Render::ModelDrawState;
 using Client::Render::ModelVertex;
 using Client::Render::TextureSlot;
-using Client::Render::Models::CrtRandom;
 using Client::Render::Models::IModelLibrary;
 using Client::Render::Models::Skeleton;
 using Client::Scenes::DrawnCharacter;
@@ -292,7 +292,7 @@ DrawnCharacter CharacterOf(const ItemDrawCase& drawn)
 
 Client::Render::Pass3D TestPass()
 {
-    return Client::Render::MakePass3D(Client::App::PixelSize{1024, 768}, Client::Scenes::WorldViewport,
+    return Client::Render::MakePass3D(Client::Core::PixelSize{1024, 768}, Client::Scenes::WorldViewport,
                                       Client::Scenes::SelectionCamera());
 }
 

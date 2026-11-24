@@ -1,6 +1,6 @@
+#include "Crt/CrtRandom.h"
 #include "Scenes/EventPackets.h"
 #include "Protocol/Events.h"
-#include "Render/Models/Cloth.h"
 #include "Scenes/WorldState.h"
 #include "Scenes/WorldMap.h"
 #include "World/ModelEffects.h"
@@ -26,7 +26,7 @@ TEST(CrywolfMissilesTest, TheEffectPacketCreatesAllThreeNativeDirections)
     {
         SCOPED_TRACE(direction);
         auto world = std::make_unique<Client::Scenes::WorldState>();
-        Client::Render::Models::CrtRandom random(7);
+        Client::Crt::CrtRandom random(7);
         const auto wire =
             Client::Tests::PacketOf(Client::Tests::Bytes({0xc1, 0x0a, 0xbd, 0x0c, 0, 0, direction, 0xff, 12, 34}));
         const auto read = Client::Protocol::Events::ReadEventPacket(wire);
@@ -63,7 +63,7 @@ TEST(CrywolfMissilesTest, TheSeenMissileCreatesThreeOwnedParticlesBeforeTheCommo
     auto& effect = effects->Effects()[*made];
     effect.seen = true;
     effect.transform.angles = {0, 0, 0};
-    Client::Render::Models::CrtRandom random(7);
+    Client::Crt::CrtRandom random(7);
     const auto stepped = Client::World::StepGameModelEffect(
         effect, nullptr, *particles, 0, random, nullptr,
         {.terrainHeight = [](float, float) { return 0.0; }, .effects = effects.get(), .lighting = lighting.get()});
@@ -102,7 +102,7 @@ TEST(CrywolfMissilesTest, TheImpactKeepsCallerRandomsAndTheCommonTailWithBothPoo
     for (auto& e : effects->Effects())
         e.alive = true;
     float shake = 0;
-    Client::Render::Models::CrtRandom random(7);
+    Client::Crt::CrtRandom random(7);
     const auto stepped = Client::World::StepGameModelEffect(effect, nullptr, *particles, 0, random, nullptr,
                                                             {.terrainHeight = [](float, float) { return 0.0; },
                                                              .effects = effects.get(),
@@ -131,7 +131,7 @@ TEST(CrywolfMissilesTest, TheNormalImpactBuildsAllEightBurstsSixteenStonesAndThe
     effect.transform.angles = {0, 0, 0};
     float shake = 0;
     std::vector<int> sounds;
-    Client::Render::Models::CrtRandom random(7);
+    Client::Crt::CrtRandom random(7);
     const auto stepped = Client::World::StepGameModelEffect(effect, nullptr, *particles, 0, random, nullptr,
                                                             {.terrainHeight = [](float, float) { return 0.0; },
                                                              .effects = effects.get(),

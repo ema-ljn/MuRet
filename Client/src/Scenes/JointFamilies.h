@@ -8,10 +8,10 @@
 #include <cstdint>
 #include <string>
 
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
-} // namespace Client::Render::Models
+} // namespace Client::Crt
 
 // Las familias de joints que viven en su propio archivo. FaunaJointCreation.cpp llama a su alta después del primer
 // tramo (0x530afa) y a su paso después del movimiento común (0x53590e); el paso vuelve a la cola común (0x53c393).
@@ -23,7 +23,7 @@ namespace Client::Scenes::JointFamilies
 inline constexpr std::int32_t LightningJoint = 0x614;
 [[nodiscard]] Core::Expected<void, std::string> CreateLightningJoint(JointState& joint,
                                                                      const World::FishEffectRequest& request,
-                                                                     Render::Models::CrtRandom& random,
+                                                                     Crt::CrtRandom& random,
                                                                      const JointKernels::CreationServices* services);
 [[nodiscard]] Core::Expected<void, std::string> StepLightningJoint(JointState& joint,
                                                                    const JointKernels::StepServices& services);
@@ -41,7 +41,7 @@ inline constexpr std::int32_t SpiritJoint = 0x613;
 inline constexpr std::int32_t SecondSpiritJoint = 0x6ee;
 [[nodiscard]] Core::Expected<void, std::string> CreateSpiritJoint(JointState& joint,
                                                                   const World::FishEffectRequest& request,
-                                                                  Render::Models::CrtRandom& random,
+                                                                  Crt::CrtRandom& random,
                                                                   const JointKernels::CreationServices* services);
 [[nodiscard]] Core::Expected<void, std::string> StepSpiritJoint(JointState& joint,
                                                                 const JointKernels::StepServices& services);
@@ -54,7 +54,7 @@ inline constexpr std::int32_t DropSubtype = 2;
 inline constexpr std::int32_t DarkDropSubtype = 0x18;
 inline constexpr std::int32_t SinkingDropSubtype = 0x13;
 [[nodiscard]] bool IsDrop(std::int32_t type, std::int32_t subtype);
-void CreateDropJoint(JointState& joint, const World::FishEffectRequest& request, Render::Models::CrtRandom& random);
+void CreateDropJoint(JointState& joint, const World::FishEffectRequest& request, Crt::CrtRandom& random);
 void StepDropJoint(JointState& joint);
 
 // El 0x60f/7, /0xb y /0x19 (WanderingJoints.cpp): alta 0x533bbd, 0x533d5f y 0x533db8 y paso 0x53a87a..0x53b01f. Vagan
@@ -63,8 +63,7 @@ void StepDropJoint(JointState& joint);
 inline constexpr std::int32_t WanderSubtype = 7;
 inline constexpr std::int32_t ArrowWanderSubtype = 0xb;
 inline constexpr std::int32_t PinkWanderSubtype = 0x19;
-void CreateWanderingJoint(JointState& joint, const World::FishEffectRequest& request,
-                          Render::Models::CrtRandom& random);
+void CreateWanderingJoint(JointState& joint, const World::FishEffectRequest& request, Crt::CrtRandom& random);
 [[nodiscard]] Core::Expected<void, std::string> StepWanderingJoint(JointState& joint,
                                                                    const JointKernels::StepServices& services);
 
@@ -76,7 +75,7 @@ inline constexpr std::int32_t HelixSubtype = 4;
 inline constexpr std::int32_t WideHelixSubtype = 0xc;
 [[nodiscard]] bool IsHelix(std::int32_t type, std::int32_t subtype);
 [[nodiscard]] Core::Expected<void, std::string>
-CreateHelixJoint(JointState& joint, const World::FishEffectRequest& request, Render::Models::CrtRandom& random);
+CreateHelixJoint(JointState& joint, const World::FishEffectRequest& request, Crt::CrtRandom& random);
 [[nodiscard]] Core::Expected<void, std::string> StepHelixJoint(JointState& joint);
 
 // El 0x61c/2..6 (InfernoJoints.cpp): alta 0x534444..0x53463b y paso 0x53b6a0..0x53b7ec. La /4 (la skill 0x49,
@@ -108,7 +107,7 @@ inline constexpr std::int32_t AuraJoint = 0x10f;
 // modelo (JointOwnerKind::ModelEffect) en la /5 de las flechas y la /0xa y /0xb del 0x11b/1; la /6 y la /9 no lo leen.
 inline constexpr std::int32_t BeamJoint = 0x618;
 [[nodiscard]] Core::Expected<void, std::string>
-CreateBeamJoint(JointState& joint, const World::FishEffectRequest& request, Render::Models::CrtRandom& random);
+CreateBeamJoint(JointState& joint, const World::FishEffectRequest& request, Crt::CrtRandom& random);
 [[nodiscard]] Core::Expected<void, std::string> StepBeamJoint(JointState& joint,
                                                               const JointKernels::StepServices& services);
 
@@ -125,7 +124,7 @@ inline constexpr std::int32_t FallingStarSubtype = 5;
 inline constexpr std::int32_t BoltSubtype = 6;
 inline constexpr std::int32_t StormSubtype = 7;
 [[nodiscard]] Core::Expected<void, std::string>
-CreateStormJoint(JointState& joint, const World::FishEffectRequest& request, Render::Models::CrtRandom& random);
+CreateStormJoint(JointState& joint, const World::FishEffectRequest& request, Crt::CrtRandom& random);
 [[nodiscard]] Core::Expected<void, std::string> StepStormJoint(JointState& joint,
                                                                const JointKernels::StepServices& services);
 
@@ -135,14 +134,14 @@ CreateStormJoint(JointState& joint, const World::FishEffectRequest& request, Ren
 // creador, el efecto 0x62c/1 (0x51f32e), nace detrás del corte 0x50e0c0 (el efecto de +0x78 & 0x800).
 inline constexpr std::int32_t SpiralJoint = 0x62c;
 [[nodiscard]] Core::Expected<void, std::string>
-CreateSpiralJoint(JointState& joint, const World::FishEffectRequest& request, Render::Models::CrtRandom& random);
+CreateSpiralJoint(JointState& joint, const World::FishEffectRequest& request, Crt::CrtRandom& random);
 [[nodiscard]] Core::Expected<void, std::string> StepSpiralJoint(JointState& joint,
                                                                 const JointKernels::StepServices& services);
 
 // El 0x5ac (FlareJoints.cpp): alta 0x530c93..0x530dd8 y paso 0x5359d7..0x535b32, sin la cola ni el movimiento comunes.
 // Los sesenta /0 del 0x114/0 (0x51c1b8) y del combo de BlastModelEffects (0x51c004), sin dueño.
 inline constexpr std::int32_t FlareJoint = 0x5ac;
-void CreateFlareJoint(JointState& joint, const World::FishEffectRequest& request, Render::Models::CrtRandom& random);
+void CreateFlareJoint(JointState& joint, const World::FishEffectRequest& request, Crt::CrtRandom& random);
 [[nodiscard]] Core::Expected<void, std::string> StepFlareJoint(JointState& joint);
 
 // El 0x60f y el 0x62b /0x10, /0xe y /0xf (OrbitJoints.cpp): alta 0x5337fa y 0x534132 y paso 0x53a5c7 y 0x53b18a. La
@@ -153,7 +152,7 @@ inline constexpr std::int32_t WhirlSubtype = 0xe;
 inline constexpr std::int32_t MirroredWhirlSubtype = 0xf;
 [[nodiscard]] bool IsOrbit(std::int32_t type, std::int32_t subtype);
 [[nodiscard]] Core::Expected<void, std::string>
-CreateOrbitJoint(JointState& joint, const World::FishEffectRequest& request, Render::Models::CrtRandom& random);
+CreateOrbitJoint(JointState& joint, const World::FishEffectRequest& request, Crt::CrtRandom& random);
 [[nodiscard]] Core::Expected<void, std::string> StepOrbitJoint(JointState& joint,
                                                                const JointKernels::StepServices& services);
 
@@ -181,7 +180,7 @@ inline constexpr std::int32_t FallingSparkleSubtype = 0x29;
 inline constexpr std::int32_t SpinningSparkleSubtype = 0x2a;
 [[nodiscard]] bool IsSpark(std::int32_t type, std::int32_t subtype);
 [[nodiscard]] Core::Expected<void, std::string>
-CreateSparkJoint(JointState& joint, const World::FishEffectRequest& request, Render::Models::CrtRandom& random);
+CreateSparkJoint(JointState& joint, const World::FishEffectRequest& request, Crt::CrtRandom& random);
 [[nodiscard]] Core::Expected<void, std::string> StepSparkJoint(JointState& joint,
                                                                const JointKernels::StepServices& services);
 } // namespace Client::Scenes::JointFamilies

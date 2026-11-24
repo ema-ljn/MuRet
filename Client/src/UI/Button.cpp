@@ -1,6 +1,6 @@
 #include "UI/Button.h"
 
-#include "App/WindowState.h"
+#include "Core/PixelSize.h"
 #include "Input/InputState.h"
 #include "Input/Key.h"
 #include "Render/ScreenScale.h"
@@ -147,7 +147,7 @@ void Button::SetLabel(std::string label, ButtonColors colors)
     m_colors = colors;
 }
 
-std::optional<std::uint32_t> Button::DrawLabel(Scenes::ITextDrawer& text, App::PixelSize screen) const
+std::optional<std::uint32_t> Button::DrawLabel(Scenes::ITextDrawer& text, Core::PixelSize screen) const
 {
     // Sin pantalla no hay proporción por la que dividir la y.
     if (m_label.empty() || screen.width <= 0 || screen.height <= 0)

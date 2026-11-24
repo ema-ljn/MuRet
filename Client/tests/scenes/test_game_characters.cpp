@@ -1,6 +1,7 @@
 #include "Render/Models/IModelLibrary.h"
 #include "Scenes/GameCharacters.h"
 
+#include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainGrid.h"
 #include "Data/Models/Model.h"
 #include "Data/Models/PlayerModels.h"
@@ -293,7 +294,7 @@ TEST_F(UnarmedGameCharacterTest, AnotherPlayerWithAGuildWearsItsMarkOnBoneTwenty
     const auto draw = [&](std::int32_t map, Client::Render::TextureSlot drawn)
     {
         m_world->Runtime().map = map;
-        m_cloth.random = Client::Render::Models::CrtRandom(1);
+        m_cloth.random = Client::Crt::CrtRandom(1);
         m_batch.Begin({});
         auto pass = Pass();
         pass.guildMarks = &marks;
@@ -395,7 +396,7 @@ TEST_F(UnarmedGameCharacterTest, TheCastleSiegeBlessingFollowsTheCompletedCharac
     EXPECT_FALSE(m_world->Particles().All().front().alive);
 
     m_world->Runtime().siegeActive = true;
-    m_cloth.random = Client::Render::Models::CrtRandom(1);
+    m_cloth.random = Client::Crt::CrtRandom(1);
     m_batch.Begin({});
     const auto siege = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, pass);
     ASSERT_TRUE(siege.HasValue()) << siege.Error();
@@ -406,7 +407,7 @@ TEST_F(UnarmedGameCharacterTest, TheCastleSiegeBlessingFollowsTheCompletedCharac
     EXPECT_EQ(blessing.life, 20);
     EXPECT_EQ(blessing.position, (glm::vec3{8195.0f, 13014.0f, 250.0f}));
     EXPECT_EQ(blessing.light, Actor().light);
-    Client::Render::Models::CrtRandom expected(1);
+    Client::Crt::CrtRandom expected(1);
     expected.Discard(5);
     EXPECT_EQ(m_cloth.random.State(), expected.State());
     EXPECT_EQ(m_world->Map().terrain.attributes->cells[Client::Data::Terrain::CellIndex(119, 115)], 1);
@@ -433,7 +434,7 @@ TEST_F(UnarmedGameCharacterTest, HeldOrWrappedHandByteDepthDoesNotConsumeClosing
     {
         SCOPED_TRACE(static_cast<int>(depth));
         Actor().byte38eAccesses = depth;
-        m_cloth.random = Client::Render::Models::CrtRandom(1);
+        m_cloth.random = Client::Crt::CrtRandom(1);
         m_batch.Begin({});
 
         const auto result = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
@@ -462,7 +463,7 @@ TEST_F(UnarmedGameCharacterTest, TheHeroClosesItsOwnRecordBeforeTheBodyAndTheTwo
         SCOPED_TRACE(static_cast<int>(probe.handDepth));
         m_world->Runtime().ownRecordDepth = probe.ownDepth;
         Actor().byte38eAccesses = probe.handDepth;
-        m_cloth.random = Client::Render::Models::CrtRandom(1);
+        m_cloth.random = Client::Crt::CrtRandom(1);
         m_batch.Begin({});
 
         const auto result = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
@@ -491,7 +492,7 @@ TEST_F(UnarmedGameCharacterTest, NativeUnarmedStandingWalkingAndRunningActionsRe
         SCOPED_TRACE(static_cast<int>(probe.action));
         Actor().characterClass = probe.characterClass;
         Actor().animation.action = probe.action;
-        m_cloth.random = Client::Render::Models::CrtRandom(1);
+        m_cloth.random = Client::Crt::CrtRandom(1);
         m_batch.Begin({});
 
         const auto result = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
@@ -524,7 +525,7 @@ TEST_F(UnarmedGameCharacterTest, OnlyTheNativeBackCasesSkipTheTwoHandByteReads)
         m_world->Runtime().map = probe.map;
         Actor().safeZone = probe.safeZone;
         Actor().animation.action = probe.action;
-        m_cloth.random = Client::Render::Models::CrtRandom(1);
+        m_cloth.random = Client::Crt::CrtRandom(1);
         m_batch.Begin({});
 
         const auto result = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
@@ -655,7 +656,7 @@ TEST_F(UnarmedGameCharacterTest, TheDyingOfBloodCastleSinkToTheGroundUnderTheirS
         Actor().dying = probe.dying;
         Actor().position = {150.0f, 150.0f, probe.z};
         m_world->PlaceModel(Client::Data::Models::PlayerShadowModel, {});
-        m_cloth.random = Client::Render::Models::CrtRandom(1);
+        m_cloth.random = Client::Crt::CrtRandom(1);
         m_batch.Begin({});
 
         const auto drawn = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
@@ -819,7 +820,7 @@ TEST_F(UnarmedGameCharacterTest, OutsideThePoolTheLetterPortraitDrawsWithoutItsS
             ActorState outside = pooled;
             outside.byte3e4 = portrait;
             Client::Scenes::CharacterCloth cloth;
-            m_cloth.random = Client::Render::Models::CrtRandom(1);
+            m_cloth.random = Client::Crt::CrtRandom(1);
             m_batch.Begin({});
 
             const auto drawn =
@@ -857,7 +858,7 @@ TEST_F(UnarmedGameCharacterTest, TheUnportedPeriodicStatusEffectStopsBeforeTheHa
     {
         SCOPED_TRACE(testing::Message() << probe.counter << ' ' << int{probe.byte88} << ' ' << probe.flags);
         m_cloth.logicSteps = probe.counter;
-        m_cloth.random = Client::Render::Models::CrtRandom(1);
+        m_cloth.random = Client::Crt::CrtRandom(1);
         Actor().byte88 = probe.byte88;
         Actor().flags78 = probe.flags;
         m_batch.Begin({});
@@ -929,7 +930,7 @@ TEST_F(UnarmedGameCharacterTest, TheBodyKeepsTheDummyMatricesOfItsOwnBones)
     {
         SCOPED_TRACE(frames);
         Actor().bodyPose.assign(1, own);
-        m_cloth.random = Client::Render::Models::CrtRandom(1);
+        m_cloth.random = Client::Crt::CrtRandom(1);
         m_batch.Begin({});
         auto pass = Pass();
         pass.originalFrames = frames;
@@ -969,7 +970,7 @@ TEST_F(UnarmedGameCharacterTest, OutsideTheGameTheTailSpendsTheSameRandomsWithou
     ASSERT_FALSE(game.HasValue());
     EXPECT_NE(game.Error().find("0x510f4d"), std::string::npos) << game.Error();
 
-    m_cloth.random = Client::Render::Models::CrtRandom(1);
+    m_cloth.random = Client::Crt::CrtRandom(1);
     Actor().bodyPose.clear();
     m_batch.Begin({});
     const auto tail = Client::Scenes::DrawCharacterTail(m_batch, m_models, *m_world, Actor(), 7, Drawn(Actor()), Pass(),

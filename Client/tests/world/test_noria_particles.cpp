@@ -1,4 +1,4 @@
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "Render/Models/OriginalRotation.h"
 #include "support/ParticleDrawRecorder.h"
 #include "World/ParticleOwner.h"
@@ -21,7 +21,7 @@ TEST(NoriaParticlesTest, ShinySubtypesStartWithoutRandomAndKeepTheCommonPrefix)
     for (int subtype : {0, 1})
     {
         auto particles = std::make_unique<Client::World::Particles>();
-        Client::Render::Models::CrtRandom random(7);
+        Client::Crt::CrtRandom random(7);
         const auto created =
             particles->CreateChecked(0x5fc, {1, 2, 3}, {10, 20, 30}, {0.2f, 0.3f, 0.4f}, subtype, 9.0f, 0.0f, random);
         ASSERT_TRUE(created.HasValue());
@@ -47,7 +47,7 @@ TEST(NoriaParticlesTest, ShinyStepUsesLifeSineAndSubtypeOneRotatesTwelveDegrees)
         particle.life = 18;
         particle.scale = 9.0f;
         particle.rotation = 30.0f;
-        Client::Render::Models::CrtRandom random(7);
+        Client::Crt::CrtRandom random(7);
         const auto stepped = Client::World::StepParticlesChecked(*particles, random);
         ASSERT_TRUE(stepped.HasValue());
         EXPECT_EQ(particle.life, 17);
@@ -60,7 +60,7 @@ TEST(NoriaParticlesTest, ShinyStepUsesLifeSineAndSubtypeOneRotatesTwelveDegrees)
 TEST(NoriaParticlesTest, TheFairySparkKeepsFiveRandomDrawsAndItsStoredMotion)
 {
     auto particles = std::make_unique<Client::World::Particles>();
-    Client::Render::Models::CrtRandom random(7);
+    Client::Crt::CrtRandom random(7);
     const auto created = particles->CreateChecked(0x5c5, {100, 200, 300}, {0, 0, 0}, {1, 1, 1}, 0, 9.0f, 0.0f, random);
     ASSERT_TRUE(created.HasValue());
     ASSERT_TRUE(created.Value().has_value());
@@ -83,8 +83,8 @@ TEST(NoriaParticlesTest, ThePushedSparkDoublesTheScaleAndTriplesTheForwardSpeed)
         SCOPED_TRACE(seed);
         auto ordinary = std::make_unique<Client::World::Particles>();
         auto pushed = std::make_unique<Client::World::Particles>();
-        Client::Render::Models::CrtRandom first(seed);
-        Client::Render::Models::CrtRandom second(seed);
+        Client::Crt::CrtRandom first(seed);
+        Client::Crt::CrtRandom second(seed);
         const auto base = ordinary->CreateChecked(0x5c5, {10, 20, 30}, {170, 0, 12}, {1, 1, 1}, 0, 1, 0, first);
         ASSERT_TRUE(base.HasValue());
         ASSERT_TRUE(base.Value().has_value());
@@ -113,7 +113,7 @@ TEST(NoriaParticlesTest, TheFairySparkKeepsThePrefixBeforeMissingTerrainAndConti
     particle.verticalSpeed = 4;
     particle.velocity = {1, 2, 3};
     const auto initial = particle;
-    Client::Render::Models::CrtRandom random(7);
+    Client::Crt::CrtRandom random(7);
     const auto missing = Client::World::StepParticlesChecked(*particles, random);
     ASSERT_FALSE(missing.HasValue());
     EXPECT_EQ(missing.Error(), Client::World::ParticleError::MissingTerrainHeight);
@@ -164,8 +164,8 @@ TEST(NoriaParticlesTest, NoriaParticleBillboardsUseTheWholeTextureAndTheStoredRo
 TEST(NoriaParticlesTest, TheButterflySparkDrawsOnlyItsScaleAndItsLife)
 {
     auto particles = std::make_unique<Client::World::Particles>();
-    Client::Render::Models::CrtRandom random(7);
-    Client::Render::Models::CrtRandom draws(7);
+    Client::Crt::CrtRandom random(7);
+    Client::Crt::CrtRandom draws(7);
     const auto created =
         particles->CreateChecked(0x5c5, {100, 200, 300}, {0, 0, 30}, {0.5f, 0.5f, 0.5f}, 7, 1.0f, 0.0f, random);
     ASSERT_TRUE(created.HasValue());
@@ -187,8 +187,8 @@ TEST(NoriaParticlesTest, TheStaffSparkDrawsOnlyItsScaleAndItsLife)
     {
         SCOPED_TRACE(seed);
         auto particles = std::make_unique<Client::World::Particles>();
-        Client::Render::Models::CrtRandom random(seed);
-        Client::Render::Models::CrtRandom draws(seed);
+        Client::Crt::CrtRandom random(seed);
+        Client::Crt::CrtRandom draws(seed);
         const auto created =
             particles->CreateChecked(0x5c5, {100, 200, 300}, {0, 0, 30}, {0.8f, 0.48f, 0.32f}, 1, 1.0f, 0.0f, random);
         ASSERT_TRUE(created.HasValue());
@@ -212,7 +212,7 @@ TEST(NoriaParticlesTest, TheOtherFairySparksFollowTheirBranch)
     {
         SCOPED_TRACE(seed);
         auto ordinary = std::make_unique<Client::World::Particles>();
-        Client::Render::Models::CrtRandom first(seed);
+        Client::Crt::CrtRandom first(seed);
         const auto base = ordinary->CreateChecked(0x5c5, {10, 20, 30}, {170, 0, 12}, {1, 1, 1}, 0, 1, 0, first);
         ASSERT_TRUE(base.HasValue());
         ASSERT_TRUE(base.Value().has_value());
@@ -221,7 +221,7 @@ TEST(NoriaParticlesTest, TheOtherFairySparksFollowTheirBranch)
         {
             SCOPED_TRACE(subtype);
             auto particles = std::make_unique<Client::World::Particles>();
-            Client::Render::Models::CrtRandom random(seed);
+            Client::Crt::CrtRandom random(seed);
             const auto created =
                 particles->CreateChecked(0x5c5, {10, 20, 30}, {170, 0, 12}, {1, 1, 1}, subtype, 1, 0, random);
             ASSERT_TRUE(created.HasValue());
@@ -233,7 +233,7 @@ TEST(NoriaParticlesTest, TheOtherFairySparksFollowTheirBranch)
             EXPECT_EQ(particle.life, original.life);
             EXPECT_EQ(particle.angles, original.angles);
             EXPECT_EQ(particle.verticalSpeed, original.verticalSpeed);
-            Client::Render::Models::CrtRandom draws(seed);
+            Client::Crt::CrtRandom draws(seed);
             for (int draw = 0; draw < 4; ++draw)
                 static_cast<void>(draws.Next());
             const auto forward = static_cast<float>(static_cast<double>(draws.Next() % 20 + 20) *
@@ -248,8 +248,8 @@ TEST(NoriaParticlesTest, TheOtherFairySparksFollowTheirBranch)
         {
             SCOPED_TRACE(subtype);
             auto particles = std::make_unique<Client::World::Particles>();
-            Client::Render::Models::CrtRandom random(seed);
-            Client::Render::Models::CrtRandom draws(seed);
+            Client::Crt::CrtRandom random(seed);
+            Client::Crt::CrtRandom draws(seed);
             const auto created =
                 particles->CreateChecked(0x5c5, {10, 20, 30}, {0, 0, 30}, {1, 1, 1}, subtype, 1, 0, random);
             ASSERT_TRUE(created.HasValue());
@@ -278,14 +278,14 @@ TEST(NoriaParticlesTest, TheOwnerBirthFairySparkStartsAtItsOwner)
     {
         SCOPED_TRACE(seed);
         auto particles = std::make_unique<Client::World::Particles>();
-        Client::Render::Models::CrtRandom random(seed);
+        Client::Crt::CrtRandom random(seed);
         const auto created =
             particles->CreateTowardChecked(0x5c5, {10, 20, 30}, {170, 0, 12}, {0.5f, 0.5f, 0.5f}, 5, 2.0f,
                                            std::cref(clock), random, trigonometry, owner, ownerAt);
         ASSERT_TRUE(created.HasValue());
         ASSERT_TRUE(created.Value().has_value());
         const auto& particle = particles->All()[*created.Value()];
-        Client::Render::Models::CrtRandom draws(seed);
+        Client::Crt::CrtRandom draws(seed);
         static_cast<void>(draws.Next()); // 0x540333, la escala que se pisa.
         EXPECT_EQ(particle.life, (draws.Next() & 3) + 12);
         EXPECT_EQ(random.State(), draws.State());
@@ -304,7 +304,7 @@ TEST(NoriaParticlesTest, TheOwnerBirthFairySparkStartsAtItsOwner)
         }
     }
     auto particles = std::make_unique<Client::World::Particles>();
-    Client::Render::Models::CrtRandom random(7);
+    Client::Crt::CrtRandom random(7);
     const auto missing = particles->CreateChecked(0x5c5, {10, 20, 30}, {}, {1, 1, 1}, 5, 1, 0, random);
     ASSERT_FALSE(missing.HasValue());
     EXPECT_EQ(missing.Error(), Client::World::ParticleError::MissingOwner);
@@ -347,7 +347,7 @@ TEST(NoriaParticlesTest, TheOwnerBirthFairySparkMovesWithItsOwner)
     const std::int32_t map = 0;
     const auto step = [&](const Client::World::ParticleOwnerStates& owners)
     {
-        Client::Render::Models::CrtRandom random(7);
+        Client::Crt::CrtRandom random(7);
         return Client::World::StepParticlesChecked(
             *particles, random, std::cref(clock), &map, trigonometry, [](float, float) { return 0.0; }, {}, {}, {},
             nullptr, {}, {}, {}, owners);
@@ -392,14 +392,14 @@ TEST(NoriaParticlesTest, TheOwnedFairySparkDrawsSevenTimesAndKeepsItsOwner)
     {
         SCOPED_TRACE(seed);
         auto particles = std::make_unique<Client::World::Particles>();
-        Client::Render::Models::CrtRandom random(seed);
+        Client::Crt::CrtRandom random(seed);
         const Client::World::ParticleOwner owner{Client::World::ParticleOwnerKind::ModelEffect, 4};
         const auto created = particles->CreateOwnedChecked(0x5c5, {10, 20, 30}, {170, 0, 12}, {0.5f, 0.5f, 0.5f}, 6,
                                                            1.5f, 0.0f, random, 0, owner);
         ASSERT_TRUE(created.HasValue());
         ASSERT_TRUE(created.Value().has_value());
         const auto& particle = particles->All()[*created.Value()];
-        Client::Render::Models::CrtRandom draws(seed);
+        Client::Crt::CrtRandom draws(seed);
         static_cast<void>(draws.Next());
         static_cast<void>(draws.Next());
         const auto yaw = static_cast<float>(draws.Next() % 360);
@@ -453,7 +453,7 @@ TEST(NoriaParticlesTest, TheOwnedFairySparkMovesWithItsOwner)
     const std::int32_t map = 0;
     const auto step = [&](const Client::World::ParticleOwnerStates& owners)
     {
-        Client::Render::Models::CrtRandom random(7);
+        Client::Crt::CrtRandom random(7);
         return Client::World::StepParticlesChecked(
             *particles, random, std::cref(clock), &map, trigonometry, [](float, float) { return 0.0; }, {}, {}, {},
             nullptr, {}, {}, {}, owners);
@@ -501,7 +501,7 @@ TEST(NoriaParticlesTest, TheButterflySparkFallsSlowerThanTheFairySpark)
         particle.life = 10;
         particle.position = {10, 20, 100};
         particle.verticalSpeed = 4;
-        Client::Render::Models::CrtRandom random(7);
+        Client::Crt::CrtRandom random(7);
         const auto stepped =
             Client::World::StepParticlesChecked(*particles, random, nullptr, [](float, float) { return 0.0; });
         ASSERT_TRUE(stepped.HasValue());

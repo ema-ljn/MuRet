@@ -1,6 +1,7 @@
 #include "Core/Expected.h"
 #include "Core/Log.h"
 #include "Core/ILogSink.h"
+#include "Crt/CrtRandom.h"
 #include "Render/Models/IModelLibrary.h"
 #include "Scenes/GameModels.h"
 #include "Scenes/FaunaDrawing.h"
@@ -13,7 +14,6 @@
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/OriginalRetainedMath.h"
 #include "Render/Models/Skinning.h"
-#include "Render/Models/Cloth.h"
 #include "Scenes/GameItemSpecialDrawing.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/CharacterDrawing.h"
@@ -353,7 +353,7 @@ TEST(GameFloorItemDrawingTest, AncientLowPulseDrawConsumesOneNativeRandomAndPubl
     Client::World::SphereFrustum frustum;
     auto item = Item(0x212);
     item.ancient = 1;
-    Client::Render::Models::CrtRandom random;
+    Client::Crt::CrtRandom random;
     auto expected = random;
     const auto selection = expected.Next() % 100;
     std::map<std::uint16_t, std::int32_t> selections;

@@ -1,6 +1,7 @@
 #include "Scenes/HandShine.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Scenes/ActorState.h"
@@ -60,7 +61,7 @@ ParticleActorHandsAmong(std::span<const ActorState> actors, std::size_t hero)
 
 Core::Expected<void, std::string> RaiseTheHandShine(std::span<const ActorState> actors, std::size_t hero,
                                                     std::size_t slot, World::Particles& particles,
-                                                    Render::Models::CrtRandom& random)
+                                                    Crt::CrtRandom& random)
 {
     const ActorState& actor = actors[slot];
     const glm::vec3 point = BoneOrigin(actor, actor.hands[RightHand].bone);

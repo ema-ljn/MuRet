@@ -13,10 +13,10 @@
 // en 0x518cf0 como el 0x127 (0x518f51) con él de dueño. Las altas (0x51e234 y 0x51cf6d) y los pasos (0x52a17b y
 // 0x5277ae). Su dibujo es el camino común (0x52da92 → 0x602e90): 0x6002e0 no tiene caso propio para ellos. 06, "Los
 // efectos con modelo de los tipos altos".
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
-} // namespace Client::Render::Models
+} // namespace Client::Crt
 
 namespace Client::World
 {
@@ -45,15 +45,14 @@ using KundunTerrainHeight = std::function<double(float, float)>;
 //   vida 170 y escala 2.
 // - /5: la acción en 0, vida 170 y escala 2.
 // Todos, la clave en 0xffff al final. Sin la altura del terreno, el /2, el /3 y el /4 cortan (0x51e26e, 0x51e2ee).
-[[nodiscard]] Core::Expected<void, std::string> BeginTheKundunPiece(World::ModelEffect& effect,
-                                                                    Render::Models::CrtRandom& random,
+[[nodiscard]] Core::Expected<void, std::string> BeginTheKundunPiece(World::ModelEffect& effect, Crt::CrtRandom& random,
                                                                     const KundunTerrainHeight& terrainHeight);
 
 // 0x518cf0(pedazo, ...) sobre `effects`, como lo pide la caída de Kundun: el prefijo (World::ModelEffects::Begin) y
 // BeginTheKundunPiece. Con la tabla llena, nada y sin rand(). Devuelve el lugar.
 [[nodiscard]] Core::Expected<std::optional<std::size_t>, std::string>
-CreateTheKundunPiece(World::ModelEffects& effects, const World::ModelEffectArguments& arguments,
-                     Render::Models::CrtRandom& random, const KundunTerrainHeight& terrainHeight);
+CreateTheKundunPiece(World::ModelEffects& effects, const World::ModelEffectArguments& arguments, Crt::CrtRandom& random,
+                     const KundunTerrainHeight& terrainHeight);
 
 // 0x51cf6d..0x51cf91 y 0x51d9ff, el 0x127 de cualquier subtipo: +0xd8 en 0,08f, vida 200, +0x64 en −2, escala 1,8f y
 // la luz en 0,5. Sin rand().

@@ -1,6 +1,6 @@
 #include "World/Particles.h"
 
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 
 #include "support/ParticleDrawRecorder.h"
 
@@ -18,7 +18,7 @@ constexpr std::int32_t Blessing = 0x638;
 TEST(SiegeBlessingParticleTest, CreationAndStepPreserveTheNativeJitterAndRandomOrder)
 {
     Client::World::Particles particles;
-    Client::Render::Models::CrtRandom random(1);
+    Client::Crt::CrtRandom random(1);
     const auto created = particles.CreateChecked(Blessing, {100, 200, 300}, {}, {1, 2, 3}, 0, 1.0f, 0.0f, random);
     ASSERT_TRUE(created.HasValue());
     ASSERT_TRUE(created.Value().has_value());
@@ -31,7 +31,7 @@ TEST(SiegeBlessingParticleTest, CreationAndStepPreserveTheNativeJitterAndRandomO
     EXPECT_EQ(particle.position, (glm::vec3{96, 201, 542}));
     EXPECT_EQ(particle.scale, static_cast<float>(1.0 - static_cast<double>(0.01f)));
     EXPECT_EQ(particle.light, glm::vec3(static_cast<float>(19.0 * static_cast<double>(0.05f))));
-    Client::Render::Models::CrtRandom expected(1);
+    Client::Crt::CrtRandom expected(1);
     expected.Discard(6); // 2alta,2viento,2pasodelapartícula.
     EXPECT_EQ(random.State(), expected.State());
 }
@@ -44,13 +44,13 @@ TEST(SiegeBlessingParticleTest, TheFinalTickStillRunsItsJitterAfterDeath)
     particle.type = Blessing;
     particle.life = 1;
     particle.scale = 1.0f;
-    Client::Render::Models::CrtRandom random(1);
+    Client::Crt::CrtRandom random(1);
     ASSERT_TRUE(Client::World::StepParticlesChecked(particles, random).HasValue());
     EXPECT_FALSE(particle.alive);
     EXPECT_EQ(particle.life, 0);
     EXPECT_EQ(particle.position, (glm::vec3{-1, -1, 2}));
     EXPECT_EQ(particle.light, glm::vec3(0.0f));
-    Client::Render::Models::CrtRandom expected(1);
+    Client::Crt::CrtRandom expected(1);
     expected.Discard(4);
     EXPECT_EQ(random.State(), expected.State());
 }

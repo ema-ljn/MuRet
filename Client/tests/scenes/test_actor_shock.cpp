@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Models/PlayerModels.h"
 #include "Render/Models/Cloth.h"
 #include "Scenes/ActorState.h"
@@ -34,7 +35,7 @@
 // tablas de 0x612d90: los sonidos {0, 1, 2, 3, 4} y {5, 6, 7, 8, 9}. Los mapas: Lorencia y Devias.
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::Scenes::ActorState;
 
 constexpr std::uint32_t Seed = 0x2468;

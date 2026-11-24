@@ -1,3 +1,4 @@
+#include "Crt/CrtRandom.h"
 #include "Scenes/MapLoad.h"
 #include "Scenes/ModelTextureTable.h"
 #include "Scenes/SceneId.h"
@@ -10,7 +11,6 @@
 #include "Data/Textures/Texture.h"
 #include "Render/ITextureStore.h"
 #include "Render/ModelBatch.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Pass3D.h"
 #include "Render/TextureSlot.h"
 #include "World/KalimaResources.h"
@@ -60,7 +60,7 @@ class KalimaSceneLoadingTest : public testing::Test
 {
 protected:
     std::unique_ptr<Client::Scenes::WorldState> m_world = std::make_unique<Client::Scenes::WorldState>();
-    Client::Render::Models::CrtRandom m_random{1};
+    Client::Crt::CrtRandom m_random{1};
     std::filesystem::path m_root = Client::Tests::RepoDataDir();
     Client::Core::Expected<void, std::string> Load(std::uint8_t map, const std::filesystem::path& root)
     {

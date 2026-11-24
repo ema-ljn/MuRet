@@ -1,6 +1,6 @@
 #pragma once
 
-#include "App/WindowState.h"
+#include "Core/PixelSize.h"
 #include "Render/QuadCorner.h"
 #include "Render/SpriteVertex.h"
 #include "Render/TextureSlot.h"
@@ -70,7 +70,7 @@ struct UiImage
 // como las deja 0x647050. Con frameTop, 0x647560 corre la u de la izquierda a (frameLeft + 0,5) /
 // tw y la v de arriba a (frameTop + 0,5) / th; la de la derecha es esa más lo que medía la imagen
 // en u, y la de abajo, la de arriba más lo que medía en v (guardado en float).
-[[nodiscard]] QuadCorners UiImageCorners(const UiImage& image, App::PixelSize screen);
+[[nodiscard]] QuadCorners UiImageCorners(const UiImage& image, Core::PixelSize screen);
 
 // El factor de un eje de la pantalla para una UI diseñada en `designSize` píxeles: el tamaño por
 // la inversa de `designSize` en float, como 0x65eeb0 con 800 y 600 (0x6ba884 y 0x6ba880).

@@ -1,8 +1,8 @@
 #pragma once
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
 #include "Core/LocalTime.h"
+#include "Core/PixelSize.h"
 #include "Render/Frame/IScreenReader.h"
 
 #include <cstdint>
@@ -57,7 +57,7 @@ struct ScreenshotFrameContext
     WorldState& world;
     // El DC de los textos y la pantalla en píxeles, para medir el mensaje (06 § El chat).
     const Render::Text::ITextMeasure& measure;
-    App::PixelSize screen;
+    Core::PixelSize screen;
     // GetAsyncKeyState(0x10) en 0x638303: Shift abajo.
     bool shiftDown = false;
     // GetLocalTime (0x6381c7). Se lee solo con la captura pedida (ScreenshotFileName).

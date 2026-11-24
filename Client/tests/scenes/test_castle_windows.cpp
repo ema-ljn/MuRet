@@ -1,17 +1,17 @@
 #include "Network/Xor32Packet.h"
 #include "Scenes/CastleWindows.h"
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
+#include "Core/PixelSize.h"
 #include "Core/StderrSink.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Text/TextTable.h"
 #include "Input/InputState.h"
 #include "Protocol/OptionData.h"
 #include "Protocol/Outgoing.h"
 #include "Protocol/CastleSiege.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Scenes/GameUi.h"
@@ -120,12 +120,12 @@ protected:
     }
     void ExpectRandoms(int count)
     {
-        Client::Render::Models::CrtRandom expected(4242);
+        Client::Crt::CrtRandom expected(4242);
         for (int i = 0; i < count; ++i)
             static_cast<void>(expected.Next());
         EXPECT_EQ(m_random.State(), expected.State());
     }
-    Client::Core::Expected<void, std::string> Draw(Client::App::PixelSize screen = {640, 480})
+    Client::Core::Expected<void, std::string> Draw(Client::Core::PixelSize screen = {640, 480})
     {
         auto& runtime = m_world->Runtime();
         auto& hero = m_world->Actors()[runtime.hero];
@@ -184,7 +184,7 @@ protected:
         EXPECT_TRUE(command->alphaTest);
     }
     std::unique_ptr<Client::Scenes::WorldState> m_world = std::make_unique<Client::Scenes::WorldState>();
-    Client::Render::Models::CrtRandom m_random{4242};
+    Client::Crt::CrtRandom m_random{4242};
     Client::Input::InputState m_input;
     Requests m_requests;
     LetterMeasure m_measure;

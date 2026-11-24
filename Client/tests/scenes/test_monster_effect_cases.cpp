@@ -1,8 +1,8 @@
 #include "Scenes/ModelEffects.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainGrid.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/OriginalAngles.h"
 #include "Render/Models/OriginalRetainedMath.h"
@@ -45,7 +45,7 @@
 // lo que escriben, sus rand() en orden, sus partículas, joints, sprites y luces, y dónde cortan.
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::Scenes::ActorState;
 using Client::Tests::AfterDraws;
 using Client::Tests::FirstSeedWhere;

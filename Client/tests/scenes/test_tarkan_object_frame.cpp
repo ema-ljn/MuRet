@@ -1,6 +1,6 @@
 #include "Scenes/TarkanObjectFrame.h"
 
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Render/Models/RoundedMath.h"
@@ -28,7 +28,7 @@
 // compartido y la piedrita del 0x53 (06 § Los objetos de Tarkan).
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::Render::Models::RoundedSin;
 using Client::Scenes::GameObjectPass;
 using Client::Scenes::StepTarkanObjectFrame;

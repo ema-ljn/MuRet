@@ -1,6 +1,6 @@
 #pragma once
 
-#include "App/WindowState.h"
+#include "Core/PixelSize.h"
 #include "Input/InputState.h"
 #include "Render/OriginalQuad.h"
 #include "Render/SpriteBatch.h"
@@ -23,7 +23,7 @@ inline constexpr Render::TextureSlot CursorPushSlot{3};
 // bajos, como el LOWORD y el HIWORD del lParam. Fuera de la ventana el original no recibe el movimiento
 // (no captura el mouse); SDL sí, con un botón abajo, y entonces el cursor sigue afuera (08, P-C27 g). Una
 // posición que no es un número o una pantalla vacía dan 0.
-[[nodiscard]] Point MouseIn640x480(const Input::InputState& input, App::PixelSize screen);
+[[nodiscard]] Point MouseIn640x480(const Input::InputState& input, Core::PixelSize screen);
 
 // 0x5ac7da: el cursor de 24 × 24 en (x − 2, y − 2) de 640 × 480, escalado en tamaño y en posición, entero
 // y sin alfa; con el botón izquierdo abajo (0x7d36874, que en el login y la selección solo escriben el
@@ -34,5 +34,5 @@ inline constexpr Render::TextureSlot CursorPushSlot{3};
 [[nodiscard]] Render::OriginalQuad CursorQuad(Point mouse, bool leftDown);
 
 // 0x620a00(1), glColor3f(1, 1, 1) y el quad de CursorQuad con el mouse y el botón de `input`.
-void DrawGameCursor(Render::SpriteBatch& sprites, const Input::InputState& input, App::PixelSize screen);
+void DrawGameCursor(Render::SpriteBatch& sprites, const Input::InputState& input, Core::PixelSize screen);
 } // namespace Client::UI

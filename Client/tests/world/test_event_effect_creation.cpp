@@ -1,6 +1,6 @@
 #include "World/ModelEffects.h"
 
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -42,9 +42,9 @@ TEST(CrywolfEffectsTest, TheLowShockWavesTakeTheirLifeAndScale)
     {
         SCOPED_TRACE(subtype);
         effects->Effects()[0].alive = false;
-        Client::Render::Models::CrtRandom random(7);
+        Client::Crt::CrtRandom random(7);
         ASSERT_EQ(effects->CreateCastleShockWave({.type = 0x6eb, .subtype = subtype}, random), 0u);
-        Client::Render::Models::CrtRandom replay(7);
+        Client::Crt::CrtRandom replay(7);
         std::int32_t life = 30;
         float scale = 20.0f;
         const double tenth = static_cast<double>(0.1f);
@@ -69,7 +69,7 @@ TEST(CrywolfEffectsTest, TheLowShockWavesTakeTheirLifeAndScale)
     }
     for (auto& effect : effects->Effects())
         effect.alive = true;
-    Client::Render::Models::CrtRandom random(7);
+    Client::Crt::CrtRandom random(7);
     EXPECT_FALSE(effects->CreateCastleShockWave({.type = 0x6eb, .subtype = 4}, random));
     EXPECT_EQ(random.State(), 7u);
 }
@@ -82,7 +82,7 @@ TEST(CrywolfEffectsTest, TheCastleWavesSortOnlyTheAllocatedEighthVariant)
     for (int subtype = 5; subtype <= 8; ++subtype)
     {
         effects->Effects()[0].alive = false;
-        Client::Render::Models::CrtRandom random(7);
+        Client::Crt::CrtRandom random(7);
         const auto made =
             effects->CreateCastleShockWave({.type = 0x6eb, .light = {1, 0.2f, 0.4f}, .subtype = subtype}, random);
         ASSERT_EQ(made, 0u);
@@ -93,7 +93,7 @@ TEST(CrywolfEffectsTest, TheCastleWavesSortOnlyTheAllocatedEighthVariant)
     }
     for (auto& effect : effects->Effects())
         effect.alive = true;
-    Client::Render::Models::CrtRandom random(7);
+    Client::Crt::CrtRandom random(7);
     EXPECT_FALSE(effects->CreateCastleShockWave({.type = 0x6eb, .subtype = 8}, random));
     EXPECT_EQ(random.State(), 7u);
 }

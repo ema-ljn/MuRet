@@ -7,7 +7,7 @@
 
 #include <cstdint>
 
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
 }
@@ -64,12 +64,11 @@ struct EffectParticleBirth
 // Después del prefijo de 0x53fe70 (Initialize). Sin el reloj o la trigonometría que pide la 5de/2..4 y la 5f2/30,
 // MissingClock con los rand() ya sacados; sin la posición del dueño, MissingOwner, y sin la altura del terreno de la
 // 5f2/28..30, MissingTerrainHeight (Particles las pide antes de tocar el lugar).
-[[nodiscard]] Core::Expected<void, ParticleError>
-CreateEffectParticle(Particle& particle, Render::Models::CrtRandom& random, const EffectParticleBirth& birth);
+[[nodiscard]] Core::Expected<void, ParticleError> CreateEffectParticle(Particle& particle, Crt::CrtRandom& random,
+                                                                       const EffectParticleBirth& birth);
 // Después de la vida y el movimiento comunes de 0x5446e0. El anillo pide la trigonometría (fsin); 5c6/4 y 5de/4, el
 // estado de su dueño.
-[[nodiscard]] Core::Expected<void, ParticleError> StepEffectParticle(Particle& particle,
-                                                                     Render::Models::CrtRandom& random,
+[[nodiscard]] Core::Expected<void, ParticleError> StepEffectParticle(Particle& particle, Crt::CrtRandom& random,
                                                                      IParticleTrigonometry* trigonometry,
                                                                      const ParticleOwnerStates& ownerStates);
 

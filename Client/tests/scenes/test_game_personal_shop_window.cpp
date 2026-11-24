@@ -1,10 +1,10 @@
 #include "Scenes/GameInventoryHud.h"
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Core/PixelSize.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Tables/ItemTable.h"
 #include "Data/Text/TextTable.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/RoundedMath.h"
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
@@ -38,16 +38,16 @@
 // Los títulos, los textos y los ítems son inventados.
 namespace
 {
+using Client::Crt::CrtRandom;
 using Client::Render::Color;
 using Client::Render::SpriteBatch;
-using Client::Render::Models::CrtRandom;
 using Client::Render::Models::RoundedSin;
 using Client::Render::Text::FontKind;
 using Client::Scenes::GameHudContext;
 using Client::World::ItemState;
 
 constexpr std::uint32_t Seed = 0x5f30;
-constexpr Client::App::PixelSize Screen640{640, 480};
+constexpr Client::Core::PixelSize Screen640{640, 480};
 // 0x5f306e: la esquina, (0x104, 0).
 constexpr int Left = 0x104;
 constexpr float LeftF = 260.0f;

@@ -1,8 +1,8 @@
 #include "Scenes/ChaosMix.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Tables/ItemTable.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/InventoryMoves.h"
 #include "Scenes/ItemPrice.h"
@@ -569,7 +569,7 @@ ChaosBoxValue(std::span<const World::ItemState> grid, const Data::Tables::ItemTa
     return chaos ? value : 0;
 }
 
-Core::Expected<std::int32_t, std::string> ChaosMixKind(WorldState& world, Render::Models::CrtRandom& random,
+Core::Expected<std::int32_t, std::string> ChaosMixKind(WorldState& world, Crt::CrtRandom& random,
                                                        const Data::Tables::ItemTable* items)
 {
     WorldRuntime& runtime = world.Runtime();
@@ -625,7 +625,7 @@ std::int32_t ChaosMixKindForMode(std::int32_t kind, std::int32_t mode)
     return kind;
 }
 
-Core::Expected<void, std::string> ScanTheChaosBox(WorldState& world, Render::Models::CrtRandom& random,
+Core::Expected<void, std::string> ScanTheChaosBox(WorldState& world, Crt::CrtRandom& random,
                                                   const Data::Tables::ItemTable* items)
 {
     WorldRuntime& runtime = world.Runtime();

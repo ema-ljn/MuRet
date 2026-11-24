@@ -1,6 +1,6 @@
 #include "World/ModelEffects.h"
 
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/ObjectState.h"
 #include "Render/Models/OriginalRotation.h"
@@ -409,8 +409,8 @@ TEST(ModelEffectsTest, TheButterflyIsCreatedHiddenInTheSelectionWithOneDraw)
         for (const std::int32_t subtype : {3, 1})
         {
             ModelEffects effects;
-            Client::Render::Models::CrtRandom random(9);
-            Client::Render::Models::CrtRandom draws(9);
+            Client::Crt::CrtRandom random(9);
+            Client::Crt::CrtRandom draws(9);
             const auto slot = effects.CreateButterflyEffect({10.0f, 20.0f, 30.0f}, {0.0f, 0.0f, 45.0f}, glm::vec3(1.0f),
                                                             subtype, 1.25f, selection, random);
             ASSERT_EQ(slot, std::optional<std::size_t>(0));
@@ -435,7 +435,7 @@ TEST(ModelEffectsTest, TheButterflyIsCreatedHiddenInTheSelectionWithOneDraw)
     ModelEffects full;
     for (auto& effect : full.Effects())
         effect.alive = true;
-    Client::Render::Models::CrtRandom random(9);
+    Client::Crt::CrtRandom random(9);
     EXPECT_FALSE(full.CreateButterflyEffect({}, {}, glm::vec3(1.0f), 3, 1.0f, true, random).has_value());
     EXPECT_EQ(random.State(), 9u);
 }
@@ -449,8 +449,8 @@ TEST(ModelEffectsTest, TheFallingStoneDrawsSixTimesAndStartsAboveItsDrip)
     {
         SCOPED_TRACE(seed);
         ModelEffects effects;
-        Client::Render::Models::CrtRandom random(seed);
-        Client::Render::Models::CrtRandom draws(seed);
+        Client::Crt::CrtRandom random(seed);
+        Client::Crt::CrtRandom draws(seed);
         const auto slot =
             effects.CreateFallingStone({100.0f, 200.0f, 300.0f}, glm::vec3(0.0f), {0.25f, 0.5f, 0.75f}, random);
         ASSERT_EQ(slot, std::optional<std::size_t>(0));
@@ -479,7 +479,7 @@ TEST(ModelEffectsTest, TheFallingStoneDrawsSixTimesAndStartsAboveItsDrip)
     ModelEffects full;
     for (auto& effect : full.Effects())
         effect.alive = true;
-    Client::Render::Models::CrtRandom random(9);
+    Client::Crt::CrtRandom random(9);
     EXPECT_FALSE(full.CreateFallingStone({}, {}, glm::vec3(1.0f), random).has_value());
     EXPECT_EQ(random.State(), 9u);
 }
@@ -493,7 +493,7 @@ TEST(ModelEffectsTest, TheFlameJetLivesFortyAndClosesTheOwnRecord)
         SCOPED_TRACE(static_cast<int>(start));
         ModelEffects effects;
         std::uint8_t depth = start;
-        Client::Render::Models::CrtRandom random(9);
+        Client::Crt::CrtRandom random(9);
         const auto slot =
             effects.CreateFlameJet({1.0f, 2.0f, 3.0f}, {0.0f, 0.0f, 90.0f}, glm::vec3(1.0f), depth, random);
         ASSERT_EQ(slot, std::optional<std::size_t>(0));
@@ -503,7 +503,7 @@ TEST(ModelEffectsTest, TheFlameJetLivesFortyAndClosesTheOwnRecord)
         EXPECT_EQ(effect.life, 40);
         EXPECT_EQ(effect.transform.position, glm::vec3(1.0f, 2.0f, 3.0f));
         EXPECT_EQ(depth, start);
-        Client::Render::Models::CrtRandom expected(9);
+        Client::Crt::CrtRandom expected(9);
         if (start == 0)
         {
             for (int draw = 0; draw < Client::Render::Models::OwnRecordCloseRandoms; ++draw)
@@ -534,7 +534,7 @@ TEST(ModelEffectsTest, TheOwnedFlameJetKeepsTheOwnCountForItsOwner)
         ModelEffects effects;
         effects.Effects()[0].word8c = 0x7777;
         std::uint8_t depth = start;
-        Client::Render::Models::CrtRandom random(9);
+        Client::Crt::CrtRandom random(9);
         const auto slot = effects.CreateOwnedFlameJet(arguments, depth, std::uint8_t{0xc5}, random);
         ASSERT_EQ(slot, std::optional<std::size_t>(0));
         const ModelEffect& effect = effects.Effects()[0];
@@ -551,13 +551,13 @@ TEST(ModelEffectsTest, TheOwnedFlameJetKeepsTheOwnCountForItsOwner)
         EXPECT_EQ(effect.byte89, 4);
         EXPECT_EQ(effect.word8c, 0x00c5u);
         EXPECT_EQ(depth, start);
-        Client::Render::Models::CrtRandom expected(9);
+        Client::Crt::CrtRandom expected(9);
         if (start == 0)
             expected.Discard(Client::Render::Models::OwnRecordCloseRandoms);
         EXPECT_EQ(random.State(), expected.State());
     }
     std::uint8_t depth = 0;
-    Client::Render::Models::CrtRandom untouched(9);
+    Client::Crt::CrtRandom untouched(9);
     ModelEffects other;
     arguments.subtype = 1;
     EXPECT_FALSE(other.CreateOwnedFlameJet(arguments, depth, 0, untouched).has_value());
@@ -615,8 +615,8 @@ TEST(ModelEffectsTest, TheStoneChipsArePushedAlongTheirDrawnYaw)
     {
         SCOPED_TRACE(type);
         ModelEffects effects;
-        Client::Render::Models::CrtRandom random(4);
-        Client::Render::Models::CrtRandom draws(4);
+        Client::Crt::CrtRandom random(4);
+        Client::Crt::CrtRandom draws(4);
         const auto slot =
             effects.CreateStoneChip(type, {10.0f, 20.0f, 30.0f}, glm::vec3(0.0f), {0.5f, 0.5f, 0.5f}, random);
         ASSERT_EQ(slot, std::optional<std::size_t>(0));
@@ -638,7 +638,7 @@ TEST(ModelEffectsTest, TheStoneChipsArePushedAlongTheirDrawnYaw)
         EXPECT_EQ(random.State(), draws.State());
     }
     ModelEffects effects;
-    Client::Render::Models::CrtRandom random(4);
+    Client::Crt::CrtRandom random(4);
     EXPECT_FALSE(effects.CreateStoneChip(0xca, {}, {}, glm::vec3(1.0f), random).has_value());
     EXPECT_FALSE(effects.Effects()[0].alive);
     EXPECT_EQ(random.State(), 4u);
@@ -655,8 +655,8 @@ TEST(ModelEffectsTest, TheColumnChipIsBornLikeTheFirstOneButBigger)
     {
         SCOPED_TRACE(type);
         ModelEffects effects;
-        Client::Render::Models::CrtRandom random(9);
-        Client::Render::Models::CrtRandom draws(9);
+        Client::Crt::CrtRandom random(9);
+        Client::Crt::CrtRandom draws(9);
         const glm::vec3 angles{12.0f, 34.0f, 30.0f};
         const auto slot = effects.CreateStoneChip(type, {10.0f, 20.0f, 30.0f}, angles, {0.5f, 0.6f, 0.7f}, random,
                                                   Client::World::ColumnStoneChipSubtype);
@@ -684,7 +684,7 @@ TEST(ModelEffectsTest, TheColumnChipIsBornLikeTheFirstOneButBigger)
     ModelEffects full;
     for (auto& effect : full.Effects())
         effect.alive = true;
-    Client::Render::Models::CrtRandom random(9);
+    Client::Crt::CrtRandom random(9);
     EXPECT_FALSE(full.CreateStoneChip(Client::World::FirstStoneChipEffect, {}, {}, glm::vec3(1.0f), random,
                                       Client::World::ColumnStoneChipSubtype)
                      .has_value());
@@ -702,8 +702,8 @@ TEST(ModelEffectsTest, TheSplintersAreScatteredBeforeTheChipPath)
     {
         SCOPED_TRACE(type);
         ModelEffects effects;
-        Client::Render::Models::CrtRandom random(7);
-        Client::Render::Models::CrtRandom draws(7);
+        Client::Crt::CrtRandom random(7);
+        Client::Crt::CrtRandom draws(7);
         const glm::vec3 angles{0.0f, 0.0f, 33.0f};
         const auto slot = effects.CreateStoneChip(type, {1000.0f, 2000.0f, 30.0f}, angles, {0.5f, 0.6f, 0.7f}, random);
         ASSERT_EQ(slot, std::optional<std::size_t>(0));
@@ -733,7 +733,7 @@ TEST(ModelEffectsTest, TheSplintersAreScatteredBeforeTheChipPath)
         EXPECT_EQ(random.State(), draws.State());
     }
     ModelEffects effects;
-    Client::Render::Models::CrtRandom random(7);
+    Client::Crt::CrtRandom random(7);
     EXPECT_FALSE(
         effects.CreateStoneChip(Client::World::FirstSplinterEffect, {}, {}, glm::vec3(1.0f), random, 5).has_value());
     for (auto& effect : effects.Effects())
@@ -777,8 +777,8 @@ TEST(ModelEffectsTest, TheIceShardRisesFiftyAndIsPushedAlongItsDrawnYaw)
 {
     constexpr double Tenth = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));
     auto effects = std::make_unique<ModelEffects>();
-    Client::Render::Models::CrtRandom random(7);
-    Client::Render::Models::CrtRandom draws(7);
+    Client::Crt::CrtRandom random(7);
+    Client::Crt::CrtRandom draws(7);
     const auto slot =
         effects->CreateIceShard({100.0f, 200.0f, 30.0f}, {10.0f, 0.0f, 90.0f}, {0.5f, 0.25f, 1.0f}, random);
     ASSERT_EQ(slot, std::optional<std::size_t>(0));
@@ -807,7 +807,7 @@ TEST(ModelEffectsTest, TheIceShardRisesFiftyAndIsPushedAlongItsDrawnYaw)
 
     for (auto& taken : effects->Effects())
         taken.alive = true;
-    Client::Render::Models::CrtRandom full(7);
+    Client::Crt::CrtRandom full(7);
     EXPECT_FALSE(effects->CreateIceShard({}, {}, glm::vec3(1.0f), full).has_value());
     EXPECT_EQ(full.State(), 7u);
 }
@@ -820,7 +820,7 @@ TEST(ModelEffectsTest, TheIceShardRisesFiftyAndIsPushedAlongItsDrawnYaw)
 TEST(ModelEffectsTest, TheIcarusCloudAndFlareAreCreatedWithTheirOwnFields)
 {
     ModelEffects effects;
-    Client::Render::Models::CrtRandom random(1);
+    Client::Crt::CrtRandom random(1);
     const auto cloud = effects.CreateIcarusEffect(Client::World::IcarusCloudEffect, {100.0f, 200.0f, 300.0f},
                                                   glm::vec3(0.0f), {0.1f, 0.2f, 0.3f}, random);
     ASSERT_EQ(cloud, std::optional<std::size_t>(0));
@@ -836,9 +836,9 @@ TEST(ModelEffectsTest, TheIcarusCloudAndFlareAreCreatedWithTheirOwnFields)
     EXPECT_EQ(random.State(), 1u);
 
     std::uint32_t seed = 1;
-    while (Client::Render::Models::CrtRandom(seed).Next() % 5 != 0)
+    while (Client::Crt::CrtRandom(seed).Next() % 5 != 0)
         ++seed;
-    Client::Render::Models::CrtRandom draws(seed);
+    Client::Crt::CrtRandom draws(seed);
     const auto flare = effects.CreateIcarusEffect(Client::World::IcarusFlareEffect, {1.0f, 2.0f, 3.0f}, glm::vec3(0.0f),
                                                   glm::vec3(1.0f), draws);
     ASSERT_EQ(flare, std::optional<std::size_t>(1));
@@ -850,7 +850,7 @@ TEST(ModelEffectsTest, TheIcarusCloudAndFlareAreCreatedWithTheirOwnFields)
     EXPECT_EQ(std::bit_cast<std::uint32_t>(falling.velocity.z), 0x408750d4u);
     EXPECT_EQ(falling.transform.scale, 3.0f);
     EXPECT_EQ(falling.life, 400);
-    Client::Render::Models::CrtRandom expected(seed);
+    Client::Crt::CrtRandom expected(seed);
     static_cast<void>(expected.Next());
     EXPECT_EQ(draws.State(), expected.State());
 
@@ -864,8 +864,8 @@ TEST(ModelEffectsTest, TheAidaWispIsCreatedWithSixDrawsAroundItsObject)
     ModelEffects effects;
     effects.Effects()[0].alive = true;
     effects.Effects()[1].turnPending = 7.0f;
-    Client::Render::Models::CrtRandom random(11);
-    Client::Render::Models::CrtRandom draws(11);
+    Client::Crt::CrtRandom random(11);
+    Client::Crt::CrtRandom draws(11);
     const glm::vec3 at{1000.5f, 2000.25f, 300.0f};
     const glm::vec3 angles{0.0f, 0.0f, 45.0f};
     const auto created = effects.CreateAidaWisp(at, angles, glm::vec3(0.1f), random);
@@ -906,7 +906,7 @@ TEST(ModelEffectsTest, TheAidaWispIsCreatedWithSixDrawsAroundItsObject)
 
     for (auto& effect : effects.Effects())
         effect.alive = true;
-    Client::Render::Models::CrtRandom full(11);
+    Client::Crt::CrtRandom full(11);
     EXPECT_FALSE(effects.CreateAidaWisp(at, angles, glm::vec3(0.1f), full).has_value());
     EXPECT_EQ(full.State(), 11u);
 }
@@ -916,7 +916,7 @@ TEST(ModelEffectsTest, TheAidaWispIsCreatedWithSixDrawsAroundItsObject)
 TEST(ModelEffectsTest, TheGallopShockWaveIsBornWithOneRandom)
 {
     ModelEffects effects;
-    Client::Render::Models::CrtRandom random(1);
+    Client::Crt::CrtRandom random(1);
     const auto slot =
         effects.CreateGallopShockWave({100.5f, 200.25f, 300.0f}, {0.0f, 0.0f, 45.0f}, glm::vec3(1.0f), random);
     ASSERT_EQ(slot, std::optional<std::size_t>(0));
@@ -930,14 +930,14 @@ TEST(ModelEffectsTest, TheGallopShockWaveIsBornWithOneRandom)
     EXPECT_EQ(wave.transform.angles, glm::vec3(0.0f, 0.0f, 45.0f));
     EXPECT_EQ(wave.light, glm::vec3(1.0f));
     EXPECT_EQ(wave.itemType, nullptr);
-    Client::Render::Models::CrtRandom expected(1);
+    Client::Crt::CrtRandom expected(1);
     static_cast<void>(expected.Next());
     EXPECT_EQ(random.State(), expected.State());
 
     ModelEffects full;
     for (auto& effect : full.Effects())
         effect.alive = true;
-    Client::Render::Models::CrtRandom untouched(1);
+    Client::Crt::CrtRandom untouched(1);
     EXPECT_FALSE(full.CreateGallopShockWave({}, {}, glm::vec3(1.0f), untouched).has_value());
     EXPECT_EQ(untouched.State(), 1u);
 }
@@ -963,12 +963,12 @@ TEST(ModelEffectsTest, TheLightningPicksItsPlaceWithItsOwnRandoms)
         ModelEffects effects;
         Client::World::FrameSprites sprites;
         int owner = 0;
-        Client::Render::Models::CrtRandom random(seed);
+        Client::Crt::CrtRandom random(seed);
         const auto slot = effects.CreateLightning(at, {0.0f, 0.0f, 45.0f}, light, &owner, random, bonePoint, sprites);
         ASSERT_TRUE(slot.HasValue()) << slot.Error();
         ASSERT_EQ(slot.Value(), std::optional<std::size_t>(0));
         const ModelEffect& bolt = effects.Effects()[0];
-        Client::Render::Models::CrtRandom draws(seed);
+        Client::Crt::CrtRandom draws(seed);
         float scale = static_cast<float>(static_cast<double>(draws.Next() % 100) * static_cast<double>(0.002f) +
                                          static_cast<double>(0.3f));
         glm::vec3 angles;
@@ -1036,7 +1036,7 @@ TEST(ModelEffectsTest, TheLightningPicksItsPlaceWithItsOwnRandoms)
     for (auto& effect : full.Effects())
         effect.alive = true;
     Client::World::FrameSprites sprites;
-    Client::Render::Models::CrtRandom untouched(1);
+    Client::Crt::CrtRandom untouched(1);
     const auto none = full.CreateLightning(at, {}, light, nullptr, untouched, bonePoint, sprites);
     ASSERT_TRUE(none.HasValue());
     EXPECT_FALSE(none.Value().has_value());
@@ -1149,12 +1149,12 @@ TEST(ModelEffectsTest, TheEarthquakeIsBornWithItsSubtypeAndClosesTheOwnRecord)
         const ModelEffectOwner owner{.type = &horseType, .effect = nullptr, .angles = &horseAngles};
         std::uint8_t depth = start;
         std::uint8_t count = 0xff;
-        Client::Render::Models::CrtRandom random(7);
+        Client::Crt::CrtRandom random(7);
         const auto slot = effects.CreateEarthquake({100.5f, 200.25f, 300.0f}, {10.0f, 20.0f, 45.3f}, glm::vec3(0.5f), 2,
                                                    owner, depth, count, random);
         ASSERT_EQ(slot, std::optional<std::size_t>(0));
         const ModelEffect& quake = effects.Effects()[0];
-        Client::Render::Models::CrtRandom expected(7);
+        Client::Crt::CrtRandom expected(7);
         const int subtype = expected.Next() % 100;
         EXPECT_TRUE(quake.alive);
         EXPECT_EQ(quake.type, Client::World::EarthquakeEffect);
@@ -1193,7 +1193,7 @@ TEST(ModelEffectsTest, TheEarthquakeIsBornWithItsSubtypeAndClosesTheOwnRecord)
         effect.alive = true;
     std::uint8_t depth = 0;
     std::uint8_t count = 4;
-    Client::Render::Models::CrtRandom untouched(7);
+    Client::Crt::CrtRandom untouched(7);
     EXPECT_FALSE(full.CreateEarthquake({}, {}, glm::vec3(1.0f), 2, {}, depth, count, untouched).has_value());
     EXPECT_EQ(untouched.State(), 7u);
     EXPECT_EQ(count, 4);

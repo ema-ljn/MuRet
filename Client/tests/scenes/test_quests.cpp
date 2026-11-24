@@ -1,9 +1,9 @@
 #include "Scenes/Quests.h"
 
+#include "Crt/CrtRandom.h"
 #include "Data/Tables/QuestTable.h"
 #include "Data/Text/DialogTable.h"
 #include "Data/Text/TextTable.h"
-#include "Render/Models/Cloth.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnInventory.h"
@@ -111,7 +111,7 @@ struct Quests
         item.scalar1Low = level << 3;
     }
     Client::Scenes::WorldState world;
-    Client::Render::Models::CrtRandom random{Seed};
+    Client::Crt::CrtRandom random{Seed};
     Client::Data::Text::TextTable texts = Client::Tests::MakeTextTable({{609, "Cerrar"}});
 };
 
@@ -342,7 +342,7 @@ TEST(Quests, AConditionNeedsItsQuestDone)
     const auto failed = Client::Scenes::CheckTheQuestConditions(tested->Context(), 0, false);
     ASSERT_TRUE(failed.HasValue());
     EXPECT_FALSE(failed.Value());
-    EXPECT_EQ(tested->random.State(), Client::Render::Models::CrtRandom(Seed).State());
+    EXPECT_EQ(tested->random.State(), Client::Crt::CrtRandom(Seed).State());
     quest.states[0] = 0b10'00;
     const auto passed = Client::Scenes::CheckTheQuestConditions(tested->Context(), 0, false);
     ASSERT_TRUE(passed.HasValue());
@@ -375,7 +375,7 @@ TEST(Quests, AQuestInProgressShowsWhetherTheItemsAreThere)
     const auto noItems = Client::Scenes::CanCompleteTheQuest(tested->world);
     ASSERT_TRUE(noItems.HasValue());
     EXPECT_FALSE(noItems.Value());
-    EXPECT_EQ(tested->random.State(), Client::Render::Models::CrtRandom(Seed).State());
+    EXPECT_EQ(tested->random.State(), Client::Crt::CrtRandom(Seed).State());
 }
 
 TEST(Quests, ADoneQuestShowsItsLastDialog)

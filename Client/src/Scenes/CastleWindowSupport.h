@@ -17,7 +17,7 @@ namespace Client::Data::Text
 {
 class TextTable;
 }
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
 }
@@ -61,9 +61,9 @@ inline constexpr std::uint32_t TextBase = 0x76bd1dc;
                                                              std::uint32_t address);
 [[nodiscard]] CastleSender SenderOf(const GameUiContext& context);
 void ConsumeClick(WorldRuntime& runtime);
-[[nodiscard]] std::uint32_t CountMarks(WorldState& world, Render::Models::CrtRandom& random, std::uint8_t& depth);
-[[nodiscard]] std::int32_t FirstMark(WorldState& world, Render::Models::CrtRandom& random, std::uint8_t& depth);
-[[nodiscard]] bool HeroCanRegister(WorldState& world, Render::Models::CrtRandom& random);
+[[nodiscard]] std::uint32_t CountMarks(WorldState& world, Crt::CrtRandom& random, std::uint8_t& depth);
+[[nodiscard]] std::int32_t FirstMark(WorldState& world, Crt::CrtRandom& random, std::uint8_t& depth);
+[[nodiscard]] bool HeroCanRegister(WorldState& world, Crt::CrtRandom& random);
 [[nodiscard]] Core::Expected<std::pair<std::string_view, std::string_view>, std::string>
 GuildNames(const WorldState& world);
 [[nodiscard]] Core::Expected<bool, std::string> HeroCanEditTaxes(const WorldState& world);

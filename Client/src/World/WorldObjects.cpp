@@ -1,8 +1,8 @@
 #include "World/WorldObjects.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainObjects.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/Animation.h"
 #include "Render/Models/ObjectState.h"
 #include "Render/Models/Skeleton.h"
@@ -551,7 +551,7 @@ std::optional<float> RoofTargetAlpha(std::int16_t type, std::uint8_t map, std::i
 constexpr int FlickerBase = 4;
 constexpr float Tenth = std::bit_cast<float>(0x3DCCCCCDu);
 
-float FlickeringLight(Render::Models::CrtRandom& random)
+float FlickeringLight(Crt::CrtRandom& random)
 {
     const int step = (random.Next() & 3) + FlickerBase;
     return static_cast<float>(static_cast<double>(step) * static_cast<double>(Tenth));
@@ -602,7 +602,7 @@ std::string_view LorenciaFireCase(std::int16_t type)
 }
 
 // 0x604d6f: los casos del mapa 0, por el tipo − 0x32 (la tabla de 0x605b58).
-Core::Expected<void, std::string> StepLorenciaCases(WorldObject& object, Render::Models::CrtRandom& random,
+Core::Expected<void, std::string> StepLorenciaCases(WorldObject& object, Crt::CrtRandom& random,
                                                     const ObjectStepGlobals& globals)
 {
     switch (object.type)
@@ -680,7 +680,7 @@ Core::Expected<void, std::string> StepLorenciaCases(WorldObject& object, Render:
 }
 
 // 0x60506d: los casos del mapa 2, por el tipo − 0x14 (la tabla de 0x605c08).
-Core::Expected<void, std::string> StepDeviasCases(WorldObject& object, Render::Models::CrtRandom& random,
+Core::Expected<void, std::string> StepDeviasCases(WorldObject& object, Crt::CrtRandom& random,
                                                   const ObjectStepGlobals& globals)
 {
     switch (object.type)
@@ -713,8 +713,7 @@ constexpr int DropSpread = 32;
 constexpr int DropCenter = 16;
 } // namespace
 
-Core::Expected<void, std::string> StepTheWaterspoutFrame(WorldObject& object, Render::Models::CrtRandom& random,
-                                                         float worldClock)
+Core::Expected<void, std::string> StepTheWaterspoutFrame(WorldObject& object, Crt::CrtRandom& random, float worldClock)
 {
     // 0x603011: la luz del blendMesh en 1,0 (0x3f800000), antes del ftol.
     object.state.light = 1.0f;
@@ -748,8 +747,7 @@ void StepWorldObject(WorldObject& object, std::uint8_t map, const Render::Models
 
 Core::Expected<void, std::string> StepWorldObjectChecked(WorldObject& object, std::uint8_t map,
                                                          const Render::Models::Skeleton* skeleton,
-                                                         Render::Models::CrtRandom& random,
-                                                         const ObjectStepGlobals& globals)
+                                                         Crt::CrtRandom& random, const ObjectStepGlobals& globals)
 {
     // 0x425070: el 33 (Aida) y el 54 (la selección) llegan a 0x4250f0 por la cadena de 0x605a62.
     constexpr std::uint8_t AidaMap = 33;

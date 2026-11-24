@@ -1,9 +1,9 @@
 #include "Scenes/KalimaSiegeHelpers.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainHeights.h"
 #include "Render/ModelBatch.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/RoundedMath.h"
 #include "Render/Pass3D.h"
@@ -35,7 +35,7 @@
 // ejecutar el original. Kalima (24 y 36), Lorencia (0), Devias (2) y el castillo (30).
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::Render::Models::RoundedCos;
 using Client::Render::Models::RoundedSin;
 using Client::Scenes::ActorState;

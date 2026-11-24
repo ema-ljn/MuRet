@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Scenes/GameDrawTail.h"
 
 #include <span>
@@ -21,7 +22,7 @@ struct FloorItemStepContext
 {
     const Data::Terrain::TerrainHeights& heights;
     const Data::Terrain::TerrainAttributes& attributes;
-    Render::Models::CrtRandom& random;
+    Crt::CrtRandom& random;
     World::Particles& particles;
     float worldClock = 0;
     float fixedHeight = 1200;

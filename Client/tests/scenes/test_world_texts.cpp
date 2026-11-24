@@ -1,7 +1,7 @@
 #include "Scenes/WorldTexts.h"
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Core/PixelSize.h"
 #include "Render/SpriteBatch.h"
 #include "Render/Text/FontSet.h"
 #include "Scenes/GameProjection.h"
@@ -22,7 +22,7 @@
 // filas. Los textos son inventados.
 namespace
 {
-using Client::App::PixelSize;
+using Client::Core::PixelSize;
 using Client::Render::SpriteBatch;
 using Client::Render::Text::FontKind;
 using Client::Scenes::GameProjection;

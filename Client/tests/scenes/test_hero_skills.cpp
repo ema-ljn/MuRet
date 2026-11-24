@@ -4,6 +4,7 @@
 #include "Scenes/GameMovement.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Models/Model.h"
 #include "Data/Models/PlayerModels.h"
 #include "Data/Tables/SkillTable.h"
@@ -12,7 +13,6 @@
 #include "Network/Delivery.h"
 #include "Network/Packet.h"
 #include "Protocol/Outgoing.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/Skeleton.h"
 #include "Render/TextureSlot.h"
@@ -50,7 +50,7 @@
 // las skills que no son de su lista; las otras ramas todavía cortan con su dirección.
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::Scenes::HeroSkillContext;
 using Client::Scenes::UseTheHeroSkill;
 

@@ -16,7 +16,7 @@ namespace Client::Data::Text
 class TextTable;
 }
 
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
 }
@@ -40,7 +40,7 @@ struct GameHoverContext
     // Los ítems del piso (0x77f46d0, 1000 de 0x220 bytes) del dibujo de este frame.
     const GameDrawTailState& tail;
     // El rand() del frame, para el ancho del mundo (0x5bb8d0) del nombre de un monstruo.
-    Render::Models::CrtRandom& random;
+    Crt::CrtRandom& random;
     // 0x6c8e28 (el ítem del piso), 0x6c8e2c (el NPC), 0x6c8e30 (el personaje), 0x6c8e34 y 0x6c8e38, como los dejó el
     // picking de este frame.
     const std::array<std::int32_t, 5>& targets;

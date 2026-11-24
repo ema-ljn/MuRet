@@ -1,7 +1,7 @@
+#include "Crt/CrtRandom.h"
 #include "World/GameModelEffects.h"
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
-#include "Render/Models/Cloth.h"
 #include <gtest/gtest.h>
 #include <bit>
 #include <memory>
@@ -11,7 +11,7 @@ TEST(SiegeWaveStepTest, NewChildrenInLaterSlotsAdvanceWithinTheSameAscendingPool
 {
     auto effects = std::make_unique<Client::World::ModelEffects>();
     Client::World::Particles particles;
-    Client::Render::Models::CrtRandom random(1);
+    Client::Crt::CrtRandom random(1);
     const auto slot = effects->CreateCastleShockWave(
         {.type = Client::World::ShockWaveEffect, .light = {2, 4, 6}, .subtype = 6}, random);
     ASSERT_TRUE(slot.has_value());
@@ -24,7 +24,7 @@ TEST(SiegeWaveStepTest, NewChildrenInLaterSlotsAdvanceWithinTheSameAscendingPool
     EXPECT_EQ(effects->Effects()[1].subtype, 5);
     EXPECT_EQ(effects->Effects()[1].life, 19);
     EXPECT_EQ(effects->Effects()[1].light, (glm::vec3{2, 4, 6}));
-    Client::Render::Models::CrtRandom expected(1);
+    Client::Crt::CrtRandom expected(1);
     expected.Discard(2);
     EXPECT_EQ(random.State(), expected.State());
 }
@@ -32,7 +32,7 @@ TEST(SiegeWaveStepTest, TheShortImpactExpandsAndFadesRgbWithoutFadingAlpha)
 {
     auto effects = std::make_unique<Client::World::ModelEffects>();
     Client::World::Particles particles;
-    Client::Render::Models::CrtRandom random(1);
+    Client::Crt::CrtRandom random(1);
     const auto slot = effects->CreateCastleShockWave(
         {.type = Client::World::ShockWaveEffect, .light = {1, 2, 3}, .subtype = 7}, random);
     ASSERT_TRUE(slot.has_value());

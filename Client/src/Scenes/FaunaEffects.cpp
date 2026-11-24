@@ -1,3 +1,4 @@
+#include "Crt/CrtRandom.h"
 #include "Scenes/FaunaEffects.h"
 #include "Core/Expected.h"
 #include "Core/Log.h"
@@ -103,7 +104,7 @@ Core::Expected<void, std::string> StepFaunaLightning(World::ModelEffect& effect,
     return {};
 }
 FaunaStepEffects BindFaunaStepEffects(FaunaModels& models, FaunaModelLoadContext load, std::span<JointState> joints,
-                                      World::ModelEffects& effects, Render::Models::CrtRandom& random)
+                                      World::ModelEffects& effects, Crt::CrtRandom& random)
 {
     FaunaStepEffects result;
     result.effect = [joints, &random, &log = load.log](

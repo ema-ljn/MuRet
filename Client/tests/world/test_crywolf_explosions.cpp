@@ -1,5 +1,5 @@
+#include "Crt/CrtRandom.h"
 #include "World/Particles.h"
-#include "Render/Models/Cloth.h"
 #include "World/PortableParticleTrigonometry.h"
 #include "World/TerrainLighting.h"
 #include <gtest/gtest.h>
@@ -15,7 +15,7 @@ namespace
 TEST(CrywolfExplosionsTest, TheLargeExplosionHasThirtyStepsAndTheRingExplosionTwenty)
 {
     auto particles = std::make_unique<Client::World::Particles>();
-    Client::Render::Models::CrtRandom random(7);
+    Client::Crt::CrtRandom random(7);
     for (int subtype = 0; subtype <= 2; ++subtype)
     {
         const auto made = particles->CreateChecked(0x5ed, {100, 200, 300}, {}, {1, 2, 3}, subtype, 7, 0, random);
@@ -43,7 +43,7 @@ TEST(CrywolfExplosionsTest, TheFullParticlePoolSkipsTheRingCalleesAndKeepsTheFra
     explosion.subtype = 2;
     explosion.life = 21;
     explosion.position = {1000, 2000, 300};
-    Client::Render::Models::CrtRandom random(7);
+    Client::Crt::CrtRandom random(7);
     Client::World::PortableParticleTrigonometry trig;
     const float clock = 0;
     const auto stepped = Client::World::StepParticlesChecked(*particles, random, std::cref(clock), nullptr, trig, {},
@@ -80,7 +80,7 @@ TEST(CrywolfExplosionsTest, TheRingRetainsThePhysicalVisitOrderAndTheAcceptedExp
         explosion.subtype = 2;
         explosion.life = 21;
         explosion.position = {1000, 2000, 300};
-        Client::Render::Models::CrtRandom random(7);
+        Client::Crt::CrtRandom random(7);
         Client::World::PortableParticleTrigonometry trig;
         const float clock = 0;
         std::vector<int> sounds;

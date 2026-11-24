@@ -7,7 +7,7 @@
 #include <span>
 #include <string>
 
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
 }
@@ -23,6 +23,6 @@ namespace Client::Scenes
 // incluso si el dibujo usa su proyección; la vista de pose se obtiene después del cuerpo.
 [[nodiscard]] Core::Expected<void, std::string>
 DrawCrywolfMissileTail(World::ModelEffect& effect, std::uint64_t physicalSlot, World::Particles& particles,
-                       World::FrameSprites& sprites, Render::Models::CrtRandom& random,
+                       World::FrameSprites& sprites, Crt::CrtRandom& random,
                        std::span<const Render::Models::BoneTransform> globalPose, float worldClock);
 } // namespace Client::Scenes

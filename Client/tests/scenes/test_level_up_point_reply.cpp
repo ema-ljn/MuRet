@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Models/PlayerModels.h"
 #include "Data/Tables/ItemSetTables.h"
 #include "Data/Tables/ItemTable.h"
@@ -37,8 +38,8 @@
 // registro propio y 0x550d10, con los rand() de cada cierre.
 namespace
 {
+using Client::Crt::CrtRandom;
 using Client::Protocol::Character::LevelUpPointResult;
-using Client::Render::Models::CrtRandom;
 using Client::Scenes::OwnCharacterRecord;
 using Client::Scenes::WorldEntryResources;
 

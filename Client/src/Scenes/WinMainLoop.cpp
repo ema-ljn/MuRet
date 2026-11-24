@@ -1,8 +1,8 @@
 #include "Scenes/WinMainLoop.h"
 
 #include "Core/IClock.h"
+#include "Crt/CrtRandom.h"
 #include "Render/Models/Animation.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/CrywolfMusic.h"
@@ -25,13 +25,13 @@ constexpr std::uint16_t FocusCloseRandoms = 1;
 // 0x4bbd44 y 0x4bbed5: los dos contadores comparan con 30.
 constexpr std::int32_t LastQuietLoop = 0x1e;
 
-void Draw(Render::Models::CrtRandom& random, std::uint16_t count)
+void Draw(Crt::CrtRandom& random, std::uint16_t count)
 {
     for (std::uint16_t i = 0; i < count; ++i)
         static_cast<void>(random.Next());
 }
 
-void StepTheGameMusic(WorldState& world, Render::Models::CrtRandom& random)
+void StepTheGameMusic(WorldState& world, Crt::CrtRandom& random)
 {
     WorldRuntime& runtime = world.Runtime();
     StepWorldAmbience(runtime, random);
@@ -42,7 +42,7 @@ void StepTheGameMusic(WorldState& world, Render::Models::CrtRandom& random)
 }
 } // namespace
 
-void StepTheWinMainLoop(WinMainCounters& counters, Render::Models::CrtRandom& random)
+void StepTheWinMainLoop(WinMainCounters& counters, Crt::CrtRandom& random)
 {
     // 0x4bbc57: abre el contador; 0x4bbd35: lo sube.
     ++counters.loops;
@@ -68,12 +68,12 @@ void StepTheWinMainLoop(WinMainCounters& counters, Render::Models::CrtRandom& ra
     Draw(random, FocusCloseRandoms);
 }
 
-void CloseTheFrameCounter(Render::Models::CrtRandom& random)
+void CloseTheFrameCounter(Crt::CrtRandom& random)
 {
     Draw(random, CounterCloseRandoms);
 }
 
-bool InTheDeviasChurch(ActorState& hero, Render::Models::CrtRandom& random)
+bool InTheDeviasChurch(ActorState& hero, Crt::CrtRandom& random)
 {
     const auto read = [&random](const std::uint8_t& cell, std::uint8_t& depth, std::uint32_t& left)
     {
@@ -86,7 +86,7 @@ bool InTheDeviasChurch(ActorState& hero, Render::Models::CrtRandom& random)
            read(hero.cellY, hero.cellYAccesses, hero.cellYLeft) <= 31;
 }
 
-void StepWorldAmbience(WorldRuntime& runtime, Render::Models::CrtRandom& random)
+void StepWorldAmbience(WorldRuntime& runtime, Crt::CrtRandom& random)
 {
     constexpr int Wind = 0, Rain = 1, Forest = 2, Dungeon = 3, Tower = 5, Atlans = 6, Tarkan = 7, Icarus = 0x14;
     const auto loop = [&runtime](std::int32_t id) { runtime.RequestSound(id, std::nullopt, true); };
@@ -155,8 +155,8 @@ void StepWorldAmbience(WorldRuntime& runtime, Render::Models::CrtRandom& random)
         runtime.StopSound(Icarus, true);
 }
 
-void FinishTheWinMainLoop(WinMainLoopState& loop, WorldState& world, Render::Models::CrtRandom& random,
-                          Core::Duration now, Render::Models::OriginalFramePace pace, bool gameScene)
+void FinishTheWinMainLoop(WinMainLoopState& loop, WorldState& world, Crt::CrtRandom& random, Core::Duration now,
+                          Render::Models::OriginalFramePace pace, bool gameScene)
 {
     world.Runtime().ui.enterPressed = false;
     const int frames = loop.frames.FramesAt(now, pace);

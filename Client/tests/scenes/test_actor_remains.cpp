@@ -1,7 +1,7 @@
 #include "Scenes/ActorRemains.h"
 
 #include "Core/Expected.h"
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/Skeleton.h"
 #include "Scenes/ActorState.h"
@@ -24,8 +24,8 @@
 // hielo del 0x161, los tres que no dejan nada y las dos marcas de sangre 0x5e3 de los demás, con sus rand() en orden.
 namespace
 {
+using Client::Crt::CrtRandom;
 using Client::Render::Models::BoneTransform;
-using Client::Render::Models::CrtRandom;
 using Client::Scenes::ActorRemainsContext;
 using Client::Scenes::ActorState;
 using Client::Scenes::LeaveTheRemains;

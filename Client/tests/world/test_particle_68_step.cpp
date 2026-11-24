@@ -1,6 +1,6 @@
 #include "World/Particles.h"
 
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -12,7 +12,7 @@
 
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::World::Particle;
 using Client::World::Particles;
 constexpr std::int32_t EffectType = 0x68;

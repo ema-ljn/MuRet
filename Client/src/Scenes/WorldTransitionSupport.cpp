@@ -1,7 +1,7 @@
 #include "Scenes/WorldTransitionSupport.h"
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Core/PixelSize.h"
 #include "Data/Models/PlayerModels.h"
 #include "Data/Text/TextTable.h"
 #include "Render/Models/Animation.h"
@@ -211,7 +211,7 @@ Core::Expected<void, std::string> AddTheWelcomeLine(const WorldEntryResources& r
             std::string("0x4c4b38 y 0x4c7c26: Text.bmd no ofrece el nombre del mapa o el 484 de la bienvenida"));
     std::string line(*name);
     line += *welcome;
-    const App::PixelSize screen = resources.screen ? resources.screen() : App::PixelSize{640, 480};
+    const Core::PixelSize screen = resources.screen ? resources.screen() : Core::PixelSize{640, 480};
     return AddGameMessage(runtime, *resources.textMeasure, screen, {}, line, UI::SystemMessage);
 }
 

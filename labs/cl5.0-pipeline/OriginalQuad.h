@@ -1,6 +1,6 @@
 #pragma once
 
-#include "App/WindowState.h"
+#include "Core/PixelSize.h"
 #include "Render/OriginalQuad.h"
 #include "Render/QuadCorner.h"
 #include "Render/ScreenScale.h"
@@ -19,7 +19,7 @@
 namespace Labs
 {
 // El tamaño de la ventana en píxeles: DAT_006d5d60 y DAT_006d5d64 (06).
-using Screen = Client::App::PixelSize;
+using Screen = Client::Core::PixelSize;
 
 // Los argumentos de 0x621b60, en su orden. El del cliente trae también el slot y el alfa, que el
 // lab no usa: el slot es la textura, y el alfa solo cambia el color de los vértices.

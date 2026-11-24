@@ -2,12 +2,12 @@
 #include "Scenes/GameDialogSteps.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Input/InputEvent.h"
 #include "Input/InputState.h"
 #include "Input/Key.h"
 #include "Network/Delivery.h"
 #include "Protocol/Outgoing.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Scenes/GameMovementState.h"
@@ -42,9 +42,9 @@
 // inventados; el mundo, en Lorencia (0), Devias (2) y Noria (3).
 namespace
 {
+using Client::Crt::CrtRandom;
 using Client::Network::Delivery;
 using Client::Network::Xor32Decode;
-using Client::Render::Models::CrtRandom;
 using Client::Scenes::GameUiContext;
 using Client::Scenes::WorldState;
 using Client::Tests::Bytes;

@@ -1,6 +1,6 @@
 #include "UI/MessageArea.h"
 
-#include "App/WindowState.h"
+#include "Core/PixelSize.h"
 #include "Protocol/Events.h"
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
@@ -224,7 +224,7 @@ void DrawTheMessageArea(const MessageAreaState& area, MessageFrameState& frame, 
 {
     context.sprites.SetColor(Render::Color{});
     context.dcFont = Render::Text::FontKind::Normal;
-    const App::PixelSize screen = context.sprites.Screen();
+    const Core::PixelSize screen = context.sprites.Screen();
     for (int y = 0, shown = 0; y <= LastAreaY; y += RowHeight, ++shown)
     {
         const std::int32_t index = area.firstShown + shown;

@@ -1,11 +1,11 @@
 #include "Scenes/ActorCombat.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Models/PlayerModels.h"
 #include "Data/Tables/ItemTable.h"
 #include "Data/Tables/MonsterSkillTable.h"
 #include "Render/Models/Animation.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/IModelLibrary.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
@@ -218,7 +218,7 @@ Core::Expected<void, std::string> PlayerAttack(ActorState& actor, const ActorCom
 // Una lectura de un byte protegido: abre su entrada, lee y la cierra, con el rand() del cierre que la deja sin accesos
 // (0x40b3f0: uno, el byte).
 constexpr std::uint16_t ByteCloseRandoms = 1;
-std::uint8_t ReadProtected(const std::uint8_t& value, std::uint8_t& accesses, Render::Models::CrtRandom& random)
+std::uint8_t ReadProtected(const std::uint8_t& value, std::uint8_t& accesses, Crt::CrtRandom& random)
 {
     const Render::Models::LogicalAccess access(accesses, random, ByteCloseRandoms);
     return value;

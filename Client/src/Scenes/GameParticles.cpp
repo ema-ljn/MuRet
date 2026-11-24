@@ -3,8 +3,8 @@
 #include "World/PortableParticleTrigonometry.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Render/ModelBatch.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Render/Models/Skeleton.h"
@@ -64,8 +64,8 @@ constexpr std::array<WaterspoutDrop, 2> Drops{
     {{1, -20.0f, "0x6030a5", "0x6030c7"}, {4, -80.0f, "0x603121", "0x60313a"}}};
 
 Core::Expected<void, std::string> EmitDrop(const WaterspoutDrop& drop, const World::WorldObject& object,
-                                           World::Particles& particles, Render::Models::CrtRandom& random,
-                                           const float& worldClock, const WaterspoutBonePoint& bonePoint)
+                                           World::Particles& particles, Crt::CrtRandom& random, const float& worldClock,
+                                           const WaterspoutBonePoint& bonePoint)
 {
     const int x = (random.Next() % DropSpread) - DropCenter;
     const int z = (random.Next() % DropSpread) - DropCenter;
@@ -121,7 +121,7 @@ Core::Expected<glm::vec3, std::string> PosedDropPoint(const Render::Models::IMod
 } // namespace
 
 Core::Expected<void, std::string> StepGameWaterspoutFrame(World::WorldObject& object, World::Particles& particles,
-                                                          Render::Models::CrtRandom& random, const float& worldClock,
+                                                          Crt::CrtRandom& random, const float& worldClock,
                                                           const WaterspoutBonePoint& bonePoint)
 {
     object.state.light = 1.0f; // 0x603011, incluso cuando el ftol siguiente falla.
@@ -149,7 +149,7 @@ Core::Expected<void, std::string> StepGameWaterspoutFrame(World::WorldObject& ob
 }
 
 Core::Expected<void, std::string> StepGameWaterspoutFrame(World::WorldObject& object, World::Particles& particles,
-                                                          Render::Models::CrtRandom& random, const float& worldClock,
+                                                          Crt::CrtRandom& random, const float& worldClock,
                                                           const Render::Models::IModelLibrary& models,
                                                           const DrawnObject& drawn, const FaunaDrawCarry* retainedPose)
 {
@@ -159,7 +159,7 @@ Core::Expected<void, std::string> StepGameWaterspoutFrame(World::WorldObject& ob
 }
 
 Core::Expected<void, std::string>
-StepGameParticles(World::Particles& particles, Render::Models::CrtRandom& random, const std::int32_t& map,
+StepGameParticles(World::Particles& particles, Crt::CrtRandom& random, const std::int32_t& map,
                   const std::function<double(float, float)>& terrainHeight, const float& worldClock,
                   const std::function<World::WorldObject*(std::uint64_t)>& owners,
                   const std::function<std::optional<std::uint8_t>(std::uint64_t)>& actorActions,
@@ -181,7 +181,7 @@ StepGameParticles(World::Particles& particles, Render::Models::CrtRandom& random
 }
 
 Core::Expected<void, std::string> StepGameParticles(
-    World::Particles& particles, Render::Models::CrtRandom& random, const std::int32_t& map,
+    World::Particles& particles, Crt::CrtRandom& random, const std::int32_t& map,
     const std::function<double(float, float)>& terrainHeight, const float& worldClock,
     const std::function<World::WorldObject*(std::uint64_t)>& owners,
     const std::function<std::optional<std::uint8_t>(std::uint64_t)>& actorActions,

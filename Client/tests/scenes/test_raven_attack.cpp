@@ -1,6 +1,6 @@
 #include "Scenes/DarkSpirit.h"
 
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "Render/Models/OriginalAngles.h"
 #include "Render/Models/Skeleton.h"
 #include "World/Particles.h"
@@ -18,7 +18,7 @@
 // (tests/vectors/world55/raven.txt) sólo tiene los estados 0, 1, 3 y 4.
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::Scenes::DarkSpirit;
 using Client::Scenes::DarkSpiritOwner;
 using Client::Scenes::DarkSpiritTargets;

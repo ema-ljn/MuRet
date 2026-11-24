@@ -1,4 +1,4 @@
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "Render/Models/ObjectState.h"
 #include "Render/Models/RoundedMath.h"
 #include "World/AtlansObjectStep.h"
@@ -16,7 +16,7 @@
 // Los casos de 0x604ab0 de Atlans (mapa 7, la tabla 0x605c94 por el tipo − 0x16; 06 § Los objetos de Atlans).
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::Render::Models::RoundedSin;
 using Client::World::ObjectStepGlobals;
 using Client::World::Particles;

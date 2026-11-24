@@ -2,8 +2,8 @@
 #include "World/TerrainAttributeQuery.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainGrid.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/ObjectState.h"
@@ -52,7 +52,7 @@ namespace Client::Scenes
 {
 namespace
 {
-using Render::Models::CrtRandom;
+using Crt::CrtRandom;
 using Render::Models::LogicalAccess;
 
 // Los tipos de flecha (las tablas de 0x53e240 y 0x53e270/0x53e28c).

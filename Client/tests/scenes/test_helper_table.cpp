@@ -2,12 +2,12 @@
 #include "Scenes/HelperTable.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Models/Model.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainGrid.h"
 #include "Render/ModelBatch.h"
 #include "Render/ModelVertex.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/OriginalAngles.h"
@@ -63,13 +63,13 @@
 // → 0x445260). 06 § El caballo oscuro y § Las mascotas.
 namespace
 {
+using Client::Crt::CrtRandom;
 using Client::Data::Models::Mesh;
 using Client::Data::Models::Model;
 using Client::Render::ModelBatch;
 using Client::Render::TextureSlot;
 using Client::Render::Models::ActionInfo;
 using Client::Render::Models::BoneKey;
-using Client::Render::Models::CrtRandom;
 using Client::Render::Models::IModelLibrary;
 using Client::Render::Models::RoundedCos;
 using Client::Render::Models::RoundedSin;

@@ -1,6 +1,6 @@
 #include "UI/CreditsWindow.h"
 
-#include "App/WindowState.h"
+#include "Core/PixelSize.h"
 #include "Data/Text/Credits.h"
 #include "Input/InputState.h"
 #include "Input/Key.h"
@@ -94,7 +94,7 @@ float AlphaOf(std::uint8_t alpha)
 // 0x5542f0 con el modo 2: `line` centrado en `width` píxeles desde la x de 640 × 480 `designX`, como el
 // rótulo de un botón (Button::DrawLabel). No dibuja un texto vacío.
 void DrawCentered(Scenes::ITextDrawer& text, int designX, int designY, int width, std::string_view line,
-                  const Render::Text::TextStyle& style, App::PixelSize screen)
+                  const Render::Text::TextStyle& style, Core::PixelSize screen)
 {
     if (line.empty())
     {
@@ -106,7 +106,7 @@ void DrawCentered(Scenes::ITextDrawer& text, int designX, int designY, int width
 }
 } // namespace
 
-CreditsLayout LayoutCredits(App::PixelSize screen)
+CreditsLayout LayoutCredits(Core::PixelSize screen)
 {
     CreditsLayout layout;
     layout.scaleX = ScaleOf(screen.width, PerWidth);
@@ -161,12 +161,13 @@ bool CreditsWindow::IsOpen() const
     return m_open;
 }
 
-Rect CreditsWindow::Bounds(App::PixelSize screen) const
+Rect CreditsWindow::Bounds(Core::PixelSize screen) const
 {
     return Rect{.x = 0, .y = 0, .width = screen.width, .height = screen.height};
 }
 
-CreditsStep CreditsWindow::Step(const Input::InputState& input, App::PixelSize screen, double elapsedMs, NewUiTurn turn)
+CreditsStep CreditsWindow::Step(const Input::InputState& input, Core::PixelSize screen, double elapsedMs,
+                                NewUiTurn turn)
 {
     CreditsStep step;
     if (!m_open)
@@ -199,7 +200,7 @@ CreditsStep CreditsWindow::Step(const Input::InputState& input, App::PixelSize s
     return step;
 }
 
-void CreditsWindow::Draw(Render::SpriteBatch& sprites, Scenes::ITextDrawer& text, App::PixelSize screen)
+void CreditsWindow::Draw(Render::SpriteBatch& sprites, Scenes::ITextDrawer& text, Core::PixelSize screen)
 {
     if (!m_open)
     {
@@ -460,7 +461,7 @@ std::uint8_t CreditsWindow::KindAt(std::size_t index) const
     return Data::Text::CreditKindAt(m_credits, index);
 }
 
-void CreditsWindow::DrawTexts(Scenes::ITextDrawer& text, App::PixelSize screen) const
+void CreditsWindow::DrawTexts(Scenes::ITextDrawer& text, Core::PixelSize screen) const
 {
     const auto textAt = [this](std::size_t index)
     { return index < m_credits.size() ? std::string_view(m_credits[index].text) : std::string_view{}; };

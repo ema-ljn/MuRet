@@ -1,6 +1,6 @@
 #include "Scenes/MonsterSounds.h"
 
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 
 #include <array>
 #include <cstddef>
@@ -122,7 +122,7 @@ ModelSounds SoundsOrZeros(const std::optional<ModelSounds>& sounds)
 }
 
 std::optional<std::int32_t> DrawModelSound(const std::optional<ModelSounds>& sounds, std::size_t word,
-                                           std::int32_t subtype, Render::Models::CrtRandom& random)
+                                           std::int32_t subtype, Crt::CrtRandom& random)
 {
     constexpr std::int16_t NoSound = -1;
     constexpr std::int32_t NinthSubtype = 9;

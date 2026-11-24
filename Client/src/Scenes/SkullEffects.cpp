@@ -1,7 +1,7 @@
 #include "Scenes/SkullEffects.h"
 
 #include "Core/Expected.h"
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "Render/Models/OriginalRetainedMath.h"
 #include "Scenes/ActorFlags.h"
 #include "Scenes/ActorState.h"
@@ -227,7 +227,7 @@ Core::Expected<void, std::string> StepTheSkull(World::ModelEffect& effect, const
     }
 }
 
-Core::Expected<void, std::string> PutTheSkullOn(ActorState& actor, WorldState& world, Render::Models::CrtRandom& random,
+Core::Expected<void, std::string> PutTheSkullOn(ActorState& actor, WorldState& world, Crt::CrtRandom& random,
                                                 std::uint32_t address)
 {
     static_cast<void>(KillModelEffectsOf(world.Map().effects, SkullEffect, &actor, PlainSubtype));

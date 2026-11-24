@@ -1,9 +1,9 @@
 #include "Scenes/CharacterPicking.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainGrid.h"
 #include "Data/Terrain/TerrainMapping.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/ActorPickingBox.h"
@@ -36,7 +36,7 @@
 // El picking de los personajes del juego (0x59e700) y lo que 0x59ec80 hace con él. Los mundos van en el heap.
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::Scenes::ActorState;
 using Client::Scenes::PickTheCharacter;
 using Client::Scenes::WorldState;

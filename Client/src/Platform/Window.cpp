@@ -1,8 +1,8 @@
 #include "Platform/Window.h"
 
 #include "App/VSyncMode.h"
-#include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Core/PixelSize.h"
 #include "Platform/GlLoader.h"
 #include "Platform/SdlContext.h"
 #include "Platform/SwapInterval.h"
@@ -81,9 +81,9 @@ void Window::Swap()
     SDL_GL_SwapWindow(m_window.get());
 }
 
-App::PixelSize Window::PixelSize() const
+Core::PixelSize Window::PixelSize() const
 {
-    App::PixelSize size;
+    Core::PixelSize size;
     SDL_GetWindowSizeInPixels(m_window.get(), &size.width, &size.height);
     return size;
 }

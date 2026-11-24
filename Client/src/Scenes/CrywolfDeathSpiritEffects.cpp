@@ -1,6 +1,6 @@
+#include "Crt/CrtRandom.h"
 #include "Scenes/CrywolfDeathSpiritEffects.h"
 #include "Core/Expected.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/OriginalAngles.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Scenes/ActorState.h"
@@ -31,7 +31,7 @@ bool HasRoom(const World::ModelEffects& effects)
 } // namespace
 Core::Expected<std::optional<std::size_t>, std::string>
 CreateCrywolfDeathSpirit(const World::ModelEffectArguments& args, World::ModelEffects& effects,
-                         World::Particles* particles, Render::Models::CrtRandom& random, float clock)
+                         World::Particles* particles, Crt::CrtRandom& random, float clock)
 {
     const auto slot = effects.Begin(args);
     if (!slot)
@@ -75,7 +75,7 @@ CreateCrywolfDeathSpirit(const World::ModelEffectArguments& args, World::ModelEf
     }
     return slot;
 }
-Core::Expected<void, std::string> StepCrywolfDeathSpirit(World::ModelEffect& e, Render::Models::CrtRandom& random,
+Core::Expected<void, std::string> StepCrywolfDeathSpirit(World::ModelEffect& e, Crt::CrtRandom& random,
                                                          const World::ModelEffectStepServices& services,
                                                          std::optional<glm::vec3> point)
 {

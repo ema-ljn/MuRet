@@ -2,9 +2,9 @@
 #include "Scenes/GameHanging.h"
 #include "Scenes/GuildState.h"
 
+#include "Crt/CrtRandom.h"
 #include "Data/Models/Model.h"
 #include "Render/ModelBatch.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/Pose.h"
 #include "Render/Models/Skeleton.h"
@@ -62,7 +62,7 @@ constexpr float PlayerSecondActionSpeed = 0.75f;
 // El rand() de la CRT con la semilla 1 después de `count` llamadas.
 std::uint32_t AfterRandoms(std::size_t count)
 {
-    Client::Render::Models::CrtRandom random{1};
+    Client::Crt::CrtRandom random{1};
     for (std::size_t call = 0; call < count; ++call)
         static_cast<void>(random.Next());
     return random.State();
@@ -79,11 +79,11 @@ float F32(double value)
 }
 
 // La primera semilla con la que `condition` acepta los sorteos de un CrtRandom nuevo.
-std::uint32_t SeedWhere(const std::function<bool(Client::Render::Models::CrtRandom&)>& condition)
+std::uint32_t SeedWhere(const std::function<bool(Client::Crt::CrtRandom&)>& condition)
 {
     for (std::uint32_t seed = 1; seed < 100000; ++seed)
     {
-        Client::Render::Models::CrtRandom random(seed);
+        Client::Crt::CrtRandom random(seed);
         if (condition(random))
             return seed;
     }
@@ -92,9 +92,9 @@ std::uint32_t SeedWhere(const std::function<bool(Client::Render::Models::CrtRand
 }
 
 // Un CrtRandom con la semilla `seed` después de `count` llamadas.
-Client::Render::Models::CrtRandom Skipped(std::uint32_t seed, std::size_t count)
+Client::Crt::CrtRandom Skipped(std::uint32_t seed, std::size_t count)
 {
-    Client::Render::Models::CrtRandom random(seed);
+    Client::Crt::CrtRandom random(seed);
     for (std::size_t call = 0; call < count; ++call)
         static_cast<void>(random.Next());
     return random;
@@ -264,7 +264,7 @@ protected:
     ActorState m_actor;
     std::vector<Client::Render::Models::BoneTransform> m_body;
     Client::Render::ModelBatch m_batch;
-    Client::Render::Models::CrtRandom m_random{1};
+    Client::Crt::CrtRandom m_random{1};
     Client::Scenes::FaunaDrawCarry m_carry;
     Client::World::FrameSprites m_sprites;
     std::vector<Client::Scenes::JointState> m_joints = std::vector<Client::Scenes::JointState>(8);
@@ -487,7 +487,7 @@ TEST_F(GameHangingTest, Mace10FlaresBones2To5WithTheShinyOnBone4)
         EXPECT_EQ(sprites[index].light, shiny ? glm::vec3(0.5f) : flareLight);
     }
     // El giro es el quinto rand(): después del de 0x50db57, los dos +0x38e y la luz de 0x509a92.
-    Client::Render::Models::CrtRandom replay{1};
+    Client::Crt::CrtRandom replay{1};
     for (int call = 0; call < 4; ++call)
         static_cast<void>(replay.Next());
     EXPECT_EQ(sprites[3].rotation, static_cast<float>(replay.Next() % 360));
@@ -503,7 +503,7 @@ TEST_F(GameHangingTest, TheAction8cSwordThrowsFourSparksFromItsFirstBone)
     // 0x50db57, +0x38e de la mano y de 0x509340 y la luz de 0x509a92, antes del rand() & 1.
     constexpr std::size_t Before = 4;
     const std::uint32_t seed = SeedWhere(
-        [](Client::Render::Models::CrtRandom& random)
+        [](Client::Crt::CrtRandom& random)
         {
             for (std::size_t call = 0; call < Before; ++call)
                 static_cast<void>(random.Next());
@@ -513,12 +513,12 @@ TEST_F(GameHangingTest, TheAction8cSwordThrowsFourSparksFromItsFirstBone)
     m_actor.hands[0].model = Sword227;
     m_actor.animation.action = 0x8c;
     m_actor.angles = {0.0f, 0.0f, 135.0f};
-    m_random = Client::Render::Models::CrtRandom{seed};
+    m_random = Client::Crt::CrtRandom{seed};
 
     const auto result = Client::Scenes::DrawGameHanging(m_actor, Pass(models));
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
-    Client::Render::Models::CrtRandom draws = Skipped(seed, Before + 1);
+    Client::Crt::CrtRandom draws = Skipped(seed, Before + 1);
     // El hueso 1 de la espada, colgada del 0x21 de la mano: (150; 150; 10 + 33 + 1).
     glm::vec3 point{150.0f, 150.0f, 44.0f};
     point.x = F32(static_cast<double>(draws.Next() % 30) - 15.0 + D(point.x));
@@ -548,7 +548,7 @@ TEST_F(GameHangingTest, TheAction8cSwordThrowsFourSparksFromItsFirstBone)
     }
     EXPECT_FALSE(m_joints[4].alive);
 
-    m_random = Client::Render::Models::CrtRandom{seed};
+    m_random = Client::Crt::CrtRandom{seed};
     GameHangingPass pass = Pass(models);
     pass.map = 10;
     ASSERT_TRUE(Client::Scenes::DrawGameHanging(m_actor, pass).HasValue());
@@ -565,7 +565,7 @@ TEST_F(GameHangingTest, TheBowSparksFromBones4And12WithHalfTheRandoms)
     {
         SCOPED_TRACE(sparks);
         const std::uint32_t seed = SeedWhere(
-            [sparks](Client::Render::Models::CrtRandom& random)
+            [sparks](Client::Crt::CrtRandom& random)
             {
                 for (std::size_t call = 0; call < Before; ++call)
                     static_cast<void>(random.Next());
@@ -574,14 +574,14 @@ TEST_F(GameHangingTest, TheBowSparksFromBones4And12WithHalfTheRandoms)
         const HangingModels models({Bow});
         m_actor.hands[0].model = Bow;
         m_actor.angles = {0.0f, 0.0f, 60.0f};
-        m_random = Client::Render::Models::CrtRandom{seed};
+        m_random = Client::Crt::CrtRandom{seed};
         m_particles = Client::World::Particles{};
         m_sprites.Clear();
 
         const auto result = Client::Scenes::DrawGameHanging(m_actor, Pass(models));
 
         ASSERT_TRUE(result.HasValue()) << result.Error();
-        Client::Render::Models::CrtRandom draws = Skipped(seed, Before + 1);
+        Client::Crt::CrtRandom draws = Skipped(seed, Before + 1);
         Client::World::Particles particles;
         if (sparks)
         {
@@ -615,7 +615,7 @@ TEST_F(GameHangingTest, TheStaffC18SparksFourTimesAndFlaresAlongTheHand)
     const float lum = FirstLum();
     const glm::vec3 light{lum, lum * 0.6f, lum * 0.4f};
     // 0x50db57, +0x38e de la mano y de 0x509340 y la luz de 0x509a92.
-    Client::Render::Models::CrtRandom draws = Skipped(1, 4);
+    Client::Crt::CrtRandom draws = Skipped(1, 4);
     Client::World::Particles particles;
     for (int spark = 0; spark < 4; ++spark)
     {
@@ -677,7 +677,7 @@ TEST_F(GameHangingTest, TheSword224ThrowsThreeBeamsAlongTheBlade)
     glm::vec3 first{150.0f, 130.0f, 58.0f};
     glm::vec3 second{150.0f, 17.0f, 50.0f};
     glm::vec3 angles = m_actor.angles;
-    Client::Render::Models::CrtRandom draws = Skipped(1, 4);
+    Client::Crt::CrtRandom draws = Skipped(1, 4);
     std::vector<Client::Scenes::JointState> joints(m_joints.size());
     for (int beam = 0; beam < 3; ++beam)
     {
@@ -721,13 +721,13 @@ TEST_F(GameHangingTest, TheSword223LeavesTwoTrailsOwnedByTheCharacter)
     }};
     glm::vec3 angles = m_actor.angles;
     std::vector<Client::Scenes::JointState> joints(m_joints.size());
-    Client::Render::Models::CrtRandom unused(1);
+    Client::Crt::CrtRandom unused(1);
     for (auto [first, second] : edges)
     {
         const Client::World::FishEffectRequest request{0x610, first, second, angles, 4, &m_actor, 20.0f, -1, 0, 0, -1};
         ASSERT_TRUE(Client::Scenes::CreateFaunaJoint(joints, request, unused).HasValue());
     }
-    EXPECT_EQ(unused.State(), Client::Render::Models::CrtRandom(1).State());
+    EXPECT_EQ(unused.State(), Client::Crt::CrtRandom(1).State());
     EXPECT_EQ(m_random.State(), AfterRandoms(5));
     ExpectSameJoints(m_joints, joints);
     for (std::size_t k = 0; k < edges.size(); ++k)
@@ -757,7 +757,7 @@ TEST_F(GameHangingTest, TheStaffC1eLeavesItsPointOnTheCharacterAndAJointThatFoll
     const auto result = Client::Scenes::DrawGameHanging(m_actor, Pass(models));
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
-    Client::Render::Models::CrtRandom draws = Skipped(1, 4);
+    Client::Crt::CrtRandom draws = Skipped(1, 4);
     const float p = F32(static_cast<double>(draws.Next() % 60) * D(0.05f) - D(1.5f));
     const float s = F32(static_cast<double>(draws.Next() % 15) * D(0.05f) + D(1.8f));
     // El hueso 0 del bastón, colgado del 0x21 de la mano: (150; 150; 43).
@@ -767,7 +767,7 @@ TEST_F(GameHangingTest, TheStaffC1eLeavesItsPointOnTheCharacterAndAJointThatFoll
     glm::vec3 angles = m_actor.angles;
     std::vector<Client::Scenes::JointState> joints(m_joints.size());
     const Client::World::FishEffectRequest request{0x618, point, point, angles, 0x11, &m_actor, 30.0f, -1, 0, 0, -1};
-    Client::Render::Models::CrtRandom unused(1);
+    Client::Crt::CrtRandom unused(1);
     ASSERT_TRUE(Client::Scenes::CreateFaunaJoint(joints, request, unused).HasValue());
     const glm::vec3 violet{1.0f, 0.4f, 1.0f};
     Client::World::Particles particles;
@@ -1010,7 +1010,7 @@ TEST_F(GameHangingTest, TheBloodCastleWeaponHangsFromTheWingsPlaceOnlyInBloodCas
             SCOPED_TRACE(testing::Message() << "mapa " << map << ", arma " << static_cast<int>(weapon));
             m_actor = pristine;
             m_batch.Begin(Client::Render::Pass3D{});
-            m_random = Client::Render::Models::CrtRandom{1};
+            m_random = Client::Crt::CrtRandom{1};
             const HangingModels models({Weapons[weapon - 1U]});
             m_actor.safeZone = 1;
             m_actor.byte360 = weapon;

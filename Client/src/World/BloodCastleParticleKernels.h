@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
 }
@@ -29,12 +29,12 @@ inline constexpr std::int32_t TorchSmokeSubtype = 6;
 // tirar la x ((rand() % 10 − 5) · 0,4f) y la z ((rand() % 10 + 5) · 0,2f); el inicio (+0x6c) queda en la
 // posición. La /1 cambia sólo su escala inicial a argumento·0,5 (0x543a84). 0x54327b (622/6): vida rand() % 5 + 25,
 // escala 0,2f, giro rand() % 360 y la velocidad de la 6ac antes del 6ec. Cada producto de la x87 se guarda en float.
-void CreateBloodCastleParticle(Particle& particle, Render::Models::CrtRandom& random);
+void CreateBloodCastleParticle(Particle& particle, Crt::CrtRandom& random);
 
 // Después de la vida y el movimiento comunes de 0x5446e0, las tres suman la velocidad a la posición y frenan la x
 // y la y por 0,95f. 0x5477e4 (6ab): la luz en vida · 0,1f, la velocidad z +0,3f y la escala +0,07f (subtipo 0)
 // o +0,09f. 0x54793f (6ac) y 0x54748a (622/6): la velocidad z +0,6f, la posición corrida (rand() & 3) − 2 en x
 // e y y ((rand() & 3) − 2) · 0,8f en z, la escala +0,05f, la luz en vida · 0,04f (6ac/0), vida · 0,08f − 1
 // (6ac/2) o vida · 0,02f (622/6), y el giro + (rand() & 1) + 1.
-void StepBloodCastleParticle(Particle& particle, Render::Models::CrtRandom& random);
+void StepBloodCastleParticle(Particle& particle, Crt::CrtRandom& random);
 } // namespace Client::World

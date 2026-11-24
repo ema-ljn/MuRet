@@ -1,6 +1,6 @@
 #include "Scenes/CharacterHead.h"
 
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "Render/Models/OriginalAngles.h"
 
 #include "support/WorldObjectVectors.h"
@@ -21,7 +21,7 @@
 // de docs/research/scripts/login/make_head_vectors.py).
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::Scenes::CharacterHead;
 using Client::Scenes::StepCharacterHead;
 

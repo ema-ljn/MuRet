@@ -4,9 +4,9 @@
 #include "Core/Expected.h"
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Models/Model.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/OriginalAngles.h"
 #include "Render/Models/Skeleton.h"
 #include "Scenes/ActorState.h"
@@ -42,8 +42,8 @@
 // cortes de 0x4fcee0 y 0x505de0 por tipo.
 namespace
 {
+using Client::Crt::CrtRandom;
 using Client::Render::Models::ActionInfo;
-using Client::Render::Models::CrtRandom;
 using Client::Render::Models::Skeleton;
 using Client::Scenes::ActorState;
 using Client::Scenes::ModelActionEnd;

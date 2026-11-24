@@ -1,6 +1,7 @@
 #include "Scenes/GamePanels.h"
 #include "Scenes/SiegeBattleUi.h"
 
+#include "Crt/CrtRandom.h"
 #include "Scenes/CastleWindows.h"
 
 #include "Core/Expected.h"
@@ -42,8 +43,7 @@ namespace
 // 0x65c966..0x65ca6d: [0x6eed3c] de +0x9304 a +0x9347 en 0 (los cuatro bytes y los dos nombres), y con el registro
 // propio abierto alrededor (3.848 rand() al cerrarlo sin otros accesos), 0x550d10 si 0x550cf0 encuentra un lugar del
 // equipo con la durabilidad (+0x1a) en 0, lo que pasa con cualquier lugar vacío.
-Core::Expected<void, std::string> OpenTheCharacter(WorldState& world, Render::Models::CrtRandom& random,
-                                                   GamePanelTables tables)
+Core::Expected<void, std::string> OpenTheCharacter(WorldState& world, Crt::CrtRandom& random, GamePanelTables tables)
 {
     ItemSetState& sets = world.ItemSets();
     sets.names = {};
@@ -66,7 +66,7 @@ Core::Expected<void, std::string> OpenTheCharacter(WorldState& world, Render::Mo
                                                     .scan505820 = runtime.fullSetScan});
 }
 
-UI::PanelContext ContextOf(WorldState& world, Render::Models::CrtRandom& random, GamePanelTables tables)
+UI::PanelContext ContextOf(WorldState& world, Crt::CrtRandom& random, GamePanelTables tables)
 {
     WorldRuntime& runtime = world.Runtime();
     const ActorState& hero = world.Actors()[runtime.hero];
@@ -98,7 +98,7 @@ UI::PanelContext ContextOf(WorldState& world, Render::Models::CrtRandom& random,
 }
 } // namespace
 
-GamePanels::GamePanels(WorldState& world, Render::Models::CrtRandom& random, GamePanelTables tables)
+GamePanels::GamePanels(WorldState& world, Crt::CrtRandom& random, GamePanelTables tables)
     : m_context(ContextOf(world, random, tables)), m_registry(world.Runtime().panels, m_context)
 {
     LendTheCastleLifecycleTo(m_context, world, random, {});
@@ -178,7 +178,7 @@ void GamePanels::LendTheCastleWindowSteps(const GameUiContext& context)
     LendTheCastleWindowStepsTo(m_context, context);
 }
 
-void GamePanels::LendTheNpcWindows(WorldState& world, Render::Models::CrtRandom& random, InventoryServices services,
+void GamePanels::LendTheNpcWindows(WorldState& world, Crt::CrtRandom& random, InventoryServices services,
                                    NpcWindowSender send)
 {
     m_context.npcWindowOpened = [&world, &random, services, send](UI::PanelId id) {
@@ -193,7 +193,7 @@ void GamePanels::LendTheNpcWindows(WorldState& world, Render::Models::CrtRandom&
     };
 }
 
-void GamePanels::LendThePersonalShops(WorldState& world, Render::Models::CrtRandom& random,
+void GamePanels::LendThePersonalShops(WorldState& world, Crt::CrtRandom& random,
                                       std::function<void(Protocol::Outgoing)> send)
 {
     if (!send)
@@ -203,8 +203,8 @@ void GamePanels::LendThePersonalShops(WorldState& world, Render::Models::CrtRand
     m_context.personalShopClosed = [&world, &random, send]() { return CloseThePersonalShop(world, random, send); };
 }
 
-void GamePanels::LendTheSession(WorldState& world, Render::Models::CrtRandom& random,
-                                std::function<void(Protocol::Outgoing)> send, std::function<void()> sendWindowClose)
+void GamePanels::LendTheSession(WorldState& world, Crt::CrtRandom& random, std::function<void(Protocol::Outgoing)> send,
+                                std::function<void()> sendWindowClose)
 {
     if (send)
     {
@@ -222,7 +222,7 @@ void GamePanels::LendTheSession(WorldState& world, Render::Models::CrtRandom& ra
         LendTheWindowClose(std::move(sendWindowClose));
 }
 
-void GamePanels::LendTheSession(WorldState& world, Render::Models::CrtRandom& random, IGameUiRequests* requests)
+void GamePanels::LendTheSession(WorldState& world, Crt::CrtRandom& random, IGameUiRequests* requests)
 {
     if (requests == nullptr)
         return;

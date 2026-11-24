@@ -1,6 +1,6 @@
 #include "World/Particles.h"
 
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 
 #include "support/ParticleDrawRecorder.h"
 
@@ -17,7 +17,7 @@
 // Oráculos del contrato de extensión 53fe70/5446e0/548550: 607/0, sin ejecutar el PE.
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::World::Particle;
 using Client::World::Particles;
 constexpr std::int32_t Drop = 0x607;

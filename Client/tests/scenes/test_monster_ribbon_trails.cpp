@@ -2,7 +2,7 @@
 
 #include "Core/Expected.h"
 
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "Render/Models/Skeleton.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterStep.h"
@@ -62,7 +62,7 @@ protected:
     std::unique_ptr<Client::Scenes::WorldState> m_world = std::make_unique<Client::Scenes::WorldState>();
     Client::Scenes::ActorState m_actor;
     Client::Render::Models::Skeleton m_skeleton;
-    Client::Render::Models::CrtRandom m_random{0x12345678u};
+    Client::Crt::CrtRandom m_random{0x12345678u};
 };
 
 TEST_F(MonsterRibbonTrailsTest, Type1a7EmitsTwoTenSampleRibbonsWithLiteralBoneGeometry)

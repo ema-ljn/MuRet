@@ -22,7 +22,7 @@ namespace Client::Core
 class Log;
 }
 
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
 }
@@ -48,7 +48,7 @@ using GamePacketSender = std::function<void(Protocol::Outgoing)>;
 ApplyTradeRequest(const Protocol::Trade::TradeRequest& request, const WorldEntryResources& resources);
 
 // 0x4d4b22..0x4d5238, el 36 en claro: el aviso C1 06 F1 03 00 36 en C3, con sus dos rand() (el relleno y el serial).
-[[nodiscard]] Protocol::Outgoing ApplyClearTradeRequest(Render::Models::CrtRandom& random);
+[[nodiscard]] Protocol::Outgoing ApplyClearTradeRequest(Crt::CrtRandom& random);
 
 // 0x4d5570: 0 el texto 492 y 2 el 493 (tipo 2); con 1, Open(0x20), el pedido de SetCursorPos, los zen y los OK en 0,
 // 0x5bbdf0 si 0x78abaa5 está en 0 y el nombre cambió (strcmp), y el nombre, el gremio y el nivel del otro.
@@ -91,8 +91,8 @@ void ClearTheTradeForSelection(TradeState& trade);
 // 0x657fb5..0x6584a4, el cierre del comercio dentro de 0x657ab0: con `aux` en 0, el C1 03 3D en C3 (dos rand() antes
 // de mandarlo por `send`; sin él corta); después las 32 casillas de 0x78a92a8 y de 0x78a5a20 vacías (tipo −1 y +0x3c
 // en 0), con 0x5bbdf0 en cada vuelta si 0x78abaa5 está en 1.
-[[nodiscard]] Core::Expected<void, std::string> CloseTheTradeGrids(WorldState& world, Render::Models::CrtRandom& random,
-                                                                   bool aux, const GamePacketSender& send);
+[[nodiscard]] Core::Expected<void, std::string> CloseTheTradeGrids(WorldState& world, Crt::CrtRandom& random, bool aux,
+                                                                   const GamePacketSender& send);
 
 // 0x5bc300(a, b): 2 con otro tipo; 0 con otro +9; si no, el nivel ((+4 >> 3) & 0xf), el bit 7 de +4, las
 // excelentes (+0x1b & 0x3f), la cuenta de opciones (+0x2a), la opción de 0x50 a 0x53 (+0x2b, el valor en +0x33) y la

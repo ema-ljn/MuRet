@@ -6,7 +6,7 @@
 #include <cstdint>
 #include <string>
 
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
 }
@@ -39,7 +39,7 @@ void OpenTheSiegeGate(WorldState& world, std::uint16_t key);
 [[nodiscard]] Core::Expected<void, std::string> StepTheSiegeControls(const GameUiContext& context);
 [[nodiscard]] Core::Expected<void, std::string> StepTheBattleSkill(const GameUiContext& context);
 [[nodiscard]] Core::Expected<void, std::string> StepTheBattleSkillChoice(const GameUiContext& context);
-void InitializeTheBattleSkill(WorldState& world, Render::Models::CrtRandom& random);
+void InitializeTheBattleSkill(WorldState& world, Crt::CrtRandom& random);
 [[nodiscard]] Core::Expected<void, std::string> StepTheBattlePanel(const GameUiContext& context);
 [[nodiscard]] Core::Expected<void, std::string> DrawTheSiegeControls(GameHudContext& context);
 [[nodiscard]] Core::Expected<void, std::string> DrawTheBattleSkill(GameHudContext& context);

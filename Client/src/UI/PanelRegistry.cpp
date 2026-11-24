@@ -1,6 +1,7 @@
 #include "UI/PanelRegistry.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Render/Models/LogicalAccess.h"
 #include "UI/Dialogs.h"
 #include "UI/PanelDialog.h"
@@ -56,7 +57,7 @@ constexpr PanelId LastScannedBit = 0x40000000;
 
 // Una consulta de un byte protegido: abre la entrada, lee el valor y la cierra (0x6594a3..0x6595cf con 0x10000 y
 // 0x6597f9..0x659847 con 0x20). Si la cuenta queda en 0, saca un rand().
-bool ReadProtected(const std::uint8_t& value, std::uint8_t& depth, Render::Models::CrtRandom& random)
+bool ReadProtected(const std::uint8_t& value, std::uint8_t& depth, Crt::CrtRandom& random)
 {
     const Render::Models::LogicalAccess access(depth, random, 1);
     return value != 0;
@@ -64,7 +65,7 @@ bool ReadProtected(const std::uint8_t& value, std::uint8_t& depth, Render::Model
 
 // Una escritura de un byte protegido (0x65ba67..0x65bd57 abre la tienda, 0x658e28..0x658fd7 la cierra): el mismo
 // acceso, con su rand() al cerrarlo.
-void WriteProtected(std::uint8_t& value, std::uint8_t& depth, Render::Models::CrtRandom& random, std::uint8_t written)
+void WriteProtected(std::uint8_t& value, std::uint8_t& depth, Crt::CrtRandom& random, std::uint8_t written)
 {
     const Render::Models::LogicalAccess access(depth, random, 1);
     value = written;

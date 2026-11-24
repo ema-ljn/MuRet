@@ -3,11 +3,11 @@
 #include "App/CharacterEvent.h"
 #include "App/FaithfulPacer.h"
 #include "App/ServerSession.h"
-#include "App/WindowState.h"
 #include "App/WorldEvent.h"
 #include "Core/Expected.h"
 #include "Core/IClock.h"
 #include "Core/Log.h"
+#include "Core/PixelSize.h"
 #include "Data/Models/PlayerModels.h"
 #include "Protocol/CastleBattle.h"
 #include "Protocol/CastleSiege.h"
@@ -171,7 +171,7 @@ ChatReceiveContext ChatContextOf(const WorldEntryResources& resources, App::Serv
     return ChatReceiveContext{.world = resources.world,
                               .random = resources.cloth.random,
                               .measure = resources.textMeasure,
-                              .screen = resources.screen ? resources.screen() : App::PixelSize{640, 480},
+                              .screen = resources.screen ? resources.screen() : Core::PixelSize{640, 480},
                               .scene = resources.scene ? resources.scene() : std::nullopt,
                               .texts = resources.texts,
                               .chosenSlot =
@@ -192,7 +192,7 @@ GuildReceiveContext GuildContextOf(const WorldEntryResources& resources, App::Se
     return GuildReceiveContext{.world = resources.world,
                                .random = resources.cloth.random,
                                .measure = resources.textMeasure,
-                               .screen = resources.screen ? resources.screen() : App::PixelSize{640, 480},
+                               .screen = resources.screen ? resources.screen() : Core::PixelSize{640, 480},
                                .texts = resources.texts,
                                .playerKey = session.PlayerIndex(),
                                .now = now,
@@ -209,7 +209,7 @@ CastleReceiveContext CastleContextOf(const WorldEntryResources& resources, App::
                                 .random = resources.cloth.random,
                                 .log = resources.log,
                                 .measure = resources.textMeasure,
-                                .screen = resources.screen ? resources.screen() : App::PixelSize{640, 480},
+                                .screen = resources.screen ? resources.screen() : Core::PixelSize{640, 480},
                                 .texts = resources.texts,
                                 .send = [&session](Protocol::Outgoing packet)
                                 { session.SendCastlePacket(std::move(packet)); },
@@ -684,7 +684,7 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyWorldContent(const A
             .texts = m_resources.texts,
             .items = m_resources.items,
             .measure = m_resources.textMeasure,
-            .screen = m_resources.screen ? m_resources.screen() : App::PixelSize{640, 480},
+            .screen = m_resources.screen ? m_resources.screen() : Core::PixelSize{640, 480},
             .tickCount = m_resources.clock != nullptr ? App::TickCountMs(m_resources.clock->Now()) : 0U,
             .playerSkeleton = m_resources.models.SkeletonOf(Data::Models::PlayerSkeletonModel),
             .models = &m_resources.models,

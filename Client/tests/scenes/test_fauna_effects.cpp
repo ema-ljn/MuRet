@@ -1,6 +1,7 @@
 #include "Scenes/FaunaEffects.h"
 #include "World/ModelEffects.h"
 #include <gtest/gtest.h>
+#include "Crt/CrtRandom.h"
 #include "Render/Models/Cloth.h"
 #include "World/Particles.h"
 #include "World/ParticleDrawParameters.h"
@@ -48,12 +49,12 @@ namespace
 TEST(FaunaEffectsTest, LightningFireUsesTwoCreationDrawsAndItsSpecificRotationAndScaleStep)
 {
     Client::World::Particles particles;
-    Client::Render::Models::CrtRandom random;
+    Client::Crt::CrtRandom random;
     const auto created =
         particles.CreateChecked(Client::World::FireParticle, {10, 20, 30}, {0, 0, 0}, {1, 1, 1}, 8, .75f, 0, random);
     ASSERT_TRUE(created.HasValue());
     ASSERT_TRUE(created.Value());
-    Client::Render::Models::CrtRandom expected;
+    Client::Crt::CrtRandom expected;
     static_cast<void>(expected.Next());
     const float rotation = static_cast<float>(expected.Next() % 360);
     EXPECT_EQ(random.State(), expected.State());
@@ -95,7 +96,7 @@ TEST(FaunaEffectsTest, ARealLightningStepPublishesItsLightParticleSpriteAndShare
     EXPECT_EQ(particles.All()[0].subtype, 8);
     EXPECT_TRUE(sprites.Sprites()[0].alive);
     EXPECT_EQ(sprites.Sprites()[0].texture, 0x5fd);
-    Client::Render::Models::CrtRandom expected;
+    Client::Crt::CrtRandom expected;
     for (int i = 0; i < 8; ++i)
         static_cast<void>(expected.Next());
     EXPECT_EQ(cloth.random.State(), expected.State());
@@ -119,7 +120,7 @@ TEST(FaunaEffectsTest, AFullParticlePoolAndAnOpenCounterKeepTheirNativeRandomSki
     ASSERT_TRUE(
         Client::Scenes::StepFaunaLightning(effects.Effects()[0], 7, nullptr, particles, sprites, *lighting, cloth)
             .HasValue());
-    Client::Render::Models::CrtRandom expected;
+    Client::Crt::CrtRandom expected;
     static_cast<void>(expected.Next());
     static_cast<void>(expected.Next());
     EXPECT_EQ(cloth.random.State(), expected.State());

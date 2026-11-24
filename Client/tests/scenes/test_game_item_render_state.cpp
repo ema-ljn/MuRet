@@ -1,5 +1,5 @@
+#include "Crt/CrtRandom.h"
 #include "Scenes/GameItemRenderState.h"
-#include "Render/Models/Cloth.h"
 #include <gtest/gtest.h>
 #include <array>
 #include <bit>
@@ -21,7 +21,7 @@ TEST(GameItemRenderStateTest, StartsWithTheNativeBssAndTheSeparateDataPulse)
 TEST(GameItemRenderStateTest, WinMainPublishesOneHundredAnglesAndDoesNotReseedOnReentry)
 {
     Client::Scenes::GameItemRenderState state;
-    Client::Render::Models::CrtRandom random(1);
+    Client::Crt::CrtRandom random(1);
     Client::Scenes::InitializeGameItemRenderState(state, random);
     ASSERT_TRUE(state.initialized);
     constexpr std::array<std::int32_t, 6> prefix{41, 107, 214, 220, 89, 244};

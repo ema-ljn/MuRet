@@ -1,5 +1,5 @@
 #include "Core/Expected.h"
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "Render/Models/OriginalRetainedMath.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/JointFamilies.h"
@@ -35,7 +35,7 @@ bool IsHelix(std::int32_t type, std::int32_t subtype)
 }
 
 Core::Expected<void, std::string> CreateHelixJoint(JointState& joint, const World::FishEffectRequest& request,
-                                                   Render::Models::CrtRandom& random)
+                                                   Crt::CrtRandom& random)
 {
     // 0x533677..0x53368e: lo común del 0x60f (vida 100, 20 puntos y ancho 10), que el subtipo pisa. 0x533faf: el ancho.
     joint.life = 100;

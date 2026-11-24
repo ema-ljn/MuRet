@@ -1,7 +1,7 @@
 #pragma once
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Core/PixelSize.h"
 #include "Scenes/ActorCooldownServices.h"
 #include "Data/Tables/ItemTable.h"
 #include "Data/Tables/SkillTable.h"
@@ -18,9 +18,13 @@
 #include <span>
 #include <string>
 
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
+} // namespace Client::Crt
+
+namespace Client::Render::Models
+{
 class IModelLibrary;
 struct Skeleton;
 } // namespace Client::Render::Models
@@ -65,14 +69,14 @@ struct LogicalCell
 
 // La celda lógica por la tabla de protección, como la leen 0x508f00, 0x505de0 y la cámara (0x635ae0):
 // la Y y después la X, cada una en un acceso que se cierra y gasta 4 rand() si lo deja en 0.
-[[nodiscard]] LogicalCell ReadLogicalCell(ActorState& actor, Render::Models::CrtRandom& random);
+[[nodiscard]] LogicalCell ReadLogicalCell(ActorState& actor, Crt::CrtRandom& random);
 
 struct CharacterStepContext
 {
     // Con el trapecio global que dejó el último 0x5fb570 (WorldRuntime::terrainPolygon): antes del primer
     // dibujo del juego, el del último dibujo de la selección (Q-C216).
     WorldState& world;
-    Render::Models::CrtRandom& random;
+    Crt::CrtRandom& random;
     // DAT_006d5dc8: la selección (4) decide el final de la animación con el frame + 2 (Q-C21), y el 0x607
     // del mapa 7 de 0x505de0 es solo de la 5 (0x506cf8).
     SceneId scene = SceneId::Game;
@@ -116,7 +120,7 @@ struct CharacterStepContext
     // (0x557170). Sin ellos, el que tiene que hablar corta.
     const Data::Text::TextTable* texts = nullptr;
     const Render::Text::ITextMeasure* textMeasure = nullptr;
-    App::PixelSize screen{640, 480};
+    Core::PixelSize screen{640, 480};
     // timeGetTime() (0x6b8144), en ms, que lee el mensaje del nombre de 0x6c88b0 (0x4fcd82 y 0x4fcd8e). Vacío, el que
     // tiene ese nombre corta.
     std::function<std::uint32_t()> systemTime{};

@@ -8,7 +8,7 @@
 #include <cstdint>
 #include <string>
 
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
 }
@@ -38,7 +38,7 @@ struct GameLeafContext
     const float& cameraY;
     const std::int32_t& map;
     const std::int32_t& heroCellLayer;
-    Render::Models::CrtRandom& random;
+    Crt::CrtRandom& random;
     const float& worldClock;
     float fixedHeight = World::FixedTerrainHeight;
     World::Particles* particles = nullptr;

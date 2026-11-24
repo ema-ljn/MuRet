@@ -1,8 +1,8 @@
 #include "Scenes/HelperStepParts.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainGrid.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Scenes/ActorState.h"
@@ -147,7 +147,7 @@ Core::Expected<void, std::string> EmitHelperParticle(const HelperStepContext& co
 Core::Expected<void, std::string> ScatterTheDust(const HelperState& helper, const HelperStepContext& context,
                                                  std::string_view address)
 {
-    Render::Models::CrtRandom& random = context.random;
+    Crt::CrtRandom& random = context.random;
     const int x = (random.Next() % DustSpread) - DustSpreadCentre;
     const int y = (random.Next() % DustSpread) - DustSpreadCentre;
     const int z = (random.Next() % DustHeight) - DustHeightCentre;
@@ -164,7 +164,7 @@ Core::Expected<void, std::string> ScatterTheDust(const HelperState& helper, cons
 Core::Expected<void, std::string> PuffTheIcarusDust(const glm::vec3& base, const glm::vec3& angles,
                                                     const HelperStepContext& context, std::string_view address)
 {
-    Render::Models::CrtRandom& random = context.random;
+    Crt::CrtRandom& random = context.random;
     static_cast<void>(random.Next()); // 0x444325..0x444336 y 0x444d6a..0x444d7b: la guarda, siempre positiva.
     int puffs = 0;
     do

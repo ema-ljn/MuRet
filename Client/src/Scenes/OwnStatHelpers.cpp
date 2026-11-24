@@ -1,6 +1,7 @@
 #include "Scenes/OwnStatHelpers.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Tables/ItemTable.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/FullSetScan.h"
@@ -689,7 +690,7 @@ bool IsSpeedRing(const ItemState& ring)
 // entre una apertura y un cierre del registro (en línea; el último cierre, con su propio bucle de rand()).
 // El bit se lee antes de abrir: con el registro cerrado el original leería el byte cifrado.
 void UpdateRingSpeeds(OwnCharacterRecord& own, const ItemState& slot10, const ItemState& slot11,
-                      std::uint8_t& ownRecordAccesses, Render::Models::CrtRandom& random)
+                      std::uint8_t& ownRecordAccesses, Crt::CrtRandom& random)
 {
     constexpr std::int64_t RingBonus = 10;
     constexpr std::uint8_t RingBit = 0x04;
@@ -988,8 +989,7 @@ Core::Expected<void, std::string> UpdateOwnWord4e(OwnCharacterRecord& own, ItemS
 
 Core::Expected<void, std::string> UpdateOwnAttackAndMagicSpeeds(OwnCharacterRecord& own,
                                                                 const OwnEquipmentOverride& held,
-                                                                std::uint8_t& ownRecordAccesses,
-                                                                Render::Models::CrtRandom& random)
+                                                                std::uint8_t& ownRecordAccesses, Crt::CrtRandom& random)
 {
     constexpr std::uint8_t BonusBits = 0x01 | 0x08;
     constexpr std::int64_t BitsBonus = 20;

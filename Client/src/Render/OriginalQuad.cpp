@@ -1,12 +1,12 @@
 #include "Render/OriginalQuad.h"
 
-#include "App/WindowState.h"
+#include "Core/PixelSize.h"
 #include "Render/QuadCorner.h"
 #include "Render/ScreenScale.h"
 
 namespace Client::Render
 {
-QuadCorners FanCorners(const OriginalQuad& quad, App::PixelSize screen)
+QuadCorners FanCorners(const OriginalQuad& quad, Core::PixelSize screen)
 {
     const float x = quad.scalePosition ? ScaleX(quad.x, screen) : quad.x;
     const float y = quad.scalePosition ? ScaleY(quad.y, screen) : quad.y;

@@ -3,6 +3,7 @@
 
 #include "Audio/Playback.h"
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Text/DialogTable.h"
 #include "Input/InputEvent.h"
 #include "Input/InputState.h"
@@ -13,7 +14,6 @@
 #include "Protocol/Guild.h"
 #include "Protocol/OptionData.h"
 #include "Protocol/Outgoing.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Scenes/ActorState.h"
@@ -58,8 +58,8 @@
 // inventados; el mundo, en Lorencia (0) y en Devias (2).
 namespace
 {
+using Client::Crt::CrtRandom;
 using Client::Input::InputState;
-using Client::Render::Models::CrtRandom;
 using Client::Scenes::GameUiContext;
 using Client::Scenes::WorldState;
 

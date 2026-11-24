@@ -3,6 +3,7 @@
 #include "Scenes/ArrivalSparks.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Protocol/Events.h"
 #include "Scenes/ActorCreation.h"
 #include "Scenes/ActorMotion.h"
@@ -10,7 +11,6 @@
 #include "Scenes/ArrowEffects.h"
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/GameDrawTail.h"
-#include "Render/Models/Cloth.h"
 #include "World/IFishStepServices.h"
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
@@ -732,8 +732,7 @@ private:
 } // namespace
 
 // 0x403ae7..0x403d02 y 0x4c98a0..0x4c9ac1: sortear el ancho aunque el pool esté lleno.
-Core::Expected<void, std::string> CreateArrivalSparks(ActorState& actor, WorldState& world,
-                                                      Render::Models::CrtRandom& random)
+Core::Expected<void, std::string> CreateArrivalSparks(ActorState& actor, WorldState& world, Crt::CrtRandom& random)
 {
     const auto joint = [&](std::int32_t type, glm::vec3& from, glm::vec3& to, std::int32_t subtype, float width)
     {

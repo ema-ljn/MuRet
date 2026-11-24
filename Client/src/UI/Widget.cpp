@@ -1,6 +1,6 @@
 #include "UI/Widget.h"
 
-#include "App/WindowState.h"
+#include "Core/PixelSize.h"
 #include "Input/InputState.h"
 #include "Render/TextureSlot.h"
 #include "Render/UiImage.h"
@@ -34,7 +34,7 @@ bool Rect::Contains(Point point) const
     return point.x >= x && point.x < x + width && point.y >= y && point.y < y + height;
 }
 
-Point MouseInPixels(const Input::InputState& input, App::PixelSize screen)
+Point MouseInPixels(const Input::InputState& input, Core::PixelSize screen)
 {
     return Point{ClampToPixel(input.MouseX(), screen.width), ClampToPixel(input.MouseY(), screen.height)};
 }

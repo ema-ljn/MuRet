@@ -2,8 +2,8 @@
 
 #include "Core/Expected.h"
 #include "Core/Log.h"
+#include "Crt/CrtRandom.h"
 #include "Protocol/PersonalShop.h"
-#include "Render/Models/Cloth.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/ChatReceive.h"
 #include "Scenes/GamePanels.h"
@@ -135,8 +135,8 @@ std::string TitleOf(const std::array<std::byte, Shop::TitleSize>& title)
 }
 } // namespace
 
-Core::Expected<void, std::string> OpenThePersonalShop(WorldState& world, Render::Models::CrtRandom& random,
-                                                      UI::PanelId id, const GamePacketSender& send)
+Core::Expected<void, std::string> OpenThePersonalShop(WorldState& world, Crt::CrtRandom& random, UI::PanelId id,
+                                                      const GamePacketSender& send)
 {
     PersonalShopState& shops = world.Runtime().social.personalShop;
     if (shops.mode != NoShopView)
@@ -171,7 +171,7 @@ void ResetThePersonalShops(PersonalShopState& shops)
     shops.pricesBuilt = false;
 }
 
-Core::Expected<void, std::string> CloseThePersonalShop(WorldState& world, Render::Models::CrtRandom& random,
+Core::Expected<void, std::string> CloseThePersonalShop(WorldState& world, Crt::CrtRandom& random,
                                                        const GamePacketSender& send)
 {
     WorldRuntime& runtime = world.Runtime();

@@ -1,6 +1,6 @@
 #include "UI/NoticeWindow.h"
 
-#include "App/WindowState.h"
+#include "Core/PixelSize.h"
 #include "Data/Text/TextTable.h"
 #include "Input/InputEvent.h"
 #include "Input/InputState.h"
@@ -84,7 +84,7 @@ bool IsDigit(char byte)
 }
 } // namespace
 
-NoticeLayout LayoutNotice(App::PixelSize screen)
+NoticeLayout LayoutNotice(Core::PixelSize screen)
 {
     const int x = (screen.width - BoxWidth) / 2;
     const int y = (screen.height - BoxHeight) / 2;
@@ -123,12 +123,12 @@ std::optional<NoticeId> NoticeWindow::Notice() const
     return m_notice;
 }
 
-Rect NoticeWindow::Bounds(App::PixelSize screen) const
+Rect NoticeWindow::Bounds(Core::PixelSize screen) const
 {
     return Rect{.x = 0, .y = 0, .width = screen.width, .height = screen.height};
 }
 
-std::optional<NoticeId> NoticeWindow::Step(const Input::InputState& input, App::PixelSize screen, NewUiTurn turn)
+std::optional<NoticeId> NoticeWindow::Step(const Input::InputState& input, Core::PixelSize screen, NewUiTurn turn)
 {
     if (!m_notice)
     {
@@ -209,7 +209,7 @@ bool NoticeWindow::WantsTextInput() const
     return m_notice && KindOf(*m_notice) == NoticeKind::Code;
 }
 
-void NoticeWindow::Draw(Render::SpriteBatch& sprites, Scenes::ITextDrawer& text, App::PixelSize screen)
+void NoticeWindow::Draw(Render::SpriteBatch& sprites, Scenes::ITextDrawer& text, Core::PixelSize screen)
 {
     if (!m_notice)
     {
@@ -292,7 +292,7 @@ void NoticeWindow::Draw(Render::SpriteBatch& sprites, Scenes::ITextDrawer& text,
     }
 }
 
-void NoticeWindow::Place(App::PixelSize screen)
+void NoticeWindow::Place(Core::PixelSize screen)
 {
     const NoticeLayout layout = LayoutNotice(screen);
     m_layout = NoticeControls{.box = layout.box, .ok = std::nullopt, .cancel = std::nullopt, .codeBox = std::nullopt};

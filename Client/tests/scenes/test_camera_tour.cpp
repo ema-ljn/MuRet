@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Models/PlayerModels.h"
 #include "Render/Models/Cloth.h"
 #include "Scenes/ActorMotion.h"
@@ -49,7 +50,7 @@
 // repo.
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::Scenes::ActorState;
 using Client::Scenes::CameraTour;
 using Client::Scenes::CameraTourContext;

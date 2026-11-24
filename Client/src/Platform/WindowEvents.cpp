@@ -1,6 +1,7 @@
 #include "Platform/WindowEvents.h"
 
 #include "App/WindowState.h"
+#include "Core/PixelSize.h"
 #include "Input/InputEvent.h"
 #include "Input/InputState.h"
 #include "Platform/InputEvents.h"
@@ -73,10 +74,10 @@ void PumpEvents(App::WindowState& state, Input::InputState& input, SDL_WindowID 
         }
         // event.window es el miembro activo solo en los eventos de ventana: el tamaño se lee
         // únicamente en PixelSizeChanged.
-        App::PixelSize size;
+        Core::PixelSize size;
         if (*windowEvent == App::WindowEvent::PixelSizeChanged)
         {
-            size = App::PixelSize{event.window.data1, event.window.data2};
+            size = Core::PixelSize{event.window.data1, event.window.data2};
         }
         state = App::Apply(state, *windowEvent, size);
     }

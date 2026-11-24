@@ -5,10 +5,10 @@
 #include <algorithm>
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Models/Model.h"
 #include "Data/Terrain/TerrainHeights.h"
 #include "Render/ModelBatch.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/OriginalRetainedMath.h"
 #include "Render/Models/OriginalRotation.h"
@@ -51,7 +51,7 @@
 // con nombre deja ver de qué hueso sale. En Lorencia (0), Devias (2) y Crywolf (34).
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::Scenes::ActorState;
 using Client::Scenes::MonsterHelperPass;
 using Client::Tests::AfterDraws;

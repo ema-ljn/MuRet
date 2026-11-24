@@ -15,9 +15,13 @@ namespace Client::Data::Terrain
 struct TerrainAttributes;
 }
 
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
+} // namespace Client::Crt
+
+namespace Client::Render::Models
+{
 struct Skeleton;
 } // namespace Client::Render::Models
 
@@ -128,7 +132,7 @@ struct WizardEffectServices
 // caso sale por 0x51db73 con el prefijo y lo que el caso escribió antes de mirarlo. Otro tipo, o una rama que pide
 // algo que MuRet no tiene (CL11 de otro lote), corta con su dirección.
 [[nodiscard]] Core::Expected<std::optional<std::size_t>, std::string>
-CreateWizardModelEffect(ModelEffects& effects, const ModelEffectArguments& arguments, Render::Models::CrtRandom& random,
+CreateWizardModelEffect(ModelEffects& effects, const ModelEffectArguments& arguments, Crt::CrtRandom& random,
                         const WizardEffectServices& services, glm::vec3* callerLight = nullptr);
 
 // 0x5208a0 sobre un efecto del lote: el primer rand() de la luz local (0x5208c5), el caso del tipo y la cola común
@@ -137,6 +141,6 @@ CreateWizardModelEffect(ModelEffects& effects, const ModelEffectArguments& argum
 // antes del paso.
 [[nodiscard]] Core::Expected<void, std::string> StepWizardModelEffect(ModelEffect& effect,
                                                                       const Render::Models::Skeleton* skeleton,
-                                                                      Render::Models::CrtRandom& random,
+                                                                      Crt::CrtRandom& random,
                                                                       const WizardEffectServices& services);
 } // namespace Client::World

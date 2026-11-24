@@ -1,6 +1,6 @@
 #include "World/SiegeVertexEffects.h"
 
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "World/GameModelEffects.h"
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
@@ -20,7 +20,7 @@
 
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 
 // La primera semilla desde 1 con la que `wanted` (que saca los rand() que mira) da true.
 std::uint32_t SeedWhere(const std::function<bool(CrtRandom&)>& wanted)
@@ -264,7 +264,7 @@ TEST(SiegeVertexEffectsTest, TheThrownStoneFallsFasterAndLands)
 TEST(SiegeVertexEffectsTest, TheGateConstructorConsumesEightDrawsInNativeOrder)
 {
     auto effects = std::make_unique<Client::World::ModelEffects>();
-    Client::Render::Models::CrtRandom random(1), expected(1);
+    Client::Crt::CrtRandom random(1), expected(1);
     const auto slot = Client::World::CreateSiegeVertexEffect({.type = 0x12f, .position = {2, 3, 4}}, *effects, random);
     ASSERT_TRUE(slot.has_value());
     const auto& effect = effects->Effects()[*slot];
@@ -280,7 +280,7 @@ TEST(SiegeVertexEffectsTest, TheGateConstructorConsumesEightDrawsInNativeOrder)
 TEST(SiegeVertexEffectsTest, TheStatueSubtypeAddsItsNinthDrawWhileAFullPoolConsumesNothing)
 {
     auto effects = std::make_unique<Client::World::ModelEffects>();
-    Client::Render::Models::CrtRandom random(1), expected(1);
+    Client::Crt::CrtRandom random(1), expected(1);
     const auto slot = Client::World::CreateSiegeVertexEffect({.type = 0x131}, *effects, random);
     ASSERT_TRUE(slot.has_value());
     EXPECT_EQ(effects->Effects()[*slot].subtype, 1);
@@ -303,7 +303,7 @@ TEST(SiegeVertexEffectsTest, TheWholeStepPreservesTheSecondRotatedMovementAndThe
     effect.velocity = {10, 0, 0};
     effect.turnDirection = 8;
     Client::World::Particles particles;
-    Client::Render::Models::CrtRandom random(1), expected(1);
+    Client::Crt::CrtRandom random(1), expected(1);
     const Client::World::ModelEffectStepServices services{.terrainHeight = [](float, float) { return 0; }};
     const auto result = Client::World::StepGameModelEffect(effect, nullptr, particles, 0, random, nullptr, services);
     ASSERT_TRUE(result.HasValue()) << result.Error();
@@ -328,7 +328,7 @@ TEST(SiegeVertexEffectsTest, IndeterminateDustCutsAfterThePrefixUnlessTheParticl
     initial.turnDirection = 8;
     Client::World::Particles particles;
     const Client::World::ModelEffectStepServices services{.terrainHeight = [](float, float) { return 0; }};
-    Client::Render::Models::CrtRandom random(1);
+    Client::Crt::CrtRandom random(1);
     // El segundo sorteo de seed1 es18467; seed2 produce29216. Buscar el primer estado con polvo.
     for (int attempt = 0; attempt < 100; ++attempt)
     {
@@ -343,7 +343,7 @@ TEST(SiegeVertexEffectsTest, IndeterminateDustCutsAfterThePrefixUnlessTheParticl
         EXPECT_EQ(effect.transform.position.x, 10);
         for (auto& particle : particles.All())
             particle.alive = true;
-        random = Client::Render::Models::CrtRandom(before);
+        random = Client::Crt::CrtRandom(before);
         effect = initial;
         const auto full = Client::World::StepGameModelEffect(effect, nullptr, particles, 0, random, nullptr, services);
         ASSERT_TRUE(full.HasValue()) << full.Error();
@@ -366,7 +366,7 @@ TEST(SiegeVertexEffectsTest, TheGuardDebrisAlsoCompletesItsTailWhenTheDustPoolIs
     initial.turnDirection = 8;
     Client::World::Particles particles;
     const Client::World::ModelEffectStepServices services{.terrainHeight = [](float, float) { return 0; }};
-    Client::Render::Models::CrtRandom random(8);
+    Client::Crt::CrtRandom random(8);
     auto effect = initial;
     const auto room = Client::World::StepGameModelEffect(effect, nullptr, particles, 0, random, nullptr, services);
     ASSERT_FALSE(room.HasValue());
@@ -375,7 +375,7 @@ TEST(SiegeVertexEffectsTest, TheGuardDebrisAlsoCompletesItsTailWhenTheDustPoolIs
     for (auto& particle : particles.All())
         particle.alive = true;
     effect = initial;
-    random = Client::Render::Models::CrtRandom(8);
+    random = Client::Crt::CrtRandom(8);
     const auto full = Client::World::StepGameModelEffect(effect, nullptr, particles, 0, random, nullptr, services);
     ASSERT_TRUE(full.HasValue()) << full.Error();
     EXPECT_EQ(effect.life, 19);

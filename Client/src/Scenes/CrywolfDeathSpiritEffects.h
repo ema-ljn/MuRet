@@ -4,7 +4,7 @@
 #include <cstddef>
 #include <optional>
 #include <string>
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
 }
@@ -20,11 +20,11 @@ namespace Client::Scenes
 {
 // 51c952:147/0 y /1; owner apunta al ActorState del blanco. Lleno no lee al dueño ni crea partículas.
 [[nodiscard]] Core::Expected<std::optional<std::size_t>, std::string>
-CreateCrywolfDeathSpirit(const World::ModelEffectArguments&, World::ModelEffects&, World::Particles*,
-                         Render::Models::CrtRandom&, float worldClock = 0);
+CreateCrywolfDeathSpirit(const World::ModelEffectArguments&, World::ModelEffects&, World::Particles*, Crt::CrtRandom&,
+                         float worldClock = 0);
 // Cuerpo de52709b: el dispatcher conserva CRT, animación y vida comunes.
 // nativeStackPoint es [EBP−28] al entrar: la primera61e/1 de vida<10 lo lee antes de escribirlo.
 [[nodiscard]] Core::Expected<void, std::string>
-StepCrywolfDeathSpirit(World::ModelEffect&, Render::Models::CrtRandom&, const World::ModelEffectStepServices&,
+StepCrywolfDeathSpirit(World::ModelEffect&, Crt::CrtRandom&, const World::ModelEffectStepServices&,
                        std::optional<glm::vec3> nativeStackPoint = std::nullopt);
 } // namespace Client::Scenes

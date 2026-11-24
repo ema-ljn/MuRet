@@ -1,3 +1,4 @@
+#include "Crt/CrtRandom.h"
 #include "Render/Models/IModelLibrary.h"
 #include "Scenes/GameItemSpecialDrawing.h"
 #include "Core/Expected.h"
@@ -10,7 +11,6 @@
 #include "support/RecordingSink.h"
 #include "Data/Models/Model.h"
 #include "Render/ModelBatch.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/Skeleton.h"
 #include "Render/Models/Skinning.h"
 #include "Render/TextureSlot.h"
@@ -149,7 +149,7 @@ TEST(GameItemSpecialDrawingTest, PublicFamiliesHaveTheirIndependentPassCounts)
         Client::Render::ModelBatch batch;
         Client::Scenes::DrawnObject object;
         object.model = test.type;
-        Client::Render::Models::CrtRandom random;
+        Client::Crt::CrtRandom random;
         glm::vec2 pulse{0.5f, 0.01f};
         Client::Scenes::ItemSpecialDrawContext context;
         context.random = &random;
@@ -228,7 +228,7 @@ TEST(GameItemSpecialDrawingTest, WingConsumesExactlyTwoSharedCrtDrawsInPushOrder
     Client::Render::ModelBatch batch;
     Client::Scenes::DrawnObject object;
     object.model = 0xe22;
-    Client::Render::Models::CrtRandom random(7);
+    Client::Crt::CrtRandom random(7);
     auto expected = random;
     const float v = static_cast<float>(expected.Next() % 10) * 0.1f;
     const float u = static_cast<float>(expected.Next() % 10) * 0.1f;
@@ -289,7 +289,7 @@ TEST_F(GoldenGameItemSpecialDrawing, ActualItemResourcesProvideGeometryForSpecia
         const auto posed = Client::Scenes::PublishFaunaFloorPose(carry, models, object);
         ASSERT_TRUE(posed.HasValue()) << posed.Error();
         Client::Render::ModelBatch batch;
-        Client::Render::Models::CrtRandom random;
+        Client::Crt::CrtRandom random;
         glm::vec2 pulse{0.5f, 0.01f};
         Client::Scenes::ItemSpecialDrawContext context;
         context.random = &random;
@@ -318,7 +318,7 @@ TEST(GameItemSpecialDrawingTest, PulsingModelColorRoundsOnlyAtTheAsmStore)
         Client::Scenes::DrawnObject object;
         object.model = test.model;
         object.color = {0.4f, 0.6f, 0.8f};
-        Client::Render::Models::CrtRandom random;
+        Client::Crt::CrtRandom random;
         Client::Scenes::ItemSpecialDrawContext context;
         context.worldClock = 0.5f;
         context.random = &random;

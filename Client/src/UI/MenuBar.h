@@ -1,6 +1,6 @@
 #pragma once
 
-#include "App/WindowState.h"
+#include "Core/PixelSize.h"
 #include "Input/InputState.h"
 #include "Render/SpriteBatch.h"
 #include "UI/Button.h"
@@ -34,7 +34,7 @@ struct MenuBarLayout
 // 0x65f300: la barra en (30, −11 − (int) (H · −0,945f) − 30), con el producto en la precisión de
 // la x87 y truncado hacia el 0, y de W − 60 de ancho. 0x6410c0: el menú en su esquina, los créditos
 // en (x + ancho − 54, y) y el adorno con su punto en la esquina de los créditos.
-[[nodiscard]] MenuBarLayout LayoutMenuBar(App::PixelSize screen);
+[[nodiscard]] MenuBarLayout LayoutMenuBar(Core::PixelSize screen);
 
 // Qué botón de la barra tuvo un clic (+0xea o +0x1ca, 0x6411b0).
 enum class MenuBarClick : std::uint8_t
@@ -53,16 +53,16 @@ public:
     void Close() override;
     [[nodiscard]] bool IsOpen() const override;
     // La ventana de W − 60 × 30 (`bar` de LayoutMenuBar).
-    [[nodiscard]] Rect Bounds(App::PixelSize screen) const override;
+    [[nodiscard]] Rect Bounds(Core::PixelSize screen) const override;
 
     // 0x63c490 en los dos botones y, con el foco, 0x6411b0: el botón que tuvo un clic, el menú
     // primero.
-    std::optional<MenuBarClick> Step(const Input::InputState& input, App::PixelSize screen, NewUiTurn turn = {});
+    std::optional<MenuBarClick> Step(const Input::InputState& input, Core::PixelSize screen, NewUiTurn turn = {});
     // 0x641440 con la mezcla normal (Q-C80): el adorno y después los dos botones, sin rótulo.
-    void Draw(Render::SpriteBatch& sprites, App::PixelSize screen);
+    void Draw(Render::SpriteBatch& sprites, Core::PixelSize screen);
 
 private:
-    void Place(App::PixelSize screen);
+    void Place(Core::PixelSize screen);
 
     TextureSizes m_sizes;
     bool m_open = false;

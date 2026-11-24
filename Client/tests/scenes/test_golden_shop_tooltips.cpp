@@ -1,7 +1,8 @@
 #include "Core/Expected.h"
-#include "App/WindowState.h"
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
+#include "Core/PixelSize.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Models/PlayerModels.h"
 #include "Data/Tables/ItemSetTables.h"
 #include "Data/Tables/ItemTable.h"
@@ -70,12 +71,12 @@
 // el inventario, con el de venta. Ninguno puede cortar: jugando, un corte cierra el cliente.
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::Scenes::GameHudContext;
 using Client::Scenes::WorldEntryResources;
 using Client::World::ItemState;
 
-constexpr Client::App::PixelSize Screen640{640, 480};
+constexpr Client::Core::PixelSize Screen640{640, 480};
 constexpr std::size_t HeroSlot = 7;
 constexpr std::uint8_t Knight = 1;
 constexpr std::int32_t LorenciaTax = 3;

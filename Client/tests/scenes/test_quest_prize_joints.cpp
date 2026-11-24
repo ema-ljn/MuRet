@@ -1,7 +1,7 @@
 #include "Scenes/FaunaJointCreation.h"
 
 #include "Core/Expected.h"
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "Render/Models/OriginalRetainedMath.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/GameDrawTail.h"
@@ -24,7 +24,7 @@
 // esperados repiten las fórmulas del ASM con otro CrtRandom de la misma semilla.
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::Render::Models::Detail::CosineProductPC53;
 using Client::Render::Models::Detail::SineProductPC53;
 using Client::Scenes::ActorState;

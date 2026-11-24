@@ -1,8 +1,9 @@
 #include "Scenes/PkLevelReply.h"
 
-#include "App/WindowState.h"
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
+#include "Core/PixelSize.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Tables/ItemSetTables.h"
 #include "Data/Tables/ItemTable.h"
 #include "Data/Text/TextTable.h"
@@ -39,8 +40,8 @@
 // en +0x1d6 si es 6 o más; del 1 al 6, un aviso al chat (0x555190) con su nombre y el texto de su estado.
 namespace
 {
+using Client::Crt::CrtRandom;
 using Client::Protocol::Character::PkLevel;
-using Client::Render::Models::CrtRandom;
 using Client::Scenes::WorldEntryResources;
 
 constexpr std::size_t ChosenSlot = 9;
@@ -71,7 +72,7 @@ struct Stage
                                    .itemSetTables = &sets,
                                    .log = log,
                                    .textMeasure = &text,
-                                   .screen = [] { return Client::App::PixelSize{640, 480}; },
+                                   .screen = [] { return Client::Core::PixelSize{640, 480}; },
                                    .texts = &texts};
     }
 

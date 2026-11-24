@@ -1,7 +1,7 @@
 #include "World/NoriaParticleKernels.h"
 
 #include "Core/Expected.h"
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "Render/Models/OriginalRetainedMath.h"
 #include "Render/Models/OriginalRotation.h"
 #include "World/Particles.h"
@@ -88,8 +88,8 @@ bool IsOwnerBirthFairySpark(std::int32_t type, std::int32_t subtype)
     return type == FairySparkParticle && subtype == OwnerBirthSparkSubtype;
 }
 
-Core::Expected<void, ParticleError>
-CreateNoriaParticle(Particle& particle, float scale, Render::Models::CrtRandom& random, const glm::vec3* ownerPosition)
+Core::Expected<void, ParticleError> CreateNoriaParticle(Particle& particle, float scale, Crt::CrtRandom& random,
+                                                        const glm::vec3* ownerPosition)
 {
     if (particle.type == ShinyParticle)
     {
@@ -232,7 +232,7 @@ Core::Expected<void, ParticleError> StepNoriaParticle(Particle& particle, const 
     return {};
 }
 
-Core::Expected<void, ParticleError> StepTheFallingShine(Particle& particle, Render::Models::CrtRandom& random,
+Core::Expected<void, ParticleError> StepTheFallingShine(Particle& particle, Crt::CrtRandom& random,
                                                         FrameSprites* sprites)
 {
     // 0x546c0f..0x546c18: gira 12 al revés.

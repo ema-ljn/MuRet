@@ -1,15 +1,15 @@
 #include "Network/Xor32Packet.h"
 #include "Scenes/PetTooltip.h"
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Core/PixelSize.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Tables/ItemTable.h"
 #include "Data/Tables/SkillTable.h"
 #include "Data/Text/TextTable.h"
 #include "Network/Packet.h"
 #include "Protocol/Outgoing.h"
 #include "Protocol/Pet/PetInfo.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/SpriteBatch.h"
 #include "Scenes/ActorState.h"
@@ -46,15 +46,15 @@
 // texto falso de RecordingTextDrawer (13 de alto). Los textos son inventados. Cada test corre en Lorencia y en Devias.
 namespace
 {
+using Client::Crt::CrtRandom;
 using Client::Render::SpriteBatch;
-using Client::Render::Models::CrtRandom;
 using Client::Render::Models::OwnRecordCloseRandoms;
 using Client::Scenes::GameHudContext;
 using Client::Scenes::TooltipLines;
 using Client::Scenes::WorldState;
 using Client::World::ItemState;
 
-constexpr Client::App::PixelSize Screen640{640, 480};
+constexpr Client::Core::PixelSize Screen640{640, 480};
 constexpr std::uint32_t Seed = 0x5eed4243u;
 constexpr std::int32_t Lorencia = 0;
 constexpr std::int32_t Devias = 2;

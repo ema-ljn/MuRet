@@ -14,7 +14,7 @@
 // 0.97 no tiene el 3F: el oráculo es el ASM del cliente (*estático*). El paso de la ventana (0x5ea290), lo que se hace
 // con el mouse sobre las grillas (0x5c5110, 0x5c5242 y 0x5dec19) y las respuestas de sus avisos están en
 // Scenes/PersonalShopWindow (fase 5); su dibujo (0x5f3030), en Scenes/GameInventoryHud (fase 6a).
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
 }
@@ -27,15 +27,15 @@ struct WorldEntryResources;
 // 0x65ac65..0x65b21d (0x800) y 0x65b33a..0x65ba37 (0x20000), después de abrir el inventario: con 0x6c931c distinto de
 // −1, el C1 04 F3 10 en C3 (dos rand(), el relleno y el serial); los dos mapas si ninguno estaba (los arma juntos, y
 // solo los suelta la vuelta a la selección, ResetThePersonalShops); 0x6c931c en 1 (la propia) o 2 (la de otro).
-[[nodiscard]] Core::Expected<void, std::string>
-OpenThePersonalShop(WorldState& world, Render::Models::CrtRandom& random, UI::PanelId id, const GamePacketSender& send);
+[[nodiscard]] Core::Expected<void, std::string> OpenThePersonalShop(WorldState& world, Crt::CrtRandom& random,
+                                                                    UI::PanelId id, const GamePacketSender& send);
 
 // 0x5eb020, al cerrar cualquiera de las dos: con 0x6c931c en 2, la grilla de la tienda propia vuelve de su copia
 // (0x78a6768 → 0x78ab0b8), el título de la ventana (0x78aba64) vuelve al del cartel del héroe (0x451810 y 0x451860) o
 // queda vacío, y con la clave del dueño (0x78a6514) distinta de 0, el 3F 07 en C3. Después, con el diálogo 0x91 o el
 // 0x94 con 0x78abb14 en 5, el diálogo 0 (0x6236f0); 0x6c931c en −1 y la copia del dueño (0x78a6320) en ceros.
-[[nodiscard]] Core::Expected<void, std::string>
-CloseThePersonalShop(WorldState& world, Render::Models::CrtRandom& random, const GamePacketSender& send);
+[[nodiscard]] Core::Expected<void, std::string> CloseThePersonalShop(WorldState& world, Crt::CrtRandom& random,
+                                                                     const GamePacketSender& send);
 
 // 0x5eb960, por el jmp de 0x657690 al final de 0x657670 (la vuelta a la selección, 0x4c26e7): 0x78aba50 en 0, 0x6c931c
 // en −1, 0x78aba60 en 0 y el título (0x78aba64) vacío; los carteles (0x4514a0 sobre 0x7245c8, que no toca la cuenta

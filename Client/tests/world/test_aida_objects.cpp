@@ -1,5 +1,5 @@
+#include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainLight.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/ObjectState.h"
 #include "World/TerrainLighting.h"
 #include "World/WorldObjects.h"
@@ -18,7 +18,7 @@
 // 0x425070): 06 § El mundo de la selección.
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::World::ObjectStepGlobals;
 using Client::World::StepWorldObjectChecked;
 using Client::World::TerrainLighting;

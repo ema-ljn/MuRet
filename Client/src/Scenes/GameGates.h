@@ -8,7 +8,7 @@
 #include <functional>
 #include <string>
 
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
 }
@@ -21,7 +21,7 @@ struct GameGateContext
 {
     WorldState& world;
     const Data::Tables::GateTable& gates;
-    Render::Models::CrtRandom& random;
+    Crt::CrtRandom& random;
     std::uint32_t ticksMs = 0;
     std::function<void(std::uint8_t)> requestGate{};
     // 0x7879f80: sólo lo consulta Atlans con cursorItemCount>0; cero mientras no hay productor.

@@ -1,6 +1,6 @@
 #include "Render/OriginalSkewedQuad.h"
 
-#include "App/WindowState.h"
+#include "Core/PixelSize.h"
 #include "Render/OriginalQuad.h"
 #include "Render/QuadCorner.h"
 
@@ -12,7 +12,7 @@ namespace
 constexpr double SkewOfTheLeftSide = 0.25;
 } // namespace
 
-QuadCorners SkewedFanCorners(const OriginalSkewedQuad& quad, App::PixelSize screen)
+QuadCorners SkewedFanCorners(const OriginalSkewedQuad& quad, Core::PixelSize screen)
 {
     // Las posiciones son las de 0x621b60 con las dos banderas: 0x622000 escala los cuatro y hace la
     // misma resta (0x622050..0x62208c).

@@ -9,7 +9,7 @@ namespace Client::GameLogic
 struct CharacterAppearance;
 }
 
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
 }
@@ -66,7 +66,7 @@ struct FullSetScan
 // `ownRecordAccesses`), lo pone en 0 si la armadura del registro (+0xc44) no es 0x100f, 0x1014, 0x1017
 // ni 0x1020, y lo cierra, con 3.848 rand() de `random` si deja la cuenta en 0.
 [[nodiscard]] FullSetScan ScanFullSet(const ScannedCharacter& character, const OwnCharacterRecord& own,
-                                      std::uint8_t& ownRecordAccesses, Render::Models::CrtRandom& random);
+                                      std::uint8_t& ownRecordAccesses, Crt::CrtRandom& random);
 
 // 0x50c904..0x50c926: lo que 0x50ba30 hace con un 0x20a con +0x3e4 en 0, en cada frame del original que lo
 // dibuja, `frames` veces: 0x505820 con el registro propio y la cuenta de accesos de `world`, y los
@@ -74,5 +74,5 @@ struct FullSetScan
 // efectos (0x50fddb). Con `frames` en 0 (un dibujo entre frames), lo mismo sobre copias del rand() y de la
 // cuenta, sin publicar nada.
 [[nodiscard]] FullSetScan ScanTheDrawnCharacter(WorldState& world, const ScannedCharacter& character,
-                                                Render::Models::CrtRandom& random, int frames);
+                                                Crt::CrtRandom& random, int frames);
 } // namespace Client::Scenes

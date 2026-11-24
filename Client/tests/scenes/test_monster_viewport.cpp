@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Models/PlayerModels.h"
 #include "Data/Tables/ItemSetTables.h"
 #include "Data/Tables/ItemTable.h"
@@ -77,8 +78,8 @@
 // (support/ViewportPackets.h); los nombres de los dueños y el Text 485 son inventados.
 namespace
 {
+using Client::Crt::CrtRandom;
 using Client::Data::Models::PlayerSkeletonModel;
-using Client::Render::Models::CrtRandom;
 using Client::Scenes::ActorState;
 using Client::Tests::AfterDraws;
 using Client::Tests::MonsterRecordBytes;

@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Core/IClock.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Models/Model.h"
 #include "GameLogic/CharacterAppearance.h"
 #include "Render/ModelBatch.h"
@@ -277,7 +278,7 @@ struct MonsterFrame
     WorldState& world;
     ActorState& actor;
     const GameCharacterPass& pass;
-    Render::Models::CrtRandom& random;
+    Crt::CrtRandom& random;
     std::size_t slot = 0;
     std::int32_t map = 0;
     float worldClock = 0.0f;
@@ -1496,10 +1497,9 @@ Core::Expected<void, std::string> DrawGameMonster(Render::ModelBatch& batch,
         return Core::Unexpected(std::format("0x50ba82: falta el modelo {:#x}", stored.type));
     // Entre frames del original, sobre una copia del personaje y del rand(): no guarda nada.
     std::optional<ActorState> projected;
-    std::optional<Render::Models::CrtRandom> projectedRandom;
+    std::optional<Crt::CrtRandom> projectedRandom;
     ActorState& actor = originalFrame ? stored : projected.emplace(stored);
-    Render::Models::CrtRandom& random =
-        originalFrame ? pass.clothWorld->random : projectedRandom.emplace(pass.clothWorld->random);
+    Crt::CrtRandom& random = originalFrame ? pass.clothWorld->random : projectedRandom.emplace(pass.clothWorld->random);
     MonsterFrame frame{.batch = batch,
                        .items = models,
                        .fauna = fauna,

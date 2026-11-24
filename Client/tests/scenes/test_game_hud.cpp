@@ -1,11 +1,11 @@
 #include "Scenes/GameHud.h"
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Core/PixelSize.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Tables/ItemTable.h"
 #include "Data/Tables/SkillTable.h"
 #include "Protocol/Inventory.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
@@ -62,11 +62,11 @@
 // skill 0x2c, 653 pociones de vida y 760 de maná, un ayudante con la barra en 48 y el mouse en (356, 193).
 namespace
 {
+using Client::Crt::CrtRandom;
 using Client::Render::BlendMode;
 using Client::Render::Color;
 using Client::Render::SpriteBatch;
 using Client::Render::SpriteVertex;
-using Client::Render::Models::CrtRandom;
 using Client::Render::Models::OwnRecordCloseRandoms;
 using Client::Render::Models::SmallLogicalCloseRandoms;
 using Client::Scenes::GameHudContext;
@@ -74,8 +74,8 @@ using Client::Scenes::WorldState;
 using Client::World::ItemState;
 
 constexpr std::uint32_t Seed = 0x2468ace0u;
-constexpr Client::App::PixelSize Screen640{640, 480};
-constexpr Client::App::PixelSize Screen1024{1024, 768};
+constexpr Client::Core::PixelSize Screen640{640, 480};
+constexpr Client::Core::PixelSize Screen1024{1024, 768};
 
 // El estado base: 19 cierres del registro propio (las flechas, los doce avisos, la barra de abajo, la experiencia,
 // el AG y los tres de la barra principal), las dos celdas del héroe y nueve consultas del comercio (0x20) y de la

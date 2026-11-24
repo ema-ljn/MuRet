@@ -418,8 +418,8 @@ scene costs 2.5 to 3.2 ms of CPU of a 40 ms frame at `-O2`, and EASTL ties with 
   because the order of equal elements reaches the screen. `std::sort` and `std::ranges::sort` only
   when no two elements compare equal or equal ones cannot be told apart (integers, unique slots).
   `std::stable_sort` when the original keeps equal elements in arrival order.
-- **Random numbers.** What the original draws with `rand()` goes through `CrtRandom`, in the
-  original's order. `std::mt19937` and `std::minstd_rand` are fixed by the standard and may serve
+- **Random numbers.** What the original draws with `rand()` goes through `Crt::CrtRandom`
+  (`Crt/CrtRandom.h`), in the original's order. `std::mt19937` and `std::minstd_rand` are fixed by the standard and may serve
   MuRet's own draws, using their raw output. Never `std::rand`, `std::shuffle`, `std::sample` or the
   `<random>` distributions (`std::uniform_int_distribution` and the rest): the standard does not fix
   their results, and GCC and MSVC give different ones.

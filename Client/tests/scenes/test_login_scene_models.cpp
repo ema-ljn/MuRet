@@ -4,6 +4,7 @@
 
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Models/Model.h"
 #include "Data/Models/PlayerModels.h"
 #include "Data/Terrain/TerrainHeights.h"
@@ -429,7 +430,7 @@ std::mt19937::result_type SeedWhoseFirstRollIs(int remainder)
 {
     for (std::mt19937::result_type seed = 0;; ++seed)
     {
-        Client::Render::Models::CrtRandom random(static_cast<std::uint32_t>(seed));
+        Client::Crt::CrtRandom random(static_cast<std::uint32_t>(seed));
         if (random.Next() % 6 == remainder)
         {
             return seed;
@@ -494,7 +495,7 @@ TEST(LoginSceneModelsTest, WithTheLoopTheGestureTakesTheRandOfTheCrt)
         Harness tested;
         FakeClock sceneClock;
         sceneClock.Advance(clock);
-        Client::Render::Models::ClothWorld cloth{.random = Client::Render::Models::CrtRandom(crt)};
+        Client::Render::Models::ClothWorld cloth{.random = Client::Crt::CrtRandom(crt)};
         EXPECT_TRUE(tested.Make(seed, &sceneClock, &cloth).Enter().HasValue());
         tested.Steps(1);
         return CharacterHeight(tested);

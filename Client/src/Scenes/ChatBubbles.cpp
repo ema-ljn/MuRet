@@ -1,7 +1,7 @@
 #include "Scenes/ChatBubbles.h"
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Core/PixelSize.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/GameMessages.h"
 #include "Scenes/GuildState.h"

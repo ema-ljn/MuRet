@@ -1,8 +1,8 @@
+#include "Crt/CrtRandom.h"
 #include "World/Particles.h"
 #include "World/KalimaParticleKernels.h"
 #include "World/ParticleOwner.h"
 #include "World/PortableParticleTrigonometry.h"
-#include "Render/Models/Cloth.h"
 
 #include <glm/ext/vector_float3.hpp>
 #include <gtest/gtest.h>
@@ -15,7 +15,7 @@
 
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::World::Particles;
 struct Creation
 {

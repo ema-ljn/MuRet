@@ -1,6 +1,6 @@
 #include "World/Particles.h"
 
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 
 #include "support/ParticleDrawRecorder.h"
 
@@ -15,7 +15,7 @@
 
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::Tests::DrawOneParticle;
 using Client::Tests::RecordedParticleDraw;
 using Client::World::Particle;

@@ -1,10 +1,10 @@
 #include "Scenes/GameDialogDrawing.h"
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Core/PixelSize.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Text/DialogTable.h"
 #include "Data/Text/TextTable.h"
-#include "Render/Models/Cloth.h"
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
 #include "Render/Text/FontSet.h"
@@ -57,7 +57,7 @@ using Client::Render::SpriteBatch;
 using Client::Scenes::GameHudContext;
 using Client::Scenes::WorldState;
 
-constexpr Client::App::PixelSize Screen640{640, 480};
+constexpr Client::Core::PixelSize Screen640{640, 480};
 constexpr std::int32_t Lorencia = 0;
 constexpr std::int32_t Devias = 2;
 constexpr std::int32_t Noria = 3;
@@ -147,7 +147,7 @@ public:
     }
 
     WorldState world;
-    Client::Render::Models::CrtRandom random;
+    Client::Crt::CrtRandom random;
     std::uint8_t cellDepth = 0;
     std::optional<std::int32_t> sound;
     SpriteBatch sprites;
@@ -589,7 +589,7 @@ TEST(GameDialogDrawingTest, ThePartyInvitationNamesWhoInvites)
         ASSERT_TRUE(tested->Draw().HasValue());
         EXPECT_EQ(QuadsOf(tested->sprites)[1].slot, 0xf1);
         EXPECT_EQ(tested->Texts(), (std::vector<std::string>{"de ", "entrar a la party?"}));
-        EXPECT_EQ(tested->random.State(), Client::Render::Models::CrtRandom{}.State());
+        EXPECT_EQ(tested->random.State(), Client::Crt::CrtRandom{}.State());
     }
 }
 
@@ -664,7 +664,7 @@ TEST(GameDialogDrawingTest, TheWarRequestNamesTheRivalAndAsksByWarType)
         EXPECT_EQ(QuadsOf(tested->sprites)[1].slot, 0xf1);
         EXPECT_EQ(QuadsOf(tested->sprites)[2].slot, 0xf4);
         EXPECT_EQ(tested->Texts(), (std::vector<std::string>{"guerra de Teros", "aceptas la batalla?"}));
-        EXPECT_EQ(tested->random.State(), Client::Render::Models::CrtRandom{}.State());
+        EXPECT_EQ(tested->random.State(), Client::Crt::CrtRandom{}.State());
     }
 }
 
@@ -749,7 +749,7 @@ TEST(GameDialogDrawingTest, TheLeaveNumberDrawsItsEditAndTheNarrowButtons)
         ASSERT_TRUE(tested->Draw().HasValue());
         EXPECT_EQ(input.numberField.draws, 1);
         EXPECT_EQ(QuadsOf(tested->sprites)[4].slot, 0xf4);
-        EXPECT_EQ(tested->random.State(), Client::Render::Models::CrtRandom{}.State());
+        EXPECT_EQ(tested->random.State(), Client::Crt::CrtRandom{}.State());
     }
 }
 

@@ -2,6 +2,7 @@
 #include "Render/Models/IModelLibrary.h"
 #include "Scenes/FaunaStep.h"
 
+#include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainHeights.h"
 #include "Data/Terrain/TerrainMapping.h"
@@ -78,7 +79,7 @@ TEST_F(FaunaStepTest, LandingAndTakingOffRunTheirNewStatesInTheSameStep)
     auto& bird = m_fauna.Birds()[0];
     bird.position = {1200, 1000, -100};
     bird.scale = 1;
-    Client::Render::Models::CrtRandom expected;
+    Client::Crt::CrtRandom expected;
     const int first = expected.Next() % 16 - 8;
     const int second = expected.Next() % 16 - 8;
     const auto result = RunFaunaBirdHandler(context, Client::World::BirdHandler::MoveAdBc, bird, 0);
@@ -128,7 +129,7 @@ TEST_F(FaunaStepTest, KalimaGateReadsTheSharedCounterAndSpendsItsCloseDraws)
     auto context = Context();
     auto& bird = m_fauna.Birds()[0];
     bird.active = 1;
-    Client::Render::Models::CrtRandom expected;
+    Client::Crt::CrtRandom expected;
     for (int i = 0; i < 4; ++i)
         static_cast<void>(expected.Next());
     const auto result = RunFaunaBirdHandler(context, Client::World::BirdHandler::SpawnKalima, bird, 0);
@@ -172,7 +173,7 @@ TEST_F(FaunaStepTest, IcarusSpawnHasSixDrawsAndWritesTheNativeFlightFields)
     EXPECT_EQ(bird.action, 7);
     EXPECT_EQ(bird.hiddenMesh, -1);
     EXPECT_EQ(bird.alphaMode, 0);
-    Client::Render::Models::CrtRandom expected;
+    Client::Crt::CrtRandom expected;
     for (int i = 0; i < 6; ++i)
         static_cast<void>(expected.Next());
     EXPECT_EQ(m_cloth.random.State(), expected.State());
@@ -214,7 +215,7 @@ TEST_F(FaunaStepTest, KalimaBirthClosesCounterBeforeSixSpawnDraws)
     EXPECT_FLOAT_EQ(bird.turnRate, -1.5f);
     EXPECT_EQ(bird.timer, 200);
     EXPECT_EQ(bird.hiddenMesh, 5);
-    Client::Render::Models::CrtRandom expected;
+    Client::Crt::CrtRandom expected;
     for (int i = 0; i < 10; ++i)
         static_cast<void>(expected.Next());
     EXPECT_EQ(m_cloth.random.State(), expected.State());
@@ -231,7 +232,7 @@ TEST_F(FaunaStepTest, MissingJointBindingStopsAfterTheIcarusBirthPrefix)
     EXPECT_EQ(bird.timer, 9600);
     EXPECT_EQ(bird.position, glm::vec3(523, 678, 0));
     EXPECT_FLOAT_EQ(bird.angles.z, 0);
-    Client::Render::Models::CrtRandom expected;
+    Client::Crt::CrtRandom expected;
     for (int i = 0; i < 3; ++i)
         static_cast<void>(expected.Next());
     EXPECT_EQ(m_cloth.random.State(), expected.State());

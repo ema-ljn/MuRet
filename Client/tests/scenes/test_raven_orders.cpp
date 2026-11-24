@@ -2,6 +2,7 @@
 
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
+#include "Crt/CrtRandom.h"
 #include "Protocol/Pet/PetOrders.h"
 #include "Render/Models/Cloth.h"
 #include "Scenes/ActorState.h"
@@ -26,9 +27,9 @@
 // Las órdenes del cuervo (A7 y A8, CL9 hito 4, 06 § Las órdenes del cuervo), con claves inventadas.
 namespace
 {
+using Client::Crt::CrtRandom;
 using Client::Protocol::Pet::PetAttack;
 using Client::Protocol::Pet::PetOrder;
-using Client::Render::Models::CrtRandom;
 using Client::Scenes::ActorState;
 using Client::Scenes::DarkSpirit;
 

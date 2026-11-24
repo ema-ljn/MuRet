@@ -32,16 +32,11 @@ public:
     }
     void SetEffectsVolume(std::uint8_t) override {}
     void SetListener(glm::vec3) override {}
-    int MusicProgressPercent() const override
-    {
-        return progressPercent;
-    }
 
     std::vector<std::string> played;
     std::vector<std::string> events;
     std::vector<bool> loops;
     int stops = 0;
-    int progressPercent = 0;
 };
 
 TEST(MusicTest, PlaysTrackOnlyWhenItChangesAndStopsOnlyExactCurrentTrack)
@@ -132,34 +127,6 @@ TEST(MusicTest, StopsAnyKnownWorldTrackOnWorldReturn)
     music.StopWorld(&playback);
     EXPECT_EQ(playback.stops, 1);
     EXPECT_TRUE(music.Current().empty());
-}
-
-TEST(MusicTest, CrywolfTransitionsTracksAndStopsOnlyAtExactProgress100)
-{
-    Music music;
-    Playback playback;
-    playback.progressPercent = 99;
-    music.StepCrywolf(&playback, 2);
-    EXPECT_EQ(music.Current(), "Music\\crywolf_before-01.ogg");
-    music.StepCrywolf(&playback, 3);
-    EXPECT_EQ(music.Current(), "Music\\crywolf_ready-02.ogg");
-    music.StepCrywolf(&playback, 4);
-    EXPECT_EQ(music.Current(), "Music\\crywolf_back-03.ogg");
-    EXPECT_EQ(playback.stops, 2);
-
-    playback.progressPercent = 100;
-    music.StepCrywolf(&playback, 4);
-    EXPECT_TRUE(music.Current().empty());
-    EXPECT_EQ(playback.stops, 3);
-}
-
-TEST(MusicTest, CrywolfDoesNotTreatOtherProgressValuesAsCompletion)
-{
-    Music music;
-    Playback playback;
-    playback.progressPercent = 101;
-    music.StepCrywolf(&playback, 0);
-    EXPECT_EQ(music.Current(), "Music\\crywolf1st.mp3");
 }
 } // namespace
 } // namespace Client::Audio

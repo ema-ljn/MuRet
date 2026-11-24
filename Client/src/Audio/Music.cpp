@@ -58,11 +58,6 @@ void Music::StopWorld(IPlayback* playback)
         Stop(playback, track);
 }
 
-void Music::StopCrywolfBase(IPlayback* playback)
-{
-    Stop(playback, "Music\\crywolf1st.mp3");
-}
-
 void Music::StepWorld(IPlayback* playback, int map, bool safe, int heroCellLayer,
                       const std::function<bool()>& inDeviasChurch)
 {
@@ -137,49 +132,5 @@ void Music::StepWorld(IPlayback* playback, int map, bool safe, int heroCellLayer
         Play(playback, "Music\\Aida.mp3");
     else
         Stop(playback, "Music\\Aida.mp3");
-}
-
-void Music::StepCrywolf(IPlayback* playback, int stage)
-{
-    std::string_view desired;
-    switch (stage)
-    {
-    case 2:
-        desired = "Music\\crywolf_before-01.ogg";
-        break;
-    case 3:
-        desired = "Music\\crywolf_ready-02.ogg";
-        break;
-    case 4:
-        desired = "Music\\crywolf_back-03.ogg";
-        break;
-    case 5:
-        Stop(playback, "Music\\crywolf_ready-02.ogg");
-        Stop(playback, "Music\\crywolf_back-03.ogg");
-        return;
-    default:
-        desired = "Music\\crywolf1st.mp3";
-        break;
-    }
-
-    // 0x430250 replaces only the preceding stage's track, then drains the selected stream on the
-    // exact range value 100. Query after Play, as the native frame does.
-    switch (stage)
-    {
-    case 2:
-        Stop(playback, "Music\\crywolf1st.mp3");
-        break;
-    case 3:
-        Stop(playback, "Music\\crywolf_before-01.ogg");
-        break;
-    case 4:
-        Stop(playback, "Music\\crywolf_ready-02.ogg");
-        break;
-    default:
-        break;
-    }
-    Play(playback, desired);
-    if (playback != nullptr && playback->MusicProgressPercent() == 100)
-        Stop(playback, desired);
 }
 } // namespace Client::Audio

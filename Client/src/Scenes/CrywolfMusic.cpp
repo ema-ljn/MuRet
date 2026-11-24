@@ -27,6 +27,7 @@ constexpr std::int32_t LoseSound = 0x245;
 // The stream's progress at which 0x430250 stops the track it has just asked for.
 constexpr int TrackEnd = 100;
 
+// The progress is read after the play, as the original's frame does.
 void PlayToItsEnd(Audio::Music& music, Audio::IPlayback* playback, std::string_view track)
 {
     music.Play(playback, track);
@@ -34,8 +35,8 @@ void PlayToItsEnd(Audio::Music& music, Audio::IPlayback* playback, std::string_v
         music.Stop(playback, track);
 }
 
-// A stage stops only the track of the stage before it.
-void StepTheStagesTrack(Audio::Music& music, Audio::IPlayback* playback, std::uint8_t stage)
+// A stage with a track of its own stops only the track of the stage before it.
+void StepTheStageTrack(Audio::Music& music, Audio::IPlayback* playback, std::uint8_t stage)
 {
     switch (stage)
     {
@@ -66,7 +67,7 @@ void StepTheCrywolfMusic(WorldRuntime& runtime)
 {
     if (runtime.map == CrywolfMap)
     {
-        StepTheStagesTrack(runtime.music, runtime.audio, runtime.crywolf.stage);
+        StepTheStageTrack(runtime.music, runtime.audio, runtime.crywolf.stage);
         if (runtime.crywolf.stage == Events::CrywolfEndStage)
             runtime.RequestSound(runtime.crywolf.ui.dword6c73dc == FailureBanner ? LoseSound : WinSound);
     }

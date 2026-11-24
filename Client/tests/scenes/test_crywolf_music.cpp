@@ -24,9 +24,12 @@ using Client::Scenes::WorldRuntime;
 
 constexpr std::int32_t CrywolfMap = 34;
 constexpr std::int32_t AidaMap = 33;
+constexpr std::int32_t MapAfterCrywolf = 35;
+constexpr std::int32_t NoBanner = 0;
 constexpr std::int32_t FailureBanner = 0xa;
 constexpr std::int32_t SuccessBanner = 0xb;
 constexpr std::string_view MapTrack = "Music\\crywolf1st.mp3";
+constexpr std::string_view SecondNoticeTrack = "Music\\crywolf_before-01.ogg";
 constexpr std::string_view ReadyTrack = "Music\\crywolf_ready-02.ogg";
 constexpr std::string_view StartTrack = "Music\\crywolf_back-03.ogg";
 
@@ -43,6 +46,8 @@ public:
     void PlayMusic(std::string_view path, bool) override
     {
         events.push_back(std::format("play:{}", path));
+        if (progressOfANewTrack.has_value())
+            progress = *progressOfANewTrack;
     }
     void StopMusic() override
     {
@@ -62,7 +67,13 @@ public:
 
     std::vector<std::string> events{};
     int progress = 0;
+    std::optional<int> progressOfANewTrack{};
 };
+
+std::string Played(std::string_view track)
+{
+    return std::format("play:{}", track);
+}
 
 // A world with a playback device. The runtime is a quarter of MSVC's stack, so it goes on the heap.
 struct Frame
@@ -117,22 +128,45 @@ TEST(CrywolfMusicTest, AStageWithoutATrackOfItsOwnPlaysTheMaps)
 
 TEST(CrywolfMusicTest, OnlyProgressOneHundredEndsTheTrackAndTheNextFrameStartsItAgain)
 {
-    Frame frame;
-    for (const int progress : {99, 101})
+    struct Case
     {
-        frame.playback.progress = progress;
-        frame.StepAt(4);
+        std::uint8_t stage;
+        std::string_view track;
+    };
+    for (const auto [stage, track] :
+         {Case{0, MapTrack}, Case{2, SecondNoticeTrack}, Case{3, ReadyTrack}, Case{4, StartTrack}})
+    {
+        Frame frame;
+        for (const int progress : {99, 101})
+        {
+            frame.playback.progress = progress;
+            frame.StepAt(stage);
+        }
+        EXPECT_EQ(frame.playback.events, (std::vector<std::string>{Played(track)})) << "stage " << int{stage};
+
+        frame.playback.progress = 100;
+        frame.StepAt(stage);
+        EXPECT_EQ(frame.playback.events, (std::vector<std::string>{Played(track), "stop"})) << "stage " << int{stage};
+        EXPECT_TRUE(frame.runtime.music.Current().empty());
+
+        frame.playback.progress = 0;
+        frame.StepAt(stage);
+        EXPECT_EQ(frame.playback.events, (std::vector<std::string>{Played(track), "stop", Played(track)}))
+            << "stage " << int{stage};
     }
-    EXPECT_EQ(frame.runtime.music.Current(), StartTrack);
+}
 
+// The track that ends is the one the frame has just asked for: the stream of the track it replaces is at its end.
+TEST(CrywolfMusicTest, TheProgressIsReadAfterTheTrackStarts)
+{
+    Frame frame;
+    frame.StartWith(MapTrack);
     frame.playback.progress = 100;
-    frame.StepAt(4);
-    EXPECT_TRUE(frame.runtime.music.Current().empty());
-    EXPECT_EQ(frame.playback.Last(), "stop");
+    frame.playback.progressOfANewTrack = 0;
 
-    frame.playback.progress = 0;
-    frame.StepAt(4);
-    EXPECT_EQ(frame.playback.Last(), "play:Music\\crywolf_back-03.ogg");
+    frame.StepAt(2);
+
+    EXPECT_EQ(frame.runtime.music.Current(), SecondNoticeTrack);
 }
 
 TEST(CrywolfMusicTest, AStageThatSkipsOneReplacesTheTrackWithoutAStop)
@@ -146,6 +180,50 @@ TEST(CrywolfMusicTest, AStageThatSkipsOneReplacesTheTrackWithoutAStop)
               (std::vector<std::string>{"play:Music\\crywolf_before-01.ogg", "play:Music\\crywolf_back-03.ogg"}));
 }
 
+// With the failure banner of a fresh runtime, the end stage's rows end with the sound of the defeat.
+TEST(CrywolfMusicTest, EveryStageWithEveryTrackPlaying)
+{
+    struct Row
+    {
+        std::uint8_t stage;
+        std::string_view playing;
+        std::vector<std::string> then;
+    };
+    const std::vector<Row> rows{
+        {0, MapTrack, {}},
+        {0, SecondNoticeTrack, {Played(MapTrack)}},
+        {0, ReadyTrack, {Played(MapTrack)}},
+        {0, StartTrack, {Played(MapTrack)}},
+        {2, MapTrack, {"stop", Played(SecondNoticeTrack)}},
+        {2, SecondNoticeTrack, {}},
+        {2, ReadyTrack, {Played(SecondNoticeTrack)}},
+        {2, StartTrack, {Played(SecondNoticeTrack)}},
+        {3, MapTrack, {Played(ReadyTrack)}},
+        {3, SecondNoticeTrack, {"stop", Played(ReadyTrack)}},
+        {3, ReadyTrack, {}},
+        {3, StartTrack, {Played(ReadyTrack)}},
+        {4, MapTrack, {Played(StartTrack)}},
+        {4, SecondNoticeTrack, {Played(StartTrack)}},
+        {4, ReadyTrack, {"stop", Played(StartTrack)}},
+        {4, StartTrack, {}},
+        {5, MapTrack, {"sound:0x245"}},
+        {5, SecondNoticeTrack, {"sound:0x245"}},
+        {5, ReadyTrack, {"stop", "sound:0x245"}},
+        {5, StartTrack, {"stop", "sound:0x245"}},
+    };
+    for (const Row& row : rows)
+    {
+        Frame frame;
+        frame.StartWith(row.playing);
+
+        frame.StepAt(row.stage);
+
+        std::vector<std::string> expected{Played(row.playing)};
+        expected.insert(expected.end(), row.then.begin(), row.then.end());
+        EXPECT_EQ(frame.playback.events, expected) << "stage " << int{row.stage} << " with " << row.playing;
+    }
+}
+
 TEST(CrywolfMusicTest, TheEndStageStopsTheBattleTracksAndRequestsTheResult)
 {
     struct Case
@@ -153,7 +231,8 @@ TEST(CrywolfMusicTest, TheEndStageStopsTheBattleTracksAndRequestsTheResult)
         std::int32_t banner;
         std::string sound;
     };
-    for (const auto& [banner, sound] : {Case{SuccessBanner, "sound:0x244"}, Case{FailureBanner, "sound:0x245"}})
+    for (const auto& [banner, sound] :
+         {Case{SuccessBanner, "sound:0x244"}, Case{NoBanner, "sound:0x244"}, Case{FailureBanner, "sound:0x245"}})
     {
         Frame frame;
         frame.StartWith(StartTrack);
@@ -175,7 +254,8 @@ TEST(CrywolfMusicTest, TheResultNeedsTheMapAndTheEndStage)
         std::int32_t map;
         std::uint8_t stage;
     };
-    for (const auto [map, stage] : {Case{CrywolfMap, 4}, Case{CrywolfMap, 6}, Case{AidaMap, 5}})
+    for (const auto [map, stage] :
+         {Case{CrywolfMap, 4}, Case{CrywolfMap, 6}, Case{AidaMap, 5}, Case{MapAfterCrywolf, 5}})
     {
         Frame frame(map);
 
@@ -195,10 +275,14 @@ TEST(CrywolfMusicTest, OnAnotherMapItStopsOnlyTheMapsTrack)
         EXPECT_EQ(withTheMapsTrack.playback.events, (std::vector<std::string>{"play:Music\\crywolf1st.mp3", "stop"}))
             << "stage " << int{stage};
 
-        Frame withAStagesTrack(AidaMap);
-        withAStagesTrack.StartWith(ReadyTrack);
-        withAStagesTrack.StepAt(stage);
-        EXPECT_EQ(withAStagesTrack.runtime.music.Current(), ReadyTrack) << "stage " << int{stage};
+        for (const std::string_view track : {SecondNoticeTrack, ReadyTrack, StartTrack})
+        {
+            Frame withAStagesTrack(AidaMap);
+            withAStagesTrack.StartWith(track);
+            withAStagesTrack.StepAt(stage);
+            EXPECT_EQ(withAStagesTrack.playback.events, (std::vector<std::string>{Played(track)}))
+                << "stage " << int{stage} << " with " << track;
+        }
     }
 }
 

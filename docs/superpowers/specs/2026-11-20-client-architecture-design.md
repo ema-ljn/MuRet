@@ -162,7 +162,7 @@ by every module target through `REUSE_FROM` instead of built once per target (pl
 | one target per library, zero upward includes between targets | TrinityCore, MaNGOS | **adopted and taken one level down:** one target per module, not per layer |
 | `game` as one target with all its subfolders as include directories | TrinityCore, MaNGOS | **rejected:** it causes the 49-folder cycle; a root per layer, qualified paths and `check_layers.py` |
 | format reader below, rows and tables above (`DB2FileLoader` → `DB2Storage<T>` → `DB2Structure.h`; `DBCFileLoader` → `DBCStructure.h` + `DBCfmt.h`) | TrinityCore, MaNGOS | **adopted:** `engine/Data` reads, `game/Tables` declares the rows, with `static_assert` instead of `ASSERT` at load; without the 297 (TrinityCore) or 114 (cMaNGOS) global `extern` tables |
-| one folder per instance with an ids header (`molten_core/` + `molten_core.h`), `ZoneScript`/`InstanceScript` | TrinityCore, MaNGOS | **adapted:** `Events/<Event>/` and `MapScripts/<Map>/` with their `<Name>.h`; each map's script comes from a `constexpr` table by id, with no registration by name and no factories |
+| one folder per instance with an ids header (`molten_core/` + `molten_core.h`), `ZoneScript`/`InstanceScript` | TrinityCore, MaNGOS | **adapted:** `Events/<Event>/` and `MapScripts/<Map>/` with their `<Name>.h`; each map's script is called where the original calls that map's code, in a chain written in the original's order, with no table by map id over the chains, no registration by name and no factories |
 | the script loader with `AddSC_` calls in written order (`ScriptLoader.cpp`) | cMaNGOS | **adopted:** everything that hooks in (extension points, scripts) is assembled in `app/` in the original's order, never with static constructors |
 | `ScriptMgr` with hooks broadcast in registration order (`FOREACH_SCRIPT`) | TrinityCore | **the broadcast is rejected:** the order of calls is written by the original |
 | the interface in the lower target and the implementation above (`proto/IWorldGateway.h`) | MaNGOS Zero | **adopted:** the `Kernel` ports |
@@ -321,7 +321,11 @@ plan:**
    sound, an on-screen message) and `Session`, `Sound` and `Ui` implement them, like
    `proto/IWorldGateway.h` in MaNGOS Zero.
 5. **An event or a map lives in one folder with everything it owns** (state, windows, handlers,
-   ids), like OpenMU's `CastleSiege/` or TrinityCore's `molten_core/`.
+   ids), like OpenMU's `CastleSiege/` or TrinityCore's `molten_core/`. What it owns is told by the
+   key the original dispatches on (2026-11-24): a case of the effect, particle or joint switch and
+   a monster keyed by its model belong to those modules even when they serve one event, and the
+   values every layer compares (the map id, an event's stage) live at layer 6, in `Maps` and
+   beside the packet's layout in `Protocol`.
 6. **If two sibling modules include each other**, what they share moves down to `Kernel` or the two
    merge; a cycle never stays.
 
@@ -344,8 +348,8 @@ map):
 | `game/Tooltips` | 9 | item, skill and pet tooltips (5,699; today in `Items`) | they sit above `Items`, `Skills` and `Pets` |
 | `game/Messenger`, `game/PersonalShop`, `game/Party` | 9 | friends and letters (7,740), the personal shop (1,978), the party (832) | `Social` (15k) mixed four things; it keeps trade and duel (2,369), and its chat moves to `Chat`. They are OpenMU's `PlayerActions/Messenger`, `PlayerStore` and `Party` |
 | `game/Quests`, `game/ChaosMix`, `game/Warehouse`, `game/PetTrainer` | 9 | quests (2,127), the Chaos Goblin machine and jewel mixes (2,682), the warehouse (552), the trainer (1,142) | `Npc` (9k) mixed five windows; it keeps the talk and the generic windows (2,589) |
-| `game/Events/<Event>/` | 9 | Blood Castle, Devil Square, Chaos Castle, Kalima, Crywolf (with its camera tour) | one submodule per event with everything it owns; `EventPackets.cpp` (1,740) is split among them. OpenMU spreads each event over four places (rules, entry, schedule and views): not here |
-| `game/MapScripts/<Map>/` | 9 | the objects of Noria, Atlans, Icarus, Tarkan, Kalima, Crywolf, Aida, Land of Trials, Dungeon and the castle (3,051; today in `WorldObjects`) | what each map does, with a `<Map>.h` of ids, like `scripts/<Zone>/` in TrinityCore. Which map uses which script is a `constexpr` table by map id, consulted where the original calls that map's code |
+| `game/Events/<Event>/` | 9 | Blood Castle, Devil Square, Chaos Castle, Kalima, Crywolf (with its camera tour) | one submodule per event with everything it owns: what a packet, a window, an NPC or the event's stage reaches; `EventPackets.cpp` (1,740) is split among them. An event with a map of its own (Crywolf) keeps that map's objects in `MapScripts/<Map>/`, which reads the event's state one way. OpenMU spreads each event over four places (rules, entry, schedule and views): not here |
+| `game/MapScripts/<Map>/` | 9 | the objects of Noria, Atlans, Icarus, Tarkan, Kalima, Crywolf, Aida, Land of Trials, Dungeon and the castle (3,051; today in `WorldObjects`) | what each map does, with a `<Map>.h` of ids, like `scripts/<Zone>/` in TrinityCore: what a per-map chain of the original reaches with the map as its gate. The chains (`0x606660`, `0x604ab0`, `0x602ed0`, `0x6002e0`) stay written sequences of guarded calls in the original's order, because the order of the maps differs from chain to chain and a link may decline; a `constexpr` table by map id holds per-map data only (2026-11-24, [`crywolf-homes`](../plans/2026-11-24-crywolf-homes.md)) |
 | `game/Fauna`, `game/Weather` | 9 | birds and fish (3,111), leaves, rain and clouds (1,000; today in `WorldObjects`) | ambient systems of their own; `Weather/` is a folder of its own in TrinityCore and cMaNGOS |
 | `game/Particles`, `game/Joints`, `game/Effects` | 9 | particles (7,639), joints (8,173), model effects (15,910) | `Effects` (31,700) was three systems. Both use `Particles`, but `Joints` and `Effects` include each other both ways (13 and 6 includes): the AR4.3 design keeps one direction or merges them (criterion 6) |
 | `game/FrontEnd` | 9 | login, the server list, character selection and creation (6,704) | the logic of the entry screens; each scene's script stays in `Scenes` |

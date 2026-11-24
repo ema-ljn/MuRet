@@ -20,6 +20,10 @@ rank above this skill.
    [`Client/modules.tsv`](../../../Client/modules.tsv), and prefer the one that adds no upward include and no mutual
    pair. Add its row to the map in the same PR (`file`, `lines`, `current_folder`, `target`, `confidence`, `why`; no
    addresses in `why`, write `(addr.)`).
+   A file that names an event or a map goes by the key the original dispatches on (spec, criterion 5): a case of the
+   effect, particle or joint switch, or a monster keyed by its model, stays with those modules; what a packet, a
+   window, an NPC or the event's stage reaches is the event's (`game/Events/<Event>`); what a per-map chain reaches
+   with the map as its gate is the map script's (`game/MapScripts/<Map>`).
 3. Files in `Core/`, `Input/`, `Audio/`, `Network/`, `Data/`, `Platform/`, `Render/`, `Protocol/` and `App/` fall back
    to their folder's module (`folders_today`) when they have no row. Files in `Scenes/`, `UI/`, `World/` and
    `GameLogic/` always need a row.

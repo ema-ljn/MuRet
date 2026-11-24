@@ -410,7 +410,7 @@ PR `refactor(AR1.1): pass the game values the engine compared as data`, branch `
 After the [named-values plan](2026-11-23-named-values.md)'s Task 2 (`check_named_values.py`) and before the move.
 Details: that plan's Task 3.
 
-Three engine functions compare a game value. The comparison keeps the original's order, and the value or the decision
+Four engine sites compare a game value. The comparison keeps the original's order, and the value or the decision
 comes from the game:
 
 | site | today | after |
@@ -418,6 +418,7 @@ comes from the game:
 | `Render/Models/Cloth.cpp:60,517` | `LoginMap = 0x37`; `else if (map == LoginMap)` chooses the wind (`0x4551f4`) | the cloth update takes the map it compares, or the login-map flag, from the game; the `rand()` call stays where it is |
 | `Render/Models/Skinning.cpp:157-163` | `ShadowSpreadOf(map)` with `CastleSiegeMap = 0x1e` | `ShadowSpreadOf` moves to `game/Actors`, beside its callers in `Scenes/CharacterDrawing.cpp`; the engine takes the spread |
 | `Render/Models/Animation.cpp:23-24,92-95` | `WingKeysPerOriginalFrame(action)` (`0x50ba30`) with `FastWingAction` `0x1e` and `0x1f` | moves to `game/Actors`, beside its callers (`Scenes/CharacterAnimation.cpp`, `Scenes/GameHanging.cpp`); the engine takes the keys per frame |
+| `Audio/Music.cpp`: `WorldTracks`, `StopWorld`, `StepWorld` | the 22 track names of MU and the choice of track by map, with the map ids as bare literals | the list and the two functions move to `game/Maps`, over `Audio::Music`'s `Play` and `Stop` and in the same order; called from `Scenes/WinMainLoop.cpp` and `Scenes/ReturnToSelection.cpp`. Crywolf's part leaves first: [Crywolf plan](2026-11-24-crywolf-homes.md), Task 2 |
 
 Each moved function keeps its tests, and a test compares the old and the new result over every map id and every
 action (0 to 255). Done when `check_named_values.py --clean-root engine` finds no game space in `engine/`.

@@ -623,6 +623,8 @@ Scenes/CrywolfInterfaceDrawing.cpp	708	Scenes	game/Events/Crywolf	high	one submo
 Scenes/CrywolfInterfaceDrawing.h	33	Scenes	game/Events/Crywolf	high	one submodule per event (2026-11-21 review)
 Scenes/CrywolfMissileDrawing.cpp	78	Scenes	game/Effects	high	a case of the effect switch (addr.), named after its first user
 Scenes/CrywolfMissileDrawing.h	28	Scenes	game/Effects	high	a case of the effect switch (addr.), named after its first user
+Scenes/CrywolfMusic.cpp	79	Scenes	game/Events/Crywolf	high	the event's music (addr.): the track of the stage and, at the end stage, the result's sound (Crywolf homes plan, 2026-11-24)
+Scenes/CrywolfMusic.h	11	Scenes	game/Events/Crywolf	high	the event's music (addr.): the track of the stage and, at the end stage, the result's sound (Crywolf homes plan, 2026-11-24)
 Scenes/CrywolfObjectServices.cpp	268	Scenes	game/MapScripts/Crywolf	high	what that map does, like TrinityCore's per-zone scripts (2026-11-21 review)
 Scenes/CrywolfObjectServices.h	40	Scenes	game/MapScripts/Crywolf	high	what that map does, like TrinityCore's per-zone scripts (2026-11-21 review)
 Scenes/DamageNumbers.cpp	37	Scenes	game/Combat	high	character attack step (addr.)/(addr.), hits, combat/skill replies, damage numbers

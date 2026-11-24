@@ -5,6 +5,7 @@
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/CrywolfMusic.h"
 #include "Scenes/Slides.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
@@ -23,13 +24,6 @@ constexpr std::uint16_t CounterCloseRandoms = Render::Models::SmallLogicalCloseR
 constexpr std::uint16_t FocusCloseRandoms = 1;
 // 0x4bbd44 y 0x4bbed5: los dos contadores comparan con 30.
 constexpr std::int32_t LastQuietLoop = 0x1e;
-// 0x430250: in Crywolf's map, the stage of the result requests CW_lose.wav with the failure banner in 0x6c73dc and
-// CW_win.wav with any other.
-constexpr std::int32_t CrywolfMap = 34;
-constexpr std::int32_t CrywolfResultStage = 5;
-constexpr std::int32_t CrywolfFailureBanner = 10;
-constexpr std::int32_t CrywolfWinSound = 0x244;
-constexpr std::int32_t CrywolfLoseSound = 0x245;
 
 void Draw(Render::Models::CrtRandom& random, std::uint16_t count)
 {
@@ -44,19 +38,7 @@ void StepTheGameMusic(WorldState& world, Render::Models::CrtRandom& random)
     ActorState& hero = world.Actors()[runtime.hero];
     runtime.music.StepWorld(runtime.audio, runtime.map, hero.safeZone != 0, runtime.heroCellLayer,
                             [&hero, &random] { return InTheDeviasChurch(hero, random); });
-    if (runtime.map == CrywolfMap)
-    {
-        runtime.music.StepCrywolf(runtime.audio, runtime.crywolf.stage);
-        if (runtime.crywolf.stage == CrywolfResultStage)
-        {
-            runtime.RequestSound(runtime.crywolf.ui.dword6c73dc == CrywolfFailureBanner ? CrywolfLoseSound
-                                                                                        : CrywolfWinSound);
-        }
-    }
-    else
-    {
-        runtime.music.StopCrywolfBase(runtime.audio);
-    }
+    StepTheCrywolfMusic(runtime);
 }
 } // namespace
 

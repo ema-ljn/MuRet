@@ -213,6 +213,15 @@ struct CrywolfState
     std::uint8_t stage = 0;
 };
 
+// The values of CrywolfState::stage (0x723c05), named after the later source's CRYWOLF_STATE_TYPE by value.
+inline constexpr std::uint8_t CrywolfNoStage = 0;
+inline constexpr std::uint8_t CrywolfFirstNoticeStage = 1;
+inline constexpr std::uint8_t CrywolfSecondNoticeStage = 2;
+inline constexpr std::uint8_t CrywolfReadyStage = 3;
+inline constexpr std::uint8_t CrywolfStartStage = 4;
+inline constexpr std::uint8_t CrywolfEndStage = 5;
+inline constexpr std::uint8_t CrywolfEndCycleStage = 6;
+
 // 0x4e5990 → 0x4e0fe0 (BD 02): 0x430000(dword de pkt+4, pkt[8], pkt[9], pkt[0xa], pkt[0xb], pkt[0xc]), la luz
 // (0x723c08) y los cinco altares (0x6c73cc..0x6c73d0).
 struct CrywolfAltars

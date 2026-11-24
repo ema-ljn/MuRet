@@ -735,8 +735,8 @@ TEST_F(CursorItemTest, TheOldDarkRavenAsksForTheLeadershipOfTheRavenLevel)
     EXPECT_EQ(mark(), 2);
 }
 
-// 0x5bf084..0x5bf185: with 0x723c05 in 3 or 4 and the hero's 0x200000 in +0x7c, the horn does not go on the pet's
-// slot and the Dark Raven does not go on the left hand. The items and their shapes are invented.
+// 0x5bf0f6..0x5bf185: with 0x435a00 (0x723c05 in 3 or 4) and the hero's 0x200000 in +0x7c, the horn does not go on the
+// pet's slot and the Dark Raven does not go on the left hand. The items and their shapes are invented.
 TEST_F(CursorItemTest, TheCrywolfLockNeedsTheStageThreeOrFourAndTheHerosFlag)
 {
     constexpr std::uint16_t Horn = 0x1a03;

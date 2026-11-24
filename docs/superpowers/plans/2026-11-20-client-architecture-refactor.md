@@ -76,14 +76,14 @@ bags.
 | epic | what it leaves | milestones (PRs) | lines moved or touched (≈) |
 | --- | --- | ---: | ---: |
 | **AR0** Safety net, rules and tracking | the new rules, `modules.tsv`, the layer check, move-proof tracking, the behavior golden | 3 | 3k (tools, tests and docs) |
-| **AR1** The engine apart | reverse dependencies turned around, the common kit, `Client/src/engine/` with its targets, the command line by each system's conventions | 4 (1 move + 1 comments + 2 design) | 30k moved, ~4k touched |
+| **AR1** The engine apart | reverse dependencies turned around, the common kit, `Client/src/engine/` with its targets, the command line by each system's conventions, the running client composed once | 5 (1 move + 1 comments + 3 design) | 30k moved, ~4k touched |
 | **AR2** Protocol and dispatch | layouts with offsets in the type, the opcode table, one handler per packet; goodbye giant `ServerSession`, `WorldEvent` and `SessionEventApplier` | 3 | ~20k |
 | **AR3** State per module | `globals.tsv`, `GameContext`, the shared core and the first parts of `WorldRuntime` in their modules | 2 | ~10k |
 | **AR4** `Scenes/` into modules | 5 groups of vertical modules, each with its move, its comments and its design | 15 (5 + 5 + 5) | ~210k moved, ~40k touched |
-| **AR5** Scenes as scripts | `GameScene`, login and selection as ordered lists; `main.cpp` to `app/` | 2 | ~8k |
+| **AR5** Scenes as scripts | `GameScene`, login and selection as ordered lists; `main.cpp` by phases, in `app/` | 2 | ~8k |
 | **AR6** Deduplication and tests | functions ported twice, our own clones, shared test fakes | 2 | ~15k |
 | **AR7** Wrap-up | strict layer check, function size in CI, the docs; the last comments in English | 2 (1 comments + 1 design) | ~1k |
-| **total** | | **33** (6 scripted moves + 7 comments + 20 design) | |
+| **total** | | **34** (6 scripted moves + 7 comments + 21 design) | |
 
 **The comments PRs** (Emanuel, 2026-11-21: no Spanish comments, and only the strictly necessary ones). Today `Client/`
 has about 60k comment lines, half of them with a citation to the original. Each move is followed by a PR that brings
@@ -648,8 +648,26 @@ convention (`--name`), Windows uses its most common one (`/name`), and every opt
   `Client.Main.*` lines green on both CI machines; `check_layers.py` with no new row (`<CLI/CLI.hpp>` is a system
   include, which the check does not read).
 
+### AR1.4 (design): the running client, composed once
+
+Added on 2026-11-24 (Emanuel: `main.cpp` is too big). Its findings and tasks are in
+[`2026-11-24-thin-main.md`](2026-11-24-thin-main.md).
+
+- `RunScenes` in `main.cpp` (283 lines) composes the running client and also holds parts of the original's frame. No
+  test links `main.cpp`, so the behavior golden rebuilds that composition by hand, and CI runs `Main` only without a
+  data folder.
+- The loop's tail (the map music, Crywolf's, the frame counter, the Slide timer, the next turn's counters) becomes
+  `Scenes::FinishTheWinMainLoop`, with tests of its order and of how many original frames a turn runs.
+- `App::GameClient` (`App/GameClient.{h,cpp}`, in the library) owns the state, the session and the `SceneManager` and
+  takes the devices as ports. `main.cpp` builds it with SDL, GL and the system socket; the golden builds it with its
+  doubles and drops its copy.
+- **Order:** after AR1.2 and before AR2.1. AR2, AR3 and AR4 all change this composition; from here on they change it in
+  one file, and the golden runs what ships.
+- **Verification:** the goldens identical, with one more scene that lasts until a keepalive carries the own character's
+  speeds; `check_layers.py` with no new row; CI runs `Main` with the data folder.
+
 **AR1 is done when** the engine builds without seeing `game/` and `app/`, and `check_layers.py` has no violation from
-the `engine` root. AR1.3 does not hold AR2 back: it only has to land before AR5.
+the `engine` root. AR1.3 does not hold AR2 back: it only has to land before AR5. AR1.4 does: it lands before AR2.1.
 
 ## Epic AR2: protocol and dispatch
 
@@ -774,8 +792,12 @@ modules.
 - `GameScene` (3,430 lines, nine jobs) becomes the ordered list of the frame's steps and draws, each with its address,
   calling into the modules; `GameFrameProjection`, `GameAssets` and the context builders (`ChatContext`,
   `InventoryContext`, `ArrowContext`) leave it. The same for login, selection and the loading scenes.
-- `SceneManager` loses the 7 `std::function` in its constructor; `main.cpp` (1,010 lines, a 283-line `RunScenes`) moves
-  to `app/App/Composition.cpp` and `main.cpp` does what CODING_RULES says: it wires the layers and starts.
+- `SceneManager` loses the 7 `std::function` in its constructor: the hooks `App::GameClient` binds since AR1.4 become
+  part of the frame script.
+- `main.cpp` by phases ([`2026-11-24-thin-main.md`](2026-11-24-thin-main.md), Task 5): reading the startup and the
+  scene data go to `app/App` with tests, the log's outputs become one object, and what needs SDL or GL (the window, the
+  window loop, the devices) goes to files next to `main.cpp`. `main()` is left as one call per phase of `WinMain`, under
+  about 80 lines, and does what CODING_RULES says: it wires the layers and starts.
 - **Verification:** the golden identical; a test per script asserts the order of its steps against the research's list
   (02-arranque and 06-render, the frame order).
 
@@ -820,12 +842,14 @@ modules.
 ## Order and parallelism
 
 ```text
-AR0.1 ─► AR0.2 ─┬─► AR1.1 ─► AR1.2 ─► AR2.1 ─► AR2.2 ─► AR2.3 ─┐
-AR0.3 ──────────┘                      AR3.1 ─► AR3.2 ──────────┴─► AR4.1 ─► AR4.2 ─► AR4.3 ─► AR4.4 ─► AR4.5 ─► AR5 ─► AR6 ─► AR7
+AR0.1 ─► AR0.2 ─┬─► AR1.1 ─► AR1.2 ─► AR1.4 ─► AR2.1 ─► AR2.2 ─► AR2.3 ─┐
+AR0.3 ──────────┘                               AR3.1 ─► AR3.2 ──────────┴─► AR4.1 ─► AR4.2 ─► AR4.3 ─► AR4.4 ─► AR4.5 ─► AR5 ─► AR6 ─► AR7
 ```
 
 - AR0.3 runs in parallel with AR0.1 and AR0.2. AR3.1 can start with AR2.1.
 - AR1.3 (the command line) goes any time after AR0.1 and before AR5, next to a milestone that does not move `App/`.
+- AR1.4 (the running client) goes after AR1.2 and before AR2.1; its first task, the loop's tail, depends on nothing in
+  AR1.
 - Within AR4, one milestone's design can run while the next one's move is generated.
 - The port uses the third agent all the time; if the port becomes urgent, the refactor stops at a milestone boundary
   (every milestone leaves `main` in a complete state).

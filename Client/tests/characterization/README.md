@@ -55,5 +55,6 @@ because the view moves; and the client takes some packets only encrypted (`0x16`
 Fixed seeds instead of the time and `std::random_device`, a fake socket with the identity obfuscation and the test
 keys, a fake clock, the recording frame target instead of GL and a 6 × 13 text measure instead of FreeType.
 `AutoLogin` chooses the first server and sends the account, as with `--auto-login`. It leaves out the audio device,
-the clipboard, the friend chat rooms, SDL's typed-text switch and the screenshots. When AR1 moves the composition
-root out of `main.cpp`, the harness uses it instead of its copy.
+the clipboard, the friend chat rooms, SDL's typed-text switch and the screenshots. The harness is a copy of that
+composition until AR1.4 gives `main.cpp` and the harness one to share, `App::GameClient`
+([plan](../../../docs/superpowers/plans/2026-11-24-thin-main.md), Task 3).

@@ -258,14 +258,15 @@ PR `ci(AR1.1): check that each named value has one home`, branch `refactor/ar1.1
 PR `refactor(AR1.1): pass the game values the engine compared as data`, branch `refactor/ar1.1-engine-game-values`.
 Before AR1.2's move.
 
-Three engine functions of the original compare a game value; the comparison stays in the original's order, and the
-value or the decision arrives from the game:
+Four engine sites compare a game value; the comparison stays in the original's order, and the value or the decision
+arrives from the game:
 
 | Site | Today | After |
 | --- | --- | --- |
 | `Render/Models/Cloth.cpp:60,517` | `LoginMap = 0x37`; `else if (map == LoginMap)` chooses the wind (`0x4551f4`) | the cloth update takes the map it compares as a field the game fills, or the login-map flag; the `rand()` call stays where it is |
 | `Render/Models/Skinning.cpp:157-163` | `ShadowSpreadOf(map)` with `CastleSiegeMap = 0x1e` | `ShadowSpreadOf` moves to the game (`game/Actors`, beside its caller); the engine takes the spread |
 | `Render/Models/Animation.cpp:23-24,92-95` | `FastWingAction = 0x1e`, `0x1f` in `WingKeysPerOriginalFrame(action)` (`0x50ba30`) | the function moves to the game beside the wings; the engine takes the keys per frame |
+| `Audio/Music.cpp`: `WorldTracks`, `StopWorld`, `StepWorld` | the 22 track names of MU and the choice of track by map, with the map ids as bare literals (the check does not see them: they have no name) | the list and the two functions move to `game/Maps`, over `Audio::Music`'s `Play` and `Stop` and in the same order; `Audio::Music` keeps `Play`, `Stop`, `SetEnabled`, `SetBlocked` and `Current`. Crywolf's part (`StepCrywolf`, `StopCrywolfBase`) leaves first: [Crywolf plan](2026-11-24-crywolf-homes.md), Task 2 |
 
 The two FoxAnti opcodes (`Network/FoxAntiObfuscation.cpp:51,101`) are already AR1 Task 4's ("its MU values come
 injected"). Each moved function keeps its tests; a test compares old and new over every map id (0..255) and action

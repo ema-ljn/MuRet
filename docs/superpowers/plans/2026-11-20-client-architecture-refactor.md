@@ -127,7 +127,7 @@ docs.
 | step | skill | for |
 | --- | --- | --- |
 | each epic's detailed plan, when it starts | `superpowers:writing-plans` | this plan's format (Global Constraints, Review Focus, tasks with their tests) against that day's `main` |
-| an open decision: test executables (AR1.2), `Hero` with `Player` (AR4.2), `Joints` with `Effects` (AR4.3) | `engineering:architecture` | an ADR with the options and the cost of each; Emanuel chooses and it goes into `docs/adr/`, like the AR0 one |
+| an open decision: test executables (AR1.2), how generic code reaches an event or a map script and where the state headers live (before AR4.1), `Hero` with `Player` (AR4.2), `Joints` with `Effects` (AR4.3) | `engineering:architecture` | an ADR with the options and the cost of each; Emanuel chooses and it goes into `docs/adr/`, like the AR0 one |
 | executing a milestone | `superpowers:subagent-driven-development`, or `superpowers:executing-plans` if it runs in a single session | one agent writes and another reviews each task: it fits exactly in the refactor's 2 agents (lane rule 3) |
 | isolating the milestone from the port | `superpowers:using-git-worktrees` | one worktree per milestone, so the port keeps working on `main` without collisions (rule 2) |
 | the AR0 tools and every design PR | `superpowers:test-driven-development` | the test first: in the tools, each Task's tests; in the design, the behavior golden scene or a characterization test before touching logic |
@@ -743,7 +743,10 @@ the `engine` root. AR1.3 does not hold AR2 back: it only has to land before AR5.
 
 - The 17 fields used by a single module, and the states that already belong to one module (`GuildState`,
   `SocialState`, `NpcWindowState`, `QuestState`, `CrywolfGlobals` and a `CastleSiegeState` that takes the castle's 9 loose
-  fields) leave `WorldRuntime` for the `GameContext`, with their owner recorded in `globals.tsv`.
+  fields) leave `WorldRuntime` for the `GameContext`, with their owner recorded in `globals.tsv`. `CrywolfGlobals` has
+  three owners and leaves as three: the event's `stage`, `state` and interface; the two statics of the map's object
+  hook (`0x723c0c`, `0x723c10`); and two generic globals of the weather and the HUD (`0x5763358`, `0x576353c`)
+  ([`2026-11-24-crywolf-homes.md`](2026-11-24-crywolf-homes.md)).
 - The shared core (`hero`, the sound request, `ownRecordDepth`, the map) stays in `Kernel/`; mouse arbitration
   (`movement.pendingClick`, `ui.mouseOnUi`, `ui.field`) becomes its own state.
 - What is contiguous in the original is not split (`TooltipLines`, Q-C591; `CharacterBalloons`, Q-C1503; the blocks a
@@ -766,7 +769,7 @@ repetition and the spec's knots that belong to it). Before each milestone the ma
 | --- | --- | ---: | --- |
 | **AR4.1** | `Kernel`, `Assets`, `Terrain`, `Camera`, `Sound` (what is left), `Player`, `Actors` (+ character drawing) | 34k | the character step (`0x508f00`) becomes a registry of steps per actor class; the viewport appliers stop calling monsters, chat and shops; the character drawing and the skinning reuse their buffers instead of ~2,090 temporary `std::vector` per frame (ADR 0026) |
 | **AR4.2** | `Monsters`, `Pets`, `Movement`, `Skills`, `Combat`, `Hero` | 33k | combat↔hero; whether `Hero` (788 lines) merges with `Player`; the `GameMovement` click stops including `Events` and `Chat` (ordered extension point); the `WorldTransitionSupport` raven to `Pets`; `0x57ce80`, `0x4eac00` and `0x4ce000` ported once |
-| **AR4.3** | `Particles`, `Joints`, `Effects`, `WorldObjects`, `Fauna`, `Weather`, `MapScripts` (one folder per map) | 43k | the adapters of `0x53fe70`, `0x530860` and `0x518cf0` (four each) become an `EffectSpawner`; `ParticleSpawn` replaces the 15-parameter signatures (109 calls); `Joints`↔`Effects` (13 and 6 includes) to one direction or merged; the `constexpr` table from map id to `MapScripts` functions |
+| **AR4.3** | `Particles`, `Joints`, `Effects`, `WorldObjects`, `Fauna`, `Weather`, `MapScripts` (one folder per map) | 43k | the adapters of `0x53fe70`, `0x530860` and `0x518cf0` (four each) become an `EffectSpawner`; `ParticleSpawn` replaces the 15-parameter signatures (109 calls); `Joints`↔`Effects` (13 and 6 includes) to one direction or merged; the per-map chains (`0x606660`, `0x604ab0`, `0x602ed0`, `0x6002e0`) stay written sequences of guarded calls in the original's order, with one direction between `WorldObjects` and `MapScripts`; a `constexpr` table by map id holds per-map data only |
 | **AR4.4** | `Items`, `Tooltips`, `Npc`, `Quests`, `ChaosMix`, `Warehouse`, `PetTrainer`, `Party`, `Social`, `Messenger`, `PersonalShop`, `Chat`, `Guild` | 48k | `LetterPortrait` builds the actor through `Actors.h`, not its internals; `InventoryServices` (10 callbacks, 32 files) becomes ports; `SocialState` splits into trade, party and duel, except what is contiguous |
 | **AR4.5** | `Ui` (the kit), `Hud` (+ dialogs), `Events` (one submodule per event), `CastleSiege`, `FrontEnd` | 48k | `PanelRegistry` with one `IPanel` per module and the exclusion rules as a table; the HUD stops drawing each module's windows by hand; `GamePanels` is deleted, with the ~85 `std::function` it rebuilds every frame (ADR 0026); `EventPackets.cpp` (1,740 lines) is split among each event's submodules |
 
@@ -781,6 +784,13 @@ leaves and why.
 | AR4.3 | the shared texture slots as `Render::TextureSlot` in `game/Assets` (`0x5ac` once); a `<Map>.h` per map script for its ids; effect type and subtype stay `int` |
 | AR4.4 | `<Module>Texts.h` for the lines two files of a module print, `Tables/TextIndex.h` for the lines several modules print; the 145 lines passed by their address become indices |
 | AR4.5 | the kit's metrics and palette in `game/Ui`, `Render::PackedColor`; each event's ids in `<Event>.h` |
+
+**Events and maps in each milestone** (added 2026-11-24, [`2026-11-24-crywolf-homes.md`](2026-11-24-crywolf-homes.md)):
+the owner of a piece of code that names an event or a map is told by the key the original dispatches on, and Crywolf
+is the worked case. `game/Events/Crywolf` and `game/MapScripts/Crywolf` stay two modules. Crywolf's pieces move with
+the milestone of the module that hosts them today (that plan's "Where it fits in the AR plan"). Sixty baseline rows
+into `Events`, `CastleSiege` and `MapScripts` fall due in AR4.1 to AR4.4, before AR4.5 designs `Events`, so the
+direction between the hosts and the events and maps is decided in an ADR before AR4.1.
 
 **Each milestone is done when** its modules have no violations in `check_layers.py` (they leave the baseline), their
 rows leave `check_named_values.py`'s baseline for the spaces the milestone gave a home, the behavior golden is

@@ -2,13 +2,14 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/X87.h"
 #include "Render/Models/Animation.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Render/Models/Skeleton.h"
+#include "World/Ftol.h"
 #include "World/GameModelEffects.h"
 #include "World/BloodCastleParticleKernels.h"
 #include "World/ModelEffects.h"
-#include "World/OriginalFtol.h"
 #include "World/Particles.h"
 #include "World/TerrainLighting.h"
 
@@ -21,10 +22,7 @@ namespace Client::World
 {
 namespace
 {
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using Math::F32;
 using Result = Core::Expected<void, std::string>;
 Result ParticleAt(ModelEffect& effect, Particles& particles, Crt::CrtRandom& random, std::int32_t type,
                   std::int32_t subtype, float scale, const glm::vec3& light)

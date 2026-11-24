@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Data/Terrain/TerrainGrid.h"
+#include "Math/X87.h"
 #include "Render/ModelBatch.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Render/Pass3D.h"
@@ -23,10 +24,7 @@ namespace Client::World
 {
 namespace
 {
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using Math::F32;
 
 // 0x5fbb00: el −0,01 de los ftol (0x6ba110).
 constexpr float ToCells = std::bit_cast<float>(0xBC23D70Au);

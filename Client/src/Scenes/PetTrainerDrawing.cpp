@@ -1,6 +1,7 @@
 #include "Scenes/PetTrainerDrawing.h"
 
 #include "Core/Expected.h"
+#include "Math/X87.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
@@ -19,7 +20,6 @@
 #include "UI/GameText.h"
 #include "UI/HudPrimitives.h"
 #include "UI/SprintfFormat.h"
-#include "World/OriginalFtol.h"
 
 #include <array>
 #include <cstddef>
@@ -185,10 +185,7 @@ constexpr TextColors BoxTitleColors{.text = 0xffdcdcdcu, .background = 0};
 constexpr std::uint32_t KindColor = 0xff19ccffu;
 constexpr std::uint32_t NoKindColor = 0xff3030ffu;
 
-std::int32_t Truncate(double value)
-{
-    return World::OriginalFtolLow(value).value_or(0);
-}
+using Math::Truncate;
 
 Core::Expected<std::string_view, std::string> TextOf(const GameHudContext& context, std::size_t index,
                                                      std::string_view where)

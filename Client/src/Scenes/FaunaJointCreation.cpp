@@ -1,6 +1,7 @@
-#include "Crt/CrtRandom.h"
 #include "Scenes/FaunaJointCreation.h"
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
+#include "Math/X87.h"
 #include "Render/Models/IModelLibrary.h"
 #include "Scenes/GameDrawTail.h"
 #include "World/Ftol.h"
@@ -361,15 +362,8 @@ bool IsWandering(std::int32_t type, std::int32_t subtype)
             subtype == JointFamilies::PinkWanderSubtype);
 }
 
-double D(float value)
-{
-    return static_cast<double>(value);
-}
-
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using Math::D;
+using Math::F32;
 
 // +0xf4 del dueño del 60f, la luz propia: la del personaje o la del caballo (0x443d70 la pone en 3).
 const glm::vec3* SparkleOwnerLight(const JointState& joint)

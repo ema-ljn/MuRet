@@ -5,6 +5,7 @@
 #include "Data/Tables/ItemSetTables.h"
 #include "Data/Tables/ItemTable.h"
 #include "Data/Text/TextTable.h"
+#include "Math/X87.h"
 #include "Render/ScreenScale.h"
 #include "Render/SpriteBatch.h"
 #include "Render/Text/IGlyphRasterizer.h"
@@ -18,7 +19,6 @@
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/PanelRegistry.h"
-#include "World/OriginalFtol.h"
 
 #include <algorithm>
 #include <array>
@@ -147,10 +147,7 @@ bool IsScroll(std::int32_t item)
     return item >= FirstScroll && item < ScrollsEnd;
 }
 
-std::int32_t Truncate(double value)
-{
-    return World::OriginalFtolLow(value).value_or(0);
-}
+using Math::Truncate;
 
 // 0x5b0ac7..0x5b0bf0: el ancho que se le pasa a la caja, de la fila del nivel 0, en double (la x87 con 53 bits): una
 // columna, o dos con el daño mínimo (salvo los pergaminos), más una por cada columna que se dibuja (1,1 las anchas).

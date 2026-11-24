@@ -1,6 +1,7 @@
 #include "UI/LetterWindowsDraw.h"
 
 #include "Core/Expected.h"
+#include "Math/X87.h"
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
 #include "Render/Text/IGlyphRasterizer.h"
@@ -162,10 +163,7 @@ constexpr float MarkDu = 0.5f;
 constexpr float MarkDv = 0.75f;
 constexpr float FullColor = 255.0f;
 
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using Math::F32;
 
 // 0x46057d..0x460631 con 0x5763510 + 8 en 0 (el de este main.exe, como el registro del chat de 0x45cbb0): los colores
 // del nombre por el tipo (+0x110); 0x460550 no tiene caso para 6 o más y quedan los de antes.

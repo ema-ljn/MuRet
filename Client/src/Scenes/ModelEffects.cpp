@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/X87.h"
 #include "Protocol/Events.h"
 #include "Render/Models/Animation.h"
 #include "Render/Models/HalfLifeMath.h"
@@ -14,6 +15,7 @@
 #include "Scenes/ArrowEffects.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/WorldMap.h"
+#include "World/Ftol.h"
 #include "World/ModelEffects.h"
 #include "Scenes/DynamicWorldLight.h"
 #include "Scenes/FaunaDrawing.h"
@@ -24,7 +26,6 @@
 #include "Scenes/WorldState.h"
 #include "World/GroundMarks.h"
 #include "World/IFishStepServices.h"
-#include "World/OriginalFtol.h"
 #include "World/Particles.h"
 #include "World/PortableParticleTrigonometry.h"
 #include "World/SelectionParticleKernels.h"
@@ -54,15 +55,8 @@ using Result = Core::Expected<void, std::string>;
 // Si el tipo tiene caso en 0x505de0 (true) o va a los helpers de 0x5085db (false).
 using CaseResult = Core::Expected<bool, std::string>;
 
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
-
-double D(float value)
-{
-    return static_cast<double>(value);
-}
+using Math::D;
+using Math::F32;
 
 float Bits(std::uint32_t bits)
 {

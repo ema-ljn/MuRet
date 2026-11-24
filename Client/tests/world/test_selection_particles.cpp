@@ -1,5 +1,6 @@
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/X87.h"
 #include "World/IParticleTrigonometry.h"
 #include "World/KalimaParticleKernels.h"
 #include "World/ParticleOwner.h"
@@ -35,10 +36,7 @@ constexpr double Twentieth = static_cast<double>(std::bit_cast<float>(0x3d4ccccd
 constexpr double Tenth = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));
 constexpr double Fiftieth = static_cast<double>(std::bit_cast<float>(0x3ca3d70au));
 
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using Client::Math::F32;
 
 const Particle& Create(Particles& particles, std::int32_t type, std::int32_t subtype, float scale, CrtRandom& random,
                        std::int32_t scene = SelectionScene, Client::World::ParticleOwner owner = {})

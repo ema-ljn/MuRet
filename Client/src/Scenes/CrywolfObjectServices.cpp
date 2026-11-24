@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/X87.h"
 #include "Protocol/Events.h"
 #include "Render/Models/OriginalRetainedMath.h"
 #include "Scenes/WorldObjectsDrawing.h"
@@ -38,10 +39,7 @@ constexpr double GlowHeight = 350.0;                           // 0x6b89ac.
 constexpr std::int32_t CounterMiddle = 20, CounterTop = 40;
 constexpr glm::vec3 White(1.0f);
 
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using Math::F32;
 
 Core::Expected<void, std::string> EmitAt(const GameObjectPass& pass, const World::WorldObject& object,
                                          const glm::vec3& position, std::int32_t type, std::int32_t subtype,

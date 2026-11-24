@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/X87.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/OriginalRetainedMath.h"
 #include "Render/Models/OriginalRotation.h"
@@ -16,9 +17,9 @@
 #include "Scenes/KundunFallEffects.h"
 #include "Scenes/MonsterBodyPasses.h"
 #include "Scenes/VertexEffects.h"
+#include "World/Ftol.h"
 #include "World/IFishStepServices.h"
 #include "World/ModelEffects.h"
-#include "World/OriginalFtol.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -69,15 +70,8 @@ constexpr float Ceiling = std::bit_cast<float>(0x3fa66666u);       // 1,3 (0x6b8
 
 using Result = Core::Expected<void, std::string>;
 
-double D(float value)
-{
-    return static_cast<double>(value);
-}
-
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using Math::D;
+using Math::F32;
 
 BodyPassArgs WithTexture(BodyPassArgs args, std::int32_t texture)
 {

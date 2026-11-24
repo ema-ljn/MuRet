@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/X87.h"
 #include "Render/Models/OriginalRetainedMath.h"
 #include "Scenes/ActorFlags.h"
 #include "Scenes/ActorState.h"
@@ -23,15 +24,8 @@ namespace Client::Scenes
 {
 namespace
 {
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
-
-double D(float value)
-{
-    return static_cast<double>(value);
-}
+using Math::D;
+using Math::F32;
 
 constexpr std::int32_t PlainSubtype = 0;        // el de la bandera 0x40 (0x4e688c, 0x4cd664)
 constexpr std::int32_t OrbitSubtype = 1;        // gira como el /0

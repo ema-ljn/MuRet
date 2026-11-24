@@ -1,6 +1,6 @@
 #include "Scenes/Skill4e9920.h"
 
-#include "World/OriginalFtol.h"
+#include "World/Ftol.h"
 
 #include <bit>
 #include <cstdint>

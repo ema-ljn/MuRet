@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/X87.h"
 #include "World/IParticleTrigonometry.h"
 #include "World/Particles.h"
 
@@ -20,10 +21,7 @@ constexpr double Tenth = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));
 constexpr double Fifth = static_cast<double>(std::bit_cast<float>(0x3e4ccccdu));     // 0x6b8854, 0,2f
 constexpr double Speedup = static_cast<double>(std::bit_cast<float>(0x3f866666u));   // 0x6ba3d4, 1,05f
 
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using Math::F32;
 
 // 0x540d1b..0x540d4f y 0x540d5c..0x540d90: vida, la velocidad (0; ((rand() & 7) + 32) · paso; 0).
 void Push(Particle& particle, Crt::CrtRandom& random, std::int32_t life, double step)

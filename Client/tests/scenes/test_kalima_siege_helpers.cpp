@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainHeights.h"
+#include "Math/X87.h"
 #include "Render/ModelBatch.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/RoundedMath.h"
@@ -44,15 +45,8 @@ using Client::Scenes::KalimaSiegeHelperPass;
 constexpr std::uint32_t Seed = 1;
 constexpr float Clock = 1234.0f;
 
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
-
-double D(float value)
-{
-    return static_cast<double>(value);
-}
+using Client::Math::D;
+using Client::Math::F32;
 
 class KalimaSiegeHelperTest : public ::testing::Test
 {

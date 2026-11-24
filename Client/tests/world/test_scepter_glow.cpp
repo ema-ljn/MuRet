@@ -2,6 +2,7 @@
 
 #include "Core/IClock.h"
 #include "Crt/CrtRandom.h"
+#include "Math/X87.h"
 #include "Render/Models/Animation.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/OriginalRotation.h"
@@ -32,10 +33,7 @@ using Client::Crt::CrtRandom;
 using Client::World::FrameSprites;
 using Client::World::Sprite;
 
-std::uint32_t Bits(float value)
-{
-    return std::bit_cast<std::uint32_t>(value);
-}
+using Client::Math::Bits;
 
 std::uint32_t Hex(const std::string& word)
 {

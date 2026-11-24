@@ -1,4 +1,5 @@
 #include "Crt/CrtRandom.h"
+#include "Math/X87.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/JointFamilies.h"
 #include "Scenes/JointKernels.h"
@@ -15,8 +16,8 @@ namespace Client::Scenes::JointFamilies
 {
 namespace
 {
-using JointKernels::D;
-using JointKernels::F32;
+using Math::D;
+using Math::F32;
 
 // 0x53b339..0x53b363: con vida de menos de 10, la luz por 0,7692308f (0x6ba240).
 void Fade(JointState& joint)

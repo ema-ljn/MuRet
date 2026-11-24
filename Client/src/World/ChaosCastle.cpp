@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/X87.h"
 #include "World/IFishStepServices.h"
 #include "World/Particles.h"
 #include "World/WorldObjects.h"
@@ -18,10 +19,7 @@ namespace Client::World
 {
 namespace
 {
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using Math::F32;
 
 // 0x405e1e..0x405e2f: rand() & 0x80000007 con el ajuste del signo, el resto de dividir por 8.
 constexpr int CellOdds = 8;

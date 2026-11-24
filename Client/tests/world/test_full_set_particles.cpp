@@ -1,6 +1,7 @@
 #include "World/Particles.h"
 
 #include "Crt/CrtRandom.h"
+#include "Math/X87.h"
 #include "World/ParticleOwner.h"
 #include "World/PortableParticleTrigonometry.h"
 
@@ -36,15 +37,8 @@ float Float(std::uint32_t bits)
     return std::bit_cast<float>(bits);
 }
 
-double D(float value)
-{
-    return static_cast<double>(value);
-}
-
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using Client::Math::D;
+using Client::Math::F32;
 
 glm::vec3 Faded(const glm::vec3& light, std::uint32_t factorBits)
 {

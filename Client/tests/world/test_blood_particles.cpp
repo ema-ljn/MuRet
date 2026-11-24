@@ -1,6 +1,7 @@
 #include "World/Particles.h"
 
 #include "Crt/CrtRandom.h"
+#include "Math/X87.h"
 #include "Render/Models/OriginalRotation.h"
 #include "World/PortableParticleTrigonometry.h"
 
@@ -29,10 +30,7 @@ using Client::World::Particles;
 constexpr std::uint32_t Seed = 0x2468aceu;
 const float Brake = std::bit_cast<float>(0x3f733333u);
 
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using Client::Math::F32;
 
 // 0x542b3b..0x542bf3: la vida 12, la escala ((rand() & 3) + 8) · 0,05f que pisa la del pedido, el giro x rand() % 360,
 // la velocidad (0; −((rand() & 15) + 8); rand() % 6 − 3) girada por los ángulos del pedido y la luz (0,1f; 0; 0), con

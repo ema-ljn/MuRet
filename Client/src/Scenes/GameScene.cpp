@@ -1,5 +1,6 @@
-#include "Crt/CrtRandom.h"
 #include "Scenes/GameScene.h"
+#include "Crt/CrtRandom.h"
+#include "Math/X87.h"
 #include "Render/Models/IModelLibrary.h"
 #include "Scenes/MapBanner.h"
 #include "Scenes/SiegeBattleUi.h"
@@ -175,10 +176,7 @@ constexpr std::int64_t Height480 = 480;
 // 0x6ba070: lo que 0x637355 multiplica por el ancho del mundo para el primer argumento de 0x5fbb00.
 constexpr float WorldWidthFactor = 0.0015625f;
 
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using Math::F32;
 
 std::string MapText(std::int32_t map)
 {

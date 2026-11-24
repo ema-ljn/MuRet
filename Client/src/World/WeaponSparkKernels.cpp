@@ -1,6 +1,7 @@
 #include "World/WeaponSparkKernels.h"
 
 #include "Crt/CrtRandom.h"
+#include "Math/X87.h"
 #include "World/Particles.h"
 
 #include <bit>
@@ -16,10 +17,7 @@ constexpr double Fade = static_cast<double>(std::bit_cast<float>(0x3f73cf3eu)); 
 constexpr double Shrink = static_cast<double>(std::bit_cast<float>(0x3d23d70au));    // 0x6b8aec.
 constexpr double Countdown = static_cast<double>(std::bit_cast<float>(0x3a83126fu)); // 0x6b89c8.
 
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using Math::F32;
 
 // 0x545343..0x545363: +0x38 menos 0,001f; muere cuando la resta, sin redondear (fst y fcomp), no es mayor que 0.
 void CountDown(Particle& particle)

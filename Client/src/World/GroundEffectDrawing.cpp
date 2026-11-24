@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/X87.h"
 #include "Render/ModelBatch.h"
 #include "Render/ModelVertex.h"
 #include "Render/Models/OriginalRotation.h"
@@ -9,9 +10,9 @@
 #include "Render/SpriteVertex.h"
 #include "Render/TextureSlot.h"
 #include "World/ColoredDecals.h"
+#include "World/Ftol.h"
 #include "World/ModelEffects.h"
 #include "World/KalimaSurfaceDecal.h"
-#include "World/OriginalFtol.h"
 #include "World/TerrainDecal.h"
 
 #include <glm/ext/vector_float2.hpp>
@@ -60,15 +61,8 @@ constexpr float RingAngleStep = 30.0f;
 constexpr float RingUvStep = std::bit_cast<float>(0x3daaaaabu);
 constexpr int RingSegments = 12;
 
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
-
-double D(float value)
-{
-    return static_cast<double>(value);
-}
+using Math::D;
+using Math::F32;
 
 // SUB de 32 bits, incluso en los bordes del entero con signo.
 std::int32_t Difference(std::int32_t left, std::int32_t right)

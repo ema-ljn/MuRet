@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/X87.h"
 #include "Render/Models/Animation.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Render/Models/Pose.h"
@@ -57,10 +58,7 @@ constexpr std::uint8_t SwitchedAction = 1;
 // El nivel del try de 0x6002e0 (+0x60, en −1): leído como float, NaN; 0x5fccc0 lo propaga a los tres ejes.
 constexpr float StackNaN = std::bit_cast<float>(0xffffffffu);
 
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using Math::F32;
 
 // 0x602ef4..0x602f18: L, guardada en float.
 float FrameLight(int commonRandom)

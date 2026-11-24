@@ -1,6 +1,7 @@
 #include "Scenes/GuildWindowTabs.h"
 
 #include "Core/Expected.h"
+#include "Math/X87.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/ScreenScale.h"
 #include "Render/SpriteBatch.h"
@@ -23,7 +24,6 @@
 #include "UI/OldWindowDraw.h"
 #include "UI/OldWindowDrawParts.h"
 #include "UI/SprintfFormat.h"
-#include "World/OriginalFtol.h"
 
 #include <array>
 #include <cstddef>
@@ -128,15 +128,8 @@ constexpr std::int32_t UnionNumberRight = 0x8a;
 
 constexpr Render::Color White{.red = 1.0f, .green = 1.0f, .blue = 1.0f, .alpha = 1.0f};
 
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
-
-std::int32_t Truncate(double value)
-{
-    return World::OriginalFtolLow(value).value_or(0);
-}
+using Math::F32;
+using Math::Truncate;
 
 Core::Expected<std::string_view, std::string> TextOf(const GameHudContext& context, std::size_t index,
                                                      std::string_view where)

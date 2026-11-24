@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Core/IClock.h"
+#include "Math/X87.h"
 #include "Render/Models/IModelLibrary.h"
 #include "Render/Models/OriginalRetainedMath.h"
 #include "Render/Models/Skinning.h"
@@ -25,10 +26,7 @@ namespace
 {
 using Result = Core::Expected<void, std::string>;
 constexpr Render::TextureSlot ArmorChrome{0x5c1};
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using Math::F32;
 class EarlyItemRenderer
 {
 public:

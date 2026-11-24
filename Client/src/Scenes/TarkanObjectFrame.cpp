@@ -2,11 +2,12 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/X87.h"
 #include "Render/Models/RoundedMath.h"
 #include "Scenes/ObjectFrameSprites.h"
 #include "Scenes/WorldObjectsDrawing.h"
+#include "World/Ftol.h"
 #include "World/ModelEffects.h"
-#include "World/OriginalFtol.h"
 #include "World/Particles.h"
 #include "World/PortableParticleTrigonometry.h"
 #include "World/Sprites.h"
@@ -27,15 +28,8 @@ namespace Client::Scenes
 {
 namespace
 {
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
-
-double D(float value)
-{
-    return static_cast<double>(value);
-}
+using Math::D;
+using Math::F32;
 
 // 0x6b89bc (0,002f), 0x6b89dc (0,3f), 0x6b8a5c (0,7f), 0x6ba73c (0,5882353f), 0x6ba738 (0,32f), 0x6b87f8 (5),
 // 0x6b8b94 (1,5) y 0x6b882c (0,5).

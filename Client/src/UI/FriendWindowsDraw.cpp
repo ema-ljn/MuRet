@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Core/PixelSize.h"
+#include "Math/X87.h"
 #include "Render/SpriteBatch.h"
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Render/Text/TextLayout.h"
@@ -134,10 +135,7 @@ std::string TextAt(const OldWindowDrawView& view, std::size_t index)
     return view.texts != nullptr ? view.texts->At(index) : std::string();
 }
 
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using Math::F32;
 
 // 0x461e31..0x461ebd: sprintf del texto del lugar en el buffer del renglón.
 std::string PlaceOf(const OldWindowDrawView& view, std::uint8_t state)

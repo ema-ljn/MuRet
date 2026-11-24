@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/X87.h"
 #include "Render/Models/OriginalRotation.h"
 #include "World/Ftol.h"
 #include "World/IParticleTrigonometry.h"
@@ -176,10 +177,7 @@ constexpr double WindStep = static_cast<double>(0.0006f);
 constexpr float ChangeLimit = 0.6f;
 constexpr float WindLimit = 1.7f;
 
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using Math::F32;
 
 // El tope de 0x544730..0x544773 (y de 0x54479a..0x5447de), con las comparaciones de la x87: si no es
 // mayor o igual que el de arriba (C0, o sin orden), y el de abajo es mayor, el de abajo; si después

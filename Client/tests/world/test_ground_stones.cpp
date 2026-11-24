@@ -1,3 +1,4 @@
+#include "Math/X87.h"
 #include "World/GameModelEffects.h"
 #include "World/ModelEffects.h"
 
@@ -39,10 +40,7 @@ using Client::World::ModelEffects;
 
 constexpr double Hundredth = static_cast<double>(std::bit_cast<float>(0x3c23d70au)); // 0x6b86c0.
 
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using Client::Math::F32;
 
 std::unique_ptr<Client::Data::Terrain::TerrainAttributes> OpenGround(std::uint16_t attribute = 0)
 {

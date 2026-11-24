@@ -1,3 +1,4 @@
+#include "Math/X87.h"
 #include "Render/Models/IModelLibrary.h"
 #include "Scenes/FaunaJointCreation.h"
 
@@ -264,15 +265,8 @@ TEST(StormJointsTest, TheSubtypesAboveSevenOnlyAge)
 
 namespace
 {
-double D(float value)
-{
-    return static_cast<double>(value);
-}
-
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using Client::Math::D;
+using Client::Math::F32;
 
 // La /5 con un efecto de dueño (que no lee), los ángulos (90, 0, 0) del pulso y la altura del terreno de `ground`.
 struct FallingStar

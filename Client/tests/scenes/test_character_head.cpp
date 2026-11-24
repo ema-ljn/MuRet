@@ -1,6 +1,7 @@
 #include "Scenes/CharacterHead.h"
 
 #include "Crt/CrtRandom.h"
+#include "Math/X87.h"
 #include "Render/Models/OriginalAngles.h"
 
 #include "support/WorldObjectVectors.h"
@@ -35,10 +36,7 @@ float FromBits(const std::string& text)
     return std::bit_cast<float>(Hex(text));
 }
 
-std::uint32_t Bits(float value)
-{
-    return std::bit_cast<std::uint32_t>(value);
-}
+using Client::Math::Bits;
 
 TEST(CharacterHeadTest, TurnsLikeTheBinary)
 {

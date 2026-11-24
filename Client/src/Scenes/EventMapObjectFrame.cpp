@@ -1,13 +1,14 @@
 #include "Scenes/EventMapObjectFrame.h"
 
 #include "Core/Expected.h"
+#include "Math/X87.h"
 #include "Render/Models/ObjectState.h"
 #include "Render/Models/OriginalRetainedMath.h"
 #include "Scenes/ObjectFrameSprites.h"
 #include "Scenes/WorldObjectsDrawing.h"
 #include "World/BloodCastleParticleKernels.h"
+#include "World/Ftol.h"
 #include "World/IFishStepServices.h"
-#include "World/OriginalFtol.h"
 #include "World/ParticleOwner.h"
 #include "World/Particles.h"
 #include "World/PortableParticleTrigonometry.h"
@@ -30,10 +31,7 @@ namespace Client::Scenes
 {
 namespace
 {
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using Math::F32;
 
 // 0x6b89c8 (0,001f), 0x6b86d0 (20), 0x6b89dc (0,3f), 0x6b8a5c (0,7f), 0x6b882c (0,5), 0x6b8818 (2) y 0x6b87d4 (1).
 constexpr double Thousandth = static_cast<double>(std::bit_cast<float>(0x3a83126fu));

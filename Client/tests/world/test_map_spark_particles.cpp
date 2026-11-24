@@ -1,6 +1,7 @@
 #include "World/Particles.h"
 
 #include "Crt/CrtRandom.h"
+#include "Math/X87.h"
 
 #include "support/ParticleDrawRecorder.h"
 
@@ -24,10 +25,7 @@ using Client::World::Particles;
 constexpr std::int32_t Spark = 0x5c6;
 constexpr std::int32_t MapSpark = 9;
 
-std::uint32_t Bits(float value)
-{
-    return std::bit_cast<std::uint32_t>(value);
-}
+using Client::Math::Bits;
 
 TEST(MapSparkParticlesTest, CreationOffsetsByTheRotatedOldVectorBeforeReplacingItWithTwelveZeroMinusTwo)
 {

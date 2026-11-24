@@ -4,12 +4,13 @@
 #include "Data/Models/Model.h"
 #include "Data/Models/ModelTextures.h"
 #include "Data/Textures/TextureSet.h"
+#include "Math/X87.h"
 #include "Render/Models/OriginalRetainedMath.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/MonsterBodyChain.h"
 #include "Scenes/MonsterBodyPasses.h"
 #include "Scenes/VertexEffects.h"
-#include "World/OriginalFtol.h"
+#include "World/Ftol.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -52,15 +53,8 @@ constexpr float EightTenths = std::bit_cast<float>(0x3f4ccccdu); // 0,8
 constexpr float PulseRate = std::bit_cast<float>(0x3b03126fu);   // 0,002f (0x6b89bc)
 constexpr float Hundredth = std::bit_cast<float>(0x3c23d70au);   // 0,01f (0x6b88d4)
 
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
-
-double D(float value)
-{
-    return static_cast<double>(value);
-}
+using Math::D;
+using Math::F32;
 
 bool Within(std::uint16_t value, std::uint16_t first, std::uint16_t last)
 {

@@ -14,7 +14,7 @@
 #include "UI/OldWindowBase.h"
 #include "UI/OldWindowDraw.h"
 #include "UI/Widget.h"
-#include "World/OriginalFtol.h"
+#include "World/Ftol.h"
 
 #include <cstdint>
 #include <optional>

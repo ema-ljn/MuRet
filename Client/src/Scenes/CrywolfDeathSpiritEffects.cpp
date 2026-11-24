@@ -1,6 +1,7 @@
-#include "Crt/CrtRandom.h"
 #include "Scenes/CrywolfDeathSpiritEffects.h"
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
+#include "Math/X87.h"
 #include "Render/Models/OriginalAngles.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Scenes/ActorState.h"
@@ -20,10 +21,7 @@ namespace Client::Scenes
 {
 namespace
 {
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using Math::F32;
 bool HasRoom(const World::ModelEffects& effects)
 {
     return std::any_of(effects.Effects().begin(), effects.Effects().end(), [](const auto& e) { return !e.alive; });

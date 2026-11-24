@@ -1,4 +1,5 @@
 #include "Scenes/GameDrawTail.h"
+#include "Math/X87.h"
 #include "Render/Models/IModelLibrary.h"
 #include "Scenes/VertexEffects.h"
 #include "Scenes/CrywolfMissileDrawing.h"
@@ -56,8 +57,8 @@ namespace Client::Scenes
 {
 namespace
 {
+using Math::F32;
 using TailDrawing::Blend;
-using TailDrawing::F32;
 using TailDrawing::Quad;
 bool AdditiveLeaves(std::int32_t map)
 {

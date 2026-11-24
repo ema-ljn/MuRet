@@ -1,11 +1,11 @@
 #include "Scenes/MonsterKinds.h"
 
 #include "Crt/CrtRandom.h"
+#include "Math/X87.h"
 
 #include <gtest/gtest.h>
 
 #include <algorithm>
-#include <bit>
 #include <cstddef>
 #include <cstdint>
 #include <set>
@@ -54,10 +54,7 @@ const MonsterStep* Find(const std::vector<MonsterStep>& steps, MonsterStepKind k
     return found == steps.end() ? nullptr : &*found;
 }
 
-std::uint32_t Bits(float value)
-{
-    return std::bit_cast<std::uint32_t>(value);
-}
+using Client::Math::Bits;
 
 // Cada caso crea una sola vez y carga lo que pide antes de crear; los tipos del switch van de 0 a 301 y los 124
 // casos que no son el default aparecen todos.

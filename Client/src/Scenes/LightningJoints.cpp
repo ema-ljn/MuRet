@@ -1,5 +1,6 @@
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/X87.h"
 #include "Render/Models/OriginalAngles.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Scenes/ActorState.h"
@@ -8,8 +9,8 @@
 #include "Scenes/JointFamilies.h"
 #include "Scenes/JointKernels.h"
 #include "Scenes/WorldState.h"
+#include "World/Ftol.h"
 #include "World/IFishStepServices.h"
-#include "World/OriginalFtol.h"
 #include "World/Particles.h"
 #include "World/Sprites.h"
 #include "World/WorldObjectStepServices.h"
@@ -31,8 +32,8 @@ namespace
 {
 using Crt::CrtRandom;
 using JointKernels::AppendJointTail;
-using JointKernels::D;
-using JointKernels::F32;
+using Math::D;
+using Math::F32;
 
 constexpr float SharedSpeed = 50;         // 0x5309d9
 constexpr std::int32_t SharedPoints = 50; // 0x5309ec

@@ -4,6 +4,7 @@
 #include "Core/PixelSize.h"
 #include "Crt/CrtRandom.h"
 #include "Data/Text/SlideTable.h"
+#include "Math/X87.h"
 #include "Render/ScreenScale.h"
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
@@ -66,10 +67,7 @@ constexpr std::int32_t HoverMode = 1;
 constexpr std::int32_t HoverAbove = 3;
 constexpr std::int32_t HoverExtra = 6;
 
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using Math::F32;
 
 // 0x46a510.
 bool IsIdle(const SlideQueue& queue)

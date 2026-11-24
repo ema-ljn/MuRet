@@ -1,6 +1,7 @@
 #include "Scenes/WeaponTrail.h"
 
 #include "Core/Expected.h"
+#include "Math/X87.h"
 
 #include "Data/Models/PlayerModels.h"
 #include "Render/Models/HalfLifeMath.h"
@@ -46,10 +47,7 @@ struct Trail
     std::size_t secondHand = 0;
 };
 
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using Math::F32;
 
 Trail PlayerTrail(const ActorState& actor, Trail trail)
 {

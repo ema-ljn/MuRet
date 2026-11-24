@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/X87.h"
 #include "Render/Models/OriginalRotation.h"
 #include "World/GameModelEffects.h"
 #include "World/ModelEffects.h"
@@ -41,10 +42,7 @@ constexpr double StoneBounce = static_cast<double>(-0.2f), StatueBounce = -0.5;
 constexpr double GroundTilt = 128.0, AirTilt = 16.0;
 constexpr int GroundWear = 5, DustChance = 10;
 
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using Math::F32;
 
 void RotateThePush(ModelEffect& effect, float push, Crt::CrtRandom& random)
 {

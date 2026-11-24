@@ -1,6 +1,7 @@
 #include "Scenes/DarkSpirit.h"
 
 #include "Crt/CrtRandom.h"
+#include "Math/X87.h"
 #include "Render/Models/Animation.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/LogicalAccess.h"
@@ -122,10 +123,7 @@ constexpr float ShoutTurn = 40.0f;
 // 0x417e33: +0x38d sube en los estados 5 y 6 hasta 15.
 constexpr std::uint8_t AttackCounterTop = 15;
 
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using Math::F32;
 
 // 0x4164f0: el estado y el contador de lejanía en 0, sin mirar el de antes.
 void SetState(DarkSpirit& spirit, std::uint8_t state)

@@ -1,14 +1,15 @@
 #include "World/KalimaSurfaceDecal.h"
 
 #include "Core/Expected.h"
+#include "Math/X87.h"
 #include "Render/ModelBatch.h"
 #include "Render/ModelVertex.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Render/SpriteVertex.h"
 #include "Render/TextureSlot.h"
+#include "World/Ftol.h"
 #include "World/KalimaWaves.h"
 #include "World/KalimaWorld.h"
-#include "World/OriginalFtol.h"
 #include "World/TerrainDecal.h"
 
 #include <glm/ext/vector_float2.hpp>
@@ -33,10 +34,7 @@ constexpr double Half = 0.5;
 constexpr std::int32_t FirstUndrawnCell = 255;
 constexpr std::int32_t FirstNonProgressingReach = 1 << 24;
 
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using Math::F32;
 
 struct DecalProjection
 {

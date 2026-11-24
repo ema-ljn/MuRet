@@ -1,4 +1,5 @@
 #include "Crt/CrtRandom.h"
+#include "Math/X87.h"
 #include "Render/Models/OriginalRetainedMath.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Scenes/EventMapObjectFrame.h"
@@ -33,10 +34,7 @@ using Client::World::Particle;
 using Client::World::Particles;
 using Client::World::WorldObject;
 
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using Client::Math::F32;
 
 // La pose global de 0x68b181c: huesos sin giro, el k en (10 · k; 100; 50).
 Client::Scenes::FaunaDrawCarry Pose(std::size_t bones)

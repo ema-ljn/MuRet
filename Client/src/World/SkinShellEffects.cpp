@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/X87.h"
 #include "Render/Models/OriginalRotation.h"
 #include "World/GameModelEffects.h"
 #include "World/ModelEffects.h"
@@ -18,15 +19,8 @@ namespace Client::World
 {
 namespace
 {
-double D(float value)
-{
-    return static_cast<double>(value);
-}
-
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using Math::D;
+using Math::F32;
 
 constexpr double Tenth = static_cast<double>(std::bit_cast<float>(0x3dcccccdu)); // 0x6b87b8 y 0x6b8a34, 0,1f
 constexpr int Degrees = 360;                                                     // 0x168

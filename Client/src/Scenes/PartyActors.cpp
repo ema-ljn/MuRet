@@ -1,5 +1,6 @@
 #include "Scenes/PartyActors.h"
 
+#include "Math/X87.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/GameUi.h"
@@ -46,10 +47,7 @@ constexpr std::uint8_t Elf = 2;
 // 0x6c8e30.
 constexpr std::size_t ChosenTarget = 2;
 
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using Math::F32;
 
 // Un nombre hasta su primer 0: diez bytes en +0x1d9 (con +0x1e3 en 0, que ponen el 0x12 y el F3 03; *inferido*) o los
 // once del lugar, con el 0 de +0xa.

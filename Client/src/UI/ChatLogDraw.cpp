@@ -1,5 +1,6 @@
 #include "UI/ChatLogDraw.h"
 
+#include "Math/X87.h"
 #include "Protocol/Events.h"
 #include "Render/OriginalQuad.h"
 #include "Render/SpriteBatch.h"
@@ -92,10 +93,7 @@ std::int32_t Truncate(double value)
     return static_cast<std::int32_t>(value);
 }
 
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using Math::F32;
 
 float F32(std::int32_t value)
 {

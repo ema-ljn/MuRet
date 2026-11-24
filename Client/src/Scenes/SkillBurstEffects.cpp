@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/X87.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/FaunaJointCreation.h"
@@ -28,15 +29,8 @@ namespace Client::Scenes
 {
 namespace
 {
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
-
-double D(float value)
-{
-    return static_cast<double>(value);
-}
+using Math::D;
+using Math::F32;
 
 constexpr double Fifth = static_cast<double>(std::bit_cast<float>(0x3e4ccccdu));       // 0x6b8854, 0,2f
 constexpr double TwoFifths = static_cast<double>(std::bit_cast<float>(0x3ecccccdu));   // 0x6b87b4, 0,4f

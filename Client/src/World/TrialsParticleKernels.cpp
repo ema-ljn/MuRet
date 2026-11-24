@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/X87.h"
 #include "Render/Models/OriginalRetainedMath.h"
 #include "World/KalimaParticleKernels.h"
 #include "World/Particles.h"
@@ -17,10 +18,7 @@ namespace
 constexpr std::int32_t TrialsLife = 60;
 constexpr int FullTurn = 360;
 
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using Math::F32;
 
 void ScaleLight(Particle& p, double factor)
 {

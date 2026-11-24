@@ -1,5 +1,6 @@
 #include "Render/Billboard.h"
 
+#include "Math/X87.h"
 #include "Render/Models/OriginalRotation.h"
 
 #include "support/WorldObjectVectors.h"
@@ -23,10 +24,7 @@
 // color de GL, bit a bit.
 namespace
 {
-std::uint32_t Bits(float value)
-{
-    return std::bit_cast<std::uint32_t>(value);
-}
+using Client::Math::Bits;
 
 float FromBits(const std::string& word)
 {

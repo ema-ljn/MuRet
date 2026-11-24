@@ -16,7 +16,7 @@
 #include "UI/HudPrimitives.h"
 #include "UI/PanelRegistry.h"
 #include "UI/SiegePanelState.h"
-#include "World/OriginalFtol.h"
+#include "World/Ftol.h"
 
 #include <algorithm>
 #include <array>

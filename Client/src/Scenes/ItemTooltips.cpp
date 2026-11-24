@@ -20,8 +20,8 @@
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/ZenText.h"
 #include "UI/PanelRegistry.h"
+#include "World/Ftol.h"
 #include "World/ItemState.h"
-#include "World/OriginalFtol.h"
 
 #include <array>
 #include <cstddef>

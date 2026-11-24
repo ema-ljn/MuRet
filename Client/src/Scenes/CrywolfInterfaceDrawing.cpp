@@ -1,6 +1,7 @@
 #include "Scenes/CrywolfInterfaceDrawing.h"
 
 #include "Core/Expected.h"
+#include "Math/X87.h"
 #include "Protocol/Events.h"
 #include "Render/OriginalQuad.h"
 #include "Render/SpriteBatch.h"
@@ -17,7 +18,7 @@
 #include "UI/HudPrimitives.h"
 #include "UI/OriginalFormat.h"
 #include "UI/Widget.h"
-#include "World/OriginalFtol.h"
+#include "World/Ftol.h"
 
 #include <array>
 #include <cstddef>
@@ -37,10 +38,7 @@ using Render::Text::FontKind;
 using Result = Core::Expected<void, std::string>;
 constexpr auto Wsprintf = UI::FormatFunction::Wsprintf;
 
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using Math::F32;
 
 // [ebp-0x1d8]..[ebp-0xac]: los 300 bytes del buffer de wsprintfA ([0x6b851c]).
 constexpr std::size_t TextBuffer = 300;

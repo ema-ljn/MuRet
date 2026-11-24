@@ -4,6 +4,7 @@
 #include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainGrid.h"
+#include "Math/X87.h"
 #include "Render/Models/OriginalRotation.h"
 #include "World/GameModelEffects.h"
 #include "World/IFishStepServices.h"
@@ -37,10 +38,7 @@ using Client::World::ModelEffects;
 
 constexpr int OwnRecordCloseRandoms = 0xf08;
 
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using Client::Math::F32;
 
 struct JointCall
 {

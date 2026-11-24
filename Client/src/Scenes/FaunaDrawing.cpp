@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Data/Models/Model.h"
+#include "Math/X87.h"
 #include "Render/ModelBatch.h"
 #include "Render/ModelVertex.h"
 #include "Render/Models/Cloth.h"
@@ -47,10 +48,7 @@ constexpr float VisibleAlpha = .01f;
 constexpr std::int16_t InvisibleBird = 0x10f;
 constexpr std::int16_t StormBird = 0x171;
 constexpr std::int32_t Icarus = 10;
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using Math::F32;
 Render::Models::AnimationState AnimationOf(const FaunaObject& object)
 {
     return {object.action, object.frame, object.previousAction,

@@ -139,7 +139,4 @@ struct StepServices
 // El dueño de un joint de las familias de este archivo, cuando es un personaje (ActorState): el objeto del original,
 // con el byte vivo en +0, la posición en +0x10, los ángulos en +0x1c y la luz en +0xf4.
 [[nodiscard]] const ActorState* ActorOwner(const JointState& joint);
-
-double D(float value);
-float F32(double value);
 } // namespace Client::Scenes::JointKernels

@@ -1,6 +1,7 @@
 #include "Scenes/EventChipWindow.h"
 
 #include "Core/Expected.h"
+#include "Math/X87.h"
 #include "Protocol/Events.h"
 #include "Protocol/Outgoing.h"
 #include "Render/Models/RoundedMath.h"
@@ -29,7 +30,6 @@
 #include "UI/OldWindowDraw.h"
 #include "UI/OldWindowDrawParts.h"
 #include "UI/PanelRegistry.h"
-#include "World/OriginalFtol.h"
 
 #include <array>
 #include <cstddef>
@@ -164,15 +164,8 @@ constexpr Render::Color Black{0.0f, 0.0f, 0.0f, 1.0f};
 constexpr Render::Color Pressed{0.4f, 0.4f, 0.4f, 1.0f};
 constexpr Render::Color Dimmed{0.6f, 0.6f, 0.6f, 1.0f};
 
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
-
-std::int32_t Truncate(float value)
-{
-    return World::OriginalFtolLow(static_cast<double>(value)).value_or(0);
-}
+using Math::F32;
+using Math::Truncate;
 
 bool InBox(std::int32_t mouseX, std::int32_t mouseY, std::int32_t left, std::int32_t top, std::int32_t width,
            std::int32_t height)

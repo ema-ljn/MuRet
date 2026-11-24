@@ -1,6 +1,7 @@
 #include "World/Particles.h"
 
 #include "Crt/CrtRandom.h"
+#include "Math/X87.h"
 
 #include "support/ParticleDrawRecorder.h"
 
@@ -22,10 +23,7 @@ using Client::World::Particle;
 using Client::World::Particles;
 constexpr std::int32_t Drop = 0x607;
 
-std::uint32_t Bits(float value)
-{
-    return std::bit_cast<std::uint32_t>(value);
-}
+using Client::Math::Bits;
 
 TEST(MapParticlesTest, DropCreationUsesTwoRandomValuesAndReplacesOnlyItsColorScaleAndLife)
 {

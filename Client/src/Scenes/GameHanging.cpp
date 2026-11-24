@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Data/Models/PlayerModels.h"
+#include "Math/X87.h"
 #include "Render/Models/Animation.h"
 #include "Render/Models/Attachment.h"
 #include "Render/Models/HalfLifeMath.h"
@@ -103,15 +104,8 @@ constexpr std::uint32_t BasePass = 2;
 constexpr std::uint32_t ChromePass = 0x44;
 constexpr glm::vec3 MuSignChromeLight{1.0f, 0.5f, 0.0f};
 
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
-
-double D(float value)
-{
-    return static_cast<double>(value);
-}
+using Math::D;
+using Math::F32;
 
 // rand() % n como el IDIV del original: rand() no es negativo.
 int Mod(Crt::CrtRandom& random, int n)

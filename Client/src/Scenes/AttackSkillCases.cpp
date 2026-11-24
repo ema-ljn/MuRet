@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/X87.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/OriginalAngles.h"
 #include "Render/Models/OriginalRetainedMath.h"
@@ -56,8 +57,8 @@ namespace Client::Scenes
 {
 namespace
 {
-using JointKernels::D;
-using JointKernels::F32;
+using Math::D;
+using Math::F32;
 constexpr std::int16_t NoTarget = -1;
 // El sonido de los fuegos 0xc2 de la 0x02 y la 0x04 (0x5049f9, 0x504bda).
 constexpr std::int32_t FireSound = 0x42;

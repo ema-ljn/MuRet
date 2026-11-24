@@ -22,9 +22,9 @@
 #include "Scenes/WizardEffects.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "World/Ftol.h"
 #include "World/IFishStepServices.h"
 #include "World/ModelEffects.h"
-#include "World/OriginalFtol.h"
 #include "World/Particles.h"
 #include "World/WizardModelEffects.h"
 

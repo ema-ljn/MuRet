@@ -1,4 +1,5 @@
 #include "Core/Expected.h"
+#include "Math/X87.h"
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/JointFamilies.h"
@@ -22,8 +23,8 @@ namespace Client::Scenes::JointFamilies
 {
 namespace
 {
-using JointKernels::D;
-using JointKernels::F32;
+using Math::D;
+using Math::F32;
 } // namespace
 
 bool IsInferno(std::int32_t type, std::int32_t subtype)

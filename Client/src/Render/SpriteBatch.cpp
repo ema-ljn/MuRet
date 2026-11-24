@@ -1,6 +1,7 @@
 #include "Render/SpriteBatch.h"
 
 #include "Core/PixelSize.h"
+#include "Math/X87.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Render/OriginalQuad.h"
 #include "Render/OriginalSkewedQuad.h"
@@ -44,10 +45,7 @@ std::array<Color, 4> FourOf(Color color)
     return {color, color, color, color};
 }
 
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using Math::F32;
 } // namespace
 
 void SpriteBatch::Begin(Core::PixelSize screen)

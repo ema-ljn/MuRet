@@ -294,8 +294,8 @@ only where values must not be mixed. The principles hold across MuRet; the `Clie
    - The engine never names a game id. The game converts to the engine's representation on its side.
 6. **Fidelity sets the representation.** Where the original fixes the width, the sign, the byte order, a promotion, a
    wraparound or the x87 rounding, the value stays the primitive the port reproduces, and the name carries the unit
-   (`delayMs`, `angleDegrees`): the port spells the x87 intermediates by hand (`F32`, `D`), and a unit type would
-   choose them by itself. Elsewhere a vocabulary type is fine, such as `Core::Duration` (`std::chrono::nanoseconds`) for
+   (`delayMs`, `angleDegrees`): the port spells the x87 intermediates by hand (`F32`, `D`, `Truncate` and `Bits`
+   from `Math/X87.h`), and a unit type would choose them by itself. Elsewhere a vocabulary type is fine, such as `Core::Duration` (`std::chrono::nanoseconds`) for
    the loop's time. Packet and file layouts keep their fixed-width integers. Each conversion happens once, at its
    boundary (reading or writing a packet, a file, an engine-facing API; in the client, a module's `In/` and `Out/`),
    with the operation the original does there: a sign extension, a truncation, the low byte. Never by reinterpreting

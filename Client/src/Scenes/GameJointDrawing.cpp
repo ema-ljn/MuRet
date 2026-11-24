@@ -1,5 +1,6 @@
 #include "Scenes/GameDrawTail.h"
 
+#include "Math/X87.h"
 #include "Render/SpriteVertex.h"
 
 #include "Crt/CrtRandom.h"
@@ -10,7 +11,7 @@
 #include "Core/Expected.h"
 #include "Render/ModelBatch.h"
 #include "Render/TextureSlot.h"
-#include "World/OriginalFtol.h"
+#include "World/Ftol.h"
 #include "World/Sprites.h"
 #include <glm/ext/vector_float3.hpp>
 #include <array>
@@ -24,8 +25,8 @@ namespace Client::Scenes
 {
 namespace
 {
+using Math::F32;
 using TailDrawing::Blend;
-using TailDrawing::F32;
 using TailDrawing::Quad;
 } // namespace
 

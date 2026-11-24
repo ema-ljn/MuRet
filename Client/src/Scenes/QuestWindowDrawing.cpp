@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Data/Tables/QuestTable.h"
+#include "Math/X87.h"
 #include "Render/OriginalQuad.h"
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
@@ -24,7 +25,6 @@
 #include "UI/GameText.h"
 #include "UI/HudPrimitives.h"
 #include "UI/PanelRegistry.h"
-#include "World/OriginalFtol.h"
 
 #include <array>
 #include <cstddef>
@@ -123,15 +123,8 @@ constexpr std::size_t SpecialNpcQuest = 2;
 constexpr std::int32_t StateCenter = 0x5f;
 constexpr std::int32_t StateTop = 0x131;
 
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
-
-std::int32_t Truncate(double value)
-{
-    return World::OriginalFtolLow(value).value_or(0);
-}
+using Math::F32;
+using Math::Truncate;
 
 // 0x621b60(slot, x, y, w, h, u, v, du, dv, 1, 1, 0).
 void Quad(Render::SpriteBatch& sprites, std::uint16_t slot, float x, float y, float width, float height, float u,

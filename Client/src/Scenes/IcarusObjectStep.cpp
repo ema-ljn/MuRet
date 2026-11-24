@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/X87.h"
 #include "Render/Models/OriginalRotation.h"
 #include "World/IFishStepServices.h"
 #include "World/ModelEffects.h"
@@ -21,15 +22,8 @@ namespace Client::Scenes
 {
 namespace
 {
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
-
-double D(float value)
-{
-    return static_cast<double>(value);
-}
+using Math::D;
+using Math::F32;
 
 // 0x6b87ac (150), 0x6b8a48 (0,05f), 0x6b89dc (0,3f), 0x6ba748 (0,081f), 0x6b8900 (300), 0x6b8bf4 (40),
 // 0x6b88c4 (1.000), 0x6b89e4 (0,02f) y 0x6b87a8 (10).

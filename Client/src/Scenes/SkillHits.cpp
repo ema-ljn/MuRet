@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/X87.h"
 #include "Protocol/Outgoing.h"
 #include "Protocol/Skill.h"
 #include "Render/Models/LogicalAccess.h"
@@ -10,7 +11,7 @@
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
-#include "World/OriginalFtol.h"
+#include "World/Ftol.h"
 #include "World/TerrainAttributeQuery.h"
 #include "World/WorldTerrain.h"
 
@@ -34,15 +35,8 @@ constexpr std::uint8_t PlayerKind = 1;
 constexpr std::size_t NativeActorSlots = 400;         // 517bf3..517c00: el slot400 de reserva de MuRet no se recorre.
 constexpr std::string_view GameMasterName = "webzen"; // 0x6c8c40
 
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
-
-double D(float value)
-{
-    return static_cast<double>(value);
-}
+using Math::D;
+using Math::F32;
 
 // 0x517bc3..0x517bda: con la skill 8 o 9, el blanco con +0x394 en 0 queda con +0x398 en 10.
 void MarkTheStunned(ActorState& actor, std::uint8_t skill)

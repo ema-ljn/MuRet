@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainGrid.h"
+#include "Math/X87.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Scenes/ActorState.h"
@@ -10,7 +11,7 @@
 #include "Scenes/HelperTable.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
-#include "World/OriginalFtol.h"
+#include "World/Ftol.h"
 #include "World/Particles.h"
 #include "World/WorldTerrain.h"
 
@@ -64,10 +65,7 @@ constexpr float ShownAlpha = 1.0f;
 constexpr double FadeRate = static_cast<double>(0.1f); // 0x6b87b8
 constexpr float HiddenAlpha = 0.0f;
 
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using Math::F32;
 
 // x + v en la x87: el entero exacto, el float del ayudante y un solo redondeo a float en el fstp.
 float Shifted(int by, float value)

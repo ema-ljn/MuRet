@@ -1,6 +1,7 @@
 #include "World/Particles.h"
 
 #include "Crt/CrtRandom.h"
+#include "Math/X87.h"
 #include "Render/Models/OriginalRotation.h"
 
 #include "support/ParticleDrawRecorder.h"
@@ -28,10 +29,7 @@ using Client::World::Particles;
 constexpr std::int32_t LoginCloudType = 0x622;
 constexpr std::int32_t LoginCloudSubtype = 10;
 
-std::uint32_t Bits(float value)
-{
-    return std::bit_cast<std::uint32_t>(value);
-}
+using Client::Math::Bits;
 
 Particle& Cloud(Particles& particles)
 {

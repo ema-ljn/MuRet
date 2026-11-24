@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/X87.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/GameDrawTail.h"
 #include "World/IFishStepServices.h"
@@ -30,15 +31,8 @@ using Client::Crt::CrtRandom;
 using Client::Scenes::JointState;
 using Client::World::FishEffectRequest;
 
-double D(float value)
-{
-    return static_cast<double>(value);
-}
-
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using Client::Math::D;
+using Client::Math::F32;
 
 // 0x530860 con el 610/4: los ángulos del pedido no cuentan, el caso los pone en 0.
 Client::Core::Expected<std::optional<std::size_t>, std::string> CreateSwordTrail(std::span<JointState> joints,

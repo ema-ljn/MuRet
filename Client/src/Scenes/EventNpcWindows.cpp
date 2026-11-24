@@ -1,6 +1,7 @@
 #include "Scenes/EventNpcWindows.h"
 
 #include "Core/Expected.h"
+#include "Math/X87.h"
 #include "Protocol/Events.h"
 #include "Protocol/Outgoing.h"
 #include "Render/Models/LogicalAccess.h"
@@ -23,7 +24,6 @@
 #include "UI/OriginalFormat.h"
 #include "UI/PanelRegistry.h"
 #include "World/ItemState.h"
-#include "World/OriginalFtol.h"
 
 #include <array>
 #include <cstddef>
@@ -137,15 +137,8 @@ constexpr std::int32_t BridgePlaceBias = 0xc;
 constexpr std::int32_t LastBridge = 7;
 constexpr std::int32_t LastBridgeSecondCloak = 6;
 
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
-
-std::int32_t Truncate(float value)
-{
-    return World::OriginalFtolLow(static_cast<double>(value)).value_or(0);
-}
+using Math::F32;
+using Math::Truncate;
 
 bool SecondClass(std::uint8_t characterClass)
 {

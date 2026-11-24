@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Data/Models/PlayerModels.h"
+#include "Math/X87.h"
 #include "Render/Models/Animation.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/OriginalRetainedMath.h"
@@ -117,10 +118,7 @@ constexpr double GlowRed = static_cast<double>(std::bit_cast<float>(0x3f000000u)
 constexpr double GlowGreen = static_cast<double>(std::bit_cast<float>(0x3f4ccccdu));
 constexpr double GlowBlue = static_cast<double>(std::bit_cast<float>(0x3f19999au));
 
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using Math::F32;
 
 bool InChaosCastle(std::int32_t map)
 {

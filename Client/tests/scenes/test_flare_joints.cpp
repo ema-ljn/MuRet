@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/X87.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Scenes/BlastEffectCalls.h"
 #include "Scenes/CharacterStep.h"
@@ -14,7 +15,6 @@
 
 #include <gtest/gtest.h>
 
-#include <bit>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -63,10 +63,7 @@ struct FlareWorld
     CrtRandom random{Seed};
 };
 
-std::uint32_t Bits(float value)
-{
-    return std::bit_cast<std::uint32_t>(value);
-}
+using Client::Math::Bits;
 } // namespace
 
 // 0x530ca5..0x530d35: la /0 con vida 20, 30 puntos, el ancho, la velocidad rand() % 10 + 10, la x de los ángulos

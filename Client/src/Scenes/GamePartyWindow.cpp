@@ -1,6 +1,7 @@
 #include "Scenes/GamePartyWindow.h"
 
 #include "Core/Expected.h"
+#include "Math/X87.h"
 #include "Protocol/Party.h"
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
@@ -187,10 +188,7 @@ std::string_view NameView(std::span<const std::byte> name)
     return {reinterpret_cast<const char*>(name.data()), static_cast<std::size_t>(end - name.begin())};
 }
 
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using Math::F32;
 
 // _ftol: hacia el 0.
 std::int32_t Truncate(double value)

@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainHeights.h"
+#include "Math/X87.h"
 #include "Render/ModelBatch.h"
 #include "World/TerrainDecal.h"
 
@@ -49,10 +50,7 @@ constexpr std::uint8_t AdditiveComponents = 3;
 // 0x549175: lo que sube el calco sobre el terreno (0x40a00000).
 constexpr float MarkLift = 5.0f;
 
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using Math::F32;
 
 // 0x620a90 y 0x620a00(1) ponen la mezcla con su perfil entero (el culling, la máscara de profundidad, el
 // alpha test y la textura) y no tocan el depth test ni la textura ligada.

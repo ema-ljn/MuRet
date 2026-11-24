@@ -1,6 +1,7 @@
 #include "Render/Models/Cloth.h"
 
 #include "Crt/CrtRandom.h"
+#include "Math/X87.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/TextureSlot.h"
 #include "support/ClothVectors.h"
@@ -43,10 +44,7 @@ using Client::Tests::ClothVectorFrame;
 using Client::Tests::ClothVectors;
 using Client::Tests::ClothVectorStep;
 
-std::uint32_t Bits(float value)
-{
-    return std::bit_cast<std::uint32_t>(value);
-}
+using Client::Math::Bits;
 
 void ExpectSameBits(const glm::vec3& ours, const glm::vec3& binary, const std::string& where)
 {

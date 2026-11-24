@@ -5,7 +5,7 @@
 #include "Scenes/ActionSend.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/GameMovementState.h"
-#include "World/OriginalFtol.h"
+#include "World/Ftol.h"
 
 #include <bit>
 #include <cstdint>

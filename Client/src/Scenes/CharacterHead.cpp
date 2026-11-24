@@ -1,6 +1,7 @@
 #include "Scenes/CharacterHead.h"
 
 #include "Crt/CrtRandom.h"
+#include "Math/X87.h"
 #include "Render/Models/OriginalAngles.h"
 
 #include <glm/ext/vector_float2.hpp>
@@ -17,10 +18,7 @@ constexpr int NodCenter = 16;
 constexpr double Turn = 360.0;                      // 0x6b869c
 constexpr double Share = static_cast<double>(0.2f); // 0x6b8854
 
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using Math::F32;
 } // namespace
 
 void StepCharacterHead(CharacterHead& head, bool sorts, Crt::CrtRandom& random)

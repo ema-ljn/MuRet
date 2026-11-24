@@ -1,6 +1,7 @@
 #include "Scenes/NpcWindowDrawing.h"
 
 #include "Core/Expected.h"
+#include "Math/X87.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
@@ -20,7 +21,6 @@
 #include "UI/PanelRegistry.h"
 #include "UI/SprintfFormat.h"
 #include "UI/Widget.h"
-#include "World/OriginalFtol.h"
 
 #include <array>
 #include <bit>
@@ -134,16 +134,8 @@ constexpr std::size_t LockedLockButton = 3;
 constexpr std::int32_t WarehouseHelpAbove = 13;
 constexpr Render::Text::TextColors WarehouseHelpColors{.text = 0xffffffffu, .background = 0xff000000u};
 
-// La x87 de 53 bits y el fstp en float.
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
-
-std::int32_t Truncate(double value)
-{
-    return World::OriginalFtolLow(value).value_or(0);
-}
+using Math::F32;
+using Math::Truncate;
 
 // fild del entero de la esquina, fadd del float de la tabla y fstp.
 float Offset(std::int32_t corner, double offset)

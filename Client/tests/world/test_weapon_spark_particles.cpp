@@ -1,6 +1,7 @@
 #include "World/WeaponSparkKernels.h"
 
 #include "Crt/CrtRandom.h"
+#include "Math/X87.h"
 #include "World/Particles.h"
 
 #include <glm/ext/vector_float3.hpp>
@@ -20,20 +21,9 @@ using Client::World::Particle;
 using Client::World::Particles;
 constexpr std::int32_t Spark = 0x5c6;
 
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
-
-double D(float value)
-{
-    return static_cast<double>(value);
-}
-
-std::uint32_t Bits(float value)
-{
-    return std::bit_cast<std::uint32_t>(value);
-}
+using Client::Math::Bits;
+using Client::Math::D;
+using Client::Math::F32;
 
 // 0x540977: +0x38 en 1,0f; la velocidad ((rand() & 7) − 4,0f; rand() & 3; rand() & 3) con la vida 30 en el medio,
 // y la escala (rand() % 5) · 0,1f + 1, que pisa la del argumento. El prefijo deja la posición, los ángulos y la luz.

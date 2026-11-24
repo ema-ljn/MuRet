@@ -1,6 +1,7 @@
 #include "Scenes/GameSocialDrawing.h"
 
 #include "Core/Expected.h"
+#include "Math/X87.h"
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
 #include "Render/Text/FontSet.h"
@@ -110,11 +111,7 @@ constexpr std::int32_t SecondLineTop = 0xc8;
 constexpr std::size_t FirstRequestText = 910;
 constexpr std::size_t SecondRequestText = 911;
 
-// La x87 de 53 bits y el fstp en float.
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using Math::F32;
 
 std::string_view NameView(std::span<const std::byte> name)
 {

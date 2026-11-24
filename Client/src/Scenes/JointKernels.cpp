@@ -15,16 +15,6 @@
 
 namespace Client::Scenes::JointKernels
 {
-double D(float value)
-{
-    return static_cast<double>(value);
-}
-
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
-
 namespace
 {
 void PlaceFirstQuad(JointState& joint, const Render::Models::OriginalMatrix& matrix, bool crossed)

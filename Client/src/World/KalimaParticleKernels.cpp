@@ -1,5 +1,6 @@
 #include "World/KalimaParticleKernels.h"
 #include "Core/Expected.h"
+#include "Math/X87.h"
 
 #include "Crt/CrtRandom.h"
 #include "World/Ftol.h"
@@ -36,10 +37,7 @@ constexpr int FlareZero = 0, FlareTrail = 1, FlareSix = 6, FlareSeven = 7, Flare
 // (0x52baf5).
 constexpr int FlareFive = 5, FlareEight = 8;
 constexpr std::int32_t WaterfallSplash = WaterfallSplashFirst;
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using Math::F32;
 void FadeLight(Particle& p, double factor)
 {
     for (int axis = 0; axis < 3; ++axis)

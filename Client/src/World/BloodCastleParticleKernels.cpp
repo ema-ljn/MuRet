@@ -1,6 +1,7 @@
 #include "World/BloodCastleParticleKernels.h"
 
 #include "Crt/CrtRandom.h"
+#include "Math/X87.h"
 #include "World/Particles.h"
 
 #include <glm/ext/vector_float3.hpp>
@@ -12,15 +13,8 @@ namespace Client::World
 {
 namespace
 {
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
-
-double D(float value)
-{
-    return static_cast<double>(value);
-}
+using Math::D;
+using Math::F32;
 
 constexpr int FullTurn = 360;
 constexpr int Tens = 10;

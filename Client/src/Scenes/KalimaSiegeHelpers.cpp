@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/X87.h"
 #include "Render/ModelBatch.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/OriginalRetainedMath.h"
@@ -58,15 +59,8 @@ constexpr float ThreeTenths = 0.3f;  // 0x6b89dc
 constexpr float TwoFifths = 0.4f;    // 0x6b87b4
 constexpr float Thousandth = 0.001f; // 0x6b89c8
 
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
-
-double D(float value)
-{
-    return static_cast<double>(value);
-}
+using Math::D;
+using Math::F32;
 
 bool InKalima(std::int32_t map)
 {

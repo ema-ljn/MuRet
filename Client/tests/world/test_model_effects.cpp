@@ -1,6 +1,7 @@
 #include "World/ModelEffects.h"
 
 #include "Crt/CrtRandom.h"
+#include "Math/X87.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/ObjectState.h"
 #include "Render/Models/OriginalRotation.h"
@@ -37,10 +38,7 @@ using Client::World::DragonEffect;
 using Client::World::ModelEffect;
 using Client::World::ModelEffects;
 
-std::uint32_t Bits(float value)
-{
-    return std::bit_cast<std::uint32_t>(value);
-}
+using Client::Math::Bits;
 
 // El esqueleto del dragón para el paso: la acción de Dragon.bmd, 41 keys que repiten (el +0 en 0, como
 // la del generador).

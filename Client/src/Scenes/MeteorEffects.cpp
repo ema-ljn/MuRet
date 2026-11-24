@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Core/IClock.h"
 #include "Crt/CrtRandom.h"
+#include "Math/X87.h"
 #include "Render/ModelBatch.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/IModelLibrary.h"
@@ -19,9 +20,9 @@
 #include "Scenes/HighModelEffects.h"
 #include "Scenes/WorldMap.h"
 #include "Scenes/WorldState.h"
+#include "World/Ftol.h"
 #include "World/GameModelEffects.h"
 #include "World/ModelEffects.h"
-#include "World/OriginalFtol.h"
 #include "World/ParticleOwner.h"
 #include "World/WorldObjectStepServices.h"
 
@@ -45,15 +46,8 @@ namespace Client::Scenes
 {
 namespace
 {
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
-
-double D(float value)
-{
-    return static_cast<double>(value);
-}
+using Math::D;
+using Math::F32;
 
 // 0x525f7b..0x526028: un joint 0x60f/0x18 de la lluvia, con sus dos rand() del lugar antes de crearlo.
 Core::Expected<void, std::string> DropTheRain(const World::ModelEffect& effect, int drop,

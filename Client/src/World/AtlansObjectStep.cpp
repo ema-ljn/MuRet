@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/X87.h"
 #include "Render/Models/ObjectState.h"
 #include "Render/Models/OriginalRetainedMath.h"
 #include "World/Particles.h"
@@ -17,10 +18,7 @@ namespace Client::World
 {
 namespace
 {
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using Math::F32;
 
 // 0x6b89bc (0,002f), 0x6b89e8 (0,004f), 0x6b89dc (0,3f) y 0x6b882c (0,5).
 constexpr double SlowRate = static_cast<double>(std::bit_cast<float>(0x3b03126fu));

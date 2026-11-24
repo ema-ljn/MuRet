@@ -1,5 +1,6 @@
 #include "World/GameCamera.h"
 
+#include "Math/X87.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Render/Models/RoundedMath.h"
 #include "Render/Pass3D.h"
@@ -53,10 +54,7 @@ constexpr float WebzenYaw = -40.0f;
 constexpr float WebzenPitch = -70.0f;
 constexpr double RockingYAmplitude = 2.5;
 
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using Math::F32;
 
 glm::vec3 Offset(float distance, float yaw)
 {

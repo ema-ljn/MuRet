@@ -2,6 +2,7 @@
 #include "Render/Models/IModelLibrary.h"
 #include "Scenes/VertexEffects.h"
 
+#include "Protocol/Events.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/FaunaDrawing.h"
 #include "Scenes/AidaObjectServices.h"
@@ -700,7 +701,8 @@ DrawGameWorldObjects(Render::ModelBatch& batch, const Render::Models::IModelLibr
         // sorteos, antes del rand() común.
         if (pass.map == CrywolfMap && draw.kind == World::ObjectDrawKind::Body)
         {
-            const bool activeAltar = object.type == 0x51 && pass.crywolf != nullptr && pass.crywolf->state == 2;
+            const bool activeAltar = object.type == 0x51 && pass.crywolf != nullptr &&
+                                     pass.crywolf->state == Protocol::Events::CrywolfWarState;
             // 0x430a46 viene después de 0x5ffdf0 y antes del RGB: no vuelve a posar el objeto en este frame.
             if (activeAltar)
                 object.transform.scale = std::bit_cast<float>(0x3f83d70au);

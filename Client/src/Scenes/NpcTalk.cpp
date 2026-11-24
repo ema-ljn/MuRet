@@ -59,18 +59,8 @@ constexpr std::uint16_t QuestDialogNpc = 0xe5;
 // 0x567b36..0x567b46 y 0x5688f0..0x5688fd: los modelos (+2, con signo) de los altares de Crywolf.
 constexpr std::int16_t FirstCrywolfAltar = 0x204;
 constexpr std::int16_t LastCrywolfAltar = 0x208;
-// 0x4303c0: el mapa 34; 0x435a00: las etapas 3 y 4 de 0x723c05.
+// 0x4303c0: the map 34.
 constexpr std::int32_t CrywolfMap = 34;
-constexpr std::uint8_t FirstActiveCrywolfStage = 3;
-constexpr std::uint8_t SecondActiveCrywolfStage = 4;
-
-// 0x435a00 && 0x4303c0.
-bool CrywolfIsActive(const WorldRuntime& runtime)
-{
-    const bool stage =
-        runtime.crywolf.stage == FirstActiveCrywolfStage || runtime.crywolf.stage == SecondActiveCrywolfStage;
-    return stage && runtime.map == CrywolfMap;
-}
 
 bool IsACrywolfAltar(const ActorState& npc)
 {
@@ -155,7 +145,7 @@ Core::Expected<void, std::string> TalkToTheNpc(ActorState& hero, const HeroMovem
     state.mouseUpdateTimeMax = ArrivalMouseUpdateTimeMax;
     // 0x5674d2..0x5674ed: fuera de Crywolf activo, 0x4f2250 y +0x378 en 0 (en la llegada de MoveHero el héroe ya está
     // parado: 0x4f2250 vuelve a elegir la acción y saca su sufijo de rand()).
-    const bool crywolf = CrywolfIsActive(runtime);
+    const bool crywolf = InTheCrywolfDefense(runtime);
     if (!crywolf)
     {
         const auto stop = StopContextForHero(hero, context);

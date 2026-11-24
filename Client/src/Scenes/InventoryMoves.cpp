@@ -5,6 +5,7 @@
 #include "Data/Models/PlayerModels.h"
 #include "Data/Tables/ItemTable.h"
 #include "GameLogic/PathCell.h"
+#include "Protocol/Events.h"
 #include "Protocol/FloorItems.h"
 #include "Protocol/Inventory.h"
 #include "Protocol/PersonalShop.h"
@@ -191,8 +192,8 @@ constexpr std::int32_t AtlansMap = 7;
 constexpr std::int32_t IcarusMap = 10;
 constexpr std::int32_t FirstChaosCastleMap = 18;
 constexpr std::int32_t LastChaosCastleMap = 23;
-constexpr std::uint8_t FirstCrywolfLockStage = 3;
-constexpr std::uint8_t LastCrywolfLockStage = 4;
+constexpr std::uint8_t FirstCrywolfLockStage = Protocol::Events::CrywolfReadyStage;
+constexpr std::uint8_t LastCrywolfLockStage = Protocol::Events::CrywolfStartStage;
 constexpr std::uint32_t CrywolfLockFlag = 0x200000;
 constexpr std::uint16_t FirstRidingAction = 0xc5;
 constexpr std::uint16_t LastRidingAction = 0xc8;

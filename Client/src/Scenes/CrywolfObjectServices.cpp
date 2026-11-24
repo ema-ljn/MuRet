@@ -1,6 +1,7 @@
 #include "Scenes/CrywolfObjectServices.h"
 
 #include "Core/Expected.h"
+#include "Protocol/Events.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/OriginalRetainedMath.h"
 #include "Scenes/WorldObjectsDrawing.h"
@@ -29,7 +30,6 @@ constexpr std::int32_t WeatherPeriod = 70000;
 constexpr int WeatherCount = 3;
 constexpr std::int16_t GlowObject = 0x29;
 constexpr std::int16_t ChimneyObject = 0x54;
-constexpr std::uint8_t SmokeState = 1;
 constexpr std::uint16_t GlowTexture = 0x60f;
 constexpr float GlowScale = std::bit_cast<float>(0x3fa66666u); // 0x430646: 1,3.
 constexpr double GlowStep = 1.0;                               // 0x6b87d4.
@@ -147,7 +147,7 @@ Core::Expected<void, std::string> StepCrywolfObjectFrame(const World::WorldObjec
         return Glow(object, pass, crywolf);
     if (object.type == ChimneyObject)
     {
-        if (pass.random->Next() % EmitChance != 0 || crywolf.state != SmokeState)
+        if (pass.random->Next() % EmitChance != 0 || crywolf.state != Protocol::Events::CrywolfOccupiedState)
             return {};
         return Emit(pass, object, World::BreathParticle, World::CrywolfSmokeSubtype, White, "0x4305cc");
     }
@@ -175,7 +175,7 @@ Core::Expected<void, std::string> CrywolfObjectBody(const World::WorldObject& ob
     case 0x38:
     {
         // 0x43071f: RenderBody(2, …) y después, con el estado en 0, los sorteos.
-        if (!frame || crywolf.state != 0)
+        if (!frame || crywolf.state != Protocol::Events::CrywolfPeaceState)
             return {};
         constexpr double LightStep = static_cast<double>(std::bit_cast<float>(0x38d1b717u)); // 0x6b8a94: 0,0001.
         constexpr int LightSpan = 10000;
@@ -222,7 +222,7 @@ Core::Expected<void, std::string> CrywolfObjectBody(const World::WorldObject& ob
         return {};
     case 0x4a:
         draw.kind = World::ObjectDrawKind::Hidden;
-        if (!frame || pass.random->Next() % EmitChance != 0 || crywolf.state != SmokeState)
+        if (!frame || pass.random->Next() % EmitChance != 0 || crywolf.state != Protocol::Events::CrywolfOccupiedState)
             return {};
         return Emit(pass, object, World::BreathParticle, World::CrywolfSmokeSubtype, White, "0x430993");
     case 0x4d:
@@ -243,7 +243,7 @@ Core::Expected<void, std::string> CrywolfObjectBody(const World::WorldObject& ob
     case 0x51:
         draw.kind = World::ObjectDrawKind::Hidden;
         // 0x430a33: el caller ejecuta los dos RenderMesh directos, sin el RenderBody genérico.
-        if (crywolf.state == 2)
+        if (crywolf.state == Protocol::Events::CrywolfWarState)
         {
             const auto color = AltarLight(pass.worldClock, crywolf.ui.light);
             if (!color.HasValue())

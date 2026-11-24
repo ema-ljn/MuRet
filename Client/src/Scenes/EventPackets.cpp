@@ -234,16 +234,11 @@ constexpr std::size_t JewelNoSpaceText = 1815;   // 0x77420d0
 constexpr std::string_view JewelFormat = "%s%s %s";
 constexpr std::int32_t JewelDialog = 0xa6;
 
-// 0x42fe80: las etapas de Crywolf que tocan la interfaz.
-constexpr std::uint8_t CrywolfWarningStage = 4;
-constexpr std::uint8_t CrywolfFightStage = 5;
-constexpr std::uint8_t CrywolfEndStage = 6;
-constexpr std::uint8_t CrywolfPeaceState = 0;
-constexpr std::uint8_t CrywolfLostState = 2;
+// 0x42febf..0x42fef5: what the end stage leaves in 0x6c73dc with the peace state, and in 0x6c73f8.
 constexpr std::int32_t CrywolfPeaceCounter = 0xb;
 constexpr std::int32_t CrywolfFightTime = 0x186;
 // 0x42ff3f..0x42ff75: los estados con su luz; otro deja el buffer sin escribir.
-constexpr std::uint8_t LastLitCrywolfState = 2;
+constexpr std::uint8_t LastLitCrywolfState = Events::CrywolfWarState;
 // 0x4e1010: los resultados del BD 03, el nivel desde el que el 0 da 0x3a (0x4e1144), la primera clave de los altares
 // (0x4e11b7) y la acción de sentarse (0x4e11cc).
 constexpr std::uint8_t ContractFailed = 0;
@@ -251,8 +246,7 @@ constexpr std::uint8_t ContractSigned = 1;
 constexpr std::int32_t ContractLevel = 0x15e;
 constexpr std::int32_t FirstAltarKey = 0x13c;
 constexpr std::uint8_t SittingAction = 0xca;
-// 0x4359f0 (la etapa en 4), 0x435a00 (en 3 o 4) y 0x4303c0 (el mapa 0x22).
-constexpr std::uint8_t CrywolfDefenseStage = 3;
+// 0x4303c0: the map 0x22, which the BD 04 tests with the started stage (0x4359f0).
 constexpr std::int32_t CrywolfMap = 0x22;
 // 0x437620: cinco lugares (0x6c73e4..0x6c73f4, 0x723a30..0x723a34 y 0x7239f8..0x723a2e).
 constexpr std::size_t CrywolfRankingPlaces = 5;
@@ -1213,25 +1207,25 @@ private:
         if (crywolf.state == state && crywolf.stage == stage)
             return {};
         crywolf.stage = stage;
-        if (stage == CrywolfWarningStage)
+        if (stage == Events::CrywolfStartStage)
             ui.byte723bec = 1;
         else
         {
             ui.byte723a3d = 0;
-            if (stage == CrywolfFightStage)
+            if (stage == Events::CrywolfEndStage)
             {
                 // 0x42febf..0x42fef5: 0x6c73e4..0x6c73f4 en −1 y, salvo con el estado 2, el aviso.
                 for (std::size_t index = 1; index < ui.dwords6c73e0.size(); ++index)
                     ui.dwords6c73e0[index] = -1;
-                if (state != CrywolfLostState)
+                if (state != Events::CrywolfWarState)
                 {
                     ui.message = 1;
-                    if (state == CrywolfPeaceState)
+                    if (state == Events::CrywolfPeaceState)
                         ui.dword6c73dc = CrywolfPeaceCounter;
                     ui.dword6c73f8 = CrywolfFightTime;
                 }
             }
-            else if (stage == CrywolfEndStage)
+            else if (stage == Events::CrywolfEndCycleStage)
                 ResetTheCrywolfInterface(m_runtime);
         }
         if (crywolf.state == state)
@@ -1370,7 +1364,7 @@ private:
     Applied On(const Events::CrywolfTimer& packet)
     {
         CrywolfGlobals& crywolf = m_runtime.crywolf;
-        if (crywolf.stage != CrywolfWarningStage || m_runtime.map != CrywolfMap)
+        if (crywolf.stage != Events::CrywolfStartStage || m_runtime.map != CrywolfMap)
             return {};
         crywolf.ui.dwords723bdc[2] = packet.value4;
         crywolf.ui.dwords723bdc[3] = packet.minutes;
@@ -1385,8 +1379,7 @@ private:
     Applied On(const Events::CrywolfBoss& packet)
     {
         CrywolfGlobals& crywolf = m_runtime.crywolf;
-        if ((crywolf.stage != CrywolfDefenseStage && crywolf.stage != CrywolfWarningStage) ||
-            m_runtime.map != CrywolfMap)
+        if (!InTheCrywolfDefense(m_runtime))
             return {};
         CrywolfInterface& ui = crywolf.ui;
         ui.dword723bd8 = packet.count;

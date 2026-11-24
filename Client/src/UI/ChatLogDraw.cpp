@@ -1,5 +1,6 @@
 #include "UI/ChatLogDraw.h"
 
+#include "Protocol/Events.h"
 #include "Render/OriginalQuad.h"
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
@@ -362,7 +363,8 @@ std::int32_t DrawTheRow(const ChatLogState& log, ChatLogFrame& frame, ChatModes 
         row += age;
     }
     context.sprites.SetBlend(Render::BlendMode::Alpha);
-    const bool crywolf = view.crywolfStage == 3 || view.crywolfStage == 4;
+    const bool crywolf = view.crywolfStage == Protocol::Events::CrywolfReadyStage ||
+                         view.crywolfStage == Protocol::Events::CrywolfStartStage;
     const auto rowY = [&]
     {
         if (!crywolf)

@@ -1,3 +1,4 @@
+#include "GameLogic/CharacterAppearance.h"
 #include "Render/Models/IModelLibrary.h"
 #include "Scenes/CharacterAnimation.h"
 
@@ -9,6 +10,8 @@
 
 #include <gtest/gtest.h>
 
+#include <array>
+#include <cstddef>
 #include <cstdint>
 #include <span>
 
@@ -49,4 +52,34 @@ TEST(CharacterMotionAnimationTest, BetweenStepsUsesDurableSharedSpeedWithoutChan
     speeds.SetWalking(false);
     const auto running = Client::Scenes::BodyBetweenSteps(animation, models, 0.5f, &speeds);
     EXPECT_FLOAT_EQ(running.frame, 1.165f);
+}
+
+// 0x50ba30
+TEST(CharacterMotionAnimationTest, TheWingsRunFasterInThirtyAndThirtyOne)
+{
+    std::array<float, 256> expected;
+    expected.fill(0.25f);
+    expected[30] = 1.0f;
+    expected[31] = 1.0f;
+
+    for (std::size_t action = 0; action < expected.size(); ++action)
+    {
+        EXPECT_EQ(Client::Scenes::WingKeysPerOriginalFrame(static_cast<std::uint8_t>(action)), expected[action])
+            << action;
+    }
+}
+
+TEST(CharacterMotionAnimationTest, AttachmentsAdvanceWingsAtTheRateOfTheBodyAction)
+{
+    WalkingModels models;
+    models.skeleton.actions[0] = {.repeats = true, .speed = 0.8f, .keyCount = 20};
+    Client::GameLogic::CharacterAppearance appearance;
+    appearance.wings = std::uint16_t{0x1a12};
+    Client::Scenes::CharacterAnimation animation;
+    animation.body.action = 30;
+
+    Client::Scenes::StepCharacterAttachments(animation, appearance, models);
+    Client::Scenes::StepCharacterAttachments(animation, appearance, models);
+
+    EXPECT_FLOAT_EQ(animation.wings.state.frame, 1.0f);
 }

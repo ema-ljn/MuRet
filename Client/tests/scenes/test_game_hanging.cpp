@@ -4,7 +4,6 @@
 
 #include "Data/Models/Model.h"
 #include "Render/ModelBatch.h"
-#include "Render/Models/Animation.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/Pose.h"
@@ -1029,7 +1028,7 @@ TEST_F(GameHangingTest, TheBloodCastleWeaponHangsFromTheWingsPlaceOnlyInBloodCas
                 continue;
             }
             EXPECT_EQ(m_actor.wings.bone, 0x2f);
-            EXPECT_EQ(m_actor.wings.speed, Client::Render::Models::WingKeysPerOriginalFrame(0));
+            EXPECT_EQ(m_actor.wings.speed, 0.25f);
             // Los tres llevan el cromo de las armas (ChromeWeapon): el cuerpo y el cromo de la malla 0, la única del
             // modelo del test. El 0xc1c y el 0x225 con el lugar de las espadas desde el hueso 0x2f (como la espada
             // de la espalda); el 0xa24, con el de las ballestas.

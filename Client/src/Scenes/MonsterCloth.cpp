@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Data/Models/Model.h"
+#include "Maps/ClothWind.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/Skinning.h"
 #include "Scenes/ClothCarry.h"
@@ -55,7 +56,7 @@ Core::Expected<void, std::string> MonsterMeshCloth::Frame(const Data::Models::Mo
     Render::Models::ClothBody onTheMesh = body;
     onTheMesh.meshVertices = skinned->positions;
     m_simulatedBody = SimulatedBodyOf(onTheMesh);
-    if (!m_cloth->Simulate(StepTime, StepsPerFrame, onTheMesh, world, map))
+    if (!m_cloth->Simulate(StepTime, StepsPerFrame, onTheMesh, world, Maps::ClothWindForMap(map)))
     {
         // 0x50bbb5: 0x4fb1a0(personaje, objeto, 0); el frame siguiente, con +0x190 en 0, la arma de nuevo.
         Release();

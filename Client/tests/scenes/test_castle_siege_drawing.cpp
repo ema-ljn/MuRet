@@ -366,14 +366,6 @@ TEST(CastleSiegeObjectServicesTest, TheOtherTypesDoNothingAndTheRandomIsRequired
     EXPECT_NE(cut.Error().find("0x42c9f0"), std::string::npos);
 }
 
-// 0x4eff8d..0x4eff9f: el 30 aplasta la sombra con 2500; los demás mapas, con 2000.
-TEST(CastleSiegeDrawingTest, OnlyTheCastleSiegeSpreadsTheShadowFurther)
-{
-    EXPECT_EQ(Client::Render::Models::ShadowSpreadOf(30), 2500.0f);
-    for (const std::int32_t map : {0, 2, 29, 31, 34})
-        EXPECT_EQ(Client::Render::Models::ShadowSpreadOf(map), 2000.0f) << map;
-}
-
 // Un esqueleto de un hueso en el origen, con una acción de una key.
 Skeleton OneBone()
 {
@@ -436,6 +428,36 @@ DrawnObject SiegeObject()
     object.model = SiegeModel;
     object.transform.position = {9200.0f, 9900.0f, 180.0f};
     return object;
+}
+
+// 0x4eff8d..0x4eff9f: the map comparison uses the entire signed value.
+TEST(CastleSiegeDrawingTest, OnlyTheCastleSiegeSpreadsTheShadowFurther)
+{
+    const SiegeModels models(1);
+    DrawnObject object = SiegeObject();
+    object.transform.position = {10.0f, 20.0f, 30.0f};
+    std::array<Client::Render::Models::SkinnedMesh, 1> meshes{};
+    meshes[0].positions = {{110.0f, 77.0f, 80.0f}, {111.0f, 77.0f, 80.0f}, {110.0f, 78.0f, 80.0f}};
+    meshes[0].normals = {{0.0f, 0.0f, 1.0f}};
+    ModelBatch batch;
+
+    for (const std::int32_t map : {-1, 0, 2, 30, 31, 34, 286})
+    {
+        SCOPED_TRACE(map);
+        batch.Begin(Client::Render::Pass3D{});
+        Client::Scenes::DrawObjectShadow(batch, models, object, meshes, map);
+
+        ASSERT_EQ(batch.Vertices().size(), 3u);
+        const float x = map == 30 ? 0x1.345abcp+6f : 0x1.4dabcp+6f;
+        EXPECT_EQ(batch.Vertices()[0].position, glm::vec3(x, 77.0f, 35.0f));
+    }
+
+    // 0x4ed73e: the item mesh pass uses 2000 even in Castle Siege.
+    batch.Begin(Client::Render::Pass3D{});
+    const auto drawn = Client::Scenes::DrawItemMeshPass(batch, models, object, {}, meshes, 0, 0x21);
+    ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+    ASSERT_EQ(batch.Vertices().size(), 3u);
+    EXPECT_EQ(batch.Vertices()[0].position, glm::vec3(0x1.4dabcp+6f, 77.0f, 35.0f));
 }
 
 struct Drawn

@@ -6,7 +6,6 @@
 
 #include <glm/ext/vector_float3.hpp>
 
-#include <cstdint>
 #include <span>
 #include <vector>
 
@@ -52,12 +51,6 @@ struct SkinnedMesh
 // nunca, y el ángulo con que se gira L (+0x8c del modelo) solo lo escribe la del mundo 30.
 [[nodiscard]] float NormalLight(const glm::vec3& worldNormal);
 
-// 0x4eff40: un vértice de la sombra, aplastado sobre el piso desde la posición del objeto. Con x' y
-// z' desde ella, X = (x' + s) · z' / (z' − 4000) + x' + px, la y queda y Z = pz + 5, con el `spread` s
-// de ShadowSpreadOf.
-[[nodiscard]] glm::vec3 FlattenOnTheGround(const glm::vec3& world, const glm::vec3& objectPosition,
-                                           float spread = 2000.0f);
-
-// 0x4eff8d..0x4eff9f: el s de 0x4eff40, 2000 salvo en el mundo 30 (DAT_006c9dd0 = 0x1e), donde es 2500.
-[[nodiscard]] float ShadowSpreadOf(std::int32_t map);
+// 0x4eff40: with x' and z' relative to the object, X = (x' + spread) * z' / (z' - 4000) + x' + px and Z = pz + 5.
+[[nodiscard]] glm::vec3 FlattenOnTheGround(const glm::vec3& world, const glm::vec3& objectPosition, float spread);
 } // namespace Client::Render::Models

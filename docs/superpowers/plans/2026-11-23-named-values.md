@@ -270,7 +270,10 @@ arrives from the game:
 
 The two FoxAnti opcodes (`Network/FoxAntiObfuscation.cpp:51,101`) are already AR1 Task 4's ("its MU values come
 injected"). Each moved function keeps its tests; a test compares old and new over every map id (0..255) and action
-(0..255). Done when `check_named_values.py --clean-root engine` finds no game space in `engine/`.
+(0..255). Done when `check_named_values.py --clean-root engine` lists only what other tasks own: the FoxAnti
+opcodes (`Network/FoxAntiObfuscation.cpp:51,101`, AR1 Task 4) and `PlayerSkeletonModel`, `PlayerShadowModel` and
+`FirstItemModel` in `Data/Models/PlayerModels.h` (the item plan's Task 10). The PR that removes the last of them adds
+`--clean-root engine` to CI's "Client named values" step (#439 left it out for that reason).
 
 ### Task 4: the numbers the x87 code shares (AR1.1, after AR1 Task 5)
 

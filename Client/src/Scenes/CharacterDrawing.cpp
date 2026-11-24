@@ -681,6 +681,16 @@ bool DrawsTheShadow(const DrawnCharacter& character)
 
 namespace
 {
+constexpr std::int32_t CastleSiegeMap = 0x1e;
+constexpr float DefaultShadowSpread = 2000.0f;
+constexpr float CastleSiegeShadowSpread = 2500.0f;
+
+// 0x4eff8d..0x4eff9f (DAT_006c9dd0)
+constexpr float ShadowSpreadOf(std::int32_t map)
+{
+    return map == CastleSiegeMap ? CastleSiegeShadowSpread : DefaultShadowSpread;
+}
+
 // La sombra de 0x50ba30 (0x20b con las matrices del cuerpo), antes de las partes: cada malla, pasada
 // a los vértices del cuerpo y aplastada sobre el piso (0x4eff40). Sin ella con una de las mascotas
 // que se montan.
@@ -706,8 +716,8 @@ void DrawShadow(const CharacterFrame& frame, std::span<const BoneTransform> body
         }
         for (glm::vec3& position : skinned.positions)
         {
-            position = Render::Models::FlattenOnTheGround(position, character.object.position,
-                                                          Render::Models::ShadowSpreadOf(character.map));
+            position =
+                Render::Models::FlattenOnTheGround(position, character.object.position, ShadowSpreadOf(character.map));
         }
         MeshDraw draw;
         draw.mesh = &mesh;
@@ -1404,7 +1414,7 @@ void DrawObjectShadow(Render::ModelBatch& batch, const Render::Models::IModelLib
     Render::Color color = DarkSpiritShadowColor;
     if (faint)
         color.alpha = DarkHorseShadowAlphaOfMapSeven;
-    const float spread = Render::Models::ShadowSpreadOf(map);
+    const float spread = ShadowSpreadOf(map);
     for (std::size_t index = 0; index < model->meshes.size() && index < meshes.size(); ++index)
     {
         const Data::Models::Mesh& mesh = model->meshes[index];
@@ -2064,8 +2074,7 @@ void DrawDarkHorse(Render::ModelBatch& batch, const Render::Models::IModelLibrar
         Render::Models::SkinnedMesh flat = *shadow->skinned;
         for (glm::vec3& position : flat.positions)
         {
-            position = Render::Models::FlattenOnTheGround(position, horse.transform.position,
-                                                          Render::Models::ShadowSpreadOf(map));
+            position = Render::Models::FlattenOnTheGround(position, horse.transform.position, ShadowSpreadOf(map));
         }
         MeshDraw draw = *shadow;
         draw.skinned = &flat;
@@ -2096,7 +2105,7 @@ void DrawDarkSpirit(Render::ModelBatch& batch, const Render::Models::IModelLibra
     // 0x600a0b: 0x4eff40 aplasta desde (x, y, la altura del terreno ahí), que le escribe a +0x6c..+0x74, con
     // el abanico del mapa (0x4eff8d: 2500 en el 30).
     const glm::vec3 ground(spirit.transform.position.x, spirit.transform.position.y, groundHeight);
-    const float spread = Render::Models::ShadowSpreadOf(map);
+    const float spread = ShadowSpreadOf(map);
     for (const MeshDraw& draw : draws)
     {
         Render::Models::SkinnedMesh flat = *draw.skinned;
@@ -2124,7 +2133,7 @@ void DrawBloodCastleShadow(Render::ModelBatch& batch, const Render::Models::IMod
             continue;
         Render::Models::SkinnedMesh flat = *draw.skinned;
         for (glm::vec3& position : flat.positions)
-            position = Render::Models::FlattenOnTheGround(position, ground);
+            position = Render::Models::FlattenOnTheGround(position, ground, DefaultShadowSpread);
         MeshDraw shadow = draw;
         shadow.skinned = &flat;
         Triangles(batch, shadow, BlendedShadowState, DarkSpiritShadowColor, PassUv{});
@@ -2133,8 +2142,6 @@ void DrawBloodCastleShadow(Render::ModelBatch& batch, const Render::Models::IMod
 
 namespace
 {
-constexpr std::int32_t CastleSiegeMap = 0x1e;
-
 // Las mallas que dejó 0x5ffdf0: el scratch que publicó la pose o, sin él, todas las del modelo posadas como
 // las posa DrawObject (WorldScratchOf), también las que no tienen textura (0x4ecc30 suelto y 0x4eff40 no miran el
 // script). Sin el modelo, sin el esqueleto o sin la pose, ninguna.
@@ -2154,7 +2161,7 @@ std::span<const Render::Models::SkinnedMesh> PosedMeshesOf(const Render::Models:
 void DrawCastleSiegeShadow(Render::ModelBatch& batch, const Data::Models::Model& model, const DrawnObject& object,
                            std::span<const Render::Models::SkinnedMesh> meshes)
 {
-    const float spread = Render::Models::ShadowSpreadOf(CastleSiegeMap);
+    const float spread = ShadowSpreadOf(CastleSiegeMap);
     for (std::size_t index = 0; index < model.meshes.size() && index < meshes.size(); ++index)
     {
         const Data::Models::Mesh& mesh = model.meshes[index];
@@ -2253,7 +2260,7 @@ Core::Expected<void, std::string> DrawFenrirBody(Render::ModelBatch& batch, cons
         shadowColor.alpha = DarkHorseShadowAlphaOfMapSeven;
     // 0x60292b: 0x4eff40(−1, −1, −1, −1), sin blendMesh ni malla oculta: todas las mallas con triángulos, aplastadas
     // desde model+0x6c..+0x74, que 0x5ffdf0 dejó en el lugar del Fenrir, con el abanico del mapa.
-    const float spread = Render::Models::ShadowSpreadOf(map);
+    const float spread = ShadowSpreadOf(map);
     for (std::size_t index = 0; index < model->meshes.size() && index < meshes.size(); ++index)
     {
         const Data::Models::Mesh& mesh = model->meshes[index];

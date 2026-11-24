@@ -207,6 +207,7 @@ Input/InputState.h	112	Input	engine/Input	high	engine or protocol layer, no game
 Input/Key.h	141	Input	engine/Input	high	engine or protocol layer, no game state
 Input/MouseMessageState.h	16	Input	engine/Input	high	engine or protocol layer, no game state
 Input/TextInputEvent.h	29	Input	engine/Input	high	engine or protocol layer, no game state
+Maps/ClothWind.h	17	Maps	game/Maps	high	(addr.) the login map selects the fallback wind for cloth (AR1.1)
 Network/CloseReason.cpp	30	Network	engine/Network	high	engine or protocol layer, no game state
 Network/CloseReason.h	25	Network	engine/Network	high	engine or protocol layer, no game state
 Network/Connection.cpp	364	Network	engine/Network	high	engine or protocol layer, no game state

@@ -1,21 +1,34 @@
 #include "Scenes/WinMainLoop.h"
 
+#include "Core/IClock.h"
+#include "Render/Models/Animation.h"
 #include "Render/Models/Cloth.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/WorldRuntime.h"
+#include "Scenes/WorldState.h"
 
 #include <gtest/gtest.h>
 
+#include <chrono>
 #include <cstdint>
+#include <memory>
+#include <optional>
 
 // Client::Scenes::StepTheWinMainLoop y CloseTheFrameCounter: los rand() de la vuelta de WinMain (P-C61, Q-C461),
 // leídos del ASM de 0x4bbc57..0x4be02f y de 0x63950d..0x63b066.
 namespace
 {
+using Client::Core::Duration;
 using Client::Render::Models::CrtRandom;
+using Client::Render::Models::OriginalFramePace;
+using Client::Render::Models::OriginalFrameTime;
 using Client::Scenes::CloseTheFrameCounter;
+using Client::Scenes::FinishTheWinMainLoop;
 using Client::Scenes::InTheDeviasChurch;
 using Client::Scenes::StepTheWinMainLoop;
 using Client::Scenes::WinMainCounters;
+using Client::Scenes::WinMainLoopState;
+using Client::Scenes::WorldState;
 
 constexpr std::uint32_t Seed = 0x1234;
 
@@ -136,5 +149,125 @@ TEST(WinMainLoopTest, ThirtyOneLoopsWithTheirFramesDrawTwoHundredNinetyFive)
     }
 
     EXPECT_EQ(random.State(), After(30 * 9 + 25).State());
+}
+
+// What FinishTheWinMainLoop works on, from WinMain's start.
+struct LoopTail
+{
+    explicit LoopTail(std::uint32_t seed = Seed) : random(seed) {}
+
+    void FinishAt(Duration now, OriginalFramePace pace = OriginalFramePace::ByTheClock, bool gameScene = false)
+    {
+        FinishTheWinMainLoop(loop, *world, random, now, pace, gameScene);
+    }
+
+    WinMainLoopState loop;
+    std::unique_ptr<WorldState> world = std::make_unique<WorldState>();
+    CrtRandom random;
+};
+
+constexpr Duration FirstTurn{};
+constexpr std::int32_t CrywolfMap = 34;
+constexpr std::uint8_t CrywolfResultStage = 5;
+constexpr std::int32_t FailureBanner = 0xa;
+constexpr std::int32_t SuccessBanner = 0xb;
+
+// 4 to close the frame counter of 0x63945d, 5 for the quiet turn that follows.
+TEST(WinMainLoopTest, ATurnOutsideTheGameClosesTheFrameAndStartsTheNextTurn)
+{
+    LoopTail tail;
+    tail.world->Runtime().ui.enterPressed = true;
+
+    tail.FinishAt(FirstTurn);
+
+    EXPECT_EQ(tail.random.State(), After(9).State());
+    EXPECT_EQ(tail.loop.counters.loops, 1);
+    EXPECT_FALSE(tail.world->Runtime().ui.enterPressed);
+}
+
+TEST(WinMainLoopTest, ATurnShorterThanAnOriginalFrameRunsNoTail)
+{
+    LoopTail tail;
+    tail.FinishAt(FirstTurn);
+    tail.world->Runtime().ui.enterPressed = true;
+
+    tail.FinishAt(std::chrono::milliseconds(10));
+
+    EXPECT_EQ(tail.random.State(), After(9).State());
+    EXPECT_EQ(tail.loop.counters.loops, 1);
+    EXPECT_FALSE(tail.world->Runtime().ui.enterPressed);
+}
+
+TEST(WinMainLoopTest, ATurnOfTwoOriginalFramesRunsTheTailTwice)
+{
+    LoopTail tail;
+    tail.FinishAt(FirstTurn);
+
+    tail.FinishAt(2 * OriginalFrameTime);
+
+    EXPECT_EQ(tail.random.State(), After(27).State());
+    EXPECT_EQ(tail.loop.counters.loops, 3);
+}
+
+// By the clock, 200 ms are four original frames.
+TEST(WinMainLoopTest, TheFaithfulPaceRunsOneTailPerTurn)
+{
+    LoopTail tail;
+    tail.FinishAt(FirstTurn, OriginalFramePace::OncePerDraw);
+
+    tail.FinishAt(std::chrono::milliseconds(200), OriginalFramePace::OncePerDraw);
+
+    EXPECT_EQ(tail.random.State(), After(18).State());
+    EXPECT_EQ(tail.loop.counters.loops, 2);
+}
+
+// 0x430250 at stage 5: 0x244 (CW_win.wav) or, with the failure banner in 0x6c73dc, 0x245 (CW_lose.wav).
+TEST(WinMainLoopTest, CrywolfAtStageFiveRequestsItsSound)
+{
+    struct Case
+    {
+        std::int32_t banner;
+        std::int32_t sound;
+    };
+    for (const auto [banner, sound] : {Case{SuccessBanner, 0x244}, Case{FailureBanner, 0x245}})
+    {
+        LoopTail tail;
+        auto& runtime = tail.world->Runtime();
+        runtime.map = CrywolfMap;
+        runtime.crywolf.stage = CrywolfResultStage;
+        runtime.crywolf.ui.dword6c73dc = banner;
+
+        tail.FinishAt(FirstTurn, OriginalFramePace::ByTheClock, true);
+
+        EXPECT_EQ(runtime.lastSoundId, std::optional<std::int32_t>(sound));
+    }
+}
+
+TEST(WinMainLoopTest, OutsideTheGameSceneTheMusicDoesNotStep)
+{
+    LoopTail tail;
+    auto& runtime = tail.world->Runtime();
+    runtime.map = CrywolfMap;
+    runtime.crywolf.stage = CrywolfResultStage;
+    runtime.crywolf.ui.dword6c73dc = SuccessBanner;
+
+    tail.FinishAt(FirstTurn, OriginalFramePace::ByTheClock, false);
+
+    EXPECT_FALSE(runtime.lastSoundId.has_value());
+}
+
+// Noria's ambience requests the forest sound when its rand() is a multiple of 512. With this seed the first rand()
+// is 512 and the fifth, the one the ambience would get after the frame counter's four, is not a multiple.
+TEST(WinMainLoopTest, TheGameMusicStepsBeforeTheFrameCounterCloses)
+{
+    constexpr std::uint32_t SeedOfAForestSound = 0x91;
+    constexpr std::int32_t NoriaMap = 3;
+    constexpr std::int32_t ForestSound = 2;
+    LoopTail tail(SeedOfAForestSound);
+    tail.world->Runtime().map = NoriaMap;
+
+    tail.FinishAt(FirstTurn, OriginalFramePace::ByTheClock, true);
+
+    EXPECT_EQ(tail.world->Runtime().lastSoundId, std::optional<std::int32_t>(ForestSound));
 }
 } // namespace

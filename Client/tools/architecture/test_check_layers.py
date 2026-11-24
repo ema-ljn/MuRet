@@ -159,6 +159,49 @@ class CheckLayersTest(unittest.TestCase):
         graph, module_map = self.load()
         self.assertEqual(check_layers.cycles(graph, module_map), [['game/A', 'game/B']])
 
+    def declared(self):
+        self.write_inputs()
+        return check_layers.declared_cycles(check_layers.load_modules(self.dir / 'modules.tsv'))
+
+    def test_declared_cycle_between_two_modules(self):
+        self.modules += [module('game/A', 9, 'A/**', may_use='*layer<9;game/B'),
+                         module('game/B', 9, 'B/**', may_use='*layer<9;game/A')]
+        self.assertEqual(self.declared(), [['game/A', 'game/B']])
+
+    def test_declared_ring_of_three_is_one_cycle(self):
+        self.modules += [module('game/C', 9, 'C/**', may_use='*layer<9;game/A'),
+                         module('game/A', 9, 'A/**', may_use='*layer<9;game/B'),
+                         module('game/B', 9, 'B/**', may_use='*layer<9;game/C')]
+        self.assertEqual(self.declared(), [['game/A', 'game/B', 'game/C']])
+
+    def test_one_way_permission_is_no_declared_cycle(self):
+        self.modules += [module('game/A', 9, 'A/**', may_use='*layer<9;game/B;game/Guild'),
+                         module('game/B', 9, 'B/**', may_use='*layer<9;game/Guild')]
+        self.assertEqual(self.declared(), [])
+
+    def test_layer_bounds_of_the_own_layer_declare_no_cycle(self):
+        self.modules += [module('game/A', 9, 'A/**'), module('game/B', 10, 'B/**')]
+        self.assertEqual(self.declared(), [])
+
+    def test_name_of_a_higher_module_closes_a_cycle_with_its_layer_bound(self):
+        self.modules[0] = module('engine/Core', 0, 'Core/**', may_use='*layer<0;game/Guild')
+        self.assertEqual(self.declared(), [['engine/Core', 'game/Guild']])
+
+    def test_layer_bound_above_the_own_layer_declares_a_cycle(self):
+        self.modules += [module('game/A', 9, 'A/**', may_use='*layer<10'),
+                         module('game/B', 9, 'B/**', may_use='*layer<10')]
+        self.assertEqual(self.declared(), [['game/A', 'game/B']])
+
+    def test_declared_cycle_does_not_fail_the_check(self):
+        self.modules += [module('game/A', 9, 'A/**', may_use='*layer<9;game/B'),
+                         module('game/B', 9, 'B/**', may_use='*layer<9;game/A')]
+        self.source('A/x.h')
+        self.source('B/y.h')
+        code, output = self.run_check()
+        self.assertEqual(code, 0)
+        self.assertIn('declared cycle of 2 modules: game/A, game/B\n', output)
+        self.assertNotIn('\ncycle of', '\n' + output)
+
     def test_unmapped_file_fails(self):
         self.source('Stray/z.cpp')
         code, output = self.run_check()

@@ -4,6 +4,8 @@ A file's module comes from its row in the module map or, for a file the map does
 matching glob in folders_today. An include may stay inside its module or go to a module that the includer's may_use
 names, directly or as *layer<N. Violations listed in the baseline do not fail the check; new ones do. A root given
 with --clean-root may have none: its violations fail even when the baseline lists them, and are never written to it.
+The cycles between modules are printed and do not fail the check: those the includes make and those may_use allows
+(declared), whether an include uses them yet or not.
 
     python3 -I Client/tools/architecture/check_layers.py --src Client/src --modules Client/modules.tsv \\
         --map <module-map.tsv> --baseline Client/tools/architecture/layers-baseline.tsv [--clean-root engine] [--write-baseline]
@@ -155,11 +157,20 @@ def _reachable(start: str, edges: dict[str, set[str]]) -> set[str]:
     return seen
 
 
-def cycles(graph: dict[str, set[str]], module_map: ModuleMap) -> list[list[str]]:
-    edges = _module_edges(graph, module_map)
+def _cycles_of(edges: dict[str, set[str]]) -> list[list[str]]:
     reach = {name: _reachable(name, edges) for name in edges}
     components = {tuple(sorted({name} | {other for other in reach[name] if name in reach[other]})) for name in reach}
     return sorted(list(component) for component in components if len(component) > 1)
+
+
+def cycles(graph: dict[str, set[str]], module_map: ModuleMap) -> list[list[str]]:
+    return _cycles_of(_module_edges(graph, module_map))
+
+
+def declared_cycles(modules: dict[str, Module]) -> list[list[str]]:
+    """The cycles that may_use allows, by name or by layer bound, whether an include uses them yet or not."""
+    return _cycles_of({name: {other for other in modules if other != name and module.may_include(modules[other])}
+                       for name, module in modules.items()})
 
 
 def load_baseline(path: pathlib.Path) -> set[tuple[str, str, str, str]]:
@@ -228,6 +239,8 @@ def main(argv: list[str] | None = None) -> int:
 
     for component in cycles(graph, module_map):
         print(f'cycle of {len(component)} modules: {", ".join(component)}')
+    for component in declared_cycles(modules):
+        print(f'declared cycle of {len(component)} modules: {", ".join(component)}')
     known = load_baseline(args.baseline)
     new = [violation for violation in found if violation not in known]
     stale = sorted(known.difference(found))

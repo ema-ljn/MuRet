@@ -244,12 +244,9 @@ Scenes/CreatePreview.h	Scenes/ActorState.h	game/FrontEnd	game/Actors
 Scenes/CreatePreview.h	Scenes/CharacterDrawing.h	game/FrontEnd	game/Actors
 Scenes/CrywolfContract.cpp	Scenes/ActorState.h	game/Events	game/Actors
 Scenes/CrywolfContract.cpp	Scenes/GameMovementState.h	game/Events	game/Movement
-Scenes/CrywolfDeathSpiritEffects.cpp	Scenes/ActorState.h	game/Events	game/Actors
-Scenes/CrywolfDeathSpiritEffects.cpp	World/GameModelEffects.h	game/Events	game/Effects
-Scenes/CrywolfDeathSpiritEffects.cpp	World/ModelEffects.h	game/Events	game/Effects
+Scenes/CrywolfDeathSpiritEffects.cpp	Scenes/ActorState.h	game/Effects	game/Actors
 Scenes/CrywolfInterfaceDrawing.cpp	Scenes/GameHud.h	game/Events	game/Hud
 Scenes/CrywolfInterfaceDrawing.cpp	Scenes/HudText.h	game/Events	game/Hud
-Scenes/CrywolfMissileDrawing.cpp	World/ModelEffects.h	game/Events	game/Effects
 Scenes/CrywolfObjectServices.cpp	Scenes/WorldObjectsDrawing.h	game/MapScripts	game/WorldObjects
 Scenes/CrywolfObjectServices.cpp	World/WorldObjects.h	game/MapScripts	game/WorldObjects
 Scenes/DamageNumbers.cpp	Scenes/GameDrawTail.h	game/Combat	game/Scenes
@@ -850,7 +847,6 @@ Scenes/MonsterDrawing.cpp	Scenes/VertexEffects.h	game/Monsters	game/Actors
 Scenes/MonsterDrawing.cpp	World/ChaosCastle.h	game/Monsters	game/Events
 Scenes/MonsterDrawing.h	Scenes/ActorState.h	game/Monsters	game/Actors
 Scenes/MonsterHelpers.cpp	Scenes/ActorState.h	game/Monsters	game/Actors
-Scenes/MonsterHelpers.cpp	Scenes/CrywolfDeathSpiritEffects.h	game/Monsters	game/Events
 Scenes/MonsterHelpers.cpp	Scenes/GameDrawTail.h	game/Monsters	game/Scenes
 Scenes/MonsterHelpers.cpp	Scenes/GameRibbonCreation.h	game/Monsters	game/Actors
 Scenes/MonsterHelpers.cpp	World/SiegeVertexEffects.h	game/Monsters	game/CastleSiege

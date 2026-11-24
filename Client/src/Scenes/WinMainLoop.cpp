@@ -1,10 +1,15 @@
 #include "Scenes/WinMainLoop.h"
 
+#include "Core/IClock.h"
+#include "Render/Models/Animation.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/Slides.h"
 #include "Scenes/WorldRuntime.h"
+#include "Scenes/WorldState.h"
 
+#include <chrono>
 #include <cstdint>
 #include <optional>
 
@@ -18,11 +23,40 @@ constexpr std::uint16_t CounterCloseRandoms = Render::Models::SmallLogicalCloseR
 constexpr std::uint16_t FocusCloseRandoms = 1;
 // 0x4bbd44 y 0x4bbed5: los dos contadores comparan con 30.
 constexpr std::int32_t LastQuietLoop = 0x1e;
+// 0x430250: in Crywolf's map, the stage of the result requests CW_lose.wav with the failure banner in 0x6c73dc and
+// CW_win.wav with any other.
+constexpr std::int32_t CrywolfMap = 34;
+constexpr std::int32_t CrywolfResultStage = 5;
+constexpr std::int32_t CrywolfFailureBanner = 10;
+constexpr std::int32_t CrywolfWinSound = 0x244;
+constexpr std::int32_t CrywolfLoseSound = 0x245;
 
 void Draw(Render::Models::CrtRandom& random, std::uint16_t count)
 {
     for (std::uint16_t i = 0; i < count; ++i)
         static_cast<void>(random.Next());
+}
+
+void StepTheGameMusic(WorldState& world, Render::Models::CrtRandom& random)
+{
+    WorldRuntime& runtime = world.Runtime();
+    StepWorldAmbience(runtime, random);
+    ActorState& hero = world.Actors()[runtime.hero];
+    runtime.music.StepWorld(runtime.audio, runtime.map, hero.safeZone != 0, runtime.heroCellLayer,
+                            [&hero, &random] { return InTheDeviasChurch(hero, random); });
+    if (runtime.map == CrywolfMap)
+    {
+        runtime.music.StepCrywolf(runtime.audio, runtime.crywolf.stage);
+        if (runtime.crywolf.stage == CrywolfResultStage)
+        {
+            runtime.RequestSound(runtime.crywolf.ui.dword6c73dc == CrywolfFailureBanner ? CrywolfLoseSound
+                                                                                        : CrywolfWinSound);
+        }
+    }
+    else
+    {
+        runtime.music.StopCrywolfBase(runtime.audio);
+    }
 }
 } // namespace
 
@@ -137,5 +171,22 @@ void StepWorldAmbience(WorldRuntime& runtime, Render::Models::CrtRandom& random)
         runtime.StopSound(Tarkan, true);
     if (map != 10)
         runtime.StopSound(Icarus, true);
+}
+
+void FinishTheWinMainLoop(WinMainLoopState& loop, WorldState& world, Render::Models::CrtRandom& random,
+                          Core::Duration now, Render::Models::OriginalFramePace pace, bool gameScene)
+{
+    world.Runtime().ui.enterPressed = false;
+    const int frames = loop.frames.FramesAt(now, pace);
+    const auto systemTime =
+        static_cast<std::uint32_t>(std::chrono::duration_cast<std::chrono::milliseconds>(now).count());
+    for (int frame = 0; frame < frames; ++frame)
+    {
+        if (gameScene)
+            StepTheGameMusic(world, random);
+        CloseTheFrameCounter(random);
+        RunTheSlideTimer(world, random, systemTime, gameScene);
+        StepTheWinMainLoop(loop.counters, random);
+    }
 }
 } // namespace Client::Scenes

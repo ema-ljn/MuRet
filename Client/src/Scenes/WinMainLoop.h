@@ -1,5 +1,8 @@
 #pragma once
 
+#include "Core/IClock.h"
+#include "Render/Models/Animation.h"
+
 #include <cstdint>
 
 namespace Client::Render::Models
@@ -16,6 +19,7 @@ namespace Client::Scenes
 {
 struct ActorState;
 struct WorldRuntime;
+class WorldState;
 // 0x5763578 y 0x5763574, en la .bss.
 struct WinMainCounters
 {
@@ -23,6 +27,13 @@ struct WinMainCounters
     std::int32_t loops = 0;
     // Las rondas de 31 vueltas (0x4bbec6): con la ventana sin minimizar vuelve a 0 en la misma vuelta.
     std::int32_t rounds = 0;
+};
+
+// What lasts from WinMain's start to its end.
+struct WinMainLoopState
+{
+    WinMainCounters counters;
+    Render::Models::OriginalFrameCarry frames;
 };
 
 // 0x4bbc57..0x4bdf6d y 0x4bdf76..0x4be02f: el contador y el foco, antes del frame. 5 rand(); en la vuelta 31,
@@ -38,4 +49,11 @@ void CloseTheFrameCounter(Render::Models::CrtRandom& random);
 
 // 0x63869c..0x6388a8: el ambiente y las paradas de la escena del mundo preceden a la selección de música.
 void StepWorldAmbience(WorldRuntime& runtime, Render::Models::CrtRandom& random);
+
+// The end of a loop turn. 0x63b0b7: the tail of 0x63945d switches off the dialogs' Enter (0x5763588). Then, once per
+// frame of the original in this turn: in the game scene the ambience, the map's music and Crywolf's (0x430250); the
+// frame counter of 0x63945d; the Slide banner's WM_TIMER 0x3eb if it is due (P-C80; once, with the loop's time in ms
+// as timeGetTime); and the counters of the next turn (P-C61).
+void FinishTheWinMainLoop(WinMainLoopState& loop, WorldState& world, Render::Models::CrtRandom& random,
+                          Core::Duration now, Render::Models::OriginalFramePace pace, bool gameScene);
 } // namespace Client::Scenes

@@ -75,7 +75,6 @@
 #include "Scenes/Screenshots.h"
 #include "Scenes/SelectionState.h"
 #include "Scenes/SessionEventApplier.h"
-#include "Scenes/Slides.h"
 #include "Scenes/TestScene.h"
 #include "Scenes/WinMainLoop.h"
 #include "Scenes/WorldEntry.h"
@@ -781,12 +780,7 @@ int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Wind
         const float worldClock = static_cast<float>(std::chrono::duration<double, std::milli>(now).count());
         Scenes::UpdateGameItemGlowPulse(world.Runtime().itemRender, worldClock);
     };
-    // P-C61: los dos contadores de WinMain y el byte del foco, con la CRT de la tela. Cada frame del original que
-    // corre en una vuelta sin minimizar cierra el contador de 0x63945d y empieza la vuelta siguiente. Entre las dos,
-    // el WM_TIMER 0x3eb del cartel de Slide.bmd, si venció (P-C80): una vez, con la hora del bucle en ms, como
-    // timeGetTime.
-    Scenes::WinMainCounters winMain;
-    Client::Render::Models::OriginalFrameCarry winMainFrameCarry;
+    Scenes::WinMainLoopState winMainLoop;
     // Mientras conecta, el original no corre ningún frame: el connect bloquea (Q-C85).
     const auto connecting = [session]
     {
@@ -796,42 +790,12 @@ int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Wind
     // La captura de pantalla de Impr Pant (0x637700 en todas las escenas): sus globales y la lectura de GL.
     Scenes::Screenshots screenshots;
     Client::Render::Gl::GlScreenReader screenReader(window.Gl());
-    const auto afterSceneFrame = [&winMain, &winMainFrameCarry, &clothWorld, &startup, &world, &sceneManager,
-                                  &screenshots, &connecting](Core::Duration now)
+    const auto afterSceneFrame =
+        [&winMainLoop, &clothWorld, &startup, &world, &sceneManager, &screenshots, &connecting](Core::Duration now)
     {
-        // 0x63b0b7: la cola de 0x63945d apaga el Enter de los diálogos (0x5763588).
-        world.Runtime().ui.enterPressed = false;
-        const int frames = winMainFrameCarry.FramesAt(now, Scenes::OriginalFramePaceOf(startup.config.pacing));
-        const auto systemTime =
-            static_cast<std::uint32_t>(std::chrono::duration_cast<std::chrono::milliseconds>(now).count());
         const bool gameScene = sceneManager != nullptr && sceneManager->Current() == Scenes::SceneId::Game;
-        for (int i = 0; i < frames; ++i)
-        {
-            auto& runtime = world.Runtime();
-            if (gameScene)
-            {
-                Scenes::StepWorldAmbience(runtime, clothWorld.random);
-                auto& hero = world.Actors()[runtime.hero];
-                runtime.music.StepWorld(runtime.audio, runtime.map, hero.safeZone != 0, runtime.heroCellLayer,
-                                        [&hero, &clothWorld]
-                                        { return Scenes::InTheDeviasChurch(hero, clothWorld.random); });
-                if (runtime.map == 34)
-                {
-                    runtime.music.StepCrywolf(runtime.audio, runtime.crywolf.stage);
-                    if (runtime.crywolf.stage == 5)
-                    {
-                        runtime.RequestSound(runtime.crywolf.ui.dword6c73dc == 10 ? 0x245 : 0x244);
-                    }
-                }
-                else
-                {
-                    runtime.music.StopCrywolfBase(runtime.audio);
-                }
-            }
-            Scenes::CloseTheFrameCounter(clothWorld.random);
-            Scenes::RunTheSlideTimer(world, clothWorld.random, systemTime, gameScene);
-            Scenes::StepTheWinMainLoop(winMain, clothWorld.random);
-        }
+        Scenes::FinishTheWinMainLoop(winMainLoop, world, clothWorld.random, now,
+                                     Scenes::OriginalFramePaceOf(startup.config.pacing), gameScene);
         // Un frame retenido con la captura pedida corta en el paso o el dibujo que siguen (P-C110).
         screenshots.FinishTheLoop(connecting());
     };
@@ -877,7 +841,7 @@ int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Wind
                                  beforeSceneDraw, afterSceneDraw);
     sceneManager = &manager;
     // La primera vuelta de WinMain, antes del primer frame: la escena entra adentro de él (0x63945d).
-    Scenes::StepTheWinMainLoop(winMain, clothWorld.random);
+    Scenes::StepTheWinMainLoop(winMainLoop.counters, clothWorld.random);
     if (!manager.Start(Scenes::FirstScene).HasValue())
     {
         return EXIT_FAILURE;

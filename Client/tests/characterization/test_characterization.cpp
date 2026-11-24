@@ -38,7 +38,6 @@
 #include "Scenes/SceneTransitions.h"
 #include "Scenes/SelectionState.h"
 #include "Scenes/SessionEventApplier.h"
-#include "Scenes/Slides.h"
 #include "Scenes/WinMainLoop.h"
 #include "Scenes/WorldEntry.h"
 #include "Scenes/WorldLoadingScene.h"
@@ -329,7 +328,7 @@ public:
 
     Core::Expected<void, std::string> Start()
     {
-        Scenes::StepTheWinMainLoop(m_winMain, m_cloth.random);
+        Scenes::StepTheWinMainLoop(m_winMainLoop.counters, m_cloth.random);
         return m_manager.Start(Scenes::FirstScene);
     }
 
@@ -542,42 +541,9 @@ private:
 
     void AfterSceneFrame(Core::Duration now)
     {
-        Scenes::WorldRuntime& runtime = m_world.Runtime();
-        runtime.ui.enterPressed = false;
-        const int frames = m_winMainFrameCarry.FramesAt(now, Scenes::OriginalFramePaceOf(m_context.pacing));
-        const auto systemTime =
-            static_cast<std::uint32_t>(std::chrono::duration_cast<std::chrono::milliseconds>(now).count());
-        const bool gameScene = m_manager.Current() == Scenes::SceneId::Game;
-        for (int frame = 0; frame < frames; ++frame)
-        {
-            if (gameScene)
-            {
-                StepTheGameMusic(runtime);
-            }
-            Scenes::CloseTheFrameCounter(m_cloth.random);
-            Scenes::RunTheSlideTimer(m_world, m_cloth.random, systemTime, gameScene);
-            Scenes::StepTheWinMainLoop(m_winMain, m_cloth.random);
-        }
-    }
-
-    void StepTheGameMusic(Scenes::WorldRuntime& runtime)
-    {
-        Scenes::StepWorldAmbience(runtime, m_cloth.random);
-        Scenes::ActorState& hero = m_world.Actors()[runtime.hero];
-        runtime.music.StepWorld(runtime.audio, runtime.map, hero.safeZone != 0, runtime.heroCellLayer,
-                                [this, &hero] { return Scenes::InTheDeviasChurch(hero, m_cloth.random); });
-        if (runtime.map == 34)
-        {
-            runtime.music.StepCrywolf(runtime.audio, runtime.crywolf.stage);
-            if (runtime.crywolf.stage == 5)
-            {
-                runtime.RequestSound(runtime.crywolf.ui.dword6c73dc == 10 ? 0x245 : 0x244);
-            }
-        }
-        else
-        {
-            runtime.music.StopCrywolfBase(runtime.audio);
-        }
+        Scenes::FinishTheWinMainLoop(m_winMainLoop, m_world, m_cloth.random, now,
+                                     Scenes::OriginalFramePaceOf(m_context.pacing),
+                                     m_manager.Current() == Scenes::SceneId::Game);
     }
 
     Core::Expected<void, std::string> AfterSceneStep()
@@ -612,8 +578,7 @@ private:
     App::AutoLogin m_autoLogin{m_session, App::Credentials{"user0001", "pass0002"}, m_log};
     Scenes::SceneContext m_context;
     Render::Models::OriginalFrameCarry m_itemFrameCarry;
-    Scenes::WinMainCounters m_winMain;
-    Render::Models::OriginalFrameCarry m_winMainFrameCarry;
+    Scenes::WinMainLoopState m_winMainLoop;
     Scenes::SceneManager m_manager;
     Network::PacketSerials m_serverSerials;
     Network::PacketSerials m_traceSerials;

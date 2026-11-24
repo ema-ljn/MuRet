@@ -15,7 +15,6 @@
 
 #include <gtest/gtest.h>
 
-#include <bit>
 #include <cstddef>
 #include <cstdint>
 #include <memory>

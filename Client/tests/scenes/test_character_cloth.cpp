@@ -17,7 +17,6 @@
 
 #include <gtest/gtest.h>
 
-#include <bit>
 #include <chrono>
 #include <cstddef>
 #include <cstdint>

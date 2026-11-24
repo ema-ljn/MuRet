@@ -6,7 +6,6 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
-#include <bit>
 #include <cstddef>
 #include <cstdint>
 #include <set>

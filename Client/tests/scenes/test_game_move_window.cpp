@@ -1,13 +1,13 @@
 #include "Scenes/GameMoveWindow.h"
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Core/PixelSize.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Text/MoveRequirements.h"
 #include "Data/Text/TextTable.h"
 #include "Input/InputState.h"
 #include "Protocol/Chat/ChatSend.h"
 #include "Protocol/Outgoing.h"
-#include "Render/Models/Cloth.h"
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
 #include "Render/Text/FontSet.h"
@@ -42,16 +42,16 @@
 // Los destinos y los textos son inventados; el texto mide 6 columnas por letra.
 namespace
 {
+using Client::Crt::CrtRandom;
 using Client::Render::BlendMode;
 using Client::Render::Color;
 using Client::Render::SpriteBatch;
 using Client::Render::SpriteVertex;
-using Client::Render::Models::CrtRandom;
 using Client::Scenes::GameHudContext;
 using Client::Scenes::GameUiContext;
 using Client::Scenes::WorldState;
 
-constexpr Client::App::PixelSize Screen640{640, 480};
+constexpr Client::Core::PixelSize Screen640{640, 480};
 constexpr std::uint32_t Seed = 0x5eed1234u;
 // 0x40b4d0: el registro propio, al cerrarse, por cada destino que mira.
 constexpr std::uint32_t OwnRecordRandoms = 3848;

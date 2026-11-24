@@ -1,14 +1,14 @@
 #include "Network/Xor32Packet.h"
 #include "Scenes/WarehouseKeypad.h"
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Core/PixelSize.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Text/TextTable.h"
 #include "Input/InputState.h"
 #include "Network/Delivery.h"
 #include "Network/Packet.h"
 #include "Protocol/Outgoing.h"
-#include "Render/Models/Cloth.h"
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
 #include "Render/Text/FontSet.h"
@@ -50,12 +50,12 @@
 // columnas por letra. Cada test corre en Lorencia, Devias y Noria.
 namespace
 {
+using Client::Crt::CrtRandom;
 using Client::Network::Delivery;
 using Client::Network::Xor32Decode;
 using Client::Render::Color;
 using Client::Render::SpriteBatch;
 using Client::Render::SpriteVertex;
-using Client::Render::Models::CrtRandom;
 using Client::Render::Text::FontKind;
 using Client::Scenes::GameHudContext;
 using Client::Scenes::KeypadKeyAt;
@@ -63,7 +63,7 @@ using Client::Scenes::WorldState;
 using Client::Tests::Bytes;
 using Client::Tests::SameBytes;
 
-constexpr Client::App::PixelSize Screen640{640, 480};
+constexpr Client::Core::PixelSize Screen640{640, 480};
 constexpr std::uint32_t Seed = 0x2b7e1516u;
 constexpr std::int32_t Lorencia = 0;
 constexpr std::int32_t Devias = 2;

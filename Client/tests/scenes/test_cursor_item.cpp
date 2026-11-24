@@ -1,10 +1,10 @@
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Tables/ItemTable.h"
 #include "GameLogic/PathCell.h"
 #include "Network/Xor32Packet.h"
 #include "Protocol/FloorItems.h"
 #include "Protocol/Inventory.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/GamePanels.h"
 #include "Scenes/InventoryMoves.h"
@@ -39,11 +39,11 @@
 namespace
 {
 using Client::Core::Expected;
+using Client::Crt::CrtRandom;
 using Client::GameLogic::PathCell;
 using Client::Network::Xor32Decode;
 using Client::Protocol::FloorItems::Drop;
 using Client::Protocol::Inventory::ItemMove;
-using Client::Render::Models::CrtRandom;
 using Client::Scenes::EmptyOwnItemId;
 using Client::Scenes::InventoryMoveContext;
 using Client::Scenes::InventoryServices;

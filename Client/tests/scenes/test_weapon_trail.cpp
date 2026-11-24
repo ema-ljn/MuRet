@@ -3,7 +3,7 @@
 #include "Core/Expected.h"
 #include <string>
 
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/Skeleton.h"
 #include "Scenes/ActorState.h"
@@ -63,7 +63,7 @@ protected:
     std::unique_ptr<Client::Scenes::WorldState> m_world = std::make_unique<Client::Scenes::WorldState>();
     Client::Scenes::ActorState m_actor;
     Client::Render::Models::Skeleton m_skeleton;
-    Client::Render::Models::CrtRandom m_random{0x12345678u};
+    Client::Crt::CrtRandom m_random{0x12345678u};
 };
 
 // 4fd138..4fd13f: el194 que no está en acción3 salta a los helpers, sin probar el arma.
@@ -170,7 +170,7 @@ TEST_F(WeaponTrailTest, Type194CompletesTenSamplesWithNormalFullAndPartialPartic
         m_world->DrawTail().ribbons = {};
         for (std::size_t slot = 0; slot < Client::World::ParticleCount; ++slot)
             m_world->Particles().All()[slot].alive = slot >= freeSlots;
-        m_random = Client::Render::Models::CrtRandom{0x12345678u};
+        m_random = Client::Crt::CrtRandom{0x12345678u};
         auto expectedRandom = m_random;
         const std::size_t granted = freeSlots < 5 ? freeSlots : 5;
         for (std::size_t draw = 0; draw < granted * 4; ++draw)

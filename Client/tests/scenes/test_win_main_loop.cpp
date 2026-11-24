@@ -1,8 +1,8 @@
 #include "Scenes/WinMainLoop.h"
 
 #include "Core/IClock.h"
+#include "Crt/CrtRandom.h"
 #include "Render/Models/Animation.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/WorldRuntime.h"
@@ -22,7 +22,7 @@
 namespace
 {
 using Client::Core::Duration;
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::Render::Models::OriginalFramePace;
 using Client::Render::Models::OriginalFrameTime;
 using Client::Scenes::CloseTheFrameCounter;

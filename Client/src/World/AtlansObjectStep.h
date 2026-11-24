@@ -4,7 +4,7 @@
 
 #include <string>
 
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
 }
@@ -26,6 +26,6 @@ struct WorldObject;
 // - el 0x28: blendMesh 0, la velocidad de la animación (+0xd8) en 0,05f y la luz en sin(T · 0,004f) · 0,3f + 0,5.
 // Sin el pool de partículas, o con un seno fuera del perfil PC53, corta con su dirección después de lo que ya
 // escribió.
-[[nodiscard]] Core::Expected<void, std::string> StepAtlansObject(WorldObject& object, Render::Models::CrtRandom& random,
+[[nodiscard]] Core::Expected<void, std::string> StepAtlansObject(WorldObject& object, Crt::CrtRandom& random,
                                                                  const ObjectStepGlobals& globals);
 } // namespace Client::World

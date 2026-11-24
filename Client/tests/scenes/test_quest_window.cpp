@@ -1,7 +1,8 @@
 #include "Scenes/QuestWindow.h"
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Core/PixelSize.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Tables/ItemTable.h"
 #include "Data/Tables/QuestTable.h"
 #include "Data/Text/DialogTable.h"
@@ -9,7 +10,6 @@
 #include "Input/InputState.h"
 #include "Protocol/OptionData.h"
 #include "Protocol/Outgoing.h"
-#include "Render/Models/Cloth.h"
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
 #include "Render/Text/FontSet.h"
@@ -60,9 +60,9 @@
 // ventana mira el mapa.
 namespace
 {
+using Client::Crt::CrtRandom;
 using Client::Render::Color;
 using Client::Render::SpriteBatch;
-using Client::Render::Models::CrtRandom;
 using Client::Render::Text::FontKind;
 using Client::Render::Text::TextColors;
 using Client::Scenes::GameHudContext;
@@ -70,7 +70,7 @@ using Client::Scenes::GameUiContext;
 using Client::Scenes::WorldState;
 using Client::Tests::RecordedText;
 
-constexpr Client::App::PixelSize Screen640{640, 480};
+constexpr Client::Core::PixelSize Screen640{640, 480};
 constexpr std::uint32_t Seed = 0x5eed4242u;
 constexpr std::int32_t Lorencia = 0;
 constexpr std::int32_t Devias = 2;

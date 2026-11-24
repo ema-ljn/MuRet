@@ -1,6 +1,6 @@
 #include "UI/ServerListWindow.h"
 
-#include "App/WindowState.h"
+#include "Core/PixelSize.h"
 #include "Data/Text/TextTable.h"
 #include "Input/InputState.h"
 #include "Protocol/Connection/ServerList.h"
@@ -162,7 +162,7 @@ int DescriptionHeight(Scenes::TextureBufferSize lineTexture)
     return BoxLines * lineTexture.height + DescriptionPadding;
 }
 
-ServerListLayout LayoutServerList(App::PixelSize screen, int descriptionHeight, std::size_t serverCount)
+ServerListLayout LayoutServerList(Core::PixelSize screen, int descriptionHeight, std::size_t serverCount)
 {
     ServerListLayout layout;
     const int height = OriginalServerButtons * ButtonHeight + ButtonHeight + descriptionHeight + BottomMargin;
@@ -324,12 +324,13 @@ const std::vector<std::string>& ServerListWindow::Description() const
     return m_description;
 }
 
-Rect ServerListWindow::Bounds(App::PixelSize screen) const
+Rect ServerListWindow::Bounds(Core::PixelSize screen) const
 {
     return LayoutServerList(screen, DescriptionHeight(m_sizes(DescriptionLineSlot)), ShownServers()).window;
 }
 
-std::optional<ServerClick> ServerListWindow::Step(const Input::InputState& input, App::PixelSize screen, NewUiTurn turn)
+std::optional<ServerClick> ServerListWindow::Step(const Input::InputState& input, Core::PixelSize screen,
+                                                  NewUiTurn turn)
 {
     if (!m_open)
     {
@@ -387,7 +388,7 @@ std::optional<ServerClick> ServerListWindow::Step(const Input::InputState& input
     return std::nullopt;
 }
 
-void ServerListWindow::Draw(Render::SpriteBatch& sprites, Scenes::ITextDrawer& text, App::PixelSize screen)
+void ServerListWindow::Draw(Render::SpriteBatch& sprites, Scenes::ITextDrawer& text, Core::PixelSize screen)
 {
     if (!m_open)
     {
@@ -402,7 +403,7 @@ void ServerListWindow::Draw(Render::SpriteBatch& sprites, Scenes::ITextDrawer& t
 }
 
 void ServerListWindow::DrawBoxAndDescription(Render::SpriteBatch& sprites, Scenes::ITextDrawer& text,
-                                             App::PixelSize screen) const
+                                             Core::PixelSize screen) const
 {
     // 1: la caja, abierta con un grupo elegido (0x645ba0).
     if (m_selected)
@@ -441,7 +442,7 @@ void ServerListWindow::DrawBoxAndDescription(Render::SpriteBatch& sprites, Scene
 }
 
 std::uint32_t ServerListWindow::DrawButtons(Render::SpriteBatch& sprites, Scenes::ITextDrawer& text,
-                                            App::PixelSize screen, std::uint32_t textColor) const
+                                            Core::PixelSize screen, std::uint32_t textColor) const
 {
     // 3: los botones con sus rótulos (0x66a090), primero los de grupo, y después las barras.
     const auto drawButton = [&](const Button& button)
@@ -524,7 +525,7 @@ void ServerListWindow::Select(std::size_t index)
     }
 }
 
-void ServerListWindow::Place(App::PixelSize screen)
+void ServerListWindow::Place(Core::PixelSize screen)
 {
     const int description = DescriptionHeight(m_sizes(DescriptionLineSlot));
     m_layout = LayoutServerList(screen, description, ShownServers());

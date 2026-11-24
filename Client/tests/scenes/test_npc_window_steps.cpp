@@ -1,4 +1,5 @@
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Tables/ItemTable.h"
 #include "Data/Text/TextTable.h"
 #include "Input/InputEvent.h"
@@ -9,7 +10,6 @@
 #include "Network/Xor32Packet.h"
 #include "Protocol/Inventory.h"
 #include "Protocol/Outgoing.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
@@ -56,12 +56,12 @@
 // estos tests: la dejan en (0x104, 0), donde la pone el original. Los ítems y los textos son inventados.
 namespace
 {
+using Client::Crt::CrtRandom;
 using Client::Input::InputEvent;
 using Client::Input::InputState;
 using Client::Input::Key;
 using Client::Network::Delivery;
 using Client::Network::Xor32Decode;
-using Client::Render::Models::CrtRandom;
 using Client::Scenes::EmptyOwnItemId;
 using Client::Scenes::GameUiContext;
 using Client::Scenes::WorldState;

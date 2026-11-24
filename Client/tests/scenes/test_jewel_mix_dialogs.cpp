@@ -2,11 +2,11 @@
 #include "Scenes/GameDialogSteps.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Input/InputState.h"
 #include "Network/Delivery.h"
 #include "Network/Packet.h"
 #include "Protocol/Outgoing.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Scenes/GameMovementState.h"
@@ -40,8 +40,8 @@
 // Devias (2) y Noria (3), el mapa del NPC de las joyas.
 namespace
 {
+using Client::Crt::CrtRandom;
 using Client::Network::Xor32Decode;
-using Client::Render::Models::CrtRandom;
 using Client::Scenes::GameUiContext;
 using Client::Scenes::WorldState;
 using Client::Tests::Bytes;

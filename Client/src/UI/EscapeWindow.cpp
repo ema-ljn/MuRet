@@ -1,6 +1,6 @@
 #include "UI/EscapeWindow.h"
 
-#include "App/WindowState.h"
+#include "Core/PixelSize.h"
 #include "Data/Text/TextTable.h"
 #include "Input/InputState.h"
 #include "Input/Key.h"
@@ -81,7 +81,7 @@ Button MakeButton()
 }
 } // namespace
 
-EscapeWindowLayout LayoutEscapeWindow(App::PixelSize screen, int lines, int lineHeight)
+EscapeWindowLayout LayoutEscapeWindow(Core::PixelSize screen, int lines, int lineHeight)
 {
     EscapeWindowLayout layout;
     const int height = lineHeight * lines + TopHeight + BottomHeight;
@@ -170,7 +170,7 @@ bool EscapeWindow::IsOpen() const
     return m_open;
 }
 
-Rect EscapeWindow::Bounds(App::PixelSize screen) const
+Rect EscapeWindow::Bounds(Core::PixelSize screen) const
 {
     return Rect{.x = 0, .y = 0, .width = screen.width, .height = screen.height};
 }
@@ -185,7 +185,7 @@ const Button& EscapeWindow::ButtonAt(std::size_t index) const
     return m_buttons.at(index);
 }
 
-std::optional<EscapeWindowEvent> EscapeWindow::Step(const Input::InputState& input, App::PixelSize screen,
+std::optional<EscapeWindowEvent> EscapeWindow::Step(const Input::InputState& input, Core::PixelSize screen,
                                                     double elapsedMs, NewUiTurn turn)
 {
     if (!m_open)
@@ -251,7 +251,7 @@ std::optional<EscapeWindowEvent> EscapeWindow::Step(const Input::InputState& inp
     return std::nullopt;
 }
 
-void EscapeWindow::Draw(Render::SpriteBatch& sprites, Scenes::ITextDrawer& text, App::PixelSize screen)
+void EscapeWindow::Draw(Render::SpriteBatch& sprites, Scenes::ITextDrawer& text, Core::PixelSize screen)
 {
     if (!m_open)
     {
@@ -282,7 +282,7 @@ void EscapeWindow::Draw(Render::SpriteBatch& sprites, Scenes::ITextDrawer& text,
     }
 }
 
-void EscapeWindow::Place(App::PixelSize screen)
+void EscapeWindow::Place(Core::PixelSize screen)
 {
     m_layout = LayoutEscapeWindow(screen, m_lines, m_sizes(LeftSlot).height);
     for (std::size_t i = 0; i < m_buttons.size(); ++i)

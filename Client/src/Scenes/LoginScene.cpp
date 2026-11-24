@@ -1,3 +1,4 @@
+#include "Crt/CrtRandom.h"
 #include "Scenes/LoginScene.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/IModelLibrary.h"
@@ -12,9 +13,9 @@
 #include "App/ServerAddress.h"
 #include "App/ServerSession.h"
 #include "App/SessionState.h"
-#include "App/WindowState.h"
 #include "Core/Expected.h"
 #include "Core/IClock.h"
+#include "Core/PixelSize.h"
 #include "Data/Models/Model.h"
 #include "Data/Models/ModelFiles.h"
 #include "Data/Terrain/TerrainObjects.h"
@@ -354,8 +355,8 @@ LoginScene::LoginScene(const SceneContext& context, const GameData& data, const 
                        App::ServerSession* session, std::string_view version, std::mt19937::result_type seed,
                        const Render::Models::ModelTextureSlots* gameSlots)
     : m_context(context), m_localWorld(context.world == nullptr ? std::make_unique<WorldState>() : nullptr),
-      m_localCloth{.random = Render::Models::CrtRandom(static_cast<std::uint32_t>(seed))}, m_models(models),
-      m_session(session), m_texts(data.text ? &*data.text : nullptr), m_textures(context.textures, LoginTextureSet),
+      m_localCloth{.random = Crt::CrtRandom(static_cast<std::uint32_t>(seed))}, m_models(models), m_session(session),
+      m_texts(data.text ? &*data.text : nullptr), m_textures(context.textures, LoginTextureSet),
       m_windowTextures(context.textures, WindowTextureSet), m_world(WorldOf(SceneId::Login)),
       m_terrain(context.textures), m_gameSlots(gameSlots),
       m_serverList([this](Render::TextureSlot slot) { return BufferSize(slot); }, m_texts),
@@ -530,7 +531,7 @@ void LoginScene::LoadTheWorld()
     // ceros de la .bss o el que dejó la escena de antes (Q-C217).
     const Render::Camera3D camera = LoginCamera();
     m_terrainRange =
-        World::TerrainRangeOf(Render::MakePass3D(App::PixelSize{640, 480}, WorldViewport, camera).view, camera);
+        World::TerrainRangeOf(Render::MakePass3D(Core::PixelSize{640, 480}, WorldViewport, camera).view, camera);
     LoadTheTerrain();
     LoadTheObjects();
 }
@@ -1092,7 +1093,7 @@ void LoginScene::BreatheTheHorse(const DarkHorse& drawn)
     {
         return;
     }
-    Render::Models::CrtRandom& random = m_context.cloth->random;
+    Crt::CrtRandom& random = m_context.cloth->random;
     if (random.Next() % OneIn != 0)
     {
         return;
@@ -1842,7 +1843,7 @@ void LoginScene::DrawTheModels(SceneCanvas& canvas, float alpha)
     // mundo. Sólo un frame del original saca los rand() de su dibujo (los giros del 0x610/6 y /8); entre frames van
     // sobre una copia y repiten los giros guardados.
     const float jointClock = static_cast<float>(std::chrono::duration<double, std::milli>(canvas.frameClock).count());
-    Render::Models::CrtRandom projectedJointRandom = CharacterRandomWorld().random;
+    Crt::CrtRandom projectedJointRandom = CharacterRandomWorld().random;
     const JointDrawResources jointResources{nativeFrames > 0 ? CharacterRandomWorld().random : projectedJointRandom,
                                             m_sprites, nativeFrames > 0, jointClock};
     if (auto joints = DrawJoints(canvas.models, CharacterWorld().DrawTail().joints, 0, jointResources);
@@ -1896,12 +1897,12 @@ void LoginScene::DrawTheTail(SceneCanvas& canvas, ActorState& actor, const Drawn
     // Entre frames, los globales de los ítems sobre copias, como GameScene y SelectionWorld.
     std::optional<GameItemRenderState> projectedItems;
     std::optional<World::ObjectModelStepState> projectedModels;
-    std::optional<Render::Models::CrtRandom> projectedRandom;
+    std::optional<Crt::CrtRandom> projectedRandom;
     GameItemRenderState& items =
         originalFrame ? world.Runtime().itemRender : projectedItems.emplace(world.Runtime().itemRender);
     World::ObjectModelStepState& modelState =
         originalFrame ? world.Runtime().objectModelState : projectedModels.emplace(world.Runtime().objectModelState);
-    Render::Models::CrtRandom& itemRandom = originalFrame ? cloth.random : projectedRandom.emplace(cloth.random);
+    Crt::CrtRandom& itemRandom = originalFrame ? cloth.random : projectedRandom.emplace(cloth.random);
     const int runs = std::max(frames, 1);
     for (int run = 0; run < runs; ++run)
     {

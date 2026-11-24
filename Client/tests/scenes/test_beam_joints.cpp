@@ -1,7 +1,7 @@
 #include "Scenes/FaunaJointCreation.h"
 
 #include "Core/Expected.h"
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/GameDrawTail.h"
@@ -29,7 +29,7 @@
 // joints de la CL11 agregó a la /0, /1, /2, /3, /4 y /0x11 de antes.
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::Scenes::ActorState;
 using Client::Scenes::JointOwnerKind;
 using Client::Scenes::JointState;

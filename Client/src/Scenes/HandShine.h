@@ -11,7 +11,7 @@
 #include <span>
 #include <string>
 
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
 }
@@ -45,5 +45,5 @@ ParticleActorHandsAmong(std::span<const ActorState> actors, std::size_t hero);
 // (HandShinePoint); con el pool lleno no nace y no hay más. Sin rand().
 [[nodiscard]] Core::Expected<void, std::string> RaiseTheHandShine(std::span<const ActorState> actors, std::size_t hero,
                                                                   std::size_t slot, World::Particles& particles,
-                                                                  Render::Models::CrtRandom& random);
+                                                                  Crt::CrtRandom& random);
 } // namespace Client::Scenes

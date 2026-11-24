@@ -1,9 +1,9 @@
 #include "Scenes/OwnDerivedStats.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Tables/ItemSetTables.h"
 #include "Data/Tables/ItemTable.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/ItemSetOptionList.h"
@@ -31,8 +31,8 @@
 // rand() del modelo de la CRT; ninguno de una corrida del original.
 namespace
 {
+using Client::Crt::CrtRandom;
 using Client::Data::Tables::ItemSetTables;
-using Client::Render::Models::CrtRandom;
 using Client::Render::Models::OwnRecordCloseRandoms;
 using Client::Scenes::ActorState;
 using Client::Scenes::ItemSetOptionList;

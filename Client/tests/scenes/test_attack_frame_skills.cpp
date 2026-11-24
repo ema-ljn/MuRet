@@ -1,9 +1,9 @@
 #include "Scenes/AttackFrameSkills.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Models/PlayerModels.h"
 #include "Data/Terrain/TerrainAttributes.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/OriginalRetainedMath.h"
@@ -43,7 +43,7 @@
 // 0x4fb10c), y 0x4f8f5b de la cola de 0x4f5b70. 06, "Las habilidades de los frames del ataque".
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::Scenes::ActorState;
 using Client::Scenes::CharacterStepContext;
 using Client::Scenes::JointState;

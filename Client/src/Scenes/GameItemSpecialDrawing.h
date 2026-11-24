@@ -13,12 +13,16 @@
 #include <span>
 #include <string>
 
+namespace Client::Crt
+{
+class CrtRandom;
+} // namespace Client::Crt
+
 namespace Client::Render
 {
 class ModelBatch;
 namespace Models
 {
-class CrtRandom;
 struct SkinnedMesh;
 } // namespace Models
 } // namespace Client::Render
@@ -40,7 +44,7 @@ struct ItemSpecialDrawContext
 {
     std::uint32_t flags = 2;
     std::optional<float> worldClock{};
-    Render::Models::CrtRandom* random = nullptr;
+    Crt::CrtRandom* random = nullptr;
     glm::vec2* pulse = nullptr;
     std::uint32_t objectFlags = 0;
     std::function<Core::Expected<glm::vec3, std::string>(std::size_t)> bonePoint{};

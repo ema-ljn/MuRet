@@ -1,4 +1,4 @@
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/JointFamilies.h"
 #include "Scenes/JointKernels.h"
@@ -36,7 +36,7 @@ bool IsDrop(std::int32_t type, std::int32_t subtype)
            (subtype == DropSubtype || subtype == DarkDropSubtype || subtype == SinkingDropSubtype);
 }
 
-void CreateDropJoint(JointState& joint, const World::FishEffectRequest& request, Render::Models::CrtRandom& random)
+void CreateDropJoint(JointState& joint, const World::FishEffectRequest& request, Crt::CrtRandom& random)
 {
     // 0x533677..0x53368e: lo del 0x60f antes del subtipo (vida 100 y ancho 10, que el subtipo pisa) y 20 puntos.
     constexpr std::int32_t Points = 20;

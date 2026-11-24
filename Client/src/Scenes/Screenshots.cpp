@@ -1,8 +1,8 @@
 #include "Scenes/Screenshots.h"
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
 #include "Core/LocalTime.h"
+#include "Core/PixelSize.h"
 #include "Data/Text/TextTable.h"
 #include "Data/Textures/JpegWriter.h"
 #include "Input/InputState.h"

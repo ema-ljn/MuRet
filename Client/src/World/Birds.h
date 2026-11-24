@@ -10,7 +10,7 @@
 
 #include "World/IBirdStepServices.h"
 
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
 }
@@ -56,5 +56,5 @@ void FinishOrdinaryBirdMotion(const BirdStepTail& bird, const std::int32_t& map,
 // Color de los casos AE/BC después del render. BC debe invocarlo después de su primer transform y
 // reutilizar el resultado para ambos sprites, sin otro draw ni reinicialización entre ellos.
 // Otros tipos: nullopt sin consumir RNG; no representa el resto del drawing ni sus efectos.
-[[nodiscard]] std::optional<glm::vec3> BirdGlowLight(std::int16_t type, Render::Models::CrtRandom& random);
+[[nodiscard]] std::optional<glm::vec3> BirdGlowLight(std::int16_t type, Crt::CrtRandom& random);
 } // namespace Client::World

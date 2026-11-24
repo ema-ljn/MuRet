@@ -2,7 +2,7 @@
 #include "UI/MessageArea.h"
 #include "UI/MessageLog.h"
 
-#include "App/WindowState.h"
+#include "Core/PixelSize.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
 
@@ -19,7 +19,7 @@
 // 0x45ddc0, 0x45de20 y 0x45db70.
 namespace
 {
-using Client::App::PixelSize;
+using Client::Core::PixelSize;
 using Client::Render::Text::FontKind;
 using Client::Render::Text::ITextMeasure;
 using Client::Render::Text::TextExtent;

@@ -1,5 +1,5 @@
 #include "Core/Expected.h"
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/OriginalRetainedMath.h"
 #include "Scenes/ActorState.h"
@@ -123,8 +123,8 @@ Reach ReachOf(const JointState& joint)
 }
 
 // 0x53aec1..0x53afb5: el sprite con la rotación rand() % 360 y la escala ((rand() & 1) + 8) · factor.
-void Glint(World::FrameSprites& sprites, Render::Models::CrtRandom& random, std::uint16_t texture,
-           const glm::vec3& position, const glm::vec3& light, float factor)
+void Glint(World::FrameSprites& sprites, Crt::CrtRandom& random, std::uint16_t texture, const glm::vec3& position,
+           const glm::vec3& light, float factor)
 {
     constexpr int FullTurn = 360;
     const auto rotation = static_cast<float>(random.Next() % FullTurn);
@@ -133,7 +133,7 @@ void Glint(World::FrameSprites& sprites, Render::Models::CrtRandom& random, std:
 }
 } // namespace
 
-void CreateWanderingJoint(JointState& joint, const World::FishEffectRequest& request, Render::Models::CrtRandom& random)
+void CreateWanderingJoint(JointState& joint, const World::FishEffectRequest& request, Crt::CrtRandom& random)
 {
     // 0x533677..0x53368e: lo común del 0x60f (vida 100, 20 puntos y ancho 10), que el subtipo pisa.
     joint.life = 100;
@@ -189,7 +189,7 @@ Core::Expected<void, std::string> StepWanderingJoint(JointState& joint, const Jo
     if (services.cloth == nullptr || services.random == nullptr || services.sprites == nullptr)
         return Core::Unexpected(
             std::format("0x53a89e: faltan el contador, el RNG o los sprites del joint 0x60f/{:#x}", subtype));
-    Render::Models::CrtRandom& random = *services.random;
+    Crt::CrtRandom& random = *services.random;
     const auto steps = std::bit_cast<std::uint32_t>(services.cloth->logicSteps);
     if (services.cloth->openCounterAccesses == 0)
         for (std::uint16_t draw = 0; draw < Render::Models::SmallLogicalCloseRandoms; ++draw)

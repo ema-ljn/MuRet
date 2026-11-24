@@ -4,8 +4,8 @@
 #include "Scenes/MapBanner.h"
 #include "Scenes/SiegeBattleUi.h"
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Core/PixelSize.h"
 #include "Data/Models/PlayerModels.h"
 #include "Data/Tables/ItemTable.h"
 #include "Data/Tables/SkillTable.h"
@@ -299,7 +299,7 @@ void DrawTheMapBanner(Frame& frame)
     Render::SpriteBatch& sprites = context.sprites;
     sprites.SetBlend(BlendMode::Alpha);
     sprites.SetColor(Color{1.0f, 1.0f, 1.0f, banner.alpha});
-    const App::PixelSize screen = sprites.Screen();
+    const Core::PixelSize screen = sprites.Screen();
     const MapBannerQuad at =
         MapBannerQuadOf(frame.panels.WorldWidth(), Render::ScaleX(1.0f, screen), Render::ScaleY(1.0f, screen));
     sprites.Quad(Render::OriginalQuad{.slot = Render::TextureSlot{MapBannerSlot},
@@ -320,7 +320,7 @@ void DrawTheMapBanner(Frame& frame)
 
 // El índice de 0x5763338, la resolución del registro (0 a 4: 640, 800, 1024, 1280 y 1600 de ancho). MuRet no lo
 // lee del registro: toma la mayor de las cinco que entra en el ancho de la pantalla (08, decisión de la CL8).
-int ResolutionIndex(App::PixelSize screen)
+int ResolutionIndex(Core::PixelSize screen)
 {
     constexpr std::array<int, 4> Widths{800, 1024, 1280, 1600};
     int index = 0;

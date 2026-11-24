@@ -1,6 +1,6 @@
 #include "UI/NoticeWindow.h"
 
-#include "App/WindowState.h"
+#include "Core/PixelSize.h"
 #include "Input/InputState.h"
 #include "Input/Key.h"
 #include "Render/SpriteBatch.h"
@@ -22,7 +22,7 @@
 // con ese nombre.
 namespace
 {
-using Client::App::PixelSize;
+using Client::Core::PixelSize;
 using Client::Input::InputState;
 using Client::Input::Key;
 using Client::Tests::ClickAt;

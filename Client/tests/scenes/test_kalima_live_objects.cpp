@@ -1,5 +1,6 @@
 #include "test_game_t16_support.h"
 
+#include "Crt/CrtRandom.h"
 #include "Scenes/GameScene.h"
 #include "Scenes/GameData.h"
 #include "Scenes/GameItemRenderState.h"
@@ -236,7 +237,7 @@ TEST_P(KalimaLiveObjectsTest, SeveralTicksAndIntermediateFramesPreserveDurablePo
 TEST_P(KalimaLiveObjectsTest, EveryReachableFamilyUsesRealImagesAndTheDepthBackend)
 {
     Client::World::Particles particles;
-    Client::Render::Models::CrtRandom random(7);
+    Client::Crt::CrtRandom random(7);
     constexpr std::array<std::array<int, 2>, 9> families{
         {{0x5ac, 6}, {0x5ac, 7}, {0x6ed, 0}, {0x6f0, 0}, {0x6f1, 0}, {0x6f2, 0}, {0x6f3, 0}, {0x6f4, 0}, {0x6f4, 1}}};
     for (const auto& family : families)
@@ -280,7 +281,7 @@ TEST_P(KalimaLiveObjectsTest, NativeStepSpawnsTheAmbientModelAndDrawsItsWholeLif
     m_world->OwnCharacter().level = 40;
     m_world->Runtime().ownRecordDepth = 1;
     m_cloth->logicSteps = 1;
-    m_cloth->random = Client::Render::Models::CrtRandom(SeedBefore(335, NestedGameUiStepDraws));
+    m_cloth->random = Client::Crt::CrtRandom(SeedBefore(335, NestedGameUiStepDraws));
     Step();
     ASSERT_FALSE(m_scene->Failure()) << *m_scene->Failure();
     auto effects = m_world->Map().effects.Effects();
@@ -327,7 +328,7 @@ TEST_P(KalimaLiveObjectsTest, NativeModelNineDrawsItsRealBodyAndCausticAndKeepsB
     ASSERT_TRUE(
         models.Load(m_dataRoot, map, store, m_log, &m_models->TextureSlots(), m_models.get(), &table).HasValue());
     auto effects = std::make_unique<Client::World::ModelEffects>();
-    Client::Render::Models::CrtRandom random(7);
+    Client::Crt::CrtRandom random(7);
     ASSERT_EQ(effects->CreateKalimaEffect({6400, 6400, 1000}, {}, {0.3f, 0.8f, 1}, random), 0u);
     Client::Scenes::FaunaDrawCarry pose;
     const Client::Scenes::GameObjectPass pass{

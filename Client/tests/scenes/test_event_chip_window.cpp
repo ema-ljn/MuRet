@@ -1,8 +1,9 @@
 #include "Network/Xor32Packet.h"
 #include "Scenes/EventChipWindow.h"
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Core/PixelSize.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Text/TextTable.h"
 #include "Input/InputState.h"
 #include "Protocol/Events.h"
@@ -54,16 +55,16 @@
 // el ASM de c32bbd5f, sin traza de GL (*estático*). Text.bmd es inventado; el nombre del NPC 236 también.
 namespace
 {
+using Client::Crt::CrtRandom;
 using Client::Render::Color;
 using Client::Render::SpriteBatch;
-using Client::Render::Models::CrtRandom;
 using Client::Render::Text::FontKind;
 using Client::Scenes::GameHudContext;
 using Client::Scenes::GameUiContext;
 using Client::Scenes::WorldState;
 
 constexpr std::uint32_t Seed = 0x13579bdfu;
-constexpr Client::App::PixelSize Screen640{640, 480};
+constexpr Client::Core::PixelSize Screen640{640, 480};
 constexpr std::string_view InventedNpc = "arquero inventado";
 
 std::map<std::size_t, std::string> ChipTexts()

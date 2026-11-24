@@ -1,7 +1,7 @@
 #include "World/Birds.h"
 #include "World/IBirdStepServices.h"
 
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -57,7 +57,7 @@ void FinishOrdinaryBirdMotion(const BirdStepTail& bird, const std::int32_t& map,
     bird.timer = std::bit_cast<std::int32_t>(static_cast<std::uint32_t>(bird.timer) - 1u);
 }
 
-std::optional<glm::vec3> BirdGlowLight(std::int16_t type, Render::Models::CrtRandom& random)
+std::optional<glm::vec3> BirdGlowLight(std::int16_t type, Crt::CrtRandom& random)
 {
     if (type != SingleGlowType && type != DoubleGlowType)
         return std::nullopt;

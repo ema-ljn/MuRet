@@ -9,10 +9,10 @@
 #include <cstddef>
 #include <cstdint>
 
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
-} // namespace Client::Render::Models
+} // namespace Client::Crt
 
 // El brillo del cetro del Dark Lord del login (CL7.6 B1): el caso 0x620 (HDK_Mace) de 0x509340
 // (0x50a169..0x50a398), que pide cinco sprites por frame después de dibujar el ítem. Contrato: 06 § Los
@@ -30,7 +30,7 @@ inline constexpr std::size_t ScepterSpriteCount = 5;
 // Shiny02 en el pomo, con la posición y la escala de seis rand() del frame. Con la tabla llena no se
 // crean, pero los rand() salen igual.
 void CreateScepterGlow(FrameSprites& sprites, const Render::Models::OriginalMatrix& bone, float bodyScale,
-                       const glm::vec3& bodyOrigin, Render::Models::CrtRandom& random);
+                       const glm::vec3& bodyOrigin, Crt::CrtRandom& random);
 
 // Los seis rand() de un frame, ya con su módulo, en el orden en que salen: el p y la escala del tridente
 // (% 60 y % 10), los del flare01 (% 60 y % 10) y los del pomo (% 40 y % 8).
@@ -43,7 +43,7 @@ struct ScepterGlowRandoms
     int pommelStep = 0;
     int pommelScale = 0;
 };
-[[nodiscard]] ScepterGlowRandoms DrawScepterGlowRandoms(Render::Models::CrtRandom& random);
+[[nodiscard]] ScepterGlowRandoms DrawScepterGlowRandoms(Crt::CrtRandom& random);
 // Los cinco con los rand() ya sacados.
 void CreateScepterGlow(FrameSprites& sprites, const Render::Models::OriginalMatrix& bone, float bodyScale,
                        const glm::vec3& bodyOrigin, const ScepterGlowRandoms& randoms);
@@ -60,7 +60,7 @@ class ScepterGlowCarry
 {
 public:
     void Create(FrameSprites& sprites, const Render::Models::OriginalMatrix& bone, float bodyScale,
-                const glm::vec3& bodyOrigin, Render::Models::CrtRandom& random, Core::Duration clock,
+                const glm::vec3& bodyOrigin, Crt::CrtRandom& random, Core::Duration clock,
                 Render::Models::OriginalFramePace pace = Render::Models::OriginalFramePace::ByTheClock);
     // Create vuelve a contar desde cero, como en el primer frame: el próximo sortea un frame y no pone al día el
     // tiempo que pasó sin dibujo. Es para un frame retenido (Q-C85), como la tela.

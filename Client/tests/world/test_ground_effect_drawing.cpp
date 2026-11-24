@@ -1,8 +1,8 @@
 #include "World/GroundEffectDrawing.h"
 
+#include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainHeights.h"
 #include "Render/ModelBatch.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Pass3D.h"
 #include "Render/SpriteVertex.h"
 #include "Render/TextureSlot.h"
@@ -27,6 +27,7 @@
 // build c32bbd5f. Pruebas de la reimplementación, sin ejecutar el binario original.
 namespace
 {
+using Client::Crt::CrtRandom;
 using Client::Data::Terrain::TerrainHeights;
 using Client::Render::Color;
 using Client::Render::ModelBatch;
@@ -34,7 +35,6 @@ using Client::Render::ModelBlend;
 using Client::Render::ModelDrawState;
 using Client::Render::ModelStateOperation;
 using Client::Render::TextureSlot;
-using Client::Render::Models::CrtRandom;
 using Client::World::DrawGroundEffectCase;
 using Client::World::GroundEffectResources;
 using Client::World::ModelEffect;

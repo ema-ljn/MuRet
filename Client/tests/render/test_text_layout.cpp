@@ -1,6 +1,6 @@
 #include "Render/Text/TextLayout.h"
 
-#include "App/WindowState.h"
+#include "Core/PixelSize.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
 
@@ -15,7 +15,7 @@
 // sintéticos y los mide el rasterizador falso: 6 columnas por letra y 13 filas.
 namespace
 {
-using Client::App::PixelSize;
+using Client::Core::PixelSize;
 using Client::Render::Text::BottomAlignedAt;
 using Client::Render::Text::BoxedQuad;
 using Client::Render::Text::CenteredAt;

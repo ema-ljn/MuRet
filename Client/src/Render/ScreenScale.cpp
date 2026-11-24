@@ -1,6 +1,6 @@
 #include "Render/ScreenScale.h"
 
-#include "App/WindowState.h"
+#include "Core/PixelSize.h"
 
 #include <bit>
 #include <cstdint>
@@ -25,12 +25,12 @@ float Scale(float value, int size, float inverse)
 }
 } // namespace
 
-float ScaleX(float x, App::PixelSize screen)
+float ScaleX(float x, Core::PixelSize screen)
 {
     return Scale(x, screen.width, InverseOf640);
 }
 
-float ScaleY(float y, App::PixelSize screen)
+float ScaleY(float y, Core::PixelSize screen)
 {
     return Scale(y, screen.height, InverseOf480);
 }

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Core/PixelSize.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
 
@@ -157,7 +157,7 @@ struct WrappedText
 };
 [[nodiscard]] Core::Expected<WrappedText, std::string> WrapByWidth(std::string_view text,
                                                                    const Render::Text::ITextMeasure& measure,
-                                                                   Render::Text::FontKind font, App::PixelSize screen,
+                                                                   Render::Text::FontKind font, Core::PixelSize screen,
                                                                    int width, int lines, int indent);
 
 // Lo que necesita medir 0x45bb20 al cortar.
@@ -165,7 +165,7 @@ struct ChatMeasure
 {
     const Render::Text::ITextMeasure& measure;
     Render::Text::FontKind dcFont = Render::Text::FontKind::Normal;
-    App::PixelSize screen{};
+    Core::PixelSize screen{};
 };
 
 // 0x45bb20(nombre, texto, tipo, param), la vtable + 0x94:

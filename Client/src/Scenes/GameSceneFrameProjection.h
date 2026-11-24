@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Crt/CrtRandom.h"
 #include "Render/Models/Cloth.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/ActorPickingBox.h"
@@ -26,7 +27,7 @@ struct GameSceneFrameProjection
     World::TerrainLighting lighting{};
     World::ObjectModelStepState modelState{};
     GameItemRenderState items{};
-    Render::Models::ClothWorld cloth{.random = Render::Models::CrtRandom{}};
+    Render::Models::ClothWorld cloth{.random = Crt::CrtRandom{}};
     World::ModelEffects effects{};
     World::Particles particles{};
     std::vector<World::WorldObject> objects{};

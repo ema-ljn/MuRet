@@ -1,6 +1,6 @@
 #include "UI/GameCursor.h"
 
-#include "App/WindowState.h"
+#include "Core/PixelSize.h"
 #include "Input/InputEvent.h"
 #include "Input/InputState.h"
 #include "Render/OriginalQuad.h"
@@ -18,7 +18,7 @@
 // Client::UI: el cursor del juego (0x5ac2d0), con el mouse del WndProc (0x4b358f).
 namespace
 {
-using Client::App::PixelSize;
+using Client::Core::PixelSize;
 using Client::Input::InputEvent;
 using Client::Input::InputState;
 using Client::Render::BlendMode;

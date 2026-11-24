@@ -9,9 +9,13 @@
 // El cuerpo de los modelos que no son el 0x20a (CL9 hito 2, P-C52 d): lo que 0x4f9580, 0x4fcd00, 0x4fcee0 y 0x505de0
 // hacen según el tipo de un monstruo, un NPC o un NewFace. *Estático*. Contrato:
 // Client/docs/research/06-render-escenas-y-ui.md, "El cuerpo de los monstruos y los NPC".
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
+} // namespace Client::Crt
+
+namespace Client::Render::Models
+{
 struct Skeleton;
 } // namespace Client::Render::Models
 
@@ -41,13 +45,13 @@ enum class ModelActionEnd : std::uint8_t
 [[nodiscard]] Core::Expected<ModelActionEnd, std::string> FinishTheModelAction(ActorState& actor,
                                                                                const Render::Models::Skeleton& skeleton,
                                                                                WorldRuntime& runtime,
-                                                                               Render::Models::CrtRandom& random);
+                                                                               Crt::CrtRandom& random);
 
 // 0x4ea190(c) desde 0x5068e3, con otro modelo que el 0x20a: la acción 6 no toca el blanco de la cabeza; la 0 sortea uno
 // (rand() % 32 en 0: x = rand() % 128 − 64 e y = rand() % 48 − 16, con 360 más si da negativo); la 2 con +0x3a4
 // distinto de −1 mira a ese personaje del pool (0x4ea0e0); el resto lo pone en 0. Un +0x3a4 fuera del pool corta.
 [[nodiscard]] Core::Expected<void, std::string>
-SetTheModelHeadTarget(ActorState& actor, std::span<const ActorState> pool, Render::Models::CrtRandom& random);
+SetTheModelHeadTarget(ActorState& actor, std::span<const ActorState> pool, Crt::CrtRandom& random);
 
 // 0x4ea0e0(c, blanco): con el rumbo de c al blanco (0x4e93f0, en float) a menos de 90 grados de +0x24 (0x4e96f0 sin
 // signo), el blanco de la cabeza es +0x24 menos el rumbo y (z del blanco − (z + 50)) · 0,2f, con 360 más si da

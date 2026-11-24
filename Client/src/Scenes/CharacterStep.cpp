@@ -7,11 +7,11 @@
 #include "World/Particles.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Models/PlayerModels.h"
 #include "Data/Terrain/TerrainGrid.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Render/Models/Animation.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/Pose.h"
@@ -588,7 +588,7 @@ Core::Expected<void, std::string> StepTheWeaponTrail(ActorState& actor, std::siz
 
 // Una lectura de la celda protegida del héroe: abre la entrada (0x40b570) y la cierra (0x40b800, o en línea
 // con 0x40b240, 0x40b2f0 y 0x412890), con los cuatro rand() del último cierre.
-std::int32_t ReadHeroCell(std::uint8_t value, std::uint8_t& depth, Render::Models::CrtRandom& random)
+std::int32_t ReadHeroCell(std::uint8_t value, std::uint8_t& depth, Crt::CrtRandom& random)
 {
     const Render::Models::LogicalAccess access(depth, random, Render::Models::SmallLogicalCloseRandoms);
     return value;
@@ -603,7 +603,7 @@ Core::Expected<void, std::string> ReportTheHeroCell(const CharacterStepContext& 
 {
     WorldRuntime& runtime = context.world.Runtime();
     ActorState& hero = context.world.Actors()[runtime.hero];
-    Render::Models::CrtRandom& random = context.random;
+    Crt::CrtRandom& random = context.random;
     if (ReadHeroCell(hero.cellX, hero.cellXAccesses, random) == runtime.reportedCellX &&
         ReadHeroCell(hero.cellY, hero.cellYAccesses, random) == runtime.reportedCellY)
     {
@@ -1388,7 +1388,7 @@ bool CharacterSeen(const World::TerrainPolygon& polygon, const glm::vec3& positi
     return World::PolygonContains(polygon, cells(position.x), cells(position.y), ViewMargin);
 }
 
-LogicalCell ReadLogicalCell(ActorState& actor, Render::Models::CrtRandom& random)
+LogicalCell ReadLogicalCell(ActorState& actor, Crt::CrtRandom& random)
 {
     LogicalCell cell;
     {

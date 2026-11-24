@@ -2,11 +2,11 @@
 
 #include "Core/Expected.h"
 #include "Core/Log.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Models/PlayerModels.h"
 #include "Data/Tables/SkillTable.h"
 #include "Protocol/Skill.h"
 #include "Render/Models/Animation.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/OriginalAngles.h"
 #include "Scenes/ActorActions.h"
@@ -954,7 +954,7 @@ Core::Expected<void, std::string> ApplySkillList(const SkillList& list, const Wo
     WorldState& world = resources.world;
     WorldRuntime& runtime = world.Runtime();
     OwnCharacterRecord& own = world.OwnCharacter();
-    Render::Models::CrtRandom& random = resources.cloth.random;
+    Crt::CrtRandom& random = resources.cloth.random;
     {
         const Render::Models::LogicalAccess access(runtime.ownRecordDepth, random,
                                                    Render::Models::OwnRecordCloseRandoms);

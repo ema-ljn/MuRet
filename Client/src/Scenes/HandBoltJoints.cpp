@@ -1,5 +1,5 @@
 #include "Core/Expected.h"
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "Render/Models/OriginalAngles.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Scenes/ActorState.h"
@@ -22,9 +22,9 @@ namespace Client::Scenes::JointFamilies
 {
 namespace
 {
+using Crt::CrtRandom;
 using JointKernels::D;
 using JointKernels::F32;
-using Render::Models::CrtRandom;
 } // namespace
 
 void CreateHandBoltJoint(JointState& joint)

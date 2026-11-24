@@ -1,4 +1,4 @@
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "Render/Models/OriginalRetainedMath.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Scenes/EventMapObjectFrame.h"
@@ -26,8 +26,8 @@
 // objetos de Devil Square y de Blood Castle).
 namespace
 {
+using Client::Crt::CrtRandom;
 using Client::Render::Models::BoneTransform;
-using Client::Render::Models::CrtRandom;
 using Client::Scenes::GameObjectPass;
 using Client::World::Particle;
 using Client::World::Particles;

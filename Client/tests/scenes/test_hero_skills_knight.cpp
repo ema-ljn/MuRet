@@ -2,12 +2,12 @@
 #include "Scenes/HeroSkillsKnight.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Tables/SkillTable.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Network/Delivery.h"
 #include "Network/Packet.h"
 #include "Protocol/Outgoing.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/OriginalAngles.h"
 #include "Render/Models/Skeleton.h"
 #include "Scenes/ActorState.h"
@@ -46,7 +46,7 @@
 // lugar 0 con una espada a la derecha, un monstruo elegido en el 5 con una clave inventada y un Skill.bmd inventado.
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::Scenes::HeroSkillContext;
 using Client::Scenes::UseTheKnightSkill;
 

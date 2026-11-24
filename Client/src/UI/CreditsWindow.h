@@ -1,6 +1,6 @@
 #pragma once
 
-#include "App/WindowState.h"
+#include "Core/PixelSize.h"
 #include "Data/Text/Credits.h"
 #include "Input/InputState.h"
 #include "Render/SpriteBatch.h"
@@ -50,7 +50,7 @@ struct CreditsLayout
     Rect close;
 };
 
-[[nodiscard]] CreditsLayout LayoutCredits(App::PixelSize screen);
+[[nodiscard]] CreditsLayout LayoutCredits(Core::PixelSize screen);
 
 class CreditsWindow final : public NewUiWindow
 {
@@ -68,12 +68,12 @@ public:
     // 0x63f5a0 con 0: cerrada y la ilustración quieta (+0x5b8 en 0).
     void Close() override;
     [[nodiscard]] bool IsOpen() const override;
-    [[nodiscard]] Rect Bounds(App::PixelSize screen) const override;
+    [[nodiscard]] Rect Bounds(Core::PixelSize screen) const override;
 
     // El botón (0x63c490) y, con el foco, 0x63f630 con los `elapsedMs` del paso.
-    CreditsStep Step(const Input::InputState& input, App::PixelSize screen, double elapsedMs, NewUiTurn turn = {});
+    CreditsStep Step(const Input::InputState& input, Core::PixelSize screen, double elapsedMs, NewUiTurn turn = {});
     // 0x66a050 y 0x63f6b0.
-    void Draw(Render::SpriteBatch& sprites, Scenes::ITextDrawer& text, App::PixelSize screen);
+    void Draw(Render::SpriteBatch& sprites, Scenes::ITextDrawer& text, Core::PixelSize screen);
 
     [[nodiscard]] const Button& CloseButton() const;
     // +0x5b8, +0x5c8 y el alfa de las dos ilustraciones (+0xa0 y +0x148).
@@ -100,7 +100,7 @@ private:
     void StepRow(std::size_t row, double elapsedMs, CreditsStep& step);
     void StepIllustration(double elapsedMs, CreditsStep& step);
     [[nodiscard]] std::uint8_t KindAt(std::size_t index) const;
-    void DrawTexts(Scenes::ITextDrawer& text, App::PixelSize screen) const;
+    void DrawTexts(Scenes::ITextDrawer& text, Core::PixelSize screen) const;
 
     TextureSizes m_sizes;
     std::span<const Data::Text::CreditEntry> m_credits;

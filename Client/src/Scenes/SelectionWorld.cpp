@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Core/IClock.h"
 #include "Core/Log.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Models/Model.h"
 #include "Render/Billboard.h"
 #include "Render/ITextureStore.h"
@@ -118,7 +119,7 @@ std::optional<glm::vec2> SelectionTextureLibrary::TextureSize(Render::TextureSlo
 struct SelectionWorld::Projection
 {
     World::TerrainLighting lighting{};
-    Render::Models::ClothWorld cloth{.random = Render::Models::CrtRandom{}};
+    Render::Models::ClothWorld cloth{.random = Crt::CrtRandom{}};
     World::Particles particles{};
     World::ModelEffects effects{};
     std::vector<World::WorldObject> objects{};
@@ -192,7 +193,7 @@ void SelectionWorld::StepWaves(Core::Duration clock, const World::TerrainRange& 
     World::UpdateWaves(m_water, clock, range, map);
 }
 
-Core::Expected<void, std::string> SelectionWorld::StepObjects(WorldState& world, Render::Models::CrtRandom& random,
+Core::Expected<void, std::string> SelectionWorld::StepObjects(WorldState& world, Crt::CrtRandom& random,
                                                               float worldClock)
 {
     std::span<World::WorldObject> objects = world.Map().objects;
@@ -321,7 +322,7 @@ World::TerrainLighting& SelectionWorld::FrameLighting()
     return m_projecting ? m_projection->lighting : m_world->DynamicLighting().Lighting();
 }
 
-Render::Models::CrtRandom& SelectionWorld::FrameRandom()
+Crt::CrtRandom& SelectionWorld::FrameRandom()
 {
     return m_projecting ? m_projection->cloth.random : m_cloth->random;
 }

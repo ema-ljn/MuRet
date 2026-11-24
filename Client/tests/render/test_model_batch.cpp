@@ -1,6 +1,6 @@
 #include "Render/ModelBatch.h"
 
-#include "App/WindowState.h"
+#include "Core/PixelSize.h"
 #include "Render/ModelFog.h"
 #include "Render/ModelVertex.h"
 #include "Render/Pass3D.h"
@@ -20,7 +20,7 @@
 // que llegan, como el SpriteBatch del 2D (CL5.2).
 namespace
 {
-using Client::App::PixelSize;
+using Client::Core::PixelSize;
 using Client::Render::Camera3D;
 using Client::Render::MakePass3D;
 using Client::Render::ModelBatch;

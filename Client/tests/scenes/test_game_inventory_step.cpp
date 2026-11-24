@@ -1,4 +1,5 @@
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Tables/ItemTable.h"
 #include "GameLogic/PathCell.h"
 #include "Input/InputEvent.h"
@@ -7,7 +8,6 @@
 #include "Network/Delivery.h"
 #include "Network/Xor32Packet.h"
 #include "Protocol/Outgoing.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/GameUi.h"
 #include "Scenes/InventoryMoves.h"
@@ -42,10 +42,10 @@
 // inventados.
 namespace
 {
+using Client::Crt::CrtRandom;
 using Client::Input::InputEvent;
 using Client::Input::InputState;
 using Client::Input::Key;
-using Client::Render::Models::CrtRandom;
 using Client::Scenes::GameUiContext;
 using Client::Scenes::WorldState;
 

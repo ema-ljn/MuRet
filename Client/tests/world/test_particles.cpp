@@ -1,7 +1,7 @@
 #include "World/Particles.h"
 
 #include "Core/Expected.h"
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "Render/Models/OriginalRotation.h"
 #include "World/ParticleDrawing.h"
 #include "World/PortableParticleTrigonometry.h"
@@ -36,7 +36,7 @@
 // make_particle_vectors.py), bit a bit.
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::World::Particle;
 using Client::World::Particles;
 

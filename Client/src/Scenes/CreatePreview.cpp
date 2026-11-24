@@ -1,8 +1,8 @@
 #include "Scenes/CreatePreview.h"
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
 #include "Core/Log.h"
+#include "Core/PixelSize.h"
 #include "Data/Models/Model.h"
 #include "Data/Models/ModelFiles.h"
 #include "Data/Textures/Sampling.h"
@@ -300,7 +300,7 @@ Render::Camera3D PreviewCamera(const CreatePreview& preview)
     return camera;
 }
 
-Render::ViewportRect PreviewViewport(const UI::Rect& box, App::PixelSize screen)
+Render::ViewportRect PreviewViewport(const UI::Rect& box, Core::PixelSize screen)
 {
     return Render::ViewportRect{Render::Text::DesignX(box.x, screen), Render::Text::DesignY(box.y, screen),
                                 Render::Text::DesignX(PreviewWidth, screen),

@@ -8,9 +8,13 @@
 #include <optional>
 #include <string>
 
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
+} // namespace Client::Crt
+
+namespace Client::Render::Models
+{
 struct Skeleton;
 } // namespace Client::Render::Models
 
@@ -52,7 +56,7 @@ struct BlastEffectServices
 // 0x105), o nada con la tabla llena, sin rand(). Otro tipo, o lo que el caso pide y MuRet no tiene, corta.
 [[nodiscard]] Core::Expected<std::optional<std::size_t>, std::string>
 CreateBlastModelEffect(ModelEffects& effects, const ModelEffectArguments& arguments, const ModelEffectOwner& owner,
-                       Render::Models::CrtRandom& random, const BlastEffectServices& services);
+                       Crt::CrtRandom& random, const BlastEffectServices& services);
 
 // Los efectos cuyo paso da StepBlastModelEffect: los de IsBlastModelEffect, con el 0x105 sólo en el subtipo 1.
 [[nodiscard]] bool StepsAsBlastModelEffect(const ModelEffect& effect);
@@ -63,6 +67,6 @@ CreateBlastModelEffect(ModelEffects& effects, const ModelEffectArguments& argume
 // vida; los 0xe7..0xe9 y el 0x113 sin dueño salen sin cola). Deja `before` en previousPosition.
 [[nodiscard]] Core::Expected<void, std::string>
 StepBlastModelEffect(ModelEffect& effect, const Render::Models::Skeleton* skeleton, Particles& particles,
-                     float worldClock, Render::Models::CrtRandom& random, int lightDraw, KalimaWorld* kalima,
+                     float worldClock, Crt::CrtRandom& random, int lightDraw, KalimaWorld* kalima,
                      const ModelEffectStepServices& services);
 } // namespace Client::World

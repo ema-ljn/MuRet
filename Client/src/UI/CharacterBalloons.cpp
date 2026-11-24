@@ -1,7 +1,7 @@
 #include "UI/CharacterBalloons.h"
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Core/PixelSize.h"
 #include "Data/Text/TextTable.h"
 #include "Render/ScreenScale.h"
 #include "Render/SpriteBatch.h"
@@ -209,7 +209,7 @@ bool CharacterBalloons::IsShown(std::size_t index) const
 }
 
 Core::Expected<void, std::string>
-CharacterBalloons::Draw(Render::SpriteBatch& sprites, Scenes::ITextDrawer& text, App::PixelSize screen,
+CharacterBalloons::Draw(Render::SpriteBatch& sprites, Scenes::ITextDrawer& text, Core::PixelSize screen,
                         std::span<const std::optional<BalloonHead>, BalloonCount> heads)
 {
     if (!m_built)

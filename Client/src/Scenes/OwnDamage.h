@@ -6,7 +6,7 @@
 #include <cstdint>
 #include <string>
 
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
 }
@@ -42,7 +42,7 @@ struct OwnAttackDamage
 // +0x3c, 15 más a los dos. `heroClass` es el +0x1d4 del héroe & 7.
 [[nodiscard]] OwnAttackDamage AttackDamageOf(const OwnCharacterRecord& own, std::uint32_t heroClass,
                                              const OwnEquipmentOverride& held, std::uint8_t& ownRecordDepth,
-                                             Render::Models::CrtRandom& random);
+                                             Crt::CrtRandom& random);
 
 // Lo que 0x5513d0 deja en sus dos punteros.
 struct OwnMagicDamage
@@ -58,7 +58,7 @@ struct OwnMagicDamage
 // Skill.bmd o sin la skill, error antes de abrir; con más de 16 entradas en la lista, el de 0x40d8c0 o 0x40d690.
 [[nodiscard]] Core::Expected<OwnMagicDamage, std::string>
 MagicDamageOf(const OwnCharacterRecord& own, std::uint8_t skill, const Data::Tables::SkillTable* skills,
-              std::uint8_t& skillDepth, Render::Models::CrtRandom& random, ItemSetOptionList& setOptions);
+              std::uint8_t& skillDepth, Crt::CrtRandom& random, ItemSetOptionList& setOptions);
 
 // Lo que 0x5516e0 deja en sus dos punteros.
 struct OwnSkillDamage
@@ -73,5 +73,5 @@ struct OwnSkillDamage
 // 0x40d690). Sin Skill.bmd o sin la skill, error antes de abrir.
 [[nodiscard]] Core::Expected<OwnSkillDamage, std::string>
 SkillDamageOf(std::uint8_t skill, const Data::Tables::SkillTable* skills, std::uint8_t& skillDepth,
-              Render::Models::CrtRandom& random, ItemSetOptionList& setOptions);
+              Crt::CrtRandom& random, ItemSetOptionList& setOptions);
 } // namespace Client::Scenes

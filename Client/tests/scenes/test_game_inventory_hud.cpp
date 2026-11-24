@@ -1,11 +1,11 @@
 #include "Render/Models/IModelLibrary.h"
 #include "Scenes/GameInventoryHud.h"
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Core/PixelSize.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Models/Model.h"
 #include "Render/ModelBatch.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/Skeleton.h"
@@ -57,9 +57,9 @@
 // ítems y el zen son inventados.
 namespace
 {
+using Client::Crt::CrtRandom;
 using Client::Render::Color;
 using Client::Render::SpriteBatch;
-using Client::Render::Models::CrtRandom;
 using Client::Render::Models::OwnRecordCloseRandoms;
 using Client::Render::Models::SmallLogicalCloseRandoms;
 using Client::Scenes::GameHudContext;
@@ -67,7 +67,7 @@ using Client::Scenes::WorldState;
 using Client::World::ItemState;
 
 constexpr std::uint32_t Seed = 0x13579bdfu;
-constexpr Client::App::PixelSize Screen640{640, 480};
+constexpr Client::Core::PixelSize Screen640{640, 480};
 constexpr int Own = OwnRecordCloseRandoms;
 // La ventana: los cierres de los lugares (0x5e2460), del zen y del nivel, la consulta del comercio del botón de
 // cerrar y las del comercio y la tienda de NPC de reparar y de la tienda personal.
@@ -250,7 +250,7 @@ protected:
     }
 
     // El pase de la UI de `screen` con los modelos inventados; los dos fines de lote se anotan en `events`.
-    Client::Scenes::UiItemResources UiItems(Client::App::PixelSize screen)
+    Client::Scenes::UiItemResources UiItems(Client::Core::PixelSize screen)
     {
         special.random = &random;
         special.worldClock = worldClock;
@@ -268,7 +268,7 @@ protected:
     }
 
     // Dónde posa 0x5e0720 el ítem de la caja `box` en `screen`, con los ángulos de `angles`.
-    glm::vec3 PlacedAt(Client::App::PixelSize screen, std::int32_t type, std::uint32_t level,
+    glm::vec3 PlacedAt(Client::Core::PixelSize screen, std::int32_t type, std::uint32_t level,
                        const Client::Scenes::UiItemBox& box, bool always, glm::vec3& angles)
     {
         const auto pass = Client::Scenes::MakeUiItemPass(screen);
@@ -402,7 +402,7 @@ TEST_F(GameInventoryHudTest, TheTitleFillsItsWholeBoxInThreeResolutions)
 {
     struct Case
     {
-        Client::App::PixelSize screen;
+        Client::Core::PixelSize screen;
         int box = 0;
         std::uint8_t party = 0;
     };
@@ -881,7 +881,7 @@ TEST_F(GameInventoryHudTest, TheDialogItemDrawsInItsFixedBox)
     runtime.social.trade.warningKind = 1;
     mouse = {260, 140};
     worldClock = 4321.0f;
-    for (const Client::App::PixelSize screen : {Screen640, Client::App::PixelSize{1024, 768}})
+    for (const Client::Core::PixelSize screen : {Screen640, Client::Core::PixelSize{1024, 768}})
     {
         SCOPED_TRACE(screen.width);
         models.Begin(Client::Render::Pass3D{});
@@ -972,7 +972,7 @@ TEST_F(GameInventoryHudTest, TheGridItemsDrawInTheUiPassInTwoMapsAndTwoResolutio
     weapon.occupied = 1;
     for (const std::int32_t map : {0, 2})
     {
-        for (const Client::App::PixelSize screen : {Screen640, Client::App::PixelSize{1024, 768}})
+        for (const Client::Core::PixelSize screen : {Screen640, Client::Core::PixelSize{1024, 768}})
         {
             SCOPED_TRACE(testing::Message() << map << " " << screen.width);
             world.Runtime().map = map;
@@ -1018,7 +1018,7 @@ TEST_F(GameInventoryHudTest, TheCursorItemDrawsCenteredOnTheMouse)
     world.Runtime().cursorItemCount = 1;
     mouse = {300, 200};
     worldClock = 4321.0f;
-    for (const Client::App::PixelSize screen : {Screen640, Client::App::PixelSize{1024, 768}})
+    for (const Client::Core::PixelSize screen : {Screen640, Client::Core::PixelSize{1024, 768}})
     {
         SCOPED_TRACE(screen.width);
         models.Begin(Client::Render::Pass3D{});

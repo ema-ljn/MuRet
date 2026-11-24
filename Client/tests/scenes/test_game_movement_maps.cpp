@@ -2,6 +2,7 @@
 #include "Scenes/GameMovement.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Tables/SkillTable.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainGrid.h"
@@ -11,7 +12,6 @@
 #include "GameLogic/PathCell.h"
 #include "Network/Packet.h"
 #include "Protocol/Movement.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/Skeleton.h"
 #include "Scenes/ActorState.h"
@@ -231,7 +231,7 @@ protected:
     }
 
     Client::Scenes::WorldState m_world;
-    Client::Render::Models::CrtRandom m_random{Seed};
+    Client::Crt::CrtRandom m_random{Seed};
     Client::Render::Models::Skeleton m_skeleton;
     std::optional<Client::Data::Tables::SkillTable> m_skills;
     std::optional<PathCell> m_target;
@@ -427,7 +427,7 @@ TEST_F(GameMovementMapEvidenceTest, EntryFrontiersStaySeparateFromTheSyntheticWa
         SCOPED_TRACE(boundary.map);
         Client::Scenes::WorldState world;
         world.Runtime().map = boundary.map;
-        Client::Render::Models::CrtRandom random(Seed);
+        Client::Crt::CrtRandom random(Seed);
         const auto loaded =
             Client::Scenes::LoadMap(boundary.map, {m_dataRoot, world, Client::Scenes::SceneId::Game, 5, random});
         ASSERT_FALSE(loaded.HasValue());
@@ -440,7 +440,7 @@ TEST_F(GameMovementMapEvidenceTest, TheAliasOfDevilSquareArmsItsEventObject)
 {
     Client::Scenes::WorldState world;
     world.Runtime().map = 32;
-    Client::Render::Models::CrtRandom random(Seed);
+    Client::Crt::CrtRandom random(Seed);
     const auto loaded = Client::Scenes::LoadMap(32, {m_dataRoot, world, Client::Scenes::SceneId::Game, 5, random});
     ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
     EXPECT_EQ(world.Runtime().map, 9);

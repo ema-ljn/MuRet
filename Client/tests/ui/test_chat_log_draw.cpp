@@ -1,6 +1,6 @@
 #include "UI/ChatLogDraw.h"
 
-#include "App/WindowState.h"
+#include "Core/PixelSize.h"
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
 #include "Render/Text/FontSet.h"
@@ -22,7 +22,7 @@
 // (0x45cbb0) y los botones (0x45d420). Los textos son inventados.
 namespace
 {
-using Client::App::PixelSize;
+using Client::Core::PixelSize;
 using Client::Render::Color;
 using Client::Render::SpriteBatch;
 using Client::Render::SpriteVertex;

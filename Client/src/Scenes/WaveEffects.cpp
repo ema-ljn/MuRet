@@ -1,7 +1,7 @@
 #include "Scenes/WaveEffects.h"
 
 #include "Core/Expected.h"
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "Render/Models/ObjectState.h"
 #include "Scenes/HighEffectEmitters.h"
 #include "Scenes/HighModelEffects.h"
@@ -31,7 +31,7 @@ double D(float value)
 constexpr std::int32_t WideSpan = 40, WideBase = 70;
 
 // rand() % 40 + 70, el FILD de la escala de los joints (0x51c191 y 0x51c238).
-float JointScale(Render::Models::CrtRandom& random)
+float JointScale(Crt::CrtRandom& random)
 {
     return static_cast<float>(random.Next() % WideSpan + WideBase);
 }

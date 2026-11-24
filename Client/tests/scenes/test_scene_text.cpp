@@ -1,9 +1,9 @@
 #include "Scenes/SceneText.h"
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
+#include "Core/PixelSize.h"
 #include "Render/SpriteBatch.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
@@ -24,9 +24,9 @@
 // (TextCache::ChangeRasterizer); si no abren, siguen las de antes y el error va al log una vez.
 namespace
 {
-using Client::App::PixelSize;
 using Client::Core::Log;
 using Client::Core::LogLevel;
+using Client::Core::PixelSize;
 using Client::Render::SpriteBatch;
 using Client::Render::Text::FontKind;
 using Client::Render::Text::IGlyphRasterizer;

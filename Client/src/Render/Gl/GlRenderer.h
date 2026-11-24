@@ -1,7 +1,7 @@
 #pragma once
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Core/PixelSize.h"
 #include "Platform/GlLoader.h"
 #include "Render/Gl/GlName.h"
 #include "Render/Gl/GlShader.h"
@@ -28,13 +28,13 @@ public:
 
     // Dibuja `vertices`, de a tres por triángulo, con `texture` y sin el alpha test, en una
     // pantalla de `screen` píxeles: Upload y un DrawRange de todos. No toca la mezcla.
-    void Draw(std::span<const Render::SpriteVertex> vertices, const GlTexture& texture, App::PixelSize screen) const;
+    void Draw(std::span<const Render::SpriteVertex> vertices, const GlTexture& texture, Core::PixelSize screen) const;
 
     // Sube `vertices` al VBO, que se llena de nuevo en cada llamada, para una pantalla de `screen`
     // píxeles con la y para arriba, como el 2D del original (0x6219b0: el viewport entero y
     // gluOrtho2D(0, W, 0, H)): pone ese viewport y la matriz de glm::ortho, y deja atados el
     // programa y el VAO para los DrawRange que siguen.
-    void Upload(std::span<const Render::SpriteVertex> vertices, App::PixelSize screen) const;
+    void Upload(std::span<const Render::SpriteVertex> vertices, Core::PixelSize screen) const;
 
     // Dibuja `vertexCount` vértices de lo subido, desde `firstVertex`, en el framebuffer que esté
     // atado: con `texture`, o sin muestrear ninguna si es nullptr, y con el alpha test o sin él.

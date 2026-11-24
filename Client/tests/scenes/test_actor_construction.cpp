@@ -1,5 +1,6 @@
 #include "Scenes/ActorConstruction.h"
 
+#include "Crt/CrtRandom.h"
 #include "Data/Models/PlayerModels.h"
 #include "Data/Terrain/TerrainGrid.h"
 #include "Render/Models/Cloth.h"
@@ -22,8 +23,8 @@
 
 namespace
 {
+using Client::Crt::CrtRandom;
 using Client::Render::Models::ClothWorld;
-using Client::Render::Models::CrtRandom;
 using Client::Scenes::ActorConstructionContext;
 using Client::Scenes::ActorPlacement;
 using Client::Scenes::ActorState;

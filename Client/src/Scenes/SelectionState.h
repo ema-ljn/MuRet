@@ -2,6 +2,7 @@
 
 #include "App/CharacterEvent.h"
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Protocol/Character/CharacterList.h"
 #include "Render/Models/Cloth.h"
 #include "Scenes/ActorState.h"
@@ -66,7 +67,7 @@ public:
     // rand() de la CRT; sin él, el local de las pruebas.
     [[nodiscard]] Core::Expected<void, std::string> InitializeSelection(const std::filesystem::path& dataRoot,
                                                                         World::GameCameraInput& input,
-                                                                        Render::Models::CrtRandom* random = nullptr);
+                                                                        Crt::CrtRandom* random = nullptr);
     [[nodiscard]] Core::Expected<void, std::string> Apply(std::span<const App::CharacterEvent> events,
                                                           World::GameCamera& camera, World::GameCameraInput& input,
                                                           Render::Models::ClothWorld* cloth = nullptr,

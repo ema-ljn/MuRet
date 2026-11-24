@@ -2,9 +2,9 @@
 #include "Scenes/KalimaObjectServices.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Models/Model.h"
 #include "Render/ModelBatch.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/Skeleton.h"
 #include "Render/Pass3D.h"
@@ -107,7 +107,7 @@ Client::Core::Expected<void, std::string> Draw(Client::Render::ModelBatch& batch
 TEST(KalimaObjectServicesTest, MissingCycleRetainsTheBodyBeforeRandomAndLeavesTheSuffixUnvisited)
 {
     const KalimaModel models;
-    Client::Render::Models::CrtRandom random(7);
+    Client::Crt::CrtRandom random(7);
     std::array objects{Object(0), Object(2)};
     Client::Render::ModelBatch batch;
     const auto result = Draw(batch, models, objects, {.map = 24, .random = &random});
@@ -122,7 +122,7 @@ TEST(KalimaObjectServicesTest, MissingCycleRetainsTheBodyBeforeRandomAndLeavesTh
 TEST(KalimaObjectServicesTest, TheRealWaterFrameSelectsItsPhysicalTextureAndAddsTheAlphaBody)
 {
     const KalimaModel models;
-    Client::Render::Models::CrtRandom random(7);
+    Client::Crt::CrtRandom random(7);
     std::array objects{Object(0)};
     Client::Render::ModelBatch batch;
     const auto result = Draw(batch, models, objects, {.map = 36, .random = &random, .waterTextureFrame = 31});
@@ -132,7 +132,7 @@ TEST(KalimaObjectServicesTest, TheRealWaterFrameSelectsItsPhysicalTextureAndAdds
     EXPECT_EQ(batch.Commands()[1].state.texture, Client::Render::TextureSlot{96});
     EXPECT_EQ(batch.Commands()[1].state.blend, Client::Render::ModelBlend::Alpha);
     EXPECT_FLOAT_EQ(batch.Vertices()[3].color.alpha, 0.3f);
-    Client::Render::Models::CrtRandom expected(7);
+    Client::Crt::CrtRandom expected(7);
     static_cast<void>(expected.Next());
     EXPECT_EQ(random.State(), expected.State());
 }
@@ -152,7 +152,7 @@ TEST(KalimaObjectServicesTest, AProducerWithoutItsRealTextureStopsAfterTheFirstB
 TEST(KalimaObjectServicesTest, AnExcludedTypeNeedsNoWaterAndIntermediateFramesConsumeNoRandom)
 {
     const KalimaModel models;
-    Client::Render::Models::CrtRandom random(7);
+    Client::Crt::CrtRandom random(7);
     std::array objects{Object(2)};
     Client::Render::ModelBatch batch;
     ASSERT_TRUE(Draw(batch, models, objects, {.map = 29, .originalFrame = false, .random = &random}).HasValue());
@@ -170,7 +170,7 @@ TEST(KalimaObjectServicesTest, TheStepHidesExactlyThirtySevenThroughFortyAfterTh
         for (std::int16_t type = 36; type <= 41; ++type)
         {
             auto object = Object(type);
-            Client::Render::Models::CrtRandom random(7);
+            Client::Crt::CrtRandom random(7);
             const auto result = Client::World::StepWorldObjectChecked(object, map, nullptr, random, {});
             ASSERT_TRUE(result.HasValue()) << result.Error();
             EXPECT_EQ(object.state.hiddenMesh, type >= 37 && type <= 40 ? -2 : -1);
@@ -180,7 +180,7 @@ TEST(KalimaObjectServicesTest, TheStepHidesExactlyThirtySevenThroughFortyAfterTh
     auto faded = Object(37);
     faded.alpha = 0;
     faded.targetAlpha = 0;
-    Client::Render::Models::CrtRandom random(7);
+    Client::Crt::CrtRandom random(7);
     ASSERT_TRUE(Client::World::StepWorldObjectChecked(faded, 24, nullptr, random, {}).HasValue());
     EXPECT_EQ(faded.state.hiddenMesh, -1);
 }
@@ -190,7 +190,7 @@ TEST(KalimaObjectServicesTest, TheFlareUsesBoneTwentyAndDoesNotInventAnObjectOri
     auto object = Object(12);
     Client::Scenes::FaunaDrawCarry carry;
     Client::World::FrameSprites sprites;
-    Client::Render::Models::CrtRandom random(7);
+    Client::Crt::CrtRandom random(7);
     const auto result = Client::Scenes::StepKalimaObjectFrame(
         object, {.map = 24, .random = &random, .sprites = &sprites, .retainedPose = &carry});
     ASSERT_TRUE(result.HasValue()) << result.Error();
@@ -210,7 +210,7 @@ TEST(KalimaObjectServicesTest, TheLastMarkerKeepsItsGuardBeforeTheScaleStoreOrTh
     {
         auto object = Object(40);
         object.transform.scale = 7;
-        Client::Render::Models::CrtRandom random(seed);
+        Client::Crt::CrtRandom random(seed);
         auto expected = random;
         const bool creates = expected.Next() % 4 == 0;
         const auto result = Client::Scenes::StepKalimaObjectFrame(object, {.map = 24, .random = &random});
@@ -279,7 +279,7 @@ TEST(KalimaObjectServicesTest, FullParticlePoolStillHidesMarkersStoresScaleAndRe
     Client::World::Particles particles;
     for (auto& p : particles.All())
         p.alive = true;
-    Client::Render::Models::CrtRandom random(7);
+    Client::Crt::CrtRandom random(7);
     std::vector<std::int32_t> sounds;
     const Client::Scenes::GameObjectPass pass{.map = 24,
                                               .random = &random,
@@ -307,7 +307,7 @@ TEST(KalimaObjectServicesTest, MissingSoundKeepsTheDifferentNativeScaleStoreOrde
         auto object = Object(type);
         object.transform.scale = 7;
         Client::World::Particles particles;
-        Client::Render::Models::CrtRandom random(7);
+        Client::Crt::CrtRandom random(7);
         const auto result =
             Client::Scenes::StepKalimaObjectFrame(object, {.map = 24, .random = &random, .particles = &particles});
         ASSERT_FALSE(result.HasValue());
@@ -323,7 +323,7 @@ TEST(KalimaObjectServicesTest, ObjectOwnedFlareKeepsItsStableIdentityAcrossTheFr
     auto object = Object(35);
     object.identity = 0x100000042ull;
     Client::World::Particles particles;
-    Client::Render::Models::CrtRandom random(7);
+    Client::Crt::CrtRandom random(7);
     const auto made =
         Client::Scenes::StepKalimaObjectFrame(object, {.map = 24, .random = &random, .particles = &particles});
     ASSERT_TRUE(made.HasValue()) << made.Error();

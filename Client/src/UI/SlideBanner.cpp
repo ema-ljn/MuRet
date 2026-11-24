@@ -1,9 +1,9 @@
 #include "UI/SlideBanner.h"
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Core/PixelSize.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Text/SlideTable.h"
-#include "Render/Models/Cloth.h"
 #include "Render/ScreenScale.h"
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
@@ -146,7 +146,7 @@ Core::Expected<bool, std::string> Append(SlideQueue& queue, const SlideEntry& en
 }
 
 // 0x46abc0: rx por la velocidad, o por 2,5 si no es positiva.
-void SetTheSpeed(SlideQueue& queue, float speed, App::PixelSize screen)
+void SetTheSpeed(SlideQueue& queue, float speed, Core::PixelSize screen)
 {
     if (speed <= 0.0f)
         speed = DefaultSpeed;
@@ -257,7 +257,7 @@ Core::Expected<void, std::string> DrawTheQueue(SlideBanner& banner, SlideQueue& 
     if (queue.alpha <= 0)
         return {};
     Render::SpriteBatch& sprites = context.sprites;
-    const App::PixelSize screen = sprites.Screen();
+    const Core::PixelSize screen = sprites.Screen();
     // 0x46a5c3..0x46a6b4: 0x620a00(1), las dos rayas de 1 y la franja, con 0x621aa0 y el ancho W en píxeles como si
     // fuera de 640 × 480.
     sprites.SetBlend(Render::BlendMode::Alpha);
@@ -327,7 +327,7 @@ void ResetTheSlideQueues(SlideBanner& banner, std::uint32_t now)
     banner.bold.y = SlideTop;
 }
 
-std::optional<std::string> PickASlide(SlideBanner& banner, std::uint16_t level, Render::Models::CrtRandom& random)
+std::optional<std::string> PickASlide(SlideBanner& banner, std::uint16_t level, Crt::CrtRandom& random)
 {
     // 0x46b689..0x46b69d: CMP con JLE, con signo.
     std::size_t group = 0;

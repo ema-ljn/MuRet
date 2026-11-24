@@ -1,6 +1,6 @@
 #pragma once
 
-#include "App/WindowState.h"
+#include "Core/PixelSize.h"
 #include "Input/InputState.h"
 #include "UI/Widget.h"
 
@@ -52,7 +52,7 @@ struct NewUiTurn
 // El mouse que ven los botones de una ventana en su turno: el de la UI nueva (MouseInPixels), o
 // ninguno con `mouse` en false.
 [[nodiscard]] std::optional<Point> MouseOfTheTurn(NewUiTurn turn, const Input::InputState& input,
-                                                  App::PixelSize screen);
+                                                  Core::PixelSize screen);
 
 // Una ventana de la UI nueva, como la ve el administrador.
 class NewUiWindow
@@ -66,13 +66,13 @@ public:
     // vtable + 0x10 con 0.
     virtual void Close() = 0;
     // +0x18..+0x24: la esquina y el tamaño, en píxeles.
-    [[nodiscard]] virtual Rect Bounds(App::PixelSize screen) const = 0;
+    [[nodiscard]] virtual Rect Bounds(Core::PixelSize screen) const = 0;
     // vtable + 0xc. Todas las del login y la selección (0x647d10 la de Esc, y las demás igual)
     // contestan que no al título y llaman a 0x669df0 con el resto: no se arrastran.
-    [[nodiscard]] virtual bool Hit(WindowHit hit, Point mouse, App::PixelSize screen) const;
+    [[nodiscard]] virtual bool Hit(WindowHit hit, Point mouse, Core::PixelSize screen) const;
     // vtable + 8: el arrastre la mueve a `topLeft`. La base solo mueve el rectángulo; las del login
     // y la selección no se arrastran, y no hace nada.
-    virtual void PlaceAt(Point topLeft, App::PixelSize screen);
+    virtual void PlaceAt(Point topLeft, Core::PixelSize screen);
 
 protected:
     NewUiWindow(const NewUiWindow&) = default;
@@ -83,7 +83,7 @@ protected:
 
 // 0x669df0: abierta y el mouse adentro del rectángulo (x, y, x + w, y + h) o del título
 // (x, y, x + w, y + 26), con PtInRect.
-[[nodiscard]] bool HitTheBounds(const NewUiWindow& window, WindowHit hit, Point mouse, App::PixelSize screen);
+[[nodiscard]] bool HitTheBounds(const NewUiWindow& window, WindowHit hit, Point mouse, Core::PixelSize screen);
 
 // +0x8dec: lo que arma 0x65f300 (el login), 0x65f4b0 (la selección) o 0x65f5f0 (el juego).
 enum class NewUiMode : std::uint8_t
@@ -121,7 +121,7 @@ public:
     // botones, cada ventana abierta con `step` (y el arrastre de 0x669f40), el pegado del arrastre
     // (0x65f720) y +0x8de8. Una ventana que se cerró sola en su turno pasa por 0x65f6c0, como las del
     // original, que lo llaman ellas.
-    void Step(const Input::InputState& input, App::PixelSize screen, const StepWindow& step,
+    void Step(const Input::InputState& input, Core::PixelSize screen, const StepWindow& step,
               const std::function<void()>& buttonClicked = {});
 
     // +0x8de8: alguna ventana tiene el mouse (o se está arrastrando) en este paso. Con él, la
@@ -150,9 +150,9 @@ private:
     [[nodiscard]] Entry* Find(const NewUiWindow& window);
     [[nodiscard]] const Entry* Find(const NewUiWindow& window) const;
     void MoveToTheTail(NewUiWindow& window);
-    void Drag(Entry& entry, const Input::InputState& input, Point mouse, App::PixelSize screen);
-    void StickTheDragged(App::PixelSize screen);
-    bool StickAt(Entry& entry, Point at, App::PixelSize screen);
+    void Drag(Entry& entry, const Input::InputState& input, Point mouse, Core::PixelSize screen);
+    void StickTheDragged(Core::PixelSize screen);
+    bool StickAt(Entry& entry, Point at, Core::PixelSize screen);
 
     // [0] es la cabeza.
     std::vector<Entry> m_entries;

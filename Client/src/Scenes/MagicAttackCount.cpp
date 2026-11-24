@@ -2,8 +2,8 @@
 
 #include "Core/Expected.h"
 #include "Core/Log.h"
+#include "Crt/CrtRandom.h"
 #include "Protocol/Viewport.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActorShock.h"
 #include "Scenes/ActorState.h"
@@ -45,7 +45,7 @@ constexpr float DamageScale = 15.0f;
 constexpr bool DamageRises = true;
 
 // 0x4cf099..0x4cf17d: el registro propio abierto alrededor de la resta; un golpe de la vida o más la deja en 0.
-void HitTheHero(WorldState& world, std::uint16_t damage, Render::Models::CrtRandom& random)
+void HitTheHero(WorldState& world, std::uint16_t damage, Crt::CrtRandom& random)
 {
     const Render::Models::LogicalAccess own(world.Runtime().ownRecordDepth, random,
                                             Render::Models::OwnRecordCloseRandoms);
@@ -59,7 +59,7 @@ Core::Expected<void, std::string> ApplyMagicAttackCount(const Protocol::Viewport
 {
     WorldState& world = resources.world;
     WorldRuntime& runtime = world.Runtime();
-    Render::Models::CrtRandom& random = resources.cloth.random;
+    Crt::CrtRandom& random = resources.cloth.random;
     // 0x4cedec..0x4cedf7.
     const std::size_t casterSlot = ActorWithKey(world, attack.key);
     runtime.lastAttacker = static_cast<std::int32_t>(casterSlot);

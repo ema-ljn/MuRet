@@ -1,8 +1,8 @@
 #include "Scenes/GroundEffectFrame.h"
 
+#include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainHeights.h"
 #include "Render/ModelBatch.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Pass3D.h"
 #include "Render/SpriteVertex.h"
 #include "Render/TextureSlot.h"
@@ -25,12 +25,12 @@
 // adelantar el RNG, los cambios de los efectos ni el reloj que usó el último frame original.
 namespace
 {
+using Client::Crt::CrtRandom;
 using Client::Data::Terrain::TerrainHeights;
 using Client::Render::Color;
 using Client::Render::ModelBatch;
 using Client::Render::ModelBlend;
 using Client::Render::TextureSlot;
-using Client::Render::Models::CrtRandom;
 using Client::Scenes::GroundEffectFrame;
 using Client::World::GroundEffectResources;
 using Client::World::ModelEffect;

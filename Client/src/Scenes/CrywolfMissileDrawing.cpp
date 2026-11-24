@@ -1,7 +1,7 @@
 #include "Scenes/CrywolfMissileDrawing.h"
 
 #include "Core/Expected.h"
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/OriginalRotation.h"
 #include "World/ModelEffects.h"
@@ -29,7 +29,7 @@ float F32(double value)
 
 Core::Expected<void, std::string> DrawCrywolfMissileTail(World::ModelEffect& effect, std::uint64_t physicalSlot,
                                                          World::Particles& particles, World::FrameSprites& sprites,
-                                                         Render::Models::CrtRandom& random,
+                                                         Crt::CrtRandom& random,
                                                          std::span<const Render::Models::BoneTransform> globalPose,
                                                          float worldClock)
 {

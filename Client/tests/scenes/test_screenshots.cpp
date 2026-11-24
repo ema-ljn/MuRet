@@ -1,8 +1,8 @@
 #include "Scenes/Screenshots.h"
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
 #include "Core/LocalTime.h"
+#include "Core/PixelSize.h"
 #include "Data/Text/TextTable.h"
 #include "Data/Textures/JpegImage.h"
 #include "Input/InputState.h"
@@ -59,8 +59,8 @@ constexpr std::size_t ScreenshotText = 459;
 constexpr std::size_t FirstGroupText = 540;
 constexpr std::uint16_t ServerOfTheFirstGroup = 3;
 // La captura de un lienzo chico; el chat mide con la pantalla de 640 × 480, la de sus cortes.
-constexpr Client::App::PixelSize SmallScreen{.width = 8, .height = 6};
-constexpr Client::App::PixelSize ChatScreen{.width = 640, .height = 480};
+constexpr Client::Core::PixelSize SmallScreen{.width = 8, .height = 6};
+constexpr Client::Core::PixelSize ChatScreen{.width = 640, .height = 480};
 
 // Tres píxeles por letra: los mensajes de los tests entran en un renglón del registro (UI::ChatWrapWidth).
 class LetterMeasure final : public ITextMeasure
@@ -82,7 +82,7 @@ public:
     {
     }
 
-    [[nodiscard]] std::vector<std::uint8_t> ReadTheScreen(Client::App::PixelSize screen) override
+    [[nodiscard]] std::vector<std::uint8_t> ReadTheScreen(Client::Core::PixelSize screen) override
     {
         reads.push_back(Read{.screen = screen,
                              .chatEntries = m_world.Runtime().chat.log.entries.size(),
@@ -94,7 +94,7 @@ public:
 
     struct Read
     {
-        Client::App::PixelSize screen{};
+        Client::Core::PixelSize screen{};
         std::size_t chatEntries = 0;
         std::vector<FrameEvent> events;
     };

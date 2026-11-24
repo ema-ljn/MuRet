@@ -1,12 +1,12 @@
 #include "Scenes/JewelBundleList.h"
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Core/PixelSize.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Text/TextTable.h"
 #include "Input/InputEvent.h"
 #include "Input/InputState.h"
 #include "Input/Key.h"
-#include "Render/Models/Cloth.h"
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
 #include "Render/Text/FontSet.h"
@@ -40,9 +40,9 @@
 // Textos inventados; el mundo, en Lorencia (0), Devias (2) y Noria (3).
 namespace
 {
+using Client::Crt::CrtRandom;
 using Client::Input::InputEvent;
 using Client::Input::Key;
-using Client::Render::Models::CrtRandom;
 using Client::Scenes::JewelBundleList;
 using Client::Scenes::WorldState;
 
@@ -389,7 +389,7 @@ public:
     explicit DrawingTheList(std::int32_t map)
     {
         world->Runtime().map = map;
-        sprites.Begin(Client::App::PixelSize{640, 480});
+        sprites.Begin(Client::Core::PixelSize{640, 480});
     }
 
     Client::Core::Expected<void, std::string> Draw(bool projecting = false, bool withTexts = true)

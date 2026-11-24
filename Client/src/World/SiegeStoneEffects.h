@@ -11,9 +11,13 @@
 #include <span>
 #include <string>
 
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
+} // namespace Client::Crt
+
+namespace Client::Render::Models
+{
 struct Skeleton;
 } // namespace Client::Render::Models
 
@@ -48,7 +52,7 @@ struct SiegeStoneStepServices
 // 5208a0, 527c62..5290: vuelo/contacto nativo y epílogo, sin51fc80 genérico.
 [[nodiscard]] Core::Expected<void, std::string> StepSiegeStone(ModelEffect& effect,
                                                                const Render::Models::Skeleton* skeleton,
-                                                               Particles& particles, Render::Models::CrtRandom& random,
+                                                               Particles& particles, Crt::CrtRandom& random,
                                                                const SiegeStoneStepServices& services);
 
 inline constexpr std::int16_t SiegeStoneEffect = 0x12b;
@@ -58,5 +62,5 @@ inline constexpr std::int16_t SiegeIceStoneEffect = 0x12c;
 // 0x51cfa4 y0x51d1f0, después del prefijo518cf0. Lleno es éxito siníndice y sinCRT.
 [[nodiscard]] Core::Expected<std::optional<std::size_t>, std::string>
 CreateSiegeStone(const ModelEffectArguments& arguments, ModelEffects& effects, const glm::vec3& heroPosition,
-                 Render::Models::CrtRandom& random);
+                 Crt::CrtRandom& random);
 } // namespace Client::World

@@ -16,12 +16,16 @@ namespace Client::Data::Terrain
 struct TerrainHeights;
 }
 
+namespace Client::Crt
+{
+class CrtRandom;
+} // namespace Client::Crt
+
 namespace Client::Render
 {
 class ModelBatch;
 namespace Models
 {
-class CrtRandom;
 struct Skeleton;
 } // namespace Models
 } // namespace Client::Render
@@ -49,7 +53,7 @@ struct KalimaSiegeHelperPass
     // El personaje y el objeto (+0x8 y +0xc de 0x43c150): el mismo registro, o su copia entre frames del original.
     ActorState& actor;
     // El rand() de la CRT del dibujo (o su copia entre frames).
-    Render::Models::CrtRandom& random;
+    Crt::CrtRandom& random;
     World::FrameSprites* sprites = nullptr;
     World::Particles* particles = nullptr;
     std::span<JointState> joints{};

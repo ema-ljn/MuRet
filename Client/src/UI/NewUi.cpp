@@ -1,6 +1,6 @@
 #include "UI/NewUi.h"
 
-#include "App/WindowState.h"
+#include "Core/PixelSize.h"
 #include "Input/InputState.h"
 #include "Input/Key.h"
 #include "UI/Widget.h"
@@ -39,7 +39,7 @@ bool Intersect(const Rect& a, const Rect& b)
 }
 } // namespace
 
-std::optional<Point> MouseOfTheTurn(NewUiTurn turn, const Input::InputState& input, App::PixelSize screen)
+std::optional<Point> MouseOfTheTurn(NewUiTurn turn, const Input::InputState& input, Core::PixelSize screen)
 {
     if (!turn.mouse)
     {
@@ -48,14 +48,14 @@ std::optional<Point> MouseOfTheTurn(NewUiTurn turn, const Input::InputState& inp
     return MouseInPixels(input, screen);
 }
 
-bool NewUiWindow::Hit(WindowHit hit, Point mouse, App::PixelSize screen) const
+bool NewUiWindow::Hit(WindowHit hit, Point mouse, Core::PixelSize screen) const
 {
     return hit != WindowHit::Title && HitTheBounds(*this, hit, mouse, screen);
 }
 
-void NewUiWindow::PlaceAt(Point /*topLeft*/, App::PixelSize /*screen*/) {}
+void NewUiWindow::PlaceAt(Point /*topLeft*/, Core::PixelSize /*screen*/) {}
 
-bool HitTheBounds(const NewUiWindow& window, WindowHit hit, Point mouse, App::PixelSize screen)
+bool HitTheBounds(const NewUiWindow& window, WindowHit hit, Point mouse, Core::PixelSize screen)
 {
     if (!window.IsOpen())
     {
@@ -148,7 +148,7 @@ void NewUi::MoveToTheTail(NewUiWindow& window)
     }
 }
 
-void NewUi::Step(const Input::InputState& input, App::PixelSize screen, const StepWindow& step,
+void NewUi::Step(const Input::InputState& input, Core::PixelSize screen, const StepWindow& step,
                  const std::function<void()>& buttonClicked)
 {
     if (m_mode == NewUiMode::None || m_entries.empty())
@@ -243,7 +243,7 @@ void NewUi::Step(const Input::InputState& input, App::PixelSize screen, const St
     }
 }
 
-void NewUi::Drag(Entry& entry, const Input::InputState& input, Point mouse, App::PixelSize screen)
+void NewUi::Drag(Entry& entry, const Input::InputState& input, Point mouse, Core::PixelSize screen)
 {
     // 0x669fb8: apretado en el título, empieza desde donde está.
     if (input.WasPressed(Input::MouseButton::Left) && entry.window->Hit(WindowHit::Title, mouse, screen))
@@ -268,7 +268,7 @@ void NewUi::Drag(Entry& entry, const Input::InputState& input, Point mouse, App:
     entry.dragFrom = mouse;
 }
 
-bool NewUi::StickAt(Entry& entry, Point at, App::PixelSize screen)
+bool NewUi::StickAt(Entry& entry, Point at, Core::PixelSize screen)
 {
     // 0x65fbb0: solo si queda algo adentro de la pantalla.
     const Rect bounds = entry.window->Bounds(screen);
@@ -282,7 +282,7 @@ bool NewUi::StickAt(Entry& entry, Point at, App::PixelSize screen)
     return true;
 }
 
-void NewUi::StickTheDragged(App::PixelSize screen)
+void NewUi::StickTheDragged(Core::PixelSize screen)
 {
     // 0x65f720: solo la cabeza, y arrastrándose.
     if (m_entries.empty() || !m_entries.front().dragging)

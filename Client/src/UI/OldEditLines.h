@@ -1,6 +1,6 @@
 #pragma once
 
-#include "App/WindowState.h"
+#include "Core/PixelSize.h"
 #include "Render/Text/FontSet.h"
 #include "UI/OldControls.h"
 
@@ -33,7 +33,7 @@ inline constexpr std::int32_t EditTextMargin = 3;
 // "1" (0x6c7af0) en el DC; y el ancho del área del texto: el de la ventana, ftol((w + ftol(−5 · rx)) · rx), menos su
 // barra de Windows.
 void MakeTheEditMultiline(OldEdit& edit, const Render::Text::ITextMeasure& measure, Render::Text::FontKind dcFont,
-                          App::PixelSize screen);
+                          Core::PixelSize screen);
 
 // Los renglones del EDIT: uno solo sin +0xc4; con +0xc4 en 1, cortados en cada "\r\n" y, donde no entran en el ancho
 // del área del texto, en el último espacio que entra (los espacios de más quedan en el renglón) o, sin espacio, en la

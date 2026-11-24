@@ -1,7 +1,7 @@
 #include "Scenes/FloorItemNames.h"
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Core/PixelSize.h"
 #include "Data/Tables/ItemTable.h"
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
@@ -448,7 +448,7 @@ Core::Expected<void, std::string> DrawTheFloorItemName(GameHudContext& context, 
         return Core::Unexpected(name.Error());
     // 0x5bb811..0x5bb894: GetTextExtentPointA con la fuente del DC; la mitad de cx con signo (CDQ, SUB y SAR), por
     // 640 y por W sin signo; 0x554180(x − eso, y − 15, texto, 0, 0, 3).
-    const App::PixelSize screen = context.sprites.Screen();
+    const Core::PixelSize screen = context.sprites.Screen();
     const Render::Text::TextExtent extent = context.text.Measure(hud.dcFont, name.Value());
     const std::int32_t x = atTheItem ? item.screenX : context.mouse.x;
     const std::int32_t y = atTheItem ? item.screenY : context.mouse.y;

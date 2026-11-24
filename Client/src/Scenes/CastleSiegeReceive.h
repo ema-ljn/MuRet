@@ -1,7 +1,7 @@
 #pragma once
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Core/PixelSize.h"
 #include "Protocol/CastleSiege.h"
 #include "Protocol/Outgoing.h"
 
@@ -20,7 +20,7 @@ namespace Client::Data::Text
 class TextTable;
 }
 
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
 }
@@ -46,12 +46,12 @@ struct CastleReceiveContext
 {
     WorldState& world;
     // El rand() de la CRT: lo que abre el B2 00 (0x6599a0) pasa por el registro de los paneles.
-    Render::Models::CrtRandom& random;
+    Crt::CrtRandom& random;
     // Lo que se descarta (un registro que caería fuera de 0x7d5c504..0x7d5c658, Q-C1360) queda en el log.
     Core::Log& log;
     // Con qué se miden los mensajes (0x555190); sin medidor, lo que muestra uno corta con error.
     const Render::Text::ITextMeasure* measure = nullptr;
-    App::PixelSize screen{640, 480};
+    Core::PixelSize screen{640, 480};
     // Text.bmd: 860, 1386, 1500..1527, 1609 y 1616.
     const Data::Text::TextTable* texts = nullptr;
     CastleSender send{};

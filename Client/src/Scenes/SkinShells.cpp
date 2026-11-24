@@ -2,10 +2,10 @@
 
 #include "Core/Expected.h"
 #include "Core/IClock.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Models/Model.h"
 #include "Data/Models/PlayerModels.h"
 #include "Render/ModelBatch.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/IModelLibrary.h"
 #include "Render/Models/OriginalRotation.h"
@@ -41,7 +41,7 @@ constexpr float VisibleAlpha = 0.01f;               // 0x6b88d4, el de 0x5ffdf0
 
 Core::Expected<void, std::string> ShedTheSkinShells(ActorState& owner, std::int32_t subtype,
                                                     const Render::Models::IModelLibrary& models, WorldState& world,
-                                                    World::ModelEffects& effects, Render::Models::CrtRandom& random)
+                                                    World::ModelEffects& effects, Crt::CrtRandom& random)
 {
     constexpr std::uint16_t Shadow = Data::Models::PlayerShadowModel;
     const Data::Models::Model* model = models.Find(Shadow);

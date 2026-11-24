@@ -1,7 +1,7 @@
 #include "Scenes/GuildMarkEffects.h"
 
 #include "Core/Expected.h"
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "Render/Models/OriginalRetainedMath.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/HighEffectEmitters.h"
@@ -102,7 +102,7 @@ Core::Expected<void, std::string> SparkTheMark(const World::ModelEffect& effect,
 
 Core::Expected<void, std::string> BeginTheGuildMark(World::ModelEffect& effect, std::size_t slot,
                                                     const ActorState& owner, const glm::vec3& bonePoint,
-                                                    World::Particles& particles, Render::Models::CrtRandom& random,
+                                                    World::Particles& particles, Crt::CrtRandom& random,
                                                     float worldClock)
 {
     constexpr float Tilt = 45.0f; // 0x42340000
@@ -164,7 +164,7 @@ bool GuildMarkIsDue(const ActorState& actor, float worldClock)
 
 Core::Expected<void, std::string> RaiseTheGuildMark(ActorState& actor, const glm::vec3& bonePoint,
                                                     World::ModelEffects& effects, World::Particles& particles,
-                                                    Render::Models::CrtRandom& random, float worldClock)
+                                                    Crt::CrtRandom& random, float worldClock)
 {
     if (!GuildMarkIsDue(actor, worldClock))
         return {};

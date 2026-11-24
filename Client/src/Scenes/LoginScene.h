@@ -9,8 +9,8 @@
 
 #include "App/ServerSession.h"
 #include "App/SessionState.h"
-#include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Core/PixelSize.h"
 #include "Data/Text/TextTable.h"
 #include "GameLogic/CharacterAppearance.h"
 #include "Input/InputState.h"
@@ -333,7 +333,7 @@ private:
     bool m_sawTheAddress = false;
     // La pantalla del último frame: las ventanas se ubican y leen el mouse con ella. Hasta el
     // primero, la de referencia.
-    App::PixelSize m_screen{640, 480};
+    Core::PixelSize m_screen{640, 480};
     bool m_quit = false;
 };
 } // namespace Client::Scenes

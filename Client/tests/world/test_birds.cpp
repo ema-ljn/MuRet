@@ -1,6 +1,6 @@
 #include "World/Birds.h"
 
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 
 #include <gtest/gtest.h>
 
@@ -11,7 +11,7 @@
 
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::World::BirdGlowLight;
 using Client::World::BirdStepCount;
 

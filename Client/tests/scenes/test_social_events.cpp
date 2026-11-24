@@ -3,6 +3,7 @@
 
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Tables/ItemTable.h"
 #include "Data/Text/TextTable.h"
 #include "Network/Delivery.h"
@@ -53,7 +54,7 @@
 // los casos de 0x4e2b10. Los nombres y los textos son inventados.
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::Scenes::WorldState;
 using Client::World::ItemState;
 

@@ -3,6 +3,7 @@
 
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Models/ModelTextureCalls.h"
 #include "Data/Models/ModelFiles.h"
 #include "Data/Models/Model.h"
@@ -10,7 +11,6 @@
 #include "Data/Textures/Sampling.h"
 #include "Data/Textures/Texture.h"
 #include "Render/ModelBatch.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/Skeleton.h"
 #include "Render/Models/ModelTextureSlots.h"
 #include "Data/Textures/TextureSet.h"
@@ -231,7 +231,7 @@ TEST_F(GoldenGameModels, TheBowArrowDrawsInTheSecondPassOfKalima)
     ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
 
     auto world = std::make_unique<Client::Scenes::WorldState>();
-    Client::Render::Models::CrtRandom random(1);
+    Client::Crt::CrtRandom random(1);
     const Client::World::ModelEffectArguments arguments{.type = 0xdb, .position = {100, 100, 100}, .light = {1, 1, 1}};
     const auto created = Client::Scenes::CreateTheArrowEffect(arguments, *world, random);
     ASSERT_TRUE(created.HasValue()) << created.Error();

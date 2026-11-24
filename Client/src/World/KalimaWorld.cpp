@@ -1,11 +1,11 @@
 #include "World/KalimaWorld.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Render/Models/RoundedMath.h"
 #include "World/KalimaWaves.h"
 #include "Render/ModelBatch.h"
 #include "Render/ModelVertex.h"
-#include "Render/Models/Cloth.h"
 #include "Render/SpriteVertex.h"
 #include "Render/TextureSlot.h"
 #include "World/FaceNormal.h"
@@ -114,7 +114,7 @@ struct KalimaWorld::Storage
     std::array<std::size_t, MeshIndexCount> indices{};
 
     void Perturb(std::int32_t centerX, std::int32_t centerY, std::int32_t radiusX, std::int32_t radiusY,
-                 std::int32_t amplitude, Render::Models::CrtRandom& random)
+                 std::int32_t amplitude, Crt::CrtRandom& random)
     {
         if (centerX < 0)
             centerX = random.Next() % (WaveSide - 1 - radiusX * 2) + radiusX + 1;
@@ -339,7 +339,7 @@ Core::Expected<void, std::string> KalimaWorld::Draw(Render::ModelBatch& batch, s
 }
 
 Core::Expected<void, std::string> KalimaWorld::Disturb(std::int32_t tileX, std::int32_t tileY, std::int32_t radius,
-                                                       std::int32_t amplitude, Render::Models::CrtRandom& random)
+                                                       std::int32_t amplitude, Crt::CrtRandom& random)
 {
     if (radius <= 0 || radius > (WaveSide - 2) / 2 || tileX < -WaveSide || tileY < -WaveSide || tileX >= WaveSide ||
         tileY >= WaveSide)

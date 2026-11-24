@@ -1,7 +1,7 @@
 #include "UI/ChatLog.h"
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Core/PixelSize.h"
 #include "Render/ScreenScale.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
@@ -55,7 +55,7 @@ int Truncate(double value)
 }
 
 // rx (0x5762ea8): W / 640 en float. Sin pantalla, 1.
-double RatioX(App::PixelSize screen)
+double RatioX(Core::PixelSize screen)
 {
     return screen.width > 0 ? static_cast<double>(Render::ScaleX(1.0f, screen)) : 1.0;
 }
@@ -222,7 +222,7 @@ void ClearTheLog(ChatLogState& log, ChatModes modes)
 }
 
 Core::Expected<WrappedText, std::string> WrapByWidth(std::string_view text, const Render::Text::ITextMeasure& measure,
-                                                     Render::Text::FontKind font, App::PixelSize screen, int width,
+                                                     Render::Text::FontKind font, Core::PixelSize screen, int width,
                                                      int lines, int indent)
 {
     WrappedText wrapped;

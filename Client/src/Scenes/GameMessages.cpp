@@ -1,7 +1,7 @@
 #include "Scenes/GameMessages.h"
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Core/PixelSize.h"
 #include "Render/SpriteBatch.h"
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Scenes/ActorState.h"
@@ -29,7 +29,7 @@ std::string_view HeroNameOf(const ActorState& hero)
     return {reinterpret_cast<const char*>(hero.name.data()), size};
 }
 
-UI::MessageSink MessageSinkOf(WorldRuntime& runtime, const Render::Text::ITextMeasure& measure, App::PixelSize screen)
+UI::MessageSink MessageSinkOf(WorldRuntime& runtime, const Render::Text::ITextMeasure& measure, Core::PixelSize screen)
 {
     ChatRuntime& chat = runtime.chat;
     return UI::MessageSink{.log = chat.log,
@@ -41,7 +41,7 @@ UI::MessageSink MessageSinkOf(WorldRuntime& runtime, const Render::Text::ITextMe
 }
 
 Core::Expected<void, std::string> AddGameMessage(WorldRuntime& runtime, const Render::Text::ITextMeasure& measure,
-                                                 App::PixelSize screen, std::string_view name, std::string_view text,
+                                                 Core::PixelSize screen, std::string_view name, std::string_view text,
                                                  std::int32_t type)
 {
     auto sound = UI::AddMessage(MessageSinkOf(runtime, measure, screen), name, text, type);
@@ -60,14 +60,14 @@ Core::Expected<void, std::string> AddTheEmptyMessages(WorldRuntime& runtime, con
     // los 20 bytes del corte de 0x45bb20.
     for (std::size_t i = 0; i < UI::MessageAreaRows; ++i)
     {
-        if (auto added = AddGameMessage(runtime, *measure, App::PixelSize{640, 480}, {}, {}, 0); !added.HasValue())
+        if (auto added = AddGameMessage(runtime, *measure, Core::PixelSize{640, 480}, {}, {}, 0); !added.HasValue())
             return added;
     }
     return {};
 }
 
 Core::Expected<void, std::string> StepTheMessageClocks(WorldRuntime& runtime, const Render::Text::ITextMeasure& measure,
-                                                       App::PixelSize screen)
+                                                       Core::PixelSize screen)
 {
     UI::StepTheNoticeClock(runtime.chat.area, measure, runtime.hud.dcFont);
     auto sound = UI::StepTheMessageClock(MessageSinkOf(runtime, measure, screen));

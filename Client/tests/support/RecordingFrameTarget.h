@@ -1,7 +1,7 @@
 #pragma once
 
-#include "App/WindowState.h"
 #include "Core/IClock.h"
+#include "Core/PixelSize.h"
 #include "Render/Frame/SceneWorld.h"
 #include "Render/ModelBatch.h"
 #include "Render/ModelVertex.h"
@@ -73,7 +73,7 @@ struct RecordedFrame
 class RecordingFrameTarget final : public Scenes::IFrameTarget
 {
 public:
-    explicit RecordingFrameTarget(App::PixelSize screen = {.width = 640, .height = 480})
+    explicit RecordingFrameTarget(Core::PixelSize screen = {.width = 640, .height = 480})
         : m_screen(screen), m_text(m_sprites),
           m_world([this](Render::Frame::SceneWorld world, const Render::Pass3D& pass, float alpha)
                   { RecordWorld(world, pass, alpha); })
@@ -128,7 +128,7 @@ public:
     }
 
     // El área de dibujo de los frames que siguen, como cuando cambia la ventana.
-    void SetScreen(App::PixelSize screen)
+    void SetScreen(Core::PixelSize screen)
     {
         m_screen = screen;
     }
@@ -244,7 +244,7 @@ private:
         frames.back().events.push_back(event);
     }
 
-    App::PixelSize m_screen;
+    Core::PixelSize m_screen;
     Render::SpriteBatch m_sprites;
     Render::ModelBatch m_models;
     RecordingTextDrawer m_text;

@@ -1,6 +1,6 @@
 #include "World/ColoredDecals.h"
 
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "World/ModelEffects.h"
 
 #include <bit>
@@ -19,7 +19,7 @@ float F32(double value)
 }
 
 // 0x51ef79..0x51ef9d y 0x51eedd..0x51ef09: fild de rand() % 50 + 50, por 0,04f (0x6b8acc) y fstp.
-float GrownScale(Render::Models::CrtRandom& random)
+float GrownScale(Crt::CrtRandom& random)
 {
     constexpr int ScaleSpan = 50, ScaleBase = 50;
     constexpr double ScaleStep = static_cast<double>(std::bit_cast<float>(0x3d23d70au)); // 0x6b8acc, 0,04f
@@ -27,7 +27,7 @@ float GrownScale(Render::Models::CrtRandom& random)
 }
 } // namespace
 
-void BeginColoredDecal(ModelEffect& effect, Render::Models::CrtRandom& random)
+void BeginColoredDecal(ModelEffect& effect, Crt::CrtRandom& random)
 {
     constexpr std::int32_t PlainLife = 20;                            // 0x51eebb
     constexpr std::int32_t PulsingLife = 40;                          // 0x51ef79
@@ -67,7 +67,7 @@ void BeginColoredDecal(ModelEffect& effect, Render::Models::CrtRandom& random)
 }
 
 std::optional<std::size_t> CreateColoredDecal(std::span<ModelEffect> table, const ModelEffectArguments& arguments,
-                                              Render::Models::CrtRandom& random)
+                                              Crt::CrtRandom& random)
 {
     const auto slot = BeginModelEffect(table, arguments);
     if (slot.has_value())

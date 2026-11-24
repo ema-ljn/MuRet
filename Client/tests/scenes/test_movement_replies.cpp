@@ -1,6 +1,7 @@
 #include "Render/Models/IModelLibrary.h"
 #include "Scenes/MovementReplies.h"
 
+#include "Crt/CrtRandom.h"
 #include "Render/Models/LogicalAccess.h"
 
 #include "Core/Expected.h"
@@ -344,7 +345,7 @@ TEST(MovementRepliesTest, ShockSoundClassesPreserveTheirDistinctRandomCounts)
         tested.Hero().characterClass = characterClass;
         tested.world.Runtime().ownRecordDepth = 1;
         const auto seed = Client::Tests::FirstSeedWhere([](auto& random) { return random.Next() % 5 == 0; });
-        tested.cloth.random = Client::Render::Models::CrtRandom(seed);
+        tested.cloth.random = Client::Crt::CrtRandom(seed);
         ASSERT_TRUE(
             Client::Scenes::ApplyDamageReply(Client::Protocol::Movement::Damage{Replies::PlayerKey, true, 10, 0, false},
                                              Replies::PlayerKey, tested.Resources())
@@ -484,7 +485,7 @@ TEST(MovementRepliesTest, JumpingActorAimsAtTheCellCornerWithoutMovingItsVisible
                 static_cast<void>(random.Next());
             return (random.Next() & 15) != 0;
         });
-    tested.cloth.random = Client::Render::Models::CrtRandom(seed);
+    tested.cloth.random = Client::Crt::CrtRandom(seed);
     const Client::Scenes::WorldEntryResources resources{tested.world,  tested.selection, {},     tested.cloth,
                                                         tested.camera, tested.input,     models, nullptr,
                                                         nullptr,       tested.log};
@@ -524,7 +525,7 @@ TEST(MovementRepliesTest, TheJumpingMonsterTakesTheActionsOfItsLoadedModel)
                     static_cast<void>(random.Next());
                 return (random.Next() & 15) != 0;
             });
-        tested->cloth.random = Client::Render::Models::CrtRandom(seed);
+        tested->cloth.random = Client::Crt::CrtRandom(seed);
         const auto result = Client::Scenes::ApplyWalkReply(Client::Protocol::Movement::Walk{44, {30, 31}, 15},
                                                            Replies::PlayerKey, tested->Resources());
         tested->world.FaunaResources().Bind(nullptr);

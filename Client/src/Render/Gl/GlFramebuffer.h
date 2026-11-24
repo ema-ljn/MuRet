@@ -1,7 +1,7 @@
 #pragma once
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Core/PixelSize.h"
 #include "Platform/GlLoader.h"
 #include "Render/Gl/GlName.h"
 
@@ -39,7 +39,7 @@ public:
     [[nodiscard]] int Width() const;
     [[nodiscard]] int Height() const;
     // El tamaño, como la pantalla que recibe GlRenderer::Draw.
-    [[nodiscard]] App::PixelSize Size() const;
+    [[nodiscard]] Core::PixelSize Size() const;
 
     // glReadPixels de todo el framebuffer: las filas van desde la de abajo, como las da GL.
     [[nodiscard]] std::vector<Rgba8> ReadPixels() const;

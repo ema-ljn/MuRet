@@ -1,12 +1,12 @@
 #include "Scenes/ItemTooltips.h"
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Core/PixelSize.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Tables/ItemSetTables.h"
 #include "Data/Tables/ItemTable.h"
 #include "Data/Tables/SkillTable.h"
 #include "Data/Text/TextTable.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/SpriteBatch.h"
 #include "Scenes/ActorState.h"
@@ -49,15 +49,15 @@
 // registro propio alrededor como 0x5f7bc0: su cierre gasta 3.848 rand().
 namespace
 {
+using Client::Crt::CrtRandom;
 using Client::Render::SpriteBatch;
-using Client::Render::Models::CrtRandom;
 using Client::Render::Models::OwnRecordCloseRandoms;
 using Client::Scenes::GameHudContext;
 using Client::Scenes::TooltipLines;
 using Client::Scenes::WorldState;
 using Client::World::ItemState;
 
-constexpr Client::App::PixelSize Screen640{640, 480};
+constexpr Client::Core::PixelSize Screen640{640, 480};
 // Un acceso de Skill.bmd que cierra en 0 (0x3c bytes) y el IsOpen(0x10000) del precio (un byte protegido).
 constexpr int SkillAccess = 60;
 constexpr int NpcShopQuery = 1;

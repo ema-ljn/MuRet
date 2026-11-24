@@ -1,5 +1,5 @@
 #include "Core/Expected.h"
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "Render/Models/OriginalRetainedMath.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Scenes/ActorState.h"
@@ -52,7 +52,7 @@ Core::Expected<void, std::string> CreateTheColumn(JointState& joint, const World
     return {};
 }
 
-void CreateTheWhirl(JointState& joint, const World::FishEffectRequest& request, Render::Models::CrtRandom& random)
+void CreateTheWhirl(JointState& joint, const World::FishEffectRequest& request, Crt::CrtRandom& random)
 {
     // 0x534132..0x5341f7: la mezcla 4, el ancho, la textura 0x613; vz (rand() % 150) · 0,01f, vy rand() % 500 − 250,
     // velocidad 30 y la luz (0,2f; 0,4f; 0,8f). Con el ancho de más de 10 (fcomp y test ah,0x41: ni menor, ni igual, ni
@@ -156,7 +156,7 @@ bool IsOrbit(std::int32_t type, std::int32_t subtype)
 }
 
 Core::Expected<void, std::string> CreateOrbitJoint(JointState& joint, const World::FishEffectRequest& request,
-                                                   Render::Models::CrtRandom& random)
+                                                   Crt::CrtRandom& random)
 {
     // 0x533677..0x53368e: lo común del 0x60f (vida 100, 20 puntos y ancho 10), que el subtipo pisa.
     constexpr std::int32_t Life = 100, Points = 20;

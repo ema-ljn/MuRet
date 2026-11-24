@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Core/PixelSize.h"
+
 #include <cstdint>
 
 // El estado de la ventana que mira el bucle (CL3.1): si sigue abierta, si se dibuja y su tamaño.
@@ -22,23 +24,16 @@ enum class WindowEvent : std::uint8_t
     PixelSizeChanged,
 };
 
-// El tamaño del área de dibujo, en píxeles.
-struct PixelSize
-{
-    int width = 0;
-    int height = 0;
-};
-
 struct WindowState
 {
     bool running = true;
     // También cuando está tapada: no se dibuja, y la lógica sigue (CL3.2).
     bool minimized = false;
     bool focused = true;
-    PixelSize pixelSize;
+    Core::PixelSize pixelSize;
 };
 
 // Lo que cambia `event` en `state`. `size` solo cuenta con PixelSizeChanged, y uno con un lado en 0
 // o negativo no toca el tamaño: un área vacía no es un viewport.
-[[nodiscard]] WindowState Apply(WindowState state, WindowEvent event, PixelSize size = {});
+[[nodiscard]] WindowState Apply(WindowState state, WindowEvent event, Core::PixelSize size = {});
 } // namespace Client::App

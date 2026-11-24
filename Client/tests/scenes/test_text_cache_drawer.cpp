@@ -1,8 +1,8 @@
 #include "Scenes/TextCacheDrawer.h"
 
-#include "App/WindowState.h"
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
+#include "Core/PixelSize.h"
 #include "Render/SpriteBatch.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/TextCache.h"
@@ -21,9 +21,9 @@
 // sale.
 namespace
 {
-using Client::App::PixelSize;
 using Client::Core::Log;
 using Client::Core::LogLevel;
+using Client::Core::PixelSize;
 using Client::Render::SpriteBatch;
 using Client::Render::TextureSlot;
 using Client::Render::Text::FontKind;

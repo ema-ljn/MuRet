@@ -26,9 +26,13 @@ namespace Client::Render
 {
 class ModelBatch;
 }
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
+} // namespace Client::Crt
+
+namespace Client::Render::Models
+{
 class IModelLibrary;
 } // namespace Client::Render::Models
 namespace Client::World
@@ -166,7 +170,7 @@ struct JointState
 
 struct JointDrawResources
 {
-    Render::Models::CrtRandom& random;
+    Crt::CrtRandom& random;
     World::FrameSprites& sprites;
     bool originalFrame = true;
     float worldClock = 0; // 53c8ee: ftol firmado, resto1000 y scroll de UV.
@@ -250,8 +254,8 @@ struct ModelEffectDrawResources
     World::FrameSprites* sprites = nullptr;
     World::TerrainLighting* dynamicLighting = nullptr;
     World::ITerrainAttributeQuerySource* attributes = nullptr;
-    bool siegeActive = false;                    // 4294b0 lee7239ec; no es un test de mapa.
-    Render::Models::CrtRandom* random = nullptr; // 607b60 sólo sortea los casos que lo necesitan.
+    bool siegeActive = false;         // 4294b0 lee7239ec; no es un test de mapa.
+    Crt::CrtRandom* random = nullptr; // 607b60 sólo sortea los casos que lo necesitan.
     const ItemDrawContext* itemContext = nullptr;
     const GameObjectPass* kalimaPass = nullptr;
     // 0x5ffdff..0x5ffe24: +0x1a1 del héroe (0x743a170), que 0x5ffdf0 lee en los mapas 18 a 23 (el de `kalimaPass`), y

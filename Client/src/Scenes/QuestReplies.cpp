@@ -2,8 +2,8 @@
 
 #include "Core/Expected.h"
 #include "Core/Log.h"
+#include "Crt/CrtRandom.h"
 #include "Protocol/Quest.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActorActions.h"
 #include "Scenes/ActorState.h"
@@ -81,7 +81,7 @@ Core::Expected<void, std::string> CreateThePrizeSparkles(ActorState& actor, cons
     glm::vec3 raised = actor.position;
     raised.z = static_cast<float>(static_cast<double>(actor.position.z) + Raise);
     std::span<JointState> joints = resources.world.DrawTail().joints;
-    Render::Models::CrtRandom& random = resources.cloth.random;
+    Crt::CrtRandom& random = resources.cloth.random;
     for (int round = 0; round < Rounds; ++round)
     {
         const World::FishEffectRequest sparkle{.type = SparkleJoint,

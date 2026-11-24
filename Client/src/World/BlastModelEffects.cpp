@@ -1,10 +1,10 @@
 #include "World/BlastModelEffects.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainGrid.h"
 #include "Render/Models/Animation.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/OriginalRetainedMath.h"
 #include "Render/Models/OriginalRotation.h"
@@ -35,7 +35,7 @@ namespace Client::World
 {
 namespace
 {
-using Render::Models::CrtRandom;
+using Crt::CrtRandom;
 
 constexpr std::int16_t ProtectionEffect = 0xe4;     // Protect1
 constexpr std::int16_t FirstBigStoneEffect = 0xe5;  // BigStone1

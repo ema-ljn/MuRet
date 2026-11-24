@@ -1,7 +1,7 @@
 #include "World/SmokeParticleKernels.h"
 
 #include "Core/Expected.h"
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "World/ParticleOwner.h"
 #include "World/Particles.h"
 #include "World/PortableParticleTrigonometry.h"
@@ -27,7 +27,7 @@
 // rand() contados contra Client::Tests::AfterDraws.
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Blend = Client::Tests::RecordedParticleDraw::Blend;
 using Client::Tests::AfterDraws;
 using Client::World::Particle;

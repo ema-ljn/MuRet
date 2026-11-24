@@ -5,6 +5,7 @@
 #include "Core/ILogSink.h"
 #include "Core/Expected.h"
 #include "Core/Log.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Models/PlayerModels.h"
 #include "Data/Tables/ItemSetTables.h"
 #include "Data/Tables/ItemTable.h"
@@ -668,7 +669,7 @@ TEST(WorldTransitionsTest, TransitionClosersKeepSeniorBusyAsALocalWarningWithout
     auto resources = tested->Resources();
     resources.textMeasure = &letters;
     resources.texts = &texts;
-    Client::Render::Models::CrtRandom setupRandom(1);
+    Client::Crt::CrtRandom setupRandom(1);
     Client::Scenes::ClearSelectionInventory(tested->world, setupRandom);
     auto& runtime = tested->world.Runtime();
     runtime.panels.delegated.castleSiegeList = 1;

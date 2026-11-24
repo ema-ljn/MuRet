@@ -6,9 +6,9 @@
 #include "App/ServerAddress.h"
 #include "App/ServerSession.h"
 #include "App/SessionState.h"
-#include "App/WindowState.h"
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
+#include "Core/PixelSize.h"
 #include "Data/WorldFolder.h"
 #include "Input/InputState.h"
 #include "Network/Connection.h"
@@ -75,13 +75,13 @@
 // test_login_scene_session.cpp. Los textos son inventados: los de Text.bmd no van a los tests.
 namespace
 {
-using Client::App::PixelSize;
 using Client::App::ServerAddress;
 using Client::App::ServerSession;
 using Client::App::SessionSettings;
 using Client::App::SessionState;
 using Client::Core::Log;
 using Client::Core::LogLevel;
+using Client::Core::PixelSize;
 using Client::Input::InputState;
 using Client::Network::Connection;
 using Client::Network::IdentityObfuscation;
@@ -465,7 +465,7 @@ TEST(LoginSceneTest, TheModelsGetThePassOfTheLoginCamera)
     ASSERT_EQ(events[3].kind, Kind::Models);
     ASSERT_TRUE(events[3].pass.has_value());
     const Client::Render::Pass3D expected = Client::Render::MakePass3D(
-        Client::App::PixelSize{640, 480}, Client::Scenes::WorldViewport, Client::Scenes::LoginCamera());
+        Client::Core::PixelSize{640, 480}, Client::Scenes::WorldViewport, Client::Scenes::LoginCamera());
     EXPECT_EQ(events[3].pass->viewport, glm::ivec4(0, 25, 640, 430));
     EXPECT_EQ(events[3].pass->projection, expected.projection);
     EXPECT_EQ(events[3].pass->view, expected.view);

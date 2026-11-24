@@ -10,7 +10,7 @@
 #include <functional>
 #include <string>
 
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
 }
@@ -171,7 +171,7 @@ struct PanelState
 // Lo que las funciones del registro leen de afuera.
 struct PanelContext
 {
-    Render::Models::CrtRandom& random;
+    Crt::CrtRandom& random;
     DialogState& dialogs;
     // 0x6c9dd0: CanOpen no abre ni los amigos ni los comandos en Chaos Castle (18 a 23).
     std::int32_t map = -1;

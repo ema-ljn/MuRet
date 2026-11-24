@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Scenes/ActorCombat.h"
 #include "Scenes/HeroSkills.h"
 
@@ -37,5 +38,5 @@ struct ActorState;
 
 // La celda lógica del personaje (+0x41c o +0x420) abierta, leída y cerrada: 4 rand() si su cuenta vuelve a 0 (0x40b570
 // y 0x412890 o 0x40b800, 0x412810 y 0x4e7e40 en línea).
-[[nodiscard]] std::uint8_t ReadTheSkillCell(std::uint8_t& depth, std::uint8_t cell, Render::Models::CrtRandom& random);
+[[nodiscard]] std::uint8_t ReadTheSkillCell(std::uint8_t& depth, std::uint8_t cell, Crt::CrtRandom& random);
 } // namespace Client::Scenes

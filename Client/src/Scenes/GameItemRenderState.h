@@ -6,7 +6,7 @@
 #include <cstdint>
 #include <map>
 
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
 }
@@ -21,6 +21,6 @@ struct GameItemRenderState
     std::map<std::uint16_t, std::int32_t> selections{}; // +c0 de cada BMD.
     glm::vec2 specialPulse{0.5f, 0.01f};                // 006c9de4/006c9de8, distinto del pulso de639470.
 };
-void InitializeGameItemRenderState(GameItemRenderState& state, Render::Models::CrtRandom& random);
+void InitializeGameItemRenderState(GameItemRenderState& state, Crt::CrtRandom& random);
 void UpdateGameItemGlowPulse(GameItemRenderState& state, float worldClock);
 } // namespace Client::Scenes

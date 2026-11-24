@@ -2,6 +2,7 @@
 #include "Scenes/EventPackets.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Models/Model.h"
 #include "Data/Models/PlayerModels.h"
 #include "Data/Tables/ItemTable.h"
@@ -16,7 +17,6 @@
 #include "Network/Packet.h"
 #include "Protocol/Events.h"
 #include "Protocol/Outgoing.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/Skeleton.h"
 #include "Render/Text/FontSet.h"
@@ -68,7 +68,7 @@
 namespace
 {
 namespace Events = Client::Protocol::Events;
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::Scenes::EventMapKind;
 using Client::Scenes::EventMapObject;
 using Client::Scenes::EventPacketContext;

@@ -1,8 +1,8 @@
 #include "Scenes/FloorItemActions.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Tables/ItemTable.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/RayPicking.h"
 #include "Scenes/FloorItemPackets.h"
 #include "Scenes/GameDrawTail.h"

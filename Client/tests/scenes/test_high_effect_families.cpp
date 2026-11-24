@@ -1,7 +1,7 @@
 #include "Scenes/HighModelEffects.h"
 
 #include "Core/Expected.h"
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/OriginalAngles.h"
 #include "Render/Models/OriginalRetainedMath.h"
@@ -54,7 +54,7 @@
 // Scenes/MeteorEffects. 06, "Los efectos con modelo de los tipos altos".
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::Scenes::ActorState;
 using Client::Scenes::CreateHighModelEffect;
 using Client::Scenes::HighEffectContext;

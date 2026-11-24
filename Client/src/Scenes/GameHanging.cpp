@@ -1,10 +1,10 @@
 #include "Scenes/GameHanging.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Models/PlayerModels.h"
 #include "Render/Models/Animation.h"
 #include "Render/Models/Attachment.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/ObjectState.h"
@@ -114,7 +114,7 @@ double D(float value)
 }
 
 // rand() % n como el IDIV del original: rand() no es negativo.
-int Mod(Render::Models::CrtRandom& random, int n)
+int Mod(Crt::CrtRandom& random, int n)
 {
     return random.Next() % n;
 }
@@ -250,7 +250,7 @@ glm::vec3 OriginOf(const BoneTransform& parent, const glm::vec3& offset, const A
 Result ItemSprites(const Frame& frame, std::int32_t model, const glm::vec3& origin)
 {
     ActorState& actor = frame.actor;
-    Render::Models::CrtRandom& random = frame.pass.random;
+    Crt::CrtRandom& random = frame.pass.random;
     const double clock = D(frame.pass.worldClock);
     // [ebp+0x28]: (rand() % 30 + 70) · 0,005, aun en los modelos sin caso.
     const float l = F32(D(static_cast<float>(Mod(random, 30) + 70)) * D(0.005f));
@@ -913,7 +913,7 @@ Result HandSprites(const Frame& frame, const ActorItemPart& part, glm::vec3 ligh
 {
     const double clock = D(frame.pass.worldClock);
     const float lum = frame.lum;
-    Render::Models::CrtRandom& random = frame.pass.random;
+    Crt::CrtRandom& random = frame.pass.random;
     // 0x50f195 y 0x50f3f9: 0x5092d0 con [ebp−0x14], el modelo del tipo.
     const glm::vec3 position = frame.ModelOrigin();
     const auto at = [&](const glm::vec3& offset) { return frame.BodyPoint(part.bone, offset); };

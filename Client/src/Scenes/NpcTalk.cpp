@@ -1,6 +1,7 @@
 #include "Scenes/NpcTalk.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Models/PlayerModels.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Render/Models/LogicalAccess.h"
@@ -70,7 +71,7 @@ bool IsACrywolfAltar(const ActorState& npc)
 
 // Un C3 de la llegada: el rand() del relleno (0x567788, 0x56923b) y el serial (0x5767913) por la tabla de
 // protección, que se vuelve a cifrar con otro al cerrarse.
-void DrawTheC3Randoms(Render::Models::CrtRandom& random)
+void DrawTheC3Randoms(Crt::CrtRandom& random)
 {
     static_cast<void>(random.Next());
     std::uint8_t serialDepth = 0;

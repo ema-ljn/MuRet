@@ -1,9 +1,9 @@
 #include "Scenes/HelperTable.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Models/PlayerModels.h"
 #include "Render/Models/Animation.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/OriginalRetainedMath.h"
 #include "Render/Models/OriginalRotation.h"
@@ -163,7 +163,7 @@ Core::Expected<void, std::string> RaiseTheIcarusDust(const HelperState& helper, 
     constexpr float Reach = 120.0f;                                                 // 0x44419f
     constexpr double Drop = static_cast<double>(std::bit_cast<float>(0x42000000u)); // 0x6b883c: 32.
     constexpr int LiftSpread = 64, WaveSpread = 16, WaveCentre = 8;
-    Render::Models::CrtRandom& random = context.random;
+    Crt::CrtRandom& random = context.random;
     const int lift = random.Next() % LiftSpread;
     const glm::vec3 offset(Reach, 0.0f, F32(static_cast<double>(lift) - Drop));
     const std::optional<std::size_t> bone = IcarusDustBone(helper.horse.animation.frame);
@@ -613,7 +613,7 @@ Core::Expected<void, std::string> DrawTheFenrir(HelperState& helper, const Helpe
         !body.HasValue())
         return body;
     const std::span<const Render::Models::BoneTransform> bones = context.globalPose();
-    Render::Models::CrtRandom& random = context.random;
+    Crt::CrtRandom& random = context.random;
     if (charging)
     {
         // 0x60282f..0x6028c6: (rand() % 10 − 10; 0; rand() % 40 − 20) por 0,5 desde el hueso 14 y la 5c6/15 roja,
@@ -829,7 +829,7 @@ Core::Expected<void, std::string> DrawHelper(HelperState& helper, const ActorSta
 
 Core::Expected<bool, std::string> ConstructHelper(HelperState& helper, std::uint16_t type, const glm::vec3& position,
                                                   const ActorState& rider, std::size_t riderSlot, std::int32_t map,
-                                                  Render::Models::CrtRandom* random)
+                                                  Crt::CrtRandom* random)
 {
     // 0x443d73..0x443d87: en los mapas 18 a 23, nada (devuelve 0).
     if (InChaosCastle(map))
@@ -882,7 +882,7 @@ Core::Expected<bool, std::string> ConstructHelper(HelperState& helper, std::uint
 
 Core::Expected<std::optional<std::size_t>, std::string> CreateHelper(WorldState& world, std::uint16_t type,
                                                                      const glm::vec3& position, std::size_t rider,
-                                                                     Render::Models::CrtRandom* random)
+                                                                     Crt::CrtRandom* random)
 {
     const std::int32_t map = world.Runtime().map;
     const ActorState& riding = world.Actors()[rider];
@@ -963,7 +963,7 @@ Core::Expected<void, std::string> DrawTheHelperOutsideTheTable(HelperState& help
 
 Core::Expected<void, std::string> DrawHelpers(const HelperDrawContext& context)
 {
-    Render::Models::CrtRandom projectedRandom = context.random;
+    Crt::CrtRandom projectedRandom = context.random;
     const HelperDrawContext projected{context.batch,
                                       context.models,
                                       context.world,

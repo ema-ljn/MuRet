@@ -1,7 +1,7 @@
 #pragma once
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Core/PixelSize.h"
 #include "Data/Tables/SkillTable.h"
 #include "Scenes/ActorPickingBox.h"
 #include "Protocol/OptionData.h"
@@ -35,7 +35,7 @@ namespace Client::UI
 struct GameUiState;
 }
 
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
 }
@@ -113,7 +113,7 @@ public:
 struct GameUiContext
 {
     WorldState& world;
-    Render::Models::CrtRandom& random;
+    Crt::CrtRandom& random;
     const Input::InputState& input;
     // 0x7d3682c y 0x7d36828: el mouse en 640 × 480.
     std::int32_t mouseX = 0;
@@ -124,7 +124,7 @@ struct GameUiContext
     const Render::Text::ITextMeasure* measure = nullptr;
     // La pantalla en píxeles (0x6d5d60 y 0x6d5d64): el clic derecho del área vieja pasa a 640 los anchos que dejó su
     // dibujo, y el cartel la usa en su rx (0x46a9c0 y 0x46abc0).
-    App::PixelSize screen{640, 480};
+    Core::PixelSize screen{640, 480};
     // Lo que las macros (0x5a116f) mandan y avisan. nullptr (los tests que no las miran): una macro es el error.
     const GameChatContext* chat = nullptr;
     // Text.bmd: los textos de los diálogos (el 592 del menú de Esc, las páginas del 0x8c). nullptr sin tabla: el que
@@ -193,7 +193,7 @@ struct FramePickingContext
 {
     WorldState& world;
     // El rand() del frame: el real en un frame del original, la copia en uno proyectado.
-    Render::Models::CrtRandom& random;
+    Crt::CrtRandom& random;
     std::uint8_t& ownRecordDepth;
     // 0x6c8e28, 0x6c8e2c, 0x6c8e30, 0x6c8e34 y 0x6c8e38.
     std::array<std::int32_t, 5>& targets;

@@ -1,6 +1,6 @@
 #include "World/BloodCastleParticleKernels.h"
 
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "World/Particles.h"
 
 #include <glm/ext/vector_float3.hpp>
@@ -59,7 +59,7 @@ float Scaled(int value, double factor)
 }
 
 // 0x543a9f..0x543ae0 y 0x5432b3..0x5432f9: la x (EBX, +0x54) y la z, con la y en 0.
-void ForwardSpeed(Particle& p, Render::Models::CrtRandom& random)
+void ForwardSpeed(Particle& p, Crt::CrtRandom& random)
 {
     const int forward = random.Next() % Tens + Spread;
     p.velocity.y = 0.0f;
@@ -67,7 +67,7 @@ void ForwardSpeed(Particle& p, Render::Models::CrtRandom& random)
     p.velocity.z = Scaled(random.Next() % Tens + Spread, Fifth);
 }
 
-void CreateSpark(Particle& p, Render::Models::CrtRandom& random)
+void CreateSpark(Particle& p, Crt::CrtRandom& random)
 {
     constexpr int LifeBase = 20;
     p.life = random.Next() % Spread + LifeBase;
@@ -83,7 +83,7 @@ void CreateSpark(Particle& p, Render::Models::CrtRandom& random)
     p.velocity.z = Scaled(random.Next() % Tens + Spread, riseStep);
 }
 
-void CreateFlame(Particle& p, Render::Models::CrtRandom& random)
+void CreateFlame(Particle& p, Crt::CrtRandom& random)
 {
     constexpr int LifeBase = 25;
     const float argumentScale = p.scale;
@@ -102,7 +102,7 @@ void CreateFlame(Particle& p, Render::Models::CrtRandom& random)
     p.start = p.position;
 }
 
-void CreateSmoke(Particle& p, Render::Models::CrtRandom& random)
+void CreateSmoke(Particle& p, Crt::CrtRandom& random)
 {
     constexpr int LifeBase = 25;
     p.life = random.Next() % Spread + LifeBase;
@@ -128,7 +128,7 @@ void SetLight(Particle& p, float level)
 }
 
 // rand() & 0x80000003 con el ajuste del signo, menos 2.
-int Jitter(Render::Models::CrtRandom& random)
+int Jitter(Crt::CrtRandom& random)
 {
     constexpr int Mask = 3;
     constexpr int Center = 2;
@@ -156,7 +156,7 @@ float FlameOrSmokeLight(const Particle& p)
 }
 
 // 0x54793f..0x547a38 y 0x54748a..0x54756d: lo mismo salvo la luz.
-void StepFlameOrSmoke(Particle& p, Render::Models::CrtRandom& random)
+void StepFlameOrSmoke(Particle& p, Crt::CrtRandom& random)
 {
     Drift(p);
     p.velocity.z = F32(D(p.velocity.z) + FlameLift);
@@ -178,7 +178,7 @@ bool IsBloodCastleParticle(std::int32_t type, std::int32_t subtype)
            (type == CloudParticle && subtype == TorchSmokeSubtype);
 }
 
-void CreateBloodCastleParticle(Particle& particle, Render::Models::CrtRandom& random)
+void CreateBloodCastleParticle(Particle& particle, Crt::CrtRandom& random)
 {
     if (particle.type == TorchSparkParticle)
         CreateSpark(particle, random);
@@ -188,7 +188,7 @@ void CreateBloodCastleParticle(Particle& particle, Render::Models::CrtRandom& ra
         CreateSmoke(particle, random);
 }
 
-void StepBloodCastleParticle(Particle& particle, Render::Models::CrtRandom& random)
+void StepBloodCastleParticle(Particle& particle, Crt::CrtRandom& random)
 {
     if (particle.type == TorchSparkParticle)
         StepSpark(particle);

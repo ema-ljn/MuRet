@@ -1,6 +1,6 @@
 #include "UI/SelectionBar.h"
 
-#include "App/WindowState.h"
+#include "Core/PixelSize.h"
 #include "Input/InputState.h"
 #include "Render/SpriteBatch.h"
 #include "UI/NewUi.h"
@@ -20,7 +20,7 @@
 // Client::UI::SelectionBar: la barra de la selección (+0x7f50: 0x63e820, 0x63eb40, 0x63eb90 y 0x63ec00).
 namespace
 {
-using Client::App::PixelSize;
+using Client::Core::PixelSize;
 using Client::Input::InputState;
 using Client::Tests::ClickAt;
 using Client::UI::LayoutSelectionBar;

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Core/PixelSize.h"
 #include "Protocol/Friends.h"
 #include "Protocol/Outgoing.h"
 #include "Render/Text/IGlyphRasterizer.h"
@@ -14,7 +14,7 @@ namespace Client::Data::Text
 class TextTable;
 }
 
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
 }
@@ -38,17 +38,17 @@ struct ChatReceiveContext;
 // OldWindowStepView::send del juego: el paquete por la sesión. La carta (C2 C5) sale cifrada como C4
 // (0x4992fe..0x499416, Q-C1002): antes, un rand() del relleno (0x4992fe) y el serial por la tabla de protección
 // (0x5767913), como el C3 F1 02 (0x62449a..0x6244f2). Los demás salen en claro, sin rand().
-void SendAFriendPacket(IGameUiRequests& requests, Render::Models::CrtRandom& random, const UI::FriendSend& send);
+void SendAFriendPacket(IGameUiRequests& requests, Crt::CrtRandom& random, const UI::FriendSend& send);
 
 // Lo que 0x491080 lee del juego.
 struct FriendsOpenContext
 {
     WorldState& world;
     // El rand() de la CRT: lo saca el cierre del registro propio (3.848).
-    Render::Models::CrtRandom& random;
+    Crt::CrtRandom& random;
     // Con qué se mide el mensaje del nivel; sin medidor, el mensaje corta.
     const Render::Text::ITextMeasure* measure = nullptr;
-    App::PixelSize screen{640, 480};
+    Core::PixelSize screen{640, 480};
     const Data::Text::TextTable* texts = nullptr;
 };
 

@@ -12,9 +12,13 @@
 #include <span>
 #include <string>
 
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
+} // namespace Client::Crt
+
+namespace Client::Render::Models
+{
 struct ClothWorld;
 class IModelLibrary;
 } // namespace Client::Render::Models
@@ -97,7 +101,7 @@ struct StepServices
 {
     std::span<JointState> joints;
     std::size_t index = 0;
-    Render::Models::CrtRandom* random = nullptr;
+    Crt::CrtRandom* random = nullptr;
     Render::Models::ClothWorld* cloth = nullptr;
     World::Particles* particles = nullptr;
     World::FrameSprites* sprites = nullptr;

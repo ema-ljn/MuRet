@@ -15,7 +15,7 @@
 // Los paquetes de los ítems del piso (CL9 hito 5; 06 § Los ítems del piso): el 20 (0x4d0ba0, con 0x608350, 0x607b60
 // y 0x607fb0), el 21 (0x4e3849), el 22 (0x4d0cc0) y la fruta de stats, el 2C (0x4de500). El 23 está en
 // InventoryMoves (ApplyDropResult): es del ítem del cursor.
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
 }
@@ -45,7 +45,7 @@ inline constexpr std::int16_t ZenItem = 0x1c0f;
 // Lo que 0x608350 lee de afuera.
 struct FloorItemCreation
 {
-    Render::Models::CrtRandom& random;
+    Crt::CrtRandom& random;
     // 0x5f93c0, la altura del terreno en (x, y): la de World::TerrainHeightAt con la del mapa.
     std::function<Core::Expected<double, std::string>(float x, float y)> height{};
     // El reloj del mundo (0x5767b88) de la luz que late de algunos modelos en 0x607b60.
@@ -96,7 +96,7 @@ void ApplyShortPickUpResult(WorldState& world);
 // y +0x68 y +0x48 suben; cada uno con su aviso (0x632e30) armado con los textos 379, el del stat y 1412 o 1903. Los
 // resultados 1, 2, 4, 5, 0x10, 0x21, 0x25 y 0x26 abren su aviso. Siempre, 0x5767954 en 0.
 [[nodiscard]] Core::Expected<void, std::string> ApplyStatFruit(const Protocol::FloorItems::StatFruit& fruit,
-                                                               WorldState& world, Render::Models::CrtRandom& random,
+                                                               WorldState& world, Crt::CrtRandom& random,
                                                                const Data::Text::TextTable* texts);
 
 // Un 2C corto (07 Q-C1240): de 0x4de500, solo la espera del uso (0x5767954) en 0, que escribe en todos los caminos.

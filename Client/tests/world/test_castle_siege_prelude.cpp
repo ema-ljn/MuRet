@@ -1,7 +1,7 @@
 #include "World/CastleSiegeObjectStep.h"
 
 #include "Core/Expected.h"
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "Render/Models/LogicalAccess.h"
 #include "World/ModelEffects.h"
 
@@ -19,7 +19,7 @@
 
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::World::ModelEffectArguments;
 
 class CastleSiegePreludeTest : public ::testing::Test

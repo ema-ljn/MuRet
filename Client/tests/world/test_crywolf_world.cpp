@@ -1,8 +1,8 @@
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainGrid.h"
 #include "Data/Terrain/TerrainLight.h"
 #include "Data/Terrain/TerrainMapping.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/OriginalRotation.h"
 #include "World/CrywolfWater.h"
 #include "World/GameModelEffects.h"
@@ -40,7 +40,7 @@
 // 06 § Los objetos de Crywolf.
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::World::ObjectStepGlobals;
 using Client::World::Particle;
 using Client::World::Particles;

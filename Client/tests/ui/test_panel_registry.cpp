@@ -1,5 +1,5 @@
 #include "Core/Expected.h"
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "UI/Dialogs.h"
 #include "UI/PanelRegistry.h"
 
@@ -15,7 +15,7 @@
 // solo las consultas del comercio (0x20) y de la tienda de NPC (0x10000) sacan uno.
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using namespace Client::UI;
 
 constexpr std::uint32_t Seed = 1;

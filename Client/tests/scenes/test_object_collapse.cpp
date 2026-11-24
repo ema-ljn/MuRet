@@ -1,8 +1,8 @@
 #include "Scenes/ObjectCollapse.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainAttributes.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/ObjectState.h"
 #include "Scenes/EventGlobals.h"
 #include "Scenes/WorldObjectsDrawing.h"
@@ -27,7 +27,7 @@
 // objetos 9 y 10), 0x405630 en Chaos Castle y el recorrido de 0x606560 por los sectores.
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::Scenes::ObjectCollapse;
 using Client::Scenes::ObjectCollapseContext;
 using Client::World::WorldObject;

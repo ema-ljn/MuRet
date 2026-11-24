@@ -1,11 +1,11 @@
 #include "Network/Xor32Packet.h"
 #include "Scenes/HeroSkillCasts.h"
 
+#include "Crt/CrtRandom.h"
 #include "Data/Tables/SkillTable.h"
 #include "Core/Expected.h"
 #include "Network/Delivery.h"
 #include "Protocol/Outgoing.h"
-#include "Render/Models/Cloth.h"
 #include "Scenes/HeroSkills.h"
 #include "Scenes/InventoryMoves.h"
 #include "Scenes/WorldRuntime.h"
@@ -27,7 +27,7 @@
 // skill (0x551c70) y el camino sin maná (0x558110(3) y el corte de 0x5af520).
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::Scenes::HeroSkillContext;
 
 constexpr int EntryDraws = 60;

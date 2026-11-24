@@ -1,6 +1,6 @@
 #include "World/Particles.h"
 
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "World/ParticleOwner.h"
 #include "World/PortableParticleTrigonometry.h"
 
@@ -18,7 +18,7 @@
 // 0x5480b7 al pasar) y la órbita 60f/0 con su caída a la /1 (0x542f74 al crear, 0x547354 y 0x5472da al pasar).
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::World::Particle;
 using Client::World::ParticleError;
 using Client::World::ParticleOwner;

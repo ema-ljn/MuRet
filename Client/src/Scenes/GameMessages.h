@@ -1,7 +1,7 @@
 #pragma once
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Core/PixelSize.h"
 #include "Render/SpriteBatch.h"
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Scenes/ITextDrawer.h"
@@ -28,12 +28,12 @@ struct WorldRuntime;
 // La entrada de 0x555190 sobre el chat y los modos de la UI de `runtime`, midiendo con `measure` en una pantalla de
 // `screen` y con la fuente del DC que dejó el último dibujo.
 [[nodiscard]] UI::MessageSink MessageSinkOf(WorldRuntime& runtime, const Render::Text::ITextMeasure& measure,
-                                            App::PixelSize screen);
+                                            Core::PixelSize screen);
 
 // 0x555190(nombre, texto, tipo). El sonido que pide (el 0x26 del filtro) queda en WorldRuntime::lastSoundId.
 [[nodiscard]] Core::Expected<void, std::string> AddGameMessage(WorldRuntime& runtime,
                                                                const Render::Text::ITextMeasure& measure,
-                                                               App::PixelSize screen, std::string_view name,
+                                                               Core::PixelSize screen, std::string_view name,
                                                                std::string_view text, std::int32_t type);
 
 // Las 120 llamadas a 0x555190 con dos textos vacíos de la .bss con que entran el login (0x634b4a), la selección
@@ -45,7 +45,7 @@ struct WorldRuntime;
 // 0x637cf3 y 0x637cf8: el reloj de los avisos (0x5547e0) y el del área vieja (0x5554b0), uno por paso; después,
 // 0x637d2c y 0x637d44 bajan el freno del chat y el de las macros.
 [[nodiscard]] Core::Expected<void, std::string>
-StepTheMessageClocks(WorldRuntime& runtime, const Render::Text::ITextMeasure& measure, App::PixelSize screen);
+StepTheMessageClocks(WorldRuntime& runtime, const Render::Text::ITextMeasure& measure, Core::PixelSize screen);
 // Lo común del dibujo de las tres escenas antes de su UI (0x6376a0..0x6376b6 en el juego, 0x63552a..0x63553f en el
 // login y 0x634949..0x63495f en la selección): los avisos (0x554810) y, con el registro del chat en su ventana o
 // fuera del juego, el área vieja (0x5554e0). Escribe en `hud` lo que el dibujo deja: un dibujo intermedio de MuRet

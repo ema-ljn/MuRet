@@ -1,7 +1,7 @@
 #include "Scenes/FaunaJointCreation.h"
 
 #include "Core/Expected.h"
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "Scenes/GameDrawTail.h"
 #include "World/IFishStepServices.h"
 #include "World/KalimaParticleKernels.h"
@@ -26,7 +26,7 @@
 // 0x531b0c..0x531bfc y el paso de 0x53768f..0x5379ef, que comparten con el /2 de Chaos Castle y el /7 de Crywolf.
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::Scenes::JointOwnerKind;
 using Client::Scenes::JointState;
 

@@ -2,6 +2,7 @@
 #include "Core/IClock.h"
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainHeights.h"
 #include "Data/Terrain/TerrainMapping.h"
@@ -448,7 +449,7 @@ TEST_F(SharedGameCameraTest, TheEmbersUseTheCurrentSharedGroundHeight)
     world.heights = heights.get();
     world.attributes = attributes.get();
     world.fixedHeight = 1201.0f;
-    Client::Render::Models::CrtRandom random{1};
+    Client::Crt::CrtRandom random{1};
     Client::World::StepLoginEmbers(leaves, world, random);
     EXPECT_EQ(leaves.All()[0].position.z, 1201.0f);
     EXPECT_EQ(leaves.All()[0].light.x, 0.95f);

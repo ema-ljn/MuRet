@@ -1,7 +1,7 @@
 #include "Scenes/FaunaJointCreation.h"
 
 #include "Core/Expected.h"
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Scenes/ActorState.h"
@@ -25,7 +25,7 @@
 // El 0x62c (SpiralJoints.cpp): alta 0x5346d8 y paso 0x53b93f.
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::Render::Models::OriginalAngleMatrix;
 using Client::Render::Models::OriginalVectorRotate;
 using Client::Scenes::JointState;

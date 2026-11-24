@@ -1,6 +1,6 @@
 #include "UI/CharacterBalloons.h"
 
-#include "App/WindowState.h"
+#include "Core/PixelSize.h"
 #include "Data/Text/TextTable.h"
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
@@ -28,7 +28,7 @@
 // 0x63cf80 → 0x63ca20). Los textos son inventados: solo importan sus índices y largos.
 namespace
 {
-using Client::App::PixelSize;
+using Client::Core::PixelSize;
 using Client::Render::Text::FontKind;
 using Client::UI::BalloonCount;
 using Client::UI::BalloonHead;

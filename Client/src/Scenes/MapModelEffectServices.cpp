@@ -1,5 +1,6 @@
 #include "Scenes/MapModelEffectServices.h"
 
+#include "Crt/CrtRandom.h"
 #include "World/IWorldObjectCreationServices.h"
 #include "World/ModelEffects.h"
 #include "World/WorldObjects.h"
@@ -8,7 +9,7 @@
 
 namespace Client::Scenes
 {
-MapModelEffectServices::MapModelEffectServices(World::ModelEffects& effects, Render::Models::CrtRandom& random)
+MapModelEffectServices::MapModelEffectServices(World::ModelEffects& effects, Crt::CrtRandom& random)
     : m_effects(effects), m_random(random)
 {
 }

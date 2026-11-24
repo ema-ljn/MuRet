@@ -4,6 +4,7 @@
 #include "Core/Expected.h"
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Models/Model.h"
 #include "Data/Models/PlayerModels.h"
 #include "Data/Tables/SkillTable.h"
@@ -54,6 +55,7 @@
 // Las skills que llegan (CL9 hito 4, 06 § Las skills que llegan): las claves y los personajes son inventados.
 namespace
 {
+using Client::Crt::CrtRandom;
 using Client::Protocol::Skill::ActorEffect;
 using Client::Protocol::Skill::DurationMagic;
 using Client::Protocol::Skill::MagicAttack;
@@ -62,7 +64,6 @@ using Client::Protocol::Skill::SkillList;
 using Client::Protocol::Skill::SkillListEntry;
 using Client::Protocol::Skill::SkillTarget;
 using Client::Protocol::Skill::SummonLife;
-using Client::Render::Models::CrtRandom;
 using Client::Scenes::ActorState;
 
 constexpr std::uint16_t HeroKey = 0x21;
@@ -468,7 +469,7 @@ TEST(SkillRepliesTest, TheSkill3bDropsItsComboAtTheSource)
     EXPECT_EQ(combo.light, source.light);
 
     auto twin = std::make_unique<Replies>();
-    Client::Render::Models::CrtRandom replay = full->cloth.random;
+    Client::Crt::CrtRandom replay = full->cloth.random;
     const ActorState& twinSource = twin->Actor(CasterIndex);
     const auto made = Client::Scenes::CreateBlastEffectOutsideTheStep({.type = 0x112,
                                                                        .position = twinSource.position,

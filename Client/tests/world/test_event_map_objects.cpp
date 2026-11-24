@@ -1,4 +1,4 @@
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "Render/Models/ObjectState.h"
 #include "World/EventMapObjectStep.h"
 #include "World/Particles.h"
@@ -19,7 +19,7 @@
 // (06 § Los objetos de Devil Square y de Blood Castle).
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::World::ObjectStepGlobals;
 using Client::World::StepWorldObjectChecked;
 using Client::World::TerrainLighting;

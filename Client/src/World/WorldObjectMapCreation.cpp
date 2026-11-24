@@ -1,6 +1,6 @@
 #include "World/WorldObjectMapCreation.h"
 
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "World/IWorldObjectCreationServices.h"
 #include "World/WorldObjectRegistrations.h"
 #include "World/WorldObjects.h"
@@ -100,7 +100,7 @@ std::optional<WorldObjectCreationError> ApplyCastleObjectState(WorldObject& obje
     return std::nullopt;
 }
 
-bool ApplyCreationRandomPhase(WorldObject& object, Render::Models::CrtRandom* random, const float& factor)
+bool ApplyCreationRandomPhase(WorldObject& object, Crt::CrtRandom* random, const float& factor)
 {
     if (random == nullptr)
     {

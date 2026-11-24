@@ -1,6 +1,6 @@
 #pragma once
 
-#include "App/WindowState.h"
+#include "Core/PixelSize.h"
 #include "Render/OriginalQuad.h"
 #include "Render/OriginalSkewedQuad.h"
 #include "Render/QuadCorner.h"
@@ -61,7 +61,7 @@ class SpriteBatch
 public:
     // Empieza el 2D de un frame en una pantalla de `screen` píxeles, como 0x6219b0: vacía los
     // vértices y los tramos, y no toca el estado de GL que guarda.
-    void Begin(App::PixelSize screen);
+    void Begin(Core::PixelSize screen);
 
     // 0x620a00(1), 0x620a90 o 0x620980: la mezcla, y con ella la textura prendida y el alpha test
     // prendido (Alpha) o apagado (Additive y Opaque). Corre aunque la mezcla sea la misma, como el
@@ -104,7 +104,7 @@ public:
     // de reparar que gira (0x5ac2d0).
     void RotatedQuad(TextureSlot slot, float x, float y, float width, float height, float degrees);
 
-    [[nodiscard]] App::PixelSize Screen() const;
+    [[nodiscard]] Core::PixelSize Screen() const;
     [[nodiscard]] std::span<const SpriteVertex> Vertices() const;
     [[nodiscard]] std::span<const DrawCommand> Commands() const;
 
@@ -113,7 +113,7 @@ private:
     // textura está prendida) con la mezcla y el alpha test de ahora.
     void Append(const QuadCorners& corners, const std::array<Color, 4>& colors, std::optional<TextureSlot> texture);
 
-    App::PixelSize m_screen;
+    Core::PixelSize m_screen;
     // Lo que deja 0x620a00(1) con glColor4f(1, 1, 1, 1), como empieza a dibujar el login (06 § El
     // login, el dibujo): las escenas ponen el suyo.
     Color m_color{};

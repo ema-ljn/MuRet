@@ -14,10 +14,10 @@
 #include <string_view>
 #include <vector>
 
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
-} // namespace Client::Render::Models
+} // namespace Client::Crt
 
 // Las partículas (CL7.6 B2): la tabla de 0x53fe70 (0x743a198, 3.000 lugares de 0x78 bytes) y su paso,
 // 0x5446e0, con el viento de 0x7609bb8. Su dibujo, 0x548550, tiene un solo contrato: el de
@@ -287,24 +287,23 @@ public:
     // rand().
     std::optional<std::size_t> Create(std::int32_t type, const glm::vec3& position, const glm::vec3& angles,
                                       const glm::vec3& light, std::int32_t subtype, float scale, float worldClock,
-                                      Render::Models::CrtRandom& random);
+                                      Crt::CrtRandom& random);
     // Pool lleno es éxito sin índice; un binding no implementado es error explícito.
     [[nodiscard]] Core::Expected<std::optional<std::size_t>, ParticleError>
     CreateChecked(std::int32_t type, const glm::vec3& position, const glm::vec3& angles, const glm::vec3& light,
-                  std::int32_t subtype, float scale, float worldClock, Render::Models::CrtRandom& random,
-                  std::uint32_t owner = 0);
+                  std::int32_t subtype, float scale, float worldClock, Crt::CrtRandom& random, std::uint32_t owner = 0);
     // Reloj prestado: 5f2/4 lo carga después de R2; 6/7/8 no lo leen al crear. `typedOwner` es el dueño (+0x40) de
     // la órbita 60f/0, que su paso lee (0x54735c); las demás lo ignoran.
     [[nodiscard]] Core::Expected<std::optional<std::size_t>, ParticleError>
     CreateChecked(std::int32_t type, const glm::vec3& position, const glm::vec3& angles, const glm::vec3& light,
                   std::int32_t subtype, float scale, std::reference_wrapper<const float> worldClock,
-                  Render::Models::CrtRandom& random, std::uint32_t owner, IParticleTrigonometry& trigonometry,
+                  Crt::CrtRandom& random, std::uint32_t owner, IParticleTrigonometry& trigonometry,
                   ParticleOwner typedOwner = {});
     // Sólo las familias Kalima acreditadas. Conserva identidad por valor, nunca una dirección host.
     [[nodiscard]] Core::Expected<std::optional<std::size_t>, ParticleError>
     CreateKalimaChecked(std::int32_t type, const glm::vec3& position, const glm::vec3& angles, const glm::vec3& light,
-                        std::int32_t subtype, float scale, float worldClock, Render::Models::CrtRandom& random,
-                        std::int32_t scene, ParticleOwner owner = {});
+                        std::int32_t subtype, float scale, float worldClock, Crt::CrtRandom& random, std::int32_t scene,
+                        ParticleOwner owner = {});
     // CreateKalimaChecked agrega5ac/6,7,6ed/0,6f0..4/0, 6f1/3 y6f4/1; escena prestada para6f1.
     // Las familias con dueño tipado: las de Kalima y las de la selección (SelectionParticleKernels.h:
     // 622/1, 5de/7 y 729/0,1), más 6f0/2, 6f1/2 y 6f2,6f3/4 de los objetos del 54 y del 33, y la 5fd/0 y /2 de la
@@ -312,8 +311,8 @@ public:
     // las que siguen a su dueño sin leerlo al nacer (5d5/2, el fuego /9 y 5f2/36: FollowsItsOwner).
     [[nodiscard]] Core::Expected<std::optional<std::size_t>, ParticleError>
     CreateOwnedChecked(std::int32_t type, const glm::vec3& position, const glm::vec3& angles, const glm::vec3& light,
-                       std::int32_t subtype, float scale, float worldClock, Render::Models::CrtRandom& random,
-                       std::int32_t scene, ParticleOwner owner = {});
+                       std::int32_t subtype, float scale, float worldClock, Crt::CrtRandom& random, std::int32_t scene,
+                       ParticleOwner owner = {});
     // 0x53fe70 con la 5fe (SkillShineParticle) de las skills: el prefijo común, la vida 18 (0x542c00) y 0x53fdb0 con
     // `bones` y `owner` (el dueño, +0x40), que pisa la posición. Sin rand(). Con los 3.000 llenos, nada; sin el
     // dueño, MissingOwner con el lugar apagado. Otro tipo, UnsupportedType.
@@ -328,7 +327,7 @@ public:
     [[nodiscard]] Core::Expected<std::optional<std::size_t>, ParticleError>
     CreateTowardChecked(std::int32_t type, const glm::vec3& position, const glm::vec3& angles, const glm::vec3& light,
                         std::int32_t subtype, float scale, std::reference_wrapper<const float> worldClock,
-                        Render::Models::CrtRandom& random, IParticleTrigonometry& trigonometry, ParticleOwner owner,
+                        Crt::CrtRandom& random, IParticleTrigonometry& trigonometry, ParticleOwner owner,
                         const glm::vec3& ownerPosition);
     // 0x53fe70 con las que piden la altura del terreno (0x5f93c0) en su punto al nacer: la niebla 5f2/28, /29 y /30 de
     // la tormenta 0xcf/3..7 (0x5425f9, 0x54264d y 0x54269a). La /30 además corre la x y la y con el seno del reloj
@@ -337,7 +336,7 @@ public:
     [[nodiscard]] Core::Expected<std::optional<std::size_t>, ParticleError>
     CreateOnGroundChecked(std::int32_t type, const glm::vec3& position, const glm::vec3& angles, const glm::vec3& light,
                           std::int32_t subtype, float scale, std::reference_wrapper<const float> worldClock,
-                          Render::Models::CrtRandom& random, IParticleTrigonometry& trigonometry,
+                          Crt::CrtRandom& random, IParticleTrigonometry& trigonometry,
                           const ParticleTerrainHeight& terrainHeight);
     // 0x54061d: chispa5c6/2 hacia el centro de su lugar físico621, sinCRT.
     std::optional<std::size_t> CreatePiercingSpark(const glm::vec3& position, float scale, ParticleOwner owner,
@@ -354,8 +353,8 @@ public:
 private:
     [[nodiscard]] Core::Expected<std::optional<std::size_t>, ParticleError>
     CreateImpl(std::int32_t type, const glm::vec3& position, const glm::vec3& angles, const glm::vec3& light,
-               std::int32_t subtype, float scale, float legacyClock, const float* worldClock,
-               Render::Models::CrtRandom& random, std::uint32_t owner, IParticleTrigonometry* trigonometry,
+               std::int32_t subtype, float scale, float legacyClock, const float* worldClock, Crt::CrtRandom& random,
+               std::uint32_t owner, IParticleTrigonometry* trigonometry,
                std::optional<std::int32_t> scene = std::nullopt, ParticleOwner typedOwner = {},
                const glm::vec3* ownerPosition = nullptr, const ParticleTerrainHeight* terrainHeight = nullptr);
     // En el heap: la escena que la lleva tiene que caber en la pila.
@@ -369,15 +368,14 @@ private:
 // crecimiento, fade o muerte por la distancia 3D al origen); 622/8 sólo actualiza +38/Z con vida positiva.
 // Compatibilidad login: devuelve un error si aparece un binding nuevo que requiere contexto.
 // El caller de mundo usa StepParticlesChecked y examina su resultado.
-std::optional<ParticleError> StepParticles(Particles& particles, Render::Models::CrtRandom& random);
+std::optional<ParticleError> StepParticles(Particles& particles, Crt::CrtRandom& random);
 // Para 67 y 68, 4303c0 consulta el mapa raw32 al tratar cada slot. Step conserva sus continuaciones
 // subtype1 (campo +0x50 a escala) y !=1 aunque Create sólo admita /0; no agregar una guarda común /0.
 // Un binding no admitido falla después de viento y vida/movimiento del slot actual. Sin mapa, 67/68
 // fallan además después de cambiar escala y antes de RGB. El error conserva todos los efectos del
 // prefijo y slots anteriores, y deja los posteriores sin visitar: no es transaccional. Repetir el tick
 // consume viento y avanza otra vez los slots anteriores. No copia ni posee WorldState.
-[[nodiscard]] Core::Expected<void, ParticleError> StepParticlesChecked(Particles& particles,
-                                                                       Render::Models::CrtRandom& random,
+[[nodiscard]] Core::Expected<void, ParticleError> StepParticlesChecked(Particles& particles, Crt::CrtRandom& random,
                                                                        const std::int32_t* map = nullptr,
                                                                        const ParticleTerrainHeight& terrainHeight = {});
 // Carga el reloj por slot6 después del movimiento común, sin snapshot de la pasada. `owners` resuelve el
@@ -390,23 +388,24 @@ std::optional<ParticleError> StepParticles(Particles& particles, Render::Models:
 // 0x7b4ccc4): sin ella corta con MissingDynamicLight después de su cuadro. La 5fd pide la mano de su dueño
 // (`actorHands`, 0x53fdb0): sin ella corta con MissingOwner después de la escala y la rotación.
 [[nodiscard]] Core::Expected<void, ParticleError>
-StepParticlesChecked(Particles& particles, Render::Models::CrtRandom& random,
-                     std::reference_wrapper<const float> worldClock, const std::int32_t* map,
-                     IParticleTrigonometry& trigonometry, const ParticleTerrainHeight& terrainHeight = {},
-                     const ParticleObjectOwners& owners = {}, const ParticleActorActions& actorActions = {},
-                     const ParticleTextureHeight& textureHeight = {}, TerrainLighting* lighting = nullptr,
-                     const ParticleActorHands& actorHands = {}, const ParticleOwnerBones& ownerBones = {});
+StepParticlesChecked(Particles& particles, Crt::CrtRandom& random, std::reference_wrapper<const float> worldClock,
+                     const std::int32_t* map, IParticleTrigonometry& trigonometry,
+                     const ParticleTerrainHeight& terrainHeight = {}, const ParticleObjectOwners& owners = {},
+                     const ParticleActorActions& actorActions = {}, const ParticleTextureHeight& textureHeight = {},
+                     TerrainLighting* lighting = nullptr, const ParticleActorHands& actorHands = {},
+                     const ParticleOwnerBones& ownerBones = {});
 
 // Igual contrato con los sonidos0x40 de las explosiones1 creadas por5ed/2; no retiene el callback. `ownerStates` da
 // el dueño (+0x40) de las que lo siguen (5c6/4, 5d5/2, el fuego /9 y 5de/4): sin él, o sin ese dueño, cortan con
 // MissingOwner en su caso. `sprites` es la tabla del frame (0x5491e0) donde la 5fc/2 deja su destello en cada paso:
 // sin ella corta con MissingSprites después de girar, sacar su rand(), moverse y apagarse.
-[[nodiscard]] Core::Expected<void, ParticleError> StepParticlesChecked(
-    Particles& particles, Render::Models::CrtRandom& random, std::reference_wrapper<const float> worldClock,
-    const std::int32_t* map, IParticleTrigonometry& trigonometry, const ParticleTerrainHeight& terrainHeight,
-    const ParticleObjectOwners& owners, const ParticleActorActions& actorActions,
-    const ParticleTextureHeight& textureHeight, TerrainLighting* lighting, const ParticleActorHands& actorHands,
-    const ParticleOwnerBones& ownerBones, const std::function<void(std::int32_t)>& sound,
-    const ParticleOwnerStates& ownerStates = {}, FrameSprites* sprites = nullptr);
+[[nodiscard]] Core::Expected<void, ParticleError>
+StepParticlesChecked(Particles& particles, Crt::CrtRandom& random, std::reference_wrapper<const float> worldClock,
+                     const std::int32_t* map, IParticleTrigonometry& trigonometry,
+                     const ParticleTerrainHeight& terrainHeight, const ParticleObjectOwners& owners,
+                     const ParticleActorActions& actorActions, const ParticleTextureHeight& textureHeight,
+                     TerrainLighting* lighting, const ParticleActorHands& actorHands,
+                     const ParticleOwnerBones& ownerBones, const std::function<void(std::int32_t)>& sound,
+                     const ParticleOwnerStates& ownerStates = {}, FrameSprites* sprites = nullptr);
 
 } // namespace Client::World

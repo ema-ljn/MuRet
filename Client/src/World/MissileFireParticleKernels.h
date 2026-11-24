@@ -5,7 +5,7 @@
 
 #include <cstdint>
 
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
 }
@@ -33,7 +33,7 @@ inline constexpr std::int32_t MissileFadeSubtype = 7;
 // La 0x5da con un subtipo que no es la /8 ni la /9.
 [[nodiscard]] bool IsMissileFireKernel(std::int32_t type, std::int32_t subtype);
 // Después del prefijo de 0x53fe70 (Initialize, con la escala del pedido en +0x10).
-void CreateMissileFire(Particle& particle, Render::Models::CrtRandom& random);
+void CreateMissileFire(Particle& particle, Crt::CrtRandom& random);
 // Después de la vida y el movimiento comunes de 0x5446e0. La /4 y la /5 piden la trigonometría (fsin y fcos); sin
 // ella, MissingClock.
 [[nodiscard]] Core::Expected<void, ParticleError> StepMissileFire(Particle& particle,

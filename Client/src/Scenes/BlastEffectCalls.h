@@ -7,7 +7,7 @@
 #include <optional>
 #include <string>
 
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
 }
@@ -36,5 +36,5 @@ CreateBlastEffect(const World::ModelEffectArguments& arguments, ActorState* owne
 // global (WorldState::DrawTail), sin el registro propio, los blancos ni el sonido; si el alta los pide, corta.
 [[nodiscard]] Core::Expected<std::optional<std::size_t>, std::string>
 CreateBlastEffectOutsideTheStep(const World::ModelEffectArguments& arguments, ActorState* owner, WorldState& world,
-                                Render::Models::CrtRandom& random);
+                                Crt::CrtRandom& random);
 } // namespace Client::Scenes

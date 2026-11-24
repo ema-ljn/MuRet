@@ -1,6 +1,6 @@
 #pragma once
 
-#include "App/WindowState.h"
+#include "Core/PixelSize.h"
 #include "Data/Text/TextTable.h"
 #include "Input/InputState.h"
 #include "Render/SpriteBatch.h"
@@ -73,7 +73,7 @@ struct OptionsWindowLayout
 };
 
 // 0x644120 y 0x644520 con líneas de `lineHeight` (el alto del buffer de op1_back3).
-[[nodiscard]] OptionsWindowLayout LayoutOptionsWindow(App::PixelSize screen, int lineHeight);
+[[nodiscard]] OptionsWindowLayout LayoutOptionsWindow(Core::PixelSize screen, int lineHeight);
 
 class OptionsWindow final : public NewUiWindow
 {
@@ -89,7 +89,7 @@ public:
     void Close() override;
     [[nodiscard]] bool IsOpen() const override;
     // De toda la pantalla (0x669c70(W, H, −1, 0)).
-    [[nodiscard]] Rect Bounds(App::PixelSize screen) const override;
+    [[nodiscard]] Rect Bounds(Core::PixelSize screen) const override;
 
     [[nodiscard]] const Button& Check(std::size_t index) const;
     [[nodiscard]] const Button& CloseButton() const;
@@ -97,17 +97,17 @@ public:
 
     // Las casillas y el botón (0x63c490) y, con el foco, 0x644730 con los `elapsedMs` del paso:
     // compara los deslizadores con `current`, los globales.
-    std::optional<OptionsEvent> Step(const Input::InputState& input, App::PixelSize screen, double elapsedMs,
+    std::optional<OptionsEvent> Step(const Input::InputState& input, Core::PixelSize screen, double elapsedMs,
                                      const OptionsSettings& current, NewUiTurn turn = {});
     // 0x66a050 y 0x644860: el fondo, el marco, los textos con los valores de `current` (los
     // globales, no los deslizadores), los deslizadores y, al final (0x66a090), las casillas y el botón.
-    void Draw(Render::SpriteBatch& sprites, Scenes::ITextDrawer& text, App::PixelSize screen,
+    void Draw(Render::SpriteBatch& sprites, Scenes::ITextDrawer& text, Core::PixelSize screen,
               const OptionsSettings& current);
 
 private:
     // Ubica el marco y lo de adentro. Un deslizador solo se mueve si cambió su lugar: 0x646890 deja
     // la perilla en el lugar de su valor, y el original lo llama solo al armarlas.
-    void Place(App::PixelSize screen);
+    void Place(Core::PixelSize screen);
 
     TextureSizes m_sizes;
     const Data::Text::TextTable* m_texts = nullptr;

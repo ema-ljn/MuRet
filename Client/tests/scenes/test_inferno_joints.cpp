@@ -1,7 +1,7 @@
 #include "Scenes/FaunaJointCreation.h"
 
 #include "Core/Expected.h"
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/GameDrawTail.h"
@@ -25,7 +25,7 @@
 // (alta 0x533faf..0x5340d7 con la vida y los puntos en 15, paso 0x53b029 con la vida · 0,8f).
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::Scenes::JointState;
 
 constexpr std::uint32_t Seed = 0x61cu;

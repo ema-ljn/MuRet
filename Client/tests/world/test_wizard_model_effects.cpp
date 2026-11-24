@@ -1,7 +1,7 @@
 #include "World/WizardModelEffects.h"
 
 #include "Core/Expected.h"
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/OriginalRotation.h"
 #include "World/GameModelEffects.h"
@@ -36,7 +36,7 @@
 
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::World::ModelEffect;
 using Client::World::ModelEffectArguments;
 using Client::World::ModelEffects;

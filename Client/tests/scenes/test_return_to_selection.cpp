@@ -2,6 +2,7 @@
 
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
+#include "Crt/CrtRandom.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
 #include "UI/PanelDialog.h"
@@ -54,7 +55,7 @@
 // en lo que MuRet tiene del mundo. Contrato: 06, "La vuelta a la selección", y Q-C211 a Q-C215.
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::Scenes::ActorState;
 using Client::Scenes::ApplyReturnToSelection;
 using Client::Scenes::WorldEntryResources;

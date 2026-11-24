@@ -1,8 +1,8 @@
 #include "Scenes/FullSetScan.h"
 
+#include "Crt/CrtRandom.h"
 #include "Data/Models/PlayerModels.h"
 #include "Data/Tables/ItemTable.h"
-#include "Render/Models/Cloth.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "support/FileBytes.h"
 #include "support/GoldenDir.h"
@@ -82,7 +82,7 @@ TEST_F(GoldenFullSetScan, TheArmorsThatKeepTheBonusAreTheNamedOnesWithoutAHelm)
         Client::Scenes::OwnCharacterRecord own;
         own.equipment[OwnArmorSlot].id = static_cast<std::uint16_t>(ItemModel(ArmorGroup, index) - FirstItemModel);
         std::uint8_t accesses = 0;
-        Client::Render::Models::CrtRandom random(1);
+        Client::Crt::CrtRandom random(1);
 
         const Client::Scenes::FullSetScan scan = Client::Scenes::ScanFullSet(character, own, accesses, random);
 

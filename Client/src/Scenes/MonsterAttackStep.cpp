@@ -1,8 +1,8 @@
 #include "Scenes/MonsterAttackStep.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Models/PlayerModels.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/OriginalRotation.h"
@@ -47,7 +47,7 @@ namespace Client::Scenes
 {
 namespace
 {
-using Render::Models::CrtRandom;
+using Crt::CrtRandom;
 using Render::Models::LogicalAccess;
 
 // 0x517630 y los accesos en línea a +0x38e: una entrada de un byte, un rand() al cerrarla en 0.

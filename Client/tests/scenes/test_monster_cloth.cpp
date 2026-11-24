@@ -3,6 +3,7 @@
 
 #include "Core/Expected.h"
 #include "Core/IClock.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Models/Model.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Render/ModelBatch.h"
@@ -60,7 +61,7 @@ constexpr std::size_t TailRandoms = 3;   // 0x50db57 y los dos de las manos (0x5
 
 std::uint32_t AfterRandoms(std::size_t count)
 {
-    Client::Render::Models::CrtRandom random{1};
+    Client::Crt::CrtRandom random{1};
     for (std::size_t call = 0; call < count; ++call)
         static_cast<void>(random.Next());
     return random.State();

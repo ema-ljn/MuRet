@@ -1,6 +1,6 @@
 #include "Render/UiImage.h"
 
-#include "App/WindowState.h"
+#include "Core/PixelSize.h"
 #include "Render/QuadCorner.h"
 
 #include <bit>
@@ -30,7 +30,7 @@ struct Edges
 
 // Dónde queda la imagen en su espacio después de 0x647050 y de 0x6472e0(x, y, 3), con el ancla y
 // el corrimiento en 0.
-Edges PlacedEdges(const UiImage& image, App::PixelSize screen)
+Edges PlacedEdges(const UiImage& image, Core::PixelSize screen)
 {
     // 0x647080..0x6470bb: el alto de la pantalla en el espacio de la imagen (H / fy, en float) es
     // el borde de arriba antes de ubicarla, y el de abajo, ese menos el alto, en float.
@@ -95,7 +95,7 @@ float ToScreen(float value, float scale)
 }
 } // namespace
 
-QuadCorners UiImageCorners(const UiImage& image, App::PixelSize screen)
+QuadCorners UiImageCorners(const UiImage& image, Core::PixelSize screen)
 {
     const Edges placed = PlacedEdges(image, screen);
     Edges uv = HalfTexelUv(image);

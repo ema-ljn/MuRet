@@ -1,7 +1,7 @@
 #include "World/Particles.h"
 
 #include "Core/Expected.h"
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "Render/Models/OriginalRotation.h"
 #include "World/Ftol.h"
 #include "World/IParticleTrigonometry.h"
@@ -205,7 +205,7 @@ void Move(Particle& particle)
     }
 }
 
-void StepTheWind(ParticleWind& wind, Render::Models::CrtRandom& random)
+void StepTheWind(ParticleWind& wind, Crt::CrtRandom& random)
 {
     for (int k = 0; k < 2; ++k)
     {
@@ -259,9 +259,8 @@ void CreateTheExplosion(Particle& particle, float scale)
 // 0x5459a4..0x5459bc y 0x545c91..0x545cd6 con el subtipo 0, después de la vida y del movimiento común: el cuadro
 // (+0x48) es (20 − vida) / 2 con el cociente de idiv (cdq, sub y sar: hacia 0), y la luz dinámica de radio 4 es
 // (f · 0,5f; f · 0,3f; f · 0,1f) con f = vida · 0,05f (0x6b8ad0) retenido en la x87 entre los tres productos.
-Core::Expected<void, ParticleError> StepTheExplosion(Particle& particle, Particles& particles,
-                                                     Render::Models::CrtRandom& random, const float* worldClock,
-                                                     TerrainLighting* lighting,
+Core::Expected<void, ParticleError> StepTheExplosion(Particle& particle, Particles& particles, Crt::CrtRandom& random,
+                                                     const float* worldClock, TerrainLighting* lighting,
                                                      const std::function<void(std::int32_t)>& sound)
 {
     particle.field48 = std::bit_cast<float>((ExplosionLife - particle.life) / 2);
@@ -306,7 +305,7 @@ Core::Expected<void, ParticleError> StepTheExplosion(Particle& particle, Particl
 // 0x540260..0x540316: la vida (rand() & 7) + 20 de todas; la /2 la pisa con 19 y corre la y rand() % 60 − 30
 // (0x5402ac); la /3 vive 7 y la /4 4, las dos con la textura 0x5fd (0x5402df, 0x5402f2), y la /4 gira rand() % 180 −
 // 360 (0x540310).
-void CreateTheMagicSpark(Particle& particle, Render::Models::CrtRandom& random)
+void CreateTheMagicSpark(Particle& particle, Crt::CrtRandom& random)
 {
     constexpr std::int32_t Shine = 0x5fd;
     constexpr std::int32_t ShiftedLife = 19, FlashLife = 7, BlinkLife = 4;
@@ -354,7 +353,7 @@ void StepTheMagicSpark(Particle& particle)
 // 0x543939..0x5439c9 (la /0) y 0x5439ca..0x543a5c (la /1): vida 24 o 15, la velocidad (0; −(rand() % 16 + 32) ·
 // 0,1f; 0) del fild por −0,1f (0x6b8930), la escala (rand() % 128 + 128) · 0,01f (0x6b88d4), la luz 0,5 y el giro
 // rand() % 360. Tres rand(); con otro subtipo, 0x54304c sin nada propio.
-void CreateTheCinder(Particle& particle, Render::Models::CrtRandom& random)
+void CreateTheCinder(Particle& particle, Crt::CrtRandom& random)
 {
     if (particle.subtype != 0 && particle.subtype != 1)
         return;
@@ -399,7 +398,7 @@ void StepTheCinder(Particle& particle)
 // 0x5fcbd0) y el giro x en rand() % 360. Con el subtipo 0 (0x5427aa), el empuje (0; 3; 0) y los ángulos del pedido:
 // cuatro rand(). Con otro, antes el giro z en rand() % 360, el empuje (0; 15; 0) y los ángulos del lugar; la /1
 // (0x54282c, la 5f6 del recorrido y la 5f3 del freno de +0x3e5) además vive 40, queda quieta y corre la z: seis.
-void CreateTheDust(Particle& particle, const glm::vec3& angles, float scale, Render::Models::CrtRandom& random)
+void CreateTheDust(Particle& particle, const glm::vec3& angles, float scale, Crt::CrtRandom& random)
 {
     particle.life = DustLife;
     const int x = (random.Next() % DustOffsetSpan) - DustOffsetCenter;
@@ -468,7 +467,7 @@ bool IsFlowerType(std::int32_t type)
 // en 1, la escala (rand() % 8 + 4) · 0,03f (0x6b8bd4), que pisa la del pedido, y la velocidad ((rand() % 32 − 16) ·
 // 0,1f; (rand() % 32 − 16) · 0,1f; (rand() % 32 − 32) · 0,1f) (0x6b87b8). Cinco rand(); el and con la corrección del
 // signo es el % simple.
-void CreateTheFlower(Particle& particle, Render::Models::CrtRandom& random)
+void CreateTheFlower(Particle& particle, Crt::CrtRandom& random)
 {
     constexpr int LifeSpan = 10, LifeBase = 15, SizeSpan = 8, SizeBase = 4;
     constexpr int DriftSpan = 32, DriftCenter = 16, FallCenter = 32;
@@ -489,7 +488,7 @@ void CreateTheFlower(Particle& particle, Render::Models::CrtRandom& random)
 // posición más la velocidad otra vez, sin girar. Siempre: con la altura del terreno (0x5f93c0) por encima de la z
 // (`fcom` y `test ah, 0x41`: ni menor, ni igual, ni NaN), la z pasa a ser la altura, +0x48 el entero 1 (posada) y la
 // velocidad 0; y el giro más rand() % 16. Sin la altura corta con lo demás escrito.
-Core::Expected<void, ParticleError> StepTheFlower(Particle& particle, Render::Models::CrtRandom& random,
+Core::Expected<void, ParticleError> StepTheFlower(Particle& particle, Crt::CrtRandom& random,
                                                   const ParticleTerrainHeight& terrainHeight)
 {
     constexpr int DriftSpan = 32, DriftCenter = 16, SwaySpan = 8, SwayCenter = 4, TurnSpan = 16;
@@ -532,7 +531,7 @@ Core::Expected<void, ParticleError> StepTheFlower(Particle& particle, Render::Mo
 
 // 0x542d01..0x542d5f: la 62b/0 después del prefijo: la vida rand() % 10 + 30, la luz en 1 y la velocidad (0; 0;
 // (rand() % 100) · 0,02f) (0x6b89e4). Dos rand(). Los demás subtipos salen en 0x54304c con sólo el prefijo.
-void CreateTheFlareColumn(Particle& particle, Render::Models::CrtRandom& random)
+void CreateTheFlareColumn(Particle& particle, Crt::CrtRandom& random)
 {
     constexpr int LifeSpan = 10, LifeBase = 30, RiseSpan = 100;
     constexpr double RiseStep = static_cast<double>(std::bit_cast<float>(0x3ca3d70au)); // 0x6b89e4: 0,02f
@@ -567,7 +566,7 @@ void StepTheFlareColumn(Particle& particle)
 
 // 0x543bf1..0x543c25: el 6ae después del prefijo, sin leer el subtipo: la vida 30, la luz en 0,1f y el giro
 // rand() % 360. Un rand().
-void CreateTheHole(Particle& particle, Render::Models::CrtRandom& random)
+void CreateTheHole(Particle& particle, Crt::CrtRandom& random)
 {
     constexpr std::int32_t HoleLife = 30;
     constexpr float HoleLight = std::bit_cast<float>(0x3dcccccdu); // 0x543c06: 0,1f
@@ -613,7 +612,7 @@ void StepTheHole(Particle& particle)
 // sacar ninguno); con el tipo 0x5e4 (0x542bdb), la luz (0,1f; 0; 0). Cuatro rand(). El and con la corrección del signo
 // es el & simple.
 constexpr std::int32_t BloodLife = 12;
-void CreateTheBlood(Particle& particle, const glm::vec3& angles, Render::Models::CrtRandom& random)
+void CreateTheBlood(Particle& particle, const glm::vec3& angles, Crt::CrtRandom& random)
 {
     constexpr int ScaleMask = 3, ScaleBase = 8, FallMask = 15, FallBase = 8, SideSpan = 6, SideCenter = 3;
     constexpr double ScaleStep = static_cast<double>(std::bit_cast<float>(0x3d4ccccdu));
@@ -652,7 +651,7 @@ bool IsSwellLifeParticle(std::int32_t type, std::int32_t subtype)
 }
 
 // 0x544a9d..0x544ba0: aun sin dueño válido y en el paso final consume sus dos rand().
-void StepTheSwellLife(Particle& particle, Render::Models::CrtRandom& random, const ParticleOwnerBones& ownerBones)
+void StepTheSwellLife(Particle& particle, Crt::CrtRandom& random, const ParticleOwnerBones& ownerBones)
 {
     const auto point =
         particle.typedOwner.kind == ParticleOwnerKind::Actor && ownerBones ? ownerBones(particle) : std::nullopt;
@@ -699,7 +698,7 @@ Core::Expected<void, ParticleError> StepTheSkillShine(Particle& particle, IParti
 // posición más (0; −100; 0) girado por AngleMatrix de los ángulos del pedido (0x5fc8f0 y 0x5fcbd0) y después
 // (rand() & 15) − 8 en x y en y y 150 en z; la velocidad ((rand() % 20) · 0,1f − 1; igual; −(rand() % 3) − 3), la vida
 // 40 y la escala del pedido menos (rand() % 15) · 0,1f. Cada suma, en la x87 antes del store. Seis rand().
-void CreateTheBowSpark(Particle& particle, float scale, Render::Models::CrtRandom& random)
+void CreateTheBowSpark(Particle& particle, float scale, Crt::CrtRandom& random)
 {
     constexpr std::int32_t BowSparkTexture = 0x5fc;
     constexpr std::int32_t BowSparkLife = 40;
@@ -731,7 +730,7 @@ void CreateTheBowSpark(Particle& particle, float scale, Render::Models::CrtRando
 // 0x545397..0x5453ce y 0x545340..0x545363, después de la vida y el movimiento comunes: rand() & 1 menos 0,6f en el rojo
 // y el verde y menos 0,8f en el azul, la escala menos 0,04f y +0x38 menos 0,001f; con +0x38 en 0 o menos (o NaN),
 // muere. Un rand().
-void StepTheBowSpark(Particle& particle, Render::Models::CrtRandom& random)
+void StepTheBowSpark(Particle& particle, Crt::CrtRandom& random)
 {
     constexpr double RedGreen = static_cast<double>(std::bit_cast<float>(0x3f19999au)); // 0x6b8a20
     constexpr double Blue = static_cast<double>(std::bit_cast<float>(0x3f4ccccdu));     // 0x6b8a38
@@ -837,7 +836,7 @@ bool IsCloud8(const Particle& particle)
     return particle.type == CloudParticle && (particle.subtype == 8 || particle.subtype == CrywolfCloudSubtype);
 }
 
-void CreateTheCloud8(Particle& particle, float inputScale, Render::Models::CrtRandom& random)
+void CreateTheCloud8(Particle& particle, float inputScale, Crt::CrtRandom& random)
 {
     particle.life = 300;
 
@@ -866,7 +865,7 @@ void CreateTheCloud8(Particle& particle, float inputScale, Render::Models::CrtRa
 
 // 0x54330a..0x5433f4, la 622/9 de los 0x4d y 0x4e de Crywolf: como la 622/8, siete rand() en el mismo orden, pero la
 // escala multiplica la del argumento (+0x10, la del prefijo) y +0x60 no le suma nada.
-void CreateTheCloud9(Particle& particle, Render::Models::CrtRandom& random)
+void CreateTheCloud9(Particle& particle, Crt::CrtRandom& random)
 {
     constexpr int SpinSpan = 10;
     particle.life = 300;
@@ -939,7 +938,7 @@ bool IsWorldSmoke(const Particle& particle)
 
 // 0x542370..0x5423d8, la 5f2/21 de Crywolf: vida 80, escala ((rand() & 63) + 64) · escala · 0,005f, giro
 // rand() % 360 y velocidad vertical ((rand() & 31) + 60) · 0,1f; el and con la corrección del signo es el & simple.
-void CreateTheCrywolfSmoke(Particle& particle, Render::Models::CrtRandom& random)
+void CreateTheCrywolfSmoke(Particle& particle, Crt::CrtRandom& random)
 {
     constexpr std::int32_t Life = 80;
     constexpr double Step = static_cast<double>(std::bit_cast<float>(0x3ba3d70au)); // 0x6b89d8.
@@ -960,7 +959,7 @@ bool IsStoneDust(const Particle& particle)
 // (rand() & 63) + 32, cada una en la x87 hasta su fstp; la inclinación rand() % 90 − 45, el yaw rand() % 360 y el giro
 // del billboard rand() % 360; +0x60..+0x68 guardan la luz de la creación y la velocidad es (0, −((rand() & 7) + 40),
 // 0), que el movimiento común gira por los ángulos. Siete rand(); el and con la corrección del signo es el & simple.
-void CreateTheStoneDust(Particle& particle, Render::Models::CrtRandom& random)
+void CreateTheStoneDust(Particle& particle, Crt::CrtRandom& random)
 {
     constexpr std::int32_t Life = 50;
     constexpr int OffsetMask = 63, OffsetCenter = 32, TiltSpan = 90, TiltCenter = 45, PushMask = 7, PushBase = 40;
@@ -1009,7 +1008,7 @@ bool IsRisingSmoke(const Particle& particle)
 // 0x541a8d..0x541b03, la 5f2/33 del 0x48 de Crywolf: la escala del argumento más 0,1f (0x6b87b8) y la vida rand() %
 // 150 (que puede ser 0), la inclinación rand() % 90 − 45, el giro rand() % 360 y la velocidad (0, −(rand() & 7), 0),
 // que mueve el prefijo; el and con la corrección del signo es el & simple.
-void CreateTheRisingSmoke(Particle& particle, Render::Models::CrtRandom& random)
+void CreateTheRisingSmoke(Particle& particle, Crt::CrtRandom& random)
 {
     constexpr int LifeSpan = 150, TiltSpan = 90, TiltCenter = 45, DriftMask = 7;
     constexpr double Growth = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));
@@ -1042,7 +1041,7 @@ void StepTheRisingSmoke(Particle& particle)
 // 0x543152..0x543178, la burbuja 698/0 del agua de Crywolf: vida 32 y la escala (rand() % 170 + 1) · 0,01f, que pisa
 // la del argumento.
 constexpr std::int32_t BubbleLife = 32;
-void CreateTheBubble(Particle& particle, Render::Models::CrtRandom& random)
+void CreateTheBubble(Particle& particle, Crt::CrtRandom& random)
 {
     constexpr int ScaleSpan = 170;
     particle.life = BubbleLife;
@@ -1223,7 +1222,7 @@ void Initialize(Particle& particle, std::int32_t type, const glm::vec3& position
 }
 
 // 0x54059f..0x54061c: tres ángulos de 0..359 y VectorRotate(0,-50,0); conserva la vida común (2).
-void CreateTheTeleportSpark(Particle& particle, Render::Models::CrtRandom& random)
+void CreateTheTeleportSpark(Particle& particle, Crt::CrtRandom& random)
 {
     constexpr int FullCircle = 360;
     constexpr float Speed = -50.0f;
@@ -1237,7 +1236,7 @@ void CreateTheTeleportSpark(Particle& particle, Render::Models::CrtRandom& rando
 // lo de cada subtipo (leído una vez, después del primer rand(), en 0x541197), la escala de la /1 (0x5413c2 vuelve a
 // leer el subtipo) y el giro final. Los subtipos que no tienen caso (2..4, 6, 8, 10 y los de fuera) sólo hacen lo
 // común.
-void CreateTheFire(Particle& particle, Render::Models::CrtRandom& random)
+void CreateTheFire(Particle& particle, Crt::CrtRandom& random)
 {
     constexpr std::int32_t ShortFireLife = 20;                                               // 0x541253
     constexpr double FountainStep = static_cast<double>(std::bit_cast<float>(0x3e19999au));  // 0x6b8ae8, 0,15f
@@ -1314,7 +1313,7 @@ void CreateTheFire(Particle& particle, Render::Models::CrtRandom& random)
     particle.rotation = static_cast<float>(random.Next() % FullTurn);
 }
 
-void CreateTheWorldSmoke(Particle& particle, Render::Models::CrtRandom& random)
+void CreateTheWorldSmoke(Particle& particle, Crt::CrtRandom& random)
 {
     particle.life = WorldSmokeLife;
     particle.scale = F32(static_cast<double>((random.Next() % FireScaleSpan) + SmokeScaleBase) * BreathScaleStep);
@@ -1345,7 +1344,7 @@ bool IsMap8Smoke(std::int32_t type, std::int32_t subtype)
     return type == BreathParticle && (subtype == 4 || subtype == 6 || subtype == 7 || subtype == 8);
 }
 
-void CreateTheMap8Smoke(Particle& p, float argumentScale, Render::Models::CrtRandom& random)
+void CreateTheMap8Smoke(Particle& p, float argumentScale, Crt::CrtRandom& random)
 {
     constexpr int RandomTurn = 360;
     constexpr double PhaseStep = static_cast<double>(std::bit_cast<float>(0x3ba3d70au));
@@ -1491,7 +1490,7 @@ void StepTheMap8Eight(Particle& p)
     p.light.z = F32(static_cast<double>(p.light.z) * 0.5);
 }
 
-void CreateTheParticle67(Particle& particle, Render::Models::CrtRandom& random)
+void CreateTheParticle67(Particle& particle, Crt::CrtRandom& random)
 {
     particle.life = Particle67Life;
     const int scaleSteps = (random.Next() % Particle67ScaleSpan) + Particle67ScaleBase;
@@ -1499,7 +1498,7 @@ void CreateTheParticle67(Particle& particle, Render::Models::CrtRandom& random)
 }
 
 // La vida, el rand() y la escala de la 67, y después un rand() por eje para la posición.
-void CreateTheParticle68(Particle& particle, Render::Models::CrtRandom& random)
+void CreateTheParticle68(Particle& particle, Crt::CrtRandom& random)
 {
     CreateTheParticle67(particle, random);
     for (int axis = 0; axis < 3; ++axis)
@@ -1539,7 +1538,7 @@ std::optional<ParticleError> StepTheParticle67Or68(Particle& particle, const std
     return std::nullopt;
 }
 
-void CreateTheMapSpark(Particle& particle, Render::Models::CrtRandom& random)
+void CreateTheMapSpark(Particle& particle, Crt::CrtRandom& random)
 {
     particle.life = MapSparkLife;
     particle.angles.x = 0.0f;
@@ -1584,7 +1583,7 @@ void StepTheMapSpark(Particle& particle)
 // 0x542d75..0x542ecf: la vida rand() % 10 + 30, la luz 1 (pisa la del pedido) y la escala (rand() % 6 + 4) · 0,03f
 // (0x6b8bd4), dos rand(); la /2 además pide el sonido 0x1d8 (0x542e08, lo pide quien la crea). La /3 (0x542e1a) suma
 // esa escala a la del pedido y sortea otra igual para la subida (+0x50): tres rand().
-void CreateTheDrop(Particle& particle, Render::Models::CrtRandom& random)
+void CreateTheDrop(Particle& particle, Crt::CrtRandom& random)
 {
     particle.life = DropLifeBase + (random.Next() % DropLifeSpan);
     const int scaleSteps = (random.Next() % DropScaleSpan) + DropScaleBase;
@@ -1602,7 +1601,7 @@ void CreateTheDrop(Particle& particle, Render::Models::CrtRandom& random)
 
 // 0x546fb2..0x547024 (/0) y 0x5470d3..0x547145 (/3): el cuadro +0x48 (un entero) sube 1 y la posición camina
 // (rand() % 20 − 10; rand() % 20 − 10; rand() % 20 + 10) por la escala (la /3, por su subida +0x50) y por 2,5.
-void WalkTheDrop(Particle& particle, Render::Models::CrtRandom& random, float stride)
+void WalkTheDrop(Particle& particle, Crt::CrtRandom& random, float stride)
 {
     const std::uint32_t frame = std::bit_cast<std::uint32_t>(particle.field48) + 1u;
     particle.field48 = std::bit_cast<float>(frame);
@@ -1619,7 +1618,7 @@ void WalkTheDrop(Particle& particle, Render::Models::CrtRandom& random, float st
 // 0x5470a0..0x5470ce (/2) y 0x54714a..0x54719a (/4): la z sube (rand() % 20 + 10) · 0,3f y la escala crece 0,005f
 // (0x6b89d8); la /4, con la z guardada por encima de 350 (0x6b89ac; ni menor, ni igual, ni NaN), la deja en 350 y la
 // vida en 0.
-void FloatTheDrop(Particle& particle, Render::Models::CrtRandom& random)
+void FloatTheDrop(Particle& particle, Crt::CrtRandom& random)
 {
     constexpr double Lift = static_cast<double>(std::bit_cast<float>(0x3e99999au));  // 0x6b89dc, 0,3f
     constexpr double Swell = static_cast<double>(std::bit_cast<float>(0x3ba3d70au)); // 0x6b89d8, 0,005f
@@ -1636,7 +1635,7 @@ void FloatTheDrop(Particle& particle, Render::Models::CrtRandom& random)
 
 // 0x547029..0x54709b, la /1: el cuadro sube 1, la x y la y caminan (rand() % 30 − 15) por la escala, la z sube
 // (rand() % 20 + 10) por la escala y por 0,3f, y la escala crece 0,002f (0x6b89bc).
-void BubbleTheDrop(Particle& particle, Render::Models::CrtRandom& random)
+void BubbleTheDrop(Particle& particle, Crt::CrtRandom& random)
 {
     constexpr int BubbleSpan = 30, BubbleCenter = 15;
     constexpr double Lift = static_cast<double>(std::bit_cast<float>(0x3e99999au));  // 0x6b89dc, 0,3f
@@ -1655,7 +1654,7 @@ void BubbleTheDrop(Particle& particle, Render::Models::CrtRandom& random)
     particle.scale = F32(static_cast<double>(particle.scale) + Swell);
 }
 
-void StepTheDrop(Particle& particle, Render::Models::CrtRandom& random)
+void StepTheDrop(Particle& particle, Crt::CrtRandom& random)
 {
     switch (particle.subtype)
     {
@@ -1682,7 +1681,7 @@ std::int32_t WrapSubtract(std::int32_t left, std::int32_t right)
 
 // 0x5457a5..0x545982, el paso de 5d9, 5db y 5dc: la subida (+0x50) + 0,004f, el caso del subtipo (la tabla de 0x548270
 // para 0..13; los demás, el de 1..4) y lo común: z + subida · 10 y el cuadro (+0x48) (23 − vida) / 6.
-Core::Expected<void, ParticleError> StepTheFire(Particle& particle, Render::Models::CrtRandom& random,
+Core::Expected<void, ParticleError> StepTheFire(Particle& particle, Crt::CrtRandom& random,
                                                 const ParticleOwnerStates& ownerStates)
 {
     constexpr double Fade = static_cast<double>(std::bit_cast<float>(0x3d2aaaabu));       // 0x6ba3c4
@@ -1774,7 +1773,7 @@ void StepTheWorldSmoke(Particle& particle)
     particle.scale = F32(static_cast<double>(particle.scale) - BreathScaleStep);
 }
 
-void CreateTheCloud(Particle& particle, Render::Models::CrtRandom& random)
+void CreateTheCloud(Particle& particle, Crt::CrtRandom& random)
 {
     particle.life = CloudLife;
     particle.light = glm::vec3(0.0f);
@@ -1943,8 +1942,7 @@ Core::Expected<void, ParticleError> ContinueOrbitCreation(Particle& particle, fl
 }
 
 // Create53fe70 §60f/3: cuatroR, relecturas después deR4 y continuador tardío10.
-Core::Expected<void, ParticleError> CreateTheOrbit(Particle& particle, float inputScale,
-                                                   Render::Models::CrtRandom& random,
+Core::Expected<void, ParticleError> CreateTheOrbit(Particle& particle, float inputScale, Crt::CrtRandom& random,
                                                    IParticleTrigonometry& trigonometry)
 {
     const bool torch = particle.subtype == TorchOrbitSubtype;
@@ -2040,7 +2038,7 @@ Core::Expected<void, ParticleError> StepTheOrbit(Particle& particle, IParticleTr
 
 std::optional<std::size_t> Particles::Create(std::int32_t type, const glm::vec3& position, const glm::vec3& angles,
                                              const glm::vec3& light, std::int32_t subtype, float scale,
-                                             float worldClock, Render::Models::CrtRandom& random)
+                                             float worldClock, Crt::CrtRandom& random)
 {
     auto created = CreateChecked(type, position, angles, light, subtype, scale, worldClock, random);
     return created.HasValue() ? created.Value() : std::nullopt;
@@ -2048,7 +2046,7 @@ std::optional<std::size_t> Particles::Create(std::int32_t type, const glm::vec3&
 
 Core::Expected<std::optional<std::size_t>, ParticleError>
 Particles::CreateChecked(std::int32_t type, const glm::vec3& position, const glm::vec3& angles, const glm::vec3& light,
-                         std::int32_t subtype, float scale, float worldClock, Render::Models::CrtRandom& random,
+                         std::int32_t subtype, float scale, float worldClock, Crt::CrtRandom& random,
                          std::uint32_t owner)
 {
     return CreateImpl(type, position, angles, light, subtype, scale, worldClock, nullptr, random, owner, nullptr);
@@ -2057,7 +2055,7 @@ Particles::CreateChecked(std::int32_t type, const glm::vec3& position, const glm
 Core::Expected<std::optional<std::size_t>, ParticleError>
 Particles::CreateChecked(std::int32_t type, const glm::vec3& position, const glm::vec3& angles, const glm::vec3& light,
                          std::int32_t subtype, float scale, std::reference_wrapper<const float> worldClock,
-                         Render::Models::CrtRandom& random, std::uint32_t owner, IParticleTrigonometry& trigonometry,
+                         Crt::CrtRandom& random, std::uint32_t owner, IParticleTrigonometry& trigonometry,
                          ParticleOwner typedOwner)
 {
     return CreateImpl(type, position, angles, light, subtype, scale, 0.0f, &worldClock.get(), random, owner,
@@ -2067,7 +2065,7 @@ Particles::CreateChecked(std::int32_t type, const glm::vec3& position, const glm
 Core::Expected<std::optional<std::size_t>, ParticleError>
 Particles::CreateKalimaChecked(std::int32_t type, const glm::vec3& position, const glm::vec3& angles,
                                const glm::vec3& light, std::int32_t subtype, float scale, float worldClock,
-                               Render::Models::CrtRandom& random, std::int32_t scene, ParticleOwner owner)
+                               Crt::CrtRandom& random, std::int32_t scene, ParticleOwner owner)
 {
     if (!IsKalimaParticle(type, subtype))
     {
@@ -2082,7 +2080,7 @@ Particles::CreateKalimaChecked(std::int32_t type, const glm::vec3& position, con
 Core::Expected<std::optional<std::size_t>, ParticleError>
 Particles::CreateOwnedChecked(std::int32_t type, const glm::vec3& position, const glm::vec3& angles,
                               const glm::vec3& light, std::int32_t subtype, float scale, float worldClock,
-                              Render::Models::CrtRandom& random, std::int32_t scene, ParticleOwner owner)
+                              Crt::CrtRandom& random, std::int32_t scene, ParticleOwner owner)
 {
     if (!IsKalimaParticle(type, subtype) && !IsSelectionParticle(type, subtype) && !IsTrialsParticle(type, subtype) &&
         !IsHandShine(type, subtype) && !IsSwellLifeParticle(type, subtype) &&
@@ -2099,7 +2097,7 @@ Particles::CreateOwnedChecked(std::int32_t type, const glm::vec3& position, cons
 Core::Expected<std::optional<std::size_t>, ParticleError>
 Particles::CreateTowardChecked(std::int32_t type, const glm::vec3& position, const glm::vec3& angles,
                                const glm::vec3& light, std::int32_t subtype, float scale,
-                               std::reference_wrapper<const float> worldClock, Render::Models::CrtRandom& random,
+                               std::reference_wrapper<const float> worldClock, Crt::CrtRandom& random,
                                IParticleTrigonometry& trigonometry, ParticleOwner owner, const glm::vec3& ownerPosition)
 {
     return CreateImpl(type, position, angles, light, subtype, scale, 0.0f, &worldClock.get(), random, 0, &trigonometry,
@@ -2109,7 +2107,7 @@ Particles::CreateTowardChecked(std::int32_t type, const glm::vec3& position, con
 Core::Expected<std::optional<std::size_t>, ParticleError>
 Particles::CreateOnGroundChecked(std::int32_t type, const glm::vec3& position, const glm::vec3& angles,
                                  const glm::vec3& light, std::int32_t subtype, float scale,
-                                 std::reference_wrapper<const float> worldClock, Render::Models::CrtRandom& random,
+                                 std::reference_wrapper<const float> worldClock, Crt::CrtRandom& random,
                                  IParticleTrigonometry& trigonometry, const ParticleTerrainHeight& terrainHeight)
 {
     return CreateImpl(type, position, angles, light, subtype, scale, 0.0f, &worldClock.get(), random, 0, &trigonometry,
@@ -2168,7 +2166,7 @@ Particles::CreateFollowingChecked(std::int32_t type, const glm::vec3& position, 
 Core::Expected<std::optional<std::size_t>, ParticleError>
 Particles::CreateImpl(std::int32_t type, const glm::vec3& position, const glm::vec3& angles, const glm::vec3& light,
                       std::int32_t subtype, float scale, float legacyClock, const float* worldClock,
-                      Render::Models::CrtRandom& random, std::uint32_t owner, IParticleTrigonometry* trigonometry,
+                      Crt::CrtRandom& random, std::uint32_t owner, IParticleTrigonometry* trigonometry,
                       std::optional<std::int32_t> scene, ParticleOwner typedOwner, const glm::vec3* ownerPosition,
                       const ParticleTerrainHeight* terrainHeight)
 {
@@ -2641,7 +2639,7 @@ const ParticleWind& Particles::Wind() const
 namespace
 {
 Core::Expected<void, ParticleError> StepParticlesImpl(
-    Particles& particles, Render::Models::CrtRandom& random, const float* worldClock, const std::int32_t* map,
+    Particles& particles, Crt::CrtRandom& random, const float* worldClock, const std::int32_t* map,
     IParticleTrigonometry* trigonometry, const ParticleTerrainHeight& terrainHeight, const ParticleObjectOwners& owners,
     const ParticleActorActions& actorActions, const ParticleTextureHeight& textureHeight, TerrainLighting* lighting,
     const ParticleActorHands& actorHands, const ParticleOwnerBones& ownerBones,
@@ -3015,7 +3013,7 @@ Core::Expected<void, ParticleError> StepParticlesImpl(
 
 } // namespace
 
-Core::Expected<void, ParticleError> StepParticlesChecked(Particles& particles, Render::Models::CrtRandom& random,
+Core::Expected<void, ParticleError> StepParticlesChecked(Particles& particles, Crt::CrtRandom& random,
                                                          const std::int32_t* map,
                                                          const ParticleTerrainHeight& terrainHeight)
 {
@@ -3024,31 +3022,32 @@ Core::Expected<void, ParticleError> StepParticlesChecked(Particles& particles, R
 }
 
 Core::Expected<void, ParticleError>
-StepParticlesChecked(Particles& particles, Render::Models::CrtRandom& random,
-                     std::reference_wrapper<const float> worldClock, const std::int32_t* map,
-                     IParticleTrigonometry& trigonometry, const ParticleTerrainHeight& terrainHeight,
-                     const ParticleObjectOwners& owners, const ParticleActorActions& actorActions,
-                     const ParticleTextureHeight& textureHeight, TerrainLighting* lighting,
-                     const ParticleActorHands& actorHands, const ParticleOwnerBones& ownerBones)
+StepParticlesChecked(Particles& particles, Crt::CrtRandom& random, std::reference_wrapper<const float> worldClock,
+                     const std::int32_t* map, IParticleTrigonometry& trigonometry,
+                     const ParticleTerrainHeight& terrainHeight, const ParticleObjectOwners& owners,
+                     const ParticleActorActions& actorActions, const ParticleTextureHeight& textureHeight,
+                     TerrainLighting* lighting, const ParticleActorHands& actorHands,
+                     const ParticleOwnerBones& ownerBones)
 {
     return StepParticlesImpl(particles, random, &worldClock.get(), map, &trigonometry, terrainHeight, owners,
                              actorActions, textureHeight, lighting, actorHands, ownerBones, {}, {}, nullptr);
 }
 
-Core::Expected<void, ParticleError> StepParticlesChecked(
-    Particles& particles, Render::Models::CrtRandom& random, std::reference_wrapper<const float> worldClock,
-    const std::int32_t* map, IParticleTrigonometry& trigonometry, const ParticleTerrainHeight& terrainHeight,
-    const ParticleObjectOwners& owners, const ParticleActorActions& actorActions,
-    const ParticleTextureHeight& textureHeight, TerrainLighting* lighting, const ParticleActorHands& actorHands,
-    const ParticleOwnerBones& ownerBones, const std::function<void(std::int32_t)>& sound,
-    const ParticleOwnerStates& ownerStates, FrameSprites* sprites)
+Core::Expected<void, ParticleError>
+StepParticlesChecked(Particles& particles, Crt::CrtRandom& random, std::reference_wrapper<const float> worldClock,
+                     const std::int32_t* map, IParticleTrigonometry& trigonometry,
+                     const ParticleTerrainHeight& terrainHeight, const ParticleObjectOwners& owners,
+                     const ParticleActorActions& actorActions, const ParticleTextureHeight& textureHeight,
+                     TerrainLighting* lighting, const ParticleActorHands& actorHands,
+                     const ParticleOwnerBones& ownerBones, const std::function<void(std::int32_t)>& sound,
+                     const ParticleOwnerStates& ownerStates, FrameSprites* sprites)
 {
     return StepParticlesImpl(particles, random, &worldClock.get(), map, &trigonometry, terrainHeight, owners,
                              actorActions, textureHeight, lighting, actorHands, ownerBones, sound, ownerStates,
                              sprites);
 }
 
-std::optional<ParticleError> StepParticles(Particles& particles, Render::Models::CrtRandom& random)
+std::optional<ParticleError> StepParticles(Particles& particles, Crt::CrtRandom& random)
 {
     const auto stepped = StepParticlesChecked(particles, random);
     return stepped.HasValue() ? std::nullopt : std::optional(stepped.Error());

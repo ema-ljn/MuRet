@@ -1,6 +1,7 @@
 #include "Scenes/FaunaJointCreation.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Render/ModelBatch.h"
 #include "Render/Models/Cloth.h"
@@ -40,7 +41,7 @@
 // de 0x538d77 y 0x53b156, y el dibujo común de 0x53c6a0. 06, "Los joints de las familias".
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::Scenes::ActorState;
 using Client::Scenes::JointOwnerKind;
 using Client::Scenes::JointState;

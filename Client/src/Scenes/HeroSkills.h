@@ -12,9 +12,13 @@
 #include <optional>
 #include <string>
 
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
+} // namespace Client::Crt
+
+namespace Client::Render::Models
+{
 class IModelLibrary;
 struct Skeleton;
 } // namespace Client::Render::Models
@@ -31,7 +35,7 @@ struct InventoryServices;
 struct HeroSkillContext
 {
     WorldState& world;
-    Render::Models::CrtRandom& random;
+    Crt::CrtRandom& random;
     // Skill.bmd (0x76bd1d8). nullptr: 0x5526f0 corta.
     const Data::Tables::SkillTable* skills = nullptr;
     // Las acciones de Player.bmd, que 0x4ea030 pone a las skills de un jugador, e Item.bmd, que lee 0x4f4a10 con otro

@@ -1,13 +1,13 @@
 #include "Scenes/LetterPortrait.h"
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
 #include "Core/IClock.h"
+#include "Core/PixelSize.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Models/PlayerModels.h"
 #include "GameLogic/CharacterAppearance.h"
 #include "Render/ModelBatch.h"
 #include "Render/Models/Animation.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/RoundedTransforms.h"
 #include "Render/Pass3D.h"
@@ -305,7 +305,7 @@ void CopyFromTheRecord(LetterPortrait& portrait, std::uint8_t heroClass, const D
     ActorState& actor = portrait.actor;
     WorldState& world = resources.world;
     std::uint8_t& depth = world.Runtime().ownRecordDepth;
-    Render::Models::CrtRandom& random = resources.cloth.random;
+    Crt::CrtRandom& random = resources.cloth.random;
     const auto& equipment = world.OwnCharacter().equipment;
     if (differ.body)
     {
@@ -453,7 +453,7 @@ Core::Expected<std::int32_t, std::string> NextIn(const std::array<std::int32_t, 
 
 Core::Expected<void, std::string> BuildThePortrait(LetterPortrait& portrait, const WorldEntryResources& resources)
 {
-    Render::Models::CrtRandom& random = resources.cloth.random;
+    Crt::CrtRandom& random = resources.cloth.random;
     // 0x4961d9..0x4961ec: el ayudante en cero (0x75 dwords).
     portrait.helper = HelperState{};
     ActorState& actor = portrait.actor;
@@ -624,7 +624,7 @@ void TurnThePortrait(LetterPortrait& portrait)
     portrait.actor.angles = {PortraitPitch, PortraitRoll, PortraitYaw};
 }
 
-Render::Pass3D PortraitPass(App::PixelSize screen, const UI::OldWindowBase& base, const ActorState& actor)
+Render::Pass3D PortraitPass(Core::PixelSize screen, const UI::OldWindowBase& base, const ActorState& actor)
 {
     // 0x6ba004: el alto del retrato.
     constexpr float PortraitHeight = 141.0f;
@@ -663,7 +663,7 @@ Render::Pass3D PortraitPass(App::PixelSize screen, const UI::OldWindowBase& base
     return pass;
 }
 
-Render::Pass3D PlaceThePortrait(LetterPortrait& portrait, const UI::OldPortraitPart& part, App::PixelSize screen)
+Render::Pass3D PlaceThePortrait(LetterPortrait& portrait, const UI::OldPortraitPart& part, Core::PixelSize screen)
 {
     ActorState& actor = portrait.actor;
     // 0x4957a4..0x4958c6.
@@ -687,7 +687,7 @@ Render::Pass3D PlaceThePortrait(LetterPortrait& portrait, const UI::OldPortraitP
 }
 
 Core::Expected<Render::Pass3D, std::string> PrepareThePortraitDraw(LetterPortrait& portrait, UI::OldPortraitPart& part,
-                                                                   App::PixelSize screen,
+                                                                   Core::PixelSize screen,
                                                                    const WorldEntryResources& resources)
 {
     ActorState& actor = portrait.actor;
@@ -870,7 +870,7 @@ Core::Expected<void, std::string> DrawTheLetterPortrait(UI::OldPortraitPart& par
     LetterPortrait& durable = *std::static_pointer_cast<LetterPortrait>(part.actor);
     std::optional<LetterPortrait> projected;
     LetterPortrait& portrait = draw.originalFrame ? durable : projected.emplace(durable);
-    const App::PixelSize screen = draw.hud.sprites.Screen();
+    const Core::PixelSize screen = draw.hud.sprites.Screen();
     Render::Pass3D pass;
     if (draw.originalFrame)
     {

@@ -1,6 +1,6 @@
 #include "UI/CreateCharacterWindow.h"
 
-#include "App/WindowState.h"
+#include "Core/PixelSize.h"
 #include "Data/Text/TextTable.h"
 #include "Input/InputEvent.h"
 #include "Input/InputState.h"
@@ -132,7 +132,7 @@ Render::UiImage BlackBox(const Rect& area, float alpha)
 }
 } // namespace
 
-CreateWindowLayout LayoutCreateWindow(App::PixelSize screen, std::uint8_t characterClass)
+CreateWindowLayout LayoutCreateWindow(Core::PixelSize screen, std::uint8_t characterClass)
 {
     const int x = (screen.width - BoxWidth) / 2;
     const int y = (screen.height - BoxHeight) / 2;
@@ -271,12 +271,12 @@ void CreateCharacterWindow::Choose(std::uint8_t characterClass)
     m_class = characterClass;
 }
 
-Rect CreateCharacterWindow::Bounds(App::PixelSize screen) const
+Rect CreateCharacterWindow::Bounds(Core::PixelSize screen) const
 {
     return Rect{.x = 0, .y = 0, .width = screen.width, .height = screen.height};
 }
 
-std::optional<CreateWindowEvent> CreateCharacterWindow::Step(const Input::InputState& input, App::PixelSize screen,
+std::optional<CreateWindowEvent> CreateCharacterWindow::Step(const Input::InputState& input, Core::PixelSize screen,
                                                              NewUiTurn turn)
 {
     if (!m_open)
@@ -327,7 +327,7 @@ std::optional<CreateWindowEvent> CreateCharacterWindow::Step(const Input::InputS
     return std::nullopt;
 }
 
-void CreateCharacterWindow::DrawBase(Render::SpriteBatch& sprites, App::PixelSize screen) const
+void CreateCharacterWindow::DrawBase(Render::SpriteBatch& sprites, Core::PixelSize screen) const
 {
     if (!m_open)
     {
@@ -337,7 +337,7 @@ void CreateCharacterWindow::DrawBase(Render::SpriteBatch& sprites, App::PixelSiz
     sprites.Image(BlackBox(Area(0, 0, screen.width, screen.height), BaseAlpha));
 }
 
-void CreateCharacterWindow::Draw(Render::SpriteBatch& sprites, Scenes::ITextDrawer& text, App::PixelSize screen)
+void CreateCharacterWindow::Draw(Render::SpriteBatch& sprites, Scenes::ITextDrawer& text, Core::PixelSize screen)
 {
     if (!m_open)
     {
@@ -363,7 +363,7 @@ void CreateCharacterWindow::Draw(Render::SpriteBatch& sprites, Scenes::ITextDraw
     DrawTheName(text, screen);
 }
 
-void CreateCharacterWindow::DrawAttributes(Scenes::ITextDrawer& text, App::PixelSize screen) const
+void CreateCharacterWindow::DrawAttributes(Scenes::ITextDrawer& text, Core::PixelSize screen) const
 {
     const Rect& box = m_layout.attributes;
     const auto drawAttribute = [&](std::string_view value, std::size_t label, int top)
@@ -386,7 +386,7 @@ void CreateCharacterWindow::DrawAttributes(Scenes::ITextDrawer& text, App::Pixel
     }
 }
 
-void CreateCharacterWindow::DrawDescription(Scenes::ITextDrawer& text, App::PixelSize screen) const
+void CreateCharacterWindow::DrawDescription(Scenes::ITextDrawer& text, Core::PixelSize screen) const
 {
     const std::optional<std::string_view> description = TextAt(m_texts, FirstDescriptionText + m_class);
     if (!description || description->empty())
@@ -403,7 +403,7 @@ void CreateCharacterWindow::DrawDescription(Scenes::ITextDrawer& text, App::Pixe
     }
 }
 
-void CreateCharacterWindow::DrawTheName(Scenes::ITextDrawer& text, App::PixelSize screen) const
+void CreateCharacterWindow::DrawTheName(Scenes::ITextDrawer& text, Core::PixelSize screen) const
 {
     const std::string_view name = m_name.Value();
     if (!name.empty())
@@ -414,7 +414,7 @@ void CreateCharacterWindow::DrawTheName(Scenes::ITextDrawer& text, App::PixelSiz
     text.Draw(m_layout.nameField.x + Render::Text::DesignX(width, screen), m_layout.nameField.y, Caret, NameStyle);
 }
 
-void CreateCharacterWindow::Place(App::PixelSize screen)
+void CreateCharacterWindow::Place(Core::PixelSize screen)
 {
     m_layout = LayoutCreateWindow(screen, m_class);
     for (std::size_t i = 0; i < CreatableClassCount; ++i)

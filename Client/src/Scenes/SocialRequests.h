@@ -18,10 +18,10 @@
 // busca al otro: el elegido (0x6c8e30) o, sin él, el primero de los 400 que está enfrente del héroe. Cada celda que
 // compara abre y cierra su entrada protegida (0x40b570 y 0x40b800, o lo mismo en línea), con los cuatro rand() de su
 // cierre; el paquete va en C3, con los dos del relleno y del serial. *Estático*.
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
-} // namespace Client::Render::Models
+} // namespace Client::Crt
 
 namespace Client::Scenes
 {
@@ -30,7 +30,7 @@ class WorldState;
 struct SocialRequestContext
 {
     WorldState& world;
-    Render::Models::CrtRandom& random;
+    Crt::CrtRandom& random;
     // Text.bmd: el 475 y el 476 (sprintf con el nombre), el 493 (la tienda personal) y el 257 (no es el líder).
     const Data::Text::TextTable& texts;
     // El cable (App::ServerSession). Vacío, el pedido que llega a mandarse es el error.
@@ -78,8 +78,7 @@ struct CellDistance
     std::int32_t x = 0;
     std::int32_t y = 0;
 };
-[[nodiscard]] CellDistance CellDistanceToTheHero(WorldState& world, Render::Models::CrtRandom& random,
-                                                 std::size_t index);
+[[nodiscard]] CellDistance CellDistanceToTheHero(WorldState& world, Crt::CrtRandom& random, std::size_t index);
 
 // El otro al que se le puede pedir algo (0x56c6ab..0x56c6d6 y sus copias): un jugador (+0x88 en 1) que no es el héroe
 // publicado (0x743a170), del tipo 0x20a o con +0x3e3 distinto de 0. El elegido no mira si está vivo; el de enfrente,
@@ -88,7 +87,7 @@ struct CellDistance
 
 // 0x56c6dc..0x56c78a: la celda lógica del otro y la del héroe, cada x y cada y en su acceso (+0x41c del otro, la del
 // héroe, +0x420 del otro y la del héroe): a lo sumo 1 de distancia en las dos. Con la x lejos no lee las y.
-[[nodiscard]] bool NextToTheHero(WorldState& world, Render::Models::CrtRandom& random, std::size_t index);
+[[nodiscard]] bool NextToTheHero(WorldState& world, Crt::CrtRandom& random, std::size_t index);
 
 // 0x56cf2f..0x56cfac: las direcciones de +0x24 (el _ftol de (ángulo + 22,5) / 45 + 1, & 0xff y por 8) del otro y del
 // héroe, a 4 de distancia: se miran. Fuera del _ftol, el error.

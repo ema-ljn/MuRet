@@ -3,12 +3,12 @@
 #include "World/TerrainCulling.h"
 #include "World/WorldTerrain.h"
 
+#include "Core/PixelSize.h"
 #include "Data/Terrain/TerrainGrid.h"
 #include "Data/Tables/ItemTable.h"
 #include "Data/Tables/SkillTable.h"
 #include "Data/Text/TextTable.h"
 #include "Data/Textures/TextureSet.h"
-#include "App/WindowState.h"
 #include "Render/ModelBatch.h"
 #include "Render/ModelVertex.h"
 #include "Render/Pass3D.h"
@@ -203,7 +203,7 @@ TEST_F(GoldenTerrainTrace, TheCellsOfLorenciaMatchTheTrace)
     const Client::World::GameCameraInput cameraInput{.hero = {14350.0f, 12050.0f, 165.0f}, .cellAttribute = 0x01};
     const auto camera = Client::World::StepGameCamera(cameraState, cameraInput);
     ExpectCameraInTrace(trace.Value().frames.front(), camera);
-    const auto worldPass = Client::Render::MakePass3D(Client::App::PixelSize{1024, 768}, {0, 0, 640, 432}, camera);
+    const auto worldPass = Client::Render::MakePass3D(Client::Core::PixelSize{1024, 768}, {0, 0, 640, 432}, camera);
     TerrainView view{.mapping = terrain.Value().mapping.get(),
                      .heights = terrain.Value().heights.get(),
                      .attributes = terrain.Value().attributes.get(),
@@ -330,7 +330,7 @@ TEST_F(GoldenTerrainTrace, LorenciaDrawsTheCellsOfTheTraceInItsOrder)
     const auto camera = Client::World::StepGameCamera(cameraState, cameraInput);
     ASSERT_FALSE(trace.Value().frames.empty());
     ExpectCameraInTrace(trace.Value().frames.front(), camera);
-    const auto pass = Client::Render::MakePass3D(Client::App::PixelSize{1024, 768}, {0, 0, 640, 432}, camera);
+    const auto pass = Client::Render::MakePass3D(Client::Core::PixelSize{1024, 768}, {0, 0, 640, 432}, camera);
     const auto range = Client::World::TerrainRangeOf(pass.view, camera);
     const auto polygon =
         Client::World::TerrainPolygonOf(Client::World::CullingScene::Game, Lorencia, cameraInput.hero, camera.angles.z);
@@ -437,7 +437,7 @@ TEST_F(GoldenTerrainTrace, TheGameSceneDrawsTheCellsOfLorencia)
                                     nullptr, nullptr, &items.Value().table, nullptr, nullptr, &skills.Value(),
                                     &texts.Value());
     ASSERT_TRUE(scene.Enter().HasValue());
-    Client::Tests::RecordingFrameTarget target(Client::App::PixelSize{1024, 768});
+    Client::Tests::RecordingFrameTarget target(Client::Core::PixelSize{1024, 768});
 
     scene.PrepareFrame();
     scene.Render(target.BeginFrame({}), 0.0f);
@@ -460,7 +460,7 @@ TEST_F(GoldenTerrainTrace, TheGameSceneDrawsTheCellsOfLorencia)
         fresh, Client::World::GameCameraInput{.hero = hero.position, .cellAttribute = cameraInput.cellAttribute});
     ExpectCameraInTrace(trace.Value().frames.front(), camera);
     EXPECT_EQ(models->pass->view,
-              Client::Render::MakePass3D(Client::App::PixelSize{1024, 768}, {0, 0, 640, 432}, camera).view);
+              Client::Render::MakePass3D(Client::Core::PixelSize{1024, 768}, {0, 0, 640, 432}, camera).view);
     const auto traced = TracedCells(trace.Value().frames[0]);
     const std::vector<TerrainCell> drawn = OpaqueCellsOf(*models);
     ASSERT_EQ(traced.size(), 329u);
@@ -494,7 +494,7 @@ TEST_F(GoldenTerrainTrace, TheSelectionDrawsTheCellsOfItsTrace)
     ASSERT_TRUE(terrain.HasValue()) << terrain.Error();
     const auto camera = Client::Scenes::SelectionCamera();
     const auto pass =
-        Client::Render::MakePass3D(Client::App::PixelSize{1024, 768}, Client::Scenes::WorldViewport, camera);
+        Client::Render::MakePass3D(Client::Core::PixelSize{1024, 768}, Client::Scenes::WorldViewport, camera);
     const auto range = Client::World::TerrainRangeOf(pass.view, camera);
     const auto polygon = Client::World::TerrainPolygonOf(Client::World::CullingScene::CharacterSelect, Selection,
                                                          {12975.0f, 15423.0f, 333.0f}, camera.angles.z);
@@ -525,7 +525,7 @@ TEST_F(GoldenTerrainLogin, TheLoginDrawsTheCellsOfTheEmulatedCode)
     ASSERT_TRUE(terrain.HasValue()) << terrain.Error();
     const auto camera = Client::Scenes::LoginCamera();
     const auto pass =
-        Client::Render::MakePass3D(Client::App::PixelSize{640, 480}, Client::Scenes::WorldViewport, camera);
+        Client::Render::MakePass3D(Client::Core::PixelSize{640, 480}, Client::Scenes::WorldViewport, camera);
     const auto range = Client::World::TerrainRangeOf(pass.view, camera);
     const auto polygon = Client::World::TerrainPolygonOf(Client::World::CullingScene::Login, Login,
                                                          Client::Scenes::LoginHeroPosition, camera.angles.z);

@@ -1,6 +1,7 @@
 #include "Scenes/KalimaObjectStep.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Render/Models/Cloth.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/FaunaState.h"
@@ -44,7 +45,7 @@ TEST(KalimaObjectStepTest, OwnRecordAndSeparateCellsCloseBeforeTheSelectorAndNat
         hero.cellX = 40;
         hero.cellY = 64;
         world->OwnCharacter().level = 0;
-        Client::Render::Models::ClothWorld cloth{.random = Client::Render::Models::CrtRandom{seed}};
+        Client::Render::Models::ClothWorld cloth{.random = Client::Crt::CrtRandom{seed}};
         auto expected = cloth.random;
         const int ambient = 0x1d4 + expected.Next() % 2;
         for (int cellCloses = 0; cellCloses < 8; ++cellCloses)
@@ -112,7 +113,7 @@ TEST(KalimaObjectStepTest, ASelectedRetainedCountReturnsBeforeTheSpawnGuardAndDo
     bool selected = false;
     for (std::uint32_t seed = 1; seed < 200 && !selected; ++seed)
     {
-        Client::Render::Models::ClothWorld cloth{.random = Client::Render::Models::CrtRandom{seed}, .logicSteps = 1};
+        Client::Render::Models::ClothWorld cloth{.random = Client::Crt::CrtRandom{seed}, .logicSteps = 1};
         auto expected = cloth.random;
         if (expected.Next() % 10 != 0)
             continue;
@@ -138,8 +139,7 @@ TEST(KalimaObjectStepTest, RegionCellClosesStoreTheNativeRandomBytesOnlyAtDepthZ
         bool selected = false;
         for (std::uint32_t seed = 1; seed < 200 && !selected; ++seed)
         {
-            Client::Render::Models::ClothWorld cloth{.random = Client::Render::Models::CrtRandom{seed},
-                                                     .logicSteps = 1};
+            Client::Render::Models::ClothWorld cloth{.random = Client::Crt::CrtRandom{seed}, .logicSteps = 1};
             auto expected = cloth.random;
             const auto close = [&expected, depth]
             {

@@ -1,6 +1,6 @@
 #include "Render/Pass3D.h"
 
-#include "App/WindowState.h"
+#include "Core/PixelSize.h"
 #include "Render/Models/RoundedMath.h"
 
 #include <gtest/gtest.h>
@@ -21,7 +21,7 @@
 // Cámara y § El picking).
 namespace
 {
-using Client::App::PixelSize;
+using Client::Core::PixelSize;
 using Client::Render::Camera3D;
 using Client::Render::MakePass3D;
 using Client::Render::Pass3D;

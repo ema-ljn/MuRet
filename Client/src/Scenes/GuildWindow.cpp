@@ -1,6 +1,7 @@
 #include "Scenes/GuildWindow.h"
 
 #include "Core/Expected.h"
+#include "Core/PixelSize.h"
 #include "Data/Text/TextTable.h"
 #include "Protocol/Guild.h"
 #include "Render/OriginalQuad.h"
@@ -759,7 +760,7 @@ void ClearTheGuildMembers(GuildWindowState& window)
 }
 
 Core::Expected<void, std::string> AddTheGuildNotice(GuildWindowState& window, const Render::Text::ITextMeasure& measure,
-                                                    Render::Text::FontKind font, App::PixelSize screen,
+                                                    Render::Text::FontKind font, Core::PixelSize screen,
                                                     std::string_view text)
 {
     constexpr int NoticeWidth = 0x6e;

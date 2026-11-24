@@ -1,7 +1,8 @@
-#include "App/WindowState.h"
 #include "Core/Expected.h"
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
+#include "Core/PixelSize.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Models/PlayerModels.h"
 #include "Data/Tables/ItemSetTables.h"
 #include "Data/Tables/ItemTable.h"
@@ -75,11 +76,11 @@
 namespace
 {
 using Client::Core::Expected;
+using Client::Crt::CrtRandom;
 using Client::Network::Xor32Decode;
 using Client::Protocol::FloorItems::FloorItemEntry;
 using Client::Protocol::FloorItems::FloorItemsCreate;
 using Client::Protocol::Inventory::ItemData;
-using Client::Render::Models::CrtRandom;
 using Client::Scenes::FloorItemState;
 using Client::Scenes::WorldEntryResources;
 using Client::Scenes::WorldState;
@@ -167,7 +168,7 @@ struct Stage
                                               {1412, "sumados"},  {1900, "comando"},     {1903, "restados"},
                                               {103, "Anillo"}}))
     {
-        sprites.Begin(Client::App::PixelSize{640, 480});
+        sprites.Begin(Client::Core::PixelSize{640, 480});
         models.Set(Client::Data::Models::PlayerSkeletonModel, {}, Client::Tests::PlayerActionsSkeleton(), {});
         world.OwnCharacter().ClearEquipmentForEntry();
         world.Inventory().ClearForInventoryReply();
@@ -196,7 +197,7 @@ struct Stage
                                    .itemSetTables = &sets,
                                    .log = log,
                                    .textMeasure = &text,
-                                   .screen = [] { return Client::App::PixelSize{640, 480}; },
+                                   .screen = [] { return Client::Core::PixelSize{640, 480}; },
                                    .texts = &texts};
     }
 

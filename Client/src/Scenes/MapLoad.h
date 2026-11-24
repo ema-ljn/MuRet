@@ -9,7 +9,7 @@
 #include <functional>
 #include <string>
 
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
 }
@@ -33,7 +33,7 @@ struct MapLoadContext
     // DAT_057678bc, la clave del jugador que dio el F1 00.
     std::uint16_t playerKey;
     // El rand() de la CRT: el pasto y los objetos que lo piden al crearse.
-    Render::Models::CrtRandom& random;
+    Crt::CrtRandom& random;
     // El B9 02 que 0x42a760 manda al cargar el 30 con el socket del GS abierto. Vacío, como el socket en −1:
     // no sale nada.
     std::function<void()> requestCastleSiegeState{};

@@ -2,6 +2,7 @@
 #include "Scenes/CharacterStep.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Models/ModelFiles.h"
 #include "Data/Models/PlayerModels.h"
 #include "Data/Tables/ItemTable.h"
@@ -68,8 +69,8 @@
 // § El cuerpo de los personajes (0x4fd5f0), § Los efectos de los personajes (0x505de0) y § Caminar.
 namespace
 {
+using Client::Crt::CrtRandom;
 using Client::Render::Models::ActionInfo;
-using Client::Render::Models::CrtRandom;
 using Client::Render::Models::Skeleton;
 using Client::Scenes::ActorState;
 using Client::Scenes::CharacterHead;

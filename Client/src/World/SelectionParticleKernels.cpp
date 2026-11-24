@@ -1,7 +1,7 @@
 #include "World/SelectionParticleKernels.h"
 
 #include "Core/Expected.h"
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "World/IParticleTrigonometry.h"
 #include "World/ParticleOwner.h"
 #include "World/Particles.h"
@@ -51,7 +51,7 @@ void ScaleLight(Particle& p, double factor)
 }
 
 // 0x5435cf..0x54363b (el else de 0x622, subtipo 1), y la salida 0x5435bb que limpia la velocidad.
-void CreateOwnedMist(Particle& p, float scaleArgument, Render::Models::CrtRandom& random)
+void CreateOwnedMist(Particle& p, float scaleArgument, Crt::CrtRandom& random)
 {
     p.life = MistLife;
     p.verticalSpeed = static_cast<float>(random.Next() % 1000);
@@ -70,7 +70,7 @@ void CreateOwnedMist(Particle& p, float scaleArgument, Render::Models::CrtRandom
 }
 
 // 0x54150e..0x5415fb: el x de partida en +0x6c antes del giro; el y sigue al corrimiento del x.
-void CreateRisingFlame(Particle& p, Render::Models::CrtRandom& random)
+void CreateRisingFlame(Particle& p, Crt::CrtRandom& random)
 {
     p.life = FlameLife;
     constexpr int ShrinkSpan = 20;
@@ -92,7 +92,7 @@ void CreateRisingFlame(Particle& p, Render::Models::CrtRandom& random)
 
 // 0x54143c..0x54149d: la llama del chorro 0x5de del 4 sube recta: vida 20, la velocidad (0; 0; ((& 127) + 128)
 // · 0,15f) y la escala ((& 63) + 64) por el argumento por 0,01f, redondeada una vez.
-void CreateFloorFlame(Particle& p, float scaleArgument, Render::Models::CrtRandom& random)
+void CreateFloorFlame(Particle& p, float scaleArgument, Crt::CrtRandom& random)
 {
     constexpr int FloorFlameLife = 20, RiseMask = 127, RiseBase = 128, SizeMask = 63, SizeBase = 64;
     p.life = FloorFlameLife;
@@ -104,7 +104,7 @@ void CreateFloorFlame(Particle& p, float scaleArgument, Render::Models::CrtRando
 }
 
 // 0x543840..0x543931: el /1 se dibuja con Impack03 y sube; los dos sortean vida y lugar igual.
-void CreateChaseLight(Particle& p, Render::Models::CrtRandom& random)
+void CreateChaseLight(Particle& p, Crt::CrtRandom& random)
 {
     constexpr int SizeSpan = 10, SizeBase = 20, WideSpan = 5;
     if (p.subtype == 1)
@@ -201,7 +201,7 @@ bool IsSelectionParticle(std::int32_t type, std::int32_t subtype)
            (type == ChaseLightParticle && (subtype == 0 || subtype == 1));
 }
 
-void CreateSelectionParticle(Particle& particle, float scaleArgument, Render::Models::CrtRandom& random)
+void CreateSelectionParticle(Particle& particle, float scaleArgument, Crt::CrtRandom& random)
 {
     if (particle.type == CloudParticle)
         CreateOwnedMist(particle, scaleArgument, random);

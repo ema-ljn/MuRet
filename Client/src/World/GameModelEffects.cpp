@@ -4,7 +4,7 @@
 #include "World/SiegeGateEffects.h"
 
 #include "Core/Expected.h"
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "World/BlastModelEffects.h"
 #include "Render/Models/OriginalRetainedMath.h"
 #include "World/ModelEffects.h"
@@ -47,8 +47,7 @@ float F32(double value)
 } // namespace
 
 Core::Expected<void, std::string> EmitPiercingShotGlow(ModelEffect& effect, Particles& particles,
-                                                       Render::Models::CrtRandom& random,
-                                                       const ModelEffectStepServices& services)
+                                                       Crt::CrtRandom& random, const ModelEffectStepServices& services)
 {
     constexpr int Emissions = 3;
     constexpr int FullCircle = 360;
@@ -124,8 +123,7 @@ Core::Expected<void, std::string> EmitPiercingShotGlow(ModelEffect& effect, Part
 
 namespace
 {
-Core::Expected<void, std::string> StepKalimaEffect(ModelEffect& effect, KalimaWorld* kalima,
-                                                   Render::Models::CrtRandom& random)
+Core::Expected<void, std::string> StepKalimaEffect(ModelEffect& effect, KalimaWorld* kalima, Crt::CrtRandom& random)
 {
     constexpr double Acceleration = 3, RotationFactor = 5;
     constexpr float WaterPlane = 350;
@@ -191,7 +189,7 @@ Core::Expected<void, std::string> StepGatePlane(ModelEffect& effect, float world
     return {};
 }
 Core::Expected<void, std::string> EmitTeleportSparks(const ModelEffect& effect, Particles& particles, float worldClock,
-                                                     Render::Models::CrtRandom& random)
+                                                     Crt::CrtRandom& random)
 {
     constexpr int SparkCount = 18;
     constexpr double HeightStep = 24.0;
@@ -211,8 +209,7 @@ Core::Expected<void, std::string> EmitTeleportSparks(const ModelEffect& effect, 
 }
 // 0x520d11..0x520fd1, con la luz local en (1, 1, 1) desde 0x520921.
 Core::Expected<void, std::string> StepButterfly(ModelEffect& effect, Particles& particles, float worldClock,
-                                                Render::Models::CrtRandom& random,
-                                                const ModelEffectStepServices& services)
+                                                Crt::CrtRandom& random, const ModelEffectStepServices& services)
 {
     constexpr int TurnSpan = 10, DriftSpan = 15, DriftCenter = 7;
     glm::vec3& position = effect.transform.position;
@@ -346,8 +343,7 @@ Core::Expected<void, std::string> StepFallingStone(ModelEffect& effect, const Mo
 // (0x523af4 y 0x523b47). El 0xe5 y el 0xe6 con el subtipo 0 (los de la muerte del 0x16b) llegan desde 0x523974
 // (0x523926 con otro subtipo que el 5) y dan el mismo paso; su rand() % 10 no suelta nada (0x523b10).
 Core::Expected<void, std::string> StepStoneChip(ModelEffect& effect, Particles& particles, float worldClock,
-                                                Render::Models::CrtRandom& random,
-                                                const ModelEffectStepServices& services)
+                                                Crt::CrtRandom& random, const ModelEffectStepServices& services)
 {
     const bool chipType = effect.type == FirstStoneChipEffect || effect.type == SecondStoneChipEffect;
     const bool rising =
@@ -423,7 +419,7 @@ Core::Expected<void, std::string> StepStoneChip(ModelEffect& effect, Particles& 
 // con sus ángulos y su luz +0xf4, sin dueño y con la clave en −1; el rand() del tipo sale también con la tabla llena,
 // que no crea nada); y la luz dinámica (L; L · 0,4f; 0) de radio 3.
 Core::Expected<void, std::string> StepFlameColumn(ModelEffect& effect, float luminosity, Particles& particles,
-                                                  float worldClock, Render::Models::CrtRandom& random,
+                                                  float worldClock, Crt::CrtRandom& random,
                                                   const ModelEffectStepServices& services)
 {
     constexpr int Flames = 3, Spread = 10, Center = 5;
@@ -478,7 +474,7 @@ Core::Expected<void, std::string> StepFlameColumn(ModelEffect& effect, float lum
 // chorro de la Flame; los de los objetos del 4 no tienen dueño) y la vida (antes de la cola) múltiplo de 20 (IDIV con
 // signo), 0x517a20 a 150 (0x43160000), sin mirar lo que devuelve.
 Core::Expected<void, std::string> StepFlameJet(ModelEffect& effect, float luminosity, Particles& particles,
-                                               float worldClock, Render::Models::CrtRandom& random,
+                                               float worldClock, Crt::CrtRandom& random,
                                                const ModelEffectStepServices& services)
 {
     if (effect.subtype == FlameColumnSubtype)
@@ -527,8 +523,7 @@ Core::Expected<void, std::string> StepFlameJet(ModelEffect& effect, float lumino
 // (0x6ba240) y la luz de las mallas (+0x68) por 0,5f. Siempre, la luz dinámica (0,79f; 0,72f; 0,49f) de radio 2
 // (0x52c4e5). Sin la tabla de efectos corta antes del rand() de la piedrita; sin la luz dinámica, al final.
 Core::Expected<void, std::string> StepGroundStone(ModelEffect& effect, Particles& particles, float worldClock,
-                                                  Render::Models::CrtRandom& random,
-                                                  const ModelEffectStepServices& services)
+                                                  Crt::CrtRandom& random, const ModelEffectStepServices& services)
 {
     constexpr std::int32_t DustAfterLife = 32, DustBeforeLife = 37, FadeLife = 8;
     constexpr double Side = 60.0, Lift = 50.0;
@@ -568,7 +563,7 @@ Core::Expected<void, std::string> StepGroundStone(ModelEffect& effect, Particles
 // partícula 5ac/1 en el lugar con la luz y la escala del efecto y, con la z de la velocidad bajo −2 (o NaN),
 // vida 0. La cola común suma la velocidad otra vez (los ángulos son 0).
 Core::Expected<void, std::string> StepIcarusFlare(ModelEffect& effect, Particles& particles, float worldClock,
-                                                  Render::Models::CrtRandom& random)
+                                                  Crt::CrtRandom& random)
 {
     if (effect.subtype != 0)
         return Core::Unexpected(
@@ -611,7 +606,7 @@ std::optional<double> SignedSineProductPC53(double argument, float multiplier)
 // yaw suma sen(ftol(T) % 10.000 · 0,0001f) · +0xe4 y el pitch el mismo seno · +0xec · 1/3f; la luz es
 // +0x68 · (0,1f; 0,1f; 0,25f) y suelta una 5ac/9 en el lugar con su escala, antes del avance de la cola.
 Core::Expected<void, std::string> StepAidaWisp(ModelEffect& effect, Particles& particles, float worldClock,
-                                               Render::Models::CrtRandom& random)
+                                               Crt::CrtRandom& random)
 {
     constexpr int TurnChance = 40, TurnSpan = 3, YawBase = 5, PitchBase = 1;
     constexpr double Reverse = -1.0, Reach = 500.0;
@@ -670,7 +665,7 @@ Core::Expected<void, std::string> StepAidaWisp(ModelEffect& effect, Particles& p
 // la de un personaje (0x54735f): el prefijo de 0x518cf0 la deja en 0 y sólo un lugar reusado conserva otra. Sin la
 // tabla de efectos el /0 corta siempre (el /1); la órbita /0, sólo si tiene lugar.
 Core::Expected<void, std::string> StepFadingDecal(const ModelEffect& effect, Particles& particles,
-                                                  const float& worldClock, Render::Models::CrtRandom& random,
+                                                  const float& worldClock, Crt::CrtRandom& random,
                                                   const ModelEffectStepServices& services)
 {
     constexpr std::int32_t TrailSubtype = 0, FadingSubtype = 1, FirstOrbSubtype = 2, LastOrbSubtype = 7;
@@ -729,7 +724,7 @@ Core::Expected<void, std::string> StepFadingDecal(const ModelEffect& effect, Par
 // humos 0x5f2/25 con esos ángulos, la luz del efecto, escala 1 y sin dueño (0x5264be), y la luz (L · 0,3f; L · 0,6f;
 // L) de radio 3.
 Core::Expected<void, std::string> StepCrywolfTide(ModelEffect& effect, Particles& particles, float clock,
-                                                  Render::Models::CrtRandom& random, float luminosity,
+                                                  Crt::CrtRandom& random, float luminosity,
                                                   const ModelEffectStepServices& services)
 {
     if (effect.subtype != 2)
@@ -828,7 +823,7 @@ Core::Expected<void, std::string> StepPiercingEffect(ModelEffect& effect, const 
 }
 
 Core::Expected<void, std::string> ScatterCrywolfImpact(const glm::vec3& position, Particles& particles,
-                                                       float worldClock, Render::Models::CrtRandom& random,
+                                                       float worldClock, Crt::CrtRandom& random,
                                                        const ModelEffectStepServices& services)
 {
     // 0x51fff0(posición,1): ocho grupos a45grados, dos piedras0 por grupo y los cuarenta sorteos del burst.
@@ -857,8 +852,7 @@ Core::Expected<void, std::string> ScatterCrywolfImpact(const glm::vec3& position
 }
 
 Core::Expected<void, std::string> StepCrywolfMissile(ModelEffect& effect, Particles& particles, float worldClock,
-                                                     Render::Models::CrtRandom& random,
-                                                     const ModelEffectStepServices& services)
+                                                     Crt::CrtRandom& random, const ModelEffectStepServices& services)
 {
     if (!services.terrainHeight)
         return Core::Unexpected(std::string("0x525ab1: el0xee sin la altura del terreno"));
@@ -934,7 +928,7 @@ Core::Expected<void, std::string> StepCrywolfMissile(ModelEffect& effect, Partic
 }
 
 Core::Expected<void, std::string> StepFirework(ModelEffect& effect, float luminosity, Particles& particles,
-                                               float worldClock, Render::Models::CrtRandom& random,
+                                               float worldClock, Crt::CrtRandom& random,
                                                const ModelEffectStepServices& services)
 {
     if (effect.type == 0x60e)
@@ -996,7 +990,7 @@ Core::Expected<void, std::string> StepFirework(ModelEffect& effect, float lumino
 // tocan la escala. Después, una escala negativa vuelve a 0 (0x52c74e) y, con el subtipo de 0 a 3, la luz es la vida,
 // o 40 menos la vida pasados los 20, por 0,05f (0x6b8ad0) en los tres canales; con otro, con la vida por debajo de 6,
 // la luz por 0,769f (0x6ba240).
-Core::Expected<void, std::string> StepShockWave(ModelEffect& effect, Render::Models::CrtRandom& random,
+Core::Expected<void, std::string> StepShockWave(ModelEffect& effect, Crt::CrtRandom& random,
                                                 const ModelEffectStepServices& services)
 {
     constexpr int GrowthSpan = 5;
@@ -1217,8 +1211,7 @@ Core::Expected<void, std::string> CreateQuakeCrack(const ModelEffectStepServices
 
 // 0x521e13..0x521f6c: los sorteos del llamador preceden a cada intento, incluso con el pool lleno.
 Core::Expected<void, std::string> EmitEarthquakeBurst(ModelEffect& effect, Particles& particles, float worldClock,
-                                                      Render::Models::CrtRandom& random,
-                                                      const ModelEffectStepServices& services)
+                                                      Crt::CrtRandom& random, const ModelEffectStepServices& services)
 {
     constexpr int JointCount = 8, PitchSpan = 60, YawSpan = 30, YawBase = 90, PointSpan = 20, PointCentre = 10;
     constexpr std::int32_t BurstJoint = 0x617;
@@ -1254,7 +1247,7 @@ Core::Expected<void, std::string> EmitEarthquakeBurst(ModelEffect& effect, Parti
 
 // 0x521c8f..0x5221f0, la vida 11, con la luz local en blanco y los ángulos locales en 0.
 Core::Expected<void, std::string> StepEarthquakeAtEleven(ModelEffect& effect, Particles& particles, float worldClock,
-                                                         Render::Models::CrtRandom& random, KalimaWorld* kalima,
+                                                         Crt::CrtRandom& random, KalimaWorld* kalima,
                                                          const ModelEffectStepServices& services)
 {
     constexpr glm::vec3 Behind{-25.0f, -80.0f, 0.0f}; // 0x521cda..0x521cee.
@@ -1376,7 +1369,7 @@ Core::Expected<void, std::string> StepEarthquakeAtEleven(ModelEffect& effect, Pa
 }
 
 // 0x5221fe..0x522493, la vida 10: cuatro anillos de cinco grietas que salen de la partida.
-Core::Expected<void, std::string> StepEarthquakeAtTen(ModelEffect& effect, Render::Models::CrtRandom& random,
+Core::Expected<void, std::string> StepEarthquakeAtTen(ModelEffect& effect, Crt::CrtRandom& random,
                                                       const ModelEffectStepServices& services)
 {
     constexpr int Rings = 4, LastSteadyRing = 2, StepSpan = 15, PushSpan = 30, PushBase = 50, TurnSpan = 10,
@@ -1490,7 +1483,7 @@ Core::Expected<void, std::string> SwingTheEarthquake(ModelEffect& effect)
 }
 
 // 0x5224ec..0x52266a: cuatro intentos por grupo, aun sin hueco; los dos rand() separan los grupos.
-Core::Expected<void, std::string> EmitEarthquakeTrails(ModelEffect& effect, Render::Models::CrtRandom& random,
+Core::Expected<void, std::string> EmitEarthquakeTrails(ModelEffect& effect, Crt::CrtRandom& random,
                                                        const ModelEffectStepServices& services)
 {
     constexpr glm::vec3 Behind{-25.0f, -40.0f, 0.0f};
@@ -1529,7 +1522,7 @@ Core::Expected<void, std::string> EmitEarthquakeTrails(ModelEffect& effect, Rend
 }
 
 Core::Expected<void, std::string> StepEarthquake(ModelEffect& effect, Particles& particles, float worldClock,
-                                                 Render::Models::CrtRandom& random, KalimaWorld* kalima,
+                                                 Crt::CrtRandom& random, KalimaWorld* kalima,
                                                  const ModelEffectStepServices& services)
 {
     constexpr std::int32_t BurstLife = 11, RingLife = 10;
@@ -1565,7 +1558,7 @@ Core::Expected<void, std::string> LightTheCrack(ModelEffect& effect, float lumin
 
 // 0x52284f..0x522a94 (y 0x522995..0x522a94): la piedrita 0xc8 + (rand() & 1) en la posición más (0; rand() % 150; 0)
 // girado por (0; 0; rand() % 360), con los ángulos y la luz de la grieta: los tres rand() antes del alta.
-Core::Expected<void, std::string> DropACrackChip(const ModelEffect& effect, Render::Models::CrtRandom& random,
+Core::Expected<void, std::string> DropACrackChip(const ModelEffect& effect, Crt::CrtRandom& random,
                                                  const ModelEffectStepServices& services, std::string_view address)
 {
     constexpr int ReachSpan = 150, Degrees = 360, Kinds = 2;
@@ -1584,8 +1577,7 @@ Core::Expected<void, std::string> DropACrackChip(const ModelEffect& effect, Rend
 }
 
 // 0x52276a..0x522bd2, con L, la luz local del primer rand(). +0x68 es la luz de las mallas y la z baja 0,5f (0x6b882c).
-Core::Expected<void, std::string> StepEarthquakeCrack(ModelEffect& effect, float luminosity,
-                                                      Render::Models::CrtRandom& random,
+Core::Expected<void, std::string> StepEarthquakeCrack(ModelEffect& effect, float luminosity, Crt::CrtRandom& random,
                                                       const ModelEffectStepServices& services)
 {
     constexpr double Tenth = static_cast<double>(std::bit_cast<float>(0x3dcccccdu)); // 0x6b87b8 y 0x6b8a34.
@@ -1685,8 +1677,8 @@ Core::Expected<void, std::string> StepEarthquakeCrack(ModelEffect& effect, float
 // +0x174 = vida · 0,1f. En 0x5252e6, rand() % 10 y, con 0, 0x53fe70(0x5f3, [EBP − 0x28], ángulos, (1; 1; 1), 0,
 // 1,0f, 0): ese punto es un local de 0x5208a0 que ningún camino escribe (Q-C1176), así que corta ahí, después de ese
 // rand() y antes del polvo y de la cola (P-C232, para la VM).
-Core::Expected<void, std::string> StepDebris(ModelEffect& effect, Particles& particles,
-                                             Render::Models::CrtRandom& random, const ModelEffectStepServices& services)
+Core::Expected<void, std::string> StepDebris(ModelEffect& effect, Particles& particles, Crt::CrtRandom& random,
+                                             const ModelEffectStepServices& services)
 {
     glm::vec3& position = effect.transform.position;
     for (int axis = 0; axis < 3; ++axis)
@@ -1737,7 +1729,7 @@ Core::Expected<void, std::string> StepDebris(ModelEffect& effect, Particles& par
 // 0x523c4a..0x523ccd, la 0x105/1: 0x530860(0x614, posición, posición, ángulos, 3, 0, 20,0f, 7, 0, 0, −1) y
 // 0x5491e0(0x5fd, posición, ((rand() & 7) + 8) · 0,2f, (1, 1, 1), el efecto, rand() % 360, 0); el rand() de la rotación
 // sale primero.
-Core::Expected<void, std::string> StepTheTrailSpark(ModelEffect& effect, Render::Models::CrtRandom& random,
+Core::Expected<void, std::string> StepTheTrailSpark(ModelEffect& effect, Crt::CrtRandom& random,
                                                     const ModelEffectStepServices& services)
 {
     constexpr std::int32_t SparkJoint = 0x614, SparkJointSubtype = 3, SparkJointKey = 7, NoTarget = -1;
@@ -1770,9 +1762,8 @@ Core::Expected<void, std::string> StepTheTrailSpark(ModelEffect& effect, Render:
 }
 } // namespace
 Core::Expected<void, std::string> StepGameModelEffect(ModelEffect& effect, const Render::Models::Skeleton* skeleton,
-                                                      Particles& particles, float worldClock,
-                                                      Render::Models::CrtRandom& random, KalimaWorld* kalima,
-                                                      const ModelEffectStepServices& services)
+                                                      Particles& particles, float worldClock, Crt::CrtRandom& random,
+                                                      KalimaWorld* kalima, const ModelEffectStepServices& services)
 {
     if (!effect.alive)
         return {};

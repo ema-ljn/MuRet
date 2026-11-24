@@ -1,7 +1,7 @@
 #include "Scenes/GameDialogDrawing.h"
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Core/PixelSize.h"
 #include "Render/OriginalQuad.h"
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
@@ -647,7 +647,7 @@ void DrawText(Frame& frame, int x, int y, std::string_view text)
     if (!text.empty())
         frame.context.text.Draw(x, y, text, Render::Text::TextStyle{.font = hud.dcFont, .colors = hud.textColors});
     const Render::Text::TextExtent extent = frame.context.text.Measure(hud.dcFont, text);
-    const App::PixelSize screen = frame.context.sprites.Screen();
+    const Core::PixelSize screen = frame.context.sprites.Screen();
     hud.arrowsTextWidth = Render::Text::DesignX(extent.width, screen);
     hud.arrowsTextHeight = Render::Text::DesignY(extent.height, screen);
 }
@@ -734,7 +734,7 @@ Core::Expected<void, std::string> DrawTheVolume(Frame& frame)
     if (!text.HasValue())
         return Core::Unexpected(std::move(text).Error());
     Render::SpriteBatch& sprites = frame.context.sprites;
-    const App::PixelSize screen = sprites.Screen();
+    const Core::PixelSize screen = sprites.Screen();
     const Render::Text::TextExtent extent = frame.context.text.Measure(frame.context.hud.dcFont, text.Value());
     // cx · 640 / W en 32 bits sin signo, como 0x62e1df; sin pantalla, el ancho tal cual.
     std::int32_t width = extent.width;

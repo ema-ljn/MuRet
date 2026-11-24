@@ -1,7 +1,7 @@
 #include "Scenes/SkullEffects.h"
 
 #include "Core/Expected.h"
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "Render/Models/OriginalRetainedMath.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/HighModelEffects.h"
@@ -26,7 +26,7 @@
 // El 0x628, la calavera: su alta (0x51ee23), su paso (0x52b59b) y PutTheSkullOn (0x4e688c, 0x4cd664).
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::Scenes::ActorState;
 using Client::Scenes::CreateHighModelEffect;
 using Client::Scenes::HighEffectStepContext;

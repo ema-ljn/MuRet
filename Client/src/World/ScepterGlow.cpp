@@ -1,8 +1,8 @@
 #include "World/ScepterGlow.h"
 
 #include "Core/IClock.h"
+#include "Crt/CrtRandom.h"
 #include "Render/Models/Animation.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/OriginalRotation.h"
 #include "World/Sprites.h"
 
@@ -40,7 +40,7 @@ glm::vec3 OffsetOf(float p, double reach)
 }
 } // namespace
 
-ScepterGlowRandoms DrawScepterGlowRandoms(Render::Models::CrtRandom& random)
+ScepterGlowRandoms DrawScepterGlowRandoms(Crt::CrtRandom& random)
 {
     ScepterGlowRandoms randoms;
     randoms.tridentStep = random.Next() % 60;
@@ -53,7 +53,7 @@ ScepterGlowRandoms DrawScepterGlowRandoms(Render::Models::CrtRandom& random)
 }
 
 void CreateScepterGlow(FrameSprites& sprites, const Render::Models::OriginalMatrix& bone, float bodyScale,
-                       const glm::vec3& bodyOrigin, Render::Models::CrtRandom& random)
+                       const glm::vec3& bodyOrigin, Crt::CrtRandom& random)
 {
     CreateScepterGlow(sprites, bone, bodyScale, bodyOrigin, DrawScepterGlowRandoms(random));
 }
@@ -90,7 +90,7 @@ void CreateScepterGlow(FrameSprites& sprites, const Render::Models::OriginalMatr
 }
 
 void ScepterGlowCarry::Create(FrameSprites& sprites, const Render::Models::OriginalMatrix& bone, float bodyScale,
-                              const glm::vec3& bodyOrigin, Render::Models::CrtRandom& random, Core::Duration clock,
+                              const glm::vec3& bodyOrigin, Crt::CrtRandom& random, Core::Duration clock,
                               Render::Models::OriginalFramePace pace)
 {
     const int frames = m_frames.FramesAt(clock, pace);

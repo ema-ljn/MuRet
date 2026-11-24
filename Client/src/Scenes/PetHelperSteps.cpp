@@ -1,8 +1,8 @@
 #include "Scenes/PetHelperSteps.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Render/Models/Animation.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/OriginalAngles.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Render/Models/Skeleton.h"
@@ -312,7 +312,7 @@ Core::Expected<void, std::string> SparkleTheGuardianAngel(const HelperState& hel
         return {};
     }
     const glm::vec3 light(GuardianLightLevel);
-    Render::Models::CrtRandom& random = context.random;
+    Crt::CrtRandom& random = context.random;
     for (int spark = 0; spark < GuardianSparks; ++spark)
     {
         const int x = (random.Next() % SparkSpread) - SparkCentre;
@@ -330,8 +330,7 @@ Core::Expected<void, std::string> SparkleTheGuardianAngel(const HelperState& hel
     return {};
 }
 
-void FlyTheGuardianAngel(HelperState& helper, const ActorState& rider, glm::vec2 riderStart,
-                         Render::Models::CrtRandom& random)
+void FlyTheGuardianAngel(HelperState& helper, const ActorState& rider, glm::vec2 riderStart, Crt::CrtRandom& random)
 {
     const float reach = F32(static_cast<double>(GuardianReach) * static_cast<double>(GuardianReach));
     // 0x445057..0x445078: la distancia al cuadrado en la x87; el float se guarda para el cambio de rumbo.

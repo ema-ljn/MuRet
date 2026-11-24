@@ -1,7 +1,7 @@
 #include "Scenes/CastleSiegeBlessing.h"
 
 #include "Core/Expected.h"
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "Scenes/ActorState.h"
 #include "World/Particles.h"
 #include <array>
@@ -26,7 +26,7 @@ bool InRange(const ActorState& actor, float x, float y)
 } // namespace
 Core::Expected<void, std::string> DrawTheCastleBlessing(const ActorState& actor, std::uint16_t heroGuildIndex,
                                                         float markX, float markY, std::int32_t logicSteps,
-                                                        World::Particles& particles, Render::Models::CrtRandom& random)
+                                                        World::Particles& particles, Crt::CrtRandom& random)
 {
     bool close = false;
     if ((actor.flags78 & 0x40000) != 0)

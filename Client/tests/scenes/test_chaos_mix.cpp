@@ -1,7 +1,7 @@
 #include "Scenes/ChaosMix.h"
 
+#include "Crt/CrtRandom.h"
 #include "Data/Tables/ItemTable.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ItemPrice.h"
 #include "Scenes/NpcWindowState.h"
@@ -30,7 +30,7 @@
 // con precio fijo (+0x40) para que 0x54d0f0 sea fácil de seguir.
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::Scenes::NpcWindowState;
 using Client::Scenes::WorldState;
 using Client::World::ItemState;

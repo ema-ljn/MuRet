@@ -7,7 +7,7 @@
 #include <vector>
 #include <cstddef>
 #include <string>
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "World/ModelEffects.h"
 #include "World/GameModelEffects.h"
 #include "World/Particles.h"
@@ -22,7 +22,7 @@ TEST(CrywolfDeathSpiritTest, TheMainSpiritRetainsItsTargetOffsetAndCopiesTheInpu
     auto effects = std::make_unique<Client::World::ModelEffects>();
     auto particles = std::make_unique<Client::World::Particles>();
     Client::Scenes::ActorState owner;
-    Client::Render::Models::CrtRandom random(7);
+    Client::Crt::CrtRandom random(7);
     const Client::World::ModelEffectArguments args{
         .type = 0x147, .position = {100, 200, 300}, .angles = {11, 22, 33}, .light = {0, 0, 80}, .owner = &owner};
     const auto result = Client::Scenes::CreateCrywolfDeathSpirit(args, *effects, particles.get(), random, 0);
@@ -48,7 +48,7 @@ TEST(CrywolfDeathSpiritTest, TheEchoCopiesTheOwnersLifetimeAndEmitsItsBlueFire)
     auto particles = std::make_unique<Client::World::Particles>();
     Client::Scenes::ActorState owner;
     owner.dword60 = 12;
-    Client::Render::Models::CrtRandom random(7), expected(7);
+    Client::Crt::CrtRandom random(7), expected(7);
     expected.Discard(3);
     const auto result = Client::Scenes::CreateCrywolfDeathSpirit({.type = 0x147, .subtype = 1, .owner = &owner},
                                                                  *effects, particles.get(), random, 0);
@@ -74,7 +74,7 @@ TEST(CrywolfDeathSpiritTest, TheFirstTickOnlyIncrementsTheIterationsAndRequestsT
     e.ownerContext = &owner;
     e.turnDirection = 1;
     e.speed = 10;
-    Client::Render::Models::CrtRandom random(7);
+    Client::Crt::CrtRandom random(7);
     int sound = 0;
     const auto result = Client::Scenes::StepCrywolfDeathSpirit(e, random, {.sound = [&](int id) { sound = id; }});
     ASSERT_TRUE(result.HasValue()) << result.Error();
@@ -95,7 +95,7 @@ TEST(CrywolfDeathSpiritTest, AFreeLateDecalRequiresTheNativeStackPointWhileAFull
     e.turnDirection = 1.1f;
     e.speed = 10;
     e.velocity = {0, -26, 0};
-    Client::Render::Models::CrtRandom random(7);
+    Client::Crt::CrtRandom random(7);
     const auto result = Client::Scenes::StepCrywolfDeathSpirit(e, random, {.effects = effects.get()});
     ASSERT_FALSE(result.HasValue());
     EXPECT_NE(result.Error().find("0x5271a8"), std::string::npos);
@@ -113,7 +113,7 @@ TEST(CrywolfDeathSpiritTest, TrailLifeAndItsFallingSpeedFollowTheNativeBody)
     EXPECT_FLOAT_EQ(e.turnDirection, 80);
     EXPECT_EQ(e.transform.angles, (glm::vec3{0, 0, 45}));
     Client::World::Particles particles;
-    Client::Render::Models::CrtRandom random(1);
+    Client::Crt::CrtRandom random(1);
     const auto stepped = Client::World::StepGameModelEffect(e, nullptr, particles, 0.0f, random);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(e.life, 5);
@@ -126,7 +126,7 @@ TEST(CrywolfDeathSpiritTest, TheFullModelPoolDoesNotReadTheOwnerOrNeedParticles)
     auto effects = std::make_unique<Client::World::ModelEffects>();
     for (auto& e : effects->Effects())
         e.alive = true;
-    Client::Render::Models::CrtRandom random(7);
+    Client::Crt::CrtRandom random(7);
     const auto result =
         Client::Scenes::CreateCrywolfDeathSpirit({.type = 0x147, .subtype = 1}, *effects, nullptr, random);
     ASSERT_TRUE(result.HasValue());
@@ -147,7 +147,7 @@ TEST(CrywolfDeathSpiritTest, AnInjectedStackPointKeepsTheDecalAndTrailOwnersType
     Client::Scenes::ActorState owner;
     owner.position = {0, -100, 0};
     e.ownerContext = &owner;
-    Client::Render::Models::CrtRandom random(7), expected(7);
+    Client::Crt::CrtRandom random(7), expected(7);
     expected.Discard(1);
     const auto result =
         Client::Scenes::StepCrywolfDeathSpirit(e, random, {.effects = effects.get()}, glm::vec3{11, 22, 33});
@@ -176,7 +176,7 @@ TEST(CrywolfDeathSpiritTest, TheLateDecalJointsFollowTheDurableModelEffectOwner)
     decal.ownerContext = &parent;
     decal.owner.effect = &parent;
     std::vector<Client::Scenes::JointState> joints(3);
-    Client::Render::Models::CrtRandom random(7), expected(7);
+    Client::Crt::CrtRandom random(7), expected(7);
     expected.Discard(13);
     ASSERT_TRUE(Client::Scenes::StepPetSummon(decal, joints, random).HasValue());
     for (auto& joint : joints)

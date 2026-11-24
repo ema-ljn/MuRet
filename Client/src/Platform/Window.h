@@ -1,8 +1,8 @@
 #pragma once
 
 #include "App/VSyncMode.h"
-#include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Core/PixelSize.h"
 #include "Platform/GlLoader.h"
 #include "Platform/SdlContext.h"
 #include "Platform/SwapInterval.h"
@@ -56,7 +56,7 @@ public:
     // Modal nativo; retorna al confirmar el aviso. El error conserva SDL_GetError().
     [[nodiscard]] Core::Expected<void, std::string> ShowErrorMessage(const std::string& message);
     void Swap();
-    [[nodiscard]] App::PixelSize PixelSize() const;
+    [[nodiscard]] Core::PixelSize PixelSize() const;
     // El SDL_WindowID, para que PumpEvents descarte los eventos de otras ventanas.
     [[nodiscard]] SDL_WindowID Id() const;
     // El que quedó después de ApplySwapInterval.

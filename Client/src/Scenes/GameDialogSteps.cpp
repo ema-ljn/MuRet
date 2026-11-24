@@ -1,6 +1,7 @@
 #include "Scenes/GameDialogSteps.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Text/DialogTable.h"
 #include "Protocol/Connection/Logout.h"
 #include "Protocol/DialogAnswers.h"
@@ -11,7 +12,6 @@
 #include "Protocol/Outgoing.h"
 #include "Protocol/Party.h"
 #include "Protocol/Trade.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/RoundedMath.h"
 #include "Scenes/GameMessages.h"
@@ -1163,8 +1163,8 @@ Core::Expected<void, std::string> StepTheOpenDialog(const GameUiContext& context
     return Core::Unexpected(std::format("{}: el diálogo {:#x} es de la {}", route.address, id, route.wave));
 }
 
-Core::Expected<Protocol::OptionData::OptionBody, std::string>
-OptionBodyOf(WorldState& world, Render::Models::CrtRandom& random, std::optional<std::uint8_t> chosenSlot)
+Core::Expected<Protocol::OptionData::OptionBody, std::string> OptionBodyOf(WorldState& world, Crt::CrtRandom& random,
+                                                                           std::optional<std::uint8_t> chosenSlot)
 {
     WorldRuntime& runtime = world.Runtime();
     if (!chosenSlot || *chosenSlot >= OwnSkillKeyPlaces)

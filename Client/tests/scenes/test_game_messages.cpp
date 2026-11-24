@@ -1,6 +1,6 @@
 #include "Scenes/GameMessages.h"
 
-#include "App/WindowState.h"
+#include "Core/PixelSize.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Scenes/WorldRuntime.h"
@@ -29,7 +29,7 @@ public:
     }
 };
 
-constexpr Client::App::PixelSize Screen640{640, 480};
+constexpr Client::Core::PixelSize Screen640{640, 480};
 
 // Un mensaje entra en el registro y, con el nombre vacío, en el área vieja; el reloj del área vuelve a 150.
 TEST(GameMessagesTest, AMessageGoesToTheLogAndTheOldArea)

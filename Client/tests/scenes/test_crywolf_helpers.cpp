@@ -1,5 +1,5 @@
+#include "Crt/CrtRandom.h"
 #include "Scenes/ModelEffects.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/Skeleton.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/WorldRuntime.h"
@@ -45,7 +45,7 @@ TEST(CrywolfHelpersTest, TheThreeAttackWindowsContinueWhenTheRealPoolsAreFull)
         skeleton.bones.assign(50, {.dummy = true, .parent = -1, .actions = {}});
         skeleton.actions.assign(12, {.repeats = true, .speed = 0.25f, .keyCount = 10, .lockPositions = false});
         Client::World::FrameSprites sprites;
-        Client::Render::Models::CrtRandom random(7);
+        Client::Crt::CrtRandom random(7);
         Client::Scenes::ModelEffectsPass pass{.actor = *actor,
                                               .slot = 3,
                                               .world = *world,
@@ -89,7 +89,7 @@ TEST(CrywolfHelpersTest, TheAttackWindowsCreateTheirNativeChildrenOnlyInsideTheH
             skeleton.bones.assign(50, {.dummy = true, .parent = -1, .actions = {}});
             skeleton.actions.assign(12, {.repeats = true, .speed = 0.25f, .keyCount = 10, .lockPositions = false});
             Client::World::FrameSprites sprites;
-            Client::Render::Models::CrtRandom random(7);
+            Client::Crt::CrtRandom random(7);
             Client::Scenes::ModelEffectsPass pass{.actor = *actor,
                                                   .slot = 3,
                                                   .world = *world,
@@ -133,7 +133,7 @@ TEST(CrywolfHelpersTest, TheNamedSpritesReadTheRegisteredActorBonesAndKeepBothRo
         world->Runtime().namedBones = {{3, "Monster96_Center", 0}, {3, "Monster96_Top", 1}, {3, "Monster96_Bottom", 2}};
         Client::Render::Models::Skeleton skeleton;
         Client::World::FrameSprites sprites;
-        Client::Render::Models::CrtRandom random(7);
+        Client::Crt::CrtRandom random(7);
         Client::Scenes::ModelEffectsPass pass{.actor = *actor,
                                               .slot = 3,
                                               .world = *world,
@@ -173,7 +173,7 @@ TEST(CrywolfHelpersTest, ThePiercingKeepsBothInclusiveFrameEdgesAndBothHelpersIn
             actor->animation.frame = frame;
             actor->position = {100, 200, 300};
             Client::Render::Models::Skeleton skeleton;
-            Client::Render::Models::CrtRandom random(7);
+            Client::Crt::CrtRandom random(7);
             Client::Scenes::ModelEffectsPass pass{
                 .actor = *actor, .slot = 3, .world = *world, .random = random, .skeleton = skeleton, .map = map};
             const auto stepped = Client::Scenes::StepTheModelEffects(pass);
@@ -202,7 +202,7 @@ TEST(CrywolfHelpersTest, TheHeadAttackCreatesTheOwnedEarthquakeAboveTheScaleThre
         Client::Render::Models::Skeleton skeleton;
         skeleton.actions.assign(12, {.repeats = true, .speed = 0.25f, .keyCount = 10, .lockPositions = false});
         Client::World::FrameSprites sprites;
-        Client::Render::Models::CrtRandom random(7);
+        Client::Crt::CrtRandom random(7);
         Client::Scenes::ModelEffectsPass pass{.actor = *actor,
                                               .slot = 3,
                                               .world = *world,
@@ -234,7 +234,7 @@ TEST(CrywolfHelpersTest, TheBalgassAppliesBothRandomGateOutcomesBeforeItsFrameGa
         for (const std::uint8_t initialAction : {std::uint8_t{0}, std::uint8_t{3}})
         {
             const auto seed = Client::Tests::FirstSeedWhere(
-                [&](Client::Render::Models::CrtRandom& candidate)
+                [&](Client::Crt::CrtRandom& candidate)
                 {
                     static_cast<void>(candidate.Next());
                     return (candidate.Next() % 100 == 0) == called;
@@ -250,7 +250,7 @@ TEST(CrywolfHelpersTest, TheBalgassAppliesBothRandomGateOutcomesBeforeItsFrameGa
             world->Runtime().ownRecordDepth = 1;
             Client::Render::Models::Skeleton skeleton;
             skeleton.actions.resize(4);
-            Client::Render::Models::CrtRandom random(seed);
+            Client::Crt::CrtRandom random(seed);
             Client::Scenes::ModelEffectsPass pass{
                 .actor = *actor, .slot = 3, .world = *world, .random = random, .skeleton = skeleton, .map = 34};
             const auto stepped = Client::Scenes::StepTheModelEffects(pass);

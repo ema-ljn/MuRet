@@ -1,11 +1,11 @@
 #include "Scenes/NpcWindowSteps.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Tables/ItemTable.h"
 #include "Protocol/NpcWindows.h"
 #include "Protocol/Connection/Logout.h"
 #include "Protocol/Outgoing.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ChaosMix.h"
 #include "Scenes/GameMessages.h"
@@ -376,7 +376,7 @@ Core::Expected<void, std::string> PressTheMixButton(const GameUiContext& context
 
 } // namespace
 
-void OpenTheKeypad(WorldRuntime& runtime, Render::Models::CrtRandom& random, std::int32_t mode)
+void OpenTheKeypad(WorldRuntime& runtime, Crt::CrtRandom& random, std::int32_t mode)
 {
     NpcWindowState& npc = runtime.npcWindows;
     ShuffleTheKeypad(random, npc.keypad);
@@ -434,7 +434,7 @@ Core::Expected<void, std::string> StepTheNpcShop(const GameUiContext& context, U
     return {};
 }
 
-Core::Expected<void, std::string> PriceTheRepairOfEverything(WorldState& world, Render::Models::CrtRandom& random,
+Core::Expected<void, std::string> PriceTheRepairOfEverything(WorldState& world, Crt::CrtRandom& random,
                                                              const Data::Tables::ItemTable* items)
 {
     WorldRuntime& runtime = world.Runtime();

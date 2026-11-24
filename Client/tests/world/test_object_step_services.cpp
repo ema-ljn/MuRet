@@ -1,5 +1,5 @@
+#include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainGrid.h"
-#include "Render/Models/Cloth.h"
 #include "World/Particles.h"
 #include "World/TerrainLighting.h"
 #include "World/WorldObjects.h"
@@ -18,7 +18,7 @@
 
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::World::ObjectStepGlobals;
 using Client::World::Particles;
 using Client::World::StepWorldObjectChecked;

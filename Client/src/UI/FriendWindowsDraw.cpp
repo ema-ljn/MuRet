@@ -1,7 +1,7 @@
 #include "UI/FriendWindowsDraw.h"
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Core/PixelSize.h"
 #include "Render/SpriteBatch.h"
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Render/Text/TextLayout.h"
@@ -382,7 +382,7 @@ void DrawTheWindowsTab(OldWindow& tab, const OldWindowDrawContext& context, cons
 }
 
 // La y de un texto de la franja de los encabezados: ClientY(0) + ((24 − cy / ry) + 0,5) · 0,5, sin truncar.
-double HeaderTextTop(const OldWindow& window, const Render::Text::TextExtent& extent, App::PixelSize screen)
+double HeaderTextTop(const OldWindow& window, const Render::Text::TextExtent& extent, Core::PixelSize screen)
 {
     return static_cast<double>(Steps::ClientY(window, 0)) +
            ((HeaderTextHeight - static_cast<double>(extent.height) / RatioY(screen)) + Half) * Half;
@@ -391,7 +391,7 @@ double HeaderTextTop(const OldWindow& window, const Render::Text::TextExtent& ex
 // 0x4a2827..0x4a2a98: los títulos de las tres pestañas, si tienen, en blanco el de la vista o el del mouse (+0xb4).
 void DrawTheHeaderTitles(const OldWindow& window, const OldWindowDrawContext& context)
 {
-    const App::PixelSize screen = context.sprites.Screen();
+    const Core::PixelSize screen = context.sprites.Screen();
     for (std::size_t at = 0; at < FriendsTabCount; ++at)
     {
         const std::optional<std::string>& title = window.tabs[at].frame.title;
@@ -413,7 +413,7 @@ void DrawTheHeaderTitles(const OldWindow& window, const OldWindowDrawContext& co
 void DrawTheStateButton(const OldWindowManager& manager, const OldWindow& window, const OldWindowDrawContext& context,
                         const OldWindowDrawView& view)
 {
-    const App::PixelSize screen = context.sprites.Screen();
+    const Core::PixelSize screen = context.sprites.Screen();
     const std::string label = TextAt(view, StateButtonText);
     context.textColors.text = DimColor;
     const Render::Text::TextExtent extent = context.text.Measure(context.dcFont, label);

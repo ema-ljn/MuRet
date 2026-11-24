@@ -1,7 +1,7 @@
 #include "World/KalimaSurfaceDecal.h"
 
+#include "Crt/CrtRandom.h"
 #include "Render/ModelBatch.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Pass3D.h"
 #include "Render/SpriteVertex.h"
 #include "Render/TextureSlot.h"
@@ -65,7 +65,7 @@ TEST(KalimaSurfaceDecalTest, DrawsNativeFiftyUnitCellsAndKeepsTheCallersMaterial
 TEST(KalimaSurfaceDecalTest, UsesPlaneZeroRegardlessOfTheSelectedPlaneAndPeriodicFields)
 {
     KalimaWorld world(24);
-    Client::Render::Models::CrtRandom random;
+    Client::Crt::CrtRandom random;
     ASSERT_TRUE(world.Disturb(50, 50, 3, 1000000, random).HasValue());
     ASSERT_EQ(world.Waves().planes[0][100 * 256 + 100], 3u);
     ASSERT_TRUE(world.Update({1, 1000, 50, 50, random}).HasValue());

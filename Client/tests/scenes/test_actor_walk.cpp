@@ -1,8 +1,8 @@
 #include "Scenes/ActorWalk.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Tables/ItemTable.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/Skeleton.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/PlayerActionSpeeds.h"
@@ -36,7 +36,7 @@ protected:
     }();
     Client::Render::Models::Skeleton m_skeleton = Client::Tests::PlayerActionsSkeleton();
     Client::Data::Tables::ItemTable m_items = Client::Tests::ItemsMarking({0x213, 0x227, 0xc12});
-    Client::Render::Models::CrtRandom m_random{1};
+    Client::Crt::CrtRandom m_random{1};
     Client::Scenes::PlayerActionSpeeds m_speeds;
 };
 
@@ -261,12 +261,12 @@ TEST_F(ActorWalkTest, Type16dRequestsItsUnconditionalSoundWithoutDrawingRandom)
 TEST_F(ActorWalkTest, AMonsterChosenToSoundDrawsItsWalkWord)
 {
     std::uint32_t seed = 1;
-    while ((Client::Render::Models::CrtRandom(seed).Next() & 15) != 0)
+    while ((Client::Crt::CrtRandom(seed).Next() & 15) != 0)
         ++seed;
     constexpr std::uint16_t Model = 0x15b;
     const auto walk = [this, seed](std::int32_t subtype)
     {
-        m_random = Client::Render::Models::CrtRandom(seed);
+        m_random = Client::Crt::CrtRandom(seed);
         auto actor = Client::Tests::UnarmedPlayer(3);
         actor.type = Model;
         actor.subtype = subtype;
@@ -380,7 +380,7 @@ TEST_F(ActorWalkTest, AnotherModelSoundsFromItsModelTable)
             auto actor = Client::Tests::UnarmedPlayer(3);
             actor.type = 0x153;
             actor.subtype = subtype;
-            Client::Render::Models::CrtRandom random(seed);
+            Client::Crt::CrtRandom random(seed);
             const auto walked = Client::Scenes::SetActorWalk(
                 actor, {{m_runtime, Client::Scenes::SceneId::Game, m_skeleton, nullptr, random},
                         m_speeds,
@@ -395,7 +395,7 @@ TEST_F(ActorWalkTest, AnotherModelSoundsFromItsModelTable)
                 EXPECT_TRUE(*walked.Value().sound == base + 0x10 || *walked.Value().sound == base + 0x11);
             }
 
-            Client::Render::Models::CrtRandom quiet(seed);
+            Client::Crt::CrtRandom quiet(seed);
             const auto muted = Client::Scenes::SetActorWalk(
                 actor, {{m_runtime, Client::Scenes::SceneId::Game, m_skeleton, nullptr, quiet},
                         m_speeds,
@@ -405,7 +405,7 @@ TEST_F(ActorWalkTest, AnotherModelSoundsFromItsModelTable)
             ASSERT_TRUE(muted.HasValue()) << muted.Error();
             EXPECT_FALSE(muted.Value().sound.has_value());
 
-            Client::Render::Models::CrtRandom missing(seed);
+            Client::Crt::CrtRandom missing(seed);
             const auto unknown = Client::Scenes::SetActorWalk(
                 actor, {{m_runtime, Client::Scenes::SceneId::Game, m_skeleton, nullptr, missing},
                         m_speeds,
@@ -440,7 +440,7 @@ TEST_F(ActorWalkTest, TheSubtypes209To211AskForTheirLeadSoundBeforeTheTable)
         SCOPED_TRACE(seed);
         auto plain = Client::Tests::UnarmedPlayer(3);
         plain.type = 0x153;
-        Client::Render::Models::CrtRandom reference(seed);
+        Client::Crt::CrtRandom reference(seed);
         const auto expected = Client::Scenes::SetActorWalk(
             plain, {{m_runtime, Client::Scenes::SceneId::Game, m_skeleton, nullptr, reference},
                     m_speeds,
@@ -454,7 +454,7 @@ TEST_F(ActorWalkTest, TheSubtypes209To211AskForTheirLeadSoundBeforeTheTable)
             auto actor = Client::Tests::UnarmedPlayer(3);
             actor.type = 0x153;
             actor.subtype = subtype;
-            Client::Render::Models::CrtRandom random(seed);
+            Client::Crt::CrtRandom random(seed);
             const auto walked = Client::Scenes::SetActorWalk(
                 actor, {{m_runtime, Client::Scenes::SceneId::Game, m_skeleton, nullptr, random},
                         m_speeds,
@@ -465,7 +465,7 @@ TEST_F(ActorWalkTest, TheSubtypes209To211AskForTheirLeadSoundBeforeTheTable)
             EXPECT_EQ(walked.Value().sound, expected.Value().sound);
             EXPECT_EQ(random.State(), reference.State());
 
-            Client::Render::Models::CrtRandom quiet(seed);
+            Client::Crt::CrtRandom quiet(seed);
             const auto muted = Client::Scenes::SetActorWalk(
                 actor, {{m_runtime, Client::Scenes::SceneId::Game, m_skeleton, nullptr, quiet},
                         m_speeds,

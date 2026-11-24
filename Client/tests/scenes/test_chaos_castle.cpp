@@ -1,7 +1,7 @@
 #include "World/ChaosCastle.h"
 
 #include "Core/Expected.h"
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/ObjectState.h"
@@ -37,8 +37,8 @@
 // de la misma semilla.
 namespace
 {
+using Client::Crt::CrtRandom;
 using Client::Render::Models::BoneTransform;
-using Client::Render::Models::CrtRandom;
 using Client::Scenes::GameObjectPass;
 using Client::Scenes::JointState;
 using Client::World::FishEffectRequest;

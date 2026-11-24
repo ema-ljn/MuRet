@@ -1,7 +1,7 @@
 #pragma once
 
-#include "App/WindowState.h"
 #include "Core/IClock.h"
+#include "Core/PixelSize.h"
 #include "Render/ModelBatch.h"
 #include "Render/SpriteBatch.h"
 #include "Scenes/ITextDrawer.h"
@@ -32,7 +32,7 @@ struct SceneCanvas
     // después de los modelos y antes del 2D que va encima; el 2D apaga la profundidad (CL6.3).
     std::function<void()> flushModels;
     // El área de dibujo en píxeles: el W y el H del original.
-    App::PixelSize screen;
+    Core::PixelSize screen;
     // El reloj del frame: el Now() del IClock del bucle al empezarlo. En Main es el de SDL, que
     // cuenta desde que arrancó MuRet: con él se mueve la arena del login (Q-C65).
     Core::Duration frameClock{};

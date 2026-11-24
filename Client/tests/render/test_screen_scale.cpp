@@ -1,6 +1,6 @@
 #include "Render/ScreenScale.h"
 
-#include "App/WindowState.h"
+#include "Core/PixelSize.h"
 
 #include <gtest/gtest.h>
 
@@ -8,7 +8,7 @@
 // su lado y multiplicando por la inversa en float (06 § Primitivas 2D).
 namespace
 {
-using Client::App::PixelSize;
+using Client::Core::PixelSize;
 using Client::Render::ScaleX;
 using Client::Render::ScaleY;
 

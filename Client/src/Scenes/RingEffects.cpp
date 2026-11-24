@@ -1,7 +1,7 @@
 #include "Scenes/RingEffects.h"
 
 #include "Core/Expected.h"
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "Render/Models/ObjectState.h"
 #include "Render/Models/OriginalAngles.h"
 #include "Scenes/ActorState.h"
@@ -38,7 +38,7 @@ double D(float value)
 constexpr std::int32_t SparkSubtype = 0, RingSubtype = 1;
 
 // (rand() & 31) − 16 (AND 0x8000001f con el ajuste del signo; rand() no es negativo).
-int Shake(Render::Models::CrtRandom& random)
+int Shake(Crt::CrtRandom& random)
 {
     constexpr int ShakeMask = 31, ShakeCenter = 16;
     return (random.Next() & ShakeMask) - ShakeCenter;

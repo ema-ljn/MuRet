@@ -11,7 +11,7 @@
 #include <string>
 #include <string_view>
 
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
 }
@@ -30,7 +30,7 @@ struct QuestContext
 {
     WorldState& world;
     // El rand() de la CRT: los cierres del registro propio (3.848 cada uno que lo deja en 0).
-    Render::Models::CrtRandom& random;
+    Crt::CrtRandom& random;
     // Text.bmd: el 609 de las respuestas vacías de 0x419710. nullptr: un diálogo sin respuestas corta.
     const Data::Text::TextTable* texts = nullptr;
 };

@@ -1,6 +1,6 @@
+#include "Crt/CrtRandom.h"
 #include "Scenes/CastleSiegeAttack.h"
 #include "Core/Expected.h"
-#include "Render/Models/Cloth.h"
 #include "Scenes/ActorState.h"
 #include "World/ModelEffects.h"
 #include <glm/ext/vector_float3.hpp>
@@ -16,14 +16,13 @@ Core::Expected<void, std::string> Emit(const CastleAttackEmitter& emit, const Wo
         return Core::Unexpected(std::string("0x42ea90: falta el pool del impacto sobre la construcción del asedio"));
     return emit(arguments);
 }
-float DebrisHeight(const ActorState& target, Render::Models::CrtRandom& random)
+float DebrisHeight(const ActorState& target, Crt::CrtRandom& random)
 {
     return static_cast<float>((static_cast<double>(random.Next() % 30) + target.position.z) + 200.0);
 }
 } // namespace
 Core::Expected<void, std::string> EmitTheCastleAttackHit(const ActorState& target, std::uint32_t heroFlags,
-                                                         Render::Models::CrtRandom& random,
-                                                         const CastleAttackEmitter& emit)
+                                                         Crt::CrtRandom& random, const CastleAttackEmitter& emit)
 {
     constexpr int Attempts = 5;
     if (target.type == 0x19c)

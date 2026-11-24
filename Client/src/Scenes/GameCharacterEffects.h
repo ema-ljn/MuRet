@@ -16,13 +16,14 @@
 #include <span>
 #include <string>
 
+namespace Client::Crt
+{
+class CrtRandom;
+} // namespace Client::Crt
+
 namespace Client::Render
 {
 class ModelBatch;
-namespace Models
-{
-class CrtRandom;
-}
 } // namespace Client::Render
 
 namespace Client::World
@@ -56,7 +57,7 @@ struct GameCharacterEffectsPass
     // Los huesos del cuerpo de este frame: el buffer propio del personaje (+0x120).
     std::span<const Render::Models::BoneTransform> body;
     // El rand() global de 0x69fd70.
-    Render::Models::CrtRandom& random;
+    Crt::CrtRandom& random;
     // La tabla de sprites del frame (0x5491e0). Hace falta sólo si una rama pone sprites.
     World::FrameSprites* sprites = nullptr;
     // Las partículas (0x53fe70), los joints (0x530860) y los efectos con modelo (0x518cf0) del frame, para lo que
@@ -111,8 +112,8 @@ struct GameCharacterEffectsPass
 // un paso más y, con la vida múltiplo de 15 y dueño, el giro z 180 más; la posición a 50 del personaje dueño (+0x108,
 // leído en vivo) con el seno del giro sin redondear y el coseno del giro guardado (Q-C380), 20 más arriba, y el joint
 // 619/9 ahí. Después la cola común (0x52cb98): sin animación ni velocidad, una vida menos.
-[[nodiscard]] Core::Expected<void, std::string>
-StepFullSetFlare(World::ModelEffect& effect, std::span<JointState> joints, Render::Models::CrtRandom& random);
+[[nodiscard]] Core::Expected<void, std::string> StepFullSetFlare(World::ModelEffect& effect,
+                                                                 std::span<JointState> joints, Crt::CrtRandom& random);
 
 // 0x5208a0 sobre el calco 0x61e/0 del level-up, /1 de la mascota y /3 de invocar. El /0 sólo consume el rand() común
 // y descuenta vida (0x52b984 → 0x52bb29). El /1 (0x52b9a6 → 0x518900): el rand() de la luz de todo efecto vivo
@@ -125,7 +126,7 @@ StepFullSetFlare(World::ModelEffect& effect, std::span<JointState> joints, Rende
 // /0xa son de Scenes/HighModelEffects (StepsAsPetSummon los deja afuera).
 [[nodiscard]] bool StepsAsPetSummon(const World::ModelEffect& effect);
 [[nodiscard]] Core::Expected<void, std::string> StepPetSummon(World::ModelEffect& effect, std::span<JointState> joints,
-                                                              Render::Models::CrtRandom& random);
+                                                              Crt::CrtRandom& random);
 
 // 0x5208a0 sobre los 0x5ac/1 y /2 de las skills que llegan (0x52a7b7 y 0x52a8a7, Scenes/SkillReplies): el rand() de la
 // luz de todo efecto vivo (0x5208c5) y la vida en 10 con el dueño (+0x108) vivo (+0x0 en 1) y su bandera de +0x78 (0x10
@@ -136,7 +137,7 @@ StepFullSetFlare(World::ModelEffect& effect, std::span<JointState> joints, Rende
 // llena, ninguno). Después la cola común (0x52cb98): sin animación ni velocidad, una vida menos. Sin dueño, el original
 // lee +0x78 de 0: MuRet corta.
 [[nodiscard]] Core::Expected<void, std::string> StepSkillFlare(World::ModelEffect& effect, std::span<JointState> joints,
-                                                               Render::Models::CrtRandom& random,
+                                                               Crt::CrtRandom& random,
                                                                World::Particles* particles = nullptr,
                                                                World::ParticleOwner particleOwner = {});
 
@@ -159,7 +160,7 @@ struct GameRavenPass
     std::uint8_t heroByte1a1 = 0;
     bool originalFrame = true;
     // El rand() de la CRT, para 0x418920 (los estados 5 y 6). Sin él, esos estados cortan.
-    Render::Models::CrtRandom* random = nullptr;
+    Crt::CrtRandom* random = nullptr;
     // Las partículas del mundo (0x743a198) y su reloj (DAT_05767b88), para las 0x5ac/6 del grito (0x418a26). Sin ellas,
     // el grito corta en su primera partícula.
     World::Particles* particles = nullptr;

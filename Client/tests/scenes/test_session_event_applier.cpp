@@ -7,6 +7,7 @@
 #include "App/WorldEvent.h"
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Models/PlayerModels.h"
 #include "Protocol/CastleSiege.h"
 #include "Protocol/Character/CharacterSelectResult.h"
@@ -334,7 +335,7 @@ TEST(SessionEventApplierTest, The00InTheLoginAsksForTheListThroughTheGameServer)
     const std::vector<std::byte> request(online.socket.sent.begin() + static_cast<std::ptrdiff_t>(sent),
                                          online.socket.sent.end());
     EXPECT_EQ(request, Client::Tests::ListRequest());
-    EXPECT_EQ(tested.cloth.random.State(), Client::Render::Models::CrtRandom{}.State());
+    EXPECT_EQ(tested.cloth.random.State(), Client::Crt::CrtRandom{}.State());
 }
 // CL9 hito 12: los paquetes del castillo llegan a su aplicador, y lo que manda el B2 02 con 1 sale por el GameServer de
 // la sesión antes del mensaje, que sin medidor corta.

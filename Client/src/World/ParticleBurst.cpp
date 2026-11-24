@@ -1,7 +1,7 @@
 #include "World/ParticleBurst.h"
 
 #include "Core/Expected.h"
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "World/Particles.h"
 
 #include <glm/ext/vector_float3.hpp>
@@ -21,8 +21,7 @@ constexpr double BurstLift = 80.0; // 0x6b9ffc.
 } // namespace
 
 Core::Expected<bool, ParticleError> CreateParticleBurst(Particles& particles, const glm::vec3& position,
-                                                        Render::Models::CrtRandom& random, bool explosion,
-                                                        float worldClock)
+                                                        Crt::CrtRandom& random, bool explosion, float worldClock)
 {
     const glm::vec3 point{position.x, position.y, static_cast<float>(static_cast<double>(position.z) + BurstLift)};
     glm::vec3 angles{};
@@ -48,7 +47,7 @@ Core::Expected<bool, ParticleError> CreateParticleBurst(Particles& particles, co
 }
 
 Core::Expected<void, ParticleError> CreatePushBurst(Particles& particles, const glm::vec3& position,
-                                                    Render::Models::CrtRandom& random)
+                                                    Crt::CrtRandom& random)
 {
     const auto created = CreateParticleBurst(particles, position, random, false);
     if (!created.HasValue())

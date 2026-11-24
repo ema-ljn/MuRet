@@ -2,13 +2,13 @@
 #include "Scenes/GameDrawTail.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Render/Models/ObjectState.h"
 #include "World/ModelEffects.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/FaunaDrawing.h"
 #include "Scenes/GameItemSpecialDrawing.h"
 #include "Render/Models/HalfLifeMath.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/Skinning.h"
 #include <vector>
 #include "Data/Models/Model.h"
@@ -383,8 +383,8 @@ TEST(GameSpecialModelEffectsTest, SpinningItemPublishesItsTemporaryPoseAndRestor
     Client::Scenes::FaunaDrawCarry carry;
     Client::Render::ModelBatch batch;
     auto heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
-    Client::Render::Models::CrtRandom random(3);
-    Client::Render::Models::CrtRandom expected(3);
+    Client::Crt::CrtRandom random(3);
+    Client::Crt::CrtRandom expected(3);
     std::int16_t itemType = 0;
     std::uint8_t itemLevel = 0;
     Client::World::ModelEffect effect;

@@ -1,6 +1,6 @@
 #include "UI/OldEditLines.h"
 
-#include "App/WindowState.h"
+#include "Core/PixelSize.h"
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
 #include "Render/Text/FontSet.h"
@@ -31,7 +31,7 @@
 // 0x468970), su paso (0x468d50) y Enter (0x467b10). Los textos son inventados.
 namespace
 {
-using Client::App::PixelSize;
+using Client::Core::PixelSize;
 using Client::Render::BlendMode;
 using Client::Render::DrawCommand;
 using Client::Render::SpriteBatch;

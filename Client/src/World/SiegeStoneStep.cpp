@@ -1,8 +1,8 @@
 #include "World/SiegeStoneEffects.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Render/Models/Animation.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Render/Models/Skeleton.h"
 #include "World/GameModelEffects.h"
@@ -26,7 +26,7 @@ float F32(double value)
     return static_cast<float>(value);
 }
 using Result = Core::Expected<void, std::string>;
-Result ParticleAt(ModelEffect& effect, Particles& particles, Render::Models::CrtRandom& random, std::int32_t type,
+Result ParticleAt(ModelEffect& effect, Particles& particles, Crt::CrtRandom& random, std::int32_t type,
                   std::int32_t subtype, float scale, const glm::vec3& light)
 {
     const auto created = particles.CreateChecked(type, effect.transform.position, effect.transform.angles, light,
@@ -55,7 +55,7 @@ Result AreaAction(const SiegeStoneStepServices& services, ModelEffect& effect, f
                                                 : "0x4295f0: falta la acción del héroe alrededor del impacto"));
     return action(effect.transform.position, radius);
 }
-Result ImpactVisuals(ModelEffect& effect, Render::Models::CrtRandom& random, const SiegeStoneStepServices& services)
+Result ImpactVisuals(ModelEffect& effect, Crt::CrtRandom& random, const SiegeStoneStepServices& services)
 {
     if (services.effects == nullptr)
         return Core::Unexpected(std::string("0x52817d: falta el pool del cráter de impacto"));
@@ -83,7 +83,7 @@ Result ImpactVisuals(ModelEffect& effect, Render::Models::CrtRandom& random, con
     static_cast<void>(services.effects->CreateCastleShockWave(wave, random));
     return {};
 }
-Result Contact(ModelEffect& effect, Render::Models::CrtRandom& random, const SiegeStoneStepServices& services)
+Result Contact(ModelEffect& effect, Crt::CrtRandom& random, const SiegeStoneStepServices& services)
 {
     if (!services.terrainHeight)
         return Core::Unexpected(std::string("0x527f44: falta la altura del terreno del arma"));
@@ -150,7 +150,7 @@ Result Contact(ModelEffect& effect, Render::Models::CrtRandom& random, const Sie
     }
     return {};
 }
-Result Flight(ModelEffect& effect, float brightness, Particles& particles, Render::Models::CrtRandom& random,
+Result Flight(ModelEffect& effect, float brightness, Particles& particles, Crt::CrtRandom& random,
               const SiegeStoneStepServices& services)
 {
     auto& p = effect.transform.position;
@@ -197,7 +197,7 @@ Result Flight(ModelEffect& effect, float brightness, Particles& particles, Rende
     }
     return Contact(effect, random, services);
 }
-Result PersistentImpact(ModelEffect& effect, Particles& particles, Render::Models::CrtRandom& random,
+Result PersistentImpact(ModelEffect& effect, Particles& particles, Crt::CrtRandom& random,
                         const SiegeStoneStepServices& services)
 {
     if (effect.subtype == 99 && effect.ownerContext == services.hero && services.hero != nullptr)
@@ -221,7 +221,7 @@ Result PersistentImpact(ModelEffect& effect, Particles& particles, Render::Model
         return AreaAction(services, effect, static_cast<float>((40 - effect.life) * 7 + 350), true);
     return {};
 }
-Result Fragment(ModelEffect& effect, Particles& particles, Render::Models::CrtRandom& random,
+Result Fragment(ModelEffect& effect, Particles& particles, Crt::CrtRandom& random,
                 const SiegeStoneStepServices& services)
 {
     auto& p = effect.transform.position;
@@ -273,7 +273,7 @@ void Epilogue(ModelEffect& effect, const Render::Models::Skeleton* skeleton)
 }
 } // namespace
 Core::Expected<void, std::string> StepSiegeStone(ModelEffect& effect, const Render::Models::Skeleton* skeleton,
-                                                 Particles& particles, Render::Models::CrtRandom& random,
+                                                 Particles& particles, Crt::CrtRandom& random,
                                                  const SiegeStoneStepServices& services)
 {
     if (!effect.alive)

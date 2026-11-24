@@ -1,7 +1,7 @@
 #include "World/MissileFireParticleKernels.h"
 
 #include "Core/Expected.h"
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "World/IParticleTrigonometry.h"
 #include "World/Particles.h"
 
@@ -26,7 +26,7 @@ float F32(double value)
 }
 
 // 0x540d1b..0x540d4f y 0x540d5c..0x540d90: vida, la velocidad (0; ((rand() & 7) + 32) · paso; 0).
-void Push(Particle& particle, Render::Models::CrtRandom& random, std::int32_t life, double step)
+void Push(Particle& particle, Crt::CrtRandom& random, std::int32_t life, double step)
 {
     constexpr int PushMask = 7, PushBase = 32;
     particle.life = life;
@@ -37,7 +37,7 @@ void Push(Particle& particle, Render::Models::CrtRandom& random, std::int32_t li
 }
 
 // 0x540dd6..0x540dfb, 0x540e7b..0x540ea5 y 0x540eea..0x540f0f: la subida (rand() % 100 · 0,01f) · 4 más `base`.
-double Lift(Render::Models::CrtRandom& random)
+double Lift(Crt::CrtRandom& random)
 {
     constexpr int LiftSpan = 100;
     constexpr double LiftStep = 4.0; // 0x6b8a44
@@ -45,7 +45,7 @@ double Lift(Render::Models::CrtRandom& random)
 }
 
 // 0x540e19..0x540e35 y siguientes: la escala rand() % 6 · paso más la del pedido.
-void Grow(Particle& particle, Render::Models::CrtRandom& random, double step)
+void Grow(Particle& particle, Crt::CrtRandom& random, double step)
 {
     constexpr int GrowSpan = 6;
     particle.scale = F32(static_cast<double>(random.Next() % GrowSpan) * step + static_cast<double>(particle.scale));
@@ -121,7 +121,7 @@ bool IsMissileFireKernel(std::int32_t type, std::int32_t subtype)
     return type == MissileFireParticle && subtype != MissileSparkSubtype && subtype != MissileBlueSubtype;
 }
 
-void CreateMissileFire(Particle& particle, Render::Models::CrtRandom& random)
+void CreateMissileFire(Particle& particle, Crt::CrtRandom& random)
 {
     constexpr double Back = static_cast<double>(std::bit_cast<float>(0xbe99999au));        // 0x6ba274, −0,3f
     constexpr double SlowBack = static_cast<double>(std::bit_cast<float>(0xbdcccccdu));    // 0x6b8930, −0,1f

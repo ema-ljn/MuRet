@@ -1,8 +1,8 @@
 #pragma once
 
 #include "App/IChatRoomLinks.h"
-#include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Core/PixelSize.h"
 #include "Protocol/Messages.h"
 #include "Protocol/OptionData.h"
 #include "Render/Text/IGlyphRasterizer.h"
@@ -19,7 +19,7 @@ namespace Client::Data::Text
 class TextTable;
 }
 
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
 }
@@ -36,10 +36,10 @@ struct ChatReceiveContext
 {
     WorldState& world;
     // El rand() de la CRT: lo sacan los cierres del registro propio de 0x554d20 y de 0x4dd570.
-    Render::Models::CrtRandom& random;
+    Crt::CrtRandom& random;
     // Con qué se miden los mensajes; sin medidor, los que entran al chat cortan con error.
     const Render::Text::ITextMeasure* measure = nullptr;
-    App::PixelSize screen{640, 480};
+    Core::PixelSize screen{640, 480};
     // 0x6d5dc8, la escena en curso.
     std::optional<SceneId> scene{};
     // Text.bmd: el 482 del 0C y el 483 del 0D con 2.

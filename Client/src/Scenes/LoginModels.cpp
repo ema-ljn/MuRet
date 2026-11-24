@@ -1,5 +1,6 @@
 #include "Scenes/LoginModels.h"
 
+#include "Crt/CrtRandom.h"
 #include "Scenes/DarkSpirit.h"
 
 #include "Core/IClock.h"
@@ -192,7 +193,7 @@ std::optional<std::uint8_t> LoginCharacterActionAt(Core::Duration frameClock, st
     return ActionOfRand(static_cast<int>(random() % RandRange));
 }
 
-std::optional<std::uint8_t> LoginCharacterActionAt(Core::Duration frameClock, Render::Models::CrtRandom& random)
+std::optional<std::uint8_t> LoginCharacterActionAt(Core::Duration frameClock, Crt::CrtRandom& random)
 {
     if (!InTheActionWindow(frameClock))
     {

@@ -2,9 +2,9 @@
 
 #include "World/WorldObjects.h"
 
+#include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainObjects.h"
 #include "Data/WorldFolder.h"
-#include "Render/Models/Cloth.h"
 #include "World/IWorldObjectCreationServices.h"
 #include "World/WorldObjectRegistrations.h"
 #include "World/WorldTerrain.h"
@@ -515,7 +515,7 @@ TEST(WorldObjectMapCreationTest, CastleRandomRunsBeforeARequiredLiveStateRead)
 {
     const Client::Data::Terrain::TerrainObject record{.type = 41};
     Client::World::WorldObjectRegistrations registrations;
-    Client::Render::Models::CrtRandom random(1);
+    Client::Crt::CrtRandom random(1);
     Client::World::WorldObjectCreationContext context{30, Client::World::ObjectScene::Other, registrations, nullptr,
                                                       &random};
     const auto result = Client::World::CreateWorldObjects(std::span(&record, 1), context);
@@ -564,7 +564,7 @@ TEST(WorldObjectMapCreationTest, InvalidSpatialRecordsNeverReachServicesRegistra
         registrations.nextIdentity = 900;
         registrations.entries[0] = {.active = 2, .metadata = {1, 2, 3, 4, 5, 6, 7}, .object = 899};
         const auto previous = registrations.entries;
-        Client::Render::Models::CrtRandom random(123);
+        Client::Crt::CrtRandom random(123);
         MutatingCreationServices services;
         Client::World::WorldObjectCreationContext context{scenario.map, scenario.scene, registrations, &services,
                                                           &random};

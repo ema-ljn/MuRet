@@ -1,4 +1,4 @@
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "Render/Models/ObjectState.h"
 #include "Render/Models/OriginalRetainedMath.h"
 #include "World/CastleSiegeObjectStep.h"
@@ -25,7 +25,7 @@
 // Los objetos de Castle Siege (el mapa 30) en el paso: 06 § Los objetos de Castle Siege.
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::World::CastleSiegePrelude;
 using Client::World::ObjectStepGlobals;
 using Client::World::TerrainLighting;

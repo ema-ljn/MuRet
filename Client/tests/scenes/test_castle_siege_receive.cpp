@@ -3,13 +3,13 @@
 #include "Scenes/GamePanels.h"
 #include "Scenes/CastleWindows.h"
 
-#include "App/WindowState.h"
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
+#include "Core/PixelSize.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Text/TextTable.h"
 #include "Protocol/CastleSiege.h"
 #include "Protocol/Outgoing.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Scenes/ActorState.h"
@@ -44,8 +44,8 @@
 namespace
 {
 namespace Castle = Client::Protocol::CastleSiege;
+using Client::Crt::CrtRandom;
 using Client::Network::Xor32Decode;
-using Client::Render::Models::CrtRandom;
 using Client::Render::Text::FontKind;
 using Client::Render::Text::ITextMeasure;
 using Client::Render::Text::TextExtent;
@@ -96,7 +96,7 @@ protected:
                                      .random = m_random,
                                      .log = m_log,
                                      .measure = &m_letters,
-                                     .screen = Client::App::PixelSize{640, 480},
+                                     .screen = Client::Core::PixelSize{640, 480},
                                      .texts = &m_texts};
         context.tick = 1234;
         if (withSender)

@@ -16,9 +16,13 @@
 // el prefijo de World::ModelEffects::Begin. 06, "Los efectos con modelo de los tipos altos". El dibujo de estos tipos
 // va por el camino común de 0x52d620 (0x52da84 → 0x602e90, GameDrawTail) o no se dibuja: los de 0x151 en adelante,
 // salvo 0x5e8..0x5ea y 0xc1a, no tienen caso en 0x52d620 ni en el pase del suelo (0x52dc20).
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
+} // namespace Client::Crt
+
+namespace Client::Render::Models
+{
 class IModelLibrary;
 struct Skeleton;
 } // namespace Client::Render::Models
@@ -44,7 +48,7 @@ struct CharacterStepContext;
 struct HighEffectContext
 {
     WorldState& world;
-    Render::Models::CrtRandom& random;
+    Crt::CrtRandom& random;
     float worldClock = 0.0f;
     std::function<void(Protocol::Outgoing)> send{};
     const Render::Models::IModelLibrary* models = nullptr;
@@ -79,7 +83,7 @@ CreateHighModelEffect(const World::ModelEffectArguments& arguments, const HighEf
 struct HighEffectStepContext
 {
     WorldState& world;
-    Render::Models::CrtRandom& random;
+    Crt::CrtRandom& random;
     const World::ModelEffectStepServices& services;
     float worldClock = 0.0f;
     const Render::Models::IModelLibrary* models = nullptr;

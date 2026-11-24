@@ -1,9 +1,9 @@
 #include "Scenes/WizardEffects.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Models/PlayerModels.h"
 #include "Render/Models/Animation.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/Skeleton.h"
 #include "Scenes/ActorShock.h"
 #include "Scenes/ActorState.h"
@@ -33,7 +33,7 @@
 
 namespace Client::Scenes
 {
-World::WizardEffectServices WizardEffectServicesOf(WorldState& world, Render::Models::CrtRandom& random,
+World::WizardEffectServices WizardEffectServicesOf(WorldState& world, Crt::CrtRandom& random,
                                                    const WizardSceneParts& parts)
 {
     WorldRuntime& runtime = world.Runtime();

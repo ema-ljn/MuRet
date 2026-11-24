@@ -1,8 +1,8 @@
 #include "Scenes/DarkSpirit.h"
 
+#include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainHeights.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Render/Models/Skeleton.h"
@@ -34,7 +34,7 @@
 // make_raven_vectors.py).
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::Scenes::DarkSpirit;
 
 constexpr std::size_t Bones = 77;

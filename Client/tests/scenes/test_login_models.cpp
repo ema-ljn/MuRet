@@ -1,6 +1,6 @@
 #include "Scenes/LoginModels.h"
 
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 
 #include "Scenes/DarkSpirit.h"
 
@@ -223,7 +223,7 @@ TEST(LoginModelsTest, TheActionOnlyChangesInItsWindow)
 TEST(LoginModelsTest, TheActionTakesOneRandOfTheCrtInsideTheWindow)
 {
     using std::chrono::milliseconds;
-    Client::Render::Models::CrtRandom random(77);
+    Client::Crt::CrtRandom random(77);
     const std::uint32_t untouched = random.State();
     EXPECT_EQ(LoginCharacterActionAt(milliseconds{101}, random), std::nullopt);
     EXPECT_EQ(random.State(), untouched);
@@ -231,7 +231,7 @@ TEST(LoginModelsTest, TheActionTakesOneRandOfTheCrtInsideTheWindow)
     std::set<int> remainders;
     for (int k = 0; k < 60; ++k)
     {
-        Client::Render::Models::CrtRandom copy = random;
+        Client::Crt::CrtRandom copy = random;
         const int remainder = copy.Next() % 6;
         remainders.insert(remainder);
         const std::optional<std::uint8_t> expected =

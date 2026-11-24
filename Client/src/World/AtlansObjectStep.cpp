@@ -1,7 +1,7 @@
 #include "World/AtlansObjectStep.h"
 
 #include "Core/Expected.h"
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "Render/Models/ObjectState.h"
 #include "Render/Models/OriginalRetainedMath.h"
 #include "World/Particles.h"
@@ -46,7 +46,7 @@ Core::Expected<void, std::string> SetSwingLight(WorldObject& object, float world
 
 // 0x60556e..0x6055c8: la fase sube 0,1f (0x6b87b8) con fst, la suma sin redondear se compara con 10
 // (0x6b87a8) y la fase guardada con 5 (0x6b87f8); test ah, 0x41 deja pasar sólo el mayor ordenado.
-Core::Expected<void, std::string> StepBubbles(WorldObject& object, Render::Models::CrtRandom& random,
+Core::Expected<void, std::string> StepBubbles(WorldObject& object, Crt::CrtRandom& random,
                                               const ObjectStepGlobals& globals)
 {
     constexpr double Rise = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));
@@ -72,7 +72,7 @@ Core::Expected<void, std::string> StepBubbles(WorldObject& object, Render::Model
 }
 } // namespace
 
-Core::Expected<void, std::string> StepAtlansObject(WorldObject& object, Render::Models::CrtRandom& random,
+Core::Expected<void, std::string> StepAtlansObject(WorldObject& object, Crt::CrtRandom& random,
                                                    const ObjectStepGlobals& globals)
 {
     switch (object.type)

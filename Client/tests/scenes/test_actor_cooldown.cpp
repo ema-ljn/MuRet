@@ -1,7 +1,7 @@
 #include "Scenes/ActorMotion.h"
 
 #include "Core/Expected.h"
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "Scenes/ActorCooldownServices.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterStep.h"
@@ -29,7 +29,7 @@ TEST(ActorCooldownTest, FullLoopInterleavesBothCreatorsWithTheSharedRandom)
     Client::Scenes::ActorState actor;
     actor.movementCooldown = 2;
     actor.position = {100.0f, 200.0f, 300.0f};
-    Client::Render::Models::CrtRandom random(2);
+    Client::Crt::CrtRandom random(2);
     std::vector<std::int32_t> events;
     glm::vec3 particlePosition{};
     const Client::Scenes::ActorCooldownServices services{
@@ -63,7 +63,7 @@ TEST(ActorCooldownTest, MissingCreatorReturnsAfterTheDecrementLightAndFourRandom
 {
     Client::Scenes::ActorState actor;
     actor.movementCooldown = 60;
-    Client::Render::Models::CrtRandom random(1);
+    Client::Crt::CrtRandom random(1);
     const auto stepped = Client::Scenes::StepActorCooldown(actor, random);
     EXPECT_FALSE(stepped.HasValue());
     EXPECT_EQ(actor.movementCooldown, 59);
@@ -105,7 +105,7 @@ TEST(ActorCooldownTest, TheStepCreatorsInterleaveTheBrakeDustAndTheStoneChips)
         actor.position = {12000.0f, 13000.0f, 250.5f};
         actor.angles = {0.0f, 0.0f, 135.0f};
         actor.light = {0.25f, 0.5f, 0.75f};
-        Client::Render::Models::CrtRandom random(expected.seed);
+        Client::Crt::CrtRandom random(expected.seed);
         if (expected.full)
         {
             for (auto& particle : world->Particles().All())
@@ -145,7 +145,7 @@ TEST(ActorCooldownTest, TheBrakeOfSeedThreeLeavesItsDustAndChipBitByBit)
     actor.position = {12000.0f, 13000.0f, 250.5f};
     actor.angles = {0.0f, 0.0f, 135.0f};
     actor.light = {0.25f, 0.5f, 0.75f};
-    Client::Render::Models::CrtRandom random(3);
+    Client::Crt::CrtRandom random(3);
     const Client::Scenes::CharacterStepContext context{
         .world = *world, .random = random, .particles = &world->Particles()};
     ASSERT_TRUE(Client::Scenes::StepActorCooldown(actor, random, Client::Scenes::CharacterCooldownServices(context))
@@ -196,10 +196,10 @@ TEST(ActorCooldownTest, TheStepCreatorsCutWithoutTheParticlePool)
 {
     auto world = std::make_unique<Client::Scenes::WorldState>();
     Client::Scenes::ActorState actor;
-    Client::Render::Models::CrtRandom random(1);
+    Client::Crt::CrtRandom random(1);
     const Client::Scenes::CharacterStepContext context{.world = *world, .random = random};
     const auto made = Client::Scenes::CharacterCooldownServices(context).particle({1.0f, 2.0f, 3.0f}, actor);
     ASSERT_FALSE(made.HasValue());
     EXPECT_NE(made.Error().find("0x506a73"), std::string::npos) << made.Error();
-    EXPECT_EQ(random.State(), Client::Render::Models::CrtRandom(1).State());
+    EXPECT_EQ(random.State(), Client::Crt::CrtRandom(1).State());
 }

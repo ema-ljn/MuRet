@@ -1,6 +1,6 @@
 #include "World/Particles.h"
 
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "Render/Models/RoundedMath.h"
 #include "World/ParticleOwner.h"
 #include "World/PortableParticleTrigonometry.h"
@@ -23,7 +23,7 @@
 // skills de las armas".
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::Render::Models::RoundedSin;
 using Client::World::Particle;
 using Client::World::ParticleOwner;

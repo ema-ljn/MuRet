@@ -1,8 +1,8 @@
 #include "Scenes/HeroSkillSupport.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Protocol/Movement.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActorCombat.h"
 #include "Scenes/ActorState.h"
@@ -77,7 +77,7 @@ std::size_t SlotOf(const WorldState& world, const ActorState& actor)
     return actors.size();
 }
 
-std::uint8_t ReadTheSkillCell(std::uint8_t& depth, std::uint8_t cell, Render::Models::CrtRandom& random)
+std::uint8_t ReadTheSkillCell(std::uint8_t& depth, std::uint8_t cell, Crt::CrtRandom& random)
 {
     const Render::Models::LogicalAccess access(depth, random, Render::Models::SmallLogicalCloseRandoms);
     return cell;

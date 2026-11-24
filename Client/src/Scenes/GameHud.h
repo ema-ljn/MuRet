@@ -20,7 +20,7 @@
 // En 640 × 480, con el estado de GL que dejan sus primitivas y con los rand() de la tabla de protección en su orden.
 // Lo que es de otra ola corta con su dirección donde su condición se cumple. Los modelos de los ítems de la UI (las
 // grillas, el cursor y las ranuras rápidas) van en el pase 3D de 0x5ac120 (Scenes/UiItemDrawing.h).
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
 }
@@ -44,7 +44,7 @@ struct GameHudContext
     WorldState& world;
     // El rand() del frame y las cuentas de accesos del registro propio y de las celdas del héroe (+0x41c y +0x420):
     // las reales, o las copias de un dibujo intermedio de MuRet.
-    Render::Models::CrtRandom& random;
+    Crt::CrtRandom& random;
     std::uint8_t& ownRecordDepth;
     std::uint8_t& cellXDepth;
     std::uint8_t& cellYDepth;

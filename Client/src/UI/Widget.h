@@ -1,6 +1,6 @@
 #pragma once
 
-#include "App/WindowState.h"
+#include "Core/PixelSize.h"
 #include "Input/InputState.h"
 #include "Render/TextureSlot.h"
 #include "Render/UiImage.h"
@@ -39,7 +39,7 @@ struct Rect
 // El mouse de la UI nueva (0x640940, pregunta 12 del plan de la CL5): la última posición de
 // `input`, que ya llega en píxeles del framebuffer, truncada al píxel y acotada a [0, W − 1] ×
 // [0, H − 1]. Una que no es un número va a 0.
-[[nodiscard]] Point MouseInPixels(const Input::InputState& input, App::PixelSize screen);
+[[nodiscard]] Point MouseInPixels(const Input::InputState& input, Core::PixelSize screen);
 
 // El buffer de la textura de un slot, para las UV de las imágenes: en el cliente,
 // SceneTextures::BufferSize de la escena.

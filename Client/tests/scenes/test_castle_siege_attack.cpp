@@ -1,9 +1,9 @@
+#include "Crt/CrtRandom.h"
 #include "Scenes/CastleSiegeAttack.h"
 #include "Core/Expected.h"
 #include "Scenes/ActorState.h"
 #include "World/ModelEffects.h"
 #include "World/SiegeVertexEffects.h"
-#include "Render/Models/Cloth.h"
 #include <gtest/gtest.h>
 #include <glm/ext/vector_float3.hpp>
 #include <cstddef>
@@ -18,7 +18,7 @@ TEST(CastleSiegeAttackTest, TheClosedGateEmitsItsWaveBeforeFiveRandomizedFragmen
     Client::Scenes::ActorState target;
     target.type = 0x19b;
     target.position = {100, 200, 300};
-    Client::Render::Models::CrtRandom random(1);
+    Client::Crt::CrtRandom random(1);
     std::vector<Client::World::ModelEffectArguments> emissions;
     ASSERT_TRUE(
         Client::Scenes::EmitTheCastleAttackHit(target, 0, random,
@@ -42,7 +42,7 @@ TEST(CastleSiegeAttackTest, TheClosedGateEmitsItsWaveBeforeFiveRandomizedFragmen
         EXPECT_GE(emissions[index].position.z, 500);
         EXPECT_LT(emissions[index].position.z, 530);
     }
-    Client::Render::Models::CrtRandom expected(1);
+    Client::Crt::CrtRandom expected(1);
     expected.Discard(15);
     EXPECT_EQ(random.State(), expected.State());
 }
@@ -50,7 +50,7 @@ TEST(CastleSiegeAttackTest, HeroFlagsSuppressOnlyTheWaveAndAnOpenGateSuppressesE
 {
     Client::Scenes::ActorState target;
     target.type = 0x19b;
-    Client::Render::Models::CrtRandom random(1);
+    Client::Crt::CrtRandom random(1);
     int calls = 0;
     const Client::Scenes::CastleAttackEmitter emit = [&](const auto& args) -> Client::Core::Expected<void, std::string>
     {
@@ -71,7 +71,7 @@ TEST(CastleSiegeAttackTest, EachStatueAttemptUsesItsGateBeforeTheHeightAndNested
     Client::Scenes::ActorState target;
     target.type = 0x19c;
     target.position.z = 300;
-    Client::Render::Models::CrtRandom random(1), expected(1);
+    Client::Crt::CrtRandom random(1), expected(1);
     int calls = 0;
     for (int attempt = 0; attempt < 5; ++attempt)
     {
@@ -101,7 +101,7 @@ TEST(CastleSiegeAttackTest, RealConstructorsKeepTheirRandomDrawsBetweenTheFiveCa
     Client::Scenes::ActorState target;
     target.type = 0x19b;
     auto effects = std::make_unique<Client::World::ModelEffects>();
-    Client::Render::Models::CrtRandom random(1);
+    Client::Crt::CrtRandom random(1);
     ASSERT_TRUE(Client::Scenes::EmitTheCastleAttackHit(
                     target, 0, random,
                     [&](const auto& args) -> Client::Core::Expected<void, std::string>
@@ -117,7 +117,7 @@ TEST(CastleSiegeAttackTest, RealConstructorsKeepTheirRandomDrawsBetweenTheFiveCa
     EXPECT_EQ(effects->Effects()[0].type, 0x114);
     EXPECT_EQ(effects->Effects()[0].life, 10);
     EXPECT_EQ(effects->Effects()[0].transform.scale, 0);
-    Client::Render::Models::CrtRandom expected(1);
+    Client::Crt::CrtRandom expected(1);
     expected.Discard(55);
     EXPECT_EQ(random.State(), expected.State());
     for (auto& effect : effects->Effects())
@@ -134,7 +134,7 @@ TEST(CastleSiegeAttackTest, RealConstructorsKeepTheirRandomDrawsBetweenTheFiveCa
                         return {};
                     })
                     .HasValue());
-    Client::Render::Models::CrtRandom fullExpected(before);
+    Client::Crt::CrtRandom fullExpected(before);
     fullExpected.Discard(15);
     EXPECT_EQ(random.State(), fullExpected.State());
 }

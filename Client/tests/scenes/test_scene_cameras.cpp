@@ -1,6 +1,6 @@
 #include "Scenes/SceneCameras.h"
 
-#include "App/WindowState.h"
+#include "Core/PixelSize.h"
 #include "Render/Pass3D.h"
 
 #include <gtest/gtest.h>
@@ -12,7 +12,7 @@
 // en la escena 4 y en la 2 (06 § Cámara). Los números son los del 06.
 namespace
 {
-using Client::App::PixelSize;
+using Client::Core::PixelSize;
 using Client::Render::Camera3D;
 using Client::Render::MakePass3D;
 using Client::Scenes::LoginCamera;

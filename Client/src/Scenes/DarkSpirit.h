@@ -12,9 +12,13 @@
 #include <span>
 #include <vector>
 
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
+} // namespace Client::Crt
+
+namespace Client::Render::Models
+{
 struct Skeleton;
 } // namespace Client::Render::Models
 
@@ -132,7 +136,7 @@ struct DarkSpiritBirthAccesses
 // (Q-C125), y el cuervo en el centro de la celda del dueño (con `and 0xff`), a la altura del terreno ahí
 // (`groundHeight`, la de 0x5f93c0 en (celda · 100 + 50), que 0x415ea7 guarda en float) más 300. En el
 // login, la celda (0, 0) (Q-C130).
-[[nodiscard]] DarkSpirit CreateDarkSpirit(int cellX, int cellY, double groundHeight, Render::Models::CrtRandom& random,
+[[nodiscard]] DarkSpirit CreateDarkSpirit(int cellX, int cellY, double groundHeight, Crt::CrtRandom& random,
                                           DarkSpiritBirthAccesses accesses = {});
 
 // 0x416a20, con el esqueleto del cuervo, en el mapa `map`, con el rand() de la CRT y el valor que el grito lee de
@@ -155,9 +159,8 @@ struct DarkSpiritBirthAccesses
 // +0x38d sube hasta 15. En todos, el grito y el salto junto al dueño cuando el contador de lejanía pasa de 90.
 [[nodiscard]] DarkSpiritStepped StepDarkSpirit(DarkSpirit& spirit, const Render::Models::Skeleton& skeleton,
                                                const DarkSpiritOwner& owner, std::uint8_t map,
-                                               World::Particles& particles, float worldClock,
-                                               Render::Models::CrtRandom& random, std::int32_t counter,
-                                               const DarkSpiritTargets& targets = {});
+                                               World::Particles& particles, float worldClock, Crt::CrtRandom& random,
+                                               std::int32_t counter, const DarkSpiritTargets& targets = {});
 
 // 0x4182f0: si el cuervo pasa el trapecio de 0x5fba90 en su (x, y) por 0,01f, con −20. Si no, el dibujo
 // le pone la velocidad en 3 y, salvo en el estado 4 (0x418375), el estado en 0 (MissTheView).

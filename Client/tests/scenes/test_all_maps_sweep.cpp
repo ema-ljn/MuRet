@@ -1,6 +1,7 @@
 #include "Scenes/MapLoad.h"
 
 #include "Core/Crash/Crc32.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Tables/GateRecord.h"
 #include "Data/Tables/GateTable.h"
 #include "Data/Terrain/TerrainAttributes.h"
@@ -9,7 +10,6 @@
 #include "Data/Terrain/TerrainMapping.h"
 #include "Data/Terrain/TerrainObjects.h"
 #include "Data/WorldFolder.h"
-#include "Render/Models/Cloth.h"
 #include "Scenes/HelperTable.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/WorldMap.h"
@@ -247,7 +247,7 @@ void ExpectObjectIdentities(const Client::Scenes::WorldMap& loaded, const MapSwe
 }
 
 void ExpectGrassAndRandom(const Client::Scenes::WorldMap& loaded, const MapSweepCase& probe,
-                          const Client::Render::Models::CrtRandom& random)
+                          const Client::Crt::CrtRandom& random)
 {
     EXPECT_EQ(random.State(), probe.randomState);
     if (probe.randomState == Client::Tests::MapSweepSeed)
@@ -402,7 +402,7 @@ class MapSweep : public Client::Tests::GoldenDataTest, public ::testing::WithPar
 {
 protected:
     WorldState m_world;
-    Client::Render::Models::CrtRandom m_random{Client::Tests::MapSweepSeed};
+    Client::Crt::CrtRandom m_random{Client::Tests::MapSweepSeed};
 };
 
 TEST_P(MapSweep, LoadsTheNominalIdentityOrStopsAtTheDeclaredBoundary)

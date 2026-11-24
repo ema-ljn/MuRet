@@ -1,7 +1,7 @@
 #include "Scenes/IcarusObjectStep.h"
 
 #include "Core/Expected.h"
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "Render/Models/OriginalRotation.h"
 #include "World/IFishStepServices.h"
 #include "World/ModelEffects.h"
@@ -102,7 +102,7 @@ Core::Expected<void, std::string> Join(const IcarusObjectServices& services, std
 // 0x605d70.
 Core::Expected<std::int32_t, std::string> Selector(std::int32_t count, const IcarusObjectServices& services)
 {
-    Render::Models::CrtRandom& random = services.random;
+    Crt::CrtRandom& random = services.random;
     if (random.Next() % PreludeGate != 0)
         return std::int32_t{0};
     // 0x605d91..0x605db8: la x con la x87 (entero + x del héroe − 150); la y del héroe tal cual.
@@ -163,7 +163,7 @@ Core::Expected<std::int32_t, std::string> StepIcarusObjectPrelude(std::int32_t c
     const auto selector = Selector(count, services);
     if (!selector.HasValue())
         return selector;
-    Render::Models::CrtRandom& random = services.random;
+    Crt::CrtRandom& random = services.random;
     if (random.Next() % FlareGate != 0)
         return selector;
     // 0x60623b..0x6062ba: x e y con la x87 (entero + coordenada del héroe); la z, la del héroe − 1.000.
@@ -184,7 +184,7 @@ Core::Expected<void, std::string> StepIcarusSeenObject(World::WorldObject& objec
     ++count;
     if (selector == 0)
         return {};
-    Render::Models::CrtRandom& random = services.random;
+    Crt::CrtRandom& random = services.random;
     if (random.Next() % SelectionGate != 0 || object.type < 0 || object.type > LastSelectableType)
     {
         --count;

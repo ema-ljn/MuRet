@@ -9,10 +9,10 @@
 #include <string_view>
 #include <vector>
 
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
-} // namespace Client::Render::Models
+} // namespace Client::Crt
 
 // El alta de un monstruo o un NPC por tipo: 0x5141e0(tipo, x, y, clave) y su cola 0x5140c0 (04, "Los monstruos y
 // los NPC que entran"; 06, "El alta de un monstruo"). 0x5141e0 prueba primero seis creadores de evento (0x439df0,
@@ -121,7 +121,7 @@ public:
     explicit MonsterStepResolver(const MonsterCreationContext& context) noexcept : m_context(context) {}
 
     [[nodiscard]] Core::Expected<std::optional<MonsterStep>, std::string> Next(MonsterStep step, std::int32_t type,
-                                                                               Render::Models::CrtRandom& random);
+                                                                               Crt::CrtRandom& random);
 
 private:
     MonsterCreationContext m_context;
@@ -132,8 +132,7 @@ private:
 // en la lista con su resto en value) y los pasos con plusRandom ya llevan el r sumado. Con el asedio prendido corta en
 // el paso Siege (0x4294b0, CL9.5).
 [[nodiscard]] Core::Expected<std::vector<MonsterStep>, std::string>
-ResolveMonsterSteps(const MonsterCreation& creation, const MonsterCreationContext& context,
-                    Render::Models::CrtRandom& random);
+ResolveMonsterSteps(const MonsterCreation& creation, const MonsterCreationContext& context, Crt::CrtRandom& random);
 
 // 0x5140c0, la cola de cada alta (el nombre de la tabla de 0x7681eb8 lo copia MonsterCreation): en los mapas 10 a 17
 // los tipos 0x54 a 0x8f van con el nivel (+0x1d6) en 0 y la escala (+0xc) más (mapa − 9) / 3 · 0,05 (0x6b8a48);

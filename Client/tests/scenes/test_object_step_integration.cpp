@@ -1,6 +1,7 @@
 #include "Core/Expected.h"
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Models/Model.h"
 #include "Render/ModelBatch.h"
 #include "Render/Models/IModelLibrary.h"
@@ -15,7 +16,6 @@
 #include "World/TerrainHeight.h"
 #include "support/FakeTextureStore.h"
 #include "support/RecordingSink.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/Skeleton.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/CharacterDrawing.h"
@@ -82,7 +82,7 @@ TEST(ObjectStepIntegrationTest, EveryRealLorenciaAndDeviasObjectCanStepWithDurab
         globals.particles = particles.get();
         globals.heroPosition = &hero;
         globals.sound = [&](std::int32_t id) { sounds.push_back(id); };
-        Client::Render::Models::CrtRandom random(7);
+        Client::Crt::CrtRandom random(7);
         for (int step = 0; step < 4; ++step)
         {
             globals.worldClock = static_cast<float>(step * 40);
@@ -115,7 +115,7 @@ TEST(ObjectStepIntegrationTest, RealNoriaObjectsDrawAndStepWithTheFairyJointsAnd
     globals.particles = particles.get();
     for (auto& object : created.objects)
         object.seen = true;
-    Client::Render::Models::CrtRandom random(7);
+    Client::Crt::CrtRandom random(7);
     const auto stepped = Client::Scenes::StepGameWorldObjects(created.objects, 3, models, random, globals);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(state.unlitMeshes.at(0x2a), 0);
@@ -160,7 +160,7 @@ TEST(ObjectStepIntegrationTest, RealNoriaObjectsDrawAndStepWithTheFairyJointsAnd
     fairyPose.transform = fairy->transform;
     fairyPose.animation = fairy->animation;
     ASSERT_TRUE(Client::Scenes::PublishFaunaPose(pose, models, fairyPose, true).HasValue());
-    random = Client::Render::Models::CrtRandom(4);
+    random = Client::Crt::CrtRandom(4);
     const auto emitted = Client::Scenes::StepNoriaObjectFrame(*fairy, 61, pass);
     ASSERT_TRUE(emitted.HasValue()) << emitted.Error();
     EXPECT_GE(jointCalls, 8);

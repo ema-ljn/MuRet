@@ -1,7 +1,8 @@
 #include "Scenes/InventoryMoves.h"
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Core/PixelSize.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Models/PlayerModels.h"
 #include "Data/Tables/ItemTable.h"
 #include "GameLogic/PathCell.h"
@@ -10,7 +11,6 @@
 #include "Protocol/Inventory.h"
 #include "Protocol/PersonalShop.h"
 #include "Protocol/Trade.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/ActorCharacterSet.h"
@@ -1001,7 +1001,7 @@ InventoryServices InventoryServicesOf(const WorldEntryResources& resources)
                 return Core::Unexpected(std::format("sin el texto {} de Text.bmd", index));
             if (resources.textMeasure == nullptr)
                 return Core::Unexpected(std::string("sin el medidor de los textos"));
-            const App::PixelSize screen = resources.screen ? resources.screen() : App::PixelSize{640, 480};
+            const Core::PixelSize screen = resources.screen ? resources.screen() : Core::PixelSize{640, 480};
             return AddGameMessage(resources.world.Runtime(), *resources.textMeasure, screen, {}, *text, type);
         },
         .sendItemMove = {},
@@ -1010,7 +1010,7 @@ InventoryServices InventoryServicesOf(const WorldEntryResources& resources)
         {
             if (resources.textMeasure == nullptr)
                 return Core::Unexpected(std::string("sin el medidor de los textos"));
-            const App::PixelSize screen = resources.screen ? resources.screen() : App::PixelSize{640, 480};
+            const Core::PixelSize screen = resources.screen ? resources.screen() : Core::PixelSize{640, 480};
             return AddGameMessage(resources.world.Runtime(), *resources.textMeasure, screen, {}, text, type);
         }};
 }
@@ -1211,7 +1211,7 @@ Core::Expected<void, std::string> SendTheCursorItemBetween(const InventoryMoveCo
     return context.services.sendItemMove(move);
 }
 
-void ShuffleTheKeypad(Render::Models::CrtRandom& random, std::array<std::uint16_t, WarehouseKeyCount>& keys)
+void ShuffleTheKeypad(Crt::CrtRandom& random, std::array<std::uint16_t, WarehouseKeyCount>& keys)
 {
     for (std::size_t key = 0; key < keys.size(); ++key)
         keys[key] = static_cast<std::uint16_t>(key);
@@ -2227,7 +2227,7 @@ Core::Expected<void, std::string> ApplyDurability(const Protocol::Inventory::Dur
 }
 
 Core::Expected<void, std::string> ApplyLifeRefill(const Protocol::Inventory::LifeRefill& refill, WorldState& world,
-                                                  Render::Models::CrtRandom& random)
+                                                  Crt::CrtRandom& random)
 {
     WorldRuntime& runtime = world.Runtime();
     const Render::Models::LogicalAccess own(runtime.ownRecordDepth, random, Render::Models::OwnRecordCloseRandoms);
@@ -2248,7 +2248,7 @@ Core::Expected<void, std::string> ApplyLifeRefill(const Protocol::Inventory::Lif
 }
 
 Core::Expected<void, std::string> ApplyManaRefill(const Protocol::Inventory::ManaRefill& refill, WorldState& world,
-                                                  Render::Models::CrtRandom& random)
+                                                  Crt::CrtRandom& random)
 {
     const Render::Models::LogicalAccess own(world.Runtime().ownRecordDepth, random,
                                             Render::Models::OwnRecordCloseRandoms);

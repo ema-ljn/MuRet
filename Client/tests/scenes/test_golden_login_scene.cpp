@@ -1,5 +1,6 @@
 #include "support/CheckedWorldObjectProjection.h"
 
+#include "Crt/CrtRandom.h"
 #include "Scenes/LoginScene.h"
 #include "Scenes/CharacterSelectScene.h"
 #include "Scenes/CharacterSlots.h"
@@ -981,7 +982,7 @@ TEST_F(GoldenLoginWorld, TheLoginPublishesTheCharacterCutAndKeepsItsRandomState)
         world.Actors()[2].name[i] = std::byte{MessageName[i]};
     world.Actors()[2].byte1e3 = MessageName[10];
     constexpr std::uint32_t Seed = 1;
-    cloth.random = Client::Render::Models::CrtRandom(Seed);
+    cloth.random = Client::Crt::CrtRandom(Seed);
     cloth.logicSteps = 77;
     const auto wind = cloth.wind;
     const float windBase = cloth.windBase;
@@ -1100,7 +1101,7 @@ TEST_F(GoldenLoginWorld, TheScepterGlowChangesOncePerOriginalFrame)
         return positions;
     };
 
-    const Client::Render::Models::CrtRandom beforeFirst = cloth.random;
+    const Client::Crt::CrtRandom beforeFirst = cloth.random;
     const std::vector<glm::vec3> first = scepterAt(std::chrono::milliseconds{40});
     const std::uint32_t beforeAgain = cloth.random.State();
     const std::vector<glm::vec3> again = scepterAt(std::chrono::milliseconds{40});
@@ -1127,9 +1128,9 @@ TEST_F(GoldenLoginWorld, EnteringAgainStartsTheScepterClock)
     LoginScene scene(SceneContext{.dataRoot = m_dataRoot, .textures = m_store, .log = m_log, .cloth = &cloth}, *m_data,
                      m_models, nullptr, Version, FixedSeed, &m_models.TextureSlots());
     // Los rand() que sacó un dibujo, contados desde el estado de antes.
-    const auto spent = [&cloth](const Client::Render::Models::CrtRandom& before)
+    const auto spent = [&cloth](const Client::Crt::CrtRandom& before)
     {
-        Client::Render::Models::CrtRandom walk = before;
+        Client::Crt::CrtRandom walk = before;
         int count = 0;
         while (walk.State() != cloth.random.State() && count < 1'000'000)
         {
@@ -1140,14 +1141,14 @@ TEST_F(GoldenLoginWorld, EnteringAgainStartsTheScepterClock)
     };
     ASSERT_TRUE(scene.Enter().HasValue());
     scene.Step(Client::Input::InputState{});
-    const Client::Render::Models::CrtRandom beforeFirstEntry = cloth.random;
+    const Client::Crt::CrtRandom beforeFirstEntry = cloth.random;
     DrawAt(scene, 40ms);
     const int firstEntry = spent(beforeFirstEntry);
     scene.Leave();
 
     ASSERT_TRUE(scene.Enter().HasValue());
     scene.Step(Client::Input::InputState{});
-    const Client::Render::Models::CrtRandom beforeSecondEntry = cloth.random;
+    const Client::Crt::CrtRandom beforeSecondEntry = cloth.random;
     DrawAt(scene, 40ms + 5s);
     const int secondEntry = spent(beforeSecondEntry);
 
@@ -1500,7 +1501,7 @@ TEST_F(GoldenLoginWorld, EverySeenObjectTakesARandInTheDraw)
         target.Present();
     }
     scene.Step(Client::Input::InputState{});
-    Client::Render::Models::CrtRandom walk = cloth.random;
+    Client::Crt::CrtRandom walk = cloth.random;
     RecordingFrameTarget target;
     scene.Render(target.BeginFrame(std::chrono::milliseconds{80}), 0.0f);
     target.Present();

@@ -5,12 +5,13 @@
 #include "App/ServerAddress.h"
 #include "App/ServerSession.h"
 #include "App/SessionState.h"
-#include "App/WindowState.h"
 #include "Core/Environment.h"
 #include "Core/Expected.h"
 #include "Core/IClock.h"
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
+#include "Core/PixelSize.h"
+#include "Crt/CrtRandom.h"
 #include "Input/InputEvent.h"
 #include "Input/InputState.h"
 #include "Input/Key.h"
@@ -93,7 +94,7 @@ constexpr std::uint32_t CrtSeed = 1;
 constexpr std::uint32_t LoginSeed = 1;
 constexpr std::uint32_t PaddingSeed = 1;
 constexpr std::string_view Version = "0.0.0";
-constexpr App::PixelSize Screen{.width = 640, .height = 480};
+constexpr Core::PixelSize Screen{.width = 640, .height = 480};
 
 std::filesystem::path CharacterizationDir()
 {
@@ -563,7 +564,7 @@ private:
     FakeTextureStore m_textures;
     RecordingFrameTarget m_target{Screen};
     LetterMeasure m_measure;
-    Render::Models::ClothWorld m_cloth{.random = Render::Models::CrtRandom(CrtSeed)};
+    Render::Models::ClothWorld m_cloth{.random = Crt::CrtRandom(CrtSeed)};
     Input::InputState m_input;
     World::GameCamera m_camera;
     Scenes::WorldState m_world;

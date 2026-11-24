@@ -1,13 +1,13 @@
 #include "Scenes/HeroAttack.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Models/PlayerModels.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "GameLogic/PathCell.h"
 #include "GameLogic/PathFinder.h"
 #include "Protocol/Combat.h"
 #include "Protocol/Movement.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/OriginalAngles.h"
 #include "Scenes/ActorCombat.h"
@@ -172,7 +172,7 @@ float AttackRange(const ActorState& hero, const HeroArrivalContext& context)
     return range;
 }
 
-std::uint8_t ReadTheCell(std::uint8_t& depth, std::uint8_t cell, Render::Models::CrtRandom& random)
+std::uint8_t ReadTheCell(std::uint8_t& depth, std::uint8_t cell, Crt::CrtRandom& random)
 {
     const Render::Models::LogicalAccess access(depth, random, Render::Models::SmallLogicalCloseRandoms);
     return cell;

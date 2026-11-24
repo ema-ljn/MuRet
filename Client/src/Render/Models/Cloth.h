@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Crt/CrtRandom.h"
 #include "Data/Models/Model.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/TextureSlot.h"
@@ -19,32 +20,12 @@
 // tests comparan cada paso, bit a bit, con el código real del main.exe emulado (tests/vectors/cloth).
 namespace Client::Render::Models
 {
-// 0x69fd70, el rand() de la CRT del original: s = s · 0x343fd + 0x269ec3 y devuelve (s >> 16) & 0x7fff.
-// Lo siembra una vez srand(time(NULL)) (0x4bad9a).
-class CrtRandom
-{
-public:
-    explicit CrtRandom(std::uint32_t seed = 1) noexcept : m_state(seed) {}
-    [[nodiscard]] int Next() noexcept;
-    // `count` rand() seguidos sin usar lo que dan: el estado de Next() repetido `count` veces, con el
-    // salto del LCG en O(log count) (la composición de s · a + c consigo misma). El HUD del juego saca
-    // más de 70.000 por frame, casi todos al cerrar el registro propio (CL8, decisión 12 del plan).
-    void Discard(std::uint32_t count) noexcept;
-    [[nodiscard]] std::uint32_t State() const noexcept
-    {
-        return m_state;
-    }
-
-private:
-    std::uint32_t m_state;
-};
-
 // Lo que la tela lee de los globales del original, y su rand(): el viento base (0x7245f0), el viento
 // de este paso (0x7245f4..0x7245fc; la z no la escribe nadie y queda en 0) y el contador protegido de
 // pasos de lógica (0x7d3a0f0).
 struct ClothWorld
 {
-    CrtRandom random;
+    Crt::CrtRandom random;
     float windBase = 0.0f;
     glm::vec3 wind{};
     std::int32_t logicSteps = 0;

@@ -2,10 +2,10 @@
 #include "Scenes/ArrowEffects.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Protocol/Outgoing.h"
 #include "Protocol/Skill.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Scenes/GameDrawTail.h"
 #include "Render/Models/LogicalAccess.h"
@@ -50,7 +50,7 @@
 // y 0x517850, por el paso del ataque (0x50377d y 0x504060). 06, "La flecha".
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::Scenes::ActorState;
 using Client::Scenes::ArrowStepContext;
 using Client::Scenes::CharacterStepContext;

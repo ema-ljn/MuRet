@@ -1,3 +1,4 @@
+#include "Crt/CrtRandom.h"
 #include "Render/Models/IModelLibrary.h"
 #include "Scenes/WorldObjectsDrawing.h"
 #include "Core/Expected.h"
@@ -16,7 +17,6 @@
 #include "Scenes/FaunaObject.h"
 #include "Scenes/FaunaDrawing.h"
 #include "Render/Models/Skinning.h"
-#include "Render/Models/Cloth.h"
 #include "World/Particles.h"
 #include "Render/Billboard.h"
 #include "World/Leaves.h"
@@ -472,7 +472,7 @@ TEST(GameDrawTailTest, FaunaJointCreationRetainsOldPointsAndCountsItsTwoRandoms)
                                              .skill = 0,
                                              .skillSerial = 0,
                                              .target = -1};
-    Client::Render::Models::CrtRandom random(7), expected(7);
+    Client::Crt::CrtRandom random(7), expected(7);
     joints[0].points[0][0] = {99, 98, 97};
     ASSERT_TRUE(Client::Scenes::CreateFaunaJoint(joints, request, random).HasValue());
     EXPECT_EQ(joints[0].life, 120);
@@ -519,7 +519,7 @@ TEST(GameDrawTailTest, ScrollTailOfAnotherSubtypeIsTheSame)
                                                    .skill = 0,
                                                    .skillSerial = 0,
                                                    .target = -1};
-    Client::Render::Models::CrtRandom random(7);
+    Client::Crt::CrtRandom random(7);
     ASSERT_TRUE(Client::Scenes::CreateFaunaJoint(joints, request, random).HasValue());
     auto& joint = joints[0];
     EXPECT_EQ(joint.subtype, 5);
@@ -645,7 +645,7 @@ TEST(GameDrawTailTest, IcarusJointOwnerColorFailureKeepsTheEarlierConstructorPre
                                              .skill = 3,
                                              .skillSerial = 0,
                                              .target = -1};
-    Client::Render::Models::CrtRandom random(1);
+    Client::Crt::CrtRandom random(1);
     const auto created = Client::Scenes::CreateFaunaJoint(joints, request, random);
     ASSERT_FALSE(created.HasValue());
     EXPECT_NE(created.Error().find("0x531c7b"), std::string::npos);
@@ -697,7 +697,7 @@ TEST(GameDrawTailTest, IcarusJointEmitsTwoRotatedSpritesBeforeDrawingItsFirstFac
     joint.light = {0.2f, 0.4f, 0.8f};
     joint.points[0] = {{{0, 0, 0}, {4, 0, 0}, {0, 4, 0}, {0, 0, 4}}};
     Client::World::FrameSprites sprites;
-    Client::Render::Models::CrtRandom random(7), expected(7);
+    Client::Crt::CrtRandom random(7), expected(7);
     const auto first = expected.Next() % 360;
     const auto second = expected.Next() % 360;
     const Client::Scenes::JointDrawResources resources{random, sprites};
@@ -757,7 +757,7 @@ TEST(GameDrawTailTest, BloodCastleJointStepsItsRandomLifeBeforeTheSineAndOwnerCo
     joint.maximumCount = 30;
     joint.width = 2;
     joint.points[0][0] = {100, 200, 300};
-    Client::Render::Models::CrtRandom random(7);
+    Client::Crt::CrtRandom random(7);
     ASSERT_TRUE(Client::Scenes::StepJoints(std::span(&joint, 1), random).HasValue());
     EXPECT_EQ(random.State(), 3289278137u); // rand61%5 !=0; rand17422%2 ==0.
     EXPECT_EQ(joint.life, 10);              // 10+1 antes de sin; -1 al final.
@@ -895,14 +895,14 @@ TEST(GameDrawTailTest, AReusedSlotKeepsItsVisibilityUntilTheModelPass)
     const auto slot = effects->Begin({.type = 0x19f});
     ASSERT_EQ(slot, 0u);
 
-    Client::Render::Models::CrtRandom random(11);
+    Client::Crt::CrtRandom random(11);
     auto heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
     const Client::World::GroundEffectResources resources{.heights = *heights, .random = random, .map = 30};
     Client::Render::ModelBatch batch;
     const auto drawn = Client::Scenes::DrawGroundEffects(batch, effects->Effects(), resources);
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
 
-    Client::Render::Models::CrtRandom expected(11);
+    Client::Crt::CrtRandom expected(11);
     static_cast<void>(expected.Next());
     EXPECT_EQ(random.State(), expected.State());
     EXPECT_EQ(batch.State().blend, Client::Render::ModelBlend::Additive);
@@ -996,7 +996,7 @@ TEST(GameDrawTailTest, NoriaJointConsumesTwoConstructorRandomsAndMovesBeforeGrow
                                                    .skill = 0,
                                                    .skillSerial = 0,
                                                    .target = -1};
-    Client::Render::Models::CrtRandom random(7);
+    Client::Crt::CrtRandom random(7);
     ASSERT_TRUE(Client::Scenes::CreateFaunaJoint(joints, request, random).HasValue());
     auto& joint = joints[0];
     EXPECT_FALSE(joint.icarusRotations.has_value());
@@ -1024,7 +1024,7 @@ TEST(GameDrawTailTest, FloorStepFallsBeforeClampingAndSettlesItsWeaponWithoutRes
     auto heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
     auto attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
     Client::World::Particles particles;
-    Client::Render::Models::CrtRandom random(7);
+    Client::Crt::CrtRandom random(7);
     Client::Scenes::FloorItemState item;
     item.alive = true;
     item.type = 0x212;
@@ -1067,7 +1067,7 @@ TEST(GameDrawTailTest, FloorStepTakesItsTwoCallerRandomsEvenWhenTheParticlePoolI
     Client::World::Particles particles;
     for (auto& particle : particles.All())
         particle.alive = true;
-    Client::Render::Models::CrtRandom random(7);
+    Client::Crt::CrtRandom random(7);
     Client::Scenes::FloorItemState item;
     item.alive = true;
     item.type = 0x212;
@@ -1084,7 +1084,7 @@ TEST(GameDrawTailTest, FloorStepEmitsBothSparkSubtypesAtTheSameRotatedPoint)
     auto heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
     auto attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
     Client::World::Particles particles;
-    Client::Render::Models::CrtRandom random(7);
+    Client::Crt::CrtRandom random(7);
     Client::Scenes::FloorItemState item;
     item.alive = true;
     item.type = 0x212;

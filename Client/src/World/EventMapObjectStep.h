@@ -6,7 +6,7 @@
 
 #include <string>
 
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
 }
@@ -25,7 +25,7 @@ struct WorldObject;
 // rand() % 1.200 − 600; y del héroe + rand() % 1.200 − 600), la y antes que la x. Después, siempre, el sonido 1
 // en bucle (0x41ed10(1, 0, 1)). Un reloj sin ftol acreditado, el héroe, la luz o el sonido ausentes cortan con su
 // dirección después de lo ya hecho.
-[[nodiscard]] Core::Expected<void, std::string> StepDevilSquarePrelude(Render::Models::CrtRandom& random,
+[[nodiscard]] Core::Expected<void, std::string> StepDevilSquarePrelude(Crt::CrtRandom& random,
                                                                        const ObjectStepGlobals& globals);
 
 // 0x6062e6..0x6063c3, la parte de los mapas 11 a 17 de 0x6061c0, una vez por paso y antes de mirar si hay
@@ -33,9 +33,8 @@ struct WorldObject;
 // rand() % 50 + 250), cada suma en la x87 y guardada en float, y con rand() & 3 en 0 la órbita 0x60f/3 ahí, con
 // ángulos en 0, luz (1; 1; 1) y escala 0,19f. Sin el pool de partículas, o si la órbita falla, corta en
 // 0x6063be después de los rand().
-[[nodiscard]] Core::Expected<void, std::string> StepBloodCastlePrelude(Render::Models::CrtRandom& random,
-                                                                       const glm::vec3& hero, Particles* particles,
-                                                                       const float& worldClock);
+[[nodiscard]] Core::Expected<void, std::string> StepBloodCastlePrelude(Crt::CrtRandom& random, const glm::vec3& hero,
+                                                                       Particles* particles, const float& worldClock);
 
 // 0x605991, en los mapas 11 a 17 después del alpha y la animación: el 9 y el 10 quedan con +0x58 en −2, salvo
 // con +0x8a en 4 (la puerta que abrió 0x5ff960). Los demás tipos, nada.

@@ -1,6 +1,6 @@
 #include "Scenes/Slides.h"
 
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/WorldRuntime.h"
@@ -37,7 +37,7 @@ std::uint32_t TimerPeriod(std::int32_t seconds)
 }
 } // namespace
 
-void QueueATimedSlide(WorldState& world, Render::Models::CrtRandom& random, bool gameScene)
+void QueueATimedSlide(WorldState& world, Crt::CrtRandom& random, bool gameScene)
 {
     WorldRuntime& runtime = world.Runtime();
     UI::SlideBanner& banner = runtime.hud.slides;
@@ -55,7 +55,7 @@ void QueueATimedSlide(WorldState& world, Render::Models::CrtRandom& random, bool
     UI::QueueTheSlide(banner, TimedRepeats, TimedGap, *text, TimedKind, banner.speed, TimedColor);
 }
 
-void StartTheSlides(WorldState& world, Render::Models::CrtRandom& random, std::uint32_t now)
+void StartTheSlides(WorldState& world, Crt::CrtRandom& random, std::uint32_t now)
 {
     UI::SlideBanner& banner = world.Runtime().hud.slides;
     UI::ResetTheSlideQueues(banner, now);
@@ -64,7 +64,7 @@ void StartTheSlides(WorldState& world, Render::Models::CrtRandom& random, std::u
     QueueATimedSlide(world, random, true);
 }
 
-void RunTheSlideTimer(WorldState& world, Render::Models::CrtRandom& random, std::uint32_t now, bool gameScene)
+void RunTheSlideTimer(WorldState& world, Crt::CrtRandom& random, std::uint32_t now, bool gameScene)
 {
     UI::SlideBanner& banner = world.Runtime().hud.slides;
     // La resta con signo: el reloj en ms de 32 bits da la vuelta, como timeGetTime.

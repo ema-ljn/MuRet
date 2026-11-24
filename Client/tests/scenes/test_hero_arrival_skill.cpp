@@ -2,6 +2,7 @@
 #include "Scenes/HeroAttack.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Models/PlayerModels.h"
 #include "Data/Tables/SkillTable.h"
 #include "Data/Terrain/TerrainAttributes.h"
@@ -9,7 +10,6 @@
 #include "Network/Delivery.h"
 #include "Network/Packet.h"
 #include "Protocol/Outgoing.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/Skeleton.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/GameMovementState.h"
@@ -45,7 +45,7 @@
 // o 0x55faa0) después de los mismos rand(), en Lorencia (0), Devias (2) y Blood Castle (11, el mapa de 0x55b6f0).
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::Scenes::HeroSkillContext;
 
 constexpr int OwnDraws = 3848;

@@ -1,5 +1,5 @@
+#include "Crt/CrtRandom.h"
 #include "World/Particles.h"
-#include "Render/Models/Cloth.h"
 #include "support/ParticleDrawRecorder.h"
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
@@ -12,7 +12,7 @@ namespace
 TEST(CrywolfMissileParticlesTest, TheMissileFireKeepsItsSixDrawsAndFinalRotation)
 {
     auto particles = std::make_unique<Client::World::Particles>();
-    Client::Render::Models::CrtRandom random(7);
+    Client::Crt::CrtRandom random(7);
     const auto made = particles->CreateChecked(0x5da, {100, 200, 300}, {}, {1, 2, 3}, 8, 0.6f, 0, random);
     ASSERT_TRUE(made.HasValue());
     ASSERT_EQ(made.Value(), 0u);
@@ -40,7 +40,7 @@ TEST(CrywolfMissileParticlesTest, TheMissileFireKeepsItsSixDrawsAndFinalRotation
 TEST(CrywolfMissileParticlesTest, TheSecondFireKeepsItsThreeDrawsAndItsAlternateTexture)
 {
     auto particles = std::make_unique<Client::World::Particles>();
-    Client::Render::Models::CrtRandom random(7);
+    Client::Crt::CrtRandom random(7);
     const auto made = particles->CreateChecked(0x5da, {100, 200, 300}, {}, {1, 2, 3}, 9, 0.6f, 0, random);
     ASSERT_TRUE(made.HasValue());
     ASSERT_EQ(made.Value(), 0u);
@@ -56,7 +56,7 @@ TEST(CrywolfMissileParticlesTest, TheSecondFireKeepsItsThreeDrawsAndItsAlternate
 TEST(CrywolfMissileParticlesTest, TheMissileSmokeUsesTheWaterfallTextureAndFadesWithoutOwnerReads)
 {
     auto particles = std::make_unique<Client::World::Particles>();
-    Client::Render::Models::CrtRandom random(7);
+    Client::Crt::CrtRandom random(7);
     const auto made = particles->CreateChecked(0x5f2, {100, 200, 300}, {}, {1, 2, 3}, 38, 1.7f, 0, random);
     ASSERT_TRUE(made.HasValue());
     ASSERT_EQ(made.Value(), 0u);

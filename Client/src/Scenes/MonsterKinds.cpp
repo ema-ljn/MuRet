@@ -1,7 +1,7 @@
 #include "Scenes/MonsterKinds.h"
 
 #include "Core/Expected.h"
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 
 #include <cstdint>
 #include <optional>
@@ -56,7 +56,7 @@ MonsterCreation MonsterCreationOf(std::int32_t type, std::int32_t world) noexcep
 }
 
 Core::Expected<std::optional<MonsterStep>, std::string>
-MonsterStepResolver::Next(MonsterStep step, [[maybe_unused]] std::int32_t type, Render::Models::CrtRandom& random)
+MonsterStepResolver::Next(MonsterStep step, [[maybe_unused]] std::int32_t type, Crt::CrtRandom& random)
 {
     if (!Runs(step, m_context, m_r))
         return std::optional<MonsterStep>{};
@@ -71,9 +71,8 @@ MonsterStepResolver::Next(MonsterStep step, [[maybe_unused]] std::int32_t type, 
     return std::optional<MonsterStep>{step};
 }
 
-Core::Expected<std::vector<MonsterStep>, std::string> ResolveMonsterSteps(const MonsterCreation& creation,
-                                                                          const MonsterCreationContext& context,
-                                                                          Render::Models::CrtRandom& random)
+Core::Expected<std::vector<MonsterStep>, std::string>
+ResolveMonsterSteps(const MonsterCreation& creation, const MonsterCreationContext& context, Crt::CrtRandom& random)
 {
     std::vector<MonsterStep> steps;
     steps.reserve(creation.kind.steps.size());

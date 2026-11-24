@@ -1,9 +1,9 @@
 #include "Scenes/ActorCharacterSet.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Models/PlayerModels.h"
 #include "GameLogic/CharacterAppearance.h"
-#include "Render/Models/Cloth.h"
 #include "Scenes/ActorEquipment.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/DarkHorse.h"
@@ -71,8 +71,7 @@ struct PetTarget
     HelperState* own = nullptr;
 };
 
-Core::Expected<void, std::string> CreatePet(const PetTarget& target, PetAndHelper pet,
-                                            Render::Models::CrtRandom& random)
+Core::Expected<void, std::string> CreatePet(const PetTarget& target, PetAndHelper pet, Crt::CrtRandom& random)
 {
     ActorState& actor = target.actor;
     actor.pet.model = pet.pet;
@@ -150,7 +149,7 @@ void PutTheBody(ActorState& actor, const GameLogic::CharacterAppearance& appeara
 }
 
 Core::Expected<void, std::string> CreatePets(const PetTarget& target, GameLogic::Equipment equipment,
-                                             Render::Models::CrtRandom& random)
+                                             Crt::CrtRandom& random)
 {
     if (auto base = CreatePet(target, BasePet(equipment), random); !base.HasValue())
     {
@@ -223,8 +222,7 @@ Core::Expected<void, std::string> ApplyTheSet(const PetTarget& target, GameLogic
 } // namespace
 
 Core::Expected<void, std::string> CreateCharacterSetPets(WorldState& world, std::size_t slot,
-                                                         GameLogic::Equipment equipment,
-                                                         Render::Models::CrtRandom& random)
+                                                         GameLogic::Equipment equipment, Crt::CrtRandom& random)
 {
     return CreatePets({.world = world, .actor = world.Actors()[slot], .slot = slot}, equipment, random);
 }

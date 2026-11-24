@@ -2,8 +2,8 @@
 
 #include "World/WorldObjects.h"
 
+#include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainObjects.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/ObjectState.h"
 #include "World/WorldObjectRegistrations.h"
 
@@ -478,9 +478,9 @@ TEST(WorldObjectsTest, AnObjectFadedOutDoesNotStep)
 }
 
 // El rand() de la CRT con la semilla 7 después de `draws` llamadas.
-Client::Render::Models::CrtRandom SevenAfter(int draws)
+Client::Crt::CrtRandom SevenAfter(int draws)
 {
-    Client::Render::Models::CrtRandom random(7);
+    Client::Crt::CrtRandom random(7);
     for (int k = 0; k < draws; ++k)
     {
         static_cast<void>(random.Next());
@@ -508,7 +508,7 @@ TEST(WorldObjectsTest, TheRoofsFollowTheLayerOfTheHero)
         SCOPED_TRACE(std::to_string(probe.map) + " " + std::to_string(probe.type) + " " + std::to_string(probe.layer));
         WorldObject roof = Created(probe.type, 100.0f, 100.0f, probe.map).front();
         roof.targetAlpha = 0.5f;
-        Client::Render::Models::CrtRandom random(7);
+        Client::Crt::CrtRandom random(7);
         const auto stepped = Client::World::StepWorldObjectChecked(
             roof, probe.map, nullptr, random, Client::World::ObjectStepGlobals{.heroCellLayer = probe.layer});
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
@@ -533,12 +533,12 @@ TEST(WorldObjectsTest, TheWindowsFlickerWithARand)
         SCOPED_TRACE(std::to_string(probe.map) + " " + std::to_string(probe.type));
         WorldObject window = Created(probe.type, 100.0f, 100.0f, probe.map).front();
         const float before = window.state.light;
-        Client::Render::Models::CrtRandom random(7);
+        Client::Crt::CrtRandom random(7);
         const auto stepped = Client::World::StepWorldObjectChecked(window, probe.map, nullptr, random,
                                                                    Client::World::ObjectStepGlobals{});
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         EXPECT_EQ(random.State(), SevenAfter(probe.draws).State());
-        Client::Render::Models::CrtRandom expected(7);
+        Client::Crt::CrtRandom expected(7);
         const float light =
             probe.draws == 0
                 ? before
@@ -561,7 +561,7 @@ TEST(WorldObjectsTest, TheBlendMeshOfTheHousesScrollsWithTheClock)
     {
         SCOPED_TRACE(probe.clock);
         WorldObject house = Created(probe.type, 100.0f, 100.0f, Lorencia).front();
-        Client::Render::Models::CrtRandom random(7);
+        Client::Crt::CrtRandom random(7);
         const auto stepped = Client::World::StepWorldObjectChecked(
             house, Lorencia, nullptr, random, Client::World::ObjectStepGlobals{.worldClock = probe.clock});
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
@@ -594,7 +594,7 @@ TEST(WorldObjectsTest, MissingStepDestinationsKeepTheirAddressAndRandomPrefix)
         SCOPED_TRACE(std::to_string(probe.map) + " " + std::to_string(probe.type));
         WorldObject object = Created(probe.type, 100.0f, 100.0f, probe.map).front();
         object.alpha = 0.5f;
-        Client::Render::Models::CrtRandom random(7);
+        Client::Crt::CrtRandom random(7);
         const auto stepped = Client::World::StepWorldObjectChecked(object, probe.map, nullptr, random,
                                                                    Client::World::ObjectStepGlobals{});
         ASSERT_FALSE(stepped.HasValue());
@@ -611,7 +611,7 @@ TEST(WorldObjectsTest, AFadedOutObjectSkipsItsCaseButNotItsRoof)
     WorldObject window = Created(0x7a, 100.0f, 100.0f, Lorencia).front();
     window.alpha = 0.005f;
     window.targetAlpha = 0.0f;
-    Client::Render::Models::CrtRandom random(7);
+    Client::Crt::CrtRandom random(7);
     ASSERT_TRUE(
         Client::World::StepWorldObjectChecked(window, Lorencia, nullptr, random, Client::World::ObjectStepGlobals{})
             .HasValue());
@@ -632,7 +632,7 @@ TEST(WorldObjectsTest, TheCheckedStepKnowsTheReferenceMapsAndTheLogin)
 {
     WorldObject other = Created(1, 100.0f, 100.0f, 3).front();
     other.alpha = 0.5f;
-    Client::Render::Models::CrtRandom random(7);
+    Client::Crt::CrtRandom random(7);
     const auto stepped =
         Client::World::StepWorldObjectChecked(other, 35, nullptr, random, Client::World::ObjectStepGlobals{});
     ASSERT_FALSE(stepped.HasValue());
@@ -696,7 +696,7 @@ std::uint32_t SeedWithFirstRand(bool odd)
 {
     for (std::uint32_t seed = 1;; ++seed)
     {
-        Client::Render::Models::CrtRandom random(seed);
+        Client::Crt::CrtRandom random(seed);
         if (((random.Next() % 2) != 0) == odd)
         {
             return seed;
@@ -716,12 +716,12 @@ TEST(WorldObjectsTest, TheWaterspoutFrameScrollsItsVAndDropsHalfTheTime)
         fountain.state.light = 0.25f;
         fountain.state.uv.x = 0.5f;
         const std::uint32_t seed = SeedWithFirstRand(odd);
-        Client::Render::Models::CrtRandom random(seed);
+        Client::Crt::CrtRandom random(seed);
         const auto stepped = Client::World::StepTheWaterspoutFrame(fountain, random, 1234.0f);
         EXPECT_EQ(fountain.state.light, 1.0f);
         EXPECT_EQ(fountain.state.uv.y, static_cast<float>(-234.0 * static_cast<double>(0.001f)));
         EXPECT_EQ(fountain.state.uv.x, 0.5f);
-        Client::Render::Models::CrtRandom expected(seed);
+        Client::Crt::CrtRandom expected(seed);
         static_cast<void>(expected.Next());
         if (odd)
         {
@@ -747,7 +747,7 @@ TEST(WorldObjectsTest, TheWaterspoutFrameNeedsACreditedClock)
     WorldObject fountain = Created(Client::World::Waterspout, 100.0f, 100.0f, Lorencia).front();
     fountain.state.light = 0.25f;
     fountain.state.uv.y = 0.5f;
-    Client::Render::Models::CrtRandom random(7);
+    Client::Crt::CrtRandom random(7);
     const auto stepped =
         Client::World::StepTheWaterspoutFrame(fountain, random, std::numeric_limits<float>::infinity());
     ASSERT_FALSE(stepped.HasValue());

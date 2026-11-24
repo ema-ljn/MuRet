@@ -1,6 +1,6 @@
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Scenes/ActorState.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/OriginalRetainedMath.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Scenes/FaunaJointCreation.h"
@@ -164,7 +164,7 @@ Core::Expected<void, std::string> FollowTheBlast(JointState& joint)
 } // namespace
 
 Core::Expected<void, std::string> CreateStormJoint(JointState& joint, const World::FishEffectRequest& request,
-                                                   Render::Models::CrtRandom& random)
+                                                   Crt::CrtRandom& random)
 {
     if (request.subtype == StormSubtype)
     {

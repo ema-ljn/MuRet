@@ -1,7 +1,7 @@
 #pragma once
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Core/PixelSize.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/TextStyle.h"
 
@@ -24,7 +24,7 @@ namespace Client::Render
 class SpriteBatch;
 }
 
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
 }
@@ -129,8 +129,7 @@ void ResetTheSlideQueues(SlideBanner& banner, std::uint32_t now);
 
 // 0x46b680: el primer tramo con el nivel menor o igual que su tope y, si su cuenta no es 0, un rand() módulo la cuenta
 // (IDIV) y el texto de ese lugar, si la lista lo tiene. Vacío, el NULL que no encola nada.
-[[nodiscard]] std::optional<std::string> PickASlide(SlideBanner& banner, std::uint16_t level,
-                                                    Render::Models::CrtRandom& random);
+[[nodiscard]] std::optional<std::string> PickASlide(SlideBanner& banner, std::uint16_t level, Crt::CrtRandom& random);
 
 // 0x46b720 sin la escena, que mira quien llama: con un texto no vacío, de 1 a 30 repeticiones y el tipo de 0 a 5,
 // 0x46abf0 encola `repeats` entradas en la cola normal (0 a 2) o en la gruesa (3 a 5), con el tipo menos 1 o menos 4:
@@ -144,7 +143,7 @@ struct SlideStepContext
     // Sin medidor, una cola que tiene que agregar un texto corta con error.
     const Render::Text::ITextMeasure* measure = nullptr;
     Render::Text::FontKind& dcFont;
-    App::PixelSize screen{640, 480};
+    Core::PixelSize screen{640, 480};
     // timeGetTime().
     std::uint32_t now = 0;
 };

@@ -1,6 +1,7 @@
 #include "Scenes/OwnDamage.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Tables/SkillTable.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ItemSetOptionList.h"
@@ -79,7 +80,7 @@ Core::Expected<std::int32_t, std::string> SetBonusOf(std::span<const std::byte, 
 } // namespace
 
 OwnAttackDamage AttackDamageOf(const OwnCharacterRecord& own, std::uint32_t heroClass, const OwnEquipmentOverride& held,
-                               std::uint8_t& ownRecordDepth, Render::Models::CrtRandom& random)
+                               std::uint8_t& ownRecordDepth, Crt::CrtRandom& random)
 {
     const Render::Models::LogicalAccess access(ownRecordDepth, random, Render::Models::OwnRecordCloseRandoms);
     // 0x5b8c45..0x5b8cad: el ítem del cursor en lugar de una mano.
@@ -134,7 +135,7 @@ OwnAttackDamage AttackDamageOf(const OwnCharacterRecord& own, std::uint32_t hero
 
 Core::Expected<OwnMagicDamage, std::string> MagicDamageOf(const OwnCharacterRecord& own, std::uint8_t skill,
                                                           const Data::Tables::SkillTable* skills,
-                                                          std::uint8_t& skillDepth, Render::Models::CrtRandom& random,
+                                                          std::uint8_t& skillDepth, Crt::CrtRandom& random,
                                                           ItemSetOptionList& setOptions)
 {
     if (skills == nullptr)
@@ -155,7 +156,7 @@ Core::Expected<OwnMagicDamage, std::string> MagicDamageOf(const OwnCharacterReco
 }
 
 Core::Expected<OwnSkillDamage, std::string> SkillDamageOf(std::uint8_t skill, const Data::Tables::SkillTable* skills,
-                                                          std::uint8_t& skillDepth, Render::Models::CrtRandom& random,
+                                                          std::uint8_t& skillDepth, Crt::CrtRandom& random,
                                                           ItemSetOptionList& setOptions)
 {
     if (skills == nullptr)

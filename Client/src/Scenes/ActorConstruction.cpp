@@ -1,6 +1,7 @@
 #include "Scenes/ActorConstruction.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Models/PlayerModels.h"
 #include "Data/Terrain/TerrainGrid.h"
 #include "Render/Models/Cloth.h"
@@ -280,14 +281,14 @@ void ClearTheParts(ActorState& actor)
 
 // Un acceso a una de las dos entradas de la celda con `value` en claro mientras está abierta: lo que deja en la
 // variable al cerrar va a `left` (ActorState::cellXLeft y cellYLeft).
-void AccessTheCell(std::uint8_t& accesses, std::uint8_t value, std::uint32_t& left, Render::Models::CrtRandom& random)
+void AccessTheCell(std::uint8_t& accesses, std::uint8_t value, std::uint32_t& left, Crt::CrtRandom& random)
 {
     left = value;
     const Render::Models::LogicalAccess access(accesses, random, Render::Models::SmallLogicalCloseRandoms, left);
 }
 
 // La celda: escribe X y después Y, cada una en su acceso (0x412890 al cerrar), y las copias en claro.
-void WriteTheCell(ActorState& actor, const ActorPlacement& placement, Render::Models::CrtRandom& random)
+void WriteTheCell(ActorState& actor, const ActorPlacement& placement, Crt::CrtRandom& random)
 {
     AccessTheCell(actor.cellXAccesses, placement.x, actor.cellXLeft, random);
     AccessTheCell(actor.cellYAccesses, placement.y, actor.cellYLeft, random);

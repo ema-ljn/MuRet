@@ -1,7 +1,7 @@
 #include "World/ChaosCastle.h"
 
 #include "Core/Expected.h"
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "World/IFishStepServices.h"
 #include "World/Particles.h"
 #include "World/WorldObjects.h"
@@ -75,7 +75,7 @@ Core::Expected<void, std::string> StepChaosCastleCell(std::uint8_t x, std::uint8
 {
     if (context.random == nullptr)
         return Core::Unexpected(std::string("0x405e1e: 0x405e00 saca rand() con cada celda, y el pase no lo tiene"));
-    Render::Models::CrtRandom& random = *context.random;
+    Crt::CrtRandom& random = *context.random;
     if (random.Next() % CellOdds != 0)
         return {};
     const std::array<ChaosCastleCellRect, 4>* rects = RectsOf(context.area);
@@ -117,7 +117,7 @@ Core::Expected<std::int32_t, std::string> StepChaosCastlePrelude(std::int32_t co
 {
     if (context.random == nullptr)
         return Core::Unexpected(std::string("0x4054ad: 0x405490 saca rand(), y el paso no lo tiene"));
-    Render::Models::CrtRandom& random = *context.random;
+    Crt::CrtRandom& random = *context.random;
     if (random.Next() % PreludeOdds == 0 && count != 0)
         return random.Next() % count;
     if (context.heroInSafeZone || random.Next() % PreludeOdds != 0)

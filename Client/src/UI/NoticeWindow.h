@@ -1,6 +1,6 @@
 #pragma once
 
-#include "App/WindowState.h"
+#include "Core/PixelSize.h"
 #include "Data/Text/TextTable.h"
 #include "Input/InputState.h"
 #include "Render/SpriteBatch.h"
@@ -33,7 +33,7 @@ struct NoticeLayout
 
 // 0x6429b0: la caja de 352 × 113 en ((W − 352) / 2, (H − 113) / 2), y el OK de 54 × 30 en (+149,
 // +72), el del tipo 2.
-[[nodiscard]] NoticeLayout LayoutNotice(App::PixelSize screen);
+[[nodiscard]] NoticeLayout LayoutNotice(Core::PixelSize screen);
 
 // Lo que tiene el aviso abierto por su tipo (0x642bf0), en píxeles: la caja, el OK y el cancelar de
 // 54 × 30 y la caja del código de 171 × 23 (delete_secret_number, el slot 0x728).
@@ -58,14 +58,14 @@ public:
     void Close() override;
     [[nodiscard]] bool IsOpen() const override;
     // De toda la pantalla: 0x6429b0 lo arma de W × H, y su vtable + 8 mueve solo la caja.
-    [[nodiscard]] Rect Bounds(App::PixelSize screen) const override;
+    [[nodiscard]] Rect Bounds(Core::PixelSize screen) const override;
     [[nodiscard]] std::optional<NoticeId> Notice() const;
 
     // 0x642e30 en el paso: con OK o Enter (y Esc en el tipo 2) se cierra y da el aviso que se cerró,
     // para lo que sigue (FollowUpOf); con cancelar o Esc en los tipos 3 y 4 se cierra sin darlo; el
     // tipo 0 no se cierra. En el 4, lo que se escribe va al campo del código: solo dígitos. Los
     // botones, Enter y Esc, con el foco.
-    std::optional<NoticeId> Step(const Input::InputState& input, App::PixelSize screen, NewUiTurn turn = {});
+    std::optional<NoticeId> Step(const Input::InputState& input, Core::PixelSize screen, NewUiTurn turn = {});
 
     // Lo del aviso abierto, en la pantalla del último paso o dibujo.
     [[nodiscard]] const NoticeControls& Layout() const;
@@ -78,10 +78,10 @@ public:
     // Con el campo del código abierto.
     [[nodiscard]] bool WantsTextInput() const;
     // La base, la caja, el OK y el texto, con la mezcla normal (Q-C80).
-    void Draw(Render::SpriteBatch& sprites, Scenes::ITextDrawer& text, App::PixelSize screen);
+    void Draw(Render::SpriteBatch& sprites, Scenes::ITextDrawer& text, Core::PixelSize screen);
 
 private:
-    void Place(App::PixelSize screen);
+    void Place(Core::PixelSize screen);
 
     TextureSizes m_sizes;
     const Data::Text::TextTable* m_texts;

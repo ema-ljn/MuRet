@@ -1,6 +1,6 @@
 #include "World/WeaponSparkKernels.h"
 
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "World/Particles.h"
 
 #include <glm/ext/vector_float3.hpp>
@@ -15,7 +15,7 @@
 // del Fenrir: 0x540b42 y 0x5453d3. Los esperados repiten las fórmulas del ASM con otro CrtRandom de la misma semilla.
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::World::Particle;
 using Client::World::Particles;
 constexpr std::int32_t Spark = 0x5c6;

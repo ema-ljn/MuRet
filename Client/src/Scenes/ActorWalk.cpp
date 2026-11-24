@@ -1,10 +1,10 @@
 #include "Scenes/ActorWalk.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Models/PlayerModels.h"
 #include "Data/Tables/ItemTable.h"
 #include "Render/Models/Animation.h"
-#include "Render/Models/Cloth.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/MonsterSounds.h"
 #include "Scenes/PlayerActionSpeeds.h"

@@ -1,9 +1,9 @@
 #include "Scenes/GuildDrawing.h"
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Core/PixelSize.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Text/TextTable.h"
-#include "Render/Models/Cloth.h"
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
 #include "Render/Text/FontSet.h"
@@ -44,16 +44,16 @@
 // la guerra). Los nombres y los textos son inventados.
 namespace
 {
+using Client::Crt::CrtRandom;
 using Client::Render::BlendMode;
 using Client::Render::SpriteBatch;
 using Client::Render::SpriteVertex;
-using Client::Render::Models::CrtRandom;
 using Client::Scenes::GameHudContext;
 using Client::Scenes::GuildMarkTextures;
 using Client::Scenes::WorldState;
 
 constexpr std::uint32_t Seed = 7;
-constexpr Client::App::PixelSize Screen640{640, 480};
+constexpr Client::Core::PixelSize Screen640{640, 480};
 constexpr int NoTexture = -1;
 constexpr int Marker = -2;
 constexpr std::int32_t HeroGuild = 3;

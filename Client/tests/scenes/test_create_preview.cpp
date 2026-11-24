@@ -1,7 +1,7 @@
 #include "Render/Models/IModelLibrary.h"
 #include "Scenes/CreatePreview.h"
 
-#include "App/WindowState.h"
+#include "Core/PixelSize.h"
 #include "Data/Models/Model.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/Pose.h"
@@ -22,7 +22,7 @@
 // 0x63e430 en el paso), con un NewFace sintético por clase.
 namespace
 {
-using Client::App::PixelSize;
+using Client::Core::PixelSize;
 using Client::Render::Models::ActionInfo;
 using Client::Render::Models::BoneKey;
 using Client::Render::Models::Skeleton;

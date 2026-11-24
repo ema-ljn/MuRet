@@ -1,7 +1,7 @@
 #include "World/SiegeVertexEffects.h"
 
 #include "Core/Expected.h"
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "Render/Models/OriginalRotation.h"
 #include "World/GameModelEffects.h"
 #include "World/ModelEffects.h"
@@ -46,14 +46,14 @@ float F32(double value)
     return static_cast<float>(value);
 }
 
-void RotateThePush(ModelEffect& effect, float push, Render::Models::CrtRandom& random)
+void RotateThePush(ModelEffect& effect, float push, Crt::CrtRandom& random)
 {
     effect.transform.angles.z = static_cast<float>(random.Next() % Degrees);
     effect.velocity = Render::Models::OriginalVectorRotate(
         {0.0f, push, 0.0f}, Render::Models::OriginalAngleMatrix(effect.transform.angles));
 }
 
-void RandomizeTheAngles(ModelEffect& effect, Render::Models::CrtRandom& random)
+void RandomizeTheAngles(ModelEffect& effect, Crt::CrtRandom& random)
 {
     effect.transform.angles.x = static_cast<float>(random.Next() % Degrees);
     effect.transform.angles.y = static_cast<float>(random.Next() % Degrees);
@@ -76,7 +76,7 @@ bool IsThrownStone(const ModelEffect& effect)
     return effect.type == SecondStoneFragment && effect.subtype == ThrownSubtype;
 }
 
-void BeginTheGateFragment(ModelEffect& effect, Render::Models::CrtRandom& random)
+void BeginTheGateFragment(ModelEffect& effect, Crt::CrtRandom& random)
 {
     // 51d2a9..51d50d, lo de cada uno, un rand() por campo: el empuje (en y), la escala y la caída (+0xe4). La puerta
     // (0x12f, 0x130): ((r & 255) + 128) · 0,1f, ((r & 1) + 7) · 0,1f y r % 5 + 6. El 0x13c (0x51d32c): ((r & 127) +
@@ -113,7 +113,7 @@ void BeginTheGateFragment(ModelEffect& effect, Render::Models::CrtRandom& random
 
 // 0x51d438..0x51d4a4, el 0x12e/3: vida (r & 15) + 32, la escala (r % 3 + 2) · 0,12f + 1,2f, la velocidad z en
 // −20 − r % 5 y +0xd8 en 1,8f. Sin la cola de los demás: ni los ángulos ni la altura.
-void BeginTheThrownStone(ModelEffect& effect, Render::Models::CrtRandom& random)
+void BeginTheThrownStone(ModelEffect& effect, Crt::CrtRandom& random)
 {
     constexpr int ThrownScaleSpan = 3, ThrownScaleBase = 2, DropSpan = 5, DropBase = -20;
     constexpr double ScaleStep = static_cast<double>(std::bit_cast<float>(0x3df5c28fu));  // 0x6ba1d8, 0,12f
@@ -126,7 +126,7 @@ void BeginTheThrownStone(ModelEffect& effect, Render::Models::CrtRandom& random)
     effect.speed = Spin;
 }
 
-void BeginTheStatueFragment(ModelEffect& effect, Render::Models::CrtRandom& random)
+void BeginTheStatueFragment(ModelEffect& effect, Crt::CrtRandom& random)
 {
     // 51d5b7..51d744: el131/0 pasa al1 y consume un sorteo más para la gravedad.
     const float push = F32(static_cast<double>((random.Next() & StonePushMask) + StatuePushBase) * Tenth);
@@ -195,7 +195,7 @@ Core::Expected<double, std::string> LandTheFragment(ModelEffect& effect, bool st
 // llena no crea nada ni saca rand() y el paso sigue).
 Core::Expected<void, std::string> Emit(Particles& particles, std::int32_t type, const ModelEffect& effect,
                                        const glm::vec3& light, std::int32_t subtype, float scale, float worldClock,
-                                       Render::Models::CrtRandom& random, std::uint32_t address)
+                                       Crt::CrtRandom& random, std::uint32_t address)
 {
     const auto made = particles.CreateChecked(type, effect.transform.position, effect.transform.angles, light, subtype,
                                               scale, worldClock, random);
@@ -212,7 +212,7 @@ constexpr glm::vec3 StepLight{1.0f};
 // 0x52930e..0x529385, el 0x13c después de caer: con rand() & 3 en 0, la piedra 0x6ec/5 (escala 2,8f) y el humo
 // 0x5f2/0x15 (1,8f); con rand() % 10 en 0, el polvo 0x5f3/0 (1). Todos con la luz local.
 Core::Expected<void, std::string> CrumbleTheGolemStone(const ModelEffect& effect, Particles& particles,
-                                                       Render::Models::CrtRandom& random, float worldClock)
+                                                       Crt::CrtRandom& random, float worldClock)
 {
     constexpr std::int32_t StoneParticle = 0x6ec, StoneSubtype = 5, SmokeSubtype = 0x15;
     constexpr float StoneScale = std::bit_cast<float>(0x40333333u); // 0x529323, 2,8f
@@ -237,7 +237,7 @@ Core::Expected<void, std::string> CrumbleTheGolemStone(const ModelEffect& effect
 // 0x52938a..0x5293ea, el 0x12d/2: con rand() % 10 en 0, la z en la altura del terreno de este paso y el humo
 // 0x5f2/0xb (escala 2) con la luz local en (0,2f; 0,5f; 0,35f).
 Core::Expected<void, std::string> SmokeTheShower(ModelEffect& effect, double ground, Particles& particles,
-                                                 Render::Models::CrtRandom& random, float worldClock)
+                                                 Crt::CrtRandom& random, float worldClock)
 {
     constexpr glm::vec3 SmokeLight{std::bit_cast<float>(0x3e4ccccdu), 0.5f, std::bit_cast<float>(0x3eb33333u)};
     constexpr float SmokeScale = 2.0f; // 0x5293b8
@@ -252,8 +252,7 @@ Core::Expected<void, std::string> SmokeTheShower(ModelEffect& effect, double gro
 // por encima de su z, la z en el terreno, la velocidad, los ángulos y +0x58 en 0 y, con rand() % 10 en 0, el humo
 // 0x5f2/0x18 con la escala · 1,25; si no (también con NaN), con rand() & 1 en 0, el mismo humo con 0,2f. Los dos con su
 // luz (+0xf4).
-Core::Expected<void, std::string> StepTheThrownStone(ModelEffect& effect, Particles& particles,
-                                                     Render::Models::CrtRandom& random,
+Core::Expected<void, std::string> StepTheThrownStone(ModelEffect& effect, Particles& particles, Crt::CrtRandom& random,
                                                      const ModelEffectStepServices& services, float worldClock)
 {
     constexpr double SpinGain = static_cast<double>(std::bit_cast<float>(0x3e99999au)); // 0x6b89dc, 0,3f
@@ -289,7 +288,7 @@ bool IsSiegeVertexEffect(std::int16_t type)
 }
 
 std::optional<std::size_t> CreateSiegeVertexEffect(const ModelEffectArguments& arguments, ModelEffects& effects,
-                                                   Render::Models::CrtRandom& random)
+                                                   Crt::CrtRandom& random)
 {
     if (!IsSiegeVertexEffect(arguments.type))
         return std::nullopt;
@@ -308,8 +307,8 @@ std::optional<std::size_t> CreateSiegeVertexEffect(const ModelEffectArguments& a
 }
 
 Core::Expected<void, std::string> StepSiegeVertexEffect(ModelEffect& effect, Particles& particles,
-                                                        Render::Models::CrtRandom& random,
-                                                        const ModelEffectStepServices& services, float worldClock)
+                                                        Crt::CrtRandom& random, const ModelEffectStepServices& services,
+                                                        float worldClock)
 {
     if (IsThrownStone(effect))
         return StepTheThrownStone(effect, particles, random, services, worldClock);

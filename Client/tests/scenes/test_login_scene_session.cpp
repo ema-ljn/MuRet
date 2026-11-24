@@ -5,11 +5,12 @@
 #include "App/ServerAddress.h"
 #include "App/ServerSession.h"
 #include "App/SessionState.h"
-#include "App/WindowState.h"
 #include "Core/IClock.h"
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
+#include "Core/PixelSize.h"
 #include "Core/Xor3.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Models/Model.h"
 #include "Data/Models/PlayerModels.h"
 #include "Data/Text/Credits.h"
@@ -99,7 +100,6 @@
 namespace
 {
 using Client::App::Credentials;
-using Client::App::PixelSize;
 using Client::App::ServerAddress;
 using Client::App::ServerSession;
 using Client::App::SessionFailure;
@@ -108,6 +108,7 @@ using Client::App::SessionState;
 using Client::App::TickCountMs;
 using Client::Core::Log;
 using Client::Core::LogLevel;
+using Client::Core::PixelSize;
 using Client::Input::InputState;
 using Client::Input::Key;
 using Client::Network::Connection;
@@ -1158,7 +1159,7 @@ TEST(LoginSceneSessionTest, ObjectEffectsResumeWithOneFrameAfterAHeldFrame)
     Harness tested(true);
     ASSERT_NO_FATAL_FAILURE(tested.ReachTheLogin());
     tested.clock.Advance(std::chrono::milliseconds{40});
-    tested.cloth.random = Client::Render::Models::CrtRandom(4);
+    tested.cloth.random = Client::Crt::CrtRandom(4);
     (void)tested.Frame(tested.clock.Now());
     ASSERT_EQ(tested.cloth.random.State(), 0xc6192e9eu) << "un frame inicial de dos objetos";
     tested.socket.pollsUntilConnected = 2;
@@ -1173,7 +1174,7 @@ TEST(LoginSceneSessionTest, ObjectEffectsResumeWithOneFrameAfterAHeldFrame)
     tested.Step();
     ASSERT_EQ(tested.session.State(), SessionState::WaitingConnectHello);
     ASSERT_FALSE(tested.scene->HoldsTheLastFrame());
-    tested.cloth.random = Client::Render::Models::CrtRandom(4);
+    tested.cloth.random = Client::Crt::CrtRandom(4);
     (void)tested.Frame(tested.clock.Now());
     EXPECT_EQ(tested.cloth.random.State(), 0xc6192e9eu) << "solo un frame al volver a dibujar";
 }
@@ -1195,7 +1196,7 @@ TEST(LoginSceneSessionTest, AConnectStartedByTheUiCannotAccumulateObjectFramesBe
     // El connect ya terminó cuando llega el próximo Step; el evento ya descartó el tiempo retenido.
     tested.scene->Step(tested.input);
     ASSERT_FALSE(tested.scene->HoldsTheLastFrame());
-    tested.cloth.random = Client::Render::Models::CrtRandom(4);
+    tested.cloth.random = Client::Crt::CrtRandom(4);
     (void)tested.Frame(tested.clock.Now());
     EXPECT_EQ(tested.cloth.random.State(), 0xc6192e9eu) << "dos objetos, ningún backlog del connect";
 }
@@ -1218,7 +1219,7 @@ TEST(LoginSceneSessionTest, AHeldFrameNotifiesObjectEffectsWhenTheWholeConnectRu
     ASSERT_EQ(tested.session.State(), SessionState::Failed);
     tested.scene->Step(tested.input);
     ASSERT_FALSE(tested.scene->HoldsTheLastFrame());
-    tested.cloth.random = Client::Render::Models::CrtRandom(4);
+    tested.cloth.random = Client::Crt::CrtRandom(4);
     (void)tested.Frame(tested.clock.Now());
     EXPECT_EQ(tested.cloth.random.State(), 0xc6192e9eu) << "un frame para dueño del dragón y logo";
 }
@@ -1243,11 +1244,11 @@ TEST(LoginSceneSessionTest, HoldingForANormalSessionChangePreservesTheObjectFram
     tested.clock.Advance(std::chrono::milliseconds{20});
     tested.scene->Step(tested.input);
     ASSERT_FALSE(tested.scene->HoldsTheLastFrame());
-    tested.cloth.random = Client::Render::Models::CrtRandom(4);
+    tested.cloth.random = Client::Crt::CrtRandom(4);
     (void)tested.Frame(tested.clock.Now());
     EXPECT_EQ(tested.cloth.random.State(), 4u) << "20 ms no alcanzan para otra ronda";
     tested.clock.Advance(std::chrono::milliseconds{27});
-    tested.cloth.random = Client::Render::Models::CrtRandom(4);
+    tested.cloth.random = Client::Crt::CrtRandom(4);
     (void)tested.Frame(tested.clock.Now());
     EXPECT_EQ(tested.cloth.random.State(), 0xc6192e9eu) << "la fase de 20 ms se conserva y completa 47 ms";
 }

@@ -1,10 +1,10 @@
 #include "Scenes/GameTooltips.h"
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Core/PixelSize.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Tables/ItemSetTables.h"
 #include "Data/Text/TextTable.h"
-#include "Render/Models/Cloth.h"
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
 #include "Render/Text/FontSet.h"
@@ -34,15 +34,15 @@
 // alto) en 640 × 480, donde rx y ry son 1.
 namespace
 {
+using Client::Crt::CrtRandom;
 using Client::Render::BlendMode;
 using Client::Render::Color;
 using Client::Render::SpriteBatch;
-using Client::Render::Models::CrtRandom;
 using Client::Scenes::GameHudContext;
 using Client::Scenes::TooltipLines;
 using Client::Scenes::WorldState;
 
-constexpr Client::App::PixelSize Screen640{640, 480};
+constexpr Client::Core::PixelSize Screen640{640, 480};
 constexpr std::uint8_t None = 0xff;
 
 // Los textos de formato de las opciones de un conjunto (0x40d530) y del título (1089 y 159), inventados.
@@ -355,7 +355,7 @@ TEST(GameTooltipsTest, TheTextBoxIsInPixelsAtAnotherResolution)
     for (const std::int32_t mode : {2, 3})
     {
         Tooltips tested;
-        tested.sprites.Begin(Client::App::PixelSize{800, 600});
+        tested.sprites.Begin(Client::Core::PixelSize{800, 600});
         TooltipLines& lines = tested.Lines();
         lines.text[0] = "Uno";
         lines.colors[0] = Client::Scenes::TooltipGreenOnRed;

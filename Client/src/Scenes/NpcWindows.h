@@ -15,7 +15,7 @@
 // tienda hace fuera de los paneles (0x6599a0 y 0x657ab0), los paquetes que llegan (el dispatcher 0x4e2b10, 0x4d1e00,
 // 0x4c5f60 y 0x4da280) y lo que mandan las ventanas. Contrato: Client/docs/research/04-protocolo.md, "Las ventanas de
 // los NPC".
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
 }
@@ -35,7 +35,7 @@ using NpcWindowSender = std::function<Core::Expected<void, std::string>(Protocol
 struct NpcWindowContext
 {
     WorldState& world;
-    Render::Models::CrtRandom& random;
+    Crt::CrtRandom& random;
     const InventoryServices& services;
     const NpcWindowSender& send;
 };
@@ -105,9 +105,8 @@ struct NpcWindowContext
 
 // 0x5c4472..0x5c4a89, desde 0x5c4110 con el modo de reparar: el clic consumido, los dos rand() del C3 y el C1 05 34
 // con el lugar (fila · columnas + columna + 12) y 0x78abb10.
-[[nodiscard]] Core::Expected<void, std::string> SendRepair(Render::Models::CrtRandom& random,
-                                                           const NpcWindowSender& send, std::uint8_t position,
-                                                           std::uint8_t requestPosition);
+[[nodiscard]] Core::Expected<void, std::string> SendRepair(Crt::CrtRandom& random, const NpcWindowSender& send,
+                                                           std::uint8_t position, std::uint8_t requestPosition);
 // Los cables de 0x6599a0 y 0x657ab0 de `resources` en `panels`: el mundo, el rand() de la tela, los servicios del
 // inventario y el envío.
 void LendTheNpcWindows(GamePanels& panels, const WorldEntryResources& resources);

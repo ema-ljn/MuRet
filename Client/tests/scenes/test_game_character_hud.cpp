@@ -1,10 +1,10 @@
 #include "Scenes/GameCharacterHud.h"
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Core/PixelSize.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Tables/ItemTable.h"
 #include "Data/Tables/SkillTable.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/RoundedMath.h"
 #include "Render/SpriteBatch.h"
@@ -45,9 +45,9 @@
 // nombre, los stats y el equipo son inventados; las cuentas de rand() salen del ASM.
 namespace
 {
+using Client::Crt::CrtRandom;
 using Client::Render::Color;
 using Client::Render::SpriteBatch;
-using Client::Render::Models::CrtRandom;
 using Client::Render::Models::OwnRecordCloseRandoms;
 using Client::Render::Models::RoundedSin;
 using Client::Render::Models::SmallLogicalCloseRandoms;
@@ -58,7 +58,7 @@ using Client::Tests::RecordedText;
 using Client::UI::Sprintf;
 
 constexpr std::uint32_t Seed = 0x0badf00du;
-constexpr Client::App::PixelSize Screen640{640, 480};
+constexpr Client::Core::PixelSize Screen640{640, 480};
 constexpr int Own = OwnRecordCloseRandoms;
 constexpr int SkillEntry = static_cast<int>(Client::Data::Tables::SkillRecordSize);
 // Los accesos de un frame sin set: los siete de arriba, 0x5b8b80, la primera vuelta del set y los tres de abajo.

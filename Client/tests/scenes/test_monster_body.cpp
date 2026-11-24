@@ -3,6 +3,7 @@
 
 #include "Core/Expected.h"
 #include "Core/IClock.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Models/Model.h"
 #include "Render/ModelBatch.h"
 #include "Render/Models/Cloth.h"
@@ -56,7 +57,7 @@ constexpr std::size_t WholeBody = MeshCount * Triangle;
 
 std::uint32_t AfterRandoms(std::size_t count)
 {
-    Client::Render::Models::CrtRandom random{1};
+    Client::Crt::CrtRandom random{1};
     for (std::size_t call = 0; call < count; ++call)
         static_cast<void>(random.Next());
     return random.State();
@@ -68,7 +69,7 @@ constexpr std::size_t KundunJointTable = 500;
 // Gemela de 0x43f1a6..0x43f243, escrita aparte: 0x56 vueltas con su rand() % 10, los ángulos (−10, 0, (r + 10) · i)
 // y el punto (x, y, z + 200) para el 0x613/3 y el 0x6ee/3 de ancho 50, sin dueño ni blanco.
 std::unique_ptr<std::vector<Client::Scenes::JointState>> KundunFallingRays(const glm::vec3& position,
-                                                                           Client::Render::Models::CrtRandom& random)
+                                                                           Client::Crt::CrtRandom& random)
 {
     auto joints = std::make_unique<std::vector<Client::Scenes::JointState>>(KundunJointTable);
     glm::vec3 angles{-10.0f, 0.0f, 0.0f};
@@ -231,7 +232,7 @@ protected:
     {
         auto effects = std::make_unique<Client::World::ModelEffects>();
         auto particles = std::make_unique<Client::World::Particles>();
-        Client::Render::Models::CrtRandom random{state};
+        Client::Crt::CrtRandom random{state};
         const auto emitted =
             Client::Scenes::EmitVertexEffectsOf(*m_models.Find(m_actor->type), m_transform.scale, m_meshes,
                                                 {.mesh = mesh, .type = type, .subtype = subtype},
@@ -555,13 +556,13 @@ TEST(MonsterBodyStonesTest, OneCornerOfTheFallingStonesWithTheSeedEight)
     posed[0].positions = {corner};
     const auto after = [](std::size_t count)
     {
-        Client::Render::Models::CrtRandom random{8};
+        Client::Crt::CrtRandom random{8};
         for (std::size_t draw = 0; draw < count; ++draw)
             static_cast<void>(random.Next());
         return random.State();
     };
     auto effects = std::make_unique<Client::World::ModelEffects>();
-    Client::Render::Models::CrtRandom random{8};
+    Client::Crt::CrtRandom random{8};
     const auto emitted = Client::Scenes::EmitVertexEffectsOf(model, 1.0f, posed, {.mesh = 0, .type = 0x10a},
                                                              {.effects = effects.get()}, random);
     ASSERT_TRUE(emitted.HasValue()) << emitted.Error();
@@ -582,7 +583,7 @@ TEST(MonsterBodyStonesTest, OneCornerOfTheFallingStonesWithTheSeedEight)
 
     for (auto& effect : effects->Effects())
         effect.alive = true;
-    Client::Render::Models::CrtRandom full{8};
+    Client::Crt::CrtRandom full{8};
     ASSERT_TRUE(Client::Scenes::EmitVertexEffectsOf(model, 1.0f, posed, {.mesh = 0, .type = 0x10a},
                                                     {.effects = effects.get()}, full)
                     .HasValue());
@@ -991,7 +992,7 @@ TEST_F(MonsterBodyTest, TheFadingDeathOf43ed20LeavesItsParticlesBeforeDrawing)
     m_actor->animation.action = 6;
     m_transform.position = {500.0f, 600.0f, 70.0f};
     // Con la semilla 16, el primer rand() es 90: la primera esquina suelta su partícula.
-    m_cloth.random = Client::Render::Models::CrtRandom{16};
+    m_cloth.random = Client::Crt::CrtRandom{16};
     std::size_t made = 0;
     for (const float alpha : {0.25f, std::numeric_limits<float>::quiet_NaN()})
     {
@@ -1112,7 +1113,7 @@ TEST_F(MonsterBodyTest, KundunDrawsItsChromeUntilItFalls)
         m_sound.reset();
         m_actor->animation = {.action = 6, .frame = 8.0f};
         m_actor->position = {12800.5f, 6400.25f, std::bit_cast<float>(0x4215999au)}; // z: 37,4f
-        m_cloth.random = Client::Render::Models::CrtRandom{1};
+        m_cloth.random = Client::Crt::CrtRandom{1};
         m_joints.assign(KundunJointTable, Client::Scenes::JointState{});
         m_batch.Begin(Client::Render::Pass3D{});
         result = Draw(0x192, map);
@@ -1120,7 +1121,7 @@ TEST_F(MonsterBodyTest, KundunDrawsItsChromeUntilItFalls)
         EXPECT_EQ(m_sound, 0x1de);
         EXPECT_EQ(m_actor->dword60, 0x5a);
         EXPECT_EQ(m_batch.Vertices().size(), WholeBody + 6 * Triangle);
-        Client::Render::Models::CrtRandom oracle{1};
+        Client::Crt::CrtRandom oracle{1};
         const auto twin = KundunFallingRays(m_actor->position, oracle);
         ExpectSameJoints(m_joints, *twin);
         EXPECT_EQ(std::ranges::count_if(m_joints, [](const auto& joint) { return joint.alive; }), 2 * 0x56);
@@ -1144,7 +1145,7 @@ TEST_F(MonsterBodyTest, KundunDrawsItsChromeUntilItFalls)
         // 0x43edff: pasado 14,8, el sonido 0x1dd, +0x60 en 10, la malla 0 y el temblor en (rand() % 8 − 8) · 0,1f;
         // después, los pedazos en el hueso 4 (KundunScattersItsPiecesWhenItFalls): con uno solo, corta.
         m_actor->animation.frame = 15.0f;
-        m_cloth.random = Client::Render::Models::CrtRandom{1};
+        m_cloth.random = Client::Crt::CrtRandom{1};
         m_batch.Begin(Client::Render::Pass3D{});
         result = Draw(0x192, map);
         ASSERT_FALSE(result.HasValue());
@@ -1152,7 +1153,7 @@ TEST_F(MonsterBodyTest, KundunDrawsItsChromeUntilItFalls)
         EXPECT_EQ(m_sound, 0x1dd);
         EXPECT_EQ(m_actor->dword60, 10);
         ASSERT_EQ(m_batch.Vertices().size(), Triangle);
-        Client::Render::Models::CrtRandom replica{1};
+        Client::Crt::CrtRandom replica{1};
         const auto shake = static_cast<float>(static_cast<double>((replica.Next() % 8) - 8) *
                                               static_cast<double>(std::bit_cast<float>(0x3dcccccdu)));
         EXPECT_FLOAT_EQ(m_shake, shake);
@@ -1204,14 +1205,14 @@ TEST_F(MonsterBodyTest, KundunScattersItsPiecesWhenItFalls)
         m_bones.assign(5, Client::Render::Models::BoneTransform(1.0f));
         m_bones[4][3] = glm::vec3(10.0f, 20.0f, 30.0f);
         m_terrainHeight = ground;
-        m_cloth.random = Client::Render::Models::CrtRandom{1};
+        m_cloth.random = Client::Crt::CrtRandom{1};
         m_batch.Begin(Client::Render::Pass3D{});
 
         const auto result = Draw(0x192, map);
 
         ASSERT_TRUE(result.HasValue()) << result.Error();
         EXPECT_EQ(m_cloth.random.State(), AfterRandoms(7));
-        Client::Render::Models::CrtRandom replica{1};
+        Client::Crt::CrtRandom replica{1};
         static_cast<void>(replica.Next());
         const auto effects = m_effects->Effects();
         for (std::size_t slot = 0; slot < pieces.size(); ++slot)
@@ -1262,7 +1263,7 @@ TEST_F(MonsterBodyTest, KundunScattersItsPiecesWhenItFalls)
         m_effects = std::make_unique<Client::World::ModelEffects>();
         m_terrainHeight = {};
         m_actor->dword60 = 0x5a;
-        m_cloth.random = Client::Render::Models::CrtRandom{1};
+        m_cloth.random = Client::Crt::CrtRandom{1};
         m_batch.Begin(Client::Render::Pass3D{});
         const auto ungrounded = Draw(0x192, map);
         ASSERT_FALSE(ungrounded.HasValue());
@@ -1285,7 +1286,7 @@ TEST_F(MonsterBodyTest, KundunFallsOnlyInTheOriginalFrame)
         m_actor->animation = {.action = 6, .frame = 15.0f};
         m_bones.assign(5, Client::Render::Models::BoneTransform(1.0f));
         m_terrainHeight = [](float, float) { return 50.0; };
-        m_cloth.random = Client::Render::Models::CrtRandom{1};
+        m_cloth.random = Client::Crt::CrtRandom{1};
         m_shake = 0.25f;
         m_sound.reset();
         m_batch.Begin(Client::Render::Pass3D{});

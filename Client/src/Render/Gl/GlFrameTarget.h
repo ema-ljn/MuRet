@@ -1,9 +1,9 @@
 #pragma once
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
 #include "Core/IClock.h"
 #include "Core/Log.h"
+#include "Core/PixelSize.h"
 #include "Platform/GlLoader.h"
 #include "Render/Gl/GlModelRenderer.h"
 #include "Render/Gl/GlSpriteRenderer.h"
@@ -40,7 +40,7 @@ public:
     // que vivir más. El error, si un renderer no compila o las fuentes del ancho de ahora no abren.
     [[nodiscard]] static Core::Expected<std::unique_ptr<GlFrameTarget>, std::string>
     Create(const Platform::GlFunctions& gl, TextureTable& textures, Scenes::RasterizerFactory fonts,
-           std::function<App::PixelSize()> screen, std::function<void()> present, Core::Log& log);
+           std::function<Core::PixelSize()> screen, std::function<void()> present, Core::Log& log);
 
     GlFrameTarget(const GlFrameTarget&) = delete;
     GlFrameTarget& operator=(const GlFrameTarget&) = delete;
@@ -57,7 +57,7 @@ public:
 
 private:
     GlFrameTarget(const Platform::GlFunctions& gl, TextureTable& textures, GlSpriteRenderer renderer,
-                  GlModelRenderer models, std::function<App::PixelSize()> screen, std::function<void()> present,
+                  GlModelRenderer models, std::function<Core::PixelSize()> screen, std::function<void()> present,
                   Core::Log& log);
 
     // Lo que juntó el lote, al framebuffer, y el lote vacío con su estado.
@@ -69,7 +69,7 @@ private:
     TextureTable& m_textures;
     GlSpriteRenderer m_renderer;
     GlModelRenderer m_modelRenderer;
-    std::function<App::PixelSize()> m_screen;
+    std::function<Core::PixelSize()> m_screen;
     std::function<void()> m_present;
     Core::Log& m_log;
     SpriteBatch m_sprites;

@@ -1,9 +1,9 @@
 #include "Render/Models/IModelLibrary.h"
 #include "Scenes/CharacterStep.h"
 
+#include "Crt/CrtRandom.h"
 #include "Data/Models/Model.h"
 #include "Data/Terrain/TerrainAttributes.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/Skeleton.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/ActorState.h"
@@ -84,7 +84,7 @@ TEST(WeaponTrailPipelineTest, TheWholeBodyRunsEveryProducerBeforeAndAfterTheUnco
         actor.animation.previousAction = probe.action;
         actor.animation.frame = 3.0f;
         actor.hands[0].model = actor.hands[1].model = 0xffff;
-        Client::Render::Models::CrtRandom random{123};
+        Client::Crt::CrtRandom random{123};
 
         const auto stepped = Client::Scenes::StepCharacter(actor, {.world = *world, .random = random});
 
@@ -131,7 +131,7 @@ TEST(WeaponTrailPipelineTest, TheKalimaWeaponTrailReturnsThroughTheCharacterStep
         actor.animation.action = actor.animation.previousAction = 3;
         actor.animation.frame = 3.0f;
         actor.hands[0].model = actor.hands[1].model = 0xffff;
-        Client::Render::Models::CrtRandom random{0x12345678u};
+        Client::Crt::CrtRandom random{0x12345678u};
 
         if (full)
             for (auto& particle : world->Particles().All())
@@ -184,7 +184,7 @@ TEST(WeaponTrailPipelineTest, AdvancingAgainUsesThePublishedActionForItsSpeed)
     actor.animation.action = actor.animation.previousAction = 3;
     actor.animation.frame = 9.0f;
     actor.hands[0].model = actor.hands[1].model = 0xffff;
-    Client::Render::Models::CrtRandom random{123};
+    Client::Crt::CrtRandom random{123};
 
     const auto stepped = Client::Scenes::StepCharacter(actor, {.world = *world, .random = random});
 

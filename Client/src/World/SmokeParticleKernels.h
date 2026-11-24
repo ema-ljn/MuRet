@@ -5,7 +5,7 @@
 
 #include <cstdint>
 
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
 }
@@ -58,17 +58,17 @@ inline constexpr std::int32_t RisingPuffParticle = 0x5f5;
 
 // Después del prefijo de 0x53fe70 (Initialize, con la escala del pedido en +0x10). `clock` es el reloj del mundo
 // (0x5767b88) que la /17, /19, /20, /23 y /24 y la 0x5f5 pasan por _ftol para el giro.
-void CreateSmokeParticle(Particle& particle, Render::Models::CrtRandom& random, float clock);
+void CreateSmokeParticle(Particle& particle, Crt::CrtRandom& random, float clock);
 // Después del prefijo de 0x53fe70, la niebla 5f2/28..30: su rand(), la altura del terreno (0x5f93c0) en su punto y, la
 // /30, el seno del reloj (0x5767b88) por la trigonometría. Sin el reloj o la trigonometría que pide la /30,
 // MissingClock con el rand() sacado y la z ya puesta.
-[[nodiscard]] Core::Expected<void, ParticleError> CreateStormMist(Particle& particle, Render::Models::CrtRandom& random,
+[[nodiscard]] Core::Expected<void, ParticleError> CreateStormMist(Particle& particle, Crt::CrtRandom& random,
                                                                   const ParticleTerrainHeight& terrainHeight,
                                                                   const float* worldClock,
                                                                   IParticleTrigonometry* trigonometry);
 // Después de la vida y el movimiento comunes de 0x5446e0. La /36 pide la posición de su dueño mientras su vida es 23 o
 // más; sin él, MissingOwner.
-[[nodiscard]] Core::Expected<void, ParticleError>
-StepSmokeParticle(Particle& particle, Render::Models::CrtRandom& random, const ParticleOwnerStates& ownerStates);
+[[nodiscard]] Core::Expected<void, ParticleError> StepSmokeParticle(Particle& particle, Crt::CrtRandom& random,
+                                                                    const ParticleOwnerStates& ownerStates);
 
 } // namespace Client::World

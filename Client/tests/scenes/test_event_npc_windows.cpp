@@ -1,13 +1,13 @@
 #include "Scenes/EventNpcWindows.h"
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Core/PixelSize.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Text/TextTable.h"
 #include "Input/InputState.h"
 #include "Protocol/Connection/Logout.h"
 #include "Protocol/Events.h"
 #include "Protocol/Outgoing.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
@@ -47,9 +47,9 @@
 // traza de GL (*estático*). Text.bmd es inventado, con los especificadores de los textos del original.
 namespace
 {
+using Client::Crt::CrtRandom;
 using Client::Render::Color;
 using Client::Render::SpriteBatch;
-using Client::Render::Models::CrtRandom;
 using Client::Render::Models::OwnRecordCloseRandoms;
 using Client::Render::Text::FontKind;
 using Client::Scenes::GameHudContext;
@@ -57,7 +57,7 @@ using Client::Scenes::GameUiContext;
 using Client::Scenes::WorldState;
 
 constexpr std::uint32_t Seed = 0x2468ace1u;
-constexpr Client::App::PixelSize Screen640{640, 480};
+constexpr Client::Core::PixelSize Screen640{640, 480};
 constexpr Color White{1.0f, 1.0f, 1.0f, 1.0f};
 
 std::map<std::size_t, std::string> NpcTexts()

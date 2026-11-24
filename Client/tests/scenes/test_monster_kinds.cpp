@@ -1,6 +1,6 @@
 #include "Scenes/MonsterKinds.h"
 
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 
 #include <gtest/gtest.h>
 
@@ -17,7 +17,7 @@
 // la cola 0x5140c0 (04, "Los monstruos y los NPC que entran").
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::Scenes::MonsterCreationContext;
 using Client::Scenes::MonsterCreationOf;
 using Client::Scenes::MonsterStep;

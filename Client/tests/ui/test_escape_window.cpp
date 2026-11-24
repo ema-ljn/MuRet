@@ -1,6 +1,6 @@
 #include "UI/EscapeWindow.h"
 
-#include "App/WindowState.h"
+#include "Core/PixelSize.h"
 #include "Input/InputState.h"
 #include "Input/Key.h"
 #include "Render/SpriteBatch.h"
@@ -21,7 +21,7 @@
 // 0x647cd0, 0x647d40 y 0x647ed0; CL8, hito 8). Todo en píxeles.
 namespace
 {
-using Client::App::PixelSize;
+using Client::Core::PixelSize;
 using Client::Input::InputState;
 using Client::Input::Key;
 using Client::UI::EscapeWindow;

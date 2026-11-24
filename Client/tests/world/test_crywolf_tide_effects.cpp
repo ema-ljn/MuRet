@@ -1,5 +1,5 @@
+#include "Crt/CrtRandom.h"
 #include "World/GameModelEffects.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/OriginalRotation.h"
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
@@ -59,7 +59,7 @@ TEST(CrywolfTideEffectsTest, TheTideOscillatesAndEmitsSixSmokeChildrenBeforeTheC
             effect.transform.scale = scale;
             effect.velocity = {0, -40, 0};
             effect.light = {0.1f, 0.2f, 0.3f};
-            Client::Render::Models::CrtRandom random(7);
+            Client::Crt::CrtRandom random(7);
             const auto stepped = Client::World::StepGameModelEffect(effect, nullptr, *particles, 0, random, nullptr,
                                                                     {.lighting = lighting.get()});
             ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
@@ -95,7 +95,7 @@ TEST(CrywolfTideEffectsTest, TheTideOscillatesAndEmitsSixSmokeChildrenBeforeTheC
 TEST(CrywolfTideEffectsTest, TheTideSmokeKeepsThreeConstructorRollsAndItsGrayGrowth)
 {
     auto particles = std::make_unique<Client::World::Particles>();
-    Client::Render::Models::CrtRandom random(7);
+    Client::Crt::CrtRandom random(7);
     const auto made = particles->CreateChecked(0x5f2, {100, 200, 300}, {}, {1, 2, 3}, 25, 1, 0, random);
     ASSERT_TRUE(made.HasValue());
     ASSERT_EQ(made.Value(), 0u);

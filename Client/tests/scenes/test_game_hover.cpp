@@ -1,8 +1,8 @@
 #include "Scenes/GameHover.h"
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
-#include "Render/Models/Cloth.h"
+#include "Core/PixelSize.h"
+#include "Crt/CrtRandom.h"
 #include "Render/SpriteBatch.h"
 #include "Render/Text/TextStyle.h"
 #include "Scenes/ActorState.h"
@@ -25,9 +25,9 @@
 // el rasterizador falso: 6 columnas por letra y 13 filas. Los nombres son inventados.
 namespace
 {
+using Client::Crt::CrtRandom;
 using Client::Render::BlendMode;
 using Client::Render::SpriteBatch;
-using Client::Render::Models::CrtRandom;
 using Client::Scenes::ActorState;
 using Client::Scenes::GameDrawTailState;
 using Client::Scenes::GameHoverContext;
@@ -52,7 +52,7 @@ protected:
     GameHoverTest()
         : m_world(std::make_unique<WorldState>()), m_tail(std::make_unique<GameDrawTailState>()), m_text(m_sprites)
     {
-        m_sprites.Begin(Client::App::PixelSize{640, 480});
+        m_sprites.Begin(Client::Core::PixelSize{640, 480});
         m_world->Runtime().hero = Hero;
         Actor(Hero, "Heroe", PlayerKind);
         Actor(Guard, "Guardia", NpcKind);

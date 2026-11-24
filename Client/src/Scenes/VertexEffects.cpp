@@ -1,8 +1,8 @@
 #include "Scenes/VertexEffects.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Models/Model.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/IModelLibrary.h"
 #include "Render/Models/Skinning.h"
 #include "Scenes/ActorState.h"
@@ -30,7 +30,7 @@ namespace Client::Scenes
 {
 namespace
 {
-using Render::Models::CrtRandom;
+using Crt::CrtRandom;
 using Result = Core::Expected<void, std::string>;
 
 // La luz de 0x4ee770: 1 al empezar (0x4ee7b3..0x4ee7c1), 0,2f con el 0x10c y el 0x131 (0x3e4ccccd) y 0,08f con el
@@ -338,7 +338,7 @@ Result EmitAt(const glm::vec3& position, std::int32_t triangle, glm::vec3& angle
 Core::Expected<void, std::string> EmitVertexEffectsOf(const Data::Models::Model& model, float modelScale,
                                                       std::span<const Render::Models::SkinnedMesh> meshes,
                                                       const VertexEffectCall& call, const VertexEffectTables& tables,
-                                                      Render::Models::CrtRandom& random)
+                                                      Crt::CrtRandom& random)
 {
     // 0x4ee776..0x4ee7a4: la malla entre 0 y +0x24 (MOVSX) y con +0xa (los triángulos) por encima de 0.
     if (call.mesh < 0 || static_cast<std::size_t>(call.mesh) >= model.meshes.size())
@@ -380,7 +380,7 @@ Core::Expected<void, std::string> EmitVertexEffects(const Render::Models::IModel
                                                     const DrawnObject& object,
                                                     std::span<const Render::Models::SkinnedMesh> meshes,
                                                     std::int32_t mesh, std::int32_t type, std::int32_t subtype,
-                                                    World::ModelEffects& effects, Render::Models::CrtRandom& random)
+                                                    World::ModelEffects& effects, Crt::CrtRandom& random)
 {
     const auto* model = models.Find(object.model);
     if (model == nullptr)

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Core/PixelSize.h"
 #include "Data/Tables/ItemSetTables.h"
 #include "Data/Tables/ItemTable.h"
 #include "Data/Text/TextTable.h"
@@ -16,9 +16,13 @@
 #include <string>
 #include <string_view>
 
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
+} // namespace Client::Crt
+
+namespace Client::Render::Models
+{
 class IModelLibrary;
 } // namespace Client::Render::Models
 
@@ -48,7 +52,7 @@ struct GameChatContext
 {
     WorldState& world;
     // El rand() de la tela: el registro propio de 0x554a40 lo gasta al cerrarse.
-    Render::Models::CrtRandom& random;
+    Crt::CrtRandom& random;
     // Text.bmd: los comandos, los avisos y el "..." del filtro. Sin él, el primero que se lee es el error.
     const Data::Text::TextTable* texts = nullptr;
     // La cola de los nombres de 0x56c440 (UI::ChatCommandContext); sin ellas, no hay nombres.
@@ -60,7 +64,7 @@ struct GameChatContext
     std::span<const std::string> filterName{};
     // GetTextExtentPointA sobre el DC de los textos, que 0x555190 usa al cortar. Sin él, un aviso es el error.
     const Render::Text::ITextMeasure* measure = nullptr;
-    App::PixelSize screen{640, 480};
+    Core::PixelSize screen{640, 480};
     ChatSender send{};
     // El C1 03 31 que /personalshop manda al cerrar las misiones o un NPC de evento (0x419900, 0x657a90).
     std::function<void()> sendWindowClose{};

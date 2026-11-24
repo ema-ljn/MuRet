@@ -1,5 +1,6 @@
 #include "Scenes/AttackSkillReads.h"
 
+#include "Crt/CrtRandom.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterStep.h"
@@ -12,7 +13,7 @@
 
 namespace Client::Scenes
 {
-std::uint8_t ReadTheSkill(ActorState& actor, Render::Models::CrtRandom& random)
+std::uint8_t ReadTheSkill(ActorState& actor, Crt::CrtRandom& random)
 {
     const Render::Models::LogicalAccess access(actor.byte38eAccesses, random, SkillCloseRandoms);
     return actor.byte38e;

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "App/ServerSession.h"
-#include "App/WindowState.h"
+#include "Core/PixelSize.h"
 #include "Data/Tables/GateTable.h"
 #include "Data/Tables/ItemSetTables.h"
 #include "Data/Tables/SkillTable.h"
@@ -263,7 +263,7 @@ private:
     World::SphereFrustum m_frustum;
     Render::Camera3D m_drawnCamera;
     World::TerrainPickingState m_picking;
-    App::PixelSize m_screen{640, 480};
+    Core::PixelSize m_screen{640, 480};
     TerrainTiles m_tiles;
     // Los modelos de los objetos del mapa que los cargó, si alguno.
     WorldModels m_worldModels;

@@ -21,10 +21,10 @@ struct Position;
 // que MuRet no tiene corta con error, con su dirección, después de lo que el original hace antes. Las búsquedas
 // 0x5132d0 (el vivo con un nombre), 0x5178f0 (un int en un arreglo) y 0x517920 (los jugadores cerca de un punto) no
 // tienen llamadores ni punteros en el binario: no se portan.
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
-} // namespace Client::Render::Models
+} // namespace Client::Crt
 
 namespace Client::Scenes
 {
@@ -35,15 +35,15 @@ struct WorldEntryResources;
 // Lo que comparten las altas del viewport (los jugadores, el 45, el DF y los monstruos de MonsterViewport.h):
 // Una escritura de la celda protegida (+0x41c o +0x420) con su acceso abierto: 4 rand() al cerrarse si queda sin
 // accesos.
-void WriteCell(std::uint8_t value, std::uint8_t& cell, std::uint8_t& depth, Render::Models::CrtRandom& random);
+void WriteCell(std::uint8_t value, std::uint8_t& cell, std::uint8_t& depth, Crt::CrtRandom& random);
 // Una lectura, con su acceso (0x40b800 o el cierre en línea).
-[[nodiscard]] std::uint8_t ReadCell(const std::uint8_t& cell, std::uint8_t& depth, Render::Models::CrtRandom& random);
+[[nodiscard]] std::uint8_t ReadCell(const std::uint8_t& cell, std::uint8_t& depth, Crt::CrtRandom& random);
 // La X y después la Y de la celda protegida, y +0x39a/+0x39b con los mismos valores.
-void WriteTheCells(ActorState& actor, std::uint8_t x, std::uint8_t y, Render::Models::CrtRandom& random);
+void WriteTheCells(ActorState& actor, std::uint8_t x, std::uint8_t y, Crt::CrtRandom& random);
 // (nibble alto − 1) · 45 (0x6b8848, con el 1 de 0x6b87d4).
 [[nodiscard]] float AngleOf(std::uint8_t directionAndPk);
 // La X y después la Y, leídas de la tabla, al centro de la celda.
-void PutInTheCellCenter(ActorState& actor, Render::Models::CrtRandom& random);
+void PutInTheCellCenter(ActorState& actor, Crt::CrtRandom& random);
 // La Y, la X y 0x4eac00(X, Y, destino, +0x3e8, 0); +0x378 en 1 solo si hay camino.
 [[nodiscard]] Core::Expected<void, std::string>
 WalkToTheTarget(ActorState& actor, std::uint8_t targetX, std::uint8_t targetY, const WorldEntryResources& resources);

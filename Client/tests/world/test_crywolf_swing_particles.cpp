@@ -1,5 +1,5 @@
+#include "Crt/CrtRandom.h"
 #include "World/Particles.h"
-#include "Render/Models/Cloth.h"
 #include "support/ParticleDrawRecorder.h"
 #include "support/PlayerActors.h"
 #include <glm/ext/vector_float2.hpp>
@@ -12,7 +12,7 @@ namespace
 TEST(CrywolfSwingParticlesTest, TheSwordGlowKeepsItsThreeDrawsAndItsOwnTexture)
 {
     auto particles = std::make_unique<Client::World::Particles>();
-    Client::Render::Models::CrtRandom random(7);
+    Client::Crt::CrtRandom random(7);
     const auto made = particles->CreateChecked(0x640, {100, 200, 300}, {}, {1, 2, 3}, 0, 1, 0, random);
     ASSERT_TRUE(made.HasValue());
     ASSERT_EQ(made.Value(), 0u);
@@ -37,7 +37,7 @@ TEST(CrywolfSwingParticlesTest, TheSwordGlowKeepsItsThreeDrawsAndItsOwnTexture)
 TEST(CrywolfSwingParticlesTest, TheMagicSparkDiscardsItsFirstLifeRollAndKeepsTheSecondYRoll)
 {
     auto particles = std::make_unique<Client::World::Particles>();
-    Client::Render::Models::CrtRandom random(7);
+    Client::Crt::CrtRandom random(7);
     const auto made = particles->CreateChecked(0x5ad, {100, 200, 300}, {}, {1, 2, 3}, 2, 0.8f, 0, random);
     ASSERT_TRUE(made.HasValue());
     ASSERT_EQ(made.Value(), 0u);
@@ -57,7 +57,7 @@ TEST(CrywolfSwingParticlesTest, TheMagicSparkDiscardsItsFirstLifeRollAndKeepsThe
 TEST(CrywolfSwingParticlesTest, TheHandMistUsesChrome03AndFadesBeforeShrinking)
 {
     auto particles = std::make_unique<Client::World::Particles>();
-    Client::Render::Models::CrtRandom random(7);
+    Client::Crt::CrtRandom random(7);
     const auto made = particles->CreateChecked(0x5f2, {100, 200, 300}, {}, {0.2f, 0.2f, 0.7f}, 27, 1, 0, random);
     ASSERT_TRUE(made.HasValue());
     ASSERT_EQ(made.Value(), 0u);

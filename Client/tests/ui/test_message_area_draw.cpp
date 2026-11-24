@@ -1,6 +1,6 @@
 #include "UI/MessageArea.h"
 
-#include "App/WindowState.h"
+#include "Core/PixelSize.h"
 #include "Render/SpriteBatch.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/TextStyle.h"
@@ -15,7 +15,7 @@
 // Client::UI::DrawTheMessageArea (0x5554e0). The text is invented.
 namespace
 {
-using Client::App::PixelSize;
+using Client::Core::PixelSize;
 using Client::Render::SpriteBatch;
 using Client::Render::Text::FontKind;
 using Client::Render::Text::TextColors;

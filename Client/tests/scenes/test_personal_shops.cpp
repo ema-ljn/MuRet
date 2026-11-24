@@ -1,8 +1,8 @@
 #include "Scenes/SocialEvents.h"
 
-#include "App/WindowState.h"
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
+#include "Core/PixelSize.h"
 #include "Data/Tables/ItemTable.h"
 #include "Data/Text/TextTable.h"
 #include "Network/Packet.h"
@@ -380,7 +380,7 @@ TEST_P(PersonalShopsTest, ABubbleHidesTheTitle)
 TEST_P(PersonalShopsTest, TheBubbleOfAShopOwnerTakesTheShortTitle)
 {
     Client::Scenes::ApplyShopTitles(Shop::ShopTitles{{{SellerKey, "Arcos y flechas finas"}}}, *m_world);
-    const Client::Scenes::ChatBubbleMeasure measure{.measure = m_letters, .screen = Client::App::PixelSize{640, 480}};
+    const Client::Scenes::ChatBubbleMeasure measure{.measure = m_letters, .screen = Client::Core::PixelSize{640, 480}};
     const auto added = Client::Scenes::AddChatBubble(*m_world, measure, "Brezal", "hola", Seller,
                                                      Client::Scenes::ChatBubbleMode::Chat);
     ASSERT_TRUE(added.HasValue()) << added.Error();

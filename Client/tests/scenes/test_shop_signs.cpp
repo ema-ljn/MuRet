@@ -1,9 +1,9 @@
 #include "Scenes/ShopSigns.h"
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Core/PixelSize.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Text/TextTable.h"
-#include "Render/Models/Cloth.h"
 #include "Render/SpriteBatch.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/TextBox.h"
@@ -39,9 +39,9 @@
 // su techo, su z y 60, menos 300. El texto mide 6 columnas por letra. Nombres, títulos y el texto 1104, inventados.
 namespace
 {
-using Client::App::PixelSize;
+using Client::Core::PixelSize;
+using Client::Crt::CrtRandom;
 using Client::Render::SpriteBatch;
-using Client::Render::Models::CrtRandom;
 using Client::Render::Text::BoxShape;
 using Client::Render::Text::FontKind;
 using Client::Render::Text::TextColors;

@@ -14,7 +14,7 @@ namespace Client::Data::Tables
 struct ItemSetTables;
 }
 
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
 }
@@ -56,7 +56,7 @@ struct OwnStatsContext
     // abren y lo cierran en cada lugar, y la rama de Cape of Lord una vez. Cada cierre que la deja en
     // 0 saca 3.848 rand() de `random`.
     std::uint8_t& ownRecordAccesses;
-    Render::Models::CrtRandom& random;
+    Crt::CrtRandom& random;
     // El ítem de 0x7879f80 y sus condiciones, para 0x54efe0, 0x54f9b0 y 0x54fe10 (HeldItemOf). Por defecto no
     // reemplaza nada, como [0x7879fbc] en la .bss (0 al arrancar). Lo escriben levantar un ítem (las copias de 0x48
     // bytes a 0x7879f80, CL8 hito 4) y los 24 y F3 14 que llegan (0x4d1c89 y 0x4d29cb).
@@ -114,11 +114,11 @@ struct ItemStatBonus
 // rand() si deja la cuenta en 0. Con otro tipo no abre ni toca nada. Con más de nueve opciones el
 // original lee el lugar siguiente, que MuRet no proyecta: error, con el acceso cerrado.
 [[nodiscard]] Core::Expected<void, std::string>
-AddCapeOfLordOptions(OwnCharacterRecord& own, std::uint8_t& ownRecordAccesses, Render::Models::CrtRandom& random);
+AddCapeOfLordOptions(OwnCharacterRecord& own, std::uint8_t& ownRecordAccesses, Crt::CrtRandom& random);
 
 // 0x5512bf..0x5513b1, la cola: restas de 16 bits que envuelven, un rand() en un rango con IDIV, dos
 // topes de 100 y dos rand() % 100 que deciden +0xf02 y +0xf03. Con +0xee2 = +0xee4 + 1 el IDIV divide
 // por 0 (Q-C185): error, con +0xef8, +0xefa y el primer rand() ya hechos, como en el original.
 [[nodiscard]] Core::Expected<void, std::string> UpdateOwnDerivedStatsTail(OwnCharacterRecord& own,
-                                                                          Render::Models::CrtRandom& random);
+                                                                          Crt::CrtRandom& random);
 } // namespace Client::Scenes

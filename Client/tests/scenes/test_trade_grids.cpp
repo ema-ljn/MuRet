@@ -4,6 +4,7 @@
 #include "Core/Expected.h"
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Models/PlayerModels.h"
 #include "Data/Tables/ItemSetTables.h"
 #include "Data/Tables/ItemTable.h"
@@ -65,8 +66,8 @@
 // ítems son inventados.
 namespace
 {
+using Client::Crt::CrtRandom;
 using Client::Data::Models::PlayerSkeletonModel;
-using Client::Render::Models::CrtRandom;
 using Client::Scenes::ActorState;
 using Client::Scenes::EmptyOwnItemId;
 using Client::Tests::ViewportPlayerRecord;

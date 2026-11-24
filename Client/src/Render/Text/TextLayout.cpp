@@ -1,6 +1,6 @@
 #include "Render/Text/TextLayout.h"
 
-#include "App/WindowState.h"
+#include "Core/PixelSize.h"
 #include "Render/ScreenScale.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
@@ -53,12 +53,12 @@ float BoxUv(int size, int boxSize)
 }
 } // namespace
 
-int RightAlignedAt(int x, TextExtent extent, App::PixelSize screen)
+int RightAlignedAt(int x, TextExtent extent, Core::PixelSize screen)
 {
     return Shrink(x, extent.width, 640, screen.width);
 }
 
-int EndingAt(int x, TextExtent extent, App::PixelSize screen)
+int EndingAt(int x, TextExtent extent, Core::PixelSize screen)
 {
     if (screen.width <= 0)
     {
@@ -68,7 +68,7 @@ int EndingAt(int x, TextExtent extent, App::PixelSize screen)
                     static_cast<double>(extent.width) / static_cast<double>(ScaleX(1.0f, screen)));
 }
 
-int CenteredAt(int x, TextExtent extent, App::PixelSize screen)
+int CenteredAt(int x, TextExtent extent, Core::PixelSize screen)
 {
     if (screen.width <= 0)
     {
@@ -79,12 +79,12 @@ int CenteredAt(int x, TextExtent extent, App::PixelSize screen)
     return static_cast<int>(static_cast<std::uint32_t>(x) - half);
 }
 
-int BottomAlignedAt(int y, TextExtent extent, App::PixelSize screen)
+int BottomAlignedAt(int y, TextExtent extent, Core::PixelSize screen)
 {
     return Shrink(y, extent.height, 480, screen.height);
 }
 
-int DesignX(int pixelX, App::PixelSize screen)
+int DesignX(int pixelX, Core::PixelSize screen)
 {
     // Sin pantalla, como Shrink: la proporción sería 0. Con la x87 en 53 bits, la división en
     // double da lo mismo.
@@ -95,7 +95,7 @@ int DesignX(int pixelX, App::PixelSize screen)
     return Truncate(static_cast<double>(pixelX) / static_cast<double>(ScaleX(1.0f, screen)));
 }
 
-int DesignY(int pixelY, App::PixelSize screen)
+int DesignY(int pixelY, Core::PixelSize screen)
 {
     if (screen.height <= 0)
     {
@@ -107,7 +107,7 @@ int DesignY(int pixelY, App::PixelSize screen)
 namespace
 {
 std::vector<TextPiece> TextPiecesAtPixelOrigin(double textLeft, double xInPixels, int yInPixels, TextExtent extent,
-                                               App::PixelSize screen)
+                                               Core::PixelSize screen)
 {
     const int rows = std::min(extent.height, TextBoxHeight);
     int width = extent.width;
@@ -145,7 +145,7 @@ std::vector<TextPiece> TextPiecesAtPixelOrigin(double textLeft, double xInPixels
 }
 } // namespace
 
-std::vector<TextPiece> TextPieces(int x, int y, TextExtent extent, App::PixelSize screen)
+std::vector<TextPiece> TextPieces(int x, int y, TextExtent extent, Core::PixelSize screen)
 {
     // DAT_05762ea8 y DAT_05762eac: W y H por las inversas de 640 y 480, en float
     // (0x4b9441..0x4b9467), lo mismo que escala 0x620d50 con un punto.
@@ -157,7 +157,7 @@ std::vector<TextPiece> TextPieces(int x, int y, TextExtent extent, App::PixelSiz
     return TextPiecesAtPixelOrigin(textLeft, xInPixels, yInPixels, extent, screen);
 }
 
-std::vector<TextPiece> TextPiecesAtPixels(int pixelX, int pixelY, TextExtent extent, App::PixelSize screen)
+std::vector<TextPiece> TextPiecesAtPixels(int pixelX, int pixelY, TextExtent extent, Core::PixelSize screen)
 {
     return TextPiecesAtPixelOrigin(static_cast<double>(pixelX), static_cast<double>(pixelX), pixelY, extent, screen);
 }
@@ -176,7 +176,7 @@ CenteredInBox CenterInBox(const ITextMeasure& measure, FontKind font, std::strin
     return CenterInBox(boxWidth, measure.Measure(font, text.empty() ? EmptyTextMeasure : text).width);
 }
 
-OriginalQuad BoxedQuad(int x, int y, int width, int rows, bool clampY, App::PixelSize screen)
+OriginalQuad BoxedQuad(int x, int y, int width, int rows, bool clampY, Core::PixelSize screen)
 {
     // 0x554060..0x5540b4: con el modo 0, contra W en píxeles.
     if (x < 0)

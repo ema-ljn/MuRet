@@ -1,7 +1,7 @@
 #include "Scenes/FaunaJointCreation.h"
 
+#include "Crt/CrtRandom.h"
 #include "Render/ModelBatch.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Pass3D.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/GameDrawTail.h"
@@ -20,7 +20,7 @@
 
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::Scenes::JointState;
 
 // 0x531b0c, /7: dos rand() y z +1050, sin la cola común; el paso dibuja 50 tramos sin emitir las partículas de /2. Los

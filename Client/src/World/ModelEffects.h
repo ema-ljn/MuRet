@@ -21,7 +21,7 @@ namespace Client::Data::Terrain
 struct TerrainAttributes;
 }
 
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
 }
@@ -254,19 +254,17 @@ public:
     std::optional<std::size_t> CreateCrywolfMissile(const ModelEffectArguments& arguments);
     // 0x51edc4/0x51ee54: los fuegos artificiales60d/60e, con pools reales y sin sonidos implícitos.
     std::optional<std::size_t> CreateFireworkEmitter(const ModelEffectArguments& arguments);
-    std::optional<std::size_t> CreateFireworkFlare(const ModelEffectArguments& arguments,
-                                                   Render::Models::CrtRandom& random);
+    std::optional<std::size_t> CreateFireworkFlare(const ModelEffectArguments& arguments, Crt::CrtRandom& random);
     // 0x51f7f9: cráter636, sub0/1/2; no consume RNG y el pool lleno conserva sus argumentos.
     std::optional<std::size_t> CreateCraterEffect(const ModelEffectArguments& arguments);
     // 0x51f4ad..0x51f5fd: la onda 0x6eb de cualquier subtipo: vida 30 y escala 20, y después la /1 y la /2 vida 20 y
     // (rand() % 10 + 10) · 0,1f, la /3 vida 15 y 1, la /4 vida 10 y (rand() % 6 + 6) · 0,1f, la /5 20 y 9, la /6 50 y
     // 9, la /7 10 y 1 y la /8 10 y (rand() % 10 + 10) · 0,2f. Sólo la /1, la /2, la /4 y la /8 sacan un rand(), con
     // lugar.
-    std::optional<std::size_t> CreateCastleShockWave(const ModelEffectArguments& arguments,
-                                                     Render::Models::CrtRandom& random);
+    std::optional<std::size_t> CreateCastleShockWave(const ModelEffectArguments& arguments, Crt::CrtRandom& random);
     // 438a1a→5191be: tipo9/0, ownerNULL, escalaargumento0; primer libre, lleno sinCRT.
     std::optional<std::size_t> CreateKalimaEffect(const glm::vec3& position, const glm::vec3& angles,
-                                                  const glm::vec3& light, Render::Models::CrtRandom& random);
+                                                  const glm::vec3& light, Crt::CrtRandom& random);
     // 0x518cf0(type, position, angles, light, 0, dueño, −1, 0, 0, 0, scale) en el primer lugar sin el
     // byte vivo, o nada si están todos. Una escala de 0 o menos pasa a 0,9 (0x518d3c). Del 0xb4: la
     // posición del dueño con la z 3.400 más arriba (0x518fc9), los ángulos con el alabeo en 0 (0x518fb3),
@@ -282,20 +280,20 @@ public:
     std::optional<std::size_t> Create(const ModelEffectArguments& arguments);
     // 0x51c36e/0x51c38a: los efectos 322..324 de la torre de Noria; 322/323 ponen sourceLight en cero.
     std::optional<std::size_t> CreateNoriaEffect(std::int16_t type, const glm::vec3& position, const glm::vec3& angles,
-                                                 glm::vec3& sourceLight, Render::Models::CrtRandom& random);
+                                                 glm::vec3& sourceLight, Crt::CrtRandom& random);
     // 0x518cf0(0xae, posición, ángulos, luz, subtipo, dueño, −1, 0, 0, 0, 0) → 0x51913a: el prefijo común
     // (+0x8a en −1), en la escena 4 oculto (+0x58 = −2), vida 250, animación a 0,3, sin luz por vértice, el
     // estado con rand() & 1, la velocidad (0, escala del dueño · −5, 0) y la escala 0,9 con el subtipo 3 o
     // 0,25 con los demás. Un rand(); lleno, ninguno.
     std::optional<std::size_t> CreateButterflyEffect(const glm::vec3& position, const glm::vec3& angles,
                                                      const glm::vec3& light, std::int32_t subtype, float ownerScale,
-                                                     bool selectionScene, Render::Models::CrtRandom& random);
+                                                     bool selectionScene, Crt::CrtRandom& random);
     // 0x518cf0(0xda, posición, ángulos, luz, 0, 0, −1, 0, 0, 0, 0) → 0x51b80a: el prefijo común (+0x8a en −1)
     // y seis rand(): la vida (& 15) + 24, la escala ((& 7) + 6) · 0,1f, la caída −(& 3) en +0xe4 y el
     // corrimiento ((& 63) − 32; −((& 31) + 50); (& 127) + 200), girado por los ángulos y sumado a la posición
     // en float. Lleno, ninguno y sin rand().
     std::optional<std::size_t> CreateFallingStone(const glm::vec3& position, const glm::vec3& angles,
-                                                  const glm::vec3& light, Render::Models::CrtRandom& random);
+                                                  const glm::vec3& light, Crt::CrtRandom& random);
     // 0x518cf0(0x10a o 0x10b, posición, ángulos, luz, 0, 0, −1, 0, 0, 0, 0) → 0x51bafb, que sale en 0x51bc42 sin la
     // salida común: el prefijo (sin dueño, +0x8a en −1), la z 50 más, el empuje (0; ((& 127) + 32) · 0,1f; 0), la vida
     // (& 15) + 32, la escala ((& 3) + 8) · 0,1f, la z de los ángulos en % 360 para girar el empuje a la velocidad, la
@@ -303,14 +301,13 @@ public:
     // % 360. Nueve rand() con el 0x10b, ocho con el 0x10a. Lleno, ninguno y sin rand(). Otro subtipo (el 0x10b/2, /3
     // y /4 y el 0x10a/4 de 0x4ee770) queda en +0x4 y sale con ocho rand().
     std::optional<std::size_t> CreateDebris(std::int16_t type, const glm::vec3& position, const glm::vec3& angles,
-                                            const glm::vec3& light, Render::Models::CrtRandom& random,
-                                            std::int32_t subtype = 0);
+                                            const glm::vec3& light, Crt::CrtRandom& random, std::int32_t subtype = 0);
     // 0x518cf0(0x5de, …, 0, 0, −1, 0, 0, 0, 0) → 0x51e7d8 con el subtipo 0: el prefijo común, vida 40 y el
     // registro propio abierto y cerrado (copia su +0xf04 a +0x8c, que sólo lee la rama del dueño héroe, y el
     // cierre que deja la cuenta en 0 gasta sus 3.848 rand()). Lleno, ninguno.
     std::optional<std::size_t> CreateFlameJet(const glm::vec3& position, const glm::vec3& angles,
                                               const glm::vec3& light, std::uint8_t& ownRecordDepth,
-                                              Render::Models::CrtRandom& random);
+                                              Crt::CrtRandom& random);
     // 0x518cf0(0x5de, …) con el subtipo 3 → 0x51ecaa: la columna de la mano derecha del 0x1a4 (0x441b7c y 0x441c4c):
     // el prefijo de Begin y vida 15, sin rand(). Otro tipo o subtipo, o la tabla llena, ninguno.
     std::optional<std::size_t> CreateFlameColumn(const ModelEffectArguments& arguments);
@@ -321,7 +318,7 @@ public:
     // del dueño héroe del paso (0x52ae2a) lee +0x89, +0x8a y +0x8c. Otro tipo o subtipo, o la tabla llena, ninguno, sin
     // rand() y sin tocar el registro.
     std::optional<std::size_t> CreateOwnedFlameJet(const ModelEffectArguments& arguments, std::uint8_t& ownRecordDepth,
-                                                   std::uint8_t ownRecordCount, Render::Models::CrtRandom& random);
+                                                   std::uint8_t ownRecordCount, Crt::CrtRandom& random);
     // 0x518cf0(0xc8 o 0xc9, o 0xea, 0xeb, 0xe5 o 0xe6 con el subtipo 0, …, 0, 0, −1, 0, 0, 0, 0) → 0x51b72b: el
     // prefijo común y cinco rand(): el empuje ((& 255) + 64) · 0,1f en y, la vida (& 15) + 32, la escala ((& 3) + 8) ·
     // 0,1f, el yaw rand() % 360 y la caída (& 15) + 8 en +0xe4; la velocidad es el empuje girado por los ángulos con
@@ -330,17 +327,16 @@ public:
     // (0x51b66b..0x51b6d6): rand() % 128 − 64 en x, otro en y y rand() % 180 en z, sumados a la posición (cada uno
     // guardado en float y después fld, fadd y fstp). Otro tipo o la tabla llena, ninguno.
     std::optional<std::size_t> CreateStoneChip(std::int16_t type, const glm::vec3& position, const glm::vec3& angles,
-                                               const glm::vec3& light, Render::Models::CrtRandom& random);
+                                               const glm::vec3& light, Crt::CrtRandom& random);
     std::optional<std::size_t> CreateStoneChip(std::int16_t type, const glm::vec3& position, const glm::vec3& angles,
-                                               const glm::vec3& light, Render::Models::CrtRandom& random,
-                                               std::int32_t subtype);
+                                               const glm::vec3& light, Crt::CrtRandom& random, std::int32_t subtype);
     // 0x518cf0(0xbb o 0x5ac, …, 0, 0, −1, 0, 0, 0, 0) con el subtipo 0. La nube (0x51b968): vida 2, el
     // blendMesh en 0, escala 10, 200 más en y y 190 menos en z, sin luz por vértice; sin rand(). El 0x5ac
     // (0x51e3ec): la luz en 0,3f, s = rand() % 5 + 9 y la velocidad sin girar (sen 30° · cos 70°; cos 30° ·
     // cos 70°; sen 70°) · s · 0,5 con la x87 sobre los double 0x6ba1c8 y 0x6ba1d0, escala 3 y vida 400. Otro
     // tipo o la tabla llena, ninguno y sin rand().
     std::optional<std::size_t> CreateIcarusEffect(std::int16_t type, const glm::vec3& position, const glm::vec3& angles,
-                                                  const glm::vec3& light, Render::Models::CrtRandom& random);
+                                                  const glm::vec3& light, Crt::CrtRandom& random);
     // 0x518cf0(0xb3, posición, ángulos, luz, 0, objeto, −1, 0, ftol(escala del objeto), 0, 0) → 0x51900b: el
     // prefijo común (+0x8a en −1, escala 0,9) y seis rand(): la z, la y y la x ± 100 (r % 200 − 100), el yaw
     // más r % 360, la y de la velocidad (r & 7) · 0,1f − 5 (la x y la z en 0) y la escala más (r % 5) ·
@@ -348,7 +344,7 @@ public:
     // vida 1.000, +0xe4 y +0xec en 1, la partida en la posición ya corrida y la luz (0,01f; 0,01f; 0,03f).
     // El dueño (+0x108) no lo lee nadie. Lleno, ninguno y sin rand().
     std::optional<std::size_t> CreateAidaWisp(const glm::vec3& position, const glm::vec3& angles,
-                                              const glm::vec3& light, Render::Models::CrtRandom& random);
+                                              const glm::vec3& light, Crt::CrtRandom& random);
     // 0x518cf0(0x135, posición, ángulos, luz, 0, objeto, −1, 0, 0, 0, 0) → 0x51d73b: el prefijo común (+0x8a
     // en −1, escala 0,9), el dueño (+0x108), vida 100, la luz de las mallas (+0x68) en 0,3f y la partida en
     // la posición. Sin rand(); lleno, ninguno.
@@ -373,7 +369,7 @@ public:
     // dueño), la vida 30 y la escala 20 del tipo, y con el subtipo 1 la vida 20 y la escala ((rand() % 10) + 10) ·
     // 0,1f en la x87 (0x51f4c3..0x51f4eb). Un rand(); lleno, ninguno y sin rand().
     std::optional<std::size_t> CreateGallopShockWave(const glm::vec3& position, const glm::vec3& angles,
-                                                     const glm::vec3& light, Render::Models::CrtRandom& random);
+                                                     const glm::vec3& light, Crt::CrtRandom& random);
     // 0x518cf0(0x14d, posición, ángulos, luz, 0, dueño, −1, 0, 0, 0, 0) → 0x51db7a: el prefijo común (+0x8a en −1,
     // escala 0,9) con el dueño, vida 100, la escala (rand() % 100) · 0,002f + 0,3f, el subtipo en 0, el alpha en 0,7f,
     // los tres ángulos con rand() % 360 y, por rand() % 30, el lugar: el punto del hueso 10 (con 1 y 2), 14 (3), 2 (4
@@ -385,7 +381,7 @@ public:
     // ninguno y sin rand().
     [[nodiscard]] Core::Expected<std::optional<std::size_t>, std::string>
     CreateLightning(const glm::vec3& position, const glm::vec3& angles, const glm::vec3& light, void* owner,
-                    Render::Models::CrtRandom& random, const std::function<glm::vec3(std::size_t)>& bonePoint,
+                    Crt::CrtRandom& random, const std::function<glm::vec3(std::size_t)>& bonePoint,
                     FrameSprites& sprites);
     // 0x518cf0(0x14e, posición, ángulos, luz, subtipo, dueño, −1, 0, 0, 0, 0) → 0x51ddfc: el prefijo común (+0x8a en
     // −1, escala 0,9) con el dueño, vida 200, el cuadro (+0x1c4) en 0, la luz, el alpha en 1, la hora (+0x1c0) de
@@ -409,14 +405,14 @@ public:
     // como lo dejó el original en ese punto. Otro tipo o la tabla llena, ninguno y sin rand().
     [[nodiscard]] Core::Expected<std::optional<std::size_t>, std::string>
     CreateGroundStone(std::int16_t type, const glm::vec3& position, const glm::vec3& angles, const glm::vec3& light,
-                      const Data::Terrain::TerrainAttributes* attributes, Render::Models::CrtRandom& random);
+                      const Data::Terrain::TerrainAttributes* attributes, Crt::CrtRandom& random);
     // 0x518cf0(0xc8 o 0xc9, …, 10, 0, −1, 0, 0, 0, 0) → 0x51b432, la piedrita que suelta la piedra 0x118/0x119: el
     // prefijo común, el subtipo 10 y cinco rand(): el empuje ((& 255) + 64) · 0,2 (el double 0x6ba1e8) en y, la vida
     // (& 15) + 32, la escala ((& 3) + 15) · 0,05f, el yaw rand() % 360 y la caída (& 15) + 28 en +0xe4; la velocidad es
     // el empuje girado por los ángulos con ese yaw. Otro tipo o la tabla llena, ninguno y sin rand().
     std::optional<std::size_t> CreateGroundStoneChip(std::int16_t type, const glm::vec3& position,
                                                      const glm::vec3& angles, const glm::vec3& light,
-                                                     Render::Models::CrtRandom& random);
+                                                     Crt::CrtRandom& random);
     // 0x518cf0(0xca, posición, ángulos, luz, 0, 0, −1, 0, 0, 0, 0) → 0x51b659, el pedazo de hielo de 0x52e810: el
     // prefijo común (+0x8a en −1, sin dueño, escala 0,9) y el caso, que comparten el 0xea y el 0xeb (la guarda del 0xe5
     // y el 0xe6 de 0x51b65d no corre con ellos): +0x64 (el blendMesh) en 0 y +0x68 (su luz) en 0,3f; el empuje
@@ -424,7 +420,7 @@ public:
     // el yaw rand() % 360 y la velocidad, el empuje girado por los ángulos con ese yaw (0x5fc8f0 y 0x5fcbd0); y +0xe4
     // (la caída) en (rand() & 15) + 8. Cinco rand(). La tabla llena, ninguno y sin rand().
     std::optional<std::size_t> CreateIceShard(const glm::vec3& position, const glm::vec3& angles,
-                                              const glm::vec3& light, Render::Models::CrtRandom& random);
+                                              const glm::vec3& light, Crt::CrtRandom& random);
     // 0x518cf0(0x6eb, posición, ángulos, luz, 0, 0, −1, 0, 0, 0, 0) → 0x51f4ad con el subtipo 0, la onda del pisotón:
     // el prefijo común (+0x8a en −1, sin dueño), vida 30 y escala 20, sin rand(). Lleno, ninguna.
     std::optional<std::size_t> CreateStompShockWave(const glm::vec3& position, const glm::vec3& angles,
@@ -439,7 +435,7 @@ public:
     std::optional<std::size_t> CreateEarthquake(const glm::vec3& position, const glm::vec3& angles,
                                                 const glm::vec3& light, std::uint8_t state,
                                                 const ModelEffectOwner& owner, std::uint8_t& ownRecordDepth,
-                                                std::uint8_t& ownRecordCount, Render::Models::CrtRandom& random);
+                                                std::uint8_t& ownRecordCount, Crt::CrtRandom& random);
     // 0x519275: pulso sin dueño ni azar; primer lugar libre, vida 15 y luz blanca.
     std::optional<std::size_t> CreateEarthquakeBurst(const glm::vec3& position, const glm::vec3& angles,
                                                      const glm::vec3& light);

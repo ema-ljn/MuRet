@@ -1,9 +1,9 @@
 #include "Network/Xor32Packet.h"
 #include "Scenes/GameUi.h"
 
+#include "Crt/CrtRandom.h"
 #include "Input/InputState.h"
 #include "Protocol/Outgoing.h"
-#include "Render/Models/Cloth.h"
 #include "Scenes/InventoryMoves.h"
 #include "Scenes/OwnInventory.h"
 #include "Scenes/WorldRuntime.h"
@@ -54,7 +54,7 @@ TEST(EventTicketsTest, TheRightClickRequestsEachEventAndKeepsOnlyTheChaosTicket)
                                                    .sendGamePacket = [&sent](Client::Protocol::Outgoing packet)
                                                    { sent.push_back(std::move(packet)); }};
         Client::Input::InputState input;
-        Client::Render::Models::CrtRandom random(7);
+        Client::Crt::CrtRandom random(7);
         const auto stepped = Client::Scenes::StepTheGameUi({.world = *world,
                                                             .random = random,
                                                             .input = input,

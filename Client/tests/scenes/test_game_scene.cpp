@@ -4,6 +4,7 @@
 
 #include "App/PacingMode.h"
 #include "Audio/Playback.h"
+#include "Crt/CrtRandom.h"
 #include "Scenes/MonsterSounds.h"
 #include "App/ServerSession.h"
 #include "App/SessionState.h"
@@ -108,8 +109,8 @@
 namespace
 {
 using Client::App::SessionState;
+using Client::Crt::CrtRandom;
 using Client::Render::Models::ClothWorld;
-using Client::Render::Models::CrtRandom;
 using Client::Scenes::GameScene;
 using Client::Scenes::SceneContext;
 using Client::Scenes::SceneId;

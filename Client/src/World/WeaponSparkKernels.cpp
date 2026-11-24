@@ -1,6 +1,6 @@
 #include "World/WeaponSparkKernels.h"
 
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "World/Particles.h"
 
 #include <bit>
@@ -36,7 +36,7 @@ bool IsWeaponSpark(std::int32_t type, std::int32_t subtype)
     return type == SparkParticle && (subtype == WeaponSparkSubtype || subtype == TwinWeaponSparkSubtype);
 }
 
-void CreateWeaponSpark(Particle& particle, Render::Models::CrtRandom& random)
+void CreateWeaponSpark(Particle& particle, Crt::CrtRandom& random)
 {
     constexpr int SideMask = 7, OtherMask = 3, ScaleSpan = 5;
     constexpr double SideCenter = 4.0; // 0x6b8a44.
@@ -61,7 +61,7 @@ bool IsFenrirSpark(std::int32_t type, std::int32_t subtype)
     return type == SparkParticle && subtype == FenrirSparkSubtype;
 }
 
-void CreateFenrirSpark(Particle& particle, Render::Models::CrtRandom& random)
+void CreateFenrirSpark(Particle& particle, Crt::CrtRandom& random)
 {
     constexpr int Chance = 3, FallSpan = 5;
     constexpr std::int32_t FenrirSparkLife = 35;

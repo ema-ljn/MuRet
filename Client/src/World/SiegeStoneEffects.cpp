@@ -1,7 +1,7 @@
 #include "World/SiegeStoneEffects.h"
 
 #include "Core/Expected.h"
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "World/ModelEffects.h"
 
 #include <glm/ext/vector_float3.hpp>
@@ -21,7 +21,7 @@ float F32(double value)
 }
 
 void ChooseTheTarget(ModelEffect& effect, const ModelEffectArguments& arguments, const glm::vec3& hero,
-                     Render::Models::CrtRandom& random)
+                     Crt::CrtRandom& random)
 {
     if (effect.disturbanceState == 1)
     {
@@ -43,7 +43,7 @@ void ChooseTheTarget(ModelEffect& effect, const ModelEffectArguments& arguments,
 }
 
 void BeginTheFlight(ModelEffect& effect, const ModelEffectArguments& arguments, const glm::vec3& hero,
-                    Render::Models::CrtRandom& random)
+                    Crt::CrtRandom& random)
 {
     constexpr double SpeedStep = static_cast<double>(0.01f);
     constexpr double DirectionStep = static_cast<double>(0.001f);
@@ -62,7 +62,7 @@ void BeginTheFlight(ModelEffect& effect, const ModelEffectArguments& arguments, 
     effect.velocity.z = 5.0f;
 }
 
-void BeginTheFragment(ModelEffect& effect, Render::Models::CrtRandom& random)
+void BeginTheFragment(ModelEffect& effect, Crt::CrtRandom& random)
 {
     effect.life = 50;
     effect.transform.scale =
@@ -84,7 +84,7 @@ bool IsSiegeStoneEffect(std::int16_t type)
 Core::Expected<std::optional<std::size_t>, std::string> CreateSiegeStone(const ModelEffectArguments& arguments,
                                                                          ModelEffects& effects,
                                                                          const glm::vec3& heroPosition,
-                                                                         Render::Models::CrtRandom& random)
+                                                                         Crt::CrtRandom& random)
 {
     if (!IsSiegeStoneEffect(arguments.type))
         return Core::Unexpected(std::string("0x51cfa4: el tipo pedido no es un proyectil del castillo"));

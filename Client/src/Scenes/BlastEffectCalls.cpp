@@ -1,6 +1,7 @@
 #include "Scenes/BlastEffectCalls.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterStep.h"
 #include "Scenes/FaunaJointCreation.h"
@@ -8,7 +9,6 @@
 #include "Scenes/SkillHits.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
-#include "Render/Models/Cloth.h"
 #include "World/BlastModelEffects.h"
 #include "World/IFishStepServices.h"
 #include "World/ModelEffects.h"
@@ -35,7 +35,7 @@ namespace
 // El alta con el dueño en +0x108 (lo que el paso lee en vivo) y sus +0x8c y +0x8e.
 Core::Expected<std::optional<std::size_t>, std::string> PlaceTheBlast(const World::ModelEffectArguments& arguments,
                                                                       ActorState* owner, WorldState& world,
-                                                                      Render::Models::CrtRandom& random,
+                                                                      Crt::CrtRandom& random,
                                                                       const World::BlastEffectServices& services)
 {
     World::ModelEffectArguments placed = arguments;
@@ -95,7 +95,7 @@ CreateBlastEffect(const World::ModelEffectArguments& arguments, ActorState* owne
 
 Core::Expected<std::optional<std::size_t>, std::string>
 CreateBlastEffectOutsideTheStep(const World::ModelEffectArguments& arguments, ActorState* owner, WorldState& world,
-                                Render::Models::CrtRandom& random)
+                                Crt::CrtRandom& random)
 {
     // 0x530860: la tabla de joints es la global (0x74a8d78), también fuera del paso (los sesenta 0x5ac/0 del 0x112).
     const World::BlastEffectServices services{

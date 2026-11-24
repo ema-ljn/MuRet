@@ -1,7 +1,7 @@
 #include "Scenes/ChatBubbleDraw.h"
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Core/PixelSize.h"
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
 #include "Render/Text/FontSet.h"
@@ -178,7 +178,7 @@ Core::Expected<void, std::string> DrawTheBubble(ChatBubbleDrawContext& context, 
     context.boxWidth = bubble.width;
     context.boxHeight = bubble.height;
     context.clampBoxes = 1;
-    const App::PixelSize screen = context.sprites.Screen();
+    const Core::PixelSize screen = context.sprites.Screen();
     // 0x5562dc..0x55631f: a píxeles, con IMUL y la división por 640 y por 480 con signo.
     const std::int32_t x = Scaled(screen.width, bubble.x, DesignWidth);
     std::int32_t y = Scaled(screen.height, bubble.y, DesignHeight);
@@ -322,7 +322,7 @@ Core::Expected<void, std::string> DrawTheChatBubbles(ChatBubbleDrawContext& cont
 {
     WorldRuntime& runtime = context.world.Runtime();
     const std::span<const ActorState, ActorPoolSize> actors = context.world.Actors();
-    const App::PixelSize screen = context.sprites.Screen();
+    const Core::PixelSize screen = context.sprites.Screen();
     const int fontStep = Render::Text::FontStepFor(screen.width);
     // Un dibujo intermedio escribe en una copia.
     std::optional<ChatBubbleTable> scratch;

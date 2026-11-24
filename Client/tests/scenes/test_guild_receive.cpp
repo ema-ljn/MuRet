@@ -2,8 +2,9 @@
 #include "Render/Models/IModelLibrary.h"
 #include "Scenes/GuildReceive.h"
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Core/PixelSize.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Models/Model.h"
 #include "Data/Models/PlayerModels.h"
 #include "Data/Text/TextTable.h"
@@ -53,7 +54,7 @@
 // (Scenes::PlayTheEmote). Los nombres de gremio, de personaje y los textos son inventados.
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::Render::Text::FontKind;
 using Client::Render::Text::ITextMeasure;
 using Client::Render::Text::TextExtent;
@@ -213,7 +214,7 @@ protected:
         return GuildReceiveContext{.world = *m_world,
                                    .random = m_random,
                                    .measure = &m_letters,
-                                   .screen = Client::App::PixelSize{640, 480},
+                                   .screen = Client::Core::PixelSize{640, 480},
                                    .texts = &m_texts,
                                    .playerKey = PlayerKey,
                                    .now = Now,

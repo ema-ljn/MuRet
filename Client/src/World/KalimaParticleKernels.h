@@ -8,7 +8,7 @@
 #include <cstdint>
 #include <optional>
 
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
 }
@@ -58,13 +58,12 @@ inline constexpr std::int32_t KundunSplashLastSubtype = 4;
 // Después del prefijo53fe70.6f1/0 consultaScene tras3CRT y antes de almacenar vz;
 // su ausencia conserva Initialize/vida/rotación/escala y devuelve MissingScene, sin jitter. La 6f1/1 pisa esa luz
 // (0x544057) y nace sin escena.
-[[nodiscard]] Core::Expected<void, ParticleError>
-CreateKalimaParticle(Particle& particle, Render::Models::CrtRandom& random, std::optional<std::int32_t> scene);
+[[nodiscard]] Core::Expected<void, ParticleError> CreateKalimaParticle(Particle& particle, Crt::CrtRandom& random,
+                                                                       std::optional<std::int32_t> scene);
 // Después de vida/movimiento5446e0, incluso en el tick que apaga alive. `wind` es el viento de este paso
 // (0x7609bb8/bbc), ya movido; sólo lo lee el 5ac/0. `ownerStates` lo lee la fanta 6ec/1..4 con dueño: sin él,
 // MissingOwner.
 [[nodiscard]] Core::Expected<void, ParticleError>
-StepKalimaParticle(Particle& particle, Render::Models::CrtRandom& random, const float* clock,
-                   IParticleTrigonometry* trigonometry, const glm::vec2& wind,
-                   const ParticleOwnerStates& ownerStates = {});
+StepKalimaParticle(Particle& particle, Crt::CrtRandom& random, const float* clock, IParticleTrigonometry* trigonometry,
+                   const glm::vec2& wind, const ParticleOwnerStates& ownerStates = {});
 } // namespace Client::World

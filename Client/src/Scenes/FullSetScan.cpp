@@ -1,5 +1,6 @@
 #include "Scenes/FullSetScan.h"
 
+#include "Crt/CrtRandom.h"
 #include "Data/Models/PlayerModels.h"
 #include "GameLogic/CharacterAppearance.h"
 #include "Render/Models/LogicalAccess.h"
@@ -90,7 +91,7 @@ bool IsComplete(const ScannedCharacter& character, std::size_t first, std::int32
 }
 
 // 0x50591f..0x505ba3: el registro propio entre una apertura y un cierre por la tabla de protección.
-bool KeepsTheBonus(const OwnCharacterRecord& own, std::uint8_t& ownRecordAccesses, Render::Models::CrtRandom& random)
+bool KeepsTheBonus(const OwnCharacterRecord& own, std::uint8_t& ownRecordAccesses, Crt::CrtRandom& random)
 {
     const Render::Models::LogicalAccess access(ownRecordAccesses, random, Render::Models::OwnRecordCloseRandoms);
     return std::ranges::find(ArmorsThatKeepTheBonus, own.equipment[OwnArmorSlot].id) != ArmorsThatKeepTheBonus.end();
@@ -119,7 +120,7 @@ ScannedCharacter ScannedCharacterOf(const GameLogic::CharacterAppearance& appear
 }
 
 FullSetScan ScanFullSet(const ScannedCharacter& character, const OwnCharacterRecord& own,
-                        std::uint8_t& ownRecordAccesses, Render::Models::CrtRandom& random)
+                        std::uint8_t& ownRecordAccesses, Crt::CrtRandom& random)
 {
     const bool magicGladiator = IsMagicGladiator(character.characterClass);
     FullSetScan scan;
@@ -132,15 +133,15 @@ FullSetScan ScanFullSet(const ScannedCharacter& character, const OwnCharacterRec
     return scan;
 }
 
-FullSetScan ScanTheDrawnCharacter(WorldState& world, const ScannedCharacter& character,
-                                  Render::Models::CrtRandom& random, int frames)
+FullSetScan ScanTheDrawnCharacter(WorldState& world, const ScannedCharacter& character, Crt::CrtRandom& random,
+                                  int frames)
 {
     WorldRuntime& runtime = world.Runtime();
     if (frames == 0)
     {
         // Un dibujo entre frames no vuelve a consumir ni a publicar el scan del original.
         std::uint8_t depth = 1;
-        Render::Models::CrtRandom copy = random;
+        Crt::CrtRandom copy = random;
         return ScanFullSet(character, world.OwnCharacter(), depth, copy);
     }
     FullSetScan scan;

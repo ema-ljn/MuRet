@@ -1,4 +1,4 @@
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "Render/Models/ObjectState.h"
 #include "World/DungeonObjectStep.h"
 #include "World/ModelEffects.h"
@@ -25,7 +25,7 @@
 // Tower, § Los objetos de la Arena).
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::World::KickObject;
 using Client::World::ModelEffects;
 using Client::World::ObjectModelStepState;

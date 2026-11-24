@@ -10,10 +10,10 @@
 // El 0x628, la calavera (Skill\Skull.jpg como sprite 0x628; el efecto no tiene modelo ni caso en 0x52d620): su alta
 // (0x51ee23) y su paso (0x52b59b), y lo que hacen sus llamadores con la bandera 0x40 (la skill 0x37). 06, "Los efectos
 // con modelo de los tipos altos".
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
-} // namespace Client::Render::Models
+} // namespace Client::Crt
 
 namespace Client::World
 {
@@ -51,5 +51,5 @@ void BeginTheSkull(World::ModelEffect& effect);
 // 0x628/0 del personaje y crea otro con él de dueño (con la tabla llena, ninguno). Sin rand(). `address` es la del
 // 0x518cf0 del llamador, para el error.
 [[nodiscard]] Core::Expected<void, std::string> PutTheSkullOn(ActorState& actor, WorldState& world,
-                                                              Render::Models::CrtRandom& random, std::uint32_t address);
+                                                              Crt::CrtRandom& random, std::uint32_t address);
 } // namespace Client::Scenes

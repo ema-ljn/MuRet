@@ -2,6 +2,7 @@
 
 #include "App/CharacterEvent.h"
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Protocol/Character/CharacterList.h"
 #include "Render/Models/Cloth.h"
@@ -132,7 +133,7 @@ void SelectionState::RefreshCameraAttribute(World::GameCameraInput& input) const
 
 Core::Expected<void, std::string> SelectionState::InitializeSelection(const std::filesystem::path& dataRoot,
                                                                       World::GameCameraInput& input,
-                                                                      Render::Models::CrtRandom* random)
+                                                                      Crt::CrtRandom* random)
 {
     if (m_initialized || !m_receivedList)
     {

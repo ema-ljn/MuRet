@@ -2,6 +2,7 @@
 #include "Scenes/CastleWindows.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Input/InputState.h"
 #include "Input/Key.h"
 #include "Protocol/Connection/Logout.h"
@@ -54,7 +55,7 @@ bool HasBattleRole(const WorldRuntime& runtime, const ActorState& hero, bool gui
            (!guildRequired || static_cast<std::int16_t>(hero.word1f2) >= 0);
 }
 
-std::int32_t SkillIndex(WorldState& world, Render::Models::CrtRandom& random, std::uint32_t skill)
+std::int32_t SkillIndex(WorldState& world, Crt::CrtRandom& random, std::uint32_t skill)
 {
     const Render::Models::LogicalAccess access(world.Runtime().ownRecordDepth, random,
                                                Render::Models::OwnRecordCloseRandoms);
@@ -302,7 +303,7 @@ Core::Expected<void, std::string> StepTheSiegeControls(const GameUiContext& cont
     return StepGate(context);
 }
 
-void InitializeTheBattleSkill(WorldState& world, Render::Models::CrtRandom& random)
+void InitializeTheBattleSkill(WorldState& world, Crt::CrtRandom& random)
 {
     const WorldRuntime& runtime = world.Runtime();
     ActorState& hero = world.Actors()[runtime.hero];

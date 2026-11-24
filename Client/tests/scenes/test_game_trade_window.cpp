@@ -1,10 +1,11 @@
 #include "Network/Xor32Packet.h"
 #include "Scenes/GameInventoryHud.h"
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
+#include "Core/PixelSize.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Models/PlayerModels.h"
 #include "Data/Tables/ItemSetTables.h"
 #include "Data/Tables/ItemTable.h"
@@ -69,10 +70,10 @@
 // Lorencia (0) y Devias (2). Los nombres, los textos y los ítems son inventados.
 namespace
 {
+using Client::Crt::CrtRandom;
 using Client::Data::Models::PlayerSkeletonModel;
 using Client::Render::Color;
 using Client::Render::SpriteBatch;
-using Client::Render::Models::CrtRandom;
 using Client::Render::Models::RoundedSin;
 using Client::Render::Text::FontKind;
 using Client::Scenes::ActorState;
@@ -83,7 +84,7 @@ constexpr std::uint32_t Seed = 0x7ade;
 constexpr std::uint16_t HeroKey = 33;
 constexpr std::uint16_t OtherKey = 0x0456;
 constexpr std::size_t Chosen = 2;
-constexpr Client::App::PixelSize Screen640{640, 480};
+constexpr Client::Core::PixelSize Screen640{640, 480};
 // 0x5f3b40 corre en (0x104, 0).
 constexpr float Left = 260.0f;
 // Un bastón de 1 × 3 (0x0a05): su modelo (0xc17) saca dos rand() sin el pase 3D, como en el inventario.

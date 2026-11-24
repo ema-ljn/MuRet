@@ -1,10 +1,10 @@
 #include "Scenes/OwnDerivedStats.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Models/PlayerModels.h"
 #include "Data/Tables/ItemSetTables.h"
 #include "Data/Tables/ItemTable.h"
-#include "Render/Models/Cloth.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/ItemSetOptionList.h"
 #include "Scenes/ItemSetState.h"
@@ -183,7 +183,7 @@ TEST_F(GoldenOwnDerivedStats, TheRealHyperionSetUntil0x550990)
         Client::Scenes::ActorState hero;
         hero.characterClass = heroClass;
         std::uint8_t accesses = 1;
-        Client::Render::Models::CrtRandom random(9);
+        Client::Crt::CrtRandom random(9);
 
         const auto recalculated = Client::Scenes::RecalculateOwnStats(own, {.itemSetTables = &*sets,
                                                                             .itemSets = &itemSets,
@@ -209,7 +209,7 @@ TEST_F(GoldenOwnDerivedStats, TheRealHyperionSetUntil0x550990)
         EXPECT_EQ(own.word30, 15);
         EXPECT_EQ(own.word2e, 5);
         EXPECT_EQ(own.word36, 0);
-        EXPECT_EQ(random.State(), Client::Render::Models::CrtRandom(9).State());
+        EXPECT_EQ(random.State(), Client::Crt::CrtRandom(9).State());
     }
 }
 } // namespace

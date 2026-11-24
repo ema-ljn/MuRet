@@ -1,6 +1,6 @@
 #include "World/SphereFrustum.h"
 
-#include "App/WindowState.h"
+#include "Core/PixelSize.h"
 #include "Render/Pass3D.h"
 #include "Scenes/SceneCameras.h"
 
@@ -82,7 +82,7 @@ TEST(SphereFrustumTest, TheLoginCameraSeesTheDragonButNotAnEffectBehindIt)
 {
     const auto camera = Client::Scenes::LoginCamera();
     const auto pass =
-        Client::Render::MakePass3D(Client::App::PixelSize{640, 480}, Client::Scenes::WorldViewport, camera);
+        Client::Render::MakePass3D(Client::Core::PixelSize{640, 480}, Client::Scenes::WorldViewport, camera);
     const SphereFrustum frustum = SphereFrustumOf(pass.view, camera);
     EXPECT_TRUE(SphereVisible(frustum, {5600.0f, 23000.0f, 3400.0f}, 400.0f));
     EXPECT_FALSE(SphereVisible(frustum, {5600.0f, -100000.0f, 3400.0f}, 400.0f));
@@ -122,7 +122,7 @@ TEST(SphereFrustumTest, TheFarPlaneOffsetUsesTheFirstRoundedCorner)
     camera.fieldOfView = 35.0f;
     camera.farPlane = 5000.0f;
     const auto pass =
-        Client::Render::MakePass3D(Client::App::PixelSize{640, 480}, Client::Scenes::WorldViewport, camera);
+        Client::Render::MakePass3D(Client::Core::PixelSize{640, 480}, Client::Scenes::WorldViewport, camera);
     const auto frustum = SphereFrustumOf(pass.view, camera);
     EXPECT_EQ(std::bit_cast<std::uint32_t>(frustum.offsets[4]), 0x45cfcddeu);
     EXPECT_TRUE(SphereVisible(frustum, {4271.5732421875f, 14989.9921875f, -2072.60107421875f}, 400.0f));

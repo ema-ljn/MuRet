@@ -1,7 +1,7 @@
 #include "UI/OldWindows.h"
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Core/PixelSize.h"
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
 #include "Render/Text/FontSet.h"
@@ -31,7 +31,7 @@
 // abre una: los tests abren la caja de mensaje a mano, con textos inventados.
 namespace
 {
-using Client::App::PixelSize;
+using Client::Core::PixelSize;
 using Client::Render::BlendMode;
 using Client::Render::Color;
 using Client::Render::DrawCommand;

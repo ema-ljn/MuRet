@@ -1,5 +1,6 @@
 #include "Scenes/SkillDelays.h"
 
+#include "Crt/CrtRandom.h"
 #include "Data/Tables/SkillTable.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/OwnCharacterRecord.h"
@@ -23,7 +24,7 @@
 // La espera de las skills (CL9 hito 4, 06 § La espera de las skills), con un Skill.bmd inventado.
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::Scenes::SkillDelayContext;
 
 constexpr int OwnRecordRandoms = 3848;

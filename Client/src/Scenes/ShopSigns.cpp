@@ -1,7 +1,7 @@
 #include "Scenes/ShopSigns.h"
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Core/PixelSize.h"
 #include "Data/Text/TextTable.h"
 #include "Render/SpriteBatch.h"
 #include "Render/Text/FontSet.h"
@@ -134,7 +134,7 @@ struct SignState
 // ShopSignRowAt. 0x452d50 pinta la caja del ancho del cartel más 4 (0x452b12) y el quad muestra sus primeras `width`
 // columnas; MuRet pinta solo esas, que son las que se ven (las otras, del mismo color en cada columna, quedan fuera).
 void DrawTheRow(ShopSignDrawContext& context, UI::Point at, std::int32_t width, int rows, std::string_view text,
-                const Render::Text::TextStyle& style, App::PixelSize screen)
+                const Render::Text::TextStyle& style, Core::PixelSize screen)
 {
     const UI::Point row = ShopSignRowAt(at, width, rows, screen);
     context.text.DrawBoxed(row.x, row.y, text, style,
@@ -145,7 +145,7 @@ void DrawTheRow(ShopSignDrawContext& context, UI::Point at, std::int32_t width, 
 
 // 0x452a10(PK), con el cartel en su lugar.
 void DrawTheSign(ShopSignDrawContext& context, const ShopTitle& sign, const ShopSignLayout& layout, UI::Point at,
-                 std::uint8_t pk, std::string_view header, int rows, App::PixelSize screen)
+                 std::uint8_t pk, std::string_view header, int rows, Core::PixelSize screen)
 {
     const ShopSignColors colors = ShopSignColorsOf(pk, sign.hovered != 0);
     const std::int32_t box = Add(layout.width, BoxMargin);
@@ -254,7 +254,7 @@ ShopSignLayout MeasureTheShopSign(const ShopTitle& sign, std::string_view header
 }
 
 Core::Expected<UI::Point, std::string> PlaceTheShopSign(const GameProjection& projection, const ActorState& owner,
-                                                        std::int32_t width, App::PixelSize screen)
+                                                        std::int32_t width, Core::PixelSize screen)
 {
     // 0x45211c..0x452143: FLD, FADD y FADD en la x87, y FSTP en float.
     const glm::vec3 above{
@@ -271,7 +271,7 @@ Core::Expected<UI::Point, std::string> PlaceTheShopSign(const GameProjection& pr
     return UI::Point{.x = x, .y = y};
 }
 
-void SpreadTheShopSigns(std::span<ShopSignBox> signs, App::PixelSize screen)
+void SpreadTheShopSigns(std::span<ShopSignBox> signs, Core::PixelSize screen)
 {
     // 0x451e5e..0x451f13: cada par (a, b) distinto, con el rectángulo de a vuelto a leer después de moverlo.
     for (std::size_t a = 0; a < signs.size(); ++a)
@@ -309,7 +309,7 @@ void SpreadTheShopSigns(std::span<ShopSignBox> signs, App::PixelSize screen)
     }
 }
 
-UI::Point ShopSignRowAt(UI::Point at, std::int32_t width, std::int32_t rows, App::PixelSize screen)
+UI::Point ShopSignRowAt(UI::Point at, std::int32_t width, std::int32_t rows, Core::PixelSize screen)
 {
     // 0x452eaa..0x452ed7.
     if (at.x < 0)
@@ -381,7 +381,7 @@ Core::Expected<void, std::string> DrawTheShopSigns(ShopSignDrawContext& context)
 
     // 0x451d6a: 0x5bb8d0, el ancho del mundo, con sus rand(); el rectángulo es el del pase del mundo.
     static_cast<void>(context.panels.WorldWidth());
-    const App::PixelSize screen = context.sprites.Screen();
+    const Core::PixelSize screen = context.sprites.Screen();
     const int rows = Render::Text::FontStepFor(screen.width);
     const auto header = ShopSignHeader(context.texts, "0x452776");
     if (!header.HasValue())

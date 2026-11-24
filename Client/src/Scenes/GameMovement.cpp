@@ -1,6 +1,7 @@
 #include "Scenes/GameMovement.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Models/PlayerModels.h"
 #include "Data/Terrain/TerrainGrid.h"
 #include "Data/Terrain/TerrainAttributes.h"
@@ -9,7 +10,6 @@
 #include "GameLogic/PathCell.h"
 #include "GameLogic/PathFinder.h"
 #include "Protocol/Movement.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/IModelLibrary.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/OriginalAngles.h"
@@ -185,7 +185,7 @@ Core::Expected<void, std::string> UpdateTheHead(ActorState& hero, const HeroMove
     return {};
 }
 
-std::uint8_t ReadCell(std::uint8_t& depth, std::uint8_t cell, Render::Models::CrtRandom& random)
+std::uint8_t ReadCell(std::uint8_t& depth, std::uint8_t cell, Crt::CrtRandom& random)
 {
     const Render::Models::LogicalAccess access(depth, random, Render::Models::SmallLogicalCloseRandoms);
     return cell;
@@ -680,7 +680,7 @@ void PublishHeroLayer(const ActorState& hero, WorldRuntime& runtime, const World
     const auto index = static_cast<std::size_t>(std::clamp<std::int64_t>(raw, 0, 65535));
     runtime.heroCellLayer = terrain.mapping->layer1[index];
 }
-std::int32_t StepTheCounter(WorldRuntime& runtime, Render::Models::CrtRandom& random)
+std::int32_t StepTheCounter(WorldRuntime& runtime, Crt::CrtRandom& random)
 {
     {
         const Render::Models::LogicalAccess access(runtime.warpDepth, random, Render::Models::SmallLogicalCloseRandoms);

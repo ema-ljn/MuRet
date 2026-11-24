@@ -1,6 +1,7 @@
 #include "Scenes/ChatReceive.h"
 
-#include "App/WindowState.h"
+#include "Core/PixelSize.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Text/TextTable.h"
 #include "Protocol/Messages.h"
 #include "Protocol/OptionData.h"
@@ -52,13 +53,13 @@
 // 0x4dd570 sobre el mundo. Los nombres y los textos son inventados.
 namespace
 {
+using Client::Crt::CrtRandom;
 using Client::Protocol::Messages::Chat;
 using Client::Protocol::Messages::KeyChat;
 using Client::Protocol::Messages::Notice;
 using Client::Protocol::Messages::Whisper;
 using Client::Protocol::Messages::WhisperResult;
 using Client::Protocol::OptionData::OptionData;
-using Client::Render::Models::CrtRandom;
 using Client::Render::Text::FontKind;
 using Client::Render::Text::ITextMeasure;
 using Client::Render::Text::TextExtent;
@@ -106,7 +107,7 @@ protected:
         return ChatReceiveContext{.world = *m_world,
                                   .random = m_random,
                                   .measure = &m_letters,
-                                  .screen = Client::App::PixelSize{640, 480},
+                                  .screen = Client::Core::PixelSize{640, 480},
                                   .scene = scene,
                                   .chosenSlot = std::uint8_t{1}};
     }

@@ -1,7 +1,7 @@
 #include "World/SkinShellEffects.h"
 
 #include "Core/Expected.h"
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "World/GameModelEffects.h"
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
@@ -22,7 +22,7 @@
 // prólogo y el epílogo comunes de 0x5208a0. Los bits fijados salen de repetir las cuentas del ASM en float32 aparte.
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::World::ModelEffect;
 using Client::World::ModelEffects;
 

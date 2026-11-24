@@ -1,9 +1,9 @@
 #include "Scenes/HeroSkills.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Tables/SkillTable.h"
 #include "Protocol/Pet/PetOrders.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/GameMovementState.h"
@@ -168,7 +168,7 @@ Render::Models::LogicalAccess EntryAccess(const HeroSkillContext& context, std::
                                          static_cast<std::uint16_t>(Data::Tables::SkillRecordSize));
 }
 
-std::uint8_t ReadCell(std::uint8_t& depth, std::uint8_t cell, Render::Models::CrtRandom& random)
+std::uint8_t ReadCell(std::uint8_t& depth, std::uint8_t cell, Crt::CrtRandom& random)
 {
     const Render::Models::LogicalAccess access(depth, random, Render::Models::SmallLogicalCloseRandoms);
     return cell;

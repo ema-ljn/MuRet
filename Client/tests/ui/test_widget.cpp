@@ -1,6 +1,6 @@
 #include "UI/Widget.h"
 
-#include "App/WindowState.h"
+#include "Core/PixelSize.h"
 #include "Input/InputEvent.h"
 #include "Input/InputState.h"
 #include "Render/TextureSlot.h"
@@ -14,7 +14,7 @@
 // Client::UI: el mouse de la UI y los rectángulos (CL5.5, la pregunta 12 del plan de la CL5).
 namespace
 {
-using Client::App::PixelSize;
+using Client::Core::PixelSize;
 using Client::Input::InputEvent;
 using Client::Input::InputState;
 using Client::Render::TextureSlot;

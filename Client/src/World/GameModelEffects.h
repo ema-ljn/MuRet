@@ -10,9 +10,13 @@
 #include <functional>
 #include <string>
 
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
+} // namespace Client::Crt
+
+namespace Client::Render::Models
+{
 struct Skeleton;
 } // namespace Client::Render::Models
 namespace Client::Data::Terrain
@@ -72,7 +76,7 @@ struct ModelEffectStepServices
 // la posición (0x52bcc4, 0x52bd80) y, el /1 con la vida impar, la chispa (0x52bd02); después los dos, el sprite con
 // escala · 0,2f. Sin la tabla de sprites o de efectos, o sin el servicio de joints cuando lo pide, corta.
 [[nodiscard]] Core::Expected<void, std::string> EmitPiercingShotGlow(ModelEffect& effect, Particles& particles,
-                                                                     Render::Models::CrtRandom& random,
+                                                                     Crt::CrtRandom& random,
                                                                      const ModelEffectStepServices& services);
 // 0x5208c5..0x52091a: la luz local del paso, del primer rand(): ((r & 3) + 7) · 0,1f (0x6b87b8); con menos de 5 de
 // vida, menos (5 − vida) · 0,2f (0x6b8854), guardada en float y comparada sin redondear con 0.
@@ -111,6 +115,6 @@ struct ModelEffectStepServices
 // 5f3/0 va en un local sin escribir (Q-C1176).
 [[nodiscard]] Core::Expected<void, std::string>
 StepGameModelEffect(ModelEffect& effect, const Render::Models::Skeleton* skeleton, Particles& particles,
-                    float worldClock, Render::Models::CrtRandom& random, KalimaWorld* kalima = nullptr,
+                    float worldClock, Crt::CrtRandom& random, KalimaWorld* kalima = nullptr,
                     const ModelEffectStepServices& services = {});
 } // namespace Client::World

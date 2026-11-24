@@ -1,7 +1,7 @@
 #include "World/TrialsParticleKernels.h"
 
 #include "Core/Expected.h"
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "Render/Models/OriginalRetainedMath.h"
 #include "World/KalimaParticleKernels.h"
 #include "World/Particles.h"
@@ -30,7 +30,7 @@ void ScaleLight(Particle& p, double factor)
 
 // 0x544319..0x5443a6: los cinco rand() en el orden del ASM; la escala multiplica la del argumento (+0x10,
 // todavía la del prefijo) antes del 0,02f, y las sumas a la posición son de la x87 guardadas en float.
-void CreateSplash(Particle& p, Render::Models::CrtRandom& random)
+void CreateSplash(Particle& p, Crt::CrtRandom& random)
 {
     constexpr double SplashScale = static_cast<double>(std::bit_cast<float>(0x3ca3d70au)); // 0x6b8b90.
     constexpr int ScaleSpan = 10, ScaleBase = 15, XSpan = 40, ZSpan = 25;
@@ -45,7 +45,7 @@ void CreateSplash(Particle& p, Render::Models::CrtRandom& random)
 }
 
 // 0x5423e0..0x542448: el and con la corrección del signo de rand() (que nunca es negativo) es el & simple.
-void CreateSmoke(Particle& p, Render::Models::CrtRandom& random)
+void CreateSmoke(Particle& p, Crt::CrtRandom& random)
 {
     constexpr double SmokeScale = static_cast<double>(std::bit_cast<float>(0x3ba3d70au)); // 0x6b89d8.
     constexpr double Tenth = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));      // 0x6b87b8.
@@ -103,7 +103,7 @@ bool IsTrialsParticle(std::int32_t type, std::int32_t subtype)
     return splash || (type == BreathParticle && subtype == TrialsSmokeSubtype);
 }
 
-void CreateTrialsParticle(Particle& particle, Render::Models::CrtRandom& random)
+void CreateTrialsParticle(Particle& particle, Crt::CrtRandom& random)
 {
     if (particle.type == BreathParticle)
         CreateSmoke(particle, random);

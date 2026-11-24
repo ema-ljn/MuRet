@@ -12,13 +12,14 @@ namespace Client::Data::Terrain
 struct TerrainHeights;
 }
 
+namespace Client::Crt
+{
+class CrtRandom;
+} // namespace Client::Crt
+
 namespace Client::Render
 {
 class ModelBatch;
-namespace Models
-{
-class CrtRandom;
-}
 } // namespace Client::Render
 
 namespace Client::World
@@ -54,7 +55,7 @@ struct MonsterHelperPass
     ActorState& actor;
     std::size_t slot = 0;
     WorldState& world;
-    Render::Models::CrtRandom& random;
+    Crt::CrtRandom& random;
     World::FrameSprites* sprites = nullptr;
     World::Particles* particles = nullptr;
     float worldClock = 0.0f;
@@ -97,7 +98,6 @@ struct MonsterHelperPass
 // Las reservas de145/2 y147/0/1 respetan el orden y los límites de sus tablas. La acción, la escala y la posición del
 // modelo (+0xa0, +0x68 y +0x6c, de su último 0x5ffdf0) son las del personaje (Q-C1102, *inferido*).
 [[nodiscard]] Core::Expected<void, std::string> StepTheSwingsOf1abTo1b4(ActorState& actor, std::size_t slot,
-                                                                        WorldState& world,
-                                                                        Render::Models::CrtRandom& random,
+                                                                        WorldState& world, Crt::CrtRandom& random,
                                                                         World::Particles* particles, float worldClock);
 } // namespace Client::Scenes

@@ -1,8 +1,8 @@
 #include "Scenes/FullSetScan.h"
 
+#include "Crt/CrtRandom.h"
 #include "Data/Models/PlayerModels.h"
 #include "GameLogic/CharacterAppearance.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/OwnCharacterRecord.h"
@@ -21,8 +21,8 @@
 // 0x505820"). Los valores salen del ASM; ninguno de una corrida.
 namespace
 {
+using Client::Crt::CrtRandom;
 using Client::Data::Models::ItemModel;
-using Client::Render::Models::CrtRandom;
 using Client::Render::Models::OwnRecordCloseRandoms;
 using Client::Scenes::FullSetScan;
 using Client::Scenes::OwnCharacterRecord;

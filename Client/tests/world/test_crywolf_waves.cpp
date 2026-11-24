@@ -1,5 +1,5 @@
+#include "Crt/CrtRandom.h"
 #include "World/GameModelEffects.h"
-#include "Render/Models/Cloth.h"
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
 #include <gtest/gtest.h>
@@ -57,7 +57,7 @@ TEST(CrywolfWavesTest, BothNativeWaveSubtypesKeepTheirOwnGrowthFadeAndCommonTail
         wave.transform.scale = subtype == 2 ? 1.495f : 2.45f;
         wave.turnDirection = subtype == 2 ? 0.01f : 0.08f;
         wave.velocity = {1, 2, 3};
-        Client::Render::Models::CrtRandom random(7);
+        Client::Crt::CrtRandom random(7);
         const auto result = Client::World::StepGameModelEffect(wave, nullptr, *particles, 0, random);
         ASSERT_TRUE(result.HasValue()) << result.Error();
         EXPECT_FALSE(wave.alive);
@@ -87,7 +87,7 @@ TEST(CrywolfWavesTest, ThePiercingMovesTwiceAndCreatesTheWaveAtItsIntermediatePo
         piercing.transform.position = {1000, 2000, 430};
         piercing.velocity = {0, -60, 0};
         piercing.light = {1, 0, 0.5f};
-        Client::Render::Models::CrtRandom random(7);
+        Client::Crt::CrtRandom random(7);
         const auto result = Client::World::StepGameModelEffect(piercing, nullptr, *particles, 0, random, nullptr,
                                                                {.effects = effects.get()});
         ASSERT_TRUE(result.HasValue()) << result.Error();
@@ -177,7 +177,7 @@ TEST(CrywolfWavesTest, EveryWaveSubtypeStepsWithItsGrowthLimitAndFade)
         wave.transform.scale = probe.start;
         wave.turnDirection = 0.5f;
         wave.objectState.light = 1.0f;
-        Client::Render::Models::CrtRandom random(7);
+        Client::Crt::CrtRandom random(7);
         const auto result = Client::World::StepGameModelEffect(wave, nullptr, *particles, 0, random);
         ASSERT_TRUE(result.HasValue()) << result.Error();
         EXPECT_EQ(wave.life, probe.life - 1);
@@ -206,7 +206,7 @@ TEST(CrywolfWavesTest, TheOtherPiercingLivesTenAndWavesAboveFive)
         piercing.subtype = 0;
         piercing.life = life;
         piercing.objectState.light = 1.0f;
-        Client::Render::Models::CrtRandom random(7);
+        Client::Crt::CrtRandom random(7);
         const auto result = Client::World::StepGameModelEffect(piercing, nullptr, *particles, 0, random, nullptr,
                                                                {.effects = table.get()});
         ASSERT_TRUE(result.HasValue()) << result.Error();

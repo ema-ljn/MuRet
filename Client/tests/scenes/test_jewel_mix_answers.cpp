@@ -1,11 +1,11 @@
 #include "Scenes/EventPackets.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Text/TextTable.h"
 #include "Network/Delivery.h"
 #include "Protocol/Events.h"
 #include "Protocol/Outgoing.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Scenes/NpcWindowState.h"
@@ -33,8 +33,8 @@
 // NPC de las joyas.
 namespace
 {
+using Client::Crt::CrtRandom;
 using Client::Network::Delivery;
-using Client::Render::Models::CrtRandom;
 using Client::Tests::Bytes;
 using Client::Tests::SameBytes;
 namespace Events = Client::Protocol::Events;

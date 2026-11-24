@@ -1,6 +1,6 @@
 #include "World/SiegeStoneEffects.h"
 
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "World/ModelEffects.h"
 
 #include <glm/ext/vector_float3.hpp>
@@ -11,7 +11,7 @@
 
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::World::ModelEffectArguments;
 using Client::World::ModelEffects;
 using Client::World::SiegeIceStoneEffect;

@@ -1,4 +1,4 @@
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "Render/Models/ObjectState.h"
 #include "Render/Models/OriginalRetainedMath.h"
 #include "Render/Models/Skeleton.h"
@@ -255,7 +255,7 @@ TEST(TarkanObjectsTest, TheEightAnimatesFourTimesFaster)
             object.speed = 0.25f;
             object.alpha = 1.0f;
             object.targetAlpha = 1.0f;
-            Client::Render::Models::CrtRandom random(7);
+            Client::Crt::CrtRandom random(7);
             auto lighting = std::make_unique<TerrainLighting>();
             ObjectStepGlobals globals;
             globals.dynamicLighting = lighting.get();

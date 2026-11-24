@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Core/IClock.h"
+#include "Crt/CrtRandom.h"
 #include "Render/ModelBatch.h"
 #include "Render/Models/IModelLibrary.h"
 #include "Scenes/CharacterDrawing.h"
@@ -14,7 +15,6 @@
 #include "World/ParticleDrawing.h"
 #include "World/Particles.h"
 #include "World/Sprites.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/OriginalRotation.h"
 #include "World/TerrainLighting.h"
 #include "World/WorldObjects.h"
@@ -67,7 +67,7 @@ using AfterObjectStep = std::function<Core::Expected<void, std::string>(World::W
 // final también. Corta en el primer objeto cuyo caso MuRet no tiene, con los anteriores ya avanzados.
 [[nodiscard]] Core::Expected<void, std::string>
 StepGameWorldObjects(std::span<World::WorldObject> objects, std::uint8_t map,
-                     const Render::Models::IModelLibrary& models, Render::Models::CrtRandom& random,
+                     const Render::Models::IModelLibrary& models, Crt::CrtRandom& random,
                      const World::ObjectStepGlobals& globals, const AfterObjectStep& after = {},
                      const AfterObjectStep& collapse = {});
 
@@ -76,7 +76,7 @@ struct ObjectFrameEffects
 {
     // El rand() de la CRT (el de la tela): 0x602ef4 saca uno por objeto y frame original, antes de mirar
     // la escena o el tipo. Sin él, 0x602ed0 no corre.
-    Render::Models::CrtRandom* random = nullptr;
+    Crt::CrtRandom* random = nullptr;
     // Donde van los sprites del farol (World::StreetLight); sin ellos no se piden.
     World::FrameSprites* sprites = nullptr;
     // Las nubes de 0x622/10 del marcador 0x54, solo en el mapa 55 (0x6044bc). Sin pool se consume
@@ -128,7 +128,7 @@ struct GameObjectPass
     // Si el dibujo es de un frame del original: 0x602ed0 saca su rand() (0x602ef4) por cada objeto que
     // llega y el 0x64 de Devias abre el registro propio. Un dibujo intermedio de MuRet solo dibuja.
     bool originalFrame = true;
-    Render::Models::CrtRandom* random = nullptr;
+    Crt::CrtRandom* random = nullptr;
     // Lo que mira el 0x64 de Devias: la clase del héroe (+0x1d4), el nivel del registro propio (+0xe) y la
     // cuenta de los accesos abiertos de ese registro (WorldRuntime::ownRecordDepth).
     std::uint8_t heroClass = 0;

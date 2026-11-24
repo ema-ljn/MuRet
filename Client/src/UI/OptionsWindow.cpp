@@ -1,6 +1,6 @@
 #include "UI/OptionsWindow.h"
 
-#include "App/WindowState.h"
+#include "Core/PixelSize.h"
 #include "Data/Text/TextTable.h"
 #include "Input/InputState.h"
 #include "Input/Key.h"
@@ -105,7 +105,7 @@ std::string_view TextOf(const Data::Text::TextTable* texts, std::size_t index)
     return TextAt(texts, index).value_or(std::string_view{});
 }
 
-void DrawAt(Scenes::ITextDrawer& text, Point pixel, std::string_view line, App::PixelSize screen)
+void DrawAt(Scenes::ITextDrawer& text, Point pixel, std::string_view line, Core::PixelSize screen)
 {
     // 0x5542f0 con el modo 1 y ancho 0; no dibuja un texto vacío.
     if (line.empty())
@@ -141,7 +141,7 @@ void ApplyOption(OptionsSettings& settings, const OptionsEvent& event)
     }
 }
 
-OptionsWindowLayout LayoutOptionsWindow(App::PixelSize screen, int lineHeight)
+OptionsWindowLayout LayoutOptionsWindow(Core::PixelSize screen, int lineHeight)
 {
     OptionsWindowLayout layout;
     const int height = lineHeight * Lines + TopHeight + BottomHeight;
@@ -210,7 +210,7 @@ bool OptionsWindow::IsOpen() const
     return m_open;
 }
 
-Rect OptionsWindow::Bounds(App::PixelSize screen) const
+Rect OptionsWindow::Bounds(Core::PixelSize screen) const
 {
     return Rect{.x = 0, .y = 0, .width = screen.width, .height = screen.height};
 }
@@ -230,8 +230,8 @@ const Slider& OptionsWindow::SliderAt(std::size_t index) const
     return m_sliders.at(index);
 }
 
-std::optional<OptionsEvent> OptionsWindow::Step(const Input::InputState& input, App::PixelSize screen, double elapsedMs,
-                                                const OptionsSettings& current, NewUiTurn turn)
+std::optional<OptionsEvent> OptionsWindow::Step(const Input::InputState& input, Core::PixelSize screen,
+                                                double elapsedMs, const OptionsSettings& current, NewUiTurn turn)
 {
     if (!m_open)
     {
@@ -302,7 +302,7 @@ std::optional<OptionsEvent> OptionsWindow::Step(const Input::InputState& input, 
     return std::nullopt;
 }
 
-void OptionsWindow::Draw(Render::SpriteBatch& sprites, Scenes::ITextDrawer& text, App::PixelSize screen,
+void OptionsWindow::Draw(Render::SpriteBatch& sprites, Scenes::ITextDrawer& text, Core::PixelSize screen,
                          const OptionsSettings& current)
 {
     if (!m_open)
@@ -360,7 +360,7 @@ void OptionsWindow::Draw(Render::SpriteBatch& sprites, Scenes::ITextDrawer& text
     static_cast<void>(m_close.DrawLabel(text, screen));
 }
 
-void OptionsWindow::Place(App::PixelSize screen)
+void OptionsWindow::Place(Core::PixelSize screen)
 {
     m_layout = LayoutOptionsWindow(screen, m_sizes(LineSlot).height);
     for (std::size_t i = 0; i < m_checks.size(); ++i)

@@ -1,7 +1,7 @@
 #include "Scenes/HealthBars.h"
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Core/PixelSize.h"
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
 #include "Scenes/ActorState.h"
@@ -29,7 +29,7 @@ using Client::Scenes::ActorState;
 using Client::Scenes::GameProjection;
 using Client::Scenes::QueuedHealthBar;
 
-constexpr Client::App::PixelSize Screen640{640, 480};
+constexpr Client::Core::PixelSize Screen640{640, 480};
 constexpr std::uint16_t LifeStoneType = 0x1a8;
 
 GameProjection FlatProjection()

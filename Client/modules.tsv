@@ -1,7 +1,7 @@
 module	root	layer	folders_today	may_use	note
 engine/Core	engine	0	Core/**	*layer<0	Expected, ByteReader, Log and its sinks, IClock, text encodings, WrappingInt
 engine/Math	engine	1		*layer<1	the original's x87 math: Ftol, F32, Truncate, rotations, angles, retained math
-engine/Crt	engine	1		*layer<1	what mimics the MSVC 6 runtime: rand, Msvc6Sort, sprintf
+engine/Crt	engine	1	Crt/**	*layer<1	what mimics the MSVC 6 runtime: rand, Msvc6Sort, sprintf
 engine/Crypto	engine	1		*layer<1	SimpleModulus and its key file, Xor32, Xor3, K16
 engine/Diagnostics	engine	2		*layer<2	the crash handler: dump, report, logs, signals
 engine/Input	engine	2	Input/**	*layer<2	keyboard and mouse per frame, without SDL

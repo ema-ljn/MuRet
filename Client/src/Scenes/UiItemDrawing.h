@@ -1,8 +1,8 @@
 #pragma once
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
 #include "Core/IClock.h"
+#include "Core/PixelSize.h"
 #include "Data/Tables/ItemTable.h"
 #include "Render/Pass3D.h"
 #include "Scenes/GameProjection.h"
@@ -26,9 +26,13 @@ namespace Client::Render
 class ModelBatch;
 }
 
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
+} // namespace Client::Crt
+
+namespace Client::Render::Models
+{
 class IModelLibrary;
 } // namespace Client::Render::Models
 
@@ -107,7 +111,7 @@ struct UiItemPass
     GameProjection projection{};
 };
 
-[[nodiscard]] Core::Expected<UiItemPass, std::string> MakeUiItemPass(App::PixelSize screen, float farPlane = 2000.0f);
+[[nodiscard]] Core::Expected<UiItemPass, std::string> MakeUiItemPass(Core::PixelSize screen, float farPlane = 2000.0f);
 
 // Lo que el dueño del frame le presta al tramo 3D de la UI para dibujar sus ítems: el lote de los modelos y los
 // fines de los dos lotes (SceneCanvas), los modelos, el buffer global de la pose (0x68b181c), los contextos de
@@ -131,8 +135,7 @@ struct UiItemResources
 // dibuja con 0x60cf70(objeto, modelo, 0, (1, 1, 1), 1, nivel, excelente, set, 1, 1, 1, 0, 2): la pose global, sin
 // dueño y sin luz por vértice. Abre el pase de la UI si no lo está. Sin el modelo o sin el esqueleto del que posa,
 // corta.
-[[nodiscard]] Core::Expected<void, std::string> DrawUiItemModel(UiItemResources& resources,
-                                                                Render::Models::CrtRandom& random,
+[[nodiscard]] Core::Expected<void, std::string> DrawUiItemModel(UiItemResources& resources, Crt::CrtRandom& random,
                                                                 const UiItemPlacement& placement,
                                                                 std::uint8_t excellent, std::uint8_t set);
 

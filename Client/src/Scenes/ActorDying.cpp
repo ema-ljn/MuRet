@@ -1,7 +1,7 @@
 #include "Scenes/ActorDying.h"
 
 #include "Core/Expected.h"
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Scenes/ActorCreation.h"
@@ -92,7 +92,7 @@ Core::Expected<void, std::string> BlowTheBubbles(const ActorState& actor, std::s
     return {};
 }
 
-glm::vec3 ChaosCastleBurstPoint(const ActorState& actor, Render::Models::CrtRandom& random)
+glm::vec3 ChaosCastleBurstPoint(const ActorState& actor, Crt::CrtRandom& random)
 {
     const auto offset = [&random]()
     {

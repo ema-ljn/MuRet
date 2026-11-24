@@ -1,8 +1,8 @@
 #include "Render/Models/IModelLibrary.h"
 #include "Scenes/VertexEffects.h"
 
+#include "Crt/CrtRandom.h"
 #include "Data/Models/Model.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/Skeleton.h"
 #include "Render/Models/Skinning.h"
 #include "Render/TextureSlot.h"
@@ -65,7 +65,7 @@ TEST(VertexEffectsTest, RepeatedCornersConsumeThreeDrawsEachEvenWithAFullEffectP
     auto effects = std::make_unique<Client::World::ModelEffects>();
     for (auto& effect : effects->Effects())
         effect.alive = true;
-    Client::Render::Models::CrtRandom random(1), expected(1);
+    Client::Crt::CrtRandom random(1), expected(1);
     expected.Discard(18);
     const auto result = Client::Scenes::EmitVertexEffects(models, object, meshes, 0, 0x131, 0, *effects, random);
     ASSERT_TRUE(result.HasValue()) << result.Error();
@@ -80,7 +80,7 @@ TEST(VertexEffectsTest, GateChildrenUseThePublishedScratchAndRunTheirConstructor
     const Client::Scenes::DrawnObject object;
     const std::array meshes{Client::Render::Models::SkinnedMesh{{glm::vec3{11, 22, 33}}, {}}};
     auto effects = std::make_unique<Client::World::ModelEffects>();
-    Client::Render::Models::CrtRandom random(2), expected(2);
+    Client::Crt::CrtRandom random(2), expected(2);
     // CRT seed2:45%3=0; segundo sorteo elige12f/130; ocho del constructor.
     expected.Discard(10);
     const auto result = Client::Scenes::EmitVertexEffects(models, object, meshes, 0, 0x12f, 0, *effects, random);
@@ -99,7 +99,7 @@ TEST(VertexEffectsTest, AnInvalidMeshAndSignedEmptyPolygonsDoNotConsumeRandom)
         triangle.polygon = 0xff;
     const std::array meshes{Client::Render::Models::SkinnedMesh{}};
     auto effects = std::make_unique<Client::World::ModelEffects>();
-    Client::Render::Models::CrtRandom random(1);
+    Client::Crt::CrtRandom random(1);
     const Client::Scenes::DrawnObject object;
     ASSERT_TRUE(Client::Scenes::EmitVertexEffects(models, object, meshes, -1, 0x131, 0, *effects, random).HasValue());
     ASSERT_TRUE(Client::Scenes::EmitVertexEffects(models, object, meshes, 0, 0x131, 0, *effects, random).HasValue());
@@ -116,7 +116,7 @@ TEST(VertexEffectsTest, TheTwoProjectileFamiliesPreserveTheirDifferentChildSubty
     for (const std::int32_t family : {0x12d, 0x12e})
     {
         auto effects = std::make_unique<Client::World::ModelEffects>();
-        Client::Render::Models::CrtRandom random(2), expected(2);
+        Client::Crt::CrtRandom random(2), expected(2);
         const auto result = Client::Scenes::EmitVertexEffects(models, object, meshes, 0, family, 0, *effects, random);
         ASSERT_TRUE(result.HasValue()) << result.Error();
         EXPECT_TRUE(effects->Effects()[0].alive);
@@ -139,7 +139,7 @@ TEST(VertexEffectsTest, TheGolemStonesComeOneInFortyFiveUpToTwenty)
     {
         SCOPED_TRACE(subtype);
         auto effects = std::make_unique<Client::World::ModelEffects>();
-        Client::Render::Models::CrtRandom random(3), expected(3);
+        Client::Crt::CrtRandom random(3), expected(3);
         int counted = 0;
         std::size_t made = 0;
         for (std::size_t corner = 0; corner < models.model.meshes[0].triangles.size(); ++corner)
@@ -178,7 +178,7 @@ TEST(VertexEffectsTest, TheGolemStonesComeOneInFortyFiveUpToTwenty)
     }
 }
 
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::Render::Models::SkinnedMesh;
 using Client::Scenes::EmitVertexEffectsOf;
 
@@ -294,7 +294,7 @@ TEST(VertexEffectsTest, TheSkinShellsComeOneInEightWithTheJointSubtype)
         SCOPED_TRACE(subtype);
         auto effects = std::make_unique<Client::World::ModelEffects>();
         auto twin = std::make_unique<Client::World::ModelEffects>();
-        Client::Render::Models::CrtRandom random(4), expected(4);
+        Client::Crt::CrtRandom random(4), expected(4);
         for (std::size_t corner = 0; corner < 3 * models.model.meshes[0].triangles.size(); ++corner)
         {
             if (expected.Next() % 8 != 0)
@@ -331,7 +331,7 @@ TEST(VertexEffectsTest, TheSkinShellsComeOneInEightWithTheJointSubtype)
 
         for (auto& effect : effects->Effects())
             effect.alive = true;
-        Client::Render::Models::CrtRandom full(4), corners(4);
+        Client::Crt::CrtRandom full(4), corners(4);
         corners.Discard(static_cast<std::uint32_t>(3 * models.model.meshes[0].triangles.size()));
         ASSERT_TRUE(Client::Scenes::EmitVertexEffects(models, object, meshes, 0, Client::World::SkinShellEffect,
                                                       subtype, *effects, full)

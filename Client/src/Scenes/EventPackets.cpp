@@ -1,7 +1,7 @@
 #include "Scenes/EventPackets.h"
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Core/PixelSize.h"
 #include "Data/Models/PlayerModels.h"
 #include "Data/Text/DialogTable.h"
 #include "Data/Text/TextTable.h"

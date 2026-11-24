@@ -1,7 +1,7 @@
 #pragma once
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Core/PixelSize.h"
 #include "Scenes/CastleSiegeReceive.h"
 #include "UI/PanelDialog.h"
 #include "UI/PanelRegistry.h"
@@ -17,7 +17,7 @@ namespace Client::Render::Text
 {
 class ITextMeasure;
 }
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
 }
@@ -35,19 +35,18 @@ struct CastleWindowServices
 {
     const Render::Text::ITextMeasure* measure = nullptr;
     const Data::Text::TextTable* texts = nullptr;
-    App::PixelSize screen{640, 480};
+    Core::PixelSize screen{640, 480};
     std::uint32_t now = 0;
 };
 
 [[nodiscard]] bool CastleSeniorBusy(const WorldState& world);
 [[nodiscard]] bool HeroCanCraftAtTheCastle(const WorldState& world);
-void LendTheCastleLifecycleTo(UI::PanelContext& panels, WorldState& world, Render::Models::CrtRandom& random,
+void LendTheCastleLifecycleTo(UI::PanelContext& panels, WorldState& world, Crt::CrtRandom& random,
                               const CastleSender& send, CastleWindowServices services = {});
 void LendTheCastleWindowStepsTo(UI::PanelContext& panels, const GameUiContext& context);
 // El mismo préstamo para callers que no reciben un paquete Castle ni tienen un log propio.
-void LendTheCastlePanelServices(GamePanels& panels, WorldState& world, Render::Models::CrtRandom& random,
-                                const CastleSender& send, const WorldEntryResources* entryResources,
-                                CastleWindowServices services = {});
+void LendTheCastlePanelServices(GamePanels& panels, WorldState& world, Crt::CrtRandom& random, const CastleSender& send,
+                                const WorldEntryResources* entryResources, CastleWindowServices services = {});
 void LendTheCastlePanelServices(GamePanels& panels, const CastleReceiveContext& context);
 // Para los cierres de entrada, teleport, misiones, comercio y tiendas: conserva también sus transportes específicos.
 void LendTheCastlePanelServices(GamePanels& panels, const WorldEntryResources& resources,

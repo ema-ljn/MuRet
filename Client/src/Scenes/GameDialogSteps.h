@@ -13,7 +13,7 @@
 // con el diálogo abierto (0x7d3a10c) después de Esc, desde 0x623f78. Cada id va por su tramo de la tabla de
 // despacho: el menú de Esc, las opciones, las cajas con botones, el OK genérico, o el corte de su ola con la dirección
 // del tramo. Una ola que porta un tramo cambia su fila.
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
 }
@@ -84,5 +84,5 @@ struct DialogRoute
 // en [14] los renglones del registro / 3 (0 con su lugar en 0) en el nibble alto y, en el bajo, la transparencia · 10
 // truncada (0x69fd3c). Sin elegido, o con una tecla de 24 o más (pisaría la pila), corta con error.
 [[nodiscard]] Core::Expected<Protocol::OptionData::OptionBody, std::string>
-OptionBodyOf(WorldState& world, Render::Models::CrtRandom& random, std::optional<std::uint8_t> chosenSlot);
+OptionBodyOf(WorldState& world, Crt::CrtRandom& random, std::optional<std::uint8_t> chosenSlot);
 } // namespace Client::Scenes

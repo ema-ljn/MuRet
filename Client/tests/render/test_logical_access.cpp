@@ -1,6 +1,6 @@
 #include "Render/Models/LogicalAccess.h"
 
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 
 #include <gtest/gtest.h>
 
@@ -14,7 +14,7 @@
 // entrada lleva en un byte cuántos accesos la tienen abierta, y gasta el cierre que la deja en 0.
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::Render::Models::LogicalAccess;
 using Client::Render::Models::OwnRecordCloseRandoms;
 using Client::Render::Models::SmallLogicalCloseRandoms;

@@ -3,6 +3,7 @@
 #include "Render/Models/LogicalAccess.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Models/PlayerModels.h"
 #include "Data/Tables/SkillTable.h"
 #include "Data/Terrain/TerrainAttributes.h"
@@ -13,7 +14,6 @@
 #include "GameLogic/Path.h"
 #include "GameLogic/PathCell.h"
 #include "Protocol/Movement.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/Skeleton.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
@@ -54,7 +54,7 @@
 // terreno es uno sin paredes, el mismo en los dos.
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::Scenes::ActorState;
 using Client::Scenes::HeroMovementContext;
 using Client::Scenes::WorldState;

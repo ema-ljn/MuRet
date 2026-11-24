@@ -1,10 +1,10 @@
+#include "Crt/CrtRandom.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/FaunaJointCreation.h"
 #include "World/IFishStepServices.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/FaunaObject.h"
 #include "Render/ModelBatch.h"
-#include "Render/Models/Cloth.h"
 #include "World/Sprites.h"
 #include <gtest/gtest.h>
 #include <array>
@@ -107,7 +107,7 @@ TEST(GameJointDrawingTest, BoltsShiftTheirSecondFaceByTwiceTheScroll)
     for (const auto type : {0x614, 0x615})
     {
         SCOPED_TRACE(type);
-        Client::Render::Models::CrtRandom random(9);
+        Client::Crt::CrtRandom random(9);
         Client::World::FrameSprites sprites;
         Client::Scenes::JointDrawResources resources{random, sprites, true, 250.0f};
         auto joint = Joint(type, 1);
@@ -123,8 +123,8 @@ TEST(GameJointDrawingTest, BoltsShiftTheirSecondFaceByTwiceTheScroll)
 
 TEST(GameJointDrawingTest, AnimatedUvsUseSignedClockRemainderWithoutRandoms)
 {
-    Client::Render::Models::CrtRandom random(9);
-    Client::Render::Models::CrtRandom expected(9);
+    Client::Crt::CrtRandom random(9);
+    Client::Crt::CrtRandom expected(9);
     Client::World::FrameSprites sprites;
     Client::Scenes::JointDrawResources resources{random, sprites, true, -1250.75f};
     auto joint = Joint(0x614, 1);
@@ -137,8 +137,8 @@ TEST(GameJointDrawingTest, AnimatedUvsUseSignedClockRemainderWithoutRandoms)
 
 TEST(GameJointDrawingTest, BloodCastleOwnerHeightSetsPerSegmentColorAndMiddleSprite)
 {
-    Client::Render::Models::CrtRandom random(9);
-    Client::Render::Models::CrtRandom expected(9);
+    Client::Crt::CrtRandom random(9);
+    Client::Crt::CrtRandom expected(9);
     Client::World::FrameSprites sprites;
     const Client::Scenes::JointDrawResources resources{random, sprites};
     auto joint = Joint(0x10f, 0);
@@ -171,8 +171,8 @@ TEST(GameJointDrawingTest, ModeFiltersRunBeforeSpecialResourcesAndPreserveLiveJo
 TEST(GameJointDrawingTest, IntermediateSpecialSpritesRepeatWithoutChangingTheRandomStream)
 {
     auto joint = Joint(0x10f, 9);
-    Client::Render::Models::CrtRandom random(7);
-    Client::Render::Models::CrtRandom expected(7);
+    Client::Crt::CrtRandom random(7);
+    Client::Crt::CrtRandom expected(7);
     Client::World::FrameSprites sprites;
     Client::Render::ModelBatch original;
     Client::Render::ModelBatch replay;
@@ -194,7 +194,7 @@ TEST(GameJointDrawingTest, OwnerHeightUsesFiftyForTheFirstFamilyAndOneEightyForN
         auto joint = Joint(0x10f, subtype);
         joint.ownerContext = &owner;
         joint.points[0][0].z = subtype == 9 ? 215.0f : 85.0f;
-        Client::Render::Models::CrtRandom random(1);
+        Client::Crt::CrtRandom random(1);
         Client::World::FrameSprites sprites;
         Client::Render::ModelBatch batch;
         ASSERT_TRUE(Client::Scenes::DrawJoints(batch, std::span(&joint, 1), 0, {random, sprites}).HasValue());
@@ -209,7 +209,7 @@ TEST(GameJointDrawingTest, OwnerHeightUsesFiftyForTheFirstFamilyAndOneEightyForN
     joint.ownerContext = &actor;
     joint.ownerKind = Client::Scenes::JointOwnerKind::Actor;
     joint.points[0][0].z = 215.0f;
-    Client::Render::Models::CrtRandom random(1);
+    Client::Crt::CrtRandom random(1);
     Client::World::FrameSprites sprites;
     Client::Render::ModelBatch batch;
     ASSERT_TRUE(Client::Scenes::DrawJoints(batch, std::span(&joint, 1), 0, {random, sprites}).HasValue());
@@ -223,8 +223,8 @@ TEST(GameJointDrawingTest, EnergyArrowMutatesItsLightAndEmitsOneSpritePerAdmitte
     joint.ownerContext = &owner;
     joint.count = 3;
     joint.light = glm::vec3(0.5f);
-    Client::Render::Models::CrtRandom random(5);
-    Client::Render::Models::CrtRandom expected(5);
+    Client::Crt::CrtRandom random(5);
+    Client::Crt::CrtRandom expected(5);
     Client::World::FrameSprites sprites;
     Client::Render::ModelBatch batch;
     ASSERT_TRUE(Client::Scenes::DrawJoints(batch, std::span(&joint, 1), 0, {random, sprites}).HasValue());
@@ -242,7 +242,7 @@ TEST(GameJointDrawingTest, Skill39KeepsItsFinalLiveFrameAndDrawsBothFacesWithout
 {
     std::array<Client::Scenes::JointState, 1> joints{};
     glm::vec3 point{100, 200, 300}, angles{};
-    Client::Render::Models::CrtRandom random(1);
+    Client::Crt::CrtRandom random(1);
     Client::World::FrameSprites sprites;
     const Client::World::FishEffectRequest request{0x60f, point, point, angles, 0x17, nullptr, 40, 0, 0, 0, -1};
     ASSERT_TRUE(Client::Scenes::CreateFaunaJoint(joints, request, random).HasValue());

@@ -18,9 +18,13 @@
 #include <string>
 #include <vector>
 
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
+} // namespace Client::Crt
+
+namespace Client::Render::Models
+{
 struct ClothWorld;
 } // namespace Client::Render::Models
 
@@ -94,7 +98,7 @@ struct MonsterBodyFrame
     // El reloj del mundo (0x5767b88) en ms.
     float worldClock = 0.0f;
     // El rand() de la CRT y el contador de pasos protegido (0x7d3a0f0) con su textura del agua (0x7d2d360).
-    Render::Models::CrtRandom& random;
+    Crt::CrtRandom& random;
     Render::Models::ClothWorld& cloth;
     // 0x4294b0: el byte del asedio.
     bool siegeActive = false;

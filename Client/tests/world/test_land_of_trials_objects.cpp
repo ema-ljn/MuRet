@@ -1,5 +1,5 @@
+#include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainLight.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/ObjectState.h"
 #include "Render/Models/OriginalRetainedMath.h"
 #include "World/ModelEffects.h"
@@ -20,7 +20,7 @@
 // 06 § Los objetos de Land of Trials.
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::World::ObjectStepGlobals;
 using Client::World::StepWorldObjectChecked;
 using Client::World::TerrainLighting;

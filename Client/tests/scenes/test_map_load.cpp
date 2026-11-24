@@ -1,6 +1,7 @@
 #include "Scenes/MapLoad.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainGrid.h"
 #include "Data/Terrain/TerrainLight.h"
@@ -45,7 +46,7 @@
 
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::Scenes::ArmEventMapObject;
 using Client::Scenes::CharacterCloth;
 using Client::Scenes::ClothWearer;
@@ -69,7 +70,7 @@ TEST(ActorClothLifecycleTest, MapCleanupReleasesClothsInEveryPoolSlotExceptTheSe
     ASSERT_FALSE(error.has_value()) << *error;
     ASSERT_FALSE(vectors.frames.empty());
     const auto& frame = vectors.frames.front();
-    Client::Render::Models::ClothWorld clothWorld{.random = Client::Render::Models::CrtRandom(vectors.randomState)};
+    Client::Render::Models::ClothWorld clothWorld{.random = Client::Crt::CrtRandom(vectors.randomState)};
 
     WorldState world;
     for (const std::size_t slot : {0u, 1u, 400u})

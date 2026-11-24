@@ -1,7 +1,7 @@
 #include "World/WorldObjects.h"
 
+#include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainObjects.h"
-#include "Render/Models/Cloth.h"
 #include "World/IWorldObjectCreationServices.h"
 #include "World/WorldObjectRegistrations.h"
 
@@ -42,7 +42,7 @@ TEST(WorldObjectCreationLeavesTest, AllSignedTypesUseTheCorrectCastleGroupForEve
             const auto signedType = static_cast<std::int16_t>(type);
             const Client::Data::Terrain::TerrainObject record{.type = signedType, .scale = 2.0f};
             Client::World::WorldObjectRegistrations registrations;
-            Client::Render::Models::CrtRandom random(1);
+            Client::Crt::CrtRandom random(1);
             Client::World::WorldObjectCreationContext context{
                 30, Client::World::ObjectScene::Other, registrations, &services, &random, &flag};
             const auto result = Client::World::CreateWorldObjects(std::span(&record, 1), context);
@@ -72,7 +72,7 @@ TEST(WorldObjectCreationLeavesTest, AllSignedTypesOnMap31ConsumeRandomOnlyFor27A
     {
         const Client::Data::Terrain::TerrainObject record{.type = static_cast<std::int16_t>(type)};
         Client::World::WorldObjectRegistrations registrations;
-        Client::Render::Models::CrtRandom random(1);
+        Client::Crt::CrtRandom random(1);
         Client::World::WorldObjectCreationContext context{31, Client::World::ObjectScene::Other, registrations, nullptr,
                                                           &random};
         const auto result = Client::World::CreateWorldObjects(std::span(&record, 1), context);
@@ -94,7 +94,7 @@ TEST(WorldObjectCreationLeavesTest, Map31PredicateDoesNotNarrowOrConfuseTheMapWi
         {
             const Client::Data::Terrain::TerrainObject record{.type = type};
             Client::World::WorldObjectRegistrations registrations;
-            Client::Render::Models::CrtRandom random(1);
+            Client::Crt::CrtRandom random(1);
             const std::uint8_t flag = 255;
             Client::World::WorldObjectCreationContext context{
                 map, Client::World::ObjectScene::Other, registrations, nullptr, &random, &flag};
@@ -196,7 +196,7 @@ TEST(WorldObjectCreationLeavesTest, LaterMap31HandlerReadsTheMapAndTypeChangedBy
 {
     const Client::Data::Terrain::TerrainObject record{.type = 79};
     Client::World::WorldObjectRegistrations registrations;
-    Client::Render::Models::CrtRandom random(1);
+    Client::Crt::CrtRandom random(1);
     std::uint8_t flag = 255;
     Client::World::WorldObjectCreationContext context{
         30, Client::World::ObjectScene::Other, registrations, nullptr, &random, &flag};

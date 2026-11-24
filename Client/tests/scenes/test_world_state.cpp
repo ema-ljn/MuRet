@@ -1,7 +1,7 @@
 #include "Scenes/WorldState.h"
 
+#include "Crt/CrtRandom.h"
 #include "Protocol/Character/CharacterList.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/ItemSetOptionList.h"
@@ -20,8 +20,8 @@
 // personajes de la lista"; 04, el registro propio).
 namespace
 {
+using Client::Crt::CrtRandom;
 using Client::Protocol::Character::CharacterEntry;
-using Client::Render::Models::CrtRandom;
 using Client::Scenes::WorldState;
 
 constexpr std::uint32_t Seed = 0x0badf00du;

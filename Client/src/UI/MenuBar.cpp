@@ -1,6 +1,6 @@
 #include "UI/MenuBar.h"
 
-#include "App/WindowState.h"
+#include "Core/PixelSize.h"
 #include "Input/InputState.h"
 #include "Render/SpriteBatch.h"
 #include "Render/TextureSlot.h"
@@ -43,7 +43,7 @@ int HeightTerm(int height)
 }
 } // namespace
 
-MenuBarLayout LayoutMenuBar(App::PixelSize screen)
+MenuBarLayout LayoutMenuBar(Core::PixelSize screen)
 {
     MenuBarLayout layout;
     const int y = BarBottomOffset - HeightTerm(screen.height) - ButtonHeight;
@@ -85,12 +85,12 @@ bool MenuBar::IsOpen() const
     return m_open;
 }
 
-Rect MenuBar::Bounds(App::PixelSize screen) const
+Rect MenuBar::Bounds(Core::PixelSize screen) const
 {
     return LayoutMenuBar(screen).bar;
 }
 
-std::optional<MenuBarClick> MenuBar::Step(const Input::InputState& input, App::PixelSize screen, NewUiTurn turn)
+std::optional<MenuBarClick> MenuBar::Step(const Input::InputState& input, Core::PixelSize screen, NewUiTurn turn)
 {
     if (!m_open)
     {
@@ -115,7 +115,7 @@ std::optional<MenuBarClick> MenuBar::Step(const Input::InputState& input, App::P
     return std::nullopt;
 }
 
-void MenuBar::Draw(Render::SpriteBatch& sprites, App::PixelSize screen)
+void MenuBar::Draw(Render::SpriteBatch& sprites, Core::PixelSize screen)
 {
     if (!m_open)
     {
@@ -128,7 +128,7 @@ void MenuBar::Draw(Render::SpriteBatch& sprites, App::PixelSize screen)
     sprites.Image(m_credit.Image(m_sizes));
 }
 
-void MenuBar::Place(App::PixelSize screen)
+void MenuBar::Place(Core::PixelSize screen)
 {
     m_layout = LayoutMenuBar(screen);
     m_menu.MoveTo(Point{m_layout.menu.x, m_layout.menu.y});

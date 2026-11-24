@@ -3,13 +3,13 @@
 #include "Scenes/SiegeBattleUi.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Models/PlayerModels.h"
 #include "GameLogic/CharacterAppearance.h"
 #include "GameLogic/PathFinder.h"
 #include "Protocol/Character/Opcodes.h"
 #include "Protocol/Viewport.h"
 #include "Render/Models/Animation.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActorCharacterSet.h"
 #include "Scenes/ActorConstruction.h"
@@ -376,21 +376,21 @@ Core::Expected<void, std::string> ShowThePet(std::size_t index, const ShownItem&
 } // namespace
 
 // Una escritura de +0x41c o +0x420: abre la entrada, escribe y la cierra (4 rand() si queda sin accesos).
-void WriteCell(std::uint8_t value, std::uint8_t& cell, std::uint8_t& depth, Render::Models::CrtRandom& random)
+void WriteCell(std::uint8_t value, std::uint8_t& cell, std::uint8_t& depth, Crt::CrtRandom& random)
 {
     const Render::Models::LogicalAccess access(depth, random, Render::Models::SmallLogicalCloseRandoms);
     cell = value;
 }
 
 // Una lectura: abre, lee y cierra (0x40b800 o el cierre en línea).
-std::uint8_t ReadCell(const std::uint8_t& cell, std::uint8_t& depth, Render::Models::CrtRandom& random)
+std::uint8_t ReadCell(const std::uint8_t& cell, std::uint8_t& depth, Crt::CrtRandom& random)
 {
     const Render::Models::LogicalAccess access(depth, random, Render::Models::SmallLogicalCloseRandoms);
     return cell;
 }
 
 // 0x4c8b0c..0x4c8f1b y 0x4c939e..0x4c9523: la celda protegida y el blanco con los mismos valores.
-void WriteTheCells(ActorState& actor, std::uint8_t x, std::uint8_t y, Render::Models::CrtRandom& random)
+void WriteTheCells(ActorState& actor, std::uint8_t x, std::uint8_t y, Crt::CrtRandom& random)
 {
     WriteCell(x, actor.cellX, actor.cellXAccesses, random);
     WriteCell(y, actor.cellY, actor.cellYAccesses, random);
@@ -406,7 +406,7 @@ float AngleOf(std::uint8_t directionAndPk)
 }
 
 // 0x4c8f4b..0x4c905c: la X y después la Y, leídas de la tabla, al centro de la celda.
-void PutInTheCellCenter(ActorState& actor, Render::Models::CrtRandom& random)
+void PutInTheCellCenter(ActorState& actor, Crt::CrtRandom& random)
 {
     const std::uint8_t x = ReadCell(actor.cellX, actor.cellXAccesses, random);
     actor.position.x = (static_cast<float>(x) + CellCenter) * CellSize;

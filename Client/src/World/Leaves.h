@@ -17,10 +17,10 @@ struct TerrainAttributes;
 struct TerrainHeights;
 } // namespace Client::Data::Terrain
 
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
-} // namespace Client::Render::Models
+} // namespace Client::Crt
 
 // Las hojas (CL7.6 B3): la tabla de 0x530490 (0x75e34b8, 200 lugares de 0x78 bytes), que en cada mapa son
 // otra cosa (lluvia, hojas, nieve, burbujas); en el login (el mapa 0x37) son 80 brasas de
@@ -75,12 +75,12 @@ struct EmberWorld
 // 0x530490 en el mapa 0x37, con el rand() de la CRT: las 80 primeras, en orden; la apagada nace (con la luz
 // en 1 y el byte vivo, 0x42b1e0) y la viva cae (0x5303a0), las dos en el mismo paso para lugares
 // distintos. Sin el terreno no corre.
-void StepLoginEmbers(Leaves& leaves, const EmberWorld& world, Render::Models::CrtRandom& random);
+void StepLoginEmbers(Leaves& leaves, const EmberWorld& world, Crt::CrtRandom& random);
 
 // Los creadores gemelos 52fa60 (mapa 0) y 52fe30 (3/7): nueve rand(), sin escribir escala ni ángulos.
-void SpawnDriftingLeaf(Leaf& leaf, const EmberWorld& world, Render::Models::CrtRandom& random);
+void SpawnDriftingLeaf(Leaf& leaf, const EmberWorld& world, Crt::CrtRandom& random);
 // 5303a0: el fallback compartido del juego y de las brasas; requiere terreno válido.
-void StepFallingLeaf(Leaf& leaf, const EmberWorld& world, Render::Models::CrtRandom& random);
+void StepFallingLeaf(Leaf& leaf, const EmberWorld& world, Crt::CrtRandom& random);
 
 // Lo que 0x5306a0 le pide a GL por una brasa viva: glTranslatef a su posición y el cuadrado de 0x621320
 // con a = 2 · escala y b = 4 · escala, sus cuatro esquinas por AngleMatrix de los ángulos (0x5fccc0), con

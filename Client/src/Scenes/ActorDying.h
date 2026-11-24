@@ -8,7 +8,7 @@
 #include <functional>
 #include <string>
 
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
 }
@@ -32,7 +32,7 @@ struct ActorDyingContext
     SceneId scene = SceneId::Game;
     // c == [0x743a170]: el héroe se hunde pero no se borra.
     bool hero = false;
-    Render::Models::CrtRandom& random;
+    Crt::CrtRandom& random;
     World::Particles* particles = nullptr;
     float worldClock = 0.0f;
     WorldState* world = nullptr;

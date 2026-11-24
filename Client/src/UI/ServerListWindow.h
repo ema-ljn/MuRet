@@ -1,6 +1,6 @@
 #pragma once
 
-#include "App/WindowState.h"
+#include "Core/PixelSize.h"
 #include "Data/Text/TextTable.h"
 #include "Input/InputState.h"
 #include "Render/SpriteBatch.h"
@@ -99,7 +99,7 @@ struct ServerListFrame
 // 26 − 5. Los de servidor van en x + 136 desde la primera fila; con 10 o más, el último termina en
 // la fila 10 y los de antes suben, aunque salgan de la ventana. La caja, de 512 de ancho, va en
 // (x − (512 − 465) / 2, y + alto − la caja).
-[[nodiscard]] ServerListLayout LayoutServerList(App::PixelSize screen, int descriptionHeight, std::size_t serverCount);
+[[nodiscard]] ServerListLayout LayoutServerList(Core::PixelSize screen, int descriptionHeight, std::size_t serverCount);
 
 // El marco para `groupButtons` botones de grupo y el elegido, desde 0. Cada pieza pone su punto
 // en una esquina de un botón: (8, 19) arriba a la izquierda del 0, (60, 19) arriba a la derecha
@@ -126,24 +126,24 @@ public:
     void Close() override;
     [[nodiscard]] bool IsOpen() const override;
     // La ventana (`window` de LayoutServerList).
-    [[nodiscard]] Rect Bounds(App::PixelSize screen) const override;
+    [[nodiscard]] Rect Bounds(Core::PixelSize screen) const override;
     // El botón de grupo elegido, desde 0.
     [[nodiscard]] std::optional<std::size_t> Selected() const;
 
     // 0x645e10 en el paso, con el foco: un clic en un grupo lo elige; uno en un servidor dice qué
     // pasó. Sin el foco, solo los botones.
-    std::optional<ServerClick> Step(const Input::InputState& input, App::PixelSize screen, NewUiTurn turn = {});
+    std::optional<ServerClick> Step(const Input::InputState& input, Core::PixelSize screen, NewUiTurn turn = {});
     // Los renglones de la descripción del grupo elegido, vacío sin él.
     [[nodiscard]] const std::vector<std::string>& Description() const;
 
     // 0x6463b0 con la mezcla normal (el lote llega con la aditiva de la arena, Q-C80): la caja,
     // las piezas del marco con los renglones de la descripción, los botones con sus rótulos, las
     // barras y, con el grupo 20, sus tres textos. Ubica todo para `screen` antes, por si cambió.
-    void Draw(Render::SpriteBatch& sprites, Scenes::ITextDrawer& text, App::PixelSize screen);
+    void Draw(Render::SpriteBatch& sprites, Scenes::ITextDrawer& text, Core::PixelSize screen);
 
 private:
     void Select(std::size_t group);
-    void Place(App::PixelSize screen);
+    void Place(Core::PixelSize screen);
     [[nodiscard]] std::size_t ShownServers() const;
     [[nodiscard]] const ServerGroup* SelectedGroup() const;
     // Si el nombre del grupo elegido es el texto del grupo 20 (el strcmp de 0x6463b0).
@@ -151,9 +151,9 @@ private:
     // Los pasos de 0x6463b0: la caja y, por renglón, las piezas del marco y la descripción; los
     // botones y las barras, que dan el color del último rótulo, o `textColor` sin ninguno; y los
     // textos del grupo 20 con ese color.
-    void DrawBoxAndDescription(Render::SpriteBatch& sprites, Scenes::ITextDrawer& text, App::PixelSize screen) const;
+    void DrawBoxAndDescription(Render::SpriteBatch& sprites, Scenes::ITextDrawer& text, Core::PixelSize screen) const;
     [[nodiscard]] std::uint32_t DrawButtons(Render::SpriteBatch& sprites, Scenes::ITextDrawer& text,
-                                            App::PixelSize screen, std::uint32_t textColor) const;
+                                            Core::PixelSize screen, std::uint32_t textColor) const;
     void DrawGroupTwentyTexts(Scenes::ITextDrawer& text, std::uint32_t color) const;
 
     TextureSizes m_sizes;

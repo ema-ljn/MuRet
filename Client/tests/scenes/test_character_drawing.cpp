@@ -1,6 +1,7 @@
 #include "Render/Models/IModelLibrary.h"
 #include "Scenes/CharacterDrawing.h"
 
+#include "Crt/CrtRandom.h"
 #include "Data/Models/Model.h"
 #include "Data/Models/PlayerModels.h"
 #include "GameLogic/CharacterAppearance.h"
@@ -1877,7 +1878,7 @@ TEST(CharacterDrawingTest, TheScepterAsksForItsFiveSprites)
     character.object.position = {1000.0f, 2000.0f, 300.0f};
     character.object.angles = {0.0f, 0.0f, 90.0f};
     character.object.scale = 1.5f;
-    Client::Render::Models::ClothWorld world{.random = Client::Render::Models::CrtRandom(7)};
+    Client::Render::Models::ClothWorld world{.random = Client::Crt::CrtRandom(7)};
     Client::World::FrameSprites sprites;
     character.clothWorld = &world;
     character.sprites = &sprites;
@@ -1895,7 +1896,7 @@ TEST(CharacterDrawingTest, TheScepterAsksForItsFiveSprites)
                                                      root, mace));
     ASSERT_NE(mace.front(), root);
     Client::World::FrameSprites expected;
-    Client::Render::Models::CrtRandom random(7);
+    Client::Crt::CrtRandom random(7);
     Client::World::CreateScepterGlow(expected, Client::Render::Models::OriginalMatrixOf(mace.front()), 1.5f,
                                      character.object.position, random);
     for (std::size_t k = 0; k <= Client::World::ScepterSpriteCount; ++k)
@@ -1918,7 +1919,7 @@ TEST(CharacterDrawingTest, TheScepterDrawsOncePerOriginalFrameWithItsCarry)
     DrawnCharacter character;
     character.appearance = Client::GameLogic::ClassAppearance(0, 0);
     character.appearance.rightHand = Client::GameLogic::WornItem{.model = Client::World::HdkMaceModel};
-    Client::Render::Models::ClothWorld world{.random = Client::Render::Models::CrtRandom(7)};
+    Client::Render::Models::ClothWorld world{.random = Client::Crt::CrtRandom(7)};
     Client::World::ScepterGlowCarry carry;
     character.clothWorld = &world;
     character.scepter = &carry;
@@ -1964,7 +1965,7 @@ TEST(CharacterDrawingTest, OnlyTheScepterWithTheTableAsksForSprites)
         Client::Render::Models::ClothWorld world;
         character.clothWorld = &world;
         (void)Drawn(mace, character);
-        EXPECT_EQ(world.random.State(), Client::Render::Models::CrtRandom().State()) << "sin la tabla";
+        EXPECT_EQ(world.random.State(), Client::Crt::CrtRandom().State()) << "sin la tabla";
         Client::World::FrameSprites sprites;
         character.clothWorld = nullptr;
         character.sprites = &sprites;

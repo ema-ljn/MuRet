@@ -1,6 +1,7 @@
 #include "Scenes/GameHelps.h"
 
 #include "Core/Expected.h"
+#include "Core/PixelSize.h"
 #include "Data/Tables/ItemSetTables.h"
 #include "Data/Tables/ItemTable.h"
 #include "Data/Text/TextTable.h"
@@ -376,7 +377,7 @@ public:
             return;
         }
         Keep(DrawTheTooltipBox(m_context, m_x, m_layout.rowY, written.next, 0, RightAlignedMode, 0));
-        const App::PixelSize screen = m_context.sprites.Screen();
+        const Core::PixelSize screen = m_context.sprites.Screen();
         const Render::Text::TextExtent extent = m_context.text.Measure(m_context.hud.dcFont, sample);
         m_x += Truncate(static_cast<double>(extent.width) / static_cast<double>(Render::ScaleX(1.0f, screen)));
         written.next -= last + 1;

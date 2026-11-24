@@ -1,6 +1,6 @@
 #include "Render/UiImage.h"
 
-#include "App/WindowState.h"
+#include "Core/PixelSize.h"
 #include "Render/QuadCorner.h"
 #include "Render/TextureSlot.h"
 
@@ -14,7 +14,7 @@
 // téxel (06 § La carga). Lo que hace el SpriteBatch con ella, en test_sprite_batch.cpp.
 namespace
 {
-using Client::App::PixelSize;
+using Client::Core::PixelSize;
 using Client::Render::DesignScale;
 using Client::Render::QuadCorners;
 using Client::Render::TextureSlot;

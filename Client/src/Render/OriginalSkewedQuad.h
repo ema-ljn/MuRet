@@ -1,6 +1,6 @@
 #pragma once
 
-#include "App/WindowState.h"
+#include "Core/PixelSize.h"
 #include "Render/QuadCorner.h"
 #include "Render/TextureSlot.h"
 
@@ -27,5 +27,5 @@ struct OriginalSkewedQuad
 // Las cuatro esquinas de 0x622000: las posiciones de 0x621b60 con las dos banderas prendidas, y las
 // UV (u, v + 0,25 dv), (u, v + 0,75 dv), (u + du, v + dv) y (u + du, v). La de abajo a la izquierda
 // sale de v + dv sin redondear menos 0,25 dv (0x6220b7..0x6220c2), no de v + 0,75 dv.
-[[nodiscard]] QuadCorners SkewedFanCorners(const OriginalSkewedQuad& quad, App::PixelSize screen);
+[[nodiscard]] QuadCorners SkewedFanCorners(const OriginalSkewedQuad& quad, Core::PixelSize screen);
 } // namespace Client::Render

@@ -8,7 +8,7 @@
 #include <functional>
 #include <string>
 
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
 }
@@ -34,7 +34,7 @@ struct CastleSiegePrelude
     float* musicTime = nullptr;
     std::function<std::uint32_t()> systemTime{};
     std::function<void(std::int32_t)> sound{};
-    Render::Models::CrtRandom* random = nullptr;
+    Crt::CrtRandom* random = nullptr;
     std::int32_t logicSteps = 0;
     glm::vec3 heroPosition{};
     // Cada llamada abre y cierra el +0x420 protegido; dos lecturas nativas conservan dos cierres.
@@ -62,8 +62,8 @@ struct CastleSiegePrelude
 // Con el asedio, el 0 queda con −2 sin luz, el 0x35 suelta la luz del 0, el 0x19f queda en −2 y el 0x42 corta
 // lee 0x7239e4 entero: salvo20000 muestra el marcador y siempre corre su V. Sin el byte del asedio en `globals`,
 // corta antes de tocar el objeto.
-[[nodiscard]] Core::Expected<void, std::string>
-StepCastleSiegeObject(WorldObject& object, Render::Models::CrtRandom& random, const ObjectStepGlobals& globals);
+[[nodiscard]] Core::Expected<void, std::string> StepCastleSiegeObject(WorldObject& object, Crt::CrtRandom& random,
+                                                                      const ObjectStepGlobals& globals);
 
 // 0x42c500 (desde 0x6063d0, con 0x4055b0 en 0 fuera de Chaos Castle) con cada objeto visto del 30, después de
 // 0x604ab0. El 0x51 y el 0x53: blendMesh 1, la luz del blendMesh en 1 y la V en T · 0,0002f (el 0x51) o en

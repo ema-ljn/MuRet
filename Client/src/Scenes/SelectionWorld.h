@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Core/IClock.h"
 #include "Core/Log.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Models/Model.h"
 #include "Render/ITextureStore.h"
 #include "Render/ModelBatch.h"
@@ -112,7 +113,7 @@ public:
     void StepWaves(Core::Duration clock, const World::TerrainRange& range, std::uint8_t map);
     // 0x606560 en la selección: los objetos vistos en el último dibujo, con la luz dinámica, el pool de
     // partículas y el pedido sonoro del mundo.
-    [[nodiscard]] Core::Expected<void, std::string> StepObjects(WorldState& world, Render::Models::CrtRandom& random,
+    [[nodiscard]] Core::Expected<void, std::string> StepObjects(WorldState& world, Crt::CrtRandom& random,
                                                                 float worldClock);
     // 0x52d220 y 0x53c670, después de la vista previa: los efectos con modelo (la mariposa, con la altura
     // del terreno y los sprites del frame, y el calco 0x14e de los Fenrir, con timeGetTime() en `systemTime`) y las
@@ -127,7 +128,7 @@ public:
     // presta los del mundo. Los personajes de la lista (0x50ba30) usan los mismos.
     void BeginFrame(WorldState& world, Render::Models::ClothWorld& cloth, int frames);
     [[nodiscard]] World::TerrainLighting& FrameLighting();
-    [[nodiscard]] Render::Models::CrtRandom& FrameRandom();
+    [[nodiscard]] Crt::CrtRandom& FrameRandom();
     [[nodiscard]] Render::Models::ClothWorld& FrameCloth();
     [[nodiscard]] World::Particles& FrameParticles();
     [[nodiscard]] World::ModelEffects& FrameEffects();

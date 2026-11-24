@@ -7,7 +7,7 @@
 #include <cstdint>
 #include <string>
 
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
 }
@@ -82,7 +82,7 @@ struct OwnEquipmentOverride
 [[nodiscard]] Core::Expected<void, std::string> UpdateOwnAttackAndMagicSpeeds(OwnCharacterRecord& own,
                                                                               const OwnEquipmentOverride& held,
                                                                               std::uint8_t& ownRecordAccesses,
-                                                                              Render::Models::CrtRandom& random);
+                                                                              Crt::CrtRandom& random);
 
 // 0x5507e0 (0x5512a5): +0x60 por la clase y la agilidad, el lugar 1 y las opciones 0x5a de los lugares
 // 2 a 6, 11 y 10.

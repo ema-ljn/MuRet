@@ -2,8 +2,8 @@
 #include "Scenes/AttackSkillCases.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainAttributes.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/Skeleton.h"
 #include "Scenes/ActorState.h"
@@ -47,8 +47,8 @@
 // del ataque".
 namespace
 {
+using Client::Crt::CrtRandom;
 using Client::Render::Models::ActionInfo;
-using Client::Render::Models::CrtRandom;
 using Client::Scenes::ActorState;
 using Client::Scenes::CharacterStepContext;
 using Client::Scenes::ChosenKeyOf;

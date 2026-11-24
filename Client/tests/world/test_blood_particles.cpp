@@ -1,6 +1,6 @@
 #include "World/Particles.h"
 
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "Render/Models/OriginalRotation.h"
 #include "World/PortableParticleTrigonometry.h"
 
@@ -21,7 +21,7 @@
 // dibujo). 06, "El paso del ataque".
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::World::BloodParticle;
 using Client::World::Particle;
 using Client::World::Particles;

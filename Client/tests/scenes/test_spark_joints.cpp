@@ -1,7 +1,7 @@
 #include "Scenes/FaunaJointCreation.h"
 
 #include "Core/Expected.h"
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "Render/Models/OriginalAngles.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Scenes/ActorState.h"
@@ -27,7 +27,7 @@
 // alrededor del NPC 257 (0x5165d1) con las que suelta (0x53a0eb). 06, "Los joints de las familias".
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::Render::Models::OriginalAngleMatrix;
 using Client::Render::Models::OriginalVectorRotate;
 using Client::Scenes::ActorState;

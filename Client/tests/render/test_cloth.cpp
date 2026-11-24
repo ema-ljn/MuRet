@@ -1,5 +1,6 @@
 #include "Render/Models/Cloth.h"
 
+#include "Crt/CrtRandom.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/TextureSlot.h"
 #include "support/ClothVectors.h"
@@ -24,6 +25,7 @@
 // caras, los sprites del brillo y los rand() que saca.
 namespace
 {
+using Client::Crt::CrtRandom;
 using Client::Render::TextureSlot;
 using Client::Render::Models::BoneTransform;
 using Client::Render::Models::Cloth;
@@ -35,7 +37,6 @@ using Client::Render::Models::ClothParticle;
 using Client::Render::Models::ClothShape;
 using Client::Render::Models::ClothWindSource;
 using Client::Render::Models::ClothWorld;
-using Client::Render::Models::CrtRandom;
 using Client::Render::Models::FaceBlendOf;
 using Client::Tests::ClothVectorEvent;
 using Client::Tests::ClothVectorFrame;

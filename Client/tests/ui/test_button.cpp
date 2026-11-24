@@ -1,6 +1,6 @@
 #include "UI/Button.h"
 
-#include "App/WindowState.h"
+#include "Core/PixelSize.h"
 #include "Input/InputState.h"
 #include "Render/SpriteBatch.h"
 #include "Render/Text/FontSet.h"
@@ -19,7 +19,7 @@
 // otro: 0 normal, 1 con el mouse encima, 2 apretado, y el marcado (3 en los de los grupos).
 namespace
 {
-using Client::App::PixelSize;
+using Client::Core::PixelSize;
 using Client::Input::InputState;
 using Client::Render::TextureSlot;
 using Client::Tests::ClickAt;

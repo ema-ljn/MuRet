@@ -1,7 +1,7 @@
 #include "World/SkinShellEffects.h"
 
 #include "Core/Expected.h"
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "Render/Models/OriginalRotation.h"
 #include "World/GameModelEffects.h"
 #include "World/ModelEffects.h"
@@ -31,14 +31,14 @@ float F32(double value)
 constexpr double Tenth = static_cast<double>(std::bit_cast<float>(0x3dcccccdu)); // 0x6b87b8 y 0x6b8a34, 0,1f
 constexpr int Degrees = 360;                                                     // 0x168
 
-float RandomAngle(Render::Models::CrtRandom& random)
+float RandomAngle(Crt::CrtRandom& random)
 {
     return static_cast<float>(random.Next() % Degrees);
 }
 } // namespace
 
 std::optional<std::size_t> CreateSkinShell(const ModelEffectArguments& arguments, ModelEffects& effects,
-                                           Render::Models::CrtRandom& random)
+                                           Crt::CrtRandom& random)
 {
     const auto slot = effects.Begin(arguments);
     if (!slot)

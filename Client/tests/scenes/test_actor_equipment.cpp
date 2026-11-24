@@ -1,9 +1,9 @@
 #include "Scenes/ActorEquipment.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Tables/ItemSetTables.h"
 #include "Data/Tables/ItemTable.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/Skeleton.h"
 #include "Scenes/ActorActions.h"
@@ -31,7 +31,7 @@
 // del ASM cotejado con el PE c32bbd5f; ninguno de una corrida.
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::Scenes::ActorItemPart;
 using Client::Scenes::ActorState;
 using Client::Scenes::NoItemModel;

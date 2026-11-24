@@ -1,7 +1,7 @@
 #pragma once
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Core/PixelSize.h"
 #include "Data/Tables/ItemTable.h"
 #include "Data/Tables/GateTable.h"
 #include "Data/Tables/SkillTable.h"
@@ -19,9 +19,13 @@
 #include <span>
 #include <string>
 
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
+} // namespace Client::Crt
+
+namespace Client::Render::Models
+{
 class IModelLibrary;
 struct Skeleton;
 } // namespace Client::Render::Models
@@ -50,7 +54,7 @@ struct HeroMovementInput
 struct HeroMovementContext
 {
     WorldState& world;
-    Render::Models::CrtRandom& random;
+    Crt::CrtRandom& random;
     const Render::Models::Skeleton* playerSkeleton = nullptr;
     const Data::Tables::ItemTable* items = nullptr;
     const Data::Tables::SkillTable* skills = nullptr;
@@ -104,7 +108,7 @@ struct HeroMovementContext
     // 0x555190, para esos avisos: el medidor del texto y la pantalla. Sin medidor, cortan. La pantalla es también la
     // del SetCursorPos de SendMove con 0x78abb00 (CL9 hito 11).
     const Render::Text::ITextMeasure* measure = nullptr;
-    App::PixelSize screen{640, 480};
+    Core::PixelSize screen{640, 480};
     // La biblioteca base para acciones de personajes transformados que no estén en FaunaResources.
     const Render::Models::IModelLibrary* models = nullptr;
     // 0x599ef0 → 0x61c210/0x61c170: opciones y macros antes de entrar a Castle Siege o Land of Trial.

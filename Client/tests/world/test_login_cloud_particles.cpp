@@ -1,6 +1,6 @@
 #include "World/Particles.h"
 
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "Render/Models/OriginalRotation.h"
 
 #include "support/ParticleDrawRecorder.h"
@@ -20,7 +20,7 @@
 // obtenidos ejecutando el original. Ver 06 § Los efectos del login, neblina.
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::Tests::DrawOneParticle;
 using Client::Tests::RecordedParticleDraw;
 using Client::World::Particle;

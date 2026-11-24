@@ -1,10 +1,10 @@
 #include "Scenes/SkillTooltip.h"
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Core/PixelSize.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Tables/SkillTable.h"
 #include "Data/Text/TextTable.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/SpriteBatch.h"
 #include "Scenes/ActorState.h"
@@ -35,15 +35,15 @@
 // ry es 1. Nadie abre el registro propio alrededor, como en 0x5f7bc0: su cierre gasta 3.848 rand().
 namespace
 {
+using Client::Crt::CrtRandom;
 using Client::Render::SpriteBatch;
-using Client::Render::Models::CrtRandom;
 using Client::Render::Models::OwnRecordCloseRandoms;
 using Client::Scenes::GameHudContext;
 using Client::Scenes::TooltipLines;
 using Client::Scenes::WorldState;
 
-constexpr Client::App::PixelSize Screen640{640, 480};
-constexpr Client::App::PixelSize Screen800{800, 600};
+constexpr Client::Core::PixelSize Screen640{640, 480};
+constexpr Client::Core::PixelSize Screen800{800, 600};
 // Un acceso de Skill.bmd que cierra en 0 (0x3c bytes).
 constexpr int SkillAccess = 60;
 // Los de toda skill: 0x5513d0, 0x5516e0, 0x551c70, 0x5519f0 y el acceso en línea de su entrada.

@@ -1,6 +1,6 @@
 #include "Scenes/SelectionInventory.h"
 
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/NpcWindowState.h"
 #include "Scenes/OwnCharacterRecord.h"
@@ -34,7 +34,7 @@ TEST(SelectionInventoryTest, TheNpcGridsClearOnlyTheirTypeAndOccupation)
     npc.jewels.count = 10;
     npc.field6e5798 = 1;
     npc.jewels.bundles.rows.push_back({1, 9, 2});
-    Client::Render::Models::CrtRandom random(42);
+    Client::Crt::CrtRandom random(42);
     auto expected = random;
     expected.Discard(Client::Render::Models::OwnRecordCloseRandoms);
     Client::Scenes::ClearSelectionInventory(*world, random);

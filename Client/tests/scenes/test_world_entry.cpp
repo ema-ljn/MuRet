@@ -5,6 +5,7 @@
 #include "Core/ILogSink.h"
 #include "Core/Expected.h"
 #include "Core/Log.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Models/PlayerModels.h"
 #include "Data/Tables/GateRecord.h"
 #include "Data/Tables/GateTable.h"
@@ -79,7 +80,7 @@
 
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::Scenes::ActorState;
 using Client::Scenes::ApplyWorldEntry;
 using Client::Scenes::SettleWorldEntry;

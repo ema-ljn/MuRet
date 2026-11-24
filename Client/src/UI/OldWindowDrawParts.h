@@ -1,6 +1,6 @@
 #pragma once
 
-#include "App/WindowState.h"
+#include "Core/PixelSize.h"
 #include "UI/OldControls.h"
 #include "UI/OldWindowBase.h"
 #include "UI/OldWindowDraw.h"
@@ -31,8 +31,8 @@ namespace Client::UI::OldDraw
 [[nodiscard]] std::int32_t Truncate(double value);
 
 // rx y ry (0x5762ea8 y 0x5762eac): W / 640 y H / 480 en float. Sin pantalla, 1.
-[[nodiscard]] double RatioX(App::PixelSize screen);
-[[nodiscard]] double RatioY(App::PixelSize screen);
+[[nodiscard]] double RatioX(Core::PixelSize screen);
+[[nodiscard]] double RatioY(Core::PixelSize screen);
 
 [[nodiscard]] float ToFloat(std::int32_t value);
 

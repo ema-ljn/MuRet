@@ -3,9 +3,10 @@
 #include "Scenes/CharacterSelectScene.h"
 
 #include "App/SessionState.h"
-#include "App/WindowState.h"
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
+#include "Core/PixelSize.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Models/Bmd.h"
 #include "Data/Models/Model.h"
 #include "Data/Models/PlayerModels.h"
@@ -112,8 +113,8 @@
 // está en GoldenCharacterDrawing.
 namespace
 {
-using Client::App::PixelSize;
 using Client::App::SessionState;
+using Client::Core::PixelSize;
 using Client::Data::Models::Mesh;
 using Client::Data::Models::Model;
 using Client::Input::InputState;
@@ -1209,7 +1210,7 @@ TEST(CharacterSelectSceneTest, TheCommonStepVisitsLivingActorsOutsideTheList)
     other.alive = true;
     other.type = 0xf1;
     constexpr std::uint32_t Seed = 16;
-    cloth.random = Client::Render::Models::CrtRandom(Seed);
+    cloth.random = Client::Crt::CrtRandom(Seed);
     cloth.logicSteps = 77;
 
     tested.Step();
@@ -1480,7 +1481,7 @@ TEST(CharacterSelectSceneTest, ThePreviewSortsBeforeBothGlobalWindsAndTheStepCou
     Harness tested(true, false, false, &selection, &world, &cloth);
     ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoiceWith({}));
     constexpr std::uint32_t Seed = 16;
-    cloth.random = Client::Render::Models::CrtRandom(Seed);
+    cloth.random = Client::Crt::CrtRandom(Seed);
     cloth.logicSteps = 41;
     auto& preview = selection.PreviewActor();
     preview.animation.action = 1;
@@ -1616,7 +1617,7 @@ TEST(CharacterSelectSceneTest, ASelectionHelperFailureKeepsItsPrefixBeforeThePoo
     spark.subtype = Client::World::RavenSparkSubtype;
     spark.life = 7;
     constexpr std::uint32_t Seed = 16;
-    cloth.random = Client::Render::Models::CrtRandom(Seed);
+    cloth.random = Client::Crt::CrtRandom(Seed);
     cloth.logicSteps = 41;
 
     tested.Step();
@@ -1654,7 +1655,7 @@ TEST(CharacterSelectSceneTest, AParticleBindingFailureKeepsItsPrefixAndSkipsClot
     selection.PreviewActor().animation.frame = 0;
     selection.PreviewActor().headTurn = {};
     constexpr std::uint32_t Seed = 16;
-    cloth.random = Client::Render::Models::CrtRandom(Seed);
+    cloth.random = Client::Crt::CrtRandom(Seed);
     cloth.logicSteps = 41;
 
     tested.Step();
@@ -2641,7 +2642,7 @@ TEST(CharacterSelectSceneTest, TheListRunsTheTailOfTheGameWithTheLightOfSceneFou
 }
 
 // Los rand() que se sacaron de `before` hasta `after` (el LCG de la CRT), hasta 100.000.
-int DrawsBetween(Client::Render::Models::CrtRandom before, std::uint32_t after)
+int DrawsBetween(Client::Crt::CrtRandom before, std::uint32_t after)
 {
     for (int draws = 0; draws <= 100000; ++draws)
     {
@@ -2676,13 +2677,13 @@ TEST(CharacterSelectSceneTest, TheHeroOfTheListClosesTheOwnRecordForItsColor)
     ASSERT_FALSE(tested.scene->Failure().has_value()) << *tested.scene->Failure();
 
     world.Runtime().ownRecordDepth = 1;
-    const Client::Render::Models::CrtRandom beforeHeld = cloth.random;
+    const Client::Crt::CrtRandom beforeHeld = cloth.random;
     drawAt(OriginalFrameTime * 2);
     const int held = DrawsBetween(beforeHeld, cloth.random.State());
     EXPECT_EQ(world.Runtime().ownRecordDepth, 1);
 
     world.Runtime().ownRecordDepth = 0;
-    const Client::Render::Models::CrtRandom beforeClosed = cloth.random;
+    const Client::Crt::CrtRandom beforeClosed = cloth.random;
     drawAt(OriginalFrameTime * 3);
     const int closed = DrawsBetween(beforeClosed, cloth.random.State());
 

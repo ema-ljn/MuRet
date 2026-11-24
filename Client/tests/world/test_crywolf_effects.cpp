@@ -1,6 +1,6 @@
 #include "World/GameModelEffects.h"
 
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
 #include "World/TerrainLighting.h"
@@ -26,7 +26,7 @@ TEST(CrywolfEffectsTest, TheCraterFadesBeforeItsLastCommonStep)
     crater.transform.position = {1000, 2000, 30};
     crater.start = {3, 3, 0};
     crater.alpha = 0.75f;
-    Client::Render::Models::CrtRandom random(7);
+    Client::Crt::CrtRandom random(7);
     const auto stepped =
         Client::World::StepGameModelEffect(crater, nullptr, *particles, 0, random, nullptr,
                                            Client::World::ModelEffectStepServices{.lighting = lighting.get()});
@@ -48,7 +48,7 @@ TEST(CrywolfEffectsTest, TheAttackWaveGrowsAndFadesWithoutLosingItsColor)
     wave.life = 5;
     wave.transform.scale = 3;
     wave.light = {1, 0.6f, 0.4f};
-    Client::Render::Models::CrtRandom random(7);
+    Client::Crt::CrtRandom random(7);
     const auto stepped = Client::World::StepGameModelEffect(wave, nullptr, *particles, 0, random);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(wave.life, 4);
@@ -73,7 +73,7 @@ TEST(CrywolfEffectsTest, TheFireworkEmitterKeepsCallerAndAllocatedChildRandoms)
         emitter.life = 75;
         emitter.light = glm::vec3(1);
         emitter.transform.position = {1000, 2000, 100};
-        Client::Render::Models::CrtRandom random(0);
+        Client::Crt::CrtRandom random(0);
         std::vector<int> sounds;
         std::vector<std::pair<int, glm::vec3>> soundsAt;
         const auto stepped = Client::World::StepGameModelEffect(
@@ -112,7 +112,7 @@ TEST(CrywolfEffectsTest, TheLastFireworkStillSoundsAndDiesWithTheParticlesFull)
     firework.life = 1;
     firework.light = glm::vec3(1);
     firework.transform.position = {1000, 2000, 100};
-    Client::Render::Models::CrtRandom random(0);
+    Client::Crt::CrtRandom random(0);
     std::vector<int> sounds;
     std::vector<std::pair<int, glm::vec3>> soundsAt;
     const auto stepped = Client::World::StepGameModelEffect(
@@ -143,7 +143,7 @@ TEST(CrywolfEffectsTest, TheLastFireworkFillsTheOnlyParticleRoomAndKeepsTheRemai
     firework.life = 1;
     firework.light = glm::vec3(1);
     firework.transform.position = {1000, 2000, 100};
-    Client::Render::Models::CrtRandom random(0);
+    Client::Crt::CrtRandom random(0);
     std::vector<int> sounds;
     const auto stepped = Client::World::StepGameModelEffect(
         firework, nullptr, *particles, 0, random, nullptr,

@@ -3,8 +3,8 @@
 #include "World/SiegeVertexEffects.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Models/PlayerModels.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/ArrowEffects.h"
@@ -39,7 +39,7 @@ namespace Client::Scenes
 {
 namespace
 {
-using Render::Models::CrtRandom;
+using Crt::CrtRandom;
 using Render::Models::LogicalAccess;
 
 constexpr std::uint16_t PlayerType = Data::Models::PlayerSkeletonModel;

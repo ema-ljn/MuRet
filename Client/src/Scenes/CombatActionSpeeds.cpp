@@ -1,6 +1,6 @@
 #include "Scenes/CombatActionSpeeds.h"
 
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/PlayerActionSpeeds.h"
 #include "Scenes/WorldEntry.h"
@@ -64,7 +64,7 @@ void RefreshCombatActionSpeeds(const WorldEntryResources& resources)
 {
     RefreshCombatActionSpeeds(resources.world, resources.cloth.random);
 }
-void RefreshCombatActionSpeeds(WorldState& world, Render::Models::CrtRandom& random)
+void RefreshCombatActionSpeeds(WorldState& world, Crt::CrtRandom& random)
 {
     float attack = 0.0f;
     float magic = 0.0f;

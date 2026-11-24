@@ -1,10 +1,10 @@
 #include "Scenes/GameLeaves.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainHeights.h"
 #include "GameLogic/MovementSpeed.h"
-#include "Render/Models/Cloth.h"
 #include "Scenes/ActorState.h"
 #include "World/ILeafWaveEvaluator.h"
 #include "World/LeafWeather.h"
@@ -23,7 +23,7 @@
 
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 
 std::uint32_t StateAfter(std::size_t draws)
 {

@@ -1,5 +1,5 @@
 #include "Core/Expected.h"
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Scenes/ActorState.h"
@@ -186,7 +186,7 @@ Core::Expected<void, std::string> FollowTheOwnerBone(JointState& joint, const Jo
 } // namespace
 
 Core::Expected<void, std::string> CreateSpiralJoint(JointState& joint, const World::FishEffectRequest& request,
-                                                    Render::Models::CrtRandom& random)
+                                                    Crt::CrtRandom& random)
 {
     // 0x5346d8..0x534765: lo común, con la z 150 más alta y el camino (+0x24) en la posición.
     constexpr double Lift = 150.0; // 0x6b87ac

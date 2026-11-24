@@ -1,6 +1,7 @@
 #include "Scenes/GameModels.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Models/ModelFiles.h"
 #include "Data/Models/Model.h"
 #include "Core/ILogSink.h"
@@ -11,7 +12,6 @@
 #include "Render/Billboard.h"
 #include "Render/ITextureStore.h"
 #include "Render/ModelBatch.h"
-#include "Render/Models/Cloth.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/FaunaObject.h"
@@ -187,7 +187,7 @@ TEST_F(GameTailTextureTest, SupportedFaunaJointBindingsResolveToTheirUploadedNat
         glm::vec3 first = owner.position;
         glm::vec3 second = owner.previousPosition;
         glm::vec3 angles{};
-        Client::Render::Models::CrtRandom random(1);
+        Client::Crt::CrtRandom random(1);
         const Client::World::FishEffectRequest request{.type = probe.type,
                                                        .firstPosition = first,
                                                        .secondPosition = second,

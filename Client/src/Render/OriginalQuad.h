@@ -1,6 +1,6 @@
 #pragma once
 
-#include "App/WindowState.h"
+#include "Core/PixelSize.h"
 #include "Render/QuadCorner.h"
 #include "Render/TextureSlot.h"
 
@@ -36,5 +36,5 @@ struct OriginalQuad
 // del de arriba sin redondearlo antes, como la x87 (FST y FLD ST0 en 0x621beb..0x621bf3): en
 // 1280 × 1024 el fondo 0x15 del login termina en 287,99997 y no en 288. 0x621aa0, el quad sin
 // textura, hace las mismas cuentas con las dos banderas prendidas.
-[[nodiscard]] QuadCorners FanCorners(const OriginalQuad& quad, App::PixelSize screen);
+[[nodiscard]] QuadCorners FanCorners(const OriginalQuad& quad, Core::PixelSize screen);
 } // namespace Client::Render

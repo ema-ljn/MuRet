@@ -5,6 +5,7 @@
 #include "Core/IClock.h"
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Models/Model.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainHeights.h"
@@ -81,7 +82,7 @@ constexpr std::size_t TailDraws = 3;
 
 std::uint32_t AfterRandoms(std::size_t count)
 {
-    Client::Render::Models::CrtRandom random{1};
+    Client::Crt::CrtRandom random{1};
     for (std::size_t call = 0; call < count; ++call)
         static_cast<void>(random.Next());
     return random.State();
@@ -543,7 +544,7 @@ TEST_F(MonsterDrawingTest, TheArchangelsMarkTheFloorUnderThem)
         SCOPED_TRACE(value.map);
         m_world = std::make_unique<Client::Scenes::WorldState>();
         SetUp();
-        m_clothWorld.random = Client::Render::Models::CrtRandom{1};
+        m_clothWorld.random = Client::Crt::CrtRandom{1};
         m_world->Map().terrain.heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
         m_world->Runtime().map = value.map;
         ActorState& archangel = Monster(6, Spider, value.monster);
@@ -667,7 +668,7 @@ TEST_F(MonsterDrawingTest, TheBodyLeadsToTheKalimaAndSiegeHelpers)
         SCOPED_TRACE(map);
         m_world = std::make_unique<Client::Scenes::WorldState>();
         SetUp();
-        m_clothWorld.random = Client::Render::Models::CrtRandom{1};
+        m_clothWorld.random = Client::Crt::CrtRandom{1};
         m_world->Runtime().map = map;
         ActorState& gate = Monster(4, 0xc5, 152);
         gate.animation.action = 1;
@@ -680,7 +681,7 @@ TEST_F(MonsterDrawingTest, TheBodyLeadsToTheKalimaAndSiegeHelpers)
     }
     m_world = std::make_unique<Client::Scenes::WorldState>();
     SetUp();
-    m_clothWorld.random = Client::Render::Models::CrtRandom{1};
+    m_clothWorld.random = Client::Crt::CrtRandom{1};
     m_world->Runtime().map = 30;
     ActorState& castle = Monster(4, 0x1a1, 3);
     castle.byte42c = 1;
@@ -701,20 +702,20 @@ TEST_F(MonsterDrawingTest, The1a4DiesInStonesOverItsPosedBody)
     std::uint32_t seed = 1;
     for (;; ++seed)
     {
-        Client::Render::Models::CrtRandom probe{seed};
+        Client::Crt::CrtRandom probe{seed};
         for (int draw = 0; draw < 3; ++draw)
             static_cast<void>(probe.Next());
         if (probe.Next() % 45 == 0)
             break;
     }
-    m_clothWorld.random = Client::Render::Models::CrtRandom{seed};
+    m_clothWorld.random = Client::Crt::CrtRandom{seed};
     ActorState& golem = Monster(4, 0x1a4, 0x1a4);
     golem.animation.action = 6;
     const auto drawn = Draw(Pass());
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
     EXPECT_FALSE(golem.alive);
     EXPECT_EQ(m_world->Runtime().lastSoundId, 0x209);
-    Client::Render::Models::CrtRandom expected{seed};
+    Client::Crt::CrtRandom expected{seed};
     for (int draw = 0; draw < 3; ++draw)
         static_cast<void>(expected.Next());
     std::size_t stones = 0;
@@ -772,7 +773,7 @@ TEST_F(MonsterDrawingTest, TheLorenciaFairyNpcDrawsTwoSpinningFlaresAndDrawsItsJ
 TEST_F(MonsterDrawingTest, TheFairyLeavesItsBeamAfterItsThreeRandoms)
 {
     // Con la semilla 51 el cuarto rand() es 17250: % 30 da 0, y salen los tres % 100 del punto de partida.
-    m_clothWorld.random = Client::Render::Models::CrtRandom{51};
+    m_clothWorld.random = Client::Crt::CrtRandom{51};
     Monster(6, FairyNpc, 237).byte88 = 4;
 
     const auto result = Draw(Pass());
@@ -791,7 +792,7 @@ TEST_F(MonsterDrawingTest, TheFairyLeavesItsBeamAfterItsThreeRandoms)
     EXPECT_EQ(beam.maximumCount, 8);
     EXPECT_EQ(beam.light, glm::vec3(std::bit_cast<float>(0x3ecccccdu), std::bit_cast<float>(0x3e99999au),
                                     std::bit_cast<float>(0x3e4ccccdu)));
-    Client::Render::Models::CrtRandom expected{51};
+    Client::Crt::CrtRandom expected{51};
     for (int draw = 0; draw < 7; ++draw)
         static_cast<void>(expected.Next());
     EXPECT_EQ(m_clothWorld.random.State(), expected.State());
@@ -818,7 +819,7 @@ TEST_F(MonsterDrawingTest, AModelCaseDrawsItsSpritesAndSkipsTheHelperChain)
 // 0x50c37e: el +0x376 0x4b deja el fuego 0x5d9/0 de 0,3 en el hueso 18 (tres rand(), 0x541172) y sigue con su brillo.
 TEST_F(MonsterDrawingTest, The0x4bLightsItsFireOnBone18)
 {
-    m_clothWorld.random = Client::Render::Models::CrtRandom{1};
+    m_clothWorld.random = Client::Crt::CrtRandom{1};
     Monster(0, Spider, 0x4b);
     auto particles = std::make_unique<Client::World::Particles>();
     GameCharacterPass pass = Pass();
@@ -853,7 +854,7 @@ TEST_F(MonsterDrawingTest, UnportedBranchesCutWithTheirAddress)
         SCOPED_TRACE(value.address);
         m_world = std::make_unique<Client::Scenes::WorldState>();
         SetUp();
-        m_clothWorld.random = Client::Render::Models::CrtRandom{1};
+        m_clothWorld.random = Client::Crt::CrtRandom{1};
         Monster(0, value.type, value.monster);
         const auto result = Draw(Pass());
         ASSERT_FALSE(result.HasValue());
@@ -869,7 +870,7 @@ TEST_F(MonsterDrawingTest, UnportedBranchesCutWithTheirAddress)
 // frame. Sin la tabla, corta.
 TEST_F(MonsterDrawingTest, TheSpiritStatueLeavesItsStonesInTheFrameTable)
 {
-    m_clothWorld.random = Client::Render::Models::CrtRandom{1};
+    m_clothWorld.random = Client::Crt::CrtRandom{1};
     Monster(0, 0x18e, 0x21);
     const auto cut = Draw(Pass());
     ASSERT_FALSE(cut.HasValue());
@@ -878,7 +879,7 @@ TEST_F(MonsterDrawingTest, TheSpiritStatueLeavesItsStonesInTheFrameTable)
 
     TearDown();
     SetUp();
-    m_clothWorld.random = Client::Render::Models::CrtRandom{1};
+    m_clothWorld.random = Client::Crt::CrtRandom{1};
     Monster(0, 0x18e, 0x21);
     GameCharacterPass pass = Pass();
     pass.effects = &m_world->Map().effects;
@@ -931,7 +932,7 @@ TEST_F(MonsterDrawingTest, TheGlowingMonstersAddTheirShinePasses)
             SCOPED_TRACE(testing::Message() << "mapa " << map << ", +0x376 " << value.monster);
             m_world = std::make_unique<Client::Scenes::WorldState>();
             SetUp();
-            m_clothWorld.random = Client::Render::Models::CrtRandom{1};
+            m_clothWorld.random = Client::Crt::CrtRandom{1};
             m_world->Runtime().map = map;
             Monster(0, value.type, value.monster);
 
@@ -978,7 +979,7 @@ TEST_F(MonsterDrawingTest, AFadingShineDarkensEachMeshInPlace)
         SCOPED_TRACE(value.monster);
         m_world = std::make_unique<Client::Scenes::WorldState>();
         SetUp();
-        m_clothWorld.random = Client::Render::Models::CrtRandom{1};
+        m_clothWorld.random = Client::Crt::CrtRandom{1};
         Monster(0, Spider, value.monster).alpha = 0.5f;
 
         const auto result = Draw(Pass());
@@ -1007,7 +1008,7 @@ TEST_F(MonsterDrawingTest, TheMonster0x37WearsItsClothOutsideChaosCastle)
         SCOPED_TRACE(value.map);
         m_world = std::make_unique<Client::Scenes::WorldState>();
         SetUp();
-        m_clothWorld.random = Client::Render::Models::CrtRandom{1};
+        m_clothWorld.random = Client::Crt::CrtRandom{1};
         m_world->Runtime().map = value.map;
         ActorState& monster = Monster(3, Spider, 0x37);
         std::vector<Client::Scenes::CharacterCloth> cloths(4);
@@ -1073,7 +1074,7 @@ TEST_F(MonsterDrawingTest, ThePhoenixDrawsItsWiderBodiesItsSecondModelAndItsClot
         SCOPED_TRACE(map);
         m_world = std::make_unique<Client::Scenes::WorldState>();
         SetUp();
-        m_clothWorld.random = Client::Render::Models::CrtRandom{1};
+        m_clothWorld.random = Client::Crt::CrtRandom{1};
         m_world->Runtime().map = map;
         ActorState& phoenix = Monster(3, Phoenix, 0x4d);
         std::vector<Client::Scenes::CharacterCloth> cloths(4);
@@ -1164,7 +1165,7 @@ TEST_F(MonsterDrawingTest, TheCrustsWearTheirGridClothWithTheirTexture)
             SCOPED_TRACE(testing::Message() << "mapa " << map << ", +0x376 " << value.monster);
             m_world = std::make_unique<Client::Scenes::WorldState>();
             SetUp();
-            m_clothWorld.random = Client::Render::Models::CrtRandom{1};
+            m_clothWorld.random = Client::Crt::CrtRandom{1};
             m_world->Runtime().map = map;
             ActorState& crust = Monster(5, Spider, value.monster);
             std::vector<Client::Scenes::CharacterCloth> cloths(6);
@@ -1254,7 +1255,7 @@ TEST_F(MonsterDrawingTest, The0x2aCarriesTheHeadAndThePrincessFromTheWingsSlot)
         SetUp();
         m_models.SetBoneCount(64);
         m_models.SetActionCount(2);
-        m_clothWorld.random = Client::Render::Models::CrtRandom{1};
+        m_clothWorld.random = Client::Crt::CrtRandom{1};
         m_world->Runtime().map = map;
         ActorState& carrier = Monster(4, Spider, 0x2a);
         carrier.scale = 1.25f;
@@ -1317,7 +1318,7 @@ TEST_F(MonsterDrawingTest, TheBloodCastleStatuesHoldTheirWeaponInPlace)
             m_world = std::make_unique<Client::Scenes::WorldState>();
             SetUp();
             m_models.SetActionCount(2);
-            m_clothWorld.random = Client::Render::Models::CrtRandom{1};
+            m_clothWorld.random = Client::Crt::CrtRandom{1};
             m_world->Runtime().map = map;
             ActorState& statue = Monster(6, Spider, value.monster);
             const std::size_t before = LiveSprites().size();
@@ -1342,7 +1343,7 @@ TEST_F(MonsterDrawingTest, TheBloodCastleStatuesHoldTheirWeaponInPlace)
             EXPECT_NEAR(vertices[6].position.z, expected.z, 1e-3f);
             EXPECT_NEAR(root[3].y, value.translation.y, 1e-3f);
             // El cierre de +0x38e, el de 0x509a92 y los de los sprites del modelo; después, los tres de la cola.
-            Client::Render::Models::CrtRandom expectedRandom{1};
+            Client::Crt::CrtRandom expectedRandom{1};
             static_cast<void>(expectedRandom.Next());
             static_cast<void>(expectedRandom.Next());
             std::size_t sprites = 0;
@@ -1380,7 +1381,7 @@ TEST_F(MonsterDrawingTest, TheStatueStaffAndSwordReadAnActionTheirModelLacks)
 
     m_world = std::make_unique<Client::Scenes::WorldState>();
     SetUp();
-    m_clothWorld.random = Client::Render::Models::CrtRandom{1};
+    m_clothWorld.random = Client::Crt::CrtRandom{1};
     Monster(6, Spider, 0x86);
     const auto bow = Draw(Pass());
     ASSERT_TRUE(bow.HasValue()) << bow.Error();
@@ -1420,7 +1421,7 @@ TEST_F(MonsterDrawingTest, The0x45LightsItsNineFlaresAndItsThreeSparks)
         SCOPED_TRACE(map);
         m_world = std::make_unique<Client::Scenes::WorldState>();
         SetUp();
-        m_clothWorld.random = Client::Render::Models::CrtRandom{1};
+        m_clothWorld.random = Client::Crt::CrtRandom{1};
         m_sprites.Clear();
         m_world->Runtime().map = map;
         Monster(3, ModelOf69, 0x45);
@@ -1437,7 +1438,7 @@ TEST_F(MonsterDrawingTest, The0x45LightsItsNineFlaresAndItsThreeSparks)
         EXPECT_EQ(sparks, 3);
         // El cuerpo y la sombra antes.
         EXPECT_EQ(m_batch.Vertices().size(), 6u);
-        Client::Render::Models::CrtRandom random{1};
+        Client::Crt::CrtRandom random{1};
         const double x =
             static_cast<double>(random.Next() % 30 + 70) * static_cast<double>(std::bit_cast<float>(0x3c23d70au));
         const auto sprites = LiveSprites();
@@ -1455,7 +1456,7 @@ TEST_F(MonsterDrawingTest, The0x45LightsItsNineFlaresAndItsThreeSparks)
     // Entre frames del original, los nueve flare01 sin las partículas, sobre una copia del rand().
     m_world = std::make_unique<Client::Scenes::WorldState>();
     SetUp();
-    m_clothWorld.random = Client::Render::Models::CrtRandom{1};
+    m_clothWorld.random = Client::Crt::CrtRandom{1};
     m_sprites.Clear();
     Monster(3, ModelOf69, 0x45);
     auto particles = std::make_unique<Client::World::Particles>();
@@ -1537,7 +1538,7 @@ TEST_F(MonsterDrawingTest, The0x46LightsOneFlareOnItsBone20)
         SCOPED_TRACE(map);
         m_world = std::make_unique<Client::Scenes::WorldState>();
         SetUp();
-        m_clothWorld.random = Client::Render::Models::CrtRandom{1};
+        m_clothWorld.random = Client::Crt::CrtRandom{1};
         m_sprites.Clear();
         m_world->Runtime().map = map;
         Monster(3, Spider, 0x46);
@@ -1569,7 +1570,7 @@ TEST_F(MonsterDrawingTest, AMonsterWithARavenDrawsItAfterItsTail)
 
     m_world = std::make_unique<Client::Scenes::WorldState>();
     SetUp();
-    m_clothWorld.random = Client::Render::Models::CrtRandom{1};
+    m_clothWorld.random = Client::Crt::CrtRandom{1};
     m_world->Map().terrain.heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
     Monster(3, Spider, 3).darkSpirit.emplace();
     const Client::World::TerrainPolygon everything{.everything = true};
@@ -1612,7 +1613,7 @@ TEST_F(MonsterDrawingTest, TheBoneSparksOf0x16eGoOverEachBoneOutsideTheTwoGaps)
     m_batch.Begin(Client::Render::Pass3D{});
     sparks.level = 1;
     sparks.animation.action = 3;
-    m_clothWorld.random = Client::Render::Models::CrtRandom{1};
+    m_clothWorld.random = Client::Crt::CrtRandom{1};
 
     const auto missing = Draw(Pass());
 
@@ -1663,7 +1664,7 @@ TEST_F(MonsterDrawingTest, KundunFallingBetweenOriginalFramesLeavesTheJointTable
     GameCharacterPass pass = Pass();
     pass.cameraShake = &shake;
     pass.originalFrames = 0;
-    const Client::Render::Models::CrtRandom before = m_clothWorld.random;
+    const Client::Crt::CrtRandom before = m_clothWorld.random;
 
     const auto between = Draw(pass);
 
@@ -1929,7 +1930,7 @@ TEST_F(MonsterPartsTest, TheTownNpcsDrawTheirPartsFromTheBootsToTheHelm)
             SCOPED_TRACE(std::to_string(npc.type) + " en el mapa " + std::to_string(map));
             m_world->Runtime().map = map;
             m_batch.Begin(Client::Render::Pass3D{});
-            m_clothWorld.random = Client::Render::Models::CrtRandom{1};
+            m_clothWorld.random = Client::Crt::CrtRandom{1};
             Npc(npc);
 
             const auto result = Draw(Pass());
@@ -2016,7 +2017,7 @@ TEST_F(MonsterPartsTest, ALongNameOverTheGuildWordDrawsAsUsual)
         SCOPED_TRACE(map);
         m_world->Runtime().map = map;
         m_batch.Begin(Client::Render::Pass3D{});
-        m_clothWorld.random = Client::Render::Models::CrtRandom{1};
+        m_clothWorld.random = Client::Crt::CrtRandom{1};
         ActorState& npc = Npc(DressedNpcs[1]);
         npc.word1f2 = 0x6e61;
 

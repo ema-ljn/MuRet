@@ -1,7 +1,7 @@
 #include "Render/Gl/GlFramebuffer.h"
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Core/PixelSize.h"
 #include "Platform/GlLoader.h"
 #include "Render/Gl/GlName.h"
 
@@ -71,9 +71,9 @@ int GlFramebuffer::Height() const
     return m_height;
 }
 
-App::PixelSize GlFramebuffer::Size() const
+Core::PixelSize GlFramebuffer::Size() const
 {
-    return App::PixelSize{m_width, m_height};
+    return Core::PixelSize{m_width, m_height};
 }
 
 // GL_PACK_ALIGNMENT queda en 4: una fila RGBA mide un múltiplo de 4 y no lleva relleno.

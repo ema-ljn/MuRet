@@ -1,6 +1,6 @@
 #pragma once
 
-#include "App/WindowState.h"
+#include "Core/PixelSize.h"
 #include "Data/Text/TextTable.h"
 #include "Input/InputState.h"
 #include "Render/SpriteBatch.h"
@@ -33,7 +33,7 @@ struct SelectionBarLayout
 
 // 0x65f4b0 con 0x63e9e0: x = 22 e y = −ftol(H · −0,945f) − 54, con el producto en la x87; los botones
 // de 54 × 30 en (22, y), (77, y), (W − 131, y) y (W − 76, y).
-[[nodiscard]] SelectionBarLayout LayoutSelectionBar(App::PixelSize screen);
+[[nodiscard]] SelectionBarLayout LayoutSelectionBar(Core::PixelSize screen);
 
 // El clic que atiende 0x63eb90, uno por paso, en este orden.
 enum class SelectionBarClick : std::uint8_t
@@ -63,15 +63,15 @@ public:
     void Close() override;
     [[nodiscard]] bool IsOpen() const override;
     // La barra (`bar` de LayoutSelectionBar).
-    [[nodiscard]] Rect Bounds(App::PixelSize screen) const override;
+    [[nodiscard]] Rect Bounds(Core::PixelSize screen) const override;
 
     // 0x63c490 en los cuatro botones y, con el foco, 0x63eb90: el que tuvo un clic. Sin el mouse
     // (una ventana arriba, 0x65fc30), los botones siguen con su estado, sin encima ni clic.
-    std::optional<SelectionBarClick> Step(const Input::InputState& input, App::PixelSize screen, NewUiTurn turn = {});
+    std::optional<SelectionBarClick> Step(const Input::InputState& input, Core::PixelSize screen, NewUiTurn turn = {});
 
     // El adorno y la franja, el aviso del servidor (+0x511, `serverNotice`), el texto 1710, los 436
     // y 437 con la cuenta bloqueada y los cuatro botones, con la mezcla normal.
-    void Draw(Render::SpriteBatch& sprites, Scenes::ITextDrawer& text, App::PixelSize screen,
+    void Draw(Render::SpriteBatch& sprites, Scenes::ITextDrawer& text, Core::PixelSize screen,
               std::string_view serverNotice = {});
 
     [[nodiscard]] const Button& CreateButton() const;
@@ -79,7 +79,7 @@ public:
     [[nodiscard]] const Button& DeleteButton() const;
 
 private:
-    void Place(App::PixelSize screen);
+    void Place(Core::PixelSize screen);
 
     TextureSizes m_sizes;
     const Data::Text::TextTable* m_texts;

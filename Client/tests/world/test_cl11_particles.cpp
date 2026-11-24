@@ -1,7 +1,7 @@
 #include "World/Particles.h"
 
 #include "Core/Expected.h"
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Render/Models/RoundedMath.h"
 #include "World/EffectParticleKernels.h"
@@ -38,7 +38,7 @@
 // contra Client::Tests::AfterDraws.
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::Render::Models::RoundedCos;
 using Client::Render::Models::RoundedSin;
 using Client::Tests::AfterDraws;

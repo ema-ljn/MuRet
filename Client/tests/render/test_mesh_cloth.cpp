@@ -1,5 +1,6 @@
 #include "Render/Models/Cloth.h"
 
+#include "Crt/CrtRandom.h"
 #include "Data/Models/Model.h"
 #include "Render/Models/HalfLifeMath.h"
 
@@ -15,12 +16,12 @@
 // ASM de c32bbd5f, sin ejecutar el original (08 P-C330).
 namespace
 {
+using Client::Crt::CrtRandom;
 using Client::Render::Models::BoneTransform;
 using Client::Render::Models::Cloth;
 using Client::Render::Models::ClothBody;
 using Client::Render::Models::ClothSpring;
 using Client::Render::Models::ClothWorld;
-using Client::Render::Models::CrtRandom;
 
 constexpr std::int32_t Bone = 0x12;
 constexpr std::uint32_t StrongGravity = 0x400;

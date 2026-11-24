@@ -1,6 +1,6 @@
 #include "UI/LoginWindow.h"
 
-#include "App/WindowState.h"
+#include "Core/PixelSize.h"
 #include "Input/InputEvent.h"
 #include "Input/InputState.h"
 #include "Input/Key.h"
@@ -27,7 +27,7 @@
 // sintéticas de los fixtures.
 namespace
 {
-using Client::App::PixelSize;
+using Client::Core::PixelSize;
 using Client::Input::InputState;
 using Client::Input::Key;
 using Client::Tests::ClickAt;

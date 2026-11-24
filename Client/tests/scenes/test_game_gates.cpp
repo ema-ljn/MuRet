@@ -2,10 +2,10 @@
 #include "Scenes/GameGates.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Tables/GateRecord.h"
 #include "Data/Tables/GateTable.h"
 #include "GameLogic/GateDecision.h"
-#include "Render/Models/Cloth.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/WorldRuntime.h"
@@ -60,7 +60,7 @@ struct Harness
         context.requestGate = [this](std::uint8_t gate) { sent.push_back(gate); };
     }
     std::unique_ptr<Client::Scenes::WorldState> world = std::make_unique<Client::Scenes::WorldState>();
-    Client::Render::Models::CrtRandom random{1};
+    Client::Crt::CrtRandom random{1};
     GateTable gates;
     std::vector<std::uint8_t> sent;
     GameGateContext context{.world = *world, .gates = gates, .random = random, .ticksMs = 3000};

@@ -1,5 +1,5 @@
 #include "Core/Expected.h"
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "Render/Models/OriginalAngles.h"
 #include "Render/Models/OriginalRetainedMath.h"
 #include "Scenes/ActorState.h"
@@ -27,9 +27,9 @@ namespace Client::Scenes::JointFamilies
 {
 namespace
 {
+using Crt::CrtRandom;
 using JointKernels::D;
 using JointKernels::F32;
-using Render::Models::CrtRandom;
 
 constexpr std::int32_t TarkanSubtype = 4;
 constexpr std::int32_t StaffSubtype = 0x11;

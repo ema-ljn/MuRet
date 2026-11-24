@@ -3,7 +3,8 @@
 #include "Core/Expected.h"
 #include "Core/IClock.h"
 #include "App/FaithfulPacer.h"
-#include "App/WindowState.h"
+#include "Core/PixelSize.h"
+#include "Crt/CrtRandom.h"
 #include "Protocol/Connection/Logout.h"
 #include "Protocol/Inventory.h"
 #include "Protocol/CastleSiege.h"
@@ -285,7 +286,7 @@ Core::Expected<void, std::string> ApplyTalkResult(const Npc::TalkResult& talk, c
                                       .random = resources.cloth.random,
                                       .log = resources.log,
                                       .measure = resources.textMeasure,
-                                      .screen = resources.screen ? resources.screen() : App::PixelSize{640, 480},
+                                      .screen = resources.screen ? resources.screen() : Core::PixelSize{640, 480},
                                       .texts = resources.texts,
                                       .send = sender,
                                       .dataRoot = resources.dataRoot,
@@ -616,8 +617,8 @@ Core::Expected<void, std::string> ApplyChaosMixResult(const Npc::ChaosMixResult&
     }
 }
 
-Core::Expected<void, std::string> SendRepair(Render::Models::CrtRandom& random, const NpcWindowSender& send,
-                                             std::uint8_t position, std::uint8_t requestPosition)
+Core::Expected<void, std::string> SendRepair(Crt::CrtRandom& random, const NpcWindowSender& send, std::uint8_t position,
+                                             std::uint8_t requestPosition)
 {
     random.Discard(C3SendRandoms);
     return Send(send, Npc::WriteRepair(position, requestPosition), "0x5c4485: el C1 05 34");

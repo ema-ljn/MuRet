@@ -1,7 +1,7 @@
 #pragma once
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Core/PixelSize.h"
 #include "Scenes/GuildPanels.h"
 #include "UI/PanelRegistry.h"
 
@@ -40,7 +40,7 @@ struct SecondGuildStepContext
     // GetTickCount() del paso: el reloj del diálogo que abre el botón de la marca (0x6600d0).
     std::uint32_t now = 0;
     // La pantalla del aviso del diálogo ocupado (0x6600f9: 0x555190 corta y mide en ella).
-    App::PixelSize screen{};
+    Core::PixelSize screen{};
     // Con qué mide 0x6600d0 sus renglones; sin medidor, el botón de la marca corta.
     const Render::Text::ITextMeasure* measure = nullptr;
     // Text.bmd: el 1269 del botón de la marca, y el 457 y el 458 que mira 0x622c70. Sin él, lo que los lee corta.

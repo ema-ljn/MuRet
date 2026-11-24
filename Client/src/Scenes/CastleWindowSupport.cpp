@@ -1,6 +1,7 @@
 #include "Scenes/CastleWindowSupport.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Protocol/Outgoing.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/CastleSiegeReceive.h"
@@ -87,7 +88,7 @@ void ConsumeClick(WorldRuntime& runtime)
     runtime.movement.mouseUpdateTimeMax = 6;
 }
 
-bool HeroCanRegister(WorldState& world, Render::Models::CrtRandom& random)
+bool HeroCanRegister(WorldState& world, Crt::CrtRandom& random)
 {
     if (world.Actors()[world.Runtime().hero].guildStatus != Master)
         return false;
@@ -96,7 +97,7 @@ bool HeroCanRegister(WorldState& world, Render::Models::CrtRandom& random)
     return world.OwnCharacter().level >= 200;
 }
 
-std::uint32_t CountMarks(WorldState& world, Render::Models::CrtRandom& random, std::uint8_t& depth)
+std::uint32_t CountMarks(WorldState& world, Crt::CrtRandom& random, std::uint8_t& depth)
 {
     const Render::Models::LogicalAccess access(depth, random, Render::Models::OwnRecordCloseRandoms);
     std::uint32_t count = 0;
@@ -108,7 +109,7 @@ std::uint32_t CountMarks(WorldState& world, Render::Models::CrtRandom& random, s
     return count;
 }
 
-std::int32_t FirstMark(WorldState& world, Render::Models::CrtRandom& random, std::uint8_t& depth)
+std::int32_t FirstMark(WorldState& world, Crt::CrtRandom& random, std::uint8_t& depth)
 {
     const Render::Models::LogicalAccess access(depth, random, Render::Models::OwnRecordCloseRandoms);
     const auto& cells = world.Inventory().cells;

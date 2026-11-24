@@ -1,7 +1,7 @@
 #include "World/WorldObjects.h"
 
+#include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainObjects.h"
-#include "Render/Models/Cloth.h"
 #include "World/IWorldObjectCreationServices.h"
 #include "World/WorldObjectRegistrations.h"
 
@@ -31,7 +31,7 @@ TEST(WorldObjectCreationFactorTest, CastleAndMap31UseTheBorrowedFactorForANonzer
         SCOPED_TRACE(test.type);
         const Client::Data::Terrain::TerrainObject record{.type = test.type};
         Client::World::WorldObjectRegistrations registrations;
-        Client::Render::Models::CrtRandom random(1);
+        Client::Crt::CrtRandom random(1);
         const std::uint8_t state = 0;
         float factor = 0.02f;
         Client::World::WorldObjectCreationContext context{
@@ -48,7 +48,7 @@ TEST(WorldObjectCreationFactorTest, ReusingTheContextReadsTheChangedStorageWitho
 {
     const Client::Data::Terrain::TerrainObject record{.type = 27};
     Client::World::WorldObjectRegistrations registrations;
-    Client::Render::Models::CrtRandom random(1);
+    Client::Crt::CrtRandom random(1);
     float factor = 0.01f;
     Client::World::WorldObjectCreationContext context{
         31, Client::World::ObjectScene::Other, registrations, nullptr, &random, nullptr, factor};
@@ -95,7 +95,7 @@ TEST(WorldObjectCreationFactorTest, Map31ReadsTheFactorChangedByTheEarlier309Emi
 {
     const Client::Data::Terrain::TerrainObject record{.type = 79};
     Client::World::WorldObjectRegistrations registrations;
-    Client::Render::Models::CrtRandom random(1);
+    Client::Crt::CrtRandom random(1);
     float factor = 0.01f;
     Client::World::WorldObjectCreationContext context{
         30, Client::World::ObjectScene::Other, registrations, nullptr, &random, nullptr, factor};
@@ -117,7 +117,7 @@ TEST(WorldObjectCreationFactorTest, BorrowedFactorAcceptsLvaluesRejectsRvaluesAn
     using Scene = Client::World::ObjectScene;
     using Registry = Client::World::WorldObjectRegistrations;
     using Services = Client::World::IWorldObjectCreationServices;
-    using Random = Client::Render::Models::CrtRandom;
+    using Random = Client::Crt::CrtRandom;
     EXPECT_TRUE((std::is_constructible_v<Context, std::int32_t, Scene, Registry&, Services*, Random*,
                                          const std::uint8_t*, float&>));
     EXPECT_TRUE((std::is_constructible_v<Context, std::int32_t, Scene, Registry&, Services*, Random*,

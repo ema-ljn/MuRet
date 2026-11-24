@@ -1,6 +1,6 @@
 #include "UI/HudPrimitives.h"
 
-#include "App/WindowState.h"
+#include "Core/PixelSize.h"
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
 #include "Render/Text/FontSet.h"
@@ -20,7 +20,7 @@
 // fuera del repo): el AG 17749 (líneas 124429..124469) y la barra del ayudante (124272..124299).
 namespace
 {
-using Client::App::PixelSize;
+using Client::Core::PixelSize;
 using Client::Render::BlendMode;
 using Client::Render::Color;
 using Client::Render::DrawCommand;

@@ -1,10 +1,10 @@
 #include "Scenes/CombatReplies.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainGrid.h"
 #include "Protocol/Combat.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/OriginalAngles.h"
 #include "Scenes/ActorCombat.h"
@@ -89,7 +89,7 @@ Core::Expected<void, std::string> AddTheExperienceMessage(std::uint32_t amount, 
 // (0x7d0d348): MuRet saca los tres rand() de antes de esa lectura y descarta el empujón (+0x1a1 de nuevo en 0), sin
 // cortar el handler (07, Q-C1180).
 void PushOffTheBridge(ActorState& actor, std::size_t cell, const Data::Terrain::TerrainLayer<std::uint16_t>& cells,
-                      Render::Models::CrtRandom& random)
+                      Crt::CrtRandom& random)
 {
     actor.byte1a1 = 1;
     actor.byte398 = 0;

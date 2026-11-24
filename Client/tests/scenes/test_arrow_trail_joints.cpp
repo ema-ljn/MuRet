@@ -1,6 +1,7 @@
 #include "Scenes/FaunaJointCreation.h"
 
 #include "Core/Expected.h"
+#include "Crt/CrtRandom.h"
 #include "Render/Models/Cloth.h"
 #include "Scenes/GameDrawTail.h"
 #include "World/IFishStepServices.h"
@@ -27,7 +28,7 @@
 // partícula 0x5f2/34 que suelta la /0xe (0x537f39). 06, "Los joints de las familias".
 namespace
 {
-using Client::Render::Models::CrtRandom;
+using Client::Crt::CrtRandom;
 using Client::Scenes::JointOwnerKind;
 using Client::Scenes::JointState;
 

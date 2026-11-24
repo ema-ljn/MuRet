@@ -1,11 +1,11 @@
 #include "Scenes/GameItemRenderState.h"
 
-#include "Render/Models/Cloth.h"
+#include "Crt/CrtRandom.h"
 #include "Render/Models/RoundedMath.h"
 
 namespace Client::Scenes
 {
-void InitializeGameItemRenderState(GameItemRenderState& state, Render::Models::CrtRandom& random)
+void InitializeGameItemRenderState(GameItemRenderState& state, Crt::CrtRandom& random)
 {
     if (state.initialized)
         return;

@@ -1,3 +1,4 @@
+#include "Crt/CrtRandom.h"
 #include "Scenes/GameScene.h"
 #include "Render/Models/IModelLibrary.h"
 #include "Scenes/MapBanner.h"
@@ -201,7 +202,7 @@ bool HasTheGrassPass(std::int32_t map)
 // 0x635c54..0x635d7f: la celda del servidor del héroe por la tabla de protección, la Y (+0x420) y
 // después la X (+0x41c), cada una en un acceso que se cierra (0x412890), y el atributo de 0x5f8290(X, Y).
 std::uint8_t HeroCellAttribute(ActorState& hero, const Data::Terrain::TerrainAttributes& attributes,
-                               Render::Models::CrtRandom& random)
+                               Crt::CrtRandom& random)
 {
     const LogicalCell cell = ReadLogicalCell(hero, random);
     // 0x635f14..0x635fe3: el word de 0x7d0d348, del que la cámara mira el byte bajo.

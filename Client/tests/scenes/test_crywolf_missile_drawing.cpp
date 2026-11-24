@@ -1,5 +1,5 @@
+#include "Crt/CrtRandom.h"
 #include "Scenes/CrywolfMissileDrawing.h"
-#include "Render/Models/Cloth.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
@@ -28,7 +28,7 @@ TEST(CrywolfMissileDrawingTest, TheTailEmitsFourParticlesAndTenSpritesFromTheGlo
         std::array<Client::Render::Models::BoneTransform, 2> pose{Client::Render::Models::BoneTransform(0.0f),
                                                                   Client::Render::Models::BoneTransform(1.0f)};
         pose[1][3] = {100, 200, 300};
-        Client::Render::Models::CrtRandom random(7);
+        Client::Crt::CrtRandom random(7);
         const auto drawn = Client::Scenes::DrawCrywolfMissileTail(effect, 19, *particles, sprites, random, pose, 0);
         ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
         EXPECT_EQ(random.State(), Client::Tests::AfterDraws(7, 16).State());
@@ -66,7 +66,7 @@ TEST(CrywolfMissileDrawingTest, TheFullParticlePoolStillRunsTheSpritesAndTheEmpt
     Client::World::ModelEffect effect;
     effect.type = 0xee;
     effect.transform.scale = 1;
-    Client::Render::Models::CrtRandom random(7);
+    Client::Crt::CrtRandom random(7);
     const auto drawn = Client::Scenes::DrawCrywolfMissileTail(effect, 0, *particles, sprites, random, {}, 0);
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
     EXPECT_EQ(random.State(), 7u);
@@ -91,7 +91,7 @@ TEST(CrywolfMissileDrawingTest, PartialParticleCapacityDoesNotChangeTheCallerOrT
         Client::World::ModelEffect effect;
         effect.type = 0xed;
         effect.transform.scale = 1;
-        Client::Render::Models::CrtRandom random(7);
+        Client::Crt::CrtRandom random(7);
         const auto drawn = Client::Scenes::DrawCrywolfMissileTail(effect, 7, *particles, sprites, random, {}, 0);
         ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
         EXPECT_EQ(random.State(), Client::Tests::AfterDraws(7, draws[room]).State());

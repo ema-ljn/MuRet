@@ -1,9 +1,10 @@
 #include "Scenes/GamePartyWindow.h"
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
+#include "Core/PixelSize.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Models/PlayerModels.h"
 #include "Data/Tables/ItemSetTables.h"
 #include "Data/Tables/ItemTable.h"
@@ -56,11 +57,11 @@
 // 1) y el picking del frame (0x59ec80), en Lorencia (0) y Devias (2). Los nombres son inventados.
 namespace
 {
+using Client::Crt::CrtRandom;
 using Client::Data::Models::PlayerSkeletonModel;
 using Client::Render::BlendMode;
 using Client::Render::Color;
 using Client::Render::SpriteBatch;
-using Client::Render::Models::CrtRandom;
 using Client::Scenes::ActorState;
 using Client::Tests::ViewportPlayerRecord;
 
@@ -185,7 +186,7 @@ protected:
         ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
         game->world.Map().terrain = std::move(loaded).Value();
         game->world.Runtime().map = map;
-        m_sprites.Begin(Client::App::PixelSize{640, 480});
+        m_sprites.Begin(Client::Core::PixelSize{640, 480});
     }
 
     // La primera fila libre de cinco celdas desde (100, 100).
@@ -346,7 +347,7 @@ TEST_P(PartyLifeTest, TheMouseOverABarShowsTheTenths)
     EXPECT_EQ(m_text.texts[0].x, x);
     EXPECT_EQ(m_text.texts[0].y, y - 6);
 
-    m_sprites.Begin(Client::App::PixelSize{640, 480});
+    m_sprites.Begin(Client::Core::PixelSize{640, 480});
     m_text.texts.clear();
     m_mouse = {.x = x + 38, .y = y + 5};
     ASSERT_TRUE(DrawTheLife().HasValue());

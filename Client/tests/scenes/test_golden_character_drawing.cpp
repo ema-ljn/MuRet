@@ -1,7 +1,7 @@
 #include "Render/Models/IModelLibrary.h"
 #include "Scenes/CharacterDrawing.h"
 
-#include "App/WindowState.h"
+#include "Core/PixelSize.h"
 #include "Data/Models/Model.h"
 #include "Data/Models/ModelFiles.h"
 #include "Data/Models/ModelTextures.h"
@@ -45,7 +45,7 @@
 // posiciones y UV, y el lote no tiene nada más: uno a uno.
 namespace
 {
-using Client::App::PixelSize;
+using Client::Core::PixelSize;
 using Client::Data::Models::ItemModelFiles;
 using Client::Data::Models::LoadModelFile;
 using Client::Data::Models::Model;

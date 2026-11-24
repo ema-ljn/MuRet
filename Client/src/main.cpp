@@ -22,8 +22,10 @@
 #include "Core/IClock.h"
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
+#include "Core/PixelSize.h"
 #include "Core/StderrSink.h"
 #include "Core/TeeSink.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Tables/ItemTable.h"
 #include "Input/InputState.h"
 #include "Input/Key.h"
@@ -424,13 +426,13 @@ void Present(Platform::Window& window, const Scenes::TestScene::Color& color)
     window.Swap();
 }
 
-void SetViewport(const Platform::GlFunctions& gl, App::PixelSize size)
+void SetViewport(const Platform::GlFunctions& gl, Core::PixelSize size)
 {
     gl.viewport(0, 0, size.width, size.height);
 }
 
 // El viewport sigue al área de dibujo, que cambia con PixelSizeChanged.
-void FollowPixelSize(const Platform::GlFunctions& gl, App::PixelSize size, App::PixelSize& viewport)
+void FollowPixelSize(const Platform::GlFunctions& gl, Core::PixelSize size, Core::PixelSize& viewport)
 {
     if (size.width != viewport.width || size.height != viewport.height)
     {
@@ -469,7 +471,7 @@ App::FrameStats RunLoop(Platform::Window& window, Core::IClock& clock, App::Game
 {
     App::WindowState state;
     state.pixelSize = window.PixelSize();
-    App::PixelSize viewport = state.pixelSize;
+    Core::PixelSize viewport = state.pixelSize;
     SetViewport(window.Gl(), viewport);
     std::optional<App::FrameRateMeter> meter;
     if (commandLine.stats)
@@ -656,7 +658,7 @@ int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Wind
     // Lo global de la tela: el rand() de la CRT sembrado una vez con la hora, como srand(time(NULL)) en
     // 0x4bad9a, el viento base y el contador de pasos de lógica.
     Client::Render::Models::ClothWorld clothWorld{
-        .random = Client::Render::Models::CrtRandom(static_cast<std::uint32_t>(std::time(nullptr)))};
+        .random = Client::Crt::CrtRandom(static_cast<std::uint32_t>(std::time(nullptr)))};
     // El teclado y el mouse del bucle: los pasos los reciben, y el dibujo del cursor los lee del contexto.
     Client::Input::InputState input;
     Client::World::GameCamera camera;

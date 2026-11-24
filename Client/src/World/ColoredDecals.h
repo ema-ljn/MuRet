@@ -7,7 +7,7 @@
 
 // El alta del calco de colores 0x61e (Effect\Magic_Ground2), que piden las skills y el pase del suelo: 06, "Los efectos
 // con modelo de los tipos altos".
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
 }
@@ -28,11 +28,10 @@ inline constexpr std::int32_t CoolPulsingDecalSubtype = 0xa; // el de la 0x45, e
 // 0x51eebb..0x51efa4, el caso del 0x61e después del prefijo: vida 20; el /4 y el /0xa, vida 40 y la escala
 // (rand() % 50 + 50) · 0,04f; el /6, vida 60, esa escala y la partida en la posición; el /7, vida 40 y el ángulo z en
 // rand() % 360; el /8, vida 20; el /9, vida 10 y la escala en 0,1f. Los demás, solo la vida.
-void BeginColoredDecal(ModelEffect& effect, Render::Models::CrtRandom& random);
+void BeginColoredDecal(ModelEffect& effect, Crt::CrtRandom& random);
 
 // 0x518cf0(0x61e, …) sobre `table`: el prefijo (BeginModelEffect) y BeginColoredDecal. Con la tabla llena, nada y sin
 // rand().
-[[nodiscard]] std::optional<std::size_t> CreateColoredDecal(std::span<ModelEffect> table,
-                                                            const ModelEffectArguments& arguments,
-                                                            Render::Models::CrtRandom& random);
+[[nodiscard]] std::optional<std::size_t>
+CreateColoredDecal(std::span<ModelEffect> table, const ModelEffectArguments& arguments, Crt::CrtRandom& random);
 } // namespace Client::World

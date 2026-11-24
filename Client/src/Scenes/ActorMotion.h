@@ -9,7 +9,7 @@
 #include <functional>
 #include <string>
 
-namespace Client::Render::Models
+namespace Client::Crt
 {
 class CrtRandom;
 }
@@ -20,14 +20,14 @@ struct WorldRuntime;
 struct ActorMotionContext
 {
     WorldRuntime& runtime;
-    Render::Models::CrtRandom& random;
+    Crt::CrtRandom& random;
     std::function<double(float, float)> height;
     // 0x4eac0a..0x4eac41: la bandera del A* que 0x4eac00 calcula al entrar (Scenes::CrywolfAltarGoal) para el
     // reintento del camino (0x508e0e). Nada de 0x508ba0 antes del reintento cambia lo que mira.
     bool altarGoal = false;
 };
 // Los accesos lógicos de MovePath se conservan antes/después de cada store, sin tocar el blanco.
-[[nodiscard]] bool MoveActorPath(ActorState& actor, std::uint8_t rotate, Render::Models::CrtRandom& random);
+[[nodiscard]] bool MoveActorPath(ActorState& actor, std::uint8_t rotate, Crt::CrtRandom& random);
 [[nodiscard]] Core::Expected<void, std::string> UpdateActorPosition(ActorState& actor,
                                                                     const ActorMotionContext& context);
 // 0x508ba0. El héroe lo excluye el caller. Quieto reintenta sin moverse; caminando avanza incluso
@@ -36,6 +36,6 @@ struct ActorMotionContext
                                                                      const ActorMotionContext& motion,
                                                                      Data::Terrain::TerrainLayer<std::uint16_t>& walls);
 // Sólo lo llama 0x505de0 para personajes vistos. La resta ocurre antes de sus efectos.
-[[nodiscard]] Core::Expected<void, std::string> StepActorCooldown(ActorState& actor, Render::Models::CrtRandom& random,
+[[nodiscard]] Core::Expected<void, std::string> StepActorCooldown(ActorState& actor, Crt::CrtRandom& random,
                                                                   const ActorCooldownServices& services = {});
 } // namespace Client::Scenes

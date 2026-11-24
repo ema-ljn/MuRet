@@ -421,7 +421,10 @@ comes from the game:
 | `Audio/Music.cpp`: `WorldTracks`, `StopWorld`, `StepWorld` | the 22 track names of MU and the choice of track by map, with the map ids as bare literals | the list and the two functions move to `game/Maps`, over `Audio::Music`'s `Play` and `Stop` and in the same order; called from `Scenes/WinMainLoop.cpp` and `Scenes/ReturnToSelection.cpp`. Crywolf's part leaves first: [Crywolf plan](2026-11-24-crywolf-homes.md), Task 2 |
 
 Each moved function keeps its tests, and a test compares the old and the new result over every map id and every
-action (0 to 255). Done when `check_named_values.py --clean-root engine` finds no game space in `engine/`.
+action (0 to 255). Done when `check_named_values.py --clean-root engine` lists only what other tasks own: the FoxAnti
+opcodes (`Network/FoxAntiObfuscation.cpp:51,101`, AR1 Task 4) and `PlayerSkeletonModel`, `PlayerShadowModel` and
+`FirstItemModel` in `Data/Models/PlayerModels.h` (the item plan's Task 10). The PR that removes the last of them adds
+`--clean-root engine` to CI's "Client named values" step (#439 left it out for that reason).
 
 ### Task 5c: the numbers the x87 code shares
 

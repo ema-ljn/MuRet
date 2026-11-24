@@ -650,6 +650,8 @@ player-action	Scenes/AttackSkillCases.cpp	MonsterFallAction	0x6
 player-action	Scenes/AttackSkillCases.cpp	PlayerFallAction	0xc3
 player-action	Scenes/CameraTour.cpp	StandAction	0x0
 player-action	Scenes/CameraTour.cpp	WalkAction	0x2
+player-action	Scenes/CharacterAnimation.cpp	FastWingAction	0x1e
+player-action	Scenes/CharacterAnimation.cpp	OtherFastWingAction	0x1f
 player-action	Scenes/CharacterSelectScene.cpp	StandingAction	0x3
 player-action	Scenes/CharacterStep.cpp	AlwaysTrailedAction	0x8d
 player-action	Scenes/CharacterStep.cpp	BoneEffectAction	0x96

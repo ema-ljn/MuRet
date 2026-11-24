@@ -207,6 +207,7 @@ Input/InputState.h	112	Input	engine/Input	high	engine or protocol layer, no game
 Input/Key.h	141	Input	engine/Input	high	engine or protocol layer, no game state
 Input/MouseMessageState.h	16	Input	engine/Input	high	engine or protocol layer, no game state
 Input/TextInputEvent.h	29	Input	engine/Input	high	engine or protocol layer, no game state
+Maps/ClothWind.h	17	Maps	game/Maps	high	(addr.) the login map selects the fallback wind for cloth (AR1.1)
 Network/CloseReason.cpp	30	Network	engine/Network	high	engine or protocol layer, no game state
 Network/CloseReason.h	25	Network	engine/Network	high	engine or protocol layer, no game state
 Network/Connection.cpp	364	Network	engine/Network	high	engine or protocol layer, no game state
@@ -606,7 +607,6 @@ Scenes/ClassParts.cpp	76	Scenes	game/Actors	high	actor record/pool, creation, eq
 Scenes/ClassParts.h	21	Scenes	game/Actors	high	actor record/pool, creation, equipment, flags, per-actor step, viewport packets 0x12/0x14/...
 Scenes/ClothCarry.cpp	60	Scenes	game/Actors/Drawing	high	(addr.) player draw: body, cloth, hanging items, item glows, weapon trails
 Scenes/ClothCarry.h	50	Scenes	game/Actors/Drawing	high	(addr.) player draw: body, cloth, hanging items, item glows, weapon trails
-Scenes/ClothWind.h	17	Scenes	game/Maps	high	(addr.) the login map selects the fallback wind for cloth
 Scenes/CombatActionSpeeds.cpp	85	Scenes	game/Combat	medium	character attack step (addr.)/(addr.), hits, combat/skill replies, damage numbers; include graph pulls to Hero (7 vs 2
 Scenes/CombatActionSpeeds.h	15	Scenes	game/Combat	medium	character attack step (addr.)/(addr.), hits, combat/skill replies, damage numbers; include graph pulls to Hero (7 vs 2
 Scenes/CombatReplies.cpp	242	Scenes	game/Combat	high	character attack step (addr.)/(addr.), hits, combat/skill replies, damage numbers

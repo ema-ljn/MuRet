@@ -234,7 +234,8 @@ constexpr std::size_t JewelNoSpaceText = 1815;   // 0x77420d0
 constexpr std::string_view JewelFormat = "%s%s %s";
 constexpr std::int32_t JewelDialog = 0xa6;
 
-// 0x42febf..0x42fef5: what the end stage leaves in 0x6c73dc with the peace state, and in 0x6c73f8.
+// 0x42febf..0x42fef5: what the end stage leaves in 0x6c73dc with the peace state and, with any state but the war
+// one, in 0x6c73f8.
 constexpr std::int32_t CrywolfPeaceCounter = 0xb;
 constexpr std::int32_t CrywolfFightTime = 0x186;
 // 0x42ff3f..0x42ff75: los estados con su luz; otro deja el buffer sin escribir.
@@ -1257,7 +1258,7 @@ private:
                                                         static_cast<std::uint8_t>(map), terrain, fatal);
             !light.HasValue())
             return light;
-        const std::int32_t number = state == 0 ? map + 1 : map * 10 + 0xa + state;
+        const std::int32_t number = state == Events::CrywolfPeaceState ? map + 1 : map * 10 + 0xa + state;
         return World::ReloadWorldTerrainAttributes(m_context.dataRoot, folder, number, terrain, fatal);
     }
 
@@ -1622,8 +1623,8 @@ void ResetTheCrywolfInterface(WorldRuntime& runtime)
     ui.byte723a44 = 0;
     ui.dword723bd8 = 0;
     ui.dword6c73d4 = 0x64;
-    runtime.crywolf.state = 0;
-    runtime.crywolf.stage = 0;
+    runtime.crywolf.state = Events::CrywolfPeaceState;
+    runtime.crywolf.stage = Events::CrywolfNoStage;
     ui.light = 0;
     // 0x42fe41: 0x6c8e2c, el segundo de los objetivos elegidos.
     runtime.selectedTargets[1] = -1;

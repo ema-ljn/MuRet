@@ -143,8 +143,8 @@ Core::Expected<void, std::string> TalkToTheNpc(ActorState& hero, const HeroMovem
     WorldRuntime& runtime = context.world.Runtime();
     GameMovementState& state = runtime.movement;
     state.mouseUpdateTimeMax = ArrivalMouseUpdateTimeMax;
-    // 0x5674d2..0x5674ed: fuera de Crywolf activo, 0x4f2250 y +0x378 en 0 (en la llegada de MoveHero el héroe ya está
-    // parado: 0x4f2250 vuelve a elegir la acción y saca su sufijo de rand()).
+    // 0x5674d2..0x5674ed: fuera de Crywolf activo (0x435a00 && 0x4303c0), 0x4f2250 y +0x378 en 0 (en la llegada de
+    // MoveHero el héroe ya está parado: 0x4f2250 vuelve a elegir la acción y saca su sufijo de rand()).
     const bool crywolf = InTheCrywolfDefense(runtime);
     if (!crywolf)
     {

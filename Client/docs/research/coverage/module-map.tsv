@@ -102,8 +102,8 @@ Core/Windows1252BestFit.cpp	170	Core	engine/Core	high	engine or protocol layer, 
 Core/Windows1252BestFit.h	14	Core	engine/Core	high	engine or protocol layer, no game state
 Core/Xor3.cpp	22	Core	engine/Crypto	high	MU byte ciphers, apart from sockets and formats; Xor32 leaves Network/Packet in AR1.1 (2026-11-21 review)
 Core/Xor3.h	20	Core	engine/Crypto	high	MU byte ciphers, apart from sockets and formats; Xor32 leaves Network/Packet in AR1.1 (2026-11-21 review)
-Crt/CrtRandom.cpp	28	Crt	engine/Crt	high	(addr.) the CRT rand() of the original, which cloth, effects and the HUD draw from (AR1.1)
-Crt/CrtRandom.h	24	Crt	engine/Crt	high	(addr.) the CRT rand() of the original, which cloth, effects and the HUD draw from (AR1.1)
+Crt/CrtRandom.cpp	49	Crt	engine/Crt	high	(addr.) the CRT rand() of the original, which cloth, effects and the HUD draw from (AR1.1)
+Crt/CrtRandom.h	23	Crt	engine/Crt	high	(addr.) the CRT rand() of the original, which cloth, effects and the HUD draw from (AR1.1)
 Data/DataError.h	14	Data	engine/Data	high	engine or protocol layer, no game state
 Data/DataFile.cpp	87	Data	engine/Data	high	engine or protocol layer, no game state
 Data/DataFile.h	33	Data	engine/Data	high	engine or protocol layer, no game state

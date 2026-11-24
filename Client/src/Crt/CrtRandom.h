@@ -4,8 +4,7 @@
 
 namespace Client::Crt
 {
-// 0x69fd70, the original's CRT rand(): s = s * 0x343fd + 0x269ec3, returns (s >> 16) & 0x7fff. Seeded once by
-// srand(time(NULL)) (0x4bad9a).
+// 0x69fd70, the original's CRT rand(), seeded once by srand(time(NULL)) (0x4bad9a).
 class CrtRandom
 {
 public:

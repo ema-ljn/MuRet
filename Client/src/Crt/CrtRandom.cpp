@@ -4,24 +4,45 @@
 
 namespace Client::Crt
 {
+namespace
+{
+// The linear congruential step: state * multiplier + increment.
+struct LcgStep
+{
+    std::uint32_t multiplier;
+    std::uint32_t increment;
+
+    [[nodiscard]] constexpr std::uint32_t Apply(std::uint32_t state) const noexcept
+    {
+        return state * multiplier + increment;
+    }
+
+    [[nodiscard]] constexpr LcgStep Twice() const noexcept
+    {
+        return {.multiplier = multiplier * multiplier, .increment = multiplier * increment + increment};
+    }
+};
+
+constexpr LcgStep NextStep{.multiplier = 0x343fdu, .increment = 0x269ec3u};
+constexpr unsigned ValueShift = 16;
+constexpr std::uint32_t MaxValue = 0x7fffu;
+} // namespace
+
 int CrtRandom::Next() noexcept
 {
-    m_state = m_state * 0x343fdu + 0x269ec3u;
-    return static_cast<int>((m_state >> 16) & 0x7fffu);
+    m_state = NextStep.Apply(m_state);
+    return static_cast<int>((m_state >> ValueShift) & MaxValue);
 }
 
 void CrtRandom::Discard(std::uint32_t count) noexcept
 {
-    // `step` advances 2^k states and applies when bit k of `count` is set; (a1, c1) after (a2, c2) is
-    // (a1 * a2, a1 * c2 + c1).
-    std::uint32_t stepMultiplier = 0x343fdu;
-    std::uint32_t stepIncrement = 0x269ec3u;
+    // Bit k of `count` applies the step of 2^k calls.
+    LcgStep step = NextStep;
     while (count != 0)
     {
         if ((count & 1u) != 0)
-            m_state = m_state * stepMultiplier + stepIncrement;
-        stepIncrement = stepMultiplier * stepIncrement + stepIncrement;
-        stepMultiplier *= stepMultiplier;
+            m_state = step.Apply(m_state);
+        step = step.Twice();
         count >>= 1u;
     }
 }

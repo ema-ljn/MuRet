@@ -2,7 +2,7 @@
 #include "Protocol/Combat.h"
 
 #include "Network/Delivery.h"
-#include "Network/FoxAntiObfuscation.h"
+#include "Network/XorRemapObfuscation.h"
 #include "Protocol/ProtocolError.h"
 
 #include "support/Bytes.h"

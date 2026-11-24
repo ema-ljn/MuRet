@@ -1,4 +1,4 @@
-#include "Network/FoxAntiObfuscation.h"
+#include "Network/XorRemapObfuscation.h"
 
 #include "Core/Expected.h"
 #include "Network/Crypto/Xor32.h"

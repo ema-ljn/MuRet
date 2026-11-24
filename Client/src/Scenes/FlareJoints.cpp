@@ -1,5 +1,6 @@
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/X87.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/JointFamilies.h"
@@ -19,8 +20,8 @@ namespace Client::Scenes::JointFamilies
 {
 namespace
 {
-using JointKernels::D;
-using JointKernels::F32;
+using Math::D;
+using Math::F32;
 
 // 0x535a07..0x535a61 y 0x535aa0..0x535b0c: un tramo con la matriz de los ángulos (0x535520) y después el avance,
 // (0, −velocidad, 0) girado y sumado a la posición. 0x535a1d..0x535a3f y 0x535ab6..0x535ad8: 0x5fcbd0 recibe el mismo

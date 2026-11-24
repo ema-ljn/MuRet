@@ -19,8 +19,8 @@
 #include "Scenes/TooltipWriter.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "World/Ftol.h"
 #include "World/ItemState.h"
-#include "World/OriginalFtol.h"
 
 #include <algorithm>
 #include <array>

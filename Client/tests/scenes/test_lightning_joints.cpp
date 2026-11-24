@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/X87.h"
 #include "Render/ModelBatch.h"
 #include "Render/Models/OriginalAngles.h"
 #include "Render/Models/OriginalRotation.h"
@@ -41,15 +42,8 @@ using Client::Scenes::JointState;
 constexpr std::uint32_t Seed = 0x51c0ffeu;
 constexpr float Tenth = std::bit_cast<float>(0x3dcccccdu);
 
-double D(float value)
-{
-    return static_cast<double>(value);
-}
-
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using Client::Math::D;
+using Client::Math::F32;
 
 struct Pool
 {

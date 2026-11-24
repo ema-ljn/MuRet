@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainAttributes.h"
+#include "Math/X87.h"
 #include "Protocol/Outgoing.h"
 #include "Protocol/Skill.h"
 #include "Render/Models/LogicalAccess.h"
@@ -46,10 +47,7 @@ using Client::Scenes::JointState;
 constexpr std::uint32_t Seed = 0x61cu;
 constexpr std::size_t Last = 19;
 
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using Client::Math::F32;
 
 struct SweepWorld
 {

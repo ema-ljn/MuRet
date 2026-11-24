@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/X87.h"
 #include "Render/Models/ObjectState.h"
 #include "Scenes/HighEffectEmitters.h"
 #include "Scenes/HighModelEffects.h"
@@ -18,15 +19,8 @@ namespace Client::Scenes
 {
 namespace
 {
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
-
-double D(float value)
-{
-    return static_cast<double>(value);
-}
+using Math::D;
+using Math::F32;
 
 constexpr std::int32_t WideSpan = 40, WideBase = 70;
 

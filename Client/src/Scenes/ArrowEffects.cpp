@@ -1,4 +1,5 @@
 #include "Scenes/ArrowEffects.h"
+#include "Math/X87.h"
 #include "World/TerrainAttributeQuery.h"
 
 #include "Core/Expected.h"
@@ -19,11 +20,11 @@
 #include "Scenes/WorldMap.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "World/Ftol.h"
 #include "World/GameModelEffects.h"
 #include "World/IFishStepServices.h"
 #include "World/ModelEffects.h"
 #include "World/ParticleBurst.h"
-#include "World/OriginalFtol.h"
 #include "World/Particles.h"
 #include "World/SmokeParticleKernels.h"
 #include "World/PortableParticleTrigonometry.h"
@@ -94,15 +95,8 @@ constexpr std::int16_t ToInt16(std::uint16_t value)
     return std::bit_cast<std::int16_t>(value);
 }
 
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
-
-double D(float value)
-{
-    return static_cast<double>(value);
-}
+using Math::D;
+using Math::F32;
 
 // fld del corrimiento girado y fadd de la posición: cada eje se guarda de su suma.
 void AddRotated(glm::vec3& position, const glm::vec3& rotated)

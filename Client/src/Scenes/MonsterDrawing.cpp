@@ -5,6 +5,7 @@
 #include "Crt/CrtRandom.h"
 #include "Data/Models/Model.h"
 #include "GameLogic/CharacterAppearance.h"
+#include "Math/X87.h"
 #include "Render/ModelBatch.h"
 #include "Render/Models/IModelLibrary.h"
 #include "Render/SpriteVertex.h"
@@ -40,8 +41,8 @@
 #include "Scenes/VertexEffects.h"
 #include "Scenes/WorldState.h"
 #include "World/ChaosCastle.h"
+#include "World/Ftol.h"
 #include "World/IFishStepServices.h"
-#include "World/OriginalFtol.h"
 #include "World/Particles.h"
 #include "World/Sprites.h"
 #include "World/TerrainDecal.h"
@@ -122,15 +123,8 @@ float BoneScaleOf(PoseMode mode)
     return 1.0f;
 }
 
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
-
-double D(float value)
-{
-    return static_cast<double>(value);
-}
+using Math::D;
+using Math::F32;
 
 bool InChaosCastle(std::int32_t map)
 {

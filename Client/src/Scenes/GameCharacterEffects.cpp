@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/X87.h"
 #include "Render/Models/OriginalRetainedMath.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Render/Models/PassColors.h"
@@ -200,15 +201,8 @@ constexpr std::uint8_t ShoutEnd = 15;
 constexpr std::size_t ShoutBones = 66;
 constexpr std::uint16_t NoAttackTarget = 0xffff;
 
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
-
-double D(float value)
-{
-    return static_cast<double>(value);
-}
+using Math::D;
+using Math::F32;
 
 // El estado de la cola de 0x50ba30 en un dibujo.
 struct Tail

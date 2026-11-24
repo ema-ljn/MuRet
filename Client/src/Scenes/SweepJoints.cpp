@@ -1,5 +1,6 @@
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/X87.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/GameDrawTail.h"
@@ -28,8 +29,8 @@ namespace Client::Scenes::JointFamilies
 {
 namespace
 {
-using JointKernels::D;
-using JointKernels::F32;
+using Math::D;
+using Math::F32;
 
 constexpr float Reach = std::bit_cast<float>(0xc3340000u); // −180
 

@@ -1,5 +1,6 @@
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/X87.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/OriginalRetainedMath.h"
 #include "Scenes/ActorState.h"
@@ -28,8 +29,8 @@ namespace Client::Scenes::JointFamilies
 {
 namespace
 {
-using JointKernels::D;
-using JointKernels::F32;
+using Math::D;
+using Math::F32;
 
 std::int32_t Wrapped(std::int32_t value, std::uint32_t amount)
 {

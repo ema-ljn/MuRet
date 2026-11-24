@@ -1,5 +1,6 @@
 #include "Render/Billboard.h"
 
+#include "Math/X87.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Render/SpriteVertex.h"
 
@@ -16,10 +17,7 @@ namespace Client::Render
 {
 namespace
 {
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using Math::F32;
 
 // 0x5fccc0: el punto por la matriz de 3 × 4, cada componente en 53 bits con el orden de sus sumas, más
 // la traslación.

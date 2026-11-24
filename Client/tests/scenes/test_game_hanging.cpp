@@ -1,3 +1,4 @@
+#include "Math/X87.h"
 #include "Render/Models/IModelLibrary.h"
 #include "Scenes/GameHanging.h"
 #include "Scenes/GuildState.h"
@@ -68,15 +69,8 @@ std::uint32_t AfterRandoms(std::size_t count)
     return random.State();
 }
 
-double D(float value)
-{
-    return static_cast<double>(value);
-}
-
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using Client::Math::D;
+using Client::Math::F32;
 
 // La primera semilla con la que `condition` acepta los sorteos de un CrtRandom nuevo.
 std::uint32_t SeedWhere(const std::function<bool(Client::Crt::CrtRandom&)>& condition)

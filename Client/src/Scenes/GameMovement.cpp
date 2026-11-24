@@ -39,7 +39,7 @@
 #include "Scenes/WorldMap.h"
 #include "UI/OldControls.h"
 #include "UI/OldWindowSteps.h"
-#include "World/OriginalFtol.h"
+#include "World/Ftol.h"
 #include "World/TerrainWalls.h"
 #include "World/WorldTerrain.h"
 #include "World/TerrainHeight.h"

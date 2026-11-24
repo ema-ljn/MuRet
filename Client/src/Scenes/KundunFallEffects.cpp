@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/X87.h"
 #include "Render/Models/OriginalRetainedMath.h"
 #include "Scenes/HighEffectEmitters.h"
 #include "Scenes/HighModelEffects.h"
@@ -31,15 +32,8 @@ namespace
 {
 using Crt::CrtRandom;
 
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
-
-double D(float value)
-{
-    return static_cast<double>(value);
-}
+using Math::D;
+using Math::F32;
 
 // FCOMP y FNSTSW con TEST AH, 0x40: C3, igual o sin orden.
 bool EqualOrUnordered(float a, float b)

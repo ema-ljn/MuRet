@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/X87.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/OriginalRotation.h"
 #include "World/GameModelEffects.h"
@@ -45,10 +46,7 @@ using Client::World::WizardOwnerView;
 
 constexpr double Tenth = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));
 
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using Client::Math::F32;
 
 struct RecordedJoint
 {

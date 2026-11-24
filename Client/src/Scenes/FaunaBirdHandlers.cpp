@@ -1,6 +1,7 @@
 #include "Render/Models/IModelLibrary.h"
 #include "Scenes/FaunaStep.h"
 
+#include "Math/X87.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/OriginalRetainedMath.h"
 #include "Render/Models/OriginalRotation.h"
@@ -25,10 +26,7 @@ namespace
 constexpr std::int32_t FullTurn = 360;
 constexpr std::int16_t IcarusBird = 0x171;
 constexpr std::int16_t KalimaBird = 0x173;
-float F32(double x)
-{
-    return static_cast<float>(x);
-}
+using Math::F32;
 std::int32_t Random(FaunaStepContext& c)
 {
     return c.cloth.random.Next();

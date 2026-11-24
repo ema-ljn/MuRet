@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/X87.h"
 #include "Render/Models/ObjectState.h"
 #include "Scenes/EventGlobals.h"
 #include "Scenes/TerrainMarks.h"
@@ -26,10 +27,7 @@ namespace
 {
 using Result = Core::Expected<void, std::string>;
 
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using Math::F32;
 
 // 0x5ff9c2..0x5ffa1e: los objetos 9 y 10 (con cualquier tipo pedido) se abren con la cuenta en 0: +0x58 en −1 y +0x8a
 // en 4.

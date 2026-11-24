@@ -1,6 +1,7 @@
 #include "Scenes/SecondGuildWindow.h"
 
 #include "Core/Expected.h"
+#include "Math/X87.h"
 #include "Protocol/Guild.h"
 #include "Protocol/Outgoing.h"
 #include "Render/OriginalQuad.h"
@@ -35,7 +36,6 @@
 #include "UI/OldWindows.h"
 #include "UI/PanelDialog.h"
 #include "UI/PanelRegistry.h"
-#include "World/OriginalFtol.h"
 
 #include <algorithm>
 #include <array>
@@ -186,15 +186,8 @@ constexpr std::size_t ServerText = 458;
 
 constexpr auto CreatingIndex = static_cast<std::size_t>(CreatingGuildIndex);
 
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
-
-std::int32_t Truncate(double value)
-{
-    return World::OriginalFtolLow(value).value_or(0);
-}
+using Math::F32;
+using Math::Truncate;
 
 template <std::size_t Size> std::string_view NameOf(const std::array<char, Size>& name)
 {

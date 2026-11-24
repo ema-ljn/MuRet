@@ -1,4 +1,5 @@
 #include "Crt/CrtRandom.h"
+#include "Math/X87.h"
 #include "Render/Models/ObjectState.h"
 #include "World/EventMapObjectStep.h"
 #include "World/Particles.h"
@@ -27,10 +28,7 @@ using Client::World::WorldObject;
 
 constexpr std::uint8_t DevilSquareMap = 9;
 
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using Client::Math::F32;
 
 double Bits(std::uint32_t bits)
 {

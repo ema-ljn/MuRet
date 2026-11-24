@@ -1,6 +1,7 @@
 #include "Scenes/GameWindowDrawing.h"
 
 #include "Core/PixelSize.h"
+#include "Math/X87.h"
 #include "Render/OriginalQuad.h"
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
@@ -14,7 +15,6 @@
 #include "Scenes/WorldRuntime.h"
 #include "UI/HudPrimitives.h"
 #include "UI/Widget.h"
-#include "World/OriginalFtol.h"
 
 #include <cstdint>
 #include <string_view>
@@ -48,16 +48,8 @@ constexpr Render::Text::TextColors CloseHelpColors{.text = 0xffffffffu, .backgro
 constexpr std::uint32_t TitleBoxDesignWidth = 120;
 constexpr std::uint32_t DesignWidth = 640;
 
-// La x87 de 53 bits y el fstp en float.
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
-
-std::int32_t Truncate(double value)
-{
-    return World::OriginalFtolLow(value).value_or(0);
-}
+using Math::F32;
+using Math::Truncate;
 
 // Lo que miden 0x554180 y 0x5542f0 después de dibujar: GetTextExtentPoint32 con la fuente del DC, el ancho
 // recortado a `limit` si es positivo y menor, y los dos pasados a 640 × 480 (fdiv por rx y ry y _ftol).

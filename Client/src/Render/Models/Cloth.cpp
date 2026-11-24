@@ -1,6 +1,7 @@
 #include "Render/Models/Cloth.h"
 
 #include "Data/Models/Model.h"
+#include "Math/X87.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/RoundedMath.h"
 #include "Render/TextureSlot.h"
@@ -71,10 +72,7 @@ constexpr std::uint8_t Restrains = 4;
 constexpr int ProtectionRandoms = 4;
 constexpr int WindWalks = 5;
 
-constexpr double D(float value)
-{
-    return static_cast<double>(value);
-}
+using Math::D;
 
 constexpr float F(double value)
 {

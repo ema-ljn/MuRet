@@ -4,6 +4,7 @@
 #include "Core/PixelSize.h"
 #include "Crt/CrtRandom.h"
 #include "Data/Tables/ItemTable.h"
+#include "Math/X87.h"
 #include "Render/ModelBatch.h"
 #include "Render/Models/ObjectState.h"
 #include "Render/Models/Pose.h"
@@ -15,7 +16,7 @@
 #include "Scenes/GameItemSpecialDrawing.h"
 #include "Scenes/GameProjection.h"
 #include "UI/Widget.h"
-#include "World/OriginalFtol.h"
+#include "World/Ftol.h"
 
 #include <glm/ext/matrix_float4x4.hpp>
 #include <glm/ext/vector_float3.hpp>
@@ -34,10 +35,7 @@ namespace Client::Scenes
 {
 namespace
 {
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using Math::F32;
 
 float Bits(std::uint32_t bits)
 {

@@ -12,7 +12,7 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/WorldRuntime.h"
-#include "World/OriginalFtol.h"
+#include "World/Ftol.h"
 #include "World/TerrainWalls.h"
 
 #include <algorithm>

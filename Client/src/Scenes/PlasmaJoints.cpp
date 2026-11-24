@@ -1,5 +1,6 @@
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/X87.h"
 #include "Render/Models/OriginalAngles.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Scenes/ActorState.h"
@@ -27,8 +28,8 @@ namespace Client::Scenes::JointFamilies
 {
 namespace
 {
-using JointKernels::D;
-using JointKernels::F32;
+using Math::D;
+using Math::F32;
 
 Core::Expected<void, std::string> Particle(const JointState& joint, std::int32_t type,
                                            const JointKernels::StepServices& services, std::string_view address)

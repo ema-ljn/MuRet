@@ -1,4 +1,5 @@
 #include "Scenes/GameHud.h"
+#include "Math/X87.h"
 #include "Render/Models/RoundedMath.h"
 #include "Render/ScreenScale.h"
 #include "Scenes/MapBanner.h"
@@ -73,7 +74,6 @@
 #include "UI/SprintfFormat.h"
 #include "UI/Widget.h"
 #include "World/ItemState.h"
-#include "World/OriginalFtol.h"
 
 #include <algorithm>
 #include <array>
@@ -162,17 +162,8 @@ constexpr Render::Text::TextColors WhisperNamesColors{.text = 0xffc8c8c8u, .back
 // en el orden de TextColors.
 // La esquina de los dos EDIT (0x45a9d0 en 0x4691e0).
 
-// La x87 de 53 bits y el fstp en float.
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
-
-// _ftol de un float que no es infinito (las x y las y del HUD y el reloj del mundo).
-std::int32_t Truncate(double value)
-{
-    return World::OriginalFtolLow(value).value_or(0);
-}
+using Math::F32;
+using Math::Truncate;
 
 // Lo que comparten los hijos del HUD: el contexto, lo que leen de WorldState y el registro de los paneles, con el
 // rand() del frame.

@@ -1,4 +1,5 @@
 #include "Crt/CrtRandom.h"
+#include "Math/X87.h"
 #include "Render/Models/OriginalRetainedMath.h"
 #include "Render/TextureEnvMode.h"
 #include "World/BloodCastleParticleKernels.h"
@@ -36,10 +37,7 @@ double Bits(std::uint32_t bits)
     return static_cast<double>(std::bit_cast<float>(bits));
 }
 
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using Client::Math::F32;
 
 const glm::vec3 Where{1000.5f, 2000.25f, 300.75f};
 const glm::vec3 Turned{0.0f, 0.0f, 45.0f};

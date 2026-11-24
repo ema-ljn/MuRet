@@ -1,4 +1,5 @@
 #include "Crt/CrtRandom.h"
+#include "Math/X87.h"
 #include "Render/Models/ObjectState.h"
 #include "Render/Models/OriginalRetainedMath.h"
 #include "Render/Models/Skeleton.h"
@@ -41,15 +42,8 @@ WorldObject Object(std::int16_t type)
     return object;
 }
 
-double D(float value)
-{
-    return static_cast<double>(value);
-}
-
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using Client::Math::D;
+using Client::Math::F32;
 
 // sin(fase · 0,002f) · 0,35f + 0,65f, con las constantes de 0x6b89bc, 0x6b8bc4 y 0x6b8bc0: el seno de 64 bits
 // de FSIN por el float con un solo R53 (0x6056c8..0x6056d0).

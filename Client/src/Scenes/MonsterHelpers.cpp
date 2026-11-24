@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/X87.h"
 #include "Render/ModelBatch.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/OriginalRetainedMath.h"
@@ -80,15 +81,8 @@ constexpr std::int32_t ChaseLight = 0x729;
 // Los 0x190 personajes del pool (0x743a16c): el blanco +0x3a4 que se lee como WORD con signo.
 constexpr std::int16_t PoolSize = 0x190;
 
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
-
-double D(float value)
-{
-    return static_cast<double>(value);
-}
+using Math::D;
+using Math::F32;
 
 bool Within(std::uint16_t value, std::uint16_t first, std::uint16_t last)
 {

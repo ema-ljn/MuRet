@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/X87.h"
 #include "Render/Models/OriginalRotation.h"
 #include "World/IParticleTrigonometry.h"
 #include "World/NoriaParticleKernels.h"
@@ -29,10 +30,7 @@ constexpr double Brake = static_cast<double>(std::bit_cast<float>(0x3ecccccdu));
 constexpr double Twentieth = static_cast<double>(std::bit_cast<float>(0x3d4ccccdu));  // 0x6b8a48, 0,05f
 constexpr double Countdown = static_cast<double>(std::bit_cast<float>(0x3a83126fu));  // 0x6b89c8, 0,001f
 
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using Math::F32;
 
 void ScaleLight(Particle& particle, double factor)
 {

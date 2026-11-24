@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/X87.h"
 #include "Render/Models/Animation.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/IModelLibrary.h"
@@ -83,15 +84,8 @@ constexpr std::int16_t PiercingGlowEffect = World::PiercingShotGlowEffect;
 // Los que caen sobre el blanco del 0x46 (+0x376) en su paso 5 (0x4f5cb6): sin dibujo, sólo su fuego y sus sprites.
 constexpr std::int16_t FallingStarEffect = 0x625;
 
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
-
-double D(float value)
-{
-    return static_cast<double>(value);
-}
+using Math::D;
+using Math::F32;
 
 // 0x5fc8f0 y 0x5fcbd0: el vector girado por los ángulos (en grados) de la matriz del original.
 glm::vec3 Rotated(const glm::vec3& vector, const glm::vec3& angles)

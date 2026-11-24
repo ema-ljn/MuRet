@@ -2,9 +2,10 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/X87.h"
+#include "World/Ftol.h"
 #include "World/ModelEffects.h"
 #include "World/ObjectModelStepState.h"
-#include "World/OriginalFtol.h"
 #include "World/WorldObjectStepServices.h"
 #include "World/WorldObjects.h"
 
@@ -21,10 +22,7 @@ namespace Client::World
 {
 namespace
 {
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using Math::F32;
 
 constexpr std::int32_t ScrollPeriod = 1000;
 // 0x6ba1a4 (−0,001f) del mapa 1 y 0x6b89c8 (0,001f) del 4.

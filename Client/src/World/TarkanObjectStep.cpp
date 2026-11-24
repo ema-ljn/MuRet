@@ -1,10 +1,11 @@
 #include "World/TarkanObjectStep.h"
 
 #include "Core/Expected.h"
+#include "Math/X87.h"
 #include "Render/Models/ObjectState.h"
 #include "Render/Models/OriginalRetainedMath.h"
+#include "World/Ftol.h"
 #include "World/ObjectModelStepState.h"
-#include "World/OriginalFtol.h"
 #include "World/WorldObjectStepServices.h"
 #include "World/WorldObjects.h"
 
@@ -22,15 +23,8 @@ namespace Client::World
 {
 namespace
 {
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
-
-double D(float value)
-{
-    return static_cast<double>(value);
-}
+using Math::D;
+using Math::F32;
 
 // 0x6b89c8 (0,001f), 0x6b8a94 (0,0001f), 0x6b8a64 (0,0002f) y 0x6b8a28 (0,00005f).
 constexpr double Thousandth = static_cast<double>(std::bit_cast<float>(0x3a83126fu));

@@ -1,3 +1,4 @@
+#include "Math/X87.h"
 #include "Render/Models/IModelLibrary.h"
 #include "Scenes/CrywolfObjectServices.h"
 
@@ -136,10 +137,7 @@ std::uint32_t SeedWith(int modulus, int remainder, int second = 0, int secondRem
     }
 }
 
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using Client::Math::F32;
 
 // Una biblioteca sin modelos: el dibujo de 0x6046a0 solo cuenta y no dibuja.
 struct NoModels final : Client::Render::Models::IModelLibrary

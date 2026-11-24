@@ -1,5 +1,6 @@
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/X87.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/OriginalAngles.h"
 #include "Render/Models/OriginalRetainedMath.h"
@@ -38,8 +39,8 @@ namespace Client::Scenes::JointFamilies
 namespace
 {
 using Crt::CrtRandom;
-using JointKernels::D;
-using JointKernels::F32;
+using Math::D;
+using Math::F32;
 
 constexpr std::uint8_t Subtractive = 3;
 constexpr std::uint8_t Lighter = 1;

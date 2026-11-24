@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Core/IClock.h"
+#include "Math/X87.h"
 #include "Render/Models/OriginalRetainedMath.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Render/Models/Shine.h"
@@ -42,10 +43,7 @@ std::int32_t ItemClockWord(float time)
 namespace
 {
 using Result = Core::Expected<void, std::string>;
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using Math::F32;
 float Time(Core::Duration clock, const ItemDrawContext& context)
 {
     if (context.special && context.special->worldClock)

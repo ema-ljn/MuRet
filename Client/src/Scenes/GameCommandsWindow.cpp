@@ -1,6 +1,7 @@
 #include "Scenes/GameCommandsWindow.h"
 
 #include "Core/Expected.h"
+#include "Math/X87.h"
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
 #include "Render/Text/FontSet.h"
@@ -35,7 +36,6 @@
 #include "UI/GameUiState.h"
 #include "UI/PanelRegistry.h"
 #include "UI/Widget.h"
-#include "World/OriginalFtol.h"
 
 #include <array>
 #include <cstddef>
@@ -158,16 +158,8 @@ Core::Expected<std::string_view, std::string> TextOf(const GameHudContext& conte
     return *text;
 }
 
-std::int32_t Truncate(double value)
-{
-    return World::OriginalFtolLow(value).value_or(0);
-}
-
-// FSTP float: la suma de la x87 guardada en la pila como float.
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using Math::F32;
+using Math::Truncate;
 
 // 0x40a4ad y 0x40a705: fild de la esquina, fadd de 95 y fsub de 50.
 double ButtonsLeftOf(std::int32_t x)

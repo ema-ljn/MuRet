@@ -1,5 +1,6 @@
 #include "Scenes/FaunaMotion.h"
 
+#include "Math/X87.h"
 #include "Render/Models/Animation.h"
 #include "Render/Models/OriginalRetainedMath.h"
 #include "Render/Models/Pose.h"
@@ -25,10 +26,7 @@ namespace
 constexpr std::int32_t FullTurn = 360;
 constexpr float FlockDistance = 400;
 constexpr float SeparationDistance = 80;
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using Math::F32;
 std::int32_t TargetAngle(float fromX, float fromY, float targetX, float targetY)
 {
     // 4e97a0 usa una división y atan, no atan2; dx cero/unordered toma el cociente cero.

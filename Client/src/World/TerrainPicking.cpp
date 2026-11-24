@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainHeights.h"
+#include "Math/X87.h"
 #include "World/FaceNormal.h"
 #include "World/TerrainCells.h"
 #include "World/TerrainCulling.h"
@@ -43,10 +44,7 @@ constexpr std::uint32_t TargetMask = 0xff;
 static_assert(std::numeric_limits<float>::is_iec559 && std::numeric_limits<float>::digits == 24);
 static_assert(std::numeric_limits<double>::is_iec559 && std::numeric_limits<double>::digits == 53);
 
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using Math::F32;
 
 bool Finite(const glm::vec3& value)
 {

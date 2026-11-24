@@ -4,6 +4,7 @@
 #include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainGrid.h"
+#include "Math/X87.h"
 #include "Render/Models/Animation.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/OriginalRetainedMath.h"
@@ -63,15 +64,8 @@ constexpr std::int32_t PiercingChildSubtype = 1;
 constexpr std::uint8_t NoAction = 0xff;
 constexpr std::int16_t HiddenBlend = -2; // +0x64 en −2 (0xfffffffe)
 
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
-
-double D(float value)
-{
-    return static_cast<double>(value);
-}
+using Math::D;
+using Math::F32;
 
 std::string Cut(std::string_view address, std::string_view what)
 {

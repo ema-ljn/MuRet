@@ -3,6 +3,7 @@
 #include "Data/Terrain/TerrainGrid.h"
 #include "Data/Terrain/TerrainLight.h"
 #include "Data/Terrain/TerrainMapping.h"
+#include "Math/X87.h"
 #include "Render/Models/OriginalRotation.h"
 #include "World/CrywolfWater.h"
 #include "World/GameModelEffects.h"
@@ -52,15 +53,8 @@ constexpr std::uint8_t CrywolfMap = 34;
 constexpr std::int16_t Hidden = -2;
 const std::int16_t Shown = WorldObject{}.state.hiddenMesh;
 
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
-
-double D(float value)
-{
-    return static_cast<double>(value);
-}
+using Client::Math::D;
+using Client::Math::F32;
 
 WorldObject Object(std::int16_t type)
 {

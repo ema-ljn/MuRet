@@ -1,5 +1,6 @@
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/X87.h"
 #include "Render/Models/OriginalAngles.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Scenes/ActorFlags.h"
@@ -8,8 +9,8 @@
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/JointFamilies.h"
 #include "Scenes/JointKernels.h"
+#include "World/Ftol.h"
 #include "World/IFishStepServices.h"
-#include "World/OriginalFtol.h"
 #include "World/WorldObjectStepServices.h"
 
 #include <glm/ext/vector_float3.hpp>
@@ -28,8 +29,8 @@ namespace Client::Scenes::JointFamilies
 {
 namespace
 {
-using JointKernels::D;
-using JointKernels::F32;
+using Math::D;
+using Math::F32;
 
 constexpr double Glimmer = static_cast<double>(std::bit_cast<float>(0x3cf5c28fu)); // 0x6b8bd4, 0,03f
 

@@ -26,8 +26,4 @@ inline void Quad(Render::ModelBatch& batch, const std::array<Render::ModelVertex
     batch.Triangle({vertices[0], vertices[1], vertices[2]});
     batch.Triangle({vertices[0], vertices[2], vertices[3]});
 }
-inline float F32(double value)
-{
-    return static_cast<float>(value);
-}
 } // namespace Client::Scenes::TailDrawing

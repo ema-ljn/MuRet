@@ -1,5 +1,6 @@
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/X87.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/OriginalRetainedMath.h"
 #include "Render/Models/OriginalRotation.h"
@@ -24,8 +25,8 @@ namespace Client::Scenes::JointFamilies
 namespace
 {
 using JointKernels::AppendJointTail;
-using JointKernels::D;
-using JointKernels::F32;
+using Math::D;
+using Math::F32;
 
 // 0x530f0d..0x531214: lo que pone cada alta.
 constexpr std::int32_t RingLife = 0xf423f;                     // 0x530f15

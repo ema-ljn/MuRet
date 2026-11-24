@@ -1,4 +1,5 @@
 #include "Crt/CrtRandom.h"
+#include "Math/X87.h"
 #include "Render/Models/OriginalRotation.h"
 #include "World/KalimaParticleKernels.h"
 #include "World/Particles.h"
@@ -27,15 +28,8 @@ using Client::Tests::RecordedParticleDraw;
 using Client::World::Particle;
 using Client::World::Particles;
 
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
-
-double D(float value)
-{
-    return static_cast<double>(value);
-}
+using Client::Math::D;
+using Client::Math::F32;
 
 CrtRandom After(std::uint32_t seed, int draws)
 {

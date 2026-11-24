@@ -1,5 +1,6 @@
 #include "Render/Models/OriginalAngles.h"
 
+#include "Math/X87.h"
 #include "Render/Models/OriginalRetainedMath.h"
 
 #include <glm/ext/vector_float3.hpp>
@@ -27,10 +28,7 @@ constexpr double HalfTurn = 180.0;
 constexpr double ThreeQuarters = 270.0;
 constexpr double Turn = 360.0;
 
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using Math::F32;
 
 // TEST AH,1 consume C0: menor O unordered. La conservación entre comparación y lectura
 // diferida es la premisa observada de ADR0012; no es una garantía de la ISA.

@@ -3,6 +3,7 @@
 #include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainHeights.h"
+#include "Math/X87.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Render/Models/Skeleton.h"
@@ -40,10 +41,7 @@ using Client::Scenes::DarkSpirit;
 constexpr std::size_t Bones = 77;
 const glm::vec3 OwnerPosition{10603.0f, 14112.0f, 580.0f};
 
-std::uint32_t Bits(float value)
-{
-    return std::bit_cast<std::uint32_t>(value);
-}
+using Client::Math::Bits;
 
 std::uint32_t Hex(const std::string& word)
 {

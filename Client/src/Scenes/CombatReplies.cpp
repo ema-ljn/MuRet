@@ -17,7 +17,7 @@
 #include "UI/GameText.h"
 #include "UI/MessageArea.h"
 #include "UI/SprintfFormat.h"
-#include "World/OriginalFtol.h"
+#include "World/Ftol.h"
 
 #include <glm/ext/vector_float3.hpp>
 

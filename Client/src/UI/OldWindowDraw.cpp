@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Core/PixelSize.h"
+#include "Math/X87.h"
 #include "Render/OriginalQuad.h"
 #include "Render/ScreenScale.h"
 #include "Render/SpriteBatch.h"
@@ -287,10 +288,7 @@ void DrawOldEditCaret(const OldWindowDrawContext& context, const OldEdit& edit, 
                            Render::Text::TextColors{.text = edit.backgroundColor, .background = CaretColor});
 }
 
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using Math::F32;
 
 // Un color de 0xAABBGGRR (Render/Text/TextStyle.h) en glColor.
 Render::Color ColorOf(std::uint32_t abgr)

@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/X87.h"
 #include "Render/Models/Animation.h"
 #include "Render/Models/OriginalAngles.h"
 #include "Render/Models/OriginalRotation.h"
@@ -78,10 +79,7 @@ constexpr double FlightFloor = 100.0;
 constexpr double FlightCeiling = 200.0;
 constexpr double FlightClimb = 1.5;
 
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using Math::F32;
 
 float Shifted(int by, float value)
 {

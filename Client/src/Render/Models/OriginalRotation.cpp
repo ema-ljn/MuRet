@@ -1,5 +1,6 @@
 #include "Render/Models/OriginalRotation.h"
 
+#include "Math/X87.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/RoundedMath.h"
 
@@ -15,10 +16,7 @@ namespace
 // π/180 en float (0x6ba360).
 constexpr float Degrees = std::bit_cast<float>(0x3C8EFA35u);
 
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using Math::F32;
 } // namespace
 
 OriginalMatrix OriginalMatrixOf(const BoneTransform& m)

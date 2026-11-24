@@ -4,13 +4,14 @@
 #include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainGrid.h"
+#include "Math/X87.h"
 #include "Render/Models/Animation.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/ObjectState.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Render/Models/RoundedMath.h"
 #include "Render/Models/Skeleton.h"
-#include "World/OriginalFtol.h"
+#include "World/Ftol.h"
 #include "World/Sprites.h"
 
 #include <glm/ext/vector_float3.hpp>
@@ -59,10 +60,7 @@ constexpr std::uint8_t TurningRight = 0;
 constexpr std::uint8_t TurningLeft = 1;
 constexpr std::uint8_t Straight = 2;
 
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using Math::F32;
 
 // Un ángulo fuera de (−360, 360) vuelve a 0: `fcomp` con 360 (C0 apagado, mayor o igual) y con −360
 // (C0 o C3, menor o igual, o sin orden).

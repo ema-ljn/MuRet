@@ -1,5 +1,6 @@
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/X87.h"
 #include "Render/Models/OriginalRetainedMath.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/JointFamilies.h"
@@ -21,8 +22,8 @@ namespace Client::Scenes::JointFamilies
 {
 namespace
 {
-using JointKernels::D;
-using JointKernels::F32;
+using Math::D;
+using Math::F32;
 
 // 0x6ba2c4 y 0x6b8cf8: los grados a radianes, negado (el alta) y no (el paso).
 constexpr double NegativeRadians = static_cast<double>(std::bit_cast<float>(0xbc8efa35u));

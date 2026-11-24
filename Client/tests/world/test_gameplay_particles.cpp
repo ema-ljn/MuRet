@@ -1,6 +1,7 @@
 #include "World/Particles.h"
 
 #include "Crt/CrtRandom.h"
+#include "Math/X87.h"
 #include "World/ParticleDrawing.h"
 #include "World/ParticleOwner.h"
 #include "World/PortableParticleTrigonometry.h"
@@ -34,10 +35,7 @@ constexpr std::int32_t Fire = 0x5d9;
 constexpr std::int32_t BlueFire = 0x5dc;
 constexpr std::int32_t Smoke = 0x5f2;
 
-std::uint32_t Bits(float value)
-{
-    return std::bit_cast<std::uint32_t>(value);
-}
+using Client::Math::Bits;
 
 TEST(GameplayParticlesTest, SwellLifeChildRetainsItsBoneAndOwnerWithoutBirthRandoms)
 {

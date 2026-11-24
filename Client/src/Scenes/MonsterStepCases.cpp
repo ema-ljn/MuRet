@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Data/Models/PlayerModels.h"
 #include "Data/Text/TextTable.h"
+#include "Math/X87.h"
 #include "Render/Models/Animation.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/MonsterCreation.h"
@@ -29,15 +30,8 @@ namespace
 {
 constexpr std::int32_t CastleMap = 30;
 
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
-
-double D(float value)
-{
-    return static_cast<double>(value);
-}
+using Math::D;
+using Math::F32;
 
 // El dec de 32 bits, que da la vuelta en el mínimo.
 std::int32_t Decremented(std::int32_t value)

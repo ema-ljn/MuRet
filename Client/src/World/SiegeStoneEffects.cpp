@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/X87.h"
 #include "World/ModelEffects.h"
 
 #include <glm/ext/vector_float3.hpp>
@@ -15,10 +16,7 @@ namespace Client::World
 {
 namespace
 {
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using Math::F32;
 
 void ChooseTheTarget(ModelEffect& effect, const ModelEffectArguments& arguments, const glm::vec3& hero,
                      Crt::CrtRandom& random)

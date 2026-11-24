@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/X87.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/GameDrawTail.h"
 #include "World/IFishStepServices.h"
@@ -30,15 +31,8 @@ using Client::Scenes::JointState;
 
 constexpr std::uint32_t Seed = 0x60fu;
 
-std::uint32_t Bits(float value)
-{
-    return std::bit_cast<std::uint32_t>(value);
-}
-
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using Client::Math::Bits;
+using Client::Math::F32;
 
 struct OrbitWorld
 {

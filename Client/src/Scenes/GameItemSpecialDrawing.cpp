@@ -1,8 +1,9 @@
-#include "Crt/CrtRandom.h"
 #include "Scenes/GameItemSpecialDrawing.h"
 #include "Core/Expected.h"
 #include "Core/IClock.h"
+#include "Crt/CrtRandom.h"
 #include "Data/Models/Model.h"
+#include "Math/X87.h"
 #include "Render/ModelBatch.h"
 #include "Render/Models/IModelLibrary.h"
 #include "Render/Models/OriginalRetainedMath.h"
@@ -34,10 +35,7 @@ constexpr float Slow = 0.0001f;
 constexpr float Scroll = 0.0005f;
 constexpr float PulseFrequency = 0.001f;
 constexpr Render::TextureSlot ArmorChrome{0x5c1};
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using Math::F32;
 // Los parámetros de cada pase no son stores. Sólo Store publica los MOV/FSTP de609640.
 class ItemRenderer
 {

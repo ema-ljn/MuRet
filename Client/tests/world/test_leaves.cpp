@@ -4,6 +4,7 @@
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainGrid.h"
 #include "Data/Terrain/TerrainHeights.h"
+#include "Math/X87.h"
 #include "World/TerrainHeight.h"
 
 #include "support/WorldObjectVectors.h"
@@ -31,10 +32,7 @@ using Client::Crt::CrtRandom;
 using Client::World::Leaf;
 using Client::World::Leaves;
 
-std::uint32_t Bits(float value)
-{
-    return std::bit_cast<std::uint32_t>(value);
-}
+using Client::Math::Bits;
 
 std::uint32_t Hex(const std::string& word)
 {

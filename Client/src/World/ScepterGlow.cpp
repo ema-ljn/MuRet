@@ -2,6 +2,7 @@
 
 #include "Core/IClock.h"
 #include "Crt/CrtRandom.h"
+#include "Math/X87.h"
 #include "Render/Models/Animation.h"
 #include "Render/Models/OriginalRotation.h"
 #include "World/Sprites.h"
@@ -22,10 +23,7 @@ constexpr float Reach = 100.0f;     // 0x6b86b4
 constexpr float BigShrink = 0.3f;   // 0x6b89dc
 constexpr float SmallShrink = 0.2f; // 0x6b8854
 
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using Math::F32;
 
 // fild, fmul por 0,05f y la suma de `base`, en 53 bits, guardado en float.
 float Steps(int count, double base)

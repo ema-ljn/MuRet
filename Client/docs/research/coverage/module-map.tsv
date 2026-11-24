@@ -211,6 +211,7 @@ Input/Key.h	141	Input	engine/Input	high	engine or protocol layer, no game state
 Input/MouseMessageState.h	16	Input	engine/Input	high	engine or protocol layer, no game state
 Input/TextInputEvent.h	29	Input	engine/Input	high	engine or protocol layer, no game state
 Maps/ClothWind.h	17	Maps	game/Maps	high	(addr.) the login map selects the fallback wind for cloth (AR1.1)
+Math/X87.h	31	Math	engine/Math	high	(addr.) the original's x87 conversions: the float store, the float load, 0x69fd3c's truncation and a float's bits (AR1.1)
 Network/CloseReason.cpp	30	Network	engine/Network	high	engine or protocol layer, no game state
 Network/CloseReason.h	25	Network	engine/Network	high	engine or protocol layer, no game state
 Network/Connection.cpp	364	Network	engine/Network	high	engine or protocol layer, no game state
@@ -1325,7 +1326,7 @@ World/FaceNormal.cpp	45	World	game/Terrain	medium	the terrain, out of Kernel (20
 World/FaceNormal.h	18	World	game/Terrain	medium	the terrain, out of Kernel (2026-11-21 review)
 World/Fish.cpp	609	World	game/Fauna	medium	ambient fauna (birds, fish), out of WorldObjects (2026-11-21 review)
 World/Fish.h	49	World	game/Fauna	medium	ambient fauna (birds, fish), out of WorldObjects (2026-11-21 review)
-World/Ftol.h	21	World	engine/Math	high	rule ^(Ftol|OriginalFtol)
+World/Ftol.h	34	World	engine/Math	high	rule ^(Ftol|OriginalFtol)
 World/GameCamera.cpp	240	World	game/Camera	medium	the camera (2026-11-21 review)
 World/GameCamera.h	73	World	game/Camera	medium	the camera (2026-11-21 review)
 World/GameModelEffects.cpp	2049	World	game/Effects	medium	model effects; uses Joints and Particles (2026-11-21 review)
@@ -1371,8 +1372,6 @@ World/NoriaParticleKernels.h	40	World	game/Particles	medium	particles, a module 
 World/ObjectAlpha.cpp	71	World	game/Effects	medium	model effects; uses Joints and Particles (2026-11-21 review)
 World/ObjectAlpha.h	13	World	game/Effects	medium	model effects; uses Joints and Particles (2026-11-21 review)
 World/ObjectModelStepState.h	14	World	game/WorldObjects	medium	rule ^(Birds|Fish|IBird|IFish|Leaf|Leaves|ILe
-World/OriginalFtol.cpp	26	World	engine/Math	high	rule ^(Ftol|OriginalFtol)
-World/OriginalFtol.h	13	World	engine/Math	high	rule ^(Ftol|OriginalFtol)
 World/ParticleBurst.cpp	58	World	game/Particles	medium	particles, a module of their own below Effects (2026-11-21 review)
 World/ParticleBurst.h	25	World	game/Particles	medium	particles, a module of their own below Effects (2026-11-21 review)
 World/ParticleDrawParameters.cpp	95	World	game/Particles	medium	particles, a module of their own below Effects (2026-11-21 review)

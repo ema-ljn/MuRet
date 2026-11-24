@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/X87.h"
 #include "World/ParticleOwner.h"
 #include "World/Particles.h"
 #include "World/PortableParticleTrigonometry.h"
@@ -41,19 +42,12 @@ using Client::World::PortableParticleTrigonometry;
 constexpr std::uint32_t Seed = 0x1234;
 constexpr std::int32_t Smoke = 0x5f2;
 
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using Client::Math::D;
+using Client::Math::F32;
 
 double D(std::uint32_t bits)
 {
     return static_cast<double>(std::bit_cast<float>(bits));
-}
-
-double D(float value)
-{
-    return static_cast<double>(value);
 }
 
 // Los rand() de la semilla, en orden.

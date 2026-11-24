@@ -1,4 +1,5 @@
 #include "World/GameModelEffects.h"
+#include "Math/X87.h"
 #include "World/SiegeVertexEffects.h"
 #include "World/SkinShellEffects.h"
 #include "World/SiegeGateEffects.h"
@@ -7,6 +8,7 @@
 #include "Crt/CrtRandom.h"
 #include "World/BlastModelEffects.h"
 #include "Render/Models/OriginalRetainedMath.h"
+#include "World/Ftol.h"
 #include "World/ModelEffects.h"
 #include "World/IFishStepServices.h"
 #include "World/Particles.h"
@@ -14,7 +16,6 @@
 #include "World/ParticleOwner.h"
 #include "World/KalimaWorld.h"
 #include "World/PortableParticleTrigonometry.h"
-#include "World/Ftol.h"
 #include "World/SelectionParticleKernels.h"
 #include "World/Sprites.h"
 #include "World/WorldObjectStepServices.h"
@@ -40,10 +41,7 @@ namespace Client::World
 {
 namespace
 {
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using Math::F32;
 } // namespace
 
 Core::Expected<void, std::string> EmitPiercingShotGlow(ModelEffect& effect, Particles& particles,

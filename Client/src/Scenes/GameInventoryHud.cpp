@@ -1,4 +1,5 @@
 #include "Scenes/GameInventoryHud.h"
+#include "Math/X87.h"
 #include "Render/Models/RoundedMath.h"
 #include "Scenes/CastleWindows.h"
 
@@ -37,7 +38,6 @@
 #include "UI/PanelRegistry.h"
 #include "UI/SprintfFormat.h"
 #include "World/ItemState.h"
-#include "World/OriginalFtol.h"
 
 #include <algorithm>
 #include <array>
@@ -90,15 +90,8 @@ constexpr std::int32_t TrainerWithBox = 3;
 // [0x7d536fc] + 0x18 en 3: la lista de Castle Siege va junto con el inventario.
 constexpr std::int32_t SiegeListWithInventory = 3;
 
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
-
-std::int32_t Truncate(double value)
-{
-    return World::OriginalFtolLow(value).value_or(0);
-}
+using Math::F32;
+using Math::Truncate;
 
 Render::Models::LogicalAccess OwnAccess(GameHudContext& context)
 {

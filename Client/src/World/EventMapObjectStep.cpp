@@ -2,8 +2,9 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/X87.h"
 #include "Render/Models/ObjectState.h"
-#include "World/OriginalFtol.h"
+#include "World/Ftol.h"
 #include "World/Particles.h"
 #include "World/PortableParticleTrigonometry.h"
 #include "World/WorldObjectStepServices.h"
@@ -22,10 +23,7 @@ namespace Client::World
 {
 namespace
 {
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using Math::F32;
 
 // 0x604ad5..0x604ae2: ftol(reloj) % 4.000 (0xfa0) contra 1.000 (0x3e8), con signo.
 constexpr std::int32_t FlashPeriod = 4000;

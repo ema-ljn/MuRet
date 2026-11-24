@@ -3,12 +3,13 @@
 #include "Core/Expected.h"
 #include "Data/Terrain/TerrainGrid.h"
 #include "Data/Terrain/TerrainHeights.h"
+#include "Math/X87.h"
 #include "Render/ModelBatch.h"
 #include "Render/ModelVertex.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Render/SpriteVertex.h"
 #include "Render/TextureSlot.h"
-#include "World/OriginalFtol.h"
+#include "World/Ftol.h"
 #include "World/TerrainCells.h"
 
 #include <glm/ext/vector_float2.hpp>
@@ -41,15 +42,8 @@ constexpr std::int32_t FirstUndrawnCell = 255;
 // 0x5fb514..0x5fb516: 0x5fb2f0 llama a 0x5faec0 con un lado de 1 celda y el paso 1, sin la luz del terreno.
 constexpr float DecalCellSide = 1.0f;
 
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
-
-double D(float value)
-{
-    return static_cast<double>(value);
-}
+using Math::D;
+using Math::F32;
 
 // 0x69fd3c, que da el dword bajo del entero de 64 bits truncado.
 Core::Expected<std::int32_t, std::string> FtolOf(float value, std::string_view where)

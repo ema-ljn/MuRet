@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/X87.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/OriginalRetainedMath.h"
 #include "Render/Models/OriginalRotation.h"
@@ -36,15 +37,8 @@ using Client::Scenes::JointState;
 
 constexpr std::int32_t Aura = 0x10f;
 
-double D(float value)
-{
-    return static_cast<double>(value);
-}
-
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using Client::Math::D;
+using Client::Math::F32;
 
 struct Pool
 {

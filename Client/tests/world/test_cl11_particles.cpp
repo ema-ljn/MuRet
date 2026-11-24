@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/X87.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Render/Models/RoundedMath.h"
 #include "World/EffectParticleKernels.h"
@@ -53,10 +54,7 @@ using Client::World::PortableParticleTrigonometry;
 
 constexpr std::uint32_t Seed = 0x1234;
 
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using Client::Math::F32;
 
 double D(std::uint32_t bits)
 {

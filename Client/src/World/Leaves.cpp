@@ -1,6 +1,7 @@
 #include "World/Leaves.h"
 
 #include "Crt/CrtRandom.h"
+#include "Math/X87.h"
 #include "Render/Models/OriginalRotation.h"
 #include "World/TerrainHeight.h"
 
@@ -29,10 +30,7 @@ constexpr float Bounce = 3.2f;
 // 0x5303e8: en el suelo, la luz baja 0,05 (0x6b8a48) por paso; en 0 se apaga.
 constexpr double Fade = static_cast<double>(0.05f);
 
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using Math::F32;
 
 // rand() % n con el idiom de `and 0x8000000f` (n potencia de 2) o con cdq e idiv: con un rand() no
 // negativo, los dos son el resto.

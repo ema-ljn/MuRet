@@ -1,6 +1,7 @@
 #include "Scenes/GamePetWindow.h"
 
 #include "Core/Expected.h"
+#include "Math/X87.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/OriginalQuad.h"
 #include "Render/SpriteBatch.h"
@@ -25,7 +26,6 @@
 #include "UI/SprintfFormat.h"
 #include "UI/Widget.h"
 #include "World/ItemState.h"
-#include "World/OriginalFtol.h"
 
 #include <array>
 #include <cstddef>
@@ -247,17 +247,8 @@ constexpr std::uint32_t LackingColor = 0xff3c3cdcu;
 constexpr Render::Text::TextColors CommandsTitleColors{.text = 0xff67bfdfu, .background = 0x0000000fu};
 constexpr Render::Text::TextColors RavenHudColors{.text = 0xffdcdcdcu, .background = 0x80000000u};
 
-// La x87 de 53 bits y el fstp en float.
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
-
-// _ftol de un float que no es infinito.
-std::int32_t Truncate(double value)
-{
-    return World::OriginalFtolLow(value).value_or(0);
-}
+using Math::F32;
+using Math::Truncate;
 
 Core::Expected<std::string_view, std::string> TextOf(const GameHudContext& context, std::size_t index,
                                                      std::string_view where)

@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Core/IClock.h"
 #include "Crt/CrtRandom.h"
+#include "Math/X87.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/IModelLibrary.h"
 #include "Render/Models/OriginalRetainedMath.h"
@@ -28,15 +29,8 @@ namespace Client::Scenes
 {
 namespace
 {
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
-
-double D(float value)
-{
-    return static_cast<double>(value);
-}
+using Math::D;
+using Math::F32;
 
 constexpr std::int16_t WaveType = 0x114, RingType = 0x11b, KundunSpiritType = 0x125, GuildMarkType = 0x140;
 constexpr std::uint32_t ChromeFlags = 0x44; // 0x602039 y 0x60235c

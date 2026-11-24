@@ -1,6 +1,7 @@
 #include "Scenes/GuildDrawing.h"
 
 #include "Core/Expected.h"
+#include "Math/X87.h"
 #include "Render/ScreenScale.h"
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
@@ -26,7 +27,6 @@
 #include "UI/PanelTimerFrame.h"
 #include "UI/SprintfFormat.h"
 #include "UI/Widget.h"
-#include "World/OriginalFtol.h"
 
 #include <algorithm>
 #include <array>
@@ -125,20 +125,13 @@ constexpr std::int32_t PositionsButtonsTop = 0x75;
 constexpr std::array<std::int32_t, GuildPositionsButtonCount> PositionsButtonLefts{0x37, 0x6e};
 constexpr std::array<std::size_t, GuildPositionsButtonCount> PositionsButtonTexts{228, 229};
 
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using Math::F32;
+using Math::Truncate;
 
 template <std::size_t Size> std::string_view NameOf(const std::array<char, Size>& name)
 {
     const auto end = std::ranges::find(name, '\0');
     return {name.data(), static_cast<std::size_t>(end - name.begin())};
-}
-
-std::int32_t Truncate(double value)
-{
-    return World::OriginalFtolLow(value).value_or(0);
 }
 
 Core::Expected<std::string_view, std::string> PositionsTextOf(const GameHudContext& context, std::size_t index,

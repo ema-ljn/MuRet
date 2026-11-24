@@ -1,3 +1,4 @@
+#include "Math/X87.h"
 #include "Scenes/IcarusObjectFrame.h"
 #include "Render/Models/RoundedMath.h"
 #include "Scenes/IcarusObjectStep.h"
@@ -48,15 +49,8 @@ using Client::World::WorldObject;
 constexpr std::uint8_t IcarusMap = 10;
 constexpr std::int32_t GameScene = 5;
 
-double D(float value)
-{
-    return static_cast<double>(value);
-}
-
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using Client::Math::D;
+using Client::Math::F32;
 
 // La primera semilla con la que `condition` acepta los sorteos de un CrtRandom nuevo.
 std::uint32_t SeedWhere(const std::function<bool(CrtRandom&)>& condition)

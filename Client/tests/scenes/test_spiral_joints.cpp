@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/X87.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Scenes/ActorState.h"
@@ -32,10 +33,7 @@ using Client::Scenes::JointState;
 
 constexpr std::uint32_t Seed = 0x62cu;
 
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using Client::Math::F32;
 
 glm::vec3 Sum(const glm::vec3& first, const glm::vec3& second)
 {

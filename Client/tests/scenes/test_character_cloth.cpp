@@ -2,6 +2,7 @@
 
 #include "Core/IClock.h"
 #include "Crt/CrtRandom.h"
+#include "Math/X87.h"
 #include "Render/ModelBatch.h"
 #include "Render/ModelVertex.h"
 #include "Render/Models/Animation.h"
@@ -43,10 +44,7 @@ using Client::Tests::ClothVectorFrame;
 using Client::Tests::ClothVectors;
 using Client::Tests::ClothVectorStep;
 
-std::uint32_t Bits(float value)
-{
-    return std::bit_cast<std::uint32_t>(value);
-}
+using Client::Math::Bits;
 
 void ExpectSameBits(const glm::vec3& ours, const glm::vec3& binary, const std::string& where)
 {

@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/X87.h"
 #include "World/IParticleTrigonometry.h"
 #include "World/ParticleOwner.h"
 #include "World/Particles.h"
@@ -39,10 +40,7 @@ constexpr int MistLife = 30, MistSeenLife = 50, FlameLife = 33, ChaseFadeLife = 
 constexpr double FloorFlameRise = static_cast<double>(std::bit_cast<float>(0x3e19999au));
 constexpr int FullTurn = 360;
 
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using Math::F32;
 
 void ScaleLight(Particle& p, double factor)
 {

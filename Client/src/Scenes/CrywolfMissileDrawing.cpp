@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/X87.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/OriginalRotation.h"
 #include "World/ModelEffects.h"
@@ -21,10 +22,7 @@ namespace Client::Scenes
 {
 namespace
 {
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using Math::F32;
 } // namespace
 
 Core::Expected<void, std::string> DrawCrywolfMissileTail(World::ModelEffect& effect, std::uint64_t physicalSlot,

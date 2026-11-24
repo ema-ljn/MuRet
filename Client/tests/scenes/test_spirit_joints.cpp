@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainAttributes.h"
+#include "Math/X87.h"
 #include "Render/ModelBatch.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
@@ -49,15 +50,9 @@ using Client::Scenes::JointState;
 constexpr std::uint32_t Seed = 0x613beefu;
 constexpr float Tenth = std::bit_cast<float>(0x3dcccccdu);
 
-double D(float value)
-{
-    return static_cast<double>(value);
-}
-
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using Client::Math::Bits;
+using Client::Math::D;
+using Client::Math::F32;
 
 struct Pool
 {
@@ -147,11 +142,6 @@ Client::World::Particle Twin(CrtRandom& replay, std::int32_t type, std::int32_t 
     const auto made = twin->CreateChecked(type, position, angles, light, subtype, scale, 0.0f, replay);
     EXPECT_TRUE(made.HasValue() && made.Value().has_value());
     return twin->All()[0];
-}
-
-std::uint32_t Bits(float value)
-{
-    return std::bit_cast<std::uint32_t>(value);
 }
 
 std::array<std::uint32_t, 3> Bits(const glm::vec3& value)

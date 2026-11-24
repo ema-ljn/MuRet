@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Core/PixelSize.h"
 #include "Data/Text/TextTable.h"
+#include "Math/X87.h"
 #include "Protocol/Guild.h"
 #include "Render/OriginalQuad.h"
 #include "Render/ScreenScale.h"
@@ -35,7 +36,6 @@
 #include "UI/OldWindowBase.h"
 #include "UI/PanelRegistry.h"
 #include "UI/SprintfFormat.h"
-#include "World/OriginalFtol.h"
 
 #include <algorithm>
 #include <array>
@@ -161,15 +161,8 @@ constexpr std::int32_t PositionsChoiceHeight = 0x14;
 constexpr std::uint8_t AppointType = 1;
 constexpr std::uint8_t ChangeType = 2;
 
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
-
-std::int32_t Truncate(double value)
-{
-    return World::OriginalFtolLow(value).value_or(0);
-}
+using Math::F32;
+using Math::Truncate;
 
 Core::Expected<std::string_view, std::string> TextOf(const Data::Text::TextTable* texts, std::size_t index,
                                                      std::string_view where)

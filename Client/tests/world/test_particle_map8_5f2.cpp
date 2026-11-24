@@ -1,3 +1,4 @@
+#include "Math/X87.h"
 #include "World/Particles.h"
 #include "World/ParticleDrawing.h"
 #include "World/IParticleDrawingServices.h"
@@ -31,10 +32,7 @@ using Client::Crt::CrtRandom;
 using Client::World::Particle;
 using Client::World::Particles;
 constexpr std::int32_t Smoke = 0x5f2;
-std::uint32_t Bits(float value)
-{
-    return std::bit_cast<std::uint32_t>(value);
-}
+using Client::Math::Bits;
 
 // En ramas sin trig, cualquier llamada al evaluador es un defecto observable.
 struct RejectingTrigonometry final : Client::World::IParticleTrigonometry

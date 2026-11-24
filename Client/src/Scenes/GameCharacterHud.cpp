@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Data/Tables/ItemTable.h"
+#include "Math/X87.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/RoundedMath.h"
 #include "Render/OriginalQuad.h"
@@ -26,7 +27,6 @@
 #include "UI/ServerListModel.h"
 #include "UI/SprintfFormat.h"
 #include "World/ItemState.h"
-#include "World/OriginalFtol.h"
 
 #include <algorithm>
 #include <cstddef>
@@ -107,15 +107,8 @@ constexpr std::int32_t GladiatorSetArmors[] = {0x100f, 0x1014, 0x1017, 0x1020};
 // Los sprintf de 0x5ee2e0 sobre un texto de Text.bmd (Q-C590).
 using UI::Sprintf;
 
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
-
-std::int32_t Truncate(double value)
-{
-    return World::OriginalFtolLow(value).value_or(0);
-}
+using Math::F32;
+using Math::Truncate;
 
 Render::Models::LogicalAccess OwnAccess(GameHudContext& context)
 {

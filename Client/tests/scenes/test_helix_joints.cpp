@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/X87.h"
 #include "Render/Models/OriginalRetainedMath.h"
 #include "Scenes/GameDrawTail.h"
 #include "World/IFishStepServices.h"
@@ -34,15 +35,8 @@ constexpr std::uint32_t Seed = 0x60fu;
 constexpr float Tenth = std::bit_cast<float>(0x3dcccccdu);           // 0x6b87b8
 constexpr float NegativeRadians = std::bit_cast<float>(0xbc8efa35u); // 0x6ba2c4
 
-double D(float value)
-{
-    return static_cast<double>(value);
-}
-
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using Client::Math::D;
+using Client::Math::F32;
 
 struct Helix
 {

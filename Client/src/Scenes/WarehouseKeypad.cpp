@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/X87.h"
 #include "Protocol/Connection/Logout.h"
 #include "Protocol/NpcWindows.h"
 #include "Protocol/Outgoing.h"
@@ -22,7 +23,6 @@
 #include "UI/GameUiState.h"
 #include "UI/PanelRegistry.h"
 #include "UI/Widget.h"
-#include "World/OriginalFtol.h"
 
 #include <algorithm>
 #include <array>
@@ -151,15 +151,8 @@ constexpr float ButtonQuadHeight = 21.0f;
 constexpr float ButtonDu = 0.546875f;
 constexpr float ButtonDv = 0.65625f;
 
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
-
-std::int32_t Truncate(double value)
-{
-    return World::OriginalFtolLow(value).value_or(0);
-}
+using Math::F32;
+using Math::Truncate;
 
 Core::Expected<std::string_view, std::string> TextOf(const GameHudContext& context, std::size_t index,
                                                      std::string_view where)

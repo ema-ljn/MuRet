@@ -1,5 +1,6 @@
 #include "World/SphereFrustum.h"
 
+#include "Math/X87.h"
 #include "Render/Models/RoundedMath.h"
 #include "Render/Pass3D.h"
 #include "World/FaceNormal.h"
@@ -21,10 +22,7 @@ constexpr float HalfFieldOfView = std::bit_cast<float>(0x3C0EFA33u);
 constexpr float WidthMargin = 100.0f;
 constexpr float HeightFactor = 0.75f;
 
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using Math::F32;
 } // namespace
 
 FrustumPoints FrustumPointsOf(const glm::mat4& view, const Render::Camera3D& camera, float widthFactor)

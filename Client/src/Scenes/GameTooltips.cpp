@@ -4,6 +4,7 @@
 #include "Core/PixelSize.h"
 #include "Data/Tables/ItemSetTables.h"
 #include "Data/Text/TextTable.h"
+#include "Math/X87.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/ScreenScale.h"
 #include "Render/SpriteBatch.h"
@@ -29,7 +30,6 @@
 #include "UI/PanelRegistry.h"
 #include "UI/SprintfFormat.h"
 #include "World/ItemState.h"
-#include "World/OriginalFtol.h"
 
 #include <array>
 #include <cstddef>
@@ -104,10 +104,7 @@ constexpr std::uint8_t NoSetOption = 0xff;
 constexpr std::size_t SetWindowFirstLine = 3;
 constexpr std::size_t SetLabelFirstLine = 4;
 
-std::int32_t Truncate(double value)
-{
-    return World::OriginalFtolLow(value).value_or(0);
-}
+using Math::Truncate;
 
 Render::Text::FontKind FontOf(std::int32_t bold)
 {

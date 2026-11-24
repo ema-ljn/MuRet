@@ -1,6 +1,7 @@
 #include "Scenes/ChaosBoxDrawing.h"
 
 #include "Core/Expected.h"
+#include "Math/X87.h"
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
 #include "Render/Text/FontSet.h"
@@ -16,7 +17,6 @@
 #include "UI/HudPrimitives.h"
 #include "UI/PanelRegistry.h"
 #include "UI/SprintfFormat.h"
-#include "World/OriginalFtol.h"
 
 #include <array>
 #include <cstddef>
@@ -114,16 +114,8 @@ constexpr std::uint32_t LineColor = 0xffffe6d2u;
 constexpr std::uint32_t JewelColor = 0xff1432ffu;
 constexpr Render::Text::TextColors HelpColors{.text = 0xffffffffu, .background = LineBackground};
 
-// La x87 de 53 bits y el fstp en float.
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
-
-std::int32_t Truncate(double value)
-{
-    return World::OriginalFtolLow(value).value_or(0);
-}
+using Math::F32;
+using Math::Truncate;
 
 Core::Expected<std::string_view, std::string> TextOf(const GameHudContext& context, std::size_t index,
                                                      std::string_view where)

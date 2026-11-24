@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/X87.h"
 #include "Render/Models/OriginalRetainedMath.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/GameDrawTail.h"
@@ -35,15 +36,8 @@ constexpr std::int32_t Sparkle = 0x60f, FallingSubtype = 0xa;
 constexpr float PrizeWidth = 40.0f;
 constexpr std::int32_t PrizeKey = 2;
 
-double D(float value)
-{
-    return static_cast<double>(value);
-}
-
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using Client::Math::D;
+using Client::Math::F32;
 
 float Float(std::uint32_t bits)
 {

@@ -5,6 +5,7 @@
 #include <cmath>
 #include <cstdint>
 #include <limits>
+#include <optional>
 
 // Vectores analíticos del contrato FTOL64→low32 con invalid enmascarada. Protegen la extracción
 // de TerrainHeight (double sin store) y Particles (float promovido exactamente), sin oracle nativo.
@@ -45,5 +46,27 @@ TEST(FtolTest, MaskedNonFiniteConversionProjectsToZero)
     EXPECT_EQ(Client::World::FtolLow(std::numeric_limits<float>::quiet_NaN()), 0);
     EXPECT_EQ(Client::World::FtolLow(std::numeric_limits<float>::infinity()), 0);
     EXPECT_EQ(Client::World::FtolLow(-std::numeric_limits<float>::infinity()), 0);
+}
+
+TEST(FtolTest, FtolLowIsOriginalFtolLowOrZero)
+{
+    struct Case
+    {
+        double value;
+        std::int32_t low;
+        std::optional<std::int32_t> original;
+    };
+    constexpr double Infinity = std::numeric_limits<double>::infinity();
+    const Case cases[] = {{std::numeric_limits<double>::quiet_NaN(), 0, 0},
+                          {Infinity, 0, std::nullopt},
+                          {-Infinity, 0, std::nullopt},
+                          {0x1p63, 0, std::nullopt},
+                          {0x1p40 + 5, 5, 5},
+                          {-1.5, -1, -1}};
+    for (const Case& test : cases)
+    {
+        EXPECT_EQ(Client::World::FtolLow(test.value), test.low) << test.value;
+        EXPECT_EQ(Client::World::OriginalFtolLow(test.value), test.original) << test.value;
+    }
 }
 } // namespace

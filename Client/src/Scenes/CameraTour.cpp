@@ -1,4 +1,5 @@
 #include "Scenes/CameraTour.h"
+#include "Math/X87.h"
 #include "Render/Models/RoundedMath.h"
 #include "Scenes/ArrivalSparks.h"
 
@@ -74,10 +75,7 @@ constexpr float KeepSpeed = -1.0f;
 constexpr float BarrierSpeed = std::bit_cast<float>(0x3e3851ecu);
 constexpr float GuardSpeed = std::bit_cast<float>(0x3e6872b0u);
 
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using Math::F32;
 
 float CellCenterOf(std::int32_t cell)
 {

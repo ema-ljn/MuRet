@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/X87.h"
 #include "Render/Models/OriginalRotation.h"
 #include "World/ParticleDrawing.h"
 #include "World/PortableParticleTrigonometry.h"
@@ -40,10 +41,7 @@ using Client::Crt::CrtRandom;
 using Client::World::Particle;
 using Client::World::Particles;
 
-std::uint32_t Bits(float value)
-{
-    return std::bit_cast<std::uint32_t>(value);
-}
+using Client::Math::Bits;
 
 std::uint32_t Hex(const std::string& word)
 {

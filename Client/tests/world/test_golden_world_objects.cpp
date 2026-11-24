@@ -1,5 +1,6 @@
 #include "support/CheckedWorldObjectProjection.h"
 
+#include "Math/X87.h"
 #include "World/WorldObjects.h"
 
 #include "Core/ILogSink.h"
@@ -40,10 +41,7 @@ using Client::World::WorldObject;
 
 constexpr std::uint8_t Login = 55;
 
-std::uint32_t Bits(float value)
-{
-    return std::bit_cast<std::uint32_t>(value);
-}
+using Client::Math::Bits;
 
 // Cada campo del objeto contra el del binario, por sus bits.
 void ExpectSameState(const WorldObject& object, const WorldObjectVectorState& expected, const std::string& where)

@@ -3,7 +3,7 @@
 #include "Data/Terrain/TerrainGrid.h"
 #include "GameLogic/Path.h"
 #include "GameLogic/PathCell.h"
-#include "World/OriginalFtol.h"
+#include "World/Ftol.h"
 #include "World/TerrainWalls.h"
 
 #include <algorithm>

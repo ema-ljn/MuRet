@@ -1,5 +1,6 @@
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/X87.h"
 #include "Scenes/ActorState.h"
 #include "Render/Models/OriginalRetainedMath.h"
 #include "Render/Models/OriginalRotation.h"
@@ -25,8 +26,8 @@ namespace Client::Scenes::JointFamilies
 {
 namespace
 {
-using JointKernels::D;
-using JointKernels::F32;
+using Math::D;
+using Math::F32;
 
 // 0x53c0a5..0x53c390 con la /0..3 y la /5, después del movimiento común. La /2 gira su z rand() % 10 + 10 (en la x87,
 // rand + z + 10). La velocidad sube 10, la cola con la matriz de los ángulos (0x535520, si está prendida), sube otros

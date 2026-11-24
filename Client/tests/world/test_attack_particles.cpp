@@ -1,6 +1,7 @@
 #include "World/Particles.h"
 
 #include "Crt/CrtRandom.h"
+#include "Math/X87.h"
 #include "Render/Models/OriginalRotation.h"
 #include "World/Ftol.h"
 #include "World/PortableParticleTrigonometry.h"
@@ -33,10 +34,7 @@ using Client::World::Particles;
 
 constexpr std::uint32_t Seed = 0x1357bdfu;
 
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using Client::Math::F32;
 
 double Bits(std::uint32_t bits)
 {

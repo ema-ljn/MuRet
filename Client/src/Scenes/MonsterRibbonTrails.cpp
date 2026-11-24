@@ -1,6 +1,7 @@
 #include "Scenes/MonsterRibbonTrails.h"
 
 #include "Core/Expected.h"
+#include "Math/X87.h"
 
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/OriginalRotation.h"
@@ -57,10 +58,7 @@ Render::Models::BoneTransform BoneAt(const WorldState& world, std::size_t index)
     return index < bones.size() ? bones[index] : Render::Models::BoneTransform(0.0f);
 }
 
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using Math::F32;
 
 template <std::size_t LegCount>
 Core::Expected<void, std::string> EmitSamples(ActorState& actor, const Render::Models::Skeleton& skeleton,

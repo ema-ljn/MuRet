@@ -1,6 +1,7 @@
 #include "Scenes/GameFloorItemDrawing.h"
 
 #include "Core/Expected.h"
+#include "Math/X87.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/OriginalRetainedMath.h"
@@ -32,10 +33,7 @@ constexpr std::int16_t EndArmor = 0x1a12;
 constexpr std::int16_t Money = 0x1e21;
 constexpr std::uint16_t Player = 0x20a;
 constexpr float VisibleAlpha = 0.01f;
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using Math::F32;
 std::uint8_t Level(const FloorItemState& item)
 {
     return static_cast<std::uint8_t>((item.value >> 3) & 15);

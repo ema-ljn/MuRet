@@ -1,6 +1,7 @@
 #include "World/ColoredDecals.h"
 
 #include "Crt/CrtRandom.h"
+#include "Math/X87.h"
 #include "World/ModelEffects.h"
 
 #include <bit>
@@ -13,10 +14,7 @@ namespace Client::World
 {
 namespace
 {
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using Math::F32;
 
 // 0x51ef79..0x51ef9d y 0x51eedd..0x51ef09: fild de rand() % 50 + 50, por 0,04f (0x6b8acc) y fstp.
 float GrownScale(Crt::CrtRandom& random)

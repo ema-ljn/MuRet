@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainAttributes.h"
+#include "Math/X87.h"
 #include "Render/Models/OriginalRetainedMath.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Scenes/GameLeafClouds.h"
@@ -121,10 +122,7 @@ private:
     const Data::Terrain::TerrainAttributes& m_attributes;
 };
 
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using Math::F32;
 
 bool EventRain(std::int32_t map)
 {

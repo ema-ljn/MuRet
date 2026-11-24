@@ -1,5 +1,6 @@
 #include "UI/HudPrimitives.h"
 
+#include "Math/X87.h"
 #include "Render/OriginalQuad.h"
 #include "Render/ScreenScale.h"
 #include "Render/SpriteBatch.h"
@@ -22,11 +23,7 @@ constexpr float DigitAdvance = 0.7f;
 constexpr float DigitU = 0.0625f;
 constexpr float DigitV = 0.5f;
 
-// La x87 de 53 bits y el fstp en float.
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using Math::F32;
 
 // glColor3f de las barras chicas: los bytes de 0x5a6af0 (0x3e4ccccd, 0x3e48c8c9, 0x3d20a0a1 y 0x3f48c8c9).
 constexpr float Tenth2 = 0.2f;

@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/X87.h"
 #include "World/Ftol.h"
 #include "World/IParticleTrigonometry.h"
 #include "World/Particles.h"
@@ -26,10 +27,7 @@ constexpr double Eighth = 0.125;                                                
 constexpr double Half = 0.5;                                                          // 0x6b882c
 constexpr double Shrink = static_cast<double>(std::bit_cast<float>(0x3da3d70au));     // 0x6ba1ac, 0,08f
 
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using Math::F32;
 
 void ScaleLight(Particle& particle, double factor)
 {

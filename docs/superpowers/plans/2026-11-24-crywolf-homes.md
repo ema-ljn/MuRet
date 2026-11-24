@@ -531,7 +531,7 @@ inline constexpr std::uint8_t CrywolfWarState = 2;
 | `CrywolfFightStage` (5) | `EventPackets.cpp:239` | deleted; `CrywolfEndStage` |
 | `CrywolfEndStage` (6) | `EventPackets.cpp:240` | deleted; `CrywolfEndCycleStage` |
 | `FirstActiveCrywolfStage`, `SecondActiveCrywolfStage` | `NpcTalk.cpp:64-65` | deleted with `CrywolfIsActive` |
-| `FirstCrywolfLockStage`, `LastCrywolfLockStage` | `InventoryMoves.cpp:194-195` | stay, as the bounds of a range test, initialized with `CrywolfReadyStage` and `CrywolfStartStage` |
+| `FirstCrywolfLockStage`, `LastCrywolfLockStage` | `InventoryMoves.cpp:194-195` | deleted; the lock calls `CrywolfIsReadyOrStarted`, as the equipment test `0x5bec50` calls `0x435a00` alone at `0x5bf0f6` |
 | `TourStage` (2), `UndoStage` (3), both `std::int32_t` | `CameraTour.cpp:42-43` | stay, as the tour's roles for its own copy of the stage, initialized with `CrywolfSecondNoticeStage` and `CrywolfReadyStage` |
 | `Siege` (4, local) | `ModelEffects.cpp:1192` | stays, initialized with `CrywolfStartStage` |
 | the literals 3 and 4 | `UI/ChatLogDraw.cpp:365`, `UI/MessageArea.cpp:253`, `MonsterViewport.cpp:441` | the comparison stays, with the names |
@@ -566,9 +566,12 @@ TEST_F(CrywolfContractTest, TheDefenseNeedsTheStageAndTheMap)
   `InventoryMoves.cpp:813` the same way.
 - [ ] **Step 3: Run the tests of Step 1 and see them fail.**
 - [ ] **Step 4: Add the names and the two predicates.**
-- [ ] **Step 5: Replace the definitions of the table, by value.** A site becomes a call to a predicate only if its
-  comment cites `0x435a00` (`CrywolfContract.cpp`, `CrywolfInterfaceDrawing.cpp`, `EventPackets.cpp`,
-  `NpcTalk.cpp`); every other site keeps its comparison and its operator.
+- [ ] **Step 5: Replace the definitions of the table, by value.** A site becomes a call to a predicate only if the
+  original calls `0x435a00` there. The research repo's ASM has nine calls in eight functions: eight are followed by
+  `0x4303c0` (the pair: `CrywolfContract.cpp`, `CrywolfInterfaceDrawing.cpp`, `EventPackets.cpp`, `NpcTalk.cpp`) and
+  the ninth is the equipment test's (`0x5bf0f6`, `InventoryMoves.cpp`), which calls it alone. Every other site keeps
+  its comparison and its operator: the chat log (`0x45cbb0`) and the message area (`0x5554e0`) read `0x723c05` and
+  compare it themselves.
 - [ ] **Step 6: Check.** `grep -rnE "constexpr std::uint8_t [A-Za-z]*(Stage|State) = [0-6];" Client/src` shows no
   definition of a Crywolf stage or state with a literal outside `Protocol/Events.h`. Run the tests of the touched
   files (`test_event_packets`, `test_crywolf_contract`, `test_crywolf_interface`, `test_npc_talk`,

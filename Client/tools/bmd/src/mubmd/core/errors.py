@@ -15,6 +15,7 @@ class ErrorCode(StrEnum):
     TEST_FAILED = "TEST_FAILED"
     WRITE_VERIFY_FAILED = "WRITE_VERIFY_FAILED"
     NOT_EMPTY = "NOT_EMPTY"
+    IO_ERROR = "IO_ERROR"
 
 
 class MubmdError(Exception):

@@ -52,3 +52,10 @@ def test_a_source_without_its_manifest_is_not_found() -> None:
     with pytest.raises(MubmdError) as caught:
         workspace_init(store, Path("/other/Data"), DEST, yes=False)
     assert caught.value.code is ErrorCode.FILE_NOT_FOUND
+
+
+def test_a_dry_run_copies_nothing() -> None:
+    store = store_with_reference()
+    result = workspace_init(store, SOURCE, DEST, yes=False, dry_run=True)
+    assert (result.files, result.changed) == (2, True)
+    assert not store.exists(DEST)

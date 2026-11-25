@@ -64,11 +64,14 @@ def diff(store: FileStore, a: Path, b: Path, *, encoding: str | None = None) -> 
     return DiffResult(diff_views(load_view(store, a, encoding=encoding), load_view(store, b, encoding=encoding)))
 
 
-def dump(store: FileStore, path: Path, output: Path, *, encoding: str | None = None) -> DumpResult:
+def dump(
+    store: FileStore, path: Path, output: Path, *, dry_run: bool = False, encoding: str | None = None
+) -> DumpResult:
     view = open_document(store, path, encoding=encoding).view
     data = (json.dumps(view, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
-    expected = store.sha256(output) if store.exists(output) else None
-    store.write(output, data, expected_sha256=expected)
+    if not dry_run:
+        expected = store.sha256(output) if store.exists(output) else None
+        store.write(output, data, expected_sha256=expected)
     return DumpResult(output, len(data))
 
 

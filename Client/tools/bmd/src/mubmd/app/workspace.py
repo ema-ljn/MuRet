@@ -32,7 +32,7 @@ def _matches(store: FileStore, dest: Path, manifest: dict[Path, str]) -> bool:
     return all(store.exists(dest / name) and store.sha256(dest / name) == digest for name, digest in manifest.items())
 
 
-def workspace_init(store: FileStore, source: Path, dest: Path, *, yes: bool) -> WorkspaceResult:
+def workspace_init(store: FileStore, source: Path, dest: Path, *, yes: bool, dry_run: bool = False) -> WorkspaceResult:
     manifest = _manifest(store, source)
     if store.exists(dest):
         if _matches(store, dest, manifest):
@@ -44,6 +44,8 @@ def workspace_init(store: FileStore, source: Path, dest: Path, *, yes: bool) -> 
                 suggestion=f"mubmd workspace init {dest} --yes",
             )
     files = store.list_files(source)
+    if dry_run:
+        return WorkspaceResult(dest, len(files), changed=True)
     for file in files:
         store.copy(file, dest / file.relative_to(source))
     if not _matches(store, dest, manifest):

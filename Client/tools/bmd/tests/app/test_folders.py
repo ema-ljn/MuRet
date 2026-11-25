@@ -86,3 +86,9 @@ def test_diff_against_a_json_view(store: FakeStore) -> None:
     view["texts"][100] = "Zen!"
     store.files[out] = json.dumps(view).encode()
     assert diff(store, TEXT, out).changes == (Change("/texts/100", "Zen", "Zen!"),)
+
+
+def test_a_dry_run_dump_writes_nothing(store: FakeStore) -> None:
+    result = dump(store, TEXT, WORK / "text.json", dry_run=True)
+    assert result.size > 0
+    assert not store.exists(WORK / "text.json")

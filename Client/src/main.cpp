@@ -888,7 +888,7 @@ int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Wind
 int main(int argc, char* argv[])
 {
     // Fase 0. Se declara primero para morir último: cubre también el cierre.
-    const auto crashHandler = Core::Crash::CrashHandler::Install(Core::Crash::CrashDumpFileName);
+    const auto crashHandler = Client::Diagnostics::CrashHandler::Install(Client::Diagnostics::CrashDumpFileName);
     Core::StderrSink errorOutput;
     Core::Log startupLog(errorOutput, Core::LogLevel::Info);
     if (!crashHandler.HasValue())

@@ -9,7 +9,7 @@
 // el código de la excepción (0x67fee5) y su texto (0x680260), así que el manejador de Linux busca
 // el código de Windows que dice lo mismo (Q-C241). Solo existe en Linux: los si_code (FPE_INTDIV,
 // ILL_PRVOPC...) son de POSIX.
-namespace Client::Core::Crash
+namespace Client::Diagnostics
 {
 // El código de Windows de `signal` con su si_code `code`: SIGSEGV es un acceso inválido
 // (0xC0000005), SIGBUS un error de página (0xC0000006), SIGILL una instrucción inválida o
@@ -17,5 +17,5 @@ namespace Client::Core::Crash
 // entera por 0 si no dice ninguna) y SIGTRAP un breakpoint o un paso. Un `code` que no es del
 // kernel (raise, kill) cuenta solo la señal. 0 para una señal que el manejador no toma.
 [[nodiscard]] ENGINE_API std::uint32_t ExceptionCodeForSignal(int signal, int code);
-} // namespace Client::Core::Crash
+} // namespace Client::Diagnostics
 #endif

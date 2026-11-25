@@ -5,7 +5,7 @@
 #include <algorithm>
 #include <cstdint>
 
-namespace Client::Core::Crash
+namespace Client::Diagnostics
 {
 namespace
 {
@@ -60,4 +60,4 @@ X86Context ToX86Context(const Registers64& registers)
     }
     return context;
 }
-} // namespace Client::Core::Crash
+} // namespace Client::Diagnostics

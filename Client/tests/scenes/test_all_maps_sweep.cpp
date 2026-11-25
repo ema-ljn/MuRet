@@ -163,7 +163,7 @@ void SeedTheActors(WorldState& world)
 
 std::uint32_t CrcOf(std::span<const std::uint8_t> bytes)
 {
-    Client::Core::Crash::Crc32 crc;
+    Client::Diagnostics::Crc32 crc;
     crc.Update(std::as_bytes(bytes));
     return crc.Value();
 }

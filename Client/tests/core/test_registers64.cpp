@@ -13,10 +13,10 @@
 // Client::Core::Crash::ToX86Context: los registros de x86-64 en el CONTEXT de x86 de MuError.dmp.
 namespace
 {
-using Client::Core::Crash::FxsaveSize;
-using Client::Core::Crash::Registers64;
-using Client::Core::Crash::ToX86Context;
-using Client::Core::Crash::X86Context;
+using Client::Diagnostics::FxsaveSize;
+using Client::Diagnostics::Registers64;
+using Client::Diagnostics::ToX86Context;
+using Client::Diagnostics::X86Context;
 
 // CONTEXT_i386 con CONTROL, INTEGER y SEGMENTS.
 constexpr std::uint32_t BaseFlags = 0x00010007;

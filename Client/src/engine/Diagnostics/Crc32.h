@@ -13,7 +13,7 @@
 //
 // Propio y no zlib: son pocas líneas y el cliente no enlaza zlib (regla 10). El manejador de
 // caídas lo corre después de la caída.
-namespace Client::Core::Crash
+namespace Client::Diagnostics
 {
 class ENGINE_API Crc32
 {
@@ -24,4 +24,4 @@ public:
 private:
     std::uint32_t m_state = 0xFFFFFFFF;
 };
-} // namespace Client::Core::Crash
+} // namespace Client::Diagnostics

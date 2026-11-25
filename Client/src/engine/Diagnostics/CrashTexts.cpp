@@ -14,7 +14,7 @@
 #include <string>
 #include <string_view>
 
-namespace Client::Core::Crash
+namespace Client::Diagnostics
 {
 namespace
 {
@@ -112,15 +112,15 @@ char ServicePackLetter(std::string_view servicePack)
 // El ProductType de Windows 2000 (0x684220..0x6842ab), con _stricmp.
 std::string_view ProductSuffix(std::string_view productType)
 {
-    if (EqualsIgnoringAsciiCase(productType, "WINNT"))
+    if (Core::EqualsIgnoringAsciiCase(productType, "WINNT"))
     {
         return " Professional";
     }
-    if (EqualsIgnoringAsciiCase(productType, "LANMANNT"))
+    if (Core::EqualsIgnoringAsciiCase(productType, "LANMANNT"))
     {
         return " Server";
     }
-    if (EqualsIgnoringAsciiCase(productType, "SERVERNT"))
+    if (Core::EqualsIgnoringAsciiCase(productType, "SERVERNT"))
     {
         return " Advanced Server";
     }
@@ -521,6 +521,6 @@ CrashText ExceptionText(std::uint32_t code, std::uint64_t accessKind, std::uint6
 
 std::string CrashLogLine()
 {
-    return std::string(LevelPrefix(LogLevel::Error)).append(DumpSavedMessage);
+    return std::string(Core::LevelPrefix(Core::LogLevel::Error)).append(DumpSavedMessage);
 }
-} // namespace Client::Core::Crash
+} // namespace Client::Diagnostics

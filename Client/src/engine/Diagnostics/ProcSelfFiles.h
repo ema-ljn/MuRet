@@ -12,7 +12,7 @@
 // Lo que el manejador de caídas de Linux lee de /proc/self, en vez de las fotos de toolhelp del
 // original (CreateToolhelp32Snapshot, 0x67f9c9 y 0x67fdb9; Q-C241). Son funciones puras sobre el
 // texto ya leído, sin memoria nueva, así que se prueban en cualquier sistema.
-namespace Client::Core::Crash
+namespace Client::Diagnostics
 {
 // Los módulos de /proc/self/maps, como los de Module32First/Module32Next: cada archivo mapeado
 // (una ruta que empieza con '/') es uno, con su nombre (lo que sigue a la última '/'), su ruta, la
@@ -26,4 +26,4 @@ namespace Client::Core::Crash
 // Los hilos del proceso, el campo 20 (num_threads) de /proc/self/stat: el cntThreads de
 // PROCESSENTRY32 (0x67faf7). Vacío si el texto no tiene ese campo.
 [[nodiscard]] ENGINE_API std::optional<std::uint32_t> ThreadCountFromProcStat(std::string_view stat);
-} // namespace Client::Core::Crash
+} // namespace Client::Diagnostics

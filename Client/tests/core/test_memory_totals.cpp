@@ -10,10 +10,10 @@
 // Client::Core::Crash: la memoria de 64 bits en el MEMORYSTATUS de 32 de MuError.dmp.
 namespace
 {
-using Client::Core::Crash::MemoryLoadPercent;
-using Client::Core::Crash::MemoryStatus32;
-using Client::Core::Crash::MemoryTotals;
-using Client::Core::Crash::ToMemoryStatus32;
+using Client::Diagnostics::MemoryLoadPercent;
+using Client::Diagnostics::MemoryStatus32;
+using Client::Diagnostics::MemoryTotals;
+using Client::Diagnostics::ToMemoryStatus32;
 
 constexpr std::uint64_t GiB = std::uint64_t{1} << 30;
 } // namespace

@@ -35,7 +35,7 @@
 namespace
 {
 namespace fs = std::filesystem;
-using Client::Core::Crash::CrashHandler;
+using Client::Diagnostics::CrashHandler;
 using Client::Tests::TemporaryFolder;
 } // namespace
 
@@ -63,7 +63,7 @@ TEST(CrashHandlerTest, InstallsOneAtATime)
 // Las rutas van a un buffer fijo: una que no entra no se instala, y un log que no entra no se usa.
 TEST(CrashHandlerTest, RejectsPathsThatDoNotFit)
 {
-    const fs::path tooLong(std::string(Client::Core::Crash::MaxCrashPathLength + 1, 'x'));
+    const fs::path tooLong(std::string(Client::Diagnostics::MaxCrashPathLength + 1, 'x'));
 
     const auto rejected = CrashHandler::Install(tooLong);
     ASSERT_FALSE(rejected.HasValue());
@@ -78,11 +78,11 @@ TEST(CrashHandlerTest, RejectsPathsThatDoNotFit)
 #ifdef __linux__
 namespace
 {
-using Client::Core::Crash::CrashFrameRecordSize;
-using Client::Core::Crash::CrashHeaderSize;
-using Client::Core::Crash::CrashModuleRecordSize;
-using Client::Core::Crash::Crc32;
-using Client::Core::Crash::ExceptionCodeForSignal;
+using Client::Diagnostics::CrashFrameRecordSize;
+using Client::Diagnostics::CrashHeaderSize;
+using Client::Diagnostics::CrashModuleRecordSize;
+using Client::Diagnostics::Crc32;
+using Client::Diagnostics::ExceptionCodeForSignal;
 using Client::Tests::ReadFileBytes;
 
 // Offsets de la cabecera de MuError.dmp (test_crash_dump.cpp los prueba uno por uno).

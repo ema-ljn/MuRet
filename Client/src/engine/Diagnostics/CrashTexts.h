@@ -12,7 +12,7 @@
 // (0x680260). Son funciones puras, sobre lo que el manejador leyó del sistema, y no piden memoria
 // salvo CrashLogLine, que corre al instalar. Cada texto se corta en 127 bytes y el 0, como el
 // lstrcpynA que lo copia a la cabecera.
-namespace Client::Core::Crash
+namespace Client::Diagnostics
 {
 // Lo que 0x683ed0 lee de GetVersionExA, y el ProductType del registro que mira solo con 5.0.
 struct OsVersion
@@ -68,4 +68,4 @@ inline constexpr std::string_view DumpSavedMessage = "Save DumpFile complete - M
 // La línea de MuRet: el mensaje con el prefijo del Log, como la escribiría Log::Error, sin el fin de
 // línea, que pone quien la escribe.
 [[nodiscard]] ENGINE_API std::string CrashLogLine();
-} // namespace Client::Core::Crash
+} // namespace Client::Diagnostics

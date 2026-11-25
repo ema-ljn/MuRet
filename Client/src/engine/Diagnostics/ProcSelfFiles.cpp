@@ -11,7 +11,7 @@
 #include <span>
 #include <string_view>
 
-namespace Client::Core::Crash
+namespace Client::Diagnostics
 {
 namespace
 {
@@ -146,4 +146,4 @@ std::optional<std::uint32_t> ThreadCountFromProcStat(std::string_view stat)
     }
     return Saturated32(*threads);
 }
-} // namespace Client::Core::Crash
+} // namespace Client::Diagnostics

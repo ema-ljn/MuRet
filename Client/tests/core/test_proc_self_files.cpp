@@ -14,11 +14,11 @@
 // vez de las fotos de toolhelp del original, sobre textos inventados.
 namespace
 {
-using Client::Core::Crash::CrashModule;
-using Client::Core::Crash::CrashModulePathSize;
-using Client::Core::Crash::MaxCrashModules;
-using Client::Core::Crash::ModulesFromProcMaps;
-using Client::Core::Crash::ThreadCountFromProcStat;
+using Client::Diagnostics::CrashModule;
+using Client::Diagnostics::CrashModulePathSize;
+using Client::Diagnostics::MaxCrashModules;
+using Client::Diagnostics::ModulesFromProcMaps;
+using Client::Diagnostics::ThreadCountFromProcStat;
 
 std::string_view Text(const auto& field)
 {

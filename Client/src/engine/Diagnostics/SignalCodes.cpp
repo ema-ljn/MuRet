@@ -6,7 +6,7 @@
 
 #include <signal.h>
 
-namespace Client::Core::Crash
+namespace Client::Diagnostics
 {
 namespace
 {
@@ -75,5 +75,5 @@ std::uint32_t ExceptionCodeForSignal(int signal, int code)
         return 0;
     }
 }
-} // namespace Client::Core::Crash
+} // namespace Client::Diagnostics
 #endif

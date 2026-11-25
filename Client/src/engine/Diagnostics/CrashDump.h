@@ -9,7 +9,7 @@
 // El archivo MuError.dmp de 0x67f840 (02 § El manejador de caídas), byte a byte: la cabecera de
 // 0x516 bytes, el VS_FIXEDFILEINFO si lo hay, los módulos y los frames, en little-endian y con los
 // campos pegados, sin relleno (la cabecera tiene dwords en offsets impares).
-namespace Client::Core::Crash
+namespace Client::Diagnostics
 {
 // La cabecera: el tamaño que escribe en su campo 0x005 (0x67f8f1).
 inline constexpr std::size_t CrashHeaderSize = 0x516;
@@ -28,4 +28,4 @@ inline constexpr std::size_t MaxCrashDumpSize =
 // si no entra. No pide memoria: el manejador lo llama después de la caída, sobre un buffer
 // estático de MaxCrashDumpSize.
 [[nodiscard]] ENGINE_API std::size_t WriteCrashDump(const CrashReport& report, std::span<std::byte> output);
-} // namespace Client::Core::Crash
+} // namespace Client::Diagnostics

@@ -5,7 +5,7 @@
 #include <cstdint>
 #include <span>
 
-namespace Client::Core::Crash
+namespace Client::Diagnostics
 {
 namespace
 {
@@ -47,4 +47,4 @@ std::uint32_t Crc32::Value() const
 {
     return ~m_state;
 }
-} // namespace Client::Core::Crash
+} // namespace Client::Diagnostics

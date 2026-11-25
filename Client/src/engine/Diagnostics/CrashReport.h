@@ -11,7 +11,7 @@
 // dirección y cada registro mide 32 bits. Lo arma Crash::CrashHandler al caer y lo escribe
 // WriteCrashDump. Es un agregado sin memoria dinámica: vive en un buffer estático que se llena
 // después de la caída sin pedir memoria.
-namespace Client::Core::Crash
+namespace Client::Diagnostics
 {
 // Los textos de la cabecera: lstrcpynA con 0x80 (0x67f947), 127 bytes y el 0.
 inline constexpr std::size_t CrashTextSize = 0x80;
@@ -124,4 +124,4 @@ struct CrashReport
     std::uint32_t frameCount = 0;
     std::array<CrashFrame, MaxCrashFrames> frames{};
 };
-} // namespace Client::Core::Crash
+} // namespace Client::Diagnostics

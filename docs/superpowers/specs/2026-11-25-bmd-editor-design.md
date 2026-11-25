@@ -157,10 +157,16 @@ What the writer recomputes after an edit: counts (from list lengths), the encryp
 a table whose records changed. An unedited table keeps its stored checksum, even a wrong one (Q-C01: the lab's
 `item.bmd` fails its own). The version, the cipher and the trailing bytes stay as read.
 
-**The reference folder is read-only.** A folder with a `Data.sha256` beside it (`Client/assets/Data`) is never
-written. Opening it works as usual; saving writes to a mirror under `out/bmd/Data/` (already git-ignored) with the same
-relative path, and the tool says where. Any other `Data` folder (the lab's `cliente-lab/Data`, a copy) is saved in
-place with its backup.
+**Edits go to a working copy; the reference folder is read-only** (pending Emanuel's pick, 2026-11-25; this is the
+recommended option). A folder with a `Data.sha256` beside it (`Client/assets/Data`) is never written: the tool opens
+it for viewing, and `set`, `build -o` or a save into it fail with an error that names the way out. Edits happen in a
+working copy, a full `Data` folder that the client can run (`Main --data <copy>`, or the lab's `cliente-lab/Data`):
+
+- `mubmd workspace init <dest>` copies the reference folder (about 370 MB) to `<dest>` and checks it against
+  `Data.sha256`; any existing `Data` folder works as a working copy too.
+- Every command reads and writes the path it is given, with no overlay and no hidden state: two `set` calls on the
+  same file build on each other.
+- The TUI opens a folder; on the reference folder its header says "read-only" and "save as" offers a working copy.
 
 ### Texts
 
@@ -203,6 +209,7 @@ mubmd dump <file> [-o out.json]
 mubmd build <in.json> -o <file>
 mubmd diff <a> <b>                    field by field, between two files or a file and a JSON
 mubmd roundtrip <folder>              decode and encode every .bmd; reports any byte that differs
+mubmd workspace init <dest>           copy the reference Data folder to a working copy and check it
 mubmd tui [<folder|file>]             the console UI
 ```
 
@@ -216,19 +223,19 @@ A Textual app with its own theme, **"Lorencia"**: near-black background, MU's ol
 red for errors and unsaved marks, parchment-colored text. A light variant exists for bright terminals.
 
 ```text
-╭─ ◆ mubmd ─ Client/assets/Data ─────────────────────── read-only · saves to out/bmd ─╮
-│ ╭ Data ───────────────╮ ╭ Local/Text.bmd ─ text · XOR3 · 1645/2048 used ▰▰▰▰▰▰▰▱▱ ╮ │
-│ │ ▾ Local             │ │  #     text                                       bytes │ │
-│ │   ◆ Text.bmd     ●  │ │  100   Zen                                          3  │ │
-│ │     item.bmd        │ │  500   El usuario salió del juego                  26  │ │
-│ │     skill.bmd       │ │  577   Aumenta %d%% de Daño                         20  │ │
-│ │ ▸ Monster           │ │                                                        │ │
-│ │ ▸ player            │ ╰────────────────────────────────────────────────────────╯ │
-│ ╰─────────────────────╯ ╭ record 500 ────────────────────────────────────────────╮ │
-│                         │ El usuario salió del juego▏               26/299 bytes │ │
-│                         ╰────────────────────────────────────────────────────────╯ │
-│ / search  enter edit  ctrl+z undo  ctrl+s save  d diff  ctrl+p commands  q quit      │
-╰──────────────────────────────────────────────────────────────────────────────────────╯
+╭─ ◆ mubmd ─ ~/mu/Data ─────────────────────────────────────── working copy · 1 unsaved ─╮
+│ ╭ Data ───────────────╮ ╭ Local/Text.bmd ─ text · XOR3 · 1645/2048 used ▰▰▰▰▰▰▰▱▱ ───╮ │
+│ │ ▾ Local             │ │  #     text                                         bytes  │ │
+│ │   ◆ Text.bmd     ●  │ │  100   Zen                                              3  │ │
+│ │     item.bmd        │ │  500   El usuario salió del juego                      26  │ │
+│ │     skill.bmd       │ │  577   Aumenta %d%% de Daño                            20  │ │
+│ │ ▸ Monster           │ │                                                            │ │
+│ │ ▸ player            │ ╰────────────────────────────────────────────────────────────╯ │
+│ ╰─────────────────────╯ ╭ record 500 ────────────────────────────────────────────────╮ │
+│                         │ El usuario salió del juego▏                   26/299 bytes │ │
+│                         ╰────────────────────────────────────────────────────────────╯ │
+│ / search  enter edit  ctrl+z undo  ctrl+s save  d diff  ctrl+p commands  q quit        │
+╰────────────────────────────────────────────────────────────────────────────────────────╯
 ```
 
 - **Left:** the folder as a tree with only `.bmd` files, an icon per kind and a dot on unsaved files.
@@ -270,6 +277,9 @@ red for errors and unsaved marks, parchment-colored text. A light variant exists
   `pip install -e ".[dev]"` with exact pins, then the checks above.
 
 ### Stages (one PR each)
+
+One PR per stage, as Emanuel prefers since 2026-11-11 (milestone-sized PRs instead of one concept per PR). Each PR
+leaves its own checks green, and the workflow lands with the first code PR.
 
 1. **Design and skills:** this document, the implementation plan, the six vendored Python skills.
 2. **Texts end to end:** the package, XOR3, the catalog, the text codec, JSON, every CLI command for texts, the TUI

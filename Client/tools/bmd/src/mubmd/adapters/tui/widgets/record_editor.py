@@ -23,6 +23,15 @@ class RecordEditor(Input):
     def revert(self) -> None:
         self.value = self.loaded
 
+    def reset(self) -> None:
+        self.pointer = None
+        self.clear()
+        self.loaded = ""
+        self.disabled = True
+        self.border_title = None
+        self.border_subtitle = None
+        self.remove_class("-invalid")
+
     @property
     def pending(self) -> bool:
         return self.pointer is not None and self.value != self.loaded

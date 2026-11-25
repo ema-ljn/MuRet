@@ -1,11 +1,11 @@
 ---
 name: muret-bmd
-description: Use when opening, inspecting, searching, translating or editing a MU `.bmd` file (Text.bmd and, as stages land, items, skills, gates, dialogs, quests, models), when a task names `mubmd`, a game text by its number or a file under `Data/Local`, or when `mubmd` answers with an error code such as REFERENCE_READ_ONLY, TEST_FAILED or STALE_FILE.
+description: Use when opening, inspecting, searching, translating or editing a MU `.bmd` file (Text.bmd, item.bmd and, as stages land, skills, gates, dialogs, quests, models), when a task names `mubmd`, a game text by its number or a file under `Data/Local`, or when `mubmd` answers with an error code such as REFERENCE_READ_ONLY, TEST_FAILED or STALE_FILE.
 ---
 
 # Editing .bmd files with mubmd
 
-mubmd reads, checks and edits MU Online's .bmd files byte-exact (texts first: Local/Text.bmd). Every command prints one
+mubmd reads, checks and edits MU Online's .bmd files byte-exact (texts and items). Every command prints one
 JSON object on stdout, {ok: true, schema, command, data, warnings}, or one on stderr when it fails, {ok: false, schema,
 error: {code, message, suggestion, input, pointer}}, and exits 0, 1 (findings or differences), 2 (usage), 20 (not
 found), 30 (precondition) or 70 (a bug in the tool). Places inside a file are JSON Pointers (/texts/500). The reference
@@ -15,7 +15,9 @@ result is what was written. `mubmd <command> --help` describes one command as JS
 
 This version reads the text tables: `Local/Text.bmd` (cp1252, the one the client reads), `Local/Texttest.bmd` and
 `Local/TKOU.bmd` (gb2312). Each holds 2,048 texts, `/texts/0` to `/texts/2047`, of up to 300 bytes in the file's
-encoding. Other `.bmd` files answer `UNKNOWN_FORMAT` until their stage lands. The tool is in
+encoding. `Local/item.bmd`, `itemtest.bmd`, and `n380.bmd` have 8,192 item records. Their names are addressed as
+`/records/<section * 512 + index>/name` and hold up to 29 encoded bytes. Other `.bmd` files answer `UNKNOWN_FORMAT`
+until their stage lands. The tool is in
 [`Client/tools/bmd`](../../../Client/tools/bmd/README.md) and its contract is the
 [spec](../../../docs/superpowers/specs/2026-11-25-bmd-editor-design.md).
 
@@ -58,6 +60,22 @@ Every list pages the same way: 50 items by default, `--limit` and `--offset` to 
 `$WORK` is the working copy, `$REF` is `Client/assets/Data` and `$TMP` is any scratch folder. A test runs each recipe
 on its own fresh working copy, so the lines are the tool's real syntax and the values are the reference's: one recipe
 does not see another's edits. `# exit 1` marks a call that ends with 1.
+
+Read an item name and inspect its fields.
+
+<!-- recipe: item-name -->
+```bash
+mubmd schema item
+mubmd get $REF/Local/item.bmd /records/0/name
+```
+
+Rename the first item in a working copy after reading its current value with `get`. The example uses the reference's
+name. If `get` returned a hex object for the name, pass that exact object as the `test` value. Saving a changed record
+updates the checksum and keeps any trailing bytes.
+
+```bash
+mubmd apply $WORK/Local/item.bmd '[{"op":"test","path":"/records/0/name","value":"Kris"},{"op":"replace","path":"/records/0/name","value":"Training Kris"}]'
+```
 
 Change one text. A value for a text is taken as written; put `--` before one that starts with `-`.
 

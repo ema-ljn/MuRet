@@ -2,7 +2,8 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from mubmd.app.documents import EditResult, OpenDocument, open_document, save_view, touches
-from mubmd.core.documents.text_table import TEXT_RECORD_SIZE
+from mubmd.core.documents.item_table import ITEM_NAME_SIZE
+from mubmd.core.documents.text_table import TEXT_RECORD_SIZE, encode_fixed_text
 from mubmd.core.errors import MubmdError
 from mubmd.core.findings import Finding
 from mubmd.core.json_types import JsonObject, JsonValue
@@ -85,16 +86,22 @@ class EditSession:
         return view
 
     def measure(self, pointer: str, text: str) -> Measure:
+        item_name = self.format_name == "item" and pointer.startswith("/records/") and pointer.endswith("/name")
+        limit = ITEM_NAME_SIZE - 1 if item_name else TEXT_RECORD_SIZE
         try:
             size: int | None = len(text.encode(self.encoding))
         except UnicodeEncodeError:
             size = None
         try:
+            if item_name:
+                self.value(pointer)
+                encode_fixed_text(text, self.encoding, ITEM_NAME_SIZE, pointer, "name", require_terminator=True)
+                return Measure(size, limit, None)
             view = self._edited(pointer, text)
         except MubmdError as error:
-            return Measure(size, TEXT_RECORD_SIZE, error)
+            return Measure(size, limit, error)
         warnings = tuple(finding for finding in self._findings(view) if finding.pointer == pointer)
-        return Measure(size, TEXT_RECORD_SIZE, None, warnings)
+        return Measure(size, limit, None, warnings)
 
     def set(self, pointer: str, value: JsonValue) -> None:
         view = self._edited(pointer, value)

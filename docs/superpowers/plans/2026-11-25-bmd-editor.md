@@ -455,6 +455,7 @@ Bindings: `/` search, `enter` edit the selected record, `escape` cancel, `ctrl+z
   gap, `raw_0xNN` where the research has no name), the per-record and whole-file XOR3 variants, the login XOR3 of
   `credit.bmd`, the counts of `movereq` and `MonsterSkill`, and the checksum (port of `TableChecksum`) recomputed only
   when records change; the TUI's record table view; the skill's recipes for items, skills and gates.
+  - [x] Item tables: schema, byte-exact roundtrip, checksum on edit, CLI name translation, and TUI name editing.
 - **Stage 4, models:** the lossless model codec (K16, every raw byte), its view (bytes as hex, floats as numbers or
   `{"f32"}`), validation, `info` summaries that never print geometry, and the TUI's model tree.
 - **Stage 5, the preview:** the braille wireframe of a model, posed with the first key of its first action.

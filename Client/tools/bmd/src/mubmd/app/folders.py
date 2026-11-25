@@ -101,7 +101,7 @@ def roundtrip(store: FileStore, folder: Path) -> RoundtripResult:
     for path in store.list_bmd(folder):
         data = store.read(path)
         try:
-            identified = identify(path.name, data)
+            identified = identify(path.absolute(), data)
         except MubmdError:
             skipped += 1
             continue

@@ -43,7 +43,7 @@ BmdTree:focus {
     display: block;
 }
 
-TextTableView {
+RecordTableView {
     height: 1fr;
     border: round $primary 60%;
     border-title-color: $primary;
@@ -52,17 +52,17 @@ TextTableView {
     scrollbar-size-vertical: 1;
 }
 
-TextTableView:focus {
+RecordTableView:focus {
     border: round $primary;
 }
 
-TextTableView > .datatable--header {
+RecordTableView > .datatable--header {
     color: $primary;
     text-style: bold;
     background: $background;
 }
 
-TextTableView > .datatable--cursor {
+RecordTableView > .datatable--cursor {
     background: $primary 30%;
     color: $foreground;
 }

@@ -9,8 +9,8 @@ from mubmd.adapters.tui.app import MubmdApp
 from mubmd.adapters.tui.widgets.bmd_tree import BmdTree, display_order
 from mubmd.adapters.tui.widgets.diff_screen import DiffScreen
 from mubmd.adapters.tui.widgets.record_editor import RecordEditor
+from mubmd.adapters.tui.widgets.record_table_view import RecordTableView
 from mubmd.adapters.tui.widgets.status_line import StatusLine
-from mubmd.adapters.tui.widgets.text_table_view import TextTableView
 from mubmd.adapters.tui.widgets.title_bar import TitleBar
 from mubmd.app.edits import set_value
 from mubmd.core.ciphers.xor3 import xor3
@@ -22,14 +22,14 @@ def text_of(path: Path) -> Path:
     return path / "Local" / "Text.bmd"
 
 
-async def open_text(app: MubmdApp, pilot: Pilot[None], folder: Path) -> TextTableView:
+async def open_text(app: MubmdApp, pilot: Pilot[None], folder: Path) -> RecordTableView:
     await app.open_path(text_of(folder))
     await pilot.pause()
-    return app.query_one(TextTableView)
+    return app.query_one(RecordTableView)
 
 
 async def edit(app: MubmdApp, pilot: Pilot[None], index: int, value: str) -> None:
-    table = app.query_one(TextTableView)
+    table = app.query_one(RecordTableView)
     table.move_cursor(row=table.get_row_index(str(index)))
     table.focus()
     await pilot.press("enter")
@@ -62,8 +62,8 @@ async def test_selecting_a_file_in_the_tree_opens_it(working_copy: Path) -> None
         tree.focus()
         await pilot.press("down", "enter", "down", "enter")
         await pilot.pause()
-        assert app.query_one(TextTableView).row_count == 2048
-        assert "Local/Text.bmd" in str(app.query_one(TextTableView).border_title)
+        assert app.query_one(RecordTableView).row_count == 2048
+        assert "Local/Text.bmd" in str(app.query_one(RecordTableView).border_title)
 
 
 async def test_opening_a_text_table(working_copy: Path) -> None:
@@ -79,7 +79,7 @@ async def test_a_file_given_as_root_opens_at_once(working_copy: Path) -> None:
     app = MubmdApp(LocalFileStore(), text_of(working_copy))
     async with app.run_test(size=SIZE) as pilot:
         await pilot.pause()
-        assert app.query_one(TextTableView).row_count == 2048
+        assert app.query_one(RecordTableView).row_count == 2048
 
 
 async def test_search_filters_and_enter_edits(working_copy: Path) -> None:
@@ -130,13 +130,13 @@ async def test_undo_and_redo_restore_the_texts(working_copy: Path) -> None:
         table.focus()
         await pilot.press("ctrl+z")
         await pilot.pause()
-        assert table.text_at(500) == "uno"
+        assert table.value_at(500) == "uno"
         await pilot.press("ctrl+z")
         await pilot.pause()
-        assert table.text_at(500) == "El usuario salió del juego"
+        assert table.value_at(500) == "El usuario salió del juego"
         await pilot.press("ctrl+y")
         await pilot.pause()
-        assert table.text_at(500) == "uno"
+        assert table.value_at(500) == "uno"
 
 
 async def test_save_shows_the_diff_and_writes_after_confirming(working_copy: Path) -> None:
@@ -282,7 +282,7 @@ async def test_a_stale_file_is_read_again_keeping_the_edits(working_copy: Path) 
         table.focus()
         await pilot.press("r")
         await pilot.pause()
-        assert table.text_at(100) == "Zen!"
+        assert table.value_at(100) == "Zen!"
         await pilot.press("ctrl+s")
         await pilot.pause()
         await pilot.press("y")

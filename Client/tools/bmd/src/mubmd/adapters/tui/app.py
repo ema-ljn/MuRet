@@ -15,8 +15,8 @@ from mubmd.adapters.tui.theme import LORENCIA, LORENCIA_LIGHT
 from mubmd.adapters.tui.widgets.bmd_tree import BmdTree
 from mubmd.adapters.tui.widgets.diff_screen import DiffScreen
 from mubmd.adapters.tui.widgets.record_editor import RecordEditor
+from mubmd.adapters.tui.widgets.record_table_view import RecordTableView
 from mubmd.adapters.tui.widgets.status_line import StatusLine
-from mubmd.adapters.tui.widgets.text_table_view import TextTableView
 from mubmd.adapters.tui.widgets.title_bar import TitleBar
 from mubmd.app.session import EditSession
 from mubmd.core.errors import ErrorCode, MubmdError
@@ -45,9 +45,18 @@ def used_bar(used: int, records: int) -> str:
     return "▰" * filled + "▱" * (USED_BAR_CELLS - filled)
 
 
-def texts_of(view: dict[str, JsonValue]) -> list[JsonValue]:
+def row_values(view: dict[str, JsonValue]) -> list[JsonValue]:
+    if view.get("format") == "item":
+        records = view.get("records")
+        if not isinstance(records, list):
+            return []
+        return [record.get("name") if isinstance(record, dict) else None for record in records]
     texts = view.get("texts")
     return texts if isinstance(texts, list) else []
+
+
+def record_pointer(session: EditSession, index: int) -> str:
+    return f"/records/{index}/name" if session.format_name == "item" else f"/texts/{index}"
 
 
 def warned(warnings: tuple[Finding, ...]) -> str:
@@ -87,7 +96,7 @@ class MubmdApp(App[None]):
             yield tree
             with Vertical(id="document"):
                 yield Input(placeholder="search texts", id="search")
-                yield TextTableView()
+                yield RecordTableView()
                 yield RecordEditor()
         yield StatusLine()
         yield Footer()
@@ -96,14 +105,15 @@ class MubmdApp(App[None]):
         self.register_theme(LORENCIA)
         self.register_theme(LORENCIA_LIGHT)
         self.theme = LORENCIA.name
-        self.query_one(TextTableView).border_title = "open a .bmd from the tree"
+        self.query_one(RecordTableView).border_title = "open a .bmd from the tree"
         self.refresh_title()
         if self.start_file is not None:
             await self.open_path(self.start_file)
 
     def get_system_commands(self, screen: Screen[Any]) -> Iterable[SystemCommand]:
         yield from super().get_system_commands(screen)
-        yield SystemCommand("Search texts", "Filter the rows by a text", self.action_search)
+        names = "item names" if self.session is not None and self.session.format_name == "item" else "texts"
+        yield SystemCommand(f"Search {names}", "Filter the rows by a search term", self.action_search)
         yield SystemCommand("Undo", "Undo the last edit", self.action_undo)
         yield SystemCommand("Redo", "Redo the last undone edit", self.action_redo)
         yield SystemCommand("Save", "Show the changes and write them", self.action_save)
@@ -130,7 +140,7 @@ class MubmdApp(App[None]):
         self.query_one(BmdTree).mark_unsaved({path for path, session in self.sessions.items() if session.dirty})
         if self.session is not None:
             summary = self.session.summary
-            self.query_one(TextTableView).border_title = Text(
+            self.query_one(RecordTableView).border_title = Text(
                 f"{self.label_of(self.session.path)} ─ {self.session.format_name} · {summary.cipher} · "
                 f"{summary.used_records}/{summary.records} used {used_bar(summary.used_records, summary.records)}"
             )
@@ -139,9 +149,15 @@ class MubmdApp(App[None]):
         if self.session is None:
             return
         theme = self.current_theme
-        table = self.query_one(TextTableView)
+        table = self.query_one(RecordTableView)
         table.set_colors(theme.accent or "yellow", theme.error or "red")
-        table.show(texts_of(self.session.view), texts_of(self.session.original), self.session.encoding, query)
+        table.show(
+            row_values(self.session.view),
+            row_values(self.session.original),
+            self.session.encoding,
+            query,
+            item_names=self.session.format_name == "item",
+        )
 
     async def open_path(self, path: Path) -> None:
         path = absolute(path)
@@ -150,21 +166,35 @@ class MubmdApp(App[None]):
         except MubmdError as error:
             self.failed(error)
             return
+        search = self.query_one("#search", Input)
+        previous = self.session
+        if previous is not session:
+            editor = self.query_one(RecordEditor)
+            if previous is not None and not self.commit_editor():
+                tree = self.query_one(BmdTree)
+                tree.reveal(previous.path)
+                tree.call_after_refresh(tree.move_cursor, tree.nodes.get(previous.path))
+                editor.focus()
+                return
+            editor.reset()
+            search.remove_class("-visible")
+            search.value = ""
+        search.placeholder = "search item names" if session.format_name == "item" else "search texts"
         self.sessions[path] = session
         self.session = session
         self.query_one(BmdTree).reveal(path)
-        self.show_rows()
+        self.show_rows(search.value)
         self.refresh_title()
         self.status(f"{shown_path(path)} opened")
 
     def on_bmd_tree_file_selected(self, event: BmdTree.FileSelected) -> None:
         self.run_worker(self.open_path(event.path))
 
-    def on_data_table_row_highlighted(self, event: TextTableView.RowHighlighted) -> None:
-        if event.row_key.value is not None:
-            self.status(f"/texts/{event.row_key.value}")
+    def on_data_table_row_highlighted(self, event: RecordTableView.RowHighlighted) -> None:
+        if self.session is not None and event.row_key.value is not None:
+            self.status(record_pointer(self.session, int(event.row_key.value)))
 
-    def on_data_table_row_selected(self, event: TextTableView.RowSelected) -> None:
+    def on_data_table_row_selected(self, event: RecordTableView.RowSelected) -> None:
         if event.row_key.value is not None:
             self.edit_index(int(event.row_key.value), focus=True)
 
@@ -174,9 +204,10 @@ class MubmdApp(App[None]):
         if self.session.read_only:
             self.status(READ_ONLY_HINT, error=True)
             return
-        pointer = f"/texts/{index}"
+        pointer = record_pointer(self.session, index)
         value = self.session.value(pointer)
         if not isinstance(value, str):
+            self.query_one(RecordEditor).reset()
             self.status(f"{pointer} is a hex record: change it with mubmd set or mubmd apply", error=True)
             return
         editor = self.query_one(RecordEditor)
@@ -187,7 +218,7 @@ class MubmdApp(App[None]):
             editor.focus()
 
     def select_index(self, index: int) -> None:
-        table = self.query_one(TextTableView)
+        table = self.query_one(RecordTableView)
         table.move_cursor(row=table.get_row_index(str(index)))
         self.edit_index(index, focus=False)
 
@@ -200,9 +231,9 @@ class MubmdApp(App[None]):
     def on_input_submitted(self, event: Input.Submitted) -> None:
         if isinstance(event.input, RecordEditor):
             if self.commit_editor():
-                self.query_one(TextTableView).focus()
+                self.query_one(RecordTableView).focus()
         else:
-            self.query_one(TextTableView).focus()
+            self.query_one(RecordTableView).focus()
 
     def commit_editor(self) -> bool:
         editor = self.query_one(RecordEditor)
@@ -220,8 +251,8 @@ class MubmdApp(App[None]):
     def after_edit(self) -> None:
         self.quit_armed = False
         if self.session is not None:
-            table = self.query_one(TextTableView)
-            table.update_rows(texts_of(self.session.view), texts_of(self.session.original))
+            table = self.query_one(RecordTableView)
+            table.update_rows(row_values(self.session.view), row_values(self.session.original))
             editor = self.query_one(RecordEditor)
             value = None if editor.pointer is None else self.session.value(editor.pointer)
             if isinstance(value, str) and not editor.has_focus:
@@ -241,7 +272,7 @@ class MubmdApp(App[None]):
             search.value = ""
         elif editor.has_focus:
             editor.revert()
-        self.query_one(TextTableView).focus()
+        self.query_one(RecordTableView).focus()
 
     def action_undo(self) -> None:
         if self.session is not None and self.session.undo():

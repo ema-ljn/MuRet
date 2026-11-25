@@ -1,7 +1,9 @@
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
 from mubmd.core.errors import ErrorCode, MubmdError
+from mubmd.core.formats.item_format import ITEM_FORMAT, ITEM_TABLE_SIZE
 from mubmd.core.formats.text_format import TEXT_TABLE_SIZE, TextFormat
 from mubmd.core.ports import CatalogFile, FormatCodec
 
@@ -31,6 +33,16 @@ _FORMATS = (
         ),
         TextFormat(),
     ),
+    FormatSpec(
+        "item",
+        ITEM_TABLE_SIZE,
+        (
+            CatalogFile("item.bmd", "cp1252", read_by_client=True),
+            CatalogFile("itemtest.bmd", "cp949", read_by_client=False),
+            CatalogFile("n380.bmd", "gb2312", read_by_client=False),
+        ),
+        ITEM_FORMAT,
+    ),
 )
 
 
@@ -46,9 +58,13 @@ def format_by_name(name: str) -> FormatSpec:
     raise MubmdError(ErrorCode.UNKNOWN_FORMAT, f"No format {name!r}; known: {known}", suggestion="mubmd formats")
 
 
-def identify(file_name: str, data: bytes) -> Identified:
-    wanted = file_name.casefold()
+def identify(file_name: str | Path, data: bytes) -> Identified:
+    path = Path(file_name)
+    wanted = path.name.casefold()
+    in_item_assets = tuple(part.casefold() for part in path.parts[-3:-1]) == ("data", "item")
     for spec in _FORMATS:
+        if spec.name == "item" and in_item_assets:
+            continue
         for file in spec.files:
             if file.name.casefold() == wanted:
                 return Identified(spec, file)

@@ -616,8 +616,10 @@ PR `build(AR1.2): build the engine as shared libraries`, branch `refactor/ar1.2-
   `ClientRoundedMath` becomes an object library inside `Engine` that keeps its own compile options.
 - Produces: `mu_set_fidelity_flags(target)` in `cmake/` (`-ffp-contract=off` on GCC and Clang, whatever MSVC needs).
 - Produces: `StdPch` (static, one empty source, the standard-library list) with the libraries' position-independent
-  code, visibility and warnings, so GCC and MSVC accept the reuse; a second owner for the targets that see
-  `SDL_OPENGL_1_FUNCTION_TYPEDEFS` unless the Windows job shows it is not needed.
+  code, visibility and warnings, so GCC and MSVC accept the reuse. `Platform` and `OpenGL`, which see
+  `SDL_OPENGL_1_FUNCTION_TYPEDEFS`, got no second owner: the Windows job builds them from `StdPch` with MSVC's warning
+  C4605 off, because the definition changes nothing in a list that holds only the standard library. The tests that
+  see it keep the owner they had (`GlTestSupport`).
 - Produces: `CMAKE_RUNTIME_OUTPUT_DIRECTORY` and `CMAKE_LIBRARY_OUTPUT_DIRECTORY` at `${CMAKE_BINARY_DIR}/bin`,
   `BUILD_RPATH_USE_ORIGIN ON`.
 

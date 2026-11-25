@@ -172,4 +172,6 @@ loses the only guard that keeps SDL in one place.
 
 1. **One test executable per file, or fewer?** Asked since 2026-11-02. Today there are 756, one per file; one per
    module would be 15 to 40 and far fewer links. Proposed: Task 8 keeps one per file, so its numbers measure only the
-   change of library shape, and the answer comes after with those numbers.
+   change of library shape, and the answer comes after with those numbers. Task 8's CI (PR #469, run 45672851108):
+   769 links, which add up to 411 s on Windows Debug and 1,379 s on Linux; the 10,362 tests of Windows Debug took
+   425 s, against 280 s on main before it.

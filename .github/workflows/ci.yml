@@ -580,11 +580,14 @@ jobs:
             -checks='-*,misc-include-cleaner' 'Client/(src|tests)/'
           git ls-files -z -- 'Client/src/*.h' \
             | xargs -0 -P "$(nproc)" -n 8 clang-tidy-18 -p "$build" -quiet -checks='-*,misc-include-cleaner'
-          # A header of tests/ borrows the command of a neighbor, and a neighbor that links only the engine has no
-          # include folder of the game (tests/CMakeLists.txt, mu_reaches_game): they go by hand.
+          # A header of tests/ borrows the command of a neighbor, which may see less than the header does: one that
+          # links only the engine has no include folder of the game (tests/CMakeLists.txt, mu_reaches_game), and one
+          # that does not link Platform lacks its definition. Which neighbor it is depends on the paths, so both go
+          # by hand.
           git ls-files -z -- 'Client/tests/*.h' \
             | xargs -0 -P "$(nproc)" -n 8 clang-tidy-18 -p "$build" -quiet -checks='-*,misc-include-cleaner' \
-                --extra-arg="-I$PWD/Client/src" --extra-arg="-I$PWD/Client/src/game"
+                --extra-arg="-I$PWD/Client/src" --extra-arg="-I$PWD/Client/src/game" \
+                --extra-arg=-DSDL_OPENGL_1_FUNCTION_TYPEDEFS
 
       # Al final del job, porque por la API se leen solo las últimas 5000 líneas del log y CTest escribe
       # más de 20 000. También van al resumen de la corrida, para verlos sin abrir el log.

@@ -19,31 +19,38 @@ def is_text_encoding(name: str) -> bool:
 
 
 def encode_text(text: str, encoding: str, index: int) -> bytes:
-    pointer = text_pointer(index)
+    return encode_fixed_text(text, encoding, TEXT_RECORD_SIZE, text_pointer(index), f"Text {index}")
+
+
+def encode_fixed_text(
+    text: str, encoding: str, size: int, pointer: str, label: str, *, require_terminator: bool = False
+) -> bytes:
     if "\0" in text:
-        raise MubmdError(ErrorCode.INVALID_VALUE, f"Text {index} contains a NUL character", pointer=pointer)
+        raise MubmdError(ErrorCode.INVALID_VALUE, f"{label} contains a NUL character", pointer=pointer)
     try:
         body = text.encode(encoding)
     except UnicodeEncodeError as error:
         character = error.object[error.start : error.end]
         raise MubmdError(
             ErrorCode.NOT_ENCODABLE,
-            f"Text {index}: {character!r} cannot be written in {encoding}",
+            f"{label}: {character!r} cannot be written in {encoding}",
             pointer=pointer,
         ) from error
     if b"\0" in body or body.decode(encoding, errors="replace") != text:
         raise MubmdError(
             ErrorCode.NOT_ENCODABLE,
-            f"Text {index} does not read back the same from its bytes in {encoding}",
+            f"{label} does not read back the same from its bytes in {encoding}",
             pointer=pointer,
         )
-    if len(body) > TEXT_RECORD_SIZE:
+    limit = size - int(require_terminator)
+    if len(body) > limit:
+        field = "field" if require_terminator else "record"
         raise MubmdError(
             ErrorCode.TEXT_TOO_LONG,
-            f"Text {index} is {len(body)} bytes, the record holds {TEXT_RECORD_SIZE}",
+            f"{label} is {len(body)} bytes, the {field} holds {limit}",
             pointer=pointer,
         )
-    return body.ljust(TEXT_RECORD_SIZE, b"\0")
+    return body.ljust(size, b"\0")
 
 
 def has_tail(record: bytes) -> bool:

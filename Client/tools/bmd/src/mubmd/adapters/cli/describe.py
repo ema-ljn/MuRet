@@ -16,7 +16,7 @@ from mubmd.core.errors import ErrorCode
 from mubmd.core.json_types import JsonObject, JsonValue
 
 BRIEF: Final = (
-    "mubmd reads, checks and edits MU Online's .bmd files byte-exact (texts first: Local/Text.bmd). Every command "
+    "mubmd reads, checks and edits MU Online's .bmd files byte-exact (texts and items). Every command "
     "prints one JSON object on stdout, {ok: true, schema, command, data, warnings}, or one on stderr when it "
     "fails, {ok: false, schema, error: {code, message, suggestion, input, pointer}}, and exits 0, 1 (findings or "
     "differences), 2 (usage), 20 (not found), 30 (precondition) or 70 (a bug in the tool). Places inside a file "

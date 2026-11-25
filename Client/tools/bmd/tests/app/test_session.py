@@ -1,10 +1,12 @@
+from pathlib import Path
+
 import pytest
 
 from mubmd.app.edits import set_value
 from mubmd.app.session import EditSession
 from mubmd.core.errors import ErrorCode, MubmdError
 from mubmd.core.patch import Change
-from tests.app.conftest import REFERENCE_TEXT, TEXT
+from tests.app.conftest import REFERENCE_TEXT, TEXT, WORK
 from tests.app.fake_store import FakeStore
 
 
@@ -76,6 +78,18 @@ def test_measure_counts_bytes_in_the_file_encoding(store: FakeStore) -> None:
     bad = session.measure("/texts/500", "😀")
     assert bad.error is not None
     assert bad.error.code is ErrorCode.NOT_ENCODABLE
+
+
+def test_item_name_measure_reserves_one_byte_for_the_terminator(reference_data: Path) -> None:
+    item = WORK / "Local" / "item.bmd"
+    store = FakeStore({item: (reference_data / "Local" / "item.bmd").read_bytes()})
+    session = EditSession.open(store, item)
+    measure = session.measure("/records/7190/name", "é" * 29)
+    assert (measure.size, measure.limit, measure.error) == (29, 29, None)
+    too_long = session.measure("/records/7190/name", "é" * 30)
+    assert (too_long.size, too_long.limit) == (30, 29)
+    assert too_long.error is not None
+    assert too_long.error.code is ErrorCode.TEXT_TOO_LONG
 
 
 def test_reload_reads_the_file_again_and_keeps_the_edits(store: FakeStore) -> None:

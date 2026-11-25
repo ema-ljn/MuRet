@@ -79,7 +79,7 @@ def _string_leaves(value: JsonValue, tokens: list[str | int]) -> Iterator[tuple[
     elif isinstance(value, list):
         for index, item in enumerate(value):
             yield from _string_leaves(item, [*tokens, index])
-    elif isinstance(value, dict):
+    elif isinstance(value, dict) and value.keys() != {"hex"}:
         for key, item in value.items():
             yield from _string_leaves(item, [*tokens, key])
 

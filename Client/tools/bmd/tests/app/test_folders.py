@@ -13,13 +13,13 @@ from tests.app.fake_store import FakeStore
 
 
 def test_roundtrip_of_a_working_copy_is_identical(working_copy: Path) -> None:
-    (working_copy / "Local" / "item.bmd").write_bytes(b"later stage")
+    (working_copy / "Local" / "skill.bmd").write_bytes(b"later stage")
     result = roundtrip(LocalFileStore(), working_copy)
     assert (result.checked, result.identical, result.differing, result.skipped) == (3, 3, (), 1)
 
 
 def test_validate_a_folder_reports_the_files_with_findings(working_copy: Path) -> None:
-    (working_copy / "Local" / "item.bmd").write_bytes(b"later stage")
+    (working_copy / "Local" / "skill.bmd").write_bytes(b"later stage")
     result = validate(LocalFileStore(), working_copy)
     by_file = {Path(entry.path).name: [finding.code for finding in entry.findings] for entry in result.files}
     assert by_file == {

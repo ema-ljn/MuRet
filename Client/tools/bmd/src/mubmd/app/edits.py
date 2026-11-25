@@ -57,7 +57,7 @@ def build(store: FileStore, source: Path, output: Path, *, dry_run: bool) -> Edi
         raise MubmdError(ErrorCode.INVALID_VALUE, f"{source} does not hold a JSON object")
     format_name = view.get("format")
     spec = format_by_name(format_name if isinstance(format_name, str) else "")
-    target = identify(output.name, b"")
+    target = identify(output.absolute(), b"")
     if target.format.name != spec.name:
         raise MubmdError(
             ErrorCode.INVALID_VALUE,

@@ -1,0 +1,7 @@
+from typing import Final
+
+ITEM_SECTION_SIZE: Final = 512
+ITEM_COUNT: Final = 16 * ITEM_SECTION_SIZE
+ITEM_RECORD_SIZE: Final = 0x54
+ITEM_NAME_SIZE: Final = 0x1E
+ITEM_CHECKSUM_KEY: Final = 0xE2F1

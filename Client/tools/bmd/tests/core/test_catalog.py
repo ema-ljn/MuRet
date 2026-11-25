@@ -24,13 +24,13 @@ def test_a_test_twin_is_not_read_by_the_client(text_bytes: bytes) -> None:
 
 def test_a_file_of_a_later_stage_is_unknown(text_bytes: bytes) -> None:
     with pytest.raises(MubmdError) as caught:
-        identify("Item.bmd", text_bytes)
+        identify("Skill.bmd", text_bytes)
     assert caught.value.code is ErrorCode.UNKNOWN_FORMAT
     assert caught.value.suggestion == "mubmd formats"
 
 
 def test_formats_are_listed_and_found_by_name() -> None:
-    assert [spec.name for spec in all_formats()] == ["text"]
+    assert [spec.name for spec in all_formats()] == ["text", "item"]
     assert format_by_name("text").size == 614_400
 
 

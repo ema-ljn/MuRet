@@ -6,21 +6,24 @@ from textual.binding import Binding, BindingType
 from textual.widgets import DataTable
 
 from mubmd.core.checks.text_checks import PRINTF_PATTERN
+from mubmd.core.documents.item_table import ITEM_NAME_SIZE, ITEM_SECTION_SIZE
 from mubmd.core.documents.text_table import TEXT_RECORD_SIZE
 from mubmd.core.json_types import JsonValue
 
 TEXT_WIDTH_FLOOR = 20
 FIXED_COLUMNS_WIDTH = 6 + 5 + 3 * 2 + 2 + 1 + 2
+SECTION_COLUMN_WIDTH = 7
 
 
-class TextTableView(DataTable[Text]):
+class RecordTableView(DataTable[Text]):
     BINDINGS: ClassVar[list[BindingType]] = [Binding("enter", "select_cursor", "edit")]
 
     def __init__(self) -> None:
         super().__init__(cursor_type="row")
-        self._texts: list[JsonValue] = []
+        self._values: list[JsonValue] = []
         self._original: list[JsonValue] = []
         self._encoding = "cp1252"
+        self._item_names = False
         self._accent = "yellow"
         self._mark = "red"
         self.text_width = TEXT_WIDTH_FLOOR
@@ -30,11 +33,17 @@ class TextTableView(DataTable[Text]):
 
     def _add_columns(self) -> None:
         self.add_column(Text("#", justify="right"), key="index", width=6)
-        self.add_column("text", key="text", width=self.text_width)
+        if self._item_names:
+            self.add_column(Text("section", justify="right"), key="section", width=SECTION_COLUMN_WIDTH)
+        self.add_column("name" if self._item_names else "text", key="value", width=self.text_width)
         self.add_column(Text("bytes", justify="right"), key="bytes", width=5)
 
+    def _text_width(self, available: int) -> int:
+        fixed_width = FIXED_COLUMNS_WIDTH + (SECTION_COLUMN_WIDTH + 2 if self._item_names else 0)
+        return max(TEXT_WIDTH_FLOOR, available - fixed_width)
+
     def on_resize(self, event: events.Resize) -> None:
-        width = max(TEXT_WIDTH_FLOOR, event.size.width - FIXED_COLUMNS_WIDTH)
+        width = self._text_width(event.size.width)
         if width == self.text_width:
             return
         self.text_width = width
@@ -43,7 +52,7 @@ class TextTableView(DataTable[Text]):
         self.clear(columns=True)
         self._add_columns()
         for index in keys:
-            self.add_row(*self._cells(index, self._texts[index]), key=str(index))
+            self._add_record(index, self._values[index])
         if keys:
             self.move_cursor(row=cursor)
 
@@ -53,37 +62,52 @@ class TextTableView(DataTable[Text]):
         if isinstance(value, str):
             shown = value if len(value) <= self.text_width else value[: self.text_width - 1] + "…"
             text = Text(shown)
-            text.highlight_regex(PRINTF_PATTERN, style=f"bold {self._accent}")
+            if not self._item_names:
+                text.highlight_regex(PRINTF_PATTERN, style=f"bold {self._accent}")
             size = len(value.encode(self._encoding))
         else:
-            text = Text("⟨hex record⟩", style="dim italic")
-            size = TEXT_RECORD_SIZE
+            text = Text("⟨hex name⟩" if self._item_names else "⟨hex record⟩", style="dim italic")
+            size = ITEM_NAME_SIZE if self._item_names else TEXT_RECORD_SIZE
         return mark, text, Text(str(size), justify="right")
+
+    def _add_record(self, index: int, value: JsonValue) -> None:
+        mark, text, size = self._cells(index, value)
+        if self._item_names:
+            section = Text(str(index // ITEM_SECTION_SIZE), justify="right")
+            self.add_row(mark, section, text, size, key=str(index))
+        else:
+            self.add_row(mark, text, size, key=str(index))
 
     def set_colors(self, accent: str, mark: str) -> None:
         self._accent, self._mark = accent, mark
 
-    def show(self, texts: list[JsonValue], original: list[JsonValue], encoding: str, query: str = "") -> None:
-        self._texts, self._original, self._encoding = list(texts), list(original), encoding
-        self.clear()
+    def show(
+        self, values: list[JsonValue], original: list[JsonValue], encoding: str, query: str, *, item_names: bool
+    ) -> None:
+        self._values, self._original, self._encoding = list(values), list(original), encoding
+        layout_changed = self._item_names != item_names
+        self._item_names = item_names
+        self.clear(columns=layout_changed)
+        if layout_changed:
+            self.text_width = self._text_width(self.size.width)
+            self._add_columns()
         wanted = query.casefold()
-        for index, value in enumerate(texts):
+        for index, value in enumerate(values):
             if not wanted or (isinstance(value, str) and wanted in value.casefold()):
-                self.add_row(*self._cells(index, value), key=str(index))
+                self._add_record(index, value)
 
-    def update_rows(self, texts: list[JsonValue], original: list[JsonValue] | None = None) -> None:
-        original = self._original if original is None else original
-        for index, value in enumerate(texts):
-            if value == self._texts[index] and original[index] == self._original[index]:
+    def update_rows(self, values: list[JsonValue], original: list[JsonValue]) -> None:
+        for index, value in enumerate(values):
+            if value == self._values[index] and original[index] == self._original[index]:
                 continue
-            self._texts[index], self._original[index] = value, original[index]
+            self._values[index], self._original[index] = value, original[index]
             key = str(index)
             if key in self.rows:
-                for column, cell in zip(("index", "text", "bytes"), self._cells(index, value), strict=True):
+                for column, cell in zip(("index", "value", "bytes"), self._cells(index, value), strict=True):
                     self.update_cell(key, column, cell)
 
-    def text_at(self, index: int) -> JsonValue:
-        return self._texts[index]
+    def value_at(self, index: int) -> JsonValue:
+        return self._values[index]
 
     def index_at_cursor(self) -> int | None:
         if not self.row_count:

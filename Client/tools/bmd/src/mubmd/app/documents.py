@@ -13,7 +13,7 @@ from mubmd.core.json_types import JsonObject, JsonValue
 from mubmd.core.patch import Change, diff_views
 from mubmd.core.ports import FileStore
 
-HEADER_POINTERS: Final = frozenset({"/format_version", "/format", "/encoding"})
+HEADER_POINTERS: Final = frozenset({"/format_version", "/format", "/encoding", "/records_sha256", "/stored_checksum"})
 
 
 @dataclass(frozen=True, slots=True)
@@ -46,7 +46,7 @@ def check_encoding(encoding: str) -> str:
 
 def open_document(store: FileStore, path: Path, *, encoding: str | None = None) -> OpenDocument:
     data = store.read(path)
-    identified = identify(path.name, data)
+    identified = identify(path.absolute(), data)
     if encoding is not None:
         file = dataclasses.replace(identified.file, encoding=check_encoding(encoding))
         identified = dataclasses.replace(identified, file=file)
@@ -104,9 +104,11 @@ def encode_verified(opened: Identified, view: JsonObject) -> tuple[Any, bytes, J
 def refuse_header_changes(changes: tuple[Change, ...]) -> None:
     for change in changes:
         if change.pointer in HEADER_POINTERS:
+            suggestion = "--encoding reads a file in another encoding" if change.pointer == "/encoding" else None
             raise MubmdError(
                 ErrorCode.INVALID_VALUE,
-                f"{change.pointer} describes the file and is not edited; --encoding reads a file in another encoding",
+                f"{change.pointer} describes the file and cannot be edited",
+                suggestion=suggestion,
                 pointer=change.pointer,
             )
 
@@ -127,7 +129,7 @@ def save_view(store: FileStore, opened: OpenDocument, view: JsonObject, *, dry_r
         return unchanged
     refuse_reference(store, opened.path)
     document, data, written = encode_verified(opened.identified, view)
-    changes = diff_views(opened.view, written)
+    changes = tuple(change for change in diff_views(opened.view, written) if change.pointer not in HEADER_POINTERS)
     if not changes:
         return unchanged
     findings = opened.identified.format.codec.check(document, opened.document)

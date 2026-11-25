@@ -72,7 +72,10 @@ def test_get_of_a_missing_pointer_is_not_found(store: FakeStore) -> None:
 
 
 def test_formats_and_their_fields_are_described() -> None:
-    (text,) = list_formats()
+    text, item = list_formats()
     assert text.name == "text"
     assert [file.name for file in text.files] == ["Text.bmd", "Texttest.bmd", "TKOU.bmd"]
     assert format_schema("text").fields[0].pointer == "/texts/<0..2047>"
+    assert item.name == "item"
+    assert [file.name for file in item.files] == ["item.bmd", "itemtest.bmd", "n380.bmd"]
+    assert format_schema("item").fields[0].pointer == "/records/<0..8191>/name"

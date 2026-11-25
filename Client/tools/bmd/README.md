@@ -7,8 +7,8 @@ identical, and an edited file is read by the client as the tool showed it.
   project skill [`muret-bmd`](../../../.claude/skills/muret-bmd/SKILL.md) teaches it.
 - **For people:** the same operations in a console UI (`mubmd tui`).
 
-This version reads the text tables (`Local/Text.bmd`, `Texttest.bmd`, `TKOU.bmd`). The other tables and the models
-come in the next stages. The design is in
+This version reads the text tables (`Local/Text.bmd`, `Texttest.bmd`, `TKOU.bmd`) and the item tables
+(`Local/item.bmd`, `itemtest.bmd`, `n380.bmd`). The design is in
 [`docs/superpowers/specs/2026-11-25-bmd-editor-design.md`](../../../docs/superpowers/specs/2026-11-25-bmd-editor-design.md).
 
 ## Install
@@ -74,8 +74,8 @@ object on stderr, `{"ok": false, "schema": 1, "error": {"code", "message", "sugg
 | 30 | A precondition failed: read-only reference, corrupt file, file changed since it was read, a `test` that did not hold |
 | 70 | A bug in the tool (`INTERNAL_ERROR`): report the command |
 
-Places inside a file are JSON Pointers (RFC 6901): `/texts/500` is text 500 in `get`, `set`, `apply`, the findings and
-the dumped JSON.
+Use JSON Pointers (RFC 6901) in `get`, `set`, and `apply`. `/texts/500` addresses text 500, and `/records/0/name`
+addresses the first item name.
 
 ## The JSON view
 
@@ -93,6 +93,13 @@ kept as `{"hex": "<600 hex digits>"}`, and so is one with bytes after its first 
 holds up to 300 bytes in the file's encoding. `format_version`, `format` and `encoding` describe the file and are not
 edited.
 
+The item view has 8,192 `records`, indexed by `section * 512 + index`. Each record includes `name`, `two_handed`,
+`level`, `width`, `height`, and `raw_0xNN` fields for the remaining bytes. Item names hold up to 29 encoded bytes
+and a NUL terminator. Existing names with undecodable bytes, missing terminators, or nonzero bytes after a terminator
+are kept as hex. Use `mubmd schema item` for the field list. The dump includes `records_sha256`, `stored_checksum`,
+and `trailing`. Keep this metadata when editing the dump. An unchanged item table keeps its stored checksum and
+trailing bytes. Editing a record calculates a new checksum.
+
 ## The console UI
 
 `mubmd tui ~/mu/Data` opens the folder: the `.bmd` files on the left, the open table on the right, the selected
@@ -100,7 +107,7 @@ record's editor below.
 
 | Key | Action |
 | --- | --- |
-| `/` | Search the texts |
+| `/` | Search the texts or item names |
 | `enter` | Edit the selected record; `enter` again keeps the edit, `escape` drops it. The editor counts the bytes and warns (`⚠`) of a text the client would misread |
 | `ctrl+z`, `ctrl+y` | Undo, redo |
 | `ctrl+s` | Show the changes and their warnings, and write them after `y` |
@@ -127,8 +134,8 @@ system, CLI, console UI); `tests/test_layers.py` keeps them apart. The snapshot 
 ## Stages
 
 1. Design and skills.
-2. **Texts end to end (this version).**
-3. Every table: items, skills, gates, filters, item sets, credits, slide, move requirements, monster skills,
-   dialogs, quests.
+2. Texts end to end.
+3. **Record tables.** Items are available. This stage also covers skills, gates, filters, item sets, credits, slide,
+   move requirements, monster skills, dialogs, and quests.
 4. Models, with the K16 cipher.
 5. A wireframe preview of a model in the console UI.

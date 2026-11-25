@@ -16,6 +16,10 @@ class RecordEditor(Input):
         self.border_title = f"record {index}"
         self.value = value
 
+    def show_value(self, value: str) -> None:
+        self.loaded = value
+        self.value = value
+
     def revert(self) -> None:
         self.value = self.loaded
 
@@ -25,7 +29,8 @@ class RecordEditor(Input):
 
     def show_measure(self, measure: Measure) -> None:
         self.set_class(measure.error is not None, "-invalid")
-        if measure.error is None:
-            self.border_subtitle = f"{measure.size}/{measure.limit} bytes"
-        else:
+        if measure.error is not None:
             self.border_subtitle = f"✗ {measure.error.code}"
+            return
+        codes = "".join(f" · ⚠ {warning.code}" for warning in measure.warnings)
+        self.border_subtitle = f"{measure.size}/{measure.limit} bytes{codes}"

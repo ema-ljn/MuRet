@@ -7,6 +7,7 @@ from textual.containers import VerticalScroll
 from textual.screen import ModalScreen
 from textual.widgets import Static
 
+from mubmd.core.findings import Finding
 from mubmd.core.json_types import JsonValue
 from mubmd.core.patch import Change
 
@@ -23,11 +24,14 @@ class DiffScreen(ModalScreen[bool]):
         Binding("n", "cancel", "cancel", show=False),
     ]
 
-    def __init__(self, changes: tuple[Change, ...], target: str, *, confirm: bool) -> None:
+    def __init__(
+        self, changes: tuple[Change, ...], target: str, *, confirm: bool, warnings: tuple[Finding, ...] = ()
+    ) -> None:
         super().__init__()
         self.changes = changes
         self.target = target
         self.confirm = confirm
+        self.warnings = warnings
 
     def compose(self) -> ComposeResult:
         theme = self.app.current_theme
@@ -36,12 +40,14 @@ class DiffScreen(ModalScreen[bool]):
             body.append(f"{change.pointer}\n", style="bold")
             body.append(f"  - {_shown(change.old)}\n", style=theme.error or "red")
             body.append(f"  + {_shown(change.new)}\n", style=theme.success or "green")
+        for warning in self.warnings:
+            body.append(f"\n⚠ {warning.code} {warning.pointer}\n  {warning.message}\n", style=theme.warning or "yellow")
         hint = "y write · escape cancel" if self.confirm else "escape close"
         body.append(f"\n{hint}", style="dim")
         with VerticalScroll(id="diff") as frame:
             count = len(self.changes)
             frame.border_title = f"{'save ' if self.confirm else ''}{count} change{'s' if count != 1 else ''}"
-            frame.border_subtitle = f"→ {self.target}"
+            frame.border_subtitle = Text(f"→ {self.target}")
             yield Static(body)
 
     def action_confirm(self) -> None:

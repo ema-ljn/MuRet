@@ -1,5 +1,6 @@
 import pytest
 
+from mubmd.app.edits import set_value
 from mubmd.app.session import EditSession
 from mubmd.core.errors import ErrorCode, MubmdError
 from mubmd.core.patch import Change
@@ -75,3 +76,28 @@ def test_measure_counts_bytes_in_the_file_encoding(store: FakeStore) -> None:
     bad = session.measure("/texts/500", "😀")
     assert bad.error is not None
     assert bad.error.code is ErrorCode.NOT_ENCODABLE
+
+
+def test_reload_reads_the_file_again_and_keeps_the_edits(store: FakeStore) -> None:
+    session = EditSession.open(store, TEXT)
+    session.set("/texts/500", "Te fuiste")
+    set_value(store, TEXT, "/texts/100", "Zen!", dry_run=False)
+    with pytest.raises(MubmdError) as caught:
+        session.save()
+    assert caught.value.code is ErrorCode.STALE_FILE
+    session.reload()
+    assert session.value("/texts/100") == "Zen!"
+    assert session.changes == (Change("/texts/500", "El usuario salió del juego", "Te fuiste"),)
+    assert session.save().changed
+
+
+def test_the_warnings_of_a_session_are_those_of_its_changes(store: FakeStore) -> None:
+    session = EditSession.open(store, TEXT)
+    session.set("/texts/577", "Aumenta %s%% de Daño")
+    assert [(warning.code, warning.pointer) for warning in session.warnings] == [("PRINTF_CHANGED", "/texts/577")]
+
+
+def test_measure_warns_of_a_text_that_fills_its_record(store: FakeStore) -> None:
+    measure = EditSession.open(store, TEXT).measure("/texts/100", "a" * 300)
+    assert measure.error is None
+    assert [warning.code for warning in measure.warnings] == ["TEXT_FILLS_RECORD"]

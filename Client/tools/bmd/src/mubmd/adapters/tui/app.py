@@ -1,7 +1,9 @@
+import os
 from collections.abc import Iterable
 from pathlib import Path
 from typing import Any, ClassVar
 
+from rich.text import Text
 from textual.app import App, ComposeResult, SystemCommand
 from textual.binding import Binding, BindingType
 from textual.containers import Horizontal, Vertical
@@ -17,11 +19,18 @@ from mubmd.adapters.tui.widgets.status_line import StatusLine
 from mubmd.adapters.tui.widgets.text_table_view import TextTableView
 from mubmd.adapters.tui.widgets.title_bar import TitleBar
 from mubmd.app.session import EditSession
-from mubmd.core.errors import MubmdError
+from mubmd.core.errors import ErrorCode, MubmdError
+from mubmd.core.findings import Finding
 from mubmd.core.json_types import JsonValue
 from mubmd.core.ports import FileStore
 
 USED_BAR_CELLS = 9
+READ_ONLY_HINT = f"read-only reference folder: make a working copy with `{WORKSPACE_SUGGESTION}`"
+STALE_HINT = "the file changed on disk: press r to read it again and keep your edits"
+
+
+def absolute(path: Path) -> Path:
+    return Path(os.path.abspath(path))
 
 
 def shown_path(path: Path) -> str:
@@ -41,6 +50,10 @@ def texts_of(view: dict[str, JsonValue]) -> list[JsonValue]:
     return texts if isinstance(texts, list) else []
 
 
+def warned(warnings: tuple[Finding, ...]) -> str:
+    return "".join(f" · ⚠ {warning.code} {warning.pointer}" for warning in warnings)
+
+
 class MubmdApp(App[None]):
     CSS_PATH = "mubmd.tcss"
     TITLE = "mubmd"
@@ -51,13 +64,14 @@ class MubmdApp(App[None]):
         Binding("ctrl+y", "redo", "redo", show=False),
         Binding("ctrl+s", "save", "save"),
         Binding("d", "diff", "diff"),
+        Binding("r", "reload", "read again", show=False),
         Binding("t", "toggle_theme", "light/dark", show=False),
         Binding("q", "quit", "quit"),
     ]
 
     def __init__(self, store: FileStore, root: Path) -> None:
         super().__init__()
-        root = root.expanduser().resolve()
+        root = absolute(root.expanduser())
         self.store = store
         self.folder = root if root.is_dir() else root.parent
         self.start_file = None if root.is_dir() else root
@@ -69,7 +83,7 @@ class MubmdApp(App[None]):
         yield TitleBar()
         with Horizontal(id="body"):
             tree = BmdTree(self.folder, self.store.list_bmd(self.folder))
-            tree.border_title = self.folder.name
+            tree.border_title = Text(self.folder.name)
             yield tree
             with Vertical(id="document"):
                 yield Input(placeholder="search texts", id="search")
@@ -94,10 +108,21 @@ class MubmdApp(App[None]):
         yield SystemCommand("Redo", "Redo the last undone edit", self.action_redo)
         yield SystemCommand("Save", "Show the changes and write them", self.action_save)
         yield SystemCommand("Diff", "Show the unsaved changes", self.action_diff)
+        yield SystemCommand("Read again", "Read the file again and keep the unsaved edits", self.action_reload)
         yield SystemCommand("Light or dark", "Switch between Lorencia and Lorencia light", self.action_toggle_theme)
 
     def status(self, text: str, *, error: bool = False) -> None:
         self.query_one(StatusLine).show(text, error=error)
+
+    def failed(self, error: MubmdError) -> None:
+        message = STALE_HINT if error.code is ErrorCode.STALE_FILE else error.message
+        self.status(f"{error.code}: {message}", error=True)
+
+    def label_of(self, path: Path) -> str:
+        try:
+            return path.relative_to(self.folder).as_posix()
+        except ValueError:
+            return path.name
 
     def refresh_title(self) -> None:
         unsaved = sum(len(session.changes) for session in self.sessions.values())
@@ -105,9 +130,8 @@ class MubmdApp(App[None]):
         self.query_one(BmdTree).mark_unsaved({path for path, session in self.sessions.items() if session.dirty})
         if self.session is not None:
             summary = self.session.summary
-            relative = self.session.path.relative_to(self.folder).as_posix()
-            self.query_one(TextTableView).border_title = (
-                f"{relative} ─ {self.session.format_name} · {summary.cipher} · "
+            self.query_one(TextTableView).border_title = Text(
+                f"{self.label_of(self.session.path)} ─ {self.session.format_name} · {summary.cipher} · "
                 f"{summary.used_records}/{summary.records} used {used_bar(summary.used_records, summary.records)}"
             )
 
@@ -120,11 +144,11 @@ class MubmdApp(App[None]):
         table.show(texts_of(self.session.view), texts_of(self.session.original), self.session.encoding, query)
 
     async def open_path(self, path: Path) -> None:
-        path = path.resolve()
+        path = absolute(path)
         try:
             session = self.sessions.get(path) or EditSession.open(self.store, path)
         except MubmdError as error:
-            self.status(f"{error.code}: {error.message}", error=True)
+            self.failed(error)
             return
         self.sessions[path] = session
         self.session = session
@@ -146,6 +170,9 @@ class MubmdApp(App[None]):
 
     def edit_index(self, index: int, *, focus: bool) -> None:
         if self.session is None:
+            return
+        if self.session.read_only:
+            self.status(READ_ONLY_HINT, error=True)
             return
         pointer = f"/texts/{index}"
         value = self.session.value(pointer)
@@ -184,15 +211,21 @@ class MubmdApp(App[None]):
         try:
             self.session.set(editor.pointer, editor.value)
         except MubmdError as error:
-            self.status(f"{error.code}: {error.message}", error=True)
+            self.failed(error)
             return False
         editor.loaded = editor.value
         self.after_edit()
         return True
 
     def after_edit(self) -> None:
+        self.quit_armed = False
         if self.session is not None:
-            self.query_one(TextTableView).update_rows(texts_of(self.session.view))
+            table = self.query_one(TextTableView)
+            table.update_rows(texts_of(self.session.view), texts_of(self.session.original))
+            editor = self.query_one(RecordEditor)
+            value = None if editor.pointer is None else self.session.value(editor.pointer)
+            if isinstance(value, str) and not editor.has_focus:
+                editor.show_value(value)
         self.refresh_title()
 
     def action_search(self) -> None:
@@ -218,21 +251,35 @@ class MubmdApp(App[None]):
         if self.session is not None and self.session.redo():
             self.after_edit()
 
+    def diff_screen(self, session: EditSession, *, confirm: bool) -> DiffScreen:
+        return DiffScreen(session.changes, shown_path(session.path), confirm=confirm, warnings=session.warnings)
+
     def action_diff(self) -> None:
         if self.session is not None:
-            self.push_screen(DiffScreen(self.session.changes, shown_path(self.session.path), confirm=False))
+            self.push_screen(self.diff_screen(self.session, confirm=False))
+
+    def action_reload(self) -> None:
+        if self.session is None or not self.commit_editor():
+            return
+        try:
+            self.session.reload()
+        except MubmdError as error:
+            self.failed(error)
+            return
+        self.after_edit()
+        kept = len(self.session.changes)
+        self.status(f"{shown_path(self.session.path)} read again, {kept} unsaved change{'s' if kept != 1 else ''} kept")
 
     def action_save(self) -> None:
         if self.session is None or not self.commit_editor():
             return
         if self.session.read_only:
-            self.status(f"read-only reference folder: make a working copy with `{WORKSPACE_SUGGESTION}`", error=True)
+            self.status(READ_ONLY_HINT, error=True)
             return
         if not self.session.dirty:
             self.status("nothing to save")
             return
-        screen = DiffScreen(self.session.changes, shown_path(self.session.path), confirm=True)
-        self.push_screen(screen, self.write_confirmed)
+        self.push_screen(self.diff_screen(self.session, confirm=True), self.write_confirmed)
 
     def write_confirmed(self, confirmed: bool | None) -> None:
         if not confirmed or self.session is None:
@@ -240,11 +287,12 @@ class MubmdApp(App[None]):
         try:
             result = self.session.save()
         except MubmdError as error:
-            self.status(f"{error.code}: {error.message}", error=True)
+            self.failed(error)
             return
-        self.show_rows(self.query_one("#search", Input).value)
-        self.refresh_title()
-        self.status(f"saved {len(result.changes)} change(s) to {shown_path(result.path)}")
+        self.after_edit()
+        count = len(result.changes)
+        saved = f"saved {count} change{'s' if count != 1 else ''} to {shown_path(result.path)}"
+        self.status(f"{saved}{warned(result.warnings)}")
 
     def action_toggle_theme(self) -> None:
         self.theme = LORENCIA_LIGHT.name if self.theme == LORENCIA.name else LORENCIA.name

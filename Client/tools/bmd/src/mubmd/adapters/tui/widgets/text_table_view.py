@@ -71,11 +71,12 @@ class TextTableView(DataTable[Text]):
             if not wanted or (isinstance(value, str) and wanted in value.casefold()):
                 self.add_row(*self._cells(index, value), key=str(index))
 
-    def update_rows(self, texts: list[JsonValue]) -> None:
+    def update_rows(self, texts: list[JsonValue], original: list[JsonValue] | None = None) -> None:
+        original = self._original if original is None else original
         for index, value in enumerate(texts):
-            if value == self._texts[index]:
+            if value == self._texts[index] and original[index] == self._original[index]:
                 continue
-            self._texts[index] = value
+            self._texts[index], self._original[index] = value, original[index]
             key = str(index)
             if key in self.rows:
                 for column, cell in zip(("index", "text", "bytes"), self._cells(index, value), strict=True):

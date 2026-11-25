@@ -3,7 +3,7 @@ from textual.widgets import Static
 
 class StatusLine(Static):
     def __init__(self) -> None:
-        super().__init__("")
+        super().__init__("", markup=False)
         self.text = ""
 
     def show(self, text: str, *, error: bool = False) -> None:

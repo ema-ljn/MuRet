@@ -1,9 +1,10 @@
 from dataclasses import dataclass
 from pathlib import Path
 
-from mubmd.app.documents import EditResult, OpenDocument, open_document, save_view
+from mubmd.app.documents import EditResult, OpenDocument, open_document, save_view, touches
 from mubmd.core.documents.text_table import TEXT_RECORD_SIZE
 from mubmd.core.errors import MubmdError
+from mubmd.core.findings import Finding
 from mubmd.core.json_types import JsonObject, JsonValue
 from mubmd.core.patch import Change, PatchOp, apply_patch, diff_views
 from mubmd.core.pointer import resolve
@@ -15,6 +16,7 @@ class Measure:
     size: int | None
     limit: int
     error: MubmdError | None
+    warnings: tuple[Finding, ...] = ()
 
 
 class EditSession:
@@ -65,6 +67,15 @@ class EditSession:
     def dirty(self) -> bool:
         return bool(self.changes)
 
+    @property
+    def warnings(self) -> tuple[Finding, ...]:
+        changes = self.changes
+        return tuple(finding for finding in self._findings(self.view) if touches(finding, changes))
+
+    def _findings(self, view: JsonObject) -> tuple[Finding, ...]:
+        codec = self._opened.identified.format.codec
+        return codec.check(codec.from_view(view), self._opened.document)
+
     def value(self, pointer: str) -> JsonValue:
         return resolve(self.view, pointer)
 
@@ -79,10 +90,11 @@ class EditSession:
         except UnicodeEncodeError:
             size = None
         try:
-            self._edited(pointer, text)
+            view = self._edited(pointer, text)
         except MubmdError as error:
             return Measure(size, TEXT_RECORD_SIZE, error)
-        return Measure(size, TEXT_RECORD_SIZE, None)
+        warnings = tuple(finding for finding in self._findings(view) if finding.pointer == pointer)
+        return Measure(size, TEXT_RECORD_SIZE, None, warnings)
 
     def set(self, pointer: str, value: JsonValue) -> None:
         view = self._edited(pointer, value)
@@ -108,3 +120,12 @@ class EditSession:
         self._history = [self._opened.view]
         self._position = 0
         return result
+
+    def reload(self) -> None:
+        mine = tuple(PatchOp("replace", change.pointer, change.new) for change in self.changes)
+        fresh = open_document(self._store, self.path)
+        view = apply_patch(fresh.view, mine)
+        fresh.identified.format.codec.from_view(view)
+        self._opened = fresh
+        self._history = [fresh.view] if view == fresh.view else [fresh.view, view]
+        self._position = len(self._history) - 1

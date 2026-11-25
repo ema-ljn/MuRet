@@ -3,7 +3,7 @@ from textual.widgets import Static
 
 class TitleBar(Static):
     def __init__(self) -> None:
-        super().__init__("◆ mubmd")
+        super().__init__("◆ mubmd", markup=False)
         self.text = "◆ mubmd"
 
     def show(self, folder: str, read_only: bool, unsaved: int) -> None:

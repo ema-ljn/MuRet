@@ -34,6 +34,8 @@ list(FILTER engine_headers EXCLUDE REGEX "${backend_folders}")
 # RoundedMath is an object library with its own compile options, and XorRemap a static one (both below).
 list(FILTER engine_sources EXCLUDE REGEX "/src/engine/(Math/RoundedMath|Network/XorRemap)/")
 list(FILTER engine_headers EXCLUDE REGEX "/src/engine/Network/XorRemap/")
+# JpegErrors.h names libjpeg's types, which only Engine's own files see: it is not a header for who links Engine.
+list(FILTER engine_headers EXCLUDE REGEX "/Data/Textures/JpegErrors\\.h$")
 
 mu_add_library(Engine SOURCES ${engine_sources} HEADERS ${engine_headers})
 # En vcpkg, libjpeg-turbo es estática en Linux y dinámica en Windows: el target cambia de nombre.

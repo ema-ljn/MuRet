@@ -23,6 +23,8 @@ constexpr std::size_t OrdinaryCount = 3;
 constexpr std::size_t ExtendedCount = 10;
 constexpr std::uint8_t LorenciaWater = 5;
 constexpr std::uint16_t BlockedAttribute = 8;
+constexpr std::int32_t LowerAtlansFishKinds = 4;
+constexpr std::int32_t UpperAtlansFishKinds = 2;
 
 using Assets::Bug01Model;
 using Assets::Bug02Model;
@@ -101,6 +103,12 @@ bool FishCopiesWorldPosition(std::int16_t model)
 bool FishHasModel(std::int16_t model)
 {
     return model != -1;
+}
+
+std::int16_t AtlansFishModel(bool lower, std::int32_t draw)
+{
+    return static_cast<std::int16_t>(lower ? draw % LowerAtlansFishKinds + Fish04Model
+                                           : draw % UpperAtlansFishKinds + Fish08Model);
 }
 } // namespace Client::World
 
@@ -412,7 +420,7 @@ private:
         auto model = Read(m_services.Random());
         if (!model)
             return false;
-        fish.model = static_cast<std::int16_t>(lower ? *model % 4 + Fish04Model : *model % 2 + Fish08Model);
+        fish.model = AtlansFishModel(lower, *model);
         if (!lower && FishNeedsOscillation(fish.model))
         {
             fish.field64 = 0;

@@ -9,6 +9,7 @@
 
 namespace
 {
+using Client::World::AtlansFishModel;
 using Client::World::FishCopiesWorldPosition;
 using Client::World::FishDirectSpawnAllowed;
 using Client::World::FishHasModel;
@@ -110,6 +111,16 @@ TEST(FishTest, PositionCopyUsesPostCollisionTypesOnly)
     EXPECT_FALSE(FishCopiesWorldPosition(0xb1));
     EXPECT_FALSE(FishCopiesWorldPosition(0xba));
     EXPECT_FALSE(FishCopiesWorldPosition(-1));
+}
+
+TEST(FishTest, AtlansPicksItsFishByTheHalfOfTheMapAndTheDraw)
+{
+    EXPECT_EQ(AtlansFishModel(true, 0), 0xb5);
+    EXPECT_EQ(AtlansFishModel(true, 3), 0xb8);
+    EXPECT_EQ(AtlansFishModel(true, 4), 0xb5);
+    EXPECT_EQ(AtlansFishModel(false, 0), 0xb9);
+    EXPECT_EQ(AtlansFishModel(false, 1), 0xba);
+    EXPECT_EQ(AtlansFishModel(false, 2), 0xb9);
 }
 
 TEST(FishTest, SignedTypeSentinelControlsOnlyModelDispatch)

@@ -503,6 +503,11 @@ initializer. The field, the parameters and the locals called `type` become `mode
 tests' numbers, the loader's tables, the joint type `0x10f` and the monster numbers `0x1f` and `0x21` (other
 spaces), and the record `Birds.cpp` writes by offset, for the Fauna design PR (AR4.3).
 
+The two sites that draw one of several fish are functions (Emanuel, 2026-11-25, reviewing this PR):
+`AtlansFishModel(lower, draw)` in `World/Fish.h`, one of `Fish04..07` in the lower half of Atlans and `Fish08` or
+`Fish09` in the upper half, and `AtlansBirdModel(draw)` in `Scenes/FaunaBirdHandlers.cpp`, `Fish02` or `Fish03`. Each
+keeps the original's expression, the draw's remainder plus the first slot.
+
 ---
 
 ## AR1.2 (move, targets, namespaces, comments)

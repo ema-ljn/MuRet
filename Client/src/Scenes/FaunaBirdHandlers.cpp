@@ -32,6 +32,7 @@ using Assets::RidingSpearModel;
 using Math::FullTurn;
 constexpr std::int16_t IcarusBird = Assets::Monster32Model;
 constexpr std::int16_t KalimaBird = Assets::Monster34Model;
+constexpr std::int32_t AtlansBirdKinds = 2;
 using Math::F32;
 std::int32_t Random(FaunaStepContext& c)
 {
@@ -120,6 +121,10 @@ std::error_code SpawnIcarus(FaunaStepContext& c, FaunaObject& b, std::int32_t in
     b.angles.z = static_cast<float>(Random(c) % FullTurn);
     return {};
 }
+std::int16_t AtlansBirdModel(std::int32_t draw)
+{
+    return static_cast<std::int16_t>(draw % AtlansBirdKinds + Fish02Model);
+}
 void SpawnAtlans(FaunaStepContext& c, FaunaObject& b)
 {
     if (static_cast<double>(c.heroPosition.y) * static_cast<double>(0.01f) >= 128)
@@ -127,7 +132,7 @@ void SpawnAtlans(FaunaStepContext& c, FaunaObject& b)
         b.active = 0;
         return;
     }
-    b.model = static_cast<std::int16_t>(Random(c) % 2 + Fish02Model);
+    b.model = AtlansBirdModel(Random(c));
     b.turnRate = 15;
     b.alphaMode = 1;
     b.bodyScale = .8f;

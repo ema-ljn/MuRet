@@ -39,6 +39,8 @@ enum class FishMovement : std::uint8_t
 [[nodiscard]] bool FishCopiesWorldPosition(std::int16_t model);
 // 447603 skips model lookup only for signed model -1 (raw word ffff).
 [[nodiscard]] bool FishHasModel(std::int16_t model);
+// 447472 and 4474ba: the lower half of Atlans draws one of Fish04..07, the upper half Fish08 or Fish09.
+[[nodiscard]] std::int16_t AtlansFishModel(bool lower, std::int32_t draw);
 // 5f82a0: wrap independiente de los dos bytes bajos, distinto de5f82c0.
 [[nodiscard]] std::uint32_t FishTileIndex(std::int32_t x, std::int32_t y);
 

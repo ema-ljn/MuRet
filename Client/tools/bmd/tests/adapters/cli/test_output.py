@@ -97,7 +97,7 @@ def test_ndjson_streams_one_finding_per_line(cli: Cli, text: Path) -> None:
         "message": first["message"],
     }
     assert lines[-1]["command"] == "validate"
-    assert lines[-1]["data"] == {"files": 3, "findings": len(lines) - 1}
+    assert lines[-1]["data"] == {"checked": 3, "skipped": 0, "findings": len(lines) - 1}
 
 
 def test_human_output_is_not_json(cli: Cli, text: Path) -> None:

@@ -18,12 +18,23 @@ def test_roundtrip_of_a_working_copy_is_identical(working_copy: Path) -> None:
     assert (result.checked, result.identical, result.differing, result.skipped) == (3, 3, (), 1)
 
 
-def test_validate_a_folder_reports_each_file(working_copy: Path) -> None:
+def test_validate_a_folder_reports_the_files_with_findings(working_copy: Path) -> None:
     (working_copy / "Local" / "item.bmd").write_bytes(b"later stage")
     result = validate(LocalFileStore(), working_copy)
     by_file = {Path(entry.path).name: [finding.code for finding in entry.findings] for entry in result.files}
-    assert by_file["Text.bmd"] == ["TEXT_FILLS_RECORD"]
-    assert by_file["item.bmd"] == ["UNKNOWN_FORMAT"]
+    assert by_file == {
+        "Text.bmd": ["TEXT_FILLS_RECORD"],
+        "Texttest.bmd": ["TEXT_FILLS_RECORD", "TEXT_FILLS_RECORD"],
+        "TKOU.bmd": ["TEXT_NOT_DECODABLE"],
+    }
+    assert (result.checked, result.skipped) == (3, 1)
+
+
+def test_validate_one_file_always_reports_it(store: FakeStore) -> None:
+    set_value(store, TEXT, "/texts/7", "corto", dry_run=False)
+    result = validate(store, TEXT)
+    assert [(entry.path, entry.findings) for entry in result.files] == [(TEXT, ())]
+    assert (result.checked, result.skipped) == (1, 0)
 
 
 def test_validate_reports_a_short_file_as_an_error(working_copy: Path) -> None:

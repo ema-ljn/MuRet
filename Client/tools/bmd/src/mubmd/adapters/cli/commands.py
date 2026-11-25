@@ -63,7 +63,8 @@ class EditData:
 
 @dataclass(frozen=True, slots=True)
 class ValidateSummary:
-    files: int
+    checked: int
+    skipped: int
     findings: int
 
 
@@ -282,7 +283,7 @@ def is_finding(finding: Finding) -> bool:
     return finding.severity in (Severity.ERROR, Severity.WARNING)
 
 
-@app.command("validate", help="Findings of a file, or of every .bmd in a folder")
+@app.command("validate", help="Findings of a file, or of every .bmd in a folder (only the files that have any)")
 def validate_command(
     path: Annotated[Path, typer.Argument(help="A .bmd file or a folder", show_default=False)],
     ndjson: NdjsonOption = False,
@@ -295,7 +296,7 @@ def validate_command(
     if not ndjson:
         return Outcome("validate", result, ValidateResult, exit_code=exit_code)
     lines = tuple(finding_line(entry.path, finding) for entry in result.files for finding in entry.findings)
-    summary = ValidateSummary(len(result.files), len(findings))
+    summary = ValidateSummary(result.checked, result.skipped, len(findings))
     return Outcome("validate", summary, ValidateSummary, exit_code=exit_code, lines=lines)
 
 

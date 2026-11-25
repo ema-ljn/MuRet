@@ -19,6 +19,8 @@ class FileFindings:
 @dataclass(frozen=True, slots=True)
 class ValidateResult:
     files: tuple[FileFindings, ...]
+    checked: int
+    skipped: int
 
 
 @dataclass(frozen=True, slots=True)
@@ -40,12 +42,12 @@ class RoundtripResult:
     skipped: int
 
 
-def _validate_file(store: FileStore, path: Path, encoding: str | None) -> tuple[Finding, ...]:
+def _validate_file(store: FileStore, path: Path, encoding: str | None) -> tuple[Finding, ...] | None:
     try:
         opened = open_document(store, path, encoding=encoding)
     except MubmdError as error:
         if error.code is ErrorCode.UNKNOWN_FORMAT:
-            return (Finding(error.code, Severity.INFO, "", "Not a format this version reads"),)
+            return None
         if error.code is ErrorCode.CORRUPT_FILE:
             return (Finding(error.code, Severity.ERROR, "", error.message),)
         raise
@@ -55,9 +57,12 @@ def _validate_file(store: FileStore, path: Path, encoding: str | None) -> tuple[
 def validate(store: FileStore, path: Path, *, encoding: str | None = None) -> ValidateResult:
     if path.suffix.casefold() == ".bmd":
         opened = open_document(store, path, encoding=encoding)
-        return ValidateResult((FileFindings(path, opened.identified.format.codec.check(opened.document, None)),))
-    files = store.list_bmd(path)
-    return ValidateResult(tuple(FileFindings(file, _validate_file(store, file, encoding)) for file in files))
+        findings = opened.identified.format.codec.check(opened.document, None)
+        return ValidateResult((FileFindings(path, findings),), checked=1, skipped=0)
+    results = [(file, _validate_file(store, file, encoding)) for file in store.list_bmd(path)]
+    known = [(file, findings) for file, findings in results if findings is not None]
+    files = tuple(FileFindings(file, findings) for file, findings in known if findings)
+    return ValidateResult(files, checked=len(known), skipped=len(results) - len(known))
 
 
 def diff(store: FileStore, a: Path, b: Path, *, encoding: str | None = None) -> DiffResult:

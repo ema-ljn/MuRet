@@ -21,7 +21,7 @@
 #include <string>
 #include <vector>
 
-// Client::Render::Models::Cloth: la tela de la vtable 0x6b8cd8 contra el código real del main.exe,
+// Client::Models::Cloth: la tela de la vtable 0x6b8cd8 contra el código real del main.exe,
 // emulado (tests/vectors/cloth): cada paso de cada tela, partícula por partícula y bit a bit, las
 // caras, los sprites del brillo y los rand() que saca.
 namespace

@@ -15,7 +15,7 @@
 #include <numbers>
 #include <vector>
 
-// Client::Render::Models::PoseSkeleton: 0x4eb860 sobre un esqueleto armado a mano.
+// Client::Models::PoseSkeleton: 0x4eb860 sobre un esqueleto armado a mano.
 namespace
 {
 using Client::Math::AngleMatrix;

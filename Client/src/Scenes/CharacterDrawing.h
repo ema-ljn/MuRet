@@ -101,7 +101,7 @@ struct DrawnCharacter
     // El sorteo de los cinco del cetro entre frames de MuRet (World::ScepterGlowCarry): con él, una vez por
     // frame del original; sin él, en cada DrawCharacter.
     World::ScepterGlowCarry* scepter = nullptr;
-    // Cómo cuentan los frames del original la tela y el cetro (Render::Models::OriginalFrameCarry): por el
+    // Cómo cuentan los frames del original la tela y el cetro (Models::OriginalFrameCarry): por el
     // reloj del frame, o uno por dibujo en el modo fiel (SceneContext::pacing).
     Models::OriginalFramePace pace = Models::OriginalFramePace::ByTheClock;
     // Publica matrices ya calculadas: el cuerpo con la cabeza (también el de Chaos Castle) y lo que cuelga, con su
@@ -215,7 +215,7 @@ struct DrawnObject
 // RenderBody(2): el pase base de cada malla, sin brillo y sin contorno, con el script de su textura y
 // el blendMesh, la luz, la U, la V y la malla oculta del objeto. Con el alpha por debajo de 0,99 cada
 // malla va con la mezcla normal y ese alpha (0x4ecc30); con la luz por vértice, cada esquina va con
-// el color por la luz de su normal (Render::Models::NormalLight), salvo la del blendMesh. Un modelo
+// el color por la luz de su normal (Models::NormalLight), salvo la del blendMesh. Un modelo
 // que la biblioteca no tiene no se dibuja.
 void DrawObject(Render::ModelBatch& batch, const Models::IModelLibrary& models, const DrawnObject& object,
                 Core::Duration frameClock);
@@ -235,7 +235,7 @@ void DrawObjectFromMeshes(Render::ModelBatch& batch, const Models::IModelLibrary
 // 0x4ebc80 sobre `bones`, los huesos que posó 0x5ffdf0 en el buffer propio (+0x120): una por malla del modelo de
 // `object`, en su orden, con su escala y su posición; también las que no tienen textura, que 0x4eff40 no mira. Una
 // malla con índices fuera de rango queda vacía. Sin el modelo, ninguna. `boneScale` es el 0x6c881c que deja 0x5ffdf0
-// por su modo: 1, o 1,2 con el 2 y 1,4 con el 3 (0x5fff82..0x5fffaf, Render::Models::SkinMeshAroundBones).
+// por su modo: 1, o 1,2 con el 2 y 1,4 con el 3 (0x5fff82..0x5fffaf, Models::SkinMeshAroundBones).
 [[nodiscard]] std::vector<Models::SkinnedMesh> SkinObjectMeshes(const Models::IModelLibrary& models,
                                                                 const DrawnObject& object,
                                                                 std::span<const Math::BoneTransform> bones,
@@ -390,7 +390,7 @@ void DrawTarkanChrome(Render::ModelBatch& batch, const Models::IModelLibrary& mo
                                                                  float worldClock, Core::Duration frameClock);
 
 // 0x602e90 con el caso del caballo oscuro (0xbf) de 0x6002e0: el pase base de DrawObject en blanco
-// (pisa el color de 0x5ffce0); después el 0x44 (cromo aditivo, Render::Models::ShinePass::Chrome) de
+// (pisa el color de 0x5ffce0); después el 0x44 (cromo aditivo, Models::ShinePass::Chrome) de
 // las mallas 12 a 15 que existen (en DarkHorse.bmd, la 12) en (1; 0,8; 0,3), por el alpha si es menor
 // que 0,99; y, en el mundo `map` (0x6c9dd0), la sombra de la malla 8 (0x4eff40 entre 8 y 9) en (0, 0, 0,
 // 0,7), mezclada y aplastada sobre el piso desde su lugar: sin sombra en los mapas 10, 24 a 29 y 36, y
@@ -411,7 +411,7 @@ void DrawDarkSpirit(Render::ModelBatch& batch, const Models::IModelLibrary& mode
 // 0x602e90(objeto, 0, 0, 10) en 0x6002e0 (0x60033c..0x600435), con `object` como lo posó 0x5ffdf0 (que no mira el
 // 10): lo que reciben el ayudante (0x445310) y el cuervo (0x420e11) con el +0x78 & 0x4000 de su jinete o de su dueño.
 // El color del modelo en 1 (0x60039d) y, de la malla 0 a la última, 0x4ecc30(malla, 0x4040, 0,5, blendMesh, luz,
-// U · 8, V · 2, 0x620) suelto, sin RenderBody: el pase de brillo 0x4000 (Render::Models::ShinePass::Chrome5), que
+// U · 8, V · 2, 0x620) suelto, sin RenderBody: el pase de brillo 0x4000 (Models::ShinePass::Chrome5), que
 // 0x4ecc30 mira antes que el blendMesh y el 0x40, con Effect\Chrome02 (0x620) forzada, aditivo, sin la luz por
 // vértice y con el alpha 0,5 en vez del del objeto. Cada malla que lo dibuja multiplica antes en el lugar el color
 // del modelo por 0,5 (0x4ed3fd, Q-C95): la k-ésima que dibuja, desde 0, va en 0,5 a la k + 1. Como 0x4ecc30 suelto,

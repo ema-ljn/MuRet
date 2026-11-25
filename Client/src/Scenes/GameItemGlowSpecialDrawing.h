@@ -10,15 +10,12 @@
 namespace Client::Render
 {
 class ModelBatch;
-namespace Models
-{
-struct SkinnedMesh;
-}
 } // namespace Client::Render
 namespace Client::Models
 {
 class IModelLibrary;
-}
+struct SkinnedMesh;
+} // namespace Client::Models
 
 namespace Client::Scenes
 {

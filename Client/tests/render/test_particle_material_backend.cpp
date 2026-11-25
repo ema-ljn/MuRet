@@ -144,9 +144,9 @@ TEST(ParticleMaterialBackendTest, OnlyTheAdapterThatOpenedAQuadCanWriteOrFinishI
 TEST(ParticleMaterialBackendTest, PhysicalSlotLookupKeepsPublicUnsignedRaw32Api)
 {
     using SlotLookup =
-        std::optional<Client::Render::TextureSlot> (Client::Render::Models::IModelLibrary::*)(std::uint32_t) const;
+        std::optional<Client::Render::TextureSlot> (Client::Models::IModelLibrary::*)(std::uint32_t) const;
     using MetadataLookup =
-        std::optional<Client::Models::TextureMetadata> (Client::Render::Models::IModelLibrary::*)(std::uint32_t) const;
+        std::optional<Client::Models::TextureMetadata> (Client::Models::IModelLibrary::*)(std::uint32_t) const;
     EXPECT_TRUE((std::is_same_v<decltype(&Client::Models::IModelLibrary::TextureSlotOf), SlotLookup>));
     EXPECT_TRUE((std::is_same_v<decltype(&Client::Models::IModelLibrary::TextureMetadataOf), MetadataLookup>));
     Client::Render::ModelBatch batch;

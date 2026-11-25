@@ -70,10 +70,10 @@ public:
                const glm::vec3& color = PlainClothColor);
 
     // Lo que corre en un frame de MuRet (DrawCharacter). Q-C124 corregido como Q-C20: el bloque corre una
-    // vez por cada frame del original (Render::Models::OriginalFrameTime, 46,875 ms) que pasó desde el
+    // vez por cada frame del original (Models::OriginalFrameTime, 46,875 ms) que pasó desde el
     // frame anterior, el último con su dibujo, y sin ninguno se dibuja el estado de ahora; el primero
     // corre uno. Así la tela flamea como en el original a cualquier FPS. En el modo fiel (`pace`
-    // OncePerDraw), uno por dibujo, como el original (Render::Models::OriginalFrameCarry). Un salto de más
+    // OncePerDraw), uno por dibujo, como el original (Models::OriginalFrameCarry). Un salto de más
     // de MaxClothFramesPerAdvance frames corre esos y descarta el resto. `clock` es también el WorldTime
     // del brillo. Sin ninguno, el dibujo es el de DrawCurrent con `body`.
     void Advance(Render::ModelBatch& batch, const ClothWearer& wearer, const Models::ClothBody& body,

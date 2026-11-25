@@ -12,7 +12,7 @@
 #include <cstddef>
 #include <cstdint>
 
-// Client::Render::Models: el avance de la animación (0x4ec200), el cambio de acción (0x4ea030), la
+// Client::Models: el avance de la animación (0x4ec200), el cambio de acción (0x4ea030), la
 // mascota y las alas por tiempo (Q-C20) y la copia del render.
 namespace
 {

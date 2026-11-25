@@ -19,7 +19,7 @@
 #include <utility>
 #include <vector>
 
-// Client::Render::Models::ModelTextureSlots: 0x60d530, 0x60d550 y 0x60d5f0 como datos.
+// Client::Models::ModelTextureSlots: 0x60d530, 0x60d550 y 0x60d5f0 como datos.
 namespace Client::Render
 {
 // Para los mensajes de GoogleTest: el slot en hexadecimal, como el research.

@@ -557,7 +557,7 @@ Result DrawTheFlareOf0x46(MonsterFrame& frame)
 // 0x60b130(modelo, objeto, tipo, +0x174, banderas, factor, textura) con el modelo de un monstruo. Sin el 0x10 y con un
 // tipo que no es el 0x188 (0x60b15e) ni uno de los ítems de 0x60b1dd..0x60b2cf, 0x608e00(tipo, +0x174, factor, +0x48,
 // banderas >> 8 & 1) deja en el color del modelo k = +0x174 · factor (en la x87) por el color del tipo: el de
-// Render::Models::ShineColorOf, salvo el 0x16d con el 0x100, que va por el caso 8 de 0x60936c, (0,8k; 0,8k; k).
+// Models::ShineColorOf, salvo el 0x16d con el 0x100, que va por el caso 8 de 0x60936c, (0,8k; 0,8k; k).
 // Después, RenderBody(banderas, +0x174, +0x64, +0x68, +0x6c, +0x70, −1, textura), que no mira el 0x100.
 Result DrawTheShinePass(MonsterFrame& frame, MonsterBodyModel& model, std::uint32_t flags, float factor,
                         std::int32_t texture)

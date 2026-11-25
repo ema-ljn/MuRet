@@ -1390,7 +1390,7 @@ void StepModelEffect(ModelEffect& effect, const Models::Skeleton* skeleton)
         StepDragon(effect);
     }
     // 0x52cc04..0x52cc7b: la animación a +0xd8. 0x4ec200 devuelve 0 cuando la acción termina o da la
-    // vuelta (Render::Models::AdvanceAnimation, true): el frame queda en sus keys y la acción en 0xff.
+    // vuelta (Models::AdvanceAnimation, true): el frame queda en sus keys y la acción en 0xff.
     if (effect.animation.action != NoAction && skeleton != nullptr &&
         effect.animation.action < skeleton->actions.size())
     {

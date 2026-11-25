@@ -52,7 +52,7 @@ struct OwnStatsContext
     const Data::Tables::ItemTable* items = nullptr;
     // DAT_0743a170, el héroe publicado: 0x40d010 lee su clase (+0x1d4) y escribe su +0x358.
     ActorState& publishedHero;
-    // La cuenta de accesos del registro propio (Render::Models::LogicalAccess): 0x40e1b0 y 0x40de10 lo
+    // La cuenta de accesos del registro propio (Models::LogicalAccess): 0x40e1b0 y 0x40de10 lo
     // abren y lo cierran en cada lugar, y la rama de Cape of Lord una vez. Cada cierre que la deja en
     // 0 saca 3.848 rand() de `random`.
     std::uint8_t& ownRecordAccesses;
@@ -110,7 +110,7 @@ struct ItemStatBonus
 
 // 0x550e17..0x551284: con Cape of Lord (0x1a1e, el 13 30 de Item.bmd) en el lugar de las alas, abre el
 // registro, suma a +0x36 los valores de sus opciones 0x90 (0x54e540, Scenes::AddOwnItemOptionValues) y
-// lo cierra. El cierre es el de Render::Models::LogicalAccess sobre `ownRecordAccesses`, con los 3.848
+// lo cierra. El cierre es el de Models::LogicalAccess sobre `ownRecordAccesses`, con los 3.848
 // rand() si deja la cuenta en 0. Con otro tipo no abre ni toca nada. Con más de nueve opciones el
 // original lee el lugar siguiente, que MuRet no proyecta: error, con el acceso cerrado.
 [[nodiscard]] Core::Expected<void, std::string>

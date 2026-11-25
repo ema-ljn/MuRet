@@ -21,10 +21,6 @@ class CrtRandom;
 namespace Client::Render
 {
 class ModelBatch;
-namespace Models
-{
-struct SkinnedMesh;
-} // namespace Models
 } // namespace Client::Render
 namespace Client::World
 {
@@ -33,7 +29,8 @@ class FrameSprites;
 namespace Client::Models
 {
 class IModelLibrary;
-}
+struct SkinnedMesh;
+} // namespace Client::Models
 
 namespace Client::Scenes
 {

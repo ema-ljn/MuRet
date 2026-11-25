@@ -13,7 +13,7 @@
 #include <cstdint>
 #include <vector>
 
-// Client::Render::Models::SkinMesh: 0x4ebc80, un hueso por vértice y sin pesos.
+// Client::Models::SkinMesh: 0x4ebc80, un hueso por vértice y sin pesos.
 namespace
 {
 using Client::Data::Models::Mesh;

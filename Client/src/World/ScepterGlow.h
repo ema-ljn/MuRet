@@ -50,10 +50,10 @@ void CreateScepterGlow(FrameSprites& sprites, const Math::OriginalMatrix& bone, 
 
 // El brillo del cetro de un personaje a cualquier FPS, corregido como la tela (Q-C124) y la mascota (Q-C20):
 // 0x509340 lo sortea en cada frame dibujado del original, y MuRet saca los seis rand() una vez por cada
-// frame del original (Render::Models::OriginalFrameTime, 46,875 ms) que pasó desde el suyo anterior y, en
+// frame del original (Models::OriginalFrameTime, 46,875 ms) que pasó desde el suyo anterior y, en
 // uno sin ninguno, repite el último sorteo en el hueso de ahora. El primero sortea; un salto de más de
 // MaxScepterFramesPerAdvance frames saca los de esos y descarta el resto. En el modo fiel (`pace`
-// OncePerDraw), uno por dibujo, como el original (Render::Models::OriginalFrameCarry).
+// OncePerDraw), uno por dibujo, como el original (Models::OriginalFrameCarry).
 inline constexpr int MaxScepterFramesPerAdvance = Models::MaxOriginalFramesPerDraw;
 
 class ScepterGlowCarry

@@ -36,7 +36,7 @@ struct CharacterAnimation
 void StepCharacterAttachments(CharacterAnimation& animation, const GameLogic::CharacterAppearance& appearance,
                               const Models::IModelLibrary& models);
 
-// El cuerpo que se posa entre dos pasos: `alpha` de un paso más (Render::Models::Interpolated). Sin la
+// El cuerpo que se posa entre dos pasos: `alpha` de un paso más (Models::Interpolated). Sin la
 // acción en Player.bmd, el del paso.
 [[nodiscard]] Models::AnimationState BodyBetweenSteps(const CharacterAnimation& animation,
                                                       const Models::IModelLibrary& models, float alpha,

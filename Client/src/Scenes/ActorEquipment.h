@@ -29,7 +29,7 @@ struct ActorEquipmentContext
     // [0x7681eb4], el registro propio: los nueve lugares que lee, y lo que escribe 0x550d10, un
     // thiscall sobre él (0x512ef5).
     OwnCharacterRecord& own;
-    // La cuenta de accesos de su entrada en la tabla de protección (Render::Models::LogicalAccess):
+    // La cuenta de accesos de su entrada en la tabla de protección (Models::LogicalAccess):
     // 0x512a30 lo abre al empezar y lo cierra al terminar, con los 3.848 rand() si lo deja en 0.
     std::uint8_t& ownRecordAccesses;
     // DAT_0743a170, el héroe publicado en ese momento: con él, 0x505820 (0x512ee2). 0x550d10 lee su

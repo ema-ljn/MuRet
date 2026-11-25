@@ -220,7 +220,7 @@ protected:
 TEST_F(ParticleDrawingTest, PublicUnsignedMetadataKeepsHighBitSelectorsDistinctFromSlot16)
 {
     using MetadataQuery =
-        std::optional<Client::Models::TextureMetadata> (Client::Render::Models::IModelLibrary::*)(std::uint32_t) const;
+        std::optional<Client::Models::TextureMetadata> (Client::Models::IModelLibrary::*)(std::uint32_t) const;
     EXPECT_TRUE((std::is_same_v<decltype(&Client::Models::IModelLibrary::TextureMetadataOf), MetadataQuery>));
     m_library.Put(-1, {8, 16}, std::uint8_t{3});
     m_library.Put(std::numeric_limits<std::int32_t>::min(), {32, 64}, std::uint8_t{255});

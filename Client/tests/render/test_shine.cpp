@@ -11,7 +11,7 @@
 #include <chrono>
 #include <cstdint>
 
-// Client::Render::Models::ShineTexCoords: las UV de los tres pases de brillo de 0x4ecc30, contra las
+// Client::Models::ShineTexCoords: las UV de los tres pases de brillo de 0x4ecc30, contra las
 // fórmulas del 06.
 namespace
 {

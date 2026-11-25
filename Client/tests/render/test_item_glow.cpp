@@ -9,7 +9,7 @@
 #include <optional>
 #include <vector>
 
-// Client::Render::Models::ItemGlowOf: los pases de brillo de una parte por su nivel, como 0x60b3d0
+// Client::Models::ItemGlowOf: los pases de brillo de una parte por su nivel, como 0x60b3d0
 // (06 § El modelo en el binario, Q-C97).
 namespace
 {

@@ -343,7 +343,7 @@ struct ActorState
     // targetX/Y (+0x39a/b); 0x511290 inicializa las dos parejas con el mismo valor.
     std::uint8_t cellX = 0;
     std::uint8_t cellY = 0;
-    // Cuántos accesos tienen abiertas las entradas de +0x41c y +0x420 (Render::Models::LogicalAccess).
+    // Cuántos accesos tienen abiertas las entradas de +0x41c y +0x420 (Models::LogicalAccess).
     std::uint8_t cellXAccesses = 0;
     std::uint8_t cellYAccesses = 0;
     // Los cuatro bytes de +0x41c y +0x420 como los deja el último acceso de 0x511290: si su cierre dejó la cuenta en

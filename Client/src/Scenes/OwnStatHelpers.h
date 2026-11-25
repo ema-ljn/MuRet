@@ -76,7 +76,7 @@ struct OwnEquipmentOverride
 
 // 0x54fe10 (0x55129e): las velocidades del keepalive, +0x4c y +0x58, por la clase y la agilidad, las
 // armas, los anillos 0x1a14 (con el bit 0x04 de +0x3c, que prende o apaga abriendo y cerrando el
-// registro: Render::Models::LogicalAccess sobre `ownRecordAccesses`, con 3.848 rand() si el cierre deja
+// registro: Models::LogicalAccess sobre `ownRecordAccesses`, con 3.848 rand() si el cierre deja
 // la cuenta en 0), los guantes, los bits 0x01 y 0x08 de +0x3c y las opciones 0x61. Reemplaza los
 // lugares 0, 1, 5, 10 y 11.
 [[nodiscard]] Core::Expected<void, std::string> UpdateOwnAttackAndMagicSpeeds(OwnCharacterRecord& own,

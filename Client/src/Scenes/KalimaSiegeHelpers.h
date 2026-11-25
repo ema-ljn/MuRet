@@ -24,11 +24,12 @@ class CrtRandom;
 namespace Client::Render
 {
 class ModelBatch;
-namespace Models
+} // namespace Client::Render
+
+namespace Client::Models
 {
 struct Skeleton;
-} // namespace Models
-} // namespace Client::Render
+} // namespace Client::Models
 
 namespace Client::World
 {

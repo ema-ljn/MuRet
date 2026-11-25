@@ -8,7 +8,7 @@
 #include <cstddef>
 #include <optional>
 
-// Client::Render::Models::RayPicking: el segmento del mouse contra la caja de cada personaje, como
+// Client::Models::RayPicking: el segmento del mouse contra la caja de cada personaje, como
 // 0x622900 (una separación en 6 ejes) y 0x59e700 (gana el de menor distancia² de la cámara a su
 // origen), con la caja del jugador corrida de Q-C100 (06 § El picking).
 namespace

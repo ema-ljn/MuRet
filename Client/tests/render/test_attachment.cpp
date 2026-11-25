@@ -13,7 +13,7 @@
 #include <numbers>
 #include <vector>
 
-// Client::Render::Models::Attachment: de qué hueso cuelga cada cosa del personaje y con qué
+// Client::Models::Attachment: de qué hueso cuelga cada cosa del personaje y con qué
 // desplazamiento (0x511290, 0x50ba30), la raíz de 0x4ec190 y la pose de 0x4eb860 con su séptimo
 // argumento en 1, que es la de 0x509340 (06 § El modelo en el binario). La espada del hueso 33 y la
 // mascota del 34 están verificadas contra la traza (GoldenSkinningTrace).

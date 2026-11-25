@@ -11,7 +11,7 @@
 #include <ios>
 #include <optional>
 
-// Client::Render::Models::HangingObjectState, ModelLightOf y MaskedClassLightAt: lo que el objeto le
+// Client::Models::HangingObjectState, ModelLightOf y MaskedClassLightAt: lo que el objeto le
 // pasa a RenderBody (+0x64, +0x68, +0x6c, +0x70 y +0x58), con la tabla que sale de emular 0x607b60
 // sobre el main.exe con T = 1000 y 2500 y rand() en 7 (06 § Lo que cuelga).
 namespace

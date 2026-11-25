@@ -15,7 +15,7 @@
 #include <optional>
 #include <ratio>
 
-// Client::Render::Models::ShineColorOf, MetalFactorOf, SetColorOf y ExcellentColorAt: el color de
+// Client::Models::ShineColorOf, MetalFactorOf, SetColorOf y ExcellentColorAt: el color de
 // cada pase de brillo de 0x60b3d0, con las tablas que salen de emular 0x608e00, 0x6093d0 y 0x609560
 // sobre el main.exe (06 § Los pases de brillo).
 namespace

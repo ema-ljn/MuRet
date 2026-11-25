@@ -108,7 +108,7 @@ struct ObjectFrameEffects
 // (x · 16 + 8, y · 16 + 8) con −180, y en él cada objeto que lo pasa en su lugar por 0,01f (en float) con
 // su margen individual (+0xdc; −30 por defecto), queda visto (+0x16c guarda el resultado; los de un sector que no pasa
 // quedan sin ver, como los apaga 0x606560) y se dibuja como dice World::DrawOf, con la luz del terreno en su lugar
-// (`lighting`, o 0 sin ella) y su animación `alpha` de un paso más (Render::Models::Interpolated).
+// (`lighting`, o 0 sin ella) y su animación `alpha` de un paso más (Models::Interpolated).
 // Con las poses capturadas, `effects` avanza en orden frame original → objetos vistos: el rand común y
 // el guard de nube del marcador 0x54 del mapa 55. Al final recrea los dos sprites del farol en la escena
 // 2, con el último sorteo y los huesos 8 y 9 que tenía el buffer al visitarlo (LastPosedBonePoint): los

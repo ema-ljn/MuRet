@@ -1,5 +1,6 @@
 #include "UI/HudPrimitives.h"
 
+#include "Math/FloatConstants.h"
 #include "Math/X87.h"
 #include "Render/OriginalQuad.h"
 #include "Render/ScreenScale.h"
@@ -18,7 +19,7 @@ namespace Client::UI
 namespace
 {
 // Las constantes de 0x6218f0: 0,5 (0x6b882c), 0,7 en float (0x6b8a5c) y 1/16 (0x6b8850).
-constexpr double Half = 0.5;
+constexpr double Half = Math::HalfAsDouble;
 constexpr float DigitAdvance = 0.7f;
 constexpr float DigitU = 0.0625f;
 constexpr float DigitV = 0.5f;

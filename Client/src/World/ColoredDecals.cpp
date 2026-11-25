@@ -1,6 +1,7 @@
 #include "World/ColoredDecals.h"
 
 #include "Crt/CrtRandom.h"
+#include "Math/Angles.h"
 #include "Math/X87.h"
 #include "World/ModelEffects.h"
 
@@ -32,7 +33,7 @@ void BeginColoredDecal(ModelEffect& effect, Crt::CrtRandom& random)
     constexpr std::int32_t BindingLife = 60;                          // 0x51eedd
     constexpr std::int32_t ChildLife = 40;                            // 0x51ef28
     constexpr std::int32_t GrowingLife = 10;                          // 0x51ef64
-    constexpr int FullTurn = 360;                                     // 0x51ef35
+    constexpr int FullTurn = Math::FullTurn;                          // 0x51ef35
     constexpr float GrowingScale = std::bit_cast<float>(0x3dcccccdu); // 0x51ef6c, 0,1f
     effect.life = PlainLife;
     switch (effect.subtype)

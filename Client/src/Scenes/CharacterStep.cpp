@@ -12,6 +12,7 @@
 #include "Data/Models/PlayerModels.h"
 #include "Data/Terrain/TerrainGrid.h"
 #include "Data/Terrain/TerrainAttributes.h"
+#include "Math/FloatConstants.h"
 #include "Render/Models/Animation.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/LogicalAccess.h"
@@ -605,7 +606,7 @@ Core::Expected<void, std::string> ReportTheHeroCell(const CharacterStepContext& 
         ReadHeroCell(hero.cellY, hero.cellYAccesses, random) == runtime.reportedCellY)
     {
         // 0x4fbea8..0x4fbec5: fld, fsub, fmul y fcomp con 10; menor (o sin orden), nada.
-        constexpr double Thousandth = static_cast<double>(std::bit_cast<float>(0x3a83126fu));
+        constexpr double Thousandth = Math::ThousandthAsDouble;
         constexpr double ReportDelay = 10.0;
         const double waited =
             (static_cast<double>(context.worldClock) - static_cast<double>(runtime.reportedCellTime)) * Thousandth;

@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Data/Models/PlayerModels.h"
+#include "Math/Angles.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/OriginalRetainedMath.h"
@@ -62,14 +63,14 @@ constexpr std::uint8_t AttackDone = 15;
 constexpr std::int32_t FullThreshold = 15;
 constexpr std::int32_t ShortThreshold = 5;
 // Los frames que miran los casos (FLD +0x114 y FCOMP): ≥ con TEST AH,1 y > con TEST AH,0x41; NaN no pasa ninguno.
-constexpr float ThirdFrame = 3.0f;                                                // 0x6b86b8
-constexpr float ThirdAndHalfFrame = 3.5f;                                         // 0x6b8ae4
-constexpr float FifthFrame = 5.0f;                                                // 0x6b87f8
-constexpr float FifthAndHalfFrame = 5.5f;                                         // 0x6b8a40
-constexpr float FourteenthFrame = 14.0f;                                          // 0x6b881c
-constexpr float BoltOpening = std::bit_cast<float>(0x40133333u);                  // 0x6ba178, 2,3f
-constexpr float BoltClosing = std::bit_cast<float>(0x40266666u);                  // 0x6ba174, 2,6f
-constexpr double Degree = static_cast<double>(std::bit_cast<float>(0x3c8efa35u)); // 0x6b8cf8, π/180
+constexpr float ThirdFrame = 3.0f;                               // 0x6b86b8
+constexpr float ThirdAndHalfFrame = 3.5f;                        // 0x6b8ae4
+constexpr float FifthFrame = 5.0f;                               // 0x6b87f8
+constexpr float FifthAndHalfFrame = 5.5f;                        // 0x6b8a40
+constexpr float FourteenthFrame = 14.0f;                         // 0x6b881c
+constexpr float BoltOpening = std::bit_cast<float>(0x40133333u); // 0x6ba178, 2,3f
+constexpr float BoltClosing = std::bit_cast<float>(0x40266666u); // 0x6ba174, 2,6f
+constexpr double Degree = Math::DegreesToRadiansAsDouble;        // 0x6b8cf8, π/180
 // 0x2b: la mano corrida 300 por el rumbo (0x6b8900).
 constexpr float HandReach = 300.0f;
 

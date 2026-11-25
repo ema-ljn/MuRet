@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Data/Textures/Sampling.h"
 #include "Data/Textures/TextureSet.h"
+#include "Math/FloatConstants.h"
 #include "Render/ITextureStore.h"
 
 #include <array>
@@ -72,7 +73,7 @@ constexpr std::uint32_t HoldMilliseconds = 5000;
 // 0x6ba69c, 0x6baad8 y 0x6b882c.
 constexpr double BannerTop = 220.0;
 constexpr double BannerWidth = 166.0;
-constexpr double Half = 0.5;
+constexpr double Half = Math::HalfAsDouble;
 } // namespace
 
 MapBanner MakeTheMapBanner()

@@ -1,5 +1,6 @@
 #include "Scenes/FaunaMotion.h"
 
+#include "Math/Angles.h"
 #include "Math/X87.h"
 #include "Render/Models/Animation.h"
 #include "Render/Models/OriginalRetainedMath.h"
@@ -23,7 +24,7 @@ namespace Client::Scenes
 {
 namespace
 {
-constexpr std::int32_t FullTurn = 360;
+using Math::FullTurn;
 constexpr float FlockDistance = 400;
 constexpr float SeparationDistance = 80;
 using Math::F32;

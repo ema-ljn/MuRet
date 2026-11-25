@@ -1,5 +1,6 @@
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/FloatConstants.h"
 #include "Math/X87.h"
 #include "Render/Models/OriginalAngles.h"
 #include "Render/Models/OriginalRotation.h"
@@ -58,10 +59,10 @@ namespace
 Core::Expected<void, std::string> Glow(const JointState& joint, CrtRandom& random, World::TerrainLighting* lighting)
 {
     constexpr double Step = static_cast<double>(std::bit_cast<float>(0x3d4ccccdu));
-    constexpr double Tenth = static_cast<double>(std::bit_cast<float>(0x3dcccccdu)); // 0x6b87b8
+    constexpr double Tenth = Math::TenthAsDouble;                                    // 0x6b87b8
     constexpr double Green = static_cast<double>(std::bit_cast<float>(0x3f19999au)); // 0x6b8a20, 0,6f
     constexpr double Blue = static_cast<double>(std::bit_cast<float>(0x3e99999au));  // 0x6b89dc, 0,3f
-    constexpr double Fifth = static_cast<double>(std::bit_cast<float>(0x3e4ccccdu)); // 0x6b8854, 0,2f
+    constexpr double Fifth = Math::FifthAsDouble;                                    // 0x6b8854, 0,2f
     const double value = static_cast<double>((random.Next() & 3) + 4) * Step;
     glm::vec3 color;
     if (joint.type != RedHandBoltJoint)

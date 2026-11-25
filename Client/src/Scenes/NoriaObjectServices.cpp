@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/FloatConstants.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Scenes/FaunaDrawing.h"
 #include "Scenes/WorldObjectsDrawing.h"
@@ -24,7 +25,7 @@ namespace Client::Scenes
 {
 namespace
 {
-constexpr float Hundredth = std::bit_cast<float>(0x3c23d70au);
+using Math::Hundredth;
 constexpr float Red = std::bit_cast<float>(0x3ecccccdu);
 constexpr float Green = std::bit_cast<float>(0x3f333333u);
 constexpr float FairyGreen = std::bit_cast<float>(0x3f4ccccdu);

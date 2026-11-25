@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/FloatConstants.h"
 #include "Math/X87.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Scenes/ActorState.h"
@@ -32,7 +33,7 @@ namespace
 using Math::D;
 using Math::F32;
 
-constexpr double Fifth = static_cast<double>(std::bit_cast<float>(0x3e4ccccdu));       // 0x6b8854, 0,2f
+constexpr double Fifth = Math::FifthAsDouble;                                          // 0x6b8854, 0,2f
 constexpr double TwoFifths = static_cast<double>(std::bit_cast<float>(0x3ecccccdu));   // 0x6b87b4, 0,4f
 constexpr double ThreeFifths = static_cast<double>(std::bit_cast<float>(0x3f19999au)); // 0x6b8a20, 0,6f
 constexpr double ThreeTenths = static_cast<double>(std::bit_cast<float>(0x3e99999au)); // 0x6b89dc, 0,3f

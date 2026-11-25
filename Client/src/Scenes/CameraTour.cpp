@@ -5,6 +5,8 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/Angles.h"
+#include "Math/FloatConstants.h"
 #include "Protocol/Events.h"
 #include "Scenes/ActorCreation.h"
 #include "Scenes/ActorMotion.h"
@@ -53,12 +55,12 @@ constexpr std::size_t LastRecord = 399;
 constexpr double CellSize = 100.0;
 constexpr double CellCenter = 50.0;
 // 0x6b86c0 (0,01f), con el que 0x403760 vuelve a la celda.
-constexpr double Hundredth = static_cast<double>(std::bit_cast<float>(0x3c23d70au));
+constexpr double Hundredth = Math::HundredthAsDouble;
 // 0x6b86a8 (double), los grados de 0x4036d0.
 constexpr double Degrees = std::bit_cast<double>(0x404ca5ddb05cc3e9ull);
 // 0x6b869c, 0x6b86bc, 0x6b86b8 y 0x6b86c4.
-constexpr double FullTurn = 360.0;
-constexpr double HalfTurn = 180.0;
+constexpr double FullTurn = Math::FullTurnAsDouble;
+constexpr double HalfTurn = Math::HalfTurnAsDouble;
 constexpr float TurnStep = 3.0f;
 constexpr float LastActionFrame = 8.0f;
 // 0x403a82..0x403a9c y 0x403d40: el tope de +0x150.

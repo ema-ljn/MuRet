@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Maps/MapId.h"
+#include "Math/FloatConstants.h"
 #include "Math/X87.h"
 #include "Render/Models/ObjectState.h"
 #include "Render/Models/OriginalRetainedMath.h"
@@ -28,7 +29,7 @@ using Math::D;
 using Math::F32;
 
 // 0x6b89c8 (0,001f), 0x6b8a94 (0,0001f), 0x6b8a64 (0,0002f) y 0x6b8a28 (0,00005f).
-constexpr double Thousandth = static_cast<double>(std::bit_cast<float>(0x3a83126fu));
+constexpr double Thousandth = Math::ThousandthAsDouble;
 constexpr double TenThousandth = static_cast<double>(std::bit_cast<float>(0x38d1b717u));
 constexpr double TwoTenThousandths = static_cast<double>(std::bit_cast<float>(0x3951b717u));
 constexpr double FiveHundredThousandths = static_cast<double>(std::bit_cast<float>(0x3851b717u));

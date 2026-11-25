@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/FloatConstants.h"
 #include "Math/X87.h"
 #include "Render/ModelBatch.h"
 #include "Render/ModelVertex.h"
@@ -30,8 +31,8 @@ namespace Client::World
 namespace
 {
 // Floats del build c32bbd5f: 0x6b87b8, 0x6b8854, 0x6b8a48, 0x6b8ae8 y 0x6ba2ac.
-constexpr float Tenth = 0.1f;
-constexpr float Fifth = 0.2f;
+using Math::Fifth;
+using Math::Tenth;
 constexpr float SmallGrowth = 0.05f;
 constexpr float ArrivalGrowth = 0.15f;
 constexpr float SecondArrivalGrowth = 0.55f;
@@ -39,7 +40,7 @@ constexpr float SecondArrivalGrowth = 0.55f;
 constexpr float TwoFifths = 0.4f;
 constexpr float ThreeFifths = 0.6f;
 constexpr float NineTenths = 0.9f;
-constexpr float Half = 0.5f;
+using Math::Half;
 constexpr float LightDecay = std::bit_cast<float>(0x3f68ba2eu);
 constexpr std::int32_t FullArrivalLife = 20;
 constexpr std::int32_t FadeLife = 5;

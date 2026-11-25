@@ -1,6 +1,7 @@
 #include "Scenes/GameItemRenderState.h"
 
 #include "Crt/CrtRandom.h"
+#include "Math/Angles.h"
 #include "Render/Models/RoundedMath.h"
 
 namespace Client::Scenes
@@ -10,7 +11,7 @@ void InitializeGameItemRenderState(GameItemRenderState& state, Crt::CrtRandom& r
     if (state.initialized)
         return;
     // 4badc6..4badd9: cien llamadas, una por entrada, antes de construir los actores.
-    constexpr int FullTurn = 360;
+    constexpr int FullTurn = Math::FullTurn;
     for (auto& angle : state.floorAngles)
         angle = random.Next() % FullTurn;
     state.initialized = true;

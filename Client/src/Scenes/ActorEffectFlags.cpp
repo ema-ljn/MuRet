@@ -4,6 +4,7 @@
 #include "Core/PixelSize.h"
 #include "Data/Models/PlayerModels.h"
 #include "Maps/MapId.h"
+#include "Math/Angles.h"
 #include "Render/Models/Cloth.h"
 #include "Scenes/ActorFlags.h"
 #include "Scenes/ActorState.h"
@@ -124,7 +125,7 @@ Core::Expected<void, std::string> WrapInIce(ActorState& actor, const WorldEntryR
 {
     constexpr std::int32_t FirstIce = 1;
     constexpr std::int32_t SecondIce = 2;
-    constexpr double HalfTurn = 180.0; // 0x6b86bc
+    constexpr double HalfTurn = Math::HalfTurnAsDouble; // 0x6b86bc
     WorldState& world = resources.world;
     static_cast<void>(KillModelEffectsOf(world.Map().effects, World::IceEffect, &actor, FirstIce));
     const World::WizardEffectServices services =

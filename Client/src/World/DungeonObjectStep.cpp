@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/FloatConstants.h"
 #include "Math/X87.h"
 #include "World/Ftol.h"
 #include "World/ModelEffects.h"
@@ -27,7 +28,7 @@ using Math::F32;
 constexpr std::int32_t ScrollPeriod = 1000;
 // 0x6ba1a4 (−0,001f) del mapa 1 y 0x6b89c8 (0,001f) del 4.
 constexpr double NegativeThousandth = static_cast<double>(std::bit_cast<float>(0xba83126fu));
-constexpr double Thousandth = static_cast<double>(std::bit_cast<float>(0x3a83126fu));
+constexpr double Thousandth = Math::ThousandthAsDouble;
 
 // 0x60500b..0x60502b: fld del reloj, ftol, idiv por 1.000 y fild del resto por −0,001f.
 std::optional<float> DungeonScroll(float worldClock)

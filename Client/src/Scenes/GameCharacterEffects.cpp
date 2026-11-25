@@ -3,6 +3,8 @@
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Maps/MapId.h"
+#include "Math/Angles.h"
+#include "Math/FloatConstants.h"
 #include "Math/X87.h"
 #include "Render/Models/OriginalRetainedMath.h"
 #include "Render/Models/OriginalRotation.h"
@@ -78,7 +80,7 @@ constexpr std::uint8_t LightningAction = 0x94;
 constexpr std::uint8_t FirstEffectAction = 0x51;
 constexpr std::uint8_t SecondEffectAction = 0x5b;
 constexpr std::uint8_t DarkLordClass = 4;
-constexpr float Tenth = std::bit_cast<float>(0x3dcccccdu);               // 0x6b87b8, 0,1f
+using Math::Tenth;                                                       // 0x6b87b8, 0,1f
 constexpr float FirstLightningScale = std::bit_cast<float>(0x3e99999au); // 0x6b89dc, 0,3f
 constexpr float ThirdLightningScale = 2.5f;                              // 0x6b89a8
 constexpr glm::vec3 FirstLightningLight{Tenth, Tenth, 1.0f};
@@ -794,9 +796,9 @@ Core::Expected<void, std::string> StepFullSetFlare(World::ModelEffect& effect, s
             std::format("0x52a9ad: el efecto {:#x}/{} no es el 0x5ac/3", effect.type, effect.subtype));
     // 0x5208c5: el primer rand() corre para todo efecto vivo, aunque el 5ac/3 no use la luz.
     static_cast<void>(random.Next());
-    constexpr double Step = 1.0;       // 0x6b87d4
-    constexpr double HalfTurn = 180.0; // 0x6b86bc
-    constexpr double Rise = 20.0;      // 0x6b86d0
+    constexpr double Step = 1.0;                        // 0x6b87d4
+    constexpr double HalfTurn = Math::HalfTurnAsDouble; // 0x6b86bc
+    constexpr double Rise = 20.0;                       // 0x6b86d0
     effect.speed = F32(D(effect.speed) + Step);
     if (effect.life % FlarePeriod == 0 && effect.ownerContext != nullptr)
     {
@@ -994,9 +996,9 @@ Core::Expected<void, std::string> DrawTheRavenAttack(DarkSpirit& spirit, const A
             {
                 constexpr std::int16_t DarkLordSkill = 0x117;
                 constexpr std::int32_t SkillSubtype = 3;
-                constexpr std::int32_t TurnSpan = 180; // 0x418b23: 0xb4
-                constexpr double QuarterTurn = 90.0;   // 0x6b8948
-                constexpr float Pitch = 45.0f;         // 0x418b16: 0x42340000
+                constexpr std::int32_t TurnSpan = 180;                    // 0x418b23: 0xb4
+                constexpr double QuarterTurn = Math::QuarterTurnAsDouble; // 0x6b8948
+                constexpr float Pitch = 45.0f;                            // 0x418b16: 0x42340000
                 constexpr glm::vec3 SkillLight{1.0f, std::bit_cast<float>(0x3f4ccccdu),
                                                std::bit_cast<float>(0x3f19999au)}; // 0x418b42..0x418b50
                 const auto turn = static_cast<std::int32_t>(random.Next() % TurnSpan);

@@ -126,8 +126,8 @@ allows).
 - **Small numbers that repeat by nature.** Subcode `0x01` exists under many opcodes. Subcodes are `home-only` and have
   no duplicate rule; Task 2 tests that two subcodes `0x01` in `Protocol/` pass.
 - **A float that changes type.** `Tenth` is a `float` 28 times and a `double` widened from that `float` 78 times. Task
-  4 gives each representation its own name and replaces only definitions whose type and initializer are
-  token-identical; the behavior golden runs in Debug and Release math on both systems.
+  4 gives each representation its own name and replaces a definition only when its declared type and its initializer
+  give the home's value bit for bit in that type; the behavior golden runs in Debug and Release math on both systems.
 - **A port PR that adds a duplicate while the refactor is half done.** The baseline only shrinks; Task 2 tests that a
   new duplicate fails and that a fixed row left in the baseline fails too.
 
@@ -279,13 +279,20 @@ opcodes (`Network/FoxAntiObfuscation.cpp:51,101`, AR1 Task 4) and `PlayerSkeleto
 
 PR `refactor(AR1.1): give the shared float numbers one home`. Create `Client/src/Math/FloatConstants.h` and
 `Client/src/Math/Angles.h` (`engine/Math`, namespace `Client::Math`), with numeric names only (`Tenth`, `Half`,
-`Hundredth`, `FullTurn`, the degree-to-radian factors), **one name per representation**: a `float` from its bit
-pattern, and a separate name for the `double` widened from that `float` (`Tenth` 28 times as `float`, 78 as `double`;
-`FullTurn` as `int`, `std::int32_t`, `double` and `float`). The two "degrees to radians" that differ in the last bit
-(`OriginalRotation.cpp:16` `0x3C8EFA35`, `Pose.cpp:24` `0x3c8efa36`) stay two names. A script replaces only private
-definitions whose type and initializer are token-identical to the home's; role names (`Fade`, `Growth`: 884 of 985)
-are not touched. Gate: the behavior golden in Debug and Release math on Linux and Windows; the reference gives the
-same numbers. The registry's `number` space becomes `home-only`.
+`Hundredth`, `FullTurn`, the degree-to-radian factors), **one name per representation**: the plain name is the number
+in the type the original keeps it in (`Tenth`, a `float` from its bit pattern; `FullTurn`, the integer 360) and a
+suffix names another type (`TenthAsDouble`, the `double` widened from that `float`; `FullTurnAsFloat`,
+`FullTurnAsDouble`). The two "degrees to radians" that differ in the last bit stay two names: `DegreesToRadians`
+(`0x3c8efa35`, the `float` nearest to π/180) and `DegreesToRadiansRoundedUp` (`0x3c8efa36`, the next one).
+
+A script replaces a private definition only when its declared type and its initializer give the home's value bit for
+bit in that type, whatever the spelling (`0.1f`, `std::bit_cast<float>(0x3dcccccdu)`, a file's own `Bits` helper);
+the compiler checks every replaced shape with a `static_assert`, and the home's test repeats the decimal spellings. A
+copy with the home's name and type becomes a using-declaration in the same place; any other keeps its name and its
+type and takes the home's name as its initializer. Role names (`Fade`, `Growth`: 884 of 985) are not touched, nor a
+numeric name with another value (`FullTurn` 720, `Third` for 0.3). Gate: the behavior golden in Debug and Release math
+on Linux and Windows; the reference gives the same numbers. The registry's `number` space becomes `home-only`; what
+stays in its baseline (the negatives, the original's π and the numeric names with another meaning) is AR6's sweep.
 
 ### Task 5: one opcode list per server (AR2.1)
 

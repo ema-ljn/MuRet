@@ -2,6 +2,8 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/Angles.h"
+#include "Math/FloatConstants.h"
 #include "Math/X87.h"
 #include "Render/Models/OriginalRetainedMath.h"
 #include "World/KalimaParticleKernels.h"
@@ -16,7 +18,7 @@ namespace Client::World
 namespace
 {
 constexpr std::int32_t TrialsLife = 60;
-constexpr int FullTurn = 360;
+constexpr int FullTurn = Math::FullTurn;
 
 using Math::F32;
 
@@ -46,7 +48,7 @@ void CreateSplash(Particle& p, Crt::CrtRandom& random)
 void CreateSmoke(Particle& p, Crt::CrtRandom& random)
 {
     constexpr double SmokeScale = static_cast<double>(std::bit_cast<float>(0x3ba3d70au)); // 0x6b89d8.
-    constexpr double Tenth = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));      // 0x6b87b8.
+    constexpr double Tenth = Math::TenthAsDouble;                                         // 0x6b87b8.
     constexpr int ScaleMask = 63, ScaleBase = 64, RiseMask = 31, RiseBase = 60;
     p.life = TrialsLife;
     const int size = (random.Next() & ScaleMask) + ScaleBase;
@@ -69,7 +71,7 @@ Core::Expected<void, ParticleError> StepSmoke(Particle& p, const float* clock)
 {
     constexpr double LightPerLife = static_cast<double>(std::bit_cast<float>(0x3ca3d70au)); // 0x6b89e4.
     constexpr double Red = static_cast<double>(std::bit_cast<float>(0x3f666666u));          // 0x6b8a1c.
-    constexpr double Half = 0.5;                                                            // 0x6b882c.
+    constexpr double Half = Math::HalfAsDouble;                                             // 0x6b882c.
     constexpr double Slow = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));         // 0x6b87b8.
     constexpr double Sway = static_cast<double>(std::bit_cast<float>(0x3d4ccccdu));         // 0x6b8a48.
     constexpr double Growth = static_cast<double>(std::bit_cast<float>(0x3d23d70au));       // 0x6b8aec.

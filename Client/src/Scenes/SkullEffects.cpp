@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/FloatConstants.h"
 #include "Math/X87.h"
 #include "Render/Models/OriginalRetainedMath.h"
 #include "Scenes/ActorFlags.h"
@@ -54,7 +55,7 @@ constexpr float StackRadius = 50.0f;                                            
 constexpr double StackSpacing = 50.0;                                                 // 0x6b86b0
 constexpr double OrbitHeight = 200.0;                                                 // 0x6b8928
 constexpr double ReverseOrbitHeight = 250.0;                                          // 0x6b8920
-constexpr double Tenth = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));      // 0x6b87b8, 0,1f
+constexpr double Tenth = Math::TenthAsDouble;                                         // 0x6b87b8, 0,1f
 
 // 0x52b6ea..0x52b71c: la luz de la partícula 0x5de, (0,65f; 0,65f; 0,65f) o, el /3, (0,1f; 1; 1).
 constexpr float Grey = std::bit_cast<float>(0x3f266666u);

@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Maps/MapId.h"
+#include "Math/FloatConstants.h"
 #include "Math/X87.h"
 #include "Render/ModelBatch.h"
 #include "Render/Models/HalfLifeMath.h"
@@ -52,11 +53,11 @@ constexpr std::uint16_t Halo = 0x62b;
 constexpr std::uint16_t Pulse = 0x62d;
 
 // Las constantes float de la .data, con los mismos bits que el literal.
-constexpr float Tenth = 0.1f;        // 0x6b87b8
-constexpr float Fifth = 0.2f;        // 0x6b8854
-constexpr float ThreeTenths = 0.3f;  // 0x6b89dc
-constexpr float TwoFifths = 0.4f;    // 0x6b87b4
-constexpr float Thousandth = 0.001f; // 0x6b89c8
+using Math::Fifth;                  // 0x6b8854
+using Math::Tenth;                  // 0x6b87b8
+constexpr float ThreeTenths = 0.3f; // 0x6b89dc
+constexpr float TwoFifths = 0.4f;   // 0x6b87b4
+using Math::Thousandth;             // 0x6b89c8
 
 using Math::D;
 using Math::F32;

@@ -1,5 +1,6 @@
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/Angles.h"
 #include "Math/X87.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Scenes/GameDrawTail.h"
@@ -42,7 +43,7 @@ void CreateFlareJoint(JointState& joint, const World::FishEffectRequest& request
 {
     // 0x530c93: todos sin la cola común.
     joint.tailEnabled = false;
-    constexpr int FullTurn = 360;
+    constexpr int FullTurn = Math::FullTurn;
     if (joint.subtype == 0)
     {
         // 0x530ca5..0x530d35: vida 20, 30 puntos, el ancho; la velocidad rand() % 10 + 10, la x de los ángulos

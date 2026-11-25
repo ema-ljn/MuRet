@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Data/Models/PlayerModels.h"
+#include "Math/Angles.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/OriginalRotation.h"
@@ -311,7 +312,7 @@ JointKernels::CreationServices JointServices(const CharacterStepContext& context
 Core::Expected<void, std::string> ThrowTheSpirit(const ActorState& actor, const CharacterStepContext& context,
                                                  std::uint32_t address, std::int32_t subtype, float width)
 {
-    constexpr std::int32_t FullTurn = 360;
+    using Math::FullTurn;
     glm::vec3 angles{};
     angles.x = static_cast<float>(context.random.Next() % FullTurn);
     angles.y = static_cast<float>(context.random.Next() % FullTurn);
@@ -369,7 +370,7 @@ Core::Expected<void, std::string> CreateTheJoint(ActorState& owner, const Charac
 // rand() % 360 en la z de los ángulos (0x4f8620..0x4f8651 y sus copias): la x y la y en 0.
 glm::vec3 RandomTurn(CrtRandom& random)
 {
-    constexpr std::int32_t FullTurn = 360;
+    using Math::FullTurn;
     return {0.0f, 0.0f, static_cast<float>(random.Next() % FullTurn)};
 }
 
@@ -429,7 +430,7 @@ Core::Expected<void, std::string> TurnTheHandBolts(ActorState& actor, ActorState
     constexpr std::int32_t StepTurn = 3;
     constexpr std::int32_t Swing = 90;
     constexpr double SwingCenter = 45.0;
-    constexpr double HalfTurn = 180.0;
+    constexpr double HalfTurn = Math::HalfTurnAsDouble;
     constexpr double NextTurn = 270.0;
     constexpr int Bolts = 4;
     constexpr float Width = 50.0f;
@@ -564,7 +565,7 @@ Core::Expected<void, std::string> ThrowTheFireRing(const ActorState& actor, std:
     constexpr std::int32_t FireSubtype = 8;
     constexpr std::uint16_t FireKey = 0;
     constexpr std::int32_t BurstSound = 0x1e0;
-    constexpr int FullTurn = 360;
+    constexpr int FullTurn = Math::FullTurn;
     glm::vec3 turn{0.0f, 0.0f, static_cast<float>(context.random.Next() % FullTurn)};
     for (int fire = 0; fire < Fires; ++fire)
     {

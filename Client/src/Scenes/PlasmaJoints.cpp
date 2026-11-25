@@ -1,5 +1,6 @@
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/FloatConstants.h"
 #include "Math/X87.h"
 #include "Render/Models/OriginalAngles.h"
 #include "Render/Models/OriginalRotation.h"
@@ -87,7 +88,7 @@ void CreatePlasmaJoint(JointState& joint, const World::FishEffectRequest& reques
     joint.width = request.scale;
     joint.maximumCount = Points;
     joint.life = Life;
-    constexpr float Tenth = std::bit_cast<float>(0x3dcccccdu), Fifth = std::bit_cast<float>(0x3e4ccccdu);
+    constexpr float Tenth = Math::Tenth, Fifth = Math::Fifth;
     constexpr float Third = std::bit_cast<float>(0x3e99999au), Sixth = std::bit_cast<float>(0x3f19999au);
     constexpr float Seventh = std::bit_cast<float>(0x3f333333u), Eighth = std::bit_cast<float>(0x3f4ccccdu);
     constexpr std::uint16_t Lightning = 0x614, Storm = 0x632;

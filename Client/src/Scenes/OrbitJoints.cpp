@@ -1,5 +1,6 @@
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/FloatConstants.h"
 #include "Math/X87.h"
 #include "Render/Models/OriginalRetainedMath.h"
 #include "Render/Models/OriginalRotation.h"
@@ -29,7 +30,7 @@ namespace
 using Math::D;
 using Math::F32;
 
-constexpr double Hundredth = static_cast<double>(std::bit_cast<float>(0x3c23d70au)); // 0x6b86c0, 0,01f
+constexpr double Hundredth = Math::HundredthAsDouble; // 0x6b86c0, 0,01f
 
 Core::Expected<void, std::string> CreateTheColumn(JointState& joint, const World::FishEffectRequest& request)
 {
@@ -126,8 +127,8 @@ Core::Expected<void, std::string> StepTheWhirl(JointState& joint, const JointKer
         return {};
     if (services.random == nullptr)
         return Core::Unexpected(std::format("0x53b20d: falta el RNG del joint {:#x}/{:#x}", joint.type, joint.subtype));
-    constexpr double Tenth = static_cast<double>(std::bit_cast<float>(0x3dcccccdu)); // 0x6b87b8
-    constexpr double Mirror = -1.0;                                                  // 0x6b8b9c
+    constexpr double Tenth = Math::TenthAsDouble; // 0x6b87b8
+    constexpr double Mirror = -1.0;               // 0x6b8b9c
     double argument = D(joint.velocity.y) * Tenth;
     if (joint.subtype == MirroredWhirlSubtype)
         argument = argument * Mirror;

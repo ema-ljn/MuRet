@@ -1,4 +1,5 @@
 #include "Core/Expected.h"
+#include "Math/FloatConstants.h"
 #include "Math/X87.h"
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/GameDrawTail.h"
@@ -161,9 +162,9 @@ Core::Expected<void, std::string> StepInfernoJoint(JointState& joint, const Join
         return Core::Unexpected(std::format("0x53b7a7: {}", created.Error()));
     const glm::vec3 glow{std::bit_cast<float>(0x3dcccccdu), std::bit_cast<float>(0x3f19999au), 1};
     constexpr std::uint16_t Shine = 0x5ac, Flare = 0x5fd;
-    constexpr float ShineScale = std::bit_cast<float>(0x3fcccccdu);                  // 1,6f
-    constexpr float FlareScale = 1.5f;                                               // 0x3fc00000
-    constexpr double Tenth = static_cast<double>(std::bit_cast<float>(0x3dcccccdu)); // 0x6b87b8
+    constexpr float ShineScale = std::bit_cast<float>(0x3fcccccdu); // 1,6f
+    constexpr float FlareScale = 1.5f;                              // 0x3fc00000
+    constexpr double Tenth = Math::TenthAsDouble;                   // 0x6b87b8
     static_cast<void>(services.sprites->Create(Shine, joint.position, ShineScale, glow, 0, 0));
     static_cast<void>(
         services.sprites->Create(Flare, joint.position, FlareScale, glow, F32(D(services.worldClock) * Tenth), 0));

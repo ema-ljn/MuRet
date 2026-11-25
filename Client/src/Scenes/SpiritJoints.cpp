@@ -1,5 +1,7 @@
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/Angles.h"
+#include "Math/FloatConstants.h"
 #include "Math/X87.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/OriginalAngles.h"
@@ -47,7 +49,7 @@ constexpr std::uint8_t Lighter = 1;
 constexpr std::uint8_t SecondFace = 2;
 constexpr std::uint16_t SpiritSprite = 0x5ac;
 constexpr std::uint16_t GlowSprite = 0x5fd;
-constexpr std::int32_t FullTurn = 360;
+using Math::FullTurn;
 
 float Bits(std::uint32_t bits)
 {
@@ -540,7 +542,7 @@ Core::Expected<void, std::string> StepTheSmoke(const JointState& joint, const Jo
         return Core::Unexpected(random.Error());
     const glm::vec3 from = joint.position;
     constexpr std::int32_t Mask = 31, Base = 0x30;
-    constexpr double Hundredth = static_cast<double>(std::bit_cast<float>(0x3c23d70au)); // 0x6b88d4
+    constexpr double Hundredth = Math::HundredthAsDouble; // 0x6b88d4
     const std::int32_t size = (random.Value()->Next() & Mask) + Base;
     const float scale = F32(static_cast<double>(size) * Hundredth);
     constexpr std::int32_t Smoke = 0x5f5, Glow = 0x5da, GlowSubtype = 6;
@@ -585,8 +587,8 @@ Core::Expected<void, std::string> CarryThePhoenix(const JointState& joint, World
     constexpr std::int32_t ShownLife = 5;
     if (owner.life > ShownLife)
         owner.alpha = 1.0f;
-    constexpr double Tenth = static_cast<double>(std::bit_cast<float>(0x3dcccccdu)); // 0x6b87b8
-    constexpr double Reach = 30.0;                                                   // 0x6b8858
+    constexpr double Tenth = Math::TenthAsDouble; // 0x6b87b8
+    constexpr double Reach = 30.0;                // 0x6b8858
     const float radius = F32(static_cast<double>(joint.key) * Tenth + Reach);
     const auto sine = Render::Models::Detail::SineDoubleProductPC53(D(joint.angles.z), D(radius));
     const auto cosine = Render::Models::Detail::CosineDoubleProductPC53(D(joint.angles.z), D(radius));
@@ -605,9 +607,9 @@ Core::Expected<void, std::string> CarryThePhoenix(const JointState& joint, World
 // sin redondear) en x con el seno de la z de los ángulos y lo resta en y con el coseno.
 Core::Expected<void, std::string> StepTheSpiral(JointState& joint, const JointKernels::StepServices& services)
 {
-    constexpr std::uint16_t KeyStep = 30;                                            // 0x53913b
-    constexpr std::int32_t SpiralLife = 35;                                          // 0x53914c
-    constexpr double Tenth = static_cast<double>(std::bit_cast<float>(0x3dcccccdu)); // 0x6b87b8
+    constexpr std::uint16_t KeyStep = 30;         // 0x53913b
+    constexpr std::int32_t SpiralLife = 35;       // 0x53914c
+    constexpr double Tenth = Math::TenthAsDouble; // 0x6b87b8
     joint.key =
         std::bit_cast<std::int16_t>(static_cast<std::uint16_t>(std::bit_cast<std::uint16_t>(joint.key) + KeyStep));
     if (joint.life < SpiralLife)
@@ -789,7 +791,7 @@ Core::Expected<void, std::string> StepTheVolley(JointState& joint, const JointKe
         joint.velocity.x = 0.0f;
         joint.angles.x = 5.0f; // 0x40a00000
     }
-    constexpr double Tenth = static_cast<double>(std::bit_cast<float>(0x3dcccccdu)); // 0x6b87b8
+    constexpr double Tenth = Math::TenthAsDouble;                                    // 0x6b87b8
     constexpr double Shade = static_cast<double>(std::bit_cast<float>(0xbc23d70au)); // 0x6b8a58, −0,01f
     joint.light = glm::vec3(F32(static_cast<double>(joint.life) * Tenth));
     const auto shadeSteps = (random.Value()->Next() & 3) + 4;

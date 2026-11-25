@@ -1,5 +1,6 @@
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/FloatConstants.h"
 #include "Math/X87.h"
 #include "Render/Models/OriginalAngles.h"
 #include "Render/Models/OriginalRotation.h"
@@ -125,7 +126,7 @@ void CreateCommonSparkle(JointState& joint)
 void CreateFallingSparkle(JointState& joint, const World::FishEffectRequest& request, Crt::CrtRandom& random)
 {
     constexpr std::int32_t Life = 40, Points = 50, Spread = 300, Lift = 5;
-    constexpr double Thousandth = static_cast<double>(std::bit_cast<float>(0x3a83126fu)); // 0x6ba128
+    constexpr double Thousandth = Math::ThousandthAsDouble; // 0x6ba128
     joint.life = Life;
     joint.width = request.scale;
     joint.maximumCount = Points;

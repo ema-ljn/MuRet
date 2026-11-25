@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/FloatConstants.h"
 #include "Math/X87.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Scenes/HighEffectEmitters.h"
@@ -115,7 +116,7 @@ Core::Expected<void, std::string> BeginTheFireBreath(World::ModelEffect& effect,
 Core::Expected<void, std::string> StepTheFireBreath(World::ModelEffect& effect, float luminosity,
                                                     const HighEffectStepContext& context)
 {
-    constexpr double Half = 0.5;                                                    // 0x6b882c
+    constexpr double Half = Math::HalfAsDouble;                                     // 0x6b882c
     constexpr double Blue = static_cast<double>(std::bit_cast<float>(0x3f4ccccdu)); // 0x6b8a38, 0,8f
     constexpr std::int32_t LightRadius = 2;
     constexpr double Turn = 90.0; // 0x6b8948

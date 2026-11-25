@@ -4,6 +4,7 @@
 #include "Core/IClock.h"
 #include "Crt/CrtRandom.h"
 #include "Data/Models/Model.h"
+#include "Math/FloatConstants.h"
 #include "Render/ModelBatch.h"
 #include "Render/Models/IModelLibrary.h"
 #include "Render/Models/OriginalRetainedMath.h"
@@ -37,7 +38,7 @@ namespace Client::Scenes
 namespace
 {
 constexpr float WaterPulseRate = std::bit_cast<float>(0x3b03126fu);
-constexpr float Tenth = std::bit_cast<float>(0x3dcccccdu);
+using Math::Tenth;
 constexpr float WaterPulseBase = std::bit_cast<float>(0x3e99999au);
 constexpr float FlareRate = std::bit_cast<float>(0x3a83126fu);
 constexpr float FlareAmplitude = std::bit_cast<float>(0x3e99999au);

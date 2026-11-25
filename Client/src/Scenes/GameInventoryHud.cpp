@@ -5,6 +5,7 @@
 
 #include "Core/Expected.h"
 #include "Core/PixelSize.h"
+#include "Math/FloatConstants.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/PassColors.h"
 #include "Render/OriginalQuad.h"
@@ -812,7 +813,7 @@ Core::Expected<void, std::string> DrawTheCursorItem(GameHudContext& context)
     auto box = ItemSizeOf(context, type, "0x5f7b34");
     if (!box.HasValue())
         return Core::Unexpected(box.Error());
-    constexpr double Half = 0.5;
+    constexpr double Half = Math::HalfAsDouble;
     box.Value().x = F32(static_cast<double>(context.mouse.x) - static_cast<double>(box.Value().width) * Half);
     box.Value().y = F32(static_cast<double>(context.mouse.y) - static_cast<double>(box.Value().height) * Half);
     return DrawUiItem(context, box.Value(), type, item.scalar1Low, item.flags1b, item.flags1c, true);

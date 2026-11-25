@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Maps/MapId.h"
+#include "Math/FloatConstants.h"
 #include "Math/X87.h"
 #include "Render/ModelBatch.h"
 #include "Render/Models/HalfLifeMath.h"
@@ -789,7 +790,7 @@ Result DrawTheCrywolfMark(MonsterHelperPass& pass)
     if (pass.batch == nullptr || pass.heights == nullptr)
         return Cut(0x43436c, "las marcas 0x69b del piso sin el lote o las alturas del terreno (0x5fb2f0)", actor);
     constexpr float WaveRate = std::bit_cast<float>(0x3b03126fu);   // 0x6b89bc: 0,002
-    constexpr float Tenth = std::bit_cast<float>(0x3dcccccdu);      // 0x6b87b8: 0,1
+    using Math::Tenth;                                              // 0x6b87b8: 0,1
     constexpr float BrightBase = std::bit_cast<float>(0x3e8f5c29u); // 0x6b8af0: 0,28
     constexpr float SoftSwing = std::bit_cast<float>(0x3d23d70au);  // 0x6b8aec: 0,04
     constexpr float SoftBase = std::bit_cast<float>(0x3e4ccccdu);   // 0x6b8854: 0,2

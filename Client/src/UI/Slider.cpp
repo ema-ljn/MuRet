@@ -2,6 +2,7 @@
 
 #include "Input/InputState.h"
 #include "Input/Key.h"
+#include "Math/FloatConstants.h"
 #include "Render/UiImage.h"
 #include "UI/Button.h"
 #include "UI/Widget.h"
@@ -23,7 +24,7 @@ constexpr std::uint8_t Dragging = 0x10;
 constexpr double FirstRepeatMs = 500.0;
 constexpr double RepeatMs = 50.0;
 // 0x6b882c: la mitad de un paso, para redondear la perilla al valor más cerca.
-constexpr float Half = 0.5f;
+using Math::Half;
 
 Rect FromCorners(int left, int top, int right, int bottom)
 {

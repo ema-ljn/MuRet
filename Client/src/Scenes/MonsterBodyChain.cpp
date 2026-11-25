@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Maps/MapId.h"
+#include "Math/FloatConstants.h"
 #include "Math/X87.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/OriginalRetainedMath.h"
@@ -56,14 +57,14 @@ constexpr std::uint8_t DeathAction = 6;
 constexpr std::uint32_t RiderFlag = 0x4000;
 constexpr float PulseRate = std::bit_cast<float>(0x3b03126fu);     // 0,002f (0x6b89bc)
 constexpr float SlowPulseRate = std::bit_cast<float>(0x3a9d4952u); // 0,0012f (0x6b8ac4)
-constexpr float Tenth = std::bit_cast<float>(0x3dcccccdu);         // 0,1 (0x6b87b8)
+using Math::Tenth;                                                 // 0,1 (0x6b87b8)
 constexpr float TwoTenths = std::bit_cast<float>(0x3e4ccccdu);     // 0,2 (0x6b8854)
 constexpr float ThreeTenths = std::bit_cast<float>(0x3e99999au);   // 0,3 (0x6b89dc)
 constexpr float FourTenths = std::bit_cast<float>(0x3ecccccdu);    // 0,4 (0x6b87b4)
-constexpr float Half = 0.5f;                                       // 0x6b882c
+using Math::Half;                                                  // 0x6b882c
 constexpr float SixTenths = std::bit_cast<float>(0x3f19999au);     // 0,6 (0x6b8a20)
 constexpr float SevenTenths = std::bit_cast<float>(0x3f333333u);   // 0,7 (0x6b8a5c)
-constexpr float Twentieth = std::bit_cast<float>(0x3d4ccccdu);     // 0,05 (0x6b8a48)
+using Math::Twentieth;                                             // 0,05 (0x6b8a48)
 constexpr float EightTenths = std::bit_cast<float>(0x3f4ccccdu);   // 0,8 (0x6b8a38)
 constexpr float Ceiling = std::bit_cast<float>(0x3fa66666u);       // 1,3 (0x6b8ac0)
 

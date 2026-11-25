@@ -2,6 +2,8 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/Angles.h"
+#include "Math/FloatConstants.h"
 #include "Math/X87.h"
 #include "Protocol/Events.h"
 #include "Render/Models/OriginalRetainedMath.h"
@@ -34,7 +36,7 @@ constexpr std::int16_t ChimneyObject = 0x54;
 constexpr std::uint16_t GlowTexture = 0x60f;
 constexpr float GlowScale = std::bit_cast<float>(0x3fa66666u); // 0x430646: 1,3.
 constexpr double GlowStep = 1.0;                               // 0x6b87d4.
-constexpr double FullTurn = 360.0;                             // 0x6b869c.
+constexpr double FullTurn = Math::FullTurnAsDouble;            // 0x6b869c.
 constexpr double GlowHeight = 350.0;                           // 0x6b89ac.
 constexpr std::int32_t CounterMiddle = 20, CounterTop = 40;
 constexpr glm::vec3 White(1.0f);
@@ -74,7 +76,7 @@ Core::Expected<void, std::string> RisingSmoke(const World::WorldObject& object, 
 {
     constexpr double Lift = 50.0;
     constexpr int LevelMask = 3, LevelBase = 3;
-    constexpr double Tenth = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));
+    constexpr double Tenth = Math::TenthAsDouble;
     constexpr double Green = static_cast<double>(std::bit_cast<float>(0x3f19999au));
     constexpr double Blue = static_cast<double>(std::bit_cast<float>(0x3e4ccccdu));
     const glm::vec3& position = object.transform.position;

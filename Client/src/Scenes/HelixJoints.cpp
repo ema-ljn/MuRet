@@ -1,5 +1,7 @@
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/Angles.h"
+#include "Math/FloatConstants.h"
 #include "Math/X87.h"
 #include "Render/Models/OriginalRetainedMath.h"
 #include "Scenes/GameDrawTail.h"
@@ -27,7 +29,7 @@ using Math::F32;
 
 // 0x6ba2c4 y 0x6b8cf8: los grados a radianes, negado (el alta) y no (el paso).
 constexpr double NegativeRadians = static_cast<double>(std::bit_cast<float>(0xbc8efa35u));
-constexpr double Radians = static_cast<double>(std::bit_cast<float>(0x3c8efa35u));
+constexpr double Radians = Math::DegreesToRadiansAsDouble;
 } // namespace
 
 bool IsHelix(std::int32_t type, std::int32_t subtype)
@@ -67,7 +69,7 @@ Core::Expected<void, std::string> CreateHelixJoint(JointState& joint, const Worl
     }
     // 0x533fdc..0x53401d y 0x534090..0x5340d1: vx en rand() % 360; vy y vz, el seno y el coseno de −z en radianes por
     // −4 (la /0xc) o −2 (la /4).
-    constexpr int FullTurn = 360;
+    constexpr int FullTurn = Math::FullTurn;
     joint.velocity.x = static_cast<float>(random.Next() % FullTurn);
     const double argument = D(joint.angles.z) * NegativeRadians;
     const auto sine = Render::Models::Detail::SineDoubleProductPC53(argument, reach);
@@ -88,7 +90,7 @@ Core::Expected<void, std::string> CreateHelixJoint(JointState& joint, const Worl
 Core::Expected<void, std::string> StepHelixJoint(JointState& joint)
 {
     // 0x53b08a..0x53b10e: el giro a = (vida + vx) · 0,1f y, en la x87, el radio horizontal h y el vertical v.
-    constexpr double Tenth = static_cast<double>(std::bit_cast<float>(0x3dcccccdu)); // 0x6b87b8
+    constexpr double Tenth = Math::TenthAsDouble; // 0x6b87b8
     const double turn = (static_cast<double>(joint.life) + D(joint.velocity.x)) * Tenth;
     const float stored = F32(turn); // [ebp+8]
     std::optional<double> horizontal;

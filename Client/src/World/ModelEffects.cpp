@@ -4,6 +4,8 @@
 #include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainGrid.h"
+#include "Math/Angles.h"
+#include "Math/FloatConstants.h"
 #include "Math/X87.h"
 #include "Render/Models/Animation.h"
 #include "Render/Models/LogicalAccess.h"
@@ -47,7 +49,7 @@ constexpr std::int32_t TeleportLife = 10;
 // 0x52096c..0x520b72: los topes de los ángulos (0x6b869c, 0x6ba2a8), el alabeo por paso (0x6b882c), el
 // radio de la partida (0x6b8ac8, 0x6ba2a4), el giro (0x6b86cc, 0x6b8b94), la vida que se vuelve a
 // llenar y el frame que vuelve a 0 (0x6b8bf4).
-constexpr float FullTurn = 360.0f;
+constexpr float FullTurn = Math::FullTurnAsFloat;
 constexpr float RollStep = 0.5f;
 constexpr float RollTarget = 30.0f;
 constexpr double StartRadius = 800.0;
@@ -815,10 +817,10 @@ std::optional<std::size_t> ModelEffects::CreateIceShard(const glm::vec3& positio
 {
     constexpr int PushMask = 255, PushBase = 64, LifeMask = 15, LifeBase = 32, ScaleMask = 3, ScaleBase = 8;
     constexpr int Degrees = 360, FallMask = 15, FallBase = 8;
-    constexpr double Tenth = static_cast<double>(std::bit_cast<float>(0x3dcccccdu)); // 0x6b87b8: 0,1f.
-    constexpr double Rise = 50.0;                                                    // 0x6b86b0
-    constexpr std::int16_t ShardBlendMesh = 0;                                       // 0x51b6e0: ESI, en 0 (0x518d08)
-    constexpr float ShardBlendLight = std::bit_cast<float>(0x3e99999au);             // 0x51b6e3: 0,3f
+    constexpr double Tenth = Math::TenthAsDouble;                        // 0x6b87b8: 0,1f.
+    constexpr double Rise = 50.0;                                        // 0x6b86b0
+    constexpr std::int16_t ShardBlendMesh = 0;                           // 0x51b6e0: ESI, en 0 (0x518d08)
+    constexpr float ShardBlendLight = std::bit_cast<float>(0x3e99999au); // 0x51b6e3: 0,3f
     for (std::size_t slot = 0; slot < m_effects.size(); ++slot)
     {
         ModelEffect& effect = m_effects[slot];
@@ -871,7 +873,7 @@ std::optional<std::size_t> ModelEffects::CreateIcarusEffect(std::int16_t type, c
         }
         constexpr float FlareLight = std::bit_cast<float>(0x3e99999au);
         constexpr int SpeedSpan = 5, SpeedBase = 9;
-        constexpr double Half = 0.5;
+        constexpr double Half = Math::HalfAsDouble;
         // 0x6ba1d0 (70° en radianes, de float a double) y 0x6ba1c8 (30°).
         constexpr double Steep = std::bit_cast<double>(0x3ff38c3540000000ull);
         constexpr double Side = std::bit_cast<double>(0x3fe0c15240000000ull);

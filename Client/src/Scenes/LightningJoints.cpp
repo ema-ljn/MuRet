@@ -1,5 +1,6 @@
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/FloatConstants.h"
 #include "Math/X87.h"
 #include "Render/Models/OriginalAngles.h"
 #include "Render/Models/OriginalRotation.h"
@@ -353,9 +354,9 @@ Core::Expected<void, std::string> Glow(const JointState& joint, CrtRandom& rando
     const std::int32_t subtype = joint.subtype;
     if (subtype != 0 && subtype != 0xb && subtype != 2)
         return {};
-    constexpr double Step = static_cast<double>(std::bit_cast<float>(0x3d23d70au));  // 0x6b8aec, 0,04f
-    constexpr double Tenth = static_cast<double>(std::bit_cast<float>(0x3dcccccdu)); // 0x6b87b8
-    constexpr double Red = static_cast<double>(std::bit_cast<float>(0x3ecccccdu));   // 0x6b87b4, 0,4f
+    constexpr double Step = static_cast<double>(std::bit_cast<float>(0x3d23d70au)); // 0x6b8aec, 0,04f
+    constexpr double Tenth = Math::TenthAsDouble;                                   // 0x6b87b8
+    constexpr double Red = static_cast<double>(std::bit_cast<float>(0x3ecccccdu));  // 0x6b87b4, 0,4f
     const double value = static_cast<double>((random.Next() & 3) + 4) * Step;
     const glm::vec3 color = subtype == 2 ? glm::vec3(F32(value * Red), F32(value * Tenth), F32(value * Tenth))
                                          : glm::vec3(F32(value * Tenth), F32(value * Tenth), F32(value * 0.5));

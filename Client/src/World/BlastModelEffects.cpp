@@ -5,6 +5,8 @@
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainGrid.h"
 #include "Maps/MapId.h"
+#include "Math/Angles.h"
+#include "Math/FloatConstants.h"
 #include "Math/X87.h"
 #include "Render/Models/Animation.h"
 #include "Render/Models/LogicalAccess.h"
@@ -234,10 +236,10 @@ Core::Expected<void, std::string> BeginTheBlast(ModelEffect& effect, CrtRandom& 
                                                 const BlastEffectServices& services)
 {
     constexpr std::int32_t BlastLife = 30;
-    constexpr double Tenth = static_cast<double>(0.1f); // 0x6b87b8
-    constexpr double Fall = -50.0;                      // 0x6ba1f8
-    constexpr float BlastPitch = 20.0f;                 // 0x41a00000
-    constexpr float JointScale = 100.0f;                // 0x42c80000
+    constexpr double Tenth = Math::TenthAsDouble; // 0x6b87b8
+    constexpr double Fall = -50.0;                // 0x6ba1f8
+    constexpr float BlastPitch = 20.0f;           // 0x41a00000
+    constexpr float JointScale = 100.0f;          // 0x42c80000
     effect.life = BlastLife;
     effect.objectState.blendMesh = 0;
     effect.transform.scale = F32(static_cast<double>((random.Next() & 7) + 10) * Tenth);
@@ -265,8 +267,8 @@ Core::Expected<void, std::string> BeginTheInferno(ModelEffect& effect, std::uint
     constexpr float InfernoScale = 0.9f; // 0x3f666666
     constexpr float HalfSpeed = 0.5f;    // 0x3f000000
     constexpr glm::vec3 Gray{0.8f, 0.8f, 0.8f};
-    constexpr double Hundredth = static_cast<double>(0.01f); // 0x6b86c0
-    constexpr float Tenth = 0.1f;
+    constexpr double Hundredth = Math::HundredthAsDouble; // 0x6b86c0
+    using Math::Tenth;
     effect.objectState.blendMesh = HiddenBlend;
     effect.transform.scale = InfernoScale;
     effect.speed = HalfSpeed;
@@ -384,7 +386,7 @@ Core::Expected<void, std::string> BeginTheBlizzard(ModelEffect& effect, CrtRando
 // 0x51b99f..0x51bafa: las piedras 0x10c y 0x10d de las puertas de Blood Castle.
 void BeginTheGateDebris(ModelEffect& effect, CrtRandom& random)
 {
-    constexpr double Tenth = static_cast<double>(0.1f);  // 0x6b87b8
+    constexpr double Tenth = Math::TenthAsDouble;        // 0x6b87b8
     constexpr double Lift = 50.0;                        // 0x6b86b0
     constexpr double Shrink = static_cast<double>(0.6f); // 0x6b8a20
     const glm::vec3 push{0.0f, F32(static_cast<double>((random.Next() & 127) + 64) * Tenth), 0.0f};
@@ -415,7 +417,7 @@ Core::Expected<void, std::string> BeginTheCase(ModelEffects& effects, ModelEffec
                                                const ModelEffectArguments& arguments, CrtRandom& random,
                                                const BlastEffectServices& services)
 {
-    constexpr double Tenth = static_cast<double>(0.1f); // 0x6b87b8
+    constexpr double Tenth = Math::TenthAsDouble; // 0x6b87b8
     const std::int16_t type = effect.type;
     if (type == ProtectionEffect)
     {
@@ -506,7 +508,7 @@ Core::Expected<void, std::string> BeginTheCase(ModelEffects& effects, ModelEffec
     if (type == WaveForceEffect)
     {
         // 0x519884..0x5198c1.
-        constexpr double Hundredth = static_cast<double>(0.01f); // 0x6b86c0
+        constexpr double Hundredth = Math::HundredthAsDouble; // 0x6b86c0
         effect.objectState.blendMesh = HiddenBlend;
         effect.speed = 0.5f;
         effect.life = 12;
@@ -534,7 +536,7 @@ Core::Expected<void, std::string> BeginTheCase(ModelEffects& effects, ModelEffec
     if (type == RidingSpearEffect)
     {
         // 0x519232..0x51926a: la velocidad del yaw con FSIN y FCOS de la x87.
-        constexpr double Radians = static_cast<double>(std::bit_cast<float>(0x3c8efa35u)); // 0x6b8cf8
+        constexpr double Radians = Math::DegreesToRadiansAsDouble; // 0x6b8cf8
         effect.life = 20;
         effect.transform.scale = 1.5f;
         const double argument = D(effect.transform.angles.z) * Radians;
@@ -758,7 +760,7 @@ Core::Expected<void, std::string> StepTheInferno(ModelEffect& effect, float lumi
 {
     const std::int32_t subtype = effect.subtype;
     glm::vec3& position = effect.transform.position;
-    constexpr double Twentieth = static_cast<double>(0.05f); // 0x6b8ad0
+    constexpr double Twentieth = Math::TwentiethAsDouble; // 0x6b8ad0
     const double lum = D(luminosity);
     if (subtype == 2)
     {
@@ -1127,7 +1129,7 @@ Core::Expected<void, std::string> StepTheGateDebris(ModelEffect& effect, Particl
 Core::Expected<void, std::string> SwayTheBlizzard(ModelEffect& effect, CrtRandom& random, float amplitude,
                                                   std::string_view address)
 {
-    constexpr double Hundredth = static_cast<double>(0.01f); // 0x6b88d4
+    constexpr double Hundredth = Math::HundredthAsDouble; // 0x6b88d4
     for (int axis = 0; axis < 2; ++axis)
     {
         const double argument = static_cast<double>(random.Next() % 1000) * Hundredth;

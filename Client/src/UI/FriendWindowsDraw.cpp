@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Core/PixelSize.h"
+#include "Math/FloatConstants.h"
 #include "Math/X87.h"
 #include "Render/SpriteBatch.h"
 #include "Render/Text/IGlyphRasterizer.h"
@@ -74,7 +75,7 @@ constexpr std::int32_t HeaderLineBelow = 0x12;
 constexpr std::array<std::int32_t, FriendsTabCount> HeaderTextX{0, 0x36, 0x6b};
 constexpr double HeaderTextWidth = 52.0;
 constexpr double HeaderTextHeight = 24.0;
-constexpr double Half = 0.5;
+constexpr double Half = Math::HalfAsDouble;
 // El texto del botón del estado, 2 antes del borde derecho (0x6b8818), y la casilla 14 (0x6b881c) y 1 (0x6b87d4) más a
 // la izquierda y 1 más arriba.
 constexpr double StateTextInset = 2.0;

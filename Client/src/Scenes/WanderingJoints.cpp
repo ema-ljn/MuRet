@@ -1,5 +1,7 @@
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/Angles.h"
+#include "Math/FloatConstants.h"
 #include "Math/X87.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/OriginalRetainedMath.h"
@@ -127,7 +129,7 @@ Reach ReachOf(const JointState& joint)
 void Glint(World::FrameSprites& sprites, Crt::CrtRandom& random, std::uint16_t texture, const glm::vec3& position,
            const glm::vec3& light, float factor)
 {
-    constexpr int FullTurn = 360;
+    constexpr int FullTurn = Math::FullTurn;
     const auto rotation = static_cast<float>(random.Next() % FullTurn);
     const float scale = F32(static_cast<double>(random.Next() % 2 + 8) * D(factor));
     static_cast<void>(sprites.Create(texture, position, scale, light, rotation, 0));
@@ -223,7 +225,7 @@ Core::Expected<void, std::string> StepWanderingJoint(JointState& joint, const Jo
     const glm::vec3* anchor = Anchor(joint);
     if (anchor == nullptr)
         return Core::Unexpected(std::format("0x53ad5e: falta el dueño del joint 0x60f/{:#x}", subtype));
-    constexpr double Hundredth = static_cast<double>(std::bit_cast<float>(0x3c23d70au)); // 0x6b88d4
+    constexpr double Hundredth = Math::HundredthAsDouble; // 0x6b88d4
     constexpr std::uint32_t PlaceStride = 51231, AxisStride = 0xe7f;
     const double rest = 100.0 - D(reach.blend);
     for (std::uint32_t axis = 0; axis < 3; ++axis)

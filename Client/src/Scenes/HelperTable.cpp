@@ -4,6 +4,7 @@
 #include "Crt/CrtRandom.h"
 #include "Data/Models/PlayerModels.h"
 #include "Maps/MapId.h"
+#include "Math/FloatConstants.h"
 #include "Math/X87.h"
 #include "Render/Models/Animation.h"
 #include "Render/Models/HalfLifeMath.h"
@@ -554,7 +555,7 @@ constexpr float FenrirPulseSwing = std::bit_cast<float>(0x3e4ccccdu);           
 constexpr std::uint8_t FenrirChargeAction = 4;
 constexpr std::uint8_t FenrirFirstStrikeAction = 1, FenrirSecondStrikeAction = 2;
 constexpr int FenrirSparkSpreadX = 10, FenrirSparkSpreadZ = 40, FenrirSparkCentreZ = 20;
-constexpr double Half = 0.5;                                                                    // 0x6b882c.
+constexpr double Half = Math::HalfAsDouble;                                                     // 0x6b882c.
 constexpr double FenrirSparkScaleStep = static_cast<double>(std::bit_cast<float>(0x3d4ccccdu)); // 0x6b8a48.
 constexpr double FenrirSparkScaleBase = static_cast<double>(std::bit_cast<float>(0x3f333333u)); // 0x6b8a5c.
 constexpr std::size_t FenrirSparkBone = 14, FenrirEyeBone = 11, FenrirChestBone = 13;

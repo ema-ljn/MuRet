@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/FloatConstants.h"
 #include "Math/X87.h"
 #include "Render/Models/ObjectState.h"
 #include "World/Ftol.h"
@@ -33,7 +34,7 @@ constexpr int FlashOdds = 100;
 // 0x604b03..0x604b10: rand() % 12 + 4, por 0,1f (0x6b87b8).
 constexpr int FlashSpan = 12;
 constexpr int FlashBase = 4;
-constexpr double Tenth = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));
+constexpr double Tenth = Math::TenthAsDouble;
 // 0x6b8854 (0,2f), 0x6b89dc (0,3f) y 0x6b882c (0,5).
 constexpr double FlashRed = static_cast<double>(std::bit_cast<float>(0x3e4ccccdu));
 constexpr double FlashGreen = static_cast<double>(std::bit_cast<float>(0x3e99999au));

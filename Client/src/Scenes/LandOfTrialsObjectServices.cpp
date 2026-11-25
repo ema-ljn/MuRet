@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/Angles.h"
 #include "Render/Models/OriginalRetainedMath.h"
 #include "Scenes/ObjectFrameSprites.h"
 #include "Scenes/WorldObjectsDrawing.h"
@@ -33,7 +34,7 @@ constexpr std::uint16_t ShinyTexture = 0x5fd; // Effect\Shiny02.jpg.
 constexpr float SecondFlareScale = 0.5f;      // 0x4402f1.
 constexpr float ShinyScale = std::bit_cast<float>(0x3f99999au);
 constexpr float ShinyGrey = std::bit_cast<float>(0x3e99999au);
-constexpr int FullTurn = 360;
+constexpr int FullTurn = Math::FullTurn;
 
 Core::Expected<void, std::string> Emit(const GameObjectPass& pass, const World::WorldObject& object, std::int32_t type,
                                        std::int32_t subtype, std::string_view address)

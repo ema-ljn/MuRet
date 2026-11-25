@@ -24,6 +24,7 @@
 #include "Core/Expected.h"
 #include "Core/IClock.h"
 #include "Crt/CrtRandom.h"
+#include "Math/FloatConstants.h"
 #include "Render/ModelBatch.h"
 #include "Render/ModelBatchParticleBackend.h"
 #include "Render/ModelBatchParticleState.h"
@@ -847,7 +848,7 @@ DrawModelEffects(Render::ModelBatch& batch, const Render::Models::IModelLibrary&
             drawn.color = terrain + effect.light;
         else
         {
-            constexpr double Tenth = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));
+            constexpr double Tenth = Math::TenthAsDouble;
             drawn.color.x = static_cast<float>(static_cast<double>(terrain.x) * Tenth + effect.light.x);
             for (int axis = 1; axis < 3; ++axis)
                 drawn.color[axis] = static_cast<float>(

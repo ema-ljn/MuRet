@@ -5,6 +5,7 @@
 #include "Data/Models/PlayerModels.h"
 #include "Data/Text/TextTable.h"
 #include "Maps/MapId.h"
+#include "Math/Angles.h"
 #include "Protocol/Events.h"
 #include "Protocol/Viewport.h"
 #include "Render/Models/Animation.h"
@@ -340,7 +341,7 @@ Core::Expected<void, std::string> ApplySummonRecord(const Protocol::Viewport::Su
 // 0x4e0b7f..0x4e0b9b y 0x4e0dea..0x4e0e13: +0x428 en 0x96 y el ángulo rand() % 360.
 void TurnAtRandom(ActorState& actor, Crt::CrtRandom& random)
 {
-    constexpr std::int32_t FullTurn = 360;
+    using Math::FullTurn;
     constexpr std::int32_t ObjectMark = 0x96;
     const std::int32_t drawn = random.Next();
     actor.dword428 = ObjectMark;

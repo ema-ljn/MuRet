@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/FloatConstants.h"
 #include "Math/X87.h"
 #include "Render/Models/OriginalRotation.h"
 #include "World/GameModelEffects.h"
@@ -22,8 +23,8 @@ namespace
 using Math::D;
 using Math::F32;
 
-constexpr double Tenth = static_cast<double>(std::bit_cast<float>(0x3dcccccdu)); // 0x6b87b8 y 0x6b8a34, 0,1f
-constexpr int Degrees = 360;                                                     // 0x168
+constexpr double Tenth = Math::TenthAsDouble; // 0x6b87b8 y 0x6b8a34, 0,1f
+constexpr int Degrees = 360;                  // 0x168
 
 float RandomAngle(Crt::CrtRandom& random)
 {

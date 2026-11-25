@@ -2,6 +2,8 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/Angles.h"
+#include "Math/FloatConstants.h"
 #include "Math/X87.h"
 #include "World/IParticleTrigonometry.h"
 #include "World/ParticleOwner.h"
@@ -18,11 +20,11 @@ namespace Client::World
 namespace
 {
 // 0x6b86c0 y 0x6b88d4 (0x3c23d70a), 0x6b87b8 y 0x6b8a34 (0x3dcccccd), 0x6b8a48, 0x6b8bf8, 0x6b882c.
-constexpr double Hundredth = static_cast<double>(std::bit_cast<float>(0x3c23d70au));
-constexpr double Tenth = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));
-constexpr double Twentieth = static_cast<double>(std::bit_cast<float>(0x3d4ccccdu));
+constexpr double Hundredth = Math::HundredthAsDouble;
+constexpr double Tenth = Math::TenthAsDouble;
+constexpr double Twentieth = Math::TwentiethAsDouble;
 constexpr double FlameRiseBase = static_cast<double>(std::bit_cast<float>(0x3fe66666u));
-constexpr double Half = 0.5;
+constexpr double Half = Math::HalfAsDouble;
 // 0x5476f0..0x547771: 0x6ba394 (0,0002f), 0x6b86d0 (20), 0x6b8b90 (0,02f) y 0x6ba354 (−0,02f).
 constexpr double MistPhase = static_cast<double>(std::bit_cast<float>(0x3951b717u));
 constexpr float MistAmplitude = 20.0f;
@@ -38,7 +40,7 @@ constexpr double ChaseLift = 250.0;
 constexpr int MistLife = 30, MistSeenLife = 50, FlameLife = 33, ChaseFadeLife = 10;
 // 0x6b8ae8 (0,15f): la subida de la llama 5de/0.
 constexpr double FloorFlameRise = static_cast<double>(std::bit_cast<float>(0x3e19999au));
-constexpr int FullTurn = 360;
+constexpr int FullTurn = Math::FullTurn;
 
 using Math::F32;
 
@@ -75,7 +77,7 @@ void CreateRisingFlame(Particle& p, Crt::CrtRandom& random)
     p.scale = F32(static_cast<double>(p.scale) - static_cast<double>(random.Next() % ShrinkSpan) * Hundredth);
     const int turn = random.Next() % FullTurn;
     p.start.x = p.position.x;
-    constexpr double HalfTurn = 180.0;
+    constexpr double HalfTurn = Math::HalfTurnAsDouble;
     p.rotation = F32(static_cast<double>(turn) - HalfTurn);
     const int side = random.Next() & 1;
     p.position.x = F32(static_cast<double>(side) * Half * p.scale + p.position.x);

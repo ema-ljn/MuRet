@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Data/Models/Model.h"
+#include "Math/Angles.h"
 #include "Math/X87.h"
 #include "Render/ModelBatch.h"
 #include "Render/ModelVertex.h"
@@ -43,7 +44,7 @@ namespace Client::Scenes
 {
 namespace
 {
-constexpr float QuarterTurn = 90;
+constexpr float QuarterTurn = Math::QuarterTurnAsFloat;
 constexpr float VisibleAlpha = .01f;
 constexpr std::int16_t InvisibleBird = 0x10f;
 constexpr std::int16_t StormBird = 0x171;

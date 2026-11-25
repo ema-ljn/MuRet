@@ -1,5 +1,6 @@
 #include "Render/Models/Pose.h"
 
+#include "Math/Angles.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Render/Models/Skeleton.h"
@@ -8,7 +9,6 @@
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
 
-#include <bit>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
@@ -21,7 +21,7 @@ namespace
 {
 // El float de 0x6ba140, con el que la cabeza pasa sus grados a radianes: los bits 0x3c8efa36, un ulp
 // más que el float más cercano a π/180 (0x3c8efa35, el de 0x6ba360, que usa AngleMatrix).
-constexpr float HeadDegreesToRadians = std::bit_cast<float>(0x3c8efa36u);
+constexpr float HeadDegreesToRadians = Math::DegreesToRadiansRoundedUp;
 
 // El frame truncado que entra en el short de la key de 0x4eb860; fuera de eso, la 0.
 constexpr float ShortLimit = 32768.0f;

@@ -2,6 +2,8 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/Angles.h"
+#include "Math/FloatConstants.h"
 #include "Math/X87.h"
 #include "Render/Models/OriginalRotation.h"
 #include "World/IParticleTrigonometry.h"
@@ -20,14 +22,14 @@ namespace Client::World
 {
 namespace
 {
-constexpr int FullTurn = 360;
-constexpr double Hundredth = static_cast<double>(std::bit_cast<float>(0x3c23d70au));  // 0x6b88d4 y 0x6b86c0, 0,01f
-constexpr double Half = 0.5;                                                          // 0x6b882c
-constexpr double Tenth = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));      // 0x6b87b8 y 0x6b8a34, 0,1f
-constexpr double Fifth = static_cast<double>(std::bit_cast<float>(0x3e4ccccdu));      // 0x6b8cfc y 0x6b8854, 0,2f
+constexpr int FullTurn = Math::FullTurn;
+constexpr double Hundredth = Math::HundredthAsDouble;                                 // 0x6b88d4 y 0x6b86c0, 0,01f
+constexpr double Half = Math::HalfAsDouble;                                           // 0x6b882c
+constexpr double Tenth = Math::TenthAsDouble;                                         // 0x6b87b8 y 0x6b8a34, 0,1f
+constexpr double Fifth = Math::FifthAsDouble;                                         // 0x6b8cfc y 0x6b8854, 0,2f
 constexpr double FourFifths = static_cast<double>(std::bit_cast<float>(0x3f4ccccdu)); // 0x6b8a38, 0,8f
 constexpr double Brake = static_cast<double>(std::bit_cast<float>(0x3ecccccdu));      // 0x6b87b4, 0,4f
-constexpr double Twentieth = static_cast<double>(std::bit_cast<float>(0x3d4ccccdu));  // 0x6b8a48, 0,05f
+constexpr double Twentieth = Math::TwentiethAsDouble;                                 // 0x6b8a48, 0,05f
 constexpr double Countdown = static_cast<double>(std::bit_cast<float>(0x3a83126fu));  // 0x6b89c8, 0,001f
 
 using Math::F32;
@@ -305,7 +307,7 @@ Core::Expected<void, ParticleError> CreateTheSpark(Particle& particle, Crt::CrtR
 Core::Expected<void, ParticleError> StepTheRing(Particle& particle, IParticleTrigonometry* trigonometry)
 {
     constexpr double PulseStep = static_cast<double>(std::bit_cast<float>(0x3e32b8c2u)); // 0x6ba370
-    constexpr double Degree = static_cast<double>(std::bit_cast<float>(0x3c8efa35u));    // 0x6ba360
+    constexpr double Degree = Math::DegreesToRadiansAsDouble;                            // 0x6ba360
     constexpr float Swing = 3.0f;                                                        // 0x6b86b8
     constexpr double PulseBase = 2.0;                                                    // 0x6b8818
     constexpr double BurstBase = 1.5;                                                    // 0x6b8b94

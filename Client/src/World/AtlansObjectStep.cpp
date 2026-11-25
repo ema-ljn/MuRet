@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/FloatConstants.h"
 #include "Math/X87.h"
 #include "Render/Models/ObjectState.h"
 #include "Render/Models/OriginalRetainedMath.h"
@@ -24,7 +25,7 @@ using Math::F32;
 constexpr double SlowRate = static_cast<double>(std::bit_cast<float>(0x3b03126fu));
 constexpr double FastRate = static_cast<double>(std::bit_cast<float>(0x3b83126fu));
 constexpr float Swing = std::bit_cast<float>(0x3e99999au);
-constexpr double Half = 0.5;
+constexpr double Half = Math::HalfAsDouble;
 
 // fld del reloj, fmul por `rate`, fsin y fmul por `factor`, en la x87.
 std::optional<double> Wave(float worldClock, double rate, float factor)

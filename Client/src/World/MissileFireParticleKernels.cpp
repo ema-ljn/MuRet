@@ -2,6 +2,8 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/Angles.h"
+#include "Math/FloatConstants.h"
 #include "Math/X87.h"
 #include "World/IParticleTrigonometry.h"
 #include "World/Particles.h"
@@ -15,11 +17,11 @@ namespace Client::World
 {
 namespace
 {
-constexpr int FullTurn = 360;
-constexpr double Hundredth = static_cast<double>(std::bit_cast<float>(0x3c23d70au)); // 0x6b86c0, 0,01f
-constexpr double Tenth = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));     // 0x6b87b8 y 0x6b8a34, 0,1f
-constexpr double Fifth = static_cast<double>(std::bit_cast<float>(0x3e4ccccdu));     // 0x6b8854, 0,2f
-constexpr double Speedup = static_cast<double>(std::bit_cast<float>(0x3f866666u));   // 0x6ba3d4, 1,05f
+constexpr int FullTurn = Math::FullTurn;
+constexpr double Hundredth = Math::HundredthAsDouble;                              // 0x6b86c0, 0,01f
+constexpr double Tenth = Math::TenthAsDouble;                                      // 0x6b87b8 y 0x6b8a34, 0,1f
+constexpr double Fifth = Math::FifthAsDouble;                                      // 0x6b8854, 0,2f
+constexpr double Speedup = static_cast<double>(std::bit_cast<float>(0x3f866666u)); // 0x6ba3d4, 1,05f
 
 using Math::F32;
 

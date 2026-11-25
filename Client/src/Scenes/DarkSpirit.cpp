@@ -2,6 +2,7 @@
 
 #include "Crt/CrtRandom.h"
 #include "Maps/MapId.h"
+#include "Math/FloatConstants.h"
 #include "Math/X87.h"
 #include "Render/Models/Animation.h"
 #include "Render/Models/HalfLifeMath.h"
@@ -69,9 +70,9 @@ constexpr int FarSpan = 64;
 constexpr int FarBase = 128;
 constexpr int ClimbSpan = 64;
 constexpr int ClimbCenter = 32;
-constexpr double Tenth = static_cast<double>(0.1f);
+constexpr double Tenth = Math::TenthAsDouble;
 constexpr double MinusTenth = static_cast<double>(-0.1f);
-constexpr double Half = 0.5;
+constexpr double Half = Math::HalfAsDouble;
 constexpr float FastBelow = -12.0f;
 constexpr int ShoutSpan = 100;
 constexpr int ShoutCounter = 60;

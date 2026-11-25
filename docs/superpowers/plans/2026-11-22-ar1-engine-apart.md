@@ -432,14 +432,19 @@ PR `refactor(AR1.1): give the shared float numbers one home`, branch `refactor/a
 Details: the [named-values plan](2026-11-23-named-values.md)'s Task 4.
 
 `Client/src/Math/FloatConstants.h` and `Client/src/Math/Angles.h` (`engine/Math`, `Client::Math`), with numeric names
-only (`Tenth`, `Half`, `Hundredth`, `FullTurn`, the degree-to-radian factors) and **one name per representation**: a
-`float` from its bit pattern, and another name for the `double` widened from that `float` (`Hundredth` is a `float`
-in `Render/Models/Cloth.cpp:39` and such a `double` in `Scenes/CameraTour.cpp:54`). The two degree-to-radian factors
-that differ in the last bit (`Render/Models/OriginalRotation.cpp:16` `0x3C8EFA35`, `Render/Models/Pose.cpp:24`
-`0x3c8efa36`) stay two names. A script replaces only the private definitions whose type and initializer are
-token-identical to the home's; role names (`Fade`, `Growth`) are not touched. Gate: the behavior golden in Debug and
-`math-release` on Linux and Windows, and the reference gives the same numbers. The registry's `number` space becomes
-`home-only`.
+only (`Tenth`, `Half`, `Hundredth`, `FullTurn`, the degree-to-radian factors) and **one name per representation**: the
+plain name is the number in the type the original keeps it in (`Hundredth`, a `float` from its bit pattern, as
+`Render/Models/Cloth.cpp` uses it; `FullTurn`, the integer 360) and a suffix names another type (`HundredthAsDouble`,
+the `double` widened from that `float`, as `Scenes/CameraTour.cpp` uses it; `FullTurnAsFloat`, `FullTurnAsDouble`).
+The two degree-to-radian factors that differ in the last bit stay two names: `DegreesToRadians` (`0x3c8efa35`, in
+`Render/Models/OriginalRotation.cpp`) and `DegreesToRadiansRoundedUp` (`0x3c8efa36`, in `Render/Models/Pose.cpp`).
+
+A script replaces a private definition only when its declared type and its initializer give the home's value bit for
+bit in that type, whatever the spelling; the compiler checks every replaced shape with a `static_assert`. A copy with
+the home's name and type becomes a using-declaration in the same place; any other keeps its name and its type and
+takes the home's name as its initializer. Role names (`Fade`, `Growth`) are not touched, nor a numeric name with
+another value. Gate: the behavior golden in Debug and `math-release` on Linux and Windows, and the reference gives the
+same numbers. The registry's `number` space becomes `home-only`.
 
 ### Task 5d: every map has its name
 

@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/FloatConstants.h"
 #include "Scenes/ObjectFrameSprites.h"
 #include "Scenes/WorldObjectsDrawing.h"
 #include "World/KalimaParticleKernels.h"
@@ -68,7 +69,7 @@ constexpr std::array<FlarePair, 6> RedFlares{{
     {17, {0.0f, 2.0f, -8.0f}, 5.0f, 0.25f},
 }};
 constexpr float SecondFlareScale = 3.0f;
-constexpr float Tenth = std::bit_cast<float>(0x3dcccccdu);
+using Math::Tenth;
 constexpr float Fifteenth = std::bit_cast<float>(0x3e19999au);
 constexpr float BlueGlow = std::bit_cast<float>(0x3e99999au);
 

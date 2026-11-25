@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainLight.h"
+#include "Math/FloatConstants.h"
 #include "Render/Models/OriginalAngles.h"
 #include "Render/Models/OriginalRetainedMath.h"
 #include "Render/Models/OriginalRotation.h"
@@ -25,7 +26,7 @@ namespace Client::World
 {
 namespace
 {
-constexpr float Tenth = std::bit_cast<float>(0x3dcccccdu);
+using Math::Tenth;
 constexpr float LampGreen = std::bit_cast<float>(0x3f4ccccdu);
 constexpr float WarmGreen = std::bit_cast<float>(0x3f19999au);
 constexpr float FireBlue = std::bit_cast<float>(0x3ecccccdu);
@@ -254,7 +255,7 @@ Core::Expected<void, std::string> StepAidaObject(WorldObject& object, Crt::CrtRa
 {
     // 0x6b8a24 (0,015f), 0x6b88d4 (0,01f), 0x6b87b4/0x6b8a20 (0,4f y 0,6f), 0x6b8a1c/0x6b8854 (0,9f y 0,2f).
     constexpr double Scroll = static_cast<double>(std::bit_cast<float>(0x3c75c28fu));
-    constexpr double Hundredth = static_cast<double>(std::bit_cast<float>(0x3c23d70au));
+    constexpr double Hundredth = Math::HundredthAsDouble;
     constexpr double GreenLow = static_cast<double>(std::bit_cast<float>(0x3ecccccdu));
     constexpr double GreenHigh = static_cast<double>(std::bit_cast<float>(0x3f19999au));
     constexpr double RedHigh = static_cast<double>(std::bit_cast<float>(0x3f666666u));

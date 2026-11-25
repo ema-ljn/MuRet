@@ -1,6 +1,7 @@
 #include "Scenes/GameHover.h"
 
 #include "Core/Expected.h"
+#include "Maps/MapId.h"
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
 #include "Render/Text/TextStyle.h"
@@ -31,8 +32,7 @@ namespace Client::Scenes
 namespace
 {
 // 0x5bbbd0..0x5bbbd8: Chaos Castle.
-constexpr std::int32_t FirstChaosCastleMap = 0x12;
-constexpr std::int32_t LastChaosCastleMap = 0x17;
+using Maps::IsChaosCastle;
 // 0x6c9ccc.
 constexpr std::string_view WebzenWord = "webzen";
 // +0x88 de un monstruo.
@@ -43,11 +43,6 @@ constexpr Render::Text::TextColors MonsterNameColors{.text = 0xffc8e6ffu, .backg
 constexpr std::int32_t MonsterNameTop = 10;
 constexpr Render::Color White{1.0f, 1.0f, 1.0f, 1.0f};
 constexpr std::int32_t NoTarget = -1;
-
-bool InChaosCastle(std::int32_t map)
-{
-    return map >= FirstChaosCastleMap && map <= LastChaosCastleMap;
-}
 
 // 0x557170(+0x1d9, 0x78abb3c o 0x78abb40, personaje, 0, −1): el nombre solo, con el texto vacío de la .bss.
 Core::Expected<void, std::string> NameBubble(GameHoverContext& context, std::int32_t index)
@@ -125,7 +120,7 @@ Core::Expected<void, std::string> DrawTheHover(GameHoverContext& context)
     const std::int32_t pickedOther = context.targets[4];
     // 0x5bbbc6..0x5bbc0a.
     const ActorState& hero = world.Actors()[runtime.hero];
-    if (InChaosCastle(runtime.map) && !ActorNameContains(hero, WebzenWord) &&
+    if (IsChaosCastle(runtime.map) && !ActorNameContains(hero, WebzenWord) &&
         (npc != NoTarget || character != NoTarget))
         return {};
     // 0x5bbc10..0x5bbc2c.

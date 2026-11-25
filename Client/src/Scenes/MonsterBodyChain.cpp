@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Maps/MapId.h"
 #include "Math/X87.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/OriginalRetainedMath.h"
@@ -40,9 +41,7 @@ namespace
 {
 using Chained = Core::Expected<bool, std::string>;
 
-constexpr std::int32_t FirstKalimaMap = 24;
-constexpr std::int32_t LastKalimaMap = 29;
-constexpr std::int32_t SeventhKalimaMap = 36;
+using Maps::IsKalimaMap;
 constexpr std::int32_t CastleMap = 30;
 constexpr std::int32_t Map34 = 0x22;
 constexpr std::uint32_t BaseFlags = 0x2;
@@ -77,11 +76,6 @@ BodyPassArgs WithTexture(BodyPassArgs args, std::int32_t texture)
 {
     args.texture = texture;
     return args;
-}
-
-bool InKalima(std::int32_t map)
-{
-    return (map >= FirstKalimaMap && map <= LastKalimaMap) || map == SeventhKalimaMap;
 }
 
 template <std::size_t N> bool OneOf(std::uint16_t value, const std::array<std::uint16_t, N>& values)
@@ -579,7 +573,7 @@ Chained DrawTheKalimaCase(MonsterBodyFrame& frame)
     MonsterBodyModel& model = frame.model;
     const ActorState& actor = frame.actor;
     const std::uint16_t type = actor.type;
-    if (type == 0x173 && InKalima(frame.map))
+    if (type == 0x173 && IsKalimaMap(frame.map))
     {
         // 0x43900a..0x439662: con el color en 0, RenderBody(2); después el color en 1.
         model.object.color = glm::vec3(0.0f);
@@ -595,7 +589,7 @@ Chained DrawTheKalimaCase(MonsterBodyFrame& frame)
         args.hiddenMesh = -1;
         return Drawn(DrawBodyPass(model, BaseFlags, args));
     }
-    if (!InKalima(frame.map) || type >= 0xa0)
+    if (!IsKalimaMap(frame.map) || type >= 0xa0)
         return DrawTheLateChainCase(frame);
     // 0x4394a0..0x4394c4: RenderBody(2).
     if (auto drawn = DrawBodyPass(model, BaseFlags, ActorPassArgs(actor)); !drawn.HasValue())

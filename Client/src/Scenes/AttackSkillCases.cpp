@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Maps/MapId.h"
 #include "Math/X87.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/OriginalAngles.h"
@@ -1080,7 +1081,7 @@ Core::Expected<void, std::string> StepTheHeadSkill(ActorState& actor, std::size_
         if (auto lit = LightTheHellfire(actor, slot, skill, context); !lit.HasValue())
             return lit;
         // 4fed2d..4ff4a8: Y, X y 437860(x,y,2,-1500); puntero 723c48 nulo es no-op, no una frontera.
-        if (World::IsKalimaMap(context.world.Runtime().map))
+        if (Maps::IsKalimaMap(context.world.Runtime().map))
         {
             const LogicalCell cell = ReadLogicalCell(actor, context.random);
             constexpr std::int32_t WaveRadius = 2, WaveAmplitude = -1500;

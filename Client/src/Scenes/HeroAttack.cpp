@@ -6,6 +6,7 @@
 #include "Data/Terrain/TerrainAttributes.h"
 #include "GameLogic/PathCell.h"
 #include "GameLogic/PathFinder.h"
+#include "Maps/MapId.h"
 #include "Protocol/Combat.h"
 #include "Protocol/Movement.h"
 #include "Render/Models/LogicalAccess.h"
@@ -45,8 +46,8 @@ namespace
 {
 constexpr std::uint8_t PlayerObject = 1;
 constexpr std::uint8_t MonsterObject = 2;
-constexpr std::int32_t FirstChaosCastleMap = 18;
-constexpr std::int32_t LastChaosCastleMap = 23;
+using Maps::FirstChaosCastleMap;
+using Maps::LastChaosCastleMap;
 constexpr std::int32_t BrakeSkill = 0x28;
 constexpr std::int32_t BrakeMilliseconds = 300;
 constexpr std::uint32_t SiegeShield = 0x4000;

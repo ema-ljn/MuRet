@@ -22,7 +22,6 @@ class ModelBatch;
 // 06 § Kalima: dueño portable de4377a0/723c48. El mapa no sustituye su existencia.
 namespace Client::World
 {
-[[nodiscard]] bool IsKalimaMap(std::int32_t map);
 struct KalimaFrameContext
 {
     std::int32_t logicSteps;

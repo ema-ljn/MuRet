@@ -5,6 +5,7 @@
 #include "Crt/CrtRandom.h"
 #include "Data/Models/Model.h"
 #include "GameLogic/CharacterAppearance.h"
+#include "Maps/MapId.h"
 #include "Math/X87.h"
 #include "Render/ModelBatch.h"
 #include "Render/Models/IModelLibrary.h"
@@ -78,8 +79,8 @@ constexpr std::uint8_t PlayerKind = 1;
 constexpr std::uint8_t NpcKind = 4;
 constexpr std::uint8_t UnwalledKind = 8;
 constexpr std::uint8_t RedPk = 6;
-constexpr std::int32_t FirstBloodCastle = 11;
-constexpr std::int32_t LastBloodCastle = 17;
+using Maps::IsBloodCastle;
+using Maps::IsChaosCastle;
 constexpr std::int32_t CastleMap = 30;
 constexpr std::int32_t NoShadowMap = 10;
 // 0x5ffdf0: por debajo de 0,01f (0x6b88d4) no posa ni dibuja; en Chaos Castle, con +0x1a1 del héroe, 0,15f menos
@@ -125,16 +126,6 @@ float BoneScaleOf(PoseMode mode)
 
 using Math::D;
 using Math::F32;
-
-bool InChaosCastle(std::int32_t map)
-{
-    return World::IsChaosCastleMap(map);
-}
-
-bool InBloodCastle(std::int32_t map)
-{
-    return map >= FirstBloodCastle && map <= LastBloodCastle;
-}
 
 bool Within(std::uint16_t value, std::uint16_t first, std::uint16_t last)
 {
@@ -209,7 +200,7 @@ std::array<ObjectOutlinePass, 2> OutlinePassesOf(const ActorState& actor, std::i
 {
     const float scale94 = actor.float94;
     const auto atLeast = [](float value) { return value > MinimumOutline ? value : MinimumOutline; };
-    if (!InChaosCastle(map) && actor.byte88 == NpcKind)
+    if (!IsChaosCastle(map) && actor.byte88 == NpcKind)
     {
         return {{{scale94, Render::Color{std::bit_cast<float>(0x3ca3d70au), OuterSpan, 0.0f, 1.0f}},
                  {atLeast(F32(D(scale94) - D(NpcOutlineStep))),
@@ -333,7 +324,7 @@ Result DrawTheBody(MonsterFrame& frame, const Render::Models::Skeleton& skeleton
     ActorState& actor = frame.actor;
     const bool cloth = WearsClothOnTheMesh(actor.word376);
     // 0x5ffdf0: en Chaos Castle, con +0x1a1 del héroe, el alpha guardado baja 0,15f.
-    if (InChaosCastle(frame.map) && frame.world.Actors()[frame.world.Runtime().hero].byte1a1 != 0)
+    if (IsChaosCastle(frame.map) && frame.world.Actors()[frame.world.Runtime().hero].byte1a1 != 0)
         actor.alpha = F32(D(actor.alpha) - D(ChaosCastleFade));
     if (actor.alpha < DrawnAlpha)
     {
@@ -1010,7 +1001,7 @@ Result DrawTheShadow(MonsterFrame& frame)
 std::array<ObjectOutlinePass, 2> PartOutlinePassesOf(const ActorState& actor, std::int32_t map)
 {
     constexpr float InnerStep = std::bit_cast<float>(0x3ca3d70au); // 0,02 (0x6b8b90)
-    if (InChaosCastle(map))
+    if (IsChaosCastle(map))
     {
         const float outer = F32(D(OuterSpan) / D(actor.scale) + 1.0);
         const double inner = D(OutlineStep) / D(actor.scale) + D(std::bit_cast<float>(0x3f828f5cu)); // 1,02 (0x6ba764)
@@ -1059,7 +1050,7 @@ Result DrawTheParts(MonsterFrame& frame)
     ActorState& actor = frame.actor;
     if (actor.byte3e3 != 0)
         return {};
-    if (actor.byte88 == PlayerKind && InChaosCastle(frame.map))
+    if (actor.byte88 == PlayerKind && IsChaosCastle(frame.map))
         return Cut("0x50d383", "el Angel de Chaos Castle en un personaje que no es un jugador", actor.type);
     WornParts parts{};
     if (actor.head != NoItemModel)
@@ -1371,7 +1362,7 @@ Result DrawTheTail(MonsterFrame& frame, const glm::vec3& terrainLight)
     // 0x510a7a: en la escena 5, con +0x88 en 1, fuera de Blood Castle, Chaos Castle y el 30, 0x510ef0 con +0x369 y
     // +0x36c (Q-C352): el efecto 0x140 (Scenes/GuildMarkEffects) con el hueso 20 del cuerpo recién posado. Solo en un
     // frame del original: entre frames, el personaje es una copia y las tablas, las del mundo.
-    if (actor.byte88 == PlayerKind && !InBloodCastle(frame.map) && !InChaosCastle(frame.map) &&
+    if (actor.byte88 == PlayerKind && !IsBloodCastle(frame.map) && !IsChaosCastle(frame.map) &&
         frame.map != CastleMap && frame.originalFrame && GuildMarkIsDue(actor, frame.worldClock))
     {
         if (pass.particles == nullptr)
@@ -1467,7 +1458,7 @@ glm::vec3 HangingLightOf(const ActorState& actor, const glm::vec3& terrainLight,
 Core::Expected<float, std::string> ShadowGroundOf(const WorldState& world, const GameCharacterPass& pass,
                                                   const ActorState& actor, std::int32_t map, std::uint32_t address)
 {
-    if (!InBloodCastle(map) || actor.byte1a1 == 0 || actor.dying == 0)
+    if (!IsBloodCastle(map) || actor.byte1a1 == 0 || actor.dying == 0)
         return actor.position.z;
     const auto ground = GroundHeight(world, pass, actor.position.x, actor.position.y);
     if (!ground)

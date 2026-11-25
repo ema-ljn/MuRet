@@ -1,4 +1,5 @@
 #include "Scenes/ViewportPlayers.h"
+#include "Maps/MapId.h"
 #include "Scenes/CastleBattleReceive.h"
 #include "Scenes/SiegeBattleUi.h"
 
@@ -145,13 +146,7 @@ void GiveBack(ActorState& actor, const Kept& kept)
     actor.byte372 = kept.byte372;
 }
 
-bool IsKalima(std::int32_t map)
-{
-    constexpr std::int32_t FirstKalima = 24;
-    constexpr std::int32_t LastKalima = 29;
-    constexpr std::int32_t SeventhKalima = 36;
-    return (map >= FirstKalima && map <= LastKalima) || map == SeventhKalima;
-}
+using Maps::IsKalimaMap;
 
 // 0x4c89f3..0x4c8a04: ((b & 0x10) | (b >> 4)) >> 1.
 std::uint8_t ClassOf(std::uint8_t classAndState)
@@ -235,7 +230,7 @@ Core::Expected<void, std::string> ApplyPlayerRecord(const Protocol::Viewport::Pl
     // 0x4c91aa..0x4c91e1: en Kalima (24..29 y 36), 0x530860(0x610, posición, posición, ángulos, 8, jugador, 20, −1, 0,
     // 0, −1), sin rand(): la clase del pez de Atlans con el ActorState de dueño. Con los joints llenos no crea nada y
     // sigue.
-    if (IsKalima(runtime.map))
+    if (IsKalimaMap(runtime.map))
     {
         constexpr std::int32_t KalimaBeamJoint = 0x610, KalimaBeamSubtype = 8, NoKey = -1, NoTarget = -1;
         constexpr float KalimaBeamWidth = 20.0f;

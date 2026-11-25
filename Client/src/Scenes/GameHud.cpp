@@ -1,4 +1,5 @@
 #include "Scenes/GameHud.h"
+#include "Maps/MapId.h"
 #include "Math/X87.h"
 #include "Render/Models/RoundedMath.h"
 #include "Render/ScreenScale.h"
@@ -107,8 +108,8 @@ constexpr Color NumberColor{1.0f, 0.95f, 0.75f, 1.0f};
 constexpr std::int32_t TarkanMap = 8;
 constexpr std::int32_t CastleSiegeMap = 30;
 constexpr std::int32_t CrywolfMap = 34;
-constexpr std::int32_t FirstChaosCastleMap = 18;
-constexpr std::int32_t LastChaosCastleMap = 23;
+using Maps::FirstChaosCastleMap;
+using Maps::LastChaosCastleMap;
 constexpr std::size_t ExperienceHelpText = 201;
 constexpr std::size_t AgHelpText = 214;
 constexpr std::size_t ArrowsText = 351;

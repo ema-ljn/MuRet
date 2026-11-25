@@ -1,4 +1,5 @@
 #include "Scenes/WorldObjectsDrawing.h"
+#include "Maps/MapId.h"
 #include "Render/Models/IModelLibrary.h"
 #include "Scenes/VertexEffects.h"
 
@@ -538,7 +539,7 @@ Core::Expected<void, std::string> FrameCaseOf(World::WorldObject& object, const 
                                               int commonRandom, bool posed)
 {
     const std::uint8_t map = pass.map;
-    if (World::IsKalimaMap(map))
+    if (Maps::IsKalimaMap(map))
         return StepKalimaObjectFrame(object, pass);
     if (map == NoriaMap)
         return StepNoriaObjectFrame(object, commonRandom, pass);
@@ -562,7 +563,7 @@ Core::Expected<void, std::string> FrameCaseOf(World::WorldObject& object, const 
         return StepDevilSquareObjectFrame(object, pass);
     if (map >= FirstBloodCastleMap && map <= LastBloodCastleMap)
         return StepBloodCastleObjectFrame(object, pass);
-    if (World::IsChaosCastleMap(map))
+    if (Maps::IsChaosCastle(map))
         return StepChaosCastleObjectFrame(object, pass);
     if (map == LorenciaMap && object.type == 0x38)
         return StepMerchantAnimalFrame(object, commonRandom, pass, posed);
@@ -593,7 +594,7 @@ DrawGameWorldObjects(Render::ModelBatch& batch, const Render::Models::IModelLibr
     if (pass.map > LostTowerMap && pass.map != ArenaMap && pass.map != AtlansMap && pass.map != TarkanMap &&
         pass.map != DevilSquareMap && pass.map != IcarusMap && pass.map != CastleSiegeMap &&
         pass.map != LandOfTrialsMap && pass.map != AidaMap && pass.map != CrywolfMap && pass.map != SelectionWorldMap &&
-        !World::IsKalimaMap(pass.map) && !bloodCastle && !World::IsChaosCastleMap(pass.map))
+        !Maps::IsKalimaMap(pass.map) && !bloodCastle && !Maps::IsChaosCastle(pass.map))
     {
         return Core::Unexpected(std::format("0x6046a0: los casos por tipo del mapa {} (0x6002e0 y 0x602ed0) no están "
                                             "leídos",
@@ -639,7 +640,7 @@ DrawGameWorldObjects(Render::ModelBatch& batch, const Render::Models::IModelLibr
                 return published;
         }
         const auto* retained = (pass.originalFrame || pass.publishProjectedPose) ? pass.retainedPose : nullptr;
-        if (World::IsKalimaMap(pass.map) && draw.kind != World::ObjectDrawKind::Hidden)
+        if (Maps::IsKalimaMap(pass.map) && draw.kind != World::ObjectDrawKind::Hidden)
         {
             // 438fe0 tiene casos globales fuera del dominio público43948d: no usar el cuerpo
             // como fallback para un tipo que todavía necesita su propio handler.
@@ -734,7 +735,7 @@ DrawGameWorldObjects(Render::ModelBatch& batch, const Render::Models::IModelLibr
                                   frameClock);
             object.state.hiddenMesh = Render::Models::NoHiddenMesh;
         }
-        if (World::IsKalimaMap(pass.map) && draw.kind != World::ObjectDrawKind::Hidden)
+        if (Maps::IsKalimaMap(pass.map) && draw.kind != World::ObjectDrawKind::Hidden)
         {
             if (auto tail = DrawKalimaObjectTail(batch, models, object, drawn, frameClock, pass); !tail.HasValue())
                 return tail;

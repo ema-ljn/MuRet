@@ -5,6 +5,7 @@
 #include "Data/Models/PlayerModels.h"
 #include "Data/Text/DialogTable.h"
 #include "Data/Text/TextTable.h"
+#include "Maps/MapId.h"
 #include "Protocol/Events.h"
 #include "Protocol/Movement.h"
 #include "Protocol/Outgoing.h"
@@ -126,10 +127,10 @@ constexpr std::uint8_t AreaAttributes = 0;
 constexpr std::uint8_t CellAttributes = 1;
 
 // Los mapas de los eventos (0x6c9dd0).
-constexpr std::int32_t FirstBloodCastleMap = 11;
-constexpr std::int32_t LastBloodCastleMap = 17;
-constexpr std::int32_t FirstChaosCastleMap = 18;
-constexpr std::int32_t LastChaosCastleMap = 23;
+using Maps::FirstBloodCastleMap;
+using Maps::FirstChaosCastleMap;
+using Maps::LastBloodCastleMap;
+using Maps::LastChaosCastleMap;
 
 // 0x4dac0b y 0x40c221: el derrumbe de Blood Castle (el atributo 8 del 46 y el 9B con 3).
 constexpr std::uint8_t BloodCastleGateAttribute = 8;

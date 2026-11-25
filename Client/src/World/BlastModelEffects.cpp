@@ -4,6 +4,7 @@
 #include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainGrid.h"
+#include "Maps/MapId.h"
 #include "Math/X87.h"
 #include "Render/Models/Animation.h"
 #include "Render/Models/LogicalAccess.h"
@@ -934,7 +935,7 @@ Core::Expected<void, std::string> StepTheSpinningItem(ModelEffect& effect, float
     // 0x521996..0x521aab: en Kalima (0x18..0x1d o 0x24), una sola chispa con sus cuatro rand() (0x5219cc, 0x5219ec,
     // 0x521a30 y 0x521a4c), 120 más arriba (0x6b86c8), y 0x53fe70(0x6f4, punto, ángulos, (0,5; 0,5; 0,5), 3, 1, 0)
     // (0x521aa3), que salta al sprite (0x521bb6); el sprite sube 60 (0x42700000) en vez de 20 (0x41a00000, 0x5219ae).
-    const bool kalima = IsKalimaMap(*services.map);
+    const bool kalima = Maps::IsKalimaMap(*services.map);
     const double lift = kalima ? 60.0 : 20.0;
     const int sparks = kalima ? 1 : 4;
     for (int spark = 0; spark < sparks; ++spark)
@@ -1069,7 +1070,7 @@ Core::Expected<void, std::string> StepThePiercingChild(ModelEffect& effect, CrtR
         return made;
     if (services.map == nullptr)
         return Core::Unexpected(Cut("0x523cd0", "la estela 105/1 lee el mapa (0x6c9dd0)"));
-    if (IsKalimaMap(*services.map) && owner->ownerContext != nullptr && owner->ownerContext == services.hero)
+    if (Maps::IsKalimaMap(*services.map) && owner->ownerContext != nullptr && owner->ownerContext == services.hero)
     {
         if (kalima == nullptr)
             return Core::Unexpected(Cut("0x523d24", "la estela 105/1 pide las ondas de Kalima (0x437860)"));

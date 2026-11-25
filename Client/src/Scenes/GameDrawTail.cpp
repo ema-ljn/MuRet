@@ -1,4 +1,5 @@
 #include "Scenes/GameDrawTail.h"
+#include "Maps/MapId.h"
 #include "Math/X87.h"
 #include "Render/Models/IModelLibrary.h"
 #include "Scenes/VertexEffects.h"
@@ -730,7 +731,7 @@ DrawPlainModelEffect(Render::ModelBatch& batch, World::ModelEffect& effect, cons
     }
     constexpr std::int16_t KalimaType = 9;
     if (effect.type == KalimaType && resources != nullptr && resources->kalimaPass != nullptr &&
-        World::IsKalimaMap(resources->kalimaPass->map))
+        Maps::IsKalimaMap(resources->kalimaPass->map))
     {
         World::WorldObject view;
         view.type = effect.type;

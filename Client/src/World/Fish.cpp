@@ -9,6 +9,7 @@
 #include <span>
 #include <glm/ext/vector_float3.hpp>
 #include "Core/Expected.h"
+#include "Maps/MapId.h"
 #include "World/IFishStepServices.h"
 
 namespace Client::World
@@ -20,17 +21,14 @@ constexpr std::size_t ExtendedCount = 10;
 constexpr std::uint8_t LorenciaWater = 5;
 constexpr std::uint16_t BlockedAttribute = 8;
 
-bool IsKalima(std::int32_t map)
-{
-    return (map >= 24 && map <= 29) || map == 36;
-}
+using Maps::IsKalimaMap;
 
 } // namespace
 
 std::size_t FishStepCount(std::int32_t map)
 {
     // 0x447043..0x447064; 33 no comparte el prefijo extendido de 8.
-    if (map == 7 || map == 8 || IsKalima(map) || map == 34)
+    if (map == 7 || map == 8 || IsKalimaMap(map) || map == 34)
         return ExtendedCount;
     return OrdinaryCount;
 }
@@ -42,7 +40,7 @@ bool FishDirectSpawnAllowed(std::int32_t map, std::uint8_t surface, std::uint16_
         return surface == LorenciaWater;
     if (map == 1 || map == 6)
         return attributes < BlockedAttribute;
-    if (map == 7 || IsKalima(map))
+    if (map == 7 || IsKalimaMap(map))
         return FishOpenWaterTile(attributes);
     return false;
 }
@@ -213,7 +211,7 @@ private:
             if (*surface == 5)
                 return true;
         }
-        else if (map == 1 || map == 6 || map == 7 || IsKalima(map))
+        else if (map == 1 || map == 6 || map == 7 || IsKalimaMap(map))
         {
             auto attr = Attribute(tile);
             if (!attr)
@@ -291,7 +289,7 @@ private:
         fish.scale = initialScale;
         if (!Specialize(fish, map, initialScale))
             return false;
-        if (!IsKalima(map))
+        if (!IsKalimaMap(map))
             return true;
         fish.type = -1;
         auto draw = Read(m_services.Random());
@@ -510,7 +508,7 @@ private:
     bool Collision(FishStepView& fish, std::uint32_t tile)
     {
         std::int32_t map = m_world.map;
-        bool special = map == 8 || IsKalima(map);
+        bool special = map == 8 || IsKalimaMap(map);
         if (!special)
         {
             auto gate = Read(m_services.EventGate());
@@ -557,7 +555,7 @@ private:
             Turn(fish, special);
         else if (fish.counter > 0)
             --fish.counter;
-        if (special && IsKalima(map) && fish.timer <= 1)
+        if (special && IsKalimaMap(map) && fish.timer <= 1)
             fish.active = 0;
         if (fish.counter >= 2)
             fish.active = 0;

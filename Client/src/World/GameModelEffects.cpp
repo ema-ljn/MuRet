@@ -1,4 +1,5 @@
 #include "World/GameModelEffects.h"
+#include "Maps/MapId.h"
 #include "Math/X87.h"
 #include "World/SiegeVertexEffects.h"
 #include "World/SkinShellEffects.h"
@@ -1173,7 +1174,7 @@ Core::Expected<bool, std::string> QuakeInKalima(const ModelEffectStepServices& s
 {
     if (services.map == nullptr)
         return Core::Unexpected(std::format("{}: el terremoto lee el mapa (0x6c9dd0)", address));
-    return IsKalimaMap(*services.map);
+    return Maps::IsKalimaMap(*services.map);
 }
 
 Core::Expected<double, std::string> QuakeHeight(const ModelEffectStepServices& services, float x, float y,
@@ -1800,7 +1801,8 @@ Core::Expected<void, std::string> StepGameModelEffect(ModelEffect& effect, const
             }
             if (services.map == nullptr)
                 return Core::Unexpected(std::string("0x523cd0: la estela 0x105 necesita el mapa"));
-            if (IsKalimaMap(*services.map) && arrow->ownerContext != nullptr && arrow->ownerContext == services.hero)
+            if (Maps::IsKalimaMap(*services.map) && arrow->ownerContext != nullptr &&
+                arrow->ownerContext == services.hero)
             {
                 if (kalima == nullptr)
                     return Core::Unexpected(std::string("0x523d24: la estela 0x105 necesita las ondas de Kalima"));

@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Maps/MapId.h"
 #include "Math/X87.h"
 #include "Render/Models/ObjectState.h"
 #include "Scenes/EventGlobals.h"
@@ -212,7 +213,7 @@ Result CollapseTheObject(World::WorldObject& object, const ObjectCollapseContext
 {
     if (!ObjectCollapseActive(context.runtime))
         return {};
-    if (World::IsChaosCastleMap(context.runtime.map))
+    if (Maps::IsChaosCastle(context.runtime.map))
         return StepChaosCastleCollapse(object, context);
     ObjectCollapse& collapse = context.runtime.events.objectCollapse;
     if (object.type == FirstOpeningObject || object.type == SecondOpeningObject)

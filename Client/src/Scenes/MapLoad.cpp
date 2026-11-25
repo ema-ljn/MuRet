@@ -9,6 +9,7 @@
 #include "Data/Terrain/TerrainObjects.h"
 #include "Data/WorldFolder.h"
 #include "Data/WorldLoadIdentity.h"
+#include "Maps/MapId.h"
 #include "Protocol/Events.h"
 #include "Scenes/ActorCreation.h"
 #include "Scenes/ActorState.h"
@@ -53,10 +54,10 @@ constexpr std::int32_t CastleSiegeMap = 30;
 constexpr std::int32_t CrywolfMap = 34;
 constexpr std::int32_t LoginMap = 55;
 constexpr std::int32_t DevilSquareMap = 9;
-constexpr std::int32_t FirstBloodCastleMap = 11;
-constexpr std::int32_t LastBloodCastleMap = 17;
-constexpr std::int32_t FirstChaosCastleMap = 18;
-constexpr std::int32_t LastChaosCastleMap = 23;
+using Maps::FirstBloodCastleMap;
+using Maps::FirstChaosCastleMap;
+using Maps::LastBloodCastleMap;
+using Maps::LastChaosCastleMap;
 constexpr std::uint8_t ChaosCastleAreaReset = 0xff;
 // 0x5f831e..0x5f8342: (rand() % 4) · 0,25 en cada una de las 65.536 celdas.
 constexpr int GrassSteps = 4;
@@ -343,7 +344,7 @@ Core::Expected<void, std::string> LoadMap(std::uint8_t argumentMap, const MapLoa
     }
     // 61a920→4377a0: los errores anteriores conservan723c48; recién aquí4378c0 lo suelta.
     loaded.kalima.reset();
-    if (World::IsKalimaMap(map))
+    if (Maps::IsKalimaMap(map))
     {
         try
         {

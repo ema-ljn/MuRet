@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Maps/MapId.h"
 #include "Render/Models/LogicalAccess.h"
 #include "UI/Dialogs.h"
 #include "UI/PanelDialog.h"
@@ -41,8 +42,8 @@ constexpr std::int32_t InventoryCompanionMode = 3;
 // 0x659860: el quest en 1 no deja abrir nada.
 constexpr std::uint8_t BlockingQuestState = 1;
 // 0x6598d4..0x6598e4: los amigos y los comandos no se abren en Chaos Castle (18 a 23).
-constexpr std::int32_t FirstChaosCastleMap = 18;
-constexpr std::int32_t LastChaosCastleMap = 23;
+using Maps::FirstChaosCastleMap;
+using Maps::LastChaosCastleMap;
 // 0x65c01d: el Dark Lord pide su mascota al abrir el inventario.
 constexpr std::uint8_t DarkLordClass = 4;
 // 0x65ca72..0x65ca88 y 0x65cc2c..0x65cc3a: los dos sonidos de abrir y cerrar.

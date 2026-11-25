@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Data/Tables/SkillTable.h"
+#include "Maps/MapId.h"
 #include "Protocol/Pet/PetOrders.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
@@ -52,10 +53,9 @@ constexpr float CellReciprocal = std::bit_cast<float>(std::uint32_t{0x3c23d70a})
 constexpr float SecondsPerMillisecond = std::bit_cast<float>(std::uint32_t{0x3a83126f}); // [0x6ba128], 0,001
 constexpr double MaximumHoldSeconds = 3600.0;                                            // [0x6ba43c]
 constexpr std::int32_t SpectatorMap = 6;
-constexpr std::int32_t FirstBloodCastleMap = 11;
-constexpr std::int32_t LastBloodCastleMap = 17;
-constexpr std::int32_t FirstChaosCastleMap = 18;
-constexpr std::int32_t LastChaosCastleMap = 23;
+using Maps::FirstBloodCastleMap;
+using Maps::IsChaosCastle;
+using Maps::LastBloodCastleMap;
 constexpr std::int32_t CastleSiegeMap = 30;
 constexpr std::uint8_t ChargedSkill = 0x28;
 constexpr std::uint8_t ReleasedChargedSkill = 0x3a;
@@ -67,15 +67,10 @@ bool InRange(std::int32_t value, std::int32_t first, std::int32_t last)
     return value >= first && value <= last;
 }
 
-bool InChaosCastle(std::int32_t map)
-{
-    return InRange(map, FirstChaosCastleMap, LastChaosCastleMap);
-}
-
 // 0x57d1bc..0x57d1d7 y 0x57d3ab..0x57d3c9: el ataque automático (0x6c8e3c), fuera del mapa 6 y de Chaos Castle.
 bool AutoAttacksHere(const WorldRuntime& runtime)
 {
-    return runtime.ui.autoAttack && runtime.map != SpectatorMap && !InChaosCastle(runtime.map);
+    return runtime.ui.autoAttack && runtime.map != SpectatorMap && !IsChaosCastle(runtime.map);
 }
 
 // 0x57d369..0x57d3a5: lo que se usa desde la zona segura de Blood Castle y Chaos Castle.
@@ -527,7 +522,7 @@ Core::Expected<void, std::string> UseTheHeroSkill(ActorState& hero, const HeroSk
     // 0x57d33d..0x57d3a5: en la zona segura, solo en Blood Castle o Chaos Castle y con las skills de la lista.
     if (hero.safeZone != 0)
     {
-        if (!InRange(runtime.map, FirstBloodCastleMap, LastBloodCastleMap) && !InChaosCastle(runtime.map))
+        if (!InRange(runtime.map, FirstBloodCastleMap, LastBloodCastleMap) && !IsChaosCastle(runtime.map))
             return {};
         if (!UsableInTheSafeZone(skill))
             return {};

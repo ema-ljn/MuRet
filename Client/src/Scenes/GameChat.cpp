@@ -6,6 +6,7 @@
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Input/InputEvent.h"
+#include "Maps/MapId.h"
 #include "Protocol/Chat/ChatSend.h"
 #include "Protocol/Duel.h"
 #include "Protocol/Movement.h"
@@ -56,8 +57,8 @@ namespace Client::Scenes
 namespace
 {
 // 0x4b5269..: Chaos Castle, del 18 al 23.
-constexpr std::int32_t FirstChaosCastleMap = 18;
-constexpr std::int32_t LastChaosCastleMap = 23;
+using Maps::FirstChaosCastleMap;
+using Maps::LastChaosCastleMap;
 // 0x4b529b..0x4b52f0: los diálogos con los que Enter no hace nada.
 constexpr std::array<std::int32_t, 5> EnterBlockingDialogs{0x7d, 0x95, 0x8a, 0x8d, 0x8b};
 // 0x4b52f6: 0x78abb00 en 3.

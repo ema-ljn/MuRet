@@ -1,4 +1,5 @@
 #include "Scenes/GameCharacters.h"
+#include "Maps/MapId.h"
 #include "Render/Models/IModelLibrary.h"
 #include "Render/Models/ObjectState.h"
 #include "Scenes/CastleSiegeBlessing.h"
@@ -70,8 +71,7 @@ namespace
 constexpr float UndrawnHeroMark = 1000.0f;
 constexpr std::size_t DrawnActorCount = ActorPoolSize - 1;
 constexpr std::uint32_t HiddenCharacterFlag = 0x10000000;
-constexpr std::int32_t FirstEventMap = 18;
-constexpr std::int32_t LastEventMap = 23;
+using Maps::IsChaosCastle;
 constexpr float ShadowAlphaThreshold = 0.5f;
 // +0x88 de un jugador (0x511290 y el F3 03) y las banderas de 0x609640 con que va su Angel en Chaos Castle.
 constexpr std::uint8_t PlayerKind = 1;
@@ -320,11 +320,6 @@ Core::Expected<void, std::string> DrawTheSkeletonBody(Render::ModelBatch& batch,
                             state, actor.byteE8 != 0, context);
 }
 
-bool InChaosCastle(std::int32_t map)
-{
-    return map >= FirstEventMap && map <= LastEventMap;
-}
-
 // 0x5091e0: el hueso 26 (+0x4e0 de los huesos propios, +0x120), el giro del personaje (+0x1c) más (80, 45, 135) y la
 // traslación (20, −5, −10), con z en −18 si la armadura (+0x238) es la 0x1226.
 constexpr std::size_t GuildMarkBone = 0x4e0 / 0x30;
@@ -402,7 +397,7 @@ Core::Expected<void, std::string> DrawTheGuildMark(Render::ModelBatch& batch,
                                                    const GuildState& guild)
 {
     const auto index = static_cast<std::int16_t>(actor.word1f2);
-    if (InChaosCastle(character.map) || index < 0 || actor.type != Data::Models::PlayerSkeletonModel ||
+    if (IsChaosCastle(character.map) || index < 0 || actor.type != Data::Models::PlayerSkeletonModel ||
         actor.alpha == 0.0f)
         return {};
     if (index != CreatingGuildIndex)
@@ -451,7 +446,7 @@ Core::Expected<void, std::string> DrawTheBody(Render::ModelBatch& batch, const R
     {
         // 0x50d374: en Chaos Castle, un jugador va con el Angel, con el cromo si es el héroe (0x743a170), y salta
         // a 0x50d4fb, que en esos mapas no dibuja la marca del gremio.
-        if (actor.byte88 == PlayerKind && InChaosCastle(character.map))
+        if (actor.byte88 == PlayerKind && IsChaosCastle(character.map))
         {
             if (pass.worldModels == nullptr)
                 return Core::Unexpected<std::string>(
@@ -705,9 +700,9 @@ Core::Expected<void, std::string> DrawThePool(Render::ModelBatch& batch, const R
 bool CastsShadow(const ActorState& actor, std::int32_t map)
 {
     constexpr std::int32_t NoShadowMap = 10;
-    constexpr std::int32_t FirstKalimaMap = 24;
-    constexpr std::int32_t LastKalimaMap = 29;
-    constexpr std::int32_t SeventhKalimaMap = 36;
+    using Maps::FirstKalimaMap;
+    using Maps::LastKalimaMap;
+    using Maps::SeventhKalimaMap;
     // 0x50bc16: con +0x3e4 (el retrato de las cartas), sin sombra.
     return actor.alpha >= ShadowAlphaThreshold && actor.byte3e4 == 0 && map != NoShadowMap &&
            !(map >= FirstKalimaMap && map <= LastKalimaMap) && map != SeventhKalimaMap;

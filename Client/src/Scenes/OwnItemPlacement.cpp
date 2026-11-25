@@ -5,6 +5,7 @@
 #include "Crt/CrtRandom.h"
 #include "Data/Models/PlayerModels.h"
 #include "Data/Tables/ItemTable.h"
+#include "Maps/MapId.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/Skeleton.h"
 #include "Scenes/ActorActions.h"
@@ -52,8 +53,7 @@ constexpr std::size_t ItemWidthOffset = 0x24;
 constexpr std::size_t ItemHeightOffset = 0x25;
 
 // 0x5bc8a0..0x5bc8ad y 0x420d1a..0x420d22: en los mapas 18 a 23 no crea mascotas ni cuervo.
-constexpr std::int32_t FirstChaosCastleMap = 18;
-constexpr std::int32_t LastChaosCastleMap = 23;
+using Maps::IsChaosCastle;
 // Los lugares que 0x5bc740 mira después de 0x512a30 (0x5bc897, 0x5bca53, 0x5bca6c y 0x5bca71).
 constexpr std::uint8_t LeftHandSlot = 1;
 constexpr std::uint8_t PetSlot = 8;
@@ -97,11 +97,6 @@ constexpr std::uint32_t UpperBits = ~std::uint32_t{0xff};
 std::uint32_t Byte(InventoryItemBytes bytes, std::size_t index)
 {
     return std::to_integer<std::uint32_t>(bytes[index]);
-}
-
-bool InChaosCastle(std::int32_t map)
-{
-    return map >= FirstChaosCastleMap && map <= LastChaosCastleMap;
 }
 
 Core::Expected<std::span<const std::byte, Data::Tables::ItemRecordSize>, std::string>
@@ -232,7 +227,7 @@ Core::Expected<void, std::string> AfterTheDressing(std::uint8_t slot, const Item
     ActorState& hero = world.Actors()[runtime.hero];
     const std::int32_t map = runtime.map;
     const std::uint16_t type = item.id;
-    if (slot == PetSlot && !InChaosCastle(map))
+    if (slot == PetSlot && !IsChaosCastle(map))
     {
         if (type == HornOfDoom)
         {

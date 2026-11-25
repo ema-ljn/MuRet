@@ -10,6 +10,7 @@
 #include "Data/Terrain/TerrainMapping.h"
 #include "Data/Terrain/TerrainObjects.h"
 #include "Data/WorldFolder.h"
+#include "Maps/MapId.h"
 #include "Scenes/HelperTable.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/WorldMap.h"
@@ -427,7 +428,7 @@ TEST_P(MapSweep, LoadsTheNominalIdentityOrStopsAtTheDeclaredBoundary)
     }
     EXPECT_EQ(m_world.Runtime().map, probe.effective);
     EXPECT_EQ(static_cast<bool>(m_world.Map().kalima),
-              loaded.HasValue() ? Client::World::IsKalimaMap(probe.effective) : true);
+              loaded.HasValue() ? Client::Maps::IsKalimaMap(probe.effective) : true);
     if (m_world.Map().kalima)
     {
         EXPECT_EQ(m_world.Map().kalima->Map(), loaded.HasValue() ? probe.effective : 24);

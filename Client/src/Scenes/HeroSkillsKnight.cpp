@@ -4,6 +4,7 @@
 #include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "GameLogic/PathFinder.h"
+#include "Maps/MapId.h"
 #include "Protocol/Skill.h"
 #include "Render/Models/Animation.h"
 #include "Render/Models/LogicalAccess.h"
@@ -52,8 +53,8 @@ constexpr std::uint16_t UniriaModel = 0x1c14;
 constexpr std::uint16_t DarkHorseModel = 0x1c16;
 constexpr std::uint16_t FenrirModel = 0x1c37;
 constexpr std::size_t DarkHorseSlot = 8; // [0x7681eb4] + 0xb6c + 8 · 0x48 (+0x1a, la durabilidad: +0xdc6)
-constexpr std::int32_t FirstChaosCastleMap = 18;
-constexpr std::int32_t LastChaosCastleMap = 23;
+using Maps::FirstChaosCastleMap;
+using Maps::LastChaosCastleMap;
 constexpr std::uint16_t NoKey = 0xffff;
 constexpr std::string_view GameMasterName = "webzen"; // 0x6c915c..0x6c91a4, uno por skill
 constexpr std::int32_t MinimumOffset = -8;

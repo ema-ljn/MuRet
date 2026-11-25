@@ -9,6 +9,7 @@
 #include "GameLogic/Path.h"
 #include "GameLogic/PathCell.h"
 #include "GameLogic/PathFinder.h"
+#include "Maps/MapId.h"
 #include "Protocol/Movement.h"
 #include "Render/Models/IModelLibrary.h"
 #include "Render/Models/LogicalAccess.h"
@@ -332,8 +333,8 @@ Core::Expected<void, std::string> UseGroundClick(ActorState& hero, const HeroMov
 bool AutoAttacksHere(const WorldRuntime& runtime)
 {
     constexpr std::int32_t SpectatorMap = 6;
-    constexpr std::int32_t FirstChaosCastleMap = 18;
-    constexpr std::int32_t LastChaosCastleMap = 23;
+    using Maps::FirstChaosCastleMap;
+    using Maps::LastChaosCastleMap;
     return runtime.ui.autoAttack && runtime.map != SpectatorMap &&
            (runtime.map < FirstChaosCastleMap || runtime.map > LastChaosCastleMap);
 }
@@ -783,8 +784,8 @@ Core::Expected<void, std::string> NameTheChosen(WorldState& world)
         return {};
     // 0x59b092: el derecho se gasta también en Chaos Castle (18 a 23), donde no sigue.
     runtime.ui.rightClick = false;
-    constexpr std::int32_t FirstChaosCastleMap = 18;
-    constexpr std::int32_t LastChaosCastleMap = 23;
+    using Maps::FirstChaosCastleMap;
+    using Maps::LastChaosCastleMap;
     if (runtime.map >= FirstChaosCastleMap && runtime.map <= LastChaosCastleMap)
         return {};
     UI::ChatInputState& input = runtime.chat.input;

@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Maps/MapId.h"
 #include "Math/X87.h"
 #include "Render/Models/OriginalRetainedMath.h"
 #include "Render/Models/OriginalRotation.h"
@@ -719,7 +720,7 @@ Result GuildMark(const Tail& tail)
     const std::int32_t map = tail.pass.map;
     // 0x510a7a: sólo en la escena 5.
     if (!tail.pass.gameScene || actor.byte88 != 1 || (map >= FirstBloodCastle && map <= LastBloodCastle) ||
-        World::IsChaosCastleMap(map) || map == CastleMap)
+        Maps::IsChaosCastle(map) || map == CastleMap)
         return {};
     if (!tail.pass.originalFrame || !GuildMarkIsDue(actor, tail.pass.worldClock))
         return {};
@@ -770,7 +771,7 @@ Core::Expected<void, std::string> DrawGameCharacterEffects(ActorState& actor, co
     if (auto drawn = Flags(tail); !drawn.HasValue())
         return drawn;
     // 0x50fd61: Chaos Castle salta al final, sin el contador ni el conjunto.
-    if (!World::IsChaosCastleMap(pass.map))
+    if (!Maps::IsChaosCastle(pass.map))
     {
         if (auto counted = Counter(tail); !counted.HasValue())
             return counted;

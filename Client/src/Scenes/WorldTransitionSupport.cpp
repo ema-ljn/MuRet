@@ -4,6 +4,7 @@
 #include "Core/PixelSize.h"
 #include "Data/Models/PlayerModels.h"
 #include "Data/Text/TextTable.h"
+#include "Maps/MapId.h"
 #include "Render/Models/Animation.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/IModelLibrary.h"
@@ -119,8 +120,8 @@ Core::Expected<void, std::string> RefreshTransitionHeight(ActorState& actor, con
 namespace
 {
 // 0x420d1a..0x420d22: 0x420cf0 no crea el cuervo en los mapas 18 a 23 (Chaos Castle); 0x420d60 no mira el mapa.
-constexpr std::int32_t FirstChaosCastleMap = 18;
-constexpr std::int32_t LastChaosCastleMap = 23;
+using Maps::FirstChaosCastleMap;
+using Maps::LastChaosCastleMap;
 
 // 0x4167b0 desde 0x420d60 o 0x420cf0: el cuervo nuevo en +0x430, en el centro de la celda del dueño y a la
 // altura del terreno ahí (0x5f93c0).

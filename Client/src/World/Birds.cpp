@@ -1,4 +1,5 @@
 #include "World/Birds.h"
+#include "Maps/MapId.h"
 #include "World/IBirdStepServices.h"
 
 #include "Crt/CrtRandom.h"
@@ -123,10 +124,7 @@ void Byte(BirdRecord bird, Field field, std::uint8_t value)
 {
     Write(bird, field, value);
 }
-bool Kalima(std::int32_t map)
-{
-    return (map >= 24 && map <= 29) || map == 36;
-}
+using Maps::IsKalimaMap;
 std::int32_t Decrement(std::int32_t value)
 {
     return std::bit_cast<std::int32_t>(static_cast<std::uint32_t>(value) - 1u);
@@ -368,7 +366,7 @@ bool SpawnAllowed(std::int32_t map, std::int32_t tile, IBirdStepServices& s)
         const auto attributes = s.TileAttributes(tile);
         return attributes == 0 || attributes == 2;
     }
-    return map == 0 || map == 1 || map == 3 || map == 4 || map == 10 || (map >= 11 && map <= 17) || Kalima(map);
+    return map == 0 || map == 1 || map == 3 || map == 4 || map == 10 || (map >= 11 && map <= 17) || IsKalimaMap(map);
 }
 } // namespace
 
@@ -393,7 +391,7 @@ BirdStepResult StepBirds(std::span<BirdRecord> birds, IBirdStepServices& service
     for (std::size_t i = 0; i < 40; ++i)
     {
         bool gate = true;
-        if (Kalima(map))
+        if (IsKalimaMap(map))
         {
             gate = services.Random() % 10 == 0;
             if (i >= 2)

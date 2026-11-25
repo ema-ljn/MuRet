@@ -4,6 +4,7 @@
 #include "Crt/CrtRandom.h"
 #include "Data/Models/PlayerModels.h"
 #include "Data/Terrain/TerrainGrid.h"
+#include "Maps/MapId.h"
 #include "Protocol/Character/CharacterSelectResult.h"
 #include "Render/Models/IModelLibrary.h"
 #include "Render/Models/LogicalAccess.h"
@@ -45,10 +46,10 @@ constexpr double DegreesPerDirection = 45.0;
 // 0x4c48eb: el contador de la espera en 30.
 constexpr std::int32_t EntryWait = WaitDrawThreshold;
 // 0x4c49d6..0x4c4a11: los sonidos fuera de Blood Castle (11 a 17) y de Chaos Castle (18 a 23).
-constexpr std::int32_t FirstBloodCastleMap = 11;
-constexpr std::int32_t LastBloodCastleMap = 17;
-constexpr std::int32_t FirstChaosCastleMap = 18;
-constexpr std::int32_t LastChaosCastleMap = 23;
+using Maps::FirstBloodCastleMap;
+using Maps::FirstChaosCastleMap;
+using Maps::LastBloodCastleMap;
+using Maps::LastChaosCastleMap;
 constexpr std::int32_t OutsideBloodCastleSound = 0x8b;
 constexpr std::int32_t FirstOutsideChaosCastleSound = 0x99;
 constexpr std::int32_t SecondOutsideChaosCastleSound = 0x9e;

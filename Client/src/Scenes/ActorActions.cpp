@@ -5,6 +5,7 @@
 #include "Data/Models/PlayerModels.h"
 #include "Data/Tables/ItemTable.h"
 #include "Data/Terrain/TerrainGrid.h"
+#include "Maps/MapId.h"
 #include "Protocol/Movement.h"
 #include "Render/Models/Animation.h"
 #include "Render/Models/LogicalAccess.h"
@@ -70,9 +71,9 @@ constexpr std::uint16_t FlyingWord376 = 0x101;
 // Los mapas de vuelo de 0x4f23ad..0x4f23bf (Atlans y Kalima): ahí 0x4f2250 lee la celda del personaje
 // en el TerrainWall (0x7d0d348) en la escena 5.
 constexpr std::int32_t AtlansMap = 7;
-constexpr std::int32_t FirstKalimaMap = 24;
-constexpr std::int32_t LastKalimaMap = 29;
-constexpr std::int32_t SeventhKalimaMap = 36;
+using Maps::FirstKalimaMap;
+using Maps::LastKalimaMap;
+using Maps::SeventhKalimaMap;
 
 // En la zona segura de los mapas 11 a 23 se elige la acción del arma; fuera de ese rango, la de sin
 // armas (0x4f2c16..0x4f2c1e).

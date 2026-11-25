@@ -65,14 +65,6 @@ struct ChaosCastleCellContext
 [[nodiscard]] Core::Expected<void, std::string> StepChaosCastleCell(std::uint8_t x, std::uint8_t y,
                                                                     const ChaosCastleCellContext& context);
 
-inline constexpr std::int32_t FirstChaosCastleMap = 18;
-inline constexpr std::int32_t LastChaosCastleMap = 23;
-
-[[nodiscard]] constexpr bool IsChaosCastleMap(std::int32_t map)
-{
-    return map >= FirstChaosCastleMap && map <= LastChaosCastleMap;
-}
-
 // Lo que 0x405490 mira del héroe (0x743a170) y la articulación 0x6ee/9 que pide (0x530860).
 struct ChaosCastlePreludeContext
 {

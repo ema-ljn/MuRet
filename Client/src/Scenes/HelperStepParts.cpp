@@ -35,9 +35,6 @@ constexpr double CellsPerUnit = static_cast<double>(0.01f);
 constexpr std::int32_t CellMask = 0xff;
 // 0x4440e5: el bit 0 del byte bajo del atributo, la zona segura.
 constexpr std::uint16_t SafeCellBit = 0x01;
-constexpr std::int32_t FirstKalimaMap = 24;
-constexpr std::int32_t LastKalimaMap = 29;
-constexpr std::int32_t SeventhKalimaMap = 36;
 // 0x444484 y 0x4444bd: en el 2 el polvo es la 5f2; en el 10, ninguno.
 constexpr std::int32_t DeviasMap = 2;
 constexpr std::int32_t IcarusMap = 10;
@@ -73,11 +70,6 @@ float Shifted(int by, float value)
     return F32(static_cast<double>(by) + static_cast<double>(value));
 }
 } // namespace
-
-bool InKalima(std::int32_t map)
-{
-    return (map >= FirstKalimaMap && map <= LastKalimaMap) || map == SeventhKalimaMap;
-}
 
 Core::Expected<bool, std::string> InTheRidersSafeCell(const HelperStepContext& context, const ActorState& rider,
                                                       std::string_view address)

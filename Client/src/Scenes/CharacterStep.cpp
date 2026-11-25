@@ -1,4 +1,5 @@
 #include "Scenes/CharacterStep.h"
+#include "Maps/MapId.h"
 #include "Scenes/SiegeBattleUi.h"
 #include "Protocol/Pet/PetOrders.h"
 
@@ -171,9 +172,7 @@ constexpr std::uint8_t SecondEffectAction = 0x45;
 constexpr std::uint8_t BoneEffectAction = 0x96;
 // 0x5086d6..0x508712: en Kalima (los mapas 24 a 29 y el 36), las acciones del 0x20a que sacan el 0x6f4.
 constexpr std::array<std::uint8_t, 7> KalimaParticleActions{0x20, 0x21, 0x1d, 0x15, 0x1e, 0x1f, 0x4b};
-constexpr std::int32_t FirstKalimaMap = 24;
-constexpr std::int32_t LastKalimaMap = 29;
-constexpr std::int32_t SeventhKalimaMap = 36;
+using Maps::IsKalimaMap;
 
 std::string MapText(std::int32_t map)
 {
@@ -407,8 +406,6 @@ Core::Expected<bool, std::string> AdvanceTheBody(ActorState& actor, std::size_t 
     context.world.FaunaResources().RecordAnimation(actor.type, animation.frame, key);
     return finished;
 }
-
-bool IsKalima(std::int32_t map);
 
 // 0x52e810(c) desde 0x4fcb9c y 0x4fcc3c: los restos, con el modelo del tipo de c y la escala y la posición que le dejó
 // el último 0x505ec6 de ese tipo (Q-C1178).
@@ -664,8 +661,8 @@ Core::Expected<void, std::string> DieAgain(ActorState& actor, const CharacterSte
             return died;
     }
     const std::int32_t map = context.world.Runtime().map;
-    constexpr std::int32_t FirstBloodCastleMap = 11;
-    constexpr std::int32_t LastBloodCastleMap = 17;
+    using Maps::FirstBloodCastleMap;
+    using Maps::LastBloodCastleMap;
     if (map >= FirstBloodCastleMap && map <= LastBloodCastleMap && actor.byte1a1 != 0)
         return SetActorDie(actor, combat);
     return {};
@@ -978,11 +975,6 @@ Core::Expected<void, std::string> StepTheRaven(ActorState& actor, std::size_t sl
         context.soundRequest(RavenShoutSound);
     }
     return {};
-}
-
-bool IsKalima(std::int32_t map)
-{
-    return (map >= FirstKalimaMap && map <= LastKalimaMap) || map == SeventhKalimaMap;
 }
 
 // 0x4ec110(modelo, huesos propios + hueso · 0x30, offset, punto, 1) con la escala y la posición que 0x505ec6
@@ -1313,7 +1305,7 @@ Core::Expected<void, std::string> StepTheEffects(ActorState& actor, std::size_t 
     // 0x5086cf..0x508801: en Kalima, el 0x20a en las acciones 0x15, 0x1d a 0x21 y 0x4b (con el héroe, todas de los
     // pasos) saca el 0x6f4/1 en (0, −40, 0) girado por +0x1c (0x5fc8f0 y 0x5fcbd0), con rand() % 64
     // en la x (0x508793) y en la y (0x5087b6).
-    if (IsKalima(map) && IsOneOf(KalimaParticleActions, action))
+    if (IsKalimaMap(map) && IsOneOf(KalimaParticleActions, action))
     {
         constexpr int FootstepSpan = 64, FootstepCenter = 32;
         constexpr double FootstepHeight = 50;

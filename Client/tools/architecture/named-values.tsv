@@ -1,7 +1,7 @@
 space	home	match	policy	note
 opcode	game/Protocol	name=(?!AfterTheOpcode$)(?:.*(?:Opcode|OpCode|HeadCode)|Clear.*Head|Report[0-9A-Fa-f]+Head);values=0..255	home-only	Packet head bytes belong to Protocol. Offsets and lengths describe the layout.
 subcode	game/Protocol	name=.*(?:Subcode|SubCode);values=0..255	home-only	A subcode can recur under different heads.
-map	game/Maps	name=(?:.*Map(?:Id)?|Map[0-9]+|(?:First|Last)(?:BloodCastle|ChaosCastle|Kalima)|CastleSiege);values=0..255	watch	Map identities. Folder numbers and negative sentinels stay separate.
+map	game/Maps	name=(?:.*Map(?:Id)?|Map[0-9]+|(?:First|Last)(?:BloodCastle|ChaosCastle|Kalima)|CastleSiege);values=0..255	single-definition	Map identities. Folder numbers and negative sentinels stay separate.
 item-code	game/Tables	name=(?:.*(?:ItemCode|ItemType|Item)|Rena|LordSign|HornOfDinorant|(?:First|Last)(?:Swords?|Axes|Maces?|Spears?|Bows?|Staffs?|Shields?|Helms?|Armors?|Pants|Gloves|Boots|Wings|Pets|Weapons)|WeaponsEnd);values=0..8192	watch	Item.bmd indices and the bounds of item groups.
 item-model	game/Tables	name=.*(?:Item|Weapon|Sword|Axe|Mace|Spear|Bow|Staff|Shield|Helm|Armor|Pants|Glove|Boot|Wing|Pet|Mount|Dinorant|DarkHorse|Uniria|Fenrir|Helper|Medal)(?:Model|ModelsEnd);values=530..18588	watch	Item model slots have a numbering distinct from item codes.
 number	engine/Math	name=(?:Negative|Minus)?(?:Half|Third|Fourth|Quarter|Fifth|Sixth|Seventh|Eighth|Ninth|Tenth|Twentieth|Fiftieth|Hundredth|Thousandth|TwoThirds|ThreeQuarters|Pi|TwoPi|FullTurn|HalfTurn|QuarterTurn|DegreesToRadians|RadiansToDegrees|DegreesPerRadian|RadiansPerDegree)	watch	Shared numeric names and their exact representations. Names of roles stay local.

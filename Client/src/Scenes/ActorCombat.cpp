@@ -5,6 +5,7 @@
 #include "Data/Models/PlayerModels.h"
 #include "Data/Tables/ItemTable.h"
 #include "Data/Tables/MonsterSkillTable.h"
+#include "Maps/MapId.h"
 #include "Render/Models/Animation.h"
 #include "Render/Models/IModelLibrary.h"
 #include "Render/Models/LogicalAccess.h"
@@ -45,8 +46,8 @@ constexpr int NoModel = -1;
 constexpr std::size_t WeaponMarkOffset = 0x1e;
 // 0x4f5af0: el frame que deja 0x4f5660, 0,001f.
 constexpr float DeathFrame = std::bit_cast<float>(0x3a83126fu);
-constexpr std::int32_t FirstChaosCastleMap = 18;
-constexpr std::int32_t LastChaosCastleMap = 23;
+using Maps::FirstChaosCastleMap;
+using Maps::LastChaosCastleMap;
 
 // 0x4f4a10 compara los modelos como WORD con signo.
 int Signed(std::uint16_t model)

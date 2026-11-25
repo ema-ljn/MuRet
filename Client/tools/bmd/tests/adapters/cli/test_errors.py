@@ -125,3 +125,11 @@ def test_a_disk_error_is_reported_as_json(cli: Cli, text: Path, monkeypatch: pyt
 
     monkeypatch.setattr(os, "replace", fail)
     check(cli("set", text, "/texts/500", "x"), "IO_ERROR", 30)
+
+
+def test_a_long_argument_is_cut_in_the_echoed_input(cli: Cli, text: Path) -> None:
+    patch = json.dumps([{"op": "test", "path": "/texts/500", "value": "x" * 400}])
+    error = check(cli("apply", text, patch), "TEST_FAILED", 30)
+    echoed = error["input"]["argv"][2]  # type: ignore[index]
+    assert len(echoed) == 201
+    assert echoed.endswith("…")

@@ -17,11 +17,13 @@ from mubmd.core.json_types import JsonObject, JsonValue
 
 BRIEF: Final = (
     "mubmd reads, checks and edits MU Online's .bmd files byte-exact (texts first: Local/Text.bmd). Every command "
-    "prints one JSON envelope on stdout ({ok, schema, command, data, warnings}) or one error on stderr ({code, "
-    "message, suggestion, input, pointer}), with exit codes 0, 1 (findings), 2 (usage), 20 (not found) and 30 "
-    "(precondition). Places inside a file are JSON Pointers (/texts/500). The reference folder Client/assets/Data "
-    "is read-only: run `mubmd workspace init ~/mu/Data` once and edit the copy, with `find`, `get`, then `set` or "
-    "`apply` (JSON Patch test and replace), first with --dry-run. `mubmd --help` describes every command as JSON."
+    "prints one JSON object on stdout, {ok: true, schema, command, data, warnings}, or one on stderr when it "
+    "fails, {ok: false, schema, error: {code, message, suggestion, input, pointer}}, and exits 0, 1 (findings or "
+    "differences), 2 (usage), 20 (not found) or 30 (precondition). Places inside a file are JSON Pointers "
+    "(/texts/500). The reference folder Client/assets/Data is read-only: run `mubmd workspace init ~/mu/Data` "
+    "once and edit the copy with `find`, `get`, then `set` or `apply` (a JSON Patch of test and replace). A write "
+    "is verified before the file is replaced, and its result is what was written. `mubmd <command> --help` "
+    "describes one command as JSON."
 )
 
 DESCRIPTION: Final = "Read, check and edit MU Online's .bmd files byte-exact, from a CLI built for agents."

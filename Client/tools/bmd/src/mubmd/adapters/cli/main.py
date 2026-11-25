@@ -1,7 +1,8 @@
+import dataclasses
 import io
 import sys
 from collections.abc import Sequence
-from typing import Final
+from typing import Any, Final
 
 import typer
 from rich.console import Console
@@ -17,14 +18,15 @@ from mubmd.core.findings import Finding
 from mubmd.core.json_types import JsonObject, JsonValue
 
 HUMAN: Final = "--human"
+ECHOED_ARGUMENT_LIMIT: Final = 200
 
 
-def _keep_fields(data: JsonValue, fields: tuple[str, ...]) -> JsonValue:
-    if not isinstance(data, dict):
-        return data
-    items = data.get("items")
-    rows = items if isinstance(items, list) else [data]
-    known = sorted({key for row in rows if isinstance(row, dict) for key in row})
+def _shortened(argument: str) -> str:
+    return argument if len(argument) <= ECHOED_ARGUMENT_LIMIT else argument[:ECHOED_ARGUMENT_LIMIT] + "…"
+
+
+def _keep_fields(data: JsonValue, fields: tuple[str, ...], item_type: Any) -> JsonValue:
+    known = [field.name for field in dataclasses.fields(item_type)]
     unknown = [name for name in fields if name not in known]
     if unknown:
         raise MubmdError(
@@ -32,6 +34,10 @@ def _keep_fields(data: JsonValue, fields: tuple[str, ...]) -> JsonValue:
             f"Unknown field {', '.join(unknown)}; the fields are {', '.join(known)}",
             suggestion=f"--fields {','.join(known)}",
         )
+    if not isinstance(data, dict):
+        return data
+    items = data.get("items")
+    rows = items if isinstance(items, list) else [data]
     kept = [{key: row[key] for key in fields if key in row} if isinstance(row, dict) else row for row in rows]
     return {**data, "items": kept} if isinstance(items, list) else kept[0]
 
@@ -58,7 +64,7 @@ class Output:
     def success(self, outcome: Outcome) -> int:
         data = to_json_value(outcome.data, outcome.data_type)
         if outcome.fields is not None:
-            data = _keep_fields(data, outcome.fields)
+            data = _keep_fields(data, outcome.fields, outcome.item_type)
         warnings = [to_json_value(warning, Finding) for warning in outcome.warnings]
         if self.human:
             human.render_success(Console(file=sys.stdout), outcome.command, data, warnings)
@@ -77,7 +83,7 @@ class Output:
         return EXIT_OK
 
     def failure(self, error: MubmdError, argv: Sequence[str]) -> int:
-        received: JsonObject = {"argv": list(argv)}
+        received: JsonObject = {"argv": [_shortened(arg) for arg in argv]}
         envelope = failure(error, received)
         if self.human:
             body = envelope["error"]

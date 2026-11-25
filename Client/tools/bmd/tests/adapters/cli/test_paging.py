@@ -28,3 +28,25 @@ def test_an_unknown_field_is_usage(cli: Cli, text: Path) -> None:
 def test_get_says_when_it_cut_a_list(cli: Cli, text: Path) -> None:
     data = cli("get", text, "/texts", "--limit", "3").json["data"]
     assert (len(data["value"]), data["truncated"]) == (3, True)
+
+
+def test_fields_work_when_nothing_matches(cli: Cli, text: Path) -> None:
+    run = cli("find", text, "no text says this", "--fields", "pointer")
+    assert run.code == 0
+    assert run.json["data"] == {"items": [], "total": 0, "next_offset": None}
+
+
+def test_an_unknown_field_names_the_real_ones(cli: Cli, text: Path) -> None:
+    error = cli("find", text, "no text says this", "--fields", "colour").error
+    assert error["suggestion"] == "--fields index,pointer,text"
+
+
+def test_get_reads_a_slice_of_a_list(cli: Cli, text: Path) -> None:
+    data = cli("get", text, "/texts", "--offset", "500", "--limit", "2").json["data"]
+    assert data["value"] == ["El usuario salió del juego", "El usuario ya está en otra party"]
+    assert data["truncated"] is True
+
+
+def test_get_with_an_offset_needs_a_list(cli: Cli, text: Path) -> None:
+    run = cli("get", text, "/texts/500", "--offset", "1")
+    assert (run.code, run.error["code"]) == (2, "USAGE")

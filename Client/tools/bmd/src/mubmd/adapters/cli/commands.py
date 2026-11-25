@@ -91,6 +91,7 @@ class Outcome:
     warnings: tuple[Finding, ...] = ()
     exit_code: int = EXIT_OK
     fields: tuple[str, ...] | None = None
+    item_type: Any = None
     lines: tuple[JsonObject, ...] = ()
 
 
@@ -117,9 +118,10 @@ EXAMPLES: Final = {
     "workspace init": "mubmd workspace init ~/mu/Data",
     "info": "mubmd info ~/mu/Data/Local/Text.bmd",
     "find": "mubmd find ~/mu/Data/Local/Text.bmd usuario --limit 10",
-    "get": "mubmd get ~/mu/Data/Local/Text.bmd /texts/500",
+    "get": "mubmd get ~/mu/Data/Local/Text.bmd /texts --offset 500 --limit 2",
     "set": "mubmd set ~/mu/Data/Local/Text.bmd /texts/500 'Te fuiste del juego' --dry-run",
-    "apply": "mubmd apply ~/mu/Data/Local/Text.bmd patch.json --dry-run",
+    "apply": 'mubmd apply ~/mu/Data/Local/Text.bmd \'[{"op": "test", "path": "/texts/100", "value": "Zen"}, '
+    '{"op": "replace", "path": "/texts/100", "value": "Zen!"}]\'',
     "validate": "mubmd validate ~/mu/Data",
     "diff": "mubmd diff Client/assets/Data/Local/Text.bmd ~/mu/Data/Local/Text.bmd",
     "dump": "mubmd dump ~/mu/Data/Local/Text.bmd --output text.json",
@@ -134,9 +136,14 @@ EncodingOption = Annotated[
     str | None, typer.Option("--encoding", help="Read texts in this encoding instead of the catalog's")
 ]
 DryRunOption = Annotated[bool, typer.Option("--dry-run", help="Report what would change and write nothing")]
-LimitOption = Annotated[int, typer.Option("--limit", min=1, help="Items per page, or the length lists are cut to")]
+LimitOption = Annotated[
+    int, typer.Option("--limit", min=1, help="Items per page, or the length lists are cut to; there is no maximum")
+]
 OffsetOption = Annotated[int, typer.Option("--offset", min=0, help="Items to skip")]
-FieldsOption = Annotated[str | None, typer.Option("--fields", help="Comma-separated keys of the result to keep")]
+FieldsOption = Annotated[
+    str | None,
+    typer.Option("--fields", help="Comma-separated keys to keep in each item, or in the result when it is one object"),
+]
 NdjsonOption = Annotated[bool, typer.Option("--ndjson", help="One JSON line per finding, then the envelope")]
 OutputOption = Annotated[Path, typer.Option("--output", help="The file to write", show_default=False)]
 
@@ -208,14 +215,19 @@ def workspace_init_command(
 def info_command(file: FileArgument, encoding: EncodingOption = None, fields: FieldsOption = None) -> Outcome:
     with about(file):
         result = info(STORE, file.expanduser(), encoding=encoding)
-    return Outcome("info", result, InfoResult, fields=split_fields(fields))
+    return Outcome("info", result, InfoResult, fields=split_fields(fields), item_type=InfoResult)
 
 
 @app.command("find", help="Texts that contain the query, ignoring case, or match it with --regex")
 def find_command(
     file: FileArgument,
     query: Annotated[str, typer.Argument(help="Text to look for")],
-    regex: Annotated[bool, typer.Option("--regex", help="Take the query as a Python regular expression")] = False,
+    regex: Annotated[
+        bool,
+        typer.Option(
+            "--regex", help="Take the query as a Python regular expression, case-sensitive; (?i) ignores case"
+        ),
+    ] = False,
     limit: LimitOption = DEFAULT_LIMIT,
     offset: OffsetOption = 0,
     fields: FieldsOption = None,
@@ -223,19 +235,27 @@ def find_command(
 ) -> Outcome:
     with about(file):
         result = find(STORE, file.expanduser(), query, regex=regex, limit=limit, offset=offset, encoding=encoding)
-    return Outcome("find", result, Page[Match], fields=split_fields(fields))
+    return Outcome("find", result, Page[Match], fields=split_fields(fields), item_type=Match)
 
 
-@app.command("get", help="One value or subtree of a file's view; lists longer than --limit are cut")
+@app.command("get", help="One value or subtree of a file's view; lists are cut to --limit items from --offset")
 def get_command(
-    file: FileArgument, pointer: PointerArgument, limit: LimitOption = DEFAULT_LIMIT, encoding: EncodingOption = None
+    file: FileArgument,
+    pointer: PointerArgument,
+    limit: LimitOption = DEFAULT_LIMIT,
+    offset: OffsetOption = 0,
+    encoding: EncodingOption = None,
 ) -> Outcome:
     with about(file):
-        result = get(STORE, file.expanduser(), pointer, limit=limit, encoding=encoding)
+        result = get(STORE, file.expanduser(), pointer, limit=limit, offset=offset, encoding=encoding)
     return Outcome("get", result, GetResult)
 
 
-@app.command("set", help="Change one value and save the file; a value for a string is taken as is, others as JSON")
+@app.command(
+    "set",
+    help="Change one value and save the file, verified before it is replaced; the result is what was written. "
+    "A value for a string is taken as is, others as JSON",
+)
 def set_command(
     file: FileArgument,
     pointer: PointerArgument,
@@ -256,7 +276,11 @@ def read_patch(patch: str) -> bytes:
     return STORE.read(Path(patch).expanduser())
 
 
-@app.command("apply", help="Apply a JSON Patch of test and replace operations, all or none")
+@app.command(
+    "apply",
+    help="Apply a JSON Patch, all or none: a list of {op: test or replace, path: <pointer>, value}. A test that "
+    "does not hold stops everything with TEST_FAILED, so test the values you last read before replacing them",
+)
 def apply_command(
     file: FileArgument,
     patch: Annotated[str, typer.Argument(help="A JSON Patch file, - for stdin, or the patch itself ([...])")],

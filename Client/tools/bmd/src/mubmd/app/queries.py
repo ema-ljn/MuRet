@@ -138,11 +138,24 @@ def _cut(value: JsonValue, limit: int) -> tuple[JsonValue, bool]:
 
 
 def get(
-    store: FileStore, path: Path, pointer: str, *, limit: int = DEFAULT_LIMIT, encoding: str | None = None
+    store: FileStore,
+    path: Path,
+    pointer: str,
+    *,
+    limit: int = DEFAULT_LIMIT,
+    offset: int = 0,
+    encoding: str | None = None,
 ) -> GetResult:
     view = open_document(store, path, encoding=encoding).view
-    value, truncated = _cut(resolve(view, pointer), limit)
-    return GetResult(pointer, value, truncated)
+    found = resolve(view, pointer)
+    if offset:
+        if not isinstance(found, list):
+            raise MubmdError(
+                ErrorCode.USAGE, f"--offset skips items of a list, and {pointer} is not one", pointer=pointer
+            )
+        found = found[offset:]
+    value, truncated = _cut(found, limit)
+    return GetResult(pointer, value, truncated or offset > 0)
 
 
 def list_formats() -> tuple[FormatInfo, ...]:

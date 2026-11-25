@@ -1,9 +1,14 @@
+import errno
 import os
+import shutil
+import subprocess
+import sys
+import time
 from pathlib import Path
 
 import pytest
 
-from mubmd.adapters.storage import LocalFileStore
+from mubmd.adapters.storage import LOCK_NAME, LocalFileStore, write_lock
 from mubmd.core.errors import ErrorCode, MubmdError
 
 STORE = LocalFileStore()
@@ -93,6 +98,74 @@ def test_a_failed_write_leaves_the_original(target: Path, monkeypatch: pytest.Mo
         STORE.write(target, b"new", expected_sha256=STORE.sha256(target))
     assert target.read_bytes() == b"original"
     assert list(target.parent.glob("*.tmp")) == []
+
+
+CHILD_WRITER = """
+import sys
+from pathlib import Path
+from mubmd.adapters.storage import LocalFileStore
+from mubmd.core.errors import MubmdError
+
+store, path = LocalFileStore(), Path(sys.argv[1])
+try:
+    store.write(path, b"child", expected_sha256=store.sha256(path))
+    print("written")
+except MubmdError as error:
+    print(error.code)
+"""
+
+
+def test_a_writer_that_lost_the_race_gets_stale_file(target: Path) -> None:
+    with write_lock(target):
+        child = subprocess.Popen([sys.executable, "-c", CHILD_WRITER, str(target)], stdout=subprocess.PIPE, text=True)
+        deadline = time.monotonic() + 20
+        while child.poll() is None and not list(target.parent.glob("*.tmp")) and time.monotonic() < deadline:
+            time.sleep(0.01)
+        target.write_bytes(b"the winner")
+    out, _ = child.communicate(timeout=20)
+    assert out.strip() == "STALE_FILE"
+    assert target.read_bytes() == b"the winner"
+    assert list(target.parent.glob("*.tmp")) == []
+
+
+def test_a_backup_that_fails_halfway_leaves_no_backup(target: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def half_copy(source: Path, destination: Path) -> None:
+        Path(destination).write_bytes(b"ori")
+        raise OSError(errno.ENOSPC, "No space left on device")
+
+    monkeypatch.setattr(shutil, "copy2", half_copy)
+    with pytest.raises(OSError, match="No space left"):
+        STORE.write(target, b"new", expected_sha256=STORE.sha256(target))
+    assert target.read_bytes() == b"original"
+    assert sorted(path.name for path in target.parent.iterdir() if path.name != LOCK_NAME) == ["Text.bmd"]
+
+
+def test_a_backup_link_into_the_reference_is_not_followed(reference: Path, target: Path) -> None:
+    planted = reference / "Local" / "planted.bmd"
+    backup = target.with_name("Text.bmd.bak")
+    backup.symlink_to(planted)
+    STORE.write(target, b"new", expected_sha256=STORE.sha256(target))
+    assert not planted.exists()
+    assert not backup.is_symlink()
+    assert backup.read_bytes() == b"original"
+
+
+def test_a_temporary_link_into_the_reference_is_not_followed(reference: Path, target: Path) -> None:
+    planted = reference / "Local" / "planted.bmd"
+    target.with_name(f"Text.bmd.{os.getpid()}.tmp").symlink_to(planted)
+    with pytest.raises(FileExistsError):
+        STORE.write(target, b"new", expected_sha256=STORE.sha256(target))
+    assert not planted.exists()
+    assert target.read_bytes() == b"original"
+
+
+def test_a_lock_link_into_the_reference_is_not_followed(reference: Path, target: Path) -> None:
+    original = reference / "Local" / "Text.bmd"
+    (target.parent / LOCK_NAME).symlink_to(original)
+    with pytest.raises(OSError):
+        STORE.write(target, b"new", expected_sha256=STORE.sha256(target))
+    assert original.read_bytes() == b"original"
+    assert target.read_bytes() == b"original"
 
 
 def test_a_missing_folder_is_not_found(tmp_path: Path) -> None:

@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Maps/MapId.h"
 #include "Math/X87.h"
 #include "World/IFishStepServices.h"
 #include "World/Particles.h"
@@ -172,7 +173,7 @@ void StepChaosCastleSeenObject(WorldObject& object, std::int32_t& selector, std:
 float ChaosCastlePoseAlpha(std::int32_t map, std::uint8_t heroByte1a1, float alpha)
 {
     constexpr float Fade = std::bit_cast<float>(0x3e19999au);
-    if (!IsChaosCastleMap(map) || heroByte1a1 == 0)
+    if (!Maps::IsChaosCastle(map) || heroByte1a1 == 0)
         return alpha;
     return F32(static_cast<double>(alpha) - static_cast<double>(Fade));
 }

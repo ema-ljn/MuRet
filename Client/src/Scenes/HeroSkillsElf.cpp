@@ -4,6 +4,7 @@
 #include "Data/Models/PlayerModels.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "GameLogic/PathFinder.h"
+#include "Maps/MapId.h"
 #include "Protocol/Skill.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/OriginalAngles.h"
@@ -50,8 +51,8 @@ constexpr std::uint8_t ShotSkill = 0x34;
 constexpr std::uint8_t Skill4c = 0x4c;
 constexpr std::uint8_t PlayerObject = 1;
 constexpr std::int32_t SummonForbiddenMap = 10;
-constexpr std::int32_t FirstChaosCastleMap = 18;
-constexpr std::int32_t LastChaosCastleMap = 23;
+using Maps::FirstChaosCastleMap;
+using Maps::LastChaosCastleMap;
 constexpr float CellReciprocal = std::bit_cast<float>(std::uint32_t{0x3c23d70a}); // [0x6b86c0], 0,01
 constexpr float DirectionScale = std::bit_cast<float>(std::uint32_t{0x3f360b61}); // [0x6ba440], 256/360
 constexpr float CellSize = std::bit_cast<float>(std::uint32_t{0x42c80000});       // [0x6b86b4], 100

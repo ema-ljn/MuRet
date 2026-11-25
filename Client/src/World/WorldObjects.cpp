@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainObjects.h"
+#include "Maps/MapId.h"
 #include "Render/Models/Animation.h"
 #include "Render/Models/ObjectState.h"
 #include "Render/Models/Skeleton.h"
@@ -767,13 +768,13 @@ Core::Expected<void, std::string> StepWorldObjectChecked(WorldObject& object, st
     constexpr std::uint8_t FirstBloodCastleMap = 11;
     constexpr std::uint8_t LastBloodCastleMap = 17;
     const bool bloodCastle = map >= FirstBloodCastleMap && map <= LastBloodCastleMap;
-    const bool chaosCastle = IsChaosCastleMap(map);
+    const bool chaosCastle = Maps::IsChaosCastle(map);
     // 0x4303c0: el 34 (Crywolf) llega a 0x4303e0, el último eslabón de la cadena de 0x605a62.
     constexpr std::uint8_t CrywolfMap = 34;
     if (map != LorenciaMap && map != DungeonMap && map != DeviasMap && map != NoriaMap && map != LostTowerMap &&
         map != ArenaMap && map != AtlansMap && map != TarkanMap && map != DevilSquareMap && map != IcarusMap &&
-        map != LoginMap && map != LandOfTrialsMap && map != CastleSiegeMap && map != CrywolfMap && !IsKalimaMap(map) &&
-        !aida && !bloodCastle && !chaosCastle)
+        map != LoginMap && map != LandOfTrialsMap && map != CastleSiegeMap && map != CrywolfMap &&
+        !Maps::IsKalimaMap(map) && !aida && !bloodCastle && !chaosCastle)
     {
         return Core::Unexpected(
             std::format("0x604ab0: el paso de los objetos del mapa {} no está leído", static_cast<int>(map)));
@@ -794,7 +795,7 @@ Core::Expected<void, std::string> StepWorldObjectChecked(WorldObject& object, st
     {
         return {};
     }
-    if (IsKalimaMap(map))
+    if (Maps::IsKalimaMap(map))
     {
         // 605a62→438a90: AL1 corta los handlers posteriores, incluso sin un store por tipo.
         constexpr std::int16_t FirstHiddenKalimaObject = 37;

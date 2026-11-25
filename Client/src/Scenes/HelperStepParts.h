@@ -23,8 +23,6 @@ class WorldState;
 
 // 0x444174..0x444182, 0x444a04..0x444a12 y 0x444c5a..0x444c6b: la luz del polvo.
 inline constexpr glm::vec3 HelperDustLight{1.0f, 1.0f, 1.0f};
-// 0x4443f6..0x444408 y 0x444e30..0x444e46: los mapas de Kalima, del 24 al 29 y el 36.
-[[nodiscard]] bool InKalima(std::int32_t map);
 
 // 0x4440b8..0x4440e9 (también 0x4447c4..0x4447f4 y 0x444af0..0x444b20): la celda de la posición del jinete, por
 // 0,01f y truncada, con el byte bajo de cada una (0x5f82a0), y el bit 0 de su atributo (0x7d0d348), en la carga

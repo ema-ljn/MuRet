@@ -1,4 +1,5 @@
 #include "Crt/CrtRandom.h"
+#include "Maps/MapId.h"
 #include "World/KalimaWorld.h"
 #include "World/KalimaResources.h"
 #include "World/KalimaWaves.h"
@@ -36,7 +37,7 @@ using Client::World::KalimaWorld;
 TEST(KalimaWorldTest, MapMembershipDoesNotCreateAnOwner)
 {
     for (std::int32_t map = -1; map <= 55; ++map)
-        EXPECT_EQ(Client::World::IsKalimaMap(map), (map >= 24 && map <= 29) || map == 36) << map;
+        EXPECT_EQ(Client::Maps::IsKalimaMap(map), (map >= 24 && map <= 29) || map == 36) << map;
     EXPECT_FALSE(std::is_copy_constructible_v<KalimaWorld>);
     EXPECT_LT(sizeof(KalimaWorld), 64u);
 }

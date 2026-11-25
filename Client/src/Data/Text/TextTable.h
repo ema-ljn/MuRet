@@ -63,4 +63,12 @@ private:
 //     dejaría en la tabla lo que hubiera en la memoria.
 //   - Si es más largo, el resto se ignora, como con el fread de tamaño fijo del original.
 Core::Expected<TextTable, DataError> LoadTextTable(std::span<const std::byte> file);
+
+[[nodiscard]] inline std::string_view TextOr(const TextTable& texts, std::size_t index, std::string_view fallback = {})
+{
+    return texts.Text(index).value_or(fallback);
+}
+
+// A text of a temporary table would dangle, as with Text().
+std::string_view TextOr(const TextTable&& texts, std::size_t index, std::string_view fallback = {}) = delete;
 } // namespace Client::Data::Text

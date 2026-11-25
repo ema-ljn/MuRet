@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Maps/MapId.h"
 #include "Render/Models/RoundedMath.h"
 #include "World/KalimaWaves.h"
 #include "Render/ModelBatch.h"
@@ -260,14 +261,6 @@ struct KalimaWorld::Storage
     }
 };
 
-bool IsKalimaMap(std::int32_t map)
-{
-    constexpr int FirstMap = 24;
-    constexpr int LastMap = 29;
-    constexpr int SeventhMap = 36;
-    return (map >= FirstMap && map <= LastMap) || map == SeventhMap;
-}
-
 KalimaWorld::KalimaWorld(std::int32_t map) : m_storage(std::make_unique<Storage>())
 {
     m_storage->map = map;
@@ -300,7 +293,7 @@ std::unique_ptr<KalimaWorld> KalimaWorld::CloneForFrame() const
 
 Core::Expected<void, std::string> KalimaWorld::Update(const KalimaFrameContext& context)
 {
-    if (!IsKalimaMap(m_storage->map) || !std::isfinite(context.worldTime))
+    if (!Maps::IsKalimaMap(m_storage->map) || !std::isfinite(context.worldTime))
         return Core::Unexpected(std::string("0x41cca0: mapa o tiempo fuera del contrato portable"));
     if (context.logicSteps % DisturbInterval == 0)
     {
@@ -329,7 +322,7 @@ Core::Expected<void, std::string> KalimaWorld::Update(const KalimaFrameContext& 
 Core::Expected<void, std::string> KalimaWorld::Draw(Render::ModelBatch& batch, std::uint8_t heroTileX,
                                                     std::uint8_t heroTileY)
 {
-    if (!IsKalimaMap(m_storage->map))
+    if (!Maps::IsKalimaMap(m_storage->map))
         return Core::Unexpected(std::string("0x41cf00: el owner no corresponde a Kalima"));
     m_storage->BuildVertices(heroTileX, heroTileY);
     m_storage->BuildNormals();

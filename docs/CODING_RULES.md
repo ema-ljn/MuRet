@@ -311,9 +311,8 @@ only where values must not be mixed. The principles hold across MuRet; the `Clie
 9. **`[[nodiscard]]`.** `Core::Expected` is a `[[nodiscard]]` class, so a function that returns it by value does not
    repeat the attribute. A function that returns a pointer or a reference, or that needs its own message, keeps it.
 
-`Core::Result`, `Core::Status` and `Core::Id` arrive with AR1.1's common kit; until then new code keeps the long
-spelling. Existing code adopts these rules module by module in the refactor's design PRs, never in a move or comments
-PR.
+`Core::Result` and `Core::Status` live in `Core/Expected.h` and `Core::Id` in `Core/Id.h` (AR1.1's common kit). Existing
+code adopts these rules module by module in the refactor's design PRs, never in a move or comments PR.
 
 ### Named values (2026-11-23)
 

@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Maps/MapId.h"
 #include "Math/X87.h"
 #include "Render/Models/Animation.h"
 #include "Render/Models/OriginalAngles.h"
@@ -232,7 +233,8 @@ Core::Expected<void, std::string> RaiseTheFenrirDust(const HelperState& helper, 
     {
         return {};
     }
-    if (InKalima(map) || (rider.flags78 & RiderWithoutDust) != 0)
+    // 0x444e30..0x444e46.
+    if (Maps::IsKalimaMap(map) || (rider.flags78 & RiderWithoutDust) != 0)
     {
         return {};
     }

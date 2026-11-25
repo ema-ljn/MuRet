@@ -3,7 +3,9 @@
 #include <cstddef>
 #include <cstdio>
 #include <cstdlib>
+#include <functional>
 #include <optional>
+#include <string>
 #include <type_traits>
 #include <utility>
 #include <variant>
@@ -51,6 +53,8 @@ private:
     E m_wrapped;
 };
 
+template <typename T, typename E> class Expected;
+
 namespace Detail
 {
 [[noreturn]] inline void StopOnBadAccess(const char* message)
@@ -59,6 +63,12 @@ namespace Detail
     std::fputc('\n', stderr);
     std::abort();
 }
+
+template <typename Type, typename E> inline constexpr bool IsExpectedWithError = false;
+template <typename T, typename E> inline constexpr bool IsExpectedWithError<Expected<T, E>, E> = true;
+
+template <typename Type, typename T> inline constexpr bool IsExpectedWithValue = false;
+template <typename T, typename E> inline constexpr bool IsExpectedWithValue<Expected<T, E>, T> = true;
 } // namespace Detail
 
 template <typename T, typename E> class [[nodiscard]] Expected
@@ -97,15 +107,41 @@ public:
         return std::move(std::get<ValueIndex>(m_storage));
     }
 
-    // Mira que haya un error, no que falte el valor: si el move de un T tiró una excepción en una
-    // asignación, el std::variant queda sin ninguno de los dos (valueless_by_exception).
     [[nodiscard]] const E& Error() const&
     {
-        if (m_storage.index() != ErrorIndex)
-        {
-            Detail::StopOnBadAccess("Error() de un Expected que no tiene error");
-        }
+        RequireError();
         return std::get<ErrorIndex>(m_storage);
+    }
+
+    // AndThen, Transform and OrElse mean what and_then, transform and or_else mean in std::expected.
+    template <typename F> auto AndThen(F&& next) const&
+    {
+        return AndThenOn(*this, std::forward<F>(next));
+    }
+
+    template <typename F> auto AndThen(F&& next) &&
+    {
+        return AndThenOn(std::move(*this), std::forward<F>(next));
+    }
+
+    template <typename F> auto Transform(F&& map) const&
+    {
+        return TransformOn(*this, std::forward<F>(map));
+    }
+
+    template <typename F> auto Transform(F&& map) &&
+    {
+        return TransformOn(std::move(*this), std::forward<F>(map));
+    }
+
+    template <typename F> auto OrElse(F&& recover) const&
+    {
+        return OrElseOn(*this, std::forward<F>(recover));
+    }
+
+    template <typename F> auto OrElse(F&& recover) &&
+    {
+        return OrElseOn(std::move(*this), std::forward<F>(recover));
     }
 
 private:
@@ -119,6 +155,70 @@ private:
         {
             Detail::StopOnBadAccess("Value() de un Expected que no tiene valor");
         }
+    }
+
+    // Mira que haya un error, no que falte el valor: si el move de un T tiró una excepción en una
+    // asignación, el std::variant queda sin ninguno de los dos (valueless_by_exception).
+    void RequireError() const
+    {
+        if (m_storage.index() != ErrorIndex)
+        {
+            Detail::StopOnBadAccess("Error() de un Expected que no tiene error");
+        }
+    }
+
+    [[nodiscard]] const E& StoredError() const&
+    {
+        return Error();
+    }
+
+    [[nodiscard]] E&& StoredError() &&
+    {
+        RequireError();
+        return std::get<ErrorIndex>(std::move(m_storage));
+    }
+
+    template <typename Self> using ValueOf = decltype(std::declval<Self>().Value());
+    template <typename Self> using ErrorOf = decltype(std::declval<Self>().StoredError());
+
+    template <typename Self, typename F> static auto AndThenOn(Self&& self, F&& next)
+    {
+        using Next = std::remove_cvref_t<std::invoke_result_t<F, ValueOf<Self>>>;
+        static_assert(Detail::IsExpectedWithError<Next, E>, "AndThen takes a function that returns an Expected<U, E>");
+        if (self.HasValue())
+        {
+            return Next(std::invoke(std::forward<F>(next), std::forward<Self>(self).Value()));
+        }
+        return Next(Unexpected<E>(std::forward<Self>(self).StoredError()));
+    }
+
+    template <typename Self, typename F> static auto TransformOn(Self&& self, F&& map)
+    {
+        using Mapped = std::remove_cv_t<std::invoke_result_t<F, ValueOf<Self>>>;
+        if (!self.HasValue())
+        {
+            return Expected<Mapped, E>(Unexpected<E>(std::forward<Self>(self).StoredError()));
+        }
+        if constexpr (std::is_void_v<Mapped>)
+        {
+            std::invoke(std::forward<F>(map), std::forward<Self>(self).Value());
+            return Expected<Mapped, E>();
+        }
+        else
+        {
+            return Expected<Mapped, E>(std::invoke(std::forward<F>(map), std::forward<Self>(self).Value()));
+        }
+    }
+
+    template <typename Self, typename F> static auto OrElseOn(Self&& self, F&& recover)
+    {
+        using Next = std::remove_cvref_t<std::invoke_result_t<F, ErrorOf<Self>>>;
+        static_assert(Detail::IsExpectedWithValue<Next, T>, "OrElse takes a function that returns an Expected<T, G>");
+        if (self.HasValue())
+        {
+            return Next(std::forward<Self>(self).Value());
+        }
+        return Next(std::invoke(std::forward<F>(recover), std::forward<Self>(self).StoredError()));
     }
 
     std::variant<T, E> m_storage;
@@ -150,7 +250,94 @@ public:
         return *m_error;
     }
 
+    template <typename F> auto AndThen(F&& next) const&
+    {
+        return AndThenOn(*this, std::forward<F>(next));
+    }
+
+    template <typename F> auto AndThen(F&& next) &&
+    {
+        return AndThenOn(std::move(*this), std::forward<F>(next));
+    }
+
+    template <typename F> auto Transform(F&& map) const&
+    {
+        return TransformOn(*this, std::forward<F>(map));
+    }
+
+    template <typename F> auto Transform(F&& map) &&
+    {
+        return TransformOn(std::move(*this), std::forward<F>(map));
+    }
+
+    template <typename F> auto OrElse(F&& recover) const&
+    {
+        return OrElseOn(*this, std::forward<F>(recover));
+    }
+
+    template <typename F> auto OrElse(F&& recover) &&
+    {
+        return OrElseOn(std::move(*this), std::forward<F>(recover));
+    }
+
 private:
+    [[nodiscard]] const E& StoredError() const&
+    {
+        return Error();
+    }
+
+    [[nodiscard]] E&& StoredError() &&
+    {
+        return std::move(*m_error);
+    }
+
+    template <typename Self> using ErrorOf = decltype(std::declval<Self>().StoredError());
+
+    template <typename Self, typename F> static auto AndThenOn(Self&& self, F&& next)
+    {
+        using Next = std::remove_cvref_t<std::invoke_result_t<F>>;
+        static_assert(Detail::IsExpectedWithError<Next, E>, "AndThen takes a function that returns an Expected<U, E>");
+        if (self.HasValue())
+        {
+            return Next(std::invoke(std::forward<F>(next)));
+        }
+        return Next(Unexpected<E>(std::forward<Self>(self).StoredError()));
+    }
+
+    template <typename Self, typename F> static auto TransformOn(Self&& self, F&& map)
+    {
+        using Mapped = std::remove_cv_t<std::invoke_result_t<F>>;
+        if (!self.HasValue())
+        {
+            return Expected<Mapped, E>(Unexpected<E>(std::forward<Self>(self).StoredError()));
+        }
+        if constexpr (std::is_void_v<Mapped>)
+        {
+            std::invoke(std::forward<F>(map));
+            return Expected<Mapped, E>();
+        }
+        else
+        {
+            return Expected<Mapped, E>(std::invoke(std::forward<F>(map)));
+        }
+    }
+
+    template <typename Self, typename F> static auto OrElseOn(Self&& self, F&& recover)
+    {
+        using Next = std::remove_cvref_t<std::invoke_result_t<F, ErrorOf<Self>>>;
+        static_assert(Detail::IsExpectedWithValue<Next, void>,
+                      "OrElse takes a function that returns an Expected<void, G>");
+        if (self.HasValue())
+        {
+            return Next();
+        }
+        return Next(std::invoke(std::forward<F>(recover), std::forward<Self>(self).StoredError()));
+    }
+
     std::optional<E> m_error;
 };
+
+// Reserved for an error that is a message (CODING_RULES §7, "Types and aliases").
+template <typename T> using Result = Expected<T, std::string>;
+using Status = Result<void>;
 } // namespace Client::Core

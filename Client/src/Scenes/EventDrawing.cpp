@@ -1,6 +1,7 @@
 #include "Scenes/EventDrawing.h"
 
 #include "Core/Expected.h"
+#include "Maps/MapId.h"
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
 #include "Render/Text/FontSet.h"
@@ -76,10 +77,10 @@ constexpr std::size_t ChaosCastlePointsText = 1161;
 constexpr std::size_t TimeLeftText = 865;
 constexpr std::size_t CastleTextBuffer = 0x100;
 // Los mapas de los dos (0x6c9dd0).
-constexpr std::int32_t FirstBloodCastleMap = 11;
-constexpr std::int32_t LastBloodCastleMap = 17;
-constexpr std::int32_t FirstChaosCastleMap = 18;
-constexpr std::int32_t LastChaosCastleMap = 23;
+using Maps::FirstBloodCastleMap;
+using Maps::FirstChaosCastleMap;
+using Maps::LastBloodCastleMap;
+using Maps::LastChaosCastleMap;
 // 0x4051d9..0x405214: el área de la trampa por +0x20, en (40, 46], (30, 36] y (20, 26].
 struct TrapArea
 {

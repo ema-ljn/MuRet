@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Maps/MapId.h"
 #include "Math/X87.h"
 #include "Render/ModelBatch.h"
 #include "Render/Models/HalfLifeMath.h"
@@ -37,9 +38,7 @@ namespace
 using Render::Models::BoneTransform;
 using Result = Core::Expected<void, std::string>;
 
-constexpr std::int32_t FirstKalimaMap = 24;
-constexpr std::int32_t LastKalimaMap = 29;
-constexpr std::int32_t SeventhKalimaMap = 36;
+using Maps::IsKalimaMap;
 constexpr std::int32_t CastleMap = 30;
 constexpr std::uint8_t DeadAction = 6;
 constexpr std::uint16_t NoModel = 0xffff;
@@ -61,11 +60,6 @@ constexpr float Thousandth = 0.001f; // 0x6b89c8
 
 using Math::D;
 using Math::F32;
-
-bool InKalima(std::int32_t map)
-{
-    return (map >= FirstKalimaMap && map <= LastKalimaMap) || map == SeventhKalimaMap;
-}
 
 // FLD T; FMUL tasa; FSIN y FMUL de un float de la .data (`Wave`), FMUL de un double (`WaveDouble`) o FADD (`WavePlus`):
 // el seno retenido con un solo R53 (ADR0014). DrawTheTail llama a los helpers después de DrawGameHanging, que corta con
@@ -373,7 +367,7 @@ Result ShakeForKundun(const Helper& helper)
         if (auto shaken = helper.Shake(F32(static_cast<double>(jolt) * D(Fifth)), "0x43cec4"); !shaken.HasValue())
             return shaken;
     }
-    if (!InKalima(helper.Pass().map) || !(frame > 3.0f) || frame >= 14.0f)
+    if (!IsKalimaMap(helper.Pass().map) || !(frame > 3.0f) || frame >= 14.0f)
         return {};
     const glm::vec3 light{ThreeTenths, 0.8f, 1.0f};
     const glm::vec3 angles{};
@@ -450,7 +444,7 @@ Result StepKundunAttacks(const Helper& helper)
                 !made.HasValue())
                 return made;
         }
-        if (InKalima(helper.Pass().map))
+        if (IsKalimaMap(helper.Pass().map))
         {
             if (auto disturbed = helper.Disturb(); !disturbed.HasValue())
                 return disturbed;
@@ -459,7 +453,7 @@ Result StepKundunAttacks(const Helper& helper)
     if (actor.dword60 == Burst && frame > 9.0f)
     {
         actor.dword60 = Done;
-        if (InKalima(helper.Pass().map))
+        if (IsKalimaMap(helper.Pass().map))
         {
             if (auto disturbed = helper.Disturb(); !disturbed.HasValue())
                 return disturbed;
@@ -524,7 +518,7 @@ Result DrawKundun(const Helper& helper)
         {
             constexpr std::int32_t Cast = 0x65;
             actor.dword60 = Cast;
-            if (InKalima(helper.Pass().map))
+            if (IsKalimaMap(helper.Pass().map))
             {
                 if (auto disturbed = helper.Disturb(); !disturbed.HasValue())
                     return disturbed;

@@ -6,6 +6,7 @@
 #include "Data/Models/PlayerModels.h"
 #include "Data/Tables/ItemTable.h"
 #include "GameLogic/PathCell.h"
+#include "Maps/MapId.h"
 #include "Protocol/Events.h"
 #include "Protocol/FloorItems.h"
 #include "Protocol/Inventory.h"
@@ -190,8 +191,7 @@ constexpr std::uint8_t FirstLevelCheckedSlot = 7;
 constexpr std::uint8_t LastLevelCheckedSlot = 11;
 constexpr std::int32_t AtlansMap = 7;
 constexpr std::int32_t IcarusMap = 10;
-constexpr std::int32_t FirstChaosCastleMap = 18;
-constexpr std::int32_t LastChaosCastleMap = 23;
+using Maps::IsChaosCastle;
 constexpr std::uint32_t CrywolfLockFlag = 0x200000;
 constexpr std::uint16_t FirstRidingAction = 0xc5;
 constexpr std::uint16_t LastRidingAction = 0xc8;
@@ -261,11 +261,6 @@ constexpr std::int32_t UseWait = 10;
 constexpr std::int32_t FirstPotionSound = 0x21;
 constexpr std::int32_t PotionSound = 0x20;
 constexpr std::int32_t LastSoundedPotion = 0x1c09;
-
-bool InChaosCastle(std::int32_t map)
-{
-    return map >= FirstChaosCastleMap && map <= LastChaosCastleMap;
-}
 
 bool InRange(std::int32_t value, std::int32_t first, std::int32_t last)
 {
@@ -795,7 +790,7 @@ Core::Expected<bool, std::string> FitsTheSlot(const InventoryMoveContext& contex
     // 0x5bf084..0x5bf185: el mapa, Crywolf y la montura.
     const std::int32_t map = runtime.map;
     const bool horn = InRange(type, HornOfUnilia, DarkHorseHorn) || cursor.id == HornOfDoom;
-    if (equipSlot == PetSlot && (map == AtlansMap || InChaosCastle(map)) &&
+    if (equipSlot == PetSlot && (map == AtlansMap || IsChaosCastle(map)) &&
         InRange(type, HornOfUnilia, DarkHorseHorn - 1))
         return false;
     bool lookAtTheMount = false;
@@ -805,7 +800,7 @@ Core::Expected<bool, std::string> FitsTheSlot(const InventoryMoveContext& contex
             return false;
         lookAtTheMount = true;
     }
-    else if (InChaosCastle(map))
+    else if (IsChaosCastle(map))
         lookAtTheMount = false;
     else
         lookAtTheMount = true;
@@ -1324,7 +1319,7 @@ Core::Expected<void, std::string> PickUpFromTheEquipment(const InventoryMoveCont
         if (swimming <= 1 && (isWingOrCape(type) || item.id == HornOfDinorant || item.id == DarkHorseHorn))
             return {};
     }
-    else if (InChaosCastle(runtime.map) && InRange(type, HornOfUnilia, DarkRaven))
+    else if (IsChaosCastle(runtime.map) && InRange(type, HornOfUnilia, DarkRaven))
         return {};
     // 0x5c2d2b..0x5c2d5c: +0x3c queda como estaba.
     TakeIntoTheCursor(runtime, item, static_cast<std::int32_t>(slot));

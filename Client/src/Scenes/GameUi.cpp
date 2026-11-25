@@ -1,4 +1,5 @@
 #include "Scenes/GameUi.h"
+#include "Maps/MapId.h"
 #include "Scenes/SiegeBattleUi.h"
 #include "Scenes/CastleWindows.h"
 #include "Scenes/CastleSiegeReceive.h"
@@ -192,8 +193,8 @@ constexpr std::uint32_t UsedBoxLevelBits = 0x70;
 // 0x636e11: desde esta y, el mouse está sobre la barra.
 constexpr std::int32_t HudTop = 0x1b0;
 // 0x5a1181..0x5a1189: Chaos Castle.
-constexpr std::int32_t FirstChaosCastleMap = 18;
-constexpr std::int32_t LastChaosCastleMap = 23;
+using Maps::FirstChaosCastleMap;
+using Maps::LastChaosCastleMap;
 // 0x5a0420 y vecinas: 0x6c8dcc, el máximo de MouseUpdateTime que ponen los botones.
 constexpr std::int32_t ButtonMouseUpdateTimeMax = 6;
 // 0x59ff45..0x5a009b: los seis renglones del área vieja, de 13 de alto desde y = 0 (hasta 0x4e).

@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Maps/MapId.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Scenes/ActorCreation.h"
@@ -40,10 +41,10 @@ constexpr float SlowDyingStep = 0.01f;
 constexpr float FadeStart = 1.0f;
 constexpr float LowestAlpha = 0.01f;
 constexpr float SinkStep = 0.4f;
-constexpr std::int32_t FirstBloodCastleMap = 11;
-constexpr std::int32_t LastBloodCastleMap = 17;
-constexpr std::int32_t FirstChaosCastleMap = 18;
-constexpr std::int32_t LastChaosCastleMap = 23;
+using Maps::FirstBloodCastleMap;
+using Maps::FirstChaosCastleMap;
+using Maps::LastBloodCastleMap;
+using Maps::LastChaosCastleMap;
 constexpr int ChaosOffsetSpan = 160;
 constexpr int ChaosOffsetCenter = 80;
 // 0x4fbc1e..0x4fbc9b: las skills que empujan y hasta qué paso.

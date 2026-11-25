@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Data/Models/PlayerModels.h"
+#include "Maps/MapId.h"
 #include "Math/X87.h"
 #include "Render/Models/Animation.h"
 #include "Render/Models/HalfLifeMath.h"
@@ -51,8 +52,7 @@ namespace Client::Scenes
 namespace
 {
 // 0x443faa..0x443fb3 y 0x5ffdff..0x5ffe07: los mapas 18 a 23.
-constexpr std::int32_t FirstChaosCastleMap = 18;
-constexpr std::int32_t LastChaosCastleMap = 23;
+using Maps::IsChaosCastle;
 // 0x443fc0 y 0x4452c2: el ayudante que no pide un jugador de jinete.
 constexpr std::uint16_t RiderlessHelper = GuardianAngelModel;
 // 0x443e82: la escala del 0xbf al crearlo; 0x445309, la del dibujo en la escena 5.
@@ -119,11 +119,6 @@ constexpr double GlowGreen = static_cast<double>(std::bit_cast<float>(0x3f4ccccd
 constexpr double GlowBlue = static_cast<double>(std::bit_cast<float>(0x3f19999au));
 
 using Math::F32;
-
-bool InChaosCastle(std::int32_t map)
-{
-    return map >= FirstChaosCastleMap && map <= LastChaosCastleMap;
-}
 
 // 0x4441cd..0x4442ad: el hueso del buffer global por el frame del caballo, ya en la acción 1. Las ventanas se pisan
 // y gana la primera; fuera de todas (o sin orden), ninguno.
@@ -198,7 +193,8 @@ Core::Expected<void, std::string> RaiseTheDust(const HelperState& helper, const 
     {
         return {};
     }
-    if (InKalima(map) || (rider.flags78 & RiderWithoutDust) != 0)
+    // 0x4443f6..0x444408.
+    if (Maps::IsKalimaMap(map) || (rider.flags78 & RiderWithoutDust) != 0)
     {
         return {};
     }
@@ -830,7 +826,7 @@ Core::Expected<bool, std::string> ConstructHelper(HelperState& helper, std::uint
                                                   Crt::CrtRandom* random)
 {
     // 0x443d73..0x443d87: en los mapas 18 a 23, nada (devuelve 0).
-    if (InChaosCastle(map))
+    if (IsChaosCastle(map))
     {
         return false;
     }
@@ -884,7 +880,7 @@ Core::Expected<std::optional<std::size_t>, std::string> CreateHelper(WorldState&
 {
     const std::int32_t map = world.Runtime().map;
     const ActorState& riding = world.Actors()[rider];
-    if (InChaosCastle(map) || (riding.type != Data::Models::PlayerSkeletonModel && type != RiderlessHelper))
+    if (IsChaosCastle(map) || (riding.type != Data::Models::PlayerSkeletonModel && type != RiderlessHelper))
     {
         return std::optional<std::size_t>{};
     }

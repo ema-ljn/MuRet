@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Core/IClock.h"
 #include "Data/Models/PlayerModels.h"
+#include "Maps/MapId.h"
 #include "Protocol/World.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
@@ -37,12 +38,7 @@ namespace
 constexpr float CellSize = 100.0f;
 constexpr float CellCenter = 50.0f;
 constexpr float DirectionDegrees = 45.0f;
-constexpr std::int32_t FirstChaosCastle = 18;
-constexpr std::int32_t LastChaosCastle = 23;
-bool IsChaosCastle(std::int32_t map)
-{
-    return map >= FirstChaosCastle && map <= LastChaosCastle;
-}
+using Maps::IsChaosCastle;
 void WriteHeroCells(ActorState& hero, const Protocol::World::Teleport& reply, const WorldEntryResources& resources)
 {
     {

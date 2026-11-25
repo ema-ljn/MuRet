@@ -1,4 +1,5 @@
 #include "Scenes/GameScene.h"
+#include "Maps/MapId.h"
 #include "Crt/CrtRandom.h"
 #include "Math/X87.h"
 #include "Render/Models/IModelLibrary.h"
@@ -168,8 +169,8 @@ constexpr std::int32_t AtlansMap = 7;
 constexpr std::int32_t TarkanMap = 8;
 constexpr std::int32_t IcarusMap = 10;
 constexpr std::int32_t DevilSquareMap = 9;
-constexpr std::int32_t FirstBloodCastleMap = 11;
-constexpr std::int32_t LastBloodCastleMap = 17;
+using Maps::FirstBloodCastleMap;
+using Maps::LastBloodCastleMap;
 // 0x620486..0x6204b0: el mouse de 640 × 480 vuelve a la pantalla con · W / 640 y · H / 480, en enteros.
 constexpr std::int64_t Width640 = 640;
 constexpr std::int64_t Height480 = 480;
@@ -476,7 +477,7 @@ Core::Expected<void, std::string> GameScene::StepTheObjects()
     WorldState& world = *m_context.world;
     const std::int32_t map = world.Runtime().map;
     std::span<World::WorldObject> objects = world.Map().objects;
-    if (World::IsKalimaMap(map))
+    if (Maps::IsKalimaMap(map))
     {
         // 606572 antes del early-return y del reset60657a, incluso sin un objeto visto.
         const auto selector = StepKalimaObjectPrelude(world, *m_context.cloth);
@@ -487,7 +488,7 @@ Core::Expected<void, std::string> GameScene::StepTheObjects()
     }
     // 0x405490, primero en 0x6061c0: los Chaos Castle, también antes del early-return y del 0x60657a, con la cuenta
     // del pase anterior. El selector queda para 0x4055b0.
-    const bool chaosCastle = World::IsChaosCastleMap(map);
+    const bool chaosCastle = Maps::IsChaosCastle(map);
     std::int32_t chaosCastleSelector = 0;
     if (chaosCastle)
     {
@@ -625,7 +626,7 @@ Core::Expected<void, std::string> GameScene::StepTheObjects()
     const bool aida = map == AidaMap || map == SelectionMap;
     if (map != LorenciaMap && map != DungeonMap && map != DeviasMap && map != NoriaMap && map != LostTowerMap &&
         map != ArenaMap && map != AtlansMap && map != TarkanMap && map != DevilSquareMap && map != IcarusMap &&
-        map != LandOfTrialsMap && map != CastleMap && map != CrywolfMap && !World::IsKalimaMap(map) && !aida &&
+        map != LandOfTrialsMap && map != CastleMap && map != CrywolfMap && !Maps::IsKalimaMap(map) && !aida &&
         !bloodCastle && !chaosCastle)
     {
         return Core::Unexpected("0x606560: los objetos vistos del " + MapText(map) + " (0x604ab0) no están portados");
@@ -1007,7 +1008,7 @@ Core::Expected<void, std::string> GameScene::DrawTheWorldPass(SceneCanvas& canva
         // 0x5fa83f: 0x5fa830 llama a 0x405e00(x, y) con cada celda que dibuja, y en los mapas 18 a 23 saca rand()
         // (y, con rand() % 8 en 0, el área en 0, 3 o 6 y la celda en uno de sus rectángulos, la piedra y el
         // temblor, Q-C229). Las demás no lo llaman en MuRet: no saca nada.
-        if (World::IsChaosCastleMap(map))
+        if (Maps::IsChaosCastle(map))
         {
             const float frameClock =
                 static_cast<float>(std::chrono::duration_cast<std::chrono::milliseconds>(canvas.frameClock).count());
@@ -1091,8 +1092,8 @@ Core::Expected<void, std::string> GameScene::DrawTheWorldPass(SceneCanvas& canva
     // 0x6374ce: 0x6046a0, los objetos del .obj por sector. MuRet tiene los casos de los mapas 0 a 4, 6 a 23, 30,
     // 31, 33, 34 y Kalima.
     const bool knownObjects = (map >= LorenciaMap && map <= LostTowerMap) ||
-                              (map >= ArenaMap && map <= World::LastChaosCastleMap) || map == CastleMap ||
-                              map == LandOfTrialsMap || map == AidaMap || map == CrywolfMap || World::IsKalimaMap(map);
+                              (map >= ArenaMap && map <= Maps::LastChaosCastleMap) || map == CastleMap ||
+                              map == LandOfTrialsMap || map == AidaMap || map == CrywolfMap || Maps::IsKalimaMap(map);
     if (!knownObjects &&
         std::ranges::any_of(FrameObjects(), [](const World::WorldObject& object) { return object.alive; }))
     {

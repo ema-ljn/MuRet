@@ -1,3 +1,4 @@
+#include "Maps/MapId.h"
 #include "Render/Models/IModelLibrary.h"
 #include "Scenes/FaunaStep.h"
 
@@ -35,10 +36,7 @@ std::error_code Unsupported()
 {
     return std::make_error_code(std::errc::function_not_supported);
 }
-bool IsKalima(std::int32_t map)
-{
-    return (map >= 24 && map <= 29) || map == 36;
-}
+using Maps::IsKalimaMap;
 double Distance(const glm::vec3& a, const glm::vec3& b)
 {
     const double x = static_cast<double>(a.x) - b.x, y = static_cast<double>(a.y) - b.y;
@@ -327,7 +325,7 @@ World::BirdCallResult RunFaunaBirdHandler(FaunaStepContext& c, World::BirdHandle
         SpawnAtlans(c, b);
         return {1, {}};
     case World::BirdHandler::SpawnKalima:
-        if (!IsKalima(c.map))
+        if (!IsKalimaMap(c.map))
             return {0, {}};
         return {1, SpawnKalima(c, b)};
     case World::BirdHandler::MoveAf:

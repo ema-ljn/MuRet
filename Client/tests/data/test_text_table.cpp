@@ -19,6 +19,7 @@ namespace
 using Client::Data::DataError;
 using Client::Data::Text::LoadTextTable;
 using Client::Data::Text::TextCount;
+using Client::Data::Text::TextOr;
 using Client::Data::Text::TextRecordSize;
 using Client::Data::Text::TextTable;
 using Client::Data::Text::TextTableSize;
@@ -30,6 +31,13 @@ static_assert(ReadsText<TextTable&>);
 static_assert(ReadsText<const TextTable&>);
 static_assert(!ReadsText<TextTable>);
 static_assert(!ReadsText<const TextTable>);
+
+template <typename Table>
+concept ReadsTextOr = requires(Table&& table) { TextOr(std::forward<Table>(table), 0); };
+static_assert(ReadsTextOr<TextTable&>);
+static_assert(ReadsTextOr<const TextTable&>);
+static_assert(!ReadsTextOr<TextTable>);
+static_assert(!ReadsTextOr<const TextTable>);
 
 // Una tabla en claro, con todos los registros vacíos.
 std::vector<std::byte> PlainTable(std::size_t size = TextTableSize)
@@ -151,5 +159,26 @@ TEST(TextTableTest, ExtraBytesAreIgnored)
     ASSERT_TRUE(loaded.HasValue());
     EXPECT_EQ(loaded.Value().Text(TextCount - 1), "el último");
     EXPECT_EQ(loaded.Value().Text(TextCount), std::nullopt);
+}
+
+TEST(TextOrTest, ReturnsTheTextOfAnIndexInTheTable)
+{
+    std::vector<std::byte> table = PlainTable();
+    PutText(table, 3, "/guild");
+
+    const auto loaded = LoadTextTable(Encrypt(table));
+
+    ASSERT_TRUE(loaded.HasValue());
+    EXPECT_EQ(TextOr(loaded.Value(), 3, "?"), "/guild");
+    EXPECT_EQ(TextOr(loaded.Value(), 4, "?"), "");
+}
+
+TEST(TextOrTest, ReturnsTheFallbackForAnIndexPastTheTable)
+{
+    const auto loaded = LoadTextTable(Encrypt(PlainTable()));
+
+    ASSERT_TRUE(loaded.HasValue());
+    EXPECT_EQ(TextOr(loaded.Value(), TextCount, "?"), "?");
+    EXPECT_EQ(TextOr(loaded.Value(), TextCount), "");
 }
 } // namespace

@@ -5,6 +5,7 @@
 #include "Data/Models/PlayerModels.h"
 #include "Data/Tables/SkillTable.h"
 #include "GameLogic/PathFinder.h"
+#include "Maps/MapId.h"
 #include "Network/Delivery.h"
 #include "Protocol/Combat.h"
 #include "Protocol/FloorItems.h"
@@ -64,8 +65,7 @@ constexpr std::size_t StaminaOffset = 0x24;
 constexpr std::size_t RangeOffset = 0x26;
 constexpr std::uint16_t DarkHorsePet = 0x1c16;
 constexpr std::uint16_t FenrirPet = 0x1c37;
-constexpr std::int32_t FirstBloodCastleMap = 11;
-constexpr std::int32_t LastBloodCastleMap = 17;
+using Maps::IsBloodCastle;
 constexpr float CellReciprocal = std::bit_cast<float>(std::uint32_t{0x3c23d70a});    // [0x6b86c0], 0,01
 constexpr float ChosenRangeFactor = std::bit_cast<float>(std::uint32_t{0x3f99999a}); // [0x6b8bb0], 1,2
 constexpr float BloodCastleRange = std::bit_cast<float>(std::uint32_t{0x3fe66666});  // 0x55969e, 1,8
@@ -86,11 +86,6 @@ constexpr std::uint16_t BlockedAttribute = 8;
 bool InRange(std::int32_t value, std::int32_t first, std::int32_t last)
 {
     return value >= first && value <= last;
-}
-
-bool InBloodCastle(std::int32_t map)
-{
-    return InRange(map, FirstBloodCastleMap, LastBloodCastleMap);
 }
 
 Render::Models::LogicalAccess OwnAccess(const HeroSkillContext& context)
@@ -442,7 +437,7 @@ Core::Expected<bool, std::string> UseTheSkillOnTheChosen(ActorState& caster, Act
     if (!range.HasValue())
         return Core::Unexpected(range.Error());
     float reach = static_cast<float>(static_cast<double>(range.Value()) * static_cast<double>(ChosenRangeFactor));
-    if (InBloodCastle(runtime.map) && InRange(skill, 0x13, 0x17))
+    if (IsBloodCastle(runtime.map) && InRange(skill, 0x13, 0x17))
         reach = BloodCastleRange;
     // 0x5596a5..0x5596f2: la distancia de `hero` al centro de la celda, en la x87; menor o igual que el alcance · 100
     // (sin C0) está en alcance.
@@ -554,7 +549,7 @@ Core::Expected<void, std::string> CastTheSkillAtTheTarget(ActorState& caster, Ac
     auto dfX = static_cast<std::uint8_t>(*cellX & 0xff);
     auto dfY = static_cast<std::uint8_t>(*cellY & 0xff);
     const std::uint16_t monster = target.Value()->word376;
-    if (InBloodCastle(runtime.map) || skill == 0x3c || skill == 0x39 || skill == 0x2c || monster == 0x115 ||
+    if (IsBloodCastle(runtime.map) || skill == 0x3c || skill == 0x39 || skill == 0x2c || monster == 0x115 ||
         monster == 0x11b || monster == 0x116 || monster == 0x120)
     {
         const auto rumbo =

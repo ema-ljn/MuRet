@@ -3,11 +3,11 @@
 #include "Core/Expected.h"
 #include "Data/Textures/Texture.h"
 #include "Data/Textures/TextureSet.h"
+#include "Maps/MapId.h"
 #include "Render/ITextureStore.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/ModelTextureTable.h"
 #include "World/TerrainCells.h"
-#include "World/KalimaWorld.h"
 #include "World/KalimaResources.h"
 #include "World/WorldTerrain.h"
 
@@ -30,7 +30,7 @@ namespace
 std::vector<World::WorldTileTexture> WantedTextures(std::uint8_t map, GrassTextures grass)
 {
     std::vector<World::WorldTileTexture> wanted{World::DropTexture()};
-    if (World::IsKalimaMap(map))
+    if (Maps::IsKalimaMap(map))
     {
         // 6189e9: el agua real vive enObject25, antes del salto de61a92a sobre los tiles ordinarios.
         for (const auto& texture : World::KalimaTextureSet())
@@ -50,7 +50,7 @@ std::vector<World::WorldTileTexture> WantedTextures(std::uint8_t map, GrassTextu
     const auto caustics = World::CausticTextures(map);
     wanted.insert(wanted.end(), caustics.begin(), caustics.end());
     wanted.push_back(World::ObjectLightTexture());
-    if (!World::IsKalimaMap(map))
+    if (!Maps::IsKalimaMap(map))
     {
         const auto tiles = World::WorldTileTextures(map);
         wanted.insert(wanted.end(), tiles.begin(), tiles.end());

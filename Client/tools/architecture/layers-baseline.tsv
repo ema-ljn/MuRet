@@ -1142,7 +1142,6 @@ Scenes/TarkanObjectFrame.cpp	Scenes/ObjectFrameSprites.h	game/MapScripts	game/Wo
 Scenes/TarkanObjectFrame.cpp	Scenes/WorldObjectsDrawing.h	game/MapScripts	game/WorldObjects
 Scenes/TarkanObjectFrame.cpp	World/WorldObjects.h	game/MapScripts	game/WorldObjects
 Scenes/TerrainTiles.cpp	World/KalimaResources.h	game/Assets	game/Events
-Scenes/TerrainTiles.cpp	World/KalimaWorld.h	game/Assets	game/Events
 Scenes/TestScene.h	App/ILoopClient.h	game/Scenes	app
 Scenes/UiItemDrawing.cpp	Scenes/CharacterDrawing.h	game/Items	game/Actors
 Scenes/UiItemDrawing.cpp	Scenes/GameDrawTail.h	game/Items	game/Scenes

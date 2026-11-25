@@ -7,13 +7,19 @@
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <type_traits>
 #include <utility>
 
 // Client::Core::Expected: un valor o un error, nunca los dos.
 namespace
 {
 using Client::Core::Expected;
+using Client::Core::Result;
+using Client::Core::Status;
 using Client::Core::Unexpected;
+
+static_assert(std::is_same_v<Result<int>, Expected<int, std::string>>);
+static_assert(std::is_same_v<Status, Expected<void, std::string>>);
 
 TEST(ExpectedTest, HoldsAValue)
 {
@@ -77,6 +83,178 @@ TEST(ExpectedTest, ValueCanBeChangedInPlace)
     result.Value() += " 130 130";
 
     EXPECT_EQ(result.Value(), "Lorencia 130 130");
+}
+
+Expected<int, std::string> Half(int value)
+{
+    if (value % 2 != 0)
+    {
+        return Unexpected(std::string("odd"));
+    }
+    return value / 2;
+}
+
+TEST(ExpectedAndThenTest, RunsTheNextStepOnAValue)
+{
+    const Expected<int, std::string> eight = 8;
+
+    const Expected<int, std::string> four = eight.AndThen(Half);
+
+    ASSERT_TRUE(four.HasValue());
+    EXPECT_EQ(four.Value(), 4);
+}
+
+TEST(ExpectedAndThenTest, ReturnsTheErrorOfTheNextStep)
+{
+    const Expected<int, std::string> three = 3;
+
+    const Expected<int, std::string> half = three.AndThen(Half);
+
+    ASSERT_FALSE(half.HasValue());
+    EXPECT_EQ(half.Error(), "odd");
+}
+
+TEST(ExpectedAndThenTest, PassesAnErrorThroughUntouched)
+{
+    const Expected<int, std::string> failed = Unexpected(std::string("short file"));
+    bool ran = false;
+
+    const Expected<std::string, std::string> named = failed.AndThen(
+        [&ran](int) -> Expected<std::string, std::string>
+        {
+            ran = true;
+            return std::string("Lorencia");
+        });
+
+    EXPECT_FALSE(ran);
+    ASSERT_FALSE(named.HasValue());
+    EXPECT_EQ(named.Error(), "short file");
+}
+
+TEST(ExpectedAndThenTest, MovesAMoveOnlyValueOutOfATemporary)
+{
+    Expected<std::unique_ptr<int>, int> owned = std::make_unique<int>(5);
+
+    const Expected<int, int> read =
+        std::move(owned).AndThen([](std::unique_ptr<int> value) -> Expected<int, int> { return *value; });
+
+    ASSERT_TRUE(read.HasValue());
+    EXPECT_EQ(read.Value(), 5);
+}
+
+TEST(ExpectedAndThenTest, MovesAMoveOnlyErrorOutOfATemporary)
+{
+    Expected<int, std::unique_ptr<int>> failed = Unexpected(std::make_unique<int>(7));
+
+    const Expected<long, std::unique_ptr<int>> passed =
+        std::move(failed).AndThen([](int value) -> Expected<long, std::unique_ptr<int>> { return long{value}; });
+
+    ASSERT_FALSE(passed.HasValue());
+    ASSERT_NE(passed.Error(), nullptr);
+    EXPECT_EQ(*passed.Error(), 7);
+}
+
+TEST(ExpectedTransformTest, MapsTheValue)
+{
+    const Expected<int, std::string> six = 6;
+
+    const auto text = six.Transform([](int value) { return std::to_string(value); });
+
+    static_assert(std::is_same_v<decltype(text), const Expected<std::string, std::string>>);
+    ASSERT_TRUE(text.HasValue());
+    EXPECT_EQ(text.Value(), "6");
+}
+
+TEST(ExpectedTransformTest, KeepsTheError)
+{
+    const Expected<int, std::string> failed = Unexpected(std::string("short file"));
+    bool ran = false;
+
+    const Expected<int, std::string> doubled = failed.Transform(
+        [&ran](int value)
+        {
+            ran = true;
+            return value * 2;
+        });
+
+    EXPECT_FALSE(ran);
+    ASSERT_FALSE(doubled.HasValue());
+    EXPECT_EQ(doubled.Error(), "short file");
+}
+
+TEST(ExpectedTransformTest, AFunctionThatReturnsNothingGivesASuccessWithoutAValue)
+{
+    const Expected<int, std::string> six = 6;
+    int seen = 0;
+
+    const auto done = six.Transform([&seen](int value) { seen = value; });
+
+    static_assert(std::is_same_v<decltype(done), const Expected<void, std::string>>);
+    EXPECT_TRUE(done.HasValue());
+    EXPECT_EQ(seen, 6);
+}
+
+TEST(ExpectedTransformTest, MovesAMoveOnlyValueOutOfATemporary)
+{
+    Expected<std::unique_ptr<int>, int> owned = std::make_unique<int>(5);
+
+    const Expected<std::unique_ptr<int>, int> kept =
+        std::move(owned).Transform([](std::unique_ptr<int> value) { return value; });
+
+    ASSERT_TRUE(kept.HasValue());
+    ASSERT_NE(kept.Value(), nullptr);
+    EXPECT_EQ(*kept.Value(), 5);
+}
+
+TEST(ExpectedOrElseTest, RunsTheRecoveryOnAnError)
+{
+    const Expected<int, std::string> failed = Unexpected(std::string("short file"));
+
+    const Expected<int, int> recovered =
+        failed.OrElse([](const std::string& error) -> Expected<int, int> { return static_cast<int>(error.size()); });
+
+    ASSERT_TRUE(recovered.HasValue());
+    EXPECT_EQ(recovered.Value(), 10);
+}
+
+TEST(ExpectedOrElseTest, ReturnsTheErrorOfTheRecovery)
+{
+    const Expected<int, std::string> failed = Unexpected(std::string("short file"));
+
+    const Expected<int, int> coded = failed.OrElse([](const std::string& error) -> Expected<int, int>
+                                                   { return Unexpected(static_cast<int>(error.size())); });
+
+    ASSERT_FALSE(coded.HasValue());
+    EXPECT_EQ(coded.Error(), 10);
+}
+
+TEST(ExpectedOrElseTest, KeepsTheValue)
+{
+    const Expected<int, std::string> six = 6;
+    bool ran = false;
+
+    const Expected<int, int> kept = six.OrElse(
+        [&ran](const std::string&) -> Expected<int, int>
+        {
+            ran = true;
+            return 0;
+        });
+
+    EXPECT_FALSE(ran);
+    ASSERT_TRUE(kept.HasValue());
+    EXPECT_EQ(kept.Value(), 6);
+}
+
+TEST(ExpectedOrElseTest, MovesAMoveOnlyValueOutOfATemporary)
+{
+    Expected<std::unique_ptr<int>, int> owned = std::make_unique<int>(5);
+
+    const Expected<std::unique_ptr<int>, std::string> kept = std::move(owned).OrElse(
+        [](int) -> Expected<std::unique_ptr<int>, std::string> { return Unexpected(std::string("unused")); });
+
+    ASSERT_TRUE(kept.HasValue());
+    ASSERT_NE(kept.Value(), nullptr);
+    EXPECT_EQ(*kept.Value(), 5);
 }
 
 // Pedir el valor de uno que tiene un error es un bug de quien llama: el programa se corta ahí, con
@@ -167,6 +345,90 @@ TEST(ExpectedVoidTest, HoldsAnError)
 
     ASSERT_FALSE(result.HasValue());
     EXPECT_EQ(result.Error(), "falta la textura");
+}
+
+TEST(ExpectedVoidAndThenTest, RunsTheNextStepOnASuccess)
+{
+    const Expected<int, std::string> three =
+        SucceedsUnless(false).AndThen([]() -> Expected<int, std::string> { return 3; });
+
+    ASSERT_TRUE(three.HasValue());
+    EXPECT_EQ(three.Value(), 3);
+}
+
+TEST(ExpectedVoidAndThenTest, PassesAnErrorThroughUntouched)
+{
+    const Expected<void, std::string> failed = SucceedsUnless(true);
+    bool ran = false;
+
+    const Expected<int, std::string> three = failed.AndThen(
+        [&ran]() -> Expected<int, std::string>
+        {
+            ran = true;
+            return 3;
+        });
+
+    EXPECT_FALSE(ran);
+    ASSERT_FALSE(three.HasValue());
+    EXPECT_EQ(three.Error(), "falta la textura");
+}
+
+TEST(ExpectedVoidTransformTest, MapsASuccess)
+{
+    const auto three = SucceedsUnless(false).Transform([] { return 3; });
+
+    static_assert(std::is_same_v<decltype(three), const Expected<int, std::string>>);
+    ASSERT_TRUE(three.HasValue());
+    EXPECT_EQ(three.Value(), 3);
+}
+
+TEST(ExpectedVoidTransformTest, KeepsTheError)
+{
+    const Expected<void, std::string> failed = SucceedsUnless(true);
+    bool ran = false;
+
+    const Expected<void, std::string> done = failed.Transform([&ran] { ran = true; });
+
+    EXPECT_FALSE(ran);
+    ASSERT_FALSE(done.HasValue());
+    EXPECT_EQ(done.Error(), "falta la textura");
+}
+
+TEST(ExpectedVoidOrElseTest, RunsTheRecoveryOnAnError)
+{
+    const Expected<void, std::string> failed = SucceedsUnless(true);
+
+    const Expected<void, int> coded = failed.OrElse([](const std::string& error) -> Expected<void, int>
+                                                    { return Unexpected(static_cast<int>(error.size())); });
+
+    ASSERT_FALSE(coded.HasValue());
+    EXPECT_EQ(coded.Error(), 16);
+}
+
+TEST(ExpectedVoidOrElseTest, KeepsTheSuccess)
+{
+    bool ran = false;
+
+    const Expected<void, int> done = SucceedsUnless(false).OrElse(
+        [&ran](const std::string&) -> Expected<void, int>
+        {
+            ran = true;
+            return {};
+        });
+
+    EXPECT_FALSE(ran);
+    EXPECT_TRUE(done.HasValue());
+}
+
+TEST(ExpectedVoidOrElseTest, MovesAMoveOnlyErrorOutOfATemporary)
+{
+    Expected<void, std::unique_ptr<int>> failed = Unexpected(std::make_unique<int>(7));
+
+    const Expected<void, int> coded =
+        std::move(failed).OrElse([](std::unique_ptr<int> error) -> Expected<void, int> { return Unexpected(*error); });
+
+    ASSERT_FALSE(coded.HasValue());
+    EXPECT_EQ(coded.Error(), 7);
 }
 
 TEST(ExpectedVoidDeathTest, ErrorOfASuccessStopsTheProgram)

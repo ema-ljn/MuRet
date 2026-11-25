@@ -4,6 +4,7 @@
 #include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainGrid.h"
+#include "Maps/MapId.h"
 #include "Protocol/Combat.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/OriginalAngles.h"
@@ -41,9 +42,9 @@ constexpr std::uint8_t KillerOnRecord = 2;
 constexpr std::uint8_t FirstPushSkill = 0x28;
 constexpr std::uint8_t SecondPushSkill = 0x3b;
 // 0x4d0a5f..0x4d0aa2: 0x4d07c0 corre en Blood Castle (11 a 17) y en Chaos Castle (18 a 23), dos rangos seguidos.
-constexpr std::int32_t FirstBloodCastleMap = 11;
-constexpr std::int32_t FirstChaosCastleMap = 18;
-constexpr std::int32_t LastChaosCastleMap = 23;
+using Maps::FirstBloodCastleMap;
+using Maps::FirstChaosCastleMap;
+using Maps::LastChaosCastleMap;
 // El TerrainWall de 0x4d07c0: 8 en Chaos Castle (cae) y 0x20 (lo empujan); el bit 8 de la celda de al lado decide
 // hacia dónde.
 constexpr std::uint16_t FallWall = 0x08;

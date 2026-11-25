@@ -80,7 +80,7 @@ Core::Expected<std::vector<TerrainObject>, DataError> LoadTerrainObjects(std::sp
 
     // Se descifra todo, como en el original. Hasta leer la cabecera no se sabe cuántos objetos hay.
     std::vector<std::byte> plain(file.begin(), file.end());
-    DecryptK16(plain);
+    Crypto::DecryptK16(plain);
     const std::span<const std::byte> decrypted = plain;
 
     // La cabecera ya se midió arriba: la cantidad siempre está, y el 0 no se usa nunca.

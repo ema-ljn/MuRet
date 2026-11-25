@@ -4,7 +4,7 @@
 #include <cstddef>
 #include <span>
 
-namespace Client::Network::Crypto
+namespace Client::Crypto
 {
 namespace
 {
@@ -38,4 +38,4 @@ void Xor32DecodeBytes(std::span<std::byte> bytes, std::size_t first, std::size_t
         bytes[i - 1] ^= KeyAt(i - 1, keyShift) ^ bytes[i - 2];
     }
 }
-} // namespace Client::Network::Crypto
+} // namespace Client::Crypto

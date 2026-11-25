@@ -57,7 +57,7 @@ std::vector<std::byte> PlainTable(std::uint32_t period, float speed)
 
 std::vector<std::byte> Encoded(std::vector<std::byte> bytes)
 {
-    Client::Core::Xor3(bytes);
+    Client::Crypto::Xor3(bytes);
     return bytes;
 }
 

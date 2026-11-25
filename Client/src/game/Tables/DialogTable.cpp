@@ -63,7 +63,7 @@ Core::Expected<DialogTable, DataError> LoadDialogTable(std::span<const std::byte
         // del registro anterior ya descifrado.
         const std::size_t start = std::min(i * DialogRecordSize, file.size());
         std::ranges::copy(file.subspan(start, std::min(DialogRecordSize, file.size() - start)), block.begin());
-        Core::Xor3(block);
+        Crypto::Xor3(block);
         const std::span<const std::byte> bytes(block);
         DialogRecord& dialog = table[i];
         const auto toChar = [](std::byte letter) { return static_cast<char>(letter); };

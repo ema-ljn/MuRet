@@ -24,7 +24,7 @@ Packet Xor32Encode(Packet packet)
 {
     if (HasXor32(packet.Type()))
     {
-        Crypto::Xor32EncodeBytes(packet.MutableBody(), AfterTheOpcode, HeaderSize(packet.Type()));
+        Client::Crypto::Xor32EncodeBytes(packet.MutableBody(), AfterTheOpcode, HeaderSize(packet.Type()));
     }
     return packet;
 }
@@ -33,7 +33,7 @@ Packet Xor32Decode(Packet packet)
 {
     if (HasXor32(packet.Type()))
     {
-        Crypto::Xor32DecodeBytes(packet.MutableBody(), AfterTheOpcode, HeaderSize(packet.Type()));
+        Client::Crypto::Xor32DecodeBytes(packet.MutableBody(), AfterTheOpcode, HeaderSize(packet.Type()));
     }
     return packet;
 }

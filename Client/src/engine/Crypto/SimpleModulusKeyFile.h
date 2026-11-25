@@ -21,7 +21,7 @@
 // Todo little-endian, y cada u32 de un bloque va con XOR de KeyFileXor, el del mismo carril. Los de
 // cifrar y los de descifrar tienen el mismo formato: el segundo bloque es la clave de cifrar en uno y
 // la de descifrar en el otro.
-namespace Client::Network::Crypto
+namespace Client::Crypto
 {
 // El magic que pasan los dos que llaman a 0x686240 (0x686070 y 0x6860b0).
 inline constexpr std::uint16_t KeyFileMagic = 0x1112;
@@ -35,4 +35,4 @@ inline constexpr Lanes KeyFileXor{0x3F08A79B, 0xE25CC287, 0x93D27AB9, 0x20DEA7BF
 // el original.
 [[nodiscard]] ENGINE_API Core::Expected<EncryptionKey, CryptoError> LoadEncryptionKey(std::span<const std::byte> file);
 [[nodiscard]] ENGINE_API Core::Expected<DecryptionKey, CryptoError> LoadDecryptionKey(std::span<const std::byte> file);
-} // namespace Client::Network::Crypto
+} // namespace Client::Crypto

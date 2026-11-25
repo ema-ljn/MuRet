@@ -33,13 +33,13 @@ inline Network::ConnectionKeys GameClientKeys()
 }
 
 // La clave con la que el GameServer descifra lo que le manda el cliente.
-inline Network::Crypto::DecryptionKey GameServerDecryption()
+inline Crypto::DecryptionKey GameServerDecryption()
 {
     return Pair17().decryption;
 }
 
 // La clave con la que el GameServer cifra lo que contesta.
-inline Network::Crypto::EncryptionKey GameServerEncryption()
+inline Crypto::EncryptionKey GameServerEncryption()
 {
     return Pair18().encryption;
 }

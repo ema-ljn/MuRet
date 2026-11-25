@@ -21,14 +21,14 @@
 // falla: solo el carril.
 namespace
 {
-using Client::Network::Crypto::DecryptBlock;
-using Client::Network::Crypto::DecryptedBlock;
-using Client::Network::Crypto::DecryptionKey;
-using Client::Network::Crypto::EncryptBlock;
-using Client::Network::Crypto::EncryptionKey;
-using Client::Network::Crypto::LoadDecryptionKey;
-using Client::Network::Crypto::LoadEncryptionKey;
-using Client::Network::Crypto::PlainBlockSize;
+using Client::Crypto::DecryptBlock;
+using Client::Crypto::DecryptedBlock;
+using Client::Crypto::DecryptionKey;
+using Client::Crypto::EncryptBlock;
+using Client::Crypto::EncryptionKey;
+using Client::Crypto::LoadDecryptionKey;
+using Client::Crypto::LoadEncryptionKey;
+using Client::Crypto::PlainBlockSize;
 using Client::Tests::Below;
 using Client::Tests::FixedSeed;
 using Client::Tests::LoadKeyFile;

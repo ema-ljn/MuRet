@@ -20,7 +20,7 @@ Core::Expected<std::vector<CreditEntry>, DataError> LoadCredits(std::span<const 
         return Core::Unexpected(DataError::FileTooShort);
     }
     std::vector<std::byte> table(file.begin(), file.begin() + static_cast<std::ptrdiff_t>(CreditFileSize));
-    Core::Xor3(table);
+    Crypto::Xor3(table);
     std::vector<CreditEntry> credits;
     credits.reserve(CreditRecordCount);
     for (std::size_t first = 0; first < CreditFileSize; first += CreditRecordSize)

@@ -13,20 +13,18 @@
 // test falla y Value() corta el programa con un mensaje. Es un error del literal, no del código.
 namespace Client::Tests
 {
-inline Network::Crypto::EncryptionKey Encryption(const Network::Crypto::Lanes& modulus,
-                                                 const Network::Crypto::Lanes& key,
-                                                 const Network::Crypto::Lanes& xorKey)
+inline Crypto::EncryptionKey Encryption(const Crypto::Lanes& modulus, const Crypto::Lanes& key,
+                                        const Crypto::Lanes& xorKey)
 {
-    auto built = Network::Crypto::EncryptionKey::FromLanes(modulus, key, xorKey);
+    auto built = Crypto::EncryptionKey::FromLanes(modulus, key, xorKey);
     EXPECT_TRUE(built.HasValue());
     return std::move(built).Value();
 }
 
-inline Network::Crypto::DecryptionKey Decryption(const Network::Crypto::Lanes& modulus,
-                                                 const Network::Crypto::Lanes& key,
-                                                 const Network::Crypto::Lanes& xorKey)
+inline Crypto::DecryptionKey Decryption(const Crypto::Lanes& modulus, const Crypto::Lanes& key,
+                                        const Crypto::Lanes& xorKey)
 {
-    auto built = Network::Crypto::DecryptionKey::FromLanes(modulus, key, xorKey);
+    auto built = Crypto::DecryptionKey::FromLanes(modulus, key, xorKey);
     EXPECT_TRUE(built.HasValue());
     return std::move(built).Value();
 }
@@ -35,12 +33,12 @@ inline Network::Crypto::DecryptionKey Decryption(const Network::Crypto::Lanes& m
 // es la inversa de la de cifrar módulo m (`pow(clave, -1, m)` de Python).
 struct KeyPair
 {
-    Network::Crypto::EncryptionKey encryption;
-    Network::Crypto::DecryptionKey decryption;
+    Crypto::EncryptionKey encryption;
+    Crypto::DecryptionKey decryption;
 };
 
-inline KeyPair PairOf(const Network::Crypto::Lanes& modulus, const Network::Crypto::Lanes& encryptionKey,
-                      const Network::Crypto::Lanes& decryptionKey, const Network::Crypto::Lanes& xorKey)
+inline KeyPair PairOf(const Crypto::Lanes& modulus, const Crypto::Lanes& encryptionKey,
+                      const Crypto::Lanes& decryptionKey, const Crypto::Lanes& xorKey)
 {
     return {Encryption(modulus, encryptionKey, xorKey), Decryption(modulus, decryptionKey, xorKey)};
 }

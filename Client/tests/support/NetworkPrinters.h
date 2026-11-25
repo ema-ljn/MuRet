@@ -210,32 +210,32 @@ inline void PrintTo(Status status, std::ostream* out)
 
 namespace Client::Network::Crypto
 {
-inline void PrintTo(CryptoError error, std::ostream* out)
+inline void PrintTo(Client::Crypto::CryptoError error, std::ostream* out)
 {
     switch (error)
     {
-    case CryptoError::InvalidKeyFile:
+    case Client::Crypto::CryptoError::InvalidKeyFile:
         *out << "InvalidKeyFile";
         return;
-    case CryptoError::InvalidKey:
+    case Client::Crypto::CryptoError::InvalidKey:
         *out << "InvalidKey";
         return;
-    case CryptoError::WrongPacketType:
+    case Client::Crypto::CryptoError::WrongPacketType:
         *out << "WrongPacketType";
         return;
-    case CryptoError::ChecksumMismatch:
+    case Client::Crypto::CryptoError::ChecksumMismatch:
         *out << "ChecksumMismatch";
         return;
-    case CryptoError::InvalidBlock:
+    case Client::Crypto::CryptoError::InvalidBlock:
         *out << "InvalidBlock";
         return;
-    case CryptoError::NotWholeBlocks:
+    case Client::Crypto::CryptoError::NotWholeBlocks:
         *out << "NotWholeBlocks";
         return;
-    case CryptoError::TooShort:
+    case Client::Crypto::CryptoError::TooShort:
         *out << "TooShort";
         return;
-    case CryptoError::TooLarge:
+    case Client::Crypto::CryptoError::TooLarge:
         *out << "TooLarge";
         return;
     }

@@ -17,7 +17,7 @@
 // Para descifrar se recorre al revés, del último al primero, mientras el anterior sigue cifrado.
 //
 // No protege nada: la clave está en el binario. Es ofuscación (la guía de la CL2.0, actividad 5).
-namespace Client::Network::Crypto
+namespace Client::Crypto
 {
 // La tabla de 32 bytes del motor (03 § Envío; XOR32_KEY en red_reference.py).
 inline constexpr std::array<std::uint8_t, 32> Xor32Key{
@@ -36,4 +36,4 @@ inline constexpr std::array<std::uint8_t, 32> Xor32Key{
 // el corrimiento natural sería 2).
 ENGINE_API void Xor32EncodeBytes(std::span<std::byte> bytes, std::size_t first, std::size_t keyShift);
 ENGINE_API void Xor32DecodeBytes(std::span<std::byte> bytes, std::size_t first, std::size_t keyShift);
-} // namespace Client::Network::Crypto
+} // namespace Client::Crypto

@@ -87,7 +87,7 @@ Client::Data::Tables::RecordTable<Size> TableWith(std::size_t count, std::span<c
                 record[i] = static_cast<std::byte>(name[i]);
             record[at] = flag;
         }
-        Client::Core::Xor3(record);
+        Client::Crypto::Xor3(record);
     }
     return Client::Data::Tables::RecordTable<Size>(bytes);
 }

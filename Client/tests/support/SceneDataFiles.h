@@ -84,7 +84,7 @@ inline std::vector<std::byte> TextTableBytes(const std::map<std::size_t, std::st
             table[index * Data::Text::TextRecordSize + i] = static_cast<std::byte>(text[i]);
         }
     }
-    Core::Xor3(table);
+    Crypto::Xor3(table);
     return table;
 }
 
@@ -114,7 +114,7 @@ inline std::vector<std::byte> FilterFileBytes(const std::vector<std::string>& wo
             std::ranges::transform(words[index].substr(0, Data::Text::FilterRecordSize), record.begin(),
                                    [](char letter) { return static_cast<std::byte>(letter); });
         }
-        Core::Xor3(record);
+        Crypto::Xor3(record);
     }
     const std::uint32_t sum = Data::Tables::TableChecksum(std::span(file).first(Data::Text::FilterTableSize),
                                                           checksumKey, Data::Tables::ChecksumParity::XorOddDwords);

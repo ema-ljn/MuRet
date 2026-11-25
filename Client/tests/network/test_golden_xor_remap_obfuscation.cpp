@@ -41,14 +41,14 @@ namespace
 {
 using Client::App::LabXorRemapTables;
 using Client::Core::ByteReader;
+using Client::Crypto::DecryptionKey;
+using Client::Crypto::LoadDecryptionKey;
 using Client::Network::DecryptPacket;
 using Client::Network::Packet;
 using Client::Network::PacketReader;
 using Client::Network::PacketSerials;
 using Client::Network::PacketType;
 using Client::Network::XorRemapObfuscation;
-using Client::Network::Crypto::DecryptionKey;
-using Client::Network::Crypto::LoadDecryptionKey;
 using Client::Protocol::ProtocolError;
 using Client::Protocol::Connection::ReadServerList;
 using Client::Tests::Bytes;

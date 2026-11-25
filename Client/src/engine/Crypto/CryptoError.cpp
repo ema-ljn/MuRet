@@ -2,7 +2,7 @@
 
 #include <string_view>
 
-namespace Client::Network::Crypto
+namespace Client::Crypto
 {
 std::string_view CryptoErrorText(CryptoError error)
 {
@@ -27,4 +27,4 @@ std::string_view CryptoErrorText(CryptoError error)
     }
     return "un error fuera del enum";
 }
-} // namespace Client::Network::Crypto
+} // namespace Client::Crypto

@@ -19,9 +19,9 @@ namespace Client::Network
 {
 namespace
 {
-using Crypto::CipherBlockSize;
-using Crypto::CryptoError;
-using Crypto::PlainBlockSize;
+using Client::Crypto::CipherBlockSize;
+using Client::Crypto::CryptoError;
+using Client::Crypto::PlainBlockSize;
 
 // Desde este largo cifrado, un C1 sale como C4 (cmp eax,0x100, en 0x4e22a8).
 constexpr std::size_t C4CipherSize = 0x100;
@@ -63,7 +63,7 @@ bool IsImpossibleUsefulSize(std::size_t useful, bool last)
 // Lo útil de cada bloque de `cipher`, uno detrás del otro: el serial, el opcode y los campos. Si
 // hay más de un problema gana el primero de esta lista: NotWholeBlocks, el primer checksum malo, un
 // largo útil imposible en cualquier bloque, y TooShort (EncryptedPacket.h).
-Core::Expected<std::vector<std::byte>, CryptoError> DecryptBlocks(const Crypto::DecryptionKey& key,
+Core::Expected<std::vector<std::byte>, CryptoError> DecryptBlocks(const Client::Crypto::DecryptionKey& key,
                                                                   std::span<const std::byte> cipher)
 {
     if (cipher.size() % CipherBlockSize != 0)
@@ -79,7 +79,7 @@ Core::Expected<std::vector<std::byte>, CryptoError> DecryptBlocks(const Crypto::
     bool invalidBlock = false;
     for (std::size_t offset = 0; offset < cipher.size(); offset += CipherBlockSize)
     {
-        const auto block = Crypto::DecryptBlock(key, cipher.subspan(offset).first<CipherBlockSize>());
+        const auto block = Client::Crypto::DecryptBlock(key, cipher.subspan(offset).first<CipherBlockSize>());
         if (!block)
         {
             return Core::Unexpected(CryptoError::ChecksumMismatch);
@@ -120,13 +120,13 @@ Packet Rebuilt(PacketType encryptedType, std::span<const std::byte> decrypted)
 }
 } // namespace
 
-Core::Expected<Packet, CryptoError> EncryptPacket(const Packet& plain, const Crypto::EncryptionKey& key,
+Core::Expected<Packet, CryptoError> EncryptPacket(const Packet& plain, const Client::Crypto::EncryptionKey& key,
                                                   PacketSerials& serials, std::byte padding)
 {
     return EncryptPacket(plain, key, serials, IdentityObfuscation::Shared(), padding);
 }
 
-Core::Expected<Packet, CryptoError> EncryptPacket(const Packet& plain, const Crypto::EncryptionKey& key,
+Core::Expected<Packet, CryptoError> EncryptPacket(const Packet& plain, const Client::Crypto::EncryptionKey& key,
                                                   PacketSerials& serials, const IObfuscation& obfuscation,
                                                   std::byte padding)
 {
@@ -168,14 +168,14 @@ Core::Expected<Packet, CryptoError> EncryptPacket(const Packet& plain, const Cry
     {
         const auto usefulInBlock = static_cast<std::uint8_t>(std::min(useful - offset, PlainBlockSize));
         const auto cipher =
-            Crypto::EncryptBlock(key, sealedView.subspan(offset).first<PlainBlockSize>(), usefulInBlock);
+            Client::Crypto::EncryptBlock(key, sealedView.subspan(offset).first<PlainBlockSize>(), usefulInBlock);
         bytes.insert(bytes.end(), cipher.begin(), cipher.end());
     }
     return KnownGood(std::move(bytes));
 }
 
-Core::Expected<DecryptedPacket, CryptoError> DecryptPacket(const Packet& encrypted, const Crypto::DecryptionKey& key,
-                                                           PacketSerials& serials)
+Core::Expected<DecryptedPacket, CryptoError>
+DecryptPacket(const Packet& encrypted, const Client::Crypto::DecryptionKey& key, PacketSerials& serials)
 {
     const PacketType type = encrypted.Type();
     if ((type != PacketType::C3 && type != PacketType::C4) || IsEmptied(encrypted))

@@ -11,8 +11,8 @@
 // de la CL4, CL4.4).
 namespace
 {
-using Client::Network::Crypto::CryptoError;
-using Client::Network::Crypto::CryptoErrorText;
+using Client::Crypto::CryptoError;
+using Client::Crypto::CryptoErrorText;
 
 // Cada error tiene su texto, y dos errores no dicen lo mismo: en el log tienen que distinguirse.
 TEST(CryptoErrorTest, EveryErrorHasItsOwnText)

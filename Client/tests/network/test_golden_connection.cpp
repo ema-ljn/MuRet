@@ -32,6 +32,8 @@
 // aviso del log, que dice el opcode.
 namespace
 {
+using Client::Crypto::CipherBlockSize;
+using Client::Crypto::DecryptionKey;
 using Client::Network::Connection;
 using Client::Network::DecryptPacket;
 using Client::Network::Event;
@@ -39,8 +41,6 @@ using Client::Network::IdentityObfuscation;
 using Client::Network::Packet;
 using Client::Network::PacketSerials;
 using Client::Network::SerialCheck;
-using Client::Network::Crypto::CipherBlockSize;
-using Client::Network::Crypto::DecryptionKey;
 using Client::Tests::CutPackets;
 using Client::Tests::SameBytesWithoutValues;
 using Client::Tests::WireDirection;

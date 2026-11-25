@@ -38,6 +38,9 @@ namespace Client::Tests::GoldenConnectionSupport
 {
 using Core::Log;
 using Core::LogLevel;
+using Crypto::DecryptionKey;
+using Crypto::LoadDecryptionKey;
+using Crypto::LoadEncryptionKey;
 using Network::Connection;
 using Network::ConnectionKeys;
 using Network::DecryptPacket;
@@ -48,9 +51,6 @@ using Network::Packet;
 using Network::PacketSerials;
 using Network::PacketType;
 using Network::Undecryptable;
-using Network::Crypto::DecryptionKey;
-using Network::Crypto::LoadDecryptionKey;
-using Network::Crypto::LoadEncryptionKey;
 
 inline constexpr std::string_view CaptureFile = "muproxy.log";
 

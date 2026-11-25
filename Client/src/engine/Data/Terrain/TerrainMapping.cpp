@@ -25,7 +25,7 @@ Core::Expected<std::unique_ptr<TerrainMapping>, DataError> LoadTerrainMapping(st
     // primeros TerrainMappingSize da lo mismo que descifrar todo y quedarse con ellos.
     const std::span<const std::byte> encrypted = file.first(TerrainMappingSize);
     std::vector<std::byte> plain(encrypted.begin(), encrypted.end());
-    DecryptK16(plain);
+    Crypto::DecryptK16(plain);
 
     if (std::to_integer<std::uint8_t>(plain[TerrainMappingWorldOffset]) != world)
     {

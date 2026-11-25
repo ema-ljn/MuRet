@@ -63,8 +63,8 @@ inline constexpr Core::Duration SlowConnectStart = std::chrono::milliseconds{100
 // llega (03 § C3/C4).
 struct ConnectionKeys
 {
-    Crypto::EncryptionKey encryption;
-    Crypto::DecryptionKey decryption;
+    Client::Crypto::EncryptionKey encryption;
+    Client::Crypto::DecryptionKey decryption;
 };
 
 // Lo que pasa en un Poll.
@@ -76,7 +76,7 @@ struct Opened // el connect terminó: va antes de lo que llegó en el mismo Poll
 struct Undecryptable
 {
     // Por qué no se descifró; std::nullopt si la conexión no tiene claves (la del ConnectServer).
-    std::optional<Crypto::CryptoError> error;
+    std::optional<Client::Crypto::CryptoError> error;
 };
 struct Closed // siempre lo último del lote; el motivo también queda en LastCloseReason()
 {

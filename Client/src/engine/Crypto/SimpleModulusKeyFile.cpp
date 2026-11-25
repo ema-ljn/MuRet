@@ -10,7 +10,7 @@
 #include <optional>
 #include <span>
 
-namespace Client::Network::Crypto
+namespace Client::Crypto
 {
 namespace
 {
@@ -65,4 +65,4 @@ Core::Expected<DecryptionKey, CryptoError> LoadDecryptionKey(std::span<const std
 {
     return LoadKey<KeyRole::Decrypt>(file);
 }
-} // namespace Client::Network::Crypto
+} // namespace Client::Crypto

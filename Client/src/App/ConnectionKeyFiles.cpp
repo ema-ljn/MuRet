@@ -67,9 +67,8 @@ Core::Expected<std::vector<std::byte>, std::string> ReadKeyFile(const std::files
 
 // Lee `name` y lo carga con `load` (LoadEncryptionKey o LoadDecryptionKey).
 template <typename Key>
-Core::Expected<Key, std::string>
-LoadKey(const std::filesystem::path& folder, std::string_view name,
-        Core::Expected<Key, Network::Crypto::CryptoError> (*load)(std::span<const std::byte>))
+Core::Expected<Key, std::string> LoadKey(const std::filesystem::path& folder, std::string_view name,
+                                         Core::Expected<Key, Crypto::CryptoError> (*load)(std::span<const std::byte>))
 {
     const auto file = ReadKeyFile(folder, name);
     if (!file.HasValue())
@@ -79,7 +78,7 @@ LoadKey(const std::filesystem::path& folder, std::string_view name,
     auto key = load(file.Value());
     if (!key.HasValue())
     {
-        return Unexpected(std::format("{} no carga: {}", name, Network::Crypto::CryptoErrorText(key.Error())));
+        return Unexpected(std::format("{} no carga: {}", name, Crypto::CryptoErrorText(key.Error())));
     }
     return std::move(key).Value();
 }
@@ -95,8 +94,8 @@ LoadConnectionKeys(const std::optional<std::filesystem::path>& dataFolder)
                                       "carpeta de datos: dala con [Data] Path en la config o con --data",
                                       EncryptionKeyFileName, DecryptionKeyFileName));
     }
-    auto encryption = LoadKey(*dataFolder, EncryptionKeyFileName, Network::Crypto::LoadEncryptionKey);
-    auto decryption = LoadKey(*dataFolder, DecryptionKeyFileName, Network::Crypto::LoadDecryptionKey);
+    auto encryption = LoadKey(*dataFolder, EncryptionKeyFileName, Crypto::LoadEncryptionKey);
+    auto decryption = LoadKey(*dataFolder, DecryptionKeyFileName, Crypto::LoadDecryptionKey);
     if (!encryption.HasValue() || !decryption.HasValue())
     {
         std::string problems;

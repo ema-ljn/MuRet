@@ -11,7 +11,7 @@
 // Client::Data::Terrain::DecryptK16: el cifrado de los archivos de terreno.
 namespace
 {
-using Client::Data::Terrain::DecryptK16;
+using Client::Crypto::DecryptK16;
 using Client::Tests::BytePattern;
 using Client::Tests::EncryptK16;
 

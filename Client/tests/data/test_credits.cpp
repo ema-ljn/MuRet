@@ -41,7 +41,7 @@ std::vector<std::byte> CipheredFile(std::size_t size)
     PutRecord(file, 1, CreditKind::Role, "Un rol");
     PutRecord(file, 2, CreditKind::Name, "Alguien");
     PutRecord(file, 3, CreditKind::End, "");
-    Client::Core::Xor3(file);
+    Client::Crypto::Xor3(file);
     return file;
 }
 
@@ -65,7 +65,7 @@ TEST(CreditsTest, AFullTextTakesTheThirtyTwoBytes)
     std::vector<std::byte> file(CreditFileSize);
     PutRecord(file, 0, CreditKind::Name, "abcdefghijklmnopqrstuvwxyz012345");
     file[CreditRecordSize] = std::byte{7};
-    Client::Core::Xor3(file);
+    Client::Crypto::Xor3(file);
 
     const auto credits = LoadCredits(file);
 

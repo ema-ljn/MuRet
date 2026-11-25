@@ -43,6 +43,8 @@
 namespace
 {
 using Client::App::LabXorRemapTables;
+using Client::Crypto::EncryptBlock;
+using Client::Crypto::PlainBlockSize;
 using Client::Network::DecryptPacket;
 using Client::Network::EncryptPacket;
 using Client::Network::MaxPacketSize;
@@ -56,8 +58,6 @@ using Client::Network::Xor32Decode;
 using Client::Network::Xor32Encode;
 using Client::Network::XorRemapObfuscation;
 using Client::Network::XorRemapTables;
-using Client::Network::Crypto::EncryptBlock;
-using Client::Network::Crypto::PlainBlockSize;
 using Client::Tests::BytePattern;
 using Client::Tests::Bytes;
 using Client::Tests::IdentityPair;

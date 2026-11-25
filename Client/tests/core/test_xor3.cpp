@@ -11,7 +11,7 @@
 // Client::Core::Xor3: el cifrado de las tablas .bmd y de la cuenta y la clave del login.
 namespace
 {
-using Client::Core::Xor3;
+using Client::Crypto::Xor3;
 using Client::Tests::BytePattern;
 
 // Cualquier contenido sirve; este es el "patrón" de mu-client.

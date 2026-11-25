@@ -35,7 +35,7 @@ Core::Expected<std::vector<std::string>, DataError> LoadFilterWords(std::span<co
     {
         std::array<std::byte, FilterRecordSize> record{};
         std::ranges::copy(table.subspan(first, FilterRecordSize), record.begin());
-        Core::Xor3(record);
+        Crypto::Xor3(record);
         if (record[0] == std::byte{0})
         {
             return words;

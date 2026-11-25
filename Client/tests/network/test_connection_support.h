@@ -154,8 +154,7 @@ protected:
         Network::PacketSerials server;
         ByteVector good = FromTheGameServer(hello, server);
         ByteVector bad = FromTheGameServer(hello, server);
-        const std::size_t checksum =
-            Network::HeaderSize(Network::PacketType::C3) + Network::Crypto::CipherBlockSize - 1;
+        const std::size_t checksum = Network::HeaderSize(Network::PacketType::C3) + Crypto::CipherBlockSize - 1;
         bad[checksum] ^= std::byte{0xFF};
         for (ByteVector* part : {&good, &bad})
         {

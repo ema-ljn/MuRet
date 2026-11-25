@@ -33,6 +33,15 @@
 // wire capture, decrypted with the real keys and compared block by block.
 namespace Client::Tests::GoldenEncryptedPacketSupport
 {
+using Crypto::CipherBlockSize;
+using Crypto::DecryptBlock;
+using Crypto::DecryptedBlock;
+using Crypto::DecryptionKey;
+using Crypto::EncryptBlock;
+using Crypto::EncryptionKey;
+using Crypto::LoadDecryptionKey;
+using Crypto::LoadEncryptionKey;
+using Crypto::PlainBlockSize;
 using Network::DecryptPacket;
 using Network::HeaderSize;
 using Network::IObfuscation;
@@ -40,15 +49,6 @@ using Network::Packet;
 using Network::PacketSerials;
 using Network::PacketType;
 using Network::SerialCheck;
-using Network::Crypto::CipherBlockSize;
-using Network::Crypto::DecryptBlock;
-using Network::Crypto::DecryptedBlock;
-using Network::Crypto::DecryptionKey;
-using Network::Crypto::EncryptBlock;
-using Network::Crypto::EncryptionKey;
-using Network::Crypto::LoadDecryptionKey;
-using Network::Crypto::LoadEncryptionKey;
-using Network::Crypto::PlainBlockSize;
 using Protocol::Character::InventoryList;
 using Protocol::Character::ReadInventoryList;
 

@@ -18,7 +18,7 @@
 // Client::Data::Tables::RecordTable: los registros de largo fijo de las tablas .bmd.
 namespace
 {
-using Client::Core::Xor3;
+using Client::Crypto::Xor3;
 using Client::Data::Tables::RecordTable;
 using Client::Tests::BytePattern;
 

@@ -213,7 +213,7 @@ TEST(GameDataTest, ReadsTheMoveRequirements)
     record[4] = std::byte{'C'};
     record[5] = std::byte{'a'};
     record[0x44] = std::byte{40};
-    Client::Core::Xor3(record);
+    Client::Crypto::Xor3(record);
     WriteSceneFile(folder.Path(), "Local/MoveReq.bmd", file);
     const auto data = LoadGameData(folder.Path());
     ASSERT_TRUE(data.HasValue()) << data.Error();

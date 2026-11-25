@@ -28,7 +28,7 @@ public:
         const std::span<std::byte> all(m_records);
         for (std::size_t index = 0; index < Count(); ++index)
         {
-            Core::Xor3(all.subspan(index * RecordSize, RecordSize));
+            Crypto::Xor3(all.subspan(index * RecordSize, RecordSize));
         }
     }
 

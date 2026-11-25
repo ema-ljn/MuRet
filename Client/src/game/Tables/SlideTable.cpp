@@ -35,7 +35,7 @@ Core::Expected<SlideTable, DataError> LoadSlideTable(std::span<const std::byte> 
     if (file.size() < SlideTableSize)
         return Core::Unexpected(DataError::FileTooShort);
     std::vector<std::byte> bytes(file.begin(), file.begin() + static_cast<std::ptrdiff_t>(SlideTableSize));
-    Core::Xor3(bytes);
+    Crypto::Xor3(bytes);
     SlideTable table;
     table.periodSeconds = static_cast<std::int32_t>(DwordAt(bytes, 0));
     table.speed = std::bit_cast<float>(DwordAt(bytes, 4));

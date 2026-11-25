@@ -18,13 +18,13 @@
 // test_golden_simple_modulus_key_file.cpp.
 namespace
 {
-using Client::Network::Crypto::CryptoError;
-using Client::Network::Crypto::KeyFileMagic;
-using Client::Network::Crypto::KeyFileSize;
-using Client::Network::Crypto::KeyFileXor;
-using Client::Network::Crypto::Lanes;
-using Client::Network::Crypto::LoadDecryptionKey;
-using Client::Network::Crypto::LoadEncryptionKey;
+using Client::Crypto::CryptoError;
+using Client::Crypto::KeyFileMagic;
+using Client::Crypto::KeyFileSize;
+using Client::Crypto::KeyFileXor;
+using Client::Crypto::Lanes;
+using Client::Crypto::LoadDecryptionKey;
+using Client::Crypto::LoadEncryptionKey;
 using Client::Tests::AppendLittleEndian;
 
 // Los tres bloques de un archivo, ya sin el XOR de la tabla.

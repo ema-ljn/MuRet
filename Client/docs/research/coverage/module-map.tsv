@@ -114,21 +114,21 @@ Data/DataFile.cpp	87	Data	engine/Data	high	engine or protocol layer, no game sta
 Data/DataFile.h	33	Data	engine/Data	high	engine or protocol layer, no game state
 Data/DataPath.cpp	163	Data	engine/Data	high	engine or protocol layer, no game state
 Data/DataPath.h	35	Data	engine/Data	high	engine or protocol layer, no game state
-Data/Models/Bmd.cpp	415	Data	engine/Data	high	engine or protocol layer, no game state
-Data/Models/Bmd.h	75	Data	engine/Data	high	engine or protocol layer, no game state
-Data/Models/Model.h	105	Data	engine/Data	high	engine or protocol layer, no game state
-Data/Models/ModelFiles.cpp	106	Data	engine/Data	high	engine or protocol layer, no game state
-Data/Models/ModelFiles.h	68	Data	engine/Data	high	engine or protocol layer, no game state
-Data/Models/ModelLoadCalls.cpp	51	Data	engine/Data	high	engine or protocol layer, no game state
-Data/Models/ModelLoadCalls.h	18	Data	engine/Data	high	engine or protocol layer, no game state
-Data/Models/ModelTextureCalls.cpp	240	Data	engine/Data	high	engine or protocol layer, no game state
-Data/Models/ModelTextureCalls.h	51	Data	engine/Data	high	engine or protocol layer, no game state
-Data/Models/ModelTextures.cpp	114	Data	engine/Data	high	engine or protocol layer, no game state
-Data/Models/ModelTextures.h	42	Data	engine/Data	high	engine or protocol layer, no game state
-Data/Models/PlayerActions.cpp	83	Data	engine/Data	high	engine or protocol layer, no game state
-Data/Models/PlayerActions.h	35	Data	engine/Data	high	engine or protocol layer, no game state
-Data/Models/PlayerModels.cpp	610	Data	engine/Data	high	engine or protocol layer, no game state
-Data/Models/PlayerModels.h	72	Data	engine/Data	high	engine or protocol layer, no game state
+Data/Models/Bmd.cpp	415	Data	engine/Data/Models	high	engine or protocol layer, no game state
+Data/Models/Bmd.h	75	Data	engine/Data/Models	high	engine or protocol layer, no game state
+Data/Models/Model.h	105	Data	engine/Data/Models	high	engine or protocol layer, no game state
+Data/Models/ModelFiles.cpp	106	Data	engine/Data/Models	high	engine or protocol layer, no game state
+Data/Models/ModelFiles.h	68	Data	engine/Data/Models	high	engine or protocol layer, no game state
+Data/Models/ModelLoadCalls.cpp	51	Data	engine/Data/Models	high	engine or protocol layer, no game state
+Data/Models/ModelLoadCalls.h	18	Data	engine/Data/Models	high	engine or protocol layer, no game state
+Data/Models/ModelTextureCalls.cpp	240	Data	engine/Data/Models	high	engine or protocol layer, no game state
+Data/Models/ModelTextureCalls.h	51	Data	engine/Data/Models	high	engine or protocol layer, no game state
+Data/Models/ModelTextures.cpp	114	Data	engine/Data/Models	high	engine or protocol layer, no game state
+Data/Models/ModelTextures.h	42	Data	engine/Data/Models	high	engine or protocol layer, no game state
+Data/Models/PlayerActions.cpp	83	Data	engine/Data/Models	high	engine or protocol layer, no game state
+Data/Models/PlayerActions.h	35	Data	engine/Data/Models	high	engine or protocol layer, no game state
+Data/Models/PlayerModels.cpp	610	Data	engine/Data/Models	high	engine or protocol layer, no game state
+Data/Models/PlayerModels.h	72	Data	engine/Data/Models	high	engine or protocol layer, no game state
 Data/Tables/GateRecord.cpp	24	Data	game/Tables	high	a MU data table; the generic reader stays in engine/Data (2026-11-21 review)
 Data/Tables/GateRecord.h	29	Data	game/Tables	high	a MU data table; the generic reader stays in engine/Data (2026-11-21 review)
 Data/Tables/GateTable.cpp	19	Data	game/Tables	high	a MU data table; the generic reader stays in engine/Data (2026-11-21 review)
@@ -141,24 +141,24 @@ Data/Tables/MonsterSkillTable.cpp	70	Data	game/Tables	high	a MU data table; the 
 Data/Tables/MonsterSkillTable.h	51	Data	game/Tables	high	a MU data table; the generic reader stays in engine/Data (2026-11-21 review)
 Data/Tables/QuestTable.cpp	112	Data	game/Tables	high	a MU data table; the generic reader stays in engine/Data (2026-11-21 review)
 Data/Tables/QuestTable.h	110	Data	game/Tables	high	a MU data table; the generic reader stays in engine/Data (2026-11-21 review)
-Data/Tables/RecordTable.h	67	Data	engine/Data	high	engine or protocol layer, no game state
+Data/Tables/RecordTable.h	67	Data	engine/Data/Tables	high	engine or protocol layer, no game state
 Data/Tables/SkillTable.cpp	28	Data	game/Tables	high	a MU data table; the generic reader stays in engine/Data (2026-11-21 review)
 Data/Tables/SkillTable.h	39	Data	game/Tables	high	a MU data table; the generic reader stays in engine/Data (2026-11-21 review)
-Data/Tables/TableChecksum.cpp	55	Data	engine/Data	high	engine or protocol layer, no game state
-Data/Tables/TableChecksum.h	38	Data	engine/Data	high	engine or protocol layer, no game state
+Data/Tables/TableChecksum.cpp	55	Data	engine/Data/Tables	high	engine or protocol layer, no game state
+Data/Tables/TableChecksum.h	38	Data	engine/Data/Tables	high	engine or protocol layer, no game state
 Data/Terrain/K16.cpp	22	Data	engine/Crypto	high	MU byte ciphers, apart from sockets and formats; Xor32 leaves Network/Packet in AR1.1 (2026-11-21 review)
 Data/Terrain/K16.h	39	Data	engine/Crypto	high	MU byte ciphers, apart from sockets and formats; Xor32 leaves Network/Packet in AR1.1 (2026-11-21 review)
-Data/Terrain/TerrainAttributes.cpp	91	Data	engine/Data	high	engine or protocol layer, no game state
-Data/Terrain/TerrainAttributes.h	71	Data	engine/Data	high	engine or protocol layer, no game state
-Data/Terrain/TerrainGrid.h	31	Data	engine/Data	high	engine or protocol layer, no game state
-Data/Terrain/TerrainHeights.cpp	32	Data	engine/Data	high	engine or protocol layer, no game state
-Data/Terrain/TerrainHeights.h	72	Data	engine/Data	high	engine or protocol layer, no game state
-Data/Terrain/TerrainLight.cpp	70	Data	engine/Data	high	engine or protocol layer, no game state
-Data/Terrain/TerrainLight.h	58	Data	engine/Data	high	engine or protocol layer, no game state
-Data/Terrain/TerrainMapping.cpp	45	Data	engine/Data	high	engine or protocol layer, no game state
-Data/Terrain/TerrainMapping.h	78	Data	engine/Data	high	engine or protocol layer, no game state
-Data/Terrain/TerrainObjects.cpp	108	Data	engine/Data	high	engine or protocol layer, no game state
-Data/Terrain/TerrainObjects.h	68	Data	engine/Data	high	engine or protocol layer, no game state
+Data/Terrain/TerrainAttributes.cpp	91	Data	engine/Data/Terrain	high	engine or protocol layer, no game state
+Data/Terrain/TerrainAttributes.h	71	Data	engine/Data/Terrain	high	engine or protocol layer, no game state
+Data/Terrain/TerrainGrid.h	31	Data	engine/Data/Terrain	high	engine or protocol layer, no game state
+Data/Terrain/TerrainHeights.cpp	32	Data	engine/Data/Terrain	high	engine or protocol layer, no game state
+Data/Terrain/TerrainHeights.h	72	Data	engine/Data/Terrain	high	engine or protocol layer, no game state
+Data/Terrain/TerrainLight.cpp	70	Data	engine/Data/Terrain	high	engine or protocol layer, no game state
+Data/Terrain/TerrainLight.h	58	Data	engine/Data/Terrain	high	engine or protocol layer, no game state
+Data/Terrain/TerrainMapping.cpp	45	Data	engine/Data/Terrain	high	engine or protocol layer, no game state
+Data/Terrain/TerrainMapping.h	78	Data	engine/Data/Terrain	high	engine or protocol layer, no game state
+Data/Terrain/TerrainObjects.cpp	108	Data	engine/Data/Terrain	high	engine or protocol layer, no game state
+Data/Terrain/TerrainObjects.h	68	Data	engine/Data/Terrain	high	engine or protocol layer, no game state
 Data/Text/Credits.cpp	47	Data	game/Tables	high	a MU text table; the generic reader stays in engine/Data (2026-11-21 review)
 Data/Text/Credits.h	53	Data	game/Tables	high	a MU text table; the generic reader stays in engine/Data (2026-11-21 review)
 Data/Text/DialogTable.cpp	84	Data	game/Tables	high	a MU text table; the generic reader stays in engine/Data (2026-11-21 review)
@@ -173,20 +173,20 @@ Data/Text/SlideTable.cpp	66	Data	game/Tables	high	a MU text table; the generic r
 Data/Text/SlideTable.h	54	Data	game/Tables	high	a MU text table; the generic reader stays in engine/Data (2026-11-21 review)
 Data/Text/TextTable.cpp	44	Data	game/Tables	high	a MU text table; the generic reader stays in engine/Data (2026-11-21 review)
 Data/Text/TextTable.h	74	Data	game/Tables	high	a MU text table; the generic reader stays in engine/Data (2026-11-21 review)
-Data/Textures/JpegErrors.cpp	16	Data	engine/Data	high	engine or protocol layer, no game state
-Data/Textures/JpegErrors.h	21	Data	engine/Data	high	engine or protocol layer, no game state
-Data/Textures/JpegImage.cpp	232	Data	engine/Data	high	engine or protocol layer, no game state
-Data/Textures/JpegImage.h	62	Data	engine/Data	high	engine or protocol layer, no game state
-Data/Textures/JpegWriter.cpp	198	Data	engine/Data	high	engine or protocol layer, no game state
-Data/Textures/JpegWriter.h	40	Data	engine/Data	high	engine or protocol layer, no game state
-Data/Textures/OzjTexture.cpp	50	Data	engine/Data	high	engine or protocol layer, no game state
-Data/Textures/OzjTexture.h	43	Data	engine/Data	high	engine or protocol layer, no game state
-Data/Textures/OztTexture.cpp	121	Data	engine/Data	high	engine or protocol layer, no game state
-Data/Textures/OztTexture.h	65	Data	engine/Data	high	engine or protocol layer, no game state
-Data/Textures/Sampling.h	29	Data	engine/Data	high	engine or protocol layer, no game state
-Data/Textures/Texture.h	60	Data	engine/Data	high	engine or protocol layer, no game state
-Data/Textures/TextureSet.cpp	151	Data	engine/Data	high	engine or protocol layer, no game state
-Data/Textures/TextureSet.h	91	Data	engine/Data	high	engine or protocol layer, no game state
+Data/Textures/JpegErrors.cpp	16	Data	engine/Data/Textures	high	engine or protocol layer, no game state
+Data/Textures/JpegErrors.h	21	Data	engine/Data/Textures	high	engine or protocol layer, no game state
+Data/Textures/JpegImage.cpp	232	Data	engine/Data/Textures	high	engine or protocol layer, no game state
+Data/Textures/JpegImage.h	62	Data	engine/Data/Textures	high	engine or protocol layer, no game state
+Data/Textures/JpegWriter.cpp	198	Data	engine/Data/Textures	high	engine or protocol layer, no game state
+Data/Textures/JpegWriter.h	40	Data	engine/Data/Textures	high	engine or protocol layer, no game state
+Data/Textures/OzjTexture.cpp	50	Data	engine/Data/Textures	high	engine or protocol layer, no game state
+Data/Textures/OzjTexture.h	43	Data	engine/Data/Textures	high	engine or protocol layer, no game state
+Data/Textures/OztTexture.cpp	121	Data	engine/Data/Textures	high	engine or protocol layer, no game state
+Data/Textures/OztTexture.h	65	Data	engine/Data/Textures	high	engine or protocol layer, no game state
+Data/Textures/Sampling.h	29	Data	engine/Data/Textures	high	engine or protocol layer, no game state
+Data/Textures/Texture.h	60	Data	engine/Data/Textures	high	engine or protocol layer, no game state
+Data/Textures/TextureSet.cpp	151	Data	engine/Data/Textures	high	engine or protocol layer, no game state
+Data/Textures/TextureSet.h	91	Data	engine/Data/Textures	high	engine or protocol layer, no game state
 Data/WorldFolder.cpp	21	Data	game/Maps	high	which folder each map has: map definition (2026-11-21 review)
 Data/WorldFolder.h	30	Data	game/Maps	high	which folder each map has: map definition (2026-11-21 review)
 Data/WorldLoadIdentity.cpp	53	Data	game/Maps	high	which folder each map has: map definition (2026-11-21 review)
@@ -265,35 +265,35 @@ Network/SystemSocket.cpp	157	Network	engine/Network	high	engine or protocol laye
 Network/SystemSocket.h	70	Network	engine/Network	high	engine or protocol layer, no game state
 Network/Xor32Packet.cpp	40	Network	engine/Network	high	XOR32 over a whole C1 or C2, on top of the Crypto bytes (AR1.1)
 Network/Xor32Packet.h	12	Network	engine/Network	high	XOR32 over a whole C1 or C2, on top of the Crypto bytes (AR1.1)
-Platform/BasePath.cpp	28	Platform	engine/Platform	high	engine or protocol layer, no game state
-Platform/BasePath.h	14	Platform	engine/Platform	high	engine or protocol layer, no game state
-Platform/Clipboard.cpp	60	Platform	engine/Platform	high	engine or protocol layer, no game state
-Platform/Clipboard.h	18	Platform	engine/Platform	high	engine or protocol layer, no game state
-Platform/DisplayModes.cpp	53	Platform	engine/Platform	high	engine or protocol layer, no game state
-Platform/DisplayModes.h	20	Platform	engine/Platform	high	engine or protocol layer, no game state
-Platform/GlFunctionList.h	89	Platform	engine/Platform	high	engine or protocol layer, no game state
-Platform/GlLoader.cpp	130	Platform	engine/Platform	high	engine or protocol layer, no game state
-Platform/GlLoader.h	106	Platform	engine/Platform	high	engine or protocol layer, no game state
-Platform/InputEvents.cpp	235	Platform	engine/Platform	high	engine or protocol layer, no game state
-Platform/InputEvents.h	52	Platform	engine/Platform	high	engine or protocol layer, no game state
-Platform/LocalTime.cpp	24	Platform	engine/Platform	high	engine or protocol layer, no game state
-Platform/LocalTime.h	16	Platform	engine/Platform	high	engine or protocol layer, no game state
-Platform/SdlAudio.cpp	380	Platform	engine/Platform	high	engine or protocol layer, no game state
-Platform/SdlAudio.h	43	Platform	engine/Platform	high	engine or protocol layer, no game state
-Platform/SdlClock.cpp	31	Platform	engine/Platform	high	engine or protocol layer, no game state
-Platform/SdlClock.h	16	Platform	engine/Platform	high	engine or protocol layer, no game state
-Platform/SdlContext.cpp	46	Platform	engine/Platform	high	engine or protocol layer, no game state
-Platform/SdlContext.h	27	Platform	engine/Platform	high	engine or protocol layer, no game state
-Platform/SdlLog.cpp	111	Platform	engine/Platform	high	engine or protocol layer, no game state
-Platform/SdlLog.h	51	Platform	engine/Platform	high	engine or protocol layer, no game state
-Platform/SwapInterval.cpp	103	Platform	engine/Platform	high	engine or protocol layer, no game state
-Platform/SwapInterval.h	38	Platform	engine/Platform	high	engine or protocol layer, no game state
-Platform/SystemFonts.cpp	217	Platform	engine/Platform	high	engine or protocol layer, no game state
-Platform/SystemFonts.h	30	Platform	engine/Platform	high	engine or protocol layer, no game state
-Platform/Window.cpp	148	Platform	engine/Platform	high	engine or protocol layer, no game state
-Platform/Window.h	94	Platform	engine/Platform	high	engine or protocol layer, no game state
-Platform/WindowEvents.cpp	84	Platform	engine/Platform	high	engine or protocol layer, no game state
-Platform/WindowEvents.h	29	Platform	engine/Platform	high	engine or protocol layer, no game state
+Platform/BasePath.cpp	28	Platform	engine/Platform/Sdl	high	engine or protocol layer, no game state
+Platform/BasePath.h	14	Platform	engine/Platform/Sdl	high	engine or protocol layer, no game state
+Platform/Clipboard.cpp	60	Platform	engine/Platform/Sdl	high	engine or protocol layer, no game state
+Platform/Clipboard.h	18	Platform	engine/Platform/Sdl	high	engine or protocol layer, no game state
+Platform/DisplayModes.cpp	53	Platform	engine/Platform/Sdl	high	engine or protocol layer, no game state
+Platform/DisplayModes.h	20	Platform	engine/Platform/Sdl	high	engine or protocol layer, no game state
+Platform/GlFunctionList.h	89	Platform	engine/Platform/Sdl	high	engine or protocol layer, no game state
+Platform/GlLoader.cpp	130	Platform	engine/Platform/Sdl	high	engine or protocol layer, no game state
+Platform/GlLoader.h	106	Platform	engine/Platform/Sdl	high	engine or protocol layer, no game state
+Platform/InputEvents.cpp	235	Platform	engine/Platform/Sdl	high	engine or protocol layer, no game state
+Platform/InputEvents.h	52	Platform	engine/Platform/Sdl	high	engine or protocol layer, no game state
+Platform/LocalTime.cpp	24	Platform	engine/Platform/Sdl	high	engine or protocol layer, no game state
+Platform/LocalTime.h	16	Platform	engine/Platform/Sdl	high	engine or protocol layer, no game state
+Platform/SdlAudio.cpp	380	Platform	engine/Audio/Sdl	high	engine or protocol layer, no game state
+Platform/SdlAudio.h	43	Platform	engine/Audio/Sdl	high	engine or protocol layer, no game state
+Platform/SdlClock.cpp	31	Platform	engine/Platform/Sdl	high	engine or protocol layer, no game state
+Platform/SdlClock.h	16	Platform	engine/Platform/Sdl	high	engine or protocol layer, no game state
+Platform/SdlContext.cpp	46	Platform	engine/Platform/Sdl	high	engine or protocol layer, no game state
+Platform/SdlContext.h	27	Platform	engine/Platform/Sdl	high	engine or protocol layer, no game state
+Platform/SdlLog.cpp	111	Platform	engine/Platform/Sdl	high	engine or protocol layer, no game state
+Platform/SdlLog.h	51	Platform	engine/Platform/Sdl	high	engine or protocol layer, no game state
+Platform/SwapInterval.cpp	103	Platform	engine/Platform/Sdl	high	engine or protocol layer, no game state
+Platform/SwapInterval.h	38	Platform	engine/Platform/Sdl	high	engine or protocol layer, no game state
+Platform/SystemFonts.cpp	217	Platform	engine/Platform/Sdl	high	engine or protocol layer, no game state
+Platform/SystemFonts.h	30	Platform	engine/Platform/Sdl	high	engine or protocol layer, no game state
+Platform/Window.cpp	148	Platform	engine/Platform/Sdl	high	engine or protocol layer, no game state
+Platform/Window.h	94	Platform	engine/Platform/Sdl	high	engine or protocol layer, no game state
+Platform/WindowEvents.cpp	84	Platform	engine/Platform/Sdl	high	engine or protocol layer, no game state
+Platform/WindowEvents.h	29	Platform	engine/Platform/Sdl	high	engine or protocol layer, no game state
 Protocol/BuildConstants.h	32	Protocol	game/Protocol	high	engine or protocol layer, no game state
 Protocol/CastleBattle.cpp	397	Protocol	game/Protocol	high	engine or protocol layer, no game state
 Protocol/CastleBattle.h	189	Protocol	game/Protocol	high	engine or protocol layer, no game state
@@ -395,27 +395,27 @@ Render/Billboard.cpp	115	Render	engine/Render	high	engine or protocol layer, no 
 Render/Billboard.h	52	Render	engine/Render	high	engine or protocol layer, no game state
 Render/Frame/IScreenReader.h	19	Render/Frame	engine/Render/Frame	high	the screenshot's read of the drawn frame, implemented by GL (AR1.1)
 Render/Frame/SceneWorld.h	11	Render/Frame	engine/Render/Frame	high	the map the scene hands to the 3D pass (AR1.1)
-Render/Gl/GlFrameTarget.cpp	114	Render	engine/Render	high	engine or protocol layer, no game state
-Render/Gl/GlFrameTarget.h	82	Render	engine/Render	high	engine or protocol layer, no game state
-Render/Gl/GlFramebuffer.cpp	87	Render	engine/Render	high	engine or protocol layer, no game state
-Render/Gl/GlFramebuffer.h	58	Render	engine/Render	high	engine or protocol layer, no game state
-Render/Gl/GlModelRenderer.cpp	325	Render	engine/Render	high	engine or protocol layer, no game state
-Render/Gl/GlModelRenderer.h	77	Render	engine/Render	high	engine or protocol layer, no game state
-Render/Gl/GlName.cpp	122	Render	engine/Render	high	engine or protocol layer, no game state
-Render/Gl/GlName.h	49	Render	engine/Render	high	engine or protocol layer, no game state
-Render/Gl/GlRenderer.cpp	122	Render	engine/Render	high	engine or protocol layer, no game state
-Render/Gl/GlRenderer.h	62	Render	engine/Render	high	engine or protocol layer, no game state
-Render/Gl/GlScreenReader.cpp	27	Render	engine/Render	high	engine or protocol layer, no game state
-Render/Gl/GlScreenReader.h	29	Render	engine/Render	high	engine or protocol layer, no game state
-Render/Gl/GlShader.cpp	121	Render	engine/Render	high	engine or protocol layer, no game state
-Render/Gl/GlShader.h	36	Render	engine/Render	high	engine or protocol layer, no game state
-Render/Gl/GlSpriteRenderer.cpp	80	Render	engine/Render	high	engine or protocol layer, no game state
-Render/Gl/GlSpriteRenderer.h	42	Render	engine/Render	high	engine or protocol layer, no game state
-Render/Gl/GlTexture.cpp	182	Render	engine/Render	high	engine or protocol layer, no game state
-Render/Gl/GlTexture.h	51	Render	engine/Render	high	engine or protocol layer, no game state
-Render/Gl/Shaders.h	143	Render	engine/Render	high	engine or protocol layer, no game state
-Render/Gl/TextureTable.cpp	59	Render	engine/Render	high	engine or protocol layer, no game state
-Render/Gl/TextureTable.h	51	Render	engine/Render	high	engine or protocol layer, no game state
+Render/Gl/GlFrameTarget.cpp	114	Render	engine/Render/Gl	high	engine or protocol layer, no game state
+Render/Gl/GlFrameTarget.h	82	Render	engine/Render/Gl	high	engine or protocol layer, no game state
+Render/Gl/GlFramebuffer.cpp	87	Render	engine/Render/Gl	high	engine or protocol layer, no game state
+Render/Gl/GlFramebuffer.h	58	Render	engine/Render/Gl	high	engine or protocol layer, no game state
+Render/Gl/GlModelRenderer.cpp	325	Render	engine/Render/Gl	high	engine or protocol layer, no game state
+Render/Gl/GlModelRenderer.h	77	Render	engine/Render/Gl	high	engine or protocol layer, no game state
+Render/Gl/GlName.cpp	122	Render	engine/Render/Gl	high	engine or protocol layer, no game state
+Render/Gl/GlName.h	49	Render	engine/Render/Gl	high	engine or protocol layer, no game state
+Render/Gl/GlRenderer.cpp	122	Render	engine/Render/Gl	high	engine or protocol layer, no game state
+Render/Gl/GlRenderer.h	62	Render	engine/Render/Gl	high	engine or protocol layer, no game state
+Render/Gl/GlScreenReader.cpp	27	Render	engine/Render/Gl	high	engine or protocol layer, no game state
+Render/Gl/GlScreenReader.h	29	Render	engine/Render/Gl	high	engine or protocol layer, no game state
+Render/Gl/GlShader.cpp	121	Render	engine/Render/Gl	high	engine or protocol layer, no game state
+Render/Gl/GlShader.h	36	Render	engine/Render/Gl	high	engine or protocol layer, no game state
+Render/Gl/GlSpriteRenderer.cpp	80	Render	engine/Render/Gl	high	engine or protocol layer, no game state
+Render/Gl/GlSpriteRenderer.h	42	Render	engine/Render/Gl	high	engine or protocol layer, no game state
+Render/Gl/GlTexture.cpp	182	Render	engine/Render/Gl	high	engine or protocol layer, no game state
+Render/Gl/GlTexture.h	51	Render	engine/Render/Gl	high	engine or protocol layer, no game state
+Render/Gl/Shaders.h	143	Render	engine/Render/Gl	high	engine or protocol layer, no game state
+Render/Gl/TextureTable.cpp	59	Render	engine/Render/Gl	high	engine or protocol layer, no game state
+Render/Gl/TextureTable.h	51	Render	engine/Render/Gl	high	engine or protocol layer, no game state
 Render/IParticleDrawBackend.h	50	Render	engine/Render	high	engine or protocol layer, no game state
 Render/ITextureSlots.h	16	Render	engine/Render	high	the texture slot lookup the particle backend needs, without the model library (AR1.1)
 Render/ITextureStore.h	28	Render	engine/Render	high	engine or protocol layer, no game state
@@ -457,7 +457,7 @@ Render/Models/Pose.h	72	Render	engine/Models	medium	model simulation (skeleton, 
 Render/Models/RayPicking.cpp	74	Render	engine/Models	medium	model simulation (skeleton, pose, cloth, x87 math), not drawing
 Render/Models/RayPicking.h	36	Render	engine/Models	medium	model simulation (skeleton, pose, cloth, x87 math), not drawing
 Render/Models/RoundedMath.h	23	Render	engine/Math	high	correctly rounded sin, cos, tan, acos and log10, the same bits on every system; used by every layer above
-Render/Models/RoundedMath/RoundedMath.cpp	67	Render	engine/Math	high	correctly rounded sin, cos, tan, acos and log10, the same bits on every system; used by every layer above
+Render/Models/RoundedMath/RoundedMath.cpp	67	Render	engine/Math/RoundedMath	high	correctly rounded sin, cos, tan, acos and log10, the same bits on every system; used by every layer above
 Render/Models/RoundedTransforms.cpp	39	Render	engine/Math	high	glm's rotation and perspective with the rounded sine, cosine and tangent; used by Render and Scenes
 Render/Models/RoundedTransforms.h	13	Render	engine/Math	high	glm's rotation and perspective with the rounded sine, cosine and tangent; used by Render and Scenes
 Render/Models/Shine.cpp	95	Render	engine/Models	medium	model simulation (skeleton, pose, cloth, x87 math), not drawing
@@ -479,20 +479,20 @@ Render/ScreenScale.h	23	Render	engine/Render	high	engine or protocol layer, no g
 Render/SpriteBatch.cpp	208	Render	engine/Render	high	engine or protocol layer, no game state
 Render/SpriteBatch.h	126	Render	engine/Render	high	engine or protocol layer, no game state
 Render/SpriteVertex.h	31	Render	engine/Render	high	engine or protocol layer, no game state
-Render/Text/FontSet.cpp	56	Render	engine/Render	high	engine or protocol layer, no game state
-Render/Text/FontSet.h	43	Render	engine/Render	high	engine or protocol layer, no game state
-Render/Text/FreeTypeRasterizer.cpp	422	Render	engine/Render	high	engine or protocol layer, no game state
-Render/Text/FreeTypeRasterizer.h	63	Render	engine/Render	high	engine or protocol layer, no game state
-Render/Text/IGlyphRasterizer.h	45	Render	engine/Render	high	engine or protocol layer, no game state
-Render/Text/InlineColors.cpp	65	Render	engine/Render	high	engine or protocol layer, no game state
-Render/Text/InlineColors.h	63	Render	engine/Render	high	engine or protocol layer, no game state
-Render/Text/TextBox.cpp	79	Render	engine/Render	high	engine or protocol layer, no game state
-Render/Text/TextBox.h	66	Render	engine/Render	high	engine or protocol layer, no game state
-Render/Text/TextCache.cpp	338	Render	engine/Render	high	engine or protocol layer, no game state
-Render/Text/TextCache.h	152	Render	engine/Render	high	engine or protocol layer, no game state
-Render/Text/TextLayout.cpp	207	Render	engine/Render	high	engine or protocol layer, no game state
-Render/Text/TextLayout.h	100	Render	engine/Render	high	engine or protocol layer, no game state
-Render/Text/TextStyle.h	31	Render	engine/Render	high	engine or protocol layer, no game state
+Render/Text/FontSet.cpp	56	Render	engine/Render/Text	high	engine or protocol layer, no game state
+Render/Text/FontSet.h	43	Render	engine/Render/Text	high	engine or protocol layer, no game state
+Render/Text/FreeTypeRasterizer.cpp	422	Render	engine/Render/Text	high	engine or protocol layer, no game state
+Render/Text/FreeTypeRasterizer.h	63	Render	engine/Render/Text	high	engine or protocol layer, no game state
+Render/Text/IGlyphRasterizer.h	45	Render	engine/Render/Text	high	engine or protocol layer, no game state
+Render/Text/InlineColors.cpp	65	Render	engine/Render/Text	high	engine or protocol layer, no game state
+Render/Text/InlineColors.h	63	Render	engine/Render/Text	high	engine or protocol layer, no game state
+Render/Text/TextBox.cpp	79	Render	engine/Render/Text	high	engine or protocol layer, no game state
+Render/Text/TextBox.h	66	Render	engine/Render/Text	high	engine or protocol layer, no game state
+Render/Text/TextCache.cpp	338	Render	engine/Render/Text	high	engine or protocol layer, no game state
+Render/Text/TextCache.h	152	Render	engine/Render/Text	high	engine or protocol layer, no game state
+Render/Text/TextLayout.cpp	207	Render	engine/Render/Text	high	engine or protocol layer, no game state
+Render/Text/TextLayout.h	100	Render	engine/Render/Text	high	engine or protocol layer, no game state
+Render/Text/TextStyle.h	31	Render	engine/Render/Text	high	engine or protocol layer, no game state
 Render/TextureEnvMode.h	17	Render	engine/Render	high	engine or protocol layer, no game state
 Render/TextureSlot.h	59	Render	engine/Render	high	engine or protocol layer, no game state
 Render/UiImage.cpp	120	Render	engine/Render	high	engine or protocol layer, no game state

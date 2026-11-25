@@ -11,7 +11,7 @@
 #include <span>
 #include <vector>
 
-// Client::Data::Tables::LoadGateTable: Gate.bmd, con archivos sintéticos.
+// Client::Tables::LoadGateTable: Gate.bmd, con archivos sintéticos.
 namespace
 {
 using Client::Data::DataError;

@@ -49,7 +49,7 @@ constexpr std::uint8_t LorenciaMap = Maps::LorenciaMap;
 constexpr std::uint8_t CastleSiegeMap = Maps::CastleSiegeMap;
 constexpr Render::TextureSlot SpecialModelsFirstSlot{0x69};
 
-// "Object56" para el mapa 55: la carpeta Object<N> de su número (Data::WorldFolderNumber).
+// "Object56" para el mapa 55: la carpeta Object<N> de su número (Maps::WorldFolderNumber).
 std::string ObjectFolder(std::uint8_t map)
 {
     return "Object" + std::to_string(Maps::WorldFolderNumber(map)) + "\\";

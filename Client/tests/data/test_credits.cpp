@@ -11,7 +11,7 @@
 #include <string_view>
 #include <vector>
 
-// Client::Data::Text::LoadCredits: credit.bmd (0x63ff30), 400 registros de 33 bytes con el XOR3 del login
+// Client::Tables::LoadCredits: credit.bmd (0x63ff30), 400 registros de 33 bytes con el XOR3 del login
 // (0x4c1690) de una vez sobre los 13.200. Las tablas son inventadas.
 namespace
 {

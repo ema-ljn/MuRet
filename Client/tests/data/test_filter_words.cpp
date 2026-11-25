@@ -16,7 +16,7 @@
 #include <string>
 #include <vector>
 
-// Client::Data::Text::LoadFilterWords: FilterName.bmd y Filter.bmd (0x549fa0 y 0x549c60), con
+// Client::Tables::LoadFilterWords: FilterName.bmd y Filter.bmd (0x549fa0 y 0x549c60), con
 // palabras sintéticas.
 namespace
 {

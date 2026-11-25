@@ -13,7 +13,7 @@
 #include <span>
 #include <vector>
 
-// Client::Data::Tables::LoadItemSetTypeTable y LoadItemSetOptionTable: ItemSetType.bmd e
+// Client::Tables::LoadItemSetTypeTable y LoadItemSetOptionTable: ItemSetType.bmd e
 // ItemSetOption.bmd con archivos sintéticos (05, "Las tablas de los conjuntos"; 0x40c660 y 0x40c850).
 namespace
 {

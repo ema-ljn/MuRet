@@ -12,7 +12,7 @@
 // contrato.
 namespace Client::UI
 {
-// Lo que mira 0x622c70: las palabras de FilterName.bmd y de Filter.bmd (Data::Text::LoadFilterWords)
+// Lo que mira 0x622c70: las palabras de FilterName.bmd y de Filter.bmd (Tables::LoadFilterWords)
 // y los textos 457 y 458 de Text.bmd. Tienen que vivir lo que la consulta.
 struct NameFilters
 {

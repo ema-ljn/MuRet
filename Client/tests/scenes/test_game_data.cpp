@@ -34,7 +34,7 @@
 #include <utility>
 #include <vector>
 
-// Client::Scenes::LoadGameData: lo que main.cpp lee antes de la primera escena, como WinMain lee
+// Client::Tables::LoadGameData: lo que main.cpp lee antes de la primera escena, como WinMain lee
 // Text.bmd en 0x4b9b9f (0x61ee30 y 0x5495e0, con "Data\Local\Text.bmd" de 0x6d4370), antes de las
 // fuentes y de la escena 1. Con archivos sintéticos: los textos de verdad no van a los tests.
 namespace

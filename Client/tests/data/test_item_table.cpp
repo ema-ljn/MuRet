@@ -13,7 +13,7 @@
 #include <span>
 #include <vector>
 
-// Client::Data::Tables::LoadItemTable: Item.bmd, con archivos sintéticos.
+// Client::Tables::LoadItemTable: Item.bmd, con archivos sintéticos.
 namespace
 {
 using Client::Data::DataError;

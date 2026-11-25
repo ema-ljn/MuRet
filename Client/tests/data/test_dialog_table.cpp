@@ -11,7 +11,7 @@
 #include <string_view>
 #include <vector>
 
-// Client::Data::Text::LoadDialogTable: Dialog.bmd (0x54b2b0), 200 registros de 0x400 con el XOR3 de 0x5496c0 desde el
+// Client::Tables::LoadDialogTable: Dialog.bmd (0x54b2b0), 200 registros de 0x400 con el XOR3 de 0x5496c0 desde el
 // primer byte de cada uno. Los textos son inventados.
 namespace
 {

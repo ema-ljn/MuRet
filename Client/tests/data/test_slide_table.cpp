@@ -14,7 +14,7 @@
 #include <string_view>
 #include <vector>
 
-// Client::Data::Text::LoadSlideTable: Slide.bmd (0x46b3b0), con textos inventados.
+// Client::Tables::LoadSlideTable: Slide.bmd (0x46b3b0), con textos inventados.
 namespace
 {
 using Client::Data::DataError;

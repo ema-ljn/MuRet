@@ -32,7 +32,7 @@ struct WorldTerrain
     std::unique_ptr<Data::Terrain::TerrainLight> rawLight;
 };
 
-// Los tres archivos y la luz del mapa `map` (el número de la carpeta, Data::WorldFolderNumber). El
+// Los tres archivos y la luz del mapa `map` (el número de la carpeta, Maps::WorldFolderNumber). El
 // error nombra el archivo como lo pide el original. Los mapas 30 y 34, con otro .att, no van.
 [[nodiscard]] Core::Expected<WorldTerrain, std::string> LoadWorldTerrain(const std::filesystem::path& dataRoot,
                                                                          std::uint8_t map);

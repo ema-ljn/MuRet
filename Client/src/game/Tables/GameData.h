@@ -122,7 +122,7 @@ struct GameData
 // registro es un error que lo nombra. Después de las tablas de los conjuntos, MonsterSkill.bmd (0x61ecdf): uno que no
 // está deja la tabla de la .bss (el original avisa y cierra la ventana); uno que no se lee, corto o con un tipo fuera
 // de [0, 0xffff] es un error que lo nombra. Detrás, NpcName(Eng).txt (0x61ed05): uno que no está deja la tabla vacía;
-// uno que no se lee, de más de 1 MiB o que el original no cargaría sin pisar otra cosa (Data::Text::LoadNpcNames) es
+// uno que no se lee, de más de 1 MiB o que el original no cargaría sin pisar otra cosa (Tables::LoadNpcNames) es
 // un error que lo nombra.
 [[nodiscard]] Core::Expected<GameData, std::string> LoadGameData(const std::filesystem::path& dataRoot);
 

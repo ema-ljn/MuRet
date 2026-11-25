@@ -8,7 +8,7 @@
 
 // El mundo de cada escena como dato (CL5.4): el mapa que pone el original al entrar, que la escena
 // le pasa al pase 3D (IWorldView). Desde la CL7, el pase 3D dibuja cualquier mapa con él, con su
-// carpeta de Data::WorldFolder: ninguna escena nombra un mundo en su código.
+// carpeta de Maps::WorldFolder: ninguna escena nombra un mundo en su código.
 namespace Client::Scenes
 {
 struct SceneWorldEntry

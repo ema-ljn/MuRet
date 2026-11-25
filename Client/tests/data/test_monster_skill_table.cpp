@@ -11,7 +11,7 @@
 #include <span>
 #include <vector>
 
-// Client::Data::Tables::LoadMonsterSkillTable: MonsterSkill.bmd (0x54a440), la cuenta en claro y registros de 0x1c con
+// Client::Tables::LoadMonsterSkillTable: MonsterSkill.bmd (0x54a440), la cuenta en claro y registros de 0x1c con
 // el XOR3 de 0x5496c0 desde el primer byte de cada uno. Los registros son inventados.
 namespace
 {

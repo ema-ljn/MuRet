@@ -13,7 +13,7 @@
 #include <span>
 #include <vector>
 
-// Client::Data::Tables::LoadSkillTable: Skill.bmd, con archivos sintéticos.
+// Client::Tables::LoadSkillTable: Skill.bmd, con archivos sintéticos.
 namespace
 {
 using Client::Data::DataError;

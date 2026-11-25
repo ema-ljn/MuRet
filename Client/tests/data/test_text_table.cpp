@@ -13,7 +13,7 @@
 #include <utility>
 #include <vector>
 
-// Client::Data::Text: la tabla de Text.bmd, con archivos sintéticos.
+// Client::Tables: la tabla de Text.bmd, con archivos sintéticos.
 namespace
 {
 using Client::Data::DataError;

@@ -11,7 +11,7 @@
 #include <string_view>
 #include <vector>
 
-// Client::Data::Text::LoadNpcNames: NpcName(%s).txt con el tokenizador 0x54e8d0 y el lazo de 0x54e7f0. Los nombres
+// Client::Tables::LoadNpcNames: NpcName(%s).txt con el tokenizador 0x54e8d0 y el lazo de 0x54e7f0. Los nombres
 // son inventados.
 namespace
 {

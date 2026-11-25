@@ -10,7 +10,7 @@
 #include <span>
 #include <vector>
 
-// Client::Data::Tables::LoadQuestTable: quest.bmd (0x418d10), 200 registros de 0x2a8 con el XOR3 de 0x418de0 desde el
+// Client::Tables::LoadQuestTable: quest.bmd (0x418d10), 200 registros de 0x2a8 con el XOR3 de 0x418de0 desde el
 // primer byte de cada uno. Las misiones son inventadas.
 namespace
 {

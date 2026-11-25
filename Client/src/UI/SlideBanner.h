@@ -105,7 +105,7 @@ struct SlideBanner
     SlideQueue bold{};
     // +0x11ac: el período del timer, en segundos (10 del constructor).
     std::int32_t periodSeconds = 10;
-    // +0x11b0, +0x11c4 y +0x11d8: los tramos de Slide.bmd (Data::Text::SlideGroup).
+    // +0x11b0, +0x11c4 y +0x11d8: los tramos de Slide.bmd (Tables::SlideGroup).
     std::array<std::int32_t, SlideGroups> maxLevels{};
     std::array<std::int32_t, SlideGroups> counts{};
     std::array<std::vector<std::string>, SlideGroups> texts{};

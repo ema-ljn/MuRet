@@ -240,7 +240,7 @@ piecemeal", porque es mucho; acá son dos archivos, y alinearlos al tocarlos no 
   CTest. Cada `TEST` tiene un tope de tiempo (`MU_TEST_CASE_TIMEOUT`), como el `TIMEOUT` de
   `mu_add_test` en MuMain. Cada módulo de `tests/` tiene su `CMakeLists.txt`.
 - Los fuentes se juntan con un glob y `CONFIGURE_DEPENDS`: `ClientLib` toma todo `src/` con
-  `file(GLOB_RECURSE)`, menos `main.cpp` (y, desde la CL3.1, `src/Platform/`, que es de
+  `file(GLOB_RECURSE)`, menos `main.cpp` (y, desde la CL3.1, `src/engine/Platform/Sdl/`, que es de
   `ClientPlatform`, sacado con `list(FILTER ... EXCLUDE REGEX)` como hace MuMain), y cada módulo de
   tests sus `test_*.cpp` con `file(GLOB)`. Un archivo nuevo entra al reconfigurar, sin tocar el
   CMake. Es una diferencia elegida: MuMain lista cada `mu_add_test` a mano. El glob de un módulo

@@ -5,11 +5,12 @@
 
 A move runs git mv on every file whose target is one of the modules (or is under the root) to
 Client/src/<target>/<name>. It rewrites the #include lines naming a moved file whose path inside its root changed
-(Scenes/X.h -> game/Guild/X.h is included as "Guild/X.h"; Core/X.h -> engine/Core/X.h keeps "Core/X.h"), the moved
-paths in CMakeLists.txt, *.cmake and the workflows, the file column of the map, of the layer baseline and of the
-named-values baseline, and a home of named-values.tsv that names a moved header, and adds each move to moves.tsv
-without its commit. It lists the lines of those build files that still name a folder the move
-emptied, to fix by hand. After the squash, --record adds it to .git-blame-ignore-revs and to the rows of moves.tsv.
+(Scenes/X.h -> game/Guild/X.h is included as "Guild/X.h"; Core/X.h -> engine/Core/X.h keeps "Core/X.h") in the
+client's sources, its tests and the labs, the moved paths in CMakeLists.txt, *.cmake and the workflows, the file
+column of the map, of the layer baseline and of the named-values baseline, and a home of named-values.tsv that names
+a moved header, and adds each move to moves.tsv without its commit. It lists the lines of those build files that
+still name a folder the move emptied, to fix by hand. After the squash, --record adds it to .git-blame-ignore-revs
+and to the rows of moves.tsv.
 """
 import argparse
 import pathlib
@@ -25,6 +26,7 @@ NAMED_VALUES_BASELINE = 'Client/tools/architecture/named-values-baseline.tsv'
 MOVES = 'Client/docs/research/coverage/referencia/entradas/moves.tsv'
 IGNORE_REVS = '.git-blame-ignore-revs'
 SOURCES = ('.h', '.cpp', '.hpp', '.inc')
+INCLUDERS = (f'{SRC}/*', 'Client/tests/*', 'labs/*')
 BUILD_FILES = ('CMakeLists.txt', '*/CMakeLists.txt', '*.cmake', '.github/workflows/*.yml', '.github/workflows/*.yaml')
 INCLUDE = re.compile(r'^(\s*#\s*include\s+")([^"]+)(")', re.MULTILINE)
 
@@ -91,7 +93,7 @@ def rewrite_includes(repo: Repo, renamed: dict[str, str]) -> int:
         count += 1
         return match.group(1) + renamed[match.group(2)] + match.group(3)
 
-    for name in repo.tracked(f'{SRC}/*', 'Client/tests/*'):
+    for name in repo.tracked(*INCLUDERS):
         if name.endswith(SOURCES):
             text = repo.read(name)
             new = INCLUDE.sub(replace, text)

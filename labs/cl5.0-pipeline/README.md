@@ -14,7 +14,7 @@ final.
 
 | Archivo | Qué es |
 | --- | --- |
-| `OriginalQuad.h` | la misión de la actividad 4: los cuatro vértices de `0x621b60`, con `ScaleX` y `ScaleY` de la 5. Desde la CL5.2 son alias de las del cliente (`Client/src/Render/OriginalQuad.h` y `ScreenScale.h`), y el `.cpp` se fue para allá |
+| `OriginalQuad.h` | la misión de la actividad 4: los cuatro vértices de `0x621b60`, con `ScaleX` y `ScaleY` de la 5. Desde la CL5.2 son alias de las del cliente (`Client/src/engine/Render/OriginalQuad.h` y `ScreenScale.h`), y el `.cpp` se fue para allá |
 | `Ortho.h` / `.cpp` | la misión de la actividad 6: la matriz de `gluOrtho2D`, en column-major |
 | `Fan.h` / `.cpp` | la misión de la actividad 8: de un fan a sus triángulos |
 | `test_*.cpp` | sus tests, de GoogleTest |
@@ -41,7 +41,7 @@ en el fallo.
 ## Lo que `gl/` toma del cliente
 
 La ventana escondida (`HiddenGlWindow`) usa lo que ya está en `ClientPlatform`: `SdlContext` para
-`SDL_Init` y `SDL_Quit`, los deleters de la ventana y del contexto de `Platform/Window.h`,
+`SDL_Init` y `SDL_Quit`, los deleters de la ventana y del contexto de `Platform/Sdl/Window.h`,
 `LoadGlFunctions` y la versión pedida (`GlMajorVersion`, `GlMinorVersion` y `GlVersionText`). No
 usa `Window::Create`, porque esa ventana se muestra, es de 640 × 480 y pide VSync, que un test no
 necesita.
@@ -49,7 +49,7 @@ necesita.
 Hasta la CL5.1 el lab tenía su propia tabla de 41 funciones y una copia del pedido, del reintento en
 `opengl32.dll` de Windows, de los chequeos de la versión y del perfil y de la lectura de
 `MU_CLIENT_REQUIRE_GL`. La CL5.1 se las llevó al cliente: la tabla es la X-macro de
-`Platform/GlFunctionList.h`, `LoadGlFunctions` mira la versión y el perfil antes de pedir el resto,
+`Platform/Sdl/GlFunctionList.h`, `LoadGlFunctions` mira la versión y el perfil antes de pedir el resto,
 el pedido de cada función es `Platform::LoadGlFunction`, y la variable se lee con
 `Core::ReadEnvironmentVariable`. En `gl/LabGl.h` queda una sola función, `glDrawElements`, que el
 cliente no usa (dibuja con `glDrawArrays`), pedida con `LoadGlFunction` sobre la tabla del cliente.
@@ -121,7 +121,7 @@ $ objdump -s -j .rdata --start-address=0x6ba06c --stop-address=0x6ba074 main.exe
 En little-endian son `0x3b088889` en `0x6ba06c` y `0x3acccccd` en `0x6ba070`: justo
 `std::bit_cast<std::uint32_t>(1.0f / 480)` y `(1.0f / 640)`, y los `static_assert` de
 `OriginalQuad.cpp` lo comprobaban al compilar (desde la CL5.2 están en
-`Client/src/Render/ScreenScale.cpp`). Como decimales, 0,0020833334419876337 y
+`Client/src/engine/Render/ScreenScale.cpp`). Como decimales, 0,0020833334419876337 y
 0,0015625000232830644: los dos, un poco más que 1/480 y 1/640.
 
 Las predicciones (`ScalesByTheInverseOfTheSize`): `ScaleY(25)` da 25,000001907348633 en 640 × 480 y

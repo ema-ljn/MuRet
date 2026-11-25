@@ -52,7 +52,7 @@ aceptado en el GameServer y después manda el keepalive cada 20 s, consultada po
 frame. En la CL4 la cuenta salía del entorno y se elegía el primer servidor de la lista; desde la
 CL5.4, la sesión la empieza la escena de login al entrar, y desde la CL5.5 espera al jugador.
 
-Desde la CL5.1, lo que dibuja con OpenGL es el target `ClientRender` (`src/Render/Gl/`), el único
+Desde la CL5.1, lo que dibuja con OpenGL es el target `ClientRender` (`src/engine/Render/Gl/`), el único
 con GL además de `ClientPlatform`: `ClientLib` sigue sin verlo. Trae el shader del 2D, `GlTexture`
 (sube una textura de la CL1 con su filtro y su wrap), un framebuffer para leer lo dibujado y
 `GlRenderer`, que dibuja triángulos en píxeles con la y para arriba. La tabla de GL es la X-macro de

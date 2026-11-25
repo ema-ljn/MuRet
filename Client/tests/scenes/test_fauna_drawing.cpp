@@ -79,10 +79,10 @@ protected:
         m_terrain.heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
         m_terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
     }
-    void Live(Client::Scenes::FaunaObject& object, std::int16_t type)
+    void Live(Client::Scenes::FaunaObject& object, std::int16_t model)
     {
         object.active = 1;
-        object.type = type;
+        object.model = model;
         object.bodyScale = 1;
         object.alpha = 1;
         object.hiddenMesh = object.blendMesh = -1;
@@ -93,13 +93,13 @@ protected:
 TEST_F(FaunaDrawingTest, DeadSlotsStillReceiveTheTwoRoundedYawStores)
 {
     m_fauna.Birds()[0].angles.z = .000001f;
-    m_fauna.Birds()[1].type = 0x10f;
+    m_fauna.Birds()[1].model = 0x10f;
     m_fauna.Birds()[1].angles.z = .000001f;
     auto context = Context();
     ASSERT_TRUE(DrawGameBirds(m_batch, context).HasValue());
     EXPECT_NE(m_fauna.Birds()[0].angles.z, .000001f);
     EXPECT_FLOAT_EQ(m_fauna.Birds()[1].angles.z, .000001f);
-    m_fauna.Fish()[0].type = 0x10f;
+    m_fauna.Fish()[0].model = 0x10f;
     m_fauna.Fish()[0].angles.z = .000001f;
     ASSERT_TRUE(DrawGameFish(m_batch, context).HasValue());
     EXPECT_NE(m_fauna.Fish()[0].angles.z, .000001f);

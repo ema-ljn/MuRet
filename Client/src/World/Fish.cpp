@@ -8,6 +8,7 @@
 #include <cmath>
 #include <span>
 #include <glm/ext/vector_float3.hpp>
+#include "Assets/ModelIds.h"
 #include "Core/Expected.h"
 #include "Maps/MapId.h"
 #include "Math/Angles.h"
@@ -22,7 +23,18 @@ constexpr std::size_t OrdinaryCount = 3;
 constexpr std::size_t ExtendedCount = 10;
 constexpr std::uint8_t LorenciaWater = 5;
 constexpr std::uint16_t BlockedAttribute = 8;
+constexpr std::int32_t LowerAtlansFishKinds = 4;
+constexpr std::int32_t UpperAtlansFishKinds = 2;
 
+using Assets::Bug01Model;
+using Assets::Bug02Model;
+using Assets::CrowModel;
+using Assets::Fish01Model;
+using Assets::Fish04Model;
+using Assets::Fish08Model;
+using Assets::Fish09Model;
+using Assets::RatModel;
+using Assets::ScorpionModel;
 using Maps::AidaMap;
 using Maps::ArenaMap;
 using Maps::AtlansMap;
@@ -66,31 +78,37 @@ bool FishOpenWaterTile(std::uint16_t attributes)
     return attributes == 0 || attributes == 2;
 }
 
-FishMovement FishMovementFor(std::int16_t type, std::int32_t timer)
+FishMovement FishMovementFor(std::int16_t model, std::int32_t timer)
 {
-    if ((type >= 0xb2 && type <= 0xbc) || timer > 0)
+    if ((model >= Fish01Model && model <= CrowModel) || timer > 0)
         return FishMovement::Complete;
     return FishMovement::Reduced;
 }
 
-std::int32_t FishMovementMode(std::int16_t type)
+std::int32_t FishMovementMode(std::int16_t model)
 {
-    return type == 0xb1 || type == 0x148 ? 1 : 0;
+    return model == Bug01Model || model == ScorpionModel ? 1 : 0;
 }
 
-bool FishNeedsOscillation(std::int16_t type)
+bool FishNeedsOscillation(std::int16_t model)
 {
-    return type == 0xb9 || type == 0xba;
+    return model == Fish08Model || model == Fish09Model;
 }
 
-bool FishCopiesWorldPosition(std::int16_t type)
+bool FishCopiesWorldPosition(std::int16_t model)
 {
-    return type == 0xb2 || type == 0x148;
+    return model == Fish01Model || model == ScorpionModel;
 }
 
-bool FishHasModel(std::int16_t type)
+bool FishHasModel(std::int16_t model)
 {
-    return type != -1;
+    return model != -1;
+}
+
+std::int16_t AtlansFishModel(bool lower, std::int32_t draw)
+{
+    return static_cast<std::int16_t>(lower ? draw % LowerAtlansFishKinds + Fish04Model
+                                           : draw % UpperAtlansFishKinds + Fish08Model);
 }
 } // namespace Client::World
 
@@ -301,7 +319,7 @@ private:
             return false;
         if (!IsKalimaMap(map))
             return true;
-        fish.type = -1;
+        fish.model = -1;
         auto draw = Read(m_services.Random());
         if (!draw)
             return false;
@@ -326,13 +344,13 @@ private:
     {
         if (map == DungeonMap || map == ArenaMap)
         {
-            fish.type = map == DungeonMap ? 0xb0 : 0xb1;
+            fish.model = map == DungeonMap ? RatModel : Bug01Model;
             fish.speed = static_cast<float>(static_cast<double>(OrdinarySpeedNumerator) / initialScale);
             return true;
         }
         if (map == LorenciaMap)
         {
-            fish.type = 0xb2;
+            fish.model = Fish01Model;
             auto draw = Read(m_services.Random());
             if (!draw)
                 return false;
@@ -341,7 +359,7 @@ private:
         }
         else if (map == TarkanMap || map == AidaMap)
         {
-            fish.type = 0xb2;
+            fish.model = Bug02Model;
             auto draw = Read(m_services.Random());
             if (!draw)
                 return false;
@@ -363,7 +381,7 @@ private:
                 fish.active = 0;
                 return true;
             }
-            fish.type = 0x148;
+            fish.model = ScorpionModel;
             auto scale = Read(m_services.Random());
             if (!scale)
                 return false;
@@ -399,11 +417,11 @@ private:
             return false;
         const double heroY = static_cast<double>(m_world.hero->position.y) * TileScale;
         const bool lower = !(heroY >= 128);
-        auto type = Read(m_services.Random());
-        if (!type)
+        auto model = Read(m_services.Random());
+        if (!model)
             return false;
-        fish.type = static_cast<std::int16_t>(lower ? *type % 4 + 0xb5 : *type % 2 + 0xb9);
-        if (!lower && FishNeedsOscillation(fish.type))
+        fish.model = AtlansFishModel(lower, *model);
+        if (!lower && FishNeedsOscillation(fish.model))
         {
             fish.field64 = 0;
             fish.oscillation = 1;
@@ -429,18 +447,18 @@ private:
     }
     bool Update(FishStepView& fish, std::size_t index)
     {
-        if (FishHasModel(fish.type))
+        if (FishHasModel(fish.model))
         {
-            auto model = Read(m_services.LookupModel(fish.type));
-            if (!model)
+            auto borrowed = Read(m_services.LookupModel(fish.model));
+            if (!borrowed)
                 return false;
-            model->action = fish.action;
+            borrowed->action = fish.action;
             const float speed = static_cast<float>(static_cast<double>(fish.speed) * 0.5);
-            if (!Accept(m_services.AdvanceModel(*model, fish, speed)))
+            if (!Accept(m_services.AdvanceModel(*borrowed, fish, speed)))
                 return false;
         }
-        const std::int16_t type = fish.type;
-        if (FishNeedsOscillation(type))
+        const std::int16_t model = fish.model;
+        if (FishNeedsOscillation(model))
         {
             auto product = Read(m_services.OscillationProductPC53(fish.phase));
             if (!product)
@@ -449,8 +467,8 @@ private:
             fish.oscillation = static_cast<float>(shifted);
             fish.phase = static_cast<float>(static_cast<double>(fish.phase) + Tenth);
         }
-        const auto movement = FishMovementFor(type, fish.timer);
-        const auto mode = movement == FishMovement::Complete ? FishMovementMode(type) : 0;
+        const auto movement = FishMovementFor(model, fish.timer);
+        const auto mode = movement == FishMovement::Complete ? FishMovementMode(model) : 0;
         if (!Accept(m_services.Move(fish, mode)))
             return false;
         if (movement == FishMovement::Complete && !FullMovement(fish, index))
@@ -488,8 +506,8 @@ private:
             return false;
         if (!Collision(fish, *tile))
             return false;
-        const std::int16_t type = fish.type;
-        if (FishCopiesWorldPosition(type))
+        const std::int16_t model = fish.model;
+        if (FishCopiesWorldPosition(model))
         {
             fish.previousPosition.x = fish.position.x;
             fish.previousPosition.y = fish.position.y;
@@ -506,7 +524,7 @@ private:
         const double distance = std::sqrt(sum);
         if (distance >= FarDistance)
             fish.active = 0;
-        if (distance >= SoundDistance || type != 0xb0)
+        if (distance >= SoundDistance || model != RatModel)
             return true;
         auto sound = Read(m_services.Random());
         if (!sound)
@@ -538,15 +556,15 @@ private:
         }
         else
         {
-            const auto type = fish.type;
-            if (type == 0xb2)
+            const auto model = fish.model;
+            if (model == Fish01Model)
             {
                 auto surface = Surface(tile);
                 if (!surface)
                     return false;
                 collision = *surface != 5;
             }
-            if (!collision && type == 0xb0)
+            if (!collision && model == RatModel)
             {
                 auto attr = Attribute(tile);
                 if (!attr)
@@ -587,7 +605,7 @@ private:
     bool Epilogue(FishStepView& fish)
     {
         fish.timer = std::bit_cast<std::int32_t>(static_cast<std::uint32_t>(fish.timer) - 1U);
-        if (fish.timer <= 0 && fish.type != 0xb1)
+        if (fish.timer <= 0 && fish.model != Bug01Model)
         {
             auto reset = Read(m_services.Random());
             if (!reset)

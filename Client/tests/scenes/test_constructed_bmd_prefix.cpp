@@ -35,7 +35,7 @@ TEST(ConstructedBmdPrefixTest, EveryPositiveNativeOffsetProvesTheConstructorActi
         ASSERT_NE(model, nullptr);
         EXPECT_TRUE(model->actions.empty());
         Client::Scenes::FaunaObject fish;
-        fish.type = -1;
+        fish.model = -1;
         fish.action = 2;
         fish.previousAction = 7;
         fish.frame = 9.25f;

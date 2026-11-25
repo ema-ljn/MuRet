@@ -26,11 +26,11 @@ enum class BirdHandler : std::uint8_t
     SpawnIcarus,
     SpawnAtlans, // 445890: mapa7
     SpawnKalima, // 439680: mapas24..29/36
-    MoveAf,
-    MoveAe,
-    MoveAdBc,
-    Move10f,
-    Move173,
+    MoveBat,
+    MoveButterfly,
+    MoveBirdOrCrow,
+    MoveRidingSpear,
+    MoveMonster34,
     CommonMotion,
     Finalize,
     SelectAction,
@@ -45,7 +45,7 @@ struct BirdCallResult
 
 // Call no normaliza AL/EAX: index sólo llega a4455e0/445d60/445ec0;
 // SelectAction usa el argumento7. Cada método debe operar sobre los mismos globals/pool/CRT.
-// BorrowModel toma base+signedType*224; la identidad prestada sobrevive hasta terminar Pose.
+// BorrowModel toma base+model*224; la identidad prestada sobrevive hasta terminar Pose.
 // Height/Wave entregan ST0 redondeado R53 bajo el perfil aprobado PC53/RN; no spillF32.
 // ConvertTileCoordinate recibe R53 y conserva la política __ftol del backend.
 // El binding Main garantiza RN, operaciones binarias53 y compilación sin fast-math/contracción.
@@ -74,7 +74,7 @@ public:
     virtual std::error_code Audio(std::int32_t id, std::byte* object) = 0; // 41ed10(id,object,0), solicitud lógica
     virtual std::error_code PrepareSpecial() = 0;                          // 612d90(1f)
     virtual BirdCallResult Call(BirdHandler handler, BirdRecord bird, std::int32_t index) = 0;
-    virtual BirdModelBorrow BorrowModel(std::int16_t signedType) = 0;
+    virtual BirdModelBorrow BorrowModel(std::int16_t model) = 0;
     virtual std::error_code Pose(BirdModelBorrow model, BirdRecord bird,
                                  float factor) = 0;                            // 4ec200: +114,+118,+112,factor,+10,+1c
     virtual std::error_code Rotation(BirdRecord bird) = 0;                     // 5fc8f0(+1c,+9c)

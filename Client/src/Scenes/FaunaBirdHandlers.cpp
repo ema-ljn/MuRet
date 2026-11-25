@@ -1,3 +1,4 @@
+#include "Assets/ModelIds.h"
 #include "Maps/MapId.h"
 #include "Render/Models/IModelLibrary.h"
 #include "Scenes/FaunaStep.h"
@@ -25,9 +26,13 @@ namespace Client::Scenes
 {
 namespace
 {
+using Assets::ButterflyModel;
+using Assets::Fish02Model;
+using Assets::RidingSpearModel;
 using Math::FullTurn;
-constexpr std::int16_t IcarusBird = 0x171;
-constexpr std::int16_t KalimaBird = 0x173;
+constexpr std::int16_t IcarusBird = Assets::Monster32Model;
+constexpr std::int16_t KalimaBird = Assets::Monster34Model;
+constexpr std::int32_t AtlansBirdKinds = 2;
 using Math::F32;
 std::int32_t Random(FaunaStepContext& c)
 {
@@ -60,7 +65,7 @@ std::error_code Prepare(FaunaStepContext& c, std::int32_t model)
 }
 void Select(FaunaStepContext& c, FaunaObject& b, std::uint8_t action)
 {
-    if (const auto* model = c.models.SkeletonOf(static_cast<std::uint16_t>(b.type)))
+    if (const auto* model = c.models.SkeletonOf(static_cast<std::uint16_t>(b.model)))
         SetFaunaAction(b, *model, action);
 }
 std::error_code Effect(FaunaStepContext& c, FaunaObject& b, std::int32_t type, std::int32_t subtype, float scale)
@@ -77,7 +82,7 @@ std::error_code SpawnIcarus(FaunaStepContext& c, FaunaObject& b, std::int32_t in
         b.active = 1;
         if (auto error = Prepare(c, 0x1f))
             return error;
-        b.type = IcarusBird;
+        b.model = IcarusBird;
         b.bodyScale = F32((Random(c) % 3 + 6) * static_cast<double>(0.05f));
         b.alpha = b.alphaTarget = 1;
         b.scale = F32((Random(c) % 10 + 10) * static_cast<double>(0.02f));
@@ -97,7 +102,7 @@ std::error_code SpawnIcarus(FaunaStepContext& c, FaunaObject& b, std::int32_t in
         return {};
     }
     b.light = glm::vec3(1);
-    b.type = 0x10f;
+    b.model = RidingSpearModel;
     b.scale = 2.2f;
     b.vertexLight = 0;
     b.timer = 9600;
@@ -116,6 +121,10 @@ std::error_code SpawnIcarus(FaunaStepContext& c, FaunaObject& b, std::int32_t in
     b.angles.z = static_cast<float>(Random(c) % FullTurn);
     return {};
 }
+std::int16_t AtlansBirdModel(std::int32_t draw)
+{
+    return static_cast<std::int16_t>(draw % AtlansBirdKinds + Fish02Model);
+}
 void SpawnAtlans(FaunaStepContext& c, FaunaObject& b)
 {
     if (static_cast<double>(c.heroPosition.y) * static_cast<double>(0.01f) >= 128)
@@ -123,7 +132,7 @@ void SpawnAtlans(FaunaStepContext& c, FaunaObject& b)
         b.active = 0;
         return;
     }
-    b.type = static_cast<std::int16_t>(Random(c) % 2 + 0xb3);
+    b.model = AtlansBirdModel(Random(c));
     b.turnRate = 15;
     b.alphaMode = 1;
     b.bodyScale = .8f;
@@ -150,7 +159,7 @@ std::error_code SpawnKalima(FaunaStepContext& c, FaunaObject& b)
     b.active = 1;
     if (auto error = Prepare(c, 0x21))
         return error;
-    b.type = KalimaBird;
+    b.model = KalimaBird;
     b.bodyScale = F32((Random(c) % 3 + 6) * static_cast<double>(.05f) + 2.5);
     b.alpha = b.alphaTarget = 1;
     b.scale = F32((Random(c) % 10 + 10) * static_cast<double>(.04f));
@@ -172,7 +181,7 @@ std::error_code SpawnKalima(FaunaStepContext& c, FaunaObject& b)
     b.position.z = F32(static_cast<double>(c.heroPosition.z) - 800);
     return {};
 }
-void MoveAe(FaunaStepContext& c, FaunaObject& b)
+void MoveButterfly(FaunaStepContext& c, FaunaObject& b)
 {
     if (Random(c) % 32 == 0)
     {
@@ -194,7 +203,7 @@ void TakeOff(FaunaObject& b)
     b.vertical = 20;
     b.action = 0;
 }
-void MoveAdBc(FaunaStepContext& c, FaunaObject& b)
+void MoveBirdOrCrow(FaunaStepContext& c, FaunaObject& b)
 {
     if (b.motionState == 0)
     {
@@ -229,7 +238,7 @@ void MoveAdBc(FaunaStepContext& c, FaunaObject& b)
             b.motionState = 0;
     }
 }
-void Move173(FaunaStepContext& c, FaunaObject& b)
+void MoveMonster34(FaunaStepContext& c, FaunaObject& b)
 {
     b.angles.z = F32(static_cast<double>(b.angles.z) + b.turnRate);
     if (Random(c) % 5 == 0)
@@ -243,7 +252,7 @@ void Move173(FaunaStepContext& c, FaunaObject& b)
     if (b.timer < 0)
         b.active = 0;
 }
-void Move10f(FaunaStepContext& c, FaunaObject& b, std::int32_t index)
+void MoveRidingSpear(FaunaStepContext& c, FaunaObject& b, std::int32_t index)
 {
     const auto steps = ReadSteps(c);
     const auto sine = Render::Models::Detail::SineProductPC53(b.angles.z, b.scale);
@@ -272,7 +281,7 @@ void CommonMotion(FaunaStepContext& c, FaunaObject& b, std::int32_t index)
 {
     if (b.motionState == 2)
         return;
-    if (b.type != 0xae || Random(c) % 4 == 0)
+    if (b.model != ButterflyModel || Random(c) % 4 == 0)
         SteerFauna(b, static_cast<std::size_t>(index), c.fauna.Birds());
     b.matrix = Render::Models::OriginalAngleMatrix(b.angles);
     float length;
@@ -304,8 +313,8 @@ void CommonMotion(FaunaStepContext& c, FaunaObject& b, std::int32_t index)
     b.aheadY = F32(static_cast<double>(delta.y) * 3 + b.position.y);
     const double dx = newX - c.heroPosition.x, dy = static_cast<double>(b.position.y) - c.heroPosition.y;
     const float distance = F32(std::sqrt(dx * dx + dy * dy));
-    const float limit = b.type == IcarusBird ? 4000.0f : b.type == KalimaBird ? 3000.0f : 1500.0f;
-    if (b.type != IcarusBird && b.type != KalimaBird && Random(c) % 512 == 0)
+    const float limit = b.model == IcarusBird ? 4000.0f : b.model == KalimaBird ? 3000.0f : 1500.0f;
+    if (b.model != IcarusBird && b.model != KalimaBird && Random(c) % 512 == 0)
         b.active = 0;
     if (distance >= limit)
         b.active = 0;
@@ -329,22 +338,22 @@ World::BirdCallResult RunFaunaBirdHandler(FaunaStepContext& c, World::BirdHandle
         if (!IsKalimaMap(c.map))
             return {0, {}};
         return {1, SpawnKalima(c, b)};
-    case World::BirdHandler::MoveAf:
+    case World::BirdHandler::MoveBat:
         b.position.z = F32(FaunaHeight(c, b.position.x, b.position.y));
         b.position.z = F32(static_cast<double>(b.position.z) - FaunaWave(FaunaSine(b.phase)) * 150 + 350);
         b.phase = F32(static_cast<double>(b.phase) + static_cast<double>(.2f));
         break;
-    case World::BirdHandler::MoveAe:
-        MoveAe(c, b);
+    case World::BirdHandler::MoveButterfly:
+        MoveButterfly(c, b);
         break;
-    case World::BirdHandler::MoveAdBc:
-        MoveAdBc(c, b);
+    case World::BirdHandler::MoveBirdOrCrow:
+        MoveBirdOrCrow(c, b);
         break;
-    case World::BirdHandler::Move10f:
-        Move10f(c, b, index);
+    case World::BirdHandler::MoveRidingSpear:
+        MoveRidingSpear(c, b, index);
         break;
-    case World::BirdHandler::Move173:
-        Move173(c, b);
+    case World::BirdHandler::MoveMonster34:
+        MoveMonster34(c, b);
         break;
     case World::BirdHandler::CommonMotion:
         CommonMotion(c, b, index);

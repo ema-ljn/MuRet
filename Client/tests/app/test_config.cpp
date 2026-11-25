@@ -3,7 +3,6 @@
 #include "App/CommandLine.h"
 #include "App/ConfigError.h"
 #include "App/LoopTiming.h"
-#include "App/ObfuscationMode.h"
 #include "App/PacingMode.h"
 #include "App/ServerAddress.h"
 #include "App/VSyncMode.h"
@@ -36,7 +35,6 @@ using Client::App::MaxFpsLimit;
 using Client::App::MaxHostBytes;
 using Client::App::MaxWindowSize;
 using Client::App::MinFpsLimit;
-using Client::App::ObfuscationMode;
 using Client::App::PacingMode;
 using Client::App::ParseConfig;
 using Client::App::Resolve;
@@ -165,28 +163,13 @@ TEST(ConfigTest, RejectsAnUnknownPacingValue)
     EXPECT_EQ(error.message, "[Video] Pacing: tiene que ser decoupled o faithful");
 }
 
-// Pregunta 8 del plan de la CL4: la ofuscación del servidor, FoxAnti si no se dice, sin distinguir
-// mayúsculas. Darla no arma la dirección del servidor: sin Host ni Port, `server` sigue vacío.
-TEST(ConfigTest, ReadsTheObfuscation)
+// The build chooses the server's packet shape (MU_XOR_REMAP): an .ini that still has the key says so, with its line.
+TEST(ConfigTest, RejectsTheRemovedObfuscationKey)
 {
-    const auto defaults = ParseConfig("");
-    const auto none = ParseConfig("[Server]\nObfuscation = none\n");
-    const auto foxAnti = ParseConfig("[Server]\nObfuscation = foxanti\n");
-    const auto mixedCase = ParseConfig("[server]\nobfuscation = FoxAnti\n");
-
-    ASSERT_TRUE(defaults.HasValue());
-    ASSERT_TRUE(none.HasValue());
-    ASSERT_TRUE(foxAnti.HasValue());
-    ASSERT_TRUE(mixedCase.HasValue());
-    EXPECT_EQ(defaults.Value().obfuscation, ObfuscationMode::FoxAnti);
-    EXPECT_EQ(none.Value().obfuscation, ObfuscationMode::None);
-    EXPECT_FALSE(none.Value().server.has_value());
-    EXPECT_EQ(foxAnti.Value().obfuscation, ObfuscationMode::FoxAnti);
-    EXPECT_EQ(mixedCase.Value().obfuscation, ObfuscationMode::FoxAnti);
-
-    const ConfigError error = ErrorOf("[Server]\nHost = 10.0.0.1\nObfuscation = xor\n");
-    EXPECT_EQ(error.line, 3u);
-    EXPECT_EQ(error.message, "[Server] Obfuscation: tiene que ser foxanti o none");
+    const ConfigError error = ErrorOf("[Server]\nObfuscation = foxanti\n");
+    EXPECT_EQ(error.line, 2u);
+    EXPECT_NE(error.message.find("MU_XOR_REMAP"), std::string::npos);
+    EXPECT_EQ(ErrorOf("[server]\nobfuscation = none\n").message, error.message);
 }
 
 TEST(ConfigTest, SkipsCommentsBlankLinesAndTheBom)
@@ -776,21 +759,6 @@ TEST(ConfigTest, AutoLoginNeedsAServer)
     const TempFolder empty;
     commandLine.connect = ServerAddress{"10.0.0.2", 44405};
     EXPECT_TRUE(Resolve(empty.Path(), commandLine).HasValue());
-}
-
-// La ofuscación pasa por Resolve como está: un /u /p cambia la dirección y no la ofuscación.
-TEST(ConfigTest, ResolveKeepsTheObfuscation)
-{
-    const TempFolder exeFolder;
-    exeFolder.Write("[Server]\nObfuscation = none\n");
-    CommandLine commandLine;
-    commandLine.connect = ServerAddress{"10.0.0.1", 44405};
-
-    const auto config = Resolve(exeFolder.Path(), commandLine);
-
-    ASSERT_TRUE(config.HasValue()) << config.Error();
-    EXPECT_EQ(config.Value().obfuscation, ObfuscationMode::None);
-    EXPECT_EQ(config.Value().server.value_or(ServerAddress{}).host, "10.0.0.1");
 }
 
 // [Video] MaxFps, el tope de FPS del modo normal: 0 (sin tope, el valor por defecto), o de 25 a

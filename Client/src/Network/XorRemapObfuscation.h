@@ -4,12 +4,13 @@
 #include "Network/IObfuscation.h"
 #include "Network/ObfuscationError.h"
 #include "Network/Packet.h"
+#include "Network/XorRemapTables.h"
 
 #include <cstddef>
 #include <span>
 
-// La capa de paquetes de FoxAnti, la que espera el servidor del laboratorio: el XOR 0xAA de lo que
-// llega y las traducciones entre su forma de algunos paquetes y la de main.exe.
+// FoxAnti.dll's packet layer, the one the lab server expects, with its values injected (XorRemapTables): the XOR of
+// what arrives and the translations between the lab's shape of some packets and main.exe's.
 // Contrato: Client/docs/research/03-red-y-cifrado.md, "La capa de FoxAnti", el plan de la CL2
 // (CL2.4) y la FoxAnti mínima (analysis/foxanti/minimal/src/packet.c en el repo de research), que
 // porta cada función con su dirección en FoxAnti.dll.
@@ -30,13 +31,18 @@
 // el original pierde información (los códigos de servidor desde 21, Q-C17).
 namespace Client::Network
 {
-class FoxAntiObfuscation final : public IObfuscation
+class XorRemapObfuscation final : public IObfuscation
 {
 public:
+    explicit XorRemapObfuscation(const XorRemapTables& tables);
+
     [[nodiscard]] std::byte InboundMask(std::byte firstWireByte) const override;
     [[nodiscard]] Core::Expected<Packet, ObfuscationError> AfterCut(Packet packet) const override;
     [[nodiscard]] Core::Expected<Packet, ObfuscationError> BeforeDispatch(Packet packet) const override;
     void BeforeEncrypt(std::span<std::byte> sealed) const override;
     [[nodiscard]] Packet BeforeSend(Packet packet) const override;
+
+private:
+    XorRemapTables m_tables;
 };
 } // namespace Client::Network

@@ -164,6 +164,13 @@ windows-x64-relwithdebinfo` builds `build\windows-x64\Client\RelWithDebInfo\Main
 with debug symbols but without MSVC's iterator checks; it is not measured yet and CI does not build
 it. CI keeps building Debug, with its checks.
 
+The lab server expects another shape of some packets (the 0xAA XOR of what it sends and a few
+remapped opcodes, what `FoxAnti.dll` does to the original). That layer is the CMake option
+`MU_XOR_REMAP`, on by default. For a server that speaks like `main.exe`, configure with
+`-DMU_XOR_REMAP=OFF`: `Main` is built without the layer's code (the `XorRemap` library and its
+tests are not built). The `.ini` has no key for it: `[Server] Obfuscation` is now an error that
+names the option.
+
 Los headers de la biblioteca estándar (y GoogleTest en los tests) se precompilan
 (`cmake/PrecompiledHeaders.cmake`): un build limpio usa como un cuarto menos de CPU. Para compilar
 como el job de Linux del CI, que verifica que cada archivo incluya lo que usa, configurá con
@@ -344,8 +351,8 @@ falta correr está en P-C16 y P-C21 del [08](docs/research/08-pendientes.md).
    20 s. Repetir dejando abierto un aviso de cuenta/clave vacía y uno de login rechazado. Después
    autenticar: sale un keepalive inmediato y continúa el período anterior, por lo que el siguiente
    puede tardar menos de 20 s. No debe aparecer "se perdió la conexión con el GameServer" durante
-   la espera normal. Usar `[Server] Obfuscation = foxanti`, valor por defecto que espera el GS del
-   laboratorio. Un cierre remoto todavía requiere revisar su causa en el servidor.
+   la espera normal. Use a build with `MU_XOR_REMAP` on, the default, which is what the lab's GS
+   expects. Un cierre remoto todavía requiere revisar su causa en el servidor.
 8. Cancelar: en otra corrida, en la ventana de la cuenta, el botón de cancelar (o Esc). El
    original cierra el GameServer, vuelve a conectar al ConnectServer y muestra la lista otra vez
    (06 § La cuenta y la clave). Anotar si MuRet vuelve a la lista o se cierra, y si antes sale un aviso.
@@ -374,7 +381,6 @@ Todas las claves son opcionales:
 [Server]
 Host = 127.0.0.1         ; de 1 a 255 bytes, sin espacios
 Port = 44405             ; de 1 a 65535
-Obfuscation = foxanti    ; foxanti o none
 
 [Data]
 Path = C:\MU\Data        ; la carpeta de datos del cliente original
@@ -400,7 +406,6 @@ Path = muret-client.log
 | --- | --- | --- |
 | `[Server] Host` | ninguno | el host del ConnectServer; lo pide la red (CL4) |
 | `[Server] Port` | 44405 | el puerto del ConnectServer, el compilado en el original (`0x6d5dc4`) |
-| `[Server] Obfuscation` | `foxanti` | la forma de los paquetes que espera el servidor: `foxanti`, la capa de FoxAnti del servidor del laboratorio, o `none`, un servidor que habla como `main.exe`. Neither `--host`/`--port` nor `/u /p` changes it |
 | `[Data] Path` | ninguna | la carpeta `Data\` de una instalación del cliente original |
 | `[Video] Width`, `Height` | 640, 480 | el tamaño de la ventana, que no cambia. Tiene que ser una de las cinco del original (640 × 480, 800 × 600, 1024 × 768, 1280 × 1024 y 1600 × 1200) o un modo del monitor, el del escritorio o uno de pantalla completa; si no, `Main` no abre la ventana y el log dice cuáles valen |
 | `[Video] VSync` | `on`, y `off` en el modo fiel | como `--vsync`. Con `Pacing = faithful` (o `--pacing faithful`), `on` o `adaptive` es un error que nombra `Pacing` y `VSync` |
@@ -417,7 +422,7 @@ carpeta del ejecutable, no desde la actual; que una fuente exista lo mira FreeTy
 par de comillas dobles alrededor de una ruta o del host se saca (lo que da "Copiar como ruta" del
 Explorador). El archivo es UTF-8, con o sin BOM, y con fin de línea `\n` o `\r\n`.
 
-Las secciones, las claves y los valores de `Obfuscation`, `VSync` y `Pacing` no distinguen
+Las secciones, las claves y los valores de `VSync` y `Pacing` no distinguen
 mayúsculas. Un `;` al principio de la línea, o después de un espacio, empieza un comentario; `#`
 no. Son errores, y el mensaje dice el archivo y la línea (`muret-client.ini, línea 3: ...`):
 
@@ -591,7 +596,7 @@ Client/
     Core/         Expected, ByteReader, Xor3; config, log, reloj (CL1+)
     Platform/     ventana, contexto GL, input: lo único que ve SDL3 (ClientPlatform, CL3)
     Data/         tablas .bmd, Text.bmd, terreno, OZJ/OZT, modelos: bytes a tipos, sin GL (CL1, CL6)
-    Network/      socket, paquetes, C3/C4, FoxAnti      (CL2, CL4)
+    Network/      socket, paquetes, C3/C4, XorRemap     (CL2, CL4)
     Protocol/     opcodes, structs (el login, en Connection/), dispatcher (CL2, CL4, CL9); el
                   pedido de la mascota (A9), en Pet/ (CL4)
     Render/       OpenGL 3.3: texturas, sprites, texto  (CL5+); lo que llama a GL, en Gl/

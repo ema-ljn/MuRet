@@ -3,6 +3,7 @@
 #include "App/AutoLogin.h"
 #include "App/Credentials.h"
 #include "App/FaithfulPacer.h"
+#include "App/LabXorRemapTables.h"
 #include "App/ServerAddress.h"
 #include "App/SessionState.h"
 #include "Core/IClock.h"
@@ -53,6 +54,7 @@ namespace
 {
 using Client::App::AutoLogin;
 using Client::App::Credentials;
+using Client::App::LabXorRemapTables;
 using Client::App::ServerAddress;
 using Client::App::ServerSession;
 using Client::App::SessionFailure;
@@ -62,10 +64,10 @@ using Client::App::TickCountMs;
 using Client::Core::Log;
 using Client::Core::LogLevel;
 using Client::Network::Connection;
-using Client::Network::FoxAntiObfuscation;
 using Client::Network::SystemResolver;
 using Client::Network::SystemSocket;
 using Client::Network::Xor32Decode;
+using Client::Network::XorRemapObfuscation;
 using Client::Network::SocketApi::NetworkInit;
 using Client::Protocol::Character::WriteCharacterSelect;
 using Client::Protocol::Connection::LoginRequest;
@@ -110,7 +112,7 @@ struct LoopbackSession
 {
     explicit LoopbackSession(Client::Core::Duration idleTimeout = Client::Core::Duration::zero())
         : servers(GameServerKeys(), clock, idleTimeout), socket(resolver),
-          connection(socket, foxAnti, clock, log, PaddingSeed),
+          connection(socket, xorRemap, clock, log, PaddingSeed),
           session(connection, clock, log, GameClientKeys(),
                   SessionSettings{ServerAddress{std::string(Loopback), servers.ConnectServerPort()}}, eventSink),
           autoLogin(session, Credentials{std::string(Account), std::string(Password)}, log)
@@ -166,7 +168,7 @@ struct LoopbackSession
     SystemSocket socket;
     RecordingSink sink;
     Log log{sink, LogLevel::Debug};
-    FoxAntiObfuscation foxAnti;
+    XorRemapObfuscation xorRemap{LabXorRemapTables()};
     Connection connection;
     Client::Tests::RecordingSessionEventSink eventSink;
     ServerSession session;

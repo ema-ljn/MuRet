@@ -198,7 +198,7 @@ piecemeal", porque es mucho; acá son dos archivos, y alinearlos al tocarlos no 
 - Los campos públicos de un `struct` sin invariantes van en `camelCase`, sin prefijo:
   `LoadedItemTable::table`, como `Rgb::red` en MuMain.
 - Las interfaces (clases con solo funciones virtuales puras) llevan `I` adelante: `IObfuscation`,
-  en `IObfuscation.h`. Sus implementaciones no: `IdentityObfuscation`, `FoxAntiObfuscation`.
+  en `IObfuscation.h`. Sus implementaciones no: `IdentityObfuscation`, `XorRemapObfuscation`.
 - Las variables estáticas que no son `const`, de un archivo (en un namespace anónimo) o de una
   función (`static bool s_initialized` adentro de una función, como en MuMain), llevan `s_`. Hoy no
   hay ninguna.

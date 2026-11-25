@@ -4,7 +4,6 @@
 // IWYU pragma: always_keep
 
 #include "App/Credentials.h"
-#include "App/ObfuscationMode.h"
 #include "App/Resolution.h"
 #include "App/SessionState.h"
 
@@ -19,20 +18,6 @@ inline void PrintTo(const Credentials& credentials, std::ostream* out)
 {
     *out << "Credentials{cuenta de " << credentials.account.size() << " bytes, clave de " << credentials.password.size()
          << " bytes}";
-}
-
-inline void PrintTo(ObfuscationMode mode, std::ostream* out)
-{
-    switch (mode)
-    {
-    case ObfuscationMode::FoxAnti:
-        *out << "FoxAnti";
-        return;
-    case ObfuscationMode::None:
-        *out << "None";
-        return;
-    }
-    *out << "ObfuscationMode fuera del enum";
 }
 
 inline void PrintTo(Resolution resolution, std::ostream* out)

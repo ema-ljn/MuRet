@@ -24,7 +24,7 @@ CL2.3: por eso van en un ADR (la sección "C3/C4" del
 Las dos son internas: no cambian ningún byte del cable. El desfase de Q-C04 no se vio nunca con el
 servidor del laboratorio: en la sesión real, los 17 C3/C4 del servidor traen los seriales 0 a 16
 (la misma sección del 03), y en el `muproxy.log` los 25 llegan sin un salto
-(`GoldenEncryptedPacket.DecryptsWhatTheGameServerAnswered`, con la carpeta del cable).
+(`GoldenEncryptedPacketXorRemap.DecryptsWhatTheGameServerAnswered`, con la carpeta del cable).
 
 ## Decisión
 

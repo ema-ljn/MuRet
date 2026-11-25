@@ -12,9 +12,9 @@
 // Contrato: Client/docs/research/03-red-y-cifrado.md, "La capa de FoxAnti", y el plan de la CL2
 // (CL2.4).
 //
-// Hay dos: IdentityObfuscation, que no toca nada (un servidor que habla como main.exe), y
-// FoxAntiObfuscation, la del servidor del laboratorio. La elige la configuración (CL4); el resto
-// del cliente lee y escribe siempre la forma de main.exe.
+// An implementation either leaves the packets alone (a server that speaks like main.exe) or translates them for a
+// server that expects another shape. The composition root chooses which one the client gets; the rest of the client
+// always reads and writes main.exe's shape.
 //
 // El orden es el del original. Al recibir: el PacketReader desenmascara con InboundMask mientras
 // corta, después AfterCut, el descifrado si es un C3/C4, y BeforeDispatch. Al mandar: Protocol arma

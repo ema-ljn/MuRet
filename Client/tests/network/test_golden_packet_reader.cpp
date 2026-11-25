@@ -29,8 +29,8 @@
 // El cable lleva el login del jugador: estos tests cuentan paquetes por tipo y comparan con
 // SameBytesWithoutValues. Ningún mensaje imprime un byte del cable.
 //
-// El S->C del GameServer no está: cada byte lleva el XOR 0xAA de FoxAnti, y se corta con
-// FoxAntiObfuscation en test_golden_xor_remap_obfuscation.cpp.
+// El S->C del GameServer no está: cada byte lleva el XOR 0xAA de FoxAnti, y se corta en
+// test_golden_xor_remap_obfuscation.cpp.
 namespace
 {
 using Client::Network::PacketError;

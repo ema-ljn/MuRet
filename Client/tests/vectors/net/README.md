@@ -35,7 +35,7 @@ de 300 bytes da lo mismo, porque lo cifrado pasa de `0x100`.
 
 ## Los casos de FoxAnti
 
-Los resultados esperados de `FoxAntiObfuscationTest` (CL2.4) no son archivos: son cortos, y van
+Los resultados esperados de `XorRemapObfuscationTest` (CL2.4) no son archivos: son cortos, y van
 escritos en el test. Salen de la FoxAnti mínima (`analysis/foxanti/minimal/src/packet.c` en el
 repo de research), que porta cada función de la capa de paquetes de `FoxAnti.dll` con su
 dirección, compilada en el host con `tools/foxanti_cases.c`. El programa arma cada entrada, la

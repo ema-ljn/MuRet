@@ -5,16 +5,13 @@
 #include "Network/Packet.h"
 #include "Network/PacketSerials.h"
 #include "Network/Xor32Packet.h"
-#include "Network/XorRemapObfuscation.h"
 #include "Protocol/BuildConstants.h"
 #include "Protocol/Connection/Hello.h"
 #include "Protocol/Connection/Keepalive.h"
 #include "Protocol/Connection/Login.h"
 #include "Protocol/Connection/ServerList.h"
-#include "Protocol/ProtocolError.h"
 
 #include "support/Bytes.h"
-#include "support/ExpectedError.h"
 #include "support/FileBytes.h"
 #include "support/GoldenDir.h"
 #include "support/KeyFiles.h"
@@ -47,28 +44,24 @@ namespace
 {
 using Client::Core::ByteReader;
 using Client::Network::DecryptPacket;
-using Client::Network::FoxAntiObfuscation;
 using Client::Network::Packet;
 using Client::Network::PacketSerials;
 using Client::Network::PacketType;
 using Client::Network::Xor32Decode;
 using Client::Network::Crypto::DecryptionKey;
 using Client::Network::Crypto::LoadDecryptionKey;
-using Client::Protocol::ProtocolError;
 using Client::Protocol::VersionSize;
 using Client::Protocol::Connection::HelloAccepted;
 using Client::Protocol::Connection::LoginAccepted;
 using Client::Protocol::Connection::ReadLoginResult;
 using Client::Protocol::Connection::ReadServerAddress;
 using Client::Protocol::Connection::ReadServerHello;
-using Client::Protocol::Connection::ReadServerList;
 using Client::Protocol::Connection::WriteKeepalive;
 using Client::Protocol::Connection::WriteServerListRequest;
 using Client::Protocol::Connection::WriteServerSelect;
 using Client::Tests::Bytes;
 using Client::Tests::BytesOf;
 using Client::Tests::CutPackets;
-using Client::Tests::ErrorOf;
 using Client::Tests::LoadKeyFile;
 using Client::Tests::ParseWireCapture;
 using Client::Tests::ReadFileBytes;
@@ -102,10 +95,6 @@ constexpr std::uint8_t AddressSubcode = 0x03;     // F4 03, elegir y la respuest
 // Dónde está el subcódigo en un C1.
 constexpr std::size_t SubcodeOffset = 3;
 
-// Dónde están, en la lista, que es un C2, el subcódigo y la cantidad de servidores.
-constexpr std::size_t ListSubcodeOffset = 4;
-constexpr std::size_t ListCountOffset = 5;
-
 // Lo que mide el login, dónde lleva la versión, y la del build del muproxy.log.
 constexpr std::size_t LoginSize = 49;
 constexpr std::size_t LoginVersionOffset = 28;
@@ -133,14 +122,6 @@ std::optional<std::uint8_t> SubcodeOf(const Packet& plain)
         return std::nullopt;
     }
     return std::to_integer<std::uint8_t>(plain.Bytes()[SubcodeOffset]);
-}
-
-// Si es la lista del ConnectServer del laboratorio: un C2 F4 02.
-bool IsLabServerList(const Packet& packet)
-{
-    const std::span<const std::byte> bytes = packet.Bytes();
-    return packet.Type() == PacketType::C2 && packet.Opcode() == ServerListOpcode && bytes.size() > ListSubcodeOffset &&
-           std::to_integer<std::uint8_t>(bytes[ListSubcodeOffset]) == ListRequestSubcode;
 }
 
 class GoldenLogin : public Client::Tests::WireDataTest
@@ -370,49 +351,5 @@ TEST_F(GoldenLogin, AsksForTheListChoosesAndReadsTheAddressLikeTheConnectServer)
     EXPECT_EQ(requests, 72u);
     EXPECT_EQ(selects, 8u);
     EXPECT_EQ(addresses, 8u);
-}
-
-// Las 72 listas del ConnectServer llegan como F4 02, y así ReadServerList no las lee; con el
-// AfterCut de FoxAntiObfuscation (CL2.4) pasan a F4 06 y se leen todas, con las entradas que dice
-// su cantidad.
-TEST_F(GoldenLogin, ReadsTheListsOfTheConnectServerAfterFoxAnti)
-{
-    const FoxAntiObfuscation foxAnti;
-    std::size_t lists = 0;
-    std::size_t rejectedAsTheyArrive = 0;
-    std::size_t readWithTheirCount = 0;
-    for (std::size_t index = 0; index < m_connections.size(); ++index)
-    {
-        if (m_connections[index].port != ConnectServerPort)
-        {
-            continue;
-        }
-        for (Packet& packet : PacketsOf(index, WireDirection::ServerToClient, std::byte{0}))
-        {
-            if (!IsLabServerList(packet))
-            {
-                continue;
-            }
-            ++lists;
-            if (ErrorOf(ReadServerList(packet)) == ProtocolError::WrongPacket)
-            {
-                ++rejectedAsTheyArrive;
-            }
-            const auto translated = foxAnti.AfterCut(std::move(packet));
-            ASSERT_TRUE(translated.HasValue()) << "conexión " << index;
-            const auto entries = ReadServerList(translated.Value());
-            ASSERT_TRUE(entries.HasValue()) << "conexión " << index;
-            ByteReader header(translated.Value().Bytes().subspan(ListCountOffset));
-            const std::optional<std::uint16_t> count = header.ReadU16Be();
-            if (count && entries.Value().size() == *count)
-            {
-                ++readWithTheirCount;
-            }
-        }
-    }
-
-    EXPECT_EQ(lists, 72u);
-    EXPECT_EQ(rejectedAsTheyArrive, 72u);
-    EXPECT_EQ(readWithTheirCount, 72u);
 }
 } // namespace

@@ -1,20 +1,13 @@
 #include "Network/Crypto/SimpleModulus.h"
-#include "Network/Crypto/SimpleModulusKeyFile.h"
 #include "Network/EncryptedPacket.h"
 #include "Network/IdentityObfuscation.h"
-#include "Network/IObfuscation.h"
 #include "Network/Packet.h"
 #include "Network/PacketSerials.h"
-#include "Network/XorRemapObfuscation.h"
-#include "Protocol/Character/InventoryList.h"
 
-#include "support/FileBytes.h"
-#include "support/GoldenDir.h"
-#include "support/KeyFiles.h"
 #include "support/NetworkPrinters.h"
 #include "support/SameBytes.h"
 #include "support/WireCapture.h"
-#include "support/WirePackets.h"
+#include "test_golden_encrypted_packet_support.h"
 
 #include <gtest/gtest.h>
 
@@ -25,8 +18,6 @@
 #include <optional>
 #include <span>
 #include <string>
-#include <string_view>
-#include <utility>
 #include <vector>
 
 // DecryptPacket y EncryptPacket contra el cable del laboratorio (support/WireCapture.h,
@@ -42,189 +33,23 @@
 // SameBytesWithoutValues. Ningún mensaje imprime un byte del cable ni de lo descifrado.
 namespace
 {
-using Client::Network::DecryptPacket;
 using Client::Network::EncryptPacket;
-using Client::Network::FoxAntiObfuscation;
-using Client::Network::HeaderSize;
 using Client::Network::IdentityObfuscation;
-using Client::Network::IObfuscation;
-using Client::Network::Packet;
 using Client::Network::PacketSerials;
-using Client::Network::PacketType;
-using Client::Network::SerialCheck;
 using Client::Network::Crypto::CipherBlockSize;
-using Client::Network::Crypto::DecryptBlock;
 using Client::Network::Crypto::DecryptedBlock;
 using Client::Network::Crypto::DecryptionKey;
-using Client::Network::Crypto::EncryptBlock;
 using Client::Network::Crypto::EncryptionKey;
-using Client::Network::Crypto::LoadDecryptionKey;
-using Client::Network::Crypto::LoadEncryptionKey;
 using Client::Network::Crypto::PlainBlockSize;
-using Client::Protocol::Character::InventoryList;
-using Client::Protocol::Character::ReadInventoryList;
-using Client::Tests::CutPackets;
-using Client::Tests::LoadKeyFile;
-using Client::Tests::ParseWireCapture;
-using Client::Tests::ReadFileBytes;
 using Client::Tests::SameBytesWithoutValues;
-using Client::Tests::WireConnection;
 using Client::Tests::WireDirection;
-
-using ByteVector = std::vector<std::byte>;
-
-// El log que escribió el proxy del laboratorio.
-constexpr std::string_view CaptureFile = "muproxy.log";
-
-// El puerto del proxy delante del GameServer del laboratorio: los C3/C4 van y vienen por ahí.
-constexpr std::uint16_t GameServerPort = 55901;
-
-// El serial: el primer byte de lo útil, que el paquete rearmado no lleva.
-constexpr std::size_t SerialSize = 1;
-
-// Dónde está un C3/C4, para los mensajes: su conexión en el log y su orden entre los de ella.
-std::string Where(std::size_t connection, std::size_t index)
-{
-    return "conexión " + std::to_string(connection) + ", C3/C4 " + std::to_string(index);
-}
-
-// Un C3/C4 del cable y lo que dio DecryptPacket.
-struct WirePacket
-{
-    std::size_t connection = 0;  // en el log
-    std::size_t index = 0;       // su orden entre los C3/C4 de su conexión, desde 0
-    Packet encrypted;            // como pasó por el cable, con la máscara deshecha
-    std::optional<Packet> plain; // el C1/C2 rearmado, o std::nullopt si no descifró
-};
-
-// `encrypted` descifrado con DecryptPacket, que tiene que darlo con el serial en orden.
-std::optional<Packet> DecryptInOrder(const Packet& encrypted, const DecryptionKey& decryption, PacketSerials& serials,
-                                     const std::string& where)
-{
-    auto decrypted = DecryptPacket(encrypted, decryption, serials);
-    if (!decrypted.HasValue())
-    {
-        ADD_FAILURE() << where << ": " << testing::PrintToString(decrypted.Error());
-        return std::nullopt;
-    }
-    EXPECT_EQ(decrypted.Value().serial, SerialCheck::InOrder) << where;
-    return std::move(decrypted).Value().packet;
-}
-
-// Cuántos C3/C4 hay de cada tipo, y en cuántas conexiones había alguno.
-struct DecryptedCounts
-{
-    std::size_t c3 = 0;
-    std::size_t c4 = 0;
-    std::size_t connections = 0;
-};
-
-DecryptedCounts CountOf(const std::vector<WirePacket>& packets)
-{
-    DecryptedCounts counts;
-    for (const WirePacket& packet : packets)
-    {
-        ++(packet.encrypted.Type() == PacketType::C3 ? counts.c3 : counts.c4);
-        counts.connections += packet.index == 0 ? 1 : 0;
-    }
-    return counts;
-}
-
-// Lo cifrado de un C3/C4: lo que sigue a la cabecera.
-std::span<const std::byte> CipherOf(const Packet& encrypted)
-{
-    return encrypted.Bytes().subspan(HeaderSize(encrypted.Type()));
-}
-
-// Los bloques de `encrypted`, descifrados uno por uno con DecryptBlock, sin DecryptPacket.
-// std::nullopt si uno no descifra.
-std::optional<std::vector<DecryptedBlock>> DecryptBlocks(const Packet& encrypted, const DecryptionKey& decryption)
-{
-    const std::span<const std::byte> cipher = CipherOf(encrypted);
-    std::vector<DecryptedBlock> blocks;
-    blocks.reserve(cipher.size() / CipherBlockSize);
-    for (std::size_t offset = 0; offset + CipherBlockSize <= cipher.size(); offset += CipherBlockSize)
-    {
-        const std::optional<DecryptedBlock> block =
-            DecryptBlock(decryption, cipher.subspan(offset).first<CipherBlockSize>());
-        if (!block)
-        {
-            return std::nullopt;
-        }
-        blocks.push_back(*block);
-    }
-    return blocks;
-}
-
-// Los bloques cifrados de nuevo con `encryption`, cada uno con sus 8 bytes, relleno incluido, y el
-// largo útil que traía.
-ByteVector EncryptBlocksAgain(const std::vector<DecryptedBlock>& blocks, const EncryptionKey& encryption)
-{
-    ByteVector again;
-    again.reserve(blocks.size() * CipherBlockSize);
-    for (const DecryptedBlock& block : blocks)
-    {
-        const auto cipher = EncryptBlock(encryption, block.bytes, block.usefulSize);
-        again.insert(again.end(), cipher.begin(), cipher.end());
-    }
-    return again;
-}
-
-// Lo útil de cada bloque, uno detrás del otro: el serial, el opcode y los campos.
-ByteVector UsefulBytes(const std::vector<DecryptedBlock>& blocks)
-{
-    ByteVector useful;
-    useful.reserve(blocks.size() * PlainBlockSize);
-    for (const DecryptedBlock& block : blocks)
-    {
-        const auto size = static_cast<std::ptrdiff_t>(std::min<std::size_t>(block.usefulSize, PlainBlockSize));
-        useful.insert(useful.end(), block.bytes.begin(), block.bytes.begin() + size);
-    }
-    return useful;
-}
-
-// Si `plain`, lo que dio DecryptPacket, es lo que dan los bloques uno por uno: un C1 de un C3 y un
-// C2 de un C4, con lo útil sin el serial detrás de la cabecera. El mensaje no dice qué bytes son.
-testing::AssertionResult IsRebuiltFrom(const Packet& plain, PacketType encryptedType,
-                                       const std::vector<DecryptedBlock>& blocks)
-{
-    const PacketType rebuiltType = encryptedType == PacketType::C3 ? PacketType::C1 : PacketType::C2;
-    if (plain.Type() != rebuiltType)
-    {
-        return testing::AssertionFailure() << "no se rearmó como " << (encryptedType == PacketType::C3 ? "C1" : "C2");
-    }
-    const ByteVector useful = UsefulBytes(blocks);
-    if (useful.size() < SerialSize)
-    {
-        return testing::AssertionFailure() << "los bloques no traen el serial";
-    }
-    return SameBytesWithoutValues(plain.Bytes().subspan(HeaderSize(rebuiltType)),
-                                  std::span<const std::byte>(useful).subspan(SerialSize));
-}
-
-// Cada C3/C4 contra sus bloques descifrados uno por uno: el paquete rearmado es lo útil sin el
-// serial, y los bloques, cifrados de nuevo con `encryption`, dan lo cifrado entero. El último
-// también, porque lleva sus 8 bytes como llegaron.
-void ExpectSameAsItsBlocks(const std::vector<WirePacket>& packets, const DecryptionKey& decryption,
-                           const EncryptionKey& encryption)
-{
-    for (const WirePacket& packet : packets)
-    {
-        const std::string where = Where(packet.connection, packet.index);
-        const auto blocks = DecryptBlocks(packet.encrypted, decryption);
-        if (!blocks)
-        {
-            ADD_FAILURE() << where << ": un bloque no descifra";
-            continue;
-        }
-        EXPECT_TRUE(SameBytesWithoutValues(EncryptBlocksAgain(*blocks, encryption), CipherOf(packet.encrypted)))
-            << where;
-        if (packet.plain)
-        {
-            EXPECT_TRUE(IsRebuiltFrom(*packet.plain, packet.encrypted.Type(), *blocks)) << where;
-        }
-    }
-}
+using Client::Tests::GoldenEncryptedPacketSupport::CountOf;
+using Client::Tests::GoldenEncryptedPacketSupport::DecryptBlocks;
+using Client::Tests::GoldenEncryptedPacketSupport::DecryptedCounts;
+using Client::Tests::GoldenEncryptedPacketSupport::ExpectSameAsItsBlocks;
+using Client::Tests::GoldenEncryptedPacketSupport::GoldenEncryptedPacket;
+using Client::Tests::GoldenEncryptedPacketSupport::Where;
+using Client::Tests::GoldenEncryptedPacketSupport::WirePacket;
 
 // El relleno que puso el original: el byte que sigue a lo útil en el último bloque. Con el bloque
 // lleno no hay, y el que se pase no cambia nada.
@@ -271,118 +96,6 @@ bool ExpectEncryptedAgainLikeTheWire(const WirePacket& packet, const DecryptedBl
     return sameBefore && sameLast;
 }
 
-// El oráculo Python fija un C2 normalizado (ADR0003), count en 5 y entradas desde 6, stride 8.
-// Solo slots y tamaños se imprimen; los siete bytes opacos siempre se comparan sin valores.
-void ExpectInventoryEntries(const InventoryList& list, std::span<const std::byte> reference)
-{
-    constexpr std::size_t EntriesOffset = 6;
-    constexpr std::size_t ReferenceStride = 8;
-    ASSERT_GE(reference.size(), EntriesOffset);
-    const std::uint8_t count = std::to_integer<std::uint8_t>(reference[5]);
-    ASSERT_TRUE(count == 2 || count == 5 || count == 6);
-    ASSERT_EQ(reference.size(), EntriesOffset + ReferenceStride * count);
-    ASSERT_EQ(list.items.size(), count);
-    constexpr std::array<std::uint8_t, 6> ExpectedSlots = {0, 12, 14, 17, 23, 28};
-    for (std::size_t index = 0; index < count; ++index)
-    {
-        SCOPED_TRACE(index);
-        const std::size_t offset = EntriesOffset + ReferenceStride * index;
-        const auto slot = std::to_integer<std::uint8_t>(reference[offset]);
-        EXPECT_EQ(slot, count == 2 ? index : ExpectedSlots[index]);
-        EXPECT_EQ(list.items[index].slot, slot);
-        EXPECT_TRUE(SameBytesWithoutValues(list.items[index].item, reference.subspan(offset + 1, 7)));
-    }
-}
-
-class GoldenEncryptedPacket : public Client::Tests::GoldenAndWireDataTest
-{
-protected:
-    void SetUp() override
-    {
-        GoldenAndWireDataTest::SetUp();
-        if (IsSkipped() || HasFatalFailure())
-        {
-            return;
-        }
-        const auto path = WireFile(CaptureFile);
-        ASSERT_TRUE(path.has_value());
-        const auto file = ReadFileBytes(*path);
-        ASSERT_TRUE(file.has_value()) << "no se pudo leer " << CaptureFile;
-        auto parsed = ParseWireCapture(std::string_view(file->data(), file->size()));
-        ASSERT_TRUE(parsed.HasValue()) << CaptureFile << ": la línea " << parsed.Error().line << " no se entiende";
-        m_connections = std::move(parsed).Value();
-
-        // Lo que manda el cliente lo cifra con Enc1.dat y el servidor lo descifra con Dec1.dat; lo
-        // que contesta el servidor lo cifra con Enc2.dat y el cliente lo descifra con Dec2.dat.
-        m_enc1 = LoadKeyFile(DataFile("Enc1.dat"), LoadEncryptionKey);
-        m_dec1 = LoadKeyFile(WireFile("Dec1.dat"), LoadDecryptionKey);
-        m_enc2 = LoadKeyFile(WireFile("Enc2.dat"), LoadEncryptionKey);
-        m_dec2 = LoadKeyFile(DataFile("Dec2.dat"), LoadDecryptionKey);
-        ASSERT_TRUE(m_enc1 && m_dec1 && m_enc2 && m_dec2);
-    }
-
-    // Los C3/C4 de cada conexión al GameServer, en el sentido `direction` y cortados con
-    // `obfuscation`, descifrados con DecryptPacket y unos seriales por conexión que arrancan en 0:
-    // cada uno tiene que descifrar con su serial en orden.
-    std::vector<WirePacket> DecryptAll(WireDirection direction, const IObfuscation& obfuscation,
-                                       const DecryptionKey& decryption) const
-    {
-        std::vector<WirePacket> packets;
-        for (std::size_t connection = 0; connection < m_connections.size(); ++connection)
-        {
-            if (m_connections[connection].port != GameServerPort)
-            {
-                continue;
-            }
-            PacketSerials serials;
-            std::size_t index = 0;
-            for (Packet& packet : CutPackets(m_connections[connection].Reads(direction), obfuscation, connection))
-            {
-                if (packet.Type() != PacketType::C3 && packet.Type() != PacketType::C4)
-                {
-                    continue;
-                }
-                std::optional<Packet> plain = DecryptInOrder(packet, decryption, serials, Where(connection, index));
-                packets.push_back({connection, index, std::move(packet), std::move(plain)});
-                ++index;
-            }
-        }
-        return packets;
-    }
-
-    std::optional<std::vector<char>> LoadWireFile(std::string_view name) const
-    {
-        const auto path = WireFile(name);
-        if (!path)
-        {
-            return std::nullopt;
-        }
-        auto file = ReadFileBytes(*path);
-        EXPECT_TRUE(file.has_value()) << "no se pudo leer " << name;
-        return file;
-    }
-
-    void ExpectInventoryReference(const WirePacket& packet, std::size_t index) const
-    {
-        const std::string suffix = std::to_string(index);
-        const auto capture = LoadWireFile("inventory-capture-" + suffix + ".c4");
-        const auto reference = LoadWireFile("inventory-reference-" + suffix + ".c2");
-        ASSERT_TRUE(capture && reference && packet.plain);
-        const std::span<const std::byte> expected = std::as_bytes(std::span(*reference));
-        EXPECT_TRUE(SameBytesWithoutValues(packet.encrypted.Bytes(), std::as_bytes(std::span(*capture))));
-        EXPECT_TRUE(SameBytesWithoutValues(packet.plain->Bytes(), expected));
-        const auto list = ReadInventoryList(*packet.plain);
-        ASSERT_TRUE(list.HasValue());
-        ExpectInventoryEntries(list.Value(), expected);
-    }
-
-    std::vector<WireConnection> m_connections;
-    std::optional<EncryptionKey> m_enc1;
-    std::optional<DecryptionKey> m_dec1;
-    std::optional<EncryptionKey> m_enc2;
-    std::optional<DecryptionKey> m_dec2;
-};
-
 // Los 183 C3 que mandó el cliente original al GameServer, en sus 8 conexiones: el checksum bien, el
 // serial desde 0 y +1 en cada conexión, el C1 rearmado igual a lo útil de los bloques, y los
 // bloques, cifrados de nuevo con Enc1.dat del cliente, los mismos bytes.
@@ -396,60 +109,6 @@ TEST_F(GoldenEncryptedPacket, DecryptsWhatTheClientSent)
     EXPECT_EQ(counts.c3, 183u);
     EXPECT_EQ(counts.c4, 0u);
     EXPECT_EQ(counts.connections, 8u);
-}
-
-// Los 25 C3/C4 que contestó el GameServer (18 C3 y 7 C4, de 36, 69 y 80 bytes), en 7 conexiones,
-// cortados con el 0xAA de FoxAntiObfuscation: el checksum bien y el serial desde 0, sin un
-// Resynced, el C1/C2 rearmado igual a lo útil de los bloques, y los bloques, cifrados de nuevo con
-// Enc2.dat del servidor, los mismos bytes.
-TEST_F(GoldenEncryptedPacket, DecryptsWhatTheGameServerAnswered)
-{
-    const FoxAntiObfuscation foxAnti;
-    const std::vector<WirePacket> answered = DecryptAll(WireDirection::ServerToClient, foxAnti, *m_dec2);
-
-    ExpectSameAsItsBlocks(answered, *m_dec2, *m_enc2);
-    const DecryptedCounts counts = CountOf(answered);
-    EXPECT_EQ(counts.c3, 18u);
-    EXPECT_EQ(counts.c4, 7u);
-    EXPECT_EQ(counts.connections, 7u);
-}
-
-// Siete capturas finitas, contra C4/C2 obtenidos con la referencia matemática Python independiente.
-// DecryptAll procesa primero todos los C3/C4: filtrar antes perdería los seriales previos.
-TEST_F(GoldenEncryptedPacket, ReadsAllSevenInventoryCapturesAgainstTheIndependentReference)
-{
-    const FoxAntiObfuscation foxAnti;
-    const std::vector<WirePacket> answered = DecryptAll(WireDirection::ServerToClient, foxAnti, *m_dec2);
-    ASSERT_EQ(answered.size(), 25u);
-    std::size_t found = 0;
-    std::array<std::size_t, 7> counts{};
-    for (const WirePacket& packet : answered)
-    {
-        ASSERT_TRUE(packet.plain.has_value());
-        if (packet.plain->Type() != PacketType::C2 || packet.plain->Opcode() != 0xF3)
-        {
-            continue;
-        }
-        const std::span<const std::byte> bytes = packet.plain->Bytes();
-        ASSERT_GE(bytes.size(), 5u);
-        if (bytes[4] != std::byte{0x10})
-        {
-            continue;
-        }
-        SCOPED_TRACE(found);
-        ASSERT_LT(found, 7u);
-        ASSERT_EQ(packet.encrypted.Type(), PacketType::C4);
-        ASSERT_GE(bytes.size(), 6u);
-        const auto count = std::to_integer<std::uint8_t>(bytes[5]);
-        ASSERT_LT(count, counts.size());
-        ASSERT_NO_FATAL_FAILURE(ExpectInventoryReference(packet, found));
-        ++counts[count];
-        ++found;
-    }
-    EXPECT_EQ(found, 7u);
-    EXPECT_EQ(counts[2], 1u);
-    EXPECT_EQ(counts[5], 5u);
-    EXPECT_EQ(counts[6], 1u);
 }
 
 // Los 183 C3 del cliente, descifrados con DecryptPacket y cifrados de nuevo con EncryptPacket, con

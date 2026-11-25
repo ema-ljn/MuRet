@@ -125,6 +125,7 @@ jobs:
           # tests de Windows y le sumaba 26 a 31 minutos.
           # Ninja, ccache and two jobs, as in Windows Debug: with MSBuild, building Main took 31 of
           # this job's 33 minutes (#407). Its own ccache key: Debug objects never match Release.
+          # MU_XOR_REMAP=OFF here, so every PR also builds and links Main without the layer.
           - name: Windows (MSVC, Release, matemática)
             kind: math-release
             os: windows-2022
@@ -132,11 +133,11 @@ jobs:
             build-preset: windows-x64-ninja-release
             test-preset: windows-x64-ninja-release
             precompiled-headers: 'ON'
-            extra-configure: -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+            extra-configure: -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DMU_XOR_REMAP=OFF
             build-jobs: '2'
             build-targets: >-
               --target Main test_original_angles test_original_retained_math test_rounded_math
-              test_rounded_transforms test_half_life_math
+              test_rounded_transforms test_half_life_math test_make_obfuscation
             ccache-key: ccache-release-windows-2022
             font-file: 'C:\Windows\Fonts\arial.ttf'
     env:
@@ -465,7 +466,7 @@ jobs:
           echo "Suites: $regex"
           ctest --preset ${{ matrix.test-preset }} --parallel "$MU_CI_JOBS" -R "$regex" --no-tests=error
 
-      # math-release builds only Main and the two tests of the math profile.
+      # math-release builds only Main, the tests of the math profile and the test of the factory without the layer.
       - name: Compilar
         if: steps.scope.outputs.build == 'true' && matrix.kind != 'includes'
         run: cmake --build --preset ${{ matrix.build-preset }} ${{ matrix.build-targets }}
@@ -495,12 +496,12 @@ jobs:
 
       # Main and the tests come from "Compilar". Zero selected tests also fails the job, so a
       # move or a rename of these tests cannot turn the check off. The rounded math runs here too:
-      # the optimizer must not change its bits.
+      # the optimizer must not change its bits. MakeObfuscationTest checks the factory without the layer.
       - name: Perfil matemático en MSVC Release
         if: steps.scope.outputs.build == 'true' && matrix.kind == 'math-release'
         run: >-
           ctest --preset ${{ matrix.test-preset }} --no-tests=error
-          -R '^(OriginalAnglesTest|OriginalRetainedMathTest|RoundedMathTest|RoundedTransformsTest|HalfLifeMathTest)\.'
+          -R '^(OriginalAnglesTest|OriginalRetainedMathTest|RoundedMathTest|RoundedTransformsTest|HalfLifeMathTest|MakeObfuscationTest)\.'
 
       # Los tests con la etiqueta gl (desde la CL5.0, los de labs/cl5.0-pipeline/gl/) abren una
       # ventana escondida con OpenGL 3.3 core, dibujan en un framebuffer y leen los píxeles. En el

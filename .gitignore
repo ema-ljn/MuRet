@@ -13,6 +13,10 @@ CMakeUserPresets.json
 
 # Python
 __pycache__/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
 
 # Caché de las herramientas del binario (Client/docs/research/scripts/tools/regen_cache.py)
 .research-cache/

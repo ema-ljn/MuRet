@@ -4,7 +4,7 @@
 > following Python's best practices in code and architecture, AI friendly, maybe with skills"; then "to edit
 > `Text.bmd` and those files inside the client's assets"; then "a nice, popular console UI, friendly for AI, that
 > also has a CLI usable from a SKILL.md"; and, on the look, "give it a nice format, surprise me". He picked Textual
-> for the console UI.
+> for the console UI, and a separate working copy for the edited files.
 
 ## What and why
 
@@ -157,8 +157,8 @@ What the writer recomputes after an edit: counts (from list lengths), the encryp
 a table whose records changed. An unedited table keeps its stored checksum, even a wrong one (Q-C01: the lab's
 `item.bmd` fails its own). The version, the cipher and the trailing bytes stay as read.
 
-**Edits go to a working copy; the reference folder is read-only** (pending Emanuel's pick, 2026-11-25; this is the
-recommended option). A folder with a `Data.sha256` beside it (`Client/assets/Data`) is never written: the tool opens
+**Edits go to a working copy; the reference folder is read-only** (Emanuel's pick, 2026-11-25, over editing
+`Client/assets/Data` in place and over an overlay of only the changed files). A folder with a `Data.sha256` beside it (`Client/assets/Data`) is never written: the tool opens
 it for viewing, and `set`, `build -o` or a save into it fail with an error that names the way out. Edits happen in a
 working copy, a full `Data` folder that the client can run (`Main --data <copy>`, or the lab's `cliente-lab/Data`):
 

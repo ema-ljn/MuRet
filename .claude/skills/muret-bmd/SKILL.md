@@ -84,7 +84,8 @@ mubmd find $WORK/Local/Text.bmd '^Zen' --regex
 ```
 
 List every place a query appears, in one call, without the texts. `--limit` has no maximum and a table has 2,048
-texts, so `next_offset` comes back `null` and the list is complete.
+texts, so `next_offset` comes back `null` and the list is complete. The match ignores case (`%d` also finds `%D`); add
+`--regex` when that matters.
 
 <!-- recipe: list-every-pointer -->
 ```bash

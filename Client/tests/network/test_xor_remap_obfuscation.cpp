@@ -1,4 +1,4 @@
-#include "Network/FoxAntiObfuscation.h"
+#include "Network/XorRemapObfuscation.h"
 
 #include "Network/Crypto/SimpleModulus.h"
 #include "Network/EncryptedPacket.h"

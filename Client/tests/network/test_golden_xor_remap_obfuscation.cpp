@@ -1,10 +1,10 @@
 #include "Network/Crypto/SimpleModulus.h"
 #include "Network/Crypto/SimpleModulusKeyFile.h"
 #include "Network/EncryptedPacket.h"
-#include "Network/FoxAntiObfuscation.h"
 #include "Network/Packet.h"
 #include "Network/PacketReader.h"
 #include "Network/PacketSerials.h"
+#include "Network/XorRemapObfuscation.h"
 
 #include "support/Bytes.h"
 #include "support/FileBytes.h"

@@ -6,10 +6,10 @@
 #include "Network/Crypto/SimpleModulusKeyFile.h"
 #include "Network/Delivery.h"
 #include "Network/EncryptedPacket.h"
-#include "Network/FoxAntiObfuscation.h"
 #include "Network/IdentityObfuscation.h"
 #include "Network/Packet.h"
 #include "Network/PacketSerials.h"
+#include "Network/XorRemapObfuscation.h"
 
 #include "support/FakeClock.h"
 #include "support/FakeSocket.h"

@@ -9,12 +9,12 @@
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
 #include "Network/Connection.h"
-#include "Network/FoxAntiObfuscation.h"
 #include "Network/Packet.h"
 #include "Network/SocketApi.h"
 #include "Network/SystemResolver.h"
 #include "Network/SystemSocket.h"
 #include "Network/Xor32Packet.h"
+#include "Network/XorRemapObfuscation.h"
 #include "Protocol/Character/CharacterSelect.h"
 #include "Protocol/Connection/Login.h"
 

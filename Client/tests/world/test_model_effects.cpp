@@ -2,10 +2,10 @@
 
 #include "Crt/CrtRandom.h"
 #include "Math/X87.h"
-#include "Render/Models/LogicalAccess.h"
-#include "Render/Models/ObjectState.h"
-#include "Render/Models/OriginalRotation.h"
-#include "Render/Models/Skeleton.h"
+#include "Models/LogicalAccess.h"
+#include "Models/ObjectState.h"
+#include "Math/OriginalRotation.h"
+#include "Models/Skeleton.h"
 #include "World/Sprites.h"
 #include "World/WorldObjects.h"
 

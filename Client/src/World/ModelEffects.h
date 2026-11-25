@@ -1,9 +1,9 @@
 #pragma once
 
 #include "Core/Expected.h"
-#include "Render/Models/ObjectState.h"
-#include "Render/Models/Pose.h"
-#include "Render/Models/Skeleton.h"
+#include "Models/ObjectState.h"
+#include "Models/Pose.h"
+#include "Models/Skeleton.h"
 
 #include <glm/ext/vector_float3.hpp>
 

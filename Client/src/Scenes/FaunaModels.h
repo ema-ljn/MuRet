@@ -3,13 +3,13 @@
 #include "Core/Expected.h"
 #include "Data/Models/Model.h"
 #include "Data/Textures/TextureSet.h"
-#include "Render/Models/IModelLibrary.h"
-#include "Render/Models/Skeleton.h"
+#include "Models/IModelLibrary.h"
+#include "Models/Skeleton.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/ConstructedBmdPrefix.h"
-#include "Scenes/TextureMetadata.h"
+#include "Models/TextureMetadata.h"
 #include "Scenes/ModelTextureTable.h"
-#include "Scenes/MonsterSounds.h"
+#include "Sound/MonsterSounds.h"
 
 #include <array>
 #include <cstdint>

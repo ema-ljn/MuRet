@@ -2,7 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Core/PixelSize.h"
-#include "Data/Text/TextTable.h"
+#include "Tables/TextTable.h"
 #include "Math/X87.h"
 #include "Protocol/Guild.h"
 #include "Render/OriginalQuad.h"
@@ -21,7 +21,7 @@
 #include "Scenes/GuildPanels.h"
 #include "Scenes/GuildState.h"
 #include "Scenes/GuildWindowTabs.h"
-#include "Scenes/ITextDrawer.h"
+#include "Render/Frame/ITextDrawer.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/ChatInput.h"
@@ -35,7 +35,7 @@
 #include "UI/GameUiState.h"
 #include "UI/OldWindowBase.h"
 #include "UI/PanelRegistry.h"
-#include "UI/SprintfFormat.h"
+#include "Crt/SprintfFormat.h"
 
 #include <algorithm>
 #include <array>

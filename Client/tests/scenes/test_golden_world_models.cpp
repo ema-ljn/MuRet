@@ -7,7 +7,7 @@
 #include "Data/Textures/Sampling.h"
 #include "Data/Textures/Texture.h"
 #include "Data/Textures/TextureSet.h"
-#include "Render/Models/ModelTextureSlots.h"
+#include "Models/ModelTextureSlots.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/GameModels.h"
 #include "Scenes/LoginModels.h"

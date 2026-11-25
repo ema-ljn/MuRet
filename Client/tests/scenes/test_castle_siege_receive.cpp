@@ -7,7 +7,7 @@
 #include "Core/Log.h"
 #include "Core/PixelSize.h"
 #include "Crt/CrtRandom.h"
-#include "Data/Text/TextTable.h"
+#include "Tables/TextTable.h"
 #include "Protocol/CastleSiege.h"
 #include "Protocol/Outgoing.h"
 #include "Render/Text/FontSet.h"

@@ -4,7 +4,7 @@
 #include "Math/X87.h"
 #include "Protocol/Events.h"
 #include "Protocol/Outgoing.h"
-#include "Render/Models/RoundedMath.h"
+#include "Math/RoundedMath.h"
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
 #include "Render/Text/FontSet.h"

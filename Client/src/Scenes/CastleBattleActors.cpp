@@ -3,8 +3,8 @@
 #include "Core/Expected.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainGrid.h"
-#include "Render/Models/Cloth.h"
-#include "Render/Models/LogicalAccess.h"
+#include "Models/Cloth.h"
+#include "Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/GuildState.h"
 #include "Scenes/MonsterCreation.h"
@@ -12,7 +12,7 @@
 #include "Scenes/WorldMap.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
-#include "World/TerrainWalls.h"
+#include "Pathfinding/TerrainWalls.h"
 #include "World/WorldTerrain.h"
 
 #include <cstdint>

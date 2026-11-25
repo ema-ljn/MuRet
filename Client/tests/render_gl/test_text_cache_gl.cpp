@@ -4,7 +4,7 @@
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
 #include "Core/PixelSize.h"
-#include "Platform/GlLoader.h"
+#include "Platform/Sdl/GlLoader.h"
 #include "Render/Gl/GlFramebuffer.h"
 #include "Render/Gl/GlSpriteRenderer.h"
 #include "Render/Gl/GlTexture.h"

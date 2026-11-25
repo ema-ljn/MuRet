@@ -1,6 +1,6 @@
-#include "Data/Tables/GateRecord.h"
+#include "Tables/GateRecord.h"
 
-#include "Data/Tables/GateTable.h"
+#include "Tables/GateTable.h"
 #include "support/GateFiles.h"
 
 #include <gtest/gtest.h>

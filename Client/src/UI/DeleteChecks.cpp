@@ -1,6 +1,6 @@
 #include "UI/DeleteChecks.h"
 
-#include "Data/Text/TextTable.h"
+#include "Tables/TextTable.h"
 #include "Protocol/Character/CharacterList.h"
 #include "UI/GameText.h"
 #include "UI/Notices.h"

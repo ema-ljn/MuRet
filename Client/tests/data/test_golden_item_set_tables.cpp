@@ -1,4 +1,4 @@
-#include "Data/Tables/ItemSetTables.h"
+#include "Tables/ItemSetTables.h"
 
 #include "support/FileBytes.h"
 #include "support/Fnv1a.h"

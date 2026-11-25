@@ -1,6 +1,6 @@
 #include "UI/Emotes.h"
 
-#include "Data/Text/TextTable.h"
+#include "Tables/TextTable.h"
 
 #include "support/ChatTexts.h"
 #include "support/SceneDataFiles.h"

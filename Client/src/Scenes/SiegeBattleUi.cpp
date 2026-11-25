@@ -9,7 +9,7 @@
 #include "Protocol/Connection/Logout.h"
 #include "Protocol/Outgoing.h"
 #include "Protocol/SiegeControls.h"
-#include "Render/Models/LogicalAccess.h"
+#include "Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/CastleSiegeReceive.h"
 #include "Scenes/GamePanels.h"

@@ -12,7 +12,7 @@
 #include "Scenes/GameProjection.h"
 #include "Scenes/GameUi.h"
 #include "Scenes/GameWindowDrawing.h"
-#include "Scenes/MapNames.h"
+#include "Maps/MapNames.h"
 #include "Scenes/SocialState.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"

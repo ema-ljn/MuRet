@@ -1,12 +1,12 @@
 #pragma once
 
 #include "Core/Expected.h"
-#include "Data/Tables/ItemTable.h"
+#include "Tables/ItemTable.h"
 #include "Scenes/GuildPanels.h"
 #include "Scenes/CastleWindows.h"
 #include "Scenes/GuildWindow.h"
 #include "Scenes/SecondGuildWindow.h"
-#include "Data/Text/TextTable.h"
+#include "Tables/TextTable.h"
 #include "Protocol/Outgoing.h"
 #include "Scenes/InventoryMoves.h"
 #include "Scenes/NpcWindows.h"

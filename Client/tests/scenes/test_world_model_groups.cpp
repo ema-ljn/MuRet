@@ -7,7 +7,7 @@
 #include "Data/Textures/Texture.h"
 #include "Data/Textures/TextureSet.h"
 #include "Render/ModelBatch.h"
-#include "Render/Models/Skeleton.h"
+#include "Models/Skeleton.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/GameModels.h"

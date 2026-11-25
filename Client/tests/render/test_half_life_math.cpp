@@ -1,6 +1,6 @@
-#include "Render/Models/HalfLifeMath.h"
+#include "Math/HalfLifeMath.h"
 
-#include "Render/Models/RoundedMath.h"
+#include "Math/RoundedMath.h"
 
 #include "support/FloatBits.h"
 #include "support/Fnv1a.h"

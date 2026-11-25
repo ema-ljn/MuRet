@@ -1,8 +1,8 @@
 #pragma once
 
-#include "Render/Models/HalfLifeMath.h"
-#include "Render/Models/OriginalRotation.h"
-#include "Render/Models/Pose.h"
+#include "Math/HalfLifeMath.h"
+#include "Math/OriginalRotation.h"
+#include "Models/Pose.h"
 #include "Scenes/CharacterDrawing.h"
 
 #include <glm/ext/vector_float3.hpp>

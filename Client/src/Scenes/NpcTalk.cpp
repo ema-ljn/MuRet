@@ -5,8 +5,8 @@
 #include "Data/Models/PlayerModels.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Maps/MapId.h"
-#include "Render/Models/LogicalAccess.h"
-#include "Render/Models/Skeleton.h"
+#include "Models/LogicalAccess.h"
+#include "Models/Skeleton.h"
 #include "Scenes/ActorActions.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/CrywolfContract.h"
@@ -23,7 +23,7 @@
 #include "UI/GameText.h"
 #include "UI/MessageArea.h"
 #include "UI/PanelRegistry.h"
-#include "UI/SprintfFormat.h"
+#include "Crt/SprintfFormat.h"
 #include "World/WorldTerrain.h"
 
 #include <bit>

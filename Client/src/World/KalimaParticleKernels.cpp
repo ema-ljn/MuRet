@@ -5,7 +5,7 @@
 #include "Crt/CrtRandom.h"
 #include "Math/Angles.h"
 #include "Math/FloatConstants.h"
-#include "World/Ftol.h"
+#include "Math/Ftol.h"
 #include "World/IParticleTrigonometry.h"
 #include "World/ParticleOwner.h"
 #include "World/Particles.h"

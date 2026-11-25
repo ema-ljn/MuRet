@@ -2,7 +2,7 @@
 #include "Data/Textures/TextureSet.h"
 #include "Scenes/ModelTextureTable.h"
 #include "Data/Models/Model.h"
-#include "Render/Models/ModelTextureSlots.h"
+#include "Models/ModelTextureSlots.h"
 #include "Render/TextureSlot.h"
 #include "support/FakeTextureStore.h"
 #include "support/TextureFiles.h"

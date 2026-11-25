@@ -1,4 +1,4 @@
-#include "Network/Crypto/Xor32.h"
+#include "Crypto/Xor32.h"
 
 #include "Network/Packet.h"
 #include "Network/PacketWriter.h"

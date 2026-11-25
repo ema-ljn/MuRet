@@ -3,7 +3,7 @@
 #include "Core/Expected.h"
 #include "Core/PixelSize.h"
 #include "GameLogic/CharacterAppearance.h"
-#include "Render/Models/HalfLifeMath.h"
+#include "Math/HalfLifeMath.h"
 #include "Render/Pass3D.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterCloth.h"

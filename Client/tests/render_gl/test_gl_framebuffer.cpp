@@ -1,7 +1,7 @@
 #include "Render/Gl/GlFramebuffer.h"
 
 #include "Core/Expected.h"
-#include "Platform/GlLoader.h"
+#include "Platform/Sdl/GlLoader.h"
 #include "support/GlDrawTest.h"
 #include "support/GlTestContext.h"
 

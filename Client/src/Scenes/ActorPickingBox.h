@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Render/Models/RayPicking.h"
+#include "Models/RayPicking.h"
 
 #include <glm/ext/vector_float3.hpp>
 

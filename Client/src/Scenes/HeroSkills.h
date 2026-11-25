@@ -1,8 +1,8 @@
 #pragma once
 
 #include "Core/Expected.h"
-#include "Data/Tables/ItemTable.h"
-#include "Data/Tables/SkillTable.h"
+#include "Tables/ItemTable.h"
+#include "Tables/SkillTable.h"
 #include "Protocol/Outgoing.h"
 
 #include <glm/ext/vector_float3.hpp>

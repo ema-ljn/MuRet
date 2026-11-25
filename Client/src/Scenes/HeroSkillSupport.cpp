@@ -3,7 +3,7 @@
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Protocol/Movement.h"
-#include "Render/Models/LogicalAccess.h"
+#include "Models/LogicalAccess.h"
 #include "Scenes/ActorCombat.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/HeroSkillCasts.h"

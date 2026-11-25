@@ -1,8 +1,8 @@
 #include "Scenes/DarkSpirit.h"
 
 #include "Crt/CrtRandom.h"
-#include "Render/Models/OriginalAngles.h"
-#include "Render/Models/Skeleton.h"
+#include "Math/OriginalAngles.h"
+#include "Models/Skeleton.h"
 #include "World/Particles.h"
 
 #include <glm/ext/vector_float3.hpp>

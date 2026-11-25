@@ -6,8 +6,8 @@
 
 #include "Data/Textures/Sampling.h"
 #include "GameLogic/CharacterAppearance.h"
-#include "Render/Models/ObjectState.h"
-#include "Render/Models/Pose.h"
+#include "Models/ObjectState.h"
+#include "Models/Pose.h"
 #include "support/FixedRandom.h"
 
 #include <gtest/gtest.h>

@@ -1,9 +1,9 @@
 #include "Scenes/ItemPrice.h"
 
 #include "Core/Expected.h"
-#include "Data/Tables/ItemTable.h"
+#include "Tables/ItemTable.h"
 #include "Scenes/HudItems.h"
-#include "World/Ftol.h"
+#include "Math/Ftol.h"
 #include "World/ItemState.h"
 
 #include <algorithm>

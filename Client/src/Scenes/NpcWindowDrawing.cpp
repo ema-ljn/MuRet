@@ -2,7 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Math/X87.h"
-#include "Render/Models/LogicalAccess.h"
+#include "Models/LogicalAccess.h"
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
 #include "Render/Text/FontSet.h"
@@ -19,7 +19,7 @@
 #include "UI/GameUiState.h"
 #include "UI/HudPrimitives.h"
 #include "UI/PanelRegistry.h"
-#include "UI/SprintfFormat.h"
+#include "Crt/SprintfFormat.h"
 #include "UI/Widget.h"
 
 #include <array>

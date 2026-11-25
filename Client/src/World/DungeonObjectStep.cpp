@@ -4,7 +4,7 @@
 #include "Crt/CrtRandom.h"
 #include "Math/FloatConstants.h"
 #include "Math/X87.h"
-#include "World/Ftol.h"
+#include "Math/Ftol.h"
 #include "World/ModelEffects.h"
 #include "World/ObjectModelStepState.h"
 #include "World/WorldObjectStepServices.h"

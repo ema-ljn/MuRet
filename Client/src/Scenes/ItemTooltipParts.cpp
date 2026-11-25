@@ -1,9 +1,9 @@
 #include "Scenes/ItemTooltipParts.h"
 
 #include "Core/Expected.h"
-#include "Data/Tables/ItemSetTables.h"
-#include "Data/Tables/SkillTable.h"
-#include "Render/Models/LogicalAccess.h"
+#include "Tables/ItemSetTables.h"
+#include "Tables/SkillTable.h"
+#include "Models/LogicalAccess.h"
 #include "Scenes/GameHud.h"
 #include "Scenes/TooltipWriter.h"
 #include "Scenes/WorldRuntime.h"

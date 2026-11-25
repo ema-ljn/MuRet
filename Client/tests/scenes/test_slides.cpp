@@ -1,8 +1,8 @@
 #include "Scenes/Slides.h"
 
 #include "Crt/CrtRandom.h"
-#include "Data/Text/SlideTable.h"
-#include "Render/Models/LogicalAccess.h"
+#include "Tables/SlideTable.h"
+#include "Models/LogicalAccess.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/SlideBanner.h"

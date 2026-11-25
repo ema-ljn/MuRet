@@ -1,7 +1,7 @@
-#include "Render/Models/Shine.h"
+#include "Models/Shine.h"
 
 #include "Core/IClock.h"
-#include "Render/Models/RoundedMath.h"
+#include "Math/RoundedMath.h"
 
 #include <gtest/gtest.h>
 

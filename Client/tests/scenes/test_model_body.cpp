@@ -1,4 +1,4 @@
-#include "Render/Models/IModelLibrary.h"
+#include "Models/IModelLibrary.h"
 #include "Scenes/ModelBody.h"
 
 #include "Core/Expected.h"
@@ -7,8 +7,8 @@
 #include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Models/Model.h"
-#include "Render/Models/OriginalAngles.h"
-#include "Render/Models/Skeleton.h"
+#include "Math/OriginalAngles.h"
+#include "Models/Skeleton.h"
 #include "Scenes/ActorState.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/CharacterDrawing.h"

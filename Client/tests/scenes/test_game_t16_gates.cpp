@@ -1,7 +1,7 @@
 #include "test_game_t16_support.h"
 
-#include "Data/Tables/GateRecord.h"
-#include "Data/Tables/GateTable.h"
+#include "Tables/GateRecord.h"
+#include "Tables/GateTable.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/GameGates.h"
 

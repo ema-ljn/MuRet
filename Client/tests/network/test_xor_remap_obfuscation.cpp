@@ -1,7 +1,7 @@
-#include "Network/XorRemapObfuscation.h"
+#include "Network/XorRemap/XorRemapObfuscation.h"
 
 #include "App/LabXorRemapTables.h"
-#include "Network/Crypto/SimpleModulus.h"
+#include "Crypto/SimpleModulus.h"
 #include "Network/EncryptedPacket.h"
 #include "Network/IObfuscation.h"
 #include "Network/ObfuscationError.h"
@@ -10,7 +10,7 @@
 #include "Network/PacketReader.h"
 #include "Network/PacketSerials.h"
 #include "Network/Xor32Packet.h"
-#include "Network/XorRemapTables.h"
+#include "Network/XorRemap/XorRemapTables.h"
 
 #include "support/BytePattern.h"
 #include "support/Bytes.h"

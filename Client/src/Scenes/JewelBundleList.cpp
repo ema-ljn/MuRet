@@ -13,7 +13,7 @@
 #include "Scenes/GameHud.h"
 #include "Scenes/GameMovementState.h"
 #include "Scenes/GameUi.h"
-#include "Scenes/ITextDrawer.h"
+#include "Render/Frame/ITextDrawer.h"
 #include "Scenes/NpcWindowState.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"

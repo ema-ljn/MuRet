@@ -2,7 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
-#include "Render/Models/OriginalRetainedMath.h"
+#include "Math/OriginalRetainedMath.h"
 #include "Scenes/WorldObjectsDrawing.h"
 #include "World/KalimaParticleKernels.h"
 #include "World/Particles.h"

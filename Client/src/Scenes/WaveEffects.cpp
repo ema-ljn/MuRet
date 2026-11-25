@@ -3,7 +3,7 @@
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Math/X87.h"
-#include "Render/Models/ObjectState.h"
+#include "Models/ObjectState.h"
 #include "Scenes/HighEffectEmitters.h"
 #include "Scenes/HighModelEffects.h"
 #include "World/ModelEffects.h"

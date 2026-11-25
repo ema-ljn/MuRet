@@ -23,7 +23,7 @@
 #include "UI/OldWindowDraw.h"
 #include "UI/OldWindowDrawParts.h"
 #include "UI/OldWindows.h"
-#include "Scenes/TextCacheDrawer.h"
+#include "Render/Frame/TextCacheDrawer.h"
 #include "support/FakeTextureStore.h"
 #include "support/RecordingSink.h"
 #include "support/RecordingTextDrawer.h"

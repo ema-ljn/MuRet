@@ -1,7 +1,7 @@
 #include "Protocol/Combat.h"
 
 #include "App/LabXorRemapTables.h"
-#include "Network/XorRemapObfuscation.h"
+#include "Network/XorRemap/XorRemapObfuscation.h"
 
 #include <gtest/gtest.h>
 

@@ -2,8 +2,8 @@
 
 #include "Crt/CrtRandom.h"
 #include "Math/X87.h"
-#include "Render/Models/OriginalRotation.h"
-#include "World/Ftol.h"
+#include "Math/OriginalRotation.h"
+#include "Math/Ftol.h"
 #include "World/PortableParticleTrigonometry.h"
 #include "World/TerrainLighting.h"
 #include "World/WorldObjectStepServices.h"

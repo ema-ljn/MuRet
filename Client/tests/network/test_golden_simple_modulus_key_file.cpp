@@ -1,5 +1,5 @@
-#include "Network/Crypto/SimpleModulus.h"
-#include "Network/Crypto/SimpleModulusKeyFile.h"
+#include "Crypto/SimpleModulus.h"
+#include "Crypto/SimpleModulusKeyFile.h"
 
 #include "support/FixedRandom.h"
 #include "support/GoldenDir.h"

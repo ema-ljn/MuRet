@@ -1,6 +1,6 @@
 #include "Render/Gl/GlName.h"
 
-#include "Platform/GlLoader.h"
+#include "Platform/Sdl/GlLoader.h"
 
 #include <gtest/gtest.h>
 

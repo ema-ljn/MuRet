@@ -1,7 +1,7 @@
-#include "Core/Crash/CrashFrames.h"
+#include "Diagnostics/CrashFrames.h"
 
-#include "Core/Crash/CrashReport.h"
-#include "Core/Crash/IMemoryReader.h"
+#include "Diagnostics/CrashReport.h"
+#include "Diagnostics/IMemoryReader.h"
 
 #include <gtest/gtest.h>
 

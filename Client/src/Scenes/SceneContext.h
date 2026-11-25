@@ -5,8 +5,8 @@
 #include "Core/Log.h"
 #include "Input/InputState.h"
 #include "Render/ITextureStore.h"
-#include "Render/Models/Animation.h"
-#include "Render/Models/Cloth.h"
+#include "Models/Animation.h"
+#include "Models/Cloth.h"
 #include "Render/Text/IGlyphRasterizer.h"
 
 #include <filesystem>

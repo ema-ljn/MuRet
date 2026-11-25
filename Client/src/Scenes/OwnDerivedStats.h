@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Core/Expected.h"
-#include "Data/Tables/ItemTable.h"
+#include "Tables/ItemTable.h"
 #include "Scenes/FullSetScan.h"
 #include "Scenes/OwnStatHelpers.h"
 

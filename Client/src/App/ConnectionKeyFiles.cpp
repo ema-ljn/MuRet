@@ -4,8 +4,8 @@
 #include "Core/PathText.h"
 #include "Data/DataPath.h"
 #include "Network/Connection.h"
-#include "Network/Crypto/CryptoError.h"
-#include "Network/Crypto/SimpleModulusKeyFile.h"
+#include "Crypto/CryptoError.h"
+#include "Crypto/SimpleModulusKeyFile.h"
 
 #include <cstddef>
 #include <filesystem>

@@ -6,7 +6,7 @@
 #include "UI/CastleSeniorWindow.h"
 #include "UI/CastleSiegeState.h"
 #include "UI/OldWindowBase.h"
-#include "UI/SprintfFormat.h"
+#include "Crt/SprintfFormat.h"
 
 #include <cstdint>
 #include <string>

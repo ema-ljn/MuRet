@@ -3,7 +3,7 @@
 #include "Core/Expected.h"
 #include "Input/InputState.h"
 #include "Scenes/IScene.h"
-#include "Scenes/SceneCanvas.h"
+#include "Render/Frame/SceneCanvas.h"
 #include "Scenes/SceneId.h"
 
 #include <optional>

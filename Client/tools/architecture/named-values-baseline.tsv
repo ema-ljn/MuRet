@@ -111,7 +111,6 @@ item-code	Scenes/PetTooltip.cpp	DarkRavenItem	0x1a05
 item-code	Scenes/QuestWindowDrawing.cpp	FirstQuestItem	0x1c17
 item-code	Scenes/UiItemDrawing.cpp	FirstArmor	0x1012
 item-code	World/BlastModelEffects.cpp	LastLongItem	0x800
-item-model	Data/Models/PlayerModels.h	FirstItemModel	0x212
 item-model	GameLogic/CharacterAppearance.cpp	FirstItemModel	0x212
 item-model	Scenes/AttackSkillCases.cpp	FirstWeaponModel	0x212
 item-model	Scenes/AuraJoints.cpp	FenrirModel	0x1c37
@@ -143,6 +142,7 @@ item-model	Scenes/SkillReplies.cpp	DinorantModel	0x1c15
 item-model	Scenes/SkillReplies.cpp	FenrirModel	0x1c37
 item-model	Scenes/SkillReplies.cpp	UniriaModel	0x1c14
 item-model	Scenes/ViewportPlayers.cpp	FirstItemModel	0x212
+item-model	engine/Data/Models/PlayerModels.h	FirstItemModel	0x212
 map	GameLogic/CharacterPosition.cpp	FirstHighMap	0x8
 map	GameLogic/CharacterPosition.cpp	SecondHighMap	0xa
 map	GameLogic/MovementSpeed.cpp	FirstOverrideMap	0x12
@@ -234,7 +234,6 @@ map	World/WorldObjectMapCreation.cpp	FirstChaosCastle	0x12
 map	World/WorldObjectMapCreation.cpp	LastChaosCastle	0x17
 map	World/WorldObjects.cpp	FirstBloodCastleMap	0xb
 map	World/WorldObjects.cpp	LastBloodCastleMap	0x11
-model	Data/Models/PlayerModels.h	PlayerSkeletonModel	0x20a
 model	Scenes/MapLoad.cpp	SpearmanModel	0x19f
 model	Scenes/ModelBody.cpp	DungeonModel	0x28
 model	Scenes/ModelBody.cpp	FirstMonsterModel	0x152
@@ -243,6 +242,7 @@ model	World/BlastModelEffects.cpp	FirstAnimatedModel	0xad
 model	World/BlastModelEffects.cpp	LastAnimatedModel	0x151
 model	World/GameModelEffects.cpp	FirstAnimatedModel	0xad
 model	World/GameModelEffects.cpp	LastAnimatedModel	0x151
+model	engine/Data/Models/PlayerModels.h	PlayerSkeletonModel	0x20a
 number	Scenes/AttackSkillCases.cpp	Half	2.0
 number	Scenes/DarkSpirit.cpp	MinusTenth	f64-from-f32:-0.1f
 number	Scenes/KalimaObjectStep.cpp	Half	0x7

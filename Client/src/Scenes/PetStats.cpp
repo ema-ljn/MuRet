@@ -4,7 +4,7 @@
 #include "Core/Log.h"
 #include "Crt/CrtRandom.h"
 #include "Protocol/Pet/PetInfo.h"
-#include "Render/Models/LogicalAccess.h"
+#include "Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/DarkSpirit.h"
 #include "Scenes/FaunaJointCreation.h"

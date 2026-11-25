@@ -2,7 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Network/Packet.h"
-#include "Protocol/ProtocolError.h"
+#include "Network/ProtocolError.h"
 
 #include <array>
 #include <cstddef>

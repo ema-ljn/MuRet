@@ -1,8 +1,8 @@
 #include "Scenes/QuestWindow.h"
 
 #include "Core/Expected.h"
-#include "Data/Text/DialogTable.h"
-#include "Render/Models/LogicalAccess.h"
+#include "Tables/DialogTable.h"
+#include "Models/LogicalAccess.h"
 #include "Scenes/GameMovementState.h"
 #include "Scenes/GameUi.h"
 #include "Scenes/QuestState.h"

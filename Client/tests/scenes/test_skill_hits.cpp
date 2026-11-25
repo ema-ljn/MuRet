@@ -6,7 +6,7 @@
 #include "Crt/CrtRandom.h"
 #include "Protocol/Outgoing.h"
 #include "Protocol/Skill.h"
-#include "Render/Models/LogicalAccess.h"
+#include "Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/WorldRuntime.h"

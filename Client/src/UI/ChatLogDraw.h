@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Data/Text/TextTable.h"
+#include "Tables/TextTable.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/TextStyle.h"
 #include "UI/ChatLog.h"

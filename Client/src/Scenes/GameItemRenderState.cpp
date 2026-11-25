@@ -2,7 +2,7 @@
 
 #include "Crt/CrtRandom.h"
 #include "Math/Angles.h"
-#include "Render/Models/RoundedMath.h"
+#include "Math/RoundedMath.h"
 
 namespace Client::Scenes
 {

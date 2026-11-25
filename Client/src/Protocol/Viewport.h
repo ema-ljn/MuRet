@@ -4,7 +4,7 @@
 #include "Network/Packet.h"
 #include "Protocol/Character/InventoryList.h"
 #include "Protocol/Character/Opcodes.h"
-#include "Protocol/ProtocolError.h"
+#include "Network/ProtocolError.h"
 
 #include <array>
 #include <cstddef>

@@ -2,7 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Core/Log.h"
-#include "Core/Msvc6Sort.h"
+#include "Crt/Msvc6Sort.h"
 #include "Protocol/CastleSiege.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/GameMessages.h"

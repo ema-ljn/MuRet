@@ -2,7 +2,7 @@
 
 #include "Crt/CrtRandom.h"
 #include "Data/Models/PlayerModels.h"
-#include "Data/Tables/ItemTable.h"
+#include "Tables/ItemTable.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "support/FileBytes.h"
 #include "support/GoldenDir.h"

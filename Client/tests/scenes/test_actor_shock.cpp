@@ -5,7 +5,7 @@
 #include "Core/Log.h"
 #include "Crt/CrtRandom.h"
 #include "Data/Models/PlayerModels.h"
-#include "Render/Models/Cloth.h"
+#include "Models/Cloth.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/FaunaModels.h"
 #include "Scenes/LoginModels.h"

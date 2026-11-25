@@ -1,6 +1,6 @@
-#include "Data/Text/TextTable.h"
+#include "Tables/TextTable.h"
 
-#include "Core/Xor3.h"
+#include "Crypto/Xor3.h"
 #include "Data/DataError.h"
 
 #include <gtest/gtest.h>

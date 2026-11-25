@@ -1,6 +1,6 @@
 #include "World/ItemState.h"
 
-#include "Data/Tables/ItemTable.h"
+#include "Tables/ItemTable.h"
 
 #include <algorithm>
 #include <array>

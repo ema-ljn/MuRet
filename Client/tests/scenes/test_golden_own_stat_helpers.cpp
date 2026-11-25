@@ -2,7 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Data/Models/PlayerModels.h"
-#include "Data/Tables/ItemTable.h"
+#include "Tables/ItemTable.h"
 #include "Scenes/FullSetScan.h"
 #include "Scenes/ItemSetOptionList.h"
 #include "Scenes/OwnCharacterRecord.h"

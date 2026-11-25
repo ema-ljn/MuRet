@@ -1,4 +1,4 @@
-#include "Data/Tables/SkillTable.h"
+#include "Tables/SkillTable.h"
 
 #include "support/FileBytes.h"
 #include "support/GoldenDir.h"

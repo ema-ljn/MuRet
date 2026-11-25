@@ -29,7 +29,7 @@
 #include "UI/GameText.h"
 #include "UI/MessageArea.h"
 #include "UI/PanelRegistry.h"
-#include "UI/SprintfFormat.h"
+#include "Crt/SprintfFormat.h"
 #include "World/ItemState.h"
 
 #include <algorithm>

@@ -5,7 +5,7 @@
 #include "Network/Packet.h"
 #include "Network/PacketWriter.h"
 #include "Protocol/Outgoing.h"
-#include "Protocol/ProtocolError.h"
+#include "Network/ProtocolError.h"
 
 #include <algorithm>
 #include <array>

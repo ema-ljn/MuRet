@@ -1,4 +1,4 @@
-#include "Render/Models/IModelLibrary.h"
+#include "Models/IModelLibrary.h"
 #include "Scenes/CharacterDrawing.h"
 
 #include "Core/PixelSize.h"
@@ -9,8 +9,8 @@
 #include "GameLogic/CharacterAppearance.h"
 #include "Render/ModelBatch.h"
 #include "Render/ModelVertex.h"
-#include "Render/Models/Pose.h"
-#include "Render/Models/Skeleton.h"
+#include "Models/Pose.h"
+#include "Models/Skeleton.h"
 #include "Render/Pass3D.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/SceneCameras.h"

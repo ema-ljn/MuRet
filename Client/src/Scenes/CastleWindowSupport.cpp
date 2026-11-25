@@ -3,7 +3,7 @@
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Protocol/Outgoing.h"
-#include "Render/Models/LogicalAccess.h"
+#include "Models/LogicalAccess.h"
 #include "Scenes/CastleSiegeReceive.h"
 #include "Scenes/GameUi.h"
 #include "Scenes/GuildPanels.h"

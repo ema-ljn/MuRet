@@ -2,8 +2,8 @@
 
 #include "Core/Expected.h"
 #include "Protocol/Character/InventoryList.h"
-#include "Render/Models/Cloth.h"
-#include "Render/Models/LogicalAccess.h"
+#include "Models/Cloth.h"
+#include "Models/LogicalAccess.h"
 #include "Scenes/HelperTable.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnInventory.h"

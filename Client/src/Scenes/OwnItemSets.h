@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Core/Expected.h"
-#include "Data/Tables/ItemSetTables.h"
+#include "Tables/ItemSetTables.h"
 
 #include <array>
 #include <cstddef>

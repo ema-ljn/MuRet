@@ -4,7 +4,7 @@
 #include "Core/ILogSink.h"
 #include "Crt/CrtRandom.h"
 #include "Input/InputState.h"
-#include "Render/Models/Cloth.h"
+#include "Models/Cloth.h"
 #include "Scenes/FaunaModels.h"
 #include "Scenes/GameModels.h"
 #include "Scenes/SceneContext.h"

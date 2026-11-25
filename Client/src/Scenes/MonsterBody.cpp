@@ -6,12 +6,12 @@
 #include "Data/Textures/TextureSet.h"
 #include "Math/FloatConstants.h"
 #include "Math/X87.h"
-#include "Render/Models/OriginalRetainedMath.h"
+#include "Math/OriginalRetainedMath.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/MonsterBodyChain.h"
 #include "Scenes/MonsterBodyPasses.h"
 #include "Scenes/VertexEffects.h"
-#include "World/Ftol.h"
+#include "Math/Ftol.h"
 
 #include <glm/ext/vector_float3.hpp>
 

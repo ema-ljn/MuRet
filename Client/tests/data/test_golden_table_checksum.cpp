@@ -1,7 +1,7 @@
 #include "Data/Tables/TableChecksum.h"
 
-#include "Data/Tables/ItemTable.h"
-#include "Data/Tables/SkillTable.h"
+#include "Tables/ItemTable.h"
+#include "Tables/SkillTable.h"
 #include "support/FileBytes.h"
 #include "support/GoldenDir.h"
 

@@ -1,6 +1,6 @@
-#include "Core/Crash/ProcSelfFiles.h"
+#include "Diagnostics/ProcSelfFiles.h"
 
-#include "Core/Crash/CrashReport.h"
+#include "Diagnostics/CrashReport.h"
 
 #include <gtest/gtest.h>
 

@@ -6,7 +6,7 @@
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainHeights.h"
 #include "Protocol/Character/CharacterList.h"
-#include "Render/Models/Cloth.h"
+#include "Models/Cloth.h"
 #include "Scenes/GuildState.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"

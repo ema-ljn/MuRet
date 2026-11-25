@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Data/Tables/ItemTable.h"
+#include "Tables/ItemTable.h"
 #include "Data/Tables/TableChecksum.h"
 #include "support/TableFiles.h"
 

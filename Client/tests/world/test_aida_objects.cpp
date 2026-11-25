@@ -1,6 +1,6 @@
 #include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainLight.h"
-#include "Render/Models/ObjectState.h"
+#include "Models/ObjectState.h"
 #include "World/TerrainLighting.h"
 #include "World/WorldObjects.h"
 

@@ -14,7 +14,7 @@
 #include "Scenes/PersonalShopTitles.h"
 #include "Scenes/SocialState.h"
 #include "Scenes/HudText.h"
-#include "Scenes/ITextDrawer.h" // IWYU pragma: keep (ITextDrawer como ITextMeasure)
+#include "Render/Frame/ITextDrawer.h" // IWYU pragma: keep (ITextDrawer como ITextMeasure)
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/GameUiState.h"

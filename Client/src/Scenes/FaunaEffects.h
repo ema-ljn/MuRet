@@ -1,7 +1,7 @@
 #pragma once
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
-#include "Render/Models/Cloth.h"
+#include "Models/Cloth.h"
 #include "Scenes/FaunaModels.h"
 #include "Scenes/FaunaStep.h"
 #include <cstddef>

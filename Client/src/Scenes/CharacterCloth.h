@@ -2,8 +2,8 @@
 
 #include "Core/IClock.h"
 #include "Render/ModelBatch.h"
-#include "Render/Models/Animation.h"
-#include "Render/Models/Cloth.h"
+#include "Models/Animation.h"
+#include "Models/Cloth.h"
 #include "Scenes/ClothCarry.h"
 #include "Scenes/MonsterCloth.h"
 

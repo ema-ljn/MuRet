@@ -2,7 +2,7 @@
 
 #include "App/LoopTiming.h"
 #include "Core/IClock.h"
-#include "Render/Models/Animation.h"
+#include "Models/Animation.h"
 
 #include <gtest/gtest.h>
 

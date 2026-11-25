@@ -1,6 +1,6 @@
-#include "Render/Models/ObjectState.h"
+#include "Models/ObjectState.h"
 
-#include "Render/Models/RoundedMath.h"
+#include "Math/RoundedMath.h"
 
 #include <gtest/gtest.h>
 

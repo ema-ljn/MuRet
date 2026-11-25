@@ -1,4 +1,4 @@
-#include "App/Resolution.h"
+#include "Platform/Resolution.h"
 
 #include "support/AppPrinters.h"
 

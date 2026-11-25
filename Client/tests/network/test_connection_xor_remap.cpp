@@ -5,7 +5,7 @@
 #include "Network/LinkState.h"
 #include "Network/Packet.h"
 #include "Network/PacketSerials.h"
-#include "Network/XorRemapObfuscation.h"
+#include "Network/XorRemap/XorRemapObfuscation.h"
 #include "Protocol/Connection/ServerList.h"
 #include "Protocol/Dispatcher.h"
 #include "Protocol/Outgoing.h"

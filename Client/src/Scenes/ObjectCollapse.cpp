@@ -4,7 +4,7 @@
 #include "Crt/CrtRandom.h"
 #include "Maps/MapId.h"
 #include "Math/X87.h"
-#include "Render/Models/ObjectState.h"
+#include "Models/ObjectState.h"
 #include "Scenes/EventGlobals.h"
 #include "Scenes/TerrainMarks.h"
 #include "Scenes/WorldRuntime.h"

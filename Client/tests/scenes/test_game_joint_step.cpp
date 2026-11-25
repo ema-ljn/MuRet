@@ -6,9 +6,9 @@
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/GameItemGlowEffects.h"
 #include "Scenes/GameItemSpecialDrawing.h"
-#include "Render/Models/HalfLifeMath.h"
-#include "Render/Models/OriginalRotation.h"
-#include "Render/Models/OriginalRetainedMath.h"
+#include "Math/HalfLifeMath.h"
+#include "Math/OriginalRotation.h"
+#include "Math/OriginalRetainedMath.h"
 #include "World/Sprites.h"
 #include "World/Particles.h"
 #include "World/IParticleDrawingServices.h"
@@ -24,7 +24,7 @@
 #include "World/ModelEffects.h"
 #include "Scenes/FaunaObject.h"
 #include "Scenes/GameDrawTail.h"
-#include "Render/Models/Cloth.h"
+#include "Models/Cloth.h"
 #include "Scenes/UiItemDrawing.h"
 
 #include <gtest/gtest.h>

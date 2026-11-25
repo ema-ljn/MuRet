@@ -1,7 +1,7 @@
 #include "UI/CreditsWindow.h"
 
 #include "Core/PixelSize.h"
-#include "Data/Text/Credits.h"
+#include "Tables/Credits.h"
 #include "Input/InputState.h"
 #include "Input/Key.h"
 #include "Render/SpriteBatch.h"

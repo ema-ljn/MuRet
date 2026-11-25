@@ -1,6 +1,6 @@
 #include "Protocol/CastleBattle.h"
 
-#include "Protocol/ProtocolError.h"
+#include "Network/ProtocolError.h"
 
 #include "support/Bytes.h"
 #include "support/ExpectedError.h"

@@ -2,11 +2,11 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
-#include "Data/Tables/ItemTable.h"
+#include "Tables/ItemTable.h"
 #include "Protocol/Connection/Logout.h"
 #include "Protocol/NpcWindows.h"
 #include "Protocol/Outgoing.h"
-#include "Render/Models/LogicalAccess.h"
+#include "Models/LogicalAccess.h"
 #include "Scenes/ChaosMix.h"
 #include "Scenes/GameMovementState.h"
 #include "Scenes/GameUi.h"

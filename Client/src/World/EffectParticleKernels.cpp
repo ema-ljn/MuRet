@@ -5,7 +5,7 @@
 #include "Math/Angles.h"
 #include "Math/FloatConstants.h"
 #include "Math/X87.h"
-#include "Render/Models/OriginalRotation.h"
+#include "Math/OriginalRotation.h"
 #include "World/IParticleTrigonometry.h"
 #include "World/NoriaParticleKernels.h"
 #include "World/Particles.h"

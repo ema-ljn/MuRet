@@ -4,7 +4,7 @@
 // IWYU pragma: always_keep
 
 #include "App/Credentials.h"
-#include "App/Resolution.h"
+#include "Platform/Resolution.h"
 #include "App/SessionState.h"
 
 #include <ostream>

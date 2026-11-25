@@ -1,8 +1,8 @@
 #include "Scenes/SiegeBattleUi.h"
 
 #include "Core/Expected.h"
-#include "Data/Tables/SkillTable.h"
-#include "Render/Models/LogicalAccess.h"
+#include "Tables/SkillTable.h"
+#include "Models/LogicalAccess.h"
 #include "Render/OriginalQuad.h"
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"

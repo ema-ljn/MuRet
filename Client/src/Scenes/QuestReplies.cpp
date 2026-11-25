@@ -4,7 +4,7 @@
 #include "Core/Log.h"
 #include "Crt/CrtRandom.h"
 #include "Protocol/Quest.h"
-#include "Render/Models/LogicalAccess.h"
+#include "Models/LogicalAccess.h"
 #include "Scenes/ActorActions.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/ChatReceive.h"

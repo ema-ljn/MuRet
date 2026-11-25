@@ -3,7 +3,7 @@
 #include "Core/Expected.h"
 #include "Core/IClock.h"
 #include "Core/PixelSize.h"
-#include "Data/Tables/ItemTable.h"
+#include "Tables/ItemTable.h"
 #include "Render/Pass3D.h"
 #include "Scenes/GameProjection.h"
 #include "UI/Widget.h"

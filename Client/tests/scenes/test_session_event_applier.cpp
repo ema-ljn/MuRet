@@ -19,7 +19,7 @@
 #include "Protocol/Pet/PetOrders.h"
 #include "Protocol/Skill.h"
 #include "Protocol/World.h"
-#include "Render/Models/Cloth.h"
+#include "Models/Cloth.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/LoginModels.h"

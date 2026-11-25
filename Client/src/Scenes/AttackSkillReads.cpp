@@ -1,7 +1,7 @@
 #include "Scenes/AttackSkillReads.h"
 
 #include "Crt/CrtRandom.h"
-#include "Render/Models/LogicalAccess.h"
+#include "Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterStep.h"
 #include "Scenes/OwnCharacterRecord.h"

@@ -1,4 +1,4 @@
-#include "Render/Models/IModelLibrary.h"
+#include "Models/IModelLibrary.h"
 #include "Scenes/HighEffectDrawing.h"
 
 #include "Core/Expected.h"
@@ -7,9 +7,9 @@
 #include "Data/Terrain/TerrainHeights.h"
 #include "Render/ModelBatch.h"
 #include "Render/ModelVertex.h"
-#include "Render/Models/HalfLifeMath.h"
-#include "Render/Models/Skeleton.h"
-#include "Render/Models/Skinning.h"
+#include "Math/HalfLifeMath.h"
+#include "Models/Skeleton.h"
+#include "Models/Skinning.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterDrawing.h"

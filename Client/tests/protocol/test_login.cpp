@@ -7,7 +7,7 @@
 #include "Network/PacketSerials.h"
 #include "Protocol/BuildConstants.h"
 #include "Protocol/Outgoing.h"
-#include "Protocol/ProtocolError.h"
+#include "Network/ProtocolError.h"
 
 #include "support/Bytes.h"
 #include "support/ExpectedError.h"

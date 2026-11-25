@@ -1,4 +1,4 @@
-#include "Core/Crash/CrashHandler.h"
+#include "Diagnostics/CrashHandler.h"
 
 #include "support/SystemCrashReports.h"
 #include "support/TemporaryFolder.h"
@@ -9,9 +9,9 @@
 #include <string>
 
 #ifdef __linux__
-#include "Core/Crash/CrashDump.h"
-#include "Core/Crash/Crc32.h"
-#include "Core/Crash/SignalCodes.h"
+#include "Diagnostics/CrashDump.h"
+#include "Diagnostics/Crc32.h"
+#include "Diagnostics/SignalCodes.h"
 #include "support/FileBytes.h"
 
 #include <cstddef>

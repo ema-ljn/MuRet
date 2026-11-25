@@ -1,6 +1,6 @@
 #include "Scenes/CameraTour.h"
 #include "Math/X87.h"
-#include "Render/Models/RoundedMath.h"
+#include "Math/RoundedMath.h"
 #include "Scenes/ArrivalSparks.h"
 
 #include "Core/Expected.h"
@@ -23,7 +23,7 @@
 #include "Scenes/WorldEntry.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
-#include "World/Ftol.h"
+#include "Math/Ftol.h"
 
 #include <glm/ext/vector_float3.hpp>
 

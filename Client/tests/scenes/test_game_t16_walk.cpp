@@ -5,7 +5,7 @@
 #include "Scenes/GameScene.h"
 #include "support/Bytes.h"
 
-#include "Data/Tables/GateRecord.h"
+#include "Tables/GateRecord.h"
 #include "Scenes/CharacterSlots.h"
 #include "Input/Key.h"
 #include "support/CharacterPackets.h"

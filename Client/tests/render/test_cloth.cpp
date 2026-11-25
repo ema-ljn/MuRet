@@ -1,8 +1,8 @@
-#include "Render/Models/Cloth.h"
+#include "Models/Cloth.h"
 
 #include "Crt/CrtRandom.h"
 #include "Math/X87.h"
-#include "Render/Models/HalfLifeMath.h"
+#include "Math/HalfLifeMath.h"
 #include "Render/TextureSlot.h"
 #include "support/ClothVectors.h"
 

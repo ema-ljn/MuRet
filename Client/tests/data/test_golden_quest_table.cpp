@@ -1,5 +1,5 @@
-#include "Data/Tables/QuestTable.h"
-#include "Data/Text/DialogTable.h"
+#include "Tables/QuestTable.h"
+#include "Tables/DialogTable.h"
 
 #include "support/FileBytes.h"
 #include "support/GoldenDir.h"

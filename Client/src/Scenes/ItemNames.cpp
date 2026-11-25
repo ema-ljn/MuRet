@@ -1,11 +1,11 @@
 #include "Scenes/ItemNames.h"
 
 #include "Core/Expected.h"
-#include "Data/Tables/ItemTable.h"
+#include "Tables/ItemTable.h"
 #include "Scenes/HudItems.h"
 #include "Scenes/NpcNames.h"
 #include "UI/GameText.h"
-#include "UI/SprintfFormat.h"
+#include "Crt/SprintfFormat.h"
 
 #include <algorithm>
 #include <array>

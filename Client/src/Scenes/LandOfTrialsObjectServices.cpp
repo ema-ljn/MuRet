@@ -3,7 +3,7 @@
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Math/Angles.h"
-#include "Render/Models/OriginalRetainedMath.h"
+#include "Math/OriginalRetainedMath.h"
 #include "Scenes/ObjectFrameSprites.h"
 #include "Scenes/WorldObjectsDrawing.h"
 #include "World/KalimaParticleKernels.h"

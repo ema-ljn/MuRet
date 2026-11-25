@@ -1,6 +1,6 @@
 #include "Crt/CrtRandom.h"
-#include "Render/Models/ObjectState.h"
-#include "Render/Models/RoundedMath.h"
+#include "Models/ObjectState.h"
+#include "Math/RoundedMath.h"
 #include "World/AtlansObjectStep.h"
 #include "World/Particles.h"
 #include "World/WorldObjects.h"

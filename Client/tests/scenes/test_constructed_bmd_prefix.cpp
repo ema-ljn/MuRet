@@ -1,7 +1,7 @@
 #include "Scenes/ConstructedBmdPrefix.h"
 
 #include "Crt/CrtRandom.h"
-#include "Render/Models/Skeleton.h"
+#include "Models/Skeleton.h"
 #include "Scenes/FaunaMotion.h"
 #include "Scenes/FaunaModels.h"
 #include "Scenes/FaunaObject.h"

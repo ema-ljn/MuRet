@@ -6,8 +6,8 @@
 #include "Data/Models/PlayerModels.h"
 #include "Data/Textures/Sampling.h"
 #include "Data/Textures/TextureSet.h"
-#include "Render/Models/ModelTextureSlots.h"
-#include "Render/Models/Skeleton.h"
+#include "Models/ModelTextureSlots.h"
+#include "Models/Skeleton.h"
 #include "Render/TextureSlot.h"
 #include "support/GoldenDir.h"
 

@@ -1,8 +1,8 @@
 #include "App/ConnectionKeyFiles.h"
 
-#include "Network/Crypto/CryptoError.h"
-#include "Network/Crypto/SimpleModulus.h"
-#include "Network/Crypto/SimpleModulusKeyFile.h"
+#include "Crypto/CryptoError.h"
+#include "Crypto/SimpleModulus.h"
+#include "Crypto/SimpleModulusKeyFile.h"
 
 #include "support/GoldenDir.h"
 #include "support/KeyFiles.h"

@@ -3,7 +3,7 @@
 #include "Input/Key.h"
 #include "Input/MouseMessageState.h"
 #include "Input/TextInputEvent.h"
-#include "Platform/InputEvents.h"
+#include "Platform/Sdl/InputEvents.h"
 
 #include <SDL3/SDL_events.h>
 #include <SDL3/SDL_mouse.h>

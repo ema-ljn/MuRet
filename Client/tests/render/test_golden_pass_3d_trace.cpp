@@ -1,5 +1,5 @@
 #include "Core/PixelSize.h"
-#include "Render/Models/RoundedMath.h"
+#include "Math/RoundedMath.h"
 #include "Render/Pass3D.h"
 #include "Scenes/SceneCameras.h"
 #include "World/GameCamera.h"

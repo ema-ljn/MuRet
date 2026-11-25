@@ -1,8 +1,8 @@
 #pragma once
 
 #include "Core/Expected.h"
-#include "Data/Tables/ItemTable.h"
-#include "Scenes/MonsterSounds.h"
+#include "Tables/ItemTable.h"
+#include "Sound/MonsterSounds.h"
 
 #include <cstdint>
 #include <functional>

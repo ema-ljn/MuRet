@@ -1,8 +1,8 @@
 #include "Scenes/DarkHorse.h"
 
-#include "Render/Models/HalfLifeMath.h"
-#include "Render/Models/Pose.h"
-#include "Render/Models/Skeleton.h"
+#include "Math/HalfLifeMath.h"
+#include "Models/Pose.h"
+#include "Models/Skeleton.h"
 
 #include <gtest/gtest.h>
 

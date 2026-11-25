@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Network/XorRemapTables.h"
+#include "Network/XorRemap/XorRemapTables.h"
 #include "Protocol/Character/Opcodes.h"
 #include "Protocol/Connection/Opcodes.h"
 #include "Protocol/Skill.h"

@@ -1,4 +1,4 @@
-#include "Data/WorldFolder.h"
+#include "Maps/WorldFolder.h"
 
 #include <gtest/gtest.h>
 

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Core/IClock.h"
-#include "Render/Models/Animation.h"
+#include "Models/Animation.h"
 #include "Render/Pass3D.h"
 #include "World/GameCamera.h"
 

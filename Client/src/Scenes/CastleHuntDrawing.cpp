@@ -1,7 +1,7 @@
 #include "Scenes/CastleWindowDrawing.h"
 
 #include "Core/Expected.h"
-#include "Render/Models/LogicalAccess.h"
+#include "Models/LogicalAccess.h"
 #include "Render/SpriteBatch.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/TextLayout.h"
@@ -12,7 +12,7 @@
 #include "Scenes/ZenText.h"
 #include "UI/CastleSiegeState.h"
 #include "UI/OldWindowDrawParts.h"
-#include "UI/SprintfFormat.h"
+#include "Crt/SprintfFormat.h"
 
 #include <array>
 #include <cstddef>

@@ -1,7 +1,7 @@
 #include "World/SphereFrustum.h"
 
 #include "Math/X87.h"
-#include "Render/Models/RoundedMath.h"
+#include "Math/RoundedMath.h"
 #include "Render/Pass3D.h"
 #include "World/FaceNormal.h"
 

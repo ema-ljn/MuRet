@@ -1,4 +1,4 @@
-#include "Network/Crypto/CryptoError.h"
+#include "Crypto/CryptoError.h"
 
 #include "support/NetworkPrinters.h"
 

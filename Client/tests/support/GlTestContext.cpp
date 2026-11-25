@@ -3,8 +3,8 @@
 #include "Core/Environment.h"
 #include "Core/Expected.h"
 #include "Data/Textures/Texture.h"
-#include "Platform/GlLoader.h"
-#include "Platform/SdlContext.h"
+#include "Platform/Sdl/GlLoader.h"
+#include "Platform/Sdl/SdlContext.h"
 
 #include <SDL3/SDL_error.h>
 #include <SDL3/SDL_video.h>

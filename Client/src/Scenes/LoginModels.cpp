@@ -6,9 +6,9 @@
 #include "Core/IClock.h"
 #include "Data/Models/Model.h"
 #include "GameLogic/CharacterAppearance.h"
-#include "Render/Models/ObjectState.h"
-#include "Render/Models/Pose.h"
-#include "Render/Models/Skeleton.h"
+#include "Models/ObjectState.h"
+#include "Models/Pose.h"
+#include "Models/Skeleton.h"
 #include "Render/TextureSlot.h"
 
 #include <glm/ext/vector_float3.hpp>

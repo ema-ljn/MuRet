@@ -1,6 +1,6 @@
-#include "Data/WorldLoadIdentity.h"
+#include "Maps/WorldLoadIdentity.h"
 
-#include "Data/WorldFolder.h"
+#include "Maps/WorldFolder.h"
 
 #include <gtest/gtest.h>
 

@@ -1,8 +1,8 @@
 #include "Scenes/KalimaObjectStep.h"
 
 #include "Core/Expected.h"
-#include "Render/Models/Cloth.h"
-#include "Render/Models/LogicalAccess.h"
+#include "Models/Cloth.h"
+#include "Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/FaunaState.h"
 #include "Scenes/OwnCharacterRecord.h"

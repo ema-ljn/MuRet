@@ -3,7 +3,7 @@
 
 #include "Network/Delivery.h"
 #include "Protocol/Inventory.h"
-#include "Protocol/ProtocolError.h"
+#include "Network/ProtocolError.h"
 
 #include "support/Bytes.h"
 #include "support/ExpectedError.h"

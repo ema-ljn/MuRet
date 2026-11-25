@@ -1,6 +1,6 @@
 #include "Data/Tables/RecordTable.h"
 
-#include "Core/Xor3.h"
+#include "Crypto/Xor3.h"
 #include "support/BytePattern.h"
 
 #include <gtest/gtest.h>

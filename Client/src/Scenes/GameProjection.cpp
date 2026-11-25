@@ -1,12 +1,12 @@
 #include "Scenes/GameProjection.h"
 
 #include "Core/Expected.h"
-#include "Render/Models/RoundedMath.h"
+#include "Math/RoundedMath.h"
 #include "Render/Pass3D.h"
 
 #include "Render/Billboard.h"
-#include "Render/Models/OriginalRotation.h"
-#include "World/Ftol.h"
+#include "Math/OriginalRotation.h"
+#include "Math/Ftol.h"
 
 #include <glm/ext/vector_float3.hpp>
 #include <glm/ext/vector_int2.hpp>

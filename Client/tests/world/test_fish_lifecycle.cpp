@@ -1,7 +1,7 @@
 #include "World/Fish.h"
 #include "World/IFishStepServices.h"
 #include "Core/Expected.h"
-#include "Render/Models/OriginalRotation.h"
+#include "Math/OriginalRotation.h"
 
 #include <gtest/gtest.h>
 #include <glm/ext/vector_float3.hpp>

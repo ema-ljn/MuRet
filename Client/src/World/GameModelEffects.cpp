@@ -10,8 +10,8 @@
 #include "Math/Angles.h"
 #include "Math/FloatConstants.h"
 #include "World/BlastModelEffects.h"
-#include "Render/Models/OriginalRetainedMath.h"
-#include "World/Ftol.h"
+#include "Math/OriginalRetainedMath.h"
+#include "Math/Ftol.h"
 #include "World/ModelEffects.h"
 #include "World/IFishStepServices.h"
 #include "World/Particles.h"
@@ -22,7 +22,7 @@
 #include "World/SelectionParticleKernels.h"
 #include "World/Sprites.h"
 #include "World/WorldObjectStepServices.h"
-#include "Render/Models/OriginalRotation.h"
+#include "Math/OriginalRotation.h"
 
 #include <glm/ext/vector_float3.hpp>
 

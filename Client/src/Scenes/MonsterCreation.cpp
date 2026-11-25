@@ -1,8 +1,8 @@
 #include "Scenes/MonsterCreation.h"
 
 #include "Core/Expected.h"
-#include "Render/Models/Animation.h"
-#include "Render/Models/Cloth.h"
+#include "Models/Animation.h"
+#include "Models/Cloth.h"
 #include "Scenes/ActorConstruction.h"
 #include "Scenes/ActorCreation.h"
 #include "Scenes/ActorEquipment.h"

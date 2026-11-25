@@ -1,9 +1,9 @@
 #pragma once
 
 #include "GameLogic/CharacterAppearance.h"
-#include "Render/Models/Animation.h"
-#include "Render/Models/IModelLibrary.h"
-#include "Render/Models/Pose.h"
+#include "Models/Animation.h"
+#include "Models/IModelLibrary.h"
+#include "Models/Pose.h"
 
 #include <cstdint>
 

@@ -2,7 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
-#include "Data/Text/TextTable.h"
+#include "Tables/TextTable.h"
 #include "Protocol/Outgoing.h"
 #include "Protocol/PersonalShop.h"
 #include "Protocol/Trade.h"

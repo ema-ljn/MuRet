@@ -1,8 +1,8 @@
 #pragma once
 
 #include "Core/Expected.h"
-#include "Data/Tables/ItemTable.h"
-#include "GameLogic/PathCell.h"
+#include "Tables/ItemTable.h"
+#include "Pathfinding/PathCell.h"
 #include "Protocol/FloorItems.h"
 #include "Protocol/Inventory.h"
 #include "Protocol/Outgoing.h"

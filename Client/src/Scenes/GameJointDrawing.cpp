@@ -11,7 +11,7 @@
 #include "Core/Expected.h"
 #include "Render/ModelBatch.h"
 #include "Render/TextureSlot.h"
-#include "World/Ftol.h"
+#include "Math/Ftol.h"
 #include "World/Sprites.h"
 #include <glm/ext/vector_float3.hpp>
 #include <array>

@@ -1,9 +1,9 @@
 #pragma once
 #include "Core/Expected.h"
 #include "Data/Textures/TextureSet.h"
-#include "Render/Models/ModelTextureSlots.h"
+#include "Models/ModelTextureSlots.h"
 #include "Render/TextureSlot.h"
-#include "Scenes/TextureMetadata.h"
+#include "Models/TextureMetadata.h"
 #include <cstdint>
 #include <map>
 #include <optional>

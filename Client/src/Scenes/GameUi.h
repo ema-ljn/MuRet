@@ -2,7 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Core/PixelSize.h"
-#include "Data/Tables/SkillTable.h"
+#include "Tables/SkillTable.h"
 #include "Scenes/ActorPickingBox.h"
 #include "Protocol/OptionData.h"
 #include "Protocol/Outgoing.h"

@@ -1,6 +1,6 @@
 #include "Crt/CrtRandom.h"
 #include "Math/X87.h"
-#include "Render/Models/ObjectState.h"
+#include "Models/ObjectState.h"
 #include "World/EventMapObjectStep.h"
 #include "World/Particles.h"
 #include "World/TerrainLighting.h"

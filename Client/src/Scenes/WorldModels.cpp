@@ -1,5 +1,5 @@
 #include "Scenes/WorldModels.h"
-#include "Render/Models/IModelLibrary.h"
+#include "Models/IModelLibrary.h"
 #include "Scenes/ModelTextureTable.h"
 
 #include "Core/Expected.h"
@@ -8,14 +8,14 @@
 #include "Data/Models/ModelFiles.h"
 #include "Data/Textures/Sampling.h"
 #include "Data/Textures/TextureSet.h"
-#include "Data/WorldFolder.h"
+#include "Maps/WorldFolder.h"
 #include "Maps/MapId.h"
 #include "Render/ITextureStore.h"
-#include "Render/Models/ModelTextureSlots.h"
-#include "Render/Models/Skeleton.h"
+#include "Models/ModelTextureSlots.h"
+#include "Models/Skeleton.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/LorenciaModelFiles.h"
-#include "Scenes/TextureMetadata.h"
+#include "Models/TextureMetadata.h"
 #include "Scenes/WorldSpecialModels.h"
 
 #include <glm/ext/vector_float2.hpp>

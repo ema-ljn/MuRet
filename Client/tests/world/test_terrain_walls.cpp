@@ -1,4 +1,4 @@
-#include "World/TerrainWalls.h"
+#include "Pathfinding/TerrainWalls.h"
 
 #include "Data/Terrain/TerrainGrid.h"
 #include "Data/Terrain/TerrainAttributes.h"

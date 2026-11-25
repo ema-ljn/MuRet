@@ -2,7 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Core/PixelSize.h"
-#include "Platform/GlLoader.h"
+#include "Platform/Sdl/GlLoader.h"
 #include "Render/Gl/GlFramebuffer.h"
 #include "Render/Gl/GlRenderer.h"
 #include "Render/Gl/GlTexture.h"

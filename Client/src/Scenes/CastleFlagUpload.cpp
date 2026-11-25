@@ -7,7 +7,7 @@
 #include "Render/ITextureStore.h"
 #include "Scenes/CastleFlagImage.h"
 #include "Scenes/ModelTextureTable.h"
-#include "World/Ftol.h"
+#include "Math/Ftol.h"
 
 #include <cstddef>
 #include <cstdint>

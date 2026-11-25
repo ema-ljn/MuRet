@@ -1,8 +1,8 @@
-#include "GameLogic/PathFinder.h"
+#include "Pathfinding/PathFinder.h"
 
-#include "GameLogic/Path.h"
-#include "GameLogic/PathCell.h"
-#include "World/TerrainWalls.h"
+#include "Pathfinding/Path.h"
+#include "Pathfinding/PathCell.h"
+#include "Pathfinding/TerrainWalls.h"
 
 #include <gtest/gtest.h>
 

@@ -1,7 +1,7 @@
 #include "Scenes/CombatActionSpeeds.h"
 
 #include "Crt/CrtRandom.h"
-#include "Render/Models/LogicalAccess.h"
+#include "Models/LogicalAccess.h"
 #include "Scenes/PlayerActionSpeeds.h"
 #include "Scenes/WorldEntry.h"
 #include "Scenes/WorldState.h"

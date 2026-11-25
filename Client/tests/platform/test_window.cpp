@@ -1,7 +1,7 @@
 #include "Core/Environment.h"
 #include "Core/Expected.h"
-#include "Platform/SdlContext.h"
-#include "Platform/Window.h"
+#include "Platform/Sdl/SdlContext.h"
+#include "Platform/Sdl/Window.h"
 #include "support/GlTestContext.h"
 
 #include <gtest/gtest.h>

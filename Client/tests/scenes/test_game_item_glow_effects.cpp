@@ -1,6 +1,6 @@
 #include "Scenes/GameItemGlowEffects.h"
 
-#include "Render/Models/Shine.h"
+#include "Models/Shine.h"
 
 #include <gtest/gtest.h>
 

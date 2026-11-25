@@ -9,9 +9,9 @@
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
 #include "Render/TextureSlot.h"
-#include "Scenes/IFrameTarget.h"
-#include "Scenes/IWorldView.h"
-#include "Scenes/SceneCanvas.h"
+#include "Render/Frame/IFrameTarget.h"
+#include "Render/Frame/IWorldView.h"
+#include "Render/Frame/SceneCanvas.h"
 #include "support/RecordingTextDrawer.h"
 
 #include <gtest/gtest.h>

@@ -2,7 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Core/IClock.h"
-#include "Render/Models/HalfLifeMath.h"
+#include "Math/HalfLifeMath.h"
 #include "Scenes/GameDrawTail.h"
 
 #include <glm/ext/vector_float3.hpp>

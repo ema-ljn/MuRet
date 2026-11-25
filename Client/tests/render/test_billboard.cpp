@@ -1,7 +1,7 @@
 #include "Render/Billboard.h"
 
 #include "Math/X87.h"
-#include "Render/Models/OriginalRotation.h"
+#include "Math/OriginalRotation.h"
 
 #include "support/WorldObjectVectors.h"
 

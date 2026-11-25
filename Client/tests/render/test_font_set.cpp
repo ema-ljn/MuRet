@@ -1,6 +1,6 @@
 #include "Render/Text/FontSet.h"
 
-#include "App/Resolution.h"
+#include "Platform/Resolution.h"
 
 #include <gtest/gtest.h>
 

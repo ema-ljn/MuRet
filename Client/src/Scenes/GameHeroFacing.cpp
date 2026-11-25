@@ -1,11 +1,11 @@
 #include "Scenes/GameHeroFacing.h"
 
 #include "Core/Expected.h"
-#include "Render/Models/OriginalAngles.h"
+#include "Math/OriginalAngles.h"
 #include "Scenes/ActionSend.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/GameMovementState.h"
-#include "World/Ftol.h"
+#include "Math/Ftol.h"
 
 #include <bit>
 #include <cstdint>

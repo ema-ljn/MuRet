@@ -1,7 +1,7 @@
 #include "World/PortableParticleTrigonometry.h"
 
 #include "Core/Expected.h"
-#include "Render/Models/OriginalRetainedMath.h"
+#include "Math/OriginalRetainedMath.h"
 #include "World/Particles.h"
 
 #include <optional>

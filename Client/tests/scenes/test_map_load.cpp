@@ -5,7 +5,7 @@
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainGrid.h"
 #include "Data/Terrain/TerrainLight.h"
-#include "Render/Models/Cloth.h"
+#include "Models/Cloth.h"
 #include "Render/ModelBatch.h"
 #include "Render/Pass3D.h"
 #include "Scenes/CharacterCloth.h"

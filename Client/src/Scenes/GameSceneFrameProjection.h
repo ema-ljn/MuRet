@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Crt/CrtRandom.h"
-#include "Render/Models/Cloth.h"
+#include "Models/Cloth.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/ActorPickingBox.h"
 #include "Scenes/GameItemRenderState.h"

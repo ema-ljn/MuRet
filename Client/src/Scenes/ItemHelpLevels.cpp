@@ -1,7 +1,7 @@
 #include "Scenes/ItemHelpLevels.h"
 
-#include "Data/Tables/ItemTable.h"
-#include "Render/Models/LogicalAccess.h"
+#include "Tables/ItemTable.h"
+#include "Models/LogicalAccess.h"
 #include "Scenes/GameHud.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/WorldRuntime.h"

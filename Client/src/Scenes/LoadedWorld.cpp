@@ -2,7 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Core/IClock.h"
-#include "Data/WorldLoadIdentity.h"
+#include "Maps/WorldLoadIdentity.h"
 #include "Render/ITextureStore.h"
 #include "Render/ModelBatch.h"
 #include "World/TerrainCells.h"

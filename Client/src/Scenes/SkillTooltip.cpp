@@ -1,14 +1,14 @@
 #include "Scenes/SkillTooltip.h"
 
 #include "Core/Expected.h"
-#include "Data/Tables/SkillTable.h"
-#include "Render/Models/LogicalAccess.h"
+#include "Tables/SkillTable.h"
+#include "Models/LogicalAccess.h"
 #include "Render/ScreenScale.h"
 #include "Render/SpriteBatch.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/GameHud.h"
 #include "Scenes/GameTooltips.h"
-#include "Scenes/ITextDrawer.h"
+#include "Render/Frame/ITextDrawer.h"
 #include "Scenes/ItemSetOptionList.h"
 #include "Scenes/ItemSetState.h"
 #include "Scenes/ItemTooltipParts.h"
@@ -19,7 +19,7 @@
 #include "Scenes/TooltipWriter.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
-#include "World/Ftol.h"
+#include "Math/Ftol.h"
 #include "World/ItemState.h"
 
 #include <algorithm>

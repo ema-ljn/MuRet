@@ -1,8 +1,8 @@
 #include "Scenes/GridItemUse.h"
 
 #include "Core/Expected.h"
-#include "Data/Tables/ItemTable.h"
-#include "Render/Models/LogicalAccess.h"
+#include "Tables/ItemTable.h"
+#include "Models/LogicalAccess.h"
 #include "Protocol/Events.h"
 #include "Scenes/InventoryMoves.h"
 #include "Scenes/OwnCharacterRecord.h"
@@ -13,7 +13,7 @@
 #include "UI/GameText.h"
 #include "UI/PanelRegistry.h"
 #include "World/ItemState.h"
-#include "World/Ftol.h"
+#include "Math/Ftol.h"
 
 #include <bit>
 #include <cstddef>

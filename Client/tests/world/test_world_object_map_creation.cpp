@@ -4,7 +4,7 @@
 
 #include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainObjects.h"
-#include "Data/WorldFolder.h"
+#include "Maps/WorldFolder.h"
 #include "World/IWorldObjectCreationServices.h"
 #include "World/WorldObjectRegistrations.h"
 #include "World/WorldTerrain.h"

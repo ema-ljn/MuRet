@@ -1,7 +1,7 @@
 #include "Scenes/Slides.h"
 
 #include "Crt/CrtRandom.h"
-#include "Render/Models/LogicalAccess.h"
+#include "Models/LogicalAccess.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"

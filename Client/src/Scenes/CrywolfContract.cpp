@@ -8,7 +8,7 @@
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/GameText.h"
-#include "UI/OriginalFormat.h"
+#include "Crt/OriginalFormat.h"
 
 #include <algorithm>
 #include <array>

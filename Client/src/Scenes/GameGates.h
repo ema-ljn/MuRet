@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Core/Expected.h"
-#include "Data/Tables/GateTable.h"
+#include "Tables/GateTable.h"
 #include "GameLogic/GateDecision.h"
 
 #include <cstdint>

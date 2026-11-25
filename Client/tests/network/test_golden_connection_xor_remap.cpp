@@ -1,11 +1,11 @@
 #include "Network/Connection.h"
 
 #include "App/LabXorRemapTables.h"
-#include "Network/Crypto/SimpleModulus.h"
+#include "Crypto/SimpleModulus.h"
 #include "Network/EncryptedPacket.h"
 #include "Network/Packet.h"
 #include "Network/PacketSerials.h"
-#include "Network/XorRemapObfuscation.h"
+#include "Network/XorRemap/XorRemapObfuscation.h"
 
 #include "support/NetworkPrinters.h"
 #include "support/SameBytes.h"

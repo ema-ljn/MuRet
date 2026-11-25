@@ -12,7 +12,7 @@
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Render/Text/TextStyle.h"
 #include "Render/TextureSlot.h"
-#include "Scenes/ITextDrawer.h"
+#include "Render/Frame/ITextDrawer.h"
 #include "UI/ChatLog.h"
 #include "UI/ChatLogWindow.h"
 #include "UI/ChatInput.h"

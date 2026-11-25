@@ -1,6 +1,6 @@
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
-#include "Data/Tables/SkillTable.h"
+#include "Tables/SkillTable.h"
 #include "Input/InputEvent.h"
 #include "Input/InputState.h"
 #include "Input/Key.h"

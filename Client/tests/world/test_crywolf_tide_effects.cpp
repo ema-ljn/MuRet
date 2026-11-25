@@ -1,6 +1,6 @@
 #include "Crt/CrtRandom.h"
 #include "World/GameModelEffects.h"
-#include "Render/Models/OriginalRotation.h"
+#include "Math/OriginalRotation.h"
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
 #include "World/TerrainLighting.h"

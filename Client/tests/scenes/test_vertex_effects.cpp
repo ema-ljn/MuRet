@@ -1,10 +1,10 @@
-#include "Render/Models/IModelLibrary.h"
+#include "Models/IModelLibrary.h"
 #include "Scenes/VertexEffects.h"
 
 #include "Crt/CrtRandom.h"
 #include "Data/Models/Model.h"
-#include "Render/Models/Skeleton.h"
-#include "Render/Models/Skinning.h"
+#include "Models/Skeleton.h"
+#include "Models/Skinning.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterDrawing.h"

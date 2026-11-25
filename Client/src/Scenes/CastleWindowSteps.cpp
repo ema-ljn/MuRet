@@ -5,7 +5,7 @@
 #include "Input/Key.h"
 #include "Protocol/CastleSiege.h"
 #include "Protocol/NpcWindows.h"
-#include "Render/Models/LogicalAccess.h"
+#include "Models/LogicalAccess.h"
 #include "Scenes/CastleWindowSupport.h"
 #include "Scenes/GameMessages.h"
 #include "Scenes/GamePanels.h"
@@ -20,7 +20,7 @@
 #include "UI/OldWindowBase.h"
 #include "UI/PanelDialog.h"
 #include "UI/PanelRegistry.h"
-#include "UI/SprintfFormat.h"
+#include "Crt/SprintfFormat.h"
 #include "UI/Widget.h"
 
 #include <array>

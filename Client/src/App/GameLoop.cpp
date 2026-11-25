@@ -3,7 +3,7 @@
 #include "App/ILoopClient.h"
 #include "App/LoopTiming.h"
 #include "App/PacingMode.h"
-#include "App/WindowState.h"
+#include "Platform/WindowState.h"
 #include "Core/IClock.h"
 #include "Input/InputState.h"
 

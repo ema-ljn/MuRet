@@ -1,4 +1,4 @@
-#include "Render/Models/IModelLibrary.h"
+#include "Models/IModelLibrary.h"
 #include "Scenes/MagicAttackCount.h"
 
 #include "Core/Expected.h"
@@ -8,9 +8,9 @@
 #include "Data/Models/Model.h"
 #include "Data/Models/PlayerModels.h"
 #include "Protocol/Viewport.h"
-#include "Render/Models/Cloth.h"
-#include "Render/Models/HalfLifeMath.h"
-#include "Render/Models/Skeleton.h"
+#include "Models/Cloth.h"
+#include "Math/HalfLifeMath.h"
+#include "Models/Skeleton.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/FaunaModels.h"

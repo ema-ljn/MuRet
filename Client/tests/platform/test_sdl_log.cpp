@@ -1,4 +1,4 @@
-#include "Platform/SdlLog.h"
+#include "Platform/Sdl/SdlLog.h"
 
 #include "Core/ILogSink.h"
 #include "Core/Log.h"

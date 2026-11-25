@@ -1,7 +1,7 @@
 #include "GameLogic/CharacterPosition.h"
 
-#include "Render/Models/OriginalRotation.h"
-#include "Render/Models/RoundedMath.h"
+#include "Math/OriginalRotation.h"
+#include "Math/RoundedMath.h"
 
 #include <glm/ext/vector_float3.hpp>
 

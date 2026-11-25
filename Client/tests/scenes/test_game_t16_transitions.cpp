@@ -1,6 +1,6 @@
 #include "test_game_t16_support.h"
 #include "App/SessionState.h"
-#include "Core/Crash/Crc32.h"
+#include "Diagnostics/Crc32.h"
 #include "Data/Terrain/TerrainMapping.h"
 #include "Data/Terrain/TerrainHeights.h"
 

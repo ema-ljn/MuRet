@@ -3,8 +3,8 @@
 #include "Maps/MapId.h"
 #include "Math/FloatConstants.h"
 #include "Math/X87.h"
-#include "Render/Models/OriginalRotation.h"
-#include "Render/Models/RoundedMath.h"
+#include "Math/OriginalRotation.h"
+#include "Math/RoundedMath.h"
 #include "Render/Pass3D.h"
 #include "World/TerrainCulling.h"
 

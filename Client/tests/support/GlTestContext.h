@@ -2,9 +2,9 @@
 
 #include "Core/Expected.h"
 #include "Data/Textures/Texture.h"
-#include "Platform/GlLoader.h"
-#include "Platform/SdlContext.h"
-#include "Platform/Window.h"
+#include "Platform/Sdl/GlLoader.h"
+#include "Platform/Sdl/SdlContext.h"
+#include "Platform/Sdl/Window.h"
 
 #include <SDL3/SDL_video.h>
 #include <gtest/gtest.h>

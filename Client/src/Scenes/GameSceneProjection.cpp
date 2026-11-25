@@ -8,8 +8,8 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/DynamicWorldLight.h"
 #include "Scenes/ActorState.h"
-#include "Render/Models/LogicalAccess.h"
-#include "Render/Models/Cloth.h"
+#include "Models/LogicalAccess.h"
+#include "Models/Cloth.h"
 #include "UI/GameUiState.h"
 #include "World/KalimaWorld.h"
 #include <memory>

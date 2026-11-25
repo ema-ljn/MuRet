@@ -2,10 +2,10 @@
 
 #include "Core/Expected.h"
 #include "Core/PixelSize.h"
-#include "Data/Text/TextTable.h"
+#include "Tables/TextTable.h"
 #include "Render/SpriteBatch.h"
 #include "Render/UiImage.h"
-#include "Scenes/ITextDrawer.h"
+#include "Render/Frame/ITextDrawer.h"
 #include "UI/Widget.h"
 
 #include <array>

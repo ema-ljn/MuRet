@@ -1,6 +1,6 @@
-#include "Render/Models/OriginalRotation.h"
+#include "Math/OriginalRotation.h"
 
-#include "Render/Models/HalfLifeMath.h"
+#include "Math/HalfLifeMath.h"
 
 #include "support/HexFloatFixture.h"
 #include "support/WorldObjectVectors.h"

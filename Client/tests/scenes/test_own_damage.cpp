@@ -1,8 +1,8 @@
 #include "Scenes/OwnDamage.h"
 
 #include "Crt/CrtRandom.h"
-#include "Data/Tables/SkillTable.h"
-#include "Render/Models/LogicalAccess.h"
+#include "Tables/SkillTable.h"
+#include "Models/LogicalAccess.h"
 #include "Scenes/ItemSetOptionList.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnStatHelpers.h"

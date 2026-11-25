@@ -3,7 +3,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
-#include "Data/Text/TextTable.h"
+#include "Tables/TextTable.h"
 #include "Input/InputState.h"
 #include "Network/Delivery.h"
 #include "Network/Packet.h"

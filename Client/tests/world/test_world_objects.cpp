@@ -4,7 +4,7 @@
 
 #include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainObjects.h"
-#include "Render/Models/ObjectState.h"
+#include "Models/ObjectState.h"
 #include "World/WorldObjectRegistrations.h"
 
 #include <glm/ext/vector_float3.hpp>

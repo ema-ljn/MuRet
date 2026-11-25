@@ -1,9 +1,9 @@
 #include "Scenes/Quests.h"
 
 #include "Crt/CrtRandom.h"
-#include "Data/Tables/QuestTable.h"
-#include "Data/Text/DialogTable.h"
-#include "Data/Text/TextTable.h"
+#include "Tables/QuestTable.h"
+#include "Tables/DialogTable.h"
+#include "Tables/TextTable.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnInventory.h"

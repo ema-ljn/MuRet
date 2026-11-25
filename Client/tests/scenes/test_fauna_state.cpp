@@ -1,4 +1,4 @@
-#include "Render/Models/HalfLifeMath.h"
+#include "Math/HalfLifeMath.h"
 #include "Scenes/FaunaState.h"
 
 #include <gtest/gtest.h>

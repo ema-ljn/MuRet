@@ -3,10 +3,10 @@
 #include "Core/Expected.h"
 #include "Core/IClock.h"
 #include "Render/ModelBatch.h"
-#include "Render/Models/HalfLifeMath.h"
-#include "Render/Models/IModelLibrary.h"
-#include "Render/Models/ObjectState.h"
-#include "Render/Models/Pose.h"
+#include "Math/HalfLifeMath.h"
+#include "Models/IModelLibrary.h"
+#include "Models/ObjectState.h"
+#include "Models/Pose.h"
 #include "Scenes/CharacterDrawing.h"
 
 #include <glm/ext/vector_float2.hpp>

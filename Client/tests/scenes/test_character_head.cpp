@@ -2,7 +2,7 @@
 
 #include "Crt/CrtRandom.h"
 #include "Math/X87.h"
-#include "Render/Models/OriginalAngles.h"
+#include "Math/OriginalAngles.h"
 
 #include "support/WorldObjectVectors.h"
 

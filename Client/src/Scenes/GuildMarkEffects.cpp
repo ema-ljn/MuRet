@@ -4,7 +4,7 @@
 #include "Crt/CrtRandom.h"
 #include "Math/Angles.h"
 #include "Math/X87.h"
-#include "Render/Models/OriginalRetainedMath.h"
+#include "Math/OriginalRetainedMath.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/HighEffectEmitters.h"
 #include "Scenes/HighModelEffects.h"

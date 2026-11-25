@@ -1,6 +1,6 @@
 #include "UI/FriendModel.h"
 
-#include "Core/Msvc6Sort.h"
+#include "Crt/Msvc6Sort.h"
 
 #include <algorithm>
 #include <cstddef>

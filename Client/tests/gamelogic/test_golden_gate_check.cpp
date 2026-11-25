@@ -1,7 +1,7 @@
 #include "GameLogic/GateCheck.h"
 
-#include "Data/Tables/GateRecord.h"
-#include "Data/Tables/GateTable.h"
+#include "Tables/GateRecord.h"
+#include "Tables/GateTable.h"
 #include "GameLogic/GateCheckState.h"
 #include "GameLogic/GateDecision.h"
 #include "support/FileBytes.h"

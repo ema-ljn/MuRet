@@ -3,7 +3,7 @@
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
 #include "Network/Connection.h"
-#include "Network/Crypto/SimpleModulus.h"
+#include "Crypto/SimpleModulus.h"
 #include "Network/IdentityObfuscation.h"
 #include "Network/IObfuscation.h"
 #include "Network/Packet.h"

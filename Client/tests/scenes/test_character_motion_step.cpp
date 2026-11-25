@@ -4,7 +4,7 @@
 #include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainHeights.h"
-#include "Render/Models/Skeleton.h"
+#include "Models/Skeleton.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/PlayerActionSpeeds.h"
 #include "Scenes/OwnCharacterRecord.h"

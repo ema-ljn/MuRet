@@ -2,7 +2,7 @@
 
 #include "App/PacingMode.h"
 #include "App/ServerAddress.h"
-#include "App/VSyncMode.h"
+#include "Platform/VSyncMode.h"
 #include "Core/PathText.h"
 #include "support/CommandLineTesting.h"
 

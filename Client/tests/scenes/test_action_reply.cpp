@@ -1,4 +1,4 @@
-#include "Render/Models/IModelLibrary.h"
+#include "Models/IModelLibrary.h"
 #include "Scenes/ActionReply.h"
 
 #include "Core/Expected.h"
@@ -7,9 +7,9 @@
 #include "Data/Models/Model.h"
 #include "Data/Models/PlayerModels.h"
 #include "Protocol/Movement.h"
-#include "Render/Models/Cloth.h"
-#include "Render/Models/OriginalAngles.h"
-#include "Render/Models/Skeleton.h"
+#include "Models/Cloth.h"
+#include "Math/OriginalAngles.h"
+#include "Models/Skeleton.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/ActionSend.h"
 #include "Scenes/ActorState.h"

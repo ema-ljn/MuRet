@@ -3,7 +3,7 @@
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
 #include "Crt/CrtRandom.h"
-#include "Data/Text/TextTable.h"
+#include "Tables/TextTable.h"
 #include "Data/Textures/Texture.h"
 #include "Data/Textures/TextureSet.h"
 #include "Render/Text/FontSet.h"

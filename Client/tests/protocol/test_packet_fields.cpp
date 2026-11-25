@@ -1,7 +1,7 @@
-#include "Protocol/PacketFields.h"
+#include "Network/PacketFields.h"
 
 #include "Network/Packet.h"
-#include "Protocol/ProtocolError.h"
+#include "Network/ProtocolError.h"
 
 #include "support/Bytes.h"
 #include "support/ExpectedError.h"

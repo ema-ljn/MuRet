@@ -1,7 +1,7 @@
 #include "Scenes/PartyActors.h"
 
 #include "Math/X87.h"
-#include "Render/Models/LogicalAccess.h"
+#include "Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/GameUi.h"
 #include "Scenes/OwnCharacterRecord.h"

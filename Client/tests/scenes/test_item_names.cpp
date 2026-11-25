@@ -1,8 +1,8 @@
 #include "Scenes/ItemNames.h"
 
 #include "Core/Expected.h"
-#include "Data/Tables/ItemTable.h"
-#include "Data/Text/TextTable.h"
+#include "Tables/ItemTable.h"
+#include "Tables/TextTable.h"
 #include "Scenes/NpcNames.h"
 #include "support/ItemFiles.h"
 #include "support/SceneDataFiles.h"

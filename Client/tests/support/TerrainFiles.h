@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Core/Xor3.h"
-#include "Data/Terrain/K16.h"
+#include "Crypto/Xor3.h"
+#include "Crypto/K16.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainGrid.h"
 #include "Data/Terrain/TerrainHeights.h"

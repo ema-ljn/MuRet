@@ -4,7 +4,7 @@
 #include "Data/Models/PlayerModels.h"
 #include "GameLogic/CharacterAppearance.h"
 #include "Protocol/Character/CharacterList.h"
-#include "Render/Models/Cloth.h"
+#include "Models/Cloth.h"
 #include "Scenes/ActorActions.h"
 #include "Scenes/ActorCharacterSet.h"
 #include "Scenes/ActorConstruction.h"

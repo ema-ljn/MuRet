@@ -1,7 +1,7 @@
 #include "Scenes/ConstructedBmdPrefix.h"
 
 #include "Core/Expected.h"
-#include "Render/Models/Skeleton.h"
+#include "Models/Skeleton.h"
 
 #include <cstdint>
 #include <optional>

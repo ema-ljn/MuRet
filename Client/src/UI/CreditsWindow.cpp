@@ -1,7 +1,7 @@
 #include "UI/CreditsWindow.h"
 
 #include "Core/PixelSize.h"
-#include "Data/Text/Credits.h"
+#include "Tables/Credits.h"
 #include "Input/InputState.h"
 #include "Input/Key.h"
 #include "Render/ScreenScale.h"
@@ -13,7 +13,7 @@
 #include "Render/Text/TextStyle.h"
 #include "Render/TextureSlot.h"
 #include "Render/UiImage.h"
-#include "Scenes/ITextDrawer.h"
+#include "Render/Frame/ITextDrawer.h"
 #include "UI/Button.h"
 #include "UI/NewUi.h"
 #include "UI/Widget.h"

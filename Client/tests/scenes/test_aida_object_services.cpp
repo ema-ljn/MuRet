@@ -1,8 +1,8 @@
 #include "Scenes/AidaObjectServices.h"
 
 #include "Crt/CrtRandom.h"
-#include "Render/Models/HalfLifeMath.h"
-#include "Render/Models/OriginalRotation.h"
+#include "Math/HalfLifeMath.h"
+#include "Math/OriginalRotation.h"
 #include "Scenes/FaunaDrawing.h"
 #include "Scenes/WorldObjectsDrawing.h"
 #include "World/KalimaParticleKernels.h"

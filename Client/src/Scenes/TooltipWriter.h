@@ -1,8 +1,8 @@
 #pragma once
 
-#include "Data/Text/TextTable.h"
+#include "Tables/TextTable.h"
 #include "Scenes/TooltipLines.h"
-#include "UI/SprintfFormat.h"
+#include "Crt/SprintfFormat.h"
 
 #include <cstddef>
 #include <cstdint>

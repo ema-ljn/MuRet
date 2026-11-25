@@ -7,7 +7,7 @@
 #include "Network/Packet.h"
 #include "Protocol/Combat.h"
 #include "Protocol/Movement.h"
-#include "Render/Models/Skeleton.h"
+#include "Models/Skeleton.h"
 #include "Scenes/ActorCombat.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/GameMovementState.h"

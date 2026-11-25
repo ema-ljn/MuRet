@@ -1,6 +1,6 @@
-#include "Core/Crash/Registers64.h"
+#include "Diagnostics/Registers64.h"
 
-#include "Core/Crash/CrashReport.h"
+#include "Diagnostics/CrashReport.h"
 
 #include <gtest/gtest.h>
 

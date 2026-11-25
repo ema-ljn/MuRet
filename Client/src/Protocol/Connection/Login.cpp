@@ -2,14 +2,14 @@
 
 #include "Core/ByteReader.h"
 #include "Core/Expected.h"
-#include "Core/Xor3.h"
+#include "Crypto/Xor3.h"
 #include "Network/Packet.h"
 #include "Network/PacketWriter.h"
 #include "Protocol/BuildConstants.h"
 #include "Protocol/Connection/Opcodes.h"
 #include "Protocol/Outgoing.h"
-#include "Protocol/PacketFields.h"
-#include "Protocol/ProtocolError.h"
+#include "Network/PacketFields.h"
+#include "Network/ProtocolError.h"
 
 #include <algorithm>
 #include <array>

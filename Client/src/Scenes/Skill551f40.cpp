@@ -1,8 +1,8 @@
 #include "Scenes/Skill551f40.h"
 
 #include "Core/Expected.h"
-#include "Data/Tables/SkillTable.h"
-#include "Render/Models/LogicalAccess.h"
+#include "Tables/SkillTable.h"
+#include "Models/LogicalAccess.h"
 #include "Scenes/GameMovementState.h"
 #include "Scenes/SkillDelays.h"
 #include "Scenes/WorldRuntime.h"

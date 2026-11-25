@@ -1,7 +1,7 @@
 #include "Protocol/Movement.h"
 
 #include "App/LabXorRemapTables.h"
-#include "Network/XorRemapObfuscation.h"
+#include "Network/XorRemap/XorRemapObfuscation.h"
 
 #include "support/Bytes.h"
 #include "support/SameBytes.h"

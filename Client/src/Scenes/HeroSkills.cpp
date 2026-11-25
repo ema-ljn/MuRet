@@ -53,10 +53,10 @@ constexpr float CellReciprocal = std::bit_cast<float>(std::uint32_t{0x3c23d70a})
 constexpr float SecondsPerMillisecond = std::bit_cast<float>(std::uint32_t{0x3a83126f}); // [0x6ba128], 0,001
 constexpr double MaximumHoldSeconds = 3600.0;                                            // [0x6ba43c]
 constexpr std::int32_t SpectatorMap = 6;
+using Maps::CastleSiegeMap;
 using Maps::FirstBloodCastleMap;
 using Maps::IsChaosCastle;
 using Maps::LastBloodCastleMap;
-constexpr std::int32_t CastleSiegeMap = 30;
 constexpr std::uint8_t ChargedSkill = 0x28;
 constexpr std::uint8_t ReleasedChargedSkill = 0x3a;
 constexpr std::size_t PartyOffset = 0x31; // Skill.bmd: con 2, la skill pide 0x200 en +0x78

@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainAttributes.h"
+#include "Maps/MapId.h"
 #include "Math/X87.h"
 #include "Render/Models/OriginalRetainedMath.h"
 #include "Render/Models/OriginalRotation.h"
@@ -29,18 +30,18 @@ namespace Client::Scenes
 namespace
 {
 // Selectores de 637082..6370e5 y de la cadena de creadores de 5305b3.
-constexpr std::int32_t LorenciaMap = 0;
-constexpr std::int32_t DeviasMap = 2;
-constexpr std::int32_t NoriaMap = 3;
-constexpr std::int32_t AtlansMap = 7;
+using Maps::AtlansMap;
+using Maps::DeviasMap;
+using Maps::LorenciaMap;
+using Maps::NoriaMap;
 constexpr std::int32_t RainMap = 9;
-constexpr std::int32_t IcarusMap = 10;
+using Maps::IcarusMap;
 constexpr std::int32_t FirstEventRainMap = 18;
 constexpr std::int32_t LastEventRainMap = 23;
 constexpr std::int32_t ReducedLeafMap = 30;
 constexpr std::int32_t SpecialLeafMap = 31;
 constexpr std::int32_t FirstExternalEffectMap = 33;
-constexpr std::int32_t CrywolfMap = 34;
+using Maps::CrywolfMap;
 constexpr std::int32_t SecondExternalEffectMap = 54;
 constexpr std::int32_t CrywolfRainState = 1;
 constexpr std::int32_t CrywolfEffectState = 2;

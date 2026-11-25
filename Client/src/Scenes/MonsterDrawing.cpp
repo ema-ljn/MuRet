@@ -81,7 +81,7 @@ constexpr std::uint8_t UnwalledKind = 8;
 constexpr std::uint8_t RedPk = 6;
 using Maps::IsBloodCastle;
 using Maps::IsChaosCastle;
-constexpr std::int32_t CastleMap = 30;
+constexpr std::int32_t CastleMap = Maps::CastleSiegeMap;
 constexpr std::int32_t NoShadowMap = 10;
 // 0x5ffdf0: por debajo de 0,01f (0x6b88d4) no posa ni dibuja; en Chaos Castle, con +0x1a1 del héroe, 0,15f menos
 // (0x6b8ae8) en cada llamada.

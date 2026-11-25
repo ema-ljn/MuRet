@@ -179,7 +179,7 @@ constexpr std::array<glm::vec3, 5> BootsLights{{
 // 0x510a7a: los mapas sin 0x510ef0 (Blood Castle, Chaos Castle y el asedio).
 constexpr std::int32_t FirstBloodCastle = 11;
 constexpr std::int32_t LastBloodCastle = 17;
-constexpr std::int32_t CastleMap = 30;
+constexpr std::int32_t CastleMap = Maps::CastleSiegeMap;
 
 // 0x5ffdf0: por debajo de 0,01f (0x6b88d4) no posa ni dibuja.
 constexpr float DrawnAlpha = std::bit_cast<float>(0x3c23d70au);

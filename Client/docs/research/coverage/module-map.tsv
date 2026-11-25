@@ -214,8 +214,8 @@ Input/InputState.h	112	Input	engine/Input	high	engine or protocol layer, no game
 Input/Key.h	141	Input	engine/Input	high	engine or protocol layer, no game state
 Input/MouseMessageState.h	16	Input	engine/Input	high	engine or protocol layer, no game state
 Input/TextInputEvent.h	29	Input	engine/Input	high	engine or protocol layer, no game state
-Maps/ClothWind.h	17	Maps	game/Maps	high	(addr.) the login map selects the fallback wind for cloth (AR1.1)
-Maps/MapId.h	29	Maps	game/Maps	high	(addr.) the Blood Castle, Chaos Castle and Kalima map ranges and their predicates (AR1.1)
+Maps/ClothWind.h	16	Maps	game/Maps	high	(addr.) the login map selects the fallback wind for cloth (AR1.1)
+Maps/MapId.h	48	Maps	game/Maps	high	(addr.) the Blood Castle, Chaos Castle and Kalima map ranges and their predicates (AR1.1)
 Math/X87.h	31	Math	engine/Math	high	(addr.) the original's x87 conversions: the float store, the float load, 0x69fd3c's truncation and a float's bits (AR1.1)
 Network/CloseReason.cpp	30	Network	engine/Network	high	engine or protocol layer, no game state
 Network/CloseReason.h	25	Network	engine/Network	high	engine or protocol layer, no game state
@@ -513,7 +513,7 @@ Scenes/ActorCreation.cpp	109	Scenes	game/Actors	high	actor record/pool, creation
 Scenes/ActorCreation.h	56	Scenes	game/Actors	high	actor record/pool, creation, equipment, flags, per-actor step, viewport packets 0x12/0x14/...
 Scenes/ActorDying.cpp	267	Scenes	game/Actors	high	actor record/pool, creation, equipment, flags, per-actor step, viewport packets 0x12/0x14/...
 Scenes/ActorDying.h	60	Scenes	game/Actors	high	actor record/pool, creation, equipment, flags, per-actor step, viewport packets 0x12/0x14/...
-Scenes/ActorEffectFlags.cpp	345	Scenes	game/Actors	high	actor record/pool, creation, equipment, flags, per-actor step, viewport packets 0x12/0x14/...
+Scenes/ActorEffectFlags.cpp	346	Scenes	game/Actors	high	actor record/pool, creation, equipment, flags, per-actor step, viewport packets 0x12/0x14/...
 Scenes/ActorEffectFlags.h	49	Scenes	game/Actors	high	actor record/pool, creation, equipment, flags, per-actor step, viewport packets 0x12/0x14/...
 Scenes/ActorEquipment.cpp	240	Scenes	game/Actors	high	actor record/pool, creation, equipment, flags, per-actor step, viewport packets 0x12/0x14/...
 Scenes/ActorEquipment.h	69	Scenes	game/Actors	high	actor record/pool, creation, equipment, flags, per-actor step, viewport packets 0x12/0x14/...
@@ -543,7 +543,7 @@ Scenes/AttackSkillCases.cpp	1643	Scenes	game/Skills	medium	skills, a module of t
 Scenes/AttackSkillCases.h	47	Scenes	game/Skills	medium	skills, a module of their own; review in AR4.2 (2026-11-21 review)
 Scenes/AttackSkillReads.cpp	34	Scenes	game/Skills	medium	skills, a module of their own; review in AR4.2 (2026-11-21 review)
 Scenes/AttackSkillReads.h	27	Scenes	game/Skills	medium	skills, a module of their own; review in AR4.2 (2026-11-21 review)
-Scenes/AttackStep.cpp	412	Scenes	game/Combat	high	character attack step (addr.)/(addr.), hits, combat/skill replies, damage numbers
+Scenes/AttackStep.cpp	413	Scenes	game/Combat	high	character attack step (addr.)/(addr.), hits, combat/skill replies, damage numbers
 Scenes/AttackStep.h	29	Scenes	game/Combat	high	character attack step (addr.)/(addr.), hits, combat/skill replies, damage numbers
 Scenes/AuraJoints.cpp	367	Scenes	game/Joints	high	joints (ribbons and beams), a module of their own below Effects (2026-11-21 review)
 Scenes/BeamJoints.cpp	473	Scenes	game/Joints	high	joints (ribbons and beams), a module of their own below Effects (2026-11-21 review)
@@ -572,7 +572,7 @@ Scenes/CastleSiegeAttack.cpp	72	Scenes	game/CastleSiege	high	Castle Siege window
 Scenes/CastleSiegeAttack.h	23	Scenes	game/CastleSiege	high	Castle Siege windows, receive B2..BB, battle UI, weapons, map server move
 Scenes/CastleSiegeBlessing.cpp	52	Scenes	game/CastleSiege	high	Castle Siege windows, receive B2..BB, battle UI, weapons, map server move
 Scenes/CastleSiegeBlessing.h	20	Scenes	game/CastleSiege	high	Castle Siege windows, receive B2..BB, battle UI, weapons, map server move
-Scenes/CastleSiegeMap.cpp	38	Scenes	game/CastleSiege	high	Castle Siege windows, receive B2..BB, battle UI, weapons, map server move
+Scenes/CastleSiegeMap.cpp	39	Scenes	game/CastleSiege	high	Castle Siege windows, receive B2..BB, battle UI, weapons, map server move
 Scenes/CastleSiegeMap.h	16	Scenes	game/CastleSiege	high	Castle Siege windows, receive B2..BB, battle UI, weapons, map server move
 Scenes/CastleSiegeObjectServices.cpp	107	Scenes	game/MapScripts/CastleSiege	high	what that map does, like TrinityCore's per-zone scripts (2026-11-21 review)
 Scenes/CastleSiegeObjectServices.h	26	Scenes	game/MapScripts/CastleSiege	high	what that map does, like TrinityCore's per-zone scripts (2026-11-21 review)
@@ -596,13 +596,13 @@ Scenes/CharacterAnimation.cpp	64	Scenes	game/Actors	medium	actor record/pool, cr
 Scenes/CharacterAnimation.h	39	Scenes	game/Actors	medium	actor record/pool, creation, equipment, flags, per-actor step, viewport packets 0x12/0x14/...; include graph pulls to Fr
 Scenes/CharacterCloth.cpp	482	Scenes	game/Actors/Drawing	high	(addr.) player draw: body, cloth, hanging items, item glows, weapon trails
 Scenes/CharacterCloth.h	158	Scenes	game/Actors/Drawing	high	(addr.) player draw: body, cloth, hanging items, item glows, weapon trails
-Scenes/CharacterDrawing.cpp	2563	Scenes	game/Actors/Drawing	high	(addr.) player draw: body, cloth, hanging items, item glows, weapon trails; NOTE also hosts IModelLibrary/DrawnObject/I
+Scenes/CharacterDrawing.cpp	2584	Scenes	game/Actors/Drawing	high	(addr.) player draw: body, cloth, hanging items, item glows, weapon trails; NOTE also hosts IModelLibrary/DrawnObject/I
 Scenes/CharacterDrawing.h	518	Scenes	game/Actors/Drawing	high	(addr.) player draw: body, cloth, hanging items, item glows, weapon trails; NOTE also hosts IModelLibrary/DrawnObject/I
 Scenes/CharacterHead.cpp	47	Scenes	game/Actors	medium	actor record/pool, creation, equipment, flags, per-actor step, viewport packets 0x12/0x14/...; include graph pulls to Fr
 Scenes/CharacterHead.h	33	Scenes	game/Actors	medium	actor record/pool, creation, equipment, flags, per-actor step, viewport packets 0x12/0x14/...; include graph pulls to Fr
 Scenes/CharacterPicking.cpp	153	Scenes	game/Actors	high	actor record/pool, creation, equipment, flags, per-actor step, viewport packets 0x12/0x14/...
 Scenes/CharacterPicking.h	39	Scenes	game/Actors	high	actor record/pool, creation, equipment, flags, per-actor step, viewport packets 0x12/0x14/...
-Scenes/CharacterSelectScene.cpp	1910	Scenes	game/Scenes	high	scenes 1-4 (loading, login, character select, create) and their 3D sets
+Scenes/CharacterSelectScene.cpp	1914	Scenes	game/Scenes	high	scenes 1-4 (loading, login, character select, create) and their 3D sets
 Scenes/CharacterSelectScene.h	294	Scenes	game/Scenes	high	scenes 1-4 (loading, login, character select, create) and their 3D sets
 Scenes/CharacterSlots.h	26	Scenes	game/FrontEnd	medium	login and selection logic; the scene script stays in Scenes (2026-11-21 review)
 Scenes/CharacterStep.cpp	1488	Scenes	game/Actors	high	actor record/pool, creation, equipment, flags, per-actor step, viewport packets 0x12/0x14/...; NOTE per-actor step dispa
@@ -626,7 +626,7 @@ Scenes/ConstructedBmdPrefix.h	26	Scenes	game/Assets	medium	models and textures, 
 Scenes/CreatePreview.cpp	306	Scenes	game/FrontEnd	medium	login and selection logic; the scene script stays in Scenes (2026-11-21 review)
 Scenes/CreatePreview.h	121	Scenes	game/FrontEnd	medium	login and selection logic; the scene script stays in Scenes (2026-11-21 review)
 Scenes/CrywolfAltarDrawing.h	27	Scenes	game/MapScripts/Crywolf	medium	what that map does, like TrinityCore's per-zone scripts (2026-11-21 review)
-Scenes/CrywolfContract.cpp	262	Scenes	game/Events/Crywolf	medium	one submodule per event (2026-11-21 review)
+Scenes/CrywolfContract.cpp	260	Scenes	game/Events/Crywolf	medium	one submodule per event (2026-11-21 review)
 Scenes/CrywolfContract.h	113	Scenes	game/Events/Crywolf	medium	one submodule per event (2026-11-21 review)
 Scenes/CrywolfDeathSpiritEffects.cpp	139	Scenes	game/Effects	high	a case of the effect switch (addr.), named after its first user
 Scenes/CrywolfDeathSpiritEffects.h	30	Scenes	game/Effects	high	a case of the effect switch (addr.), named after its first user
@@ -634,7 +634,7 @@ Scenes/CrywolfInterfaceDrawing.cpp	708	Scenes	game/Events/Crywolf	high	one submo
 Scenes/CrywolfInterfaceDrawing.h	33	Scenes	game/Events/Crywolf	high	one submodule per event (2026-11-21 review)
 Scenes/CrywolfMissileDrawing.cpp	78	Scenes	game/Effects	high	a case of the effect switch (addr.), named after its first user
 Scenes/CrywolfMissileDrawing.h	28	Scenes	game/Effects	high	a case of the effect switch (addr.), named after its first user
-Scenes/CrywolfMusic.cpp	79	Scenes	game/Events/Crywolf	high	the event's music (addr.): the track of the stage and, at the end stage, the result's sound (Crywolf homes plan, 2026-11-24)
+Scenes/CrywolfMusic.cpp	80	Scenes	game/Events/Crywolf	high	the event's music (addr.): the track of the stage and, at the end stage, the result's sound (Crywolf homes plan, 2026-11-24)
 Scenes/CrywolfMusic.h	11	Scenes	game/Events/Crywolf	high	the event's music (addr.): the track of the stage and, at the end stage, the result's sound (Crywolf homes plan, 2026-11-24)
 Scenes/CrywolfObjectServices.cpp	268	Scenes	game/MapScripts/Crywolf	high	what that map does, like TrinityCore's per-zone scripts (2026-11-21 review)
 Scenes/CrywolfObjectServices.h	40	Scenes	game/MapScripts/Crywolf	high	what that map does, like TrinityCore's per-zone scripts (2026-11-21 review)
@@ -642,7 +642,7 @@ Scenes/DamageNumbers.cpp	37	Scenes	game/Combat	high	character attack step (addr.
 Scenes/DamageNumbers.h	15	Scenes	game/Combat	high	character attack step (addr.)/(addr.), hits, combat/skill replies, damage numbers
 Scenes/DarkHorse.cpp	115	Scenes	game/Pets	high	Dark Lord raven/horse, helper table (addr.), A7/A8/A9, pet window
 Scenes/DarkHorse.h	77	Scenes	game/Pets	high	Dark Lord raven/horse, helper table (addr.), A7/A8/A9, pet window
-Scenes/DarkSpirit.cpp	504	Scenes	game/Pets	medium	Dark Lord raven/horse, helper table (addr.), A7/A8/A9, pet window; include graph pulls to FrontEndScenes (6 vs 3 own)
+Scenes/DarkSpirit.cpp	503	Scenes	game/Pets	medium	Dark Lord raven/horse, helper table (addr.), A7/A8/A9, pet window; include graph pulls to FrontEndScenes (6 vs 3 own)
 Scenes/DarkSpirit.h	173	Scenes	game/Pets	medium	Dark Lord raven/horse, helper table (addr.), A7/A8/A9, pet window; include graph pulls to FrontEndScenes (6 vs 3 own)
 Scenes/DropJoints.cpp	75	Scenes	game/Joints	high	joints (ribbons and beams), a module of their own below Effects (2026-11-21 review)
 Scenes/DynamicWorldLight.cpp	46	Scenes	game/Terrain	high	the terrain's dynamic light table, kept across scenes (AR0.1 review)
@@ -713,7 +713,7 @@ Scenes/GameFloorItems.cpp	174	Scenes	game/Items	medium	inventory grids, cursor i
 Scenes/GameFloorItems.h	36	Scenes	game/Items	medium	inventory grids, cursor item, floor items, item names/prices, UI item 3D; include graph pulls to GameScene (2 vs 1 own)
 Scenes/GameFriends.cpp	374	Scenes	game/Messenger	high	friends and letters (2026-11-21 review)
 Scenes/GameFriends.h	84	Scenes	game/Messenger	high	friends and letters (2026-11-21 review)
-Scenes/GameGates.cpp	210	Scenes	game/Movement	medium	movement and gates, out of Hero (2026-11-21 review)
+Scenes/GameGates.cpp	211	Scenes	game/Movement	medium	movement and gates, out of Hero (2026-11-21 review)
 Scenes/GameGates.h	37	Scenes	game/Movement	medium	movement and gates, out of Hero (2026-11-21 review)
 Scenes/GameHanging.cpp	1378	Scenes	game/Actors/Drawing	high	(addr.) player draw: body, cloth, hanging items, item glows, weapon trails
 Scenes/GameHanging.h	105	Scenes	game/Actors/Drawing	high	(addr.) player draw: body, cloth, hanging items, item glows, weapon trails
@@ -739,7 +739,7 @@ Scenes/GameItemSpecialDrawing.h	56	Scenes	game/Actors/Drawing	high	(addr.) playe
 Scenes/GameJointDrawing.cpp	347	Scenes	game/Joints	high	joints (ribbons and beams), a module of their own below Effects (2026-11-21 review)
 Scenes/GameLeafClouds.cpp	134	Scenes	game/Weather	high	leaves, rain and clouds, like Weather/ in TrinityCore and cMaNGOS (2026-11-21 review)
 Scenes/GameLeafClouds.h	18	Scenes	game/Weather	high	leaves, rain and clouds, like Weather/ in TrinityCore and cMaNGOS (2026-11-21 review)
-Scenes/GameLeaves.cpp	384	Scenes	game/Weather	high	leaves, rain and clouds, like Weather/ in TrinityCore and cMaNGOS (2026-11-21 review)
+Scenes/GameLeaves.cpp	383	Scenes	game/Weather	high	leaves, rain and clouds, like Weather/ in TrinityCore and cMaNGOS (2026-11-21 review)
 Scenes/GameLeaves.h	56	Scenes	game/Weather	high	leaves, rain and clouds, like Weather/ in TrinityCore and cMaNGOS (2026-11-21 review)
 Scenes/GameLetters.cpp	697	Scenes	game/Messenger	high	friends and letters (2026-11-21 review)
 Scenes/GameLetters.h	78	Scenes	game/Messenger	high	friends and letters (2026-11-21 review)
@@ -810,7 +810,7 @@ Scenes/HandShine.h	49	Scenes	game/Effects	medium	the hand glow of a multi-hit sk
 Scenes/HealthBars.cpp	78	Scenes	game/Hud	medium	queued by actor step, drawn by HUD ((addr.))
 Scenes/HealthBars.h	32	Scenes	game/Hud	medium	queued by actor step, drawn by HUD ((addr.))
 Scenes/HelixJoints.cpp	149	Scenes	game/Joints	high	joints (ribbons and beams), a module of their own below Effects (2026-11-21 review)
-Scenes/HelperStepParts.cpp	188	Scenes	game/Pets	high	Dark Lord raven/horse, helper table (addr.), A7/A8/A9, pet window
+Scenes/HelperStepParts.cpp	189	Scenes	game/Pets	high	Dark Lord raven/horse, helper table (addr.), A7/A8/A9, pet window
 Scenes/HelperStepParts.h	67	Scenes	game/Pets	high	Dark Lord raven/horse, helper table (addr.), A7/A8/A9, pet window
 Scenes/HelperTable.cpp	996	Scenes	game/Pets	high	Dark Lord raven/horse, helper table (addr.), A7/A8/A9, pet window
 Scenes/HelperTable.h	219	Scenes	game/Pets	high	Dark Lord raven/horse, helper table (addr.), A7/A8/A9, pet window
@@ -828,7 +828,7 @@ Scenes/HeroSkillsKnight.cpp	706	Scenes	game/Skills	high	skills, a module of thei
 Scenes/HeroSkillsKnight.h	28	Scenes	game/Skills	high	skills, a module of their own like Spells/ in TrinityCore (2026-11-21 review)
 Scenes/HeroSkillsTail.cpp	319	Scenes	game/Skills	high	skills, a module of their own like Spells/ in TrinityCore (2026-11-21 review)
 Scenes/HeroSkillsTail.h	30	Scenes	game/Skills	high	skills, a module of their own like Spells/ in TrinityCore (2026-11-21 review)
-Scenes/HeroSkillsWizard.cpp	870	Scenes	game/Skills	high	skills, a module of their own like Spells/ in TrinityCore (2026-11-21 review)
+Scenes/HeroSkillsWizard.cpp	871	Scenes	game/Skills	high	skills, a module of their own like Spells/ in TrinityCore (2026-11-21 review)
 Scenes/HeroSkillsWizard.h	31	Scenes	game/Skills	high	skills, a module of their own like Spells/ in TrinityCore (2026-11-21 review)
 Scenes/HighEffectDrawing.cpp	203	Scenes	game/Effects	high	model effects; uses Joints and Particles (2026-11-21 review)
 Scenes/HighEffectDrawing.h	69	Scenes	game/Effects	high	model effects; uses Joints and Particles (2026-11-21 review)
@@ -934,7 +934,7 @@ Scenes/MeteorEffects.cpp	315	Scenes	game/Effects	medium	model effects; uses Join
 Scenes/MeteorEffects.h	74	Scenes	game/Effects	medium	model effects; uses Joints and Particles (2026-11-21 review)
 Scenes/ModelBody.cpp	257	Scenes	game/Monsters	medium	body step of non-0x20a models (monsters/NPCs): (addr.)/(addr.)/(addr.)
 Scenes/ModelBody.h	57	Scenes	game/Monsters	medium	body step of non-0x20a models (monsters/NPCs): (addr.)/(addr.)/(addr.)
-Scenes/ModelEffects.cpp	1430	Scenes	game/Monsters	medium	per-type effects of non-player characters, called from the actor step (AR0.1 review)
+Scenes/ModelEffects.cpp	1426	Scenes	game/Monsters	medium	per-type effects of non-player characters, called from the actor step (AR0.1 review)
 Scenes/ModelEffects.h	49	Scenes	game/Monsters	medium	per-type effects of non-player characters, called from the actor step (AR0.1 review)
 Scenes/ModelPoseCallbacks.cpp	25	Scenes	game/Actors/Drawing	high	(addr.) player draw: body, cloth, hanging items, item glows, weapon trails
 Scenes/ModelPoseCallbacks.h	29	Scenes	game/Actors/Drawing	high	(addr.) player draw: body, cloth, hanging items, item glows, weapon trails
@@ -954,30 +954,30 @@ Scenes/MonsterCreation.cpp	610	Scenes	game/Monsters	medium	monster/NPC creation,
 Scenes/MonsterCreation.h	75	Scenes	game/Monsters	medium	monster/NPC creation, kinds table, viewport 0x13/0x1F, attack step, sounds; include graph pulls to Actors (7 vs 4 own)
 Scenes/MonsterDrawing.cpp	1529	Scenes	game/Monsters/Drawing	medium	monster/NPC draw chain (addr.) and per-type helpers (Kalima/Kundun/siege bosses); include graph pulls to CharacterRende
 Scenes/MonsterDrawing.h	108	Scenes	game/Monsters/Drawing	medium	monster/NPC draw chain (addr.) and per-type helpers (Kalima/Kundun/siege bosses); include graph pulls to CharacterRende
-Scenes/MonsterHelpers.cpp	1728	Scenes	game/Monsters/Drawing	medium	monster/NPC draw chain (addr.) and per-type helpers (Kalima/Kundun/siege bosses); include graph pulls to WorldObjects (
+Scenes/MonsterHelpers.cpp	1723	Scenes	game/Monsters/Drawing	medium	monster/NPC draw chain (addr.) and per-type helpers (Kalima/Kundun/siege bosses); include graph pulls to WorldObjects (
 Scenes/MonsterHelpers.h	103	Scenes	game/Monsters/Drawing	medium	monster/NPC draw chain (addr.) and per-type helpers (Kalima/Kundun/siege bosses); include graph pulls to WorldObjects (
 Scenes/MonsterKindTable.cpp	2284	Scenes	game/Monsters	high	monster/NPC creation, kinds table, viewport 0x13/0x1F, attack step, sounds
 Scenes/MonsterKinds.cpp	119	Scenes	game/Monsters	high	monster/NPC creation, kinds table, viewport 0x13/0x1F, attack step, sounds
 Scenes/MonsterKinds.h	153	Scenes	game/Monsters	high	monster/NPC creation, kinds table, viewport 0x13/0x1F, attack step, sounds
-Scenes/MonsterModelTable.cpp	1132	Scenes	game/Assets	medium	models and textures, out of Kernel (2026-11-21 review)
+Scenes/MonsterModelTable.cpp	1134	Scenes	game/Assets	medium	models and textures, out of Kernel (2026-11-21 review)
 Scenes/MonsterModelTable.h	116	Scenes	game/Assets	medium	models and textures, out of Kernel (2026-11-21 review)
 Scenes/MonsterRibbonTrails.cpp	201	Scenes	game/Monsters/Drawing	high	weapon ribbon trails of monsters (AR0.1 review)
 Scenes/MonsterRibbonTrails.h	24	Scenes	game/Monsters/Drawing	high	weapon ribbon trails of monsters (AR0.1 review)
 Scenes/MonsterSounds.cpp	137	Scenes	game/Sound	medium	the per-model sound table and the sound request (2026-11-21 review)
 Scenes/MonsterSounds.h	46	Scenes	game/Sound	medium	the per-model sound table and the sound request (2026-11-21 review)
-Scenes/MonsterStepCases.cpp	222	Scenes	game/Monsters	medium	per-type cases of the non-player step ((addr.)/(addr.)); include graph pulls to Hud (2 vs 1 own)
+Scenes/MonsterStepCases.cpp	217	Scenes	game/Monsters	medium	per-type cases of the non-player step ((addr.)/(addr.)); include graph pulls to Hud (2 vs 1 own)
 Scenes/MonsterStepCases.h	65	Scenes	game/Monsters	medium	per-type cases of the non-player step ((addr.)/(addr.)); include graph pulls to Hud (2 vs 1 own)
-Scenes/MonsterViewport.cpp	507	Scenes	game/Monsters	medium	monster/NPC creation, kinds table, viewport 0x13/0x1F, attack step, sounds; include graph pulls to Actors (5 vs 1 own)
+Scenes/MonsterViewport.cpp	509	Scenes	game/Monsters	medium	monster/NPC creation, kinds table, viewport 0x13/0x1F, attack step, sounds; include graph pulls to Actors (5 vs 1 own)
 Scenes/MonsterViewport.h	55	Scenes	game/Monsters	medium	monster/NPC creation, kinds table, viewport 0x13/0x1F, attack step, sounds; include graph pulls to Actors (5 vs 1 own)
 Scenes/MovementReplies.cpp	285	Scenes	game/Actors	high	actor record/pool, creation, equipment, flags, per-actor step, viewport packets 0x12/0x14/...
 Scenes/MovementReplies.h	22	Scenes	game/Actors	high	actor record/pool, creation, equipment, flags, per-actor step, viewport packets 0x12/0x14/...
 Scenes/NoriaObjectServices.cpp	180	Scenes	game/MapScripts/Noria	high	what that map does, like TrinityCore's per-zone scripts (2026-11-21 review)
 Scenes/NoriaObjectServices.h	17	Scenes	game/MapScripts/Noria	high	what that map does, like TrinityCore's per-zone scripts (2026-11-21 review)
-Scenes/NpcChatter.cpp	193	Scenes	game/Monsters	medium	what NPC characters say from the actor step; NPC characters live with monsters (kinds table), the talk windows are Npc's (AR0.1 review)
+Scenes/NpcChatter.cpp	194	Scenes	game/Monsters	medium	what NPC characters say from the actor step; NPC characters live with monsters (kinds table), the talk windows are Npc's (AR0.1 review)
 Scenes/NpcChatter.h	46	Scenes	game/Monsters	medium	what NPC characters say from the actor step; NPC characters live with monsters (kinds table), the talk windows are Npc's (AR0.1 review)
 Scenes/NpcNames.cpp	57	Scenes	game/Monsters	medium	monster/NPC creation, kinds table, viewport 0x13/0x1F, attack step, sounds; include graph pulls to Inventory (3 vs 1 own
 Scenes/NpcNames.h	40	Scenes	game/Monsters	medium	monster/NPC creation, kinds table, viewport 0x13/0x1F, attack step, sounds; include graph pulls to Inventory (3 vs 1 own
-Scenes/NpcTalk.cpp	261	Scenes	game/Npc	medium	NPC talk, shop/warehouse/chaos box/jewel mix/pet trainer windows (CL9 hito 6); include graph pulls to Hero (3 vs 1 own)
+Scenes/NpcTalk.cpp	252	Scenes	game/Npc	medium	NPC talk, shop/warehouse/chaos box/jewel mix/pet trainer windows (CL9 hito 6); include graph pulls to Hero (3 vs 1 own)
 Scenes/NpcTalk.h	29	Scenes	game/Npc	medium	NPC talk, shop/warehouse/chaos box/jewel mix/pet trainer windows (CL9 hito 6); include graph pulls to Hero (3 vs 1 own)
 Scenes/NpcWindowDrawing.cpp	473	Scenes	game/Npc	medium	NPC talk, shop/warehouse/chaos box/jewel mix/pet trainer windows (CL9 hito 6); include graph pulls to Hud (2 vs 1 own)
 Scenes/NpcWindowDrawing.h	39	Scenes	game/Npc	medium	NPC talk, shop/warehouse/chaos box/jewel mix/pet trainer windows (CL9 hito 6); include graph pulls to Hud (2 vs 1 own)
@@ -1079,7 +1079,7 @@ Scenes/SessionEventApplier.cpp	716	Scenes	game/Session	high	top-level packet/tra
 Scenes/SessionEventApplier.h	50	Scenes	game/Session	high	top-level packet/transition application that reaches every feature: durable globals, map load, world entry F3 03, map tr
 Scenes/ShopSigns.cpp	445	Scenes	game/PersonalShop	high	the personal shop (2026-11-21 review)
 Scenes/ShopSigns.h	165	Scenes	game/PersonalShop	high	the personal shop (2026-11-21 review)
-Scenes/SiegeBattleUi.cpp	402	Scenes	game/CastleSiege	high	Castle Siege windows, receive B2..BB, battle UI, weapons, map server move
+Scenes/SiegeBattleUi.cpp	404	Scenes	game/CastleSiege	high	Castle Siege windows, receive B2..BB, battle UI, weapons, map server move
 Scenes/SiegeBattleUi.h	48	Scenes	game/CastleSiege	high	Castle Siege windows, receive B2..BB, battle UI, weapons, map server move
 Scenes/SiegeControlsDrawing.cpp	334	Scenes	game/CastleSiege	high	Castle Siege windows, receive B2..BB, battle UI, weapons, map server move
 Scenes/SiegePanelDrawing.cpp	314	Scenes	game/CastleSiege	high	Castle Siege windows, receive B2..BB, battle UI, weapons, map server move
@@ -1104,7 +1104,7 @@ Scenes/SkillBurstEffects.cpp	236	Scenes	game/Effects	high	model effects; uses Jo
 Scenes/SkillBurstEffects.h	69	Scenes	game/Effects	high	model effects; uses Joints and Particles (2026-11-21 review)
 Scenes/SkillDelays.cpp	168	Scenes	game/Skills	high	skills, a module of their own like Spells/ in TrinityCore (2026-11-21 review)
 Scenes/SkillDelays.h	46	Scenes	game/Skills	high	skills, a module of their own like Spells/ in TrinityCore (2026-11-21 review)
-Scenes/SkillHits.cpp	136	Scenes	game/Skills	medium	skills, a module of their own; review in AR4.2 (2026-11-21 review)
+Scenes/SkillHits.cpp	131	Scenes	game/Skills	medium	skills, a module of their own; review in AR4.2 (2026-11-21 review)
 Scenes/SkillHits.h	50	Scenes	game/Skills	medium	skills, a module of their own; review in AR4.2 (2026-11-21 review)
 Scenes/SkillReplies.cpp	1039	Scenes	game/Skills	medium	skills, a module of their own; review in AR4.2 (2026-11-21 review)
 Scenes/SkillReplies.h	76	Scenes	game/Skills	medium	skills, a module of their own; review in AR4.2 (2026-11-21 review)
@@ -1171,7 +1171,7 @@ Scenes/WorldLoadingScene.h	50	Scenes	game/Scenes	high	scene 3, the world loading
 Scenes/WorldMap.h	37	Scenes	game/Kernel	medium	durable globals, map load, world entry F3 03, map transitions, terrain state; include graph pulls to Hero (7 vs 1 own)
 Scenes/WorldModelPose.cpp	60	Scenes	game/WorldObjects	medium	map objects step/draw ((addr.)/(addr.)), per-map object services, fauna (birds/fish/leaves); include graph pulls to Mo
 Scenes/WorldModelPose.h	23	Scenes	game/WorldObjects	medium	map objects step/draw ((addr.)/(addr.)), per-map object services, fauna (birds/fish/leaves); include graph pulls to Mo
-Scenes/WorldModels.cpp	455	Scenes	game/Assets	high	models and textures, out of Kernel (2026-11-21 review)
+Scenes/WorldModels.cpp	456	Scenes	game/Assets	high	models and textures, out of Kernel (2026-11-21 review)
 Scenes/WorldModels.h	113	Scenes	game/Assets	high	models and textures, out of Kernel (2026-11-21 review)
 Scenes/WorldObjectsDrawing.cpp	1018	Scenes	game/WorldObjects	high	map objects step/draw ((addr.)/(addr.)), per-map object services, fauna (birds/fish/leaves)
 Scenes/WorldObjectsDrawing.h	241	Scenes	game/WorldObjects	high	map objects step/draw ((addr.)/(addr.)), per-map object services, fauna (birds/fish/leaves)
@@ -1411,13 +1411,13 @@ World/SphereFrustum.cpp	94	World	game/Terrain	medium	the terrain, out of Kernel 
 World/SphereFrustum.h	30	World	game/Terrain	medium	the terrain, out of Kernel (2026-11-21 review)
 World/Sprites.cpp	95	World	game/Particles	medium	particles, a module of their own below Effects (2026-11-21 review)
 World/Sprites.h	56	World	game/Particles	medium	particles, a module of their own below Effects (2026-11-21 review)
-World/TarkanObjectStep.cpp	209	World	game/MapScripts/Tarkan	medium	what that map does, like TrinityCore's per-zone scripts (2026-11-21 review)
+World/TarkanObjectStep.cpp	204	World	game/MapScripts/Tarkan	medium	what that map does, like TrinityCore's per-zone scripts (2026-11-21 review)
 World/TarkanObjectStep.h	41	World	game/MapScripts/Tarkan	medium	what that map does, like TrinityCore's per-zone scripts (2026-11-21 review)
 World/TerrainAttributeQuery.cpp	66	World	game/Terrain	medium	the terrain, out of Kernel (2026-11-21 review)
 World/TerrainAttributeQuery.h	35	World	game/Terrain	medium	the terrain, out of Kernel (2026-11-21 review)
 World/TerrainCells.cpp	372	World	game/Terrain	medium	the terrain, out of Kernel (2026-11-21 review)
 World/TerrainCells.h	137	World	game/Terrain	medium	the terrain, out of Kernel (2026-11-21 review)
-World/TerrainCulling.cpp	412	World	game/Terrain	medium	the terrain, out of Kernel (2026-11-21 review)
+World/TerrainCulling.cpp	411	World	game/Terrain	medium	the terrain, out of Kernel (2026-11-21 review)
 World/TerrainCulling.h	143	World	game/Terrain	medium	the terrain, out of Kernel (2026-11-21 review)
 World/TerrainDecal.cpp	202	World	game/Terrain	medium	the terrain, out of Kernel (2026-11-21 review)
 World/TerrainDecal.h	46	World	game/Terrain	medium	the terrain, out of Kernel (2026-11-21 review)
@@ -1440,7 +1440,7 @@ World/WizardModelEffects.cpp	1637	World	game/Effects	medium	model effects; uses 
 World/WizardModelEffects.h	142	World	game/Effects	medium	model effects; uses Joints and Particles (2026-11-21 review)
 World/WorldFiles.cpp	40	World	game/Terrain	medium	the terrain, out of Kernel (2026-11-21 review)
 World/WorldFiles.h	16	World	game/Terrain	medium	the terrain, out of Kernel (2026-11-21 review)
-World/WorldObjectMapCreation.cpp	255	World	game/WorldObjects	medium	rule ^(Birds|Fish|IBird|IFish|Leaf|Leaves|ILe
+World/WorldObjectMapCreation.cpp	256	World	game/WorldObjects	medium	rule ^(Birds|Fish|IBird|IFish|Leaf|Leaves|ILe
 World/WorldObjectMapCreation.h	20	World	game/WorldObjects	medium	rule ^(Birds|Fish|IBird|IFish|Leaf|Leaves|ILe
 World/WorldObjectRegistrations.cpp	18	World	game/WorldObjects	medium	rule ^(Birds|Fish|IBird|IFish|Leaf|Leaves|ILe
 World/WorldObjectRegistrations.h	38	World	game/WorldObjects	medium	rule ^(Birds|Fish|IBird|IFish|Leaf|Leaves|ILe
@@ -1448,6 +1448,6 @@ World/WorldObjectStepServices.cpp	465	World	game/WorldObjects	medium	rule ^(Bird
 World/WorldObjectStepServices.h	71	World	game/WorldObjects	medium	rule ^(Birds|Fish|IBird|IFish|Leaf|Leaves|ILe
 World/WorldObjects.cpp	969	World	game/WorldObjects	medium	rule ^(Birds|Fish|IBird|IFish|Leaf|Leaves|ILe
 World/WorldObjects.h	300	World	game/WorldObjects	medium	rule ^(Birds|Fish|IBird|IFish|Leaf|Leaves|ILe
-World/WorldTerrain.cpp	399	World	game/Terrain	medium	the terrain, out of Kernel (2026-11-21 review)
+World/WorldTerrain.cpp	400	World	game/Terrain	medium	the terrain, out of Kernel (2026-11-21 review)
 World/WorldTerrain.h	133	World	game/Terrain	medium	the terrain, out of Kernel (2026-11-21 review)
 main.cpp	974	main.cpp	app	high	composition root

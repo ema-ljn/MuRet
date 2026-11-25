@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainGrid.h"
+#include "Maps/MapId.h"
 #include "Math/X87.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/OriginalRotation.h"
@@ -36,8 +37,8 @@ constexpr std::int32_t CellMask = 0xff;
 // 0x4440e5: el bit 0 del byte bajo del atributo, la zona segura.
 constexpr std::uint16_t SafeCellBit = 0x01;
 // 0x444484 y 0x4444bd: en el 2 el polvo es la 5f2; en el 10, ninguno.
-constexpr std::int32_t DeviasMap = 2;
-constexpr std::int32_t IcarusMap = 10;
+using Maps::DeviasMap;
+using Maps::IcarusMap;
 // Las partículas del ayudante nacen con la escala 1 (0x3f800000).
 constexpr float ParticleScale = 1.0f;
 constexpr std::int32_t DustSubtype = 0;

@@ -1,6 +1,7 @@
 #include "World/WorldObjectMapCreation.h"
 
 #include "Crt/CrtRandom.h"
+#include "Maps/MapId.h"
 #include "World/IWorldObjectCreationServices.h"
 #include "World/WorldObjectRegistrations.h"
 #include "World/WorldObjects.h"
@@ -160,7 +161,7 @@ std::optional<WorldObjectCreationError> ApplyCastleSpecialCase(WorldObject& obje
 std::optional<WorldObjectCreationError> CreateCastleSiegeObject(WorldObject& object,
                                                                 WorldObjectCreationContext& context)
 {
-    constexpr std::int32_t CastleSiegeMap = 30;
+    using Maps::CastleSiegeMap;
     if (context.map != CastleSiegeMap)
     {
         return std::nullopt;
@@ -176,7 +177,7 @@ std::optional<WorldObjectCreationError> CreateCastleSiegeObject(WorldObject& obj
 std::optional<WorldObjectCreationError> CreateMapObject43FF70(WorldObject& object, WorldObjectCreationContext& context)
 {
     // 0x43ff10 lee el DWORD vivo aquí, después de C/H; no reutilizar el mapa del dispatch inicial.
-    constexpr std::int32_t LandOfTrialMap = 31;
+    constexpr std::int32_t LandOfTrialMap = Maps::LandOfTrialsMap;
     if (context.map != LandOfTrialMap)
     {
         return std::nullopt;
@@ -193,15 +194,15 @@ std::optional<WorldObjectCreationError> CreateMapObject43FF70(WorldObject& objec
 std::uint8_t CreateMapObject42EE30(const WorldObjectCreationContext& context)
 {
     // 0x42ee20: un DWORD vivo igual a 35; el wrapper normaliza AL sin efectos ni RNG.
-    constexpr std::int32_t Map35 = 35;
+    constexpr std::int32_t Map35 = Maps::SecondCrywolfMap;
     return static_cast<std::uint8_t>(context.map == Map35);
 }
 
 std::uint8_t CreateMapObject4250E0(const WorldObjectCreationContext& context)
 {
     // 0x425070: una única lectura de 32 bits para ambas igualdades; el wrapper conserva AL0/1.
-    constexpr std::int32_t Map33 = 33;
-    constexpr std::int32_t CharacterSelectMap = 54;
+    constexpr std::int32_t Map33 = Maps::AidaMap;
+    using Maps::CharacterSelectMap;
     const std::int32_t map = context.map;
     return static_cast<std::uint8_t>(map == Map33 || map == CharacterSelectMap);
 }
@@ -209,7 +210,7 @@ std::uint8_t CreateMapObject4250E0(const WorldObjectCreationContext& context)
 std::uint8_t CreateMapObject4303D0(const WorldObjectCreationContext& context)
 {
     // 0x4303c0: un DWORD vivo igual a 34; el wrapper normaliza AL sin efectos ni RNG.
-    constexpr std::int32_t Map34 = 34;
+    constexpr std::int32_t Map34 = Maps::CrywolfMap;
     return static_cast<std::uint8_t>(context.map == Map34);
 }
 } // namespace

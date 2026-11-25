@@ -9,6 +9,7 @@
 #include "Data/Textures/Sampling.h"
 #include "Data/Textures/TextureSet.h"
 #include "Data/WorldFolder.h"
+#include "Maps/MapId.h"
 #include "Render/ITextureStore.h"
 #include "Render/Models/ModelTextureSlots.h"
 #include "Render/Models/Skeleton.h"
@@ -44,8 +45,8 @@ namespace
 // 0x60d5f0(k, "Object<N>\\", 0x2901, 0x2600, 1): repitiendo y con GL_NEAREST.
 constexpr Data::Textures::Sampling WorldModelSampling{Data::Textures::Filter::Nearest, Data::Textures::Wrap::Repeat};
 
-constexpr std::uint8_t LorenciaMap = 0;
-constexpr std::uint8_t CastleSiegeMap = 30;
+constexpr std::uint8_t LorenciaMap = Maps::LorenciaMap;
+constexpr std::uint8_t CastleSiegeMap = Maps::CastleSiegeMap;
 constexpr Render::TextureSlot SpecialModelsFirstSlot{0x69};
 
 // "Object56" para el mapa 55: la carpeta Object<N> de su número (Data::WorldFolderNumber).
@@ -233,7 +234,7 @@ void WorldModels::LoadObjects(const std::filesystem::path& dataRoot, std::uint8_
 
 Core::Expected<void, std::string> WorldModels::ConfigureActions(std::uint8_t map, const WorldSpecialModelSet& specials)
 {
-    constexpr std::uint8_t DungeonMap = 1;
+    constexpr std::uint8_t DungeonMap = Maps::DungeonMap;
     constexpr std::uint16_t DungeonModel = 40;
     constexpr std::size_t DungeonAction = 1;
     if (map == DungeonMap)

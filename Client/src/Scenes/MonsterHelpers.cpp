@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Maps/MapId.h"
 #include "Math/X87.h"
 #include "Render/ModelBatch.h"
 #include "Render/Models/HalfLifeMath.h"
@@ -69,7 +70,7 @@ constexpr std::uint16_t Flare = 0x5ac;
 constexpr std::uint16_t Shine = 0x5fd;
 constexpr std::uint16_t Spark = 0x5ad;
 constexpr std::uint16_t CrywolfMark = 0x69b;
-constexpr std::int32_t CrywolfMap = 0x22;
+using Maps::CrywolfMap;
 // Los tipos de 0x53fe70 que World::Particles crea: el rayo 0x5ca/0, el aliento 0x5f2/11 (el polvo de piedra), el
 // polvo 0x5f3/0, el fuego 0x5d9/0 y la luz que persigue 0x729/0 y /1.
 constexpr std::int32_t Thunder = 0x5ca;

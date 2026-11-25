@@ -42,8 +42,8 @@ namespace
 using Chained = Core::Expected<bool, std::string>;
 
 using Maps::IsKalimaMap;
-constexpr std::int32_t CastleMap = 30;
-constexpr std::int32_t Map34 = 0x22;
+constexpr std::int32_t CastleMap = Maps::CastleSiegeMap;
+constexpr std::int32_t Map34 = Maps::CrywolfMap;
 constexpr std::uint32_t BaseFlags = 0x2;
 // 0x438fe0: el agua de Kalima, con Water01.. desde el slot 0x41 más el frame de 0x7d2d360.
 constexpr std::int32_t WaterTexture = 0x41;

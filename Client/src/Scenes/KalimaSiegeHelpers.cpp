@@ -39,7 +39,7 @@ using Render::Models::BoneTransform;
 using Result = Core::Expected<void, std::string>;
 
 using Maps::IsKalimaMap;
-constexpr std::int32_t CastleMap = 30;
+constexpr std::int32_t CastleMap = Maps::CastleSiegeMap;
 constexpr std::uint8_t DeadAction = 6;
 constexpr std::uint16_t NoModel = 0xffff;
 

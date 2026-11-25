@@ -70,7 +70,7 @@ constexpr std::uint16_t FlyingWord376 = 0x101;
 
 // Los mapas de vuelo de 0x4f23ad..0x4f23bf (Atlans y Kalima): ahí 0x4f2250 lee la celda del personaje
 // en el TerrainWall (0x7d0d348) en la escena 5.
-constexpr std::int32_t AtlansMap = 7;
+using Maps::AtlansMap;
 using Maps::FirstKalimaMap;
 using Maps::LastKalimaMap;
 using Maps::SeventhKalimaMap;

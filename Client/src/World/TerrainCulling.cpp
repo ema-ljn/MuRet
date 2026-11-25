@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Data/Terrain/TerrainGrid.h"
+#include "Maps/MapId.h"
 #include "Math/X87.h"
 #include "Render/ModelBatch.h"
 #include "Render/Models/OriginalRotation.h"
@@ -46,9 +47,9 @@ constexpr float NearWidth = std::bit_cast<float>(0x44070000u);
 // 0x5fb570: 45° fijos (0x5fb9e8), o −yaw en mapa55 y mapa6/webzenYaw.
 // Las celdas por 0,01 (0x6b88d4); OriginalRotation conserva el contrato angular existente.
 constexpr float DefaultAngle = 45.0f;
-constexpr std::int32_t LoginMap = 55;
+using Maps::LoginMap;
 constexpr std::int32_t WebzenMap = 6;
-constexpr std::int32_t CastleMap = 30;
+constexpr std::int32_t CastleMap = Maps::CastleSiegeMap;
 constexpr std::int32_t LoginScene = 2;
 constexpr std::int32_t SelectionScene = 4;
 constexpr std::int32_t GameScene = 5;

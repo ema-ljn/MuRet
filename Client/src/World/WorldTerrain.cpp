@@ -11,6 +11,7 @@
 #include "Data/Terrain/TerrainObjects.h"
 #include "Data/Textures/Sampling.h"
 #include "Data/WorldFolder.h"
+#include "Maps/MapId.h"
 #include "World/TerrainCells.h"
 #include "World/TerrainLighting.h"
 #include "World/WorldFiles.h"
@@ -314,7 +315,7 @@ std::vector<WorldTileTexture> WorldWeatherTextures(std::uint8_t map)
     // 61ac64/61ac92 cargan primero la TGA y después la JPG sobre el MISMO slot64.
     // Todos llevan sexto argumento0: faltar o fallar al leer no elimina la alternativa anterior.
     constexpr Data::Textures::Sampling sampling{Data::Textures::Filter::Nearest, Data::Textures::Wrap::Clamp};
-    constexpr std::uint8_t CrywolfMap = 34;
+    constexpr std::uint8_t CrywolfMap = Maps::CrywolfMap;
     const std::string folder = Data::WorldFolder(map) + "\\";
     return {{folder + "leaf01.tga", 0x64, sampling, false},
             {folder + "leaf01.jpg", 0x64, sampling, false},
@@ -370,7 +371,7 @@ WorldTileTexture ObjectLightTexture()
 
 std::vector<WorldTileTexture> TarkanObjectTextures(std::uint8_t map)
 {
-    constexpr std::uint8_t TarkanMap = 8;
+    constexpr std::uint8_t TarkanMap = Maps::TarkanMap;
     if (map != TarkanMap)
         return {};
     constexpr Data::Textures::Sampling Repeat{Data::Textures::Filter::Linear, Data::Textures::Wrap::Repeat};
@@ -382,7 +383,7 @@ std::vector<WorldTileTexture> TarkanObjectTextures(std::uint8_t map)
 
 std::vector<WorldTileTexture> IcarusObjectTextures(std::uint8_t map)
 {
-    constexpr std::uint8_t IcarusMap = 10;
+    constexpr std::uint8_t IcarusMap = Maps::IcarusMap;
     if (map != IcarusMap)
         return {};
     constexpr Data::Textures::Sampling Clamp{Data::Textures::Filter::Linear, Data::Textures::Wrap::Clamp};
@@ -390,7 +391,7 @@ std::vector<WorldTileTexture> IcarusObjectTextures(std::uint8_t map)
 }
 std::vector<WorldTileTexture> CastleSiegeTextures(std::uint8_t map)
 {
-    constexpr std::uint8_t CastleMap = 30;
+    constexpr std::uint8_t CastleMap = Maps::CastleSiegeMap;
     if (map != CastleMap)
         return {};
     constexpr Data::Textures::Sampling Clamp{Data::Textures::Filter::Linear, Data::Textures::Wrap::Clamp};

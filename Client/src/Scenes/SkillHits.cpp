@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Maps/MapId.h"
 #include "Math/X87.h"
 #include "Protocol/Outgoing.h"
 #include "Protocol/Skill.h"
@@ -28,7 +29,7 @@ namespace Client::Scenes
 {
 namespace
 {
-constexpr std::int32_t CastleSiegeMap = 30;
+using Maps::CastleSiegeMap;
 constexpr double CellsPerUnit = static_cast<double>(0.01f); // 0x6b86c0
 constexpr std::uint8_t MonsterKind = 2;
 constexpr std::uint8_t PlayerKind = 1;

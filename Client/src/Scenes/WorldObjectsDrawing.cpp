@@ -132,7 +132,7 @@ DrawnObject Drawn(const World::WorldObject& object, const World::ObjectDraw& dra
 // 0x6046b2..0x6046c3: el margen de más de cada objeto, −10 en Icarus (el mapa 10) y 0 en los demás.
 float ExtraObjectMargin(std::uint8_t map)
 {
-    constexpr std::uint8_t IcarusMap = 10;
+    constexpr std::uint8_t IcarusMap = Maps::IcarusMap;
     constexpr float IcarusMargin = -10.0f;
     return map == IcarusMap ? IcarusMargin : 0.0f;
 }
@@ -457,22 +457,22 @@ void DrawWorldObjects(Render::ModelBatch& batch, const Render::Models::IModelLib
 
 namespace
 {
-constexpr std::uint8_t LorenciaMap = 0;
-constexpr std::uint8_t DeviasMap = 2;
-constexpr std::uint8_t NoriaMap = 3;
-constexpr std::uint8_t LostTowerMap = 4;
-constexpr std::uint8_t ArenaMap = 6;
-constexpr std::uint8_t AtlansMap = 7;
-constexpr std::uint8_t TarkanMap = 8;
-constexpr std::uint8_t DevilSquareMap = 9;
-constexpr std::uint8_t IcarusMap = 10;
+constexpr std::uint8_t LorenciaMap = Maps::LorenciaMap;
+constexpr std::uint8_t DeviasMap = Maps::DeviasMap;
+constexpr std::uint8_t NoriaMap = Maps::NoriaMap;
+constexpr std::uint8_t LostTowerMap = Maps::LostTowerMap;
+constexpr std::uint8_t ArenaMap = Maps::ArenaMap;
+constexpr std::uint8_t AtlansMap = Maps::AtlansMap;
+constexpr std::uint8_t TarkanMap = Maps::TarkanMap;
+constexpr std::uint8_t DevilSquareMap = Maps::DevilSquareMap;
+constexpr std::uint8_t IcarusMap = Maps::IcarusMap;
 constexpr std::uint8_t FirstBloodCastleMap = 11;
 constexpr std::uint8_t LastBloodCastleMap = 17;
-constexpr std::uint8_t CastleSiegeMap = 30;
-constexpr std::uint8_t LandOfTrialsMap = 31;
-constexpr std::uint8_t AidaMap = 33;
-constexpr std::uint8_t CrywolfMap = 34;
-constexpr std::uint8_t SelectionWorldMap = 54;
+constexpr std::uint8_t CastleSiegeMap = Maps::CastleSiegeMap;
+constexpr std::uint8_t LandOfTrialsMap = Maps::LandOfTrialsMap;
+constexpr std::uint8_t AidaMap = Maps::AidaMap;
+constexpr std::uint8_t CrywolfMap = Maps::CrywolfMap;
+constexpr std::uint8_t SelectionWorldMap = Maps::CharacterSelectMap;
 // 0x60479c: el 0x64 de Devias se dibuja según el nivel del registro propio (0x604944..0x604957, jl con
 // signo): desde 0x35 con la clase del héroe (+0x1d4 & 7) en 3 o 4, y desde 0x50 con las demás.
 constexpr std::int16_t DeviasLeveledObject = 0x64;

@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Data/Models/PlayerModels.h"
+#include "Maps/MapId.h"
 #include "Render/Models/Animation.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterStep.h"
@@ -26,15 +27,15 @@ namespace
 // 0x4fcd0c y 0x4fc797: la clase de objeto de los NPC.
 constexpr std::uint8_t NpcKind = 4;
 // 0x4fcd15..0x4fcd24: los mapas del giro, Lorencia y Devias.
-constexpr std::int32_t LorenciaMap = 0;
-constexpr std::int32_t DeviasMap = 2;
+using Maps::DeviasMap;
+using Maps::LorenciaMap;
 // 0x4fcd2e..0x4fcd3d: los subtipos del giro, con signo.
 constexpr std::int32_t FirstTurnedSubtype = 0xd1;
 constexpr std::int32_t LastTurnedSubtype = 0xd3;
 // 0x4fcd49: 90 (0x42b40000) en +0x24 en Lorencia.
 constexpr float LorenciaTurn = 90.0f;
 // 0x4fc7dc: el 0x1cd no habla en el mapa 30.
-constexpr std::int32_t CastleMap = 30;
+constexpr std::int32_t CastleMap = Maps::CastleSiegeMap;
 // 0x4fc846: +0x376 del 0x20a que habla.
 constexpr std::uint16_t TalkingNpcClass = 0x101;
 // 0x6c88b0: los 11 bytes EUC-KR que 0x4fcda2 compara con el nombre (+0x1d9), con strcmp.

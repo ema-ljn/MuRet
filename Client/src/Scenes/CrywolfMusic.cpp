@@ -2,6 +2,7 @@
 
 #include "Audio/Music.h"
 #include "Audio/Playback.h"
+#include "Maps/MapId.h"
 #include "Protocol/Events.h"
 #include "Scenes/WorldRuntime.h"
 
@@ -16,7 +17,7 @@ namespace Events = Protocol::Events;
 
 // 0x430250: the map it tests, the four tracks it plays and stops, the failure banner it looks for in 0x6c73dc and
 // the two sounds of the result (CW_win.wav and CW_lose.wav).
-constexpr std::int32_t CrywolfMap = 34;
+using Maps::CrywolfMap;
 constexpr std::string_view MapTrack = "Music\\crywolf1st.mp3";
 constexpr std::string_view SecondNoticeTrack = "Music\\crywolf_before-01.ogg";
 constexpr std::string_view ReadyTrack = "Music\\crywolf_ready-02.ogg";

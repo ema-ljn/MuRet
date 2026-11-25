@@ -1,6 +1,7 @@
 #include "Scenes/CastleSiegeMap.h"
 
 #include "Core/Expected.h"
+#include "Maps/MapId.h"
 #include "Scenes/WorldMap.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
@@ -18,7 +19,7 @@ Core::Expected<void, std::string> SetTheSiegeActive(std::uint8_t value, WorldSta
     WorldRuntime& runtime = world.Runtime();
     runtime.previousSiegeActive = runtime.siegeActive;
     runtime.siegeActive = value != 0;
-    constexpr std::int32_t CastleMap = 30;
+    constexpr std::int32_t CastleMap = Maps::CastleSiegeMap;
     if (runtime.map != CastleMap)
         return {};
     auto& terrain = world.Map().terrain;

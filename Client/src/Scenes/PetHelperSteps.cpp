@@ -31,8 +31,8 @@ namespace Client::Scenes
 namespace
 {
 // 0x444877..0x44487f y 0x4448fe..0x444906: el Dinorant vuela en Tarkan (8) y en Icarus (10).
-constexpr std::int32_t TarkanMap = 8;
-constexpr std::int32_t IcarusMap = 10;
+using Maps::IcarusMap;
+using Maps::TarkanMap;
 // 0x444881: con el mundo en −1 el Dinorant queda a la altura del jinete.
 constexpr std::int32_t NoMap = -1;
 constexpr double FlyingDrop = 10.0;  // 0x6b87a8

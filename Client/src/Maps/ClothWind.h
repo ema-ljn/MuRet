@@ -1,13 +1,12 @@
 #pragma once
 
+#include "Maps/MapId.h"
 #include "Render/Models/Cloth.h"
 
 #include <cstdint>
 
 namespace Client::Maps
 {
-inline constexpr std::uint8_t LoginMap = 0x37;
-
 // 0x4551f4.
 [[nodiscard]] constexpr Render::Models::ClothWindSource ClothWindForMap(std::uint8_t map)
 {

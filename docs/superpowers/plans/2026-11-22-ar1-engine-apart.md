@@ -76,7 +76,7 @@ Measured on `refactor/client` at 75c33064 (2026-11-22). AR1.3, the command line,
 | `FoxAnti` in the names (`FoxAntiObfuscation`, `MURET_FOXANTI`, `MuRetFoxAnti`, `engine/Network/FoxAnti`) | `XorRemap` (`XorRemapObfuscation`, `MU_XOR_REMAP`, `XorRemap`, `engine/Network/XorRemap`) | Emanuel, 2026-11-22: not a DLL any more but a layer named after what it does |
 | `LabFoxAntiTables()` defined in `MakeObfuscationFoxAnti.cpp` | `constexpr` in `App/LabXorRemapTables.h` | the layer's tests build the lab tables too, and they do not link the executable's sources |
 | `Core/WrappingInt.h` and `UI::Rect::Contains` in the kit | left out | no copy of a wrapping integer was found, and `Rect::Contains` already exists (`UI/Widget.h`) |
-| the 189 loose map comparisons switch to names | `MapId.h` replaces the 77 duplicated constants and the predicates; the loose literals switch in each module's AR4 design PR | each literal needs a judgment (is it a map?); AR4 reads those files anyway |
+| the 189 loose map comparisons switch to names | `MapId.h` replaces the 77 duplicated constants and the predicates (Task 5) and names every single map (Task 5d); the loose literals switch in each module's AR4 design PR, the fauna's first (Task 5e) | each literal needs a judgment (is it a map?); AR4 reads those files anyway. Emanuel, 2026-11-25: the single maps get their names now, and `Birds.cpp` and `Fish.cpp` go first |
 | map enum | `inline constexpr std::int32_t` constants in AR1; AR6 turns them into an opaque `enum class MapId : std::int32_t {}` with the same names | the size of the change, not casts: estimated from the types review (2026-11-23), about 228 parameters and 30 fields to retype and about 182 literal uses in `Client/src` and 506 in the tests to inspect (not all of them stop compiling, see AR6's inventory), so the type changes once AR4 has named the literals |
 | one static target per module | one shared library per engine module, `MU_MONOLITHIC` for a single binary (ADR in Task 6) | Emanuel, 2026-11-22: DLLs on Windows and the same on Linux, as large engines do (Unreal, O3DE, Source) |
 | `MuRet<Module>` targets (`MuRetCore`…) | no prefix: `Core.dll`, `Audio.dll`…, the executable `main.exe` | Emanuel, 2026-11-22: like the original's `main.exe` |
@@ -87,7 +87,7 @@ Measured on `refactor/client` at 75c33064 (2026-11-22). AR1.3, the command line,
 
 ---
 
-## AR1.1 (design): eight PRs
+## AR1.1 (design): ten PRs
 
 ### Task 1: the engine stops including the game
 
@@ -440,6 +440,37 @@ that differ in the last bit (`Render/Models/OriginalRotation.cpp:16` `0x3C8EFA35
 token-identical to the home's; role names (`Fade`, `Growth`) are not touched. Gate: the behavior golden in Debug and
 `math-release` on Linux and Windows, and the reference gives the same numbers. The registry's `number` space becomes
 `home-only`.
+
+### Task 5d: every map has its name
+
+PR `refactor(AR1.1): name every map in Maps/MapId.h`, branch `refactor/ar1.1-map-names`. After Task 5 (Emanuel,
+2026-11-25, reviewing Task 5's PR: the numeric maps get their names in one header).
+
+`Maps/MapId.h` lists every map the client knows, as `inline constexpr std::int32_t` beside the range bounds:
+`LorenciaMap` 0, `DungeonMap` 1, `DeviasMap` 2, `NoriaMap` 3, `LostTowerMap` 4, `ExileMap` 5, `ArenaMap` 6,
+`AtlansMap` 7, `TarkanMap` 8, `DevilSquareMap` 9, `IcarusMap` 10, `CastleSiegeMap` 30, `LandOfTrialsMap` 31,
+`SecondDevilSquareMap` 32 (the loader turns it into 9), `AidaMap` 33, `CrywolfMap` 34, `SecondCrywolfMap` 35,
+`CharacterSelectMap` 54 and `LoginMap` 55. `tests/world/test_map_id.cpp` writes each number. `Maps/ClothWind.h` drops
+its own `LoginMap`.
+
+A script replaces the private definitions that name one of these maps, and nothing else in their files. A
+`std::int32_t` copy with the home's name becomes `using Maps::<Name>;` in the same place. A copy with another type
+(`std::uint8_t`, `int`) or another name for the same map (`CastleMap`, `CastleSiege`, `LandOfTrialMap`, `TrialsMap`,
+`Map33`, `Map34`, `Map35`, `SelectionMap`, `SelectionWorldMap`) keeps its name and its type and takes the home's name
+as its initializer (the [named-values plan](2026-11-23-named-values.md)'s "replace initializers, not types"). No
+comparison, citation or test changes. The role names for the same numbers (`BubbleMap`, `NoShadowMap`,
+`SpectatorMap`) and the range bounds under other names (`FirstBloodCastle`, `FirstKalima`) stay for their module's
+design PR. The registry's baseline loses the rows this PR replaced.
+
+### Task 5e: the fauna's loose map numbers
+
+PR `refactor(AR1.1): name the maps the fauna compares`, branch `refactor/ar1.1-fauna-map-names`. After Task 5d.
+
+`World/Birds.cpp` and `World/Fish.cpp` (`game/Fauna`) compare the map with a bare number 46 times. Each one takes the
+home's name, by hand and with the original read at its address: `map == 7` becomes `map == AtlansMap`, and a range
+becomes `IsBloodCastle(map)` or `IsKalimaMap(map)` only where the original's compares at that site are that
+predicate's (`0x44644c..0x44649b` checks 0, 1, 3, 4 and 10, then 11 to 17, then 24 to 29 or 36). The other loose
+literals (about 130 in 27 files) stay with each module's AR4 design PR.
 
 ---
 

@@ -5,6 +5,7 @@
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Data/Models/PlayerModels.h"
+#include "Maps/MapId.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/ArrowEffects.h"
@@ -293,7 +294,7 @@ Core::Expected<void, std::string> StrikeTheTarget(ActorState& actor, std::size_t
                 context.soundRequest(SmokeSound);
         }
         // 0x50428c: 0x42ea00(blanco) solo actúa en el mapa 30 con los tipos 0x19b y 0x19c.
-        constexpr std::int32_t CastleMap = 30;
+        constexpr std::int32_t CastleMap = Maps::CastleSiegeMap;
         if (runtime.map == CastleMap && (victim.type == 0x19b || victim.type == 0x19c))
         {
             const auto heroFlags = context.world.Actors()[runtime.hero].flags78;

@@ -1,6 +1,7 @@
 #include "Scenes/DarkSpirit.h"
 
 #include "Crt/CrtRandom.h"
+#include "Maps/MapId.h"
 #include "Math/X87.h"
 #include "Render/Models/Animation.h"
 #include "Render/Models/HalfLifeMath.h"
@@ -49,7 +50,7 @@ constexpr int TurnSpan = 15;
 constexpr double TurnBase = 5.0;
 // 0x417c95: la altura de vuelo sobre el dueño, 350 en el mapa 0x37 y 250 en los demás (Q-C131), y el
 // margen de arriba.
-constexpr std::uint8_t LoginMap = 0x37;
+constexpr std::uint8_t LoginMap = Maps::LoginMap;
 // 0x417c95: compara el word de la mascota con 0x1a04, el índice del caballo oscuro (13, 4) y no su modelo
 // (0x1c16): con el equipo de 0x512a30 no da nunca (Q-C413).
 constexpr std::uint16_t HorseIndex = 0x1a04;

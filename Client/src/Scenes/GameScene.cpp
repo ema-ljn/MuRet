@@ -144,33 +144,33 @@ constexpr std::int32_t WithoutTerrainMap = 10;
 constexpr std::int32_t FirstWithoutGrassMap = 18;
 constexpr std::int32_t LastWithoutGrassMap = 23;
 // 0x63741d: en el mapa 30 el dibujo pone o saca la niebla (0x42b0a0).
-constexpr std::int32_t CastleMap = 30;
+constexpr std::int32_t CastleMap = Maps::CastleSiegeMap;
 // 0x42b0a0 con el color que arma 0x63746b..0x63747a en la pila, (0, 0, 0): glFogf(GL_FOG_MODE, GL_LINEAR), de
 // 2.000 (0x44fa0000) a 2.700 (0x4528c000).
 constexpr Render::ModelFog CastleSiegeFog{.color = glm::vec3(0.0f), .start = 2000.0f, .end = 2700.0f};
 // 0x633f20: mapa conservado durante la espera de entrada.
-constexpr std::int32_t SelectionMap = 54;
+constexpr std::int32_t SelectionMap = Maps::CharacterSelectMap;
 // 0x425070: el 33 comparte con el 54 los casos de los objetos de 0x4250f0.
-constexpr std::int32_t AidaMap = 33;
+using Maps::AidaMap;
 // 0x43ff10: Land of Trials, con sus casos en 0x43ffc0, 0x4401e0 y 0x4403b0.
-constexpr std::int32_t LandOfTrialsMap = 31;
+using Maps::LandOfTrialsMap;
 // 0x4303c0: Crywolf, con sus casos en 0x4303e0, 0x430510 y 0x4306a0 y las burbujas de su agua (0x5fa695).
-constexpr std::int32_t CrywolfMap = 34;
+using Maps::CrywolfMap;
 // Los mapas de referencia, los únicos con los casos de los objetos en el juego (0x6046a0 y 0x604ab0).
-constexpr std::int32_t LorenciaMap = 0;
-constexpr std::int32_t DungeonMap = 1;
-constexpr std::int32_t DeviasMap = 2;
-constexpr std::int32_t NoriaMap = 3;
-constexpr std::int32_t LostTowerMap = 4;
+using Maps::DeviasMap;
+using Maps::DungeonMap;
+using Maps::LorenciaMap;
+using Maps::LostTowerMap;
+using Maps::NoriaMap;
 // La Arena (World7): sus casos en 0x604ab0 (0x6054fd) y 0x602ed0 (0x6039cb).
-constexpr std::int32_t ArenaMap = 6;
+using Maps::ArenaMap;
 // Atlans (World8): sus casos en 0x604ab0 (la tabla 0x605c94); 0x602ed0 y 0x6002e0 no tienen.
-constexpr std::int32_t AtlansMap = 7;
-constexpr std::int32_t TarkanMap = 8;
-constexpr std::int32_t IcarusMap = 10;
-constexpr std::int32_t DevilSquareMap = 9;
+using Maps::AtlansMap;
+using Maps::DevilSquareMap;
 using Maps::FirstBloodCastleMap;
+using Maps::IcarusMap;
 using Maps::LastBloodCastleMap;
+using Maps::TarkanMap;
 // 0x620486..0x6204b0: el mouse de 640 × 480 vuelve a la pantalla con · W / 640 y · H / 480, en enteros.
 constexpr std::int64_t Width640 = 640;
 constexpr std::int64_t Height480 = 480;

@@ -1,6 +1,7 @@
 #include "Scenes/CrywolfContract.h"
 
 #include "Core/Expected.h"
+#include "Maps/MapId.h"
 #include "Protocol/Events.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/GameMovementState.h"
@@ -26,7 +27,7 @@ namespace
 using Result = Core::Expected<void, std::string>;
 
 // 0x4303c0: the map 0x6c9dd0 is 0x22.
-constexpr std::int32_t CrywolfMap = 0x22;
+using Maps::CrywolfMap;
 
 // 0x435b5c y 0x435b6c: las dos ventanas.
 constexpr std::uint8_t QuestionWindow = 1;

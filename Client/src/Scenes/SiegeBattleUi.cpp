@@ -5,6 +5,7 @@
 #include "Crt/CrtRandom.h"
 #include "Input/InputState.h"
 #include "Input/Key.h"
+#include "Maps/MapId.h"
 #include "Protocol/Connection/Logout.h"
 #include "Protocol/Outgoing.h"
 #include "Protocol/SiegeControls.h"
@@ -38,7 +39,7 @@ namespace Client::Scenes
 {
 namespace
 {
-constexpr std::int32_t CastleMap = 30;
+constexpr std::int32_t CastleMap = Maps::CastleSiegeMap;
 constexpr std::uint32_t OpenGateFlag = 0x20000;
 constexpr std::uint8_t Master = 0x80;
 constexpr std::uint8_t Assistant = 0x40;

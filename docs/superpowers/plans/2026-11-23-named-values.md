@@ -40,7 +40,7 @@ exists most files do not use it.
 | Packet offsets and sizes | 78 offsets, 76 private to a `Protocol/*.cpp`; sizes beside opcodes (`Protocol/Character/Opcodes.h:25-29`) | the packet's layout, `game/Protocol/<Module>/` | `Field<T, Offset, Endian>` | AR2.1 (planned) |
 | Item codes, models, group bounds | 455 definitions for 135 values; `0x1c15` 22 times | `Tables/ItemCode.h` | item plan | item plan Tasks 1, 9 |
 | `Item.bmd` and other table rows | 155 offsets read outside `Data/`; only `GateRecord` is typed | `game/Tables`, one record view per table | accessor per field | item plan Tasks 2, 3; Task 8 (`SkillRecord`) |
-| Maps | 314 definitions for 25 values (`LastChaosCastleMap` 25 times) | `Maps/MapId.h` | `std::int32_t` constants, as the copies they replace; opaque enum in AR6 | AR1 Task 5 |
+| Maps | 314 definitions for 25 values (`LastChaosCastleMap` 25 times) | `Maps/MapId.h` | `std::int32_t` constants, as the copies they replace; opaque enum in AR6 | AR1 Task 5 (ranges), Task 5d (single maps), Task 5e (the fauna's loose literals) |
 | Character class | 77 definitions for 7 values, no header | `game/Kernel` | `enum class CharacterClass : std::uint8_t`, `BaseClassOf` | Task 7 |
 | Sounds | 158 definitions for 100 values; `0x19` 23 times under 12 names | `game/Sound` | `Audio::SoundId` (`Core::Id`) | Task 8 |
 | Non-item models, texture slots | 149 model definitions (`0x20a` 11 times); `0x5ac` 41 times under 29 names | `game/Assets` | `ModelId`, `Render::TextureSlot` | Task 8 |

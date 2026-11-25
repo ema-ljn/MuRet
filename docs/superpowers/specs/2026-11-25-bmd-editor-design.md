@@ -152,7 +152,9 @@ marked "not read by the client". Files that match no layout (`Data/Item/item.bmd
 
 1. Encode the document.
 2. Decode the new bytes and compare with the document; a mismatch aborts (write-verify).
-3. Write to a temporary file in the target folder and `os.replace` it, keeping the old file as `<name>.bak` the first
+3. Check that the file on disk still has the SHA-256 it had when it was read; if someone changed it meanwhile (the TUI
+   open while an agent ran `set`), stop with `STALE_FILE` instead of overwriting their change.
+4. Write to a temporary file in the target folder and `os.replace` it, keeping the old file as `<name>.bak` the first
    time.
 
 What the writer recomputes after an edit: counts (from list lengths), the encrypted block's size, and the checksum of
@@ -175,9 +177,10 @@ fail with an error that names the way out. Edits happen in a working copy, a ful
 
 Records are decoded as CP1252, the client's western profile (`Client/docs/research/12-codificacion.md`). The catalog
 gives each text file its encoding: `TKOU.bmd` decodes entirely as GB2312 (1,671 records, checked 2026-11-25), and
-`--encoding` overrides it. A record that its encoding cannot decode is shown and kept as hex. On edit, the tool checks
-that the text encodes in the file's encoding and fits the record with its `0`; record 7 of `Text.bmd`, which fills its
-300 bytes without one (Q-C07), stays as it is unless edited. `printf` specifiers (`%d`, `%s`) are highlighted, and changing their number or order is a warning: the client
+`--encoding` overrides it. A record that its encoding cannot decode, or that has bytes after its first `0`, is shown
+and kept as hex. On edit, the tool checks that the text encodes in the file's encoding and fits the record's 300 bytes.
+A text that fills all 300, with no `0` left, is a warning and not an error: record 7 of `Text.bmd` is like that
+(Q-C07), and the client reads such a text into the next record. `printf` specifiers (`%d`, `%s`) are highlighted, and changing their number or order is a warning: the client
 passes some texts to `sprintf`.
 
 ### The JSON format
@@ -247,10 +250,11 @@ mubmd tui [<folder|file>]                   the console UI
   `suggestion` is a command the agent can run next whenever there is one, and `input` echoes what the command got.
 - The codes are a closed list, part of the contract, and never renamed within a version. Among them:
   `USAGE`, `FILE_NOT_FOUND`, `UNKNOWN_FORMAT`, `POINTER_NOT_FOUND`, `INVALID_VALUE`, `TEXT_TOO_LONG`,
-  `NOT_ENCODABLE`, `REFERENCE_READ_ONLY`, `TEST_FAILED`, `WRITE_VERIFY_FAILED`.
+  `NOT_ENCODABLE`, `CORRUPT_FILE`, `REFERENCE_READ_ONLY`, `STALE_FILE`, `TEST_FAILED`, `WRITE_VERIFY_FAILED`,
+  `NOT_EMPTY`.
 - Exit codes: 0 done; 1 done but with findings or differences (`validate`, `diff`, `roundtrip`); 2 bad usage; 20 a
-  file, format or pointer that does not exist; 30 a precondition failed (read-only reference, a JSON Patch `test`
-  that did not hold, write-verify).
+  file, format or pointer that does not exist; 30 a precondition failed (read-only reference, a file too short for
+  its format, a file that changed since it was read, a JSON Patch `test` that did not hold, write-verify).
 - Nothing but `tui` is interactive: a missing argument is a `USAGE` error, never a prompt. Unknown flags are rejected.
 
 **Input.**
@@ -258,7 +262,7 @@ mubmd tui [<folder|file>]                   the console UI
 - Addresses inside a document are JSON Pointers (RFC 6901), the same in `get`, `set`, `apply`, `schema`, findings and
   the TUI's status line, so a pointer copied from one place works in any other.
 - Values are typed by the schema: `set` parses `<value>` as the field's type and rejects what does not fit, with the
-  limit in the message (`TEXT_TOO_LONG`: "312 bytes, the record holds 299").
+  limit in the message (`TEXT_TOO_LONG`: "312 bytes, the record holds 300").
 - `apply` takes a JSON Patch (RFC 6902) limited to `test` and `replace`. `test` is the agent's guard against editing
   something that changed: `[{"op": "test", "path": "/texts/500", "value": "El usuario salió del juego"}, {"op":
   "replace", "path": "/texts/500", "value": "..."}]`. Either every operation applies or none does.
@@ -343,7 +347,7 @@ Three parts: the CLI above, a skill that teaches it, and tests that keep both ho
 **Skills for writing the tool**, vendored like the C++ ones (upstream copy in `references/`, a MuRet layer on top,
 ranked below the repo's rules):
 
-- `ai-native-cli`, from [sickn33/antigravity-awesome-skills](https://github.com/sickn33/antigravity-awesome-skills)
+- `ai-native-cli`, from [sickn33/agentic-awesome-skills](https://github.com/sickn33/agentic-awesome-skills)
   (the source of the existing `clean-code` skill; content under CC BY 4.0): 98 rules for CLIs that agents call, in
   three levels. MuRet's layer adopts the core and recommended levels as the section above adapts them (JSON Pointer
   paths, the exit codes, `--human`), and skips the ecosystem level's `agent/` folder and issue system, which the skill

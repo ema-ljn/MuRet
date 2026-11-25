@@ -155,9 +155,10 @@ loses the only guard that keeps SDL in one place.
 
 - **The macro follows the linker.** A class or a free function carries its library's macro when it is defined in a
   `.cpp` and another binary links it. A script reads the build's objects for the symbols one target defines and
-  another asks for: 525, on 55 classes and 241 free functions in 131 of the 196 headers. An interface that lives whole
-  in its header carries no macro, which narrows "interfaces included" above: it exports no symbol, so nothing would
-  check its macro. With this rule a missing macro is always a link error, on both systems.
+  another asks for: 525 functions and 12 virtual tables, on 56 classes and 241 free functions in 132 of the 196
+  headers. An interface that lives whole in its header carries no macro, which narrows "interfaces included" above: it
+  exports no symbol, so nothing would check its macro. With this rule a missing macro is always a link error, on both
+  systems.
 - **No engine header defines mutable state.** A script read the 196 headers and found none, so no declaration moved.
 - **A test links what its includes reach,** not what its folder says, because the test folders are mixed (in
   `tests/data`, 35 files see only the engine and 30 reach the game). 151 of the 755 test files link `Engine` and

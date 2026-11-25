@@ -1,5 +1,6 @@
 #pragma once
 
+#include "EngineApi.h"
 #include "Render/Text/TextStyle.h"
 
 #include <cstddef>
@@ -56,8 +57,8 @@ struct InlineText
 // 0x4665d0: el color de un código. 0x01 y 0xf4, rojo sin fondo; 0xf0, los de la escena; 0xf1, los
 // de la escena cruzados; de 0xf2 a 0xf8, uno de la tabla (0xf8 con fondo 0x96000000 si la bandera
 // de `context` está apagada); cualquier otro, blanco sin fondo.
-[[nodiscard]] TextColors InlineColor(std::uint8_t code, const InlineColorContext& context);
+[[nodiscard]] ENGINE_API TextColors InlineColor(std::uint8_t code, const InlineColorContext& context);
 
 // 0x4667a0: el texto limpio y sus tramos.
-[[nodiscard]] InlineText ParseInlineColors(std::string_view text, const InlineColorContext& context);
+[[nodiscard]] ENGINE_API InlineText ParseInlineColors(std::string_view text, const InlineColorContext& context);
 } // namespace Client::Render::Text

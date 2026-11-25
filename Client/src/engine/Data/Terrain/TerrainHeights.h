@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Data/DataError.h"
 #include "Data/Terrain/TerrainGrid.h"
+#include "EngineApi.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -67,6 +68,6 @@ struct TerrainHeights
 //     no mira lo que lee su fread, y las celdas que faltan quedan con lo que había en el heap
 //     (Q-C24).
 //   - Si es más largo, el resto se ignora, como en el original.
-Core::Expected<std::unique_ptr<TerrainHeights>, DataError> LoadTerrainHeights(std::span<const std::byte> file,
-                                                                              std::uint8_t world);
+ENGINE_API Core::Expected<std::unique_ptr<TerrainHeights>, DataError>
+LoadTerrainHeights(std::span<const std::byte> file, std::uint8_t world);
 } // namespace Client::Data::Terrain

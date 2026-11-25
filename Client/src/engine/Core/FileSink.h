@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Core/ILogSink.h"
+#include "EngineApi.h"
 
 #include <cstdint>
 #include <cstdio>
@@ -41,7 +42,7 @@ namespace Client::Core
 // (AppendsFromIndependentSinksAfterTheCap).
 inline constexpr std::uintmax_t MaxLogFileBytes = 1024 * 1024;
 
-class FileSink final : public ILogSink
+class ENGINE_API FileSink final : public ILogSink
 {
 public:
     // Si no se puede abrir (la carpeta no existe, no hay permiso), un error que nombra la ruta:

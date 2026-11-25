@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/PixelSize.h"
+#include "EngineApi.h"
 
 #include <cstdint>
 
@@ -35,5 +36,5 @@ struct WindowState
 
 // Lo que cambia `event` en `state`. `size` solo cuenta con PixelSizeChanged, y uno con un lado en 0
 // o negativo no toca el tamaño: un área vacía no es un viewport.
-[[nodiscard]] WindowState Apply(WindowState state, WindowEvent event, Core::PixelSize size = {});
+[[nodiscard]] ENGINE_API WindowState Apply(WindowState state, WindowEvent event, Core::PixelSize size = {});
 } // namespace Client::App

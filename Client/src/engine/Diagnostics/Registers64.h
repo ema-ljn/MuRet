@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Diagnostics/CrashReport.h"
+#include "EngineApi.h"
 
 #include <array>
 #include <cstddef>
@@ -44,5 +45,5 @@ struct Registers64
 // de FXSAVE en ExtendedRegisters, que tiene el mismo formato en los dos, y el FloatSave en 0
 // (MuRet no lo arma desde FXSAVE). ContextFlags dice qué partes van llenas: CONTEXT_i386 con
 // CONTROL, INTEGER y SEGMENTS, más DEBUG_REGISTERS y EXTENDED_REGISTERS si están.
-[[nodiscard]] X86Context ToX86Context(const Registers64& registers);
+[[nodiscard]] ENGINE_API X86Context ToX86Context(const Registers64& registers);
 } // namespace Client::Core::Crash

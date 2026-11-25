@@ -1,5 +1,7 @@
 #pragma once
 
+#include "EngineApi.h"
+
 #include <string_view>
 
 // Mayúsculas y minúsculas de ASCII, byte a byte: solo de la A a la Z, como compara Windows un
@@ -14,9 +16,9 @@
 namespace Client::Core
 {
 // `c` en minúscula si es de la A a la Z; si no, `c` sin cambios.
-[[nodiscard]] char ToLowerAscii(char c);
+[[nodiscard]] ENGINE_API char ToLowerAscii(char c);
 
 // Si `a` y `b` tienen el mismo tamaño y son iguales byte a byte, con ToLowerAscii de los dos lados.
 // Un '\0' adentro es un byte más.
-[[nodiscard]] bool EqualsIgnoringAsciiCase(std::string_view a, std::string_view b);
+[[nodiscard]] ENGINE_API bool EqualsIgnoringAsciiCase(std::string_view a, std::string_view b);
 } // namespace Client::Core

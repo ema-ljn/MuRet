@@ -1,5 +1,7 @@
 #pragma once
 
+#include "EngineApi.h"
+
 #include <cstdint>
 
 // Los dos seriales de los C3/C4 de una conexión: el de envío y el de recepción.
@@ -18,7 +20,7 @@ enum class SerialCheck : std::uint8_t
     Resynced, // era otro, y desde ahí se espera el que le sigue (Q-C04)
 };
 
-class PacketSerials
+class ENGINE_API PacketSerials
 {
 public:
     // El serial del paquete que sale, y suma 1: de 255 vuelve a 0.

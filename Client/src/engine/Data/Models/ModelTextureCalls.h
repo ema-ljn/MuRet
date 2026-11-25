@@ -2,6 +2,7 @@
 
 #include "Data/Textures/Sampling.h"
 #include "Data/Textures/TextureSet.h"
+#include "EngineApi.h"
 
 #include <cstdint>
 #include <span>
@@ -29,23 +30,23 @@ struct ModelTextureCall
 inline constexpr Textures::Sampling ModelTextureSampling{Textures::Filter::Nearest, Textures::Wrap::Repeat};
 
 // Las 214 de 0x60f7d0, después de su 0x60d530(0x138), todas con Player\.
-[[nodiscard]] std::span<const ModelTextureCall> PlayerTextureCalls();
+[[nodiscard]] ENGINE_API std::span<const ModelTextureCall> PlayerTextureCalls();
 
 // Las 291 de 0x611850, después de su 0x60d530(0x25a): con Item\, salvo 0x1c16, 0x1c17 y 0x1c15
 // (Skill\), 0x224c (Monster\), 0x1c2f (Npc\) y 0xdb (Item\Bow\, antes de cargar el BMD de 0x616095).
 // 26 modelos se piden dos veces, y la segunda encuentra los nombres de la primera.
-[[nodiscard]] std::span<const ModelTextureCall> ItemTextureCalls();
+[[nodiscard]] ENGINE_API std::span<const ModelTextureCall> ItemTextureCalls();
 
 // Las 45 consultas explícitas de 0x615700 después del reset a 0x3b8, antes del barrido be..150.
 // Las de 0x113, 0x11a y 0x11b usan GL_CLAMP; las otras, GL_REPEAT.
-[[nodiscard]] std::span<const ModelTextureCall> SkillTextureCalls();
+[[nodiscard]] ENGINE_API std::span<const ModelTextureCall> SkillTextureCalls();
 
 // Los Fenrir (0x14a a 0x14c), su rayo (0x14d) y la flecha eléctrica (0xf9) en el bloque que sigue a
 // 0x611850 (0x371), antes de los cambios de slot de 0x615700.
-[[nodiscard]] std::span<const ModelTextureCall> FenrirTextureCalls();
+[[nodiscard]] ENGINE_API std::span<const ModelTextureCall> FenrirTextureCalls();
 
 // Lo que 0x60f7d0 sube a mano con 0x63b870 y 0x63bd00, sin filtro y sin repetir, en slots fijos que
 // no guardan el nombre ni corren el próximo: la piel y el segundo nivel de cada clase y el pelo
 // (0x12e a 0x137; 0x12d y 0x135 quedan vacíos) y las cuatro capas (0x250, 0x251, 0x252 y 0x257).
-[[nodiscard]] std::span<const Textures::TextureSetEntry> PlayerFixedTextures();
+[[nodiscard]] ENGINE_API std::span<const Textures::TextureSetEntry> PlayerFixedTextures();
 } // namespace Client::Data::Models

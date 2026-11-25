@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/IClock.h"
+#include "EngineApi.h"
 
 #include <optional>
 
@@ -14,7 +15,7 @@
 // paso, por frame y por reloj").
 namespace Client::Core
 {
-class IntervalTimer
+class ENGINE_API IntervalTimer
 {
 public:
     // `period` es mayor que 0.

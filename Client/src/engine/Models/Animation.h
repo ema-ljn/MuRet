@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/IClock.h"
+#include "EngineApi.h"
 #include "Models/Pose.h"
 #include "Models/Skeleton.h"
 
@@ -26,11 +27,11 @@ enum class AnimationScene : std::uint8_t
 // al pasar la última, si la acción repite, vuelve con el módulo (las keys, o las keys menos 1 con
 // lock_positions), y si no, se queda en las keys menos 0,01. Devuelve si terminó: en la selección lo
 // decide el frame + 2, pero el módulo usa el real.
-bool AdvanceAnimation(AnimationState& state, const ActionInfo& action, float speed, AnimationScene scene);
+ENGINE_API bool AdvanceAnimation(AnimationState& state, const ActionInfo& action, float speed, AnimationScene scene);
 
 // 0x4ea030: nada con una acción que `skeleton` no tiene o con la misma; si no, la de ahora y su key
 // (el original guarda el frame tal cual, y la pose lo trunca) pasan a anteriores y el frame a 0.
-void SetAction(AnimationState& state, const Skeleton& skeleton, std::uint8_t action);
+ENGINE_API void SetAction(AnimationState& state, const Skeleton& skeleton, std::uint8_t action);
 
 // 1 / 21,33 FPS: el frame del modo fiel de la CL3 (64 frames cada 3 s).
 inline constexpr Core::Duration OriginalFrameTime = std::chrono::microseconds{46'875};
@@ -53,7 +54,7 @@ inline constexpr int MaxOriginalFramesPerDraw = 64;
 // sobra. Uno por dibujo en el modo fiel: su frame dura uno del original, pero no justo 46,875 ms (los pasos
 // y la latencia lo corren), y por el reloj el que llega antes que el primero correría 0 y el siguiente 2.
 // Así tampoco pone al día lo que no se dibujó, como el original.
-class OriginalFrameCarry
+class ENGINE_API OriginalFrameCarry
 {
 public:
     [[nodiscard]] int FramesAt(Core::Duration clock, OriginalFramePace pace);
@@ -75,11 +76,11 @@ struct TimedAnimation
 
 // Q-C20 corregido: `keysPerOriginalFrame` cada OriginalFrameTime de `elapsed`, con la regla de
 // AdvanceAnimation. Un `elapsed` negativo cuenta 0.
-void AdvanceByTime(TimedAnimation& animation, const ActionInfo& action, float keysPerOriginalFrame,
-                   Core::Duration elapsed);
+ENGINE_API void AdvanceByTime(TimedAnimation& animation, const ActionInfo& action, float keysPerOriginalFrame,
+                              Core::Duration elapsed);
 
 // La copia que posa el render entre dos pasos: `alpha` de un paso más, con la misma regla, así las
 // keys que cruza guardan su anterior como en el paso.
-[[nodiscard]] AnimationState Interpolated(const AnimationState& state, const ActionInfo& action, float speed,
-                                          float alpha);
+[[nodiscard]] ENGINE_API AnimationState Interpolated(const AnimationState& state, const ActionInfo& action, float speed,
+                                                     float alpha);
 } // namespace Client::Render::Models

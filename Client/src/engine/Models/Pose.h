@@ -1,5 +1,6 @@
 #pragma once
 
+#include "EngineApi.h"
 #include "Math/HalfLifeMath.h"
 #include "Models/Skeleton.h"
 
@@ -53,20 +54,20 @@ struct ObjectTransform
 // Sin acciones en el esqueleto no hace nada. Devuelve false, sin escribir, si `bones` no es del
 // tamaño del esqueleto, si a un hueso que se posa le falta una de las dos keys, o si su padre no es
 // −1 ni un hueso de antes (un Skeleton armado a mano, que no pasó por MakeSkeleton).
-[[nodiscard]] bool PoseSkeleton(const Skeleton& skeleton, const AnimationState& animation,
-                                const ObjectTransform& object, const glm::vec2& headAngles,
-                                std::span<BoneTransform> bones);
+[[nodiscard]] ENGINE_API bool PoseSkeleton(const Skeleton& skeleton, const AnimationState& animation,
+                                           const ObjectTransform& object, const glm::vec2& headAngles,
+                                           std::span<BoneTransform> bones);
 
 // La raíz de 0x4eb860 con flags (0, 1): rota y escala su base con el objeto, y toma su posición sin
 // escalarla. El resto de la pose y sus condiciones de error son las de PoseSkeleton.
-[[nodiscard]] bool PoseWorldSkeleton(const Skeleton& skeleton, const AnimationState& animation,
-                                     const ObjectTransform& object, const glm::vec2& headAngles,
-                                     std::span<BoneTransform> bones);
+[[nodiscard]] ENGINE_API bool PoseWorldSkeleton(const Skeleton& skeleton, const AnimationState& animation,
+                                                const ObjectTransform& object, const glm::vec2& headAngles,
+                                                std::span<BoneTransform> bones);
 
 // 0x4eb860 con su séptimo argumento en 1, como posa 0x509340 lo que cuelga del personaje
 // (Attachment.h): los huesos sin padre van con `root`, la que dejó quien llama en 0x68c4a1c, y no
 // con el giro del objeto. Sin ángulos de cabeza y con +0x84 en 0. Devuelve false como
 // PoseSkeleton.
-[[nodiscard]] bool PoseAttached(const Skeleton& skeleton, const AnimationState& animation, const BoneTransform& root,
-                                std::span<BoneTransform> bones);
+[[nodiscard]] ENGINE_API bool PoseAttached(const Skeleton& skeleton, const AnimationState& animation,
+                                           const BoneTransform& root, std::span<BoneTransform> bones);
 } // namespace Client::Render::Models

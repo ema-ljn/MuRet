@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Core/Log.h"
+#include "EngineApi.h"
 #include "Render/ITextureStore.h"
 #include "Render/SpriteBatch.h"
 #include "Render/Text/IGlyphRasterizer.h"
@@ -25,7 +26,7 @@ namespace Client::Scenes
 using RasterizerFactory =
     std::function<Core::Expected<std::unique_ptr<Render::Text::IGlyphRasterizer>, std::string>(int screenWidth)>;
 
-class SceneText
+class ENGINE_API SceneText
 {
 public:
     // Las fuentes de `screenWidth`, o su error. La tabla, el lote y el log tienen que vivir más.

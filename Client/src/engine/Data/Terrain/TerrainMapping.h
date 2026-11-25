@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Data/DataError.h"
 #include "Data/Terrain/TerrainGrid.h"
+#include "EngineApi.h"
 
 #include <bit>
 #include <cstddef>
@@ -73,6 +74,6 @@ struct TerrainMapping
 //   - Si es más largo, el resto se ignora, como en el original.
 //   - Si el byte 1 no es `world`, devuelve DataError::WrongWorld. El original carga las capas
 //     igual, y es el que llama el que muestra "%s file corrupted." y cierra el juego.
-Core::Expected<std::unique_ptr<TerrainMapping>, DataError> LoadTerrainMapping(std::span<const std::byte> file,
-                                                                              std::uint8_t world);
+ENGINE_API Core::Expected<std::unique_ptr<TerrainMapping>, DataError>
+LoadTerrainMapping(std::span<const std::byte> file, std::uint8_t world);
 } // namespace Client::Data::Terrain

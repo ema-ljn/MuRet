@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Core/PixelSize.h"
+#include "OpenGLApi.h"
 #include "Platform/Sdl/GlLoader.h"
 #include "Render/Gl/GlName.h"
 
@@ -28,7 +29,7 @@ struct Rgba8
     friend bool operator==(const Rgba8&, const Rgba8&) = default;
 };
 
-class GlFramebuffer
+class OPENGL_API GlFramebuffer
 {
 public:
     // Crea el framebuffer de `width` × `height`, lo deja atado, en (0, 0, 0, 0) y con la profundidad

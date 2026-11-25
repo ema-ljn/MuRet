@@ -4,6 +4,7 @@
 #include "Data/DataError.h"
 #include "Data/Textures/Sampling.h"
 #include "Data/Textures/Texture.h"
+#include "EngineApi.h"
 
 #include <cstdint>
 #include <filesystem>
@@ -72,20 +73,20 @@ struct LoadedTexture
 // cada llamada del original nombra su cargador y su extensión coincide. Las texturas de un modelo
 // (0x60d5f0, CL6) siguen otra: la letra después del primer punto, 't' o 'T' el OZT y cualquier
 // otra el OZJ.
-[[nodiscard]] std::optional<TextureLoader> TextureLoaderOf(std::string_view originalPath);
+[[nodiscard]] ENGINE_API std::optional<TextureLoader> TextureLoaderOf(std::string_view originalPath);
 
 // El archivo que abre el cargador, como en 0x63b870 y 0x63bd00 con Data\: el nombre hasta el
 // primer punto, con el punto, y la extensión del cargador. "Monster\\bossmap1_R.jpg.jpg" abre
 // "Monster\\bossmap1_R.OZJ" (09 § El Data\). Sin punto, el original no escribe el byte que va antes
 // de la extensión y queda lo que había en la pila (Q-C74); acá va un punto.
-[[nodiscard]] std::string TextureFileName(std::string_view originalPath, TextureLoader loader);
+[[nodiscard]] ENGINE_API std::string TextureFileName(std::string_view originalPath, TextureLoader loader);
 
 // Lee todas las de `entries`, en orden, desde la carpeta `dataRoot` (el Data\ del cliente): cada
 // una con el archivo de TextureFileName, buscado con ResolveDataPath (sin mayúsculas), y leída con
 // el cargador de su extensión. La primera que no es .jpg ni .tga, que falta o que no se lee corta.
-[[nodiscard]] Core::Expected<std::vector<LoadedTexture>, TextureSetError>
+[[nodiscard]] ENGINE_API Core::Expected<std::vector<LoadedTexture>, TextureSetError>
 LoadTextureSet(const std::filesystem::path& dataRoot, std::span<const TextureSetEntry> entries);
 
 // El error en palabras, para el log: qué pasó y con qué ruta. Sin bytes del archivo.
-[[nodiscard]] std::string Describe(const TextureSetError& error);
+[[nodiscard]] ENGINE_API std::string Describe(const TextureSetError& error);
 } // namespace Client::Data::Textures

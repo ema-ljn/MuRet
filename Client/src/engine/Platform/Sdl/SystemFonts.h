@@ -1,5 +1,7 @@
 #pragma once
 
+#include "PlatformApi.h"
+
 #include <filesystem>
 #include <optional>
 #include <string_view>
@@ -16,15 +18,15 @@ namespace Client::Platform
 // colección cualquiera de las caras separadas por " & ". Sin mirar mayúsculas (ASCII), como el
 // nombre de la cara en GDI. Una fuente de mapa de bits (sin esos tipos) o una cara vacía no
 // cuentan nunca.
-[[nodiscard]] bool FontEntryNamesFace(std::string_view entryName, std::string_view face, bool bold);
+[[nodiscard]] PLATFORM_API bool FontEntryNamesFace(std::string_view entryName, std::string_view face, bool bold);
 
 // true si este sistema tiene la lista (solo Windows). Sin ella, main.cpp no le pasa una búsqueda a
 // App::ChooseFontFiles, y su error dice que el cliente no busca la cara, en vez de que no la
 // encontró.
-[[nodiscard]] bool HasSystemFontList();
+[[nodiscard]] PLATFORM_API bool HasSystemFontList();
 
 // El archivo de la cara en la lista del sistema: el del primer valor que la nombra, en HKLM y
 // después en HKCU, con la carpeta Fonts de Windows delante si el valor no trae la ruta entera.
 // std::nullopt si no está, si la cara está vacía o fuera de Windows.
-[[nodiscard]] std::optional<std::filesystem::path> FindSystemFontFile(std::string_view face, bool bold);
+[[nodiscard]] PLATFORM_API std::optional<std::filesystem::path> FindSystemFontFile(std::string_view face, bool bold);
 } // namespace Client::Platform

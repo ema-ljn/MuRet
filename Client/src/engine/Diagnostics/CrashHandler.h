@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/Expected.h"
+#include "EngineApi.h"
 
 #include <cstddef>
 #include <filesystem>
@@ -44,7 +45,7 @@ inline constexpr std::string_view CrashDumpFileName = "MuError.dmp";
 // instalar, para no pedir memoria después de la caída.
 inline constexpr std::size_t MaxCrashPathLength = 4096;
 
-class CrashHandler
+class ENGINE_API CrashHandler
 {
 public:
     // Instala el manejador, que escribe el volcado en `dumpPath` (main pasa CrashDumpFileName). Un

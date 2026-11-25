@@ -2,6 +2,7 @@
 
 #include "Diagnostics/CrashReport.h"
 #include "Diagnostics/IMemoryReader.h"
+#include "EngineApi.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -20,6 +21,7 @@ namespace Client::Core::Crash
 // Cada dirección se guarda con sus 32 bits de abajo, que es lo que entra en el archivo (Q-C241), y
 // los dwords empiezan después de los dos punteros del frame. La dirección de vuelta que no se puede
 // leer queda en 0: el original la lee sin mirar (0x6828af). No pide memoria.
-[[nodiscard]] std::size_t WalkCrashFrames(std::uint64_t framePointer, std::size_t pointerSize,
-                                          const IMemoryReader& memory, std::span<CrashFrame, MaxCrashFrames> frames);
+[[nodiscard]] ENGINE_API std::size_t WalkCrashFrames(std::uint64_t framePointer, std::size_t pointerSize,
+                                                     const IMemoryReader& memory,
+                                                     std::span<CrashFrame, MaxCrashFrames> frames);
 } // namespace Client::Core::Crash

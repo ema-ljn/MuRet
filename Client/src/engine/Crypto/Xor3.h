@@ -1,5 +1,7 @@
 #pragma once
 
+#include "EngineApi.h"
+
 #include <cstddef>
 #include <span>
 
@@ -16,5 +18,5 @@
 // lo aplica a la cuenta y a la clave por separado, así que en cada campo vuelve a empezar en FC.
 namespace Client::Core
 {
-void Xor3(std::span<std::byte> bytes);
+ENGINE_API void Xor3(std::span<std::byte> bytes);
 } // namespace Client::Core

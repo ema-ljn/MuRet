@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Core/LocalTime.h"
+#include "PlatformApi.h"
 
 #include <string>
 
@@ -12,5 +13,5 @@ namespace Client::Platform
 // SDL_GetCurrentTime y SDL_TimeToDateTime con la hora local. En Windows SDL la saca de la hora del sistema con la
 // zona de ahora (SystemTimeToTzSpecificLocalTime), lo que GetLocalTime da (*inferido* de las fuentes de SDL 3.2). Si
 // SDL no la sabe, devuelve su error.
-[[nodiscard]] Core::Expected<Core::LocalTime, std::string> ReadLocalTime();
+[[nodiscard]] PLATFORM_API Core::Expected<Core::LocalTime, std::string> ReadLocalTime();
 } // namespace Client::Platform

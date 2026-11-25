@@ -3,6 +3,7 @@
 #include "Data/Models/Model.h"
 #include "Data/Textures/Sampling.h"
 #include "Data/Textures/TextureSet.h"
+#include "EngineApi.h"
 #include "Render/TextureSlot.h"
 
 #include <cstddef>
@@ -34,7 +35,7 @@ struct ModelTextureRequests
     std::map<std::uint16_t, std::size_t> lastBySlot;
 };
 
-class ModelTextureSlots
+class ENGINE_API ModelTextureSlots
 {
 public:
     // 0x60d530: el próximo slot libre en `next`; la búsqueda por nombre empieza en el 0.

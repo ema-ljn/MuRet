@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Data/DataError.h"
 #include "Data/Textures/Texture.h"
+#include "EngineApi.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -61,5 +62,5 @@ inline constexpr std::uint8_t OztBitsPerPixel = 32;
 //     la textura queda sin píxeles de imagen, de 1 de lado en ese sentido.
 //   - Si faltan píxeles, devuelve DataError::FileTooShort. El original lee de más (Q-C24).
 //   - Lo que sigue a los píxeles se ignora: en el laboratorio, el pie de 26 bytes de un TGA 2.0.
-Core::Expected<Texture, DataError> LoadOztTexture(std::span<const std::byte> file);
+ENGINE_API Core::Expected<Texture, DataError> LoadOztTexture(std::span<const std::byte> file);
 } // namespace Client::Data::Textures

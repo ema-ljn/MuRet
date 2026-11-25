@@ -30,6 +30,20 @@ rank above this skill.
 4. If the module's folder does not exist yet, the file goes in today's folder with the new anatomy (below); the move of
    its module carries it later.
 
+## An engine module is a folder of its library
+
+The engine builds as four shared libraries
+([CODING_RULES §5, "The engine's libraries"](../../../docs/CODING_RULES.md#the-engines-libraries-2026-11-25)):
+`engine/Platform/Sdl` is `Platform`, `engine/Render/Gl` is `OpenGL`, `engine/Audio/Sdl` is `Audio`, and every other
+folder of `engine/` is `Engine`. A new file joins its library by its folder, with no CMake change.
+
+- What another binary uses (the game, the app, another library, a test) and is defined in a `.cpp` carries the
+  library's macro, from the generated `<Library>Api.h`: `class ENGINE_API ByteReader`,
+  `[[nodiscard]] ENGINE_API float RoundedSin(float x);`. Header-only code carries none.
+- A link error that names an engine symbol (`undefined reference` on Linux, `LNK2019` on Windows) is a missing macro
+  on its class or its function.
+- No mutable state defined in a header, and an outside library goes in the library that owns it.
+
 ## Anatomy of a game module
 
 - `<Module>.h`: what other modules may use. `<Module>Fwd.h`: forward declarations. `<Module>Defines.h`: enums and ids,
@@ -74,5 +88,5 @@ python3 -I Client/tools/architecture/check_layers.py --src Client/src --modules 
 
 A new module is a row in `modules.tsv` (`module`, `root`, `layer`, `folders_today`, `may_use` starting with
 `*layer<N` for its own layer, `note`) and its rows in the map. It needs a reason that fits the spec's criteria
-(dependency direction decides, not size); propose it to Emanuel before adding it. Its CMake target comes with the move of
-its root (AR1.2 for the engine, AR4 for the game modules).
+(dependency direction decides, not size); propose it to Emanuel before adding it. An engine module has no target of its
+own: it is a folder of its library. A game module gets its target in AR4.

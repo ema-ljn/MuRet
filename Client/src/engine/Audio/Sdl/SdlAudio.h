@@ -2,6 +2,7 @@
 
 #include "Audio/ISoundCatalog.h"
 #include "Audio/Playback.h"
+#include "AudioApi.h"
 #include "Core/Expected.h"
 
 #include <cstdint>
@@ -16,7 +17,7 @@
 
 namespace Client::Platform
 {
-class SdlAudio final : public Audio::IPlayback
+class AUDIO_API SdlAudio final : public Audio::IPlayback
 {
 public:
     // The catalog must outlive the playback: RegisterSound looks sounds up in it.

@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Core/Log.h"
+#include "OpenGLApi.h"
 #include "Platform/Sdl/GlLoader.h"
 #include "Render/Gl/GlName.h"
 #include "Render/Gl/GlShader.h"
@@ -24,7 +25,7 @@
 // necesita el contexto vivo.
 namespace Client::Render::Gl
 {
-class GlModelRenderer
+class OPENGL_API GlModelRenderer
 {
 public:
     // Compila y enlaza el shader y arma el VAO. El error trae el log del compilador de GLSL o el

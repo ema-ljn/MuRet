@@ -37,6 +37,7 @@ add_compile_definitions($<$<PLATFORM_ID:Windows>:NOMINMAX>)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 include(CompilerWarnings)
 include(PrecompiledHeaders)
+include(AddLibrary)
 
 # Los tests se registran con add_test() o gtest_discover_tests() y los corre CTest
 # (ctest --preset <preset>).
@@ -44,6 +45,12 @@ enable_testing()
 
 # Un subdirectorio por componente. Los próximos servidores se suman acá.
 add_subdirectory(Server/DataServer)
+
+# The client's binaries and the labs' go to bin/: Windows looks for an executable's DLLs beside it, and Linux gets
+# $ORIGIN as its RPATH (ADR 0028).
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+set(CMAKE_BUILD_RPATH_USE_ORIGIN ON)
 add_subdirectory(Client)
 
 # labs/: el código de las N.0 del camino de aprendizaje (docs/learning/).

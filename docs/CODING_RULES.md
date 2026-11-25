@@ -109,6 +109,37 @@ No cycles between modules.
 - **Fan-outs are ordered lists** that `app/` assembles in the original's order. No registration at
   runtime and no static constructors: the order of calls and of `rand()` is part of the contract.
 
+### The engine's libraries (2026-11-25)
+
+The engine builds as four shared libraries, cut by what the code sees
+([ADR 0028](adr/0028-shared-library-modules.md)): `Engine` sees neither SDL nor OpenGL, `Platform`
+(`engine/Platform/Sdl/`) sees SDL, `OpenGL` (`engine/Render/Gl/`) sees OpenGL and `Audio`
+(`engine/Audio/Sdl/`) sees SDL3_mixer. An engine module is a folder of its library, and a new file
+joins by its folder. The game and the app are `ClientLib`, static until AR4. The client's binaries
+go to `build/<preset>/bin/`.
+
+- **The macro.** A class or a free function that a library declares in a header, defines in a
+  `.cpp` and another binary uses (the game, the app, another library, a test) carries its library's
+  macro, from the generated `<Library>Api.h`: `class ENGINE_API ByteReader`,
+  `[[nodiscard]] ENGINE_API float RoundedSin(float x);`. What lives whole in a header carries none,
+  because it has no symbol to export: a template, an inline function, a struct without functions in
+  a `.cpp`, an interface with only pure functions. The libraries build with hidden visibility and
+  `-Wl,--no-undefined`, so a missing macro is a link error on Linux as on Windows.
+- **A class with the macro defines all its special members.** MSVC defines them in every file that
+  sees the class, the implicit ones too. A class that holds a container of move-only values (a
+  `std::vector<std::unique_ptr<T>>`) declares its copy deleted, and a class with a
+  `std::unique_ptr` to an incomplete type defines its special members in the `.cpp`.
+- **No mutable state defined in a header:** no `inline` variable, no `static` member or local of a
+  function defined there. Each library would hold its own copy. It lives in a `.cpp`, behind a
+  function with the macro.
+- **An outside library has one owner, or it is shared.** libjpeg-turbo, FreeType and LLVM-libc are
+  private to `Engine` and SDL3_mixer to `Audio`. SDL3 has two users, `Platform` and `Audio`, and one
+  state, so it is a shared library on both systems; on Linux the triplet
+  `cmake/triplets/x64-linux-shared-sdl.cmake` builds that port alone shared. Who links `Platform`
+  sees SDL's headers, and only who calls SDL links it. CI checks who defines each one.
+- **One binary:** `-DMU_MONOLITHIC=ON` builds the four libraries static and the macros expand to
+  nothing. CI builds that shape in its Release job.
+
 ## 6. Una clase por archivo
 
 - Cada clase o struct importante tiene su **propio archivo**, con el nombre de la clase.
@@ -235,14 +266,17 @@ piecemeal", porque es mucho; acá son dos archivos, y alinearlos al tocarlos no 
   GoogleTest (D-C9), y la suite lleva el nombre de la clase: `TEST(PacketReaderTest, CutsAC1)`.
   Así `ctest -R PacketReader` sigue filtrando como antes.
 - Un ejecutable por archivo de test, como en MuMain: `mu_add_test` en
-  `Client/tests/CMakeLists.txt` lo arma, lo enlaza con `ClientLib`, `ClientTestSupport` (los `.cpp`
-  de `tests/support/` que no son tests) y GoogleTest, le pone los warnings y registra cada `TEST` en
-  CTest. Cada `TEST` tiene un tope de tiempo (`MU_TEST_CASE_TIMEOUT`), como el `TIMEOUT` de
+  `Client/tests/CMakeLists.txt` lo arma, lo enlaza con GoogleTest, le pone los warnings y registra
+  cada `TEST` en CTest. A test links what its includes reach: `Engine` and `EngineTestSupport` (the
+  `.cpp` files of `tests/support/` that are not tests and see only the engine) always, and
+  `ClientLib` and `ClientTestSupport` only when the file, or a header of `tests/` it includes,
+  includes a header of the game or the app. A test of the engine cannot include one: it does not
+  see their folders. Cada `TEST` tiene un tope de tiempo (`MU_TEST_CASE_TIMEOUT`), como el `TIMEOUT` de
   `mu_add_test` en MuMain. Cada módulo de `tests/` tiene su `CMakeLists.txt`.
-- Los fuentes se juntan con un glob y `CONFIGURE_DEPENDS`: `ClientLib` toma todo `src/` con
-  `file(GLOB_RECURSE)`, menos `main.cpp` (y, desde la CL3.1, `src/engine/Platform/Sdl/`, que es de
-  `ClientPlatform`, sacado con `list(FILTER ... EXCLUDE REGEX)` como hace MuMain), y cada módulo de
-  tests sus `test_*.cpp` con `file(GLOB)`. Un archivo nuevo entra al reconfigurar, sin tocar el
+- Los fuentes se juntan con un glob y `CONFIGURE_DEPENDS`: each engine library takes its folders of
+  `src/engine/` with `file(GLOB_RECURSE)`, `ClientLib` takes the rest of `src/` except `main.cpp`
+  (`list(FILTER ... EXCLUDE REGEX)`, como hace MuMain), y cada módulo de tests sus `test_*.cpp` con
+  `file(GLOB)`. Un archivo nuevo entra al reconfigurar, sin tocar el
   CMake. Es una diferencia elegida: MuMain lista cada `mu_add_test` a mano. El glob de un módulo
   no entra en subcarpetas, y una carpeta de tests nueva necesita su `CMakeLists.txt` y su
   `add_subdirectory`; si un `test_*.cpp` queda sin ejecutable, el configure se corta y lo nombra.

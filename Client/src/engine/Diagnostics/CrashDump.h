@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Diagnostics/CrashReport.h"
+#include "EngineApi.h"
 
 #include <cstddef>
 #include <span>
@@ -21,10 +22,10 @@ inline constexpr std::size_t MaxCrashDumpSize =
 
 // Lo que mide el archivo de `report`. Las cuentas de más de 48 módulos o 64 frames se toman como el
 // tope, como lo que el original llega a juntar.
-[[nodiscard]] std::size_t CrashDumpSize(const CrashReport& report);
+[[nodiscard]] ENGINE_API std::size_t CrashDumpSize(const CrashReport& report);
 
 // Escribe el archivo de `report` al principio de `output` y devuelve cuántos bytes escribió, o 0
 // si no entra. No pide memoria: el manejador lo llama después de la caída, sobre un buffer
 // estático de MaxCrashDumpSize.
-[[nodiscard]] std::size_t WriteCrashDump(const CrashReport& report, std::span<std::byte> output);
+[[nodiscard]] ENGINE_API std::size_t WriteCrashDump(const CrashReport& report, std::span<std::byte> output);
 } // namespace Client::Core::Crash

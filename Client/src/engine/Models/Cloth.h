@@ -2,6 +2,7 @@
 
 #include "Crt/CrtRandom.h"
 #include "Data/Models/Model.h"
+#include "EngineApi.h"
 #include "Math/HalfLifeMath.h"
 #include "Render/TextureSlot.h"
 
@@ -44,12 +45,12 @@ enum class ClothWindSource
 };
 
 // 0x456b10: el paseo del viento base, b = f(b + (rand() % 200 − 100) · 0,001), entre −0,2 y 1.
-void WalkTheWind(ClothWorld& world);
+ENGINE_API void WalkTheWind(ClothWorld& world);
 
 // Lo que hace 0x637700 en cada paso de lógica de las escenas 2, 4 y 5 para la tela: el paseo del
 // viento cinco veces (0x637cec) y el contador más 1 (0x637f8c), que al cerrar su acceso saca otros
 // 4 rand(). Los demás rand() de 0x637700 son de otras cosas y MuRet no los saca de acá.
-void StepTheClothWorld(ClothWorld& world);
+ENGINE_API void StepTheClothWorld(ClothWorld& world);
 
 // Una partícula (0x3c bytes, vtable 0x6b8cbc). La posición va en el mundo.
 struct ClothParticle
@@ -129,7 +130,7 @@ enum class ClothBlend : std::uint8_t
     Additive,
     Previous,
 };
-[[nodiscard]] ClothBlend FaceBlendOf(std::uint32_t flags);
+[[nodiscard]] ENGINE_API ClothBlend FaceBlendOf(std::uint32_t flags);
 
 // Un vértice de una cara, como lo manda 0x455c40: la partícula y sus UV.
 struct ClothCorner
@@ -147,7 +148,7 @@ struct ClothFlare
     float light = 0.0f;
 };
 
-class Cloth
+class ENGINE_API Cloth
 {
 public:
     // 0x454a00: todo en 0, el ancho, el alto, dx y dy en 1 y los bytes del viento en 1.

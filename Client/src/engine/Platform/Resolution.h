@@ -1,5 +1,7 @@
 #pragma once
 
+#include "EngineApi.h"
+
 #include <array>
 // La pide el operator<=> por defecto de abajo, aunque no nombre nada de ella.
 #include <compare> // IWYU pragma: keep
@@ -28,9 +30,9 @@ inline constexpr std::array<Resolution, 5> OriginalResolutions{
 
 // true si es una de las cinco del original o uno de los modos del monitor, con el mismo ancho y
 // el mismo alto.
-[[nodiscard]] bool IsValidResolution(Resolution resolution, std::span<const Resolution> monitorModes);
+[[nodiscard]] ENGINE_API bool IsValidResolution(Resolution resolution, std::span<const Resolution> monitorModes);
 
 // Las que valen, para el mensaje de error: de la más chica a la más grande, sin repetir, como
 // "640 × 480, 800 × 600".
-[[nodiscard]] std::string DescribeValidResolutions(std::span<const Resolution> monitorModes);
+[[nodiscard]] ENGINE_API std::string DescribeValidResolutions(std::span<const Resolution> monitorModes);
 } // namespace Client::App

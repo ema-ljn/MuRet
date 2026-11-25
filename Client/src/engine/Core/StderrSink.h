@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/ILogSink.h"
+#include "EngineApi.h"
 
 #include <cstdio>
 #include <mutex>
@@ -12,7 +13,7 @@
 // línea sale al escribirla.
 namespace Client::Core
 {
-class StderrSink final : public ILogSink
+class ENGINE_API StderrSink final : public ILogSink
 {
 public:
     // `output` es stderr; un test pasa un std::tmpfile() para leer lo que se escribió. No es

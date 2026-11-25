@@ -1,5 +1,6 @@
 #pragma once
 
+#include "EngineApi.h"
 #include "Math/HalfLifeMath.h"
 
 #include <glm/ext/vector_float3.hpp>
@@ -17,32 +18,33 @@ namespace Client::Render::Models
 using OriginalMatrix = std::array<float, 12>;
 
 // Una BoneTransform (por columnas, la traslación en la 3) como la 3 × 4 del original, por filas.
-[[nodiscard]] OriginalMatrix OriginalMatrixOf(const BoneTransform& m);
+[[nodiscard]] ENGINE_API OriginalMatrix OriginalMatrixOf(const BoneTransform& m);
 
 // 0x5fc8f0: el giro de tres ángulos en grados (x, y, z; el π/180 en float de 0x6ba360).
-[[nodiscard]] OriginalMatrix OriginalAngleMatrix(const glm::vec3& degrees);
+[[nodiscard]] ENGINE_API OriginalMatrix OriginalAngleMatrix(const glm::vec3& degrees);
 
 // La inversa de OriginalMatrixOf: la 3 × 4 por filas como BoneTransform (la traslación en m[3]).
-[[nodiscard]] BoneTransform BoneTransformOf(const OriginalMatrix& rows);
+[[nodiscard]] ENGINE_API BoneTransform BoneTransformOf(const OriginalMatrix& rows);
 
 // 0x5fca90 (R_ConcatTransforms) como la x87: parent · child, cada producto exacto en 53 bits, las sumas
 // en el orden del binario (distinto por fila) y cada elemento guardado en float.
-[[nodiscard]] OriginalMatrix OriginalConcatTransforms(const OriginalMatrix& parent, const OriginalMatrix& child);
+[[nodiscard]] ENGINE_API OriginalMatrix OriginalConcatTransforms(const OriginalMatrix& parent,
+                                                                 const OriginalMatrix& child);
 
 // 0x5fcbd0: `v` por el giro de `m`, sin la traslación.
-[[nodiscard]] glm::vec3 OriginalVectorRotate(const glm::vec3& v, const OriginalMatrix& m);
+[[nodiscard]] ENGINE_API glm::vec3 OriginalVectorRotate(const glm::vec3& v, const OriginalMatrix& m);
 
 // 0x5fcbd0 con la entrada y la salida en el mismo vector: la y lee la x ya girada y la z, las dos.
-void OriginalVectorRotateInPlace(glm::vec3& v, const OriginalMatrix& m);
+ENGINE_API void OriginalVectorRotateInPlace(glm::vec3& v, const OriginalMatrix& m);
 
 // 0x5fcc30: `v` por la transpuesta del giro de `m`, con el orden de sumas del original.
-[[nodiscard]] glm::vec3 OriginalVectorIRotate(const glm::vec3& v, const OriginalMatrix& m);
+[[nodiscard]] ENGINE_API glm::vec3 OriginalVectorIRotate(const glm::vec3& v, const OriginalMatrix& m);
 
 // 0x5fccc0: `v` por el giro y la traslación de `m`.
-[[nodiscard]] glm::vec3 OriginalVectorTransform(const glm::vec3& v, const OriginalMatrix& m);
+[[nodiscard]] ENGINE_API glm::vec3 OriginalVectorTransform(const glm::vec3& v, const OriginalMatrix& m);
 
 // 0x4ec110 con Translate en 1: el punto `offset` de un hueso en el mundo, VectorTransform por la escala
 // del cuerpo (+0x68 del modelo) más su origen (+0x6c).
-[[nodiscard]] glm::vec3 OriginalTransformPosition(const OriginalMatrix& bone, const glm::vec3& offset, float bodyScale,
-                                                  const glm::vec3& bodyOrigin);
+[[nodiscard]] ENGINE_API glm::vec3 OriginalTransformPosition(const OriginalMatrix& bone, const glm::vec3& offset,
+                                                             float bodyScale, const glm::vec3& bodyOrigin);
 } // namespace Client::Render::Models

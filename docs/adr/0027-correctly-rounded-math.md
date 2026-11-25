@@ -43,7 +43,8 @@ login with 3D models. Measured on GitHub's Windows and Linux machines and on an 
   `glm::quat(vec3)` by hand.
 - **LLVM-libc behind it.** The 208 headers those functions need are copied unmodified from llvm-project
   `llvmorg-23.1.6` into [`third_party/llvm-libc/`](../../third_party/llvm-libc/README.md) by its `vendor.py`. Only
-  `RoundedMath.cpp` includes them. It is its own library, `ClientRoundedMath`, built with `/O2 /fp:precise` or
+  `RoundedMath.cpp` includes them. It is its own object library, `RoundedMath`, inside `Engine`
+  ([ADR 0028](0028-shared-library-modules.md)), built with `/O2 /fp:precise` or
   `-O2 -ffp-contract=off` in every configuration.
 - **One case fixed by hand.** Without FMA instructions, LLVM-libc rounds the sine and the tangent of a double below
   2^-968 one unit in the last place off. `RoundedMath.cpp` returns `x` there, which is the nearest double.

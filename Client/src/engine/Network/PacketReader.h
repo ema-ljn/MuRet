@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/Expected.h"
+#include "EngineApi.h"
 #include "Network/IObfuscation.h"
 #include "Network/Packet.h"
 #include "Network/PacketError.h"
@@ -27,7 +28,7 @@
 // también viaja con el XOR.
 namespace Client::Network
 {
-class PacketReader
+class ENGINE_API PacketReader
 {
 public:
     // Sin ofuscación: IdentityObfuscation::Shared().

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Data/Textures/TextureSet.h"
+#include "EngineApi.h"
 
 #include <cstdint>
 #include <optional>
@@ -15,7 +16,7 @@ namespace Client::Data::Models
 // (0x6a0cce); 't' es el OZT, y cualquier otra el OZJ. "Monster\\bossmap1_R.jpg.jpg" es un OZJ, y
 // "x.Tga.jpg", un OZT. Sin punto, el original mira el byte del archivo que sigue al 0 del nombre;
 // MuRet da el OZJ, lo que da él con ese byte en 0 (Q-C107).
-[[nodiscard]] Textures::TextureLoader ModelTextureLoaderOf(std::string_view textureName);
+[[nodiscard]] ENGINE_API Textures::TextureLoader ModelTextureLoaderOf(std::string_view textureName);
 
 // Los slots a los que 0x60d5f0 manda una malla por el principio del nombre de su textura, después de
 // cargarla: "ski" y "level" la piel (0x12e), "hid" la malla que no se dibuja (0x12d) y "hair" el
@@ -23,7 +24,7 @@ namespace Client::Data::Models
 inline constexpr std::uint16_t SkinTextureSlot = 0x12e;
 inline constexpr std::uint16_t HiddenTextureSlot = 0x12d;
 inline constexpr std::uint16_t HairTextureSlot = 0x137;
-[[nodiscard]] std::optional<std::uint16_t> SkinSlotOf(std::string_view textureName);
+[[nodiscard]] ENGINE_API std::optional<std::uint16_t> SkinSlotOf(std::string_view textureName);
 
 // El script de una malla (0x459940): lo que sigue al primer '_' del nombre de su textura, hasta el
 // primer punto. Cada letra prende un byte de malla + 0x24, que lee el dibujo (06).
@@ -38,5 +39,5 @@ struct TextureScript
 // El script de `textureName`, o std::nullopt si no tiene: sin '_', sin letras después, o con una que
 // no es R, H, S ni N en mayúscula entre las cuatro que mira (0x459a2f; el llamador, 0x4f17f3, solo lo
 // guarda si vuelve 1). "Monster_R.jpg" es el blendMesh; "skin_barbarian_01.jpg" no tiene script.
-[[nodiscard]] std::optional<TextureScript> TextureScriptOf(std::string_view textureName);
+[[nodiscard]] ENGINE_API std::optional<TextureScript> TextureScriptOf(std::string_view textureName);
 } // namespace Client::Data::Models

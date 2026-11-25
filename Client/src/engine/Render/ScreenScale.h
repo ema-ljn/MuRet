@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/PixelSize.h"
+#include "EngineApi.h"
 
 // De las coordenadas de 640 × 480 a los píxeles de la pantalla, cada eje por su lado: 0x620d50 y
 // 0x620d80 (06 § Primitivas 2D). El quad de 0x621b60 los usa para la posición y el tamaño cuando
@@ -16,8 +17,8 @@
 namespace Client::Render
 {
 // 0x620d50: W · x · (1/640 en float).
-[[nodiscard]] float ScaleX(float x, Core::PixelSize screen);
+[[nodiscard]] ENGINE_API float ScaleX(float x, Core::PixelSize screen);
 
 // 0x620d80: H · y · (1/480 en float).
-[[nodiscard]] float ScaleY(float y, Core::PixelSize screen);
+[[nodiscard]] ENGINE_API float ScaleY(float y, Core::PixelSize screen);
 } // namespace Client::Render

@@ -83,6 +83,8 @@ jobs:
             extra-configure: >-
               -DCMAKE_EXE_LINKER_FLAGS=-Wl,--strip-debug -DCMAKE_CXX_FLAGS_DEBUG=
               -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+            # Also each header of the engine's libraries compiled alone (VERIFY_INTERFACE_HEADER_SETS).
+            build-targets: --target all all_verify_interface_header_sets
             ccache-key: ccache-ubuntu-24.04
             font-file: /usr/share/fonts/truetype/dejavu/DejaVuSans.ttf
           # Con Ninja y cl desde el entorno de MSVC (paso "Entorno de MSVC"), no con MSBuild: MSBuild
@@ -125,7 +127,8 @@ jobs:
           # tests de Windows y le sumaba 26 a 31 minutos.
           # Ninja, ccache and two jobs, as in Windows Debug: with MSBuild, building Main took 31 of
           # this job's 33 minutes (#407). Its own ccache key: Debug objects never match Release.
-          # MU_XOR_REMAP=OFF here, so every PR also builds and links Main without the layer.
+          # MU_XOR_REMAP=OFF here, so every PR also builds and links Main without the layer, and
+          # MU_MONOLITHIC=ON, so every PR also builds the engine's libraries static, as one binary (ADR 0028).
           - name: Windows (MSVC, Release, matemática)
             kind: math-release
             os: windows-2022
@@ -133,7 +136,7 @@ jobs:
             build-preset: windows-x64-ninja-release
             test-preset: windows-x64-ninja-release
             precompiled-headers: 'ON'
-            extra-configure: -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DMU_XOR_REMAP=OFF
+            extra-configure: -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DMU_XOR_REMAP=OFF -DMU_MONOLITHIC=ON
             build-jobs: '2'
             build-targets: >-
               --target Main test_original_angles test_original_retained_math test_rounded_math
@@ -311,7 +314,7 @@ jobs:
         uses: actions/cache@v6
         with:
           path: ${{ runner.temp }}/vcpkg-cache
-          key: vcpkg-${{ env.RUNNER_IMAGE }}-${{ hashFiles('vcpkg.json') }}
+          key: vcpkg-${{ env.RUNNER_IMAGE }}-${{ hashFiles('vcpkg.json', 'cmake/triplets/*.cmake') }}
           restore-keys: vcpkg-${{ env.RUNNER_IMAGE }}-
 
       # cl, link y los headers y bibliotecas de Windows en el PATH, INCLUDE y LIB, como en una
@@ -454,9 +457,8 @@ jobs:
           # test de CTest con el nombre de su suite, ver Client/tests/CMakeLists.txt).
           suites=()
           for path in "${changed[@]}"; do
-            module="$(basename "$(dirname "$path")")"
             name="$(basename "$path" .cpp)"
-            exe="$build/Client/tests/$module/$name"
+            exe="$build/bin/$name"
             if [ "$RUNNER_OS" = Windows ]; then exe="$exe.exe"; fi
             while IFS= read -r suite; do suites+=("$suite"); done \
               < <("$exe" --gtest_list_tests | tr -d '\r' | sed -n 's/^\([^ #][^ ]*\)\.\( .*\)\{0,1\}$/\1/p')
@@ -503,6 +505,37 @@ jobs:
           ctest --preset ${{ matrix.test-preset }} --no-tests=error
           -R '^(OriginalAnglesTest|OriginalRetainedMathTest|RoundedMathTest|RoundedTransformsTest|HalfLifeMathTest|MakeObfuscationTest)\.'
 
+      # An outside library has one owner or is shared (ADR 0028): Platform and Audio load the one libSDL3.so beside
+      # them, and no other binary defines SDL's, SDL3_mixer's, libjpeg-turbo's or FreeType's symbols. awk reads its
+      # whole input: grep -q would close the pipe early and, with pipefail, fail at random.
+      - name: Who owns each outside library (Linux)
+        if: steps.scope.outputs.build == 'true' && runner.os == 'Linux' && matrix.kind == 'build'
+        shell: bash
+        run: |
+          set -euo pipefail
+          bin=build/${{ matrix.configure-preset }}/bin
+          definers() {
+            for file in "$bin"/lib*.so* "$bin"/main; do
+              if nm -D --defined-only "$file" | awk -v symbol="$1" '{ sub(/@.*/, "", $NF) } $NF == symbol { found = 1 } END { exit !found }'; then
+                basename "$file"
+              fi
+            done | paste -sd ' ' -
+          }
+          only() {
+            found="$(definers "$2")"
+            echo "$1 ($2): ${found:-nobody}"
+            [ -z "$found" ] || [ "$found" = "$3" ] || { echo "::error::$1 should be defined only by $3"; exit 1; }
+          }
+          [ "$(definers SDL_Init)" = libSDL3.so.0 ] || { echo "::error::SDL3 is not the shared library in bin/"; exit 1; }
+          only SDL3 SDL_Init libSDL3.so.0
+          only SDL3_mixer MIX_Init libAudio.so
+          only libjpeg-turbo jpeg_read_header libEngine.so
+          only FreeType FT_Init_FreeType libEngine.so
+          for library in libPlatform.so libAudio.so; do
+            readelf -d "$bin/$library" | awk '/NEEDED/ && /libSDL3\.so/ { found = 1 } END { exit !found }' \
+              || { echo "::error::$library does not load libSDL3.so"; exit 1; }
+          done
+
       # Los tests con la etiqueta gl (desde la CL5.0, los de labs/cl5.0-pipeline/gl/) abren una
       # ventana escondida con OpenGL 3.3 core, dibujan en un framebuffer y leen los píxeles. En el
       # paso de Tests se saltean porque no hay pantalla; acá corren en Xvfb con
@@ -523,16 +556,18 @@ jobs:
       - name: Ventana de la CL0.3 en Xvfb (Linux)
         if: steps.scope.outputs.build == 'true' && runner.os == 'Linux' && matrix.kind == 'build'
         run: |
-          xvfb-run -a -s '-screen 0 800x600x24' build/${{ matrix.configure-preset }}/Client/Main --frames 60
-          xvfb-run -a -s '-screen 0 800x600x24' build/${{ matrix.configure-preset }}/Client/Main --frames 60 --vsync off
-          xvfb-run -a -s '-screen 0 800x600x24' build/${{ matrix.configure-preset }}/Client/Main --frames 60 --pacing faithful
+          xvfb-run -a -s '-screen 0 800x600x24' build/${{ matrix.configure-preset }}/bin/main --frames 60
+          xvfb-run -a -s '-screen 0 800x600x24' build/${{ matrix.configure-preset }}/bin/main --frames 60 --vsync off
+          xvfb-run -a -s '-screen 0 800x600x24' build/${{ matrix.configure-preset }}/bin/main --frames 60 --pacing faithful
 
       # Que cada archivo del cliente incluya lo que usa (docs/CODING_RULES.md § 7): el check
       # misc-include-cleaner de clang-tidy 18, con las opciones y el WarningsAsErrors de
       # .clang-tidy, así que un hallazgo corta el job. Solo ese check: los otros de .clang-tidy
       # todavía tienen hallazgos en Client/. Va en su job, sin precompiled headers, y lee el
-      # compile_commands.json del CMake raíz: no hace falta compilar (ningún header es generado).
-      # Sus comandos son de GCC y clang-tidy los toma tal cual, sin --extra-arg. include-cleaner
+      # compile_commands.json del CMake raíz: no hace falta compilar (the only generated headers, the
+      # libraries' *Api.h, come from configuring).
+      # Sus comandos son de GCC y clang-tidy los toma tal cual (only the headers of tests/ add an
+      # --extra-arg, below). include-cleaner
       # mira solo el archivo principal de cada compilación: los .cpp van con run-clang-tidy, y los
       # headers, que no están en esa base, de a uno; para cada uno, clang-tidy toma el comando del
       # .cpp más parecido.
@@ -543,8 +578,16 @@ jobs:
           build=build/${{ matrix.configure-preset }}
           run-clang-tidy-18 -clang-tidy-binary clang-tidy-18 -p "$build" -quiet \
             -checks='-*,misc-include-cleaner' 'Client/(src|tests)/'
-          git ls-files -z -- 'Client/src/*.h' 'Client/tests/*.h' \
+          git ls-files -z -- 'Client/src/*.h' \
             | xargs -0 -P "$(nproc)" -n 8 clang-tidy-18 -p "$build" -quiet -checks='-*,misc-include-cleaner'
+          # A header of tests/ borrows the command of a neighbor, which may see less than the header does: one that
+          # links only the engine has no include folder of the game (tests/CMakeLists.txt, mu_reaches_game), and one
+          # that does not link Platform lacks its definition. Which neighbor it is depends on the paths, so both go
+          # by hand.
+          git ls-files -z -- 'Client/tests/*.h' \
+            | xargs -0 -P "$(nproc)" -n 8 clang-tidy-18 -p "$build" -quiet -checks='-*,misc-include-cleaner' \
+                --extra-arg="-I$PWD/Client/src" --extra-arg="-I$PWD/Client/src/game" \
+                --extra-arg=-DSDL_OPENGL_1_FUNCTION_TYPEDEFS
 
       # Al final del job, porque por la API se leen solo las últimas 5000 líneas del log y CTest escribe
       # más de 20 000. También van al resumen de la corrida, para verlos sin abrir el log.
@@ -560,8 +603,11 @@ jobs:
           [ -f "$log" ] || exit 0
           lento="$(awk -F'\t' '!/^#/ { printf "%8.1f s  %s\n", ($2 - $1) / 1000, $4 }' "$log" \
             | LC_ALL=C /usr/bin/sort -rn | awk 'NR <= 25')"
-          printf '%s\n' "$lento"
-          { echo '### Lo más lento del build'; echo '```'; printf '%s\n' "$lento"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          # Every link's output is in bin/ (ADR 0028): how many there were and what they add up to.
+          enlaces="$(awk -F'\t' '!/^#/ && $4 ~ /^bin\// { n += 1; s += ($2 - $1) / 1000 }
+            END { printf "%d links, %.0f s in all", n, s }' "$log")"
+          printf '%s\n%s\n' "$lento" "$enlaces"
+          { echo '### Lo más lento del build'; echo '```'; printf '%s\n%s\n' "$lento" "$enlaces"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
 
       # Cuántos archivos salieron de la caché y cuántos se compilaron, también si el build falló.
       - name: Estadísticas de ccache

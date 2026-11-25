@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Data/DataError.h"
 #include "Data/Models/Model.h"
+#include "EngineApi.h"
 
 #include <cstdint>
 #include <filesystem>
@@ -22,7 +23,7 @@ inline constexpr std::uintmax_t MaxModelFileBytes = 8u * 1024u * 1024u;
 
 // El nombre del archivo, como lo arma 0x60da30: "%s.bmd" con -1, "%s0%d.bmd" con un número menor que
 // 10 y "%s%d.bmd" con los demás. Con signo, como el original: -2 da "Nombre0-2.bmd".
-[[nodiscard]] std::string ModelFileName(std::string_view name, int number);
+[[nodiscard]] ENGINE_API std::string ModelFileName(std::string_view name, int number);
 
 // Un modelo como lo pide el original: el número de su tabla, la carpeta dentro de Data\ (con la barra
 // del final: "Player\\"), el nombre y el número del archivo.
@@ -37,7 +38,7 @@ struct ModelFile
 // Los tres que cierran el juego si faltan (0x60daec, 0x60db24 y 0x60db5c): Monster, Player y
 // PlayerTest. Compara byte a byte, como el original, y no mira el número: falta Monster50.bmd y el
 // original se cierra (Q-C23).
-[[nodiscard]] bool IsRequiredModel(std::string_view name);
+[[nodiscard]] ENGINE_API bool IsRequiredModel(std::string_view name);
 
 // El esqueleto del personaje, que tiene que venir sin mallas (0x60dbe0, Q-C88).
 inline constexpr std::string_view PlayerSkeletonName = "Player";
@@ -63,6 +64,6 @@ struct ModelLoadError
 // Busca `file.folder` + ModelFileName(file.name, file.number) en `dataRoot` (el Data\ del cliente) sin
 // mirar mayúsculas, con ResolveDataPath, y lo lee con LoadBmd. Quien llama decide qué hacer con un
 // Missing: con IsRequiredModel, cortar; con los demás, seguir sin el modelo (pregunta 8 del plan).
-[[nodiscard]] Core::Expected<Model, ModelLoadError> LoadModelFile(const std::filesystem::path& dataRoot,
-                                                                  const ModelFile& file);
+[[nodiscard]] ENGINE_API Core::Expected<Model, ModelLoadError> LoadModelFile(const std::filesystem::path& dataRoot,
+                                                                             const ModelFile& file);
 } // namespace Client::Data::Models

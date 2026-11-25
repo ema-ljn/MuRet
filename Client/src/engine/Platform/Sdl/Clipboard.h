@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Platform/IClipboard.h"
+#include "PlatformApi.h"
 
 #include <optional>
 #include <string>
@@ -9,7 +10,7 @@
 namespace Client::Platform
 {
 // Adaptador SDL3; sus operaciones se llaman desde el hilo principal.
-class Clipboard final : public UI::IClipboard
+class PLATFORM_API Clipboard final : public UI::IClipboard
 {
 public:
     [[nodiscard]] std::optional<std::string> ReadText() override;

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "EngineApi.h"
+
 #include <cstdint>
 
 // La tabla de protección del original (0x57630c8; 06 § La tabla de protección, Q-C125 y Q-C183), sin
@@ -26,7 +28,7 @@ inline constexpr std::uint16_t SerialCloseRandoms = 1;
 // 0x40b4d0: el registro propio de 0x7681eb4, de 0xf08 bytes, un rand() por byte: 3.848 (Q-C183).
 inline constexpr std::uint16_t OwnRecordCloseRandoms = 0xf08;
 
-class LogicalAccess
+class ENGINE_API LogicalAccess
 {
 public:
     // Abre el acceso. depth y random viven más que él; closeRandoms es lo que gasta la entrada al

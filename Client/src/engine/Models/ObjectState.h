@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/IClock.h"
+#include "EngineApi.h"
 
 #include <glm/ext/vector_float2.hpp>
 
@@ -39,15 +40,17 @@ using ObjectRandoms = std::array<int, 2>;
 // modelo del ítem) y lo que 0x60b3d0 le escribe por su tipo antes de dibujarlo (la luz de Wing05,
 // Wing06 y Staff12).
 // 607b60 sin las luces posteriores de60b3d0.
-[[nodiscard]] ObjectState NativeItemObjectState(std::uint16_t type, Core::Duration clock, ObjectRandoms randoms);
+[[nodiscard]] ENGINE_API ObjectState NativeItemObjectState(std::uint16_t type, Core::Duration clock,
+                                                           ObjectRandoms randoms);
 
-[[nodiscard]] ObjectState HangingObjectState(std::uint16_t type, Core::Duration clock, ObjectRandoms randoms);
+[[nodiscard]] ENGINE_API ObjectState HangingObjectState(std::uint16_t type, Core::Duration clock,
+                                                        ObjectRandoms randoms);
 
 // La luz que 0x60b3d0 le escribe al objeto que dibuja, por el modelo: la de los FShoots_R de
 // PantMale25 y HelmMale25 late, y las Test20 la vuelven a 1. Las demás no la tocan.
-[[nodiscard]] std::optional<float> ModelLightOf(std::uint16_t model, Core::Duration clock);
+[[nodiscard]] ENGINE_API std::optional<float> ModelLightOf(std::uint16_t model, Core::Duration clock);
 
 // La luz que 0x50ba30 le pone al personaje de la clase 4 en la parte del casco: sin(0,001 · T) ·
 // 0,1 + 0,7, con los floats de 0x6b89c8, 0x6b87b8 y 0x6b8a5c.
-[[nodiscard]] float MaskedClassLightAt(Core::Duration clock);
+[[nodiscard]] ENGINE_API float MaskedClassLightAt(Core::Duration clock);
 } // namespace Client::Render::Models

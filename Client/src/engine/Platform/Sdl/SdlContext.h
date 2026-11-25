@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/Expected.h"
+#include "PlatformApi.h"
 
 #include <memory>
 #include <string>
@@ -9,7 +10,7 @@
 // corre aunque main salga por un error. Una Window necesita un SdlContext vivo.
 namespace Client::Platform
 {
-class SdlContext
+class PLATFORM_API SdlContext
 {
 public:
     // SDL_Init(SDL_INIT_VIDEO). El error trae el SDL_GetError().

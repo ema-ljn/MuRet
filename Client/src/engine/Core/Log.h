@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/ILogSink.h"
+#include "EngineApi.h"
 
 #include <format>
 #include <string_view>
@@ -35,7 +36,7 @@ namespace Client::Core
 // (Crash::CrashLogLine).
 [[nodiscard]] std::string_view LevelPrefix(LogLevel level);
 
-class Log
+class ENGINE_API Log
 {
 public:
     // Escribe en `sink` los mensajes de `minimum` para arriba.

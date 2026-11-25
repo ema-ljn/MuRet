@@ -2,6 +2,7 @@
 
 #include "Input/InputEvent.h"
 #include "Input/Key.h"
+#include "PlatformApi.h"
 
 #include <SDL3/SDL_events.h>
 #include <SDL3/SDL_scancode.h>
@@ -30,7 +31,7 @@ namespace Client::Platform
 // La tecla de un scancode; uno que el cliente no usa da std::nullopt. El Enter del teclado
 // numérico también: el original lo ve como VK_RETURN, pero con una sola Key::Enter, soltar uno de
 // los dos con el otro abajo la soltaría; queda para la CL8, con su lado, como Shift (P-C08).
-[[nodiscard]] std::optional<Input::Key> KeyFor(SDL_Scancode scancode);
+[[nodiscard]] PLATFORM_API std::optional<Input::Key> KeyFor(SDL_Scancode scancode);
 
 // El evento de Input de un SDL_Event. Da std::nullopt con un evento que no es de input, una tecla
 // o un botón que el cliente no usa (X1, X2) y una rueda sin muesca entera. Las repeticiones de
@@ -48,5 +49,6 @@ namespace Client::Platform
 // SDL_EVENT_TEXT_INPUT da Text con el texto copiado (SDL lo libera en el próximo SDL_PollEvent);
 // uno vacío no es un evento. SDL_EVENT_TEXT_EDITING da Composition con su texto copiado, start y
 // length, incluso vacío cuando el IME cancela la composición; no agrega nada al Text() legado.
-[[nodiscard]] std::optional<Input::InputEvent> InputEventFor(const SDL_Event& event, float pixelDensity = 1.0f);
+[[nodiscard]] PLATFORM_API std::optional<Input::InputEvent> InputEventFor(const SDL_Event& event,
+                                                                          float pixelDensity = 1.0f);
 } // namespace Client::Platform

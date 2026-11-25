@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/Expected.h"
+#include "EngineApi.h"
 #include "Render/ModelFog.h"
 #include "Render/ModelVertex.h"
 #include "Render/Pass3D.h"
@@ -107,7 +108,7 @@ struct ModelDrawCommand
     TextureEnvMode textureEnv = TextureEnvMode::Modulate;
 };
 
-class ModelBatch
+class ENGINE_API ModelBatch
 {
 public:
     // Empieza un pase: vacía triángulos/tramos y vuelve a ModelDrawState{}. Sólo620db0

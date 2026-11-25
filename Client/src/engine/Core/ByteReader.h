@@ -1,5 +1,7 @@
 #pragma once
 
+#include "EngineApi.h"
+
 #include <bit>
 #include <cstddef>
 #include <cstdint>
@@ -17,7 +19,7 @@
 // CL1.0, actividades 4 y 9). Lo usan Data, Network y Protocol.
 namespace Client::Core
 {
-class ByteReader
+class ENGINE_API ByteReader
 {
 public:
     // No copia los bytes: `buffer` tiene que seguir vivo mientras se lea.

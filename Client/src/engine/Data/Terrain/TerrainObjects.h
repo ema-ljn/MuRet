@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Data/DataError.h"
+#include "EngineApi.h"
 
 #include <array>
 #include <cstddef>
@@ -63,6 +64,6 @@ struct TerrainObject
 //   - Si es más largo, el resto se ignora, como en el original.
 //   - Si el byte 1 no es `world`, devuelve DataError::WrongWorld. El original crea los objetos
 //     igual, y es el que llama el que muestra "%s file corrupted." y cierra el juego.
-Core::Expected<std::vector<TerrainObject>, DataError> LoadTerrainObjects(std::span<const std::byte> file,
-                                                                         std::uint8_t world);
+ENGINE_API Core::Expected<std::vector<TerrainObject>, DataError> LoadTerrainObjects(std::span<const std::byte> file,
+                                                                                    std::uint8_t world);
 } // namespace Client::Data::Terrain

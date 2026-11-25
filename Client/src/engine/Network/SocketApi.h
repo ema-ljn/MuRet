@@ -1,5 +1,7 @@
 #pragma once
 
+#include "EngineApi.h"
+
 #include <algorithm>
 #include <array>
 #include <cstddef>
@@ -26,8 +28,8 @@
 //   el fondo, NET_ResolveHostname resuelve en sus hilos y NET_ReadFromStreamSocket da 0 sin
 //   datos. NET_WriteToStreamSocket encola adentro lo que no sale, sin tope, y
 //   NET_GetStreamSocketPendingWrites dice cuánto quedó, así que el tope de 0x2000 del original se
-//   armaría encima. No entra porque el puerto depende de sdl3: sumaría SDL3 a ClientLib, que hoy
-//   no lo ve (solo ClientPlatform), y Network y sus tests dejarían de correr sin SDL3.
+//   armaría encima. No entra porque el puerto depende de sdl3: sumaría SDL3 a Engine, que hoy
+//   no lo ve (solo Platform), y Network y sus tests dejarían de correr sin SDL3.
 // - los sockets del sistema: estas pocas llamadas, sin dependencias. Lo único que se pierde es
 //   resolver un nombre sin esperar, y el original tampoco lo hace (pregunta 5).
 namespace Client::Network::SocketApi
@@ -67,7 +69,7 @@ inline constexpr std::size_t MaxBytesPerCall = static_cast<std::size_t>(std::num
 // WSAStartup(MAKEWORD(2, 2)) y WSACleanup en Windows; nada en Linux. WSAStartup cuenta las
 // llamadas, así que puede haber varios a la vez (main.cpp el suyo, cada test con sockets el suyo).
 // Todo socket tiene que vivir menos que el NetworkInit que lo vio nacer.
-class NetworkInit
+class ENGINE_API NetworkInit
 {
 public:
     NetworkInit();
@@ -86,7 +88,7 @@ private:
 };
 
 // RAII sobre un Handle: se mueve, no se copia, y el destructor cierra (close o closesocket).
-class UniqueSocket
+class ENGINE_API UniqueSocket
 {
 public:
     UniqueSocket() = default;
@@ -114,7 +116,7 @@ struct Opened
 };
 
 // socket(AF_INET, SOCK_STREAM, 0), IPv4 y TCP como el 0x4e82e0 del original, ya no bloqueante.
-[[nodiscard]] Opened OpenTcp();
+[[nodiscard]] ENGINE_API Opened OpenTcp();
 
 // Empieza a conectar: InProgress casi siempre; Done o Refused si el sistema ya lo sabe.
 [[nodiscard]] Result Connect(Handle socket, std::array<std::uint8_t, 4> ip, std::uint16_t port);
@@ -128,11 +130,11 @@ struct Opened
 // Lo que haya, hasta buffer.size(): Done con los bytes, TryLater si no hay nada, PeerClosed si el
 // otro lado cerró. Con un buffer vacío, Done con 0 sin llamar a recv: recv daría 0 si hay datos o
 // si el otro lado cerró, y 0 es un cierre.
-[[nodiscard]] Result Receive(Handle socket, std::span<std::byte> buffer);
+[[nodiscard]] ENGINE_API Result Receive(Handle socket, std::span<std::byte> buffer);
 
 // Done con lo que tomó el sistema, TryLater si no tomó nada. Con MSG_NOSIGNAL en Linux: un send a
 // una conexión que el otro lado cerró da EPIPE en vez de la señal SIGPIPE, que mataría el proceso.
-[[nodiscard]] Result Send(Handle socket, std::span<const std::byte> bytes);
+[[nodiscard]] ENGINE_API Result Send(Handle socket, std::span<const std::byte> bytes);
 
 // La IPv4 de un texto como "127.0.0.1", con inet_pton: no pregunta al DNS.
 [[nodiscard]] std::optional<std::array<std::uint8_t, 4>> ParseIpv4(const std::string& text);
@@ -145,15 +147,15 @@ struct Opened
 //
 // Un socket atado a 127.0.0.1 con el puerto que elija el sistema (bind al 0), sin listen y no
 // bloqueante. Mientras viva, nadie más toma ese puerto, y un connect a él se rechaza.
-[[nodiscard]] Opened BindOnLoopback();
+[[nodiscard]] ENGINE_API Opened BindOnLoopback();
 // Un listener en 127.0.0.1 con el puerto que elija el sistema: BindOnLoopback y listen.
-[[nodiscard]] Opened ListenOnLoopback();
+[[nodiscard]] ENGINE_API Opened ListenOnLoopback();
 // El puerto local de un socket (getsockname), o 0 si no se pudo leer.
-[[nodiscard]] std::uint16_t LocalPort(Handle socket);
+[[nodiscard]] ENGINE_API std::uint16_t LocalPort(Handle socket);
 // Un cliente que espera en el listener, ya no bloqueante (en Linux accept no lo hereda), o vacío
 // con TryLater si no hay ninguno.
-[[nodiscard]] Opened Accept(Handle listener);
+[[nodiscard]] ENGINE_API Opened Accept(Handle listener);
 // SO_LINGER {1, 0} y cerrar: el otro lado recibe un RST en vez de un FIN, como en el 0x4e8380 del
 // original (el kick).
-void CloseWithReset(UniqueSocket& socket);
+ENGINE_API void CloseWithReset(UniqueSocket& socket);
 } // namespace Client::Network::SocketApi

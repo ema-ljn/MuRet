@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/Expected.h"
+#include "EngineApi.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Render/Text/TextBox.h"
@@ -30,7 +31,7 @@
 // FreeType es de la FTL (el crédito va en el README del cliente). Sus headers no salen de acá.
 namespace Client::Render::Text
 {
-class FreeTypeRasterizer final : public IGlyphRasterizer
+class ENGINE_API FreeTypeRasterizer final : public IGlyphRasterizer
 {
 public:
     // Abre las fuentes para una pantalla de `screenWidth` de ancho. Error con la ruta si un archivo

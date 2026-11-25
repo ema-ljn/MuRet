@@ -1,5 +1,7 @@
 #pragma once
 
+#include "EngineApi.h"
+
 #include <cstdint>
 #include <string_view>
 
@@ -21,5 +23,5 @@ enum class CloseReason : std::uint8_t
 };
 
 // El motivo en palabras, para el log: "el otro lado cerró".
-[[nodiscard]] std::string_view CloseReasonText(CloseReason reason);
+[[nodiscard]] ENGINE_API std::string_view CloseReasonText(CloseReason reason);
 } // namespace Client::Network

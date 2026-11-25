@@ -8,8 +8,8 @@
 #include <string>
 
 // Dónde sube y suelta sus texturas una escena, sin ver GL: las escenas viven en ClientLib, que no
-// enlaza OpenGL. Lo implementa Gl::TextureTable, en ClientRender, y en los tests de las escenas
-// (CL5.4), un falso de tests/support/.
+// enlaza OpenGL. Lo implementa Gl::TextureTable, en la biblioteca OpenGL, y en los tests de las
+// escenas (CL5.4), un falso de tests/support/.
 namespace Client::Render
 {
 class ITextureStore

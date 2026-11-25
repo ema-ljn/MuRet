@@ -1,5 +1,7 @@
 #pragma once
 
+#include "EngineApi.h"
+
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -35,5 +37,5 @@ inline constexpr std::uint8_t K16Seed = 0x5E;
 inline constexpr std::uint8_t K16Step = 0x3D;
 
 // Descifra `bytes` en el lugar. `bytes` tiene que ser el archivo desde su primer byte.
-void DecryptK16(std::span<std::byte> bytes);
+ENGINE_API void DecryptK16(std::span<std::byte> bytes);
 } // namespace Client::Data::Terrain

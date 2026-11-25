@@ -1,5 +1,7 @@
 #pragma once
 
+#include "EngineApi.h"
+
 #include <cstdint>
 
 // Las cuatro fuentes de WinMain (02 § Resolución, fuentes y texto): cuatro CreateFontA sin
@@ -32,12 +34,12 @@ enum class FontKind : std::uint8_t
 // del más grande de esos cuatro anchos que no pasa a `screenWidth`, y 12 por debajo de 800
 // (pregunta 10 del plan de la CL5): con 1600 o con un modo del monitor más ancho, 15. Vale para
 // cualquier ancho, como los modos del monitor que acepta App::IsValidResolution.
-[[nodiscard]] int FontStepFor(int screenWidth);
+[[nodiscard]] ENGINE_API int FontStepFor(int screenWidth);
 
 // El alto de la celda que pide CreateFontA (positivo: la celda, no la letra): n − 1 la normal y la
 // negrita, 2 (n − 1) la negrita grande, 12 la otra cara y la de los créditos según el ancho.
-[[nodiscard]] int FontHeightFor(FontKind font, int screenWidth);
+[[nodiscard]] ENGINE_API int FontHeightFor(FontKind font, int screenWidth);
 
 // Si CreateFontA la pide con peso 700 (FW_BOLD) y no 400 (FW_NORMAL).
-[[nodiscard]] bool IsBold(FontKind font);
+[[nodiscard]] ENGINE_API bool IsBold(FontKind font);
 } // namespace Client::Render::Text

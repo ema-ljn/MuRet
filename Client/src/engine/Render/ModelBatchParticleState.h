@@ -1,5 +1,6 @@
 #pragma once
 
+#include "EngineApi.h"
 #include "Render/SpriteVertex.h"
 #include "Render/TextureSlot.h"
 
@@ -12,7 +13,7 @@ namespace Client::Render
 {
 // Estado persistente de servicios/conocimiento del adapter. ModelBatch es la autoridad raster;
 // SynchronizeBatch importa sus cambios ajenos. No son globals nativos observados.
-struct ModelBatchParticleState
+struct ENGINE_API ModelBatchParticleState
 {
     std::int32_t blendMode;
     std::uint8_t cullEnabled;

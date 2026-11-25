@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/Expected.h"
+#include "OpenGLApi.h"
 #include "Platform/Sdl/GlLoader.h"
 #include "Render/Gl/GlName.h"
 
@@ -12,7 +13,7 @@
 // fija del original. Se mueve y no se copia, como su GlName, y necesita el contexto vivo.
 namespace Client::Render::Gl
 {
-class GlShader
+class OPENGL_API GlShader
 {
 public:
     // Compila los dos y los enlaza. El error dice cuál no compiló, o que no enlazó, con el log que

@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crypto/CryptoError.h"
+#include "EngineApi.h"
 
 #include <array>
 #include <cstddef>
@@ -106,7 +107,7 @@ using DecryptionKey = SimpleModulusKey<KeyRole::Decrypt>;
 // Un bloque. Se cifran siempre los 8 bytes, también el relleno de un bloque incompleto, y
 // `usefulSize` dice cuántos valen: de 1 a 8 en un paquete, pero se escribe el que llegue. Los
 // productos van en std::uint32_t y dan la vuelta, como el IMUL del original.
-[[nodiscard]] std::array<std::byte, CipherBlockSize>
+[[nodiscard]] ENGINE_API std::array<std::byte, CipherBlockSize>
 EncryptBlock(const EncryptionKey& key, std::span<const std::byte, PlainBlockSize> plain, std::uint8_t usefulSize);
 
 struct DecryptedBlock
@@ -118,6 +119,6 @@ struct DecryptedBlock
 
 // std::nullopt si el checksum no coincide. El checksum es de los 8 bytes en claro, así que un
 // cambio en el byte del largo útil no lo ve.
-[[nodiscard]] std::optional<DecryptedBlock> DecryptBlock(const DecryptionKey& key,
-                                                         std::span<const std::byte, CipherBlockSize> cipher);
+[[nodiscard]] ENGINE_API std::optional<DecryptedBlock> DecryptBlock(const DecryptionKey& key,
+                                                                    std::span<const std::byte, CipherBlockSize> cipher);
 } // namespace Client::Network::Crypto

@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Data/DataError.h"
+#include "EngineApi.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -58,5 +59,5 @@ struct JpegImage
 //     imagen y avisa, y el original la usa igual. turbo no siempre la completa como la 6b: un
 //     progresivo, y algunos baseline, dan otros bytes (Q-C33). Los mensajes no se muestran: en el
 //     original van al stderr de un programa de Windows, que no se ve.
-Core::Expected<JpegImage, DataError> DecodeJpeg(std::span<const std::byte> jpeg, int maxSide);
+ENGINE_API Core::Expected<JpegImage, DataError> DecodeJpeg(std::span<const std::byte> jpeg, int maxSide);
 } // namespace Client::Data::Textures

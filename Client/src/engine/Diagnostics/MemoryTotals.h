@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Diagnostics/CrashReport.h"
+#include "EngineApi.h"
 
 #include <cstdint>
 
@@ -23,9 +24,9 @@ struct MemoryTotals
 
 // Los totales en 32 bits: el que no entra queda en 0xFFFFFFFF, el -1 con que GlobalMemoryStatus
 // avisa que un valor no entra (Q-C242). `memoryLoad` va tal cual.
-[[nodiscard]] MemoryStatus32 ToMemoryStatus32(const MemoryTotals& totals, std::uint32_t memoryLoad);
+[[nodiscard]] ENGINE_API MemoryStatus32 ToMemoryStatus32(const MemoryTotals& totals, std::uint32_t memoryLoad);
 
 // El porcentaje en uso, de 0 a 100, como el dwMemoryLoad de Windows: lo que no está disponible
 // sobre el total, truncado. 0 sin total. Lo usa Linux, que no lo da hecho.
-[[nodiscard]] std::uint32_t MemoryLoadPercent(std::uint64_t total, std::uint64_t available);
+[[nodiscard]] ENGINE_API std::uint32_t MemoryLoadPercent(std::uint64_t total, std::uint64_t available);
 } // namespace Client::Core::Crash

@@ -4,6 +4,7 @@
 #include "Core/IClock.h"
 #include "Core/Log.h"
 #include "Core/PixelSize.h"
+#include "OpenGLApi.h"
 #include "Platform/Sdl/GlLoader.h"
 #include "Render/Gl/GlModelRenderer.h"
 #include "Render/Gl/GlSpriteRenderer.h"
@@ -33,7 +34,7 @@
 // limpio.
 namespace Client::Render::Gl
 {
-class GlFrameTarget final : public Scenes::IFrameTarget
+class OPENGL_API GlFrameTarget final : public Scenes::IFrameTarget
 {
 public:
     // `screen` da el área de dibujo de cada frame, y `present` presenta. La tabla y el log tienen

@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Core/Log.h"
+#include "OpenGLApi.h"
 #include "Platform/Sdl/GlLoader.h"
 #include "Render/Gl/GlRenderer.h"
 #include "Render/Gl/TextureTable.h"
@@ -19,7 +20,7 @@
 // necesita el contexto vivo.
 namespace Client::Render::Gl
 {
-class GlSpriteRenderer
+class OPENGL_API GlSpriteRenderer
 {
 public:
     // El pipeline de GlRenderer: el error trae el log del compilador de GLSL o el uniform que

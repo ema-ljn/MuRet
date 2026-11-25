@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/ILogSink.h"
+#include "EngineApi.h"
 
 #include <mutex>
 #include <string_view>
@@ -11,7 +12,7 @@
 // del Tee y después el de cada salida), así que no se traban.
 namespace Client::Core
 {
-class TeeSink final : public ILogSink
+class ENGINE_API TeeSink final : public ILogSink
 {
 public:
     // Las dos salidas tienen que vivir más que el Tee.

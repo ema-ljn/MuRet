@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Data/Textures/Sampling.h"
 #include "Data/Textures/Texture.h"
+#include "OpenGLApi.h"
 #include "Platform/Sdl/GlLoader.h"
 #include "Render/Gl/GlName.h"
 
@@ -14,7 +15,7 @@
 // (05 § Texturas). Se mueve y no se copia, como su GlName, y necesita el contexto vivo.
 namespace Client::Render::Gl
 {
-class GlTexture
+class OPENGL_API GlTexture
 {
 public:
     // Sube `texture` con el filtro y el wrap de `sampling`. GL_UNPACK_ALIGNMENT va en 1 mientras

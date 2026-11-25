@@ -1,5 +1,6 @@
 #pragma once
 
+#include "EngineApi.h"
 #include "Render/Text/TextStyle.h"
 
 #include <cstddef>
@@ -32,7 +33,7 @@ using TextBoxPixels = std::span<std::uint8_t, TextBoxBytes>;
 
 // Un color de 0xAABBGGRR en un píxel del RGBA: rojo, verde, azul y alfa, como el dword que escribe
 // 0x465a00 leído por glTexImage2D con GL_RGBA y GL_UNSIGNED_BYTE.
-void StoreColor(std::uint32_t color, std::span<std::uint8_t, 4> pixel);
+ENGINE_API void StoreColor(std::uint32_t color, std::span<std::uint8_t, 4> pixel);
 
 // 0x467060 y 0x465a00 para una caja: el texto dibujado desde la columna `firstColumn` (la caja k de
 // un texto ancho empieza en 256 k; una negativa deja −firstColumn columnas de fondo antes del texto,
@@ -40,8 +41,8 @@ void StoreColor(std::uint32_t color, std::span<std::uint8_t, 4> pixel);
 // izquierda, con el color del texto donde hay tinta y el del fondo donde no. Un texto que empieza
 // con un salto de línea no se dibuja (0x4671e1): lo que se ve es todo fondo. El resto de la caja
 // queda en 0: el original lo deja como estaba, pero el quad de 0x554000 no lo muestra.
-void PaintTextBox(const IGlyphRasterizer& rasterizer, const TextStyle& style, std::string_view text, int firstColumn,
-                  int width, int rows, TextBoxPixels rgba);
+ENGINE_API void PaintTextBox(const IGlyphRasterizer& rasterizer, const TextStyle& style, std::string_view text,
+                             int firstColumn, int width, int rows, TextBoxPixels rgba);
 
 // La caja de un renglón de un globo (0x555b00 → 0x553e50): las columnas (0x77f31b8, el ancho del globo) y las filas
 // (el paso de la letra). La tinta de las columnas antes de `prefixColumns` va con `prefixColor` (0x6c8e60): el gremio y
@@ -61,6 +62,6 @@ struct BoxShape
 // resto con el del fondo. 0x553e50 escribe `box.width` columnas por fila en un buffer de 256: con más, cada fila pisa
 // el principio de la que sigue, que la vuelve a escribir después, y la última cae debajo de las que muestra el quad.
 // Por eso alcanzan las primeras 256 (Q-C521).
-void PaintBoxedText(const IGlyphRasterizer& rasterizer, const TextStyle& style, std::string_view text,
-                    const BoxShape& box, TextBoxPixels rgba);
+ENGINE_API void PaintBoxedText(const IGlyphRasterizer& rasterizer, const TextStyle& style, std::string_view text,
+                               const BoxShape& box, TextBoxPixels rgba);
 } // namespace Client::Render::Text

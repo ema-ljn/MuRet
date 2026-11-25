@@ -41,8 +41,8 @@ XOR32 si lo lleva, y si va en claro o como C3. La versión y el serial del build
 Desde la CL3.1, la ventana y el contexto GL salieron de `main.cpp` a `Platform/`: `SdlContext`
 (el `SDL_Init` y el `SDL_Quit`), `Window` (la ventana con su contexto 3.3 core, la tabla de GL de
 `GlLoader` y el VSync de `SwapInterval`) y `PumpEvents`, que pasa los eventos de SDL a
-`App::WindowState`. `Platform/` es el target `ClientPlatform`, el único que enlaza SDL3: `ClientLib`
-no la ve, y sus tests corren sin ventana. `main.cpp` queda en el armado, por fases, como los
+`App::WindowState`. `Platform/Sdl/` es la biblioteca `Platform`, la que ve SDL3 para la ventana
+(`Audio` la ve para el sonido): `Engine` y `ClientLib` no la ven, y sus tests corren sin ventana. `main.cpp` queda en el armado, por fases, como los
 pasos de `WinMain` en MuMain: la config antes de `SDL_Init`, el log, la ventana y el bucle. La
 escena de prueba (`Scenes/TestScene`) y el medidor de `--stats` (`App/FrameRateMeter`) tienen su
 archivo y sus tests.
@@ -52,8 +52,8 @@ aceptado en el GameServer y después manda el keepalive cada 20 s, consultada po
 frame. En la CL4 la cuenta salía del entorno y se elegía el primer servidor de la lista; desde la
 CL5.4, la sesión la empieza la escena de login al entrar, y desde la CL5.5 espera al jugador.
 
-Desde la CL5.1, lo que dibuja con OpenGL es el target `ClientRender` (`src/engine/Render/Gl/`), el único
-con GL además de `ClientPlatform`: `ClientLib` sigue sin verlo. Trae el shader del 2D, `GlTexture`
+Desde la CL5.1, lo que dibuja con OpenGL es la biblioteca `OpenGL` (`src/engine/Render/Gl/`), la única
+con GL además de `Platform`: `Engine` y `ClientLib` siguen sin verlo. Trae el shader del 2D, `GlTexture`
 (sube una textura de la CL1 con su filtro y su wrap), un framebuffer para leer lo dibujado y
 `GlRenderer`, que dibuja triángulos en píxeles con la y para arriba. La tabla de GL es la X-macro de
 `Platform/Sdl/GlFunctionList.h`: una función nueva es una línea ahí.
@@ -136,10 +136,10 @@ Desde la raíz del repo:
 ```bash
 cmake --preset linux-x64-debug
 cmake --build --preset linux-x64-debug
-./build/linux-x64-debug/Client/Main              # corre hasta que se cierre la ventana
-./build/linux-x64-debug/Client/Main --frames 60  # dibuja 60 frames y sale
-./build/linux-x64-debug/Client/Main --vsync off --stats  # sin VSync: FPS y pasos por segundo cada 5 s
-./build/linux-x64-debug/Client/Main --vsync off --max-fps 144 --stats  # sin VSync, hasta 144 FPS
+./build/linux-x64-debug/bin/main              # corre hasta que se cierre la ventana
+./build/linux-x64-debug/bin/main --frames 60  # dibuja 60 frames y sale
+./build/linux-x64-debug/bin/main --vsync off --stats  # sin VSync: FPS y pasos por segundo cada 5 s
+./build/linux-x64-debug/bin/main --vsync off --max-fps 144 --stats  # sin VSync, hasta 144 FPS
 ```
 
 Al salir, `Main` imprime los frames y los pasos que corrió. La lógica va a 25 pasos por segundo con
@@ -152,15 +152,15 @@ dibujaría a saltos. Con `--pacing faithful` (el ritmo del original, VSync apaga
 25 pasos por segundo, y no lleva tope. En Windows queda por probar a mano (Emanuel).
 
 En Windows: `cmake --preset windows-x64`, `cmake --build --preset windows-x64-debug` y
-`build\windows-x64\Client\Debug\Main.exe`.
+`build\windows-x64\bin\Debug\main.exe`.
 
 A `-O0` Debug build spends about 40 ms of CPU on a frame with 40 monsters on screen, the whole
 budget of a frame, mostly in standard-library calls that are not inlined
 ([ADR 0026](../docs/adr/0026-keep-the-standard-library.md)). To play or step through the game at
 speed on Linux, use `linux-x64-fastdebug`: Debug with `-Og`, about 5 times faster, in the same build
 time (`cmake --preset linux-x64-fastdebug`, `cmake --build --preset linux-x64-fastdebug` and
-`./build/linux-x64-fastdebug/Client/Main`). On Windows, `cmake --build --preset
-windows-x64-relwithdebinfo` builds `build\windows-x64\Client\RelWithDebInfo\Main.exe`, optimized
+`./build/linux-x64-fastdebug/bin/main`). On Windows, `cmake --build --preset
+windows-x64-relwithdebinfo` builds `build\windows-x64\bin\RelWithDebInfo\main.exe`, optimized
 with debug symbols but without MSVC's iterator checks; it is not measured yet and CI does not build
 it. CI keeps building Debug, with its checks.
 
@@ -218,8 +218,8 @@ Cada opción va una vez: una repetida es un error. Dos límites de Windows:
 Por ejemplo:
 
 ```bash
-./build/linux-x64-debug/Client/Main --host 127.0.0.1 --port 44405 --data /path/to/Data
-./build/linux-x64-debug/Client/Main --config ~/mu/otra.ini
+./build/linux-x64-debug/bin/main --host 127.0.0.1 --port 44405 --data /path/to/Data
+./build/linux-x64-debug/bin/main --config ~/mu/otra.ini
 ```
 
 Sin host no es un error: `Main` no mira el entorno ni las claves, y corre sin un servidor, como en
@@ -239,7 +239,7 @@ FontFile = /usr/share/fonts/truetype/dejavu/DejaVuSans.ttf
 ```
 
 ```bash
-./build/linux-x64-debug/Client/Main --data /path/to/Data
+./build/linux-x64-debug/bin/main --data /path/to/Data
 ```
 
 Se ve la carga (cinco imágenes y la barra, que avanza una vez por paso, así que dura menos de
@@ -312,10 +312,10 @@ falta correr está en P-C16 y P-C21 del [08](docs/research/08-pendientes.md).
    `Enc1.dat` y `Dec2.dat`:
 
    ```bash
-   ./build/linux-x64-debug/Client/Main --host <CS ip> --port 44405 --data Client/assets/Data
+   ./build/linux-x64-debug/bin/main --host <CS ip> --port 44405 --data Client/assets/Data
    ```
 
-   En Windows, lo mismo con `build\windows-x64\Client\Debug\Main.exe`, o con `[Server] Host`,
+   En Windows, lo mismo con `build\windows-x64\bin\Debug\main.exe`, o con `[Server] Host`,
    `[Server] Port` y `[Data] Path` en el `muret-client.ini` junto al ejecutable. Desde la CL5.4,
    con la carpeta de datos corren la carga y el login, así que la config necesita
    `[Video] FontFile` (la sección de arriba), también en Windows.
@@ -594,13 +594,13 @@ Client/
     App/          línea de comandos, estado de la ventana, bucle con tick fijo (CL3); la sesión
                   con los servidores (CL4) y el --auto-login (CL5.5)
     Core/         Expected, ByteReader, Xor3; config, log, reloj (CL1+)
-    Platform/     ventana, contexto GL, input: lo único que ve SDL3 (ClientPlatform, CL3)
+    Platform/     ventana, contexto GL, input: lo único que ve SDL3 (Platform, CL3)
     Data/         tablas .bmd, Text.bmd, terreno, OZJ/OZT, modelos: bytes a tipos, sin GL (CL1, CL6)
     Network/      socket, paquetes, C3/C4, XorRemap     (CL2, CL4)
     Protocol/     opcodes, structs (el login, en Connection/), dispatcher (CL2, CL4, CL9); el
                   pedido de la mascota (A9), en Pet/ (CL4)
     Render/       OpenGL 3.3: texturas, sprites, texto  (CL5+); lo que llama a GL, en Gl/
-                  (ClientRender, CL5.1); la pose, el skinning y el brillo de los modelos, en
+                  (OpenGL, CL5.1); la pose, el skinning y el brillo de los modelos, en
                   Models/, y el pase 3D (CL6)
     Scenes/       la escena de prueba (CL3); el SceneManager, la carga, el login (CL5);
                   la selección y el juego (CL6, CL7)

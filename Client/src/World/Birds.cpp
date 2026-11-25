@@ -19,6 +19,15 @@ namespace Client::World
 {
 namespace
 {
+using Maps::AtlansMap;
+using Maps::DungeonMap;
+using Maps::IcarusMap;
+using Maps::IsBloodCastle;
+using Maps::IsKalimaMap;
+using Maps::LorenciaMap;
+using Maps::LostTowerMap;
+using Maps::NoriaMap;
+
 constexpr std::size_t OrdinaryCount = 5;
 constexpr std::size_t AtlansCount = 40;
 constexpr std::size_t IcarusCount = 13;
@@ -33,18 +42,18 @@ constexpr double BlueFactor = static_cast<double>(0.4f);
 std::size_t BirdStepCount(std::int32_t map)
 {
     // 446120-contract § Pool: el draw posterior visita40, aunque aquí se procesen menos.
-    if (map == 7)
+    if (map == AtlansMap)
         return AtlansCount;
-    if (map == 10)
+    if (map == IcarusMap)
         return IcarusCount;
-    if ((map >= 24 && map <= 29) || map == 36)
+    if (IsKalimaMap(map))
         return KalimaCount;
     return OrdinaryCount;
 }
 
 void FinishOrdinaryBirdMotion(const BirdStepTail& bird, const std::int32_t& map, const std::uint16_t& tileAttributes)
 {
-    if (bird.timer <= 0 && map == 7 && tileAttributes == 1)
+    if (bird.timer <= 0 && map == AtlansMap && tileAttributes == 1)
     {
         bird.angles.z = static_cast<float>(static_cast<double>(bird.angles.z) + 180.0);
         // 44691a: unordered conserva el giro; se resta360 una sola vez, también en igualdad.
@@ -124,7 +133,6 @@ void Byte(BirdRecord bird, Field field, std::uint8_t value)
 {
     Write(bird, field, value);
 }
-using Maps::IsKalimaMap;
 std::int32_t Decrement(std::int32_t value)
 {
     return std::bit_cast<std::int32_t>(static_cast<std::uint32_t>(value) - 1u);
@@ -184,18 +192,18 @@ std::error_code OrdinaryBirth(BirdRecord b, std::int32_t index, std::int32_t map
     Byte(b, Action0, 0);
     Byte(b, Action1, 0);
     std::int16_t type = 0;
-    if (map == 0)
+    if (map == LorenciaMap)
         type = 0xad;
-    else if (map == 1 || map == 4)
+    else if (map == DungeonMap || map == LostTowerMap)
         type = 0xaf;
-    else if (map == 3)
+    else if (map == NoriaMap)
     {
         type = 0xae;
         Write(b, Scale, 0.3f);
         Byte(b, Flag, 0);
         Write(b, Light, glm::vec3{1});
     }
-    else if (map >= 11 && map <= 17)
+    else if (IsBloodCastle(map))
         type = 0xbc;
     Write(b, Type, type);
     if (type == 0)
@@ -335,7 +343,7 @@ std::error_code OrdinaryMotion(BirdRecord b, std::int32_t index, std::int32_t ti
     auto angles = Read<glm::vec3>(b, Angles);
     // Evita consultas de mapa/tile que el original no alcanza.
     const int map = timer <= 0 ? s.Map() : 0;
-    const std::uint16_t attributes = timer <= 0 && map == 7 ? s.TileAttributes(tile) : 0;
+    const std::uint16_t attributes = timer <= 0 && map == AtlansMap ? s.TileAttributes(tile) : 0;
     FinishOrdinaryBirdMotion({alive, state, timer, angles}, map, attributes);
     Byte(b, Active, alive);
     Write(b, State, state);
@@ -361,12 +369,13 @@ std::error_code Update(BirdRecord b, std::int32_t index, std::int32_t tile, IBir
 }
 bool SpawnAllowed(std::int32_t map, std::int32_t tile, IBirdStepServices& s)
 {
-    if (map == 7)
+    if (map == AtlansMap)
     {
         const auto attributes = s.TileAttributes(tile);
         return attributes == 0 || attributes == 2;
     }
-    return map == 0 || map == 1 || map == 3 || map == 4 || map == 10 || (map >= 11 && map <= 17) || IsKalimaMap(map);
+    return map == LorenciaMap || map == DungeonMap || map == NoriaMap || map == LostTowerMap || map == IcarusMap ||
+           IsBloodCastle(map) || IsKalimaMap(map);
 }
 } // namespace
 

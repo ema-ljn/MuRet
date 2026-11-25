@@ -474,8 +474,9 @@ PR `refactor(AR1.1): name the maps the fauna compares`, branch `refactor/ar1.1-f
 `World/Birds.cpp` and `World/Fish.cpp` (`game/Fauna`) compare the map with a bare number 46 times. Each one takes the
 home's name, by hand and with the original read at its address: `map == 7` becomes `map == AtlansMap`, and a range
 becomes `IsBloodCastle(map)` or `IsKalimaMap(map)` only where the original's compares at that site are that
-predicate's (`0x44644c..0x44649b` checks 0, 1, 3, 4 and 10, then 11 to 17, then 24 to 29 or 36). The other loose
-literals (about 130 in 27 files) stay with each module's AR4 design PR.
+predicate's (`0x44644c..0x44649b` checks 0, 1, 3, 4 and 10, then 11 to 17, then 24 to 29 or 36). `Fish.cpp`'s
+helper for the switch's case 7, `MapSeven`, takes the map's name too (`SpecializeAtlans`). The other loose literals
+(about 130 in 27 files) stay with each module's AR4 design PR.
 
 ---
 

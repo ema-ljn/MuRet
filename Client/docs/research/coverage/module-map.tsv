@@ -1308,7 +1308,7 @@ UI/Widget.cpp	52	UI	game/Ui	medium	rule ^(Button|Slider|TextField|Widget|OldCont
 UI/Widget.h	50	UI	game/Ui	medium	rule ^(Button|Slider|TextField|Widget|OldCont
 World/AtlansObjectStep.cpp	111	World	game/MapScripts/Atlans	medium	what that map does, like TrinityCore's per-zone scripts (2026-11-21 review)
 World/AtlansObjectStep.h	31	World	game/MapScripts/Atlans	medium	what that map does, like TrinityCore's per-zone scripts (2026-11-21 review)
-World/Birds.cpp	430	World	game/Fauna	medium	ambient fauna (birds, fish), out of WorldObjects (2026-11-21 review)
+World/Birds.cpp	439	World	game/Fauna	medium	ambient fauna (birds, fish), out of WorldObjects (2026-11-21 review)
 World/Birds.h	60	World	game/Fauna	medium	ambient fauna (birds, fish), out of WorldObjects (2026-11-21 review)
 World/BlastModelEffects.cpp	1510	World	game/Effects	medium	model effects; uses Joints and Particles (2026-11-21 review)
 World/BlastModelEffects.h	68	World	game/Effects	medium	model effects; uses Joints and Particles (2026-11-21 review)
@@ -1332,7 +1332,7 @@ World/EventMapObjectStep.cpp	126	World	game/Events	medium	rule ^(ChaosCastle|Eve
 World/EventMapObjectStep.h	43	World	game/Events	medium	rule ^(ChaosCastle|EventMapObject|BloodCastle
 World/FaceNormal.cpp	45	World	game/Terrain	medium	the terrain, out of Kernel (2026-11-21 review)
 World/FaceNormal.h	18	World	game/Terrain	medium	the terrain, out of Kernel (2026-11-21 review)
-World/Fish.cpp	609	World	game/Fauna	medium	ambient fauna (birds, fish), out of WorldObjects (2026-11-21 review)
+World/Fish.cpp	617	World	game/Fauna	medium	ambient fauna (birds, fish), out of WorldObjects (2026-11-21 review)
 World/Fish.h	49	World	game/Fauna	medium	ambient fauna (birds, fish), out of WorldObjects (2026-11-21 review)
 World/Ftol.h	34	World	engine/Math	high	rule ^(Ftol|OriginalFtol)
 World/GameCamera.cpp	241	World	game/Camera	medium	the camera (2026-11-21 review)

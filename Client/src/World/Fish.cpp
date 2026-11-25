@@ -23,14 +23,22 @@ constexpr std::size_t ExtendedCount = 10;
 constexpr std::uint8_t LorenciaWater = 5;
 constexpr std::uint16_t BlockedAttribute = 8;
 
+using Maps::AidaMap;
+using Maps::ArenaMap;
+using Maps::AtlansMap;
+using Maps::CharacterSelectMap;
+using Maps::CrywolfMap;
+using Maps::DungeonMap;
 using Maps::IsKalimaMap;
+using Maps::LorenciaMap;
+using Maps::TarkanMap;
 
 } // namespace
 
 std::size_t FishStepCount(std::int32_t map)
 {
     // 0x447043..0x447064; 33 no comparte el prefijo extendido de 8.
-    if (map == 7 || map == 8 || IsKalimaMap(map) || map == 34)
+    if (map == AtlansMap || map == TarkanMap || IsKalimaMap(map) || map == CrywolfMap)
         return ExtendedCount;
     return OrdinaryCount;
 }
@@ -38,11 +46,11 @@ std::size_t FishStepCount(std::int32_t map)
 bool FishDirectSpawnAllowed(std::int32_t map, std::uint8_t surface, std::uint16_t attributes)
 {
     // 0x447108..0x447189. Los mapas8/33/34/54 llegan al fallback, con relecturas posteriores.
-    if (map == 0)
+    if (map == LorenciaMap)
         return surface == LorenciaWater;
-    if (map == 1 || map == 6)
+    if (map == DungeonMap || map == ArenaMap)
         return attributes < BlockedAttribute;
-    if (map == 7 || IsKalimaMap(map))
+    if (map == AtlansMap || IsKalimaMap(map))
         return FishOpenWaterTile(attributes);
     return false;
 }
@@ -50,7 +58,7 @@ bool FishDirectSpawnAllowed(std::int32_t map, std::uint8_t surface, std::uint16_
 bool FishSpawnEventGate(std::int32_t map)
 {
     // 0x425070 reconoce exclusivamente los dos mapas de evento y no consume RNG.
-    return map == 33 || map == 54;
+    return map == AidaMap || map == CharacterSelectMap;
 }
 
 bool FishOpenWaterTile(std::uint16_t attributes)
@@ -205,7 +213,7 @@ private:
     std::optional<bool> Admit(std::uint32_t tile, std::int32_t& map)
     {
         map = m_world.map;
-        if (map == 0)
+        if (map == LorenciaMap)
         {
             auto surface = Surface(tile);
             if (!surface)
@@ -213,7 +221,7 @@ private:
             if (*surface == 5)
                 return true;
         }
-        else if (map == 1 || map == 6 || map == 7 || IsKalimaMap(map))
+        else if (map == DungeonMap || map == ArenaMap || map == AtlansMap || IsKalimaMap(map))
         {
             auto attr = Attribute(tile);
             if (!attr)
@@ -233,7 +241,7 @@ private:
                 return true;
         }
         map = m_world.map;
-        if (map != 8 && map != 34)
+        if (map != TarkanMap && map != CrywolfMap)
             return false;
         auto attr = Attribute(tile);
         if (!attr)
@@ -316,13 +324,13 @@ private:
     }
     bool Specialize(FishStepView& fish, std::int32_t& map, float initialScale)
     {
-        if (map == 1 || map == 6)
+        if (map == DungeonMap || map == ArenaMap)
         {
-            fish.type = map == 1 ? 0xb0 : 0xb1;
+            fish.type = map == DungeonMap ? 0xb0 : 0xb1;
             fish.speed = static_cast<float>(static_cast<double>(OrdinarySpeedNumerator) / initialScale);
             return true;
         }
-        if (map == 0)
+        if (map == LorenciaMap)
         {
             fish.type = 0xb2;
             auto draw = Read(m_services.Random());
@@ -331,7 +339,7 @@ private:
             fish.field170 = static_cast<float>(static_cast<double>(*draw % 2 + 2) * Tenth);
             fish.speed = static_cast<float>(static_cast<double>(OrdinarySpeedNumerator) / fish.scale);
         }
-        else if (map == 8 || map == 33)
+        else if (map == TarkanMap || map == AidaMap)
         {
             fish.type = 0xb2;
             auto draw = Read(m_services.Random());
@@ -346,7 +354,7 @@ private:
             if (!Effect(fish, 0x618, 4, 30))
                 return false;
         }
-        else if (map == 34)
+        else if (map == CrywolfMap)
         {
             if (!Hero())
                 return false;
@@ -371,9 +379,9 @@ private:
             if (!Effect(fish, 0x697, 0, 30))
                 return false;
         }
-        else if (map == 7)
+        else if (map == AtlansMap)
         {
-            if (!MapSeven(fish))
+            if (!SpecializeAtlans(fish))
                 return false;
         }
         else
@@ -381,7 +389,7 @@ private:
         map = m_world.map;
         return true;
     }
-    bool MapSeven(FishStepView& fish)
+    bool SpecializeAtlans(FishStepView& fish)
     {
         auto scale = Read(m_services.Random());
         if (!scale)
@@ -510,7 +518,7 @@ private:
     bool Collision(FishStepView& fish, std::uint32_t tile)
     {
         std::int32_t map = m_world.map;
-        bool special = map == 8 || IsKalimaMap(map);
+        bool special = map == TarkanMap || IsKalimaMap(map);
         if (!special)
         {
             auto gate = Read(m_services.EventGate());
@@ -545,7 +553,7 @@ private:
                     return false;
                 collision = *attr >= 8;
             }
-            if (!collision && m_world.map == 7)
+            if (!collision && m_world.map == AtlansMap)
             {
                 auto attr = Attribute(tile);
                 if (!attr)

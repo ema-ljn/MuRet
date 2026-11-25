@@ -4,7 +4,8 @@
 > following Python's best practices in code and architecture, AI friendly, maybe with skills"; then "to edit
 > `Text.bmd` and those files inside the client's assets"; then "a nice, popular console UI, friendly for AI, that
 > also has a CLI usable from a SKILL.md"; and, on the look, "give it a nice format, surprise me". He picked Textual
-> for the console UI, and a separate working copy for the edited files.
+> for the console UI, and a separate working copy for the edited files. Then: "it has to be AI friendly: its CLI
+> optimized for AI use, together with SKILL.md files for its use".
 
 ## What and why
 
@@ -14,8 +15,9 @@ can look inside one, change a text or an item, and get a file the client reads, 
 
 - **Goal:** open any `.bmd` of a `Data` folder, see what it holds with the names the research gives each field,
   change it, and write a file that the client reads exactly as the original would.
-- **Goal:** the same operations from a console UI for a person and from a CLI with JSON output for an agent, with a
-  project skill that tells an agent how to use it.
+- **Goal:** AI friendly first. The CLI is an API whose main caller is an agent (JSON by default, stable shapes and
+  error codes, self-description, no prompts), and a project skill teaches an agent to use it. A person gets the same
+  operations in a console UI.
 - **Goal:** a codebase that shows Python done well: typed, layered (ports and adapters), small modules, tested.
 - **Non-goal:** a 3D modeling tool. Geometry and animation are editable through JSON, not by hand in the UI.
 - **Non-goal:** importing from or exporting to Blender, glTF or OBJ. It can be a later stage.
@@ -108,7 +110,7 @@ the C++ build in CI, so a tool PR runs only its own checks.
 - **Validation** (`core/domain/checks.py`): rules that report findings, never raise: indices outside their mesh, a
   parent after its child (the research's `BloodCastle01` exception), a text longer than its record, bytes that
   CP1252 cannot encode, a checksum that does not match, a count over the client's limits. Each finding has a code,
-  a path inside the document and a severity.
+  a JSON Pointer into the document and a severity.
 - **Use cases** (`app/`): plain functions that take ports and return result dataclasses. The CLI and the TUI call the
   same ones; neither has logic of its own.
 - **Adapters**: the file system, JSON, the CLI and the TUI. Only adapters import Typer, Textual or Rich. A test reads
@@ -158,9 +160,10 @@ a table whose records changed. An unedited table keeps its stored checksum, even
 `item.bmd` fails its own). The version, the cipher and the trailing bytes stay as read.
 
 **Edits go to a working copy; the reference folder is read-only** (Emanuel's pick, 2026-11-25, over editing
-`Client/assets/Data` in place and over an overlay of only the changed files). A folder with a `Data.sha256` beside it (`Client/assets/Data`) is never written: the tool opens
-it for viewing, and `set`, `build -o` or a save into it fail with an error that names the way out. Edits happen in a
-working copy, a full `Data` folder that the client can run (`Main --data <copy>`, or the lab's `cliente-lab/Data`):
+`Client/assets/Data` in place and over an overlay of only the changed files). A folder with a `Data.sha256` beside it
+(`Client/assets/Data`) is never written: the tool opens it for viewing, and `set`, `apply`, `build` or a save into it
+fail with an error that names the way out. Edits happen in a working copy, a full `Data` folder that the client can run
+(`Main --data <copy>`, or the lab's `cliente-lab/Data`):
 
 - `mubmd workspace init <dest>` copies the reference folder (about 370 MB) to `<dest>` and checks it against
   `Data.sha256`; any existing `Data` folder works as a working copy too.
@@ -172,50 +175,116 @@ working copy, a full `Data` folder that the client can run (`Main --data <copy>`
 
 Records are decoded as CP1252, the client's western profile (`Client/docs/research/12-codificacion.md`). The catalog
 gives each text file its encoding: `TKOU.bmd` decodes entirely as GB2312 (1,671 records, checked 2026-11-25), and
-`--encoding` overrides it. A record that its encoding cannot decode is shown and kept as hex. On edit, the tool checks that the text encodes in CP1252 and fits
-the record with its `0`; record 7 of `Text.bmd`, which fills its 300 bytes without one (Q-C07), stays as it is unless
-edited. `printf` specifiers (`%d`, `%s`) are highlighted, and changing their number or order is a warning: the client
+`--encoding` overrides it. A record that its encoding cannot decode is shown and kept as hex. On edit, the tool checks
+that the text encodes in the file's encoding and fits the record with its `0`; record 7 of `Text.bmd`, which fills its
+300 bytes without one (Q-C07), stays as it is unless edited. `printf` specifiers (`%d`, `%s`) are highlighted, and changing their number or order is a warning: the client
 passes some texts to `sprintf`.
 
 ### The JSON format
 
-`mubmd dump` writes, and `mubmd build` reads, one JSON document per file:
+`mubmd dump` writes, and `mubmd build` reads, one JSON document per file. It is the document's own view, the same one
+`get` shows, so a JSON Pointer means the same thing in `get`, `set`, `apply` and the dumped file (`/texts/500` is record
+500 in all of them):
 
 ```json
 {
-  "mubmd": 1,
+  "format_version": 1,
   "format": "text",
-  "container": {"cipher": "xor3"},
-  "body": {"texts": [{"index": 500, "text": "El usuario salió del juego"}]}
+  "encoding": "cp1252",
+  "texts": ["", "Atencao !!! Hack detectado, …", "…", "…"]
 }
 ```
 
 - Stable key order and indentation, so a diff in git is readable.
 - Bytes as lowercase hex strings. Finite floats as JSON numbers (a float32 goes to float64 and back exactly); NaN and
   infinities as `{"f32": "<8 hex digits>"}`, keeping their bits.
-- Sparse where it helps: empty text records and all-zero table records are left out and come back as zeros.
-- `"mubmd": 1` is the format version; a later change bumps it and `build` rejects versions it does not know.
+- Dense: every record is there, also the empty ones, so an array index is a record index.
+- `format_version` versions this layout; a later change bumps it and `build` rejects versions it does not know.
 
-### The CLI (for agents and scripts)
+### The CLI: an API for agents first
+
+Emanuel, 2026-11-25: the project has to be AI friendly, which means a CLI optimized for agents, with a SKILL.md for
+its use. The CLI is therefore designed as an API whose main caller is an agent; people use the TUI or `--human`. It
+follows the core and recommended levels of the vendored `ai-native-cli` skill (see
+[AI friendliness](#ai-friendliness)), adapted where noted.
 
 ```text
-mubmd formats                         the catalog; --json
-mubmd schema <format>                 the fields of a format, with offsets, types and research references
-mubmd info <file>                     format, version, cipher, counts, checksum state
-mubmd validate <file|folder>          findings; exit code 1 when there is an error
-mubmd get <file> <path>               one value: texts/500, records/12/name, meshes/0/texture_name
-mubmd set <file> <path> <value>       one edit, saved as above; --dry-run prints the diff and writes nothing
-mubmd dump <file> [-o out.json]
-mubmd build <in.json> -o <file>
-mubmd diff <a> <b>                    field by field, between two files or a file and a JSON
-mubmd roundtrip <folder>              decode and encode every .bmd; reports any byte that differs
-mubmd workspace init <dest>           copy the reference Data folder to a working copy and check it
-mubmd tui [<folder|file>]             the console UI
+mubmd                                       the self-description below
+mubmd formats                               the catalog: every format, its files, whether the client reads them
+mubmd schema <format>                       the fields of a format: JSON pointer, offset, type, limits, research reference
+mubmd workspace init <dest>                 copy the reference Data folder to a working copy and check it
+mubmd info <file>                           format, version, cipher, counts, checksum state, findings count
+mubmd find <file> <query>                   records whose text or name matches; --field, --regex
+mubmd get <file> <pointer>                  one value or subtree: /texts/500, /records/12/name, /meshes/0/texture_name
+mubmd set <file> <pointer> <value>          one edit, saved as in Saving
+mubmd apply <file> <patch.json>             several edits at once, all or none (JSON Patch: test and replace)
+mubmd validate <file|folder>                findings
+mubmd diff <a> <b>                          field by field, between two files or a file and a JSON
+mubmd dump <file> --output <out.json>       the whole document as JSON, to a file
+mubmd build <in.json> --output <file>       the reverse
+mubmd roundtrip <folder>                    decode and encode every .bmd; reports any byte that differs
+mubmd tui [<folder|file>]                   the console UI
 ```
 
-Every command takes `--json` and then prints one JSON object (results or `{"error": {"code", "message", "path"}}`)
-and nothing else on stdout. No command asks a question; anything that writes accepts `--dry-run`. Exit codes: 0 done,
-1 findings or differences, 2 bad usage, 3 a file that cannot be read.
+**Output.**
+
+- JSON is the default; nothing has to be added for an agent. `--human` switches to Rich tables and colors.
+- stdout carries exactly one JSON object and nothing else; logs, progress and warnings go to stderr.
+- Every success has the same envelope: `{"ok": true, "schema": 1, "command": "set", "data": {...}, "warnings": [...]}`.
+  `schema` versions the output: within one, no field is renamed, retyped or removed, and CI checks every command's
+  output against its JSON Schema.
+- The same names, types and units everywhere: a record is always `index`, a place is always `pointer`, sizes are
+  always bytes.
+- Token economy: lists are paged (`--limit`, default 50, and `--offset`, with `total` and `next_offset` in the result),
+  `--fields` keeps only the named keys, `get` on a large subtree cuts its arrays at `--limit` and says so
+  (`"truncated": true`), `info` summarizes, and `dump` writes to a file and returns only its path and size. A whole
+  model never lands on stdout. `validate` and `roundtrip` over a folder take `--ndjson` to stream one finding per line.
+
+**Errors.**
+
+- Errors are one JSON object on stderr: `{"ok": false, "schema": 1, "error": {"code": "REFERENCE_READ_ONLY",
+  "message": "...", "suggestion": "mubmd workspace init ~/mu/Data", "input": {...}, "pointer": "/texts/500"}}`. The
+  `suggestion` is a command the agent can run next whenever there is one, and `input` echoes what the command got.
+- The codes are a closed list, part of the contract, and never renamed within a version. Among them:
+  `USAGE`, `FILE_NOT_FOUND`, `UNKNOWN_FORMAT`, `POINTER_NOT_FOUND`, `INVALID_VALUE`, `TEXT_TOO_LONG`,
+  `NOT_ENCODABLE`, `REFERENCE_READ_ONLY`, `TEST_FAILED`, `WRITE_VERIFY_FAILED`.
+- Exit codes: 0 done; 1 done but with findings or differences (`validate`, `diff`, `roundtrip`); 2 bad usage; 20 a
+  file, format or pointer that does not exist; 30 a precondition failed (read-only reference, a JSON Patch `test`
+  that did not hold, write-verify).
+- Nothing but `tui` is interactive: a missing argument is a `USAGE` error, never a prompt. Unknown flags are rejected.
+
+**Input.**
+
+- Addresses inside a document are JSON Pointers (RFC 6901), the same in `get`, `set`, `apply`, `schema`, findings and
+  the TUI's status line, so a pointer copied from one place works in any other.
+- Values are typed by the schema: `set` parses `<value>` as the field's type and rejects what does not fit, with the
+  limit in the message (`TEXT_TOO_LONG`: "312 bytes, the record holds 299").
+- `apply` takes a JSON Patch (RFC 6902) limited to `test` and `replace`. `test` is the agent's guard against editing
+  something that changed: `[{"op": "test", "path": "/texts/500", "value": "El usuario salió del juego"}, {"op":
+  "replace", "path": "/texts/500", "value": "..."}]`. Either every operation applies or none does.
+
+**Safety.**
+
+- Every command that writes takes `--dry-run`, which returns the diff (as JSON: pointer, old value, new value) and
+  writes nothing.
+- Writing is idempotent: setting a value it already has returns `"changed": false` and touches no file, and
+  `workspace init` on a copy that already checks against `Data.sha256` does nothing.
+- What is valid but unusual is a warning, not an error, so the agent keeps its work: changing a text's `printf`
+  specifiers, a parent bone after its child, a texture name that no file in the folder has.
+- The reference folder is never written (`REFERENCE_READ_ONLY`, with the `workspace init` suggestion).
+- Writes go only to files the catalog knows, after write-verify, with the first `.bak` kept.
+- `workspace init` into a folder that is not empty needs `--yes`.
+
+**Self-description.**
+
+- `mubmd` with no arguments and `mubmd --help` return JSON: what the tool is, every command with its parameters
+  (name, type, required, default, choices), an example, its exit codes and its error codes. It is generated from the
+  Typer app, so it cannot drift from the code. `--human` gives the classic help.
+- `mubmd --brief` returns one paragraph, the same one the skill opens with.
+- `mubmd schema` returns the formats' fields, so an agent learns a format without the research, and each command's
+  entry in the help carries its output's JSON Schema.
+- No MCP server for now: the articles read for this design disagree on it, and a CLI with a skill costs an agent
+  fewer tokens. The use cases are plain functions, so an MCP adapter can be added later without touching the core.
 
 ### The console UI
 
@@ -252,24 +321,48 @@ red for errors and unsaved marks, parchment-colored text. A light variant exists
 
 ### AI friendliness
 
-- The CLI as above: JSON only on stdout, stable shapes, no prompts, `--dry-run`, meaningful exit codes, complete
-  `--help`.
-- `mubmd schema` lets an agent learn a format without reading the research.
-- A project skill, `.claude/skills/muret-bmd/SKILL.md`: when to use the tool, the commands, the JSON format, and the
-  safety rules (dry-run first, the reference folder is read-only, run `roundtrip` after a codec change).
-- The Python skills that guide the tool's own code, vendored like the C++ ones (upstream copy in `references/`, a
-  MuRet layer on top, ranked below the repo's rules): from [wshobson/agents](https://github.com/wshobson/agents)
-  (MIT, 42.8k stars; the source of the existing `clean-architecture` skill), `python-design-patterns`,
-  `python-code-style`, `python-project-structure`, `python-testing-patterns`, `python-type-safety` and
-  `python-error-handling`. Hexagonal architecture is already covered by `clean-architecture`.
-- The TUI is tested headless, so an agent can drive and check it without a screen.
+Three parts: the CLI above, a skill that teaches it, and tests that keep both honest.
+
+**The skill, `.claude/skills/muret-bmd/SKILL.md`.**
+
+- Its description names when to use it (open, inspect, translate or edit a `.bmd`: `Text.bmd`, items, skills, gates,
+  dialogs, quests, models), so it loads on those requests and not on C++ work in `Client/src/Data`.
+- Its body, short enough to read whole: the one-paragraph brief (the same as `mubmd --brief`); the workflow
+  (working copy, `find`, `get`, `set` or `apply` with `--dry-run`, then for real, `validate`); recipes for the common
+  jobs (change a text, translate several texts with one `apply`, change an item's field, rename a texture, check a
+  working copy against the reference); the error codes with the way out of each; and the rules (never write the
+  reference folder, `test` before `replace`, `--limit` and `--fields` to save tokens, `roundtrip` after changing a
+  codec).
+- Every command in its recipes is executable: a test runs each recipe against a fresh working copy and checks the
+  result, so the skill cannot drift from the tool.
+- It is written and checked as `superpowers:writing-skills` says: before it exists, a fresh agent gets a few of those
+  jobs with only the tool installed, and what it gets wrong shapes the skill; with the skill, the same agent must
+  finish each job in a few calls without reading the tool's source.
+- `AGENTS.md` gets one line in "Dónde está cada cosa" saying when to use the tool and pointing to the skill.
+
+**Skills for writing the tool**, vendored like the C++ ones (upstream copy in `references/`, a MuRet layer on top,
+ranked below the repo's rules):
+
+- `ai-native-cli`, from [sickn33/antigravity-awesome-skills](https://github.com/sickn33/antigravity-awesome-skills)
+  (the source of the existing `clean-code` skill; content under CC BY 4.0): 98 rules for CLIs that agents call, in
+  three levels. MuRet's layer adopts the core and recommended levels as the section above adapts them (JSON Pointer
+  paths, the exit codes, `--human`), and skips the ecosystem level's `agent/` folder and issue system, which the skill
+  and GitHub already cover.
+- From [wshobson/agents](https://github.com/wshobson/agents) (MIT, 42.8k stars; the source of the existing
+  `clean-architecture` skill): `python-design-patterns`, `python-code-style`, `python-project-structure`,
+  `python-testing-patterns`, `python-type-safety` and `python-error-handling`. Hexagonal architecture is already
+  covered by `clean-architecture`.
+
+**The TUI** is tested headless with Textual's `Pilot`, so an agent can drive it and check it without a screen.
 
 ### Tests and CI
 
 - pytest. Per codec: small vectors built in the test (one record, one tiny model) for each rule, and the round trip
   over every `.bmd` of `Client/assets/Data` (about 10 s; the data is in the repo, so CI runs it).
 - Ciphers and checksum: vectors cross-checked with the C++ tests' expected values.
-- The CLI through Typer's `CliRunner`, checking the JSON output.
+- The CLI through Typer's `CliRunner`: each command's JSON checked against its JSON Schema, each error code and exit
+  code reached by a test, and stdout holding nothing but the JSON object.
+- The skill's recipes, run as tests (see [AI friendliness](#ai-friendliness)).
 - The TUI with `run_test` and `Pilot` (open, edit, undo, save to a temporary folder) and SVG snapshots
   (`pytest-textual-snapshot`) of the main screens.
 - `ruff check`, `ruff format --check` and `mypy --strict` over `src` and `tests`.
@@ -281,9 +374,11 @@ red for errors and unsaved marks, parchment-colored text. A light variant exists
 One PR per stage, as Emanuel prefers since 2026-11-11 (milestone-sized PRs instead of one concept per PR). Each PR
 leaves its own checks green, and the workflow lands with the first code PR.
 
-1. **Design and skills:** this document, the implementation plan, the six vendored Python skills.
+1. **Design and skills:** this document, the implementation plan, the seven vendored skills (`ai-native-cli` and six
+   for Python).
 2. **Texts end to end:** the package, XOR3, the catalog, the text codec, JSON, every CLI command for texts, the TUI
-   with its theme and the text editor, the `muret-bmd` skill, the workflow. After this PR `Text.bmd` can be edited.
+   with its theme and the text editor, the `muret-bmd` skill with its executable recipes and its agent check, the
+   workflow. After this PR an agent or a person can edit `Text.bmd`.
 3. **Every table:** K16-free formats first, then the checksummed ones; schemas with the research's field names.
 4. **Models:** the lossless model codec with K16, validation, the model view in the TUI.
 5. **The wireframe preview.**
@@ -294,5 +389,4 @@ Each stage ends with the round trip over its files passing.
 
 - Module and function names, beyond the layout above.
 - How each record schema is written (a tuple of field specs per table is the expected shape).
-- How the sparse JSON marks a left-out record, as long as `build` restores it byte-exact.
 - The exact palette values of the "Lorencia" theme and the braille renderer's details.

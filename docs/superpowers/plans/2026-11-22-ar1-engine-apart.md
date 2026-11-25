@@ -518,6 +518,10 @@ Before Task 8, with `engineering:architecture`: `docs/adr/0028-shared-library-mo
 on 2026-11-22 (Windows `Engine.dll`, `OpenGL.dll`, `Music.dll` and a few more; Linux the same with `.so`) and from what
 large projects do. It goes in its own PR (`docs(AR1): decide modules as shared libraries`) and Task 8 starts on his yes.
 
+Written on 2026-11-25 as [ADR 0028](../../adr/0028-shared-library-modules.md), proposed. It adds two rules to the
+list below (an outside library has one owner; the libraries are linked, never loaded by name) and leaves two
+questions open: the test executables, and a library for music.
+
 - **What large projects do** (Context7, 2026-11-22): Unreal compiles each module into a DLL loaded by one executable and
   can build monolithic instead; its docs call many DLLs right for engine code and questionable for gameplay (faster links
   against more exports and interfaces). O3DE builds each Gem as a `.dll` and, with `LY_MONOLITHIC_GAME`, as a `.lib`

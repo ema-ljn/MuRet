@@ -231,10 +231,10 @@ Client/src/
   game/     the 1.02 game (its own include root; sees engine/)
     Protocol/     packet layouts and writers, per module (Protocol/Guild/...)                          6
     Tables/       MU's tables: items, sets, skills, quests, gates, texts, NPC names...                 6
-    Maps/         what each map is: named ids, its folder, its music and its ambient sounds            6
+    Maps/         what each map is: named ids, its folder and its ambient sounds                       6
     Kernel/       the GameContext, shared state (actor pool, player, current map) and the              7
                   ports (send a packet, request a sound, an on-screen message)
-    Assets/ Terrain/ Sound/ Camera/ Ui/     the game services (Ui is the widget kit)                   8
+    Assets/ Terrain/ Sound/ Music/ Camera/ Ui/   the game services (Ui is the widget kit)              8
     Actors/ Player/ Hero/ Monsters/ Pets/ Movement/ Skills/ Combat/ Items/ Tooltips/                   9
     Npc/ Quests/ ChaosMix/ Warehouse/ PetTrainer/ Party/ Social/ Messenger/ PersonalShop/
     Chat/ Guild/ Events/<Event>/ CastleSiege/ WorldObjects/ MapScripts/<Map>/ Fauna/ Weather/
@@ -244,9 +244,10 @@ Client/src/
   app/      main.cpp and App/: config, command line, loop, the composition root                        12
 ```
 
-The number on the right is the layer. There are 58 modules (14 engine, 43 game and `app`), with a
+The number on the right is the layer. There are 59 modules (14 engine, 44 game and `app`), with a
 median of 3,200 lines; the reason for each is in
-[The modules, one by one](#the-modules-one-by-one). The first version of this document had 31;
+[The modules, one by one](#the-modules-one-by-one). `game/Music` was added on 2026-11-25 by the
+[music plan](../plans/2026-11-25-music-home.md). The first version of this document had 31;
 on 2026-11-21 Emanuel asked to split "as much as possible" (starting with sound), and the revision
 came from measuring the map and reading how TrinityCore, MaNGOS and OpenMU are organized.
 
@@ -254,7 +255,7 @@ came from measuring the map and reading how TrinityCore, MaNGOS and OpenMU are o
   only what is higher in the listing: in `engine/`, `Core` and `Math` at the very bottom and
   `Models` on top (`Render` lends it `TextureSlot` and `SpriteVertex`); in `game/`, `Protocol`,
   `Tables` and `Maps` at the bottom, then `Kernel`, the services (`Assets`, `Terrain`, `Sound`,
-  `Camera`, `Ui`) and the modules, and on top `Session` (its opcode table names the modules'
+  `Music`, `Camera`, `Ui`) and the modules, and on top `Session` (its opcode table names the modules'
   handlers) and `Scenes`. A module sends packets through the `Kernel` port, which `Session`
   implements: handlers do not know the session. A game module does not include another one's
   internals: it includes its public header, and cycles are forbidden (`check_layers.py` in CI).
@@ -340,8 +341,9 @@ map):
 | `engine/Network/FoxAnti` | 3 | the FoxAnti layer: the mechanism of the translations the lab server asks for in each direction (327; today in `Network`); its MU values (the XOR key, the opcode remaps, the server codes and the heads it rewrites) come injected from `app/` as a `FoxAntiTables` | it is not part of `main.exe`: it is a DLL hooked into it that only the lab GameServer requires (`03-red-y-cifrado.md`, section "La capa de FoxAnti": "a MuRet server might not use it"), so it must be removable: `Network` keeps only the contract (`IObfuscation`, with its five hooks in the original's order) and the identity, which touches nothing and is what runs when there is no layer. Only `app/` links `FoxAntiObfuscation` (today only `main.cpp` includes it). It is removed at compile time with the CMake option `MURET_FOXANTI`, because the programmer decides it, not the player (Emanuel, 2026-11-21), and the rest of the client receives it injected as `const IObfuscation&`: `app/` builds it with `MakeObfuscation()`, whose definition CMake picks from two files, so there is no `#if` in the code. The `[Server] Obfuscation` ini key goes away. It is an optional library of its own (`MuRetFoxAnti`) inside the `Network` folder, because the network is part of the engine, as in Unreal, Source, Quake 3 and Godot (Emanuel, 2026-11-21) |
 | `engine/Pathfinding` | 3 | the original's A* and the wall grid (614; today in `GameLogic` and `World`) | it only uses `Data` and `Math`: a leaf, like `Pathfinding` in OpenMU |
 | `game/Tables` | 6 | MU's 14 tables: items, sets, skills, quests, gates, texts, NPC names... (1,772; today in `Data`) | the engine reads the format, the game declares the rows: `DB2FileLoader` / `DB2Structure.h` in TrinityCore, `DBCFileLoader` / `DBCStructure.h` in MaNGOS |
-| `game/Maps` | 6 | named map ids and their predicates (`IsChaosCastle`, `IsKalima`...), each map's folder, music and ambience | today there are about 189 per-map comparisons in 62 files of 18 modules, with loose constants (`c.map == 7`, `IcarusMap`); they become names and stay where they are, because they are the original's logic |
+| `game/Maps` | 6 | named map ids and their predicates (`IsChaosCastle`, `IsKalima`...), each map's folder and ambience | today there are about 189 per-map comparisons in 62 files of 18 modules, with loose constants (`c.map == 7`, `IcarusMap`); they become names and stay where they are, because they are the original's logic |
 | `game/Sound` | 8 | the catalog from ids to `.wav` files (today in `engine/Audio`), which sounds each map loads, the per-model sound table, the sound request (899) | the engine plays sounds and does not know which sounds MU has: it receives the definitions at startup. The 224 calls that request a sound (78 files, 19 modules) stay in their functions, because in the original they are inside them and some pick with `rand()`; they swap `WorldRuntime::RequestSound` for the `Kernel` port |
+| `game/Music` | 8 | MU's 22 music tracks (the original's one table of paths), the map music of the scene loop and the sweep that stops every track (added 2026-11-25, [music plan](../plans/2026-11-25-music-home.md)) | the engine plays a path and does not know which tracks MU has; the map music is behavior, so it cannot sit in `Maps` (criterion 3). Crywolf's, the siege's, the login's and the credits' choices stay with their owners and name their tracks from here |
 | `game/Assets`, `game/Terrain`, `game/Camera` | 8 | game models and textures (4,261), the terrain (4,335), the camera (410) | they leave `Kernel`, which stays at 8 files and 1,735 lines: shared state and ports, nothing else. `Terrain` does not know actors, like MaNGOS Zero's `terrain`, which "knows nothing of the world" |
 | `game/Movement` | 9 | the player's path, gates, speed (2,004; today in `Hero`) | it uses `Pathfinding`; skills, the HUD and NPCs use it. Today it includes `Events` and `Chat` (3 and 3) to know whether a click belongs to them: that becomes an ordered extension point (see the anatomy) |
 | `game/Skills` | 9 | the hero's skills and their replies (9,025; today in `Hero` and `Combat`) | `Spells/` is a module of its own in TrinityCore and cMaNGOS. `Hero` stays small (attack and facing, 788): AR4.2 decides whether it merges with `Player` |

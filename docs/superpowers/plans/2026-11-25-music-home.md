@@ -189,7 +189,7 @@ same chain again, spread over eleven files.
 
 | Option | For | Against |
 | --- | --- | --- |
-| **`game/Music`, layer 8 (recommended)** | one home for one family; its own key (paths, one stream) and its own engine port; Emanuel asked to split "as much as possible, starting with sound" (2026-11-21); criterion 1, direction, holds | one more row in every list of modules (`modules.tsv`, CODING_RULES §5, the spec, ADR 0023, the `muret-module` skill) |
+| **`game/Music`, layer 8 (chosen 2026-11-25)** | one home for one family; its own key (paths, one stream) and its own engine port; Emanuel asked to split "as much as possible, starting with sound" (2026-11-21); criterion 1, direction, holds | one more row in every list of modules (`modules.tsv`, CODING_RULES §5, the spec, ADR 0023, the `muret-module` skill) |
 | `game/Sound`, layer 8 | one module for everything audible, no new row | two families with different keys (ids and paths), engine APIs and state in one module |
 | `game/Maps`, layer 6 (the spec today) | no new row | layer 6 holds data without behavior (criterion 3, CODING_RULES §5); the login's, the credits' and the siege's tracks are not map data |
 
@@ -217,8 +217,8 @@ Not part of the refactor tasks. Each needs its own yes.
 
 ## Decisions
 
-1. **Where MU's music content lives.** Open: `game/Music` (recommended), `game/Sound` or `game/Maps`. Tasks 5 to 8
-   assume `game/Music`; another answer changes only their file paths and Task 5's module row.
+1. **Where MU's music content lives.** Decided by Emanuel on 2026-11-25: a new module, `game/Music`, over
+   `game/Sound` and `game/Maps`. Tasks 5 to 8 use it.
 2. **No `Music.dll` in AR1.** Recommended; ADR 0028 decides libraries.
 3. **The tracks are an `enum class Track : std::uint8_t`** in the table's slot order, with the paths in one
    `std::array` (§7 "Types", rule 5). The engine keeps taking a path: the game converts at its edge (§7 "Types",
@@ -267,8 +267,8 @@ Not part of the refactor tasks. Each needs its own yes.
 
 ## Tasks
 
-Task 1 is this document. Tasks 2 and 3 depend on nothing. Task 4 needs Task 3. Task 5 needs Task 4, PRs 456 and 457,
-and decision 1. Tasks 3 to 5 are AR1.1 work and go before AR1.2's move, interleaved with AR1 Tasks 5e and 5c as
+Task 1 is this document. Tasks 2 and 3 depend on nothing. Task 4 needs Task 3. Task 5 needs Task 4 and PRs 456 and
+457. Tasks 3 to 5 are AR1.1 work and go before AR1.2's move, interleaved with AR1 Tasks 5e and 5c as
 Emanuel says. Task 6 needs Task 5, Task 7 needs Task 6, Task 8 needs Task 6.
 
 | Task | What | Needs |
@@ -277,7 +277,7 @@ Emanuel says. Task 6 needs Task 5, Task 7 needs Task 6, Task 8 needs Task 6.
 | 2 | the behavior golden hears the audio | |
 | 3 | rename the music files to `MusicPlayer` | |
 | 4 | the music player gets its own port | 3 |
-| 5 | MU's music leaves the engine: `game/Music` | 4, PRs 456 and 457, decision 1 |
+| 5 | MU's music leaves the engine: `game/Music` | 4, PRs 456 and 457 |
 | 6 | every track named from `game/Music` | 5 |
 | 7 | the siege chooses its music in its own step | 6 |
 | 8 | the checks see the tracks and the event loops | 6 |

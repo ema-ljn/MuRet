@@ -13,7 +13,7 @@
 #include <string_view>
 #include <vector>
 
-namespace Client::Platform
+namespace Client::Platform::Sdl
 {
 namespace
 {
@@ -108,4 +108,4 @@ SdlLog::~SdlLog()
     SDL_SetLogOutputFunction(SDL_GetDefaultLogOutputFunction(), nullptr);
     s_installed = false;
 }
-} // namespace Client::Platform
+} // namespace Client::Platform::Sdl

@@ -27,8 +27,8 @@ using Client::Input::InputEvent;
 using Client::Input::Key;
 using Client::Input::KeyCount;
 using Client::Input::MouseButton;
-using Client::Platform::InputEventFor;
-using Client::Platform::KeyFor;
+using Client::Platform::Sdl::InputEventFor;
+using Client::Platform::Sdl::KeyFor;
 
 SDL_Event KeyboardEvent(std::uint32_t type, SDL_Scancode scancode, bool repeat = false)
 {

@@ -90,7 +90,7 @@ protected:
         m_gl.readPixels = &FakeReadPixels;
     }
 
-    Client::Platform::GlFunctions m_gl{};
+    Client::Platform::Sdl::GlFunctions m_gl{};
 };
 
 // 13 × 11: una fila de 39 bytes, que con el 4 de GL llevaría relleno. La lectura es de toda la pantalla desde (0, 0),

@@ -8,7 +8,7 @@
 #include <string>
 
 // SwapIntervalFor y ApplySwapInterval.
-namespace Client::Platform
+namespace Client::Platform::Sdl
 {
 namespace
 {
@@ -100,4 +100,4 @@ SwapIntervalResult ApplySwapInterval(VSyncMode wanted, SetSwapIntervalFunction s
     }
     return result;
 }
-} // namespace Client::Platform
+} // namespace Client::Platform::Sdl

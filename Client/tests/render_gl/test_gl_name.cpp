@@ -17,7 +17,7 @@ using Client::Render::Gl::GlName;
 // función, sin captura; el fixture lo vacía antes de cada test.
 std::vector<GLuint> s_deleted;
 
-void RecordDelete(const Client::Platform::GlFunctions& /*gl*/, GLuint name)
+void RecordDelete(const Client::Platform::Sdl::GlFunctions& /*gl*/, GLuint name)
 {
     s_deleted.push_back(name);
 }
@@ -31,7 +31,7 @@ protected:
     }
 
     // Una tabla vacía: RecordDelete no la usa.
-    const Client::Platform::GlFunctions m_gl{};
+    const Client::Platform::Sdl::GlFunctions m_gl{};
 };
 
 TEST_F(GlNameTest, DeletesItsNameOnce)

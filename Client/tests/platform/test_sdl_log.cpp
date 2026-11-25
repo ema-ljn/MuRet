@@ -21,8 +21,8 @@ namespace
 using Client::Core::ILogSink;
 using Client::Core::Log;
 using Client::Core::LogLevel;
-using Client::Platform::LevelOf;
-using Client::Platform::SdlLog;
+using Client::Platform::Sdl::LevelOf;
+using Client::Platform::Sdl::SdlLog;
 using Client::Tests::RecordingSink;
 
 // Deja pasar todas las prioridades mientras dura el test (SDL filtra antes de llamar a la salida:

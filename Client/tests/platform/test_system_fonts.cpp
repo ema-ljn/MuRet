@@ -8,9 +8,9 @@
 // paréntesis; la negrita es la cara con " Bold". Las caras de estos tests son inventadas.
 namespace
 {
-using Client::Platform::FindSystemFontFile;
-using Client::Platform::FontEntryNamesFace;
-using Client::Platform::HasSystemFontList;
+using Client::Platform::Sdl::FindSystemFontFile;
+using Client::Platform::Sdl::FontEntryNamesFace;
+using Client::Platform::Sdl::HasSystemFontList;
 
 // La normal es el nombre exacto de la cara, y la negrita, el nombre con " Bold".
 TEST(SystemFontsTest, AnEntryNamesItsFace)

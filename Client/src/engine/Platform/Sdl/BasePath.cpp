@@ -10,7 +10,7 @@
 #include <filesystem>
 #include <string>
 
-namespace Client::Platform
+namespace Client::Platform::Sdl
 {
 Core::Expected<std::filesystem::path, std::string> ExecutableFolder()
 {
@@ -25,4 +25,4 @@ Core::Expected<std::filesystem::path, std::string> ExecutableFolder()
     std::transform(basePath, basePath + length, utf8.begin(), [](char c) { return static_cast<char8_t>(c); });
     return std::filesystem::path(utf8);
 }
-} // namespace Client::Platform
+} // namespace Client::Platform::Sdl

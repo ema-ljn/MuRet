@@ -14,7 +14,7 @@
 #include <vector>
 
 // DisplayModes: lo que dice SDL del monitor principal.
-namespace Client::Platform
+namespace Client::Platform::Sdl
 {
 Core::Expected<std::vector<Resolution>, std::string> MonitorResolutions(const SdlContext& /*sdl*/)
 {
@@ -50,4 +50,4 @@ Core::Expected<std::vector<Resolution>, std::string> MonitorResolutions(const Sd
     }
     return resolutions;
 }
-} // namespace Client::Platform
+} // namespace Client::Platform::Sdl

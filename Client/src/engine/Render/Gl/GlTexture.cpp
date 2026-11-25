@@ -52,7 +52,7 @@ GLenum PixelLayout(PixelFormat format)
 constexpr int MaxPendingErrors = 16;
 
 // Saca los errores que tiene GL y da el primero, o GL_NO_ERROR si no había ninguno.
-GLenum TakeErrors(const Platform::GlFunctions& gl)
+GLenum TakeErrors(const Platform::Sdl::GlFunctions& gl)
 {
     GLenum first = GL_NO_ERROR;
     for (int taken = 0; taken < MaxPendingErrors; ++taken)
@@ -123,7 +123,7 @@ std::string CheckBuffer(const Texture& texture)
 
 GlTexture::GlTexture(GlName name, int width, int height) : m_name(std::move(name)), m_width(width), m_height(height) {}
 
-Core::Expected<GlTexture, std::string> GlTexture::Upload(const Platform::GlFunctions& gl, const Texture& texture,
+Core::Expected<GlTexture, std::string> GlTexture::Upload(const Platform::Sdl::GlFunctions& gl, const Texture& texture,
                                                          Data::Textures::Sampling sampling)
 {
     std::string bufferError = CheckBuffer(texture);

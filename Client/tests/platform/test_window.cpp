@@ -17,9 +17,9 @@
 // (como los de render_gl/, support/GlTestContext.h).
 namespace
 {
-using Client::Platform::SdlContext;
-using Client::Platform::Window;
-using Client::Platform::WindowOptions;
+using Client::Platform::Sdl::SdlContext;
+using Client::Platform::Sdl::Window;
+using Client::Platform::Sdl::WindowOptions;
 
 class WindowTest : public ::testing::Test
 {

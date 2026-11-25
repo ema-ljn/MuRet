@@ -26,7 +26,7 @@
 // Con SDL_MOUSEWHEEL_FLIPPED (el scroll "natural") se le cambia el signo, para que sea positiva
 // hacia adelante siempre. Un evento sin muesca entera no es un evento, y la rueda horizontal
 // (`x`, `integer_x`) se descarta: en macOS, Shift y la rueda llegan como horizontal.
-namespace Client::Platform
+namespace Client::Platform::Sdl
 {
 // La tecla de un scancode; uno que el cliente no usa da std::nullopt. El Enter del teclado
 // numérico también: el original lo ve como VK_RETURN, pero con una sola Key::Enter, soltar uno de
@@ -51,4 +51,4 @@ namespace Client::Platform
 // length, incluso vacío cuando el IME cancela la composición; no agrega nada al Text() legado.
 [[nodiscard]] PLATFORM_API std::optional<Input::InputEvent> InputEventFor(const SDL_Event& event,
                                                                           float pixelDensity = 1.0f);
-} // namespace Client::Platform
+} // namespace Client::Platform::Sdl

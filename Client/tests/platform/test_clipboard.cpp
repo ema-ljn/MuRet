@@ -52,7 +52,7 @@ TEST(ClipboardWithoutSdlTest, ReadTextWithoutSdlInitializationHasNoValue)
     SDL_Quit();
     ASSERT_EQ(SDL_WasInit(0), 0u);
 
-    Client::Platform::Clipboard clipboard;
+    Client::Platform::Sdl::Clipboard clipboard;
 
     EXPECT_FALSE(clipboard.ReadText().has_value());
 }
@@ -65,7 +65,7 @@ TEST_F(SdlDummyClipboardTest, ClipboardWithoutTextFormatsHasNoValue)
     ASSERT_TRUE(SDL_HasClipboardData(mimeTypes.front()));
     ASSERT_FALSE(SDL_HasClipboardText());
 
-    Client::Platform::Clipboard clipboard;
+    Client::Platform::Sdl::Clipboard clipboard;
 
     EXPECT_FALSE(clipboard.ReadText().has_value());
 }
@@ -77,7 +77,7 @@ TEST_F(SdlDummyClipboardTest, ValidEmptyTextRemainsDistinctFromUnavailableText)
         << SDL_GetError();
     ASSERT_TRUE(SDL_HasClipboardText());
 
-    Client::Platform::Clipboard clipboard;
+    Client::Platform::Sdl::Clipboard clipboard;
     const std::optional<std::string> text = clipboard.ReadText();
 
     ASSERT_TRUE(text.has_value());
@@ -88,7 +88,7 @@ TEST_F(SdlDummyClipboardTest, TextRoundTripsThroughSdl)
 {
     ASSERT_TRUE(SDL_SetClipboardText("€")) << SDL_GetError();
 
-    Client::Platform::Clipboard clipboard;
+    Client::Platform::Sdl::Clipboard clipboard;
     const std::optional<std::string> text = clipboard.ReadText();
 
     ASSERT_TRUE(text.has_value());

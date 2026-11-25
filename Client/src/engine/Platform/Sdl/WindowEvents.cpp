@@ -13,7 +13,7 @@
 #include <optional>
 
 // PumpEvents: la tabla del contrato de la CL3.1, de los SDL_EVENT_* a los WindowEvent.
-namespace Client::Platform
+namespace Client::Platform::Sdl
 {
 namespace
 {
@@ -82,4 +82,4 @@ void PumpEvents(WindowState& state, Input::InputState& input, SDL_WindowID windo
         state = Apply(state, *windowEvent, size);
     }
 }
-} // namespace Client::Platform
+} // namespace Client::Platform::Sdl

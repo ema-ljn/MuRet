@@ -33,8 +33,9 @@ public:
     // y GL_TEXTURE_2D queda en 0. Saca todos los que lee (glGetError da uno por bandera), así que
     // la llamada siguiente empieza sin ninguno, y el alignment vuelve a lo que estaba. Después de
     // GL_OUT_OF_MEMORY, GL no promete nada del contexto: Upload no intenta arreglarlo.
-    [[nodiscard]] static Core::Expected<GlTexture, std::string>
-    Upload(const Platform::GlFunctions& gl, const Data::Textures::Texture& texture, Data::Textures::Sampling sampling);
+    [[nodiscard]] static Core::Expected<GlTexture, std::string> Upload(const Platform::Sdl::GlFunctions& gl,
+                                                                       const Data::Textures::Texture& texture,
+                                                                       Data::Textures::Sampling sampling);
 
     [[nodiscard]] GLuint Name() const;
     // El tamaño del buffer, textureWidth × textureHeight: el de la textura de GL, no el de la

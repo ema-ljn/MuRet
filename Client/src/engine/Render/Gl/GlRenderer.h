@@ -25,7 +25,7 @@ class OPENGL_API GlRenderer
 {
 public:
     // Compila y enlaza el shader y arma el VAO. El error trae el log del compilador de GLSL.
-    [[nodiscard]] static Core::Expected<GlRenderer, std::string> Create(const Platform::GlFunctions& gl);
+    [[nodiscard]] static Core::Expected<GlRenderer, std::string> Create(const Platform::Sdl::GlFunctions& gl);
 
     // Dibuja `vertices`, de a tres por triángulo, con `texture` y sin el alpha test, en una
     // pantalla de `screen` píxeles: Upload y un DrawRange de todos. No toca la mezcla.
@@ -51,10 +51,10 @@ private:
         GLint alphaTest = -1;
     };
 
-    GlRenderer(const Platform::GlFunctions& gl, GlShader shader, GlName vertexArray, GlName vertexBuffer,
+    GlRenderer(const Platform::Sdl::GlFunctions& gl, GlShader shader, GlName vertexArray, GlName vertexBuffer,
                Uniforms uniforms);
 
-    const Platform::GlFunctions* m_gl;
+    const Platform::Sdl::GlFunctions* m_gl;
     GlShader m_shader;
     GlName m_vertexArray;
     GlName m_vertexBuffer;

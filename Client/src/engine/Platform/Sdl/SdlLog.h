@@ -13,7 +13,7 @@
 //
 // MuRet no encadena a la salida que hubiera antes (MuMain sí, en SdlLogBridge): pone la suya, al
 // morir restaura la de por defecto, y filtra una sola vez, con el mínimo del Core::Log.
-namespace Client::Platform
+namespace Client::Platform::Sdl
 {
 // El nivel del log para la prioridad de un mensaje de SDL: TRACE, VERBOSE y DEBUG van a Debug;
 // INFO a Info; WARN a Warning; ERROR y CRITICAL a Error. INVALID y COUNT no son prioridades de un
@@ -49,4 +49,4 @@ public:
     SdlLog(SdlLog&&) = delete;
     SdlLog& operator=(SdlLog&&) = delete;
 };
-} // namespace Client::Platform
+} // namespace Client::Platform::Sdl

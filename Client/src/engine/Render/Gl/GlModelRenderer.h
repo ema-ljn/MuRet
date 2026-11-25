@@ -30,7 +30,7 @@ class OPENGL_API GlModelRenderer
 public:
     // Compila y enlaza el shader y arma el VAO. El error trae el log del compilador de GLSL o el
     // uniform que falta.
-    [[nodiscard]] static Core::Expected<GlModelRenderer, std::string> Create(const Platform::GlFunctions& gl);
+    [[nodiscard]] static Core::Expected<GlModelRenderer, std::string> Create(const Platform::Sdl::GlFunctions& gl);
 
     // Dibuja `batch` en el framebuffer que esté atado. Un tramo con un slot que `textures` no tiene
     // sale sin textura, con el color de sus vértices (Q-C29: el original ata el nombre 0 de un slot
@@ -53,7 +53,7 @@ private:
         GLint fogEnd = -1;
     };
 
-    GlModelRenderer(const Platform::GlFunctions& gl, GlShader shader, GlName vertexArray, GlName vertexBuffer,
+    GlModelRenderer(const Platform::Sdl::GlFunctions& gl, GlShader shader, GlName vertexArray, GlName vertexBuffer,
                     Uniforms uniforms);
 
     // El estado de 0x620db0 para el pase de `batch`, con sus vértices subidos.
@@ -67,7 +67,7 @@ private:
     void SetTextureEnvAndFog(const ModelDrawCommand& command) const;
     void SetFog(const std::optional<ModelFog>& fog) const;
 
-    const Platform::GlFunctions* m_gl;
+    const Platform::Sdl::GlFunctions* m_gl;
     GlShader m_shader;
     GlName m_vertexArray;
     GlName m_vertexBuffer;

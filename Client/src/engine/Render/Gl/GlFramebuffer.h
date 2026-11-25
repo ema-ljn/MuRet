@@ -34,8 +34,8 @@ class OPENGL_API GlFramebuffer
 public:
     // Crea el framebuffer de `width` × `height`, lo deja atado, en (0, 0, 0, 0) y con la profundidad
     // en 1: lo que GL reserva sin datos no tiene un valor fijo. Un lado de 0 o menos no llega a GL.
-    [[nodiscard]] static Core::Expected<GlFramebuffer, std::string> Create(const Platform::GlFunctions& gl, int width,
-                                                                           int height);
+    [[nodiscard]] static Core::Expected<GlFramebuffer, std::string> Create(const Platform::Sdl::GlFunctions& gl,
+                                                                           int width, int height);
 
     [[nodiscard]] int Width() const;
     [[nodiscard]] int Height() const;
@@ -46,10 +46,10 @@ public:
     [[nodiscard]] std::vector<Rgba8> ReadPixels() const;
 
 private:
-    GlFramebuffer(const Platform::GlFunctions& gl, GlName color, GlName depth, GlName framebuffer, int width,
+    GlFramebuffer(const Platform::Sdl::GlFunctions& gl, GlName color, GlName depth, GlName framebuffer, int width,
                   int height);
 
-    const Platform::GlFunctions* m_gl;
+    const Platform::Sdl::GlFunctions* m_gl;
     GlName m_color;
     GlName m_depth;
     GlName m_framebuffer;

@@ -33,7 +33,7 @@
 // El tipo de cada puntero es su typedef PFNGL…PROC, con la convención de llamada de GL: los de la
 // 1.x los declara SDL_opengl.h con SDL_OPENGL_1_FUNCTION_TYPEDEFS (PUBLIC en Platform,
 // Client/CMakeLists.txt) y los de la 3.3 (shaders, buffers) SDL_opengl_glext.h, siempre.
-namespace Client::Platform
+namespace Client::Platform::Sdl
 {
 // OpenGL 3.3 core (D-C3 del roadmap): la versión que se pide antes de crear la ventana y la mínima
 // que se acepta del driver.
@@ -105,4 +105,4 @@ LoadGlFunctions(GlProcLookup lookup = GlProcAddress);
 
 // glGetString como texto, o "(sin dato)" si el driver da nulo.
 [[nodiscard]] PLATFORM_API const char* GlString(const GlFunctions& gl, GLenum name);
-} // namespace Client::Platform
+} // namespace Client::Platform::Sdl

@@ -226,7 +226,7 @@ Core::Expected<App::CommandLine, App::CommandLineExit> ParseArguments(int argc, 
 // si no dice otra cosa, el log.
 std::optional<Startup> ReadStartup(int argc, char* argv[], App::CommandLine commandLine, Core::Log& log)
 {
-    const auto exeFolder = Platform::ExecutableFolder();
+    const auto exeFolder = Platform::Sdl::ExecutableFolder();
     if (!exeFolder.HasValue())
     {
         log.Warning("{}; busco la config y el log en la carpeta actual", exeFolder.Error());
@@ -267,11 +267,11 @@ std::optional<Startup> ReadStartup(int argc, char* argv[], App::CommandLine comm
                    .server = std::move(server)};
 }
 
-void PrintGlInfo(const Platform::GlFunctions& gl)
+void PrintGlInfo(const Platform::Sdl::GlFunctions& gl)
 {
     std::printf("MuRet Client\n");
-    std::printf("GL_VERSION:  %s\n", Platform::GlString(gl, GL_VERSION));
-    std::printf("GL_RENDERER: %s\n", Platform::GlString(gl, GL_RENDERER));
+    std::printf("GL_VERSION:  %s\n", Platform::Sdl::GlString(gl, GL_VERSION));
+    std::printf("GL_RENDERER: %s\n", Platform::Sdl::GlString(gl, GL_RENDERER));
     std::fflush(stdout);
 }
 
@@ -291,10 +291,10 @@ bool StartNetwork(std::optional<Network::SocketApi::NetworkInit>& network, Core:
 // Fase 3, antes de la ventana: [Video] Width y Height tienen que ser una de las cinco del original
 // o un modo del monitor (App/Resolution.h). Si SDL no da los modos, valen las cinco y lo avisa.
 // false si no vale, con las que valen en el log.
-bool CheckResolution(const Platform::SdlContext& sdl, const App::ClientConfig& config, Core::Log& log)
+bool CheckResolution(const Platform::Sdl::SdlContext& sdl, const App::ClientConfig& config, Core::Log& log)
 {
     std::vector<Platform::Resolution> monitorModes;
-    auto modes = Platform::MonitorResolutions(sdl);
+    auto modes = Platform::Sdl::MonitorResolutions(sdl);
     if (modes.HasValue())
     {
         monitorModes = std::move(modes).Value();
@@ -315,28 +315,28 @@ bool CheckResolution(const Platform::SdlContext& sdl, const App::ClientConfig& c
 
 // Fase 3: la ventana con el tamaño y el VSync de la config. Si el driver no deja el VSync pedido,
 // lo avisa y sigue: la lógica va igual a 25 pasos por segundo y el dibujo, más rápido.
-std::optional<Platform::Window> OpenWindow(const Platform::SdlContext& sdl, const App::ClientConfig& config,
-                                           Core::Log& log)
+std::optional<Platform::Sdl::Window> OpenWindow(const Platform::Sdl::SdlContext& sdl, const App::ClientConfig& config,
+                                                Core::Log& log)
 {
     if (!CheckResolution(sdl, config, log))
     {
         return std::nullopt;
     }
     // Resolve siempre deja puesto el VSync: On en el modo normal y Off en el fiel, si no se dio.
-    const Platform::WindowOptions options{
+    const Platform::Sdl::WindowOptions options{
         .width = config.width, .height = config.height, .vsync = config.vsync.value_or(Platform::VSyncMode::On)};
-    auto created = Platform::Window::Create(sdl, options);
+    auto created = Platform::Sdl::Window::Create(sdl, options);
     if (!created.HasValue())
     {
         log.Error("{}", created.Error());
         return std::nullopt;
     }
-    Platform::Window window = std::move(created).Value();
+    Platform::Sdl::Window window = std::move(created).Value();
     PrintGlInfo(window.Gl());
     if (window.VSync() != options.vsync)
     {
-        log.Warning("VSync: se pidió {} y quedó {}: {}", Platform::VSyncModeName(options.vsync),
-                    Platform::VSyncModeName(window.VSync()), window.VSyncError());
+        log.Warning("VSync: se pidió {} y quedó {}: {}", Platform::Sdl::VSyncModeName(options.vsync),
+                    Platform::Sdl::VSyncModeName(window.VSync()), window.VSyncError());
     }
     return window;
 }
@@ -392,33 +392,33 @@ struct Online
 };
 
 // El tope de FPS va solo con el VSync que quedó apagado, como en MuMain (App::EffectiveMaxFps).
-int LoopMaxFps(const App::ClientConfig& config, const Platform::Window& window, Core::Log& log)
+int LoopMaxFps(const App::ClientConfig& config, const Platform::Sdl::Window& window, Core::Log& log)
 {
     const int maxFps = App::EffectiveMaxFps(config.maxFps, window.VSync());
     if (config.maxFps != maxFps)
     {
         log.Info("el tope de FPS no se usa con VSync {}: el swap ya frena al refresco",
-                 Platform::VSyncModeName(window.VSync()));
+                 Platform::Sdl::VSyncModeName(window.VSync()));
     }
     return maxFps;
 }
 
 // Lo que la escena de prueba le pide a la ventana: el fondo de un color, y el swap.
-void Present(Platform::Window& window, const Scenes::TestScene::Color& color)
+void Present(Platform::Sdl::Window& window, const Scenes::TestScene::Color& color)
 {
-    const Platform::GlFunctions& gl = window.Gl();
+    const Platform::Sdl::GlFunctions& gl = window.Gl();
     gl.clearColor(color.red, color.green, color.blue, 1.0f);
     gl.clear(GL_COLOR_BUFFER_BIT);
     window.Swap();
 }
 
-void SetViewport(const Platform::GlFunctions& gl, Core::PixelSize size)
+void SetViewport(const Platform::Sdl::GlFunctions& gl, Core::PixelSize size)
 {
     gl.viewport(0, 0, size.width, size.height);
 }
 
 // El viewport sigue al área de dibujo, que cambia con PixelSizeChanged.
-void FollowPixelSize(const Platform::GlFunctions& gl, Core::PixelSize size, Core::PixelSize& viewport)
+void FollowPixelSize(const Platform::Sdl::GlFunctions& gl, Core::PixelSize size, Core::PixelSize& viewport)
 {
     if (size.width != viewport.width || size.height != viewport.height)
     {
@@ -451,7 +451,7 @@ void PrintStats(App::FrameRateMeter& meter, Core::Duration now, const App::Frame
 
 // Fase 4: hasta que se cierre la ventana, se llegue a --frames o `stop` diga que no se sigue.
 // `afterFrame` corre después de cada frame, antes de `stop`.
-App::FrameStats RunLoop(Platform::Window& window, Core::IClock& clock, App::GameLoop& loop,
+App::FrameStats RunLoop(Platform::Sdl::Window& window, Core::IClock& clock, App::GameLoop& loop,
                         Client::Input::InputState& input, const App::CommandLine& commandLine, Core::Log& log,
                         const std::function<bool()>& stop = {}, const std::function<void()>& afterFrame = {})
 {
@@ -467,7 +467,7 @@ App::FrameStats RunLoop(Platform::Window& window, Core::IClock& clock, App::Game
     while (!commandLine.maxFrames || loop.Stats().frames < *commandLine.maxFrames)
     {
         // El mouse, en píxeles del framebuffer (CL5.5): la UI del login los usa.
-        Platform::PumpEvents(state, input, window.Id(), window.PixelDensity());
+        Platform::Sdl::PumpEvents(state, input, window.Id(), window.PixelDensity());
         if (!state.running)
         {
             break;
@@ -571,8 +571,9 @@ std::optional<SceneStartup> ReadSceneStartup(const App::ClientConfig& config, Co
     const std::string_view face = loaded.text ? loaded.text->Text(0).value_or("") : "";
     // La búsqueda, solo donde hay una lista de fuentes del sistema: en otro, ninguna, y el error de
     // ChooseFontFiles dice que el cliente no busca la cara.
-    const App::SystemFontSearch search =
-        Platform::HasSystemFontList() ? App::SystemFontSearch(Platform::FindSystemFontFile) : App::SystemFontSearch();
+    const App::SystemFontSearch search = Platform::Sdl::HasSystemFontList()
+                                             ? App::SystemFontSearch(Platform::Sdl::FindSystemFontFile)
+                                             : App::SystemFontSearch();
     auto fonts = App::ChooseFontFiles(config, face, search);
     if (!fonts.HasValue())
     {
@@ -590,7 +591,7 @@ std::optional<SceneStartup> ReadSceneStartup(const App::ClientConfig& config, Co
 class TextInputFollower
 {
 public:
-    TextInputFollower(Platform::Window& window, Core::Log& log)
+    TextInputFollower(Platform::Sdl::Window& window, Core::Log& log)
         : m_window(window), m_log(log), m_on(window.TextInputActive())
     {
     }
@@ -612,7 +613,7 @@ public:
     }
 
 private:
-    Platform::Window& m_window;
+    Platform::Sdl::Window& m_window;
     Core::Log& m_log;
     bool m_on;
 };
@@ -629,7 +630,7 @@ bool GameServerOrderedTheQuit(const App::ServerSession* session)
 // antes del bucle, o una escena que no puede entrar, cierra con EXIT_FAILURE y el error en el log;
 // el OK de un aviso que cierra el juego (Q-C69) y la orden del GameServer (Q-C106), con
 // EXIT_SUCCESS, al final del frame en que llegan.
-int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Window& window, Core::IClock& clock,
+int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Sdl::Window& window, Core::IClock& clock,
               Core::Log& log)
 {
     Client::Render::Gl::TextureTable textures(window.Gl());
@@ -725,7 +726,7 @@ int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Wind
         online.emplace(*startup.server, *obfuscation, clock, log, eventApplier);
     }
     App::ServerSession* session = online ? &online->session : nullptr;
-    Platform::Clipboard clipboard;
+    Platform::Sdl::Clipboard clipboard;
     const Scenes::SceneContext context{.dataRoot = *startup.config.dataPath,
                                        .textures = textures,
                                        .log = log,
@@ -815,7 +816,7 @@ int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Wind
                                               .measure = frame.Value()->TextMeasure(),
                                               .screen = window.PixelSize(),
                                               .shiftDown = input.IsDown(Client::Input::Key::Shift),
-                                              .localTime = Platform::ReadLocalTime,
+                                              .localTime = Platform::Sdl::ReadLocalTime,
                                               .texts = scenes.data.text ? &*scenes.data.text : nullptr,
                                               .chosenServer =
                                                   session != nullptr ? session->ChosenServer() : std::nullopt,
@@ -945,7 +946,7 @@ int main(int argc, char* argv[])
         return EXIT_FAILURE;
     }
 
-    const auto sdl = Platform::SdlContext::Create();
+    const auto sdl = Platform::Sdl::SdlContext::Create();
     if (!sdl.HasValue())
     {
         log.Error("{}", sdl.Error());
@@ -953,14 +954,14 @@ int main(int argc, char* argv[])
     }
     // Después del SdlContext, así muere antes: SDL_Quit no devuelve la salida por defecto de SDL
     // (Platform/SdlLog.h).
-    const Platform::SdlLog sdlLog(log);
-    std::optional<Platform::Window> window = OpenWindow(*sdl.Value(), startup->config, log);
+    const Platform::Sdl::SdlLog sdlLog(log);
+    std::optional<Platform::Sdl::Window> window = OpenWindow(*sdl.Value(), startup->config, log);
     if (!window)
     {
         return EXIT_FAILURE;
     }
 
-    Platform::SdlClock clock;
+    Platform::Sdl::SdlClock clock;
     if (scenes)
     {
         return RunScenes(*startup, *scenes, *window, clock, log);

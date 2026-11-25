@@ -13,7 +13,7 @@
 #include <optional>
 #include <string>
 
-namespace Client::Platform
+namespace Client::Platform::Sdl
 {
 namespace
 {
@@ -232,4 +232,4 @@ std::optional<Input::InputEvent> InputEventFor(const SDL_Event& event, float pix
         return std::nullopt;
     }
 }
-} // namespace Client::Platform
+} // namespace Client::Platform::Sdl

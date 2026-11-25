@@ -11,7 +11,7 @@
 
 // De SDL_Event a App::WindowEvent (CL3.1) y a Input::InputEvent (CL3.3, InputEvents.h): lo único
 // que ve SDL del estado de la ventana y del input.
-namespace Client::Platform
+namespace Client::Platform::Sdl
 {
 // Cualquier ventana: los SDL_WindowID válidos no son 0 (SDL_video.h).
 inline constexpr SDL_WindowID AnyWindow = 0;
@@ -28,4 +28,4 @@ inline constexpr SDL_WindowID AnyWindow = 0;
 // framebuffer (InputEventFor, CL5.5): main.cpp le da Window::PixelDensity.
 PLATFORM_API void PumpEvents(WindowState& state, Input::InputState& input, SDL_WindowID windowId = AnyWindow,
                              float pixelDensity = 1.0f);
-} // namespace Client::Platform
+} // namespace Client::Platform::Sdl

@@ -32,7 +32,7 @@ bool IsGlRequired(const std::optional<std::string>& value)
     return value.has_value() && *value == "1";
 }
 
-GlTestContext::GlTestContext(SdlPtr sdl, WindowPtr window, GlContextPtr context, const Platform::GlFunctions& gl)
+GlTestContext::GlTestContext(SdlPtr sdl, WindowPtr window, GlContextPtr context, const Platform::Sdl::GlFunctions& gl)
     : m_sdl(std::move(sdl)), m_window(std::move(window)), m_context(std::move(context)), m_gl(gl)
 {
 }
@@ -40,15 +40,15 @@ GlTestContext::GlTestContext(SdlPtr sdl, WindowPtr window, GlContextPtr context,
 // Si algo falla en el medio, lo creado se destruye al revés: el contexto, la ventana y SDL.
 Core::Expected<std::unique_ptr<GlTestContext>, std::string> GlTestContext::Create()
 {
-    Core::Expected<std::unique_ptr<Platform::SdlContext>, std::string> sdl = Platform::SdlContext::Create();
+    Core::Expected<std::unique_ptr<Platform::Sdl::SdlContext>, std::string> sdl = Platform::Sdl::SdlContext::Create();
     if (!sdl.HasValue())
     {
         return Core::Unexpected(sdl.Error());
     }
 
     // Como Platform::Window::Create: los atributos del contexto van antes de crear la ventana.
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, Platform::GlMajorVersion);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, Platform::GlMinorVersion);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, Platform::Sdl::GlMajorVersion);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, Platform::Sdl::GlMinorVersion);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
     WindowPtr window(
         SDL_CreateWindow("MuRet tests", HiddenWindowSide, HiddenWindowSide, SDL_WINDOW_OPENGL | SDL_WINDOW_HIDDEN));
@@ -60,11 +60,11 @@ Core::Expected<std::unique_ptr<GlTestContext>, std::string> GlTestContext::Creat
     GlContextPtr context(SDL_GL_CreateContext(window.get()));
     if (!context)
     {
-        return Core::Unexpected("no se pudo crear el contexto OpenGL " + Platform::GlVersionText() +
+        return Core::Unexpected("no se pudo crear el contexto OpenGL " + Platform::Sdl::GlVersionText() +
                                 " core: " + SDL_GetError());
     }
 
-    const Core::Expected<Platform::GlFunctions, std::string> gl = Platform::LoadGlFunctions();
+    const Core::Expected<Platform::Sdl::GlFunctions, std::string> gl = Platform::Sdl::LoadGlFunctions();
     if (!gl.HasValue())
     {
         return Core::Unexpected(gl.Error());
@@ -74,7 +74,7 @@ Core::Expected<std::unique_ptr<GlTestContext>, std::string> GlTestContext::Creat
         new GlTestContext(std::move(sdl).Value(), std::move(window), std::move(context), gl.Value()));
 }
 
-Data::Textures::Texture TextureOverTheGlLimit(const Platform::GlFunctions& gl)
+Data::Textures::Texture TextureOverTheGlLimit(const Platform::Sdl::GlFunctions& gl)
 {
     GLint maxSide = 0;
     gl.getIntegerv(GL_MAX_TEXTURE_SIZE, &maxSide);
@@ -89,7 +89,7 @@ Data::Textures::Texture TextureOverTheGlLimit(const Platform::GlFunctions& gl)
                                    .pixels = std::vector<std::uint8_t>(bytes)};
 }
 
-const Platform::GlFunctions& GlTestContext::Gl() const
+const Platform::Sdl::GlFunctions& GlTestContext::Gl() const
 {
     return m_gl;
 }
@@ -109,7 +109,7 @@ void GlTest::SetUp()
     m_context = std::move(context).Value();
 }
 
-const Platform::GlFunctions& GlTest::Gl() const
+const Platform::Sdl::GlFunctions& GlTest::Gl() const
 {
     return m_context->Gl();
 }

@@ -17,11 +17,11 @@
 // contexto.
 namespace
 {
-using Client::Platform::GlFunctionNames;
-using Client::Platform::HasRequiredGlVersion;
-using Client::Platform::IsCoreProfile;
-using Client::Platform::IsValidProcAddress;
-using Client::Platform::LoadGlFunctions;
+using Client::Platform::Sdl::GlFunctionNames;
+using Client::Platform::Sdl::HasRequiredGlVersion;
+using Client::Platform::Sdl::IsCoreProfile;
+using Client::Platform::Sdl::IsValidProcAddress;
+using Client::Platform::Sdl::LoadGlFunctions;
 
 TEST(GlLoaderTest, RejectsTheInvalidAddresses)
 {

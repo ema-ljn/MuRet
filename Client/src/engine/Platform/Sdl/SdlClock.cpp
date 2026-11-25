@@ -7,7 +7,7 @@
 
 #include <cstdint>
 
-namespace Client::Platform
+namespace Client::Platform::Sdl
 {
 Core::Duration SdlClock::Now()
 {
@@ -28,4 +28,4 @@ void SdlClock::SleepFor(Core::Duration duration)
     // de 15,625 ms y dar un frame de 62 ms en vez de 46,875.
     SDL_DelayPrecise(static_cast<Uint64>(duration.count()));
 }
-} // namespace Client::Platform
+} // namespace Client::Platform::Sdl

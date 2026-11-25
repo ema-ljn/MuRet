@@ -46,15 +46,15 @@ TEST_F(GlTestContextTest, OpensAThreeThreeCoreContext)
     Gl().getIntegerv(GL_MAJOR_VERSION, &major);
     Gl().getIntegerv(GL_MINOR_VERSION, &minor);
     Gl().getIntegerv(GL_CONTEXT_PROFILE_MASK, &profileMask);
-    EXPECT_TRUE(Client::Platform::HasRequiredGlVersion(major, minor)) << major << "." << minor;
-    EXPECT_TRUE(Client::Platform::IsCoreProfile(profileMask));
+    EXPECT_TRUE(Client::Platform::Sdl::HasRequiredGlVersion(major, minor)) << major << "." << minor;
+    EXPECT_TRUE(Client::Platform::Sdl::IsCoreProfile(profileMask));
     EXPECT_EQ(Gl().getError(), static_cast<GLenum>(GL_NO_ERROR));
 }
 
 // Cada función de la tabla quedó pedida: ninguna en nulo.
 TEST_F(GlTestContextTest, LoadsEveryFunction)
 {
-    const Client::Platform::GlFunctions& gl = Gl();
+    const Client::Platform::Sdl::GlFunctions& gl = Gl();
 #define MU_EXPECT_LOADED(type, member, name) EXPECT_NE(gl.member, nullptr) << name;
     MU_GL_FUNCTIONS(MU_EXPECT_LOADED)
 #undef MU_EXPECT_LOADED

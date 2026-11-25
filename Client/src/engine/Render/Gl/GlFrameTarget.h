@@ -40,7 +40,7 @@ public:
     // `screen` da el área de dibujo de cada frame, y `present` presenta. La tabla y el log tienen
     // que vivir más. El error, si un renderer no compila o las fuentes del ancho de ahora no abren.
     [[nodiscard]] static Core::Expected<std::unique_ptr<GlFrameTarget>, std::string>
-    Create(const Platform::GlFunctions& gl, TextureTable& textures, Scenes::RasterizerFactory fonts,
+    Create(const Platform::Sdl::GlFunctions& gl, TextureTable& textures, Scenes::RasterizerFactory fonts,
            std::function<Core::PixelSize()> screen, std::function<void()> present, Core::Log& log);
 
     GlFrameTarget(const GlFrameTarget&) = delete;
@@ -57,7 +57,7 @@ public:
     [[nodiscard]] const Render::Text::ITextMeasure& TextMeasure() const;
 
 private:
-    GlFrameTarget(const Platform::GlFunctions& gl, TextureTable& textures, GlSpriteRenderer renderer,
+    GlFrameTarget(const Platform::Sdl::GlFunctions& gl, TextureTable& textures, GlSpriteRenderer renderer,
                   GlModelRenderer models, std::function<Core::PixelSize()> screen, std::function<void()> present,
                   Core::Log& log);
 
@@ -66,7 +66,7 @@ private:
     // Lo que juntó el lote del pase 3D, al framebuffer, y el lote vacío con el mismo pase.
     void FlushModels();
 
-    const Platform::GlFunctions* m_gl;
+    const Platform::Sdl::GlFunctions* m_gl;
     TextureTable& m_textures;
     GlSpriteRenderer m_renderer;
     GlModelRenderer m_modelRenderer;

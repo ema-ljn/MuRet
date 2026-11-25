@@ -45,8 +45,8 @@ TEST_F(HiddenGlWindowTest, OpensAThreeThreeCoreContext)
     Gl().getIntegerv(GL_MAJOR_VERSION, &major);
     Gl().getIntegerv(GL_MINOR_VERSION, &minor);
     Gl().getIntegerv(GL_CONTEXT_PROFILE_MASK, &profileMask);
-    EXPECT_TRUE(Client::Platform::HasRequiredGlVersion(major, minor)) << major << "." << minor;
-    EXPECT_TRUE(Client::Platform::IsCoreProfile(profileMask));
+    EXPECT_TRUE(Client::Platform::Sdl::HasRequiredGlVersion(major, minor)) << major << "." << minor;
+    EXPECT_TRUE(Client::Platform::Sdl::IsCoreProfile(profileMask));
     EXPECT_EQ(Gl().getError(), static_cast<GLenum>(GL_NO_ERROR));
 }
 } // namespace

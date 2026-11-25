@@ -16,7 +16,7 @@
 namespace Labs
 {
 // La tabla del cliente y las de arriba. Un LabGl{} tiene todos los punteros en nulo.
-struct LabGl : Client::Platform::GlFunctions
+struct LabGl : Client::Platform::Sdl::GlFunctions
 {
 #define MU_LAB_GL_MEMBER(type, member, name) type member = nullptr;
     MU_LAB_GL_FUNCTIONS(MU_LAB_GL_MEMBER)
@@ -26,5 +26,5 @@ struct LabGl : Client::Platform::GlFunctions
 // Pide las de MU_LAB_GL_FUNCTIONS al contexto actual, sobre la tabla del cliente que ya trae
 // `base`, con el mismo pedido que LoadGlFunctions (Client::Platform::LoadGlFunction, con el
 // reintento en opengl32.dll de Windows). El error nombra la primera que falta.
-[[nodiscard]] Client::Core::Expected<LabGl, std::string> LoadLabGl(const Client::Platform::GlFunctions& base);
+[[nodiscard]] Client::Core::Expected<LabGl, std::string> LoadLabGl(const Client::Platform::Sdl::GlFunctions& base);
 } // namespace Labs

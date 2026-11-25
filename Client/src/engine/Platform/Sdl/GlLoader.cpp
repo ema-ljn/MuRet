@@ -15,7 +15,7 @@
 #endif
 
 // La tabla de punteros de GL: la de la CL0.3, que desde la CL5.1 arma GlFunctionList.h.
-namespace Client::Platform
+namespace Client::Platform::Sdl
 {
 namespace
 {
@@ -127,4 +127,4 @@ const char* GlString(const GlFunctions& gl, GLenum name)
     const GLubyte* value = gl.getString(name);
     return value != nullptr ? reinterpret_cast<const char*>(value) : "(sin dato)";
 }
-} // namespace Client::Platform
+} // namespace Client::Platform::Sdl

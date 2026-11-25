@@ -20,7 +20,7 @@ public:
     // da GL (glGetShaderInfoLog o glGetProgramInfoLog). Los shaders se borran al terminar: el
     // programa ya tiene lo suyo.
     [[nodiscard]] static Core::Expected<GlShader, std::string>
-    Create(const Platform::GlFunctions& gl, std::string_view vertexSource, std::string_view fragmentSource);
+    Create(const Platform::Sdl::GlFunctions& gl, std::string_view vertexSource, std::string_view fragmentSource);
 
     [[nodiscard]] GLuint Program() const;
 
@@ -29,9 +29,9 @@ public:
     [[nodiscard]] GLint UniformLocation(const char* name) const;
 
 private:
-    GlShader(const Platform::GlFunctions& gl, GlName program);
+    GlShader(const Platform::Sdl::GlFunctions& gl, GlName program);
 
-    const Platform::GlFunctions* m_gl;
+    const Platform::Sdl::GlFunctions* m_gl;
     GlName m_program;
 };
 } // namespace Client::Render::Gl

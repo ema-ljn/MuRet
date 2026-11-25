@@ -13,7 +13,7 @@
 
 namespace Client::Render::Gl
 {
-TextureTable::TextureTable(const Platform::GlFunctions& gl) : m_gl(&gl), m_slots(TextureSlotCount) {}
+TextureTable::TextureTable(const Platform::Sdl::GlFunctions& gl) : m_gl(&gl), m_slots(TextureSlotCount) {}
 
 Core::Expected<void, std::string> TextureTable::Load(std::span<const Data::Textures::LoadedTexture> textures)
 {

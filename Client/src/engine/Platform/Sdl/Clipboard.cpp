@@ -10,7 +10,7 @@
 #include <memory>
 #include <string>
 
-namespace Client::Platform
+namespace Client::Platform::Sdl
 {
 namespace
 {
@@ -57,4 +57,4 @@ bool Clipboard::WriteText(std::string_view text)
     const std::string nullTerminated{text};
     return SDL_SetClipboardText(nullTerminated.c_str());
 }
-} // namespace Client::Platform
+} // namespace Client::Platform::Sdl

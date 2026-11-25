@@ -9,7 +9,7 @@
 
 namespace Client::Render::Gl
 {
-GlScreenReader::GlScreenReader(const Platform::GlFunctions& gl) : m_gl(&gl) {}
+GlScreenReader::GlScreenReader(const Platform::Sdl::GlFunctions& gl) : m_gl(&gl) {}
 
 std::vector<std::uint8_t> GlScreenReader::ReadTheScreen(Core::PixelSize screen)
 {

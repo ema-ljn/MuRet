@@ -21,7 +21,7 @@
 namespace Client::Render::Gl
 {
 Core::Expected<std::unique_ptr<GlFrameTarget>, std::string>
-GlFrameTarget::Create(const Platform::GlFunctions& gl, TextureTable& textures, Scenes::RasterizerFactory fonts,
+GlFrameTarget::Create(const Platform::Sdl::GlFunctions& gl, TextureTable& textures, Scenes::RasterizerFactory fonts,
                       std::function<Core::PixelSize()> screen, std::function<void()> present, Core::Log& log)
 {
     auto renderer = GlSpriteRenderer::Create(gl);
@@ -48,7 +48,7 @@ GlFrameTarget::Create(const Platform::GlFunctions& gl, TextureTable& textures, S
     return target;
 }
 
-GlFrameTarget::GlFrameTarget(const Platform::GlFunctions& gl, TextureTable& textures, GlSpriteRenderer renderer,
+GlFrameTarget::GlFrameTarget(const Platform::Sdl::GlFunctions& gl, TextureTable& textures, GlSpriteRenderer renderer,
                              GlModelRenderer models, std::function<Core::PixelSize()> screen,
                              std::function<void()> present, Core::Log& log)
     : m_gl(&gl), m_textures(textures), m_renderer(std::move(renderer)), m_modelRenderer(std::move(models)),

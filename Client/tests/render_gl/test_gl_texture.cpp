@@ -75,7 +75,7 @@ Rgba8 TexelOf(const Texture& texture, int x, int y)
 // prueba con una tabla vacía, sin contexto. Un buffer de cero de lado tampoco pasa.
 TEST(GlTextureRulesTest, RefusesPixelsThatAreNotTheWholeBuffer)
 {
-    const Client::Platform::GlFunctions noGl{};
+    const Client::Platform::Sdl::GlFunctions noGl{};
     const Texture shortRgb = MakeTexture(PixelFormat::Rgb, 2, 2, std::vector<std::uint8_t>(11));
     const Client::Core::Expected<GlTexture, std::string> refused = GlTexture::Upload(noGl, shortRgb, NearestClamp);
     ASSERT_FALSE(refused.HasValue());
@@ -184,9 +184,9 @@ protected:
     }
 
     // La tabla con lo que llama Upload, del driver falso. Vive más que la textura que dé.
-    static Client::Platform::GlFunctions FakeGl()
+    static Client::Platform::Sdl::GlFunctions FakeGl()
     {
-        Client::Platform::GlFunctions gl{};
+        Client::Platform::Sdl::GlFunctions gl{};
         gl.getError = &FakeGetError;
         gl.genTextures = &FakeGenTextures;
         gl.deleteTextures = &FakeDeleteTextures;
@@ -209,7 +209,7 @@ protected:
 TEST_F(GlTextureDriverTest, TakesEveryPendingError)
 {
     s_driver.pending = {GL_INVALID_ENUM, GL_INVALID_OPERATION};
-    const Client::Platform::GlFunctions gl = FakeGl();
+    const Client::Platform::Sdl::GlFunctions gl = FakeGl();
 
     const Client::Core::Expected<GlTexture, std::string> refused = GlTexture::Upload(gl, OneTexel(), NearestClamp);
 
@@ -225,7 +225,7 @@ TEST_F(GlTextureDriverTest, TakesEveryPendingError)
 TEST_F(GlTextureDriverTest, TakesEveryErrorOfTheUpload)
 {
     s_driver.texImageErrors = {GL_OUT_OF_MEMORY, GL_INVALID_VALUE};
-    const Client::Platform::GlFunctions gl = FakeGl();
+    const Client::Platform::Sdl::GlFunctions gl = FakeGl();
 
     const Client::Core::Expected<GlTexture, std::string> refused = GlTexture::Upload(gl, OneTexel(), NearestClamp);
 
@@ -244,7 +244,7 @@ TEST_F(GlTextureDriverTest, TakesEveryErrorOfTheUpload)
 TEST_F(GlTextureDriverTest, ATexParameterErrorIsTheUploads)
 {
     s_driver.texParameterErrors = {GL_OUT_OF_MEMORY};
-    const Client::Platform::GlFunctions gl = FakeGl();
+    const Client::Platform::Sdl::GlFunctions gl = FakeGl();
 
     const Client::Core::Expected<GlTexture, std::string> refused = GlTexture::Upload(gl, OneTexel(), NearestClamp);
 
@@ -260,7 +260,7 @@ TEST_F(GlTextureDriverTest, ATexParameterErrorIsTheUploads)
 TEST_F(GlTextureDriverTest, StopsAskingADriverThatNeverClears)
 {
     s_driver.neverClears = true;
-    const Client::Platform::GlFunctions gl = FakeGl();
+    const Client::Platform::Sdl::GlFunctions gl = FakeGl();
 
     EXPECT_FALSE(GlTexture::Upload(gl, OneTexel(), NearestClamp).HasValue());
     EXPECT_LT(s_driver.getErrorCalls, EndlessDriverCalls);

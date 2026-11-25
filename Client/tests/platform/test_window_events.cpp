@@ -14,7 +14,7 @@
 namespace
 {
 using Client::Platform::WindowEvent;
-using Client::Platform::WindowEventFor;
+using Client::Platform::Sdl::WindowEventFor;
 
 // Un id cualquiera de "nuestra" ventana y otro de una ventana ajena.
 constexpr SDL_WindowID OurWindow = 3;

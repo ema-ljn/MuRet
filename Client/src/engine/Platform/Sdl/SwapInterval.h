@@ -6,7 +6,7 @@
 #include <string>
 
 // El intervalo de swap de la ventana (CL3.1): cómo cada VSyncMode se le pide a SDL.
-namespace Client::Platform
+namespace Client::Platform::Sdl
 {
 // Lo que quedó al pedir un VSyncMode.
 struct SwapIntervalResult
@@ -36,4 +36,4 @@ bool SdlGetSwapInterval(int* interval);
 [[nodiscard]] PLATFORM_API SwapIntervalResult ApplySwapInterval(VSyncMode wanted,
                                                                 SetSwapIntervalFunction set = SdlSetSwapInterval,
                                                                 GetSwapIntervalFunction get = SdlGetSwapInterval);
-} // namespace Client::Platform
+} // namespace Client::Platform::Sdl

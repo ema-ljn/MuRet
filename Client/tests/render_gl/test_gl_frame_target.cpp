@@ -120,7 +120,7 @@ protected:
     {
         PFNGLGETUNIFORMIVPROC read = nullptr;
         std::string error;
-        if (!Client::Platform::LoadGlFunction(read, "glGetUniformiv", error))
+        if (!Client::Platform::Sdl::LoadGlFunction(read, "glGetUniformiv", error))
             return std::nullopt;
         GLint program = 0;
         Gl().getIntegerv(GL_CURRENT_PROGRAM, &program);

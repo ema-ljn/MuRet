@@ -19,7 +19,8 @@ constexpr int HiddenWindowSide = 64;
 // el resto (desde la CL5.1), y recién ahí la del lab.
 Client::Core::Expected<LabGl, std::string> LoadCheckedGl()
 {
-    const Client::Core::Expected<Client::Platform::GlFunctions, std::string> base = Client::Platform::LoadGlFunctions();
+    const Client::Core::Expected<Client::Platform::Sdl::GlFunctions, std::string> base =
+        Client::Platform::Sdl::LoadGlFunctions();
     if (!base.HasValue())
     {
         return Client::Core::Unexpected(base.Error());
@@ -46,16 +47,16 @@ HiddenGlWindow::HiddenGlWindow(SdlPtr sdl, WindowPtr window, GlContextPtr contex
 // Si algo falla en el medio, lo creado se destruye al revés: el contexto, la ventana y SDL.
 Client::Core::Expected<std::unique_ptr<HiddenGlWindow>, std::string> HiddenGlWindow::Create()
 {
-    Client::Core::Expected<std::unique_ptr<Client::Platform::SdlContext>, std::string> sdl =
-        Client::Platform::SdlContext::Create();
+    Client::Core::Expected<std::unique_ptr<Client::Platform::Sdl::SdlContext>, std::string> sdl =
+        Client::Platform::Sdl::SdlContext::Create();
     if (!sdl.HasValue())
     {
         return Client::Core::Unexpected(sdl.Error());
     }
 
     // Como Platform::Window::Create: los atributos del contexto van antes de crear la ventana.
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, Client::Platform::GlMajorVersion);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, Client::Platform::GlMinorVersion);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, Client::Platform::Sdl::GlMajorVersion);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, Client::Platform::Sdl::GlMinorVersion);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
     WindowPtr window(
         SDL_CreateWindow("MuRet CL5.0", HiddenWindowSide, HiddenWindowSide, SDL_WINDOW_OPENGL | SDL_WINDOW_HIDDEN));
@@ -67,8 +68,8 @@ Client::Core::Expected<std::unique_ptr<HiddenGlWindow>, std::string> HiddenGlWin
     GlContextPtr context(SDL_GL_CreateContext(window.get()));
     if (!context)
     {
-        return Client::Core::Unexpected("no se pudo crear el contexto OpenGL " + Client::Platform::GlVersionText() +
-                                        " core: " + SDL_GetError());
+        return Client::Core::Unexpected("no se pudo crear el contexto OpenGL " +
+                                        Client::Platform::Sdl::GlVersionText() + " core: " + SDL_GetError());
     }
 
     Client::Core::Expected<LabGl, std::string> gl = LoadCheckedGl();

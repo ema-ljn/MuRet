@@ -15,10 +15,10 @@ namespace Client::Protocol::Quest
 namespace
 {
 // Un C1 de `opcode`: el lector desde pkt[3].
-Core::Expected<Core::ByteReader, ProtocolError> FieldsOf(const Network::Packet& packet, std::uint8_t opcode)
+Core::Expected<Core::ByteReader, Network::ProtocolError> FieldsOf(const Network::Packet& packet, std::uint8_t opcode)
 {
     if (packet.Type() != Network::PacketType::C1 || packet.Opcode() != opcode)
-        return Core::Unexpected(ProtocolError::WrongPacket);
+        return Core::Unexpected(Network::ProtocolError::WrongPacket);
     return Core::ByteReader(packet.Bytes().subspan(Network::MinPacketSize(Network::PacketType::C1)));
 }
 
@@ -26,7 +26,7 @@ Core::Expected<Core::ByteReader, ProtocolError> FieldsOf(const Network::Packet& 
 constexpr std::uint16_t KeyMask = 0x7fff;
 } // namespace
 
-Core::Expected<QuestFlag, ProtocolError> ReadQuestFlag(const Network::Packet& packet)
+Core::Expected<QuestFlag, Network::ProtocolError> ReadQuestFlag(const Network::Packet& packet)
 {
     auto fields = FieldsOf(packet, QuestFlagOpcode);
     if (!fields.HasValue())
@@ -35,11 +35,11 @@ Core::Expected<QuestFlag, ProtocolError> ReadQuestFlag(const Network::Packet& pa
     const auto index = reader.ReadU8();
     const auto value = reader.ReadU8();
     if (!index || !value)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     return QuestFlag{*index, *value};
 }
 
-Core::Expected<QuestList, ProtocolError> ReadQuestList(const Network::Packet& packet)
+Core::Expected<QuestList, Network::ProtocolError> ReadQuestList(const Network::Packet& packet)
 {
     auto fields = FieldsOf(packet, QuestListOpcode);
     if (!fields.HasValue())
@@ -47,14 +47,14 @@ Core::Expected<QuestList, ProtocolError> ReadQuestList(const Network::Packet& pa
     Core::ByteReader& reader = fields.Value();
     const auto count = reader.ReadU8();
     if (!count)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     QuestList list{.count = *count, .states = {}};
     while (const auto state = reader.ReadU8())
         list.states.push_back(*state);
     return list;
 }
 
-Core::Expected<QuestStateChange, ProtocolError> ReadQuestState(const Network::Packet& packet)
+Core::Expected<QuestStateChange, Network::ProtocolError> ReadQuestState(const Network::Packet& packet)
 {
     auto fields = FieldsOf(packet, QuestStateOpcode);
     if (!fields.HasValue())
@@ -63,11 +63,11 @@ Core::Expected<QuestStateChange, ProtocolError> ReadQuestState(const Network::Pa
     const auto index = reader.ReadU8();
     const auto state = reader.ReadU8();
     if (!index || !state)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     return QuestStateChange{*index, *state};
 }
 
-Core::Expected<SetQuestResult, ProtocolError> ReadSetQuestResult(const Network::Packet& packet)
+Core::Expected<SetQuestResult, Network::ProtocolError> ReadSetQuestResult(const Network::Packet& packet)
 {
     auto fields = FieldsOf(packet, SetQuestOpcode);
     if (!fields.HasValue())
@@ -77,11 +77,11 @@ Core::Expected<SetQuestResult, ProtocolError> ReadSetQuestResult(const Network::
     const auto result = reader.ReadU8();
     const auto state = reader.ReadU8();
     if (!index || !result || !state)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     return SetQuestResult{*index, *result, *state};
 }
 
-Core::Expected<QuestResult, ProtocolError> ReadQuestResult(const Network::Packet& packet)
+Core::Expected<QuestResult, Network::ProtocolError> ReadQuestResult(const Network::Packet& packet)
 {
     auto fields = FieldsOf(packet, QuestResultOpcode);
     if (!fields.HasValue())
@@ -92,7 +92,7 @@ Core::Expected<QuestResult, ProtocolError> ReadQuestResult(const Network::Packet
     const auto kind = reader.ReadU8();
     const auto value = reader.ReadU8();
     if (!high || !low || !kind || !value)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     const auto key = static_cast<std::uint16_t>(((*high << 8) + *low) & KeyMask);
     return QuestResult{key, *kind, *value};
 }

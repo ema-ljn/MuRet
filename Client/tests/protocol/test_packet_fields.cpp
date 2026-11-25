@@ -20,12 +20,12 @@
 // Client::Protocol::FieldsAfterSubcode y TextField: qué paquete es, y los textos de largo fijo.
 namespace
 {
+using Client::Network::FieldsAfterSubcode;
 using Client::Network::Packet;
+using Client::Network::PacketKind;
 using Client::Network::PacketType;
-using Client::Protocol::FieldsAfterSubcode;
-using Client::Protocol::PacketKind;
-using Client::Protocol::ProtocolError;
-using Client::Protocol::TextField;
+using Client::Network::ProtocolError;
+using Client::Network::TextField;
 using Client::Tests::Bytes;
 using Client::Tests::ErrorOf;
 using Client::Tests::PacketOf;

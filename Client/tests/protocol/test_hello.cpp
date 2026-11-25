@@ -18,8 +18,8 @@
 // Client::Protocol::Connection::ReadServerHello: el saludo F1 00 del GameServer.
 namespace
 {
+using Client::Network::ProtocolError;
 using Client::Protocol::ClientVersion;
-using Client::Protocol::ProtocolError;
 using Client::Protocol::Connection::HelloAccepted;
 using Client::Protocol::Connection::ReadServerHello;
 using Client::Tests::Bytes;

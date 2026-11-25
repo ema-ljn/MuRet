@@ -34,5 +34,5 @@ struct InventoryList
 // Es una proyección pura del wire, no el handler 0x4c55a0 ni el decoder de los datos opacos: la
 // inicialización, el flag de admisión y la aplicación son de Scenes::ApplyInventory y de
 // Scenes::PlaceInventoryItem (06, "El F3 10, el inventario").
-[[nodiscard]] Core::Expected<InventoryList, ProtocolError> ReadInventoryList(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<InventoryList, Network::ProtocolError> ReadInventoryList(const Network::Packet& packet);
 } // namespace Client::Protocol::Character

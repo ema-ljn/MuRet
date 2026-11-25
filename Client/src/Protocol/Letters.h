@@ -94,12 +94,14 @@ struct LetterToSend
     friend bool operator==(const LetterToSend&, const LetterToSend&) = default;
 };
 
-[[nodiscard]] Core::Expected<LetterSendResult, ProtocolError> ReadLetterSendResult(const Network::Packet& packet);
-[[nodiscard]] Core::Expected<LetterRow, ProtocolError> ReadLetterRow(const Network::Packet& packet);
-[[nodiscard]] Core::Expected<LetterRead, ProtocolError> ReadLetterRead(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<LetterSendResult, Network::ProtocolError>
+ReadLetterSendResult(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<LetterRow, Network::ProtocolError> ReadLetterRow(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<LetterRead, Network::ProtocolError> ReadLetterRead(const Network::Packet& packet);
 // La copia de 0x4a03c0 que 0x4a11b0 (el 10 y 2) le vuelve a dar a 0x4dcb70: los mismos lugares sobre los bytes.
-[[nodiscard]] Core::Expected<LetterRead, ProtocolError> ReadLetterCopy(std::span<const std::byte> bytes);
-[[nodiscard]] Core::Expected<LetterDeleteResult, ProtocolError> ReadLetterDeleteResult(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<LetterRead, Network::ProtocolError> ReadLetterCopy(std::span<const std::byte> bytes);
+[[nodiscard]] Core::Expected<LetterDeleteResult, Network::ProtocolError>
+ReadLetterDeleteResult(const Network::Packet& packet);
 
 // 0x498820 con el 10 y 1: C2 C5, la ventana (u32), el nombre (10), el asunto (0x20), la dirección, la acción, el largo
 // (u16, hasta 1000) y el cuerpo, con el XOR32 desde el byte 4, y sale cifrado como C4 (0x4992fe..0x499416).

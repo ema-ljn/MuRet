@@ -60,13 +60,13 @@ std::optional<std::uint16_t> KeyAt(std::span<const std::byte> bytes, std::size_t
     return static_cast<std::uint16_t>((*high << 8u) | *low);
 }
 
-Core::Unexpected<ProtocolError> TooShort()
+Core::Unexpected<Network::ProtocolError> TooShort()
 {
-    return Core::Unexpected(ProtocolError::TooShort);
+    return Core::Unexpected(Network::ProtocolError::TooShort);
 }
 
 // B9 01, 0x4e0750.
-Core::Expected<CastleBattlePacket, ProtocolError> ReadNpcLevel(std::span<const std::byte> bytes)
+Core::Expected<CastleBattlePacket, Network::ProtocolError> ReadNpcLevel(std::span<const std::byte> bytes)
 {
     const auto key = KeyAt(bytes, 4);
     const auto level = U8(bytes, 6);
@@ -78,7 +78,7 @@ Core::Expected<CastleBattlePacket, ProtocolError> ReadNpcLevel(std::span<const s
 }
 
 // B9 02, 0x4e0790.
-Core::Expected<CastleBattlePacket, ProtocolError> ReadOwnerMark(std::span<const std::byte> bytes)
+Core::Expected<CastleBattlePacket, Network::ProtocolError> ReadOwnerMark(std::span<const std::byte> bytes)
 {
     constexpr std::size_t MarkAt = 4;
     if (bytes.size() < MarkAt + PackedMarkSize)
@@ -92,7 +92,7 @@ Core::Expected<CastleBattlePacket, ProtocolError> ReadOwnerMark(std::span<const 
 }
 
 // B9 03, 0x4e07f0: con pkt[4] en 0 no lee nada más.
-Core::Expected<CastleBattlePacket, ProtocolError> ReadHuntZoneInfo(std::span<const std::byte> bytes)
+Core::Expected<CastleBattlePacket, Network::ProtocolError> ReadHuntZoneInfo(std::span<const std::byte> bytes)
 {
     const auto mode = U8(bytes, 4);
     if (!mode)
@@ -120,7 +120,7 @@ Core::Expected<CastleBattlePacket, ProtocolError> ReadHuntZoneInfo(std::span<con
 }
 
 // B9 05, 0x4e0860.
-Core::Expected<CastleBattlePacket, ProtocolError> ReadHuntZoneEntryResult(std::span<const std::byte> bytes)
+Core::Expected<CastleBattlePacket, Network::ProtocolError> ReadHuntZoneEntryResult(std::span<const std::byte> bytes)
 {
     const auto result = U8(bytes, 4);
     if (!result)
@@ -130,7 +130,8 @@ Core::Expected<CastleBattlePacket, ProtocolError> ReadHuntZoneEntryResult(std::s
     return CastleBattlePacket{HuntZoneEntryResult{.result = *result}};
 }
 
-Core::Expected<CastleBattlePacket, ProtocolError> ReadBattle(std::span<const std::byte> bytes, std::uint8_t subcode)
+Core::Expected<CastleBattlePacket, Network::ProtocolError> ReadBattle(std::span<const std::byte> bytes,
+                                                                      std::uint8_t subcode)
 {
     switch (subcode)
     {
@@ -143,12 +144,12 @@ Core::Expected<CastleBattlePacket, ProtocolError> ReadBattle(std::span<const std
     case HuntZoneEntrySubcode:
         return ReadHuntZoneEntryResult(bytes);
     default:
-        return Core::Unexpected(ProtocolError::WrongPacket);
+        return Core::Unexpected(Network::ProtocolError::WrongPacket);
     }
 }
 
 // BA, 0x4cf1b0: pkt[6] solo con cuál en 0x28 (CMP CL, 0x28 y JNZ antes de leerlo).
-Core::Expected<CastleBattlePacket, ProtocolError> ReadActorField(std::span<const std::byte> bytes)
+Core::Expected<CastleBattlePacket, Network::ProtocolError> ReadActorField(std::span<const std::byte> bytes)
 {
     const auto key = KeyAt(bytes, 3);
     const auto kind = U8(bytes, 5);
@@ -171,7 +172,7 @@ Core::Expected<CastleBattlePacket, ProtocolError> ReadActorField(std::span<const
 }
 
 // BB, 0x4e0f30: la cuenta sin signo (TEST AL, AL y JBE; el lazo vuelve a leer pkt[4] y compara con JL).
-Core::Expected<CastleBattlePacket, ProtocolError> ReadMinimapMembers(std::span<const std::byte> bytes)
+Core::Expected<CastleBattlePacket, Network::ProtocolError> ReadMinimapMembers(std::span<const std::byte> bytes)
 {
     const auto count = U8(bytes, MembersCountAt);
     if (!count)
@@ -195,7 +196,7 @@ Core::Expected<CastleBattlePacket, ProtocolError> ReadMinimapMembers(std::span<c
 }
 
 // B2 20, 0x4e04e0: los 0x1b bytes desde pkt+0, con la clave de pkt[4] y pkt[5].
-Core::Expected<CastleBattlePacket, ProtocolError> ReadSwitchHolder(std::span<const std::byte> bytes)
+Core::Expected<CastleBattlePacket, Network::ProtocolError> ReadSwitchHolder(std::span<const std::byte> bytes)
 {
     if (bytes.size() < SwitchHolderSize)
     {
@@ -208,12 +209,13 @@ Core::Expected<CastleBattlePacket, ProtocolError> ReadSwitchHolder(std::span<con
     return CastleBattlePacket{holder};
 }
 
-Core::Expected<CastleBattlePacket, ProtocolError> ReadCastle(std::span<const std::byte> bytes, std::uint8_t subcode)
+Core::Expected<CastleBattlePacket, Network::ProtocolError> ReadCastle(std::span<const std::byte> bytes,
+                                                                      std::uint8_t subcode)
 {
     if (subcode == SwitchHolderSubcode)
         return ReadSwitchHolder(bytes);
     if (std::ranges::find(CastleSubcodes, subcode) == CastleSubcodes.end())
-        return Core::Unexpected(ProtocolError::WrongPacket);
+        return Core::Unexpected(Network::ProtocolError::WrongPacket);
     const auto value = U8(bytes, 4);
     if (!value)
         return TooShort();
@@ -308,13 +310,14 @@ Core::Expected<CastleBattlePacket, ProtocolError> ReadCastle(std::span<const std
         return CastleBattlePacket{SiegeTime{.hours = *value, .minutes = *minutes}};
     }
     default:
-        return Core::Unexpected(ProtocolError::WrongPacket);
+        return Core::Unexpected(Network::ProtocolError::WrongPacket);
     }
 }
-Core::Expected<CastleBattlePacket, ProtocolError> ReadWeapon(std::span<const std::byte> bytes, std::uint8_t subcode)
+Core::Expected<CastleBattlePacket, Network::ProtocolError> ReadWeapon(std::span<const std::byte> bytes,
+                                                                      std::uint8_t subcode)
 {
     if (subcode > 2)
-        return Core::Unexpected(ProtocolError::WrongPacket);
+        return Core::Unexpected(Network::ProtocolError::WrongPacket);
     const auto result = U8(bytes, 4);
     if (!result)
         return TooShort();
@@ -359,12 +362,12 @@ Core::Expected<CastleBattlePacket, ProtocolError> ReadWeapon(std::span<const std
 }
 } // namespace
 
-Core::Expected<CastleBattlePacket, ProtocolError> ReadCastleBattlePacket(const Network::Packet& packet)
+Core::Expected<CastleBattlePacket, Network::ProtocolError> ReadCastleBattlePacket(const Network::Packet& packet)
 {
     const auto opcode = packet.Opcode();
     if (!opcode)
     {
-        return Core::Unexpected(ProtocolError::WrongPacket);
+        return Core::Unexpected(Network::ProtocolError::WrongPacket);
     }
     const std::span<const std::byte> bytes = packet.Bytes();
     switch (*opcode)
@@ -391,7 +394,7 @@ Core::Expected<CastleBattlePacket, ProtocolError> ReadCastleBattlePacket(const N
     case MinimapMembersOpcode:
         return ReadMinimapMembers(bytes);
     default:
-        return Core::Unexpected(ProtocolError::WrongPacket);
+        return Core::Unexpected(Network::ProtocolError::WrongPacket);
     }
 }
 } // namespace Client::Protocol::CastleBattle

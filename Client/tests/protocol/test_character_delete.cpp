@@ -23,8 +23,8 @@
 namespace
 {
 using Client::Network::Delivery;
+using Client::Network::ProtocolError;
 using Client::Network::Xor32Decode;
-using Client::Protocol::ProtocolError;
 using Client::Protocol::Character::CharacterDeleted;
 using Client::Protocol::Character::DeleteCodeFromText;
 using Client::Protocol::Character::DeleteCodeSize;

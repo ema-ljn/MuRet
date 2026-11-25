@@ -23,18 +23,18 @@ constexpr std::uint16_t SucceededBit = 0x8000;
 constexpr std::uint16_t TargetMask = 0x7fff;
 
 // Un C1 de `opcode` (o un C3 descifrado, que llega como C1): el lector desde pkt[3].
-Core::Expected<Core::ByteReader, ProtocolError> FieldsOf(const Network::Packet& packet, std::uint8_t opcode)
+Core::Expected<Core::ByteReader, Network::ProtocolError> FieldsOf(const Network::Packet& packet, std::uint8_t opcode)
 {
     if (packet.Type() != Network::PacketType::C1 || packet.Opcode() != opcode)
-        return Core::Unexpected(ProtocolError::WrongPacket);
+        return Core::Unexpected(Network::ProtocolError::WrongPacket);
     return Core::ByteReader(packet.Bytes().subspan(Network::MinPacketSize(Network::PacketType::C1)));
 }
 
-constexpr PacketKind SkillListKind{Network::PacketType::C1, Character::CharacterOpcode, SkillListSubcode};
-constexpr PacketKind SummonLifeKind{Network::PacketType::C1, Character::CharacterOpcode, SummonLifeSubcode};
+constexpr Network::PacketKind SkillListKind{Network::PacketType::C1, Character::CharacterOpcode, SkillListSubcode};
+constexpr Network::PacketKind SummonLifeKind{Network::PacketType::C1, Character::CharacterOpcode, SummonLifeSubcode};
 } // namespace
 
-Core::Expected<MagicAttack, ProtocolError> ReadMagicAttack(const Network::Packet& packet)
+Core::Expected<MagicAttack, Network::ProtocolError> ReadMagicAttack(const Network::Packet& packet)
 {
     auto fields = FieldsOf(packet, MagicAttackOpcode);
     if (!fields.HasValue())
@@ -44,13 +44,13 @@ Core::Expected<MagicAttack, ProtocolError> ReadMagicAttack(const Network::Packet
     const auto source = reader.ReadU16Be();
     const auto target = reader.ReadU16Be();
     if (!skill || !source || !target)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     // 0x4cce2f..0x4cce55: el SAR 0xf del blanco entero y el AND 0x7fff.
     return MagicAttack{*skill, *source, static_cast<std::uint16_t>(*target & TargetMask),
                        (*target & SucceededBit) != 0};
 }
 
-Core::Expected<DurationMagic, ProtocolError> ReadDurationMagic(const Network::Packet& packet)
+Core::Expected<DurationMagic, Network::ProtocolError> ReadDurationMagic(const Network::Packet& packet)
 {
     auto fields = FieldsOf(packet, DurationMagicOpcode);
     if (!fields.HasValue())
@@ -62,11 +62,11 @@ Core::Expected<DurationMagic, ProtocolError> ReadDurationMagic(const Network::Pa
     const auto y = reader.ReadU8();
     const auto direction = reader.ReadU8();
     if (!skill || !key || !x || !y || !direction)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     return DurationMagic{*skill, *key, *x, *y, *direction};
 }
 
-Core::Expected<MagicCancel, ProtocolError> ReadMagicCancel(const Network::Packet& packet)
+Core::Expected<MagicCancel, Network::ProtocolError> ReadMagicCancel(const Network::Packet& packet)
 {
     auto fields = FieldsOf(packet, MagicCancelOpcode);
     if (!fields.HasValue())
@@ -75,11 +75,11 @@ Core::Expected<MagicCancel, ProtocolError> ReadMagicCancel(const Network::Packet
     const auto skill = reader.ReadU8();
     const auto key = reader.ReadU16Be();
     if (!skill || !key)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     return MagicCancel{*skill, *key};
 }
 
-Core::Expected<ActorState, ProtocolError> ReadActorState(const Network::Packet& packet)
+Core::Expected<ActorState, Network::ProtocolError> ReadActorState(const Network::Packet& packet)
 {
     auto fields = FieldsOf(packet, ActorStateOpcode);
     if (!fields.HasValue())
@@ -90,11 +90,11 @@ Core::Expected<ActorState, ProtocolError> ReadActorState(const Network::Packet& 
     const auto mask = reader.ReadU32Le();
     const auto key = reader.ReadU16Be();
     if (!type || !mask || !key)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     return ActorState{*type, *mask, *key};
 }
 
-Core::Expected<ActorEffect, ProtocolError> ReadActorEffect(const Network::Packet& packet)
+Core::Expected<ActorEffect, Network::ProtocolError> ReadActorEffect(const Network::Packet& packet)
 {
     auto fields = FieldsOf(packet, ActorEffectOpcode);
     if (!fields.HasValue())
@@ -104,11 +104,11 @@ Core::Expected<ActorEffect, ProtocolError> ReadActorEffect(const Network::Packet
     const auto key = reader.ReadU16Be();
     const auto kind = reader.ReadU8();
     if (!key || !kind)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     return ActorEffect{*key, *kind};
 }
 
-Core::Expected<SkillTarget, ProtocolError> ReadSkillTarget(const Network::Packet& packet)
+Core::Expected<SkillTarget, Network::ProtocolError> ReadSkillTarget(const Network::Packet& packet)
 {
     auto fields = FieldsOf(packet, SkillTargetOpcode);
     if (!fields.HasValue())
@@ -119,20 +119,20 @@ Core::Expected<SkillTarget, ProtocolError> ReadSkillTarget(const Network::Packet
     const auto source = reader.ReadU16Le();
     const auto target = reader.ReadU16Le();
     if (!skill || !source || !target)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     return SkillTarget{*skill, *source, *target};
 }
 
-Core::Expected<SkillList, ProtocolError> ReadSkillList(const Network::Packet& packet)
+Core::Expected<SkillList, Network::ProtocolError> ReadSkillList(const Network::Packet& packet)
 {
-    auto fields = FieldsAfterSubcode(packet, SkillListKind);
+    auto fields = Network::FieldsAfterSubcode(packet, SkillListKind);
     if (!fields.HasValue())
         return Core::Unexpected(fields.Error());
     Core::ByteReader& reader = fields.Value();
     const auto count = reader.ReadU8();
     const auto list = reader.ReadU8();
     if (!count || !list)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     SkillList read{.count = *count, .list = *list, .slot = 0, .skill = 0, .entries = {}};
     // 0x4c507c, 0x4c5145 y 0x4c522e: cuál de las cuatro formas.
     if (*count == SkillListRemoveOne || *count == SkillListAddOne || *list == SkillListClearSlot)
@@ -142,13 +142,13 @@ Core::Expected<SkillList, ProtocolError> ReadSkillList(const Network::Packet& pa
             return read;
         const auto slot = reader.ReadU8();
         if (!slot)
-            return Core::Unexpected(ProtocolError::TooShort);
+            return Core::Unexpected(Network::ProtocolError::TooShort);
         read.slot = *slot;
         if (*count == SkillListAddOne)
         {
             const auto skill = reader.ReadU8();
             if (!skill)
-                return Core::Unexpected(ProtocolError::TooShort);
+                return Core::Unexpected(Network::ProtocolError::TooShort);
             read.skill = *skill;
         }
         return read;
@@ -160,25 +160,25 @@ Core::Expected<SkillList, ProtocolError> ReadSkillList(const Network::Packet& pa
     {
         const auto bytes = reader.ReadBytes(EntrySize - 1);
         if (!bytes)
-            return Core::Unexpected(ProtocolError::TooShort);
+            return Core::Unexpected(Network::ProtocolError::TooShort);
         read.entries.push_back(
             SkillListEntry{std::to_integer<std::uint8_t>((*bytes)[0]), std::to_integer<std::uint8_t>((*bytes)[1])});
         if (entry + 1 < *count && !reader.ReadU8())
-            return Core::Unexpected(ProtocolError::TooShort);
+            return Core::Unexpected(Network::ProtocolError::TooShort);
     }
     return read;
 }
 
-Core::Expected<LevelUp, ProtocolError> ReadLevelUp(const Network::Packet& packet)
+Core::Expected<LevelUp, Network::ProtocolError> ReadLevelUp(const Network::Packet& packet)
 {
-    constexpr PacketKind LevelUpKind{Network::PacketType::C1, Character::CharacterOpcode, LevelUpSubcode};
-    auto fields = FieldsAfterSubcode(packet, LevelUpKind);
+    constexpr Network::PacketKind LevelUpKind{Network::PacketType::C1, Character::CharacterOpcode, LevelUpSubcode};
+    auto fields = Network::FieldsAfterSubcode(packet, LevelUpKind);
     if (!fields.HasValue())
         return Core::Unexpected(fields.Error());
     Core::ByteReader& reader = fields.Value();
     constexpr std::size_t ServerFieldsSize = 14;
     if (reader.Remaining() < ServerFieldsSize)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     LevelUp reply;
     reply.level = *reader.ReadU16Le();
     reply.levelUpPoints = *reader.ReadU16Le();
@@ -193,14 +193,14 @@ Core::Expected<LevelUp, ProtocolError> ReadLevelUp(const Network::Packet& packet
     return reply;
 }
 
-Core::Expected<SummonLife, ProtocolError> ReadSummonLife(const Network::Packet& packet)
+Core::Expected<SummonLife, Network::ProtocolError> ReadSummonLife(const Network::Packet& packet)
 {
-    auto fields = FieldsAfterSubcode(packet, SummonLifeKind);
+    auto fields = Network::FieldsAfterSubcode(packet, SummonLifeKind);
     if (!fields.HasValue())
         return Core::Unexpected(fields.Error());
     const auto life = fields.Value().ReadU8();
     if (!life)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     return SummonLife{*life};
 }
 

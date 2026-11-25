@@ -1182,7 +1182,7 @@ void ServerSession::OnGameHelloAfterLogin(const Network::Packet& packet)
         return;
     }
     const Protocol::Character::CharacterEntry* chosen = ChosenCharacter();
-    const std::string name = chosen != nullptr ? Protocol::TextField(chosen->name) : std::string{};
+    const std::string name = chosen != nullptr ? Network::TextField(chosen->name) : std::string{};
     if (!CheckApplication(m_eventSink.ApplyWorld(MapServerJoined{}, *this)))
         return;
     // 0x4133cb: el reloj se lee después del reseteo y sus dos cierres, antes del relleno y el serial.
@@ -1741,7 +1741,7 @@ void ServerSession::OnTalkResult(const Network::Packet& packet)
 
 namespace
 {
-template <typename Value> std::optional<WorldEvent> EventOf(const Core::Expected<Value, Protocol::ProtocolError>& read)
+template <typename Value> std::optional<WorldEvent> EventOf(const Core::Expected<Value, Network::ProtocolError>& read)
 {
     if (!read.HasValue())
         return std::nullopt;
@@ -1891,7 +1891,7 @@ void ServerSession::OnPickUpResult(const Network::Packet& packet)
         // 07 Q-C1240: el C3 08 22 FE del GameServer 0.97 (el zen al comprar, vender o reparar) trae el zen, aunque no
         // los siete bytes que el sonido lee desde pkt[4].
         if (const auto zen = Protocol::FloorItems::ReadShortZenPickUp(packet);
-            result.Error() == Protocol::ProtocolError::TooShort && zen.HasValue())
+            result.Error() == Network::ProtocolError::TooShort && zen.HasValue())
         {
             m_log.Debug("el 22 con el zen llegó corto: se aplica el zen, sin el sonido (07 Q-C1240)");
             static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(zen.Value(), *this)));
@@ -1899,7 +1899,7 @@ void ServerSession::OnPickUpResult(const Network::Packet& packet)
         }
         m_log.Warning("se ignora lo levantado del piso (22): {}", Unreadable);
         // 07 Q-C1240: 0x4d0cc0 no mira el largo y suelta el pedido (0x4d10b9) en todos sus caminos.
-        if (result.Error() == Protocol::ProtocolError::TooShort)
+        if (result.Error() == Network::ProtocolError::TooShort)
             static_cast<void>(
                 CheckApplication(m_eventSink.ApplyWorld(Protocol::FloorItems::ShortPickUpResult{}, *this)));
         return;
@@ -1915,7 +1915,7 @@ void ServerSession::OnDropResult(const Network::Packet& packet)
         m_log.Warning("se ignora lo tirado al piso (23): {}", Unreadable);
         // 07 Q-C1240: 0x4d10d0 suelta el lugar tirado (0x4d13d1 y 0x4d13e5) en todos sus caminos.
         const auto unread = Protocol::FloorItems::ReadShortDropResult(packet);
-        if (result.Error() == Protocol::ProtocolError::TooShort && unread.HasValue())
+        if (result.Error() == Network::ProtocolError::TooShort && unread.HasValue())
             static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(unread.Value(), *this)));
         return;
     }
@@ -1929,7 +1929,7 @@ void ServerSession::OnStatFruit(const Network::Packet& packet)
     {
         m_log.Warning("se ignora la fruta de stats (2C): {}", Unreadable);
         // 07 Q-C1240: 0x4de500 no mira el largo y termina la espera del uso (0x4deb0e) en todos sus caminos.
-        if (fruit.Error() == Protocol::ProtocolError::TooShort)
+        if (fruit.Error() == Network::ProtocolError::TooShort)
             static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(Protocol::FloorItems::ShortStatFruit{}, *this)));
         return;
     }

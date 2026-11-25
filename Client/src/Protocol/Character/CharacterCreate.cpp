@@ -20,7 +20,7 @@ namespace Client::Protocol::Character
 {
 namespace
 {
-constexpr PacketKind CreateKind{Network::PacketType::C1, CharacterOpcode, CreateSubcode};
+constexpr Network::PacketKind CreateKind{Network::PacketType::C1, CharacterOpcode, CreateSubcode};
 // 0x63d990: DAT_07437224 · 16 + DAT_07437225.
 constexpr std::uint8_t ClassShift = 4;
 } // namespace
@@ -33,9 +33,9 @@ Outgoing WriteCharacterCreate(std::span<const std::byte, NameSize> name, std::ui
                        .PutU8(static_cast<std::uint8_t>(characterClass << ClassShift)));
 }
 
-Core::Expected<CharacterCreateResult, ProtocolError> ReadCharacterCreateResult(const Network::Packet& packet)
+Core::Expected<CharacterCreateResult, Network::ProtocolError> ReadCharacterCreateResult(const Network::Packet& packet)
 {
-    auto fields = FieldsAfterSubcode(packet, CreateKind);
+    auto fields = Network::FieldsAfterSubcode(packet, CreateKind);
     if (!fields.HasValue())
     {
         return Core::Unexpected(fields.Error());
@@ -44,7 +44,7 @@ Core::Expected<CharacterCreateResult, ProtocolError> ReadCharacterCreateResult(c
     const std::optional<std::uint8_t> result = reader.ReadU8();
     if (!result)
     {
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     }
     CharacterCreateResult created;
     created.result = *result;
@@ -58,7 +58,7 @@ Core::Expected<CharacterCreateResult, ProtocolError> ReadCharacterCreateResult(c
     const std::optional<std::uint8_t> classByte = reader.ReadU8();
     if (!classByte)
     {
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     }
     std::ranges::copy(*name, created.name.begin());
     created.slot = *slot;

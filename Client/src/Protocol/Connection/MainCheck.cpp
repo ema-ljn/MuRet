@@ -34,17 +34,17 @@ std::uint32_t LoadU32Le(std::span<const std::byte> image, std::size_t offset)
 }
 } // namespace
 
-Core::Expected<std::uint16_t, ProtocolError> ReadMainCheckKey(const Network::Packet& packet)
+Core::Expected<std::uint16_t, Network::ProtocolError> ReadMainCheckKey(const Network::Packet& packet)
 {
     if (packet.Type() != Network::PacketType::C1 || packet.Opcode() != MainCheckOpcode)
-        return Core::Unexpected(ProtocolError::WrongPacket);
+        return Core::Unexpected(Network::ProtocolError::WrongPacket);
     const std::span<const std::byte> bytes = packet.Bytes();
     if (bytes.size() < MainCheckKeyOffset + sizeof(std::uint16_t))
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     Core::ByteReader reader(bytes.subspan(MainCheckKeyOffset));
     const std::optional<std::uint16_t> key = reader.ReadU16Le();
     if (!key)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     return *key;
 }
 

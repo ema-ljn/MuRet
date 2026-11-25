@@ -61,5 +61,5 @@ struct PetInfoReply
 };
 
 // El A9 que llega, C1 y sin mirar el cifrado ni el largo en el original: MuRet da TooShort sin los 12 bytes.
-[[nodiscard]] Core::Expected<PetInfoReply, ProtocolError> ReadPetInfoReply(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<PetInfoReply, Network::ProtocolError> ReadPetInfoReply(const Network::Packet& packet);
 } // namespace Client::Protocol::Pet

@@ -33,7 +33,7 @@ struct TradeRequest
     Name name{};
 };
 
-[[nodiscard]] Core::Expected<TradeRequest, ProtocolError> ReadTradeRequest(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<TradeRequest, Network::ProtocolError> ReadTradeRequest(const Network::Packet& packet);
 
 // El 36 que llegó en claro (0x4d4b1c, [EBP+0xc] en 0): no se lee; 0x4d4af0 solo manda el aviso
 // (WriteClearTradeRequestReport).
@@ -51,7 +51,7 @@ struct TradeResponse
     std::uint32_t guild = 0;
 };
 
-[[nodiscard]] Core::Expected<TradeResponse, ProtocolError> ReadTradeResponse(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<TradeResponse, Network::ProtocolError> ReadTradeResponse(const Network::Packet& packet);
 
 // El 38 (0x4e3d6a): C1 04 38 y el lugar de la grilla del otro que se saca.
 struct TradeItemRemoved
@@ -59,7 +59,8 @@ struct TradeItemRemoved
     std::uint8_t slot = 0;
 };
 
-[[nodiscard]] Core::Expected<TradeItemRemoved, ProtocolError> ReadTradeItemRemoved(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<TradeItemRemoved, Network::ProtocolError>
+ReadTradeItemRemoved(const Network::Packet& packet);
 
 // El 39 (0x4e3d99): C1 0B 39, el lugar en pkt[3] y los siete bytes del ítem desde pkt[4] (08 P-C200: el GS 0.97 los
 // manda en otro largo).
@@ -69,7 +70,7 @@ struct TradeItemAdded
     Inventory::ItemData item{};
 };
 
-[[nodiscard]] Core::Expected<TradeItemAdded, ProtocolError> ReadTradeItemAdded(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<TradeItemAdded, Network::ProtocolError> ReadTradeItemAdded(const Network::Packet& packet);
 
 // El 3A del GS (0x4e3dd0): C1 04 3A y si aceptó el zen que se puso (distinto de 0) o no.
 struct TradeMoneyResult
@@ -77,7 +78,8 @@ struct TradeMoneyResult
     std::uint8_t accepted = 0;
 };
 
-[[nodiscard]] Core::Expected<TradeMoneyResult, ProtocolError> ReadTradeMoneyResult(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<TradeMoneyResult, Network::ProtocolError>
+ReadTradeMoneyResult(const Network::Packet& packet);
 
 // El 3B (0x4e3df3): C1 08 3B, un byte que nadie lee y el zen del otro (DWORD little-endian) en pkt[4].
 struct TradeOtherMoney
@@ -85,7 +87,8 @@ struct TradeOtherMoney
     std::uint32_t money = 0;
 };
 
-[[nodiscard]] Core::Expected<TradeOtherMoney, ProtocolError> ReadTradeOtherMoney(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<TradeOtherMoney, Network::ProtocolError>
+ReadTradeOtherMoney(const Network::Packet& packet);
 
 // El 3C del GS (0x4e3e0a): C1 04 3C y el estado del OK del otro (0 apagado, 1 prendido, 2 se apaga el propio).
 struct TradeOkState
@@ -93,7 +96,7 @@ struct TradeOkState
     std::uint8_t state = 0;
 };
 
-[[nodiscard]] Core::Expected<TradeOkState, ProtocolError> ReadTradeOkState(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<TradeOkState, Network::ProtocolError> ReadTradeOkState(const Network::Packet& packet);
 
 // El 3D del GS (0x4d57f0): C1 04 3D y el resultado (0 cancelado, 1 hecho, 2 sin lugar, 3 el tiempo). Con la traba
 // 0x78abb39, 0x4d57f0 guarda los cuatro primeros bytes del paquete en 0x57635bc y 0x4d1400 lo repite: `head` son
@@ -104,7 +107,7 @@ struct TradeResult
     std::array<std::uint8_t, 4> head{};
 };
 
-[[nodiscard]] Core::Expected<TradeResult, ProtocolError> ReadTradeResult(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<TradeResult, Network::ProtocolError> ReadTradeResult(const Network::Packet& packet);
 
 // El 36 del cliente (0x406050 en 0x4064f0..0x406af0 y 0x56c440): C1 05 36, la clave del otro en big-endian (+0x1f4
 // >> 8 y después el byte bajo), con el XOR32 y en C3.

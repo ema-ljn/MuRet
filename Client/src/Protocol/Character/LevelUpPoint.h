@@ -35,5 +35,6 @@ struct LevelUpPointResult
 
 // 0x4d320c: con el nibble alto de pkt[4] en 0 no lee nada más; con él, lee pkt[8..9] siempre (0x4d334d) y pkt[6..7]
 // con la vitalidad o la energía (0x4d332d y 0x4d333b): sin los 10 bytes, TooShort.
-[[nodiscard]] Core::Expected<LevelUpPointResult, ProtocolError> ReadLevelUpPointResult(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<LevelUpPointResult, Network::ProtocolError>
+ReadLevelUpPointResult(const Network::Packet& packet);
 } // namespace Client::Protocol::Character

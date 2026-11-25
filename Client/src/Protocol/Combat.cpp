@@ -17,10 +17,10 @@ namespace
 constexpr std::uint16_t KeyMask = 0x7fff;
 constexpr std::uint16_t ShockMask = 0x8000;
 
-Core::Expected<Core::ByteReader, ProtocolError> FieldsOf(const Network::Packet& packet, std::uint8_t opcode)
+Core::Expected<Core::ByteReader, Network::ProtocolError> FieldsOf(const Network::Packet& packet, std::uint8_t opcode)
 {
     if (packet.Type() != Network::PacketType::C1 || packet.Opcode() != opcode)
-        return Core::Unexpected(ProtocolError::WrongPacket);
+        return Core::Unexpected(Network::ProtocolError::WrongPacket);
     return Core::ByteReader(packet.Bytes().subspan(Network::MinPacketSize(Network::PacketType::C1)));
 }
 
@@ -49,7 +49,7 @@ Outgoing WriteClearKillReport(std::uint8_t opcode)
 }
 
 // 0x4cf2b4..0x4cf2f0: la clave, la experiencia y el daño, de a dos bytes con el alto primero.
-Core::Expected<KillExperience, ProtocolError> ReadKillExperience(const Network::Packet& packet)
+Core::Expected<KillExperience, Network::ProtocolError> ReadKillExperience(const Network::Packet& packet)
 {
     auto fields = FieldsOf(packet, KillExperienceOpcode);
     if (!fields.HasValue())
@@ -59,13 +59,13 @@ Core::Expected<KillExperience, ProtocolError> ReadKillExperience(const Network::
     const auto amount = reader.ReadU16Be();
     const auto damage = reader.ReadU16Be();
     if (!key || !amount || !damage)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     return ExperienceOf(*key, *amount, *damage);
 }
 
 // 0x4d0439..0x4d047a: después de la clave saltea +5 (el relleno natural del WORD de la GS) y lee los dos WORD en
 // little endian, ExpH · 65536 + ExpL.
-Core::Expected<KillExperience, ProtocolError> ReadExtendedKillExperience(const Network::Packet& packet)
+Core::Expected<KillExperience, Network::ProtocolError> ReadExtendedKillExperience(const Network::Packet& packet)
 {
     auto fields = FieldsOf(packet, ExtendedKillExperienceOpcode);
     if (!fields.HasValue())
@@ -77,12 +77,12 @@ Core::Expected<KillExperience, ProtocolError> ReadExtendedKillExperience(const N
     const auto low = reader.ReadU16Le();
     const auto damage = reader.ReadU16Be();
     if (!key || !padding || !high || !low || !damage)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     return ExperienceOf(*key, (std::uint32_t{*high} << 16) + *low, *damage);
 }
 
 // 0x4d0a3d..0x4d0a46 y 0x4d0b49..0x4d0b56: la clave sin máscara; la skill y el que mató, si llegaron.
-Core::Expected<Death, ProtocolError> ReadDeath(const Network::Packet& packet)
+Core::Expected<Death, Network::ProtocolError> ReadDeath(const Network::Packet& packet)
 {
     auto fields = FieldsOf(packet, DeathOpcode);
     if (!fields.HasValue())
@@ -90,7 +90,7 @@ Core::Expected<Death, ProtocolError> ReadDeath(const Network::Packet& packet)
     Core::ByteReader& reader = fields.Value();
     const auto key = reader.ReadU16Be();
     if (!key)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     const auto skill = reader.ReadU8();
     const auto killer = reader.ReadU16Be();
     return Death{*key, skill.value_or(0), killer.value_or(0)};

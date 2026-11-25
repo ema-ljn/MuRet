@@ -24,7 +24,7 @@ namespace Client::Protocol::Connection
 namespace
 {
 // La respuesta del login llega en un C1.
-constexpr PacketKind LoginResultKind{Network::PacketType::C1, JoinOpcode, LoginSubcode};
+constexpr Network::PacketKind LoginResultKind{Network::PacketType::C1, JoinOpcode, LoginSubcode};
 
 // Lo que lleva el aviso después del subcódigo, 06 00 (03 § C3/C4). El GameServer los lee como dos
 // bytes sueltos (CGClientHackLogRecv, 0x4172e0, en el research del servidor); qué significan para
@@ -54,11 +54,11 @@ std::span<const std::byte> BytesOf(std::string_view text)
 }
 } // namespace
 
-Core::Expected<Outgoing, ProtocolError> WriteLoginRequest(const LoginRequest& request)
+Core::Expected<Outgoing, Network::ProtocolError> WriteLoginRequest(const LoginRequest& request)
 {
     if (request.account.size() > CredentialSize || request.password.size() > CredentialSize)
     {
-        return Core::Unexpected(ProtocolError::FieldTooLong);
+        return Core::Unexpected(Network::ProtocolError::FieldTooLong);
     }
     const CredentialField account = Credential(request.account);
     const CredentialField password = Credential(request.password);
@@ -72,9 +72,9 @@ Core::Expected<Outgoing, ProtocolError> WriteLoginRequest(const LoginRequest& re
     return EncryptedC1(writer);
 }
 
-Core::Expected<std::uint8_t, ProtocolError> ReadLoginResult(const Network::Packet& packet)
+Core::Expected<std::uint8_t, Network::ProtocolError> ReadLoginResult(const Network::Packet& packet)
 {
-    auto fields = FieldsAfterSubcode(packet, LoginResultKind);
+    auto fields = Network::FieldsAfterSubcode(packet, LoginResultKind);
     if (!fields.HasValue())
     {
         return Core::Unexpected(fields.Error());
@@ -82,7 +82,7 @@ Core::Expected<std::uint8_t, ProtocolError> ReadLoginResult(const Network::Packe
     const std::optional<std::uint8_t> result = fields.Value().ReadU8();
     if (!result)
     {
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     }
     return *result;
 }

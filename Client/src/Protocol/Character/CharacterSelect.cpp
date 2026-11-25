@@ -18,7 +18,7 @@ namespace Client::Protocol::Character
 {
 namespace
 {
-constexpr PacketKind SelectKind{Network::PacketType::C1, CharacterOpcode, SelectSubcode};
+constexpr Network::PacketKind SelectKind{Network::PacketType::C1, CharacterOpcode, SelectSubcode};
 // 04-protocolo, "La entrada al mundo": 0x34 bytes en total, 0x30 después del subcódigo.
 // Q-C144: Leadership ocupa los últimos dos; los WORD fuera de ese paquete no son campos.
 constexpr std::size_t SelectResultFieldsSize = 0x30;
@@ -30,9 +30,9 @@ Outgoing WriteCharacterSelect(std::span<const std::byte, NameSize> name)
     return Xor32C1(Network::PacketWriter::C1(CharacterOpcode).PutU8(SelectSubcode).PutBytes(name));
 }
 
-Core::Expected<CharacterSelectResult, ProtocolError> ReadCharacterSelectResult(const Network::Packet& packet)
+Core::Expected<CharacterSelectResult, Network::ProtocolError> ReadCharacterSelectResult(const Network::Packet& packet)
 {
-    auto fields = FieldsAfterSubcode(packet, SelectKind);
+    auto fields = Network::FieldsAfterSubcode(packet, SelectKind);
     if (!fields.HasValue())
     {
         return Core::Unexpected(fields.Error());
@@ -40,7 +40,7 @@ Core::Expected<CharacterSelectResult, ProtocolError> ReadCharacterSelectResult(c
     Core::ByteReader& reader = fields.Value();
     if (reader.Remaining() < SelectResultFieldsSize)
     {
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     }
     CharacterSelectResult result;
     result.x = *reader.ReadU8();

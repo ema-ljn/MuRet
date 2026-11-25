@@ -236,7 +236,8 @@ using CastleSiegePacket =
 
 // El paquete del castillo que es, por su opcode y, en el B2 y el B8, su subcódigo. Otro opcode, un B2 de la batalla o
 // un B8 con otro subcódigo: WrongPacket.
-[[nodiscard]] Core::Expected<CastleSiegePacket, ProtocolError> ReadCastleSiegePacket(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<CastleSiegePacket, Network::ProtocolError>
+ReadCastleSiegePacket(const Network::Packet& packet);
 
 // Lo que mandan las ventanas: el escritor de 0x6b85f4 en la pila, send() en claro por el socket del juego, y el XOR32
 // desde el byte 3 a medida que pone cada campo.

@@ -44,7 +44,7 @@ struct MapServerMove
 // B1 00 (0x4e5056): WrongPacket con otro opcode u otro subcódigo, TooShort sin los 0x24 bytes desde pkt+4. Lee a
 // desplazamientos fijos desde el primer byte, también en un C2 (donde pkt[4] es a la vez el subcódigo y el primer
 // byte del host).
-[[nodiscard]] Core::Expected<MapServerMove, ProtocolError> ReadMapServerMove(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<MapServerMove, Network::ProtocolError> ReadMapServerMove(const Network::Packet& packet);
 
 // Lo que pone 0x412bb0 en el B1 01. No tiene operator<<: la cuenta no se imprime nunca.
 struct MapServerAuth
@@ -62,5 +62,5 @@ struct MapServerAuth
 // códigos, el tick (u32 de abajo primero), la versión (0x6c8284[i] − i − 1, "10209") y el serial (0x6c828c); con el
 // XOR32 y para cifrar como C3. FieldTooLong con una cuenta de más de 10 bytes: el strcpy del original pisaría lo que
 // sigue en su pila (la del login no pasa de 10).
-[[nodiscard]] Core::Expected<Outgoing, ProtocolError> WriteMapServerAuth(const MapServerAuth& auth);
+[[nodiscard]] Core::Expected<Outgoing, Network::ProtocolError> WriteMapServerAuth(const MapServerAuth& auth);
 } // namespace Client::Protocol::Connection

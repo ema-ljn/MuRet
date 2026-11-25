@@ -70,11 +70,13 @@ struct FriendState
     std::uint8_t state = 0;
 };
 
-[[nodiscard]] Core::Expected<FriendList, ProtocolError> ReadFriendList(const Network::Packet& packet);
-[[nodiscard]] Core::Expected<FriendAddResult, ProtocolError> ReadFriendAddResult(const Network::Packet& packet);
-[[nodiscard]] Core::Expected<FriendRequest, ProtocolError> ReadFriendRequest(const Network::Packet& packet);
-[[nodiscard]] Core::Expected<FriendDeleteResult, ProtocolError> ReadFriendDeleteResult(const Network::Packet& packet);
-[[nodiscard]] Core::Expected<FriendState, ProtocolError> ReadFriendState(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<FriendList, Network::ProtocolError> ReadFriendList(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<FriendAddResult, Network::ProtocolError>
+ReadFriendAddResult(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<FriendRequest, Network::ProtocolError> ReadFriendRequest(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<FriendDeleteResult, Network::ProtocolError>
+ReadFriendDeleteResult(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<FriendState, Network::ProtocolError> ReadFriendState(const Network::Packet& packet);
 
 // 0x48ee60, el caso 3 de la fábrica con +0xe8 del administrador en 0 (sin la lista): C1 03 C0 en claro, sin el XOR32.
 [[nodiscard]] Outgoing WriteFriendListRequest();

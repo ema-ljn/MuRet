@@ -44,25 +44,25 @@ std::span<const std::byte> BytesOf(std::string_view text)
 }
 } // namespace
 
-Core::Expected<MapServerMove, ProtocolError> ReadMapServerMove(const Network::Packet& packet)
+Core::Expected<MapServerMove, Network::ProtocolError> ReadMapServerMove(const Network::Packet& packet)
 {
     const std::span<const std::byte> bytes = packet.Bytes();
     const std::size_t subcodeAt = Network::MinPacketSize(packet.Type());
     if (packet.Opcode() != MapServerOpcode)
     {
-        return Core::Unexpected(ProtocolError::WrongPacket);
+        return Core::Unexpected(Network::ProtocolError::WrongPacket);
     }
     if (bytes.size() <= subcodeAt)
     {
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     }
     if (std::to_integer<std::uint8_t>(bytes[subcodeAt]) != MapServerMoveSubcode)
     {
-        return Core::Unexpected(ProtocolError::WrongPacket);
+        return Core::Unexpected(Network::ProtocolError::WrongPacket);
     }
     if (bytes.size() < MoveBytesAt + MapServerMoveBytes)
     {
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     }
     const std::span<const std::byte> moved = bytes.subspan(MoveBytesAt, MapServerMoveBytes);
     MapServerMove move;
@@ -78,11 +78,11 @@ Core::Expected<MapServerMove, ProtocolError> ReadMapServerMove(const Network::Pa
     return move;
 }
 
-Core::Expected<Outgoing, ProtocolError> WriteMapServerAuth(const MapServerAuth& auth)
+Core::Expected<Outgoing, Network::ProtocolError> WriteMapServerAuth(const MapServerAuth& auth)
 {
     if (auth.account.size() > AuthNameMax)
     {
-        return Core::Unexpected(ProtocolError::FieldTooLong);
+        return Core::Unexpected(Network::ProtocolError::FieldTooLong);
     }
     AuthNameBytes account = NameField(auth.account);
     Crypto::Xor3(account);

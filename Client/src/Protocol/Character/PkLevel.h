@@ -17,5 +17,5 @@ struct PkLevel
 };
 
 // Sin los siete bytes, TooShort: el original los lee igual.
-[[nodiscard]] Core::Expected<PkLevel, ProtocolError> ReadPkLevel(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<PkLevel, Network::ProtocolError> ReadPkLevel(const Network::Packet& packet);
 } // namespace Client::Protocol::Character

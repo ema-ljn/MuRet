@@ -102,18 +102,18 @@ struct Notice
     std::string text;
 };
 
-[[nodiscard]] Core::Expected<RoomAnswer, ProtocolError> ReadRoomAnswer(const Network::Packet& packet);
-[[nodiscard]] Core::Expected<InviteResult, ProtocolError> ReadInviteResult(const Network::Packet& packet);
-[[nodiscard]] Core::Expected<JoinResult, ProtocolError> ReadJoinResult(const Network::Packet& packet);
-[[nodiscard]] Core::Expected<Member, ProtocolError> ReadMember(const Network::Packet& packet);
-[[nodiscard]] Core::Expected<Members, ProtocolError> ReadMembers(const Network::Packet& packet);
-[[nodiscard]] Core::Expected<Message, ProtocolError> ReadMessage(const Network::Packet& packet);
-[[nodiscard]] Core::Expected<Notice, ProtocolError> ReadNotice(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<RoomAnswer, Network::ProtocolError> ReadRoomAnswer(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<InviteResult, Network::ProtocolError> ReadInviteResult(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<JoinResult, Network::ProtocolError> ReadJoinResult(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<Member, Network::ProtocolError> ReadMember(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<Members, Network::ProtocolError> ReadMembers(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<Message, Network::ProtocolError> ReadMessage(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<Notice, Network::ProtocolError> ReadNotice(const Network::Packet& packet);
 // Los handlers de 0x4e2a60 leen cada paquete por su lugar sin mirar su largo: con uno más corto que lo que leen (un
 // nombre o un texto sin su '\0' adentro, o menos bytes que los del largo del 04), el original sigue en el búfer de
 // recepción (Q-C1011). TooShort con esos; con uno que se lee entero o con otro opcode, nada. Los textos que terminan
 // adentro del paquete se leen aunque sea más corto que el lugar fijo (el 0D de largo 5 + texto + 1).
-[[nodiscard]] Core::Expected<void, ProtocolError> CheckRoomPacket(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<void, Network::ProtocolError> CheckRoomPacket(const Network::Packet& packet);
 
 // 0x4c1690 y 0x4dd3d0: cada byte con FC CF AB (0x6c82e4) según su lugar % 3. Es su propia inversa.
 void FlipChatText(std::vector<std::byte>& bytes);

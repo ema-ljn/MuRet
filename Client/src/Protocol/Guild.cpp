@@ -75,16 +75,16 @@ bool CopyMark(Core::ByteReader& reader, GuildMark& mark)
     return true;
 }
 
-template <typename Result> Core::Expected<GuildPacket, ProtocolError> ReadResult(const Network::Packet& packet)
+template <typename Result> Core::Expected<GuildPacket, Network::ProtocolError> ReadResult(const Network::Packet& packet)
 {
     Core::ByteReader reader = AfterTheOpcode(packet);
     const auto result = reader.ReadU8();
     if (!result)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     return GuildPacket{Result{*result}};
 }
 
-Core::Expected<GuildPacket, ProtocolError> ReadMemberList(const Network::Packet& packet)
+Core::Expected<GuildPacket, Network::ProtocolError> ReadMemberList(const Network::Packet& packet)
 {
     // 0x4d7b60: pkt[5], la cuenta; ((int)DWORD < 0) − 1 & DWORD deja el puntaje en 0 si es negativo (lo hace el
     // aplicador).
@@ -92,27 +92,27 @@ Core::Expected<GuildPacket, ProtocolError> ReadMemberList(const Network::Packet&
     auto score = At(packet, MemberScoreOffset);
     auto name = At(packet, MemberNameOffset);
     if (!head || !score || !name)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     const auto count = head->ReadU8();
     const auto value = score->ReadU32Le();
     MemberList list;
     if (!count || !value || !CopyTo(*name, list.name))
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     list.count = *count;
     list.score = static_cast<std::int32_t>(*value);
     auto entries = At(packet, FirstMemberOffset);
     if (list.count != 0 && !entries)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     for (std::uint8_t i = 0; i < list.count; ++i)
     {
         MemberEntry entry;
         if (!CopyTo(*entries, entry.name))
-            return Core::Unexpected(ProtocolError::TooShort);
+            return Core::Unexpected(Network::ProtocolError::TooShort);
         const auto number = entries->ReadU8();
         const auto server = entries->ReadU8();
         const auto status = entries->ReadU8();
         if (!number || !server || !status)
-            return Core::Unexpected(ProtocolError::TooShort);
+            return Core::Unexpected(Network::ProtocolError::TooShort);
         entry.number = *number;
         entry.server = *server;
         entry.status = *status;
@@ -122,51 +122,51 @@ Core::Expected<GuildPacket, ProtocolError> ReadMemberList(const Network::Packet&
     return GuildPacket{std::move(list)};
 }
 
-Core::Expected<GuildPacket, ProtocolError> ReadWarRequest(const Network::Packet& packet)
+Core::Expected<GuildPacket, Network::ProtocolError> ReadWarRequest(const Network::Packet& packet)
 {
     Core::ByteReader reader = AfterTheOpcode(packet);
     WarRequest request;
     if (!CopyTo(reader, request.name))
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     const auto type = reader.ReadU8();
     if (!type)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     request.type = *type;
     return GuildPacket{request};
 }
 
-Core::Expected<GuildPacket, ProtocolError> ReadWarStart(const Network::Packet& packet)
+Core::Expected<GuildPacket, Network::ProtocolError> ReadWarStart(const Network::Packet& packet)
 {
     Core::ByteReader reader = AfterTheOpcode(packet);
     WarStart start;
     if (!CopyTo(reader, start.name))
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     const auto type = reader.ReadU8();
     const auto team = reader.ReadU8();
     if (!type || !team)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     start.type = *type;
     start.team = *team;
     return GuildPacket{start};
 }
 
-Core::Expected<GuildPacket, ProtocolError> ReadWarScore(const Network::Packet& packet)
+Core::Expected<GuildPacket, Network::ProtocolError> ReadWarScore(const Network::Packet& packet)
 {
     Core::ByteReader reader = AfterTheOpcode(packet);
     const auto ours = reader.ReadU8();
     const auto theirs = reader.ReadU8();
     if (!ours || !theirs)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     return GuildPacket{WarScore{.ours = *ours, .theirs = *theirs}};
 }
 
-Core::Expected<GuildPacket, ProtocolError> ReadKeyed(const Network::Packet& packet, bool viewport)
+Core::Expected<GuildPacket, Network::ProtocolError> ReadKeyed(const Network::Packet& packet, bool viewport)
 {
     Core::ByteReader reader = AfterTheOpcode(packet);
     const auto high = reader.ReadU8();
     const auto low = reader.ReadU8();
     if (!high || !low)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     // 0x4e42fb: el 5D le saca el bit 7 al byte alto; 0x4d74d6, el 50, no.
     constexpr std::uint8_t KeyHighMask = 0x7f;
     const std::uint8_t keyHigh = viewport ? static_cast<std::uint8_t>(*high & KeyHighMask) : *high;
@@ -176,31 +176,31 @@ Core::Expected<GuildPacket, ProtocolError> ReadKeyed(const Network::Packet& pack
     return GuildPacket{JoinRequest{key}};
 }
 
-Core::Expected<GuildPacket, ProtocolError> ReadGuildInfo(const Network::Packet& packet)
+Core::Expected<GuildPacket, Network::ProtocolError> ReadGuildInfo(const Network::Packet& packet)
 {
     auto key = At(packet, GuildInfoKeyOffset);
     auto rest = At(packet, GuildInfoNameOffset);
     if (!key || !rest)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     const auto value = key->ReadU32Le();
     GuildInfo info;
     if (!value || !CopyTo(*rest, info.unionName) || !CopyTo(*rest, info.guildName) || !CopyMark(*rest, info.mark))
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     info.key = static_cast<std::int32_t>(*value);
     return GuildPacket{info};
 }
 
-Core::Expected<GuildPacket, ProtocolError> ReadAssignResult(const Network::Packet& packet)
+Core::Expected<GuildPacket, Network::ProtocolError> ReadAssignResult(const Network::Packet& packet)
 {
     Core::ByteReader reader = AfterTheOpcode(packet);
     const auto type = reader.ReadU8();
     const auto result = reader.ReadU8();
     if (!type || !result)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     return GuildPacket{AssignResult{.type = *type, .result = *result}};
 }
 
-Core::Expected<GuildPacket, ProtocolError> ReadRelationshipRequest(const Network::Packet& packet)
+Core::Expected<GuildPacket, Network::ProtocolError> ReadRelationshipRequest(const Network::Packet& packet)
 {
     Core::ByteReader reader = AfterTheOpcode(packet);
     const auto relation = reader.ReadU8();
@@ -208,12 +208,12 @@ Core::Expected<GuildPacket, ProtocolError> ReadRelationshipRequest(const Network
     const auto high = reader.ReadU8();
     const auto low = reader.ReadU8();
     if (!relation || !request || !high || !low)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     return GuildPacket{
         RelationshipRequest{.relation = *relation, .request = *request, .keyHigh = *high, .keyLow = *low}};
 }
 
-Core::Expected<GuildPacket, ProtocolError> ReadRelationshipResult(const Network::Packet& packet)
+Core::Expected<GuildPacket, Network::ProtocolError> ReadRelationshipResult(const Network::Packet& packet)
 {
     Core::ByteReader reader = AfterTheOpcode(packet);
     const auto relation = reader.ReadU8();
@@ -222,19 +222,19 @@ Core::Expected<GuildPacket, ProtocolError> ReadRelationshipResult(const Network:
     // 0x4d9ae9: CONCAT11(pkt[6], pkt[7]).
     const auto key = reader.ReadU16Be();
     if (!relation || !request || !result || !key)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     return GuildPacket{RelationshipResult{.relation = *relation, .request = *request, .result = *result, .key = *key}};
 }
 
-Core::Expected<GuildPacket, ProtocolError> ReadUnionList(const Network::Packet& packet)
+Core::Expected<GuildPacket, Network::ProtocolError> ReadUnionList(const Network::Packet& packet)
 {
     auto head = At(packet, Network::MinPacketSize(Network::PacketType::C2));
     if (!head)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     const auto count = head->ReadU8();
     const auto result = head->ReadU8();
     if (!count || !result)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     UnionList list{.count = *count, .result = *result, .entries = {}};
     // 0x4d9e5f: solo con el resultado en 1 y alguna entrada se leen.
     if (list.result != 1 || list.count == 0)
@@ -255,25 +255,25 @@ Core::Expected<GuildPacket, ProtocolError> ReadUnionList(const Network::Packet& 
         UnionEntry entry;
         const auto first = entries.ReadU8();
         if (!first || !CopyMark(entries, entry.mark) || !CopyTo(entries, entry.name))
-            return Core::Unexpected(ProtocolError::TooShort);
+            return Core::Unexpected(Network::ProtocolError::TooShort);
         entry.byte0 = *first;
         list.entries.push_back(entry);
     }
     return GuildPacket{std::move(list)};
 }
 
-Core::Expected<GuildPacket, ProtocolError> ReadUnionListRefresh(const Network::Packet& packet)
+Core::Expected<GuildPacket, Network::ProtocolError> ReadUnionListRefresh(const Network::Packet& packet)
 {
     Core::ByteReader reader = AfterTheOpcode(packet);
     const auto kind = reader.ReadU8();
     if (!kind)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     UnionListRefresh refresh{.kind = *kind, .result = 0};
     if (refresh.kind != RefreshKind)
         return GuildPacket{refresh};
     const auto result = reader.ReadU8();
     if (!result)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     refresh.result = *result;
     return GuildPacket{refresh};
 }
@@ -287,17 +287,17 @@ std::optional<std::uint8_t> CountOf(const Network::Packet& packet)
     return head->ReadU8();
 }
 
-Core::Expected<GuildPacket, ProtocolError> ReadViewportGuild(const Network::Packet& packet)
+Core::Expected<GuildPacket, Network::ProtocolError> ReadViewportGuild(const Network::Packet& packet)
 {
     const auto count = CountOf(packet);
     if (!count)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     ViewportGuild guild;
     for (std::size_t i = 0; i < *count; ++i)
     {
         auto entry = At(packet, FirstViewportEntryOffset + i * ViewportGuildEntrySize);
         if (!entry)
-            return Core::Unexpected(ProtocolError::TooShort);
+            return Core::Unexpected(Network::ProtocolError::TooShort);
         const auto guildKey = entry->ReadU32Le();
         const auto status = entry->ReadU8();
         const auto byte369 = entry->ReadU8();
@@ -305,7 +305,7 @@ Core::Expected<GuildPacket, ProtocolError> ReadViewportGuild(const Network::Pack
         const auto high = entry->ReadU8();
         const auto low = entry->ReadU8();
         if (!guildKey || !status || !byte369 || !relation || !high || !low)
-            return Core::Unexpected(ProtocolError::TooShort);
+            return Core::Unexpected(Network::ProtocolError::TooShort);
         guild.entries.push_back(ViewportGuildEntry{
             .guildKey = static_cast<std::int32_t>(*guildKey),
             .status = *status,
@@ -317,11 +317,11 @@ Core::Expected<GuildPacket, ProtocolError> ReadViewportGuild(const Network::Pack
     return GuildPacket{std::move(guild)};
 }
 
-Core::Expected<GuildPacket, ProtocolError> ReadViewportUnion(const Network::Packet& packet)
+Core::Expected<GuildPacket, Network::ProtocolError> ReadViewportUnion(const Network::Packet& packet)
 {
     const auto count = CountOf(packet);
     if (!count)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     ViewportUnion list;
     for (std::size_t i = 0; i < *count; ++i)
     {
@@ -329,13 +329,13 @@ Core::Expected<GuildPacket, ProtocolError> ReadViewportUnion(const Network::Pack
         auto key = At(packet, offset);
         auto rest = At(packet, offset + ViewportUnionGuildKey);
         if (!key || !rest)
-            return Core::Unexpected(ProtocolError::TooShort);
+            return Core::Unexpected(Network::ProtocolError::TooShort);
         const auto value = key->ReadU16Be();
         const auto guildKey = rest->ReadU32Le();
         const auto relation = rest->ReadU8();
         ViewportUnionEntry entry;
         if (!value || !guildKey || !relation || !CopyTo(*rest, entry.unionName))
-            return Core::Unexpected(ProtocolError::TooShort);
+            return Core::Unexpected(Network::ProtocolError::TooShort);
         entry.key = *value;
         entry.guildKey = static_cast<std::int32_t>(*guildKey);
         entry.relation = *relation;
@@ -344,7 +344,7 @@ Core::Expected<GuildPacket, ProtocolError> ReadViewportUnion(const Network::Pack
     return GuildPacket{std::move(list)};
 }
 
-Core::Expected<GuildPacket, ProtocolError> ReadC1(const Network::Packet& packet, std::uint8_t opcode)
+Core::Expected<GuildPacket, Network::ProtocolError> ReadC1(const Network::Packet& packet, std::uint8_t opcode)
 {
     switch (opcode)
     {
@@ -381,16 +381,16 @@ Core::Expected<GuildPacket, ProtocolError> ReadC1(const Network::Packet& packet,
     case UnionListRefreshOpcode:
         return ReadUnionListRefresh(packet);
     default:
-        return Core::Unexpected(ProtocolError::WrongPacket);
+        return Core::Unexpected(Network::ProtocolError::WrongPacket);
     }
 }
 } // namespace
 
-Core::Expected<GuildPacket, ProtocolError> ReadGuildPacket(const Network::Packet& packet)
+Core::Expected<GuildPacket, Network::ProtocolError> ReadGuildPacket(const Network::Packet& packet)
 {
     const std::optional<std::uint8_t> opcode = packet.Opcode();
     if (!opcode)
-        return Core::Unexpected(ProtocolError::WrongPacket);
+        return Core::Unexpected(Network::ProtocolError::WrongPacket);
     if (packet.Type() == Network::PacketType::C2)
     {
         if (*opcode == MemberListOpcode)
@@ -401,10 +401,10 @@ Core::Expected<GuildPacket, ProtocolError> ReadGuildPacket(const Network::Packet
             return ReadViewportGuild(packet);
         if (*opcode == ViewportUnionOpcode)
             return ReadViewportUnion(packet);
-        return Core::Unexpected(ProtocolError::WrongPacket);
+        return Core::Unexpected(Network::ProtocolError::WrongPacket);
     }
     if (packet.Type() != Network::PacketType::C1)
-        return Core::Unexpected(ProtocolError::WrongPacket);
+        return Core::Unexpected(Network::ProtocolError::WrongPacket);
     return ReadC1(packet, *opcode);
 }
 

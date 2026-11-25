@@ -44,7 +44,8 @@ struct FloorItemsCreate
     std::vector<FloorItemEntry> items;
 };
 
-[[nodiscard]] Core::Expected<FloorItemsCreate, ProtocolError> ReadFloorItemsCreate(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<FloorItemsCreate, Network::ProtocolError>
+ReadFloorItemsCreate(const Network::Packet& packet);
 
 // El 21, C2 (0x4e3849, en el dispatcher): la cuenta en pkt[4] y las claves, de a 2 bytes con el alto primero.
 struct FloorItemsDelete
@@ -52,7 +53,8 @@ struct FloorItemsDelete
     std::vector<std::uint16_t> keys;
 };
 
-[[nodiscard]] Core::Expected<FloorItemsDelete, ProtocolError> ReadFloorItemsDelete(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<FloorItemsDelete, Network::ProtocolError>
+ReadFloorItemsDelete(const Network::Packet& packet);
 
 // El 22 que llega, C1 (C3 en el cable; 0x4d0cc0): pkt[3] el resultado; con 0xfe, el zen en pkt[4..7] con el byte alto
 // primero; con un lugar (o 0xfd), los siete bytes del ítem desde pkt[4]. Con 0xff no lee más.
@@ -63,7 +65,7 @@ struct PickUpResult
     Inventory::ItemData item{};
 };
 
-[[nodiscard]] Core::Expected<PickUpResult, ProtocolError> ReadPickUpResult(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<PickUpResult, Network::ProtocolError> ReadPickUpResult(const Network::Packet& packet);
 
 // El 23 que llega, C1 (0x4d10d0): pkt[3] el resultado (0 rechazado) y pkt[4] el lugar que se tiró. Con 0 no lee
 // pkt[4] (0x4d10de): el lugar queda en 0 si no llegó.
@@ -73,7 +75,7 @@ struct DropResult
     std::uint8_t slot = 0;
 };
 
-[[nodiscard]] Core::Expected<DropResult, ProtocolError> ReadDropResult(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<DropResult, Network::ProtocolError> ReadDropResult(const Network::Packet& packet);
 
 // El 2C, C1 (0x4de500): pkt[3] el resultado (0 a 5, 0x10, 0x21, 0x25 y 0x26), pkt[4] los puntos y pkt[5] el stat
 // (0 la energía, 1 la vitalidad, 2 la agilidad, 3 la fuerza y 4 el comando).
@@ -84,7 +86,7 @@ struct StatFruit
     std::uint8_t stat = 0;
 };
 
-[[nodiscard]] Core::Expected<StatFruit, ProtocolError> ReadStatFruit(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<StatFruit, Network::ProtocolError> ReadStatFruit(const Network::Packet& packet);
 
 // Un 22, un 23 o un 2C más cortos de lo que lee el cliente (el GameServer 0.97, 07 Q-C1240): el original lee lo que
 // quedó en su buffer de recepción, que MuRet no inventa, pero hay escrituras que hace en todos sus caminos. 0x4d0cc0
@@ -114,10 +116,11 @@ struct ShortZenPickUp
 };
 
 // WrongPacket si pkt[3] no es 0xfe, y TooShort sin los cuatro bytes del zen.
-[[nodiscard]] Core::Expected<ShortZenPickUp, ProtocolError> ReadShortZenPickUp(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<ShortZenPickUp, Network::ProtocolError> ReadShortZenPickUp(const Network::Packet& packet);
 
 // El 23 que ReadDropResult rechaza por corto: solo pkt[3], si llegó.
-[[nodiscard]] Core::Expected<ShortDropResult, ProtocolError> ReadShortDropResult(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<ShortDropResult, Network::ProtocolError>
+ReadShortDropResult(const Network::Packet& packet);
 
 // El C1 05 22 (0x566755, el caso 1 de 0x5650c0): el índice del ítem del piso, el byte alto primero.
 [[nodiscard]] Outgoing WritePickUp(std::uint16_t index);

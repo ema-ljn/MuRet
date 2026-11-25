@@ -11,7 +11,7 @@
 #include <span>
 #include <string>
 
-namespace Client::Protocol
+namespace Client::Network
 {
 Core::Expected<Core::ByteReader, ProtocolError> FieldsAfterSubcode(const Network::Packet& packet,
                                                                    const PacketKind& kind)
@@ -47,4 +47,4 @@ std::string TextField(std::span<const std::byte> field)
     }
     return text;
 }
-} // namespace Client::Protocol
+} // namespace Client::Network

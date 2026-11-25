@@ -64,11 +64,11 @@ struct QuestResult
 
 // Tipo u opcode distintos → WrongPacket; campos incompletos → TooShort. Los bytes que sobran se ignoran (salvo los
 // estados del A0, que se guardan todos).
-[[nodiscard]] Core::Expected<QuestFlag, ProtocolError> ReadQuestFlag(const Network::Packet& packet);
-[[nodiscard]] Core::Expected<QuestList, ProtocolError> ReadQuestList(const Network::Packet& packet);
-[[nodiscard]] Core::Expected<QuestStateChange, ProtocolError> ReadQuestState(const Network::Packet& packet);
-[[nodiscard]] Core::Expected<SetQuestResult, ProtocolError> ReadSetQuestResult(const Network::Packet& packet);
-[[nodiscard]] Core::Expected<QuestResult, ProtocolError> ReadQuestResult(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<QuestFlag, Network::ProtocolError> ReadQuestFlag(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<QuestList, Network::ProtocolError> ReadQuestList(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<QuestStateChange, Network::ProtocolError> ReadQuestState(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<SetQuestResult, Network::ProtocolError> ReadSetQuestResult(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<QuestResult, Network::ProtocolError> ReadQuestResult(const Network::Packet& packet);
 
 // 0x63693a y 0x5676a6: C1 03 A0, con el XOR32 y Delivery::Encrypted (C3). El relleno y el serial sacan sus rand() en
 // quien lo pide.

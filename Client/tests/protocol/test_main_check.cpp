@@ -26,8 +26,8 @@
 namespace
 {
 using Client::Network::Delivery;
+using Client::Network::ProtocolError;
 using Client::Protocol::Outgoing;
-using Client::Protocol::ProtocolError;
 using Client::Protocol::Connection::MainCheckFileName;
 using Client::Protocol::Connection::MainCheckSum;
 using Client::Protocol::Connection::MainCheckTable;

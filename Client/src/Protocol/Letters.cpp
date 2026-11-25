@@ -27,14 +27,14 @@ constexpr std::size_t RowSize = 0x4f;
 constexpr std::size_t ReadHeaderSize = 0x1c;
 constexpr std::size_t DeleteResultSize = 6;
 
-Core::Expected<std::span<const std::byte>, ProtocolError>
+Core::Expected<std::span<const std::byte>, Network::ProtocolError>
 BytesOf(const Network::Packet& packet, Network::PacketType type, std::uint8_t opcode, std::size_t size)
 {
     if (packet.Type() != type || packet.Opcode() != opcode)
-        return Core::Unexpected(ProtocolError::WrongPacket);
+        return Core::Unexpected(Network::ProtocolError::WrongPacket);
     const std::span<const std::byte> bytes = packet.Bytes();
     if (bytes.size() < size)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     return bytes;
 }
 
@@ -57,7 +57,7 @@ std::uint8_t U8At(std::span<const std::byte> bytes, std::size_t at)
 // strncpy de `size` a un buffer en cero: hasta el primer '\0'.
 std::string TextAt(std::span<const std::byte> bytes, std::size_t at, std::size_t size)
 {
-    return TextField(bytes.subspan(at, size));
+    return Network::TextField(bytes.subspan(at, size));
 }
 
 // Un C2 con el XOR32 desde el byte 4, que la Connection cifra como C4.
@@ -76,7 +76,7 @@ std::vector<std::byte> FixedText(std::string_view text, std::size_t size)
     return bytes;
 }
 
-Core::Expected<LetterSendResult, ProtocolError> ReadLetterSendResult(const Network::Packet& packet)
+Core::Expected<LetterSendResult, Network::ProtocolError> ReadLetterSendResult(const Network::Packet& packet)
 {
     auto bytes = BytesOf(packet, Network::PacketType::C1, LetterSendOpcode, SendResultSize);
     if (!bytes.HasValue())
@@ -84,7 +84,7 @@ Core::Expected<LetterSendResult, ProtocolError> ReadLetterSendResult(const Netwo
     return LetterSendResult{.result = U8At(bytes.Value(), 3), .window = U32At(bytes.Value(), 4)};
 }
 
-Core::Expected<LetterRow, ProtocolError> ReadLetterRow(const Network::Packet& packet)
+Core::Expected<LetterRow, Network::ProtocolError> ReadLetterRow(const Network::Packet& packet)
 {
     auto read = BytesOf(packet, Network::PacketType::C1, LetterListOpcode, RowSize);
     if (!read.HasValue())
@@ -98,7 +98,7 @@ Core::Expected<LetterRow, ProtocolError> ReadLetterRow(const Network::Packet& pa
                      .type = U8At(bytes, 0x4e)};
 }
 
-Core::Expected<LetterRead, ProtocolError> ReadLetterRead(const Network::Packet& packet)
+Core::Expected<LetterRead, Network::ProtocolError> ReadLetterRead(const Network::Packet& packet)
 {
     auto read = BytesOf(packet, Network::PacketType::C2, LetterReadOpcode, ReadHeaderSize);
     if (!read.HasValue())
@@ -106,10 +106,10 @@ Core::Expected<LetterRead, ProtocolError> ReadLetterRead(const Network::Packet& 
     return ReadLetterCopy(read.Value());
 }
 
-Core::Expected<LetterRead, ProtocolError> ReadLetterCopy(std::span<const std::byte> bytes)
+Core::Expected<LetterRead, Network::ProtocolError> ReadLetterCopy(std::span<const std::byte> bytes)
 {
     if (bytes.size() < ReadHeaderSize)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     LetterRead letter{.index = U16At(bytes, 4),
                       .length = U16At(bytes, 6),
                       .portraitClass = U8At(bytes, 8),
@@ -121,7 +121,7 @@ Core::Expected<LetterRead, ProtocolError> ReadLetterCopy(std::span<const std::by
     // 0x4dcb8a: pkt[0x1c + largo] = 0 sin mirar el tamaño. Un cuerpo que llena justo el paquete (el C5 lo manda sin el
     // 0) o la copia de 0x404 (una carta de 1000) se lee; uno que pasa del paquete, MuRet lo rechaza (Q-C1000).
     if (ReadHeaderSize + letter.length > bytes.size())
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     std::copy_n(bytes.begin() + 9, PortraitEquipmentSize, letter.equipment.begin());
     letter.copy.assign(bytes.begin(),
                        bytes.begin() + static_cast<std::ptrdiff_t>(std::min(bytes.size(), LetterCopySize)));
@@ -133,7 +133,7 @@ Core::Expected<LetterRead, ProtocolError> ReadLetterCopy(std::span<const std::by
     return letter;
 }
 
-Core::Expected<LetterDeleteResult, ProtocolError> ReadLetterDeleteResult(const Network::Packet& packet)
+Core::Expected<LetterDeleteResult, Network::ProtocolError> ReadLetterDeleteResult(const Network::Packet& packet)
 {
     auto bytes = BytesOf(packet, Network::PacketType::C1, LetterDeleteOpcode, DeleteResultSize);
     if (!bytes.HasValue())

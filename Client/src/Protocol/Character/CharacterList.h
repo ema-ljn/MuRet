@@ -63,7 +63,7 @@ struct CharacterList
 // paquete: 0x4c20a0 no mira el largo y leería fuera (diferencia nombrada). Lo que sobra detrás de
 // la última no se lee. Una entrada con un lugar de más de MaxCharacterSlot se descarta: el original
 // la deja sin posición y no se puede elegir (Q-C101).
-[[nodiscard]] Core::Expected<CharacterList, ProtocolError> ReadCharacterList(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<CharacterList, Network::ProtocolError> ReadCharacterList(const Network::Packet& packet);
 
 // La clase de una entrada, de su [0xf]: ((b & 0x10) | (b >> 4)) >> 1, como se la pasa 0x4c20a0 a
 // 0x517270. Quedan la clase en los bits 0 a 2 (los 5 a 7 del byte) y la segunda clase en el 3 (el

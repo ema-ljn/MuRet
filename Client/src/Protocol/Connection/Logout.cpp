@@ -16,15 +16,15 @@ namespace Client::Protocol::Connection
 namespace
 {
 // La respuesta de la salida llega en un C1, ya descifrada.
-constexpr PacketKind LogoutResultKind{Network::PacketType::C1, JoinOpcode, LogoutSubcode};
+constexpr Network::PacketKind LogoutResultKind{Network::PacketType::C1, JoinOpcode, LogoutSubcode};
 // 0x4c30ce y 0x4c31b9: lo que manda el F1 02 con 1 que llega sin cifrar, el 0 y el F1 de su paquete.
 constexpr std::uint8_t ClearLogoutFirst = 0x00;
 constexpr std::uint8_t ClearLogoutHead = JoinOpcode;
 } // namespace
 
-Core::Expected<std::uint8_t, ProtocolError> ReadLogoutResult(const Network::Packet& packet)
+Core::Expected<std::uint8_t, Network::ProtocolError> ReadLogoutResult(const Network::Packet& packet)
 {
-    auto fields = FieldsAfterSubcode(packet, LogoutResultKind);
+    auto fields = Network::FieldsAfterSubcode(packet, LogoutResultKind);
     if (!fields.HasValue())
     {
         return Core::Unexpected(fields.Error());
@@ -32,7 +32,7 @@ Core::Expected<std::uint8_t, ProtocolError> ReadLogoutResult(const Network::Pack
     const std::optional<std::uint8_t> result = fields.Value().ReadU8();
     if (!result)
     {
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     }
     return *result;
 }

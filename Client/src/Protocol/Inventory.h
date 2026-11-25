@@ -62,7 +62,7 @@ struct ItemMoveResult
     ItemData item{};
 };
 
-[[nodiscard]] Core::Expected<ItemMoveResult, ProtocolError> ReadItemMoveResult(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<ItemMoveResult, Network::ProtocolError> ReadItemMoveResult(const Network::Packet& packet);
 
 // El aviso de un 24 que no llegó cifrado (0x4d1400, 0x4d166b..0x4d1690): C1 06 F1 03 00 16 con el XOR32 y en C3, sin
 // leer el paquete. No suelta la traba.
@@ -76,7 +76,7 @@ struct ItemDelete
     std::uint8_t endsTheWait = 0;
 };
 
-[[nodiscard]] Core::Expected<ItemDelete, ProtocolError> ReadItemDelete(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<ItemDelete, Network::ProtocolError> ReadItemDelete(const Network::Packet& packet);
 
 // El 26, C1 07 26 (0x4d3510; PMSG_REFILL en el GameServer): el lugar en pkt[3] y, con 0xfe o 0xff, la vida en pkt[4]
 // (alto) y pkt[5] (bajo). Con otro lugar el original no lee la vida, y pkt[6] (el Flag, siempre 0) no lo lee nunca.
@@ -86,7 +86,7 @@ struct LifeRefill
     std::uint16_t life = 0;
 };
 
-[[nodiscard]] Core::Expected<LifeRefill, ProtocolError> ReadLifeRefill(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<LifeRefill, Network::ProtocolError> ReadLifeRefill(const Network::Packet& packet);
 
 // El 27, C1 08 27 (0x4d3820; PMSG_MANASEND): el lugar en pkt[3], el maná en pkt[4..5] y, con 0xfe o 0xff, el BP en
 // pkt[6..7], los dos con el byte alto primero. Con otro lugar el original no lee el BP.
@@ -97,7 +97,7 @@ struct ManaRefill
     std::uint16_t bp = 0;
 };
 
-[[nodiscard]] Core::Expected<ManaRefill, ProtocolError> ReadManaRefill(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<ManaRefill, Network::ProtocolError> ReadManaRefill(const Network::Packet& packet);
 
 // El 2A, C1 06 2A (0x4d3cc0): el lugar, la durabilidad nueva y, distinto de 0, el fin de la espera.
 struct Durability
@@ -107,7 +107,7 @@ struct Durability
     std::uint8_t endsTheWait = 0;
 };
 
-[[nodiscard]] Core::Expected<Durability, ProtocolError> ReadDurability(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<Durability, Network::ProtocolError> ReadDurability(const Network::Packet& packet);
 
 // El F3 13 (0x4e316e): la clave de un personaje (pkt[4] alto, pkt[5] bajo) y su equipo desde pkt[7], el de la
 // lista de personajes, que lee 0x5139f0.
@@ -117,7 +117,8 @@ struct EquipmentChange
     std::array<std::byte, EquipmentChangeSize> equipment{};
 };
 
-[[nodiscard]] Core::Expected<EquipmentChange, ProtocolError> ReadEquipmentChange(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<EquipmentChange, Network::ProtocolError>
+ReadEquipmentChange(const Network::Packet& packet);
 
 // El F3 14 (0x4e31a3): un ítem que el servidor pone en el inventario, con el lugar en pkt[4] y el ítem desde
 // pkt[5].
@@ -127,5 +128,5 @@ struct ItemPut
     ItemData item{};
 };
 
-[[nodiscard]] Core::Expected<ItemPut, ProtocolError> ReadItemPut(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<ItemPut, Network::ProtocolError> ReadItemPut(const Network::Packet& packet);
 } // namespace Client::Protocol::Inventory

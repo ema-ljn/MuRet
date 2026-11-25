@@ -32,27 +32,27 @@ class Fields
 public:
     explicit Fields(std::span<const std::byte> bytes) : m_bytes(bytes) {}
 
-    [[nodiscard]] Core::Expected<std::span<const std::byte>, ProtocolError> Bytes(std::size_t at,
-                                                                                  std::size_t count) const
+    [[nodiscard]] Core::Expected<std::span<const std::byte>, Network::ProtocolError> Bytes(std::size_t at,
+                                                                                           std::size_t count) const
     {
         if (at > m_bytes.size() || m_bytes.size() - at < count)
         {
-            return Core::Unexpected(ProtocolError::TooShort);
+            return Core::Unexpected(Network::ProtocolError::TooShort);
         }
         return m_bytes.subspan(at, count);
     }
 
-    [[nodiscard]] Core::Expected<std::uint8_t, ProtocolError> U8(std::size_t at) const
+    [[nodiscard]] Core::Expected<std::uint8_t, Network::ProtocolError> U8(std::size_t at) const
     {
         if (at >= m_bytes.size())
         {
-            return Core::Unexpected(ProtocolError::TooShort);
+            return Core::Unexpected(Network::ProtocolError::TooShort);
         }
         return std::to_integer<std::uint8_t>(m_bytes[at]);
     }
 
     // MOV r32: el byte de abajo primero.
-    [[nodiscard]] Core::Expected<std::uint32_t, ProtocolError> U32Le(std::size_t at) const
+    [[nodiscard]] Core::Expected<std::uint32_t, Network::ProtocolError> U32Le(std::size_t at) const
     {
         auto field = Bytes(at, 4);
         if (!field.HasValue())
@@ -68,7 +68,7 @@ public:
     }
 
     // Los que el original arma byte a byte (SHL 8 y OR): el primero arriba.
-    [[nodiscard]] Core::Expected<std::uint64_t, ProtocolError> UBe(std::size_t at, std::size_t count) const
+    [[nodiscard]] Core::Expected<std::uint64_t, Network::ProtocolError> UBe(std::size_t at, std::size_t count) const
     {
         auto field = Bytes(at, count);
         if (!field.HasValue())
@@ -83,7 +83,7 @@ public:
         return value;
     }
 
-    [[nodiscard]] Core::Expected<std::uint32_t, ProtocolError> U32Be(std::size_t at) const
+    [[nodiscard]] Core::Expected<std::uint32_t, Network::ProtocolError> U32Be(std::size_t at) const
     {
         auto value = UBe(at, 4);
         if (!value.HasValue())
@@ -95,7 +95,7 @@ public:
 
     // La cuenta de una lista: un int, y el lazo (JLE antes de entrar, JL al volver) no corre con 0 ni con una
     // negativa.
-    [[nodiscard]] Core::Expected<std::size_t, ProtocolError> Count(std::size_t at) const
+    [[nodiscard]] Core::Expected<std::size_t, Network::ProtocolError> Count(std::size_t at) const
     {
         auto count = U32Le(at);
         if (!count.HasValue())
@@ -118,7 +118,7 @@ template <std::size_t Size> std::array<std::byte, Size> CopyOf(std::span<const s
 }
 
 // Un caso que con pkt[4] en 0 o en otro valor solo muestra un mensaje: el resultado y nada más.
-template <typename Result> Core::Expected<CastleSiegePacket, ProtocolError> OnlyTheResult(const Fields& fields)
+template <typename Result> Core::Expected<CastleSiegePacket, Network::ProtocolError> OnlyTheResult(const Fields& fields)
 {
     auto result = fields.U8(4);
     if (!result.HasValue())
@@ -129,7 +129,7 @@ template <typename Result> Core::Expected<CastleSiegePacket, ProtocolError> Only
 }
 
 // B2 00, 0x4e50bd → 0x64b0f0 con pkt[4] en 1 o 2.
-Core::Expected<CastleSiegePacket, ProtocolError> ReadState(const Fields& fields)
+Core::Expected<CastleSiegePacket, Network::ProtocolError> ReadState(const Fields& fields)
 {
     auto result = fields.U8(4);
     if (!result.HasValue())
@@ -163,7 +163,7 @@ Core::Expected<CastleSiegePacket, ProtocolError> ReadState(const Fields& fields)
 }
 
 // B2 03, 0x4e5186: con 1, las marcas y pkt[0x11].
-Core::Expected<CastleSiegePacket, ProtocolError> ReadRegistration(const Fields& fields)
+Core::Expected<CastleSiegePacket, Network::ProtocolError> ReadRegistration(const Fields& fields)
 {
     auto result = fields.U8(4);
     if (!result.HasValue())
@@ -187,7 +187,7 @@ Core::Expected<CastleSiegePacket, ProtocolError> ReadRegistration(const Fields& 
 }
 
 // B2 04, 0x4e51fa: con 1, las marcas.
-Core::Expected<CastleSiegePacket, ProtocolError> ReadRegisterMark(const Fields& fields)
+Core::Expected<CastleSiegePacket, Network::ProtocolError> ReadRegisterMark(const Fields& fields)
 {
     auto result = fields.U8(4);
     if (!result.HasValue())
@@ -209,7 +209,7 @@ Core::Expected<CastleSiegePacket, ProtocolError> ReadRegisterMark(const Fields& 
 }
 
 // B2 05, 0x4df7d0: con 1, el tipo y el índice.
-Core::Expected<CastleSiegePacket, ProtocolError> ReadNpcBuy(const Fields& fields)
+Core::Expected<CastleSiegePacket, Network::ProtocolError> ReadNpcBuy(const Fields& fields)
 {
     auto result = fields.U8(4);
     if (!result.HasValue())
@@ -232,7 +232,7 @@ Core::Expected<CastleSiegePacket, ProtocolError> ReadNpcBuy(const Fields& fields
 }
 
 // B2 06, 0x4e52b7: con 1, el tipo, el índice y las dos vidas.
-Core::Expected<CastleSiegePacket, ProtocolError> ReadNpcRepair(const Fields& fields)
+Core::Expected<CastleSiegePacket, Network::ProtocolError> ReadNpcRepair(const Fields& fields)
 {
     auto result = fields.U8(4);
     if (!result.HasValue())
@@ -257,7 +257,7 @@ Core::Expected<CastleSiegePacket, ProtocolError> ReadNpcRepair(const Fields& fie
 }
 
 // B2 07, 0x4df950: con 1, el tipo, el índice y cuál; el valor (pkt+0x14) solo lo leen los casos 1, 2 y 3.
-Core::Expected<CastleSiegePacket, ProtocolError> ReadNpcUpgrade(const Fields& fields)
+Core::Expected<CastleSiegePacket, Network::ProtocolError> ReadNpcUpgrade(const Fields& fields)
 {
     auto result = fields.U8(4);
     if (!result.HasValue())
@@ -291,7 +291,7 @@ Core::Expected<CastleSiegePacket, ProtocolError> ReadNpcUpgrade(const Fields& fi
 }
 
 // B2 08, 0x4e537b → 0x669070: con 1, los dos impuestos y la plata.
-Core::Expected<CastleSiegePacket, ProtocolError> ReadTaxInfo(const Fields& fields)
+Core::Expected<CastleSiegePacket, Network::ProtocolError> ReadTaxInfo(const Fields& fields)
 {
     auto result = fields.U8(4);
     if (!result.HasValue())
@@ -315,7 +315,7 @@ Core::Expected<CastleSiegePacket, ProtocolError> ReadTaxInfo(const Fields& field
 }
 
 // B2 09, 0x4e53e7: con 1, cuál; el valor lo leen el 3 (0x4e541b) y el 1 y el 2 (0x6690f0).
-Core::Expected<CastleSiegePacket, ProtocolError> ReadTaxRate(const Fields& fields)
+Core::Expected<CastleSiegePacket, Network::ProtocolError> ReadTaxRate(const Fields& fields)
 {
     auto result = fields.U8(4);
     if (!result.HasValue())
@@ -347,7 +347,7 @@ Core::Expected<CastleSiegePacket, ProtocolError> ReadTaxRate(const Fields& field
 }
 
 // B2 10, 0x4e548a → 0x669160: con 1, la plata.
-Core::Expected<CastleSiegePacket, ProtocolError> ReadMoneyOut(const Fields& fields)
+Core::Expected<CastleSiegePacket, Network::ProtocolError> ReadMoneyOut(const Fields& fields)
 {
     auto result = fields.U8(4);
     if (!result.HasValue())
@@ -369,7 +369,7 @@ Core::Expected<CastleSiegePacket, ProtocolError> ReadMoneyOut(const Fields& fiel
 }
 
 // B2 1A, 0x4e54f6: pkt[5] solo con pkt[4] en 1 o 2.
-Core::Expected<CastleSiegePacket, ProtocolError> ReadSiegeFlags(const Fields& fields)
+Core::Expected<CastleSiegePacket, Network::ProtocolError> ReadSiegeFlags(const Fields& fields)
 {
     auto which = fields.U8(4);
     if (!which.HasValue())
@@ -391,7 +391,7 @@ Core::Expected<CastleSiegePacket, ProtocolError> ReadSiegeFlags(const Fields& fi
 }
 
 // B2 1F, 0x4e5532: pkt[5] solo con 1.
-Core::Expected<CastleSiegePacket, ProtocolError> ReadHuntZoneGate(const Fields& fields)
+Core::Expected<CastleSiegePacket, Network::ProtocolError> ReadHuntZoneGate(const Fields& fields)
 {
     auto result = fields.U8(4);
     if (!result.HasValue())
@@ -413,7 +413,7 @@ Core::Expected<CastleSiegePacket, ProtocolError> ReadHuntZoneGate(const Fields& 
 }
 
 // B3, 0x4dfc60.
-Core::Expected<CastleSiegePacket, ProtocolError> ReadNpcList(const Fields& fields)
+Core::Expected<CastleSiegePacket, Network::ProtocolError> ReadNpcList(const Fields& fields)
 {
     auto result = fields.U8(4);
     if (!result.HasValue())
@@ -443,7 +443,7 @@ Core::Expected<CastleSiegePacket, ProtocolError> ReadNpcList(const Fields& field
 }
 
 // B4, 0x4dfce0: cada registro como lo pasa a 0x64d2c0.
-Core::Expected<CastleSiegePacket, ProtocolError> ReadSiegeGuildList(const Fields& fields)
+Core::Expected<CastleSiegePacket, Network::ProtocolError> ReadSiegeGuildList(const Fields& fields)
 {
     auto result = fields.U8(4);
     if (!result.HasValue())
@@ -477,7 +477,7 @@ Core::Expected<CastleSiegePacket, ProtocolError> ReadSiegeGuildList(const Fields
 }
 
 // B5, 0x4dfd80: cada registro como lo pasa a 0x64d310.
-Core::Expected<CastleSiegePacket, ProtocolError> ReadRegisteredGuildList(const Fields& fields)
+Core::Expected<CastleSiegePacket, Network::ProtocolError> ReadRegisteredGuildList(const Fields& fields)
 {
     auto result = fields.U8(4);
     if (!result.HasValue())
@@ -510,7 +510,7 @@ Core::Expected<CastleSiegePacket, ProtocolError> ReadRegisteredGuildList(const F
 }
 
 // B6, 0x4e0ed0.
-Core::Expected<CastleSiegePacket, ProtocolError> ReadMinimapPoints(const Fields& fields)
+Core::Expected<CastleSiegePacket, Network::ProtocolError> ReadMinimapPoints(const Fields& fields)
 {
     auto count = fields.Count(MinimapCountAt);
     if (!count.HasValue())
@@ -532,7 +532,7 @@ Core::Expected<CastleSiegePacket, ProtocolError> ReadMinimapPoints(const Fields&
 }
 
 // El B2 por su subcódigo, la tabla 0x4e6140.
-Core::Expected<CastleSiegePacket, ProtocolError> ReadCastle(const Fields& fields, std::uint8_t subcode)
+Core::Expected<CastleSiegePacket, Network::ProtocolError> ReadCastle(const Fields& fields, std::uint8_t subcode)
 {
     switch (subcode)
     {
@@ -563,7 +563,7 @@ Core::Expected<CastleSiegePacket, ProtocolError> ReadCastle(const Fields& fields
     case HuntZoneGateSubcode:
         return ReadHuntZoneGate(fields);
     default:
-        return Core::Unexpected(ProtocolError::WrongPacket);
+        return Core::Unexpected(Network::ProtocolError::WrongPacket);
     }
 }
 
@@ -574,12 +574,12 @@ Network::PacketWriter Castle(std::uint8_t subcode)
 }
 } // namespace
 
-Core::Expected<CastleSiegePacket, ProtocolError> ReadCastleSiegePacket(const Network::Packet& packet)
+Core::Expected<CastleSiegePacket, Network::ProtocolError> ReadCastleSiegePacket(const Network::Packet& packet)
 {
     const auto opcode = packet.Opcode();
     if (!opcode)
     {
-        return Core::Unexpected(ProtocolError::WrongPacket);
+        return Core::Unexpected(Network::ProtocolError::WrongPacket);
     }
     const Fields fields(packet.Bytes());
     switch (*opcode)
@@ -598,7 +598,7 @@ Core::Expected<CastleSiegePacket, ProtocolError> ReadCastleSiegePacket(const Net
         }
         if (subcode.Value() != KillCountSubcode)
         {
-            return Core::Unexpected(ProtocolError::WrongPacket);
+            return Core::Unexpected(Network::ProtocolError::WrongPacket);
         }
         auto value = fields.U8(4);
         if (!value.HasValue())
@@ -616,7 +616,7 @@ Core::Expected<CastleSiegePacket, ProtocolError> ReadCastleSiegePacket(const Net
     case MinimapOpcode:
         return ReadMinimapPoints(fields);
     default:
-        return Core::Unexpected(ProtocolError::WrongPacket);
+        return Core::Unexpected(Network::ProtocolError::WrongPacket);
     }
 }
 

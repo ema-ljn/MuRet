@@ -37,14 +37,14 @@ struct LoginRequest
 // escribe igual: el original no la manda (0x641bf0 mira el largo de las dos antes de armar el
 // paquete), y eso lo decide la escena de login. Un \0 en el medio se copia como un byte más, y el
 // strcpy del original cortaría ahí: desde un campo de texto no se puede escribir.
-[[nodiscard]] Core::Expected<Outgoing, ProtocolError> WriteLoginRequest(const LoginRequest& request);
+[[nodiscard]] Core::Expected<Outgoing, Network::ProtocolError> WriteLoginRequest(const LoginRequest& request);
 
 // El resultado del login que lo acepta.
 inline constexpr std::uint8_t LoginAccepted = 1;
 
 // La respuesta F1 01: C1 05 F1 01 y el resultado. El login que arma el cliente, sin el XOR32, tiene
 // la misma forma (C1 F1 01 y algo detrás) y también se lee: la CL4 los separa por el sentido.
-[[nodiscard]] Core::Expected<std::uint8_t, ProtocolError> ReadLoginResult(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<std::uint8_t, Network::ProtocolError> ReadLoginResult(const Network::Packet& packet);
 
 // F1 03: C1 06 F1 03 06 00, con el XOR32 y para cifrar. Lo manda el original cuando un C3/C4 que
 // llega tiene el checksum malo (03, "C3/C4"; DecryptPacket con ChecksumMismatch o NotWholeBlocks).

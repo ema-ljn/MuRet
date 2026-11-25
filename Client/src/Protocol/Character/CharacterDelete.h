@@ -36,5 +36,6 @@ inline constexpr std::size_t DeleteCodeSize = 10;
 inline constexpr std::uint8_t CharacterDeleted = 1;
 
 // La respuesta: C1, F3 02 y pkt[4]. TooShort sin pkt[4].
-[[nodiscard]] Core::Expected<std::uint8_t, ProtocolError> ReadCharacterDeleteResult(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<std::uint8_t, Network::ProtocolError>
+ReadCharacterDeleteResult(const Network::Packet& packet);
 } // namespace Client::Protocol::Character

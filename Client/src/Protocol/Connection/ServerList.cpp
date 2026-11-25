@@ -20,8 +20,8 @@ namespace Client::Protocol::Connection
 namespace
 {
 // La lista que deja FoxAnti es un C2; la respuesta con la dirección, un C1.
-constexpr PacketKind ListKind{Network::PacketType::C2, ServerListOpcode, ServerListSubcode};
-constexpr PacketKind AddressKind{Network::PacketType::C1, ServerListOpcode, ServerSelectSubcode};
+constexpr Network::PacketKind ListKind{Network::PacketType::C2, ServerListOpcode, ServerListSubcode};
+constexpr Network::PacketKind AddressKind{Network::PacketType::C1, ServerListOpcode, ServerSelectSubcode};
 
 // Lo que mide una entrada de la lista: el código, la carga y un byte que 0x4c1860 no lee.
 constexpr std::size_t ServerEntrySize = 4;
@@ -53,9 +53,9 @@ Outgoing WriteCreditsNotice()
     return ClearC1(Network::PacketWriter::C1(ServerListOpcode).PutU8(ServerListSubcode));
 }
 
-Core::Expected<std::vector<ServerEntry>, ProtocolError> ReadServerList(const Network::Packet& packet)
+Core::Expected<std::vector<ServerEntry>, Network::ProtocolError> ReadServerList(const Network::Packet& packet)
 {
-    auto fields = FieldsAfterSubcode(packet, ListKind);
+    auto fields = Network::FieldsAfterSubcode(packet, ListKind);
     if (!fields.HasValue())
     {
         return Core::Unexpected(fields.Error());
@@ -64,7 +64,7 @@ Core::Expected<std::vector<ServerEntry>, ProtocolError> ReadServerList(const Net
     const std::optional<std::uint16_t> count = reader.ReadU16Be();
     if (!count || *count > reader.Remaining() / ServerEntrySize)
     {
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     }
     // La cantidad ya se comparó con lo que queda: cada entrada entra.
     std::vector<ServerEntry> entries;
@@ -82,9 +82,9 @@ Outgoing WriteServerSelect(std::uint16_t code)
     return ClearC1(Network::PacketWriter::C1(ServerListOpcode).PutU8(ServerSelectSubcode).PutU16Le(code));
 }
 
-Core::Expected<ServerAddress, ProtocolError> ReadServerAddress(const Network::Packet& packet)
+Core::Expected<ServerAddress, Network::ProtocolError> ReadServerAddress(const Network::Packet& packet)
 {
-    auto fields = FieldsAfterSubcode(packet, AddressKind);
+    auto fields = Network::FieldsAfterSubcode(packet, AddressKind);
     if (!fields.HasValue())
     {
         return Core::Unexpected(fields.Error());
@@ -94,8 +94,8 @@ Core::Expected<ServerAddress, ProtocolError> ReadServerAddress(const Network::Pa
     const std::optional<std::uint16_t> port = reader.ReadU16Le();
     if (!host || !port)
     {
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     }
-    return ServerAddress{TextField(host->first(HostReadSize)), *port};
+    return ServerAddress{Network::TextField(host->first(HostReadSize)), *port};
 }
 } // namespace Client::Protocol::Connection

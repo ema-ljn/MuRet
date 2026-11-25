@@ -23,7 +23,7 @@
 namespace
 {
 using Client::Network::Delivery;
-using Client::Protocol::ProtocolError;
+using Client::Network::ProtocolError;
 using Client::Protocol::Connection::ReadServerAddress;
 using Client::Protocol::Connection::ReadServerList;
 using Client::Protocol::Connection::ServerEntry;

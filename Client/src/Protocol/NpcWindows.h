@@ -49,7 +49,7 @@ struct TalkResult
     std::size_t ratesInPacket = 0;
 };
 
-[[nodiscard]] Core::Expected<TalkResult, ProtocolError> ReadTalkResult(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<TalkResult, Network::ProtocolError> ReadTalkResult(const Network::Packet& packet);
 
 // El aviso de un 30 que no llegó cifrado (0x4d1e30..0x4d24fb): C1 06 F1 03 00 30 con el XOR32 y en C3, como el del
 // 24, sin leer el paquete.
@@ -71,7 +71,7 @@ struct ItemList
     std::vector<ListedItem> items;
 };
 
-[[nodiscard]] Core::Expected<ItemList, ProtocolError> ReadItemList(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<ItemList, Network::ProtocolError> ReadItemList(const Network::Packet& packet);
 
 // El 32 que llega (0x4e3c33..0x4e3c84): con pkt[3] distinto de 0xff, el lugar del inventario y los siete bytes desde
 // pkt[4].
@@ -83,7 +83,7 @@ struct BuyResult
 
 inline constexpr std::uint8_t BuyRejected = 0xff;
 
-[[nodiscard]] Core::Expected<BuyResult, ProtocolError> ReadBuyResult(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<BuyResult, Network::ProtocolError> ReadBuyResult(const Network::Packet& packet);
 
 // El 33 que llega (0x4e3c8a..0x4e3cbb): con pkt[3] en 0, vender falló; con otro, el zen nuevo en pkt[4..7].
 struct SellResult
@@ -92,7 +92,7 @@ struct SellResult
     std::uint32_t money = 0;
 };
 
-[[nodiscard]] Core::Expected<SellResult, ProtocolError> ReadSellResult(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<SellResult, Network::ProtocolError> ReadSellResult(const Network::Packet& packet);
 
 // El 34 que llega (0x4e3cc1..0x4e3d24): el zen después de reparar, en pkt[4..7]; con 0, nada.
 struct RepairResult
@@ -100,7 +100,7 @@ struct RepairResult
     std::uint32_t money = 0;
 };
 
-[[nodiscard]] Core::Expected<RepairResult, ProtocolError> ReadRepairResult(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<RepairResult, Network::ProtocolError> ReadRepairResult(const Network::Packet& packet);
 
 // El 81 que llega (0x4e4692..0x4e46de): con pkt[3] distinto de 0, el zen del almacén (pkt[4..7], a +0xed0 del registro
 // propio) y el del inventario (pkt[8..11], a +0xecc).
@@ -111,7 +111,7 @@ struct WarehouseMoney
     std::uint32_t inventoryMoney = 0;
 };
 
-[[nodiscard]] Core::Expected<WarehouseMoney, ProtocolError> ReadWarehouseMoney(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<WarehouseMoney, Network::ProtocolError> ReadWarehouseMoney(const Network::Packet& packet);
 
 // El 82 y el 87 (0x4e4819..0x4e4862): el fin del almacén y de la caja del caos, sin campos.
 struct NpcWindowClosed
@@ -119,7 +119,8 @@ struct NpcWindowClosed
     std::uint8_t opcode = 0;
 };
 
-[[nodiscard]] Core::Expected<NpcWindowClosed, ProtocolError> ReadNpcWindowClosed(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<NpcWindowClosed, Network::ProtocolError>
+ReadNpcWindowClosed(const Network::Packet& packet);
 
 // El 83 que llega (0x4e46df): pkt[3] es el estado de la traba del almacén.
 struct WarehouseState
@@ -127,7 +128,7 @@ struct WarehouseState
     std::uint8_t state = 0;
 };
 
-[[nodiscard]] Core::Expected<WarehouseState, ProtocolError> ReadWarehouseState(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<WarehouseState, Network::ProtocolError> ReadWarehouseState(const Network::Packet& packet);
 
 // El 86 que llega (0x4da280): pkt[3] es el resultado y, con 1 (0x4da2ff) y con 100 (0x4da378), los siete bytes del ítem
 // desde pkt[4].
@@ -141,7 +142,7 @@ inline constexpr std::uint8_t ChaosMixSucceeded = 1;
 // 0x4da373: la mezcla del entrenador, con su ítem para la caja del entrenador.
 inline constexpr std::uint8_t TrainerMixResult = 100;
 
-[[nodiscard]] Core::Expected<ChaosMixResult, ProtocolError> ReadChaosMixResult(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<ChaosMixResult, Network::ProtocolError> ReadChaosMixResult(const Network::Packet& packet);
 
 // 0x5c4bdc..0x5c4e1e: comprar, C1 04 32 con el lugar de la grilla de la tienda, con el XOR32 y en C3.
 [[nodiscard]] Outgoing WriteBuy(std::uint8_t slot);

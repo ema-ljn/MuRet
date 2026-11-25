@@ -206,14 +206,15 @@ struct MagicAttackCount
     std::vector<std::uint16_t> targets;
 };
 
-[[nodiscard]] Core::Expected<Players, ProtocolError> ReadPlayers(const Network::Packet& packet);
-[[nodiscard]] Core::Expected<Leave, ProtocolError> ReadLeave(const Network::Packet& packet);
-[[nodiscard]] Core::Expected<Transformed, ProtocolError> ReadTransformed(const Network::Packet& packet);
-[[nodiscard]] Core::Expected<EquipmentShown, ProtocolError> ReadEquipmentShown(const Network::Packet& packet);
-[[nodiscard]] Core::Expected<Position, ProtocolError> ReadPosition(const Network::Packet& packet);
-[[nodiscard]] Core::Expected<Monsters, ProtocolError> ReadMonsters(const Network::Packet& packet);
-[[nodiscard]] Core::Expected<Summons, ProtocolError> ReadSummons(const Network::Packet& packet);
-[[nodiscard]] Core::Expected<Objects, ProtocolError> ReadObjects(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<Players, Network::ProtocolError> ReadPlayers(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<Leave, Network::ProtocolError> ReadLeave(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<Transformed, Network::ProtocolError> ReadTransformed(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<EquipmentShown, Network::ProtocolError> ReadEquipmentShown(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<Position, Network::ProtocolError> ReadPosition(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<Monsters, Network::ProtocolError> ReadMonsters(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<Summons, Network::ProtocolError> ReadSummons(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<Objects, Network::ProtocolError> ReadObjects(const Network::Packet& packet);
 // TooShort sin la cuenta o sin el último byte de la última clave (pkt[8 + 2 · cuenta]).
-[[nodiscard]] Core::Expected<MagicAttackCount, ProtocolError> ReadMagicAttackCount(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<MagicAttackCount, Network::ProtocolError>
+ReadMagicAttackCount(const Network::Packet& packet);
 } // namespace Client::Protocol::Viewport

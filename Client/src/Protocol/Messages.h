@@ -70,9 +70,9 @@ struct Notice
     std::string text;
 };
 
-[[nodiscard]] Core::Expected<Chat, ProtocolError> ReadChat(const Network::Packet& packet);
-[[nodiscard]] Core::Expected<Whisper, ProtocolError> ReadWhisper(const Network::Packet& packet);
-[[nodiscard]] Core::Expected<KeyChat, ProtocolError> ReadKeyChat(const Network::Packet& packet);
-[[nodiscard]] Core::Expected<WhisperResult, ProtocolError> ReadWhisperResult(const Network::Packet& packet);
-[[nodiscard]] Core::Expected<Notice, ProtocolError> ReadNotice(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<Chat, Network::ProtocolError> ReadChat(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<Whisper, Network::ProtocolError> ReadWhisper(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<KeyChat, Network::ProtocolError> ReadKeyChat(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<WhisperResult, Network::ProtocolError> ReadWhisperResult(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<Notice, Network::ProtocolError> ReadNotice(const Network::Packet& packet);
 } // namespace Client::Protocol::Messages

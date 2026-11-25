@@ -21,7 +21,7 @@ namespace Client::Protocol::Character
 {
 namespace
 {
-constexpr PacketKind DeleteKind{Network::PacketType::C1, CharacterOpcode, DeleteSubcode};
+constexpr Network::PacketKind DeleteKind{Network::PacketType::C1, CharacterOpcode, DeleteSubcode};
 } // namespace
 
 std::array<std::byte, DeleteCodeSize> DeleteCodeFromText(std::string_view text)
@@ -39,9 +39,9 @@ Outgoing WriteCharacterDelete(std::span<const std::byte, NameSize> name,
         Network::PacketWriter::C1(CharacterOpcode).PutU8(DeleteSubcode).PutBytes(NameUpToItsEnd(name)).PutBytes(code));
 }
 
-Core::Expected<std::uint8_t, ProtocolError> ReadCharacterDeleteResult(const Network::Packet& packet)
+Core::Expected<std::uint8_t, Network::ProtocolError> ReadCharacterDeleteResult(const Network::Packet& packet)
 {
-    auto fields = FieldsAfterSubcode(packet, DeleteKind);
+    auto fields = Network::FieldsAfterSubcode(packet, DeleteKind);
     if (!fields.HasValue())
     {
         return Core::Unexpected(fields.Error());
@@ -49,7 +49,7 @@ Core::Expected<std::uint8_t, ProtocolError> ReadCharacterDeleteResult(const Netw
     const std::optional<std::uint8_t> result = fields.Value().ReadU8();
     if (!result)
     {
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     }
     return *result;
 }

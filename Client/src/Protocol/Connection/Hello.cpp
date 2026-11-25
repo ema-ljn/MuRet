@@ -18,12 +18,12 @@ namespace Client::Protocol::Connection
 namespace
 {
 // El saludo llega en un C1.
-constexpr PacketKind HelloKind{Network::PacketType::C1, JoinOpcode, HelloSubcode};
+constexpr Network::PacketKind HelloKind{Network::PacketType::C1, JoinOpcode, HelloSubcode};
 } // namespace
 
-Core::Expected<ServerHello, ProtocolError> ReadServerHello(const Network::Packet& packet)
+Core::Expected<ServerHello, Network::ProtocolError> ReadServerHello(const Network::Packet& packet)
 {
-    auto fields = FieldsAfterSubcode(packet, HelloKind);
+    auto fields = Network::FieldsAfterSubcode(packet, HelloKind);
     if (!fields.HasValue())
     {
         return Core::Unexpected(fields.Error());
@@ -34,7 +34,7 @@ Core::Expected<ServerHello, ProtocolError> ReadServerHello(const Network::Packet
     const std::optional<std::span<const std::byte>> version = reader.ReadBytes(VersionSize);
     if (!result || !playerIndex || !version)
     {
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     }
     ServerHello hello{*result, *playerIndex, {}};
     for (std::size_t index = 0; index < hello.version.size(); ++index)

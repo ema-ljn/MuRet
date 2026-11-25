@@ -44,9 +44,10 @@ struct KillExperience
 };
 
 // 0x4cf200: NumberH NumberL ExpH ExpL DamageH DamageL, en big endian de a bytes.
-[[nodiscard]] Core::Expected<KillExperience, ProtocolError> ReadKillExperience(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<KillExperience, Network::ProtocolError> ReadKillExperience(const Network::Packet& packet);
 // 0x4cfce0: NumberH NumberL, el relleno de +5 (no lo lee), ExpH y ExpL como WORD little endian y DamageH DamageL.
-[[nodiscard]] Core::Expected<KillExperience, ProtocolError> ReadExtendedKillExperience(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<KillExperience, Network::ProtocolError>
+ReadExtendedKillExperience(const Network::Packet& packet);
 
 // 0x17: la muerte de un personaje. 0x4d0a30 lee pkt[3..4] (la clave, sin máscara), pkt[5] (+0x391, la skill que lo
 // mató: 0x28 y 0x3b lo empujan) y, con esas dos, pkt[6..7] (quien lo mató). El GameServer 0.97 manda 5 bytes
@@ -58,5 +59,5 @@ struct Death
     std::uint8_t skill;
     std::uint16_t killer;
 };
-[[nodiscard]] Core::Expected<Death, ProtocolError> ReadDeath(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<Death, Network::ProtocolError> ReadDeath(const Network::Packet& packet);
 } // namespace Client::Protocol::Combat

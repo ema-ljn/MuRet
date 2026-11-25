@@ -15,10 +15,10 @@
 
 namespace Client::Protocol::OptionData
 {
-Core::Expected<OptionData, ProtocolError> ReadOptionData(const Network::Packet& packet)
+Core::Expected<OptionData, Network::ProtocolError> ReadOptionData(const Network::Packet& packet)
 {
-    auto fields =
-        FieldsAfterSubcode(packet, PacketKind{Network::PacketType::C1, Character::CharacterOpcode, OptionDataSubcode});
+    auto fields = Network::FieldsAfterSubcode(
+        packet, Network::PacketKind{Network::PacketType::C1, Character::CharacterOpcode, OptionDataSubcode});
     if (!fields.HasValue())
         return Core::Unexpected(fields.Error());
     Core::ByteReader& reader = fields.Value();
@@ -27,23 +27,23 @@ Core::Expected<OptionData, ProtocolError> ReadOptionData(const Network::Packet& 
     {
         const auto read = reader.ReadU8();
         if (!read)
-            return Core::Unexpected(ProtocolError::TooShort);
+            return Core::Unexpected(Network::ProtocolError::TooShort);
         key = *read;
     }
     const auto flags = reader.ReadU8();
     if (!flags)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     data.flags = *flags;
     for (std::uint8_t& slot : data.quickSlots)
     {
         const auto read = reader.ReadU8();
         if (!read)
-            return Core::Unexpected(ProtocolError::TooShort);
+            return Core::Unexpected(Network::ProtocolError::TooShort);
         slot = *read;
     }
     const auto chatWindow = reader.ReadU8();
     if (!chatWindow)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     data.chatWindow = *chatWindow;
     return data;
 }

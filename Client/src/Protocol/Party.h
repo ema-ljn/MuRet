@@ -36,7 +36,7 @@ struct PartyRequest
     std::uint16_t key = 0;
 };
 
-[[nodiscard]] Core::Expected<PartyRequest, ProtocolError> ReadPartyRequest(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<PartyRequest, Network::ProtocolError> ReadPartyRequest(const Network::Packet& packet);
 
 // El 41 del GS (0x4e3f6f): C1 04 41 y el resultado (de 0 a 5 un texto; más, ninguno).
 struct PartyRequestResult
@@ -44,7 +44,8 @@ struct PartyRequestResult
     std::uint8_t result = 0;
 };
 
-[[nodiscard]] Core::Expected<PartyRequestResult, ProtocolError> ReadPartyRequestResult(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<PartyRequestResult, Network::ProtocolError>
+ReadPartyRequestResult(const Network::Packet& packet);
 
 // Un miembro del 42, 0x18 bytes: el nombre (10), el número (+0xa), el mapa (+0xb), la celda (+0xc y +0xd), dos bytes
 // que 0x4d67e0 no copia, la vida (+0x10) y la vida máxima (+0x14), los dos DWORD en little-endian.
@@ -68,14 +69,14 @@ struct PartyList
     std::vector<PartyMember> members;
 };
 
-[[nodiscard]] Core::Expected<PartyList, ProtocolError> ReadPartyList(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<PartyList, Network::ProtocolError> ReadPartyList(const Network::Packet& packet);
 
 // El 43 del GS (0x4e409b): C1 03 43, sin campos.
 struct PartyLeft
 {
 };
 
-[[nodiscard]] Core::Expected<PartyLeft, ProtocolError> ReadPartyLeft(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<PartyLeft, Network::ProtocolError> ReadPartyLeft(const Network::Packet& packet);
 
 // El 44 del GS (0x4e4174): C1 ?? 44, la cuenta en pkt[3] y un byte por miembro desde pkt[4]: el lugar en el
 // nibble alto y la vida en décimos en el bajo.
@@ -84,7 +85,7 @@ struct PartyLife
     std::vector<std::uint8_t> entries;
 };
 
-[[nodiscard]] Core::Expected<PartyLife, ProtocolError> ReadPartyLife(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<PartyLife, Network::ProtocolError> ReadPartyLife(const Network::Packet& packet);
 
 // El 40 del cliente (0x406050 desde 0x40739b; 0x56c440 con /party): C1 05 40 y la clave del otro en big-endian, con el
 // XOR32 y en C3.

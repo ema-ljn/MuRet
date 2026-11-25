@@ -62,7 +62,7 @@ TEST(PetInfoTest, TheReplyReadsEachFieldAndTheExperienceInLittleEndian)
     EXPECT_EQ(reply.Value().slot, 8);
     EXPECT_EQ(reply.Value().level, 42);
     EXPECT_EQ(reply.Value().experience, 0x12345678u);
-    using Client::Protocol::ProtocolError;
+    using Client::Network::ProtocolError;
     using Client::Tests::ErrorOf;
     EXPECT_EQ(ErrorOf(Client::Protocol::Pet::ReadPetInfoReply(
                   Client::Tests::PacketOf(Bytes({0xc1, 11, 0xa9, 1, 0xfe, 8, 42, 0xee, 0x78, 0x56, 0x34})))),

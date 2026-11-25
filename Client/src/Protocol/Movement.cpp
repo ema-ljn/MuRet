@@ -111,30 +111,30 @@ Core::Expected<std::uint32_t, WalkWriteError> WalkUpdateTimeMax(std::size_t path
     return WaitPerCell * static_cast<std::uint32_t>(pathNum) + WaitBias;
 }
 
-Core::Expected<Walk, ProtocolError> ReadWalk(const Network::Packet& packet)
+Core::Expected<Walk, Network::ProtocolError> ReadWalk(const Network::Packet& packet)
 {
     if (packet.Type() != Network::PacketType::C1 || packet.Opcode() != WalkOpcode)
-        return Core::Unexpected(ProtocolError::WrongPacket);
+        return Core::Unexpected(Network::ProtocolError::WrongPacket);
     Core::ByteReader reader(packet.Bytes().subspan(Network::MinPacketSize(Network::PacketType::C1)));
     const auto id = reader.ReadU16Be();
     const auto x = reader.ReadU8();
     const auto y = reader.ReadU8();
     const auto direction = reader.ReadU8();
     if (!id || !x || !y || !direction)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     return Walk{*id, {*x, *y}, static_cast<std::uint8_t>(*direction >> DirectionShift)};
 }
 
-Core::Expected<Damage, ProtocolError> ReadDamage(const Network::Packet& packet)
+Core::Expected<Damage, Network::ProtocolError> ReadDamage(const Network::Packet& packet)
 {
     if (packet.Type() != Network::PacketType::C1 || packet.Opcode() != DamageOpcode)
-        return Core::Unexpected(ProtocolError::WrongPacket);
+        return Core::Unexpected(Network::ProtocolError::WrongPacket);
     Core::ByteReader reader(packet.Bytes().subspan(Network::MinPacketSize(Network::PacketType::C1)));
     const auto id = reader.ReadU16Be();
     const auto amount = reader.ReadU16Be();
     const auto type = reader.ReadU8();
     if (!id || !amount || !type)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     return Damage{static_cast<std::uint16_t>(*id & CharacterIdMask),
                   (*id & ShockMask) != 0,
                   *amount,
@@ -143,16 +143,16 @@ Core::Expected<Damage, ProtocolError> ReadDamage(const Network::Packet& packet)
                   (*type & DamageDoubleHitMask) != 0};
 }
 
-Core::Expected<Action, ProtocolError> ReadAction(const Network::Packet& packet)
+Core::Expected<Action, Network::ProtocolError> ReadAction(const Network::Packet& packet)
 {
     if (packet.Type() != Network::PacketType::C1 || packet.Opcode() != ActionOpcode)
-        return Core::Unexpected(ProtocolError::WrongPacket);
+        return Core::Unexpected(Network::ProtocolError::WrongPacket);
     Core::ByteReader reader(packet.Bytes().subspan(Network::MinPacketSize(Network::PacketType::C1)));
     const auto key = reader.ReadU16Be();
     const auto direction = reader.ReadU8();
     const auto action = reader.ReadU8();
     if (!key || !direction || !action)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     return Action{*key, *direction, *action};
 }
 

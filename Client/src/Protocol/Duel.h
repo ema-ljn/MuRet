@@ -32,7 +32,7 @@ struct DuelStart
     Name name{};
 };
 
-[[nodiscard]] Core::Expected<DuelStart, ProtocolError> ReadDuelStart(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<DuelStart, Network::ProtocolError> ReadDuelStart(const Network::Packet& packet);
 
 // El AB del GS (0x4e4d10), el fin: C1 0F AB, la clave en pkt[3..4] (big-endian) y el nombre en pkt[5..14].
 struct DuelEnd
@@ -41,7 +41,7 @@ struct DuelEnd
     Name name{};
 };
 
-[[nodiscard]] Core::Expected<DuelEnd, ProtocolError> ReadDuelEnd(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<DuelEnd, Network::ProtocolError> ReadDuelEnd(const Network::Packet& packet);
 
 // El AC del GS (0x4e4d75), el pedido de otro: los mismos campos que el AB.
 struct DuelRequest
@@ -50,7 +50,7 @@ struct DuelRequest
     Name name{};
 };
 
-[[nodiscard]] Core::Expected<DuelRequest, ProtocolError> ReadDuelRequest(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<DuelRequest, Network::ProtocolError> ReadDuelRequest(const Network::Packet& packet);
 
 // El AD (0x4e4dd1): C1 09 AD, dos claves (pkt[3..4] y pkt[5..6], big-endian) y sus dos puntos (pkt[7] y pkt[8]).
 struct DuelScore
@@ -61,7 +61,7 @@ struct DuelScore
     std::uint8_t secondScore = 0;
 };
 
-[[nodiscard]] Core::Expected<DuelScore, ProtocolError> ReadDuelScore(const Network::Packet& packet);
+[[nodiscard]] Core::Expected<DuelScore, Network::ProtocolError> ReadDuelScore(const Network::Packet& packet);
 
 // El AA del cliente (0x406050 desde 0x4079e3; /duelstart en 0x56c440): C1 0F AA, la clave del otro en big-endian y su
 // nombre (+0x1d9, 10 bytes), con el XOR32 y en C3.

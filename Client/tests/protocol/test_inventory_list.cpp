@@ -21,7 +21,7 @@
 namespace
 {
 using Client::Network::Packet;
-using Client::Protocol::ProtocolError;
+using Client::Network::ProtocolError;
 using Client::Protocol::Character::InventoryList;
 using Client::Protocol::Character::ReadInventoryList;
 using Client::Tests::Bytes;

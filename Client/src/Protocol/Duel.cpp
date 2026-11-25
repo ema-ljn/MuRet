@@ -16,10 +16,10 @@ namespace Client::Protocol::Duel
 {
 namespace
 {
-Core::Expected<Core::ByteReader, ProtocolError> FieldsOf(const Network::Packet& packet, std::uint8_t opcode)
+Core::Expected<Core::ByteReader, Network::ProtocolError> FieldsOf(const Network::Packet& packet, std::uint8_t opcode)
 {
     if (packet.Type() != Network::PacketType::C1 || packet.Opcode() != opcode)
-        return Core::Unexpected(ProtocolError::WrongPacket);
+        return Core::Unexpected(Network::ProtocolError::WrongPacket);
     return Core::ByteReader(packet.Bytes().subspan(Network::MinPacketSize(Network::PacketType::C1)));
 }
 
@@ -34,7 +34,7 @@ std::optional<Name> ReadName(Core::ByteReader& reader)
 }
 
 template <typename Peer>
-Core::Expected<Peer, ProtocolError> ReadPeer(const Network::Packet& packet, std::uint8_t opcode)
+Core::Expected<Peer, Network::ProtocolError> ReadPeer(const Network::Packet& packet, std::uint8_t opcode)
 {
     auto fields = FieldsOf(packet, opcode);
     if (!fields.HasValue())
@@ -43,12 +43,12 @@ Core::Expected<Peer, ProtocolError> ReadPeer(const Network::Packet& packet, std:
     const auto key = reader.ReadU16Be();
     const auto name = ReadName(reader);
     if (!key || !name)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     return Peer{*key, *name};
 }
 } // namespace
 
-Core::Expected<DuelStart, ProtocolError> ReadDuelStart(const Network::Packet& packet)
+Core::Expected<DuelStart, Network::ProtocolError> ReadDuelStart(const Network::Packet& packet)
 {
     auto fields = FieldsOf(packet, StartOpcode);
     if (!fields.HasValue())
@@ -58,21 +58,21 @@ Core::Expected<DuelStart, ProtocolError> ReadDuelStart(const Network::Packet& pa
     const auto key = reader.ReadU16Be();
     const auto name = ReadName(reader);
     if (!result || !key || !name)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     return DuelStart{*result, *key, *name};
 }
 
-Core::Expected<DuelEnd, ProtocolError> ReadDuelEnd(const Network::Packet& packet)
+Core::Expected<DuelEnd, Network::ProtocolError> ReadDuelEnd(const Network::Packet& packet)
 {
     return ReadPeer<DuelEnd>(packet, EndOpcode);
 }
 
-Core::Expected<DuelRequest, ProtocolError> ReadDuelRequest(const Network::Packet& packet)
+Core::Expected<DuelRequest, Network::ProtocolError> ReadDuelRequest(const Network::Packet& packet)
 {
     return ReadPeer<DuelRequest>(packet, RequestOpcode);
 }
 
-Core::Expected<DuelScore, ProtocolError> ReadDuelScore(const Network::Packet& packet)
+Core::Expected<DuelScore, Network::ProtocolError> ReadDuelScore(const Network::Packet& packet)
 {
     auto fields = FieldsOf(packet, ScoreOpcode);
     if (!fields.HasValue())
@@ -83,7 +83,7 @@ Core::Expected<DuelScore, ProtocolError> ReadDuelScore(const Network::Packet& pa
     const auto firstScore = reader.ReadU8();
     const auto secondScore = reader.ReadU8();
     if (!first || !second || !firstScore || !secondScore)
-        return Core::Unexpected(ProtocolError::TooShort);
+        return Core::Unexpected(Network::ProtocolError::TooShort);
     return DuelScore{*first, *second, *firstScore, *secondScore};
 }
 

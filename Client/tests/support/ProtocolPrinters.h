@@ -16,17 +16,17 @@
 // Credentials de AppPrinters.h: es del jugador.
 namespace Client::Protocol
 {
-inline void PrintTo(ProtocolError error, std::ostream* out)
+inline void PrintTo(Network::ProtocolError error, std::ostream* out)
 {
     switch (error)
     {
-    case ProtocolError::WrongPacket:
+    case Network::ProtocolError::WrongPacket:
         *out << "WrongPacket";
         return;
-    case ProtocolError::TooShort:
+    case Network::ProtocolError::TooShort:
         *out << "TooShort";
         return;
-    case ProtocolError::FieldTooLong:
+    case Network::ProtocolError::FieldTooLong:
         *out << "FieldTooLong";
         return;
     }
@@ -55,6 +55,7 @@ namespace Client::Protocol::Character
 {
 inline void PrintTo(const CharacterEntry& entry, std::ostream* out)
 {
-    *out << "CharacterEntry{lugar " << int{entry.slot} << ", nombre de " << TextField(entry.name).size() << " bytes}";
+    *out << "CharacterEntry{lugar " << int{entry.slot} << ", nombre de " << Network::TextField(entry.name).size()
+         << " bytes}";
 }
 } // namespace Client::Protocol::Character

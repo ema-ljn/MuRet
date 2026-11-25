@@ -17,6 +17,7 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 *.egg-info/
+snapshot_report.html
 
 # Caché de las herramientas del binario (Client/docs/research/scripts/tools/regen_cache.py)
 .research-cache/

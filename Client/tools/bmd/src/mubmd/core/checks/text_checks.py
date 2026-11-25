@@ -3,11 +3,13 @@ import re
 from mubmd.core.documents.text_table import TEXT_RECORD_SIZE, TextTable, text_pointer
 from mubmd.core.findings import Finding, Severity
 
-_PRINTF = re.compile(r"%[-+ #0]*(?:\*|\d+)?(?:\.(?:\*|\d+))?(?:hh|h|ll|l|L|j|z|t|I64|I32|I)?[diouxXeEfFgGaAcspn%]")
+PRINTF_PATTERN = re.compile(
+    r"%[-+ #0]*(?:\*|\d+)?(?:\.(?:\*|\d+))?(?:hh|h|ll|l|L|j|z|t|I64|I32|I)?[diouxXeEfFgGaAcspn%]"
+)
 
 
 def printf_specifiers(text: str) -> tuple[str, ...]:
-    return tuple(match for match in _PRINTF.findall(text) if not match.endswith("%"))
+    return tuple(match for match in PRINTF_PATTERN.findall(text) if not match.endswith("%"))
 
 
 def check_text_table(table: TextTable, original: TextTable | None) -> tuple[Finding, ...]:

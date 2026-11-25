@@ -1,0 +1,258 @@
+from collections.abc import Iterable
+from pathlib import Path
+from typing import Any, ClassVar
+
+from textual.app import App, ComposeResult, SystemCommand
+from textual.binding import Binding, BindingType
+from textual.containers import Horizontal, Vertical
+from textual.screen import Screen
+from textual.widgets import Footer, Input
+
+from mubmd.adapters.storage import WORKSPACE_SUGGESTION
+from mubmd.adapters.tui.theme import LORENCIA, LORENCIA_LIGHT
+from mubmd.adapters.tui.widgets.bmd_tree import BmdTree
+from mubmd.adapters.tui.widgets.diff_screen import DiffScreen
+from mubmd.adapters.tui.widgets.record_editor import RecordEditor
+from mubmd.adapters.tui.widgets.status_line import StatusLine
+from mubmd.adapters.tui.widgets.text_table_view import TextTableView
+from mubmd.adapters.tui.widgets.title_bar import TitleBar
+from mubmd.app.session import EditSession
+from mubmd.core.errors import MubmdError
+from mubmd.core.json_types import JsonValue
+from mubmd.core.ports import FileStore
+
+USED_BAR_CELLS = 9
+
+
+def shown_path(path: Path) -> str:
+    try:
+        return f"~/{path.relative_to(Path.home()).as_posix()}"
+    except ValueError:
+        return str(path)
+
+
+def used_bar(used: int, records: int) -> str:
+    filled = round(USED_BAR_CELLS * used / records) if records else 0
+    return "▰" * filled + "▱" * (USED_BAR_CELLS - filled)
+
+
+def texts_of(view: dict[str, JsonValue]) -> list[JsonValue]:
+    texts = view.get("texts")
+    return texts if isinstance(texts, list) else []
+
+
+class MubmdApp(App[None]):
+    CSS_PATH = "mubmd.tcss"
+    TITLE = "mubmd"
+    BINDINGS: ClassVar[list[BindingType]] = [
+        Binding("slash", "search", "search"),
+        Binding("escape", "cancel", "cancel", show=False),
+        Binding("ctrl+z", "undo", "undo"),
+        Binding("ctrl+y", "redo", "redo", show=False),
+        Binding("ctrl+s", "save", "save"),
+        Binding("d", "diff", "diff"),
+        Binding("t", "toggle_theme", "light/dark", show=False),
+        Binding("q", "quit", "quit"),
+    ]
+
+    def __init__(self, store: FileStore, root: Path) -> None:
+        super().__init__()
+        root = root.expanduser().resolve()
+        self.store = store
+        self.folder = root if root.is_dir() else root.parent
+        self.start_file = None if root.is_dir() else root
+        self.sessions: dict[Path, EditSession] = {}
+        self.session: EditSession | None = None
+        self.quit_armed = False
+
+    def compose(self) -> ComposeResult:
+        yield TitleBar()
+        with Horizontal(id="body"):
+            tree = BmdTree(self.folder, self.store.list_bmd(self.folder))
+            tree.border_title = self.folder.name
+            yield tree
+            with Vertical(id="document"):
+                yield Input(placeholder="search texts", id="search")
+                yield TextTableView()
+                yield RecordEditor()
+        yield StatusLine()
+        yield Footer()
+
+    async def on_mount(self) -> None:
+        self.register_theme(LORENCIA)
+        self.register_theme(LORENCIA_LIGHT)
+        self.theme = LORENCIA.name
+        self.query_one(TextTableView).border_title = "open a .bmd from the tree"
+        self.refresh_title()
+        if self.start_file is not None:
+            await self.open_path(self.start_file)
+
+    def get_system_commands(self, screen: Screen[Any]) -> Iterable[SystemCommand]:
+        yield from super().get_system_commands(screen)
+        yield SystemCommand("Search texts", "Filter the rows by a text", self.action_search)
+        yield SystemCommand("Undo", "Undo the last edit", self.action_undo)
+        yield SystemCommand("Redo", "Redo the last undone edit", self.action_redo)
+        yield SystemCommand("Save", "Show the changes and write them", self.action_save)
+        yield SystemCommand("Diff", "Show the unsaved changes", self.action_diff)
+        yield SystemCommand("Light or dark", "Switch between Lorencia and Lorencia light", self.action_toggle_theme)
+
+    def status(self, text: str, *, error: bool = False) -> None:
+        self.query_one(StatusLine).show(text, error=error)
+
+    def refresh_title(self) -> None:
+        unsaved = sum(len(session.changes) for session in self.sessions.values())
+        self.query_one(TitleBar).show(shown_path(self.folder), self.store.is_reference(self.folder), unsaved)
+        self.query_one(BmdTree).mark_unsaved({path for path, session in self.sessions.items() if session.dirty})
+        if self.session is not None:
+            summary = self.session.summary
+            relative = self.session.path.relative_to(self.folder).as_posix()
+            self.query_one(TextTableView).border_title = (
+                f"{relative} ─ {self.session.format_name} · {summary.cipher} · "
+                f"{summary.used_records}/{summary.records} used {used_bar(summary.used_records, summary.records)}"
+            )
+
+    def show_rows(self, query: str = "") -> None:
+        if self.session is None:
+            return
+        theme = self.current_theme
+        table = self.query_one(TextTableView)
+        table.set_colors(theme.accent or "yellow", theme.error or "red")
+        table.show(texts_of(self.session.view), texts_of(self.session.original), self.session.encoding, query)
+
+    async def open_path(self, path: Path) -> None:
+        path = path.resolve()
+        try:
+            session = self.sessions.get(path) or EditSession.open(self.store, path)
+        except MubmdError as error:
+            self.status(f"{error.code}: {error.message}", error=True)
+            return
+        self.sessions[path] = session
+        self.session = session
+        self.query_one(BmdTree).reveal(path)
+        self.show_rows()
+        self.refresh_title()
+        self.status(f"{shown_path(path)} opened")
+
+    def on_bmd_tree_file_selected(self, event: BmdTree.FileSelected) -> None:
+        self.run_worker(self.open_path(event.path))
+
+    def on_data_table_row_highlighted(self, event: TextTableView.RowHighlighted) -> None:
+        if event.row_key.value is not None:
+            self.status(f"/texts/{event.row_key.value}")
+
+    def on_data_table_row_selected(self, event: TextTableView.RowSelected) -> None:
+        if event.row_key.value is not None:
+            self.edit_index(int(event.row_key.value), focus=True)
+
+    def edit_index(self, index: int, *, focus: bool) -> None:
+        if self.session is None:
+            return
+        pointer = f"/texts/{index}"
+        value = self.session.value(pointer)
+        if not isinstance(value, str):
+            self.status(f"{pointer} is a hex record: change it with mubmd set or mubmd apply", error=True)
+            return
+        editor = self.query_one(RecordEditor)
+        editor.load(pointer, index, value)
+        editor.show_measure(self.session.measure(pointer, value))
+        self.status(pointer)
+        if focus:
+            editor.focus()
+
+    def select_index(self, index: int) -> None:
+        table = self.query_one(TextTableView)
+        table.move_cursor(row=table.get_row_index(str(index)))
+        self.edit_index(index, focus=False)
+
+    def on_input_changed(self, event: Input.Changed) -> None:
+        if event.input.id == "search":
+            self.show_rows(event.value)
+        elif isinstance(event.input, RecordEditor) and self.session is not None and event.input.pointer is not None:
+            event.input.show_measure(self.session.measure(event.input.pointer, event.value))
+
+    def on_input_submitted(self, event: Input.Submitted) -> None:
+        if isinstance(event.input, RecordEditor):
+            if self.commit_editor():
+                self.query_one(TextTableView).focus()
+        else:
+            self.query_one(TextTableView).focus()
+
+    def commit_editor(self) -> bool:
+        editor = self.query_one(RecordEditor)
+        if self.session is None or editor.pointer is None or not editor.pending:
+            return True
+        try:
+            self.session.set(editor.pointer, editor.value)
+        except MubmdError as error:
+            self.status(f"{error.code}: {error.message}", error=True)
+            return False
+        editor.loaded = editor.value
+        self.after_edit()
+        return True
+
+    def after_edit(self) -> None:
+        if self.session is not None:
+            self.query_one(TextTableView).update_rows(texts_of(self.session.view))
+        self.refresh_title()
+
+    def action_search(self) -> None:
+        search = self.query_one("#search", Input)
+        search.add_class("-visible")
+        search.focus()
+
+    def action_cancel(self) -> None:
+        search = self.query_one("#search", Input)
+        editor = self.query_one(RecordEditor)
+        if search.has_focus:
+            search.remove_class("-visible")
+            search.value = ""
+        elif editor.has_focus:
+            editor.revert()
+        self.query_one(TextTableView).focus()
+
+    def action_undo(self) -> None:
+        if self.session is not None and self.session.undo():
+            self.after_edit()
+
+    def action_redo(self) -> None:
+        if self.session is not None and self.session.redo():
+            self.after_edit()
+
+    def action_diff(self) -> None:
+        if self.session is not None:
+            self.push_screen(DiffScreen(self.session.changes, shown_path(self.session.path), confirm=False))
+
+    def action_save(self) -> None:
+        if self.session is None or not self.commit_editor():
+            return
+        if self.session.read_only:
+            self.status(f"read-only reference folder: make a working copy with `{WORKSPACE_SUGGESTION}`", error=True)
+            return
+        if not self.session.dirty:
+            self.status("nothing to save")
+            return
+        screen = DiffScreen(self.session.changes, shown_path(self.session.path), confirm=True)
+        self.push_screen(screen, self.write_confirmed)
+
+    def write_confirmed(self, confirmed: bool | None) -> None:
+        if not confirmed or self.session is None:
+            return
+        try:
+            result = self.session.save()
+        except MubmdError as error:
+            self.status(f"{error.code}: {error.message}", error=True)
+            return
+        self.show_rows(self.query_one("#search", Input).value)
+        self.refresh_title()
+        self.status(f"saved {len(result.changes)} change(s) to {shown_path(result.path)}")
+
+    def action_toggle_theme(self) -> None:
+        self.theme = LORENCIA_LIGHT.name if self.theme == LORENCIA.name else LORENCIA.name
+        self.show_rows(self.query_one("#search", Input).value)
+
+    async def action_quit(self) -> None:
+        if any(session.dirty for session in self.sessions.values()) and not self.quit_armed:
+            self.quit_armed = True
+            self.status("unsaved changes: ctrl+s to save, or q again to quit without saving", error=True)
+            return
+        self.exit()

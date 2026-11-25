@@ -73,6 +73,11 @@ class VersionData:
 
 
 @dataclass(frozen=True, slots=True)
+class TuiData:
+    path: Path
+
+
+@dataclass(frozen=True, slots=True)
 class BriefData:
     brief: str
 
@@ -102,6 +107,7 @@ OUTPUT_TYPES: Final[dict[str, Any]] = {
     "dump": DumpResult,
     "build": EditData,
     "roundtrip": RoundtripResult,
+    "tui": TuiData,
 }
 
 EXAMPLES: Final = {
@@ -118,6 +124,7 @@ EXAMPLES: Final = {
     "dump": "mubmd dump ~/mu/Data/Local/Text.bmd --output text.json",
     "build": "mubmd build text.json --output ~/mu/Data/Local/Text.bmd --dry-run",
     "roundtrip": "mubmd roundtrip ~/mu/Data",
+    "tui": "mubmd tui ~/mu/Data",
 }
 
 FileArgument = Annotated[Path, typer.Argument(help="A .bmd file", show_default=False)]
@@ -328,6 +335,16 @@ def roundtrip_command(
     exit_code = EXIT_FINDINGS if result.differing else EXIT_OK
     lines = tuple(path_line(path) for path in result.differing) if ndjson else ()
     return Outcome("roundtrip", result, RoundtripResult, exit_code=exit_code, lines=lines)
+
+
+@app.command("tui", help="Open the console UI, for people, on a Data folder or a .bmd file")
+def tui_command(
+    path: Annotated[Path, typer.Argument(help="A Data folder or a .bmd file (default: the current folder)")] = Path(),
+) -> Outcome:
+    from mubmd.adapters.tui.app import MubmdApp  # noqa: PLC0415  Textual takes 200 ms to import; only tui pays it.
+
+    MubmdApp(STORE, path).run()
+    return Outcome("tui", TuiData(path.expanduser()), TuiData)
 
 
 def version_outcome() -> Outcome:

@@ -5,6 +5,7 @@ import jsonschema
 import pytest
 
 from mubmd.adapters.cli.describe import describe
+from mubmd.adapters.tui.app import MubmdApp
 from tests.adapters.cli.conftest import Cli
 
 
@@ -109,3 +110,15 @@ def test_human_output_is_not_json(cli: Cli, text: Path) -> None:
 
 def test_version_is_json(cli: Cli) -> None:
     assert cli("--version").json["data"] == {"version": "0.1.0"}
+
+
+def test_tui_opens_the_console_ui(cli: Cli, working_copy: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    opened: list[Path] = []
+
+    def run(app: MubmdApp) -> None:
+        opened.append(app.folder)
+
+    monkeypatch.setattr(MubmdApp, "run", run)
+    envelope = cli("tui", working_copy).json
+    assert envelope["command"] == "tui"
+    assert opened == [working_copy.resolve()]

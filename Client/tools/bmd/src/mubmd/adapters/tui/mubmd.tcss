@@ -1,0 +1,115 @@
+Screen {
+    background: $background;
+}
+
+TitleBar {
+    dock: top;
+    height: 1;
+    padding: 0 1;
+    background: $panel;
+    color: $primary;
+    text-style: bold;
+}
+
+#body {
+    height: 1fr;
+}
+
+BmdTree {
+    width: 28;
+    border: round $primary 60%;
+    border-title-color: $primary;
+    border-title-style: bold;
+    background: $background;
+    scrollbar-size-vertical: 1;
+}
+
+BmdTree:focus {
+    border: round $primary;
+}
+
+#document {
+    width: 1fr;
+}
+
+#search {
+    display: none;
+    border: round $accent;
+    height: 3;
+    background: $background;
+}
+
+#search.-visible {
+    display: block;
+}
+
+TextTableView {
+    height: 1fr;
+    border: round $primary 60%;
+    border-title-color: $primary;
+    border-title-style: bold;
+    background: $background;
+    scrollbar-size-vertical: 1;
+}
+
+TextTableView:focus {
+    border: round $primary;
+}
+
+TextTableView > .datatable--header {
+    color: $primary;
+    text-style: bold;
+    background: $background;
+}
+
+TextTableView > .datatable--cursor {
+    background: $primary 30%;
+    color: $foreground;
+}
+
+RecordEditor {
+    height: 3;
+    border: round $primary 60%;
+    border-title-color: $primary;
+    border-subtitle-color: $secondary;
+    background: $background;
+}
+
+RecordEditor:focus {
+    border: round $primary;
+}
+
+RecordEditor.-invalid {
+    border: round $error;
+    border-subtitle-color: $error;
+}
+
+StatusLine {
+    height: 1;
+    padding: 0 1;
+    color: $secondary;
+    background: $background;
+}
+
+StatusLine.-error {
+    color: $error;
+    text-style: bold;
+}
+
+DiffScreen {
+    align: center middle;
+    background: $background 70%;
+}
+
+#diff {
+    width: 90%;
+    max-width: 100;
+    height: auto;
+    max-height: 80%;
+    border: round $primary;
+    border-title-color: $primary;
+    border-title-style: bold;
+    border-subtitle-color: $secondary;
+    background: $surface;
+    padding: 0 1;
+}

@@ -642,8 +642,8 @@ const LetterEntry* SelectedLetter(OldWindow& tab)
 Core::Expected<std::int32_t, std::string> OpenTheWriteWindow(OldWindowManager& manager, const OldWindowGlobals& globals,
                                                              const OldWindowStepView& view, std::string_view where)
 {
-    const std::array<SprintfArgument, 1> cost{SprintfArgument(LetterCost)};
-    const std::string title = FormatLikeSprintf(TextOf(view, WriteTitleText), cost);
+    const std::array<Crt::SprintfArgument, 1> cost{Crt::SprintfArgument(LetterCost)};
+    const std::string title = Crt::FormatLikeSprintf(TextOf(view, WriteTitleText), cost);
     constexpr std::int32_t WritePlace = 100;
     return CreateFromAStep(
         manager,
@@ -1147,8 +1147,8 @@ Core::Expected<void, std::string> HandleTheReadMessage(OldWindowManager& manager
         if (write == nullptr)
             return {};
         PutTheName(manager, *write, entry.name, globals);
-        const std::array<SprintfArgument, 1> subject{SprintfArgument(std::string_view(entry.subject))};
-        const std::string reply = FormatLikeSprintf(TextOf(view, ReplyText), subject);
+        const std::array<Crt::SprintfArgument, 1> subject{Crt::SprintfArgument(std::string_view(entry.subject))};
+        const std::string reply = Crt::FormatLikeSprintf(TextOf(view, ReplyText), subject);
         PutTheSubject(manager, *write, CutTheSubject(reply), globals);
         return {};
     }
@@ -1562,8 +1562,8 @@ Core::Expected<void, std::string> HandleTheLettersTabMessage(OldWindowManager& m
         if (write == nullptr)
             return {};
         PutTheName(manager, *write, name, globals);
-        const std::array<SprintfArgument, 1> argument{SprintfArgument(std::string_view(subject))};
-        const std::string reply = CutTheSubject(FormatLikeSprintf(TextOf(view, ReplyText), argument));
+        const std::array<Crt::SprintfArgument, 1> argument{Crt::SprintfArgument(std::string_view(subject))};
+        const std::string reply = CutTheSubject(Crt::FormatLikeSprintf(TextOf(view, ReplyText), argument));
         PutTheSubject(manager, *write, reply, globals);
         return PlaceTheNewWindow(manager, opened.Value(), globals, view);
     }

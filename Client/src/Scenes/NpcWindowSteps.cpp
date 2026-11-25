@@ -323,7 +323,7 @@ Core::Expected<void, std::string> PressTheMixButton(const GameUiContext& context
         auto format = TextOf(context, LevelTooLowText, "0x5feab6");
         if (!format.HasValue())
             return Core::Unexpected(format.Error());
-        if (auto shown = ErrorMessage(context, UI::Sprintf(format.Value(), std::int32_t{CapeLevel}), "0x5feae2");
+        if (auto shown = ErrorMessage(context, Crt::Sprintf(format.Value(), std::int32_t{CapeLevel}), "0x5feae2");
             !shown.HasValue())
             return shown;
         break;
@@ -342,7 +342,7 @@ Core::Expected<void, std::string> PressTheMixButton(const GameUiContext& context
             return Core::Unexpected(format.Error());
         if (!mixing.HasValue())
             return Core::Unexpected(mixing.Error());
-        if (auto shown = ErrorMessage(context, UI::Sprintf(format.Value(), mixing.Value()), "0x5feae2");
+        if (auto shown = ErrorMessage(context, Crt::Sprintf(format.Value(), mixing.Value()), "0x5feae2");
             !shown.HasValue())
             return shown;
         break;

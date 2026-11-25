@@ -106,9 +106,9 @@ Result ShowTheContractMessage(WorldRuntime& runtime, const Data::Text::TextTable
         const std::optional<std::string_view> format = UI::TextAt(texts, OfferText);
         if (!format)
             return Core::Unexpected(std::format("0x435b56: sin el texto {} de Text.bmd", OfferText));
-        const std::array<UI::FormatArgument, 1> arguments{
+        const std::array<Crt::FormatArgument, 1> arguments{
             static_cast<std::int32_t>(ui.altars[static_cast<std::size_t>(message.altar)] & AltarLowBits)};
-        auto formatted = UI::FormatOriginal(UI::FormatFunction::Wsprintf, *format, arguments, "0x435b56");
+        auto formatted = Crt::FormatOriginal(Crt::FormatFunction::Wsprintf, *format, arguments, "0x435b56");
         if (!formatted.HasValue())
             return Core::Unexpected(std::move(formatted).Error());
         text = std::move(formatted).Value();

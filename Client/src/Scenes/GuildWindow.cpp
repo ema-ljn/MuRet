@@ -563,7 +563,7 @@ Core::Expected<void, std::string> StepTheUnionTab(const GuildWindowStepContext& 
                 return Core::Unexpected(std::move(format).Error());
             if (context.measure == nullptr)
                 return Core::Unexpected(std::string("0x651290: el aviso de salir de la alianza sin medidor"));
-            if (auto added = AddGameMessage(runtime, *context.measure, context.screen, {}, UI::Sprintf(format.Value()),
+            if (auto added = AddGameMessage(runtime, *context.measure, context.screen, {}, Crt::Sprintf(format.Value()),
                                             UnionLeftType);
                 !added.HasValue())
                 return added;

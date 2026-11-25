@@ -250,8 +250,8 @@ Core::Expected<void, std::string> ApplyLetterSendResult(const Protocol::Letters:
         auto sent = TextOf(context, LetterSentText, "0x4dc840(1)");
         if (!sent.HasValue())
             return Core::Unexpected(std::move(sent).Error());
-        const std::array<UI::SprintfArgument, 1> cost{UI::SprintfArgument(LetterCost)};
-        return SystemMessage(context, UI::FormatLikeSprintf(sent.Value(), cost), "0x4dc840(1)");
+        const std::array<Crt::SprintfArgument, 1> cost{Crt::SprintfArgument(LetterCost)};
+        return SystemMessage(context, Crt::FormatLikeSprintf(sent.Value(), cost), "0x4dc840(1)");
     }
     case 2:
         text = NoSuchReceiverText;
@@ -327,8 +327,8 @@ Core::Expected<void, std::string> ApplyLetterRead(const Protocol::Letters::Lette
     auto format = TextOf(context, ReadTitleText, "0x4dcb70");
     if (!format.HasValue())
         return Core::Unexpected(std::move(format).Error());
-    const std::array<UI::SprintfArgument, 1> subject{UI::SprintfArgument(std::string_view(entry->subject))};
-    std::string title = UI::FormatLikeSprintf(format.Value(), subject);
+    const std::array<Crt::SprintfArgument, 1> subject{Crt::SprintfArgument(std::string_view(entry->subject))};
+    std::string title = Crt::FormatLikeSprintf(format.Value(), subject);
     const UI::LetterEntry shown = *entry;
     const OldWindowsFromAPacket windows(context);
     Core::Expected<std::int32_t, std::string> created = 0;

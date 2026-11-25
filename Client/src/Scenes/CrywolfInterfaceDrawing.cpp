@@ -36,7 +36,7 @@ namespace
 {
 using Render::Text::FontKind;
 using Result = Core::Expected<void, std::string>;
-constexpr auto Wsprintf = UI::FormatFunction::Wsprintf;
+constexpr auto Wsprintf = Crt::FormatFunction::Wsprintf;
 
 using Math::F32;
 
@@ -259,9 +259,9 @@ Core::Expected<std::string_view, std::string> TextOf(const GameHudContext& conte
 
 // wsprintfA en el buffer de 300 bytes de la pila.
 Core::Expected<std::string, std::string>
-Formatted(std::string_view format, std::span<const UI::FormatArgument> arguments, std::string_view where)
+Formatted(std::string_view format, std::span<const Crt::FormatArgument> arguments, std::string_view where)
 {
-    auto text = UI::FormatOriginal(Wsprintf, format, arguments, where);
+    auto text = Crt::FormatOriginal(Wsprintf, format, arguments, where);
     if (!text.HasValue())
         return Core::Unexpected(std::move(text).Error());
     if (text.Value().size() >= TextBuffer)
@@ -277,7 +277,7 @@ Core::Expected<std::string, std::string> TextInBuffer(const GameHudContext& cont
     auto text = TextOf(context, index, where);
     if (!text.HasValue())
         return Core::Unexpected(std::move(text).Error());
-    const std::array<UI::FormatArgument, 1> arguments{UI::TextArgument{.index = index, .text = text.Value()}};
+    const std::array<Crt::FormatArgument, 1> arguments{Crt::TextArgument{.index = index, .text = text.Value()}};
     return Formatted(TextFormat, arguments, where);
 }
 
@@ -332,13 +332,13 @@ Result DrawTheResults(GameHudContext& context, CrywolfInterface& ui)
         const std::int32_t score = ui.dwords6c73e0[place + 1];
         if (score == EmptyRow)
             continue;
-        const std::array<UI::FormatArgument, 1> placeArguments{static_cast<std::int32_t>(place + 1)};
+        const std::array<Crt::FormatArgument, 1> placeArguments{static_cast<std::int32_t>(place + 1)};
         auto placeText = Formatted(NumberFormat, placeArguments, "0x43683c");
         if (!placeText.HasValue())
             return Core::Unexpected(std::move(placeText).Error());
         DrawCentered(context, PlaceColumn, y, placeText.Value());
         const std::string name = NameOf(ui.rankingNames[place]);
-        const std::array<UI::FormatArgument, 1> nameArguments{UI::StringArgument{.text = name}};
+        const std::array<Crt::FormatArgument, 1> nameArguments{Crt::StringArgument{.text = name}};
         auto buffer = Formatted(TextFormat, nameArguments, "0x436863");
         if (!buffer.HasValue())
             return Core::Unexpected(std::move(buffer).Error());
@@ -352,7 +352,7 @@ Result DrawTheResults(GameHudContext& context, CrywolfInterface& ui)
             classText = std::move(text).Value();
         }
         DrawCentered(context, ClassColumn, y, classText);
-        const std::array<UI::FormatArgument, 1> scoreArguments{score};
+        const std::array<Crt::FormatArgument, 1> scoreArguments{score};
         auto scoreText = Formatted(NumberFormat, scoreArguments, "0x4369eb");
         if (!scoreText.HasValue())
             return Core::Unexpected(std::move(scoreText).Error());
@@ -592,7 +592,7 @@ Result DrawTheState(GameHudContext& context, CrywolfInterface& ui, std::uint8_t 
     auto countFormat = TextOf(context, CountText, "0x4372ba");
     if (!countFormat.HasValue())
         return Core::Unexpected(std::move(countFormat).Error());
-    const std::array<UI::FormatArgument, 1> countArguments{ui.dword723bd8};
+    const std::array<Crt::FormatArgument, 1> countArguments{ui.dword723bd8};
     auto count = Formatted(countFormat.Value(), countArguments, "0x4372ba");
     if (!count.HasValue())
         return Core::Unexpected(std::move(count).Error());

@@ -156,7 +156,7 @@ Core::Expected<void, std::string> DrawTheTitle(GameHudContext& context, const Np
     auto format = TextOf(context, TaxText, "0x5fed54");
     if (!format.HasValue())
         return Core::Unexpected(format.Error());
-    auto tax = Fits(UI::Sprintf(format.Value(), npc.chaosTaxRate), RoomOfTheFrame, "0x5fed54");
+    auto tax = Fits(Crt::Sprintf(format.Value(), npc.chaosTaxRate), RoomOfTheFrame, "0x5fed54");
     if (!tax.HasValue())
         return Core::Unexpected(tax.Error());
     DrawTitle(context, x + TitleLeft, y + TaxTop, tax.Value());
@@ -173,14 +173,14 @@ Core::Expected<std::string, std::string> TheMixName(const GameHudContext& contex
         auto name = text(CapeNameText);
         if (!name.HasValue())
             return Core::Unexpected(name.Error());
-        return UI::Sprintf(name.Value());
+        return Crt::Sprintf(name.Value());
     }
     if (shown == 0x16 || shown == 0x17)
     {
         auto name = text(CreativeText);
         if (!name.HasValue())
             return Core::Unexpected(name.Error());
-        return UI::Sprintf(name.Value(), shown - 10);
+        return Crt::Sprintf(name.Value(), shown - 10);
     }
     // 0x5ff134..0x5ff21f: "%s %s" (0x6c6350) con el nombre y el texto 1412.
     std::optional<std::size_t> pair;
@@ -215,7 +215,7 @@ Core::Expected<std::string, std::string> TheMixName(const GameHudContext& contex
             return Core::Unexpected(first.Error());
         if (!create.HasValue())
             return Core::Unexpected(create.Error());
-        return UI::Sprintf("%s %s", first.Value(), create.Value());
+        return Crt::Sprintf("%s %s", first.Value(), create.Value());
     }
     if (shown == CapeOfTheFenrirKind)
     {
@@ -233,7 +233,7 @@ Core::Expected<std::string, std::string> TheMixName(const GameHudContext& contex
             return Core::Unexpected(cape.Error());
         if (!create.HasValue())
             return Core::Unexpected(create.Error());
-        return UI::Sprintf("%s %s %s", first.Value(), cape.Value(), create.Value());
+        return Crt::Sprintf("%s %s %s", first.Value(), cape.Value(), create.Value());
     }
     // 0x5ff282..0x5ff2ab: sprintf del texto del tipo, sin argumentos.
     const auto index = static_cast<std::size_t>(shown <= 4 ? static_cast<std::int32_t>(FirstNameText) + shown
@@ -241,7 +241,7 @@ Core::Expected<std::string, std::string> TheMixName(const GameHudContext& contex
     auto name = text(index);
     if (!name.HasValue())
         return Core::Unexpected(name.Error());
-    return UI::Sprintf(name.Value());
+    return Crt::Sprintf(name.Value());
 }
 
 // 0x5ff2f2..0x5ff3e4: la chance, sprintf del texto 584 con el 591 y ESI. Con 0x7d2dc9d y el tipo 2 u 8, en celeste
@@ -258,13 +258,13 @@ Core::Expected<void, std::string> DrawTheRate(GameHudContext& context, const Npc
     HudState& hud = context.hud;
     const bool bonus = npc.field7d2dc9d > 0 && (shown == 2 || shown == 8);
     hud.textColors = Render::Text::TextColors{.text = bonus ? MixableColor : LineColor, .background = LineBackground};
-    auto line = Fits(UI::Sprintf(format.Value(), mixing.Value(), rate), RoomBeforeThePrice, "0x5ff336");
+    auto line = Fits(Crt::Sprintf(format.Value(), mixing.Value(), rate), RoomBeforeThePrice, "0x5ff336");
     if (!line.HasValue())
         return Core::Unexpected(line.Error());
     if (bonus)
     {
         // 0x5ff35a: sprintf(buffer, "%s + %d%%", buffer, n), que copia el buffer sobre sí mismo.
-        line = Fits(UI::Sprintf("%s + %d%%", line.Value(), std::int32_t{npc.field7d2dc9d}), RoomBeforeThePrice,
+        line = Fits(Crt::Sprintf("%s + %d%%", line.Value(), std::int32_t{npc.field7d2dc9d}), RoomBeforeThePrice,
                     "0x5ff35a");
         if (!line.HasValue())
             return Core::Unexpected(line.Error());
@@ -285,7 +285,7 @@ Core::Expected<void, std::string> DrawThePrice(GameHudContext& context, const Np
     auto format = TextOf(context, potion ? PotionPriceText : PriceText, potion ? "0x5ff444" : "0x5ff423");
     if (!format.HasValue())
         return Core::Unexpected(format.Error());
-    auto line = Fits(UI::Sprintf(format.Value(), std::string_view(taxed), priceText), RoomBeforeThePrice, "0x5ff423");
+    auto line = Fits(Crt::Sprintf(format.Value(), std::string_view(taxed), priceText), RoomBeforeThePrice, "0x5ff423");
     if (!line.HasValue())
         return Core::Unexpected(line.Error());
     if (potion)
@@ -313,7 +313,7 @@ Core::Expected<void, std::string> DrawTheWarnings(GameHudContext& context, const
         return Core::Unexpected(mixing.Error());
     if (!second.HasValue())
         return Core::Unexpected(second.Error());
-    auto line = Fits(UI::Sprintf(jewel.Value(), mixing.Value()), RoomOfTheFrame, "0x5ff4bf");
+    auto line = Fits(Crt::Sprintf(jewel.Value(), mixing.Value()), RoomOfTheFrame, "0x5ff4bf");
     if (!line.HasValue())
         return Core::Unexpected(line.Error());
     DrawText(context, x + LineLeft, y + JewelTop, line.Value());
@@ -350,7 +350,7 @@ Core::Expected<void, std::string> DrawTheWarnings(GameHudContext& context, const
     auto warning = TextOf(context, WarningText, "0x5ff674");
     if (!warning.HasValue())
         return Core::Unexpected(warning.Error());
-    auto first = Fits(UI::Sprintf(warning.Value(), mixing.Value()), RoomOfTheFrame, "0x5ff674");
+    auto first = Fits(Crt::Sprintf(warning.Value(), mixing.Value()), RoomOfTheFrame, "0x5ff674");
     if (!first.HasValue())
         return Core::Unexpected(first.Error());
     DrawText(context, x + LineLeft, y + WarningTop, first.Value());

@@ -337,7 +337,7 @@ Core::Expected<std::uint8_t, std::string> DrawTheButtonAndFrame(GameHudContext& 
             return Core::Unexpected(std::move(help).Error());
         WindowDrawing::SelectFont(context, FontKind::Normal);
         SetColors(context, HelpColors);
-        DrawHelp(context, PetButtonLeft, PetButtonHelpY, UI::Sprintf("%s", help.Value()));
+        DrawHelp(context, PetButtonLeft, PetButtonHelpY, Crt::Sprintf("%s", help.Value()));
     }
     if (runtime.panels.delegated.pet != PetWindowOpen)
         return runtime.panels.delegated.pet;
@@ -421,7 +421,7 @@ Core::Expected<void, std::string> DrawTheStats(GameHudContext& context, std::int
         return Core::Unexpected(std::move(level).Error());
     context.hud.textColors.text = LevelColor;
     WindowDrawing::DrawInBox(context, x + LevelLeft, Truncate(top),
-                             UI::Sprintf(level.Value(), static_cast<std::uint32_t>(stats.level)),
+                             Crt::Sprintf(level.Value(), static_cast<std::uint32_t>(stats.level)),
                              WindowDrawing::BoxWidth(context, LevelBox));
     top = F32(static_cast<double>(top) + FirstStep);
 
@@ -431,7 +431,8 @@ Core::Expected<void, std::string> DrawTheStats(GameHudContext& context, std::int
     SetColors(context, LineColors);
     WindowDrawing::DrawClipped(
         context, lineLeft, Truncate(top),
-        UI::Sprintf(life.Value(), static_cast<std::uint32_t>(stats.durability), std::uint32_t{MaxDurability}), lineBox);
+        Crt::Sprintf(life.Value(), static_cast<std::uint32_t>(stats.durability), std::uint32_t{MaxDurability}),
+        lineBox);
     top = F32(static_cast<double>(top) + StatsStep);
     // 0x414ac8..0x414b3e: la barra de la durabilidad, recortada a 255.
     sprites.SetColor(DurabilityBackColor);
@@ -448,7 +449,7 @@ Core::Expected<void, std::string> DrawTheStats(GameHudContext& context, std::int
     auto experience = format(ExperienceText, "0x414b7b");
     if (!experience.HasValue())
         return Core::Unexpected(std::move(experience).Error());
-    drawLine(UI::Sprintf(experience.Value(), stats.experience, stats.nextExperience));
+    drawLine(Crt::Sprintf(experience.Value(), stats.experience, stats.nextExperience));
 
     // 0x414bca..0x414d24: el caballo, con su propio acceso al registro propio, el % del cetro (el byte +0x16 del lugar
     // 0 del equipo), si hay algo en ese lugar.
@@ -463,7 +464,7 @@ Core::Expected<void, std::string> DrawTheStats(GameHudContext& context, std::int
             if (!scepterText.HasValue())
                 return Core::Unexpected(std::move(scepterText).Error());
             const auto percent = static_cast<float>(weapon.byte16);
-            drawLine(UI::Sprintf(scepterText.Value(), static_cast<std::uint32_t>(weapon.byte16)));
+            drawLine(Crt::Sprintf(scepterText.Value(), static_cast<std::uint32_t>(weapon.byte16)));
             scepter = F32(static_cast<double>(percent) * static_cast<double>(Percent));
         }
     }
@@ -495,11 +496,11 @@ Core::Expected<void, std::string> DrawTheStats(GameHudContext& context, std::int
     auto damageText = format(DamageText, "0x4151ac");
     if (!damageText.HasValue())
         return Core::Unexpected(std::move(damageText).Error());
-    drawLine(UI::Sprintf(damageText.Value(), minimum, maximum, static_cast<std::uint32_t>(stats.word12)));
+    drawLine(Crt::Sprintf(damageText.Value(), minimum, maximum, static_cast<std::uint32_t>(stats.word12)));
     auto speed = format(AttackSpeedText, "0x41520b");
     if (!speed.HasValue())
         return Core::Unexpected(std::move(speed).Error());
-    drawLine(UI::Sprintf(speed.Value(), static_cast<std::uint32_t>(stats.word10)));
+    drawLine(Crt::Sprintf(speed.Value(), static_cast<std::uint32_t>(stats.word10)));
 
     // 0x415240..0x4155bd: el liderazgo que pide, en rojo si el del registro propio (+0x36 + +0x20, de 16 bits) no
     // alcanza, con su acceso. Siempre es positivo: el nivel es de 16 bits.
@@ -513,7 +514,7 @@ Core::Expected<void, std::string> DrawTheStats(GameHudContext& context, std::int
         const auto own16 = static_cast<std::uint16_t>(own.word36 + own.leadership);
         if (static_cast<std::int32_t>(own16) < leadership)
             context.hud.textColors.text = LackingColor;
-        drawLine(UI::Sprintf(leadershipText.Value(), leadership));
+        drawLine(Crt::Sprintf(leadershipText.Value(), leadership));
         SetColors(context, LineColors);
     }
 
@@ -583,7 +584,7 @@ Core::Expected<void, std::string> DrawTheHorseTab(GameHudContext& context, UI::P
         auto format = TextOf(context, MissingPetText, "0x424f69");
         if (!format.HasValue())
             return Core::Unexpected(std::move(format).Error());
-        DrawTheMissingPet(context, left, UI::Sprintf(format.Value(), horse.Value()));
+        DrawTheMissingPet(context, left, Crt::Sprintf(format.Value(), horse.Value()));
         return {};
     }
     Render::SpriteBatch& sprites = context.sprites;

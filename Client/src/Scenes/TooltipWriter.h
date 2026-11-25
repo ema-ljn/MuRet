@@ -42,7 +42,7 @@ public:
     template <typename... Arguments> void Print(std::string_view format, Arguments... arguments)
     {
         if (std::string* line = Current(); line != nullptr)
-            *line = UI::Sprintf(format, arguments...);
+            *line = Crt::Sprintf(format, arguments...);
     }
     // Lo mismo con el texto `index` de Text.bmd como formato.
     template <typename... Arguments> void PrintText(std::size_t index, Arguments... arguments)

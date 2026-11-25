@@ -317,7 +317,7 @@ Core::Expected<std::int32_t, std::string> DrawTheMemberRow(GameHudContext& conte
         context.hud.textColors.background = 0;
         context.hud.textColors.text = ServerColor;
         static_cast<void>(UI::OldDraw::DrawText(old, list.base.x + list.base.width - ServerRight, rowY,
-                                                UI::Sprintf("%d", static_cast<std::int32_t>(member.server) + 1)));
+                                                Crt::Sprintf("%d", static_cast<std::int32_t>(member.server) + 1)));
     }
     sprites.SetBlend(Render::BlendMode::Opaque);
     return 1;
@@ -358,7 +358,7 @@ Core::Expected<std::int32_t, std::string> DrawTheUnionRow(GameHudContext& contex
     const UI::OldWindowDrawContext old = OldContextOf(context);
     static_cast<void>(UI::OldDraw::DrawText(old, left + UnionNameLeft, rowY, GuildTextOf(element.name)));
     // 0x46e1bd: 0x465950 en el modo 4 (0x467146): x = _ftol(x − cx / rx), y el texto desde ahí.
-    const std::string number = UI::Sprintf("%d", static_cast<std::int32_t>(element.byte0));
+    const std::string number = Crt::Sprintf("%d", static_cast<std::int32_t>(element.byte0));
     const auto measured = static_cast<double>(context.text.Measure(context.hud.dcFont, number).width);
     const std::int32_t right =
         Truncate(static_cast<double>(left + UnionNumberRight) - measured / UI::OldDraw::RatioX(sprites.Screen()));
@@ -441,12 +441,12 @@ Core::Expected<void, std::string> DrawTheNoticeTab(GameHudContext& context)
     auto guildText = TextOf(context, GuildText, "0x64fec8");
     if (!guildText.HasValue())
         return Core::Unexpected(std::move(guildText).Error());
-    DrawInTheBox(context, left, top, UI::Sprintf("%s :", guildText.Value()), box);
+    DrawInTheBox(context, left, top, Crt::Sprintf("%s :", guildText.Value()), box);
     top += InfoStep;
     auto score = TextOf(context, ScoreText, "0x64ff0c");
     if (!score.HasValue())
         return Core::Unexpected(std::move(score).Error());
-    DrawInTheBox(context, left, top, UI::Sprintf(score.Value(), guild.score), box);
+    DrawInTheBox(context, left, top, Crt::Sprintf(score.Value(), guild.score), box);
     top += InfoStep;
     std::string members;
     if (hero.guildStatus == MasterStatus)
@@ -455,14 +455,14 @@ Core::Expected<void, std::string> DrawTheNoticeTab(GameHudContext& context)
         if (!format.HasValue())
             return Core::Unexpected(std::move(format).Error());
         const std::int32_t most = MostMembersOf(context);
-        members = UI::Sprintf(format.Value(), guild.memberCount, most);
+        members = Crt::Sprintf(format.Value(), guild.memberCount, most);
     }
     else
     {
         auto format = TextOf(context, MembersText, "0x650331");
         if (!format.HasValue())
             return Core::Unexpected(std::move(format).Error());
-        members = UI::Sprintf(format.Value(), guild.memberCount);
+        members = Crt::Sprintf(format.Value(), guild.memberCount);
     }
     DrawInTheBox(context, left, top, members, box);
     top += InfoStep;
@@ -477,7 +477,7 @@ Core::Expected<void, std::string> DrawTheNoticeTab(GameHudContext& context)
             return Core::Unexpected(std::move(nobody).Error());
         writer = nobody.Value();
     }
-    DrawInTheBox(context, left, top, UI::Sprintf("%s : %s", noticeName.Value(), writer), box);
+    DrawInTheBox(context, left, top, Crt::Sprintf("%s : %s", noticeName.Value(), writer), box);
     top += 0x21;
     auto title = TextOf(context, NoticeTitleText, "0x650277");
     if (!title.HasValue())

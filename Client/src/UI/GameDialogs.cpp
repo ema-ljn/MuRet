@@ -130,8 +130,8 @@ Core::Expected<void, std::string> WriteTheJewelMixText(DialogBoxState& box, cons
         return Core::Unexpected(std::move(price).Error());
     // 0x63345d: las contadas (un byte); 0x63352f: el nivel + 1.
     const std::string asked =
-        mixing ? Sprintf(question.Value(), name.Value(), static_cast<std::int32_t>(arguments.jewelCount))
-               : Sprintf(question.Value(), name.Value(), arguments.jewelLevel + 1);
+        mixing ? Crt::Sprintf(question.Value(), name.Value(), static_cast<std::int32_t>(arguments.jewelCount))
+               : Crt::Sprintf(question.Value(), name.Value(), arguments.jewelLevel + 1);
     if (asked.size() + 1 > JewelQuestionBytes)
         return Core::Unexpected(
             std::format("0x63348a: el sprintf de {} bytes pasa los 300 de la pila de 0x633300", asked.size() + 1));
@@ -144,8 +144,8 @@ Core::Expected<void, std::string> WriteTheJewelMixText(DialogBoxState& box, cons
             return copied;
     }
     const auto rows = static_cast<std::int32_t>(lines.size());
-    if (auto printed =
-            PrintIntoRow(box, static_cast<std::size_t>(rows), Sprintf(price.Value(), arguments.jewelPrice), "0x633517");
+    if (auto printed = PrintIntoRow(box, static_cast<std::size_t>(rows),
+                                    Crt::Sprintf(price.Value(), arguments.jewelPrice), "0x633517");
         !printed.HasValue())
         return printed;
     box.lineCount = rows + 1;
@@ -411,7 +411,7 @@ Core::Expected<void, std::string> OpenTheMoneyTextDialog(DialogBoxState& box, Di
     auto format = TextOf(texts, static_cast<std::int64_t>(firstText), "0x633367");
     if (!format.HasValue())
         return Core::Unexpected(std::move(format).Error());
-    const std::string first = Sprintf(format.Value(), zen);
+    const std::string first = Crt::Sprintf(format.Value(), zen);
     if (first.size() + 1 > box.rows.size())
         return Core::Unexpected(
             std::format("0x633367: el sprintf del texto {} pasa los 7 renglones de 0x7d36a98", firstText));
@@ -424,7 +424,7 @@ Core::Expected<void, std::string> OpenTheMoneyTextDialog(DialogBoxState& box, Di
         auto read = TextOf(texts, static_cast<std::int64_t>(firstText) + row, "0x633387");
         if (!read.HasValue())
             return Core::Unexpected(std::move(read).Error());
-        const std::string line = Sprintf(read.Value());
+        const std::string line = Crt::Sprintf(read.Value());
         const std::size_t start = static_cast<std::size_t>(row) * DialogRowBytes;
         if (start + line.size() + 1 > box.rows.size())
             return Core::Unexpected(std::format("0x633387: el sprintf del texto {} en el renglón {} pasa los 7 de "

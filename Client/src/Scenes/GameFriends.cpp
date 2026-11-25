@@ -246,8 +246,8 @@ Core::Expected<void, std::string> ApplyFriendList(const Protocol::Friends::Frien
     if (!format.HasValue())
         return Core::Unexpected(std::move(format).Error());
     // 0x4dc38f..0x4dc395: los dos sin signo (AND con 0xff y MOVZX).
-    const std::string text = UI::Sprintf(format.Value(), static_cast<std::int32_t>(list.letters),
-                                         static_cast<std::int32_t>(list.maxLetters));
+    const std::string text = Crt::Sprintf(format.Value(), static_cast<std::int32_t>(list.letters),
+                                          static_cast<std::int32_t>(list.maxLetters));
     return SystemMessage(runtime, context.measure, context.screen, text, "0x4dc3b5");
 }
 

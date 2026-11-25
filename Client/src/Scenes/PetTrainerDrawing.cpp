@@ -269,7 +269,7 @@ Core::Expected<std::string, std::string> TheNameLine(const GameHudContext& conte
         return Core::Unexpected(format.Error());
     const WorldRuntime& runtime = context.world.Runtime();
     const std::string_view name = HeroNameOf(context.world.Actors()[runtime.hero]);
-    return Fits(UI::Sprintf(format.Value(), name), LineRoom, where);
+    return Fits(Crt::Sprintf(format.Value(), name), LineRoom, where);
 }
 
 // 0x44b869..0x44b8fb y 0x44cf54..0x44cfe8: el botón de cerrar y su ayuda.
@@ -326,7 +326,7 @@ Core::Expected<std::string, std::string> ThePriceLine(const GameHudContext& cont
         auto format = TextOf(context, quote.line == PetQuoteLine::NoPet ? NoPetText : FullText, "0x44b24e");
         if (!format.HasValue())
             return Core::Unexpected(format.Error());
-        return Fits(UI::Sprintf(format.Value()), LineRoom, "0x44b24e");
+        return Fits(Crt::Sprintf(format.Value()), LineRoom, "0x44b24e");
     }
     case PetQuoteLine::Short:
     case PetQuoteLine::Cost:
@@ -335,7 +335,7 @@ Core::Expected<std::string, std::string> ThePriceLine(const GameHudContext& cont
         auto format = TextOf(context, quote.line == PetQuoteLine::Short ? ShortText : CostText, "0x44b46e");
         if (!format.HasValue())
             return Core::Unexpected(format.Error());
-        return Fits(UI::Sprintf(format.Value(), std::string_view(quote.number)), LineRoom, "0x44b46e");
+        return Fits(Crt::Sprintf(format.Value(), std::string_view(quote.number)), LineRoom, "0x44b46e");
     }
     }
     return Core::Unexpected(std::string("0x44b190: un renglón sin caso"));
@@ -424,7 +424,7 @@ Core::Expected<float, std::string> DrawTheMixName(GameHudContext& context, std::
         if (!format.HasValue())
             return Core::Unexpected(format.Error());
         context.hud.textColors.text = NoKindColor;
-        auto line = Fits(UI::Sprintf(format.Value(), mix), LineRoom, "0x44d9e5");
+        auto line = Fits(Crt::Sprintf(format.Value(), mix), LineRoom, "0x44d9e5");
         if (!line.HasValue())
             return Core::Unexpected(line.Error());
         DrawCenteredText(context, BoxCenterX, BoxNameTop, line.Value());
@@ -435,7 +435,7 @@ Core::Expected<float, std::string> DrawTheMixName(GameHudContext& context, std::
     auto pet = TextOf(context, kind == 1 ? HorseText : RavenText, "0x44d92d");
     if (!pet.HasValue())
         return Core::Unexpected(pet.Error());
-    auto line = Fits(UI::Sprintf("%s %s", pet.Value(), mix), LineRoom, "0x44d92d");
+    auto line = Fits(Crt::Sprintf("%s %s", pet.Value(), mix), LineRoom, "0x44d92d");
     if (!line.HasValue())
         return Core::Unexpected(line.Error());
     DrawCenteredText(context, BoxCenterX, BoxNameTop, line.Value());
@@ -475,7 +475,7 @@ Core::Expected<void, std::string> DrawTheBox(GameHudContext& context)
     if (!mix.HasValue())
         return Core::Unexpected(mix.Error());
     DrawTitle(context, BoxTitleLeft, BoxTitleTop, title.Value());
-    auto tax = Fits(UI::Sprintf(taxFormat.Value(), npc.chaosTaxRate), TaxRoom, "0x44d8b4");
+    auto tax = Fits(Crt::Sprintf(taxFormat.Value(), npc.chaosTaxRate), TaxRoom, "0x44d8b4");
     if (!tax.HasValue())
         return Core::Unexpected(tax.Error());
     DrawTitle(context, BoxTitleLeft, BoxTaxTop, tax.Value());
@@ -488,7 +488,7 @@ Core::Expected<void, std::string> DrawTheBox(GameHudContext& context)
     auto rateFormat = TextOf(context, RateText, "0x44da19");
     if (!rateFormat.HasValue())
         return Core::Unexpected(rateFormat.Error());
-    auto rate = Fits(UI::Sprintf(rateFormat.Value(), mix.Value(), kind != 0 ? MixRate : 0), LineRoom, "0x44da19");
+    auto rate = Fits(Crt::Sprintf(rateFormat.Value(), mix.Value(), kind != 0 ? MixRate : 0), LineRoom, "0x44da19");
     if (!rate.HasValue())
         return Core::Unexpected(rate.Error());
     DrawCenteredText(context, BoxCenterX, Truncate(static_cast<double>(y)), rate.Value());
@@ -502,7 +502,7 @@ Core::Expected<void, std::string> DrawTheBox(GameHudContext& context)
             return Core::Unexpected(priceFormat.Error());
         const std::string taxed = TaxedPriceText(price, npc.chaosTaxRate);
         const std::string plain = ThousandsText(price);
-        auto line = Fits(UI::Sprintf(priceFormat.Value(), std::string_view(taxed), std::string_view(plain)), LineRoom,
+        auto line = Fits(Crt::Sprintf(priceFormat.Value(), std::string_view(taxed), std::string_view(plain)), LineRoom,
                          "0x44da80");
         if (!line.HasValue())
             return Core::Unexpected(line.Error());
@@ -516,7 +516,7 @@ Core::Expected<void, std::string> DrawTheBox(GameHudContext& context)
         return Core::Unexpected(jewelFormat.Error());
     if (!second.HasValue())
         return Core::Unexpected(second.Error());
-    auto jewel = Fits(UI::Sprintf(jewelFormat.Value(), mix.Value()), LineRoom, "0x44dabf");
+    auto jewel = Fits(Crt::Sprintf(jewelFormat.Value(), mix.Value()), LineRoom, "0x44dabf");
     if (!jewel.HasValue())
         return Core::Unexpected(jewel.Error());
     DrawCenteredText(context, BoxCenterX, Truncate(static_cast<double>(y)), jewel.Value());

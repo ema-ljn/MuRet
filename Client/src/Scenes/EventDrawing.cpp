@@ -150,11 +150,11 @@ constexpr std::string_view RewardFormat = "%6d"; // 0x6c63b4
 constexpr std::size_t ResultRecordBytes = 24;
 constexpr std::size_t ResultNameBytes = 10;
 
-Core::Expected<std::string, std::string> Formatted(UI::FormatFunction function, std::string_view format,
-                                                   std::span<const UI::FormatArgument> arguments, std::size_t buffer,
+Core::Expected<std::string, std::string> Formatted(Crt::FormatFunction function, std::string_view format,
+                                                   std::span<const Crt::FormatArgument> arguments, std::size_t buffer,
                                                    std::string_view where)
 {
-    auto text = UI::FormatOriginal(function, format, arguments, where);
+    auto text = Crt::FormatOriginal(function, format, arguments, where);
     if (!text.HasValue())
         return Core::Unexpected(std::move(text).Error());
     if (text.Value().size() >= buffer)
@@ -163,8 +163,9 @@ Core::Expected<std::string, std::string> Formatted(UI::FormatFunction function, 
     return text;
 }
 
-Core::Expected<std::string, std::string> FormattedText(const GameHudContext& context, UI::FormatFunction function,
-                                                       std::size_t index, std::span<const UI::FormatArgument> arguments,
+Core::Expected<std::string, std::string> FormattedText(const GameHudContext& context, Crt::FormatFunction function,
+                                                       std::size_t index,
+                                                       std::span<const Crt::FormatArgument> arguments,
                                                        std::size_t buffer, std::string_view where)
 {
     const std::optional<std::string_view> format = UI::TextAt(context.texts, index);
@@ -181,9 +182,9 @@ void DrawCentered(GameHudContext& context, int x, int y, std::string_view text)
 // 0x40bbf0(x, y, segundos), con la fuente 0x576355c.
 Result DrawTheTimeLeft(GameHudContext& context, float x, float y, std::int32_t seconds)
 {
-    constexpr auto Wsprintf = UI::FormatFunction::Wsprintf;
+    constexpr auto Wsprintf = Crt::FormatFunction::Wsprintf;
     const std::int32_t minutes = seconds / SecondsPerMinute;
-    const std::array<UI::FormatArgument, 1> minuteArguments{minutes};
+    const std::array<Crt::FormatArgument, 1> minuteArguments{minutes};
     auto text = Formatted(Wsprintf, MinutesFormat, minuteArguments, CastleTextBuffer, "0x40bc27");
     if (!text.HasValue())
         return Core::Unexpected(std::move(text).Error());
@@ -192,7 +193,7 @@ Result DrawTheTimeLeft(GameHudContext& context, float x, float y, std::int32_t s
     const std::int32_t rest = seconds - minutes * SecondsPerMinute;
     if (rest >= 0)
     {
-        const std::array<UI::FormatArgument, 1> restArguments{rest};
+        const std::array<Crt::FormatArgument, 1> restArguments{rest};
         auto part = Formatted(Wsprintf, SecondsFormat, restArguments, TimePartBuffer, "0x40bc43");
         if (!part.HasValue())
             return Core::Unexpected(std::move(part).Error());
@@ -207,7 +208,7 @@ Result DrawTheTimeLeft(GameHudContext& context, float x, float y, std::int32_t s
         if (!clock)
             return Core::Unexpected(
                 std::format("0x40bc96: el reloj del mundo {} fuera del perfil de ftol", context.worldClock));
-        const std::array<UI::FormatArgument, 1> clockArguments{*clock % SecondsPerMinute};
+        const std::array<Crt::FormatArgument, 1> clockArguments{*clock % SecondsPerMinute};
         auto part = Formatted(Wsprintf, HundredthsFormat, clockArguments, TimePartBuffer, "0x40bcad");
         if (!part.HasValue())
             return Core::Unexpected(std::move(part).Error());
@@ -260,7 +261,7 @@ std::string ResultName(const EventMapObject& event, std::size_t record)
 // 0x40bdd0: Devil Square.
 Result DrawTheDevilSquareRanking(GameHudContext& context, const EventMapObject& event)
 {
-    constexpr auto Wsprintf = UI::FormatFunction::Wsprintf;
+    constexpr auto Wsprintf = Crt::FormatFunction::Wsprintf;
     Render::SpriteBatch& sprites = context.sprites;
     sprites.SetColor(ResultTitleColor);
     auto title = TextOf(context, RankingCongratulationsText, "0x40be35");
@@ -270,7 +271,7 @@ Result DrawTheDevilSquareRanking(GameHudContext& context, const EventMapObject& 
     // 0x40be3a..0x40be6e: wsprintfA con el nombre del héroe (+0x1d9 de [0x743a170]).
     const ActorState& hero = context.world.Actors()[context.world.Runtime().hero];
     const std::string heroName = ChatNameOf(hero);
-    const std::array<UI::FormatArgument, 1> nameArguments{UI::StringArgument{.text = heroName}};
+    const std::array<Crt::FormatArgument, 1> nameArguments{Crt::StringArgument{.text = heroName}};
     auto honor = FormattedText(context, Wsprintf, RankingHonorText, nameArguments, CastleTextBuffer, "0x40be5c");
     if (!honor.HasValue())
         return Core::Unexpected(std::move(honor).Error());
@@ -309,7 +310,7 @@ Result DrawTheDevilSquareRanking(GameHudContext& context, const EventMapObject& 
             y = OwnRankingRow;
             rank = event.field28;
         }
-        const std::array<UI::FormatArgument, 1> rankArguments{rank};
+        const std::array<Crt::FormatArgument, 1> rankArguments{rank};
         auto rankText = Formatted(Wsprintf, RankFormat, rankArguments, CastleTextBuffer, "0x40bf7e");
         if (!rankText.HasValue())
             return Core::Unexpected(std::move(rankText).Error());
@@ -329,7 +330,7 @@ Result DrawTheDevilSquareRanking(GameHudContext& context, const EventMapObject& 
         for (std::size_t cell = 0; cell < cells.size(); ++cell)
         {
             context.hud.textColors.text = cells[cell].color;
-            const std::array<UI::FormatArgument, 1> value{
+            const std::array<Crt::FormatArgument, 1> value{
                 ResultDword(event, record * ResultRecordBytes + cells[cell].offset)};
             auto text = Formatted(Wsprintf, cells[cell].format, value, CastleTextBuffer, cells[cell].where);
             if (!text.HasValue())
@@ -344,7 +345,7 @@ Result DrawTheDevilSquareRanking(GameHudContext& context, const EventMapObject& 
 // 0x40c440 y 0x405220: los dos títulos (con 0x623690 en la x 0x140) y las filas con la fuente 0x5763558.
 Result DrawTheCastleResult(GameHudContext& context, const EventMapObject& event)
 {
-    constexpr auto Wsprintf = UI::FormatFunction::Wsprintf;
+    constexpr auto Wsprintf = Crt::FormatFunction::Wsprintf;
     const bool bloodCastle = event.kind == EventMapKind::BloodCastle;
     const bool won = event.field24 != 0;
     Render::SpriteBatch& sprites = context.sprites;
@@ -374,9 +375,9 @@ Result DrawTheCastleResult(GameHudContext& context, const EventMapObject& event)
             return Core::Unexpected(std::move(quest).Error());
         if (!second.HasValue())
             return Core::Unexpected(std::move(second).Error());
-        const std::array<UI::FormatArgument, 2> arguments{
-            UI::TextArgument{.index = ChaosCastleQuestText, .text = quest.Value()},
-            UI::TextArgument{.index = won ? BloodCastleQuestText : BloodCastleFailedText, .text = second.Value()}};
+        const std::array<Crt::FormatArgument, 2> arguments{
+            Crt::TextArgument{.index = ChaosCastleQuestText, .text = quest.Value()},
+            Crt::TextArgument{.index = won ? BloodCastleQuestText : BloodCastleFailedText, .text = second.Value()}};
         auto joined = Formatted(Wsprintf, TwoTextsFormat, arguments, CastleTextBuffer, won ? "0x40527c" : "0x4052b2");
         if (!joined.HasValue())
             return Core::Unexpected(std::move(joined).Error());
@@ -400,7 +401,7 @@ Result DrawTheCastleResult(GameHudContext& context, const EventMapObject& event)
     context.hud.textColors.text = ExperienceColor;
     const auto valueLine = [&](int y, std::size_t index, std::size_t offset, std::string_view where) -> Result
     {
-        const std::array<UI::FormatArgument, 1> value{ResultDword(event, offset - 0x2c)};
+        const std::array<Crt::FormatArgument, 1> value{ResultDword(event, offset - 0x2c)};
         auto text = FormattedText(context, Wsprintf, index, value, CastleTextBuffer, where);
         if (!text.HasValue())
             return Core::Unexpected(std::move(text).Error());
@@ -444,19 +445,19 @@ Result DrawTheEventTime(GameHudContext& context)
     HudState& hud = context.hud;
     hud.dcFont = FontKind::BigBold;
     hud.textColors = Render::Text::TextColors{.text = EventTimeColor, .background = 0};
-    constexpr auto Sprintf = UI::FormatFunction::Sprintf;
+    constexpr auto Sprintf = Crt::FormatFunction::Sprintf;
     Core::Expected<std::string, std::string> text = std::string{};
     if (events.timeKind == EventTimeStartKind)
     {
         hud.textColors.text = EventTimeLastMinuteColor;
-        const std::array<UI::FormatArgument, 1> arguments{seconds};
+        const std::array<Crt::FormatArgument, 1> arguments{seconds};
         text = FormattedText(context, Sprintf, EventTimeStartText, arguments, EventTimeBuffer, "0x5a7f62");
     }
     else
     {
         if (time < SecondsPerMinute)
             hud.textColors.text = EventTimeLastMinuteColor;
-        const std::array<UI::FormatArgument, 2> arguments{minutes, seconds};
+        const std::array<Crt::FormatArgument, 2> arguments{minutes, seconds};
         text = FormattedText(context, Sprintf, seconds < EventTimeTwoDigits ? EventTimeShortText : EventTimeText,
                              arguments, EventTimeBuffer, "0x5a7f9b");
     }
@@ -503,13 +504,13 @@ Result DrawTheCastleTimeAndPoints(GameHudContext& context, EventMapObject& event
         return {};
     const std::int32_t killTarget = event.field14[2];
     const std::int32_t kills = event.field14[3];
-    constexpr auto Wsprintf = UI::FormatFunction::Wsprintf;
+    constexpr auto Wsprintf = Crt::FormatFunction::Wsprintf;
     if (killTarget != NoKillTarget)
     {
         const std::size_t format = !bloodCastle                     ? ChaosCastlePointsText
                                    : state == BloodCastleSoccerPlay ? BloodCastleSoccerPointsText
                                                                     : BloodCastlePointsText;
-        const std::array<UI::FormatArgument, 2> arguments{kills, killTarget};
+        const std::array<Crt::FormatArgument, 2> arguments{kills, killTarget};
         auto points = FormattedText(context, Wsprintf, format, arguments, CastleTextBuffer,
                                     bloodCastle ? "0x40c399" : "0x405144");
         if (!points.HasValue())

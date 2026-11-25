@@ -56,7 +56,7 @@ Core::Expected<std::string, std::string> MurdererLine(const WorldEntryResources&
     const auto tail = TextOf(resources, MurdererTailText);
     if (!tail.HasValue())
         return Core::Unexpected(tail.Error());
-    std::string line = UI::Sprintf(MurdererFormat, head.Value(), count, tail.Value());
+    std::string line = Crt::Sprintf(MurdererFormat, head.Value(), count, tail.Value());
     if (line.size() >= MurdererBuffer)
         return Core::Unexpected(std::format("{}: \"{}\" ocupa {} bytes con su '\\0' y el buffer de la pila tiene 0x20: "
                                             "lo que no entra la pisa",

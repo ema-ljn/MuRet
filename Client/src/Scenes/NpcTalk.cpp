@@ -184,7 +184,7 @@ Core::Expected<void, std::string> TalkToTheNpc(ActorState& hero, const HeroMovem
         auto format = TextOf(context, LevelLimitText, "0x567618");
         if (!format.HasValue())
             return Core::Unexpected(std::move(format).Error());
-        return SayIt(context, UI::Sprintf(format.Value(), LevelLimit), UI::SystemMessage, "0x567639");
+        return SayIt(context, Crt::Sprintf(format.Value(), LevelLimit), UI::SystemMessage, "0x567639");
     }
     const std::uint16_t word = npc.word376;
     runtime.panels.field78abb09 =

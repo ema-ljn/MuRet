@@ -990,9 +990,9 @@ TEST_F(EventPacketsTest, TheEventDialogPushesItsDialog)
 TEST_F(EventPacketsTest, TheCastleEntryResultsShowTheirNotice)
 {
     const std::string bloodAddress =
-        std::to_string(Client::UI::TextTableAddress + BloodCastleNameText * Client::UI::TextRecordBytes);
+        std::to_string(Client::Crt::TextTableAddress + BloodCastleNameText * Client::Crt::TextRecordBytes);
     const std::string chaosAddress =
-        std::to_string(Client::UI::TextTableAddress + ChaosCastleNameText * Client::UI::TextRecordBytes);
+        std::to_string(Client::Crt::TextTableAddress + ChaosCastleNameText * Client::Crt::TextRecordBytes);
     struct Case
     {
         bool chaos;

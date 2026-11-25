@@ -152,7 +152,7 @@ Core::Expected<void, std::string> PickUpTheFloorItem(const InventoryMoveContext&
         return Core::Unexpected(std::format("0x566e2f: falta el texto {} de Text.bmd", NoRoomText));
     if (!context.services.chatLine)
         return Core::Unexpected(std::string("0x566e42: 0x555190 con el aviso 375 sin el chat"));
-    if (auto said = context.services.chatLine(UI::Sprintf(*format), UI::SystemMessage); !said.HasValue())
+    if (auto said = context.services.chatLine(Crt::Sprintf(*format), UI::SystemMessage); !said.HasValue())
         return Core::Unexpected(std::format("0x566e42, 0x555190: {}", said.Error()));
     // 0x566e47..0x566e76.
     const World::WorldTerrain& terrain = world.Map().terrain;

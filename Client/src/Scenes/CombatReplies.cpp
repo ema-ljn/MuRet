@@ -78,7 +78,7 @@ Core::Expected<void, std::string> AddTheExperienceMessage(std::uint32_t amount, 
         return Core::Unexpected(std::string("0x4cfc9e: el texto 486 de Text.bmd no está"));
     if (chat.measure == nullptr)
         return Core::Unexpected(std::string("0x555190: no hay con qué medir el mensaje de la experiencia"));
-    const std::string text = UI::Sprintf(CString(*format), amount);
+    const std::string text = Crt::Sprintf(CString(*format), amount);
     // 0x576798c y 0x5767990, en la .bss: nadie les escribe un nombre en lo que MuRet porta (*inferido*, P-C252 d).
     return AddGameMessage(chat.world.Runtime(), *chat.measure, chat.screen, std::string_view{}, text,
                           UI::SystemMessage);

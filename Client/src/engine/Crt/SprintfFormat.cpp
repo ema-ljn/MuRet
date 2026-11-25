@@ -7,7 +7,7 @@
 #include <string>
 #include <string_view>
 
-namespace Client::UI
+namespace Client::Crt
 {
 namespace
 {
@@ -334,4 +334,4 @@ std::string FormatLikeSprintf(std::string_view format, std::span<const SprintfAr
     }
     return out;
 }
-} // namespace Client::UI
+} // namespace Client::Crt

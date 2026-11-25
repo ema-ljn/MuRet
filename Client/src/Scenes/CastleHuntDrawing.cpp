@@ -52,7 +52,7 @@ Core::Expected<void, std::string> Admin(GameHudContext& context, UI::HuntZoneWin
     auto fee = CastleUi::Text(context.texts, 0x7732734);
     if (!fee.HasValue())
         return Core::Unexpected(std::move(fee).Error());
-    WindowDrawing::DrawText(context, 485, 133, UI::Sprintf(fee.Value(), std::string_view(FormatZen(window.fee))));
+    WindowDrawing::DrawText(context, 485, 133, Crt::Sprintf(fee.Value(), std::string_view(FormatZen(window.fee))));
     context.sprites.SetColor({0, 0, 0, 0.3f});
     context.sprites.ColorQuad(470, 185, 90, 30);
     context.sprites.SetBlend(Render::BlendMode::Alpha); // 0x64a2bb, después del fondo sin textura.

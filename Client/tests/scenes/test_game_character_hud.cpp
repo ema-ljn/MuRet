@@ -46,6 +46,7 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Crt::Sprintf;
 using Client::Render::Color;
 using Client::Render::SpriteBatch;
 using Client::Render::Models::OwnRecordCloseRandoms;
@@ -55,7 +56,6 @@ using Client::Render::Text::FontKind;
 using Client::Scenes::GameHudContext;
 using Client::Scenes::WorldState;
 using Client::Tests::RecordedText;
-using Client::UI::Sprintf;
 
 constexpr std::uint32_t Seed = 0x0badf00du;
 constexpr Client::Core::PixelSize Screen640{640, 480};

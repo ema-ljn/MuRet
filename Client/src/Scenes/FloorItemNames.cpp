@@ -123,7 +123,7 @@ Name TextAsFormat(const NameFrame& frame, std::size_t index)
     const auto text = TextOf(frame, index);
     if (!text.HasValue())
         return Core::Unexpected(text.Error());
-    return UI::Sprintf(text.Value());
+    return Crt::Sprintf(text.Value());
 }
 
 // sprintf(buffer, "%s %s", texto, nombre del modelo).
@@ -135,7 +135,7 @@ Name TextAndModelName(const NameFrame& frame, std::size_t index)
     const auto name = ModelName(frame);
     if (!name.HasValue())
         return name;
-    return UI::Sprintf("%s %s", text.Value(), std::string_view(name.Value()));
+    return Crt::Sprintf("%s %s", text.Value(), std::string_view(name.Value()));
 }
 
 // Los casos que con otro nivel no escriben el buffer ([ebp-0x58]): el original dibuja lo que quedó en su pila.
@@ -197,8 +197,8 @@ Name GenericName(const NameFrame& frame)
         frame.context.hud.textColors = SetColors;
         name = *set.Value() + name;
     }
-    std::string text = frame.level == 0 ? UI::Sprintf("%s", std::string_view(name))
-                                        : UI::Sprintf("%s +%d", std::string_view(name), frame.level);
+    std::string text = frame.level == 0 ? Crt::Sprintf("%s", std::string_view(name))
+                                        : Crt::Sprintf("%s +%d", std::string_view(name), frame.level);
     const auto append = [&](std::size_t index) -> Core::Expected<void, std::string>
     {
         const auto added = TextOf(frame, index);
@@ -239,7 +239,7 @@ Name ScrollName(const NameFrame& frame)
         ReadTheSkillEntry(frame.context, FirstScrollSkill + static_cast<std::uint32_t>(frame.level), "0x5bae38");
     if (!skill.HasValue())
         return Core::Unexpected(skill.Error());
-    return UI::Sprintf("%s %s", std::string_view(skill.Value().name), text.Value());
+    return Crt::Sprintf("%s %s", std::string_view(skill.Value().name), text.Value());
 }
 
 // Un texto elegido por el nivel, del 0 en adelante; con otro, el buffer queda sin escribir.
@@ -269,7 +269,7 @@ Name TransformationRingName(const NameFrame& frame)
     const auto text = TextOf(frame, TransformationRingText);
     if (!text.HasValue())
         return Core::Unexpected(text.Error());
-    return UI::Sprintf("%s %s", std::string_view(*name), text.Value());
+    return Crt::Sprintf("%s %s", std::string_view(*name), text.Value());
 }
 
 // 0x5ba7d5..0x5bb811: el texto y su color según el modelo.
@@ -286,7 +286,7 @@ Name ComposeTheName(const NameFrame& frame)
         const auto name = ModelName(frame);
         if (!name.HasValue())
             return name;
-        return UI::Sprintf("%s %d", std::string_view(name.Value()), frame.item.value);
+        return Crt::Sprintf("%s %d", std::string_view(name.Value()), frame.item.value);
     }
     case 0x1e1f:
     case 0x1e20:
@@ -302,7 +302,7 @@ Name ComposeTheName(const NameFrame& frame)
         const auto name = ModelName(frame);
         if (!name.HasValue())
             return name;
-        return UI::Sprintf("%s", std::string_view(name.Value()));
+        return Crt::Sprintf("%s", std::string_view(name.Value()));
     }
     case 0x1a30:
     case 0x1a31:
@@ -313,7 +313,7 @@ Name ComposeTheName(const NameFrame& frame)
         const auto name = RecordNameOf(frame, model == 0x1a30 ? 0x1c0d : 0x1c0e);
         if (!name.HasValue())
             return name;
-        return UI::Sprintf("%s", std::string_view(name.Value()));
+        return Crt::Sprintf("%s", std::string_view(name.Value()));
     }
     case 0x1e23:
     case 0x1e24:
@@ -326,8 +326,8 @@ Name ComposeTheName(const NameFrame& frame)
         if (!name.HasValue())
             return name;
         if ((frame.item.value & PlusLevelBits) != 0)
-            return UI::Sprintf("%s +%d", std::string_view(name.Value()), level);
-        return UI::Sprintf("%s", std::string_view(name.Value()));
+            return Crt::Sprintf("%s +%d", std::string_view(name.Value()), level);
+        return Crt::Sprintf("%s", std::string_view(name.Value()));
     }
     case 0x1e1e:
         // 0x5ba94c: sin glColor3f.
@@ -371,7 +371,7 @@ Name ComposeTheName(const NameFrame& frame)
         const auto text = TextOf(frame, 117);
         if (!text.HasValue())
             return Core::Unexpected(text.Error());
-        return UI::Sprintf("%s", text.Value());
+        return Crt::Sprintf("%s", text.Value());
     }
     case 0x2241:
         return TextAsFormat(frame, 108);
@@ -385,7 +385,7 @@ Name ComposeTheName(const NameFrame& frame)
         const auto text = TextOf(frame, 115);
         if (!text.HasValue())
             return Core::Unexpected(text.Error());
-        return UI::Sprintf("%s +%d", text.Value(), level - 7);
+        return Crt::Sprintf("%s +%d", text.Value(), level - 7);
     }
     case 0x2245:
         Paint(frame, Gold);

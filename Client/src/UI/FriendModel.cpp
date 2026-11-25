@@ -91,8 +91,8 @@ void SortTheFriends(FriendModel& model, std::int32_t mode)
     if (mode != SameSort)
         model.sortMode = mode;
     if (model.sortMode == ByNameSort)
-        Core::Msvc6Sort(model.entries, NameComesFirst);
+        Crt::Msvc6Sort(model.entries, NameComesFirst);
     else if (model.sortMode == ByStateSort)
-        Core::Msvc6Sort(model.entries, StateComesFirst);
+        Crt::Msvc6Sort(model.entries, StateComesFirst);
 }
 } // namespace Client::UI

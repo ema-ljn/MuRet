@@ -132,7 +132,7 @@ Core::Expected<void, std::string> UpgradeText(GameHudContext& context, std::int3
     auto format = CastleUi::Text(context.texts, text);
     if (!format.HasValue())
         return Core::Unexpected(std::move(format).Error());
-    WindowDrawing::DrawText(context, x, y, UI::Sprintf(format.Value(), value));
+    WindowDrawing::DrawText(context, x, y, Crt::Sprintf(format.Value(), value));
     return {};
 }
 

@@ -115,7 +115,7 @@ Core::Expected<UI::ChatCommandNotice, std::string> NamedNotice(const SocialReque
     if (!format)
         return Core::Unexpected(std::format("{}: sin el texto {} de Text.bmd", where, text));
     const std::string name = ChatNameOf(context.world.Actors()[ActorWithTheSameKey(context.world, key)]);
-    return UI::ChatCommandNotice{.text = text, .type = UI::SystemMessage, .formatted = UI::Sprintf(*format, name)};
+    return UI::ChatCommandNotice{.text = text, .type = UI::SystemMessage, .formatted = Crt::Sprintf(*format, name)};
 }
 
 UI::ChatCommandOutcome Handled(std::vector<UI::ChatCommandNotice> notices = {})

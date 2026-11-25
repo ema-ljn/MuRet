@@ -142,10 +142,10 @@ using Math::F32;
 std::string PlaceOf(const OldWindowDrawView& view, std::uint8_t state)
 {
     if (state == FfState || state == FeState || state == AllOfflineState)
-        return Sprintf(TextAt(view, OfflinePlaceText));
+        return Crt::Sprintf(TextAt(view, OfflinePlaceText));
     if (state == FdState)
-        return Sprintf(TextAt(view, FdPlaceText));
-    return Sprintf(TextAt(view, ServerPlaceText), static_cast<std::int32_t>(state) + 1);
+        return Crt::Sprintf(TextAt(view, FdPlaceText));
+    return Crt::Sprintf(TextAt(view, ServerPlaceText), static_cast<std::int32_t>(state) + 1);
 }
 
 // 0x462a60, la vtable + 0x80 de la lista de ventanas: el renglón y el título (sprintf "%s"). Da 1.

@@ -891,7 +891,7 @@ Core::Expected<bool, std::string> CheckTheWizardsRing(const InventoryMoveContext
                 return Core::Unexpected(std::format("0x5df7c9: falta el texto {} de Text.bmd", RingLevelText));
             if (!context.services.chatLine)
                 return Core::Unexpected(std::string("0x5df7dc: 0x555190 con el aviso del anillo sin el chat"));
-            if (auto said = context.services.chatLine(UI::Sprintf(*format, *required), UI::SystemMessage);
+            if (auto said = context.services.chatLine(Crt::Sprintf(*format, *required), UI::SystemMessage);
                 !said.HasValue())
                 return Core::Unexpected(std::format("0x5df7dc, 0x555190: {}", said.Error()));
         }
@@ -939,7 +939,7 @@ Core::Expected<bool, std::string> CheckTheEntryTicket(const InventoryMoveContext
     const auto format = UI::TextAt(context.services.texts, 1123);
     if (!format || !context.services.chatLine)
         return Core::Unexpected(std::string("0x437c33: falta el aviso del nivel para entrar al evento"));
-    if (auto shown = context.services.chatLine(UI::Sprintf(*format, minimum), UI::ErrorMessage); !shown.HasValue())
+    if (auto shown = context.services.chatLine(Crt::Sprintf(*format, minimum), UI::ErrorMessage); !shown.HasValue())
         return Core::Unexpected(shown.Error());
     return false;
 }

@@ -108,16 +108,16 @@ void SortTheLetters(LetterModel& model, std::int32_t mode)
     switch (model.sortMode)
     {
     case ByTypeLetters:
-        Core::Msvc6Sort(model.letters, ReadComesFirst);
+        Crt::Msvc6Sort(model.letters, ReadComesFirst);
         return;
     case BySenderLetters:
-        Core::Msvc6Sort(model.letters, SenderComesFirst);
+        Crt::Msvc6Sort(model.letters, SenderComesFirst);
         return;
     case ByDateLetters:
-        Core::Msvc6Sort(model.letters, DateComesFirst);
+        Crt::Msvc6Sort(model.letters, DateComesFirst);
         return;
     case BySubjectLetters:
-        Core::Msvc6Sort(model.letters, SubjectComesFirst);
+        Crt::Msvc6Sort(model.letters, SubjectComesFirst);
         return;
     default:
         return;

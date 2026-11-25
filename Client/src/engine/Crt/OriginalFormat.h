@@ -15,7 +15,7 @@
 // original usa de formato. A diferencia de UI::PlaceArguments, mira el tipo de cada argumento: un texto se pasa por
 // su dirección (g_GlobalText, 0x76bd1dc + índice · 300), y un "%d" que lo toma imprime esa dirección, como el
 // original con los textos 853 y 868 del Data en español.
-namespace Client::UI
+namespace Client::Crt
 {
 // 0x76bd1dc: el primer registro de Text.bmd en memoria, de 300 bytes cada uno (06 § Los textos).
 inline constexpr std::uint32_t TextTableAddress = 0x076bd1dc;
@@ -56,4 +56,4 @@ enum class FormatFunction : std::uint8_t
 [[nodiscard]] ENGINE_API Core::Expected<std::string, std::string>
 FormatOriginal(FormatFunction function, std::string_view format, std::span<const FormatArgument> arguments,
                std::string_view where);
-} // namespace Client::UI
+} // namespace Client::Crt

@@ -98,7 +98,7 @@ public:
                                           NewUiTurn turn = {});
     // 0x66a050 y 0x647ed0: el fondo negro, el marco y los botones con su rótulo (0x63c710, que no
     // dibuja el deshabilitado).
-    void Draw(Render::SpriteBatch& sprites, Scenes::ITextDrawer& text, Core::PixelSize screen);
+    void Draw(Render::SpriteBatch& sprites, Render::Frame::ITextDrawer& text, Core::PixelSize screen);
 
 private:
     void Place(Core::PixelSize screen);

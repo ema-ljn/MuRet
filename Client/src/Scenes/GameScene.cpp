@@ -740,7 +740,7 @@ void GameScene::PrepareFrame()
     }
 }
 
-void GameScene::Render(SceneCanvas& canvas, float /*alpha*/)
+void GameScene::Render(Render::Frame::SceneCanvas& canvas, float /*alpha*/)
 {
     if (m_failure || m_holdFrame || m_context.world == nullptr || m_context.cloth == nullptr)
     {
@@ -753,7 +753,7 @@ void GameScene::Render(SceneCanvas& canvas, float /*alpha*/)
     }
 }
 
-Core::Expected<void, std::string> GameScene::DrawTheFrame(SceneCanvas& canvas)
+Core::Expected<void, std::string> GameScene::DrawTheFrame(Render::Frame::SceneCanvas& canvas)
 {
     WorldRuntime& runtime = m_context.world->Runtime();
     const World::WorldTerrain& terrain = m_context.world->Map().terrain;
@@ -909,7 +909,7 @@ Core::Expected<void, std::string> GameScene::LoadTheObjectModels(std::int32_t ma
     return {};
 }
 
-Render::Camera3D GameScene::CameraOfTheFrame(SceneCanvas& canvas, int frames)
+Render::Camera3D GameScene::CameraOfTheFrame(Render::Frame::SceneCanvas& canvas, int frames)
 {
     WorldState& world = *m_context.world;
     const WorldRuntime& runtime = world.Runtime();
@@ -971,7 +971,8 @@ Core::Expected<World::TerrainPolygon, std::string> GameScene::PolygonOfTheFrame(
     return StepTheTerrainPolygon(runtime, input, CameraState());
 }
 
-Core::Expected<void, std::string> GameScene::DrawTheWorldPass(SceneCanvas& canvas, const Render::Pass3D& pass,
+Core::Expected<void, std::string> GameScene::DrawTheWorldPass(Render::Frame::SceneCanvas& canvas,
+                                                              const Render::Pass3D& pass,
                                                               const World::TerrainPolygon& polygon, int frames)
 {
     const std::int32_t map = m_context.world->Runtime().map;
@@ -1210,7 +1211,7 @@ Core::Expected<void, std::string> GameScene::DrawTheWorldPass(SceneCanvas& canva
     return {};
 }
 
-Core::Expected<void, std::string> GameScene::DrawTheCharacters(SceneCanvas& canvas,
+Core::Expected<void, std::string> GameScene::DrawTheCharacters(Render::Frame::SceneCanvas& canvas,
                                                                const World::TerrainPolygon& polygon, int frames)
 {
     WorldState& world = *m_context.world;

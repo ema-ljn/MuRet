@@ -105,7 +105,7 @@ std::string_view TextOf(const Data::Text::TextTable* texts, std::size_t index)
     return TextAt(texts, index).value_or(std::string_view{});
 }
 
-void DrawAt(Scenes::ITextDrawer& text, Point pixel, std::string_view line, Core::PixelSize screen)
+void DrawAt(Render::Frame::ITextDrawer& text, Point pixel, std::string_view line, Core::PixelSize screen)
 {
     // 0x5542f0 con el modo 1 y ancho 0; no dibuja un texto vacío.
     if (line.empty())
@@ -302,7 +302,7 @@ std::optional<OptionsEvent> OptionsWindow::Step(const Input::InputState& input, 
     return std::nullopt;
 }
 
-void OptionsWindow::Draw(Render::SpriteBatch& sprites, Scenes::ITextDrawer& text, Core::PixelSize screen,
+void OptionsWindow::Draw(Render::SpriteBatch& sprites, Render::Frame::ITextDrawer& text, Core::PixelSize screen,
                          const OptionsSettings& current)
 {
     if (!m_open)

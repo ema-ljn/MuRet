@@ -50,6 +50,6 @@ StepTheMessageClocks(WorldRuntime& runtime, const Render::Text::ITextMeasure& me
 // login y 0x634949..0x63495f en la selección): los avisos (0x554810) y, con el registro del chat en su ventana o
 // fuera del juego, el área vieja (0x5554e0). Escribe en `hud` lo que el dibujo deja: un dibujo intermedio de MuRet
 // pasa una copia.
-void DrawTheMessages(const WorldState& world, HudState& hud, Render::SpriteBatch& sprites, ITextDrawer& text,
-                     UI::Point mouse, bool inTheGame);
+void DrawTheMessages(const WorldState& world, HudState& hud, Render::SpriteBatch& sprites,
+                     Render::Frame::ITextDrawer& text, UI::Point mouse, bool inTheGame);
 } // namespace Client::Scenes

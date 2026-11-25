@@ -1544,7 +1544,7 @@ Scenes::TextureBufferSize LoginScene::BufferSize(Render::TextureSlot slot) const
     return IsWindowTexture(slot) ? m_windowTextures.BufferSize(slot) : m_textures.BufferSize(slot);
 }
 
-void LoginScene::Render(SceneCanvas& canvas, float alpha)
+void LoginScene::Render(Render::Frame::SceneCanvas& canvas, float alpha)
 {
     // Las ventanas leen el mouse del próximo paso con esta pantalla.
     m_screen = canvas.screen;
@@ -1731,7 +1731,7 @@ DrawnCharacter LoginScene::TheCharacterToDraw(float alpha)
 // El personaje (0x510d00 → 0x50ba30, con la luz del terreno en su lugar más la suya), el caballo
 // (0x4453b0 → 0x445260, con la escala de la escena 2) y después los objetos del mundo con el logo
 // (0x6046a0 → 0x602e90, con el color de 0x5ffce0).
-void LoginScene::DrawTheModels(SceneCanvas& canvas, float alpha)
+void LoginScene::DrawTheModels(Render::Frame::SceneCanvas& canvas, float alpha)
 {
     const int nativeFrames = m_objectEffectFrames.FramesAt(canvas.frameClock, OriginalFramePaceOf(m_context.pacing));
     FaunaDrawCarry projection;
@@ -1884,7 +1884,7 @@ void LoginScene::DrawTheModels(SceneCanvas& canvas, float alpha)
 // de lo que cuelga (0x50db94) es la del terreno en su lugar (0x5f99e0, fuera de la escena 4) más +0xf4, la misma del
 // cuerpo, o el rojo de los PK. Lo que sortea (el brillo del cetro de 0x509340) cambia sólo en un frame del original:
 // un dibujo intermedio repite sus sprites del último. El cuervo lo dibuja DrawTheRaven.
-void LoginScene::DrawTheTail(SceneCanvas& canvas, ActorState& actor, const DrawnCharacter& character,
+void LoginScene::DrawTheTail(Render::Frame::SceneCanvas& canvas, ActorState& actor, const DrawnCharacter& character,
                              FaunaDrawCarry& carry, const FullSetScan& scan, int frames)
 {
     WorldState& world = CharacterWorld();
@@ -1956,7 +1956,7 @@ void LoginScene::DrawTheTail(SceneCanvas& canvas, ActorState& actor, const Drawn
     }
 }
 
-void LoginScene::DrawTheRaven(SceneCanvas& canvas, float alpha, FaunaDrawCarry* carry)
+void LoginScene::DrawTheRaven(Render::Frame::SceneCanvas& canvas, float alpha, FaunaDrawCarry* carry)
 {
     DarkSpirit& spirit = *CharacterWorld().Actors()[LoginActorSlot].darkSpirit;
     if (!DarkSpiritSeen(spirit, SharedTerrainPolygon()))
@@ -2008,7 +2008,7 @@ glm::vec3 LoginScene::TerrainLightAt(const glm::vec3& position) const
     return lighting != nullptr ? World::LightAt(*lighting, position.x, position.y) : glm::vec3(0.0f);
 }
 
-void LoginScene::DrawTheMessages(SceneCanvas& canvas)
+void LoginScene::DrawTheMessages(Render::Frame::SceneCanvas& canvas)
 {
     if (m_context.world == nullptr)
         return;
@@ -2020,9 +2020,9 @@ void LoginScene::DrawTheMessages(SceneCanvas& canvas)
     Scenes::DrawTheMessages(*m_context.world, hud, canvas.sprites, canvas.text, mouse, false);
 }
 
-void LoginScene::DrawTexts(SceneCanvas& canvas) const
+void LoginScene::DrawTexts(Render::Frame::SceneCanvas& canvas) const
 {
-    ITextDrawer& text = canvas.text;
+    Render::Frame::ITextDrawer& text = canvas.text;
     if (m_left)
     {
         const Render::Text::TextExtent extent = text.Measure(LoginTextStyle.font, *m_left);

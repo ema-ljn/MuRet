@@ -142,7 +142,7 @@ public:
     {
         if (auto before = screenshots.BeforeTheDraw(Context(shiftDown)); !before.HasValue())
             return before;
-        Client::Scenes::SceneCanvas& canvas = target.BeginFrame({});
+        Client::Render::Frame::SceneCanvas& canvas = target.BeginFrame({});
         auto after = screenshots.AfterTheDraw(Context(shiftDown), canvas, reader);
         target.Present();
         return after;
@@ -307,7 +307,7 @@ TEST(ScreenshotsTest, AFileThatDoesNotOpenStillCountsAndSaysSo)
     ScreenshotFrameContext context = shooting.Context();
     context.folder = shooting.folder.Path() / "no-existe";
     ASSERT_TRUE(screenshots.BeforeTheDraw(context).HasValue());
-    Client::Scenes::SceneCanvas& canvas = shooting.target.BeginFrame({});
+    Client::Render::Frame::SceneCanvas& canvas = shooting.target.BeginFrame({});
     ASSERT_TRUE(screenshots.AfterTheDraw(context, canvas, shooting.reader).HasValue());
     shooting.target.Present();
     EXPECT_EQ(screenshots.State().counter, 1);

@@ -131,7 +131,7 @@ struct Harness
     // Un frame: BeginFrame, el Render de la escena y Present. Devuelve lo que se dibujó.
     std::vector<FrameEvent> Frame()
     {
-        Client::Scenes::SceneCanvas& canvas = target.BeginFrame(std::chrono::milliseconds{40});
+        Client::Render::Frame::SceneCanvas& canvas = target.BeginFrame(std::chrono::milliseconds{40});
         scene.Render(canvas, 0.0f);
         target.Present();
         return target.frames.back().events;
@@ -229,7 +229,7 @@ TEST(LoadingSceneTest, DrawsWithTheNormalBlendWhateverCameBefore)
     Harness tested;
     ASSERT_TRUE(tested.scene.Enter().HasValue());
 
-    Client::Scenes::SceneCanvas& canvas = tested.target.BeginFrame(std::chrono::milliseconds{40});
+    Client::Render::Frame::SceneCanvas& canvas = tested.target.BeginFrame(std::chrono::milliseconds{40});
     canvas.sprites.SetBlend(BlendMode::Additive);
     tested.scene.Render(canvas, 0.0f);
     tested.target.Present();

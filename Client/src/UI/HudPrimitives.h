@@ -34,5 +34,5 @@ void DrawGauge(Render::SpriteBatch& sprites, float x, float y, float width, floa
 // 0x6c8e64 en 0, que quedan así), dentro de un marco negro de un punto (x − 2, y − 3, cx/rx + 4, cy/ry + 4) y un
 // fondo negro con alfa 0,8 en (x − 1, y − 2, cx/rx + 2, cy/ry + 2), con cx y cy en píxeles y rx y ry los de la
 // pantalla. Guarda la mezcla de antes (0x7d366dc) y la vuelve a poner al final; el color queda en blanco.
-void DrawHelp(Render::SpriteBatch& sprites, Scenes::ITextDrawer& text, int x, int y, std::string_view help);
+void DrawHelp(Render::SpriteBatch& sprites, Render::Frame::ITextDrawer& text, int x, int y, std::string_view help);
 } // namespace Client::UI

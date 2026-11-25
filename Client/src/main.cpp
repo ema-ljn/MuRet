@@ -498,7 +498,7 @@ void PrintFrames(const App::FrameStats& stats)
 
 // Las fuentes de `files` para cada ancho de pantalla (Scenes/SceneText.h). Si no abren, el error
 // de FontOpenError: sin [Video] FontFile, la ruta salió de la búsqueda y no va al log.
-Scenes::RasterizerFactory FontFactory(const App::ClientConfig& config, App::FontFiles files)
+Client::Render::Frame::RasterizerFactory FontFactory(const App::ClientConfig& config, App::FontFiles files)
 {
     return [&config, files = std::move(files)](
                int screenWidth) -> Core::Expected<std::unique_ptr<Client::Render::Text::IGlyphRasterizer>, std::string>
@@ -824,8 +824,8 @@ int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Sdl:
     };
     const auto beforeSceneDraw = [&screenshots, &screenshotFrame]() -> Core::Expected<void, std::string>
     { return screenshots.BeforeTheDraw(screenshotFrame()); };
-    const auto afterSceneDraw = [&screenshots, &screenshotFrame,
-                                 &screenReader](Scenes::SceneCanvas& canvas) -> Core::Expected<void, std::string>
+    const auto afterSceneDraw = [&screenshots, &screenshotFrame, &screenReader](
+                                    Client::Render::Frame::SceneCanvas& canvas) -> Core::Expected<void, std::string>
     { return screenshots.AfterTheDraw(screenshotFrame(), canvas, screenReader); };
     Scenes::SceneManager manager(MakeSceneFactory(context, scenes.data, models, session), *frame.Value(), clock,
                                  pollNetwork, log, takeSceneOrder, beforeSceneFrame, afterSceneFrame, afterSceneStep,

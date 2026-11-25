@@ -33,7 +33,7 @@ public:
     // Después del primer frame, el juego.
     void Step(const Input::InputState& input) override;
     // Las cuatro, con la escala W / 800 y H / 600, como la UI de la carga.
-    void Render(SceneCanvas& canvas, float alpha) override;
+    void Render(Render::Frame::SceneCanvas& canvas, float alpha) override;
     // Suelta las cuatro.
     void Leave() override;
     [[nodiscard]] std::optional<SceneId> Next() const override;

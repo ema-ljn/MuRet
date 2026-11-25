@@ -34,10 +34,13 @@ struct GameUiState;
 
 // La captura de pantalla de Impr Pant (CL8 hito 6; 06 § La captura de pantalla): lo que 0x637700 hace en todas las
 // escenas, detrás del paso (0x637cff) y alrededor del dibujo (0x6381bb..0x6385da). No saca rand(). *Estático*.
+namespace Client::Render::Frame
+{
+struct SceneCanvas;
+} // namespace Client::Render::Frame
 namespace Client::Scenes
 {
 class WorldState;
-struct SceneCanvas;
 
 // Los globales de la captura, en la .bss: los leen y escriben solo 0x637700 y 0x6202e0.
 struct ScreenshotState
@@ -103,8 +106,9 @@ public:
     // la lectura (0x6202e0), el JPEG con calidad 100 (0x63b150, Data::Textures::WriteJpegFile), el contador, y con
     // Shift, el mensaje (con el 0x7d3a194 vacío), que ya no sale; el pedido, apagado. Un archivo que no abre no es un
     // error (el original no lo mira); que libjpeg corte, sí.
-    [[nodiscard]] Core::Expected<void, std::string>
-    AfterTheDraw(const ScreenshotFrameContext& context, SceneCanvas& canvas, Render::Frame::IScreenReader& reader);
+    [[nodiscard]] Core::Expected<void, std::string> AfterTheDraw(const ScreenshotFrameContext& context,
+                                                                 Render::Frame::SceneCanvas& canvas,
+                                                                 Render::Frame::IScreenReader& reader);
 
     // El fin de una vuelta del bucle sin minimizar (SceneManager::FinishTheLoop). Si no hubo dibujo y la captura está
     // pedida, el original la toma igual de un frame que no presenta (0x6385aa con el 0 del dibujo de la escena,

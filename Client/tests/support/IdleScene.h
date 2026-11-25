@@ -22,7 +22,7 @@ public:
         return {};
     }
     void Step(const Input::InputState& /*input*/) override {}
-    void Render(Scenes::SceneCanvas& /*canvas*/, float /*alpha*/) override {}
+    void Render(Render::Frame::SceneCanvas& /*canvas*/, float /*alpha*/) override {}
     void Leave() override {}
     [[nodiscard]] std::optional<Scenes::SceneId> Next() const override
     {

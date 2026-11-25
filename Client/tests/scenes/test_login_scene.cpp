@@ -268,7 +268,7 @@ struct Harness
     // Un frame con el reloj `clock`. Devuelve lo que se dibujó.
     std::vector<FrameEvent> Frame(std::chrono::milliseconds clock = AnyClock, float alpha = 0.0f)
     {
-        Client::Scenes::SceneCanvas& canvas = target.BeginFrame(clock);
+        Client::Render::Frame::SceneCanvas& canvas = target.BeginFrame(clock);
         scene->Render(canvas, alpha);
         target.Present();
         return target.frames.back().events;

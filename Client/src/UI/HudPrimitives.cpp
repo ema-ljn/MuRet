@@ -108,7 +108,7 @@ void DrawGauge(Render::SpriteBatch& sprites, float x, float y, float width, floa
     sprites.SetBlend(Render::BlendMode::Opaque);
 }
 
-void DrawHelp(Render::SpriteBatch& sprites, Scenes::ITextDrawer& text, int x, int y, std::string_view help)
+void DrawHelp(Render::SpriteBatch& sprites, Render::Frame::ITextDrawer& text, int x, int y, std::string_view help)
 {
     // 0x554346..0x55437a: SelectObject con la fuente normal y GetTextExtentPoint32 del texto.
     const Render::Text::TextExtent extent = text.Measure(Render::Text::FontKind::Normal, help);

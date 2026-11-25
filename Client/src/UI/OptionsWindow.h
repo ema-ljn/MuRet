@@ -101,7 +101,7 @@ public:
                                      const OptionsSettings& current, NewUiTurn turn = {});
     // 0x66a050 y 0x644860: el fondo, el marco, los textos con los valores de `current` (los
     // globales, no los deslizadores), los deslizadores y, al final (0x66a090), las casillas y el botón.
-    void Draw(Render::SpriteBatch& sprites, Scenes::ITextDrawer& text, Core::PixelSize screen,
+    void Draw(Render::SpriteBatch& sprites, Render::Frame::ITextDrawer& text, Core::PixelSize screen,
               const OptionsSettings& current);
 
 private:

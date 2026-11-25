@@ -71,7 +71,7 @@ public:
 
     // El adorno y la franja, el aviso del servidor (+0x511, `serverNotice`), el texto 1710, los 436
     // y 437 con la cuenta bloqueada y los cuatro botones, con la mezcla normal.
-    void Draw(Render::SpriteBatch& sprites, Scenes::ITextDrawer& text, Core::PixelSize screen,
+    void Draw(Render::SpriteBatch& sprites, Render::Frame::ITextDrawer& text, Core::PixelSize screen,
               std::string_view serverNotice = {});
 
     [[nodiscard]] const Button& CreateButton() const;

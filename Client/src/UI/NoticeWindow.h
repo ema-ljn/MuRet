@@ -78,7 +78,7 @@ public:
     // Con el campo del código abierto.
     [[nodiscard]] bool WantsTextInput() const;
     // La base, la caja, el OK y el texto, con la mezcla normal (Q-C80).
-    void Draw(Render::SpriteBatch& sprites, Scenes::ITextDrawer& text, Core::PixelSize screen);
+    void Draw(Render::SpriteBatch& sprites, Render::Frame::ITextDrawer& text, Core::PixelSize screen);
 
 private:
     void Place(Core::PixelSize screen);

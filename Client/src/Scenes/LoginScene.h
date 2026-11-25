@@ -119,7 +119,7 @@ public:
     // 0x6350b0 sin el fundido (Q-C66) ni lo común a las escenas: en el pase 3D, el terreno, el
     // personaje (0x510d00), el caballo y los objetos con el logo (0x6046a0), salvo con los créditos
     // abiertos; al final la UI, cada ventana con la mezcla normal.
-    void Render(SceneCanvas& canvas, float alpha) override;
+    void Render(Render::Frame::SceneCanvas& canvas, float alpha) override;
     // Cierra las ventanas (la de la cuenta vacía la clave) y suelta sus slots, los del mundo, los del logo
     // y las ilustraciones de los créditos.
     void Leave() override;
@@ -190,20 +190,20 @@ private:
     // su hueso 27 es dummy, y en el 27 queda el del caballo. Antes del primer dibujo, (0, 0, 0).
     [[nodiscard]] glm::vec3 GlobalPosePoint(std::size_t bone, const glm::vec3& offset,
                                             const DarkHorse& drawnHorse) const;
-    void DrawTheModels(SceneCanvas& canvas, float alpha);
+    void DrawTheModels(Render::Frame::SceneCanvas& canvas, float alpha);
     // 0x4182f0: el cuervo, si pasa el trapecio (si no, MissTheView), y su pose para la chispa.
-    void DrawTheRaven(SceneCanvas& canvas, float alpha, FaunaDrawCarry* carry = nullptr);
+    void DrawTheRaven(Render::Frame::SceneCanvas& canvas, float alpha, FaunaDrawCarry* carry = nullptr);
     // 0x50db57..0x510a7a con el personaje, después de su cuerpo, `frames` veces (con cero, una entre frames); un
     // error queda en m_failure.
-    void DrawTheTail(SceneCanvas& canvas, ActorState& actor, const DrawnCharacter& character, FaunaDrawCarry& carry,
-                     const FullSetScan& scan, int frames);
+    void DrawTheTail(Render::Frame::SceneCanvas& canvas, ActorState& actor, const DrawnCharacter& character,
+                     FaunaDrawCarry& carry, const FullSetScan& scan, int frames);
     // El corte del pase de partículas, en el log: una vez por entrada.
     void ReportParticleFailure(const World::ParticleDrawingFailure& failure);
     // La luz del terreno en (x, y), o 0 sin la del mundo.
     [[nodiscard]] glm::vec3 TerrainLightAt(const glm::vec3& position) const;
-    void DrawTexts(SceneCanvas& canvas) const;
+    void DrawTexts(Render::Frame::SceneCanvas& canvas) const;
     // 0x63552a..0x63553f: los avisos y el área vieja, antes de la UI.
-    void DrawTheMessages(SceneCanvas& canvas);
+    void DrawTheMessages(Render::Frame::SceneCanvas& canvas);
     // Lo que cambió en la sesión desde el último paso: abre o cierra las ventanas.
     void FollowSession();
     // La respuesta al F4 03 (0x4e3341), conecte o no: el 481 en el área de mensajes, una vez por dirección.

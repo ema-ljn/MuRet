@@ -11,7 +11,7 @@
 #include <string>
 #include <utility>
 
-namespace Client::Scenes
+namespace Client::Render::Frame
 {
 Core::Expected<std::unique_ptr<SceneText>, std::string> SceneText::Create(Render::ITextureStore& store,
                                                                           Render::SpriteBatch& batch,
@@ -61,4 +61,4 @@ ITextDrawer& SceneText::Drawer()
 {
     return m_drawer;
 }
-} // namespace Client::Scenes
+} // namespace Client::Render::Frame

@@ -93,7 +93,7 @@ float AlphaOf(std::uint8_t alpha)
 
 // 0x5542f0 con el modo 2: `line` centrado en `width` píxeles desde la x de 640 × 480 `designX`, como el
 // rótulo de un botón (Button::DrawLabel). No dibuja un texto vacío.
-void DrawCentered(Scenes::ITextDrawer& text, int designX, int designY, int width, std::string_view line,
+void DrawCentered(Render::Frame::ITextDrawer& text, int designX, int designY, int width, std::string_view line,
                   const Render::Text::TextStyle& style, Core::PixelSize screen)
 {
     if (line.empty())
@@ -200,7 +200,7 @@ CreditsStep CreditsWindow::Step(const Input::InputState& input, Core::PixelSize 
     return step;
 }
 
-void CreditsWindow::Draw(Render::SpriteBatch& sprites, Scenes::ITextDrawer& text, Core::PixelSize screen)
+void CreditsWindow::Draw(Render::SpriteBatch& sprites, Render::Frame::ITextDrawer& text, Core::PixelSize screen)
 {
     if (!m_open)
     {
@@ -461,7 +461,7 @@ std::uint8_t CreditsWindow::KindAt(std::size_t index) const
     return Data::Text::CreditKindAt(m_credits, index);
 }
 
-void CreditsWindow::DrawTexts(Scenes::ITextDrawer& text, Core::PixelSize screen) const
+void CreditsWindow::DrawTexts(Render::Frame::ITextDrawer& text, Core::PixelSize screen) const
 {
     const auto textAt = [this](std::size_t index)
     { return index < m_credits.size() ? std::string_view(m_credits[index].text) : std::string_view{}; };

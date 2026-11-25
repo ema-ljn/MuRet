@@ -71,7 +71,7 @@ public:
     {
         ++m_calls.steps;
     }
-    void Render(Client::Scenes::SceneCanvas&, float) override
+    void Render(Client::Render::Frame::SceneCanvas&, float) override
     {
         ++m_calls.renders;
         m_clock.Advance(m_renderCost);

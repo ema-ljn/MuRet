@@ -34,13 +34,13 @@
 // limpio.
 namespace Client::Render::Gl
 {
-class OPENGL_API GlFrameTarget final : public Scenes::IFrameTarget
+class OPENGL_API GlFrameTarget final : public Frame::IFrameTarget
 {
 public:
     // `screen` da el área de dibujo de cada frame, y `present` presenta. La tabla y el log tienen
     // que vivir más. El error, si un renderer no compila o las fuentes del ancho de ahora no abren.
     [[nodiscard]] static Core::Expected<std::unique_ptr<GlFrameTarget>, std::string>
-    Create(const Platform::Sdl::GlFunctions& gl, TextureTable& textures, Scenes::RasterizerFactory fonts,
+    Create(const Platform::Sdl::GlFunctions& gl, TextureTable& textures, Frame::RasterizerFactory fonts,
            std::function<Core::PixelSize()> screen, std::function<void()> present, Core::Log& log);
 
     GlFrameTarget(const GlFrameTarget&) = delete;
@@ -49,7 +49,7 @@ public:
     GlFrameTarget& operator=(GlFrameTarget&&) = delete;
     ~GlFrameTarget() override = default;
 
-    Scenes::SceneCanvas& BeginFrame(Core::Duration frameClock) override;
+    Frame::SceneCanvas& BeginFrame(Core::Duration frameClock) override;
     void Present() override;
 
     // El GetTextExtentPointA del DC de los textos fuera del dibujo (el paso y la red): el de SceneText, con las
@@ -76,8 +76,8 @@ private:
     SpriteBatch m_sprites;
     ModelBatch m_models;
     // Después del lote: su drawer lo guarda. Antes de la tabla no, que es de main.cpp.
-    std::unique_ptr<Scenes::SceneText> m_text;
-    Scenes::EmptyWorldView m_world;
-    std::optional<Scenes::SceneCanvas> m_canvas;
+    std::unique_ptr<Frame::SceneText> m_text;
+    Frame::EmptyWorldView m_world;
+    std::optional<Frame::SceneCanvas> m_canvas;
 };
 } // namespace Client::Render::Gl

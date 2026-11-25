@@ -251,7 +251,7 @@ std::optional<EscapeWindowEvent> EscapeWindow::Step(const Input::InputState& inp
     return std::nullopt;
 }
 
-void EscapeWindow::Draw(Render::SpriteBatch& sprites, Scenes::ITextDrawer& text, Core::PixelSize screen)
+void EscapeWindow::Draw(Render::SpriteBatch& sprites, Render::Frame::ITextDrawer& text, Core::PixelSize screen)
 {
     if (!m_open)
     {

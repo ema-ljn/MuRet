@@ -12,7 +12,7 @@
 #include <string>
 #include <string_view>
 
-namespace Client::Scenes
+namespace Client::Render::Frame
 {
 TextCacheDrawer::TextCacheDrawer(Render::Text::TextCache& cache, Render::SpriteBatch& batch, Core::Log& log)
     : m_cache(cache), m_batch(batch), m_log(log)
@@ -59,4 +59,4 @@ void TextCacheDrawer::LogOnce(const Core::Expected<void, std::string>& drawn)
         m_log.Error("un texto no se dibuja: {}", drawn.Error());
     }
 }
-} // namespace Client::Scenes
+} // namespace Client::Render::Frame

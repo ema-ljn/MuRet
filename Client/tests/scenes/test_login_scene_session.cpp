@@ -314,7 +314,7 @@ struct Harness
     // Un frame dibujado.
     std::vector<FrameEvent> Frame(Client::Core::Duration frameClock = std::chrono::milliseconds{40})
     {
-        Client::Scenes::SceneCanvas& canvas = target.BeginFrame(frameClock);
+        Client::Render::Frame::SceneCanvas& canvas = target.BeginFrame(frameClock);
         scene->Render(canvas, 0.0f);
         target.Present();
         return target.frames.back().events;

@@ -34,7 +34,7 @@ namespace Client::Render::Text
 class ITextMeasure;
 }
 
-namespace Client::Scenes
+namespace Client::Render::Frame
 {
 class ITextDrawer;
 }
@@ -161,7 +161,7 @@ struct SlideStepContext
 struct SlideDrawContext
 {
     Render::SpriteBatch& sprites;
-    Scenes::ITextDrawer& text;
+    Render::Frame::ITextDrawer& text;
     Render::Text::FontKind& dcFont;
     Render::Text::TextColors& textColors;
     std::int32_t mouseX = 0;

@@ -27,14 +27,14 @@ std::string Describe(SceneId scene)
 }
 } // namespace
 
-SceneManager::SceneManager(SceneFactory factory, IFrameTarget& frame, Core::IClock& clock,
+SceneManager::SceneManager(SceneFactory factory, Render::Frame::IFrameTarget& frame, Core::IClock& clock,
                            std::function<Core::Expected<void, std::string>()> pollNetwork, Core::Log& log,
                            std::function<std::optional<SceneId>()> takeSceneOrder,
                            std::function<void(Core::Duration)> beforeSceneFrame,
                            std::function<void(Core::Duration)> afterSceneFrame,
                            std::function<Core::Expected<void, std::string>()> afterSceneStep,
                            std::function<Core::Expected<void, std::string>()> beforeSceneDraw,
-                           std::function<Core::Expected<void, std::string>(SceneCanvas&)> afterSceneDraw)
+                           std::function<Core::Expected<void, std::string>(Render::Frame::SceneCanvas&)> afterSceneDraw)
     : m_factory(std::move(factory)), m_frame(frame), m_clock(clock), m_pollNetwork(std::move(pollNetwork)), m_log(log),
       m_takeSceneOrder(std::move(takeSceneOrder)), m_beforeSceneFrame(std::move(beforeSceneFrame)),
       m_afterSceneFrame(std::move(afterSceneFrame)), m_afterSceneStep(std::move(afterSceneStep)),
@@ -148,7 +148,7 @@ void SceneManager::Render(float alpha)
     {
         return;
     }
-    SceneCanvas& canvas = m_frame.BeginFrame(m_clock.Now());
+    Render::Frame::SceneCanvas& canvas = m_frame.BeginFrame(m_clock.Now());
     m_scene->Render(canvas, alpha);
     if (TakeTheSceneFailure("dibujar"))
     {

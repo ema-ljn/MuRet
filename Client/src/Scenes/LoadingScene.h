@@ -34,7 +34,7 @@ public:
     void Step(const Input::InputState& input) override;
     // La mezcla normal (0x620a00(1), que 0x622e40 deja antes de 0x61ccb0), las cinco imágenes en
     // el orden de 0x65f200 y la barra con el avance.
-    void Render(SceneCanvas& canvas, float alpha) override;
+    void Render(Render::Frame::SceneCanvas& canvas, float alpha) override;
     // Suelta sus seis slots, como 0x63c150 al final de 0x622e40.
     void Leave() override;
     // El login, después del último avance (0x622f93).

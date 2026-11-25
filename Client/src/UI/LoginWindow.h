@@ -97,7 +97,7 @@ public:
     // campo (la clave con asteriscos), los rótulos y el título. El control activo del original
     // (0x468320) compone el caret como píxeles; no agrega el glifo "_" del camino legacy.
     // MuRet todavía no reproduce ese caret rectangular: el foco conserva la edición, sin señal visual.
-    void Draw(Render::SpriteBatch& sprites, Scenes::ITextDrawer& text, Core::PixelSize screen);
+    void Draw(Render::SpriteBatch& sprites, Render::Frame::ITextDrawer& text, Core::PixelSize screen);
 
 private:
     [[nodiscard]] TextField& Focused();
@@ -107,7 +107,8 @@ private:
     void Place(Core::PixelSize screen);
     LoginRequest Send();
     LoginRequest Cancel();
-    void DrawField(Scenes::ITextDrawer& text, const TextField& field, const Rect& area, Core::PixelSize screen) const;
+    void DrawField(Render::Frame::ITextDrawer& text, const TextField& field, const Rect& area,
+                   Core::PixelSize screen) const;
 
     TextureSizes m_sizes;
     const Data::Text::TextTable* m_texts;

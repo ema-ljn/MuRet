@@ -1227,7 +1227,7 @@ Render::Camera3D CharacterSelectScene::StepTheCameraAndTheTrapezoid(const World:
     return camera;
 }
 
-void CharacterSelectScene::Render(SceneCanvas& canvas, float alpha)
+void CharacterSelectScene::Render(Render::Frame::SceneCanvas& canvas, float alpha)
 {
     if (m_failure)
     {
@@ -1368,7 +1368,8 @@ void CharacterSelectScene::UpdateTheBalloons()
     }
 }
 
-void CharacterSelectScene::DrawTheBalloons(SceneCanvas& canvas, const Render::Pass3D& pass, float fieldOfView)
+void CharacterSelectScene::DrawTheBalloons(Render::Frame::SceneCanvas& canvas, const Render::Pass3D& pass,
+                                           float fieldOfView)
 {
     if (!m_balloons.IsBuilt())
     {
@@ -1429,9 +1430,9 @@ std::function<double(float, float)> CharacterSelectScene::TerrainHeight()
     { return World::TerrainHeightAt(*terrain->heights, *terrain->attributes, x, y, CameraState().fixedHeight); };
 }
 
-void CharacterSelectScene::DrawTheWorldAndTheCharacters(SceneCanvas& canvas, float alpha, const Render::Pass3D& pass,
-                                                        const Render::Camera3D& camera, std::uint8_t map,
-                                                        FaunaDrawCarry* poseCarry, int scanFrames)
+void CharacterSelectScene::DrawTheWorldAndTheCharacters(Render::Frame::SceneCanvas& canvas, float alpha,
+                                                        const Render::Pass3D& pass, const Render::Camera3D& camera,
+                                                        std::uint8_t map, FaunaDrawCarry* poseCarry, int scanFrames)
 {
     // 0x6347ba..0x6347e2, después de 0x6346ca: Z163 y la luz +0xf4 en 0 en los cinco primeros registros del
     // pool, sin comprobar alive ni presencia de slot0, después de la espera de lista de 0x634680.
@@ -1568,7 +1569,7 @@ void CharacterSelectScene::DrawTheWorldAndTheCharacters(SceneCanvas& canvas, flo
     canvas.models.Begin(pass);
 }
 
-void CharacterSelectScene::DrawTheCharacters(SceneCanvas& canvas, float alpha, std::uint8_t map,
+void CharacterSelectScene::DrawTheCharacters(Render::Frame::SceneCanvas& canvas, float alpha, std::uint8_t map,
                                              FaunaDrawCarry* poseCarry, int scanFrames)
 {
     const Protocol::Character::CharacterEntry* chosen = m_session != nullptr ? m_session->ChosenCharacter() : nullptr;
@@ -1701,7 +1702,7 @@ bool CharacterSelectScene::HasTheSkeleton() const
 // (0x50db94, [ebp−0x44] más +0xf4) es la de la escena 4, 0,4 fijo (0x50cc29), o 0,5 en el héroe publicado, que la
 // rama de su color pisa (0x50d231); con +0x375 desde 6, (1; 0,1; 0,1). El cuervo de un Dark Lord de la lista
 // (EquipSelectionActor) va con el trapecio de la selección.
-void CharacterSelectScene::DrawTheTail(SceneCanvas& canvas, ActorState& actor, std::size_t slot,
+void CharacterSelectScene::DrawTheTail(Render::Frame::SceneCanvas& canvas, ActorState& actor, std::size_t slot,
                                        const DrawnCharacter& drawn, FaunaDrawCarry& poseCarry, const FullSetScan& scan,
                                        bool originalFrame)
 {
@@ -1755,7 +1756,7 @@ FullSetScan CharacterSelectScene::ScanTheCharacter(const GameLogic::CharacterApp
     return ScanTheDrawnCharacter(*m_context.world, ScannedCharacterOf(appearance), m_context.cloth->random, frames);
 }
 
-void CharacterSelectScene::DrawTheMessages(SceneCanvas& canvas)
+void CharacterSelectScene::DrawTheMessages(Render::Frame::SceneCanvas& canvas)
 {
     if (m_context.world == nullptr)
         return;
@@ -1767,7 +1768,7 @@ void CharacterSelectScene::DrawTheMessages(SceneCanvas& canvas)
     Scenes::DrawTheMessages(*m_context.world, hud, canvas.sprites, canvas.text, mouse, false);
 }
 
-void CharacterSelectScene::DrawTheCursor(SceneCanvas& canvas) const
+void CharacterSelectScene::DrawTheCursor(Render::Frame::SceneCanvas& canvas) const
 {
     if (m_context.input != nullptr)
     {
@@ -1825,7 +1826,7 @@ void CharacterSelectScene::StepThePreview()
 // 0x66a050: la base de la ventana; 0x63e460: la vista previa en su propio pase, sin limpiar la
 // profundidad (se prueba contra la del pase de la selección, como en el original); y 0x63e0a0: lo
 // demás, encima.
-void CharacterSelectScene::DrawTheCreateWindow(SceneCanvas& canvas, float alpha)
+void CharacterSelectScene::DrawTheCreateWindow(Render::Frame::SceneCanvas& canvas, float alpha)
 {
     if (!m_create.IsOpen())
     {

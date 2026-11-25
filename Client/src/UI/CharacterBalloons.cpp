@@ -121,7 +121,8 @@ std::string TextOf(const Data::Text::TextTable* texts, std::size_t index)
 
 // 0x5542f0(x, y, texto, 118, 2, 0) → 0x465950 → 0x467060 en el modo 2: la caja de 118 columnas desde x, con el texto
 // en (118 − cx) / 2. La caja va aunque el texto esté vacío.
-void DrawLine(Scenes::ITextDrawer& text, int x, int y, const std::string& line, FontKind font, std::uint32_t color)
+void DrawLine(Render::Frame::ITextDrawer& text, int x, int y, const std::string& line, FontKind font,
+              std::uint32_t color)
 {
     const Render::Text::TextStyle style{font, Render::Text::TextColors{color, 0}};
     const Render::Text::CenteredInBox placed = Render::Text::CenterInBox(text, font, line, BalloonWidth);
@@ -209,7 +210,7 @@ bool CharacterBalloons::IsShown(std::size_t index) const
 }
 
 Core::Expected<void, std::string>
-CharacterBalloons::Draw(Render::SpriteBatch& sprites, Scenes::ITextDrawer& text, Core::PixelSize screen,
+CharacterBalloons::Draw(Render::SpriteBatch& sprites, Render::Frame::ITextDrawer& text, Core::PixelSize screen,
                         std::span<const std::optional<BalloonHead>, BalloonCount> heads)
 {
     if (!m_built)

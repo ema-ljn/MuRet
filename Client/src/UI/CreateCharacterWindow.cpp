@@ -337,7 +337,7 @@ void CreateCharacterWindow::DrawBase(Render::SpriteBatch& sprites, Core::PixelSi
     sprites.Image(BlackBox(Area(0, 0, screen.width, screen.height), BaseAlpha));
 }
 
-void CreateCharacterWindow::Draw(Render::SpriteBatch& sprites, Scenes::ITextDrawer& text, Core::PixelSize screen)
+void CreateCharacterWindow::Draw(Render::SpriteBatch& sprites, Render::Frame::ITextDrawer& text, Core::PixelSize screen)
 {
     if (!m_open)
     {
@@ -363,7 +363,7 @@ void CreateCharacterWindow::Draw(Render::SpriteBatch& sprites, Scenes::ITextDraw
     DrawTheName(text, screen);
 }
 
-void CreateCharacterWindow::DrawAttributes(Scenes::ITextDrawer& text, Core::PixelSize screen) const
+void CreateCharacterWindow::DrawAttributes(Render::Frame::ITextDrawer& text, Core::PixelSize screen) const
 {
     const Rect& box = m_layout.attributes;
     const auto drawAttribute = [&](std::string_view value, std::size_t label, int top)
@@ -386,7 +386,7 @@ void CreateCharacterWindow::DrawAttributes(Scenes::ITextDrawer& text, Core::Pixe
     }
 }
 
-void CreateCharacterWindow::DrawDescription(Scenes::ITextDrawer& text, Core::PixelSize screen) const
+void CreateCharacterWindow::DrawDescription(Render::Frame::ITextDrawer& text, Core::PixelSize screen) const
 {
     const std::optional<std::string_view> description = TextAt(m_texts, FirstDescriptionText + m_class);
     if (!description || description->empty())
@@ -403,7 +403,7 @@ void CreateCharacterWindow::DrawDescription(Scenes::ITextDrawer& text, Core::Pix
     }
 }
 
-void CreateCharacterWindow::DrawTheName(Scenes::ITextDrawer& text, Core::PixelSize screen) const
+void CreateCharacterWindow::DrawTheName(Render::Frame::ITextDrawer& text, Core::PixelSize screen) const
 {
     const std::string_view name = m_name.Value();
     if (!name.empty())

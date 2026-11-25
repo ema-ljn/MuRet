@@ -209,7 +209,7 @@ bool NoticeWindow::WantsTextInput() const
     return m_notice && KindOf(*m_notice) == NoticeKind::Code;
 }
 
-void NoticeWindow::Draw(Render::SpriteBatch& sprites, Scenes::ITextDrawer& text, Core::PixelSize screen)
+void NoticeWindow::Draw(Render::SpriteBatch& sprites, Render::Frame::ITextDrawer& text, Core::PixelSize screen)
 {
     if (!m_notice)
     {

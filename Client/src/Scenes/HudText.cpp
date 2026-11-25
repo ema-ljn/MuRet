@@ -11,7 +11,8 @@
 
 namespace Client::Scenes
 {
-void DrawHudLine(ITextDrawer& text, Core::PixelSize screen, HudState& hud, int x, int y, std::string_view line)
+void DrawHudLine(Render::Frame::ITextDrawer& text, Core::PixelSize screen, HudState& hud, int x, int y,
+                 std::string_view line)
 {
     if (!line.empty())
         text.Draw(x, y, line, Render::Text::TextStyle{.font = hud.dcFont, .colors = hud.textColors});
@@ -20,7 +21,8 @@ void DrawHudLine(ITextDrawer& text, Core::PixelSize screen, HudState& hud, int x
     hud.arrowsTextHeight = Render::Text::DesignY(extent.height, screen);
 }
 
-void DrawHudCentered(ITextDrawer& text, Core::PixelSize screen, HudState& hud, int x, int y, std::string_view line)
+void DrawHudCentered(Render::Frame::ITextDrawer& text, Core::PixelSize screen, HudState& hud, int x, int y,
+                     std::string_view line)
 {
     const Render::Text::TextExtent extent = text.Measure(hud.dcFont, line);
     DrawHudLine(text, screen, hud, Render::Text::CenteredAt(x, extent, screen), y, line);

@@ -219,7 +219,7 @@ struct Harness
     // El evento de los modelos del frame, después de un frame.
     FrameEvent ModelsOfAFrame()
     {
-        Client::Scenes::SceneCanvas& canvas = target.BeginFrame(std::chrono::milliseconds{40});
+        Client::Render::Frame::SceneCanvas& canvas = target.BeginFrame(std::chrono::milliseconds{40});
         scene->Render(canvas, 0.0f);
         target.Present();
         const std::vector<FrameEvent>& events = target.frames.back().events;

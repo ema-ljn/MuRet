@@ -117,7 +117,7 @@ public:
     // 0x63723a en adelante, con el frame no retenido: lo que MuRet tiene, en el orden del original,
     // hasta la primera etapa que no tiene. Ahí el frame se corta y la escena queda en Failure. Retenido,
     // o después de un corte, nada.
-    void Render(SceneCanvas& canvas, float alpha) override;
+    void Render(Render::Frame::SceneCanvas& canvas, float alpha) override;
     // 0x6371a6..0x63722e: sin el mundo cargado retiene sin leer; con él, lee el contador y retiene
     // con más de 30.
     void PrepareFrame() override;
@@ -173,32 +173,34 @@ private:
     [[nodiscard]] Core::Expected<void, std::string> StepTheObjects();
 
     // 0x63723a: un frame completo del mundo, hasta una dependencia ausente si se alcanza.
-    [[nodiscard]] Core::Expected<void, std::string> DrawTheFrame(SceneCanvas& canvas);
+    [[nodiscard]] Core::Expected<void, std::string> DrawTheFrame(Render::Frame::SceneCanvas& canvas);
     // Los modelos de los objetos de `map` (0x616ec0, WorldModels) y sus texturas, que el original lee en
     // 0x61a560, al cargar; MuRet, la primera vez que el dibujo o el paso los piden.
     [[nodiscard]] Core::Expected<void, std::string> LoadTheObjectModels(std::int32_t map);
     // Los tiles y el pasto de `map` en la GPU, que el original sube en 0x61a560, al cargar.
     [[nodiscard]] Core::Expected<void, std::string> UploadTheTiles(std::uint8_t map);
     // 0x635ae0, una vez por frame original, y la consulta de los dibujos intermedios.
-    [[nodiscard]] Render::Camera3D CameraOfTheFrame(SceneCanvas& canvas, int frames);
+    [[nodiscard]] Render::Camera3D CameraOfTheFrame(Render::Frame::SceneCanvas& canvas, int frames);
     // 0x5fbb00 → 0x5fb570: el trapecio alrededor de `target`, con su transición si corre un frame. Con un
     // frame los dos quedan en WorldRuntime (TerrainPolygonFrame.h); en un dibujo intermedio, nada.
     [[nodiscard]] Core::Expected<World::TerrainPolygon, std::string>
     PolygonOfTheFrame(const Render::Camera3D& camera, const glm::vec3& target, std::int32_t worldWidth, int frames);
     // 0x637410: terreno, objetos, suelo, aves y personajes; después continúa la cola del frame.
     // `frames` son los frames del original del reloj: con 0, los objetos no sacan rand().
-    [[nodiscard]] Core::Expected<void, std::string> DrawTheWorldPass(SceneCanvas& canvas, const Render::Pass3D& pass,
+    [[nodiscard]] Core::Expected<void, std::string> DrawTheWorldPass(Render::Frame::SceneCanvas& canvas,
+                                                                     const Render::Pass3D& pass,
                                                                      const World::TerrainPolygon& polygon, int frames);
 
-    [[nodiscard]] Core::Expected<void, std::string> DrawTheCharacters(SceneCanvas& canvas,
+    [[nodiscard]] Core::Expected<void, std::string> DrawTheCharacters(Render::Frame::SceneCanvas& canvas,
                                                                       const World::TerrainPolygon& polygon, int frames);
-    [[nodiscard]] Core::Expected<void, std::string> DrawTheBirds(SceneCanvas& canvas,
+    [[nodiscard]] Core::Expected<void, std::string> DrawTheBirds(Render::Frame::SceneCanvas& canvas,
                                                                  const World::TerrainPolygon& polygon, int frames);
-    [[nodiscard]] Core::Expected<void, std::string> DrawTheTail(SceneCanvas& canvas, const Render::Pass3D& pass,
+    [[nodiscard]] Core::Expected<void, std::string> DrawTheTail(Render::Frame::SceneCanvas& canvas,
+                                                                const Render::Pass3D& pass,
                                                                 const World::TerrainPolygon& polygon, int frames);
     // 0x637641..0x6376eb: el picking del frame y la pasada 2D: el HUD, las superposiciones y el cursor. `projection`
     // es 0x6203c0 del pase del mundo, que leen los globos (0x5a9050); nullptr si no se pudo armar.
-    [[nodiscard]] Core::Expected<void, std::string> DrawTheInterface(SceneCanvas& canvas,
+    [[nodiscard]] Core::Expected<void, std::string> DrawTheInterface(Render::Frame::SceneCanvas& canvas,
                                                                      const GameProjection* projection);
     // Los globales de 0x60b3d0 del frame, que comparten lo que cuelga de los personajes (0x509340) y los
     // ítems del piso (0x608a00): `item` apunta a `special`.
@@ -218,7 +220,7 @@ private:
     [[nodiscard]] std::span<World::WorldObject> FrameObjects();
     [[nodiscard]] World::KalimaWorld* FrameKalima();
     [[nodiscard]] std::uint8_t ReadFrameHeroCell(bool x);
-    [[nodiscard]] Core::Expected<void, std::string> DrawKalimaWater(SceneCanvas& canvas);
+    [[nodiscard]] Core::Expected<void, std::string> DrawKalimaWater(Render::Frame::SceneCanvas& canvas);
 
     World::GameCamera& CameraState();
     World::GameCameraInput& CameraInputState();

@@ -84,8 +84,8 @@ Core::Expected<void, std::string> StepTheMessageClocks(WorldRuntime& runtime, co
     return {};
 }
 
-void DrawTheMessages(const WorldState& world, HudState& hud, Render::SpriteBatch& sprites, ITextDrawer& text,
-                     UI::Point mouse, bool inTheGame)
+void DrawTheMessages(const WorldState& world, HudState& hud, Render::SpriteBatch& sprites,
+                     Render::Frame::ITextDrawer& text, UI::Point mouse, bool inTheGame)
 {
     const WorldRuntime& runtime = world.Runtime();
     const UI::MessageDrawContext context{.sprites = sprites,

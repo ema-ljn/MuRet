@@ -901,8 +901,8 @@ TEST(OldEditBitmapIntegrationTest, PixelCaretInvertsTheRasterizedGlyphColumn)
     using Client::Core::PixelSize;
     using Client::Render::SpriteBatch;
     using Client::Render::TextureSlot;
+    using Client::Render::Frame::TextCacheDrawer;
     using Client::Render::Text::TextCache;
-    using Client::Scenes::TextCacheDrawer;
     using Client::Tests::FakeTextureStore;
     using Client::Tests::RecordingSink;
 

@@ -1,4 +1,5 @@
 #include "World/Birds.h"
+#include "Assets/ModelIds.h"
 #include "Maps/MapId.h"
 #include "World/IBirdStepServices.h"
 
@@ -19,6 +20,13 @@ namespace Client::World
 {
 namespace
 {
+using Assets::BatModel;
+using Assets::BirdModel;
+using Assets::ButterflyModel;
+using Assets::CrowModel;
+using Assets::Monster32Model;
+using Assets::Monster34Model;
+using Assets::RidingSpearModel;
 using Maps::AtlansMap;
 using Maps::DungeonMap;
 using Maps::IcarusMap;
@@ -32,8 +40,8 @@ constexpr std::size_t OrdinaryCount = 5;
 constexpr std::size_t AtlansCount = 40;
 constexpr std::size_t IcarusCount = 13;
 constexpr std::size_t KalimaCount = 2;
-constexpr std::int16_t SingleGlowType = 0xae;
-constexpr std::int16_t DoubleGlowType = 0xbc;
+constexpr std::int16_t SingleGlowModel = ButterflyModel;
+constexpr std::int16_t DoubleGlowModel = CrowModel;
 constexpr double LightStep = static_cast<double>(0.01f);
 constexpr double RedFactor = static_cast<double>(0.2f);
 constexpr double BlueFactor = static_cast<double>(0.4f);
@@ -67,14 +75,14 @@ void FinishOrdinaryBirdMotion(const BirdStepTail& bird, const std::int32_t& map,
     bird.timer = std::bit_cast<std::int32_t>(static_cast<std::uint32_t>(bird.timer) - 1u);
 }
 
-std::optional<glm::vec3> BirdGlowLight(std::int16_t type, Crt::CrtRandom& random)
+std::optional<glm::vec3> BirdGlowLight(std::int16_t model, Crt::CrtRandom& random)
 {
-    if (type != SingleGlowType && type != DoubleGlowType)
+    if (model != SingleGlowModel && model != DoubleGlowModel)
         return std::nullopt;
     // 446b60-contract § AE/BC: el segundo producto usa q retenido, no el primer storeF32.
-    const int base = type == SingleGlowType ? 64 : 128;
+    const int base = model == SingleGlowModel ? 64 : 128;
     const double q = static_cast<double>((random.Next() % 32) + base) * LightStep;
-    if (type == SingleGlowType)
+    if (model == SingleGlowModel)
     {
         const auto blue = static_cast<float>(q * BlueFactor);
         return glm::vec3{static_cast<float>(q * RedFactor), blue, blue};
@@ -99,7 +107,7 @@ float StoreFloat(double value)
 enum Field : std::size_t
 {
     Active = 0,
-    Type = 2,
+    Model = 2,
     State = 4,
     Speed = 0xc,
     Position = 0x10,
@@ -191,22 +199,22 @@ std::error_code OrdinaryBirth(BirdRecord b, std::int32_t index, std::int32_t map
     Write(b, Extra, 13.0f);
     Byte(b, Action0, 0);
     Byte(b, Action1, 0);
-    std::int16_t type = 0;
+    std::int16_t model = 0;
     if (map == LorenciaMap)
-        type = 0xad;
+        model = BirdModel;
     else if (map == DungeonMap || map == LostTowerMap)
-        type = 0xaf;
+        model = BatModel;
     else if (map == NoriaMap)
     {
-        type = 0xae;
+        model = ButterflyModel;
         Write(b, Scale, 0.3f);
         Byte(b, Flag, 0);
         Write(b, Light, glm::vec3{1});
     }
     else if (IsBloodCastle(map))
-        type = 0xbc;
-    Write(b, Type, type);
-    if (type == 0)
+        model = CrowModel;
+    Write(b, Model, model);
+    if (model == 0)
     {
         for (auto handler : {BirdHandler::SpawnIcarus, BirdHandler::SpawnAtlans, BirdHandler::SpawnKalima})
         {
@@ -228,7 +236,7 @@ std::error_code SpecialBirth(BirdRecord b, IBirdStepServices& s)
     Byte(b, Active, 1);
     if (auto error = s.PrepareSpecial())
         return error;
-    Write(b, Type, std::int16_t{0x171});
+    Write(b, Model, std::int16_t{Monster32Model});
     const int speed = s.Random() % 3 + 6;
     Write(b, Other, 1.0f);
     Write(b, One, 1.0f);
@@ -286,8 +294,8 @@ std::error_code OrdinaryAudio(BirdRecord b, std::int32_t tile, IBirdStepServices
     const auto& actor = s.ActorPosition();
     if (!s.AudioDistance(Read<glm::vec3>(b, Position), actor))
         return {};
-    const auto type = Read<std::int16_t>(b, Type);
-    if (type == 0xad)
+    const auto model = Read<std::int16_t>(b, Model);
+    if (model == BirdModel)
     {
         if (s.Random() % 512 == 0)
             if (auto error = s.Audio(0xc, b.data()))
@@ -295,12 +303,12 @@ std::error_code OrdinaryAudio(BirdRecord b, std::int32_t tile, IBirdStepServices
         if (s.Random() % 512 == 0)
             return s.Audio(0xd, b.data());
     }
-    else if (type == 0xaf)
+    else if (model == BatModel)
     {
         if (s.Random() % 256 == 0)
             return s.Audio(0xe, b.data());
     }
-    else if (type == 0xbc && s.TileAttributes(tile) == 1)
+    else if (model == CrowModel && s.TileAttributes(tile) == 1)
     {
         if (s.Random() % 128 == 0)
             return s.Audio(0x8a, b.data());
@@ -309,25 +317,25 @@ std::error_code OrdinaryAudio(BirdRecord b, std::int32_t tile, IBirdStepServices
 }
 std::error_code OrdinaryMotion(BirdRecord b, std::int32_t index, std::int32_t tile, IBirdStepServices& s)
 {
-    const auto type = Read<std::int16_t>(b, Type);
+    const auto model = Read<std::int16_t>(b, Model);
     std::optional<BirdHandler> handler;
-    switch (type)
+    switch (model)
     {
-    case 0xad:
-    case 0xbc:
-        handler = BirdHandler::MoveAdBc;
+    case BirdModel:
+    case CrowModel:
+        handler = BirdHandler::MoveBirdOrCrow;
         break;
-    case 0xae:
-        handler = BirdHandler::MoveAe;
+    case ButterflyModel:
+        handler = BirdHandler::MoveButterfly;
         break;
-    case 0xaf:
-        handler = BirdHandler::MoveAf;
+    case BatModel:
+        handler = BirdHandler::MoveBat;
         break;
-    case 0x10f:
-        handler = BirdHandler::Move10f;
+    case RidingSpearModel:
+        handler = BirdHandler::MoveRidingSpear;
         break;
-    case 0x173:
-        handler = BirdHandler::Move173;
+    case Monster34Model:
+        handler = BirdHandler::MoveMonster34;
         break;
     default:
         break;
@@ -353,17 +361,17 @@ std::error_code OrdinaryMotion(BirdRecord b, std::int32_t index, std::int32_t ti
 }
 std::error_code Update(BirdRecord b, std::int32_t index, std::int32_t tile, IBirdStepServices& s)
 {
-    const auto type = Read<std::int16_t>(b, Type);
-    const auto model = s.BorrowModel(type);
-    if (!model.identity || !model.action)
+    const auto model = Read<std::int16_t>(b, Model);
+    const auto borrowed = s.BorrowModel(model);
+    if (!borrowed.identity || !borrowed.action)
         return std::make_error_code(std::errc::bad_address);
-    const float factor = type == 0x171 || type == 0x173 ? 0.5f : 1.0f;
-    const bool special = s.Mode() != 0 && type == 0x171;
+    const float factor = model == Monster32Model || model == Monster34Model ? 0.5f : 1.0f;
+    const bool special = s.Mode() != 0 && model == Monster32Model;
     if (special)
         if (auto error = s.Call(BirdHandler::SelectAction, b, 7).error)
             return error;
-    *model.action = Read<std::uint8_t>(b, Action1);
-    if (auto error = s.Pose(model, b, factor))
+    *borrowed.action = Read<std::uint8_t>(b, Action1);
+    if (auto error = s.Pose(borrowed, b, factor))
         return error;
     return special ? SpecialMotion(b, s) : OrdinaryMotion(b, index, tile, s);
 }

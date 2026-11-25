@@ -18,7 +18,7 @@ inline constexpr std::size_t FishPoolSize = 10;
 struct FishStepView
 {
     std::uint8_t& active;
-    std::int16_t& type;
+    std::int16_t& model;
     std::int32_t& counter;
     float& scale;
     glm::vec3& position;
@@ -98,7 +98,7 @@ public:
     [[nodiscard]] virtual Core::Expected<std::uint32_t, std::error_code>
     CreateEffect(const FishEffectRequest& request) = 0;
     [[nodiscard]] virtual Core::Expected<double, std::error_code> Height(float x, float y) = 0;
-    [[nodiscard]] virtual Core::Expected<FishModelStepView, std::error_code> LookupModel(std::int16_t type) = 0;
+    [[nodiscard]] virtual Core::Expected<FishModelStepView, std::error_code> LookupModel(std::int16_t model) = 0;
     [[nodiscard]] virtual Core::Expected<std::uint8_t, std::error_code>
     AdvanceModel(FishModelStepView model, FishStepView& fish, float speed) = 0;
     [[nodiscard]] virtual Core::Expected<void, std::error_code> Move(FishStepView& fish, std::int32_t mode) = 0;

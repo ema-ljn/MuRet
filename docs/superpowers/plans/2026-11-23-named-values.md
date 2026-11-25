@@ -43,7 +43,7 @@ exists most files do not use it.
 | Maps | 314 definitions for 25 values (`LastChaosCastleMap` 25 times) | `Maps/MapId.h` | `std::int32_t` constants, as the copies they replace; opaque enum in AR6 | AR1 Task 5 (ranges), Task 5d (single maps), Task 5e (the fauna's loose literals) |
 | Character class | 77 definitions for 7 values, no header | `game/Kernel` | `enum class CharacterClass : std::uint8_t`, `BaseClassOf` | Task 7 |
 | Sounds | 158 definitions for 100 values; `0x19` 23 times under 12 names | `game/Sound` | `Audio::SoundId` (`Core::Id`) | Task 8 |
-| Non-item models, texture slots | 149 model definitions (`0x20a` 11 times); `0x5ac` 41 times under 29 names | `game/Assets` | `ModelId`, `Render::TextureSlot` | Task 8 |
+| Non-item models, texture slots | 149 model definitions (`0x20a` 11 times); `0x5ac` 41 times under 29 names | `game/Assets` | `ModelId`, `Render::TextureSlot` | AR1 Task 5f (the fauna's models), Task 8 |
 | Skills, player actions, bones | 75, 181, 74 definitions | `Tables/SkillId.h`; `PlayerActions.h`, `PlayerBones` beside the player catalog | the stored primitive | Task 8 |
 | `Text.bmd` lines | 811 definitions for 667 values, 70% used by one file; 145 lines passed by their address (`0x772ff5c`) | the file; `<Module>Texts.h`; `Tables/TextIndex.h` when modules share one | `std::size_t` | Task 8 |
 | Floats as bit patterns | 1,046 definitions for 225 values; `0x3dcccccd` 117 times under 56 names | numeric names (`Tenth`, `Half`, `FullTurn`) in `engine/Math`; role names stay | the type the expression has today | Task 4, AR6 |
@@ -333,7 +333,7 @@ lowers the check's baseline for its files. It lists the literals it leaves and w
 
 | Milestone | Homes |
 | --- | --- |
-| AR4.1 `Kernel`, `Assets`, `Sound`, `Player`, `Actors` | `Sound/SoundIds.h` and `Audio::SoundId` (the 13 shared sounds; `0x19` once; the three WAVs the events loop as music, `0x8b`, `0x99` and `0x9e`, named once: [music plan](2026-11-25-music-home.md), "Music played as a sound"); `Assets/ModelIds.h` and `ModelId` (non-item models; `0x20a` once, as `PlayerSkeletonModel`); `PlayerBones` and `PlayerActions` beside the player catalog; `CellSize` in `Terrain` |
+| AR4.1 `Kernel`, `Assets`, `Sound`, `Player`, `Actors` | `Sound/SoundIds.h` and `Audio::SoundId` (the 13 shared sounds; `0x19` once; the three WAVs the events loop as music, `0x8b`, `0x99` and `0x9e`, named once: [music plan](2026-11-25-music-home.md), "Music played as a sound"); `Assets/ModelIds.h` (born in AR1 Task 5f with the fauna's models, as `std::uint16_t`) and `ModelId` (non-item models; `0x20a` once, as `PlayerSkeletonModel`); `PlayerBones` and `PlayerActions` beside the player catalog; `CellSize` in `Terrain` |
 | AR4.2 `Monsters`, `Pets`, `Movement`, `Skills`, `Combat`, `Hero` | `Tables/SkillRecord.h` (the item plan's Task 2 for `Skill.bmd`: ≤10 offsets in 6 files) and `Tables/SkillId.h`; a monster's own bones stay with it |
 | AR4.3 `Particles`, `Joints`, `Effects`, `WorldObjects`, `MapScripts` | the shared texture slots as `Render::TextureSlot` in `game/Assets` (`0x5ac` once); a `<Map>.h` per map script for its ids; effect type and subtype stay |
 | AR4.4 `Items`, `Tooltips`, `Npc`, `Guild`… | `<Module>Texts.h` for lines two files of a module print; `Tables/TextIndex.h` (`Texts::`) for lines several modules print; the 145 lines passed by address become indices (`0x76bd1dc + n·300` → `n`) |

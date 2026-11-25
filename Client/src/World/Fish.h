@@ -29,16 +29,16 @@ enum class FishMovement : std::uint8_t
     Reduced,
 };
 
-// 44769a: signed type range b2..bc always uses full movement; other types use timer>0.
-[[nodiscard]] FishMovement FishMovementFor(std::int16_t type, std::int32_t timer);
+// 44769a: signed model range b2..bc always uses full movement; other models use timer>0.
+[[nodiscard]] FishMovement FishMovementFor(std::int16_t model, std::int32_t timer);
 // 4476b1: only b1 and 148 request movement mode1 after selecting complete movement.
-[[nodiscard]] std::int32_t FishMovementMode(std::int16_t type);
+[[nodiscard]] std::int32_t FishMovementMode(std::int16_t model);
 // 447661: only b9/ba update the retained oscillation fields; no RNG is consumed here.
-[[nodiscard]] bool FishNeedsOscillation(std::int16_t type);
+[[nodiscard]] bool FishNeedsOscillation(std::int16_t model);
 // 4478d1: after collision, only b2/148 copy position to the auxiliary triplet.
-[[nodiscard]] bool FishCopiesWorldPosition(std::int16_t type);
-// 447603 skips model lookup only for signed type -1 (raw word ffff).
-[[nodiscard]] bool FishHasModel(std::int16_t type);
+[[nodiscard]] bool FishCopiesWorldPosition(std::int16_t model);
+// 447603 skips model lookup only for signed model -1 (raw word ffff).
+[[nodiscard]] bool FishHasModel(std::int16_t model);
 // 5f82a0: wrap independiente de los dos bytes bajos, distinto de5f82c0.
 [[nodiscard]] std::uint32_t FishTileIndex(std::int32_t x, std::int32_t y);
 

@@ -82,7 +82,7 @@ TEST_F(FaunaStepTest, LandingAndTakingOffRunTheirNewStatesInTheSameStep)
     Client::Crt::CrtRandom expected;
     const int first = expected.Next() % 16 - 8;
     const int second = expected.Next() % 16 - 8;
-    const auto result = RunFaunaBirdHandler(context, Client::World::BirdHandler::MoveAdBc, bird, 0);
+    const auto result = RunFaunaBirdHandler(context, Client::World::BirdHandler::MoveBirdOrCrow, bird, 0);
     EXPECT_FALSE(result.error);
     EXPECT_EQ(bird.motionState, 3);
     EXPECT_FLOAT_EQ(bird.vertical, 20);
@@ -96,7 +96,7 @@ TEST_F(FaunaStepTest, PerchedBirdAvoidsEveryCommonMovementDraw)
     auto& bird = m_fauna.Birds()[0];
     bird.motionState = 2;
     bird.position = {1200, 1000, 0};
-    bird.type = 0xad;
+    bird.model = 0xad;
     bird.scale = 1;
     const auto result = RunFaunaBirdHandler(context, Client::World::BirdHandler::CommonMotion, bird, 0);
     EXPECT_FALSE(result.error);
@@ -108,7 +108,7 @@ TEST_F(FaunaStepTest, CommonMovementSeesLivingNeighborsOutsideTheStepPrefix)
     auto context = Context();
     auto& bird = m_fauna.Birds()[0];
     bird.active = 1;
-    bird.type = 0xad;
+    bird.model = 0xad;
     bird.scale = 1;
     bird.turnRate = 13;
     bird.position = m_hero;
@@ -148,7 +148,7 @@ TEST_F(FaunaStepTest, LorenciaBirthAndStepUseTheRealSharedRandomAndTerrain)
         if (bird.active != 0)
             ++alive;
     EXPECT_EQ(alive, 5U);
-    EXPECT_EQ(m_fauna.Birds()[0].type, 0xad);
+    EXPECT_EQ(m_fauna.Birds()[0].model, 0xad);
     EXPECT_EQ(m_fauna.Birds()[0].timer, -1);
     EXPECT_GT(m_fauna.Birds()[0].alpha, 0);
     EXPECT_NE(m_fauna.Birds()[0].aheadX, 0);
@@ -163,7 +163,7 @@ TEST_F(FaunaStepTest, IcarusSpawnHasSixDrawsAndWritesTheNativeFlightFields)
     const auto result = RunFaunaBirdHandler(context, Client::World::BirdHandler::SpawnIcarus, bird, 0);
     ASSERT_FALSE(result.error);
     EXPECT_EQ(result.value, 1);
-    EXPECT_EQ(bird.type, 0x171);
+    EXPECT_EQ(bird.model, 0x171);
     EXPECT_EQ(bird.active, 1);
     EXPECT_FLOAT_EQ(bird.bodyScale, .4f);
     EXPECT_FLOAT_EQ(bird.scale, .34f);
@@ -186,7 +186,7 @@ TEST_F(FaunaStepTest, AtlansSpawnUsesItsOwnScaleHeightAndUpperWaterGate)
     const auto result = RunFaunaBirdHandler(context, Client::World::BirdHandler::SpawnAtlans, bird, 0);
     ASSERT_FALSE(result.error);
     EXPECT_EQ(result.value, 1);
-    EXPECT_EQ(bird.type, 0xb4);
+    EXPECT_EQ(bird.model, 0xb4);
     EXPECT_EQ(bird.position, glm::vec3(1388, 1225, 274));
     EXPECT_FLOAT_EQ(bird.scale, .3f);
     EXPECT_FLOAT_EQ(bird.phase, 2.55f);
@@ -206,7 +206,7 @@ TEST_F(FaunaStepTest, KalimaBirthClosesCounterBeforeSixSpawnDraws)
     auto& bird = m_fauna.Birds()[0];
     const auto result = RunFaunaBirdHandler(context, Client::World::BirdHandler::SpawnKalima, bird, 0);
     ASSERT_FALSE(result.error);
-    EXPECT_EQ(bird.type, 0x173);
+    EXPECT_EQ(bird.model, 0x173);
     EXPECT_EQ(bird.active, 1);
     EXPECT_EQ(bird.position, glm::vec3(-162, 564, -800));
     EXPECT_FLOAT_EQ(bird.angles.z, -108);
@@ -228,7 +228,7 @@ TEST_F(FaunaStepTest, MissingJointBindingStopsAfterTheIcarusBirthPrefix)
     bird.active = 1;
     const auto result = RunFaunaBirdHandler(context, Client::World::BirdHandler::SpawnIcarus, bird, 3);
     EXPECT_EQ(result.error, std::make_error_code(std::errc::function_not_supported));
-    EXPECT_EQ(bird.type, 0x10f);
+    EXPECT_EQ(bird.model, 0x10f);
     EXPECT_EQ(bird.timer, 9600);
     EXPECT_EQ(bird.position, glm::vec3(523, 678, 0));
     EXPECT_FLOAT_EQ(bird.angles.z, 0);
@@ -253,7 +253,7 @@ TEST_F(FaunaStepTest, TheOrdinaryFamiliesAndAtlansRunBothRealSteps)
         auto context = Context();
         const auto result = StepGameFauna(context);
         ASSERT_TRUE(result.HasValue()) << map << ": " << result.Error();
-        EXPECT_NE(m_fauna.Birds()[0].type, 0);
+        EXPECT_NE(m_fauna.Birds()[0].model, 0);
         if (map == 1 || map == 7)
         {
             EXPECT_NE(m_fauna.Fish()[0].active, 0);
@@ -274,13 +274,13 @@ TEST_F(FaunaStepTest, KalimaSetActionNeedsTheExplicitSignedPrefixModelLoan)
     { return std::uint32_t{0}; };
     const auto missing = StepGameFish(context);
     EXPECT_FALSE(missing.HasValue());
-    EXPECT_EQ(m_fauna.Fish()[0].type, -1);
+    EXPECT_EQ(m_fauna.Fish()[0].model, -1);
     EXPECT_TRUE(m_fauna.Fish()[0].active);
     const Client::Render::Models::Skeleton prefix;
     context.prefixModel = &prefix;
     const auto borrowed = StepGameFish(context);
     ASSERT_TRUE(borrowed.HasValue()) << borrowed.Error();
-    EXPECT_EQ(m_fauna.Fish()[0].type, -1);
+    EXPECT_EQ(m_fauna.Fish()[0].model, -1);
 }
 } // namespace
 
@@ -293,12 +293,12 @@ TEST_F(FaunaStepTest, RealBirdAndFishHeightServicesConsumeTheDurableFixedSurface
     context.fixedHeight = 1201;
     auto& bird = m_fauna.Birds()[0];
     bird.position = {1000, 1000, 0};
-    ASSERT_FALSE(RunFaunaBirdHandler(context, Client::World::BirdHandler::MoveAf, bird, 0).error);
+    ASSERT_FALSE(RunFaunaBirdHandler(context, Client::World::BirdHandler::MoveBat, bird, 0).error);
     EXPECT_FLOAT_EQ(bird.position.z, 1551);
     m_map = 1;
     auto& liveFish = m_fauna.Fish()[0];
     liveFish.active = 1;
-    liveFish.type = 0xb0;
+    liveFish.model = 0xb0;
     liveFish.position = {1000, 1000, 0};
     liveFish.scale = 1;
     liveFish.bodyScale = 1;

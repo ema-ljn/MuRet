@@ -46,6 +46,7 @@ App/VSyncMode.h	19	App	engine/Platform	high	included by Render, UI and Platform
 App/WindowState.cpp	39	App	engine/Platform	high	included by Render, UI and Platform
 App/WindowState.h	44	App	engine/Platform	high	included by Render, UI and Platform
 App/WorldEvent.h	153	App	game/Session	medium	the session with the servers
+Assets/ModelIds.h	23	Assets	game/Assets	high	the model slots the fauna uses, each named after the file the loader puts there (AR1.1)
 Audio/ISoundCatalog.h	19	Audio	engine/Audio	high	the sound lookup the platform audio asks for; the game's catalog implements it (AR1.1)
 Audio/Music.cpp	185	Audio	engine/Audio	high	engine or protocol layer, no game state
 Audio/Music.h	41	Audio	engine/Audio	high	engine or protocol layer, no game state
@@ -663,8 +664,8 @@ Scenes/EventNpcWindows.cpp	502	Scenes	game/Events	high	Devil Square/Blood Castle
 Scenes/EventNpcWindows.h	46	Scenes	game/Events	high	Devil Square/Blood Castle/Chaos Castle/Crywolf/Kalima event packets, windows, map objects
 Scenes/EventPackets.cpp	1633	Scenes	game/Events	high	Devil Square/Blood Castle/Chaos Castle/Crywolf/Kalima event packets, windows, map objects
 Scenes/EventPackets.h	101	Scenes	game/Events	high	Devil Square/Blood Castle/Chaos Castle/Crywolf/Kalima event packets, windows, map objects
-Scenes/FaunaBirdHandlers.cpp	361	Scenes	game/Fauna	high	ambient fauna (birds, fish), out of WorldObjects (2026-11-21 review)
-Scenes/FaunaDrawing.cpp	390	Scenes	game/Fauna	high	ambient fauna (birds, fish), out of WorldObjects (2026-11-21 review)
+Scenes/FaunaBirdHandlers.cpp	365	Scenes	game/Fauna	high	ambient fauna (birds, fish), out of WorldObjects (2026-11-21 review)
+Scenes/FaunaDrawing.cpp	392	Scenes	game/Fauna	high	ambient fauna (birds, fish), out of WorldObjects (2026-11-21 review)
 Scenes/FaunaDrawing.h	78	Scenes	game/Fauna	high	ambient fauna (birds, fish), out of WorldObjects (2026-11-21 review)
 Scenes/FaunaEffects.cpp	137	Scenes	game/Fauna	medium	ambient fauna (birds, fish), out of WorldObjects (2026-11-21 review)
 Scenes/FaunaEffects.h	39	Scenes	game/Fauna	medium	ambient fauna (birds, fish), out of WorldObjects (2026-11-21 review)
@@ -677,7 +678,7 @@ Scenes/FaunaMotion.h	24	Scenes	game/Fauna	high	ambient fauna (birds, fish), out 
 Scenes/FaunaObject.h	73	Scenes	game/Fauna	high	ambient fauna (birds, fish), out of WorldObjects (2026-11-21 review)
 Scenes/FaunaState.cpp	105	Scenes	game/Fauna	high	ambient fauna (birds, fish), out of WorldObjects (2026-11-21 review)
 Scenes/FaunaState.h	47	Scenes	game/Fauna	high	ambient fauna (birds, fish), out of WorldObjects (2026-11-21 review)
-Scenes/FaunaStep.cpp	293	Scenes	game/Fauna	high	ambient fauna (birds, fish), out of WorldObjects (2026-11-21 review)
+Scenes/FaunaStep.cpp	294	Scenes	game/Fauna	high	ambient fauna (birds, fish), out of WorldObjects (2026-11-21 review)
 Scenes/FaunaStep.h	64	Scenes	game/Fauna	high	ambient fauna (birds, fish), out of WorldObjects (2026-11-21 review)
 Scenes/FireBreathEffect.cpp	157	Scenes	game/Effects	high	model effects; uses Joints and Particles (2026-11-21 review)
 Scenes/FireBreathEffect.h	35	Scenes	game/Effects	high	model effects; uses Joints and Particles (2026-11-21 review)
@@ -1308,7 +1309,7 @@ UI/Widget.cpp	52	UI	game/Ui	medium	rule ^(Button|Slider|TextField|Widget|OldCont
 UI/Widget.h	50	UI	game/Ui	medium	rule ^(Button|Slider|TextField|Widget|OldCont
 World/AtlansObjectStep.cpp	111	World	game/MapScripts/Atlans	medium	what that map does, like TrinityCore's per-zone scripts (2026-11-21 review)
 World/AtlansObjectStep.h	31	World	game/MapScripts/Atlans	medium	what that map does, like TrinityCore's per-zone scripts (2026-11-21 review)
-World/Birds.cpp	439	World	game/Fauna	medium	ambient fauna (birds, fish), out of WorldObjects (2026-11-21 review)
+World/Birds.cpp	447	World	game/Fauna	medium	ambient fauna (birds, fish), out of WorldObjects (2026-11-21 review)
 World/Birds.h	60	World	game/Fauna	medium	ambient fauna (birds, fish), out of WorldObjects (2026-11-21 review)
 World/BlastModelEffects.cpp	1510	World	game/Effects	medium	model effects; uses Joints and Particles (2026-11-21 review)
 World/BlastModelEffects.h	68	World	game/Effects	medium	model effects; uses Joints and Particles (2026-11-21 review)
@@ -1332,7 +1333,7 @@ World/EventMapObjectStep.cpp	126	World	game/Events	medium	rule ^(ChaosCastle|Eve
 World/EventMapObjectStep.h	43	World	game/Events	medium	rule ^(ChaosCastle|EventMapObject|BloodCastle
 World/FaceNormal.cpp	45	World	game/Terrain	medium	the terrain, out of Kernel (2026-11-21 review)
 World/FaceNormal.h	18	World	game/Terrain	medium	the terrain, out of Kernel (2026-11-21 review)
-World/Fish.cpp	617	World	game/Fauna	medium	ambient fauna (birds, fish), out of WorldObjects (2026-11-21 review)
+World/Fish.cpp	627	World	game/Fauna	medium	ambient fauna (birds, fish), out of WorldObjects (2026-11-21 review)
 World/Fish.h	49	World	game/Fauna	medium	ambient fauna (birds, fish), out of WorldObjects (2026-11-21 review)
 World/Ftol.h	34	World	engine/Math	high	rule ^(Ftol|OriginalFtol)
 World/GameCamera.cpp	241	World	game/Camera	medium	the camera (2026-11-21 review)

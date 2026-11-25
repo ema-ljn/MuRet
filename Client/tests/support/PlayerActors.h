@@ -47,17 +47,17 @@ inline Scenes::ActorState UnarmedPlayer(std::uint8_t characterClass = 0)
 
 // Item.bmd con el byte +0x1e en 1 en el registro de cada modelo de `markedModels` (el tipo es el modelo
 // menos 0x212) y todo lo demás en 0.
-inline Data::Tables::ItemTable ItemsMarking(std::initializer_list<std::uint16_t> markedModels)
+inline Tables::ItemTable ItemsMarking(std::initializer_list<std::uint16_t> markedModels)
 {
     constexpr std::size_t MarkOffset = 0x1e;
-    std::vector<std::byte> plain(Data::Tables::ItemTableSize);
+    std::vector<std::byte> plain(Tables::ItemTableSize);
     for (const std::uint16_t model : markedModels)
     {
         const auto type = static_cast<std::size_t>(model - Data::Models::FirstItemModel);
-        plain[type * Data::Tables::ItemRecordSize + MarkOffset] = std::byte{1};
+        plain[type * Tables::ItemRecordSize + MarkOffset] = std::byte{1};
     }
-    const std::vector<std::byte> encrypted = EncryptRecords(std::move(plain), Data::Tables::ItemRecordSize);
-    return Data::Tables::ItemTable(std::span<const std::byte>(encrypted));
+    const std::vector<std::byte> encrypted = EncryptRecords(std::move(plain), Tables::ItemRecordSize);
+    return Tables::ItemTable(std::span<const std::byte>(encrypted));
 }
 
 // La primera semilla desde 1 con la que `wanted` da verdadero sobre un CrtRandom recién sembrado.

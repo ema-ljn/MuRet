@@ -13,7 +13,7 @@
 #include <utility>
 #include <vector>
 
-namespace Client::Data::Text
+namespace Client::Tables
 {
 namespace
 {
@@ -30,10 +30,10 @@ std::uint32_t DwordAt(const std::vector<std::byte>& bytes, std::size_t at)
 }
 } // namespace
 
-Core::Expected<SlideTable, DataError> LoadSlideTable(std::span<const std::byte> file)
+Core::Expected<SlideTable, Data::DataError> LoadSlideTable(std::span<const std::byte> file)
 {
     if (file.size() < SlideTableSize)
-        return Core::Unexpected(DataError::FileTooShort);
+        return Core::Unexpected(Data::DataError::FileTooShort);
     std::vector<std::byte> bytes(file.begin(), file.begin() + static_cast<std::ptrdiff_t>(SlideTableSize));
     Crypto::Xor3(bytes);
     SlideTable table;
@@ -49,11 +49,11 @@ Core::Expected<SlideTable, DataError> LoadSlideTable(std::span<const std::byte> 
         {
             const std::size_t at = base + TextsInGroupAt + static_cast<std::size_t>(text) * SlideTextSize;
             if (at >= bytes.size())
-                return Core::Unexpected(DataError::InvalidData);
+                return Core::Unexpected(Data::DataError::InvalidData);
             const auto first = bytes.begin() + static_cast<std::ptrdiff_t>(at);
             const auto end = std::find(first, bytes.end(), std::byte{0});
             if (end == bytes.end())
-                return Core::Unexpected(DataError::InvalidData);
+                return Core::Unexpected(Data::DataError::InvalidData);
             std::string read;
             read.reserve(static_cast<std::size_t>(end - first));
             for (auto byte = first; byte != end; ++byte)
@@ -63,4 +63,4 @@ Core::Expected<SlideTable, DataError> LoadSlideTable(std::span<const std::byte> 
     }
     return table;
 }
-} // namespace Client::Data::Text
+} // namespace Client::Tables

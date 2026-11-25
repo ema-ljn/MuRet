@@ -15,11 +15,11 @@
 namespace
 {
 using Client::Data::DataError;
-using Client::Data::Tables::LoadQuestTable;
-using Client::Data::Tables::NameOf;
-using Client::Data::Tables::QuestCount;
-using Client::Data::Tables::QuestRecordSize;
-using Client::Data::Tables::QuestTableSize;
+using Client::Tables::LoadQuestTable;
+using Client::Tables::NameOf;
+using Client::Tables::QuestCount;
+using Client::Tables::QuestRecordSize;
+using Client::Tables::QuestTableSize;
 
 void Put(std::span<std::byte> bytes, std::size_t offset, std::uint32_t value, std::size_t size)
 {
@@ -92,7 +92,7 @@ TEST(QuestTable, ReadsEachFieldOfARecordAtItsOffset)
     EXPECT_EQ(last.maxLevel, 40);
     EXPECT_EQ(last.zen, 0x89abcdefu);
     EXPECT_EQ(last.failDialog, 77);
-    EXPECT_EQ(loaded.Value()[6], Client::Data::Tables::QuestRecord{});
+    EXPECT_EQ(loaded.Value()[6], Client::Tables::QuestRecord{});
 }
 
 TEST(QuestTable, ANameWithoutZeroKeepsItsThirtyTwoBytes)

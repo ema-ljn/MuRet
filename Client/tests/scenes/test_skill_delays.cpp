@@ -45,12 +45,12 @@ struct InventedSkill
 };
 
 // Skill.bmd con la espera (+0x28, int) y el requisito (+0x2e, WORD) de cada skill de `skills`.
-Client::Data::Tables::SkillTable SkillsWith(std::initializer_list<InventedSkill> skills)
+Client::Tables::SkillTable SkillsWith(std::initializer_list<InventedSkill> skills)
 {
-    std::vector<std::byte> plain(Client::Data::Tables::SkillTableSize);
+    std::vector<std::byte> plain(Client::Tables::SkillTableSize);
     for (const InventedSkill& invented : skills)
     {
-        const std::size_t base = std::size_t{invented.skill} * Client::Data::Tables::SkillRecordSize;
+        const std::size_t base = std::size_t{invented.skill} * Client::Tables::SkillRecordSize;
         const auto delay = static_cast<std::uint32_t>(invented.delay);
         for (std::size_t index = 0; index < 4; ++index)
             plain[base + 0x28 + index] = static_cast<std::byte>((delay >> (8 * index)) & 0xffu);
@@ -58,8 +58,8 @@ Client::Data::Tables::SkillTable SkillsWith(std::initializer_list<InventedSkill>
         plain[base + 0x2f] = static_cast<std::byte>(invented.requirement >> 8);
     }
     const std::vector<std::byte> encrypted =
-        Client::Tests::EncryptRecords(std::move(plain), Client::Data::Tables::SkillRecordSize);
-    return Client::Data::Tables::SkillTable(std::span<const std::byte>(encrypted));
+        Client::Tests::EncryptRecords(std::move(plain), Client::Tables::SkillRecordSize);
+    return Client::Tables::SkillTable(std::span<const std::byte>(encrypted));
 }
 
 struct Delays
@@ -85,8 +85,7 @@ struct Delays
 
     Client::Scenes::WorldState world;
     CrtRandom random;
-    Client::Data::Tables::SkillTable skills =
-        SkillsWith({{0x11, 3000, 15}, {0x12, 0, 0}, {0x4c, 2000, 0}, {0x13, 1500, 16}});
+    Client::Tables::SkillTable skills = SkillsWith({{0x11, 3000, 15}, {0x12, 0, 0}, {0x4c, 2000, 0}, {0x13, 1500, 16}});
 };
 
 // 0x5521f0: el WORD +0x2e, con la entrada abierta y cerrada.

@@ -17,9 +17,9 @@
 namespace
 {
 using Client::Data::DataError;
-using Client::Data::Text::LoadMoveRequirements;
-using Client::Data::Text::MoveRecordSize;
-using Client::Data::Text::MoveRequirement;
+using Client::Tables::LoadMoveRequirements;
+using Client::Tables::MoveRecordSize;
+using Client::Tables::MoveRequirement;
 
 struct FakeMove
 {

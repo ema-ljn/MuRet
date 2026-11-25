@@ -32,10 +32,10 @@ Models::LogicalAccess OwnAccess(const SkillDelayContext& context)
 Models::LogicalAccess EntryAccess(const SkillDelayContext& context, std::uint8_t skill)
 {
     return Models::LogicalAccess(context.world.Runtime().movement.skillDepths[skill], context.random,
-                                 static_cast<std::uint16_t>(Data::Tables::SkillRecordSize));
+                                 static_cast<std::uint16_t>(Tables::SkillRecordSize));
 }
 
-Core::Expected<std::span<const std::byte, Data::Tables::SkillRecordSize>, std::string>
+Core::Expected<std::span<const std::byte, Tables::SkillRecordSize>, std::string>
 RecordOf(const SkillDelayContext& context, std::uint8_t skill, std::string_view where)
 {
     if (context.skills == nullptr)
@@ -46,7 +46,7 @@ RecordOf(const SkillDelayContext& context, std::uint8_t skill, std::string_view 
     return *record;
 }
 
-std::uint32_t LittleEndian(std::span<const std::byte, Data::Tables::SkillRecordSize> record, std::size_t offset,
+std::uint32_t LittleEndian(std::span<const std::byte, Tables::SkillRecordSize> record, std::size_t offset,
                            std::size_t size)
 {
     std::uint32_t value = 0;

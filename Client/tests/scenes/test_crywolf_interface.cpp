@@ -183,7 +183,7 @@ protected:
     std::optional<std::int32_t> sound;
     SpriteBatch sprites;
     RecordingTextDrawer text{sprites};
-    Client::Data::Text::TextTable texts = Client::Tests::MakeTextTable(CrywolfTexts());
+    Client::Tables::TextTable texts = Client::Tests::MakeTextTable(CrywolfTexts());
     std::uint32_t tickCount = 50000;
     Client::UI::Point mouse{};
 };

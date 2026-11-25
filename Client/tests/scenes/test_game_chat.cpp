@@ -193,7 +193,7 @@ protected:
     Client::Tests::FakeTextureStore m_faunaStore;
     WorldState world;
     CrtRandom random;
-    Client::Data::Text::TextTable texts = Client::Tests::MakeTextTable(Client::Tests::ChatTexts());
+    Client::Tables::TextTable texts = Client::Tests::MakeTextTable(Client::Tests::ChatTexts());
     std::vector<std::string> filter;
     LetterMeasure letters;
     std::vector<Client::Protocol::Outgoing> sent;

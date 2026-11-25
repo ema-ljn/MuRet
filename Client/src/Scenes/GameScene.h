@@ -83,10 +83,10 @@ struct GameChatTables
     std::span<const std::string> filter{};
     // FilterName.bmd: lo que mira 0x622c70 en el nombre del gremio nuevo (la ventana 2 del gremio, 0x654f80).
     std::span<const std::string> filterName{};
-    const Data::Tables::ItemSetOptionTable* setOptions = nullptr;
+    const Tables::ItemSetOptionTable* setOptions = nullptr;
     // ItemSetType.bmd e ItemSetOption.bmd enteras (0x40c600): las lee 0x550d10 al abrir el personaje (0x65ca1e) desde
     // el paso de la UI. nullptr si no se cargaron: 0x550d10 corta en 0x40e1b0.
-    const Data::Tables::ItemSetTables* itemSetTables = nullptr;
+    const Tables::ItemSetTables* itemSetTables = nullptr;
 };
 struct GameChatContext;
 struct InventoryServices;
@@ -101,9 +101,9 @@ public:
     // sin ella, desde 0x69. Sin Text.bmd (`texts`), el HUD corta con error en el primer texto que dibuja. `chat` es lo
     // que lee la entrada del chat; vacío, sin filtro y sin los nombres de los conjuntos.
     GameScene(const SceneContext& context, App::ServerSession* session, const Models::IModelLibrary* models = nullptr,
-              const Data::Tables::ItemTable* items = nullptr, const Models::ModelTextureSlots* gameSlots = nullptr,
-              const Data::Tables::GateTable* gates = nullptr, const Data::Tables::SkillTable* skills = nullptr,
-              const Data::Text::TextTable* texts = nullptr, GameChatTables chat = {});
+              const Tables::ItemTable* items = nullptr, const Models::ModelTextureSlots* gameSlots = nullptr,
+              const Tables::GateTable* gates = nullptr, const Tables::SkillTable* skills = nullptr,
+              const Tables::TextTable* texts = nullptr, GameChatTables chat = {});
 
     ~GameScene() override;
 
@@ -228,11 +228,11 @@ private:
     SceneContext m_context;
     App::ServerSession* m_session;
     const Models::IModelLibrary* m_models;
-    const Data::Tables::ItemTable* m_items;
+    const Tables::ItemTable* m_items;
     const Models::ModelTextureSlots* m_gameSlots;
-    const Data::Tables::GateTable* m_gates;
-    const Data::Tables::SkillTable* m_skills;
-    const Data::Text::TextTable* m_texts;
+    const Tables::GateTable* m_gates;
+    const Tables::SkillTable* m_skills;
+    const Tables::TextTable* m_texts;
     GameChatTables m_chatTables;
     // Las texturas de la escena: los cursores 2 y 3 con las ventanas, y las arenas del HUD.
     SceneTextures m_windowTextures;

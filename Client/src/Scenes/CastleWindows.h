@@ -9,7 +9,7 @@
 #include <cstdint>
 #include <string>
 
-namespace Client::Data::Text
+namespace Client::Tables
 {
 class TextTable;
 }
@@ -34,7 +34,7 @@ struct GameHudContext;
 struct CastleWindowServices
 {
     const Render::Text::ITextMeasure* measure = nullptr;
-    const Data::Text::TextTable* texts = nullptr;
+    const Tables::TextTable* texts = nullptr;
     Core::PixelSize screen{640, 480};
     std::uint32_t now = 0;
 };

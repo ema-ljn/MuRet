@@ -71,14 +71,14 @@ CrtRandom Advanced(CrtRandom random, int count)
 }
 
 // Skill.bmd con el alcance (+0x26) de cada skill.
-Client::Data::Tables::SkillTable SkillsWithRange(std::uint8_t range)
+Client::Tables::SkillTable SkillsWithRange(std::uint8_t range)
 {
-    std::vector<std::byte> plain(Client::Data::Tables::SkillTableSize);
+    std::vector<std::byte> plain(Client::Tables::SkillTableSize);
     for (std::size_t skill = 0; skill < 0x100; ++skill)
-        plain[skill * Client::Data::Tables::SkillRecordSize + 0x26] = static_cast<std::byte>(range);
+        plain[skill * Client::Tables::SkillRecordSize + 0x26] = static_cast<std::byte>(range);
     const std::vector<std::byte> encrypted =
-        Client::Tests::EncryptRecords(std::move(plain), Client::Data::Tables::SkillRecordSize);
-    return Client::Data::Tables::SkillTable(std::span<const std::byte>(encrypted));
+        Client::Tests::EncryptRecords(std::move(plain), Client::Tables::SkillRecordSize);
+    return Client::Tables::SkillTable(std::span<const std::byte>(encrypted));
 }
 
 std::vector<std::uint8_t> ClearBytesOf(const Client::Protocol::Outgoing& outgoing)
@@ -167,7 +167,7 @@ struct ArrivingHero
     std::uint32_t ticks = Ticks;
     Client::Models::Skeleton skeleton = Client::Tests::PlayerActionsSkeleton();
     std::vector<Client::Protocol::Outgoing> sent;
-    Client::Data::Tables::SkillTable skills;
+    Client::Tables::SkillTable skills;
 };
 
 std::unique_ptr<ArrivingHero> Arriving(std::uint8_t skill, std::int32_t map, std::uint8_t range = 4)

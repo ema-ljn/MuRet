@@ -36,11 +36,11 @@
 
 namespace
 {
-using Client::Data::Tables::GateRecord;
-using Client::Data::Tables::GateTable;
 using Client::GameLogic::GateWarning;
 using Client::Scenes::CheckGameGates;
 using Client::Scenes::GameGateContext;
+using Client::Tables::GateRecord;
+using Client::Tables::GateTable;
 using Client::Tests::AfterDraws;
 using Client::Tests::GateTableBytes;
 
@@ -393,7 +393,7 @@ TEST_F(GoldenGameGates, GateTwentyThreeUsesTheRealLorenciaRectangleAndLevel)
     ASSERT_TRUE(path.has_value());
     const auto file = Client::Tests::ReadFileBytes(*path);
     ASSERT_TRUE(file.has_value());
-    const auto loaded = Client::Data::Tables::LoadGateTable(std::as_bytes(std::span(*file)));
+    const auto loaded = Client::Tables::LoadGateTable(std::as_bytes(std::span(*file)));
     ASSERT_TRUE(loaded.HasValue());
     for (const std::uint16_t level : {std::uint16_t{9}, std::uint16_t{10}})
     {
@@ -425,7 +425,7 @@ TEST_F(GoldenGameGates, TheRealGate102ReportsTheMacroBoundaryAfterSendingItsOwnI
     ASSERT_TRUE(path.has_value());
     const auto file = Client::Tests::ReadFileBytes(*path);
     ASSERT_TRUE(file.has_value());
-    const auto loaded = Client::Data::Tables::LoadGateTable(std::as_bytes(std::span(*file)));
+    const auto loaded = Client::Tables::LoadGateTable(std::as_bytes(std::span(*file)));
     ASSERT_TRUE(loaded.HasValue());
     Harness tested;
     tested.gates = loaded.Value();

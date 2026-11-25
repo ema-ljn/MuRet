@@ -59,7 +59,7 @@ bool PrintScreenEdge(UI::GameUiState& ui, const Input::InputState& input)
 
 // 0x638232..0x6382ae: 0x7d36bb0 + 0x21e · 0x6d5ec4 (el lugar del grupo elegido, recortado entre 0 y 30), donde
 // 0x4c1860 copió el nombre del grupo: el texto del grupo del servidor elegido. Sin servidor elegido, vacío (Q-C632).
-std::string_view GroupNameOf(const Data::Text::TextTable* texts, std::optional<std::uint16_t> chosenServer)
+std::string_view GroupNameOf(const Tables::TextTable* texts, std::optional<std::uint16_t> chosenServer)
 {
     if (!chosenServer)
         return {};

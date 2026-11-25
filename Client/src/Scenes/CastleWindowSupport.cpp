@@ -26,7 +26,7 @@
 
 namespace Client::Scenes::CastleUi
 {
-Core::Expected<std::string, std::string> Text(const Data::Text::TextTable* texts, std::uint32_t address)
+Core::Expected<std::string, std::string> Text(const Tables::TextTable* texts, std::uint32_t address)
 {
     const auto text = UI::TextAt(texts, TextId(address));
     if (!text)

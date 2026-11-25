@@ -32,7 +32,7 @@ Core::Expected<std::int32_t, std::string> SkillEnergyRequirement(std::uint8_t sk
     if (!record)
         return Core::Unexpected(std::format("0x551f40: Skill.bmd no tiene la skill {}", skill));
     const Models::LogicalAccess entry(context.world.Runtime().movement.skillDepths[skill], context.random,
-                                      static_cast<std::uint16_t>(Data::Tables::SkillRecordSize));
+                                      static_cast<std::uint16_t>(Tables::SkillRecordSize));
     const auto energy = std::to_integer<std::int32_t>((*record)[EnergyOffset]);
     if (energy == 0)
         return 0;

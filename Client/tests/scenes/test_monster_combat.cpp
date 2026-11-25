@@ -169,10 +169,10 @@ struct Game
     Client::World::GameCameraInput input;
     Client::Models::ClothWorld cloth{.random = CrtRandom(Seed)};
     MonsterModels models;
-    Client::Data::Tables::ItemTable items = Client::Tests::ItemsMarking({});
-    Client::Data::Tables::ItemSetTables sets =
-        Client::Tests::ItemSetTablesFrom(std::vector<std::byte>(Client::Data::Tables::ItemSetTypeTableSize),
-                                         std::vector<std::byte>(Client::Data::Tables::ItemSetOptionTableSize));
+    Client::Tables::ItemTable items = Client::Tests::ItemsMarking({});
+    Client::Tables::ItemSetTables sets =
+        Client::Tests::ItemSetTablesFrom(std::vector<std::byte>(Client::Tables::ItemSetTypeTableSize),
+                                         std::vector<std::byte>(Client::Tables::ItemSetOptionTableSize));
     Client::Tests::RecordingSink sink;
     Client::Core::Log log{sink, Client::Core::LogLevel::Debug};
 };
@@ -367,7 +367,7 @@ TEST_F(MonsterCombatTest, APlainDeathThenKillExperienceReplyFinishesTheMonster)
     EXPECT_EQ(monster.movement, 0);
     EXPECT_EQ(monster.animation.action, 5);
 
-    Client::Data::Text::TextTable texts = Client::Tests::MakeTextTable({{486, "Experiencia %d"}});
+    Client::Tables::TextTable texts = Client::Tests::MakeTextTable({{486, "Experiencia %d"}});
     CombatMessageMeasure measure;
     Client::Scenes::ChatReceiveContext chat{
         .world = game->world, .random = game->cloth.random, .measure = &measure, .texts = &texts};

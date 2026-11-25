@@ -310,10 +310,10 @@ Core::Expected<bool, std::string> AttackOfTheTrials(ActorState& actor, const Act
 // +0x42e en 0xff (0x4f9476) y cierra la entrada. Devuelve si la encontró.
 Core::Expected<bool, std::string> AttackFromTheSkillTable(ActorState& actor, const ActorCombatContext& context)
 {
-    constexpr std::array<std::uint8_t, Data::Tables::MonsterSkillCount> SkillActions{3, 4, 8, 9, 0xb};
+    constexpr std::array<std::uint8_t, Tables::MonsterSkillCount> SkillActions{3, 4, 8, 9, 0xb};
     constexpr std::uint8_t UsedSkill = 0xff;
     const Models::LogicalAccess access(actor.byte42eAccesses, context.random, ByteCloseRandoms);
-    const Data::Tables::MonsterSkills listed = context.world.Runtime().monsterSkills.Of(actor.word376);
+    const Tables::MonsterSkills listed = context.world.Runtime().monsterSkills.Of(actor.word376);
     const auto found = std::ranges::find(listed.skills, static_cast<std::int32_t>(actor.byte42e));
     const bool matched = found != listed.skills.end();
     if (matched)

@@ -15,10 +15,10 @@
 // (Client/tests/support/GoldenDir.h).
 namespace
 {
-using Client::Data::Text::LoadTextTable;
-using Client::Data::Text::TextCount;
-using Client::Data::Text::TextRecordSize;
-using Client::Data::Text::TextTableSize;
+using Client::Tables::LoadTextTable;
+using Client::Tables::TextCount;
+using Client::Tables::TextRecordSize;
+using Client::Tables::TextTableSize;
 using Client::Tests::DeviasCapture;
 using Client::Tests::ReadFileBytes;
 

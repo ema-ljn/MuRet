@@ -16,12 +16,12 @@
 namespace
 {
 using Client::Data::DataError;
-using Client::Data::Text::LoadNpcNames;
-using Client::Data::Text::NpcNameBytes;
-using Client::Data::Text::NpcNameCount;
-using Client::Data::Text::NpcNameNumberBytes;
-using Client::Data::Text::NpcNameRecord;
-using Client::Data::Text::NpcNameTokenBytes;
+using Client::Tables::LoadNpcNames;
+using Client::Tables::NpcNameBytes;
+using Client::Tables::NpcNameCount;
+using Client::Tables::NpcNameNumberBytes;
+using Client::Tables::NpcNameRecord;
+using Client::Tables::NpcNameTokenBytes;
 
 std::vector<std::byte> Bytes(std::string_view text)
 {

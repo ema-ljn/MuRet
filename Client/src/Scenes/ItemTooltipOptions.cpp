@@ -179,7 +179,7 @@ void ClearTheColorsAhead(TooltipWriter& lines)
 }
 
 // Un byte de las clases del registro de Item.bmd.
-std::uint8_t ClassByte(std::span<const std::byte, Data::Tables::ItemRecordSize> record, std::size_t offset)
+std::uint8_t ClassByte(std::span<const std::byte, Tables::ItemRecordSize> record, std::size_t offset)
 {
     return std::to_integer<std::uint8_t>(record[offset]);
 }
@@ -188,7 +188,7 @@ std::uint8_t ClassByte(std::span<const std::byte, Data::Tables::ItemRecordSize> 
 // 0x5af590(registro), de los dos que la llaman (ItemTooltipParts.h). `other` es el color de lo que el héroe no cumple:
 // 2 si su clase lo usa (Item.bmd+0x45 + clase distinto de 0) y 5 si no.
 void WriteTheItemClasses(const GameHudContext& context, TooltipWriter& lines,
-                         std::span<const std::byte, Data::Tables::ItemRecordSize> record)
+                         std::span<const std::byte, Tables::ItemRecordSize> record)
 {
     lines.At("0x5af590");
     const std::uint8_t hero = HeroClassOf(context);
@@ -496,7 +496,7 @@ Core::Expected<void, std::string> WriteTheSetOptions(Frame& frame)
     const auto found = context.setOptions->Record(set);
     if (!found)
         return Core::Unexpected(std::format("0x40ef22: el conjunto {} lee fuera de los 64 de ItemSetOption.bmd", set));
-    const std::span<const std::byte, Data::Tables::ItemSetOptionRecordSize> record = *found;
+    const std::span<const std::byte, Tables::ItemSetOptionRecordSize> record = *found;
     const auto byteAt = [&record](std::size_t offset) { return std::to_integer<std::uint8_t>(record[offset]); };
     if (byteAt(SetUsedByte) == NoSet)
     {

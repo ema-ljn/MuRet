@@ -39,7 +39,7 @@ struct ActorStopContext
     const Models::Skeleton& playerSkeleton;
     // *[0x7758550], Item.bmd en memoria: la matriz de armas lee el byte +0x1e del registro del arma
     // (0x4f2c52). nullptr si no se cargó: la matriz corta con error al leerlo.
-    const Data::Tables::ItemTable* items = nullptr;
+    const Tables::ItemTable* items = nullptr;
     // El rand() de la CRT: el sufijo saca uno siempre, y Fenrir hasta dos más (0x4f36be..0x4f3731).
     Crt::CrtRandom& random;
     // 0x4f23c1: lee la celda visible en los mapas de vuelo de la escena 5.

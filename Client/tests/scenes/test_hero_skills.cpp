@@ -89,19 +89,19 @@ struct InventedSkill
 };
 
 // Skill.bmd con el alcance (+0x26) y el byte de grupo (+0x31) de cada skill de `skills`.
-Client::Data::Tables::SkillTable SkillsWith(std::initializer_list<InventedSkill> skills)
+Client::Tables::SkillTable SkillsWith(std::initializer_list<InventedSkill> skills)
 {
-    std::vector<std::byte> plain(Client::Data::Tables::SkillTableSize);
+    std::vector<std::byte> plain(Client::Tables::SkillTableSize);
     for (const InventedSkill& invented : skills)
     {
-        const std::size_t base = std::size_t{invented.skill} * Client::Data::Tables::SkillRecordSize;
+        const std::size_t base = std::size_t{invented.skill} * Client::Tables::SkillRecordSize;
         plain[base + 0x22] = static_cast<std::byte>(invented.mana);
         plain[base + 0x26] = static_cast<std::byte>(invented.range);
         plain[base + 0x31] = static_cast<std::byte>(invented.party);
     }
     const std::vector<std::byte> encrypted =
-        Client::Tests::EncryptRecords(std::move(plain), Client::Data::Tables::SkillRecordSize);
-    return Client::Data::Tables::SkillTable(std::span<const std::byte>(encrypted));
+        Client::Tests::EncryptRecords(std::move(plain), Client::Tables::SkillRecordSize);
+    return Client::Tables::SkillTable(std::span<const std::byte>(encrypted));
 }
 
 enum HeroClass : std::uint8_t
@@ -195,23 +195,23 @@ struct SkillHero
     // nullptr: el 0x4f4a10 de un héroe transformado corta (0x4ea030).
     const Client::Models::IModelLibrary* models = nullptr;
     std::vector<Client::Protocol::Outgoing> sent;
-    Client::Data::Tables::SkillTable skills = SkillsWith({{0x11, 3},
-                                                          {0x13, 4},
-                                                          {0x16, 6},
-                                                          {0x18, 6},
-                                                          {0x1a, 2},
-                                                          {0x28, 7},
-                                                          {0x2c, 3},
-                                                          {0x2f, 2},
-                                                          {0x30, 2},
-                                                          {0x31, 3},
-                                                          {0x3a, 7},
-                                                          {0x36, 3},
-                                                          {0x3c, 3},
-                                                          {0x3d, 3, 0, 0x40},
-                                                          {0x43, 3},
-                                                          {0x4b, 3},
-                                                          {0x1d, 5, 2}});
+    Client::Tables::SkillTable skills = SkillsWith({{0x11, 3},
+                                                    {0x13, 4},
+                                                    {0x16, 6},
+                                                    {0x18, 6},
+                                                    {0x1a, 2},
+                                                    {0x28, 7},
+                                                    {0x2c, 3},
+                                                    {0x2f, 2},
+                                                    {0x30, 2},
+                                                    {0x31, 3},
+                                                    {0x3a, 7},
+                                                    {0x36, 3},
+                                                    {0x3c, 3},
+                                                    {0x3d, 3, 0, 0x40},
+                                                    {0x43, 3},
+                                                    {0x4b, 3},
+                                                    {0x1d, 5, 2}});
 };
 
 std::unique_ptr<SkillHero> AHeroClicking(std::uint8_t skill, std::uint8_t heroClass = Knight, std::int32_t map = 0)

@@ -160,8 +160,7 @@ protected:
     std::optional<std::int32_t> m_sound{};
     SpriteBatch m_sprites;
     Client::Tests::RecordingTextDrawer m_text;
-    Client::Data::Text::TextTable m_texts =
-        Client::Tests::MakeTextTable({{910, "quiere un duelo"}, {911, "acepta o no"}});
+    Client::Tables::TextTable m_texts = Client::Tests::MakeTextTable({{910, "quiere un duelo"}, {911, "acepta o no"}});
 };
 
 // Sin el duelo en curso, nada.

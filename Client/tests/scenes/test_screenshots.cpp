@@ -158,7 +158,7 @@ public:
 
     Client::Scenes::WorldState& world = *m_world;
     LetterMeasure measure;
-    Client::Data::Text::TextTable texts;
+    Client::Tables::TextTable texts;
     TemporaryFolder folder{"screenshots"};
     LocalTime time{.month = 3, .day = 7, .hour = 9, .minute = 5};
     int timeReads = 0;

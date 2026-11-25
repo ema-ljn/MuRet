@@ -17,7 +17,7 @@
 // (0x5496c0 por registro), y el checksum de las tablas de los 20.000, cifrados, al final. La lectura para en el
 // primer registro que empieza en cero. *Verificado*: las dos sumas del laboratorio dan, FilterName
 // trae seis palabras y Filter ninguna.
-namespace Client::Data::Text
+namespace Client::Tables
 {
 inline constexpr std::size_t FilterRecordSize = 20;
 inline constexpr std::size_t FilterTableSize = 20000;
@@ -31,6 +31,6 @@ inline constexpr std::uint32_t FilterChecksumKey = 0x3e7d;     // 0x549c60
 // cero, o de 20 bytes si lo llena. Sin un registro vacío, ninguna (el original no guarda la cuenta). FileTooShort con
 // menos de 20.004 bytes; ChecksumMismatch si la suma no es la de `checksumKey` (el original avisa "File corrupted" y se
 // cierra). Lo que sobra se ignora.
-[[nodiscard]] Core::Expected<std::vector<std::string>, DataError> LoadFilterWords(std::span<const std::byte> file,
-                                                                                  std::uint32_t checksumKey);
-} // namespace Client::Data::Text
+[[nodiscard]] Core::Expected<std::vector<std::string>, Data::DataError> LoadFilterWords(std::span<const std::byte> file,
+                                                                                        std::uint32_t checksumKey);
+} // namespace Client::Tables

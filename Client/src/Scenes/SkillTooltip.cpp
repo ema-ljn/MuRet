@@ -192,7 +192,7 @@ std::int32_t Wrapped(std::uint32_t value)
 }
 
 // La entrada `skill` de Skill.bmd, sin abrir su acceso.
-Core::Expected<std::span<const std::byte, Data::Tables::SkillRecordSize>, std::string>
+Core::Expected<std::span<const std::byte, Tables::SkillRecordSize>, std::string>
 SkillEntryOf(const GameHudContext& context, std::uint32_t skill, std::string_view where)
 {
     if (context.skills == nullptr)
@@ -203,7 +203,7 @@ SkillEntryOf(const GameHudContext& context, std::uint32_t skill, std::string_vie
     return *record;
 }
 
-std::uint8_t EntryByte(std::span<const std::byte, Data::Tables::SkillRecordSize> entry, std::size_t offset)
+std::uint8_t EntryByte(std::span<const std::byte, Tables::SkillRecordSize> entry, std::size_t offset)
 {
     return std::to_integer<std::uint8_t>(entry[offset]);
 }
@@ -216,7 +216,7 @@ Core::Expected<std::uint8_t, std::string> ReadTheEntryByte(GameHudContext& conte
     if (!entry.HasValue())
         return Core::Unexpected(entry.Error());
     const Models::LogicalAccess access(context.world.Runtime().movement.skillDepths[skill], context.random,
-                                       static_cast<std::uint16_t>(Data::Tables::SkillRecordSize));
+                                       static_cast<std::uint16_t>(Tables::SkillRecordSize));
     return EntryByte(entry.Value(), offset);
 }
 
@@ -482,9 +482,9 @@ Core::Expected<void, std::string> WriteTheGiver(SkillFrame& frame, std::uint8_t 
     auto entry = SkillEntryOf(context, giver, "0x5b9ccf");
     if (!entry.HasValue())
         return Core::Unexpected(entry.Error());
-    const std::span<const std::byte, Data::Tables::SkillRecordSize> record = entry.Value();
+    const std::span<const std::byte, Tables::SkillRecordSize> record = entry.Value();
     const Models::LogicalAccess access(context.world.Runtime().movement.skillDepths[giver], context.random,
-                                       static_cast<std::uint16_t>(Data::Tables::SkillRecordSize));
+                                       static_cast<std::uint16_t>(Tables::SkillRecordSize));
     std::string name;
     for (const std::byte value : record)
     {
@@ -513,9 +513,9 @@ Core::Expected<void, std::string> WriteTheOrigin(SkillFrame& frame)
     auto entry = SkillEntryOf(context, frame.skill, "0x5b9ab8");
     if (!entry.HasValue())
         return Core::Unexpected(entry.Error());
-    const std::span<const std::byte, Data::Tables::SkillRecordSize> record = entry.Value();
+    const std::span<const std::byte, Tables::SkillRecordSize> record = entry.Value();
     const Models::LogicalAccess access(context.world.Runtime().movement.skillDepths[frame.skill], context.random,
-                                       static_cast<std::uint16_t>(Data::Tables::SkillRecordSize));
+                                       static_cast<std::uint16_t>(Tables::SkillRecordSize));
     if (EntryByte(record, OriginByte) == GivenOrigin)
     {
         if (auto given = WriteTheGiver(frame, EntryByte(record, GiverByte)); !given.HasValue())
@@ -581,7 +581,7 @@ Core::Expected<void, std::string> WriteTheSkill(GameHudContext& context, Tooltip
     auto entry = ReadTheSkillEntry(context, *skill, "0x551c70");
     if (!entry.HasValue())
         return Core::Unexpected(entry.Error());
-    if (entry.Value().name.size() == Data::Tables::SkillRecordSize)
+    if (entry.Value().name.size() == Tables::SkillRecordSize)
         return Core::Unexpected(std::format("0x551e0c: el nombre de la skill {} no tiene '\\0' en su entrada (strcpy "
                                             "sigue por la que viene)",
                                             *skill));

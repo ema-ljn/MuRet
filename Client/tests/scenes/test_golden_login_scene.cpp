@@ -109,13 +109,13 @@ using Kind = Client::Tests::FrameEvent::Kind;
 using Client::Core::Log;
 using Client::Core::LogLevel;
 using Client::Render::TextureSlot;
-using Client::Scenes::LoadGameData;
 using Client::Scenes::LoadingScene;
 using Client::Scenes::LoadingTextureSet;
 using Client::Scenes::LoginScene;
 using Client::Scenes::LoginTextureSet;
 using Client::Scenes::SceneContext;
 using Client::Scenes::WindowTextureSet;
+using Client::Tables::LoadGameData;
 using Client::Tests::FakeTextureStore;
 using Client::Tests::RecordedText;
 using Client::Tests::RecordingFrameTarget;
@@ -366,7 +366,7 @@ protected:
     FakeTextureStore m_store;
     RecordingSink m_sink;
     Log m_log{m_sink, LogLevel::Debug};
-    std::optional<Client::Scenes::GameData> m_data;
+    std::optional<Client::Tables::GameData> m_data;
     Client::Scenes::GameModels m_models;
 };
 

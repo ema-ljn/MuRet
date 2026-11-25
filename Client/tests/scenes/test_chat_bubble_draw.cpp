@@ -149,7 +149,7 @@ protected:
     std::uint8_t m_clampBoxes = 0;
     std::int32_t m_boxWidth = 0;
     std::int32_t m_boxHeight = 0;
-    Client::Data::Text::TextTable m_texts = Client::Tests::MakeTextTable({{1104, std::string(ShopHeader)}});
+    Client::Tables::TextTable m_texts = Client::Tests::MakeTextTable({{1104, std::string(ShopHeader)}});
     bool m_withTexts = true;
 };
 

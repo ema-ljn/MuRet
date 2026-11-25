@@ -158,7 +158,7 @@ void InitializeTheObject(FloorItemState& item, const FloorItemCreation& creation
     item.objectState = Models::NativeItemObjectState(model, creation.clock, randoms);
 }
 
-Core::Expected<std::string_view, std::string> TextOf(const Data::Text::TextTable* texts, std::size_t index,
+Core::Expected<std::string_view, std::string> TextOf(const Tables::TextTable* texts, std::size_t index,
                                                      std::string_view where)
 {
     const std::optional<std::string_view> text = UI::TextAt(texts, index);
@@ -207,7 +207,7 @@ Core::Expected<void, std::string> PickUpMessage(const Protocol::FloorItems::Pick
     return SystemLine(resources, Crt::Sprintf("%s %s", std::string_view(name.Value()), picked.Value()), "0x4d1049");
 }
 
-Core::Expected<void, std::string> FruitBox(WorldState& world, const Data::Text::TextTable* texts, std::size_t text,
+Core::Expected<void, std::string> FruitBox(WorldState& world, const Tables::TextTable* texts, std::size_t text,
                                            std::string_view where)
 {
     const auto line = TextOf(texts, text, where);
@@ -219,8 +219,8 @@ Core::Expected<void, std::string> FruitBox(WorldState& world, const Data::Text::
 }
 
 // 0x4deab1..0x4deb04: sprintf(buffer, texto) y 0x632e30.
-Core::Expected<void, std::string> FormattedFruitBox(WorldState& world, const Data::Text::TextTable* texts,
-                                                    std::size_t text, std::string_view where)
+Core::Expected<void, std::string> FormattedFruitBox(WorldState& world, const Tables::TextTable* texts, std::size_t text,
+                                                    std::string_view where)
 {
     const auto line = TextOf(texts, text, where);
     if (!line.HasValue())
@@ -231,8 +231,8 @@ Core::Expected<void, std::string> FormattedFruitBox(WorldState& world, const Dat
 }
 
 // 0x4de813 y 0x4dea7b: sprintf(buffer, 1904, el texto de sumar o restar) y 0x632e30.
-Core::Expected<void, std::string> FruitFailureBox(WorldState& world, const Data::Text::TextTable* texts,
-                                                  std::size_t kind, std::string_view where)
+Core::Expected<void, std::string> FruitFailureBox(WorldState& world, const Tables::TextTable* texts, std::size_t kind,
+                                                  std::string_view where)
 {
     const auto format = TextOf(texts, 1904, where);
     const auto argument = TextOf(texts, kind, where);
@@ -247,7 +247,7 @@ Core::Expected<void, std::string> FruitFailureBox(WorldState& world, const Data:
 
 // 0x4de53a..0x4de7e4 (sumar) y 0x4de849..0x4dea4c (restar): el stat del registro propio, los puntos y el aviso.
 Core::Expected<void, std::string> EatTheFruit(const Protocol::FloorItems::StatFruit& fruit, WorldState& world,
-                                              Crt::CrtRandom& random, const Data::Text::TextTable* texts, bool adding)
+                                              Crt::CrtRandom& random, const Tables::TextTable* texts, bool adding)
 {
     // 0x4deb74 y 0x4deb88: el stat del lugar y su texto (la energía, la vitalidad, la agilidad, la fuerza y el
     // comando).
@@ -474,7 +474,7 @@ void ApplyShortPickUpResult(WorldState& world)
 }
 
 Core::Expected<void, std::string> ApplyStatFruit(const Protocol::FloorItems::StatFruit& fruit, WorldState& world,
-                                                 Crt::CrtRandom& random, const Data::Text::TextTable* texts)
+                                                 Crt::CrtRandom& random, const Tables::TextTable* texts)
 {
     // 0x4de522..0x4de533, la tabla de 0x4deb4c por 0x4deb20.
     constexpr std::uint8_t LastStat = 4;

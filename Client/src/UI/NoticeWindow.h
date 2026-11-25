@@ -49,7 +49,7 @@ class NoticeWindow final : public NewUiWindow
 {
 public:
     // `texts` puede ser nullptr (la caja sin texto) y tiene que vivir lo que la ventana.
-    NoticeWindow(TextureSizes sizes, const Data::Text::TextTable* texts);
+    NoticeWindow(TextureSizes sizes, const Tables::TextTable* texts);
 
     // Abre el aviso `notice` (0x65ee60). Uno abierto lo cambia. `argument` va en el "%s" del texto
     // del 0x5e, el único que 0x6431b0 arma con sprintf (el nombre del elegido); los otros no lo usan.
@@ -84,7 +84,7 @@ private:
     void Place(Core::PixelSize screen);
 
     TextureSizes m_sizes;
-    const Data::Text::TextTable* m_texts;
+    const Tables::TextTable* m_texts;
     std::optional<NoticeId> m_notice;
     std::string m_argument;
     Button m_ok;

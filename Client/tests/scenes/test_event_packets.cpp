@@ -143,10 +143,10 @@ std::map<std::size_t, std::string> EventTexts()
 }
 
 // Item.bmd con dos nombres: una espada (el tipo 1) y un escudo (0x0c05); los demás registros, vacíos.
-Client::Data::Tables::ItemTable EventItems()
+Client::Tables::ItemTable EventItems()
 {
-    using Client::Data::Tables::ItemRecordSize;
-    std::vector<std::byte> plain(Client::Data::Tables::ItemTableSize);
+    using Client::Tables::ItemRecordSize;
+    std::vector<std::byte> plain(Client::Tables::ItemTableSize);
     const std::array<std::pair<std::size_t, std::string_view>, 2> names{{{0x0001, "Espada"}, {0x0c05, "Escudo"}}};
     for (const auto& [type, name] : names)
     {
@@ -154,7 +154,7 @@ Client::Data::Tables::ItemTable EventItems()
             plain[type * ItemRecordSize + i] = static_cast<std::byte>(name[i]);
     }
     const std::vector<std::byte> encrypted = Client::Tests::EncryptRecords(std::move(plain), ItemRecordSize);
-    return Client::Data::Tables::ItemTable(std::span<const std::byte>(encrypted));
+    return Client::Tables::ItemTable(std::span<const std::byte>(encrypted));
 }
 
 // Los modelos por tipo de 0x4ea030: Player.bmd y uno de transformado con dos acciones.
@@ -345,9 +345,9 @@ protected:
     WorldState& world = *ownedWorld;
     std::filesystem::path dataRoot{MU_CLIENT_REPO_DATA_DIR};
     CrtRandom random{1};
-    Client::Data::Text::TextTable texts = Client::Tests::MakeTextTable(EventTexts());
+    Client::Tables::TextTable texts = Client::Tests::MakeTextTable(EventTexts());
     LetterMeasure letters;
-    Client::Data::Tables::ItemTable items = EventItems();
+    Client::Tables::ItemTable items = EventItems();
     Client::Models::Skeleton player;
     EventModels models{player};
     std::uint32_t tickCount = 0;
@@ -1709,7 +1709,7 @@ TEST_F(EventPacketsTest, TheServerCommandsShowTheirNotices)
 // descarta. Sin Dialog.bmd corta, como 0x632f70 desde las respuestas.
 TEST_F(EventPacketsTest, TheServerCommandFiveOpensTheAnswersDialog)
 {
-    Client::Data::Text::DialogTable table(Client::Data::Text::DialogCount);
+    Client::Tables::DialogTable table(Client::Tables::DialogCount);
     std::ranges::copy(std::string_view("un dialogo inventado"), table[0xc7].text.begin());
     table[0xc7].answerCount = 1;
     std::ranges::copy(std::string_view("seguir"), table[0xc7].answers[0].begin());

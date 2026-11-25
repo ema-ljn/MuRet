@@ -42,7 +42,7 @@ void OpenTheKeypad(WorldRuntime& runtime, Crt::CrtRandom& random, std::int32_t m
 // equipo (con tipo) y de las 64 casillas del inventario (con +0x3c), salvo lo que no se repara (0x1a00 a 0x1a05,
 // 0x1a0a, 0x1a1f, 0x807, 0x80f, de 0x1c00 en adelante, 0x1807 a 0x1813, 0x1a0e a 0x1a14, 0x1c15 y 0x1a25).
 [[nodiscard]] Core::Expected<void, std::string> PriceTheRepairOfEverything(WorldState& world, Crt::CrtRandom& random,
-                                                                           const Data::Tables::ItemTable* items);
+                                                                           const Tables::ItemTable* items);
 
 // 0x5ea060, con el almacén abierto: el primero de los cuatro botones (x + 0x1a, 0x4c y 0x7e en y + 0x186, y x + 0xd7 en
 // y + 0x18b, de 0x18 × 0x18) bajo el mouse; con el clic, lo gasta y suena 0x19. 0 y 1: el diálogo 0x73 para meter o

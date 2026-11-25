@@ -92,7 +92,7 @@ NoticeLayout LayoutNotice(Core::PixelSize screen)
     return NoticeLayout{.box = box, .ok = ButtonAt(box, OkLeft)};
 }
 
-NoticeWindow::NoticeWindow(TextureSizes sizes, const Data::Text::TextTable* texts)
+NoticeWindow::NoticeWindow(TextureSizes sizes, const Tables::TextTable* texts)
     : m_sizes(std::move(sizes)), m_texts(texts), m_ok(OkSlot, ButtonWidth, ButtonHeight),
       m_cancel(CancelSlot, ButtonWidth, ButtonHeight), m_code(CodeDigits, true)
 {

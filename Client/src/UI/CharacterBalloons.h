@@ -70,7 +70,7 @@ class CharacterBalloons
 {
 public:
     // `texts` puede ser nullptr (los textos vacíos) y tiene que vivir lo que los globos.
-    CharacterBalloons(TextureSizes sizes, const Data::Text::TextTable* texts);
+    CharacterBalloons(TextureSizes sizes, const Tables::TextTable* texts);
 
     // 0x63ce70: los cinco, cada uno con 0x63c9a0: la imagen armada de nuevo en (0, 0), sin mostrar, sin color y sin
     // textos.
@@ -96,7 +96,7 @@ public:
 
 private:
     TextureSizes m_sizes;
-    const Data::Text::TextTable* m_texts = nullptr;
+    const Tables::TextTable* m_texts = nullptr;
     bool m_built = false;
     std::array<CharacterBalloon, BalloonCount> m_balloons{};
 };

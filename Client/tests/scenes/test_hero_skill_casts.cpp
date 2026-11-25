@@ -40,23 +40,23 @@ CrtRandom Advanced(CrtRandom random, int count)
 }
 
 // Skill.bmd con el maná (+0x22) y la stamina (+0x24) de la skill 0x2b.
-Client::Data::Tables::SkillTable ACostlySkill()
+Client::Tables::SkillTable ACostlySkill()
 {
-    std::vector<std::byte> plain(Client::Data::Tables::SkillTableSize);
-    const std::size_t base = std::size_t{0x2b} * Client::Data::Tables::SkillRecordSize;
+    std::vector<std::byte> plain(Client::Tables::SkillTableSize);
+    const std::size_t base = std::size_t{0x2b} * Client::Tables::SkillRecordSize;
     plain[base + 0x22] = std::byte{0x34};
     plain[base + 0x23] = std::byte{0x01};
     plain[base + 0x24] = std::byte{0x0a};
     const std::vector<std::byte> encrypted =
-        Client::Tests::EncryptRecords(std::move(plain), Client::Data::Tables::SkillRecordSize);
-    return Client::Data::Tables::SkillTable(std::span<const std::byte>(encrypted));
+        Client::Tests::EncryptRecords(std::move(plain), Client::Tables::SkillRecordSize);
+    return Client::Tables::SkillTable(std::span<const std::byte>(encrypted));
 }
 
 struct Casting
 {
     Client::Scenes::WorldState world;
     CrtRandom random;
-    Client::Data::Tables::SkillTable skills = ACostlySkill();
+    Client::Tables::SkillTable skills = ACostlySkill();
 
     HeroSkillContext Context()
     {

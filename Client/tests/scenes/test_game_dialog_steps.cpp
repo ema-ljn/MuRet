@@ -234,7 +234,7 @@ public:
     CrtRandom random;
     InputState input;
     TypedLetters letters;
-    Client::Data::Text::TextTable texts = Client::Tests::MakeTextTable({{ChaosBoxText, "caja abierta"}});
+    Client::Tables::TextTable texts = Client::Tests::MakeTextTable({{ChaosBoxText, "caja abierta"}});
     RecordingRequests requests;
 };
 
@@ -1151,9 +1151,9 @@ INSTANTIATE_TEST_SUITE_P(TwoMaps, LeaveNumberTest, ::testing::Values(Lorencia, D
 
 // Dialog.bmd con el diálogo 3 (un renglón y dos respuestas: la primera lleva al 5 y la segunda a ninguno) y el 5, sin
 // respuestas, que lleva al 3.
-Client::Data::Text::DialogTable AnswersTable()
+Client::Tables::DialogTable AnswersTable()
 {
-    Client::Data::Text::DialogTable table(Client::Data::Text::DialogCount);
+    Client::Tables::DialogTable table(Client::Tables::DialogCount);
     const auto write = [](auto& field, std::string_view text) { std::ranges::copy(text, field.begin()); };
     write(table[3].text, "hola viajero");
     table[3].answerCount = 2;

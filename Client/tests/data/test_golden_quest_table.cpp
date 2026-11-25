@@ -17,10 +17,10 @@
 // condiciones, y que cada diálogo que nombran tenga texto.
 namespace
 {
-using Client::Data::Tables::LoadQuestTable;
-using Client::Data::Tables::NameOf;
-using Client::Data::Text::DialogTextOf;
-using Client::Data::Text::LoadDialogTable;
+using Client::Tables::DialogTextOf;
+using Client::Tables::LoadDialogTable;
+using Client::Tables::LoadQuestTable;
+using Client::Tables::NameOf;
 using Client::Tests::ReadFileBytes;
 using GoldenQuestTable = Client::Tests::GoldenDataTest;
 
@@ -46,7 +46,7 @@ TEST_F(GoldenQuestTable, TheRealFileHasFourQuests)
     EXPECT_EQ(NameOf(quests[3]), "Secret of'Dark Stone'");
     EXPECT_EQ(quests[3].entryCount, 1);
     for (std::size_t i = 4; i < quests.size(); ++i)
-        EXPECT_EQ(quests[i], Client::Data::Tables::QuestRecord{}) << i;
+        EXPECT_EQ(quests[i], Client::Tables::QuestRecord{}) << i;
 
     // La primera: el pergamino (14/23) para las tres primeras clases con la condición 0, y para las dos últimas con la
     // 1. Las condiciones: la misión 0 terminada y nivel 10.000 para el enlace 1; un millón de zen y nivel 150 para

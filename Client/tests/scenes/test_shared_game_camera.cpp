@@ -112,7 +112,7 @@ protected:
     Client::Core::Log m_log{m_sink, Client::Core::LogLevel::Debug};
     Client::Tests::RecordingFrameTarget m_target;
     Client::Scenes::SingleModelLibrary m_models;
-    Client::Scenes::GameData m_data;
+    Client::Tables::GameData m_data;
     GameCamera m_camera;
     GameCameraInput m_cameraInput;
 };

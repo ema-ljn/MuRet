@@ -60,7 +60,7 @@ constexpr std::int32_t Lorencia = 0;
 constexpr std::int32_t Devias = 2;
 // El IsOpen(0x10000) del precio (un byte protegido) y un acceso de Skill.bmd que cierra en 0.
 constexpr std::uint32_t NpcShopQuery = 1;
-constexpr auto SkillAccess = static_cast<std::uint32_t>(Client::Data::Tables::SkillRecordSize);
+constexpr auto SkillAccess = static_cast<std::uint32_t>(Client::Tables::SkillRecordSize);
 // Lo que había en las negritas antes: 0x422990 no las limpia.
 constexpr std::int32_t StaleBold = 7;
 
@@ -99,22 +99,22 @@ std::map<std::size_t, std::string> PetTooltipTexts()
             {1214, "Ave"}};
 }
 
-Client::Data::Tables::SkillTable HorseSkills()
+Client::Tables::SkillTable HorseSkills()
 {
-    std::vector<std::byte> plain(Client::Data::Tables::SkillTableSize);
-    const std::size_t mana = std::size_t{HorseSkill} * Client::Data::Tables::SkillRecordSize + 0x22;
+    std::vector<std::byte> plain(Client::Tables::SkillTableSize);
+    const std::size_t mana = std::size_t{HorseSkill} * Client::Tables::SkillRecordSize + 0x22;
     plain[mana] = std::byte{HorseSkillMana & 0xff};
     plain[mana + 1] = std::byte{HorseSkillMana >> 8};
     const std::vector<std::byte> encrypted =
-        Client::Tests::EncryptRecords(std::move(plain), Client::Data::Tables::SkillRecordSize);
-    return Client::Data::Tables::SkillTable(std::span<const std::byte>(encrypted));
+        Client::Tests::EncryptRecords(std::move(plain), Client::Tables::SkillRecordSize);
+    return Client::Tables::SkillTable(std::span<const std::byte>(encrypted));
 }
 
-Client::Data::Tables::ItemTable EmptyItems()
+Client::Tables::ItemTable EmptyItems()
 {
     const std::vector<std::byte> encrypted = Client::Tests::EncryptRecords(
-        std::vector<std::byte>(Client::Data::Tables::ItemTableSize), Client::Data::Tables::ItemRecordSize);
-    return Client::Data::Tables::ItemTable(std::span<const std::byte>(encrypted));
+        std::vector<std::byte>(Client::Tables::ItemTableSize), Client::Tables::ItemRecordSize);
+    return Client::Tables::ItemTable(std::span<const std::byte>(encrypted));
 }
 
 struct Line
@@ -262,9 +262,9 @@ protected:
     std::optional<std::int32_t> m_sound;
     SpriteBatch m_sprites;
     Client::Tests::RecordingTextDrawer m_text;
-    Client::Data::Text::TextTable m_texts = Client::Tests::MakeTextTable(PetTooltipTexts());
-    Client::Data::Tables::ItemTable m_items = EmptyItems();
-    Client::Data::Tables::SkillTable m_skills = HorseSkills();
+    Client::Tables::TextTable m_texts = Client::Tests::MakeTextTable(PetTooltipTexts());
+    Client::Tables::ItemTable m_items = EmptyItems();
+    Client::Tables::SkillTable m_skills = HorseSkills();
     bool m_projecting = false;
     std::vector<Client::Protocol::Outgoing> m_sent;
 };

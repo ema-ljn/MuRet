@@ -9,7 +9,7 @@
 #include <span>
 #include <string>
 
-namespace Client::Data::Text
+namespace Client::Tables
 {
 class TextTable;
 }
@@ -44,7 +44,7 @@ struct SecondGuildStepContext
     // Con qué mide 0x6600d0 sus renglones; sin medidor, el botón de la marca corta.
     const Render::Text::ITextMeasure* measure = nullptr;
     // Text.bmd: el 1269 del botón de la marca, y el 457 y el 458 que mira 0x622c70. Sin él, lo que los lee corta.
-    const Data::Text::TextTable* texts = nullptr;
+    const Tables::TextTable* texts = nullptr;
     // FilterName.bmd y Filter.bmd, las palabras que mira 0x622c70.
     std::span<const std::string> filterName{};
     std::span<const std::string> filter{};

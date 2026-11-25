@@ -80,7 +80,7 @@ constexpr std::uint8_t Party = 0x3f;
 constexpr std::uint8_t StatDamage = 0x4c;
 constexpr std::uint8_t Nameless = 0x50;
 
-Client::Data::Text::TextTable Texts()
+Client::Tables::TextTable Texts()
 {
     return Client::Tests::MakeTextTable({{96, "A pie"},
                                          {99, "Cadena"},
@@ -120,9 +120,9 @@ Client::Data::Text::TextTable Texts()
 class SkillRecords
 {
 public:
-    SkillRecords() : m_plain(Client::Data::Tables::SkillTableSize)
+    SkillRecords() : m_plain(Client::Tables::SkillTableSize)
     {
-        for (std::size_t skill = 0; skill < Client::Data::Tables::SkillTableSize / Record; ++skill)
+        for (std::size_t skill = 0; skill < Client::Tables::SkillTableSize / Record; ++skill)
             m_plain[skill * Record + 0x30] = std::byte{0xff};
     }
 
@@ -153,14 +153,14 @@ public:
         return Byte(skill, 0x21, damage).Word(skill, 0x22, mana).Word(skill, 0x24, stamina).Byte(skill, 0x26, range);
     }
 
-    [[nodiscard]] Client::Data::Tables::SkillTable Table() const
+    [[nodiscard]] Client::Tables::SkillTable Table() const
     {
         const std::vector<std::byte> encrypted = Client::Tests::EncryptRecords(m_plain, Record);
-        return Client::Data::Tables::SkillTable(std::span<const std::byte>(encrypted));
+        return Client::Tables::SkillTable(std::span<const std::byte>(encrypted));
     }
 
 private:
-    static constexpr std::size_t Record = Client::Data::Tables::SkillRecordSize;
+    static constexpr std::size_t Record = Client::Tables::SkillRecordSize;
 
     std::byte& At(std::uint8_t skill, std::size_t offset)
     {
@@ -188,7 +188,7 @@ SkillRecords BaseSkills()
     records.Named(Party, "Llamado").Costs(Party, 0, 4, 0, 0);
     records.Named(StatDamage, "Furia").Costs(StatDamage, 9, 40, 0, 0);
     // Un nombre que llena la entrada entera, sin '\0'.
-    for (std::size_t i = 0; i < Client::Data::Tables::SkillRecordSize; ++i)
+    for (std::size_t i = 0; i < Client::Tables::SkillRecordSize; ++i)
         records.Byte(Nameless, i, 'x');
     return records;
 }
@@ -356,8 +356,8 @@ protected:
     std::optional<std::int32_t> sound;
     SpriteBatch sprites;
     Client::Tests::RecordingTextDrawer text{sprites};
-    Client::Data::Text::TextTable texts = Texts();
-    Client::Data::Tables::SkillTable skills = BaseSkills().Table();
+    Client::Tables::TextTable texts = Texts();
+    Client::Tables::SkillTable skills = BaseSkills().Table();
     bool withSkills = true;
     bool withTexts = true;
 };

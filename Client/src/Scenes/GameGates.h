@@ -20,7 +20,7 @@ class WorldState;
 struct GameGateContext
 {
     WorldState& world;
-    const Data::Tables::GateTable& gates;
+    const Tables::GateTable& gates;
     Crt::CrtRandom& random;
     std::uint32_t ticksMs = 0;
     std::function<void(std::uint8_t)> requestGate{};

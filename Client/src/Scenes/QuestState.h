@@ -34,7 +34,7 @@ struct QuestState
     // +6 a +9: los que escribe el 9F (0x4ddaa0) con pkt[3] de 0 a 3. Nadie más los lee en lo portado (*estático*).
     std::array<std::uint8_t, 4> flags{};
     // +0xc: los 200 registros de quest.bmd (0x418d10).
-    Data::Tables::QuestTable records = Data::Tables::QuestTable(Data::Tables::QuestCount);
+    Tables::QuestTable records = Tables::QuestTable(Tables::QuestCount);
     // +0x2134c: dos bits por misión, como los manda el GS, aunque 0x419560 los lee corridos (Q-C841).
     std::array<std::uint8_t, QuestStateBytes> states{};
     // +0x2137e: la misión en curso (un byte: 0 − 1 es 255, Q-C842).

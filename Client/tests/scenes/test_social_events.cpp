@@ -170,22 +170,22 @@ struct Stage
     Client::Scenes::SingleModelLibrary models;
     Client::Tests::RecordingSink sink;
     Client::Core::Log log{sink, Client::Core::LogLevel::Debug};
-    Client::Data::Tables::ItemTable items = Client::Tests::ItemTableOf({{TallType, 1, 2, 0}, {SmallType, 1, 1, 0}});
-    Client::Data::Text::TextTable texts = Client::Tests::MakeTextTable({{492, "rechazado"},
-                                                                        {493, "ocupado"},
-                                                                        {494, "cancelado"},
-                                                                        {495, "sin lugar"},
-                                                                        {496, "sin tiempo"},
-                                                                        {497, "party 0"},
-                                                                        {498, "party 1"},
-                                                                        {499, "party 2"},
-                                                                        {500, "party 3"},
-                                                                        {501, "party 4"},
-                                                                        {502, "dejaste la party"},
-                                                                        {535, "party 5"},
-                                                                        {912, "duelo con %s"},
-                                                                        {913, "no quiso"},
-                                                                        {914, "fin del duelo"}});
+    Client::Tables::ItemTable items = Client::Tests::ItemTableOf({{TallType, 1, 2, 0}, {SmallType, 1, 1, 0}});
+    Client::Tables::TextTable texts = Client::Tests::MakeTextTable({{492, "rechazado"},
+                                                                    {493, "ocupado"},
+                                                                    {494, "cancelado"},
+                                                                    {495, "sin lugar"},
+                                                                    {496, "sin tiempo"},
+                                                                    {497, "party 0"},
+                                                                    {498, "party 1"},
+                                                                    {499, "party 2"},
+                                                                    {500, "party 3"},
+                                                                    {501, "party 4"},
+                                                                    {502, "dejaste la party"},
+                                                                    {535, "party 5"},
+                                                                    {912, "duelo con %s"},
+                                                                    {913, "no quiso"},
+                                                                    {914, "fin del duelo"}});
     LetterMeasure letters;
 };
 

@@ -100,7 +100,7 @@ Button MakeCheck()
     return check;
 }
 
-std::string_view TextOf(const Data::Text::TextTable* texts, std::size_t index)
+std::string_view TextOf(const Tables::TextTable* texts, std::size_t index)
 {
     return TextAt(texts, index).value_or(std::string_view{});
 }
@@ -164,7 +164,7 @@ OptionsWindowLayout LayoutOptionsWindow(Core::PixelSize screen, int lineHeight)
     return layout;
 }
 
-OptionsWindow::OptionsWindow(TextureSizes sizes, const Data::Text::TextTable* texts)
+OptionsWindow::OptionsWindow(TextureSizes sizes, const Tables::TextTable* texts)
     : m_sizes(std::move(sizes)), m_texts(texts), m_checks{MakeCheck(), MakeCheck(), MakeCheck()},
       m_close(CloseSlot, CloseWidth, CloseHeight), m_sliders{Slider(SliderLook), Slider(SliderLook)}
 {

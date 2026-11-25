@@ -23,7 +23,7 @@
 
 // Lo que se lee una vez, antes de la primera escena, y usan las que siguen (CL5.4). Vive en
 // main.cpp, como el SceneManager.
-namespace Client::Scenes
+namespace Client::Tables
 {
 // Text.bmd como lo pide el original ("Data\Local\Text.bmd", 0x6d4370).
 inline constexpr std::string_view TextTableFile = "Local\\Text.bmd";
@@ -59,42 +59,42 @@ inline constexpr std::string_view NpcNameFile = "Local\\NpcName(Eng).txt";
 struct GameData
 {
     // Text.bmd (CL1): los textos se piden por índice. La cara de la fuente es el texto 0.
-    std::optional<Data::Text::TextTable> text;
+    std::optional<TextTable> text;
     // FilterName.bmd y Filter.bmd (CL6.5): las palabras que no puede tener el nombre de un personaje
     // nuevo (UI::NameFilters).
     std::vector<std::string> filterName;
     std::vector<std::string> filter;
-    std::optional<Data::Tables::GateTable> gates;
+    std::optional<GateTable> gates;
     // Q-C01: checksumMatches queda disponible para el aviso del integrador.
-    std::optional<Data::Tables::LoadedItemTable> items;
+    std::optional<LoadedItemTable> items;
     // ItemSetType.bmd e ItemSetOption.bmd, las tablas de [0x6eed3c] (05, "Las tablas de los conjuntos").
-    std::optional<Data::Tables::ItemSetTables> itemSets;
+    std::optional<ItemSetTables> itemSets;
     // Skill.bmd: la tabla en claro, sin el contenedor guardia del original (Q-C08).
-    std::optional<Data::Tables::SkillTable> skills;
+    std::optional<SkillTable> skills;
     // credit.bmd (CL8, hito 8): los 400 registros de los créditos (UI::CreditsWindow), o ninguno si no
     // está. El original lo lee cada vez que arma la UI del login (0x63ff30) y, si no está, avisa con un
     // MessageBox y cierra el juego (WM_DESTROY); MuRet lo lee una vez, y sin él los créditos se cierran al
     // abrirlos (P-C78).
-    std::vector<Data::Text::CreditEntry> credits;
+    std::vector<CreditEntry> credits;
     // Data\Macro.txt (0x61c1c0): main.cpp las copia a ChatInputState::macros cuando arma el mundo.
     UI::Macros macros{};
     // Slide.bmd (CL8 hito 3): el período, la velocidad y los textos del cartel de [0x5763528]. Vacío si no está.
-    std::optional<Data::Text::SlideTable> slides;
+    std::optional<SlideTable> slides;
     // movereq.bmd (CL8 hito 6): los destinos de la ventana /move, que main.cpp copia a WorldRuntime::moves (la lista
     // de 0x723c68). Vacío si no está, como cuando fopen falla en 0x448440.
-    std::vector<Data::Text::MoveRequirement> moves;
+    std::vector<MoveRequirement> moves;
     // Dialog.bmd (CL9 hito 2): los 200 diálogos de 0x7688ac0, que main.cpp copia a WorldRuntime::dialogTable. Sin el
     // archivo, 200 vacíos (el original avisa y cierra la ventana, P-C170).
-    Data::Text::DialogTable dialogs;
+    DialogTable dialogs;
     // quest.bmd (CL9 hito 2): los 200 registros de [0x710148] + 0xc, que main.cpp copia a WorldRuntime::quest. Sin el
     // archivo, 200 en cero, como deja 0x418d10 los de la .bss.
-    Data::Tables::QuestTable quests;
+    QuestTable quests;
     // MonsterSkill.bmd (CL9 hito 3, fase 2c): las skills de [0x7437670], que main.cpp copia a
     // WorldRuntime::monsterSkills. Sin el archivo, la .bss (el original avisa y cierra la ventana, 0x54a500..0x54a549).
-    Data::Tables::MonsterSkillTable monsterSkills;
+    MonsterSkillTable monsterSkills;
     // NpcName(%s).txt (CL9 hito 2): los registros que 0x54e7f0 deja en 0x7681eb8, que main.cpp copia al principio de
     // WorldRuntime::npcNames. Vacío si no está, como cuando fopen falla.
-    std::vector<Data::Text::NpcNameRecord> npcNames;
+    std::vector<NpcNameRecord> npcNames;
 };
 
 // Lo de WinMain antes de la escena 1: Text.bmd en 0x4b9b9f (0x61ee30 y 0x5495e0), antes de las
@@ -130,4 +130,4 @@ struct GameData
 // las macros no va al log. La salida del juego (GameSceneUi) y el cambio de servidor (0x412b6d) lo comparten.
 [[nodiscard]] Core::Expected<void, std::string> WriteMacroFile(const std::filesystem::path& dataRoot,
                                                                std::string_view content);
-} // namespace Client::Scenes
+} // namespace Client::Tables

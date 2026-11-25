@@ -54,10 +54,10 @@ struct GameChatContext
     // El rand() de la tela: el registro propio de 0x554a40 lo gasta al cerrarse.
     Crt::CrtRandom& random;
     // Text.bmd: los comandos, los avisos y el "..." del filtro. Sin él, el primero que se lee es el error.
-    const Data::Text::TextTable* texts = nullptr;
+    const Tables::TextTable* texts = nullptr;
     // La cola de los nombres de 0x56c440 (UI::ChatCommandContext); sin ellas, no hay nombres.
-    const Data::Tables::ItemTable* items = nullptr;
-    const Data::Tables::ItemSetOptionTable* setOptions = nullptr;
+    const Tables::ItemTable* items = nullptr;
+    const Tables::ItemSetOptionTable* setOptions = nullptr;
     // Las palabras de Filter.bmd (0x622b40).
     std::span<const std::string> filter{};
     // Las de FilterName.bmd, que con Filter.bmd mira 0x622c70 en el nombre del gremio nuevo (0x654f80).

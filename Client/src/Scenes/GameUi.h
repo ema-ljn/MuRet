@@ -20,7 +20,7 @@
 
 #include <glm/ext/vector_float3.hpp>
 
-namespace Client::Data::Tables
+namespace Client::Tables
 {
 struct ItemSetTables;
 }
@@ -45,7 +45,7 @@ namespace Client::Render::Text
 class ITextMeasure;
 }
 
-namespace Client::Data::Text
+namespace Client::Tables
 {
 class TextTable;
 }
@@ -129,7 +129,7 @@ struct GameUiContext
     const GameChatContext* chat = nullptr;
     // Text.bmd: los textos de los diálogos (el 592 del menú de Esc, las páginas del 0x8c). nullptr sin tabla: el que
     // lee uno corta con error.
-    const Data::Text::TextTable* texts = nullptr;
+    const Tables::TextTable* texts = nullptr;
     // 0x6d5edc: el lugar del elegido, el de las teclas de las skills del F3 30 que sale (0x61c2c6).
     std::optional<std::uint8_t> chosenSlot{};
     // El cable, Macro.txt y el log. nullptr (los tests que no los miran): un botón que los usa corta con error.
@@ -144,10 +144,10 @@ struct GameUiContext
     float fixedHeight = 1200.0f;
     // ItemSetType.bmd e ItemSetOption.bmd (0x40c600), que lee 0x550d10 con el Item.bmd de `inventory` cuando la C o el
     // botón del HUD abren el personaje (0x65ca1e). nullptr si no se cargaron: abrirlo corta en 0x40e1b0.
-    const Data::Tables::ItemSetTables* itemSetTables = nullptr;
+    const Tables::ItemSetTables* itemSetTables = nullptr;
     // Skill.bmd (0x76bd1d8): el +0x31 de cada skill de la lista de la barra (0x5a07a3). nullptr: la lista abierta
     // corta.
-    const Data::Tables::SkillTable* skills = nullptr;
+    const Tables::SkillTable* skills = nullptr;
     // CL9 hito 10: lo del juego que usa el personaje del retrato de las cartas (Scenes/LetterPortrait), que vive más
     // que el paso. nullptr: el retrato corta (P-C212).
     const WorldEntryResources* worldEntry = nullptr;

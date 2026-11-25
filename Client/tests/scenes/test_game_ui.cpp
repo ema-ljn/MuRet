@@ -120,7 +120,7 @@ public:
     WorldState world;
     CrtRandom random;
     InputState input;
-    const Client::Data::Tables::SkillTable* skills = nullptr;
+    const Client::Tables::SkillTable* skills = nullptr;
     const Client::Scenes::InventoryServices* inventory = nullptr;
 };
 
@@ -507,14 +507,14 @@ TEST(GameUiTest, TheSkillBarButtonTogglesTheList)
 }
 
 // Skill.bmd inventado: las skills de `hidden` con el +0x31 en 1 (las que la lista no muestra).
-Client::Data::Tables::SkillTable SkillsHiding(std::initializer_list<std::uint8_t> hidden)
+Client::Tables::SkillTable SkillsHiding(std::initializer_list<std::uint8_t> hidden)
 {
-    std::vector<std::byte> plain(Client::Data::Tables::SkillTableSize);
+    std::vector<std::byte> plain(Client::Tables::SkillTableSize);
     for (const std::uint8_t skill : hidden)
-        plain[std::size_t{skill} * Client::Data::Tables::SkillRecordSize + 0x31] = std::byte{1};
+        plain[std::size_t{skill} * Client::Tables::SkillRecordSize + 0x31] = std::byte{1};
     const std::vector<std::byte> encrypted =
-        Client::Tests::EncryptRecords(std::move(plain), Client::Data::Tables::SkillRecordSize);
-    return Client::Data::Tables::SkillTable(std::span<const std::byte>(encrypted));
+        Client::Tests::EncryptRecords(std::move(plain), Client::Tables::SkillRecordSize);
+    return Client::Tables::SkillTable(std::span<const std::byte>(encrypted));
 }
 
 // La entrada de Skill.bmd que la lista abre y cierra en 0 (0x40f600).

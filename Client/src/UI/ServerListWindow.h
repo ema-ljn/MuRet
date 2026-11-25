@@ -119,7 +119,7 @@ class ServerListWindow final : public NewUiWindow
 public:
     // `texts` puede ser nullptr (sin Text.bmd: los botones salen sin rótulo) y tiene que vivir lo
     // que la ventana.
-    ServerListWindow(TextureSizes sizes, const Data::Text::TextTable* texts);
+    ServerListWindow(TextureSizes sizes, const Tables::TextTable* texts);
 
     // Abre con la lista ya agrupada (GroupServers), sin grupo elegido.
     void Open(ServerGroups groups);
@@ -158,7 +158,7 @@ private:
     void DrawGroupTwentyTexts(Render::Frame::ITextDrawer& text, std::uint32_t color) const;
 
     TextureSizes m_sizes;
-    const Data::Text::TextTable* m_texts;
+    const Tables::TextTable* m_texts;
     bool m_open = false;
     ServerGroups m_groups;
     std::optional<std::size_t> m_selected;

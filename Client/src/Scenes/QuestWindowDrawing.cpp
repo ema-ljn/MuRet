@@ -153,8 +153,8 @@ Core::Expected<std::string_view, std::string> TextOf(const GameHudContext& conte
     return *text;
 }
 
-Core::Expected<const Data::Tables::QuestRecord*, std::string> RecordOf(const QuestState& quest, std::size_t record,
-                                                                       std::string_view where)
+Core::Expected<const Tables::QuestRecord*, std::string> RecordOf(const QuestState& quest, std::size_t record,
+                                                                 std::string_view where)
 {
     if (record >= quest.records.size())
     {
@@ -228,14 +228,14 @@ Core::Expected<bool, std::string> DrawTheAskedItems(GameHudContext& context, std
     const auto read = RecordOf(quest, quest.current, "0x41b88e");
     if (!read.HasValue())
         return Core::Unexpected(read.Error());
-    const Data::Tables::QuestRecord& record = *read.Value();
+    const Tables::QuestRecord& record = *read.Value();
     // 0x41b88e y 0x41b9af: la cuenta con signo, leída en cada vuelta; más de 16 seguiría en las condiciones.
-    if (record.entryCount > static_cast<std::int16_t>(Data::Tables::QuestEntryCount))
+    if (record.entryCount > static_cast<std::int16_t>(Tables::QuestEntryCount))
         return Core::Unexpected(std::format("0x41b8b0: {} pedidos pasan los 16 del registro", record.entryCount));
     for (std::int16_t e = 0; e < record.entryCount; ++e)
     {
         const auto index = static_cast<std::size_t>(e);
-        const Data::Tables::QuestEntry& entry = record.entries[index];
+        const Tables::QuestEntry& entry = record.entries[index];
         if (QuestClassFlagOf(record, index, quest.characterClass) == 0 || entry.kind != ItemEntry)
             continue;
         const std::int32_t type = entry.itemGroup * ItemGroupSize + entry.itemIndex;
@@ -403,8 +403,8 @@ Core::Expected<void, std::string> DrawTheQuestDialog(GameHudContext& context)
         const auto current = RecordOf(quest, quest.current, "0x41bf04");
         if (!current.HasValue())
             return Core::Unexpected(current.Error());
-        WindowDrawing::DrawInBox(context, x + QuestNameOffset, y + QuestNameOffset,
-                                 Data::Tables::NameOf(*current.Value()), QuestNameBox);
+        WindowDrawing::DrawInBox(context, x + QuestNameOffset, y + QuestNameOffset, Tables::NameOf(*current.Value()),
+                                 QuestNameBox);
     }
     DrawTheQuestText(context, true);
     sprites.SetColor(White);
@@ -425,7 +425,7 @@ Core::Expected<void, std::string> DrawTheFirstTab(GameHudContext& context)
     if (!reached.HasValue())
         return Core::Unexpected(reached.Error());
     WindowDrawing::DrawInBox(context, quest.x + QuestNameOffset, quest.y + QuestNameOffset,
-                             Data::Tables::NameOf(*reached.Value()), QuestNameBox);
+                             Tables::NameOf(*reached.Value()), QuestNameBox);
     DrawTheQuestText(context, false);
     WindowDrawing::SelectFont(context, FontKind::BigBold);
     hud.textColors = TextColors{.text = AnswerText, .background = 0};

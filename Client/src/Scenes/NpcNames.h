@@ -15,9 +15,9 @@
 // original sin el archivo (CL9 hito 2, P-C174).
 namespace Client::Scenes
 {
-using Data::Text::NpcNameBytes;
-using Data::Text::NpcNameCount;
-using NpcName = Data::Text::NpcNameRecord;
+using Tables::NpcNameBytes;
+using Tables::NpcNameCount;
+using NpcName = Tables::NpcNameRecord;
 
 // NpcNameCount registros en el montón (27 KB).
 using NpcNameTable = std::vector<NpcName>;

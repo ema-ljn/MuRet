@@ -46,7 +46,7 @@ constexpr Client::Core::PixelSize Screen640{640, 480};
 constexpr std::uint8_t None = 0xff;
 
 // Los textos de formato de las opciones de un conjunto (0x40d530) y del título (1089 y 159), inventados.
-Client::Data::Text::TextTable Texts()
+Client::Tables::TextTable Texts()
 {
     return Client::Tests::MakeTextTable({{159, "fin"},
                                          {632, "Magia +% d %%"},
@@ -61,7 +61,7 @@ Client::Data::Text::TextTable Texts()
 class SetOptions
 {
 public:
-    SetOptions() : m_plain(Client::Data::Tables::ItemSetOptionTableSize, std::byte{None}) {}
+    SetOptions() : m_plain(Client::Tables::ItemSetOptionTableSize, std::byte{None}) {}
 
     SetOptions& Named(std::size_t set, std::string_view name, std::uint8_t pieces)
     {
@@ -78,16 +78,16 @@ public:
         return *this;
     }
 
-    [[nodiscard]] Client::Data::Tables::ItemSetTables Tables() const
+    [[nodiscard]] Client::Tables::ItemSetTables Tables() const
     {
         return Client::Tests::ItemSetTablesFrom(
-            std::vector<std::byte>(Client::Data::Tables::ItemSetTypeTableSize, std::byte{0}), m_plain);
+            std::vector<std::byte>(Client::Tables::ItemSetTypeTableSize, std::byte{0}), m_plain);
     }
 
 private:
     std::byte& At(std::size_t set, std::size_t offset)
     {
-        return m_plain[set * Client::Data::Tables::ItemSetOptionRecordSize + offset];
+        return m_plain[set * Client::Tables::ItemSetOptionRecordSize + offset];
     }
 
     std::vector<std::byte> m_plain;
@@ -96,7 +96,7 @@ private:
 class Tooltips
 {
 public:
-    explicit Tooltips(const Client::Data::Tables::ItemSetOptionTable* setOptions = nullptr) : m_setOptions(setOptions)
+    explicit Tooltips(const Client::Tables::ItemSetOptionTable* setOptions = nullptr) : m_setOptions(setOptions)
     {
         sprites.Begin(Screen640);
     }
@@ -131,11 +131,11 @@ public:
     std::optional<std::int32_t> sound;
     SpriteBatch sprites;
     Client::Tests::RecordingTextDrawer text{sprites};
-    Client::Data::Text::TextTable texts = Texts();
+    Client::Tables::TextTable texts = Texts();
     Client::UI::Point mouse{};
 
 private:
-    const Client::Data::Tables::ItemSetOptionTable* m_setOptions = nullptr;
+    const Client::Tables::ItemSetOptionTable* m_setOptions = nullptr;
 };
 
 struct Quad
@@ -374,7 +374,7 @@ TEST(GameTooltipsTest, TheTextBoxIsInPixelsAtAnotherResolution)
 // 0x40d530: la opción elige el texto de formato; con una de más de 0x23 el renglón queda.
 TEST(GameTooltipsTest, ASetOptionPicksItsFormatText)
 {
-    const Client::Data::Text::TextTable texts = Texts();
+    const Client::Tables::TextTable texts = Texts();
     std::string line = "viejo";
     ASSERT_TRUE(Client::Scenes::WriteTheSetOption(&texts, line, 0, 12).HasValue());
     EXPECT_EQ(line, "Fuerza +12");
@@ -454,7 +454,7 @@ TEST(GameTooltipsTest, TheSetLabelListsTheOptionsOfTheSet)
         .Byte(1, 0x3a, 2)
         .Byte(1, 0x3d, 0x15)
         .Byte(1, 0x42, 6);
-    const Client::Data::Tables::ItemSetTables tables = options.Tables();
+    const Client::Tables::ItemSetTables tables = options.Tables();
     Tooltips tested(&tables.options);
     tested.world.ItemSets().byte9305 = 2;
     tested.Lines().colors[25] = 4;
@@ -491,7 +491,7 @@ TEST(GameTooltipsTest, TheSecondOptionOfTheSixthPairRepeatsInTheSetLabel)
 {
     SetOptions options;
     options.Named(0, "Gamma", 2).Byte(0, 0x2b, 1).Byte(0, 0x37, 9);
-    const Client::Data::Tables::ItemSetTables tables = options.Tables();
+    const Client::Tables::ItemSetTables tables = options.Tables();
     Tooltips tested(&tables.options);
     tested.world.ItemSets().byte9305 = 1;
     GameHudContext context = tested.Context();
@@ -506,7 +506,7 @@ TEST(GameTooltipsTest, TheSecondOptionOfTheSixthPairRepeatsInTheSetLabel)
 // 0x40ecf3: un conjunto sin usar apaga el cartel sin dibujar nada.
 TEST(GameTooltipsTest, AnUnusedSetTurnsTheLabelOff)
 {
-    const Client::Data::Tables::ItemSetTables tables = SetOptions().Tables();
+    const Client::Tables::ItemSetTables tables = SetOptions().Tables();
     Tooltips tested(&tables.options);
     tested.world.ItemSets().byte9305 = 3;
     GameHudContext context = tested.Context();

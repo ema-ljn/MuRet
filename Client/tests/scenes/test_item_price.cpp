@@ -58,7 +58,7 @@ struct Option
 class PriceRecords
 {
 public:
-    PriceRecords() : m_plain(Client::Data::Tables::ItemTableSize) {}
+    PriceRecords() : m_plain(Client::Tables::ItemTableSize) {}
 
     PriceRecords& Byte(std::uint16_t type, std::size_t offset, std::uint8_t value)
     {
@@ -82,17 +82,16 @@ public:
         return *this;
     }
 
-    [[nodiscard]] Client::Data::Tables::ItemTable Table() const
+    [[nodiscard]] Client::Tables::ItemTable Table() const
     {
-        const std::vector<std::byte> encrypted =
-            Client::Tests::EncryptRecords(m_plain, Client::Data::Tables::ItemRecordSize);
-        return Client::Data::Tables::ItemTable(std::span<const std::byte>(encrypted));
+        const std::vector<std::byte> encrypted = Client::Tests::EncryptRecords(m_plain, Client::Tables::ItemRecordSize);
+        return Client::Tables::ItemTable(std::span<const std::byte>(encrypted));
     }
 
 private:
     std::byte& At(std::uint16_t type, std::size_t offset)
     {
-        return m_plain[std::size_t{type} * Client::Data::Tables::ItemRecordSize + offset];
+        return m_plain[std::size_t{type} * Client::Tables::ItemRecordSize + offset];
     }
 
     std::vector<std::byte> m_plain;
@@ -102,7 +101,7 @@ constexpr std::size_t TwoHandedAt = 0x1e;
 constexpr std::size_t DurabilityAt = 0x2d;
 constexpr std::size_t PotionValueAt = 0x3c;
 
-Client::Data::Tables::ItemTable Items()
+Client::Tables::ItemTable Items()
 {
     PriceRecords records;
     records.Level(0x0005, 0).Byte(0x0005, DurabilityAt, 22);
@@ -177,7 +176,7 @@ protected:
         return price.HasValue() ? std::string() : price.Error();
     }
 
-    Client::Data::Tables::ItemTable items = Items();
+    Client::Tables::ItemTable items = Items();
 };
 
 // Lo que pasa de 2^31 vuelve como el dword bajo: −x es 2^32 − x.
@@ -320,7 +319,7 @@ TEST_F(ItemPriceTest, TheWizardRingAndTheSpiritComeAfterThePotionValue)
     // Con un +0x3c, el anillo va por él (0x54d647 antes de 0x54d6ef).
     PriceRecords records;
     records.Byte(0x1a14, PotionValueAt, 30);
-    const Client::Data::Tables::ItemTable withValue = records.Table();
+    const Client::Tables::ItemTable withValue = records.Table();
     auto price = ItemPrice(Item(0x1a14, 0), withValue, ShopGrid, std::nullopt);
     ASSERT_TRUE(price.HasValue()) << price.Error();
     EXPECT_EQ(price.Value(), 750u);
@@ -565,7 +564,7 @@ protected:
         ASSERT_TRUE(path.has_value());
         const auto file = Client::Tests::ReadFileBytes(*path);
         ASSERT_TRUE(file.has_value());
-        auto loaded = Client::Data::Tables::LoadItemTable(std::as_bytes(std::span(*file)));
+        auto loaded = Client::Tables::LoadItemTable(std::as_bytes(std::span(*file)));
         ASSERT_TRUE(loaded.HasValue());
         m_items.emplace(std::move(loaded).Value().table);
     }
@@ -577,7 +576,7 @@ protected:
         return price.HasValue() ? price.Value() : 0;
     }
 
-    std::optional<Client::Data::Tables::ItemTable> m_items;
+    std::optional<Client::Tables::ItemTable> m_items;
 };
 
 TEST_F(GoldenItemPriceTest, TheRealItemsHaveTheirPrices)

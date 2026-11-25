@@ -138,7 +138,7 @@ protected:
         static_cast<void>(steps);
         m_target.SetScreen(viewport.screen);
         m_input.Apply({.kind = Client::Input::InputEvent::Kind::Motion, .x = viewport.mouseX, .y = viewport.mouseY});
-        auto loadedData = Client::Scenes::LoadGameData(m_dataRoot);
+        auto loadedData = Client::Tables::LoadGameData(m_dataRoot);
         ASSERT_TRUE(loadedData.HasValue()) << loadedData.Error();
         m_data = std::move(loadedData).Value();
         const auto loadedModels = m_models.Load(m_dataRoot, m_store, m_log);
@@ -265,7 +265,7 @@ protected:
     Client::World::GameCamera m_camera;
     Client::World::GameCameraInput m_cameraInput;
     Client::Scenes::GameModels m_models;
-    Client::Scenes::GameData m_data;
+    Client::Tables::GameData m_data;
     // El renglón de bienvenida del F3 03 (0x4c4b60).
     Client::Tests::LetterMeasure m_letters;
     Client::Tests::RecordingFrameTarget m_target;

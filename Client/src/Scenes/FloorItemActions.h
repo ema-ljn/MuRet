@@ -31,7 +31,7 @@ struct InventoryMoveContext;
 // 0x5c9d20(tipo, 0x78a9bb0, 8, 8): si la huella del tipo (Item.bmd +0x24 y +0x25) entra en algún lugar de la grilla
 // con todas sus casillas vacías (tipo 0xffff). El original empieza por abajo a la derecha; como solo devuelve si
 // entra, el orden no se ve.
-[[nodiscard]] Core::Expected<bool, std::string> HasRoomFor(const Data::Tables::ItemTable* items,
+[[nodiscard]] Core::Expected<bool, std::string> HasRoomFor(const Tables::ItemTable* items,
                                                            std::span<const World::ItemState> cells, std::int16_t type);
 
 // 0x5650c0 con +0x379 en 1 (0x566755..0x566eb3), sobre el ítem elegido (0x77f27b0). Sin la barra (0x77f3b40), con

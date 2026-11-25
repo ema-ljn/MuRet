@@ -9,7 +9,7 @@
 #include <cstdint>
 #include <string>
 
-namespace Client::Data::Text
+namespace Client::Tables
 {
 class TextTable;
 }
@@ -40,7 +40,7 @@ struct GameProjection;
 // dos en negrita, y el alto suma un renglón; sin Text.bmd, corta.
 [[nodiscard]] Core::Expected<void, std::string> MeasureTheChatBubble(ChatBubble& bubble,
                                                                      const Render::Text::ITextMeasure& measure,
-                                                                     int fontStep, const Data::Text::TextTable* texts);
+                                                                     int fontStep, const Tables::TextTable* texts);
 
 // Lo que el dibujo lee y deja.
 struct ChatBubbleDrawContext
@@ -65,7 +65,7 @@ struct ChatBubbleDrawContext
     // Un dibujo intermedio de MuRet no escribe la tabla: el paso del original lee lo del último frame suyo.
     bool projecting = false;
     // Text.bmd, con el texto 1104 (0x770df9c) del título de una tienda.
-    const Data::Text::TextTable* texts = nullptr;
+    const Tables::TextTable* texts = nullptr;
 };
 
 // 0x5a9050: SelectObject de la normal; cada entrada con el nombre o el renglón de abajo con tiempo va 60 sobre el

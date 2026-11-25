@@ -111,10 +111,10 @@ struct NamedItem
 };
 
 // Item.bmd sintético: el nombre (+0), el ancho (+0x24) y el alto (+0x25) de cada tipo.
-Client::Data::Tables::ItemTable NamedItems(std::initializer_list<NamedItem> named)
+Client::Tables::ItemTable NamedItems(std::initializer_list<NamedItem> named)
 {
-    using Client::Data::Tables::ItemRecordSize;
-    std::vector<std::byte> plain(Client::Data::Tables::ItemTableSize);
+    using Client::Tables::ItemRecordSize;
+    std::vector<std::byte> plain(Client::Tables::ItemTableSize);
     for (const NamedItem& item : named)
     {
         const std::size_t base = std::size_t{item.type} * ItemRecordSize;
@@ -124,7 +124,7 @@ Client::Data::Tables::ItemTable NamedItems(std::initializer_list<NamedItem> name
         plain[base + 0x25] = std::byte{item.height};
     }
     const std::vector<std::byte> encrypted = Client::Tests::EncryptRecords(std::move(plain), ItemRecordSize);
-    return Client::Data::Tables::ItemTable(std::span<const std::byte>(encrypted));
+    return Client::Tables::ItemTable(std::span<const std::byte>(encrypted));
 }
 
 // Los siete bytes de un ítem (0x54b3a0 al revés).
@@ -140,11 +140,11 @@ ItemData ItemBytes(std::uint16_t type, std::uint8_t byte1 = 0, std::uint8_t dura
             std::byte{0}};
 }
 
-Client::Data::Tables::ItemSetTables NoSets()
+Client::Tables::ItemSetTables NoSets()
 {
     return Client::Tests::ItemSetTablesFrom(
-        std::vector<std::byte>(Client::Data::Tables::ItemSetTypeTableSize, std::byte{0xff}),
-        std::vector<std::byte>(Client::Data::Tables::ItemSetOptionTableSize, std::byte{0xff}));
+        std::vector<std::byte>(Client::Tables::ItemSetTypeTableSize, std::byte{0xff}),
+        std::vector<std::byte>(Client::Tables::ItemSetOptionTableSize, std::byte{0xff}));
 }
 
 CrtRandom Advanced(CrtRandom from, std::size_t count)
@@ -217,17 +217,17 @@ struct Stage
     Client::World::GameCameraInput cameraInput;
     Client::Models::ClothWorld cloth;
     Scenes::SingleModelLibrary models;
-    Client::Data::Tables::ItemTable items = NamedItems({{Sword, "Espada inventada", 1, 3},
-                                                        {Potion, "Pocion inventada"},
-                                                        {Zen, "Oro"},
-                                                        {Jewel, "Joya inventada"},
-                                                        {BoxOfLuck, "Caja inventada"}});
-    Client::Data::Tables::ItemSetTables sets = NoSets();
+    Client::Tables::ItemTable items = NamedItems({{Sword, "Espada inventada", 1, 3},
+                                                  {Potion, "Pocion inventada"},
+                                                  {Zen, "Oro"},
+                                                  {Jewel, "Joya inventada"},
+                                                  {BoxOfLuck, "Caja inventada"}});
+    Client::Tables::ItemSetTables sets = NoSets();
     Client::Tests::RecordingSink sink;
     Client::Core::Log log{sink, Client::Core::LogLevel::Debug};
     Client::Render::SpriteBatch sprites;
     Client::Tests::RecordingTextDrawer text;
-    Client::Data::Text::TextTable texts;
+    Client::Tables::TextTable texts;
     Scenes::InventoryServices services;
 };
 

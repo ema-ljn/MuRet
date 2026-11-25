@@ -351,7 +351,7 @@ std::string PlaceVersion(std::string_view text, std::string_view version)
     return placed;
 }
 
-LoginScene::LoginScene(const SceneContext& context, const GameData& data, const Models::IModelLibrary& models,
+LoginScene::LoginScene(const SceneContext& context, const Tables::GameData& data, const Models::IModelLibrary& models,
                        App::ServerSession* session, std::string_view version, std::mt19937::result_type seed,
                        const Models::ModelTextureSlots* gameSlots)
     : m_context(context), m_localWorld(context.world == nullptr ? std::make_unique<WorldState>() : nullptr),

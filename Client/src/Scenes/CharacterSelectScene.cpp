@@ -183,7 +183,7 @@ Render::OriginalQuad Background(std::uint16_t slot, float x)
 }
 } // namespace
 
-CharacterSelectScene::CharacterSelectScene(const SceneContext& context, const GameData& data,
+CharacterSelectScene::CharacterSelectScene(const SceneContext& context, const Tables::GameData& data,
                                            const Models::IModelLibrary& models, App::ServerSession* session,
                                            const Models::ModelTextureSlots* gameSlots)
     : m_context(context), m_texts(data.text ? &*data.text : nullptr),
@@ -204,14 +204,15 @@ CharacterSelectScene::CharacterSelectScene(const SceneContext& context, const Ga
 {
 }
 
-CharacterSelectScene::CharacterSelectScene(const SceneContext& context, const GameData& data, GameModels& models,
-                                           App::ServerSession* session)
+CharacterSelectScene::CharacterSelectScene(const SceneContext& context, const Tables::GameData& data,
+                                           GameModels& models, App::ServerSession* session)
     : CharacterSelectScene(context, data, models, session, &models.TextureSlots())
 {
 }
 
-CharacterSelectScene::CharacterSelectScene(const SceneContext& context, const GameData& data, GameModels& models,
-                                           App::ServerSession* session, const Models::ModelTextureSlots* gameSlots)
+CharacterSelectScene::CharacterSelectScene(const SceneContext& context, const Tables::GameData& data,
+                                           GameModels& models, App::ServerSession* session,
+                                           const Models::ModelTextureSlots* gameSlots)
     : CharacterSelectScene(context, data, static_cast<const Models::IModelLibrary&>(models), session, gameSlots)
 {
     m_startupModels = &models;

@@ -68,7 +68,7 @@ constexpr int OwnRecord = Client::Models::OwnRecordCloseRandoms;
 // Una lectura de +0x38e: un rand() al cerrarse en 0.
 constexpr int SkillRead = 1;
 // La entrada de Skill.bmd de 0x5526f0, cerrada en 0.
-constexpr int SkillEntry = static_cast<int>(Client::Data::Tables::SkillRecordSize);
+constexpr int SkillEntry = static_cast<int>(Client::Tables::SkillRecordSize);
 constexpr std::array<std::int32_t, 3> Maps{0, 2, 7};
 
 int DrawsSince(std::uint32_t seed, const CrtRandom& random)
@@ -95,15 +95,15 @@ std::string ErrorOf(const Client::Core::Expected<void, std::string>& stepped)
 }
 
 // Skill.bmd con el alcance (+0x26) de la 0x4c.
-Client::Data::Tables::SkillTable SkillsWithRange(std::uint8_t range)
+Client::Tables::SkillTable SkillsWithRange(std::uint8_t range)
 {
     constexpr std::size_t AroundSkill = 0x4c;
     constexpr std::size_t RangeOffset = 0x26;
-    std::vector<std::byte> plain(Client::Data::Tables::SkillTableSize);
-    plain[AroundSkill * Client::Data::Tables::SkillRecordSize + RangeOffset] = static_cast<std::byte>(range);
+    std::vector<std::byte> plain(Client::Tables::SkillTableSize);
+    plain[AroundSkill * Client::Tables::SkillRecordSize + RangeOffset] = static_cast<std::byte>(range);
     const std::vector<std::byte> encrypted =
-        Client::Tests::EncryptRecords(std::move(plain), Client::Data::Tables::SkillRecordSize);
-    return Client::Data::Tables::SkillTable(std::span<const std::byte>(encrypted));
+        Client::Tests::EncryptRecords(std::move(plain), Client::Tables::SkillRecordSize);
+    return Client::Tables::SkillTable(std::span<const std::byte>(encrypted));
 }
 
 struct SkillWorld
@@ -190,7 +190,7 @@ struct SkillWorld
     std::vector<std::int32_t> sounds;
     std::vector<glm::vec3> soundOrigins;
     bool controlDown = false;
-    const Client::Data::Tables::SkillTable* skills = nullptr;
+    const Client::Tables::SkillTable* skills = nullptr;
     std::vector<JointState> joints = std::vector<JointState>(16);
     bool withJoints = true;
     bool withParticles = false;

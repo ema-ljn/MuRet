@@ -16,9 +16,9 @@
 namespace
 {
 using Client::Data::DataError;
-using Client::Data::Tables::LoadMonsterSkillTable;
-using Client::Data::Tables::MonsterSkillRecordSize;
-using Client::Data::Tables::MonsterSkills;
+using Client::Tables::LoadMonsterSkillTable;
+using Client::Tables::MonsterSkillRecordSize;
+using Client::Tables::MonsterSkills;
 
 void Put(std::vector<std::byte>& bytes, std::int32_t value)
 {

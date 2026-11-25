@@ -104,12 +104,12 @@ Core::Expected<void, std::string> CloseTheQuestWindow(const GameUiContext& conte
     return {};
 }
 
-Core::Expected<const Data::Text::DialogRecord*, std::string>
-DialogRecordOf(const WorldRuntime& runtime, std::int32_t index, std::int32_t answer, std::string_view where)
+Core::Expected<const Tables::DialogRecord*, std::string> DialogRecordOf(const WorldRuntime& runtime, std::int32_t index,
+                                                                        std::int32_t answer, std::string_view where)
 {
-    const Data::Text::DialogTable& table = runtime.dialogTable;
+    const Tables::DialogTable& table = runtime.dialogTable;
     if (index < 0 || static_cast<std::size_t>(index) >= table.size() ||
-        static_cast<std::size_t>(answer) >= Data::Text::DialogAnswerCount)
+        static_cast<std::size_t>(answer) >= Tables::DialogAnswerCount)
     {
         return Core::Unexpected(std::format("{}: la respuesta {} del diálogo {} está fuera de Dialog.bmd (0x7688ac0)",
                                             where, answer, index));
@@ -158,7 +158,7 @@ Core::Expected<void, std::string> StepTheQuestAnswers(const GameUiContext& conte
     bool failed = false;
     switch (record.Value()->actions[static_cast<std::size_t>(row)])
     {
-    case static_cast<std::int32_t>(Data::Text::DialogAction::CheckAndAccept):
+    case static_cast<std::int32_t>(Tables::DialogAction::CheckAndAccept):
     {
         // 0x419cd7..0x419d0e: 0x418fb0(registro, 1); si no se cumplen, 0x419710 con el diálogo que dejaron.
         const auto checked = CheckTheQuestConditions(questContext, quest.current, true);
@@ -177,13 +177,13 @@ Core::Expected<void, std::string> StepTheQuestAnswers(const GameUiContext& conte
             return sent;
         break;
     }
-    case static_cast<std::int32_t>(Data::Text::DialogAction::Close):
+    case static_cast<std::int32_t>(Tables::DialogAction::Close):
         // 0x41a320..0x41a335: el clic gastado otra vez y 0x419900.
         SpendTheClick(movement);
         if (auto closed = CloseTheQuestWindow(context, "0x41a335"); !closed.HasValue())
             return closed;
         break;
-    case static_cast<std::int32_t>(Data::Text::DialogAction::Accept):
+    case static_cast<std::int32_t>(Tables::DialogAction::Accept):
         SpendTheClick(movement);
         if (auto sent = SendTheQuestState(context, "0x41a35b"); !sent.HasValue())
             return sent;

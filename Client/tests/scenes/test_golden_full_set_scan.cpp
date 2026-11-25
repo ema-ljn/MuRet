@@ -35,7 +35,7 @@ constexpr std::size_t OwnArmorSlot = 3;
 class GoldenFullSetScan : public Client::Tests::GoldenDataTest
 {
 protected:
-    std::optional<Client::Data::Tables::LoadedItemTable> LoadItems()
+    std::optional<Client::Tables::LoadedItemTable> LoadItems()
     {
         const auto path = DataFile(ItemFile);
         if (!path)
@@ -47,7 +47,7 @@ protected:
         {
             return std::nullopt;
         }
-        auto loaded = Client::Data::Tables::LoadItemTable(std::as_bytes(std::span(*file)));
+        auto loaded = Client::Tables::LoadItemTable(std::as_bytes(std::span(*file)));
         if (!loaded.HasValue())
         {
             return std::nullopt;
@@ -56,7 +56,7 @@ protected:
     }
 };
 
-bool IsNamed(const Client::Data::Tables::ItemTable& items, std::uint8_t group, std::uint16_t index)
+bool IsNamed(const Client::Tables::ItemTable& items, std::uint8_t group, std::uint16_t index)
 {
     const std::size_t type = static_cast<std::size_t>(ItemModel(group, index) - FirstItemModel);
     const auto record = items.Record(type);

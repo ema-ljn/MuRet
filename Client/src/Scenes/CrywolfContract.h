@@ -7,7 +7,7 @@
 #include <functional>
 #include <string>
 
-namespace Client::Data::Text
+namespace Client::Tables
 {
 class TextTable;
 }
@@ -56,7 +56,7 @@ struct ContractMessage
 // Corta sin el texto, con un renglón o un altar fuera de sus tablas o con un texto de 200 bytes o más, que pisaría lo
 // que sigue al renglón (el strcpy y wsprintfA no tienen tope).
 [[nodiscard]] Core::Expected<void, std::string>
-ShowTheContractMessage(WorldRuntime& runtime, const Data::Text::TextTable* texts, const ContractMessage& message);
+ShowTheContractMessage(WorldRuntime& runtime, const Tables::TextTable* texts, const ContractMessage& message);
 
 // 0x435ad0(altar, valor): con la etapa en 3 o 4 en el mapa 34, el byte de 0x6c73cc + altar; no mira la salida pedida.
 // El altar sale de la clave del BD 03 − 0x13c sin tope (Q-C1347): dentro de la guarda y fuera de 0..4, el original
@@ -66,7 +66,7 @@ ShowTheContractMessage(WorldRuntime& runtime, const Data::Text::TextTable* texts
 struct ContractWindowContext
 {
     WorldRuntime& runtime;
-    const Data::Text::TextTable* texts = nullptr;
+    const Tables::TextTable* texts = nullptr;
     // El word +0x318 del héroe (0x435cf7): con 0x1c14, 0x1c15 o 0x1c37 el Sí no manda nada.
     std::uint16_t heroPet = 0;
     // 0x7d3682c y 0x7d36828: el mouse en 640 × 480.
@@ -102,7 +102,7 @@ enum class AltarClick : std::uint8_t
 // +0x1f4 del blanco con signo. La llama la llegada a un NPC con Crywolf activo (0x5650c0 con +0x379 en 2,
 // Scenes::TalkToTheNpc), antes del C1 30.
 [[nodiscard]] Core::Expected<AltarClick, std::string> ClickTheCrywolfAltar(WorldRuntime& runtime,
-                                                                           const Data::Text::TextTable* texts,
+                                                                           const Tables::TextTable* texts,
                                                                            const ActorState& hero,
                                                                            const ActorState& target);
 

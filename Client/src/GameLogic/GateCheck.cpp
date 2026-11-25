@@ -35,7 +35,7 @@ constexpr std::uint16_t IcarusUniriaText = 569;
 constexpr std::uint8_t LevelWaitSteps = 50;
 constexpr std::uint32_t TeleportCooldownMs = 3000;
 
-std::uint16_t RequiredLevel(const Data::Tables::GateRecord& gate, std::uint8_t characterClass)
+std::uint16_t RequiredLevel(const Tables::GateRecord& gate, std::uint8_t characterClass)
 {
     constexpr std::uint8_t BaseClassMask = 7;
     constexpr std::uint8_t MagicGladiatorClass = 3;
@@ -46,7 +46,7 @@ std::uint16_t RequiredLevel(const Data::Tables::GateRecord& gate, std::uint8_t c
                : gate.level;
 }
 
-bool Contains(const Data::Tables::GateRecord& gate, const GateCheckState& state)
+bool Contains(const Tables::GateRecord& gate, const GateCheckState& state)
 {
     return gate.flag == 1 && gate.map == state.map && state.x >= gate.x1 && state.y >= gate.y1 && state.x <= gate.x2 &&
            state.y <= gate.y2;
@@ -96,7 +96,7 @@ bool AppendEquipmentWarnings(GateDecision& decision, std::size_t index, const Ga
 }
 
 // true cuando el contador cambiaría: los demás gates ya no pueden producir efectos ordinarios.
-bool CheckEligibleGate(GateDecision& decision, std::size_t index, const Data::Tables::GateRecord& gate,
+bool CheckEligibleGate(GateDecision& decision, std::size_t index, const Tables::GateRecord& gate,
                        const GateCheckState& state, bool& warpPending)
 {
     const std::uint16_t requiredLevel = RequiredLevel(gate, state.characterClass);
@@ -123,10 +123,10 @@ bool CheckEligibleGate(GateDecision& decision, std::size_t index, const Data::Ta
 }
 } // namespace
 
-GateDecision CheckGate(std::size_t index, const Data::Tables::GateRecord& gate, const GateCheckState& state)
+GateDecision CheckGate(std::size_t index, const Tables::GateRecord& gate, const GateCheckState& state)
 {
     GateDecision decision;
-    if (index >= Data::Tables::GateCount || state.warpCounter != 0 || state.heroGateBlocked || !Contains(gate, state))
+    if (index >= Tables::GateCount || state.warpCounter != 0 || state.heroGateBlocked || !Contains(gate, state))
     {
         return decision;
     }
@@ -135,7 +135,7 @@ GateDecision CheckGate(std::size_t index, const Data::Tables::GateRecord& gate, 
     return decision;
 }
 
-GateDecision GateCheck(const Data::Tables::GateTable& table, const GateCheckState& state)
+GateDecision GateCheck(const Tables::GateTable& table, const GateCheckState& state)
 {
     GateDecision decision;
     if (state.warpCounter != 0 || state.heroGateBlocked)
@@ -143,9 +143,9 @@ GateDecision GateCheck(const Data::Tables::GateTable& table, const GateCheckStat
         return decision;
     }
     bool warpPending = state.warpPending;
-    for (std::size_t index = 0; index < Data::Tables::GateCount && index < table.Count(); ++index)
+    for (std::size_t index = 0; index < Tables::GateCount && index < table.Count(); ++index)
     {
-        const auto gate = Data::Tables::ReadGateRecord(table, index);
+        const auto gate = Tables::ReadGateRecord(table, index);
         if (gate && Contains(*gate, state) && CheckEligibleGate(decision, index, *gate, state, warpPending))
         {
             break;

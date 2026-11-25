@@ -6,14 +6,14 @@
 #include <cstddef>
 #include <span>
 
-namespace Client::Data::Tables
+namespace Client::Tables
 {
-Core::Expected<GateTable, DataError> LoadGateTable(std::span<const std::byte> file)
+Core::Expected<GateTable, Data::DataError> LoadGateTable(std::span<const std::byte> file)
 {
     if (file.size() < GateTableSize)
     {
-        return Core::Unexpected(DataError::FileTooShort);
+        return Core::Unexpected(Data::DataError::FileTooShort);
     }
     return GateTable(file.first(GateTableSize));
 }
-} // namespace Client::Data::Tables
+} // namespace Client::Tables

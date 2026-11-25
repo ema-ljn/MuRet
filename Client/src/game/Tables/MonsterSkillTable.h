@@ -21,7 +21,7 @@
 // InvalidData, fuera de [0, 0xffff], lo que cabe en +0x376). Sin el archivo, avisa con un MessageBox y cierra la
 // ventana (0x54a500..0x54a549). *Verificado* con el del repo: 228 bytes, 8 registros, los tipos 0x130, 0x131, 0x135,
 // 0x154, 0x155, 0x158, 0x159 y 0x15d. Los lee 0x4f92f0 (CL9 hito 3, fase 2c).
-namespace Client::Data::Tables
+namespace Client::Tables
 {
 inline constexpr std::size_t MonsterSkillRecordSize = 0x1c;
 inline constexpr std::size_t MonsterSkillCount = 5;
@@ -47,5 +47,5 @@ struct MonsterSkillTable
 //   - Si faltan bytes para la cuenta o para un registro, FileTooShort.
 //   - Un tipo fuera de [0, 0xffff], InvalidData.
 //   - Lo que sobra se ignora.
-Core::Expected<MonsterSkillTable, DataError> LoadMonsterSkillTable(std::span<const std::byte> file);
-} // namespace Client::Data::Tables
+Core::Expected<MonsterSkillTable, Data::DataError> LoadMonsterSkillTable(std::span<const std::byte> file);
+} // namespace Client::Tables

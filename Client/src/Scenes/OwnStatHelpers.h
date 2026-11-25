@@ -59,7 +59,7 @@ struct OwnEquipmentOverride
 // [0x6eed3c]: nullptr si no están, y el error sale donde el original los lee.
 [[nodiscard]] Core::Expected<void, std::string> UpdateOwnWords50To56(OwnCharacterRecord& own,
                                                                      const OwnEquipmentOverride& held,
-                                                                     const Data::Tables::ItemTable* items,
+                                                                     const Tables::ItemTable* items,
                                                                      ItemSetOptionList* setOptions);
 
 // 0x54f9b0 (0x551290): +0x5a y +0x5c por la energía (más +0x30), las alas, la mano derecha, el lugar
@@ -67,7 +67,7 @@ struct OwnEquipmentOverride
 // lugares 0, 9, 10 y 11.
 [[nodiscard]] Core::Expected<void, std::string> UpdateOwnWords5aAnd5c(OwnCharacterRecord& own,
                                                                       const OwnEquipmentOverride& held,
-                                                                      const Data::Tables::ItemTable* items,
+                                                                      const Tables::ItemTable* items,
                                                                       ItemSetOptionList* setOptions);
 
 // 0x54fd40 (0x551297): +0x4e por la clase, el nivel, la fuerza, la agilidad y, en la clase 4, el
@@ -87,14 +87,13 @@ struct OwnEquipmentOverride
 // 0x5507e0 (0x5512a5): +0x60 por la clase y la agilidad, el lugar 1 y las opciones 0x5a de los lugares
 // 2 a 6, 11 y 10.
 [[nodiscard]] Core::Expected<void, std::string> UpdateOwnWord60(OwnCharacterRecord& own,
-                                                                const Data::Tables::ItemTable* items);
+                                                                const Tables::ItemTable* items);
 
 // 0x550990 (0x5512ac): +0x62 por la clase y la agilidad, los lugares 1 a 7, lo que dejó 0x505820
 // (Scenes/FullSetScan.h), la lista (0x40d690, 0x40d7f0 dos veces y, con un tipo de 0xc00 a 0xdff en el
 // lugar 1, 0x40d730) y las opciones 0x96 del lugar 8 y de Cape of Lord. Con un lugar con durabilidad y el
 // tipo −1 lee fuera de Item.bmd, como Q-C184: error.
-[[nodiscard]] Core::Expected<void, std::string> UpdateOwnWord62(OwnCharacterRecord& own,
-                                                                const Data::Tables::ItemTable* items,
+[[nodiscard]] Core::Expected<void, std::string> UpdateOwnWord62(OwnCharacterRecord& own, const Tables::ItemTable* items,
                                                                 const Scan505820& scan, ItemSetOptionList* setOptions);
 
 // 0x550c30 (0x5512b3): +0x64 es el D+0x14 del último de los lugares 2 a 7 con durabilidad (0 si su

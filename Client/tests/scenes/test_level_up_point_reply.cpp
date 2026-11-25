@@ -89,10 +89,10 @@ struct Stage
     Client::World::GameCameraInput cameraInput;
     Client::Models::ClothWorld cloth{.random = CrtRandom(Seed)};
     Client::Scenes::SingleModelLibrary models;
-    Client::Data::Tables::ItemTable items = Client::Tests::ItemTableOf({});
-    Client::Data::Tables::ItemSetTables sets = Client::Tests::ItemSetTablesFrom(
-        std::vector<std::byte>(Client::Data::Tables::ItemSetTypeTableSize, std::byte{0xff}),
-        std::vector<std::byte>(Client::Data::Tables::ItemSetOptionTableSize, std::byte{0xff}));
+    Client::Tables::ItemTable items = Client::Tests::ItemTableOf({});
+    Client::Tables::ItemSetTables sets = Client::Tests::ItemSetTablesFrom(
+        std::vector<std::byte>(Client::Tables::ItemSetTypeTableSize, std::byte{0xff}),
+        std::vector<std::byte>(Client::Tables::ItemSetOptionTableSize, std::byte{0xff}));
     Client::Tests::RecordingSink sink;
     Client::Core::Log log{sink, Client::Core::LogLevel::Debug};
 };

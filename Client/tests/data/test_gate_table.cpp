@@ -15,10 +15,10 @@
 namespace
 {
 using Client::Data::DataError;
-using Client::Data::Tables::GateCount;
-using Client::Data::Tables::GateRecordSize;
-using Client::Data::Tables::GateTableSize;
-using Client::Data::Tables::LoadGateTable;
+using Client::Tables::GateCount;
+using Client::Tables::GateRecordSize;
+using Client::Tables::GateTableSize;
+using Client::Tables::LoadGateTable;
 using Client::Tests::BytePattern;
 using Client::Tests::EncryptRecords;
 using Client::Tests::FirstRecordThatDiffers;

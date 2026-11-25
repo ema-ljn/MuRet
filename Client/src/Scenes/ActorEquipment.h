@@ -8,7 +8,7 @@
 #include <optional>
 #include <string>
 
-namespace Client::Data::Tables
+namespace Client::Tables
 {
 struct ItemSetTables;
 }
@@ -44,7 +44,7 @@ struct ActorEquipmentContext
     // [0x6eed3c], para 0x550d10: las tablas de 0x40c600 y lo que escriben 0x40e1b0 y 0x40da20, que
     // dura de una llamada a otra (WorldState::ItemSets). Sin alguno de los dos, 0x550d10 corta en
     // 0x40e1b0 antes de tocar nada (Scenes::OwnStatsContext).
-    const Data::Tables::ItemSetTables* itemSetTables = nullptr;
+    const Tables::ItemSetTables* itemSetTables = nullptr;
     ItemSetState* itemSets = nullptr;
     // El ítem del cursor para 0x54efe0, 0x54f9b0 y 0x54fe10 (HeldItemOf): lo que hay en sus globales al llamar.
     OwnEquipmentOverride held{};

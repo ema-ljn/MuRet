@@ -16,7 +16,7 @@
 #include <functional>
 #include <string>
 
-namespace Client::Data::Tables
+namespace Client::Tables
 {
 struct ItemSetTables;
 }
@@ -37,11 +37,11 @@ struct GameUiContext;
 // con alguna en nullptr, 0x550d10 corta con error en lo primero que la lee.
 struct GamePanelTables
 {
-    const Data::Tables::ItemTable* items = nullptr;
-    const Data::Tables::ItemSetTables* itemSetTables = nullptr;
+    const Tables::ItemTable* items = nullptr;
+    const Tables::ItemSetTables* itemSetTables = nullptr;
     // Text.bmd: el 609 de las respuestas vacías de 0x419710, cuando abrir las misiones (0x419840) muestra un diálogo
     // sin respuestas. nullptr: ese diálogo corta.
-    const Data::Text::TextTable* texts = nullptr;
+    const Tables::TextTable* texts = nullptr;
 };
 
 // El registro de paneles ([0x576352c]) sobre los globales de WorldRuntime, con lo que sus funciones leen del

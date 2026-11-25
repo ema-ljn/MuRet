@@ -84,7 +84,7 @@ struct FrameFixture
     Client::Scenes::WorldState world;
     Client::Scenes::GameModels models;
     // El paso del héroe lee su habilidad de Skill.bmd (0x5526f0); estos tests no miran habilidades.
-    Client::Data::Tables::SkillTable skills{std::vector<std::byte>(Client::Data::Tables::SkillTableSize)};
+    Client::Tables::SkillTable skills{std::vector<std::byte>(Client::Tables::SkillTableSize)};
     Client::Tests::RecordingFrameTarget target;
     std::unique_ptr<Client::Scenes::GameScene> scene;
 };

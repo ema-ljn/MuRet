@@ -164,7 +164,7 @@ constexpr std::uint8_t ChangeType = 2;
 using Math::F32;
 using Math::Truncate;
 
-Core::Expected<std::string_view, std::string> TextOf(const Data::Text::TextTable* texts, std::size_t index,
+Core::Expected<std::string_view, std::string> TextOf(const Tables::TextTable* texts, std::size_t index,
                                                      std::string_view where)
 {
     const std::optional<std::string_view> text = UI::TextAt(texts, index);
@@ -470,8 +470,7 @@ void OpenTheNumberDialog(WorldRuntime& runtime)
 // 0x64fce7..0x64fd8f: strcpy de 1363 a 1366 en sus lugares de 0x32 bytes, uno detrás del otro. Un texto de 0x32 bytes
 // o más sigue en el lugar de abajo y el strcpy siguiente le pisa la cola con su 0: el renglón queda sin su 0 y 0x6600d0
 // lo copia hasta el 0 del de abajo (1364 en español: Q-C1366). Pasar del cuarto lugar pisaría otros locales: corta.
-Core::Expected<std::array<std::string, DisbandTexts.size()>, std::string>
-DisbandLines(const Data::Text::TextTable* texts)
+Core::Expected<std::array<std::string, DisbandTexts.size()>, std::string> DisbandLines(const Tables::TextTable* texts)
 {
     std::array<char, DisbandSlot * DisbandTexts.size()> stack{};
     for (std::size_t line = 0; line < DisbandTexts.size(); ++line)

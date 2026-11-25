@@ -17,7 +17,7 @@
 // la forma, no los textos.
 namespace
 {
-using Client::Data::Text::LoadSlideTable;
+using Client::Tables::LoadSlideTable;
 using Client::Tests::ReadFileBytes;
 using GoldenSlideTable = Client::Tests::GoldenDataTest;
 

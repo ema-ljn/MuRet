@@ -12,7 +12,7 @@
 #include <utility>
 #include <vector>
 
-namespace Client::Data::Text
+namespace Client::Tables
 {
 TextTable::TextTable(std::vector<char> decoded) : m_records(std::move(decoded)) {}
 
@@ -27,11 +27,11 @@ std::optional<std::string_view> TextTable::Text(std::size_t index) const&
     return record.substr(0, record.find('\0'));
 }
 
-Core::Expected<TextTable, DataError> LoadTextTable(std::span<const std::byte> file)
+Core::Expected<TextTable, Data::DataError> LoadTextTable(std::span<const std::byte> file)
 {
     if (file.size() < TextTableSize)
     {
-        return Core::Unexpected(DataError::FileTooShort);
+        return Core::Unexpected(Data::DataError::FileTooShort);
     }
     // Los textos se guardan como char para dar std::string_view sin casts; se descifran vistos
     // como bytes.
@@ -41,4 +41,4 @@ Core::Expected<TextTable, DataError> LoadTextTable(std::span<const std::byte> fi
     Crypto::Xor3(decoded);
     return TextTable(std::move(records));
 }
-} // namespace Client::Data::Text
+} // namespace Client::Tables

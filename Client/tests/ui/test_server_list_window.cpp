@@ -78,7 +78,7 @@ constexpr Rect Box640{.x = 64, .y = 440, .width = 512, .height = Description};
 
 // Textos sintéticos en los índices de la lista: los nombres de los grupos 20 y 19 y los de la
 // carga.
-Client::Data::Text::TextTable ListTexts()
+Client::Tables::TextTable ListTexts()
 {
     return Client::Tests::MakeTextTable(
         {{1829, "Twenty"}, {552, "Nineteen"}, {560, "Full"}, {561, "Busy"}, {562, "Free"}});

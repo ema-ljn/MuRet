@@ -135,7 +135,7 @@ std::array<Render::UiImage, 5> StoneFrameImages(Rect frame, Render::TextureSlot 
     return {fill, top, bottom, left, right};
 }
 
-EscapeWindow::EscapeWindow(TextureSizes sizes, const Data::Text::TextTable* texts)
+EscapeWindow::EscapeWindow(TextureSizes sizes, const Tables::TextTable* texts)
     : m_sizes(std::move(sizes)), m_texts(texts), m_buttons{MakeButton(), MakeButton(), MakeButton(), MakeButton()}
 {
 }

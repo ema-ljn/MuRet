@@ -57,7 +57,7 @@ std::string PlaceArguments(std::string_view format, std::span<const std::string_
     return placed;
 }
 
-std::optional<std::string_view> TextAt(const Data::Text::TextTable* texts, std::size_t index)
+std::optional<std::string_view> TextAt(const Tables::TextTable* texts, std::size_t index)
 {
     if (texts == nullptr)
     {

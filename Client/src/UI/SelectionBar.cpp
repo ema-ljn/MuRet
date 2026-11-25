@@ -94,7 +94,7 @@ SelectionBarLayout LayoutSelectionBar(Core::PixelSize screen)
     return layout;
 }
 
-SelectionBar::SelectionBar(TextureSizes sizes, const Data::Text::TextTable* texts)
+SelectionBar::SelectionBar(TextureSizes sizes, const Tables::TextTable* texts)
     : m_sizes(std::move(sizes)), m_texts(texts),
       m_create(CreateSlot, ButtonWidth, ButtonHeight, std::nullopt, DisabledFrame),
       m_menu(MenuSlot, ButtonWidth, ButtonHeight),

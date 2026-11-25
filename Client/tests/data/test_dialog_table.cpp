@@ -16,12 +16,12 @@
 namespace
 {
 using Client::Data::DataError;
-using Client::Data::Text::DialogAnswerOf;
-using Client::Data::Text::DialogCount;
-using Client::Data::Text::DialogRecordSize;
-using Client::Data::Text::DialogTableSize;
-using Client::Data::Text::DialogTextOf;
-using Client::Data::Text::LoadDialogTable;
+using Client::Tables::DialogAnswerOf;
+using Client::Tables::DialogCount;
+using Client::Tables::DialogRecordSize;
+using Client::Tables::DialogTableSize;
+using Client::Tables::DialogTextOf;
+using Client::Tables::LoadDialogTable;
 
 void PutInt(std::span<std::byte> bytes, std::size_t offset, std::int32_t value)
 {

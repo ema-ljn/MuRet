@@ -15,7 +15,7 @@ namespace Client::Tests
 {
 inline std::vector<std::byte> EmptyItemTableBytes()
 {
-    auto records = EncryptRecords(std::vector<std::byte>(Data::Tables::ItemTableSize), Data::Tables::ItemRecordSize);
+    auto records = EncryptRecords(std::vector<std::byte>(Tables::ItemTableSize), Tables::ItemRecordSize);
     const auto checksum = Data::Tables::TableChecksum(std::span(records), Data::Tables::ItemChecksumKey,
                                                       Data::Tables::ChecksumParity::XorOddDwords);
     return WithStoredChecksum(std::move(records), checksum);
@@ -39,14 +39,13 @@ struct ItemWord
 };
 
 // Item.bmd sintético con esas formas, esos WORD y todo lo demás en 0, ya cargado.
-inline Data::Tables::ItemTable ItemTableOf(const std::vector<ItemShape>& shapes,
-                                           const std::vector<ItemWord>& words = {})
+inline Tables::ItemTable ItemTableOf(const std::vector<ItemShape>& shapes, const std::vector<ItemWord>& words = {})
 {
-    using Data::Tables::ItemRecordSize;
+    using Tables::ItemRecordSize;
     constexpr std::size_t EquipSlotOffset = 0x22;
     constexpr std::size_t WidthOffset = 0x24;
     constexpr std::size_t HeightOffset = 0x25;
-    std::vector<std::byte> plain(Data::Tables::ItemTableSize);
+    std::vector<std::byte> plain(Tables::ItemTableSize);
     for (const ItemShape& shape : shapes)
     {
         const std::size_t base = std::size_t{shape.type} * ItemRecordSize;
@@ -61,6 +60,6 @@ inline Data::Tables::ItemTable ItemTableOf(const std::vector<ItemShape>& shapes,
         plain[at + 1] = static_cast<std::byte>(word.value >> 8);
     }
     const std::vector<std::byte> encrypted = EncryptRecords(std::move(plain), ItemRecordSize);
-    return Data::Tables::ItemTable(std::span<const std::byte>(encrypted));
+    return Tables::ItemTable(std::span<const std::byte>(encrypted));
 }
 } // namespace Client::Tests

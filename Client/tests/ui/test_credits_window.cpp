@@ -25,9 +25,9 @@
 namespace
 {
 using Client::Core::PixelSize;
-using Client::Data::Text::CreditEntry;
 using Client::Input::InputState;
 using Client::Input::Key;
+using Client::Tables::CreditEntry;
 using Client::UI::CreditsLayout;
 using Client::UI::CreditsStep;
 using Client::UI::CreditsWindow;

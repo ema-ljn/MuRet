@@ -6,7 +6,7 @@
 #include <cstdint>
 #include <optional>
 
-namespace Client::Data::Tables
+namespace Client::Tables
 {
 std::optional<GateRecord> ReadGateRecord(const GateTable& table, std::size_t index)
 {
@@ -21,4 +21,4 @@ std::optional<GateRecord> ReadGateRecord(const GateTable& table, std::size_t ind
                       std::to_integer<std::uint8_t>((*record)[6]), std::to_integer<std::uint8_t>((*record)[7]),
                       std::to_integer<std::uint8_t>((*record)[8])};
 }
-} // namespace Client::Data::Tables
+} // namespace Client::Tables

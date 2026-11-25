@@ -38,7 +38,7 @@ OwnEquipmentOverride HeldItemOf(const WorldRuntime& runtime)
 
 namespace
 {
-using Data::Tables::ItemTable;
+using Tables::ItemTable;
 using World::ItemState;
 
 constexpr std::uint16_t EmptyItem = 0xffff;
@@ -174,7 +174,7 @@ Core::Expected<std::uint8_t, std::string> BaseDurabilityOf(const ItemState& item
         return Core::Unexpected(std::format("{}: pide Item.bmd y no está cargado", where));
     }
     const std::int16_t type = SignedType(item);
-    const std::optional<std::span<const std::byte, Data::Tables::ItemRecordSize>> record =
+    const std::optional<std::span<const std::byte, Tables::ItemRecordSize>> record =
         type < 0 ? std::nullopt : items->Record(static_cast<std::size_t>(type));
     if (!record)
     {

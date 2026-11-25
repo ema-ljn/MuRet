@@ -27,14 +27,12 @@ inline std::vector<std::byte> ItemSetFileBytes(std::vector<std::byte> plain, std
 
 inline std::vector<std::byte> ItemSetTypeFileBytes(std::vector<std::byte> plain)
 {
-    return ItemSetFileBytes(std::move(plain), Data::Tables::ItemSetTypeRecordSize,
-                            Data::Tables::ItemSetTypeChecksumKey);
+    return ItemSetFileBytes(std::move(plain), Tables::ItemSetTypeRecordSize, Tables::ItemSetTypeChecksumKey);
 }
 
 inline std::vector<std::byte> ItemSetOptionFileBytes(std::vector<std::byte> plain)
 {
-    return ItemSetFileBytes(std::move(plain), Data::Tables::ItemSetOptionRecordSize,
-                            Data::Tables::ItemSetOptionChecksumKey);
+    return ItemSetFileBytes(std::move(plain), Tables::ItemSetOptionRecordSize, Tables::ItemSetOptionChecksumKey);
 }
 
 // Los dos archivos sin ningún conjunto en `root` / `local`, donde los busca LoadGameData. `local` es la
@@ -42,18 +40,17 @@ inline std::vector<std::byte> ItemSetOptionFileBytes(std::vector<std::byte> plai
 inline void WriteEmptyItemSetFiles(const std::filesystem::path& root, const std::filesystem::path& local = "Local")
 {
     WriteSceneFile(root, local / "ItemSetType.bmd",
-                   ItemSetTypeFileBytes(std::vector<std::byte>(Data::Tables::ItemSetTypeTableSize)));
+                   ItemSetTypeFileBytes(std::vector<std::byte>(Tables::ItemSetTypeTableSize)));
     WriteSceneFile(root, local / "ItemSetOption.bmd",
-                   ItemSetOptionFileBytes(std::vector<std::byte>(Data::Tables::ItemSetOptionTableSize)));
+                   ItemSetOptionFileBytes(std::vector<std::byte>(Tables::ItemSetOptionTableSize)));
 }
 
 // Las dos tablas en memoria, de registros en claro.
-inline Data::Tables::ItemSetTables ItemSetTablesFrom(std::vector<std::byte> types, std::vector<std::byte> options)
+inline Tables::ItemSetTables ItemSetTablesFrom(std::vector<std::byte> types, std::vector<std::byte> options)
 {
-    const std::vector<std::byte> encryptedTypes = EncryptRecords(std::move(types), Data::Tables::ItemSetTypeRecordSize);
-    const std::vector<std::byte> encryptedOptions =
-        EncryptRecords(std::move(options), Data::Tables::ItemSetOptionRecordSize);
-    return Data::Tables::ItemSetTables{.types = Data::Tables::ItemSetTypeTable(encryptedTypes),
-                                       .options = Data::Tables::ItemSetOptionTable(encryptedOptions)};
+    const std::vector<std::byte> encryptedTypes = EncryptRecords(std::move(types), Tables::ItemSetTypeRecordSize);
+    const std::vector<std::byte> encryptedOptions = EncryptRecords(std::move(options), Tables::ItemSetOptionRecordSize);
+    return Tables::ItemSetTables{.types = Tables::ItemSetTypeTable(encryptedTypes),
+                                 .options = Tables::ItemSetOptionTable(encryptedOptions)};
 }
 } // namespace Client::Tests

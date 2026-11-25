@@ -215,7 +215,7 @@ protected:
     std::unique_ptr<WorldState> m_world;
     CrtRandom m_random;
     LetterMeasure m_letters;
-    Client::Data::Text::TextTable m_texts;
+    Client::Tables::TextTable m_texts;
     Client::UI::OldWindowTexts m_oldTexts = Client::Scenes::OldWindowTextsOf(&m_texts);
     Client::UI::OldWindowMeasure m_oldMeasure{
         .measure = m_letters, .dcFont = FontKind::Normal, .screen = Client::Core::PixelSize{640, 480}};

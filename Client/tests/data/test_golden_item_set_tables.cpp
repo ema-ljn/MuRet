@@ -18,15 +18,15 @@
 // conjuntos"). Lo que se espera sale de los archivos, leídos aparte.
 namespace
 {
-using Client::Data::Tables::ItemSetOptionCount;
-using Client::Data::Tables::ItemSetOptionRecordSize;
-using Client::Data::Tables::ItemSetOptionTable;
-using Client::Data::Tables::ItemSetOptionTableSize;
-using Client::Data::Tables::ItemSetTypeCount;
-using Client::Data::Tables::ItemSetTypeTable;
-using Client::Data::Tables::ItemSetTypeTableSize;
-using Client::Data::Tables::LoadItemSetOptionTable;
-using Client::Data::Tables::LoadItemSetTypeTable;
+using Client::Tables::ItemSetOptionCount;
+using Client::Tables::ItemSetOptionRecordSize;
+using Client::Tables::ItemSetOptionTable;
+using Client::Tables::ItemSetOptionTableSize;
+using Client::Tables::ItemSetTypeCount;
+using Client::Tables::ItemSetTypeTable;
+using Client::Tables::ItemSetTypeTableSize;
+using Client::Tables::LoadItemSetOptionTable;
+using Client::Tables::LoadItemSetTypeTable;
 using Client::Tests::Fnv1a64;
 using Client::Tests::ReadFileBytes;
 

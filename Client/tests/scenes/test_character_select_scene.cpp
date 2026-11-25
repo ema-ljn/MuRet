@@ -128,11 +128,11 @@ using Client::Render::TextureSlot;
 using Client::Scenes::CharacterSelectScene;
 using Client::Scenes::CharacterSlotHeight;
 using Client::Scenes::CharacterSlots;
-using Client::Scenes::GameData;
 using Client::Scenes::SceneContext;
 using Client::Scenes::SceneId;
 using Client::Scenes::SelectionTextureSet;
 using Client::Scenes::WindowTextureSet;
+using Client::Tables::GameData;
 using Client::Tests::CharacterEntryFields;
 using Client::Tests::FakeTextureStore;
 using Client::Tests::FrameEvent;
@@ -307,13 +307,13 @@ struct Harness
                                                       {1715, "filtrado"},
                                                       {1716, "rechazado"},
                                                       {1240, "General %d, Gladiador %d"}});
-        Client::Tests::WriteFilterFile(folder.Path(), {"GM"}, Client::Data::Text::FilterNameChecksumKey,
+        Client::Tests::WriteFilterFile(folder.Path(), {"GM"}, Client::Tables::FilterNameChecksumKey,
                                        "Local/FilterName.bmd");
         Client::Tests::WriteSceneFile(folder.Path(), "Gate.bmd", Client::Tests::GateTableBytes({}));
         Client::Tests::WriteSceneFile(folder.Path(), "Local/Item.bmd", Client::Tests::EmptyItemTableBytes());
         Client::Tests::WriteEmptyItemSetFiles(folder.Path());
         Client::Tests::WriteEmptySkillFile(folder.Path());
-        auto loaded = Client::Scenes::LoadGameData(folder.Path());
+        auto loaded = Client::Tables::LoadGameData(folder.Path());
         EXPECT_TRUE(loaded.HasValue());
         if (loaded.HasValue())
         {

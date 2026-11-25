@@ -8,7 +8,7 @@
 #include <span>
 #include <string>
 
-namespace Client::Data::Text
+namespace Client::Tables
 {
 class TextTable;
 }
@@ -29,8 +29,8 @@ struct WorldRuntime;
 // 0x4fd603..0x4fd698, el 0xc5 (las puertas de Kalima): "%s ." (0x6c88bc) con el nombre (+0x1d9, como cadena de C),
 // Text.bmd[1176] (0x77133fc) con +0x1d6 sin signo, el strcat de los dos en el buffer de 100 bytes y 0x4381f0 con la
 // posición (+0x10). Sin rand(). Sin Text.bmd, o si el strcat se pasara de los 100 bytes, corta.
-[[nodiscard]] Core::Expected<void, std::string>
-QueueTheGateName(const ActorState& actor, const Data::Text::TextTable* texts, WorldTextQueue& queue);
+[[nodiscard]] Core::Expected<void, std::string> QueueTheGateName(const ActorState& actor,
+                                                                 const Tables::TextTable* texts, WorldTextQueue& queue);
 
 // 0x4fb910..0x4fb9c7, el 0xf1 desde 0x4fb380: la z sube +0xe4 y +0xe4 baja 6; si la altura del terreno (0x5f93c0) más
 // 30 queda por encima, la z pasa a esa y +0xe4 a −0,4f veces; los ángulos suman +0xcc, +0xd0 y +0xd4, que se achican a

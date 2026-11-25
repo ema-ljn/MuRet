@@ -48,7 +48,7 @@ class SelectionBar final : public NewUiWindow
 {
 public:
     // `texts` puede ser nullptr y tiene que vivir lo que la barra.
-    SelectionBar(TextureSizes sizes, const Data::Text::TextTable* texts);
+    SelectionBar(TextureSizes sizes, const Tables::TextTable* texts);
 
     // El +0x543 que calcula el armado (0x63e820) una vez, con la lista: algún personaje de los
     // lugares 0 a 4 tiene el bit 0x10 de sus banderas. Con él se dibujan los textos 436 y 437.
@@ -82,7 +82,7 @@ private:
     void Place(Core::PixelSize screen);
 
     TextureSizes m_sizes;
-    const Data::Text::TextTable* m_texts;
+    const Tables::TextTable* m_texts;
     bool m_blockedAccount = false;
     bool m_open = false;
     Button m_create;

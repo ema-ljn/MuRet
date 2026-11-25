@@ -86,7 +86,7 @@ protected:
         loading.Step(m_input);
         ASSERT_FALSE(loading.WantsToQuit());
         loading.Leave();
-        auto data = Client::Scenes::LoadGameData(m_dataRoot);
+        auto data = Client::Tables::LoadGameData(m_dataRoot);
         ASSERT_TRUE(data.HasValue()) << data.Error();
         m_data = std::move(data).Value();
         m_world->OwnCharacter().ClearEquipmentForEntry();

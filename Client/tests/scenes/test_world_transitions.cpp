@@ -109,7 +109,7 @@ struct Transition
     static constexpr std::uint16_t PlayerKey = 33;
     // El renglón de bienvenida del F3 03 (0x4c4b60) de los tests que entran por la sesión.
     Client::Tests::LetterMeasure letters;
-    Client::Data::Text::TextTable texts = Client::Tests::MakeTextTable({});
+    Client::Tables::TextTable texts = Client::Tests::MakeTextTable({});
     std::filesystem::path dataRoot;
     Client::Scenes::WorldState world;
     Client::Scenes::SelectionState selection{world};
@@ -117,10 +117,10 @@ struct Transition
     Client::World::GameCameraInput input;
     Client::Models::ClothWorld cloth;
     Client::Scenes::SingleModelLibrary models;
-    Client::Data::Tables::ItemTable items = Client::Tests::ItemsMarking({});
-    Client::Data::Tables::ItemSetTables itemSets =
-        Client::Tests::ItemSetTablesFrom(std::vector<std::byte>(Client::Data::Tables::ItemSetTypeTableSize),
-                                         std::vector<std::byte>(Client::Data::Tables::ItemSetOptionTableSize));
+    Client::Tables::ItemTable items = Client::Tests::ItemsMarking({});
+    Client::Tables::ItemSetTables itemSets =
+        Client::Tests::ItemSetTablesFrom(std::vector<std::byte>(Client::Tables::ItemSetTypeTableSize),
+                                         std::vector<std::byte>(Client::Tables::ItemSetOptionTableSize));
     Client::Tests::RecordingSink sink;
     Client::Core::Log log{sink, Client::Core::LogLevel::Debug};
 };

@@ -78,7 +78,7 @@ TEST(GameSceneEmoteTest, ATransformedHeroSendsBothActionsAndTheChatBeforeTheFirs
     Client::Scenes::SingleModelLibrary models;
     models.Set(Client::Data::Models::PlayerSkeletonModel, {}, Client::Tests::PlayerActionsSkeleton(), {});
     const std::filesystem::path dataRoot = Client::Tests::RepoDataDir();
-    const Client::Data::Text::TextTable texts = Client::Tests::MakeTextTable(Client::Tests::ChatTexts());
+    const Client::Tables::TextTable texts = Client::Tests::MakeTextTable(Client::Tests::ChatTexts());
     LetterMeasure letters;
     Client::Scenes::GameScene scene(Client::Scenes::SceneContext{.dataRoot = dataRoot,
                                                                  .textures = store,

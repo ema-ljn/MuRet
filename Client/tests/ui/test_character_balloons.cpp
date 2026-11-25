@@ -51,7 +51,7 @@ Client::UI::TextureSizes LabSizes()
 
 // Los rangos del gremio (1300, 1301, 1302, 1330 y 488, y el 0 con otro), las clases de la 20 en adelante y los tres
 // renglones del 0x80 (1241 a 1243).
-Client::Data::Text::TextTable LabTexts()
+Client::Tables::TextTable LabTexts()
 {
     return Client::Tests::MakeTextTable({{0, "Otro"},
                                          {20, "Mago"},

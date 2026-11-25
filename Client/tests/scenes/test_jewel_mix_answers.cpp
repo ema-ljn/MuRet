@@ -108,14 +108,14 @@ struct Stage
 
     Client::Scenes::WorldState world;
     CrtRandom random{Seed};
-    Client::Data::Text::TextTable texts = Client::Tests::MakeTextTable({{868, "zen"},
-                                                                        {1800, "no se deshizo"},
-                                                                        {1801, "no se junto"},
-                                                                        {1811, "once"},
-                                                                        {1812, "doce"},
-                                                                        {1815, "quince"},
-                                                                        {1816, ", falta"},
-                                                                        {1817, "diecisiete"}});
+    Client::Tables::TextTable texts = Client::Tests::MakeTextTable({{868, "zen"},
+                                                                    {1800, "no se deshizo"},
+                                                                    {1801, "no se junto"},
+                                                                    {1811, "once"},
+                                                                    {1812, "doce"},
+                                                                    {1815, "quince"},
+                                                                    {1816, ", falta"},
+                                                                    {1817, "diecisiete"}});
     LetterMeasure measure;
     std::vector<Client::Protocol::Outgoing> sent;
 };

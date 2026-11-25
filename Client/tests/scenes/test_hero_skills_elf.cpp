@@ -83,12 +83,12 @@ struct InventedSkill
 
 // Skill.bmd con el nivel (+0x20), el maná (+0x22), la stamina (+0x24), el alcance (+0x26), la espera (+0x28) y la
 // energía (+0x2c).
-Client::Data::Tables::SkillTable SkillsWith(std::initializer_list<InventedSkill> skills)
+Client::Tables::SkillTable SkillsWith(std::initializer_list<InventedSkill> skills)
 {
-    std::vector<std::byte> plain(Client::Data::Tables::SkillTableSize);
+    std::vector<std::byte> plain(Client::Tables::SkillTableSize);
     for (const InventedSkill& invented : skills)
     {
-        const std::size_t base = std::size_t{invented.skill} * Client::Data::Tables::SkillRecordSize;
+        const std::size_t base = std::size_t{invented.skill} * Client::Tables::SkillRecordSize;
         plain[base + 0x20] = static_cast<std::byte>(invented.level);
         plain[base + 0x22] = static_cast<std::byte>(invented.mana);
         plain[base + 0x24] = static_cast<std::byte>(invented.stamina);
@@ -98,8 +98,8 @@ Client::Data::Tables::SkillTable SkillsWith(std::initializer_list<InventedSkill>
         plain[base + 0x2c] = static_cast<std::byte>(invented.energy);
     }
     const std::vector<std::byte> encrypted =
-        Client::Tests::EncryptRecords(std::move(plain), Client::Data::Tables::SkillRecordSize);
-    return Client::Data::Tables::SkillTable(std::span<const std::byte>(encrypted));
+        Client::Tests::EncryptRecords(std::move(plain), Client::Tables::SkillRecordSize);
+    return Client::Tables::SkillTable(std::span<const std::byte>(encrypted));
 }
 
 std::vector<std::uint8_t> ClearBytesOf(const Client::Protocol::Outgoing& outgoing)
@@ -210,7 +210,7 @@ struct ElfHero
     std::optional<glm::vec3> terrainPoint;
     Client::Models::Skeleton skeleton = Client::Tests::PlayerActionsSkeleton();
     std::vector<Client::Protocol::Outgoing> sent;
-    Client::Data::Tables::SkillTable skills =
+    Client::Tables::SkillTable skills =
         SkillsWith({{0x13}, {0x1a}, {0x1b}, {0x1c}, {0x1e}, {0x24}, {0x2e}, {0x33}, {0x34}, {0x35}, {0x43}, {0x4c}});
 };
 

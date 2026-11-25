@@ -17,9 +17,9 @@
 // de +4 distinto del de +0x24, el último, y los 640 bytes que sobran.
 namespace
 {
-using Client::Data::Text::LoadMoveRequirements;
-using Client::Data::Text::MoveRecordSize;
-using Client::Data::Text::MoveRequirement;
+using Client::Tables::LoadMoveRequirements;
+using Client::Tables::MoveRecordSize;
+using Client::Tables::MoveRequirement;
 using Client::Tests::ReadFileBytes;
 using GoldenMoveRequirements = Client::Tests::GoldenDataTest;
 

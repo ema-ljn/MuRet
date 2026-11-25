@@ -58,7 +58,7 @@ struct ChatLogDrawView
     // 0x723c05: con 3 o 4, los renglones bajan 0x75.
     std::uint8_t crywolfStage = 0;
     // Text.bmd, para el título del filtro (754) y las ayudas de los botones (750, 751 y 752).
-    const Data::Text::TextTable* texts = nullptr;
+    const Tables::TextTable* texts = nullptr;
 };
 
 // 0x479080: el marco (y la barra, 0x47a230), desde el primero que se ve hasta `rows` renglones o el final, y los

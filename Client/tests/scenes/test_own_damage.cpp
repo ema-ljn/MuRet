@@ -153,15 +153,15 @@ TEST(OwnDamageTest, TheCursorItemReplacesAHandAndANestedAccessSpendsNothing)
 }
 
 // Skill.bmd inventado: la skill `skill` con sus bytes +0x21 y +0x30.
-Client::Data::Tables::SkillTable SkillsWith(std::uint8_t skill, std::uint8_t damage, std::uint8_t setSelector)
+Client::Tables::SkillTable SkillsWith(std::uint8_t skill, std::uint8_t damage, std::uint8_t setSelector)
 {
-    std::vector<std::byte> plain(Client::Data::Tables::SkillTableSize);
-    const std::size_t base = std::size_t{skill} * Client::Data::Tables::SkillRecordSize;
+    std::vector<std::byte> plain(Client::Tables::SkillTableSize);
+    const std::size_t base = std::size_t{skill} * Client::Tables::SkillRecordSize;
     plain[base + 0x21] = std::byte{damage};
     plain[base + 0x30] = std::byte{setSelector};
     const std::vector<std::byte> encrypted =
-        Client::Tests::EncryptRecords(std::move(plain), Client::Data::Tables::SkillRecordSize);
-    return Client::Data::Tables::SkillTable(std::span<const std::byte>(encrypted));
+        Client::Tests::EncryptRecords(std::move(plain), Client::Tables::SkillRecordSize);
+    return Client::Tables::SkillTable(std::span<const std::byte>(encrypted));
 }
 
 // 0x5513d0: +0x5a + s y +0x5c + s + s / 2, más p, que junta la suma de 0x40d8c0 (32 bits) y la de 0x40d690 con el
@@ -184,7 +184,7 @@ TEST(OwnDamageTest, TheMagicAddsTheSkillAndTheSetOptions)
     list.used[2] = 1;
     std::uint8_t depth = 0;
     CrtRandom random{Seed};
-    const CrtRandom expected = Advanced(random, static_cast<int>(Client::Data::Tables::SkillRecordSize));
+    const CrtRandom expected = Advanced(random, static_cast<int>(Client::Tables::SkillRecordSize));
 
     const auto damage = MagicDamageOf(own, 5, &skills, depth, random, list);
 
@@ -236,7 +236,7 @@ TEST(OwnDamageTest, TheSkillDamageIsTheMagicWithoutTheRecord)
     list.used[0] = 1;
     std::uint8_t depth = 0;
     CrtRandom random{Seed};
-    const CrtRandom expected = Advanced(random, static_cast<int>(Client::Data::Tables::SkillRecordSize));
+    const CrtRandom expected = Advanced(random, static_cast<int>(Client::Tables::SkillRecordSize));
 
     const auto damage = SkillDamageOf(9, &skills, depth, random, list);
 

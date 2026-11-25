@@ -38,7 +38,7 @@ struct ActorCombatContext
     Crt::CrtRandom& random;
     const Models::Skeleton* playerSkeleton = nullptr;
     const Models::IModelLibrary* models = nullptr;
-    const Data::Tables::ItemTable* items = nullptr;
+    const Tables::ItemTable* items = nullptr;
     // La tabla de sonidos del modelo (ModelSounds); vacía, la de WorldRuntime::modelSounds. Sin ninguna de las dos, las
     // diez WORD en 0 de 0x60dc80 (SoundsOrZeros): 0x4f4a10 saca su rand() y pide el 0xd2 (08, P-C253).
     ModelSoundLookup modelSounds{};

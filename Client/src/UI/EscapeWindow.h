@@ -74,7 +74,7 @@ struct EscapeWindowEvent
 class EscapeWindow final : public NewUiWindow
 {
 public:
-    EscapeWindow(TextureSizes sizes, const Data::Text::TextTable* texts);
+    EscapeWindow(TextureSizes sizes, const Tables::TextTable* texts);
 
     // 0x6478c0 para la escena del modo: en el login (2) el 1 deshabilitado (y sin dibujar: su
     // cuadro de deshabilitado es −1) y 6 líneas; en la selección (4), 10. Sin cuenta (+0x408 en −1
@@ -104,7 +104,7 @@ private:
     void Place(Core::PixelSize screen);
 
     TextureSizes m_sizes;
-    const Data::Text::TextTable* m_texts = nullptr;
+    const Tables::TextTable* m_texts = nullptr;
     std::array<Button, 4> m_buttons;
     EscapeWindowLayout m_layout;
     int m_lines = 1;

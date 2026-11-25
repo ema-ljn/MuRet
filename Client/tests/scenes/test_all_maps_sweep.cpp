@@ -361,15 +361,15 @@ void ExpectGateInventory(const std::filesystem::path& path, const MapSweepCase& 
 {
     const auto bytes = Client::Tests::ReadFileBytes(path);
     ASSERT_TRUE(bytes.has_value());
-    const auto gates = Client::Data::Tables::LoadGateTable(std::as_bytes(std::span(*bytes)));
+    const auto gates = Client::Tables::LoadGateTable(std::as_bytes(std::span(*bytes)));
     ASSERT_TRUE(gates.HasValue());
     std::array<std::size_t, 3> counts{};
     std::size_t populated = 0;
-    for (std::size_t index = 0; index < Client::Data::Tables::GateCount; ++index)
+    for (std::size_t index = 0; index < Client::Tables::GateCount; ++index)
     {
-        const auto record = Client::Data::Tables::ReadGateRecord(gates.Value(), index);
+        const auto record = Client::Tables::ReadGateRecord(gates.Value(), index);
         ASSERT_TRUE(record.has_value());
-        if (*record == Client::Data::Tables::GateRecord{})
+        if (*record == Client::Tables::GateRecord{})
             continue;
         ++populated;
         ASSERT_LT(record->flag, counts.size()) << index;

@@ -150,8 +150,8 @@ protected:
     Client::Scenes::SingleModelLibrary m_models;
     Client::Tests::RecordingSink m_sink;
     Client::Core::Log m_log{m_sink, Client::Core::LogLevel::Debug};
-    Client::Data::Tables::ItemTable m_items = Client::Tests::ItemTableOf({});
-    Client::Data::Text::TextTable m_texts =
+    Client::Tables::ItemTable m_items = Client::Tests::ItemTableOf({});
+    Client::Tables::TextTable m_texts =
         Client::Tests::MakeTextTable({{1122, "%s abrio su tienda"}, {1126, "la tienda se cerro"}});
     LetterMeasure m_letters;
 };

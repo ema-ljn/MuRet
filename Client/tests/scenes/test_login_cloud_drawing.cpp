@@ -445,7 +445,7 @@ TEST(LoginCloudDrawingTest, TheSceneEmitsInTheEyePassAndClearsThePoolOnEnteringA
     Client::Tests::RecordingSink sink;
     Client::Core::Log log(sink, Client::Core::LogLevel::Debug);
     Client::Models::ClothWorld cloth;
-    const Client::Scenes::GameData data;
+    const Client::Tables::GameData data;
     const CloudTextures textures;
     Client::Scenes::LoginScene scene(
         Client::Scenes::SceneContext{.dataRoot = folder.Path(), .textures = store, .log = log, .cloth = &cloth}, data,

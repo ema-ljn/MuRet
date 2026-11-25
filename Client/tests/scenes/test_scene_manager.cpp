@@ -1076,7 +1076,7 @@ struct ManagerGameResources
     Expected<void, std::string> Load(Client::Scenes::WorldState& world, Client::Models::ClothWorld& cloth,
                                      FakeTextureStore& textures, Log& log)
     {
-        auto loadedData = Client::Scenes::LoadGameData(dataRoot);
+        auto loadedData = Client::Tables::LoadGameData(dataRoot);
         if (!loadedData.HasValue())
             return Unexpected(loadedData.Error());
         data = std::move(loadedData).Value();
@@ -1086,7 +1086,7 @@ struct ManagerGameResources
         return Client::Scenes::LoadMap(0, {dataRoot, world, SceneId::Game, 0, cloth.random});
     }
     std::filesystem::path dataRoot = Client::Tests::GoldenDir();
-    Client::Scenes::GameData data;
+    Client::Tables::GameData data;
     Client::Scenes::GameModels models;
 };
 

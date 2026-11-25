@@ -15,7 +15,7 @@ namespace Client::World
 {
 namespace
 {
-using Metadata = std::span<const std::byte, Data::Tables::ItemRecordSize>;
+using Metadata = std::span<const std::byte, Tables::ItemRecordSize>;
 
 // Los offsets y literales de estas fases son los de 0x54bf40 (CL7.L3); su contrato todavía no está
 // documentado en el research (P-C36 del 08).
@@ -576,7 +576,7 @@ std::uint8_t ItemState::OptionValue(std::uint8_t index) const
     return optionBytes[ItemOptionValueOffset + index];
 }
 
-void InitializeItemState(ItemState& item, std::span<const std::byte, Data::Tables::ItemRecordSize> metadata,
+void InitializeItemState(ItemState& item, std::span<const std::byte, Tables::ItemRecordSize> metadata,
                          ItemInitializationScalars scalars, const std::uint16_t& contextWord,
                          const Item4225d0& apply4225d0)
 {

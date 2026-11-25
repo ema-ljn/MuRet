@@ -57,7 +57,7 @@ struct OwnMagicDamage
 // +0x30 de la skill (0x40d8c0) y a sus 16 bits de abajo las del selector 0x9f (0x40d690), y suma p a los dos. Sin
 // Skill.bmd o sin la skill, error antes de abrir; con más de 16 entradas en la lista, el de 0x40d8c0 o 0x40d690.
 [[nodiscard]] Core::Expected<OwnMagicDamage, std::string>
-MagicDamageOf(const OwnCharacterRecord& own, std::uint8_t skill, const Data::Tables::SkillTable* skills,
+MagicDamageOf(const OwnCharacterRecord& own, std::uint8_t skill, const Tables::SkillTable* skills,
               std::uint8_t& skillDepth, Crt::CrtRandom& random, ItemSetOptionList& setOptions);
 
 // Lo que 0x5516e0 deja en sus dos punteros.
@@ -72,6 +72,6 @@ struct OwnSkillDamage
 // max = s + s / 2; pone en 0 las 16 marcas de +0x937c y suma a los dos el mismo p de los conjuntos (0x40d8c0 y
 // 0x40d690). Sin Skill.bmd o sin la skill, error antes de abrir.
 [[nodiscard]] Core::Expected<OwnSkillDamage, std::string>
-SkillDamageOf(std::uint8_t skill, const Data::Tables::SkillTable* skills, std::uint8_t& skillDepth,
-              Crt::CrtRandom& random, ItemSetOptionList& setOptions);
+SkillDamageOf(std::uint8_t skill, const Tables::SkillTable* skills, std::uint8_t& skillDepth, Crt::CrtRandom& random,
+              ItemSetOptionList& setOptions);
 } // namespace Client::Scenes

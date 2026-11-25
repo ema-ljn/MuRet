@@ -61,7 +61,7 @@ constexpr int Marker = -2;
 // 0x414fd4: la skill del daño del caballo, con 20 de daño (+0x21): 20 y 30 más.
 constexpr std::uint8_t HorseSkill = 0x3e;
 constexpr std::uint8_t HorseSkillDamage = 20;
-constexpr auto SkillCloseRandoms = static_cast<std::uint32_t>(Client::Data::Tables::SkillRecordSize);
+constexpr auto SkillCloseRandoms = static_cast<std::uint32_t>(Client::Tables::SkillRecordSize);
 
 std::map<std::size_t, std::string> PetTexts()
 {
@@ -129,13 +129,13 @@ std::vector<DrawnQuad> QuadsWith(const std::vector<DrawnQuad>& quads, int slot)
     return found;
 }
 
-Client::Data::Tables::SkillTable HorseSkills()
+Client::Tables::SkillTable HorseSkills()
 {
-    std::vector<std::byte> plain(Client::Data::Tables::SkillTableSize);
-    plain[std::size_t{HorseSkill} * Client::Data::Tables::SkillRecordSize + 0x21] = std::byte{HorseSkillDamage};
+    std::vector<std::byte> plain(Client::Tables::SkillTableSize);
+    plain[std::size_t{HorseSkill} * Client::Tables::SkillRecordSize + 0x21] = std::byte{HorseSkillDamage};
     const std::vector<std::byte> encrypted =
-        Client::Tests::EncryptRecords(std::move(plain), Client::Data::Tables::SkillRecordSize);
-    return Client::Data::Tables::SkillTable(std::span<const std::byte>(encrypted));
+        Client::Tests::EncryptRecords(std::move(plain), Client::Tables::SkillRecordSize);
+    return Client::Tables::SkillTable(std::span<const std::byte>(encrypted));
 }
 
 class GamePetWindowTest : public ::testing::TestWithParam<std::int32_t>
@@ -244,8 +244,8 @@ protected:
     std::optional<std::int32_t> m_sound{};
     SpriteBatch m_sprites;
     Client::Tests::RecordingTextDrawer m_text;
-    Client::Data::Text::TextTable m_texts = Client::Tests::MakeTextTable(PetTexts());
-    Client::Data::Tables::SkillTable m_skills = HorseSkills();
+    Client::Tables::TextTable m_texts = Client::Tests::MakeTextTable(PetTexts());
+    Client::Tables::SkillTable m_skills = HorseSkills();
 };
 
 // 0x4249a6..0x424d9f: con el personaje cerrado, 0x723911 en 0 y nada más; sin cuervo, sin rand(). Un dibujo intermedio

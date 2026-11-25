@@ -25,7 +25,7 @@ namespace Client::Scenes
 {
 namespace
 {
-using OptionRecord = std::span<const std::byte, Data::Tables::ItemSetOptionRecordSize>;
+using OptionRecord = std::span<const std::byte, Tables::ItemSetOptionRecordSize>;
 
 // El conjunto de un ítem es su byte +0x1c & 3 (0x40cfa7; el byte llega sin signo y el resto con signo
 // de 0x40cfae nunca es negativo). 0, ninguno.
@@ -166,11 +166,11 @@ std::uint8_t ClassMatchOf(OptionRecord record, std::uint8_t classLow, int evolut
 
 // La marca de la clase del héroe, rec[0x47 + clase] (0x40d2a7): con la clase 5 a 7 cae en el registro
 // siguiente, que está pegado en [0x6eed3c] + 0x8004; después del último, fuera de la tabla (Q-C187).
-Core::Expected<std::uint8_t, std::string> ClassMarkOf(const Data::Tables::ItemSetOptionTable& options,
+Core::Expected<std::uint8_t, std::string> ClassMarkOf(const Tables::ItemSetOptionTable& options,
                                                       const SetBeingApplied& set)
 {
     const std::size_t offset = ClassMarksOffset + set.classLow;
-    const std::size_t index = set.setId + offset / Data::Tables::ItemSetOptionRecordSize;
+    const std::size_t index = set.setId + offset / Tables::ItemSetOptionRecordSize;
     const auto record = options.Record(index);
     if (!record)
     {
@@ -178,12 +178,12 @@ Core::Expected<std::uint8_t, std::string> ClassMarkOf(const Data::Tables::ItemSe
                                             "ItemSetOption.bmd (Q-C187)",
                                             set.classLow, set.setId));
     }
-    return ByteAt(*record, offset % Data::Tables::ItemSetOptionRecordSize);
+    return ByteAt(*record, offset % Tables::ItemSetOptionRecordSize);
 }
 
 // 0x40d297..0x40d2bd y 0x40d394..0x40d3f4.
-Core::Expected<bool, std::string> AllowsOption(const Data::Tables::ItemSetOptionTable& options,
-                                               const SetBeingApplied& set, std::uint8_t option)
+Core::Expected<bool, std::string> AllowsOption(const Tables::ItemSetOptionTable& options, const SetBeingApplied& set,
+                                               std::uint8_t option)
 {
     if (option == NoOption)
     {
@@ -218,7 +218,7 @@ Core::Expected<void, std::string> Collect(CollectedOptions& collected, std::size
 }
 
 Core::Expected<void, std::string> CollectIfAllowed(CollectedOptions& collected, std::size_t kind,
-                                                   const Data::Tables::ItemSetOptionTable& options,
+                                                   const Tables::ItemSetOptionTable& options,
                                                    const SetBeingApplied& set, std::uint8_t option, std::uint8_t value)
 {
     const auto allowed = AllowsOption(options, set, option);
@@ -273,12 +273,12 @@ Core::Expected<void, std::string> CopySetName(ItemSetState& state, std::size_t k
 // 0x40d233..0x40d358: con n = piezas − 1, los primeros min(n, 6) pares de opciones, y después, mientras
 // i < n − min(n, 6), las de +0x38 (con n ≤ 9, como deja 0x40e1b0, no hay ninguna).
 Core::Expected<void, std::string> CollectPieceOptions(CollectedOptions& collected, std::size_t kind,
-                                                      const Data::Tables::ItemSetOptionTable& options,
+                                                      const Tables::ItemSetOptionTable& options,
                                                       const SetBeingApplied& set, int optionPieces)
 {
     const auto collectAt = [&](std::size_t idOffset, std::size_t valueOffset) -> Core::Expected<void, std::string>
     {
-        if (valueOffset >= Data::Tables::ItemSetOptionRecordSize)
+        if (valueOffset >= Tables::ItemSetOptionRecordSize)
         {
             return Core::Unexpected(std::format("0x40d010: con {} piezas el conjunto {} lee fuera de su registro "
                                                 "(Q-C187)",
@@ -319,8 +319,7 @@ Core::Expected<void, std::string> CollectPieceOptions(CollectedOptions& collecte
 // 0x40d35e..0x40d457: el conjunto completo suma sus cinco opciones, cada una con +0x9307 + 1 si no es
 // 0, y pone el +0x358 del héroe publicado en 1.
 Core::Expected<void, std::string> CollectFullSetOptions(ItemSetState& state, CollectedOptions& collected,
-                                                        std::size_t kind,
-                                                        const Data::Tables::ItemSetOptionTable& options,
+                                                        std::size_t kind, const Tables::ItemSetOptionTable& options,
                                                         const SetBeingApplied& set, int optionPieces,
                                                         ActorState& publishedHero)
 {
@@ -349,7 +348,7 @@ Core::Expected<void, std::string> CollectFullSetOptions(ItemSetState& state, Col
 
 // 0x40d087..0x40d45e: un conjunto de la lista.
 Core::Expected<void, std::string> ApplyPiece(ItemSetState& state, CollectedOptions& collected,
-                                             const ItemSetPiece& piece, const Data::Tables::ItemSetOptionTable& options,
+                                             const ItemSetPiece& piece, const Tables::ItemSetOptionTable& options,
                                              ActorState& publishedHero)
 {
     const auto record = options.Record(piece.setId);
@@ -472,7 +471,7 @@ Core::Expected<void, std::string> AddSlotBonusToCopies(OwnStatCopies& copies, co
 }
 
 // 0x40e301..0x40e320: un tipo negativo (el −1 de un lugar vacío) no cuenta.
-Core::Expected<void, std::string> CountPiece(ItemSetPieces& pieces, const Data::Tables::ItemSetTypeTable& types,
+Core::Expected<void, std::string> CountPiece(ItemSetPieces& pieces, const Tables::ItemSetTypeTable& types,
                                              const World::ItemState& item)
 {
     const auto type = static_cast<std::int16_t>(item.id);
@@ -485,8 +484,7 @@ Core::Expected<void, std::string> CountPiece(ItemSetPieces& pieces, const Data::
 
 // Una pasada de 0x40e1b0 (0x40e1e6..0x40e3a1 y 0x40e4cf..0x40e6a1): con `requirements`, la segunda.
 Core::Expected<void, std::string> CountPieces(ItemSetPieces& pieces, PairedPiece& previous,
-                                              const OwnCharacterRecord& own,
-                                              const Data::Tables::ItemSetTypeTable& types,
+                                              const OwnCharacterRecord& own, const Tables::ItemSetTypeTable& types,
                                               const OwnStatsContext& context, const OwnStatCopies* requirements)
 {
     for (std::size_t slot = 0; slot < own.equipment.size(); ++slot)
@@ -523,7 +521,7 @@ OwnStatCopies ReadStatCopies(const OwnCharacterRecord& own, const OwnStatsContex
 }
 } // namespace
 
-Core::Expected<void, std::string> AddItemSetPiece(ItemSetPieces& pieces, const Data::Tables::ItemSetTypeTable& types,
+Core::Expected<void, std::string> AddItemSetPiece(ItemSetPieces& pieces, const Tables::ItemSetTypeTable& types,
                                                   std::size_t type, std::uint8_t flags1c)
 {
     const std::uint8_t setIndex = static_cast<std::uint8_t>(flags1c & SetIndexMask);
@@ -555,7 +553,7 @@ Core::Expected<void, std::string> AddItemSetPiece(ItemSetPieces& pieces, const D
 }
 
 Core::Expected<void, std::string> ApplyItemSetOptions(ItemSetState& state, const ItemSetPieces& pieces,
-                                                      const Data::Tables::ItemSetOptionTable& options,
+                                                      const Tables::ItemSetOptionTable& options,
                                                       ActorState& publishedHero)
 {
     // 0x40d01d..0x40d07d.
@@ -632,7 +630,7 @@ Core::Expected<void, std::string> RecalculateOwnItemSets(const OwnCharacterRecor
     {
         return Core::Unexpected(std::string("0x40e1b0: falta lo que escribe en [0x6eed3c] (WorldState::ItemSets)"));
     }
-    const Data::Tables::ItemSetTables& tables = *context.itemSetTables;
+    const Tables::ItemSetTables& tables = *context.itemSetTables;
     ItemSetState& state = *context.itemSets;
     ItemSetPieces pieces{};
     PairedPiece previous;

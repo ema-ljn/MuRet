@@ -218,7 +218,7 @@ bool IsLeftOutOfTheRepair(std::uint16_t id)
 
 // 0x5b17bf..0x5b1884: lo que suma un ítem gastado al precio de reparar todo. 0x5b1ba0 corre antes de mirar el tipo.
 Core::Expected<void, std::string> AddTheRepairOf(WorldState& world, const World::ItemState& item,
-                                                 const Data::Tables::ItemTable& items)
+                                                 const Tables::ItemTable& items)
 {
     WorldRuntime& runtime = world.Runtime();
     const auto record = items.Record(item.id);
@@ -434,12 +434,12 @@ Core::Expected<void, std::string> StepTheNpcShop(const GameUiContext& context, U
 }
 
 Core::Expected<void, std::string> PriceTheRepairOfEverything(WorldState& world, Crt::CrtRandom& random,
-                                                             const Data::Tables::ItemTable* items)
+                                                             const Tables::ItemTable* items)
 {
     WorldRuntime& runtime = world.Runtime();
     runtime.npcWindows.repairAllPrice = 0;
     const Models::LogicalAccess own(runtime.ownRecordDepth, random, Models::OwnRecordCloseRandoms);
-    const auto table = [items]() -> Core::Expected<const Data::Tables::ItemTable*, std::string>
+    const auto table = [items]() -> Core::Expected<const Tables::ItemTable*, std::string>
     {
         if (items == nullptr)
             return Core::Unexpected(std::string("0x5b17ce: reparar todo sin Item.bmd ([0x7758550])"));

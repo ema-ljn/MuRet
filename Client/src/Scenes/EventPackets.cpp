@@ -1515,7 +1515,7 @@ private:
             return MessageBoxOf(MessageBase + packet.value5, "0x4da183");
         case CommandDialog:
             // 0x4da18f..0x4da195: 0x632f70(pkt[5]) sin tope; desde el 200 lee fuera de 0x7688ac0 (Q-C1325).
-            if (packet.value5 >= Data::Text::DialogCount)
+            if (packet.value5 >= Tables::DialogCount)
                 return Discard(std::format("0x4da195: el diálogo {} de 0x632f70 cae fuera de los 200 de 0x7688ac0 "
                                            "(Q-C1325)",
                                            static_cast<int>(packet.value5)));
@@ -1549,7 +1549,7 @@ Core::Expected<EventPacketResult, std::string> ApplyEventPacket(const Protocol::
 }
 
 Core::Expected<std::optional<std::string>, std::string>
-EventCountdownText(EventMapObject& event, std::uint32_t tickCount, const Data::Text::TextTable* texts, bool write)
+EventCountdownText(EventMapObject& event, std::uint32_t tickCount, const Tables::TextTable* texts, bool write)
 {
     const std::int32_t kind = event.field08;
     if (kind < FirstCountdown || kind > LastCountdown)

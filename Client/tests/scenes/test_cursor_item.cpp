@@ -194,21 +194,21 @@ protected:
 
     WorldState world;
     CrtRandom random{0x13579bdu};
-    Client::Data::Tables::ItemTable items = ItemTableOf({{Sword, 1, 3, 0},
-                                                         {Shield, 2, 2, 1},
-                                                         {Helm, 2, 2, HeadSlot},
-                                                         {Potion, 1, 1, NotWorn},
-                                                         {Jewel, 1, 1, NotWorn},
-                                                         {Box, 1, 1, NotWorn},
-                                                         {Bundle, 1, 1, NotWorn},
-                                                         {Wings, 3, 2, WingSlot},
-                                                         {Bow, 2, 4, 1},
-                                                         {Crossbow, 2, 4, 0},
-                                                         {Bolts, 1, 1, 1},
-                                                         {Arrows, 1, 1, 0},
-                                                         {OldDarkRaven, 1, 1, 0},
-                                                         {WizardsRing, 1, 1, 10},
-                                                         {EntryTicket, 1, 1, NotWorn}});
+    Client::Tables::ItemTable items = ItemTableOf({{Sword, 1, 3, 0},
+                                                   {Shield, 2, 2, 1},
+                                                   {Helm, 2, 2, HeadSlot},
+                                                   {Potion, 1, 1, NotWorn},
+                                                   {Jewel, 1, 1, NotWorn},
+                                                   {Box, 1, 1, NotWorn},
+                                                   {Bundle, 1, 1, NotWorn},
+                                                   {Wings, 3, 2, WingSlot},
+                                                   {Bow, 2, 4, 1},
+                                                   {Crossbow, 2, 4, 0},
+                                                   {Bolts, 1, 1, 1},
+                                                   {Arrows, 1, 1, 0},
+                                                   {OldDarkRaven, 1, 1, 0},
+                                                   {WizardsRing, 1, 1, 10},
+                                                   {EntryTicket, 1, 1, NotWorn}});
     Outside outside;
     InventoryServices services;
 };

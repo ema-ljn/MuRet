@@ -17,9 +17,9 @@
 // claro.
 namespace
 {
-using Client::Data::Tables::LoadSkillTable;
-using Client::Data::Tables::SkillCount;
-using Client::Data::Tables::SkillTableSize;
+using Client::Tables::LoadSkillTable;
+using Client::Tables::SkillCount;
+using Client::Tables::SkillTableSize;
 using Client::Tests::ReadFileBytes;
 
 using GoldenSkillTable = Client::Tests::GoldenDataTest;

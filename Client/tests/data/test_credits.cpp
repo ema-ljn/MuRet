@@ -16,12 +16,12 @@
 namespace
 {
 using Client::Data::DataError;
-using Client::Data::Text::CreditEntry;
-using Client::Data::Text::CreditFileSize;
-using Client::Data::Text::CreditKind;
-using Client::Data::Text::CreditKindAt;
-using Client::Data::Text::CreditRecordSize;
-using Client::Data::Text::LoadCredits;
+using Client::Tables::CreditEntry;
+using Client::Tables::CreditFileSize;
+using Client::Tables::CreditKind;
+using Client::Tables::CreditKindAt;
+using Client::Tables::CreditRecordSize;
+using Client::Tables::LoadCredits;
 
 void PutRecord(std::vector<std::byte>& file, std::size_t record, CreditKind kind, std::string_view text)
 {

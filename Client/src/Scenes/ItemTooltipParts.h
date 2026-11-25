@@ -26,7 +26,7 @@ struct ItemTooltipFrame
     GameHudContext& context;
     TooltipWriter& lines;
     const World::ItemState& item;
-    std::span<const std::byte, Data::Tables::ItemRecordSize> record;
+    std::span<const std::byte, Tables::ItemRecordSize> record;
     std::int32_t level = 0;
     std::int32_t nameColor = 0;
 };
@@ -91,7 +91,7 @@ ItemSetNameOf(const GameHudContext& context, std::uint16_t type, std::uint8_t pi
 // que no lo usa (20 + clase); con cinco, nada más. Lo que el héroe no cumple va en rojo si su clase lo usa y en el 5 si
 // no. La llaman el cuerpo del ítem (0x5b79d2) y la ayuda del ítem (0x5b0da8).
 void WriteTheItemClasses(const GameHudContext& context, TooltipWriter& lines,
-                         std::span<const std::byte, Data::Tables::ItemRecordSize> record);
+                         std::span<const std::byte, Tables::ItemRecordSize> record);
 
 // 0x5b2f7f..0x5b3716 (CL9 hito 7), con la tienda personal propia o la de otro abiertas: con el ítem de su grilla bajo
 // el mouse (0x78abaa4), su precio, del mapa del modo (0x6c931c) por el lugar (columna + fila · 8 + 0x4c). Con precio:

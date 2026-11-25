@@ -452,7 +452,7 @@ public:
     Client::Render::SpriteBatch sprites;
     Client::Tests::RecordingTextDrawer text{sprites};
     Client::UI::Point mouse{};
-    Client::Data::Text::TextTable texts = Client::Tests::MakeTextTable({{1806, "bendicion"}, {1807, "alma"}});
+    Client::Tables::TextTable texts = Client::Tests::MakeTextTable({{1806, "bendicion"}, {1807, "alma"}});
 };
 
 // 0x4832e0, en los tres mapas: el fondo negro de 0,4 un punto más grande, las dos flechas de win_scrollbar (0x649),

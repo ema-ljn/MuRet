@@ -57,7 +57,7 @@ ItemState Worn(std::uint16_t type, std::uint8_t value)
 class GoldenOwnDerivedStats : public Client::Tests::GoldenDataTest
 {
 protected:
-    std::optional<Client::Data::Tables::LoadedItemTable> LoadItems()
+    std::optional<Client::Tables::LoadedItemTable> LoadItems()
     {
         const auto path = DataFile(ItemFile);
         if (!path)
@@ -69,7 +69,7 @@ protected:
         {
             return std::nullopt;
         }
-        auto loaded = Client::Data::Tables::LoadItemTable(std::as_bytes(std::span(*file)));
+        auto loaded = Client::Tables::LoadItemTable(std::as_bytes(std::span(*file)));
         if (!loaded.HasValue())
         {
             return std::nullopt;
@@ -78,7 +78,7 @@ protected:
     }
 
     // Las dos tablas de 0x40c600, con su checksum.
-    std::optional<Client::Data::Tables::ItemSetTables> LoadItemSets()
+    std::optional<Client::Tables::ItemSetTables> LoadItemSets()
     {
         const auto typePath = DataFile(ItemSetTypeFile);
         const auto optionPath = DataFile(ItemSetOptionFile);
@@ -92,14 +92,13 @@ protected:
         {
             return std::nullopt;
         }
-        auto types = Client::Data::Tables::LoadItemSetTypeTable(std::as_bytes(std::span(*typeFile)));
-        auto options = Client::Data::Tables::LoadItemSetOptionTable(std::as_bytes(std::span(*optionFile)));
+        auto types = Client::Tables::LoadItemSetTypeTable(std::as_bytes(std::span(*typeFile)));
+        auto options = Client::Tables::LoadItemSetOptionTable(std::as_bytes(std::span(*optionFile)));
         if (!types.HasValue() || !options.HasValue())
         {
             return std::nullopt;
         }
-        return Client::Data::Tables::ItemSetTables{.types = std::move(types).Value(),
-                                                   .options = std::move(options).Value()};
+        return Client::Tables::ItemSetTables{.types = std::move(types).Value(), .options = std::move(options).Value()};
     }
 };
 

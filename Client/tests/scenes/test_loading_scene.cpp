@@ -325,7 +325,7 @@ TEST(LoadingSceneTest, ReleasesItsSlotsBeforeTheLoginLoadsItsOwn)
     Log log(sink, LogLevel::Debug);
     RecordingFrameTarget target;
     FakeClock clock;
-    const Client::Scenes::GameData data;
+    const Client::Tables::GameData data;
     const Client::Scenes::SingleModelLibrary models;
     const SceneContext context{folder.Path(), store, log};
     SceneManager manager(

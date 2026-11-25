@@ -19,8 +19,8 @@
 // los tres nombres que no entran en los 25 bytes de +0x1d9..+0x1f1 del personaje, y que Kor y Chs dan lo mismo que Eng.
 namespace
 {
-using Client::Data::Text::LoadNpcNames;
-using Client::Data::Text::NpcNameRecord;
+using Client::Tables::LoadNpcNames;
+using Client::Tables::NpcNameRecord;
 using Client::Tests::ReadFileBytes;
 using GoldenNpcNames = Client::Tests::GoldenDataTest;
 

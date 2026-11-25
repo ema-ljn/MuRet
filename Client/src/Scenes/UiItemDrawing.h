@@ -99,7 +99,7 @@ struct UiItemPlacement
 // (las dos manos) de su registro de Item.bmd; sin él, corta.
 [[nodiscard]] Core::Expected<UiItemPlacement, std::string>
 PlaceUiItem(const UiItemCall& call, const UnprojectedPoint& anchor, bool hovered, bool always, float worldClock,
-            const Data::Tables::ItemTable* items, glm::vec3& angles);
+            const Tables::ItemTable* items, glm::vec3& angles);
 
 // El pase 3D de 0x5ac120: la proyección de 1°, W / H, 20 y 2.000 en la pantalla entera (0x620d10 y 0x6203c0) y la
 // vista en la identidad (0x620370 sobre MODELVIEW en la identidad), con su caché de 0x6203c0. El de 0x633110 es igual

@@ -112,7 +112,7 @@ struct MoveCheck
 // 0x448657..0x448787 y 0x4491df..0x449559: con el registro propio abierto, su zen (+0xecc), su nivel (+0xe) y su
 // clase (+0xb); después de cerrarlo, las comparaciones (el nivel con signo, el zen sin signo).
 MoveCheck CheckTheMove(WorldState& world, std::uint8_t& ownRecordDepth, Crt::CrtRandom& random,
-                       const Data::Text::MoveRequirement& move)
+                       const Tables::MoveRequirement& move)
 {
     std::uint32_t money = 0;
     std::int32_t level = 0;
@@ -148,7 +148,7 @@ void CloseTheWindow(WorldRuntime& runtime)
     runtime.movement.pendingClick = false;
 }
 
-Core::Expected<std::string_view, std::string> TextOf(const Data::Text::TextTable* texts, std::size_t index,
+Core::Expected<std::string_view, std::string> TextOf(const Tables::TextTable* texts, std::size_t index,
                                                      std::string_view where)
 {
     const std::optional<std::string_view> text = UI::TextAt(texts, index);
@@ -173,7 +173,7 @@ Core::Expected<void, std::string> StepTheMoveWindow(const GameUiContext& context
     if (x >= 1 && x < columns.width + 1 && y >= 1 && y < bottom + 1)
         runtime.ui.mouseOnUi = 1;
     std::int32_t rowTop = rowHeight + FirstRowTop;
-    for (const Data::Text::MoveRequirement& move : runtime.moves)
+    for (const Tables::MoveRequirement& move : runtime.moves)
     {
         const MoveCheck check = CheckTheMove(world, runtime.ownRecordDepth, context.random, move);
         // 0x44876c..0x4487a9.
@@ -255,7 +255,7 @@ Core::Expected<void, std::string> DrawTheMoveWindow(GameHudContext& context)
     const std::int32_t mouseX = context.mouse.x;
     const std::int32_t mouseY = context.mouse.y;
     std::int32_t y = rowHeight + FirstRowText;
-    for (const Data::Text::MoveRequirement& move : runtime.moves)
+    for (const Tables::MoveRequirement& move : runtime.moves)
     {
         const MoveCheck check = CheckTheMove(world, context.ownRecordDepth, context.random, move);
         // 0x44955b..0x4495ef: el resaltado bajo el mouse, si pasa y nadie agarró el mouse (0x5762eb4).

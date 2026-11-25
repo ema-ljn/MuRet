@@ -192,8 +192,8 @@ protected:
     CrtRandom m_random{Seed};
     Client::Models::Skeleton m_playerSkeleton = Client::Tests::PlayerActionsSkeleton();
     CombatModels m_models;
-    Client::Data::Tables::ItemTable m_items = Client::Tests::ItemsMarking({});
-    Client::Data::Text::TextTable m_texts = Client::Tests::MakeTextTable({{486, "Experiencia %d"}});
+    Client::Tables::ItemTable m_items = Client::Tests::ItemsMarking({});
+    Client::Tables::TextTable m_texts = Client::Tests::MakeTextTable({{486, "Experiencia %d"}});
     LetterMeasure m_letters;
 };
 
@@ -1167,7 +1167,7 @@ TEST_F(CombatRepliesTest, TheTrialsMonsterChoosesWithItsSkillByteOpen)
 // entrada se cierra (un rand()). Sin encontrarla, la 3 o la 4 por +0x38f.
 TEST_F(CombatRepliesTest, TheSkillMonstersLookTheirSkillUpInTheTable)
 {
-    Client::Data::Tables::MonsterSkills crywolf;
+    Client::Tables::MonsterSkills crywolf;
     crywolf.skills = {6, 7, 8, 0xc8, -1};
     Runtime().monsterSkills.records[0x154] = crywolf;
     Runtime().map = 0x22;

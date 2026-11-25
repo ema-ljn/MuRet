@@ -65,9 +65,9 @@ CountQuickSlotItems(const QuickSlots& slots, std::span<const World::ItemState, I
 // con D+0x1c & 3 en 1 o 2, o 15 con alguna opción excelente (D+0x1b & 0x3f) fuera de 0x1803..0x1806, 0x13, 0x812,
 // 0xa0a, 0x1a1e y 0x40d. En 16 bits, como el ax que devuelve.
 [[nodiscard]] std::uint16_t MaxDurability(const World::ItemState& item,
-                                          std::span<const std::byte, Data::Tables::ItemRecordSize> record, int level);
+                                          std::span<const std::byte, Tables::ItemRecordSize> record, int level);
 
 // El nombre de un registro de Item.bmd: sus bytes desde el +0 hasta el primer '\0' (o los 0x54), como lo lee el
 // "%s" del original.
-[[nodiscard]] std::string ItemRecordName(std::span<const std::byte, Data::Tables::ItemRecordSize> record);
+[[nodiscard]] std::string ItemRecordName(std::span<const std::byte, Tables::ItemRecordSize> record);
 } // namespace Client::Scenes

@@ -70,7 +70,7 @@ TEST(GameSceneMoveWindowTest, AClickOnADestinationSaysTheMoveTextOfTheScene)
     auto world = std::make_unique<Client::Scenes::WorldState>();
     Client::Models::ClothWorld cloth;
     const std::filesystem::path dataRoot = Client::Tests::RepoDataDir();
-    const Client::Data::Text::TextTable texts = Client::Tests::MakeTextTable(Client::Tests::ChatTexts());
+    const Client::Tables::TextTable texts = Client::Tests::MakeTextTable(Client::Tests::ChatTexts());
     // Lorencia cargada: el paso sigue después de la UI (las hojas leen el terreno).
     world->Runtime().map = 0;
     const auto map = Client::Scenes::LoadMap(0, {dataRoot, *world, Client::Scenes::SceneId::Game, 0, cloth.random});
@@ -98,7 +98,7 @@ TEST(GameSceneMoveWindowTest, AClickOnADestinationSaysTheMoveTextOfTheScene)
     Client::Scenes::WorldRuntime& runtime = world->Runtime();
     runtime.drawingEnabled = true;
     runtime.panels.overlayMode = Client::UI::MoveOverlayMode;
-    runtime.moves = {Client::Data::Text::MoveRequirement{
+    runtime.moves = {Client::Tables::MoveRequirement{
         .index = 1, .name = "Campo", .searchName = {}, .level = 10, .zen = 100, .gate = 0}};
     world->OwnCharacter().level = 20;
     world->OwnCharacter().zen = 500;

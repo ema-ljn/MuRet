@@ -37,8 +37,7 @@ struct PetPriceLevels
 // sobre un entero de más de 53 bits, el 0x1a04 y el 0x1a05 sin `pets` (0x54db28) y un infinito en el _ftol de la
 // durabilidad del modo 1 (0x54dc04).
 [[nodiscard]] Core::Expected<std::uint32_t, std::string> ItemPrice(const World::ItemState& item,
-                                                                   const Data::Tables::ItemTable& items,
-                                                                   std::int32_t mode,
+                                                                   const Tables::ItemTable& items, std::int32_t mode,
                                                                    const std::optional<PetPriceLevels>& pets);
 
 struct RepairPrice

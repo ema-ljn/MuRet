@@ -177,9 +177,9 @@ protected:
         Reset(0);
     }
 
-    static Client::Data::Text::TextTable LoadTexts()
+    static Client::Tables::TextTable LoadTexts()
     {
-        auto table = Client::Data::Text::LoadTextTable(Client::Tests::TextTableBytes(GuildTexts()));
+        auto table = Client::Tables::LoadTextTable(Client::Tests::TextTableBytes(GuildTexts()));
         EXPECT_TRUE(table.HasValue());
         return std::move(table).Value();
     }
@@ -284,7 +284,7 @@ protected:
     std::unique_ptr<WorldState> m_world;
     CrtRandom m_random{Seed};
     LetterMeasure m_letters;
-    Client::Data::Text::TextTable m_texts;
+    Client::Tables::TextTable m_texts;
     std::vector<std::vector<std::uint8_t>> m_sent;
     GestureModels m_models;
 };

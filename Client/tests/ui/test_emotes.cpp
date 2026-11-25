@@ -22,9 +22,9 @@ namespace
 using Client::UI::EmoteCase;
 using Client::UI::FindTheEmote;
 
-const Client::Data::Text::TextTable& Texts()
+const Client::Tables::TextTable& Texts()
 {
-    static const Client::Data::Text::TextTable texts = Client::Tests::MakeTextTable(Client::Tests::ChatTexts());
+    static const Client::Tables::TextTable texts = Client::Tests::MakeTextTable(Client::Tests::ChatTexts());
     return texts;
 }
 

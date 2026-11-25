@@ -78,19 +78,19 @@ CrtRandom Advanced(CrtRandom random, int count)
 }
 
 // Item.bmd sin nada: 0x550d10 no suma nada de un lugar vacío.
-Client::Data::Tables::ItemTable EmptyItems()
+Client::Tables::ItemTable EmptyItems()
 {
     const std::vector<std::byte> encrypted = Client::Tests::EncryptRecords(
-        std::vector<std::byte>(Client::Data::Tables::ItemTableSize), Client::Data::Tables::ItemRecordSize);
-    return Client::Data::Tables::ItemTable(std::span<const std::byte>(encrypted));
+        std::vector<std::byte>(Client::Tables::ItemTableSize), Client::Tables::ItemRecordSize);
+    return Client::Tables::ItemTable(std::span<const std::byte>(encrypted));
 }
 
 // Los conjuntos sin ningún tipo ni opción.
-Client::Data::Tables::ItemSetTables EmptySets()
+Client::Tables::ItemSetTables EmptySets()
 {
     return Client::Tests::ItemSetTablesFrom(
-        std::vector<std::byte>(Client::Data::Tables::ItemSetTypeTableSize, std::byte{0xff}),
-        std::vector<std::byte>(Client::Data::Tables::ItemSetOptionTableSize, std::byte{0xff}));
+        std::vector<std::byte>(Client::Tables::ItemSetTypeTableSize, std::byte{0xff}),
+        std::vector<std::byte>(Client::Tables::ItemSetOptionTableSize, std::byte{0xff}));
 }
 
 // El paso de la UI con lo que la ventana del personaje lee: las tablas de 0x550d10, lo que dejó el último 0x505820,
@@ -149,9 +149,9 @@ public:
     CrtRandom random;
     InputState input;
     std::vector<Outgoing> sent;
-    const Client::Data::Tables::ItemTable items = EmptyItems();
-    const Client::Data::Tables::ItemSetTables setTables = EmptySets();
-    const Client::Data::Tables::ItemSetTables* sets = &setTables;
+    const Client::Tables::ItemTable items = EmptyItems();
+    const Client::Tables::ItemSetTables setTables = EmptySets();
+    const Client::Tables::ItemSetTables* sets = &setTables;
     const Client::Scenes::InventoryServices inventory{.items = &items};
     const Client::Scenes::GameChatContext chat{
         .world = world, .random = random, .send = [this](Outgoing packet) { sent.push_back(std::move(packet)); }};

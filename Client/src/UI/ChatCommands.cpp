@@ -38,7 +38,7 @@ constexpr std::size_t ItemNamedByte = 0x24;
 constexpr std::size_t SetOptionUsedByte = 0x3c;
 constexpr std::byte UnusedSetOption{0xff};
 
-using Data::Text::TextOr;
+using Tables::TextOr;
 
 // 0x6ada60, _stricmp con el locale "C": solo A..Z se pliegan.
 bool EqualsIgnoringCase(std::string_view left, std::string_view right)
@@ -248,7 +248,7 @@ std::size_t MacroOf(std::string_view text)
 Core::Expected<ChatCommandOutcome, std::string> RunTheChatCommand(const ChatCommandContext& context,
                                                                   std::string_view text, bool fromMacro)
 {
-    const Data::Text::TextTable& texts = context.texts;
+    const Tables::TextTable& texts = context.texts;
     if (fromMacro || context.logoutRequested)
         return TheNamesTail(context, text, {});
     if (!context.warehouseOpen)
@@ -342,7 +342,7 @@ Core::Expected<ChatCommandOutcome, std::string> RunTheChatCommand(const ChatComm
     return TheNamesTail(context, text, std::move(outcome));
 }
 
-bool IsAForbiddenMacro(const Data::Text::TextTable& texts, std::string_view text)
+bool IsAForbiddenMacro(const Tables::TextTable& texts, std::string_view text)
 {
     const std::string_view macro = text.size() > MacroCommandPrefix ? text.substr(MacroCommandPrefix) : "";
     return macro == TextOr(texts, ExchangeCommandText) || macro == TextOr(texts, TradeCommandText) ||

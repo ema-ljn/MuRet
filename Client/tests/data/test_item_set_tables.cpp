@@ -19,17 +19,17 @@ namespace
 {
 using Client::Data::DataError;
 using Client::Data::Tables::ChecksumParity;
-using Client::Data::Tables::ItemSetOptionChecksumKey;
-using Client::Data::Tables::ItemSetOptionCount;
-using Client::Data::Tables::ItemSetOptionRecordSize;
-using Client::Data::Tables::ItemSetOptionTableSize;
-using Client::Data::Tables::ItemSetTypeChecksumKey;
-using Client::Data::Tables::ItemSetTypeCount;
-using Client::Data::Tables::ItemSetTypeRecordSize;
-using Client::Data::Tables::ItemSetTypeTableSize;
-using Client::Data::Tables::LoadItemSetOptionTable;
-using Client::Data::Tables::LoadItemSetTypeTable;
 using Client::Data::Tables::TableChecksum;
+using Client::Tables::ItemSetOptionChecksumKey;
+using Client::Tables::ItemSetOptionCount;
+using Client::Tables::ItemSetOptionRecordSize;
+using Client::Tables::ItemSetOptionTableSize;
+using Client::Tables::ItemSetTypeChecksumKey;
+using Client::Tables::ItemSetTypeCount;
+using Client::Tables::ItemSetTypeRecordSize;
+using Client::Tables::ItemSetTypeTableSize;
+using Client::Tables::LoadItemSetOptionTable;
+using Client::Tables::LoadItemSetTypeTable;
 using Client::Tests::BytePattern;
 using Client::Tests::EncryptRecords;
 using Client::Tests::FirstRecordThatDiffers;

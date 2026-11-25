@@ -16,7 +16,7 @@
 // Q-C01: el original calcula el checksum pero no lo mira (un parche EB 66 saltea la comparación),
 // y la item.bmd del laboratorio no pasa el suyo. MuRet lo calcula, lo informa y carga la tabla
 // igual.
-namespace Client::Data::Tables
+namespace Client::Tables
 {
 // Cuántos items trae la tabla, uno por registro: 16 secciones de 512. El registro de un item es
 // el `sección * 512 + índice` (0054b9e0-item-bmd-loader.md §9).
@@ -28,7 +28,7 @@ inline constexpr std::size_t ItemRecordSize = 0x54;
 inline constexpr std::size_t ItemTableSize = ItemCount * ItemRecordSize;
 static_assert(ItemTableSize == 0xA8000, "el tamaño que mide el research (05, Tablas .bmd)");
 
-using ItemTable = RecordTable<ItemRecordSize>;
+using ItemTable = Data::Tables::RecordTable<ItemRecordSize>;
 
 struct LoadedItemTable
 {
@@ -45,5 +45,5 @@ struct LoadedItemTable
 //   - Si tiene los registros pero no los 4 bytes del checksum, carga igual, con checksumMatches
 //     en false: el original tampoco mira el checksum.
 //   - Si es más largo, el resto se ignora, como con los fread de tamaño fijo del original.
-Core::Expected<LoadedItemTable, DataError> LoadItemTable(std::span<const std::byte> file);
-} // namespace Client::Data::Tables
+Core::Expected<LoadedItemTable, Data::DataError> LoadItemTable(std::span<const std::byte> file);
+} // namespace Client::Tables

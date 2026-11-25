@@ -23,7 +23,7 @@ struct SkillDelayContext
     WorldState& world;
     Crt::CrtRandom& random;
     // Skill.bmd (0x76bd1d8). nullptr: lo que lo lee corta.
-    const Data::Tables::SkillTable* skills = nullptr;
+    const Tables::SkillTable* skills = nullptr;
 };
 
 // 0x5521f0(skill, &requisito): el WORD +0x2e de la entrada de Skill.bmd, abierta y cerrada.

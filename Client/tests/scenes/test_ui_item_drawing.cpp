@@ -59,20 +59,20 @@ std::uint32_t BitsOf(float value)
 }
 
 // Item.bmd con el byte de las dos manos (+0x1e) del tipo `type` en `twoHands`.
-Client::Data::Tables::ItemTable ItemsWithTwoHands(std::size_t type, std::uint8_t twoHands)
+Client::Tables::ItemTable ItemsWithTwoHands(std::size_t type, std::uint8_t twoHands)
 {
-    using Client::Data::Tables::ItemRecordSize;
-    std::vector<std::byte> plain(Client::Data::Tables::ItemTableSize);
+    using Client::Tables::ItemRecordSize;
+    std::vector<std::byte> plain(Client::Tables::ItemTableSize);
     constexpr std::size_t TwoHands = 0x1e;
     plain[type * ItemRecordSize + TwoHands] = std::byte{twoHands};
     const std::vector<std::byte> encrypted = Client::Tests::EncryptRecords(std::move(plain), ItemRecordSize);
-    return Client::Data::Tables::ItemTable(std::span<const std::byte>(encrypted));
+    return Client::Tables::ItemTable(std::span<const std::byte>(encrypted));
 }
 
 // Item.bmd con todo en 0: las armas, con una mano.
-const Client::Data::Tables::ItemTable& PlainItems()
+const Client::Tables::ItemTable& PlainItems()
 {
-    static const Client::Data::Tables::ItemTable items = ItemsWithTwoHands(0, 0);
+    static const Client::Tables::ItemTable items = ItemsWithTwoHands(0, 0);
     return items;
 }
 
@@ -86,7 +86,7 @@ UnprojectedPoint Anchor640()
 Client::Core::Expected<UiItemPlacement, std::string> Place(std::int32_t model, std::int32_t level, glm::vec3& angles,
                                                            bool hovered = false, bool always = false,
                                                            float clock = 0.0f,
-                                                           const Client::Data::Tables::ItemTable* items = &PlainItems())
+                                                           const Client::Tables::ItemTable* items = &PlainItems())
 {
     return Client::Scenes::PlaceUiItem(UiItemCall{.model = model, .level = level}, Anchor640(), hovered, always, clock,
                                        items, angles);

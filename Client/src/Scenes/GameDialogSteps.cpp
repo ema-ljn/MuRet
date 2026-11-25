@@ -565,10 +565,10 @@ Core::Expected<void, std::string> StepTheAnswers(const GameUiContext& context)
     if (offset < 0 || answer < 0)
         return {};
     // 0x62d9af..0x62d9ca: la cuenta del registro de 0x6d5e28 en Dialog.bmd (+0x12c), con 1 como mínimo.
-    const Data::Text::DialogTable& table = runtime.dialogTable;
+    const Tables::DialogTable& table = runtime.dialogTable;
     if (box.dialogIndex < 0 || static_cast<std::size_t>(box.dialogIndex) >= table.size())
         return Core::Unexpected(std::format("0x62d9b8: el diálogo {} no está en Dialog.bmd", box.dialogIndex));
-    const Data::Text::DialogRecord& dialog = table[static_cast<std::size_t>(box.dialogIndex)];
+    const Tables::DialogRecord& dialog = table[static_cast<std::size_t>(box.dialogIndex)];
     if (answer >= std::max(dialog.answerCount, 1))
         return {};
     if (static_cast<std::size_t>(answer) >= dialog.next.size())

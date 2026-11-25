@@ -164,7 +164,7 @@ protected:
     Client::Tests::RecordingSink m_sink;
     Client::Core::Log m_log{m_sink, Client::Core::LogLevel::Debug};
     LetterMeasure m_letters;
-    Client::Data::Text::TextTable m_texts = Client::Tests::MakeTextTable(CastleTexts());
+    Client::Tables::TextTable m_texts = Client::Tests::MakeTextTable(CastleTexts());
     std::vector<Client::Protocol::Outgoing> m_sent;
 };
 

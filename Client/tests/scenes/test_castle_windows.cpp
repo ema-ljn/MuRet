@@ -87,10 +87,10 @@ public:
         return {static_cast<int>(text.size()) * 6, 13};
     }
 };
-Client::Data::Text::TextTable Texts()
+Client::Tables::TextTable Texts()
 {
     std::map<std::size_t, std::string> texts;
-    for (std::size_t id = 0; id < Client::Data::Text::TextCount; ++id)
+    for (std::size_t id = 0; id < Client::Tables::TextCount; ++id)
         texts[id] = "texto " + std::to_string(id);
     texts[1565] = "recuperación %d"; // 0x772fbd8, argumento de 0x661050.
     return Client::Tests::MakeTextTable(texts);
@@ -188,7 +188,7 @@ protected:
     Client::Input::InputState m_input;
     Requests m_requests;
     LetterMeasure m_measure;
-    Client::Data::Text::TextTable m_texts = Texts();
+    Client::Tables::TextTable m_texts = Texts();
     Client::Render::SpriteBatch m_sprites;
     Client::Tests::RecordingTextDrawer m_text{m_sprites};
 };

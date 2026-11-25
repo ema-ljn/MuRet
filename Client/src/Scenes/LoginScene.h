@@ -95,7 +95,7 @@ public:
     // Main: los tests la fijan.
     // `gameSlots`, la tabla de slots de la carga (GameModels::TextureSlots), que el mundo sigue desde
     // 0x41c como la global del original; sin ella, una vacía.
-    LoginScene(const SceneContext& context, const GameData& data, const Models::IModelLibrary& models,
+    LoginScene(const SceneContext& context, const Tables::GameData& data, const Models::IModelLibrary& models,
                App::ServerSession* session, std::string_view version, std::mt19937::result_type seed,
                const Models::ModelTextureSlots* gameSlots = nullptr);
 
@@ -264,7 +264,7 @@ private:
     std::vector<std::optional<int>> m_objectEffectRandoms;
     const Models::IModelLibrary& m_models;
     App::ServerSession* m_session;
-    const Data::Text::TextTable* m_texts;
+    const Tables::TextTable* m_texts;
     SceneTextures m_textures;
     SceneTextures m_windowTextures;
     // El de SceneWorlds.h: el 55.

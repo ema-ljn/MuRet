@@ -271,7 +271,7 @@ std::string HexOf(std::span<const std::byte> bytes)
 class ScriptedClient
 {
 public:
-    ScriptedClient(const std::filesystem::path& dataRoot, const Scenes::GameData& data)
+    ScriptedClient(const std::filesystem::path& dataRoot, const Tables::GameData& data)
         : m_dataRoot(dataRoot), m_data(data), m_resources{.world = m_world,
                                                           .selection = m_selection,
                                                           .dataRoot = dataRoot,
@@ -557,7 +557,7 @@ private:
     }
 
     const std::filesystem::path m_dataRoot;
-    const Scenes::GameData& m_data;
+    const Tables::GameData& m_data;
     RecordingSink m_sink;
     Core::Log m_log{m_sink, Core::LogLevel::Info};
     FakeClock m_clock;
@@ -662,9 +662,9 @@ protected:
     void SetUp() override
     {
         ASSERT_NO_FATAL_FAILURE(GoldenDataTest::SetUp());
-        auto data = Scenes::LoadGameData(m_dataRoot);
+        auto data = Tables::LoadGameData(m_dataRoot);
         ASSERT_TRUE(data.HasValue()) << data.Error();
-        m_data = std::make_unique<Scenes::GameData>(std::move(data).Value());
+        m_data = std::make_unique<Tables::GameData>(std::move(data).Value());
     }
 
     // The digest of every frame of `scene`, from 0 to its end row.
@@ -720,7 +720,7 @@ protected:
         EXPECT_FALSE(difference.has_value()) << scene << ": " << difference.value_or("");
     }
 
-    std::unique_ptr<Scenes::GameData> m_data;
+    std::unique_ptr<Tables::GameData> m_data;
 };
 
 TEST_F(CharacterizationTest, LoginToLorencia)

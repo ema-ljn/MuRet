@@ -11,13 +11,13 @@
 #include <utility>
 #include <vector>
 
-namespace Client::Data::Text
+namespace Client::Tables
 {
-Core::Expected<std::vector<CreditEntry>, DataError> LoadCredits(std::span<const std::byte> file)
+Core::Expected<std::vector<CreditEntry>, Data::DataError> LoadCredits(std::span<const std::byte> file)
 {
     if (file.size() < CreditFileSize)
     {
-        return Core::Unexpected(DataError::FileTooShort);
+        return Core::Unexpected(Data::DataError::FileTooShort);
     }
     std::vector<std::byte> table(file.begin(), file.begin() + static_cast<std::ptrdiff_t>(CreditFileSize));
     Crypto::Xor3(table);
@@ -44,4 +44,4 @@ std::uint8_t CreditKindAt(std::span<const CreditEntry> credits, std::size_t inde
 {
     return index < credits.size() ? credits[index].kind : static_cast<std::uint8_t>(CreditKind::End);
 }
-} // namespace Client::Data::Text
+} // namespace Client::Tables

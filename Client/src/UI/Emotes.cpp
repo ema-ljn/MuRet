@@ -107,10 +107,10 @@ constexpr std::size_t CountTheTriggers()
 static_assert(CountTheTriggers() == EmoteTriggerCount);
 
 // 0x76d0e44 + (texto − 270) · 0x12c: el texto de Text.bmd, vacío si no lo tiene.
-using Data::Text::TextOr;
+using Tables::TextOr;
 } // namespace
 
-std::optional<EmoteCase> FindTheEmote(const Data::Text::TextTable& texts, std::string_view said)
+std::optional<EmoteCase> FindTheEmote(const Tables::TextTable& texts, std::string_view said)
 {
     for (const EmoteRun& run : Runs)
     {

@@ -15,20 +15,20 @@
 #include <utility>
 #include <vector>
 
-namespace Client::Data::Text
+namespace Client::Tables
 {
-Core::Expected<std::vector<std::string>, DataError> LoadFilterWords(std::span<const std::byte> file,
-                                                                    std::uint32_t checksumKey)
+Core::Expected<std::vector<std::string>, Data::DataError> LoadFilterWords(std::span<const std::byte> file,
+                                                                          std::uint32_t checksumKey)
 {
-    const std::optional<std::uint32_t> stored = Tables::StoredChecksum(file, FilterTableSize);
+    const std::optional<std::uint32_t> stored = Data::Tables::StoredChecksum(file, FilterTableSize);
     if (!stored)
     {
-        return Core::Unexpected(DataError::FileTooShort);
+        return Core::Unexpected(Data::DataError::FileTooShort);
     }
     const std::span<const std::byte> table = file.first(FilterTableSize);
-    if (*stored != Tables::TableChecksum(table, checksumKey, Tables::ChecksumParity::XorOddDwords))
+    if (*stored != Data::Tables::TableChecksum(table, checksumKey, Data::Tables::ChecksumParity::XorOddDwords))
     {
-        return Core::Unexpected(DataError::ChecksumMismatch);
+        return Core::Unexpected(Data::DataError::ChecksumMismatch);
     }
     std::vector<std::string> words;
     for (std::size_t first = 0; first < FilterTableSize; first += FilterRecordSize)
@@ -55,4 +55,4 @@ Core::Expected<std::vector<std::string>, DataError> LoadFilterWords(std::span<co
     // 0: ninguna palabra.
     return std::vector<std::string>{};
 }
-} // namespace Client::Data::Text
+} // namespace Client::Tables

@@ -252,7 +252,7 @@ protected:
     SpriteBatch sprites;
     Client::Tests::RecordingTextDrawer text{sprites};
     Client::Input::InputState input;
-    Client::Data::Text::TextTable texts = Client::Tests::MakeTextTable(ChipTexts());
+    Client::Tables::TextTable texts = Client::Tests::MakeTextTable(ChipTexts());
     std::vector<Client::Protocol::Outgoing> sent;
 };
 

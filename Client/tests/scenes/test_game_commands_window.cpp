@@ -214,7 +214,7 @@ protected:
     std::optional<std::int32_t> m_sound{};
     SpriteBatch m_sprites;
     Client::Tests::RecordingTextDrawer m_text;
-    Client::Data::Text::TextTable m_texts = Client::Tests::MakeTextTable(CommandTexts());
+    Client::Tables::TextTable m_texts = Client::Tests::MakeTextTable(CommandTexts());
 };
 
 // La D abre los comandos (+4 de [0x6e592c]); el paso siguiente mira el mouse desde la esquina que todavía no puso

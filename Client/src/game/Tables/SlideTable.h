@@ -18,7 +18,7 @@
 // la velocidad del cartel (un float) y cinco tramos de nivel de 0x2008 bytes, cada uno con el nivel más alto del
 // tramo, la cuenta de textos y 32 textos de 0x100 bytes. *Verificado* con el Slide.bmd del repo: 60 segundos, 2,5 y
 // los tramos (15, 28), (30, 20), (50, 19), (0, −1) y (0, −1).
-namespace Client::Data::Text
+namespace Client::Tables
 {
 inline constexpr std::size_t SlideTableSize = 0xa030;
 inline constexpr std::size_t SlideGroupCount = 5;
@@ -50,5 +50,5 @@ struct SlideTable
 // original no mira cuánto leyó fread ni dónde termina un texto: un archivo corto deja lo que había en la pila
 // (FileTooShort, Q-C516), y una cuenta de más de 32 o un texto sin cero siguen en el tramo de al lado o fuera del
 // buffer (InvalidData si pasan del final). Lo que sobra se ignora.
-[[nodiscard]] Core::Expected<SlideTable, DataError> LoadSlideTable(std::span<const std::byte> file);
-} // namespace Client::Data::Text
+[[nodiscard]] Core::Expected<SlideTable, Data::DataError> LoadSlideTable(std::span<const std::byte> file);
+} // namespace Client::Tables

@@ -13,7 +13,7 @@
 #include <utility>
 #include <vector>
 
-namespace Client::Data::Text
+namespace Client::Tables
 {
 namespace
 {
@@ -32,7 +32,7 @@ std::uint32_t ReadWord(std::span<const std::byte> bytes, std::size_t offset)
 }
 } // namespace
 
-Core::Expected<std::vector<MoveRequirement>, DataError> LoadMoveRequirements(std::span<const std::byte> file)
+Core::Expected<std::vector<MoveRequirement>, Data::DataError> LoadMoveRequirements(std::span<const std::byte> file)
 {
     // 0x448467..0x448489: el int en 0 y fread(&cuenta, 4, 1).
     const auto count = static_cast<std::int32_t>(ReadWord(file, 0));
@@ -41,7 +41,7 @@ Core::Expected<std::vector<MoveRequirement>, DataError> LoadMoveRequirements(std
         return moves;
     const auto records = static_cast<std::size_t>(count);
     if ((file.size() - std::min(MoveCountSize, file.size())) / MoveRecordSize < records)
-        return Core::Unexpected(DataError::FileTooShort);
+        return Core::Unexpected(Data::DataError::FileTooShort);
     moves.reserve(records);
     for (std::size_t i = 0; i < records; ++i)
     {
@@ -55,7 +55,7 @@ Core::Expected<std::vector<MoveRequirement>, DataError> LoadMoveRequirements(std
         const std::span<const std::byte> nameBytes = bytes.subspan(NameOffset);
         const auto end = std::ranges::find(nameBytes, std::byte{0});
         if (end == nameBytes.end())
-            return Core::Unexpected(DataError::InvalidData);
+            return Core::Unexpected(Data::DataError::InvalidData);
         MoveRequirement move;
         move.index = static_cast<std::int32_t>(ReadWord(bytes, 0));
         std::ranges::transform(nameBytes.begin(), end, std::back_inserter(move.name),
@@ -69,4 +69,4 @@ Core::Expected<std::vector<MoveRequirement>, DataError> LoadMoveRequirements(std
     }
     return moves;
 }
-} // namespace Client::Data::Text
+} // namespace Client::Tables

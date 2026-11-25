@@ -206,11 +206,11 @@ protected:
     Client::Scenes::SingleModelLibrary m_models;
     Client::Tests::RecordingSink m_sink;
     Client::Core::Log m_log{m_sink, Client::Core::LogLevel::Debug};
-    Client::Data::Tables::ItemTable m_items = Client::Tests::ItemTableOf({{TallType, 1, 2, 0}, {SmallType, 1, 1, 0}});
-    Client::Data::Text::TextTable m_texts = Client::Tests::MakeTextTable({{375, "no alcanza el zen"},
-                                                                          {423, "no hay lugar"},
-                                                                          {1120, "la tienda no se puede ver"},
-                                                                          {1166, "la tienda ya no esta"}});
+    Client::Tables::ItemTable m_items = Client::Tests::ItemTableOf({{TallType, 1, 2, 0}, {SmallType, 1, 1, 0}});
+    Client::Tables::TextTable m_texts = Client::Tests::MakeTextTable({{375, "no alcanza el zen"},
+                                                                      {423, "no hay lugar"},
+                                                                      {1120, "la tienda no se puede ver"},
+                                                                      {1166, "la tienda ya no esta"}});
     LetterMeasure m_letters;
     std::vector<Client::Protocol::Outgoing> m_sent;
 };

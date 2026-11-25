@@ -180,7 +180,7 @@ int Draws(const CrtRandom& random)
     return -1;
 }
 
-Client::Data::Text::TextTable WindowTexts(const std::map<std::size_t, std::string>& replaced = {})
+Client::Tables::TextTable WindowTexts(const std::map<std::size_t, std::string>& replaced = {})
 {
     std::map<std::size_t, std::string> texts{{180, "Gremio"},
                                              {228, "Aceptar"},
@@ -232,7 +232,7 @@ Client::Data::Text::TextTable WindowTexts(const std::map<std::size_t, std::strin
         texts.emplace(1257 + line, std::format("Sin alianza {}", line));
     for (const auto& [index, text] : replaced)
         texts[index] = text;
-    auto table = Client::Data::Text::LoadTextTable(Client::Tests::TextTableBytes(texts));
+    auto table = Client::Tables::LoadTextTable(Client::Tests::TextTableBytes(texts));
     EXPECT_TRUE(table.HasValue());
     return std::move(table).Value();
 }
@@ -456,7 +456,7 @@ protected:
 
     std::unique_ptr<WorldState> m_world = std::make_unique<WorldState>();
     CrtRandom m_random{Seed};
-    Client::Data::Text::TextTable m_texts = WindowTexts();
+    Client::Tables::TextTable m_texts = WindowTexts();
     std::optional<std::int32_t> m_sound{};
     SpriteBatch m_sprites;
     Client::Tests::RecordingTextDrawer m_text;

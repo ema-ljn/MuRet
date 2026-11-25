@@ -16,7 +16,7 @@
 #include <system_error>
 #include <vector>
 
-namespace Client::Data::Text
+namespace Client::Tables
 {
 namespace
 {
@@ -84,7 +84,7 @@ public:
     explicit Tokenizer(std::span<const std::byte> file) : m_file(file) {}
 
     // El tipo del token, o InvalidData donde el original se colgaría o pisaría otra cosa.
-    Core::Expected<int, DataError> Next()
+    Core::Expected<int, Data::DataError> Next()
     {
         // 0x54e8de: la cadena vacía, que queda así salvo en las cadenas y los nombres.
         m_text.clear();
@@ -104,14 +104,14 @@ public:
                     while (c != '\n')
                     {
                         if (m_position >= m_file.size())
-                            return Core::Unexpected(DataError::InvalidData);
+                            return Core::Unexpected(Data::DataError::InvalidData);
                         c = Get();
                     }
                 }
             }
             // 0x54e93a: isspace.
             if (IsOutsideTheCrtTable(c))
-                return Core::Unexpected(DataError::InvalidData);
+                return Core::Unexpected(Data::DataError::InvalidData);
             if (!IsSpace(c))
                 break;
             c = Get();
@@ -179,17 +179,17 @@ private:
     }
 
     // 0x54ea56..0x54eaa2: hasta la otra comilla (que se pierde) o el 0xff, sin escapes.
-    Core::Expected<int, DataError> ReadString()
+    Core::Expected<int, Data::DataError> ReadString()
     {
         for (unsigned char c = Get(); c != '"' && c != EndByte; c = Get())
             m_text.push_back(static_cast<char>(c));
         if (m_text.size() >= NpcNameTokenBytes)
-            return Core::Unexpected(DataError::InvalidData);
+            return Core::Unexpected(Data::DataError::InvalidData);
         return TextToken;
     }
 
     // 0x54e9d9..0x54ea4b: devuelve el primero con ungetc y junta '.', dígitos y '-'; el que termina no vuelve.
-    Core::Expected<int, DataError> ReadNumber(unsigned char first)
+    Core::Expected<int, Data::DataError> ReadNumber(unsigned char first)
     {
         Unget(first);
         std::string digits;
@@ -199,7 +199,7 @@ private:
             {
                 // 0x54ea07: isdigit.
                 if (IsOutsideTheCrtTable(c))
-                    return Core::Unexpected(DataError::InvalidData);
+                    return Core::Unexpected(Data::DataError::InvalidData);
                 if (!IsDigit(c) && c != '-')
                     break;
             }
@@ -207,16 +207,16 @@ private:
         }
         // [ebp − 0x64]: con su '\0', 0x64 bytes; más pisaría el EBP guardado.
         if (digits.size() >= NpcNameNumberBytes)
-            return Core::Unexpected(DataError::InvalidData);
+            return Core::Unexpected(Data::DataError::InvalidData);
         const std::optional<float> number = Atof(digits);
         if (!number)
-            return Core::Unexpected(DataError::InvalidData);
+            return Core::Unexpected(Data::DataError::InvalidData);
         m_number = *number;
         return NumberToken;
     }
 
     // 0x54eac1..0x54eb1e: la letra y las letras, dígitos, '.' y '_' que siguen; el que termina vuelve con ungetc.
-    Core::Expected<int, DataError> ReadName(unsigned char first)
+    Core::Expected<int, Data::DataError> ReadName(unsigned char first)
     {
         m_text.push_back(static_cast<char>(first));
         unsigned char c = Get();
@@ -226,7 +226,7 @@ private:
             {
                 // 0x54eaef: isalnum.
                 if (IsOutsideTheCrtTable(c))
-                    return Core::Unexpected(DataError::InvalidData);
+                    return Core::Unexpected(Data::DataError::InvalidData);
                 if (!IsAlnum(c))
                     break;
             }
@@ -234,7 +234,7 @@ private:
         }
         Unget(c);
         if (m_text.size() >= NpcNameTokenBytes)
-            return Core::Unexpected(DataError::InvalidData);
+            return Core::Unexpected(Data::DataError::InvalidData);
         return TextToken;
     }
 
@@ -245,7 +245,7 @@ private:
 };
 } // namespace
 
-Core::Expected<std::vector<NpcNameRecord>, DataError> LoadNpcNames(std::span<const std::byte> file)
+Core::Expected<std::vector<NpcNameRecord>, Data::DataError> LoadNpcNames(std::span<const std::byte> file)
 {
     // Los bytes de 0x7681eb8..0x7688ab8 como los escribe 0x54e7f0 (en la .bss, en 0): un nombre largo sigue en los
     // registros que siguen, y el registro siguiente pisa lo que le toca.
@@ -265,10 +265,10 @@ Core::Expected<std::vector<NpcNameRecord>, DataError> LoadNpcNames(std::span<con
             break;
         // 0x54e861..0x54e884: el registro [0x7758560]++ y el word del ftol del último número.
         if (count >= NpcNameCount)
-            return Core::Unexpected(DataError::InvalidData);
+            return Core::Unexpected(Data::DataError::InvalidData);
         const std::optional<std::int32_t> type = Math::OriginalFtolLow(static_cast<double>(tokens.Number()));
         if (!type)
-            return Core::Unexpected(DataError::InvalidData);
+            return Core::Unexpected(Data::DataError::InvalidData);
         const std::size_t at = count * RecordBytes;
         const auto word = static_cast<std::uint32_t>(*type);
         table[at] = static_cast<char>(word & 0xffu);
@@ -284,7 +284,7 @@ Core::Expected<std::vector<NpcNameRecord>, DataError> LoadNpcNames(std::span<con
         const std::string_view name = tokens.Text();
         const std::size_t end = at + 2 + name.size() + 1;
         if (end > TableBytes)
-            return Core::Unexpected(DataError::InvalidData);
+            return Core::Unexpected(Data::DataError::InvalidData);
         name.copy(table.data() + at + 2, name.size());
         table[end - 1] = '\0';
         written = std::max(written, end);
@@ -302,4 +302,4 @@ Core::Expected<std::vector<NpcNameRecord>, DataError> LoadNpcNames(std::span<con
     }
     return loaded;
 }
-} // namespace Client::Data::Text
+} // namespace Client::Tables

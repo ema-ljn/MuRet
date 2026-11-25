@@ -314,7 +314,7 @@ protected:
     static constexpr std::size_t PotionCell = 2 * 8 + 1;
     static constexpr std::int32_t PotionX = WindowX + 15 + 20 + 5;
     static constexpr std::int32_t PotionY = 200 + 40 + 5;
-    Client::Data::Tables::ItemTable items = Client::Tests::ItemTableOf(
+    Client::Tables::ItemTable items = Client::Tests::ItemTableOf(
         {{Potion, 1, 1, 0xff}, {0x1c0d, 1, 1, 0xff}, {Sword, 1, 3, 0}, {EventTicket, 1, 1, 0xff}});
     Client::Scenes::InventoryServices services;
     int dressed = 0;

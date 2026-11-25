@@ -82,16 +82,16 @@ struct Stage
     Client::World::GameCameraInput cameraInput;
     Client::Models::ClothWorld cloth{.random = CrtRandom(0x1357)};
     Client::Scenes::SingleModelLibrary models;
-    Client::Data::Tables::ItemTable items = Client::Tests::ItemTableOf({});
-    Client::Data::Tables::ItemSetTables sets = Client::Tests::ItemSetTablesFrom(
-        std::vector<std::byte>(Client::Data::Tables::ItemSetTypeTableSize, std::byte{0xff}),
-        std::vector<std::byte>(Client::Data::Tables::ItemSetOptionTableSize, std::byte{0xff}));
+    Client::Tables::ItemTable items = Client::Tests::ItemTableOf({});
+    Client::Tables::ItemSetTables sets = Client::Tests::ItemSetTablesFrom(
+        std::vector<std::byte>(Client::Tables::ItemSetTypeTableSize, std::byte{0xff}),
+        std::vector<std::byte>(Client::Tables::ItemSetOptionTableSize, std::byte{0xff}));
     Client::Tests::RecordingSink sink;
     Client::Core::Log log{sink, Client::Core::LogLevel::Debug};
     Client::Render::SpriteBatch sprites;
     Client::Tests::RecordingTextDrawer text{sprites};
     // Los textos inventados de 487 a 491 (0x76e0c90, 0x76e0dbc, 0x76e0ee8, 0x76e1014 y 0x76e1140).
-    Client::Data::Text::TextTable texts =
+    Client::Tables::TextTable texts =
         Client::Tests::MakeTextTable({{487, "heroe"}, {488, "civil"}, {489, "cuidado"}, {490, "asesino"}, {491, "!"}});
 };
 

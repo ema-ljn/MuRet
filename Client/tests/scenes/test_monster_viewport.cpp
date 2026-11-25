@@ -136,11 +136,11 @@ struct Game
     Client::World::GameCameraInput input;
     Client::Models::ClothWorld cloth{.random = CrtRandom(Seed)};
     Client::Scenes::SingleModelLibrary models;
-    Client::Data::Tables::ItemTable items = Client::Tests::ItemsMarking({});
-    Client::Data::Tables::ItemSetTables sets =
-        Client::Tests::ItemSetTablesFrom(std::vector<std::byte>(Client::Data::Tables::ItemSetTypeTableSize),
-                                         std::vector<std::byte>(Client::Data::Tables::ItemSetOptionTableSize));
-    const Client::Data::Text::TextTable* texts = nullptr;
+    Client::Tables::ItemTable items = Client::Tests::ItemsMarking({});
+    Client::Tables::ItemSetTables sets =
+        Client::Tests::ItemSetTablesFrom(std::vector<std::byte>(Client::Tables::ItemSetTypeTableSize),
+                                         std::vector<std::byte>(Client::Tables::ItemSetOptionTableSize));
+    const Client::Tables::TextTable* texts = nullptr;
     Client::Tests::RecordingSink sink;
     Client::Core::Log log{sink, Client::Core::LogLevel::Debug};
 };
@@ -224,7 +224,7 @@ protected:
         return Client::Scenes::ApplyViewportMonsters(ReadMonsters(records), game->Resources());
     }
 
-    void ClickVisibleSiegeNpc(const Client::Data::Tables::SkillTable& skills, std::int16_t key)
+    void ClickVisibleSiegeNpc(const Client::Tables::SkillTable& skills, std::int16_t key)
     {
         auto& runtime = game->world.Runtime();
         auto& npc = Actor(1);
@@ -469,7 +469,7 @@ TEST_F(MonsterViewportTest, TheLongNamesOfTheTableSpillIntoTheKey)
     ASSERT_TRUE(path.has_value());
     const std::optional<std::vector<char>> file = Client::Tests::ReadFileBytes(*path);
     ASSERT_TRUE(file.has_value());
-    const auto names = Client::Data::Text::LoadNpcNames(std::as_bytes(std::span(*file)));
+    const auto names = Client::Tables::LoadNpcNames(std::as_bytes(std::span(*file)));
     ASSERT_TRUE(names.HasValue());
     for (const std::uint8_t map : {std::uint8_t{0}, std::uint8_t{2}})
     {
@@ -587,7 +587,7 @@ TEST_F(MonsterViewportTest, TheSiegeSwitchAndBothCatapultsCanBePickedForTalkAndO
     ASSERT_TRUE(file.has_value());
     const auto bytes = Client::Tests::ReadFileBytes(*file);
     ASSERT_TRUE(bytes.has_value());
-    const auto skills = Client::Data::Tables::LoadSkillTable(std::as_bytes(std::span(*bytes)));
+    const auto skills = Client::Tables::LoadSkillTable(std::as_bytes(std::span(*bytes)));
     ASSERT_TRUE(skills.HasValue());
     struct Control
     {
@@ -1292,7 +1292,7 @@ TEST_F(MonsterViewportTest, TheOtherSummonsTakeTheOwnersName)
     ASSERT_FALSE(applied.HasValue());
     EXPECT_NE(applied.Error().find("0x4ca570"), std::string::npos) << applied.Error();
 
-    const Client::Data::Text::TextTable texts = Client::Tests::MakeTextTable({{485, " con su "}});
+    const Client::Tables::TextTable texts = Client::Tests::MakeTextTable({{485, " con su "}});
     game->texts = &texts;
     applied = Summons(records);
     ASSERT_TRUE(applied.HasValue()) << applied.Error();
@@ -1347,7 +1347,7 @@ TEST_F(MonsterViewportTest, TheMagicStonesFormatTheOwnersName)
     ASSERT_TRUE(path.has_value());
     const std::optional<std::vector<char>> file = Client::Tests::ReadFileBytes(*path);
     ASSERT_TRUE(file.has_value());
-    const auto names = Client::Data::Text::LoadNpcNames(std::as_bytes(std::span(*file)));
+    const auto names = Client::Tables::LoadNpcNames(std::as_bytes(std::span(*file)));
     ASSERT_TRUE(names.HasValue());
     for (const std::uint8_t map : {std::uint8_t{0}, std::uint8_t{2}})
     {

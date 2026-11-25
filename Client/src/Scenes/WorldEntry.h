@@ -20,12 +20,12 @@ class Log;
 class IClock;
 } // namespace Client::Core
 
-namespace Client::Data::Tables
+namespace Client::Tables
 {
 struct ItemSetTables;
 }
 
-namespace Client::Data::Text
+namespace Client::Tables
 {
 class TextTable;
 }
@@ -78,10 +78,10 @@ struct WorldEntryResources
     // Player.bmd (SkeletonOf(0x20a)), que 0x4f2250 necesita para elegir la acción.
     const Models::IModelLibrary& models;
     // Item.bmd, para la matriz de armas de 0x4f2250 y para 0x550d10; nullptr si no se cargó.
-    const Data::Tables::ItemTable* items = nullptr;
+    const Tables::ItemTable* items = nullptr;
     // ItemSetType.bmd e ItemSetOption.bmd (0x40c600), para 0x40e1b0 desde 0x550d10; nullptr si no se
     // cargaron: 0x550d10 corta en 0x40e1b0.
-    const Data::Tables::ItemSetTables* itemSetTables = nullptr;
+    const Tables::ItemSetTables* itemSetTables = nullptr;
     // Q-C144 avisa acá.
     Core::Log& log;
     Core::IClock* clock = nullptr;
@@ -102,10 +102,10 @@ struct WorldEntryResources
     // 0x6d5dc8, la escena en curso, que miran el 00 (la 2) y el 0D (la 4 y la 5). Vacía, ninguna.
     std::function<std::optional<SceneId>()> scene{};
     // Text.bmd: el 482 del 0C y el 483 del 0D con 2. nullptr si no se cargó: esos mensajes cortan con error.
-    const Data::Text::TextTable* texts = nullptr;
+    const Tables::TextTable* texts = nullptr;
     // Skill.bmd (0x76bd1d8): el +0x31 de cada skill de la lista que llega (F3 11, 0x4c5070). nullptr si no se cargó:
     // el F3 11 corta con error. Al final, para no correr los que se inicializan por posición.
-    const Data::Tables::SkillTable* skills = nullptr;
+    const Tables::SkillTable* skills = nullptr;
     // Lo que los cierres de 0x657a90 y 0x657ab0 mandan además del C1 03 31: el C1 03 3D del comercio (0x657fe1) y el
     // 3F 07 de la tienda de otro (0x5eb17f), en la entrada, el teleport, el regen, el 37, el 3F 05 y las misiones. Lo
     // presta el sink con la sesión; sin él, cerrar esas ventanas corta. Al final, como `skills`.

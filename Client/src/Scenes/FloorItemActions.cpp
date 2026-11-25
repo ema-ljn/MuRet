@@ -90,8 +90,8 @@ std::int32_t PickTheFloorItem(std::span<FloorItemState> items, const World::Terr
     return -1;
 }
 
-Core::Expected<bool, std::string> HasRoomFor(const Data::Tables::ItemTable* items,
-                                             std::span<const World::ItemState> cells, std::int16_t type)
+Core::Expected<bool, std::string> HasRoomFor(const Tables::ItemTable* items, std::span<const World::ItemState> cells,
+                                             std::int16_t type)
 {
     const auto footprint = ItemFootprintOf(items, static_cast<std::uint16_t>(type), "0x5c9d20");
     if (!footprint.HasValue())

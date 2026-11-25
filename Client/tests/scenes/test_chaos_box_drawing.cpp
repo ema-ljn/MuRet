@@ -174,8 +174,8 @@ protected:
     std::optional<std::int32_t> m_sound{};
     SpriteBatch m_sprites;
     Client::Tests::RecordingTextDrawer m_text;
-    Client::Data::Text::TextTable m_texts = Client::Tests::MakeTextTable(ChaosTexts());
-    const Client::Data::Text::TextTable* m_drawnTexts = &m_texts;
+    Client::Tables::TextTable m_texts = Client::Tests::MakeTextTable(ChaosTexts());
+    const Client::Tables::TextTable* m_drawnTexts = &m_texts;
 };
 
 void ExpectLine(const RecordedText& line, std::int32_t y, const std::string& text, std::uint32_t color)

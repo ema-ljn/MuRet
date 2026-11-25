@@ -17,9 +17,9 @@
 // (Client/tests/support/GoldenDir.h).
 namespace
 {
-using Client::Data::Tables::ItemCount;
-using Client::Data::Tables::ItemTableSize;
-using Client::Data::Tables::LoadItemTable;
+using Client::Tables::ItemCount;
+using Client::Tables::ItemTableSize;
+using Client::Tables::LoadItemTable;
 using Client::Tests::DeviasCapture;
 using Client::Tests::FirstRecordThatDiffers;
 using Client::Tests::ReadFileBytes;

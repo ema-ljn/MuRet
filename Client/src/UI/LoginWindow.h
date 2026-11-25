@@ -72,7 +72,7 @@ class LoginWindow final : public NewUiWindow
 {
 public:
     // `texts` puede ser nullptr (sin rótulos) y tiene que vivir lo que la ventana.
-    LoginWindow(TextureSizes sizes, const Data::Text::TextTable* texts);
+    LoginWindow(TextureSizes sizes, const Tables::TextTable* texts);
 
     // Como 0x643560: abre con el foco en `focus`. Lo que tenían los campos queda.
     void Open(LoginFocus focus);
@@ -111,7 +111,7 @@ private:
                    Core::PixelSize screen) const;
 
     TextureSizes m_sizes;
-    const Data::Text::TextTable* m_texts;
+    const Tables::TextTable* m_texts;
     bool m_open = false;
     LoginFocus m_focus = LoginFocus::Account;
     TextField m_account;

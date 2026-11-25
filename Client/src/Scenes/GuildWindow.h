@@ -15,7 +15,7 @@
 #include <string>
 #include <string_view>
 
-namespace Client::Data::Text
+namespace Client::Tables
 {
 class TextTable;
 }
@@ -58,7 +58,7 @@ struct GuildWindowStepContext
     // 1367 a 1369). Sin ellos, el botón que abre uno corta.
     std::uint32_t now = 0;
     const Render::Text::ITextMeasure* measure = nullptr;
-    const Data::Text::TextTable* texts = nullptr;
+    const Tables::TextTable* texts = nullptr;
 };
 
 // 0x6517a0 → 0x46c930, la vtable + 0x94 de la lista de los miembros: sin nombre, nada. Con la lista vacía, +0x130 dice

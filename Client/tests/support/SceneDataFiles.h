@@ -76,12 +76,12 @@ inline void WriteTextureSet(const std::filesystem::path& root, std::span<const D
 // Los bytes de un Text.bmd con `texts` en sus índices y el resto vacío, cifrados con XOR3.
 inline std::vector<std::byte> TextTableBytes(const std::map<std::size_t, std::string>& texts)
 {
-    std::vector<std::byte> table(Data::Text::TextTableSize);
+    std::vector<std::byte> table(Tables::TextTableSize);
     for (const auto& [index, text] : texts)
     {
-        for (std::size_t i = 0; i < text.size() && i + 1 < Data::Text::TextRecordSize; ++i)
+        for (std::size_t i = 0; i < text.size() && i + 1 < Tables::TextRecordSize; ++i)
         {
-            table[index * Data::Text::TextRecordSize + i] = static_cast<std::byte>(text[i]);
+            table[index * Tables::TextRecordSize + i] = static_cast<std::byte>(text[i]);
         }
     }
     Crypto::Xor3(table);
@@ -92,7 +92,7 @@ inline std::vector<std::byte> TextTableBytes(const std::map<std::size_t, std::st
 // `size`, el archivo mide eso (uno más corto que la tabla no carga).
 inline void WriteTextTable(const std::filesystem::path& root, const std::map<std::size_t, std::string>& texts,
                            const std::filesystem::path& relative = "Local/Text.bmd",
-                           std::size_t size = Data::Text::TextTableSize)
+                           std::size_t size = Tables::TextTableSize)
 {
     std::vector<std::byte> table = TextTableBytes(texts);
     table.resize(size);
@@ -103,24 +103,24 @@ inline void WriteTextTable(const std::filesystem::path& root, const std::map<std
 // el XOR3 desde su principio, y la suma de `checksumKey` al final, en little-endian.
 inline std::vector<std::byte> FilterFileBytes(const std::vector<std::string>& words, std::uint32_t checksumKey)
 {
-    EXPECT_LE(words.size(), Data::Text::FilterTableSize / Data::Text::FilterRecordSize);
-    std::vector<std::byte> file(Data::Text::FilterTableSize + 4, std::byte{0});
-    for (std::size_t first = 0; first < Data::Text::FilterTableSize; first += Data::Text::FilterRecordSize)
+    EXPECT_LE(words.size(), Tables::FilterTableSize / Tables::FilterRecordSize);
+    std::vector<std::byte> file(Tables::FilterTableSize + 4, std::byte{0});
+    for (std::size_t first = 0; first < Tables::FilterTableSize; first += Tables::FilterRecordSize)
     {
-        const std::span<std::byte> record(file.data() + first, Data::Text::FilterRecordSize);
-        if (const std::size_t index = first / Data::Text::FilterRecordSize; index < words.size())
+        const std::span<std::byte> record(file.data() + first, Tables::FilterRecordSize);
+        if (const std::size_t index = first / Tables::FilterRecordSize; index < words.size())
         {
-            EXPECT_LE(words[index].size(), Data::Text::FilterRecordSize);
-            std::ranges::transform(words[index].substr(0, Data::Text::FilterRecordSize), record.begin(),
+            EXPECT_LE(words[index].size(), Tables::FilterRecordSize);
+            std::ranges::transform(words[index].substr(0, Tables::FilterRecordSize), record.begin(),
                                    [](char letter) { return static_cast<std::byte>(letter); });
         }
         Crypto::Xor3(record);
     }
-    const std::uint32_t sum = Data::Tables::TableChecksum(std::span(file).first(Data::Text::FilterTableSize),
-                                                          checksumKey, Data::Tables::ChecksumParity::XorOddDwords);
+    const std::uint32_t sum = Data::Tables::TableChecksum(std::span(file).first(Tables::FilterTableSize), checksumKey,
+                                                          Data::Tables::ChecksumParity::XorOddDwords);
     for (std::size_t k = 0; k < 4; ++k)
     {
-        file[Data::Text::FilterTableSize + k] = static_cast<std::byte>((sum >> (8 * k)) & 0xffU);
+        file[Tables::FilterTableSize + k] = static_cast<std::byte>((sum >> (8 * k)) & 0xffU);
     }
     return file;
 }
@@ -133,9 +133,9 @@ inline void WriteFilterFile(const std::filesystem::path& root, const std::vector
 
 // La tabla de textos de `texts`, en memoria, para los tests de la UI (CL5.5): textos sintéticos,
 // nunca los del laboratorio.
-inline Data::Text::TextTable MakeTextTable(const std::map<std::size_t, std::string>& texts)
+inline Tables::TextTable MakeTextTable(const std::map<std::size_t, std::string>& texts)
 {
-    auto table = Data::Text::LoadTextTable(TextTableBytes(texts));
+    auto table = Tables::LoadTextTable(TextTableBytes(texts));
     EXPECT_TRUE(table.HasValue());
     return std::move(table).Value();
 }

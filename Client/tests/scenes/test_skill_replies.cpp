@@ -86,14 +86,14 @@ CrtRandom Advanced(CrtRandom random, int count)
 }
 
 // Skill.bmd inventado: las skills de `hidden` con el +0x31 en 1.
-Client::Data::Tables::SkillTable SkillsHiding(std::initializer_list<std::uint8_t> hidden)
+Client::Tables::SkillTable SkillsHiding(std::initializer_list<std::uint8_t> hidden)
 {
-    std::vector<std::byte> plain(Client::Data::Tables::SkillTableSize);
+    std::vector<std::byte> plain(Client::Tables::SkillTableSize);
     for (const std::uint8_t skill : hidden)
-        plain[std::size_t{skill} * Client::Data::Tables::SkillRecordSize + 0x31] = std::byte{1};
+        plain[std::size_t{skill} * Client::Tables::SkillRecordSize + 0x31] = std::byte{1};
     const std::vector<std::byte> encrypted =
-        Client::Tests::EncryptRecords(std::move(plain), Client::Data::Tables::SkillRecordSize);
-    return Client::Data::Tables::SkillTable(std::span<const std::byte>(encrypted));
+        Client::Tests::EncryptRecords(std::move(plain), Client::Tables::SkillRecordSize);
+    return Client::Tables::SkillTable(std::span<const std::byte>(encrypted));
 }
 
 // El esqueleto de los jugadores y el de un monstruo inventado.
@@ -171,7 +171,7 @@ struct Replies
     SkillModels models;
     Client::Tests::RecordingSink sink;
     Client::Core::Log log{sink, Client::Core::LogLevel::Debug};
-    const Client::Data::Tables::SkillTable* skills = nullptr;
+    const Client::Tables::SkillTable* skills = nullptr;
 };
 
 // ---------------------------------------------------------------------------------------------------------------

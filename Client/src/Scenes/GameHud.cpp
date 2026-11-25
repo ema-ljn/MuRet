@@ -187,7 +187,7 @@ Models::LogicalAccess OwnAccess(const Frame& frame)
 Models::LogicalAccess SkillAccess(const Frame& frame, std::uint32_t skill)
 {
     return Models::LogicalAccess(frame.runtime.movement.skillDepths[skill], frame.context.random,
-                                 static_cast<std::uint16_t>(Data::Tables::SkillRecordSize));
+                                 static_cast<std::uint16_t>(Tables::SkillRecordSize));
 }
 
 Core::Expected<std::string_view, std::string> TextOf(const Frame& frame, std::size_t index, std::string_view where)
@@ -198,7 +198,7 @@ Core::Expected<std::string_view, std::string> TextOf(const Frame& frame, std::si
     return *text;
 }
 
-Core::Expected<std::span<const std::byte, Data::Tables::SkillRecordSize>, std::string>
+Core::Expected<std::span<const std::byte, Tables::SkillRecordSize>, std::string>
 SkillRecordOf(const Frame& frame, std::uint32_t skill, std::string_view where)
 {
     if (frame.context.skills == nullptr)
@@ -209,7 +209,7 @@ SkillRecordOf(const Frame& frame, std::uint32_t skill, std::string_view where)
     return *record;
 }
 
-Core::Expected<std::span<const std::byte, Data::Tables::ItemRecordSize>, std::string>
+Core::Expected<std::span<const std::byte, Tables::ItemRecordSize>, std::string>
 ItemRecordOf(const Frame& frame, std::int32_t type, std::string_view where)
 {
     if (frame.context.items == nullptr)
@@ -220,12 +220,12 @@ ItemRecordOf(const Frame& frame, std::int32_t type, std::string_view where)
     return *record;
 }
 
-std::uint8_t ByteAt(std::span<const std::byte, Data::Tables::SkillRecordSize> record, std::size_t at)
+std::uint8_t ByteAt(std::span<const std::byte, Tables::SkillRecordSize> record, std::size_t at)
 {
     return std::to_integer<std::uint8_t>(record[at]);
 }
 
-std::uint32_t LittleEndianAt(std::span<const std::byte, Data::Tables::SkillRecordSize> record, std::size_t at,
+std::uint32_t LittleEndianAt(std::span<const std::byte, Tables::SkillRecordSize> record, std::size_t at,
                              std::size_t bytes)
 {
     std::uint32_t value = 0;
@@ -420,7 +420,7 @@ void DrawStatusIcon(Frame& frame, std::int32_t icon, int x, int y, int width, in
 }
 
 // El nombre de un registro de Skill.bmd como lo copia strcpy (0x551e0c): hasta su '\0', dentro del registro.
-std::string SkillRecordName(std::span<const std::byte, Data::Tables::SkillRecordSize> record)
+std::string SkillRecordName(std::span<const std::byte, Tables::SkillRecordSize> record)
 {
     std::string name;
     for (const std::byte value : record)

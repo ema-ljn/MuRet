@@ -175,16 +175,16 @@ struct Stage
     Client::World::GameCameraInput cameraInput;
     Client::Models::ClothWorld cloth{.random = CrtRandom(Seed)};
     Client::Scenes::SingleModelLibrary models;
-    Client::Data::Tables::ItemTable items =
+    Client::Tables::ItemTable items =
         Client::Tests::ItemTableOf({{Sword, 1, 3, 0}, {Shield, 2, 2, 1}, {Jewel, 1, 1, 0xff}});
-    Client::Data::Tables::ItemSetTables sets = Client::Tests::ItemSetTablesFrom(
-        std::vector<std::byte>(Client::Data::Tables::ItemSetTypeTableSize, std::byte{0xff}),
-        std::vector<std::byte>(Client::Data::Tables::ItemSetOptionTableSize, std::byte{0xff}));
-    Client::Data::Text::TextTable texts = Client::Tests::MakeTextTable({{ChaosBoxNotEmptyText, "la caja tiene algo"},
-                                                                        {594, "no salio"},
-                                                                        {MixSucceededText, "salio"},
-                                                                        {596, "no"},
-                                                                        {TrainerListText, "pone la mascota"}});
+    Client::Tables::ItemSetTables sets = Client::Tests::ItemSetTablesFrom(
+        std::vector<std::byte>(Client::Tables::ItemSetTypeTableSize, std::byte{0xff}),
+        std::vector<std::byte>(Client::Tables::ItemSetOptionTableSize, std::byte{0xff}));
+    Client::Tables::TextTable texts = Client::Tests::MakeTextTable({{ChaosBoxNotEmptyText, "la caja tiene algo"},
+                                                                    {594, "no salio"},
+                                                                    {MixSucceededText, "salio"},
+                                                                    {596, "no"},
+                                                                    {TrainerListText, "pone la mascota"}});
     LetterMeasure measure;
     Client::Tests::RecordingSink sink;
     Client::Core::Log log{sink, Client::Core::LogLevel::Debug};

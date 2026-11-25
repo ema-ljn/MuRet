@@ -61,7 +61,7 @@ OwnCharacterRecord DarkWizardWithAgility300()
 class GoldenOwnStatHelpers : public Client::Tests::GoldenDataTest
 {
 protected:
-    std::optional<Client::Data::Tables::LoadedItemTable> LoadItems()
+    std::optional<Client::Tables::LoadedItemTable> LoadItems()
     {
         const auto path = DataFile(ItemFile);
         if (!path)
@@ -73,7 +73,7 @@ protected:
         {
             return std::nullopt;
         }
-        auto loaded = Client::Data::Tables::LoadItemTable(std::as_bytes(std::span(*file)));
+        auto loaded = Client::Tables::LoadItemTable(std::as_bytes(std::span(*file)));
         if (!loaded.HasValue())
         {
             return std::nullopt;

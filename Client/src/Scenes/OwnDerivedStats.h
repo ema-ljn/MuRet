@@ -9,7 +9,7 @@
 #include <optional>
 #include <string>
 
-namespace Client::Data::Tables
+namespace Client::Tables
 {
 struct ItemSetTables;
 }
@@ -45,11 +45,11 @@ struct OwnStatsContext
     // Las tablas de [0x6eed3c] que carga 0x40c600 (ItemSetType.bmd e ItemSetOption.bmd) y lo que
     // 0x40e1b0, 0x40d010 y 0x40da20 escriben en [0x6eed3c] y dura de una llamada a otra
     // (WorldState::ItemSets). Con alguno en nullptr, 0x40e1b0 corta con error antes de tocar nada.
-    const Data::Tables::ItemSetTables* itemSetTables = nullptr;
+    const Tables::ItemSetTables* itemSetTables = nullptr;
     ItemSetState* itemSets = nullptr;
     // *[0x7758550], Item.bmd: 0x40dc50, desde 0x40de10 y desde los doce lugares de 0x550d10. nullptr
     // si no se cargó: corta con error en el primer lugar que la lee.
-    const Data::Tables::ItemTable* items = nullptr;
+    const Tables::ItemTable* items = nullptr;
     // DAT_0743a170, el héroe publicado: 0x40d010 lee su clase (+0x1d4) y escribe su +0x358.
     ActorState& publishedHero;
     // La cuenta de accesos del registro propio (Models::LogicalAccess): 0x40e1b0 y 0x40de10 lo
@@ -93,14 +93,14 @@ struct ItemStatBonus
 // 0x40dc50. Indexa Item.bmd con el tipo con signo: con uno fuera de la tabla (−1 en un lugar vacío),
 // el original lee memoria que no es de la tabla; MuRet devuelve un error (Q-C184).
 [[nodiscard]] Core::Expected<ItemStatBonus, std::string> ItemStatBonusOf(const World::ItemState& item,
-                                                                         const Data::Tables::ItemTable& items);
+                                                                         const Tables::ItemTable& items);
 
 // 0x550d49..0x550db1: por cada uno de los doce lugares con la durabilidad distinta de 0, 0x40dc50, y
 // con el tipo 1, 2, 3 o 4, 5 · valor a +0x2a, +0x2c, +0x30 o +0x2e (16 bits, envuelve). `items` es
 // *[0x7758550], nullptr si no se cargó. Un IDffff con valor 0 no depende del selector: las cuatro
 // sumas serían 0. Si corta en otro lugar, lo de los anteriores queda sumado.
 [[nodiscard]] Core::Expected<void, std::string> AddOwnItemStatBonuses(OwnCharacterRecord& own,
-                                                                      const Data::Tables::ItemTable* items);
+                                                                      const Tables::ItemTable* items);
 
 // 0x550dc2..0x550e12: 0x40da20 (el código de 0x40d690) sobre `list` con +0x2a y 0x8c, +0x2c y
 // 0x8d, +0x30 y 0x8e, +0x2e y 0x8f, y +0x36 y 0x90, en ese orden. Si corta en uno, lo de los

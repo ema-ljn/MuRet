@@ -100,12 +100,12 @@ void PutWord(std::vector<std::byte>& bytes, std::size_t offset, std::uint16_t va
 
 // Skill.bmd con el nivel (+0x20), el maná (+0x22), la stamina (+0x24), el alcance (+0x26), la energía (+0x2c) y el
 // liderazgo (+0x2e) de cada skill.
-Client::Data::Tables::SkillTable SkillsWith(std::initializer_list<InventedSkill> skills)
+Client::Tables::SkillTable SkillsWith(std::initializer_list<InventedSkill> skills)
 {
-    std::vector<std::byte> plain(Client::Data::Tables::SkillTableSize);
+    std::vector<std::byte> plain(Client::Tables::SkillTableSize);
     for (const InventedSkill& invented : skills)
     {
-        const std::size_t base = std::size_t{invented.skill} * Client::Data::Tables::SkillRecordSize;
+        const std::size_t base = std::size_t{invented.skill} * Client::Tables::SkillRecordSize;
         plain[base + 0x20] = static_cast<std::byte>(invented.level);
         PutWord(plain, base + 0x22, invented.mana);
         PutWord(plain, base + 0x24, invented.stamina);
@@ -114,8 +114,8 @@ Client::Data::Tables::SkillTable SkillsWith(std::initializer_list<InventedSkill>
         PutWord(plain, base + 0x2e, invented.leadership);
     }
     const std::vector<std::byte> encrypted =
-        Client::Tests::EncryptRecords(std::move(plain), Client::Data::Tables::SkillRecordSize);
-    return Client::Data::Tables::SkillTable(std::span<const std::byte>(encrypted));
+        Client::Tests::EncryptRecords(std::move(plain), Client::Tables::SkillRecordSize);
+    return Client::Tables::SkillTable(std::span<const std::byte>(encrypted));
 }
 
 void Rename(Client::Scenes::ActorState& actor, std::string_view name)
@@ -199,19 +199,19 @@ struct KnightHero
     CrtRandom random;
     std::uint32_t ticks = 10'000;
     Client::Models::Skeleton skeleton = Client::Tests::PlayerActionsSkeleton();
-    Client::Data::Tables::SkillTable skills = SkillsWith({{.skill = 0x29},
-                                                          {.skill = 0x2a},
-                                                          {.skill = 0x30},
-                                                          {.skill = 0x37},
-                                                          {.skill = 0x38},
-                                                          {.skill = 0x3e},
-                                                          {.skill = 0x3f},
-                                                          {.skill = 0x40},
-                                                          {.skill = 0x41},
-                                                          {.skill = 0x4b},
-                                                          {.skill = 0x4c},
-                                                          {.skill = 0x13},
-                                                          {.skill = 0x31}});
+    Client::Tables::SkillTable skills = SkillsWith({{.skill = 0x29},
+                                                    {.skill = 0x2a},
+                                                    {.skill = 0x30},
+                                                    {.skill = 0x37},
+                                                    {.skill = 0x38},
+                                                    {.skill = 0x3e},
+                                                    {.skill = 0x3f},
+                                                    {.skill = 0x40},
+                                                    {.skill = 0x41},
+                                                    {.skill = 0x4b},
+                                                    {.skill = 0x4c},
+                                                    {.skill = 0x13},
+                                                    {.skill = 0x31}});
     std::vector<Client::Protocol::Outgoing> sent;
 };
 

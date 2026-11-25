@@ -162,25 +162,25 @@ constexpr std::uint32_t LinesBack = 0xff141414u;
 struct ShopWorld
 {
     Client::Scenes::WorldState world;
-    Client::Data::Tables::ItemTable items = Client::Tests::ItemTableOf({{StaffType, 1, 3, 0}, {PotionType, 1, 1, 0}});
-    Client::Data::Text::TextTable texts = Client::Tests::MakeTextTable({{370, "ojo"},
-                                                                        {560, "cerrada"},
-                                                                        {1102, "Tienda"},
-                                                                        {1103, "abierta"},
-                                                                        {1105, "sin titulo"},
-                                                                        {1106, "aplicar"},
-                                                                        {1107, "abrir"},
-                                                                        {1108, "cerrar"},
-                                                                        {1109, "propia uno"},
-                                                                        {1110, "ajena uno"},
-                                                                        {1111, "dos"},
-                                                                        {1112, "tres"},
-                                                                        {1113, "propia cuatro"},
-                                                                        {1114, "ajena cuatro"},
-                                                                        {1115, "propia cinco"},
-                                                                        {1116, "ajena cinco"},
-                                                                        {1134, "late uno"},
-                                                                        {1135, "late dos"}});
+    Client::Tables::ItemTable items = Client::Tests::ItemTableOf({{StaffType, 1, 3, 0}, {PotionType, 1, 1, 0}});
+    Client::Tables::TextTable texts = Client::Tests::MakeTextTable({{370, "ojo"},
+                                                                    {560, "cerrada"},
+                                                                    {1102, "Tienda"},
+                                                                    {1103, "abierta"},
+                                                                    {1105, "sin titulo"},
+                                                                    {1106, "aplicar"},
+                                                                    {1107, "abrir"},
+                                                                    {1108, "cerrar"},
+                                                                    {1109, "propia uno"},
+                                                                    {1110, "ajena uno"},
+                                                                    {1111, "dos"},
+                                                                    {1112, "tres"},
+                                                                    {1113, "propia cuatro"},
+                                                                    {1114, "ajena cuatro"},
+                                                                    {1115, "propia cinco"},
+                                                                    {1116, "ajena cinco"},
+                                                                    {1134, "late uno"},
+                                                                    {1135, "late dos"}});
 };
 
 class GamePersonalShopWindowTest : public ::testing::TestWithParam<std::uint8_t>

@@ -108,10 +108,10 @@ void PutText(std::span<char> to, std::string_view value)
 }
 
 // Item.bmd con los nombres de los cuatro ítems de misión, el de una espada (el tipo 1) y nada más.
-Client::Data::Tables::ItemTable QuestItems()
+Client::Tables::ItemTable QuestItems()
 {
-    using Client::Data::Tables::ItemRecordSize;
-    std::vector<std::byte> plain(Client::Data::Tables::ItemTableSize);
+    using Client::Tables::ItemRecordSize;
+    std::vector<std::byte> plain(Client::Tables::ItemTableSize);
     const std::vector<std::pair<std::int32_t, std::string_view>> names{
         {0x1c17, "Pergamino"}, {0x1c18, "Hueso"}, {0x1c19, "Cuerno"}, {0x1c1a, "Pluma"}, {0x0001, "Espada"}};
     for (const auto& [type, name] : names)
@@ -121,7 +121,7 @@ Client::Data::Tables::ItemTable QuestItems()
             plain[base + i] = static_cast<std::byte>(name[i]);
     }
     const std::vector<std::byte> encrypted = Client::Tests::EncryptRecords(std::move(plain), ItemRecordSize);
-    return Client::Data::Tables::ItemTable(std::span<const std::byte>(encrypted));
+    return Client::Tables::ItemTable(std::span<const std::byte>(encrypted));
 }
 
 CrtRandom Advanced(CrtRandom random, int count)
@@ -247,7 +247,7 @@ protected:
         Client::Scenes::QuestState& quest = Quest();
         quest.characterClass = 0;
         // La misión 0: el pergamino para la clase 0, con nivel 10 y 1.000 de zen.
-        Client::Data::Tables::QuestRecord& first = quest.records[0];
+        Client::Tables::QuestRecord& first = quest.records[0];
         first.entryCount = 1;
         first.conditionCount = 1;
         first.npcType = NpcType;
@@ -270,7 +270,7 @@ protected:
         quest.records[2].npcType = 0xe5;
         PutText(quest.records[2].name, "La tercera");
         // Dialog.bmd: el 10 con tres respuestas (mirar y aceptar → 11, cerrar, aceptar → 12).
-        runtime.dialogTable.assign(Client::Data::Text::DialogCount, {});
+        runtime.dialogTable.assign(Client::Tables::DialogCount, {});
         for (const std::size_t index : {10U, 11U, 12U, 20U})
             PutText(runtime.dialogTable[index].text, "Un texto inventado");
         auto& dialog = runtime.dialogTable[10];
@@ -378,8 +378,8 @@ protected:
     std::optional<std::int32_t> m_sound{};
     SpriteBatch m_sprites;
     Client::Tests::RecordingTextDrawer m_text;
-    Client::Data::Text::TextTable m_texts = Client::Tests::MakeTextTable(QuestTexts());
-    Client::Data::Tables::ItemTable m_items = QuestItems();
+    Client::Tables::TextTable m_texts = Client::Tests::MakeTextTable(QuestTexts());
+    Client::Tables::ItemTable m_items = QuestItems();
 };
 
 // 0x41b5bb..0x41b64c: la esquina, (0x104, 0) con el personaje abierto y (0x1c2, 0) sin él, en cada paso. Con la ventana

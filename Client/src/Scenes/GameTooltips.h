@@ -36,7 +36,7 @@ struct TooltipLines;
 // 0x40d530(renglón, opción, valor): la opción de un conjunto con su valor (el byte de abajo) en el texto de Text.bmd
 // que le toca, de formato: 950 + opción hasta la 6, el 632 para la 7, 949 + opción de la 8 a la 0x14, el 970, el 984
 // y el 983 para la 0x15 a la 0x17 y 947 + opción de la 0x18 a la 0x23. Con otra, el renglón queda como estaba.
-[[nodiscard]] Core::Expected<void, std::string> WriteTheSetOption(const Data::Text::TextTable* texts, std::string& line,
+[[nodiscard]] Core::Expected<void, std::string> WriteTheSetOption(const Tables::TextTable* texts, std::string& line,
                                                                   std::uint8_t option, std::uint8_t value);
 
 // 0x5f7bc0: sin mezcla y con 0x77f3b66 en 0; el modo de reparar (0x78abb0c) distinto de 0 pasa a 1. Con un ítem

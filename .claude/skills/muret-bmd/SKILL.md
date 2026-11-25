@@ -46,12 +46,12 @@ agents use the commands.
 
 The result of `set` and `apply` is the file as it is now. Do not read it back, and do not run the command with
 `--dry-run` first: the write was verified, and `warnings` already carries any finding at the changed places. The `new`
-of a change is as good as a `get` for a later `test`, and its `old` is the undo: set it back. `--dry-run` is for showing
-someone a batch before it is written.
+of a change is as good as a `get` for a later `test`, and its `old` is the undo: `set` it back. `--dry-run` is for
+showing someone a batch before it is written.
 
 Every list pages the same way: 50 items by default, `--limit` and `--offset` to move, `total` for the whole count and
 `next_offset`, which is `null` on the last page. That holds for `find`, `get` on a list, `diff` and the `changes` of
-`build`. One text always comes back whole.
+`build`. On `get`, `truncated` only says that `value` is a page and not the whole list: a text is never cut.
 
 ## Recipes
 
@@ -88,17 +88,17 @@ mubmd find $WORK/Local/Text.bmd '^Zen' --regex
 ```
 
 List every place a query appears, in one call, without the texts. `--limit` has no maximum and a table has 2,048
-texts, so `next_offset` comes back `null` and the list is complete. The match ignores case (`%d` also finds `%D`); add
-`--regex` when that matters.
+texts, so `next_offset` comes back `null` and the list is complete. The match ignores case (`%d` also finds `%D`): use
+`--regex` in that same call only when the task tells the two apart.
 
 <!-- recipe: list-every-pointer -->
 ```bash
 mubmd find $WORK/Local/Text.bmd %d --fields pointer --limit 2048
 ```
 
-Check a file or a whole folder. Exit 1 means there are findings, not that the call failed. The reference's own
-findings are known: text 7 fills its record (`TEXT_FILLS_RECORD`) and `TKOU.bmd` text 1829 has bytes after its first
-0 (`TEXT_HAS_TAIL`).
+Check a file or a whole folder. Exit 1 means a finding is a warning or an error, not that the call failed; `info`
+findings alone exit 0. The reference's own findings are known: text 7 fills its record (`TEXT_FILLS_RECORD`, a
+warning) and `TKOU.bmd` text 1829 has bytes after its first 0 (`TEXT_HAS_TAIL`, info).
 
 <!-- recipe: check-a-working-copy -->
 ```bash
@@ -148,8 +148,8 @@ mubmd roundtrip $WORK
 - **Save tokens.** `--fields` keeps only the keys you name, `--limit` and `--offset` page, and `validate` on a folder
   lists only the files with findings. `mubmd --help` with no command is 19 KB: ask for one command's help.
 - **A record shown as `{"hex": "..."}`** could not be read in the file's encoding, or has bytes after its first 0.
-  Leave it alone, or set it to another `{"hex"}` of 600 hex digits. A JSON string (`'"new text"'`) makes it a text and
-  drops those bytes.
+  Leave it alone. Its value is JSON, not a text taken as written: `set FILE /texts/N '{"hex": "..."}'` with 600 hex
+  digits keeps every byte, and `set FILE /texts/N '"new text"'` makes it a text and drops the bytes after the 0.
 - **Several writers can share a working copy.** They take turns on the folder's `.mubmd.lock`, and the one whose file
   changed under it writes nothing and gets `STALE_FILE`. Leave `.mubmd.lock` and `<name>.bak` (the file as it was
   before its first write) where they are.

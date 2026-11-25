@@ -17,7 +17,7 @@
 #include <utility>
 #include <vector>
 
-// Client::Protocol::FieldsAfterSubcode y TextField: qué paquete es, y los textos de largo fijo.
+// Client::Network::FieldsAfterSubcode y TextField: qué paquete es, y los textos de largo fijo.
 namespace
 {
 using Client::Network::FieldsAfterSubcode;

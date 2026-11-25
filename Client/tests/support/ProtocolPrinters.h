@@ -16,23 +16,6 @@
 // Credentials de AppPrinters.h: es del jugador.
 namespace Client::Protocol
 {
-inline void PrintTo(Network::ProtocolError error, std::ostream* out)
-{
-    switch (error)
-    {
-    case Network::ProtocolError::WrongPacket:
-        *out << "WrongPacket";
-        return;
-    case Network::ProtocolError::TooShort:
-        *out << "TooShort";
-        return;
-    case Network::ProtocolError::FieldTooLong:
-        *out << "FieldTooLong";
-        return;
-    }
-    *out << "ProtocolError fuera del enum";
-}
-
 inline void PrintTo(DispatchResult result, std::ostream* out)
 {
     switch (result)
@@ -50,6 +33,26 @@ inline void PrintTo(DispatchResult result, std::ostream* out)
     *out << "DispatchResult fuera del enum";
 }
 } // namespace Client::Protocol
+
+namespace Client::Network
+{
+inline void PrintTo(ProtocolError error, std::ostream* out)
+{
+    switch (error)
+    {
+    case ProtocolError::WrongPacket:
+        *out << "WrongPacket";
+        return;
+    case ProtocolError::TooShort:
+        *out << "TooShort";
+        return;
+    case ProtocolError::FieldTooLong:
+        *out << "FieldTooLong";
+        return;
+    }
+    *out << "ProtocolError fuera del enum";
+}
+} // namespace Client::Network
 
 namespace Client::Protocol::Character
 {

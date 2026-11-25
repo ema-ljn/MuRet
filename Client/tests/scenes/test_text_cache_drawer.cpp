@@ -16,7 +16,7 @@
 
 #include <string>
 
-// Client::Scenes::TextCacheDrawer: el ITextDrawer de las escenas sobre el TextCache de la CL5.3.
+// Client::Render::Frame::TextCacheDrawer: el ITextDrawer de las escenas sobre el TextCache de la CL5.3.
 // El texto va al lote del frame; si no se puede dibujar, el error va al log una vez y el texto no
 // sale.
 namespace

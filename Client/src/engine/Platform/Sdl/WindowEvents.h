@@ -9,7 +9,7 @@
 
 #include <optional>
 
-// De SDL_Event a App::WindowEvent (CL3.1) y a Input::InputEvent (CL3.3, InputEvents.h): lo único
+// De SDL_Event a Platform::WindowEvent (CL3.1) y a Input::InputEvent (CL3.3, InputEvents.h): lo único
 // que ve SDL del estado de la ventana y del input.
 namespace Client::Platform::Sdl
 {
@@ -22,7 +22,7 @@ inline constexpr SDL_WindowID AnyWindow = 0;
 [[nodiscard]] PLATFORM_API std::optional<WindowEvent> WindowEventFor(const SDL_Event& event,
                                                                      SDL_WindowID windowId = AnyWindow);
 
-// Vacía la cola de SDL: cada evento de ventana de `windowId` va a `state` con App::Apply, cada
+// Vacía la cola de SDL: cada evento de ventana de `windowId` va a `state` con Platform::Apply, cada
 // evento de input a `input` con InputState::Apply, y los demás se descartan. El foco perdido va a
 // los dos: la ventana lo anota y el input suelta todo. `pixelDensity` pasa el mouse a píxeles del
 // framebuffer (InputEventFor, CL5.5): main.cpp le da Window::PixelDensity.

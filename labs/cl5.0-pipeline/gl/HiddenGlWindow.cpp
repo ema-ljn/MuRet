@@ -54,7 +54,7 @@ Client::Core::Expected<std::unique_ptr<HiddenGlWindow>, std::string> HiddenGlWin
         return Client::Core::Unexpected(sdl.Error());
     }
 
-    // Como Platform::Window::Create: los atributos del contexto van antes de crear la ventana.
+    // Como Platform::Sdl::Window::Create: los atributos del contexto van antes de crear la ventana.
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, Client::Platform::Sdl::GlMajorVersion);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, Client::Platform::Sdl::GlMinorVersion);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);

@@ -20,11 +20,6 @@ inline void PrintTo(const Credentials& credentials, std::ostream* out)
          << " bytes}";
 }
 
-inline void PrintTo(Platform::Resolution resolution, std::ostream* out)
-{
-    *out << resolution.width << " × " << resolution.height;
-}
-
 inline void PrintTo(SessionState state, std::ostream* out)
 {
     switch (state)
@@ -122,3 +117,11 @@ inline void PrintTo(SessionFailure failure, std::ostream* out)
     *out << "SessionFailure fuera del enum";
 }
 } // namespace Client::App
+
+namespace Client::Platform
+{
+inline void PrintTo(Resolution resolution, std::ostream* out)
+{
+    *out << resolution.width << " × " << resolution.height;
+}
+} // namespace Client::Platform

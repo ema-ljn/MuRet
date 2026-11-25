@@ -12,7 +12,7 @@
 #include <string_view>
 #include <vector>
 
-// Client::Platform::IsValidProcAddress, HasRequiredGlVersion, la lista de GlFunctionList.h y el
+// Client::Platform::Sdl::IsValidProcAddress, HasRequiredGlVersion, la lista de GlFunctionList.h y el
 // orden de LoadGlFunctions con un driver falso: lo de GlLoader que se prueba sin ventana ni
 // contexto.
 namespace

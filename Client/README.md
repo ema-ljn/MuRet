@@ -41,7 +41,7 @@ XOR32 si lo lleva, y si va en claro o como C3. La versión y el serial del build
 Desde la CL3.1, la ventana y el contexto GL salieron de `main.cpp` a `Platform/`: `SdlContext`
 (el `SDL_Init` y el `SDL_Quit`), `Window` (la ventana con su contexto 3.3 core, la tabla de GL de
 `GlLoader` y el VSync de `SwapInterval`) y `PumpEvents`, que pasa los eventos de SDL a
-`App::WindowState`. `Platform/Sdl/` es la biblioteca `Platform`, la que ve SDL3 para la ventana
+`Platform::WindowState`. `Platform/Sdl/` es la biblioteca `Platform`, la que ve SDL3 para la ventana
 (`Audio` la ve para el sonido): `Engine` y `ClientLib` no la ven, y sus tests corren sin ventana. `main.cpp` queda en el armado, por fases, como los
 pasos de `WinMain` en MuMain: la config antes de `SDL_Init`, el log, la ventana y el bucle. La
 escena de prueba (`Scenes/TestScene`) y el medidor de `--stats` (`App/FrameRateMeter`) tienen su

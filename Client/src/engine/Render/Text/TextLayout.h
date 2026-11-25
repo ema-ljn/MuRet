@@ -72,7 +72,7 @@ struct TextPiece
 
 // 0x467060 con el modo 2 (0x46711b..0x467132), el de 0x554180(x, y, texto, caja, 1, ·) y 0x5542f0(·, caja, 2, ·):
 // el texto centrado en una caja de `boxWidth` columnas, para un texto de `textWidth` (cx). Se dibuja con
-// Scenes::ITextDrawer::DrawColumns, con −textColumn de primera columna y `width` columnas.
+// Render::Frame::ITextDrawer::DrawColumns, con −textColumn de primera columna y `width` columnas.
 struct CenteredInBox
 {
     // La columna del DIB donde TextOutA pone el texto (0x46720a): (caja − cx) / 2 con la división de C (cdq, sub y

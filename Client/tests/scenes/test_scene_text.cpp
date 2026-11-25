@@ -19,7 +19,7 @@
 #include <utility>
 #include <vector>
 
-// Client::Scenes::SceneText: el texto de las escenas en main.cpp, con las fuentes del ancho de la
+// Client::Render::Frame::SceneText: el texto de las escenas en main.cpp, con las fuentes del ancho de la
 // pantalla (FontSet.h, FontHeightFor). Con otro ancho, otras fuentes y la caché vacía
 // (TextCache::ChangeRasterizer); si no abren, siguen las de antes y el error va al log una vez.
 namespace

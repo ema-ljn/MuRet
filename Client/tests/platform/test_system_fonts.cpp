@@ -2,7 +2,7 @@
 
 #include <gtest/gtest.h>
 
-// Client::Platform::FindSystemFontFile y la regla de los nombres de la lista de fuentes de Windows
+// Client::Platform::Sdl::FindSystemFontFile y la regla de los nombres de la lista de fuentes de Windows
 // (HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts; CL5.3, pregunta 8 del plan de la CL5).
 // Un valor se llama como sus caras, separadas por " & " en una colección, y su tipo entre
 // paréntesis; la negrita es la cara con " Bold". Las caras de estos tests son inventadas.

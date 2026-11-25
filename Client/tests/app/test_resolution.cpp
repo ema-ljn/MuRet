@@ -6,7 +6,7 @@
 
 #include <vector>
 
-// Client::App::IsValidResolution y DescribeValidResolutions: las cinco del original o un modo del
+// Client::Platform::IsValidResolution y DescribeValidResolutions: las cinco del original o un modo del
 // monitor (decidido el 2026-11-03).
 namespace
 {

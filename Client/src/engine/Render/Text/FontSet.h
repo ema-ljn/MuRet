@@ -33,7 +33,7 @@ enum class FontKind : std::uint8_t
 // en la .bss queda en 0: con 1600 las letras piden un alto de -1 y -2 (Q-C59). MuRet da el paso
 // del más grande de esos cuatro anchos que no pasa a `screenWidth`, y 12 por debajo de 800
 // (pregunta 10 del plan de la CL5): con 1600 o con un modo del monitor más ancho, 15. Vale para
-// cualquier ancho, como los modos del monitor que acepta App::IsValidResolution.
+// cualquier ancho, como los modos del monitor que acepta Platform::IsValidResolution.
 [[nodiscard]] ENGINE_API int FontStepFor(int screenWidth);
 
 // El alto de la celda que pide CreateFontA (positivo: la celda, no la letra): n − 1 la normal y la

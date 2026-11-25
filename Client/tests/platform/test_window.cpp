@@ -11,7 +11,7 @@
 #include <string>
 #include <utility>
 
-// Client::Platform::Window: lo que se le pide a SDL de la ventana de verdad (CL5.5): el texto
+// Client::Platform::Sdl::Window: lo que se le pide a SDL de la ventana de verdad (CL5.5): el texto
 // tecleado y la densidad de píxeles. Abre la ventana con su contexto 3.3 core, así que necesita
 // pantalla: lleva la etiqueta gl y, sin pantalla, se saltea, salvo con MU_CLIENT_REQUIRE_GL=1
 // (como los de render_gl/, support/GlTestContext.h).

@@ -9,7 +9,7 @@
 
 #include <optional>
 
-// Client::Platform::WindowEventFor: la tabla de los SDL_EVENT_* a los WindowEvent, con eventos
+// Client::Platform::Sdl::WindowEventFor: la tabla de los SDL_EVENT_* a los WindowEvent, con eventos
 // armados a mano (sin SDL_Init).
 namespace
 {

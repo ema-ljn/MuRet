@@ -8,7 +8,7 @@
 #include <string>
 #include <vector>
 
-// Los modos del monitor, para App::IsValidResolution: los que lista MuMain en sus opciones
+// Los modos del monitor, para Platform::IsValidResolution: los que lista MuMain en sus opciones
 // (MuGetSupportedDisplayResolutions, con SDL_GetFullscreenDisplayModes) y el del escritorio.
 namespace Client::Platform::Sdl
 {

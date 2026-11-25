@@ -36,7 +36,7 @@ TEST(FontSetTest, TheStepFollowsTheWidth)
     EXPECT_EQ(FontStepFor(1920), 15);
 }
 
-// Las resoluciones que valen (App::IsValidResolution) son las cinco del original o un modo del
+// Las resoluciones que valen (Platform::IsValidResolution) son las cinco del original o un modo del
 // monitor, de cualquier ancho: las cinco con su paso, y unos modos de monitor de hoy.
 TEST(FontSetTest, EveryValidResolutionHasAStep)
 {

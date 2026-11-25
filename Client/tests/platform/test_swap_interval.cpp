@@ -4,7 +4,7 @@
 
 #include <gtest/gtest.h>
 
-// Client::Platform::SwapIntervalFor y ApplySwapInterval, con dobles de SDL_GL_SetSwapInterval y
+// Client::Platform::Sdl::SwapIntervalFor y ApplySwapInterval, con dobles de SDL_GL_SetSwapInterval y
 // SDL_GL_GetSwapInterval: sin ventana ni contexto.
 namespace
 {

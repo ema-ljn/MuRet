@@ -50,7 +50,7 @@ Hasta la CL5.1 el lab tenía su propia tabla de 41 funciones y una copia del ped
 `opengl32.dll` de Windows, de los chequeos de la versión y del perfil y de la lectura de
 `MU_CLIENT_REQUIRE_GL`. La CL5.1 se las llevó al cliente: la tabla es la X-macro de
 `Platform/Sdl/GlFunctionList.h`, `LoadGlFunctions` mira la versión y el perfil antes de pedir el resto,
-el pedido de cada función es `Platform::LoadGlFunction`, y la variable se lee con
+el pedido de cada función es `Platform::Sdl::LoadGlFunction`, y la variable se lee con
 `Core::ReadEnvironmentVariable`. En `gl/LabGl.h` queda una sola función, `glDrawElements`, que el
 cliente no usa (dibuja con `glDrawArrays`), pedida con `LoadGlFunction` sobre la tabla del cliente.
 La ventana escondida del cliente para sus propios tests es `Client/tests/support/GlTestContext`.

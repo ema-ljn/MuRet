@@ -1,5 +1,6 @@
 #include "Render/Billboard.h"
 
+#include "Math/FloatConstants.h"
 #include "Math/X87.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Render/SpriteVertex.h"
@@ -33,7 +34,7 @@ glm::vec3 VectorTransform(const glm::vec3& v, const Models::OriginalMatrix& m)
 }
 
 constexpr int ThreeComponents = 3;
-constexpr double Half = 0.5;
+constexpr double Half = Math::HalfAsDouble;
 } // namespace
 
 Models::OriginalMatrix ViewRows(const glm::mat4& view)

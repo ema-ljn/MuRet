@@ -1,6 +1,8 @@
 #include "Scenes/FaunaJointCreation.h"
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/Angles.h"
+#include "Math/FloatConstants.h"
 #include "Math/X87.h"
 #include "Render/Models/IModelLibrary.h"
 #include "Scenes/GameDrawTail.h"
@@ -199,9 +201,9 @@ Core::Expected<void, std::string> StepSwordTrail(JointState& joint, std::size_t 
 {
     constexpr std::int32_t Steps = 3;
     constexpr std::int32_t FadingLife = 15;
-    constexpr double Third = static_cast<double>(std::bit_cast<float>(0x3eaaaaabu)); // 0x6ba2a0.
-    constexpr double Fade = static_cast<double>(std::bit_cast<float>(0x3f2aaaabu));  // 0x6b8c64.
-    constexpr double Above = 50.0;                                                   // 0x6b86b0.
+    constexpr double Third = Math::ThirdAsDouble;                                   // 0x6ba2a0.
+    constexpr double Fade = static_cast<double>(std::bit_cast<float>(0x3f2aaaabu)); // 0x6b8c64.
+    constexpr double Above = 50.0;                                                  // 0x6b86b0.
     const auto* actor = static_cast<const ActorState*>(joint.ownerContext);
     if (actor == nullptr)
         return Core::Unexpected(std::format("0x537d49: falta el personaje dueño del joint {} (0x610/4)", index));
@@ -434,7 +436,7 @@ Core::Expected<void, std::string> CreateSparkle(JointState& joint, const World::
     constexpr float FirstWidth = 10, SparkleSpeed = 40;
     constexpr std::uint8_t Subtractive = 4;
     constexpr int RiseSpan = 150, DriftSpan = 500, DriftCenter = 250, WideRiseSpan = 250, WideRiseBase = 200;
-    constexpr double Hundredth = static_cast<double>(std::bit_cast<float>(0x3c23d70au)); // 0x6b86c0, 0,01f
+    constexpr double Hundredth = Math::HundredthAsDouble; // 0x6b86c0, 0,01f
     const glm::vec3* ownerLight = SparkleOwnerLight(joint);
     if (ownerLight == nullptr)
         return Core::Unexpected(std::format("0x53429b: falta el dueño del joint 0x60f/{:#x}", request.subtype));
@@ -471,7 +473,7 @@ Core::Expected<void, std::string> CreateSetTrail(JointState& joint, const World:
     constexpr std::uint8_t Subtractive = 4;
     constexpr float Speed = 10, Sway = 15, Reach = 40; // 0x6b8bf4
     constexpr std::uint16_t FlareTexture = 0x60f;
-    constexpr int FullTurn = 360;
+    constexpr int FullTurn = Math::FullTurn;
     // 0x531c71..0x531c8c: el color 3 lee la luz del dueño (+0xf4), que el caso 7 pisa; sin dueño, el original cae.
     if (joint.skill == OwnerColor && joint.ownerContext == nullptr)
         return Core::Unexpected(std::string("0x531c7b: falta el color del dueño del joint 0x610/7"));
@@ -635,7 +637,7 @@ void CreateBoltEnergy(JointState& joint, const World::FishEffectRequest& request
 void CreateChargedEnergy(JointState& joint, const World::FishEffectRequest& request, Crt::CrtRandom& random)
 {
     constexpr std::int32_t ChargedLife = 0x11, ChargedPoints = 3, ShadeMask = 0x7f;
-    constexpr float Half = 0.5f;                                   // 0x5324ef
+    using Math::Half;                                              // 0x5324ef
     constexpr float ShadeStep = std::bit_cast<float>(0x3b808081u); // 0x6b88f8, 1/255
     constexpr double ShadeBase = 0.5, Lift = 100.0;                // 0x6b882c y 0x6b86b4
     CreateSummonEnergy(joint, request);
@@ -700,7 +702,7 @@ Core::Expected<void, std::string> CreatePiercingImpact(JointState& joint, const 
 {
     const bool spark = request.type == SparkImpactJoint;
     const std::int32_t life = spark ? 15 : 20, points = spark ? 15 : 30;
-    constexpr int FullTurn = 360;
+    constexpr int FullTurn = Math::FullTurn;
     constexpr double NegativeRadians = static_cast<double>(std::bit_cast<float>(0xbc8efa35u));
     joint.life = life;
     joint.maximumCount = points;
@@ -1192,7 +1194,7 @@ double SteerJoint(JointState& joint, const glm::vec3& target, float turnStep)
 {
     using Render::Models::CreateAngle;
     using Render::Models::TurnAngle;
-    constexpr double FullTurn = 360;
+    constexpr double FullTurn = Math::FullTurnAsDouble;
     const auto yaw = static_cast<float>(CreateAngle(joint.position.x, joint.position.y, target.x, target.y));
     joint.angles.z = static_cast<float>(TurnAngle(joint.angles.z, yaw, turnStep));
     const double x = static_cast<double>(joint.position.x) - target.x;
@@ -1333,7 +1335,7 @@ Core::Expected<void, std::string> StepTrapBolt(JointState& joint, Crt::CrtRandom
     {
         constexpr std::uint16_t ShinyTexture = 0x5fd;
         constexpr float ShinyScale = 1.5f;
-        constexpr int FullTurn = 360;
+        constexpr int FullTurn = Math::FullTurn;
         constexpr double HalfRed = 0.5;
         constexpr double GreenShare = static_cast<double>(std::bit_cast<float>(0x3f19999au));
         const glm::vec3 light{static_cast<float>(static_cast<double>(joint.light.x) * HalfRed),
@@ -1417,7 +1419,7 @@ Core::Expected<void, std::string> StepPiercingImpact(JointState& joint)
 {
     const double Half =
         joint.type == SparkImpactJoint ? static_cast<double>(std::bit_cast<float>(0x3f4ccccdu)) : 0.5; // 0x6b8a38
-    constexpr double Radians = static_cast<double>(std::bit_cast<float>(0x3c8efa35u));
+    constexpr double Radians = Math::DegreesToRadiansAsDouble;
     const float argument = F32(static_cast<double>(joint.life) * Half + D(joint.velocity.x));
     const float radius = F32(2.0 * static_cast<double>(joint.life > 1 ? joint.life : 1));
     const auto cosine = Render::Models::Detail::CosineProductPC53(D(argument), radius);
@@ -1449,8 +1451,8 @@ Core::Expected<void, std::string> StepPiercingImpact(JointState& joint)
 Core::Expected<void, std::string> StepSparkle(JointState& joint, std::size_t index)
 {
     constexpr std::int16_t NoKey = -1;
-    constexpr double Tenth = static_cast<double>(std::bit_cast<float>(0x3dcccccdu)); // 0x6b87b8
-    constexpr double Mirror = -1.0;                                                  // 0x6b8b9c
+    constexpr double Tenth = Math::TenthAsDouble; // 0x6b87b8
+    constexpr double Mirror = -1.0;               // 0x6b8b9c
     constexpr std::uint8_t MirroredSkill = 1;
     constexpr double Climb = static_cast<double>(std::bit_cast<float>(0x3f8ccccdu)); // 0x6b8830, 1,1f
     constexpr double Widen = static_cast<double>(std::bit_cast<float>(0x3e4ccccdu)); // 0x6b8854, 0,2f
@@ -1510,8 +1512,8 @@ Core::Expected<void, std::string> StepSparkle(JointState& joint, std::size_t ind
 // 0,1f, y con la vida debajo de 15 la luz por 0,8333333f (0x6b8b98).
 Core::Expected<void, std::string> StepSetTrail(JointState& joint, std::size_t index)
 {
-    constexpr double Pace = static_cast<double>(std::bit_cast<float>(0x3ecccccdu));  // 0x6ba2f4, 0,4f
-    constexpr double Tenth = static_cast<double>(std::bit_cast<float>(0x3dcccccdu)); // 0x6b87b8
+    constexpr double Pace = static_cast<double>(std::bit_cast<float>(0x3ecccccdu)); // 0x6ba2f4, 0,4f
+    constexpr double Tenth = Math::TenthAsDouble;                                   // 0x6b87b8
     constexpr std::int32_t FadeLife = 15;
     const float argument = F32(static_cast<double>(joint.life) * Pace);
     const auto sine = SignedTrigonometricProduct(D(argument), joint.velocity.x, false);
@@ -1537,7 +1539,7 @@ Core::Expected<void, std::string> StepSetTrail(JointState& joint, std::size_t in
 // 40 y por 1,2f (0x6b8bb0) por encima de 68.
 Core::Expected<void, std::string> StepSetEnergy(JointState& joint, std::size_t index)
 {
-    constexpr double Tenth = static_cast<double>(std::bit_cast<float>(0x3dcccccdu)); // 0x6b87b8
+    constexpr double Tenth = Math::TenthAsDouble; // 0x6b87b8
     constexpr std::int32_t Rise = 90;
     constexpr double Lift = 10.0, Shrink = 1.0;
     constexpr double Climb = static_cast<double>(std::bit_cast<float>(0x3c4ccccdu)), Height = 300.0; // 0x6ba208
@@ -1604,7 +1606,7 @@ Core::Expected<void, std::string> StepPiercingTrailJoint(JointState& joint)
         joint.position.z = F32(D(joint.position.z) + 50.0);
         return {};
     }
-    constexpr double Third = static_cast<double>(std::bit_cast<float>(0x3eaaaaabu));
+    constexpr double Third = Math::ThirdAsDouble;
     glm::vec3 delta;
     for (int axis = 0; axis < 3; ++axis)
     {
@@ -1818,7 +1820,7 @@ Core::Expected<void, std::string> StepSummonEnergy(JointState& joint, std::size_
     joint.speed = F32(Climb + D(joint.speed));
     const glm::vec3 target{position.x, position.y, F32(D(position.z) + Lift)};
     static_cast<void>(SteerJoint(joint, target, TurnStep));
-    constexpr float Tenth = std::bit_cast<float>(0x3dcccccdu), Low = std::bit_cast<float>(0x3ecccccdu),
+    constexpr float Tenth = Math::Tenth, Low = std::bit_cast<float>(0x3ecccccdu),
                     Middle = std::bit_cast<float>(0x3f19999au); // 0x6b87b8, 0x6b87b4 y 0x6b8a20
     const double brightness = static_cast<double>(FullLife - joint.life) * D(Tenth);
     if (joint.subtype == SummonDecalEnergySubtype)
@@ -1828,7 +1830,7 @@ Core::Expected<void, std::string> StepSummonEnergy(JointState& joint, std::size_
     if (joint.life != LastLife)
         return {};
     constexpr std::uint16_t ShinyTexture = 0x5fd;
-    constexpr int FullTurn = 360, ScaleSpread = 7, ScaleBase = 8;
+    constexpr int FullTurn = Math::FullTurn, ScaleSpread = 7, ScaleBase = 8;
     constexpr float ScaleStep = std::bit_cast<float>(0x3e4ccccdu);
     // 0x5491e0(0x5fd, destino, escala, luz, dueño, giro, 0): MuRet no guarda el dueño del sprite (Q-C303).
     const auto rotation = static_cast<float>(random->Next() % FullTurn);
@@ -1855,7 +1857,7 @@ Core::Expected<void, std::string> StepBoltEnergy(JointState& joint, std::size_t 
     constexpr float GlowStep = std::bit_cast<float>(0x3e19999au);  // 0x6b8ae8, 0,15f
     constexpr float ScaleStep = std::bit_cast<float>(0x3d4ccccdu); // 0x6b8a48, 0,05f
     constexpr std::uint16_t ShinyTexture = 0x5fd;
-    constexpr int FullTurn = 360, ScaleSpread = 7, ScaleBase = 8;
+    constexpr int FullTurn = Math::FullTurn, ScaleSpread = 7, ScaleBase = 8;
     const std::int32_t distance = joint.life < BrightestLife ? BrightestLife - joint.life : joint.life - BrightestLife;
     const float glow = F32(static_cast<double>(BrightestLife - distance) * D(GlowStep));
     // 0x5491e0(0x5fd, destino, escala, luz, dueño, giro, 0), con el dueño nulo del 0x813.

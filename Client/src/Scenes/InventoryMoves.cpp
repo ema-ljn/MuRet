@@ -7,6 +7,7 @@
 #include "Data/Tables/ItemTable.h"
 #include "GameLogic/PathCell.h"
 #include "Maps/MapId.h"
+#include "Math/FloatConstants.h"
 #include "Protocol/Events.h"
 #include "Protocol/FloorItems.h"
 #include "Protocol/Inventory.h"
@@ -74,7 +75,7 @@ constexpr std::int32_t ShopGridColumns = 8;
 constexpr std::int32_t ShopGridRows = 4;
 // 0x6b8ad0 (0.05f) y 0x6b882c (0.5f): la casilla de 20 píxeles y el medio del ítem.
 constexpr double CellScale = static_cast<double>(0.05f);
-constexpr double Half = static_cast<double>(0.5f);
+constexpr double Half = Math::HalfAsDouble;
 
 // 0x41ed10: mover un ítem y el F3 14.
 constexpr std::int32_t ItemMoveSound = 0x1d;

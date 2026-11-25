@@ -1,6 +1,7 @@
 #include "World/WeaponSparkKernels.h"
 
 #include "Crt/CrtRandom.h"
+#include "Math/FloatConstants.h"
 #include "Math/X87.h"
 #include "World/Particles.h"
 
@@ -12,7 +13,7 @@ namespace Client::World
 namespace
 {
 constexpr std::int32_t WeaponSparkLife = 30;
-constexpr double Tenth = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));     // 0x6b8a34.
+constexpr double Tenth = Math::TenthAsDouble;                                        // 0x6b8a34.
 constexpr double Fade = static_cast<double>(std::bit_cast<float>(0x3f73cf3eu));      // 0x6ba264.
 constexpr double Shrink = static_cast<double>(std::bit_cast<float>(0x3d23d70au));    // 0x6b8aec.
 constexpr double Countdown = static_cast<double>(std::bit_cast<float>(0x3a83126fu)); // 0x6b89c8.

@@ -4,6 +4,8 @@
 #include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainObjects.h"
 #include "Maps/MapId.h"
+#include "Math/Angles.h"
+#include "Math/FloatConstants.h"
 #include "Render/Models/Animation.h"
 #include "Render/Models/ObjectState.h"
 #include "Render/Models/Skeleton.h"
@@ -188,7 +190,7 @@ bool CopyMapTwoTransform(WorldObject& object)
     {
         return false;
     }
-    constexpr std::int32_t FullTurn = 360;
+    using Math::FullTurn;
     const auto remainder = static_cast<float>(*signedLow % FullTurn);
     object.copiedAngles.y = object.transform.angles.y;
     object.copiedPosition.z = object.transform.position.z;
@@ -550,7 +552,7 @@ std::optional<float> RoofTargetAlpha(std::int16_t type, std::uint8_t map, std::i
 // 0x604db9 y 0x60508f: la luz del blendMesh (+0x68), (rand() & 3 + 4) · 0,1f (0x6b87b8), el producto de
 // fild y fmul guardado en float.
 constexpr int FlickerBase = 4;
-constexpr float Tenth = std::bit_cast<float>(0x3DCCCCCDu);
+using Math::Tenth;
 
 float FlickeringLight(Crt::CrtRandom& random)
 {
@@ -561,7 +563,7 @@ float FlickeringLight(Crt::CrtRandom& random)
 // 0x604d8e: la V del blendMesh (+0x70) con el reloj, (−ftol(T) % 1000) · 0,001f (0x6b89c8): neg sobre el
 // dword bajo, cdq e idiv con signo. Sin un ftol acreditado (un reloj infinito), nullopt.
 constexpr std::int32_t ScrollPeriod = 1000;
-constexpr float Thousandth = std::bit_cast<float>(0x3A83126Fu);
+using Math::Thousandth;
 
 std::optional<float> ScrolledV(float worldClock)
 {

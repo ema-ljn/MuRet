@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/Angles.h"
 #include "Math/X87.h"
 #include "Render/Models/OriginalRetainedMath.h"
 #include "Scenes/HighEffectEmitters.h"
@@ -28,10 +29,10 @@ using Math::D;
 using Math::F32;
 
 constexpr std::int32_t SpiritJoint = 0x6ee;
-constexpr float SpiritWidth = 100.0f; // 0x42c80000
-constexpr std::int32_t SpiritKey = 0; // el 8.º argumento de 0x530860 ([ebp+0x24]): esi en 0x51ce6a; 0 en 0x52774b
-constexpr int FullTurn = 360;         // 0x168
-constexpr std::int32_t CallLife = 30; // 0x1e, 0x51cf97 y 0x527add
+constexpr float SpiritWidth = 100.0f;    // 0x42c80000
+constexpr std::int32_t SpiritKey = 0;    // el 8.º argumento de 0x530860 ([ebp+0x24]): esi en 0x51ce6a; 0 en 0x52774b
+constexpr int FullTurn = Math::FullTurn; // 0x168
+constexpr std::int32_t CallLife = 30;    // 0x1e, 0x51cf97 y 0x527add
 
 // 0x518cf0(tipo, posición del 0x128, ángulos, luz del 0x128, 0, 0, −1, 0, 0, 0, 0) desde su paso, en `address`.
 Core::Expected<void, std::string> CallOut(const World::ModelEffect& call, std::int16_t type, const glm::vec3& angles,
@@ -131,7 +132,7 @@ Core::Expected<void, std::string> BeginTheKundunPhoenix(World::ModelEffect& effe
     constexpr float Scale = std::bit_cast<float>(0x3f333333u); // 0,7f
     constexpr float Glow = 0.5f;                               // 0x3f000000
     constexpr std::int32_t TrailJoint = 0x613, TrailSubtype = 0xf;
-    constexpr double Radians = static_cast<double>(std::bit_cast<float>(0x3c8efa35u)); // 0x6b8cf8, 0,01745329f
+    constexpr double Radians = Math::DegreesToRadiansAsDouble; // 0x6b8cf8, 0,01745329f
     constexpr int Frames = 5;
     effect.speed = Speed;
     effect.life = PhoenixLife;

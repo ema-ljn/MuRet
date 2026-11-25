@@ -1,6 +1,7 @@
 #include "Render/Models/Shine.h"
 
 #include "Core/IClock.h"
+#include "Math/FloatConstants.h"
 #include "Render/Models/RoundedMath.h"
 
 #include <glm/ext/vector_float2.hpp>
@@ -29,7 +30,7 @@ constexpr float ClockScale = 0.0001f;
 constexpr float CosineScale = 0.001f;
 constexpr float SineScale = 0.002f;
 constexpr float Three = 3.0f;
-constexpr float Half = 0.5f;
+using Math::Half;
 constexpr float ShinyOffset = 0.2f;
 constexpr float One = 1.0f;
 // Los de 0x4000 (0x4ed25e..0x4ed2b2): 2,5 (0x6b89a8) a nz en la v y 5 (0x6b87f8) a s en la u.

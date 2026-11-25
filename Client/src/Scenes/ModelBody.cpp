@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Maps/MapId.h"
+#include "Math/Angles.h"
 #include "Render/Models/Animation.h"
 #include "Render/Models/OriginalAngles.h"
 #include "Render/Models/Skeleton.h"
@@ -206,7 +207,7 @@ void LookAtTheTarget(ActorState& actor, const ActorState& target)
     }
     constexpr double HeadHeight = 50.0;               // 0x6b86b0
     constexpr auto Share = static_cast<double>(0.2f); // 0x6b8854
-    constexpr float FullTurn = 360.0f;                // 0x6b869c
+    constexpr float FullTurn = Math::FullTurnAsFloat; // 0x6b869c
     actor.headTurn.target.x = static_cast<float>(static_cast<double>(actor.angles.z) - static_cast<double>(heading));
     actor.headTurn.target.y = static_cast<float>(
         (static_cast<double>(target.position.z) - (static_cast<double>(actor.position.z) + HeadHeight)) * Share);
@@ -230,7 +231,7 @@ Core::Expected<void, std::string> SetTheModelHeadTarget(ActorState& actor, std::
         constexpr int TurnCentre = 64;
         constexpr int NodSpan = 48;
         constexpr int NodCentre = 16;
-        constexpr float FullTurn = 360.0f;
+        constexpr float FullTurn = Math::FullTurnAsFloat;
         actor.headTurn.target.x = static_cast<float>((random.Next() % TurnSpan) - TurnCentre);
         actor.headTurn.target.y = static_cast<float>((random.Next() % NodSpan) - NodCentre);
         for (int axis = 0; axis < 2; ++axis)

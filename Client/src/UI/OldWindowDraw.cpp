@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Core/PixelSize.h"
+#include "Math/FloatConstants.h"
 #include "Math/X87.h"
 #include "Render/OriginalQuad.h"
 #include "Render/ScreenScale.h"
@@ -138,7 +139,7 @@ constexpr float ButtonDv = 1.0f;
 constexpr float PressedButtonDu = 0.75f;
 constexpr float PressedButtonDv = 0.9375f;
 // 0x45b2e0: el texto del botón, centrado con ((lado − texto) + 0,5) · 0,5 (0x6b882c).
-constexpr double Half = 0.5;
+constexpr double Half = Math::HalfAsDouble;
 constexpr std::uint32_t ButtonTextColor = 0xffc8dce6u;
 // 0x4a3a90: el texto de la caja, en blanco, en (5, 8) del área de adentro; el segundo renglón 8 más abajo que el alto
 // del primero (0x6b86c4).

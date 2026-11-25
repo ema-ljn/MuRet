@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/FloatConstants.h"
 #include "Math/X87.h"
 #include "Protocol/Connection/Logout.h"
 #include "Protocol/NpcWindows.h"
@@ -115,7 +116,7 @@ constexpr std::uint16_t BarSlot = 0xfd;
 constexpr float BarBaseWidth = 52.0f;
 constexpr double BarDigitWidth = 13.0;
 constexpr double BarCenter = 320.0;
-constexpr double Half = 0.5;
+constexpr double Half = Math::HalfAsDouble;
 constexpr float BarTop = 134.0f;
 constexpr float BarHeight = 16.0f;
 constexpr float BarDu = 0.625f;

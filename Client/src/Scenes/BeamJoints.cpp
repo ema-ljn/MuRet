@@ -1,5 +1,7 @@
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/Angles.h"
+#include "Math/FloatConstants.h"
 #include "Math/X87.h"
 #include "Render/Models/OriginalAngles.h"
 #include "Render/Models/OriginalRetainedMath.h"
@@ -310,7 +312,7 @@ Core::Expected<void, std::string> Glow(JointState& joint, const JointKernels::St
     if (subtype == 0xc || subtype == 0xd)
     {
         constexpr std::uint16_t Flash = 0x5ac, Ring = 0x5fd;
-        constexpr std::int32_t FullTurn = 360;
+        using Math::FullTurn;
         if (services.sprites == nullptr)
             return Core::Unexpected(
                 std::format("0x5386b4: faltan los sprites del joint {} (0x618/{:#x})", services.index, subtype));
@@ -363,7 +365,7 @@ Core::Expected<void, std::string> Follow(JointState& joint, const JointKernels::
     constexpr double Phase = static_cast<double>(std::bit_cast<float>(0x3b03126fu)); // 0x6b89bc
     constexpr float Amplitude = std::bit_cast<float>(0x3e99999au);                   // 0x6b89dc
     constexpr double Base = static_cast<double>(std::bit_cast<float>(0x3f4ccccdu));  // 0x6b8a38
-    constexpr double Tenth = static_cast<double>(std::bit_cast<float>(0x3dcccccdu)); // 0x6b87b8
+    constexpr double Tenth = Math::TenthAsDouble;                                    // 0x6b87b8
     const auto wave = Render::Models::Detail::SineProductPC53(D(services.worldClock) * Phase, Amplitude);
     if (!wave)
         return Core::Unexpected(

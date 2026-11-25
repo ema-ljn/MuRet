@@ -1,6 +1,7 @@
 #include "Scenes/EventMapObjectFrame.h"
 
 #include "Core/Expected.h"
+#include "Math/FloatConstants.h"
 #include "Math/X87.h"
 #include "Render/Models/ObjectState.h"
 #include "Render/Models/OriginalRetainedMath.h"
@@ -34,11 +35,11 @@ namespace
 using Math::F32;
 
 // 0x6b89c8 (0,001f), 0x6b86d0 (20), 0x6b89dc (0,3f), 0x6b8a5c (0,7f), 0x6b882c (0,5), 0x6b8818 (2) y 0x6b87d4 (1).
-constexpr double Thousandth = static_cast<double>(std::bit_cast<float>(0x3a83126fu));
+constexpr double Thousandth = Math::ThousandthAsDouble;
 constexpr double AngleRate = 20.0;
 constexpr float PulseSwing = std::bit_cast<float>(0x3e99999au);
 constexpr double PulseBase = static_cast<double>(std::bit_cast<float>(0x3f333333u));
-constexpr double Half = 0.5;
+constexpr double Half = Math::HalfAsDouble;
 constexpr double TorchLead = 2.0;
 constexpr double TorchStep = 1.0;
 

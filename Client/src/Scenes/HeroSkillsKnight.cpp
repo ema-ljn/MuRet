@@ -5,6 +5,7 @@
 #include "Data/Terrain/TerrainAttributes.h"
 #include "GameLogic/PathFinder.h"
 #include "Maps/MapId.h"
+#include "Math/Angles.h"
 #include "Protocol/Skill.h"
 #include "Render/Models/Animation.h"
 #include "Render/Models/LogicalAccess.h"
@@ -68,7 +69,7 @@ constexpr double CellReciprocal = static_cast<double>(std::bit_cast<float>(std::
 constexpr double TurnsOf256 = static_cast<double>(std::bit_cast<float>(std::uint32_t{0x3f360b61}));     // [0x6ba440]
 constexpr double TurnFraction = static_cast<double>(std::bit_cast<float>(std::uint32_t{0x3b360b61}));   // [0x6ba444]
 constexpr double ByteScale = static_cast<double>(std::bit_cast<float>(std::uint32_t{0x437f0000}));      // [0x6b9f98]
-constexpr double HalfTurn = static_cast<double>(std::bit_cast<float>(std::uint32_t{0x43340000}));       // [0x6b86bc]
+constexpr double HalfTurn = Math::HalfTurnAsDouble;                                                     // [0x6b86bc]
 constexpr double WalkReach = static_cast<double>(std::bit_cast<float>(std::uint32_t{0x3f99999a}));      // [0x6b8bb0]
 
 bool InRange(std::int32_t value, std::int32_t first, std::int32_t last)

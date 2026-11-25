@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/FloatConstants.h"
 #include "Math/X87.h"
 #include "Render/Models/OriginalRotation.h"
 #include "World/GameModelEffects.h"
@@ -30,7 +31,7 @@ constexpr std::int16_t GolemStone = 0x13c;
 // Las piedritas 0x12d y 0x12e del /2 (las que 0x4ee770 suelta en lugar del 0x13c con el subtipo 1, 0x4eee35) y el
 // 0x12e/3 (la que tira el 0x1a6 en su ataque, 0x442397).
 constexpr std::int32_t ShowerSubtype = 2, ThrownSubtype = 3;
-constexpr double Tenth = static_cast<double>(0.1f);
+constexpr double Tenth = Math::TenthAsDouble;
 constexpr int Degrees = 360;
 constexpr int GatePushMask = 255, StonePushMask = 127, GatePushBase = 128, StatuePushBase = 64;
 constexpr int ScaleMask = 1, ScaleBase = 7, StoneScaleSpan = 7, StoneScaleBase = 10;

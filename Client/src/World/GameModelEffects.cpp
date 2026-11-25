@@ -7,6 +7,8 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/Angles.h"
+#include "Math/FloatConstants.h"
 #include "World/BlastModelEffects.h"
 #include "Render/Models/OriginalRetainedMath.h"
 #include "World/Ftol.h"
@@ -293,8 +295,8 @@ float StepLuminosity(int draw, std::int32_t life)
 {
     constexpr int LightMask = 3, LightBase = 7;
     constexpr std::int32_t FadeLife = 5;
-    constexpr double Tenth = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));
-    constexpr double Fifth = static_cast<double>(std::bit_cast<float>(0x3e4ccccdu));
+    constexpr double Tenth = Math::TenthAsDouble;
+    constexpr double Fifth = Math::FifthAsDouble;
     float light = F32(static_cast<double>((draw & LightMask) + LightBase) * Tenth);
     if (life < FadeLife)
     {
@@ -612,9 +614,9 @@ Core::Expected<void, std::string> StepAidaWisp(ModelEffect& effect, Particles& p
     constexpr std::int32_t FarLife = 50;
     constexpr int Period = 10000;
     constexpr double Frequency = static_cast<double>(std::bit_cast<float>(0x38d1b717u)); // 0x6b8a94.
-    constexpr double Third = static_cast<double>(std::bit_cast<float>(0x3eaaaaabu));     // 0x6ba2a0.
-    constexpr double Tenth = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));     // 0x6b8a34.
-    constexpr double Quarter = 0.25;
+    constexpr double Third = Math::ThirdAsDouble;                                        // 0x6ba2a0.
+    constexpr double Tenth = Math::TenthAsDouble;                                        // 0x6b8a34.
+    constexpr double Quarter = Math::QuarterAsDouble;
     constexpr std::int32_t TrailSubtype = 9;
     if (random.Next() % TurnChance == 1)
     {
@@ -1579,8 +1581,8 @@ Core::Expected<void, std::string> DropACrackChip(const ModelEffect& effect, Crt:
 Core::Expected<void, std::string> StepEarthquakeCrack(ModelEffect& effect, float luminosity, Crt::CrtRandom& random,
                                                       const ModelEffectStepServices& services)
 {
-    constexpr double Tenth = static_cast<double>(std::bit_cast<float>(0x3dcccccdu)); // 0x6b87b8 y 0x6b8a34.
-    constexpr double Third = static_cast<double>(std::bit_cast<float>(0x3eaaaaabu)); // 0x6ba2a0
+    constexpr double Tenth = Math::TenthAsDouble; // 0x6b87b8 y 0x6b8a34.
+    constexpr double Third = Math::ThirdAsDouble; // 0x6ba2a0
     constexpr double Sink = 0.5;
     constexpr float Wide = 50.0f; // 0x6b86b0
     constexpr std::int32_t Faded = 5, ShakeEvery = 3, ShakeAfter = 15, ShakeSpan = 8, ShakeCentre = 4;
@@ -1685,7 +1687,7 @@ Core::Expected<void, std::string> StepDebris(ModelEffect& effect, Particles& par
     constexpr double Brake = static_cast<double>(std::bit_cast<float>(0x3f666666u));
     constexpr double Boost = static_cast<double>(std::bit_cast<float>(0x3f8ccccdu));
     constexpr double Bounce = static_cast<double>(std::bit_cast<float>(0xbe4ccccdu));
-    constexpr double Tenth = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));
+    constexpr double Tenth = Math::TenthAsDouble;
     constexpr double Gravity = 3.0, GroundTilt = 128.0, AirTilt = 16.0;
     constexpr std::int32_t BoostedSubtype = 1;
     constexpr std::int32_t GroundWear = 5;
@@ -1750,7 +1752,7 @@ Core::Expected<void, std::string> StepTheTrailSpark(ModelEffect& effect, Crt::Cr
         return Core::Unexpected("0x523c78: " + created.Error());
     if (services.sprites == nullptr)
         return Core::Unexpected(std::string("0x523cc8: la estela 0x105/1 pide la tabla de sprites"));
-    constexpr int FullTurn = 360;
+    constexpr int FullTurn = Math::FullTurn;
     constexpr std::int32_t SparkSprite = 0x5fd, SparkSizes = 7, SparkBase = 8;
     constexpr double SparkStep = static_cast<double>(std::bit_cast<float>(0x3e4ccccdu)); // 0x6b8854, 0,2f
     const auto rotation = static_cast<float>(random.Next() % FullTurn);

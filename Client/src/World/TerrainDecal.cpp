@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Data/Terrain/TerrainGrid.h"
 #include "Data/Terrain/TerrainHeights.h"
+#include "Math/FloatConstants.h"
 #include "Math/X87.h"
 #include "Render/ModelBatch.h"
 #include "Render/ModelVertex.h"
@@ -34,7 +35,7 @@ using Data::Terrain::TerrainSide;
 constexpr float CellsPerUnit = 0.01f;
 static_assert(std::bit_cast<std::uint32_t>(CellsPerUnit) == 0x3C23D70A, "la constante de 0x6b86c0");
 // 0x6b882c: el medio lado, y el centro del calco en las UV, alrededor del que giran.
-constexpr double Half = 0.5;
+constexpr double Half = Math::HalfAsDouble;
 // 0x6b87d4: el paso de las celdas.
 constexpr double One = 1.0;
 // 0x5faee9..0x5faefa: 0x5faec0 dibuja las celdas de 0 a 254 (cmp 0xff y jge).

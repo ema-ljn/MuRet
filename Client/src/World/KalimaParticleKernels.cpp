@@ -3,6 +3,8 @@
 #include "Math/X87.h"
 
 #include "Crt/CrtRandom.h"
+#include "Math/Angles.h"
+#include "Math/FloatConstants.h"
 #include "World/Ftol.h"
 #include "World/IParticleTrigonometry.h"
 #include "World/ParticleOwner.h"
@@ -22,7 +24,7 @@ namespace Client::World
 namespace
 {
 // Constantes binary32 del ASM543b82..544260 y544912..5481a9.
-constexpr double Tenth = static_cast<double>(0.1f), Hundredth = static_cast<double>(0.01f);
+constexpr double Tenth = Math::TenthAsDouble, Hundredth = Math::HundredthAsDouble;
 constexpr double SmallGrowth = static_cast<double>(0.005f), MistGrowth = static_cast<double>(0.03f);
 constexpr double FantaShrink = static_cast<double>(0.02f), FantaLight = static_cast<double>(0.04f);
 constexpr double Damping = static_cast<double>(0.95f), Rise = 2.5;
@@ -31,7 +33,7 @@ constexpr double MistFade = static_cast<double>(std::bit_cast<float>(0x3f68ba2eu
 constexpr double Brighten = static_cast<double>(1.1f);
 // 6ba3e8: bytes18 b7 d1 39; conservar el patrónbinary32 del drift54492b/544950.
 constexpr double WalkFactor = static_cast<double>(std::bit_cast<float>(0x39d1b718u));
-constexpr int FullTurn = 360, LifeSpan = 10, LongLife = 30, ShortLife = 20;
+constexpr int FullTurn = Math::FullTurn, LifeSpan = 10, LongLife = 30, ShortLife = 20;
 constexpr int FlareZero = 0, FlareTrail = 1, FlareSix = 6, FlareSeven = 7, FlareNine = 9, SelectionScene = 4;
 // La 5ac/5 de la calavera 0x628/5 (0x52b843) y del empujón de la skill 0x28 (0x4fbd3a), y la 5ac/8 del 0x61e/6
 // (0x52baf5).
@@ -227,7 +229,7 @@ void StepFlareSix(Particle& p, Crt::CrtRandom& random)
 void StepFlareZero(Particle& p, Crt::CrtRandom& random, const glm::vec2& wind)
 {
     constexpr int WalkSpan = 2001, WalkCenter = 1000;
-    constexpr double Half = 0.5, Lift = 5.0, Unwritten = 0.0;
+    constexpr double Half = Math::HalfAsDouble, Lift = 5.0, Unwritten = 0.0;
     constexpr double Shrink = static_cast<double>(std::bit_cast<float>(0x3d4ccccdu));
     float x = F32(static_cast<double>(random.Next() % WalkSpan - WalkCenter) * WalkFactor);
     double y = static_cast<double>(random.Next() % WalkSpan - WalkCenter) * WalkFactor;

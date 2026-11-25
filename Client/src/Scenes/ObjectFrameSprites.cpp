@@ -2,6 +2,8 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/Angles.h"
+#include "Math/FloatConstants.h"
 #include "Math/X87.h"
 #include "Render/Models/Animation.h"
 #include "Render/Models/OriginalRotation.h"
@@ -32,7 +34,7 @@ constexpr std::uint16_t MagicGroundTexture = 0x61e;
 constexpr std::uint16_t LightningTexture = 0x5d5;
 // 0x6b88d4 (0,01f), 0x6b87f8 (5), 0x6b8a20 (0,6f), 0x6b89dc (0,3f), 0x6b87b8 (0,1f), 0x6b8854 (0,2f),
 // 0x6b87b4 (0,4f), 0x6b8a38 (0,8f) y 0x6b88f0 (260).
-constexpr double Hundredth = static_cast<double>(std::bit_cast<float>(0x3c23d70au));
+constexpr double Hundredth = Math::HundredthAsDouble;
 constexpr double GlowSize = 5.0;
 constexpr double EmberRed = static_cast<double>(std::bit_cast<float>(0x3f19999au));
 constexpr double EmberGreen = static_cast<double>(std::bit_cast<float>(0x3e99999au));
@@ -42,7 +44,7 @@ constexpr double LightningRed = static_cast<double>(std::bit_cast<float>(0x3eccc
 constexpr double LightningGreen = static_cast<double>(std::bit_cast<float>(0x3f4ccccdu));
 constexpr double Lift = 260.0;
 constexpr double TurnPerMs = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));
-constexpr std::int32_t FullTurn = 360;
+using Math::FullTurn;
 // 0x3e99999a, 0x3fc00000 y 0x40200000.
 constexpr float SmallSprite = std::bit_cast<float>(0x3e99999au);
 constexpr float LargeSprite = 1.5f;

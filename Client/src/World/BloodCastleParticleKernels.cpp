@@ -1,6 +1,8 @@
 #include "World/BloodCastleParticleKernels.h"
 
 #include "Crt/CrtRandom.h"
+#include "Math/Angles.h"
+#include "Math/FloatConstants.h"
 #include "Math/X87.h"
 #include "World/Particles.h"
 
@@ -16,15 +18,15 @@ namespace
 using Math::D;
 using Math::F32;
 
-constexpr int FullTurn = 360;
+constexpr int FullTurn = Math::FullTurn;
 constexpr int Tens = 10;
 constexpr int Spread = 5;
 // 0x6b8b90 (0,02f), 0x6b882c (0,5), 0x6b87b4 (0,4f), 0x6b8854 (0,2f), 0x6b87b8 (0,1f) y 0x6b87d4 (1).
-constexpr double Fiftieth = static_cast<double>(std::bit_cast<float>(0x3ca3d70au));
-constexpr double Half = 0.5;
+constexpr double Fiftieth = Math::FiftiethAsDouble;
+constexpr double Half = Math::HalfAsDouble;
 constexpr double TwoFifths = static_cast<double>(std::bit_cast<float>(0x3ecccccdu));
-constexpr double Fifth = static_cast<double>(std::bit_cast<float>(0x3e4ccccdu));
-constexpr double Tenth = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));
+constexpr double Fifth = Math::FifthAsDouble;
+constexpr double Tenth = Math::TenthAsDouble;
 constexpr double One = 1.0;
 // 0x6ba30c (0,95f), 0x6b89dc (0,3f), 0x6ba190 (0,07f), 0x6ba3ac (0,09f), 0x6b8a20 (0,6f), 0x6b8a38 (0,8f),
 // 0x6b8a48 (0,05f), 0x6b8acc (0,04f) y 0x6b89e4 (0,02f).

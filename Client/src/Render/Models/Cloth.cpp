@@ -1,6 +1,8 @@
 #include "Render/Models/Cloth.h"
 
 #include "Data/Models/Model.h"
+#include "Math/Angles.h"
+#include "Math/FloatConstants.h"
 #include "Math/X87.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/RoundedMath.h"
@@ -33,24 +35,24 @@ constexpr float Bits(std::uint32_t bits)
 }
 constexpr float WidthGrowth = Bits(0x3ecccccc);        // 0x6b8cf4: 0,4 (el ancho de la fila crece)
 constexpr float WidthStart = Bits(0x3f19999a);         // 0x6b8a20: 0,6
-constexpr float Half = Bits(0x3f000000);               // 0x6b882c: 0,5
+using Math::Half;                                      // 0x6b882c: 0,5
 constexpr float ArchDepth = Bits(0x41200000);          // 0x6b87a8: 10
 constexpr float Twenty = Bits(0x41a00000);             // 0x6b86d0 y el inmediato de la grilla
 constexpr float ShortFactor = Bits(0x3f4ccccd);        // 0x6b8a38: 0,8
-constexpr float Hundredth = Bits(0x3c23d70a);          // 0x6b88d4 y 0x6b86c0: 0,01
-constexpr float Tenth = Bits(0x3dcccccd);              // 0x6b87b8: 0,1
+using Math::Hundredth;                                 // 0x6b88d4 y 0x6b86c0: 0,01
+using Math::Tenth;                                     // 0x6b87b8: 0,1
 constexpr float GravityScale = Bits(0x42c80000);       // 0x6b86b4: 100
 constexpr float OneEighty = Bits(0x43340000);          // 0x6b86bc: 180
 constexpr float RandomizedWindStep = Bits(0x3ca3d70a); // 0x6b89e4: 0.02
-constexpr float Degree = Bits(0x3c8efa35);             // 0x6b8cf8 y 0x6ba360: π/180
-constexpr float Thousandth = Bits(0x3a83126f);         // 0x6b89c8: 0,001
+constexpr float Degree = Math::DegreesToRadians;       // 0x6b8cf8 y 0x6ba360: π/180
+using Math::Thousandth;                                // 0x6b89c8: 0,001
 constexpr float ThirtySecond = Bits(0x3d000000);       // 0x6b8880: 1/32
 constexpr float Three = Bits(0x40400000);              // 0x6b86b8: 3
 constexpr float Gravity = Bits(0x411ccccd);            // 0x6c7a40, en la .data: 9,8
 constexpr float GravityFactor = Bits(0x3b23d70a);      // 0x6c7a44: 0,0025
 constexpr float InverseMass = Bits(0x43c80000);        // 0x6c7a48: 400
 constexpr float GlowBase = Bits(0x3ecccccd);           // 0x6b87b4: 0,4
-constexpr float Fifth = Bits(0x3e4ccccd);              // 0x6b8854 y 0x6b8cfc: 0,2
+using Math::Fifth;                                     // 0x6b8854 y 0x6b8cfc: 0,2
 constexpr float LastRow = Bits(0x3f7d70a4);            // 0x6b8d00: 0,99
 constexpr float WindFloor = Bits(0xbe4ccccd);          // 0x6b8d3c: −0,2
 constexpr float WindCeiling = Bits(0x3f800000);        // 0x6b87d4: 1

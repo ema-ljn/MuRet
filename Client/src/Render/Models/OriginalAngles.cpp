@@ -1,5 +1,6 @@
 #include "Render/Models/OriginalAngles.h"
 
+#include "Math/Angles.h"
 #include "Math/X87.h"
 #include "Render/Models/OriginalRetainedMath.h"
 
@@ -24,7 +25,7 @@ static_assert(FLT_EVAL_METHOD == 0);
 // 0x4e93f0.
 constexpr float Tiny = 0.0001f;
 constexpr double Quarter = 90.0;
-constexpr double HalfTurn = 180.0;
+constexpr double HalfTurn = Math::HalfTurnAsDouble;
 constexpr double ThreeQuarters = 270.0;
 constexpr double Turn = 360.0;
 

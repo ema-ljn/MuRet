@@ -1,6 +1,7 @@
 #include "World/Leaves.h"
 
 #include "Crt/CrtRandom.h"
+#include "Math/FloatConstants.h"
 #include "Math/X87.h"
 #include "Render/Models/OriginalRotation.h"
 #include "World/TerrainHeight.h"
@@ -24,7 +25,7 @@ namespace
 constexpr double ScaleStep = static_cast<double>(0.01f);
 constexpr double ScaleBase = 0.5;
 constexpr double FallSpeed = static_cast<double>(-0.1f);
-constexpr double Tenth = static_cast<double>(0.1f);
+constexpr double Tenth = Math::TenthAsDouble;
 constexpr float CameraMargin = 400.0f;
 constexpr float Bounce = 3.2f;
 // 0x5303e8: en el suelo, la luz baja 0,05 (0x6b8a48) por paso; en 0 se apaga.

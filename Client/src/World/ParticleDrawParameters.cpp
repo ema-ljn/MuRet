@@ -1,4 +1,5 @@
 #include "World/ParticleDrawParameters.h"
+#include "Math/FloatConstants.h"
 #include "World/Particles.h"
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
@@ -9,7 +10,7 @@ namespace Client::World
 {
 namespace
 {
-constexpr double Quarter = 0.25;
+constexpr double Quarter = Math::QuarterAsDouble;
 constexpr std::int32_t AtlasColumns = 4;
 constexpr std::int32_t DropFrames = 9;
 constexpr std::int32_t DropColumns = 3;
@@ -58,7 +59,7 @@ ParticleDrawParameters ParticleDrawParametersOf(const Particle& particle, glm::v
         // del cociente cuadro / 2 (cdq, sub y sar: hacia 0), cada una · 0,5f (0x6b882c) en la x87, y el tamaño
         // (0,5f; 0,5f).
         constexpr std::int32_t BloodColumns = 2;
-        constexpr double Half = 0.5;
+        constexpr double Half = Math::HalfAsDouble;
         const std::int32_t frame = std::bit_cast<std::int32_t>(particle.field48);
         result.uv.x = static_cast<float>(static_cast<double>(frame % BloodColumns) * Half);
         result.uv.y = static_cast<float>(static_cast<double>(frame / BloodColumns) * Half);

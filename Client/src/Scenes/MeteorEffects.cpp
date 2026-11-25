@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Core/IClock.h"
 #include "Crt/CrtRandom.h"
+#include "Math/Angles.h"
 #include "Math/X87.h"
 #include "Render/ModelBatch.h"
 #include "Render/Models/HalfLifeMath.h"
@@ -87,9 +88,9 @@ Core::Expected<void, std::string> LightTheMeteor(const World::ModelEffect& effec
 // 0x52614a..0x526207: la piedrita 0xc8 o 0xc9, rand() % 150 + 300 adelante con el giro rand() % 360 en z, y el tipo.
 void DropTheStone(const World::ModelEffect& effect, const HighEffectStepContext& context)
 {
-    constexpr int ReachSpan = 150;  // 0x96
-    constexpr double Reach = 300.0; // 0x6b8900, 300,0f
-    constexpr int FullTurn = 360;   // 0x168
+    constexpr int ReachSpan = 150;           // 0x96
+    constexpr double Reach = 300.0;          // 0x6b8900, 300,0f
+    constexpr int FullTurn = Math::FullTurn; // 0x168
     constexpr std::int16_t Stone = 0xc8;
     glm::vec3 forward{0.0f};
     forward.y = F32(static_cast<double>(context.random.Next() % ReachSpan) + Reach);
@@ -214,7 +215,7 @@ Core::Expected<void, std::string> StepTheMeteorCall(World::ModelEffect& effect, 
     }
     if (effect.life != FallLife)
         return {};
-    constexpr int FullTurn = 360; // 0x168
+    constexpr int FullTurn = Math::FullTurn; // 0x168
     const glm::vec3 angles{0.0f, 0.0f, static_cast<float>(context.random.Next() % FullTurn)};
     const HighEffectContext creation{
         .world = context.world, .random = context.random, .worldClock = context.worldClock, .models = context.models};

@@ -2,6 +2,8 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/Angles.h"
+#include "Math/FloatConstants.h"
 #include "Math/X87.h"
 #include "Render/Models/OriginalRetainedMath.h"
 #include "Scenes/HighEffectEmitters.h"
@@ -49,8 +51,8 @@ bool BelowOrUnordered(double a, double b)
 
 constexpr std::int32_t RockSubtype = 2, ShakingSubtype = 3, SinkingSubtype = 4, FadingSubtype = 5;
 constexpr std::uint16_t NoKey = 0xffff;
-constexpr double Hundredth = static_cast<double>(std::bit_cast<float>(0x3c23d70au)); // 0x6b88d4 y 0x6b86c0, 0,01f
-constexpr float PieceScale = 2.0f;                                                   // 0x40000000
+constexpr double Hundredth = Math::HundredthAsDouble; // 0x6b88d4 y 0x6b86c0, 0,01f
+constexpr float PieceScale = 2.0f;                    // 0x40000000
 
 // 0x52a5fe..0x52a683: el alpha (+0x174) 0,01f menos.
 void Fade(World::ModelEffect& effect)
@@ -67,7 +69,7 @@ Core::Expected<void, std::string> Shake(World::ModelEffect& effect, const HighEf
     CrtRandom& random = context.random;
     if (random.Next() % 2 == 0)
     {
-        constexpr int FullTurn = 360; // 0x168
+        constexpr int FullTurn = Math::FullTurn; // 0x168
         const glm::vec3 angles{0.0f, 0.0f, static_cast<float>(random.Next() % FullTurn)};
         const glm::vec3 point = effect.transform.position;
         if (random.Next() % 2 == 0)
@@ -121,7 +123,7 @@ Core::Expected<void, std::string> Strike(World::ModelEffect& effect, const HighE
         if (auto disturbed = kalima->Disturb(tileX, tileY, WaveRadius, WaveAmplitude, random); !disturbed.HasValue())
             return Core::Unexpected(std::format("0x52a293: {}", disturbed.Error()));
     }
-    constexpr int Debris = 100, FullTurn = 360, ReachSpan = 30, ReachBase = 30, TiltSpan = 180;
+    constexpr int Debris = 100, FullTurn = Math::FullTurn, ReachSpan = 30, ReachBase = 30, TiltSpan = 180;
     constexpr double Sink = 30.0; // 0x6b8858
     constexpr std::int32_t DebrisParticle = 0x6f4, DebrisSubtype = 2;
     const glm::vec3 dim{std::bit_cast<float>(0x3e99999au)}; // 0,3f
@@ -439,7 +441,7 @@ Core::Expected<void, std::string> StepTheKundunEcho(World::ModelEffect& effect, 
     const std::int32_t shake = random.Next() % 8 - 8;
     if (context.services.cameraShake == nullptr)
         return Core::Unexpected(std::string("0x527acb: falta el temblor de la cámara (0x7d325c8)"));
-    constexpr double Tenth = static_cast<double>(std::bit_cast<float>(0x3dcccccdu)); // 0x6b87b8, 0,1f
+    constexpr double Tenth = Math::TenthAsDouble; // 0x6b87b8, 0,1f
     *context.services.cameraShake = F32(static_cast<double>(shake) * Tenth);
     return {};
 }

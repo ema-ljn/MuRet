@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/Angles.h"
 #include "Math/X87.h"
 #include "Render/Models/OriginalRetainedMath.h"
 #include "Scenes/ActorState.h"
@@ -59,7 +60,7 @@ MarkAsOwner(const World::ModelEffect& effect, const HighEffectStepContext& conte
 // de subtipo, y la marca de dueño (0x52a134: push ebx), cuya posición lee al nacer (0x5403ad) para su partida.
 Core::Expected<void, std::string> SparkTheMark(const World::ModelEffect& effect, const HighEffectStepContext& context)
 {
-    constexpr int FullTurn = 360;                    // 0x168
+    constexpr int FullTurn = Math::FullTurn;         // 0x168
     constexpr int RadiusSpan = 26, RadiusShift = 13; // 0x1a y 0xd
     constexpr int LiftSpan = 5;                      // edi
     constexpr double Base = 48.0;                    // 0x6ba220, 48,0f
@@ -113,7 +114,7 @@ Core::Expected<void, std::string> BeginTheGuildMark(World::ModelEffect& effect, 
     effect.light = glm::vec3(1.0f);
     effect.start = position;
     constexpr int Sparks = 10;
-    constexpr int FullTurn = 360, RadiusSpan = 20, RadiusBase = 15; // 0x168, 0x14 y 0xf
+    constexpr int FullTurn = Math::FullTurn, RadiusSpan = 20, RadiusBase = 15; // 0x168, 0x14 y 0xf
     constexpr std::int32_t Spark = 0x5c6, SparkSubtype = 4;
     constexpr float SparkScale = std::bit_cast<float>(0x3f19999au); // 0,6f
     World::PortableParticleTrigonometry trigonometry;

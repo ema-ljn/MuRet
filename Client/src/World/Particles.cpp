@@ -2,6 +2,8 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/Angles.h"
+#include "Math/FloatConstants.h"
 #include "Math/X87.h"
 #include "Render/Models/OriginalRotation.h"
 #include "World/Ftol.h"
@@ -133,7 +135,7 @@ constexpr double CloudGrowthRadius = 300.0;
 constexpr double CloudDeathRadius = 500.0;
 constexpr double BreathScaleStep = static_cast<double>(0.01f); // 0x6b88d4
 constexpr int BreathScaleBase = 48;
-constexpr int FullTurn = 360;
+constexpr int FullTurn = Math::FullTurn;
 // 0x545ec4: la luz es la vida por 0,125 (0x6ba170), la velocidad vertical suma 0,2 (0x6b8854) y la escala,
 // 0,05 (0x6b8a48).
 constexpr double BreathLightPerLife = 0.125;
@@ -356,8 +358,8 @@ void CreateTheCinder(Particle& particle, Crt::CrtRandom& random)
     if (particle.subtype != 0 && particle.subtype != 1)
         return;
     constexpr double Fall = static_cast<double>(std::bit_cast<float>(0xbdcccccdu));
-    constexpr double Hundredth = static_cast<double>(std::bit_cast<float>(0x3c23d70au));
-    constexpr float Half = std::bit_cast<float>(0x3f000000u);
+    constexpr double Hundredth = Math::HundredthAsDouble;
+    using Math::Half;
     constexpr std::int32_t MeteorLife = 24, JavelinLife = 15;
     particle.life = particle.subtype == 0 ? MeteorLife : JavelinLife;
     particle.velocity.x = 0.0f;
@@ -379,7 +381,7 @@ void StepTheCinder(Particle& particle)
 {
     constexpr double Rise = static_cast<double>(std::bit_cast<float>(0x3b83126fu));
     constexpr double Shrink = static_cast<double>(std::bit_cast<float>(0x3ca3d70au));
-    constexpr double Tenth = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));
+    constexpr double Tenth = Math::TenthAsDouble;
     constexpr std::int32_t FrameEnd = 23, FrameLength = 6;
     particle.verticalSpeed = F32(static_cast<double>(particle.verticalSpeed) + Rise);
     const std::int32_t life = particle.life;
@@ -702,7 +704,7 @@ void CreateTheBowSpark(Particle& particle, float scale, Crt::CrtRandom& random)
     constexpr std::int32_t BowSparkLife = 40;
     constexpr int Spread = 15, SpeedSpan = 20, FallSpan = 3, ShrinkSpan = 15;
     constexpr double Center = 8.0, Rise = 150.0, Fall = 3.0, Unit = 1.0;
-    constexpr double Tenth = static_cast<double>(std::bit_cast<float>(0x3dcccccdu)); // 0x6b8a34
+    constexpr double Tenth = Math::TenthAsDouble; // 0x6b8a34
     particle.texture = BowSparkTexture;
     particle.field38 = std::bit_cast<std::uint32_t>(1.0f);
     const auto pushed = Render::Models::OriginalVectorRotate(glm::vec3(0.0f, -100.0f, 0.0f),
@@ -791,8 +793,8 @@ Core::Expected<void, ParticleError> StepTheLightning(Particle& particle, const f
     constexpr std::int32_t ClockSpan = 1000;
     constexpr std::int32_t LightningLightRadius = 3;
     constexpr double Milli = static_cast<double>(std::bit_cast<float>(0x3a83126fu));  // 0x6b89c8
-    constexpr double Tenth = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));  // 0x6b8a34
-    constexpr double Half = static_cast<double>(0.5f);                                // 0x6b882c
+    constexpr double Tenth = Math::TenthAsDouble;                                     // 0x6b8a34
+    constexpr double Half = Math::HalfAsDouble;                                       // 0x6b882c
     constexpr double Blue = static_cast<double>(std::bit_cast<float>(0x3f4ccccdu));   // 0x6b8a38
     constexpr double Growth = static_cast<double>(std::bit_cast<float>(0x3dcccccdu)); // 0x6b87b8
     constexpr double Height = 80.0;                                                   // 0x6b9ffc

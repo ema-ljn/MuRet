@@ -1,12 +1,12 @@
 #include "Render/Models/OriginalRotation.h"
 
+#include "Math/Angles.h"
 #include "Math/X87.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/RoundedMath.h"
 
 #include <glm/ext/vector_float3.hpp>
 
-#include <bit>
 #include <cstddef>
 
 namespace Client::Render::Models
@@ -14,7 +14,7 @@ namespace Client::Render::Models
 namespace
 {
 // π/180 en float (0x6ba360).
-constexpr float Degrees = std::bit_cast<float>(0x3C8EFA35u);
+constexpr float Degrees = Math::DegreesToRadians;
 
 using Math::F32;
 } // namespace

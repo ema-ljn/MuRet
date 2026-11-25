@@ -1,5 +1,6 @@
 #include "UI/OldControls.h"
 
+#include "Math/FloatConstants.h"
 #include "UI/ChatLogWindow.h"
 #include "UI/OldWindowBase.h"
 
@@ -33,7 +34,7 @@ constexpr std::int32_t MinRows = 3;
 constexpr std::int32_t MaxRows = 0x1e;
 // 0x47a9d0: el 9 cuenta los renglones con 1/13 (0x6b9bf4, float) y 0,5 (0x6b882c).
 constexpr float RowsPerPixel = 1.0f / 13.0f;
-constexpr float Half = 0.5f;
+using Math::Half;
 // 0x47a9d0: el 0xe corre −1000 y elige el 1000.
 constexpr std::int32_t FarAway = 1000;
 // 0x461c70: los renglones de 13, desde 10 sobre el borde de arriba del último.

@@ -3,6 +3,8 @@
 #include "Core/Expected.h"
 #include "Core/IClock.h"
 #include "Crt/CrtRandom.h"
+#include "Math/Angles.h"
+#include "Math/FloatConstants.h"
 #include "Math/X87.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/IModelLibrary.h"
@@ -97,7 +99,7 @@ Core::Expected<bool, std::string> DrawTheRing(Render::ModelBatch& batch, const R
     // 0x601f32..0x601fa7: luz 0,5, escala 0,5f y el giro rand() % 360 (fild y fstp), uno por punto.
     constexpr glm::vec3 Gray{0.5f, 0.5f, 0.5f};
     constexpr float FlareScale = 0.5f;
-    constexpr int FullTurn = 360; // 0x168
+    constexpr int FullTurn = Math::FullTurn; // 0x168
     for (const glm::vec3& point : {effect.point40, effect.point4c})
     {
         const auto turn = static_cast<float>(services.random->Next() % FullTurn);
@@ -117,11 +119,11 @@ Core::Expected<bool, std::string> DrawTheKundunSpirit(Render::ModelBatch& batch,
     if (!services.worldClock)
         return Core::Unexpected(std::string("0x4390df: falta el reloj del mundo (0x5767b88) del 0x125"));
     // 0x4390df..0x43911d: FSIN(T · 0,003f) · 0,2f + 0,8f en la x87, guardado en float.
-    constexpr double Rate = static_cast<double>(std::bit_cast<float>(0x3b449ba6u));  // 0x6b89cc, 0,003f
-    constexpr float Swing = std::bit_cast<float>(0x3e4ccccdu);                       // 0x6b8854, 0,2f
-    constexpr double Base = static_cast<double>(std::bit_cast<float>(0x3f4ccccdu));  // 0x6b8a38, 0,8f
-    constexpr double Fifth = static_cast<double>(std::bit_cast<float>(0x3e4ccccdu)); // 0x6b8854, 0,2f
-    constexpr double Tenth = static_cast<double>(std::bit_cast<float>(0x3dcccccdu)); // 0x6b87b8, 0,1f
+    constexpr double Rate = static_cast<double>(std::bit_cast<float>(0x3b449ba6u)); // 0x6b89cc, 0,003f
+    constexpr float Swing = std::bit_cast<float>(0x3e4ccccdu);                      // 0x6b8854, 0,2f
+    constexpr double Base = static_cast<double>(std::bit_cast<float>(0x3f4ccccdu)); // 0x6b8a38, 0,8f
+    constexpr double Fifth = Math::FifthAsDouble;                                   // 0x6b8854, 0,2f
+    constexpr double Tenth = Math::TenthAsDouble;                                   // 0x6b87b8, 0,1f
     const auto pulse = Render::Models::Detail::SineProductPC53(D(*services.worldClock) * Rate, Swing);
     if (!pulse)
         return Core::Unexpected(std::string("0x4390f4: la luz del 0x125 no cabe en el perfil PC53"));

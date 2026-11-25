@@ -3,6 +3,8 @@
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainAttributes.h"
+#include "Math/Angles.h"
+#include "Math/FloatConstants.h"
 #include "Math/X87.h"
 #include "Render/Models/Animation.h"
 #include "Render/Models/LogicalAccess.h"
@@ -52,11 +54,11 @@ constexpr double Bits(std::uint32_t bits)
 }
 
 // Las constantes de .rdata que leen las altas y los pasos, en el double de la x87 (PC53).
-constexpr double Tenth = Bits(0x3dcccccdu);               // 0x6b87b8: 0,1f.
+constexpr double Tenth = Math::TenthAsDouble;             // 0x6b87b8: 0,1f.
 constexpr double NegativeTenth = Bits(0xbdcccccdu);       // 0x6b8930: −0,1f.
-constexpr double Hundredth = Bits(0x3c23d70au);           // 0x6b86c0 y 0x6b88d4: 0,01f.
+constexpr double Hundredth = Math::HundredthAsDouble;     // 0x6b86c0 y 0x6b88d4: 0,01f.
 constexpr double NegativeHundredth = Bits(0xbc23d70au);   // 0x6b8a58: −0,01f.
-constexpr double Fifth = Bits(0x3e4ccccdu);               // 0x6b8854 y 0x6b8cfc: 0,2f.
+constexpr double Fifth = Math::FifthAsDouble;             // 0x6b8854 y 0x6b8cfc: 0,2f.
 constexpr double NegativeFifth = Bits(0xbe4ccccdu);       // 0x6b8d3c: −0,2f.
 constexpr double ThreeTenths = Bits(0x3e99999au);         // 0x6b89dc: 0,3f.
 constexpr double NegativeThreeTenths = Bits(0xbe99999au); // 0x6ba274: −0,3f.
@@ -64,7 +66,7 @@ constexpr double NegativeFourTenths = Bits(0xbecccccdu);  // 0x6ba18c: −0,4f.
 constexpr double SixTenths = Bits(0x3f19999au);           // 0x6b8a20: 0,6f.
 constexpr double EightTenths = Bits(0x3f4ccccdu);         // 0x6b8a38: 0,8f.
 constexpr double NineTenths = Bits(0x3f666666u);          // 0x6b8a1c: 0,9f.
-constexpr double Twentieth = Bits(0x3d4ccccdu);           // 0x6b8a48: 0,05f.
+constexpr double Twentieth = Math::TwentiethAsDouble;     // 0x6b8a48: 0,05f.
 constexpr double ElevenTenths = Bits(0x3f8ccccdu);        // 0x6b8830: 1,1f.
 constexpr double DustStep = Bits(0x3c75c28fu);            // 0x6b8a24: 0,015f.
 constexpr double SmokeStep = Bits(0x3ccccccdu);           // 0x6b8bd0: 0,025f.
@@ -296,7 +298,7 @@ Core::Expected<void, std::string> CreateChipCase(ModelEffect& effect, CrtRandom&
         return {};
     }
     constexpr int PushMask = 255, PushBase = 64, LifeMask = 15, LifeBase = 32, ScaleMask = 3, FallMask = 15;
-    constexpr int FullTurn = 360;
+    constexpr int FullTurn = Math::FullTurn;
     // 0x51b432..0x51b4ff (la /10) y 0x51b509..0x51b5d6 (la /0xc): el empuje ((& 255) + 64) en y, la vida (& 15) + 32,
     // la escala ((& 3) + 15), el yaw rand() % 360, la velocidad (el empuje girado) y la caída; la /10 con el empuje por
     // 0,2 (double, 0x6ba1e8), la escala por 0,05f y la caída (& 15) + 28; la /0xc con los dos por 0,1f y la caída

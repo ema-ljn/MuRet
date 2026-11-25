@@ -5,6 +5,8 @@
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainGrid.h"
+#include "Math/Angles.h"
+#include "Math/FloatConstants.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/ObjectState.h"
@@ -293,7 +295,7 @@ Core::Expected<void, std::string> BeginTheArrow(World::ModelEffect& effect, Worl
     if (type == TwentiethArrow)
     {
         // 0x51c6dd..0x51c705: +0x64 en 1 y la y de los ángulos en rand() % 360, antes del joint.
-        constexpr int FullTurn = 360;
+        constexpr int FullTurn = Math::FullTurn;
         effect.objectState.blendMesh = 1;
         effect.transform.angles.y = static_cast<float>(random.Next() % FullTurn);
         // 0x51c6ef..0x51c713: 0x530860(0x610, posición, posición, ángulos, 0xc, flecha, 40, 80, 0, 0, −1).
@@ -510,7 +512,7 @@ Core::Expected<void, std::string> CreateTheBlast(ActorState& owner, ActorState* 
 Core::Expected<void, std::string> CreateTheReignHandShine(ActorState& actor, const CharacterStepContext& context)
 {
     constexpr int Samples = 15;
-    constexpr int FullTurn = 360;
+    constexpr int FullTurn = Math::FullTurn;
     constexpr std::int32_t ShineJoint = 0x617;
     constexpr std::int32_t ShineSubtype = 3;
     constexpr glm::vec3 HandOffset{0.0f, 10.0f, -130.0f};
@@ -849,7 +851,7 @@ Core::Expected<float, std::string> SpriteTurn(float worldClock, bool negated, st
     if (!whole.has_value())
         return Core::Unexpected(std::format("{}: el reloj del mundo no cabe en el ftol", address));
     const auto turned = negated ? std::bit_cast<std::int32_t>(0u - std::bit_cast<std::uint32_t>(*whole)) : *whole;
-    constexpr double Tenth = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));
+    constexpr double Tenth = Math::TenthAsDouble;
     return F32(static_cast<double>(turned) * Tenth);
 }
 

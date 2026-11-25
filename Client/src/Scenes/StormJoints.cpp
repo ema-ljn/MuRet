@@ -1,5 +1,6 @@
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/Angles.h"
 #include "Math/X87.h"
 #include "Scenes/ActorState.h"
 #include "Render/Models/OriginalRetainedMath.h"
@@ -123,7 +124,7 @@ Core::Expected<void, std::string> StepFallingJoint(JointState& joint, const Join
             joint.light[channel] = F32(D(joint.light[channel]) * Fade);
     }
     // 0x53c2e7..0x53c38b: 0x5491e0(textura, posición, escala, luz, 0, giro, 0); MuRet no guarda el dueño del sprite.
-    constexpr int FullTurn = 360;
+    constexpr int FullTurn = Math::FullTurn;
     const auto rotation = static_cast<float>(services.random->Next() % FullTurn);
     if (joint.subtype < FirstGlowSubtype || joint.subtype == FallingStarSubtype)
     {
@@ -252,8 +253,8 @@ Core::Expected<void, std::string> CreateStormJoint(JointState& joint, const Worl
         return Core::Unexpected(std::format("0x534959: el subtipo {} del joint 0x632 no llega acá", request.subtype));
     // 0x534a16..0x534b19.
     constexpr std::int32_t Life = 0x19;
-    constexpr float Radian = std::bit_cast<float>(0x3c8efa35u); // 0x6b8cf8
-    constexpr float Pale = std::bit_cast<float>(0x3f4ccccdu);   // 0,8f
+    constexpr float Radian = Math::DegreesToRadians;          // 0x6b8cf8
+    constexpr float Pale = std::bit_cast<float>(0x3f4ccccdu); // 0,8f
     joint.life = Life;
     joint.width = request.scale;
     joint.maximumCount = 0x1e;

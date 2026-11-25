@@ -2,6 +2,7 @@
 #include "Render/Models/IModelLibrary.h"
 #include "Scenes/FaunaStep.h"
 
+#include "Math/Angles.h"
 #include "Math/X87.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/OriginalRetainedMath.h"
@@ -24,7 +25,7 @@ namespace Client::Scenes
 {
 namespace
 {
-constexpr std::int32_t FullTurn = 360;
+using Math::FullTurn;
 constexpr std::int16_t IcarusBird = 0x171;
 constexpr std::int16_t KalimaBird = 0x173;
 using Math::F32;

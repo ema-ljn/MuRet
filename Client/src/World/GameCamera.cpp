@@ -1,6 +1,7 @@
 #include "World/GameCamera.h"
 
 #include "Maps/MapId.h"
+#include "Math/FloatConstants.h"
 #include "Math/X87.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Render/Models/RoundedMath.h"
@@ -30,7 +31,7 @@ constexpr float AttributeHeight = 1201.0f;
 constexpr float ZoomStep = 10.0f;
 constexpr float ZoomLimit = 200.0f;
 constexpr float ZoomYaw = -45.0f;
-constexpr double Third = std::bit_cast<float>(std::uint32_t{0x3eaaaaab});
+constexpr double Third = Math::ThirdAsDouble;
 constexpr double RockingPitchRate = std::bit_cast<float>(std::uint32_t{0x3a03126f});
 constexpr double RockingYRate = std::bit_cast<float>(std::uint32_t{0x3a51b717});
 constexpr std::array<float, 5> LevelFar{2000.0f, 2500.0f, 2600.0f, 2950.0f, 3200.0f};

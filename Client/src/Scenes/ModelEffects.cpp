@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Maps/MapId.h"
+#include "Math/FloatConstants.h"
 #include "Math/X87.h"
 #include "Protocol/Events.h"
 #include "Render/Models/Animation.h"
@@ -65,7 +66,7 @@ float Bits(std::uint32_t bits)
 }
 
 // 0x6b87b8: 0,1f.
-constexpr float Tenth = 0.1f;
+using Math::Tenth;
 const glm::vec3 White{1.0f, 1.0f, 1.0f};
 const glm::vec3 NoOffset{0.0f, 0.0f, 0.0f};
 

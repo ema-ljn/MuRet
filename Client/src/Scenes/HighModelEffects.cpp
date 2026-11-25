@@ -2,6 +2,8 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/Angles.h"
+#include "Math/FloatConstants.h"
 #include "Math/X87.h"
 #include "Render/Models/Animation.h"
 #include "Render/Models/HalfLifeMath.h"
@@ -158,7 +160,7 @@ Core::Expected<void, std::string> BeginTheSiegePulse(World::ModelEffect& effect,
 {
     constexpr std::int32_t PulseLife = 20;
     constexpr float FirstRise = -550.0f, SecondRise = -250.0f, Pitch = -90.0f; // 0xc4098000, 0xc37a0000, 0xc2b40000
-    constexpr int FullTurn = 360;
+    constexpr int FullTurn = Math::FullTurn;
     if (effect.subtype != 0 && effect.subtype != 1)
         return {};
     effect.life = PulseLife;
@@ -301,7 +303,7 @@ Core::Expected<void, std::string> BeginTheMovingLight(World::ModelEffect& effect
 // el sonido 0x41ed10(0x42, 0, 0). Cuatro rand() (cinco con el /1): la vida, +0xd8, [+0xe4], la x y la y.
 void BeginTheFallingStar(World::ModelEffect& effect, const HighEffectContext& context)
 {
-    constexpr int LifeSpan = 15, LifeBase = 15, FullTurn = 360;
+    constexpr int LifeSpan = 15, LifeBase = 15, FullTurn = Math::FullTurn;
     constexpr float InitialRise = -20.0f; // 0xc1a00000
     constexpr std::int32_t WideSubtype = 1;
     constexpr int WideSpread = 300, NarrowSpread = 200;    // 0x12c y 0xc8
@@ -668,7 +670,7 @@ Core::Expected<void, std::string> StepTheSiegeFlare(World::ModelEffect& effect, 
 {
     if (effect.subtype == 1)
     {
-        constexpr double Tenth = static_cast<double>(std::bit_cast<float>(0x3dcccccdu)); // 0x6b8a34
+        constexpr double Tenth = Math::TenthAsDouble; // 0x6b8a34
         const float light = F32(static_cast<double>(effect.life) * Tenth);
         effect.objectState.light = light;
         effect.alpha = light;
@@ -800,7 +802,7 @@ Core::Expected<void, std::string> StepTheFallingStar(World::ModelEffect& effect,
     const float glow = F32(D(effect.light.x) + Glow);
     effect.light = glm::vec3(glow);
     constexpr std::uint16_t ShineSprite = 0x5fd, FlareSprite = 0x5ac; // Effect\Shiny02.jpg y Effect\flare01.jpg
-    constexpr int FullTurn = 360, ShineSizes = 3, ShineBase = 4;
+    constexpr int FullTurn = Math::FullTurn, ShineSizes = 3, ShineBase = 4;
     constexpr double ShineStep = static_cast<double>(std::bit_cast<float>(0x3e4ccccdu)); // 0x6b8854, 0,2f
     const auto shineTurn = static_cast<float>(random.Next() % FullTurn);
     const float shineScale = F32(static_cast<double>((random.Next() & ShineSizes) + ShineBase) * ShineStep);
@@ -1075,7 +1077,7 @@ Core::Expected<void, std::string> StepTheSparkEmitter(World::ModelEffect& effect
 // dueño y con la escala 5.
 Core::Expected<void, std::string> StepTheBoltEmitter(World::ModelEffect& effect, const HighEffectStepContext& context)
 {
-    constexpr int Bolts = 3, PitchSpan = 90, FullTurn = 360;
+    constexpr int Bolts = 3, PitchSpan = 90, FullTurn = Math::FullTurn;
     constexpr glm::vec3 Reach{0.0f, -100.0f, 0.0f}; // 0xc2c80000
     constexpr std::int32_t BoltJoint = 0x619, BoltJointSubtype = 6;
     constexpr float BoltJointScale = 5.0f; // 0x40a00000
@@ -1127,7 +1129,7 @@ Core::Expected<void, std::string> StepTheRadialShard(World::ModelEffect& effect,
         effect.alive = false;
     }
     const float luminosity = World::StepLuminosity(lightDraw, effect.life);
-    constexpr double Fifth = static_cast<double>(std::bit_cast<float>(0x3e4ccccdu));     // 0x6b8854
+    constexpr double Fifth = Math::FifthAsDouble;                                        // 0x6b8854
     constexpr double TwoFifths = static_cast<double>(std::bit_cast<float>(0x3ecccccdu)); // 0x6b87b4
     const glm::vec3 color{F32(D(luminosity) * Fifth), F32(D(luminosity) * TwoFifths), luminosity};
     return World::AddDynamicLight(context.services.lighting, position, color, 2, "0x521246");
@@ -1148,7 +1150,7 @@ Core::Expected<void, std::string> StepTheBindingDecal(World::ModelEffect& effect
     placement.origin = effect.start;
     context.world.PlaceModel(owner->type, placement);
     constexpr int GlowSpan = 10;
-    constexpr double Tenth = static_cast<double>(std::bit_cast<float>(0x3dcccccdu)); // 0x6b87b8
+    constexpr double Tenth = Math::TenthAsDouble; // 0x6b87b8
     effect.objectState.light = F32(static_cast<double>(context.random.Next() % GlowSpan) * Tenth);
     // 0x52ba1d: el BMD de la tabla global por el tipo del dueño, por el mismo camino que el alta del 0x19f.
     const Render::Models::Skeleton* skeleton = ModelSkeletonOf(context.world, context.models, owner->type);

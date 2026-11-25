@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Math/FloatConstants.h"
 #include "World/Ftol.h"
 #include "World/ObjectModelStepState.h"
 #include "World/Particles.h"
@@ -19,7 +20,7 @@ Core::Expected<void, std::string> StepNoriaObject(WorldObject& object, Crt::CrtR
                                                   const ObjectStepGlobals& globals)
 {
     constexpr float HalfThousandth = std::bit_cast<float>(0x3a03126fu);
-    constexpr float Thousandth = std::bit_cast<float>(0x3a83126fu);
+    using Math::Thousandth;
     constexpr float TwoThousandths = std::bit_cast<float>(0x3b03126fu);
     if (object.type == 0x27)
     {

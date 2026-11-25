@@ -10,6 +10,8 @@
 #include <glm/ext/vector_float3.hpp>
 #include "Core/Expected.h"
 #include "Maps/MapId.h"
+#include "Math/Angles.h"
+#include "Math/FloatConstants.h"
 #include "World/IFishStepServices.h"
 
 namespace Client::World
@@ -97,14 +99,14 @@ std::uint32_t FishTileIndex(std::int32_t x, std::int32_t y)
 namespace
 {
 constexpr float TileScale = std::bit_cast<float>(std::uint32_t{0x3c23d70a});
-constexpr float Tenth = std::bit_cast<float>(std::uint32_t{0x3dcccccd});
+using Math::Tenth;
 // Literales recuperados en contratos de la misma imagen: K6b8a20 y K6b89a8.
 constexpr float OrdinarySpeedNumerator = std::bit_cast<float>(std::uint32_t{0x3f19999a});
 constexpr float EffectSpeedNumerator = std::bit_cast<float>(std::uint32_t{0x40200000});
 constexpr double FarDistance = 1500;
 constexpr double SoundDistance = 600;
-constexpr double HalfTurn = 180;
-constexpr double FullTurn = 360;
+constexpr double HalfTurn = Math::HalfTurnAsDouble;
+constexpr double FullTurn = Math::FullTurnAsDouble;
 constexpr std::int32_t CandidateWidth = 1024;
 constexpr std::int32_t CandidateRadius = 512;
 

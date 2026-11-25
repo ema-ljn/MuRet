@@ -1,6 +1,7 @@
 #include "World/KalimaSurfaceDecal.h"
 
 #include "Core/Expected.h"
+#include "Math/FloatConstants.h"
 #include "Math/X87.h"
 #include "Render/ModelBatch.h"
 #include "Render/ModelVertex.h"
@@ -30,7 +31,7 @@ namespace
 constexpr float CellsPerUnit = 0.02f; // 41dd70/41dd7f, distinta de la proyección ordinaria.
 constexpr float CellSide = 50;        // 41dfd9/41dfe2.
 constexpr float SurfaceBase = 400;    // 41e00b/41e02e/41e058/41e06b.
-constexpr double Half = 0.5;
+constexpr double Half = Math::HalfAsDouble;
 constexpr std::int32_t FirstUndrawnCell = 255;
 constexpr std::int32_t FirstNonProgressingReach = 1 << 24;
 

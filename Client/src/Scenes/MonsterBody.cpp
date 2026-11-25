@@ -4,6 +4,7 @@
 #include "Data/Models/Model.h"
 #include "Data/Models/ModelTextures.h"
 #include "Data/Textures/TextureSet.h"
+#include "Math/FloatConstants.h"
 #include "Math/X87.h"
 #include "Render/Models/OriginalRetainedMath.h"
 #include "Scenes/ActorState.h"
@@ -45,13 +46,13 @@ constexpr std::int32_t StoneEffects = 0x10a;
 constexpr std::int32_t GateStoneEffects = 0x10c;
 
 // Las constantes de 0x6002e0 (EDI es 1,0f desde 0x60043c).
-constexpr float Tenth = std::bit_cast<float>(0x3dcccccdu);       // 0,1
+using Math::Tenth;                                               // 0,1
 constexpr float ThreeTenths = std::bit_cast<float>(0x3e99999au); // 0,3
 constexpr float FourTenths = std::bit_cast<float>(0x3ecccccdu);  // 0,4
 constexpr float SixTenths = std::bit_cast<float>(0x3f19999au);   // 0,6
 constexpr float EightTenths = std::bit_cast<float>(0x3f4ccccdu); // 0,8
 constexpr float PulseRate = std::bit_cast<float>(0x3b03126fu);   // 0,002f (0x6b89bc)
-constexpr float Hundredth = std::bit_cast<float>(0x3c23d70au);   // 0,01f (0x6b88d4)
+using Math::Hundredth;                                           // 0,01f (0x6b88d4)
 
 using Math::D;
 using Math::F32;

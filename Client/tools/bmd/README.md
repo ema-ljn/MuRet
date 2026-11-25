@@ -33,6 +33,11 @@ mubmd tui ~/mu/Data
 Any `Data` folder without a manifest beside it works as a working copy. The client runs it with
 `Main --data ~/mu/Data`.
 
+`workspace init` on a working copy that already exists keeps it and says how many files were edited; `--yes` copies
+the reference over it, edits included. A write keeps the file as it was before its first write beside it, as
+`<name>.bak`, and writers take turns on a `.mubmd.lock` file in the folder, so several people and agents can edit the
+same working copy: the one whose file changed under it writes nothing and is told so (`STALE_FILE`).
+
 ## Commands
 
 | Command | What it does |
@@ -44,17 +49,18 @@ Any `Data` folder without a manifest beside it works as a working copy. The clie
 | `mubmd workspace init <dest>` | Copy the reference `Data` folder and check it |
 | `mubmd info <file>` | Format, encoding, cipher, records, findings |
 | `mubmd find <file> <query>` | Texts that contain the query (`--regex`, `--limit`, `--offset`, `--fields`) |
-| `mubmd get <file> <pointer>` | One value or subtree |
+| `mubmd get <file> <pointer>` | One value, or a page of a list (`--limit`, `--offset`) |
 | `mubmd set <file> <pointer> <value>` | One edit |
 | `mubmd apply <file> <patch>` | Several edits, all or none (JSON Patch `test` and `replace`) |
 | `mubmd validate <file or folder>` | Findings (`--ndjson`) |
-| `mubmd diff <a> <b>` | Differences between two files, or a file and a JSON view |
+| `mubmd diff <a> <b>` | Differences between two files, or a file and a JSON view (`--limit`, `--offset`) |
 | `mubmd dump <file> --output <json>` | The whole file as JSON |
 | `mubmd build <json> --output <file>` | The reverse |
 | `mubmd roundtrip <folder>` | Decode and encode every file and report any that changes |
 | `mubmd tui [<folder or file>]` | The console UI |
 
 `set`, `apply`, `build`, `dump` and `workspace init` take `--dry-run`. `--human` anywhere prints tables instead of JSON.
+Every list pages the same way: 50 items by default, with `total` and `next_offset` (`null` on the last page).
 
 Output is one JSON object on stdout, `{"ok": true, "schema": 1, "command", "data", "warnings"}`. An error is one JSON
 object on stderr, `{"ok": false, "schema": 1, "error": {"code", "message", "suggestion", "input", "pointer"}}`.
@@ -66,6 +72,7 @@ object on stderr, `{"ok": false, "schema": 1, "error": {"code", "message", "sugg
 | 2 | Bad usage, or a value that does not fit its field |
 | 20 | A file, format or pointer that does not exist |
 | 30 | A precondition failed: read-only reference, corrupt file, file changed since it was read, a `test` that did not hold |
+| 70 | A bug in the tool (`INTERNAL_ERROR`): report the command |
 
 Places inside a file are JSON Pointers (RFC 6901): `/texts/500` is text 500 in `get`, `set`, `apply`, the findings and
 the dumped JSON.
@@ -82,7 +89,9 @@ the dumped JSON.
 ```
 
 Every record is there, so an index in `texts` is the text's number in the client. A record its encoding cannot read is
-kept as `{"hex": "<600 hex digits>"}`. A text holds up to 300 bytes in the file's encoding.
+kept as `{"hex": "<600 hex digits>"}`, and so is one with bytes after its first 0, which the client never shows. A text
+holds up to 300 bytes in the file's encoding. `format_version`, `format` and `encoding` describe the file and are not
+edited.
 
 ## The console UI
 
@@ -92,13 +101,16 @@ record's editor below.
 | Key | Action |
 | --- | --- |
 | `/` | Search the texts |
-| `enter` | Edit the selected record; `enter` again keeps the edit, `escape` drops it |
+| `enter` | Edit the selected record; `enter` again keeps the edit, `escape` drops it. The editor counts the bytes and warns (`⚠`) of a text the client would misread |
 | `ctrl+z`, `ctrl+y` | Undo, redo |
-| `ctrl+s` | Show the changes and write them after `y` |
+| `ctrl+s` | Show the changes and their warnings, and write them after `y` |
 | `d` | Show the unsaved changes |
+| `r` | Read the file again and keep the unsaved edits, after someone else wrote it |
 | `t` | Switch between the dark and the light theme |
 | `ctrl+p` | Every action, by name |
 | `q` | Quit |
+
+A file inside the reference folder opens read-only: it can be searched, not edited.
 
 ## Development
 

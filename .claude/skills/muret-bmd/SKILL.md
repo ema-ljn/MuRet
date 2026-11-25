@@ -8,10 +8,10 @@ description: Use when opening, inspecting, searching, translating or editing a M
 mubmd reads, checks and edits MU Online's .bmd files byte-exact (texts first: Local/Text.bmd). Every command prints one
 JSON object on stdout, {ok: true, schema, command, data, warnings}, or one on stderr when it fails, {ok: false, schema,
 error: {code, message, suggestion, input, pointer}}, and exits 0, 1 (findings or differences), 2 (usage), 20 (not
-found) or 30 (precondition). Places inside a file are JSON Pointers (/texts/500). The reference folder
-Client/assets/Data is read-only: run `mubmd workspace init ~/mu/Data` once and edit the copy with `find`, `get`, then
-`set` or `apply` (a JSON Patch of test and replace). A write is verified before the file is replaced, and its result is
-what was written. `mubmd <command> --help` describes one command as JSON.
+found), 30 (precondition) or 70 (a bug in the tool). Places inside a file are JSON Pointers (/texts/500). The reference
+folder Client/assets/Data is read-only: run `mubmd workspace init ~/mu/Data` once and edit the copy with `find`, `get`,
+then `set` or `apply` (a JSON Patch of test and replace). A write is verified before the file is replaced, and its
+result is what was written. `mubmd <command> --help` describes one command as JSON.
 
 This version reads the text tables: `Local/Text.bmd` (cp1252, the one the client reads), `Local/Texttest.bmd` and
 `Local/TKOU.bmd` (gb2312). Each holds 2,048 texts, `/texts/0` to `/texts/2047`, of up to 300 bytes in the file's
@@ -26,8 +26,10 @@ mubmd --version || pip install -e Client/tools/bmd   # Python 3.12+, in a virtua
 mubmd workspace init ~/mu/Data                        # from the repo: copies 370 MB and checks every file
 ```
 
-If a working copy already exists, use it. Any `Data` folder with no `.sha256` manifest beside it is one. The client
-runs it with `Main --data ~/mu/Data`. People edit the same folder with `mubmd tui ~/mu/Data`; agents use the commands.
+If a working copy already exists, use it. Any `Data` folder with no `.sha256` manifest beside it is one, and
+`workspace init` on one keeps it as it is: `changed` is `false` and `edited` counts the files that differ from the
+reference. The client runs it with `Main --data ~/mu/Data`. People edit the same folder with `mubmd tui ~/mu/Data`;
+agents use the commands.
 
 ## One job, one call
 
@@ -36,18 +38,20 @@ runs it with `Main --data ~/mu/Data`. People edit the same folder with `mubmd tu
 | Change one text | `set FILE /texts/N 'new text'` | `changed`, `changes: [{pointer, old, new}]` |
 | Change several, all or none | `apply FILE '[{"op": "test", ...}, {"op": "replace", ...}]'` | the same |
 | Read one text | `get FILE /texts/N` | `value` |
-| Read texts N to N+M-1 | `get FILE /texts --offset N --limit M` | `value`: a list, item `i` is text `N + i` |
+| Read texts N to N+M-1 | `get FILE /texts --offset N --limit M` | `value`: item `i` is text `N + i`; `next_offset` |
 | Find texts | `find FILE QUERY` | `items: [{index, pointer, text}]`, `total`, `next_offset` |
 | Every place a query appears | `find FILE QUERY --fields pointer --limit 2048` | `items: [{pointer}]`, `total` |
 | Check a file or a folder | `validate PATH` | `files: [{path, findings}]`, `checked`, `skipped` |
-| What changed since the reference | `diff REFERENCE_FILE FILE` | `changes: [{pointer, old, new}]` |
+| What changed since the reference | `diff REFERENCE_FILE FILE` | `changes: [{pointer, old, new}]`, `total` |
 
 The result of `set` and `apply` is the file as it is now. Do not read it back, and do not run the command with
-`--dry-run` first: the write was verified, the first version of the file is kept beside it as `<name>.bak`, and
-`warnings` already carries any finding at the changed places. The `new` of a change is as good as a `get` for a later
-`test`. `--dry-run` is for showing someone a batch before it is written.
+`--dry-run` first: the write was verified, and `warnings` already carries any finding at the changed places. The `new`
+of a change is as good as a `get` for a later `test`, and its `old` is the undo: set it back. `--dry-run` is for showing
+someone a batch before it is written.
 
-`get` on a list sets `truncated` when the list was cut to `--limit`. One text always comes back whole.
+Every list pages the same way: 50 items by default, `--limit` and `--offset` to move, `total` for the whole count and
+`next_offset`, which is `null` on the last page. That holds for `find`, `get` on a list, `diff` and the `changes` of
+`build`. One text always comes back whole.
 
 ## Recipes
 
@@ -93,8 +97,8 @@ mubmd find $WORK/Local/Text.bmd %d --fields pointer --limit 2048
 ```
 
 Check a file or a whole folder. Exit 1 means there are findings, not that the call failed. The reference's own
-findings are known: text 7 fills its record (`TEXT_FILLS_RECORD`) and `TKOU.bmd` text 1829 is not gb2312
-(`TEXT_NOT_DECODABLE`).
+findings are known: text 7 fills its record (`TEXT_FILLS_RECORD`) and `TKOU.bmd` text 1829 has bytes after its first
+0 (`TEXT_HAS_TAIL`).
 
 <!-- recipe: check-a-working-copy -->
 ```bash
@@ -143,18 +147,23 @@ mubmd roundtrip $WORK
   accented letter is one byte, and there are no emoji or CJK characters.
 - **Save tokens.** `--fields` keeps only the keys you name, `--limit` and `--offset` page, and `validate` on a folder
   lists only the files with findings. `mubmd --help` with no command is 19 KB: ask for one command's help.
-- **A record shown as `{"hex": "..."}`** could not be read in the file's encoding. Leave it alone, or set it to
-  another `{"hex"}` of 600 hex digits.
+- **A record shown as `{"hex": "..."}`** could not be read in the file's encoding, or has bytes after its first 0.
+  Leave it alone, or set it to another `{"hex"}` of 600 hex digits. A JSON string (`'"new text"'`) makes it a text and
+  drops those bytes.
+- **Several writers can share a working copy.** They take turns on the folder's `.mubmd.lock`, and the one whose file
+  changed under it writes nothing and gets `STALE_FILE`. Leave `.mubmd.lock` and `<name>.bak` (the file as it was
+  before its first write) where they are.
 - **After changing a codec**, run `mubmd roundtrip Client/assets/Data`: `differing` must be empty.
 
 ## Errors and the way out
 
-An error has no `data`: read `error.code`, and run `error.suggestion` when it is not `null`. Nothing was written.
+An error has no `data`, and nothing was written. Read `error.code` and `error.message`; `error.suggestion`, when it
+is not `null`, is the next command to run or the flag to use.
 
 | Code | Exit | The way out |
 | --- | ---: | --- |
 | `USAGE` | 2 | `mubmd <command> --help` |
-| `INVALID_VALUE` | 2 | The value's type does not fit the field: a text takes a string, a hex record 600 hex digits |
+| `INVALID_VALUE` | 2 | The value does not fit: a text takes a string, a hex record 600 hex digits, a patch is a list |
 | `TEXT_TOO_LONG` | 2 | Shorten the text; the message gives its size in bytes |
 | `NOT_ENCODABLE` | 2 | Replace the character the file's encoding does not have |
 | `FILE_NOT_FOUND` | 20 | Check the path; names keep the case they have on disk (`item.bmd`, `Text.bmd`) |
@@ -163,10 +172,11 @@ An error has no `data`: read `error.code`, and run `error.suggestion` when it is
 | `REFERENCE_READ_ONLY` | 30 | Use the working copy: `mubmd workspace init ~/mu/Data` |
 | `TEST_FAILED` | 30 | `get` the pointer in `error.pointer`, decide again with its real value, send the patch again |
 | `STALE_FILE` | 30 | Someone wrote the file while the command ran: run it again |
-| `NOT_EMPTY` | 30 | `workspace init` found files in the destination: choose another, or `--yes` to copy over them |
+| `NOT_EMPTY` | 30 | The destination of `workspace init` is not a working copy: choose another folder |
 | `CORRUPT_FILE` | 30 | The file is not a table of its format; copy it again from the reference |
 | `WRITE_VERIFY_FAILED` | 30 | A bug in the tool: stop and report the command |
-| `IO_ERROR` | 30 | The disk or its permissions; the message says which |
+| `IO_ERROR` | 30 | The disk, its permissions, or another writer holding the folder for 10 s; the message says which |
+| `INTERNAL_ERROR` | 70 | A bug in the tool: stop and report the command and the message |
 
 ## What an agent without this skill got wrong
 

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "EngineApi.h"
+
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -32,6 +34,6 @@ inline constexpr std::array<std::uint8_t, 32> Xor32Key{
 // Ahí deshace y rehace con la misma clave, así que el corrimiento se cancela: con cualquier otro
 // el resultado es el mismo, aunque lo de en medio no sea el C1 en claro (en un C2 que sale como C4
 // el corrimiento natural sería 2).
-void Xor32EncodeBytes(std::span<std::byte> bytes, std::size_t first, std::size_t keyShift);
-void Xor32DecodeBytes(std::span<std::byte> bytes, std::size_t first, std::size_t keyShift);
+ENGINE_API void Xor32EncodeBytes(std::span<std::byte> bytes, std::size_t first, std::size_t keyShift);
+ENGINE_API void Xor32DecodeBytes(std::span<std::byte> bytes, std::size_t first, std::size_t keyShift);
 } // namespace Client::Network::Crypto

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Audio/Playback.h"
+#include "EngineApi.h"
 
 #include <functional>
 #include <string>
@@ -8,7 +9,7 @@
 
 namespace Client::Audio
 {
-class Music
+class ENGINE_API Music
 {
 public:
     void Play(IPlayback* playback, std::string_view relativePath, bool force = false);

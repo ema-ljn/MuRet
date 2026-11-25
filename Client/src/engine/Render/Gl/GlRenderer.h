@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Core/PixelSize.h"
+#include "OpenGLApi.h"
 #include "Platform/Sdl/GlLoader.h"
 #include "Render/Gl/GlName.h"
 #include "Render/Gl/GlShader.h"
@@ -20,7 +21,7 @@
 // mezcla de cada uno. Se mueve y no se copia, y necesita el contexto vivo.
 namespace Client::Render::Gl
 {
-class GlRenderer
+class OPENGL_API GlRenderer
 {
 public:
     // Compila y enlaza el shader y arma el VAO. El error trae el log del compilador de GLSL.

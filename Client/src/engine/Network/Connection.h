@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Core/IClock.h"
 #include "Core/Log.h"
+#include "EngineApi.h"
 #include "Network/CloseReason.h"
 #include "Crypto/CryptoError.h"
 #include "Crypto/SimpleModulus.h"
@@ -83,7 +84,7 @@ struct Closed // siempre lo último del lote; el motivo también queda en LastCl
 };
 using Event = std::variant<Opened, Packet, Undecryptable, Closed>;
 
-class Connection
+class ENGINE_API Connection
 {
 public:
     // El socket, la ofuscación, el reloj y el log son de quien la arma y tienen que vivir más que

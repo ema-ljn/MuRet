@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Data/DataError.h"
 #include "Data/Terrain/TerrainGrid.h"
+#include "EngineApi.h"
 
 #include <array>
 #include <bit>
@@ -54,5 +55,5 @@ static_assert(sizeof(TerrainLight) == 0xC0000, "el tamaño de la tabla del origi
 //     cuando el original lo lee, ya escribió la tabla.
 //   - Si el JPEG no es de 256 × 256 en color, devuelve DataError::InvalidData. El original no lo
 //     mira, y escribe fuera de la tabla o lee fuera de la imagen (Q-C31).
-Core::Expected<std::unique_ptr<TerrainLight>, DataError> LoadTerrainLight(std::span<const std::byte> file);
+ENGINE_API Core::Expected<std::unique_ptr<TerrainLight>, DataError> LoadTerrainLight(std::span<const std::byte> file);
 } // namespace Client::Data::Terrain

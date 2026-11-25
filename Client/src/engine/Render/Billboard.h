@@ -1,5 +1,6 @@
 #pragma once
 
+#include "EngineApi.h"
 #include "Math/OriginalRotation.h"
 #include "Render/SpriteVertex.h"
 
@@ -34,19 +35,20 @@ struct Billboard
 inline constexpr std::uint16_t OpaqueAlphaBillboardSlot = 0x5e4;
 
 // La vista de la cámara como la guarda 0x620370 en 0x7d366f0: la modelview de 3 × 4, por filas.
-[[nodiscard]] Models::OriginalMatrix ViewRows(const glm::mat4& view);
+[[nodiscard]] ENGINE_API Models::OriginalMatrix ViewRows(const glm::mat4& view);
 
 // Preparación compartida sin consumo anticipado de RGB; el endpoint coloca begin/lookup entre ambas.
-[[nodiscard]] std::array<BillboardCorner, 4> MakeBillboardGeometry(const Models::OriginalMatrix& view,
-                                                                   const glm::vec3& position, float width, float height,
-                                                                   float rotation, glm::vec2 uv, glm::vec2 uvSize);
-[[nodiscard]] Color MakeBillboardColor(const glm::vec3& light, std::int32_t selector, int components);
+[[nodiscard]] ENGINE_API std::array<BillboardCorner, 4> MakeBillboardGeometry(const Models::OriginalMatrix& view,
+                                                                              const glm::vec3& position, float width,
+                                                                              float height, float rotation,
+                                                                              glm::vec2 uv, glm::vec2 uvSize);
+[[nodiscard]] ENGINE_API Color MakeBillboardColor(const glm::vec3& light, std::int32_t selector, int components);
 
 // 0x621400: `position` pasa por `view` (0x5fccc0); el cuadrado de `width` × `height` va en el plano de
 // la pantalla, girado `rotation` grados alrededor del eje de la vista (0x5fc8f0 y 0x5fcbd0 con (0, 0,
 // rotación)), con las UV de (u, v) a (u + du, v + dv). El color: con una textura de 3 componentes,
 // `light` (glColor3fv); con 4, (r, g, b, r), salvo la 0x5e4, con alpha 1.
-[[nodiscard]] Billboard MakeBillboard(const Models::OriginalMatrix& view, const glm::vec3& position, float width,
-                                      float height, const glm::vec3& light, float rotation, glm::vec2 uv,
-                                      glm::vec2 uvSize, std::uint16_t slot, int components);
+[[nodiscard]] ENGINE_API Billboard MakeBillboard(const Models::OriginalMatrix& view, const glm::vec3& position,
+                                                 float width, float height, const glm::vec3& light, float rotation,
+                                                 glm::vec2 uv, glm::vec2 uvSize, std::uint16_t slot, int components);
 } // namespace Client::Render

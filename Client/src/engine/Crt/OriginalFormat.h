@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/Expected.h"
+#include "EngineApi.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -52,7 +53,7 @@ enum class FormatFunction : std::uint8_t
 // `format` con `arguments` en orden. Las conversiones son d, i, u, x, X, c, s y %%. Un "%s" con un número (el
 // original lee un puntero que no es), una conversión sin argumento (lee la pila) o una que MuRet no tiene cortan con
 // error en `where`.
-[[nodiscard]] Core::Expected<std::string, std::string> FormatOriginal(FormatFunction function, std::string_view format,
-                                                                      std::span<const FormatArgument> arguments,
-                                                                      std::string_view where);
+[[nodiscard]] ENGINE_API Core::Expected<std::string, std::string>
+FormatOriginal(FormatFunction function, std::string_view format, std::span<const FormatArgument> arguments,
+               std::string_view where);
 } // namespace Client::UI

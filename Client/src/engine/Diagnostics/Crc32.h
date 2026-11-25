@@ -1,5 +1,7 @@
 #pragma once
 
+#include "EngineApi.h"
+
 #include <cstddef>
 #include <cstdint>
 #include <span>
@@ -13,7 +15,7 @@
 // caídas lo corre después de la caída.
 namespace Client::Core::Crash
 {
-class Crc32
+class ENGINE_API Crc32
 {
 public:
     void Update(std::span<const std::byte> bytes);

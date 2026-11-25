@@ -1,5 +1,6 @@
 #pragma once
 
+#include "OpenGLApi.h"
 #include "Platform/Sdl/GlLoader.h"
 
 // Un nombre de OpenGL con RAII (del lab de la CL5.0, labs/cl5.0-pipeline/gl/GlName.h): una
@@ -11,7 +12,7 @@
 // GlName lo declara después del contexto, así se destruye antes.
 namespace Client::Render::Gl
 {
-class GlName
+class OPENGL_API GlName
 {
 public:
     // Cómo se borra cada clase de nombre: glDeleteTextures(1, &name), glDeleteProgram(name)...

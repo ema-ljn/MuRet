@@ -1,5 +1,6 @@
 #pragma once
 
+#include "EngineApi.h"
 #include "Models/Shine.h"
 
 #include <cstdint>
@@ -35,8 +36,8 @@ inline constexpr std::uint8_t DefaultGlowDetail = 4;
 // (Chrome2), el 0x48 y el 0x44; del 13, el 0x1040 (Chrome4), el 0x48 y el 0x44; del 14 y el 15,
 // ninguno (Q-C97). Uno excelente suma el 0x42, y uno de set que no es excelente el 0x840 (Chrome3).
 // Los niveles 3 a 6 laten con DAT_07d36ba8 en el original: acá, el color sin latir (P-C18).
-[[nodiscard]] ItemGlow ItemGlowOf(std::uint8_t level, bool excellent, bool ancient,
-                                  std::uint8_t detail = DefaultGlowDetail);
+[[nodiscard]] ENGINE_API ItemGlow ItemGlowOf(std::uint8_t level, bool excellent, bool ancient,
+                                             std::uint8_t detail = DefaultGlowDetail);
 
 // El nivel con que 0x60b3d0 dibuja las saetas (0xa19) y las flechas (0xa21): el 0 queda en 0 y los
 // demás van a 2 · nivel + 1. De 14 para arriba, ItemGlowOf no da pases (LAB_0060cb0f).

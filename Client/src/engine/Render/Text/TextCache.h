@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/Expected.h"
+#include "EngineApi.h"
 #include "Render/ITextureStore.h"
 #include "Render/SpriteBatch.h"
 #include "Render/Text/FontSet.h"
@@ -32,7 +33,7 @@
 // Vive lo que la tabla donde sube, y no es para varios hilos.
 namespace Client::Render::Text
 {
-class TextCache
+class ENGINE_API TextCache
 {
 public:
     // Sube las cajas a `store`, en los `slotCount` slots desde `firstSlot`. El rasterizador y la

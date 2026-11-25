@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Core/Log.h"
+#include "EngineApi.h"
 #include "Render/SpriteBatch.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
@@ -20,7 +21,7 @@
 // vez: el mismo texto se pide en cada frame. Ningún mensaje lleva el texto.
 namespace Client::Scenes
 {
-class TextCacheDrawer final : public ITextDrawer
+class ENGINE_API TextCacheDrawer final : public ITextDrawer
 {
 public:
     // La caché, el lote y el log tienen que vivir lo que él.

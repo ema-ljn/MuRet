@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Crypto/CryptoError.h"
 #include "Crypto/SimpleModulus.h"
+#include "EngineApi.h"
 #include "Network/IObfuscation.h"
 #include "Network/Packet.h"
 #include "Network/PacketSerials.h"
@@ -32,10 +33,10 @@ namespace Client::Network
 // Con `obfuscation`, lo que se va a cifrar (el serial, lo útil y el relleno) pasa antes por su
 // BeforeEncrypt, como en el original pasa por FoxAnti antes de 0x685ac0. Sin ella, por
 // IdentityObfuscation::Shared(), que no lo toca.
-[[nodiscard]] Core::Expected<Packet, Crypto::CryptoError>
+[[nodiscard]] ENGINE_API Core::Expected<Packet, Crypto::CryptoError>
 EncryptPacket(const Packet& plain, const Crypto::EncryptionKey& key, PacketSerials& serials,
               const IObfuscation& obfuscation, std::byte padding = {});
-[[nodiscard]] Core::Expected<Packet, Crypto::CryptoError>
+[[nodiscard]] ENGINE_API Core::Expected<Packet, Crypto::CryptoError>
 EncryptPacket(const Packet& plain, const Crypto::EncryptionKey& key, PacketSerials& serials, std::byte padding = {});
 
 // Lo que sale de descifrar un C3/C4.
@@ -52,6 +53,6 @@ struct DecryptedPacket
 // (PacketSerials::SkipReceive). Si hay más de un problema gana el primero de esa lista: un checksum
 // malo en cualquier bloque gana sobre un largo útil imposible, porque el original corta en el
 // primer checksum malo sin mirar los largos, y es el error que lleva el aviso F1 03.
-[[nodiscard]] Core::Expected<DecryptedPacket, Crypto::CryptoError>
+[[nodiscard]] ENGINE_API Core::Expected<DecryptedPacket, Crypto::CryptoError>
 DecryptPacket(const Packet& encrypted, const Crypto::DecryptionKey& key, PacketSerials& serials);
 } // namespace Client::Network

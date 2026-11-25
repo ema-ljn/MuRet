@@ -1,5 +1,6 @@
 #pragma once
 
+#include "EngineApi.h"
 #include "Pathfinding/Path.h"
 #include "Data/Terrain/TerrainGrid.h"
 #include "Pathfinding/PathCell.h"
@@ -16,7 +17,7 @@ struct TerrainWalls;
 // celdas del radio (0x4eae7c..0x4eb054, el elfo que se acerca a pegar, 0x566271; 06 § Pegar al llegar).
 namespace Client::GameLogic
 {
-class PathFinder
+class ENGINE_API PathFinder
 {
 public:
     explicit PathFinder(World::TerrainWalls& walls);

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/IClock.h"
+#include "EngineApi.h"
 
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
@@ -32,5 +33,6 @@ enum class ShinePass : std::uint8_t
 // Las UV de un vértice con su normal en el mundo y el reloj del frame, con t = (T mod 10000) · 0,0001,
 // c = cos(0,001·T) y s = sin(0,002·T), T en ms. El original guarda T en un float, que desde 2²⁴ ms
 // (4,7 horas) ya no cuenta de a uno (Q-C22): acá T es el reloj entero, y uno negativo cuenta 0.
-[[nodiscard]] glm::vec2 ShineTexCoords(ShinePass pass, const glm::vec3& worldNormal, Core::Duration frameClock);
+[[nodiscard]] ENGINE_API glm::vec2 ShineTexCoords(ShinePass pass, const glm::vec3& worldNormal,
+                                                  Core::Duration frameClock);
 } // namespace Client::Render::Models

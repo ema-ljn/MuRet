@@ -6,6 +6,7 @@
 #include "Platform/Sdl/GlLoader.h"
 #include "Platform/Sdl/SdlContext.h"
 #include "Platform/Sdl/SwapInterval.h"
+#include "PlatformApi.h"
 
 #include <SDL3/SDL_video.h>
 
@@ -28,17 +29,17 @@ struct WindowOptions
     App::VSyncMode vsync = App::VSyncMode::On;
 };
 
-struct WindowDeleter
+struct PLATFORM_API WindowDeleter
 {
     void operator()(SDL_Window* window) const;
 };
 
-struct GlContextDeleter
+struct PLATFORM_API GlContextDeleter
 {
     void operator()(SDL_GLContextState* context) const;
 };
 
-class Window
+class PLATFORM_API Window
 {
 public:
     // Necesita un SdlContext vivo. Crea la ventana, el contexto 3.3 core, carga GL y pide VSync.

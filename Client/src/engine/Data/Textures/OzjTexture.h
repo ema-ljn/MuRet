@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Data/DataError.h"
 #include "Data/Textures/Texture.h"
+#include "EngineApi.h"
 
 #include <cstddef>
 #include <span>
@@ -39,5 +40,5 @@ static_assert(OzjPrefixSize == 0x18, "el fseek que mide el research (0063b870-oz
 //     original: un JPEG en grises, de un byte por píxel, llena un tercio de lo que ocupa la imagen
 //     en cada fila, y uno CMYK, de 4, entra si su ancho no pasa de 3/4 del de la textura (Q-C31).
 //     Si una fila no entra en la de la textura, devuelve DataError::InvalidData.
-Core::Expected<Texture, DataError> LoadOzjTexture(std::span<const std::byte> file);
+ENGINE_API Core::Expected<Texture, DataError> LoadOzjTexture(std::span<const std::byte> file);
 } // namespace Client::Data::Textures

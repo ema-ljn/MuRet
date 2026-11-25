@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/Expected.h"
+#include "EngineApi.h"
 
 #include <cstdint>
 #include <filesystem>
@@ -33,8 +34,8 @@ enum class JpegWrite
 // alto de 0 o menos, o un buffer de otro tamaño, son el error, sin abrir nada. Si libjpeg corta (no puede escribir,
 // se queda sin memoria), también el error: el error_exit de jpeg_std_error del original sale del juego con exit(1),
 // y el archivo queda como lo dejó.
-[[nodiscard]] Core::Expected<JpegWrite, std::string> WriteJpegFile(const std::filesystem::path& file, int width,
-                                                                   int height,
-                                                                   std::span<const std::uint8_t> bottomUpRgb,
-                                                                   int quality);
+[[nodiscard]] ENGINE_API Core::Expected<JpegWrite, std::string> WriteJpegFile(const std::filesystem::path& file,
+                                                                              int width, int height,
+                                                                              std::span<const std::uint8_t> bottomUpRgb,
+                                                                              int quality);
 } // namespace Client::Data::Textures

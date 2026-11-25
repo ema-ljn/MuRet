@@ -2,6 +2,7 @@
 
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
+#include "PlatformApi.h"
 
 #include <SDL3/SDL_log.h>
 
@@ -17,7 +18,7 @@ namespace Client::Platform
 // El nivel del log para la prioridad de un mensaje de SDL: TRACE, VERBOSE y DEBUG van a Debug;
 // INFO a Info; WARN a Warning; ERROR y CRITICAL a Error. INVALID y COUNT no son prioridades de un
 // mensaje, y van a Error para que se vean.
-[[nodiscard]] Core::LogLevel LevelOf(SDL_LogPriority priority);
+[[nodiscard]] PLATFORM_API Core::LogLevel LevelOf(SDL_LogPriority priority);
 
 // RAII: el constructor pone la salida de SDL con SDL_SetLogOutputFunction(callback, &log), y el
 // destructor vuelve a SDL_GetDefaultLogOutputFunction(). El texto de SDL va con Log::Write (sus
@@ -37,7 +38,7 @@ namespace Client::Platform
 //
 // Uno solo a la vez: la salida de SDL es una sola para todo el proceso, y el segundo SdlLog le
 // sacaría la suya al primero (un assert lo mira en Debug). El Log tiene que vivir más que él.
-class SdlLog
+class PLATFORM_API SdlLog
 {
 public:
     explicit SdlLog(Core::Log& log);

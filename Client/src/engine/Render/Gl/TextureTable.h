@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Data/Textures/TextureSet.h"
+#include "OpenGLApi.h"
 #include "Platform/Sdl/GlLoader.h"
 #include "Render/Gl/GlTexture.h"
 #include "Render/ITextureStore.h"
@@ -19,7 +20,7 @@
 // destructor, con el contexto vivo.
 namespace Client::Render::Gl
 {
-class TextureTable final : public Render::ITextureStore
+class OPENGL_API TextureTable final : public Render::ITextureStore
 {
 public:
     explicit TextureTable(const Platform::GlFunctions& gl);

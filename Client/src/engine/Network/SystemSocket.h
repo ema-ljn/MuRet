@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/Expected.h"
+#include "EngineApi.h"
 #include "Network/IResolver.h"
 #include "Network/ISocket.h"
 #include "Network/SocketApi.h"
@@ -22,7 +23,7 @@
 // Necesita un SocketApi::NetworkInit vivo mientras tenga un socket.
 namespace Client::Network
 {
-class SystemSocket final : public ISocket
+class ENGINE_API SystemSocket final : public ISocket
 {
 public:
     // El resolver tiene que vivir más que el socket. Uno temporal no compila.

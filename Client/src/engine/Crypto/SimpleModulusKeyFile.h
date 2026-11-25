@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Crypto/CryptoError.h"
 #include "Crypto/SimpleModulus.h"
+#include "EngineApi.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -32,6 +33,6 @@ inline constexpr Lanes KeyFileXor{0x3F08A79B, 0xE25CC287, 0x93D27AB9, 0x20DEA7BF
 // InvalidKeyFile con otro magic, otro tamaño declarado o menos de KeyFileSize bytes; InvalidKey si
 // un módulo no sirve (SimpleModulusKey::FromLanes). Lo que sigue a los 54 bytes no se lee, como en
 // el original.
-[[nodiscard]] Core::Expected<EncryptionKey, CryptoError> LoadEncryptionKey(std::span<const std::byte> file);
-[[nodiscard]] Core::Expected<DecryptionKey, CryptoError> LoadDecryptionKey(std::span<const std::byte> file);
+[[nodiscard]] ENGINE_API Core::Expected<EncryptionKey, CryptoError> LoadEncryptionKey(std::span<const std::byte> file);
+[[nodiscard]] ENGINE_API Core::Expected<DecryptionKey, CryptoError> LoadDecryptionKey(std::span<const std::byte> file);
 } // namespace Client::Network::Crypto

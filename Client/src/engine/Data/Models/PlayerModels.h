@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Data/Models/ModelFiles.h"
+#include "EngineApi.h"
 
 #include <array>
 #include <cstddef>
@@ -40,15 +41,15 @@ inline constexpr std::array<std::uint16_t, 5> HelmsWithMask{0x1012, 0x1017, 0x10
 
 // Las 213 cargas de 0x60dbe0 en el modo Data\: Player.bmd, las partes de cada clase, las del equipo
 // y Shadow01.bmd. Todas están en el Data\ del laboratorio.
-[[nodiscard]] std::span<const ModelFile> PlayerModelFiles();
+[[nodiscard]] ENGINE_API std::span<const ModelFile> PlayerModelFiles();
 
 // Las 243 de 0x60ff50, cada una con un modelo distinto: las armas, los escudos, los ítems y las
 // cuatro mascotas de Player\ (Helper01 a 04). En el laboratorio faltan solo los tres giftbox (09),
 // que el original saltea sin avisar.
-[[nodiscard]] std::span<const ModelFile> ItemModelFiles();
+[[nodiscard]] ENGINE_API std::span<const ModelFile> ItemModelFiles();
 
 // Las 106 cargas de 0x615700 en la rama Data, en orden nativo. ManyFlag es opcional y puede faltar.
-[[nodiscard]] std::span<const ModelFile> SkillModelFiles();
+[[nodiscard]] ENGINE_API std::span<const ModelFile> SkillModelFiles();
 
 // Una malla de un modelo de la tabla.
 struct ModelMesh

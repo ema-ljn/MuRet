@@ -1,5 +1,7 @@
 #pragma once
 
+#include "EngineApi.h"
+
 #include <optional>
 #include <string>
 
@@ -10,5 +12,5 @@ namespace Client::Core
 {
 // La variable `name`, o std::nullopt si no está. `name` termina en \0. En MSVC va por _dupenv_s,
 // que devuelve una copia en el heap: se libera acá.
-[[nodiscard]] std::optional<std::string> ReadEnvironmentVariable(const char* name);
+[[nodiscard]] ENGINE_API std::optional<std::string> ReadEnvironmentVariable(const char* name);
 } // namespace Client::Core

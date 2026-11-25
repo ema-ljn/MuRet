@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Data/DataError.h"
 #include "Data/Models/Model.h"
+#include "EngineApi.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -71,5 +72,5 @@ inline constexpr std::size_t MaxPosedBoneActions = std::size_t{1} << 16;
 //     y las tres del modelo las saltea como un 0 (0x4f1882) pero las guarda;
 //   - si los huesos que se posan por las acciones pasan de MaxPosedBoneActions,
 //     DataError::InvalidData.
-[[nodiscard]] Core::Expected<Model, DataError> LoadBmd(std::span<const std::byte> file);
+[[nodiscard]] ENGINE_API Core::Expected<Model, DataError> LoadBmd(std::span<const std::byte> file);
 } // namespace Client::Data::Models

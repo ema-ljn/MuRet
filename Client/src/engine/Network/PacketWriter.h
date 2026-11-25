@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/Expected.h"
+#include "EngineApi.h"
 #include "Network/Packet.h"
 #include "Network/PacketError.h"
 
@@ -33,7 +34,7 @@ inline constexpr std::size_t MaxWrittenPacketSize = 0x800;
 // El C1 más grande: su tamaño ocupa un byte.
 inline constexpr std::size_t MaxC1Size = 0xFF;
 
-class PacketWriter
+class ENGINE_API PacketWriter
 {
 public:
     // Empieza un C1 (C1, el tamaño, el opcode) o un C2 (C2, el tamaño en dos bytes, el opcode). El

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "EngineApi.h"
+
 #include <array>
 #include <cstdint>
 #include <span>
@@ -49,7 +51,8 @@ private:
 //     termina el texto no escribe nada, como el CRT.
 // Donde el original leería de la pila lo que no le pasaron (una marca sin argumento, un %s con un entero, un %d con
 // un texto o un tipo de punto flotante), MuRet deja la marca escrita como está y no gasta el argumento.
-[[nodiscard]] std::string FormatLikeSprintf(std::string_view format, std::span<const SprintfArgument> arguments);
+[[nodiscard]] ENGINE_API std::string FormatLikeSprintf(std::string_view format,
+                                                       std::span<const SprintfArgument> arguments);
 
 // Lo mismo con los argumentos en la llamada.
 template <typename... Arguments> [[nodiscard]] std::string Sprintf(std::string_view format, Arguments... arguments)

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "EngineApi.h"
 #include "Render/IParticleDrawBackend.h"
 #include "Render/ITextureSlots.h"
 #include "Render/ModelBatchParticleState.h"
@@ -30,7 +31,7 @@ enum class ModelStateOperation : std::uint8_t;
 // Antes de Release/cargas: comprobar ModelBatch::InvalidateTextureKnowledge y no usar este
 // backend entre esos efectos. Con trabajo pendiente la notificación falla; nunca resolver un
 // objeto reemplazado silenciosamente durante Draw. Sólo un backend/primitive por lote.
-class ModelBatchParticleBackend : public IParticleDrawBackend
+class ENGINE_API ModelBatchParticleBackend : public IParticleDrawBackend
 {
 public:
     ModelBatchParticleBackend(std::reference_wrapper<ModelBatch> batch,

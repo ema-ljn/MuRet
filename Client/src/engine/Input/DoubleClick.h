@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/IClock.h"
+#include "EngineApi.h"
 #include "Input/InputState.h"
 
 #include <chrono>
@@ -16,7 +17,7 @@ namespace Client::Input
 // GetDoubleClickTime con la configuración de Windows por defecto.
 inline constexpr Core::Duration DoubleClickTime = std::chrono::milliseconds{500};
 
-class DoubleClick
+class ENGINE_API DoubleClick
 {
 public:
     // Un paso de la lógica en `now`: true si en este paso llegó el segundo apretón.

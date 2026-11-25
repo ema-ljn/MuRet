@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Data/DataError.h"
 #include "Data/Terrain/TerrainGrid.h"
+#include "EngineApi.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -61,11 +62,11 @@ struct TerrainAttributes
 //     DataError::InvalidData, el "Data error" del original.
 //   - Si la cabecera es de otro mundo, devuelve DataError::WrongWorld. En el original es el que
 //     llama el que muestra "%s file corrupted." y cierra el juego.
-Core::Expected<std::unique_ptr<TerrainAttributes>, DataError> LoadTerrainAttributes(std::span<const std::byte> file,
-                                                                                    std::uint8_t world);
+ENGINE_API Core::Expected<std::unique_ptr<TerrainAttributes>, DataError>
+LoadTerrainAttributes(std::span<const std::byte> file, std::uint8_t world);
 
 // Como LoadTerrainAttributes, sin comparar el mundo de la cabecera: lo que hace el BD 00 de Crywolf, que no mira lo
 // que devuelve el cargador (0x42ffe8).
-Core::Expected<std::unique_ptr<TerrainAttributes>, DataError>
+ENGINE_API Core::Expected<std::unique_ptr<TerrainAttributes>, DataError>
 LoadTerrainAttributesOfAnyWorld(std::span<const std::byte> file);
 } // namespace Client::Data::Terrain

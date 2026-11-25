@@ -1,5 +1,7 @@
 #pragma once
 
+#include "EngineApi.h"
+
 #ifdef __linux__
 #include <cstdint>
 
@@ -14,6 +16,6 @@ namespace Client::Core::Crash
 // privilegiada, SIGFPE la división u operación de punto flotante que dice `code` (la división
 // entera por 0 si no dice ninguna) y SIGTRAP un breakpoint o un paso. Un `code` que no es del
 // kernel (raise, kill) cuenta solo la señal. 0 para una señal que el manejador no toma.
-[[nodiscard]] std::uint32_t ExceptionCodeForSignal(int signal, int code);
+[[nodiscard]] ENGINE_API std::uint32_t ExceptionCodeForSignal(int signal, int code);
 } // namespace Client::Core::Crash
 #endif

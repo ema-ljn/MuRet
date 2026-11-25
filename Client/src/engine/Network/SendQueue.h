@@ -1,5 +1,6 @@
 #pragma once
 
+#include "EngineApi.h"
 #include "Network/ISocket.h"
 #include "Network/SocketError.h"
 
@@ -30,7 +31,7 @@ enum class SendQueueError : std::uint8_t
     Socket, // el socket falló: SocketError en LastSocketError()
 };
 
-class SendQueue
+class ENGINE_API SendQueue
 {
 public:
     // Agrega `bytes` detrás de lo pendiente, o Full sin agregar nada.

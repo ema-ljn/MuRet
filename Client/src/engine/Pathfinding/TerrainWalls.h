@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Data/Terrain/TerrainGrid.h"
+#include "EngineApi.h"
 
 #include <array>
 #include <cstdint>
@@ -29,10 +30,10 @@ struct TerrainOccupant
 };
 
 // 0x508f14..0x508f34: el 0x02 fuera de los 65.536 WORD, al principio de cada paso de los personajes.
-void ClearCharacterWalls(Data::Terrain::TerrainLayer<std::uint16_t>& cells);
+ENGINE_API void ClearCharacterWalls(Data::Terrain::TerrainLayer<std::uint16_t>& cells);
 // 0x509165: el 0x02 en la celda lógica de un personaje, por 0x5f82a0, que se queda con los ocho bits
 // bajos de cada coordenada.
-void MarkCharacterWall(Data::Terrain::TerrainLayer<std::uint16_t>& cells, int logicalX, int logicalY);
+ENGINE_API void MarkCharacterWall(Data::Terrain::TerrainLayer<std::uint16_t>& cells, int logicalX, int logicalY);
 
 // Una de las seis celdas de 0x6c72bc, de a dos bytes (x, y).
 struct GateCell
@@ -50,7 +51,7 @@ inline constexpr std::array<GateCell, 6> GateCells{
 // cada celda (x, y) de GateCells, si la de abajo (x, y + 1) tiene el 0x04 en su byte bajo, 0x5f8750(x − 1,
 // y + 1, 4, 1, 4, 0) lo saca (0x5f8730, and con ~0x04) de las cuatro de x − 1 a x + 2 en esa fila. Corre
 // en todos los mapas (Q-C276).
-void OpenTheGates(Data::Terrain::TerrainLayer<std::uint16_t>& cells);
+ENGINE_API void OpenTheGates(Data::Terrain::TerrainLayer<std::uint16_t>& cells);
 
 // 0x558800(x, y, tx, ty): si se ve la celda (tx, ty) desde (x, y), con el Bresenham de los WORD de 0x7d0d348 desde el
 // índice de 0x5f82a0(x, y) (los ocho bits bajos de cada una). El eje largo es el de la diferencia mayor (con las dos
@@ -59,10 +60,10 @@ void OpenTheGates(Data::Terrain::TerrainLayer<std::uint16_t>& cells);
 // con el WORD en 4 o más y sin 0x20, 0x40 ni 0x80 en su byte bajo tapa. Los pasos son lineales (±1 y ±0x100), así
 // que una punta fuera de la grilla sigue por la fila de al lado o sale del arreglo: nullopt donde el original leería
 // fuera de los 65.536 WORD.
-[[nodiscard]] std::optional<bool> CanSeeTheCell(const Data::Terrain::TerrainLayer<std::uint16_t>& cells, int x, int y,
-                                                int targetX, int targetY);
+[[nodiscard]] ENGINE_API std::optional<bool> CanSeeTheCell(const Data::Terrain::TerrainLayer<std::uint16_t>& cells,
+                                                           int x, int y, int targetX, int targetY);
 
-struct TerrainWalls
+struct ENGINE_API TerrainWalls
 {
     Data::Terrain::TerrainLayer<std::uint16_t> cells{};
 

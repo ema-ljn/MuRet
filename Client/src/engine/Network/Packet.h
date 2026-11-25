@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/Expected.h"
+#include "EngineApi.h"
 #include "Network/PacketError.h"
 
 #include <cstddef>
@@ -36,28 +37,28 @@ enum class PacketType : std::uint8_t
 inline constexpr std::size_t MaxPacketSize = 0x2000;
 
 // El tipo de un primer byte, o std::nullopt si no es C1 a C4.
-[[nodiscard]] std::optional<PacketType> PacketTypeFromByte(std::byte first);
+[[nodiscard]] ENGINE_API std::optional<PacketType> PacketTypeFromByte(std::byte first);
 
 // El tipo y el tamaño: 2 bytes en C1 y C3, 3 en C2 y C4.
-[[nodiscard]] std::size_t HeaderSize(PacketType type);
+[[nodiscard]] ENGINE_API std::size_t HeaderSize(PacketType type);
 
 // Lo mínimo que mide un paquete: la cabecera y el opcode.
-[[nodiscard]] std::size_t MinPacketSize(PacketType type);
+[[nodiscard]] ENGINE_API std::size_t MinPacketSize(PacketType type);
 
 // El tamaño que declara la cabecera, leído de sus primeros HeaderSize(type) bytes. std::nullopt
 // si todavía no llegaron todos.
-[[nodiscard]] std::optional<std::size_t> DeclaredSize(PacketType type, std::span<const std::byte> header);
+[[nodiscard]] ENGINE_API std::optional<std::size_t> DeclaredSize(PacketType type, std::span<const std::byte> header);
 
 // Agrega a `out` la cabecera que lee DeclaredSize: el tipo y `size`, en el byte 1 en un C1/C3, y en
 // los bytes 1 y 2, big-endian, en un C2/C4. Quien llama sabe que `size` entra: en un C1/C3 se
 // escribe solo su byte de abajo.
-void AppendHeader(std::vector<std::byte>& out, PacketType type, std::size_t size);
+ENGINE_API void AppendHeader(std::vector<std::byte>& out, PacketType type, std::size_t size);
 
 // Si un tamaño declarado no sirve: SizeTooSmall si no llega a MinPacketSize(type), TooLarge si pasa
 // de MaxPacketSize, y std::nullopt si sirve. Es la regla que usan FromBytes y el PacketReader.
-[[nodiscard]] std::optional<PacketError> CheckDeclaredSize(PacketType type, std::size_t declared);
+[[nodiscard]] ENGINE_API std::optional<PacketError> CheckDeclaredSize(PacketType type, std::size_t declared);
 
-class Packet
+class ENGINE_API Packet
 {
 public:
     // Valida el tipo, el tamaño mínimo y el máximo, y que el tamaño que declara sea el que mide.

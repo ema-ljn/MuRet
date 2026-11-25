@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/Expected.h"
+#include "EngineApi.h"
 #include "Network/IResolver.h"
 #include "Network/SocketError.h"
 
@@ -14,7 +15,7 @@
 // Necesita un SocketApi::NetworkInit vivo: en Windows, getaddrinfo es de Winsock.
 namespace Client::Network
 {
-class SystemResolver final : public IResolver
+class ENGINE_API SystemResolver final : public IResolver
 {
 public:
     // Vacío o con un byte 0 adentro es ResolveFailed sin preguntar: el sistema lee el texto hasta

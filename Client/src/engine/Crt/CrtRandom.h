@@ -1,11 +1,13 @@
 #pragma once
 
+#include "EngineApi.h"
+
 #include <cstdint>
 
 namespace Client::Crt
 {
 // 0x69fd70, the original's CRT rand(), seeded once by srand(time(NULL)) (0x4bad9a).
-class CrtRandom
+class ENGINE_API CrtRandom
 {
 public:
     explicit CrtRandom(std::uint32_t seed = 1) noexcept : m_state(seed) {}

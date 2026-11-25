@@ -2,6 +2,7 @@
 
 #include "Core/ByteReader.h"
 #include "Core/Expected.h"
+#include "EngineApi.h"
 #include "Network/Packet.h"
 #include "Network/ProtocolError.h"
 
@@ -28,8 +29,8 @@ struct PacketKind
 // Un lector de los campos que siguen al subcódigo. WrongPacket si el tipo, el opcode o el subcódigo
 // no son los de `kind`, y TooShort si el paquete termina antes del subcódigo. Lee los bytes de
 // `packet`, que tiene que seguir vivo mientras se lea.
-[[nodiscard]] Core::Expected<Core::ByteReader, ProtocolError> FieldsAfterSubcode(const Network::Packet& packet,
-                                                                                 const PacketKind& kind);
+[[nodiscard]] ENGINE_API Core::Expected<Core::ByteReader, ProtocolError>
+FieldsAfterSubcode(const Network::Packet& packet, const PacketKind& kind);
 
 // Con un Packet temporal, el lector miraría los bytes de un paquete que muere al terminar la línea,
 // como con el constructor que Core::ByteReader rechaza: así no compila.
@@ -38,5 +39,5 @@ Core::Expected<Core::ByteReader, ProtocolError> FieldsAfterSubcode(const Network
 
 // Un texto de largo fijo, hasta el primer \0, o el campo entero si no tiene ninguno: un campo lleno
 // no lleva terminador (Q-C07).
-[[nodiscard]] std::string TextField(std::span<const std::byte> field);
+[[nodiscard]] ENGINE_API std::string TextField(std::span<const std::byte> field);
 } // namespace Client::Protocol

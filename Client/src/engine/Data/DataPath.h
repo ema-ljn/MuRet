@@ -1,5 +1,7 @@
 #pragma once
 
+#include "EngineApi.h"
+
 #include <filesystem>
 #include <optional>
 #include <string_view>
@@ -30,6 +32,6 @@ namespace Client::Data
 //     separador o con "..";
 //   - std::nullopt con `error`, si no se pudo leer una carpeta (no existe `dataRoot`, permisos,
 //     falla de E/S) o si `dataRoot` está vacío (std::errc::invalid_argument).
-std::optional<std::filesystem::path> ResolveDataPath(const std::filesystem::path& dataRoot,
-                                                     std::string_view originalPath, std::error_code& error);
+ENGINE_API std::optional<std::filesystem::path> ResolveDataPath(const std::filesystem::path& dataRoot,
+                                                                std::string_view originalPath, std::error_code& error);
 } // namespace Client::Data

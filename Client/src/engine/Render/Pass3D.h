@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/PixelSize.h"
+#include "EngineApi.h"
 
 #include <glm/ext/matrix_float4x4.hpp>
 #include <glm/ext/vector_float2.hpp>
@@ -37,7 +38,7 @@ struct Camera3D
     float farPlane = 0.0f;
 };
 
-struct Pass3D
+struct ENGINE_API Pass3D
 {
     Core::PixelSize screen;
     // x, y desde abajo, ancho y alto, en píxeles de GL: lo de glViewport.
@@ -63,5 +64,5 @@ struct Pass3D
 // y · H / 480), la y de GL desde abajo (0x620d10: H − y − h), gluPerspective(fov, w / h, near,
 // far · 1,4) con el ancho y el alto del viewport (0x6203c0, 0x6b8c00), y la vista de glRotatef en
 // Y, en X (salvo skipXRotation) y en Z, y glTranslatef(−posición).
-[[nodiscard]] Pass3D MakePass3D(Core::PixelSize screen, const ViewportRect& rect, const Camera3D& camera);
+[[nodiscard]] ENGINE_API Pass3D MakePass3D(Core::PixelSize screen, const ViewportRect& rect, const Camera3D& camera);
 } // namespace Client::Render

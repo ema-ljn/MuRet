@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/PixelSize.h"
+#include "OpenGLApi.h"
 #include "Platform/Sdl/GlLoader.h"
 #include "Render/Frame/IScreenReader.h"
 
@@ -11,7 +12,7 @@
 // atrás, después del dibujo del frame y antes del swap. Necesita el contexto vivo.
 namespace Client::Render::Gl
 {
-class GlScreenReader final : public Frame::IScreenReader
+class OPENGL_API GlScreenReader final : public Frame::IScreenReader
 {
 public:
     // La tabla de GL vive más.

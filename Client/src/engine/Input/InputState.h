@@ -1,5 +1,6 @@
 #pragma once
 
+#include "EngineApi.h"
 #include "Input/InputEvent.h"
 #include "Input/Key.h"
 #include "Input/MouseMessageState.h"
@@ -31,7 +32,7 @@
 // lógico suelto no diría qué lado sigue abajo.
 namespace Client::Input
 {
-class InputState
+class ENGINE_API InputState
 {
 public:
     // Suma un evento. Un KeyDown con la tecla ya abajo no es un flanco, y un KeyUp con la tecla

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/PixelSize.h"
+#include "EngineApi.h"
 #include "Render/OriginalQuad.h"
 #include "Render/OriginalSkewedQuad.h"
 #include "Render/QuadCorner.h"
@@ -56,7 +57,7 @@ struct DrawCommand
     std::size_t vertexCount = 0;
 };
 
-class SpriteBatch
+class ENGINE_API SpriteBatch
 {
 public:
     // Empieza el 2D de un frame en una pantalla de `screen` píxeles, como 0x6219b0: vacía los

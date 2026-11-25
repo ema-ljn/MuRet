@@ -1,5 +1,7 @@
 #pragma once
 
+#include "EngineApi.h"
+
 #include <filesystem>
 #include <optional>
 #include <string>
@@ -12,7 +14,7 @@
 namespace Client::Core
 {
 // Una ruta como texto UTF-8, para un mensaje (el log, un error del arranque).
-[[nodiscard]] std::string PathText(const std::filesystem::path& path);
+[[nodiscard]] ENGINE_API std::string PathText(const std::filesystem::path& path);
 
 // La ruta que dice un texto UTF-8 (la config, la línea de comandos), o vacío si el texto no es
 // UTF-8 bien formado: sin bytes sueltos, sin formas más largas de lo necesario, sin las mitades
@@ -20,5 +22,5 @@ namespace Client::Core
 // MB_ERR_INVALID_CHARS, que usa path en Windows: con un byte malo tiraría una excepción. Un NUL
 // en el medio es UTF-8 y pasa: si importa, lo rechaza el que llama (argv no trae NUL, y la config
 // rechaza los caracteres de control antes).
-[[nodiscard]] std::optional<std::filesystem::path> PathFromUtf8(std::string_view text);
+[[nodiscard]] ENGINE_API std::optional<std::filesystem::path> PathFromUtf8(std::string_view text);
 } // namespace Client::Core

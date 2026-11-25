@@ -171,8 +171,8 @@ void ReplaySegment(CrtRandom& replay, Client::World::Particles& twin, glm::vec3 
 // El punto del tramo con la velocidad del barrido: el destino (la partida) más (0, −180, 0) girado.
 glm::vec3 SegmentPoint(glm::vec3 velocity)
 {
-    const auto swing = Client::Render::Models::OriginalVectorRotate(
-        {0.0f, -180.0f, 0.0f}, Client::Render::Models::OriginalAngleMatrix(velocity));
+    const auto swing =
+        Client::Math::OriginalVectorRotate({0.0f, -180.0f, 0.0f}, Client::Math::OriginalAngleMatrix(velocity));
     return {F32(static_cast<double>(swing.x) + 1000.0), F32(static_cast<double>(swing.y) + 2000.0),
             F32(static_cast<double>(swing.z) + 400.0)};
 }
@@ -207,8 +207,8 @@ TEST(SweepJointsTest, TheSweepBornsHundredEightyAway)
     const JointState& other = turned.joints[Last];
     EXPECT_EQ(other.angles, (glm::vec3{10.0f, 0.0f, 90.0f}));
     EXPECT_EQ(other.velocity, other.angles);
-    const auto reach = Client::Render::Models::OriginalVectorRotate(
-        {0.0f, -180.0f, 0.0f}, Client::Render::Models::OriginalAngleMatrix(other.angles));
+    const auto reach =
+        Client::Math::OriginalVectorRotate({0.0f, -180.0f, 0.0f}, Client::Math::OriginalAngleMatrix(other.angles));
     EXPECT_EQ(other.position,
               (glm::vec3{F32(static_cast<double>(reach.x) + 1000.0), F32(static_cast<double>(reach.y) + 2000.0),
                          F32(static_cast<double>(reach.z) + 400.0)}));
@@ -241,8 +241,8 @@ TEST(SweepJointsTest, TheSweepShedsTwoSparksForEachOfItsEightSegments)
     for (std::size_t turn = 0; turn < 8; ++turn)
     {
         SCOPED_TRACE(turn);
-        const auto swing = Client::Render::Models::OriginalVectorRotate(
-            {0.0f, -180.0f, 0.0f}, Client::Render::Models::OriginalAngleMatrix(velocity));
+        const auto swing =
+            Client::Math::OriginalVectorRotate({0.0f, -180.0f, 0.0f}, Client::Math::OriginalAngleMatrix(velocity));
         const glm::vec3 point{F32(static_cast<double>(swing.x) + 1000.0), F32(static_cast<double>(swing.y) + 2000.0),
                               F32(static_cast<double>(swing.z) + 400.0)};
         velocity.z = F32(static_cast<double>(velocity.z) - 11.0);

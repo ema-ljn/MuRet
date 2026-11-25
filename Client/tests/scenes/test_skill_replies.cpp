@@ -184,8 +184,7 @@ TEST(SkillRepliesTest, TheMagicAttackOfAnotherTurnsTowardsTheTargetAndActs)
     const CrtRandom expected = Advanced(tested->cloth.random, ActorByteRandoms);
     ASSERT_TRUE(tested->Attack(0x13).HasValue());
     const ActorState& caster = tested->Actor(CasterIndex);
-    EXPECT_EQ(caster.angles.z,
-              static_cast<float>(Client::Render::Models::CreateAngle(1000.0f, 1000.0f, 1300.0f, 1200.0f)));
+    EXPECT_EQ(caster.angles.z, static_cast<float>(Client::Math::CreateAngle(1000.0f, 1000.0f, 1300.0f, 1200.0f)));
     EXPECT_EQ(caster.attackTarget, TargetIndex);
     EXPECT_EQ(caster.skillSucceeded, 1);
     EXPECT_EQ(caster.byte38e, 0x13);
@@ -250,8 +249,7 @@ TEST(SkillRepliesTest, AnUnknownSourceIsTheLastActor)
             EXPECT_EQ(phantom.attackTarget, head ? TargetIndex : 0);
             EXPECT_EQ(phantom.skillSucceeded, head ? 1 : 0);
             EXPECT_EQ(phantom.angles.z,
-                      head ? static_cast<float>(Client::Render::Models::CreateAngle(0.0f, 0.0f, 1300.0f, 1200.0f))
-                           : 0.0f);
+                      head ? static_cast<float>(Client::Math::CreateAngle(0.0f, 0.0f, 1300.0f, 1200.0f)) : 0.0f);
             EXPECT_EQ(phantom.animation.action, action);
             EXPECT_EQ(phantom.byte381, 0);
             EXPECT_EQ(tested->Actor(TargetIndex).flags78, 0u);

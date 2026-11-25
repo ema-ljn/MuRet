@@ -82,7 +82,7 @@ Core::Expected<void, std::string> StepFaunaLightning(World::ModelEffect& effect,
             static_cast<void>(cloth.random.Next());
     const auto phase = std::bit_cast<std::int32_t>(static_cast<std::uint32_t>(steps) +
                                                    5371U * static_cast<std::uint32_t>(physicalIndex));
-    const auto direction = Render::Models::Detail::FaunaDirectionPC53(phase);
+    const auto direction = Math::Detail::FaunaDirectionPC53(phase);
     if (!direction)
         return Core::Unexpected(std::string("53d1a0: dirección fuera del perfil PC53"));
     glm::vec3 position;

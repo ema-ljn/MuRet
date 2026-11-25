@@ -126,7 +126,7 @@ Core::Expected<void, std::string> DrawBase(GameHudContext& context, UI::SiegePan
              0.0f, 0.75f, 0.6875f);
     // 410261..410274: _ftol devuelve el dword bajo de un int64, también el0 deNaN (Q-C186).
     constexpr double PercentScale = 100.0;
-    const auto percentage = World::OriginalFtolLow(static_cast<double>(panel.alpha) * PercentScale);
+    const auto percentage = Math::OriginalFtolLow(static_cast<double>(panel.alpha) * PercentScale);
     if (!percentage)
         return Core::Unexpected(std::string("0x410274: el porcentaje del minimapa excede el contrato medido de _ftol"));
     UI::DrawNumber(sprites, static_cast<float>(panel.x + 25), static_cast<float>(panel.y + 32), *percentage, 8.0f,
@@ -169,8 +169,8 @@ Core::Expected<void, std::string> DrawStatus(GameHudContext& context, UI::SiegeP
         float flash = 1.0f;
         if (status[4] != 0)
         {
-            flash = static_cast<float>(
-                Render::Models::RoundedSin(static_cast<double>(status[4]) * static_cast<double>(0.2f)) + 1.0);
+            flash =
+                static_cast<float>(Math::RoundedSin(static_cast<double>(status[4]) * static_cast<double>(0.2f)) + 1.0);
             --status[4];
         }
         sprites.SetColor({1.0f, flash, flash, 1.0f});

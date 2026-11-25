@@ -478,7 +478,7 @@ TEST_F(MonsterAttackCasesTest, TheKalimaMageThrowsThreeBoltsAtItsTarget)
     monster.angles = {5.0f, 0.0f, 100.0f};
     // El hueso 60 sin giro, corrido (12, −7, 45), con el modelo del tipo de escala 2 en (1000, 1100, 100): el punto es
     // la traslación por la escala más el origen (0x4ec110 con el offset en 0).
-    monster.bodyPose.assign(61, Client::Render::Models::BoneTransform(1.0f));
+    monster.bodyPose.assign(61, Client::Math::BoneTransform(1.0f));
     for (std::size_t bone = 0; bone < monster.bodyPose.size(); ++bone)
         monster.bodyPose[bone][3] = glm::vec3(static_cast<float>(bone), 0.0f, 0.0f);
     monster.bodyPose[60][3] = glm::vec3(12.0f, -7.0f, 45.0f);
@@ -581,8 +581,8 @@ TEST_F(MonsterAttackCasesTest, Kalima91CreatesTheStateOneEarthquakeAndTheThunder
                 EXPECT_EQ(thunder->life, 10);
                 EXPECT_EQ(thunder->state, 1);
                 EXPECT_EQ(thunder->ownerContext, &monster);
-                const glm::vec3 offset = Client::Render::Models::OriginalVectorRotate(
-                    {-25.0f, -80.0f, 0.0f}, Client::Render::Models::OriginalAngleMatrix(monster.angles));
+                const glm::vec3 offset = Client::Math::OriginalVectorRotate(
+                    {-25.0f, -80.0f, 0.0f}, Client::Math::OriginalAngleMatrix(monster.angles));
                 EXPECT_EQ(thunder->transform.position,
                           (glm::vec3{static_cast<float>(static_cast<double>(offset.x) + monster.position.x),
                                      static_cast<float>(static_cast<double>(offset.y) + monster.position.y),
@@ -1431,8 +1431,8 @@ TEST_F(MonsterAttackCasesTest, CrywolfAndFortressMissilesPreserveTheirNativeArgu
         EXPECT_EQ(effect.word8c, 0x5a);
         EXPECT_EQ(effect.light, monster.light);
         EXPECT_EQ(effect.life, 30);
-        const auto offset = Client::Render::Models::OriginalVectorRotate(
-            {-10, -60, 135}, Client::Render::Models::OriginalAngleMatrix(monster.angles));
+        const auto offset =
+            Client::Math::OriginalVectorRotate({-10, -60, 135}, Client::Math::OriginalAngleMatrix(monster.angles));
         for (int axis = 0; axis < 3; ++axis)
             EXPECT_FLOAT_EQ(effect.transform.position[axis],
                             static_cast<float>(static_cast<double>(offset[axis]) + monster.position[axis]));
@@ -2066,7 +2066,7 @@ TEST_F(MonsterAttackCasesTest, AFullModelPoolCreatesTheTailLightningOfTheTarget)
         ActorState& monster = Prepare(probe.probe);
         constexpr glm::vec3 UntouchedTrail(-1.0f);
         monster.trailOrigin = UntouchedTrail;
-        monster.bodyPose.assign(16, Client::Render::Models::BoneTransform(1.0f));
+        monster.bodyPose.assign(16, Client::Math::BoneTransform(1.0f));
         game->world.PlaceModel(
             static_cast<std::uint16_t>(monster.type),
             Client::Scenes::SharedModelPlacement{.scale = monster.scale, .origin = monster.position});
@@ -2093,11 +2093,11 @@ TEST_F(MonsterAttackCasesTest, AFullModelPoolCreatesTheTailLightningOfTheTarget)
         const ActorState& victim = game->world.Actors()[0];
         EXPECT_EQ(joint.ownerContext, &victim);
         const auto player = game->world.ModelPlacement(Client::Data::Models::PlayerSkeletonModel);
-        const Client::Render::Models::BoneTransform chest =
-            victim.bodyPose.size() > 33 ? victim.bodyPose[33] : Client::Render::Models::BoneTransform(0.0f);
-        EXPECT_EQ(joint.targetPosition, Client::Render::Models::OriginalTransformPosition(
-                                            Client::Render::Models::OriginalMatrixOf(chest),
-                                            glm::vec3(0.0f, -150.0f, 0.0f), player.scale, player.origin));
+        const Client::Math::BoneTransform chest =
+            victim.bodyPose.size() > 33 ? victim.bodyPose[33] : Client::Math::BoneTransform(0.0f);
+        EXPECT_EQ(joint.targetPosition,
+                  Client::Math::OriginalTransformPosition(Client::Math::OriginalMatrixOf(chest),
+                                                          glm::vec3(0.0f, -150.0f, 0.0f), player.scale, player.origin));
     }
 }
 
@@ -2136,7 +2136,7 @@ TEST_F(MonsterAttackCasesTest, FullJointPoolsStillCreateTheSupportedFireParticle
         monster.light = {0.2f, 0.3f, 0.4f};
         monster.hands[0].bone = 2;
         monster.hands[1].bone = 3;
-        monster.bodyPose.assign(Bones, Client::Render::Models::BoneTransform(1.0f));
+        monster.bodyPose.assign(Bones, Client::Math::BoneTransform(1.0f));
         for (std::size_t bone = 0; bone < Bones; ++bone)
             monster.bodyPose[bone][3] =
                 glm::vec3(static_cast<float>(bone), 2.0f * static_cast<float>(bone), 30.0f + static_cast<float>(bone));
@@ -2165,9 +2165,8 @@ TEST_F(MonsterAttackCasesTest, FullJointPoolsStillCreateTheSupportedFireParticle
         for (std::size_t index = 0; index < fires.size(); ++index)
         {
             const auto& fire = *fires[index];
-            const glm::vec3 expectedPosition = Client::Render::Models::OriginalTransformPosition(
-                Client::Render::Models::OriginalMatrixOf(monster.bodyPose[bones[index]]), glm::vec3(0.0f), 2.0f,
-                ModelOrigin);
+            const glm::vec3 expectedPosition = Client::Math::OriginalTransformPosition(
+                Client::Math::OriginalMatrixOf(monster.bodyPose[bones[index]]), glm::vec3(0.0f), 2.0f, ModelOrigin);
             EXPECT_EQ(fire.subtype, 0);
             EXPECT_EQ(fire.position, expectedPosition);
             EXPECT_EQ(fire.angles, monster.angles);
@@ -2195,7 +2194,7 @@ TEST_F(MonsterAttackCasesTest, FullJointPoolsStillCreateTheSupportedThunderParti
     monster.angles = {13.0f, 27.0f, 41.0f};
     monster.hands[0].bone = 2;
     monster.hands[1].bone = 3;
-    monster.bodyPose.assign(Bones, Client::Render::Models::BoneTransform(1.0f));
+    monster.bodyPose.assign(Bones, Client::Math::BoneTransform(1.0f));
     for (std::size_t bone = 0; bone < Bones; ++bone)
         monster.bodyPose[bone][3] =
             glm::vec3(static_cast<float>(bone), 2.0f * static_cast<float>(bone), 30.0f + static_cast<float>(bone));
@@ -2219,9 +2218,8 @@ TEST_F(MonsterAttackCasesTest, FullJointPoolsStillCreateTheSupportedThunderParti
     for (std::size_t index = 0; index < bones.size(); ++index)
     {
         const auto& thunder = particles[index];
-        const glm::vec3 expectedPosition = Client::Render::Models::OriginalTransformPosition(
-            Client::Render::Models::OriginalMatrixOf(monster.bodyPose[bones[index]]), glm::vec3(0.0f), 2.0f,
-            ModelOrigin);
+        const glm::vec3 expectedPosition = Client::Math::OriginalTransformPosition(
+            Client::Math::OriginalMatrixOf(monster.bodyPose[bones[index]]), glm::vec3(0.0f), 2.0f, ModelOrigin);
         EXPECT_EQ(thunder.type, Client::World::ThunderParticle);
         EXPECT_EQ(thunder.subtype, 0);
         EXPECT_EQ(thunder.position, expectedPosition);
@@ -2265,7 +2263,7 @@ TEST_F(MonsterAttackCasesTest, ThunderSkillThreeUsesItsNativeBoneOffsetAndLocalL
         monster.scale = 4.0f;
         monster.light = ActorLight;
         monster.hands[0].bone = 0;
-        monster.bodyPose.assign(Bones, Client::Render::Models::BoneTransform(1.0f));
+        monster.bodyPose.assign(Bones, Client::Math::BoneTransform(1.0f));
         monster.bodyPose[0][3] = glm::vec3(1.0f, 2.0f, 3.0f);
         game->world.PlaceModel(static_cast<std::uint16_t>(monster.type),
                                Client::Scenes::SharedModelPlacement{.scale = 2.0f, .origin = ModelOrigin});
@@ -2281,8 +2279,8 @@ TEST_F(MonsterAttackCasesTest, ThunderSkillThreeUsesItsNativeBoneOffsetAndLocalL
             std::find_if(particles.begin(), particles.end(), [](const auto& particle)
                          { return particle.alive && particle.type == Client::World::ThunderParticle; });
         ASSERT_NE(thunder, particles.end());
-        const glm::vec3 expectedPosition = Client::Render::Models::OriginalTransformPosition(
-            Client::Render::Models::OriginalMatrixOf(monster.bodyPose[0]), probe.offset, 2.0f, ModelOrigin);
+        const glm::vec3 expectedPosition = Client::Math::OriginalTransformPosition(
+            Client::Math::OriginalMatrixOf(monster.bodyPose[0]), probe.offset, 2.0f, ModelOrigin);
         EXPECT_EQ(thunder->position, expectedPosition);
         EXPECT_EQ(thunder->light, LocalLight);
         EXPECT_EQ(monster.light, ActorLight);
@@ -2306,7 +2304,7 @@ TEST_F(MonsterAttackCasesTest, PartialParticlePoolsKeepFireCallerAndConstructorR
                                             .kind = std::uint16_t{0x25}});
         monster.hands[0].bone = 0;
         monster.hands[1].bone = 1;
-        monster.bodyPose.assign(2, Client::Render::Models::BoneTransform(1.0f));
+        monster.bodyPose.assign(2, Client::Math::BoneTransform(1.0f));
         SetPoolAvailability(true, true, true);
         SetFreeParticleSlots(freeSlots);
 
@@ -2532,16 +2530,16 @@ TEST_F(MonsterAttackCasesTest, Saturated49ActionFourStoresTheBoneTrailBeforeTheS
                                             .draws = 2,
                                             .sounds = {0x42},
                                             .kind = kind});
-        monster.bodyPose.assign(16, Client::Render::Models::BoneTransform(1.0f));
+        monster.bodyPose.assign(16, Client::Math::BoneTransform(1.0f));
         for (std::size_t bone = 0; bone < monster.bodyPose.size(); ++bone)
             monster.bodyPose[bone][3] = glm::vec3(static_cast<float>(bone), 2.0f * static_cast<float>(bone), 30.0f);
         monster.trailOrigin = Untouched;
         game->world.PlaceModel(
             static_cast<std::uint16_t>(monster.type),
             Client::Scenes::SharedModelPlacement{.scale = monster.scale, .origin = monster.position});
-        const glm::vec3 expectedTrail = Client::Render::Models::OriginalTransformPosition(
-            Client::Render::Models::OriginalMatrixOf(monster.bodyPose[TrailBone]), glm::vec3(-50.0f, 100.0f, 0.0f),
-            monster.scale, monster.position);
+        const glm::vec3 expectedTrail =
+            Client::Math::OriginalTransformPosition(Client::Math::OriginalMatrixOf(monster.bodyPose[TrailBone]),
+                                                    glm::vec3(-50.0f, 100.0f, 0.0f), monster.scale, monster.position);
         SaturatePools();
 
         const auto stepped = Step(monster);
@@ -2551,8 +2549,8 @@ TEST_F(MonsterAttackCasesTest, Saturated49ActionFourStoresTheBoneTrailBeforeTheS
         EXPECT_EQ(soundDraws, std::vector<int>{0});
         EXPECT_NE(monster.trailOrigin, Untouched);
         EXPECT_EQ(monster.trailOrigin, expectedTrail);
-        EXPECT_EQ(monster.trailOrigin, Client::Render::Models::OriginalTransformPosition(
-                                           Client::Render::Models::OriginalMatrixOf(monster.bodyPose[TrailBone]),
+        EXPECT_EQ(monster.trailOrigin, Client::Math::OriginalTransformPosition(
+                                           Client::Math::OriginalMatrixOf(monster.bodyPose[TrailBone]),
                                            glm::vec3(-50.0f, 100.0f, 0.0f), monster.scale, monster.position));
     }
 }
@@ -2862,7 +2860,7 @@ TEST_F(MonsterAttackCasesTest, TheTrailStartsAtTheEleventhBone)
         Load(map);
         ActorState& monster =
             Prepare(Probe{.name = "0x49", .type = 0x49, .step = 13, .action = 4, .joints = JointTable});
-        monster.bodyPose.assign(Bones, Client::Render::Models::BoneTransform(1.0f));
+        monster.bodyPose.assign(Bones, Client::Math::BoneTransform(1.0f));
         for (std::size_t bone = 0; bone < Bones; ++bone)
             monster.bodyPose[bone][3] = glm::vec3(static_cast<float>(bone), 2.0f * static_cast<float>(bone), 30.0f);
         monster.trailOrigin = untouched;
@@ -2873,9 +2871,9 @@ TEST_F(MonsterAttackCasesTest, TheTrailStartsAtTheEleventhBone)
         const auto stepped = Step(monster);
 
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
-        const glm::vec3 expected = Client::Render::Models::OriginalTransformPosition(
-            Client::Render::Models::OriginalMatrixOf(monster.bodyPose[TrailBone]), glm::vec3(-50.0f, 100.0f, 0.0f),
-            monster.scale, monster.position);
+        const glm::vec3 expected =
+            Client::Math::OriginalTransformPosition(Client::Math::OriginalMatrixOf(monster.bodyPose[TrailBone]),
+                                                    glm::vec3(-50.0f, 100.0f, 0.0f), monster.scale, monster.position);
         EXPECT_EQ(monster.trailOrigin, expected);
         EXPECT_NE(monster.trailOrigin, monster.position);
         EXPECT_EQ(Draws(), Tail);
@@ -3336,16 +3334,16 @@ TEST_F(MonsterAttackCasesTest, FullModelPoolStoresTheHandTrailThenRequestsTheSou
                                             .action = 4,
                                             .target = 0,
                                             .kind = kind});
-        monster.bodyPose.assign(Bones, Client::Render::Models::BoneTransform(1.0f));
+        monster.bodyPose.assign(Bones, Client::Math::BoneTransform(1.0f));
         for (std::size_t bone = 0; bone < Bones; ++bone)
             monster.bodyPose[bone][3] = glm::vec3(static_cast<float>(bone), 2.0f * static_cast<float>(bone), 30.0f);
         monster.trailOrigin = UntouchedTrail;
         game->world.PlaceModel(
             static_cast<std::uint16_t>(monster.type),
             Client::Scenes::SharedModelPlacement{.scale = monster.scale, .origin = monster.position});
-        const glm::vec3 expectedTrail = Client::Render::Models::OriginalTransformPosition(
-            Client::Render::Models::OriginalMatrixOf(monster.bodyPose[TrailBone]), glm::vec3(-50.0f, 100.0f, 0.0f),
-            monster.scale, monster.position);
+        const glm::vec3 expectedTrail =
+            Client::Math::OriginalTransformPosition(Client::Math::OriginalMatrixOf(monster.bodyPose[TrailBone]),
+                                                    glm::vec3(-50.0f, 100.0f, 0.0f), monster.scale, monster.position);
         FillModelEffectPoolExceptLast(0);
 
         const auto stepped = Step(monster);
@@ -3375,7 +3373,7 @@ TEST_F(MonsterAttackCasesTest, TheHandTrailUsesThePublishedSharedModelPlacement)
                                             .kind = kind});
         monster.position = {100.0f, 200.0f, 300.0f};
         monster.scale = 4.0f;
-        monster.bodyPose.assign(16, Client::Render::Models::BoneTransform(1.0f));
+        monster.bodyPose.assign(16, Client::Math::BoneTransform(1.0f));
         monster.trailOrigin = UntouchedTrail;
         game->world.PlaceModel(static_cast<std::uint16_t>(monster.type),
                                Client::Scenes::SharedModelPlacement{.scale = 2.0f, .origin = PublishedOrigin});
@@ -3384,9 +3382,9 @@ TEST_F(MonsterAttackCasesTest, TheHandTrailUsesThePublishedSharedModelPlacement)
         const auto stepped = Step(monster);
 
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
-        const glm::vec3 expectedTrail = Client::Render::Models::OriginalTransformPosition(
-            Client::Render::Models::OriginalMatrixOf(monster.bodyPose[TrailBone]), glm::vec3(-50.0f, 100.0f, 0.0f),
-            2.0f, PublishedOrigin);
+        const glm::vec3 expectedTrail =
+            Client::Math::OriginalTransformPosition(Client::Math::OriginalMatrixOf(monster.bodyPose[TrailBone]),
+                                                    glm::vec3(-50.0f, 100.0f, 0.0f), 2.0f, PublishedOrigin);
         EXPECT_EQ(monster.trailOrigin, expectedTrail);
         EXPECT_EQ(monster.position, glm::vec3(100.0f, 200.0f, 300.0f));
         EXPECT_EQ(monster.scale, 4.0f);
@@ -3418,7 +3416,7 @@ TEST_F(MonsterAttackCasesTest, Kind49And4bStepNineUseTheirOrangeTailLightWithout
         monster.scale = 4.0f;
         monster.light = {0.2f, 0.3f, 0.4f};
         monster.hands[0].bone = 0;
-        monster.bodyPose.assign(1, Client::Render::Models::BoneTransform(1.0f));
+        monster.bodyPose.assign(1, Client::Math::BoneTransform(1.0f));
         monster.trailOrigin = UntouchedTrail;
         game->world.PlaceModel(static_cast<std::uint16_t>(monster.type),
                                Client::Scenes::SharedModelPlacement{.scale = 2.0f, .origin = PublishedOrigin});
@@ -3439,9 +3437,8 @@ TEST_F(MonsterAttackCasesTest, Kind49And4bStepNineUseTheirOrangeTailLightWithout
             std::find_if(particles.begin(), particles.end(), [](const auto& particle)
                          { return particle.alive && particle.type == Client::World::ThunderParticle; });
         ASSERT_NE(thunder, particles.end());
-        const glm::vec3 expectedPosition = Client::Render::Models::OriginalTransformPosition(
-            Client::Render::Models::OriginalMatrixOf(monster.bodyPose[0]), glm::vec3(0.0f, -130.0f, 0.0f), 2.0f,
-            PublishedOrigin);
+        const glm::vec3 expectedPosition = Client::Math::OriginalTransformPosition(
+            Client::Math::OriginalMatrixOf(monster.bodyPose[0]), glm::vec3(0.0f, -130.0f, 0.0f), 2.0f, PublishedOrigin);
         EXPECT_EQ(thunder->position, expectedPosition);
         EXPECT_EQ(thunder->light, Orange);
         EXPECT_EQ(thunder->angles, monster.angles);

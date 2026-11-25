@@ -83,7 +83,7 @@ Core::Expected<void, std::string> Act(ActorState& actor, std::uint8_t action, co
 
 std::optional<std::uint8_t> LowByteOf(double value)
 {
-    const auto truncated = World::OriginalFtolLow(value);
+    const auto truncated = Math::OriginalFtolLow(value);
     if (!truncated)
         return std::nullopt;
     return static_cast<std::uint8_t>(*truncated & 0xff);
@@ -462,9 +462,9 @@ Core::Expected<void, std::string> WizardBranch::CastAround(std::uint8_t action, 
 Core::Expected<void, std::string> WizardBranch::CastTheSkill4c()
 {
     const auto aimX =
-        World::OriginalFtolLow(static_cast<double>(m_hero.attackPosition.x) * static_cast<double>(CellReciprocal));
+        Math::OriginalFtolLow(static_cast<double>(m_hero.attackPosition.x) * static_cast<double>(CellReciprocal));
     const auto aimY =
-        World::OriginalFtolLow(static_cast<double>(m_hero.attackPosition.y) * static_cast<double>(CellReciprocal));
+        Math::OriginalFtolLow(static_cast<double>(m_hero.attackPosition.y) * static_cast<double>(CellReciprocal));
     if (!aimX || !aimY)
         return Core::Unexpected(std::string("0x58dcd3: la celda del blanco de la 0x4c fuera del perfil ftol"));
     bool casts = InReach(m_hero, m_state);
@@ -489,8 +489,8 @@ Core::Expected<void, std::string> WizardBranch::CastTheSkill4c()
         return WalkToward(m_hero, *aimX, *aimY, reach, false, m_context, "0x58ec65");
     }
     // 0x58dd50..0x58dd70: los ftol de +0x3ac y +0x3a8 sin escalar.
-    const auto wholeY = World::OriginalFtolLow(static_cast<double>(m_hero.attackPosition.y));
-    const auto wholeX = World::OriginalFtolLow(static_cast<double>(m_hero.attackPosition.x));
+    const auto wholeY = Math::OriginalFtolLow(static_cast<double>(m_hero.attackPosition.y));
+    const auto wholeX = Math::OriginalFtolLow(static_cast<double>(m_hero.attackPosition.x));
     if (!wholeX || !wholeY)
         return Core::Unexpected(std::string("0x58dd56: la posición del blanco de la 0x4c fuera del perfil ftol"));
     const auto relative = RelativeTargetCell(m_hero.position.x, m_hero.position.y, *wholeX, *wholeY);
@@ -502,8 +502,8 @@ Core::Expected<void, std::string> WizardBranch::CastTheSkill4c()
         m_hero.skillTarget4c = -1;
         return {};
     }
-    m_hero.angles.z = static_cast<float>(Render::Models::CreateAngle(m_hero.position.x, m_hero.position.y,
-                                                                     m_hero.attackPosition.x, m_hero.attackPosition.y));
+    m_hero.angles.z = static_cast<float>(
+        Math::CreateAngle(m_hero.position.x, m_hero.position.y, m_hero.attackPosition.x, m_hero.attackPosition.y));
     if (auto delayed = StartSkillDelay(
             m_world.Actors()[m_runtime.hero].skillIndex,
             SkillDelayContext{.world = m_world, .random = m_context.random, .skills = m_context.skills});
@@ -599,8 +599,8 @@ Core::Expected<void, std::string> WizardBranch::UseByReach()
     if (!m_aimed)
         return UseTheWizardOnly();
     // 0x58eedf..0x58ef17: el ángulo hacia +0x3a8 y la skill − 5 por las tablas 0x599eac y 0x599e98.
-    m_hero.angles.z = static_cast<float>(Render::Models::CreateAngle(m_hero.position.x, m_hero.position.y,
-                                                                     m_hero.attackPosition.x, m_hero.attackPosition.y));
+    m_hero.angles.z = static_cast<float>(
+        Math::CreateAngle(m_hero.position.x, m_hero.position.y, m_hero.attackPosition.x, m_hero.attackPosition.y));
     switch (m_skill)
     {
     case 5:
@@ -739,8 +739,8 @@ Core::Expected<void, std::string> WizardBranch::Teleport()
         wall -= 0x40u;
     if (wall != 0)
         return {};
-    m_hero.angles.z = static_cast<float>(Render::Models::CreateAngle(m_hero.position.x, m_hero.position.y,
-                                                                     m_hero.attackPosition.x, m_hero.attackPosition.y));
+    m_hero.angles.z = static_cast<float>(
+        Math::CreateAngle(m_hero.position.x, m_hero.position.y, m_hero.attackPosition.x, m_hero.attackPosition.y));
     // 0x59311d..0x59314b: el byte 0x576794c, 0x77f3bb0 y 3.000 ms (resta sin signo) desde el último 1C.
     if (static_cast<std::uint8_t>(m_state.gateRequestBlocked) != 0 || m_state.warpPending)
         return {};
@@ -796,9 +796,9 @@ Core::Expected<void, std::string> WizardBranch::TeleportTheAlly()
     if (m_runtime.cursorItemCount > 0 || CannotTeleport(target))
         return {};
     const auto heroX =
-        World::OriginalFtolLow(static_cast<double>(m_hero.position.x) * static_cast<double>(CellReciprocal));
+        Math::OriginalFtolLow(static_cast<double>(m_hero.position.x) * static_cast<double>(CellReciprocal));
     const auto heroY =
-        World::OriginalFtolLow(static_cast<double>(m_hero.position.y) * static_cast<double>(CellReciprocal));
+        Math::OriginalFtolLow(static_cast<double>(m_hero.position.y) * static_cast<double>(CellReciprocal));
     if (!heroX || !heroY)
         return Core::Unexpected(std::string("0x5927b2: la celda del héroe fuera del perfil ftol"));
     const World::WorldTerrain& terrain = m_world.Map().terrain;
@@ -847,8 +847,8 @@ Core::Expected<void, std::string> WizardBranch::TeleportTheAlly()
             return {};
     }
     // 0x5928f6..0x592914: el ángulo del elegido hacia su propio +0x3a8.
-    target.angles.z = static_cast<float>(Render::Models::CreateAngle(target.position.x, target.position.y,
-                                                                     target.attackPosition.x, target.attackPosition.y));
+    target.angles.z = static_cast<float>(
+        Math::CreateAngle(target.position.x, target.position.y, target.attackPosition.x, target.attackPosition.y));
     // 0x592917..0x592941: con 0x576794c, lo baja y nada.
     if (static_cast<std::uint8_t>(m_state.gateRequestBlocked) != 0)
     {

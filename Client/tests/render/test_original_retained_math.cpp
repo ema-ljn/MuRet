@@ -16,7 +16,7 @@
 
 namespace
 {
-namespace Math = Client::Render::Models::Detail;
+namespace Math = Client::Math::Detail;
 static_assert(!std::is_convertible_v<Math::Retained64, double>);
 struct WaveCase
 {
@@ -1182,7 +1182,7 @@ TEST(OriginalRetainedMathTest, KeepsTheLiveYawSumBeforeIntegerConversion)
     // Composición analítica: el retorno nativo diagonal está debajo de135 y su S32 es135.
     // Yaw se lee después de CreateAngle, como en el caller double; no prueba gameplay.
     float yaw = 0.0f;
-    const double heading = Client::Render::Models::CreateAngle(0.0f, 0.0f, 1.0f, 1.0f);
+    const double heading = Client::Math::CreateAngle(0.0f, 0.0f, 1.0f, 1.0f);
     yaw = 1.0f;
     const double live = heading + static_cast<double>(yaw);
     const double spilled = static_cast<double>(static_cast<float>(heading)) + static_cast<double>(yaw);

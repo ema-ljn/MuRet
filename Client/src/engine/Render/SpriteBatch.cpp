@@ -149,12 +149,12 @@ void SpriteBatch::RotatedQuad(TextureSlot slot, float x, float y, float width, f
     const std::array<glm::vec3, 4> local{glm::vec3(left, top, 0.0f), glm::vec3(left, bottom, 0.0f),
                                          glm::vec3(right, bottom, 0.0f), glm::vec3(right, top, 0.0f)};
     constexpr std::array<std::array<float, 2>, 4> Uvs{{{0.0f, 0.0f}, {0.0f, 1.0f}, {1.0f, 1.0f}, {1.0f, 0.0f}}};
-    const Models::OriginalMatrix spin = Models::OriginalAngleMatrix({0.0f, 0.0f, degrees});
+    const Math::OriginalMatrix spin = Math::OriginalAngleMatrix({0.0f, 0.0f, degrees});
     QuadCorners corners{};
     for (std::size_t k = 0; k < corners.size(); ++k)
     {
         // 0x621de3..0x621e01: cada esquina girada (0x5fcbd0), más el centro.
-        const glm::vec3 rotated = Models::OriginalVectorRotate(local[k], spin);
+        const glm::vec3 rotated = Math::OriginalVectorRotate(local[k], spin);
         corners[k] = QuadCorner{.x = F32(static_cast<double>(centerX) + static_cast<double>(rotated.x)),
                                 .y = F32(static_cast<double>(centerY) + static_cast<double>(rotated.y)),
                                 .u = Uvs[k][0],

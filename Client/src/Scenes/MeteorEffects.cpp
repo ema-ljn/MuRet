@@ -78,7 +78,7 @@ Core::Expected<void, std::string> LightTheMeteor(const World::ModelEffect& effec
     constexpr double Depth = -0.5;                // 0x6ba298, −0,5f
     constexpr double Blue = 0.10000000149011612;  // 0x6ba248
     constexpr std::int32_t Radius = 10;
-    const auto wave = Render::Models::Detail::SineDoubleProductPC53(static_cast<double>(effect.life) * Pulse, Depth);
+    const auto wave = Math::Detail::SineDoubleProductPC53(static_cast<double>(effect.life) * Pulse, Depth);
     if (!wave)
         return Core::Unexpected(std::string("0x5260d4: el seno de la vida del 0x13d fuera del perfil PC53"));
     const glm::vec3 color{F32(*wave), F32(*wave), F32(*wave + Blue)};
@@ -95,7 +95,7 @@ void DropTheStone(const World::ModelEffect& effect, const HighEffectStepContext&
     glm::vec3 forward{0.0f};
     forward.y = F32(static_cast<double>(context.random.Next() % ReachSpan) + Reach);
     const glm::vec3 turn{0.0f, 0.0f, static_cast<float>(context.random.Next() % FullTurn)};
-    const glm::vec3 offset = Render::Models::OriginalVectorRotate(forward, Render::Models::OriginalAngleMatrix(turn));
+    const glm::vec3 offset = Math::OriginalVectorRotate(forward, Math::OriginalAngleMatrix(turn));
     const glm::vec3& position = effect.transform.position;
     const glm::vec3 point{F32(D(offset.x) + D(position.x)), F32(D(offset.y) + D(position.y)),
                           F32(D(offset.z) + D(position.z))};
@@ -114,7 +114,7 @@ Core::Expected<void, std::string> PoseTheMeteor(const World::ModelEffect& effect
 {
     auto& carry = world.PoseCarry();
     if (carry.bones.size() < skeleton.bones.size())
-        carry.bones.resize(skeleton.bones.size(), Render::Models::BoneTransform(0.0f));
+        carry.bones.resize(skeleton.bones.size(), Math::BoneTransform(0.0f));
     if (skeleton.actions.empty())
         return {};
     const auto type = static_cast<std::uint16_t>(effect.type);
@@ -134,7 +134,7 @@ Core::Expected<void, std::string> PoseTheMeteor(const World::ModelEffect& effect
     if (!Render::Models::PoseSkeleton(skeleton, animation, transform, head,
                                       std::span(carry.bones).first(skeleton.bones.size())))
         return Core::Unexpected(std::string("0x52624f: no se pudo posar el modelo del 0x13d"));
-    const auto whole = World::OriginalFtolLow(D(effect.animation.frame));
+    const auto whole = Math::OriginalFtolLow(D(effect.animation.frame));
     if (!whole)
         return Core::Unexpected(std::string("0x4eb8bf: el frame del 0x13d no tiene conversión nativa observada"));
     auto key = static_cast<std::int16_t>(*whole);
@@ -171,8 +171,8 @@ Core::Expected<void, std::string> SparkTheBones(const World::ModelEffect& effect
     {
         if (skeleton.bones[bone].dummy || context.random.Next() % SparkOdds != 0)
             continue;
-        const glm::vec3 point = Render::Models::OriginalTransformPosition(
-            Render::Models::OriginalMatrixOf(context.world.PoseCarry().bones[bone]), glm::vec3(0.0f), scale, origin);
+        const glm::vec3 point = Math::OriginalTransformPosition(
+            Math::OriginalMatrixOf(context.world.PoseCarry().bones[bone]), glm::vec3(0.0f), scale, origin);
         // La 0x6ec/3 con el efecto de dueño: su paso busca la mano del Monster82 en la lista de 0x401000, donde el
         // efecto no está, y sigue como la fanta común (0x547c28).
         if (auto shard = CreateHighParticle(context.world, context.random, context.worldClock, Shard, point,
@@ -298,7 +298,7 @@ Core::Expected<bool, std::string> DrawTheMeteorBody(Render::ModelBatch& batch,
         return Core::Unexpected(std::string("0x443605: la cáscara 0x13e pide el reloj del mundo (0x5767b88)"));
     constexpr float Drift = std::bit_cast<float>(0x38a7c5acu); // 0x6b8be8
     constexpr float Sway = 2.5f;                               // 0x6b89a8
-    const auto sway = Render::Models::Detail::SineProductPC53(D(*worldClock) * D(Drift), Sway);
+    const auto sway = Math::Detail::SineProductPC53(D(*worldClock) * D(Drift), Sway);
     if (!sway)
         return Core::Unexpected(std::string("0x44361c: el seno del reloj fuera del perfil PC53"));
     effect.objectState.uv.x = F32(*sway);

@@ -124,7 +124,7 @@ protected:
     void PoseEveryBone()
     {
         constexpr std::size_t MonsterBones = 88;
-        m_actor.bodyPose.assign(MonsterBones, Client::Render::Models::BoneTransform(1.0f));
+        m_actor.bodyPose.assign(MonsterBones, Client::Math::BoneTransform(1.0f));
         for (std::size_t bone = 0; bone < m_actor.bodyPose.size(); ++bone)
             m_actor.bodyPose[bone][3] = BoneOffset(bone);
     }
@@ -217,7 +217,7 @@ TEST_F(ModelEffectsTest, AModelWithoutEffectsOnlyDrawsTheBrightness)
 // 0x5073c6, 0x5073ed, 0x507ab7, 0x507ade y 0x507e63: la U o la V del reloj, sin más rand().
 TEST_F(ModelEffectsTest, TheScrollingModelsWriteTheirTextureOffsets)
 {
-    const std::int32_t clock = *Client::World::OriginalFtolLow(static_cast<double>(Clock));
+    const std::int32_t clock = *Client::Math::OriginalFtolLow(static_cast<double>(Clock));
     const auto scroll = [clock](std::int32_t modulus, std::uint32_t bits) {
         return static_cast<float>(static_cast<double>(clock % modulus) *
                                   static_cast<double>(std::bit_cast<float>(bits)));
@@ -572,7 +572,7 @@ TEST_F(ModelEffectsTest, TheFlamingMonsterBurnsAlongItsLimbs)
               std::pair{12346.0f, std::size_t{5}}})
         {
             SCOPED_TRACE(testing::Message() << map << " " << clock << " " << free);
-            const bool even = *Client::World::OriginalFtolLow(static_cast<double>(clock)) % 2 == 0;
+            const bool even = *Client::Math::OriginalFtolLow(static_cast<double>(clock)) % 2 == 0;
             const bool crowded = free < Client::World::ParticleCount;
             Clear();
             Crowd(m_world->Particles(), free);
@@ -598,8 +598,7 @@ TEST_F(ModelEffectsTest, TheFlamingMonsterBurnsAlongItsLimbs)
             glm::vec3 light(0.0f, 7.0f, -7.0f);
             const auto flame = [&](std::size_t point, std::size_t from, float scale)
             {
-                light.x =
-                    static_cast<float>(Client::Render::Models::MoveToward(points[from], angles, points[point], 360.0f));
+                light.x = static_cast<float>(Client::Math::MoveToward(points[from], angles, points[point], 360.0f));
                 ReferenceFlame(*reference, replay, clock, 2, points[point], angles, light, scale);
             };
             for (std::size_t byte = 0; byte < First.size(); byte += 2)
@@ -633,9 +632,9 @@ TEST_F(ModelEffectsTest, TheMonsterWithoutFlamesBurnsItsHands)
     PoseEveryBone();
     m_actor.word376 = 0;
     m_actor.angles = {0.0f, 0.0f, 45.0f};
-    const auto sine = Client::Render::Models::Detail::SineProductPC53(
-        static_cast<double>(Clock) * static_cast<double>(std::bit_cast<float>(0x3b03126fu)),
-        std::bit_cast<float>(0x3e99999au));
+    const auto sine = Client::Math::Detail::SineProductPC53(static_cast<double>(Clock) *
+                                                                static_cast<double>(std::bit_cast<float>(0x3b03126fu)),
+                                                            std::bit_cast<float>(0x3e99999au));
     ASSERT_TRUE(sine.has_value());
     const double glow = *sine + static_cast<double>(std::bit_cast<float>(0x3f333333u));
     const glm::vec3 light{static_cast<float>(glow), static_cast<float>(glow * 0.5), static_cast<float>(glow * 0.5)};
@@ -662,7 +661,7 @@ TEST_F(ModelEffectsTest, TheMonsterWithoutFlamesBurnsItsHands)
         glm::vec3 angles(0.0f);
         for (const auto& [from, to] : {std::pair<std::size_t, std::size_t>{55, 62}, {70, 77}})
         {
-            static_cast<void>(Client::Render::Models::MoveToward(BoneAt(from), angles, BoneAt(to), 360.0f));
+            static_cast<void>(Client::Math::MoveToward(BoneAt(from), angles, BoneAt(to), 360.0f));
             ReferenceFlame(*reference, replay, Clock, 1, BoneAt(to), angles, light, std::bit_cast<float>(0x3e4ccccdu));
         }
         const float x = static_cast<float>(static_cast<double>(replay.Next() % 200) +
@@ -753,9 +752,9 @@ TEST_F(ModelEffectsTest, TheBleedingMonsterMarksTheGround)
 // 0 completa dos 0x5f3/0 y C8/C9, y ambas ramas alcanzan el pulso.
 TEST_F(ModelEffectsTest, TheKalimaHelperPulsesAndCompletesItsStoneEffects)
 {
-    const auto pulse = Client::Render::Models::Detail::SineProductPC53(
-        static_cast<double>(Clock) * static_cast<double>(std::bit_cast<float>(0x3a83126fu)),
-        std::bit_cast<float>(0x3f333333u));
+    const auto pulse = Client::Math::Detail::SineProductPC53(static_cast<double>(Clock) *
+                                                                 static_cast<double>(std::bit_cast<float>(0x3a83126fu)),
+                                                             std::bit_cast<float>(0x3f333333u));
     ASSERT_TRUE(pulse.has_value());
     for (const std::int32_t map : {0, 2, 24})
     {
@@ -805,7 +804,7 @@ TEST_F(ModelEffectsTest, TheKalimaHelperKeepsItsStoneOrderAndPulseWhenPoolsFill)
         const auto stepped = Step(0xc5, 24, random);
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         EXPECT_EQ(m_actor.dword64, 1);
-        const auto pulse = Client::Render::Models::Detail::SineSumPC53(
+        const auto pulse = Client::Math::Detail::SineSumPC53(
             static_cast<double>(Clock) * static_cast<double>(std::bit_cast<float>(0x3a83126fu)), 1.0);
         ASSERT_TRUE(pulse.has_value());
         EXPECT_EQ(m_actor.blendMeshLight, static_cast<float>(*pulse * 0.5));
@@ -827,7 +826,7 @@ TEST_F(ModelEffectsTest, TheKalimaHelperKeepsItsStoneOrderAndPulseWhenPoolsFill)
 // del 0x197, (1; 0; 0) con +0x4 en 9 y (0; 0,3f; 1) si no. Con la tabla llena, sin los rand() del humo.
 TEST_F(ModelEffectsTest, TheKalimaSmokersBreatheFromTheirBone)
 {
-    m_actor.bodyPose.assign(40, Client::Render::Models::BoneTransform(1.0f));
+    m_actor.bodyPose.assign(40, Client::Math::BoneTransform(1.0f));
     for (std::size_t bone = 0; bone < m_actor.bodyPose.size(); ++bone)
         m_actor.bodyPose[bone][3] = glm::vec3(0.0f, 0.0f, static_cast<float>(bone));
     m_actor.angles = {0.0f, 0.0f, 30.0f};

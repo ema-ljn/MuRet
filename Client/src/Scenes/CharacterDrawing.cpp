@@ -60,7 +60,7 @@ namespace Client::Scenes
 namespace
 {
 constexpr float PartBoxAlphaThreshold = 0.01f;
-using Render::Models::BoneTransform;
+using Math::BoneTransform;
 using Render::Models::ObjectState;
 
 // El contorno de 0x60cf70 con su modo 1: dos pases de 0x60cd60, a la escala de +0x94 (1,2, de 0x511290) y a
@@ -864,7 +864,7 @@ void DrawHangingFrom(const CharacterFrame& frame, std::uint16_t modelId, const B
     if (modelId == World::HdkMaceModel && character.sprites != nullptr && character.clothWorld != nullptr &&
         !bones.empty())
     {
-        const Render::Models::OriginalMatrix bone = Render::Models::OriginalMatrixOf(bones.front());
+        const Math::OriginalMatrix bone = Math::OriginalMatrixOf(bones.front());
         if (character.scepter != nullptr)
         {
             character.scepter->Create(*character.sprites, bone, character.object.scale, bodyOrigin,
@@ -884,7 +884,7 @@ void DrawHangingFrom(const CharacterFrame& frame, std::uint16_t modelId, const B
 glm::vec3 HangingOrigin(const BoneTransform& parent, const glm::vec3& offset,
                         const Render::Models::ObjectTransform& object)
 {
-    const glm::vec3 turned = Render::Models::OriginalVectorRotate(offset, Render::Models::OriginalMatrixOf(parent));
+    const glm::vec3 turned = Math::OriginalVectorRotate(offset, Math::OriginalMatrixOf(parent));
     glm::vec3 origin{};
     for (int k = 0; k < 3; ++k)
     {
@@ -1555,7 +1555,7 @@ Core::Expected<WavedMesh, std::string> WavedItemMesh(const Data::Models::Mesh& i
 {
     constexpr double Rate = static_cast<double>(std::bit_cast<float>(0x3be56042u)); // 0,007f (0x6ba144)
     constexpr double Reach = 28.0;                                                  // 0x6b880c
-    const auto clock = static_cast<std::uint32_t>(World::FtolLow(static_cast<double>(worldClock)));
+    const auto clock = static_cast<std::uint32_t>(Math::FtolLow(static_cast<double>(worldClock)));
     WavedMesh waved;
     waved.mesh = input;
     waved.mesh.vertices.clear();
@@ -1578,7 +1578,7 @@ Core::Expected<WavedMesh, std::string> WavedItemMesh(const Data::Models::Mesh& i
                 // producto es un cero con el signo de seno XOR normal (el R53 del seno conserva el signo).
                 const float factor = normal[axis];
                 const float magnitude = factor == 0.0f ? 1.0f : std::fabs(factor);
-                const auto sine = Render::Models::Detail::SineProductPC53(argument, magnitude);
+                const auto sine = Math::Detail::SineProductPC53(argument, magnitude);
                 if (!sine)
                     return Core::Unexpected(std::string("4ed7c0: la onda no cabe en el perfil PC53"));
                 const double product =
@@ -2007,7 +2007,7 @@ Core::Expected<void, std::string> DrawAidaMeshPass(Render::ModelBatch& batch,
     constexpr double BaseStep = static_cast<double>(std::bit_cast<float>(0x3851b717u));
     constexpr float GlowColor = std::bit_cast<float>(0x3f051eb8u);
     // 0x425623..0x425645: ftol del reloj, neg, cdq e idiv por 100.000 (el resto lleva el signo del dividendo).
-    const std::int32_t clock = World::FtolLow(static_cast<double>(worldClock));
+    const std::int32_t clock = Math::FtolLow(static_cast<double>(worldClock));
     const auto negated = static_cast<std::int32_t>(0u - static_cast<std::uint32_t>(clock));
     const auto remainder = static_cast<double>(negated % Period);
     DrawnObject pass = object;
@@ -2424,7 +2424,7 @@ Core::Expected<bool, std::string> DrawCastleSiegeBody(Render::ModelBatch& batch,
         DrawnObject scrolled = object;
         scrolled.color = glm::vec3(std::bit_cast<float>(0x3ee66666u));
         scrolled.unlitMesh = std::int16_t{0};
-        scrolled.state.uv.y = CastleSiegeScroll(World::FtolLow(static_cast<double>(pass.worldClock)));
+        scrolled.state.uv.y = CastleSiegeScroll(Math::FtolLow(static_cast<double>(pass.worldClock)));
         DrawObject(batch, models, scrolled, frameClock);
         return true;
     }
@@ -2433,7 +2433,7 @@ Core::Expected<bool, std::string> DrawCastleSiegeBody(Render::ModelBatch& batch,
         // 0x42cd0a..0x42cd5b: neg antes del cdq; el color, el que dejó 0x5ffce0.
         DrawnObject flowing = object;
         flowing.unlitMesh = std::int16_t{0};
-        const std::int32_t clock = World::FtolLow(static_cast<double>(pass.worldClock));
+        const std::int32_t clock = Math::FtolLow(static_cast<double>(pass.worldClock));
         flowing.state.uv.x = CastleSiegeScroll(static_cast<std::int32_t>(0u - static_cast<std::uint32_t>(clock)));
         const auto meshes = PosedMeshesOf(models, flowing, skinned);
         if (meshes.empty())
@@ -2450,7 +2450,7 @@ Core::Expected<bool, std::string> DrawCastleSiegeBody(Render::ModelBatch& batch,
         constexpr double Rate = static_cast<double>(std::bit_cast<float>(0x3a83126fu));
         constexpr float Swing = std::bit_cast<float>(0x3e4ccccdu);
         constexpr double Base = static_cast<double>(std::bit_cast<float>(0x3e99999au));
-        const auto pulse = Render::Models::Detail::SineProductPC53(static_cast<double>(pass.worldClock) * Rate, Swing);
+        const auto pulse = Math::Detail::SineProductPC53(static_cast<double>(pass.worldClock) * Rate, Swing);
         if (!pulse)
             return Core::Unexpected(std::string("0x42cd9f: la luz del 0x42 del 30 no cabe en el perfil PC53"));
         DrawnObject chromed = object;
@@ -2514,8 +2514,8 @@ Core::Expected<bool, std::string> DrawCastleSiegeBody(Render::ModelBatch& batch,
     return true;
 }
 
-std::vector<Render::Models::OriginalMatrix> PosedWorldBones(const Render::Models::IModelLibrary& models,
-                                                            const DrawnObject& object)
+std::vector<Math::OriginalMatrix> PosedWorldBones(const Render::Models::IModelLibrary& models,
+                                                  const DrawnObject& object)
 {
     const Render::Models::Skeleton* skeleton = models.SkeletonOf(object.model);
     if (skeleton == nullptr)
@@ -2529,11 +2529,11 @@ std::vector<Render::Models::OriginalMatrix> PosedWorldBones(const Render::Models
     }
     constexpr std::size_t Rows = 3;
     constexpr std::size_t Columns = 4;
-    std::vector<Render::Models::OriginalMatrix> world;
+    std::vector<Math::OriginalMatrix> world;
     world.reserve(bones.size());
     for (const BoneTransform& bone : bones)
     {
-        Render::Models::OriginalMatrix matrix = Render::Models::OriginalMatrixOf(bone);
+        Math::OriginalMatrix matrix = Math::OriginalMatrixOf(bone);
         for (std::size_t row = 0; row < Rows; ++row)
         {
             for (std::size_t column = 0; column + 1 < Columns; ++column)
@@ -2562,7 +2562,7 @@ std::optional<glm::vec3> PosedBonePoint(const Render::Models::IModelLibrary& mod
     {
         return std::nullopt;
     }
-    return (Render::Models::VectorTransform(offset, bones[bone]) * object.transform.scale) + object.transform.position;
+    return (Math::VectorTransform(offset, bones[bone]) * object.transform.scale) + object.transform.position;
 }
 
 std::optional<glm::vec3> LastPosedBonePoint(std::span<const PosedInTheBuffer> posed, std::size_t bone,

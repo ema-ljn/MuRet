@@ -27,8 +27,8 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Render::Models::OriginalAngleMatrix;
-using Client::Render::Models::OriginalVectorRotate;
+using Client::Math::OriginalAngleMatrix;
+using Client::Math::OriginalVectorRotate;
 using Client::Scenes::JointState;
 
 constexpr std::uint32_t Seed = 0x62cu;
@@ -178,15 +178,14 @@ TEST(SpiralJointsTest, TheOrbitsWaitOnTheirOwnerBone)
 // crece uno.
 TEST(SpiralJointsTest, TheOrbitsCircleTheirOwnerBone)
 {
-    using Client::Render::Models::OriginalMatrixOf;
-    using Client::Render::Models::OriginalTransformPosition;
+    using Client::Math::OriginalMatrixOf;
+    using Client::Math::OriginalTransformPosition;
     Client::Scenes::ActorState owner;
     owner.type = 0x1a5;
     owner.position = {100.0f, 200.0f, 300.0f};
-    owner.bodyPose.assign(3, Client::Render::Models::BoneTransform(0.0f));
-    owner.bodyPose[2] =
-        Client::Render::Models::BoneTransform(glm::vec3{0.6f, 0.8f, 0.0f}, glm::vec3{-0.8f, 0.6f, 0.0f},
-                                              glm::vec3{0.0f, 0.0f, 1.0f}, glm::vec3{10.0f, 20.0f, 30.0f});
+    owner.bodyPose.assign(3, Client::Math::BoneTransform(0.0f));
+    owner.bodyPose[2] = Client::Math::BoneTransform(glm::vec3{0.6f, 0.8f, 0.0f}, glm::vec3{-0.8f, 0.6f, 0.0f},
+                                                    glm::vec3{0.0f, 0.0f, 1.0f}, glm::vec3{10.0f, 20.0f, 30.0f});
     auto world = std::make_unique<Client::Scenes::WorldState>();
     world->PlaceModel(owner.type, {.scale = 1.25f, .origin = {9.0f, 9.0f, 9.0f}, .action = 4});
     Client::World::FrameSprites sprites;

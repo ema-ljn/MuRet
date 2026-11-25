@@ -1149,8 +1149,8 @@ TEST_F(InventoryReplyTest, EncodedEmptyHandsReachTheHangingConsumerWithTheirNati
         Client::Render::ModelBatch batch;
         Client::Scenes::FaunaDrawCarry carry;
         auto sprites = std::make_unique<Client::World::FrameSprites>();
-        std::array<Client::Render::Models::BoneTransform, 64> bones;
-        bones.fill(Client::Render::Models::BoneTransform(1.0f));
+        std::array<Client::Math::BoneTransform, 64> bones;
+        bones.fill(Client::Math::BoneTransform(1.0f));
         const auto before = tested.cloth.random;
         const auto drawn = Client::Scenes::DrawGameHanging(hero, {.batch = batch,
                                                                   .models = tested.models,

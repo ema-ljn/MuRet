@@ -230,8 +230,8 @@ Core::Expected<void, std::string> BeginTheArrow(World::ModelEffect& effect, Worl
     constexpr glm::vec3 Muzzle{-10.0f, -60.0f, 135.0f};
     effect.speed = 1.0f;
     effect.life = ArrowLife;
-    AddRotated(effect.transform.position, Render::Models::OriginalVectorRotate(
-                                              Muzzle, Render::Models::OriginalAngleMatrix(effect.transform.angles)));
+    AddRotated(effect.transform.position,
+               Math::OriginalVectorRotate(Muzzle, Math::OriginalAngleMatrix(effect.transform.angles)));
     // 0x51c4e6..0x51c587: la escala y la y de la velocidad.
     if (type == TourArrow)
     {
@@ -321,8 +321,8 @@ void BeginTheAquagoldArrow(World::ModelEffect& effect, WorldState& world, CrtRan
     constexpr glm::vec3 Muzzle{-10.0f, -60.0f, 135.0f};
     effect.speed = 1.0f;
     effect.life = FirstLife;
-    AddRotated(effect.transform.position, Render::Models::OriginalVectorRotate(
-                                              Muzzle, Render::Models::OriginalAngleMatrix(effect.transform.angles)));
+    AddRotated(effect.transform.position,
+               Math::OriginalVectorRotate(Muzzle, Math::OriginalAngleMatrix(effect.transform.angles)));
     effect.objectState.blendMesh = 0;
     effect.transform.scale = 1.0f;
     effect.velocity.y = -30.0f;
@@ -344,8 +344,7 @@ Core::Expected<void, std::string> BeginCelestialArrow(World::ModelEffect& effect
     constexpr glm::vec3 Muzzle{-10.0f, -100.0f, 15.0f};
     effect.velocity = {0.0f, -60.0f, 0.0f};
     effect.start = effect.transform.position;
-    AddRotated(effect.start, Render::Models::OriginalVectorRotate(
-                                 Muzzle, Render::Models::OriginalAngleMatrix(effect.transform.angles)));
+    AddRotated(effect.start, Math::OriginalVectorRotate(Muzzle, Math::OriginalAngleMatrix(effect.transform.angles)));
     glm::vec3 angles{0.0f, 0.0f, effect.transform.angles.z};
     if (callerAngles != nullptr)
         *callerAngles = angles;
@@ -481,8 +480,8 @@ Core::Expected<void, std::string> CreateTheBlast(ActorState& owner, ActorState* 
     blast.objectState.blendMesh = Render::Models::EveryMeshBlends;
     blast.velocity.y = -30.0f;
     blast.light = {std::bit_cast<float>(0x3e99999au), std::bit_cast<float>(0x3f4ccccdu), 1.0f};
-    AddRotated(blast.transform.position, Render::Models::OriginalVectorRotate(
-                                             Muzzle, Render::Models::OriginalAngleMatrix(blast.transform.angles)));
+    AddRotated(blast.transform.position,
+               Math::OriginalVectorRotate(Muzzle, Math::OriginalAngleMatrix(blast.transform.angles)));
     blast.transform.angles.x = -30.0f;
     // 0x51e01a: 0x530860(0x632, o+0x10, o+0x10, o+0x1c, 4, el efecto, 40, 0x32, 0, 0, −1), el rayo que sigue al 0x13a
     // (JointFamilies::StormJoint, alta 0x534977, sin rand()); con los joints llenos, nada.
@@ -517,11 +516,11 @@ Core::Expected<void, std::string> CreateTheReignHandShine(ActorState& actor, con
     constexpr std::int32_t ShineSubtype = 3;
     constexpr glm::vec3 HandOffset{0.0f, 10.0f, -130.0f};
     const std::size_t handBone = actor.hands[0].bone;
-    const Render::Models::BoneTransform matrix =
-        handBone < actor.bodyPose.size() ? actor.bodyPose[handBone] : Render::Models::BoneTransform(0.0f);
+    const Math::BoneTransform matrix =
+        handBone < actor.bodyPose.size() ? actor.bodyPose[handBone] : Math::BoneTransform(0.0f);
     const SharedModelPlacement placement = context.world.ModelPlacement(actor.type);
-    glm::vec3 point = Render::Models::OriginalTransformPosition(Render::Models::OriginalMatrixOf(matrix), HandOffset,
-                                                                placement.scale, placement.origin);
+    glm::vec3 point =
+        Math::OriginalTransformPosition(Math::OriginalMatrixOf(matrix), HandOffset, placement.scale, placement.origin);
     glm::vec3 angles{};
     for (int sample = 0; sample < Samples; ++sample)
     {
@@ -847,7 +846,7 @@ Core::Expected<void, std::string> HitWithTheArrow(World::ModelEffect& effect, co
 // ftol([0x5767b88]) · 0,1f, el giro de los sprites de la flecha; `negated`, con el NEG del entero.
 Core::Expected<float, std::string> SpriteTurn(float worldClock, bool negated, std::string_view address)
 {
-    const auto whole = World::OriginalFtolLow(D(worldClock));
+    const auto whole = Math::OriginalFtolLow(D(worldClock));
     if (!whole.has_value())
         return Core::Unexpected(std::format("{}: el reloj del mundo no cabe en el ftol", address));
     const auto turned = negated ? std::bit_cast<std::int32_t>(0u - std::bit_cast<std::uint32_t>(*whole)) : *whole;
@@ -920,8 +919,8 @@ Core::Expected<void, std::string> StepTheSiegeArrow(World::ModelEffect& effect, 
                                             "(0x7d0d348) sin el mapa cargado"));
     }
     constexpr double CellsPerUnit = static_cast<double>(0.01f); // 0x6b86c0
-    const auto x = World::OriginalFtolLow(D(effect.transform.position.x) * CellsPerUnit);
-    const auto y = World::OriginalFtolLow(D(effect.transform.position.y) * CellsPerUnit);
+    const auto x = Math::OriginalFtolLow(D(effect.transform.position.x) * CellsPerUnit);
+    const auto y = Math::OriginalFtolLow(D(effect.transform.position.y) * CellsPerUnit);
     if (!x || !y)
         return Core::Unexpected(std::string("0x52416a: la posición de la flecha 0xdb por 0,01 no entra en el entero de "
                                             "0x69fd3c"));
@@ -1286,8 +1285,8 @@ Core::Expected<void, std::string> StepReignArrow(World::ModelEffect& effect, flo
             return burst;
     }
     effect.point40 = effect.transform.position;
-    AddRotated(effect.point40, Render::Models::OriginalVectorRotate(
-                                   effect.velocity, Render::Models::OriginalAngleMatrix(effect.transform.angles)));
+    AddRotated(effect.point40,
+               Math::OriginalVectorRotate(effect.velocity, Math::OriginalAngleMatrix(effect.transform.angles)));
     constexpr glm::vec3 Orange{1.0f, 0.4f, 0.2f};
     if (auto lit = ArrowLightAt(effect.transform.position, luminosity, Orange, context, "0x525a54"); !lit.HasValue())
         return lit;
@@ -1316,8 +1315,8 @@ Core::Expected<void, std::string> StepAdvancedArrow(World::ModelEffect& effect, 
     effect.transform.angles.y = F32(D(effect.transform.angles.y) + turn);
     effect.point40 = effect.transform.position;
     if (archangel)
-        AddRotated(effect.point40, Render::Models::OriginalVectorRotate(
-                                       effect.velocity, Render::Models::OriginalAngleMatrix(effect.transform.angles)));
+        AddRotated(effect.point40,
+                   Math::OriginalVectorRotate(effect.velocity, Math::OriginalAngleMatrix(effect.transform.angles)));
     constexpr glm::vec3 Orange{1.0f, 0.4f, 0.2f}, Blue{0.2f, 0.4f, 1.0f};
     if (auto lit = ArrowLightAt(effect.transform.position, luminosity, archangel ? Orange : Blue, context, "0x523ec4");
         !lit.HasValue())
@@ -1337,8 +1336,7 @@ Core::Expected<void, std::string> ScatterCombatBurstAt(const glm::vec3& position
     for (int group = 0; group < Groups; ++group)
     {
         const glm::vec3 angles{0.0f, 0.0f, static_cast<float>(group * YawStep)};
-        const glm::vec3 rotated =
-            Render::Models::OriginalVectorRotate(Offset, Render::Models::OriginalAngleMatrix(angles));
+        const glm::vec3 rotated = Math::OriginalVectorRotate(Offset, Math::OriginalAngleMatrix(angles));
         glm::vec3 point{};
         for (int axis = 0; axis < 3; ++axis)
             point[axis] = static_cast<float>(static_cast<double>(rotated[axis]) + static_cast<double>(position[axis]));
@@ -1574,8 +1572,8 @@ Core::Expected<void, std::string> StepArrow(World::ModelEffect& effect, const Re
         // 0x52ccbe..0x52cd3f: la 0xf8 no se mueve; la velocidad girada por sus ángulos corre la partida (+0x17c).
         effect.transform.position = position;
         effect.previousPosition = position;
-        AddRotated(effect.start, Render::Models::OriginalVectorRotate(
-                                     effect.velocity, Render::Models::OriginalAngleMatrix(effect.transform.angles)));
+        AddRotated(effect.start,
+                   Math::OriginalVectorRotate(effect.velocity, Math::OriginalAngleMatrix(effect.transform.angles)));
     }
     if (!alive)
         effect.alive = false;

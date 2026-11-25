@@ -46,12 +46,12 @@ glm::ivec4 ScaledViewport(Core::PixelSize screen, const ViewportRect& rect)
 // como en la pila de GL.
 glm::mat4 CameraView(const Camera3D& camera)
 {
-    glm::mat4 view = Models::RoundedRotate(glm::mat4(1.0f), glm::radians(camera.angles.y), YAxis);
+    glm::mat4 view = Math::RoundedRotate(glm::mat4(1.0f), glm::radians(camera.angles.y), YAxis);
     if (!camera.skipXRotation)
     {
-        view = Models::RoundedRotate(view, glm::radians(camera.angles.x), XAxis);
+        view = Math::RoundedRotate(view, glm::radians(camera.angles.x), XAxis);
     }
-    view = Models::RoundedRotate(view, glm::radians(camera.angles.z), ZAxis);
+    view = Math::RoundedRotate(view, glm::radians(camera.angles.z), ZAxis);
     return glm::translate(view, -camera.position);
 }
 } // namespace
@@ -62,8 +62,8 @@ Pass3D MakePass3D(Core::PixelSize screen, const ViewportRect& rect, const Camera
     pass.screen = screen;
     pass.viewport = ScaledViewport(screen, rect);
     const float aspect = static_cast<float>(pass.viewport.z) / static_cast<float>(pass.viewport.w);
-    pass.projection = Models::RoundedPerspective(glm::radians(camera.fieldOfView), aspect, camera.nearPlane,
-                                                 camera.farPlane * FarScale);
+    pass.projection = Math::RoundedPerspective(glm::radians(camera.fieldOfView), aspect, camera.nearPlane,
+                                               camera.farPlane * FarScale);
     pass.view = CameraView(camera);
     pass.farPlane = camera.farPlane;
     return pass;

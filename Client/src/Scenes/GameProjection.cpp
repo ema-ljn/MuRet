@@ -40,7 +40,7 @@ Core::Expected<GameProjection, std::string> MakeGameProjection(const Render::Pas
     if (width < 2 || height < 2 || pass.screen.width <= 0 || pass.screen.height <= 0)
         return Core::Unexpected(std::string("0x6203c0: viewport o pantalla sin semilados positivos"));
     constexpr float HalfDegree = std::bit_cast<float>(0x3c0efa33u); // 6ba70c; conserva sus bits, no π/360 recalculado.
-    const double tangent = Render::Models::RoundedTan(static_cast<double>(fieldOfView) * HalfDegree);
+    const double tangent = Math::RoundedTan(static_cast<double>(fieldOfView) * HalfDegree);
     const float aspect = static_cast<float>(static_cast<double>(width) / height);
     GameProjection projection;
     projection.view = Render::ViewRows(pass.view);
@@ -59,11 +59,11 @@ Core::Expected<glm::ivec2, std::string> ProjectGamePoint(const GameProjection& p
 {
     if (projection.screenWidth <= 0 || projection.screenHeight <= 0)
         return Core::Unexpected(std::string("0x620610: pantalla sin divisores positivos"));
-    const auto eye = Render::Models::OriginalVectorTransform(point, projection.view);
-    const auto x = World::OriginalFtolLow((static_cast<double>(eye.x) / projection.horizontalScale) / eye.z);
+    const auto eye = Math::OriginalVectorTransform(point, projection.view);
+    const auto x = Math::OriginalFtolLow((static_cast<double>(eye.x) / projection.horizontalScale) / eye.z);
     if (!x)
         return Core::Unexpected(std::string("0x6205d8: proyección x no representable"));
-    const auto y = World::OriginalFtolLow((static_cast<double>(eye.y) / projection.verticalScale) / eye.z);
+    const auto y = Math::OriginalFtolLow((static_cast<double>(eye.y) / projection.verticalScale) / eye.z);
     if (!y)
         return Core::Unexpected(std::string("0x6205f6: proyección y no representable"));
     const auto screenX = WrappedSubtract(projection.centerX, *x);
@@ -96,11 +96,11 @@ UnprojectedPoint UnprojectGamePoint(const GameProjection& projection, std::int32
                            static_cast<double>(NegativeFar)),
         NegativeFar};
     // 0x620538..0x62057e: la cámara y el punto, cada uno con 0x5fcc30; la salida, la suma en la x87 con el fstp.
-    const Render::Models::OriginalMatrix& view = projection.view;
+    const Math::OriginalMatrix& view = projection.view;
     const glm::vec3 translation{-view[3], -view[7], -view[11]};
     UnprojectedPoint unprojected;
-    unprojected.camera = Render::Models::OriginalVectorIRotate(translation, view);
-    const glm::vec3 local = Render::Models::OriginalVectorIRotate(eye, view);
+    unprojected.camera = Math::OriginalVectorIRotate(translation, view);
+    const glm::vec3 local = Math::OriginalVectorIRotate(eye, view);
     for (int axis = 0; axis < 3; ++axis)
         unprojected.point[axis] = static_cast<float>(static_cast<double>(unprojected.camera[axis]) + local[axis]);
     return unprojected;

@@ -133,5 +133,5 @@ ParticleOwnerStatesOf(WorldState& world);
 // las operaciones anteriores a un fallo y devuelve la dirección y el lugar que falló.
 [[nodiscard]] Core::Expected<void, std::string>
 DrawGameParticles(Render::ModelBatch& batch, World::Particles& particles, const Render::Models::IModelLibrary& textures,
-                  const Render::Models::OriginalMatrix& view, float worldClock, std::uint8_t mode = 0);
+                  const Math::OriginalMatrix& view, float worldClock, std::uint8_t mode = 0);
 } // namespace Client::Scenes

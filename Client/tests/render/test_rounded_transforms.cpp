@@ -17,11 +17,11 @@
 
 namespace
 {
-using Client::Render::Models::RoundedCos;
-using Client::Render::Models::RoundedPerspective;
-using Client::Render::Models::RoundedRotate;
-using Client::Render::Models::RoundedSin;
-using Client::Render::Models::RoundedTan;
+using Client::Math::RoundedCos;
+using Client::Math::RoundedPerspective;
+using Client::Math::RoundedRotate;
+using Client::Math::RoundedSin;
+using Client::Math::RoundedTan;
 using Client::Tests::ExponentRange;
 using Client::Tests::FloatFromBits;
 using Client::Tests::Fnv1a64;

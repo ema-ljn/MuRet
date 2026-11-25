@@ -14,7 +14,7 @@
 
 namespace
 {
-namespace Math = Client::Render::Models::Detail;
+namespace Math = Client::Math::Detail;
 using Math::Retained64;
 using Math::RetainedClass;
 

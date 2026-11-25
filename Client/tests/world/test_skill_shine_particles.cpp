@@ -24,7 +24,7 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Render::Models::RoundedSin;
+using Client::Math::RoundedSin;
 using Client::World::Particle;
 using Client::World::ParticleOwner;
 using Client::World::ParticleOwnerKind;

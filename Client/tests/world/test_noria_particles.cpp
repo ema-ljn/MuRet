@@ -240,8 +240,8 @@ TEST(NoriaParticlesTest, TheOtherFairySparksFollowTheirBranch)
                                                     static_cast<double>(std::bit_cast<float>(0x3dcccccdu)));
             const float local = strong ? static_cast<float>(static_cast<double>(forward) * 10.0) : forward;
             EXPECT_EQ(particle.velocity,
-                      Client::Render::Models::OriginalVectorRotate(
-                          glm::vec3(0.0f, local, 0.0f), Client::Render::Models::OriginalAngleMatrix(original.angles)));
+                      Client::Math::OriginalVectorRotate(glm::vec3(0.0f, local, 0.0f),
+                                                         Client::Math::OriginalAngleMatrix(original.angles)));
             EXPECT_EQ(random.State(), first.State());
         }
         for (const int subtype : {9, -1})
@@ -414,9 +414,8 @@ TEST(NoriaParticlesTest, TheOwnedFairySparkDrawsSevenTimesAndKeepsItsOwner)
         EXPECT_EQ(particle.texture, 0x5c6);
         EXPECT_EQ(particle.verticalSpeed, 0.0f);
         EXPECT_EQ(particle.angles, angles);
-        EXPECT_EQ(particle.velocity,
-                  Client::Render::Models::OriginalVectorRotate(glm::vec3(0.0f, forward, 0.0f),
-                                                               Client::Render::Models::OriginalAngleMatrix(angles)));
+        EXPECT_EQ(particle.velocity, Client::Math::OriginalVectorRotate(glm::vec3(0.0f, forward, 0.0f),
+                                                                        Client::Math::OriginalAngleMatrix(angles)));
         EXPECT_EQ(particle.typedOwner, owner);
         EXPECT_EQ(random.State(), draws.State());
         if (seed == 1)

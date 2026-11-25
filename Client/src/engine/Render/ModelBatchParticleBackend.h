@@ -67,7 +67,7 @@ public:
     [[nodiscard]] Result Translate(float x, float y, float z);
     [[nodiscard]] Result DrawWorldQuad(std::span<const glm::vec3, 4> corners, std::span<const glm::vec2, 4> uv);
     [[nodiscard]] Result PopMatrix();
-    [[nodiscard]] const Models::OriginalMatrix& ModelMatrix() const;
+    [[nodiscard]] const Math::OriginalMatrix& ModelMatrix() const;
     [[nodiscard]] bool HasPushedMatrix() const;
 
     [[nodiscard]] ModelBatch& Batch() const;
@@ -95,9 +95,9 @@ private:
     std::array<ModelVertex, 4> m_corners{};
     std::size_t m_cornerCount = 0;
     // Base World del perfil portado; la vista se aplica por comando en el renderer existente.
-    static constexpr Models::OriginalMatrix IdentityModel{1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0};
-    Models::OriginalMatrix m_model = IdentityModel;
-    std::optional<Models::OriginalMatrix> m_savedModel;
+    static constexpr Math::OriginalMatrix IdentityModel{1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0};
+    Math::OriginalMatrix m_model = IdentityModel;
+    std::optional<Math::OriginalMatrix> m_savedModel;
     ModelCoordinateSpace m_primitiveSpace;
 };
 } // namespace Client::Render

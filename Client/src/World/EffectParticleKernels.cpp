@@ -49,8 +49,7 @@ void SubtractLight(Particle& particle, double amount)
 // 0x4e98d0: la posición más la velocidad girada por AngleMatrix de los ángulos, cada suma en 53 bits.
 void Move(Particle& particle)
 {
-    const glm::vec3 turned =
-        Render::Models::OriginalVectorRotate(particle.velocity, Render::Models::OriginalAngleMatrix(particle.angles));
+    const glm::vec3 turned = Math::OriginalVectorRotate(particle.velocity, Math::OriginalAngleMatrix(particle.angles));
     for (int axis = 0; axis < 3; ++axis)
         particle.position[axis] = F32(static_cast<double>(turned[axis]) + static_cast<double>(particle.position[axis]));
 }

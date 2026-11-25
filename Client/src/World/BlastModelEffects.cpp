@@ -117,7 +117,7 @@ Core::Expected<void, std::string> FollowTheOwner(ModelEffect& effect, std::strin
 
 glm::vec3 Rotated(const glm::vec3& vector, const glm::vec3& angles)
 {
-    return Render::Models::OriginalVectorRotate(vector, Render::Models::OriginalAngleMatrix(angles));
+    return Math::OriginalVectorRotate(vector, Math::OriginalAngleMatrix(angles));
 }
 
 void AddTo(glm::vec3& target, const glm::vec3& offset)
@@ -540,8 +540,8 @@ Core::Expected<void, std::string> BeginTheCase(ModelEffects& effects, ModelEffec
         effect.life = 20;
         effect.transform.scale = 1.5f;
         const double argument = D(effect.transform.angles.z) * Radians;
-        const auto sine = Render::Models::Detail::SineProductPC53(argument, 5.0f);
-        const auto cosine = Render::Models::Detail::CosineDoubleProductPC53(argument, -5.0);
+        const auto sine = Math::Detail::SineProductPC53(argument, 5.0f);
+        const auto cosine = Math::Detail::CosineDoubleProductPC53(argument, -5.0);
         if (!sine || !cosine)
             return Core::Unexpected(Cut("0x51924b", "el yaw del 0x10f no cabe en el perfil PC53"));
         effect.velocity.x = F32(*sine);
@@ -853,8 +853,8 @@ Core::Expected<void, std::string> StepTheIceRock(ModelEffect& effect, Particles&
     if (services.terrainAttributes == nullptr)
         return Core::Unexpected(Cut("0x5215e4", "la roca lee el atributo de su celda (0x7d0d348)"));
     glm::vec3& position = effect.transform.position;
-    const std::int32_t cellY = FtolLow(D(position.y)) / 100;
-    const std::int32_t cellX = FtolLow(D(position.x)) / 100;
+    const std::int32_t cellY = Math::FtolLow(D(position.y)) / 100;
+    const std::int32_t cellX = Math::FtolLow(D(position.x)) / 100;
     const auto index = Data::Terrain::CellIndex(static_cast<std::uint8_t>(cellX), static_cast<std::uint8_t>(cellY));
     constexpr std::uint16_t OpenBit = 0x08;
     if ((services.terrainAttributes->cells[index] & OpenBit) != OpenBit)
@@ -1078,8 +1078,8 @@ Core::Expected<void, std::string> StepThePiercingChild(ModelEffect& effect, CrtR
             return Core::Unexpected(Cut("0x523d24", "la estela 105/1 pide las ondas de Kalima (0x437860)"));
         constexpr double TileFactor = static_cast<double>(0.01f); // 0x6b86c0
         constexpr std::int32_t Radius = 2, Amplitude = -200;
-        const auto tileY = FtolLow(D(position.y) * TileFactor);
-        const auto tileX = FtolLow(D(position.x) * TileFactor);
+        const auto tileY = Math::FtolLow(D(position.y) * TileFactor);
+        const auto tileX = Math::FtolLow(D(position.x) * TileFactor);
         if (auto disturbed = kalima->Disturb(tileX, tileY, Radius, Amplitude, random); !disturbed.HasValue())
             return disturbed;
     }
@@ -1133,7 +1133,7 @@ Core::Expected<void, std::string> SwayTheBlizzard(ModelEffect& effect, CrtRandom
     for (int axis = 0; axis < 2; ++axis)
     {
         const double argument = static_cast<double>(random.Next() % 1000) * Hundredth;
-        const auto sine = Render::Models::Detail::SineProductPC53(argument, amplitude);
+        const auto sine = Math::Detail::SineProductPC53(argument, amplitude);
         if (!sine)
             return Core::Unexpected(Cut(address, "el seno del 0x108 no cabe en el perfil PC53"));
         effect.transform.position[axis] = F32(*sine + D(effect.start[axis]));

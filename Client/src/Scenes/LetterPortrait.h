@@ -139,7 +139,7 @@ struct LetterPortraitDraw
     std::function<Core::Expected<void, std::string>(const DrawnObject&)> onHelperPose{};
     std::function<std::span<const Render::Models::SkinnedMesh>()> posedMeshes{};
     std::function<std::uint32_t()> systemTime{};
-    std::function<std::span<const Render::Models::BoneTransform>()> globalPose{};
+    std::function<std::span<const Math::BoneTransform>()> globalPose{};
     // Un frame del original: el paso y el dibujo sobre el retrato. Un dibujo intermedio de MuRet dibuja una copia,
     // sin el paso (lo hace el frame siguiente del original), y con el rand() de `characters`, que es su copia.
     bool originalFrame = true;

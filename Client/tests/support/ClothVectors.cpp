@@ -184,7 +184,7 @@ std::optional<std::string> ReadTheFile(const std::filesystem::path& path, ClothV
         {
             next();
             Line row(text);
-            Render::Models::BoneTransform m(0.0f);
+            Math::BoneTransform m(0.0f);
             // Los 12 floats en el orden de Half-Life: HL[0][0..3], HL[1][0..3], HL[2][0..3].
             for (int r = 0; r < 3; ++r)
             {

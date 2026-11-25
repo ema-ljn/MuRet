@@ -11,7 +11,7 @@ namespace Client::World
 Core::Expected<double, ParticleError> PortableParticleTrigonometry::SineProductPC53(double argument,
                                                                                     float multiplier) const
 {
-    const std::optional<double> product = Render::Models::Detail::SineProductPC53(argument, multiplier);
+    const std::optional<double> product = Math::Detail::SineProductPC53(argument, multiplier);
     if (!product)
     {
         return Core::Unexpected(ParticleError::UnrepresentableTrigonometry);
@@ -22,7 +22,7 @@ Core::Expected<double, ParticleError> PortableParticleTrigonometry::SineProductP
 Core::Expected<double, ParticleError> PortableParticleTrigonometry::CosineProductPC53(double argument,
                                                                                       float multiplier) const
 {
-    const std::optional<double> product = Render::Models::Detail::CosineProductPC53(argument, multiplier);
+    const std::optional<double> product = Math::Detail::CosineProductPC53(argument, multiplier);
     if (!product)
     {
         return Core::Unexpected(ParticleError::UnrepresentableTrigonometry);

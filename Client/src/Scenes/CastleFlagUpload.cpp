@@ -23,8 +23,8 @@ Core::Expected<void, std::string> UploadTheCastleFlag(std::span<const std::uint8
     const auto metadata = table.Metadata(0x69c);
     if (!metadata || table.Store() == nullptr)
         return Core::Unexpected(std::string("0x5f1890: la bandera 0x69c no tiene buffer ni backend cargados"));
-    const auto width = World::OriginalFtolLow(metadata->size.x);
-    const auto height = World::OriginalFtolLow(metadata->size.y);
+    const auto width = Math::OriginalFtolLow(metadata->size.x);
+    const auto height = Math::OriginalFtolLow(metadata->size.y);
     if (!width || !height || metadata->components != 4)
         return Core::Unexpected(std::string("0x5f1890: la bandera no tiene el buffer RGBA del OZT original"));
     auto painted = PaintTheCastleFlag(mark, *width, *height);

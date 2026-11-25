@@ -178,8 +178,8 @@ Core::Expected<void, std::string> BeginTheKundunSpirit(World::ModelEffect& effec
     const float turn = static_cast<float>(context.random.Next() % FullTurn);
     const float reach = static_cast<float>(context.random.Next() % ReachSpan + ReachBase);
     // 0x52e3a0 y 0x52e390: FSIN y FCOS del giro, retenidos en la x87 hasta el FMUL por el radio.
-    const auto sine = Render::Models::Detail::SineProductPC53(D(turn), reach);
-    const auto cosine = Render::Models::Detail::CosineProductPC53(D(turn), reach);
+    const auto sine = Math::Detail::SineProductPC53(D(turn), reach);
+    const auto cosine = Math::Detail::CosineProductPC53(D(turn), reach);
     if (!sine || !cosine)
         return Core::Unexpected(std::string("0x51ce4f: el giro del 0x125 fuera del perfil PC53"));
     const glm::vec3 point{F32(*sine + D(before.x)), F32(*cosine + D(before.y)), 0.0f};

@@ -145,7 +145,7 @@ TEST(AuraJointsTest, TheDirectionMatchesTheGoldenValues)
     for (const std::int32_t phase : {-77, 53808})
     {
         SCOPED_TRACE(phase);
-        const auto direction = Client::Render::Models::Detail::FaunaDirectionPC53(phase);
+        const auto direction = Client::Math::Detail::FaunaDirectionPC53(phase);
         ASSERT_TRUE(direction.has_value());
         const glm::vec3 golden = GoldenDirection(phase);
         for (int axis = 0; axis < 3; ++axis)
@@ -264,8 +264,8 @@ TEST(AuraJointsTest, TheRiseFallsUntilItsEffect)
     EXPECT_EQ(rise.light, glm::vec3(1, 1, std::bit_cast<float>(0x3f4ccccdu)));
     EXPECT_EQ(rise.count, 0);
     EXPECT_EQ(rise.width, 25.0f);
-    const auto matrix = Client::Render::Models::OriginalAngleMatrix(pool.startAngles);
-    const auto turned = Client::Render::Models::OriginalVectorRotate({0, 800, 0}, matrix);
+    const auto matrix = Client::Math::OriginalAngleMatrix(pool.startAngles);
+    const auto turned = Client::Math::OriginalVectorRotate({0, 800, 0}, matrix);
     EXPECT_EQ(rise.position, glm::vec3(F32(D(turned.x) + 500), F32(D(turned.y) + 600), F32(D(turned.z) + 700)));
     ASSERT_TRUE(pool.Step().HasValue());
     EXPECT_EQ(rise.angles.z, 60.0f);
@@ -337,8 +337,8 @@ TEST(AuraJointsTest, TheSpinTurnsAndRises)
     EXPECT_EQ(spin.angles.z, 25.0f);
     EXPECT_EQ(spin.pathIncrement.z, 45.0f);
     EXPECT_EQ(spin.count, 1);
-    const auto matrix = Client::Render::Models::OriginalAngleMatrix({0, 0, 25});
-    const auto turned = Client::Render::Models::OriginalVectorRotate({0, -40, 0}, matrix);
+    const auto matrix = Client::Math::OriginalAngleMatrix({0, 0, 25});
+    const auto turned = Client::Math::OriginalVectorRotate({0, -40, 0}, matrix);
     EXPECT_EQ(spin.position, glm::vec3(F32(D(turned.x) + 10), F32(D(turned.y) + 20), F32(D(turned.z) + 30)));
 }
 

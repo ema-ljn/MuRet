@@ -25,7 +25,7 @@ class ParticleDrawServices final : public World::IParticleDrawingServices
 public:
     ParticleDrawServices(std::reference_wrapper<const Render::Models::IModelLibrary> models,
                          std::reference_wrapper<Render::IParticleDrawBackend> backend,
-                         std::reference_wrapper<const Render::Models::OriginalMatrix> view);
+                         std::reference_wrapper<const Math::OriginalMatrix> view);
     [[nodiscard]] Core::Expected<glm::vec2, World::ParticleError> Dimensions(std::int32_t image) override;
     [[nodiscard]] Core::Expected<std::uint8_t, World::ParticleError> MaterialFlag(std::int32_t type) override;
     [[nodiscard]] Result Material(std::uint8_t rawFlag) override;
@@ -40,7 +40,7 @@ public:
 private:
     const std::reference_wrapper<const Render::Models::IModelLibrary> m_models;
     const std::reference_wrapper<Render::IParticleDrawBackend> m_backend;
-    const std::reference_wrapper<const Render::Models::OriginalMatrix> m_view;
+    const std::reference_wrapper<const Math::OriginalMatrix> m_view;
     bool m_textureEnvOverride = false;
 };
 } // namespace Client::Scenes

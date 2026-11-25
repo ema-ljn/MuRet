@@ -72,8 +72,8 @@ Core::Expected<void, std::string> CreateHelixJoint(JointState& joint, const Worl
     constexpr int FullTurn = Math::FullTurn;
     joint.velocity.x = static_cast<float>(random.Next() % FullTurn);
     const double argument = D(joint.angles.z) * NegativeRadians;
-    const auto sine = Render::Models::Detail::SineDoubleProductPC53(argument, reach);
-    const auto cosine = Render::Models::Detail::CosineDoubleProductPC53(argument, reach);
+    const auto sine = Math::Detail::SineDoubleProductPC53(argument, reach);
+    const auto cosine = Math::Detail::CosineDoubleProductPC53(argument, reach);
     if (!sine || !cosine)
         return Core::Unexpected(std::format("0x533ffe: el giro del joint {:#x}/{:#x} excede el perfil matemático",
                                             joint.type, joint.subtype));
@@ -102,8 +102,8 @@ Core::Expected<void, std::string> StepHelixJoint(JointState& joint)
         constexpr double Radius = 26.0;                                                 // 0x6ba2cc y 0x6b88e0
         constexpr double Sink = static_cast<double>(std::bit_cast<float>(0x3e99999au)); // 0x6b89dc, 0,3f
         constexpr std::uint32_t Top = 0x5a;
-        horizontal = Render::Models::Detail::CosineDoubleProductPC53(turn, -Radius);
-        const auto rise = Render::Models::Detail::SineDoubleProductPC53(D(stored), Radius);
+        horizontal = Math::Detail::CosineDoubleProductPC53(turn, -Radius);
+        const auto rise = Math::Detail::SineDoubleProductPC53(D(stored), Radius);
         if (rise)
         {
             const auto below = std::bit_cast<std::int32_t>(Top - std::bit_cast<std::uint32_t>(joint.life));
@@ -119,10 +119,10 @@ Core::Expected<void, std::string> StepHelixJoint(JointState& joint)
         constexpr std::int32_t Least = 0xa;
         const auto grown = std::bit_cast<std::int32_t>(std::bit_cast<std::uint32_t>(joint.life) + Growth);
         const double radius = static_cast<double>(grown > Least ? grown : Least) * Shrink;
-        const auto across = Render::Models::Detail::CosineDoubleProductPC53(D(stored), radius);
+        const auto across = Math::Detail::CosineDoubleProductPC53(D(stored), radius);
         if (across)
             horizontal = -*across;
-        vertical = Render::Models::Detail::SineDoubleProductPC53(D(stored), radius);
+        vertical = Math::Detail::SineDoubleProductPC53(D(stored), radius);
     }
     if (!horizontal || !vertical)
         return Core::Unexpected(std::format("0x53b0aa: el giro del joint {:#x}/{:#x} excede el perfil matemático",
@@ -132,8 +132,8 @@ Core::Expected<void, std::string> StepHelixJoint(JointState& joint)
     joint.targetPosition.x = F32(D(joint.velocity.y) + D(joint.targetPosition.x));
     joint.targetPosition.y = F32(D(joint.velocity.z) + D(joint.targetPosition.y));
     const double facing = (90.0 - D(joint.angles.z)) * Radians;
-    const auto x = Render::Models::Detail::SineDoubleProductPC53(facing, *horizontal);
-    const auto y = Render::Models::Detail::CosineDoubleProductPC53(facing, *horizontal);
+    const auto x = Math::Detail::SineDoubleProductPC53(facing, *horizontal);
+    const auto y = Math::Detail::CosineDoubleProductPC53(facing, *horizontal);
     if (!x || !y)
         return Core::Unexpected(std::format("0x53b137: la dirección del joint {:#x}/{:#x} excede el perfil matemático",
                                             joint.type, joint.subtype));

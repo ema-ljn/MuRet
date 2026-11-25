@@ -61,11 +61,10 @@ Core::Expected<void, std::string> Spark(const JointKernels::StepServices& servic
 Core::Expected<void, std::string> Sweep(JointState& joint, const JointKernels::StepServices& services)
 {
     glm::vec3 from = joint.position;
-    const auto swing =
-        Render::Models::OriginalVectorRotate({0, Reach, 0}, Render::Models::OriginalAngleMatrix(joint.velocity));
+    const auto swing = Math::OriginalVectorRotate({0, Reach, 0}, Math::OriginalAngleMatrix(joint.velocity));
     for (int axis = 0; axis < 3; ++axis)
         joint.position[axis] = F32(D(swing[axis]) + D(joint.targetPosition[axis]));
-    if (auto appended = JointKernels::AppendJointTail(joint, Render::Models::OriginalAngleMatrix(joint.angles));
+    if (auto appended = JointKernels::AppendJointTail(joint, Math::OriginalAngleMatrix(joint.angles));
         !appended.HasValue())
         return appended;
     constexpr double Turn = 11.0; // 0x6b8bb4
@@ -114,7 +113,7 @@ Core::Expected<bool, std::string> HitAroundTheHero(JointState& joint, const Join
         {
             constexpr double Cut = static_cast<double>(std::bit_cast<float>(0x3e4ccccdu)); // 0x6b8cfc, 0,2f
             joint.speed = 0.0f;
-            joint.life = World::FtolLow(static_cast<double>(joint.life) * Cut);
+            joint.life = Math::FtolLow(static_cast<double>(joint.life) * Cut);
             return true;
         }
     }
@@ -149,8 +148,7 @@ void CreateSweepJoint(JointState& joint, const World::FishEffectRequest& request
     joint.maximumCount = Points;
     joint.velocity = joint.angles;
     joint.count = -1;
-    const auto reach =
-        Render::Models::OriginalVectorRotate({0, Reach, 0}, Render::Models::OriginalAngleMatrix(joint.angles));
+    const auto reach = Math::OriginalVectorRotate({0, Reach, 0}, Math::OriginalAngleMatrix(joint.angles));
     for (int axis = 0; axis < 3; ++axis)
         joint.position[axis] = F32(D(reach[axis]) + D(joint.position[axis]));
     joint.light = {1, 1, 1};

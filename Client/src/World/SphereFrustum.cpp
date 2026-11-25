@@ -29,7 +29,7 @@ FrustumPoints FrustumPointsOf(const glm::mat4& view, const Render::Camera3D& cam
 {
     const float depth = F32(static_cast<double>(camera.farPlane) * FarFactor);
     const double halfWidth =
-        (Render::Models::RoundedTan(static_cast<double>(camera.fieldOfView) * HalfFieldOfView) * depth * widthFactor) +
+        (Math::RoundedTan(static_cast<double>(camera.fieldOfView) * HalfFieldOfView) * depth * widthFactor) +
         WidthMargin;
     const float w = F32(halfWidth);
     const float h = F32(halfWidth * HeightFactor);

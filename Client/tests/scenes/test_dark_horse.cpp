@@ -39,7 +39,7 @@ Skeleton HorseSkeleton()
     {
         for (BoneKey& key : keys)
         {
-            key.rotation = Client::Render::Models::AngleQuaternion({0.0f, 0.0f, 0.0f});
+            key.rotation = Client::Math::AngleQuaternion({0.0f, 0.0f, 0.0f});
         }
     }
     skeleton.bones = {bone};

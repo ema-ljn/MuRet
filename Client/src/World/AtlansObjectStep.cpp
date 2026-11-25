@@ -30,7 +30,7 @@ constexpr double Half = Math::HalfAsDouble;
 // fld del reloj, fmul por `rate`, fsin y fmul por `factor`, en la x87.
 std::optional<double> Wave(float worldClock, double rate, float factor)
 {
-    return Render::Models::Detail::SineProductPC53(static_cast<double>(worldClock) * rate, factor);
+    return Math::Detail::SineProductPC53(static_cast<double>(worldClock) * rate, factor);
 }
 
 Core::Expected<void, std::string> SetSwingLight(WorldObject& object, float worldClock, double rate,
@@ -87,7 +87,7 @@ Core::Expected<void, std::string> StepAtlansObject(WorldObject& object, Crt::Crt
         // 0x6055fe..0x605620: fsin, fadd 1 (0x6b87d4) con un solo redondeo y fmul 0,5, en la x87.
         object.state.blendMesh = 1;
         const std::optional<double> wave =
-            Render::Models::Detail::SineSumPC53(static_cast<double>(globals.worldClock) * FastRate, 1.0);
+            Math::Detail::SineSumPC53(static_cast<double>(globals.worldClock) * FastRate, 1.0);
         if (!wave)
             return Core::Unexpected(std::string("0x605612: el seno del reloj no cabe en el perfil PC53"));
         object.state.light = F32(*wave * Half);

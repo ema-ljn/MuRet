@@ -52,7 +52,7 @@ inline constexpr std::uint16_t LordsCape = 0x1c30;
 
 // 0x4ec190: el hueso del que cuelga, con el desplazamiento girado por él y sumado a su traslación.
 // La escala del personaje no: va en cada vértice (verificado: con ella, la mascota cae a 1,8).
-[[nodiscard]] ENGINE_API BoneTransform AttachmentRoot(const BoneTransform& parent, const glm::vec3& offset);
+[[nodiscard]] ENGINE_API Math::BoneTransform AttachmentRoot(const Math::BoneTransform& parent, const glm::vec3& offset);
 
 // El camino de 0x509340 con su bandera (el byte bajo: un modelo de 0x212 a 0x1011, un arma): un
 // AngleMatrix por modelo, en grados (0x5fc8f0), con su traslación, encadenado al hueso
@@ -70,5 +70,6 @@ inline constexpr HangingPlacement QuiverPlacement{{70.0f, 0.0f, 90.0f}, {-10.0f,
 // La raíz de lo que cuelga por ese camino: el hueso por la matriz de su lugar, con los bits de la x87
 // (OriginalAngleMatrix y OriginalConcatTransforms). Como en el otro, la escala del personaje va en cada
 // vértice.
-[[nodiscard]] ENGINE_API BoneTransform PlacedRoot(const BoneTransform& parent, const HangingPlacement& placement);
+[[nodiscard]] ENGINE_API Math::BoneTransform PlacedRoot(const Math::BoneTransform& parent,
+                                                        const HangingPlacement& placement);
 } // namespace Client::Render::Models

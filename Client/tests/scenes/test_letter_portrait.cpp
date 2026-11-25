@@ -141,7 +141,7 @@ public:
         constexpr std::int16_t HorseKeys = 10;
         Client::Render::Models::SkeletonBone horse;
         Client::Render::Models::BoneKey still;
-        still.rotation = Client::Render::Models::AngleQuaternion({0.0f, 0.0f, 0.0f});
+        still.rotation = Client::Math::AngleQuaternion({0.0f, 0.0f, 0.0f});
         horse.actions.assign(HorseActions,
                              std::vector<Client::Render::Models::BoneKey>(static_cast<std::size_t>(HorseKeys), still));
         m_horse.bones.push_back(horse);

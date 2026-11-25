@@ -67,12 +67,12 @@ bool AdditiveLeaves(std::int32_t map)
 }
 void LeafInWorld(Render::ModelBatch& batch, const World::Leaf& leaf, float a, float b)
 {
-    const auto turn = Render::Models::OriginalAngleMatrix(leaf.angles);
+    const auto turn = Math::OriginalAngleMatrix(leaf.angles);
     const std::array<glm::vec3, 4> local{{{-a, -a, -b}, {a, a, -b}, {a, a, b}, {-a, -a, b}}};
     const std::array<glm::vec2, 4> uv{{{0, 1}, {1, 1}, {1, 0}, {0, 0}}};
     std::array<Render::ModelVertex, 4> vertices{};
     for (std::size_t i = 0; i < vertices.size(); ++i)
-        vertices[i] = {leaf.position + Render::Models::OriginalVectorTransform(local[i], turn), uv[i], {1, 1, 1, 1}};
+        vertices[i] = {leaf.position + Math::OriginalVectorTransform(local[i], turn), uv[i], {1, 1, 1, 1}};
     Quad(batch, vertices);
 }
 bool GenericEffect(std::int16_t type)
@@ -202,8 +202,8 @@ Core::Expected<void, std::string> DrawDamage(Render::ModelBatch& batch, std::spa
 }
 namespace
 {
-void DamageGlyph(Render::ModelBatch& batch, const Render::Models::OriginalMatrix& view, const glm::vec3& position,
-                 float width, float height, const glm::vec3& light, float alpha, glm::vec2 uv, glm::vec2 extent)
+void DamageGlyph(Render::ModelBatch& batch, const Math::OriginalMatrix& view, const glm::vec3& position, float width,
+                 float height, const glm::vec3& light, float alpha, glm::vec2 uv, glm::vec2 extent)
 {
     auto state = batch.State();
     state.texture = Render::TextureSlot{1}; // 0x621710: el atlas común de cifras/miss.
@@ -217,8 +217,7 @@ void DamageGlyph(Render::ModelBatch& batch, const Render::Models::OriginalMatrix
     Quad(batch, vertices);
 }
 
-void DamageDigits(Render::ModelBatch& batch, const DamageNumberState& number,
-                  const Render::Models::OriginalMatrix& view)
+void DamageDigits(Render::ModelBatch& batch, const DamageNumberState& number, const Math::OriginalMatrix& view)
 {
     const float alpha = F32(static_cast<double>(number.speed) * static_cast<double>(0.4f));
     if (number.number == -1)
@@ -246,7 +245,7 @@ void DamageDigits(Render::ModelBatch& batch, const DamageNumberState& number,
 } // namespace
 
 Core::Expected<void, std::string> DrawDamage(Render::ModelBatch& batch, std::span<const DamageNumberState> damage,
-                                             std::uint8_t mode, const Render::Models::OriginalMatrix& view)
+                                             std::uint8_t mode, const Math::OriginalMatrix& view)
 {
     Blend(batch, Render::ModelBlend::Alpha);
     auto state = batch.State();
@@ -266,7 +265,7 @@ Core::Expected<void, std::string> DrawDamage(Render::ModelBatch& batch, std::spa
 }
 
 Core::Expected<void, std::string> DrawGameLeaves(Render::ModelBatch& batch, const World::Leaves& leaves,
-                                                 std::int32_t map, const Render::Models::OriginalMatrix& view,
+                                                 std::int32_t map, const Math::OriginalMatrix& view,
                                                  std::int32_t weatherState)
 {
     Blend(batch, AdditiveLeaves(map) ? Render::ModelBlend::Additive : Render::ModelBlend::Alpha);

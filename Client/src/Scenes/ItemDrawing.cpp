@@ -58,7 +58,7 @@ Core::Expected<float, std::string> MaskedClassLight(const ItemDrawContext& conte
 {
     if (context.special == nullptr || !context.special->worldClock)
         return Core::Unexpected(std::string("0x50d44b: the class 4 helm needs the world clock (0x5767b88)"));
-    const auto sine = Render::Models::Detail::SineProductPC53(
+    const auto sine = Math::Detail::SineProductPC53(
         static_cast<double>(*context.special->worldClock) * static_cast<double>(0.001f), 0.1f);
     if (!sine)
         return Core::Unexpected(

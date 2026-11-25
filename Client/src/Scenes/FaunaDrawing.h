@@ -37,7 +37,7 @@ struct DrawnObject;
 // con los objetos anteriores; publicar también cuando otra familia pisa ese scratch.
 struct FaunaDrawCarry
 {
-    std::vector<Render::Models::BoneTransform> bones;
+    std::vector<Math::BoneTransform> bones;
     std::vector<Render::Models::SkinnedMesh> meshes;
     std::map<std::uint16_t, Render::Models::ObjectTransform> models;
 };
@@ -51,8 +51,8 @@ PublishFaunaFloorPose(FaunaDrawCarry& carry, const Render::Models::IModelLibrary
 // están en el modelo y el scratch lleva la escala y el origen de `transform` (Translate en 1).
 [[nodiscard]] Core::Expected<void, std::string>
 PublishFaunaPoseRaw(FaunaDrawCarry& carry, const Render::Models::IModelLibrary& models, std::uint16_t model,
-                    std::span<const Render::Models::BoneTransform> bones,
-                    const Render::Models::ObjectTransform& transform, bool translated, bool skin = true);
+                    std::span<const Math::BoneTransform> bones, const Render::Models::ObjectTransform& transform,
+                    bool translated, bool skin = true);
 // 4ebc80: actualiza el scratch de mallas con los huesos retenidos, sin ejecutar 4eb860.
 [[nodiscard]] Core::Expected<void, std::string>
 TransformFaunaPose(FaunaDrawCarry& carry, const Render::Models::IModelLibrary& models, const DrawnObject& object);

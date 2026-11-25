@@ -33,7 +33,7 @@ std::int32_t TargetAngle(float fromX, float fromY, float targetX, float targetY)
     // 4e97a0 usa una división y atan, no atan2; dx cero/unordered toma el cociente cero.
     const double dx = static_cast<double>(targetX) - fromX;
     const double quotient = dx != 0 && !std::isnan(dx) ? (static_cast<double>(fromY) - targetY) / dx : 0;
-    std::int32_t angle = World::FtolLow(Render::Models::Detail::AtanDegreesProductPC53(quotient));
+    std::int32_t angle = Math::FtolLow(Math::Detail::AtanDegreesProductPC53(quotient));
     if (!(targetX >= fromX))
         angle += FullTurn / 2;
     if (angle < 0)
@@ -49,7 +49,7 @@ double FaunaHeight(const FaunaStepContext& context, float x, float y)
 float FaunaSine(float phase)
 {
     // La misma proyección retenido64→R53 que las partículas. El binding limita el argumento finito.
-    const auto product = Render::Models::Detail::SineProductPC53(static_cast<double>(phase), 1.0f);
+    const auto product = Math::Detail::SineProductPC53(static_cast<double>(phase), 1.0f);
     return product ? F32(*product) : std::numeric_limits<float>::quiet_NaN();
 }
 double FaunaWave(float sine)
@@ -104,7 +104,7 @@ void SteerFauna(FaunaObject& object, std::size_t index, std::span<FaunaObject> p
     const float targetY = F32(static_cast<double>(savedY) / denominator + object.position.y);
     const auto target = TargetAngle(object.position.x, object.position.y, targetX, targetY);
     object.angles.z =
-        static_cast<float>(TurnFaunaAngle(World::FtolLow(object.angles.z), target, World::FtolLow(object.turnRate)));
+        static_cast<float>(TurnFaunaAngle(Math::FtolLow(object.angles.z), target, Math::FtolLow(object.turnRate)));
 }
 void SetFaunaAction(FaunaObject& object, const Render::Models::Skeleton& skeleton, std::uint8_t action)
 {
@@ -121,10 +121,10 @@ void AdvanceFaunaAnimation(FaunaObject& object, const Render::Models::Skeleton& 
     if (object.action >= skeleton.actions.size())
         return;
     Render::Models::AnimationState animation{object.action, object.frame, object.previousAction,
-                                             static_cast<std::int16_t>(World::FtolLow(object.previousFrame))};
-    const auto before = World::FtolLow(object.frame);
+                                             static_cast<std::int16_t>(Math::FtolLow(object.previousFrame))};
+    const auto before = Math::FtolLow(object.frame);
     const auto& action = skeleton.actions[object.action];
-    if (action.keyCount > 1 && World::FtolLow(static_cast<double>(object.frame) + speed) != before)
+    if (action.keyCount > 1 && Math::FtolLow(static_cast<double>(object.frame) + speed) != before)
         object.previousFrame = static_cast<float>(before);
     static_cast<void>(
         Render::Models::AdvanceAnimation(animation, action, speed, Render::Models::AnimationScene::Other));

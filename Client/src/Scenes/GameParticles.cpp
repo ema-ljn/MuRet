@@ -99,8 +99,7 @@ Core::Expected<glm::vec3, std::string> PosedDropPoint(const Render::Models::IMod
         if (bone >= retainedPose->bones.size())
             return Core::Unexpected(std::format("falta el hueso {} del buffer global prestado", bone));
         // 6030a5/603121 pasan Translate=0: 4ec16d..17e no consulta escala/origen del modelo.
-        return Render::Models::OriginalVectorTransform(offset,
-                                                       Render::Models::OriginalMatrixOf(retainedPose->bones[bone]));
+        return Math::OriginalVectorTransform(offset, Math::OriginalMatrixOf(retainedPose->bones[bone]));
     }
     // 0x5ffdf0 sale antes de posar con alpha<0,01; los dummy tampoco escriben el buffer global.
     constexpr float VisibleAlpha = 0.01f;
@@ -110,13 +109,13 @@ Core::Expected<glm::vec3, std::string> PosedDropPoint(const Render::Models::IMod
     {
         return Core::Unexpected(std::format("el hueso {} quedó de una pose anterior que MuRet no conserva", bone));
     }
-    const std::vector<Render::Models::OriginalMatrix> world = PosedWorldBones(models, drawn);
+    const std::vector<Math::OriginalMatrix> world = PosedWorldBones(models, drawn);
     if (bone >= world.size())
     {
         return Core::Unexpected(std::format("no se pudo posar el hueso {} de la fuente", bone));
     }
     // 0x4ec179 → 0x5fccc0, Translate=0: el hueso YA está escalado y trasladado al mundo.
-    return Render::Models::OriginalVectorTransform(offset, world[bone]);
+    return Math::OriginalVectorTransform(offset, world[bone]);
 }
 } // namespace
 
@@ -125,7 +124,7 @@ Core::Expected<void, std::string> StepGameWaterspoutFrame(World::WorldObject& ob
                                                           const WaterspoutBonePoint& bonePoint)
 {
     object.state.light = 1.0f; // 0x603011, incluso cuando el ftol siguiente falla.
-    const std::optional<std::int32_t> clock = World::OriginalFtolLow(static_cast<double>(worldClock));
+    const std::optional<std::int32_t> clock = Math::OriginalFtolLow(static_cast<double>(worldClock));
     if (!clock)
     {
         return Core::Unexpected(std::string("0x60301e: ftol del reloj del mundo fuera de lo acreditado"));
@@ -266,10 +265,9 @@ ParticleOwnerStatesOf(WorldState& world)
             if (found == bones.end())
                 return std::nullopt;
             const ActorState& named = world.Actors()[slot];
-            const Render::Models::BoneTransform matrix =
-                found->bone < named.bodyPose.size() ? named.bodyPose[found->bone] : Render::Models::BoneTransform(0.0f);
-            return Render::Models::OriginalTransformPosition(Render::Models::OriginalMatrixOf(matrix), {}, named.scale,
-                                                             named.position);
+            const Math::BoneTransform matrix =
+                found->bone < named.bodyPose.size() ? named.bodyPose[found->bone] : Math::BoneTransform(0.0f);
+            return Math::OriginalTransformPosition(Math::OriginalMatrixOf(matrix), {}, named.scale, named.position);
         };
         return World::ParticleOwnerState{actor.alive, actor.position, std::nullopt, actor.animation.action,
                                          std::move(namedBone)};
@@ -299,15 +297,13 @@ std::optional<glm::vec3> OwnerBonePointOf(WorldState& world, const World::Partic
         constexpr std::uint16_t PlayerType = 0x20a;
         if (owner.type != PlayerType || owner.byte88 != 1)
             return std::nullopt;
-        const auto bone = World::OriginalFtolLow(static_cast<double>(particle.rotation));
+        const auto bone = Math::OriginalFtolLow(static_cast<double>(particle.rotation));
         if (!bone)
             return std::nullopt;
-        const Render::Models::BoneTransform matrix =
-            *bone >= 0 && static_cast<std::size_t>(*bone) < owner.bodyPose.size()
-                ? owner.bodyPose[static_cast<std::size_t>(*bone)]
-                : Render::Models::BoneTransform(0.0f);
-        glm::vec3 point =
-            Render::Models::OriginalVectorTransform(particle.angles, Render::Models::OriginalMatrixOf(matrix));
+        const Math::BoneTransform matrix = *bone >= 0 && static_cast<std::size_t>(*bone) < owner.bodyPose.size()
+                                               ? owner.bodyPose[static_cast<std::size_t>(*bone)]
+                                               : Math::BoneTransform(0.0f);
+        glm::vec3 point = Math::OriginalVectorTransform(particle.angles, Math::OriginalMatrixOf(matrix));
         for (int axis = 0; axis < 3; ++axis)
             point[axis] = static_cast<float>(static_cast<double>(point[axis]) + owner.position[axis]);
         return point;
@@ -333,10 +329,8 @@ std::optional<glm::vec3> OwnerBonePointOf(WorldState& world, const World::Partic
     SharedModelPlacement model = world.ModelPlacement(owner.type);
     model.origin = owner.position;
     world.PlaceModel(owner.type, model);
-    const Render::Models::BoneTransform matrix =
-        bone < owner.bodyPose.size() ? owner.bodyPose[bone] : Render::Models::BoneTransform(0.0f);
-    return Render::Models::OriginalTransformPosition(Render::Models::OriginalMatrixOf(matrix), offset, model.scale,
-                                                     model.origin);
+    const Math::BoneTransform matrix = bone < owner.bodyPose.size() ? owner.bodyPose[bone] : Math::BoneTransform(0.0f);
+    return Math::OriginalTransformPosition(Math::OriginalMatrixOf(matrix), offset, model.scale, model.origin);
 }
 
 std::function<std::optional<glm::vec3>(const World::Particle&)> ParticleOwnerBonesOf(WorldState& world)
@@ -346,7 +340,7 @@ std::function<std::optional<glm::vec3>(const World::Particle&)> ParticleOwnerBon
 
 Core::Expected<void, std::string> DrawGameParticles(Render::ModelBatch& batch, World::Particles& particles,
                                                     const Render::Models::IModelLibrary& textures,
-                                                    const Render::Models::OriginalMatrix& view, float worldClock,
+                                                    const Math::OriginalMatrix& view, float worldClock,
                                                     std::uint8_t mode)
 {
     const auto drawn = DrawParticles(batch, particles, textures, view, worldClock, mode);

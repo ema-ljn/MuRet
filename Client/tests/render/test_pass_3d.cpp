@@ -22,12 +22,12 @@
 namespace
 {
 using Client::Core::PixelSize;
+using Client::Math::RoundedCos;
+using Client::Math::RoundedSin;
 using Client::Render::Camera3D;
 using Client::Render::MakePass3D;
 using Client::Render::Pass3D;
 using Client::Render::ViewportRect;
-using Client::Render::Models::RoundedCos;
-using Client::Render::Models::RoundedSin;
 
 constexpr PixelSize Window1024{1024, 768};
 constexpr PixelSize Window800{800, 600};

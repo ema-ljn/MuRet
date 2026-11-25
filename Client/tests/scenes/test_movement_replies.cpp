@@ -496,8 +496,7 @@ TEST(MovementRepliesTest, JumpingActorAimsAtTheCellCornerWithoutMovingItsVisible
     EXPECT_EQ(other.cellY, 31);
     EXPECT_EQ(other.byte399, 1);
     EXPECT_EQ(other.position, glm::vec3(2050.0f, 2150.0f, 33.0f));
-    EXPECT_FLOAT_EQ(other.angles.z,
-                    static_cast<float>(Client::Render::Models::CreateAngle(2050.0f, 2150.0f, 3000.0f, 3100.0f)));
+    EXPECT_FLOAT_EQ(other.angles.z, static_cast<float>(Client::Math::CreateAngle(2050.0f, 2150.0f, 3000.0f, 3100.0f)));
     EXPECT_EQ(tested.cloth.random.State(), Client::Tests::AfterDraws(seed, 9).State());
 }
 // El 0x186 es el modelo de un monstruo (el tipo 71, Monster53.bmd): su D3 llega desde gObjMonster (CGMoveRecv del GS

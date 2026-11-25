@@ -43,7 +43,7 @@ TEST(WorldModelPoseTest, AModelWithoutActionsLeavesTheGlobalPoseAndModelUntouche
     actor.animation.action = 7;
     actor.scale = 2.0f;
     world->PlaceModel(actor);
-    world->PoseCarry().bones.assign(1, Client::Render::Models::BoneTransform(1.0f));
+    world->PoseCarry().bones.assign(1, Client::Math::BoneTransform(1.0f));
     world->FaunaResources().RecordAnimation(actor.type, 6.5f, 9);
     Client::Render::Models::Skeleton skeleton;
 
@@ -53,7 +53,7 @@ TEST(WorldModelPoseTest, AModelWithoutActionsLeavesTheGlobalPoseAndModelUntouche
     EXPECT_EQ(world->ModelPlacement(actor.type).action, 7);
     EXPECT_EQ(world->FaunaResources().PoseKey(actor.type), 9);
     EXPECT_EQ(world->FaunaResources().PoseFrame(actor.type), 6.5f);
-    EXPECT_EQ(world->PoseCarry().bones[0], Client::Render::Models::BoneTransform(1.0f));
+    EXPECT_EQ(world->PoseCarry().bones[0], Client::Math::BoneTransform(1.0f));
     EXPECT_FALSE(world->PoseCarry().models.contains(actor.type));
 }
 } // namespace

@@ -199,8 +199,8 @@ TEST(LoginCloudParticlesTest, UpdateAddsRotatedAndUnrotatedVelocity)
     particle.rotation = 99.0f;
     particle.scale = 1.75f;
     particle.moves = true;
-    const glm::vec3 turned = Client::Render::Models::OriginalVectorRotate(
-        particle.velocity, Client::Render::Models::OriginalAngleMatrix(particle.angles));
+    const glm::vec3 turned =
+        Client::Math::OriginalVectorRotate(particle.velocity, Client::Math::OriginalAngleMatrix(particle.angles));
     const glm::vec3 before = particle.position;
     CrtRandom random(7);
     Client::World::StepParticles(particles, random);

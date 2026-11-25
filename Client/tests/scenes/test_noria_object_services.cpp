@@ -23,7 +23,7 @@ namespace
 Client::Scenes::FaunaDrawCarry Pose()
 {
     Client::Scenes::FaunaDrawCarry pose;
-    pose.bones.resize(70, Client::Render::Models::BoneTransform(1.0f));
+    pose.bones.resize(70, Client::Math::BoneTransform(1.0f));
     for (int bone = 0; bone < 70; ++bone)
         pose.bones[static_cast<std::size_t>(bone)][3] =
             glm::vec4(100.0f + static_cast<float>(bone), 200.0f + static_cast<float>(bone),

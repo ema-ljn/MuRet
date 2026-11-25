@@ -49,7 +49,7 @@ using Client::World::TerrainWater;
 using Client::World::UpdateWaves;
 using Client::World::WaterOffsetAt;
 using namespace std::chrono_literals;
-using Client::Render::Models::RoundedSin;
+using Client::Math::RoundedSin;
 
 constexpr std::uint8_t CellX = 7;
 constexpr std::uint8_t CellY = 9;

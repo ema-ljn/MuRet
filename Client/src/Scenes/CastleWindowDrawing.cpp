@@ -28,8 +28,8 @@ void CastleDraw::Center(GameHudContext& context, std::int32_t x, std::int32_t y,
                         std::int32_t width)
 {
     // FLD rx, FMUL ancho (float) y _ftol, distinto del DIV entero de las ventanas 0x554180 antiguas.
-    const auto box = World::OriginalFtolLow(static_cast<double>(Render::ScaleX(1.0f, context.sprites.Screen())) *
-                                            static_cast<double>(static_cast<float>(width)))
+    const auto box = Math::OriginalFtolLow(static_cast<double>(Render::ScaleX(1.0f, context.sprites.Screen())) *
+                                           static_cast<double>(static_cast<float>(width)))
                          .value_or(0);
     WindowDrawing::DrawInBox(context, x, y, text, box);
 }

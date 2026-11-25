@@ -121,7 +121,7 @@ Core::Expected<void, std::string> StepTheRing(JointState& joint, const JointKern
     constexpr std::uint32_t PhaseStride = 53731;
     const auto phase = std::bit_cast<std::int32_t>(index * PhaseStride + ((index & 1u) != 0 ? steps : 0u - steps));
     // 0x5363bf: la frecuencia entera (0,048), la del 0x53d1a0 con escala 1.
-    const auto direction = Render::Models::Detail::FaunaDirectionPC53(phase);
+    const auto direction = Math::Detail::FaunaDirectionPC53(phase);
     if (!direction)
         return Core::Unexpected(
             std::format("0x536409: la dirección del joint 0x10f/{} excede el perfil PC53", joint.subtype));
@@ -138,8 +138,8 @@ Core::Expected<void, std::string> StepTheRing(JointState& joint, const JointKern
 Core::Expected<void, std::string> StepTheSpin(JointState& joint)
 {
     joint.angles.z = F32(D(joint.angles.z) + 25);
-    const auto matrix = Render::Models::OriginalAngleMatrix(joint.angles);
-    const auto turned = Render::Models::OriginalVectorRotate(joint.velocity, matrix);
+    const auto matrix = Math::OriginalAngleMatrix(joint.angles);
+    const auto turned = Math::OriginalVectorRotate(joint.velocity, matrix);
     for (int axis = 0; axis < 3; ++axis)
         joint.position[axis] = F32(D(turned[axis]) + D(joint.pathIncrement[axis]));
     if (auto appended = AppendJointTail(joint, matrix); !appended.HasValue())
@@ -165,8 +165,8 @@ Core::Expected<void, std::string> StepTheRise(JointState& joint, const JointKern
     for (int turn = 0; turn < 3; ++turn)
     {
         joint.angles.z = F32(D(joint.angles.z) + 10);
-        const auto matrix = Render::Models::OriginalAngleMatrix(joint.angles);
-        const auto turned = Render::Models::OriginalVectorRotate(joint.velocity, matrix);
+        const auto matrix = Math::OriginalAngleMatrix(joint.angles);
+        const auto turned = Math::OriginalVectorRotate(joint.velocity, matrix);
         for (int axis = 0; axis < 3; ++axis)
             joint.position[axis] = F32(D(turned[axis]) + D(joint.pathIncrement[axis]));
         if (auto appended = AppendJointTail(joint, matrix); !appended.HasValue())
@@ -250,7 +250,7 @@ Core::Expected<void, std::string> StepTheBeam(JointState& joint, const JointKern
     constexpr std::uint32_t PhaseStride = 17721;                        // 0x535e4e..0x535e62
     constexpr float DirectionScale = std::bit_cast<float>(0x3fb33333u); // 0x535e3f, 1,4f
     const auto phase = std::bit_cast<std::int32_t>(static_cast<std::uint32_t>(services.index) * PhaseStride + steps);
-    const auto direction = Render::Models::Detail::ScaledFaunaDirectionPC53(phase, DirectionScale);
+    const auto direction = Math::Detail::ScaledFaunaDirectionPC53(phase, DirectionScale);
     if (!direction)
         return Core::Unexpected(std::string("0x535e66: la dirección del joint 0x10f/2 excede el perfil PC53"));
     constexpr double Reach = 300.0; // 0x6b8900
@@ -313,8 +313,8 @@ Core::Expected<void, std::string> CreateAuraJoint(JointState& joint, const World
         joint.texture = RiseTexture;
         joint.velocity = {0, RiseSpeed, 0};
         joint.pathIncrement = request.secondPosition;
-        const auto matrix = Render::Models::OriginalAngleMatrix(joint.angles);
-        const auto turned = Render::Models::OriginalVectorRotate(joint.velocity, matrix);
+        const auto matrix = Math::OriginalAngleMatrix(joint.angles);
+        const auto turned = Math::OriginalVectorRotate(joint.velocity, matrix);
         for (int axis = 0; axis < 3; ++axis)
             joint.position[axis] = F32(D(turned[axis]) + D(joint.pathIncrement[axis]));
         joint.count = -1;
@@ -333,8 +333,8 @@ Core::Expected<void, std::string> CreateAuraJoint(JointState& joint, const World
         joint.life = SpinLife;
         joint.maximumCount = RingPoints;
         joint.pathIncrement = request.secondPosition;
-        const auto matrix = Render::Models::OriginalAngleMatrix(joint.angles);
-        const auto turned = Render::Models::OriginalVectorRotate(joint.velocity, matrix);
+        const auto matrix = Math::OriginalAngleMatrix(joint.angles);
+        const auto turned = Math::OriginalVectorRotate(joint.velocity, matrix);
         for (int axis = 0; axis < 3; ++axis)
             joint.position[axis] = F32(D(turned[axis]) + D(joint.pathIncrement[axis]));
         break;

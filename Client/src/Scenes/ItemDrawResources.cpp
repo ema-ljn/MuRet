@@ -34,7 +34,7 @@ void FillItemDrawContexts(ItemSpecialDrawContext& special, ItemDrawContext& item
         const auto& bones = carry->bones;
         if (bone >= bones.size())
             return Core::Unexpected(std::string("0x4ec110: el hueso del ítem excede la pose compartida"));
-        return Render::Models::OriginalVectorTransform({}, Render::Models::OriginalMatrixOf(bones[bone]));
+        return Math::OriginalVectorTransform({}, Math::OriginalMatrixOf(bones[bone]));
     };
     // privateBoneOrigin sigue ausente: object+120 no está representado por el scratch global.
     item.special = &special;
@@ -44,7 +44,7 @@ void FillItemDrawContexts(ItemSpecialDrawContext& special, ItemDrawContext& item
     item.modelState = &resources.modelState;
     item.map = resources.map;
     item.glowDetail = resources.glowDetail;
-    item.poseBones = [carry]() { return std::span<const Render::Models::BoneTransform>(carry->bones); };
+    item.poseBones = [carry]() { return std::span<const Math::BoneTransform>(carry->bones); };
     item.createJoint = [joints = resources.joints, random = &resources.random](
                            const World::FishEffectRequest& request) -> Core::Expected<void, std::string>
     {

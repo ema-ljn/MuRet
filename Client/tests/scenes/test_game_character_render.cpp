@@ -163,6 +163,7 @@ class CharacterModels final : public Client::Render::Models::IModelLibrary
 public:
     CharacterModels()
     {
+        using namespace Client::Math;
         using namespace Client::Render::Models;
         SkeletonBone bone;
         bone.parent = -1;

@@ -610,8 +610,7 @@ TEST_F(GameInventoryHudTest, TheWingsOfDarknessHangTheirJointsFromTheUiLocalObje
     models.Begin(Client::Render::Pass3D{});
     Client::Scenes::UiItemResources resources = UiItems(Screen640);
     itemContext.originalFrame = true;
-    itemContext.poseBones = [this]()
-    { return std::span<const Client::Render::Models::BoneTransform>(poseCarry.bones); };
+    itemContext.poseBones = [this]() { return std::span<const Client::Math::BoneTransform>(poseCarry.bones); };
     itemContext.createJoint =
         [&requests](const Client::World::FishEffectRequest& request) -> Client::Core::Expected<void, std::string>
     {

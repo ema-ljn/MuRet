@@ -130,7 +130,7 @@ Core::Expected<void, std::string> CreateSwordBeam(JointState& joint, const World
         joint.pathIncrement[axis] = static_cast<float>(
             (static_cast<double>(request.secondPosition[axis]) - static_cast<double>(joint.position[axis])) *
             static_cast<double>(0.1f));
-    const auto matrix = Render::Models::OriginalAngleMatrix(joint.angles);
+    const auto matrix = Math::OriginalAngleMatrix(joint.angles);
     const bool owned = joint.ownerContext != nullptr;
     const int mask = owned ? 15 : 7;
     const double center = owned ? 8.0 : 4.0; // 0x6b86c4 y 0x6b8a44.
@@ -179,7 +179,7 @@ Core::Expected<void, std::string> CreateSwordTrail(JointState& joint, const Worl
         joint.pathIncrement[axis] = static_cast<float>(
             (static_cast<double>(request.secondPosition[axis]) - static_cast<double>(joint.position[axis])) *
             static_cast<double>(0.1f));
-    const auto matrix = Render::Models::OriginalAngleMatrix(joint.angles);
+    const auto matrix = Math::OriginalAngleMatrix(joint.angles);
     for (std::int32_t sample = 0; sample < joint.maximumCount; ++sample)
     {
         for (int axis = 0; axis < 3; ++axis)
@@ -222,7 +222,7 @@ Core::Expected<void, std::string> StepSwordTrail(JointState& joint, std::size_t 
         delta[axis] = static_cast<float>(static_cast<double>(actor->position[axis]) -
                                          static_cast<double>(actor->trailOrigin[axis]));
     joint.targetPosition = actor->trailOrigin;
-    const auto matrix = Render::Models::OriginalAngleMatrix(joint.angles);
+    const auto matrix = Math::OriginalAngleMatrix(joint.angles);
     for (int axis = 0; axis < 3; ++axis)
         delta[axis] = static_cast<float>(static_cast<double>(delta[axis]) * Third);
     for (std::int32_t step = 0; step < Steps; ++step)
@@ -489,11 +489,11 @@ Core::Expected<void, std::string> CreateSetTrail(JointState& joint, const World:
     joint.width = request.scale;
     joint.maximumCount = Points;
     joint.velocity.x = Sway;
-    const auto cosine = Render::Models::Detail::CosineProductPC53(static_cast<double>(random.Next() % FullTurn), Reach);
+    const auto cosine = Math::Detail::CosineProductPC53(static_cast<double>(random.Next() % FullTurn), Reach);
     if (!cosine)
         return Core::Unexpected(std::string("0x531e89: el coseno del joint 0x610/7 excede el perfil matemático"));
     joint.position.x = F32(*cosine + D(request.secondPosition.x));
-    const auto sine = Render::Models::Detail::SineProductPC53(static_cast<double>(random.Next() % FullTurn), Reach);
+    const auto sine = Math::Detail::SineProductPC53(static_cast<double>(random.Next() % FullTurn), Reach);
     if (!sine)
         return Core::Unexpected(std::string("0x531ea8: el seno del joint 0x610/7 excede el perfil matemático"));
     joint.position.y = F32(D(request.secondPosition.y) - *sine);
@@ -600,7 +600,7 @@ Core::Expected<void, std::string> CreateSetEnergy(JointState& joint, const World
     joint.life = skill ? SkillLife : EnergyLife;
     joint.maximumCount = Points;
     joint.count = 0;
-    joint.field9ec = World::FtolLow(D(joint.angles.z));
+    joint.field9ec = Math::FtolLow(D(joint.angles.z));
     joint.velocity.x = skill ? SkillOrbit : Orbit;
     if (skill)
         joint.field9d4 = joint.field9ec == FirstForward || joint.field9ec == SecondForward ? 1 : 0;
@@ -709,8 +709,8 @@ Core::Expected<void, std::string> CreatePiercingImpact(JointState& joint, const 
     joint.width = request.scale;
     joint.velocity.x = static_cast<float>(random.Next() % FullTurn);
     const double argument = D(joint.angles.z) * NegativeRadians;
-    const auto sine = Render::Models::Detail::SineProductPC53(argument, 2.0f);
-    const auto cosine = Render::Models::Detail::CosineProductPC53(argument, 2.0f);
+    const auto sine = Math::Detail::SineProductPC53(argument, 2.0f);
+    const auto cosine = Math::Detail::CosineProductPC53(argument, 2.0f);
     if (!sine || !cosine)
         return Core::Unexpected(std::string("0x533fd1: el yaw del impacto60f/6 excede el perfil matemático"));
     joint.velocity.y = F32(-*sine);
@@ -1014,8 +1014,8 @@ Core::Expected<void, std::string> CreateStormBolts(std::span<JointState> joints,
     const glm::vec3 origin = storm.position;
     for (std::int32_t offset = -100; offset < 200; offset += 100)
     {
-        const auto matrix = Render::Models::OriginalAngleMatrix(angles);
-        const auto turned = Render::Models::OriginalVectorRotate({static_cast<float>(offset), Down, 0}, matrix);
+        const auto matrix = Math::OriginalAngleMatrix(angles);
+        const auto turned = Math::OriginalVectorRotate({static_cast<float>(offset), Down, 0}, matrix);
         glm::vec3 from{F32(D(turned.x) + D(origin.x)), F32(D(turned.y) + D(origin.y)), F32(D(turned.z) + D(origin.z))};
         const World::FishEffectRequest request{.type = JointFamilies::StormJoint,
                                                .firstPosition = from,
@@ -1137,7 +1137,7 @@ Core::Expected<void, std::string> StepBloodCastleJoint(JointState& joint, const 
     else if ((random->Next() & 1) == 0)
         joint.life = AddWrapped(joint.life, 1);
     const auto angle = (static_cast<double>(joint.life) - joint.velocity.y) * static_cast<double>(0.05f);
-    const auto product = Render::Models::Detail::SineProductPC53(angle, 3.0f);
+    const auto product = Math::Detail::SineProductPC53(angle, 3.0f);
     if (!product.has_value())
         return Core::Unexpected(std::string("0x535f6b: el seno del joint 0x10f/3 excede el perfil matemático"));
     joint.velocity.x = static_cast<float>(*product);
@@ -1176,7 +1176,7 @@ Core::Expected<void, std::string> StepFairyJoint(JointState& joint, const FaunaO
     constexpr std::uint32_t PhaseStride = 53731;
     const auto phase =
         std::bit_cast<std::int32_t>(physicalIndex * PhaseStride + ((physicalIndex & 1u) != 0 ? steps : 0u - steps));
-    const auto direction = Render::Models::Detail::JointDirectionPC53(phase);
+    const auto direction = Math::Detail::JointDirectionPC53(phase);
     if (!direction)
         return Core::Unexpected(std::string("0x536409: la dirección del joint0x10f/1 excede el perfil PC53"));
     joint.light.x = 0.2f;
@@ -1192,8 +1192,8 @@ Core::Expected<void, std::string> StepFairyJoint(JointState& joint, const FaunaO
 // la distancia como la deja el fsqrt de 0x4e98c4 en st(0), sin redondear a float.
 double SteerJoint(JointState& joint, const glm::vec3& target, float turnStep)
 {
-    using Render::Models::CreateAngle;
-    using Render::Models::TurnAngle;
+    using Math::CreateAngle;
+    using Math::TurnAngle;
     constexpr double FullTurn = Math::FullTurnAsDouble;
     const auto yaw = static_cast<float>(CreateAngle(joint.position.x, joint.position.y, target.x, target.y));
     joint.angles.z = static_cast<float>(TurnAngle(joint.angles.z, yaw, turnStep));
@@ -1254,11 +1254,11 @@ Core::Expected<void, std::string> StepSkyBolt(JointState& joint, Crt::CrtRandom*
             const glm::vec3 perturbed{static_cast<float>(static_cast<double>(joint.angles.x) + joint.velocity.x),
                                       static_cast<float>(static_cast<double>(joint.angles.y) + joint.velocity.y),
                                       static_cast<float>(roll + static_cast<double>(joint.angles.z))};
-            const auto matrix = Render::Models::OriginalAngleMatrix(perturbed);
+            const auto matrix = Math::OriginalAngleMatrix(perturbed);
             if (auto appended = AppendJointTail(joint, matrix); !appended.HasValue())
                 return appended;
             glm::vec3 moved{0, -joint.speed, 0};
-            Render::Models::OriginalVectorRotateInPlace(moved, matrix);
+            Math::OriginalVectorRotateInPlace(moved, matrix);
             MoveJoint(joint, moved);
         }
     }
@@ -1297,7 +1297,7 @@ Core::Expected<void, std::string> StepTrapBolt(JointState& joint, Crt::CrtRandom
     const auto jitter = [&](float& axis)
     { axis = static_cast<float>(static_cast<double>(random->Next() % JitterSpan - JitterCenter) + axis); };
     joint.position = joint.pathIncrement;
-    const auto matrix = Render::Models::OriginalAngleMatrix(joint.angles);
+    const auto matrix = Math::OriginalAngleMatrix(joint.angles);
     for (std::int32_t i = 0; i < joint.maximumCount - Approach; ++i)
     {
         jitter(joint.position.x);
@@ -1400,8 +1400,8 @@ Core::Expected<void, std::string> StepMeteor(JointState& joint, Crt::CrtRandom* 
 std::optional<double> SignedTrigonometricProduct(double argument, float multiplier, bool cosine)
 {
     const float magnitude = multiplier < 0 ? -multiplier : multiplier;
-    const auto product = cosine ? Render::Models::Detail::CosineProductPC53(argument, magnitude > 0 ? magnitude : 1.0f)
-                                : Render::Models::Detail::SineProductPC53(argument, magnitude > 0 ? magnitude : 1.0f);
+    const auto product = cosine ? Math::Detail::CosineProductPC53(argument, magnitude > 0 ? magnitude : 1.0f)
+                                : Math::Detail::SineProductPC53(argument, magnitude > 0 ? magnitude : 1.0f);
     if (!product)
         return std::nullopt;
     if (!(magnitude > 0))
@@ -1422,16 +1422,16 @@ Core::Expected<void, std::string> StepPiercingImpact(JointState& joint)
     constexpr double Radians = Math::DegreesToRadiansAsDouble;
     const float argument = F32(static_cast<double>(joint.life) * Half + D(joint.velocity.x));
     const float radius = F32(2.0 * static_cast<double>(joint.life > 1 ? joint.life : 1));
-    const auto cosine = Render::Models::Detail::CosineProductPC53(D(argument), radius);
-    const auto sine = Render::Models::Detail::SineProductPC53(D(argument), radius);
+    const auto cosine = Math::Detail::CosineProductPC53(D(argument), radius);
+    const auto sine = Math::Detail::SineProductPC53(D(argument), radius);
     if (!cosine || !sine)
         return Core::Unexpected(std::string("0x53b066: el giro del impacto60f/6 excede el perfil matemático"));
     const double horizontal = -*cosine;
     joint.targetPosition.x = F32(D(joint.targetPosition.x) + D(joint.velocity.y));
     joint.targetPosition.y = F32(D(joint.targetPosition.y) + D(joint.velocity.z));
     const double facing = (90.0 - D(joint.angles.z)) * Radians;
-    const auto x = Render::Models::Detail::SineDoubleProductPC53(facing, horizontal);
-    const auto y = Render::Models::Detail::CosineDoubleProductPC53(facing, horizontal);
+    const auto x = Math::Detail::SineDoubleProductPC53(facing, horizontal);
+    const auto y = Math::Detail::CosineDoubleProductPC53(facing, horizontal);
     if (!x || !y)
         return Core::Unexpected(std::string("0x53b12f: la dirección del impacto60f/6 excede el perfil matemático"));
     joint.position = {F32(*x + D(joint.targetPosition.x)), F32(*y + D(joint.targetPosition.y)),
@@ -1471,8 +1471,8 @@ Core::Expected<void, std::string> StepSparkle(JointState& joint, std::size_t ind
     }
     else
         argument = (static_cast<double>(joint.life) + D(joint.velocity.y)) * Tenth;
-    const auto cosine = Render::Models::Detail::CosineProductPC53(argument, joint.speed);
-    const auto sine = Render::Models::Detail::SineProductPC53(argument, joint.speed);
+    const auto cosine = Math::Detail::CosineProductPC53(argument, joint.speed);
+    const auto sine = Math::Detail::SineProductPC53(argument, joint.speed);
     if (!cosine || !sine)
         return Core::Unexpected(std::format("0x53b2a2: el giro del joint {} (0x60f/{:#x}) excede el perfil matemático",
                                             index, joint.subtype));
@@ -1621,8 +1621,7 @@ Core::Expected<void, std::string> StepPiercingTrailJoint(JointState& joint)
         angles.y = F32(D(angles.y) + 30.0);
         for (int axis = 0; axis < 3; ++axis)
             joint.targetPosition[axis] = F32(D(joint.targetPosition[axis]) + D(delta[axis]));
-        const auto offset =
-            Render::Models::OriginalVectorRotate(joint.velocity, Render::Models::OriginalAngleMatrix(angles));
+        const auto offset = Math::OriginalVectorRotate(joint.velocity, Math::OriginalAngleMatrix(angles));
         joint.position = joint.targetPosition;
         MoveJoint(joint, offset);
         if (joint.count < joint.maximumCount - 1 || joint.skill != 0)
@@ -1691,12 +1690,12 @@ Core::Expected<void, std::string> StepSwirl(JointState& joint)
     constexpr double Fade = static_cast<double>(std::bit_cast<float>(0x3f36db6eu)); // 0x6ba268, 0,7142857f
     if (joint.life > LastQuietLife)
     {
-        const auto matrix = Render::Models::OriginalAngleMatrix(joint.angles);
+        const auto matrix = Math::OriginalAngleMatrix(joint.angles);
         for (std::int32_t turn = 0; turn < Turns; ++turn)
         {
             if (auto appended = AppendJointTail(joint, matrix); !appended.HasValue())
                 return appended;
-            const auto moved = Render::Models::OriginalVectorRotate({0, 0, -joint.speed}, matrix);
+            const auto moved = Math::OriginalVectorRotate({0, 0, -joint.speed}, matrix);
             for (int axis = 0; axis < 3; ++axis)
                 joint.position[axis] = F32(D(moved[axis]) + D(joint.position[axis]));
         }
@@ -1933,8 +1932,7 @@ Core::Expected<void, std::string> StepSkill39Bolt(JointState& joint)
     if (joint.life < LastBendLife)
     {
         joint.speed = 0;
-        if (auto appended = AppendJointTail(joint, Render::Models::OriginalAngleMatrix(joint.bendAngles));
-            !appended.HasValue())
+        if (auto appended = AppendJointTail(joint, Math::OriginalAngleMatrix(joint.bendAngles)); !appended.HasValue())
             return appended;
     }
     else if (joint.life < OpeningLife)
@@ -1943,8 +1941,8 @@ Core::Expected<void, std::string> StepSkill39Bolt(JointState& joint)
         for (int sample = 0; static_cast<double>(sample) < D(joint.velocity.z); ++sample)
         {
             AdvanceSkill39Bend(joint);
-            const auto matrix = Render::Models::OriginalAngleMatrix(joint.bendAngles);
-            const auto offset = Render::Models::OriginalVectorRotate({0, -joint.speed, 0}, matrix);
+            const auto matrix = Math::OriginalAngleMatrix(joint.bendAngles);
+            const auto offset = Math::OriginalVectorRotate({0, -joint.speed, 0}, matrix);
             joint.position = {F32(D(joint.pathIncrement.x) + offset.x), F32(D(joint.pathIncrement.y) + offset.y),
                               F32(D(joint.pathIncrement.z) + offset.z)};
             if (auto appended = AppendJointTail(joint, matrix); !appended.HasValue())
@@ -2041,7 +2039,7 @@ bool SkipsTheCommonMove(const JointState& joint)
 // último joint de esta vuelta de 0x53c670 que la calculó (el marco es el mismo); sin ninguno antes, la que haya en la
 // pila (indefinida, Q-C1623): sin dibujo (+0x11 en 0) no se ve y sólo corre la cuenta; si no, corta.
 Core::Expected<void, std::string> AppendWithFrameMatrix(JointState& joint,
-                                                        const std::optional<Render::Models::OriginalMatrix>& matrix)
+                                                        const std::optional<Math::OriginalMatrix>& matrix)
 {
     if (!joint.tailEnabled)
         return {};
@@ -2056,12 +2054,12 @@ Core::Expected<void, std::string> AppendWithFrameMatrix(JointState& joint,
 
 // 0x53590e..0x53597a: el movimiento común, con la matriz de los ángulos de antes del caso (la que usa la cola de
 // 0x53c393). Salvo los de la lista de 0x53585e..0x53590c (SkipsTheCommonMove), que no la calculan.
-Render::Models::OriginalMatrix MoveCommonly(JointState& joint)
+Math::OriginalMatrix MoveCommonly(JointState& joint)
 {
-    const auto matrix = Render::Models::OriginalAngleMatrix(joint.angles);
+    const auto matrix = Math::OriginalAngleMatrix(joint.angles);
     if (joint.speed < 0 || joint.speed > 0)
     {
-        const auto moved = Render::Models::OriginalVectorRotate({0, -joint.speed, 0}, matrix);
+        const auto moved = Math::OriginalVectorRotate({0, -joint.speed, 0}, matrix);
         for (int axis = 0; axis < 3; ++axis)
             joint.position[axis] = static_cast<float>(static_cast<double>(joint.position[axis]) + moved[axis]);
     }
@@ -2069,8 +2067,7 @@ Render::Models::OriginalMatrix MoveCommonly(JointState& joint)
 }
 
 // 0x53c393..0x53c3ba: la cola con la matriz del principio del paso y la vida.
-Core::Expected<void, std::string> CommonTail(JointState& joint,
-                                             const std::optional<Render::Models::OriginalMatrix>& matrix)
+Core::Expected<void, std::string> CommonTail(JointState& joint, const std::optional<Math::OriginalMatrix>& matrix)
 {
     if (auto appended = AppendWithFrameMatrix(joint, matrix); !appended.HasValue())
         return appended;
@@ -2125,7 +2122,7 @@ Core::Expected<void, std::string> RunFamily(JointState& joint, Family family,
 }
 
 Core::Expected<void, std::string> StepFamilyJoint(JointState& joint, Family family, JointKernels::StepServices services,
-                                                  std::optional<Render::Models::OriginalMatrix>& frameMatrix)
+                                                  std::optional<Math::OriginalMatrix>& frameMatrix)
 {
     // 0x53584f..0x53586c: la posición menos el destino en x y en y, en float, antes de moverse.
     services.startDeltaX = F32(D(joint.position.x) - D(joint.targetPosition.x));
@@ -2145,7 +2142,7 @@ Core::Expected<void, std::string> StepFamilyJoint(JointState& joint, Family fami
     constexpr std::int32_t Beat = 12;
     if (family == Family::Helix && joint.life >= 0 && joint.life % Beat != 0)
     {
-        std::optional<Render::Models::OriginalMatrix> innerMatrix;
+        std::optional<Math::OriginalMatrix> innerMatrix;
         return StepFamilyJoint(joint, family, services, innerMatrix);
     }
     return {};
@@ -2161,7 +2158,7 @@ StepJointsChecked(std::span<JointState> joints, Crt::CrtRandom* random, Render::
                   const Render::Models::IModelLibrary* models)
 {
     // [ebp−0xe8]: la matriz del último joint de esta vuelta que la calculó (0x53590e).
-    std::optional<Render::Models::OriginalMatrix> frameMatrix;
+    std::optional<Math::OriginalMatrix> frameMatrix;
     for (std::size_t i = 0; i < joints.size(); ++i)
     {
         auto& joint = joints[i];
@@ -2241,11 +2238,11 @@ StepJointsChecked(std::span<JointState> joints, Crt::CrtRandom* random, Render::
         // 53590e..53597a: el movimiento común precede la lectura del dueño, incluso si muere.
         const bool still = SkipsTheCommonMove(joint);
         if (!still)
-            frameMatrix = Render::Models::OriginalAngleMatrix(joint.angles);
+            frameMatrix = Math::OriginalAngleMatrix(joint.angles);
         // 535932 también omite las sumas para unordered, conservando ceros con signo y posición.
         if (!still && (joint.speed < 0 || joint.speed > 0))
         {
-            const auto moved = Render::Models::OriginalVectorRotate({0, -joint.speed, 0}, *frameMatrix);
+            const auto moved = Math::OriginalVectorRotate({0, -joint.speed, 0}, *frameMatrix);
             joint.position = {static_cast<float>(static_cast<double>(joint.position.x) + moved.x),
                               static_cast<float>(static_cast<double>(joint.position.y) + moved.y),
                               static_cast<float>(static_cast<double>(joint.position.z) + moved.z)};

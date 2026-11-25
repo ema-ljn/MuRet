@@ -136,16 +136,16 @@ Core::Expected<void, std::string> CreateTheDeathSkillFlares(const ActorState& ac
     constexpr double ScaleBase = 0.5;
     if (context.particles == nullptr)
         return Core::Unexpected(std::format("0x4fbd3a: falta el pool para la partícula 0x5ac/5 del lugar {}", slot));
-    const Render::Models::BoneTransform emptyPose(0.0f);
+    const Math::BoneTransform emptyPose(0.0f);
     const glm::vec3 offset{};
     const SharedModelPlacement placement =
         context.world != nullptr ? context.world->ModelPlacement(actor.type) : SharedModelPlacement{};
     for (int flare = 0; flare < Flares; ++flare)
     {
         const auto bone = static_cast<std::size_t>(context.random.Next() % DeathSkillBoneCount);
-        const Render::Models::BoneTransform& bodyBone = bone < actor.bodyPose.size() ? actor.bodyPose[bone] : emptyPose;
-        const glm::vec3 point = Render::Models::OriginalTransformPosition(Render::Models::OriginalMatrixOf(bodyBone),
-                                                                          offset, placement.scale, placement.origin);
+        const Math::BoneTransform& bodyBone = bone < actor.bodyPose.size() ? actor.bodyPose[bone] : emptyPose;
+        const glm::vec3 point = Math::OriginalTransformPosition(Math::OriginalMatrixOf(bodyBone), offset,
+                                                                placement.scale, placement.origin);
         const int scaleDraw = context.random.Next() % DeathSkillScaleSpan;
         const auto scale = static_cast<float>(static_cast<double>(scaleDraw) * ScaleStep + ScaleBase);
         const auto created =
@@ -161,8 +161,8 @@ Core::Expected<void, std::string> CreateTheDeathSkillFlares(const ActorState& ac
 
 void FlyFromTheCastle(ActorState& actor)
 {
-    const auto matrix = Render::Models::OriginalAngleMatrix(actor.push);
-    const glm::vec3 turned = Render::Models::OriginalVectorRotate({0.0f, actor.floatD0, 0.0f}, matrix);
+    const auto matrix = Math::OriginalAngleMatrix(actor.push);
+    const glm::vec3 turned = Math::OriginalVectorRotate({0.0f, actor.floatD0, 0.0f}, matrix);
     actor.floatD0 = Sum(actor.floatCC, actor.floatD0);
     actor.floatE4 = Sum(actor.floatD8, actor.floatE4);
     actor.floatD8 = static_cast<float>(static_cast<double>(actor.floatD8) - static_cast<double>(actor.floatD4));
@@ -175,8 +175,8 @@ void FlyFromTheCastle(ActorState& actor)
 void FlyFromThePush(ActorState& actor)
 {
     const glm::vec3 angles{actor.headTurn.angles.x, actor.headTurn.angles.y, actor.angle30};
-    const auto matrix = Render::Models::OriginalAngleMatrix(angles);
-    const glm::vec3 moved = Render::Models::OriginalVectorRotate({actor.floatCC, actor.floatD0, actor.floatD4}, matrix);
+    const auto matrix = Math::OriginalAngleMatrix(angles);
+    const glm::vec3 moved = Math::OriginalVectorRotate({actor.floatCC, actor.floatD0, actor.floatD4}, matrix);
     actor.position.x = Sum(moved.x, actor.position.x);
     actor.position.y = Sum(moved.y, actor.position.y);
     actor.position.z = Sum(moved.z, actor.position.z);

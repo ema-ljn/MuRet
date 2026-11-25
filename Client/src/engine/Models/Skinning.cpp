@@ -48,18 +48,18 @@ bool BonesExist(const Data::Models::Mesh& mesh, std::size_t count)
 }
 
 // Cada normal, solo girada por su hueso (0x5fcbd0).
-void RotateNormals(const Data::Models::Mesh& mesh, std::span<const BoneTransform> bones, SkinnedMesh& out)
+void RotateNormals(const Data::Models::Mesh& mesh, std::span<const Math::BoneTransform> bones, SkinnedMesh& out)
 {
     out.normals.clear();
     out.normals.reserve(mesh.normals.size());
     for (const Data::Models::Normal& normal : mesh.normals)
     {
-        out.normals.push_back(VectorRotate(ToVec3(normal.normal), bones[static_cast<std::size_t>(normal.bone)]));
+        out.normals.push_back(Math::VectorRotate(ToVec3(normal.normal), bones[static_cast<std::size_t>(normal.bone)]));
     }
 }
 } // namespace
 
-bool SkinMesh(const Data::Models::Mesh& mesh, std::span<const BoneTransform> bones, const ObjectTransform& object,
+bool SkinMesh(const Data::Models::Mesh& mesh, std::span<const Math::BoneTransform> bones, const ObjectTransform& object,
               SkinnedMesh& out)
 {
     if (!BonesExist(mesh, bones.size()))
@@ -70,44 +70,44 @@ bool SkinMesh(const Data::Models::Mesh& mesh, std::span<const BoneTransform> bon
     out.positions.reserve(mesh.vertices.size());
     for (const Data::Models::Vertex& vertex : mesh.vertices)
     {
-        const BoneTransform& bone = bones[static_cast<std::size_t>(vertex.bone)];
-        out.positions.push_back(VectorTransform(ToVec3(vertex.position), bone) * object.scale + object.position);
+        const Math::BoneTransform& bone = bones[static_cast<std::size_t>(vertex.bone)];
+        out.positions.push_back(Math::VectorTransform(ToVec3(vertex.position), bone) * object.scale + object.position);
     }
     RotateNormals(mesh, bones, out);
     return true;
 }
 
-bool SkinMeshInWorld(const Data::Models::Mesh& mesh, std::span<const BoneTransform> worldBones, SkinnedMesh& out)
+bool SkinMeshInWorld(const Data::Models::Mesh& mesh, std::span<const Math::BoneTransform> worldBones, SkinnedMesh& out)
 {
     if (!BonesExist(mesh, worldBones.size()))
     {
         return false;
     }
     // 0x4ebde2 y 0x4ebf70: 0x5fccc0 y 0x5fcbd0 leen la 3 × 4 del hueso por filas.
-    std::vector<OriginalMatrix> matrices;
+    std::vector<Math::OriginalMatrix> matrices;
     matrices.reserve(worldBones.size());
-    for (const BoneTransform& bone : worldBones)
+    for (const Math::BoneTransform& bone : worldBones)
     {
-        matrices.push_back(OriginalMatrixOf(bone));
+        matrices.push_back(Math::OriginalMatrixOf(bone));
     }
     out.positions.clear();
     out.positions.reserve(mesh.vertices.size());
     for (const Data::Models::Vertex& vertex : mesh.vertices)
     {
         out.positions.push_back(
-            OriginalVectorTransform(ToVec3(vertex.position), matrices[static_cast<std::size_t>(vertex.bone)]));
+            Math::OriginalVectorTransform(ToVec3(vertex.position), matrices[static_cast<std::size_t>(vertex.bone)]));
     }
     out.normals.clear();
     out.normals.reserve(mesh.normals.size());
     for (const Data::Models::Normal& normal : mesh.normals)
     {
         out.normals.push_back(
-            OriginalVectorRotate(ToVec3(normal.normal), matrices[static_cast<std::size_t>(normal.bone)]));
+            Math::OriginalVectorRotate(ToVec3(normal.normal), matrices[static_cast<std::size_t>(normal.bone)]));
     }
     return true;
 }
 
-bool SkinMeshAroundBones(const Data::Models::Mesh& mesh, std::span<const BoneTransform> bones,
+bool SkinMeshAroundBones(const Data::Models::Mesh& mesh, std::span<const Math::BoneTransform> bones,
                          const ObjectTransform& object, float boneScale, SkinnedMesh& out)
 {
     if (boneScale == 1.0f)
@@ -122,8 +122,8 @@ bool SkinMeshAroundBones(const Data::Models::Mesh& mesh, std::span<const BoneTra
     out.positions.reserve(mesh.vertices.size());
     for (const Data::Models::Vertex& vertex : mesh.vertices)
     {
-        const BoneTransform& bone = bones[static_cast<std::size_t>(vertex.bone)];
-        const glm::vec3 around = VectorRotate(ToVec3(vertex.position), bone) * boneScale + glm::vec3(bone[3]);
+        const Math::BoneTransform& bone = bones[static_cast<std::size_t>(vertex.bone)];
+        const glm::vec3 around = Math::VectorRotate(ToVec3(vertex.position), bone) * boneScale + glm::vec3(bone[3]);
         out.positions.push_back(around * object.scale + object.position);
     }
     RotateNormals(mesh, bones, out);

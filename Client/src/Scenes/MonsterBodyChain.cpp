@@ -137,7 +137,7 @@ Result DrawMeshes(MonsterBodyModel& model, std::initializer_list<std::int16_t> m
 // sin(argumento) · factor + base en la x87 (PC53), sin redondear a un float.
 Core::Expected<double, std::string> WaveOf(double argument, float factor, float base, std::string_view address)
 {
-    const auto product = Render::Models::Detail::SineProductPC53(argument, factor);
+    const auto product = Math::Detail::SineProductPC53(argument, factor);
     if (!product)
         return Core::Unexpected(std::format("{}: el seno del reloj no cabe en el perfil PC53", address));
     return *product + D(base);
@@ -226,13 +226,13 @@ Result ScatterKundun(MonsterBodyFrame& frame)
     if (frame.bones.size() <= FallBone)
         return Core::Unexpected(std::string("0x43ee90: Kundun sin el hueso 4 en su buffer propio (+0x120)"));
     const MonsterBodyModel& model = frame.model;
-    const auto matrix = Render::Models::OriginalMatrixOf(frame.bones[FallBone]);
+    const auto matrix = Math::OriginalMatrixOf(frame.bones[FallBone]);
     for (const FallingPiece& piece : FallingPieces)
     {
         const glm::vec3 offset{std::bit_cast<float>(piece.offset[0]), std::bit_cast<float>(piece.offset[1]),
                                std::bit_cast<float>(piece.offset[2])};
-        const glm::vec3 point = Render::Models::OriginalTransformPosition(matrix, offset, model.object.transform.scale,
-                                                                          model.object.transform.position);
+        const glm::vec3 point = Math::OriginalTransformPosition(matrix, offset, model.object.transform.scale,
+                                                                model.object.transform.position);
         const World::ModelEffectArguments arguments{.type = piece.type,
                                                     .position = point,
                                                     .angles = actor.angles,
@@ -601,7 +601,7 @@ Chained DrawTheKalimaCase(MonsterBodyFrame& frame)
     {
         // 0x439570..0x4395ba: el color en sin(T · 0,002f) · 0,1f + 0,3f (FST a los tres) y RenderBody(2) con el alpha
         // en 0,3 y el agua.
-        const auto product = Render::Models::Detail::SineProductPC53(D(frame.worldClock) * D(PulseRate), Tenth);
+        const auto product = Math::Detail::SineProductPC53(D(frame.worldClock) * D(PulseRate), Tenth);
         if (!product)
             return Core::Unexpected<std::string>("0x43957c: el agua de Kalima no cabe en el perfil PC53");
         model.object.color = glm::vec3(static_cast<float>(*product + D(ThreeTenths)));
@@ -699,12 +699,11 @@ Result DrawCastleStoneAt(MonsterBodyFrame& frame, std::size_t bone)
     stone.color = model.preludeColor;
     stone.unlitMesh.reset();
     stone.animation = {};
-    stone.transform.position =
-        Render::Models::OriginalTransformPosition(Render::Models::OriginalMatrixOf(frame.bones[bone]), {},
-                                                  model.object.transform.scale, model.object.transform.position);
+    stone.transform.position = Math::OriginalTransformPosition(
+        Math::OriginalMatrixOf(frame.bones[bone]), {}, model.object.transform.scale, model.object.transform.position);
     stone.transform.scale = Ceiling;
     stone.transform.lockedRootHeight = 0.0f;
-    std::vector<Render::Models::BoneTransform> posed(skeleton->bones.size(), Render::Models::BoneTransform(1.0f));
+    std::vector<Math::BoneTransform> posed(skeleton->bones.size(), Math::BoneTransform(1.0f));
     if (!Render::Models::PoseSkeleton(*skeleton, stone.animation, stone.transform, {}, posed))
         return Core::Unexpected(std::string("0x42e4fc: no se pudo posar el proyectil 0x12b"));
     model.rescaled = SkinObjectMeshes(model.models, stone, posed, model.boneScale);
@@ -764,7 +763,7 @@ Chained DrawCastleMonster(MonsterBodyFrame& frame)
             !drawn.HasValue())
             return Core::Unexpected(drawn.Error());
         frame.model.object.color = {ThreeTenths, 1.0f, ThreeTenths};
-        const auto clock = World::OriginalFtolLow(D(frame.worldClock) * D(std::bit_cast<float>(0x3c23d70au)));
+        const auto clock = Math::OriginalFtolLow(D(frame.worldClock) * D(std::bit_cast<float>(0x3c23d70au)));
         if (!clock)
             return Core::Unexpected(std::string("0x42e682: el reloj del agua no cabe en 0x69fd3c"));
         return Drawn(
@@ -816,7 +815,7 @@ Core::Expected<double, std::string> GlowOf(float worldClock, std::string_view ad
 // (ftol(T) % 10.000) · 0,0002f en un float (CDQ e IDIV: el resto con el signo del dividendo): la U y la V de 0x442e10.
 Core::Expected<float, std::string> DriftOf(float worldClock, std::string_view address)
 {
-    const auto clock = World::OriginalFtolLow(D(worldClock));
+    const auto clock = Math::OriginalFtolLow(D(worldClock));
     if (!clock)
         return Core::Unexpected(std::format("{}: el reloj del mundo no cabe en 0x69fd3c", address));
     return F32(static_cast<double>(*clock % 10000) * D(std::bit_cast<float>(0x3951b717u)));
@@ -1041,7 +1040,7 @@ Chained DrawThe4403b0Case(MonsterBodyFrame& frame)
 // corren en 0x428df0.
 Core::Expected<float, std::string> ScrollOf(float worldClock, float rate, std::string_view address)
 {
-    const auto clock = World::OriginalFtolLow(D(worldClock));
+    const auto clock = Math::OriginalFtolLow(D(worldClock));
     if (!clock)
         return Core::Unexpected(std::format("{}: el reloj del mundo no cabe en 0x69fd3c", address));
     const auto negated = static_cast<std::int32_t>(0u - static_cast<std::uint32_t>(*clock));
@@ -1179,7 +1178,7 @@ Result DrawThe1af(MonsterBodyFrame& frame)
         {
             actor.dword64 = -1;
         }
-        const auto clock = World::OriginalFtolLow(D(frame.worldClock));
+        const auto clock = Math::OriginalFtolLow(D(frame.worldClock));
         if (!clock)
             return Core::Unexpected<std::string>("0x433bf7: el reloj del mundo no cabe en 0x69fd3c");
         actor.textureU = F32(static_cast<double>(*clock % 10000) * D(std::bit_cast<float>(0x3a03126fu)));

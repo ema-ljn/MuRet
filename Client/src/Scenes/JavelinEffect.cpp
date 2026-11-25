@@ -32,8 +32,7 @@ constexpr double Lift = 150.0; // 0x6b87ac
 // 0x529c8e..0x529cc5 y 0x529d2b..0x529d62: la velocidad girada por los ángulos de +0x28, sumada a la posición.
 void Advance(World::ModelEffect& effect)
 {
-    const glm::vec3 step =
-        Render::Models::OriginalVectorRotate(effect.velocity, Render::Models::OriginalAngleMatrix(effect.copiedAngles));
+    const glm::vec3 step = Math::OriginalVectorRotate(effect.velocity, Math::OriginalAngleMatrix(effect.copiedAngles));
     glm::vec3& position = effect.transform.position;
     position = {F32(D(step.x) + D(position.x)), F32(D(step.y) + D(position.y)), F32(D(step.z) + D(position.z))};
 }
@@ -54,7 +53,7 @@ Core::Expected<void, std::string> Hunt(World::ModelEffect& effect, const HighEff
     if (effect.life < HuntLife)
     {
         const double distance =
-            Render::Models::MoveToward(effect.transform.position, effect.copiedAngles, effect.start, effect.speed);
+            Math::MoveToward(effect.transform.position, effect.copiedAngles, effect.start, effect.speed);
         // 0x529bf9..0x529c38: FCOMP con 100 (C0, también sin orden).
         bool trail = true;
         if (!(distance >= Near))
@@ -135,7 +134,7 @@ Core::Expected<void, std::string> StepTheJavelin(World::ModelEffect& effect, con
     // 0x529d83..0x529db7: el FSIN de vida · 0,1f por 30 se calcula con cualquier subtipo; solo el /1 y el /2 lo usan.
     if (effect.subtype == RisingSubtype || effect.subtype == SinkingSubtype)
     {
-        const auto wave = Render::Models::Detail::SineProductPC53(static_cast<double>(effect.life) * Fade, Wave);
+        const auto wave = Math::Detail::SineProductPC53(static_cast<double>(effect.life) * Fade, Wave);
         if (!wave)
             return Core::Unexpected(std::string("0x529d92: el seno del 0x139 no cabe en el perfil PC53"));
         effect.transform.position.z =

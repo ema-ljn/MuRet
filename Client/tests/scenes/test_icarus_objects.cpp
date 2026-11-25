@@ -39,7 +39,7 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Render::Models::RoundedSin;
+using Client::Math::RoundedSin;
 using Client::Scenes::GameObjectPass;
 using Client::Scenes::IcarusObjectServices;
 using Client::Scenes::JointState;
@@ -91,7 +91,7 @@ struct FrameFixture
     {
         for (int bone = 0; bone < 4; ++bone)
         {
-            Client::Render::Models::BoneTransform matrix(1.0f);
+            Client::Math::BoneTransform matrix(1.0f);
             matrix[3] = glm::vec3(static_cast<float>(bone) * 10.0f, 1.0f, 2.0f);
             pose.bones.push_back(matrix);
         }
@@ -448,15 +448,13 @@ TEST(IcarusObjectsTest, ThePreludeThrowsTwoSkyBoltsFromOneOfFourSides)
 
         const Side& side = Sides[static_cast<std::size_t>(wanted)];
         glm::vec3 offset = side.first;
-        Client::Render::Models::OriginalVectorRotateInPlace(
-            offset, Client::Render::Models::OriginalAngleMatrix({0.0f, 0.0f, -45.0f}));
+        Client::Math::OriginalVectorRotateInPlace(offset, Client::Math::OriginalAngleMatrix({0.0f, 0.0f, -45.0f}));
         const glm::vec3& hero = fixture.hero;
         glm::vec3 center;
         for (int axis = 0; axis < 3; ++axis)
             center[axis] = side.subtract ? F32(D(hero[axis]) - D(offset[axis])) : F32(D(offset[axis]) + D(hero[axis]));
         glm::vec3 reach = side.second;
-        Client::Render::Models::OriginalVectorRotateInPlace(
-            reach, Client::Render::Models::OriginalAngleMatrix({0.0f, 0.0f, side.yaw}));
+        Client::Math::OriginalVectorRotateInPlace(reach, Client::Math::OriginalAngleMatrix({0.0f, 0.0f, side.yaw}));
         const glm::vec3 far{F32(D(center.x) + D(reach.x)), F32(D(center.y) + D(reach.y)),
                             F32((D(center.z) + D(reach.z)) - 300.0)};
         const glm::vec3 near{F32(D(center.x) - D(reach.x)), F32(D(center.y) - D(reach.y)),

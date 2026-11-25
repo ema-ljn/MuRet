@@ -227,8 +227,8 @@ Core::Expected<bool, std::string> IsFlying(const ActorState& actor, const ActorS
                                                 "personaje en el TerrainWall vivo (0x7d0d348, 0x4f23c1)"));
         }
         constexpr double CellsPerWorldUnit = static_cast<double>(0.01f);
-        const auto y = World::OriginalFtolLow(static_cast<double>(actor.position.y) * CellsPerWorldUnit);
-        const auto x = World::OriginalFtolLow(static_cast<double>(actor.position.x) * CellsPerWorldUnit);
+        const auto y = Math::OriginalFtolLow(static_cast<double>(actor.position.y) * CellsPerWorldUnit);
+        const auto x = Math::OriginalFtolLow(static_cast<double>(actor.position.x) * CellsPerWorldUnit);
         if (!x || !y)
         {
             return Core::Unexpected(std::string("0x4f23c1: la posición no es representable como celda"));

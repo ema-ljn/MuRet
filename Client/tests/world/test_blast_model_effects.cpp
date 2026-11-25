@@ -183,8 +183,8 @@ TEST(BlastModelEffectsTest, TheDeathStabMovesAheadAndCreatesItsPiercingChild)
     ASSERT_EQ(*made.Value(), 0u);
     const ModelEffect& stab = harness.effects->Effects()[0];
     const ModelEffect& child = harness.effects->Effects()[1];
-    const glm::vec3 offset = Client::Render::Models::OriginalVectorRotate(
-        {-10, -60, 135}, Client::Render::Models::OriginalAngleMatrix({0, 0, 90}));
+    const glm::vec3 offset =
+        Client::Math::OriginalVectorRotate({-10, -60, 135}, Client::Math::OriginalAngleMatrix({0, 0, 90}));
     EXPECT_EQ(stab.transform.position.x, F32(static_cast<double>(offset.x) + 1000.0));
     EXPECT_EQ(stab.life, 30);
     EXPECT_EQ(stab.speed, 1.0f);

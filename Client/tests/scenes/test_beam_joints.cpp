@@ -260,8 +260,8 @@ TEST(BeamJointsTest, TheSwervingBeamSpinsAndLeavesItsSprites)
     ASSERT_TRUE(tested.Step().HasValue());
 
     const JointState& joint = tested.joints[0];
-    const glm::vec3 moved = Client::Render::Models::OriginalVectorRotate(
-        {0.0f, -10.0f, 0.0f}, Client::Render::Models::OriginalAngleMatrix(before.angles));
+    const glm::vec3 moved =
+        Client::Math::OriginalVectorRotate({0.0f, -10.0f, 0.0f}, Client::Math::OriginalAngleMatrix(before.angles));
     const auto jitter = [&expected, &before](float axis, float delta)
     {
         const float common = static_cast<float>(static_cast<double>(axis) + static_cast<double>(delta));

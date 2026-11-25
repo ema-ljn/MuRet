@@ -55,7 +55,7 @@ TEST(BillboardTest, ThreeHundredCasesMatchTheBinary)
             head >> value;
             return FromBits(value);
         };
-        Client::Render::Models::OriginalMatrix view{};
+        Client::Math::OriginalMatrix view{};
         for (float& value : view)
         {
             value = next();
@@ -136,7 +136,7 @@ TEST(BillboardTest, ThreeHundredCasesMatchTheBinary)
 // 621451–62145c: FCOMP marca C3 tanto para cero como para unordered.
 TEST(BillboardTest, NanRotationUsesTheUnrotatedGeometry)
 {
-    const Client::Render::Models::OriginalMatrix view{1, 0, 0, 10, 0, 1, 0, 20, 0, 0, 1, 30};
+    const Client::Math::OriginalMatrix view{1, 0, 0, 10, 0, 1, 0, 20, 0, 0, 1, 30};
     const auto zero = Client::Render::MakeBillboardGeometry(view, {2, 3, 4}, 6, 8, 0, {0.25f, 0.5f}, {0.5f, 0.25f});
     const auto nan = Client::Render::MakeBillboardGeometry(
         view, {2, 3, 4}, 6, 8, std::numeric_limits<float>::quiet_NaN(), {0.25f, 0.5f}, {0.5f, 0.25f});

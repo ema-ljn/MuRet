@@ -136,7 +136,7 @@ Core::Expected<void, ParticleError> CreateNoriaParticle(Particle& particle, floa
     }
     particle.life = (random.Next() & 15) + 24;
     particle.angles.z = static_cast<float>(random.Next() % 360);
-    const auto matrix = Render::Models::OriginalAngleMatrix(particle.angles);
+    const auto matrix = Math::OriginalAngleMatrix(particle.angles);
     particle.verticalSpeed = static_cast<float>((random.Next() & 15) + 6);
     float forward = static_cast<float>(static_cast<double>(random.Next() % 20 + 20) * SparkScaleStep);
     if (subtype == PushSparkSubtype)
@@ -159,7 +159,7 @@ Core::Expected<void, ParticleError> CreateNoriaParticle(Particle& particle, floa
         particle.texture = OwnedSparkTexture;
         forward = static_cast<float>(static_cast<double>(random.Next() % 20 + 20) * OwnedSparkStep);
     }
-    particle.velocity = Render::Models::OriginalVectorRotate(glm::vec3(0.0f, forward, 0.0f), matrix);
+    particle.velocity = Math::OriginalVectorRotate(glm::vec3(0.0f, forward, 0.0f), matrix);
     return {};
 }
 
@@ -170,13 +170,13 @@ Core::Expected<void, ParticleError> StepNoriaParticle(Particle& particle, const 
     {
         // 546ca3..546ccc: fst escala sin pop; /1 multiplica el seno RETENIDO por0.75.
         const double argument = static_cast<double>(particle.life) * ShinySineStep;
-        const auto sine = Render::Models::Detail::SineProductPC53(argument, 1.0f);
+        const auto sine = Math::Detail::SineProductPC53(argument, 1.0f);
         if (!sine)
             return Core::Unexpected(ParticleError::UnrepresentableTrigonometry);
         particle.scale = static_cast<float>(*sine);
         if (particle.subtype == 1)
         {
-            const auto scaled = Render::Models::Detail::SineProductPC53(argument, ShinyOneScale);
+            const auto scaled = Math::Detail::SineProductPC53(argument, ShinyOneScale);
             if (!scaled)
                 return Core::Unexpected(ParticleError::UnrepresentableTrigonometry);
             particle.scale = static_cast<float>(*scaled);

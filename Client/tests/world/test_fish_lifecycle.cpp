@@ -29,7 +29,7 @@ struct Storage
     float scale = 14, oscillation = 15, phase = 16, aheadX = 17, aheadY = 18, speed = 1, turnRate = 24;
     float frame = 25, previousFrame = 26, field170 = 27, field174 = 13;
     glm::vec3 position{1, 2, 3}, angles{4, 5, 6}, previousPosition{7, 8, 9}, light{10, 11, 12};
-    Client::Render::Models::OriginalMatrix matrix{};
+    Client::Math::OriginalMatrix matrix{};
     FishStepView View()
     {
         return {active,         type,   counter,       scale,       position, angles,   previousPosition,
@@ -166,8 +166,7 @@ public:
     {
         return Mark("matrix");
     }
-    Expected<glm::vec3, std::error_code> Rotate(const glm::vec3& input,
-                                                const Client::Render::Models::OriginalMatrix&) override
+    Expected<glm::vec3, std::error_code> Rotate(const glm::vec3& input, const Client::Math::OriginalMatrix&) override
     {
         rotateLengths.push_back(input.x);
         numeric.push_back(input.x);

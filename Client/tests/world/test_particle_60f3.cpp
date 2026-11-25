@@ -493,13 +493,13 @@ public:
 class Backend final : public Render::IParticleDrawBackend
 {
 public:
-    Backend(World::Particle& particle, Library& library, Render::Models::OriginalMatrix& view)
+    Backend(World::Particle& particle, Library& library, Math::OriginalMatrix& view)
         : p(particle), lib(library), matrix(view)
     {
     }
     World::Particle& p;
     Library& lib;
-    Render::Models::OriginalMatrix& matrix;
+    Math::OriginalMatrix& matrix;
     std::vector<int> events;
     std::vector<glm::vec3> vertices;
     std::vector<glm::vec2> uvs;
@@ -619,7 +619,7 @@ TEST(Particle60f3Test, DrawConsumesPositionViewAndColorAfterTheirServiceBoundari
     p.scale = 2;
     p.position = {1, 2, 3};
     p.light = {1, 1, 1};
-    Render::Models::OriginalMatrix view{1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0};
+    Math::OriginalMatrix view{1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0};
     Library lib;
     Backend backend(p, lib, view);
     Scenes::ParticleDrawServices services(std::cref(lib), std::ref(backend), std::cref(view));
@@ -647,7 +647,7 @@ TEST(Particle60f3Test, BeginErrorPreservesPrefixWithoutColorQuadOrEnd)
     p.subtype = 3;
     p.life = 59;
     p.scale = 2;
-    Render::Models::OriginalMatrix view{1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0};
+    Math::OriginalMatrix view{1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0};
     Library lib;
     Backend backend(p, lib, view);
     backend.failBegin = true;

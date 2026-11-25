@@ -268,8 +268,8 @@ TEST(WizardModelEffectsTest, TheSnowballStartsAheadAndAboveItsCaster)
     CrtRandom random(1);
     const std::size_t slot = Create(world, Arguments(0xd7, 0), random);
     const ModelEffect& snow = world.At(slot);
-    const glm::vec3 offset = Client::Render::Models::OriginalVectorRotate(
-        {0.0f, -40.0f, 150.0f}, Client::Render::Models::OriginalAngleMatrix({0.0f, 0.0f, 90.0f}));
+    const glm::vec3 offset = Client::Math::OriginalVectorRotate({0.0f, -40.0f, 150.0f},
+                                                                Client::Math::OriginalAngleMatrix({0.0f, 0.0f, 90.0f}));
     EXPECT_EQ(snow.transform.position.x, F32(static_cast<double>(offset.x) + 1000.0));
     EXPECT_EQ(snow.transform.position.z, F32(static_cast<double>(offset.z) + 300.0));
     EXPECT_EQ(snow.velocity, glm::vec3(0.0f, -40.0f, 10.0f));
@@ -1115,8 +1115,8 @@ TEST(WizardModelEffectsTest, TheStonesOfSubtypesTenElevenAndTwelveAreBorn)
             EXPECT_EQ(stone.life, life);
             EXPECT_EQ(stone.transform.scale, scale);
             EXPECT_EQ(stone.transform.angles, angles);
-            EXPECT_EQ(stone.velocity, Client::Render::Models::OriginalVectorRotate(
-                                          {0.0f, push, 0.0f}, Client::Render::Models::OriginalAngleMatrix(angles)));
+            EXPECT_EQ(stone.velocity, Client::Math::OriginalVectorRotate({0.0f, push, 0.0f},
+                                                                         Client::Math::OriginalAngleMatrix(angles)));
             EXPECT_EQ(stone.turnDirection, fall);
         }
         EXPECT_EQ(random.State(), oracle.State());

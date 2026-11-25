@@ -959,8 +959,8 @@ TEST(AttackSkillCasesTest, TheStrikeAroundSendsPlasmaAndRaisesSpirals)
 
         const auto point = [&](const glm::vec3& offset)
         {
-            const auto turned = Client::Render::Models::OriginalVectorRotate(
-                offset, Client::Render::Models::OriginalAngleMatrix(tested.Striker().angles));
+            const auto turned =
+                Client::Math::OriginalVectorRotate(offset, Client::Math::OriginalAngleMatrix(tested.Striker().angles));
             const glm::vec3& at = tested.Striker().position;
             const auto sum = [](float first, float second)
             { return static_cast<float>(static_cast<double>(first) + static_cast<double>(second)); };
@@ -2061,7 +2061,7 @@ std::vector<const Client::World::ModelEffect*> AliveOfType(const WorldState& wor
 float HeadingTo(const ActorState& from, const ActorState& to)
 {
     return static_cast<float>(
-        Client::Render::Models::CreateAngle(from.position.x, from.position.y, to.position.x, to.position.y));
+        Client::Math::CreateAngle(from.position.x, from.position.y, to.position.x, to.position.y));
 }
 
 // 0x505024..0x505061, la 0x11 de un jugador (+0x376 en 0xffff) que no es el 0x15e, en todos los mapas: el 0x5ca/0

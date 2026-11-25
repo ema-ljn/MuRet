@@ -938,7 +938,7 @@ using Render::Text::TextColors;
 std::uint32_t WarningPulseColor(float worldClock)
 {
     double alpha =
-        Render::Models::RoundedSin(static_cast<double>(worldClock) * static_cast<double>(WarningPulse)) * WarningSwing +
+        Math::RoundedSin(static_cast<double>(worldClock) * static_cast<double>(WarningPulse)) * WarningSwing +
         WarningBase;
     if (WarningMost < alpha)
         alpha = WarningMost;
@@ -1119,8 +1119,7 @@ Core::Expected<void, std::string> DrawTheTradeWindow(GameHudContext& context, UI
     DrawText(context, x + 0x14, y + 0x2d, NameUntilZero(trade.otherName));
     // 0x5f4489..0x5f4505: la flecha que sube y baja junto al OK del otro.
     sprites.SetColor(ArrowColor);
-    const double bob =
-        Render::Models::RoundedSin(static_cast<double>(context.worldClock) * static_cast<double>(ArrowBob));
+    const double bob = Math::RoundedSin(static_cast<double>(context.worldClock) * static_cast<double>(ArrowBob));
     sprites.Quad(Render::OriginalQuad{.slot = Render::TextureSlot{ArrowSlot},
                                       .x = TradePlace(x, OtherOkLeft),
                                       .y = F32(bob + static_cast<double>(y + ArrowTop)),

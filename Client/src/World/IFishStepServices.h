@@ -30,7 +30,7 @@ struct FishStepView
     float& oscillation;
     float& phase;
     std::uint8_t& field8f;
-    Render::Models::OriginalMatrix& matrix;
+    Math::OriginalMatrix& matrix;
     float& aheadX;
     float& aheadY;
     float& speed;
@@ -105,8 +105,8 @@ public:
     [[nodiscard]] virtual Core::Expected<void, std::error_code> Steer(FishStepView& fish, std::size_t index,
                                                                       std::span<FishStepView, FishPoolSize> pool) = 0;
     [[nodiscard]] virtual Core::Expected<void, std::error_code> AngleMatrix(FishStepView& fish) = 0;
-    [[nodiscard]] virtual Core::Expected<glm::vec3, std::error_code>
-    Rotate(const glm::vec3& input, const Render::Models::OriginalMatrix& matrix) = 0;
+    [[nodiscard]] virtual Core::Expected<glm::vec3, std::error_code> Rotate(const glm::vec3& input,
+                                                                            const Math::OriginalMatrix& matrix) = 0;
     [[nodiscard]] virtual Core::Expected<std::int32_t, std::error_code> Sound(std::int32_t id, void* context,
                                                                               std::int32_t mode) = 0;
     [[nodiscard]] virtual Core::Expected<void, std::error_code> Finalize(FishStepView& fish) = 0;

@@ -8,7 +8,7 @@
 
 // Detalle privado de las hojas aceptadas en ADR0014. Valor matemático, sin layout ni estado
 // de CPU: (-1)^negative · significand · 2^exponent. No hay conversión implícita a double.
-namespace Client::Render::Models::Detail
+namespace Client::Math::Detail
 {
 enum class RetainedClass : std::uint8_t
 {
@@ -69,4 +69,4 @@ struct SignedConversion
 [[nodiscard]] ENGINE_API std::optional<float> CosineSpillF32(double argument);
 // Valor canónico retenido; conserva clases y signo de cero. Error si no cabe exactamente en double.
 [[nodiscard]] ENGINE_API std::optional<double> RetainedProductPC53(const Retained64& value, float multiplier);
-} // namespace Client::Render::Models::Detail
+} // namespace Client::Math::Detail

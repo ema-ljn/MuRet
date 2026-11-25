@@ -51,7 +51,7 @@ Core::Expected<void, std::string> StepNoriaObject(WorldObject& object, Crt::CrtR
         if (!emitted.HasValue())
             return Core::Unexpected(std::format("0x60536e:5c6/9 rechazado({})", static_cast<int>(emitted.Error())));
     }
-    const auto clock = OriginalFtolLow(static_cast<double>(globals.worldClock));
+    const auto clock = Math::OriginalFtolLow(static_cast<double>(globals.worldClock));
     if (!clock)
         return Core::Unexpected(std::string("0x605281:ftol del reloj de Noria fuera de dominio"));
     if (object.type == 0x29)

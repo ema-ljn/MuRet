@@ -70,12 +70,12 @@ Core::Expected<void, std::string> SparkTheMark(const World::ModelEffect& effect,
     const glm::vec3& position = effect.transform.position;
     glm::vec3 point{};
     const int side = context.random.Next() % RadiusSpan - RadiusShift;
-    const auto sine = Render::Models::Detail::SineDoubleProductPC53(D(turn), static_cast<double>(side));
+    const auto sine = Math::Detail::SineDoubleProductPC53(D(turn), static_cast<double>(side));
     if (!sine)
         return Core::Unexpected(std::string("0x52a0f1: el seno del giro del 0x140 fuera del perfil PC53"));
     point.x = F32(*sine + D(position.x));
     const int depth = context.random.Next() % RadiusSpan - RadiusShift;
-    const auto cosine = Render::Models::Detail::CosineDoubleProductPC53(D(turn), static_cast<double>(depth));
+    const auto cosine = Math::Detail::CosineDoubleProductPC53(D(turn), static_cast<double>(depth));
     if (!cosine)
         return Core::Unexpected(std::string("0x52a11b: el coseno del giro del 0x140 fuera del perfil PC53"));
     point.y = F32(*cosine + D(position.y));
@@ -125,12 +125,12 @@ Core::Expected<void, std::string> BeginTheGuildMark(World::ModelEffect& effect, 
         glm::vec3 point{};
         const float side = static_cast<float>(random.Next() % RadiusSpan + RadiusBase);
         // 0x52e3a0 y 0x52e390: FSIN y FCOS del giro, retenidos en la x87 hasta el FMUL por el radio.
-        const auto sine = Render::Models::Detail::SineProductPC53(D(turn), side);
+        const auto sine = Math::Detail::SineProductPC53(D(turn), side);
         if (!sine)
             return Core::Unexpected(std::string("0x51e1c6: el seno del giro del 0x140 fuera del perfil PC53"));
         point.x = F32(*sine + D(position.x));
         const float depth = static_cast<float>(random.Next() % RadiusSpan + RadiusBase);
-        const auto cosine = Render::Models::Detail::CosineProductPC53(D(turn), depth);
+        const auto cosine = Math::Detail::CosineProductPC53(D(turn), depth);
         if (!cosine)
             return Core::Unexpected(std::string("0x51e1ee: el coseno del giro del 0x140 fuera del perfil PC53"));
         point.y = F32(*cosine + D(position.y));

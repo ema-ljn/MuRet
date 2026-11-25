@@ -74,13 +74,13 @@ struct GameCharacterPass
     World::ModelEffects* effects = nullptr;
     const ItemDrawContext* itemContext = nullptr;
     Render::Models::OriginalFramePace pace = Render::Models::OriginalFramePace::ByTheClock;
-    std::function<void(std::uint16_t, std::span<const Render::Models::BoneTransform>,
-                       const Render::Models::ObjectTransform&, bool)>
+    std::function<void(std::uint16_t, std::span<const Math::BoneTransform>, const Render::Models::ObjectTransform&,
+                       bool)>
         onPose{};
     // Publica las matrices del dibujo intermedio al buffer que presta el caller, sin avanzar el estado.
     bool publishProjectedPose = false;
     std::span<ActorPickingBox> pickingBoxes{};
-    std::function<std::span<const Render::Models::BoneTransform>(std::uint16_t)> poseBones{};
+    std::function<std::span<const Math::BoneTransform>(std::uint16_t)> poseBones{};
     // Los modelos del mundo, donde 0x618970 carga el Angel (0x1f7) de Chaos Castle: en el original, el mismo
     // arreglo global. Sin ellos, un jugador en los mapas 18 a 23 corta.
     const Render::Models::IModelLibrary* worldModels = nullptr;

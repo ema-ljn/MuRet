@@ -349,7 +349,7 @@ Core::Expected<void, std::string> Wander(JointState& joint, const JointKernels::
         for (std::uint16_t draw = 0; draw < Render::Models::SmallLogicalCloseRandoms; ++draw)
             static_cast<void>(services.random->Next());
     const auto phase = std::bit_cast<std::int32_t>(static_cast<std::uint32_t>(services.index) + steps);
-    const auto direction = Render::Models::Detail::FaunaDirectionPC53(phase);
+    const auto direction = Math::Detail::FaunaDirectionPC53(phase);
     if (!direction)
         return Core::Unexpected(std::string("0x53994e: dirección fuera del perfil PC53"));
     constexpr double Reach = 50.0;
@@ -384,8 +384,7 @@ Core::Expected<void, std::string> StepTheBolt(JointState& joint, const JointKern
             target.x = F32((static_cast<double>(random.Next() % 150) - 70.0) + D(target.x));
             target.y = F32((static_cast<double>(random.Next() % 150) - 70.0) + D(target.y));
             target.z = F32(D(target.z) + 50.0);
-            const double distance =
-                Render::Models::MoveToward(joint.position, joint.angles, target, F32(D(joint.speed) - 20.0));
+            const double distance = Math::MoveToward(joint.position, joint.angles, target, F32(D(joint.speed) - 20.0));
             joint.speed = joint.speed > 50.0f ? 50.0f : F32(D(joint.speed) + 1.0);
             if (!(distance >= 50.0))
                 joint.life = std::bit_cast<std::int32_t>(std::bit_cast<std::uint32_t>(joint.life) - 1u);
@@ -487,8 +486,8 @@ Core::Expected<void, std::string> Release(JointState& joint, const JointKernels:
 // FCOS y FSIN de la z de los ángulos (sin pasar a radianes) por un float de memoria, sumados a la x y a la y.
 Core::Expected<void, std::string> Drift(JointState& joint, float reach, std::uint32_t address)
 {
-    const auto cosine = Render::Models::Detail::CosineProductPC53(D(joint.angles.z), reach);
-    const auto sine = Render::Models::Detail::SineProductPC53(D(joint.angles.z), reach);
+    const auto cosine = Math::Detail::CosineProductPC53(D(joint.angles.z), reach);
+    const auto sine = Math::Detail::SineProductPC53(D(joint.angles.z), reach);
     if (!cosine || !sine)
         return Core::Unexpected(
             std::format("{:#x}: el giro del joint {:#x}/{:#x} excede el perfil", address, joint.type, joint.subtype));
@@ -590,8 +589,8 @@ Core::Expected<void, std::string> CarryThePhoenix(const JointState& joint, World
     constexpr double Tenth = Math::TenthAsDouble; // 0x6b87b8
     constexpr double Reach = 30.0;                // 0x6b8858
     const float radius = F32(static_cast<double>(joint.key) * Tenth + Reach);
-    const auto sine = Render::Models::Detail::SineDoubleProductPC53(D(joint.angles.z), D(radius));
-    const auto cosine = Render::Models::Detail::CosineDoubleProductPC53(D(joint.angles.z), D(radius));
+    const auto sine = Math::Detail::SineDoubleProductPC53(D(joint.angles.z), D(radius));
+    const auto cosine = Math::Detail::CosineDoubleProductPC53(D(joint.angles.z), D(radius));
     if (!sine || !cosine)
         return Core::Unexpected(std::format("0x5392a0: el giro del joint {:#x}/0xf excede el perfil", joint.type));
     owner.transform.position = {F32(D(joint.position.x) + *sine), F32(D(joint.position.y) - *cosine), joint.position.z};
@@ -628,8 +627,8 @@ Core::Expected<void, std::string> StepTheSpiral(JointState& joint, const JointKe
             constexpr double Span = 40.0;   // 0x6b8bf4
             from.z = Hover;
             const double radius = Span - static_cast<double>(joint.key) * Tenth;
-            const auto sine = Render::Models::Detail::SineDoubleProductPC53(D(joint.angles.z), radius);
-            const auto cosine = Render::Models::Detail::CosineDoubleProductPC53(D(joint.angles.z), radius);
+            const auto sine = Math::Detail::SineDoubleProductPC53(D(joint.angles.z), radius);
+            const auto cosine = Math::Detail::CosineDoubleProductPC53(D(joint.angles.z), radius);
             if (!sine || !cosine)
                 return Core::Unexpected(
                     std::format("0x5391d3: el giro del joint {:#x}/0xf excede el perfil", joint.type));
@@ -659,11 +658,11 @@ Core::Expected<void, std::string> StepTheSpiral(JointState& joint, const JointKe
     }
     constexpr double Reach = 30.0; // 0x6b8858
     const double radius = static_cast<double>(joint.key) * Tenth + Reach;
-    const auto sine = Render::Models::Detail::SineDoubleProductPC53(D(joint.angles.z), radius);
+    const auto sine = Math::Detail::SineDoubleProductPC53(D(joint.angles.z), radius);
     if (!sine)
         return Core::Unexpected(std::format("0x539305: el seno del joint {:#x}/0xf excede el perfil", joint.type));
     joint.position.x = F32(*sine + D(joint.position.x));
-    const auto cosine = Render::Models::Detail::CosineDoubleProductPC53(D(joint.angles.z), radius);
+    const auto cosine = Math::Detail::CosineDoubleProductPC53(D(joint.angles.z), radius);
     if (!cosine)
         return Core::Unexpected(std::format("0x539312: el coseno del joint {:#x}/0xf excede el perfil", joint.type));
     joint.position.y = F32(D(joint.position.y) - *cosine);
@@ -760,8 +759,8 @@ Core::Expected<void, std::string> StepTheVolley(JointState& joint, const JointKe
     const float distance = F32(std::sqrt(D(services.startDeltaY) * D(services.startDeltaY) +
                                          D(services.startDeltaX) * D(services.startDeltaX)));
     constexpr float SlowTurn = 2.0f, FastTurn = 10.0f; // 0x40000000 y 0x41200000
-    static_cast<void>(Render::Models::MoveToward(joint.position, joint.angles, joint.targetPosition,
-                                                 joint.subtype == 5 ? SlowTurn : FastTurn));
+    static_cast<void>(
+        Math::MoveToward(joint.position, joint.angles, joint.targetPosition, joint.subtype == 5 ? SlowTurn : FastTurn));
     if (joint.field9d4 == 0 && D(joint.speed) + D(joint.speed) >= D(distance))
         joint.field9d4 = 1;
     if (joint.subtype != 5)
@@ -843,7 +842,7 @@ Core::Expected<bool, std::string> VolleyFromTheSky(JointState& joint, const Join
         if ((cell.Value() & SiegeCell) == SiegeCell)
         {
             joint.speed = 0.0f;
-            joint.life = World::FtolLow(static_cast<double>(joint.life) * Shrink);
+            joint.life = Math::FtolLow(static_cast<double>(joint.life) * Shrink);
             return false;
         }
     }

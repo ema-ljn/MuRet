@@ -142,7 +142,7 @@ Core::Expected<void, std::string> StatueGlows(const World::WorldObject& object, 
 {
     const double phase =
         (static_cast<double>(object.transform.angles.z) * AngleRate) + static_cast<double>(pass.worldClock);
-    const std::optional<double> wave = Render::Models::Detail::SineSumPC53(phase * Thousandth, 1.0);
+    const std::optional<double> wave = Math::Detail::SineSumPC53(phase * Thousandth, 1.0);
     if (!wave)
         return Core::Unexpected(std::string("0x604374: el seno del reloj no cabe en el perfil PC53"));
     const double level = *wave * Half;
@@ -163,7 +163,7 @@ Core::Expected<void, std::string> StatueGlows(const World::WorldObject& object, 
 Core::Expected<void, std::string> PulsingOrbSprite(const GameObjectPass& pass)
 {
     const std::optional<double> wave =
-        Render::Models::Detail::SineProductPC53(static_cast<double>(pass.worldClock) * Thousandth, PulseSwing);
+        Math::Detail::SineProductPC53(static_cast<double>(pass.worldClock) * Thousandth, PulseSwing);
     if (!wave)
         return Core::Unexpected(std::string("0x6042d0: el seno del reloj no cabe en el perfil PC53"));
     const float level = F32(*wave + PulseBase);
@@ -177,7 +177,7 @@ Core::Expected<void, std::string> PulsingOrbSprite(const GameObjectPass& pass)
 // 0x604199..0x6041c2 y 0x60421c..0x604245: ftol de la fase (más `lead`) % 4 y la fase más 1, guardada.
 Core::Expected<bool, std::string> TorchTurn(World::WorldObject& object, double lead, std::string_view address)
 {
-    const std::optional<std::int32_t> turn = World::OriginalFtolLow(static_cast<double>(object.field84) + lead);
+    const std::optional<std::int32_t> turn = Math::OriginalFtolLow(static_cast<double>(object.field84) + lead);
     if (!turn)
         return Core::Unexpected(std::format("{}: la fase del 0x25 no tiene un ftol acreditado", address));
     constexpr std::int32_t TorchPeriod = 4;

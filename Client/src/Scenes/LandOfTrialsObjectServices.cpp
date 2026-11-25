@@ -69,7 +69,7 @@ Core::Expected<void, std::string> Sprites(const GameObjectPass& pass)
     constexpr double Base = static_cast<double>(std::bit_cast<float>(0x3f266666u));
     constexpr double Stretch = static_cast<double>(std::bit_cast<float>(0x3f99999au));
     constexpr double Lift = static_cast<double>(std::bit_cast<float>(0x3e99999au));
-    const auto pulse = Render::Models::Detail::SineProductPC53(static_cast<double>(pass.worldClock) * Rate, Swing);
+    const auto pulse = Math::Detail::SineProductPC53(static_cast<double>(pass.worldClock) * Rate, Swing);
     if (!pulse)
         return Core::Unexpected(std::string("0x4402a3: el pulso del 0x31 del 31 no cabe en el perfil PC53"));
     const float scale = static_cast<float>(((*pulse + Base) * Stretch) + Lift);
@@ -144,7 +144,7 @@ Core::Expected<std::optional<TrialsBodyDraw>, std::string> LandOfTrialsBody(cons
         return std::optional<TrialsBodyDraw>();
     }
     const double argument = static_cast<double>(worldClock) * rate + static_cast<double>(object.field84);
-    const auto pulse = Render::Models::Detail::SineProductPC53(argument, Swing);
+    const auto pulse = Math::Detail::SineProductPC53(argument, Swing);
     if (!pulse)
         return Core::Unexpected(std::format("{}: el pulso del {:#x} del 31 no cabe en el perfil PC53", address,
                                             static_cast<int>(object.type)));

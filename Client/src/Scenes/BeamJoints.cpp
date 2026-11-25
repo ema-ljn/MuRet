@@ -253,7 +253,7 @@ Core::Expected<void, std::string> Return(JointState& joint, const JointKernels::
     {
         // 0x538525: una copia local del destino propio (+0x58).
         const glm::vec3 target = joint.targetPosition;
-        distance = Render::Models::MoveToward(joint.position, joint.angles, target, joint.speed);
+        distance = Math::MoveToward(joint.position, joint.angles, target, joint.speed);
     }
     else
     {
@@ -263,7 +263,7 @@ Core::Expected<void, std::string> Return(JointState& joint, const JointKernels::
                 std::format("0x538501: falta el personaje dueño del joint {} (0x618/{})", services.index, subtype));
         constexpr double Above = 120.0; // 0x6b86c8
         joint.targetPosition = {owner->position.x, owner->position.y, F32(D(owner->position.z) + Above)};
-        distance = Render::Models::MoveToward(joint.position, joint.angles, joint.targetPosition, joint.speed);
+        distance = Math::MoveToward(joint.position, joint.angles, joint.targetPosition, joint.speed);
     }
     constexpr double Hit = 35.0, Near = 70.0, Swerve = 20.0; // 0x6b8974, 0x6ba1b0, 0x6ba2f8
     constexpr double SlowSpeed = 20.0, Brake = 10.0;         // 0x6b86d0, 0x6b87a8
@@ -366,7 +366,7 @@ Core::Expected<void, std::string> Follow(JointState& joint, const JointKernels::
     constexpr float Amplitude = std::bit_cast<float>(0x3e99999au);                   // 0x6b89dc
     constexpr double Base = static_cast<double>(std::bit_cast<float>(0x3f4ccccdu));  // 0x6b8a38
     constexpr double Tenth = Math::TenthAsDouble;                                    // 0x6b87b8
-    const auto wave = Render::Models::Detail::SineProductPC53(D(services.worldClock) * Phase, Amplitude);
+    const auto wave = Math::Detail::SineProductPC53(D(services.worldClock) * Phase, Amplitude);
     if (!wave)
         return Core::Unexpected(
             std::format("0x53829d: el reloj del joint 0x618/{:#x} excede el seno canónico", joint.subtype));

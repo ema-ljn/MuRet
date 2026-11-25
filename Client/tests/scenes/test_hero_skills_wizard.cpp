@@ -797,7 +797,7 @@ TEST(HeroSkillsWizardTest, TheSkillOnItsTargetSplitsTheUserAndTheTurned)
     const auto direction = [](float angle)
     {
         const double scale = static_cast<double>(std::bit_cast<float>(std::uint32_t{0x3f360b61}));
-        const auto truncated = Client::World::OriginalFtolLow(static_cast<double>(angle) * scale);
+        const auto truncated = Client::Math::OriginalFtolLow(static_cast<double>(angle) * scale);
         return static_cast<std::uint8_t>(truncated.value_or(-1) & 0xff);
     };
     for (const std::int32_t map : {0, 2})
@@ -842,7 +842,7 @@ TEST(HeroSkillsWizardTest, TheSkillOnItsTargetSplitsTheUserAndTheTurned)
 
                 EXPECT_EQ(user.attackPosition, tested->Chosen().position);
                 EXPECT_EQ(turned.attackPosition, glm::vec3(0.0f));
-                const auto toward = static_cast<float>(Client::Render::Models::CreateAngle(
+                const auto toward = static_cast<float>(Client::Math::CreateAngle(
                     18050.0f, 11950.0f, tested->Chosen().position.x, tested->Chosen().position.y));
                 EXPECT_EQ(turned.angles.z, toward);
                 EXPECT_EQ(user.angles.z, 0.0f);

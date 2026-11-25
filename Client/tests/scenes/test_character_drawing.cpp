@@ -49,6 +49,8 @@ namespace
 {
 using Client::Data::Models::Mesh;
 using Client::Data::Models::Model;
+using Client::Math::RoundedCos;
+using Client::Math::RoundedSin;
 using Client::Render::ModelBatch;
 using Client::Render::ModelBlend;
 using Client::Render::ModelDrawState;
@@ -56,8 +58,6 @@ using Client::Render::TextureSlot;
 using Client::Render::Models::ActionInfo;
 using Client::Render::Models::BoneKey;
 using Client::Render::Models::IModelLibrary;
-using Client::Render::Models::RoundedCos;
-using Client::Render::Models::RoundedSin;
 using Client::Render::Models::Skeleton;
 using Client::Render::Models::SkeletonBone;
 using Client::Scenes::DrawCharacter;
@@ -75,7 +75,7 @@ Skeleton FlatSkeleton(std::size_t bones)
     SkeletonBone bone;
     bone.parent = -1;
     bone.actions = {{BoneKey{}}};
-    bone.actions[0][0].rotation = Client::Render::Models::AngleQuaternion({0.0f, 0.0f, 0.0f});
+    bone.actions[0][0].rotation = Client::Math::AngleQuaternion({0.0f, 0.0f, 0.0f});
     skeleton.bones.assign(bones, bone);
     skeleton.actions = {ActionInfo{.repeats = true, .speed = 0.0f, .keyCount = 1, .lockPositions = false}};
     return skeleton;
@@ -1885,19 +1885,19 @@ TEST(CharacterDrawingTest, TheScepterAsksForItsFiveSprites)
     OneModel models(Client::World::HdkMaceModel);
     BoneKey& key = models.ItemSkeleton().bones[0].actions[0][0];
     key.position = {5.0f, 10.0f, 20.0f};
-    key.rotation = Client::Render::Models::AngleQuaternion({0.3f, 0.0f, 0.0f});
+    key.rotation = Client::Math::AngleQuaternion({0.3f, 0.0f, 0.0f});
 
     (void)Drawn(models, character);
 
     // La raíz es el hueso 33 del cuerpo plano: el giro del personaje, sin traslación.
-    const Client::Render::Models::BoneTransform root = Client::Render::Models::AngleMatrix({0.0f, 0.0f, 90.0f});
-    std::vector<Client::Render::Models::BoneTransform> mace(1);
+    const Client::Math::BoneTransform root = Client::Math::AngleMatrix({0.0f, 0.0f, 90.0f});
+    std::vector<Client::Math::BoneTransform> mace(1);
     ASSERT_TRUE(Client::Render::Models::PoseAttached(models.ItemSkeleton(), Client::Render::Models::AnimationState{},
                                                      root, mace));
     ASSERT_NE(mace.front(), root);
     Client::World::FrameSprites expected;
     Client::Crt::CrtRandom random(7);
-    Client::World::CreateScepterGlow(expected, Client::Render::Models::OriginalMatrixOf(mace.front()), 1.5f,
+    Client::World::CreateScepterGlow(expected, Client::Math::OriginalMatrixOf(mace.front()), 1.5f,
                                      character.object.position, random);
     for (std::size_t k = 0; k <= Client::World::ScepterSpriteCount; ++k)
     {
@@ -2015,7 +2015,7 @@ TEST(CharacterDrawingTest, ThePointOfABoneIsWhereItsVertexWouldBe)
     OneModel models(0xa3, "logo.jpg");
     BoneKey& key = models.ItemSkeleton().bones[0].actions[0][0];
     key.position = {12.0f, -7.0f, 30.0f};
-    key.rotation = Client::Render::Models::AngleQuaternion({0.2f, -0.4f, 0.9f});
+    key.rotation = Client::Math::AngleQuaternion({0.2f, -0.4f, 0.9f});
     DrawnObject object;
     object.model = 0xa3;
     object.transform.position = {11000.0f, 14000.0f, 300.0f};
@@ -2023,7 +2023,7 @@ TEST(CharacterDrawingTest, ThePointOfABoneIsWhereItsVertexWouldBe)
     object.transform.scale = 1.6f;
     const glm::vec3 offset{50.0f, -4.0f, 0.0f};
 
-    std::vector<Client::Render::Models::BoneTransform> bones(1);
+    std::vector<Client::Math::BoneTransform> bones(1);
     ASSERT_TRUE(Client::Render::Models::PoseSkeleton(models.ItemSkeleton(), object.animation, object.transform,
                                                      glm::vec2(0.0f), bones));
     Mesh mesh;
@@ -2072,7 +2072,7 @@ TEST(CharacterDrawingTest, PublishesTheCalculatedBodyAndAttachedMatricesInDrawOr
     character.object.position = {100, 200, 300};
     character.object.scale = 2;
     std::vector<std::uint16_t> published;
-    character.onPose = [&](std::uint16_t model, std::span<const Client::Render::Models::BoneTransform> bones,
+    character.onPose = [&](std::uint16_t model, std::span<const Client::Math::BoneTransform> bones,
                            const Client::Render::Models::ObjectTransform& transform, bool translated)
     {
         published.push_back(model);

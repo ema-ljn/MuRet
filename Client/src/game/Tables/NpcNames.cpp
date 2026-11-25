@@ -266,7 +266,7 @@ Core::Expected<std::vector<NpcNameRecord>, DataError> LoadNpcNames(std::span<con
         // 0x54e861..0x54e884: el registro [0x7758560]++ y el word del ftol del último número.
         if (count >= NpcNameCount)
             return Core::Unexpected(DataError::InvalidData);
-        const std::optional<std::int32_t> type = World::OriginalFtolLow(static_cast<double>(tokens.Number()));
+        const std::optional<std::int32_t> type = Math::OriginalFtolLow(static_cast<double>(tokens.Number()));
         if (!type)
             return Core::Unexpected(DataError::InvalidData);
         const std::size_t at = count * RecordBytes;

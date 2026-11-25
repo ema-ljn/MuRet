@@ -17,7 +17,7 @@ namespace Client::Scenes::JointKernels
 {
 namespace
 {
-void PlaceFirstQuad(JointState& joint, const Render::Models::OriginalMatrix& matrix, bool crossed)
+void PlaceFirstQuad(JointState& joint, const Math::OriginalMatrix& matrix, bool crossed)
 {
     // 0x530b07 y 0x53553f: ancho · −0,5f (0x6ba298) y · 0,5f (0x6b882c), guardados en float.
     const auto half = static_cast<float>(static_cast<double>(joint.width) * 0.5);
@@ -26,7 +26,7 @@ void PlaceFirstQuad(JointState& joint, const Render::Models::OriginalMatrix& mat
     const auto& offsets = crossed ? across : straight;
     for (std::size_t i = 0; i < offsets.size(); ++i)
     {
-        const auto rotated = Render::Models::OriginalVectorRotate(offsets[i], matrix);
+        const auto rotated = Math::OriginalVectorRotate(offsets[i], matrix);
         joint.points[0][i] = {static_cast<float>(static_cast<double>(joint.position.x) + rotated.x),
                               static_cast<float>(static_cast<double>(joint.position.y) + rotated.y),
                               static_cast<float>(static_cast<double>(joint.position.z) + rotated.z)};
@@ -46,7 +46,7 @@ Core::Expected<void, std::string> ShiftTail(JointState& joint)
 }
 } // namespace
 
-void FirstQuad(JointState& joint, const Render::Models::OriginalMatrix& matrix)
+void FirstQuad(JointState& joint, const Math::OriginalMatrix& matrix)
 {
     // 530afa: width es el retenido del uso anterior, antes de que el caso escriba el nuevo.
     PlaceFirstQuad(joint, matrix, false);
@@ -54,10 +54,10 @@ void FirstQuad(JointState& joint, const Render::Models::OriginalMatrix& matrix)
 
 void FirstQuad(JointState& joint)
 {
-    FirstQuad(joint, Render::Models::OriginalAngleMatrix(joint.angles));
+    FirstQuad(joint, Math::OriginalAngleMatrix(joint.angles));
 }
 
-Core::Expected<void, std::string> AppendJointTail(JointState& joint, const Render::Models::OriginalMatrix& matrix)
+Core::Expected<void, std::string> AppendJointTail(JointState& joint, const Math::OriginalMatrix& matrix)
 {
     if (auto shifted = ShiftTail(joint); !shifted.HasValue())
         return shifted;
@@ -72,11 +72,11 @@ Core::Expected<void, std::string> AdvanceJointTail(JointState& joint)
 
 Core::Expected<void, std::string> AppendJointTail(JointState& joint)
 {
-    return AppendJointTail(joint, Render::Models::OriginalAngleMatrix(joint.angles));
+    return AppendJointTail(joint, Math::OriginalAngleMatrix(joint.angles));
 }
 
-Core::Expected<void, std::string> AppendCrossedJointTail(JointState& joint,
-                                                         const Render::Models::OriginalMatrix& matrix, bool crossed)
+Core::Expected<void, std::string> AppendCrossedJointTail(JointState& joint, const Math::OriginalMatrix& matrix,
+                                                         bool crossed)
 {
     if (auto shifted = ShiftTail(joint); !shifted.HasValue())
         return shifted;

@@ -774,7 +774,7 @@ TEST(GameSpecialModelEffectsTest, FallenItemPublishesItsBonesUntranslatedAndItsR
     special.sprites = &sprites;
     Client::Scenes::ItemDrawContext item;
     item.special = &special;
-    item.poseBones = [&] { return std::span<const Client::Render::Models::BoneTransform>(carry.bones); };
+    item.poseBones = [&] { return std::span<const Client::Math::BoneTransform>(carry.bones); };
     Client::Scenes::ModelEffectDrawResources resources{*heights};
     resources.onUntranslatedPose = [&](const Client::Scenes::DrawnObject& object)
     { return Client::Scenes::PublishFaunaPose(carry, models, object, false); };
@@ -786,7 +786,7 @@ TEST(GameSpecialModelEffectsTest, FallenItemPublishesItsBonesUntranslatedAndItsR
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
     ASSERT_EQ(carry.bones.size(), 1u);
-    Client::Render::Models::BoneTransform untranslated(1.0f);
+    Client::Math::BoneTransform untranslated(1.0f);
     untranslated[3] = root;
     EXPECT_EQ(carry.bones[0], untranslated);
     ASSERT_GE(batch.Vertices().size(), 3u);
@@ -824,7 +824,7 @@ TEST(GameSpecialModelEffectsTest, SpinningItemPublishesItsBonesUntranslatedAndIt
     special.sprites = &sprites;
     Client::Scenes::ItemDrawContext item;
     item.special = &special;
-    item.poseBones = [&] { return std::span<const Client::Render::Models::BoneTransform>(carry.bones); };
+    item.poseBones = [&] { return std::span<const Client::Math::BoneTransform>(carry.bones); };
     Client::Scenes::ModelEffectDrawResources resources{*heights};
     resources.onUntranslatedPose = [&](const Client::Scenes::DrawnObject& object)
     {
@@ -881,7 +881,7 @@ TEST(GameSpecialModelEffectsTest, BloodCastleItemPublishesItsBonesUntranslatedAn
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
     ASSERT_EQ(carry.bones.size(), 1u);
-    Client::Render::Models::BoneTransform untranslated(1.0f);
+    Client::Math::BoneTransform untranslated(1.0f);
     untranslated[3] = root;
     EXPECT_EQ(carry.bones[0], untranslated);
     ASSERT_EQ(batch.Vertices().size(), 3u);

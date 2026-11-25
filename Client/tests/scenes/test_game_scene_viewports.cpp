@@ -417,7 +417,7 @@ TEST_P(GameSceneViewportTest, TheInventoryItemsGoInTheUiPassAfterTheWorld)
     const Client::Render::Pass3D& pass = *events[ui].pass;
     EXPECT_EQ(pass.viewport, glm::ivec4(0, 0, viewport.screen.width, viewport.screen.height));
     const float aspect = static_cast<float>(static_cast<double>(viewport.screen.width) / viewport.screen.height);
-    EXPECT_EQ(pass.projection, Client::Render::Models::RoundedPerspective(glm::radians(1.0f), aspect, 20.0f, 2000.0f));
+    EXPECT_EQ(pass.projection, Client::Math::RoundedPerspective(glm::radians(1.0f), aspect, 20.0f, 2000.0f));
     EXPECT_EQ(pass.view, glm::mat4(1.0f));
     ASSERT_FALSE(events[ui].modelVertices.empty());
     for (const Client::Render::ModelVertex& vertex : events[ui].modelVertices)

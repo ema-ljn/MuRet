@@ -122,19 +122,19 @@ Core::Expected<std::int32_t, std::string> Selector(std::int32_t count, const Ica
         selector = random.Next() % count;
     if (random.Next() % JointGate != 0)
         return selector;
-    const Render::Models::OriginalMatrix tilt = Render::Models::OriginalAngleMatrix(glm::vec3(0.0f, 0.0f, SideYaw));
+    const Math::OriginalMatrix tilt = Math::OriginalAngleMatrix(glm::vec3(0.0f, 0.0f, SideYaw));
     const Side& side = Sides[static_cast<std::size_t>(Quarter(random.Next()))];
     // 0x605edc..0x60605c: 0x5fcbd0(&v, &m, &v), con la entrada y la salida en el mismo vector.
     glm::vec3 offset = side.first;
-    Render::Models::OriginalVectorRotateInPlace(offset, tilt);
+    Math::OriginalVectorRotateInPlace(offset, tilt);
     // 0x605ee6/0x605f62: en la x87, el corrimiento más (o el héroe menos) y guardado.
     const glm::vec3 center =
         side.subtract
             ? glm::vec3(F32(D(hero.x) - D(offset.x)), F32(D(hero.y) - D(offset.y)), F32(D(hero.z) - D(offset.z)))
             : glm::vec3(F32(D(offset.x) + D(hero.x)), F32(D(offset.y) + D(hero.y)), F32(D(offset.z) + D(hero.z)));
-    const Render::Models::OriginalMatrix turn = Render::Models::OriginalAngleMatrix(glm::vec3(0.0f, 0.0f, side.yaw));
+    const Math::OriginalMatrix turn = Math::OriginalAngleMatrix(glm::vec3(0.0f, 0.0f, side.yaw));
     glm::vec3 reach = side.second;
-    Render::Models::OriginalVectorRotateInPlace(reach, turn);
+    Math::OriginalVectorRotateInPlace(reach, turn);
     // 0x6060d2..0x606123: la segunda punta (centro − alcance) y la primera (centro + alcance), las dos 300 más
     // abajo, sin giro.
     const glm::vec3 near{F32(D(center.x) - D(reach.x)), F32(D(center.y) - D(reach.y)),

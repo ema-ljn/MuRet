@@ -79,7 +79,7 @@ Drawn DrawSword(std::uint8_t level, std::uint8_t excellent, std::uint8_t glowDet
     Client::Scenes::DrawnObject object;
     object.model = 0x212;
     object.color = glm::vec3(1.0f);
-    const std::array<Client::Render::Models::BoneTransform, 1> bones{Client::Render::Models::BoneTransform(1.0f)};
+    const std::array<Client::Math::BoneTransform, 1> bones{Client::Math::BoneTransform(1.0f)};
     const auto meshes = Client::Scenes::SkinObjectMeshes(models, object, bones);
     Client::Scenes::ItemDrawContext context;
     context.glowDetail = glowDetail;

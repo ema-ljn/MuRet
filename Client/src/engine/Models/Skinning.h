@@ -28,7 +28,7 @@ struct SkinnedMesh
 // huesos que posó 0x6001b0: cada vértice por la matriz de su hueso (0x5fccc0), por la escala del
 // objeto y más su posición; cada normal, solo girada (0x5fcbd0). Devuelve false, sin escribir, si un
 // vértice o una normal nombra un hueso que no está en `bones`: el original leería fuera del arreglo.
-[[nodiscard]] ENGINE_API bool SkinMesh(const Data::Models::Mesh& mesh, std::span<const BoneTransform> bones,
+[[nodiscard]] ENGINE_API bool SkinMesh(const Data::Models::Mesh& mesh, std::span<const Math::BoneTransform> bones,
                                        const ObjectTransform& object, SkinnedMesh& out);
 
 // 0x4ebc80 con su último argumento en 0, como lo corre 0x5ffdf0 (0x600154 y 0x6001a1) después de un 0x4eb860 con la
@@ -36,14 +36,15 @@ struct SkinnedMesh
 // la escala y el origen del objeto, y cada normal girada por esa misma matriz (0x5fcbd0), con la escala dentro. Las dos
 // con los redondeos de la x87 (OriginalVectorTransform y OriginalVectorRotate). Devuelve false como SkinMesh si un
 // vértice o una normal nombra un hueso que falta.
-[[nodiscard]] ENGINE_API bool SkinMeshInWorld(const Data::Models::Mesh& mesh, std::span<const BoneTransform> worldBones,
-                                              SkinnedMesh& out);
+[[nodiscard]] ENGINE_API bool SkinMeshInWorld(const Data::Models::Mesh& mesh,
+                                              std::span<const Math::BoneTransform> worldBones, SkinnedMesh& out);
 
 // 0x4ebc80 con DAT_006c881c en `boneScale`, como lo pone 0x60cd60 para el contorno de 0x60cf70: cada
 // vértice girado por su hueso (0x5fcbd0), por `boneScale` y más la traslación del hueso, y después
 // por la escala del objeto y más su posición. Las normales, como SkinMesh. Con `boneScale` en 1
 // justo, el original compara con 1,0 (0x4ebd2f) y toma el camino de SkinMesh.
-[[nodiscard]] ENGINE_API bool SkinMeshAroundBones(const Data::Models::Mesh& mesh, std::span<const BoneTransform> bones,
+[[nodiscard]] ENGINE_API bool SkinMeshAroundBones(const Data::Models::Mesh& mesh,
+                                                  std::span<const Math::BoneTransform> bones,
                                                   const ObjectTransform& object, float boneScale, SkinnedMesh& out);
 
 // La luz por vértice de 0x4ebc80, con +0x44 del modelo (la copia de +0xe8 del objeto): por cada normal

@@ -1022,8 +1022,8 @@ TEST_F(MonsterViewportTest, TheNpc257CarriesItsSpinningSparkle)
             EXPECT_EQ(joint.ownerKind, Client::Scenes::JointOwnerKind::Actor);
             EXPECT_EQ(joint.width, 15.0f);
             EXPECT_EQ(joint.life, 100);
-            const auto moved = Client::Render::Models::OriginalVectorRotate(
-                {0.0f, -15.0f, 0.0f}, Client::Render::Models::OriginalAngleMatrix(actor.angles));
+            const auto moved = Client::Math::OriginalVectorRotate({0.0f, -15.0f, 0.0f},
+                                                                  Client::Math::OriginalAngleMatrix(actor.angles));
             const glm::vec3 path{static_cast<float>(static_cast<double>(moved.x) + actor.position.x),
                                  static_cast<float>(static_cast<double>(moved.y) + actor.position.y),
                                  static_cast<float>(static_cast<double>(moved.z) + actor.position.z)};

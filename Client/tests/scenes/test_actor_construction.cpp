@@ -245,7 +245,7 @@ TEST_F(ActorConstructionTest, DropsTheLayerButKeepsItsKind)
 TEST_F(ActorConstructionTest, ReleasesTheBonesOfTheLastDraw)
 {
     ActorState actor = Client::Tests::UnarmedPlayer(3);
-    actor.bodyPose.assign(30, Client::Render::Models::BoneTransform(1.0f));
+    actor.bodyPose.assign(30, Client::Math::BoneTransform(1.0f));
 
     ASSERT_TRUE(ConstructActor(actor, Player, ActorPlacement{133, 127, 0.0f}, Context(), cloth).HasValue());
 

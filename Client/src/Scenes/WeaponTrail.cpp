@@ -158,10 +158,10 @@ std::array<glm::vec3, 2> OffsetsOf(int mode)
     }
 }
 
-Render::Models::BoneTransform BoneOf(std::span<const Render::Models::BoneTransform> bones, std::size_t index)
+Math::BoneTransform BoneOf(std::span<const Math::BoneTransform> bones, std::size_t index)
 {
     // Matrices globales/propias nunca posadas: los ceros de .bss (Q-C318), no identidad.
-    return index < bones.size() ? bones[index] : Render::Models::BoneTransform(0.0f);
+    return index < bones.size() ? bones[index] : Math::BoneTransform(0.0f);
 }
 
 Result Append(ActorState& actor, const Trail& trail, const glm::vec3& first, const glm::vec3& second, WorldState& world,
@@ -219,10 +219,10 @@ Result SampleRibbon(ActorState& actor, const Trail& trail, const Render::Models:
         if (auto posed = PoseWorldModel(context.world, actor, skeleton, frame, actor.angles); !posed.HasValue())
             return posed;
         const auto& bones = context.world.PoseCarry().bones;
-        const auto first = Render::Models::OriginalVectorTransform(
-            offsets[0], Render::Models::OriginalMatrixOf(BoneOf(bones, actor.hands[trail.firstHand].bone)));
-        const auto second = Render::Models::OriginalVectorTransform(
-            offsets[1], Render::Models::OriginalMatrixOf(BoneOf(bones, actor.hands[trail.secondHand].bone)));
+        const auto first = Math::OriginalVectorTransform(
+            offsets[0], Math::OriginalMatrixOf(BoneOf(bones, actor.hands[trail.firstHand].bone)));
+        const auto second = Math::OriginalVectorTransform(
+            offsets[1], Math::OriginalMatrixOf(BoneOf(bones, actor.hands[trail.secondHand].bone)));
         if (auto emitted = SampleParticles(actor, trail, second, context, sample); !emitted.HasValue())
             return emitted;
         if (auto added = Append(actor, trail, first, second, context.world, true); !added.HasValue())
@@ -247,12 +247,12 @@ Core::Expected<void, std::string> EmitWeaponTrail(ActorState& actor, const Rende
     }
     const SharedModelPlacement placement = context.world.ModelPlacement(actor.type);
     const auto offsets = OffsetsOf(trail.mode);
-    const auto first = Render::Models::OriginalTransformPosition(
-        Render::Models::OriginalMatrixOf(BoneOf(actor.bodyPose, actor.hands[trail.firstHand].bone)), offsets[0],
-        placement.scale, placement.origin);
-    const auto second = Render::Models::OriginalTransformPosition(
-        Render::Models::OriginalMatrixOf(BoneOf(actor.bodyPose, actor.hands[trail.secondHand].bone)), offsets[1],
-        placement.scale, placement.origin);
+    const auto first = Math::OriginalTransformPosition(
+        Math::OriginalMatrixOf(BoneOf(actor.bodyPose, actor.hands[trail.firstHand].bone)), offsets[0], placement.scale,
+        placement.origin);
+    const auto second = Math::OriginalTransformPosition(
+        Math::OriginalMatrixOf(BoneOf(actor.bodyPose, actor.hands[trail.secondHand].bone)), offsets[1], placement.scale,
+        placement.origin);
     return Append(actor, trail, first, second, context.world, false);
 }
 } // namespace Client::Scenes

@@ -55,7 +55,7 @@ Core::Expected<void, std::string> ShedTheSkinShells(ActorState& owner, std::int3
         .action = placement.action, .frame = 0.0f, .previousAction = 0, .previousKey = 0};
     const Render::Models::ObjectTransform transform{
         .position = placement.origin, .angles = owner.angles, .scale = placement.scale, .lockedRootHeight = 0.0f};
-    std::vector<Render::Models::BoneTransform> bones(skeleton->bones.size(), Render::Models::BoneTransform(0.0f));
+    std::vector<Math::BoneTransform> bones(skeleton->bones.size(), Math::BoneTransform(0.0f));
     if (!Render::Models::PoseWorldSkeleton(*skeleton, animation, transform, owner.headTurn.angles, bones))
         return Core::Unexpected(std::string("0x53c1eb: la pose del 0x20b (Player\\Shadow01) del joint 0x632 falla"));
     // 0x53c1f0..0x53c210: con el último argumento en 0 y la escala de los huesos (0x6c881c) en 1 (0x4ebdb0), cada
@@ -73,7 +73,7 @@ Core::Expected<void, std::string> ShedTheSkinShells(ActorState& owner, std::int3
                 return Core::Unexpected(std::string("0x53c210: un vértice del 0x20b nombra un hueso que no está"));
             const glm::vec3 local{vertex.position[0], vertex.position[1], vertex.position[2]};
             meshes[index].positions.push_back(
-                Render::Models::OriginalVectorTransform(local, Render::Models::OriginalMatrixOf(bones[bone])));
+                Math::OriginalVectorTransform(local, Math::OriginalMatrixOf(bones[bone])));
         }
     }
     // 0x4ec04d..0x4ec0f6 (sin el modo del editor, 0x77f3b18): la caja del dueño, de su +0x124..+0x138, desde el origen

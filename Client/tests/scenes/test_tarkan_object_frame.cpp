@@ -30,7 +30,7 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Render::Models::RoundedSin;
+using Client::Math::RoundedSin;
 using Client::Scenes::GameObjectPass;
 using Client::Scenes::StepTarkanObjectFrame;
 using Client::World::Particle;
@@ -54,7 +54,7 @@ struct Fixture
     {
         for (int bone = 0; bone < 8; ++bone)
         {
-            Client::Render::Models::BoneTransform matrix(1.0f);
+            Client::Math::BoneTransform matrix(1.0f);
             matrix[3] = glm::vec3(static_cast<float>(bone) * 10.0f, 1.0f, 2.0f);
             pose.bones.push_back(matrix);
         }
@@ -145,8 +145,8 @@ void ExpectSameParticles(const Fixture& fixture, const Reference& reference)
 
 glm::vec3 BonePoint(const Fixture& fixture, std::size_t bone)
 {
-    return Client::Render::Models::OriginalVectorTransform(
-        glm::vec3(0.0f), Client::Render::Models::OriginalMatrixOf(fixture.pose.bones[bone]));
+    return Client::Math::OriginalVectorTransform(glm::vec3(0.0f),
+                                                 Client::Math::OriginalMatrixOf(fixture.pose.bones[bone]));
 }
 
 // 0x603a5a..0x603abd: el 0 deja un 0x5c6 en el hueso 6, de escala s guardada por 5 y luz

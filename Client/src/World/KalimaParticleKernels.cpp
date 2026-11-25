@@ -449,7 +449,7 @@ Core::Expected<void, ParticleError> CreateKalimaParticle(Particle& p, Crt::CrtRa
         else if (p.subtype == FlareFive)
             p.life = FiveLife;
         else if (p.subtype == FlareNine)
-            p.life = FtolLow(static_cast<double>(p.scale) * NineLifePerScale);
+            p.life = Math::FtolLow(static_cast<double>(p.scale) * NineLifePerScale);
         else
             CreateFlare(p, random);
         return {};

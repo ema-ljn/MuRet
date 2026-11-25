@@ -81,7 +81,7 @@ BodyPassArgs WithTexture(BodyPassArgs args, std::int32_t texture)
 // FLD T, FMUL rate, FSIN, FMUL swing, FADD base y FSTP: el pulso en un float.
 Core::Expected<float, std::string> PulseOf(float worldClock, float swing, float base, std::string_view address)
 {
-    const auto product = Render::Models::Detail::SineProductPC53(D(worldClock) * D(PulseRate), swing);
+    const auto product = Math::Detail::SineProductPC53(D(worldClock) * D(PulseRate), swing);
     if (!product)
         return Core::Unexpected(std::format("{}: el pulso no cabe en el perfil PC53", address));
     return F32(*product + D(base));
@@ -463,7 +463,7 @@ Result DrawTheTail(MonsterBodyFrame& frame)
         args.blendMesh = 0;
         if (auto drawn = DrawMeshPass(model, 0, BaseFlags, WithTexture(args, textures[6].value)); !drawn.HasValue())
             return drawn;
-        const auto clock = World::OriginalFtolLow(D(frame.worldClock));
+        const auto clock = Math::OriginalFtolLow(D(frame.worldClock));
         if (!clock)
             return Core::Unexpected<std::string>("0x6023f8: el reloj del mundo no cabe en 0x69fd3c");
         const std::int32_t rest = *clock % 100;

@@ -112,10 +112,10 @@ TEST(SwirlJointsTest, TheSwirlUnwindsOnlyOnItsFirstStep)
 
     ASSERT_TRUE(tested.Step().HasValue());
 
-    const auto matrix = Client::Render::Models::OriginalAngleMatrix(expected.angles);
+    const auto matrix = Client::Math::OriginalAngleMatrix(expected.angles);
     for (int turn = 0; turn < 30; ++turn)
     {
-        const glm::vec3 moved = Client::Render::Models::OriginalVectorRotate({0.0f, 0.0f, -20.0f}, matrix);
+        const glm::vec3 moved = Client::Math::OriginalVectorRotate({0.0f, 0.0f, -20.0f}, matrix);
         for (int axis = 0; axis < 3; ++axis)
             expected.position[axis] = F32(D(moved[axis]) + D(expected.position[axis]));
     }

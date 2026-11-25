@@ -544,8 +544,8 @@ Core::Expected<std::uint16_t, std::string> UnmaskedCellAttribute(const Data::Ter
     // 0x6b86c0: el 0,01f de los dos fmul; el producto de dos floats entra entero en el double.
     constexpr double CellsPerUnit = static_cast<double>(std::bit_cast<float>(0x3c23d70au));
     constexpr std::uint32_t RowShift = 8;
-    const std::optional<std::int32_t> x = OriginalFtolLow(static_cast<double>(position.x) * CellsPerUnit);
-    const std::optional<std::int32_t> y = OriginalFtolLow(static_cast<double>(position.y) * CellsPerUnit);
+    const std::optional<std::int32_t> x = Math::OriginalFtolLow(static_cast<double>(position.x) * CellsPerUnit);
+    const std::optional<std::int32_t> y = Math::OriginalFtolLow(static_cast<double>(position.y) * CellsPerUnit);
     if (!x || !y)
         return Core::Unexpected(std::format("{}: la posición por 0,01f no entra en el entero de 0x69fd3c, y su "
                                             "continuación no está observada",
@@ -626,8 +626,7 @@ std::optional<std::size_t> ModelEffects::CreateDebris(std::int16_t type, const g
         // 0x51bb72..0x51bba4: la z de los ángulos y el empuje girado (0x5fc8f0, 0x5fcbd0) a +0xcc.
         glm::vec3& turn = effect.transform.angles;
         turn.z = static_cast<float>(random.Next() % Turn);
-        effect.velocity =
-            Render::Models::OriginalVectorRotate(push, Render::Models::OriginalAngleMatrix(effect.transform.angles));
+        effect.velocity = Math::OriginalVectorRotate(push, Math::OriginalAngleMatrix(effect.transform.angles));
         // 0x51bbac..0x51bbf5: la caída en +0xe4; el 0x10b con el subtipo 0 pasa al 1 y suma otro rand() % 5.
         effect.turnDirection = static_cast<float>((random.Next() % FallSpan) + FallBase);
         if (type == DebrisEffect && effect.subtype == 0)
@@ -665,9 +664,8 @@ std::optional<std::size_t> ModelEffects::CreateFallingStone(const glm::vec3& pos
         offset.x = static_cast<float>((random.Next() & SideMask) - SideCenter);
         offset.y = -static_cast<float>((random.Next() & BackMask) + BackBase);
         offset.z = static_cast<float>((random.Next() & HeightMask) + HeightBase);
-        AddRotated(
-            effect.transform.position,
-            Render::Models::OriginalVectorRotate(offset, Render::Models::OriginalAngleMatrix(effect.transform.angles)));
+        AddRotated(effect.transform.position,
+                   Math::OriginalVectorRotate(offset, Math::OriginalAngleMatrix(effect.transform.angles)));
         effect.previousPosition = effect.transform.position;
         return slot;
     }
@@ -773,8 +771,7 @@ std::optional<std::size_t> ModelEffects::CreateStoneChip(std::int16_t type, cons
         effect.transform.scale =
             F32(static_cast<double>((random.Next() & ScaleMask) + (column ? ColumnScaleBase : ScaleBase)) * StoneTenth);
         effect.transform.angles.z = static_cast<float>(random.Next() % Degrees);
-        effect.velocity =
-            Render::Models::OriginalVectorRotate(push, Render::Models::OriginalAngleMatrix(effect.transform.angles));
+        effect.velocity = Math::OriginalVectorRotate(push, Math::OriginalAngleMatrix(effect.transform.angles));
         effect.turnDirection = static_cast<float>((random.Next() & FallMask) + FallBase);
         if (subtype == RisingStoneChipSubtype)
             effect.copiedAngles = {};
@@ -804,8 +801,7 @@ std::optional<std::size_t> ModelEffects::CreateGroundStoneChip(std::int16_t type
         effect.life = (random.Next() & LifeMask) + LifeBase;
         effect.transform.scale = F32(static_cast<double>((random.Next() & ScaleMask) + ScaleBase) * ScaleStep);
         effect.transform.angles.z = static_cast<float>(random.Next() % Degrees);
-        effect.velocity =
-            Render::Models::OriginalVectorRotate(push, Render::Models::OriginalAngleMatrix(effect.transform.angles));
+        effect.velocity = Math::OriginalVectorRotate(push, Math::OriginalAngleMatrix(effect.transform.angles));
         effect.turnDirection = static_cast<float>((random.Next() & FallMask) + FallBase);
         return slot;
     }
@@ -836,8 +832,7 @@ std::optional<std::size_t> ModelEffects::CreateIceShard(const glm::vec3& positio
         effect.life = (random.Next() & LifeMask) + LifeBase;
         effect.transform.scale = F32(static_cast<double>((random.Next() & ScaleMask) + ScaleBase) * Tenth);
         effect.transform.angles.z = static_cast<float>(random.Next() % Degrees);
-        effect.velocity =
-            Render::Models::OriginalVectorRotate(push, Render::Models::OriginalAngleMatrix(effect.transform.angles));
+        effect.velocity = Math::OriginalVectorRotate(push, Math::OriginalAngleMatrix(effect.transform.angles));
         effect.turnDirection = static_cast<float>((random.Next() & FallMask) + FallBase);
         return slot;
     }
@@ -881,10 +876,10 @@ std::optional<std::size_t> ModelEffects::CreateIcarusEffect(std::int16_t type, c
         constexpr std::int32_t FlareLife = 400;
         effect.light = glm::vec3(FlareLight);
         const double speed = static_cast<double>(random.Next() % SpeedSpan + SpeedBase) * Half;
-        const double cosSteep = Render::Models::RoundedCos(Steep);
-        effect.velocity.x = F32((Render::Models::RoundedSin(Side) * cosSteep) * speed);
-        effect.velocity.y = F32((Render::Models::RoundedCos(Side) * cosSteep) * speed);
-        effect.velocity.z = F32(Render::Models::RoundedSin(Steep) * speed);
+        const double cosSteep = Math::RoundedCos(Steep);
+        effect.velocity.x = F32((Math::RoundedSin(Side) * cosSteep) * speed);
+        effect.velocity.y = F32((Math::RoundedCos(Side) * cosSteep) * speed);
+        effect.velocity.z = F32(Math::RoundedSin(Steep) * speed);
         effect.transform.scale = FlareScale;
         effect.life = FlareLife;
         return slot;
@@ -1193,8 +1188,7 @@ std::optional<std::size_t> ModelEffects::CreatePiercingShot(const ModelEffectArg
         return std::nullopt;
     auto& effect = m_effects[*slot];
     effect.life = GlowLife;
-    const glm::vec3 rotated =
-        Render::Models::OriginalVectorRotate(Offset, Render::Models::OriginalAngleMatrix(arguments.angles));
+    const glm::vec3 rotated = Math::OriginalVectorRotate(Offset, Math::OriginalAngleMatrix(arguments.angles));
     effect.transform.position.x = F32(static_cast<double>(rotated.x) + arguments.position.x);
     effect.transform.position.y = F32(static_cast<double>(rotated.y) + arguments.position.y);
     effect.transform.position.z = F32(static_cast<double>(rotated.z) + arguments.position.z + Height);
@@ -1413,8 +1407,8 @@ void StepModelEffect(ModelEffect& effect, const Render::Models::Skeleton* skelet
     // 52cbea:147 ya hizo su movimiento iterativo y salta directo a52cd94.
     if (effect.type != 0x147)
     {
-        const glm::vec3 step = Render::Models::OriginalVectorRotate(
-            effect.velocity, Render::Models::OriginalAngleMatrix(effect.transform.angles));
+        const glm::vec3 step =
+            Math::OriginalVectorRotate(effect.velocity, Math::OriginalAngleMatrix(effect.transform.angles));
         glm::vec3& position = effect.transform.position;
         position.x = F32(static_cast<double>(step.x) + static_cast<double>(position.x));
         position.y = F32(static_cast<double>(step.y) + static_cast<double>(position.y));

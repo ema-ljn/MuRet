@@ -52,10 +52,10 @@ struct RibbonLeg
     glm::vec3 light;
 };
 
-Render::Models::BoneTransform BoneAt(const WorldState& world, std::size_t index)
+Math::BoneTransform BoneAt(const WorldState& world, std::size_t index)
 {
     const auto& bones = world.PoseCarry().bones;
-    return index < bones.size() ? bones[index] : Render::Models::BoneTransform(0.0f);
+    return index < bones.size() ? bones[index] : Math::BoneTransform(0.0f);
 }
 
 using Math::F32;
@@ -77,10 +77,10 @@ Core::Expected<void, std::string> EmitSamples(ActorState& actor, const Render::M
         for (std::size_t legIndex = 0; legIndex < legs.size(); ++legIndex)
         {
             const auto& leg = legs[legIndex];
-            const glm::vec3 first = Render::Models::OriginalVectorTransform(
-                leg.firstOffset, Render::Models::OriginalMatrixOf(BoneAt(context.world, leg.firstBone)));
-            const glm::vec3 second = Render::Models::OriginalVectorTransform(
-                leg.lastOffset, Render::Models::OriginalMatrixOf(BoneAt(context.world, leg.lastBone)));
+            const glm::vec3 first = Math::OriginalVectorTransform(
+                leg.firstOffset, Math::OriginalMatrixOf(BoneAt(context.world, leg.firstBone)));
+            const glm::vec3 second = Math::OriginalVectorTransform(
+                leg.lastOffset, Math::OriginalMatrixOf(BoneAt(context.world, leg.lastBone)));
             const auto created = CreateRibbon(context.world.DrawTail().ribbons, {.ownerContext = &actor,
                                                                                  .ownerEquipment = &actor.level,
                                                                                  .first = first,

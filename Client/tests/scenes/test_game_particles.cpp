@@ -379,7 +379,7 @@ TEST(GameParticlesTest, DrawUsesModeZeroAndEyeCoordinatesWithoutKillingParticles
     SmokeTextures textures;
     Client::Render::ModelBatch batch;
     batch.Begin(Client::Render::Pass3D{});
-    const auto view = Client::Render::Models::OriginalAngleMatrix(glm::vec3(0.0f));
+    const auto view = Client::Math::OriginalAngleMatrix(glm::vec3(0.0f));
     const auto drawn = Client::Scenes::DrawGameParticles(batch, particles, textures, view, 0.0f);
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
     ASSERT_EQ(batch.Vertices().size(), 12u);
@@ -401,7 +401,7 @@ TEST(GameParticlesTest, DrawFailureKeepsTheGeometryAndReportsAddressAndSlot)
     SmokeTextures textures;
     Client::Render::ModelBatch batch;
     batch.Begin(Client::Render::Pass3D{});
-    const auto view = Client::Render::Models::OriginalAngleMatrix(glm::vec3(0.0f));
+    const auto view = Client::Math::OriginalAngleMatrix(glm::vec3(0.0f));
     const auto failed = Client::Scenes::DrawGameParticles(batch, particles, textures, view, 0.0f);
     ASSERT_FALSE(failed.HasValue());
     EXPECT_NE(failed.Error().find("0x637558"), std::string::npos);
@@ -645,7 +645,7 @@ TEST(GameParticlesTest, TheOwnerStateOfAnActorReadsItsActionAndItsNamedBones)
     actor.position = {100, 200, 10};
     actor.scale = 2.0f;
     actor.animation.action = 3;
-    actor.bodyPose.assign(40, Client::Render::Models::BoneTransform(1.0f));
+    actor.bodyPose.assign(40, Client::Math::BoneTransform(1.0f));
     actor.bodyPose[34][3] = glm::vec3(1, 2, 3);
     Client::Scenes::NameABone(world->Runtime(), 7, "Monster82_LHand", 34);
     Client::Scenes::NameABone(world->Runtime(), 8, "Monster82_RHand", 34);
@@ -657,8 +657,8 @@ TEST(GameParticlesTest, TheOwnerStateOfAnActorReadsItsActionAndItsNamedBones)
     EXPECT_EQ(state->action, 3);
     ASSERT_TRUE(state->namedBone);
     EXPECT_EQ(state->namedBone("Monster82_LHand"),
-              Client::Render::Models::OriginalTransformPosition(
-                  Client::Render::Models::OriginalMatrixOf(actor.bodyPose[34]), {}, 2.0f, actor.position));
+              Client::Math::OriginalTransformPosition(Client::Math::OriginalMatrixOf(actor.bodyPose[34]), {}, 2.0f,
+                                                      actor.position));
     EXPECT_EQ(state->namedBone("Monster82_LHand"), std::optional(glm::vec3(102, 204, 16)));
     EXPECT_EQ(state->namedBone("Monster82_RHand"), std::nullopt);
     EXPECT_EQ(state->namedBone("monster82_lhand"), std::nullopt);

@@ -50,7 +50,7 @@ constexpr std::size_t ImpactBone = 2;
 
 double Pulse(double phase)
 {
-    return (Render::Models::RoundedSin(phase * PulseRate) * PulseAmplitude) + PulseBase;
+    return (Math::RoundedSin(phase * PulseRate) * PulseAmplitude) + PulseBase;
 }
 
 Core::Expected<void, std::string> Sprite(const GameObjectPass& pass, std::uint16_t texture, std::size_t bone,
@@ -88,10 +88,10 @@ Core::Expected<void, std::string> SmokeAndStone(World::WorldObject& object, cons
 {
     // 0x603c9d..0x603cda: +0x58 antes de los dos ftol; el del ángulo primero, por 10 en 32 bits.
     object.state.hiddenMesh = World::HiddenObject;
-    const std::optional<std::int32_t> angle = World::OriginalFtolLow(D(object.transform.angles.z));
+    const std::optional<std::int32_t> angle = Math::OriginalFtolLow(D(object.transform.angles.z));
     if (!angle)
         return Core::Unexpected(std::string("0x603ca7: ftol del ángulo z fuera de lo acreditado"));
-    const std::optional<std::int32_t> clock = World::OriginalFtolLow(D(pass.worldClock));
+    const std::optional<std::int32_t> clock = Math::OriginalFtolLow(D(pass.worldClock));
     if (!clock)
         return Core::Unexpected(std::string("0x603cb7: ftol del reloj del mundo fuera de lo acreditado"));
     constexpr std::int32_t Period = 10000;
@@ -185,7 +185,7 @@ Core::Expected<void, std::string> StepTarkanObjectFrame(World::WorldObject& obje
     {
         // 0x603c4c: +0x58 antes del ftol; el resto firmado contra 4.500.
         object.state.hiddenMesh = World::HiddenObject;
-        const std::optional<std::int32_t> low = World::OriginalFtolLow(clock);
+        const std::optional<std::int32_t> low = Math::OriginalFtolLow(clock);
         if (!low)
             return Core::Unexpected(std::string("0x603c59: ftol del reloj del mundo fuera de lo acreditado"));
         constexpr std::int32_t Period = 5000;

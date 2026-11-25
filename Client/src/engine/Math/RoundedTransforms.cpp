@@ -7,7 +7,7 @@
 #include <glm/ext/vector_float3.hpp>
 #include <glm/geometric.hpp>
 
-namespace Client::Render::Models
+namespace Client::Math
 {
 glm::mat4 RoundedRotate(const glm::mat4& m, float radians, const glm::vec3& axis)
 {
@@ -36,4 +36,4 @@ glm::mat4 RoundedPerspective(float fieldOfViewRadians, float aspect, float nearP
     projection[3][2] = -(2.0f * farPlane * nearPlane) / (farPlane - nearPlane);
     return projection;
 }
-} // namespace Client::Render::Models
+} // namespace Client::Math

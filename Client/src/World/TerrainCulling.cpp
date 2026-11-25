@@ -163,12 +163,12 @@ TerrainPolygon PolygonOf(const TerrainPolygonInput& input, const PolygonProfile&
         glm::vec3(profile.nearWidth, nearY, 0.0f), glm::vec3(-profile.nearWidth, nearY, 0.0f)};
     const bool negativeYaw = (input.map == WebzenMap && input.webzenYaw) || input.map == LoginMap;
     const float angle = negativeYaw ? -input.cameraYaw : DefaultAngle;
-    const auto matrix = Render::Models::OriginalAngleMatrix({0.0f, 0.0f, angle});
+    const auto matrix = Math::OriginalAngleMatrix({0.0f, 0.0f, angle});
     TerrainPolygon polygon;
     polygon.everything = input.scene != LoginScene && input.scene != SelectionScene && input.scene != GameScene;
     for (std::size_t i = 0; i < corners.size(); ++i)
     {
-        const auto rotated = Render::Models::OriginalVectorRotate(corners[i], matrix);
+        const auto rotated = Math::OriginalVectorRotate(corners[i], matrix);
         // 0x5fba22..49 guarda XYZ antes de volver a cargar y escalar XY (0x5fba4d..68).
         const glm::vec3 translated{F32(static_cast<double>(rotated.x) + input.translation.x),
                                    F32(static_cast<double>(rotated.y) + input.translation.y),

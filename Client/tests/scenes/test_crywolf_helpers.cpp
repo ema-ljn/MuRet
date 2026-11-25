@@ -126,7 +126,7 @@ TEST(CrywolfHelpersTest, TheNamedSpritesReadTheRegisteredActorBonesAndKeepBothRo
         actor->scale = 1;
         actor->position = {1000, 2000, 50};
         actor->animation.action = 3;
-        actor->bodyPose.assign(3, Client::Render::Models::BoneTransform(1.0f));
+        actor->bodyPose.assign(3, Client::Math::BoneTransform(1.0f));
         actor->bodyPose[0][3] = {10, 20, 30};
         actor->bodyPose[1][3] = {40, 50, 60};
         actor->bodyPose[2][3] = {70, 80, 90};
@@ -196,7 +196,7 @@ TEST(CrywolfHelpersTest, TheHeadAttackCreatesTheOwnedEarthquakeAboveTheScaleThre
         actor->scale = scale;
         actor->animation.action = 3;
         actor->animation.frame = 2.5f;
-        actor->bodyPose.assign(21, Client::Render::Models::BoneTransform(1.0f));
+        actor->bodyPose.assign(21, Client::Math::BoneTransform(1.0f));
         world->Runtime().namedBones = {{3, "Monster95_Head", 0}};
         world->Runtime().ownRecordDepth = 1;
         Client::Render::Models::Skeleton skeleton;

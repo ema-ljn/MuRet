@@ -304,21 +304,21 @@ TEST_F(UnarmedGameCharacterTest, AnotherPlayerWithAGuildWearsItsMarkOnBoneTwenty
     };
     const auto expectedQuad = [&](float lowZ)
     {
-        const Client::Render::Models::OriginalMatrix local = [&]
+        const Client::Math::OriginalMatrix local = [&]
         {
-            auto turn = Client::Render::Models::OriginalAngleMatrix(
+            auto turn = Client::Math::OriginalAngleMatrix(
                 {Actor().angles.x + 80.0f, Actor().angles.y + 45.0f, Actor().angles.z + 135.0f});
             turn[3] = 20.0f;
             turn[7] = -5.0f;
             turn[11] = lowZ;
             return turn;
         }();
-        const auto matrix = Client::Render::Models::OriginalConcatTransforms(
-            Client::Render::Models::OriginalMatrixOf(Actor().bodyPose.at(26)), local);
+        const auto matrix =
+            Client::Math::OriginalConcatTransforms(Client::Math::OriginalMatrixOf(Actor().bodyPose.at(26)), local);
         const std::array<glm::vec3, 4> corners{{{-5, -5, -7}, {5, 5, -7}, {5, 5, 7}, {-5, -5, 7}}};
         std::array<glm::vec3, 4> points{};
         for (std::size_t i = 0; i < corners.size(); ++i)
-            points[i] = Actor().position + Client::Render::Models::OriginalVectorTransform(corners[i], matrix);
+            points[i] = Actor().position + Client::Math::OriginalVectorTransform(corners[i], matrix);
         return points;
     };
     Actor().word1f2 = 3;
@@ -897,7 +897,7 @@ TEST_F(UnarmedGameCharacterTest, TheBodyGoesToItsOwnBonesAndNeverToTheGlobalPose
         pass.originalFrames = frames;
         pass.publishProjectedPose = true;
         std::vector<std::uint16_t> published;
-        pass.onPose = [&](std::uint16_t model, std::span<const Client::Render::Models::BoneTransform>,
+        pass.onPose = [&](std::uint16_t model, std::span<const Client::Math::BoneTransform>,
                           const Client::Render::Models::ObjectTransform&, bool) { published.push_back(model); };
 
         const auto result = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, pass);
@@ -922,9 +922,9 @@ TEST_F(UnarmedGameCharacterTest, TheBodyGoesToItsOwnBonesAndNeverToTheGlobalPose
 TEST_F(UnarmedGameCharacterTest, TheBodyKeepsTheDummyMatricesOfItsOwnBones)
 {
     m_models.RetainTheDummyRoot();
-    Client::Render::Models::BoneTransform own(1.0f);
+    Client::Math::BoneTransform own(1.0f);
     own[3] = {7.0f, 11.0f, 13.0f};
-    std::array<Client::Render::Models::BoneTransform, 1> global{Client::Render::Models::BoneTransform(1.0f)};
+    std::array<Client::Math::BoneTransform, 1> global{Client::Math::BoneTransform(1.0f)};
     global[0][3] = {70.0f, 110.0f, 130.0f};
     for (const int frames : {0, 1})
     {
@@ -934,7 +934,7 @@ TEST_F(UnarmedGameCharacterTest, TheBodyKeepsTheDummyMatricesOfItsOwnBones)
         m_batch.Begin({});
         auto pass = Pass();
         pass.originalFrames = frames;
-        pass.poseBones = [&](std::uint16_t) { return std::span<const Client::Render::Models::BoneTransform>(global); };
+        pass.poseBones = [&](std::uint16_t) { return std::span<const Client::Math::BoneTransform>(global); };
 
         const auto result = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, pass);
 

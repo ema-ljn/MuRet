@@ -51,7 +51,7 @@ TEST(OriginalRotationTest, FourHundredCasesMatchTheBinary)
         {
             vector[k] = next();
         }
-        Client::Render::Models::OriginalMatrix expectedMatrix{};
+        Client::Math::OriginalMatrix expectedMatrix{};
         for (float& value : expectedMatrix)
         {
             value = next();
@@ -63,13 +63,13 @@ TEST(OriginalRotationTest, FourHundredCasesMatchTheBinary)
         }
         ASSERT_FALSE(words.fail());
         ASSERT_TRUE((words >> std::ws).eof());
-        const auto matrix = Client::Render::Models::OriginalAngleMatrix(angles);
+        const auto matrix = Client::Math::OriginalAngleMatrix(angles);
         for (std::size_t k = 0; k < matrix.size(); ++k)
         {
             EXPECT_EQ(std::bit_cast<std::uint32_t>(matrix[k]), std::bit_cast<std::uint32_t>(expectedMatrix[k]))
                 << "caso " << cases << ", elemento " << k;
         }
-        const glm::vec3 rotated = Client::Render::Models::OriginalVectorRotate(vector, matrix);
+        const glm::vec3 rotated = Client::Math::OriginalVectorRotate(vector, matrix);
         for (int k = 0; k < 3; ++k)
         {
             EXPECT_EQ(std::bit_cast<std::uint32_t>(rotated[k]), std::bit_cast<std::uint32_t>(expectedRotated[k]))
@@ -85,8 +85,8 @@ TEST(OriginalRotationTest, FourHundredCasesMatchTheBinary)
 // La transpuesta y el signo fijan estos dos componentes del offset histórico de la cámara.
 TEST(OriginalRotationTest, TheInverseRotatePreservesTheHistoricalCameraOffset)
 {
-    using Client::Render::Models::OriginalAngleMatrix;
-    using Client::Render::Models::OriginalVectorIRotate;
+    using Client::Math::OriginalAngleMatrix;
+    using Client::Math::OriginalVectorIRotate;
     const auto offset = OriginalVectorIRotate({0.0f, -1000.0f, 0.0f}, OriginalAngleMatrix({0.0f, 0.0f, -45.0f}));
     EXPECT_EQ(std::bit_cast<std::uint32_t>(static_cast<float>(14350.0 + static_cast<double>(offset.x))), 0x466b446du);
     EXPECT_EQ(std::bit_cast<std::uint32_t>(static_cast<float>(12050.0 + static_cast<double>(offset.y))), 0x46313b93u);
@@ -114,7 +114,7 @@ TEST(OriginalRotationTest, FourHundredAndThreeInverseCasesMatchTheBinary)
         {
             vector[k] = next();
         }
-        Client::Render::Models::OriginalMatrix matrix{};
+        Client::Math::OriginalMatrix matrix{};
         for (float& value : matrix)
         {
             value = next();
@@ -126,7 +126,7 @@ TEST(OriginalRotationTest, FourHundredAndThreeInverseCasesMatchTheBinary)
         }
         ASSERT_FALSE(words.fail());
         ASSERT_TRUE((words >> std::ws).eof());
-        const auto actual = Client::Render::Models::OriginalVectorIRotate(vector, matrix);
+        const auto actual = Client::Math::OriginalVectorIRotate(vector, matrix);
         for (int k = 0; k < 3; ++k)
         {
             EXPECT_EQ(std::bit_cast<std::uint32_t>(actual[k]), std::bit_cast<std::uint32_t>(expected[k])) << k;
@@ -142,8 +142,8 @@ TEST(OriginalRotationTest, FourHundredAndThreeInverseCasesMatchTheBinary)
 // componente y rechaza las otras dos asociaciones: los vectores al azar no alcanzan esa cancelación.
 TEST(OriginalRotationTest, TheInverseRotateKeepsTheBinarySumOrderWhenProductsCancel)
 {
-    using Client::Render::Models::OriginalMatrix;
-    using Client::Render::Models::OriginalVectorIRotate;
+    using Client::Math::OriginalMatrix;
+    using Client::Math::OriginalVectorIRotate;
     constexpr float Huge = 0x1p70f;
     OriginalMatrix xMatrix{};
     xMatrix[0] = xMatrix[4] = xMatrix[8] = 1.0f;
@@ -165,7 +165,7 @@ TEST(OriginalRotationTest, TheInverseRotateKeepsTheBinarySumOrderWhenProductsCan
 // distintos, cada uno va a su lugar, la traslación en la columna 3 de cada fila (m[3] de glm).
 TEST(OriginalRotationTest, ABoneTransformGoesByRows)
 {
-    Client::Render::Models::BoneTransform bone{};
+    Client::Math::BoneTransform bone{};
     for (int column = 0; column < 4; ++column)
     {
         for (int row = 0; row < 3; ++row)
@@ -173,15 +173,14 @@ TEST(OriginalRotationTest, ABoneTransformGoesByRows)
             bone[column][row] = static_cast<float>((row * 10) + column);
         }
     }
-    const Client::Render::Models::OriginalMatrix rows = Client::Render::Models::OriginalMatrixOf(bone);
+    const Client::Math::OriginalMatrix rows = Client::Math::OriginalMatrixOf(bone);
     for (std::size_t k = 0; k < rows.size(); ++k)
     {
         EXPECT_EQ(rows[k], static_cast<float>(((k / 4) * 10) + (k % 4))) << k;
     }
     // Y un punto pasa por las dos igual: el giro y la traslación de glm son los del original.
     const glm::vec3 point{3.0f, -5.0f, 7.0f};
-    EXPECT_EQ(Client::Render::Models::OriginalVectorTransform(point, rows),
-              Client::Render::Models::VectorTransform(point, bone));
+    EXPECT_EQ(Client::Math::OriginalVectorTransform(point, rows), Client::Math::VectorTransform(point, bone));
 }
 // 0x5fca90 por el ASM: la segunda y la tercera fila suman desde la columna 2, (a6·b8 + a5·b4) + a4·b0.
 // Con a4·b0 apenas sobre 1 y a6·b8 apenas bajo −1, el término chico se redondea en otra grilla según el
@@ -189,7 +188,7 @@ TEST(OriginalRotationTest, ABoneTransformGoesByRows)
 // (búsqueda en Python con productos exactos en double y FSTP a float). La primera fila es 1 · b.
 TEST(OriginalRotationTest, TheConcatSumsTheLowerRowsFromTheThirdColumn)
 {
-    using Client::Render::Models::OriginalMatrix;
+    using Client::Math::OriginalMatrix;
     constexpr float A4 = 0x1.000006p+0f;
     constexpr float A5 = -0x1.d37b24p-21f;
     constexpr float A6 = -0x1.fffffep-1f;
@@ -199,7 +198,7 @@ TEST(OriginalRotationTest, TheConcatSumsTheLowerRowsFromTheThirdColumn)
     const OriginalMatrix parent{1.0f, 0.0f, 0.0f, 0.0f, A4, A5, A6, 0.0f, A4, A5, A6, 0.0f};
     const OriginalMatrix child{B0, 0.0f, 0.0f, B0, B4, 0.0f, 0.0f, B4, B8, 0.0f, 0.0f, B8};
 
-    const OriginalMatrix out = Client::Render::Models::OriginalConcatTransforms(parent, child);
+    const OriginalMatrix out = Client::Math::OriginalConcatTransforms(parent, child);
 
     constexpr float Sum = -0x1.48808ap-29f;
     const OriginalMatrix expected{B0, 0.0f, 0.0f, B0, Sum, 0.0f, 0.0f, Sum, Sum, 0.0f, 0.0f, Sum};
@@ -212,13 +211,13 @@ TEST(OriginalRotationTest, TheConcatSumsTheLowerRowsFromTheThirdColumn)
 // BoneTransformOf deshace OriginalMatrixOf: la 3 × 4 vuelve por filas, cada valor a su lugar.
 TEST(OriginalRotationTest, ARowMatrixGoesBackToTheBoneTransform)
 {
-    Client::Render::Models::OriginalMatrix rows{};
+    Client::Math::OriginalMatrix rows{};
     for (std::size_t k = 0; k < rows.size(); ++k)
     {
         rows[k] = static_cast<float>(k) + 0.5f;
     }
-    const Client::Render::Models::BoneTransform bone = Client::Render::Models::BoneTransformOf(rows);
-    EXPECT_EQ(Client::Render::Models::OriginalMatrixOf(bone), rows);
+    const Client::Math::BoneTransform bone = Client::Math::BoneTransformOf(rows);
+    EXPECT_EQ(Client::Math::OriginalMatrixOf(bone), rows);
     EXPECT_EQ(bone[3], glm::vec3(3.5f, 7.5f, 11.5f));
 }
 } // namespace
@@ -227,13 +226,13 @@ TEST(OriginalRotationTest, ARowMatrixGoesBackToTheBoneTransform)
 // que la siguiente relea, así que la y gira con la x nueva y la z con las dos.
 TEST(OriginalRotationTest, TheInPlaceRotateReadsEachStoredRow)
 {
-    const auto matrix = Client::Render::Models::OriginalAngleMatrix({0.0f, 0.0f, -45.0f});
+    const auto matrix = Client::Math::OriginalAngleMatrix({0.0f, 0.0f, -45.0f});
     const glm::vec3 start{-400.0f, -1000.0f, 0.0f};
     glm::vec3 aliased = start;
-    Client::Render::Models::OriginalVectorRotateInPlace(aliased, matrix);
-    const float x = Client::Render::Models::OriginalVectorRotate(start, matrix).x;
-    const float y = Client::Render::Models::OriginalVectorRotate({x, start.y, start.z}, matrix).y;
-    const float z = Client::Render::Models::OriginalVectorRotate({x, y, start.z}, matrix).z;
+    Client::Math::OriginalVectorRotateInPlace(aliased, matrix);
+    const float x = Client::Math::OriginalVectorRotate(start, matrix).x;
+    const float y = Client::Math::OriginalVectorRotate({x, start.y, start.z}, matrix).y;
+    const float z = Client::Math::OriginalVectorRotate({x, y, start.z}, matrix).z;
     EXPECT_EQ(aliased, glm::vec3(x, y, z));
-    EXPECT_NE(aliased, Client::Render::Models::OriginalVectorRotate(start, matrix));
+    EXPECT_NE(aliased, Client::Math::OriginalVectorRotate(start, matrix));
 }

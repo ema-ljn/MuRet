@@ -86,13 +86,13 @@ Core::Expected<void, std::string> Orbit(World::ModelEffect& effect, const ActorS
         double angle = static_cast<double>(effect.life) * LifeTurn + index * TurnStep;
         if (reversed)
             angle = -angle;
-        const auto wobble = Render::Models::Detail::SineProductPC53(
-            index * WobbleStep + D(context.worldClock) * OrbitClock, WobbleDepth);
+        const auto wobble =
+            Math::Detail::SineProductPC53(index * WobbleStep + D(context.worldClock) * OrbitClock, WobbleDepth);
         if (!wobble)
             return Core::Unexpected(std::string("0x52b68d: el radio del 0x628 no cabe en el perfil PC53"));
         const float radius = F32(*wobble + RadiusBase);
-        const auto x = Render::Models::Detail::SineProductPC53(angle, radius);
-        const auto y = Render::Models::Detail::CosineProductPC53(angle, radius);
+        const auto x = Math::Detail::SineProductPC53(angle, radius);
+        const auto y = Math::Detail::CosineProductPC53(angle, radius);
         if (!x || !y)
             return Core::Unexpected(std::string("0x52b6a0: la vuelta del 0x628 no cabe en el perfil PC53"));
         const glm::vec3 point{F32(*x + D(owner.position.x)), F32(*y + D(owner.position.y)),
@@ -135,8 +135,8 @@ Core::Expected<glm::vec3, std::string> SkullStackPoint(int turn, std::int32_t li
 {
     const double angle =
         static_cast<double>(turn) * TurnStep + static_cast<double>(life) * LifeTurn + D(worldClock) * StackClock;
-    const auto x = Render::Models::Detail::SineProductPC53(angle, StackRadius);
-    const auto y = Render::Models::Detail::CosineProductPC53(angle, StackRadius);
+    const auto x = Math::Detail::SineProductPC53(angle, StackRadius);
+    const auto y = Math::Detail::CosineProductPC53(angle, StackRadius);
     if (!x || !y)
         return Core::Unexpected(std::string("0x52b7ce: la vuelta del 0x628/5 no cabe en el perfil PC53"));
     return glm::vec3{F32(*x + D(owner.position.x)), F32(*y + D(owner.position.y)),

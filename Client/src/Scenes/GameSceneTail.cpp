@@ -170,7 +170,7 @@ Core::Expected<void, std::string> GameScene::DrawTheTail(SceneCanvas& canvas, co
              [systemTime = static_cast<std::uint32_t>(
                   std::chrono::duration_cast<std::chrono::milliseconds>(canvas.frameClock).count())]()
              { return systemTime; },
-             [&]() { return std::span<const Render::Models::BoneTransform>(FramePoseCarry().bones); }});
+             [&]() { return std::span<const Math::BoneTransform>(FramePoseCarry().bones); }});
         !result.HasValue())
         return result;
     const auto view = Render::ViewRows(pass.view);
@@ -200,8 +200,7 @@ Core::Expected<void, std::string> GameScene::DrawTheTail(SceneCanvas& canvas, co
     effectResources.originalFrame = frames > 0;
     effectResources.effects = &FrameEffects();
     effectResources.particles = &FrameParticles();
-    effectResources.posedBones = [&]()
-    { return std::span<const Render::Models::BoneTransform>(FramePoseCarry().bones); };
+    effectResources.posedBones = [&]() { return std::span<const Math::BoneTransform>(FramePoseCarry().bones); };
     const auto effects = FrameEffects().Effects();
     const GameTailPassCallbacks callbacks{
         [&](GameTailStage stage, std::uint8_t mode) -> Core::Expected<void, std::string>

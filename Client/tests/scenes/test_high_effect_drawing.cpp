@@ -47,8 +47,8 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Math::BoneTransform;
 using Client::Render::ModelBatch;
-using Client::Render::Models::BoneTransform;
 using Client::Scenes::DrawnObject;
 using Client::World::ModelEffect;
 

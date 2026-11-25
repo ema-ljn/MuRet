@@ -1065,7 +1065,7 @@ TEST(HeroSkillsTest, TheShineOfATransformedHeroUsesItsSharedModel)
         tested->models = &library;
         auto& hero = tested->Hero();
         hero.type = 0x28;
-        hero.bodyPose.assign(1, Client::Render::Models::BoneTransform(1.0f));
+        hero.bodyPose.assign(1, Client::Math::BoneTransform(1.0f));
         hero.hands[0].bone = 0;
         hero.bodyPose[0][3] = {3.0f, 4.0f, 5.0f};
         tested->world.PlaceModel(hero.type, {.scale = 2.5f, .origin = {8000.0f, 9000.0f, 100.0f}});

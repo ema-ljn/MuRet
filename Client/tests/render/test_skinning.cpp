@@ -17,8 +17,8 @@
 namespace
 {
 using Client::Data::Models::Mesh;
-using Client::Render::Models::AngleMatrix;
-using Client::Render::Models::BoneTransform;
+using Client::Math::AngleMatrix;
+using Client::Math::BoneTransform;
 using Client::Render::Models::FlattenOnTheGround;
 using Client::Render::Models::NormalLight;
 using Client::Render::Models::ObjectTransform;
@@ -179,12 +179,12 @@ glm::vec3 Bits(std::uint32_t x, std::uint32_t y, std::uint32_t z)
 // normal. Los bits salen de una emulación aparte de la x87 (fracciones exactas, PC53, cada FSTP en float).
 TEST(SkinningTest, InTheWorldVerticesAndNormalsGoThroughTheWorldBoneLikeTheX87)
 {
-    const Client::Render::Models::OriginalMatrix rows{
+    const Client::Math::OriginalMatrix rows{
         std::bit_cast<float>(0x3f1b3116u), std::bit_cast<float>(0xbeb07a40u), std::bit_cast<float>(0xbd78f129u),
         std::bit_cast<float>(0x44834000u), std::bit_cast<float>(0x3eb33333u), std::bit_cast<float>(0x3f18d583u),
         std::bit_cast<float>(0x3dd79713u), std::bit_cast<float>(0x44848000u), 0.0f,
         std::bit_cast<float>(0xbdf8f129u), std::bit_cast<float>(0x3f307a40u), std::bit_cast<float>(0x43960000u)};
-    const std::vector<BoneTransform> bones{Client::Render::Models::BoneTransformOf(rows)};
+    const std::vector<BoneTransform> bones{Client::Math::BoneTransformOf(rows)};
     Mesh mesh;
     mesh.vertices = {{0, {0, 0, 10}}, {0, {1, 0, 10}}, {0, {0, 1, 10}}};
     mesh.normals = {{0, {0, 0, 1}, 0}, {0, {0.6f, -0.8f, 0}, 0}};

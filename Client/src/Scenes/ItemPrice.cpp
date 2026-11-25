@@ -778,7 +778,7 @@ RepairPrice RepairPriceOf(std::uint32_t price, std::int32_t durability, std::int
     double total = selfRepair * fee;
     total *= static_cast<double>(SelfRepairShare);
     total += fee;
-    std::int32_t gold = World::FtolLow(total);
+    std::int32_t gold = Math::FtolLow(total);
     // 0x5b1464..0x5b14a3: a 100 desde 1.000 y a 10 desde 100, con signo.
     if (gold >= RepairHundredsFrom)
         gold = gold / RepairHundred * RepairHundred;

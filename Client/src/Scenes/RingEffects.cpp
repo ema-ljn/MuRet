@@ -126,8 +126,7 @@ Core::Expected<void, std::string> StepTheRing(World::ModelEffect& effect, float 
     constexpr double Hover = 200.0;   // 0x6b8928
     constexpr float TurnStep = 10.0f; // 0x41200000
     effect.start = {owner->position.x, owner->position.y, F32(D(owner->position.z) + Hover)};
-    static_cast<void>(
-        Render::Models::MoveToward(effect.transform.position, effect.transform.angles, effect.start, TurnStep));
+    static_cast<void>(Math::MoveToward(effect.transform.position, effect.transform.angles, effect.start, TurnStep));
     constexpr double PitchShake = static_cast<double>(std::bit_cast<float>(0x3e4ccccdu)); // 0x6b8854, 0,2f
     constexpr double YawShake = static_cast<double>(std::bit_cast<float>(0x3f4ccccdu));   // 0x6b8a38, 0,8f
     constexpr double PitchBrake = static_cast<double>(std::bit_cast<float>(0x3f19999au)); // 0x6b8a20, 0,6f

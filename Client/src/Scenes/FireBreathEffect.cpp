@@ -32,7 +32,7 @@ using Math::F32;
 // 0x5fc8f0 y 0x5fcbd0: el vector girado por los ángulos.
 glm::vec3 Rotated(const glm::vec3& vector, const glm::vec3& angles)
 {
-    return Render::Models::OriginalVectorRotate(vector, Render::Models::OriginalAngleMatrix(angles));
+    return Math::OriginalVectorRotate(vector, Math::OriginalAngleMatrix(angles));
 }
 
 // El fld/fadd/fstp de cada eje.

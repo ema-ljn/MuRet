@@ -22,17 +22,17 @@
 // 0x5fc700, 0x5fcdb0, 0x5fc8f0, 0x5fca90, 0x5fccc0 y 0x5fcbd0).
 namespace
 {
-using Client::Render::Models::AngleMatrix;
-using Client::Render::Models::AngleQuaternion;
-using Client::Render::Models::BoneTransform;
-using Client::Render::Models::ConcatTransforms;
-using Client::Render::Models::QuaternionMatrix;
-using Client::Render::Models::QuaternionsAlmostEqual;
-using Client::Render::Models::QuaternionSlerp;
-using Client::Render::Models::RoundedCos;
-using Client::Render::Models::RoundedSin;
-using Client::Render::Models::VectorRotate;
-using Client::Render::Models::VectorTransform;
+using Client::Math::AngleMatrix;
+using Client::Math::AngleQuaternion;
+using Client::Math::BoneTransform;
+using Client::Math::ConcatTransforms;
+using Client::Math::QuaternionMatrix;
+using Client::Math::QuaternionsAlmostEqual;
+using Client::Math::QuaternionSlerp;
+using Client::Math::RoundedCos;
+using Client::Math::RoundedSin;
+using Client::Math::VectorRotate;
+using Client::Math::VectorTransform;
 using Client::Tests::ExponentRange;
 using Client::Tests::FloatFromBits;
 using Client::Tests::Fnv1a64;

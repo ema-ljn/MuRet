@@ -289,7 +289,7 @@ TEST(HighEffectFamiliesTest, TheRingFollowsItsOwnerAndDivesFromHigh)
         EXPECT_EQ(ring.siegeTarget, (glm::vec3{1000.0f, 1000.0f, 500.0f}));
         EXPECT_EQ(ring.start, (glm::vec3{1100.0f, 1000.0f, 250.0f}));
         glm::vec3 angles{};
-        static_cast<void>(Client::Render::Models::MoveToward({1000.0f, 1000.0f, 500.0f}, angles, ring.start, 10.0f));
+        static_cast<void>(Client::Math::MoveToward({1000.0f, 1000.0f, 500.0f}, angles, ring.start, 10.0f));
         const float copiedYaw = static_cast<float>(yaw * static_cast<double>(0.8f));
         EXPECT_EQ(ring.transform.angles.x, 5.0f);
         EXPECT_EQ(ring.copiedAngles.x, 0.0f);
@@ -482,9 +482,9 @@ TEST(HighEffectFamiliesTest, TheMeteorPulsesShakesAndDropsAStone)
             const int reach = replay.Next() % 150;
             const int turn = replay.Next() % 360;
             const auto type = static_cast<std::int16_t>(0xc8 + (replay.Next() & 1));
-            const glm::vec3 offset = Client::Render::Models::OriginalVectorRotate(
+            const glm::vec3 offset = Client::Math::OriginalVectorRotate(
                 {0.0f, static_cast<float>(reach + 300.0), 0.0f},
-                Client::Render::Models::OriginalAngleMatrix({0.0f, 0.0f, static_cast<float>(turn)}));
+                Client::Math::OriginalAngleMatrix({0.0f, 0.0f, static_cast<float>(turn)}));
             const glm::vec3 point{static_cast<float>(static_cast<double>(offset.x) + origin.x),
                                   static_cast<float>(static_cast<double>(offset.y) + origin.y),
                                   static_cast<float>(static_cast<double>(offset.z) + origin.z)};
@@ -500,7 +500,7 @@ TEST(HighEffectFamiliesTest, TheMeteorPulsesShakesAndDropsAStone)
             EXPECT_FALSE(tested.Effect(1).alive);
         }
         EXPECT_EQ(tested.random.State(), replay.State());
-        const auto wave = Client::Render::Models::Detail::SineDoubleProductPC53(40.0 * 0.02617993950843811, -0.5);
+        const auto wave = Client::Math::Detail::SineDoubleProductPC53(40.0 * 0.02617993950843811, -0.5);
         ASSERT_TRUE(wave.has_value());
         const glm::vec3 color{static_cast<float>(*wave), static_cast<float>(*wave),
                               static_cast<float>(*wave + 0.10000000149011612)};
@@ -617,7 +617,7 @@ TEST(HighEffectFamiliesTest, TheMeteorSparksOverItsPosedBones)
     static_cast<void>(replay.Next());
     EXPECT_EQ(tested.random.State(), replay.State());
     EXPECT_EQ(tested.world->ModelPlacement(0x13d).action, 0);
-    std::vector<Client::Render::Models::BoneTransform> expected(3, Client::Render::Models::BoneTransform(0.0f));
+    std::vector<Client::Math::BoneTransform> expected(3, Client::Math::BoneTransform(0.0f));
     ASSERT_TRUE(
         Client::Render::Models::PoseSkeleton(skeleton, {.action = 0, .frame = 1.5f}, {.angles = angles}, {}, expected));
     const auto& carry = tested.world->PoseCarry().bones;
@@ -634,7 +634,7 @@ ActorState& MarkOwner(FamilyWorld& tested)
     owner.alive = true;
     owner.type = 0x20a;
     owner.position = {1000.0f, 2000.0f, 100.0f};
-    owner.bodyPose.assign(30, Client::Render::Models::BoneTransform(1.0f));
+    owner.bodyPose.assign(30, Client::Math::BoneTransform(1.0f));
     for (std::size_t bone = 0; bone < owner.bodyPose.size(); ++bone)
         owner.bodyPose[bone][3] = {0.0f, 0.0f, static_cast<float>(bone)};
     tested.world->PlaceModel(owner.type, {.scale = 1.0f, .origin = owner.position});
@@ -672,7 +672,7 @@ TEST(HighEffectFamiliesTest, TheGuildMarkRisesOverItsOwnerWithTenSparks)
         CrtRandom replay(Seed);
         const auto turn = static_cast<float>(replay.Next() % 360);
         const auto side = static_cast<float>(replay.Next() % 20 + 15);
-        const auto sine = Client::Render::Models::Detail::SineProductPC53(turn, side);
+        const auto sine = Client::Math::Detail::SineProductPC53(turn, side);
         ASSERT_TRUE(sine.has_value());
         const auto& first = tested.world->Particles().All()[0];
         EXPECT_EQ(first.position.x, static_cast<float>(*sine + 1000.0));
@@ -762,9 +762,9 @@ TEST(HighEffectFamiliesTest, TheGuildMarkSparksAtBirthAndBeforeFading)
             {
                 const auto turn = static_cast<float>(replay.Next() % 360);
                 const int side = replay.Next() % 26 - 13;
-                const auto sine = Client::Render::Models::Detail::SineDoubleProductPC53(turn, side);
+                const auto sine = Client::Math::Detail::SineDoubleProductPC53(turn, side);
                 const int depth = replay.Next() % 26 - 13;
-                const auto cosine = Client::Render::Models::Detail::CosineDoubleProductPC53(turn, depth);
+                const auto cosine = Client::Math::Detail::CosineDoubleProductPC53(turn, depth);
                 const int lift = replay.Next() % 5;
                 ASSERT_TRUE(sine.has_value() && cosine.has_value());
                 const glm::vec3 point{static_cast<float>(*sine + static_cast<double>(at.x)),

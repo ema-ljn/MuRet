@@ -261,8 +261,8 @@ Core::Expected<void, std::string> AimTheSkill(ActorState& hero, const HeroSkillC
             return {};
         point = *picked.Value();
     }
-    const auto x = World::OriginalFtolLow(static_cast<double>(point.x) * static_cast<double>(CellReciprocal));
-    const auto y = World::OriginalFtolLow(static_cast<double>(point.y) * static_cast<double>(CellReciprocal));
+    const auto x = Math::OriginalFtolLow(static_cast<double>(point.x) * static_cast<double>(CellReciprocal));
+    const auto y = Math::OriginalFtolLow(static_cast<double>(point.y) * static_cast<double>(CellReciprocal));
     if (!x || !y)
         return Core::Unexpected(std::string("0x57ceaa: la celda del blanco fuera del perfil ftol"));
     state.targetX = std::bit_cast<std::uint32_t>(*x);

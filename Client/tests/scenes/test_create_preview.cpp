@@ -45,7 +45,7 @@ public:
         SkeletonBone bone;
         bone.parent = -1;
         BoneKey key;
-        key.rotation = Client::Render::Models::AngleQuaternion({0.0f, 0.0f, 0.0f});
+        key.rotation = Client::Math::AngleQuaternion({0.0f, 0.0f, 0.0f});
         bone.actions.assign(2, std::vector<BoneKey>(4, key));
         m_skeleton.bones = {bone};
         m_skeleton.actions = {ActionInfo{.repeats = true, .speed = 0.3f, .keyCount = 4, .lockPositions = false},

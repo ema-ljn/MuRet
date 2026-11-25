@@ -17,7 +17,7 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Render::Models::RoundedSin;
+using Client::Math::RoundedSin;
 using Client::World::ObjectStepGlobals;
 using Client::World::Particles;
 using Client::World::StepAtlansObject;

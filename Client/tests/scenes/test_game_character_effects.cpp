@@ -164,7 +164,7 @@ protected:
         m_actor.hands[1].bone = 0x2a;
         // El hueso k sin giro y en (0, 0, k): el punto de 0x4ec110 es el corrimiento más (0, 0, k) más la
         // posición del personaje.
-        m_body.assign(48, Client::Render::Models::BoneTransform(1.0f));
+        m_body.assign(48, Client::Math::BoneTransform(1.0f));
         for (std::size_t bone = 0; bone < m_body.size(); ++bone)
             m_body[bone][3] = {0.0f, 0.0f, static_cast<float>(bone)};
     }
@@ -193,7 +193,7 @@ protected:
 
     static constexpr std::size_t Slot = 3;
     ActorState m_actor;
-    std::vector<Client::Render::Models::BoneTransform> m_body;
+    std::vector<Client::Math::BoneTransform> m_body;
     CrtRandom m_random{1};
     Client::World::FrameSprites m_sprites;
     Client::World::Particles m_particles;
@@ -608,8 +608,8 @@ TEST_F(GameCharacterEffectsTest, TheSetCounterCreatesTheFullSetFlareAtTheHundred
 // común descuenta la vida: con 30, dos joints y muere en el paso 30.
 TEST_F(GameCharacterEffectsTest, TheFullSetFlareCirclesItsOwnerEveryFifteenStepsWithAnEnergyJoint)
 {
-    using Client::Render::Models::Detail::CosineProductPC53;
-    using Client::Render::Models::Detail::SineProductPC53;
+    using Client::Math::Detail::CosineProductPC53;
+    using Client::Math::Detail::SineProductPC53;
     m_actor.angles = {0.0f, 0.0f, 33.3f};
     ASSERT_TRUE(m_effects.CreateFullSetFlare(m_actor.position, m_actor.angles, glm::vec3(0.5f), &m_actor).has_value());
     Client::World::ModelEffect& flare = m_effects.Effects()[0];
@@ -714,8 +714,8 @@ TEST_F(GameCharacterEffectsTest, ThePetSummonDropsThreeEnergyJointsAroundItsOwne
         SCOPED_TRACE(index);
         const glm::vec3 angles{static_cast<float>(draws[index * 2] % 90), 0.0f,
                                static_cast<float>(draws[(index * 2) + 1] % 360)};
-        const glm::vec3 reach = Client::Render::Models::OriginalVectorRotate(
-            {0.0f, -200.0f, 0.0f}, Client::Render::Models::OriginalAngleMatrix(angles));
+        const glm::vec3 reach =
+            Client::Math::OriginalVectorRotate({0.0f, -200.0f, 0.0f}, Client::Math::OriginalAngleMatrix(angles));
         const glm::vec3 start{
             static_cast<float>(static_cast<double>(m_actor.position.x) - static_cast<double>(reach.x)),
             static_cast<float>(static_cast<double>(m_actor.position.y) - static_cast<double>(reach.y)),
@@ -819,8 +819,8 @@ TEST_F(GameCharacterEffectsTest, TheSummonDecalDropsThreeEnergyJoints)
 // guardado) y 50 más arriba, y suelta un 619/9 de ancho 15 ahí. La cola descuenta la vida.
 TEST_F(GameCharacterEffectsTest, TheGuardFlareCirclesItsTargetEveryFiftyStepsWithAnEnergyJoint)
 {
-    using Client::Render::Models::Detail::CosineProductPC53;
-    using Client::Render::Models::Detail::SineProductPC53;
+    using Client::Math::Detail::CosineProductPC53;
+    using Client::Math::Detail::SineProductPC53;
     m_actor.alive = true;
     m_actor.flags78 = 0x400;
     m_actor.angles = {0.0f, 0.0f, 33.3f};
@@ -982,7 +982,7 @@ TEST(SwellLifePipelineTest, RunsFromParentToRetainedActorBonesAndExistingFlareDr
     actor.flags78 = 0x10;
     actor.scale = 7; // Leído por otros efectos: esta partícula no aplica escala.
     actor.position = {100, 200, 300};
-    actor.bodyPose.assign(40, Client::Render::Models::BoneTransform(1));
+    actor.bodyPose.assign(40, Client::Math::BoneTransform(1));
     actor.bodyPose[36][3] = {11, 22, 33};
     actor.bodyPose[25][3] = {44, 55, 66};
     world->PlaceModel(actor);
@@ -1510,6 +1510,7 @@ class RavenModels final : public Client::Render::Models::IModelLibrary
 public:
     RavenModels()
     {
+        using namespace Client::Math;
         using namespace Client::Render::Models;
         SkeletonBone bone;
         bone.parent = -1;
@@ -1529,6 +1530,7 @@ public:
     // Con `count` huesos, todos raíz; el 6 corrido a (1, 2, 3) y girado 90 en z, para el pico del 0x113 (0x418bc8).
     void GrowBones(std::size_t count)
     {
+        using namespace Client::Math;
         using namespace Client::Render::Models;
         SkeletonBone bone = m_skeleton.bones[0];
         m_skeleton.bones.assign(count, bone);
@@ -1875,8 +1877,7 @@ TEST_F(GameRavenTest, TheAttackEffectNeedsAnOddCounterAndHeight)
     EXPECT_EQ(air.subtype, 0);
     EXPECT_EQ(air.life, 15);
     EXPECT_EQ(air.transform.scale, 0.6f);
-    EXPECT_EQ(air.transform.position,
-              Client::Render::Models::OriginalVectorTransform({50.0f, 0.0f, 0.0f}, spirit.pose[6]));
+    EXPECT_EQ(air.transform.position, Client::Math::OriginalVectorTransform({50.0f, 0.0f, 0.0f}, spirit.pose[6]));
     EXPECT_NE(air.transform.position, spirit.position);
     EXPECT_EQ(air.transform.angles, spirit.angles);
     EXPECT_EQ(air.light, spirit.light);
@@ -1927,8 +1928,7 @@ TEST_F(GameRavenTest, TheShoutSparksFromEveryOtherBone)
         if (first == 0)
         {
             auto made = std::make_unique<Client::World::Particles>();
-            const glm::vec3 point =
-                Client::Render::Models::OriginalVectorTransform(glm::vec3(0.0f), m_owner.darkSpirit->pose[0]);
+            const glm::vec3 point = Client::Math::OriginalVectorTransform(glm::vec3(0.0f), m_owner.darkSpirit->pose[0]);
             ASSERT_TRUE(
                 made->CreateChecked(0x5ac, point, m_owner.darkSpirit->angles,
                                     {1.0f, std::bit_cast<float>(0x3f19999au), std::bit_cast<float>(0x3ecccccdu)}, 6,

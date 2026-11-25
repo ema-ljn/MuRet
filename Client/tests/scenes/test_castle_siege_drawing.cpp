@@ -51,12 +51,12 @@ namespace
 using Client::Crt::CrtRandom;
 using Client::Data::Models::Mesh;
 using Client::Data::Models::Model;
+using Client::Math::RoundedSin;
 using Client::Render::ModelBatch;
 using Client::Render::ModelBlend;
 using Client::Render::ModelDrawState;
 using Client::Render::TextureSlot;
 using Client::Render::Models::IModelLibrary;
-using Client::Render::Models::RoundedSin;
 using Client::Render::Models::Skeleton;
 using Client::Scenes::CastleSiegeBodyPass;
 using Client::Scenes::DrawCastleSiegeBody;
@@ -373,7 +373,7 @@ Skeleton OneBone()
     Client::Render::Models::SkeletonBone bone;
     bone.parent = -1;
     bone.actions = {{Client::Render::Models::BoneKey{}}};
-    bone.actions[0][0].rotation = Client::Render::Models::AngleQuaternion({0.0f, 0.0f, 0.0f});
+    bone.actions[0][0].rotation = Client::Math::AngleQuaternion({0.0f, 0.0f, 0.0f});
     skeleton.bones.assign(1, bone);
     skeleton.actions = {
         Client::Render::Models::ActionInfo{.repeats = true, .speed = 0.0f, .keyCount = 1, .lockPositions = false}};
@@ -695,14 +695,14 @@ TEST(CastleSiegeDrawingTest, TheCrywolfMissileTailFetchesTheUpdatedGlobalPoseEve
     effects[3].type = 0xee;
     effects[3].alpha = 1;
     effects[3].transform.scale = 1;
-    std::vector<Client::Render::Models::BoneTransform> scratch(1, Client::Render::Models::BoneTransform(0));
+    std::vector<Client::Math::BoneTransform> scratch(1, Client::Math::BoneTransform(0));
     bool posed = false;
     CrtRandom random(Seed);
     const Client::Scenes::ModelEffectDrawResources resources{
         .heights = *heights,
         .onPose = [&](const DrawnObject&) -> Client::Core::Expected<void, std::string>
         {
-            scratch.resize(2, Client::Render::Models::BoneTransform(1));
+            scratch.resize(2, Client::Math::BoneTransform(1));
             scratch[1][3] = {100, 200, 300};
             posed = true;
             return {};
@@ -710,7 +710,7 @@ TEST(CastleSiegeDrawingTest, TheCrywolfMissileTailFetchesTheUpdatedGlobalPoseEve
         .sprites = &sprites,
         .random = &random,
         .particles = particles.get(),
-        .posedBones = [&]() -> std::span<const Client::Render::Models::BoneTransform>
+        .posedBones = [&]() -> std::span<const Client::Math::BoneTransform>
         {
             EXPECT_TRUE(posed);
             return scratch;

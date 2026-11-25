@@ -33,7 +33,7 @@ std::vector<BoneKey> MakeKeys(const Data::Models::BoneKeys& keys)
     for (std::size_t key = 0; key < keys.positions.size() && key < keys.rotations.size(); ++key)
     {
         const glm::vec3 angles = ToVec3(keys.rotations[key]);
-        made.push_back(BoneKey{ToVec3(keys.positions[key]), angles, AngleQuaternion(angles)});
+        made.push_back(BoneKey{ToVec3(keys.positions[key]), angles, Math::AngleQuaternion(angles)});
     }
     return made;
 }

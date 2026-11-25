@@ -229,8 +229,8 @@ bool Contains(const std::string& text, const char* part)
 // redondeado a doble como la x87 con PC53.
 std::uint8_t ExpectedDirection(double first, double second = 1.0, double offset = 0.0)
 {
-    const auto angle = static_cast<float>(Client::Render::Models::CreateAngle(18250.0f, 11550.0f, 18450.0f, 11750.0f));
-    const auto value = Client::World::OriginalFtolLow((static_cast<double>(angle) + offset) * first * second);
+    const auto angle = static_cast<float>(Client::Math::CreateAngle(18250.0f, 11550.0f, 18450.0f, 11750.0f));
+    const auto value = Client::Math::OriginalFtolLow((static_cast<double>(angle) + offset) * first * second);
     return static_cast<std::uint8_t>(static_cast<std::uint32_t>(value.value_or(-1)));
 }
 
@@ -274,8 +274,8 @@ TEST(HeroSkillsKnightTest, Skill29SendsThe1E)
         EXPECT_EQ(tested->Hero().animation.action, 0x3d);
         EXPECT_EQ(tested->Hero().movement, 0);
         EXPECT_EQ(tested->world.Runtime().ownRecordDepth, 0);
-        EXPECT_FLOAT_EQ(tested->Hero().angles.z, static_cast<float>(Client::Render::Models::CreateAngle(
-                                                     18250.0f, 11550.0f, 18450.0f, 11750.0f)));
+        EXPECT_FLOAT_EQ(tested->Hero().angles.z,
+                        static_cast<float>(Client::Math::CreateAngle(18250.0f, 11550.0f, 18450.0f, 11750.0f)));
     }
 }
 

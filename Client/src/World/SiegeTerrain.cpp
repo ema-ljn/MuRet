@@ -15,7 +15,7 @@ Core::Expected<void, std::string> DeformTerrainHeights(Data::Terrain::TerrainHei
 {
     x = static_cast<float>(static_cast<double>(x) * static_cast<double>(.01f));
     y = static_cast<float>(static_cast<double>(y) * static_cast<double>(.01f));
-    const auto cx = OriginalFtolLow(x), cy = OriginalFtolLow(y);
+    const auto cx = Math::OriginalFtolLow(x), cy = Math::OriginalFtolLow(y);
     if (!cx || !cy)
         return Core::Unexpected(std::string("5f9580: centrofuera de_ftol"));
     if (radius <= 0)

@@ -554,7 +554,7 @@ Core::Expected<std::int32_t, std::string> StepTheClock(CrywolfInterface& ui, std
         const auto passed = static_cast<std::uint32_t>((std::uint64_t{elapsed} * MinuteMagic) >> MinuteShift);
         minutes = total - static_cast<std::int32_t>(passed);
         const double seconds = static_cast<double>(milliseconds) * SecondPerMs * SecondsPerMinute;
-        const std::optional<std::int32_t> second = World::OriginalFtolLow(seconds);
+        const std::optional<std::int32_t> second = Math::OriginalFtolLow(seconds);
         if (!second)
             return Core::Unexpected(std::format("0x437453: los segundos {} fuera del perfil de ftol", seconds));
         if (ui.dword723c00 != *second)

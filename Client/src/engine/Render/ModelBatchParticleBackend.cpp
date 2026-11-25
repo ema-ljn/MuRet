@@ -502,7 +502,7 @@ IParticleDrawBackend::Result ModelBatchParticleBackend::Translate(float x, float
     if (IsDrawing())
         return Core::Unexpected(std::make_error_code(std::errc::operation_in_progress));
     // M*T para este perfil de traslaciones: reutiliza el único kernel acreditado de transformación.
-    const glm::vec3 position = Models::OriginalVectorTransform(glm::vec3{x, y, z}, m_model);
+    const glm::vec3 position = Math::OriginalVectorTransform(glm::vec3{x, y, z}, m_model);
     m_model[3] = position.x;
     m_model[7] = position.y;
     m_model[11] = position.z;
@@ -523,7 +523,7 @@ IParticleDrawBackend::Result ModelBatchParticleBackend::DrawWorldQuad(std::span<
     {
         if (uv[i] != WorldQuadUv[i])
             return Core::Unexpected(std::make_error_code(std::errc::invalid_argument));
-        world[i] = Models::OriginalVectorTransform(corners[i], m_model);
+        world[i] = Math::OriginalVectorTransform(corners[i], m_model);
         capturedUv[i] = uv[i];
     }
     const auto begun = BeginQuad(ModelCoordinateSpace::World);
@@ -552,7 +552,7 @@ IParticleDrawBackend::Result ModelBatchParticleBackend::PopMatrix()
     return {};
 }
 
-const Models::OriginalMatrix& ModelBatchParticleBackend::ModelMatrix() const
+const Math::OriginalMatrix& ModelBatchParticleBackend::ModelMatrix() const
 {
     return m_model;
 }

@@ -49,7 +49,7 @@ using Math::F32;
 // 0x69fd3c, que da el dword bajo del entero de 64 bits truncado.
 Core::Expected<std::int32_t, std::string> FtolOf(float value, std::string_view where)
 {
-    const std::optional<std::int32_t> whole = OriginalFtolLow(D(value));
+    const std::optional<std::int32_t> whole = Math::OriginalFtolLow(D(value));
     if (!whole)
     {
         return Core::Unexpected(
@@ -103,14 +103,14 @@ Core::Expected<void, std::string> DrawDecalCell(Render::ModelBatch& batch, const
 }
 
 // 0x5fb4a3..0x5fb4fe: cada UV menos 0,5, girada (0x5fcbd0), con la u por el estiramiento, y más 0,5.
-std::array<glm::vec2, 4> TurnedUvs(const std::array<glm::vec2, 4>& uvs, const Render::Models::OriginalMatrix& rotation,
+std::array<glm::vec2, 4> TurnedUvs(const std::array<glm::vec2, 4>& uvs, const Math::OriginalMatrix& rotation,
                                    float stretch)
 {
     std::array<glm::vec2, 4> turned{};
     for (std::size_t k = 0; k < uvs.size(); ++k)
     {
         const glm::vec3 centered(F32(D(uvs[k].x) - Half), F32(D(uvs[k].y) - Half), 0.0f);
-        const glm::vec3 rotated = Render::Models::OriginalVectorRotate(centered, rotation);
+        const glm::vec3 rotated = Math::OriginalVectorRotate(centered, rotation);
         turned[k] = glm::vec2(F32((D(stretch) * D(rotated.x)) + Half), F32(D(rotated.y) + Half));
     }
     return turned;
@@ -128,8 +128,7 @@ DrawTerrainDecal(Render::ModelBatch& batch, const Data::Terrain::TerrainHeights&
     // 0x5fb2f9..0x5fb32d: el color. glColor3fv, con el alfa en 1, deja el mismo alfa que glColor4f.
     const Render::Color color{decal.color.x, decal.color.y, decal.color.z, decal.alpha};
     // 0x5fb32d..0x5fb34c: el giro de (0, 0, giro).
-    const Render::Models::OriginalMatrix rotation =
-        Render::Models::OriginalAngleMatrix(glm::vec3(0.0f, 0.0f, decal.angle));
+    const Math::OriginalMatrix rotation = Math::OriginalAngleMatrix(glm::vec3(0.0f, 0.0f, decal.angle));
     // 0x5fb351: 0x620780(slot), con la mezcla y la profundidad que ya estaban.
     Render::ModelDrawState state = batch.State();
     state.texture = Render::TextureSlot{static_cast<std::uint16_t>(decal.slot)};

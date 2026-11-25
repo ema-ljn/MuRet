@@ -289,7 +289,7 @@ TEST(CastleSiegeObjectsTest, TheGatePlaneNeverDiesAndFloatsOnlyWithAnOwner)
         EXPECT_TRUE(plane.alive);
         EXPECT_EQ(plane.life, 99);
         EXPECT_EQ(random.State(), After(9, 1).State()) << "el sorteo común de 0x5208c5";
-        const auto lifted = Client::Render::Models::Detail::SineSumPC53(
+        const auto lifted = Client::Math::Detail::SineSumPC53(
             static_cast<double>(Clock) * static_cast<double>(std::bit_cast<float>(0x3a83126fu)), 1.0);
         ASSERT_TRUE(lifted.has_value());
         EXPECT_EQ(plane.transform.position.z,

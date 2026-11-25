@@ -73,7 +73,7 @@ public:
     }
     std::int32_t ConvertTileCoordinate(double value) override
     {
-        return World::FtolLow(value);
+        return Math::FtolLow(value);
     }
     std::int32_t TileIndex(std::int32_t x, std::int32_t y) override
     {
@@ -128,12 +128,12 @@ public:
     std::error_code Rotation(World::BirdRecord bird) override
     {
         auto& object = Object(bird);
-        object.matrix = Render::Models::OriginalAngleMatrix(object.angles);
+        object.matrix = Math::OriginalAngleMatrix(object.angles);
         return {};
     }
     glm::vec3 Transform(World::BirdRecord bird, const glm::vec3& vector) override
     {
-        return Render::Models::OriginalVectorRotate(vector, Object(bird).matrix);
+        return Math::OriginalVectorRotate(vector, Object(bird).matrix);
     }
     double Height(float x, float y) override
     {
@@ -167,7 +167,7 @@ public:
     }
     Core::Expected<std::int32_t, std::error_code> Truncate(double value) override
     {
-        return World::FtolLow(value);
+        return Math::FtolLow(value);
     }
     Core::Expected<std::uint8_t, std::error_code> EventGate() override
     {
@@ -217,13 +217,13 @@ public:
     }
     Core::Expected<void, std::error_code> AngleMatrix(World::FishStepView& fish) override
     {
-        fish.matrix = Render::Models::OriginalAngleMatrix(fish.angles);
+        fish.matrix = Math::OriginalAngleMatrix(fish.angles);
         return {};
     }
     Core::Expected<glm::vec3, std::error_code> Rotate(const glm::vec3& input,
-                                                      const Render::Models::OriginalMatrix& matrix) override
+                                                      const Math::OriginalMatrix& matrix) override
     {
-        return Render::Models::OriginalVectorRotate(input, matrix);
+        return Math::OriginalVectorRotate(input, matrix);
     }
     Core::Expected<std::int32_t, std::error_code> Sound(std::int32_t id, void* owner, std::int32_t loop) override
     {
@@ -243,7 +243,7 @@ public:
     }
     Core::Expected<double, std::error_code> OscillationProductPC53(float phase) override
     {
-        const auto product = Render::Models::Detail::SineProductPC53(phase, .4f);
+        const auto product = Math::Detail::SineProductPC53(phase, .4f);
         if (!product)
             return Core::Unexpected(std::make_error_code(std::errc::result_out_of_range));
         return *product;

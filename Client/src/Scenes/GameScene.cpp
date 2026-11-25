@@ -1243,7 +1243,7 @@ Core::Expected<void, std::string> GameScene::DrawTheCharacters(SceneCanvas& canv
                           .itemContext = &itemContext,
                           .pace = OriginalFramePaceOf(m_context.pacing),
                           .onPose =
-                              [&](std::uint16_t model, std::span<const Render::Models::BoneTransform> bones,
+                              [&](std::uint16_t model, std::span<const Math::BoneTransform> bones,
                                   const Render::Models::ObjectTransform& transform, bool translated)
                           {
                               const auto published =
@@ -1255,7 +1255,7 @@ Core::Expected<void, std::string> GameScene::DrawTheCharacters(SceneCanvas& canv
                           .pickingBoxes = m_projectingFrame ? std::span(m_projection->actorPickingBoxes)
                                                             : std::span<ActorPickingBox>{},
                           .poseBones = [&](std::uint16_t)
-                          { return std::span<const Render::Models::BoneTransform>(FramePoseCarry().bones); },
+                          { return std::span<const Math::BoneTransform>(FramePoseCarry().bones); },
                           .worldModels = m_worldModelsMap ? &m_worldModels : nullptr,
                           .polygon = &polygon,
                           .fixedHeight = CameraState().fixedHeight,

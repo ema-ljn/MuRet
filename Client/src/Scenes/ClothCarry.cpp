@@ -16,13 +16,13 @@ namespace Client::Scenes
 namespace
 {
 // El giro del hueso: sus tres primeras columnas (la cuarta es la traslación, HalfLifeMath.h).
-glm::mat3 TurnOf(const Render::Models::BoneTransform& bone)
+glm::mat3 TurnOf(const Math::BoneTransform& bone)
 {
     return glm::mat3{bone[0], bone[1], bone[2]};
 }
 
 // El origen del hueso en el mundo: 0x4ec110 con el punto local en 0.
-glm::vec3 OriginOf(const Render::Models::BoneTransform& bone, float scale, const glm::vec3& position)
+glm::vec3 OriginOf(const Math::BoneTransform& bone, float scale, const glm::vec3& position)
 {
     return position + scale * bone[3];
 }
@@ -42,8 +42,8 @@ std::optional<ClothCarry> ClothCarryOf(const SimulatedClothBody& then, const Ren
     {
         return std::nullopt;
     }
-    const Render::Models::BoneTransform& before = then.bones[index];
-    const Render::Models::BoneTransform& after = now.bones[index];
+    const Math::BoneTransform& before = then.bones[index];
+    const Math::BoneTransform& after = now.bones[index];
     if (before == after && then.scale == now.scale && then.position == now.position)
     {
         return std::nullopt;

@@ -120,7 +120,7 @@ Core::Expected<glm::vec3, std::string> AltarLight(float worldClock, std::int32_t
     constexpr double GreenStep = static_cast<double>(std::bit_cast<float>(0x3d23d70au)); // 6b8acc.
     const double factor = light > 10 ? Quiet : 1.0;
     // FSIN retiene64; 430a72 multiplica por3 antes del primer redondeo PC53.
-    const auto sine = Render::Models::Detail::SineProductPC53(static_cast<double>(worldClock) * Rate, 3.0f);
+    const auto sine = Math::Detail::SineProductPC53(static_cast<double>(worldClock) * Rate, 3.0f);
     if (!sine)
         return Core::Unexpected(std::string("0x430a70: el seno del altar Crywolf no cabe en el perfil PC53"));
     const double red = *sine * factor + 5.0;

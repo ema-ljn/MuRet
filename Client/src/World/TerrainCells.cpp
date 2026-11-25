@@ -284,8 +284,8 @@ void UpdateWaves(TerrainWater& water, Core::Duration clock, const TerrainRange& 
             const auto cell = static_cast<std::size_t>((y * static_cast<int>(TerrainSide)) + x);
             if (cell < water.waves.size())
             {
-                water.waves[cell] = static_cast<float>(
-                    Render::Models::RoundedSin((static_cast<double>(x) * column) + phase) * WaveHeight);
+                water.waves[cell] =
+                    static_cast<float>(Math::RoundedSin((static_cast<double>(x) * column) + phase) * WaveHeight);
             }
         }
     }

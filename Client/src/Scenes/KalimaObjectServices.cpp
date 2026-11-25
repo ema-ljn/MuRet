@@ -80,7 +80,7 @@ Core::Expected<void, std::string> WaterOverlay(Render::ModelBatch& batch, const 
                                                const GameObjectPass& pass)
 {
     // 439570: argumento sin spill binary32; el color sí tiene tres FSTP idénticos.
-    const auto pulse = Render::Models::Detail::SineProductPC53(
+    const auto pulse = Math::Detail::SineProductPC53(
         static_cast<double>(pass.worldClock) * static_cast<double>(WaterPulseRate), Tenth);
     if (!pulse)
         return Core::Unexpected(std::string("0x43957c: pulso de Kalima fuera del dominio matemático portado"));
@@ -105,10 +105,9 @@ Core::Expected<void, std::string> Flare(const GameObjectPass& pass)
         return Core::Unexpected(std::string("0x438c9e: falta el scratch global del hueso20 de Kalima"));
     glm::vec3 point(0.0f);
     if (Bone < pass.retainedPose->bones.size())
-        point = Render::Models::OriginalVectorTransform(
-            glm::vec3(0.0f), Render::Models::OriginalMatrixOf(pass.retainedPose->bones[Bone]));
+        point = Math::OriginalVectorTransform(glm::vec3(0.0f), Math::OriginalMatrixOf(pass.retainedPose->bones[Bone]));
     const float argument = static_cast<float>(static_cast<double>(pass.worldClock) * FlareRate);
-    const auto pulse = Render::Models::Detail::SineProductPC53(argument, FlareAmplitude);
+    const auto pulse = Math::Detail::SineProductPC53(argument, FlareAmplitude);
     if (!pulse)
         return Core::Unexpected(std::string("0x438ca6: pulso del sprite de Kalima fuera de dominio"));
     if (pass.sprites == nullptr)

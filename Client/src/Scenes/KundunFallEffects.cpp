@@ -133,8 +133,8 @@ Core::Expected<void, std::string> Strike(World::ModelEffect& effect, const HighE
         const auto turn = static_cast<float>(random.Next() % FullTurn);
         const auto reach = static_cast<float>(random.Next() % ReachSpan + ReachBase);
         // 0x52a2fe..0x52a312: FSIN y FCOS del giro (en grados, como radianes), retenidos hasta el FMUL por el radio.
-        const auto sine = Render::Models::Detail::SineProductPC53(D(turn), reach);
-        const auto cosine = Render::Models::Detail::CosineProductPC53(D(turn), reach);
+        const auto sine = Math::Detail::SineProductPC53(D(turn), reach);
+        const auto cosine = Math::Detail::CosineProductPC53(D(turn), reach);
         if (!sine || !cosine)
             return Core::Unexpected(std::string("0x52a2fe: el giro del pedazo de Kundun fuera del perfil PC53"));
         point.x = F32(*sine + D(point.x));

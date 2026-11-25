@@ -50,7 +50,7 @@ struct GameHangingPass
     Render::ModelBatch& batch;
     const Render::Models::IModelLibrary& models;
     // Los huesos del cuerpo de este frame: el buffer propio del personaje (+0x120).
-    std::span<const Render::Models::BoneTransform> body;
+    std::span<const Math::BoneTransform> body;
     // El rand() global de 0x69fd70.
     Crt::CrtRandom& random;
     // El buffer global de la pose (0x68b181c) y la tabla de sprites del frame (0x5491e0). Hacen falta

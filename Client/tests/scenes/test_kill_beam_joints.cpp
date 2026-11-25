@@ -107,8 +107,8 @@ TEST(KillBeamJointsTest, TheBeamsSpinWhileTheirLifeIsAboveOneHundred)
          {std::tuple{&tested.joints[0], &first, 10.0f, 6.0f}, std::tuple{&tested.joints[1], &second, -10.0f, 5.0f}})
     {
         SCOPED_TRACE(beam->subtype);
-        const glm::vec3 moved = Client::Render::Models::OriginalVectorRotate(
-            glm::vec3(0.0f, -3.0f, 0.0f), Client::Render::Models::OriginalAngleMatrix(before->angles));
+        const glm::vec3 moved = Client::Math::OriginalVectorRotate(glm::vec3(0.0f, -3.0f, 0.0f),
+                                                                   Client::Math::OriginalAngleMatrix(before->angles));
         EXPECT_EQ(beam->position.x, before->position.x + moved.x);
         EXPECT_EQ(beam->position.y, before->position.y + moved.y);
         EXPECT_EQ(beam->position.z, before->position.z + moved.z + rise);

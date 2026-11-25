@@ -23,29 +23,29 @@ TEST(FtolTest, TruncatesBeforeProjectingSignedLow32)
                               {4294967551.0, 255}, {-4294967297.0, -1}, {-4294967296.0, 0}, {-4294967042.0, 254}};
     for (const Case& test : Cases)
     {
-        EXPECT_EQ(Client::World::FtolLow(test.value), test.expected) << test.value;
+        EXPECT_EQ(Client::Math::FtolLow(test.value), test.expected) << test.value;
     }
 }
 
 TEST(FtolTest, IncludesNegativeSigned64LimitAndExcludesPositiveLimit)
 {
     constexpr double Limit = 0x1p63;
-    EXPECT_EQ(Client::World::FtolLow(-Limit), 0);
-    EXPECT_EQ(Client::World::FtolLow(std::nextafter(-Limit, 0.0)), 1024);
-    EXPECT_EQ(Client::World::FtolLow(std::nextafter(Limit, 0.0)), -1024);
-    EXPECT_EQ(Client::World::FtolLow(Limit), 0);
-    EXPECT_EQ(Client::World::FtolLow(std::nextafter(-Limit, -std::numeric_limits<double>::infinity())), 0);
-    EXPECT_EQ(Client::World::FtolLow(std::nextafter(Limit, std::numeric_limits<double>::infinity())), 0);
+    EXPECT_EQ(Client::Math::FtolLow(-Limit), 0);
+    EXPECT_EQ(Client::Math::FtolLow(std::nextafter(-Limit, 0.0)), 1024);
+    EXPECT_EQ(Client::Math::FtolLow(std::nextafter(Limit, 0.0)), -1024);
+    EXPECT_EQ(Client::Math::FtolLow(Limit), 0);
+    EXPECT_EQ(Client::Math::FtolLow(std::nextafter(-Limit, -std::numeric_limits<double>::infinity())), 0);
+    EXPECT_EQ(Client::Math::FtolLow(std::nextafter(Limit, std::numeric_limits<double>::infinity())), 0);
 }
 
 TEST(FtolTest, MaskedNonFiniteConversionProjectsToZero)
 {
-    EXPECT_EQ(Client::World::FtolLow(std::numeric_limits<double>::quiet_NaN()), 0);
-    EXPECT_EQ(Client::World::FtolLow(std::numeric_limits<double>::infinity()), 0);
-    EXPECT_EQ(Client::World::FtolLow(-std::numeric_limits<double>::infinity()), 0);
-    EXPECT_EQ(Client::World::FtolLow(std::numeric_limits<float>::quiet_NaN()), 0);
-    EXPECT_EQ(Client::World::FtolLow(std::numeric_limits<float>::infinity()), 0);
-    EXPECT_EQ(Client::World::FtolLow(-std::numeric_limits<float>::infinity()), 0);
+    EXPECT_EQ(Client::Math::FtolLow(std::numeric_limits<double>::quiet_NaN()), 0);
+    EXPECT_EQ(Client::Math::FtolLow(std::numeric_limits<double>::infinity()), 0);
+    EXPECT_EQ(Client::Math::FtolLow(-std::numeric_limits<double>::infinity()), 0);
+    EXPECT_EQ(Client::Math::FtolLow(std::numeric_limits<float>::quiet_NaN()), 0);
+    EXPECT_EQ(Client::Math::FtolLow(std::numeric_limits<float>::infinity()), 0);
+    EXPECT_EQ(Client::Math::FtolLow(-std::numeric_limits<float>::infinity()), 0);
 }
 
 TEST(FtolTest, FtolLowIsOriginalFtolLowOrZero)
@@ -65,8 +65,8 @@ TEST(FtolTest, FtolLowIsOriginalFtolLowOrZero)
                           {-1.5, -1, -1}};
     for (const Case& test : cases)
     {
-        EXPECT_EQ(Client::World::FtolLow(test.value), test.low) << test.value;
-        EXPECT_EQ(Client::World::OriginalFtolLow(test.value), test.original) << test.value;
+        EXPECT_EQ(Client::Math::FtolLow(test.value), test.low) << test.value;
+        EXPECT_EQ(Client::Math::OriginalFtolLow(test.value), test.original) << test.value;
     }
 }
 } // namespace

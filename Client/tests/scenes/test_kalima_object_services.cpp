@@ -51,7 +51,7 @@ public:
         Client::Render::Models::SkeletonBone bone;
         bone.parent = -1;
         Client::Render::Models::BoneKey key;
-        key.rotation = Client::Render::Models::AngleQuaternion({0, 0, 0});
+        key.rotation = Client::Math::AngleQuaternion({0, 0, 0});
         bone.actions = {{key}};
         m_skeleton.bones = {bone};
         m_skeleton.actions = {{.repeats = true, .speed = 0, .keyCount = 1, .lockPositions = false}};

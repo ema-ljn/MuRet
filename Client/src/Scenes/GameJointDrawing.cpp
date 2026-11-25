@@ -98,7 +98,7 @@ Core::Expected<std::array<float, 3>, std::string> JointUvs(const JointState& joi
         u = F32(1 - static_cast<double>(segment) / divisor);
         nextU = F32(1 - static_cast<double>(segment + 1) / divisor);
     }
-    const auto clock = World::OriginalFtolLow(resources != nullptr ? resources->worldClock : 0.0f);
+    const auto clock = Math::OriginalFtolLow(resources != nullptr ? resources->worldClock : 0.0f);
     if (!clock.has_value())
         return Core::Unexpected(std::string("0x53c8f4: el reloj del joint excede ftol"));
     float scroll = F32(static_cast<double>(*clock % 1000) * static_cast<double>(0.001f));
@@ -204,7 +204,7 @@ Core::Expected<glm::vec3, std::string> JointSegmentLight(JointState& joint, std:
     }
     if (joint.type == 0x615 && joint.subtype == 0)
     {
-        const auto whole = World::OriginalFtolLow(joint.light.z);
+        const auto whole = Math::OriginalFtolLow(joint.light.z);
         if (!whole.has_value())
             return Core::Unexpected(std::string("0x53cccd: el color del joint excede ftol"));
         segmentLight = glm::vec3(*whole == segment  ? F32(static_cast<double>(joint.light.z) - segment)

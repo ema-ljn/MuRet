@@ -13,8 +13,8 @@ Core::Expected<bool, std::string> CollideTheSiegeObject(ModelEffect& projectile,
 {
     const auto& p = projectile.transform.position;
     // 6b8a54: 1/1600f, producto x87 sinstoreantesde_ftol.
-    const auto sx = OriginalFtolLow(static_cast<double>(p.x) * static_cast<double>(.000625f));
-    const auto sy = OriginalFtolLow(static_cast<double>(p.y) * static_cast<double>(.000625f));
+    const auto sx = Math::OriginalFtolLow(static_cast<double>(p.x) * static_cast<double>(.000625f));
+    const auto sy = Math::OriginalFtolLow(static_cast<double>(p.y) * static_cast<double>(.000625f));
     if (!sx || !sy)
         return Core::Unexpected(std::string("429ec0: sector delproyectilfuera de_ftol"));
     if (*sx < 0 || *sx >= 16 || *sy < 0 || *sy >= 16)

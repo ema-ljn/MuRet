@@ -49,7 +49,7 @@ using Client::Math::F32;
 // de FSIN por el float con un solo R53 (0x6056c8..0x6056d0).
 double Pulse(double phase)
 {
-    const std::optional<double> wave = Client::Render::Models::Detail::SineProductPC53(
+    const std::optional<double> wave = Client::Math::Detail::SineProductPC53(
         phase * D(std::bit_cast<float>(0x3b03126fu)), std::bit_cast<float>(0x3eb33333u));
     EXPECT_TRUE(wave.has_value());
     return wave.value_or(0.0) + D(std::bit_cast<float>(0x3f266666u));

@@ -156,7 +156,7 @@ public:
         SkeletonBone wingBone;
         wingBone.parent = -1;
         BoneKey low;
-        low.rotation = Client::Render::Models::AngleQuaternion({0.0f, 0.0f, 0.0f});
+        low.rotation = Client::Math::AngleQuaternion({0.0f, 0.0f, 0.0f});
         BoneKey high = low;
         high.position = {0.0f, 0.0f, 10.0f};
         wingBone.actions = {{low, high}};
@@ -167,7 +167,7 @@ public:
         for (std::size_t action = 0; action < 4; ++action)
         {
             BoneKey key;
-            key.rotation = Client::Render::Models::AngleQuaternion({0.0f, 0.0f, 0.0f});
+            key.rotation = Client::Math::AngleQuaternion({0.0f, 0.0f, 0.0f});
             key.position = {0.0f, 0.0f, action == 3 ? 0.0f : 100.0f};
             bone.actions.push_back({key, key});
         }

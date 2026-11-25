@@ -85,7 +85,7 @@ struct DarkSpirit
     glm::vec3 previousPosition{};
     // +0x120: sus huesos como los dejó el último dibujo, en el mundo (0x602e90 con el segundo argumento
     // en 0). Antes del primero, vacío (Q-C133).
-    std::vector<Render::Models::OriginalMatrix> pose;
+    std::vector<Math::OriginalMatrix> pose;
 };
 
 // Lo que el paso lee del dueño: su posición (+0x10) y sus banderas (+0x78). Con 0x1000 el paso no hace
@@ -100,7 +100,7 @@ struct DarkSpiritOwner
     glm::vec3 angles{};
     std::uint16_t pet = 0;
     std::uint8_t safeZone = 0;
-    std::span<const Render::Models::BoneTransform> pose{};
+    std::span<const Math::BoneTransform> pose{};
     float modelScale = 0.0f;
     glm::vec3 modelOrigin{};
 };

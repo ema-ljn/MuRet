@@ -190,9 +190,8 @@ Core::Expected<void, std::string> AimTheAutomaticMove(const InventoryMoveContext
         const std::int32_t top =
             inventory ? runtime.ui.npcWindowY + WarehouseTop : runtime.hud.inventoryY + InventoryTop;
         runtime.ui.automaticMouseX =
-            World::FtolLow(left + CellSize * (free->column + (footprint.Value().width - 1) * 0.5));
-        runtime.ui.automaticMouseY =
-            World::FtolLow(top + CellSize * (free->row + (footprint.Value().height - 1) * 0.5));
+            Math::FtolLow(left + CellSize * (free->column + (footprint.Value().width - 1) * 0.5));
+        runtime.ui.automaticMouseY = Math::FtolLow(top + CellSize * (free->row + (footprint.Value().height - 1) * 0.5));
     }
     return {};
 }

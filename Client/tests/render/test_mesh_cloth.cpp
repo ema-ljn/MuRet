@@ -17,7 +17,7 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Render::Models::BoneTransform;
+using Client::Math::BoneTransform;
 using Client::Render::Models::Cloth;
 using Client::Render::Models::ClothBody;
 using Client::Render::Models::ClothSpring;

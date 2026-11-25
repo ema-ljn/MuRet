@@ -272,21 +272,18 @@ Core::Expected<void, std::string> CreateWizard(std::uint32_t address, const Worl
 glm::vec3 BonePoint(const ActorState& actor, std::size_t bone, const glm::vec3& offset,
                     const CharacterStepContext& context)
 {
-    const Render::Models::BoneTransform matrix =
-        bone < actor.bodyPose.size() ? actor.bodyPose[bone] : Render::Models::BoneTransform(0.0f);
+    const Math::BoneTransform matrix = bone < actor.bodyPose.size() ? actor.bodyPose[bone] : Math::BoneTransform(0.0f);
     const SharedModelPlacement placement = context.world.ModelPlacement(static_cast<std::uint16_t>(actor.type));
-    return Render::Models::OriginalTransformPosition(Render::Models::OriginalMatrixOf(matrix), offset, placement.scale,
-                                                     placement.origin);
+    return Math::OriginalTransformPosition(Math::OriginalMatrixOf(matrix), offset, placement.scale, placement.origin);
 }
 
 // 0x4ec110(modelo, matriz, offset, punto, 1) con una matriz que no es un hueso del actor: las del fénix que guardó el
 // último dibujo (WorldRuntime::phoenixBones, 0x743748c..0x74374ec), con la escala y la posición del modelo del tipo.
-glm::vec3 MatrixPoint(const ActorState& actor, const Render::Models::BoneTransform& matrix, const glm::vec3& offset,
+glm::vec3 MatrixPoint(const ActorState& actor, const Math::BoneTransform& matrix, const glm::vec3& offset,
                       const CharacterStepContext& context)
 {
     const SharedModelPlacement placement = context.world.ModelPlacement(static_cast<std::uint16_t>(actor.type));
-    return Render::Models::OriginalTransformPosition(Render::Models::OriginalMatrixOf(matrix), offset, placement.scale,
-                                                     placement.origin);
+    return Math::OriginalTransformPosition(Math::OriginalMatrixOf(matrix), offset, placement.scale, placement.origin);
 }
 
 // Lo que el alta de un joint le pide al paso: el hueso 33 del jugador, el sonido de la CL10 y el registro propio.
@@ -295,11 +292,11 @@ JointKernels::CreationServices JointServices(const CharacterStepContext& context
     return {.playerBonePoint =
                 [&context](const ActorState& bones, std::size_t bone, const glm::vec3& offset)
             {
-                const Render::Models::BoneTransform matrix =
-                    bone < bones.bodyPose.size() ? bones.bodyPose[bone] : Render::Models::BoneTransform(0.0f);
+                const Math::BoneTransform matrix =
+                    bone < bones.bodyPose.size() ? bones.bodyPose[bone] : Math::BoneTransform(0.0f);
                 const SharedModelPlacement placement = context.world.ModelPlacement(Data::Models::PlayerSkeletonModel);
-                return Render::Models::OriginalTransformPosition(Render::Models::OriginalMatrixOf(matrix), offset,
-                                                                 placement.scale, placement.origin);
+                return Math::OriginalTransformPosition(Math::OriginalMatrixOf(matrix), offset, placement.scale,
+                                                       placement.origin);
             },
             .soundRequest = [&context](std::int32_t sound) { RequestTheSound(context, sound); },
             .ownRecordDepth = &context.world.Runtime().ownRecordDepth,
@@ -434,7 +431,7 @@ Core::Expected<void, std::string> TurnTheHandBolts(ActorState& actor, ActorState
     constexpr double NextTurn = 270.0;
     constexpr int Bolts = 4;
     constexpr float Width = 50.0f;
-    const auto clock = World::OriginalFtolLow(context.worldClock);
+    const auto clock = Math::OriginalFtolLow(context.worldClock);
     if (!clock)
         return Core::Unexpected(std::format("{:#x}: el reloj del giro excede ftol (0x69fd3c)", clockAddress));
     const std::int32_t phase = (*clock / ClockDivisor + static_cast<std::int32_t>(actor.byte381) * StepTurn) % Swing;
@@ -570,8 +567,7 @@ Core::Expected<void, std::string> ThrowTheFireRing(const ActorState& actor, std:
     for (int fire = 0; fire < Fires; ++fire)
     {
         turn.z = static_cast<float>(static_cast<double>(turn.z) + FireTurn);
-        const glm::vec3 reach =
-            Render::Models::OriginalVectorRotate(FireReach, Render::Models::OriginalAngleMatrix(turn));
+        const glm::vec3 reach = Math::OriginalVectorRotate(FireReach, Math::OriginalAngleMatrix(turn));
         glm::vec3 point{};
         for (int axis = 0; axis < 3; ++axis)
             point[axis] =

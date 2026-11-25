@@ -254,7 +254,7 @@ TEST_P(KalimaLiveObjectsTest, EveryReachableFamilyUsesRealImagesAndTheDepthBacke
     auto state = batch.State();
     state.depthTest = false;
     batch.ApplyState(state);
-    const Client::Render::Models::OriginalMatrix view{1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0};
+    const Client::Math::OriginalMatrix view{1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0};
     const auto before = random.State();
     const auto drawn = Client::Scenes::DrawGameParticles(batch, particles, *m_models, view, 0);
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();

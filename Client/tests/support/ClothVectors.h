@@ -108,7 +108,7 @@ struct ClothVectorFrame
     float scale = 1.0f;
     glm::vec3 origin{};
     // objeto + 0x120, ya en el BoneTransform de MuRet.
-    std::vector<Render::Models::BoneTransform> bones;
+    std::vector<Math::BoneTransform> bones;
     std::uint8_t map = 0;
     float worldTime = 0.0f;
     std::optional<float> windBase;

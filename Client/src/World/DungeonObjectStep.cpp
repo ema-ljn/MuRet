@@ -33,7 +33,7 @@ constexpr double Thousandth = Math::ThousandthAsDouble;
 // 0x60500b..0x60502b: fld del reloj, ftol, idiv por 1.000 y fild del resto por −0,001f.
 std::optional<float> DungeonScroll(float worldClock)
 {
-    const std::optional<std::int32_t> low = OriginalFtolLow(static_cast<double>(worldClock));
+    const std::optional<std::int32_t> low = Math::OriginalFtolLow(static_cast<double>(worldClock));
     if (!low)
         return std::nullopt;
     return F32(static_cast<double>(*low % ScrollPeriod) * NegativeThousandth);
@@ -42,7 +42,7 @@ std::optional<float> DungeonScroll(float worldClock)
 // 0x605404..0x605426: el ftol negado en 32 bits (envuelve en −2^31), su resto firmado y 0,001f.
 std::optional<float> LostTowerScroll(float worldClock)
 {
-    const std::optional<std::int32_t> low = OriginalFtolLow(static_cast<double>(worldClock));
+    const std::optional<std::int32_t> low = Math::OriginalFtolLow(static_cast<double>(worldClock));
     if (!low)
         return std::nullopt;
     const auto negated = static_cast<std::int32_t>(0u - static_cast<std::uint32_t>(*low));

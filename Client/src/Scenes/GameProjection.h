@@ -16,7 +16,7 @@ namespace Client::Scenes
 {
 struct GameProjection
 {
-    Render::Models::OriginalMatrix view{};
+    Math::OriginalMatrix view{};
     float horizontalScale = 0;
     float verticalScale = 0;
     std::int32_t centerX = 0;

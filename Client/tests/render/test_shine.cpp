@@ -16,8 +16,8 @@
 namespace
 {
 using Client::Core::Duration;
-using Client::Render::Models::RoundedCos;
-using Client::Render::Models::RoundedSin;
+using Client::Math::RoundedCos;
+using Client::Math::RoundedSin;
 using Client::Render::Models::ShinePass;
 using Client::Render::Models::ShineTexCoords;
 

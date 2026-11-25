@@ -83,8 +83,7 @@ constexpr std::array<std::uint32_t, 4> GlowBits{0x3d83126fu, 0x3da3d70au, 0x3dc4
 // está) y el avance. Devuelve si llegó.
 bool Turn(JointState& joint, CrtRandom& replay, Client::World::TerrainLighting* lighting = nullptr)
 {
-    const float distance =
-        F32(Client::Render::Models::MoveToward(joint.position, joint.angles, joint.targetPosition, 50.0f));
+    const float distance = F32(Client::Math::MoveToward(joint.position, joint.angles, joint.targetPosition, 50.0f));
     joint.velocity.x = F32(static_cast<double>((replay.Next() & 0x3ff) - 0x200) / D(joint.width));
     const double turn = static_cast<double>((replay.Next() & 0x3ff) - 0x200) / D(joint.width);
     joint.velocity.z = F32(turn);
@@ -98,8 +97,8 @@ bool Turn(JointState& joint, CrtRandom& replay, Client::World::TerrainLighting* 
         const glm::vec3 glow(std::bit_cast<float>(GlowBits[shade]));
         EXPECT_TRUE(Client::World::AddDynamicLight(lighting, joint.position, glow, 2, "prueba").HasValue());
     }
-    const auto moved = Client::Render::Models::OriginalVectorRotate(
-        {0.0f, -joint.speed, 0.0f}, Client::Render::Models::OriginalAngleMatrix(shaken));
+    const auto moved =
+        Client::Math::OriginalVectorRotate({0.0f, -joint.speed, 0.0f}, Client::Math::OriginalAngleMatrix(shaken));
     for (int axis = 0; axis < 3; ++axis)
         joint.position[axis] = F32(D(moved[axis]) + D(joint.position[axis]));
     return false;
@@ -158,8 +157,8 @@ TEST(PlasmaJointsTest, ThePlasmaTurnsTowardItsOwnerUntilItArrives)
     ASSERT_TRUE(tested.Step().HasValue());
 
     CrtRandom replay{Seed};
-    const auto first = Client::Render::Models::OriginalVectorRotate(
-        {0.0f, -50.0f, 0.0f}, Client::Render::Models::OriginalAngleMatrix(expected.angles));
+    const auto first =
+        Client::Math::OriginalVectorRotate({0.0f, -50.0f, 0.0f}, Client::Math::OriginalAngleMatrix(expected.angles));
     for (int axis = 0; axis < 3; ++axis)
         expected.position[axis] = F32(D(expected.position[axis]) + D(first[axis]));
     expected.targetPosition = {1000.0f, 1500.0f, 300.0f};
@@ -204,8 +203,8 @@ TEST(PlasmaJointsTest, TheFiftyWidePlasmaSparksWhenItArrives)
         ASSERT_TRUE(tested.Step().HasValue());
 
         CrtRandom replay{seed};
-        const auto first = Client::Render::Models::OriginalVectorRotate(
-            {0.0f, -50.0f, 0.0f}, Client::Render::Models::OriginalAngleMatrix(expected.angles));
+        const auto first = Client::Math::OriginalVectorRotate({0.0f, -50.0f, 0.0f},
+                                                              Client::Math::OriginalAngleMatrix(expected.angles));
         for (int axis = 0; axis < 3; ++axis)
             expected.position[axis] = F32(D(expected.position[axis]) + D(first[axis]));
         ASSERT_TRUE(Turn(expected, replay));

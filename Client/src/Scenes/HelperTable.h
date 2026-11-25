@@ -190,7 +190,7 @@ struct HelperDrawContext
     World::ModelEffects* effects = nullptr;
     World::Particles* particles = nullptr;
     std::function<std::uint32_t()> systemTime{};
-    std::function<std::span<const Render::Models::BoneTransform>()> globalPose{};
+    std::function<std::span<const Math::BoneTransform>()> globalPose{};
 };
 
 // 0x4453b0 en la escena 5 (0x637508) y en la 4 (0x63486a): 0x445260(lugar, 0) en los 10. Con el lugar vivo,

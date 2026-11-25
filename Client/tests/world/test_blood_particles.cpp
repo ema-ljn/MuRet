@@ -61,9 +61,9 @@ TEST(BloodParticlesTest, TheBloodTakesFourDrawsAndFallsAlongTheStrikersAngles)
         EXPECT_EQ(blood.life, 12);
         EXPECT_EQ(blood.scale, F32(size * static_cast<double>(std::bit_cast<float>(0x3d4ccccdu))));
         EXPECT_EQ(blood.angles, (glm::vec3{static_cast<float>(turn), angles.y, angles.z}));
-        EXPECT_EQ(blood.velocity, Client::Render::Models::OriginalVectorRotate(
+        EXPECT_EQ(blood.velocity, Client::Math::OriginalVectorRotate(
                                       glm::vec3(0.0f, -static_cast<float>(fall), static_cast<float>(side)),
-                                      Client::Render::Models::OriginalAngleMatrix(angles)));
+                                      Client::Math::OriginalAngleMatrix(angles)));
         EXPECT_EQ(blood.light, (glm::vec3{std::bit_cast<float>(0x3dcccccdu), 0.0f, 0.0f}));
         EXPECT_EQ(blood.position, point);
         EXPECT_EQ(blood.start, point);
@@ -95,8 +95,8 @@ TEST(BloodParticlesTest, TheBloodBrakesCountsItsFramesAndDiesAtTwelve)
     {
         SCOPED_TRACE(step);
         Particle expected = blood;
-        const glm::vec3 turned = Client::Render::Models::OriginalVectorRotate(
-            expected.velocity, Client::Render::Models::OriginalAngleMatrix(expected.angles));
+        const glm::vec3 turned =
+            Client::Math::OriginalVectorRotate(expected.velocity, Client::Math::OriginalAngleMatrix(expected.angles));
         for (int k = 0; k < 3; ++k)
             expected.position[k] = F32(static_cast<double>(turned[k]) + expected.position[k]);
         const double x = static_cast<double>(expected.velocity.x) * static_cast<double>(Brake);

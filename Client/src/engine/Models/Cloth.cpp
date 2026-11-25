@@ -82,24 +82,24 @@ constexpr float F(double value)
 }
 
 // HL m[fila][columna] es glm m[columna][fila] (HalfLifeMath.h).
-float At(const BoneTransform& m, int row, int column)
+float At(const Math::BoneTransform& m, int row, int column)
 {
     return m[column][row];
 }
 
 // 0x5fc8f0, con los ángulos en grados: el coseno del ángulo 2 queda en double.
-BoneTransform OriginalAngleMatrix(const glm::vec3& angles)
+Math::BoneTransform OriginalAngleMatrix(const glm::vec3& angles)
 {
     const double a2 = D(angles.z) * D(Degree);
-    const float sy = F(RoundedSin(a2));
-    const double cy = RoundedCos(a2);
+    const float sy = F(Math::RoundedSin(a2));
+    const double cy = Math::RoundedCos(a2);
     const double a1 = D(angles.y) * D(Degree);
-    const float sp = F(RoundedSin(a1));
-    const float cp = F(RoundedCos(a1));
+    const float sp = F(Math::RoundedSin(a1));
+    const float cp = F(Math::RoundedCos(a1));
     const double a0 = D(angles.x) * D(Degree);
-    const float sr = F(RoundedSin(a0));
-    const float cr = F(RoundedCos(a0));
-    BoneTransform m(0.0f);
+    const float sr = F(Math::RoundedSin(a0));
+    const float cr = F(Math::RoundedCos(a0));
+    Math::BoneTransform m(0.0f);
     m[0][0] = F(D(cp) * cy);
     m[0][1] = F(D(cp) * D(sy));
     m[0][2] = F(-D(sp));
@@ -115,7 +115,7 @@ BoneTransform OriginalAngleMatrix(const glm::vec3& angles)
 }
 
 // 0x5fccc0, con el orden de las sumas de cada fila.
-glm::vec3 OriginalVectorTransform(const glm::vec3& v, const BoneTransform& m)
+glm::vec3 OriginalVectorTransform(const glm::vec3& v, const Math::BoneTransform& m)
 {
     const float x = F(((D(At(m, 0, 1)) * D(v.y) + D(At(m, 0, 2)) * D(v.z)) + D(v.x) * D(At(m, 0, 0))) + D(At(m, 0, 3)));
     const float y = F(((D(At(m, 1, 0)) * D(v.x) + D(At(m, 1, 1)) * D(v.y)) + D(At(m, 1, 2)) * D(v.z)) + D(At(m, 1, 3)));
@@ -125,7 +125,7 @@ glm::vec3 OriginalVectorTransform(const glm::vec3& v, const BoneTransform& m)
 
 // 0x4ec110 con su cuarto argumento en 1: la escala del modelo después de la traslación del hueso, sin
 // redondear s · tx antes de sumar el origen (las otras dos, sí).
-glm::vec3 TransformPosition(const BoneTransform& m, const glm::vec3& v, const ClothBody& body)
+glm::vec3 TransformPosition(const Math::BoneTransform& m, const glm::vec3& v, const ClothBody& body)
 {
     const glm::vec3 t = OriginalVectorTransform(v, m);
     return {F(D(body.scale) * D(t.x) + D(body.position.x)), F(D(F(D(body.scale) * D(t.y))) + D(body.position.y)),
@@ -355,7 +355,7 @@ void Cloth::Build(const ClothShape& shape, const ClothBody& body)
     m_dy = F(D(m_height) / static_cast<double>(m_rows - 1));
 
     // La grilla provisoria, con los ángulos del objeto y la traslación del hueso.
-    BoneTransform m = OriginalAngleMatrix(body.angles);
+    Math::BoneTransform m = OriginalAngleMatrix(body.angles);
     const bool hasTheBone = static_cast<std::size_t>(m_bone) < body.bones.size();
     if (hasTheBone)
     {
@@ -439,7 +439,7 @@ void Cloth::Build(const ClothShape& shape, const ClothBody& body)
 }
 
 // 0x455020: cada partícula de la fila 0 a TransformPosition(m, (z, −y', xᵢ)), anclada.
-void Cloth::AnchorTheTopRow(const BoneTransform& matrix, const ClothBody& body)
+void Cloth::AnchorTheTopRow(const Math::BoneTransform& matrix, const ClothBody& body)
 {
     const bool tapers = (m_flags & TaperMask) == Tapers;
     for (std::int32_t i = 0; i < m_columns; ++i)
@@ -499,8 +499,8 @@ bool Cloth::Step(float dt, const ClothBody& body, ClothWorld& world, ClothWindSo
         m_wind = world.windBase;
     }
     const double angle = (D(body.angles.z) + D(OneEighty)) * D(Degree);
-    world.wind.x = F(RoundedSin(angle) * D(m_wind));
-    world.wind.y = F(-(RoundedCos(angle) * D(m_wind)));
+    world.wind.x = F(Math::RoundedSin(angle) * D(m_wind));
+    world.wind.y = F(-(Math::RoundedCos(angle) * D(m_wind)));
 
     // 0x4555d0: las fuerzas (+0x14), los resortes, el anclaje (+0xc) y la integración; las de la vtable
     // 0x6b8d04, sobre la malla.
@@ -822,7 +822,7 @@ std::vector<ClothCorner> Cloth::Corners(bool front) const
 
 float Cloth::GlowAt(float worldTime)
 {
-    return F(RoundedSin(D(worldTime) * D(Thousandth)) * D(Tenth) + D(GlowBase));
+    return F(Math::RoundedSin(D(worldTime) * D(Thousandth)) * D(Tenth) + D(GlowBase));
 }
 
 std::vector<ClothFlare> Cloth::Flares(float glow) const

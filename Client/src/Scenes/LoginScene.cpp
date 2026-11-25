@@ -1746,11 +1746,10 @@ void LoginScene::DrawTheModels(SceneCanvas& canvas, float alpha)
     // que arranca de lo que dejó su dibujo anterior y no del global; al global (0x68b181c) sólo va lo que cuelga.
     character.poseBones = [&](std::uint16_t model)
     {
-        return model == Data::Models::PlayerSkeletonModel
-                   ? std::span<const Render::Models::BoneTransform>(actor.bodyPose)
-                   : std::span<const Render::Models::BoneTransform>(carry.bones);
+        return model == Data::Models::PlayerSkeletonModel ? std::span<const Math::BoneTransform>(actor.bodyPose)
+                                                          : std::span<const Math::BoneTransform>(carry.bones);
     };
-    character.onPose = [&](std::uint16_t model, std::span<const Render::Models::BoneTransform> bones,
+    character.onPose = [&](std::uint16_t model, std::span<const Math::BoneTransform> bones,
                            const Render::Models::ObjectTransform& transform, bool translated)
     {
         if (model == Data::Models::PlayerSkeletonModel)

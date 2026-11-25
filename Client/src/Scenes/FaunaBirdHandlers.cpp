@@ -207,7 +207,7 @@ void MoveBirdOrCrow(FaunaStepContext& c, FaunaObject& b)
 {
     if (b.motionState == 0)
     {
-        if (World::FtolLow(c.worldTime) % 8192 < 2048)
+        if (Math::FtolLow(c.worldTime) % 8192 < 2048)
         {
             const double distance = Distance(b.position, c.heroPosition);
             if (distance >= 200 && distance <= 400)
@@ -255,8 +255,8 @@ void MoveMonster34(FaunaStepContext& c, FaunaObject& b)
 void MoveRidingSpear(FaunaStepContext& c, FaunaObject& b, std::int32_t index)
 {
     const auto steps = ReadSteps(c);
-    const auto sine = Render::Models::Detail::SineProductPC53(b.angles.z, b.scale);
-    const auto cosine = Render::Models::Detail::CosineProductPC53(b.angles.z, b.scale);
+    const auto sine = Math::Detail::SineProductPC53(b.angles.z, b.scale);
+    const auto cosine = Math::Detail::CosineProductPC53(b.angles.z, b.scale);
     if (sine)
         b.position.x = F32(*sine + b.position.x);
     if (cosine)
@@ -267,7 +267,7 @@ void MoveRidingSpear(FaunaStepContext& c, FaunaObject& b, std::int32_t index)
                                                41273U * static_cast<std::uint32_t>(index) + 34571U);
     // Las dos trascendentes permanecen retenidas en el original; el perfil portable declara su límite.
     const auto wave =
-        Render::Models::Detail::SineCosineProductPC53(static_cast<double>(a) * .0003f, static_cast<double>(z) * .0003f);
+        Math::Detail::SineCosineProductPC53(static_cast<double>(a) * .0003f, static_cast<double>(z) * .0003f);
     if (wave)
         b.angles.z = F32(*wave * .01f + b.angles.z);
     if (Distance(b.position, c.heroPosition) >= 1500)
@@ -283,7 +283,7 @@ void CommonMotion(FaunaStepContext& c, FaunaObject& b, std::int32_t index)
         return;
     if (b.model != ButterflyModel || Random(c) % 4 == 0)
         SteerFauna(b, static_cast<std::size_t>(index), c.fauna.Birds());
-    b.matrix = Render::Models::OriginalAngleMatrix(b.angles);
+    b.matrix = Math::OriginalAngleMatrix(b.angles);
     float length;
     if (c.map == 7)
     {
@@ -304,7 +304,7 @@ void CommonMotion(FaunaStepContext& c, FaunaObject& b, std::int32_t index)
     }
     else
         length = F32(static_cast<double>(b.scale) * 25);
-    const auto delta = Render::Models::OriginalVectorRotate({length, 0, b.vertical}, b.matrix);
+    const auto delta = Math::OriginalVectorRotate({length, 0, b.vertical}, b.matrix);
     const double newX = static_cast<double>(delta.x) + b.position.x;
     b.position.x = F32(newX);
     b.position.y = F32(static_cast<double>(delta.y) + b.position.y);

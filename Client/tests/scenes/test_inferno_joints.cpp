@@ -129,8 +129,8 @@ TEST(InfernoJointsTest, TheHoleRisesAndDropsSparks)
     JointState& joint = pool.joints[0];
     CrtRandom expected = pool.random;
     const auto turn = static_cast<float>(expected.Next() % 360);
-    const auto matrix = Client::Render::Models::OriginalAngleMatrix(pool.angles);
-    const auto moved = Client::Render::Models::OriginalVectorRotate({0, -8.0f, 0}, matrix);
+    const auto matrix = Client::Math::OriginalAngleMatrix(pool.angles);
+    const auto moved = Client::Math::OriginalVectorRotate({0, -8.0f, 0}, matrix);
     const glm::vec3 position{F32(D(pool.origin.x) + D(moved.x)), F32(D(pool.origin.y) + D(moved.y)),
                              F32(D(pool.origin.z) + D(moved.z))};
 

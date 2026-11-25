@@ -43,7 +43,7 @@ struct Fixture
     {
         for (int bone = 0; bone < 6; ++bone)
         {
-            Client::Render::Models::BoneTransform matrix(1.0f);
+            Client::Math::BoneTransform matrix(1.0f);
             matrix[3] = glm::vec3(static_cast<float>(bone) * 10.0f, 1.0f, 2.0f);
             pose.bones.push_back(matrix);
         }
@@ -156,9 +156,9 @@ TEST(LandOfTrialsObjectServicesTest, TheBrazierLeavesTwoRedFlaresAndATurnedShine
     CrtRandom draws = fixture.random;
     const auto object = ObjectOf(0x31);
     ASSERT_TRUE(StepLandOfTrialsObjectFrame(object, fixture.Pass()).HasValue());
-    const glm::vec3 point = Client::Render::Models::OriginalVectorTransform(
-        glm::vec3(0.0f, -10.0f, 0.0f), Client::Render::Models::OriginalMatrixOf(fixture.pose.bones[3]));
-    const auto pulse = Client::Render::Models::Detail::SineProductPC53(
+    const glm::vec3 point = Client::Math::OriginalVectorTransform(
+        glm::vec3(0.0f, -10.0f, 0.0f), Client::Math::OriginalMatrixOf(fixture.pose.bones[3]));
+    const auto pulse = Client::Math::Detail::SineProductPC53(
         2500.0 * static_cast<double>(std::bit_cast<float>(0x3b03126fu)), std::bit_cast<float>(0x3eb33333u));
     ASSERT_TRUE(pulse.has_value());
     const float scale = static_cast<float>(((*pulse + static_cast<double>(0.65f)) * static_cast<double>(1.2f)) +
@@ -246,7 +246,7 @@ TEST(LandOfTrialsObjectServicesTest, TheBodiesPulseWithTheClockAndTheirPhase)
         ASSERT_TRUE(body.HasValue());
         ASSERT_TRUE(body.Value().has_value());
         const double argument = static_cast<double>(clock) * static_cast<double>(std::bit_cast<float>(c.rate)) + 4.5;
-        const auto pulse = Client::Render::Models::Detail::SineProductPC53(argument, 0.5f);
+        const auto pulse = Client::Math::Detail::SineProductPC53(argument, 0.5f);
         ASSERT_TRUE(pulse.has_value());
         const double level = *pulse + static_cast<double>(0.9f);
         EXPECT_EQ(body.Value()->color, glm::vec3(static_cast<float>(level * static_cast<double>(color.x)),

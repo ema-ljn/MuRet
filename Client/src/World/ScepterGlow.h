@@ -29,7 +29,7 @@ inline constexpr std::size_t ScepterSpriteCount = 5;
 // con la escala y el origen del cuerpo: dos Shiny02 (0x5fd) y un flare01 (0x5ac) en el tridente, y dos
 // Shiny02 en el pomo, con la posición y la escala de seis rand() del frame. Con la tabla llena no se
 // crean, pero los rand() salen igual.
-void CreateScepterGlow(FrameSprites& sprites, const Render::Models::OriginalMatrix& bone, float bodyScale,
+void CreateScepterGlow(FrameSprites& sprites, const Math::OriginalMatrix& bone, float bodyScale,
                        const glm::vec3& bodyOrigin, Crt::CrtRandom& random);
 
 // Los seis rand() de un frame, ya con su módulo, en el orden en que salen: el p y la escala del tridente
@@ -45,7 +45,7 @@ struct ScepterGlowRandoms
 };
 [[nodiscard]] ScepterGlowRandoms DrawScepterGlowRandoms(Crt::CrtRandom& random);
 // Los cinco con los rand() ya sacados.
-void CreateScepterGlow(FrameSprites& sprites, const Render::Models::OriginalMatrix& bone, float bodyScale,
+void CreateScepterGlow(FrameSprites& sprites, const Math::OriginalMatrix& bone, float bodyScale,
                        const glm::vec3& bodyOrigin, const ScepterGlowRandoms& randoms);
 
 // El brillo del cetro de un personaje a cualquier FPS, corregido como la tela (Q-C124) y la mascota (Q-C20):
@@ -59,8 +59,8 @@ inline constexpr int MaxScepterFramesPerAdvance = Render::Models::MaxOriginalFra
 class ScepterGlowCarry
 {
 public:
-    void Create(FrameSprites& sprites, const Render::Models::OriginalMatrix& bone, float bodyScale,
-                const glm::vec3& bodyOrigin, Crt::CrtRandom& random, Core::Duration clock,
+    void Create(FrameSprites& sprites, const Math::OriginalMatrix& bone, float bodyScale, const glm::vec3& bodyOrigin,
+                Crt::CrtRandom& random, Core::Duration clock,
                 Render::Models::OriginalFramePace pace = Render::Models::OriginalFramePace::ByTheClock);
     // Create vuelve a contar desde cero, como en el primer frame: el próximo sortea un frame y no pone al día el
     // tiempo que pasó sin dibujo. Es para un frame retenido (Q-C85), como la tela.

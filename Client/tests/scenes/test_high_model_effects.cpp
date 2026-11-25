@@ -240,7 +240,7 @@ TEST(HighModelEffectsTest, TheArrivalAuraHoldsWhileItsActorLivesAndHidesWithoutT
         EXPECT_EQ(aura.life, 1);
         EXPECT_EQ(aura.objectState.hiddenMesh, siege ? -1 : -2);
         const double argument = static_cast<double>(tested.clock) * static_cast<double>(0.001f);
-        const auto wave = Client::Render::Models::Detail::SineProductPC53(argument, 0.1f);
+        const auto wave = Client::Math::Detail::SineProductPC53(argument, 0.1f);
         ASSERT_TRUE(wave.has_value());
         EXPECT_EQ(aura.objectState.light, static_cast<float>(*wave + static_cast<double>(0.2f)));
         EXPECT_EQ(aura.objectState.uv.x,
@@ -416,8 +416,8 @@ TEST(HighModelEffectsTest, TheSiegePulseTurnsAndFallsIntoTheFlareStep)
     const int rise = expected.Next() % 400;
     static_cast<void>(expected.Next());
     const int speed = expected.Next() % 20;
-    const glm::vec3 reach = Client::Render::Models::OriginalVectorRotate(
-        {0, -550, 0.3f}, Client::Render::Models::OriginalAngleMatrix({0, 0, 82}));
+    const glm::vec3 reach =
+        Client::Math::OriginalVectorRotate({0, -550, 0.3f}, Client::Math::OriginalAngleMatrix({0, 0, 82}));
     ASSERT_EQ(reach.z, 0.3f);
     const glm::vec3 point{static_cast<float>(static_cast<double>(reach.x) + 1000.0),
                           static_cast<float>(static_cast<double>(reach.y) + 2000.0),
@@ -482,8 +482,8 @@ TEST(HighModelEffectsTest, TheSecondSiegePulseDropsTwoBolts)
 
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(tested.Draws(), 1 + 2 + 2);
-    const glm::vec3 reach = Client::Render::Models::OriginalVectorRotate(
-        {0, -250, 0.3f}, Client::Render::Models::OriginalAngleMatrix({0, 0, 82}));
+    const glm::vec3 reach =
+        Client::Math::OriginalVectorRotate({0, -250, 0.3f}, Client::Math::OriginalAngleMatrix({0, 0, 82}));
     ASSERT_EQ(reach.z, 0.3f);
     const glm::vec3 point{static_cast<float>(static_cast<double>(reach.x) + 1000.0),
                           static_cast<float>(static_cast<double>(reach.y) + 2000.0),
@@ -982,9 +982,8 @@ TEST(HighModelEffectsTest, TheMovingLightsTakeTheirColorScaleAndRush)
         EXPECT_EQ(ray.life, 20);
         EXPECT_EQ(ray.light, probe.light);
         EXPECT_EQ(ray.transform.scale, probe.scale);
-        EXPECT_EQ(ray.velocity,
-                  Client::Render::Models::OriginalVectorRotate(
-                      {0.0f, probe.rush, 0.0f}, Client::Render::Models::OriginalAngleMatrix(arguments.angles)));
+        EXPECT_EQ(ray.velocity, Client::Math::OriginalVectorRotate(
+                                    {0.0f, probe.rush, 0.0f}, Client::Math::OriginalAngleMatrix(arguments.angles)));
         EXPECT_EQ(tested.Draws(), 0);
         ASSERT_TRUE(StepHighModelEffect(ray, nullptr, tested.StepContext()).HasValue());
         EXPECT_EQ(ray.transform.position, arguments.position);
@@ -1112,7 +1111,7 @@ TEST(HighModelEffectsTest, TheWobblyFallingStarLeavesItsFireAndTwoSprites)
     for (int axis = 0; axis < 2; ++axis)
     {
         const auto wobble =
-            Client::Render::Models::Detail::SineProductPC53(static_cast<double>(expected.Next() % 1000) * rate, 10.0f);
+            Client::Math::Detail::SineProductPC53(static_cast<double>(expected.Next() % 1000) * rate, 10.0f);
         ASSERT_TRUE(wobble.has_value());
         position[axis] = static_cast<float>(*wobble + (axis == 0 ? 500.0 : 600.0));
     }
@@ -1281,9 +1280,8 @@ TEST(HighModelEffectsTest, TheHomingPartTurnsTowardItsOwnerAndLeavesItsTrail)
     glm::vec3 angles{0, 0, 0};
     if ((expected.Next() & 1) == 0)
         angles.x = -20.0f;
-    static_cast<void>(Client::Render::Models::MoveToward({0, 0, 0}, angles, {1000, 0, 100}, 10.0f));
-    const glm::vec3 moved =
-        Client::Render::Models::OriginalVectorRotate({0, -26, 0}, Client::Render::Models::OriginalAngleMatrix(angles));
+    static_cast<void>(Client::Math::MoveToward({0, 0, 0}, angles, {1000, 0, 100}, 10.0f));
+    const glm::vec3 moved = Client::Math::OriginalVectorRotate({0, -26, 0}, Client::Math::OriginalAngleMatrix(angles));
     EXPECT_EQ(part.transform.angles, angles);
     EXPECT_EQ(part.transform.position, moved);
     EXPECT_EQ(part.speed, static_cast<float>(10.0 + static_cast<double>(std::bit_cast<float>(0x3ecccccdu))));
@@ -1511,8 +1509,8 @@ TEST(HighModelEffectsTest, TheEmittersLeaveJointsEveryStep)
         glm::vec3 angles{0.0f};
         angles.x = static_cast<float>(expected.Next() % 90);
         angles.z = static_cast<float>(expected.Next() % 360);
-        const glm::vec3 back = Client::Render::Models::OriginalVectorRotate(
-            {0.0f, -100.0f, 0.0f}, Client::Render::Models::OriginalAngleMatrix(angles));
+        const glm::vec3 back =
+            Client::Math::OriginalVectorRotate({0.0f, -100.0f, 0.0f}, Client::Math::OriginalAngleMatrix(angles));
         const glm::vec3& at = bolt.transform.position;
         ASSERT_TRUE(energy.alive);
         EXPECT_EQ(energy.type, 0x619);
@@ -1541,7 +1539,7 @@ glm::vec3 SumOf(const glm::vec3& a, const glm::vec3& b)
 
 glm::vec3 TurnedBy(const glm::vec3& vector, const glm::vec3& angles)
 {
-    return Client::Render::Models::OriginalVectorRotate(vector, Client::Render::Models::OriginalAngleMatrix(angles));
+    return Client::Math::OriginalVectorRotate(vector, Client::Math::OriginalAngleMatrix(angles));
 }
 
 // 0x51f5fe..0x51f7f8: el 0x6ac vive 10, con +0xd8 en 1 y la velocidad (0, −30, 0), corrido (0, −20, 50) girado. Sus dos
@@ -1775,7 +1773,7 @@ TEST(HighModelEffectsTest, TheJavelinClimbsSpinsAndBrakes)
     const glm::vec3 advanced = SumOf(TurnedBy({0, -5, 0}, aim), {100, 200, 450});
     EXPECT_EQ(javelin.transform.position.x, advanced.x);
     EXPECT_EQ(javelin.transform.position.y, advanced.y);
-    const auto wave = Client::Render::Models::Detail::SineProductPC53(35.0 * static_cast<double>(0.1f), 30.0f);
+    const auto wave = Client::Math::Detail::SineProductPC53(35.0 * static_cast<double>(0.1f), 30.0f);
     ASSERT_TRUE(wave.has_value());
     EXPECT_EQ(javelin.transform.position.z, static_cast<float>(*wave + 850.0));
     EXPECT_EQ(javelin.transform.angles.z, 15.0f);
@@ -1956,7 +1954,7 @@ struct GlowWorld
             return {};
         };
         owner.type = 0x4a2;
-        owner.bodyPose.assign(34, Client::Render::Models::BoneTransform(1.0f));
+        owner.bodyPose.assign(34, Client::Math::BoneTransform(1.0f));
         owner.bodyPose[33][3] = {1.0f, 2.0f, 3.0f};
         tested.world->PlaceModel(0x4a2, {.scale = 1.0f, .origin = {7, 8, 9}});
         created =

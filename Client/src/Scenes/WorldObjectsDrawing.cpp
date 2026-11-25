@@ -221,7 +221,7 @@ Core::Expected<void, std::string> CreateObjectCloud(const World::WorldObject& ob
     // rand() (0x604427, 0x60444c, 0x604471) y 0x518cf0(0xc2, punto, +0x1c, +0xf4, 9, 0, −1, 0, 0, 0, 0) (0x6044b2).
     if (map == LoginCloudMap && object.type == LoginMeteorMarker)
     {
-        if (World::FtolLow(static_cast<double>(clock)) % LoginMeteorPeriod < LoginMeteorWindow)
+        if (Math::FtolLow(static_cast<double>(clock)) % LoginMeteorPeriod < LoginMeteorWindow)
             return {};
         if (effects.modelEffects == nullptr)
             return Core::Unexpected(std::string("0x604427: el meteoro 0xc2/9 del objeto 0x59 del mapa 55 (0x518cf0) "
@@ -439,8 +439,8 @@ void DrawWorldObjects(Render::ModelBatch& batch, const Render::Models::IModelLib
             {
                 const auto bone = World::StreetLightGlowBones[k];
                 if (retained != nullptr && bone < retained->bones.size())
-                    (*entry.glowPositions)[k] = Render::Models::OriginalVectorTransform(
-                        {}, Render::Models::OriginalMatrixOf(retained->bones[bone]));
+                    (*entry.glowPositions)[k] =
+                        Math::OriginalVectorTransform({}, Math::OriginalMatrixOf(retained->bones[bone]));
                 else
                     (*entry.glowPositions)[k] = LastPosedBonePoint(posed, bone, glm::vec3(0)).value_or(glm::vec3(0));
             }
@@ -924,7 +924,7 @@ Render::ModelBlend SpriteBlend(const World::Sprite& sprite)
 } // namespace
 
 void DrawFrameSprites(Render::ModelBatch& batch, World::FrameSprites& sprites,
-                      const Render::Models::IModelLibrary& textures, const Render::Models::OriginalMatrix& view,
+                      const Render::Models::IModelLibrary& textures, const Math::OriginalMatrix& view,
                       std::uint8_t mode)
 {
     for (World::Sprite& sprite : sprites.Sprites())
@@ -977,7 +977,7 @@ void DrawFrameSprites(Render::ModelBatch& batch, World::FrameSprites& sprites,
 
 Core::Expected<void, World::ParticleDrawingFailure>
 DrawParticles(Render::ModelBatch& batch, World::Particles& particles, const Render::Models::IModelLibrary& textures,
-              const Render::Models::OriginalMatrix& view, float worldClock, std::uint8_t mode)
+              const Math::OriginalMatrix& view, float worldClock, std::uint8_t mode)
 {
     bool restoreTextureEnv = false;
     const auto drawn = [&]

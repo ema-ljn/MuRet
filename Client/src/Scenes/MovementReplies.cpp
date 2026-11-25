@@ -120,9 +120,9 @@ Core::Expected<void, std::string> ApplyJumpingWalk(ActorState& actor, const Worl
         const Render::Models::LogicalAccess y(actor.cellYAccesses, random, Render::Models::SmallLogicalCloseRandoms);
         actor.cellX = actor.targetX;
         actor.cellY = actor.targetY;
-        actor.angles.z = static_cast<float>(Render::Models::CreateAngle(actor.position.x, actor.position.y,
-                                                                        static_cast<float>(actor.cellX) * CellSize,
-                                                                        static_cast<float>(actor.cellY) * CellSize));
+        actor.angles.z = static_cast<float>(Math::CreateAngle(actor.position.x, actor.position.y,
+                                                              static_cast<float>(actor.cellX) * CellSize,
+                                                              static_cast<float>(actor.cellY) * CellSize));
     }
     const auto context = StopContext(actor, resources);
     if (!context.HasValue())
@@ -187,8 +187,7 @@ Core::Expected<void, std::string> RaiseTheShield(ActorState& hero, const WorldEn
         return Core::Unexpected(
             std::format("0x4cb347: el lugar {} de [0x5767964] cae fuera de la tabla de personajes", source));
     const ActorState& striker = actors[static_cast<std::size_t>(source)];
-    const double heading =
-        Render::Models::CreateAngle(striker.position.x, striker.position.y, hero.position.x, hero.position.y);
+    const double heading = Math::CreateAngle(striker.position.x, striker.position.y, hero.position.x, hero.position.y);
     // 0x4cb361..0x4cb376: fabs y fcomp con test ah,1: C0 también sin orden.
     if (std::fabs(heading - static_cast<double>(striker.angles.z)) >= FacingSpan)
         return {};

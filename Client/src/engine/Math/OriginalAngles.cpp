@@ -11,7 +11,7 @@
 #include <limits>
 #include <cstdint>
 
-namespace Client::Render::Models
+namespace Client::Math
 {
 namespace
 {
@@ -170,4 +170,4 @@ double AngleDistance(float from, float to, std::uint8_t mode)
     }
     return distance;
 }
-} // namespace Client::Render::Models
+} // namespace Client::Math

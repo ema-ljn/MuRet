@@ -25,9 +25,9 @@ Core::Expected<std::uint32_t, TerrainAttributeQueryError> TerrainAttributeQueryA
                                                                                   float x, float y)
 {
     const double productY = static_cast<double>(y) * static_cast<double>(source.ReadScale());
-    const auto row = static_cast<std::uint32_t>(FtolLow(productY));
+    const auto row = static_cast<std::uint32_t>(Math::FtolLow(productY));
     const double productX = static_cast<double>(x) * static_cast<double>(source.ReadScale());
-    const auto column = static_cast<std::uint32_t>(FtolLow(productX));
+    const auto column = static_cast<std::uint32_t>(Math::FtolLow(productX));
     const std::uint32_t index = (row << RowShift) + column;
     const std::uint32_t address = AttributeBase - (index << WordShift);
     const auto& attributes = source.Attributes();

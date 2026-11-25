@@ -25,8 +25,8 @@ TEST(CrywolfMissileDrawingTest, TheTailEmitsFourParticlesAndTenSpritesFromTheGlo
         effect.type = static_cast<std::int16_t>(type);
         effect.transform.position = {1000, 2000, 300};
         effect.transform.scale = 1;
-        std::array<Client::Render::Models::BoneTransform, 2> pose{Client::Render::Models::BoneTransform(0.0f),
-                                                                  Client::Render::Models::BoneTransform(1.0f)};
+        std::array<Client::Math::BoneTransform, 2> pose{Client::Math::BoneTransform(0.0f),
+                                                        Client::Math::BoneTransform(1.0f)};
         pose[1][3] = {100, 200, 300};
         Client::Crt::CrtRandom random(7);
         const auto drawn = Client::Scenes::DrawCrywolfMissileTail(effect, 19, *particles, sprites, random, pose, 0);

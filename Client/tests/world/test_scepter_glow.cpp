@@ -68,7 +68,7 @@ TEST(ScepterGlowTest, ThreeHundredCasesMatchTheBinary)
             head >> value;
             return FromBits(value);
         };
-        Client::Render::Models::OriginalMatrix bone{};
+        Client::Math::OriginalMatrix bone{};
         for (float& value : bone)
         {
             value = next();
@@ -137,9 +137,8 @@ TEST(ScepterGlowTest, AFullTableTakesTheRandsAnyway)
     {
         (void)expected.Next();
     }
-    Client::World::CreateScepterGlow(
-        sprites, Client::Render::Models::OriginalMatrixOf(Client::Render::Models::BoneTransform(1.0f)), 1.0f,
-        glm::vec3(0.0f), random);
+    Client::World::CreateScepterGlow(sprites, Client::Math::OriginalMatrixOf(Client::Math::BoneTransform(1.0f)), 1.0f,
+                                     glm::vec3(0.0f), random);
     EXPECT_EQ(random.State(), expected.State());
 }
 
@@ -186,7 +185,7 @@ void ExpectSameGlow(const std::vector<Sprite>& actual, const std::vector<Sprite>
 // sortea.
 TEST(ScepterGlowTest, TheGlowIsDrawnOncePerOriginalFrame)
 {
-    const auto bone = Client::Render::Models::OriginalMatrixOf(Client::Render::Models::BoneTransform(1.0f));
+    const auto bone = Client::Math::OriginalMatrixOf(Client::Math::BoneTransform(1.0f));
     Client::World::ScepterGlowCarry carry;
     CrtRandom random(5);
 
@@ -225,7 +224,7 @@ TEST(ScepterGlowTest, TheGlowIsDrawnOncePerOriginalFrame)
 // Un reloj que vuelve no corre frames: repite el último sorteo.
 TEST(ScepterGlowTest, AClockThatGoesBackRepeatsTheGlow)
 {
-    const auto bone = Client::Render::Models::OriginalMatrixOf(Client::Render::Models::BoneTransform(1.0f));
+    const auto bone = Client::Math::OriginalMatrixOf(Client::Math::BoneTransform(1.0f));
     Client::World::ScepterGlowCarry carry;
     CrtRandom random(9);
     FrameSprites first;
@@ -244,7 +243,7 @@ TEST(ScepterGlowTest, InTheFaithfulModeEachDrawSortsOnce)
 {
     using namespace std::chrono_literals;
     using Client::Render::Models::OriginalFrameTime;
-    const auto bone = Client::Render::Models::OriginalMatrixOf(Client::Render::Models::BoneTransform(1.0f));
+    const auto bone = Client::Math::OriginalMatrixOf(Client::Math::BoneTransform(1.0f));
     Client::World::ScepterGlowCarry carry;
     CrtRandom random(5);
     const std::array<Client::Core::Duration, 4> clocks{(3 * OriginalFrameTime) + 300us, (4 * OriginalFrameTime) + 100us,
@@ -265,7 +264,7 @@ TEST(ScepterGlowTest, AfterARestartTheNextDrawSortsOnce)
 {
     using namespace std::chrono_literals;
     using Client::Render::Models::OriginalFrameTime;
-    const auto bone = Client::Render::Models::OriginalMatrixOf(Client::Render::Models::BoneTransform(1.0f));
+    const auto bone = Client::Math::OriginalMatrixOf(Client::Math::BoneTransform(1.0f));
     Client::World::ScepterGlowCarry carry;
     CrtRandom random(5);
     FrameSprites first;

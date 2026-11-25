@@ -231,15 +231,15 @@ CharacterBalloons::Draw(Render::SpriteBatch& sprites, Scenes::ITextDrawer& text,
             return Core::Unexpected(std::format("0x63ca76: el globo {} se muestra sin su personaje proyectado", index));
         // 0x63ca7b..0x63caa0: fild del punto, fmul por ry o rx y _ftol; 0x6472e0(x, y, 3) resta el punto de +0x58 y
         // suma el de +0x5c a H − y, en la x87, y guarda el borde en float.
-        const std::optional<std::int32_t> pixelX = World::OriginalFtolLow(static_cast<double>(head->point.x) * ratioX);
-        const std::optional<std::int32_t> pixelY = World::OriginalFtolLow(static_cast<double>(head->point.y) * ratioY);
+        const std::optional<std::int32_t> pixelX = Math::OriginalFtolLow(static_cast<double>(head->point.x) * ratioX);
+        const std::optional<std::int32_t> pixelY = Math::OriginalFtolLow(static_cast<double>(head->point.y) * ratioY);
         if (!pixelX || !pixelY)
             return Core::Unexpected(std::format("0x63ca89: el punto del globo {} no entra en un entero", index));
         const auto left = static_cast<float>(static_cast<double>(*pixelX) - AnchorX);
         const auto topFromBottom = static_cast<float>(height - static_cast<double>(*pixelY) + AnchorY);
         // 0x63cab8..0x63cb15: _ftol de +0x18 y de +0x08 − +0x1c, el borde de arriba con la y desde arriba.
-        const std::optional<std::int32_t> column = World::OriginalFtolLow(static_cast<double>(left));
-        const std::optional<std::int32_t> row = World::OriginalFtolLow(height - static_cast<double>(topFromBottom));
+        const std::optional<std::int32_t> column = Math::OriginalFtolLow(static_cast<double>(left));
+        const std::optional<std::int32_t> row = Math::OriginalFtolLow(height - static_cast<double>(topFromBottom));
         if (!column || !row)
             return Core::Unexpected(std::format("0x63cabb: el borde del globo {} no entra en un entero", index));
         balloon.image.x = *column;

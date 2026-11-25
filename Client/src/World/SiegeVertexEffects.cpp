@@ -48,8 +48,8 @@ using Math::F32;
 void RotateThePush(ModelEffect& effect, float push, Crt::CrtRandom& random)
 {
     effect.transform.angles.z = static_cast<float>(random.Next() % Degrees);
-    effect.velocity = Render::Models::OriginalVectorRotate(
-        {0.0f, push, 0.0f}, Render::Models::OriginalAngleMatrix(effect.transform.angles));
+    effect.velocity =
+        Math::OriginalVectorRotate({0.0f, push, 0.0f}, Math::OriginalAngleMatrix(effect.transform.angles));
 }
 
 void RandomizeTheAngles(ModelEffect& effect, Crt::CrtRandom& random)

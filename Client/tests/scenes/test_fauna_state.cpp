@@ -53,7 +53,7 @@ TEST(FaunaStateTest, PoseScratchBelongsToTheDurableWorldAndSurvivesFaunaClear)
 {
     Client::Scenes::WorldState world;
     auto& pose = world.PoseCarry();
-    pose.bones.resize(3, Client::Render::Models::BoneTransform(0));
+    pose.bones.resize(3, Client::Math::BoneTransform(0));
     pose.bones[2][3] = {7, 8, 9};
     world.Fauna().Clear();
     EXPECT_EQ(&world.PoseCarry(), &pose);

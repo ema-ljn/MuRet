@@ -50,18 +50,18 @@ ScepterGlowRandoms DrawScepterGlowRandoms(Crt::CrtRandom& random)
     return randoms;
 }
 
-void CreateScepterGlow(FrameSprites& sprites, const Render::Models::OriginalMatrix& bone, float bodyScale,
+void CreateScepterGlow(FrameSprites& sprites, const Math::OriginalMatrix& bone, float bodyScale,
                        const glm::vec3& bodyOrigin, Crt::CrtRandom& random)
 {
     CreateScepterGlow(sprites, bone, bodyScale, bodyOrigin, DrawScepterGlowRandoms(random));
 }
 
-void CreateScepterGlow(FrameSprites& sprites, const Render::Models::OriginalMatrix& bone, float bodyScale,
+void CreateScepterGlow(FrameSprites& sprites, const Math::OriginalMatrix& bone, float bodyScale,
                        const glm::vec3& bodyOrigin, const ScepterGlowRandoms& randoms)
 {
     const glm::vec3 light{1.0f, 0.3f, 0.0f};
     const auto at = [&](const glm::vec3& offset)
-    { return Render::Models::OriginalTransformPosition(bone, offset, bodyScale, bodyOrigin); };
+    { return Math::OriginalTransformPosition(bone, offset, bodyScale, bodyOrigin); };
 
     // El tridente: p = (rand() % 60) · 0,05 − 1,5 y la escala (rand() % 10) · 0,05 + 1,4.
     float p = Steps(randoms.tridentStep, -1.5);
@@ -87,7 +87,7 @@ void CreateScepterGlow(FrameSprites& sprites, const Render::Models::OriginalMatr
                          90.0f, Additive);
 }
 
-void ScepterGlowCarry::Create(FrameSprites& sprites, const Render::Models::OriginalMatrix& bone, float bodyScale,
+void ScepterGlowCarry::Create(FrameSprites& sprites, const Math::OriginalMatrix& bone, float bodyScale,
                               const glm::vec3& bodyOrigin, Crt::CrtRandom& random, Core::Duration clock,
                               Render::Models::OriginalFramePace pace)
 {

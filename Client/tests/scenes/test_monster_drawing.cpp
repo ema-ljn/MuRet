@@ -66,7 +66,7 @@
 // ejecutar el original. Un modelo sintético de un triángulo en el hueso 0 deja ver el cuerpo, el contorno y la sombra.
 namespace
 {
-using Client::Render::Models::RoundedSin;
+using Client::Math::RoundedSin;
 using Client::Scenes::ActorState;
 using Client::Scenes::GameCharacterPass;
 
@@ -93,6 +93,7 @@ class MonsterModels final : public Client::Render::Models::IModelLibrary
 public:
     MonsterModels()
     {
+        using namespace Client::Math;
         using namespace Client::Render::Models;
         SkeletonBone bone;
         bone.parent = -1;
@@ -1232,7 +1233,7 @@ TEST_F(MonsterDrawingTest, ThePhoenixBetweenOriginalFramesStoresNothing)
     EXPECT_EQ(phoenix.dword64, -1);
     EXPECT_EQ(phoenix.blendMeshLight, 1.0f);
     EXPECT_TRUE(phoenix.bodyPose.empty());
-    EXPECT_EQ(m_world->Runtime().phoenixBones[2], Client::Render::Models::BoneTransform{});
+    EXPECT_EQ(m_world->Runtime().phoenixBones[2], Client::Math::BoneTransform{});
     EXPECT_TRUE(cloths[3].Cloths().empty());
     EXPECT_EQ(m_clothWorld.random.State(), 1u);
     const auto unsupplied = Draw(Pass());
@@ -1335,7 +1336,7 @@ TEST_F(MonsterDrawingTest, TheBloodCastleStatuesHoldTheirWeaponInPlace)
             // El cuerpo, la sombra (sin ella en el 11, como Spider) y los pases del arma (0x60b3d0).
             ASSERT_GE(vertices.size(), 9u);
             // El hueso 0 de lo que cuelga es la raíz: el hueso 1 del cuerpo por el lugar, a la escala del modelo.
-            const Client::Render::Models::BoneTransform root = Client::Render::Models::PlacedRoot(
+            const Client::Math::BoneTransform root = Client::Render::Models::PlacedRoot(
                 statue.bodyPose[1], Client::Render::Models::HangingPlacement{value.angles, value.translation});
             const glm::vec3 expected = root[3] * value.scale + statue.position;
             EXPECT_NEAR(vertices[6].position.x, expected.x, 1e-3f);

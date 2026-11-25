@@ -1025,8 +1025,7 @@ GridCell CellUnderTheMouse(std::int32_t mouseX, std::int32_t mouseY, std::int32_
                            ItemFootprint footprint)
 {
     const auto axis = [](std::int32_t mouse, std::int32_t corner, std::int32_t size) {
-        return World::FtolLow(static_cast<double>(mouse - corner) * CellScale - static_cast<double>(size) * Half +
-                              Half);
+        return Math::FtolLow(static_cast<double>(mouse - corner) * CellScale - static_cast<double>(size) * Half + Half);
     };
     return GridCell{.column = axis(mouseX, left, footprint.width), .row = axis(mouseY, top, footprint.height)};
 }
@@ -1435,7 +1434,7 @@ void HoverTheEquipment(const InventoryMoveContext& context, std::size_t slot, st
     runtime.ui.field78abb28 = 0;
     runtime.ui.field78abb2c = static_cast<std::int32_t>(slot);
     // 0x5c3acc..0x5c3ae3: _ftol del ancho, / 2 con signo.
-    runtime.ui.skillTooltipX = left + World::FtolLow(static_cast<double>(width)) / 2;
+    runtime.ui.skillTooltipX = left + Math::FtolLow(static_cast<double>(width)) / 2;
     runtime.ui.skillTooltipY = top;
 }
 

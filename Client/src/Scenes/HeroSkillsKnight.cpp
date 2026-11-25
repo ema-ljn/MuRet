@@ -230,7 +230,7 @@ Cells ReadTheCells(ActorState& hero, Crt::CrtRandom& random)
 void FaceTheTarget(ActorState& hero)
 {
     hero.angles.z = static_cast<float>(
-        Render::Models::CreateAngle(hero.position.x, hero.position.y, hero.attackPosition.x, hero.attackPosition.y));
+        Math::CreateAngle(hero.position.x, hero.position.y, hero.attackPosition.x, hero.attackPosition.y));
 }
 
 // 0x583f12..0x583f63 (y 0x586436, 0x587aab y 0x588899): la distancia del héroe al centro de la celda del blanco
@@ -263,7 +263,7 @@ std::uint8_t TargetPosition(std::int32_t dx, std::int32_t dy)
 
 Core::Expected<std::int32_t, std::string> Ftol(double value, std::string_view where)
 {
-    const auto truncated = World::OriginalFtolLow(value);
+    const auto truncated = Math::OriginalFtolLow(value);
     if (!truncated)
         return Core::Unexpected(std::format("{}: fuera del perfil de ftol", where));
     return *truncated;

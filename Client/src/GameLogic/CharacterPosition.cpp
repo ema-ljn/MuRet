@@ -41,10 +41,10 @@ double HeightOffset(CharacterPositionState state)
 bool TryUpdateCharacterPosition(CharacterPositionState state, const std::function<double()>& speed,
                                 const std::function<double(float, float)>& height)
 {
-    const auto matrix = Render::Models::OriginalAngleMatrix(state.angles);
+    const auto matrix = Math::OriginalAngleMatrix(state.angles);
     assert(speed);
     const auto forward = static_cast<float>(-speed());
-    const glm::vec3 delta = Render::Models::OriginalVectorRotate({0.0f, forward, 0.0f}, matrix);
+    const glm::vec3 delta = Math::OriginalVectorRotate({0.0f, forward, 0.0f}, matrix);
     const auto x = static_cast<float>(static_cast<double>(delta.x) + static_cast<double>(state.position.x));
     state.position.x = x;
     const auto y = static_cast<float>(static_cast<double>(delta.y) + static_cast<double>(state.position.y));
@@ -61,7 +61,7 @@ bool TryUpdateCharacterPosition(CharacterPositionState state, const std::functio
     state.position.z = static_cast<float>(offset == 0.0 ? terrainHeight : terrainHeight + offset);
     if (bobbing)
     {
-        const auto sine = static_cast<float>(Render::Models::RoundedSin(static_cast<double>(state.phase)));
+        const auto sine = static_cast<float>(Math::RoundedSin(static_cast<double>(state.phase)));
         const double product = std::fabs(static_cast<double>(sine)) * BobbingAmplitude;
         state.position.z = static_cast<float>((static_cast<double>(state.position.z) - product) + BobbingAmplitude);
     }

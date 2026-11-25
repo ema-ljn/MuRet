@@ -107,10 +107,10 @@ struct DrawnCharacter
     // Publica matrices ya calculadas: el cuerpo con la cabeza (también el de Chaos Castle) y lo que cuelga, con su
     // raíz real. El cuerpo va al buffer propio del personaje (+0x120, 0x511bf7), no al global: quien lo recibe
     // decide dónde lo guarda.
-    std::function<void(std::uint16_t, std::span<const Render::Models::BoneTransform>,
-                       const Render::Models::ObjectTransform&, bool)>
+    std::function<void(std::uint16_t, std::span<const Math::BoneTransform>, const Render::Models::ObjectTransform&,
+                       bool)>
         onPose{};
-    std::function<std::span<const Render::Models::BoneTransform>(std::uint16_t)> poseBones{};
+    std::function<std::span<const Math::BoneTransform>(std::uint16_t)> poseBones{};
     // Publica la caja después de dibujar partes y contornos, antes del cuerpo del personaje.
     std::function<void(const glm::vec3&)> onPartBox{};
 };
@@ -184,8 +184,8 @@ inline constexpr std::uint16_t ChaosCastleBodyModel = 0x1f7;
 
 // Los huesos del cuerpo de `character` como los posa DrawCharacter (0x4eb860 con la cabeza): el buffer
 // propio del personaje, +0x120. Sin el esqueleto del 0x20a o si la pose falla, vacío.
-[[nodiscard]] std::vector<Render::Models::BoneTransform> PoseCharacterBody(const Render::Models::IModelLibrary& models,
-                                                                           const DrawnCharacter& character);
+[[nodiscard]] std::vector<Math::BoneTransform> PoseCharacterBody(const Render::Models::IModelLibrary& models,
+                                                                 const DrawnCharacter& character);
 
 // Cuántos rand() saca 0x607b60 al armar el objeto de lo que cuelga con el tipo `model`: uno con Sword15
 // (0x220) y Staff08 (0xc19), dos con Staff06 (0xc17) y Shield15 (0xe20), y ninguno con los demás.
@@ -239,9 +239,10 @@ void DrawObjectFromMeshes(Render::ModelBatch& batch, const Render::Models::IMode
 // `object`, en su orden, con su escala y su posición; también las que no tienen textura, que 0x4eff40 no mira. Una
 // malla con índices fuera de rango queda vacía. Sin el modelo, ninguna. `boneScale` es el 0x6c881c que deja 0x5ffdf0
 // por su modo: 1, o 1,2 con el 2 y 1,4 con el 3 (0x5fff82..0x5fffaf, Render::Models::SkinMeshAroundBones).
-[[nodiscard]] std::vector<Render::Models::SkinnedMesh>
-SkinObjectMeshes(const Render::Models::IModelLibrary& models, const DrawnObject& object,
-                 std::span<const Render::Models::BoneTransform> bones, float boneScale = 1.0f);
+[[nodiscard]] std::vector<Render::Models::SkinnedMesh> SkinObjectMeshes(const Render::Models::IModelLibrary& models,
+                                                                        const DrawnObject& object,
+                                                                        std::span<const Math::BoneTransform> bones,
+                                                                        float boneScale = 1.0f);
 
 // El scratch de 0x5ffdf0 con el segundo argumento en 0 (0x602e90 de un objeto del mundo en 0x604a47, de un efecto en
 // 0x52da99, de un ayudante en 0x44532e o del cuervo en 0x41834e) cuando nadie lo publicó: 0x4eb860 con la bandera en 1
@@ -264,15 +265,15 @@ struct ObjectOutlinePass
 // su textura y por su luz (como el contorno de las partes de DrawCharacter); sin la malla oculta. El caller mira
 // antes el +0x78 & 0x4000 (0x60cd74) y el caso del 0xc5 (0x60cdd9).
 void DrawObjectOutline(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models,
-                       const DrawnObject& object, Core::Duration frameClock,
-                       std::span<const Render::Models::BoneTransform> bones, std::span<const ObjectOutlinePass> passes);
+                       const DrawnObject& object, Core::Duration frameClock, std::span<const Math::BoneTransform> bones,
+                       std::span<const ObjectOutlinePass> passes);
 
 // El contorno del 0xc5 (0x60cdd9..0x60ce55): como DrawObjectOutline, pero solo la malla 0 con 0x4ecc30 (0x60ce4e), sin
 // el script de su textura (oculta, o su propio blendMesh, que mira 0x4ef0c0) y sin la malla oculta: el +0x58 va de
 // textura, que el contorno no usa salvo en la rama del blendMesh. El caller corta con +0x58 distinto de −1.
 void DrawObjectOutlineOfTheFirstMesh(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models,
                                      const DrawnObject& object, Core::Duration frameClock,
-                                     std::span<const Render::Models::BoneTransform> bones,
+                                     std::span<const Math::BoneTransform> bones,
                                      std::span<const ObjectOutlinePass> passes);
 
 // La sombra de 0x60b3d0 con +0x98 en 1 (0x60b41a..0x60ccee), sobre `meshes` (SkinObjectMeshes): sin sombra en los
@@ -294,7 +295,7 @@ struct ItemDrawContext
     World::ObjectModelStepState* modelState = nullptr;
     std::int32_t map = 0;
     void* ownerContext = nullptr;
-    std::function<std::span<const Render::Models::BoneTransform>()> poseBones{};
+    std::function<std::span<const Math::BoneTransform>()> poseBones{};
     std::function<Core::Expected<void, std::string>(const World::FishEffectRequest&)> createJoint{};
     std::function<Core::Expected<void, std::string>(std::uint16_t, std::int32_t, const DrawnObject&)> createEffect{};
     // Recibe sólo los stores nativos de alpha, separado del alpha temporal de dibujo.
@@ -492,6 +493,6 @@ DrawCastleSiegeBody(Render::ModelBatch& batch, const Render::Models::IModelLibra
 // Los huesos de `object` posados como los posa DrawObject, en el mundo (la rotación por la escala; la
 // traslación por la escala más la posición, en float, como PosedBonePoint): lo que deja 0x4eb860 con su
 // octavo argumento en 1 en un buffer propio. Sin el modelo, vacío.
-[[nodiscard]] std::vector<Render::Models::OriginalMatrix> PosedWorldBones(const Render::Models::IModelLibrary& models,
-                                                                          const DrawnObject& object);
+[[nodiscard]] std::vector<Math::OriginalMatrix> PosedWorldBones(const Render::Models::IModelLibrary& models,
+                                                                const DrawnObject& object);
 } // namespace Client::Scenes

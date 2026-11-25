@@ -390,8 +390,8 @@ TEST(ParticlesTest, TheGallopDustIsBornAroundItsPlaceWithFourRandoms)
                                                 1.0f, 0.0f, random);
     ASSERT_TRUE(turned.HasValue());
     ASSERT_EQ(turned.Value(), std::optional<std::size_t>{1});
-    EXPECT_EQ(particles.All()[1].velocity, Client::Render::Models::OriginalVectorRotate(
-                                               {0.0f, 3.0f, 0.0f}, Client::Render::Models::OriginalAngleMatrix(turn)));
+    EXPECT_EQ(particles.All()[1].velocity,
+              Client::Math::OriginalVectorRotate({0.0f, 3.0f, 0.0f}, Client::Math::OriginalAngleMatrix(turn)));
 }
 
 // 0x546b66..0x546bfb después del movimiento común: la luz por la vida y 0,03125, la escala más 0,08f, la posición más
@@ -629,8 +629,8 @@ TEST(ParticlesTest, AMovingParticleTurnsItsVelocityByItsAngles)
     Particle& particle = particles.All()[*index];
     particle.velocity = {3.0f, -2.0f, 0.5f};
     particle.angles = {10.0f, 20.0f, 30.0f};
-    const glm::vec3 turned = Client::Render::Models::OriginalVectorRotate(
-        particle.velocity, Client::Render::Models::OriginalAngleMatrix(particle.angles));
+    const glm::vec3 turned =
+        Client::Math::OriginalVectorRotate(particle.velocity, Client::Math::OriginalAngleMatrix(particle.angles));
     Client::World::StepParticles(particles, random);
     EXPECT_EQ(Bits(particle.position.x), Bits(static_cast<float>(static_cast<double>(turned.x) + 1000.0)));
     EXPECT_EQ(Bits(particle.position.y), Bits(static_cast<float>(static_cast<double>(turned.y) + 2000.0)));

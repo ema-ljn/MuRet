@@ -25,7 +25,7 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Render::Models::BoneTransform;
+using Client::Math::BoneTransform;
 using Client::Scenes::ActorRemainsContext;
 using Client::Scenes::ActorState;
 using Client::Scenes::LeaveTheRemains;

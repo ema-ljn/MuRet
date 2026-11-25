@@ -67,7 +67,7 @@ Core::Expected<void, std::string> CompensateMovingHero(glm::vec3& position, Game
     if (context.movementSpeed == nullptr)
         return Core::Unexpected(std::string(crywolf ? "43586c" : "443c27") + ": falta el estado de velocidad");
     auto& actor = *context.cloudHero;
-    const auto matrix = Render::Models::OriginalAngleMatrix(actor.angles);
+    const auto matrix = Math::OriginalAngleMatrix(actor.angles);
     const GameLogic::MovementSpeedInput input{.type = actor.type,
                                               .baseSpeed = actor.baseMovementSpeed,
                                               .item = actor.pet.model,
@@ -78,7 +78,7 @@ Core::Expected<void, std::string> CompensateMovingHero(glm::vec3& position, Game
                                               .flags = actor.flags78,
                                               .map = context.map};
     const float speed = GameLogic::UpdateMovementSpeed(actor.run, *context.movementSpeed, input);
-    const auto offset = Render::Models::OriginalVectorRotate(
+    const auto offset = Math::OriginalVectorRotate(
         {0, static_cast<float>(static_cast<double>(speed) * MovementCompensation), 0}, matrix);
     for (glm::vec3::length_type axis = 0; axis < 3; ++axis)
         position[axis] = static_cast<float>(static_cast<double>(offset[axis]) + position[axis]);

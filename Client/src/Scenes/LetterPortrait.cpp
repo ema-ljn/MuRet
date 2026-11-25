@@ -650,10 +650,9 @@ Render::Pass3D PortraitPass(Core::PixelSize screen, const UI::OldWindowBase& bas
     // 0x495801..0x495826: la x87, guardada en float.
     const auto aspect =
         static_cast<float>((static_cast<double>(base.width) * rx) / (ry * static_cast<double>(PortraitHeight)));
-    pass.projection = Render::Models::RoundedPerspective(glm::radians(FieldOfView), aspect, NearPlane, FarPlane);
-    glm::mat4 view =
-        Render::Models::RoundedRotate(glm::mat4(1.0f), glm::radians(RightAngle), glm::vec3(1.0f, 0.0f, 0.0f));
-    view = Render::Models::RoundedRotate(view, glm::radians(RightAngle), glm::vec3(0.0f, 0.0f, 1.0f));
+    pass.projection = Math::RoundedPerspective(glm::radians(FieldOfView), aspect, NearPlane, FarPlane);
+    glm::mat4 view = Math::RoundedRotate(glm::mat4(1.0f), glm::radians(RightAngle), glm::vec3(1.0f, 0.0f, 0.0f));
+    view = Math::RoundedRotate(view, glm::radians(RightAngle), glm::vec3(0.0f, 0.0f, 1.0f));
     view = glm::translate(view, Distance);
     double drop = -static_cast<double>(actor.position.z);
     if (actor.pet.model == DarkHorsePet)

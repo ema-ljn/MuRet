@@ -27,12 +27,12 @@ using Math::F32;
 // 0x535a07..0x535a61 y 0x535aa0..0x535b0c: un tramo con la matriz de los ángulos (0x535520) y después el avance,
 // (0, −velocidad, 0) girado y sumado a la posición. 0x535a1d..0x535a3f y 0x535ab6..0x535ad8: 0x5fcbd0 recibe el mismo
 // vector [ebp−0x2c] de entrada y de salida, así que la y relee la x ya girada y la z relee las dos.
-Core::Expected<void, std::string> Advance(JointState& joint, const Render::Models::OriginalMatrix& matrix)
+Core::Expected<void, std::string> Advance(JointState& joint, const Math::OriginalMatrix& matrix)
 {
     if (auto appended = JointKernels::AppendJointTail(joint, matrix); !appended.HasValue())
         return appended;
     glm::vec3 moved{0, -joint.speed, 0};
-    Render::Models::OriginalVectorRotateInPlace(moved, matrix);
+    Math::OriginalVectorRotateInPlace(moved, matrix);
     for (int axis = 0; axis < 3; ++axis)
         joint.position[axis] = F32(D(moved[axis]) + D(joint.position[axis]));
     return {};
@@ -96,7 +96,7 @@ Core::Expected<void, std::string> StepFlareJoint(JointState& joint)
     {
         // 0x5359e2..0x535a61: con vida de más de 16, diez tramos con la matriz de los ángulos.
         constexpr int Steps = 10;
-        const auto matrix = Render::Models::OriginalAngleMatrix(joint.angles);
+        const auto matrix = Math::OriginalAngleMatrix(joint.angles);
         for (int step = 0; step < Steps; ++step)
             if (auto advanced = Advance(joint, matrix); !advanced.HasValue())
                 return advanced;
@@ -105,7 +105,7 @@ Core::Expected<void, std::string> StepFlareJoint(JointState& joint)
     {
         // 0x535a71..0x535b0c: con el skill en 0 o la vida de más de 3, cinco tramos; la velocidad suma 0,5 en cada uno.
         constexpr int Steps = 5;
-        const auto matrix = Render::Models::OriginalAngleMatrix(joint.angles);
+        const auto matrix = Math::OriginalAngleMatrix(joint.angles);
         for (int step = 0; step < Steps; ++step)
         {
             if (auto advanced = Advance(joint, matrix); !advanced.HasValue())

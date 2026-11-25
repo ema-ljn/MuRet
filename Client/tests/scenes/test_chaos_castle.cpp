@@ -39,7 +39,7 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Render::Models::BoneTransform;
+using Client::Math::BoneTransform;
 using Client::Scenes::GameObjectPass;
 using Client::Scenes::JointState;
 using Client::World::FishEffectRequest;
@@ -787,8 +787,8 @@ TEST(ChaosCastleTest, TheMeteorRisesFasterEachStepAndFades)
     ASSERT_TRUE(Client::Scenes::CreateFaunaJoint(joints, request, random).HasValue());
     JointState& joint = joints[0];
     CrtRandom draws = random;
-    const auto matrix = Client::Render::Models::OriginalAngleMatrix(glm::vec3(-90.0f, 0.0f, 0.0f));
-    const glm::vec3 moved = Client::Render::Models::OriginalVectorRotate(glm::vec3(0.0f, -10.0f, 0.0f), matrix);
+    const auto matrix = Client::Math::OriginalAngleMatrix(glm::vec3(-90.0f, 0.0f, 0.0f));
+    const glm::vec3 moved = Client::Math::OriginalVectorRotate(glm::vec3(0.0f, -10.0f, 0.0f), matrix);
     glm::vec3 p{F32(D(moved.x) + D(first.x)), F32(D(moved.y) + D(first.y)), F32(D(moved.z) + D(first.z))};
     p.x = F32((static_cast<double>(draws.Next() % 10) - 5.0) + D(p.x));
     p.y = F32((static_cast<double>(draws.Next() % 10) - 5.0) + D(p.y));

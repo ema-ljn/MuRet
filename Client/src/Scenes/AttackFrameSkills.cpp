@@ -130,11 +130,9 @@ const Render::Models::Skeleton* SkeletonOf(const ActorState& actor, const Charac
 // OwnBonePoint de CharacterStep.cpp.
 glm::vec3 BonePoint(const ActorState& actor, std::size_t bone, const glm::vec3& offset, const WorldState& world)
 {
-    const Render::Models::BoneTransform matrix =
-        bone < actor.bodyPose.size() ? actor.bodyPose[bone] : Render::Models::BoneTransform(0.0f);
+    const Math::BoneTransform matrix = bone < actor.bodyPose.size() ? actor.bodyPose[bone] : Math::BoneTransform(0.0f);
     const auto placement = world.ModelPlacement(actor.type);
-    return Render::Models::OriginalTransformPosition(Render::Models::OriginalMatrixOf(matrix), offset, placement.scale,
-                                                     placement.origin);
+    return Math::OriginalTransformPosition(Math::OriginalMatrixOf(matrix), offset, placement.scale, placement.origin);
 }
 
 // 0x4f98a0..0x4f9bcd: la 0x2b.
@@ -183,8 +181,8 @@ Core::Expected<void, std::string> StepTheSkill2b(ActorState& actor, std::uint8_t
                 point[axis] = static_cast<float>(static_cast<double>(jitter) + static_cast<double>(point[axis]));
             }
             const double angle = static_cast<double>(actor.angles.z) * Degree;
-            const auto sine = Render::Models::Detail::SineProductPC53(angle, BoltReach);
-            const auto cosine = Render::Models::Detail::CosineProductPC53(angle, BoltReach);
+            const auto sine = Math::Detail::SineProductPC53(angle, BoltReach);
+            const auto cosine = Math::Detail::CosineProductPC53(angle, BoltReach);
             if (!sine || !cosine)
                 return Core::Unexpected(std::format(
                     "0x4f99e2: el rumbo {} de los rayos de la {:#x} no cabe en el perfil PC53", actor.angles.z, skill));
@@ -215,8 +213,8 @@ Core::Expected<void, std::string> StepTheSkill2b(ActorState& actor, std::uint8_t
     {
         const glm::vec3 point = BonePoint(actor, bone, glm::vec3(0.0f), context.world);
         const double angle = static_cast<double>(actor.angles.z) * Degree;
-        const auto sine = Render::Models::Detail::SineProductPC53(angle, HandReach);
-        const auto cosine = Render::Models::Detail::CosineProductPC53(angle, HandReach);
+        const auto sine = Math::Detail::SineProductPC53(angle, HandReach);
+        const auto cosine = Math::Detail::CosineProductPC53(angle, HandReach);
         if (!sine || !cosine)
             return Core::Unexpected(std::format(
                 "0x4f9a63: el rumbo {} de la mano de la {:#x} no cabe en el perfil PC53", actor.angles.z, skill));
@@ -239,8 +237,8 @@ Core::Expected<void, std::string> StepTheSkill2b(ActorState& actor, std::uint8_t
         glm::vec3 point = BonePoint(actor, bone, glm::vec3(0.0f), context.world);
         const double length = static_cast<double>(static_cast<int>(step) - 8) * SparkStepLength + SparkBase;
         const double angle = static_cast<double>(actor.angles.z) * Degree;
-        const auto sine = Render::Models::Detail::SineDoubleProductPC53(angle, length);
-        const auto cosine = Render::Models::Detail::CosineDoubleProductPC53(angle, length);
+        const auto sine = Math::Detail::SineDoubleProductPC53(angle, length);
+        const auto cosine = Math::Detail::CosineDoubleProductPC53(angle, length);
         if (!sine || !cosine)
             return Core::Unexpected(std::format("0x4f9b2c: el rumbo {} de las chispas de la {:#x} no cabe en el "
                                                 "perfil PC53",
@@ -364,8 +362,8 @@ Core::Expected<void, std::string> StepTheSkill2f(ActorState& actor, std::uint8_t
         constexpr double Lift = 110.0;
         constexpr std::int16_t SparkEmitter = 0x812;
         const double angle = static_cast<double>(actor.angles.z) * Degree;
-        const auto sine = Render::Models::Detail::SineProductPC53(angle, Ahead);
-        const auto cosine = Render::Models::Detail::CosineProductPC53(angle, Ahead);
+        const auto sine = Math::Detail::SineProductPC53(angle, Ahead);
+        const auto cosine = Math::Detail::CosineProductPC53(angle, Ahead);
         if (!sine || !cosine)
             return Core::Unexpected(std::format(
                 "0x4f9cb6: el rumbo {} de las chispas de la {:#x} no cabe en el perfil PC53", actor.angles.z, skill));
@@ -405,8 +403,8 @@ Core::Expected<void, std::string> StepTheSkill2f(ActorState& actor, std::uint8_t
     for (int rock = 0; rock < Rocks; ++rock)
     {
         const double angle = static_cast<double>(actor.angles.z) * Degree;
-        const auto sine = Render::Models::Detail::SineProductPC53(angle, RockReach);
-        const auto cosine = Render::Models::Detail::CosineProductPC53(angle, RockReach);
+        const auto sine = Math::Detail::SineProductPC53(angle, RockReach);
+        const auto cosine = Math::Detail::CosineProductPC53(angle, RockReach);
         if (!sine || !cosine)
             return Core::Unexpected(std::format(
                 "0x4f9d8f: el rumbo {} de la piedra de la {:#x} no cabe en el perfil PC53", actor.angles.z, skill));

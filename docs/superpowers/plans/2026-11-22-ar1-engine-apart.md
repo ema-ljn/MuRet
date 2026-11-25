@@ -63,7 +63,7 @@ Measured on `refactor/client` at 75c33064 (2026-11-22). AR1.3, the command line,
 - **A new file is born in the folder it will keep inside its root** (`Crt/CrtRandom.h`, `Math/X87.h`, `Render/Frame/`),
   with that folder's namespace, and its row in the map in the same PR (`confidence` `high`, `why` ending in `(AR1.1)`).
   New folders also get their glob in `Client/modules.tsv` `folders_today`: `Crt/**` for `engine/Crt`, `Math/**` for
-  `engine/Math`, `Maps/**` for `game/Maps`.
+  `engine/Math`, `Maps/**` for `game/Maps`, `Assets/**` for `game/Assets`.
 - **Existing files keep their namespace until Task 9**, which renames every moved file's namespace after its new folder
   (spec, "Namespaces": `Client::<Folder>`, in the design PR, not in the move).
 
@@ -83,11 +83,12 @@ Measured on `refactor/client` at 75c33064 (2026-11-22). AR1.3, the command line,
 | `MuRetTables`, `MuRetMaps`, `MuRetSound` targets in AR1.2 | the three game modules move in AR1.2 but stay in `ClientLib` | the game's library shape (one `Game` or a few) is the ADR's AR4 question |
 | `MURET_`/`muret_` options, functions, macros and environment variables | `MU_`/`mu_`, and `MU_CLIENT_` for the client's own (Task 1b) | Emanuel, 2026-11-23: MuRet was a mistaken name; `cmake/` is shared with the DataServer, so the prefix names the game, not the client |
 | `MuRetFoxAnti`, an optional library inside Network | `XorRemap`, a static target that only `main.exe` links, never a DLL (Task 6) | Emanuel, 2026-11-23: easy to remove, but not shipped as a DLL that says what it is |
+| the non-item models get their names in AR4.1 | the fauna's models get theirs now, in the home AR4.1 will fill (Task 5f) | Emanuel, 2026-11-25, reviewing Task 5e's PR: the code has to say what `type` is and what `0xad` means |
 | nothing on named values | the engine stops naming game values (Task 5b) and the shared float numbers get one home (Task 5c) | Emanuel, 2026-11-23: one home per space of named values (CODING_RULES §7, "Named values"; the [named-values plan](2026-11-23-named-values.md), Tasks 3 and 4) |
 
 ---
 
-## AR1.1 (design): ten PRs
+## AR1.1 (design): eleven PRs
 
 ### Task 1: the engine stops including the game
 
@@ -474,8 +475,38 @@ PR `refactor(AR1.1): name the maps the fauna compares`, branch `refactor/ar1.1-f
 `World/Birds.cpp` and `World/Fish.cpp` (`game/Fauna`) compare the map with a bare number 46 times. Each one takes the
 home's name, by hand and with the original read at its address: `map == 7` becomes `map == AtlansMap`, and a range
 becomes `IsBloodCastle(map)` or `IsKalimaMap(map)` only where the original's compares at that site are that
-predicate's (`0x44644c..0x44649b` checks 0, 1, 3, 4 and 10, then 11 to 17, then 24 to 29 or 36). The other loose
-literals (about 130 in 27 files) stay with each module's AR4 design PR.
+predicate's (`0x44644c..0x44649b` checks 0, 1, 3, 4 and 10, then 11 to 17, then 24 to 29 or 36). `Fish.cpp`'s
+helper for the switch's case 7, `MapSeven`, takes the map's name too (`SpecializeAtlans`). The other loose literals
+(about 130 in 27 files) stay with each module's AR4 design PR.
+
+### Task 5f: the fauna's models have names
+
+PR `refactor(AR1.1): name the models of the fauna`, branch `refactor/ar1.1-fauna-model-names`. After Task 5e
+(Emanuel, 2026-11-25, reviewing Task 5e's PR: the code has to say what `type` is and what `0xad` means).
+
+`type` is the model: the word at `+2` of a bird or a fish, a slot of the model table. `Assets/ModelIds.h`
+(`game/Assets`, the home the [named-values plan](2026-11-23-named-values.md) gives the non-item models in AR4.1) is
+born with the slots the fauna uses, as `inline constexpr std::uint16_t`, the type the model library takes:
+`BirdModel` `0xad`, `ButterflyModel` `0xae`, `BatModel` `0xaf`, `RatModel` `0xb0`, `Bug01Model` `0xb1`,
+`Fish01Model` `0xb2`, `Fish02Model` `0xb3`, `Fish04Model` `0xb5`, `Fish08Model` `0xb9`, `Fish09Model` `0xba`,
+`CrowModel` `0xbc`, `RidingSpearModel` `0x10f`, `ScorpionModel` `0x148`, `Monster32Model` `0x171` and
+`Monster34Model` `0x173`, each named after the file the loader puts in the slot. `Bug02Model` is `Fish01Model`:
+Tarkan and Aida load `Bug02` in that slot. `tests/scenes/test_model_ids.cpp` writes each number and checks each name
+against the loader's tables.
+
+The 50 bare numbers of `World/Birds.cpp`, `World/Fish.cpp`, `Scenes/FaunaBirdHandlers.cpp`,
+`Scenes/FaunaDrawing.cpp` and `Scenes/FaunaStep.cpp` take the home's names, with every comparison and cast as it
+was. The role names (`IcarusBird`, `StormBird`, `InvisibleBird`) keep their type and take the home's name as their
+initializer. The field, the parameters and the locals called `type` become `model` (`FaunaObject::model`,
+`FishStepView::model`), and the bird handlers named after a number take the model's name (`MoveAe` becomes
+`MoveButterfly`). A comparison that cannot tell the map uses the slot's first name (`Fish01Model`). What stays: the
+tests' numbers, the loader's tables, the joint type `0x10f` and the monster numbers `0x1f` and `0x21` (other
+spaces), and the record `Birds.cpp` writes by offset, for the Fauna design PR (AR4.3).
+
+The two sites that draw one of several fish are functions (Emanuel, 2026-11-25, reviewing this PR):
+`AtlansFishModel(lower, draw)` in `World/Fish.h`, one of `Fish04..07` in the lower half of Atlans and `Fish08` or
+`Fish09` in the upper half, and `AtlansBirdModel(draw)` in `Scenes/FaunaBirdHandlers.cpp`, `Fish02` or `Fish03`. Each
+keeps the original's expression, the draw's remainder plus the first slot.
 
 ---
 

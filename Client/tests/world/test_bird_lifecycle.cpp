@@ -461,7 +461,7 @@ TEST(BirdLifecycleTest, PoseKeepsInitialModelAndFactorButDispatchRereadsType)
     EXPECT_EQ(services.modelType, 0x173);
     EXPECT_FLOAT_EQ(services.poseFactor, 0.5f);
     EXPECT_EQ(services.calls,
-              (std::vector<BirdHandler>{BirdHandler::MoveAf, BirdHandler::CommonMotion, BirdHandler::Finalize}));
+              (std::vector<BirdHandler>{BirdHandler::MoveBat, BirdHandler::CommonMotion, BirdHandler::Finalize}));
 }
 TEST(BirdLifecycleTest, SpecialBirthRetainsUnwrittenBytesAndUpdatesInSameStep)
 {
@@ -747,7 +747,7 @@ TEST(BirdLifecycleObservabilityTest, IndexedMovementPreservesEveryPhysicalSlotAr
     ASSERT_EQ(handlers.size(), 39u);
     for (std::size_t i = 0; i < 13; ++i)
     {
-        EXPECT_EQ(handlers[i * 3].handler, BirdHandler::Move10f);
+        EXPECT_EQ(handlers[i * 3].handler, BirdHandler::MoveRidingSpear);
         EXPECT_EQ(handlers[i * 3 + 1].handler, BirdHandler::CommonMotion);
         EXPECT_EQ(handlers[i * 3 + 2].handler, BirdHandler::Finalize);
         for (std::size_t offset = 0; offset < 3; ++offset)

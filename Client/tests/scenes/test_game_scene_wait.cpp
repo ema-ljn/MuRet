@@ -229,7 +229,7 @@ TEST_F(InitialGameWaitTest, TheFirstGameStepKeepsSelectionTerrainAndStepsActorsE
     {
         if (fish.active != 0)
         {
-            EXPECT_EQ(fish.type, 0) << "54 conserva el tipo del slot BSS, resuelto por Object55 real";
+            EXPECT_EQ(fish.model, 0) << "54 conserva el tipo del slot BSS, resuelto por Object55 real";
         }
     }
     EXPECT_EQ(effect.life, 19);

@@ -17,7 +17,7 @@ struct FaunaObject
 {
     std::uint8_t active = 0;
     std::byte padding01{};
-    std::int16_t type = 0;
+    std::int16_t model = 0;
     std::int32_t counter = 0;
     std::array<std::byte, 4> padding08{};
     float bodyScale = 0;

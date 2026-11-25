@@ -1,5 +1,6 @@
 #include "Scenes/FaunaStep.h"
 
+#include "Assets/ModelIds.h"
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainAttributes.h"
@@ -105,18 +106,18 @@ public:
     {
         if (m_context.effects.prepare)
             return m_context.effects.prepare(0x1f);
-        return m_context.models.SkeletonOf(0x171) != nullptr ? std::error_code{} : Unsupported();
+        return m_context.models.SkeletonOf(Assets::Monster32Model) != nullptr ? std::error_code{} : Unsupported();
     }
     World::BirdCallResult Call(World::BirdHandler handler, World::BirdRecord bird, std::int32_t index) override
     {
         return RunFaunaBirdHandler(m_context, handler, Object(bird), index);
     }
-    World::BirdModelBorrow BorrowModel(std::int16_t type) override
+    World::BirdModelBorrow BorrowModel(std::int16_t model) override
     {
-        auto& model = m_models[type];
-        model.skeleton = m_context.models.SkeletonOf(static_cast<std::uint16_t>(type));
-        return model.skeleton ? World::BirdModelBorrow{&model, &model.action}
-                              : World::BirdModelBorrow{nullptr, nullptr};
+        auto& borrowed = m_models[model];
+        borrowed.skeleton = m_context.models.SkeletonOf(static_cast<std::uint16_t>(model));
+        return borrowed.skeleton ? World::BirdModelBorrow{&borrowed, &borrowed.action}
+                                 : World::BirdModelBorrow{nullptr, nullptr};
     }
     std::error_code Pose(World::BirdModelBorrow model, World::BirdRecord bird, float factor) override
     {
@@ -182,13 +183,13 @@ public:
     {
         return FaunaHeight(m_context, x, y);
     }
-    Core::Expected<World::FishModelStepView, std::error_code> LookupModel(std::int16_t type) override
+    Core::Expected<World::FishModelStepView, std::error_code> LookupModel(std::int16_t model) override
     {
-        auto& model = m_models[type];
-        model.skeleton = m_context.models.SkeletonOf(static_cast<std::uint16_t>(type));
-        if (!model.skeleton)
+        auto& borrowed = m_models[model];
+        borrowed.skeleton = m_context.models.SkeletonOf(static_cast<std::uint16_t>(model));
+        if (!borrowed.skeleton)
             return Core::Unexpected(std::make_error_code(std::errc::no_such_file_or_directory));
-        return World::FishModelStepView{model.action, &model};
+        return World::FishModelStepView{borrowed.action, &borrowed};
     }
     Core::Expected<std::uint8_t, std::error_code> AdvanceModel(World::FishModelStepView model,
                                                                World::FishStepView& fish, float speed) override
@@ -200,8 +201,8 @@ public:
     Core::Expected<void, std::error_code> Move(World::FishStepView& fish, std::int32_t mode) override
     {
         auto& object = *static_cast<FaunaObject*>(fish.context);
-        const auto* model = object.type == -1 ? m_context.prefixModel
-                                              : m_context.models.SkeletonOf(static_cast<std::uint16_t>(object.type));
+        const auto* model = object.model == -1 ? m_context.prefixModel
+                                               : m_context.models.SkeletonOf(static_cast<std::uint16_t>(object.model));
         // 4ea030 conserva su índice firmado: el prefijo de la tabla necesita préstamo explícito.
         if (!model)
             return Core::Unexpected(std::make_error_code(std::errc::no_such_file_or_directory));

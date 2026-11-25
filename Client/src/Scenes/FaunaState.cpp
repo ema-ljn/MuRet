@@ -21,7 +21,7 @@ World::BirdRecord BirdView(FaunaObject& slot)
 World::FishStepView FishView(FaunaObject& slot)
 {
     return {slot.active,
-            slot.type,
+            slot.model,
             slot.counter,
             slot.bodyScale,
             slot.position,

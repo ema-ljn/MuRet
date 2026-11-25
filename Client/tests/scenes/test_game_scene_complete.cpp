@@ -91,7 +91,7 @@ TEST_F(CompleteGameFrameTest, EmptyTailPoolsAllowTheWholeWorldPassInBothReferenc
         world.Actors()[0].position = {13550.0f, 12550.0f, 0.0f};
         auto& butterfly = world.Fauna().Birds()[0];
         butterfly.active = 1;
-        butterfly.type = 0xae;
+        butterfly.model = 0xae;
         butterfly.bodyScale = 1;
         butterfly.scale = 1;
         butterfly.alpha = 1;

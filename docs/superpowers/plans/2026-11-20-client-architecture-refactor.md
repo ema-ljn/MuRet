@@ -51,8 +51,8 @@ bags.
   rounding of a `float`. Moves clean nothing up.
 - Large PRs per milestone (Emanuel, 2026-11-11), with the move, the comments and the design in separate PRs (the move
   and the comments are reviewed by script; the design, by eye).
-- Names (Emanuel, 2026-11-22 and 2026-11-23): no `MuRet` prefix. Targets and binaries take the module's word
-  (`Core.dll`, `Game.dll`, `main.exe`); CMake options and functions, macros and environment variables use `MU_`/`mu_`,
+- Names (Emanuel, 2026-11-22 and 2026-11-23): no `MuRet` prefix. Targets and binaries take a plain word
+  (`Engine.dll`, `Game.dll`, `main.exe`); CMake options and functions, macros and environment variables use `MU_`/`mu_`,
   and `MU_CLIENT_` for the client's own. The `MURET_` and `MuRet` names below predate that; each epic's detailed plan
   uses the new ones.
 

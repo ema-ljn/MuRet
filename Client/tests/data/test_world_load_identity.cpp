@@ -12,8 +12,8 @@
 
 namespace
 {
-using Client::Data::MapAtWorldLoadStart;
-using Client::Data::WorldFolderAfterModels;
+using Client::Maps::MapAtWorldLoadStart;
+using Client::Maps::WorldFolderAfterModels;
 
 // Cambiar sólo uno de los operandos a 32 no habilita la escritura nativa (05 § La carpeta de cada mapa).
 TEST(WorldLoadIdentityTest, OnlyRemapsWhenBothDwordObservationsAreThirtyTwo)
@@ -103,7 +103,7 @@ TEST(WorldLoadIdentityTest, LegacyFolderProjectionPreservesEveryByte)
     }};
     for (std::size_t map = 0; map < ExpectedFolders.size(); ++map)
     {
-        EXPECT_EQ(Client::Data::WorldFolderNumber(static_cast<std::uint8_t>(map)), ExpectedFolders[map])
+        EXPECT_EQ(Client::Maps::WorldFolderNumber(static_cast<std::uint8_t>(map)), ExpectedFolders[map])
             << "mapa " << map;
     }
 }

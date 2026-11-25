@@ -4,7 +4,7 @@
 #include <bit>
 #include <cstdint>
 
-namespace Client::Data
+namespace Client::Maps
 {
 namespace
 {
@@ -50,4 +50,4 @@ std::int32_t WorldFolderAfterModels(std::int32_t observedMap)
     const std::uint32_t folder = std::bit_cast<std::uint32_t>(observedMap) + std::uint32_t{1};
     return std::bit_cast<std::int32_t>(folder);
 }
-} // namespace Client::Data
+} // namespace Client::Maps

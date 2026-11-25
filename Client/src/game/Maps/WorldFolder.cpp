@@ -5,7 +5,7 @@
 #include <cstdint>
 #include <string>
 
-namespace Client::Data
+namespace Client::Maps
 {
 std::uint16_t WorldFolderNumber(std::uint8_t map)
 {
@@ -18,4 +18,4 @@ std::string WorldFolder(std::uint8_t map)
 {
     return "World" + std::to_string(WorldFolderNumber(map));
 }
-} // namespace Client::Data
+} // namespace Client::Maps

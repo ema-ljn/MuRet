@@ -436,7 +436,7 @@ TEST(LoginSceneTest, WithoutWorld56TheLoginStillDraws)
 {
     Harness tested;
     ASSERT_TRUE(WorldOf(SceneId::Login).has_value());
-    EXPECT_EQ(Client::Data::WorldFolder(WorldOf(SceneId::Login)->map), "World56");
+    EXPECT_EQ(Client::Maps::WorldFolder(WorldOf(SceneId::Login)->map), "World56");
     ASSERT_TRUE(tested.Make().Enter().HasValue());
 
     const std::vector<FrameEvent> events = tested.Frame();

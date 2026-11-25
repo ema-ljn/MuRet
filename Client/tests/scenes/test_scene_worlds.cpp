@@ -14,8 +14,8 @@
 // dibuja desde la CL7 con cualquier mapa.
 namespace
 {
-using Client::Data::OriginalMaps;
-using Client::Data::WorldFolder;
+using Client::Maps::OriginalMaps;
+using Client::Maps::WorldFolder;
 using Client::Scenes::SceneId;
 using Client::Scenes::SceneWorlds;
 using Client::Scenes::WorldOf;

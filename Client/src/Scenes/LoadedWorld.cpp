@@ -26,7 +26,7 @@ Core::Expected<void, std::string> LoadedWorld::Load(const std::filesystem::path&
 {
     Release();
     // Proyección local byte estable; las lecturas globales y los modelos de 0x61a560 no van acá.
-    const auto effectiveMap = static_cast<std::uint8_t>(Data::MapAtWorldLoadStart(map, map));
+    const auto effectiveMap = static_cast<std::uint8_t>(Maps::MapAtWorldLoadStart(map, map));
     auto terrain = World::LoadWorldTerrain(dataRoot, effectiveMap);
     if (!terrain.HasValue())
     {

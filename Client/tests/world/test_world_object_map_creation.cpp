@@ -611,7 +611,7 @@ TEST(WorldObjectMapCreationTest, EveryCatalogAndRawMapCompletesTheDefaultType)
         EXPECT_EQ(registrations.nextIdentity, 2u);
         EXPECT_TRUE(result.objects[0].alive);
     };
-    for (const std::uint8_t map : Client::Data::OriginalMaps)
+    for (const std::uint8_t map : Client::Maps::OriginalMaps)
     {
         check(map);
     }

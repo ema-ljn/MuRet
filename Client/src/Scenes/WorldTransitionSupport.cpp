@@ -205,7 +205,7 @@ Core::Expected<void, std::string> AddTheWelcomeLine(const WorldEntryResources& r
     if (resources.textMeasure == nullptr)
         return Core::Unexpected(std::string("0x4c4b60 y 0x4c7c4e: falta el medidor para el renglón de bienvenida"));
     WorldRuntime& runtime = resources.world.Runtime();
-    const auto name = resources.texts->Text(MapNameText(runtime.map));
+    const auto name = resources.texts->Text(Maps::MapNameText(runtime.map));
     const auto welcome = resources.texts->Text(WelcomeText);
     if (!name || !welcome)
         return Core::Unexpected(

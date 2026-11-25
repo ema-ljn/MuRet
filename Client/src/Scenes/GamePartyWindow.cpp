@@ -295,7 +295,7 @@ Core::Expected<void, std::string> DrawTheMembers(GameHudContext& context, std::i
         WindowDrawing::DrawText(context, x + MemberLeft, row + y + MemberNameTop, NameView(slot.name));
         hud.textColors = MemberDataColors;
         WindowDrawing::SelectFont(context, FontKind::Normal);
-        auto map = TextOf(context, MapNameText(slot.map), "0x5f0ec8");
+        auto map = TextOf(context, Maps::MapNameText(slot.map), "0x5f0ec8");
         if (!map.HasValue())
             return Core::Unexpected(std::move(map).Error());
         WindowDrawing::DrawText(context, x + MemberLeft, row + y + MemberMapTop, map.Value());

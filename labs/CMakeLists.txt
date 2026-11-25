@@ -90,8 +90,10 @@ mu_set_warnings(MuRetLabsCl50)
 
 # Lo de la CL5.0 que habla con OpenGL (cl5.0-pipeline/gl/): la ventana escondida con el contexto
 # 3.3 core, la tabla de funciones del lab, los nombres de GL con RAII, el framebuffer y el quad
-# dibujado. Enlaza ClientPlatform por lo que ya tiene el cliente: SdlContext, los deleters de la
+# dibujado. Enlaza Platform por lo que ya tiene el cliente: SdlContext, los deleters de la
 # ventana y del contexto, y la tabla de GL con su pedido, que mira la versión y el perfil (CL5.1).
+# HiddenGlWindow calls SDL itself, so the lab links it too.
+find_package(SDL3 CONFIG REQUIRED)
 add_library(MuRetLabsCl50Gl STATIC
     cl5.0-pipeline/gl/GlName.cpp
     cl5.0-pipeline/gl/HiddenGlWindow.cpp
@@ -101,7 +103,7 @@ add_library(MuRetLabsCl50Gl STATIC
     cl5.0-pipeline/gl/LabTexture.cpp
 )
 target_include_directories(MuRetLabsCl50Gl PUBLIC cl5.0-pipeline/gl)
-target_link_libraries(MuRetLabsCl50Gl PUBLIC MuRetLabsCl50 ClientPlatform)
+target_link_libraries(MuRetLabsCl50Gl PUBLIC MuRetLabsCl50 Platform SDL3::SDL3)
 mu_set_warnings(MuRetLabsCl50Gl)
 
 # La CL6.0 (docs/learning/ola-cl6.0-huesos-y-cuaterniones.md): los cuaterniones de Half-Life a mano

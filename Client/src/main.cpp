@@ -652,11 +652,11 @@ int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Sdl:
     // 0x4bafa6..0x4bafc2: WinMain deja en cero el pool de 401 personajes y el registro propio, que
     // duran hasta el cierre. La selección construye en los cinco primeros registros y escribe el mundo
     // en curso.
-    std::unique_ptr<Platform::SdlAudio> audio;
+    std::unique_ptr<Audio::Sdl::SdlAudio> audio;
     Scenes::WorldState world;
     world.Runtime().music.SetEnabled(startup.config.musicOnOff);
-    auto audioCreated = Platform::SdlAudio::Create(*startup.config.dataPath, Audio::GameSoundCatalog(),
-                                                   startup.config.soundOnOff, startup.config.musicOnOff);
+    auto audioCreated = Audio::Sdl::SdlAudio::Create(*startup.config.dataPath, Audio::GameSoundCatalog(),
+                                                     startup.config.soundOnOff, startup.config.musicOnOff);
     if (audioCreated.HasValue())
     {
         audio = std::move(audioCreated).Value();

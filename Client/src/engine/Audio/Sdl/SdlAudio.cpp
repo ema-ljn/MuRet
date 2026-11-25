@@ -28,7 +28,7 @@
 #include <unordered_map>
 #include <utility>
 
-namespace Client::Platform
+namespace Client::Audio::Sdl
 {
 namespace
 {
@@ -383,4 +383,4 @@ int SdlAudio::MusicProgressPercent() const
     return static_cast<int>(
         std::min<std::int64_t>(100 * positionSeconds / durationSeconds, std::numeric_limits<int>::max()));
 }
-} // namespace Client::Platform
+} // namespace Client::Audio::Sdl

@@ -4,13 +4,12 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from mubmd.app.documents import open_document
+from mubmd.app.paging import DEFAULT_LIMIT, Page, page
 from mubmd.core.catalog import all_formats, format_by_name
 from mubmd.core.errors import ErrorCode, MubmdError
 from mubmd.core.json_types import JsonValue
 from mubmd.core.pointer import format_pointer, resolve
 from mubmd.core.ports import CatalogFile, FieldInfo, FileStore
-
-DEFAULT_LIMIT = 50
 
 
 @dataclass(frozen=True, slots=True)
@@ -35,17 +34,12 @@ class Match:
 
 
 @dataclass(frozen=True, slots=True)
-class Page[T]:
-    items: tuple[T, ...]
-    total: int
-    next_offset: int | None
-
-
-@dataclass(frozen=True, slots=True)
 class GetResult:
     pointer: str
     value: JsonValue
     truncated: bool
+    total: int | None
+    next_offset: int | None
 
 
 @dataclass(frozen=True, slots=True)
@@ -97,13 +91,6 @@ def _matcher(query: str, regex: bool) -> re.Pattern[str]:
         raise MubmdError(ErrorCode.INVALID_VALUE, f"Bad regular expression {query!r}: {error}") from error
 
 
-def page[T](items: list[T], limit: int, offset: int) -> Page[T]:
-    if limit < 1 or offset < 0:
-        raise MubmdError(ErrorCode.USAGE, "--limit is at least 1 and --offset at least 0")
-    end = offset + limit
-    return Page(tuple(items[offset:end]), len(items), end if end < len(items) else None)
-
-
 def find(
     store: FileStore,
     path: Path,
@@ -148,14 +135,17 @@ def get(
 ) -> GetResult:
     view = open_document(store, path, encoding=encoding).view
     found = resolve(view, pointer)
-    if offset:
-        if not isinstance(found, list):
+    if not isinstance(found, list):
+        if offset:
             raise MubmdError(
                 ErrorCode.USAGE, f"--offset skips items of a list, and {pointer} is not one", pointer=pointer
             )
-        found = found[offset:]
-    value, truncated = _cut(found, limit)
-    return GetResult(pointer, value, truncated or offset > 0)
+        value, truncated = _cut(found, limit)
+        return GetResult(pointer, value, truncated, total=None, next_offset=None)
+    shown = page(found, limit, offset)
+    value, truncated = _cut(list(shown.items), limit)
+    whole = offset == 0 and shown.next_offset is None
+    return GetResult(pointer, value, truncated or not whole, shown.total, shown.next_offset)
 
 
 def list_formats() -> tuple[FormatInfo, ...]:

@@ -1,4 +1,3 @@
-import codecs
 from typing import Final
 
 from mubmd.core.checks.text_checks import check_text_table
@@ -9,6 +8,7 @@ from mubmd.core.documents.text_table import (
     TextTable,
     decode_text,
     encode_text,
+    is_text_encoding,
     text_pointer,
 )
 from mubmd.core.errors import ErrorCode, MubmdError
@@ -44,10 +44,8 @@ def _check_header(view: JsonObject) -> str:
     encoding = view.get("encoding")
     if not isinstance(encoding, str):
         raise _invalid("The view needs an encoding", "/encoding")
-    try:
-        codecs.lookup(encoding)
-    except LookupError as error:
-        raise _invalid(f"Unknown encoding {encoding!r}", "/encoding") from error
+    if not is_text_encoding(encoding):
+        raise _invalid(f"{encoding!r} is not a text encoding", "/encoding")
     return encoding
 
 

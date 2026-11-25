@@ -1,17 +1,19 @@
-import codecs
 import dataclasses
 import hashlib
 import json
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Final
 
 from mubmd.core.catalog import Identified, identify
+from mubmd.core.documents.text_table import is_text_encoding
 from mubmd.core.errors import ErrorCode, MubmdError
 from mubmd.core.findings import Finding
 from mubmd.core.json_types import JsonObject, JsonValue
 from mubmd.core.patch import Change, diff_views
 from mubmd.core.ports import FileStore
+
+HEADER_POINTERS: Final = frozenset({"/format_version", "/format", "/encoding"})
 
 
 @dataclass(frozen=True, slots=True)
@@ -35,12 +37,10 @@ class EditResult:
 
 
 def check_encoding(encoding: str) -> str:
-    try:
-        codecs.lookup(encoding)
-    except LookupError as error:
+    if not is_text_encoding(encoding):
         raise MubmdError(
-            ErrorCode.INVALID_VALUE, f"Unknown encoding {encoding!r}", suggestion="--encoding cp1252"
-        ) from error
+            ErrorCode.INVALID_VALUE, f"{encoding!r} is not a text encoding", suggestion="--encoding cp1252"
+        )
     return encoding
 
 
@@ -89,17 +89,26 @@ def touches(finding: Finding, changes: tuple[Change, ...]) -> bool:
     )
 
 
-def encode_verified(opened: Identified, view: JsonObject) -> tuple[Any, bytes]:
+def encode_verified(opened: Identified, view: JsonObject) -> tuple[Any, bytes, JsonObject]:
     codec = opened.format.codec
     document = codec.from_view(view)
     data = codec.encode(document)
-    if codec.decode(data, opened.file) != document:
+    decoded = codec.decode(data, opened.file)
+    if decoded != document:
         raise MubmdError(
-            ErrorCode.WRITE_VERIFY_FAILED,
-            "The encoded bytes do not decode to the edited document; nothing was written",
-            suggestion="mubmd roundtrip <folder>",
+            ErrorCode.WRITE_VERIFY_FAILED, "The encoded bytes do not decode to the edited document; nothing was written"
         )
-    return document, data
+    return document, data, codec.to_view(decoded)
+
+
+def refuse_header_changes(changes: tuple[Change, ...]) -> None:
+    for change in changes:
+        if change.pointer in HEADER_POINTERS:
+            raise MubmdError(
+                ErrorCode.INVALID_VALUE,
+                f"{change.pointer} describes the file and is not edited; --encoding reads a file in another encoding",
+                pointer=change.pointer,
+            )
 
 
 def refuse_reference(store: FileStore, path: Path) -> None:
@@ -112,11 +121,15 @@ def refuse_reference(store: FileStore, path: Path) -> None:
 
 
 def save_view(store: FileStore, opened: OpenDocument, view: JsonObject, *, dry_run: bool) -> EditResult:
-    changes = diff_views(opened.view, view)
-    if not changes:
-        return EditResult(opened.path, changed=False, dry_run=dry_run, changes=(), warnings=())
+    unchanged = EditResult(opened.path, changed=False, dry_run=dry_run, changes=(), warnings=())
+    refuse_header_changes(diff_views(opened.view, view))
+    if view == opened.view:
+        return unchanged
     refuse_reference(store, opened.path)
-    document, data = encode_verified(opened.identified, view)
+    document, data, written = encode_verified(opened.identified, view)
+    changes = diff_views(opened.view, written)
+    if not changes:
+        return unchanged
     findings = opened.identified.format.codec.check(document, opened.document)
     warnings = tuple(finding for finding in findings if touches(finding, changes))
     if not dry_run:

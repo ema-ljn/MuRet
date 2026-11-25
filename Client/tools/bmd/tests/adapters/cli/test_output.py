@@ -4,6 +4,7 @@ from pathlib import Path
 import jsonschema
 import pytest
 
+from mubmd.adapters.cli import commands as cli_commands
 from mubmd.adapters.cli.describe import describe
 from mubmd.adapters.tui.app import MubmdApp
 from tests.adapters.cli.conftest import Cli
@@ -97,7 +98,7 @@ def test_ndjson_streams_one_finding_per_line(cli: Cli, text: Path) -> None:
         "message": first["message"],
     }
     assert lines[-1]["command"] == "validate"
-    assert lines[-1]["data"] == {"checked": 3, "skipped": 0, "findings": len(lines) - 1}
+    assert lines[-1]["data"] == {"files": [], "checked": 3, "skipped": 0}
 
 
 def test_human_output_is_not_json(cli: Cli, text: Path) -> None:
@@ -106,6 +107,13 @@ def test_human_output_is_not_json(cli: Cli, text: Path) -> None:
     assert "1645" in run.out
     with pytest.raises(json.JSONDecodeError):
         json.loads(run.out)
+
+
+def test_human_output_shows_square_brackets_as_they_are(cli: Cli, text: Path) -> None:
+    cli("set", text, "/texts/100", "Zen [/b] [red]rojo[/red]")
+    run = cli("--human", "get", text, "/texts/100")
+    assert run.code == 0
+    assert "Zen [/b] [red]rojo[/red]" in run.out
 
 
 def test_version_is_json(cli: Cli) -> None:
@@ -119,6 +127,7 @@ def test_tui_opens_the_console_ui(cli: Cli, working_copy: Path, monkeypatch: pyt
         opened.append(app.folder)
 
     monkeypatch.setattr(MubmdApp, "run", run)
+    monkeypatch.setattr(cli_commands, "has_terminal", lambda: True)
     envelope = cli("tui", working_copy).json
     assert envelope["command"] == "tui"
     assert opened == [working_copy.resolve()]

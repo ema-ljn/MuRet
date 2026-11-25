@@ -50,3 +50,30 @@ def test_get_reads_a_slice_of_a_list(cli: Cli, text: Path) -> None:
 def test_get_with_an_offset_needs_a_list(cli: Cli, text: Path) -> None:
     run = cli("get", text, "/texts/500", "--offset", "1")
     assert (run.code, run.error["code"]) == (2, "USAGE")
+
+
+def test_get_pages_a_list(cli: Cli, text: Path) -> None:
+    first = cli("get", text, "/texts", "--limit", "2").json["data"]
+    last = cli("get", text, "/texts", "--offset", "2040").json["data"]
+    assert (first["total"], first["next_offset"]) == (2048, 2)
+    assert (len(last["value"]), last["total"], last["next_offset"]) == (8, 2048, None)
+
+
+def test_get_of_one_value_has_no_page(cli: Cli, text: Path) -> None:
+    data = cli("get", text, "/texts/500").json["data"]
+    assert (data["total"], data["next_offset"], data["truncated"]) == (None, None, False)
+
+
+def test_diff_pages_its_changes(cli: Cli, text: Path) -> None:
+    run = cli("diff", text, text.with_name("TKOU.bmd"), "--limit", "2")
+    data = run.json["data"]
+    assert run.code == 1
+    assert (len(data["changes"]), data["next_offset"]) == (2, 2)
+    assert data["total"] > 1000
+
+
+def test_build_pages_its_changes(cli: Cli, text: Path, tmp_path: Path) -> None:
+    cli("dump", text.with_name("TKOU.bmd"), "--output", tmp_path / "tkou.json")
+    data = cli("build", tmp_path / "tkou.json", "--output", text, "--dry-run", "--limit", "3").json["data"]
+    assert (len(data["changes"]), data["next_offset"]) == (3, 3)
+    assert data["total"] > 1000

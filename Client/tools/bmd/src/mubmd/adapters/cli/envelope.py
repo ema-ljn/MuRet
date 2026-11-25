@@ -44,4 +44,5 @@ def failure(error: MubmdError, received: JsonObject) -> JsonObject:
 
 
 def to_line(value: JsonValue) -> str:
-    return json.dumps(value, ensure_ascii=False, separators=(",", ":"))
+    line = json.dumps(value, ensure_ascii=False, separators=(",", ":"))
+    return line.encode("utf-8", "backslashreplace").decode("utf-8")

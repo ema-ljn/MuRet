@@ -4,7 +4,9 @@ from pathlib import Path
 
 import pytest
 
+from mubmd.adapters.cli import commands
 from mubmd.adapters.storage import LocalFileStore
+from mubmd.adapters.tui.app import MubmdApp
 from mubmd.core.documents.text_table import TextTable
 from mubmd.core.formats.text_format import TextFormat
 from tests.adapters.cli.conftest import Cli, Run
@@ -93,6 +95,7 @@ def test_a_file_changed_meanwhile_is_stale(cli: Cli, text: Path, monkeypatch: py
 
     monkeypatch.setattr(LocalFileStore, "read", read_then_change)
     check(cli("set", text, "/texts/500", "x"), "STALE_FILE", 30)
+    assert text.read_bytes()[-1] == 1
 
 
 def test_a_failing_test_operation(cli: Cli, text: Path) -> None:
@@ -116,7 +119,8 @@ def test_init_into_a_folder_that_is_not_empty(cli: Cli, reference: Path, tmp_pat
     (tmp_path / "work").mkdir()
     (tmp_path / "work" / "notes.txt").write_text("mine")
     error = check(cli("workspace", "init", tmp_path / "work", "--from", reference), "NOT_EMPTY", 30)
-    assert "--yes" in str(error["suggestion"])
+    assert error["suggestion"] is None
+    assert "--yes" in str(error["message"])
 
 
 def test_a_disk_error_is_reported_as_json(cli: Cli, text: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -133,3 +137,56 @@ def test_a_long_argument_is_cut_in_the_echoed_input(cli: Cli, text: Path) -> Non
     echoed = error["input"]["argv"][2]  # type: ignore[index]
     assert len(echoed) == 201
     assert echoed.endswith("…")
+
+
+def test_an_unexpected_error_is_one_json_error(cli: Cli, text: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def broken(*args: object, **options: object) -> None:
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr(commands, "info", broken)
+    error = check(cli("info", text), "INTERNAL_ERROR", 70)
+    assert "boom" in str(error["message"])
+
+
+@pytest.mark.parametrize("encoding", ["rot13", "undefined"])
+def test_an_encoding_that_is_not_for_text_is_refused(cli: Cli, text: Path, encoding: str) -> None:
+    check(cli("info", text, "--encoding", encoding), "INVALID_VALUE", 2)
+
+
+def test_a_home_that_does_not_exist_is_a_missing_file(cli: Cli) -> None:
+    check(cli("info", "~nouser_zz/Text.bmd"), "FILE_NOT_FOUND", 20)
+
+
+def test_argv_bytes_that_are_not_text_still_give_one_json_error(cli: Cli, text: Path) -> None:
+    check(cli("set", text, "/texts/500", "sali\udcf3"), "NOT_ENCODABLE", 2)
+
+
+def test_a_patch_that_is_one_operation_says_it_wants_a_list(cli: Cli, text: Path) -> None:
+    error = check(cli("apply", text, '{"op": "replace", "path": "/texts/1", "value": "x"}'), "INVALID_VALUE", 2)
+    assert "array" in str(error["message"])
+
+
+def test_a_patch_that_is_neither_json_nor_a_file_is_usage(cli: Cli, text: Path) -> None:
+    check(cli("apply", text, "not json"), "USAGE", 2)
+
+
+def test_dump_does_not_write_json_over_a_bmd(cli: Cli, text: Path) -> None:
+    before = text.read_bytes()
+    check(cli("dump", text, "--output", text), "USAGE", 2)
+    assert text.read_bytes() == before
+
+
+def test_tui_needs_a_terminal(cli: Cli, working_copy: Path) -> None:
+    check(cli("tui", working_copy), "USAGE", 2)
+
+
+def test_tui_on_a_missing_path_is_not_found(cli: Cli, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(commands, "has_terminal", lambda: True)
+    check(cli("tui", tmp_path / "nope" / "Text.bmd"), "FILE_NOT_FOUND", 20)
+
+
+def test_a_console_ui_that_crashed_is_an_error(cli: Cli, working_copy: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(commands, "has_terminal", lambda: True)
+    monkeypatch.setattr(MubmdApp, "run", lambda app: None)
+    monkeypatch.setattr(MubmdApp, "return_code", property(lambda app: 1))
+    check(cli("tui", working_copy), "INTERNAL_ERROR", 70)

@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from mubmd.app.documents import load_view, open_document
+from mubmd.app.paging import DEFAULT_LIMIT, page
 from mubmd.core.catalog import identify
 from mubmd.core.errors import ErrorCode, MubmdError
 from mubmd.core.findings import Finding, Severity
@@ -26,6 +27,8 @@ class ValidateResult:
 @dataclass(frozen=True, slots=True)
 class DiffResult:
     changes: tuple[Change, ...]
+    total: int
+    next_offset: int | None
 
 
 @dataclass(frozen=True, slots=True)
@@ -65,13 +68,25 @@ def validate(store: FileStore, path: Path, *, encoding: str | None = None) -> Va
     return ValidateResult(files, checked=len(known), skipped=len(results) - len(known))
 
 
-def diff(store: FileStore, a: Path, b: Path, *, encoding: str | None = None) -> DiffResult:
-    return DiffResult(diff_views(load_view(store, a, encoding=encoding), load_view(store, b, encoding=encoding)))
+def diff(
+    store: FileStore,
+    a: Path,
+    b: Path,
+    *,
+    limit: int = DEFAULT_LIMIT,
+    offset: int = 0,
+    encoding: str | None = None,
+) -> DiffResult:
+    changes = diff_views(load_view(store, a, encoding=encoding), load_view(store, b, encoding=encoding))
+    shown = page(list(changes), limit, offset)
+    return DiffResult(shown.items, shown.total, shown.next_offset)
 
 
 def dump(
     store: FileStore, path: Path, output: Path, *, dry_run: bool = False, encoding: str | None = None
 ) -> DumpResult:
+    if output.suffix.casefold() == ".bmd":
+        raise MubmdError(ErrorCode.USAGE, f"dump writes JSON and {output.name} is a .bmd: give --output a .json name")
     view = open_document(store, path, encoding=encoding).view
     data = (json.dumps(view, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
     if not dry_run:

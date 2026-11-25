@@ -24,3 +24,18 @@ def test_changing_a_specifier_is_a_warning() -> None:
 def test_an_unchanged_table_has_no_findings() -> None:
     table = TextTable((bytes(TEXT_RECORD_SIZE),) * TEXT_RECORD_COUNT, "cp1252")
     assert check_text_table(table, table) == ()
+
+
+def findings_of_record(record: bytes) -> list[tuple[str, str]]:
+    records = [bytes(TEXT_RECORD_SIZE)] * TEXT_RECORD_COUNT
+    records[9] = record.ljust(TEXT_RECORD_SIZE, b"\0")
+    findings = check_text_table(TextTable(tuple(records), "cp1252"), None)
+    return [(finding.code, finding.pointer) for finding in findings]
+
+
+def test_bytes_after_the_end_of_a_text_are_a_tail() -> None:
+    assert findings_of_record(b"abc\0xyz") == [("TEXT_HAS_TAIL", "/texts/9")]
+
+
+def test_bytes_the_encoding_cannot_read_are_not_decodable() -> None:
+    assert findings_of_record(b"\x81") == [("TEXT_NOT_DECODABLE", "/texts/9")]

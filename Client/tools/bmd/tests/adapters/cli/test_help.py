@@ -1,5 +1,3 @@
-import json
-
 from mubmd.core.errors import ErrorCode
 from tests.adapters.cli.conftest import Cli
 
@@ -26,7 +24,7 @@ def test_no_arguments_describe_the_tool(cli: Cli) -> None:
     data = run.json["data"]
     assert {command["name"] for command in data["commands"]} >= COMMANDS
     assert data["error_codes"] == [code.value for code in ErrorCode]
-    assert set(data["exit_codes"]) == {"0", "1", "2", "20", "30"}
+    assert set(data["exit_codes"]) == {"0", "1", "2", "20", "30", "70"}
     assert {option["name"] for option in data["global_options"]} == {"--human", "--brief", "--help", "--version"}
 
 
@@ -62,4 +60,3 @@ def test_human_help_is_text(cli: Cli) -> None:
     run = cli("--human", "--help")
     assert "workspace" in run.out
     assert not run.out.lstrip().startswith("{")
-    json.dumps(run.out)

@@ -10,6 +10,7 @@ class WorkspaceResult:
     dest: Path
     files: int
     changed: bool
+    edited: int = 0
 
 
 def _manifest(store: FileStore, source: Path) -> dict[Path, str]:
@@ -28,30 +29,31 @@ def _manifest(store: FileStore, source: Path) -> dict[Path, str]:
     return entries
 
 
-def _matches(store: FileStore, dest: Path, manifest: dict[Path, str]) -> bool:
-    return all(store.exists(dest / name) and store.sha256(dest / name) == digest for name, digest in manifest.items())
+def _missing_and_edited(store: FileStore, dest: Path, manifest: dict[Path, str]) -> tuple[int, int]:
+    missing = sum(1 for name in manifest if not store.exists(dest / name))
+    present = ((name, digest) for name, digest in manifest.items() if store.exists(dest / name))
+    return missing, sum(1 for name, digest in present if store.sha256(dest / name) != digest)
 
 
 def workspace_init(store: FileStore, source: Path, dest: Path, *, yes: bool, dry_run: bool = False) -> WorkspaceResult:
     manifest = _manifest(store, source)
-    if store.exists(dest):
-        if _matches(store, dest, manifest):
-            return WorkspaceResult(dest, len(manifest), changed=False)
-        if store.list_files(dest) and not yes:
+    if store.exists(dest) and store.list_files(dest):
+        missing, edited = _missing_and_edited(store, dest, manifest)
+        if not missing and not (edited and yes):
+            return WorkspaceResult(dest, len(manifest), changed=False, edited=edited)
+        if not yes:
             raise MubmdError(
                 ErrorCode.NOT_EMPTY,
-                f"{dest} is not empty and does not match {source}",
-                suggestion=f"mubmd workspace init {dest} --yes",
+                f"{dest} holds files and is not a working copy of {source}: {missing} of the reference's "
+                f"{len(manifest)} files are missing. Choose another folder; --yes copies the reference over this one",
             )
     files = store.list_files(source)
     if dry_run:
         return WorkspaceResult(dest, len(files), changed=True)
     for file in files:
         store.copy(file, dest / file.relative_to(source))
-    if not _matches(store, dest, manifest):
+    if _missing_and_edited(store, dest, manifest) != (0, 0):
         raise MubmdError(
-            ErrorCode.WRITE_VERIFY_FAILED,
-            f"The copy in {dest} does not match {source.name}.sha256",
-            suggestion=f"mubmd workspace init {dest} --yes",
+            ErrorCode.WRITE_VERIFY_FAILED, f"The copy in {dest} does not match {source.name}.sha256; copy it again"
         )
     return WorkspaceResult(dest, len(files), changed=True)

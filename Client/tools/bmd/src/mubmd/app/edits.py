@@ -1,9 +1,11 @@
+import dataclasses
 import json
 from collections.abc import Sequence
 from pathlib import Path
 
 from mubmd.app.documents import (
     EditResult,
+    check_encoding,
     encode_verified,
     open_document,
     parse_json,
@@ -62,8 +64,11 @@ def build(store: FileStore, source: Path, output: Path, *, dry_run: bool) -> Edi
             f"{source} is a {spec.name} view and {output.name} is a {target.format.name} file",
             pointer="/format",
         )
+    encoding = view.get("encoding")
+    if isinstance(encoding, str):
+        target = dataclasses.replace(target, file=dataclasses.replace(target.file, encoding=check_encoding(encoding)))
     refuse_reference(store, output)
-    document, data = encode_verified(target, view)
+    document, data, written = encode_verified(target, view)
     exists = store.exists(output)
     expected = store.sha256(output) if exists else None
     changes: tuple[Change, ...] = ()
@@ -73,7 +78,7 @@ def build(store: FileStore, source: Path, output: Path, *, dry_run: bool) -> Edi
         if current == data:
             return EditResult(output, changed=False, dry_run=dry_run, changes=(), warnings=())
         original = spec.codec.decode(current, target.file)
-        changes = diff_views(spec.codec.to_view(original), view)
+        changes = diff_views(spec.codec.to_view(original), written)
     findings = spec.codec.check(document, original)
     warnings = tuple(finding for finding in findings if not exists or touches(finding, changes))
     if not dry_run:

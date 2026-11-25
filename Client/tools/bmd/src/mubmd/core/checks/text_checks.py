@@ -1,6 +1,6 @@
 import re
 
-from mubmd.core.documents.text_table import TEXT_RECORD_SIZE, TextTable, text_pointer
+from mubmd.core.documents.text_table import TEXT_RECORD_SIZE, TextTable, has_tail, text_pointer
 from mubmd.core.findings import Finding, Severity
 
 PRINTF_PATTERN = re.compile(
@@ -27,7 +27,16 @@ def check_text_table(table: TextTable, original: TextTable | None) -> tuple[Find
                     "the client reads it on into the next record",
                 )
             )
-        if text is None:
+        if text is None and has_tail(record):
+            findings.append(
+                Finding(
+                    "TEXT_HAS_TAIL",
+                    Severity.INFO,
+                    pointer,
+                    f"Text {index} has bytes after its first 0, which the client does not show: kept as hex",
+                )
+            )
+        elif text is None:
             findings.append(
                 Finding(
                     "TEXT_NOT_DECODABLE", Severity.INFO, pointer, f"Text {index} is not {table.encoding}: kept as hex"

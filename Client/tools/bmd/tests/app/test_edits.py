@@ -3,9 +3,11 @@ from pathlib import Path
 
 import pytest
 
+from mubmd.adapters.storage import LocalFileStore
 from mubmd.app.edits import apply_operations, set_value
 from mubmd.app.queries import get
 from mubmd.core.errors import ErrorCode, MubmdError
+from mubmd.core.json_types import JsonValue
 from mubmd.core.patch import Change, PatchOp
 from tests.app.conftest import REFERENCE_TEXT, TEXT
 from tests.app.fake_store import FakeStore
@@ -103,3 +105,26 @@ def test_an_unknown_encoding_is_invalid(store: FakeStore) -> None:
     with pytest.raises(MubmdError) as caught:
         get(store, TEXT, "/texts/1", encoding="klingon")
     assert caught.value.code is ErrorCode.INVALID_VALUE
+
+
+def test_the_header_of_a_view_is_not_editable(store: FakeStore) -> None:
+    with pytest.raises(MubmdError) as caught:
+        set_value(store, TEXT, "/encoding", "CP1252", dry_run=False)
+    assert (caught.value.code, caught.value.pointer) == (ErrorCode.INVALID_VALUE, "/encoding")
+    assert store.writes == 0
+
+
+def test_a_change_that_writes_the_same_bytes_is_no_change(store: FakeStore) -> None:
+    same: JsonValue = {"hex": b"Zen".ljust(300, b"\0").hex().upper()}
+    result = apply_operations(store, TEXT, (PatchOp("replace", "/texts/100", same),), dry_run=False)
+    assert not result.changed
+    assert store.writes == 0
+
+
+def test_an_emoji_is_refused_in_the_chinese_table(working_copy: Path) -> None:
+    chinese = working_copy / "Local" / "TKOU.bmd"
+    before = chinese.read_bytes()
+    with pytest.raises(MubmdError) as caught:
+        set_value(LocalFileStore(), chinese, "/texts/500", "😀", dry_run=False)
+    assert (caught.value.code, caught.value.pointer) == (ErrorCode.NOT_ENCODABLE, "/texts/500")
+    assert chinese.read_bytes() == before

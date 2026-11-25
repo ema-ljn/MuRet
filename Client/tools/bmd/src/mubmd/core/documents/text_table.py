@@ -11,6 +11,13 @@ def text_pointer(index: int) -> str:
     return f"/texts/{index}"
 
 
+def is_text_encoding(name: str) -> bool:
+    try:
+        return "a".encode(name).decode(name) == "a"
+    except (LookupError, UnicodeError):
+        return False
+
+
 def encode_text(text: str, encoding: str, index: int) -> bytes:
     pointer = text_pointer(index)
     if "\0" in text:
@@ -24,6 +31,12 @@ def encode_text(text: str, encoding: str, index: int) -> bytes:
             f"Text {index}: {character!r} cannot be written in {encoding}",
             pointer=pointer,
         ) from error
+    if b"\0" in body or body.decode(encoding, errors="replace") != text:
+        raise MubmdError(
+            ErrorCode.NOT_ENCODABLE,
+            f"Text {index} does not read back the same from its bytes in {encoding}",
+            pointer=pointer,
+        )
     if len(body) > TEXT_RECORD_SIZE:
         raise MubmdError(
             ErrorCode.TEXT_TOO_LONG,
@@ -33,12 +46,17 @@ def encode_text(text: str, encoding: str, index: int) -> bytes:
     return body.ljust(TEXT_RECORD_SIZE, b"\0")
 
 
+def has_tail(record: bytes) -> bool:
+    end = record.find(b"\0")
+    return end >= 0 and any(record[end:])
+
+
 def decode_text(record: bytes, encoding: str) -> str | None:
+    if has_tail(record):
+        return None
     end = record.find(b"\0")
     if end < 0:
         end = len(record)
-    elif any(record[end:]):
-        return None
     try:
         text = record[:end].decode(encoding)
     except UnicodeDecodeError:

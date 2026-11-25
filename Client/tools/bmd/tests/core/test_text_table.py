@@ -56,3 +56,15 @@ def test_bytes_after_the_zero_make_the_text_unreadable() -> None:
     records = list(table().records)
     records[1] = b"ab\0c".ljust(TEXT_RECORD_SIZE, b"\0")
     assert TextTable(tuple(records), "cp1252").text(1) is None
+
+
+def test_a_text_whose_bytes_read_back_differently_is_not_encodable() -> None:
+    with pytest.raises(MubmdError) as caught:
+        TextTable(table().records, "shift_jis").with_text(500, "100¥")
+    assert caught.value.code is ErrorCode.NOT_ENCODABLE
+
+
+def test_a_text_whose_bytes_hold_a_zero_is_not_encodable() -> None:
+    with pytest.raises(MubmdError) as caught:
+        TextTable(table().records, "utf-16").with_text(500, "H")
+    assert caught.value.code is ErrorCode.NOT_ENCODABLE

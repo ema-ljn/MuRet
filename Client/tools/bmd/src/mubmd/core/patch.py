@@ -28,7 +28,7 @@ def _invalid(message: str, pointer: str) -> MubmdError:
 
 def parse_patch(raw: JsonValue) -> tuple[PatchOp, ...]:
     if not isinstance(raw, list):
-        raise _invalid("A patch is a JSON array of operations", "")
+        raise _invalid("A patch is a JSON array of operations; put a single operation inside [ ]", "")
     ops: list[PatchOp] = []
     for number, item in enumerate(raw):
         if not isinstance(item, dict):

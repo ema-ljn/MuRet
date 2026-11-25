@@ -25,7 +25,7 @@ def test_validate_a_folder_reports_the_files_with_findings(working_copy: Path) -
     assert by_file == {
         "Text.bmd": ["TEXT_FILLS_RECORD"],
         "Texttest.bmd": ["TEXT_FILLS_RECORD", "TEXT_FILLS_RECORD"],
-        "TKOU.bmd": ["TEXT_NOT_DECODABLE"],
+        "TKOU.bmd": ["TEXT_HAS_TAIL"],
     }
     assert (result.checked, result.skipped) == (3, 1)
 
@@ -103,3 +103,12 @@ def test_a_dry_run_dump_writes_nothing(store: FakeStore) -> None:
     result = dump(store, TEXT, WORK / "text.json", dry_run=True)
     assert result.size > 0
     assert not store.exists(WORK / "text.json")
+
+
+def test_build_writes_a_view_in_its_own_encoding(working_copy: Path, tmp_path: Path) -> None:
+    store = LocalFileStore()
+    chinese, target = working_copy / "Local" / "TKOU.bmd", working_copy / "Local" / "Texttest.bmd"
+    dump(store, chinese, tmp_path / "tkou.json")
+    result = build(store, tmp_path / "tkou.json", target, dry_run=False)
+    assert result.changed
+    assert target.read_bytes() == chinese.read_bytes()

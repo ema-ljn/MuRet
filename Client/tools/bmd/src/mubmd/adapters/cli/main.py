@@ -122,6 +122,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         return output.failure(error, args)
     except OSError as error:
         return output.failure(MubmdError(ErrorCode.IO_ERROR, str(error)), args)
+    except Exception as error:
+        return output.failure(MubmdError(ErrorCode.INTERNAL_ERROR, f"{type(error).__name__}: {error}"), args)
 
 
 def run() -> None:

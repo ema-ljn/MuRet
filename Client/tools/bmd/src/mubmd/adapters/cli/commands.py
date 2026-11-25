@@ -24,13 +24,12 @@ from mubmd.app.folders import (
     roundtrip,
     validate,
 )
+from mubmd.app.paging import DEFAULT_LIMIT, Page, page
 from mubmd.app.queries import (
-    DEFAULT_LIMIT,
     FormatInfo,
     GetResult,
     InfoResult,
     Match,
-    Page,
     SchemaResult,
     find,
     format_schema,
@@ -59,13 +58,8 @@ class EditData:
     changed: bool
     dry_run: bool
     changes: tuple[Change, ...]
-
-
-@dataclass(frozen=True, slots=True)
-class ValidateSummary:
-    checked: int
-    skipped: int
-    findings: int
+    total: int
+    next_offset: int | None
 
 
 @dataclass(frozen=True, slots=True)
@@ -169,8 +163,20 @@ def split_fields(fields: str | None) -> tuple[str, ...] | None:
     return None if fields is None else tuple(name.strip() for name in fields.split(",") if name.strip())
 
 
-def edit_outcome(command: str, result: EditResult) -> Outcome:
-    data = EditData(result.path, result.changed, result.dry_run, result.changes)
+def expanded(path: Path) -> Path:
+    try:
+        return path.expanduser()
+    except RuntimeError:
+        return path
+
+
+def has_terminal() -> bool:
+    return sys.stdin.isatty() and sys.stdout.isatty()
+
+
+def edit_outcome(command: str, result: EditResult, *, limit: int | None = None, offset: int = 0) -> Outcome:
+    shown = page(list(result.changes), limit or max(1, len(result.changes)), offset)
+    data = EditData(result.path, result.changed, result.dry_run, shown.items, shown.total, shown.next_offset)
     return Outcome(command, data, EditData, warnings=result.warnings)
 
 
@@ -197,24 +203,31 @@ def find_reference_data(start: Path) -> Path:
     )
 
 
-@workspace_app.command("init", help="Copy the reference Data folder to a working copy and check it against its .sha256")
+@workspace_app.command(
+    "init",
+    help="Copy the reference Data folder to a working copy and check it against its .sha256. A working copy that "
+    "is already there is kept as it is, and `edited` counts its files that differ from the reference",
+)
 def workspace_init_command(
     dest: Annotated[Path, typer.Argument(help="The working copy to create", show_default=False)],
     source: Annotated[
         Path | None, typer.Option("--from", help="The reference Data folder (default: Client/assets/Data above here)")
     ] = None,
-    yes: Annotated[bool, typer.Option("--yes", help="Copy into a folder that is not empty")] = False,
+    yes: Annotated[
+        bool,
+        typer.Option("--yes", help="Copy the reference over a folder that is not empty; files edited there are lost"),
+    ] = False,
     dry_run: DryRunOption = False,
 ) -> Outcome:
-    origin = source.expanduser() if source is not None else find_reference_data(Path.cwd())
-    result = workspace_init(STORE, origin, dest.expanduser(), yes=yes, dry_run=dry_run)
+    origin = expanded(source) if source is not None else find_reference_data(Path.cwd())
+    result = workspace_init(STORE, origin, expanded(dest), yes=yes, dry_run=dry_run)
     return Outcome("workspace init", result, WorkspaceResult)
 
 
 @app.command("info", help="Format, encoding, cipher, record counts and number of findings of one file")
 def info_command(file: FileArgument, encoding: EncodingOption = None, fields: FieldsOption = None) -> Outcome:
     with about(file):
-        result = info(STORE, file.expanduser(), encoding=encoding)
+        result = info(STORE, expanded(file), encoding=encoding)
     return Outcome("info", result, InfoResult, fields=split_fields(fields), item_type=InfoResult)
 
 
@@ -234,7 +247,7 @@ def find_command(
     encoding: EncodingOption = None,
 ) -> Outcome:
     with about(file):
-        result = find(STORE, file.expanduser(), query, regex=regex, limit=limit, offset=offset, encoding=encoding)
+        result = find(STORE, expanded(file), query, regex=regex, limit=limit, offset=offset, encoding=encoding)
     return Outcome("find", result, Page[Match], fields=split_fields(fields), item_type=Match)
 
 
@@ -247,7 +260,7 @@ def get_command(
     encoding: EncodingOption = None,
 ) -> Outcome:
     with about(file):
-        result = get(STORE, file.expanduser(), pointer, limit=limit, offset=offset, encoding=encoding)
+        result = get(STORE, expanded(file), pointer, limit=limit, offset=offset, encoding=encoding)
     return Outcome("get", result, GetResult)
 
 
@@ -264,16 +277,23 @@ def set_command(
     encoding: EncodingOption = None,
 ) -> Outcome:
     with about(file):
-        result = set_value(STORE, file.expanduser(), pointer, value, dry_run=dry_run, encoding=encoding)
+        result = set_value(STORE, expanded(file), pointer, value, dry_run=dry_run, encoding=encoding)
     return edit_outcome("set", result)
 
 
 def read_patch(patch: str) -> bytes:
-    if patch.lstrip().startswith("["):
+    if patch.lstrip().startswith(("[", "{")):
         return patch.encode("utf-8")
     if patch == "-":
         return sys.stdin.buffer.read()
-    return STORE.read(Path(patch).expanduser())
+    file = expanded(Path(patch))
+    if not file.is_file():
+        raise MubmdError(
+            ErrorCode.USAGE,
+            "The patch is not a JSON array ([...]), not - for stdin, and not a file that exists",
+            suggestion="mubmd apply --help",
+        )
+    return STORE.read(file)
 
 
 @app.command(
@@ -289,7 +309,7 @@ def apply_command(
 ) -> Outcome:
     with about(file):
         ops = parse_patch(parse_json(read_patch(patch), "the patch"))
-        result = apply_operations(STORE, file.expanduser(), ops, dry_run=dry_run, encoding=encoding)
+        result = apply_operations(STORE, expanded(file), ops, dry_run=dry_run, encoding=encoding)
     return edit_outcome("apply", result)
 
 
@@ -314,24 +334,30 @@ def validate_command(
     encoding: EncodingOption = None,
 ) -> Outcome:
     with about(path):
-        result = validate(STORE, path.expanduser(), encoding=encoding)
+        result = validate(STORE, expanded(path), encoding=encoding)
     findings = [finding for entry in result.files for finding in entry.findings]
     exit_code = EXIT_FINDINGS if any(is_finding(finding) for finding in findings) else EXIT_OK
     if not ndjson:
         return Outcome("validate", result, ValidateResult, exit_code=exit_code)
     lines = tuple(finding_line(entry.path, finding) for entry in result.files for finding in entry.findings)
-    summary = ValidateSummary(result.checked, result.skipped, len(findings))
-    return Outcome("validate", summary, ValidateSummary, exit_code=exit_code, lines=lines)
+    streamed = ValidateResult((), result.checked, result.skipped)
+    return Outcome("validate", streamed, ValidateResult, exit_code=exit_code, lines=lines)
 
 
-@app.command("diff", help="Field by field differences between two files, or a file and a JSON view")
+@app.command(
+    "diff",
+    help="Field by field differences between two files, or a file and a JSON view; total counts them all "
+    "and changes holds --limit of them",
+)
 def diff_command(
     a: Annotated[Path, typer.Argument(help="A .bmd file or a .json view", show_default=False)],
     b: Annotated[Path, typer.Argument(help="A .bmd file or a .json view", show_default=False)],
+    limit: LimitOption = DEFAULT_LIMIT,
+    offset: OffsetOption = 0,
     encoding: EncodingOption = None,
 ) -> Outcome:
-    result = diff(STORE, a.expanduser(), b.expanduser(), encoding=encoding)
-    return Outcome("diff", result, DiffResult, exit_code=EXIT_FINDINGS if result.changes else EXIT_OK)
+    result = diff(STORE, expanded(a), expanded(b), limit=limit, offset=offset, encoding=encoding)
+    return Outcome("diff", result, DiffResult, exit_code=EXIT_FINDINGS if result.total else EXIT_OK)
 
 
 @app.command("dump", help="Write a file's whole view as JSON to --output; returns only its path and size")
@@ -339,24 +365,31 @@ def dump_command(
     file: FileArgument, output: OutputOption, dry_run: DryRunOption = False, encoding: EncodingOption = None
 ) -> Outcome:
     with about(file):
-        result = dump(STORE, file.expanduser(), output.expanduser(), dry_run=dry_run, encoding=encoding)
+        result = dump(STORE, expanded(file), expanded(output), dry_run=dry_run, encoding=encoding)
     return Outcome("dump", result, DumpResult)
 
 
-@app.command("build", help="Write a .bmd from a JSON view; the file name must be one the catalog knows")
+@app.command(
+    "build",
+    help="Write a .bmd from a JSON view; the file name must be one the catalog knows. total counts the changes "
+    "and changes holds --limit of them",
+)
 def build_command(
     source: Annotated[Path, typer.Argument(help="A JSON view written by mubmd dump", show_default=False)],
     output: OutputOption,
     dry_run: DryRunOption = False,
+    limit: LimitOption = DEFAULT_LIMIT,
+    offset: OffsetOption = 0,
 ) -> Outcome:
-    return edit_outcome("build", build(STORE, source.expanduser(), output.expanduser(), dry_run=dry_run))
+    result = build(STORE, expanded(source), expanded(output), dry_run=dry_run)
+    return edit_outcome("build", result, limit=limit, offset=offset)
 
 
 @app.command("roundtrip", help="Decode and encode every .bmd of a folder and report any file that changes")
 def roundtrip_command(
     folder: Annotated[Path, typer.Argument(help="A Data folder", show_default=False)], ndjson: NdjsonOption = False
 ) -> Outcome:
-    result = roundtrip(STORE, folder.expanduser())
+    result = roundtrip(STORE, expanded(folder))
     exit_code = EXIT_FINDINGS if result.differing else EXIT_OK
     lines = tuple(path_line(path) for path in result.differing) if ndjson else ()
     return Outcome("roundtrip", result, RoundtripResult, exit_code=exit_code, lines=lines)
@@ -368,8 +401,20 @@ def tui_command(
 ) -> Outcome:
     from mubmd.adapters.tui.app import MubmdApp  # noqa: PLC0415  Textual takes 200 ms to import; only tui pays it.
 
-    MubmdApp(STORE, path).run()
-    return Outcome("tui", TuiData(path.expanduser()), TuiData)
+    target = expanded(path)
+    if not has_terminal():
+        raise MubmdError(
+            ErrorCode.USAGE,
+            "mubmd tui is the console UI for people and needs a terminal; the other commands need none",
+            suggestion="mubmd --brief",
+        )
+    if not target.exists():
+        raise MubmdError(ErrorCode.FILE_NOT_FOUND, f"{target} does not exist")
+    ui = MubmdApp(STORE, target)
+    ui.run()
+    if ui.return_code:
+        raise MubmdError(ErrorCode.INTERNAL_ERROR, "The console UI stopped with an error; its report is above")
+    return Outcome("tui", TuiData(target), TuiData)
 
 
 def version_outcome() -> Outcome:

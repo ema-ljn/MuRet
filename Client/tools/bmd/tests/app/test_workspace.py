@@ -36,15 +36,33 @@ def test_init_twice_changes_nothing_the_second_time() -> None:
     assert store.files == copies
 
 
-def test_a_folder_that_is_not_empty_needs_yes() -> None:
+def test_a_folder_that_is_not_a_working_copy_needs_yes() -> None:
     store = store_with_reference()
     store.files[DEST / "notes.txt"] = b"mine"
     with pytest.raises(MubmdError) as caught:
         workspace_init(store, SOURCE, DEST, yes=False)
     assert caught.value.code is ErrorCode.NOT_EMPTY
-    assert caught.value.suggestion is not None
-    assert "--yes" in caught.value.suggestion
+    assert caught.value.suggestion is None
+    assert "--yes" in caught.value.message
     assert workspace_init(store, SOURCE, DEST, yes=True).changed
+
+
+def test_an_edited_working_copy_is_kept() -> None:
+    store = store_with_reference()
+    workspace_init(store, SOURCE, DEST, yes=False)
+    store.files[DEST / "Local" / "Text.bmd"] = b"my edit"
+    result = workspace_init(store, SOURCE, DEST, yes=False)
+    assert (result.changed, result.edited) == (False, 1)
+    assert store.files[DEST / "Local" / "Text.bmd"] == b"my edit"
+
+
+def test_yes_copies_the_reference_over_the_edits() -> None:
+    store = store_with_reference()
+    workspace_init(store, SOURCE, DEST, yes=False)
+    store.files[DEST / "Local" / "Text.bmd"] = b"my edit"
+    result = workspace_init(store, SOURCE, DEST, yes=True)
+    assert (result.changed, result.edited) == (True, 0)
+    assert store.files[DEST / "Local" / "Text.bmd"] == b"text"
 
 
 def test_a_source_without_its_manifest_is_not_found() -> None:

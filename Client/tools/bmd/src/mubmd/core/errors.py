@@ -16,6 +16,7 @@ class ErrorCode(StrEnum):
     WRITE_VERIFY_FAILED = "WRITE_VERIFY_FAILED"
     NOT_EMPTY = "NOT_EMPTY"
     IO_ERROR = "IO_ERROR"
+    INTERNAL_ERROR = "INTERNAL_ERROR"
 
 
 class MubmdError(Exception):

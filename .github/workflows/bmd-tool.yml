@@ -1,0 +1,53 @@
+# The .bmd editor (Client/tools/bmd): lint, types and tests, on its own files only.
+name: bmd tool
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - Client/tools/bmd/**
+      - .claude/skills/muret-bmd/**
+      - .github/workflows/bmd-tool.yml
+  pull_request:
+    paths:
+      - Client/tools/bmd/**
+      - .claude/skills/muret-bmd/**
+      - .github/workflows/bmd-tool.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bmd-tool-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  check:
+    name: mubmd (Python 3.13)
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: Client/tools/bmd
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: Client/tools/bmd/pyproject.toml
+
+      - name: Install
+        run: pip install -e ".[dev]"
+
+      - name: Lint
+        run: ruff check .
+
+      - name: Format
+        run: ruff format --check .
+
+      - name: Types
+        run: mypy src tests
+
+      - name: Tests
+        run: pytest -v

@@ -1,0 +1,59 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "mubmd"
+version = "0.1.0"
+description = "Read, check and edit MU Online's .bmd files byte-exact, from a CLI built for agents or a console UI."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "textual==8.2.8",
+    "typer==0.29.2",
+    "rich==15.0.0",
+    "pydantic==2.14.4",
+    "filelock==4.3.1",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest==8.4.2",
+    "pytest-asyncio==1.5.0",
+    "pytest-textual-snapshot==1.1.0",
+    "syrupy==4.8.0",
+    "jsonschema==4.26.0",
+    "ruff==0.17.6",
+    "mypy==2.4.1",
+]
+
+[project.scripts]
+mubmd = "mubmd.adapters.cli.main:run"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/mubmd"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.mypy]
+strict = true
+python_version = "3.12"
+
+[[tool.mypy.overrides]]
+module = ["jsonschema"]
+ignore_missing_imports = true
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF", "N", "PL"]
+
+[tool.ruff.lint.pylint]
+max-args = 8
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["PLR2004"]

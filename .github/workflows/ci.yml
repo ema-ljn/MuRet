@@ -171,7 +171,7 @@ jobs:
             while IFS= read -r path; do
               case "$path" in
                 *.md | docs/* | Client/docs/* | Client/tools/* | .claude/* | .git-blame-ignore-revs) ;;
-                .github/workflows/referencia.yml) ;;
+                .github/workflows/referencia.yml | .github/workflows/bmd-tool.yml) ;;
                 *) build=true; echo "Builds because of $path"; break ;;
               esac
             done < <(git diff --name-only HEAD^1 HEAD)

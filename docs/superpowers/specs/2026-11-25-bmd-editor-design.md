@@ -332,11 +332,12 @@ Three parts: the CLI above, a skill that teaches it, and tests that keep both ho
 - Its description names when to use it (open, inspect, translate or edit a `.bmd`: `Text.bmd`, items, skills, gates,
   dialogs, quests, models), so it loads on those requests and not on C++ work in `Client/src/Data`.
 - Its body, short enough to read whole: the one-paragraph brief (the same as `mubmd --brief`); the workflow
-  (working copy, `find`, `get`, `set` or `apply` with `--dry-run`, then for real, `validate`); recipes for the common
-  jobs (change a text, translate several texts with one `apply`, change an item's field, rename a texture, check a
-  working copy against the reference); the error codes with the way out of each; and the rules (never write the
-  reference folder, `test` before `replace`, `--limit` and `--fields` to save tokens, `roundtrip` after changing a
-  codec).
+  (working copy, `find`, `get`, then `set` or `apply` once, then `validate`: a write is verified and returns its
+  changes and warnings, so `--dry-run` is for showing a batch to someone before it is written; Emanuel, 2026-11-25);
+  recipes for the common jobs (change a text, translate several texts with one `apply`, change an item's field,
+  rename a texture, check a working copy against the reference); the error codes with the way out of each; and the
+  rules (never write the reference folder, `test` before `replace`, `--limit` and `--fields` to save tokens,
+  `roundtrip` after changing a codec).
 - Every command in its recipes is executable: a test runs each recipe against a fresh working copy and checks the
   result, so the skill cannot drift from the tool.
 - It is written and checked as `superpowers:writing-skills` says: before it exists, a fresh agent gets a few of those

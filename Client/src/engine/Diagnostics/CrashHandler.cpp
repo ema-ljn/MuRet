@@ -489,7 +489,7 @@ LONG WINAPI HandleUnhandledException(EXCEPTION_POINTERS* pointers)
     return EXCEPTION_EXECUTE_HANDLER;
 }
 
-Expected<void, std::string> InstallPlatform()
+Core::Expected<void, std::string> InstallPlatform()
 {
     s_state.previousFilter = SetUnhandledExceptionFilter(HandleUnhandledException);
     return {};
@@ -903,9 +903,9 @@ bool WriteNewFile(const PathChar* /*path*/, std::span<const std::byte> /*bytes*/
 
 void AppendToFile(const PathChar* /*path*/, std::span<const std::byte> /*bytes*/) {}
 
-Expected<void, std::string> InstallPlatform()
+Core::Expected<void, std::string> InstallPlatform()
 {
-    return Unexpected(std::string("este sistema no tiene manejador de caídas"));
+    return Core::Unexpected(std::string("este sistema no tiene manejador de caídas"));
 }
 
 void UninstallPlatform() {}

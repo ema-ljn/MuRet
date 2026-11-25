@@ -208,37 +208,37 @@ inline void PrintTo(Status status, std::ostream* out)
 }
 } // namespace Client::Network::SocketApi
 
-namespace Client::Network::Crypto
+namespace Client::Crypto
 {
-inline void PrintTo(Client::Crypto::CryptoError error, std::ostream* out)
+inline void PrintTo(CryptoError error, std::ostream* out)
 {
     switch (error)
     {
-    case Client::Crypto::CryptoError::InvalidKeyFile:
+    case CryptoError::InvalidKeyFile:
         *out << "InvalidKeyFile";
         return;
-    case Client::Crypto::CryptoError::InvalidKey:
+    case CryptoError::InvalidKey:
         *out << "InvalidKey";
         return;
-    case Client::Crypto::CryptoError::WrongPacketType:
+    case CryptoError::WrongPacketType:
         *out << "WrongPacketType";
         return;
-    case Client::Crypto::CryptoError::ChecksumMismatch:
+    case CryptoError::ChecksumMismatch:
         *out << "ChecksumMismatch";
         return;
-    case Client::Crypto::CryptoError::InvalidBlock:
+    case CryptoError::InvalidBlock:
         *out << "InvalidBlock";
         return;
-    case Client::Crypto::CryptoError::NotWholeBlocks:
+    case CryptoError::NotWholeBlocks:
         *out << "NotWholeBlocks";
         return;
-    case Client::Crypto::CryptoError::TooShort:
+    case CryptoError::TooShort:
         *out << "TooShort";
         return;
-    case Client::Crypto::CryptoError::TooLarge:
+    case CryptoError::TooLarge:
         *out << "TooLarge";
         return;
     }
     *out << "CryptoError fuera del enum";
 }
-} // namespace Client::Network::Crypto
+} // namespace Client::Crypto

@@ -7,7 +7,7 @@
 #include <set>
 #include <string_view>
 
-// Client::Network::Crypto::CryptoErrorText: el error del cifrado en palabras, para el log (el plan
+// Client::Crypto::CryptoErrorText: el error del cifrado en palabras, para el log (el plan
 // de la CL4, CL4.4).
 namespace
 {

@@ -11,7 +11,7 @@
 #include <map>
 #include <span>
 
-// Client::Core::Crash::WalkCrashFrames: la cadena de EBP de 0x6829f0 sobre una memoria inventada,
+// Client::Diagnostics::WalkCrashFrames: la cadena de EBP de 0x6829f0 sobre una memoria inventada,
 // con huecos que no se pueden leer.
 namespace
 {

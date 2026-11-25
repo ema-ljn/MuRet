@@ -292,6 +292,10 @@ piecemeal", porque es mucho; acá son dos archivos, y alinearlos al tocarlos no 
    `DataServer::Handlers::Guild`, lo arme quien lo arme.
 2. Los helpers privados de un archivo van en un namespace anónimo.
 3. Nada de `using namespace` en un header.
+4. In the client's `engine/` and `game/` roots the namespace is the folder: a file under `engine/Render/Frame/` declares
+   `Client::Render::Frame`, and one under `engine/Platform/Sdl/`, `Client::Platform::Sdl`. Two exceptions: a folder that
+   exists only for its build flags keeps its parent's namespace (`engine/Math/RoundedMath/` is `Client::Math`), and a
+   `.cpp` that defines the members of another module's class stays in that class's namespace.
 
 ### Types and aliases (2026-11-23)
 
@@ -447,7 +451,7 @@ scene costs 2.5 to 3.2 ms of CPU of a 40 ms frame at `-O2`, and EASTL ties with 
   `std::span`); a `std::array` with a count, or a small `StaticVector` in `Core`;
   `ankerl::unordered_dense` for one hot hash table; Boost.Container if several special containers
   are needed; `std::flat_map` and `std::inplace_vector` once the CI compilers ship them.
-- **Sorting.** What the original sorts with its `std::sort` goes through `Core::Msvc6Sort`,
+- **Sorting.** What the original sorts with its `std::sort` goes through `Crt::Msvc6Sort`,
   because the order of equal elements reaches the screen. `std::sort` and `std::ranges::sort` only
   when no two elements compare equal or equal ones cannot be told apart (integers, unique slots).
   `std::stable_sort` when the original keeps equal elements in arrival order.

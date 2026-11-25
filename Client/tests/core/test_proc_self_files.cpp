@@ -10,7 +10,7 @@
 #include <string>
 #include <string_view>
 
-// Client::Core::Crash: lo que el manejador de Linux saca de /proc/self/maps y /proc/self/stat, en
+// Client::Diagnostics: lo que el manejador de Linux saca de /proc/self/maps y /proc/self/stat, en
 // vez de las fotos de toolhelp del original, sobre textos inventados.
 namespace
 {

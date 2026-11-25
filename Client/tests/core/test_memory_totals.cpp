@@ -7,7 +7,7 @@
 #include <cstdint>
 #include <limits>
 
-// Client::Core::Crash: la memoria de 64 bits en el MEMORYSTATUS de 32 de MuError.dmp.
+// Client::Diagnostics: la memoria de 64 bits en el MEMORYSTATUS de 32 de MuError.dmp.
 namespace
 {
 using Client::Diagnostics::MemoryLoadPercent;

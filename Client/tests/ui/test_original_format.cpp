@@ -7,7 +7,7 @@
 #include <string_view>
 #include <vector>
 
-// Client::UI::FormatOriginal (CL9 hito 11): el sprintf de la CRT (0x69fd9b) y wsprintfA ([0x6b851c]) con los
+// Client::Crt::FormatOriginal (CL9 hito 11): el sprintf de la CRT (0x69fd9b) y wsprintfA ([0x6b851c]) con los
 // argumentos que pasa el original, para los textos de Text.bmd que usan de formato los paquetes de los eventos.
 namespace
 {

@@ -10,7 +10,7 @@
 #include <cstdint>
 #include <span>
 
-// Client::Core::Crash::ToX86Context: los registros de x86-64 en el CONTEXT de x86 de MuError.dmp.
+// Client::Diagnostics::ToX86Context: los registros de x86-64 en el CONTEXT de x86 de MuError.dmp.
 namespace
 {
 using Client::Diagnostics::FxsaveSize;

@@ -38,7 +38,7 @@ public:
     // El texto `index` de Text.bmd; sin él, vacío y el error.
     [[nodiscard]] std::string_view Text(std::size_t index);
 
-    // sprintf(renglón, formato, ...): el renglón que sigue, con el formato de UI::Sprintf (Q-C590).
+    // sprintf(renglón, formato, ...): el renglón que sigue, con el formato de Crt::Sprintf (Q-C590).
     template <typename... Arguments> void Print(std::string_view format, Arguments... arguments)
     {
         if (std::string* line = Current(); line != nullptr)

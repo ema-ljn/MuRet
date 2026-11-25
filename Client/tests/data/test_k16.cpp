@@ -8,7 +8,7 @@
 #include <cstddef>
 #include <vector>
 
-// Client::Data::Terrain::DecryptK16: el cifrado de los archivos de terreno.
+// Client::Crypto::DecryptK16: el cifrado de los archivos de terreno.
 namespace
 {
 using Client::Crypto::DecryptK16;

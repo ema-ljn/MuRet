@@ -8,7 +8,7 @@
 #include <span>
 #include <vector>
 
-// Client::Core::Xor3: el cifrado de las tablas .bmd y de la cuenta y la clave del login.
+// Client::Crypto::Xor3: el cifrado de las tablas .bmd y de la cuenta y la clave del login.
 namespace
 {
 using Client::Crypto::Xor3;

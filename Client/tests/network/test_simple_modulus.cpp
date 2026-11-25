@@ -19,7 +19,7 @@
 #include <type_traits>
 #include <vector>
 
-// Client::Network::Crypto::EncryptBlock y DecryptBlock: los bloques del SimpleModulus, con claves
+// Client::Crypto::EncryptBlock y DecryptBlock: los bloques del SimpleModulus, con claves
 // sintéticas escritas acá. Los bloques cifrados que se esperan los dio encrypt_block de
 // c3c4_reference.py, en el repo de research, y los descifrados, decrypt_block.
 namespace

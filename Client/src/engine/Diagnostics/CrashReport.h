@@ -8,7 +8,7 @@
 
 // Lo que junta el manejador de caídas para MuError.dmp, con los campos y los anchos del original
 // (02 § El manejador de caídas): el volcado de 0x67f840 es de un proceso x86, así que cada
-// dirección y cada registro mide 32 bits. Lo arma Crash::CrashHandler al caer y lo escribe
+// dirección y cada registro mide 32 bits. Lo arma Diagnostics::CrashHandler al caer y lo escribe
 // WriteCrashDump. Es un agregado sin memoria dinámica: vive en un buffer estático que se llena
 // después de la caída sin pedir memoria.
 namespace Client::Diagnostics

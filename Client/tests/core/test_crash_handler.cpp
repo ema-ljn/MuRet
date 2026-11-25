@@ -29,7 +29,7 @@
 #include <signal.h>
 #endif
 
-// Client::Core::Crash::CrashHandler: instalar y desinstalar en el proceso del test, y en Linux una
+// Client::Diagnostics::CrashHandler: instalar y desinstalar en el proceso del test, y en Linux una
 // caída de verdad en un proceso hijo (EXPECT_EXIT), que deja MuError.dmp y la línea del log en una
 // carpeta temporal. El proceso del test no se cae.
 namespace

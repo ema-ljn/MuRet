@@ -8,7 +8,7 @@
 #include <string>
 #include <string_view>
 
-// Client::Core::Crash: los textos de la cabecera de MuError.dmp (el sistema de 0x683ed0, el
+// Client::Diagnostics: los textos de la cabecera de MuError.dmp (el sistema de 0x683ed0, el
 // procesador de 0x684730 y la excepción de 0x680260) y la línea del log de 0x4b9b34.
 namespace
 {

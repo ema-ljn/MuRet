@@ -11,7 +11,7 @@
 #include <string_view>
 #include <vector>
 
-// Client::Core::Crash::WriteCrashDump: MuError.dmp byte a byte, contra un archivo armado a mano con
+// Client::Diagnostics::WriteCrashDump: MuError.dmp byte a byte, contra un archivo armado a mano con
 // los offsets que escribe 0x67f840 (02 § El manejador de caídas): cada campo en su lugar, sin
 // relleno, en little-endian.
 namespace

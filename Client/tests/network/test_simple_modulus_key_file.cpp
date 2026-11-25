@@ -13,7 +13,7 @@
 #include <initializer_list>
 #include <vector>
 
-// Client::Network::Crypto::LoadEncryptionKey y LoadDecryptionKey, con archivos de clave armados
+// Client::Crypto::LoadEncryptionKey y LoadDecryptionKey, con archivos de clave armados
 // acá: el magic, el tamaño y los tres bloques con el XOR de la tabla. Los reales, en
 // test_golden_simple_modulus_key_file.cpp.
 namespace

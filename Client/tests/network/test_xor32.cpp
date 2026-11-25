@@ -19,7 +19,7 @@
 #include <utility>
 #include <vector>
 
-// Client::Network::Crypto::Xor32: el cifrado encadenado del motor de envío, con los paquetes del
+// Client::Crypto::Xor32: el cifrado encadenado del motor de envío, con los paquetes del
 // cable (04-protocolo.md), el C2 del binario y los vectores de Client/tests/vectors/net/.
 namespace
 {

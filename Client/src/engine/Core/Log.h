@@ -33,7 +33,7 @@ namespace Client::Core
 {
 // El prefijo de cada línea: "[info] ", "[warning] "... El de un valor que no es ninguno de los
 // cuatro es el de error. Lo usa también el manejador de caídas, que escribe su línea sin el Log
-// (Crash::CrashLogLine).
+// (Diagnostics::CrashLogLine).
 [[nodiscard]] std::string_view LevelPrefix(LogLevel level);
 
 class ENGINE_API Log

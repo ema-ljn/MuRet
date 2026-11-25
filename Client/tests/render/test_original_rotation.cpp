@@ -18,7 +18,7 @@
 #include <sstream>
 #include <string>
 
-// Client::Render::Models::OriginalAngleMatrix y OriginalVectorRotate contra 0x5fc8f0 y 0x5fcbd0 del
+// Client::Math::OriginalAngleMatrix y OriginalVectorRotate contra 0x5fc8f0 y 0x5fcbd0 del
 // código real del main.exe, en 400 casos al azar (tests/vectors/world55/rotation.txt,
 // make_rotation_vectors.py): cada float bit a bit.
 namespace

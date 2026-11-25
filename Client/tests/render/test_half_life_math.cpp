@@ -18,7 +18,7 @@
 #include <span>
 #include <vector>
 
-// Client::Render::Models: la mathlib de Half-Life que usa la pose del original (0x5fcd20, 0x5fce90,
+// Client::Math: la mathlib de Half-Life que usa la pose del original (0x5fcd20, 0x5fce90,
 // 0x5fc700, 0x5fcdb0, 0x5fc8f0, 0x5fca90, 0x5fccc0 y 0x5fcbd0).
 namespace
 {

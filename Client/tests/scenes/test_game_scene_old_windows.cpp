@@ -164,7 +164,7 @@ protected:
     Client::Tests::LoggedInSession m_online;
     Client::Tests::FakeTextureStore m_textures;
     Client::Tests::FakeClock m_clock;
-    Client::Render::Models::ClothWorld m_cloth;
+    Client::Models::ClothWorld m_cloth;
     Client::Input::InputState m_input;
     SceneClipboard m_clipboard;
     LetterMeasure m_letters;

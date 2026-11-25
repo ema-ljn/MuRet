@@ -60,13 +60,13 @@ namespace
 {
 using Client::Data::Models::Mesh;
 using Client::Data::Models::Model;
+using Client::Models::Skeleton;
+using Client::Models::TextureMetadata;
 using Client::Render::ModelBatch;
 using Client::Render::ModelBlend;
 using Client::Render::TextureSlot;
-using Client::Render::Models::Skeleton;
 using Client::Scenes::DrawWorldObjects;
 using Client::Scenes::StepWorldObjects;
-using Client::Scenes::TextureMetadata;
 using Client::World::WorldObject;
 
 constexpr std::uint8_t Login = 55;
@@ -78,7 +78,7 @@ constexpr std::int16_t Rock = 1;
 
 // Cualquier modelo: dos mallas de un triángulo del hueso 0 (texturas 0x41c y 0x41d) y un esqueleto de
 // un hueso, sin animación.
-class TwoMeshModels final : public Client::Render::Models::IModelLibrary
+class TwoMeshModels final : public Client::Models::IModelLibrary
 {
 public:
     TwoMeshModels()
@@ -92,14 +92,14 @@ public:
         Mesh second = mesh;
         second.textureName = "b.jpg";
         m_model.meshes = {mesh, second};
-        Client::Render::Models::SkeletonBone bone;
+        Client::Models::SkeletonBone bone;
         bone.parent = -1;
-        Client::Render::Models::BoneKey key;
+        Client::Models::BoneKey key;
         key.rotation = Client::Math::AngleQuaternion({0.0f, 0.0f, 0.0f});
         bone.actions = {{key}};
         m_skeleton.bones = {bone};
         m_skeleton.actions = {
-            Client::Render::Models::ActionInfo{.repeats = true, .speed = 0.0f, .keyCount = 1, .lockPositions = false}};
+            Client::Models::ActionInfo{.repeats = true, .speed = 0.0f, .keyCount = 1, .lockPositions = false}};
     }
 
     [[nodiscard]] const Model* Find(std::uint16_t) const override
@@ -123,7 +123,7 @@ private:
 
 // Un modelo como Waterspout01: cuatro mallas de un triángulo del hueso 0, cada una con la textura de su
 // índice (de 0 a 3, slots 0x41c a 0x41f) y la UV (0,125; 0,25), sin animación.
-class FourMeshModels final : public Client::Render::Models::IModelLibrary
+class FourMeshModels final : public Client::Models::IModelLibrary
 {
 public:
     FourMeshModels()
@@ -139,14 +139,14 @@ public:
             mesh.textureName = "a.jpg";
             m_model.meshes.push_back(mesh);
         }
-        Client::Render::Models::SkeletonBone bone;
+        Client::Models::SkeletonBone bone;
         bone.parent = -1;
-        Client::Render::Models::BoneKey key;
+        Client::Models::BoneKey key;
         key.rotation = Client::Math::AngleQuaternion({0.0f, 0.0f, 0.0f});
         bone.actions = {{key}};
         m_skeleton.bones = {bone};
         m_skeleton.actions = {
-            Client::Render::Models::ActionInfo{.repeats = true, .speed = 0.0f, .keyCount = 1, .lockPositions = false}};
+            Client::Models::ActionInfo{.repeats = true, .speed = 0.0f, .keyCount = 1, .lockPositions = false}};
     }
 
     [[nodiscard]] const Model* Find(std::uint16_t) const override
@@ -353,8 +353,7 @@ TEST(WorldObjectsDrawingTest, DrawingStillUpdatesGeometryAndSeenWithoutAnOrigina
 
 // El pase de los objetos del juego (0x6046a0 en 0x6374ce) con los modelos de mentira, todo visto y la
 // semilla 7.
-Client::Core::Expected<void, std::string> DrawGame(ModelBatch& batch,
-                                                   const Client::Render::Models::IModelLibrary& models,
+Client::Core::Expected<void, std::string> DrawGame(ModelBatch& batch, const Client::Models::IModelLibrary& models,
                                                    std::span<WorldObject> objects,
                                                    const Client::Scenes::GameObjectPass& pass)
 {
@@ -604,7 +603,7 @@ TEST(WorldObjectsDrawingTest, TheLorenciaWaterspoutDrawsFourLooseMeshes)
         DrawGame(batch, models, objects, {.map = Lorencia, .originalFrame = false, .random = &random}).HasValue());
     ASSERT_EQ(batch.Commands().size(), 4u);
     ASSERT_EQ(batch.Vertices().size(), 12u);
-    const float light = Client::Render::Models::NormalLight(glm::vec3(0.0f, 0.0f, 1.0f));
+    const float light = Client::Models::NormalLight(glm::vec3(0.0f, 0.0f, 1.0f));
     for (std::size_t mesh = 0; mesh < 4; ++mesh)
     {
         SCOPED_TRACE(mesh);
@@ -912,7 +911,7 @@ TEST(WorldObjectsDrawingTest, TheDeviasBeamObjectLeavesTwoSpritesOverItsFirstBon
 }
 
 // Como el 0x67 de Devias (Object104.bmd): dos mallas del hueso 0 y dos acciones de seis keys.
-class SwitchingModels final : public Client::Render::Models::IModelLibrary
+class SwitchingModels final : public Client::Models::IModelLibrary
 {
 public:
     SwitchingModels()
@@ -924,15 +923,14 @@ public:
         mesh.triangles = {{3, {0, 1, 2, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}}};
         mesh.textureName = "a.jpg";
         m_model.meshes = {mesh, mesh};
-        Client::Render::Models::SkeletonBone bone;
+        Client::Models::SkeletonBone bone;
         bone.parent = -1;
-        Client::Render::Models::BoneKey key;
+        Client::Models::BoneKey key;
         key.rotation = Client::Math::AngleQuaternion({0.0f, 0.0f, 0.0f});
-        const std::vector<Client::Render::Models::BoneKey> keys(6, key);
+        const std::vector<Client::Models::BoneKey> keys(6, key);
         bone.actions = {keys, keys};
         m_skeleton.bones = {bone};
-        const Client::Render::Models::ActionInfo action{
-            .repeats = true, .speed = 0.25f, .keyCount = 6, .lockPositions = false};
+        const Client::Models::ActionInfo action{.repeats = true, .speed = 0.25f, .keyCount = 6, .lockPositions = false};
         m_skeleton.actions = {action, action};
     }
 
@@ -1223,7 +1221,7 @@ TEST(WorldObjectsDrawingTest, TheGameStepStopsAtTheFirstCaseMuRetDoesNotHave)
 
 // Modelos de diez huesos de raíz, sin animación, el k en (100 · k, 10 · k, 0) por la base de su tipo; el
 // del tipo 2 con el 8 dummy. El farol (0x3c), de un hueso, como Object61.bmd.
-class TenBoneModels final : public Client::Render::Models::IModelLibrary
+class TenBoneModels final : public Client::Models::IModelLibrary
 {
 public:
     TenBoneModels()
@@ -1233,7 +1231,7 @@ public:
             Skeleton skeleton;
             for (std::size_t k = 0; k < bones; ++k)
             {
-                Client::Render::Models::SkeletonBone bone;
+                Client::Models::SkeletonBone bone;
                 bone.parent = -1;
                 if (dummy == k)
                 {
@@ -1241,14 +1239,14 @@ public:
                     skeleton.bones.push_back(bone);
                     continue;
                 }
-                Client::Render::Models::BoneKey key;
+                Client::Models::BoneKey key;
                 key.position = {base + (100.0f * static_cast<float>(k)), 10.0f * static_cast<float>(k), 0.0f};
                 key.rotation = Client::Math::AngleQuaternion({0.0f, 0.0f, 0.0f});
                 bone.actions = {{key}};
                 skeleton.bones.push_back(bone);
             }
-            skeleton.actions = {Client::Render::Models::ActionInfo{
-                .repeats = true, .speed = 0.0f, .keyCount = 1, .lockPositions = false}};
+            skeleton.actions = {
+                Client::Models::ActionInfo{.repeats = true, .speed = 0.0f, .keyCount = 1, .lockPositions = false}};
             return skeleton;
         };
         m_horse = skeletonOf(10, 0.0f, std::nullopt);
@@ -1450,7 +1448,7 @@ TEST(WorldObjectsDrawingTest, TheLanternGlowsAtTheBonesOfTheLastPosedModel)
     ASSERT_EQ(hidden.sprites.size(), 2u);
     EXPECT_EQ(hidden.sprites[1].position, *hidden.rock9) << "posado aunque no se dibuje";
 
-    objects[0].state.hiddenMesh = Client::Render::Models::NoHiddenMesh;
+    objects[0].state.hiddenMesh = Client::Models::NoHiddenMesh;
     objects[0].alpha = 0.0f;
     const LanternGlow faded = GlowOf(objects, Client::World::ObjectScene::Login, 3);
     ASSERT_EQ(faded.sprites.size(), 2u);
@@ -1584,7 +1582,7 @@ TEST(ModelEffectsDrawingTest, TheDragonTakesTheTerrainLightPlusItsOwn)
     batch.Begin(Client::Render::Pass3D{});
     Client::Scenes::DrawModelEffects(batch, models, effects, Client::World::SphereFrustum{}, lighting.get(), {}, 0.0f);
     ASSERT_EQ(batch.Vertices().size(), 6u);
-    const float light = Client::Render::Models::NormalLight(glm::vec3(0.0f, 0.0f, 1.0f));
+    const float light = Client::Models::NormalLight(glm::vec3(0.0f, 0.0f, 1.0f));
     const auto& color = batch.Vertices()[0].color;
     EXPECT_FLOAT_EQ(color.red, 1.25f * light);
     EXPECT_FLOAT_EQ(color.green, 1.5f * light);
@@ -1617,7 +1615,7 @@ TEST(ModelEffectsDrawingTest, CullingUsesTheLogicalPositionAndRetainsDeadSlotHis
     EXPECT_EQ(batch.Vertices()[0].position.x, -1000.0f);
 }
 
-struct MissingEffectModels final : Client::Render::Models::IModelLibrary
+struct MissingEffectModels final : Client::Models::IModelLibrary
 {
     mutable int lookups = 0;
     const Model* Find(std::uint16_t) const override
@@ -1686,7 +1684,7 @@ TEST(ModelEffectsDrawingTest, TheDragonIsDrawnBetweenTwoSteps)
 
 // Una biblioteca con el tamaño de la textura de los sprites (0x5ac de 64 × 32) y la del aliento (0x5f2): las
 // dos son JPG, de 3 componentes, y ligan el slot de su selector, como las de EffectTextureSet en GameModels.
-class SpriteTextures : public Client::Render::Models::IModelLibrary
+class SpriteTextures : public Client::Models::IModelLibrary
 {
 public:
     [[nodiscard]] const Model* Find(std::uint16_t) const override
@@ -1974,7 +1972,7 @@ TEST(ParticlesDrawingTest, ABreathIsDrawnWithItsTextureTimesItsScale)
 }
 
 // Una biblioteca que no subió ninguna textura de efectos.
-class NoEffectTextures final : public Client::Render::Models::IModelLibrary
+class NoEffectTextures final : public Client::Models::IModelLibrary
 {
 public:
     [[nodiscard]] const Model* Find(std::uint16_t) const override

@@ -19,7 +19,7 @@ namespace Client::Crt
 class CrtRandom;
 } // namespace Client::Crt
 
-namespace Client::Render::Models
+namespace Client::Models
 {
 // 0x412890, y en línea en 0x40b570 y 0x40b800: una variable de 4 bytes, un rand() por byte (Q-C125).
 inline constexpr std::uint16_t SmallLogicalCloseRandoms = 4;
@@ -51,4 +51,4 @@ private:
     std::uint16_t m_closeRandoms;
     std::uint32_t* m_left = nullptr;
 };
-} // namespace Client::Render::Models
+} // namespace Client::Models

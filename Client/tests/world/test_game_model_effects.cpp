@@ -148,7 +148,7 @@ TEST(GameModelEffectsTest, TheShortBowTrailPublishesAndAdvancesAnimationEvenOnIt
     trail.speed = 0.25f;
     trail.owner.effect = &arrow;
     trail.transform.position = {1, 2, 3};
-    Client::Render::Models::Skeleton skeleton;
+    Client::Models::Skeleton skeleton;
     skeleton.actions.resize(1, {.repeats = false, .speed = 1, .keyCount = 2});
     Client::Crt::CrtRandom random(1);
     const std::int32_t map = 0;
@@ -180,7 +180,7 @@ TEST(GameModelEffectsTest, TheShortBowTrailPublishesAndAdvancesAnimationEvenOnIt
 // del mundo. En el segundo, 0x52d66a..0x52d693 la filtra por blendMesh.
 TEST(GameModelEffectsTest, TheShortBowTrailDrawsPiercingBmdInBothNativePasses)
 {
-    class TriangleModels final : public Client::Render::Models::IModelLibrary
+    class TriangleModels final : public Client::Models::IModelLibrary
     {
     public:
         TriangleModels()
@@ -192,17 +192,17 @@ TEST(GameModelEffectsTest, TheShortBowTrailDrawsPiercingBmdInBothNativePasses)
             mesh.triangles = {{3, {0, 1, 2, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}}};
             mesh.textureName = "Piercing.jpg";
             model.meshes = {mesh};
-            Client::Render::Models::SkeletonBone bone;
-            bone.actions = {{Client::Render::Models::BoneKey{}}};
+            Client::Models::SkeletonBone bone;
+            bone.actions = {{Client::Models::BoneKey{}}};
             skeleton.bones = {bone};
-            skeleton.actions = {Client::Render::Models::ActionInfo{.keyCount = 1}};
+            skeleton.actions = {Client::Models::ActionInfo{.keyCount = 1}};
         }
         const Client::Data::Models::Model* Find(std::uint16_t id) const override
         {
             found.push_back(id);
             return &model;
         }
-        const Client::Render::Models::Skeleton* SkeletonOf(std::uint16_t) const override
+        const Client::Models::Skeleton* SkeletonOf(std::uint16_t) const override
         {
             return &skeleton;
         }
@@ -211,7 +211,7 @@ TEST(GameModelEffectsTest, TheShortBowTrailDrawsPiercingBmdInBothNativePasses)
             return textures;
         }
         Client::Data::Models::Model model;
-        Client::Render::Models::Skeleton skeleton;
+        Client::Models::Skeleton skeleton;
         std::array<Client::Render::TextureSlot, 1> textures{Client::Render::TextureSlot{0x400}};
         mutable std::vector<std::uint16_t> found;
     } models;
@@ -368,7 +368,7 @@ TEST(GameModelEffectsTest, TextureEffectsSkipTheNativeModelAnimationRange)
     effect.life = 100;
     effect.speed = 1.0f;
     effect.animation.frame = 1.0f;
-    Client::Render::Models::Skeleton skeleton;
+    Client::Models::Skeleton skeleton;
     skeleton.actions.resize(1);
     skeleton.actions[0].keyCount = 4;
     Client::World::Particles particles;

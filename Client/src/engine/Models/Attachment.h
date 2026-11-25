@@ -14,7 +14,7 @@
 // Contrato: Client/docs/research/06-render-escenas-y-ui.md, "El modelo en el binario". La espada en
 // el 33 y la mascota en el 34 están **verificadas** contra la traza de la selección; las alas,
 // *estáticas*.
-namespace Client::Render::Models
+namespace Client::Models
 {
 enum class AttachmentSlot : std::uint8_t
 {
@@ -72,4 +72,4 @@ inline constexpr HangingPlacement QuiverPlacement{{70.0f, 0.0f, 90.0f}, {-10.0f,
 // vértice.
 [[nodiscard]] ENGINE_API Math::BoneTransform PlacedRoot(const Math::BoneTransform& parent,
                                                         const HangingPlacement& placement);
-} // namespace Client::Render::Models
+} // namespace Client::Models

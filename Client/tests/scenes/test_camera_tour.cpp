@@ -141,7 +141,7 @@ struct Tour
     Client::Scenes::SelectionState selection{world};
     Client::World::GameCamera camera;
     Client::World::GameCameraInput input;
-    Client::Render::Models::ClothWorld cloth{.random = CrtRandom(Seed)};
+    Client::Models::ClothWorld cloth{.random = CrtRandom(Seed)};
     Client::Scenes::SingleModelLibrary models;
     Client::Tests::RecordingSink sink;
     Client::Core::Log log{sink, Client::Core::LogLevel::Debug};

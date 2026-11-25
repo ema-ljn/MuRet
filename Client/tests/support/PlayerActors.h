@@ -22,9 +22,9 @@ namespace Client::Tests
 // no avanzan la animación.
 inline constexpr std::size_t PlayerActionCount = 205;
 
-inline Render::Models::Skeleton PlayerActionsSkeleton()
+inline Models::Skeleton PlayerActionsSkeleton()
 {
-    Render::Models::Skeleton skeleton;
+    Models::Skeleton skeleton;
     skeleton.actions.resize(PlayerActionCount);
     return skeleton;
 }

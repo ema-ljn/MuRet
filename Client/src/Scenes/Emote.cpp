@@ -47,7 +47,7 @@ Core::Expected<bool, std::string> PlayTheEmote(ActorState& actor, UI::EmoteCase 
     if (skeleton == nullptr)
         return Core::Unexpected(
             std::format("0x576abf: el emote sin las acciones del modelo {:#x} del personaje (0x4ea030)", actor.type));
-    Render::Models::SetAction(actor.animation, *skeleton, AnimationFor(actor, emote.animation));
+    Models::SetAction(actor.animation, *skeleton, AnimationFor(actor, emote.animation));
     // 0x576ac7..0x576e97: C1 05 18 con la dirección de [0x743a170] + 0x24 y la acción, XOR32 en línea.
     if (auto sent = SendTheAction(context.hero.angles.z, emote.action, context.send, "0x576b3e"); !sent.HasValue())
         return Core::Unexpected(sent.Error());

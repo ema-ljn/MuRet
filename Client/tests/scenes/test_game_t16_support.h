@@ -298,7 +298,7 @@ protected:
     Core::Log m_log{m_sink, Core::LogLevel::Debug};
     FakeTextureStore m_textures;
     FakeClock m_clock;
-    std::unique_ptr<Render::Models::ClothWorld> m_cloth = std::make_unique<Render::Models::ClothWorld>();
+    std::unique_ptr<Models::ClothWorld> m_cloth = std::make_unique<Models::ClothWorld>();
     std::unique_ptr<Scenes::WorldState> m_world = std::make_unique<Scenes::WorldState>();
     std::unique_ptr<Scenes::SelectionState> m_selection = std::make_unique<Scenes::SelectionState>(*m_world);
     std::unique_ptr<Scenes::GameModels> m_models = std::make_unique<Scenes::GameModels>();

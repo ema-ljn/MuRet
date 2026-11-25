@@ -404,8 +404,7 @@ Core::Expected<void, std::string> DrawTheList(GameHudContext& context, UI::OldLi
 // 0x650047..0x6500dd: el tope de miembros del maestro, con el registro propio abierto.
 std::int32_t MostMembersOf(GameHudContext& context)
 {
-    const Render::Models::LogicalAccess own(context.ownRecordDepth, context.random,
-                                            Render::Models::OwnRecordCloseRandoms);
+    const Models::LogicalAccess own(context.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
     const OwnCharacterRecord& record = context.world.OwnCharacter();
     const std::int32_t levels = static_cast<std::int32_t>(record.level) / LevelsPerMember;
     if ((record.characterClass & 7u) != LeadingClass)

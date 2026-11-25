@@ -116,7 +116,7 @@ TEST(DungeonObjectsTest, TheMapOneHiddenTypesOnlyStoreTheirHiddenMesh)
     auto other = Object(0x30);
     CrtRandom random(7);
     ASSERT_TRUE(StepDungeonObject(other, random, ObjectStepGlobals{}).HasValue());
-    EXPECT_EQ(other.state.hiddenMesh, Client::Render::Models::ObjectState{}.hiddenMesh);
+    EXPECT_EQ(other.state.hiddenMesh, Client::Models::ObjectState{}.hiddenMesh);
 }
 
 // 0x605034 y 0x605052: 0x52f360(0, objeto, (0; −30; 240)) y (0; 0; 190), los fuegos de clase 0. Sin el
@@ -201,7 +201,7 @@ TEST(DungeonObjectsTest, TheMapOneDripDropsAStoneOneTimeInThreeAndAlwaysHides)
     const auto cut = StepDungeonObject(object, random, ObjectStepGlobals{});
     ASSERT_FALSE(cut.HasValue());
     EXPECT_NE(cut.Error().find("0x604fdb"), std::string::npos) << cut.Error();
-    EXPECT_EQ(object.state.hiddenMesh, Client::Render::Models::ObjectState{}.hiddenMesh);
+    EXPECT_EQ(object.state.hiddenMesh, Client::Models::ObjectState{}.hiddenMesh);
     EXPECT_EQ(random.State(), After(drops, 1).State());
 }
 
@@ -219,7 +219,7 @@ TEST(DungeonObjectsTest, TheLostTowerWaterScrollsItsUAndTheChromeTypesBlend)
         ASSERT_TRUE(StepLostTowerObject(object, random, globals).HasValue());
         EXPECT_EQ(object.state.uv.x,
                   static_cast<float>(-345.0 * static_cast<double>(std::bit_cast<float>(0x3a83126fu))));
-        EXPECT_EQ(object.state.blendMesh, type >= 0x13 ? 4 : Client::Render::Models::ObjectState{}.blendMesh);
+        EXPECT_EQ(object.state.blendMesh, type >= 0x13 ? 4 : Client::Models::ObjectState{}.blendMesh);
         EXPECT_EQ(random.State(), 7u);
     }
     for (const std::int16_t type : {std::int16_t{0x12}, std::int16_t{0x17}})

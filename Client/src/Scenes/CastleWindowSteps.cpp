@@ -214,8 +214,7 @@ Core::Expected<void, std::string> EnterHunt(const GameUiContext& context)
     }
     else
     {
-        const Render::Models::LogicalAccess access(runtime.ownRecordDepth, context.random,
-                                                   Render::Models::OwnRecordCloseRandoms);
+        const Models::LogicalAccess access(runtime.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
         if (window.allowed != 0 && world.OwnCharacter().zen > window.fee)
         {
             if (auto sent = Send(context, Castle::WriteHuntZoneEntry(window.fee)); !sent.HasValue())

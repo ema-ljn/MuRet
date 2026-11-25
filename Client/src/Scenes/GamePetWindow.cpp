@@ -260,9 +260,9 @@ Core::Expected<std::string_view, std::string> TextOf(const GameHudContext& conte
 }
 
 // Un acceso al registro propio ([0x7681eb4]): abre sin gastar y, si lo deja en 0, cierra con 3.848 rand().
-Render::Models::LogicalAccess OwnAccess(GameHudContext& context)
+Models::LogicalAccess OwnAccess(GameHudContext& context)
 {
-    return Render::Models::LogicalAccess(context.ownRecordDepth, context.random, Render::Models::OwnRecordCloseRandoms);
+    return Models::LogicalAccess(context.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
 }
 
 // 0x621b60(slot, x, y, w, h, u, v, du, dv, 1, 1, 0): escalado en tamaño y en posición, sin alfa.

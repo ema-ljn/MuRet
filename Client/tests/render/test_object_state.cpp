@@ -17,14 +17,14 @@
 namespace
 {
 using Client::Math::RoundedSin;
-using Client::Render::Models::EveryMeshBlends;
-using Client::Render::Models::HangingObjectState;
-using Client::Render::Models::MaskedClassLightAt;
-using Client::Render::Models::ModelLightOf;
-using Client::Render::Models::NoBlendMesh;
-using Client::Render::Models::NoHiddenMesh;
-using Client::Render::Models::ObjectRandoms;
-using Client::Render::Models::ObjectState;
+using Client::Models::EveryMeshBlends;
+using Client::Models::HangingObjectState;
+using Client::Models::MaskedClassLightAt;
+using Client::Models::ModelLightOf;
+using Client::Models::NoBlendMesh;
+using Client::Models::NoHiddenMesh;
+using Client::Models::ObjectRandoms;
+using Client::Models::ObjectState;
 
 constexpr ObjectRandoms Sevens{7, 7};
 

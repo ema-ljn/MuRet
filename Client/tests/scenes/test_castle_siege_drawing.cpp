@@ -52,12 +52,12 @@ using Client::Crt::CrtRandom;
 using Client::Data::Models::Mesh;
 using Client::Data::Models::Model;
 using Client::Math::RoundedSin;
+using Client::Models::IModelLibrary;
+using Client::Models::Skeleton;
 using Client::Render::ModelBatch;
 using Client::Render::ModelBlend;
 using Client::Render::ModelDrawState;
 using Client::Render::TextureSlot;
-using Client::Render::Models::IModelLibrary;
-using Client::Render::Models::Skeleton;
 using Client::Scenes::CastleSiegeBodyPass;
 using Client::Scenes::DrawCastleSiegeBody;
 using Client::Scenes::DrawnObject;
@@ -370,13 +370,13 @@ TEST(CastleSiegeObjectServicesTest, TheOtherTypesDoNothingAndTheRandomIsRequired
 Skeleton OneBone()
 {
     Skeleton skeleton;
-    Client::Render::Models::SkeletonBone bone;
+    Client::Models::SkeletonBone bone;
     bone.parent = -1;
-    bone.actions = {{Client::Render::Models::BoneKey{}}};
+    bone.actions = {{Client::Models::BoneKey{}}};
     bone.actions[0][0].rotation = Client::Math::AngleQuaternion({0.0f, 0.0f, 0.0f});
     skeleton.bones.assign(1, bone);
     skeleton.actions = {
-        Client::Render::Models::ActionInfo{.repeats = true, .speed = 0.0f, .keyCount = 1, .lockPositions = false}};
+        Client::Models::ActionInfo{.repeats = true, .speed = 0.0f, .keyCount = 1, .lockPositions = false}};
     return skeleton;
 }
 
@@ -436,7 +436,7 @@ TEST(CastleSiegeDrawingTest, OnlyTheCastleSiegeSpreadsTheShadowFurther)
     const SiegeModels models(1);
     DrawnObject object = SiegeObject();
     object.transform.position = {10.0f, 20.0f, 30.0f};
-    std::array<Client::Render::Models::SkinnedMesh, 1> meshes{};
+    std::array<Client::Models::SkinnedMesh, 1> meshes{};
     meshes[0].positions = {{110.0f, 77.0f, 80.0f}, {111.0f, 77.0f, 80.0f}, {110.0f, 78.0f, 80.0f}};
     meshes[0].normals = {{0.0f, 0.0f, 1.0f}};
     ModelBatch batch;
@@ -562,7 +562,7 @@ TEST(CastleSiegeDrawingTest, AFragmentEmitsFromItsPosedVerticesInsteadOfDrawingT
     const CastleSiegeBodyPass pass{
         .type = 0x3d,
         .field04 = 1,
-        .emitGateVertices = [&](const DrawnObject& object, std::span<const Client::Render::Models::SkinnedMesh> meshes)
+        .emitGateVertices = [&](const DrawnObject& object, std::span<const Client::Models::SkinnedMesh> meshes)
             -> Client::Core::Expected<void, std::string>
         {
             ++calls;
@@ -614,18 +614,18 @@ TEST(CastleSiegeDrawingTest, TheImpactHidesBeforeEmittingItsNativeVertexFamilyAn
         batch.Begin(Client::Render::Pass3D{});
         int calls = 0;
         ASSERT_TRUE(
-            Client::Scenes::DrawCastleWeaponBody(batch, models, effect, object, {},
-                                                 [&](std::int32_t family, const DrawnObject& owner,
-                                                     std::span<const Client::Render::Models::SkinnedMesh> meshes)
-                                                     -> Client::Core::Expected<void, std::string>
-                                                 {
-                                                     ++calls;
-                                                     EXPECT_EQ(family, type == 0x12b ? 0x12d : 0x12e);
-                                                     EXPECT_EQ(effect.objectState.hiddenMesh, -2);
-                                                     EXPECT_EQ(owner.state.hiddenMesh, -2);
-                                                     EXPECT_EQ(meshes.size(), 1u);
-                                                     return {};
-                                                 })
+            Client::Scenes::DrawCastleWeaponBody(
+                batch, models, effect, object, {},
+                [&](std::int32_t family, const DrawnObject& owner,
+                    std::span<const Client::Models::SkinnedMesh> meshes) -> Client::Core::Expected<void, std::string>
+                {
+                    ++calls;
+                    EXPECT_EQ(family, type == 0x12b ? 0x12d : 0x12e);
+                    EXPECT_EQ(effect.objectState.hiddenMesh, -2);
+                    EXPECT_EQ(owner.state.hiddenMesh, -2);
+                    EXPECT_EQ(meshes.size(), 1u);
+                    return {};
+                })
                 .HasValue());
         EXPECT_EQ(calls, 1);
         EXPECT_TRUE(batch.Vertices().empty());
@@ -769,8 +769,8 @@ TEST(CastleSiegeDrawingTest, TheShadowedWallsCastAWiderShadowOnlyWithoutTheSiege
             const glm::vec3 body = vertices[corner].position;
             ASSERT_NE(body.z, object.transform.position.z);
             const glm::vec3 flat = vertices[corner + 3].position;
-            EXPECT_EQ(flat, Client::Render::Models::FlattenOnTheGround(body, object.transform.position, 2500.0f));
-            EXPECT_NE(flat, Client::Render::Models::FlattenOnTheGround(body, object.transform.position, 2000.0f));
+            EXPECT_EQ(flat, Client::Models::FlattenOnTheGround(body, object.transform.position, 2500.0f));
+            EXPECT_NE(flat, Client::Models::FlattenOnTheGround(body, object.transform.position, 2000.0f));
             EXPECT_FLOAT_EQ(vertices[corner + 3].color.red, 0.0f);
         }
 

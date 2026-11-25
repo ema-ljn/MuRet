@@ -41,7 +41,7 @@ TEST(CrywolfHelpersTest, TheThreeAttackWindowsContinueWhenTheRealPoolsAreFull)
             effect.alive = true;
         for (auto& particle : world->Particles().All())
             particle.alive = true;
-        Client::Render::Models::Skeleton skeleton;
+        Client::Models::Skeleton skeleton;
         skeleton.bones.assign(50, {.dummy = true, .parent = -1, .actions = {}});
         skeleton.actions.assign(12, {.repeats = true, .speed = 0.25f, .keyCount = 10, .lockPositions = false});
         Client::World::FrameSprites sprites;
@@ -85,7 +85,7 @@ TEST(CrywolfHelpersTest, TheAttackWindowsCreateTheirNativeChildrenOnlyInsideTheH
             actor->position = {1000, 2000, 50};
             actor->animation.action = hit.action;
             actor->animation.frame = hit.frame + static_cast<float>(edge) * 0.25f;
-            Client::Render::Models::Skeleton skeleton;
+            Client::Models::Skeleton skeleton;
             skeleton.bones.assign(50, {.dummy = true, .parent = -1, .actions = {}});
             skeleton.actions.assign(12, {.repeats = true, .speed = 0.25f, .keyCount = 10, .lockPositions = false});
             Client::World::FrameSprites sprites;
@@ -131,7 +131,7 @@ TEST(CrywolfHelpersTest, TheNamedSpritesReadTheRegisteredActorBonesAndKeepBothRo
         actor->bodyPose[1][3] = {40, 50, 60};
         actor->bodyPose[2][3] = {70, 80, 90};
         world->Runtime().namedBones = {{3, "Monster96_Center", 0}, {3, "Monster96_Top", 1}, {3, "Monster96_Bottom", 2}};
-        Client::Render::Models::Skeleton skeleton;
+        Client::Models::Skeleton skeleton;
         Client::World::FrameSprites sprites;
         Client::Crt::CrtRandom random(7);
         Client::Scenes::ModelEffectsPass pass{.actor = *actor,
@@ -172,7 +172,7 @@ TEST(CrywolfHelpersTest, ThePiercingKeepsBothInclusiveFrameEdgesAndBothHelpersIn
             actor->animation.action = 4;
             actor->animation.frame = frame;
             actor->position = {100, 200, 300};
-            Client::Render::Models::Skeleton skeleton;
+            Client::Models::Skeleton skeleton;
             Client::Crt::CrtRandom random(7);
             Client::Scenes::ModelEffectsPass pass{
                 .actor = *actor, .slot = 3, .world = *world, .random = random, .skeleton = skeleton, .map = map};
@@ -199,7 +199,7 @@ TEST(CrywolfHelpersTest, TheHeadAttackCreatesTheOwnedEarthquakeAboveTheScaleThre
         actor->bodyPose.assign(21, Client::Math::BoneTransform(1.0f));
         world->Runtime().namedBones = {{3, "Monster95_Head", 0}};
         world->Runtime().ownRecordDepth = 1;
-        Client::Render::Models::Skeleton skeleton;
+        Client::Models::Skeleton skeleton;
         skeleton.actions.assign(12, {.repeats = true, .speed = 0.25f, .keyCount = 10, .lockPositions = false});
         Client::World::FrameSprites sprites;
         Client::Crt::CrtRandom random(7);
@@ -248,7 +248,7 @@ TEST(CrywolfHelpersTest, TheBalgassAppliesBothRandomGateOutcomesBeforeItsFrameGa
             actor->movementPhase = 1;
             world->Runtime().crywolf.stage = 4;
             world->Runtime().ownRecordDepth = 1;
-            Client::Render::Models::Skeleton skeleton;
+            Client::Models::Skeleton skeleton;
             skeleton.actions.resize(4);
             Client::Crt::CrtRandom random(seed);
             Client::Scenes::ModelEffectsPass pass{

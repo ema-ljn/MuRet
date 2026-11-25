@@ -77,10 +77,9 @@ bool InRange(std::int32_t value, std::int32_t first, std::int32_t last)
     return value >= first && value <= last;
 }
 
-Render::Models::LogicalAccess OwnAccess(const HeroSkillContext& context)
+Models::LogicalAccess OwnAccess(const HeroSkillContext& context)
 {
-    return Render::Models::LogicalAccess(context.world.Runtime().ownRecordDepth, context.random,
-                                         Render::Models::OwnRecordCloseRandoms);
+    return Models::LogicalAccess(context.world.Runtime().ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
 }
 
 SkillDelayContext DelaysOf(const HeroSkillContext& context)
@@ -214,13 +213,11 @@ Cells ReadTheCells(ActorState& hero, Crt::CrtRandom& random)
 {
     Cells cells;
     {
-        const Render::Models::LogicalAccess access(hero.cellYAccesses, random,
-                                                   Render::Models::SmallLogicalCloseRandoms);
+        const Models::LogicalAccess access(hero.cellYAccesses, random, Models::SmallLogicalCloseRandoms);
         cells.y = hero.cellY;
     }
     {
-        const Render::Models::LogicalAccess access(hero.cellXAccesses, random,
-                                                   Render::Models::SmallLogicalCloseRandoms);
+        const Models::LogicalAccess access(hero.cellXAccesses, random, Models::SmallLogicalCloseRandoms);
         cells.x = hero.cellX;
     }
     return cells;
@@ -377,7 +374,7 @@ Core::Expected<void, std::string> PutTheAction(ActorState& hero, std::uint8_t ac
 {
     if (context.playerSkeleton == nullptr)
         return Core::Unexpected(std::format("0x4ea030: falta el esqueleto del jugador para la acción {:#x}", action));
-    Render::Models::SetAction(hero.animation, *context.playerSkeleton, action);
+    Models::SetAction(hero.animation, *context.playerSkeleton, action);
     return {};
 }
 

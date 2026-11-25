@@ -122,7 +122,7 @@ struct Game
     Client::Scenes::SelectionState selection{world};
     Client::World::GameCamera camera;
     Client::World::GameCameraInput input;
-    Client::Render::Models::ClothWorld cloth{.random = CrtRandom(Seed)};
+    Client::Models::ClothWorld cloth{.random = CrtRandom(Seed)};
     Client::Scenes::SingleModelLibrary models;
     // Item.bmd sin nada marcado, para 0x54efe0 desde 0x512a30.
     Client::Data::Tables::ItemTable items = Client::Tests::ItemsMarking({});
@@ -442,7 +442,7 @@ TEST_F(ViewportPlayersTest, TheTeleportStateKeepsWhatTheOldOneHad)
     EXPECT_EQ(ring.sizes[0], 5 + 0x2c);
     EXPECT_EQ(std::to_integer<std::uint8_t>(ring.slots[0][3]), 0x12);
     EXPECT_EQ(game->cloth.random.State(),
-              AfterDraws(Seed, FreshRecordDraws + Client::Render::Models::OwnRecordCloseRandoms).State());
+              AfterDraws(Seed, FreshRecordDraws + Client::Models::OwnRecordCloseRandoms).State());
 }
 
 // 0x4c8a36: los estados 2 a 4 con su acción, y la del elfo (la clase & 7 en 2).

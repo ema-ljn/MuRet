@@ -46,15 +46,15 @@ using Client::Data::Models::ModelFile;
 using Client::Data::Models::PlayerHeadBone;
 using Client::Data::Models::SkinSlotOf;
 using Client::Math::BoneTransform;
-using Client::Render::Models::AnimationState;
-using Client::Render::Models::MakeSkeleton;
-using Client::Render::Models::ObjectTransform;
-using Client::Render::Models::PoseSkeleton;
-using Client::Render::Models::ShinePass;
-using Client::Render::Models::ShineTexCoords;
-using Client::Render::Models::Skeleton;
-using Client::Render::Models::SkinMesh;
-using Client::Render::Models::SkinnedMesh;
+using Client::Models::AnimationState;
+using Client::Models::MakeSkeleton;
+using Client::Models::ObjectTransform;
+using Client::Models::PoseSkeleton;
+using Client::Models::ShinePass;
+using Client::Models::ShineTexCoords;
+using Client::Models::Skeleton;
+using Client::Models::SkinMesh;
+using Client::Models::SkinnedMesh;
 using Client::Tests::GlTrace;
 using Client::Tests::GlTraceBlock;
 using Client::Tests::GlTraceFrame;
@@ -436,16 +436,16 @@ TEST_F(GoldenSkinningTrace, MatchesTheGuardOfLorencia)
 struct HangingModel
 {
     ModelFile file;
-    Client::Render::Models::AttachmentSlot slot;
+    Client::Models::AttachmentSlot slot;
     std::array<float, 5> frames;
 };
 
 TEST_F(GoldenSkinningTrace, TheSwordAndThePetHangFromTheirBones)
 {
-    using Client::Render::Models::AttachmentOf;
-    using Client::Render::Models::AttachmentRoot;
-    using Client::Render::Models::AttachmentSlot;
-    using Client::Render::Models::PoseAttached;
+    using Client::Models::AttachmentOf;
+    using Client::Models::AttachmentRoot;
+    using Client::Models::AttachmentSlot;
+    using Client::Models::PoseAttached;
     const Scene scene = SelectionPlayer();
     const std::optional<GlTrace> trace = LoadTrace(SelectionTrace);
     const std::optional<Skeleton> skeleton = LoadPlayerSkeleton();

@@ -146,7 +146,7 @@ protected:
 
     std::unique_ptr<WorldState> m_world = std::make_unique<WorldState>();
     CrtRandom m_random{1};
-    Client::Render::Models::Skeleton m_skeleton = Client::Tests::PlayerActionsSkeleton();
+    Client::Models::Skeleton m_skeleton = Client::Tests::PlayerActionsSkeleton();
     Client::Data::Text::TextTable m_texts = Client::Tests::MakeTextTable({{1974, "pociones"},
                                                                           {1975, "alas"},
                                                                           {1976, "gremio"},

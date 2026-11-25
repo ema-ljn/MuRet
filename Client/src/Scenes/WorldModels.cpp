@@ -36,7 +36,7 @@ namespace Client::Scenes
 {
 struct WorldModelTextureRequests
 {
-    Render::Models::ModelTextureRequests requests;
+    Models::ModelTextureRequests requests;
     std::map<std::uint16_t, std::vector<std::optional<std::size_t>>> bindings;
 };
 
@@ -64,8 +64,8 @@ struct TextureUploadState
 
 Core::Expected<void, std::string> WorldModels::Load(const std::filesystem::path& dataRoot, std::uint8_t map,
                                                     Render::ITextureStore& textures, Core::Log& log,
-                                                    const Render::Models::ModelTextureSlots* gameSlots,
-                                                    const Render::Models::IModelLibrary* globalModels,
+                                                    const Models::ModelTextureSlots* gameSlots,
+                                                    const Models::IModelLibrary* globalModels,
                                                     ModelTextureTable* sharedTextures)
 {
     Release();
@@ -87,7 +87,7 @@ Core::Expected<void, std::string> WorldModels::Load(const std::filesystem::path&
     m_folder = ObjectFolder(map);
     const auto* previousSlots = m_sharedTextures != nullptr ? &m_sharedTextures->Slots() : gameSlots;
     m_slots.emplace(previousSlots != nullptr ? previousSlots->ContinuedAt(SpecialModelsFirstSlot)
-                                             : Render::Models::ModelTextureSlots(SpecialModelsFirstSlot));
+                                             : Models::ModelTextureSlots(SpecialModelsFirstSlot));
     TextureSlots()->SetNext(SpecialModelsFirstSlot);
     m_requestStart = TextureSlots()->ToLoad().size();
     std::size_t missing = 0;
@@ -136,7 +136,7 @@ void WorldModels::LoadFile(const std::filesystem::path& dataRoot, const Data::Mo
             log.Warning("un objeto del mundo no se puede leer y no se dibuja: {}", loaded.Error().path);
         return;
     }
-    auto skeleton = Render::Models::MakeSkeleton(loaded.Value());
+    auto skeleton = Models::MakeSkeleton(loaded.Value());
     if (!skeleton.HasValue())
     {
         log.Warning("el objeto {} del mundo no tiene un esqueleto que se pueda posar", file.model);
@@ -264,7 +264,7 @@ Core::Expected<void, std::string> WorldModels::ConfigureActions(std::uint8_t map
         if (model == m_skeletons.end() || model->second.actions.empty())
             return Core::Unexpected(std::string(setting.address) + ": falta la primera acción del especial de Kalima " +
                                     std::to_string(setting.model));
-        Render::Models::ActionInfo& action = model->second.actions.front();
+        Models::ActionInfo& action = model->second.actions.front();
         action.repeats = setting.repeats;
         if (setting.speed)
             action.speed = *setting.speed;
@@ -291,7 +291,7 @@ Core::Expected<void, std::string> WorldModels::LoadTheSpearman(const std::filesy
     m_meshTextures[SpearmanModel] =
         TextureSlots()->Assign(model->second, "Monster\\", WorldModelSampling, &textureRequests.requests,
                                &textureRequests.bindings[SpearmanModel]);
-    Render::Models::Skeleton& skeleton = m_skeletons.at(SpearmanModel);
+    Models::Skeleton& skeleton = m_skeletons.at(SpearmanModel);
     if (skeleton.actions.size() < Speeds.size())
         return Core::Unexpected(std::string("0x612e5a: Monster78 no tiene las siete acciones de los monstruos"));
     for (std::size_t action = 0; action < Speeds.size(); ++action)
@@ -340,7 +340,7 @@ void WorldModels::UploadTextures(const std::filesystem::path& dataRoot, Render::
         }
         state.residentName = names.requested;
         m_uploaded.push_back(slot);
-        m_textureMetadata.insert_or_assign(entry.slot, TextureMetadata(loaded.Value().front().texture));
+        m_textureMetadata.insert_or_assign(entry.slot, Models::TextureMetadata(loaded.Value().front().texture));
     }
     if (skipped != 0)
     {
@@ -394,7 +394,7 @@ const Data::Models::Model* WorldModels::Find(std::uint16_t model) const
                                    : (m_globalModels != nullptr ? m_globalModels->Find(model) : nullptr);
 }
 
-const Render::Models::Skeleton* WorldModels::SkeletonOf(std::uint16_t model) const
+const Models::Skeleton* WorldModels::SkeletonOf(std::uint16_t model) const
 {
     const auto found = m_skeletons.find(model);
     return found != m_skeletons.end() ? &found->second
@@ -409,7 +409,7 @@ std::span<const Render::TextureSlot> WorldModels::MeshTextures(std::uint16_t mod
     return m_globalModels != nullptr ? m_globalModels->MeshTextures(model) : std::span<const Render::TextureSlot>{};
 }
 
-std::optional<TextureMetadata> WorldModels::TextureMetadataOf(std::uint32_t selector) const
+std::optional<Models::TextureMetadata> WorldModels::TextureMetadataOf(std::uint32_t selector) const
 {
     if (m_sharedTextures != nullptr)
         return m_sharedTextures->Metadata(selector);
@@ -444,12 +444,12 @@ std::size_t WorldModels::Count() const
     return m_models.size();
 }
 
-Render::Models::ModelTextureSlots* WorldModels::TextureSlots()
+Models::ModelTextureSlots* WorldModels::TextureSlots()
 {
     return m_slots ? &*m_slots : m_sharedTextures != nullptr ? &m_sharedTextures->Slots() : nullptr;
 }
 
-const Render::Models::ModelTextureSlots* WorldModels::TextureSlots() const
+const Models::ModelTextureSlots* WorldModels::TextureSlots() const
 {
     return m_slots ? &*m_slots : m_sharedTextures != nullptr ? &m_sharedTextures->Slots() : nullptr;
 }

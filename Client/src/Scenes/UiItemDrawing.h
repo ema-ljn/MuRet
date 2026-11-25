@@ -31,10 +31,10 @@ namespace Client::Crt
 class CrtRandom;
 } // namespace Client::Crt
 
-namespace Client::Render::Models
+namespace Client::Models
 {
 class IModelLibrary;
-} // namespace Client::Render::Models
+} // namespace Client::Models
 
 namespace Client::Scenes
 {
@@ -120,7 +120,7 @@ struct UiItemPass
 struct UiItemResources
 {
     Render::ModelBatch& batch;
-    const Render::Models::IModelLibrary& models;
+    const Models::IModelLibrary& models;
     FaunaDrawCarry& poseCarry;
     const ItemDrawContext& itemContext;
     Core::Duration frameClock{};

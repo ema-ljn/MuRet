@@ -14,7 +14,7 @@
 #include <string_view>
 #include <vector>
 
-namespace Client::Render::Models
+namespace Client::Models
 {
 namespace
 {
@@ -33,31 +33,34 @@ std::string RequestPath(std::string_view folder, std::string_view name, TextureL
 }
 } // namespace
 
-ModelTextureSlots::ModelTextureSlots(TextureSlot next) : m_names(OriginalTextureSlotCount), m_next(next.value) {}
+ModelTextureSlots::ModelTextureSlots(Render::TextureSlot next)
+    : m_names(Render::OriginalTextureSlotCount), m_next(next.value)
+{
+}
 
-ModelTextureSlots ModelTextureSlots::ContinuedAt(TextureSlot next) const
+ModelTextureSlots ModelTextureSlots::ContinuedAt(Render::TextureSlot next) const
 {
     ModelTextureSlots continued(next);
     continued.m_names = m_names;
     return continued;
 }
 
-void ModelTextureSlots::SetNext(TextureSlot next)
+void ModelTextureSlots::SetNext(Render::TextureSlot next)
 {
     m_next = next.value;
 }
 
-std::vector<TextureSlot> ModelTextureSlots::Assign(const Data::Models::Model& model, std::string_view folder,
-                                                   Sampling sampling)
+std::vector<Render::TextureSlot> ModelTextureSlots::Assign(const Data::Models::Model& model, std::string_view folder,
+                                                           Sampling sampling)
 {
     return Assign(model, folder, sampling, nullptr, nullptr);
 }
 
-std::vector<TextureSlot> ModelTextureSlots::Assign(const Data::Models::Model& model, std::string_view folder,
-                                                   Sampling sampling, ModelTextureRequests* requests,
-                                                   std::vector<std::optional<std::size_t>>* bindings)
+std::vector<Render::TextureSlot> ModelTextureSlots::Assign(const Data::Models::Model& model, std::string_view folder,
+                                                           Sampling sampling, ModelTextureRequests* requests,
+                                                           std::vector<std::optional<std::size_t>>* bindings)
 {
-    std::vector<TextureSlot> slots;
+    std::vector<Render::TextureSlot> slots;
     slots.reserve(model.meshes.size());
     if (bindings != nullptr)
     {
@@ -66,18 +69,18 @@ std::vector<TextureSlot> ModelTextureSlots::Assign(const Data::Models::Model& mo
     }
     for (const Data::Models::Mesh& mesh : model.meshes)
     {
-        const std::optional<TextureSlot> found = Find(mesh.textureName);
+        const std::optional<Render::TextureSlot> found = Find(mesh.textureName);
         if (!found && requests != nullptr)
         {
             const auto next = Next();
             requests->lastBySlot.insert_or_assign(next.value, requests->names.size());
             requests->names.push_back({mesh.textureName, std::string(NameOf(next))});
         }
-        TextureSlot slot = found.has_value() ? *found : Request(folder, mesh.textureName, sampling);
+        Render::TextureSlot slot = found.has_value() ? *found : Request(folder, mesh.textureName, sampling);
         const std::optional<std::uint16_t> skin = Data::Models::SkinSlotOf(mesh.textureName);
         if (skin.has_value())
         {
-            slot = TextureSlot{*skin};
+            slot = Render::TextureSlot{*skin};
         }
         slots.push_back(slot);
         if (requests != nullptr && bindings != nullptr)
@@ -95,38 +98,38 @@ std::span<const Data::Textures::TextureSetEntry> ModelTextureSlots::ToLoad() con
     return m_toLoad;
 }
 
-TextureSlot ModelTextureSlots::Next() const
+Render::TextureSlot ModelTextureSlots::Next() const
 {
-    return TextureSlot{static_cast<std::uint16_t>(m_next)};
+    return Render::TextureSlot{static_cast<std::uint16_t>(m_next)};
 }
 
-std::string_view ModelTextureSlots::NameOf(TextureSlot slot) const
+std::string_view ModelTextureSlots::NameOf(Render::TextureSlot slot) const
 {
     return slot.value < m_names.size() ? std::string_view(m_names[slot.value]) : std::string_view{};
 }
 
-void ModelTextureSlots::SetName(TextureSlot slot, std::string_view name)
+void ModelTextureSlots::SetName(Render::TextureSlot slot, std::string_view name)
 {
     if (slot.value < m_names.size())
         m_names[slot.value] = name;
 }
 
 // 0x60d550: del slot 0 al próximo libre, sin contar este.
-std::optional<TextureSlot> ModelTextureSlots::Find(std::string_view name) const
+std::optional<Render::TextureSlot> ModelTextureSlots::Find(std::string_view name) const
 {
     for (std::size_t slot = 0; slot < m_next && slot < m_names.size(); ++slot)
     {
         if (m_names[slot] == name)
         {
-            return TextureSlot{static_cast<std::uint16_t>(slot)};
+            return Render::TextureSlot{static_cast<std::uint16_t>(slot)};
         }
     }
     return std::nullopt;
 }
 
-TextureSlot ModelTextureSlots::Request(std::string_view folder, std::string_view name, Sampling sampling)
+Render::TextureSlot ModelTextureSlots::Request(std::string_view folder, std::string_view name, Sampling sampling)
 {
-    const TextureSlot slot{static_cast<std::uint16_t>(m_next)};
+    const Render::TextureSlot slot{static_cast<std::uint16_t>(m_next)};
     if (m_next < m_names.size())
     {
         m_names[m_next] = name;
@@ -141,4 +144,4 @@ TextureSlot ModelTextureSlots::Request(std::string_view folder, std::string_view
     m_toLoad.push_back({path, slot.value, sampling});
     return slot;
 }
-} // namespace Client::Render::Models
+} // namespace Client::Models

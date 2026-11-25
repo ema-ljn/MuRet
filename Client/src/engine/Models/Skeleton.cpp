@@ -14,7 +14,7 @@
 #include <utility>
 #include <vector>
 
-namespace Client::Render::Models
+namespace Client::Models
 {
 namespace
 {
@@ -95,4 +95,4 @@ Core::Expected<Skeleton, SkeletonError> MakePlayerSkeleton(const Data::Models::M
     skeleton.headBone = Data::Models::PlayerHeadBone;
     return skeleton;
 }
-} // namespace Client::Render::Models
+} // namespace Client::Models

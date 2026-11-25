@@ -195,7 +195,7 @@ Core::Expected<void, std::string> StepWanderingJoint(JointState& joint, const Jo
     Crt::CrtRandom& random = *services.random;
     const auto steps = std::bit_cast<std::uint32_t>(services.cloth->logicSteps);
     if (services.cloth->openCounterAccesses == 0)
-        for (std::uint16_t draw = 0; draw < Render::Models::SmallLogicalCloseRandoms; ++draw)
+        for (std::uint16_t draw = 0; draw < Models::SmallLogicalCloseRandoms; ++draw)
             static_cast<void>(random.Next());
     // 0x53a971..0x53a9ba: la fase es el contador (negado en los lugares pares) más el lugar · 53731.
     const auto index = static_cast<std::uint32_t>(services.index);

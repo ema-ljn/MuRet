@@ -42,11 +42,11 @@ using Client::Math::Bits;
 
 // El esqueleto del dragón para el paso: la acción de Dragon.bmd, 41 keys que repiten (el +0 en 0, como
 // la del generador).
-Client::Render::Models::Skeleton DragonSkeleton()
+Client::Models::Skeleton DragonSkeleton()
 {
-    Client::Render::Models::Skeleton skeleton;
+    Client::Models::Skeleton skeleton;
     skeleton.actions = {
-        Client::Render::Models::ActionInfo{.repeats = true, .speed = 0.0f, .keyCount = 41, .lockPositions = false}};
+        Client::Models::ActionInfo{.repeats = true, .speed = 0.0f, .keyCount = 41, .lockPositions = false}};
     return skeleton;
 }
 
@@ -282,7 +282,7 @@ TEST(ModelEffectsTest, ReusingTheGenericEffectsReinitializesEveryNativePrefixFie
         EXPECT_EQ(effect.owner.effect, nullptr);
         EXPECT_EQ(effect.itemType, nullptr);
         EXPECT_EQ(effect.itemLevel, nullptr);
-        EXPECT_EQ(effect.objectState, Client::Render::Models::ObjectState{});
+        EXPECT_EQ(effect.objectState, Client::Models::ObjectState{});
     }
 }
 
@@ -504,7 +504,7 @@ TEST(ModelEffectsTest, TheFlameJetLivesFortyAndClosesTheOwnRecord)
         Client::Crt::CrtRandom expected(9);
         if (start == 0)
         {
-            for (int draw = 0; draw < Client::Render::Models::OwnRecordCloseRandoms; ++draw)
+            for (int draw = 0; draw < Client::Models::OwnRecordCloseRandoms; ++draw)
                 static_cast<void>(expected.Next());
         }
         EXPECT_EQ(random.State(), expected.State());
@@ -551,7 +551,7 @@ TEST(ModelEffectsTest, TheOwnedFlameJetKeepsTheOwnCountForItsOwner)
         EXPECT_EQ(depth, start);
         Client::Crt::CrtRandom expected(9);
         if (start == 0)
-            expected.Discard(Client::Render::Models::OwnRecordCloseRandoms);
+            expected.Discard(Client::Models::OwnRecordCloseRandoms);
         EXPECT_EQ(random.State(), expected.State());
     }
     std::uint8_t depth = 0;
@@ -1176,7 +1176,7 @@ TEST(ModelEffectsTest, TheEarthquakeIsBornWithItsSubtypeAndClosesTheOwnRecord)
         EXPECT_EQ(depth, start);
         if (start == 0)
         {
-            for (int draw = 0; draw < Client::Render::Models::OwnRecordCloseRandoms; ++draw)
+            for (int draw = 0; draw < Client::Models::OwnRecordCloseRandoms; ++draw)
                 static_cast<void>(expected.Next());
         }
         EXPECT_EQ(random.State(), expected.State());
@@ -1254,7 +1254,7 @@ TEST(ModelEffectsTest, TheEarthquakeCracksTakeTheirLifeAndScaleFromTheirSize)
             EXPECT_EQ(Bits(effect.transform.scale), Bits(scale));
             EXPECT_EQ(effect.disturbanceState, static_cast<std::uint16_t>(size));
             const bool keepsItsBlend = crack.type == 0xfd || crack.type == 0x100;
-            EXPECT_EQ(effect.objectState.blendMesh, keepsItsBlend ? Client::Render::Models::NoBlendMesh : 0);
+            EXPECT_EQ(effect.objectState.blendMesh, keepsItsBlend ? Client::Models::NoBlendMesh : 0);
             const bool flagged =
                 crack.subtype == 1 && (crack.type == 0xfc || crack.type == 0xff || crack.type == 0x102);
             EXPECT_EQ(effect.renderFlags, flagged ? Client::World::CrackRenderFlags : 0u);
@@ -1285,7 +1285,7 @@ TEST(ModelEffectsTest, AnEarthquakeCrackWithoutItsCaseKeepsTheLifeOfThePreviousE
         EXPECT_EQ(effect.life, 7);
         EXPECT_EQ(effect.transform.scale, 0.9f);
         EXPECT_EQ(effect.disturbanceState, 0x96u);
-        EXPECT_EQ(effect.objectState.blendMesh, Client::Render::Models::NoBlendMesh);
+        EXPECT_EQ(effect.objectState.blendMesh, Client::Models::NoBlendMesh);
         EXPECT_FALSE(effect.hasOwner);
     }
 

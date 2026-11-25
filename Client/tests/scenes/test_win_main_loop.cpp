@@ -23,8 +23,8 @@ namespace
 {
 using Client::Core::Duration;
 using Client::Crt::CrtRandom;
-using Client::Render::Models::OriginalFramePace;
-using Client::Render::Models::OriginalFrameTime;
+using Client::Models::OriginalFramePace;
+using Client::Models::OriginalFrameTime;
 using Client::Scenes::CloseTheFrameCounter;
 using Client::Scenes::FinishTheWinMainLoop;
 using Client::Scenes::InTheDeviasChurch;
@@ -328,7 +328,7 @@ TEST(WinMainLoopTest, TheSlideTimerRunsBetweenTheFrameCounterAndTheNextTurn)
 {
     constexpr int Texts = 16;
     constexpr std::uint32_t Period = 60'000;
-    constexpr int UntilThePick = 9 + 4 + 1 + Client::Render::Models::OwnRecordCloseRandoms;
+    constexpr int UntilThePick = 9 + 4 + 1 + Client::Models::OwnRecordCloseRandoms;
     LoopTail tail;
     auto& banner = tail.world->Runtime().hud.slides;
     banner.maxLevels[0] = 15;

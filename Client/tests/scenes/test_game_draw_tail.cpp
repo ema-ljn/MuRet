@@ -50,7 +50,7 @@
 
 namespace
 {
-class LookupCounter final : public Client::Render::Models::IModelLibrary
+class LookupCounter final : public Client::Models::IModelLibrary
 {
 public:
     const Client::Data::Models::Model* Find(std::uint16_t) const override
@@ -58,7 +58,7 @@ public:
         ++lookups;
         return nullptr;
     }
-    const Client::Render::Models::Skeleton* SkeletonOf(std::uint16_t) const override
+    const Client::Models::Skeleton* SkeletonOf(std::uint16_t) const override
     {
         return nullptr;
     }
@@ -68,7 +68,7 @@ public:
     }
     mutable int lookups = 0;
 };
-class TriangleModels final : public Client::Render::Models::IModelLibrary
+class TriangleModels final : public Client::Models::IModelLibrary
 {
 public:
     TriangleModels()
@@ -80,16 +80,16 @@ public:
         mesh.triangles = {{3, {0, 1, 2, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}}};
         mesh.textureName = "plain.jpg";
         model.meshes = {mesh};
-        Client::Render::Models::SkeletonBone bone;
-        bone.actions = {{Client::Render::Models::BoneKey{}}};
+        Client::Models::SkeletonBone bone;
+        bone.actions = {{Client::Models::BoneKey{}}};
         skeleton.bones = {bone};
-        skeleton.actions = {Client::Render::Models::ActionInfo{.keyCount = 1}};
+        skeleton.actions = {Client::Models::ActionInfo{.keyCount = 1}};
     }
     const Client::Data::Models::Model* Find(std::uint16_t id) const override
     {
         return missingModel == id ? nullptr : &model;
     }
-    const Client::Render::Models::Skeleton* SkeletonOf(std::uint16_t) const override
+    const Client::Models::Skeleton* SkeletonOf(std::uint16_t) const override
     {
         return &skeleton;
     }
@@ -98,12 +98,12 @@ public:
         return textures;
     }
     Client::Data::Models::Model model;
-    Client::Render::Models::Skeleton skeleton;
+    Client::Models::Skeleton skeleton;
     std::array<Client::Render::TextureSlot, 1> textures{Client::Render::TextureSlot{0x400}};
     std::optional<std::uint16_t> missingModel;
 };
 // Dos triángulos, cada uno con su textura (0 y 1), con un hueso.
-class TwoMeshModels final : public Client::Render::Models::IModelLibrary
+class TwoMeshModels final : public Client::Models::IModelLibrary
 {
 public:
     TwoMeshModels()
@@ -119,16 +119,16 @@ public:
             mesh.textureName = "plain.jpg";
             model.meshes.push_back(mesh);
         }
-        Client::Render::Models::SkeletonBone bone;
-        bone.actions = {{Client::Render::Models::BoneKey{}}};
+        Client::Models::SkeletonBone bone;
+        bone.actions = {{Client::Models::BoneKey{}}};
         skeleton.bones = {bone};
-        skeleton.actions = {Client::Render::Models::ActionInfo{.keyCount = 1}};
+        skeleton.actions = {Client::Models::ActionInfo{.keyCount = 1}};
     }
     const Client::Data::Models::Model* Find(std::uint16_t) const override
     {
         return &model;
     }
-    const Client::Render::Models::Skeleton* SkeletonOf(std::uint16_t) const override
+    const Client::Models::Skeleton* SkeletonOf(std::uint16_t) const override
     {
         return &skeleton;
     }
@@ -137,11 +137,11 @@ public:
         return textures;
     }
     Client::Data::Models::Model model;
-    Client::Render::Models::Skeleton skeleton;
+    Client::Models::Skeleton skeleton;
     std::array<Client::Render::TextureSlot, 2> textures{Client::Render::TextureSlot{0x400},
                                                         Client::Render::TextureSlot{0x401}};
 };
-class RetainedDummyModels final : public Client::Render::Models::IModelLibrary
+class RetainedDummyModels final : public Client::Models::IModelLibrary
 {
 public:
     RetainedDummyModels()
@@ -153,7 +153,7 @@ public:
     {
         return Selected(type).Find(type);
     }
-    const Client::Render::Models::Skeleton* SkeletonOf(std::uint16_t type) const override
+    const Client::Models::Skeleton* SkeletonOf(std::uint16_t type) const override
     {
         return Selected(type).SkeletonOf(type);
     }
@@ -1501,7 +1501,7 @@ TEST(GameDrawTailTest, AHiddenModelEffectPublishesItsPoseWithoutGeometry)
         ++poses;
         return Client::Scenes::PublishFaunaPose(carry, models, object, true);
     };
-    resources.posedMeshes = [&]() -> std::span<const Client::Render::Models::SkinnedMesh> { return carry.meshes; };
+    resources.posedMeshes = [&]() -> std::span<const Client::Models::SkinnedMesh> { return carry.meshes; };
     for (const bool hidden : {true, false})
     {
         Client::Render::ModelBatch batch;
@@ -1624,7 +1624,7 @@ TEST(GameDrawTailTest, FloorBodyUsesThePrecedingTransparentPoseAndRetainsItsDumm
         }
         return published;
     };
-    context.posedMeshes = [&]() -> std::span<const Client::Render::Models::SkinnedMesh> { return carry.meshes; };
+    context.posedMeshes = [&]() -> std::span<const Client::Models::SkinnedMesh> { return carry.meshes; };
     context.project = [](const glm::vec3&) -> Client::Core::Expected<glm::ivec2, std::string> { return glm::ivec2{}; };
     ASSERT_TRUE(Client::Scenes::DrawFloorItems(items, context).HasValue());
     ASSERT_EQ(batch.Vertices().size(), 3u);
@@ -1649,7 +1649,7 @@ TEST(GameDrawTailTest, ModelEffectBodyUsesTheDummyBonePublishedByThePrecedingMod
     Client::Scenes::ModelEffectDrawResources resources{*heights, 0};
     resources.onPose = [&](const Client::Scenes::DrawnObject& object)
     { return Client::Scenes::PublishFaunaPose(carry, models, object, true); };
-    resources.posedMeshes = [&]() -> std::span<const Client::Render::Models::SkinnedMesh> { return carry.meshes; };
+    resources.posedMeshes = [&]() -> std::span<const Client::Models::SkinnedMesh> { return carry.meshes; };
     ASSERT_TRUE(
         Client::Scenes::DrawGameModelEffects(batch, models, effects, frustum, nullptr, {}, 0, resources).HasValue());
     ASSERT_EQ(batch.Vertices().size(), 6u);
@@ -1674,7 +1674,7 @@ TEST(GameDrawTailTest, LegacyModelEffectsConsumeTheSamePublishedDummyBone)
     effects[1].transform.position = {1000, 1000, 300};
     const Client::Scenes::TailPoseObserver onPose = [&](const Client::Scenes::DrawnObject& object)
     { return Client::Scenes::PublishFaunaPose(carry, models, object, true); };
-    const Client::Scenes::TailMeshProvider posedMeshes = [&]() -> std::span<const Client::Render::Models::SkinnedMesh>
+    const Client::Scenes::TailMeshProvider posedMeshes = [&]() -> std::span<const Client::Models::SkinnedMesh>
     { return carry.meshes; };
     ASSERT_TRUE(Client::Scenes::DrawModelEffects(batch, models, effects, frustum, nullptr, {}, 0, onPose, posedMeshes)
                     .HasValue());
@@ -1712,7 +1712,7 @@ TEST(GameDrawTailTest, PublishedFloorBodyReportsMissingAndIncompleteScratchBefor
     EXPECT_TRUE(batch.Vertices().empty());
     EXPECT_FALSE(projected);
     EXPECT_EQ(item.screenX, 1234);
-    context.posedMeshes = []() -> std::span<const Client::Render::Models::SkinnedMesh> { return {}; };
+    context.posedMeshes = []() -> std::span<const Client::Models::SkinnedMesh> { return {}; };
     result = Client::Scenes::DrawFloorItems(std::span(&item, 1), context);
     ASSERT_FALSE(result.HasValue());
     EXPECT_NE(result.Error().find("no cubre"), std::string::npos);

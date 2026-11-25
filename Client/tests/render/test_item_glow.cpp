@@ -13,11 +13,11 @@
 // (06 § El modelo en el binario, Q-C97).
 namespace
 {
-using Client::Render::Models::GlowPass;
-using Client::Render::Models::ItemGlow;
-using Client::Render::Models::ItemGlowOf;
-using Client::Render::Models::QuiverGlowLevel;
-using Client::Render::Models::ShinePass;
+using Client::Models::GlowPass;
+using Client::Models::ItemGlow;
+using Client::Models::ItemGlowOf;
+using Client::Models::QuiverGlowLevel;
+using Client::Models::ShinePass;
 
 std::vector<GlowPass> Shines(std::initializer_list<ShinePass> passes)
 {

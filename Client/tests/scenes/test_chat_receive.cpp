@@ -218,7 +218,7 @@ TEST_F(ChatReceiveTest, AWhisperClosesTheOwnRecordAndRemembersTheSender)
     Runtime().chat.noticeSound = true;
     ASSERT_TRUE(Client::Scenes::ApplyWhisper(SpokenBy<Whisper>("Benteveo", "psst"), Context()).HasValue());
 
-    EXPECT_EQ(m_random.State(), After(Client::Render::Models::OwnRecordCloseRandoms));
+    EXPECT_EQ(m_random.State(), After(Client::Models::OwnRecordCloseRandoms));
     EXPECT_EQ(Client::UI::WhisperSenderAt(Runtime().chat.whisperSenders, 0), "Benteveo");
     EXPECT_EQ(Runtime().lastSoundId, std::optional<std::int32_t>(0x26));
     ASSERT_EQ(Runtime().chat.log.entries.size(), 1u);
@@ -392,7 +392,7 @@ TEST_F(ChatReceiveTest, TheGuildMasterKeepsTheWarehouseWhenTheNativeGuardRefuses
     master.key = 0x0042;
     m_world->Actors()[Runtime().hero].guildStatus = 0x80;
     Client::Scenes::SelectionState selection(*m_world);
-    Client::Render::Models::ClothWorld cloth;
+    Client::Models::ClothWorld cloth;
     Client::World::GameCamera camera;
     Client::World::GameCameraInput cameraInput;
     Client::Scenes::SingleModelLibrary models;
@@ -548,7 +548,7 @@ TEST_F(ChatReceiveTest, TheOptionDataFillsTheKeysAndTheOptions)
 
     ASSERT_TRUE(Client::Scenes::ApplyOptionData(data, Context()).HasValue());
 
-    EXPECT_EQ(m_random.State(), After(Client::Render::Models::OwnRecordCloseRandoms));
+    EXPECT_EQ(m_random.State(), After(Client::Models::OwnRecordCloseRandoms));
     const auto& keys = own.skillKeys[1];
     EXPECT_EQ(keys[0], 0xff);
     EXPECT_EQ(keys[1], 5);

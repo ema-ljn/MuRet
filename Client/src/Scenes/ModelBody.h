@@ -14,10 +14,10 @@ namespace Client::Crt
 class CrtRandom;
 } // namespace Client::Crt
 
-namespace Client::Render::Models
+namespace Client::Models
 {
 struct Skeleton;
-} // namespace Client::Render::Models
+} // namespace Client::Models
 
 namespace Client::Scenes
 {
@@ -43,7 +43,7 @@ enum class ModelActionEnd : std::uint8_t
 // hito 3; con +0x38a en 1, nada), las 1, 3, 4, 5, 8, 9 y 0xb a la 0; el
 // 0x1ce y el 0x1cf, rand() % 16 debajo de 12 a la 0 y si no a 1 + rand() % 2; el NewFace nada; los demás a rand() % 2.
 [[nodiscard]] Core::Expected<ModelActionEnd, std::string> FinishTheModelAction(ActorState& actor,
-                                                                               const Render::Models::Skeleton& skeleton,
+                                                                               const Models::Skeleton& skeleton,
                                                                                WorldRuntime& runtime,
                                                                                Crt::CrtRandom& random);
 

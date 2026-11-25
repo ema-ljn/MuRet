@@ -19,11 +19,11 @@ namespace Client::Crt
 class CrtRandom;
 } // namespace Client::Crt
 
-namespace Client::Render::Models
+namespace Client::Models
 {
 class IModelLibrary;
 struct Skeleton;
-} // namespace Client::Render::Models
+} // namespace Client::Models
 
 namespace Client::Render::Text
 {
@@ -57,10 +57,10 @@ struct EventPacketContext
     // GetTickCount al aplicar el paquete (0x40ba60).
     std::uint32_t tickCount = 0;
     // Player.bmd, el esqueleto del 0x20a para 0x4ea030 desde 0x5111a0; sin él, ese caso corta.
-    const Render::Models::Skeleton* playerSkeleton = nullptr;
+    const Models::Skeleton* playerSkeleton = nullptr;
     // Los modelos por tipo: 0x4ea030 lee las acciones del modelo del tipo del personaje (+2), como la 0xca del héroe
     // en el BD 03, que con un anillo de transformación no es Player.bmd. Sin ellos, ese caso corta.
-    const Render::Models::IModelLibrary* models = nullptr;
+    const Models::IModelLibrary* models = nullptr;
     // El C1 03 31 de cerrar el NPC de evento (0x658a18 y 0x658c0e) desde el 90 y los cierres de todos los paneles.
     // Vacío, cerrarlo corta.
     std::function<void()> sendWindowClose{};

@@ -74,7 +74,7 @@ void PutAppearance(ActorState& actor, const GameLogic::CharacterAppearance& appe
 
 Core::Expected<void, std::string> EquipSelectionActor(WorldState& world, ActorState& actor,
                                                       const Protocol::Character::CharacterEntry& entry,
-                                                      Render::Models::ClothWorld& cloth,
+                                                      Models::ClothWorld& cloth,
                                                       const ActorConstructionContext& construction)
 {
     const auto appearance = GameLogic::AppearanceOf(actor.characterClass, 0, entry.equipment);
@@ -112,8 +112,7 @@ Core::Expected<void, std::string> EquipSelectionActor(WorldState& world, ActorSt
 Core::Expected<void, std::string> ConstructSelectionActor(WorldState& world,
                                                           const Protocol::Character::CharacterEntry& entry,
                                                           const ActorConstructionContext& construction,
-                                                          Render::Models::ClothWorld& cloth,
-                                                          const Render::Models::Skeleton& skeleton)
+                                                          Models::ClothWorld& cloth, const Models::Skeleton& skeleton)
 {
     if (entry.slot >= SelectionActorCount)
     {

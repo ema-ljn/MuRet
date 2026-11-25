@@ -82,7 +82,7 @@ Core::Expected<std::int32_t, std::string> SetBonusOf(std::span<const std::byte, 
 OwnAttackDamage AttackDamageOf(const OwnCharacterRecord& own, std::uint32_t heroClass, const OwnEquipmentOverride& held,
                                std::uint8_t& ownRecordDepth, Crt::CrtRandom& random)
 {
-    const Render::Models::LogicalAccess access(ownRecordDepth, random, Render::Models::OwnRecordCloseRandoms);
+    const Models::LogicalAccess access(ownRecordDepth, random, Models::OwnRecordCloseRandoms);
     // 0x5b8c45..0x5b8cad: el ítem del cursor en lugar de una mano.
     const World::ItemState* rightItem = &own.equipment[0];
     const World::ItemState* leftItem = &own.equipment[1];
@@ -143,8 +143,7 @@ Core::Expected<OwnMagicDamage, std::string> MagicDamageOf(const OwnCharacterReco
     const auto record = skills->Record(skill);
     if (!record)
         return Core::Unexpected(std::format("0x5513d0: Skill.bmd no tiene la skill {}", skill));
-    const Render::Models::LogicalAccess access(skillDepth, random,
-                                               static_cast<std::uint16_t>(Data::Tables::SkillRecordSize));
+    const Models::LogicalAccess access(skillDepth, random, static_cast<std::uint16_t>(Data::Tables::SkillRecordSize));
     const auto base = static_cast<std::int32_t>(std::to_integer<std::uint8_t>((*record)[DamageByte]));
     OwnMagicDamage damage{.min = own.word5a + base, .max = (base >> 1) + base + own.word5c};
     const auto bonus = SetBonusOf(*record, setOptions);
@@ -164,8 +163,7 @@ Core::Expected<OwnSkillDamage, std::string> SkillDamageOf(std::uint8_t skill, co
     const auto record = skills->Record(skill);
     if (!record)
         return Core::Unexpected(std::format("0x5516e0: Skill.bmd no tiene la skill {}", skill));
-    const Render::Models::LogicalAccess access(skillDepth, random,
-                                               static_cast<std::uint16_t>(Data::Tables::SkillRecordSize));
+    const Models::LogicalAccess access(skillDepth, random, static_cast<std::uint16_t>(Data::Tables::SkillRecordSize));
     // 0x551761..0x55178a: s y s + s / 2, con la división de C (cdq, sub, sar).
     const auto base = static_cast<std::int32_t>(std::to_integer<std::uint8_t>((*record)[DamageByte]));
     OwnSkillDamage damage{.min = base, .max = (base >> 1) + base};

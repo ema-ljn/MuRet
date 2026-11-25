@@ -72,18 +72,18 @@ int DrawsSince(std::uint32_t seed, const CrtRandom& random)
 }
 
 // Un BMD con `actions` acciones de 10 keys, para 0x4ea030 y 0x4ec200.
-class ActionModels final : public Client::Render::Models::IModelLibrary
+class ActionModels final : public Client::Models::IModelLibrary
 {
 public:
     explicit ActionModels(std::size_t actions)
     {
-        skeleton.actions.assign(actions, Client::Render::Models::ActionInfo{.repeats = true, .keyCount = 10});
+        skeleton.actions.assign(actions, Client::Models::ActionInfo{.repeats = true, .keyCount = 10});
     }
     const Client::Data::Models::Model* Find(std::uint16_t) const override
     {
         return nullptr;
     }
-    const Client::Render::Models::Skeleton* SkeletonOf(std::uint16_t) const override
+    const Client::Models::Skeleton* SkeletonOf(std::uint16_t) const override
     {
         return &skeleton;
     }
@@ -91,7 +91,7 @@ public:
     {
         return {};
     }
-    Client::Render::Models::Skeleton skeleton;
+    Client::Models::Skeleton skeleton;
 };
 
 struct HighWorld
@@ -104,12 +104,12 @@ struct HighWorld
         world->Actors()[HeroSlot].position = {5000, 5000, 0};
     }
 
-    HighEffectContext Context(const Client::Render::Models::IModelLibrary* models = nullptr)
+    HighEffectContext Context(const Client::Models::IModelLibrary* models = nullptr)
     {
         return {.world = *world, .random = random, .worldClock = clock, .models = models};
     }
 
-    HighEffectStepContext StepContext(const Client::Render::Models::IModelLibrary* models = nullptr)
+    HighEffectStepContext StepContext(const Client::Models::IModelLibrary* models = nullptr)
     {
         return {.world = *world, .random = random, .services = services, .worldClock = clock, .models = models};
     }
@@ -1011,7 +1011,7 @@ TEST(HighModelEffectsTest, TheHerosMovingLightLooksForTargetsFourTimes)
         CreateHighModelEffect(
             {.type = 0x5e8, .position = {300, 400, 50}, .owner = &tested.world->Actors()[HighWorld::HeroSlot]}, context)
             .HasValue());
-    EXPECT_EQ(tested.Draws(), 4 * Client::Render::Models::OwnRecordCloseRandoms);
+    EXPECT_EQ(tested.Draws(), 4 * Client::Models::OwnRecordCloseRandoms);
     EXPECT_EQ(sent, 0);
 }
 // 0x51f048..0x51f153: el 0x625 con su vida, +0xe4, +0xd8, la luz en 0, la escala y el reparto del subtipo, la z 500

@@ -443,8 +443,7 @@ TEST(CharacterPickingTest, AltOverAFloorItemAlsoLooksForTheParty)
             Client::Scenes::FloorItemState& item = (*items)[6];
             item.alive = true;
             item.seen = true;
-            item.pickBox =
-                Client::Render::Models::Box{.min = {1500.0f, 970.0f, 30.0f}, .max = {1560.0f, 1030.0f, 90.0f}};
+            item.pickBox = Client::Models::Box{.min = {1500.0f, 970.0f, 30.0f}, .max = {1560.0f, 1030.0f, 90.0f}};
         }
         ASSERT_TRUE(Client::Scenes::PickInTheFrame({.world = world,
                                                     .random = tested.random,
@@ -497,7 +496,7 @@ TEST(CharacterPickingTest, TheListOnTheRightPicksAMember)
         slots[3].actorIndex = 3;
         // Tejon en [5, 24], Zorzal en [24, 43] y Brezal en [43, 62].
         tested.mouse = {.x = 587, .y = 62};
-        const CrtRandom expected = Advanced(tested.random, 3 * Client::Render::Models::OwnRecordCloseRandoms);
+        const CrtRandom expected = Advanced(tested.random, 3 * Client::Models::OwnRecordCloseRandoms);
         ASSERT_TRUE(tested.Pick().HasValue());
         EXPECT_EQ(world.Runtime().selectedTargets[2], 3);
         EXPECT_EQ(tested.random.State(), expected.State());
@@ -528,7 +527,7 @@ TEST(CharacterPickingTest, TheWizardPicksAPlayerAndDrawsTheOwnRecord)
     Place(*tested.world, 3, 2000.0f, Players);
     auto& targets = tested.world->Runtime().selectedTargets;
     targets[4] = 9;
-    const CrtRandom expected = Advanced(tested.random, Client::Render::Models::OwnRecordCloseRandoms);
+    const CrtRandom expected = Advanced(tested.random, Client::Models::OwnRecordCloseRandoms);
     ASSERT_TRUE(tested.Pick().HasValue());
     EXPECT_EQ(targets, (std::array<std::int32_t, 5>{-1, -1, 3, -1, -1}));
     EXPECT_EQ(tested.random.State(), expected.State());

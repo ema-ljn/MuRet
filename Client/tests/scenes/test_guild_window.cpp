@@ -1060,7 +1060,7 @@ TEST_P(GuildWindowTest, TheMastersNoticeTabShowsTheMemberCapAndClosesTheRecord)
     EXPECT_EQ(m_text.texts[7].text, "Socios: 2/12");
     EXPECT_EQ(m_text.texts[8].text, "Aviso de : Nadie");
     EXPECT_EQ(m_text.texts.back().text, "Disolver");
-    EXPECT_EQ(Draws(m_random), Client::Render::Models::OwnRecordCloseRandoms);
+    EXPECT_EQ(Draws(m_random), Client::Models::OwnRecordCloseRandoms);
 
     m_text.texts.clear();
     record.characterClass = 0x14;
@@ -1068,7 +1068,7 @@ TEST_P(GuildWindowTest, TheMastersNoticeTabShowsTheMemberCapAndClosesTheRecord)
     ASSERT_TRUE(Draw().HasValue());
     ASSERT_GE(m_text.texts.size(), 8U);
     EXPECT_EQ(m_text.texts[7].text, "Socios: 2/80");
-    EXPECT_EQ(Draws(m_random), 2 * Client::Render::Models::OwnRecordCloseRandoms);
+    EXPECT_EQ(Draws(m_random), 2 * Client::Models::OwnRecordCloseRandoms);
 }
 
 // 0x6507d0 con el maestro: la lista de los miembros (0x47a810 con 0x46cb20 y 0x46d050): los encabezados 1389, 1307 y
@@ -1250,7 +1250,7 @@ TEST_P(GuildWindowTest, TheUnionTabListsTheGuildsAndTheMasterButtons)
     EXPECT_EQ(m_text.texts.back().text, "Dejarla");
     EXPECT_EQ(FindText(m_text.texts, "Echarlo"), m_text.texts.size());
     EXPECT_EQ(window.tabButtons[Client::Scenes::GuildUnionKickButton].base.state, Client::UI::DisabledWindow);
-    EXPECT_EQ(Draws(m_random), Client::Render::Models::OwnRecordCloseRandoms);
+    EXPECT_EQ(Draws(m_random), Client::Models::OwnRecordCloseRandoms);
 }
 
 // 0x64fc00: el maestro del gremio que es el de la alianza (+0xd igual a +4) recibe el aviso 1270 con OK y sin función.

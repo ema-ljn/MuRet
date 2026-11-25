@@ -42,23 +42,19 @@ using Maps::IsChaosCastle;
 void WriteHeroCells(ActorState& hero, const Protocol::World::Teleport& reply, const WorldEntryResources& resources)
 {
     {
-        const Render::Models::LogicalAccess x(hero.cellXAccesses, resources.cloth.random,
-                                              Render::Models::SmallLogicalCloseRandoms);
+        const Models::LogicalAccess x(hero.cellXAccesses, resources.cloth.random, Models::SmallLogicalCloseRandoms);
         hero.cellX = reply.x;
     }
     {
-        const Render::Models::LogicalAccess y(hero.cellYAccesses, resources.cloth.random,
-                                              Render::Models::SmallLogicalCloseRandoms);
+        const Models::LogicalAccess y(hero.cellYAccesses, resources.cloth.random, Models::SmallLogicalCloseRandoms);
         hero.cellY = reply.y;
     }
     {
-        const Render::Models::LogicalAccess x(hero.cellXAccesses, resources.cloth.random,
-                                              Render::Models::SmallLogicalCloseRandoms);
+        const Models::LogicalAccess x(hero.cellXAccesses, resources.cloth.random, Models::SmallLogicalCloseRandoms);
         hero.position.x = static_cast<float>(hero.cellX) * CellSize + CellCenter;
     }
     {
-        const Render::Models::LogicalAccess y(hero.cellYAccesses, resources.cloth.random,
-                                              Render::Models::SmallLogicalCloseRandoms);
+        const Models::LogicalAccess y(hero.cellYAccesses, resources.cloth.random, Models::SmallLogicalCloseRandoms);
         hero.position.y = static_cast<float>(hero.cellY) * CellSize + CellCenter;
     }
 }
@@ -116,8 +112,7 @@ Core::Expected<void, std::string> FinishTeleport(const WorldEntryResources& reso
             std::chrono::duration_cast<std::chrono::milliseconds>(resources.clock->Now()).count());
     runtime.movement.warpPending = false;
     {
-        const Render::Models::LogicalAccess wait(runtime.warpDepth, resources.cloth.random,
-                                                 Render::Models::SmallLogicalCloseRandoms);
+        const Models::LogicalAccess wait(runtime.warpDepth, resources.cloth.random, Models::SmallLogicalCloseRandoms);
         runtime.warpCounter = WaitDrawThreshold;
     }
     runtime.movement.mouseUpdateTime = 0;
@@ -138,8 +133,8 @@ Core::Expected<void, std::string> FinishTeleport(const WorldEntryResources& reso
 }
 void ApplyRegenStats(const Protocol::World::Regen& reply, const WorldEntryResources& resources)
 {
-    const Render::Models::LogicalAccess own(resources.world.Runtime().ownRecordDepth, resources.cloth.random,
-                                            Render::Models::OwnRecordCloseRandoms);
+    const Models::LogicalAccess own(resources.world.Runtime().ownRecordDepth, resources.cloth.random,
+                                    Models::OwnRecordCloseRandoms);
     auto& record = resources.world.OwnCharacter();
     record.life = reply.life;
     record.mana = reply.mana;
@@ -173,8 +168,8 @@ Core::Expected<void, std::string> RebuildRegenHero(const Protocol::World::Regen&
     hero.byte370 = byte370;
     hero.key = playerKey;
     {
-        const Render::Models::LogicalAccess own(world.Runtime().ownRecordDepth, resources.cloth.random,
-                                                Render::Models::OwnRecordCloseRandoms);
+        const Models::LogicalAccess own(world.Runtime().ownRecordDepth, resources.cloth.random,
+                                        Models::OwnRecordCloseRandoms);
         hero.skin = 0;
         hero.characterClass = world.OwnCharacter().characterClass;
     }

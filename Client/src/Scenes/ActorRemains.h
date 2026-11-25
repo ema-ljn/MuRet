@@ -12,10 +12,10 @@ namespace Client::Crt
 class CrtRandom;
 } // namespace Client::Crt
 
-namespace Client::Render::Models
+namespace Client::Models
 {
 struct Skeleton;
-} // namespace Client::Render::Models
+} // namespace Client::Models
 
 namespace Client::World
 {
@@ -35,7 +35,7 @@ struct ActorState;
 // el rand().
 struct ActorRemainsContext
 {
-    const Render::Models::Skeleton* skeleton = nullptr;
+    const Models::Skeleton* skeleton = nullptr;
     float modelScale = 0.0f;
     glm::vec3 modelOrigin{};
     World::ModelEffects& effects;

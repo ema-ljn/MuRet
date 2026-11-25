@@ -46,13 +46,13 @@ public:
     [[nodiscard]] TextureBufferSize BufferSize(Render::TextureSlot slot) const;
     // El tamaño y los componentes de la que subió en `selector` (los de su lugar de la tabla 0x7d3a1b8,
     // que leen 0x548550 y 0x549440); vacío si no se subió.
-    [[nodiscard]] std::optional<TextureMetadata> MetadataOf(std::uint32_t selector) const;
+    [[nodiscard]] std::optional<Models::TextureMetadata> MetadataOf(std::uint32_t selector) const;
 
 private:
     Render::ITextureStore& m_store;
     std::span<const Data::Textures::TextureSetEntry> m_set;
     bool m_loaded = false;
     std::map<std::uint16_t, TextureBufferSize> m_sizes;
-    std::map<std::uint32_t, TextureMetadata> m_metadata;
+    std::map<std::uint32_t, Models::TextureMetadata> m_metadata;
 };
 } // namespace Client::Scenes

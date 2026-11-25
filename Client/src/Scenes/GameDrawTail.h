@@ -31,10 +31,10 @@ namespace Client::Crt
 class CrtRandom;
 } // namespace Client::Crt
 
-namespace Client::Render::Models
+namespace Client::Models
 {
 class IModelLibrary;
-} // namespace Client::Render::Models
+} // namespace Client::Models
 namespace Client::World
 {
 class Leaves;
@@ -65,8 +65,8 @@ struct FloorItemState
     float alpha = 0;
     bool vertexLight = false;
     glm::vec3 light{};
-    Render::Models::AnimationState animation{};
-    Render::Models::ObjectState objectState{};
+    Models::AnimationState animation{};
+    Models::ObjectState objectState{};
     std::int32_t value = 0;
     std::uint8_t excellent = 0;
     std::uint8_t ancient = 0;
@@ -83,13 +83,13 @@ struct FloorItemState
     glm::vec3 boundingMax{};
     // +0x13c: la caja que 0x60cf70 (0x4ebc80) arma en cada cuerpo dibujado con alpha > 0,01, desde la posición de ese
     // dibujo; la lee el picking (0x59e2e0). Sin dibujo queda la anterior.
-    Render::Models::Box pickBox{};
+    Models::Box pickBox{};
 };
 
 struct FloorItemDrawContext
 {
     Render::ModelBatch& batch;
-    const Render::Models::IModelLibrary& models;
+    const Models::IModelLibrary& models;
     const World::SphereFrustum& frustum;
     const World::TerrainLighting* lighting = nullptr;
     Core::Duration frameClock{};
@@ -235,7 +235,7 @@ DrawDamage(Render::ModelBatch& batch, std::span<const DamageNumberState> damage,
                                                                std::int32_t map, const Math::OriginalMatrix& view,
                                                                std::int32_t weatherState = 0);
 [[nodiscard]] Core::Expected<void, std::string>
-DrawGameModelEffects(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models,
+DrawGameModelEffects(Render::ModelBatch& batch, const Models::IModelLibrary& models,
                      std::span<World::ModelEffect> effects, const World::SphereFrustum& frustum,
                      const World::TerrainLighting* lighting, Core::Duration frameClock, float alpha,
                      std::uint8_t mode = 0);
@@ -267,7 +267,7 @@ struct ModelEffectDrawResources
     std::function<std::span<const Math::BoneTransform>()> posedBones{};
 };
 [[nodiscard]] Core::Expected<void, std::string>
-DrawGameModelEffects(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models,
+DrawGameModelEffects(Render::ModelBatch& batch, const Models::IModelLibrary& models,
                      std::span<World::ModelEffect> effects, const World::SphereFrustum& frustum,
                      const World::TerrainLighting* lighting, Core::Duration frameClock, float alpha,
                      const ModelEffectDrawResources& resources, std::uint8_t mode = 0);

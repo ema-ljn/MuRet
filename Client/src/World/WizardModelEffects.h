@@ -20,10 +20,10 @@ namespace Client::Crt
 class CrtRandom;
 } // namespace Client::Crt
 
-namespace Client::Render::Models
+namespace Client::Models
 {
 struct Skeleton;
-} // namespace Client::Render::Models
+} // namespace Client::Models
 
 // CL11, lote magos: los efectos con modelo de las magias (Data\Skill\Ice, Fire, Poison, Circle, Magic, Storm, Laser,
 // Saw, Bone y Snow, 0x615700) en 0x518cf0 (el alta), 0x5208a0 (el paso) y su cola común (0x52cb98). Los llaman los
@@ -140,7 +140,7 @@ CreateWizardModelEffect(ModelEffects& effects, const ModelEffectArguments& argum
 // aunque el caso lo haya apagado. `skeleton` es el del modelo (o nullptr). Deja en previousPosition la posición de
 // antes del paso.
 [[nodiscard]] Core::Expected<void, std::string> StepWizardModelEffect(ModelEffect& effect,
-                                                                      const Render::Models::Skeleton* skeleton,
+                                                                      const Models::Skeleton* skeleton,
                                                                       Crt::CrtRandom& random,
                                                                       const WizardEffectServices& services);
 } // namespace Client::World

@@ -235,8 +235,7 @@ Core::Expected<void, std::string> ApplyWhisper(const Protocol::Messages::Whisper
     // 0x554d20(10, nombre): el nivel (+0xe) se lee con el registro abierto, y la lista se mira después de cerrarlo.
     std::uint16_t level = 0;
     {
-        const Render::Models::LogicalAccess own(runtime.ownRecordDepth, context.random,
-                                                Render::Models::OwnRecordCloseRandoms);
+        const Models::LogicalAccess own(runtime.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
         level = context.world.OwnCharacter().level;
     }
     UI::RememberTheWhisperSender(runtime.chat.whisperSenders, level, name);
@@ -319,8 +318,7 @@ Core::Expected<void, std::string> ApplyOptionData(const Protocol::OptionData::Op
         return Core::Unexpected(std::string("0x4dd645: sin elegido (0x6d5edc), el F3 30 escribe fuera de las teclas "
                                             "de las skills (+0x16c del registro propio)"));
     {
-        const Render::Models::LogicalAccess own(runtime.ownRecordDepth, context.random,
-                                                Render::Models::OwnRecordCloseRandoms);
+        const Models::LogicalAccess own(runtime.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
         OwnCharacterRecord& record = context.world.OwnCharacter();
         std::array<std::uint8_t, OwnSkillKeyBytes>& keys = record.skillKeys[*context.chosenSlot];
         keys.fill(NoSkill);

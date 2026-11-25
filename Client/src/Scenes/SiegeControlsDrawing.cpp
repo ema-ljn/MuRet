@@ -269,7 +269,7 @@ Core::Expected<void, std::string> DrawTheBattleSkill(GameHudContext& context)
         return {};
     std::uint8_t cost = 0;
     {
-        const Render::Models::LogicalAccess access(runtime.movement.skillDepths[hero.byte371], context.random, 60);
+        const Models::LogicalAccess access(runtime.movement.skillDepths[hero.byte371], context.random, 60);
         if (context.skills == nullptr)
             return Core::Unexpected(std::string("0x652f83: sin Skill.bmd para la barra del asedio"));
         const auto record = context.skills->Record(hero.byte371);
@@ -307,8 +307,7 @@ Core::Expected<void, std::string> DrawTheBattleSkill(GameHudContext& context)
     {
         std::int32_t index = 0;
         {
-            const Render::Models::LogicalAccess access(context.ownRecordDepth, context.random,
-                                                       Render::Models::OwnRecordCloseRandoms);
+            const Models::LogicalAccess access(context.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
             for (std::size_t slot = 0; slot < 64; ++slot)
                 if (context.world.OwnCharacter().SkillAt(slot) == hero.byte371)
                 {

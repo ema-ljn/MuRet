@@ -152,10 +152,10 @@ void InitializeTheObject(FloorItemState& item, const FloorItemCreation& creation
     item.alpha = 1.0f;
     item.scale = item.type >= FirstSmallModel && item.type < EndSmallModel ? SmallItemScale : ItemScale;
     const auto model = static_cast<std::uint16_t>(item.type);
-    Render::Models::ObjectRandoms randoms{};
+    Models::ObjectRandoms randoms{};
     for (std::size_t index = 0; index < HangingRandomCount(model); ++index)
         randoms[index] = creation.random.Next();
-    item.objectState = Render::Models::NativeItemObjectState(model, creation.clock, randoms);
+    item.objectState = Models::NativeItemObjectState(model, creation.clock, randoms);
 }
 
 Core::Expected<std::string_view, std::string> TextOf(const Data::Text::TextTable* texts, std::size_t index,
@@ -254,7 +254,7 @@ Core::Expected<void, std::string> EatTheFruit(const Protocol::FloorItems::StatFr
     constexpr std::array<std::size_t, 5> StatTexts{168, 169, 167, 166, 1900};
     WorldRuntime& runtime = world.Runtime();
     {
-        const Render::Models::LogicalAccess own(runtime.ownRecordDepth, random, Render::Models::OwnRecordCloseRandoms);
+        const Models::LogicalAccess own(runtime.ownRecordDepth, random, Models::OwnRecordCloseRandoms);
         OwnCharacterRecord& record = world.OwnCharacter();
         const std::array<std::uint16_t*, 5> stats{&record.energy, &record.vitality, &record.agility, &record.strength,
                                                   &record.leadership};
@@ -428,8 +428,8 @@ Core::Expected<void, std::string> ApplyPickUpResult(const Protocol::FloorItems::
         if (result.result == Protocol::FloorItems::ZenPickedUp)
         {
             // 0x4d0ce0..0x4d0f5f: el zen en +0xecc con el registro abierto.
-            const Render::Models::LogicalAccess own(runtime.ownRecordDepth, resources.cloth.random,
-                                                    Render::Models::OwnRecordCloseRandoms);
+            const Models::LogicalAccess own(runtime.ownRecordDepth, resources.cloth.random,
+                                            Models::OwnRecordCloseRandoms);
             world.OwnCharacter().zen = result.zen;
         }
         else if (result.result != Protocol::FloorItems::PickedUpElsewhere)
@@ -456,8 +456,7 @@ Core::Expected<void, std::string> ApplyShortZenPickUp(const Protocol::FloorItems
     WorldRuntime& runtime = world.Runtime();
     {
         // 0x4d0ce0..0x4d0f5f: el zen en +0xecc con el registro abierto.
-        const Render::Models::LogicalAccess own(runtime.ownRecordDepth, resources.cloth.random,
-                                                Render::Models::OwnRecordCloseRandoms);
+        const Models::LogicalAccess own(runtime.ownRecordDepth, resources.cloth.random, Models::OwnRecordCloseRandoms);
         world.OwnCharacter().zen = result.zen;
     }
     const Protocol::FloorItems::PickUpResult zen{.result = Protocol::FloorItems::ZenPickedUp, .zen = result.zen};

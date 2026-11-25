@@ -39,7 +39,7 @@ using Client::Data::Tables::ItemSetOptionTableSize;
 using Client::Data::Tables::ItemSetTables;
 using Client::Data::Tables::ItemSetTypeRecordSize;
 using Client::Data::Tables::ItemSetTypeTableSize;
-using Client::Render::Models::OwnRecordCloseRandoms;
+using Client::Models::OwnRecordCloseRandoms;
 using Client::Scenes::ActorState;
 using Client::Scenes::ItemSetPiece;
 using Client::Scenes::ItemSetPieces;

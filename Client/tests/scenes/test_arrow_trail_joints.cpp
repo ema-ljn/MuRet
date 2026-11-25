@@ -69,7 +69,7 @@ struct Trail
     std::vector<JointState> joints = std::vector<JointState>(2);
     CrtRandom random{Seed};
     bool made = false;
-    Client::Render::Models::ClothWorld cloth{.random = CrtRandom{1}};
+    Client::Models::ClothWorld cloth{.random = CrtRandom{1}};
     std::unique_ptr<Client::World::Particles> particles = std::make_unique<Client::World::Particles>();
     Client::World::FrameSprites sprites;
     std::unique_ptr<Client::World::TerrainLighting> lighting = std::make_unique<Client::World::TerrainLighting>();

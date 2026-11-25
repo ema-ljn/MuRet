@@ -209,8 +209,7 @@ Result BurstTheDust(ModelEffectsPass& pass)
 }
 
 // 0x4eb860 (0x4eb86d..0x4eb94c): la key que deja en +0xa8 del modelo, como PoseKeyOf de MonsterDrawing.
-std::optional<std::int16_t> PoseKeyOf(const Render::Models::Skeleton& skeleton,
-                                      const Render::Models::AnimationState& animation)
+std::optional<std::int16_t> PoseKeyOf(const Models::Skeleton& skeleton, const Models::AnimationState& animation)
 {
     const auto truncated = Math::OriginalFtolLow(D(animation.frame));
     if (skeleton.actions.empty() || !truncated)
@@ -245,18 +244,18 @@ Core::Expected<float, std::string> PoseTheModel(ModelEffectsPass& pass, std::uin
     if (!speed.HasValue())
         return speed;
     const ActorState& actor = pass.actor;
-    const Render::Models::Skeleton& skeleton = pass.skeleton;
-    const Render::Models::AnimationState animation{.action = actor.animation.action,
-                                                   .frame = F32(D(actor.animation.frame) - D(speed.Value())),
-                                                   .previousAction = actor.animation.previousAction,
-                                                   .previousKey = actor.animation.previousKey};
-    const Render::Models::ObjectTransform transform{
+    const Models::Skeleton& skeleton = pass.skeleton;
+    const Models::AnimationState animation{.action = actor.animation.action,
+                                           .frame = F32(D(actor.animation.frame) - D(speed.Value())),
+                                           .previousAction = actor.animation.previousAction,
+                                           .previousKey = actor.animation.previousKey};
+    const Models::ObjectTransform transform{
         .position = actor.position, .angles = actor.angles, .scale = actor.scale, .lockedRootHeight = 0.0f};
     FaunaDrawCarry& carry = pass.world.PoseCarry();
     if (carry.bones.size() < skeleton.bones.size())
         carry.bones.resize(skeleton.bones.size(), Math::BoneTransform(0.0f));
     const auto bones = std::span(carry.bones).first(skeleton.bones.size());
-    if (!Render::Models::PoseWorldSkeleton(skeleton, animation, transform, actor.headTurn.angles, bones))
+    if (!Models::PoseWorldSkeleton(skeleton, animation, transform, actor.headTurn.angles, bones))
         return Core::Unexpected(std::format("{:#x}: la pose del modelo {:#x} falló", address, actor.type));
     FaunaModels& models = pass.world.FaunaResources();
     if (auto published = PublishFaunaPoseRaw(carry, models, actor.type, bones, transform, true, false);
@@ -1313,7 +1312,7 @@ Result StepTheCrywolfHelper(ModelEffectsPass& pass)
             return {};
         if (Roll(pass, 100) == 0)
         {
-            Render::Models::SetAction(actor.animation, pass.skeleton, 3);
+            Models::SetAction(actor.animation, pass.skeleton, 3);
             actor.movementPhase = 1.0f;
         }
         if (actor.animation.action == 3 && std::bit_cast<std::uint32_t>(actor.movementPhase) == 0x3f800000u &&

@@ -572,8 +572,7 @@ Core::Expected<void, std::string> StepAnEquipmentSlot(const GameUiContext& conte
     // _ftol de las constantes, que son enteras.
     const std::int32_t left = static_cast<std::int32_t>(x) + runtime.hud.inventoryX;
     const std::int32_t top = static_cast<std::int32_t>(y) + runtime.hud.inventoryY;
-    const Render::Models::LogicalAccess own(runtime.ownRecordDepth, context.random,
-                                            Render::Models::OwnRecordCloseRandoms);
+    const Models::LogicalAccess own(runtime.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
     const bool inside = MouseInEquipmentRect(context, left, top, width, height);
     if (runtime.cursorItemCount > 0)
     {
@@ -614,8 +613,7 @@ Core::Expected<void, std::string> StepTheEquipment(const GameUiContext& context)
     if (auto slot = StepAnEquipmentSlot(context, 115.0f, 46.0f, 60.0f, 40.0f, 7); !slot.HasValue())
         return slot;
     {
-        const Render::Models::LogicalAccess own(runtime.ownRecordDepth, context.random,
-                                                Render::Models::OwnRecordCloseRandoms);
+        const Models::LogicalAccess own(runtime.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
         constexpr std::uint8_t ClassWithoutHelm = 3;
         if ((context.world.OwnCharacter().characterClass & 7u) != ClassWithoutHelm)
         {
@@ -1179,8 +1177,7 @@ Core::Expected<void, std::string> StepTheCharacterWindow(const GameUiContext& co
     const ActorState& hero = context.world.Actors()[runtime.hero];
     const std::int32_t buttons = (hero.characterClass & 7u) == DarkLordClass ? 5 : 4;
     {
-        const Render::Models::LogicalAccess own(runtime.ownRecordDepth, context.random,
-                                                Render::Models::OwnRecordCloseRandoms);
+        const Models::LogicalAccess own(runtime.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
         if (context.world.OwnCharacter().levelUpPoints != 0)
         {
             for (std::int32_t button = 0; button < buttons; ++button)
@@ -1483,8 +1480,7 @@ Core::Expected<void, std::string> StepTheInventoryWindow(const GameUiContext& co
     // 0x5e4f31..0x5e5128: los doce lugares del equipo, cada uno con su acceso, y +0x44 en 1 con un tipo.
     for (World::ItemState& item : world.OwnCharacter().equipment)
     {
-        const Render::Models::LogicalAccess own(runtime.ownRecordDepth, context.random,
-                                                Render::Models::OwnRecordCloseRandoms);
+        const Models::LogicalAccess own(runtime.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
         item.warning = item.id == EmptyOwnItemId ? std::uint8_t{0} : std::uint8_t{1};
     }
     // 0x5e512f..0x5e5207: lo mismo en las grillas: el inventario (0x78a9bb0), la del otro en el comercio (0x78a5a20,
@@ -1522,8 +1518,7 @@ Core::Expected<void, std::string> StepTheInventoryWindow(const GameUiContext& co
     runtime.field78abb10 = 0;
     std::uint16_t level = 0;
     {
-        const Render::Models::LogicalAccess own(runtime.ownRecordDepth, context.random,
-                                                Render::Models::OwnRecordCloseRandoms);
+        const Models::LogicalAccess own(runtime.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
         level = world.OwnCharacter().level;
     }
     if (auto buttons = StepTheFootButtons(context, panels, level); !buttons.HasValue())
@@ -1798,8 +1793,7 @@ void StepTheSkillKeys(const GameUiContext& context, std::uint8_t index)
         const auto number = static_cast<std::uint8_t>(digit % 10);
         if (!input.IsDown(Digit(number).key) || place >= own.skillKeys.size())
             continue;
-        const Render::Models::LogicalAccess access(runtime.ownRecordDepth, context.random,
-                                                   Render::Models::OwnRecordCloseRandoms);
+        const Models::LogicalAccess access(runtime.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
         auto& keys = own.skillKeys[place];
         for (std::size_t slot = 0; slot < KeyedSlots; ++slot)
         {
@@ -1837,8 +1831,8 @@ Core::Expected<void, std::string> StepTheSkillList(const GameUiContext& context)
             return Core::Unexpected(std::format("0x5a07a3: Skill.bmd no tiene la skill {}", skill));
         std::uint8_t hidden = 0;
         {
-            const Render::Models::LogicalAccess entry(runtime.movement.skillDepths[skill], context.random,
-                                                      static_cast<std::uint16_t>(Data::Tables::SkillRecordSize));
+            const Models::LogicalAccess entry(runtime.movement.skillDepths[skill], context.random,
+                                              static_cast<std::uint16_t>(Data::Tables::SkillRecordSize));
             constexpr std::size_t HiddenOffset = 0x31;
             hidden = std::to_integer<std::uint8_t>((*record)[HiddenOffset]);
         }
@@ -1889,8 +1883,7 @@ bool ChooseTheSkillByKey(const GameUiContext& context, std::uint8_t number)
     WorldRuntime& runtime = context.world.Runtime();
     const OwnCharacterRecord& own = context.world.OwnCharacter();
     ActorState& hero = context.world.Actors()[runtime.hero];
-    const Render::Models::LogicalAccess access(runtime.ownRecordDepth, context.random,
-                                               Render::Models::OwnRecordCloseRandoms);
+    const Models::LogicalAccess access(runtime.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
     const std::size_t place = context.chosenSlot.value_or(std::uint8_t{0});
     if (place >= own.skillKeys.size())
         return false;
@@ -1931,8 +1924,7 @@ Core::Expected<void, std::string> StepTheSkillBar(const GameUiContext& context)
 {
     WorldRuntime& runtime = context.world.Runtime();
     UI::GameUiState& ui = runtime.ui;
-    const Render::Models::LogicalAccess own(runtime.ownRecordDepth, context.random,
-                                            Render::Models::OwnRecordCloseRandoms);
+    const Models::LogicalAccess own(runtime.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
     if (context.world.OwnCharacter().byte6a == 0)
         return {};
     // 0x5a066c..0x5a06f9: el botón de la barra.
@@ -2259,8 +2251,7 @@ Core::Expected<void, std::string> StepTheKeysAndButtons(const GameUiContext& con
         {
             std::uint16_t level = 0;
             {
-                const Render::Models::LogicalAccess own(runtime.ownRecordDepth, context.random,
-                                                        Render::Models::OwnRecordCloseRandoms);
+                const Models::LogicalAccess own(runtime.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
                 level = context.world.OwnCharacter().level;
             }
             constexpr std::uint16_t RepairLevel = 0x32;
@@ -2657,8 +2648,7 @@ std::array<std::uint8_t, 2> CharacterSearchOrder(const FramePickingContext& cont
         return {Monsters, Players};
     std::uint8_t skill = 0;
     {
-        const Render::Models::LogicalAccess own(context.ownRecordDepth, context.random,
-                                                Render::Models::OwnRecordCloseRandoms);
+        const Models::LogicalAccess own(context.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
         skill = OwnSkillByte(context.world.OwnCharacter(), hero.skillIndex);
     }
     constexpr std::uint8_t FirstPlayersFirst = 0x1a;

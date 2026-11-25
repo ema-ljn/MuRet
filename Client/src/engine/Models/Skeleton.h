@@ -14,7 +14,7 @@
 // El esqueleto de un modelo como lo deja 0x4f13d0 después de leerlo: cada key con su cuaternión
 // (0x5fcd20 por key) y cada acción con lo que la pose y el avance miran
 // (Client/docs/research/06-render-escenas-y-ui.md, "Cuánto avanza la animación").
-namespace Client::Render::Models
+namespace Client::Models
 {
 struct BoneKey
 {
@@ -67,4 +67,4 @@ struct SkeletonError
 // (Data::Models::PlayerActionSpeed; las 57 sin escritura quedan en 0, Q-C87), las cuatro que no
 // repiten (PlayerActionsWithoutRepeat) y el hueso de la cabeza (PlayerHeadBone).
 [[nodiscard]] ENGINE_API Core::Expected<Skeleton, SkeletonError> MakePlayerSkeleton(const Data::Models::Model& model);
-} // namespace Client::Render::Models
+} // namespace Client::Models

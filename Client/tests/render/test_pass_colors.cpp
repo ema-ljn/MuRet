@@ -21,16 +21,16 @@
 namespace
 {
 using Client::Math::RoundedSin;
+using Client::Models::ExcellentColorAt;
+using Client::Models::MetalFactorOf;
+using Client::Models::PassHiddenMesh;
+using Client::Models::SetAlphaAt;
+using Client::Models::SetColorOf;
+using Client::Models::SetPulseAt;
+using Client::Models::SetPulseIsOff;
+using Client::Models::ShineColorOf;
+using Client::Models::ShinePass;
 using Client::Render::Color;
-using Client::Render::Models::ExcellentColorAt;
-using Client::Render::Models::MetalFactorOf;
-using Client::Render::Models::PassHiddenMesh;
-using Client::Render::Models::SetAlphaAt;
-using Client::Render::Models::SetColorOf;
-using Client::Render::Models::SetPulseAt;
-using Client::Render::Models::SetPulseIsOff;
-using Client::Render::Models::ShineColorOf;
-using Client::Render::Models::ShinePass;
 
 void ExpectColor(const Color& color, float red, float green, float blue)
 {

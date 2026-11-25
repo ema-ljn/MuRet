@@ -127,7 +127,7 @@ Client::Core::Expected<void, std::string> AdvanceEnvironmentPrefix(Client::Scene
                                                                    const Client::Scenes::ActorState& hero,
                                                                    Client::World::LeafWeather weather,
                                                                    std::int32_t heroCellLayer,
-                                                                   Client::Render::Models::ClothWorld& reference)
+                                                                   Client::Models::ClothWorld& reference)
 {
     Client::World::Leaves leaves;
     Client::Scenes::FaunaState fauna;
@@ -170,7 +170,7 @@ constexpr int FramePickingRandoms = OwnRecordClose;
 // 0x637660: el HUD (0x5a7320) del estado base, después del picking: 19 cierres del registro propio (las flechas, los
 // doce avisos de durabilidad, la barra de abajo, la experiencia, el AG y los tres de la barra principal), los de las
 // dos celdas del héroe y nueve consultas del comercio y de la tienda de NPC.
-constexpr int HudRandoms = 19 * OwnRecordClose + 2 * Client::Render::Models::SmallLogicalCloseRandoms + 9;
+constexpr int HudRandoms = 19 * OwnRecordClose + 2 * Client::Models::SmallLogicalCloseRandoms + 9;
 // 0x636ded..0x63705b: la UI del paso con todo cerrado (la barra de skills, Q/W/E e IsOpen(0)), antes de los objetos.
 constexpr int GameUiStepRandoms = OwnRecordClose + 2 + 2;
 constexpr std::size_t PublishedSlot = 42;
@@ -287,7 +287,7 @@ public:
     Client::Scenes::SelectionState selection{world};
     Client::World::GameCamera camera;
     Client::World::GameCameraInput cameraInput;
-    Client::Render::Models::ClothWorld cloth;
+    Client::Models::ClothWorld cloth;
     Client::Scenes::SingleModelLibrary models;
     Client::Data::Tables::ItemTable items = Client::Tests::ItemsMarking({});
     Client::Tests::RecordingSink sink;
@@ -766,7 +766,7 @@ TEST_F(WorldEntryTest, TheSoundsSkipTheEventMaps)
 // terreno, con los 12 rand() de los cierres de sus celdas y del contador; sin el 0x1c17 no toca nada.
 TEST_F(WorldEntryTest, ARavenIsCreatedAt420d60AfterTheWait)
 {
-    constexpr int RavenRandoms = 3 * Client::Render::Models::SmallLogicalCloseRandoms;
+    constexpr int RavenRandoms = 3 * Client::Models::SmallLogicalCloseRandoms;
     Entry tested(m_dataRoot, Seed);
     tested.world.Map().terrain.heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
     tested.world.Map().terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
@@ -1217,7 +1217,7 @@ TEST_F(WorldEntryTest, TheFirstGameStepReadsTheTrapezoidOfTheLastSelectionDraw)
                                        &frameResources.models.TextureSlots(), &*frameResources.data.gates,
                                        &*frameResources.data.skills);
         ASSERT_TRUE(game.Enter().HasValue());
-        Client::Render::Models::ClothWorld reference = tested.cloth;
+        Client::Models::ClothWorld reference = tested.cloth;
         // 0x4eb620, al empezar el frame: 0x552f10 (la espera de las skills) abre y cierra el registro propio. 0x636920:
         // el cartel del primer paso (0x46b010 y 0x46b0e0, que abre y cierra el registro propio; sin Slide.bmd no
         // sortea), y la UI del paso.
@@ -1236,7 +1236,7 @@ TEST_F(WorldEntryTest, TheFirstGameStepReadsTheTrapezoidOfTheLastSelectionDraw)
         reference.random = Advanced(
             reference.random, (seen ? 8 + 8 + body + 8 + 1 : 8 + 8 + body) + OwnRecordClose + 60 + 2 + 2 +
                                   GateProbeRandoms(*frameResources.data.gates, tested.world.Runtime().map, heroBefore));
-        Client::Render::Models::StepTheClothWorld(reference);
+        Client::Models::StepTheClothWorld(reference);
         EXPECT_EQ(tested.world.Runtime().warpCounter, Client::Scenes::WaitDrawThreshold - 1);
         EXPECT_EQ(tested.Hero().seen, seen);
         EXPECT_EQ(tested.cloth.random.State(), reference.random.State());

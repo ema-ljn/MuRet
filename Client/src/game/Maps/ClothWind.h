@@ -8,9 +8,9 @@
 namespace Client::Maps
 {
 // 0x4551f4.
-[[nodiscard]] constexpr Render::Models::ClothWindSource ClothWindForMap(std::uint8_t map)
+[[nodiscard]] constexpr Models::ClothWindSource ClothWindForMap(std::uint8_t map)
 {
-    using Render::Models::ClothWindSource;
+    using Models::ClothWindSource;
     return map == LoginMap ? ClothWindSource::Randomized : ClothWindSource::Base;
 }
 } // namespace Client::Maps

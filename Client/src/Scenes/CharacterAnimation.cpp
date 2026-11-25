@@ -27,53 +27,51 @@ float WingKeysPerOriginalFrame(std::uint8_t characterAction)
 }
 
 bool StepCharacterAnimation(CharacterAnimation& animation, const GameLogic::CharacterAppearance& appearance,
-                            const Render::Models::IModelLibrary& models, Render::Models::AnimationScene scene)
+                            const Models::IModelLibrary& models, Models::AnimationScene scene)
 {
     bool finished = false;
-    const Render::Models::Skeleton* skeleton = models.SkeletonOf(Data::Models::PlayerSkeletonModel);
+    const Models::Skeleton* skeleton = models.SkeletonOf(Data::Models::PlayerSkeletonModel);
     if (skeleton != nullptr && animation.body.action < skeleton->actions.size())
     {
-        const Render::Models::ActionInfo& action = skeleton->actions[animation.body.action];
-        finished = Render::Models::AdvanceAnimation(animation.body, action, action.speed, scene);
+        const Models::ActionInfo& action = skeleton->actions[animation.body.action];
+        finished = Models::AdvanceAnimation(animation.body, action, action.speed, scene);
     }
     StepCharacterAttachments(animation, appearance, models);
     return finished;
 }
 
 void StepCharacterAttachments(CharacterAnimation& animation, const GameLogic::CharacterAppearance& appearance,
-                              const Render::Models::IModelLibrary& models)
+                              const Models::IModelLibrary& models)
 {
     if (appearance.pet)
     {
-        const Render::Models::Skeleton* pet = models.SkeletonOf(*appearance.pet);
+        const Models::Skeleton* pet = models.SkeletonOf(*appearance.pet);
         if (pet != nullptr && !pet->actions.empty())
         {
-            Render::Models::AdvanceByTime(animation.pet, pet->actions[0], Render::Models::PetKeysPerOriginalFrame,
-                                          App::LogicStep);
+            Models::AdvanceByTime(animation.pet, pet->actions[0], Models::PetKeysPerOriginalFrame, App::LogicStep);
         }
     }
     if (appearance.wings)
     {
-        const Render::Models::Skeleton* wings = models.SkeletonOf(*appearance.wings);
+        const Models::Skeleton* wings = models.SkeletonOf(*appearance.wings);
         if (wings != nullptr && !wings->actions.empty())
         {
-            Render::Models::AdvanceByTime(animation.wings, wings->actions[0],
-                                          WingKeysPerOriginalFrame(animation.body.action), App::LogicStep);
+            Models::AdvanceByTime(animation.wings, wings->actions[0], WingKeysPerOriginalFrame(animation.body.action),
+                                  App::LogicStep);
         }
     }
 }
 
-Render::Models::AnimationState BodyBetweenSteps(const CharacterAnimation& animation,
-                                                const Render::Models::IModelLibrary& models, float alpha,
-                                                const PlayerActionSpeeds* speeds)
+Models::AnimationState BodyBetweenSteps(const CharacterAnimation& animation, const Models::IModelLibrary& models,
+                                        float alpha, const PlayerActionSpeeds* speeds)
 {
-    const Render::Models::Skeleton* skeleton = models.SkeletonOf(Data::Models::PlayerSkeletonModel);
+    const Models::Skeleton* skeleton = models.SkeletonOf(Data::Models::PlayerSkeletonModel);
     if (skeleton == nullptr || animation.body.action >= skeleton->actions.size())
     {
         return animation.body;
     }
-    const Render::Models::ActionInfo& action = skeleton->actions[animation.body.action];
+    const Models::ActionInfo& action = skeleton->actions[animation.body.action];
     const float speed = speeds != nullptr ? speeds->Speed(animation.body.action, action.speed) : action.speed;
-    return Render::Models::Interpolated(animation.body, action, speed, alpha);
+    return Models::Interpolated(animation.body, action, speed, alpha);
 }
 } // namespace Client::Scenes

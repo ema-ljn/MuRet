@@ -15,22 +15,22 @@
 // cada RenderBody (Client/docs/research/06-render-escenas-y-ui.md, "Los pases de brillo"). Las tres
 // tablas salen de emular 0x608e00, 0x6093d0 y 0x609560 sobre el main.exe de c32bbd5f para cada
 // modelo de la tabla, con sus argumentos en 1.
-namespace Client::Render::Models
+namespace Client::Models
 {
 // El de los pases 0x44 y 0x48 (0x60b130 → 0x608e00, con el alpha del objeto en 1): uno por ítem, que
 // no mira la luz. Casi todos (1; 0,5; 0); las Male17, (0,75; 0,65; 0,5).
-[[nodiscard]] ENGINE_API Color ShineColorOf(std::uint16_t model);
+[[nodiscard]] ENGINE_API Render::Color ShineColorOf(std::uint16_t model);
 
 // Por qué multiplica 0x6093d0 (desde 0x60b300) el color base en los pases 0x240 y 0x1040: casi todos
 // por 1, y el pase queda con la luz por el factor del nivel.
 [[nodiscard]] ENGINE_API glm::vec3 MetalFactorOf(std::uint16_t model);
 
 // El del pase de set, 0x840 (0x60b300 → 0x609560): (0,1; 0,6; 1), salvo 15 partes (1; 0,7; 0,2).
-[[nodiscard]] ENGINE_API Color SetColorOf(std::uint16_t model);
+[[nodiscard]] ENGINE_API Render::Color SetColorOf(std::uint16_t model);
 
 // El del pase 0x42 del excelente: k = (sin(0,002 · T) + 1) · 0,5 y (k, 0,3k, 1 − k), con T el reloj
 // del mundo en ms (DAT_05767b88).
-[[nodiscard]] ENGINE_API Color ExcellentColorAt(Core::Duration clock);
+[[nodiscard]] ENGINE_API Render::Color ExcellentColorAt(Core::Duration clock);
 
 // El pulso del pase de set en la x87 (0x60cbff..0x60cc13), antes de guardarlo: sin(0,001 · T) · 0,5 + 0,4,
 // con T el reloj del mundo en ms (el float de 0x5767b88) y las cuentas en doble (PC53).
@@ -51,4 +51,4 @@ namespace Client::Render::Models
 // 0x61a..0x61f. Las demás, ninguna (−1).
 [[nodiscard]] ENGINE_API std::optional<std::size_t> PassHiddenMesh(std::uint16_t model, ShinePass pass,
                                                                    std::int16_t objectHidden);
-} // namespace Client::Render::Models
+} // namespace Client::Models

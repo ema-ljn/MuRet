@@ -16,11 +16,11 @@
 // (Client/docs/research/06-render-escenas-y-ui.md, "El caballo oscuro").
 namespace
 {
-using Client::Render::Models::ActionInfo;
-using Client::Render::Models::BoneKey;
-using Client::Render::Models::ObjectTransform;
-using Client::Render::Models::Skeleton;
-using Client::Render::Models::SkeletonBone;
+using Client::Models::ActionInfo;
+using Client::Models::BoneKey;
+using Client::Models::ObjectTransform;
+using Client::Models::Skeleton;
+using Client::Models::SkeletonBone;
 using Client::Scenes::DarkHorse;
 using Client::Scenes::DarkHorseGait;
 using Client::Scenes::DarkHorseGaitOf;

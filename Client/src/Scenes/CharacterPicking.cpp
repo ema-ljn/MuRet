@@ -138,7 +138,7 @@ std::int32_t PickTheCharacter(WorldState& world, std::uint8_t mask, const glm::v
         if (slot == hero || actor.byte42c == 0 || !Matches(actor, mask))
             continue;
         const ActorPickingBox storedBox = slot < pickingBoxes.size() ? pickingBoxes[slot] : PickingBoxOf(actor);
-        if (!Render::Models::SegmentHitsBox(ray->origin, ray->end, AxisAlignedBoxOf(storedBox)))
+        if (!Models::SegmentHitsBox(ray->origin, ray->end, AxisAlignedBoxOf(storedBox)))
             continue;
         const double distance = DistanceSquared(actor.position, distanceOrigin);
         if (distance >= static_cast<double>(best) || !OnTheHeroLayer(actor, world))

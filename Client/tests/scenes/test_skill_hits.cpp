@@ -40,7 +40,7 @@ using Client::Scenes::WorldState;
 constexpr std::uint32_t Seed = 0x13579bdfu;
 constexpr std::size_t HeroSlot = 42;
 constexpr std::size_t SkillPlace = 3;
-constexpr int OwnRecord = Client::Render::Models::OwnRecordCloseRandoms;
+constexpr int OwnRecord = Client::Models::OwnRecordCloseRandoms;
 // 0x518515..0x518606: el relleno y el serial del C3.
 constexpr int Delivery = 2;
 

@@ -27,8 +27,8 @@ inline constexpr Render::ViewportRect WorldViewport{0, 25, 640, 430};
 // 0x635ae0 una vez por frame original; los dibujos intermedios de la misma entrada solo consultan.
 // ADR0005: cada Enter empieza un carry local; su primer dibujo cuenta un frame incluso al mismo reloj.
 [[nodiscard]] Render::Camera3D CameraForFrame(World::GameCamera& state, const World::GameCameraInput& input,
-                                              Render::Models::OriginalFrameCarry& frames, Core::Duration clock,
-                                              Render::Models::OriginalFramePace pace);
+                                              Models::OriginalFrameCarry& frames, Core::Duration clock,
+                                              Models::OriginalFramePace pace);
 
 // El héroe del login (DAT_0743a170, el personaje 0): 0x6350b0 le escribe esta posición en cada frame
 // (0x6350d3..0x6350e1). Es el centro del trapecio del terreno (0x5fb570) y de las brasas (CL7.6 B).

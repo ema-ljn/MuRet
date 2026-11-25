@@ -94,9 +94,9 @@ constexpr std::int32_t SiegeListWithInventory = 3;
 using Math::F32;
 using Math::Truncate;
 
-Render::Models::LogicalAccess OwnAccess(GameHudContext& context)
+Models::LogicalAccess OwnAccess(GameHudContext& context)
 {
-    return Render::Models::LogicalAccess(context.ownRecordDepth, context.random, Render::Models::OwnRecordCloseRandoms);
+    return Models::LogicalAccess(context.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
 }
 
 Core::Expected<std::string_view, std::string> TextOf(const GameHudContext& context, std::size_t index,
@@ -233,7 +233,7 @@ void SpendUiItemRandoms(GameHudContext& context, std::int32_t model, std::uint8_
     const std::uint32_t setKind = set & 3u;
     // El pase del set de 0x60b3d0 (0x60cbff..0x60cc29), con el pulso de la x87 sin pasar por un float.
     if ((setKind == 1 || setKind == 2) &&
-        Render::Models::SetPulseIsOff(Render::Models::SetPulseAt(static_cast<double>(context.worldClock))))
+        Models::SetPulseIsOff(Models::SetPulseAt(static_cast<double>(context.worldClock))))
         context.world.Runtime().itemRender.selections[static_cast<std::uint16_t>(model)] = context.random.Next() % 100;
 }
 

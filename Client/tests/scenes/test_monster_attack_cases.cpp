@@ -68,7 +68,7 @@ constexpr std::uint32_t Seed = 0x0c19;
 constexpr std::int32_t MonsterKey = 0x0456;
 // Una lectura de +0x38e (0x517630 y sus copias en línea): un rand() al cerrarse en 0.
 constexpr int SkillRead = 1;
-constexpr int OwnRecord = Client::Render::Models::OwnRecordCloseRandoms;
+constexpr int OwnRecord = Client::Models::OwnRecordCloseRandoms;
 // La cola con el blanco en el pool, sin 0x11 ni 3 en +0x38e: las lecturas de 0x4f811b y 0x4f8a2c.
 constexpr int Tail = 2 * SkillRead;
 // '2' en +0x38e, la habilidad de los casos.
@@ -116,14 +116,14 @@ std::uint32_t SeedForSecondRandomParity(bool odd)
 }
 
 // El esqueleto del 0x20a para los modelos que el alta no carga (la biblioteca del mapa, detrás de FaunaResources).
-class AnyModels final : public Client::Render::Models::IModelLibrary
+class AnyModels final : public Client::Models::IModelLibrary
 {
 public:
     [[nodiscard]] const Client::Data::Models::Model* Find(std::uint16_t /*model*/) const override
     {
         return nullptr;
     }
-    [[nodiscard]] const Client::Render::Models::Skeleton* SkeletonOf(std::uint16_t /*model*/) const override
+    [[nodiscard]] const Client::Models::Skeleton* SkeletonOf(std::uint16_t /*model*/) const override
     {
         return &skeleton;
     }
@@ -132,7 +132,7 @@ public:
         return {};
     }
 
-    Client::Render::Models::Skeleton skeleton = Client::Tests::PlayerActionsSkeleton();
+    Client::Models::Skeleton skeleton = Client::Tests::PlayerActionsSkeleton();
 };
 
 // El mundo del juego, en el heap: WorldState pesa unos 350 KB.
@@ -163,7 +163,7 @@ struct Game
     Client::Scenes::SelectionState selection{world};
     Client::World::GameCamera camera;
     Client::World::GameCameraInput input;
-    Client::Render::Models::ClothWorld cloth{.random = CrtRandom(Seed)};
+    Client::Models::ClothWorld cloth{.random = CrtRandom(Seed)};
     AnyModels models;
     Client::Data::Tables::ItemTable items = Client::Tests::ItemsMarking({});
     Client::Data::Tables::ItemSetTables sets =
@@ -3505,7 +3505,7 @@ TEST_F(MonsterAttackCasesTest, TheEvenDrawDropsTwoBlastsOnTheTarget)
 {
     constexpr std::uint16_t Staff = 0xc17;
     constexpr std::uint16_t TargetSlot = 7;
-    constexpr int OwnRecordDraws = Client::Render::Models::OwnRecordCloseRandoms;
+    constexpr int OwnRecordDraws = Client::Models::OwnRecordCloseRandoms;
     Load(0);
     game->world.Runtime().hero = HeroAway;
     ActorState& target = game->world.Actors()[TargetSlot];

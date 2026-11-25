@@ -151,28 +151,28 @@ struct ModelEffectOwner
 // Proyección de los campos compartidos por los efectos de 0x1d4 bytes.
 struct ModelEffect
 {
-    bool alive = false;                        // +0x0
-    bool seen = false;                         // +0x16c, del último dibujo de este lugar
-    std::int16_t type = 0;                     // +0x2, el modelo
-    std::int32_t subtype = 0;                  // +0x4, la rama del efecto
-    Render::Models::ObjectTransform transform; // +0xc la escala, +0x10 la posición, +0x1c los ángulos
-    std::int32_t life = 0;                     // +0x60, pasos que le quedan
-    glm::vec3 velocity{};                      // +0xcc, por paso, girada por los ángulos
-    float speed = 0.0f;                        // +0xd8, keys por paso
-    float turnPending = 0.0f;                  // +0xdc: en el próximo paso lejos, da la vuelta
-    float turnDirection = 0.0f;                // +0xe4: 1 o −1, el sentido del giro
-    float flagEc = 0.0f;                       // +0xec
-    std::uint8_t state = 0;                    // +0x88: 0 y 1 giran, 2 va derecho
+    bool alive = false;                // +0x0
+    bool seen = false;                 // +0x16c, del último dibujo de este lugar
+    std::int16_t type = 0;             // +0x2, el modelo
+    std::int32_t subtype = 0;          // +0x4, la rama del efecto
+    Models::ObjectTransform transform; // +0xc la escala, +0x10 la posición, +0x1c los ángulos
+    std::int32_t life = 0;             // +0x60, pasos que le quedan
+    glm::vec3 velocity{};              // +0xcc, por paso, girada por los ángulos
+    float speed = 0.0f;                // +0xd8, keys por paso
+    float turnPending = 0.0f;          // +0xdc: en el próximo paso lejos, da la vuelta
+    float turnDirection = 0.0f;        // +0xe4: 1 o −1, el sentido del giro
+    float flagEc = 0.0f;               // +0xec
+    std::uint8_t state = 0;            // +0x88: 0 y 1 giran, 2 va derecho
     // +0x84: al empezar cada paso, la meta del alabeo del estado (30, −30 o 0); al dar la vuelta, el
     // yaw con el que se compara el giro de ±60°. Los dos usos son del original.
     float reference = 0.0f;
-    Render::Models::AnimationState animation; // +0x111 la acción, +0x114 el frame, +0x118 el anterior
-    glm::vec3 light{};                        // +0xf4
-    float alpha = 1.0f;                       // +0x174
-    Render::Models::ObjectState objectState;  // +0x58, +0x64 y +0x68
-    std::uint16_t disturbanceState = 0;       // +0x8a, guard de437860 del efecto9
-    bool vertexLight = true;                  // +0xe8
-    glm::vec3 point40{}; // +0x40..+0x48, vector nativo de las estelas, distinto de la interpolación.
+    Models::AnimationState animation;   // +0x111 la acción, +0x114 el frame, +0x118 el anterior
+    glm::vec3 light{};                  // +0xf4
+    float alpha = 1.0f;                 // +0x174
+    Models::ObjectState objectState;    // +0x58, +0x64 y +0x68
+    std::uint16_t disturbanceState = 0; // +0x8a, guard de437860 del efecto9
+    bool vertexLight = true;            // +0xe8
+    glm::vec3 point40{};                // +0x40..+0x48, vector nativo de las estelas, distinto de la interpolación.
     // +0x4c..+0x54: el otro punto que sigue el joint 0x618/0xb del 0x11b/1 (0x51c82d, 0x538256).
     glm::vec3 point4c{};
     glm::vec3 start{}; // +0x17c, la partida
@@ -477,5 +477,5 @@ UnmaskedCellAttribute(const Data::Terrain::TerrainAttributes* attributes, const 
 // tipo (el 0xb4: 0x52096c..0x520b72) y la cola común (0x52cb98): la animación a +0xd8 (0x4ec200; si la
 // acción termina, el frame en sus keys y la acción en 0xff), la posición más la velocidad girada por los
 // ángulos (0x51fc80 con 0x5fc8f0 y 0x5fcbd0) y una vida menos; con la vida en 0, muere.
-void StepModelEffect(ModelEffect& effect, const Render::Models::Skeleton* skeleton);
+void StepModelEffect(ModelEffect& effect, const Models::Skeleton* skeleton);
 } // namespace Client::World

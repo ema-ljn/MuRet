@@ -6,7 +6,7 @@
 
 #include <cstdint>
 
-namespace Client::Scenes
+namespace Client::Models
 {
 // Research05 § Texturas: +20/+24 son los lados del buffer y +28 sus componentes. Se copian
 // del Texture realmente decodificado; esta metadata CPU no describe el estado ni el packing GL.
@@ -21,4 +21,4 @@ struct TextureMetadata
     glm::vec2 size;
     std::uint8_t components;
 };
-} // namespace Client::Scenes
+} // namespace Client::Models

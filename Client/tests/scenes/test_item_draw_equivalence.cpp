@@ -55,13 +55,13 @@ using Client::Data::Models::ModelFile;
 using Client::GameLogic::BodyPart;
 using Client::GameLogic::CharacterAppearance;
 using Client::GameLogic::WornItem;
+using Client::Models::IModelLibrary;
+using Client::Models::Skeleton;
 using Client::Render::ModelBatch;
 using Client::Render::ModelDrawCommand;
 using Client::Render::ModelDrawState;
 using Client::Render::ModelVertex;
 using Client::Render::TextureSlot;
-using Client::Render::Models::IModelLibrary;
-using Client::Render::Models::Skeleton;
 using Client::Scenes::DrawnCharacter;
 using Client::Scenes::ItemDrawContext;
 using Client::Scenes::ItemPart;
@@ -139,9 +139,8 @@ private:
             return false;
         }
         Model read = std::move(loaded).Value();
-        auto skeleton = model == Client::Data::Models::PlayerSkeletonModel
-                            ? Client::Render::Models::MakePlayerSkeleton(read)
-                            : Client::Render::Models::MakeSkeleton(read);
+        auto skeleton = model == Client::Data::Models::PlayerSkeletonModel ? Client::Models::MakePlayerSkeleton(read)
+                                                                           : Client::Models::MakeSkeleton(read);
         if (!skeleton.HasValue())
         {
             ADD_FAILURE() << "the skeleton of model " << model;
@@ -283,8 +282,7 @@ DrawnCharacter CharacterOf(const ItemDrawCase& drawn)
     appearance.bodyParts[static_cast<std::size_t>(BodyPart::Armor)] =
         WornItem{drawn.model, drawn.level, drawn.excellent, drawn.ancient};
     character.appearance = appearance;
-    character.object =
-        Client::Render::Models::ObjectTransform{{12880.0f, 15046.0f, 163.0f}, {0.0f, 0.0f, 100.0f}, 0.9f, 0.0f};
+    character.object = Client::Models::ObjectTransform{{12880.0f, 15046.0f, 163.0f}, {0.0f, 0.0f, 100.0f}, 0.9f, 0.0f};
     character.alpha = drawn.alpha;
     character.outlined = drawn.outlined;
     return character;

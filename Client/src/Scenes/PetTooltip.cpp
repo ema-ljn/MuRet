@@ -102,7 +102,7 @@ Core::Expected<void, std::string> WriteTheLevelRequirement(GameHudContext& hud, 
         return Core::Unexpected(lines.Error());
     std::int32_t level = 0;
     {
-        const Render::Models::LogicalAccess own(hud.ownRecordDepth, hud.random, Render::Models::OwnRecordCloseRandoms);
+        const Models::LogicalAccess own(hud.ownRecordDepth, hud.random, Models::OwnRecordCloseRandoms);
         level = hud.world.OwnCharacter().level;
     }
     if (level < required)
@@ -135,7 +135,7 @@ Core::Expected<void, std::string> WriteTheLeadershipRequirement(GameHudContext& 
         return Core::Unexpected(lines.Error());
     std::int32_t leadership = 0;
     {
-        const Render::Models::LogicalAccess own(hud.ownRecordDepth, hud.random, Render::Models::OwnRecordCloseRandoms);
+        const Models::LogicalAccess own(hud.ownRecordDepth, hud.random, Models::OwnRecordCloseRandoms);
         const OwnCharacterRecord& record = hud.world.OwnCharacter();
         leadership = static_cast<std::uint16_t>(record.word36 + record.leadership);
     }

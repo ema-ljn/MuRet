@@ -21,8 +21,7 @@ Render::ITextureStore* ModelTextureTable::Store() const
 {
     return m_store;
 }
-void ModelTextureTable::Seed(const Render::Models::ModelTextureSlots& slots,
-                             const Render::Models::IModelLibrary* models)
+void ModelTextureTable::Seed(const Models::ModelTextureSlots& slots, const Models::IModelLibrary* models)
 {
     if (m_seeded)
         return;
@@ -40,11 +39,11 @@ void ModelTextureTable::Seed(const Render::Models::ModelTextureSlots& slots,
         if (entry.references == 0)
             entry.references = 1;
 }
-Render::Models::ModelTextureSlots& ModelTextureTable::Slots()
+Models::ModelTextureSlots& ModelTextureTable::Slots()
 {
     return m_slots;
 }
-const Render::Models::ModelTextureSlots& ModelTextureTable::Slots() const
+const Models::ModelTextureSlots& ModelTextureTable::Slots() const
 {
     return m_slots;
 }
@@ -60,8 +59,8 @@ Core::Expected<void, std::string> ModelTextureTable::Upload(const Data::Textures
     if (!loaded.HasValue())
         return loaded;
     const auto remaining = old > 0 ? static_cast<std::uint8_t>(old - 1) : std::uint8_t{0};
-    m_entries.insert_or_assign(texture.slot,
-                               Entry{static_cast<std::uint8_t>(remaining + 1), TextureMetadata(texture.texture)});
+    m_entries.insert_or_assign(
+        texture.slot, Entry{static_cast<std::uint8_t>(remaining + 1), Models::TextureMetadata(texture.texture)});
     m_slots.SetName(slot, name);
     return {};
 }
@@ -88,7 +87,7 @@ std::uint8_t ModelTextureTable::References(Render::TextureSlot slot) const
     const auto found = m_entries.find(slot.value);
     return found == m_entries.end() ? std::uint8_t{0} : found->second.references;
 }
-std::optional<TextureMetadata> ModelTextureTable::Metadata(std::uint32_t selector) const
+std::optional<Models::TextureMetadata> ModelTextureTable::Metadata(std::uint32_t selector) const
 {
     const auto found = m_entries.find(selector);
     return found == m_entries.end() ? std::nullopt : std::optional(found->second.metadata);

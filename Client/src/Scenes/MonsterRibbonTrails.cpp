@@ -61,7 +61,7 @@ Math::BoneTransform BoneAt(const WorldState& world, std::size_t index)
 using Math::F32;
 
 template <std::size_t LegCount>
-Core::Expected<void, std::string> EmitSamples(ActorState& actor, const Render::Models::Skeleton& skeleton,
+Core::Expected<void, std::string> EmitSamples(ActorState& actor, const Models::Skeleton& skeleton,
                                               const CharacterStepContext& context, std::uint8_t speedAction,
                                               const std::array<RibbonLeg, LegCount>& legs)
 {
@@ -97,7 +97,7 @@ Core::Expected<void, std::string> EmitSamples(ActorState& actor, const Render::M
     return {};
 }
 
-Core::Expected<void, std::string> EmitEarly1a7(ActorState& actor, const Render::Models::Skeleton& skeleton,
+Core::Expected<void, std::string> EmitEarly1a7(ActorState& actor, const Models::Skeleton& skeleton,
                                                const CharacterStepContext& context)
 {
     constexpr std::array legs{
@@ -107,7 +107,7 @@ Core::Expected<void, std::string> EmitEarly1a7(ActorState& actor, const Render::
     return EmitSamples(actor, skeleton, context, actor.animation.action, legs);
 }
 
-Core::Expected<void, std::string> EmitEarly42fa40(ActorState& actor, const Render::Models::Skeleton& skeleton,
+Core::Expected<void, std::string> EmitEarly42fa40(ActorState& actor, const Models::Skeleton& skeleton,
                                                   const CharacterStepContext& context)
 {
     if (actor.type == Monster1b3 && actor.animation.action == ActionThree)
@@ -126,7 +126,7 @@ Core::Expected<void, std::string> EmitEarly42fa40(ActorState& actor, const Rende
     return {};
 }
 
-Core::Expected<void, std::string> EmitEarly(ActorState& actor, const Render::Models::Skeleton& skeleton,
+Core::Expected<void, std::string> EmitEarly(ActorState& actor, const Models::Skeleton& skeleton,
                                             const CharacterStepContext& context)
 {
     if (actor.type == Monster1a7 && (actor.animation.action == ActionThree || actor.animation.action == ActionFour))
@@ -134,7 +134,7 @@ Core::Expected<void, std::string> EmitEarly(ActorState& actor, const Render::Mod
     return EmitEarly42fa40(actor, skeleton, context);
 }
 
-Core::Expected<void, std::string> EmitLate(ActorState& actor, const Render::Models::Skeleton& skeleton,
+Core::Expected<void, std::string> EmitLate(ActorState& actor, const Models::Skeleton& skeleton,
                                            const CharacterStepContext& context)
 {
     const std::uint8_t action = actor.animation.action;
@@ -167,8 +167,7 @@ Core::Expected<void, std::string> EmitLate(ActorState& actor, const Render::Mode
 }
 } // namespace
 
-Core::Expected<void, std::string> EmitEarlyMonsterRibbonTrails(ActorState& actor,
-                                                               const Render::Models::Skeleton* skeleton,
+Core::Expected<void, std::string> EmitEarlyMonsterRibbonTrails(ActorState& actor, const Models::Skeleton* skeleton,
                                                                const CharacterStepContext& context)
 {
     const bool eligible =
@@ -182,8 +181,7 @@ Core::Expected<void, std::string> EmitEarlyMonsterRibbonTrails(ActorState& actor
     return EmitEarly(actor, *skeleton, context);
 }
 
-Core::Expected<void, std::string> EmitLateMonsterRibbonTrails(ActorState& actor,
-                                                              const Render::Models::Skeleton* skeleton,
+Core::Expected<void, std::string> EmitLateMonsterRibbonTrails(ActorState& actor, const Models::Skeleton* skeleton,
                                                               const CharacterStepContext& context)
 {
     const std::uint8_t action = actor.animation.action;

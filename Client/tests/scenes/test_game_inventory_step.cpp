@@ -49,7 +49,7 @@ using Client::Input::Key;
 using Client::Scenes::GameUiContext;
 using Client::Scenes::WorldState;
 
-constexpr int Own = Client::Render::Models::OwnRecordCloseRandoms;
+constexpr int Own = Client::Models::OwnRecordCloseRandoms;
 // El paso con todo cerrado (test_game_ui.cpp): la barra de skills, la cadena de Q, W y E y la cola IsOpen(0).
 constexpr int BaseStepRandoms = Own + 2 + 2;
 // 0x5e4ce0 sin nada bajo el mouse: las consultas de la tienda y del comercio de las marcas, de los botones y de las

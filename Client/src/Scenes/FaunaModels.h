@@ -34,7 +34,7 @@ namespace Client::Render
 {
 class ITextureStore;
 }
-namespace Client::Render::Models
+namespace Client::Models
 {
 class ModelTextureSlots;
 }
@@ -45,7 +45,7 @@ struct FaunaModelLoadContext
     const std::filesystem::path& dataRoot;
     Render::ITextureStore& textures;
     Core::Log& log;
-    Render::Models::ModelTextureSlots& slots;
+    Models::ModelTextureSlots& slots;
     ModelTextureTable* sharedTextures = nullptr;
     // WorldRuntime::modelSounds: 0x612d90 escribe la tabla de sonidos del modelo (0x612c80, 0x613127) después de
     // cargarlo con mallas. nullptr, no la escribe.
@@ -63,7 +63,7 @@ struct FaunaResourceSound
 // modelo 0x171 y el 0x173, desde StepGameFauna) y los de los monstruos y los NPC (desde 0x5141e0, CL9 hito 2, P-C176).
 // En el original van al arreglo global de 0x5769ad8, que no se suelta al cambiar de mapa: el dueño dura más que los
 // cambios de mapa, y Bind solo cambia la biblioteca prestada (la del mapa, que sigue con la global).
-class FaunaModels final : public Render::Models::IModelLibrary
+class FaunaModels final : public Models::IModelLibrary
 {
 public:
     FaunaModels() = default;
@@ -72,10 +72,10 @@ public:
     FaunaModels(FaunaModels&&) = delete;
     FaunaModels& operator=(FaunaModels&&) = delete;
     ~FaunaModels() override;
-    void Bind(const Render::Models::IModelLibrary* base);
+    void Bind(const Models::IModelLibrary* base);
     // 60dc4c: el caller entrega su elección CRT en la inicialización global de modelos.
     [[nodiscard]] Core::Expected<void, std::string> InitializePrefix(std::uint16_t constructedBeforeBase);
-    [[nodiscard]] const Render::Models::Skeleton* PrefixModel() const;
+    [[nodiscard]] const Models::Skeleton* PrefixModel() const;
     [[nodiscard]] std::optional<std::uint16_t> PrefixOffset() const;
     // 612d90(1f/21) desde la fauna: los otros números cortan.
     [[nodiscard]] Core::Expected<void, std::string> Prepare(std::int32_t monster, FaunaModelLoadContext& context);
@@ -109,9 +109,9 @@ public:
     void ResetSoundRegistrationStamps();
     [[nodiscard]] ModelTextureTable& TextureTable();
     [[nodiscard]] const Data::Models::Model* Find(std::uint16_t model) const override;
-    [[nodiscard]] const Render::Models::Skeleton* SkeletonOf(std::uint16_t model) const override;
+    [[nodiscard]] const Models::Skeleton* SkeletonOf(std::uint16_t model) const override;
     [[nodiscard]] std::span<const Render::TextureSlot> MeshTextures(std::uint16_t model) const override;
-    [[nodiscard]] std::optional<TextureMetadata> TextureMetadataOf(std::uint32_t selector) const override;
+    [[nodiscard]] std::optional<Models::TextureMetadata> TextureMetadataOf(std::uint32_t selector) const override;
     [[nodiscard]] std::optional<Render::TextureSlot> TextureSlotOf(std::uint32_t selector) const override;
     [[nodiscard]] std::optional<glm::vec2> TextureSize(Render::TextureSlot slot) const override;
     [[nodiscard]] std::span<const FaunaResourceSound> SoundFiles() const;
@@ -129,7 +129,7 @@ private:
     struct Entry
     {
         Data::Models::Model model;
-        Render::Models::Skeleton skeleton;
+        Models::Skeleton skeleton;
         std::vector<Render::TextureSlot> textures;
         // +0xaa: 0x60dbe0 deja el arreglo en 0 (0x60dc80) y solo 0x612c80 lo escribe.
         std::array<std::int16_t, 10> sounds{};
@@ -151,10 +151,10 @@ private:
     ConstructedBmdPrefix m_prefix;
     ModelTextureTable m_textureTable;
     ModelTextureTable* m_sharedTextures = nullptr;
-    const Render::Models::IModelLibrary* m_base = nullptr;
+    const Models::IModelLibrary* m_base = nullptr;
     Render::ITextureStore* m_store = nullptr;
     std::map<std::uint16_t, Entry> m_models;
-    std::map<std::uint32_t, TextureMetadata> m_metadata;
+    std::map<std::uint32_t, Models::TextureMetadata> m_metadata;
     std::vector<Render::TextureSlot> m_uploaded;
     std::vector<FaunaResourceSound> m_sounds;
     struct ModelSoundRegistration

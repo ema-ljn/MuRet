@@ -108,8 +108,7 @@ Core::Expected<void, std::string> UseTheSkillOnItsTarget(ActorState& user, Actor
     // 0x55cbe4..0x55cc9a: la skill del lugar, con el registro propio abierto y cerrado.
     std::uint8_t skill = 0;
     {
-        const Render::Models::LogicalAccess own(runtime.ownRecordDepth, context.random,
-                                                Render::Models::OwnRecordCloseRandoms);
+        const Models::LogicalAccess own(runtime.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
         skill = OwnSkillByte(world.OwnCharacter(), request.slot);
     }
     if (skill == 0x2b || skill == 0x2f)

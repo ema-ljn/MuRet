@@ -161,8 +161,7 @@ Core::Expected<std::optional<RepairPrice>, std::string> PriceThePet(const PetQuo
 {
     WorldRuntime& runtime = context.world.Runtime();
     const World::ItemState& item = context.world.OwnCharacter().equipment[pet.slot];
-    const Render::Models::LogicalAccess own(context.ownRecordDepth, context.random,
-                                            Render::Models::OwnRecordCloseRandoms);
+    const Models::LogicalAccess own(context.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
     found = item.id == pet.type;
     if (!found)
         return std::optional<RepairPrice>{};
@@ -263,7 +262,7 @@ void ScanTheTrainerBox(WorldState& world, Crt::CrtRandom& random)
         return;
     runtime.panels.delegated.field724584 = kind;
     // 0x44af07..0x44b185: el registro propio abierto para leer el zen.
-    const Render::Models::LogicalAccess own(runtime.ownRecordDepth, random, Render::Models::OwnRecordCloseRandoms);
+    const Models::LogicalAccess own(runtime.ownRecordDepth, random, Models::OwnRecordCloseRandoms);
     if (world.OwnCharacter().zen < MixPrices[kind])
         npc.trainerZenShort = 1;
 }
@@ -297,8 +296,7 @@ Core::Expected<PetRecoveryQuote, std::string> QuoteThePetRecovery(const PetQuote
     if (price == 0)
         return PetRecoveryQuote{.price = 0, .line = PetQuoteLine::Full, .number = {}};
     // 0x44b3c6..0x44b482: el zen contra el precio, con el registro abierto otra vez, y el cierre de 0x40f370.
-    const Render::Models::LogicalAccess own(context.ownRecordDepth, context.random,
-                                            Render::Models::OwnRecordCloseRandoms);
+    const Models::LogicalAccess own(context.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
     const std::uint32_t zen = context.world.OwnCharacter().zen;
     if (zen < price)
         return PetRecoveryQuote{.price = price, .line = PetQuoteLine::Short, .number = ThousandsText(price - zen)};
@@ -385,8 +383,7 @@ Core::Expected<void, std::string> StepThePetRecovery(const GameUiContext& contex
         return Core::Unexpected(std::move(quoted).Error());
     const std::uint32_t price = quoted.Value().price;
     // 0x44ba0e..0x44ba84 y 0x44c638..: el registro propio abierto hasta el final del paso.
-    const Render::Models::LogicalAccess own(runtime.ownRecordDepth, context.random,
-                                            Render::Models::OwnRecordCloseRandoms);
+    const Models::LogicalAccess own(runtime.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
     if (context.world.OwnCharacter().zen < price || price == NoPet)
         return {};
     // 0x44ba9d..0x44c627: C1 05 34 <lugar> <el byte bajo del precio> en C3 (Q-C948).

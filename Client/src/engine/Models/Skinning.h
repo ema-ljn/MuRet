@@ -12,7 +12,7 @@
 
 // Los vértices de una malla en el mundo, como 0x4ebc80: el skinning rígido, un hueso por vértice y
 // sin pesos (Client/docs/research/06-render-escenas-y-ui.md, "El personaje, vértice a vértice").
-namespace Client::Render::Models
+namespace Client::Models
 {
 struct SkinnedMesh
 {
@@ -56,4 +56,4 @@ struct SkinnedMesh
 // 0x4eff40: with x' and z' relative to the object, X = (x' + spread) * z' / (z' - 4000) + x' + px and Z = pz + 5.
 [[nodiscard]] ENGINE_API glm::vec3 FlattenOnTheGround(const glm::vec3& world, const glm::vec3& objectPosition,
                                                       float spread);
-} // namespace Client::Render::Models
+} // namespace Client::Models

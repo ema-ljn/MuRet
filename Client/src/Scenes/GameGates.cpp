@@ -29,7 +29,7 @@ constexpr std::int32_t LandOfTrialMap = Maps::LandOfTrialsMap;
 
 std::int32_t ReadCell(std::uint8_t value, std::uint8_t& depth, const GameGateContext& context)
 {
-    const Render::Models::LogicalAccess access(depth, context.random, Render::Models::SmallLogicalCloseRandoms);
+    const Models::LogicalAccess access(depth, context.random, Models::SmallLogicalCloseRandoms);
     return value;
 }
 
@@ -45,16 +45,14 @@ bool ContainsWithAccesses(const Data::Tables::GateRecord& gate, ActorState& hero
 std::int32_t ReadWait(const GameGateContext& context)
 {
     WorldRuntime& runtime = context.world.Runtime();
-    const Render::Models::LogicalAccess access(runtime.warpDepth, context.random,
-                                               Render::Models::SmallLogicalCloseRandoms);
+    const Models::LogicalAccess access(runtime.warpDepth, context.random, Models::SmallLogicalCloseRandoms);
     return runtime.warpCounter;
 }
 
 void WriteWait(std::int32_t value, const GameGateContext& context)
 {
     WorldRuntime& runtime = context.world.Runtime();
-    const Render::Models::LogicalAccess access(runtime.warpDepth, context.random,
-                                               Render::Models::SmallLogicalCloseRandoms);
+    const Models::LogicalAccess access(runtime.warpDepth, context.random, Models::SmallLogicalCloseRandoms);
     runtime.warpCounter = value;
 }
 
@@ -88,8 +86,8 @@ bool PassesSilentLevelCheck(std::size_t index, const Data::Tables::GateRecord& g
     {
         return true;
     }
-    const Render::Models::LogicalAccess access(context.world.Runtime().ownRecordDepth, context.random,
-                                               Render::Models::OwnRecordCloseRandoms);
+    const Models::LogicalAccess access(context.world.Runtime().ownRecordDepth, context.random,
+                                       Models::OwnRecordCloseRandoms);
     const GameLogic::GateDecision decision = DecideGate(index, gate, context);
     // En el gate28 sólo el nivel insuficiente no produce ninguno de estos efectos.
     return decision.request.has_value() || decision.clearWarpPending || decision.waitSteps != 0 ||
@@ -134,8 +132,7 @@ ApplyEligibleGate(std::size_t index, const Data::Tables::GateRecord& gate, const
 {
     WorldRuntime& runtime = context.world.Runtime();
     // 0x59a172..0x59adc7: sigue abierto durante el envío, contador y resets, y cierra al final.
-    const Render::Models::LogicalAccess access(runtime.ownRecordDepth, context.random,
-                                               Render::Models::OwnRecordCloseRandoms);
+    const Models::LogicalAccess access(runtime.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
     GameLogic::GateDecision decision = DecideGate(index, gate, context);
     if (decision.waitSteps != 0)
     {

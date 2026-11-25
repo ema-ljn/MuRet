@@ -152,9 +152,9 @@ Core::Expected<std::string_view, std::string> TextOf(const GameHudContext& conte
     return *text;
 }
 
-Render::Models::LogicalAccess OwnAccess(GameHudContext& context)
+Models::LogicalAccess OwnAccess(GameHudContext& context)
 {
-    return Render::Models::LogicalAccess(context.ownRecordDepth, context.random, Render::Models::OwnRecordCloseRandoms);
+    return Models::LogicalAccess(context.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
 }
 
 // 0x5f5457..0x5f55fc: lo que cuesta usar el almacén, _ftol(nivel² · 0,04f) más 2 · nivel con la traba; menos de 1 es

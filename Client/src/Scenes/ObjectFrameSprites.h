@@ -7,7 +7,7 @@
 #include <cstddef>
 #include <string>
 
-namespace Client::Render::Models
+namespace Client::Models
 {
 struct Skeleton;
 }
@@ -44,8 +44,7 @@ StepMerchantAnimalFrame(const World::WorldObject& object, int commonRandom, cons
 // El tipo que no es ninguno de los dos no hace nada.
 [[nodiscard]] Core::Expected<void, std::string> StepDeviasObjectFrame(World::WorldObject& object, int commonRandom,
                                                                       const GameObjectPass& pass,
-                                                                      const Render::Models::Skeleton* skeleton,
-                                                                      bool posed);
+                                                                      const Models::Skeleton* skeleton, bool posed);
 
 // 0x602ed0 con el mapa 4 (0x603799): el 0x13 y el 0x14 dejan dos sprites (giro r y −r, con r =
 // ftol(reloj · 0,1f) % 360) en los huesos 15 y 19 (0,3) y 21 (1,5): 0x61e con (L; L · 0,2; 0) el 0x13 y

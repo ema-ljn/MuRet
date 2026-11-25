@@ -400,7 +400,7 @@ TEST(GameJointStepTest, CounterPhaseWrapAndHalfFrequenciesMatchIndependentFixtur
         joint.subtype = 1;
         joint.ownerContext = &owner;
         joint.life = 50;
-        Client::Render::Models::ClothWorld cloth;
+        Client::Models::ClothWorld cloth;
         cloth.logicSteps = vector.steps;
         ASSERT_TRUE(Client::Scenes::StepJoints(*joints, cloth.random, &cloth).HasValue());
         for (int axis = 0; axis < 3; ++axis)
@@ -424,7 +424,7 @@ TEST(GameJointStepTest, OpenCounterAccessAvoidsFourDrawsAndDeadOwnerNeverOpensIt
     joint.subtype = 1;
     joint.ownerContext = &owner;
     joint.life = 100;
-    Client::Render::Models::ClothWorld cloth;
+    Client::Models::ClothWorld cloth;
     Client::Crt::CrtRandom expected;
     ASSERT_TRUE(Client::Scenes::StepJoints(joints, cloth.random, &cloth).HasValue());
     for (int i = 0; i < 4; ++i)

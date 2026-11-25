@@ -24,7 +24,7 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Render::Models::ClothWorld;
+using Client::Models::ClothWorld;
 using Client::Scenes::ActorConstructionContext;
 using Client::Scenes::ActorPlacement;
 using Client::Scenes::ActorState;

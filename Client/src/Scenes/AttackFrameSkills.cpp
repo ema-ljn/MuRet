@@ -116,7 +116,7 @@ Core::Unexpected<std::string> CutAt(std::uint32_t address, std::string_view what
 }
 
 // El modelo del tipo de o (0x5769ad8 + MOVSX +2 · 0xe0): Player.bmd con el 0x20a, si no la biblioteca de modelos.
-const Render::Models::Skeleton* SkeletonOf(const ActorState& actor, const CharacterStepContext& context)
+const Models::Skeleton* SkeletonOf(const ActorState& actor, const CharacterStepContext& context)
 {
     if (IsPlayer(actor) && context.playerSkeleton != nullptr)
         return context.playerSkeleton;
@@ -142,7 +142,7 @@ Core::Expected<void, std::string> StepTheSkill2b(ActorState& actor, std::uint8_t
     // 0x4f98a0..0x4f98f8: el hueso de la mano (+0x2bd de la de 0x4f9780) en el modelo del tipo; con el byte +0x22 de
     // su registro de 0x8c (un hueso que la pose no escribe) o fuera de la cuenta de huesos (+0x22 del modelo, JGE con
     // signo), sale. El original lee el byte antes de mirar la cuenta: fuera de ella lee de más y sale igual.
-    const Render::Models::Skeleton* skeleton = SkeletonOf(actor, context);
+    const Models::Skeleton* skeleton = SkeletonOf(actor, context);
     if (skeleton == nullptr)
     {
         return Core::Unexpected(std::format(
@@ -524,8 +524,7 @@ Core::Expected<void, std::string> StepTheSkill37(ActorState& actor, std::uint8_t
         return Core::Unexpected(std::format("{} (la habilidad {:#x} del lugar {})", made.Error(), skill, slot));
     float product = 0.0f;
     {
-        const Render::Models::LogicalAccess own(runtime.ownRecordDepth, context.random,
-                                                Render::Models::OwnRecordCloseRandoms);
+        const Models::LogicalAccess own(runtime.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
         product = static_cast<float>(static_cast<double>(context.world.OwnCharacter().attackSpeed) *
                                      static_cast<double>(0.004f));
     }

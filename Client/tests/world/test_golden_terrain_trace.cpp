@@ -424,7 +424,7 @@ TEST_F(GoldenTerrainTrace, TheGameSceneDrawsTheCellsOfLorencia)
     world.Runtime().hero = HeroSlot;
     world.Runtime().drawingEnabled = true;
     world.Runtime().warpCounter = Client::Scenes::WaitDrawThreshold;
-    Client::Render::Models::ClothWorld cloth;
+    Client::Models::ClothWorld cloth;
     Client::World::GameCamera cameraState;
     Client::World::GameCameraInput cameraInput;
     Client::Scenes::GameScene scene(Client::Scenes::SceneContext{.dataRoot = m_dataRoot,

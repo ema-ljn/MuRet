@@ -60,7 +60,7 @@ constexpr std::size_t NotTheLeaderText = 257;
 // Lo que lee una celda protegida: abre su entrada y la cierra, con los rand() de su cierre.
 std::int32_t ReadCell(std::uint8_t value, std::uint8_t& depth, Crt::CrtRandom& random)
 {
-    const Render::Models::LogicalAccess access(depth, random, Render::Models::SmallLogicalCloseRandoms);
+    const Models::LogicalAccess access(depth, random, Models::SmallLogicalCloseRandoms);
     return value;
 }
 

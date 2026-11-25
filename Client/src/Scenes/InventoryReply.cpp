@@ -23,8 +23,8 @@ void ClearForInventoryReply(const WorldEntryResources& resources)
     WorldState& world = resources.world;
     {
         // 0x4c55c4..0x4c563c lo abre y 0x4c5661..0x4c56a3 lo cierra (0x40b4d0).
-        const Render::Models::LogicalAccess access(world.Runtime().ownRecordDepth, resources.cloth.random,
-                                                   Render::Models::OwnRecordCloseRandoms);
+        const Models::LogicalAccess access(world.Runtime().ownRecordDepth, resources.cloth.random,
+                                           Models::OwnRecordCloseRandoms);
         world.OwnCharacter().ClearEquipmentForInventory();
     }
     // 0x4c56a8..0x4c56e0, ya con el registro cerrado.

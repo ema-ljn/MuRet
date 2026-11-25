@@ -60,7 +60,7 @@ constexpr PanelId LastScannedBit = 0x40000000;
 // 0x6597f9..0x659847 con 0x20). Si la cuenta queda en 0, saca un rand().
 bool ReadProtected(const std::uint8_t& value, std::uint8_t& depth, Crt::CrtRandom& random)
 {
-    const Render::Models::LogicalAccess access(depth, random, 1);
+    const Models::LogicalAccess access(depth, random, 1);
     return value != 0;
 }
 
@@ -68,7 +68,7 @@ bool ReadProtected(const std::uint8_t& value, std::uint8_t& depth, Crt::CrtRando
 // acceso, con su rand() al cerrarlo.
 void WriteProtected(std::uint8_t& value, std::uint8_t& depth, Crt::CrtRandom& random, std::uint8_t written)
 {
-    const Render::Models::LogicalAccess access(depth, random, 1);
+    const Models::LogicalAccess access(depth, random, 1);
     value = written;
 }
 
@@ -344,7 +344,7 @@ Core::Expected<bool, std::string> PanelRegistry::Open(PanelId id, std::uint32_t 
             auto inventory = Open(InventoryPanel);
             if (!inventory.HasValue())
                 return inventory;
-            const Render::Models::LogicalAccess access(m_state.tradeDepth, m_context.random, 1);
+            const Models::LogicalAccess access(m_state.tradeDepth, m_context.random, 1);
             m_state.trade = 1;
         }
         break;
@@ -645,7 +645,7 @@ Core::Expected<bool, std::string> PanelRegistry::CloseByMask(PanelId mask, bool 
                 return Core::Unexpected(std::string("0x657fb5: cerrar el comercio sin sus grillas (0x78a5a20)"));
             if (auto closed = m_context.tradeClosed(aux); !closed.HasValue())
                 return Core::Unexpected(std::move(closed).Error());
-            const Render::Models::LogicalAccess access(m_state.tradeDepth, m_context.random, 1);
+            const Models::LogicalAccess access(m_state.tradeDepth, m_context.random, 1);
             m_state.trade = 0;
             break;
         }

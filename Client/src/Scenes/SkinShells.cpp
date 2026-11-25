@@ -40,30 +40,30 @@ constexpr float VisibleAlpha = 0.01f;               // 0x6b88d4, el de 0x5ffdf0
 } // namespace
 
 Core::Expected<void, std::string> ShedTheSkinShells(ActorState& owner, std::int32_t subtype,
-                                                    const Render::Models::IModelLibrary& models, WorldState& world,
+                                                    const Models::IModelLibrary& models, WorldState& world,
                                                     World::ModelEffects& effects, Crt::CrtRandom& random)
 {
     constexpr std::uint16_t Shadow = Data::Models::PlayerShadowModel;
     const Data::Models::Model* model = models.Find(Shadow);
-    const Render::Models::Skeleton* skeleton = models.SkeletonOf(Shadow);
+    const Models::Skeleton* skeleton = models.SkeletonOf(Shadow);
     if (model == nullptr || skeleton == nullptr)
         return Core::Unexpected(std::string("0x53c1eb: falta el modelo 0x20b (Player\\Shadow01) del joint 0x632"));
     // 0x53c1c6..0x53c1eb: el cuadro, el anterior y la acción anterior en 0; la acción, la escala y el origen, los del
     // modelo (+0xa0, +0x68 y +0x6c); +0x84 queda en 0 (sólo 0x6001b0 lo escribe, y nunca en el 0x20b).
     const SharedModelPlacement placement = world.ModelPlacement(Shadow);
-    const Render::Models::AnimationState animation{
+    const Models::AnimationState animation{
         .action = placement.action, .frame = 0.0f, .previousAction = 0, .previousKey = 0};
-    const Render::Models::ObjectTransform transform{
+    const Models::ObjectTransform transform{
         .position = placement.origin, .angles = owner.angles, .scale = placement.scale, .lockedRootHeight = 0.0f};
     std::vector<Math::BoneTransform> bones(skeleton->bones.size(), Math::BoneTransform(0.0f));
-    if (!Render::Models::PoseWorldSkeleton(*skeleton, animation, transform, owner.headTurn.angles, bones))
+    if (!Models::PoseWorldSkeleton(*skeleton, animation, transform, owner.headTurn.angles, bones))
         return Core::Unexpected(std::string("0x53c1eb: la pose del 0x20b (Player\\Shadow01) del joint 0x632 falla"));
     // 0x53c1f0..0x53c210: con el último argumento en 0 y la escala de los huesos (0x6c881c) en 1 (0x4ebdb0), cada
     // vértice sólo por la matriz de su hueso (0x5fccc0). Vale 1 porque 0x5ffdf0 y 0x60cf70 la ponen en 1 antes de
     // mirar el modo (0x5fff82, 0x60d01e) y los únicos modos 2 y 3 (0x50c20b, 0x50c217) van seguidos de 0x50c248
     // (Q-C1730; en Chaos Castle cada 0x5ffdf0 resta 0,15f al alpha y no salta en 0x5ffe3b por debajo de 0,01f:
     // quedaría en 1,4f si 0x50c248 no pasa, o en 1,2f si tampoco 0x50c217, P-C521).
-    std::vector<Render::Models::SkinnedMesh> meshes(model->meshes.size());
+    std::vector<Models::SkinnedMesh> meshes(model->meshes.size());
     for (std::size_t index = 0; index < model->meshes.size(); ++index)
     {
         for (const Data::Models::Vertex& vertex : model->meshes[index].vertices)
@@ -85,8 +85,7 @@ Core::Expected<void, std::string> ShedTheSkinShells(ActorState& owner, std::int3
     return EmitVertexEffects(models, shadow, meshes, 0, World::SkinShellEffect, subtype, effects, random);
 }
 
-Core::Expected<bool, std::string> DrawTheSkinShellBody(Render::ModelBatch& batch,
-                                                       const Render::Models::IModelLibrary& models,
+Core::Expected<bool, std::string> DrawTheSkinShellBody(Render::ModelBatch& batch, const Models::IModelLibrary& models,
                                                        const World::ModelEffect& effect, DrawnObject& object,
                                                        Core::Duration frameClock)
 {
@@ -101,8 +100,8 @@ Core::Expected<bool, std::string> DrawTheSkinShellBody(Render::ModelBatch& batch
         return true; // 0x600590 → 0x602e7d
     // 0x600596..0x6005cb: (0x3dcccccd, 0x3f000000, edi = 0x3f800000 de 0x60043c).
     object.color = {std::bit_cast<float>(0x3dcccccdu), 0.5f, 1.0f};
-    std::vector<Render::Models::SkinnedMesh> posed;
-    std::span<const Render::Models::SkinnedMesh> meshes = object.retainedMeshes;
+    std::vector<Models::SkinnedMesh> posed;
+    std::span<const Models::SkinnedMesh> meshes = object.retainedMeshes;
     if (meshes.empty())
     {
         // Sin el scratch publicado, el de 0x5ffdf0 con el segundo argumento en 0 (0x52da99 → 0x602e90(efecto, 0, …)):

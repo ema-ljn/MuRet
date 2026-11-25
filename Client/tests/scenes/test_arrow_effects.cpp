@@ -66,7 +66,7 @@ constexpr std::size_t VictimSlot = 7;
 constexpr std::uint16_t NoTarget = 0xffff;
 // Una lectura de +0x38e: un rand() al cerrarse en 0.
 constexpr int SkillRead = 1;
-constexpr int OwnRecord = Client::Render::Models::OwnRecordCloseRandoms;
+constexpr int OwnRecord = Client::Models::OwnRecordCloseRandoms;
 // El paso de +0x381 que corre la habilidad, antes del frame 5: la lectura de 0x4f97b0, el rand() de 0x4f5b97 y, con
 // blanco en el pool, las dos lecturas de 0x4f811b y 0x4f8a2c.
 constexpr int CountingWithTarget = SkillRead + 1 + 2 * SkillRead;
@@ -277,7 +277,7 @@ struct ArrowWorld
     std::unique_ptr<WorldState> ownedWorld = std::make_unique<WorldState>();
     WorldState& world = *ownedWorld;
     CrtRandom random{Seed};
-    Client::Render::Models::Skeleton skeleton = Client::Tests::PlayerActionsSkeleton();
+    Client::Models::Skeleton skeleton = Client::Tests::PlayerActionsSkeleton();
     Client::World::Particles particles;
     Client::World::FrameSprites sprites;
     std::unique_ptr<Client::World::TerrainLighting> lighting = std::make_unique<Client::World::TerrainLighting>();

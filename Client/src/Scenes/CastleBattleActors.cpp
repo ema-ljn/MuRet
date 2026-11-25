@@ -37,13 +37,13 @@ Core::Expected<void, std::string> ChangeTheGateWall(ActorState& actor, bool open
     std::int32_t x = 0, y = 0;
     // El orden de los cierres de 4 bytes es Y, X; no se comparte con accesos exteriores.
     {
-        const Render::Models::LogicalAccess access(actor.cellYAccesses, resources.cloth.random,
-                                                   Render::Models::SmallLogicalCloseRandoms, actor.cellYLeft);
+        const Models::LogicalAccess access(actor.cellYAccesses, resources.cloth.random,
+                                           Models::SmallLogicalCloseRandoms, actor.cellYLeft);
         y = actor.cellY;
     }
     {
-        const Render::Models::LogicalAccess access(actor.cellXAccesses, resources.cloth.random,
-                                                   Render::Models::SmallLogicalCloseRandoms, actor.cellXLeft);
+        const Models::LogicalAccess access(actor.cellXAccesses, resources.cloth.random,
+                                           Models::SmallLogicalCloseRandoms, actor.cellXLeft);
         x = actor.cellX;
     }
     for (const World::GateCell& gate : World::GateCells)

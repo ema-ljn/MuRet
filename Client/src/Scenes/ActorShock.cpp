@@ -150,7 +150,7 @@ Core::Expected<void, std::string> SetActorShock(ActorState& actor, std::uint16_t
         if (skeleton == nullptr)
             return Core::Unexpected(std::string("0x4f53a0: falta Player.bmd para el personaje golpeado"));
         const bool fenrir = actor.pet.model == Fenrir;
-        Render::Models::SetAction(actor.animation, *skeleton, fenrir ? FenrirAction(actor) : PlayerShockAction);
+        Models::SetAction(actor.animation, *skeleton, fenrir ? FenrirAction(actor) : PlayerShockAction);
         if (fenrir && resources.cloth.random.Next() % 3 == 0)
             resources.world.Runtime().RequestSound(0x27b + (resources.cloth.random.Next() & 1), actor.position);
         actor.movement = 0;

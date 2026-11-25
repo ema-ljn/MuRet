@@ -21,11 +21,11 @@ namespace Client::Crt
 class CrtRandom;
 } // namespace Client::Crt
 
-namespace Client::Render::Models
+namespace Client::Models
 {
 class IModelLibrary;
 struct Skeleton;
-} // namespace Client::Render::Models
+} // namespace Client::Models
 
 namespace Client::World
 {
@@ -51,7 +51,7 @@ struct HighEffectContext
     Crt::CrtRandom& random;
     float worldClock = 0.0f;
     std::function<void(Protocol::Outgoing)> send{};
-    const Render::Models::IModelLibrary* models = nullptr;
+    const Models::IModelLibrary* models = nullptr;
 };
 
 // El contexto de las altas desde el paso de un personaje (0x4f5b70, 0x4fd5f0, 0x4f97b0 y sus helpers).
@@ -86,7 +86,7 @@ struct HighEffectStepContext
     Crt::CrtRandom& random;
     const World::ModelEffectStepServices& services;
     float worldClock = 0.0f;
-    const Render::Models::IModelLibrary* models = nullptr;
+    const Models::IModelLibrary* models = nullptr;
 };
 
 // Los tipos cuyo paso está en este archivo.
@@ -96,9 +96,8 @@ struct HighEffectStepContext
 // (0x52cb98: la acción publicada y la animación de los BMD de [0xad, 0x151), el movimiento de 0x51fc80 salvo los
 // tipos que lo saltan, una vida menos y, con 0 o menos, el lugar libre). Corta, con lo de antes y sus rand(), donde el
 // paso pide algo sin portar.
-[[nodiscard]] Core::Expected<void, std::string> StepHighModelEffect(World::ModelEffect& effect,
-                                                                    const Render::Models::Skeleton* skeleton,
-                                                                    const HighEffectStepContext& context);
+[[nodiscard]] Core::Expected<void, std::string>
+StepHighModelEffect(World::ModelEffect& effect, const Models::Skeleton* skeleton, const HighEffectStepContext& context);
 
 // La posición (+0x10) de un personaje de `world` que es el dueño (+0x108) de un efecto, para el pase del suelo (el
 // 0x61e/7, 0x52ded0); nullopt si el dueño no es uno de sus personajes. `world` tiene que vivir más que la función.

@@ -234,8 +234,7 @@ Result DrawTheDevilSquareWindow(GameHudContext& context)
         // 0x5f5a3f..0x5f5b2a: los niveles de la tabla y, con el registro propio abierto, los de la clase 3 o 4.
         LevelRange levels = SquareLevels[square];
         {
-            const Render::Models::LogicalAccess own(context.ownRecordDepth, context.random,
-                                                    Render::Models::OwnRecordCloseRandoms);
+            const Models::LogicalAccess own(context.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
             if (SecondClass(context.world.OwnCharacter().characterClass))
                 levels = SquareLevelsOfTheSecondClasses[square];
         }
@@ -286,8 +285,7 @@ Result DrawTheBloodCastleWindow(GameHudContext& context)
         const LevelRange& levels = BridgeLevels[row];
         bool open = true;
         {
-            const Render::Models::LogicalAccess own(context.ownRecordDepth, context.random,
-                                                    Render::Models::OwnRecordCloseRandoms);
+            const Models::LogicalAccess own(context.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
             const std::int32_t level = context.world.OwnCharacter().level;
             if (level > levels[1] || level < levels[0])
                 open = false;
@@ -365,8 +363,7 @@ Result StepTheDevilSquareWindow(const GameUiContext& context, UI::PanelRegistry&
     if (runtime.cursorItemCount != 0)
         return {};
     const std::size_t square = *chosen;
-    const Render::Models::LogicalAccess own(runtime.ownRecordDepth, context.random,
-                                            Render::Models::OwnRecordCloseRandoms);
+    const Models::LogicalAccess own(runtime.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
     const std::int32_t level = context.world.OwnCharacter().level;
     const LevelRange& levels = runtime.events.devilSquareLevels[square];
     // 0x5e5a98..0x5e5af2: 0x65cae0(0x4000000, 0), 0x5be150 (sin ítem en el cursor, que ya se miró, no hace nada) y el
@@ -404,8 +401,7 @@ Result StepTheBloodCastleWindow(const GameUiContext& context)
         const LevelRange& levels = BridgeLevels[bridge + (SecondClass(hero.characterClass) ? BridgeCount : 0)];
         bool open = true;
         {
-            const Render::Models::LogicalAccess own(runtime.ownRecordDepth, context.random,
-                                                    Render::Models::OwnRecordCloseRandoms);
+            const Models::LogicalAccess own(runtime.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
             const std::int32_t level = context.world.OwnCharacter().level;
             if (level > levels[1] || level < levels[0])
                 open = false;

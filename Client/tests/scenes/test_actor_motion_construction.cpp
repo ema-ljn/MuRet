@@ -38,7 +38,7 @@ TEST(ActorMotionConstructionTest, ResetsWrittenFieldsAndRetainsUnwrittenMotionHi
     actor.secondFootstepSound = 9;
     Client::World::WorldTerrain terrain;
     terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
-    Client::Render::Models::ClothWorld cloth;
+    Client::Models::ClothWorld cloth;
     const auto built = Client::Scenes::ConstructActor(actor, 0x20a, {10, 20, 0.0f},
                                                       {terrain, 0, Client::World::CullingScene::Other, 1200.0f}, cloth);
     ASSERT_TRUE(built.HasValue()) << (built.HasValue() ? "" : built.Error());

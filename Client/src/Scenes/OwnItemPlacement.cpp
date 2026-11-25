@@ -143,7 +143,7 @@ void AddTheDarkHorseOption(ItemState& item, const WorldState& world, std::uint8_
     const std::uint8_t index = DarkHorseOptionPlace(item);
     const bool found = index != item.optionCount;
     {
-        const Render::Models::LogicalAccess access(ownRecordDepth, random, Render::Models::OwnRecordCloseRandoms);
+        const Models::LogicalAccess access(ownRecordDepth, random, Models::OwnRecordCloseRandoms);
         // OptionTag corta con diagnóstico si el índice se pasa de las nueve que guarda ItemState.
         static_cast<void>(item.OptionTag(index));
         const std::uint32_t agility = world.OwnCharacter().agility;
@@ -283,8 +283,7 @@ PlaceInEquipment(std::uint8_t slot, std::uint16_t type, InventoryItemBytes bytes
 {
     WorldState& world = resources.world;
     WorldRuntime& runtime = world.Runtime();
-    const Render::Models::LogicalAccess access(runtime.ownRecordDepth, resources.cloth.random,
-                                               Render::Models::OwnRecordCloseRandoms);
+    const Models::LogicalAccess access(runtime.ownRecordDepth, resources.cloth.random, Models::OwnRecordCloseRandoms);
     ItemState& item = world.OwnCharacter().equipment[slot];
     WriteEquipmentFields(item, type, bytes);
     // 0x5bc866..0x5bc86b: B1 y B4 con los 24 bits de arriba de [0x7681eb4], que 0x54bf40 no lee, y B3 con
@@ -297,15 +296,15 @@ PlaceInEquipment(std::uint8_t slot, std::uint16_t type, InventoryItemBytes bytes
         return Core::Unexpected(initialized.Error());
     }
     ActorState& hero = world.Actors()[runtime.hero];
-    const Render::Models::Skeleton* player = resources.models.SkeletonOf(Data::Models::PlayerSkeletonModel);
+    const Models::Skeleton* player = resources.models.SkeletonOf(Data::Models::PlayerSkeletonModel);
     const bool isPlayer = hero.type == Data::Models::PlayerSkeletonModel;
     if (player == nullptr && isPlayer)
     {
         return Core::Unexpected(std::string("0x5bc740 (0x5bc886): 0x512a30 necesita Player.bmd (0x20a) para 0x4f2250"));
     }
-    static const Render::Models::Skeleton EmptySkeleton;
-    const Render::Models::Skeleton* playerSkeleton = player != nullptr ? player : &EmptySkeleton;
-    const Render::Models::Skeleton* actorSkeleton = isPlayer ? nullptr : MonsterSkeletonOf(resources, hero.type);
+    static const Models::Skeleton EmptySkeleton;
+    const Models::Skeleton* playerSkeleton = player != nullptr ? player : &EmptySkeleton;
+    const Models::Skeleton* actorSkeleton = isPlayer ? nullptr : MonsterSkeletonOf(resources, hero.type);
     const ActorEquipmentContext equipment{
         .own = world.OwnCharacter(),
         .ownRecordAccesses = runtime.ownRecordDepth,
@@ -424,8 +423,7 @@ Core::Expected<void, std::string> UpdateTheSpeedsAfterTheGrid(const WorldEntryRe
     {
         return {};
     }
-    const Render::Models::LogicalAccess access(runtime.ownRecordDepth, resources.cloth.random,
-                                               Render::Models::OwnRecordCloseRandoms);
+    const Models::LogicalAccess access(runtime.ownRecordDepth, resources.cloth.random, Models::OwnRecordCloseRandoms);
     OwnCharacterRecord& own = resources.world.OwnCharacter();
     for (const std::uint16_t* word : {&own.word3e, &own.word42})
     {

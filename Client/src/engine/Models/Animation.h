@@ -12,7 +12,7 @@
 // Cuánto avanza la animación de un modelo (Client/docs/research/06-render-escenas-y-ui.md, "Cuánto
 // avanza la animación"): el cuerpo por paso de lógica con la velocidad de su acción, y la mascota y
 // las alas por tiempo, a la velocidad que tienen a 21,33 FPS (Q-C20 corregido).
-namespace Client::Render::Models
+namespace Client::Models
 {
 // La escena 4 decide "terminó" con el frame + 2 (Q-C21); las demás, con el real.
 enum class AnimationScene : std::uint8_t
@@ -83,4 +83,4 @@ ENGINE_API void AdvanceByTime(TimedAnimation& animation, const ActionInfo& actio
 // keys que cruza guardan su anterior como en el paso.
 [[nodiscard]] ENGINE_API AnimationState Interpolated(const AnimationState& state, const ActionInfo& action, float speed,
                                                      float alpha);
-} // namespace Client::Render::Models
+} // namespace Client::Models

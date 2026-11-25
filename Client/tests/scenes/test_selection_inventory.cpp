@@ -36,7 +36,7 @@ TEST(SelectionInventoryTest, TheNpcGridsClearOnlyTheirTypeAndOccupation)
     npc.jewels.bundles.rows.push_back({1, 9, 2});
     Client::Crt::CrtRandom random(42);
     auto expected = random;
-    expected.Discard(Client::Render::Models::OwnRecordCloseRandoms);
+    expected.Discard(Client::Models::OwnRecordCloseRandoms);
     Client::Scenes::ClearSelectionInventory(*world, random);
     const auto check = [](std::span<const Client::World::ItemState> cells)
     {

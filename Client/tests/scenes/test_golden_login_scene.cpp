@@ -795,7 +795,7 @@ TEST_F(GoldenLoginWorld, TheLoginDragonOwnerIsDetachedOnReentryAndDestruction)
 // 0x5208c5, la guarda de este frame suelta una).
 TEST_F(GoldenLoginWorld, TheSpritesOfTheCharacterGoInTheirPass)
 {
-    Client::Render::Models::ClothWorld cloth;
+    Client::Models::ClothWorld cloth;
     LoginScene scene(SceneContext{.dataRoot = m_dataRoot, .textures = m_store, .log = m_log, .cloth = &cloth}, *m_data,
                      m_models, nullptr, Version, FixedSeed, &m_models.TextureSlots());
     ASSERT_TRUE(scene.Enter().HasValue());
@@ -858,7 +858,7 @@ TEST_F(GoldenLoginWorld, TheSpritesOfTheCharacterGoInTheirPass)
 TEST_F(GoldenLoginWorld, TheLoginConstructsItsCharacterInThePool)
 {
     Client::Scenes::WorldState world;
-    Client::Render::Models::ClothWorld cloth;
+    Client::Models::ClothWorld cloth;
     const auto before = cloth.random;
     LoginScene scene(
         SceneContext{.dataRoot = m_dataRoot, .textures = m_store, .log = m_log, .cloth = &cloth, .world = &world},
@@ -898,7 +898,7 @@ TEST_F(GoldenLoginWorld, TheLoginConstructsItsCharacterInThePool)
 TEST_F(GoldenLoginWorld, TheDrawingAndTheNextEntryUseThePoolCharacter)
 {
     Client::Scenes::WorldState world;
-    Client::Render::Models::ClothWorld cloth;
+    Client::Models::ClothWorld cloth;
     LoginScene scene(
         SceneContext{.dataRoot = m_dataRoot, .textures = m_store, .log = m_log, .cloth = &cloth, .world = &world},
         *m_data, m_models, nullptr, Version, FixedSeed, &m_models.TextureSlots());
@@ -933,7 +933,7 @@ TEST_F(GoldenLoginWorld, TheLoginCharacterRunsTheTailOfTheGame)
 {
     using namespace std::chrono_literals;
     Client::Scenes::WorldState world;
-    Client::Render::Models::ClothWorld cloth;
+    Client::Models::ClothWorld cloth;
     LoginScene scene(
         SceneContext{.dataRoot = m_dataRoot, .textures = m_store, .log = m_log, .cloth = &cloth, .world = &world},
         *m_data, m_models, nullptr, Version, FixedSeed, &m_models.TextureSlots());
@@ -967,7 +967,7 @@ TEST_F(GoldenLoginWorld, TheLoginCharacterRunsTheTailOfTheGame)
 TEST_F(GoldenLoginWorld, TheLoginPublishesTheCharacterCutAndKeepsItsRandomState)
 {
     Client::Scenes::WorldState world;
-    Client::Render::Models::ClothWorld cloth;
+    Client::Models::ClothWorld cloth;
     LoginScene scene(
         SceneContext{.dataRoot = m_dataRoot, .textures = m_store, .log = m_log, .cloth = &cloth, .world = &world},
         *m_data, m_models, nullptr, Version, FixedSeed, &m_models.TextureSlots());
@@ -1007,7 +1007,7 @@ TEST_F(GoldenLoginWorld, TheLoginPublishesTheCharacterCutAndKeepsItsRandomState)
 
 TEST_F(GoldenLoginWorld, TheHeadOfTheDarkLordLooksAround)
 {
-    Client::Render::Models::ClothWorld cloth;
+    Client::Models::ClothWorld cloth;
     LoginScene scene(SceneContext{.dataRoot = m_dataRoot, .textures = m_store, .log = m_log, .cloth = &cloth}, *m_data,
                      m_models, nullptr, Version, FixedSeed, &m_models.TextureSlots());
     ASSERT_TRUE(scene.Enter().HasValue());
@@ -1049,7 +1049,7 @@ TEST_F(GoldenLoginWorld, TheHeadSeesTheCharacterAfterEveryDraw)
     using namespace std::chrono_literals;
     constexpr int MaxSteps = 400;
     constexpr int Turns = 10;
-    Client::Render::Models::ClothWorld cloth;
+    Client::Models::ClothWorld cloth;
     LoginScene scene(SceneContext{.dataRoot = m_dataRoot, .textures = m_store, .log = m_log, .cloth = &cloth}, *m_data,
                      m_models, nullptr, Version, FixedSeed, &m_models.TextureSlots());
     ASSERT_TRUE(scene.Enter().HasValue());
@@ -1075,7 +1075,7 @@ TEST_F(GoldenLoginWorld, TheHeadSeesTheCharacterAfterEveryDraw)
 // dibujan los mismos cinco sprites, en el mismo lugar; uno 47 ms después, otros.
 TEST_F(GoldenLoginWorld, TheScepterGlowChangesOncePerOriginalFrame)
 {
-    Client::Render::Models::ClothWorld cloth;
+    Client::Models::ClothWorld cloth;
     LoginScene scene(SceneContext{.dataRoot = m_dataRoot, .textures = m_store, .log = m_log, .cloth = &cloth}, *m_data,
                      m_models, nullptr, Version, FixedSeed, &m_models.TextureSlots());
     ASSERT_TRUE(scene.Enter().HasValue());
@@ -1124,7 +1124,7 @@ TEST_F(GoldenLoginWorld, TheScepterGlowChangesOncePerOriginalFrame)
 TEST_F(GoldenLoginWorld, EnteringAgainStartsTheScepterClock)
 {
     using namespace std::chrono_literals;
-    Client::Render::Models::ClothWorld cloth;
+    Client::Models::ClothWorld cloth;
     LoginScene scene(SceneContext{.dataRoot = m_dataRoot, .textures = m_store, .log = m_log, .cloth = &cloth}, *m_data,
                      m_models, nullptr, Version, FixedSeed, &m_models.TextureSlots());
     // Los rand() que sacó un dibujo, contados desde el estado de antes.
@@ -1167,9 +1167,9 @@ TEST_F(GoldenLoginWorld, EnteringAgainStartsTheScepterClock)
 TEST_F(GoldenLoginWorld, InTheFaithfulModeTheClothAndTheScepterRunOncePerDrawnFrame)
 {
     using namespace std::chrono_literals;
-    using Client::Render::Models::OriginalFrameTime;
-    Client::Render::Models::ClothWorld faithfulCloth;
-    Client::Render::Models::ClothWorld exactCloth;
+    using Client::Models::OriginalFrameTime;
+    Client::Models::ClothWorld faithfulCloth;
+    Client::Models::ClothWorld exactCloth;
     LoginScene faithful(SceneContext{.dataRoot = m_dataRoot,
                                      .textures = m_store,
                                      .log = m_log,
@@ -1204,7 +1204,7 @@ TEST_F(GoldenLoginWorld, InTheFaithfulModeTheClothAndTheScepterRunOncePerDrawnFr
 struct LoginWithASession
 {
     Client::Tests::LoggedInSession online;
-    Client::Render::Models::ClothWorld cloth;
+    Client::Models::ClothWorld cloth;
     std::optional<LoginScene> scene;
 };
 
@@ -1230,7 +1230,7 @@ TEST_F(GoldenLoginWorld, AfterAHeldFrameTheClothAndTheScepterRunOneFrame)
 {
     using namespace std::chrono_literals;
     using Client::App::SessionState;
-    using Client::Render::Models::OriginalFrameTime;
+    using Client::Models::OriginalFrameTime;
     constexpr std::uint16_t LabServer = 400;
     constexpr std::string_view GameHost = "10.0.0.2";
     constexpr std::uint16_t GamePort = 55901;
@@ -1302,11 +1302,11 @@ TEST_F(GoldenLoginWorld, AfterAHeldFrameTheClothAndTheScepterRunOneFrame)
 // de que el caballo se vea, en (0, 0, 0).
 TEST_F(GoldenLoginWorld, TheBreathOfTheHorseComesFromItsHeadAsDrawnBefore)
 {
-    Client::Render::Models::ClothWorld cloth;
+    Client::Models::ClothWorld cloth;
     LoginScene scene(SceneContext{.dataRoot = m_dataRoot, .textures = m_store, .log = m_log, .cloth = &cloth}, *m_data,
                      m_models, nullptr, Version, FixedSeed, &m_models.TextureSlots());
     ASSERT_TRUE(scene.Enter().HasValue());
-    const Client::Render::Models::Skeleton* horseSkeleton = m_models.SkeletonOf(Client::Scenes::DarkHorseModel);
+    const Client::Models::Skeleton* horseSkeleton = m_models.SkeletonOf(Client::Scenes::DarkHorseModel);
     ASSERT_NE(horseSkeleton, nullptr);
     const glm::dvec3 rise{0.0, 0.0, 0.2};
     Client::Scenes::DarkHorse horse;
@@ -1390,7 +1390,7 @@ TEST_F(GoldenLoginWorld, TheLanternGlowsAtTheToesOfTheDragonsOwner)
 {
     Client::Scenes::WorldModels world;
     ASSERT_TRUE(world.Load(m_dataRoot, 0x37, m_store, m_log, nullptr).HasValue());
-    const Client::Render::Models::Skeleton* dragon = world.SkeletonOf(Client::Scenes::DragonModel);
+    const Client::Models::Skeleton* dragon = world.SkeletonOf(Client::Scenes::DragonModel);
     ASSERT_NE(dragon, nullptr);
     Client::Data::Terrain::TerrainObject record;
     record.type = static_cast<std::int16_t>(Client::Scenes::DragonModel);
@@ -1399,11 +1399,11 @@ TEST_F(GoldenLoginWorld, TheLanternGlowsAtTheToesOfTheDragonsOwner)
     Client::World::WorldObject owner =
         Client::Tests::CheckedWorldObjectProjection(std::span(&record, 1), 0x37, Client::World::ObjectScene::Login)
             .front();
-    const Client::Render::Models::Skeleton* horseSkeleton = m_models.SkeletonOf(Client::Scenes::DarkHorseModel);
+    const Client::Models::Skeleton* horseSkeleton = m_models.SkeletonOf(Client::Scenes::DarkHorseModel);
     ASSERT_NE(horseSkeleton, nullptr);
     Client::Scenes::DarkHorse horse;
 
-    Client::Render::Models::ClothWorld cloth;
+    Client::Models::ClothWorld cloth;
     LoginScene scene(SceneContext{.dataRoot = m_dataRoot, .textures = m_store, .log = m_log, .cloth = &cloth}, *m_data,
                      m_models, nullptr, Version, FixedSeed, &m_models.TextureSlots());
     ASSERT_TRUE(scene.Enter().HasValue());
@@ -1486,7 +1486,7 @@ TEST_F(GoldenLoginWorld, TheLanternGlowsAtTheToesOfTheDragonsOwner)
 // El test usa Faithful: cada dibujo representa un frame original aunque entre sus relojes pasen 40 ms.
 TEST_F(GoldenLoginWorld, EverySeenObjectTakesARandInTheDraw)
 {
-    Client::Render::Models::ClothWorld cloth;
+    Client::Models::ClothWorld cloth;
     LoginScene scene(SceneContext{.dataRoot = m_dataRoot,
                                   .textures = m_store,
                                   .log = m_log,
@@ -1557,7 +1557,7 @@ std::optional<glm::vec3> RavenCenterOf(const RecordingFrameTarget& target)
 // 250 la altura media daría unos 330; con 350, unos 500.
 TEST_F(GoldenLoginWorld, TheRavenIsBornAtCell0AndJumpsToTheRider)
 {
-    Client::Render::Models::ClothWorld cloth;
+    Client::Models::ClothWorld cloth;
     LoginScene scene(SceneContext{.dataRoot = m_dataRoot, .textures = m_store, .log = m_log, .cloth = &cloth}, *m_data,
                      m_models, nullptr, Version, FixedSeed, &m_models.TextureSlots());
     ASSERT_TRUE(scene.Enter().HasValue());
@@ -1628,7 +1628,7 @@ TEST_F(GoldenLoginWorld, EnteringAgainTheRavenIsBornAtCell0Again)
     constexpr int Flight = 40;
     constexpr double Near = 60.0;
     const glm::dvec3 birth{50.0, 50.0, 750.0};
-    Client::Render::Models::ClothWorld cloth;
+    Client::Models::ClothWorld cloth;
     LoginScene scene(SceneContext{.dataRoot = m_dataRoot, .textures = m_store, .log = m_log, .cloth = &cloth}, *m_data,
                      m_models, nullptr, Version, FixedSeed, &m_models.TextureSlots());
     // Qué tan lejos de donde nace queda el centro de su malla 2 después de `steps` pasos, en un dibujo.
@@ -1674,7 +1674,7 @@ TEST_F(GoldenLoginWorld, TheRavenBirthAndShadowUseTheSharedFixedHeight)
         Client::World::GameCamera camera;
         camera.fixedHeight = height;
         Client::World::GameCameraInput cameraInput;
-        Client::Render::Models::ClothWorld cloth;
+        Client::Models::ClothWorld cloth;
         LoginScene scene(SceneContext{.dataRoot = copy.Path(),
                                       .textures = m_store,
                                       .log = m_log,
@@ -1735,7 +1735,7 @@ TEST_F(GoldenLoginWorld, TheRavenBirthAndShadowUseTheSharedFixedHeight)
 // y la luz de cada paso las fijan los vectores (ParticlesTest).
 TEST_F(GoldenLoginWorld, TheRavenLeavesSparks)
 {
-    Client::Render::Models::ClothWorld cloth;
+    Client::Models::ClothWorld cloth;
     LoginScene scene(SceneContext{.dataRoot = m_dataRoot, .textures = m_store, .log = m_log, .cloth = &cloth}, *m_data,
                      m_models, nullptr, Version, FixedSeed, &m_models.TextureSlots());
     ASSERT_TRUE(scene.Enter().HasValue());
@@ -1793,7 +1793,7 @@ TEST_F(GoldenLoginWorld, TheRavenLeavesSparks)
 // y la sombra de las cinco mallas (Q-C132), negra, opaca y mezclada.
 TEST_F(GoldenLoginWorld, TheRavenDrawsMeshes3And2WithItsShadow)
 {
-    Client::Render::Models::ClothWorld cloth;
+    Client::Models::ClothWorld cloth;
     LoginScene scene(SceneContext{.dataRoot = m_dataRoot, .textures = m_store, .log = m_log, .cloth = &cloth}, *m_data,
                      m_models, nullptr, Version, FixedSeed, &m_models.TextureSlots());
     ASSERT_TRUE(scene.Enter().HasValue());
@@ -1909,7 +1909,7 @@ TEST_F(GoldenLoginWorld, TheSceneEmbersReadTheSharedGroundHeight)
     Client::World::GameCamera camera;
     camera.fixedHeight = 1201.0f;
     Client::World::GameCameraInput cameraInput;
-    Client::Render::Models::ClothWorld cloth;
+    Client::Models::ClothWorld cloth;
     LoginScene scene(SceneContext{.dataRoot = copy.Path(),
                                   .textures = m_store,
                                   .log = m_log,
@@ -1939,7 +1939,7 @@ TEST_F(GoldenLoginWorld, ASelectionDrawSetsTheHeroHeightUsedByTheFirstLoginEmber
     Client::World::GameCamera camera;
     Client::World::GameCameraInput cameraInput;
     cameraInput.hero = Client::Scenes::LoginHeroPosition;
-    Client::Render::Models::ClothWorld cloth;
+    Client::Models::ClothWorld cloth;
     const SceneContext context{.dataRoot = copy.Path(),
                                .textures = m_store,
                                .log = m_log,
@@ -2035,7 +2035,7 @@ TEST_F(GoldenLoginWorld, ARecreatedSlotZeroSuppliesTheFirstLoginEmbersWithoutAno
     const auto ownedWorld = std::make_unique<Client::Scenes::WorldState>();
     Client::Scenes::WorldState& worldState = *ownedWorld;
     Client::Scenes::SelectionState state(worldState);
-    Client::Render::Models::ClothWorld cloth;
+    Client::Models::ClothWorld cloth;
     const SceneContext context{.dataRoot = copy.Path(),
                                .textures = m_store,
                                .log = m_log,
@@ -2099,7 +2099,7 @@ TEST_F(GoldenLoginWorld, ARecreatedSlotZeroSuppliesTheFirstLoginEmbersWithoutAno
 // pase del mundo, aditivas, con FireSnuff (0x635), después del dragón.
 TEST_F(GoldenLoginWorld, TheEmbersAreBornAroundTheHero)
 {
-    Client::Render::Models::ClothWorld cloth;
+    Client::Models::ClothWorld cloth;
     {
         LoginScene scene(SceneContext{.dataRoot = m_dataRoot, .textures = m_store, .log = m_log, .cloth = &cloth},
                          *m_data, m_models, nullptr, Version, FixedSeed, &m_models.TextureSlots());
@@ -2145,7 +2145,7 @@ TEST_F(GoldenLoginWorld, TheEmbersAreBornAroundTheHero)
 // las de 400 o más, hacia −x. Con 12.678, irían todas hacia +x. Las que tocan el suelo no se mueven.
 TEST_F(GoldenLoginWorld, TheFirstEmbersSeeTheCameraAtTheOrigin)
 {
-    Client::Render::Models::ClothWorld cloth;
+    Client::Models::ClothWorld cloth;
     LoginScene scene(SceneContext{.dataRoot = m_dataRoot, .textures = m_store, .log = m_log, .cloth = &cloth}, *m_data,
                      m_models, nullptr, Version, FixedSeed, &m_models.TextureSlots());
     ASSERT_TRUE(scene.Enter().HasValue());
@@ -2202,7 +2202,7 @@ TEST_F(GoldenLoginWorld, EnteringAgainTheEmbersAreBornAgain)
         return offset.x >= -800.5f && offset.x <= 799.5f && offset.y >= -500.5f && offset.y <= 899.5f &&
                offset.z >= 49.5f && offset.z <= 1049.5f;
     };
-    Client::Render::Models::ClothWorld cloth;
+    Client::Models::ClothWorld cloth;
     LoginScene scene(SceneContext{.dataRoot = m_dataRoot, .textures = m_store, .log = m_log, .cloth = &cloth}, *m_data,
                      m_models, nullptr, Version, FixedSeed, &m_models.TextureSlots());
     ASSERT_TRUE(scene.Enter().HasValue());

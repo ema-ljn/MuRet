@@ -17,11 +17,11 @@ namespace Client::Crt
 class CrtRandom;
 } // namespace Client::Crt
 
-namespace Client::Render::Models
+namespace Client::Models
 {
 struct ClothWorld;
 class IModelLibrary;
-} // namespace Client::Render::Models
+} // namespace Client::Models
 
 namespace Client::World
 {
@@ -85,11 +85,11 @@ CreateFaunaJoint(std::span<JointState> joints, const World::FishEffectRequest& r
 // al suelo, posan el 0x20b de `models` con el modelo compartido de `world` y sueltan las cáscaras 0x137 de sus vértices
 // en la tabla de efectos (0x53c1c6).
 [[nodiscard]] Core::Expected<void, std::string>
-StepJoints(std::span<JointState> joints, Crt::CrtRandom& random, Render::Models::ClothWorld* cloth = nullptr,
+StepJoints(std::span<JointState> joints, Crt::CrtRandom& random, Models::ClothWorld* cloth = nullptr,
            World::Particles* particles = nullptr, float worldClock = 0, World::FrameSprites* sprites = nullptr,
            World::TerrainLighting* lighting = nullptr, const std::function<void(std::int32_t)>& soundRequest = {},
            const std::function<double(float, float)>& terrainHeight = {}, std::span<const ActorState> actors = {},
            const JointKernels::EffectHit& effectHit = {}, World::ModelEffects* effects = nullptr,
            const ActorState* hero = nullptr, WorldState* world = nullptr,
-           const JointKernels::VolleyServices* volley = nullptr, const Render::Models::IModelLibrary* models = nullptr);
+           const JointKernels::VolleyServices* volley = nullptr, const Models::IModelLibrary* models = nullptr);
 } // namespace Client::Scenes

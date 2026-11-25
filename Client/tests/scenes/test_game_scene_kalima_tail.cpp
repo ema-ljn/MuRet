@@ -65,14 +65,14 @@ public:
     GameTailStage failingStage = GameTailStage::KalimaWater;
     std::uint8_t failingMode = 255;
 };
-class SpriteTextures final : public Client::Render::Models::IModelLibrary
+class SpriteTextures final : public Client::Models::IModelLibrary
 {
 public:
     const Client::Data::Models::Model* Find(std::uint16_t) const override
     {
         return nullptr;
     }
-    const Client::Render::Models::Skeleton* SkeletonOf(std::uint16_t) const override
+    const Client::Models::Skeleton* SkeletonOf(std::uint16_t) const override
     {
         return nullptr;
     }

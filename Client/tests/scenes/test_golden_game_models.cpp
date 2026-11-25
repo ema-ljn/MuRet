@@ -89,7 +89,7 @@ TEST_F(NativeSkillLoadTest, TheLoadedSkillTexturesFollowEveryReachedNativeCallIn
         Wrap wrap = Wrap::Repeat;
         bool bmdAvailable = true;
     };
-    Client::Render::Models::ModelTextureSlots native(TextureSlot{0x138});
+    Client::Models::ModelTextureSlots native(TextureSlot{0x138});
     std::map<std::uint16_t, std::vector<TextureSlot>> bindings;
     const auto query = [&](const Call& call)
     {

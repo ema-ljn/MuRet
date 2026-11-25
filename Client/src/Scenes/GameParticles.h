@@ -23,10 +23,10 @@ namespace Client::Crt
 class CrtRandom;
 } // namespace Client::Crt
 
-namespace Client::Render::Models
+namespace Client::Models
 {
 class IModelLibrary;
-} // namespace Client::Render::Models
+} // namespace Client::Models
 namespace Client::World
 {
 class FrameSprites;
@@ -59,7 +59,7 @@ using WaterspoutBonePoint =
 // Sin él sólo se acredita el hueso escrito por este modelo; falta de matriz corta tras X/Z.
 [[nodiscard]] Core::Expected<void, std::string>
 StepGameWaterspoutFrame(World::WorldObject& object, World::Particles& particles, Crt::CrtRandom& random,
-                        const float& worldClock, const Render::Models::IModelLibrary& models, const DrawnObject& drawn,
+                        const float& worldClock, const Models::IModelLibrary& models, const DrawnObject& drawn,
                         const FaunaDrawCarry* retainedPose = nullptr);
 
 // 0x637128 → 0x5446e0: también con el pool vacío consume los dos rand() del viento.
@@ -102,7 +102,7 @@ ParticleActorActionsAmong(std::span<const ActorState> actors);
 // El alto de la textura de cada lugar (+0x24 de 0x7d3a198) entre las que subió `textures`, como lo lee el paso de
 // la 5f3; `textures` tiene que vivir más que el resolvedor.
 [[nodiscard]] std::function<std::optional<float>(std::int32_t)>
-ParticleTextureHeightsOf(const Render::Models::IModelLibrary& textures);
+ParticleTextureHeightsOf(const Models::IModelLibrary& textures);
 
 // El dueño de una partícula por la identidad de su objeto (WorldObject::identity) entre `objects`, que
 // tienen que vivir más que el resolvedor: lo que el original lee por el puntero +0x40.
@@ -132,6 +132,6 @@ ParticleOwnerStatesOf(WorldState& world);
 // 0x637558 → 0x548550(0), en el pase de ojo después de los sprites. Conserva la geometría y
 // las operaciones anteriores a un fallo y devuelve la dirección y el lugar que falló.
 [[nodiscard]] Core::Expected<void, std::string>
-DrawGameParticles(Render::ModelBatch& batch, World::Particles& particles, const Render::Models::IModelLibrary& textures,
+DrawGameParticles(Render::ModelBatch& batch, World::Particles& particles, const Models::IModelLibrary& textures,
                   const Math::OriginalMatrix& view, float worldClock, std::uint8_t mode = 0);
 } // namespace Client::Scenes

@@ -1156,7 +1156,7 @@ Core::Expected<void, std::string> StepBloodCastleJoint(JointState& joint, const 
 }
 
 Core::Expected<void, std::string> StepFairyJoint(JointState& joint, const FaunaObject& owner, std::size_t index,
-                                                 Crt::CrtRandom* random, Render::Models::ClothWorld* cloth)
+                                                 Crt::CrtRandom* random, Models::ClothWorld* cloth)
 {
     if (owner.active == 0)
     {
@@ -1170,7 +1170,7 @@ Core::Expected<void, std::string> StepFairyJoint(JointState& joint, const FaunaO
         return Core::Unexpected(std::string("0x536187: falta el contador compartido del joint0x10f/1"));
     const auto steps = std::bit_cast<std::uint32_t>(cloth->logicSteps);
     if (cloth->openCounterAccesses == 0)
-        for (std::uint16_t draw = 0; draw < Render::Models::SmallLogicalCloseRandoms; ++draw)
+        for (std::uint16_t draw = 0; draw < Models::SmallLogicalCloseRandoms; ++draw)
             static_cast<void>(random->Next());
     const auto physicalIndex = static_cast<std::uint32_t>(index);
     constexpr std::uint32_t PhaseStride = 53731;
@@ -2149,13 +2149,12 @@ Core::Expected<void, std::string> StepFamilyJoint(JointState& joint, Family fami
 }
 
 Core::Expected<void, std::string>
-StepJointsChecked(std::span<JointState> joints, Crt::CrtRandom* random, Render::Models::ClothWorld* cloth,
+StepJointsChecked(std::span<JointState> joints, Crt::CrtRandom* random, Models::ClothWorld* cloth,
                   World::Particles* particles, float worldClock, World::FrameSprites* sprites,
                   World::TerrainLighting* lighting, const std::function<void(std::int32_t)>& soundRequest,
                   const std::function<double(float, float)>& terrainHeight, std::span<const ActorState> actors,
                   const JointKernels::EffectHit& effectHit, World::ModelEffects* effects, const ActorState* hero,
-                  WorldState* world, const JointKernels::VolleyServices* volley,
-                  const Render::Models::IModelLibrary* models)
+                  WorldState* world, const JointKernels::VolleyServices* volley, const Models::IModelLibrary* models)
 {
     // [ebp−0xe8]: la matriz del último joint de esta vuelta que la calculó (0x53590e).
     std::optional<Math::OriginalMatrix> frameMatrix;
@@ -2370,12 +2369,12 @@ Core::Expected<void, std::string> StepJoints(std::span<JointState> joints)
 }
 
 Core::Expected<void, std::string>
-StepJoints(std::span<JointState> joints, Crt::CrtRandom& random, Render::Models::ClothWorld* cloth,
-           World::Particles* particles, float worldClock, World::FrameSprites* sprites,
-           World::TerrainLighting* lighting, const std::function<void(std::int32_t)>& soundRequest,
+StepJoints(std::span<JointState> joints, Crt::CrtRandom& random, Models::ClothWorld* cloth, World::Particles* particles,
+           float worldClock, World::FrameSprites* sprites, World::TerrainLighting* lighting,
+           const std::function<void(std::int32_t)>& soundRequest,
            const std::function<double(float, float)>& terrainHeight, std::span<const ActorState> actors,
            const JointKernels::EffectHit& effectHit, World::ModelEffects* effects, const ActorState* hero,
-           WorldState* world, const JointKernels::VolleyServices* volley, const Render::Models::IModelLibrary* models)
+           WorldState* world, const JointKernels::VolleyServices* volley, const Models::IModelLibrary* models)
 {
     return StepJointsChecked(joints, &random, cloth, particles, worldClock, sprites, lighting, soundRequest,
                              terrainHeight, actors, effectHit, effects, hero, world, volley, models);

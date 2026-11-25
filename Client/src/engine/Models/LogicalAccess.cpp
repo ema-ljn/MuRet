@@ -6,7 +6,7 @@
 
 // Contrato: Client/docs/research/06-render-escenas-y-ui.md, "La tabla de protección". La cuenta de
 // accesos es el byte que sigue a la copia cifrada de la entrada, así que suma y resta en 8 bits.
-namespace Client::Render::Models
+namespace Client::Models
 {
 LogicalAccess::LogicalAccess(std::uint8_t& depth, Crt::CrtRandom& random, std::uint16_t closeRandoms)
     : m_depth(depth), m_random(random), m_closeRandoms(closeRandoms)
@@ -45,4 +45,4 @@ LogicalAccess::~LogicalAccess()
         left |= (static_cast<std::uint32_t>(m_random.Next()) & ByteMask) << (8u * index);
     *m_left = left;
 }
-} // namespace Client::Render::Models
+} // namespace Client::Models

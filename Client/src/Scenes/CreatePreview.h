@@ -29,7 +29,7 @@
 #include <string>
 #include <vector>
 
-namespace Client::Render::Models
+namespace Client::Models
 {
 struct ClothWorld;
 }
@@ -53,38 +53,38 @@ inline constexpr Render::TextureSlot SelectionModelsFirstSlot{0x6f8};
 
 // Los seis modelos con su esqueleto y el slot de cada malla. La velocidad de las acciones 0 y 1 de
 // los NewFace es 0,3 (0x3e99999a, al final de 0x61ca30).
-class SelectionModels final : public Render::Models::IModelLibrary
+class SelectionModels final : public Models::IModelLibrary
 {
 public:
     // Lee los seis desde `dataRoot` y les da sus texturas siguiendo a `gameSlots` (la tabla de la
     // carga, que es global en el original) desde 0x6f8, o una tabla vacía sin ella, y las sube. Uno
     // que falta se saltea con una línea en el log; una textura que no carga corta, como el original,
     // que se cierra. Recibe también los metadatos del slot temporal que ya reside en este backend.
-    [[nodiscard]] Core::Expected<void, std::string> Load(const std::filesystem::path& dataRoot,
-                                                         Render::ITextureStore& textures, Core::Log& log,
-                                                         const Render::Models::ModelTextureSlots* gameSlots,
-                                                         std::optional<TextureMetadata> startupTexture = std::nullopt);
+    [[nodiscard]] Core::Expected<void, std::string>
+    Load(const std::filesystem::path& dataRoot, Render::ITextureStore& textures, Core::Log& log,
+         const Models::ModelTextureSlots* gameSlots,
+         std::optional<Models::TextureMetadata> startupTexture = std::nullopt);
     // 0x61cc50: suelta las texturas.
     void Release();
 
     [[nodiscard]] const Data::Models::Model* Find(std::uint16_t model) const override;
-    [[nodiscard]] const Render::Models::Skeleton* SkeletonOf(std::uint16_t model) const override;
+    [[nodiscard]] const Models::Skeleton* SkeletonOf(std::uint16_t model) const override;
     [[nodiscard]] std::span<const Render::TextureSlot> MeshTextures(std::uint16_t model) const override;
-    [[nodiscard]] std::optional<TextureMetadata> TextureMetadataOf(std::uint32_t selector) const override;
+    [[nodiscard]] std::optional<Models::TextureMetadata> TextureMetadataOf(std::uint32_t selector) const override;
     [[nodiscard]] std::optional<Render::TextureSlot> TextureSlotOf(std::uint32_t selector) const override;
     [[nodiscard]] std::optional<glm::vec2> TextureSize(Render::TextureSlot slot) const override;
     // Los slots que repartió Load, si cargó.
-    [[nodiscard]] const Render::Models::ModelTextureSlots* TextureSlots() const;
+    [[nodiscard]] const Models::ModelTextureSlots* TextureSlots() const;
 
 private:
     std::map<std::uint16_t, Data::Models::Model> m_models;
-    std::map<std::uint16_t, Render::Models::Skeleton> m_skeletons;
+    std::map<std::uint16_t, Models::Skeleton> m_skeletons;
     std::map<std::uint16_t, std::vector<Render::TextureSlot>> m_meshTextures;
-    std::optional<Render::Models::ModelTextureSlots> m_slots;
+    std::optional<Models::ModelTextureSlots> m_slots;
     std::optional<SceneTextures> m_textures;
     // La carga común deja este slot a la selección cuando entra.
     Render::ITextureStore* m_startupStore = nullptr;
-    std::optional<TextureMetadata> m_startupTexture;
+    std::optional<Models::TextureMetadata> m_startupTexture;
 };
 
 // El objeto de la vista previa: la clase (+0x1d4, la de la ventana) y su animación.
@@ -93,24 +93,23 @@ using CreatePreview = ActorState;
 struct ActorConstructionContext;
 // 0x63e3e0: el constructor completo, incluido el terreno y el rand() compartido.
 [[nodiscard]] Core::Expected<void, std::string> RebuildPreview(CreatePreview& preview, std::uint8_t characterClass,
-                                                               const Render::Models::IModelLibrary& models,
+                                                               const Models::IModelLibrary& models,
                                                                const ActorConstructionContext& construction,
-                                                               Render::Models::ClothWorld& cloth);
+                                                               Models::ClothWorld& cloth);
 
 // Adaptador de presentación sin terreno; main usa RebuildPreview con el constructor completo.
-void ChoosePreviewClass(CreatePreview& preview, std::uint8_t characterClass,
-                        const Render::Models::IModelLibrary& models);
+void ChoosePreviewClass(CreatePreview& preview, std::uint8_t characterClass, const Models::IModelLibrary& models);
 
 // Un paso de 0x63e430: 0x4f9580 lo avanza (la velocidad de la acción por 2 con los NewFace) y, si la
 // acción terminó, la 0. Corre además de 0x508ea0 desde la lógica de la escena: con la ventana arriba
 // avanza dos veces, y con un aviso, solo desde la escena.
-void StepPreview(CreatePreview& preview, const Render::Models::IModelLibrary& models);
+void StepPreview(CreatePreview& preview, const Models::IModelLibrary& models);
 
 // 0x63e460: el corrimiento de la clase queda en el actor por cada frame original. La cámara lee
 // la posición anterior a ese corrimiento; los dibujos intermedios conservan la del último frame.
 // El color es 4,8 por vértice (0x6002e0).
-[[nodiscard]] DrawnObject DrawnPreview(CreatePreview& preview, const Render::Models::IModelLibrary& models,
-                                       float stepAlpha, int originalFrames = 1);
+[[nodiscard]] DrawnObject DrawnPreview(CreatePreview& preview, const Models::IModelLibrary& models, float stepAlpha,
+                                       int originalFrames = 1);
 
 // 0x6338a0(objeto, (10, −500, 48), (−90, 0, 0)) con el fov en 10 (0x63e460) y el near y el far de la
 // escena 4. La posición, la del objeto de antes del corrimiento de su clase.

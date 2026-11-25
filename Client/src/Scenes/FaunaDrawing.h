@@ -16,11 +16,11 @@ namespace Client::Render
 {
 class ModelBatch;
 }
-namespace Client::Render::Models
+namespace Client::Models
 {
 struct ClothWorld;
 class IModelLibrary;
-} // namespace Client::Render::Models
+} // namespace Client::Models
 namespace Client::World
 {
 struct WorldTerrain;
@@ -38,32 +38,32 @@ struct DrawnObject;
 struct FaunaDrawCarry
 {
     std::vector<Math::BoneTransform> bones;
-    std::vector<Render::Models::SkinnedMesh> meshes;
-    std::map<std::uint16_t, Render::Models::ObjectTransform> models;
+    std::vector<Models::SkinnedMesh> meshes;
+    std::map<std::uint16_t, Models::ObjectTransform> models;
 };
 [[nodiscard]] Core::Expected<void, std::string> PublishFaunaPose(FaunaDrawCarry& carry,
-                                                                 const Render::Models::IModelLibrary& models,
+                                                                 const Models::IModelLibrary& models,
                                                                  const DrawnObject& object, bool translated);
 [[nodiscard]] Core::Expected<void, std::string>
-PublishFaunaFloorPose(FaunaDrawCarry& carry, const Render::Models::IModelLibrary& models, const DrawnObject& object);
+PublishFaunaFloorPose(FaunaDrawCarry& carry, const Models::IModelLibrary& models, const DrawnObject& object);
 // Las matrices prestadas ya incluyen cabeza o raíz attached; no vuelve a posar. Con `translated`, `bones` ya están en
 // el mundo (0x4eb860 con la bandera en 1, PoseWorldSkeleton) y el scratch sale de 0x4ebc80 con Translate en 0; sin él,
 // están en el modelo y el scratch lleva la escala y el origen de `transform` (Translate en 1).
 [[nodiscard]] Core::Expected<void, std::string>
-PublishFaunaPoseRaw(FaunaDrawCarry& carry, const Render::Models::IModelLibrary& models, std::uint16_t model,
-                    std::span<const Math::BoneTransform> bones, const Render::Models::ObjectTransform& transform,
+PublishFaunaPoseRaw(FaunaDrawCarry& carry, const Models::IModelLibrary& models, std::uint16_t model,
+                    std::span<const Math::BoneTransform> bones, const Models::ObjectTransform& transform,
                     bool translated, bool skin = true);
 // 4ebc80: actualiza el scratch de mallas con los huesos retenidos, sin ejecutar 4eb860.
 [[nodiscard]] Core::Expected<void, std::string>
-TransformFaunaPose(FaunaDrawCarry& carry, const Render::Models::IModelLibrary& models, const DrawnObject& object);
+TransformFaunaPose(FaunaDrawCarry& carry, const Models::IModelLibrary& models, const DrawnObject& object);
 struct FaunaDrawContext
 {
     FaunaState& fauna;
-    const Render::Models::IModelLibrary& models;
+    const Models::IModelLibrary& models;
     const World::WorldTerrain& terrain;
     const World::TerrainLighting& lighting;
     const World::TerrainPolygon& polygon;
-    Render::Models::ClothWorld& cloth;
+    Models::ClothWorld& cloth;
     World::FrameSprites& sprites;
     FaunaDrawCarry& carry;
     std::int32_t map;

@@ -704,7 +704,7 @@ Result DrawCastleStoneAt(MonsterBodyFrame& frame, std::size_t bone)
     stone.transform.scale = Ceiling;
     stone.transform.lockedRootHeight = 0.0f;
     std::vector<Math::BoneTransform> posed(skeleton->bones.size(), Math::BoneTransform(1.0f));
-    if (!Render::Models::PoseSkeleton(*skeleton, stone.animation, stone.transform, {}, posed))
+    if (!Models::PoseSkeleton(*skeleton, stone.animation, stone.transform, {}, posed))
         return Core::Unexpected(std::string("0x42e4fc: no se pudo posar el proyectil 0x12b"));
     model.rescaled = SkinObjectMeshes(model.models, stone, posed, model.boneScale);
     model.meshes = model.rescaled;

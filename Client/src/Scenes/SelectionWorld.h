@@ -58,22 +58,22 @@ class WorldState;
 
 // Las texturas que la selección le presta a los sprites y a las partículas: las de su juego (0x61ca30:
 // Impack03 en 0x719 y chasellight en 0x729) y, detrás, las del mundo con las globales de la carga.
-class SelectionTextureLibrary final : public Render::Models::IModelLibrary
+class SelectionTextureLibrary final : public Models::IModelLibrary
 {
 public:
-    SelectionTextureLibrary(const Render::Models::IModelLibrary& world, const SceneTextures& scene)
+    SelectionTextureLibrary(const Models::IModelLibrary& world, const SceneTextures& scene)
         : m_world(world), m_scene(scene)
     {
     }
     [[nodiscard]] const Data::Models::Model* Find(std::uint16_t model) const override;
-    [[nodiscard]] const Render::Models::Skeleton* SkeletonOf(std::uint16_t model) const override;
+    [[nodiscard]] const Models::Skeleton* SkeletonOf(std::uint16_t model) const override;
     [[nodiscard]] std::span<const Render::TextureSlot> MeshTextures(std::uint16_t model) const override;
-    [[nodiscard]] std::optional<TextureMetadata> TextureMetadataOf(std::uint32_t selector) const override;
+    [[nodiscard]] std::optional<Models::TextureMetadata> TextureMetadataOf(std::uint32_t selector) const override;
     [[nodiscard]] std::optional<Render::TextureSlot> TextureSlotOf(std::uint32_t selector) const override;
     [[nodiscard]] std::optional<glm::vec2> TextureSize(Render::TextureSlot slot) const override;
 
 private:
-    const Render::Models::IModelLibrary& m_world;
+    const Models::IModelLibrary& m_world;
     const SceneTextures& m_scene;
 };
 
@@ -103,8 +103,8 @@ public:
     // Los tiles con el pasto (0x61a560) y los modelos de Object55 (0x616ec0) del mapa `map`, si no los
     // tiene ya; `globalModels` y `gameSlots` son los de la carga y tienen que vivir hasta Release.
     [[nodiscard]] Core::Expected<void, std::string> Load(const std::filesystem::path& dataRoot, std::uint8_t map,
-                                                         const Render::Models::ModelTextureSlots* gameSlots,
-                                                         const Render::Models::IModelLibrary* globalModels);
+                                                         const Models::ModelTextureSlots* gameSlots,
+                                                         const Models::IModelLibrary* globalModels);
     void Release();
     [[nodiscard]] bool IsLoaded() const;
     [[nodiscard]] const WorldModels& Models() const;
@@ -118,7 +118,7 @@ public:
     // 0x52d220 y 0x53c670, después de la vista previa: los efectos con modelo (la mariposa, con la altura
     // del terreno y los sprites del frame, y el calco 0x14e de los Fenrir, con timeGetTime() en `systemTime`) y las
     // juntas.
-    [[nodiscard]] Core::Expected<void, std::string> StepEffects(WorldState& world, Render::Models::ClothWorld& cloth,
+    [[nodiscard]] Core::Expected<void, std::string> StepEffects(WorldState& world, Models::ClothWorld& cloth,
                                                                 float worldClock,
                                                                 const std::function<double(float, float)>& height,
                                                                 std::uint32_t systemTime);
@@ -126,10 +126,10 @@ public:
     // Al empezar un dibujo: con cero frames copia lo que el dibujo cambia (la luz dinámica, el rand(), las
     // partículas, los efectos, los objetos, la cola, los globales de los ítems y las mallas sin luz); con frames,
     // presta los del mundo. Los personajes de la lista (0x50ba30) usan los mismos.
-    void BeginFrame(WorldState& world, Render::Models::ClothWorld& cloth, int frames);
+    void BeginFrame(WorldState& world, Models::ClothWorld& cloth, int frames);
     [[nodiscard]] World::TerrainLighting& FrameLighting();
     [[nodiscard]] Crt::CrtRandom& FrameRandom();
-    [[nodiscard]] Render::Models::ClothWorld& FrameCloth();
+    [[nodiscard]] Models::ClothWorld& FrameCloth();
     [[nodiscard]] World::Particles& FrameParticles();
     [[nodiscard]] World::ModelEffects& FrameEffects();
     [[nodiscard]] GameDrawTailState& FrameTail();
@@ -171,6 +171,6 @@ private:
     std::unique_ptr<Projection> m_projection;
     bool m_projecting = false;
     WorldState* m_world = nullptr;
-    Render::Models::ClothWorld* m_cloth = nullptr;
+    Models::ClothWorld* m_cloth = nullptr;
 };
 } // namespace Client::Scenes

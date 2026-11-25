@@ -166,7 +166,7 @@ struct Stage
     Client::Scenes::SelectionState selection{*world};
     Client::World::GameCamera camera;
     Client::World::GameCameraInput input;
-    Client::Render::Models::ClothWorld cloth;
+    Client::Models::ClothWorld cloth;
     Client::Scenes::SingleModelLibrary models;
     Client::Tests::RecordingSink sink;
     Client::Core::Log log{sink, Client::Core::LogLevel::Debug};

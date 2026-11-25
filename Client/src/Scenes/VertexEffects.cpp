@@ -336,7 +336,7 @@ Result EmitAt(const glm::vec3& position, std::int32_t triangle, glm::vec3& angle
 } // namespace
 
 Core::Expected<void, std::string> EmitVertexEffectsOf(const Data::Models::Model& model, float modelScale,
-                                                      std::span<const Render::Models::SkinnedMesh> meshes,
+                                                      std::span<const Models::SkinnedMesh> meshes,
                                                       const VertexEffectCall& call, const VertexEffectTables& tables,
                                                       Crt::CrtRandom& random)
 {
@@ -376,10 +376,9 @@ Core::Expected<void, std::string> EmitVertexEffectsOf(const Data::Models::Model&
     return {};
 }
 
-Core::Expected<void, std::string> EmitVertexEffects(const Render::Models::IModelLibrary& models,
-                                                    const DrawnObject& object,
-                                                    std::span<const Render::Models::SkinnedMesh> meshes,
-                                                    std::int32_t mesh, std::int32_t type, std::int32_t subtype,
+Core::Expected<void, std::string> EmitVertexEffects(const Models::IModelLibrary& models, const DrawnObject& object,
+                                                    std::span<const Models::SkinnedMesh> meshes, std::int32_t mesh,
+                                                    std::int32_t type, std::int32_t subtype,
                                                     World::ModelEffects& effects, Crt::CrtRandom& random)
 {
     const auto* model = models.Find(object.model);

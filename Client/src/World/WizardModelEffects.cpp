@@ -254,7 +254,7 @@ Core::Expected<void, std::string> CountInTheOwnRecord(ModelEffect& effect, CrtRa
 {
     if (services.ownRecordDepth == nullptr || services.ownRecordCount == nullptr)
         return Core::Unexpected(std::format("{}: falta el registro propio (0x7681eb4)", address));
-    const Render::Models::LogicalAccess access(*services.ownRecordDepth, random, Render::Models::OwnRecordCloseRandoms);
+    const Models::LogicalAccess access(*services.ownRecordDepth, random, Models::OwnRecordCloseRandoms);
     effect.word8c = *services.ownRecordCount;
     ++*services.ownRecordCount;
     return {};
@@ -1545,7 +1545,7 @@ Core::Expected<void, std::string> StepCase(ModelEffect& effect, float luminosity
 
 // 0x52cb98..0x52cdb2 con los tipos del lote: todos animan ([0xad, 0x151)), el 0xd4 se mueve sin girar (0x51fc80 con
 // 0, la tabla 0x52d1b8) y los demás girados; una vida menos y, con 0 o menos, muere.
-void StepTail(ModelEffect& effect, const Render::Models::Skeleton* skeleton, const WizardEffectServices& services)
+void StepTail(ModelEffect& effect, const Models::Skeleton* skeleton, const WizardEffectServices& services)
 {
     constexpr std::uint8_t NoAction = 0xff;
     if (services.publishAction)
@@ -1553,9 +1553,8 @@ void StepTail(ModelEffect& effect, const Render::Models::Skeleton* skeleton, con
     if (effect.animation.action != NoAction && skeleton != nullptr &&
         effect.animation.action < skeleton->actions.size())
     {
-        const Render::Models::ActionInfo& action = skeleton->actions[effect.animation.action];
-        if (Render::Models::AdvanceAnimation(effect.animation, action, effect.speed,
-                                             Render::Models::AnimationScene::Other))
+        const Models::ActionInfo& action = skeleton->actions[effect.animation.action];
+        if (Models::AdvanceAnimation(effect.animation, action, effect.speed, Models::AnimationScene::Other))
         {
             effect.animation.frame = static_cast<float>(action.keyCount);
             effect.animation.action = NoAction;
@@ -1612,7 +1611,7 @@ CreateWizardModelEffect(ModelEffects& effects, const ModelEffectArguments& argum
     return slot;
 }
 
-Core::Expected<void, std::string> StepWizardModelEffect(ModelEffect& effect, const Render::Models::Skeleton* skeleton,
+Core::Expected<void, std::string> StepWizardModelEffect(ModelEffect& effect, const Models::Skeleton* skeleton,
                                                         Crt::CrtRandom& random, const WizardEffectServices& services)
 {
     if (!effect.alive)

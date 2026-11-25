@@ -30,7 +30,7 @@ constexpr float DirectionDegrees = 45.0f;
 
 std::uint8_t ReadCell(std::uint8_t& depth, std::uint8_t cell, Crt::CrtRandom& random)
 {
-    const Render::Models::LogicalAccess access(depth, random, Render::Models::SmallLogicalCloseRandoms);
+    const Models::LogicalAccess access(depth, random, Models::SmallLogicalCloseRandoms);
     return cell;
 }
 
@@ -62,8 +62,8 @@ bool MoveActorPath(ActorState& actor, std::uint8_t rotate, Crt::CrtRandom& rando
 {
     std::uint32_t x = actor.cellX;
     std::uint32_t y = actor.cellY;
-    std::optional<Render::Models::LogicalAccess> xAccess;
-    std::optional<Render::Models::LogicalAccess> yAccess;
+    std::optional<Models::LogicalAccess> xAccess;
+    std::optional<Models::LogicalAccess> yAccess;
     const GameLogic::LogicalCellEffects effects{
         .onStore = [&](GameLogic::LogicalAxis axis, GameLogic::LogicalStoreStage stage, std::uint32_t& cell)
         {
@@ -73,7 +73,7 @@ bool MoveActorPath(ActorState& actor, std::uint8_t rotate, Crt::CrtRandom& rando
             auto& depth = axis == GameLogic::LogicalAxis::X ? actor.cellXAccesses : actor.cellYAccesses;
             if (before)
             {
-                access.emplace(depth, random, Render::Models::SmallLogicalCloseRandoms);
+                access.emplace(depth, random, Models::SmallLogicalCloseRandoms);
                 return;
             }
             auto& stored = axis == GameLogic::LogicalAxis::X ? actor.cellX : actor.cellY;

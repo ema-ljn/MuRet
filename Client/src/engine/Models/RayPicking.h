@@ -11,7 +11,7 @@
 // El picking de los personajes: el segmento del mouse (Render::Pass3D::RayThrough, 0x620480) contra
 // la caja de cada uno. Contrato: Client/docs/research/06-render-escenas-y-ui.md, "El picking", y
 // Q-C100. Todo *estático*.
-namespace Client::Render::Models
+namespace Client::Models
 {
 // Una caja alineada a los ejes, en el mundo.
 struct Box
@@ -35,4 +35,4 @@ inline constexpr glm::vec3 PlayerBoxMax{40.0f, 40.0f, 120.0f};
 // toca ninguno. Con dos a la misma distancia, el primero.
 [[nodiscard]] ENGINE_API std::optional<std::size_t> NearestHit(const glm::vec3& origin, const glm::vec3& end,
                                                                std::span<const glm::vec3> positions);
-} // namespace Client::Render::Models
+} // namespace Client::Models

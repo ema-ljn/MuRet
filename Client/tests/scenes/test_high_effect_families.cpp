@@ -544,9 +544,9 @@ void ReplayTheMeteorPrefix(CrtRandom& replay)
 // (0x5262e8) y la 0x5f2/0x15 sin dueño (0x526307) en el punto del hueso; con las partículas llenas, sólo los rand().
 TEST(HighEffectFamiliesTest, TheMeteorSparksOverItsPosedBones)
 {
-    auto loaded = Client::Render::Models::MakeSkeleton(Client::Tests::SampleModel());
+    auto loaded = Client::Models::MakeSkeleton(Client::Tests::SampleModel());
     ASSERT_TRUE(loaded.HasValue());
-    const Client::Render::Models::Skeleton skeleton = loaded.Value();
+    const Client::Models::Skeleton skeleton = loaded.Value();
     ASSERT_EQ(skeleton.bones.size(), 3u);
     std::uint32_t hit = 1;
     for (;; ++hit)
@@ -618,8 +618,7 @@ TEST(HighEffectFamiliesTest, TheMeteorSparksOverItsPosedBones)
     EXPECT_EQ(tested.random.State(), replay.State());
     EXPECT_EQ(tested.world->ModelPlacement(0x13d).action, 0);
     std::vector<Client::Math::BoneTransform> expected(3, Client::Math::BoneTransform(0.0f));
-    ASSERT_TRUE(
-        Client::Render::Models::PoseSkeleton(skeleton, {.action = 0, .frame = 1.5f}, {.angles = angles}, {}, expected));
+    ASSERT_TRUE(Client::Models::PoseSkeleton(skeleton, {.action = 0, .frame = 1.5f}, {.angles = angles}, {}, expected));
     const auto& carry = tested.world->PoseCarry().bones;
     ASSERT_GE(carry.size(), 3u);
     EXPECT_EQ(carry[0], expected[0]);

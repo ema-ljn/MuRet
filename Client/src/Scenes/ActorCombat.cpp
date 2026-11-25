@@ -97,7 +97,7 @@ Core::Expected<bool, std::string> IsMarked(int model, const ActorCombatContext& 
 Core::Expected<void, std::string> SetTheAction(ActorState& actor, const ActorCombatContext& context,
                                                std::uint8_t action)
 {
-    const Render::Models::Skeleton* skeleton = nullptr;
+    const Models::Skeleton* skeleton = nullptr;
     if (actor.type == Data::Models::PlayerSkeletonModel && context.playerSkeleton != nullptr)
         skeleton = context.playerSkeleton;
     else
@@ -107,7 +107,7 @@ Core::Expected<void, std::string> SetTheAction(ActorState& actor, const ActorCom
             skeleton = context.models->SkeletonOf(actor.type);
     }
     if (skeleton != nullptr)
-        Render::Models::SetAction(actor.animation, *skeleton, action);
+        Models::SetAction(actor.animation, *skeleton, action);
     return {};
 }
 
@@ -221,7 +221,7 @@ Core::Expected<void, std::string> PlayerAttack(ActorState& actor, const ActorCom
 constexpr std::uint16_t ByteCloseRandoms = 1;
 std::uint8_t ReadProtected(const std::uint8_t& value, std::uint8_t& accesses, Crt::CrtRandom& random)
 {
-    const Render::Models::LogicalAccess access(accesses, random, ByteCloseRandoms);
+    const Models::LogicalAccess access(accesses, random, ByteCloseRandoms);
     return value;
 }
 
@@ -298,7 +298,7 @@ Core::Expected<bool, std::string> AttackOfTheTrials(ActorState& actor, const Act
     constexpr std::uint8_t FirstActionSkill = 0x32;
     if (context.world.Runtime().map != TrialsMap || actor.word376 != TrialsKind)
         return false;
-    const Render::Models::LogicalAccess access(actor.byte38eAccesses, context.random, ByteCloseRandoms);
+    const Models::LogicalAccess access(actor.byte38eAccesses, context.random, ByteCloseRandoms);
     if (auto set = SetTheAction(actor, context, actor.byte38e == FirstActionSkill ? FirstAttack : SecondAttack);
         !set.HasValue())
         return Core::Unexpected(set.Error());
@@ -312,7 +312,7 @@ Core::Expected<bool, std::string> AttackFromTheSkillTable(ActorState& actor, con
 {
     constexpr std::array<std::uint8_t, Data::Tables::MonsterSkillCount> SkillActions{3, 4, 8, 9, 0xb};
     constexpr std::uint8_t UsedSkill = 0xff;
-    const Render::Models::LogicalAccess access(actor.byte42eAccesses, context.random, ByteCloseRandoms);
+    const Models::LogicalAccess access(actor.byte42eAccesses, context.random, ByteCloseRandoms);
     const Data::Tables::MonsterSkills listed = context.world.Runtime().monsterSkills.Of(actor.word376);
     const auto found = std::ranges::find(listed.skills, static_cast<std::int32_t>(actor.byte42e));
     const bool matched = found != listed.skills.end();
@@ -555,8 +555,8 @@ Core::Expected<void, std::string> SetActorDie(ActorState& actor, const ActorComb
     // 0x4f5682..0x4f587b: el héroe abre el registro propio, pone la vida (+0x22) en 0 y lo cierra.
     if (IsHero(actor, context.world))
     {
-        const Render::Models::LogicalAccess own(context.world.Runtime().ownRecordDepth, context.random,
-                                                Render::Models::OwnRecordCloseRandoms);
+        const Models::LogicalAccess own(context.world.Runtime().ownRecordDepth, context.random,
+                                        Models::OwnRecordCloseRandoms);
         context.world.OwnCharacter().life = 0;
     }
     if (actor.type == Data::Models::PlayerSkeletonModel && !HasModelSoundSubtype(actor))

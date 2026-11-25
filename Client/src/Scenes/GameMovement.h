@@ -24,11 +24,11 @@ namespace Client::Crt
 class CrtRandom;
 } // namespace Client::Crt
 
-namespace Client::Render::Models
+namespace Client::Models
 {
 class IModelLibrary;
 struct Skeleton;
-} // namespace Client::Render::Models
+} // namespace Client::Models
 
 namespace Client::Render::Text
 {
@@ -55,7 +55,7 @@ struct HeroMovementContext
 {
     WorldState& world;
     Crt::CrtRandom& random;
-    const Render::Models::Skeleton* playerSkeleton = nullptr;
+    const Models::Skeleton* playerSkeleton = nullptr;
     const Data::Tables::ItemTable* items = nullptr;
     const Data::Tables::SkillTable* skills = nullptr;
     const Data::Tables::GateTable* gates = nullptr;
@@ -110,7 +110,7 @@ struct HeroMovementContext
     const Render::Text::ITextMeasure* measure = nullptr;
     Core::PixelSize screen{640, 480};
     // La biblioteca base para acciones de personajes transformados que no estén en FaunaResources.
-    const Render::Models::IModelLibrary* models = nullptr;
+    const Models::IModelLibrary* models = nullptr;
     // 0x599ef0 → 0x61c210/0x61c170: opciones y macros antes de entrar a Castle Siege o Land of Trial.
     std::function<Core::Expected<void, std::string>()> saveOptionsAndMacros{};
 };

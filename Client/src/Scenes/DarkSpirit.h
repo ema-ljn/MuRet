@@ -17,10 +17,10 @@ namespace Client::Crt
 class CrtRandom;
 } // namespace Client::Crt
 
-namespace Client::Render::Models
+namespace Client::Models
 {
 struct Skeleton;
-} // namespace Client::Render::Models
+} // namespace Client::Models
 
 namespace Client::World
 {
@@ -50,8 +50,8 @@ struct DarkSpirit
     glm::vec3 light{0.5f};  // +0xf4
     std::uint8_t state = 0; // +0x110: 0 rápido (dirección y < −12), 1 lento, 2 volviendo, 3 posado, 4 bajando, 5 el
                             // ataque, 6 el grito
-    Render::Models::AnimationState animation; // +0x111 la acción, +0x114 el frame
-    float alpha = 1.0f;                       // +0x174: aparece de golpe
+    Models::AnimationState animation; // +0x111 la acción, +0x114 el frame
+    float alpha = 1.0f;               // +0x174: aparece de golpe
     // Lo que escriben las órdenes que llegan (Scenes/PetOrders, CL9 hito 4), con el offset del objeto y, entre
     // paréntesis, el del CHARACTER de +0xc. Qué deja en cada uno 0x4167b0, sin leer: quedan en 0 hasta la primera.
     // +0x45c: la orden del A7 (0x416510). La lee el estado 5 del paso (0x417a9d): con la 3, +0x1ad queda en 1.
@@ -157,7 +157,7 @@ struct DarkSpiritBirthAccesses
 // el hueso 37 del dueño con (−10, 0, 10) y sus ángulos, el rumbo menos 120. En el 4 (0x4178f4), avanza su
 // velocidad, gira hacia el hueso 42 del dueño con 0x4e9810, acelera 1 y se posa a menos de 50. En el 5 y el 6,
 // +0x38d sube hasta 15. En todos, el grito y el salto junto al dueño cuando el contador de lejanía pasa de 90.
-[[nodiscard]] DarkSpiritStepped StepDarkSpirit(DarkSpirit& spirit, const Render::Models::Skeleton& skeleton,
+[[nodiscard]] DarkSpiritStepped StepDarkSpirit(DarkSpirit& spirit, const Models::Skeleton& skeleton,
                                                const DarkSpiritOwner& owner, std::uint8_t map,
                                                World::Particles& particles, float worldClock, Crt::CrtRandom& random,
                                                std::int32_t counter, const DarkSpiritTargets& targets = {});
@@ -171,6 +171,6 @@ void MissTheView(DarkSpirit& spirit);
 // 0xc0 con su escala, sus ángulos y la posición más lo que se movió en el último paso por `stepAlpha`,
 // la animación interpolada, la luz del terreno en su lugar (`terrainLight`) más la suya, la luz por
 // vértice y su alpha. Con `stepAlpha` en 0, el estado del paso: el que posa el original.
-[[nodiscard]] DrawnObject DrawnDarkSpirit(const DarkSpirit& spirit, const Render::Models::Skeleton* skeleton,
+[[nodiscard]] DrawnObject DrawnDarkSpirit(const DarkSpirit& spirit, const Models::Skeleton* skeleton,
                                           const glm::vec3& terrainLight, float stepAlpha);
 } // namespace Client::Scenes

@@ -58,8 +58,7 @@ bool HasBattleRole(const WorldRuntime& runtime, const ActorState& hero, bool gui
 
 std::int32_t SkillIndex(WorldState& world, Crt::CrtRandom& random, std::uint32_t skill)
 {
-    const Render::Models::LogicalAccess access(world.Runtime().ownRecordDepth, random,
-                                               Render::Models::OwnRecordCloseRandoms);
+    const Models::LogicalAccess access(world.Runtime().ownRecordDepth, random, Models::OwnRecordCloseRandoms);
     constexpr std::size_t OwnSkillSlots = 64;
     for (std::size_t index = 0; index < OwnSkillSlots; ++index)
     {
@@ -82,7 +81,7 @@ Core::Expected<std::uint8_t, std::string> SkillCost(const GameUiContext& context
 {
     WorldRuntime& runtime = context.world.Runtime();
     const ActorState& hero = context.world.Actors()[runtime.hero];
-    const Render::Models::LogicalAccess access(runtime.movement.skillDepths[hero.byte371], context.random, 60);
+    const Models::LogicalAccess access(runtime.movement.skillDepths[hero.byte371], context.random, 60);
     if (context.skills == nullptr)
         return Core::Unexpected(std::string("0x65243e: sin Skill.bmd para la habilidad del asedio"));
     const auto record = context.skills->Record(hero.byte371);

@@ -103,8 +103,8 @@ glm::vec3 Sum(const glm::vec3& a, const glm::vec3& b)
 
 // El BMD de la tabla global (0x5769ad8 + tipo · 0xe0): el de FaunaResources, que sigue con los modelos del mapa, y si
 // no el de `models` (los ítems y Player.bmd), como MonsterSkeletonOf.
-const Render::Models::Skeleton* ModelSkeletonOf(const WorldState& world, const Render::Models::IModelLibrary* models,
-                                                std::uint16_t model)
+const Models::Skeleton* ModelSkeletonOf(const WorldState& world, const Models::IModelLibrary* models,
+                                        std::uint16_t model)
 {
     const auto* skeleton = world.FaunaResources().SkeletonOf(model);
     if (skeleton == nullptr && models != nullptr)
@@ -146,7 +146,7 @@ void BeginTheSiegeSpearman(World::ModelEffect& effect, const HighEffectContext& 
     // es 0 y no hace nada.
     const auto* skeleton = ModelSkeletonOf(context.world, context.models, static_cast<std::uint16_t>(effect.type));
     if (skeleton != nullptr)
-        Render::Models::SetAction(effect.animation, *skeleton, SpearmanAction);
+        Models::SetAction(effect.animation, *skeleton, SpearmanAction);
     effect.transform.angles = glm::vec3(0.0f);
 }
 
@@ -504,7 +504,7 @@ void BeginThePiercingGlow(World::ModelEffect& effect, const World::ModelEffectAr
 
 // 0x52cbf4..0x52cc7b: la acción publicada en el modelo (+0xa0) y 0x4ec200 con +0xd8. Si la acción termina, el frame
 // queda en sus keys y la acción en 0xff.
-void Animate(World::ModelEffect& effect, const Render::Models::Skeleton* skeleton,
+void Animate(World::ModelEffect& effect, const Models::Skeleton* skeleton,
              const World::ModelEffectStepServices& services)
 {
     if (services.publishAction)
@@ -512,8 +512,8 @@ void Animate(World::ModelEffect& effect, const Render::Models::Skeleton* skeleto
     if (effect.animation.action == NoAction || skeleton == nullptr ||
         effect.animation.action >= skeleton->actions.size())
         return;
-    const Render::Models::ActionInfo& action = skeleton->actions[effect.animation.action];
-    if (Render::Models::AdvanceAnimation(effect.animation, action, effect.speed, Render::Models::AnimationScene::Other))
+    const Models::ActionInfo& action = skeleton->actions[effect.animation.action];
+    if (Models::AdvanceAnimation(effect.animation, action, effect.speed, Models::AnimationScene::Other))
     {
         effect.animation.frame = static_cast<float>(action.keyCount);
         effect.animation.action = NoAction;
@@ -530,7 +530,7 @@ void Move(World::ModelEffect& effect, bool rotated)
 // 0x52cb98..0x52cd9d para los tipos de este archivo: la animación de los BMD de [0xad, 0x151) (salvo el 0x116 y el
 // 0x147, que saltan a la vida), el movimiento (salvo 0x5e8..0x5ea y el 0x139, que la tabla de 0x52ccb0 manda a la
 // vida, 0x52cd94; el 0x13b anima otra vez antes, 0x52cd41) y una vida menos.
-Core::Expected<void, std::string> CommonTail(World::ModelEffect& effect, const Render::Models::Skeleton* skeleton,
+Core::Expected<void, std::string> CommonTail(World::ModelEffect& effect, const Models::Skeleton* skeleton,
                                              const World::ModelEffectStepServices& services)
 {
     constexpr std::int16_t FirstAnimated = 0xad, PastAnimated = 0x151;
@@ -554,9 +554,9 @@ Core::Expected<void, std::string> CommonTail(World::ModelEffect& effect, const R
                         return Core::Unexpected(std::format("0x52cd84: la segunda animación del {:#x} lee la acción "
                                                             "{} fuera de las {} del modelo",
                                                             type, effect.animation.action, skeleton->actions.size()));
-                    static_cast<void>(
-                        Render::Models::AdvanceAnimation(effect.animation, skeleton->actions[effect.animation.action],
-                                                         effect.speed, Render::Models::AnimationScene::Other));
+                    static_cast<void>(Models::AdvanceAnimation(effect.animation,
+                                                               skeleton->actions[effect.animation.action], effect.speed,
+                                                               Models::AnimationScene::Other));
                 }
             }
             Move(effect, true);
@@ -1151,7 +1151,7 @@ Core::Expected<void, std::string> StepTheBindingDecal(World::ModelEffect& effect
     constexpr double Tenth = Math::TenthAsDouble; // 0x6b87b8
     effect.objectState.light = F32(static_cast<double>(context.random.Next() % GlowSpan) * Tenth);
     // 0x52ba1d: el BMD de la tabla global por el tipo del dueño, por el mismo camino que el alta del 0x19f.
-    const Render::Models::Skeleton* skeleton = ModelSkeletonOf(context.world, context.models, owner->type);
+    const Models::Skeleton* skeleton = ModelSkeletonOf(context.world, context.models, owner->type);
     constexpr int SideSpan = 100, SideCenter = 50, DepthSpan = 20, DepthCenter = 10;
     constexpr std::int32_t SparkSubtype = 8;
     constexpr float SparkScale = 1.0f;
@@ -1390,8 +1390,7 @@ bool StepsAsHighModelEffect(const World::ModelEffect& effect)
     return IsHighModelEffect(effect.type);
 }
 
-Core::Expected<void, std::string> StepHighModelEffect(World::ModelEffect& effect,
-                                                      const Render::Models::Skeleton* skeleton,
+Core::Expected<void, std::string> StepHighModelEffect(World::ModelEffect& effect, const Models::Skeleton* skeleton,
                                                       const HighEffectStepContext& context)
 {
     if (!effect.alive)

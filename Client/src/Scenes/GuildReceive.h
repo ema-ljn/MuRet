@@ -18,10 +18,10 @@ namespace Client::Crt
 class CrtRandom;
 } // namespace Client::Crt
 
-namespace Client::Render::Models
+namespace Client::Models
 {
 class IModelLibrary;
-} // namespace Client::Render::Models
+} // namespace Client::Models
 
 namespace Client::Render::Text
 {
@@ -55,7 +55,7 @@ struct GuildReceiveContext
     GuildSender send{};
     // Las acciones de los modelos (0x4ea030) para el gesto de la guerra: el 62 y el 63 llaman a 0x576a60 con el héroe
     // (Scenes::PlayTheEmote, hito 1 de la CL9) antes de su C1 18. Sin ellos, cortan antes del gesto.
-    const Render::Models::IModelLibrary* models = nullptr;
+    const Models::IModelLibrary* models = nullptr;
     // El 54 abre creación y cierra ventanas de NPC/castillo/batalla por los servicios canónicos del mundo.
     const WorldEntryResources* worldEntry = nullptr;
 };

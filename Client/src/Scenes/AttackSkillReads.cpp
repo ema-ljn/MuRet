@@ -15,7 +15,7 @@ namespace Client::Scenes
 {
 std::uint8_t ReadTheSkill(ActorState& actor, Crt::CrtRandom& random)
 {
-    const Render::Models::LogicalAccess access(actor.byte38eAccesses, random, SkillCloseRandoms);
+    const Models::LogicalAccess access(actor.byte38eAccesses, random, SkillCloseRandoms);
     return actor.byte38e;
 }
 
@@ -23,8 +23,7 @@ std::int32_t OwnSkillIndex(const CharacterStepContext& context, std::uint8_t ski
 {
     constexpr std::size_t OwnSkills = 64;
     WorldRuntime& runtime = context.world.Runtime();
-    const Render::Models::LogicalAccess own(runtime.ownRecordDepth, context.random,
-                                            Render::Models::OwnRecordCloseRandoms);
+    const Models::LogicalAccess own(runtime.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
     for (std::size_t index = 0; index < OwnSkills; ++index)
     {
         if (context.world.OwnCharacter().SkillAt(index) == skill)

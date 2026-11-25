@@ -39,21 +39,21 @@ TEST(KalimaObjectResourcesTest, AllThirtyTwoNativeCausticsAreLoadedFromRealDataI
 
 TEST(KalimaObjectResourcesTest, TheSharedBssCycleAdvancesOnceAfterWindWithoutAddingRandomDraws)
 {
-    Client::Render::Models::ClothWorld world;
+    Client::Models::ClothWorld world;
     EXPECT_EQ(world.waterTextureFrame, 0u);
-    Client::Render::Models::ClothWorld expected = world;
+    Client::Models::ClothWorld expected = world;
     for (int step = 1; step <= 33; ++step)
     {
-        Client::Render::Models::StepTheClothWorld(world);
+        Client::Models::StepTheClothWorld(world);
         for (int walk = 0; walk < 5; ++walk)
-            Client::Render::Models::WalkTheWind(expected);
+            Client::Models::WalkTheWind(expected);
         for (int close = 0; close < 4; ++close)
             static_cast<void>(expected.random.Next());
         EXPECT_EQ(world.waterTextureFrame, static_cast<std::uint32_t>(step % 32));
         EXPECT_EQ(world.random.State(), expected.random.State());
     }
     const auto projected = world;
-    Client::Render::Models::StepTheClothWorld(world);
+    Client::Models::StepTheClothWorld(world);
     EXPECT_EQ(projected.waterTextureFrame, 1u);
     EXPECT_EQ(world.waterTextureFrame, 2u);
 }

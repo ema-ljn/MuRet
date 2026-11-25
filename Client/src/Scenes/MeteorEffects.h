@@ -16,11 +16,11 @@ namespace Client::Render
 class ModelBatch;
 } // namespace Client::Render
 
-namespace Client::Render::Models
+namespace Client::Models
 {
 class IModelLibrary;
 struct Skeleton;
-} // namespace Client::Render::Models
+} // namespace Client::Models
 
 namespace Client::World
 {
@@ -55,9 +55,8 @@ void BeginTheMeteor(World::ModelEffect& effect);
 //   su punto (0x4ec110 con la escala y el origen del modelo) la partícula 0x6ec/3 con él de dueño (0x5262e8, de otro
 //   lote: con lugar corta) y la 0x5f2/0x15 (0x526307).
 // Sin la luz dinámica o el temblor en los servicios corta, después de los rand() de antes.
-[[nodiscard]] Core::Expected<void, std::string> StepTheMeteor(World::ModelEffect& effect,
-                                                              const Render::Models::Skeleton* skeleton,
-                                                              const HighEffectStepContext& context);
+[[nodiscard]] Core::Expected<void, std::string>
+StepTheMeteor(World::ModelEffect& effect, const Models::Skeleton* skeleton, const HighEffectStepContext& context);
 
 // 0x6002e0 → 0x442e10 con el 0x13d (0x44357f) y el 0x13e (0x4435e9), después de la pose y de mirar la malla oculta −2:
 // entre 0x4ecc10 y 0x4ecc20, sin RenderBody, el color del modelo en (1, 1, 1) y 0x4ecc30 sobre la malla 0 con las
@@ -69,6 +68,6 @@ void BeginTheMeteor(World::ModelEffect& effect);
 //   +0x6c; después +0x6c vuelve a 1. T es el reloj del mundo (0x5767b88): sin él, corta.
 // Devuelve true si es uno de los dos; false con otro tipo (sigue el pase común).
 [[nodiscard]] Core::Expected<bool, std::string>
-DrawTheMeteorBody(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models, World::ModelEffect& effect,
+DrawTheMeteorBody(Render::ModelBatch& batch, const Models::IModelLibrary& models, World::ModelEffect& effect,
                   const DrawnObject& object, Core::Duration frameClock, std::optional<float> worldClock);
 } // namespace Client::Scenes

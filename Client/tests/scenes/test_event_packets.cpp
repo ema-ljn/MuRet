@@ -158,10 +158,10 @@ Client::Data::Tables::ItemTable EventItems()
 }
 
 // Los modelos por tipo de 0x4ea030: Player.bmd y uno de transformado con dos acciones.
-class EventModels final : public Client::Render::Models::IModelLibrary
+class EventModels final : public Client::Models::IModelLibrary
 {
 public:
-    explicit EventModels(const Client::Render::Models::Skeleton& player) : m_player(player)
+    explicit EventModels(const Client::Models::Skeleton& player) : m_player(player)
     {
         transformed.actions.resize(2);
     }
@@ -171,7 +171,7 @@ public:
         return nullptr;
     }
 
-    [[nodiscard]] const Client::Render::Models::Skeleton* SkeletonOf(std::uint16_t model) const override
+    [[nodiscard]] const Client::Models::Skeleton* SkeletonOf(std::uint16_t model) const override
     {
         if (model == Client::Data::Models::PlayerSkeletonModel)
             return &m_player;
@@ -185,10 +185,10 @@ public:
 
     static constexpr std::uint16_t TransformedModel = 0x45;
     static constexpr std::uint16_t MissingModel = 0x46;
-    Client::Render::Models::Skeleton transformed;
+    Client::Models::Skeleton transformed;
 
 private:
-    const Client::Render::Models::Skeleton& m_player;
+    const Client::Models::Skeleton& m_player;
 };
 
 class LetterMeasure final : public Client::Render::Text::ITextMeasure
@@ -348,7 +348,7 @@ protected:
     Client::Data::Text::TextTable texts = Client::Tests::MakeTextTable(EventTexts());
     LetterMeasure letters;
     Client::Data::Tables::ItemTable items = EventItems();
-    Client::Render::Models::Skeleton player;
+    Client::Models::Skeleton player;
     EventModels models{player};
     std::uint32_t tickCount = 0;
     // Lo que manda el send() de mundo (el C1 05 18 del BD 03).
@@ -1494,7 +1494,7 @@ TEST_F(EventPacketsTest, TheFailedCrywolfContractStandsTheHeroUp)
             const CrtRandom before = random;
             Applied(Events::CrywolfContract{.result = 0, .value = 0x11, .key = 0x13c});
             CrtRandom expected = before;
-            expected.Discard(Client::Render::Models::OwnRecordCloseRandoms);
+            expected.Discard(Client::Models::OwnRecordCloseRandoms);
             EXPECT_EQ(random.State(), expected.State());
             EXPECT_EQ(Runtime().ownRecordDepth, 0);
             EXPECT_EQ(Hero().flags7c, 1u);

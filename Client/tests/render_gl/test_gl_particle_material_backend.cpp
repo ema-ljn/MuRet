@@ -39,14 +39,14 @@
 
 namespace
 {
-class MaterialModels : public Client::Render::Models::IModelLibrary
+class MaterialModels : public Client::Models::IModelLibrary
 {
 public:
     const Client::Data::Models::Model* Find(std::uint16_t) const override
     {
         return nullptr;
     }
-    const Client::Render::Models::Skeleton* SkeletonOf(std::uint16_t) const override
+    const Client::Models::Skeleton* SkeletonOf(std::uint16_t) const override
     {
         return nullptr;
     }

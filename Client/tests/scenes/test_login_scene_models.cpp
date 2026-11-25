@@ -78,14 +78,14 @@ namespace
 using Client::Core::Log;
 using Client::Core::LogLevel;
 using Client::Input::InputState;
+using Client::Models::ActionInfo;
+using Client::Models::BoneKey;
+using Client::Models::IModelLibrary;
+using Client::Models::Skeleton;
+using Client::Models::SkeletonBone;
 using Client::Render::ModelBlend;
 using Client::Render::ModelVertex;
 using Client::Render::TextureSlot;
-using Client::Render::Models::ActionInfo;
-using Client::Render::Models::BoneKey;
-using Client::Render::Models::IModelLibrary;
-using Client::Render::Models::Skeleton;
-using Client::Render::Models::SkeletonBone;
 using Client::Scenes::GameData;
 using Client::Scenes::LoginCharacterLight;
 using Client::Scenes::LoginCharacterTransform;
@@ -208,7 +208,7 @@ struct Harness
 
     // Con `cloth`, lo global de la tela del bucle: el rand() de la CRT.
     LoginScene& Make(std::mt19937::result_type seed = FixedSeed, FakeClock* sceneClock = nullptr,
-                     Client::Render::Models::ClothWorld* cloth = nullptr, Client::Scenes::WorldState* world = nullptr)
+                     Client::Models::ClothWorld* cloth = nullptr, Client::Scenes::WorldState* world = nullptr)
     {
         SceneContext context{folder.Path(), store, log, sceneClock, cloth};
         context.world = world;
@@ -313,7 +313,7 @@ TEST(LoginSceneModelsTest, TheCharacterTakesTheLightOfTheTerrain)
     ASSERT_FALSE(models.modelVertices.empty());
     const glm::vec3 terrain = WorldLightAt(tested.folder.Path(), LoginCharacterTransform().position);
     EXPECT_GT(terrain.x + terrain.y + terrain.z, 0.0f);
-    const float factor = Client::Render::Models::ItemGlowOf(7, false, false).baseFactor;
+    const float factor = Client::Models::ItemGlowOf(7, false, false).baseFactor;
     ExpectNear(ColorOf(models.modelVertices[0]), (terrain + glm::vec3(LoginCharacterLight)) * factor);
 }
 
@@ -327,7 +327,7 @@ TEST(LoginSceneModelsTest, WithoutTheWorldLightTheCharacterGoesWithItsOwn)
     const FrameEvent models = tested.ModelsOfAFrame();
 
     ASSERT_FALSE(models.modelVertices.empty());
-    const float factor = Client::Render::Models::ItemGlowOf(7, false, false).baseFactor;
+    const float factor = Client::Models::ItemGlowOf(7, false, false).baseFactor;
     ExpectNear(ColorOf(models.modelVertices[0]), glm::vec3(LoginCharacterLight * factor));
     EXPECT_TRUE(Logged(tested.sink, "sin la luz del terreno"));
 }
@@ -495,7 +495,7 @@ TEST(LoginSceneModelsTest, WithTheLoopTheGestureTakesTheRandOfTheCrt)
         Harness tested;
         FakeClock sceneClock;
         sceneClock.Advance(clock);
-        Client::Render::Models::ClothWorld cloth{.random = Client::Crt::CrtRandom(crt)};
+        Client::Models::ClothWorld cloth{.random = Client::Crt::CrtRandom(crt)};
         EXPECT_TRUE(tested.Make(seed, &sceneClock, &cloth).Enter().HasValue());
         tested.Steps(1);
         return CharacterHeight(tested);
@@ -704,7 +704,7 @@ TEST(LoginSceneModelsTest, NativeLoginPosesUpdateTheDurableCarryAndIntermediateD
 // El login de los tests de la pose: el mundo 56 con sus archivos, sin el cuervo, y un paso. Con `cloth`, el flujo
 // global de la tela: la rama del 0x50ba30 con la tela y Player.bmd.
 void EnterTheLoginWithItsWorld(Harness& tested, Client::Scenes::WorldState& world,
-                               Client::Render::Models::ClothWorld* cloth = nullptr)
+                               Client::Models::ClothWorld* cloth = nullptr)
 {
     auto attributes = Client::Tests::PlainTerrainAttributes(56, Client::Tests::AttributeCells::Bytes);
     std::fill(attributes.begin() + 4, attributes.end(), std::byte{0});
@@ -735,7 +735,7 @@ TEST(LoginSceneModelsTest, TheRealBranchPlacesTheShadowModelBehindItsGuards)
     constexpr std::uint16_t Shadow = Client::Data::Models::PlayerShadowModel;
     auto world = std::make_unique<Client::Scenes::WorldState>();
     Harness tested;
-    Client::Render::Models::ClothWorld cloth;
+    Client::Models::ClothWorld cloth;
     ASSERT_NO_FATAL_FAILURE(EnterTheLoginWithItsWorld(tested, *world, &cloth));
     ASSERT_EQ(world->Runtime().map, 55);
     auto& actor = world->Actors()[Client::Scenes::LoginActorSlot];
@@ -749,7 +749,7 @@ TEST(LoginSceneModelsTest, TheRealBranchPlacesTheShadowModelBehindItsGuards)
         tested.target.Present();
         EXPECT_EQ(tested.scene->Failure(), std::nullopt);
     };
-    using Client::Render::Models::OriginalFrameTime;
+    using Client::Models::OriginalFrameTime;
 
     world->PlaceModel(Shadow, {});
     drawAt(OriginalFrameTime);
@@ -873,7 +873,7 @@ TEST(LoginSceneModelsTest, TheLoginDropsTheMeteorOfTheObject89AndKeepsGoing)
     Client::Tests::WriteSceneFile(
         tested.folder.Path(), "World56/EncTerrain56.obj",
         Client::Tests::EncryptK16(Client::Tests::PlainTerrainObjects(56, 1, std::span(&marker, 1))));
-    Client::Render::Models::ClothWorld cloth;
+    Client::Models::ClothWorld cloth;
     const auto entered = tested.Make(FixedSeed, nullptr, &cloth, world.get()).Enter();
     ASSERT_TRUE(entered.HasValue()) << entered.Error();
     for (auto& actor : world->Actors())
@@ -883,9 +883,9 @@ TEST(LoginSceneModelsTest, TheLoginDropsTheMeteorOfTheObject89AndKeepsGoing)
     ASSERT_EQ(effects[0].type, Client::World::DragonEffect);
     for (int frame = 0; frame < 4 && !effects[1].alive; ++frame)
     {
-        tested.scene->Render(tested.target.BeginFrame(std::chrono::milliseconds{7950} +
-                                                      frame * Client::Render::Models::OriginalFrameTime),
-                             0.0f);
+        tested.scene->Render(
+            tested.target.BeginFrame(std::chrono::milliseconds{7950} + frame * Client::Models::OriginalFrameTime),
+            0.0f);
         tested.target.Present();
     }
     ASSERT_EQ(tested.scene->Failure(), std::nullopt);
@@ -940,7 +940,7 @@ TEST(LoginSceneModelsTest, TheLoginStepsAndDrawsTheJointsOfTheWorld)
     Client::Tests::WriteSceneFile(tested.folder.Path(), "World56/EncTerrain56.obj",
                                   Client::Tests::EncryptK16(Client::Tests::PlainTerrainObjects(
                                       56, 0, std::span<const Client::Data::Terrain::TerrainObject>{})));
-    Client::Render::Models::ClothWorld cloth;
+    Client::Models::ClothWorld cloth;
     const auto entered = tested.Make(FixedSeed, nullptr, &cloth, world.get()).Enter();
     ASSERT_TRUE(entered.HasValue()) << entered.Error();
     for (auto& actor : world->Actors())
@@ -960,7 +960,7 @@ TEST(LoginSceneModelsTest, TheLoginStepsAndDrawsTheJointsOfTheWorld)
     drawn.points[1][2] = {11600.0f, 14200.0f, 300.0f};
     drawn.points[1][3] = {11700.0f, 14200.0f, 300.0f};
 
-    tested.scene->Render(tested.target.BeginFrame(Client::Render::Models::OriginalFrameTime), 0.0f);
+    tested.scene->Render(tested.target.BeginFrame(Client::Models::OriginalFrameTime), 0.0f);
     tested.target.Present();
 
     ASSERT_EQ(tested.scene->Failure(), std::nullopt);

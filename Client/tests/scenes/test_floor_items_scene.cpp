@@ -89,7 +89,7 @@ using Client::Tests::SameBytes;
 namespace Scenes = Client::Scenes;
 
 constexpr std::uint32_t Seed = 0x2468aceu;
-constexpr int Own = Client::Render::Models::OwnRecordCloseRandoms;
+constexpr int Own = Client::Models::OwnRecordCloseRandoms;
 constexpr int SendRandoms = 2;
 constexpr std::size_t HeroSlot = 42;
 // La altura de todo el terreno sintético.
@@ -215,7 +215,7 @@ struct Stage
     Scenes::SelectionState selection;
     Client::World::GameCamera camera;
     Client::World::GameCameraInput cameraInput;
-    Client::Render::Models::ClothWorld cloth;
+    Client::Models::ClothWorld cloth;
     Scenes::SingleModelLibrary models;
     Client::Data::Tables::ItemTable items = NamedItems({{Sword, "Espada inventada", 1, 3},
                                                         {Potion, "Pocion inventada"},
@@ -422,8 +422,7 @@ TEST(FloorItemsSceneTest, ThePickingSearchLightsTheItemsAndTakesTheFirstHit)
         FloorItemState& item = (*items)[index];
         item.alive = true;
         item.seen = seen;
-        item.pickBox =
-            Client::Render::Models::Box{.min = {x - 30.0f, -30.0f, -30.0f}, .max = {x + 30.0f, 30.0f, 30.0f}};
+        item.pickBox = Client::Models::Box{.min = {x - 30.0f, -30.0f, -30.0f}, .max = {x + 30.0f, 30.0f, 30.0f}};
     };
     put(3, false, 0.0f);
     put(4, true, 500.0f);

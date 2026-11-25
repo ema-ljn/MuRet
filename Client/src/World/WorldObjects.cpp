@@ -490,7 +490,7 @@ namespace
 // 0x4e9980 y 0x4ec200, lo común de 0x604ab0: el alpha hacia su meta y, si no quedó por debajo de 0,01
 // (0x604c3d, que sale), la animación a `speed` (la del objeto, salvo el 8 de Tarkan) con la acción de
 // `skeleton`, si tiene. Devuelve si sigue.
-bool AdvanceTheObject(WorldObject& object, const Render::Models::Skeleton* skeleton, float speed)
+bool AdvanceTheObject(WorldObject& object, const Models::Skeleton* skeleton, float speed)
 {
     StepObjectAlpha(object.targetAlpha, object.alpha, object.state.light, 0);
     if (object.alpha < MinimumAlpha)
@@ -499,8 +499,8 @@ bool AdvanceTheObject(WorldObject& object, const Render::Models::Skeleton* skele
     }
     if (skeleton != nullptr && object.animation.action < skeleton->actions.size())
     {
-        Render::Models::AdvanceAnimation(object.animation, skeleton->actions[object.animation.action], speed,
-                                         Render::Models::AnimationScene::Other);
+        Models::AdvanceAnimation(object.animation, skeleton->actions[object.animation.action], speed,
+                                 Models::AnimationScene::Other);
     }
     return true;
 }
@@ -517,12 +517,12 @@ void ApplyLoginStepCases(WorldObject& object)
         object.transform.angles.z -= RedWhirlpoolTurn;
         object.alpha = RedWhirlpoolAlpha;
         object.light = glm::vec3(1.0f, 0.0f, 0.0f);
-        object.state.blendMesh = Render::Models::EveryMeshBlends;
+        object.state.blendMesh = Models::EveryMeshBlends;
     }
     else if (object.type == DarkWhirlpool)
     {
         object.transform.angles.z -= DarkWhirlpoolTurn;
-        object.state.blendMesh = Render::Models::EveryMeshBlends;
+        object.state.blendMesh = Models::EveryMeshBlends;
         object.alpha = 1.0f;
         object.light = glm::vec3(1.0f);
     }
@@ -740,7 +740,7 @@ Core::Expected<void, std::string> StepTheWaterspoutFrame(WorldObject& object, Cr
                                         x, z));
 }
 
-void StepWorldObject(WorldObject& object, std::uint8_t map, const Render::Models::Skeleton* skeleton)
+void StepWorldObject(WorldObject& object, std::uint8_t map, const Models::Skeleton* skeleton)
 {
     if (AdvanceTheObject(object, skeleton, object.speed) && map == LoginMap)
     {
@@ -749,8 +749,8 @@ void StepWorldObject(WorldObject& object, std::uint8_t map, const Render::Models
 }
 
 Core::Expected<void, std::string> StepWorldObjectChecked(WorldObject& object, std::uint8_t map,
-                                                         const Render::Models::Skeleton* skeleton,
-                                                         Crt::CrtRandom& random, const ObjectStepGlobals& globals)
+                                                         const Models::Skeleton* skeleton, Crt::CrtRandom& random,
+                                                         const ObjectStepGlobals& globals)
 {
     // 0x425070: el 33 (Aida) y el 54 (la selección) llegan a 0x4250f0 por la cadena de 0x605a62.
     constexpr std::uint8_t AidaMap = Maps::AidaMap;
@@ -906,8 +906,8 @@ ObjectDraw DrawOf(const WorldObject& object, const glm::vec3& terrainLight, std:
         // El caso del mapa 55: la malla 0 sola, en blanco y sin luz, por la rama del blendMesh
         // (GL_ZERO, GL_ONE_MINUS_SRC_COLOR). Antes de su primer paso, sin el blendMesh, 0x4ecc30 no ata
         // textura ni cambia la mezcla (Q-C135): MuRet no la dibuja.
-        draw.kind = object.state.blendMesh == Render::Models::EveryMeshBlends ? ObjectDrawKind::SubtractiveMesh
-                                                                              : ObjectDrawKind::Hidden;
+        draw.kind = object.state.blendMesh == Models::EveryMeshBlends ? ObjectDrawKind::SubtractiveMesh
+                                                                      : ObjectDrawKind::Hidden;
         draw.color = glm::vec3(1.0f);
         draw.alpha = 1.0f;
         draw.state.light = 1.0f;

@@ -208,7 +208,7 @@ struct ElfHero
     CrtRandom random;
     std::uint32_t ticks = Ticks;
     std::optional<glm::vec3> terrainPoint;
-    Client::Render::Models::Skeleton skeleton = Client::Tests::PlayerActionsSkeleton();
+    Client::Models::Skeleton skeleton = Client::Tests::PlayerActionsSkeleton();
     std::vector<Client::Protocol::Outgoing> sent;
     Client::Data::Tables::SkillTable skills =
         SkillsWith({{0x13}, {0x1a}, {0x1b}, {0x1c}, {0x1e}, {0x24}, {0x2e}, {0x33}, {0x34}, {0x35}, {0x43}, {0x4c}});

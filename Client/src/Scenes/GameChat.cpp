@@ -226,9 +226,9 @@ Core::Expected<void, std::string> DoTheEmotes(const GameChatContext& context, st
         return {};
     // 0x576abf→0x4ea030 lee el arreglo global: los modelos cargados por el viewport también están disponibles.
     // Fauna conserva esos recursos por separado y puede existir antes de ligar los modelos del primer dibujo.
-    const Render::Models::IModelLibrary* models = context.world.FaunaResources().SkeletonOf(hero.type) != nullptr
-                                                      ? &context.world.FaunaResources()
-                                                      : context.models;
+    const Models::IModelLibrary* models = context.world.FaunaResources().SkeletonOf(hero.type) != nullptr
+                                              ? &context.world.FaunaResources()
+                                              : context.models;
     if (models == nullptr)
         return Core::Unexpected(std::string("0x576a60: el emote sin los modelos (0x4ea030)"));
     const ActionSender send = [&context](std::uint8_t direction, std::uint8_t action)
@@ -270,8 +270,7 @@ Core::Expected<UI::ChatCommandOutcome, std::string> RunTheCommand(const GameChat
         .ownLevel = [&context]() -> std::uint16_t
         {
             WorldRuntime& own = context.world.Runtime();
-            const Render::Models::LogicalAccess access(own.ownRecordDepth, context.random,
-                                                       Render::Models::OwnRecordCloseRandoms);
+            const Models::LogicalAccess access(own.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
             return context.world.OwnCharacter().level;
         },
         .duelActive = runtime.social.duel.active != 0,
@@ -409,8 +408,7 @@ Core::Expected<bool, std::string> MayWhisper(const GameChatContext& context)
     WorldRuntime& runtime = context.world.Runtime();
     const UI::ChatInputState& input = runtime.chat.input;
     {
-        const Render::Models::LogicalAccess own(runtime.ownRecordDepth, context.random,
-                                                Render::Models::OwnRecordCloseRandoms);
+        const Models::LogicalAccess own(runtime.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
         if (context.world.OwnCharacter().level >= WhisperLevel)
             return true;
     }

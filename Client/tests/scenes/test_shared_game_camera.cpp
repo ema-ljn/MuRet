@@ -157,7 +157,7 @@ TEST_F(SharedGameCameraTest, IntermediateDrawsAndLogicStepsDoNotConsumeCameraFra
     EXPECT_EQ(Frame(login, 1ms).view, first.view);
     EXPECT_EQ(Frame(login, 40ms).view, first.view);
     EXPECT_EQ(m_camera.zoom, 200.0f);
-    static_cast<void>(Frame(login, Client::Render::Models::OriginalFrameTime));
+    static_cast<void>(Frame(login, Client::Models::OriginalFrameTime));
     EXPECT_EQ(m_camera.zoom, 190.0f);
     login.Leave();
     Client::Scenes::CharacterSelectScene selection(Context(), m_data, m_models, nullptr);
@@ -224,7 +224,7 @@ TEST_F(SharedGameCameraTest, TheGameOnlyWritesTheYawInItsFirstLogicStep)
     m_camera.zoom = 210.0f;
     m_camera.fixedHeight = 1201.0f;
     // El juego no entra sin la espera (el WorldState) ni el rand() que gastan sus cierres.
-    Client::Render::Models::ClothWorld cloth;
+    Client::Models::ClothWorld cloth;
     Client::Scenes::WorldState world;
     auto context = Context();
     context.cloth = &cloth;
@@ -423,7 +423,7 @@ TEST_F(SharedGameCameraTest, ALongDrawUsesTheExistingOriginalFrameLimit)
     input.scene = Client::World::CullingScene::Login;
     input.map = 55;
     input.hero = Client::Scenes::LoginHeroPosition;
-    for (int frame = 0; frame < 1 + Client::Render::Models::MaxOriginalFramesPerDraw; ++frame)
+    for (int frame = 0; frame < 1 + Client::Models::MaxOriginalFramesPerDraw; ++frame)
         static_cast<void>(StepGameCamera(expected, input));
     Client::Scenes::LoginScene login(Context(), m_data, m_models, nullptr, "1.0", Client::Tests::FixedSeed);
     ASSERT_TRUE(login.Enter().HasValue());

@@ -253,7 +253,7 @@ Core::Expected<void, std::string> AddCapeOfLordOptions(OwnCharacterRecord& own, 
     {
         return {};
     }
-    const Render::Models::LogicalAccess access(ownRecordAccesses, random, Render::Models::OwnRecordCloseRandoms);
+    const Models::LogicalAccess access(ownRecordAccesses, random, Models::OwnRecordCloseRandoms);
     if (static_cast<std::size_t>(wings.optionCount) > World::MaxItemOptions)
     {
         return Core::Unexpected(std::format("0x54e540 (0x551051): Cape of Lord con {} opciones lee más allá de sus "

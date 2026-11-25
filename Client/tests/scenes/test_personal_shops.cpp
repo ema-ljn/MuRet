@@ -146,7 +146,7 @@ protected:
     Client::Scenes::SelectionState m_selection{*m_world};
     Client::World::GameCamera m_camera;
     Client::World::GameCameraInput m_input;
-    Client::Render::Models::ClothWorld m_cloth;
+    Client::Models::ClothWorld m_cloth;
     Client::Scenes::SingleModelLibrary m_models;
     Client::Tests::RecordingSink m_sink;
     Client::Core::Log m_log{m_sink, Client::Core::LogLevel::Debug};

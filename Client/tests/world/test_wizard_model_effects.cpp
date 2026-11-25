@@ -291,7 +291,7 @@ TEST(WizardModelEffectsTest, TheHerosHellfireCountsInTheOwnRecordAndHitsAround)
     ASSERT_EQ(world.hits.size(), 1U);
     EXPECT_EQ(world.hits[0], 300.0f);
     CrtRandom oracle(2);
-    oracle.Discard(Client::Render::Models::OwnRecordCloseRandoms);
+    oracle.Discard(Client::Models::OwnRecordCloseRandoms);
     EXPECT_EQ(random.State(), oracle.State());
 }
 

@@ -53,7 +53,7 @@ Core::Expected<void, std::string> OpenTheCharacter(WorldState& world, Crt::CrtRa
     sets.byte9307 = 0;
     WorldRuntime& runtime = world.Runtime();
     OwnCharacterRecord& own = world.OwnCharacter();
-    const Render::Models::LogicalAccess access(runtime.ownRecordDepth, random, Render::Models::OwnRecordCloseRandoms);
+    const Models::LogicalAccess access(runtime.ownRecordDepth, random, Models::OwnRecordCloseRandoms);
     if (std::ranges::none_of(own.equipment, [](const World::ItemState& item) { return item.durability == 0; }))
         return {};
     return RecalculateOwnStats(own, OwnStatsContext{.itemSetTables = tables.itemSetTables,

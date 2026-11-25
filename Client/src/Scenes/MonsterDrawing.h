@@ -14,7 +14,7 @@ namespace Client::Render
 class ModelBatch;
 }
 
-namespace Client::Render::Models
+namespace Client::Models
 {
 class IModelLibrary;
 }
@@ -107,7 +107,7 @@ struct GameCharacterPass;
 // `models` tiene los ítems y Player.bmd (las manos); el modelo del tipo sale de WorldState::FaunaResources. Entre
 // frames del original, todo sobre una copia del personaje y del rand().
 [[nodiscard]] Core::Expected<void, std::string> DrawGameMonster(Render::ModelBatch& batch,
-                                                                const Render::Models::IModelLibrary& models,
-                                                                WorldState& world, std::size_t slot,
-                                                                const GameCharacterPass& pass, bool originalFrame);
+                                                                const Models::IModelLibrary& models, WorldState& world,
+                                                                std::size_t slot, const GameCharacterPass& pass,
+                                                                bool originalFrame);
 } // namespace Client::Scenes

@@ -23,17 +23,17 @@ using Client::Math::AngleMatrix;
 using Client::Math::BoneTransform;
 using Client::Math::RoundedCos;
 using Client::Math::RoundedSin;
-using Client::Render::Models::Attachment;
-using Client::Render::Models::AttachmentOf;
-using Client::Render::Models::AttachmentRoot;
-using Client::Render::Models::AttachmentSlot;
-using Client::Render::Models::BoneKey;
-using Client::Render::Models::DrawsThePet;
-using Client::Render::Models::PlacedRoot;
-using Client::Render::Models::PoseAttached;
-using Client::Render::Models::QuiverPlacement;
-using Client::Render::Models::Skeleton;
-using Client::Render::Models::SkeletonBone;
+using Client::Models::Attachment;
+using Client::Models::AttachmentOf;
+using Client::Models::AttachmentRoot;
+using Client::Models::AttachmentSlot;
+using Client::Models::BoneKey;
+using Client::Models::DrawsThePet;
+using Client::Models::PlacedRoot;
+using Client::Models::PoseAttached;
+using Client::Models::QuiverPlacement;
+using Client::Models::Skeleton;
+using Client::Models::SkeletonBone;
 
 constexpr float Tolerance = 1e-4f;
 

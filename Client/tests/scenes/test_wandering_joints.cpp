@@ -94,7 +94,7 @@ struct Pool
     }
 
     std::vector<JointState> joints = std::vector<JointState>(4);
-    std::unique_ptr<Client::Render::Models::ClothWorld> cloth = std::make_unique<Client::Render::Models::ClothWorld>();
+    std::unique_ptr<Client::Models::ClothWorld> cloth = std::make_unique<Client::Models::ClothWorld>();
     std::unique_ptr<Client::World::Particles> particles = std::make_unique<Client::World::Particles>();
     std::unique_ptr<Client::World::FrameSprites> sprites = std::make_unique<Client::World::FrameSprites>();
     ModelEffect arrow{};

@@ -95,7 +95,7 @@ struct Pool
     bool withOwnRecord = true;
     std::uint8_t ownRecordDepth = 0;
     std::uint8_t ownVolley = 0;
-    Client::Render::Models::ClothWorld cloth{.random = CrtRandom{1}};
+    Client::Models::ClothWorld cloth{.random = CrtRandom{1}};
     Client::World::Particles particles;
     Client::World::FrameSprites sprites;
     std::unique_ptr<Client::World::TerrainLighting> lighting = std::make_unique<Client::World::TerrainLighting>();
@@ -289,7 +289,7 @@ TEST(SpiritJointsTest, TheVolleySubtypesReadTheOwnRecord)
             EXPECT_EQ(pool.ownRecordDepth, depth);
             CrtRandom expected(Seed);
             if (depth == 0)
-                expected.Discard(Client::Render::Models::OwnRecordCloseRandoms);
+                expected.Discard(Client::Models::OwnRecordCloseRandoms);
             EXPECT_EQ(pool.random.State(), expected.State());
             EXPECT_EQ(joint.blend, subtype == 0 ? 3 : 1);
             EXPECT_EQ(joint.speed, subtype == 0 ? 70.0f : 30.0f);
@@ -458,7 +458,7 @@ TEST(SpiritJointsTest, TheBoltWandersWithTheSharedCounter)
     ASSERT_TRUE(pool.Create(0x613, 3, {1000.0f, 2000.0f, 300.0f}, 50.0f).HasValue());
     CrtRandom expected = pool.random;
     ASSERT_TRUE(pool.Step().HasValue());
-    expected.Discard(Client::Render::Models::SmallLogicalCloseRandoms);
+    expected.Discard(Client::Models::SmallLogicalCloseRandoms);
     const auto direction = Client::Math::Detail::FaunaDirectionPC53(1234);
     ASSERT_TRUE(direction.has_value());
     const JointState& bolt = pool.joints[0];

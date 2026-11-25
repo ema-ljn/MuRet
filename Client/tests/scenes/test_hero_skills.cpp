@@ -114,14 +114,14 @@ enum HeroClass : std::uint8_t
 };
 
 // El esqueleto de Player.bmd para cualquier modelo: el 0x4f4a10 de un héroe transformado (0x4ea030) pide sus acciones.
-class AnyModels final : public Client::Render::Models::IModelLibrary
+class AnyModels final : public Client::Models::IModelLibrary
 {
 public:
     [[nodiscard]] const Client::Data::Models::Model* Find(std::uint16_t /*model*/) const override
     {
         return nullptr;
     }
-    [[nodiscard]] const Client::Render::Models::Skeleton* SkeletonOf(std::uint16_t /*model*/) const override
+    [[nodiscard]] const Client::Models::Skeleton* SkeletonOf(std::uint16_t /*model*/) const override
     {
         return &skeleton;
     }
@@ -130,7 +130,7 @@ public:
         return {};
     }
 
-    Client::Render::Models::Skeleton skeleton = Client::Tests::PlayerActionsSkeleton();
+    Client::Models::Skeleton skeleton = Client::Tests::PlayerActionsSkeleton();
 };
 
 // Un héroe jugador en (182, 115) con la skill `skill` en su lugar 0 y la acción 1, que deja pasar 0x57d45d.
@@ -191,9 +191,9 @@ struct SkillHero
     CrtRandom random;
     float worldTime = 5000.0f;
     std::uint32_t ticks = 100000;
-    Client::Render::Models::Skeleton skeleton = Client::Tests::PlayerActionsSkeleton();
+    Client::Models::Skeleton skeleton = Client::Tests::PlayerActionsSkeleton();
     // nullptr: el 0x4f4a10 de un héroe transformado corta (0x4ea030).
-    const Client::Render::Models::IModelLibrary* models = nullptr;
+    const Client::Models::IModelLibrary* models = nullptr;
     std::vector<Client::Protocol::Outgoing> sent;
     Client::Data::Tables::SkillTable skills = SkillsWith({{0x11, 3},
                                                           {0x13, 4},

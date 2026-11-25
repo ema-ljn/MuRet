@@ -302,8 +302,7 @@ Core::Expected<void, std::string> PressTheMixButton(const GameUiContext& context
     NpcWindowState& npc = runtime.npcWindows;
     std::uint32_t zen = 0;
     {
-        const Render::Models::LogicalAccess own(runtime.ownRecordDepth, context.random,
-                                                Render::Models::OwnRecordCloseRandoms);
+        const Models::LogicalAccess own(runtime.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
         zen = context.world.OwnCharacter().zen;
     }
     if (npc.mixPrice >= zen)
@@ -439,7 +438,7 @@ Core::Expected<void, std::string> PriceTheRepairOfEverything(WorldState& world, 
 {
     WorldRuntime& runtime = world.Runtime();
     runtime.npcWindows.repairAllPrice = 0;
-    const Render::Models::LogicalAccess own(runtime.ownRecordDepth, random, Render::Models::OwnRecordCloseRandoms);
+    const Models::LogicalAccess own(runtime.ownRecordDepth, random, Models::OwnRecordCloseRandoms);
     const auto table = [items]() -> Core::Expected<const Data::Tables::ItemTable*, std::string>
     {
         if (items == nullptr)
@@ -636,8 +635,7 @@ Core::Expected<void, std::string> MoveTheWarehouseMoney(const GameUiContext& con
     UI::DialogState& dialogs = runtime.dialogs;
     const std::int32_t money = runtime.social.typedMoney;
     // 0x6270ed..0x62820a: con el registro propio abierto, que se cierra al final (3.848 rand()).
-    const Render::Models::LogicalAccess own(runtime.ownRecordDepth, context.random,
-                                            Render::Models::OwnRecordCloseRandoms);
+    const Models::LogicalAccess own(runtime.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
     const OwnCharacterRecord& record = world.OwnCharacter();
     const auto amount = static_cast<std::uint32_t>(money);
     if (runtime.social.trade.field78abacc == 0)

@@ -54,14 +54,14 @@ void CreateScepterGlow(FrameSprites& sprites, const Math::OriginalMatrix& bone, 
 // uno sin ninguno, repite el último sorteo en el hueso de ahora. El primero sortea; un salto de más de
 // MaxScepterFramesPerAdvance frames saca los de esos y descarta el resto. En el modo fiel (`pace`
 // OncePerDraw), uno por dibujo, como el original (Render::Models::OriginalFrameCarry).
-inline constexpr int MaxScepterFramesPerAdvance = Render::Models::MaxOriginalFramesPerDraw;
+inline constexpr int MaxScepterFramesPerAdvance = Models::MaxOriginalFramesPerDraw;
 
 class ScepterGlowCarry
 {
 public:
     void Create(FrameSprites& sprites, const Math::OriginalMatrix& bone, float bodyScale, const glm::vec3& bodyOrigin,
                 Crt::CrtRandom& random, Core::Duration clock,
-                Render::Models::OriginalFramePace pace = Render::Models::OriginalFramePace::ByTheClock);
+                Models::OriginalFramePace pace = Models::OriginalFramePace::ByTheClock);
     // Create vuelve a contar desde cero, como en el primer frame: el próximo sortea un frame y no pone al día el
     // tiempo que pasó sin dibujo. Es para un frame retenido (Q-C85), como la tela.
     void RestartTheClock()
@@ -70,7 +70,7 @@ public:
     }
 
 private:
-    Render::Models::OriginalFrameCarry m_frames;
+    Models::OriginalFrameCarry m_frames;
     ScepterGlowRandoms m_last{};
 };
 } // namespace Client::World

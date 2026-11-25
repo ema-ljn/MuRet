@@ -113,13 +113,13 @@ constexpr float FlatHeight = 75.0f;
 constexpr std::uint32_t Seed = 0x1616;
 constexpr int MaximumMovementSteps = 256;
 // Dos cierres de espera, tres lecturas de celda en el clic y el sufijo propio/Skill real.
-constexpr int CommonPrefixRandoms = 2 * Client::Render::Models::SmallLogicalCloseRandoms +
-                                    Client::Render::Models::OwnRecordCloseRandoms +
+constexpr int CommonPrefixRandoms = 2 * Client::Models::SmallLogicalCloseRandoms +
+                                    Client::Models::OwnRecordCloseRandoms +
                                     static_cast<int>(Client::Data::Tables::SkillRecordSize);
-constexpr int ClickPrefixRandoms = CommonPrefixRandoms + Client::Render::Models::OwnRecordCloseRandoms +
-                                   3 * Client::Render::Models::SmallLogicalCloseRandoms + 2;
+constexpr int ClickPrefixRandoms =
+    CommonPrefixRandoms + Client::Models::OwnRecordCloseRandoms + 3 * Client::Models::SmallLogicalCloseRandoms + 2;
 // Walk ordinario saca1; el inicio de MovePath escribe X/Y con dos cierres más.
-constexpr int FirstMovingPrefixRandoms = CommonPrefixRandoms + 1 + 2 * Client::Render::Models::SmallLogicalCloseRandoms;
+constexpr int FirstMovingPrefixRandoms = CommonPrefixRandoms + 1 + 2 * Client::Models::SmallLogicalCloseRandoms;
 constexpr float CellSize = 100.0f;
 constexpr float CellCentre = 50.0f;
 
@@ -232,7 +232,7 @@ protected:
 
     Client::Scenes::WorldState m_world;
     Client::Crt::CrtRandom m_random{Seed};
-    Client::Render::Models::Skeleton m_skeleton;
+    Client::Models::Skeleton m_skeleton;
     std::optional<Client::Data::Tables::SkillTable> m_skills;
     std::optional<PathCell> m_target;
     std::vector<std::vector<std::byte>> m_packets;

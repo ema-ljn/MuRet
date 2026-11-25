@@ -88,7 +88,7 @@ Core::Expected<void, std::string> SendTheQuestState(const GameUiContext& context
     static_cast<void>(context.random.Next());
     std::uint8_t serialDepth = 0;
     {
-        const Render::Models::LogicalAccess serial(serialDepth, context.random, Render::Models::SerialCloseRandoms);
+        const Models::LogicalAccess serial(serialDepth, context.random, Models::SerialCloseRandoms);
     }
     context.requests->SendSetQuest(context.world.Runtime().quest.current, QuestInProgress);
     return {};

@@ -25,10 +25,10 @@ using Client::Data::Models::PlayerActionSpeed;
 using Client::Data::Models::PlayerActionsWithoutRepeat;
 using Client::Data::Models::PlayerHeadBone;
 using Client::Math::AngleQuaternion;
-using Client::Render::Models::BoneKey;
-using Client::Render::Models::MakePlayerSkeleton;
-using Client::Render::Models::MakeSkeleton;
-using Client::Render::Models::Skeleton;
+using Client::Models::BoneKey;
+using Client::Models::MakePlayerSkeleton;
+using Client::Models::MakeSkeleton;
+using Client::Models::Skeleton;
 using Client::Tests::SampleModel;
 
 glm::vec3 ToVec3(const std::array<float, 3>& value)

@@ -70,8 +70,7 @@ void RefreshCombatActionSpeeds(WorldState& world, Crt::CrtRandom& random)
     float magic = 0.0f;
     float halfMagic = 0.0f;
     {
-        const Render::Models::LogicalAccess access(world.Runtime().ownRecordDepth, random,
-                                                   Render::Models::OwnRecordCloseRandoms);
+        const Models::LogicalAccess access(world.Runtime().ownRecordDepth, random, Models::OwnRecordCloseRandoms);
         const auto& own = world.OwnCharacter();
         constexpr double FullFactor = static_cast<double>(0.004f);
         constexpr double HalfFactor = static_cast<double>(0.002f);

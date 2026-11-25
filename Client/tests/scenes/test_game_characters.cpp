@@ -166,13 +166,13 @@ TEST(GameCharactersTest, TheFirstSeenCharacterStopsThePass)
 
 constexpr std::uint16_t Boots = Client::Data::Models::ItemModel(11, 0);
 
-class UnarmedModels final : public Client::Render::Models::IModelLibrary
+class UnarmedModels final : public Client::Models::IModelLibrary
 {
 public:
     UnarmedModels()
     {
-        Client::Render::Models::SkeletonBone bone;
-        bone.actions.assign(Client::Tests::PlayerActionCount, {Client::Render::Models::BoneKey{}});
+        Client::Models::SkeletonBone bone;
+        bone.actions.assign(Client::Tests::PlayerActionCount, {Client::Models::BoneKey{}});
         m_skeleton.bones.push_back(bone);
         m_skeleton.actions.assign(Client::Tests::PlayerActionCount, {.keyCount = 1});
         Client::Data::Models::Mesh mesh;
@@ -188,7 +188,7 @@ public:
     {
         return model == Boots || model == Client::Data::Models::PlayerShadowModel ? &m_model : nullptr;
     }
-    [[nodiscard]] const Client::Render::Models::Skeleton* SkeletonOf(std::uint16_t model) const override
+    [[nodiscard]] const Client::Models::Skeleton* SkeletonOf(std::uint16_t model) const override
     {
         return model == Client::Data::Models::PlayerSkeletonModel ? &m_skeleton : nullptr;
     }
@@ -209,7 +209,7 @@ public:
 
 private:
     Client::Data::Models::Model m_model;
-    Client::Render::Models::Skeleton m_skeleton;
+    Client::Models::Skeleton m_skeleton;
     std::array<Client::Render::TextureSlot, 1> m_textures{Client::Render::TextureSlot{0x300}};
 };
 
@@ -254,7 +254,7 @@ protected:
     std::unique_ptr<Client::Scenes::WorldState> m_world;
     std::unique_ptr<Client::World::TerrainLighting> m_light;
     UnarmedModels m_models;
-    Client::Render::Models::ClothWorld m_cloth;
+    Client::Models::ClothWorld m_cloth;
     Client::Render::ModelBatch m_batch;
 };
 
@@ -898,7 +898,7 @@ TEST_F(UnarmedGameCharacterTest, TheBodyGoesToItsOwnBonesAndNeverToTheGlobalPose
         pass.publishProjectedPose = true;
         std::vector<std::uint16_t> published;
         pass.onPose = [&](std::uint16_t model, std::span<const Client::Math::BoneTransform>,
-                          const Client::Render::Models::ObjectTransform&, bool) { published.push_back(model); };
+                          const Client::Models::ObjectTransform&, bool) { published.push_back(model); };
 
         const auto result = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, pass);
 

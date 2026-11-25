@@ -11,7 +11,7 @@
 // Las UV de los pases de brillo de un modelo, como 0x4ecc30: salen de la normal de cada vértice en el
 // mundo, girada por su hueso y sin la escala del objeto (SkinnedMesh::normals), y del reloj del frame
 // (Client/docs/research/06-render-escenas-y-ui.md, "El personaje, vértice a vértice").
-namespace Client::Render::Models
+namespace Client::Models
 {
 // Los pases de los niveles (ItemGlow), con su bandera del dibujo de 0x4ecc30: los tres que muestra
 // la traza, con su textura en ella, y los dos de los niveles 11 y 12 y de un ítem de set, *estáticos*.
@@ -35,4 +35,4 @@ enum class ShinePass : std::uint8_t
 // (4,7 horas) ya no cuenta de a uno (Q-C22): acá T es el reloj entero, y uno negativo cuenta 0.
 [[nodiscard]] ENGINE_API glm::vec2 ShineTexCoords(ShinePass pass, const glm::vec3& worldNormal,
                                                   Core::Duration frameClock);
-} // namespace Client::Render::Models
+} // namespace Client::Models

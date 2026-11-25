@@ -30,16 +30,16 @@
 
 namespace
 {
-class Models : public Client::Render::Models::IModelLibrary
+class Models : public Client::Models::IModelLibrary
 {
 public:
-    Client::Render::Models::Skeleton skeleton;
+    Client::Models::Skeleton skeleton;
     bool missingPrefix = false;
     const Client::Data::Models::Model* Find(std::uint16_t) const override
     {
         return nullptr;
     }
-    const Client::Render::Models::Skeleton* SkeletonOf(std::uint16_t model) const override
+    const Client::Models::Skeleton* SkeletonOf(std::uint16_t model) const override
     {
         if (model == 0xffff && missingPrefix)
             return nullptr;
@@ -60,7 +60,7 @@ protected:
     Client::World::WorldTerrain m_terrain;
     Client::World::TerrainLighting m_light;
     Models m_models;
-    Client::Render::Models::ClothWorld m_cloth;
+    Client::Models::ClothWorld m_cloth;
     Client::Scenes::FaunaStepContext Context(float time = 0)
     {
         return {m_fauna, m_map, m_storm, m_hero, m_action, m_flag, m_terrain, m_light, m_models, m_cloth, time};
@@ -276,7 +276,7 @@ TEST_F(FaunaStepTest, KalimaSetActionNeedsTheExplicitSignedPrefixModelLoan)
     EXPECT_FALSE(missing.HasValue());
     EXPECT_EQ(m_fauna.Fish()[0].model, -1);
     EXPECT_TRUE(m_fauna.Fish()[0].active);
-    const Client::Render::Models::Skeleton prefix;
+    const Client::Models::Skeleton prefix;
     context.prefixModel = &prefix;
     const auto borrowed = StepGameFish(context);
     ASSERT_TRUE(borrowed.HasValue()) << borrowed.Error();

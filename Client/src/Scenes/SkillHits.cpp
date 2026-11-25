@@ -87,7 +87,7 @@ Core::Expected<bool, std::string> HitTheTargetsAround(const SkillHitsRequest& re
     // 0x517a44..0x517af3.
     std::uint8_t skill = 0;
     {
-        const Render::Models::LogicalAccess own(runtime.ownRecordDepth, random, Render::Models::OwnRecordCloseRandoms);
+        const Models::LogicalAccess own(runtime.ownRecordDepth, random, Models::OwnRecordCloseRandoms);
         skill = OwnSkillByte(world.OwnCharacter(), request.skillIndex);
     }
     // 0x517af8..0x517b3f: en el 30 con el asedio (0x4294b0), el bit 0x100 de la celda del punto (0x5f82c0) sale con 0;

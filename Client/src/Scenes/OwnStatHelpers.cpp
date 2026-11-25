@@ -698,7 +698,7 @@ void UpdateRingSpeeds(OwnCharacterRecord& own, const ItemState& slot10, const It
     if (IsSpeedRing(slot11) || IsSpeedRing(slot10))
     {
         AddToSpeeds(own, RingBonus);
-        const Render::Models::LogicalAccess access(ownRecordAccesses, random, Render::Models::OwnRecordCloseRandoms);
+        const Models::LogicalAccess access(ownRecordAccesses, random, Models::OwnRecordCloseRandoms);
         own.speedAdjustBits = static_cast<std::uint8_t>(own.speedAdjustBits | RingBit);
         return;
     }
@@ -706,7 +706,7 @@ void UpdateRingSpeeds(OwnCharacterRecord& own, const ItemState& slot10, const It
     {
         return;
     }
-    const Render::Models::LogicalAccess access(ownRecordAccesses, random, Render::Models::OwnRecordCloseRandoms);
+    const Models::LogicalAccess access(ownRecordAccesses, random, Models::OwnRecordCloseRandoms);
     own.speedAdjustBits = static_cast<std::uint8_t>(own.speedAdjustBits & AllButRingBit);
 }
 

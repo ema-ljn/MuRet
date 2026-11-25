@@ -59,7 +59,7 @@ constexpr glm::vec3 FourthBonePoint{-70.0f, 80.0f, 90.0f};
 constexpr Client::Render::TextureSlot OwnTexture{0x400};
 
 // Un triángulo con su textura y un hueso.
-class TriangleModels final : public Client::Render::Models::IModelLibrary
+class TriangleModels final : public Client::Models::IModelLibrary
 {
 public:
     TriangleModels()
@@ -71,16 +71,16 @@ public:
         mesh.triangles = {{3, {0, 1, 2, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}}};
         mesh.textureName = "plain.jpg";
         model.meshes = {mesh};
-        Client::Render::Models::SkeletonBone bone;
-        bone.actions = {{Client::Render::Models::BoneKey{}}};
+        Client::Models::SkeletonBone bone;
+        bone.actions = {{Client::Models::BoneKey{}}};
         skeleton.bones = {bone};
-        skeleton.actions = {Client::Render::Models::ActionInfo{.keyCount = 1}};
+        skeleton.actions = {Client::Models::ActionInfo{.keyCount = 1}};
     }
     const Client::Data::Models::Model* Find(std::uint16_t) const override
     {
         return &model;
     }
-    const Client::Render::Models::Skeleton* SkeletonOf(std::uint16_t) const override
+    const Client::Models::Skeleton* SkeletonOf(std::uint16_t) const override
     {
         return &skeleton;
     }
@@ -89,7 +89,7 @@ public:
         return textures;
     }
     Client::Data::Models::Model model;
-    Client::Render::Models::Skeleton skeleton;
+    Client::Models::Skeleton skeleton;
     std::array<Client::Render::TextureSlot, 1> textures{OwnTexture};
 };
 
@@ -130,7 +130,7 @@ struct Drawer
                          Translation(ThirdBonePoint), Translation(FourthBonePoint)};
                 return published;
             },
-            .posedMeshes = [this]() -> std::span<const Client::Render::Models::SkinnedMesh> { return carry.meshes; },
+            .posedMeshes = [this]() -> std::span<const Client::Models::SkinnedMesh> { return carry.meshes; },
             .sprites = &sprites,
             .random = withRandom ? &random : nullptr,
             .kalimaPass = pass.get(),

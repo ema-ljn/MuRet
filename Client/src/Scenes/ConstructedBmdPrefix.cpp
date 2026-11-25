@@ -20,7 +20,7 @@ Core::Expected<void, std::string> ConstructedBmdPrefix::Initialize(std::uint16_t
     m_offset = constructedBeforeBase;
     return {};
 }
-const Render::Models::Skeleton* ConstructedBmdPrefix::BorrowForSetAction() const
+const Models::Skeleton* ConstructedBmdPrefix::BorrowForSetAction() const
 {
     if (!m_offset || *m_offset == 0)
         return nullptr;

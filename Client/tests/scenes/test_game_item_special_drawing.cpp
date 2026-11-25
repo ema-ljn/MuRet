@@ -28,7 +28,7 @@
 #include <vector>
 namespace
 {
-class SpecialModels final : public Client::Render::Models::IModelLibrary
+class SpecialModels final : public Client::Models::IModelLibrary
 {
 public:
     SpecialModels()
@@ -50,7 +50,7 @@ public:
     {
         return available ? &model : nullptr;
     }
-    const Client::Render::Models::Skeleton* SkeletonOf(std::uint16_t) const override
+    const Client::Models::Skeleton* SkeletonOf(std::uint16_t) const override
     {
         return nullptr;
     }
@@ -61,7 +61,7 @@ public:
     bool available = true;
     std::size_t textureCount = 7;
     Client::Data::Models::Model model;
-    std::vector<Client::Render::Models::SkinnedMesh> meshes;
+    std::vector<Client::Models::SkinnedMesh> meshes;
     std::array<Client::Render::TextureSlot, 7> textures{
         Client::Render::TextureSlot{0x400}, Client::Render::TextureSlot{0x401}, Client::Render::TextureSlot{0x402},
         Client::Render::TextureSlot{0x403}, Client::Render::TextureSlot{0x404}, Client::Render::TextureSlot{0x405},

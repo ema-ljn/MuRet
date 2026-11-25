@@ -362,8 +362,7 @@ Core::Expected<void, std::string> CommandATrade(const GameUiContext& context, co
     UI::DelegatedPanels& delegated = runtime.panels.delegated;
     std::uint16_t level = 0;
     {
-        const Render::Models::LogicalAccess own(runtime.ownRecordDepth, context.random,
-                                                Render::Models::OwnRecordCloseRandoms);
+        const Models::LogicalAccess own(runtime.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
         level = world.OwnCharacter().level;
     }
     if (level < UI::DefaultTradeLevel)
@@ -499,7 +498,7 @@ Core::Expected<void, std::string> PlayTheEndOfAHostility(const GameChatContext& 
     if (skeleton == nullptr)
         return Core::Unexpected(
             std::format("{}: sin las acciones del modelo {:#x} del héroe (0x4ea030)", animation, hero.type));
-    Render::Models::SetAction(hero.animation, *skeleton, EndOfHostilityAnimation);
+    Models::SetAction(hero.animation, *skeleton, EndOfHostilityAnimation);
     const ActionSender sendAction = [&chat](std::uint8_t direction, std::uint8_t sent)
     {
         if (chat.send)

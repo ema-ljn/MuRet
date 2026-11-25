@@ -72,14 +72,14 @@ Particle Smoke()
     p.position = {10.0f, 20.0f, 1000.0f};
     return p;
 }
-class SmokeTextures final : public Client::Render::Models::IModelLibrary
+class SmokeTextures final : public Client::Models::IModelLibrary
 {
 public:
     const Client::Data::Models::Model* Find(std::uint16_t) const override
     {
         return nullptr;
     }
-    const Client::Render::Models::Skeleton* SkeletonOf(std::uint16_t) const override
+    const Client::Models::Skeleton* SkeletonOf(std::uint16_t) const override
     {
         return nullptr;
     }
@@ -87,13 +87,13 @@ public:
     {
         return {};
     }
-    std::optional<Client::Scenes::TextureMetadata> TextureMetadataOf(std::uint32_t selector) const override
+    std::optional<Client::Models::TextureMetadata> TextureMetadataOf(std::uint32_t selector) const override
     {
         if (selector != Client::World::BreathParticle && selector != Client::World::DustParticle && selector != 0x999)
         {
             return std::nullopt;
         }
-        Client::Scenes::TextureMetadata metadata(Client::Data::Textures::Texture{});
+        Client::Models::TextureMetadata metadata(Client::Data::Textures::Texture{});
         metadata.size = {32.0f, 16.0f};
         metadata.components = 3;
         return metadata;
@@ -106,7 +106,7 @@ public:
     }
 };
 
-class FountainModels final : public Client::Render::Models::IModelLibrary
+class FountainModels final : public Client::Models::IModelLibrary
 {
 public:
     FountainModels()
@@ -115,7 +115,7 @@ public:
         skeleton.bones.resize(5);
         for (std::size_t i = 0; i < skeleton.bones.size(); ++i)
         {
-            Client::Render::Models::BoneKey key;
+            Client::Models::BoneKey key;
             key.position = {static_cast<float>(i * 10u), 0.0f, 0.0f};
             skeleton.bones[i].actions = {{key}};
         }
@@ -124,7 +124,7 @@ public:
     {
         return &model;
     }
-    const Client::Render::Models::Skeleton* SkeletonOf(std::uint16_t) const override
+    const Client::Models::Skeleton* SkeletonOf(std::uint16_t) const override
     {
         return &skeleton;
     }
@@ -133,7 +133,7 @@ public:
         return {};
     }
     Client::Data::Models::Model model;
-    Client::Render::Models::Skeleton skeleton;
+    Client::Models::Skeleton skeleton;
 };
 } // namespace
 

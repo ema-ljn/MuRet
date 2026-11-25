@@ -118,7 +118,7 @@ MoveCheck CheckTheMove(WorldState& world, std::uint8_t& ownRecordDepth, Crt::Crt
     std::int32_t level = 0;
     MoveCheck check{.level = move.level, .levelOk = false, .zenOk = false, .allowed = false};
     {
-        const Render::Models::LogicalAccess own(ownRecordDepth, random, Render::Models::OwnRecordCloseRandoms);
+        const Models::LogicalAccess own(ownRecordDepth, random, Models::OwnRecordCloseRandoms);
         const OwnCharacterRecord& record = world.OwnCharacter();
         money = record.zen;
         level = record.level;

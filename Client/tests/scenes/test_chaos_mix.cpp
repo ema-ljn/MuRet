@@ -35,7 +35,7 @@ using Client::Scenes::NpcWindowState;
 using Client::Scenes::WorldState;
 using Client::World::ItemState;
 
-constexpr int Own = Client::Render::Models::OwnRecordCloseRandoms;
+constexpr int Own = Client::Models::OwnRecordCloseRandoms;
 constexpr std::uint32_t Seed = 0x13572468u;
 
 constexpr std::uint16_t Sword = 0x0001;

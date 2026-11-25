@@ -37,7 +37,7 @@ struct TerrainPolygon;
 struct WorldTerrain;
 } // namespace Client::World
 
-namespace Client::Render::Models
+namespace Client::Models
 {
 class IModelLibrary;
 }
@@ -145,7 +145,7 @@ struct GameCharacterEffectsPass
 struct GameRavenPass
 {
     Render::ModelBatch& batch;
-    const Render::Models::IModelLibrary& models;
+    const Models::IModelLibrary& models;
     // El trapecio de este dibujo (0x5fba90) y el buffer dinámico de la luz del terreno (0x5ffce0).
     const World::TerrainPolygon& polygon;
     const World::TerrainLighting* lighting = nullptr;

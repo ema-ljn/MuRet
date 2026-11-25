@@ -5,7 +5,7 @@
 #include <algorithm>
 #include <cstdint>
 
-namespace Client::Render::Models
+namespace Client::Models
 {
 namespace
 {
@@ -56,4 +56,4 @@ ItemGlow ItemGlowOf(std::uint8_t level, bool excellent, bool ancient, std::uint8
     }
     return glow;
 }
-} // namespace Client::Render::Models
+} // namespace Client::Models

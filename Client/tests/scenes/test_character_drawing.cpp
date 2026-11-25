@@ -51,15 +51,15 @@ using Client::Data::Models::Mesh;
 using Client::Data::Models::Model;
 using Client::Math::RoundedCos;
 using Client::Math::RoundedSin;
+using Client::Models::ActionInfo;
+using Client::Models::BoneKey;
+using Client::Models::IModelLibrary;
+using Client::Models::Skeleton;
+using Client::Models::SkeletonBone;
 using Client::Render::ModelBatch;
 using Client::Render::ModelBlend;
 using Client::Render::ModelDrawState;
 using Client::Render::TextureSlot;
-using Client::Render::Models::ActionInfo;
-using Client::Render::Models::BoneKey;
-using Client::Render::Models::IModelLibrary;
-using Client::Render::Models::Skeleton;
-using Client::Render::Models::SkeletonBone;
 using Client::Scenes::DrawCharacter;
 using Client::Scenes::DrawDarkHorse;
 using Client::Scenes::DrawnCharacter;
@@ -402,7 +402,7 @@ TEST(CharacterDrawingTest, AThirteenPartGlowsWithItsLightAndItsColor)
 
     const auto vertices = batch.Vertices();
     ASSERT_EQ(vertices.size(), 4u * 3u);
-    const Client::Render::Color item = Client::Render::Models::ShineColorOf(part);
+    const Client::Render::Color item = Client::Models::ShineColorOf(part);
     ExpectColor(vertices[0], 0.4f * 0.9f, 0.4f * 0.9f, 0.4f * 0.9f);
     ExpectColor(vertices[3], 0.4f * 0.9f, 0.4f * 0.9f, 0.4f * 0.9f);
     ExpectColor(vertices[6], item.red, item.green, item.blue);
@@ -423,7 +423,7 @@ TEST(CharacterDrawingTest, TheExcellentPassPulses)
 
     const auto vertices = batch.Vertices();
     ASSERT_EQ(vertices.size(), 2u * 3u);
-    const Client::Render::Color pulse = Client::Render::Models::ExcellentColorAt(std::chrono::milliseconds{250});
+    const Client::Render::Color pulse = Client::Models::ExcellentColorAt(std::chrono::milliseconds{250});
     ExpectColor(vertices[3], pulse.red, pulse.green, pulse.blue);
 }
 
@@ -824,7 +824,7 @@ TEST(CharacterDrawingTest, TheBlendMeshLightOfClassFourPulses)
 TEST(CharacterDrawingTest, TheExcellentPassOfTheBlendMeshTakesItsLight)
 {
     const float pulse = RoundedSin(0.25f) * 0.1f + 0.7f;
-    const Client::Render::Color excellent = Client::Render::Models::ExcellentColorAt(std::chrono::milliseconds{250});
+    const Client::Render::Color excellent = Client::Models::ExcellentColorAt(std::chrono::milliseconds{250});
 
     const ModelBatch batch = DrawnBlendMesh(4, true);
 
@@ -1215,7 +1215,7 @@ TEST(CharacterDrawingTest, TheSetPassFadesMeshByMesh)
     const ModelBatch batch = DrawnSet(2);
     const float alpha = RoundedSin(0.25f) * 0.5f + 0.4f;
     const Client::Render::Color set =
-        Client::Render::Models::SetColorOf(Client::GameLogic::ClassAppearance(0, 0).bodyParts[1].model);
+        Client::Models::SetColorOf(Client::GameLogic::ClassAppearance(0, 0).bodyParts[1].model);
 
     const auto vertices = batch.Vertices();
     ASSERT_EQ(vertices.size(), 4u * 3u);
@@ -1231,7 +1231,7 @@ TEST(CharacterDrawingTest, AMeshWithoutShineDoesNotFadeTheSetPass)
     const ModelBatch batch = DrawnSet(3, "part_N.jpg");
     const float alpha = RoundedSin(0.25f) * 0.5f + 0.4f;
     const Client::Render::Color set =
-        Client::Render::Models::SetColorOf(Client::GameLogic::ClassAppearance(0, 0).bodyParts[1].model);
+        Client::Models::SetColorOf(Client::GameLogic::ClassAppearance(0, 0).bodyParts[1].model);
 
     const auto vertices = batch.Vertices();
     ASSERT_EQ(vertices.size(), 5u * 3u);
@@ -1622,7 +1622,7 @@ TEST(CharacterDrawingTest, TheChromeOfATranslatedScratchIgnoresTheObjectScale)
     DrawnObject object = LitObject();
     object.model = 0x197;
     object.transform.scale = 1.5f;
-    std::array<Client::Render::Models::SkinnedMesh, 1> meshes{};
+    std::array<Client::Models::SkinnedMesh, 1> meshes{};
     meshes[0].positions = {{0, 0, 0}, {1, 0, 0}, {0, 1, 0}};
     meshes[0].normals = {{0, 0, 1}};
     ModelBatch batch;
@@ -1878,7 +1878,7 @@ TEST(CharacterDrawingTest, TheScepterAsksForItsFiveSprites)
     character.object.position = {1000.0f, 2000.0f, 300.0f};
     character.object.angles = {0.0f, 0.0f, 90.0f};
     character.object.scale = 1.5f;
-    Client::Render::Models::ClothWorld world{.random = Client::Crt::CrtRandom(7)};
+    Client::Models::ClothWorld world{.random = Client::Crt::CrtRandom(7)};
     Client::World::FrameSprites sprites;
     character.clothWorld = &world;
     character.sprites = &sprites;
@@ -1892,8 +1892,7 @@ TEST(CharacterDrawingTest, TheScepterAsksForItsFiveSprites)
     // La raíz es el hueso 33 del cuerpo plano: el giro del personaje, sin traslación.
     const Client::Math::BoneTransform root = Client::Math::AngleMatrix({0.0f, 0.0f, 90.0f});
     std::vector<Client::Math::BoneTransform> mace(1);
-    ASSERT_TRUE(Client::Render::Models::PoseAttached(models.ItemSkeleton(), Client::Render::Models::AnimationState{},
-                                                     root, mace));
+    ASSERT_TRUE(Client::Models::PoseAttached(models.ItemSkeleton(), Client::Models::AnimationState{}, root, mace));
     ASSERT_NE(mace.front(), root);
     Client::World::FrameSprites expected;
     Client::Crt::CrtRandom random(7);
@@ -1919,7 +1918,7 @@ TEST(CharacterDrawingTest, TheScepterDrawsOncePerOriginalFrameWithItsCarry)
     DrawnCharacter character;
     character.appearance = Client::GameLogic::ClassAppearance(0, 0);
     character.appearance.rightHand = Client::GameLogic::WornItem{.model = Client::World::HdkMaceModel};
-    Client::Render::Models::ClothWorld world{.random = Client::Crt::CrtRandom(7)};
+    Client::Models::ClothWorld world{.random = Client::Crt::CrtRandom(7)};
     Client::World::ScepterGlowCarry carry;
     character.clothWorld = &world;
     character.scepter = &carry;
@@ -1951,7 +1950,7 @@ TEST(CharacterDrawingTest, OnlyTheScepterWithTheTableAsksForSprites)
         DrawnCharacter character;
         character.appearance = Client::GameLogic::ClassAppearance(0, 0);
         character.appearance.leftHand = Client::GameLogic::WornItem{.model = Client::World::HdkMaceModel};
-        Client::Render::Models::ClothWorld world;
+        Client::Models::ClothWorld world;
         Client::World::FrameSprites sprites;
         character.clothWorld = &world;
         character.sprites = &sprites;
@@ -1962,7 +1961,7 @@ TEST(CharacterDrawingTest, OnlyTheScepterWithTheTableAsksForSprites)
         DrawnCharacter character;
         character.appearance = Client::GameLogic::ClassAppearance(0, 0);
         character.appearance.rightHand = Client::GameLogic::WornItem{.model = Client::World::HdkMaceModel};
-        Client::Render::Models::ClothWorld world;
+        Client::Models::ClothWorld world;
         character.clothWorld = &world;
         (void)Drawn(mace, character);
         EXPECT_EQ(world.random.State(), Client::Crt::CrtRandom().State()) << "sin la tabla";
@@ -1977,7 +1976,7 @@ TEST(CharacterDrawingTest, OnlyTheScepterWithTheTableAsksForSprites)
         DrawnCharacter character;
         character.appearance = Client::GameLogic::ClassAppearance(0, 0);
         character.appearance.rightHand = Client::GameLogic::WornItem{.model = 0x212};
-        Client::Render::Models::ClothWorld world;
+        Client::Models::ClothWorld world;
         Client::World::FrameSprites sprites;
         character.clothWorld = &world;
         character.sprites = &sprites;
@@ -2024,12 +2023,12 @@ TEST(CharacterDrawingTest, ThePointOfABoneIsWhereItsVertexWouldBe)
     const glm::vec3 offset{50.0f, -4.0f, 0.0f};
 
     std::vector<Client::Math::BoneTransform> bones(1);
-    ASSERT_TRUE(Client::Render::Models::PoseSkeleton(models.ItemSkeleton(), object.animation, object.transform,
-                                                     glm::vec2(0.0f), bones));
+    ASSERT_TRUE(Client::Models::PoseSkeleton(models.ItemSkeleton(), object.animation, object.transform, glm::vec2(0.0f),
+                                             bones));
     Mesh mesh;
     mesh.vertices = {{0, {offset.x, offset.y, offset.z}}};
-    Client::Render::Models::SkinnedMesh skinned;
-    ASSERT_TRUE(Client::Render::Models::SkinMesh(mesh, bones, object.transform, skinned));
+    Client::Models::SkinnedMesh skinned;
+    ASSERT_TRUE(Client::Models::SkinMesh(mesh, bones, object.transform, skinned));
 
     const auto point = Client::Scenes::PosedBonePoint(models, object, 0, offset);
     ASSERT_TRUE(point.has_value());
@@ -2073,7 +2072,7 @@ TEST(CharacterDrawingTest, PublishesTheCalculatedBodyAndAttachedMatricesInDrawOr
     character.object.scale = 2;
     std::vector<std::uint16_t> published;
     character.onPose = [&](std::uint16_t model, std::span<const Client::Math::BoneTransform> bones,
-                           const Client::Render::Models::ObjectTransform& transform, bool translated)
+                           const Client::Models::ObjectTransform& transform, bool translated)
     {
         published.push_back(model);
         EXPECT_FALSE(bones.empty());

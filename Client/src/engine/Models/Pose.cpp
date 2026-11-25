@@ -15,7 +15,7 @@
 #include <span>
 #include <vector>
 
-namespace Client::Render::Models
+namespace Client::Models
 {
 namespace
 {
@@ -197,4 +197,4 @@ bool PoseAttached(const Skeleton& skeleton, const AnimationState& animation, con
 {
     return PoseFromRoot(skeleton, animation, ObjectTransform{}, root, glm::vec2(0.0f), bones);
 }
-} // namespace Client::Render::Models
+} // namespace Client::Models

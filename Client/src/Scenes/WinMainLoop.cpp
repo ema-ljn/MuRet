@@ -19,7 +19,7 @@ namespace Client::Scenes
 namespace
 {
 // 0x412890: el cierre de una variable protegida saca un rand() por byte; el contador tiene 4.
-constexpr std::uint16_t CounterCloseRandoms = Render::Models::SmallLogicalCloseRandoms;
+constexpr std::uint16_t CounterCloseRandoms = Models::SmallLogicalCloseRandoms;
 // 0x4c0ec0: el cierre del byte del foco.
 constexpr std::uint16_t FocusCloseRandoms = 1;
 // 0x4bbd44 y 0x4bbed5: los dos contadores comparan con 30.
@@ -77,7 +77,7 @@ bool InTheDeviasChurch(ActorState& hero, Crt::CrtRandom& random)
 {
     const auto read = [&random](const std::uint8_t& cell, std::uint8_t& depth, std::uint32_t& left)
     {
-        const Render::Models::LogicalAccess access(depth, random, Render::Models::SmallLogicalCloseRandoms, left);
+        const Models::LogicalAccess access(depth, random, Models::SmallLogicalCloseRandoms, left);
         return cell;
     };
     return read(hero.cellX, hero.cellXAccesses, hero.cellXLeft) >= 205 &&
@@ -156,7 +156,7 @@ void StepWorldAmbience(WorldRuntime& runtime, Crt::CrtRandom& random)
 }
 
 void FinishTheWinMainLoop(WinMainLoopState& loop, WorldState& world, Crt::CrtRandom& random, Core::Duration now,
-                          Render::Models::OriginalFramePace pace, bool gameScene)
+                          Models::OriginalFramePace pace, bool gameScene)
 {
     world.Runtime().ui.enterPressed = false;
     const int frames = loop.frames.FramesAt(now, pace);

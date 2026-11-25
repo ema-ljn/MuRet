@@ -492,7 +492,7 @@ struct Harness
     Client::Scenes::SingleModelLibrary models;
     RecordingFrameTarget target;
     InputState input;
-    Client::Render::Models::ClothWorld cloth;
+    Client::Models::ClothWorld cloth;
     std::optional<LoginScene> scene;
     std::size_t gameServerStart = 0;
 };

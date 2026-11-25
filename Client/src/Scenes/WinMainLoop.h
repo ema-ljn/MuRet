@@ -33,7 +33,7 @@ struct WinMainCounters
 struct WinMainLoopState
 {
     WinMainCounters counters;
-    Render::Models::OriginalFrameCarry frames;
+    Models::OriginalFrameCarry frames;
 };
 
 // 0x4bbc57..0x4bdf6d y 0x4bdf76..0x4be02f: el contador y el foco, antes del frame. 5 rand(); en la vuelta 31,
@@ -55,5 +55,5 @@ void StepWorldAmbience(WorldRuntime& runtime, Crt::CrtRandom& random);
 // frame counter of 0x63945d; the Slide banner's WM_TIMER 0x3eb if it is due (P-C80; once, with the loop's time in ms
 // as timeGetTime); and the counters of the next turn (P-C61).
 void FinishTheWinMainLoop(WinMainLoopState& loop, WorldState& world, Crt::CrtRandom& random, Core::Duration now,
-                          Render::Models::OriginalFramePace pace, bool gameScene);
+                          Models::OriginalFramePace pace, bool gameScene);
 } // namespace Client::Scenes

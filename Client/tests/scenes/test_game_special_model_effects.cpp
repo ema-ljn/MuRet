@@ -35,14 +35,14 @@
 
 namespace
 {
-class NoModels final : public Client::Render::Models::IModelLibrary
+class NoModels final : public Client::Models::IModelLibrary
 {
 public:
     const Client::Data::Models::Model* Find(std::uint16_t) const override
     {
         return nullptr;
     }
-    const Client::Render::Models::Skeleton* SkeletonOf(std::uint16_t) const override
+    const Client::Models::Skeleton* SkeletonOf(std::uint16_t) const override
     {
         return nullptr;
     }
@@ -51,7 +51,7 @@ public:
         return {};
     }
 };
-class TriangleModels final : public Client::Render::Models::IModelLibrary
+class TriangleModels final : public Client::Models::IModelLibrary
 {
 public:
     TriangleModels()
@@ -63,16 +63,16 @@ public:
         mesh.triangles = {{3, {0, 1, 2, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}}};
         mesh.textureName = "plain.jpg";
         model.meshes = {mesh};
-        Client::Render::Models::SkeletonBone bone;
-        bone.actions = {{Client::Render::Models::BoneKey{}}};
+        Client::Models::SkeletonBone bone;
+        bone.actions = {{Client::Models::BoneKey{}}};
         skeleton.bones = {bone};
-        skeleton.actions = {Client::Render::Models::ActionInfo{.keyCount = 1}};
+        skeleton.actions = {Client::Models::ActionInfo{.keyCount = 1}};
     }
     const Client::Data::Models::Model* Find(std::uint16_t) const override
     {
         return &model;
     }
-    const Client::Render::Models::Skeleton* SkeletonOf(std::uint16_t) const override
+    const Client::Models::Skeleton* SkeletonOf(std::uint16_t) const override
     {
         return &skeleton;
     }
@@ -81,7 +81,7 @@ public:
         return textures;
     }
     Client::Data::Models::Model model;
-    Client::Render::Models::Skeleton skeleton;
+    Client::Models::Skeleton skeleton;
     std::array<Client::Render::TextureSlot, 1> textures{Client::Render::TextureSlot{0x400}};
 };
 class AttributeSource final : public Client::World::ITerrainAttributeQuerySource
@@ -104,7 +104,7 @@ public:
 // Un triángulo del hueso 0 con vértices que redondean y `bones` huesos sin giro: la raíz en `root` y los demás,
 // hijos de la raíz, en su origen. Con los ángulos del efecto en 0, la pose de 0x4eb860 sin trasladar da la
 // identidad con esa traslación, sin la escala ni el origen del efecto.
-class PosedItemModels final : public Client::Render::Models::IModelLibrary
+class PosedItemModels final : public Client::Models::IModelLibrary
 {
 public:
     PosedItemModels(std::size_t bones, const glm::vec3& root)
@@ -118,18 +118,18 @@ public:
         model.meshes = {mesh};
         for (std::size_t bone = 0; bone < bones; ++bone)
         {
-            Client::Render::Models::SkeletonBone posed;
+            Client::Models::SkeletonBone posed;
             posed.parent = bone == 0 ? std::int16_t{-1} : std::int16_t{0};
-            posed.actions = {{Client::Render::Models::BoneKey{.position = bone == 0 ? root : glm::vec3(0)}}};
+            posed.actions = {{Client::Models::BoneKey{.position = bone == 0 ? root : glm::vec3(0)}}};
             skeleton.bones.push_back(posed);
         }
-        skeleton.actions = {Client::Render::Models::ActionInfo{.keyCount = 1}};
+        skeleton.actions = {Client::Models::ActionInfo{.keyCount = 1}};
     }
     const Client::Data::Models::Model* Find(std::uint16_t) const override
     {
         return &model;
     }
-    const Client::Render::Models::Skeleton* SkeletonOf(std::uint16_t) const override
+    const Client::Models::Skeleton* SkeletonOf(std::uint16_t) const override
     {
         return &skeleton;
     }
@@ -138,7 +138,7 @@ public:
         return textures;
     }
     Client::Data::Models::Model model;
-    Client::Render::Models::Skeleton skeleton;
+    Client::Models::Skeleton skeleton;
     std::array<Client::Render::TextureSlot, 1> textures{Client::Render::TextureSlot{0x400}};
 };
 
@@ -404,7 +404,7 @@ TEST(GameSpecialModelEffectsTest, SpinningItemPublishesItsTemporaryPoseAndRestor
         EXPECT_EQ(object.transform.angles, (glm::vec3{10, 90, 60}));
         return Client::Scenes::PublishFaunaPose(carry, models, object, false);
     };
-    resources.posedMeshes = [&] { return std::span<const Client::Render::Models::SkinnedMesh>(carry.meshes); };
+    resources.posedMeshes = [&] { return std::span<const Client::Models::SkinnedMesh>(carry.meshes); };
     ASSERT_TRUE(
         Client::Scenes::DrawGameModelEffects(batch, models, std::span(&effect, 1), {}, nullptr, {}, 0, resources)
             .HasValue());
@@ -436,7 +436,7 @@ TEST(GameSpecialModelEffectsTest, BloodCastleBodyUsesThePublishedPoseAndAdditive
         EXPECT_FLOAT_EQ(effect.objectState.light, 0.3f);
         return Client::Scenes::PublishFaunaPose(carry, models, object, false);
     };
-    resources.posedMeshes = [&] { return std::span<const Client::Render::Models::SkinnedMesh>(carry.meshes); };
+    resources.posedMeshes = [&] { return std::span<const Client::Models::SkinnedMesh>(carry.meshes); };
     const auto result =
         Client::Scenes::DrawGameModelEffects(batch, models, std::span(&effect, 1), {}, nullptr, {}, 0, resources);
     ASSERT_TRUE(result.HasValue()) << result.Error();
@@ -468,7 +468,7 @@ TEST(GameSpecialModelEffectsTest, SpinningItemSamplesTerrainAfterPublishingItsPo
         light->cells.fill({1, 1, 1});
         return Client::Scenes::PublishFaunaPose(carry, models, object, false);
     };
-    resources.posedMeshes = [&] { return std::span<const Client::Render::Models::SkinnedMesh>(carry.meshes); };
+    resources.posedMeshes = [&] { return std::span<const Client::Models::SkinnedMesh>(carry.meshes); };
     ASSERT_TRUE(
         Client::Scenes::DrawGameModelEffects(batch, models, std::span(&effect, 1), {}, light.get(), {}, 0, resources)
             .HasValue());
@@ -496,7 +496,7 @@ TEST(GameSpecialModelEffectsTest, FallenItemSamplesTerrainBeforePublishingItsIni
         light->cells.fill({1, 1, 1});
         return Client::Scenes::PublishFaunaPose(carry, models, object, false);
     };
-    resources.posedMeshes = [&] { return std::span<const Client::Render::Models::SkinnedMesh>(carry.meshes); };
+    resources.posedMeshes = [&] { return std::span<const Client::Models::SkinnedMesh>(carry.meshes); };
     const auto result =
         Client::Scenes::DrawGameModelEffects(batch, models, std::span(&effect, 1), {}, light.get(), {}, 0, resources);
     ASSERT_TRUE(result.HasValue()) << result.Error();
@@ -529,7 +529,7 @@ TEST(GameSpecialModelEffectsTest, TheGlowDetailOfTheOptionsTrimsTheLevelOfAnEffe
         resources.itemContext = &items;
         resources.onUntranslatedPose = [&](const Client::Scenes::DrawnObject& object)
         { return Client::Scenes::PublishFaunaPose(carry, models, object, false); };
-        resources.posedMeshes = [&] { return std::span<const Client::Render::Models::SkinnedMesh>(carry.meshes); };
+        resources.posedMeshes = [&] { return std::span<const Client::Models::SkinnedMesh>(carry.meshes); };
 
         const auto result =
             Client::Scenes::DrawGameModelEffects(batch, models, std::span(&effect, 1), {}, nullptr, {}, 0, resources);
@@ -564,10 +564,10 @@ TEST(GameSpecialModelEffectsTest, ItemInitializationIsDurableAndCapturedAlphaCon
                 ++poses;
                 ExpectItemInitialization(effect, 0.8f, direction);
                 ExpectItemPose(object, 0.8f);
-                EXPECT_EQ(object.state, Client::Render::Models::ObjectState{});
+                EXPECT_EQ(object.state, Client::Models::ObjectState{});
                 return Client::Scenes::PublishFaunaPose(carry, models, object, false);
             };
-            resources.posedMeshes = [&] { return std::span<const Client::Render::Models::SkinnedMesh>(carry.meshes); };
+            resources.posedMeshes = [&] { return std::span<const Client::Models::SkinnedMesh>(carry.meshes); };
             const auto result = Client::Scenes::DrawGameModelEffects(batch, models, std::span(&effect, 1), {}, nullptr,
                                                                      {}, 0, resources);
             ASSERT_TRUE(result.HasValue()) << result.Error();
@@ -651,7 +651,7 @@ TEST(GameSpecialModelEffectsTest, MissingCrtRetainsTheCommonInitializationAndPre
             ExpectItemInitialization(effect, model >= 0x812 && model < 0xe12 ? 0.7f : 0.8f, 0);
             EXPECT_EQ(effect.type, model);
             EXPECT_EQ(effect.objectState.blendMesh, model == 0xc17 ? 2 : 1);
-            EXPECT_EQ(effect.objectState.hiddenMesh, Client::Render::Models::NoHiddenMesh);
+            EXPECT_EQ(effect.objectState.hiddenMesh, Client::Models::NoHiddenMesh);
             EXPECT_FLOAT_EQ(effect.objectState.light, 1);
             EXPECT_EQ(effect.objectState.uv, glm::vec2(0));
             EXPECT_FLOAT_EQ(effect.transform.position.z, type == 0xf4 ? 400.0f : 300.0f);
@@ -676,7 +676,7 @@ TEST(GameSpecialModelEffectsTest, FallenGlowStoresItsNativeAlphaWhileDrawingWith
         ExpectItemPose(object, 0.8f);
         return Client::Scenes::PublishFaunaPose(carry, models, object, false);
     };
-    resources.posedMeshes = [&] { return std::span<const Client::Render::Models::SkinnedMesh>(carry.meshes); };
+    resources.posedMeshes = [&] { return std::span<const Client::Models::SkinnedMesh>(carry.meshes); };
     const auto result =
         Client::Scenes::DrawGameModelEffects(batch, models, std::span(&effect, 1), {}, nullptr, {}, 0, resources);
     ASSERT_TRUE(result.HasValue()) << result.Error();
@@ -710,7 +710,7 @@ TEST(GameSpecialModelEffectsTest, FallenGlowRetainsItsNativeAlphaWhenTheSecondMe
     {
         EXPECT_FLOAT_EQ(effect.alpha, 1);
         EXPECT_EQ(effect.light, glm::vec3(0.3f));
-        return std::span<const Client::Render::Models::SkinnedMesh>(carry.meshes);
+        return std::span<const Client::Models::SkinnedMesh>(carry.meshes);
     };
     const auto result =
         Client::Scenes::DrawGameModelEffects(batch, models, std::span(&effect, 1), {}, nullptr, {}, 0, resources);
@@ -743,7 +743,7 @@ TEST(GameSpecialModelEffectsTest, FallenWingPublishesItsRenderItemLightBackToThe
     Client::Scenes::ModelEffectDrawResources resources{*heights};
     resources.onUntranslatedPose = [&](const Client::Scenes::DrawnObject& object)
     { return Client::Scenes::PublishFaunaPose(carry, models, object, false); };
-    resources.posedMeshes = [&] { return std::span<const Client::Render::Models::SkinnedMesh>(carry.meshes); };
+    resources.posedMeshes = [&] { return std::span<const Client::Models::SkinnedMesh>(carry.meshes); };
     const auto result =
         Client::Scenes::DrawGameModelEffects(batch, models, std::span(&effect, 1), {}, nullptr, {}, 0, resources);
     ASSERT_TRUE(result.HasValue()) << result.Error();
@@ -778,7 +778,7 @@ TEST(GameSpecialModelEffectsTest, FallenItemPublishesItsBonesUntranslatedAndItsR
     Client::Scenes::ModelEffectDrawResources resources{*heights};
     resources.onUntranslatedPose = [&](const Client::Scenes::DrawnObject& object)
     { return Client::Scenes::PublishFaunaPose(carry, models, object, false); };
-    resources.posedMeshes = [&] { return std::span<const Client::Render::Models::SkinnedMesh>(carry.meshes); };
+    resources.posedMeshes = [&] { return std::span<const Client::Models::SkinnedMesh>(carry.meshes); };
     resources.itemContext = &item;
 
     const auto result =
@@ -831,7 +831,7 @@ TEST(GameSpecialModelEffectsTest, SpinningItemPublishesItsBonesUntranslatedAndIt
         EXPECT_EQ(object.transform.angles, (glm::vec3{0, 90, 30}));
         return Client::Scenes::PublishFaunaPose(carry, models, object, false);
     };
-    resources.posedMeshes = [&] { return std::span<const Client::Render::Models::SkinnedMesh>(carry.meshes); };
+    resources.posedMeshes = [&] { return std::span<const Client::Models::SkinnedMesh>(carry.meshes); };
     resources.itemContext = &item;
 
     const auto result =
@@ -874,7 +874,7 @@ TEST(GameSpecialModelEffectsTest, BloodCastleItemPublishesItsBonesUntranslatedAn
     Client::Scenes::ModelEffectDrawResources resources{*heights};
     resources.onUntranslatedPose = [&](const Client::Scenes::DrawnObject& object)
     { return Client::Scenes::PublishFaunaPose(carry, models, object, false); };
-    resources.posedMeshes = [&] { return std::span<const Client::Render::Models::SkinnedMesh>(carry.meshes); };
+    resources.posedMeshes = [&] { return std::span<const Client::Models::SkinnedMesh>(carry.meshes); };
 
     const auto result =
         Client::Scenes::DrawGameModelEffects(batch, models, std::span(&effect, 1), {}, nullptr, {}, 0, resources);

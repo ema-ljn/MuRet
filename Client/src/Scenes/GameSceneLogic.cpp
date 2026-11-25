@@ -97,7 +97,7 @@ Core::Expected<void, std::string> GameScene::StepTheFloorItems(float worldClock)
 Core::Expected<void, std::string> GameScene::StepTheCharacters(float worldClock, bool controlDown)
 {
     auto& runtime = m_context.world->Runtime();
-    const Render::Models::Skeleton* player =
+    const Models::Skeleton* player =
         m_models != nullptr ? m_models->SkeletonOf(Data::Models::PlayerSkeletonModel) : nullptr;
     if (auto stepped = StepCharacters(CharacterStepContext{
             .world = *m_context.world,

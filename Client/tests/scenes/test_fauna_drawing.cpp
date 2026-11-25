@@ -34,14 +34,14 @@
 
 namespace
 {
-class Models : public Client::Render::Models::IModelLibrary
+class Models : public Client::Models::IModelLibrary
 {
 public:
     Client::Data::Models::Model model = Client::Tests::SampleModel();
-    Client::Render::Models::Skeleton skeleton;
+    Client::Models::Skeleton skeleton;
     Models()
     {
-        auto loaded = Client::Render::Models::MakeSkeleton(model);
+        auto loaded = Client::Models::MakeSkeleton(model);
         if (loaded.HasValue())
             skeleton = loaded.Value();
     }
@@ -49,7 +49,7 @@ public:
     {
         return &model;
     }
-    const Client::Render::Models::Skeleton* SkeletonOf(std::uint16_t) const override
+    const Client::Models::Skeleton* SkeletonOf(std::uint16_t) const override
     {
         return &skeleton;
     }
@@ -66,7 +66,7 @@ protected:
     Client::World::WorldTerrain m_terrain;
     Client::World::TerrainLighting m_light;
     Client::World::TerrainPolygon m_polygon{.everything = true};
-    Client::Render::Models::ClothWorld m_cloth;
+    Client::Models::ClothWorld m_cloth;
     Client::World::FrameSprites m_sprites;
     Client::Scenes::FaunaDrawCarry m_carry;
     Client::Render::ModelBatch m_batch;
@@ -360,7 +360,7 @@ TEST_F(FaunaDrawingTest, AMeshOnAMissingBoneIsLeftUnposedAndTheOthersPose)
     m_carry.meshes[1].positions = {glm::vec3(1.0f)};
     m_carry.meshes[1].normals = {glm::vec3(0.0f, 0.0f, 1.0f)};
     const std::vector<Client::Math::BoneTransform> bones(3, Client::Math::BoneTransform(1.0f));
-    const Client::Render::Models::ObjectTransform transform{.position = {1000, 1000, 300}};
+    const Client::Models::ObjectTransform transform{.position = {1000, 1000, 300}};
     ASSERT_TRUE(PublishFaunaPoseRaw(m_carry, m_models, 0x24, bones, transform, false).HasValue());
     EXPECT_EQ(m_carry.meshes[0].positions.size(), m_models.model.meshes[0].vertices.size());
     EXPECT_TRUE(m_carry.meshes[1].positions.empty());
@@ -376,7 +376,7 @@ TEST_F(FaunaDrawingTest, CharacterBodiesInitializeDummyMatricesFromTheSharedScra
     character.castsShadow = false;
     character.poseBones = [&](std::uint16_t) { return std::span<const Client::Math::BoneTransform>(m_carry.bones); };
     character.onPose = [&](std::uint16_t model, std::span<const Client::Math::BoneTransform> bones,
-                           const Client::Render::Models::ObjectTransform& transform, bool translated)
+                           const Client::Models::ObjectTransform& transform, bool translated)
     { EXPECT_TRUE(PublishFaunaPoseRaw(m_carry, m_models, model, bones, transform, translated).HasValue()); };
     DrawCharacter(m_batch, m_models, character, {});
     ASSERT_FALSE(m_batch.Vertices().empty());

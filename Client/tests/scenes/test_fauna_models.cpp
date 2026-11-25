@@ -74,7 +74,7 @@ TEST(FaunaModelsTest, CachedMonsterSoundsAreRegisteredAgainAfterWorldSoundReleas
     Client::Tests::FakeTextureStore store;
     Client::Tests::RecordingSink sink;
     Client::Core::Log log{sink, Client::Core::LogLevel::Debug};
-    Client::Render::Models::ModelTextureSlots slots{Client::Render::TextureSlot{0x500}};
+    Client::Models::ModelTextureSlots slots{Client::Render::TextureSlot{0x500}};
     Client::Scenes::FaunaModels models;
     Client::Scenes::ModelSoundTable sounds;
     SoundRegistrationPlayback audio;
@@ -100,7 +100,7 @@ TEST(FaunaModelsTest, PrepareLoadsMonster32AndItsExactActionStoresOnce)
     Client::Tests::FakeTextureStore store;
     Client::Tests::RecordingSink sink;
     Client::Core::Log log{sink, Client::Core::LogLevel::Debug};
-    Client::Render::Models::ModelTextureSlots slots{Client::Render::TextureSlot{0x500}};
+    Client::Models::ModelTextureSlots slots{Client::Render::TextureSlot{0x500}};
     Client::Scenes::FaunaModels models;
     Client::Scenes::FaunaModelLoadContext context{folder.Path(), store, log, slots};
     const auto result = models.Prepare(0x1f, context);
@@ -134,7 +134,7 @@ TEST(FaunaModelsTest, PrepareWritesTheSoundTableOfTheLoadedMonster)
     Client::Tests::FakeTextureStore store;
     Client::Tests::RecordingSink sink;
     Client::Core::Log log{sink, Client::Core::LogLevel::Debug};
-    Client::Render::Models::ModelTextureSlots slots{Client::Render::TextureSlot{0x500}};
+    Client::Models::ModelTextureSlots slots{Client::Render::TextureSlot{0x500}};
     Client::Scenes::FaunaModels models;
     Client::Scenes::ModelSoundTable sounds;
     Client::Scenes::FaunaModelLoadContext context{folder.Path(), store, log, slots, nullptr, &sounds};
@@ -155,7 +155,7 @@ TEST(FaunaModelsTest, PrepareLoadsMonster34AndKeepsTheGenericActionSettings)
     Client::Tests::FakeTextureStore store;
     Client::Tests::RecordingSink sink;
     Client::Core::Log log{sink, Client::Core::LogLevel::Debug};
-    Client::Render::Models::ModelTextureSlots slots{Client::Render::TextureSlot{0x500}};
+    Client::Models::ModelTextureSlots slots{Client::Render::TextureSlot{0x500}};
     Client::Scenes::FaunaModels models;
     Client::Scenes::FaunaModelLoadContext context{folder.Path(), store, log, slots};
     const auto result = models.Prepare(0x21, context);
@@ -174,7 +174,7 @@ TEST(FaunaModelsTest, MissingRequiredMonsterStopsBeforeTexturesOrFalsePreparatio
     Client::Tests::FakeTextureStore store;
     Client::Tests::RecordingSink sink;
     Client::Core::Log log{sink, Client::Core::LogLevel::Debug};
-    Client::Render::Models::ModelTextureSlots slots{Client::Render::TextureSlot{0x500}};
+    Client::Models::ModelTextureSlots slots{Client::Render::TextureSlot{0x500}};
     Client::Scenes::FaunaModels models;
     Client::Scenes::FaunaModelLoadContext context{folder.Path(), store, log, slots};
     const auto result = models.Prepare(0x1f, context);
@@ -269,7 +269,7 @@ TEST(FaunaModelsTest, AMapTransitionSharesMonsterReferencesAndACachedMonsterSees
     Client::Tests::FakeTextureStore store;
     Client::Tests::RecordingSink sink;
     Client::Core::Log log{sink, Client::Core::LogLevel::Debug};
-    Client::Render::Models::ModelTextureSlots initial{{0x69}};
+    Client::Models::ModelTextureSlots initial{{0x69}};
     Client::Scenes::FaunaModels fauna;
     auto& table = fauna.TextureTable();
     Client::Scenes::WorldModels world;
@@ -306,7 +306,7 @@ TEST_F(GoldenFaunaModels, BothRealMonsterResourcesPrepareTheirMeshesTexturesAndA
     Client::Tests::FakeTextureStore store;
     Client::Tests::RecordingSink sink;
     Client::Core::Log log{sink, Client::Core::LogLevel::Debug};
-    Client::Render::Models::ModelTextureSlots slots{{0x41c}};
+    Client::Models::ModelTextureSlots slots{{0x41c}};
     Client::Scenes::FaunaModels fauna;
     Client::Scenes::FaunaModelLoadContext context{m_dataRoot, store, log, slots};
     ASSERT_TRUE(fauna.Prepare(0x1f, context).HasValue());
@@ -335,7 +335,7 @@ struct GoldenLoad
     Client::Tests::FakeTextureStore store;
     Client::Tests::RecordingSink sink;
     Client::Core::Log log{sink, Client::Core::LogLevel::Debug};
-    Client::Render::Models::ModelTextureSlots slots{{0x41c}};
+    Client::Models::ModelTextureSlots slots{{0x41c}};
 };
 
 TEST_F(GoldenMonsterModels, EveryMonsterOfTheCasesLoadsWithItsActionTables)

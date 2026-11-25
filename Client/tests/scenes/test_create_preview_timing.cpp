@@ -43,7 +43,7 @@
 // (0x63e5f7). La ventana cerrada no dibuja la vista previa y no debe recuperar esos dibujos al abrir.
 namespace
 {
-using Client::Render::Models::OriginalFrameTime;
+using Client::Models::OriginalFrameTime;
 
 glm::vec3 ClassOffset(std::uint8_t characterClass)
 {
@@ -151,7 +151,7 @@ protected:
     Client::Tests::FakeTextureStore m_store;
     Client::Tests::FakeClock m_clock;
     Client::Input::InputState m_input;
-    Client::Render::Models::ClothWorld m_cloth;
+    Client::Models::ClothWorld m_cloth;
     Client::Scenes::WorldState m_world;
     Client::Scenes::SelectionState m_selection{m_world};
     Client::World::GameCamera m_camera;

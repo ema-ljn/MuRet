@@ -118,7 +118,7 @@ TEST(GroundStonesTest, TheGroundStonesAreBornWithTwoRandomsOnAnOpenCell)
         EXPECT_EQ(stone.light, glm::vec3(0.25f, 0.5f, 0.75f));
         EXPECT_EQ(stone.velocity, glm::vec3(0.0f));
         EXPECT_EQ(stone.alpha, 1.0f);
-        EXPECT_EQ(stone.objectState, Client::Render::Models::ObjectState{});
+        EXPECT_EQ(stone.objectState, Client::Models::ObjectState{});
         EXPECT_EQ(stone.animation.action, 0);
         EXPECT_EQ(stone.disturbanceState, 0xffff);
         EXPECT_FALSE(stone.hasOwner);

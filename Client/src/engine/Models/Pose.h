@@ -12,7 +12,7 @@
 
 // La pose de un esqueleto como 0x4eb860 (Client/docs/research/06-render-escenas-y-ui.md, "El modelo
 // en el binario" y "Cuánto avanza la animación").
-namespace Client::Render::Models
+namespace Client::Models
 {
 // Lo que el objeto guarda de su animación (+0x111, +0x114, +0x112 y +0x118 del objeto).
 struct AnimationState
@@ -70,4 +70,4 @@ struct ObjectTransform
 // PoseSkeleton.
 [[nodiscard]] ENGINE_API bool PoseAttached(const Skeleton& skeleton, const AnimationState& animation,
                                            const Math::BoneTransform& root, std::span<Math::BoneTransform> bones);
-} // namespace Client::Render::Models
+} // namespace Client::Models

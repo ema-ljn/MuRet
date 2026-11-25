@@ -39,7 +39,7 @@ constexpr double Tenth = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));
 // Lo que 0x52e810 lee y escribe además del personaje, en el heap (las 200 entradas de 0x518cf0 y las 100 marcas).
 struct Remains
 {
-    Client::Render::Models::Skeleton skeleton;
+    Client::Models::Skeleton skeleton;
     Client::World::ModelEffects effects;
     Client::World::GroundMarkTable marks{};
     CrtRandom random{Seed};

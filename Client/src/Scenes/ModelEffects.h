@@ -11,10 +11,10 @@ namespace Client::Crt
 class CrtRandom;
 } // namespace Client::Crt
 
-namespace Client::Render::Models
+namespace Client::Models
 {
 struct Skeleton;
-} // namespace Client::Render::Models
+} // namespace Client::Models
 
 namespace Client::World
 {
@@ -41,7 +41,7 @@ struct ModelEffectsPass
     WorldState& world;
     Crt::CrtRandom& random;
     // El modelo del tipo (0x5769ad8 + tipo · 0xe0): la cantidad de huesos de +0x22 y la velocidad de las acciones.
-    const Render::Models::Skeleton& skeleton;
+    const Models::Skeleton& skeleton;
     World::Particles* particles = nullptr;
     // La tabla de sprites del frame (0x5491e0), la del paso de los efectos del mapa.
     World::FrameSprites* sprites = nullptr;

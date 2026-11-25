@@ -34,7 +34,7 @@ inline constexpr std::uint16_t GuardianAngelModel = 0x1c12;
 // la acción por la del jinete (0x4ea030), con el galope el polvo (rand() % 2, fuera del 10 y sin el 0x4000 del
 // jinete), la velocidad en 0,34 y el byte vivo del jinete.
 [[nodiscard]] Core::Expected<void, std::string> StepRidingHelper(HelperState& helper, const ActorState& rider,
-                                                                 const Render::Models::Skeleton& skeleton,
+                                                                 const Models::Skeleton& skeleton,
                                                                  const HelperStepContext& context);
 
 // 0x444af0..0x444f25, los Fenrir: la celda segura igual; el alpha con +0x80 del jinete, su cabeza, posición y
@@ -42,7 +42,7 @@ inline constexpr std::uint16_t GuardianAngelModel = 0x1c12;
 // hueso 22 del buffer global con el frame entre 1 y 1,2, o desde el 44 (y 700 más arriba, Q-C421) entre 4,8 y 5, la
 // onda 0x6eb/1 y las 5f2; en los demás, rand() % 3, fuera de Kalima y sin el 0x4000 del jinete.
 [[nodiscard]] Core::Expected<void, std::string> StepFenrir(HelperState& helper, const ActorState& rider,
-                                                           const Render::Models::Skeleton& skeleton,
+                                                           const Models::Skeleton& skeleton,
                                                            const HelperStepContext& context);
 
 // 0x444f2a..0x444fff, el Guardian Angel: sin el 0x4000 del jinete, cuatro 5c5/1 con la luz 0,4 a (rand() & 15) − 8

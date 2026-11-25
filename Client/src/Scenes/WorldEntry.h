@@ -35,11 +35,11 @@ namespace Client::Protocol::Character
 struct CharacterSelectResult;
 }
 
-namespace Client::Render::Models
+namespace Client::Models
 {
 struct ClothWorld;
 class IModelLibrary;
-} // namespace Client::Render::Models
+} // namespace Client::Models
 
 namespace Client::Render::Text
 {
@@ -70,13 +70,13 @@ struct WorldEntryResources
     SelectionState& selection;
     std::filesystem::path dataRoot;
     // El rand() de la CRT y el contador de pasos (0x7d3a0f0) con su cuenta de accesos.
-    Render::Models::ClothWorld& cloth;
+    Models::ClothWorld& cloth;
     // La altura fija (0x6c9d5c) para 0x5f93c0; la selección también la mueve.
     World::GameCamera& camera;
     // El mundo en curso, el héroe publicado y el atributo de su celda, como los lee la cámara.
     World::GameCameraInput& cameraInput;
     // Player.bmd (SkeletonOf(0x20a)), que 0x4f2250 necesita para elegir la acción.
-    const Render::Models::IModelLibrary& models;
+    const Models::IModelLibrary& models;
     // Item.bmd, para la matriz de armas de 0x4f2250 y para 0x550d10; nullptr si no se cargó.
     const Data::Tables::ItemTable* items = nullptr;
     // ItemSetType.bmd e ItemSetOption.bmd (0x40c600), para 0x40e1b0 desde 0x550d10; nullptr si no se

@@ -23,7 +23,7 @@ TEST(WorldModelPoseTest, AnInvalidPublishedActionIsClampedInTheSharedModel)
     actor.scale = 2.0f;
     actor.position = {100, 200, 300};
     world->PlaceModel(actor);
-    Client::Render::Models::Skeleton skeleton;
+    Client::Models::Skeleton skeleton;
     skeleton.actions.resize(2, {.keyCount = 10});
 
     const auto posed = Client::Scenes::PoseWorldModel(*world, actor, skeleton, 3.25f, actor.angles);
@@ -45,7 +45,7 @@ TEST(WorldModelPoseTest, AModelWithoutActionsLeavesTheGlobalPoseAndModelUntouche
     world->PlaceModel(actor);
     world->PoseCarry().bones.assign(1, Client::Math::BoneTransform(1.0f));
     world->FaunaResources().RecordAnimation(actor.type, 6.5f, 9);
-    Client::Render::Models::Skeleton skeleton;
+    Client::Models::Skeleton skeleton;
 
     const auto posed = Client::Scenes::PoseWorldModel(*world, actor, skeleton, 3.25f, actor.angles);
 

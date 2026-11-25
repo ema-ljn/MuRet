@@ -56,7 +56,7 @@ namespace Client::Scenes
 namespace
 {
 using Crt::CrtRandom;
-using Render::Models::LogicalAccess;
+using Models::LogicalAccess;
 
 // Los tipos de flecha (las tablas de 0x53e240 y 0x53e270/0x53e28c).
 constexpr std::int16_t BowArrow = 0xdb;
@@ -111,7 +111,7 @@ void AddRotated(glm::vec3& position, const glm::vec3& rotated)
 // cierra (0x40f370: 3.848 rand() si la cuenta queda en 0).
 void CopyTheOwnCount(World::ModelEffect& effect, WorldState& world, CrtRandom& random)
 {
-    const LogicalAccess own(world.Runtime().ownRecordDepth, random, Render::Models::OwnRecordCloseRandoms);
+    const LogicalAccess own(world.Runtime().ownRecordDepth, random, Models::OwnRecordCloseRandoms);
     effect.word8c = world.OwnCharacter().bytef04;
 }
 
@@ -119,7 +119,7 @@ void CopyTheOwnCount(World::ModelEffect& effect, WorldState& world, CrtRandom& r
 // (la cuenta de la tanda, que las flechas copian a +0x8c) y cerrado (0x40b4d0: 3.848 rand() si queda en 0).
 void CountTheVolley(WorldState& world, CrtRandom& random)
 {
-    const LogicalAccess own(world.Runtime().ownRecordDepth, random, Render::Models::OwnRecordCloseRandoms);
+    const LogicalAccess own(world.Runtime().ownRecordDepth, random, Models::OwnRecordCloseRandoms);
     ++world.OwnCharacter().bytef04;
 }
 
@@ -477,7 +477,7 @@ Core::Expected<void, std::string> CreateTheBlast(ActorState& owner, ActorState* 
     blast.speed = 1.0f;
     blast.life = BlastLife;
     blast.transform.scale = std::bit_cast<float>(0x3fe66666u);
-    blast.objectState.blendMesh = Render::Models::EveryMeshBlends;
+    blast.objectState.blendMesh = Models::EveryMeshBlends;
     blast.velocity.y = -30.0f;
     blast.light = {std::bit_cast<float>(0x3e99999au), std::bit_cast<float>(0x3f4ccccdu), 1.0f};
     AddRotated(blast.transform.position,
@@ -560,7 +560,7 @@ Core::Expected<void, std::string> ShootTheArrows(ActorState& actor, ActorState* 
     std::int32_t left = ToInt16(actor.hands[1].model);
     if (&actor == &context.world.Actors()[runtime.hero])
     {
-        const LogicalAccess own(runtime.ownRecordDepth, context.random, Render::Models::OwnRecordCloseRandoms);
+        const LogicalAccess own(runtime.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
         const auto& equipment = context.world.OwnCharacter().equipment;
         right = std::bit_cast<std::int16_t>(equipment[0].id);
         left = std::bit_cast<std::int16_t>(equipment[1].id);
@@ -707,7 +707,7 @@ Core::Expected<void, std::string> HitWithTheMarkedArrow(World::ModelEffect& effe
     // 0x520217..0x520415: la skill del lugar +0x89, con el registro propio abierto y cerrado en línea.
     std::uint8_t skill = 0;
     {
-        const LogicalAccess own(runtime.ownRecordDepth, context.random, Render::Models::OwnRecordCloseRandoms);
+        const LogicalAccess own(runtime.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
         skill = OwnSkillByte(world.OwnCharacter(), effect.byte89);
     }
     constexpr std::uint8_t ArrowRainSkill = 0x33;
@@ -814,7 +814,7 @@ Core::Expected<void, std::string> HitWithTheArrow(World::ModelEffect& effect, co
     // 0x5205cd..0x5207d1: el registro propio abierto y cerrado en línea para leer la skill del lugar +0x89.
     std::uint8_t skill = 0;
     {
-        const LogicalAccess own(runtime.ownRecordDepth, context.random, Render::Models::OwnRecordCloseRandoms);
+        const LogicalAccess own(runtime.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
         skill = OwnSkillByte(context.world.OwnCharacter(), effect.byte89);
     }
     const bool bursts = effect.type == AquagoldArrow || effect.type == CelestialArrow;
@@ -1505,7 +1505,7 @@ Core::Expected<void, std::string> FireTheArrow(ActorState& actor, ActorState* ta
     return {};
 }
 
-Core::Expected<void, std::string> StepArrow(World::ModelEffect& effect, const Render::Models::Skeleton* skeleton,
+Core::Expected<void, std::string> StepArrow(World::ModelEffect& effect, const Models::Skeleton* skeleton,
                                             const ArrowStepContext& context)
 {
     if (!effect.alive)

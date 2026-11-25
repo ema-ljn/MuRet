@@ -34,8 +34,8 @@ namespace Client::Scenes
 struct ModelObject
 {
     std::uint16_t model = 0;
-    Render::Models::ObjectTransform transform;
-    Render::Models::ObjectState state;
+    Models::ObjectTransform transform;
+    Models::ObjectState state;
     glm::vec3 light{};
     float speed = 0.0f;
 };
@@ -56,21 +56,21 @@ inline constexpr Render::TextureSlot LoginLogoFirstSlot{0x455};
 
 // Un modelo suelto con su esqueleto y el slot de cada malla, como los guarda la tabla del original para
 // el logo: lo que DrawObject pide de una biblioteca. Vacío, no tiene ninguno.
-class SingleModelLibrary final : public Render::Models::IModelLibrary
+class SingleModelLibrary final : public Models::IModelLibrary
 {
 public:
-    void Set(std::uint16_t model, Data::Models::Model data, Render::Models::Skeleton skeleton,
+    void Set(std::uint16_t model, Data::Models::Model data, Models::Skeleton skeleton,
              std::vector<Render::TextureSlot> meshTextures);
     void Clear();
 
     [[nodiscard]] const Data::Models::Model* Find(std::uint16_t model) const override;
-    [[nodiscard]] const Render::Models::Skeleton* SkeletonOf(std::uint16_t model) const override;
+    [[nodiscard]] const Models::Skeleton* SkeletonOf(std::uint16_t model) const override;
     [[nodiscard]] std::span<const Render::TextureSlot> MeshTextures(std::uint16_t model) const override;
 
 private:
     std::optional<std::uint16_t> m_model;
     Data::Models::Model m_data;
-    Render::Models::Skeleton m_skeleton;
+    Models::Skeleton m_skeleton;
     std::vector<Render::TextureSlot> m_meshTextures;
 };
 
@@ -110,7 +110,7 @@ void AdvanceRoutes(LoginRoutes& routes);
 [[nodiscard]] GameLogic::CharacterAppearance LoginCharacter();
 
 // 0x6349a0 después de 0x517270: (10.603; 14.112; 580), girado 188° en z y con la escala 1,6.
-[[nodiscard]] Render::Models::ObjectTransform LoginCharacterTransform();
+[[nodiscard]] Models::ObjectTransform LoginCharacterTransform();
 
 // Lo que el paso del cuervo (0x416a20) lee de su dueño en el login: el personaje en su lugar y sus
 // banderas (+0x78) en 0.

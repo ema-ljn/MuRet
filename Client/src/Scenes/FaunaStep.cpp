@@ -48,7 +48,7 @@ FaunaObject& Object(World::BirdRecord bird)
 }
 struct ModelBorrow
 {
-    const Render::Models::Skeleton* skeleton = nullptr;
+    const Models::Skeleton* skeleton = nullptr;
     std::uint8_t action = 0;
 };
 class BirdServices final : public World::IBirdStepServices

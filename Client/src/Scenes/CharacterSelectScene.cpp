@@ -184,8 +184,8 @@ Render::OriginalQuad Background(std::uint16_t slot, float x)
 } // namespace
 
 CharacterSelectScene::CharacterSelectScene(const SceneContext& context, const GameData& data,
-                                           const Render::Models::IModelLibrary& models, App::ServerSession* session,
-                                           const Render::Models::ModelTextureSlots* gameSlots)
+                                           const Models::IModelLibrary& models, App::ServerSession* session,
+                                           const Models::ModelTextureSlots* gameSlots)
     : m_context(context), m_texts(data.text ? &*data.text : nullptr),
       m_items(data.items ? &data.items->table : nullptr), m_models(models), m_session(session),
       m_textures(context.textures, SelectionTextureSet), m_windowTextures(context.textures, WindowTextureSet),
@@ -211,9 +211,8 @@ CharacterSelectScene::CharacterSelectScene(const SceneContext& context, const Ga
 }
 
 CharacterSelectScene::CharacterSelectScene(const SceneContext& context, const GameData& data, GameModels& models,
-                                           App::ServerSession* session,
-                                           const Render::Models::ModelTextureSlots* gameSlots)
-    : CharacterSelectScene(context, data, static_cast<const Render::Models::IModelLibrary&>(models), session, gameSlots)
+                                           App::ServerSession* session, const Models::ModelTextureSlots* gameSlots)
+    : CharacterSelectScene(context, data, static_cast<const Models::IModelLibrary&>(models), session, gameSlots)
 {
     m_startupModels = &models;
 }
@@ -333,9 +332,9 @@ CharacterSelectScene::MakeCharacter(const Protocol::Character::CharacterEntry& e
     // El que armó la respuesta de crear sale sin equipo (0x517270 sin 0x5139f0, Q-C103).
     character.appearance = entry.withoutEquipment ? GameLogic::ClassAppearance(characterClass, 0)
                                                   : GameLogic::AppearanceOf(characterClass, 0, entry.equipment);
-    if (const Render::Models::Skeleton* skeleton = m_models.SkeletonOf(Data::Models::PlayerSkeletonModel))
+    if (const Models::Skeleton* skeleton = m_models.SkeletonOf(Data::Models::PlayerSkeletonModel))
     {
-        Render::Models::SetAction(character.animation.body, *skeleton, StandingAction);
+        Models::SetAction(character.animation.body, *skeleton, StandingAction);
     }
     return character;
 }
@@ -449,8 +448,8 @@ bool CharacterSelectScene::PrepareTheCharacters()
     // 0x5bc107..0x5bc13f: después vacía el comercio.
     ClearTheTradeForSelection(m_context.world->Runtime().social.trade);
     // 0x634049..0x634177: el reset parcial, con el cierre del mismo registro de 0x4fc450.
-    const Render::Models::LogicalAccess access(m_context.world->Runtime().ownRecordDepth, m_context.cloth->random,
-                                               Render::Models::OwnRecordCloseRandoms);
+    const Models::LogicalAccess access(m_context.world->Runtime().ownRecordDepth, m_context.cloth->random,
+                                       Models::OwnRecordCloseRandoms);
     m_context.world->OwnCharacter().ResetForSelection();
     m_charactersPrepared = true;
     // 0x634199..0x634227: los campos del diálogo apagados (0x77f3b68 el del alta del gremio, 0x77f3b69 el de los
@@ -612,7 +611,7 @@ void CharacterSelectScene::StepCharacters()
         // Lo que termina vuelve a la de parado (0x4fcb10), que en la selección es la 3: como la 3 repite,
         // es la de ahora, y SetAction no cambia nada.
         static_cast<void>(StepCharacterAnimation(character.animation, character.appearance, m_models,
-                                                 Render::Models::AnimationScene::CharacterSelect));
+                                                 Models::AnimationScene::CharacterSelect));
     }
 }
 
@@ -879,7 +878,7 @@ void CharacterSelectScene::Step(const Input::InputState& input)
     if (!m_failure && m_context.cloth != nullptr)
     {
         // 0x637cb2 → 0x6342c0 precede el viento y el contador de 0x637cec/0x637f91.
-        Render::Models::StepTheClothWorld(*m_context.cloth);
+        Models::StepTheClothWorld(*m_context.cloth);
     }
 }
 
@@ -1106,8 +1105,7 @@ void CharacterSelectScene::JoinAnotherServer()
         static_cast<void>(m_context.cloth->random.Next());
         std::uint8_t serialDepth = 0;
         {
-            const Render::Models::LogicalAccess serial(serialDepth, m_context.cloth->random,
-                                                       Render::Models::SerialCloseRandoms);
+            const Models::LogicalAccess serial(serialDepth, m_context.cloth->random, Models::SerialCloseRandoms);
         }
         if (m_session != nullptr)
         {
@@ -1131,7 +1129,7 @@ std::optional<std::uint8_t> CharacterSelectScene::UnderTheMouse(const Input::Inp
     {
         positions.push_back(ObjectOf(character).position);
     }
-    const std::optional<std::size_t> nearest = Render::Models::NearestHit(origin, end, positions);
+    const std::optional<std::size_t> nearest = Models::NearestHit(origin, end, positions);
     return nearest ? std::optional<std::uint8_t>{m_characters[*nearest].slot} : std::nullopt;
 }
 
@@ -1173,13 +1171,13 @@ void CharacterSelectScene::TryToEnter()
     m_next = SceneId::WorldLoading;
 }
 
-Render::Models::ObjectTransform CharacterSelectScene::ObjectOf(const Character& character) const
+Models::ObjectTransform CharacterSelectScene::ObjectOf(const Character& character) const
 {
     const CharacterSlot& slot = CharacterSlots[character.slot];
     const glm::vec3 position = m_context.selection != nullptr
                                    ? m_context.selection->Slots()[character.slot].position
                                    : glm::vec3(slot.position.x, slot.position.y, CharacterSlotHeight);
-    return Render::Models::ObjectTransform{position, {0.0f, 0.0f, slot.angle}, character.appearance.scale, 0.0f};
+    return Models::ObjectTransform{position, {0.0f, 0.0f, slot.angle}, character.appearance.scale, 0.0f};
 }
 
 Render::Camera3D CharacterSelectScene::StepTheCameraAndTheTrapezoid(const World::GameCameraInput& input,
@@ -1516,7 +1514,7 @@ void CharacterSelectScene::DrawTheWorldAndTheCharacters(SceneCanvas& canvas, flo
             .originalFrame = frames > 0,
             .onPose = [&](const DrawnObject& object) { return PublishFaunaPose(*poseCarry, m_models, object, true); },
             .publishProjectedPose = true,
-            .posedMeshes = [&]() { return std::span<const Render::Models::SkinnedMesh>(poseCarry->meshes); },
+            .posedMeshes = [&]() { return std::span<const Models::SkinnedMesh>(poseCarry->meshes); },
             .scene = SceneId::CharacterSelect,
             .lighting = &m_world.FrameLighting(),
             .sprites = &m_world.FrameSprites(),
@@ -1642,7 +1640,7 @@ void CharacterSelectScene::DrawTheCharacters(SceneCanvas& canvas, float alpha, s
             };
         if (poseCarry != nullptr)
             drawn.onPose = [this, poseCarry](std::uint16_t model, std::span<const Math::BoneTransform> bones,
-                                             const Render::Models::ObjectTransform& transform, bool translated)
+                                             const Models::ObjectTransform& transform, bool translated)
             {
                 if (model == Data::Models::PlayerSkeletonModel)
                     return;
@@ -1661,9 +1659,8 @@ void CharacterSelectScene::DrawTheCharacters(SceneCanvas& canvas, float alpha, s
             {
                 for (int frame = 0; frame < scanFrames; ++frame)
                 {
-                    const Render::Models::LogicalAccess access(m_context.world->Runtime().ownRecordDepth,
-                                                               m_context.cloth->random,
-                                                               Render::Models::OwnRecordCloseRandoms);
+                    const Models::LogicalAccess access(m_context.world->Runtime().ownRecordDepth,
+                                                       m_context.cloth->random, Models::OwnRecordCloseRandoms);
                 }
             }
             drawn.sprites = &m_world.FrameSprites();
@@ -1695,7 +1692,7 @@ void CharacterSelectScene::DrawTheCharacters(SceneCanvas& canvas, float alpha, s
 
 bool CharacterSelectScene::HasTheSkeleton() const
 {
-    const Render::Models::Skeleton* skeleton = m_models.SkeletonOf(Data::Models::PlayerSkeletonModel);
+    const Models::Skeleton* skeleton = m_models.SkeletonOf(Data::Models::PlayerSkeletonModel);
     return skeleton != nullptr && !skeleton->actions.empty();
 }
 

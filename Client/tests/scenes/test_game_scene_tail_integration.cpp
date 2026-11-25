@@ -79,8 +79,8 @@ struct FrameFixture
     Client::Core::Log log{sink, Client::Core::LogLevel::Debug};
     Client::Tests::FakeTextureStore textures;
     Client::Tests::FakeClock clock;
-    Client::Render::Models::ClothWorld cloth;
-    Client::Render::Models::OriginalFrameCarry itemFrames;
+    Client::Models::ClothWorld cloth;
+    Client::Models::OriginalFrameCarry itemFrames;
     Client::Scenes::WorldState world;
     Client::Scenes::GameModels models;
     // El paso del héroe lee su habilidad de Skill.bmd (0x5526f0); estos tests no miran habilidades.
@@ -121,7 +121,7 @@ protected:
     void PublishFrame(Client::Core::Duration now)
     {
         auto& frame = *m_frame;
-        if (frame.itemFrames.FramesAt(now, Client::Render::Models::OriginalFramePace::ByTheClock) == 0)
+        if (frame.itemFrames.FramesAt(now, Client::Models::OriginalFramePace::ByTheClock) == 0)
             return;
         const float clock = static_cast<float>(std::chrono::duration<double, std::milli>(now).count());
         Client::Scenes::UpdateGameItemGlowPulse(frame.world.Runtime().itemRender, clock);
@@ -178,7 +178,7 @@ protected:
     void StepToTheNextOriginalFrame()
     {
         auto& frame = *m_frame;
-        frame.clock.Advance(Client::Render::Models::OriginalFrameTime);
+        frame.clock.Advance(Client::Models::OriginalFrameTime);
         const Client::Input::InputState input;
         frame.scene->Step(input);
         frame.scene->Step(input);
@@ -491,7 +491,7 @@ TEST_F(GameSceneTailIntegrationTest, TheGlobalPrefixKeepsTheDurablePulseDuringAH
     EXPECT_FLOAT_EQ(frame.world.Runtime().itemRender.glowPulse, 0.125f);
     static_cast<void>(manager->HoldsTheLastFrame()); // La consulta repetida del mismo frame tampoco publica dos veces.
     EXPECT_FLOAT_EQ(frame.world.Runtime().itemRender.glowPulse, 0.125f);
-    frame.clock.Advance(Client::Render::Models::OriginalFrameTime - std::chrono::milliseconds{1});
+    frame.clock.Advance(Client::Models::OriginalFrameTime - std::chrono::milliseconds{1});
     manager->Poll();
     ASSERT_TRUE(manager->HoldsTheLastFrame());
     EXPECT_NE(frame.world.Runtime().itemRender.glowPulse, 0.125f);

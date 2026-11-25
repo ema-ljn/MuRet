@@ -28,21 +28,21 @@
 
 namespace
 {
-class RibbonModels final : public Client::Render::Models::IModelLibrary
+class RibbonModels final : public Client::Models::IModelLibrary
 {
 public:
     RibbonModels()
     {
         skeleton.actions.resize(8, {.repeats = true, .speed = 0.0f, .keyCount = 10});
-        Client::Render::Models::SkeletonBone bone;
-        bone.actions.assign(8, std::vector<Client::Render::Models::BoneKey>(10));
+        Client::Models::SkeletonBone bone;
+        bone.actions.assign(8, std::vector<Client::Models::BoneKey>(10));
         skeleton.bones.assign(90, bone);
     }
     const Client::Data::Models::Model* Find(std::uint16_t) const override
     {
         return nullptr;
     }
-    const Client::Render::Models::Skeleton* SkeletonOf(std::uint16_t) const override
+    const Client::Models::Skeleton* SkeletonOf(std::uint16_t) const override
     {
         return &skeleton;
     }
@@ -50,7 +50,7 @@ public:
     {
         return {};
     }
-    Client::Render::Models::Skeleton skeleton;
+    Client::Models::Skeleton skeleton;
 };
 
 // 4fd5c1..4fd5df: 1b1/1b3 pasan por dos productores distintos que apendean las mismas keys.

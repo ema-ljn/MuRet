@@ -52,8 +52,7 @@ void PrepareMapServerAuthentication(const WorldEntryResources& resources)
     static_cast<void>(resources.cloth.random.Next());
     std::uint8_t serialDepth = 0;
     {
-        const Render::Models::LogicalAccess serial(serialDepth, resources.cloth.random,
-                                                   Render::Models::SerialCloseRandoms);
+        const Models::LogicalAccess serial(serialDepth, resources.cloth.random, Models::SerialCloseRandoms);
     }
 }
 } // namespace Client::Scenes

@@ -51,7 +51,7 @@ using Client::Tests::SameBytes;
 using Client::World::ItemState;
 namespace Scenes = Client::Scenes;
 
-constexpr int Own = Client::Render::Models::OwnRecordCloseRandoms;
+constexpr int Own = Client::Models::OwnRecordCloseRandoms;
 // Los dos rand() del envío en C3: el relleno y el serial.
 constexpr int SendRandoms = 2;
 constexpr std::int32_t Left = 0x1c2 + 15;

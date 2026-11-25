@@ -1073,7 +1073,7 @@ TEST(SceneManagerTest, PreparesTheFrameOncePerFrame)
 // Su mapa0 con pool vacío aisla el gate del dibujo; el caso inicial54 real vive en test_game_scene_wait.
 struct ManagerGameResources
 {
-    Expected<void, std::string> Load(Client::Scenes::WorldState& world, Client::Render::Models::ClothWorld& cloth,
+    Expected<void, std::string> Load(Client::Scenes::WorldState& world, Client::Models::ClothWorld& cloth,
                                      FakeTextureStore& textures, Log& log)
     {
         auto loadedData = Client::Scenes::LoadGameData(dataRoot);
@@ -1108,7 +1108,7 @@ TEST(SceneManagerTest, TheMosaicStaysUntilTheCounterIsThirty)
     RecordingSink sink;
     Log log(sink, LogLevel::Debug);
     FakeClock clock;
-    Client::Render::Models::ClothWorld cloth;
+    Client::Models::ClothWorld cloth;
     Client::Scenes::WorldState world;
     ManagerGameResources gameResources;
     const auto loaded = gameResources.Load(world, cloth, textures, log);
@@ -1300,7 +1300,7 @@ TEST(SceneManagerTest, GameSelectionGameHoldsAndReloadsAgain)
     RecordingSink sink;
     Log log(sink, LogLevel::Debug);
     FakeClock clock;
-    Client::Render::Models::ClothWorld cloth;
+    Client::Models::ClothWorld cloth;
     Client::Scenes::WorldState world;
     Client::Scenes::SelectionState selection(world);
     Client::World::GameCamera camera;

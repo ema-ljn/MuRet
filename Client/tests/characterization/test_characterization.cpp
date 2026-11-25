@@ -564,7 +564,7 @@ private:
     FakeTextureStore m_textures;
     RecordingFrameTarget m_target{Screen};
     LetterMeasure m_measure;
-    Render::Models::ClothWorld m_cloth{.random = Crt::CrtRandom(CrtSeed)};
+    Models::ClothWorld m_cloth{.random = Crt::CrtRandom(CrtSeed)};
     Input::InputState m_input;
     World::GameCamera m_camera;
     Scenes::WorldState m_world;
@@ -578,7 +578,7 @@ private:
     App::ServerSession m_session;
     App::AutoLogin m_autoLogin{m_session, App::Credentials{"user0001", "pass0002"}, m_log};
     Scenes::SceneContext m_context;
-    Render::Models::OriginalFrameCarry m_itemFrameCarry;
+    Models::OriginalFrameCarry m_itemFrameCarry;
     Scenes::WinMainLoopState m_winMainLoop;
     Scenes::SceneManager m_manager;
     Network::PacketSerials m_serverSerials;

@@ -18,10 +18,10 @@ namespace
 {
 using Client::Crt::CrtRandom;
 using Client::Math::BoneTransform;
-using Client::Render::Models::Cloth;
-using Client::Render::Models::ClothBody;
-using Client::Render::Models::ClothSpring;
-using Client::Render::Models::ClothWorld;
+using Client::Models::Cloth;
+using Client::Models::ClothBody;
+using Client::Models::ClothSpring;
+using Client::Models::ClothWorld;
 
 constexpr std::int32_t Bone = 0x12;
 constexpr std::uint32_t StrongGravity = 0x400;
@@ -131,7 +131,7 @@ TEST(MeshClothTest, AStepPushesEveryParticleAlikeAndAnchorsToTheMesh)
     const std::vector<BoneTransform> bones(Bone + 1, BoneTransform(1.0f));
     const ClothBody body{.bones = bones, .angles = {0.0f, 0.0f, 90.0f}, .meshVertices = moved};
 
-    ASSERT_TRUE(cloth.Step(0.005f, body, world, Client::Render::Models::ClothWindSource::Base));
+    ASSERT_TRUE(cloth.Step(0.005f, body, world, Client::Models::ClothWindSource::Base));
 
     CrtRandom expected(1);
     for (int i = 0; i < 4; ++i)

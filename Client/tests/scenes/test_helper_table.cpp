@@ -68,13 +68,13 @@ using Client::Data::Models::Mesh;
 using Client::Data::Models::Model;
 using Client::Math::RoundedCos;
 using Client::Math::RoundedSin;
+using Client::Models::ActionInfo;
+using Client::Models::BoneKey;
+using Client::Models::IModelLibrary;
+using Client::Models::Skeleton;
+using Client::Models::SkeletonBone;
 using Client::Render::ModelBatch;
 using Client::Render::TextureSlot;
-using Client::Render::Models::ActionInfo;
-using Client::Render::Models::BoneKey;
-using Client::Render::Models::IModelLibrary;
-using Client::Render::Models::Skeleton;
-using Client::Render::Models::SkeletonBone;
 using Client::Scenes::ActorPoolSize;
 using Client::Scenes::ActorState;
 using Client::Scenes::ConstructHelper;
@@ -1260,7 +1260,7 @@ TEST(HelperTableTest, AtCount0x13OutsideItsWindowTheQuakeCracksTheEarth)
     EXPECT_EQ(Client::World::OwnerTypeOf(earthquake.owner), std::optional<std::uint16_t>(DarkHorseModel));
     EXPECT_EQ(quake.world.OwnCharacter().bytef04, 1u);
     EXPECT_EQ(quake.world.Runtime().ownRecordDepth, 0u);
-    for (int draw = 0; draw < Client::Render::Models::OwnRecordCloseRandoms; ++draw)
+    for (int draw = 0; draw < Client::Models::OwnRecordCloseRandoms; ++draw)
     {
         static_cast<void>(expected.Next());
     }

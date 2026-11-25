@@ -83,10 +83,10 @@ bool IsPlayer(const ActorState& actor)
 // 0x4ea030 con el modelo del tipo del personaje (+2): sin él en MuRet, corta.
 Core::Expected<void, std::string> Act(ActorState& actor, std::uint8_t action, const WorldEntryResources& resources)
 {
-    const Render::Models::Skeleton* skeleton = resources.models.SkeletonOf(actor.type);
+    const Models::Skeleton* skeleton = resources.models.SkeletonOf(actor.type);
     if (skeleton == nullptr)
         return Core::Unexpected(std::format("0x4ea030: MuRet no tiene el modelo {:#x} del personaje", actor.type));
-    Render::Models::SetAction(actor.animation, *skeleton, action);
+    Models::SetAction(actor.animation, *skeleton, action);
     return {};
 }
 
@@ -723,8 +723,7 @@ Core::Expected<void, std::string> ApplyMagicAttack(const MagicAttack& attack, co
             source.skillTarget4c = static_cast<std::int32_t>(targetIndex);
         source.skillSucceeded = attack.succeeded ? std::uint8_t{1} : std::uint8_t{0};
         // 0x4ccf07..0x4cd2ef: la skill en +0x38e, abierta y cerrada en línea.
-        const Render::Models::LogicalAccess access(source.byte38eAccesses, resources.cloth.random,
-                                                   ActorByteCloseRandoms);
+        const Models::LogicalAccess access(source.byte38eAccesses, resources.cloth.random, ActorByteCloseRandoms);
         source.byte38e = attack.skill;
     }
     // 0x4cce50: sin la fuente, el original sigue por la rama de la skill sobre el lugar 400, con lo que haya ahí (el
@@ -745,8 +744,7 @@ Core::Expected<void, std::string> ApplyDurationMagic(const DurationMagic& magic,
     const std::size_t index = ActorWithKey(world, magic.key);
     ActorState& actor = world.Actors()[index];
     {
-        const Render::Models::LogicalAccess access(actor.byte38eAccesses, resources.cloth.random,
-                                                   ActorByteCloseRandoms);
+        const Models::LogicalAccess access(actor.byte38eAccesses, resources.cloth.random, ActorByteCloseRandoms);
         actor.byte38e = magic.skill;
     }
     // 0x4cea3e..0x4cea4d: FILD, por 1/255 (0x6b88f8) y por 360 (0x6b869c), exacto en double (Q-C1201).
@@ -882,8 +880,7 @@ Core::Expected<void, std::string> ApplySkillTarget(const SkillTarget& target, co
     world.Runtime().lastAttacker = static_cast<std::int32_t>(sourceIndex);
     ActorState& source = world.Actors()[sourceIndex];
     {
-        const Render::Models::LogicalAccess access(source.byte42eAccesses, resources.cloth.random,
-                                                   ActorByteCloseRandoms);
+        const Models::LogicalAccess access(source.byte42eAccesses, resources.cloth.random, ActorByteCloseRandoms);
         source.byte42e = target.skill;
     }
     source.attackTarget = static_cast<std::uint16_t>(targetIndex);
@@ -923,8 +920,8 @@ Core::Expected<void, std::string> ApplyLevelUp(const Protocol::Skill::LevelUp& r
     WorldState& world = resources.world;
     WorldRuntime& runtime = world.Runtime();
     {
-        const Render::Models::LogicalAccess access(runtime.ownRecordDepth, resources.cloth.random,
-                                                   Render::Models::OwnRecordCloseRandoms);
+        const Models::LogicalAccess access(runtime.ownRecordDepth, resources.cloth.random,
+                                           Models::OwnRecordCloseRandoms);
         OwnCharacterRecord& own = world.OwnCharacter();
         own.level = reply.level;
         own.levelUpPoints = reply.levelUpPoints;
@@ -956,8 +953,7 @@ Core::Expected<void, std::string> ApplySkillList(const SkillList& list, const Wo
     OwnCharacterRecord& own = world.OwnCharacter();
     Crt::CrtRandom& random = resources.cloth.random;
     {
-        const Render::Models::LogicalAccess access(runtime.ownRecordDepth, random,
-                                                   Render::Models::OwnRecordCloseRandoms);
+        const Models::LogicalAccess access(runtime.ownRecordDepth, random, Models::OwnRecordCloseRandoms);
         if (list.count == Protocol::Skill::SkillListRemoveOne)
             own.SetSkillAt(list.slot, 0);
         else if (list.count == Protocol::Skill::SkillListAddOne)
@@ -986,7 +982,7 @@ Core::Expected<void, std::string> ApplySkillList(const SkillList& list, const Wo
         }
     }
     // 0x4c53f6..0x4c5595: otra vez abierto, las cuentas y +0x425 del héroe.
-    const Render::Models::LogicalAccess access(runtime.ownRecordDepth, random, Render::Models::OwnRecordCloseRandoms);
+    const Models::LogicalAccess access(runtime.ownRecordDepth, random, Models::OwnRecordCloseRandoms);
     own.byte6a = 0;
     own.byte6b = 0;
     constexpr std::size_t CountedSlots = 0x40;
@@ -1004,8 +1000,8 @@ Core::Expected<void, std::string> ApplySkillList(const SkillList& list, const Wo
         std::uint8_t hidden = 0;
         {
             // 0x4c549a..0x4c54fa: abre la entrada y la cierra con 0x4e7c40.
-            const Render::Models::LogicalAccess entry(runtime.movement.skillDepths[skill], random,
-                                                      static_cast<std::uint16_t>(Data::Tables::SkillRecordSize));
+            const Models::LogicalAccess entry(runtime.movement.skillDepths[skill], random,
+                                              static_cast<std::uint16_t>(Data::Tables::SkillRecordSize));
             constexpr std::size_t HiddenOffset = 0x31;
             hidden = std::to_integer<std::uint8_t>((*record)[HiddenOffset]);
         }

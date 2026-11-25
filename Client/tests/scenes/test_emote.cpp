@@ -40,14 +40,14 @@ constexpr std::uint8_t ElfClass = 2;
 constexpr std::uint16_t TransformedModel = 0x30;
 
 // Player.bmd con 205 acciones y el modelo de un transformado, con las que diga el test; ninguno más.
-class EmoteModels final : public Client::Render::Models::IModelLibrary
+class EmoteModels final : public Client::Models::IModelLibrary
 {
 public:
     const Client::Data::Models::Model* Find(std::uint16_t) const override
     {
         return nullptr;
     }
-    const Client::Render::Models::Skeleton* SkeletonOf(std::uint16_t model) const override
+    const Client::Models::Skeleton* SkeletonOf(std::uint16_t model) const override
     {
         if (model == Client::Data::Models::PlayerSkeletonModel)
             return &player;
@@ -57,8 +57,8 @@ public:
     {
         return {};
     }
-    Client::Render::Models::Skeleton player = Client::Tests::PlayerActionsSkeleton();
-    Client::Render::Models::Skeleton transformed;
+    Client::Models::Skeleton player = Client::Tests::PlayerActionsSkeleton();
+    Client::Models::Skeleton transformed;
 };
 
 class EmoteTest : public ::testing::Test

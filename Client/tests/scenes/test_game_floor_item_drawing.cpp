@@ -41,7 +41,7 @@
 
 namespace
 {
-class FloorModels final : public Client::Render::Models::IModelLibrary
+class FloorModels final : public Client::Models::IModelLibrary
 {
 public:
     FloorModels()
@@ -53,16 +53,16 @@ public:
         mesh.triangles = {{3, {0, 1, 2, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}}};
         mesh.textureName = "plain.jpg";
         model.meshes = {mesh};
-        Client::Render::Models::SkeletonBone bone;
-        bone.actions = {{Client::Render::Models::BoneKey{}}};
+        Client::Models::SkeletonBone bone;
+        bone.actions = {{Client::Models::BoneKey{}}};
         skeleton.bones = {bone};
-        skeleton.actions = {Client::Render::Models::ActionInfo{.keyCount = 1}};
+        skeleton.actions = {Client::Models::ActionInfo{.keyCount = 1}};
     }
     const Client::Data::Models::Model* Find(std::uint16_t) const override
     {
         return &model;
     }
-    const Client::Render::Models::Skeleton* SkeletonOf(std::uint16_t) const override
+    const Client::Models::Skeleton* SkeletonOf(std::uint16_t) const override
     {
         return &skeleton;
     }
@@ -71,7 +71,7 @@ public:
         return textures;
     }
     Client::Data::Models::Model model;
-    Client::Render::Models::Skeleton skeleton;
+    Client::Models::Skeleton skeleton;
     std::array<Client::Render::TextureSlot, 3> textures{
         Client::Render::TextureSlot{0x400}, Client::Render::TextureSlot{0x401}, Client::Render::TextureSlot{0x402}};
 };
@@ -275,8 +275,7 @@ TEST_F(GoldenGameFloorItemDrawing, RealWeaponsArmorAndMoneyUseTheSharedPoseAndTh
             { return Client::Scenes::PublishFaunaFloorPose(carry, models, object); };
             context.onSkin = [&](const Client::Scenes::DrawnObject& object)
             { return Client::Scenes::TransformFaunaPose(carry, models, object); };
-            context.posedMeshes = [&]() -> std::span<const Client::Render::Models::SkinnedMesh>
-            { return carry.meshes; };
+            context.posedMeshes = [&]() -> std::span<const Client::Models::SkinnedMesh> { return carry.meshes; };
             const auto before = batch.Vertices().size();
             const auto result = Client::Scenes::DrawFloorItems(std::span(&item, 1), context);
             ASSERT_TRUE(result.HasValue()) << result.Error() << " tipo " << type << " mapa " << map;
@@ -420,7 +419,7 @@ TEST(GameFloorItemDrawingTest, GlowItemsPublishTheirSpritesFromTheRetainedBones)
         { return Client::Scenes::PublishFaunaFloorPose(carry, models, object); };
         context.onSkin = [&](const Client::Scenes::DrawnObject& object)
         { return Client::Scenes::TransformFaunaPose(carry, models, object); };
-        context.posedMeshes = [&]() -> std::span<const Client::Render::Models::SkinnedMesh> { return carry.meshes; };
+        context.posedMeshes = [&]() -> std::span<const Client::Models::SkinnedMesh> { return carry.meshes; };
         const auto result = Client::Scenes::DrawFloorItems(std::span(&item, 1), context);
         ASSERT_TRUE(result.HasValue()) << result.Error();
         EXPECT_EQ(static_cast<std::size_t>(
@@ -523,7 +522,7 @@ TEST(GameFloorItemDrawingTest, WaterCannotReuseTheUnshiftedMeshWithoutTheSkinBin
     FloorModels models;
     Client::Render::ModelBatch batch;
     Client::World::SphereFrustum frustum;
-    Client::Render::Models::SkinnedMesh mesh;
+    Client::Models::SkinnedMesh mesh;
     mesh.positions.assign(3, glm::vec3{});
     mesh.normals.assign(1, glm::vec3(0, 0, 1));
     auto item = Item(0x212);
@@ -532,7 +531,7 @@ TEST(GameFloorItemDrawingTest, WaterCannotReuseTheUnshiftedMeshWithoutTheSkinBin
     context.project = Project;
     context.waterHeight = [](float, float) -> Client::Core::Expected<float, std::string> { return 600; };
     context.onPose = [](const Client::Scenes::DrawnObject&) -> Client::Core::Expected<void, std::string> { return {}; };
-    context.posedMeshes = [&]() -> std::span<const Client::Render::Models::SkinnedMesh> { return {&mesh, 1}; };
+    context.posedMeshes = [&]() -> std::span<const Client::Models::SkinnedMesh> { return {&mesh, 1}; };
     const auto result = Client::Scenes::DrawFloorItems(std::span(&item, 1), context);
     ASSERT_FALSE(result.HasValue());
     EXPECT_NE(result.Error().find("0x60d186"), std::string::npos);
@@ -664,7 +663,7 @@ TEST(GameFloorItemDrawingTest, RedGlowPublishesUnlitSelectionBeforeMissingBonesO
         { return Client::Scenes::PublishFaunaFloorPose(carry, models, object); };
         context.onSkin = [&](const Client::Scenes::DrawnObject& object)
         { return Client::Scenes::TransformFaunaPose(carry, models, object); };
-        context.posedMeshes = [&]() -> std::span<const Client::Render::Models::SkinnedMesh> { return carry.meshes; };
+        context.posedMeshes = [&]() -> std::span<const Client::Models::SkinnedMesh> { return carry.meshes; };
         const auto result = Client::Scenes::DrawFloorItems(std::span(&item, 1), context);
         ASSERT_FALSE(result.HasValue());
         EXPECT_NE(result.Error().find(missingBones ? "4ec110" : "5491e0"), std::string::npos);
@@ -695,7 +694,7 @@ TEST(GameFloorItemDrawingTest, IncompleteStaffScratchKeepsStoresAndFirstMeshThro
         carry.meshes.resize(1);
         return result;
     };
-    context.posedMeshes = [&]() -> std::span<const Client::Render::Models::SkinnedMesh> { return carry.meshes; };
+    context.posedMeshes = [&]() -> std::span<const Client::Models::SkinnedMesh> { return carry.meshes; };
     const auto result = Client::Scenes::DrawFloorItems(std::span(&item, 1), context);
     ASSERT_FALSE(result.HasValue());
     EXPECT_NE(result.Error().find("vértices/normales"), std::string::npos);

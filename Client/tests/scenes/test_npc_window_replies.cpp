@@ -91,7 +91,7 @@ public:
 };
 
 constexpr std::uint32_t Seed = 0x1357;
-constexpr int Own = Client::Render::Models::OwnRecordCloseRandoms;
+constexpr int Own = Client::Models::OwnRecordCloseRandoms;
 constexpr std::size_t HeroSlot = 7;
 // Un arma de 1 por 3, un escudo de 2 por 2 y una joya de 1 por 1 (Item.bmd sintético).
 constexpr std::uint16_t Sword = 0x0001;
@@ -173,7 +173,7 @@ struct Stage
     Client::Scenes::SelectionState selection{world};
     Client::World::GameCamera camera;
     Client::World::GameCameraInput cameraInput;
-    Client::Render::Models::ClothWorld cloth{.random = CrtRandom(Seed)};
+    Client::Models::ClothWorld cloth{.random = CrtRandom(Seed)};
     Client::Scenes::SingleModelLibrary models;
     Client::Data::Tables::ItemTable items =
         Client::Tests::ItemTableOf({{Sword, 1, 3, 0}, {Shield, 2, 2, 1}, {Jewel, 1, 1, 0xff}});

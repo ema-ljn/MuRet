@@ -10,7 +10,7 @@
 #include <optional>
 #include <ratio>
 
-namespace Client::Render::Models
+namespace Client::Models
 {
 namespace
 {
@@ -211,4 +211,4 @@ float MaskedClassLightAt(Core::Duration clock)
 {
     return PulseAt(clock, 0.001f, 0.1f, 0.7f);
 }
-} // namespace Client::Render::Models
+} // namespace Client::Models

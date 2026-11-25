@@ -146,14 +146,14 @@ std::vector<std::uint8_t> Plain(const Client::Protocol::Outgoing& sent)
 }
 
 // Player.bmd con sus 205 acciones (las que mira 0x4ea030 en el gesto); ningún otro modelo.
-class GestureModels final : public Client::Render::Models::IModelLibrary
+class GestureModels final : public Client::Models::IModelLibrary
 {
 public:
     const Client::Data::Models::Model* Find(std::uint16_t /*model*/) const override
     {
         return nullptr;
     }
-    const Client::Render::Models::Skeleton* SkeletonOf(std::uint16_t model) const override
+    const Client::Models::Skeleton* SkeletonOf(std::uint16_t model) const override
     {
         return model == Client::Data::Models::PlayerSkeletonModel ? &player : nullptr;
     }
@@ -161,7 +161,7 @@ public:
     {
         return {};
     }
-    Client::Render::Models::Skeleton player = Client::Tests::PlayerActionsSkeleton();
+    Client::Models::Skeleton player = Client::Tests::PlayerActionsSkeleton();
 };
 
 // 0x576a84: las acciones de parado (1..12 y 0x8a), las únicas con las que 0x576a60 anima y manda.
@@ -295,7 +295,7 @@ TEST_F(GuildReceiveTest, TheMasterQuestionBorrowsBothCastleAndTrainerClosersFrom
     {
         Reset(0);
         Client::Scenes::SelectionState selection(*m_world);
-        Client::Render::Models::ClothWorld cloth;
+        Client::Models::ClothWorld cloth;
         Client::World::GameCamera camera;
         Client::World::GameCameraInput cameraInput;
         Client::Tests::RecordingSink sink;

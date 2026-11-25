@@ -38,8 +38,8 @@ protected:
                     [this]
                 {
                     ++m_reads;
-                    const Client::Render::Models::LogicalAccess access(
-                        m_depth, m_random, Client::Render::Models::SmallLogicalCloseRandoms);
+                    const Client::Models::LogicalAccess access(m_depth, m_random,
+                                                               Client::Models::SmallLogicalCloseRandoms);
                     return m_y;
                 },
                 .emit = [this](const ModelEffectArguments& args) -> Client::Core::Expected<void, std::string>

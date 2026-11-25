@@ -95,9 +95,9 @@ public:
     // Main: los tests la fijan.
     // `gameSlots`, la tabla de slots de la carga (GameModels::TextureSlots), que el mundo sigue desde
     // 0x41c como la global del original; sin ella, una vacía.
-    LoginScene(const SceneContext& context, const GameData& data, const Render::Models::IModelLibrary& models,
+    LoginScene(const SceneContext& context, const GameData& data, const Models::IModelLibrary& models,
                App::ServerSession* session, std::string_view version, std::mt19937::result_type seed,
-               const Render::Models::ModelTextureSlots* gameSlots = nullptr);
+               const Models::ModelTextureSlots* gameSlots = nullptr);
 
     // Las ventanas guardan this (el tamaño de las texturas): no se copia ni se mueve.
     LoginScene(const LoginScene&) = delete;
@@ -244,25 +244,25 @@ private:
     // El trapecio global del último 0x5fb570 (WorldRuntime::terrainPolygon), el de cualquier escena.
     [[nodiscard]] World::TerrainPolygon& SharedTerrainPolygon();
     [[nodiscard]] WorldState& CharacterWorld() const;
-    [[nodiscard]] Render::Models::ClothWorld& CharacterRandomWorld();
+    [[nodiscard]] Models::ClothWorld& CharacterRandomWorld();
 
     SceneContext m_context;
     // Los tests de vista sin los globales de main usan el mismo pool y paso, con un dueño local en el heap.
     std::unique_ptr<WorldState> m_localWorld;
-    Render::Models::ClothWorld m_localCloth;
+    Models::ClothWorld m_localCloth;
     std::optional<std::string> m_failure;
     // Fallback explícito para tests sin contexto completo; main siempre aporta ambos globales.
     World::GameCamera m_localCamera;
     World::GameCameraInput m_localCameraInput;
-    Render::Models::OriginalFrameCarry m_cameraFrames;
+    Models::OriginalFrameCarry m_cameraFrames;
     // 0x602ed0: un sorteo por objeto y frame original, con replay de la luz del farol entre ellos.
-    Render::Models::OriginalFrameCarry m_objectEffectFrames;
+    Models::OriginalFrameCarry m_objectEffectFrames;
     // Los frames del original de 0x505820 desde el dibujo del personaje (0x50c91e).
-    Render::Models::OriginalFrameCarry m_fullSetScanFrames;
+    Models::OriginalFrameCarry m_fullSetScanFrames;
     // Los de los avisos y el área vieja (0x554810 y 0x5554e0): con cero, el dibujo va sobre copias.
-    Render::Models::OriginalFrameCarry m_messageFrames;
+    Models::OriginalFrameCarry m_messageFrames;
     std::vector<std::optional<int>> m_objectEffectRandoms;
-    const Render::Models::IModelLibrary& m_models;
+    const Models::IModelLibrary& m_models;
     App::ServerSession* m_session;
     const Data::Text::TextTable* m_texts;
     SceneTextures m_textures;
@@ -276,7 +276,7 @@ private:
     Render::Camera3D m_drawnCamera;
     // La luz sola, si el terreno no se pudo leer y su luz sí (World::LoadTerrainLighting).
     std::unique_ptr<World::TerrainLighting> m_lighting;
-    const Render::Models::ModelTextureSlots* m_gameSlots;
+    const Models::ModelTextureSlots* m_gameSlots;
     // Los modelos de Object56\ y los registros de EncTerrain56.obj, de cada entrada.
     WorldModels m_worldModels;
     std::vector<Data::Terrain::TerrainObject> m_objectRecords;
@@ -302,7 +302,7 @@ private:
     bool m_tailSpriteReplayValid = false;
     // El logo: su modelo, los slots de sus mallas desde donde terminó el mundo y sus texturas.
     SingleModelLibrary m_logo;
-    std::optional<Render::Models::ModelTextureSlots> m_logoSlots;
+    std::optional<Models::ModelTextureSlots> m_logoSlots;
     std::optional<SceneTextures> m_logoTextures;
     LoginRoutes m_routes;
     // El caballo que monta (0x443fa0(0xbf, …) de 0x6349a0): sigue al personaje.

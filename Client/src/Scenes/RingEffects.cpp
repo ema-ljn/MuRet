@@ -97,7 +97,7 @@ Core::Expected<void, std::string> BeginTheRing(World::ModelEffect& effect, const
     constexpr float BeamWidth = 30.0f; // 0x41f00000
     effect.life = RingLife;
     effect.transform.scale = RingScale;
-    effect.objectState.blendMesh = Render::Models::EveryMeshBlends;
+    effect.objectState.blendMesh = Models::EveryMeshBlends;
     effect.objectState.light = RingLight;
     effect.copiedAngles = glm::vec3(0.0f);
     effect.velocity = {0.0f, Sink, 0.0f};

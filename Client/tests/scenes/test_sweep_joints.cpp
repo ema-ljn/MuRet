@@ -372,7 +372,7 @@ TEST(SweepJointsTest, TheHeroSweepHitsTheTargetsAroundEveryFiveTurns)
 
     // Cada llamada: el cierre del registro propio (0x517af3, sin mirar los blancos); con blancos, además, los dos
     // rand() del C3. Las dos llamadas de este barrido tienen blancos.
-    constexpr std::uint32_t HitRandoms = Client::Render::Models::OwnRecordCloseRandoms + TargetRandoms;
+    constexpr std::uint32_t HitRandoms = Client::Models::OwnRecordCloseRandoms + TargetRandoms;
     CrtRandom replay{Seed};
     auto particles = std::make_unique<Client::World::Particles>();
     glm::vec3 velocity{};
@@ -425,9 +425,9 @@ TEST(SweepJointsTest, AHeroSweepCallWithoutTargetsStillClosesTheOwnRecord)
         velocity.z = F32(static_cast<double>(velocity.z) - 11.0);
         ReplaySegment(replay, *particles, point);
         if (turn == 0)
-            replay.Discard(Client::Render::Models::OwnRecordCloseRandoms + TargetRandoms);
+            replay.Discard(Client::Models::OwnRecordCloseRandoms + TargetRandoms);
         else if (turn == 5)
-            replay.Discard(Client::Render::Models::OwnRecordCloseRandoms);
+            replay.Discard(Client::Models::OwnRecordCloseRandoms);
     }
     EXPECT_EQ(tested.random.State(), replay.State());
     ASSERT_EQ(hero.sent.size(), 1u);

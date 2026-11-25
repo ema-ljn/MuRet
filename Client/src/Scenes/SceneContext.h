@@ -45,7 +45,7 @@ struct SceneContext
     // Lo global de la tela (Render/Models/Cloth.h): el viento base, el contador de pasos de lógica y el
     // rand() de la CRT, que las escenas 2, 4 y 5 avanzan en cada paso (0x637700). nullptr sin bucle: los
     // personajes van sin tela.
-    Render::Models::ClothWorld* cloth = nullptr;
+    Models::ClothWorld* cloth = nullptr;
     // El teclado y el mouse del bucle, los de cada paso: lo que el original lee en el dibujo de los
     // globales del WndProc, como el cursor (0x5ac2d0, UI/GameCursor.h). nullptr sin bucle: sin cursor.
     const Input::InputState* input = nullptr;
@@ -79,9 +79,9 @@ struct SceneContext
 };
 
 // Cómo cuentan los frames del original la tela y el cetro con el ritmo `pacing`.
-[[nodiscard]] constexpr Render::Models::OriginalFramePace OriginalFramePaceOf(App::PacingMode pacing)
+[[nodiscard]] constexpr Models::OriginalFramePace OriginalFramePaceOf(App::PacingMode pacing)
 {
-    return pacing == App::PacingMode::Faithful ? Render::Models::OriginalFramePace::OncePerDraw
-                                               : Render::Models::OriginalFramePace::ByTheClock;
+    return pacing == App::PacingMode::Faithful ? Models::OriginalFramePace::OncePerDraw
+                                               : Models::OriginalFramePace::ByTheClock;
 }
 } // namespace Client::Scenes

@@ -41,7 +41,7 @@ inline constexpr std::uint16_t DragonModel = 0xb4;
 inline constexpr std::uint16_t SpearmanModel = 0x19f;
 inline constexpr Render::TextureSlot WorldModelsFirstSlot{0x41c};
 
-class WorldModels final : public Render::Models::IModelLibrary
+class WorldModels final : public Models::IModelLibrary
 {
 public:
     // Lee los de `map` desde `dataRoot` y les da sus texturas siguiendo a `gameSlots` (la tabla de la
@@ -57,25 +57,25 @@ public:
     // los globales, y solo se publican tras una subida efectiva.
     [[nodiscard]] Core::Expected<void, std::string> Load(const std::filesystem::path& dataRoot, std::uint8_t map,
                                                          Render::ITextureStore& textures, Core::Log& log,
-                                                         const Render::Models::ModelTextureSlots* gameSlots,
-                                                         const Render::Models::IModelLibrary* globalModels = nullptr,
+                                                         const Models::ModelTextureSlots* gameSlots,
+                                                         const Models::IModelLibrary* globalModels = nullptr,
                                                          ModelTextureTable* sharedTextures = nullptr);
     // Suelta las texturas y los modelos.
     void Release();
 
     [[nodiscard]] const Data::Models::Model* Find(std::uint16_t model) const override;
-    [[nodiscard]] const Render::Models::Skeleton* SkeletonOf(std::uint16_t model) const override;
+    [[nodiscard]] const Models::Skeleton* SkeletonOf(std::uint16_t model) const override;
     [[nodiscard]] std::span<const Render::TextureSlot> MeshTextures(std::uint16_t model) const override;
-    [[nodiscard]] std::optional<TextureMetadata> TextureMetadataOf(std::uint32_t selector) const override;
+    [[nodiscard]] std::optional<Models::TextureMetadata> TextureMetadataOf(std::uint32_t selector) const override;
     [[nodiscard]] std::optional<Render::TextureSlot> TextureSlotOf(std::uint32_t selector) const override;
     [[nodiscard]] std::optional<glm::vec2> TextureSize(Render::TextureSlot slot) const override;
 
     // Cuántos se leyeron.
     [[nodiscard]] std::size_t Count() const;
     // Los slots que repartió Load, si cargó: el próximo es donde sigue el logo (0x61c7c0).
-    [[nodiscard]] const Render::Models::ModelTextureSlots* TextureSlots() const;
+    [[nodiscard]] const Models::ModelTextureSlots* TextureSlots() const;
     // 612d90 continúa el cursor global con las texturas de Monster32/34.
-    [[nodiscard]] Render::Models::ModelTextureSlots* TextureSlots();
+    [[nodiscard]] Models::ModelTextureSlots* TextureSlots();
 
 private:
     void LoadFile(const std::filesystem::path& dataRoot, const Data::Models::ModelFile& file, Core::Log& log,
@@ -98,16 +98,16 @@ private:
 
     std::string m_folder;
     std::map<std::uint16_t, Data::Models::Model> m_models;
-    std::map<std::uint16_t, Render::Models::Skeleton> m_skeletons;
+    std::map<std::uint16_t, Models::Skeleton> m_skeletons;
     std::map<std::uint16_t, std::vector<Render::TextureSlot>> m_meshTextures;
-    std::optional<Render::Models::ModelTextureSlots> m_slots;
+    std::optional<Models::ModelTextureSlots> m_slots;
     Render::ITextureStore* m_store = nullptr;
     ModelTextureTable* m_sharedTextures = nullptr;
     std::size_t m_requestStart = 0;
     // Los que subió Load, para soltarlos.
     std::vector<Render::TextureSlot> m_uploaded;
-    std::map<std::uint32_t, TextureMetadata> m_textureMetadata;
+    std::map<std::uint32_t, Models::TextureMetadata> m_textureMetadata;
     // No poseedor: los modelos y texturas globales viven hasta Release; no se copian ni se modifican.
-    const Render::Models::IModelLibrary* m_globalModels = nullptr;
+    const Models::IModelLibrary* m_globalModels = nullptr;
 };
 } // namespace Client::Scenes

@@ -46,14 +46,14 @@
 
 namespace
 {
-class MovementModels final : public Client::Render::Models::IModelLibrary
+class MovementModels final : public Client::Models::IModelLibrary
 {
 public:
     const Client::Data::Models::Model* Find(std::uint16_t) const override
     {
         return nullptr;
     }
-    const Client::Render::Models::Skeleton* SkeletonOf(std::uint16_t model) const override
+    const Client::Models::Skeleton* SkeletonOf(std::uint16_t model) const override
     {
         if (model == 0x186 || model == Client::Data::Models::PlayerSkeletonModel)
             return &skeleton;
@@ -63,10 +63,10 @@ public:
     {
         return {};
     }
-    Client::Render::Models::Skeleton skeleton = Client::Tests::PlayerActionsSkeleton();
-    Client::Render::Models::Skeleton transformed = []
+    Client::Models::Skeleton skeleton = Client::Tests::PlayerActionsSkeleton();
+    Client::Models::Skeleton transformed = []
     {
-        Client::Render::Models::Skeleton value;
+        Client::Models::Skeleton value;
         value.actions.resize(7);
         for (auto& action : value.actions)
             action.keyCount = 10;
@@ -104,7 +104,7 @@ struct Replies
     Client::Scenes::SelectionState selection{world};
     Client::World::GameCamera camera;
     Client::World::GameCameraInput input;
-    Client::Render::Models::ClothWorld cloth;
+    Client::Models::ClothWorld cloth;
     Client::Scenes::SingleModelLibrary models;
     Client::Tests::RecordingSink sink;
     Client::Core::Log log{sink, Client::Core::LogLevel::Debug};
@@ -580,7 +580,7 @@ TEST(MovementRepliesTest, AFailedTransformedPathStopsWithItsLoadedModel)
     EXPECT_EQ(other.movement, 0);
     EXPECT_EQ(other.animation.action, 0);
     EXPECT_EQ(tested.cloth.random.State(),
-              Client::Tests::AfterDraws(1, 4 * Client::Render::Models::SmallLogicalCloseRandoms + 1).State());
+              Client::Tests::AfterDraws(1, 4 * Client::Models::SmallLogicalCloseRandoms + 1).State());
 }
 TEST(MovementRepliesTest, BitSixProducesTwoDimCopiesBeforeTheNormalNumberAtTheOriginalHeight)
 {

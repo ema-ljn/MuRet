@@ -70,8 +70,8 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Render::Models::ActionInfo;
-using Client::Render::Models::Skeleton;
+using Client::Models::ActionInfo;
+using Client::Models::Skeleton;
 using Client::Scenes::ActorState;
 using Client::Scenes::CharacterHead;
 using Client::Scenes::CharacterSeen;
@@ -87,9 +87,9 @@ constexpr std::uint32_t Seed = 0x2468ace1u;
 // Los dos accesos de 0x508f00 a la celda lógica (4 rand() por cierre).
 constexpr int WallDraws = 8;
 // 0x4fbe10 con la celda del héroe igual a la guardada: abre y cierra la X y la Y, cuatro rand() cada cierre.
-constexpr int HeroCellReads = 2 * Client::Render::Models::SmallLogicalCloseRandoms;
+constexpr int HeroCellReads = 2 * Client::Models::SmallLogicalCloseRandoms;
 // 0x4fc450 con el héroe: el registro propio, que se cierra en 0 con los 3.848 de 0x40b4d0.
-constexpr int OwnRecordDraws = Client::Render::Models::OwnRecordCloseRandoms;
+constexpr int OwnRecordDraws = Client::Models::OwnRecordCloseRandoms;
 // El rand() % 6 de 0x4fd7e4.
 constexpr int BodyDraws = 1;
 // 0x505de0 con el héroe visto: los dos accesos de la celda y el rand() & 7 de 0x506cac.
@@ -319,7 +319,7 @@ struct GameWorld
     // El hueso 0 del modelo, con sus keys: la mano de la 0x2b (FrameSkill) llega al punto de 0x4f9918.
     void GiveTheHandABone()
     {
-        Client::Render::Models::SkeletonBone bone;
+        Client::Models::SkeletonBone bone;
         bone.actions.resize(skeleton.actions.size());
         for (auto& keys : bone.actions)
             keys.resize(10);
@@ -803,7 +803,7 @@ std::optional<Skeleton> LoadPlayerSkeleton(const std::filesystem::path& dataRoot
         {
             return std::nullopt;
         }
-        auto skeleton = Client::Render::Models::MakePlayerSkeleton(loaded.Value());
+        auto skeleton = Client::Models::MakePlayerSkeleton(loaded.Value());
         if (!skeleton.HasValue())
         {
             return std::nullopt;
@@ -1393,7 +1393,7 @@ TEST(CharacterStepTest, AnEquippedSwordAttackCreatesItsTrailAndContinuesTheBody)
     hero.hands[0].level = 7;
     hero.hands[0].bone = 0;
     tested.skeleton.actions[0x23] = ActionInfo{.repeats = true, .speed = 0.0f, .keyCount = 10};
-    Client::Render::Models::SkeletonBone bone;
+    Client::Models::SkeletonBone bone;
     bone.actions.resize(tested.skeleton.actions.size());
     for (auto& keys : bone.actions)
         keys.resize(10);
@@ -1628,7 +1628,7 @@ TEST(CharacterStepTest, ChaosCastleKeepsTheHeroCellAndItsClock)
         EXPECT_EQ(moved.world.Runtime().reportedCellX, 5);
         EXPECT_EQ(moved.world.Runtime().reportedCellY, 6);
         EXPECT_EQ(moved.world.Runtime().reportedCellTime, 1234.0f);
-        EXPECT_EQ(moved.random.State(), after(3 * Client::Render::Models::SmallLogicalCloseRandoms));
+        EXPECT_EQ(moved.random.State(), after(3 * Client::Models::SmallLogicalCloseRandoms));
     }
     {
         SCOPED_TRACE("la misma, 9,999 s después");
@@ -2734,8 +2734,8 @@ TEST(CharacterStepTest, DyingActorsReleaseTheirClothsAtTheFadeStart)
 {
     GameWorld tested;
     std::array<Client::Math::BoneTransform, 21> bones{};
-    const Client::Render::Models::ClothBody body{.bones = bones};
-    Client::Render::Models::ClothWorld clothWorld{.random = CrtRandom(Seed)};
+    const Client::Models::ClothBody body{.bones = bones};
+    Client::Models::ClothWorld clothWorld{.random = CrtRandom(Seed)};
     for (const std::size_t slot : {GameWorld::HeroSlot, std::size_t{1}})
     {
         ActorState& actor = slot == GameWorld::HeroSlot ? tested.Hero() : tested.Other(slot);

@@ -252,8 +252,7 @@ Core::Expected<void, std::string> WizardBranch::SendTheMagicAttack(std::uint16_t
 // 0x5897b7..0x58a117: true si sigue a 0x57ce80, con el registro propio ya cerrado.
 Core::Expected<bool, std::string> WizardBranch::PassesTheHead()
 {
-    const Render::Models::LogicalAccess own(m_runtime.ownRecordDepth, m_context.random,
-                                            Render::Models::OwnRecordCloseRandoms);
+    const Models::LogicalAccess own(m_runtime.ownRecordDepth, m_context.random, Models::OwnRecordCloseRandoms);
     // 0x58982d..0x58987d: la 0x3a y la 0x28 cuestan lo de la 0x28, y la 0x28 sin stamina.
     const bool charged = m_skill == ReleasedChargedSkill || m_skill == ChargedSkill;
     const auto cost = SkillCostOf(charged ? ChargedSkill : m_skill, m_context, charged ? "0x589866" : "0x58984c");

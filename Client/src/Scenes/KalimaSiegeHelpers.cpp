@@ -918,8 +918,7 @@ Core::Expected<bool, std::string> DrawKalimaSiegeHelpers(const KalimaSiegeHelper
     return DrawTheCastleHelpers(helper);
 }
 
-Core::Expected<void, std::string> DrawTheBoneSparks(const KalimaSiegeHelperPass& pass,
-                                                    const Render::Models::Skeleton& skeleton)
+Core::Expected<void, std::string> DrawTheBoneSparks(const KalimaSiegeHelperPass& pass, const Models::Skeleton& skeleton)
 {
     if (pass.sprites == nullptr)
         return Core::Unexpected<std::string>("0x5108b6: falta la tabla de sprites del frame (0x5491e0)");

@@ -47,8 +47,8 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Models::OwnRecordCloseRandoms;
 using Client::Protocol::Pet::PetInfoReply;
-using Client::Render::Models::OwnRecordCloseRandoms;
 using Client::Scenes::ActorState;
 using Client::Scenes::DarkSpirit;
 using Client::Scenes::PetStats;
@@ -152,8 +152,7 @@ struct Pets
         Client::Scenes::WorldRuntime& runtime = world.Runtime();
         const CrtRandom before = cloth.random;
         {
-            const Client::Render::Models::LogicalAccess access(runtime.ownRecordDepth, cloth.random,
-                                                               OwnRecordCloseRandoms);
+            const Client::Models::LogicalAccess access(runtime.ownRecordDepth, cloth.random, OwnRecordCloseRandoms);
             const auto recalculated = Client::Scenes::RecalculateOwnStats(
                 world.OwnCharacter(), Client::Scenes::OwnStatsContext{.itemSetTables = sets,
                                                                       .itemSets = &world.ItemSets(),
@@ -172,7 +171,7 @@ struct Pets
     Client::Scenes::SelectionState selection{world};
     Client::World::GameCamera camera;
     Client::World::GameCameraInput input;
-    Client::Render::Models::ClothWorld cloth{.random = CrtRandom(Seed)};
+    Client::Models::ClothWorld cloth{.random = CrtRandom(Seed)};
     Client::Scenes::SingleModelLibrary models;
     const Client::Data::Tables::ItemTable items = EmptyItems();
     const Client::Data::Tables::ItemSetTables setTables = EmptySets();

@@ -1505,13 +1505,13 @@ TEST_F(GameCharacterEffectsTest, TheGuildMarkRisesWithPlus369OutsideTheEventMaps
 }
 
 // Un cuervo sintético: un hueso y cinco mallas de un triángulo, para ver qué mallas dibuja y la sombra.
-class RavenModels final : public Client::Render::Models::IModelLibrary
+class RavenModels final : public Client::Models::IModelLibrary
 {
 public:
     RavenModels()
     {
         using namespace Client::Math;
-        using namespace Client::Render::Models;
+        using namespace Client::Models;
         SkeletonBone bone;
         bone.parent = -1;
         bone.actions = {{BoneKey{}}};
@@ -1531,7 +1531,7 @@ public:
     void GrowBones(std::size_t count)
     {
         using namespace Client::Math;
-        using namespace Client::Render::Models;
+        using namespace Client::Models;
         SkeletonBone bone = m_skeleton.bones[0];
         m_skeleton.bones.assign(count, bone);
         if (count > 6)
@@ -1545,7 +1545,7 @@ public:
     {
         return model == Client::Scenes::DarkSpiritModel ? &m_model : nullptr;
     }
-    [[nodiscard]] const Client::Render::Models::Skeleton* SkeletonOf(std::uint16_t model) const override
+    [[nodiscard]] const Client::Models::Skeleton* SkeletonOf(std::uint16_t model) const override
     {
         return model == Client::Scenes::DarkSpiritModel ? &m_skeleton : nullptr;
     }
@@ -1555,7 +1555,7 @@ public:
     }
 
 private:
-    Client::Render::Models::Skeleton m_skeleton;
+    Client::Models::Skeleton m_skeleton;
     Client::Data::Models::Model m_model;
     std::array<Client::Render::TextureSlot, 5> m_textures{
         Client::Render::TextureSlot{0x300}, Client::Render::TextureSlot{0x301}, Client::Render::TextureSlot{0x302},
@@ -1682,7 +1682,7 @@ TEST_F(GameRavenTest, InCastleSiegeTheShadowFansOutWith2500)
         {
             const glm::vec3 body = vertices[corner].position;
             const glm::vec3 shadow = vertices[6 + corner].position;
-            EXPECT_EQ(shadow, Client::Render::Models::FlattenOnTheGround(body, ground, spread)) << corner;
+            EXPECT_EQ(shadow, Client::Models::FlattenOnTheGround(body, ground, spread)) << corner;
         }
     }
 }

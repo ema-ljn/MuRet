@@ -47,8 +47,8 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Models::OwnRecordCloseRandoms;
 using Client::Render::SpriteBatch;
-using Client::Render::Models::OwnRecordCloseRandoms;
 using Client::Scenes::GameHudContext;
 using Client::Scenes::TooltipLines;
 using Client::Scenes::WorldState;
@@ -212,7 +212,7 @@ protected:
     Client::Core::Expected<void, std::string> Hover(ItemState& item, std::int32_t y = BoxY)
     {
         GameHudContext context = Context();
-        const Client::Render::Models::LogicalAccess own(Runtime().ownRecordDepth, m_random, OwnRecordCloseRandoms);
+        const Client::Models::LogicalAccess own(Runtime().ownRecordDepth, m_random, OwnRecordCloseRandoms);
         return Client::Scenes::DrawTheItemTooltip(
             Client::Scenes::ItemTooltipContext{.hud = context, .x = BoxX, .y = y, .item = item});
     }

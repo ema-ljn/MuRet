@@ -19,10 +19,10 @@ namespace Client::Crt
 class CrtRandom;
 } // namespace Client::Crt
 
-namespace Client::Render::Models
+namespace Client::Models
 {
 class IModelLibrary;
-} // namespace Client::Render::Models
+} // namespace Client::Models
 namespace Client::World
 {
 class FrameSprites;
@@ -57,7 +57,7 @@ struct WizardSceneParts
     std::span<JointState> joints{};
     // Los esqueletos del juego que lee 0x4ea030 después de los del mapa (WorldState::FaunaResources), para el empujón
     // del 0xc2/4 (0x524a8d). Sin ellos, un 0x20a que empuja corta.
-    const Render::Models::IModelLibrary* models = nullptr;
+    const Models::IModelLibrary* models = nullptr;
 };
 
 [[nodiscard]] World::WizardEffectServices WizardEffectServicesOf(WorldState& world, Crt::CrtRandom& random,

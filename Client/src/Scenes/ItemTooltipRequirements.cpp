@@ -166,8 +166,7 @@ void WriteARequirement(Frame& frame, std::size_t text, std::uint16_t required, s
     TooltipWriter& lines = frame.lines;
     lines.PrintText(text, static_cast<std::int32_t>(required));
     GameHudContext& context = frame.context;
-    const Render::Models::LogicalAccess access(context.ownRecordDepth, context.random,
-                                               Render::Models::OwnRecordCloseRandoms);
+    const Models::LogicalAccess access(context.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
     const OwnCharacterRecord& own = context.world.OwnCharacter();
     std::uint16_t have = own.*stat;
     if (bonus != nullptr)

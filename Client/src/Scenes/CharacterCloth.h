@@ -55,7 +55,7 @@ struct ClothWearer
 inline constexpr glm::vec3 PlainClothColor{1.0f, 1.0f, 1.0f};
 
 // Lo más que corre Advance de una vez: 3 s del original.
-inline constexpr int MaxClothFramesPerAdvance = Render::Models::MaxOriginalFramesPerDraw;
+inline constexpr int MaxClothFramesPerAdvance = Models::MaxOriginalFramesPerDraw;
 
 class CharacterCloth
 {
@@ -65,8 +65,8 @@ public:
     // tela da sus cinco pasos de 0,005 y se dibuja en `batch` antes de pasar a la siguiente. Si un paso
     // la rompe, las suelta todas (0x4fb1a0) y el frame siguiente las vuelve a armar. `wears` es
     // bVar23 y `color` el de 0x50ba30.
-    void Frame(Render::ModelBatch& batch, const ClothWearer& wearer, const Render::Models::ClothBody& body,
-               Render::Models::ClothWorld& world, std::uint8_t map, float worldTime, bool wears,
+    void Frame(Render::ModelBatch& batch, const ClothWearer& wearer, const Models::ClothBody& body,
+               Models::ClothWorld& world, std::uint8_t map, float worldTime, bool wears,
                const glm::vec3& color = PlainClothColor);
 
     // Lo que corre en un frame de MuRet (DrawCharacter). Q-C124 corregido como Q-C20: el bloque corre una
@@ -76,27 +76,27 @@ public:
     // OncePerDraw), uno por dibujo, como el original (Render::Models::OriginalFrameCarry). Un salto de más
     // de MaxClothFramesPerAdvance frames corre esos y descarta el resto. `clock` es también el WorldTime
     // del brillo. Sin ninguno, el dibujo es el de DrawCurrent con `body`.
-    void Advance(Render::ModelBatch& batch, const ClothWearer& wearer, const Render::Models::ClothBody& body,
-                 Render::Models::ClothWorld& world, std::uint8_t map, Core::Duration clock, bool wears,
+    void Advance(Render::ModelBatch& batch, const ClothWearer& wearer, const Models::ClothBody& body,
+                 Models::ClothWorld& world, std::uint8_t map, Core::Duration clock, bool wears,
                  const glm::vec3& color = PlainClothColor,
-                 Render::Models::OriginalFramePace pace = Render::Models::OriginalFramePace::ByTheClock);
+                 Models::OriginalFramePace pace = Models::OriginalFramePace::ByTheClock);
 
     // Un dibujo entre frames del original: solo las telas que ya existen y sus destellos, sin
     // armarlas, simularlas ni avanzar su reloj. También vale antes del primer Advance. Cada tela va
     // llevada con su hueso del cuerpo de su última simulación a `body`, el de ahora (ClothCarry, #307):
     // con el personaje que camina, la capa va con él en vez de quedarse atrás hasta el frame siguiente.
     // Con el cuerpo quieto, se dibuja como quedó.
-    void DrawCurrent(Render::ModelBatch& batch, const ClothWearer& wearer, const Render::Models::ClothBody& body,
+    void DrawCurrent(Render::ModelBatch& batch, const ClothWearer& wearer, const Models::ClothBody& body,
                      Core::Duration clock, bool wears, const glm::vec3& color = PlainClothColor);
 
     // Un frame de la tela del +0x376 `monster` (WearsAGridClothOfItsOwn, 0x50c283..0x50c35c y 0x50c59f..0x50c669): con
     // +0x190 en 0 la arma sobre `body` (una, +0x18c en 1); después la primera da 0x455190(0,005f, 5), sin mirar +0x78;
     // si se rompe, 0x4fb1a0 las suelta y el frame siguiente la vuelve a armar; si no, su +0x18 (0x455930) la dibuja en
     // `batch` con el color nulo, (1, 1, 1). Un arreglo ya armado sigue con la forma que tenga, como el original.
-    void FrameTheMonsterCloth(Render::ModelBatch& batch, std::uint16_t monster, const Render::Models::ClothBody& body,
-                              Render::Models::ClothWorld& world, std::uint8_t map, float worldTime);
+    void FrameTheMonsterCloth(Render::ModelBatch& batch, std::uint16_t monster, const Models::ClothBody& body,
+                              Models::ClothWorld& world, std::uint8_t map, float worldTime);
     // Entre frames del original: la primera tela como quedó, sin simularla, llevada a `body` (#307). Sin tela, nada.
-    void DrawTheMonsterCloth(Render::ModelBatch& batch, const Render::Models::ClothBody& body, float worldTime);
+    void DrawTheMonsterCloth(Render::ModelBatch& batch, const Models::ClothBody& body, float worldTime);
 
     // 0x4fb1a0: suelta los recursos de las telas del personaje, sin reiniciar el reloj del bloque ni su blend anterior.
     void ReleaseResources();
@@ -110,7 +110,7 @@ public:
     }
 
     // objeto + 0x190: las telas armadas (cuatro con la clase 4, una con las demás), o ninguna.
-    [[nodiscard]] std::span<const Render::Models::Cloth> Cloths() const
+    [[nodiscard]] std::span<const Models::Cloth> Cloths() const
     {
         return m_cloths;
     }
@@ -128,31 +128,30 @@ public:
 
     // Los sprites del brillo del último frame (Effect\flare01.jpg, 0x5491e0). DrawCharacter los pide en
     // la tabla del frame (DrawnCharacter::sprites), que dibuja 0x549440 → 0x549290.
-    [[nodiscard]] std::span<const Render::Models::ClothFlare> Flares() const
+    [[nodiscard]] std::span<const Models::ClothFlare> Flares() const
     {
         return m_flares;
     }
 
 private:
     // El bloque, con su dibujo en `batch`, o sin dibujar con nullptr.
-    void RunTheBlock(Render::ModelBatch* batch, const ClothWearer& wearer, const Render::Models::ClothBody& body,
-                     Render::Models::ClothWorld& world, std::uint8_t map, float worldTime, bool wears,
-                     const glm::vec3& color);
+    void RunTheBlock(Render::ModelBatch* batch, const ClothWearer& wearer, const Models::ClothBody& body,
+                     Models::ClothWorld& world, std::uint8_t map, float worldTime, bool wears, const glm::vec3& color);
     // Las telas como quedaron, con las reglas del lazo, sin simularlas, llevadas a `body`.
-    void DrawTheCloths(Render::ModelBatch& batch, const ClothWearer& wearer, const Render::Models::ClothBody& body,
+    void DrawTheCloths(Render::ModelBatch& batch, const ClothWearer& wearer, const Models::ClothBody& body,
                        float worldTime, bool wears, const glm::vec3& color);
-    void Build(const ClothWearer& wearer, const Render::Models::ClothBody& body);
+    void Build(const ClothWearer& wearer, const Models::ClothBody& body);
     // Una tela y sus destellos, con sus partículas llevadas por `carry` si hay uno.
-    void Draw(Render::ModelBatch& batch, const Render::Models::Cloth& cloth, const glm::vec3& color, float worldTime,
+    void Draw(Render::ModelBatch& batch, const Models::Cloth& cloth, const glm::vec3& color, float worldTime,
               const std::optional<ClothCarry>& carry = std::nullopt);
 
-    std::vector<Render::Models::Cloth> m_cloths;
+    std::vector<Models::Cloth> m_cloths;
     // El cuerpo de la última simulación, del que DrawTheCloths lleva cada tela.
     std::optional<SimulatedClothBody> m_simulatedBody;
     std::uint8_t m_count = 0;
-    std::vector<Render::Models::ClothFlare> m_flares;
+    std::vector<Models::ClothFlare> m_flares;
     Render::ModelBlend m_lastBlend = Render::ModelBlend::Opaque;
-    Render::Models::OriginalFrameCarry m_frames;
+    Models::OriginalFrameCarry m_frames;
     MonsterMeshCloth m_onTheMesh;
 };
 } // namespace Client::Scenes

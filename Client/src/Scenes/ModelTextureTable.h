@@ -12,7 +12,7 @@ namespace Client::Render
 {
 class ITextureStore;
 }
-namespace Client::Render::Models
+namespace Client::Models
 {
 class IModelLibrary;
 }
@@ -26,23 +26,23 @@ public:
     void Bind(Render::ITextureStore& store);
     // El backend que ligó Bind; nullptr antes.
     [[nodiscard]] Render::ITextureStore* Store() const;
-    void Seed(const Render::Models::ModelTextureSlots& slots, const Render::Models::IModelLibrary* models);
-    [[nodiscard]] Render::Models::ModelTextureSlots& Slots();
-    [[nodiscard]] const Render::Models::ModelTextureSlots& Slots() const;
+    void Seed(const Models::ModelTextureSlots& slots, const Models::IModelLibrary* models);
+    [[nodiscard]] Models::ModelTextureSlots& Slots();
+    [[nodiscard]] const Models::ModelTextureSlots& Slots() const;
     [[nodiscard]] Core::Expected<void, std::string> Upload(const Data::Textures::LoadedTexture& texture);
     void Acquire(Render::TextureSlot slot);
     void Release(Render::TextureSlot slot);
     [[nodiscard]] std::uint8_t References(Render::TextureSlot slot) const;
-    [[nodiscard]] std::optional<TextureMetadata> Metadata(std::uint32_t selector) const;
+    [[nodiscard]] std::optional<Models::TextureMetadata> Metadata(std::uint32_t selector) const;
 
 private:
     Render::ITextureStore* m_store = nullptr;
     bool m_seeded = false;
-    Render::Models::ModelTextureSlots m_slots{Render::TextureSlot{0x69}};
+    Models::ModelTextureSlots m_slots{Render::TextureSlot{0x69}};
     struct Entry
     {
         std::uint8_t references;
-        TextureMetadata metadata;
+        Models::TextureMetadata metadata;
     };
     std::map<std::uint32_t, Entry> m_entries;
 };

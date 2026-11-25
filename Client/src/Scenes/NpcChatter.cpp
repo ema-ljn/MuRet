@@ -169,11 +169,11 @@ Core::Expected<void, std::string> FinishTheTurnedNpc(ActorState& actor, std::siz
     if (context.playerSkeleton == nullptr)
         return Core::Unexpected(
             std::format("0x4fc8e4: el 0x20a del lugar {} no tiene las acciones de Player.bmd", slot));
-    const Render::Models::Skeleton& skeleton = *context.playerSkeleton;
+    const Models::Skeleton& skeleton = *context.playerSkeleton;
     const int choice = context.random.Next() % ChoiceRange;
     if (actor.animation.action != RestingAction)
     {
-        Render::Models::SetAction(actor.animation, skeleton, RestingAction);
+        Models::SetAction(actor.animation, skeleton, RestingAction);
         return {};
     }
     const bool devias = context.world.Runtime().map == DeviasMap;
@@ -186,7 +186,7 @@ Core::Expected<void, std::string> FinishTheTurnedNpc(ActorState& actor, std::siz
             if (auto said = Say(actor, slot, turned.text, context, turned.address); !said.HasValue())
                 return said;
         }
-        Render::Models::SetAction(actor.animation, skeleton, turned.action);
+        Models::SetAction(actor.animation, skeleton, turned.action);
         return {};
     }
     return {};

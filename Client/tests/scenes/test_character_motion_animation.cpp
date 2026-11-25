@@ -17,14 +17,14 @@
 
 namespace
 {
-class WalkingModels : public Client::Render::Models::IModelLibrary
+class WalkingModels : public Client::Models::IModelLibrary
 {
 public:
     const Client::Data::Models::Model* Find(std::uint16_t) const override
     {
         return nullptr;
     }
-    const Client::Render::Models::Skeleton* SkeletonOf(std::uint16_t) const override
+    const Client::Models::Skeleton* SkeletonOf(std::uint16_t) const override
     {
         return &skeleton;
     }
@@ -32,7 +32,7 @@ public:
     {
         return {};
     }
-    Client::Render::Models::Skeleton skeleton = Client::Tests::PlayerActionsSkeleton();
+    Client::Models::Skeleton skeleton = Client::Tests::PlayerActionsSkeleton();
 };
 } // namespace
 

@@ -15,9 +15,9 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Render::Models::LogicalAccess;
-using Client::Render::Models::OwnRecordCloseRandoms;
-using Client::Render::Models::SmallLogicalCloseRandoms;
+using Client::Models::LogicalAccess;
+using Client::Models::OwnRecordCloseRandoms;
+using Client::Models::SmallLogicalCloseRandoms;
 
 constexpr std::uint32_t Seed = 0x2f1d;
 // Lo que gasta cada cierre según el research, escrito aparte de las constantes que se prueban.

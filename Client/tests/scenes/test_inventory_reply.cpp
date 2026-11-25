@@ -197,7 +197,7 @@ public:
     Client::Scenes::SelectionState selection{world};
     Client::World::GameCamera camera;
     Client::World::GameCameraInput cameraInput;
-    Client::Render::Models::ClothWorld cloth;
+    Client::Models::ClothWorld cloth;
     Client::Scenes::SingleModelLibrary models;
     const Client::Data::Tables::ItemTable* items = nullptr;
     Client::Data::Tables::ItemSetTables sets = NoSets();
@@ -714,7 +714,7 @@ TEST_F(InventoryReplyTest, HornOfDoomCopiesItsFlags1bAndSummonsOutsideTheSafeZon
 // vestir con un escudo en el mismo lugar.
 TEST_F(InventoryReplyTest, TheDarkRavenOfSlot1ReplacesTheRavenAt420cf0)
 {
-    constexpr int RavenRandoms = 3 * Client::Render::Models::SmallLogicalCloseRandoms;
+    constexpr int RavenRandoms = 3 * Client::Models::SmallLogicalCloseRandoms;
     const auto testedStage = FreshOnTheHeap();
     Stage& tested = *testedStage;
     tested.world.Map().terrain.heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
@@ -1016,8 +1016,7 @@ TEST_F(InventoryReplyTest, TheLifeRefillWritesTheRecordOrSpendsThePotion)
 
     expected = random;
     {
-        const Client::Render::Models::LogicalAccess open(runtime.ownRecordDepth, random,
-                                                         Client::Render::Models::OwnRecordCloseRandoms);
+        const Client::Models::LogicalAccess open(runtime.ownRecordDepth, random, Client::Models::OwnRecordCloseRandoms);
         ASSERT_TRUE(refill(Inventory::CurrentPlace, 80).HasValue());
         EXPECT_EQ(random.State(), expected.State());
     }

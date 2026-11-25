@@ -378,7 +378,7 @@ TEST(UiItemDrawingTest, TheScaleTableRewritesTheLevelAndTheAngles)
 namespace
 {
 // Un triángulo con el vértice 0 en el origen del hueso: la x, la y y la z del primero son la posición del objeto.
-class UiModels final : public Client::Render::Models::IModelLibrary
+class UiModels final : public Client::Models::IModelLibrary
 {
 public:
     UiModels()
@@ -390,16 +390,16 @@ public:
         mesh.triangles = {{3, {0, 1, 2, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}}};
         mesh.textureName = "plain.jpg";
         model.meshes = {mesh};
-        Client::Render::Models::SkeletonBone bone;
-        bone.actions = {{Client::Render::Models::BoneKey{}}};
+        Client::Models::SkeletonBone bone;
+        bone.actions = {{Client::Models::BoneKey{}}};
         skeleton.bones = {bone};
-        skeleton.actions = {Client::Render::Models::ActionInfo{.keyCount = 1}};
+        skeleton.actions = {Client::Models::ActionInfo{.keyCount = 1}};
     }
     const Client::Data::Models::Model* Find(std::uint16_t id) const override
     {
         return missing.contains(id) ? nullptr : &model;
     }
-    const Client::Render::Models::Skeleton* SkeletonOf(std::uint16_t id) const override
+    const Client::Models::Skeleton* SkeletonOf(std::uint16_t id) const override
     {
         return missing.contains(id) ? nullptr : &skeleton;
     }
@@ -409,7 +409,7 @@ public:
     }
     std::set<std::uint16_t> missing;
     Client::Data::Models::Model model;
-    Client::Render::Models::Skeleton skeleton;
+    Client::Models::Skeleton skeleton;
     std::array<Client::Render::TextureSlot, 1> textures{Client::Render::TextureSlot{0x400}};
 };
 

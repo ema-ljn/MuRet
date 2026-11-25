@@ -18,8 +18,8 @@ namespace
 using Client::Core::Duration;
 using Client::Math::RoundedCos;
 using Client::Math::RoundedSin;
-using Client::Render::Models::ShinePass;
-using Client::Render::Models::ShineTexCoords;
+using Client::Models::ShinePass;
+using Client::Models::ShineTexCoords;
 
 constexpr float Tolerance = 1e-5f;
 constexpr glm::vec3 Normal{0.2f, -0.4f, 0.6f};

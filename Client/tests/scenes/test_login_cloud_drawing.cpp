@@ -56,14 +56,14 @@ constexpr std::int16_t CloudMarker = 0x54;
 constexpr std::int16_t MeteorMarker = 0x59;
 constexpr std::int32_t CloudType = 0x622;
 constexpr std::int32_t CloudSubtype = 10;
-class CloudTextures final : public Client::Render::Models::IModelLibrary
+class CloudTextures final : public Client::Models::IModelLibrary
 {
 public:
     const Client::Data::Models::Model* Find(std::uint16_t) const override
     {
         return nullptr;
     }
-    const Client::Render::Models::Skeleton* SkeletonOf(std::uint16_t) const override
+    const Client::Models::Skeleton* SkeletonOf(std::uint16_t) const override
     {
         return nullptr;
     }
@@ -72,13 +72,13 @@ public:
         return {};
     }
     // clouds.jpg: 64 × 32 y 3 componentes, ligada en el slot de su selector, como en GameModels.
-    std::optional<Client::Scenes::TextureMetadata> TextureMetadataOf(std::uint32_t selector) const override
+    std::optional<Client::Models::TextureMetadata> TextureMetadataOf(std::uint32_t selector) const override
     {
         if (selector != static_cast<std::uint32_t>(CloudType))
         {
             return std::nullopt;
         }
-        Client::Scenes::TextureMetadata metadata(Client::Data::Textures::Texture{});
+        Client::Models::TextureMetadata metadata(Client::Data::Textures::Texture{});
         metadata.size = glm::vec2(64.0f, 32.0f);
         metadata.components = 3;
         return metadata;
@@ -444,7 +444,7 @@ TEST(LoginCloudDrawingTest, TheSceneEmitsInTheEyePassAndClearsThePoolOnEnteringA
     Client::Tests::FakeTextureStore store;
     Client::Tests::RecordingSink sink;
     Client::Core::Log log(sink, Client::Core::LogLevel::Debug);
-    Client::Render::Models::ClothWorld cloth;
+    Client::Models::ClothWorld cloth;
     const Client::Scenes::GameData data;
     const CloudTextures textures;
     Client::Scenes::LoginScene scene(
@@ -455,9 +455,8 @@ TEST(LoginCloudDrawingTest, TheSceneEmitsInTheEyePassAndClearsThePoolOnEnteringA
     std::size_t clouds = 0;
     for (int frame = 0; frame < 16 && clouds == 0; ++frame)
     {
-        scene.Render(
-            target.BeginFrame(std::chrono::milliseconds{1234} + frame * Client::Render::Models::OriginalFrameTime),
-            0.0f);
+        scene.Render(target.BeginFrame(std::chrono::milliseconds{1234} + frame * Client::Models::OriginalFrameTime),
+                     0.0f);
         target.Present();
         clouds = CloudsIn(target.frames.back());
     }

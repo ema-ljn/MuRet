@@ -57,7 +57,7 @@ ActorState* FindActor(WorldState& world, std::uint16_t key)
 }
 void WriteCell(std::uint8_t value, std::uint8_t& cell, std::uint8_t& depth, Crt::CrtRandom& random)
 {
-    const Render::Models::LogicalAccess access(depth, random, Render::Models::SmallLogicalCloseRandoms);
+    const Models::LogicalAccess access(depth, random, Models::SmallLogicalCloseRandoms);
     cell = value;
 }
 Core::Expected<ActorStopContext, std::string> StopContext(const ActorState& actor, const WorldEntryResources& resources)
@@ -65,9 +65,9 @@ Core::Expected<ActorStopContext, std::string> StopContext(const ActorState& acto
     const auto* skeleton = resources.models.SkeletonOf(Data::Models::PlayerSkeletonModel);
     if (skeleton == nullptr && actor.type == Data::Models::PlayerSkeletonModel)
         return Core::Unexpected(std::string("0x4c6790: falta Player.bmd para la acción del personaje"));
-    static const Render::Models::Skeleton EmptySkeleton;
-    const Render::Models::Skeleton* playerSkeleton = skeleton != nullptr ? skeleton : &EmptySkeleton;
-    const Render::Models::Skeleton* actorSkeleton =
+    static const Models::Skeleton EmptySkeleton;
+    const Models::Skeleton* playerSkeleton = skeleton != nullptr ? skeleton : &EmptySkeleton;
+    const Models::Skeleton* actorSkeleton =
         actor.type == Data::Models::PlayerSkeletonModel ? nullptr : MonsterSkeletonOf(resources, actor.type);
     return ActorStopContext{.runtime = resources.world.Runtime(),
                             .scene = SceneId::Game,
@@ -86,10 +86,10 @@ Core::Expected<void, std::string> ApplyOtherWalk(ActorState& actor, const WorldE
         return {};
     auto& random = resources.cloth.random;
     {
-        const Render::Models::LogicalAccess y(actor.cellYAccesses, random, Render::Models::SmallLogicalCloseRandoms);
+        const Models::LogicalAccess y(actor.cellYAccesses, random, Models::SmallLogicalCloseRandoms);
     }
     {
-        const Render::Models::LogicalAccess x(actor.cellXAccesses, random, Render::Models::SmallLogicalCloseRandoms);
+        const Models::LogicalAccess x(actor.cellXAccesses, random, Models::SmallLogicalCloseRandoms);
     }
     auto& attributes = resources.world.Map().terrain.attributes;
     if (!attributes)
@@ -116,8 +116,8 @@ Core::Expected<void, std::string> ApplyJumpingWalk(ActorState& actor, const Worl
 {
     auto& random = resources.cloth.random;
     {
-        const Render::Models::LogicalAccess x(actor.cellXAccesses, random, Render::Models::SmallLogicalCloseRandoms);
-        const Render::Models::LogicalAccess y(actor.cellYAccesses, random, Render::Models::SmallLogicalCloseRandoms);
+        const Models::LogicalAccess x(actor.cellXAccesses, random, Models::SmallLogicalCloseRandoms);
+        const Models::LogicalAccess y(actor.cellYAccesses, random, Models::SmallLogicalCloseRandoms);
         actor.cellX = actor.targetX;
         actor.cellY = actor.targetY;
         actor.angles.z = static_cast<float>(Math::CreateAngle(actor.position.x, actor.position.y,
@@ -143,8 +143,8 @@ void CreateRisingDamage(WorldState& world, const glm::vec3& position, std::int32
 }
 void SubtractHeroLife(std::uint16_t amount, const WorldEntryResources& resources)
 {
-    const Render::Models::LogicalAccess access(resources.world.Runtime().ownRecordDepth, resources.cloth.random,
-                                               Render::Models::OwnRecordCloseRandoms);
+    const Models::LogicalAccess access(resources.world.Runtime().ownRecordDepth, resources.cloth.random,
+                                       Models::OwnRecordCloseRandoms);
     auto& life = resources.world.OwnCharacter().life;
     life = amount >= life ? 0 : static_cast<std::uint16_t>(life - amount);
 }

@@ -242,7 +242,7 @@ TEST(ScepterGlowTest, AClockThatGoesBackRepeatsTheGlow)
 TEST(ScepterGlowTest, InTheFaithfulModeEachDrawSortsOnce)
 {
     using namespace std::chrono_literals;
-    using Client::Render::Models::OriginalFrameTime;
+    using Client::Models::OriginalFrameTime;
     const auto bone = Client::Math::OriginalMatrixOf(Client::Math::BoneTransform(1.0f));
     Client::World::ScepterGlowCarry carry;
     CrtRandom random(5);
@@ -253,7 +253,7 @@ TEST(ScepterGlowTest, InTheFaithfulModeEachDrawSortsOnce)
     {
         FrameSprites sprites;
         carry.Create(sprites, bone, 1.0f, glm::vec3(0.0f), random, clocks[k],
-                     Client::Render::Models::OriginalFramePace::OncePerDraw);
+                     Client::Models::OriginalFramePace::OncePerDraw);
         EXPECT_EQ(random.State(), After(5, static_cast<int>(k) + 1).State()) << k;
     }
 }
@@ -263,7 +263,7 @@ TEST(ScepterGlowTest, InTheFaithfulModeEachDrawSortsOnce)
 TEST(ScepterGlowTest, AfterARestartTheNextDrawSortsOnce)
 {
     using namespace std::chrono_literals;
-    using Client::Render::Models::OriginalFrameTime;
+    using Client::Models::OriginalFrameTime;
     const auto bone = Client::Math::OriginalMatrixOf(Client::Math::BoneTransform(1.0f));
     Client::World::ScepterGlowCarry carry;
     CrtRandom random(5);

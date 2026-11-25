@@ -58,9 +58,9 @@ class ModelEffectsTest : public ::testing::Test
 protected:
     void SetUp() override
     {
-        m_skeleton.bones.assign(50, Client::Render::Models::SkeletonBone{.dummy = true, .parent = -1, .actions = {}});
-        m_skeleton.actions.assign(12, Client::Render::Models::ActionInfo{
-                                          .repeats = true, .speed = 0.25f, .keyCount = 10, .lockPositions = false});
+        m_skeleton.bones.assign(50, Client::Models::SkeletonBone{.dummy = true, .parent = -1, .actions = {}});
+        m_skeleton.actions.assign(
+            12, Client::Models::ActionInfo{.repeats = true, .speed = 0.25f, .keyCount = 10, .lockPositions = false});
         m_actor.alive = true;
         m_actor.scale = 1.0f;
         m_actor.position = {1000.0f, 2000.0f, 50.0f};
@@ -194,7 +194,7 @@ protected:
 
     std::unique_ptr<Client::Scenes::WorldState> m_world = std::make_unique<Client::Scenes::WorldState>();
     Client::World::FrameSprites m_sprites;
-    Client::Render::Models::Skeleton m_skeleton;
+    Client::Models::Skeleton m_skeleton;
     ActorState m_actor;
     float m_clock = Clock;
 };

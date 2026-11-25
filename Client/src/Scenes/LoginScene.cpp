@@ -257,10 +257,10 @@ constexpr glm::vec3 DragonOwnerPosition{5600.0f, 23000.0f, 0.0f};
 
 // Los modelos de los objetos del login: los del mundo y el logo (0xa2), que la tabla del original guarda
 // junto con los demás.
-class LoginObjectModels final : public Render::Models::IModelLibrary
+class LoginObjectModels final : public Models::IModelLibrary
 {
 public:
-    LoginObjectModels(const Render::Models::IModelLibrary& world, const Render::Models::IModelLibrary& logo)
+    LoginObjectModels(const Models::IModelLibrary& world, const Models::IModelLibrary& logo)
         : m_world(world), m_logo(logo)
     {
     }
@@ -269,7 +269,7 @@ public:
     {
         return Of(model).Find(model);
     }
-    [[nodiscard]] const Render::Models::Skeleton* SkeletonOf(std::uint16_t model) const override
+    [[nodiscard]] const Models::Skeleton* SkeletonOf(std::uint16_t model) const override
     {
         return Of(model).SkeletonOf(model);
     }
@@ -279,22 +279,22 @@ public:
     }
 
 private:
-    [[nodiscard]] const Render::Models::IModelLibrary& Of(std::uint16_t model) const
+    [[nodiscard]] const Models::IModelLibrary& Of(std::uint16_t model) const
     {
         return model == LoginLogoModel ? m_logo : m_world;
     }
 
-    const Render::Models::IModelLibrary& m_world;
-    const Render::Models::IModelLibrary& m_logo;
+    const Models::IModelLibrary& m_world;
+    const Models::IModelLibrary& m_logo;
 };
 
 // Los modelos de los efectos con modelo del login: la tabla del original es una sola, con los de Object56\ (el
 // dragón, 0x616ec0) y los de los efectos (Skill\Fire01 del meteoro 0xc2, 0x615700); MuRet busca primero en el mundo y
 // después en los de la carga.
-class LoginEffectModels final : public Render::Models::IModelLibrary
+class LoginEffectModels final : public Models::IModelLibrary
 {
 public:
-    LoginEffectModels(const Render::Models::IModelLibrary& world, const Render::Models::IModelLibrary& loaded)
+    LoginEffectModels(const Models::IModelLibrary& world, const Models::IModelLibrary& loaded)
         : m_world(world), m_loaded(loaded)
     {
     }
@@ -303,7 +303,7 @@ public:
     {
         return Of(model).Find(model);
     }
-    [[nodiscard]] const Render::Models::Skeleton* SkeletonOf(std::uint16_t model) const override
+    [[nodiscard]] const Models::Skeleton* SkeletonOf(std::uint16_t model) const override
     {
         return Of(model).SkeletonOf(model);
     }
@@ -313,13 +313,13 @@ public:
     }
 
 private:
-    [[nodiscard]] const Render::Models::IModelLibrary& Of(std::uint16_t model) const
+    [[nodiscard]] const Models::IModelLibrary& Of(std::uint16_t model) const
     {
         return m_world.Find(model) != nullptr ? m_world : m_loaded;
     }
 
-    const Render::Models::IModelLibrary& m_world;
-    const Render::Models::IModelLibrary& m_loaded;
+    const Models::IModelLibrary& m_world;
+    const Models::IModelLibrary& m_loaded;
 };
 
 // El logo de 0x606660 como uno más de la lista: sin luz por vértice, como lo deja su caso.
@@ -351,9 +351,9 @@ std::string PlaceVersion(std::string_view text, std::string_view version)
     return placed;
 }
 
-LoginScene::LoginScene(const SceneContext& context, const GameData& data, const Render::Models::IModelLibrary& models,
+LoginScene::LoginScene(const SceneContext& context, const GameData& data, const Models::IModelLibrary& models,
                        App::ServerSession* session, std::string_view version, std::mt19937::result_type seed,
-                       const Render::Models::ModelTextureSlots* gameSlots)
+                       const Models::ModelTextureSlots* gameSlots)
     : m_context(context), m_localWorld(context.world == nullptr ? std::make_unique<WorldState>() : nullptr),
       m_localCloth{.random = Crt::CrtRandom(static_cast<std::uint32_t>(seed))}, m_models(models), m_session(session),
       m_texts(data.text ? &*data.text : nullptr), m_textures(context.textures, LoginTextureSet),
@@ -420,7 +420,7 @@ WorldState& LoginScene::CharacterWorld() const
     return m_context.world != nullptr ? *m_context.world : *m_localWorld;
 }
 
-Render::Models::ClothWorld& LoginScene::CharacterRandomWorld()
+Models::ClothWorld& LoginScene::CharacterRandomWorld()
 {
     return m_context.cloth != nullptr ? *m_context.cloth : m_localCloth;
 }
@@ -626,7 +626,7 @@ Core::Expected<void, std::string> LoginScene::LoadTheLogo()
         m_context.log.Warning("el logo no se puede leer y no se dibuja: {}", model.Error().path);
         return {};
     }
-    auto skeleton = Render::Models::MakeSkeleton(model.Value());
+    auto skeleton = Models::MakeSkeleton(model.Value());
     if (!skeleton.HasValue())
     {
         m_context.log.Warning("el logo no tiene un esqueleto que se pueda posar y no se dibuja");
@@ -635,7 +635,7 @@ Core::Expected<void, std::string> LoginScene::LoadTheLogo()
     // Las texturas apuntan a lo que piden los slots: se van antes que ellos.
     m_logoTextures.reset();
     // Sin un 0x60d530 antes: donde dejó el próximo el mundo (Q-C92), o LoginLogoFirstSlot sin él.
-    if (const Render::Models::ModelTextureSlots* world = m_worldModels.TextureSlots())
+    if (const Models::ModelTextureSlots* world = m_worldModels.TextureSlots())
     {
         m_logoSlots.emplace(world->ContinuedAt(world->Next()));
     }
@@ -737,10 +737,10 @@ Core::Expected<void, std::string> LoginScene::PlaceTheCharacter()
         }
         terrain = &missingTerrain;
     }
-    const Render::Models::Skeleton* skeleton = m_models.SkeletonOf(Data::Models::PlayerSkeletonModel);
+    const Models::Skeleton* skeleton = m_models.SkeletonOf(Data::Models::PlayerSkeletonModel);
     // Un modelo todavía sin cargar tiene cero acciones: 0x4ea030 no cambia la acción, y el paso corta
     // donde necesita Player.bmd (0x4f9580). Así los tests de carga pueden inspeccionar las texturas.
-    const Render::Models::Skeleton empty;
+    const Models::Skeleton empty;
     auto built = ConstructLoginActor(world.Actors()[LoginActorSlot],
                                      {.terrain = *terrain,
                                       .map = world.Runtime().map,
@@ -774,7 +774,7 @@ void LoginScene::Step(const Input::InputState& input)
     // 0x637cab → 0x634c60; después 0x637cec mueve el viento y 0x637f91 sube el contador.
     if (m_context.cloth != nullptr)
     {
-        Render::Models::StepTheClothWorld(*m_context.cloth);
+        Models::StepTheClothWorld(*m_context.cloth);
     }
 }
 
@@ -836,15 +836,14 @@ Core::Expected<void, std::string> LoginScene::StepTheCharacters()
         if (actor.alive && skeleton != nullptr && actor.animation.action < skeleton->actions.size())
         {
             const auto& action = skeleton->actions[actor.animation.action];
-            if (Render::Models::AdvanceAnimation(actor.animation, action, action.speed,
-                                                 Render::Models::AnimationScene::Other))
+            if (Models::AdvanceAnimation(actor.animation, action, action.speed, Models::AnimationScene::Other))
             {
-                Render::Models::SetAction(actor.animation, *skeleton, LoginCharacterStandingAction);
+                Models::SetAction(actor.animation, *skeleton, LoginCharacterStandingAction);
             }
         }
         return {};
     }
-    Render::Models::ClothWorld& cloth = CharacterRandomWorld();
+    Models::ClothWorld& cloth = CharacterRandomWorld();
     const float clock =
         m_context.clock != nullptr
             ? static_cast<float>(std::chrono::duration<double, std::milli>(m_context.clock->Now()).count())
@@ -866,7 +865,7 @@ Core::Expected<void, std::string> LoginScene::StepTheCharacters()
 
 void LoginScene::StepTheWorld()
 {
-    const Render::Models::Skeleton* player = m_models.SkeletonOf(Data::Models::PlayerSkeletonModel);
+    const Models::Skeleton* player = m_models.SkeletonOf(Data::Models::PlayerSkeletonModel);
     if (m_context.clock != nullptr && player != nullptr)
     {
         // 0x634cca: el gesto va antes de las olas y de todo el paso del mundo.
@@ -874,7 +873,7 @@ void LoginScene::StepTheWorld()
             LoginCharacterActionAt(m_context.clock->Now(), CharacterRandomWorld().random);
         if (action)
         {
-            Render::Models::SetAction(CharacterWorld().Actors()[LoginActorSlot].animation, *player, *action);
+            Models::SetAction(CharacterWorld().Actors()[LoginActorSlot].animation, *player, *action);
         }
     }
     // 0x634cf0: con los créditos abiertos (+0x4584), nada más: ni la luz, ni los objetos, ni el caballo, ni
@@ -907,7 +906,7 @@ void LoginScene::StepTheWorld()
                      });
     // 0x445230 → 0x444010: el caballo, con la acción que el jinete tiene en este paso (la de arriba, o la
     // del gesto que todavía no terminó).
-    if (const Render::Models::Skeleton* horse = m_models.SkeletonOf(DarkHorseModel))
+    if (const Models::Skeleton* horse = m_models.SkeletonOf(DarkHorseModel))
     {
         // El aliento lee la pose del dibujo anterior: el caballo de antes de este paso (en 0x444010, el
         // avance de 0x4ec200 corre después del aliento; la acción que mira es la de este paso).
@@ -980,7 +979,7 @@ float LoginScene::WorldClock() const
 Core::Expected<void, std::string> LoginScene::StepTheModelEffects()
 {
     WorldState& world = CharacterWorld();
-    Render::Models::ClothWorld& cloth = CharacterRandomWorld();
+    Models::ClothWorld& cloth = CharacterRandomWorld();
     const float worldClock = WorldClock();
     const std::function<double(float, float)> terrainHeight = TerrainHeight();
     const World::WorldTerrain* terrain = m_terrain.Terrain();
@@ -1028,7 +1027,7 @@ Core::Expected<void, std::string> LoginScene::StepTheModelEffects()
     {
         if (!effect.alive)
             continue;
-        const Render::Models::Skeleton* skeleton = models.SkeletonOf(static_cast<std::uint16_t>(effect.type));
+        const Models::Skeleton* skeleton = models.SkeletonOf(static_cast<std::uint16_t>(effect.type));
         // 0x5208a0 con su primer rand() (0x5208c5) para todos: los de las magias (el meteoro 0xc2/9) por
         // World::WizardModelEffects y los demás (el dragón 0xb4) por World::StepGameModelEffect.
         const auto stepped = World::IsWizardModelEffect(effect.type)
@@ -1044,7 +1043,7 @@ Core::Expected<void, std::string> LoginScene::StepTheModelEffects()
 Core::Expected<void, std::string> LoginScene::StepTheJoints()
 {
     WorldState& world = CharacterWorld();
-    Render::Models::ClothWorld& cloth = CharacterRandomWorld();
+    Models::ClothWorld& cloth = CharacterRandomWorld();
     // Los globales de 0x53c670, como en el juego (0x637123) y la selección: la luz dinámica (0x7b4ccc4), la altura del
     // terreno (0x5f93c0), los 400 personajes (0x743a16c), la tabla de efectos (0x7491fd8), el héroe ([0x743a170]) y
     // los modelos compartidos (0x5769ad8). Sin el choque de la flecha dueña (0x520170), el asedio ni los blancos del
@@ -1706,9 +1705,9 @@ DrawnCharacter LoginScene::TheCharacterToDraw(float alpha)
         skeleton != nullptr && actor.animation.action < skeleton->actions.size())
     {
         const auto& action = skeleton->actions[actor.animation.action];
-        character.body = Render::Models::Interpolated(actor.animation, action, action.speed, alpha);
+        character.body = Models::Interpolated(actor.animation, action, action.speed, alpha);
     }
-    character.object = actor.alive ? Render::Models::ObjectTransform{actor.position, actor.angles, actor.scale, 0.0f}
+    character.object = actor.alive ? Models::ObjectTransform{actor.position, actor.angles, actor.scale, 0.0f}
                                    : LoginCharacterTransform();
     // La cabeza del paso: el original no la interpola.
     character.headAngles = actor.headTurn.angles;
@@ -1750,7 +1749,7 @@ void LoginScene::DrawTheModels(SceneCanvas& canvas, float alpha)
                                                           : std::span<const Math::BoneTransform>(carry.bones);
     };
     character.onPose = [&](std::uint16_t model, std::span<const Math::BoneTransform> bones,
-                           const Render::Models::ObjectTransform& transform, bool translated)
+                           const Models::ObjectTransform& transform, bool translated)
     {
         if (model == Data::Models::PlayerSkeletonModel)
             return;
@@ -1764,7 +1763,7 @@ void LoginScene::DrawTheModels(SceneCanvas& canvas, float alpha)
                              m_fullSetScanFrames.FramesAt(canvas.frameClock, OriginalFramePaceOf(m_context.pacing)));
         // Con el flujo global y Player.bmd, el mismo 0x50ba30 que el juego: el cuerpo, las partes y la tela, y
         // después lo que cuelga y los efectos (0x50db57..0x510a7a), que no miran la escena salvo 0x510ef0.
-        const Render::Models::Skeleton* skeleton = m_models.SkeletonOf(Data::Models::PlayerSkeletonModel);
+        const Models::Skeleton* skeleton = m_models.SkeletonOf(Data::Models::PlayerSkeletonModel);
         if (m_context.cloth != nullptr && skeleton != nullptr && !skeleton->actions.empty())
         {
             DrawCharacter(canvas.models, m_models, character, canvas.frameClock, CharacterDrawPass::Body);
@@ -1865,7 +1864,7 @@ void LoginScene::DrawTheModels(SceneCanvas& canvas, float alpha)
         { return PublishFaunaPose(carry, effectModels, object, true); };
         resources.onUntranslatedPose = [&](const DrawnObject& object)
         { return PublishFaunaPose(carry, effectModels, object, false); };
-        resources.posedMeshes = [&]() { return std::span<const Render::Models::SkinnedMesh>(carry.meshes); };
+        resources.posedMeshes = [&]() { return std::span<const Models::SkinnedMesh>(carry.meshes); };
         resources.dynamicLighting = &CharacterWorld().DynamicLighting().Lighting();
         resources.originalFrame = nativeFrames > 0;
         effects = DrawGameModelEffects(canvas.models, effectModels, table, frustum, lighting, canvas.frameClock, alpha,
@@ -1889,7 +1888,7 @@ void LoginScene::DrawTheTail(SceneCanvas& canvas, ActorState& actor, const Drawn
                              FaunaDrawCarry& carry, const FullSetScan& scan, int frames)
 {
     WorldState& world = CharacterWorld();
-    Render::Models::ClothWorld& cloth = *m_context.cloth;
+    Models::ClothWorld& cloth = *m_context.cloth;
     constexpr std::uint8_t RedPk = 6;
     actor.drawnLight = actor.pk >= RedPk ? glm::vec3{1.0f, 0.1f, 0.1f} : character.light;
     const bool originalFrame = frames > 0;
@@ -1965,7 +1964,7 @@ void LoginScene::DrawTheRaven(SceneCanvas& canvas, float alpha, FaunaDrawCarry* 
         MissTheView(spirit);
         return;
     }
-    const Render::Models::Skeleton* skeleton = m_models.SkeletonOf(DarkSpiritModel);
+    const Models::Skeleton* skeleton = m_models.SkeletonOf(DarkSpiritModel);
     const glm::vec3 light = TerrainLightAt(spirit.position);
     const World::WorldTerrain* terrain = m_terrain.Terrain();
     DrawnObject drawn = DrawnDarkSpirit(spirit, skeleton, light, alpha);
@@ -1995,11 +1994,11 @@ void LoginScene::StepTheLogo(World::WorldObject& logo) const
     const float light = LoginLogoLight(m_routes);
     logo.light = glm::vec3(light);
     logo.state.light = light;
-    if (const Render::Models::Skeleton* skeleton = m_logo.SkeletonOf(LoginLogoModel);
+    if (const Models::Skeleton* skeleton = m_logo.SkeletonOf(LoginLogoModel);
         skeleton != nullptr && logo.animation.action < skeleton->actions.size())
     {
-        Render::Models::AdvanceAnimation(logo.animation, skeleton->actions[logo.animation.action], logo.speed,
-                                         Render::Models::AnimationScene::Other);
+        Models::AdvanceAnimation(logo.animation, skeleton->actions[logo.animation.action], logo.speed,
+                                 Models::AnimationScene::Other);
     }
 }
 

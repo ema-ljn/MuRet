@@ -60,7 +60,7 @@ ActorState& HeroOf(const WorldEntryResources& resources)
     return world.Actors()[static_cast<std::size_t>(world.Runtime().heroSlot)];
 }
 
-ActorStopContext StopContextOf(const WorldEntryResources& resources, const Render::Models::Skeleton& player)
+ActorStopContext StopContextOf(const WorldEntryResources& resources, const Models::Skeleton& player)
 {
     return ActorStopContext{.runtime = resources.world.Runtime(),
                             .scene = SceneId::Game,
@@ -76,8 +76,8 @@ ActorStopContext StopContextOf(const WorldEntryResources& resources, const Rende
 void ApplyTheStats(const Protocol::Character::CharacterSelectResult& reply, const WorldEntryResources& resources)
 {
     WorldState& world = resources.world;
-    const Render::Models::LogicalAccess access(world.Runtime().ownRecordDepth, resources.cloth.random,
-                                               Render::Models::OwnRecordCloseRandoms);
+    const Models::LogicalAccess access(world.Runtime().ownRecordDepth, resources.cloth.random,
+                                       Models::OwnRecordCloseRandoms);
     world.OwnCharacter().ApplyStats(reply, resources.log);
 }
 
@@ -136,8 +136,8 @@ void CopyTheIdentity(const Protocol::Character::CharacterSelectResult& reply, co
     WorldState& world = resources.world;
     ActorState& hero = HeroOf(resources);
     {
-        const Render::Models::LogicalAccess access(world.Runtime().ownRecordDepth, resources.cloth.random,
-                                                   Render::Models::OwnRecordCloseRandoms);
+        const Models::LogicalAccess access(world.Runtime().ownRecordDepth, resources.cloth.random,
+                                           Models::OwnRecordCloseRandoms);
         hero.characterClass = world.OwnCharacter().characterClass;
         hero.skin = 0;
     }
@@ -151,8 +151,8 @@ void CopyTheIdentity(const Protocol::Character::CharacterSelectResult& reply, co
 // (0x40d010, Q-C197). Si el lugar del héroe es el del publicado, 0x505820 corre ahí; si no, 0x550990 lee
 // lo que dejó el último dibujo de los personajes: el de la selección o, después de un frame del juego, uno
 // que MuRet no tiene (corta en 0x550990, P-C40).
-Core::Expected<void, std::string> DressTheHero(const WorldEntryResources& resources,
-                                               const Render::Models::Skeleton& player, WorldEntryResult& result)
+Core::Expected<void, std::string> DressTheHero(const WorldEntryResources& resources, const Models::Skeleton& player,
+                                               WorldEntryResult& result)
 {
     WorldState& world = resources.world;
     const ActorEquipmentContext equipment{.own = world.OwnCharacter(),
@@ -188,8 +188,8 @@ void PublishTheHero(const WorldEntryResources& resources)
         const std::size_t cell = Data::Terrain::CellIndex(hero.cellX, hero.cellY);
         resources.cameraInput.cellAttribute = static_cast<std::uint8_t>(attributes->cells[cell]);
     }
-    const Render::Models::LogicalAccess access(world.Runtime().ownRecordDepth, resources.cloth.random,
-                                               Render::Models::OwnRecordCloseRandoms);
+    const Models::LogicalAccess access(world.Runtime().ownRecordDepth, resources.cloth.random,
+                                       Models::OwnRecordCloseRandoms);
     OwnCharacterRecord& own = world.OwnCharacter();
     std::copy_n(own.name.begin(), hero.name.size(), hero.name.begin());
     own.ClearEquipmentForEntry();
@@ -212,8 +212,7 @@ void CreateTheArrival(const WorldEntryResources& resources)
 void StartTheWait(const WorldEntryResources& resources)
 {
     WorldRuntime& runtime = resources.world.Runtime();
-    const Render::Models::LogicalAccess access(runtime.warpDepth, resources.cloth.random,
-                                               Render::Models::SmallLogicalCloseRandoms);
+    const Models::LogicalAccess access(runtime.warpDepth, resources.cloth.random, Models::SmallLogicalCloseRandoms);
     runtime.warpCounter = EntryWait;
 }
 
@@ -244,8 +243,8 @@ void AskForTheSounds(std::int32_t map, WorldRuntime& runtime, WorldEntryResult& 
 }
 
 // 0x4c4981..0x4c49c9: el alpha en 0, las ventanas, los elegidos, el Movement y la acción de parado.
-Core::Expected<void, std::string> StopTheHero(const WorldEntryResources& resources,
-                                              const Render::Models::Skeleton& player, WorldEntryResult& result)
+Core::Expected<void, std::string> StopTheHero(const WorldEntryResources& resources, const Models::Skeleton& player,
+                                              WorldEntryResult& result)
 {
     ActorState& hero = HeroOf(resources);
     hero.alpha = 0.0f;
@@ -269,9 +268,9 @@ Core::Expected<void, std::string> StopTheHero(const WorldEntryResources& resourc
     return {};
 }
 
-Core::Expected<const Render::Models::Skeleton*, std::string> PlayerSkeletonOf(const WorldEntryResources& resources)
+Core::Expected<const Models::Skeleton*, std::string> PlayerSkeletonOf(const WorldEntryResources& resources)
 {
-    const Render::Models::Skeleton* player = resources.models.SkeletonOf(Data::Models::PlayerSkeletonModel);
+    const Models::Skeleton* player = resources.models.SkeletonOf(Data::Models::PlayerSkeletonModel);
     if (player == nullptr)
     {
         return Core::Unexpected(std::string("la entrada al mundo necesita Player.bmd (0x20a) para 0x4f2250"));

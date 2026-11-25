@@ -394,6 +394,6 @@ TEST(TarkanObjectFrameTest, TheOtherTypesDoNothing)
     EXPECT_TRUE(fixture.Alive().empty());
     EXPECT_FALSE(fixture.sprites->Sprites()[0].alive);
     EXPECT_EQ(fixture.random.State(), 7u);
-    EXPECT_EQ(object.state.hiddenMesh, Client::Render::Models::ObjectState{}.hiddenMesh);
+    EXPECT_EQ(object.state.hiddenMesh, Client::Models::ObjectState{}.hiddenMesh);
 }
 } // namespace

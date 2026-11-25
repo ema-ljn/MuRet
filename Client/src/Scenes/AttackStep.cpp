@@ -41,7 +41,7 @@ namespace Client::Scenes
 namespace
 {
 using Crt::CrtRandom;
-using Render::Models::LogicalAccess;
+using Models::LogicalAccess;
 
 constexpr std::uint16_t PlayerType = Data::Models::PlayerSkeletonModel;
 // 0x4fdbf1: el valor al que vuelve +0x381 cuando corre la habilidad, y el 15 de 0x4f97b0 (0x4fb0df).
@@ -108,7 +108,7 @@ Core::Expected<void, std::string> StepTheAttackFrames(ActorState& actor, std::si
     // 0), para leer la mano izquierda (+0xbb4, MOVSX, sin el ítem del cursor).
     std::int32_t left = 0;
     {
-        const LogicalAccess own(runtime.ownRecordDepth, context.random, Render::Models::OwnRecordCloseRandoms);
+        const LogicalAccess own(runtime.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
         left = TypeOf(context.world.OwnCharacter().equipment[1]);
     }
     // 0x4fb08c..0x4fb0da: el arco 0x815 en la izquierda del registro propio, sea quien sea el que pega: veinte
@@ -175,7 +175,7 @@ void PlayTheStrikeSound(const ActorState& actor, const CharacterStepContext& con
 {
     WorldRuntime& runtime = context.world.Runtime();
     // 0x50522f y 0x50534a: 0x4e79a0 y 0x40f370, los 3.848 rand() si el cierre lo deja en 0.
-    const LogicalAccess own(runtime.ownRecordDepth, context.random, Render::Models::OwnRecordCloseRandoms);
+    const LogicalAccess own(runtime.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
     const auto& equipment = context.world.OwnCharacter().equipment;
     const World::ItemState* right = &equipment[0];
     const World::ItemState* left = &equipment[1];

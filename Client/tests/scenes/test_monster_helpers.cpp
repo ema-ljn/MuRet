@@ -65,12 +65,12 @@ const glm::vec3 Origin{100.0f, 200.0f, 10.0f};
 const glm::vec3 RedEyes{0.9f, 0.2f, 0.1f};
 
 // Un esqueleto de veinte huesos sin padre y ocho acciones de diez keys, cada una a 0,5 por paso.
-class SwingModels final : public Client::Render::Models::IModelLibrary
+class SwingModels final : public Client::Models::IModelLibrary
 {
 public:
     SwingModels()
     {
-        using namespace Client::Render::Models;
+        using namespace Client::Models;
         SkeletonBone bone;
         bone.actions.assign(8, std::vector<BoneKey>(10));
         m_skeleton.bones.assign(20, bone);
@@ -79,7 +79,7 @@ public:
 
     void ResizeBones(std::size_t count)
     {
-        using namespace Client::Render::Models;
+        using namespace Client::Models;
         SkeletonBone bone;
         bone.actions.assign(8, std::vector<BoneKey>(10));
         m_skeleton.bones.resize(count, bone);
@@ -95,7 +95,7 @@ public:
     {
         return nullptr;
     }
-    [[nodiscard]] const Client::Render::Models::Skeleton* SkeletonOf(std::uint16_t) const override
+    [[nodiscard]] const Client::Models::Skeleton* SkeletonOf(std::uint16_t) const override
     {
         return &m_skeleton;
     }
@@ -105,7 +105,7 @@ public:
     }
 
 private:
-    Client::Render::Models::Skeleton m_skeleton;
+    Client::Models::Skeleton m_skeleton;
 };
 
 class MonsterHelpersTest : public testing::Test

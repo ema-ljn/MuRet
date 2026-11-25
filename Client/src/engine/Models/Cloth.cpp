@@ -23,7 +23,7 @@
 // Contrato: Client/docs/research/06-render-escenas-y-ui.md, "La tela de la clase 4". F() es el FSTP
 // float del original; todo lo demás va en double, como la pila de la x87 con la precisión en 53 bits
 // (la palabra de control 0x27F). Las constantes son los floats del archivo, con su dirección.
-namespace Client::Render::Models
+namespace Client::Models
 {
 namespace
 {
@@ -242,8 +242,8 @@ void StepTheClothWorld(ClothWorld& world)
 void Cloth::Reset()
 {
     m_bone = 0;
-    m_front = TextureSlot{0};
-    m_back = TextureSlot{0};
+    m_front = Render::TextureSlot{0};
+    m_back = Render::TextureSlot{0};
     m_flags = 0;
     m_anchor = glm::vec3(0.0f);
     m_width = 1.0f;
@@ -867,4 +867,4 @@ bool Cloth::DrawsTheBack() const
 {
     return !((m_flags & ClothBlendMask) == ClothAdditiveBlend && (m_flags & ClothGlows) != 0);
 }
-} // namespace Client::Render::Models
+} // namespace Client::Models

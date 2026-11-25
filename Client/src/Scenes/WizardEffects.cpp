@@ -150,22 +150,22 @@ World::WizardEffectServices WizardEffectServicesOf(WorldState& world, Crt::CrtRa
                     continue;
                 // 0x4ea030 lee las acciones de 0x5769ad8 + tipo · 0xe0: primero los modelos del mapa (FaunaModels) y
                 // después los del juego, como MonsterSkeletonOf. Un modelo que no está es el registro sin acciones.
-                const Render::Models::Skeleton* skeleton = world.FaunaResources().SkeletonOf(actor.type);
+                const Models::Skeleton* skeleton = world.FaunaResources().SkeletonOf(actor.type);
                 if (skeleton == nullptr && models != nullptr)
                     skeleton = models->SkeletonOf(actor.type);
                 if (actor.type != Data::Models::PlayerSkeletonModel)
                 {
                     // 0x524b0a: 0x4ea030(personaje, 5).
                     if (skeleton != nullptr)
-                        Render::Models::SetAction(actor.animation, *skeleton, MonsterPushAction);
+                        Models::SetAction(actor.animation, *skeleton, MonsterPushAction);
                     continue;
                 }
                 if (skeleton == nullptr)
                     return Core::Unexpected(std::string("0x524afc: falta Player.bmd para el personaje que empuja el "
                                                         "0xc2/4"));
                 // 0x524afa: 0x4e9cd0(personaje, personaje), la acción de golpe de Fenrir por las manos; si no, 0xc2.
-                Render::Models::SetAction(actor.animation, *skeleton,
-                                          actor.pet.model == FenrirPet ? FenrirHitActionOf(actor) : PlayerPushAction);
+                Models::SetAction(actor.animation, *skeleton,
+                                  actor.pet.model == FenrirPet ? FenrirHitActionOf(actor) : PlayerPushAction);
             }
             return {};
         }};

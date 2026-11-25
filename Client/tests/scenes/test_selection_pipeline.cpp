@@ -196,7 +196,7 @@ protected:
     Client::Tests::WithEffectTextures m_library{m_models};
     Client::World::GameCamera m_camera;
     Client::World::GameCameraInput m_cameraInput;
-    Client::Render::Models::ClothWorld m_cloth;
+    Client::Models::ClothWorld m_cloth;
     Client::Scenes::WorldState m_world;
     Client::Scenes::SelectionState m_state{m_world};
     Client::Tests::RecordingSink m_entrySink;
@@ -301,7 +301,7 @@ TEST_F(SelectionPipelineTest, TheSelectorDrawsTheLiveRibbonAfterCharactersAndBef
     ribbon.alive = true;
     ribbon.life = 3;
     ribbon.count = 3;
-    m_online.clock.Advance(Client::Render::Models::OriginalFrameTime);
+    m_online.clock.Advance(Client::Models::OriginalFrameTime);
     m_manager->Step(Client::Input::InputState{});
     // 0x6342f9 pasa por 0x5091d0. El preview de 0x634303 no vuelve a envejecer la cinta.
     ASSERT_EQ(ribbon.life, 2);
@@ -355,7 +355,7 @@ TEST_F(SelectionPipelineTest, TheSelectorDrawsTheLiveRibbonAfterCharactersAndBef
     const glm::vec3 drawnLight = actor.drawnLight;
     actor.drawnLight = glm::vec3(-1.0f);
     ribbon.ownerEquipment = nullptr;
-    m_online.clock.Advance(Client::Render::Models::OriginalFrameTime);
+    m_online.clock.Advance(Client::Models::OriginalFrameTime);
     m_manager->Render(0.0f);
     ASSERT_TRUE(m_manager->Failure().has_value());
     EXPECT_NE(m_manager->Failure()->find("0x52e5bc"), std::string::npos);
@@ -662,7 +662,7 @@ TEST_F(SelectionPipelineTest, TheSelectionDrawingLeavesTheScanOfTheLastCharacter
             keys.resize(1);
     }
     m_models.Set(Client::Data::Models::PlayerSkeletonModel, {}, std::move(skeleton), {});
-    m_online.clock.Advance(Client::Render::Models::OriginalFrameTime);
+    m_online.clock.Advance(Client::Models::OriginalFrameTime);
     m_manager->Render(0.0f);
 
     ASSERT_FALSE(m_manager->Failure().has_value()) << *m_manager->Failure();

@@ -78,7 +78,7 @@ TEST_F(InitialGameWaitTest, TheFirstGameStepKeepsSelectionTerrainAndStepsActorsE
     online.session.ChooseCharacter(std::uint8_t{0});
 
     Client::Tests::FakeTextureStore textures;
-    Client::Render::Models::ClothWorld cloth{.random = Client::Crt::CrtRandom(0x1234)};
+    Client::Models::ClothWorld cloth{.random = Client::Crt::CrtRandom(0x1234)};
     Client::Scenes::WorldState world;
     Client::Scenes::SelectionState selection(world);
     Client::World::GameCamera camera;
@@ -171,7 +171,7 @@ TEST_F(InitialGameWaitTest, TheFirstGameStepKeepsSelectionTerrainAndStepsActorsE
     ASSERT_NE(game, nullptr);
     ASSERT_EQ(world.Runtime().warpCounter, Client::Scenes::WorldLoadingWait);
     const auto before = cloth;
-    Client::Render::Models::ClothWorld expected = before;
+    Client::Models::ClothWorld expected = before;
     // 447108..4471b2:54 admite el fallback de425070 sólo con atributo0/2. La CRT
     // anterior determina candidatos y su admisión contra el .att real, antes de observar GameScene.
     // El slot BSS conserva type/speed0: si se admite toma timer/scale y un rand de FullMovement;
@@ -181,9 +181,9 @@ TEST_F(InitialGameWaitTest, TheFirstGameStepKeepsSelectionTerrainAndStepsActorsE
     // cartel del primer paso (0x46b010 y 0x46b0e0, que abre y cierra el registro propio; sin Slide.bmd no sortea).
     // 0x636ded..0x63705b: la UI del paso con todo cerrado (la barra de skills, Q/W/E e IsOpen(0)), antes de los objetos
     // y de la fauna.
-    Advance(expected.random, Client::Render::Models::OwnRecordCloseRandoms);
-    Advance(expected.random, Client::Render::Models::OwnRecordCloseRandoms);
-    Advance(expected.random, Client::Render::Models::OwnRecordCloseRandoms + 2 + 2);
+    Advance(expected.random, Client::Models::OwnRecordCloseRandoms);
+    Advance(expected.random, Client::Models::OwnRecordCloseRandoms);
+    Advance(expected.random, Client::Models::OwnRecordCloseRandoms + 2 + 2);
     int admittedFish = 0;
     for (int slot = 0; slot < 3; ++slot)
     {
@@ -201,9 +201,9 @@ TEST_F(InitialGameWaitTest, TheFirstGameStepKeepsSelectionTerrainAndStepsActorsE
     }
     // 54: hojas recién nacidas sin RNG; contador8; TerrainWall8; cuerpo propio3848+1;
     // celda vista8+1; Arrival1; viento de partículas2. El retorno de MoveHero omite57cfc0.
-    constexpr int AfterFishBeforeCloth = 8 + 8 + Client::Render::Models::OwnRecordCloseRandoms + 1 + 8 + 1 + 1 + 2;
+    constexpr int AfterFishBeforeCloth = 8 + 8 + Client::Models::OwnRecordCloseRandoms + 1 + 8 + 1 + 1 + 2;
     Advance(expected.random, AfterFishBeforeCloth);
-    Client::Render::Models::StepTheClothWorld(expected);
+    Client::Models::StepTheClothWorld(expected);
     Advance(expected.random, 4); // PrepareFrame consulta/cierra espera después de la tela.
     Client::App::GameLoop loop(online.clock, manager, Client::App::PacingMode::Faithful);
 

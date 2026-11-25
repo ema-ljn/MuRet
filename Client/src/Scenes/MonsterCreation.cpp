@@ -549,7 +549,7 @@ private:
 };
 } // namespace
 
-const Render::Models::Skeleton* MonsterSkeletonOf(const WorldEntryResources& resources, std::uint16_t model)
+const Models::Skeleton* MonsterSkeletonOf(const WorldEntryResources& resources, std::uint16_t model)
 {
     if (const auto* skeleton = resources.world.FaunaResources().SkeletonOf(model))
         return skeleton;
@@ -563,7 +563,7 @@ Core::Expected<void, std::string> SetMonsterAction(ActorState& actor, std::uint8
     // El registro de 0x5769ad8 + tipo · 0xe0 existe siempre: el de un modelo que no se cargó (un .bmd que falta en Npc
     // u Object35, que 0x60da30 saltea) tiene +0x26 en 0, y 0x4ea030 sale sin poner nada (0x4ea056).
     if (const auto* skeleton = MonsterSkeletonOf(resources, actor.type))
-        Render::Models::SetAction(actor.animation, *skeleton, action);
+        Models::SetAction(actor.animation, *skeleton, action);
     return {};
 }
 

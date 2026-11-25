@@ -110,9 +110,9 @@ using Crt::Sprintf;
 using Math::F32;
 using Math::Truncate;
 
-Render::Models::LogicalAccess OwnAccess(GameHudContext& context)
+Models::LogicalAccess OwnAccess(GameHudContext& context)
 {
-    return Render::Models::LogicalAccess(context.ownRecordDepth, context.random, Render::Models::OwnRecordCloseRandoms);
+    return Models::LogicalAccess(context.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
 }
 
 Core::Expected<std::string_view, std::string> TextOf(const GameHudContext& context, std::size_t index,

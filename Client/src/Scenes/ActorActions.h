@@ -16,10 +16,10 @@ namespace Client::Crt
 class CrtRandom;
 } // namespace Client::Crt
 
-namespace Client::Render::Models
+namespace Client::Models
 {
 struct Skeleton;
-} // namespace Client::Render::Models
+} // namespace Client::Models
 
 // Las acciones de un personaje: la de parado, 0x4f2250 (el SetPlayerStop de MuMain).
 // Contrato: Client/docs/research/06-render-escenas-y-ui.md, "Caminar" (SetPlayerStop) y P-C14 c.
@@ -36,7 +36,7 @@ struct ActorStopContext
     // DAT_006d5dc8: los mapas de vuelo miran la celda solo en la escena 5 (0x4f23a2).
     SceneId scene;
     // Las acciones de Player.bmd: 0x4ea030 no pone una que el modelo no tiene.
-    const Render::Models::Skeleton& playerSkeleton;
+    const Models::Skeleton& playerSkeleton;
     // *[0x7758550], Item.bmd en memoria: la matriz de armas lee el byte +0x1e del registro del arma
     // (0x4f2c52). nullptr si no se cargó: la matriz corta con error al leerlo.
     const Data::Tables::ItemTable* items = nullptr;
@@ -47,7 +47,7 @@ struct ActorStopContext
     // El C1 18 de sentarse (0x4f2416..0x4f2bea). Vacío, sentarse corta con error después de poner la 0xca.
     ActionSender sendAction{};
     // El esqueleto de este actor; nullptr representa un registro de modelo sin acciones.
-    const Render::Models::Skeleton* actorSkeleton = nullptr;
+    const Models::Skeleton* actorSkeleton = nullptr;
     // +0xaa del registro del modelo, los primeros sonidos que lee el sufijo para no jugadores y subtipos 209 a 211.
     std::span<const std::int16_t> modelSounds{};
 };

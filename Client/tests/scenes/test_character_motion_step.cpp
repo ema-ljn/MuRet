@@ -58,7 +58,7 @@ protected:
     }
     Client::Scenes::WorldState m_world;
     Client::Crt::CrtRandom m_random{1};
-    Client::Render::Models::Skeleton m_skeleton;
+    Client::Models::Skeleton m_skeleton;
 };
 
 TEST_F(CharacterMotionStepTest, MovingOtherUsesTheSharedWalkingSpeedInItsSameBodyStep)

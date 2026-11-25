@@ -7,11 +7,11 @@
 #include <span>
 #include <string>
 
-namespace Client::Render::Models
+namespace Client::Models
 {
 class IModelLibrary;
 struct SkinnedMesh;
-} // namespace Client::Render::Models
+} // namespace Client::Models
 namespace Client::Render
 {
 class ModelBatch;
@@ -21,9 +21,9 @@ namespace Client::Scenes
 struct DrawnObject;
 using TailPoseObserver = std::function<Core::Expected<void, std::string>(const DrawnObject&)>;
 // onPose y este getter comparten el mismo scratch: el cuerpo no vuelve a posar desde identidades.
-using TailMeshProvider = std::function<std::span<const Render::Models::SkinnedMesh>()>;
+using TailMeshProvider = std::function<std::span<const Models::SkinnedMesh>()>;
 // 4ebc80 consume las matrices/mallas recién publicadas, incluidos los dummy retenidos.
 [[nodiscard]] Core::Expected<void, std::string>
-DrawPublishedObject(Render::ModelBatch& batch, const Render::Models::IModelLibrary& models, const DrawnObject& object,
+DrawPublishedObject(Render::ModelBatch& batch, const Models::IModelLibrary& models, const DrawnObject& object,
                     Core::Duration frameClock, const TailMeshProvider& posedMeshes);
 } // namespace Client::Scenes

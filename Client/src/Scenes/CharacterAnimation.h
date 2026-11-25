@@ -15,9 +15,9 @@ namespace Client::Scenes
 class PlayerActionSpeeds;
 struct CharacterAnimation
 {
-    Render::Models::AnimationState body;
-    Render::Models::TimedAnimation pet;
-    Render::Models::TimedAnimation wings;
+    Models::AnimationState body;
+    Models::TimedAnimation pet;
+    Models::TimedAnimation wings;
 };
 
 // 0x50ba30: the body action selects the wing speed (+0x308 in the part at +0x2f8).
@@ -30,16 +30,15 @@ struct CharacterAnimation
 // la de parado otra vez (0x4fcb10 → 0x4f2250).
 [[nodiscard]] bool StepCharacterAnimation(CharacterAnimation& animation,
                                           const GameLogic::CharacterAppearance& appearance,
-                                          const Render::Models::IModelLibrary& models,
-                                          Render::Models::AnimationScene scene);
+                                          const Models::IModelLibrary& models, Models::AnimationScene scene);
 
 // Solo las dos animaciones colgantes: el cuerpo ya vino del ActorState que avanzó 0x508f00.
 void StepCharacterAttachments(CharacterAnimation& animation, const GameLogic::CharacterAppearance& appearance,
-                              const Render::Models::IModelLibrary& models);
+                              const Models::IModelLibrary& models);
 
 // El cuerpo que se posa entre dos pasos: `alpha` de un paso más (Render::Models::Interpolated). Sin la
 // acción en Player.bmd, el del paso.
-[[nodiscard]] Render::Models::AnimationState BodyBetweenSteps(const CharacterAnimation& animation,
-                                                              const Render::Models::IModelLibrary& models, float alpha,
-                                                              const PlayerActionSpeeds* speeds = nullptr);
+[[nodiscard]] Models::AnimationState BodyBetweenSteps(const CharacterAnimation& animation,
+                                                      const Models::IModelLibrary& models, float alpha,
+                                                      const PlayerActionSpeeds* speeds = nullptr);
 } // namespace Client::Scenes

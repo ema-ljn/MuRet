@@ -542,11 +542,11 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canva
                                             .particles = &FrameParticles(),
                                             .effects = &FrameEffects(),
                                             .itemContext = &itemContext,
-                                            .pace = originalFrame ? Render::Models::OriginalFramePace::OncePerDraw
+                                            .pace = originalFrame ? Models::OriginalFramePace::OncePerDraw
                                                                   : OriginalFramePaceOf(m_context.pacing),
                                             .onPose =
                                                 [&](std::uint16_t model, std::span<const Math::BoneTransform> bones,
-                                                    const Render::Models::ObjectTransform& transform, bool translated)
+                                                    const Models::ObjectTransform& transform, bool translated)
                                             {
                                                 const auto published = PublishFaunaPoseRaw(
                                                     FramePoseCarry(), *m_models, model, bones, transform, translated);
@@ -561,7 +561,7 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(SceneCanvas& canva
             .helperModels = &m_worldModels,
             .onHelperPose = [&](const DrawnObject& object)
             { return PublishFaunaPose(FramePoseCarry(), m_worldModels, object, true); },
-            .posedMeshes = [&]() { return std::span<const Render::Models::SkinnedMesh>(FramePoseCarry().meshes); },
+            .posedMeshes = [&]() { return std::span<const Models::SkinnedMesh>(FramePoseCarry().meshes); },
             // timeGetTime (0x6b8544), del calco 0x14e de los Fenrir: el reloj del dibujo en ms.
             .systemTime = [systemTime = static_cast<std::uint32_t>(
                                std::chrono::duration_cast<std::chrono::milliseconds>(canvas.frameClock).count())]()

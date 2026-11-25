@@ -15,6 +15,36 @@ static_assert(IsChaosCastle(Client::Maps::FirstChaosCastleMap) && IsChaosCastle(
 static_assert(IsKalimaMap(Client::Maps::FirstKalimaMap) && IsKalimaMap(Client::Maps::LastKalimaMap));
 static_assert(IsKalimaMap(Client::Maps::SeventhKalimaMap));
 
+TEST(MapIdTest, EachMapHasTheNumberOfTheOriginal)
+{
+    EXPECT_EQ(Client::Maps::LorenciaMap, 0);
+    EXPECT_EQ(Client::Maps::DungeonMap, 1);
+    EXPECT_EQ(Client::Maps::DeviasMap, 2);
+    EXPECT_EQ(Client::Maps::NoriaMap, 3);
+    EXPECT_EQ(Client::Maps::LostTowerMap, 4);
+    EXPECT_EQ(Client::Maps::ExileMap, 5);
+    EXPECT_EQ(Client::Maps::ArenaMap, 6);
+    EXPECT_EQ(Client::Maps::AtlansMap, 7);
+    EXPECT_EQ(Client::Maps::TarkanMap, 8);
+    EXPECT_EQ(Client::Maps::DevilSquareMap, 9);
+    EXPECT_EQ(Client::Maps::IcarusMap, 10);
+    EXPECT_EQ(Client::Maps::FirstBloodCastleMap, 11);
+    EXPECT_EQ(Client::Maps::LastBloodCastleMap, 17);
+    EXPECT_EQ(Client::Maps::FirstChaosCastleMap, 18);
+    EXPECT_EQ(Client::Maps::LastChaosCastleMap, 23);
+    EXPECT_EQ(Client::Maps::FirstKalimaMap, 24);
+    EXPECT_EQ(Client::Maps::LastKalimaMap, 29);
+    EXPECT_EQ(Client::Maps::CastleSiegeMap, 30);
+    EXPECT_EQ(Client::Maps::LandOfTrialsMap, 31);
+    EXPECT_EQ(Client::Maps::SecondDevilSquareMap, 32);
+    EXPECT_EQ(Client::Maps::AidaMap, 33);
+    EXPECT_EQ(Client::Maps::CrywolfMap, 34);
+    EXPECT_EQ(Client::Maps::SecondCrywolfMap, 35);
+    EXPECT_EQ(Client::Maps::SeventhKalimaMap, 36);
+    EXPECT_EQ(Client::Maps::CharacterSelectMap, 54);
+    EXPECT_EQ(Client::Maps::LoginMap, 55);
+}
+
 TEST(MapIdTest, BloodCastleIsMaps11To17)
 {
     EXPECT_FALSE(IsBloodCastle(10));

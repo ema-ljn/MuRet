@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Data/Models/PlayerModels.h"
 #include "Data/Text/TextTable.h"
+#include "Maps/MapId.h"
 #include "Math/X87.h"
 #include "Render/Models/Animation.h"
 #include "Scenes/ActorState.h"
@@ -28,7 +29,7 @@ namespace Client::Scenes
 {
 namespace
 {
-constexpr std::int32_t CastleMap = 30;
+constexpr std::int32_t CastleMap = Maps::CastleSiegeMap;
 
 using Math::D;
 using Math::F32;

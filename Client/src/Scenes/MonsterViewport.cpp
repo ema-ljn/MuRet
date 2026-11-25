@@ -4,6 +4,7 @@
 #include "Crt/CrtRandom.h"
 #include "Data/Models/PlayerModels.h"
 #include "Data/Text/TextTable.h"
+#include "Maps/MapId.h"
 #include "Protocol/Events.h"
 #include "Protocol/Viewport.h"
 #include "Render/Models/Animation.h"
@@ -44,7 +45,7 @@ namespace Client::Scenes
 {
 namespace
 {
-constexpr std::int32_t CastleSiegeMap = 30;
+using Maps::CastleSiegeMap;
 constexpr std::uint16_t SiegeGateKind = 0x115;
 constexpr std::uint32_t GateOpenFlag = 0x20000;
 // 0x51745c: los seis dwords del nombre del invocado.

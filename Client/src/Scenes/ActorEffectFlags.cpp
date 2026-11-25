@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Core/PixelSize.h"
 #include "Data/Models/PlayerModels.h"
+#include "Maps/MapId.h"
 #include "Render/Models/Cloth.h"
 #include "Scenes/ActorFlags.h"
 #include "Scenes/ActorState.h"
@@ -311,7 +312,7 @@ Core::Expected<void, std::string> ApplyEffectFlags(ActorState& actor, std::uint3
 
 void ApplyCastleSiegeFlags(ActorState& actor, std::uint32_t flags, std::int32_t map)
 {
-    constexpr std::int32_t CastleSiegeMap = 30;
+    using Maps::CastleSiegeMap;
     if (map != CastleSiegeMap)
         return;
     constexpr std::uint8_t GuildLayer = 0xc;

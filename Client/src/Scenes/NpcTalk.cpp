@@ -4,6 +4,7 @@
 #include "Crt/CrtRandom.h"
 #include "Data/Models/PlayerModels.h"
 #include "Data/Terrain/TerrainAttributes.h"
+#include "Maps/MapId.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/Skeleton.h"
 #include "Scenes/ActorActions.h"
@@ -61,7 +62,7 @@ constexpr std::uint16_t QuestDialogNpc = 0xe5;
 constexpr std::int16_t FirstCrywolfAltar = 0x204;
 constexpr std::int16_t LastCrywolfAltar = 0x208;
 // 0x4303c0: the map 34.
-constexpr std::int32_t CrywolfMap = 34;
+using Maps::CrywolfMap;
 
 bool IsACrywolfAltar(const ActorState& npc)
 {

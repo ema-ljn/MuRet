@@ -1,5 +1,7 @@
 #include "Scenes/MonsterModelTable.h"
 
+#include "Maps/MapId.h"
+
 #include <algorithm>
 #include <array>
 #include <cstdint>
@@ -1115,7 +1117,7 @@ std::string_view MonsterTextureFolderOf(std::int32_t number, std::int32_t map) n
 {
     constexpr std::int32_t FirstChaosCastle = 18;
     constexpr std::int32_t LastChaosCastle = 23;
-    constexpr std::int32_t CastleSiege = 30;
+    constexpr std::int32_t CastleSiege = Maps::CastleSiegeMap;
     if (map >= FirstChaosCastle && map <= LastChaosCastle && number >= 0x46 && number <= 0x48)
         return "Npc\\";
     if (map == CastleSiege && number == 0x4a)

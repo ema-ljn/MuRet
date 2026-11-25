@@ -85,7 +85,7 @@ namespace
 // 0x50919a y 0x5091c8: los dos lazos de 0x508f00 recorren 400 registros (0x69780 / 0x438); el 401 no.
 constexpr std::size_t SteppedCharacters = 400;
 // 0x412162: en el mapa 30 (0x1e), 0x412140 arma el panel del asedio.
-constexpr std::int32_t CastleMap = 30;
+constexpr std::int32_t CastleMap = Maps::CastleSiegeMap;
 
 // 0x4fd603: el tipo que pasa su nombre y su nivel a 0x4381f0.
 constexpr std::uint16_t NamedType = 0xc5;

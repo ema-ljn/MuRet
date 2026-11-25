@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Maps/MapId.h"
 #include "Math/X87.h"
 #include "Protocol/Events.h"
 #include "Render/Models/Animation.h"
@@ -987,7 +988,7 @@ CaseResult StepTheKalimaHelper(ModelEffectsPass& pass)
 // 0x42de90(c, modelo), solo en el mapa 30 ([0x6c9dd0]), la tabla 0x42df78 sobre 0x42df64 desde el 0x19b.
 CaseResult StepTheCastleHelper(ModelEffectsPass& pass)
 {
-    constexpr std::int32_t CastleMap = 30;
+    constexpr std::int32_t CastleMap = Maps::CastleSiegeMap;
     if (pass.map != CastleMap)
         return false;
     ActorState& actor = pass.actor;

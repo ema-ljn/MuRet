@@ -6,6 +6,7 @@
 #include "GameLogic/GateCheck.h"
 #include "GameLogic/GateCheckState.h"
 #include "GameLogic/GateDecision.h"
+#include "Maps/MapId.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/OwnCharacterRecord.h"
@@ -23,8 +24,8 @@ namespace
 constexpr std::size_t SilentLevelGate = 28;
 constexpr std::size_t WingsSlot = 7;
 constexpr std::size_t MountSlot = 8;
-constexpr std::int32_t CastleSiegeMap = 30;
-constexpr std::int32_t LandOfTrialMap = 31;
+using Maps::CastleSiegeMap;
+constexpr std::int32_t LandOfTrialMap = Maps::LandOfTrialsMap;
 
 std::int32_t ReadCell(std::uint8_t value, std::uint8_t& depth, const GameGateContext& context)
 {

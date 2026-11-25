@@ -10,6 +10,7 @@
 #include "Data/Models/ModelTextures.h"
 #include "Data/Textures/TextureSet.h"
 #include "GameLogic/CharacterAppearance.h"
+#include "Maps/MapId.h"
 #include "Render/ModelBatch.h"
 #include "Render/ModelVertex.h"
 #include "Render/Models/Attachment.h"
@@ -681,7 +682,7 @@ bool DrawsTheShadow(const DrawnCharacter& character)
 
 namespace
 {
-constexpr std::int32_t CastleSiegeMap = 0x1e;
+using Maps::CastleSiegeMap;
 constexpr float DefaultShadowSpread = 2000.0f;
 constexpr float CastleSiegeShadowSpread = 2500.0f;
 

@@ -1,6 +1,7 @@
 #include "World/TarkanObjectStep.h"
 
 #include "Core/Expected.h"
+#include "Maps/MapId.h"
 #include "Math/X87.h"
 #include "Render/Models/ObjectState.h"
 #include "Render/Models/OriginalRetainedMath.h"
@@ -90,7 +91,7 @@ Core::Expected<void, std::string> ScrollV(WorldObject& object, float worldClock,
 
 void SeedTarkanModelState(std::uint8_t map, ObjectModelStepState& state)
 {
-    constexpr std::uint8_t TarkanMap = 8;
+    constexpr std::uint8_t TarkanMap = Maps::TarkanMap;
     if (map != TarkanMap)
         return;
     // 0x61a150..0x61a18f: los bytes 11 · 0xe0 + 0x88 a 79 · 0xe0 + 0x88 de la tabla 0x5769ad8.

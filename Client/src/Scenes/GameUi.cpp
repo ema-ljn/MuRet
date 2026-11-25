@@ -301,7 +301,7 @@ void StepTheUnownedClick(WorldRuntime& runtime)
 // (+0x318) y el send() del paso para el Sí.
 Core::Expected<void, std::string> StepTheCrywolfInterface(const GameUiContext& context)
 {
-    constexpr std::int32_t CrywolfMap = 0x22;
+    using Maps::CrywolfMap;
     constexpr std::int32_t ButtonLeft = 0x12c;
     constexpr std::int32_t ButtonRight = 0x162;
     constexpr std::int32_t ButtonTop = 0x12c;

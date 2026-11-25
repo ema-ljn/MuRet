@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Maps/MapId.h"
 #include "Render/Models/Animation.h"
 #include "Render/Models/OriginalAngles.h"
 #include "Render/Models/Skeleton.h"
@@ -32,7 +33,7 @@ constexpr float SlowerDyingFactor = 0.5f; // 0x6b882c
 // 0x4fcbb8 y 0x4fce68: el tipo que no pasa por 0x4ea030.
 constexpr std::uint16_t NamedModel = 0xc5;
 // 0x4fcbef..0x4fcbfc: en el mapa 1 (Dungeon), el 0x28.
-constexpr std::int32_t DungeonMap = 1;
+using Maps::DungeonMap;
 constexpr std::uint16_t DungeonModel = 0x28;
 // 0x4fcc11..0x4fcc1b: los monstruos, de Monster01 (0x152) a antes del 0x1ca.
 constexpr std::uint16_t FirstMonsterModel = 0x152;
@@ -46,7 +47,7 @@ constexpr int TalkingNpcSpan = 16;    // 0x4fcc9f
 constexpr int TalkingNpcResting = 12; // 0x4fccab
 
 // 0x42d893..0x42d8c5: el mapa 30 y la tabla de bytes 0x42d9f8 sobre la de saltos 0x42d9e8, con +0x376 − 221.
-constexpr std::int32_t CastleMap = 30;
+constexpr std::int32_t CastleMap = Maps::CastleSiegeMap;
 constexpr std::uint32_t CarriedFlag = 0x20000; // 0x42d99d
 
 bool IsOneOf(std::span<const std::uint8_t> values, std::uint8_t value)

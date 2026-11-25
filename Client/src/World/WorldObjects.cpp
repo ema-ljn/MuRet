@@ -49,11 +49,11 @@ constexpr float DragonEffectScale = std::bit_cast<float>(0x3FCCCCCDu);
 constexpr float StreetLightScale = std::bit_cast<float>(0x3F4CCCCDu);
 constexpr float StreetLightLight = std::bit_cast<float>(0x3E4CCCCDu);
 // 0x6069bd: Bridge01 del mapa 0 amplía su margen individual de recorte (+0xdc).
-constexpr std::uint8_t LorenciaMap = 0;
+constexpr std::uint8_t LorenciaMap = Maps::LorenciaMap;
 constexpr std::int16_t LorenciaBridge = 0x50;
 constexpr float BridgeCullingMargin = std::bit_cast<float>(0xC2480000u);
 // Los remolinos del mapa 0x37 (0x606d03): a (8.600; 25.000; 5.000), con escalas 60 y 110.
-constexpr std::uint8_t LoginMap = 0x37;
+constexpr std::uint8_t LoginMap = Maps::LoginMap;
 constexpr std::int16_t RedWhirlpool = 0x56;
 constexpr std::int16_t DarkWhirlpool = 0x5a;
 constexpr glm::vec3 WhirlpoolPlace{8600.0f, 25000.0f, 5000.0f};
@@ -528,8 +528,8 @@ void ApplyLoginStepCases(WorldObject& object)
 
 // 0x604bb4..0x604c1d: los techos, antes del alpha. En el 0, los de la taberna (HouseWall05 y 06) se apagan
 // con la capa 4; en el 2, los suyos con la capa 3 o desde la 10 (*inferido*: el héroe bajo techo).
-constexpr std::uint8_t DeviasMap = 2;
-constexpr std::uint8_t NoriaMap = 3;
+constexpr std::uint8_t DeviasMap = Maps::DeviasMap;
+constexpr std::uint8_t NoriaMap = Maps::NoriaMap;
 constexpr std::int32_t LorenciaRoofLayer = 4;
 constexpr std::int32_t DeviasRoofLayer = 3;
 constexpr std::int32_t DeviasHighRoofLayers = 10;
@@ -751,26 +751,26 @@ Core::Expected<void, std::string> StepWorldObjectChecked(WorldObject& object, st
                                                          Crt::CrtRandom& random, const ObjectStepGlobals& globals)
 {
     // 0x425070: el 33 (Aida) y el 54 (la selección) llegan a 0x4250f0 por la cadena de 0x605a62.
-    constexpr std::uint8_t AidaMap = 33;
-    constexpr std::uint8_t SelectionWorldMap = 54;
+    constexpr std::uint8_t AidaMap = Maps::AidaMap;
+    constexpr std::uint8_t SelectionWorldMap = Maps::CharacterSelectMap;
     const bool aida = map == AidaMap || map == SelectionWorldMap;
-    constexpr std::uint8_t DungeonMap = 1;
-    constexpr std::uint8_t LostTowerMap = 4;
-    constexpr std::uint8_t ArenaMap = 6;
-    constexpr std::uint8_t AtlansMap = 7;
-    constexpr std::uint8_t TarkanMap = 8;
-    constexpr std::uint8_t IcarusMap = 10;
+    constexpr std::uint8_t DungeonMap = Maps::DungeonMap;
+    constexpr std::uint8_t LostTowerMap = Maps::LostTowerMap;
+    constexpr std::uint8_t ArenaMap = Maps::ArenaMap;
+    constexpr std::uint8_t AtlansMap = Maps::AtlansMap;
+    constexpr std::uint8_t TarkanMap = Maps::TarkanMap;
+    constexpr std::uint8_t IcarusMap = Maps::IcarusMap;
     // 0x43ff10: el 31 (Land of Trials) llega a 0x43ffc0 por la misma cadena.
-    constexpr std::uint8_t LandOfTrialsMap = 31;
+    constexpr std::uint8_t LandOfTrialsMap = Maps::LandOfTrialsMap;
     // El 30 (Castle Siege) llega antes a 0x42c850, el segundo eslabón.
-    constexpr std::uint8_t CastleSiegeMap = 30;
-    constexpr std::uint8_t DevilSquareMap = 9;
+    constexpr std::uint8_t CastleSiegeMap = Maps::CastleSiegeMap;
+    constexpr std::uint8_t DevilSquareMap = Maps::DevilSquareMap;
     constexpr std::uint8_t FirstBloodCastleMap = 11;
     constexpr std::uint8_t LastBloodCastleMap = 17;
     const bool bloodCastle = map >= FirstBloodCastleMap && map <= LastBloodCastleMap;
     const bool chaosCastle = Maps::IsChaosCastle(map);
     // 0x4303c0: el 34 (Crywolf) llega a 0x4303e0, el último eslabón de la cadena de 0x605a62.
-    constexpr std::uint8_t CrywolfMap = 34;
+    constexpr std::uint8_t CrywolfMap = Maps::CrywolfMap;
     if (map != LorenciaMap && map != DungeonMap && map != DeviasMap && map != NoriaMap && map != LostTowerMap &&
         map != ArenaMap && map != AtlansMap && map != TarkanMap && map != DevilSquareMap && map != IcarusMap &&
         map != LoginMap && map != LandOfTrialsMap && map != CastleSiegeMap && map != CrywolfMap &&
@@ -892,7 +892,7 @@ ObjectDraw DrawOf(const WorldObject& object, const glm::vec3& terrainLight, std:
         draw.kind = ObjectDrawKind::Waterspout;
         return draw;
     }
-    constexpr std::uint8_t TarkanMap = 8;
+    constexpr std::uint8_t TarkanMap = Maps::TarkanMap;
     constexpr std::int16_t TarkanChromeObject = 0x51;
     if (map == TarkanMap && object.type == TarkanChromeObject)
     {

@@ -5,6 +5,7 @@
 #include "Data/Models/PlayerModels.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "GameLogic/PathFinder.h"
+#include "Maps/MapId.h"
 #include "Protocol/Skill.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/OriginalAngles.h"
@@ -55,7 +56,7 @@ constexpr std::uint8_t ChargedSkill = 0x28;
 constexpr std::uint8_t ReleasedChargedSkill = 0x3a;
 constexpr std::uint8_t PlayerObject = 1;
 constexpr std::uint32_t FrozenHeroFlag = 0x1000;
-constexpr std::int32_t CastleSiegeMap = 30;
+using Maps::CastleSiegeMap;
 constexpr float CellReciprocal = std::bit_cast<float>(std::uint32_t{0x3c23d70a}); // [0x6b86c0], 0,01
 constexpr float DirectionScale = std::bit_cast<float>(std::uint32_t{0x3f360b61}); // [0x6ba440], 256/360
 constexpr float CellSize = 100.0f;                                                // [0x6b86b4]

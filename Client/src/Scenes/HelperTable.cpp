@@ -83,8 +83,8 @@ constexpr std::uint8_t GallopingRiderAction = 0x4b;
 constexpr std::uint8_t DustHorseAction = 1;
 constexpr std::uint8_t EffectHorseAction = 3;
 // 0x444196: en el mapa 10 el polvo es otro; 0x4445a9: en el 7 el aliento es la gota 607.
-constexpr std::int32_t IcarusMap = 10;
-constexpr std::int32_t AtlansMap = 7;
+using Maps::AtlansMap;
+using Maps::IcarusMap;
 // 0x444414..0x44441d y 0x44455a..0x444563: con 0x4000 en +0x78 del jinete, ni polvo ni aliento; 0x445310
 // dibuja con 10. 0x5ffefc: con 0x1000, el frame del caballo en 0.
 constexpr std::uint32_t RiderWithoutDust = 0x4000;

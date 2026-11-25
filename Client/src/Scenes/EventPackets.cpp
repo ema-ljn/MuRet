@@ -249,7 +249,7 @@ constexpr std::int32_t ContractLevel = 0x15e;
 constexpr std::int32_t FirstAltarKey = 0x13c;
 constexpr std::uint8_t SittingAction = 0xca;
 // 0x4303c0: the map 0x22, which the BD 04 tests with the started stage (0x4359f0).
-constexpr std::int32_t CrywolfMap = 0x22;
+using Maps::CrywolfMap;
 // 0x437620: cinco lugares (0x6c73e4..0x6c73f4, 0x723a30..0x723a34 y 0x7239f8..0x723a2e).
 constexpr std::size_t CrywolfRankingPlaces = 5;
 

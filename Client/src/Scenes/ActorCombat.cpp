@@ -293,7 +293,7 @@ Core::Expected<bool, std::string> AttackOfKalima(ActorState& actor, const ActorC
 // después cierra la entrada (0x443946..0x443974). Atiende siempre.
 Core::Expected<bool, std::string> AttackOfTheTrials(ActorState& actor, const ActorCombatContext& context)
 {
-    constexpr std::int32_t TrialsMap = 0x1f;
+    constexpr std::int32_t TrialsMap = Maps::LandOfTrialsMap;
     constexpr std::uint16_t TrialsKind = 0x123;
     constexpr std::uint8_t FirstActionSkill = 0x32;
     if (context.world.Runtime().map != TrialsMap || actor.word376 != TrialsKind)

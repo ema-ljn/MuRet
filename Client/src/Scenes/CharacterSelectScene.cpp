@@ -13,6 +13,7 @@
 #include "GameLogic/CharacterAppearance.h"
 #include "Input/InputState.h"
 #include "Input/Key.h"
+#include "Maps/MapId.h"
 #include "Protocol/Character/CharacterDelete.h"
 #include "Protocol/Character/CharacterList.h"
 #include "Protocol/Character/CharacterName.h"
@@ -1413,7 +1414,7 @@ void CharacterSelectScene::DrawTheBalloons(SceneCanvas& canvas, const Render::Pa
 
 bool CharacterSelectScene::HasTheWorld() const
 {
-    constexpr int SelectionWorldMap = 54;
+    constexpr int SelectionWorldMap = Maps::CharacterSelectMap;
     return m_context.world != nullptr && m_context.cloth != nullptr && m_context.selection != nullptr &&
            m_context.selection->IsInitialized() && m_context.selection->Terrain() != nullptr &&
            m_context.world->Runtime().map == SelectionWorldMap;

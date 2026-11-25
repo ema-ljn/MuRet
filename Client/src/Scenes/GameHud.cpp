@@ -105,11 +105,11 @@ constexpr Color SkillColor{1.0f, 0.9f, 0.8f, 1.0f};
 constexpr Color NumberColor{1.0f, 0.95f, 0.75f, 1.0f};
 
 // Los mapas y los textos de Text.bmd (por su índice: la dirección − 0x76bd1dc, sobre 300).
-constexpr std::int32_t TarkanMap = 8;
-constexpr std::int32_t CastleSiegeMap = 30;
-constexpr std::int32_t CrywolfMap = 34;
+using Maps::CastleSiegeMap;
+using Maps::CrywolfMap;
 using Maps::FirstChaosCastleMap;
 using Maps::LastChaosCastleMap;
+using Maps::TarkanMap;
 constexpr std::size_t ExperienceHelpText = 201;
 constexpr std::size_t AgHelpText = 214;
 constexpr std::size_t ArrowsText = 351;

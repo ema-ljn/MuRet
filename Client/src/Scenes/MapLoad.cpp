@@ -48,16 +48,16 @@ namespace
 {
 // 0x510f70 recorre hasta 0x69780: 400 registros de 0x438, uno menos que el pool.
 constexpr std::size_t KilledActorCount = 400;
-constexpr std::int32_t DeviasMap = 2;
-constexpr std::int32_t NoriaMap = 3;
-constexpr std::int32_t CastleSiegeMap = 30;
-constexpr std::int32_t CrywolfMap = 34;
-constexpr std::int32_t LoginMap = 55;
-constexpr std::int32_t DevilSquareMap = 9;
+using Maps::CastleSiegeMap;
+using Maps::CrywolfMap;
+using Maps::DeviasMap;
+using Maps::DevilSquareMap;
 using Maps::FirstBloodCastleMap;
 using Maps::FirstChaosCastleMap;
 using Maps::LastBloodCastleMap;
 using Maps::LastChaosCastleMap;
+using Maps::LoginMap;
+using Maps::NoriaMap;
 constexpr std::uint8_t ChaosCastleAreaReset = 0xff;
 // 0x5f831e..0x5f8342: (rand() % 4) · 0,25 en cada una de las 65.536 celdas.
 constexpr int GrassSteps = 4;

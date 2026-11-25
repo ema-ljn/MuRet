@@ -1,5 +1,6 @@
 #include "World/GameCamera.h"
 
+#include "Maps/MapId.h"
 #include "Math/X87.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Render/Models/RoundedMath.h"
@@ -22,7 +23,7 @@ constexpr std::uint8_t FixedHeightAttribute = 0x40;
 constexpr std::uint8_t ZoomAttribute = 0x80;
 constexpr std::uint8_t RockingMap = 5;
 constexpr std::uint8_t WebzenMap = 6;
-constexpr std::uint8_t CastleMap = 0x1e;
+constexpr std::uint8_t CastleMap = Maps::CastleSiegeMap;
 constexpr float HeightOffset = 150.0f;
 constexpr float CastleHeight = 255.0f;
 constexpr float AttributeHeight = 1201.0f;

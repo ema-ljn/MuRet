@@ -49,7 +49,7 @@ using Client::Network::PacketReader;
 using Client::Network::PacketSerials;
 using Client::Network::PacketType;
 using Client::Network::ProtocolError;
-using Client::Network::XorRemapObfuscation;
+using Client::Network::XorRemap::XorRemapObfuscation;
 using Client::Protocol::Connection::ReadServerList;
 using Client::Tests::Bytes;
 using Client::Tests::CutPackets;

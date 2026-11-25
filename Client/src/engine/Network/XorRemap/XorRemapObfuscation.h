@@ -29,7 +29,7 @@
 // Donde el original no mira un largo (Q-C09), acá es ObfuscationError::InvalidPacket. Con
 // paquetes bien formados, lo que sale es lo mismo que en el original byte por byte, también donde
 // el original pierde información (los códigos de servidor desde 21, Q-C17).
-namespace Client::Network
+namespace Client::Network::XorRemap
 {
 class XorRemapObfuscation final : public IObfuscation
 {
@@ -45,4 +45,4 @@ public:
 private:
     XorRemapTables m_tables;
 };
-} // namespace Client::Network
+} // namespace Client::Network::XorRemap

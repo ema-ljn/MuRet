@@ -11,7 +11,7 @@
 // FoxAnti", and the research repo's analysis/foxanti/minimal/src/packet.c, which ports each function with its address.
 namespace Client::App
 {
-constexpr Network::XorRemapTables LabXorRemapTables()
+constexpr Network::XorRemap::XorRemapTables LabXorRemapTables()
 {
     return {
         // fox_xor_aa, 0x341140

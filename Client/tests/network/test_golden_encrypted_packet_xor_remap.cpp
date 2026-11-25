@@ -19,7 +19,7 @@ namespace
 {
 using Client::App::LabXorRemapTables;
 using Client::Network::PacketType;
-using Client::Network::XorRemapObfuscation;
+using Client::Network::XorRemap::XorRemapObfuscation;
 using Client::Tests::WireDirection;
 using Client::Tests::GoldenEncryptedPacketSupport::CountOf;
 using Client::Tests::GoldenEncryptedPacketSupport::DecryptedCounts;

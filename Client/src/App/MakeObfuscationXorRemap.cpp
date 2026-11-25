@@ -10,6 +10,6 @@ namespace Client::App
 {
 std::unique_ptr<const Network::IObfuscation> MakeObfuscation()
 {
-    return std::make_unique<Network::XorRemapObfuscation>(LabXorRemapTables());
+    return std::make_unique<Network::XorRemap::XorRemapObfuscation>(LabXorRemapTables());
 }
 } // namespace Client::App

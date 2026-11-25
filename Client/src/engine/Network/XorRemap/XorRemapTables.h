@@ -6,7 +6,7 @@
 
 // The values XorRemapObfuscation translates with. The packet offsets and sizes are its mechanism and stay with it;
 // the values come from the composition root (App/LabXorRemapTables.h for the lab server).
-namespace Client::Network
+namespace Client::Network::XorRemap
 {
 struct OpcodeRemap
 {
@@ -37,4 +37,4 @@ struct XorRemapTables
     std::uint16_t ladderStepCodes;
     std::array<LadderStep, 8> selectLadder;
 };
-} // namespace Client::Network
+} // namespace Client::Network::XorRemap

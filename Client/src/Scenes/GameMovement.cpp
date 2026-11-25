@@ -234,7 +234,7 @@ Core::Expected<void, std::string> LeaveTheEventWindow(const HeroMovementContext&
     return {};
 }
 
-Core::Expected<void, std::string> SendThePath(ActorState& hero, GameLogic::PathCell target,
+Core::Expected<void, std::string> SendThePath(ActorState& hero, Pathfinding::PathCell target,
                                               const HeroMovementContext& context)
 {
     WorldRuntime& runtime = context.world.Runtime();
@@ -253,7 +253,7 @@ Core::Expected<void, std::string> SendThePath(ActorState& hero, GameLogic::PathC
     if (!maximum.HasValue())
         return Core::Unexpected(std::string("0x56acd0: cantidad de camino inválida"));
     state.mouseUpdateTimeMax = static_cast<std::int32_t>(maximum.Value());
-    std::array<Protocol::Movement::Cell, GameLogic::MaxPathCells> cells{};
+    std::array<Protocol::Movement::Cell, Pathfinding::MaxPathCells> cells{};
     for (std::size_t i = 0; i < hero.path.count; ++i)
         cells[i] = {hero.path.cells[i].x, hero.path.cells[i].y};
     if (!context.sendWalk)
@@ -316,7 +316,7 @@ Core::Expected<void, std::string> UseGroundClick(ActorState& hero, const HeroMov
     const auto startY = ReadCell(hero.cellYAccesses, hero.cellY, context.random);
     const auto startX = ReadCell(hero.cellXAccesses, hero.cellX, context.random);
     // 0x4eac0a..0x4eac41: con un altar de Crywolf en 0x6c8e54, también el clic en el suelo pone en 0 la meta.
-    const auto path = GameLogic::PathFinder(terrain.attributes->cells)
+    const auto path = Pathfinding::PathFinder(terrain.attributes->cells)
                           .Find({startX, startY}, target, CrywolfAltarGoal(context.world));
     if (!path)
     {
@@ -423,7 +423,7 @@ Core::Expected<MoveHeroEnd, std::string> AttackTheChosen(ActorState& hero, const
     const auto fromX = ReadCell(hero.cellXAccesses, hero.cellX, context.random);
     // Una línea que sale de TerrainWall (0x55886d lee la memoria de al lado, 0x7d0d348 + 2 · índice): MuRet descarta
     // el clic como si no se viera, con los rand() de las dos lecturas (07, Q-C1179).
-    const auto seen = World::CanSeeTheCell(terrain.attributes->cells, fromX, fromY, *targetX, *targetY);
+    const auto seen = Pathfinding::CanSeeTheCell(terrain.attributes->cells, fromX, fromY, *targetX, *targetY);
     if (!seen || !*seen)
         return MoveHeroEnd::Continue;
     const auto startY = ReadCell(hero.cellYAccesses, hero.cellY, context.random);
@@ -433,10 +433,10 @@ Core::Expected<MoveHeroEnd, std::string> AttackTheChosen(ActorState& hero, const
     constexpr std::int32_t LastCell = 0xff;
     if (*targetX < 0 || *targetX > LastCell || *targetY < 0 || *targetY > LastCell)
         return MoveHeroEnd::Continue;
-    const GameLogic::PathCell target{static_cast<std::uint8_t>(*targetX), static_cast<std::uint8_t>(*targetY)};
+    const Pathfinding::PathCell target{static_cast<std::uint8_t>(*targetX), static_cast<std::uint8_t>(*targetY)};
     // 0x59d653: PathFinding2 con la bandera del altar de Crywolf (0x4eac0a..0x4eac41): sin distancia, con un altar
     // elegido la meta en el TerrainWall queda en 0.
-    const auto path = GameLogic::PathFinder(terrain.attributes->cells)
+    const auto path = Pathfinding::PathFinder(terrain.attributes->cells)
                           .Find({startX, startY}, target, CrywolfAltarGoal(context.world));
     if (path)
     {
@@ -517,12 +517,12 @@ Core::Expected<void, std::string> WalkToTheNpc(ActorState& hero, const HeroMovem
         return Core::Unexpected(std::string("0x4eac00: falta TerrainWall para caminar"));
     const auto startY = ReadCell(hero.cellYAccesses, hero.cellY, context.random);
     const auto startX = ReadCell(hero.cellXAccesses, hero.cellX, context.random);
-    const GameLogic::PathCell goal{static_cast<std::uint8_t>(*x & 0xff), static_cast<std::uint8_t>(*y & 0xff)};
+    const Pathfinding::PathCell goal{static_cast<std::uint8_t>(*x & 0xff), static_cast<std::uint8_t>(*y & 0xff)};
     if (*x != goal.x || *y != goal.y)
         return Core::Unexpected(std::format("0x59dc32: el destino ({}, {}) del NPC sale del mapa", *x, *y));
     // 0x4eac0a..0x4eac41: con Crywolf activo (0x435a00 y el mapa 34) y el altar recién elegido en 0x6c8e54
     // (0x204..0x208), el A* (0x4ead70) pone en 0 el word de su celda y el camino llega hasta el altar.
-    if (const auto path = GameLogic::PathFinder(terrain.attributes->cells)
+    if (const auto path = Pathfinding::PathFinder(terrain.attributes->cells)
                               .Find({startX, startY}, goal, CrywolfAltarGoal(context.world)))
     {
         hero.path = *path;
@@ -555,12 +555,12 @@ Core::Expected<void, std::string> WalkToTheFloorItem(ActorState& hero, const Her
         return Core::Unexpected(std::string("0x4eac00: falta TerrainWall para caminar"));
     const auto startY = ReadCell(hero.cellYAccesses, hero.cellY, context.random);
     const auto startX = ReadCell(hero.cellXAccesses, hero.cellX, context.random);
-    const GameLogic::PathCell target{static_cast<std::uint8_t>(*x & 0xff), static_cast<std::uint8_t>(*y & 0xff)};
+    const Pathfinding::PathCell target{static_cast<std::uint8_t>(*x & 0xff), static_cast<std::uint8_t>(*y & 0xff)};
     if (*x != target.x || *y != target.y)
         return Core::Unexpected(std::format("0x59ddbc: el destino ({}, {}) del ítem del piso sale del mapa", *x, *y));
     // 0x59ddbc: PathFinding2 con la bandera del altar de Crywolf (0x4eac0a..0x4eac41, Q-C1351): con un altar todavía en
     // 0x6c8e54, la celda del ítem queda en 0 en TerrainWall.
-    if (const auto path = GameLogic::PathFinder(terrain.attributes->cells)
+    if (const auto path = Pathfinding::PathFinder(terrain.attributes->cells)
                               .Find({startX, startY}, target, CrywolfAltarGoal(context.world)))
     {
         hero.path = *path;

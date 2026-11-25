@@ -550,8 +550,8 @@ Core::Expected<void, std::string> UseTheHeroSkill(ActorState& hero, const HeroSk
         if (!terrain.attributes)
             return Core::Unexpected(std::string("0x558800: falta TerrainWall para ver el blanco de la skill"));
         const bool seen =
-            World::CanSeeTheCell(terrain.attributes->cells, x, y, std::bit_cast<std::int32_t>(state.targetX),
-                                 std::bit_cast<std::int32_t>(state.targetY))
+            Pathfinding::CanSeeTheCell(terrain.attributes->cells, x, y, std::bit_cast<std::int32_t>(state.targetX),
+                                       std::bit_cast<std::int32_t>(state.targetY))
                 .value_or(false);
         if (seen)
         {

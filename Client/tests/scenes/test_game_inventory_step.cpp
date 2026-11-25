@@ -467,7 +467,7 @@ TEST_F(InventoryMovesStepTest, AClickOutsideTheGridsDropsTheCursorItem)
     Click();
     world.Runtime().movement.mouseUpdateTime = 4;
     services.pickTheGround = []
-    { return Client::Core::Expected<std::optional<Client::GameLogic::PathCell>, std::string>(std::nullopt); };
+    { return Client::Core::Expected<std::optional<Client::Pathfinding::PathCell>, std::string>(std::nullopt); };
     const auto dropped = Step(100, 300, &services);
     ASSERT_TRUE(dropped.HasValue()) << dropped.Error();
     EXPECT_EQ(world.Runtime().cursorItemCount, 1);

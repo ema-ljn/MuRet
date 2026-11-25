@@ -8,7 +8,7 @@
 
 // El resultado de PathFinding2 (0x4eacef..0x4ead56), con hasta 15 celdas incluido el inicio.
 // Representación propia: los tres contadores son bytes; «CurrentPathFloat» también es un byte.
-namespace Client::GameLogic
+namespace Client::Pathfinding
 {
 inline constexpr std::size_t MaxPathCells = 15;
 
@@ -19,4 +19,4 @@ struct Path
     std::uint8_t count = 0;
     std::array<PathCell, MaxPathCells> cells{};
 };
-} // namespace Client::GameLogic
+} // namespace Client::Pathfinding

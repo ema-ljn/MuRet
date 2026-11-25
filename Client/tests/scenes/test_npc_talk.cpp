@@ -163,10 +163,11 @@ public:
         auto context = Context();
         context.input.leftPressed = true;
         context.input.leftDown = true;
-        context.pickTarget = [this]() -> Client::Core::Expected<std::optional<Client::GameLogic::PathCell>, std::string>
+        context.pickTarget =
+            [this]() -> Client::Core::Expected<std::optional<Client::Pathfinding::PathCell>, std::string>
         {
             events.emplace_back("pick");
-            return std::optional<Client::GameLogic::PathCell>{};
+            return std::optional<Client::Pathfinding::PathCell>{};
         };
         return Client::Scenes::StepHeroMovement(context);
     }
@@ -338,17 +339,17 @@ TEST(NpcTalkTest, TheWalkToACrywolfAltarClearsItsCell)
         EXPECT_EQ(tested->events, (std::vector<std::string>{"D3 185 115"}));
         const auto& path = tested->Hero().path;
         ASSERT_GE(path.count, 2);
-        const Client::GameLogic::PathCell last = path.cells[path.count - 1U];
+        const Client::Pathfinding::PathCell last = path.cells[path.count - 1U];
         if (stage == 2)
         {
             EXPECT_EQ(walls[altar], 0x06);
             // El más cercano de 0x4eb0f4..0x4eb3fc: el primero con la heurística 4 es la diagonal de arriba.
-            EXPECT_EQ(last, (Client::GameLogic::PathCell{184, 114}));
+            EXPECT_EQ(last, (Client::Pathfinding::PathCell{184, 114}));
         }
         else
         {
             EXPECT_EQ(walls[altar], 0);
-            EXPECT_EQ(last, (Client::GameLogic::PathCell{185, 115}));
+            EXPECT_EQ(last, (Client::Pathfinding::PathCell{185, 115}));
         }
     }
 }
@@ -374,23 +375,23 @@ TEST(NpcTalkTest, AGroundClickWithAChosenAltarAlsoClearsItsCell)
         auto context = tested->Context();
         context.input.leftPressed = true;
         context.input.leftDown = true;
-        context.pickTarget = []() -> Client::Core::Expected<std::optional<Client::GameLogic::PathCell>, std::string>
-        { return std::optional<Client::GameLogic::PathCell>{Client::GameLogic::PathCell{186, 115}}; };
+        context.pickTarget = []() -> Client::Core::Expected<std::optional<Client::Pathfinding::PathCell>, std::string>
+        { return std::optional<Client::Pathfinding::PathCell>{Client::Pathfinding::PathCell{186, 115}}; };
         const auto stepped = Client::Scenes::StepHeroMovement(context);
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         EXPECT_EQ(tested->events, (std::vector<std::string>{"D3 186 115"}));
         const auto& path = tested->Hero().path;
         ASSERT_GE(path.count, 2);
-        const Client::GameLogic::PathCell last = path.cells[path.count - 1U];
+        const Client::Pathfinding::PathCell last = path.cells[path.count - 1U];
         if (map == 34)
         {
             EXPECT_EQ(walls[clicked], 0);
-            EXPECT_EQ(last, (Client::GameLogic::PathCell{186, 115}));
+            EXPECT_EQ(last, (Client::Pathfinding::PathCell{186, 115}));
         }
         else
         {
             EXPECT_EQ(walls[clicked], 0x04);
-            EXPECT_EQ(last, (Client::GameLogic::PathCell{185, 114}));
+            EXPECT_EQ(last, (Client::Pathfinding::PathCell{185, 114}));
         }
         EXPECT_EQ(runtime.movement.chosenNpc, static_cast<std::int32_t>(NpcSlot));
     }
@@ -426,16 +427,16 @@ TEST(NpcTalkTest, TheWalkToAFloorItemWithAChosenAltarAlsoClearsItsCell)
         EXPECT_EQ(runtime.floor.chosen, FloorItem);
         const auto& path = tested->Hero().path;
         ASSERT_GE(path.count, 2);
-        const Client::GameLogic::PathCell last = path.cells[path.count - 1U];
+        const Client::Pathfinding::PathCell last = path.cells[path.count - 1U];
         if (map == 34)
         {
             EXPECT_EQ(walls[item], 0);
-            EXPECT_EQ(last, (Client::GameLogic::PathCell{186, 115}));
+            EXPECT_EQ(last, (Client::Pathfinding::PathCell{186, 115}));
         }
         else
         {
             EXPECT_EQ(walls[item], 0x04);
-            EXPECT_EQ(last, (Client::GameLogic::PathCell{185, 114}));
+            EXPECT_EQ(last, (Client::Pathfinding::PathCell{185, 114}));
         }
     }
 }
@@ -710,29 +711,29 @@ TEST_F(NpcTalkDataTest, OnlyInCrywolfTheWalkReachesTheAltarCell)
         altar.position = {center(probe.altarX), center(probe.altarY), 0.0f};
         auto& walls = tested->world.Map().terrain.attributes->cells;
         const std::size_t cell = Client::Data::Terrain::CellIndex(probe.altarX, probe.altarY);
-        ASSERT_EQ(walls[cell], Client::World::BlockedWallBit);
+        ASSERT_EQ(walls[cell], Client::Pathfinding::BlockedWallBit);
         for (std::uint8_t x = probe.altarX + 1; x <= heroX; ++x)
             ASSERT_LT(walls[Client::Data::Terrain::CellIndex(x, probe.altarY)], 2) << int{x};
-        Client::World::MarkCharacterWall(walls, probe.altarX, probe.altarY);
+        Client::Pathfinding::MarkCharacterWall(walls, probe.altarX, probe.altarY);
         tested->texts = Client::Tests::MakeTextTable({{2006, "quedan %d"}, {2007, "contratar?"}});
 
         const auto clicked = tested->Click();
         ASSERT_TRUE(clicked.HasValue()) << clicked.Error();
-        const Client::GameLogic::Path path = hero.path;
+        const Client::Pathfinding::Path path = hero.path;
         ASSERT_GE(path.count, 2);
-        const Client::GameLogic::PathCell last = path.cells[path.count - 1U];
+        const Client::Pathfinding::PathCell last = path.cells[path.count - 1U];
         if (probe.map == CrywolfMap)
         {
             EXPECT_EQ(walls[cell], 0);
             EXPECT_EQ(path.count, Away + 1);
-            EXPECT_EQ(last, (Client::GameLogic::PathCell{probe.altarX, probe.altarY}));
+            EXPECT_EQ(last, (Client::Pathfinding::PathCell{probe.altarX, probe.altarY}));
         }
         else
         {
-            EXPECT_EQ(walls[cell], Client::World::BlockedWallBit | Client::World::CharacterWallBit);
+            EXPECT_EQ(walls[cell], Client::Pathfinding::BlockedWallBit | Client::Pathfinding::CharacterWallBit);
             // El más cercano: la diagonal de arriba, como en TheWalkToACrywolfAltarClearsItsCell.
-            EXPECT_EQ(last, (Client::GameLogic::PathCell{static_cast<std::uint8_t>(probe.altarX + 1),
-                                                         static_cast<std::uint8_t>(probe.altarY - 1)}));
+            EXPECT_EQ(last, (Client::Pathfinding::PathCell{static_cast<std::uint8_t>(probe.altarX + 1),
+                                                           static_cast<std::uint8_t>(probe.altarY - 1)}));
         }
         constexpr int StepLimit = 100;
         for (int step = 0; step < StepLimit && hero.movement != 0; ++step)

@@ -353,7 +353,7 @@ TEST_F(MonsterViewportTest, AChosenCrywolfAltarAlsoClearsTheGoalOfAMonster)
         const Cell cell = FreeRow();
         const Cell target{Byte(cell.x + 4), cell.y};
         auto& goal = game->world.Map().terrain.attributes->cells[Client::Data::Terrain::CellIndex(target.x, target.y)];
-        goal = Client::World::BlockedWallBit;
+        goal = Client::Pathfinding::BlockedWallBit;
         const std::array<MonsterRecordBytes, 1> records{{{.key = 0x0123,
                                                           .typeHigh = 0xb0,
                                                           .typeLow = 3,
@@ -376,7 +376,7 @@ TEST_F(MonsterViewportTest, AChosenCrywolfAltarAlsoClearsTheGoalOfAMonster)
         }
         else
         {
-            EXPECT_EQ(goal, Client::World::BlockedWallBit);
+            EXPECT_EQ(goal, Client::Pathfinding::BlockedWallBit);
             EXPECT_FALSE(last.x == target.x && last.y == target.y);
             EXPECT_EQ(std::max(std::abs(last.x - target.x), std::abs(last.y - target.y)), 1);
         }

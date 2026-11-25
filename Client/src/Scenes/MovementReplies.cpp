@@ -94,7 +94,7 @@ Core::Expected<void, std::string> ApplyOtherWalk(ActorState& actor, const WorldE
     auto& attributes = resources.world.Map().terrain.attributes;
     if (!attributes)
         return Core::Unexpected(std::string("0x4eac00: faltan las paredes vigentes para el D3 recibido"));
-    GameLogic::PathFinder finder(attributes->cells);
+    Pathfinding::PathFinder finder(attributes->cells);
     // 0x4eac0a..0x4eac41: con un altar de Crywolf en 0x6c8e54, la bandera del A* también en el D3 de otro.
     const auto path =
         finder.Find({actor.cellX, actor.cellY}, {actor.targetX, actor.targetY}, CrywolfAltarGoal(resources.world));

@@ -1710,8 +1710,8 @@ TEST_F(GameSceneDrawTest, TheFirstStepAfterTheWaitReadsTheTrapezoidOfTheSelectio
         {
             EXPECT_EQ(before, 2);
         }
-        EXPECT_EQ(Cell(probe.logicalX, probe.logicalY) & Client::World::CharacterWallBit,
-                  Client::World::CharacterWallBit);
+        EXPECT_EQ(Cell(probe.logicalX, probe.logicalY) & Client::Pathfinding::CharacterWallBit,
+                  Client::Pathfinding::CharacterWallBit);
         EXPECT_EQ(hero.seen, probe.seen);
         EXPECT_EQ(hero.safeZone, probe.safeZone);
         EXPECT_EQ(world.Runtime().terrainPolygon.x, selection.x) << "el paso no escribe el trapecio";

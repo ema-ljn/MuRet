@@ -1193,7 +1193,7 @@ Core::Expected<void, std::string> StepTheEffects(ActorState& actor, std::size_t 
         return Core::Unexpected(std::string("0x506362: faltan los atributos de la celda lógica del personaje"));
     }
     const std::uint16_t attribute = (*walls)[Data::Terrain::CellIndex(cell.x, cell.y)];
-    actor.safeZone = static_cast<std::uint8_t>((attribute & World::SafeZoneWallBit) != 0 ? 1 : 0);
+    actor.safeZone = static_cast<std::uint8_t>((attribute & Pathfinding::SafeZoneWallBit) != 0 ? 1 : 0);
     // 0x5068b9..0x5069ab: la cabeza, sin +0x78 & 0x20 ni & 0x1000 (0x5068be..0x5068d4). 0x5068da: con otro
     // modelo, antes 0x4ea190, que ya cortó en 0x505e0b. 0x5068eb..0x5068fb: otro que el héroe, sin morirse
     // (+0x389), sortea con rand() % 32 y, si da 0, dos más hacia dónde mira (+0x34 y +0x38); después los dos
@@ -1405,7 +1405,7 @@ Core::Expected<void, std::string> StepCharacters(const CharacterStepContext& con
                                 " no está cargado (0x61a560)");
     }
     Data::Terrain::TerrainLayer<std::uint16_t>& walls = terrain.attributes->cells;
-    World::ClearCharacterWalls(walls);
+    Pathfinding::ClearCharacterWalls(walls);
     // 0x5fba90 lee los globales de 0x78ecbf0 y 0x78ecc00: el trapecio del último dibujo de cualquier escena.
     const World::TerrainPolygon& polygon = runtime.terrainPolygon;
     const auto actors = world.Actors();
@@ -1413,10 +1413,10 @@ Core::Expected<void, std::string> StepCharacters(const CharacterStepContext& con
     {
         ActorState& actor = actors[slot];
         // 0x508f49..0x509165: vivo, sin morirse y sin el 8 de +0x88, ocupa su celda lógica.
-        if (actor.alive && actor.dying == 0 && actor.byte88 != World::NonBlockingKind)
+        if (actor.alive && actor.dying == 0 && actor.byte88 != Pathfinding::NonBlockingKind)
         {
             const LogicalCell cell = ReadLogicalCell(actor, context.random);
-            World::MarkCharacterWall(walls, cell.x, cell.y);
+            Pathfinding::MarkCharacterWall(walls, cell.x, cell.y);
         }
         // 0x50916d..0x5091a0: vivo o no, si se ve, con el trapecio del último 0x5fb570.
         actor.seen = CharacterSeen(polygon, actor.position);

@@ -247,10 +247,10 @@ Core::Expected<void, std::string> WalkIntoRange(ActorState& hero, std::int32_t t
     World::WorldTerrain& terrain = context.combat.world.Map().terrain;
     if (!terrain.attributes)
         return Core::Unexpected(std::string("0x566272: falta TerrainWall para el camino hasta el alcance"));
-    const GameLogic::PathCell target{static_cast<std::uint8_t>(targetX), static_cast<std::uint8_t>(targetY)};
+    const Pathfinding::PathCell target{static_cast<std::uint8_t>(targetX), static_cast<std::uint8_t>(targetY)};
     // 0x566272: PathFinding2 calcula primero la bandera del altar de Crywolf (0x4eac0a..0x4eac41), que con el alcance
     // distinto de 0 no cuenta (0x4eadd4).
-    const auto path = GameLogic::PathFinder(terrain.attributes->cells)
+    const auto path = Pathfinding::PathFinder(terrain.attributes->cells)
                           .Find({x, y}, target, CrywolfAltarGoal(context.combat.world), range);
     if (!path)
         return {};
@@ -395,7 +395,7 @@ Core::Expected<void, std::string> UseTheSkillOnArrival(ActorState& hero, const H
                 std::string("0x558800: falta TerrainWall para ver el blanco de la skill pendiente"));
         // 0x56639d: la línea que sale de TerrainWall (0x55886d lee fuera de los 65.536 WORD) MuRet la toma como sin
         // línea (08, P-C256).
-        const auto seen = World::CanSeeTheCell(terrain.attributes->cells, x, y, *cellX, *cellY);
+        const auto seen = Pathfinding::CanSeeTheCell(terrain.attributes->cells, x, y, *cellX, *cellY);
         if (!seen || !*seen)
             return {};
         if (kind == ArrivalSkillKind::OnItsTarget)

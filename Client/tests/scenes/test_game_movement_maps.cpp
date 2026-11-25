@@ -57,7 +57,7 @@
 namespace
 {
 using Client::Core::Expected;
-using Client::GameLogic::PathCell;
+using Client::Pathfinding::PathCell;
 using Client::Protocol::Movement::Cell;
 using Client::Scenes::ActorState;
 using Client::Scenes::HeroMovementContext;
@@ -294,7 +294,7 @@ TEST_P(GameMovementMapMatrix, StraightClickPublishesD3BeforeMovingAndRetainsTheS
 TEST_P(GameMovementMapMatrix, AForcedCornerPreservesTheCorridorInTheStoredPath)
 {
     auto& walls = m_world.Map().terrain.attributes->cells;
-    walls.fill(Client::World::BlockedWallBit);
+    walls.fill(Client::Pathfinding::BlockedWallBit);
     for (std::uint8_t x = 10; x <= 14; ++x)
     {
         walls[Client::Data::Terrain::CellIndex(x, 20)] = 0;
@@ -374,7 +374,7 @@ TEST_P(GameMovementMapMatrix, SafeZoneResetsRunBeforeTheChaosCastleSpeedOverride
 {
     Hero().safeZone = 0x80;
     Hero().run = 39;
-    m_world.Map().terrain.attributes->cells.fill(Client::World::SafeZoneWallBit);
+    m_world.Map().terrain.attributes->cells.fill(Client::Pathfinding::SafeZoneWallBit);
     const auto clicked = Click({13, 20});
     ASSERT_TRUE(clicked.HasValue()) << clicked.Error();
     const auto moved = Step();
@@ -387,7 +387,8 @@ TEST_P(GameMovementMapMatrix, SafeZoneResetsRunBeforeTheChaosCastleSpeedOverride
 
 TEST_P(GameMovementMapMatrix, TheLogicalSafeCellIsPublishedUnlessTheBodyStopsEarlier)
 {
-    m_world.Map().terrain.attributes->cells[Client::Data::Terrain::CellIndex(11, 20)] = Client::World::SafeZoneWallBit;
+    m_world.Map().terrain.attributes->cells[Client::Data::Terrain::CellIndex(11, 20)] =
+        Client::Pathfinding::SafeZoneWallBit;
     const auto clicked = Click({13, 20});
     ASSERT_TRUE(clicked.HasValue()) << clicked.Error();
     const auto moved = Step();

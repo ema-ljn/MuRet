@@ -7,7 +7,7 @@
 #include <optional>
 #include <span>
 
-namespace Client::World
+namespace Client::Pathfinding
 {
 void ClearCharacterWalls(Data::Terrain::TerrainLayer<std::uint16_t>& cells)
 {
@@ -113,4 +113,4 @@ void TerrainWalls::Rebuild(std::span<const TerrainOccupant> occupants)
         MarkCharacterWall(cells, occupant.logicalX, occupant.logicalY);
     }
 }
-} // namespace Client::World
+} // namespace Client::Pathfinding

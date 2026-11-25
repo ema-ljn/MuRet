@@ -9,7 +9,7 @@
 #include <span>
 
 // El mapa vivo de 0x7d0d348: los WORD del .att y el bit de personajes (0x508f00; 06 § Caminar).
-namespace Client::World
+namespace Client::Pathfinding
 {
 inline constexpr std::uint16_t CharacterWallBit = 0x02;
 inline constexpr std::uint16_t SafeZoneWallBit = 0x01;
@@ -71,4 +71,4 @@ struct ENGINE_API TerrainWalls
     // Esta parte pura borra el 0x02 de toda la grilla y marca los ocupantes.
     void Rebuild(std::span<const TerrainOccupant> occupants);
 };
-} // namespace Client::World
+} // namespace Client::Pathfinding

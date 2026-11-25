@@ -585,7 +585,7 @@ Core::Expected<void, std::string> WalkTowardsTheTarget(ActorState& hero, std::in
         return Core::Unexpected(std::string("0x58975f: falta TerrainWall para acercarse con la 0x4c"));
     // 0x4eac0a..0x4eac41: la bandera del altar de Crywolf, que con el alcance distinto de 0 no cuenta (0x4eadd4).
     const auto path =
-        GameLogic::PathFinder(terrain.attributes->cells)
+        Pathfinding::PathFinder(terrain.attributes->cells)
             .Find({cells.x, cells.y}, {static_cast<std::uint8_t>(targetX), static_cast<std::uint8_t>(targetY)},
                   CrywolfAltarGoal(context.world), reach);
     if (!path)

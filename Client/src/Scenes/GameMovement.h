@@ -61,7 +61,7 @@ struct HeroMovementContext
     const Data::Tables::GateTable* gates = nullptr;
     HeroMovementInput input{};
     // El servicio usa el rayo, rango y trapecio del dibujo anterior.
-    std::function<Core::Expected<std::optional<GameLogic::PathCell>, std::string>()> pickTarget{};
+    std::function<Core::Expected<std::optional<Pathfinding::PathCell>, std::string>()> pickTarget{};
     std::function<Core::Expected<void, std::string>(std::span<const Protocol::Movement::Cell>, Protocol::Movement::Cell,
                                                     float)>
         sendWalk{};

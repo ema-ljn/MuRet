@@ -46,7 +46,7 @@ Core::Expected<void, std::string> ChangeTheGateWall(ActorState& actor, bool open
                                            Models::SmallLogicalCloseRandoms, actor.cellXLeft);
         x = actor.cellX;
     }
-    for (const World::GateCell& gate : World::GateCells)
+    for (const Pathfinding::GateCell& gate : Pathfinding::GateCells)
     {
         if (x != gate.x || y != gate.y)
             continue;
@@ -58,8 +58,8 @@ Core::Expected<void, std::string> ChangeTheGateWall(ActorState& actor, bool open
         {
             auto& cell = attributes->cells[Data::Terrain::CellIndex(static_cast<std::uint8_t>(x + dx),
                                                                     static_cast<std::uint8_t>(y + 1))];
-            cell = open ? static_cast<std::uint16_t>(cell & ~World::BlockedWallBit)
-                        : static_cast<std::uint16_t>(cell | World::BlockedWallBit);
+            cell = open ? static_cast<std::uint16_t>(cell & ~Pathfinding::BlockedWallBit)
+                        : static_cast<std::uint16_t>(cell | Pathfinding::BlockedWallBit);
         }
         break;
     }

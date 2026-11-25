@@ -16,7 +16,7 @@
 #include <optional>
 #include <vector>
 
-namespace Client::GameLogic
+namespace Client::Pathfinding
 {
 namespace
 {
@@ -323,7 +323,7 @@ private:
     std::size_t m_root = NoNode;
 };
 
-PathFinder::PathFinder(World::TerrainWalls& walls) : PathFinder(walls.cells) {}
+PathFinder::PathFinder(TerrainWalls& walls) : PathFinder(walls.cells) {}
 
 PathFinder::PathFinder(Data::Terrain::TerrainLayer<std::uint16_t>& walls) : m_walls(walls) {}
 
@@ -334,11 +334,11 @@ std::optional<Path> PathFinder::Find(PathCell start, PathCell goal, bool clearGo
     {
         const auto startWall = m_walls[Index(start)];
         const auto goalWall = m_walls[Index(goal)];
-        const bool safe = ((startWall | goalWall) & World::SafeZoneWallBit) != 0;
-        const bool occupiedGoal = (goalWall & World::CharacterWallBit) != 0;
+        const bool safe = ((startWall | goalWall) & SafeZoneWallBit) != 0;
+        const bool occupiedGoal = (goalWall & CharacterWallBit) != 0;
         const int wall = safe && !occupiedGoal ? SafeWall : NormalWall;
         path = SearchState(m_walls, start, goal).Run(false, wall, clearGoal, distance);
     }
     return path && path->count >= 2 ? path : std::nullopt;
 }
-} // namespace Client::GameLogic
+} // namespace Client::Pathfinding

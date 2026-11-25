@@ -427,7 +427,7 @@ TEST_F(CastleObjectTest, TheGateEdges)
 // quedan, y 0x7239d9 vuelve a 0 para el frame siguiente.
 TEST(MonsterStepCasesTest, TheEndOfTheFrameOpensTheGatesUnlessTheLockStepped)
 {
-    const Client::World::GateCell gate = Client::World::GateCells.front();
+    const Client::Pathfinding::GateCell gate = Client::Pathfinding::GateCells.front();
     const auto cell = Client::Data::Terrain::CellIndex(gate.x, static_cast<std::uint8_t>(gate.y + 1));
     auto walls = std::make_unique<Client::Data::Terrain::TerrainLayer<std::uint16_t>>();
     WorldRuntime runtime;

@@ -56,7 +56,7 @@ Desde la CL5.1, lo que dibuja con OpenGL es el target `ClientRender` (`src/Rende
 con GL además de `ClientPlatform`: `ClientLib` sigue sin verlo. Trae el shader del 2D, `GlTexture`
 (sube una textura de la CL1 con su filtro y su wrap), un framebuffer para leer lo dibujado y
 `GlRenderer`, que dibuja triángulos en píxeles con la y para arriba. La tabla de GL es la X-macro de
-`Platform/GlFunctionList.h`: una función nueva es una línea ahí.
+`Platform/Sdl/GlFunctionList.h`: una función nueva es una línea ahí.
 
 Las texturas de una escena son un juego, un dato (`Scenes/TextureSets.h`, el del login y el de la
 carga): `Data::Textures::LoadTextureSet` las busca en `Data\` como el original (el nombre hasta el
@@ -70,7 +70,7 @@ dibuja con FreeType en un bit, detrás de `IGlyphRasterizer`. `TextCache` raster
 vez por fuente y colores, guarda sus cajas de 256 × 32 en los slots del texto de la tabla (después
 de los 1.845 del original) y las dibuja con el `SpriteBatch`. La fuente sale de `[Video] FontFile`;
 sin la clave, `App::ChooseFontFiles` busca la cara del original en la lista de fuentes de Windows
-(`Platform/SystemFonts.h`), y en Linux es un error que nombra la clave. En el `Text.bmd` del
+(`Platform/Sdl/SystemFonts.h`), y en Linux es un error que nombra la clave. En el `Text.bmd` del
 laboratorio la cara está vacía: con esos datos, también en Windows hace falta `FontFile`. El
 cliente dibuja texto desde la CL5.4, que conecta todo esto en `main.cpp`.
 

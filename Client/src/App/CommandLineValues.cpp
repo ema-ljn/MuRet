@@ -25,8 +25,8 @@ using Client::App::OptionTexts;
 using Client::App::PacingMode;
 using Client::App::ServerAddress;
 using Client::App::ServerTexts;
-using Client::App::VSyncMode;
 using Client::Core::Unexpected;
+using Client::Platform::VSyncMode;
 namespace OptionNames = Client::App::OptionNames;
 
 // A positive integer, with no sign and nothing after it: from_chars already rejects "-1", "+5" and the overflow.

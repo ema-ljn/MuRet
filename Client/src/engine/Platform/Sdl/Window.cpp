@@ -93,7 +93,7 @@ SDL_WindowID Window::Id() const
     return SDL_GetWindowID(m_window.get());
 }
 
-App::VSyncMode Window::VSync() const
+VSyncMode Window::VSync() const
 {
     return m_vsync.mode;
 }

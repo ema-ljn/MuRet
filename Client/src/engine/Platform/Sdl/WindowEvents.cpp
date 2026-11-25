@@ -25,7 +25,7 @@ bool IsWindowEvent(const SDL_Event& event)
 }
 } // namespace
 
-std::optional<App::WindowEvent> WindowEventFor(const SDL_Event& event, SDL_WindowID windowId)
+std::optional<WindowEvent> WindowEventFor(const SDL_Event& event, SDL_WindowID windowId)
 {
     // event.window es el miembro activo solo en los eventos de ventana.
     if (windowId != AnyWindow && IsWindowEvent(event) && event.window.windowID != windowId)
@@ -36,27 +36,27 @@ std::optional<App::WindowEvent> WindowEventFor(const SDL_Event& event, SDL_Windo
     {
     case SDL_EVENT_QUIT:
     case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
-        return App::WindowEvent::CloseRequested;
+        return WindowEvent::CloseRequested;
     case SDL_EVENT_WINDOW_MINIMIZED:
-        return App::WindowEvent::Minimized;
+        return WindowEvent::Minimized;
     case SDL_EVENT_WINDOW_RESTORED:
-        return App::WindowEvent::Restored;
+        return WindowEvent::Restored;
     case SDL_EVENT_WINDOW_OCCLUDED:
-        return App::WindowEvent::Occluded;
+        return WindowEvent::Occluded;
     case SDL_EVENT_WINDOW_EXPOSED:
-        return App::WindowEvent::Exposed;
+        return WindowEvent::Exposed;
     case SDL_EVENT_WINDOW_FOCUS_LOST:
-        return App::WindowEvent::FocusLost;
+        return WindowEvent::FocusLost;
     case SDL_EVENT_WINDOW_FOCUS_GAINED:
-        return App::WindowEvent::FocusGained;
+        return WindowEvent::FocusGained;
     case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED:
-        return App::WindowEvent::PixelSizeChanged;
+        return WindowEvent::PixelSizeChanged;
     default:
         return std::nullopt;
     }
 }
 
-void PumpEvents(App::WindowState& state, Input::InputState& input, SDL_WindowID windowId, float pixelDensity)
+void PumpEvents(WindowState& state, Input::InputState& input, SDL_WindowID windowId, float pixelDensity)
 {
     SDL_Event event;
     while (SDL_PollEvent(&event))
@@ -67,7 +67,7 @@ void PumpEvents(App::WindowState& state, Input::InputState& input, SDL_WindowID 
         }
         else
             input.Apply(Input::InputEvent{.kind = Input::InputEvent::Kind::Message});
-        const std::optional<App::WindowEvent> windowEvent = WindowEventFor(event, windowId);
+        const std::optional<WindowEvent> windowEvent = WindowEventFor(event, windowId);
         if (!windowEvent)
         {
             continue;
@@ -75,11 +75,11 @@ void PumpEvents(App::WindowState& state, Input::InputState& input, SDL_WindowID 
         // event.window es el miembro activo solo en los eventos de ventana: el tamaño se lee
         // únicamente en PixelSizeChanged.
         Core::PixelSize size;
-        if (*windowEvent == App::WindowEvent::PixelSizeChanged)
+        if (*windowEvent == WindowEvent::PixelSizeChanged)
         {
             size = Core::PixelSize{event.window.data1, event.window.data2};
         }
-        state = App::Apply(state, *windowEvent, size);
+        state = Apply(state, *windowEvent, size);
     }
 }
 } // namespace Client::Platform

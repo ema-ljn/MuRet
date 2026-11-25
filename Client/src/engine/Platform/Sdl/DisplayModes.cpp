@@ -16,14 +16,14 @@
 // DisplayModes: lo que dice SDL del monitor principal.
 namespace Client::Platform
 {
-Core::Expected<std::vector<App::Resolution>, std::string> MonitorResolutions(const SdlContext& /*sdl*/)
+Core::Expected<std::vector<Resolution>, std::string> MonitorResolutions(const SdlContext& /*sdl*/)
 {
     const SDL_DisplayID display = SDL_GetPrimaryDisplay();
     if (display == 0)
     {
         return Core::Unexpected(std::string("no hay monitor principal: ") + SDL_GetError());
     }
-    std::vector<App::Resolution> resolutions;
+    std::vector<Resolution> resolutions;
     if (const SDL_DisplayMode* desktop = SDL_GetDesktopDisplayMode(display); desktop != nullptr)
     {
         resolutions.push_back({desktop->w, desktop->h});

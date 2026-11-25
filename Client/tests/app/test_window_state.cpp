@@ -7,10 +7,10 @@
 // Client::App::Apply: qué cambia cada evento de la ventana (la tabla del paso 1 de la CL3.1).
 namespace
 {
-using Client::App::Apply;
-using Client::App::WindowEvent;
-using Client::App::WindowState;
 using Client::Core::PixelSize;
+using Client::Platform::Apply;
+using Client::Platform::WindowEvent;
+using Client::Platform::WindowState;
 
 TEST(WindowStateTest, CloseRequestedStopsRunning)
 {

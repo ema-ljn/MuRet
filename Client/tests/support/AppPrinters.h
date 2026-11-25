@@ -20,7 +20,7 @@ inline void PrintTo(const Credentials& credentials, std::ostream* out)
          << " bytes}";
 }
 
-inline void PrintTo(Resolution resolution, std::ostream* out)
+inline void PrintTo(Platform::Resolution resolution, std::ostream* out)
 {
     *out << resolution.width << " × " << resolution.height;
 }

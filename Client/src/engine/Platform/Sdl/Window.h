@@ -26,7 +26,7 @@ struct WindowOptions
     int width = 640;
     int height = 480;
     std::string title = "MuRet";
-    App::VSyncMode vsync = App::VSyncMode::On;
+    VSyncMode vsync = VSyncMode::On;
 };
 
 struct PLATFORM_API WindowDeleter
@@ -61,7 +61,7 @@ public:
     // El SDL_WindowID, para que PumpEvents descarte los eventos de otras ventanas.
     [[nodiscard]] SDL_WindowID Id() const;
     // El que quedó después de ApplySwapInterval.
-    [[nodiscard]] App::VSyncMode VSync() const;
+    [[nodiscard]] VSyncMode VSync() const;
     // Por qué no quedó el pedido (el SDL_GetError()); vacío si quedó.
     [[nodiscard]] const std::string& VSyncError() const;
     // La tabla de funciones de GL del contexto de esta ventana.

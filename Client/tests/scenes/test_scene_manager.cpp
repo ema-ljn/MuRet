@@ -62,7 +62,6 @@ namespace
 {
 using Client::App::GameLoop;
 using Client::App::PacingMode;
-using Client::App::WindowState;
 using Client::Core::Duration;
 using Client::Core::Expected;
 using Client::Core::Log;
@@ -70,6 +69,7 @@ using Client::Core::LogLevel;
 using Client::Core::Unexpected;
 using Client::Data::Textures::LoadedTexture;
 using Client::Input::InputState;
+using Client::Platform::WindowState;
 using Client::Render::TextureSlot;
 using Client::Scenes::FirstScene;
 using Client::Scenes::IScene;

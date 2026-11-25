@@ -13,7 +13,7 @@
 // registro (0x4b90a0, 02 § La resolución) y su ventana no cambia de tamaño; MuMain ofrece los
 // modos que da el monitor (SDL_GetFullscreenDisplayModes). Un tamaño cualquiera, como 7 × 3, no
 // es ninguna de las dos cosas, y la UI se arma sobre 640 × 480 (D-C11).
-namespace Client::App
+namespace Client::Platform
 {
 struct Resolution
 {
@@ -35,4 +35,4 @@ inline constexpr std::array<Resolution, 5> OriginalResolutions{
 // Las que valen, para el mensaje de error: de la más chica a la más grande, sin repetir, como
 // "640 × 480, 800 × 600".
 [[nodiscard]] ENGINE_API std::string DescribeValidResolutions(std::span<const Resolution> monitorModes);
-} // namespace Client::App
+} // namespace Client::Platform

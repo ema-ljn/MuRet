@@ -15,7 +15,7 @@
 
 namespace Client::UI
 {
-void ApplyKeyToTheEdit(OldEdit& edit, OldEditKey key, bool shift, bool ctrl, IClipboard* clipboard,
+void ApplyKeyToTheEdit(OldEdit& edit, OldEditKey key, bool shift, bool ctrl, Platform::IClipboard* clipboard,
                        const Render::Text::ITextMeasure* measure, const std::function<void(std::int32_t)>& focusNext)
 {
     switch (key)

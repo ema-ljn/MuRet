@@ -13,7 +13,7 @@
 // armados a mano (sin SDL_Init).
 namespace
 {
-using Client::App::WindowEvent;
+using Client::Platform::WindowEvent;
 using Client::Platform::WindowEventFor;
 
 // Un id cualquiera de "nuestra" ventana y otro de una ventana ajena.

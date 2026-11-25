@@ -18,7 +18,7 @@ GameLoop::GameLoop(Core::IClock& clock, ILoopClient& client, PacingMode mode, in
 {
 }
 
-int GameLoop::RunFrame(const WindowState& state, Input::InputState& input)
+int GameLoop::RunFrame(const Platform::WindowState& state, Input::InputState& input)
 {
     // La red primero, también minimizada: lo que llegue lo ven los pasos de este frame. El
     // original despacha la cola después del frame (0x4be5b3), que entre un frame y otro es lo
@@ -44,7 +44,7 @@ float GameLoop::LastAlpha() const
     return m_lastAlpha;
 }
 
-int GameLoop::RunDecoupled(const WindowState& state, Input::InputState& input)
+int GameLoop::RunDecoupled(const Platform::WindowState& state, Input::InputState& input)
 {
     const Core::Duration now = m_clock.Now();
     // El frame se mide desde el Now() anterior, también si el reloj volvió para atrás: ese frame
@@ -124,7 +124,7 @@ void GameLoop::SleepRestOfFrame(Core::Duration frameStart)
     }
 }
 
-int GameLoop::RunFaithful(const WindowState& state, Input::InputState& input)
+int GameLoop::RunFaithful(const Platform::WindowState& state, Input::InputState& input)
 {
     const int steps = m_pacer.BeginFrame();
     RunSteps(steps, input);

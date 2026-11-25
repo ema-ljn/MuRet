@@ -4,7 +4,7 @@
 #include <string>
 #include <string_view>
 
-namespace Client::UI
+namespace Client::Platform
 {
 // Ctrl+C y Ctrl+X entregan a WriteText la selección que decide el EDIT; Ctrl+V consulta ReadText.
 // El EDIT conserva la decisión sobre selección y reemplazo. La conversión ANSI del original sigue
@@ -18,4 +18,4 @@ public:
     [[nodiscard]] virtual std::optional<std::string> ReadText() = 0;
     [[nodiscard]] virtual bool WriteText(std::string_view text) = 0;
 };
-} // namespace Client::UI
+} // namespace Client::Platform

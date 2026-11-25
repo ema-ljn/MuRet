@@ -39,7 +39,7 @@ using Client::App::PacingMode;
 using Client::App::ParseConfig;
 using Client::App::Resolve;
 using Client::App::ServerAddress;
-using Client::App::VSyncMode;
+using Client::Platform::VSyncMode;
 
 ConfigError ErrorOf(std::string_view text)
 {

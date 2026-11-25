@@ -17,6 +17,6 @@ namespace Client::Platform
 // da un modo por frecuencia y por densidad. El del escritorio va siempre: hay monitores que no
 // listan ninguno de pantalla completa (Xvfb da 0). Necesita el SdlContext vivo. El error, sin
 // monitor principal o sin ningún modo, trae el SDL_GetError().
-[[nodiscard]] PLATFORM_API Core::Expected<std::vector<App::Resolution>, std::string>
+[[nodiscard]] PLATFORM_API Core::Expected<std::vector<Resolution>, std::string>
 MonitorResolutions(const SdlContext& sdl);
 } // namespace Client::Platform

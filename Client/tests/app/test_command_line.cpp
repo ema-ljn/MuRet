@@ -22,7 +22,7 @@ using Client::App::CommandLineExit;
 using Client::App::PacingMode;
 using Client::App::ServerAddress;
 using Client::App::UsageErrorExitCode;
-using Client::App::VSyncMode;
+using Client::Platform::VSyncMode;
 using Client::Tests::Contains;
 using Client::Tests::ExitOf;
 using Client::Tests::Parsed;

@@ -8,10 +8,10 @@
 // SDL_GL_GetSwapInterval: sin ventana ni contexto.
 namespace
 {
-using Client::App::VSyncMode;
 using Client::Platform::ApplySwapInterval;
 using Client::Platform::SwapIntervalFor;
 using Client::Platform::SwapIntervalResult;
+using Client::Platform::VSyncMode;
 
 // Un driver sin adaptativo: solo entra el 1.
 bool SetOnlyOn(int interval)

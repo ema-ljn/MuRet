@@ -293,7 +293,7 @@ bool StartNetwork(std::optional<Network::SocketApi::NetworkInit>& network, Core:
 // false si no vale, con las que valen en el log.
 bool CheckResolution(const Platform::SdlContext& sdl, const App::ClientConfig& config, Core::Log& log)
 {
-    std::vector<App::Resolution> monitorModes;
+    std::vector<Platform::Resolution> monitorModes;
     auto modes = Platform::MonitorResolutions(sdl);
     if (modes.HasValue())
     {
@@ -303,13 +303,13 @@ bool CheckResolution(const Platform::SdlContext& sdl, const App::ClientConfig& c
     {
         log.Warning("{}: valen solo las resoluciones del original", modes.Error());
     }
-    const App::Resolution resolution{config.width, config.height};
-    if (App::IsValidResolution(resolution, monitorModes))
+    const Platform::Resolution resolution{config.width, config.height};
+    if (Platform::IsValidResolution(resolution, monitorModes))
     {
         return true;
     }
     log.Error("[Video] {} × {} no es una resolución que valga: van las del original y las del monitor ({})",
-              resolution.width, resolution.height, App::DescribeValidResolutions(monitorModes));
+              resolution.width, resolution.height, Platform::DescribeValidResolutions(monitorModes));
     return false;
 }
 
@@ -324,7 +324,7 @@ std::optional<Platform::Window> OpenWindow(const Platform::SdlContext& sdl, cons
     }
     // Resolve siempre deja puesto el VSync: On en el modo normal y Off en el fiel, si no se dio.
     const Platform::WindowOptions options{
-        .width = config.width, .height = config.height, .vsync = config.vsync.value_or(App::VSyncMode::On)};
+        .width = config.width, .height = config.height, .vsync = config.vsync.value_or(Platform::VSyncMode::On)};
     auto created = Platform::Window::Create(sdl, options);
     if (!created.HasValue())
     {
@@ -428,7 +428,7 @@ void FollowPixelSize(const Platform::GlFunctions& gl, Core::PixelSize size, Core
 }
 
 // Un frame de GameLoop, con el aviso de la CL3.4 si se recortó (pasó de MaxFrameTime).
-void RunFrame(App::GameLoop& loop, const App::WindowState& state, Client::Input::InputState& input, Core::Log& log)
+void RunFrame(App::GameLoop& loop, const Platform::WindowState& state, Client::Input::InputState& input, Core::Log& log)
 {
     const std::uint64_t clampedBefore = loop.Stats().clampedFrames;
     loop.RunFrame(state, input);
@@ -455,7 +455,7 @@ App::FrameStats RunLoop(Platform::Window& window, Core::IClock& clock, App::Game
                         Client::Input::InputState& input, const App::CommandLine& commandLine, Core::Log& log,
                         const std::function<bool()>& stop = {}, const std::function<void()>& afterFrame = {})
 {
-    App::WindowState state;
+    Platform::WindowState state;
     state.pixelSize = window.PixelSize();
     Core::PixelSize viewport = state.pixelSize;
     SetViewport(window.Gl(), viewport);

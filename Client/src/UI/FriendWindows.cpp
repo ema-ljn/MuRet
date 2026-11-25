@@ -1240,8 +1240,9 @@ void BackspaceInTheOldEdit(OldWindowManager& manager)
     }
 }
 
-void ApplyKeyToTheOldEdit(OldWindowManager& manager, OldEditKey key, bool shift, bool ctrl, IClipboard* clipboard,
-                          const Render::Text::ITextMeasure* measure, std::int32_t* focusedList)
+void ApplyKeyToTheOldEdit(OldWindowManager& manager, OldEditKey key, bool shift, bool ctrl,
+                          Platform::IClipboard* clipboard, const Render::Text::ITextMeasure* measure,
+                          std::int32_t* focusedList)
 {
     OldEdit* edit = FocusedEdit(manager);
     if (edit == nullptr)

@@ -197,19 +197,19 @@ Core::Expected<bool, std::string> ParseOnOff(std::string_view value)
     return Unexpected(std::string("tiene que ser 0 o 1"));
 }
 
-Core::Expected<VSyncMode, std::string> ParseVSync(std::string_view value)
+Core::Expected<Platform::VSyncMode, std::string> ParseVSync(std::string_view value)
 {
     if (EqualsIgnoringAsciiCase(value, "on"))
     {
-        return VSyncMode::On;
+        return Platform::VSyncMode::On;
     }
     if (EqualsIgnoringAsciiCase(value, "adaptive"))
     {
-        return VSyncMode::Adaptive;
+        return Platform::VSyncMode::Adaptive;
     }
     if (EqualsIgnoringAsciiCase(value, "off"))
     {
-        return VSyncMode::Off;
+        return Platform::VSyncMode::Off;
     }
     return Unexpected(std::string("tiene que ser on, adaptive u off"));
 }
@@ -570,13 +570,13 @@ Core::Expected<ClientConfig, std::string> Resolve(const std::filesystem::path& e
     // 4. Las combinaciones: en el modo fiel VSync va apagado, como el original (CL3.2).
     if (config.pacing == PacingMode::Faithful)
     {
-        if (config.vsync && *config.vsync != VSyncMode::Off)
+        if (config.vsync && *config.vsync != Platform::VSyncMode::Off)
         {
             return Unexpected(
                 std::string("el modo fiel (Pacing o --pacing faithful) necesita VSync off (VSync o --vsync): "
                             "el original no pide VSync"));
         }
-        config.vsync = VSyncMode::Off;
+        config.vsync = Platform::VSyncMode::Off;
         if (config.maxFps != 0)
         {
             return Unexpected(
@@ -586,7 +586,7 @@ Core::Expected<ClientConfig, std::string> Resolve(const std::filesystem::path& e
     }
     else if (!config.vsync)
     {
-        config.vsync = VSyncMode::On;
+        config.vsync = Platform::VSyncMode::On;
     }
     // Y --auto-login entra a un servidor (CL5.5): sin un host no hay a cuál.
     if (commandLine.autoLogin && !HasServerHost(config))
@@ -621,8 +621,8 @@ bool HasServerHost(const ClientConfig& config)
     return config.server && !config.server->host.empty();
 }
 
-int EffectiveMaxFps(int maxFps, VSyncMode vsync)
+int EffectiveMaxFps(int maxFps, Platform::VSyncMode vsync)
 {
-    return vsync == VSyncMode::Off ? maxFps : 0;
+    return vsync == Platform::VSyncMode::Off ? maxFps : 0;
 }
 } // namespace Client::App

@@ -6,7 +6,7 @@
 #include <vector>
 
 // Resolution: qué tamaños de ventana valen.
-namespace Client::App
+namespace Client::Platform
 {
 bool IsValidResolution(Resolution resolution, std::span<const Resolution> monitorModes)
 {
@@ -33,4 +33,4 @@ std::string DescribeValidResolutions(std::span<const Resolution> monitorModes)
     }
     return text;
 }
-} // namespace Client::App
+} // namespace Client::Platform

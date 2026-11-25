@@ -15,6 +15,7 @@
 // del susurro. Los textos y los nombres son inventados.
 namespace
 {
+using namespace Client::Platform;
 using namespace Client::UI;
 
 ChatInputState OpenInput()

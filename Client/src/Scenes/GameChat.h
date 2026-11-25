@@ -31,10 +31,10 @@ namespace Client::Render::Text
 class ITextMeasure;
 }
 
-namespace Client::UI
+namespace Client::Platform
 {
 class IClipboard;
-} // namespace Client::UI
+} // namespace Client::Platform
 
 // La entrada del chat en el juego (CL8 hito 3; 06 § El chat): lo que el WndProc (0x4af4e0) hace con los WM_CHAR que
 // le llegan o que le pasa la subclase de los EDIT (0x467b10: Tab y Enter), lo que los EDIT hacen con los demás, y las
@@ -68,7 +68,7 @@ struct GameChatContext
     ChatSender send{};
     // El C1 03 31 que /personalshop manda al cerrar las misiones o un NPC de evento (0x419900, 0x657a90).
     std::function<void()> sendWindowClose{};
-    UI::IClipboard* clipboard = nullptr;
+    Platform::IClipboard* clipboard = nullptr;
     // Biblioteca base: el emote consulta primero FaunaResources(), donde el viewport carga los transformados,
     // y después ésta. 0x4ea030 mira las acciones del tipo del héroe; si ninguna ofrece el modelo, corta.
     const Models::IModelLibrary* models = nullptr;

@@ -75,7 +75,7 @@ namespace
 using Client::Crt::CrtRandom;
 using Client::Data::Models::PlayerSkeletonModel;
 using Client::Scenes::ActorState;
-using Client::Scenes::ModelSounds;
+using Client::Sound::ModelSounds;
 using Client::Tests::MonsterRecordBytes;
 
 class CombatMessageMeasure final : public Client::Render::Text::ITextMeasure

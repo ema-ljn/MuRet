@@ -397,11 +397,11 @@ std::int32_t SubtypeOffset(const ActorState& actor)
 }
 
 // La tabla del modelo: la del contexto o, sin ella, la que escribió 0x612c80 (WorldRuntime::modelSounds).
-std::optional<ModelSounds> SoundsOf(const ActorState& actor, const ActorCombatContext& context)
+std::optional<Sound::ModelSounds> SoundsOf(const ActorState& actor, const ActorCombatContext& context)
 {
     if (context.modelSounds)
         return context.modelSounds(actor.type);
-    return WrittenSounds(context.world.Runtime().modelSounds, actor.type);
+    return Sound::WrittenSounds(context.world.Runtime().modelSounds, actor.type);
 }
 
 void AttackSound(const ActorState& actor, const ActorCombatContext& context)
@@ -420,7 +420,8 @@ void AttackSound(const ActorState& actor, const ActorCombatContext& context)
         requestSound(static_cast<std::int32_t>((context.random.Next() & 1) + 0x3c));
     // 0x4f51f1..0x4f5262: la WORD 2 o la 3 de la tabla del modelo (DrawModelSound).
     constexpr std::size_t FirstAttackSound = 2;
-    if (const auto drawn = DrawModelSound(SoundsOf(actor, context), FirstAttackSound, actor.subtype, context.random))
+    if (const auto drawn =
+            Sound::DrawModelSound(SoundsOf(actor, context), FirstAttackSound, actor.subtype, context.random))
         requestSound(*drawn);
 }
 
@@ -439,7 +440,7 @@ void DeathSound(const ActorState& actor, const ActorCombatContext& context)
     {
         // 0x4f5aa8..0x4f5ae8: la WORD 4 de la tabla del modelo; 0xffff, nada; si no, con signo, más 5 con el subtipo 9
         // y más 0xd2. Sin la tabla, la WORD en 0 de 0x60dc80 (SoundsOrZeros): el 0xd2. No saca rand().
-        const ModelSounds table = SoundsOrZeros(SoundsOf(actor, context));
+        const Sound::ModelSounds table = Sound::SoundsOrZeros(SoundsOf(actor, context));
         constexpr std::size_t DeathSoundWord = 4;
         if (table[DeathSoundWord] == -1)
             return;

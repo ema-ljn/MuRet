@@ -7,7 +7,7 @@
 #include <cstdint>
 #include <optional>
 
-namespace Client::Scenes
+namespace Client::Sound
 {
 namespace
 {
@@ -134,4 +134,4 @@ std::optional<std::int32_t> DrawModelSound(const std::optional<ModelSounds>& sou
     const auto drawn = static_cast<std::size_t>(random.Next() % 2);
     return table[word + drawn] + (subtype == NinthSubtype ? NinthSubtypeOffset : 0) + MonsterSoundBase;
 }
-} // namespace Client::Scenes
+} // namespace Client::Sound

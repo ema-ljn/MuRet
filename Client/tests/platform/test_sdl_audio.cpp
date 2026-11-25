@@ -183,17 +183,17 @@ static_assert(!CreatableWith<RecordingCatalog>, "a temporary catalog would dangl
 TEST(SdlAudioTest, WritesLoopedSyntheticAudioToDiskDriver)
 {
     HintRestorer restoreHints;
-    const auto sound = Client::Audio::FindSound(25);
+    const auto sound = Client::Sound::FindSound(25);
     ASSERT_TRUE(sound);
     const std::filesystem::path root = UniqueTemporaryRoot("muret-sdl-audio-");
     WriteTestWave(root / std::filesystem::path(sound->path));
-    const auto mapSounds = Client::Audio::WorldSoundsForMap(11);
+    const auto mapSounds = Client::Sound::WorldSoundsForMap(11);
     ASSERT_FALSE(mapSounds.empty());
     const auto mapSound = mapSounds.front();
     WriteTestWave(root / std::filesystem::path(mapSound.path));
     ASSERT_TRUE(SDL_SetHint(SDL_HINT_AUDIO_DRIVER, "disk"));
     const auto capture = [&](const char* filename, auto play)
-    { return CaptureDiskOutput(root, filename, Client::Audio::GameSoundCatalog(), play); };
+    { return CaptureDiskOutput(root, filename, Client::Sound::GameSoundCatalog(), play); };
     const auto nonzero = [](std::uint8_t byte) { return byte != 0; };
 
     // El clic pertenece al arranque y el bucle sigue sonando después de los 100 ms de la muestra.
@@ -222,7 +222,7 @@ TEST(SdlAudioTest, WritesLoopedSyntheticAudioToDiskDriver)
     EXPECT_TRUE(std::ranges::any_of(registered, nonzero));
 
     // El arranque reservó el ID del susurro aunque faltaba el WAV. La segunda reserva no lo cambia.
-    const auto missingSound = Client::Audio::FindSound(26);
+    const auto missingSound = Client::Sound::FindSound(26);
     ASSERT_TRUE(missingSound);
     const auto failed = capture("failed.raw",
                                 [&](Client::Audio::Sdl::SdlAudio& audio)
@@ -246,7 +246,7 @@ TEST(SdlAudioTest, WritesLoopedSyntheticAudioToDiskDriver)
     EXPECT_GT(finished.size(), 1024U);
     EXPECT_TRUE(std::ranges::any_of(finished, nonzero));
 
-    const auto disabled = Client::Audio::Sdl::SdlAudio::Create(root, Client::Audio::GameSoundCatalog(), false, false);
+    const auto disabled = Client::Audio::Sdl::SdlAudio::Create(root, Client::Sound::GameSoundCatalog(), false, false);
     ASSERT_TRUE(disabled.HasValue());
     EXPECT_TRUE(disabled.Value()->DriverName().empty());
     std::filesystem::remove_all(root);

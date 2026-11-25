@@ -595,7 +595,7 @@ struct WorldRuntime
     // +0xaa..+0xbc de los modelos de [0x5769ad8]: lo que 0x612c80 escribió desde el alta de cada monstruo (0x612d90,
     // MonsterSounds.h), que leen 0x4f4a10 y 0x4f5660 (CL9 hito 3, fase 2c). No se vacía: nadie más escribe esas WORD,
     // y un modelo que se suelta conserva las suyas.
-    ModelSoundTable modelSounds{};
+    Sound::ModelSoundTable modelSounds{};
     // [0x7437670]: las skills de los monstruos de MonsterSkill.bmd (0x54a440), que main.cpp copia de
     // GameData::monsterSkills y lee 0x4f92f0 (CL9 hito 3, fase 2c). Sin el archivo, la .bss.
     Data::Tables::MonsterSkillTable monsterSkills{};

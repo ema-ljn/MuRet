@@ -934,7 +934,7 @@ public:
     {
         if (id != 0x1bd && id != 0x1be)
             return;
-        EXPECT_FALSE(Client::Scenes::WrittenSounds(m_runtime.modelSounds, Client::Scenes::SpearmanModel));
+        EXPECT_FALSE(Client::Sound::WrittenSounds(m_runtime.modelSounds, Client::Scenes::SpearmanModel));
         registrations.emplace_back(id, path);
     }
     std::vector<std::pair<std::int32_t, std::string>> registrations;
@@ -958,8 +958,8 @@ TEST_F(GameSceneDrawTest, TheCastleSpearmanReservesItsSoundsBeforePublishingTheA
     const std::vector<std::pair<std::int32_t, std::string>> expected{
         {0x1bd, "Sound\\BattleCastle\\m_SpearMercAttack.wav"}, {0x1be, "Sound\\BattleCastle\\m_SpearMercDeath.wav"}};
     EXPECT_EQ(audio.registrations, expected);
-    const Client::Scenes::ModelSounds sounds{-1, -1, 0xeb, 0xeb, 0xec, -1, -1, -1, -1, -1};
-    EXPECT_EQ(Client::Scenes::WrittenSounds(world.Runtime().modelSounds, Client::Scenes::SpearmanModel), sounds);
+    const Client::Sound::ModelSounds sounds{-1, -1, 0xeb, 0xeb, 0xec, -1, -1, -1, -1, -1};
+    EXPECT_EQ(Client::Sound::WrittenSounds(world.Runtime().modelSounds, Client::Scenes::SpearmanModel), sounds);
     scene.PrepareFrame();
     scene.Render(target.BeginFrame(std::chrono::milliseconds{1040}), 0.0f);
     target.Present();

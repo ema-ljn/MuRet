@@ -10,7 +10,7 @@
 #include <span>
 #include <string_view>
 
-namespace Client::Audio
+namespace Client::Sound
 {
 namespace
 {
@@ -18,7 +18,7 @@ namespace
 // 0x41eac0: 0x61ccb0 arranca dos registros, llama a 0x61b350 en 7/10 y hace otros trece.
 constexpr std::size_t StartupSoundCount = 150;
 // Los datos conservan los 557 registros del PE, en orden de arranque, ramas de mapa, NPC y monstruos.
-constexpr std::array<SoundDefinition, 557> Catalog{{
+constexpr std::array<Audio::SoundDefinition, 557> Catalog{{
     {140, "sound/iDuelWindow.wav", 1, false},
     {141, "sound/iDuelStart.wav", 1, false},
     {0, "sound/aWind.wav", 1, false},
@@ -623,9 +623,9 @@ constexpr std::array<WorldSoundSet, 7> WorldSoundSets{{
 
 } // namespace
 
-std::optional<SoundDefinition> FindSound(std::int32_t id)
+std::optional<Audio::SoundDefinition> FindSound(std::int32_t id)
 {
-    for (const SoundDefinition& sound : Catalog)
+    for (const Audio::SoundDefinition& sound : Catalog)
     {
         if (sound.id == id)
             return sound;
@@ -633,9 +633,9 @@ std::optional<SoundDefinition> FindSound(std::int32_t id)
     return std::nullopt;
 }
 
-std::optional<SoundDefinition> FindSound(std::int32_t id, std::string_view path)
+std::optional<Audio::SoundDefinition> FindSound(std::int32_t id, std::string_view path)
 {
-    for (const SoundDefinition& sound : Catalog)
+    for (const Audio::SoundDefinition& sound : Catalog)
     {
         if (sound.id == id && PathsMatch(sound.path, path))
             return sound;
@@ -643,12 +643,12 @@ std::optional<SoundDefinition> FindSound(std::int32_t id, std::string_view path)
     return std::nullopt;
 }
 
-std::span<const SoundDefinition> StartupSounds()
+std::span<const Audio::SoundDefinition> StartupSounds()
 {
     return {Catalog.data(), StartupSoundCount};
 }
 
-std::span<const SoundDefinition> WorldSoundsForMap(std::int32_t map)
+std::span<const Audio::SoundDefinition> WorldSoundsForMap(std::int32_t map)
 {
     for (const WorldSoundSet& set : WorldSoundSets)
     {
@@ -660,24 +660,24 @@ std::span<const SoundDefinition> WorldSoundsForMap(std::int32_t map)
 
 namespace
 {
-class GameCatalog final : public ISoundCatalog
+class GameCatalog final : public Audio::ISoundCatalog
 {
 public:
-    [[nodiscard]] std::optional<SoundDefinition> Find(std::int32_t id, std::string_view path) const override
+    [[nodiscard]] std::optional<Audio::SoundDefinition> Find(std::int32_t id, std::string_view path) const override
     {
         return FindSound(id, path);
     }
 
-    [[nodiscard]] std::span<const SoundDefinition> StartupSounds() const override
+    [[nodiscard]] std::span<const Audio::SoundDefinition> StartupSounds() const override
     {
-        return Audio::StartupSounds();
+        return Sound::StartupSounds();
     }
 };
 } // namespace
 
-const ISoundCatalog& GameSoundCatalog()
+const Audio::ISoundCatalog& GameSoundCatalog()
 {
     static const GameCatalog catalog{};
     return catalog;
 }
-} // namespace Client::Audio
+} // namespace Client::Sound

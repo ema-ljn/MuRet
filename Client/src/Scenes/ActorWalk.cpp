@@ -305,14 +305,14 @@ Core::Expected<ActorWalkResult, std::string> StepSound(const ActorState& actor, 
         requestSound(0x7b);
         result.sound = 0x7b;
     }
-    std::optional<ModelSounds> sounds = WrittenSounds(context.stop.runtime.modelSounds, actor.type);
-    if (context.modelSounds.size() == std::tuple_size_v<ModelSounds>)
+    std::optional<Sound::ModelSounds> sounds = Sound::WrittenSounds(context.stop.runtime.modelSounds, actor.type);
+    if (context.modelSounds.size() == std::tuple_size_v<Sound::ModelSounds>)
     {
         sounds.emplace();
         std::ranges::copy(context.modelSounds, sounds->begin());
     }
     constexpr std::size_t FirstWalkSound = 0;
-    if (const auto drawn = DrawModelSound(sounds, FirstWalkSound, actor.subtype, random))
+    if (const auto drawn = Sound::DrawModelSound(sounds, FirstWalkSound, actor.subtype, random))
     {
         requestSound(*drawn);
         result.sound = drawn;

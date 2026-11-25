@@ -655,7 +655,7 @@ int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Sdl:
     std::unique_ptr<Audio::Sdl::SdlAudio> audio;
     Scenes::WorldState world;
     world.Runtime().music.SetEnabled(startup.config.musicOnOff);
-    auto audioCreated = Audio::Sdl::SdlAudio::Create(*startup.config.dataPath, Audio::GameSoundCatalog(),
+    auto audioCreated = Audio::Sdl::SdlAudio::Create(*startup.config.dataPath, Client::Sound::GameSoundCatalog(),
                                                      startup.config.soundOnOff, startup.config.musicOnOff);
     if (audioCreated.HasValue())
     {

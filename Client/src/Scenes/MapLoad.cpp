@@ -279,7 +279,7 @@ Core::Expected<void, std::string> LoadMap(std::uint8_t argumentMap, const MapLoa
     runtime.map = Maps::MapAtWorldLoadStart(argumentMap, runtime.map);
     const std::int32_t map = runtime.map;
     if (runtime.audio != nullptr)
-        for (const Audio::SoundDefinition& sound : Audio::WorldSoundsForMap(map))
+        for (const Audio::SoundDefinition& sound : Sound::WorldSoundsForMap(map))
             runtime.audio->RegisterSound(sound.id, sound.path);
     const std::uint8_t crywolfState = runtime.crywolf.state;
     const bool reusePreviousPaths = map == CrywolfMap && crywolfState > Protocol::Events::CrywolfWarState;

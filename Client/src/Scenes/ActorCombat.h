@@ -27,7 +27,7 @@ struct WorldEntryResources;
 
 // La tabla de sonidos de un modelo (ModelSounds, de 0x612c80), para los tests: sin ella, la de
 // WorldRuntime::modelSounds, que escribe el alta de cada monstruo (0x612d90 desde 0x5141e0, MonsterSounds.h).
-using ModelSoundLookup = std::function<std::optional<ModelSounds>(std::uint16_t model)>;
+using ModelSoundLookup = std::function<std::optional<Sound::ModelSounds>(std::uint16_t model)>;
 
 // Lo que leen 0x4f4a10 y 0x4f5660 (CL9 hito 3): el mundo (el héroe de 0x743a170, el registro propio, el mapa y el
 // último sonido pedido), el rand() de la CRT, los esqueletos para 0x4ea030 (Player.bmd aparte, como lo tiene MoveHero)

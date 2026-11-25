@@ -91,8 +91,9 @@ void HitSound(const ActorState& actor, const WorldEntryResources& resources)
     // modelo sin tabla o sin cargar); en −1, sin sonido ni rand(). Si no, rand() & 1 elige +0xae o +0xb0, y el sonido
     // es ese WORD + 0xd2, + 5 con el subtipo 9 (CL10).
     constexpr std::size_t HitSoundWord = 2;
-    if (const auto drawn = DrawModelSound(WrittenSounds(resources.world.Runtime().modelSounds, actor.type),
-                                          HitSoundWord, actor.subtype, resources.cloth.random))
+    if (const auto drawn =
+            Sound::DrawModelSound(Sound::WrittenSounds(resources.world.Runtime().modelSounds, actor.type), HitSoundWord,
+                                  actor.subtype, resources.cloth.random))
         requestSound(*drawn);
 }
 // 0x4f55bb..0x4f5649: cinco intentos, aun con el pool lleno, y el sonido después de todos ellos.

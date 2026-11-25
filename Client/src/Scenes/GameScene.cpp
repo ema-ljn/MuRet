@@ -899,7 +899,7 @@ Core::Expected<void, std::string> GameScene::LoadTheObjectModels(std::int32_t ma
             for (const MonsterModelOp& op : MonsterModelCaseOf(SpearmanMonster).ops)
                 if (op.kind == MonsterModelOpKind::Sound)
                     audio->RegisterSound(static_cast<std::int32_t>(op.value), op.path);
-        WriteMonsterSounds(SpearmanMonster, m_context.world->Runtime().modelSounds);
+        Sound::WriteMonsterSounds(SpearmanMonster, m_context.world->Runtime().modelSounds);
     }
     m_worldModelsMap = map;
     World::SeedTarkanModelState(static_cast<std::uint8_t>(map), m_context.world->Runtime().objectModelState);

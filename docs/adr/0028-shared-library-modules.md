@@ -7,9 +7,9 @@ yes, and Task 8 of the [AR1 plan](../superpowers/plans/2026-11-22-ar1-engine-apa
 
 - **What the build is today** (`main` `380760c8`). One static library, `ClientLib`, holds everything that sees neither
   SDL nor OpenGL: the engine, the game and the app. `ClientPlatform` (SDL3), `ClientRender` (OpenGL) and
-  `ClientRoundedMath` are static too, and `Main` links them. Each test file is an executable (756 files) that links all of `ClientLib`: with
-  debug information the ones of `tests/scenes` weigh about 100 MB each, which is why CI strips it
-  (`.github/workflows/ci.yml`).
+  `ClientRoundedMath` are static too, and `Main` links them. Each test file is an executable (756 files) that links
+  all of `ClientLib`: with debug information the ones of `tests/scenes` weigh about 100 MB each, which is why CI
+  strips it (`.github/workflows/ci.yml`).
 - **What the refactor already decided.** [ADR 0023](0023-client-module-architecture.md) gives every module a target,
   because a boundary between libraries is the only one the linker checks. The
   [spec](../superpowers/specs/2026-11-20-client-architecture-design.md) wrote those targets as static libraries.

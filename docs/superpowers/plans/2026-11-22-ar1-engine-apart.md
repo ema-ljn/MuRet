@@ -83,6 +83,7 @@ Measured on `refactor/client` at 75c33064 (2026-11-22). AR1.3, the command line,
 | one static target per module | four shared libraries for the engine, cut by what the code sees (`Engine`, `Platform`, `OpenGL`, `Audio`), and `MU_MONOLITHIC` for a single binary; a module is a folder that `check_layers.py` checks (ADR 0028, Task 6) | Emanuel, 2026-11-22: DLLs on Windows and the same on Linux, as large engines do (Unreal, O3DE, Source); 2026-11-25: not one per module, 14 DLLs make no sense, and the three with `Audio` |
 | `MuRet<Module>` targets (`MuRetCore`…) | no prefix: `Engine.dll`, `Platform.dll`, `OpenGL.dll`, `Audio.dll`, the executable `main.exe` | Emanuel, 2026-11-22: like the original's `main.exe` |
 | the SDL and OpenGL files are rows of `engine/Platform` and `engine/Render` | each backend is a module and a folder of its own, `engine/Platform/Sdl`, `engine/Audio/Sdl` and `engine/Render/Gl`, and their map rows change before the move (Task 7) | found writing ADR 0028: `move.py` places a file by its row, so `Render/Gl/` would land flat in `engine/Render/`, and `Platform`'s six files without SDL (`WindowState`, `Resolution`, `VSyncMode`, `IClipboard`), which the game uses, would land in the SDL library |
+| the map rows of `Data/Models`, `Data/Tables`, `Data/Terrain`, `Data/Textures`, `Render/Text` and `RoundedMath` name only their module, so the move would put them flat in `engine/Data`, `engine/Render` and `engine/Math` | their target is the subfolder they have today (Task 7, Step 0) | found running Task 7: those folders already are their namespaces (`Client::Data::Textures`, `Client::Render::Text`), and flat they would rewrite 1,340 include lines in 634 files and rename those namespaces in Task 9 |
 | SDL3 static on Linux (vcpkg's `x64-linux`) | SDL3 shared on Linux too, from a triplet of the repo (Task 8) | ADR 0028: `Platform` and `Audio` both use SDL, and a static copy in each would be two SDLs in one process |
 | `MuRetTables`, `MuRetMaps`, `MuRetSound` targets in AR1.2 | the three game modules move in AR1.2 but stay in `ClientLib` | the game's library shape (one `Game` or a few) is the ADR's AR4 question |
 | `MURET_`/`muret_` options, functions, macros and environment variables | `MU_`/`mu_`, and `MU_CLIENT_` for the client's own (Task 1b) | Emanuel, 2026-11-23: MuRet was a mistaken name; `cmake/` is shared with the DataServer, so the prefix names the game, not the client |
@@ -566,7 +567,10 @@ PR `refactor(AR1.2): move the engine to Client/src/engine`, branch `refactor/ar1
   `Platform/**`) and `engine/Render/Gl` (layer 5, `may_use` `*layer<5`, `folders_today` `Render/Gl/**`) in
   `Client/modules.tsv`, and the `target` of the map rows: the two of `Platform/SdlAudio`, the other 27 of `Platform/`
   and the 21 of `Render/Gl/`. `engine/Platform` keeps its six rows without SDL (`WindowState`, `Resolution`,
-  `VSyncMode`, `IClipboard`). `check_layers.py --clean-root engine` still prints `0 new`.
+  `VSyncMode`, `IClipboard`). The rows of `Data`'s four subfolders, of `Render/Text` and of `RoundedMath` get the
+  subfolder they have today as their target (`engine/Data/Textures`, `engine/Render/Text`, `engine/Math/RoundedMath`).
+  The modules that move get their new folder in `folders_today`. `check_layers.py --clean-root engine` still prints
+  `0 new`.
 - [ ] **Step 1: Run the move** on an up-to-date `refactor/client`:
   `python3 -I Client/tools/architecture/move.py --root engine --modules game/Tables,game/Maps,game/Sound`.
 - [ ] **Step 2: Do by hand only what it printed:** `target_include_directories(ClientLib PUBLIC src src/engine src/game)`,

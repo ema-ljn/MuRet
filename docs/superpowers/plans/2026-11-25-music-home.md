@@ -201,6 +201,9 @@ on it), and the player is about 60 lines. The recommendation for ADR 0028 is to 
 as an interface: after Task 4, `MusicPlayer` and `IMusicStream` depend on nothing else in `Audio`, so a library of
 their own is one PR away if he wants it.
 
+[ADR 0028](../../adr/0028-shared-library-modules.md) (2026-11-25) gives a library, `Audio.dll`, to the part that plays:
+the SDL3_mixer backend. The player stays where this plan puts it, in the engine behind its port.
+
 ## Found on the way
 
 Not part of the refactor tasks. Each needs its own yes.

@@ -4,14 +4,16 @@
 > superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** the engine (`Core`, `Math`, `Crt`, `Crypto`, `Diagnostics`, `Input`, `Audio`, `Network`, `Data`, `Platform`,
-`Pathfinding`, `Network/XorRemap`, `Render`, `Models`) lives in `Client/src/engine/`, one shared library per module (`.dll` on Windows, `.so` on
-Linux) except `XorRemap`, which only the executable links, statically, with a switch for a single binary, and no engine file includes `game/` or `app/`, without changing a byte of
+`Pathfinding`, `Network/XorRemap`, `Render`, `Models`) lives in `Client/src/engine/` and ships as three shared
+libraries, `Engine`, `Platform` and `OpenGL` (`.dll` on Windows, `.so` on Linux), with `XorRemap` static in the
+executable and a switch for a single binary, and no engine file includes `game/` or `app/`, without changing a byte of
 behavior.
 
 **Architecture:** first the design (AR1.1): cut the 11 engine includes of the game, give the engine types that live in
 game headers a header of their own, merge the two `Ftol` and add the x87 kit, turn FoxAnti into `XorRemap`, a layer
-chosen at compile time, and add the rest of the common kit. Then the move (AR1.2): `move.py --root engine` with the first three game modules, one shared
-library per engine module with a shared precompiled header, the namespaces renamed after their new folders, and the comments.
+chosen at compile time, and add the rest of the common kit. Then the move (AR1.2): `move.py --root engine` with the
+first three game modules, the engine's three shared libraries with a shared precompiled header, the namespaces renamed
+after their new folders, and the comments.
 
 **Tech Stack:** C++20, CMake 3.25 (`FILE_SET HEADERS`, `VERIFY_INTERFACE_HEADER_SETS`, `REUSE_FROM`,
 `GenerateExportHeader`), GoogleTest,
@@ -78,8 +80,9 @@ Measured on `refactor/client` at 75c33064 (2026-11-22). AR1.3, the command line,
 | `Core/WrappingInt.h` and `UI::Rect::Contains` in the kit | left out | no copy of a wrapping integer was found, and `Rect::Contains` already exists (`UI/Widget.h`) |
 | the 189 loose map comparisons switch to names | `MapId.h` replaces the 77 duplicated constants and the predicates (Task 5) and names every single map (Task 5d); the loose literals switch in each module's AR4 design PR, the fauna's first (Task 5e) | each literal needs a judgment (is it a map?); AR4 reads those files anyway. Emanuel, 2026-11-25: the single maps get their names now, and `Birds.cpp` and `Fish.cpp` go first |
 | map enum | `inline constexpr std::int32_t` constants in AR1; AR6 turns them into an opaque `enum class MapId : std::int32_t {}` with the same names | the size of the change, not casts: estimated from the types review (2026-11-23), about 228 parameters and 30 fields to retype and about 182 literal uses in `Client/src` and 506 in the tests to inspect (not all of them stop compiling, see AR6's inventory), so the type changes once AR4 has named the literals |
-| one static target per module | one shared library per engine module, `MU_MONOLITHIC` for a single binary (ADR in Task 6) | Emanuel, 2026-11-22: DLLs on Windows and the same on Linux, as large engines do (Unreal, O3DE, Source) |
-| `MuRet<Module>` targets (`MuRetCore`…) | no prefix: `Core.dll`, `Audio.dll`…, the executable `main.exe` | Emanuel, 2026-11-22: like the original's `main.exe` |
+| one static target per module | three shared libraries for the engine, cut by what the code sees (`Engine`, `Platform`, `OpenGL`), and `MU_MONOLITHIC` for a single binary; a module is a folder that `check_layers.py` checks (ADR 0028, Task 6) | Emanuel, 2026-11-22: DLLs on Windows and the same on Linux, as large engines do (Unreal, O3DE, Source); 2026-11-25: not one per module, 14 DLLs make no sense |
+| `MuRet<Module>` targets (`MuRetCore`…) | no prefix: `Engine.dll`, `Platform.dll`, `OpenGL.dll`, the executable `main.exe` | Emanuel, 2026-11-22: like the original's `main.exe` |
+| the SDL and OpenGL files are rows of `engine/Platform` and `engine/Render` | each backend is a module and a folder of its own, `engine/Platform/Sdl` and `engine/Render/Gl`, and their map rows change before the move (Task 7) | found writing ADR 0028: `move.py` places a file by its row, so `Render/Gl/` would land flat in `engine/Render/`, and `Platform`'s six files without SDL (`WindowState`, `Resolution`, `VSyncMode`, `IClipboard`), which the game uses, would land in the SDL library |
 | `MuRetTables`, `MuRetMaps`, `MuRetSound` targets in AR1.2 | the three game modules move in AR1.2 but stay in `ClientLib` | the game's library shape (one `Game` or a few) is the ADR's AR4 question |
 | `MURET_`/`muret_` options, functions, macros and environment variables | `MU_`/`mu_`, and `MU_CLIENT_` for the client's own (Task 1b) | Emanuel, 2026-11-23: MuRet was a mistaken name; `cmake/` is shared with the DataServer, so the prefix names the game, not the client |
 | `MuRetFoxAnti`, an optional library inside Network | `XorRemap`, a static target that only `main.exe` links, never a DLL (Task 6) | Emanuel, 2026-11-23: easy to remove, but not shipped as a DLL that says what it is |
@@ -512,50 +515,60 @@ keeps the original's expression, the draw's remainder plus the first slot.
 
 ## AR1.2 (move, targets, namespaces, comments)
 
-### Task 6: the ADR for modules as shared libraries
+### Task 6: the ADR for the engine's shared libraries
 
 Before Task 8, with `engineering:architecture`: `docs/adr/0028-shared-library-modules.md`, written from what Emanuel asked
 on 2026-11-22 (Windows `Engine.dll`, `OpenGL.dll`, `Music.dll` and a few more; Linux the same with `.so`) and from what
-large projects do. It goes in its own PR (`docs(AR1): decide modules as shared libraries`) and Task 8 starts on his yes.
+large projects do. It goes in its own PR (`docs(AR1): decide the engine's shared libraries`) and Task 8 starts on his
+yes.
 
-Written on 2026-11-25 as [ADR 0028](../../adr/0028-shared-library-modules.md), proposed. It adds two rules to the
-list below (an outside library has one owner; the libraries are linked, never loaded by name) and leaves two
-questions open: the test executables, and a library for music.
+Written on 2026-11-25 as [ADR 0028](../../adr/0028-shared-library-modules.md), proposed. Its first draft proposed one
+library per engine module, 14 files, and Emanuel rejected it the same day; the second proposes three. It adds two
+rules to the list below (an outside library has one owner; the libraries are linked, never loaded by name) and leaves
+two questions open: the test executables, and a library for the audio backend.
 
 - **What large projects do** (Context7, 2026-11-22): Unreal compiles each module into a DLL loaded by one executable and
   can build monolithic instead; its docs call many DLLs right for engine code and questionable for gameplay (faster links
   against more exports and interfaces). O3DE builds each Gem as a `.dll` and, with `LY_MONOLITHIC_GAME`, as a `.lib`
   linked into one smaller binary that starts faster. Source and id Tech 3 (known, not from Context7) ship `engine.dll`,
   a `shaderapi` per graphics backend and the game as `client.dll`/`server.dll`.
-- **The decision to write:** every engine module is a shared library (`Core`, `Audio`, `Render`…), and the
-  OpenGL backend (`Render/Gl`) is its own, `OpenGL`, as module `engine/Render/Gl` (layer 5) in `modules.tsv`, so
-  changing the renderer means changing one library. The game becomes few libraries, starting with one, `Game`, in
-  AR4; the executable keeps the original's name, `main.exe` (`main` on Linux). `MU_MONOLITHIC=ON` builds every module static into one binary.
+- **The decision to write:** the engine ships as three shared libraries cut by what the code sees, the cut the build
+  already has: `Engine` (what sees neither SDL nor OpenGL), `Platform` (what sees SDL) and `OpenGL` (`Render/Gl`), so
+  changing the renderer means changing one library. A module stays a folder with its row in `modules.tsv`, checked by
+  `check_layers.py`; the two backends become modules of their own, `engine/Platform/Sdl` (layer 4) and
+  `engine/Render/Gl` (layer 5). The game becomes few libraries, starting with one, `Game`, in AR4; the executable keeps
+  the original's name, `main.exe` (`main` on Linux). `MU_MONOLITHIC=ON` builds the three static into one binary.
 - **XorRemap is not a library of its own** (Emanuel, 2026-11-23): easy to remove, but not shipped as a DLL that says
   what it is. It stays a module in the code (`engine/Network/XorRemap`, its folder, `MU_XOR_REMAP`) and a static target
   that only `main.exe` and its tests link, so no shipped file names it and no library exports it.
-- **The names** (Emanuel, 2026-11-22: no MuRet prefix): the libraries are `Core.dll`, `Audio.dll`, `Render.dll`,
-  `OpenGL.dll` and so on, the game `Game.dll`, and the executable `main.exe`, like the original. CMake
-  targets use the same words; on Linux CMake gives the usual `libCore.so`. The export macros follow Unreal (`CORE_API`).
-  CMake options and functions, macros and environment variables use `MU_`/`mu_` (Emanuel, 2026-11-23; Task 1b).
-- **The rules it fixes:** exports with CMake's `generate_export_header` per module (`CORE_API` in
-  `Core/CoreExport.h`, generated), `CXX_VISIBILITY_PRESET hidden` and `VISIBILITY_INLINES_HIDDEN` on both systems and
+- **The names** (Emanuel, 2026-11-22: no MuRet prefix): the libraries are `Engine.dll`, `Platform.dll` and
+  `OpenGL.dll`, the game `Game.dll`, and the executable `main.exe`, like the original. CMake targets use the same
+  words; on Linux CMake gives the usual `libEngine.so`. The export macros follow Unreal (`ENGINE_API`). CMake options
+  and functions, macros and environment variables use `MU_`/`mu_` (Emanuel, 2026-11-23; Task 1b).
+- **The rules it fixes:** exports with CMake's `generate_export_header` per library (`ENGINE_API` in a generated
+  `EngineExport.h`), `CXX_VISIBILITY_PRESET hidden` and `VISIBILITY_INLINES_HIDDEN` on both systems and
   `-Wl,--no-undefined` on Linux, so a missing export or dependency fails on both CI machines; no mutable state defined in
   a header (each DLL would get its own copy); all binaries in one output folder (`bin/`), with `$ORIGIN` as the Linux
   `RPATH`; the vcpkg triplet stays `x64-windows` (dynamic CRT), which DLLs that pass `std` types need.
-- **Tests:** a module's tests link only its library, and `ClientTestSupport` splits into `EngineTestSupport` and
-  the game's. The question left from 2026-11-02 goes in the same ADR: one test executable per file, as today (728), or one
-  per module (15 to 40). Without an answer, one per file stays.
+- **Tests:** the tests of the engine's folders link `Engine` and `EngineTestSupport`, and `ClientTestSupport` splits
+  into that and the game's. The question left from 2026-11-02 goes in the same ADR: one test executable per file, as
+  today (756), or one per module (15 to 40). Without an answer, one per file stays.
 
 ### Task 7: the move
 
 PR `refactor(AR1.2): move the engine to Client/src/engine`, branch `refactor/ar1.2-engine-move`. Skill: `muret-move`.
 
+- [ ] **Step 0: Point the backends' rows at their folders** (ADR 0028), before the move: the rows
+  `engine/Platform/Sdl` (layer 4, `may_use` `*layer<4`, `folders_today` `Platform/**`) and `engine/Render/Gl` (layer 5,
+  `may_use` `*layer<5`, `folders_today` `Render/Gl/**`) in `Client/modules.tsv`, and the `target` of the 29 map rows
+  of `Platform/` and the 21 of `Render/Gl/`. `engine/Platform` keeps its six rows without SDL (`WindowState`,
+  `Resolution`, `VSyncMode`, `IClipboard`). `check_layers.py --clean-root engine` still prints `0 new`.
 - [ ] **Step 1: Run the move** on an up-to-date `refactor/client`:
   `python3 -I Client/tools/architecture/move.py --root engine --modules game/Tables,game/Maps,game/Sound`.
 - [ ] **Step 2: Do by hand only what it printed:** `target_include_directories(ClientLib PUBLIC src src/engine src/game)`,
   and the `list(FILTER … REGEX)` lines and globs that named an emptied folder (`/src/Platform/` →
-  `/src/engine/Platform/`, `/src/Render/Gl/`, `/src/Render/Models/RoundedMath/`, `Network/XorRemapObfuscation.cpp`).
+  `/src/engine/Platform/Sdl/`, `/src/Render/Gl/` → `/src/engine/Render/Gl/`, `/src/Render/Models/RoundedMath/`,
+  `Network/XorRemapObfuscation.cpp`).
   move.py moves only sources, so also move `src/Render/Models/RoundedMath/CMakeLists.txt` next to its
   `RoundedMath.cpp` (and its `add_subdirectory`), and point the `SdlAudio.cpp` row of
   `Client/tools/architecture/rounded-math-exceptions.tsv` at the new path (review of #424).
@@ -564,27 +577,29 @@ PR `refactor(AR1.2): move the engine to Client/src/engine`, branch `refactor/ar1
   Push and let CI build. Expected: green, the golden unchanged.
 - [ ] **Step 4: After the squash**, in the next PR: `move.py --record <squash>`.
 
-### Task 8: one shared library per engine module
+### Task 8: the engine's three shared libraries
 
-PR `build(AR1.2): build each engine module as a shared library`, branch `refactor/ar1.2-engine-libraries`. Skill:
+PR `build(AR1.2): build the engine as three shared libraries`, branch `refactor/ar1.2-engine-libraries`. Skill:
 `cpp-pro`. Starts after Emanuel's yes to the Task 6 ADR.
 
 **Interfaces:**
-- Produces: `mu_add_module(<target> MODULE <module> [LINK <targets>…])` in `cmake/AddModule.cmake`: `SHARED`, or
-  `STATIC` with `MU_MONOLITHIC`; sources and `FILE_SET HEADERS` from the module's folder, include root
-  `Client/src/engine`, `VERIFY_INTERFACE_HEADER_SETS ON`; `generate_export_header` with `EXPORT_MACRO_NAME` `<MODULE>_API`
-  (`STATIC_DEFINE` set when monolithic), its header in a second `FILE_SET`; hidden visibility; `--no-undefined` on Linux;
+- Consumes: the folders `engine/Platform/Sdl/` and `engine/Render/Gl/` and their module rows, from Task 7.
+- Produces: `mu_add_library(<target> SOURCES <files>… [LINK <targets>…])` in `cmake/AddLibrary.cmake`: `SHARED`, or
+  `STATIC` with `MU_MONOLITHIC`; `FILE_SET HEADERS` with the include root `Client/src/engine`,
+  `VERIFY_INTERFACE_HEADER_SETS ON`; `generate_export_header` with `EXPORT_MACRO_NAME` `<TARGET>_API` (`STATIC_DEFINE`
+  set when monolithic), its header in a second `FILE_SET`; hidden visibility; `--no-undefined` on Linux;
   `mu_set_fidelity_flags`; `mu_reuse_precompiled_headers(<target> StdPch)`.
-- Produces: libraries (target name = file name, no prefix) `Core`, `Math`, `Crt`, `Crypto`, `Diagnostics`, `Input`, `Audio`,
-  `Network`, `Data`, `Platform`, `Pathfinding`, `Render`, `OpenGL` and `Models`, each linking only what its `may_use`
-  row allows. `XorRemap` (only with `MU_XOR_REMAP`) stays `STATIC` in both shapes, with no export macro, and only `Main`
-  and its `XOR_REMAP` tests link it. `ClientLib` (game and
-  app until AR4 and AR5) stays static and links them; the `Main` target gets `OUTPUT_NAME main`; `ClientPlatform`, `ClientRender` and `ClientRoundedMath` disappear
-  into `Platform`, `OpenGL` and `Math` (the latter keeps its own compile options).
-- Produces: the row `engine/Render/Gl` in `Client/modules.tsv` (layer 5, `may_use` `*layer<5`) and the `Render/Gl` rows of
-  the map pointing to it; only `main.cpp` includes `Render/Gl/` today, so only the executable links `OpenGL`.
+- Produces: three libraries (target name = file name, no prefix), each a glob of folders. `Engine`: everything under
+  `Client/src/engine/` outside `Platform/Sdl/`, `Render/Gl/` and `Network/XorRemap/`, with libjpeg-turbo, FreeType and
+  `ws2_32` private. `Platform`: `engine/Platform/Sdl/`; it links `Engine`, with SDL3 and SDL3_mixer private, and whoever
+  needs SDL's headers gets `SDL3::Headers`, never a second link. `OpenGL`: `engine/Render/Gl/`; it links `Engine` and
+  `Platform`.
+- Produces: `XorRemap` (only with `MU_XOR_REMAP`) stays `STATIC` in both shapes, with no export macro, and only `Main`
+  and its `XOR_REMAP` tests link it. `ClientLib` (game and app until AR4 and AR5) stays static and links `Engine`; the
+  `Main` target gets `OUTPUT_NAME main`; `ClientPlatform` and `ClientRender` become `Platform` and `OpenGL`, and
+  `ClientRoundedMath` becomes an object library inside `Engine` that keeps its own compile options.
 - Produces: `mu_set_fidelity_flags(target)` in `cmake/` (`-ffp-contract=off` on GCC and Clang, whatever MSVC needs).
-- Produces: `StdPch` (static, one empty source, the standard-library list) with the modules' position-independent
+- Produces: `StdPch` (static, one empty source, the standard-library list) with the libraries' position-independent
   code, visibility and warnings, so GCC and MSVC accept the reuse; a second owner for the targets that see
   `SDL_OPENGL_1_FUNCTION_TYPEDEFS` unless the Windows job shows it is not needed.
 - Produces: `CMAKE_RUNTIME_OUTPUT_DIRECTORY` and `CMAKE_LIBRARY_OUTPUT_DIRECTORY` at `${CMAKE_BINARY_DIR}/bin`,
@@ -593,16 +608,23 @@ PR `build(AR1.2): build each engine module as a shared library`, branch `refacto
 - [ ] **Step 1: Measure before:** the Windows Debug job's build time, link time of the tests and number of `.pch` files,
   from a CI run of the base.
 - [ ] **Step 2: Find the state defined in headers:** a script lists the non-`const` `inline` variables and the `static`
-  locals of functions defined in engine headers; each becomes a declaration with its module's macro and a definition in
+  locals of functions defined in engine headers; each becomes a declaration with its library's macro and a definition in
   a `.cpp` (such as `IdentityObfuscation::Shared()`). The list goes in the PR description.
-- [ ] **Step 3: Write the libraries** per Interfaces, and mark each module's public API with its macro (a script adds it
-  to every class and free function declared in the module's headers that another module or a test uses; templates and
-  `inline` functions get none). A link a module's `may_use` row does not allow is a layer bug: stop and fix the code in a
-  design PR, not the row.
-- [ ] **Step 4: Tests and CI.** The engine test folders link only their library and `EngineTestSupport`. The job
-  "Windows (MSVC, Release, matemática)" adds `-DMU_MONOLITHIC=ON`, so both shapes build on every PR.
-- [ ] **Step 5: Push and let CI build.** Expected: green on all jobs, `VERIFY_INTERFACE_HEADER_SETS` included, the golden
-  unchanged; measure after and put both numbers in the PR description.
+- [ ] **Step 3: Write the libraries** per Interfaces, and mark each library's public API with its macro (a script adds
+  it to every class and free function declared in the engine's headers that the game, the app, another library or a
+  test uses; templates and `inline` functions get none). `Engine` links with neither a backend nor `ClientLib`: a symbol
+  it misses is a layer bug, so stop and fix the code in a design PR.
+- [ ] **Step 4: Check each outside library has one owner.** On Linux `nm -D --defined-only` finds SDL's symbols only in
+  `libPlatform.so` and libjpeg-turbo's and FreeType's only in `libEngine.so`, and `main` defines none of them
+  (`SDL_main.h` must add no SDL code to the executable there). A static library that is not position-independent cannot
+  enter a `.so`: stop and report it, the fix is a triplet.
+- [ ] **Step 5: Tests and CI.** The tests of the engine's folders link `Engine` and `EngineTestSupport`,
+  `tests/platform` adds `Platform` and `tests/render_gl` adds `OpenGL`. The job "Windows (MSVC, Release, matemática)"
+  adds `-DMU_MONOLITHIC=ON`, so both shapes build on every PR.
+- [ ] **Step 6: The rules a contributor meets** go in `docs/CODING_RULES.md` §5 (the macro, no state in a header,
+  one owner per outside library), and the `muret-module` skill says an engine module is a folder of its library.
+- [ ] **Step 7: Push and let CI build.** Expected: green on all jobs, `VERIFY_INTERFACE_HEADER_SETS` included, the
+  golden unchanged; measure after and put both numbers in the PR description.
 
 ### Task 9: the namespaces follow the folders
 
@@ -634,8 +656,8 @@ comments PR". The comments of `Client/src/engine/`, the three game modules and t
 
 - `check_layers.py --clean-root engine` prints `0 new` with no engine row in the baseline (CI runs it on every PR).
 - No engine file defines a game value: `check_named_values.py --clean-root engine` finds no game space in `engine/`.
-- Every engine module is a shared library that links with `--no-undefined` and builds with
-  `VERIFY_INTERFACE_HEADER_SETS`; the client also builds as one binary (`MU_MONOLITHIC=ON`) and with
+- The engine builds as three shared libraries (`Engine`, `Platform`, `OpenGL`) that link with `--no-undefined` and
+  build with `VERIFY_INTERFACE_HEADER_SETS`; the client also builds as one binary (`MU_MONOLITHIC=ON`) and with
   `MU_XOR_REMAP=OFF`.
 - The behavior golden and every test are identical on the four CI configurations.
 - The reference regenerated on `refactor/client` gives the same port numbers as #422's (the AR1 start snapshot), except

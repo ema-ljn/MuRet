@@ -4,7 +4,7 @@
 #include "Network/PacketWriter.h"
 #include "Protocol/Movement.h"
 #include "Protocol/Outgoing.h"
-#include "Render/Models/Cloth.h"
+#include "Models/Cloth.h"
 #include "Scenes/ActionSend.h"
 #include "Scenes/ActorShock.h"
 #include "Scenes/ActorState.h"

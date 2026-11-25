@@ -2,8 +2,8 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
-#include "Render/Models/LogicalAccess.h"
-#include "Render/Models/RoundedMath.h"
+#include "Models/LogicalAccess.h"
+#include "Math/RoundedMath.h"
 #include "Render/OriginalQuad.h"
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
@@ -16,7 +16,7 @@
 #include "UI/HudPrimitives.h"
 #include "UI/PanelRegistry.h"
 #include "UI/SiegePanelState.h"
-#include "World/Ftol.h"
+#include "Math/Ftol.h"
 
 #include <algorithm>
 #include <array>

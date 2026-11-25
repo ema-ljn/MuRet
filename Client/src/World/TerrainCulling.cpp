@@ -5,7 +5,7 @@
 #include "Maps/MapId.h"
 #include "Math/X87.h"
 #include "Render/ModelBatch.h"
-#include "Render/Models/OriginalRotation.h"
+#include "Math/OriginalRotation.h"
 #include "Render/Pass3D.h"
 #include "World/TerrainCells.h"
 #include "World/SphereFrustum.h"

@@ -1,4 +1,4 @@
-#include "Data/Text/NpcNames.h"
+#include "Tables/NpcNames.h"
 
 #include "Data/DataError.h"
 

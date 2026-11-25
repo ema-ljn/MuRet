@@ -3,14 +3,14 @@
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Maps/MapId.h"
-#include "Render/Models/RoundedMath.h"
+#include "Math/RoundedMath.h"
 #include "World/KalimaWaves.h"
 #include "Render/ModelBatch.h"
 #include "Render/ModelVertex.h"
 #include "Render/SpriteVertex.h"
 #include "Render/TextureSlot.h"
 #include "World/FaceNormal.h"
-#include "World/Ftol.h"
+#include "Math/Ftol.h"
 
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>

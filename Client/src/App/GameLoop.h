@@ -4,7 +4,7 @@
 #include "App/FixedStep.h"
 #include "App/ILoopClient.h"
 #include "App/PacingMode.h"
-#include "App/WindowState.h"
+#include "Platform/WindowState.h"
 #include "Core/IClock.h"
 #include "Input/InputState.h"
 

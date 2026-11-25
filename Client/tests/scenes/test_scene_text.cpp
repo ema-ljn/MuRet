@@ -1,4 +1,4 @@
-#include "Scenes/SceneText.h"
+#include "Render/Frame/SceneText.h"
 
 #include "Core/Expected.h"
 #include "Core/ILogSink.h"

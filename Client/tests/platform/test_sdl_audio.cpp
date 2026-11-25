@@ -1,7 +1,7 @@
 #include "Audio/ISoundCatalog.h"
-#include "Audio/SoundCatalog.h"
+#include "Sound/SoundCatalog.h"
 #include "Audio/SoundDefinition.h"
-#include "Platform/SdlAudio.h"
+#include "Audio/Sdl/SdlAudio.h"
 
 #include <SDL3/SDL_hints.h>
 

@@ -4,7 +4,7 @@
 #include "Core/Log.h"
 #include "Crt/CrtRandom.h"
 #include "Input/InputState.h"
-#include "Render/Models/Cloth.h"
+#include "Models/Cloth.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/SceneContext.h"
 #include "Scenes/SceneId.h"

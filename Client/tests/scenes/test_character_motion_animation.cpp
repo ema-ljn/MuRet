@@ -1,9 +1,9 @@
 #include "GameLogic/CharacterAppearance.h"
-#include "Render/Models/IModelLibrary.h"
+#include "Models/IModelLibrary.h"
 #include "Scenes/CharacterAnimation.h"
 
 #include "Data/Models/Model.h"
-#include "Render/Models/Skeleton.h"
+#include "Models/Skeleton.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/PlayerActionSpeeds.h"
 #include "support/PlayerActors.h"

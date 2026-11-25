@@ -1,13 +1,13 @@
 #pragma once
 
 #include "Core/Expected.h"
-#include "Data/Tables/ItemSetTables.h"
-#include "Data/Tables/ItemTable.h"
-#include "Data/Tables/SkillTable.h"
-#include "Data/Text/TextTable.h"
+#include "Tables/ItemSetTables.h"
+#include "Tables/ItemTable.h"
+#include "Tables/SkillTable.h"
+#include "Tables/TextTable.h"
 #include "Protocol/Outgoing.h"
 #include "Render/SpriteBatch.h"
-#include "Scenes/ITextDrawer.h"
+#include "Render/Frame/ITextDrawer.h"
 #include "UI/Widget.h"
 
 #include <cstdint>

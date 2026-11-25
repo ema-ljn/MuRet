@@ -1,4 +1,4 @@
-#include "Render/Models/OriginalAngles.h"
+#include "Math/OriginalAngles.h"
 
 #include <gtest/gtest.h>
 

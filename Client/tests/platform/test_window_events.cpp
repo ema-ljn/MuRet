@@ -1,6 +1,6 @@
-#include "Platform/WindowEvents.h"
+#include "Platform/Sdl/WindowEvents.h"
 
-#include "App/WindowState.h"
+#include "Platform/WindowState.h"
 
 #include <SDL3/SDL_events.h>
 #include <SDL3/SDL_video.h>

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Core/Expected.h"
-#include "Platform/GlLoader.h"
+#include "Platform/Sdl/GlLoader.h"
 
 #include <string>
 

@@ -4,7 +4,7 @@
 #include "Audio/Playback.h"
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
-#include "Data/Text/DialogTable.h"
+#include "Tables/DialogTable.h"
 #include "Input/InputEvent.h"
 #include "Input/InputState.h"
 #include "Input/Key.h"

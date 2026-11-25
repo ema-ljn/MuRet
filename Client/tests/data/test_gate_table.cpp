@@ -1,4 +1,4 @@
-#include "Data/Tables/GateTable.h"
+#include "Tables/GateTable.h"
 
 #include "Data/DataError.h"
 #include "support/BytePattern.h"

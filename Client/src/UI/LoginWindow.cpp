@@ -2,7 +2,7 @@
 
 #include "App/Credentials.h"
 #include "Core/PixelSize.h"
-#include "Data/Text/TextTable.h"
+#include "Tables/TextTable.h"
 #include "Input/InputEvent.h"
 #include "Input/InputState.h"
 #include "Input/Key.h"
@@ -11,7 +11,7 @@
 #include "Render/Text/TextLayout.h"
 #include "Render/Text/TextStyle.h"
 #include "Render/TextureSlot.h"
-#include "Scenes/ITextDrawer.h"
+#include "Render/Frame/ITextDrawer.h"
 #include "UI/GameText.h"
 #include "UI/NewUi.h"
 #include "UI/Widget.h"

@@ -2,7 +2,7 @@
 #include "Scenes/CrywolfContract.h"
 
 #include "Core/Expected.h"
-#include "Data/Text/TextTable.h"
+#include "Tables/TextTable.h"
 #include "Protocol/Outgoing.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/GameMovementState.h"

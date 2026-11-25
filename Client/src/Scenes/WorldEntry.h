@@ -2,8 +2,8 @@
 
 #include "Core/Expected.h"
 #include "Core/PixelSize.h"
-#include "Data/Tables/ItemTable.h"
-#include "Data/Tables/SkillTable.h"
+#include "Tables/ItemTable.h"
+#include "Tables/SkillTable.h"
 #include "Protocol/Outgoing.h"
 #include "Scenes/SceneId.h"
 

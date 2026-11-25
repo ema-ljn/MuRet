@@ -11,7 +11,7 @@
 #include "Scenes/WorldState.h"
 #include "UI/GameText.h"
 #include "UI/MessageArea.h"
-#include "UI/SprintfFormat.h"
+#include "Crt/SprintfFormat.h"
 
 #include <cstddef>
 #include <cstdint>

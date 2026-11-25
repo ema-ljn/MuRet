@@ -5,7 +5,7 @@
 #include "Data/Textures/OztTexture.h"
 #include "Data/Textures/Texture.h"
 #include "Data/Textures/TextureSet.h"
-#include "Platform/GlLoader.h"
+#include "Platform/Sdl/GlLoader.h"
 #include "Render/Gl/GlTexture.h"
 #include "Render/ITextureStore.h"
 #include "Render/TextureSlot.h"

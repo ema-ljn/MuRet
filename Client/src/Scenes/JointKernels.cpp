@@ -1,7 +1,7 @@
 #include "Scenes/JointKernels.h"
 
 #include "Core/Expected.h"
-#include "Render/Models/OriginalRotation.h"
+#include "Math/OriginalRotation.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/GameDrawTail.h"
 

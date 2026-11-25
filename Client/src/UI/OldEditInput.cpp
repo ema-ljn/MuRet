@@ -1,7 +1,7 @@
 #include "UI/OldEditInput.h"
 
 #include "Core/Windows1252.h"
-#include "UI/IClipboard.h"
+#include "Platform/IClipboard.h"
 #include "UI/OldControls.h"
 #include "UI/OldEditLines.h"
 #include "UI/OldEditWordMovement.h"

@@ -4,7 +4,7 @@
 #include "World/Particles.h"
 #include <glm/ext/vector_float2.hpp>
 #include <cstdint>
-#include "Render/Models/OriginalRotation.h"
+#include "Math/OriginalRotation.h"
 #include "Render/TextureEnvMode.h"
 #include <functional>
 namespace Client::Render

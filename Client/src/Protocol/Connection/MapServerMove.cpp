@@ -1,12 +1,12 @@
 #include "Protocol/Connection/MapServerMove.h"
 
 #include "Core/Expected.h"
-#include "Core/Xor3.h"
+#include "Crypto/Xor3.h"
 #include "Network/Packet.h"
 #include "Network/PacketWriter.h"
 #include "Protocol/BuildConstants.h"
 #include "Protocol/Outgoing.h"
-#include "Protocol/ProtocolError.h"
+#include "Network/ProtocolError.h"
 
 #include <algorithm>
 #include <array>

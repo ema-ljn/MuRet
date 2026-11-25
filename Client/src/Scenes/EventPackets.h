@@ -2,8 +2,8 @@
 
 #include "Core/Expected.h"
 #include "Core/PixelSize.h"
-#include "Data/Tables/ItemTable.h"
-#include "Data/Text/TextTable.h"
+#include "Tables/ItemTable.h"
+#include "Tables/TextTable.h"
 #include "Protocol/Events.h"
 #include "Protocol/Outgoing.h"
 

@@ -1,6 +1,6 @@
 #include "App/LabXorRemapTables.h"
 #include "Network/Packet.h"
-#include "Network/XorRemapObfuscation.h"
+#include "Network/XorRemap/XorRemapObfuscation.h"
 
 #include "support/WireCapture.h"
 #include "test_golden_encrypted_packet_support.h"

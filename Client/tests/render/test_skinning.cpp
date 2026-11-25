@@ -1,9 +1,9 @@
-#include "Render/Models/Skinning.h"
+#include "Models/Skinning.h"
 
 #include "Data/Models/Model.h"
-#include "Render/Models/HalfLifeMath.h"
-#include "Render/Models/OriginalRotation.h"
-#include "Render/Models/Pose.h"
+#include "Math/HalfLifeMath.h"
+#include "Math/OriginalRotation.h"
+#include "Models/Pose.h"
 
 #include <gtest/gtest.h>
 

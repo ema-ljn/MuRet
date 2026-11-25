@@ -2,7 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Core/PixelSize.h"
-#include "Data/Text/TextTable.h"
+#include "Tables/TextTable.h"
 #include "Render/ScreenScale.h"
 #include "Render/SpriteBatch.h"
 #include "Render/Text/FontSet.h"
@@ -10,11 +10,11 @@
 #include "Render/Text/TextStyle.h"
 #include "Render/TextureSlot.h"
 #include "Render/UiImage.h"
-#include "Scenes/ITextDrawer.h"
+#include "Render/Frame/ITextDrawer.h"
 #include "Scenes/SceneTextures.h"
 #include "UI/GameText.h"
 #include "UI/Widget.h"
-#include "World/Ftol.h"
+#include "Math/Ftol.h"
 
 #include <array>
 #include <bit>

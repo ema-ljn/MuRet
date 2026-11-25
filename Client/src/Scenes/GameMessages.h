@@ -4,7 +4,7 @@
 #include "Core/PixelSize.h"
 #include "Render/SpriteBatch.h"
 #include "Render/Text/IGlyphRasterizer.h"
-#include "Scenes/ITextDrawer.h"
+#include "Render/Frame/ITextDrawer.h"
 #include "UI/MessageLog.h"
 #include "UI/Widget.h"
 

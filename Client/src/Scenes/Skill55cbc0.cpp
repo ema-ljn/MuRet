@@ -2,8 +2,8 @@
 
 #include "Core/Expected.h"
 #include "Protocol/Skill.h"
-#include "Render/Models/LogicalAccess.h"
-#include "Render/Models/OriginalAngles.h"
+#include "Models/LogicalAccess.h"
+#include "Math/OriginalAngles.h"
 #include "Scenes/ActorCombat.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/CombatActionSpeeds.h"
@@ -16,7 +16,7 @@
 #include "Scenes/Skill4f5290.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
-#include "World/Ftol.h"
+#include "Math/Ftol.h"
 
 #include <bit>
 #include <cstddef>

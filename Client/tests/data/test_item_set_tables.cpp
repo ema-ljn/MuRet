@@ -1,4 +1,4 @@
-#include "Data/Tables/ItemSetTables.h"
+#include "Tables/ItemSetTables.h"
 
 #include "Data/DataError.h"
 #include "Data/Tables/TableChecksum.h"

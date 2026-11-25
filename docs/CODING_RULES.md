@@ -80,9 +80,9 @@ No cycles between modules.
 | 0 | `engine/Core` | `Expected`, `ByteReader`, the log, `IClock`, text encodings | depend on anything |
 | 1 | `engine/Math`, `Crt`, `Crypto` | the original's x87 math, what mimics the MSVC 6 runtime (`rand`, sort, `sprintf`), MU's byte ciphers | touch sockets, files or game state |
 | 2 | `engine/Diagnostics`, `Input`, `Audio`, `Network`, `Data` | the crash handler, input per frame, playing sounds, sockets and framing, reading the `Data\` formats | know which sounds MU has or what a packet means; see SDL |
-| 3 | `engine/Platform`, `Pathfinding`, `Obfuscation` | SDL3 (window, GL context, events), the original's A*, the FoxAnti layer | see game state |
-| 4 | `engine/Render` | sprite and model batches, text, the frame contracts, GL | know actors or scenes |
-| 5 | `engine/Models` | skeleton, pose, animation, skinning, cloth | decide what the game draws |
+| 3 | `engine/Platform`, `Pathfinding`, `Network/XorRemap`, `Audio/Sdl` | the window's contracts without SDL, the original's A*, the XOR and remap layer, the SDL3_mixer backend | see game state |
+| 4 | `engine/Render`, `Platform/Sdl` | sprite and model batches, text, the frame contracts; SDL3 (window, GL context, events) | know actors or scenes |
+| 5 | `engine/Models`, `Render/Gl` | skeleton, pose, animation, skinning, cloth; the OpenGL backend | decide what the game draws |
 | 6 | `game/Protocol`, `Tables`, `Maps` | packet layouts and writers, MU's tables, map ids and their predicates | include each other or hold behavior |
 | 7 | `game/Kernel` | the `GameContext`, the shared state and the ports (send a packet, request a sound, an on-screen message) | hold feature logic |
 | 8 | `game/Assets`, `Terrain`, `Sound`, `Camera`, `Ui` | the game services and the widget kit | know actors or game modules |
@@ -129,7 +129,7 @@ No cycles between modules.
   usa aunque su header ya lo traiga. Si un header solo nombra un tipo por puntero o referencia,
   alcanza con declararlo (`class ISocket;`). De SDL3 va el header de cada parte
   (`<SDL3/SDL_video.h>`, no `<SDL3/SDL.h>`), y los tipos y constantes de GL llegan por
-  `Platform/GlLoader.h`, nunca por `SDL_opengl.h` directo. No hay `stdafx.h` que incluir: los
+  `Platform/Sdl/GlLoader.h`, nunca por `SDL_opengl.h` directo. No hay `stdafx.h` que incluir: los
   precompiled headers los arma CMake y los fuerza solo
   ([`cmake/PrecompiledHeaders.cmake`](../cmake/PrecompiledHeaders.cmake)), con la biblioteca
   estándar. Son para compilar más rápido, no reemplazan ningún include, y el job de Linux del CI
@@ -159,7 +159,7 @@ No cycles between modules.
   va `// IWYU pragma: keep`, con un comentario que diga por qué: `<SDL3/SDL_main.h>` en
   `main.cpp`, que cambia `main` en Windows, o `<compare>` para un `operator<=>` por defecto. Un
   header que reexporta otro a propósito lo marca con `// IWYU pragma: export` (`SDL_opengl.h` en
-  `Platform/GlLoader.h`), y uno que siempre se incluye por lo que trae, sin nombrarlo, con
+  `Platform/Sdl/GlLoader.h`), y uno que siempre se incluye por lo que trae, sin nombrarlo, con
   `// IWYU pragma: always_keep` (los `*Printers.h` de los tests, cuyo `PrintTo` busca GoogleTest).
   Los headers que nadie incluye a mano, como los `bits/` de libstdc++, están en el
   `IgnoreHeaders` de `.clang-tidy`. Lo que solo declaran ellos, como los literales de `<chrono>`
@@ -240,7 +240,7 @@ piecemeal", porque es mucho; acá son dos archivos, y alinearlos al tocarlos no 
   CTest. Cada `TEST` tiene un tope de tiempo (`MU_TEST_CASE_TIMEOUT`), como el `TIMEOUT` de
   `mu_add_test` en MuMain. Cada módulo de `tests/` tiene su `CMakeLists.txt`.
 - Los fuentes se juntan con un glob y `CONFIGURE_DEPENDS`: `ClientLib` toma todo `src/` con
-  `file(GLOB_RECURSE)`, menos `main.cpp` (y, desde la CL3.1, `src/Platform/`, que es de
+  `file(GLOB_RECURSE)`, menos `main.cpp` (y, desde la CL3.1, `src/engine/Platform/Sdl/`, que es de
   `ClientPlatform`, sacado con `list(FILTER ... EXCLUDE REGEX)` como hace MuMain), y cada módulo de
   tests sus `test_*.cpp` con `file(GLOB)`. Un archivo nuevo entra al reconfigurar, sin tocar el
   CMake. Es una diferencia elegida: MuMain lista cada `mu_add_test` a mano. El glob de un módulo
@@ -437,7 +437,7 @@ scene costs 2.5 to 3.2 ms of CPU of a 40 ms frame at `-O2`, and EASTL ties with 
   `glm::perspective`, `glm::slerp`, `glm::angleAxis` and `glm::quat(vec3)`: the same frame gave
   other pixels on Windows and on Linux. The client takes them correctly rounded
   ([ADR 0027](adr/0027-correctly-rounded-math.md)): `RoundedSin`, `RoundedCos`, `RoundedTan`,
-  `RoundedAcos` and `RoundedLog10` from `Render/Models/RoundedMath.h`, `RoundedRotate` and
+  `RoundedAcos` and `RoundedLog10` from `Math/RoundedMath.h`, `RoundedRotate` and
   `RoundedPerspective` from `RoundedTransforms.h`. Never `std::sin`, `std::cos`, `std::atan2`,
   `std::exp`, `std::log`, `std::pow` or their kind, with or without `std::`, in `Client/src` or
   `Client/tests`. A function the module lacks is added to it, with its MPFR hash. `std::sqrt`,
@@ -484,7 +484,7 @@ each frame ([ADR 0026](adr/0026-keep-the-standard-library.md)).
   original has a fixed array; what happens past that array's end follows the research. A callback
   that does not change between frames is built once, or replaced by an interface its caller keeps.
 - **Today's exceptions are scheduled.** With 40 monsters on screen, the skinning
-  (`Render/Models/Skinning.cpp`) and the character drawing (`Scenes/CharacterDrawing.cpp`) create
+  (`Models/Skinning.cpp`) and the character drawing (`Scenes/CharacterDrawing.cpp`) create
   about 2,090 temporary `std::vector` per frame, and `GamePanels` rebuilds about 85
   `std::function`. The refactor removes them (AR4.1 and AR4.5 of the
   [plan](superpowers/plans/2026-11-20-client-architecture-refactor.md)) with the behavior golden

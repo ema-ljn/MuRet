@@ -3,7 +3,7 @@
 #include "Core/ByteReader.h"
 #include "Core/Expected.h"
 #include "Network/Packet.h"
-#include "Protocol/ProtocolError.h"
+#include "Network/ProtocolError.h"
 
 #include <algorithm>
 #include <array>

@@ -5,7 +5,7 @@
 #include "Render/Text/TextLayout.h"
 #include "UI/ChatInput.h"
 #include "UI/FriendModel.h"
-#include "UI/IClipboard.h"
+#include "Platform/IClipboard.h"
 #include "UI/LetterModel.h"
 #include "UI/OldControls.h"
 #include "UI/OldEditInput.h"

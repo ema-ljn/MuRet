@@ -3,7 +3,7 @@
 #include "Core/Expected.h"
 #include "Core/IClock.h"
 #include "Data/Models/Model.h"
-#include "Render/Models/IModelLibrary.h"
+#include "Models/IModelLibrary.h"
 #include "Scenes/CharacterDrawing.h"
 
 #include <string>

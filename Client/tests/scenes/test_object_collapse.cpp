@@ -3,7 +3,7 @@
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainAttributes.h"
-#include "Render/Models/ObjectState.h"
+#include "Models/ObjectState.h"
 #include "Scenes/EventGlobals.h"
 #include "Scenes/WorldObjectsDrawing.h"
 #include "Scenes/WorldRuntime.h"

@@ -24,7 +24,7 @@
 #include "Crt/CrtRandom.h"
 #include "Data/Models/PlayerModels.h"
 #include "Protocol/Outgoing.h"
-#include "Render/Models/Skeleton.h"
+#include "Models/Skeleton.h"
 #include "Scenes/CameraTour.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/CharacterStep.h"

@@ -17,7 +17,7 @@
 #include "Scenes/WorldState.h"
 #include "UI/GameText.h"
 #include "UI/MessageArea.h"
-#include "UI/OriginalFormat.h"
+#include "Crt/OriginalFormat.h"
 #include "UI/PanelDialog.h"
 #include "UI/PanelRegistry.h"
 

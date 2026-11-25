@@ -2,7 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Math/X87.h"
-#include "Render/Models/LogicalAccess.h"
+#include "Models/LogicalAccess.h"
 #include "Render/ScreenScale.h"
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
@@ -14,7 +14,7 @@
 #include "Scenes/GameWindowDrawing.h"
 #include "Scenes/GuildMarks.h"
 #include "Scenes/GuildState.h"
-#include "Scenes/ITextDrawer.h"
+#include "Render/Frame/ITextDrawer.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
@@ -23,7 +23,7 @@
 #include "UI/OldWindowBase.h"
 #include "UI/OldWindowDraw.h"
 #include "UI/OldWindowDrawParts.h"
-#include "UI/SprintfFormat.h"
+#include "Crt/SprintfFormat.h"
 
 #include <array>
 #include <cstddef>

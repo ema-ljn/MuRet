@@ -3,7 +3,7 @@
 #include "Core/Expected.h"
 #include "Core/PixelSize.h"
 #include "Crt/CrtRandom.h"
-#include "Data/Text/SlideTable.h"
+#include "Tables/SlideTable.h"
 #include "Math/X87.h"
 #include "Render/ScreenScale.h"
 #include "Render/SpriteBatch.h"
@@ -12,7 +12,7 @@
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Render/Text/TextLayout.h"
 #include "Render/Text/TextStyle.h"
-#include "Scenes/ITextDrawer.h"
+#include "Render/Frame/ITextDrawer.h"
 #include "UI/ChatLogWindow.h"
 
 #include <algorithm>

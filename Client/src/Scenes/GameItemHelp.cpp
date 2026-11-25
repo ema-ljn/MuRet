@@ -2,9 +2,9 @@
 
 #include "Core/Expected.h"
 #include "Core/PixelSize.h"
-#include "Data/Tables/ItemSetTables.h"
-#include "Data/Tables/ItemTable.h"
-#include "Data/Text/TextTable.h"
+#include "Tables/ItemSetTables.h"
+#include "Tables/ItemTable.h"
+#include "Tables/TextTable.h"
 #include "Math/X87.h"
 #include "Render/ScreenScale.h"
 #include "Render/SpriteBatch.h"

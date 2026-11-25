@@ -1,7 +1,7 @@
 #include "World/Particles.h"
 
 #include "Crt/CrtRandom.h"
-#include "Render/Models/RoundedMath.h"
+#include "Math/RoundedMath.h"
 #include "World/ParticleOwner.h"
 #include "World/PortableParticleTrigonometry.h"
 

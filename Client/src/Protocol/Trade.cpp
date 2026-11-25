@@ -8,7 +8,7 @@
 #include "Protocol/Connection/Opcodes.h"
 #include "Protocol/Inventory.h"
 #include "Protocol/Outgoing.h"
-#include "Protocol/ProtocolError.h"
+#include "Network/ProtocolError.h"
 
 #include <algorithm>
 #include <cstddef>

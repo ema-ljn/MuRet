@@ -5,9 +5,9 @@
 #include "Data/Terrain/TerrainGrid.h"
 #include "Data/Terrain/TerrainHeights.h"
 #include "Data/Terrain/TerrainLight.h"
-#include "Data/WorldFolder.h"
+#include "Maps/WorldFolder.h"
 #include "World/FaceNormal.h"
-#include "World/Ftol.h"
+#include "Math/Ftol.h"
 #include "World/WorldFiles.h"
 
 #include <glm/ext/vector_float3.hpp>

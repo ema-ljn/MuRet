@@ -2,11 +2,11 @@
 #include "Core/Expected.h"
 #include "Data/Textures/TextureSet.h"
 #include "Render/ITextureStore.h"
-#include "Render/Models/IModelLibrary.h"
-#include "Render/Models/ModelTextureSlots.h"
+#include "Models/IModelLibrary.h"
+#include "Models/ModelTextureSlots.h"
 #include "Render/TextureSlot.h"
 #include <cstdint>
-#include "Scenes/TextureMetadata.h"
+#include "Models/TextureMetadata.h"
 #include <limits>
 #include <optional>
 #include <span>

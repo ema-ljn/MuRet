@@ -1,6 +1,6 @@
 #include "Crt/CrtRandom.h"
-#include "Render/Models/ObjectState.h"
-#include "Render/Models/OriginalRetainedMath.h"
+#include "Models/ObjectState.h"
+#include "Math/OriginalRetainedMath.h"
 #include "World/CastleSiegeObjectStep.h"
 #include "World/GameModelEffects.h"
 #include "World/ModelEffects.h"

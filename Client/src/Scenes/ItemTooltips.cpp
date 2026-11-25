@@ -1,7 +1,7 @@
 #include "Scenes/ItemTooltips.h"
 
 #include "Core/Expected.h"
-#include "Data/Tables/ItemTable.h"
+#include "Tables/ItemTable.h"
 #include "Render/ScreenScale.h"
 #include "Render/SpriteBatch.h"
 #include "Render/Text/IGlyphRasterizer.h"
@@ -9,7 +9,7 @@
 #include "Scenes/GamePanels.h"
 #include "Scenes/GameTooltips.h"
 #include "Scenes/HudItems.h"
-#include "Scenes/ITextDrawer.h"
+#include "Render/Frame/ITextDrawer.h"
 #include "Scenes/ItemPrice.h"
 #include "Scenes/ItemTooltipParts.h"
 #include "Scenes/NpcWindowState.h"
@@ -20,7 +20,7 @@
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/ZenText.h"
 #include "UI/PanelRegistry.h"
-#include "World/Ftol.h"
+#include "Math/Ftol.h"
 #include "World/ItemState.h"
 
 #include <array>

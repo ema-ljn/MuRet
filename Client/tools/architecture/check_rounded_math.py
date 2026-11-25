@@ -3,7 +3,7 @@
 IEEE 754 fixes +, -, *, / and the square root, so std::sqrt, std::fabs, std::floor and their kind give the same bits on
 every system. Each C library rounds the sine, the cosine, the logarithm and the other functions listed below in its own
 way, and glm calls them inside rotate, perspective, slerp, angleAxis and quat(vec3). The client takes them from
-Render/Models/RoundedMath.h and RoundedTransforms.h (docs/adr/0027-correctly-rounded-math.md). The check goes by name:
+Math/RoundedMath.h and RoundedTransforms.h (docs/adr/0027-correctly-rounded-math.md). The check goes by name:
 it reads std::, glm:: and unqualified calls outside comments and literals. It cannot see a glm::quat built from a
 variable that holds Euler angles, and it skips an unqualified log(, the name the client gives its log. A row of the
 exceptions file allows one call in one file.
@@ -34,7 +34,7 @@ UNQUALIFIED_CALL = re.compile(rf'(?<![\w.])((?:{C_LIBRARY})[fl]?)\s*\(')
 LAST_WORD = re.compile(r'[A-Za-z_]\w*$')
 OWN_NAMES = {'log'}
 BEFORE_AN_EXPRESSION = {'return', 'co_return', 'co_yield', 'case', 'throw', 'else', 'do', 'and', 'or', 'not', 'xor'}
-ADVICE = 'use Render/Models/RoundedMath.h or RoundedTransforms.h (docs/adr/0027-correctly-rounded-math.md)'
+ADVICE = 'use Math/RoundedMath.h or RoundedTransforms.h (docs/adr/0027-correctly-rounded-math.md)'
 
 
 def code_of(text: str) -> str:

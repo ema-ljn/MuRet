@@ -1,6 +1,6 @@
-#include "Core/Crash/MemoryTotals.h"
+#include "Diagnostics/MemoryTotals.h"
 
-#include "Core/Crash/CrashReport.h"
+#include "Diagnostics/CrashReport.h"
 
 #include <gtest/gtest.h>
 

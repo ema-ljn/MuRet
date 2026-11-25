@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Data/Text/TextTable.h"
+#include "Tables/TextTable.h"
 #include "Protocol/Character/CharacterList.h"
 #include "UI/Notices.h"
 

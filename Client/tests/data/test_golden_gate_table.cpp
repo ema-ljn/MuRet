@@ -1,4 +1,4 @@
-#include "Data/Tables/GateTable.h"
+#include "Tables/GateTable.h"
 
 #include "support/FileBytes.h"
 #include "support/GoldenDir.h"

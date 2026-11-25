@@ -2,7 +2,7 @@
 #include "World/ModelEffects.h"
 #include <gtest/gtest.h>
 #include "Crt/CrtRandom.h"
-#include "Render/Models/Cloth.h"
+#include "Models/Cloth.h"
 #include "World/Particles.h"
 #include "World/ParticleDrawParameters.h"
 #include "World/Sprites.h"

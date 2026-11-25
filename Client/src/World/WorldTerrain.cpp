@@ -10,7 +10,7 @@
 #include "Data/Terrain/TerrainMapping.h"
 #include "Data/Terrain/TerrainObjects.h"
 #include "Data/Textures/Sampling.h"
-#include "Data/WorldFolder.h"
+#include "Maps/WorldFolder.h"
 #include "Maps/MapId.h"
 #include "World/TerrainCells.h"
 #include "World/TerrainLighting.h"

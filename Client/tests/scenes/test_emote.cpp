@@ -1,5 +1,5 @@
 #include "Network/Xor32Packet.h"
-#include "Render/Models/IModelLibrary.h"
+#include "Models/IModelLibrary.h"
 #include "Scenes/Emote.h"
 
 #include "Data/Models/Model.h"
@@ -7,7 +7,7 @@
 #include "Network/Delivery.h"
 #include "Protocol/Movement.h"
 #include "Protocol/Outgoing.h"
-#include "Render/Models/Skeleton.h"
+#include "Models/Skeleton.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/ActorState.h"
 #include "UI/Emotes.h"

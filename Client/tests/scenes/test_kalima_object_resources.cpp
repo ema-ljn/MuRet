@@ -3,7 +3,7 @@
 
 #include "Core/Expected.h"
 #include "Data/Textures/Sampling.h"
-#include "Render/Models/Cloth.h"
+#include "Models/Cloth.h"
 #include "Render/TextureSlot.h"
 #include "support/FakeTextureStore.h"
 #include "support/GoldenDir.h"

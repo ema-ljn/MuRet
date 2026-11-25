@@ -1,7 +1,7 @@
 #include "Scenes/HudItems.h"
 
 #include "Core/Expected.h"
-#include "Data/Tables/ItemTable.h"
+#include "Tables/ItemTable.h"
 #include "Scenes/OwnInventory.h"
 #include "World/ItemState.h"
 

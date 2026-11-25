@@ -1,6 +1,6 @@
-#include "Data/Text/SlideTable.h"
+#include "Tables/SlideTable.h"
 
-#include "Core/Xor3.h"
+#include "Crypto/Xor3.h"
 #include "Data/DataError.h"
 
 #include "support/ExpectedError.h"

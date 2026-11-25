@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Data/Tables/QuestTable.h"
+#include "Tables/QuestTable.h"
 
 #include <array>
 #include <cstddef>

@@ -3,7 +3,7 @@
 #include "Scenes/ActorPickingBox.h"
 #include "Data/Terrain/TerrainGrid.h"
 #include "Data/Terrain/TerrainMapping.h"
-#include "Render/Models/RayPicking.h"
+#include "Models/RayPicking.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/PartyActors.h"
 #include "Scenes/WorldRuntime.h"

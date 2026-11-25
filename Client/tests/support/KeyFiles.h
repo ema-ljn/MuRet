@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Core/Expected.h"
-#include "Network/Crypto/CryptoError.h"
+#include "Crypto/CryptoError.h"
 
 #include "support/FileBytes.h"
 

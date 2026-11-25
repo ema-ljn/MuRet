@@ -1,6 +1,6 @@
 #include "Core/Expected.h"
-#include "Data/Tables/ItemSetTables.h"
-#include "Data/Tables/ItemTable.h"
+#include "Tables/ItemSetTables.h"
+#include "Tables/ItemTable.h"
 #include "Scenes/GameHud.h"
 #include "Scenes/GameTooltips.h"
 #include "Scenes/ItemSetOptionList.h"

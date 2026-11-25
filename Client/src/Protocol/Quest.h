@@ -3,7 +3,7 @@
 #include "Core/Expected.h"
 #include "Network/Packet.h"
 #include "Protocol/Outgoing.h"
-#include "Protocol/ProtocolError.h"
+#include "Network/ProtocolError.h"
 
 #include <cstdint>
 #include <vector>

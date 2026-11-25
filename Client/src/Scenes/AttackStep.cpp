@@ -6,7 +6,7 @@
 #include "Crt/CrtRandom.h"
 #include "Data/Models/PlayerModels.h"
 #include "Maps/MapId.h"
-#include "Render/Models/LogicalAccess.h"
+#include "Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/ArrowEffects.h"
 #include "Scenes/AttackFrameSkills.h"

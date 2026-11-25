@@ -4,7 +4,7 @@
 
 #include "Crt/CrtRandom.h"
 #include "Protocol/Character/CharacterList.h"
-#include "Render/Models/LogicalAccess.h"
+#include "Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterCloth.h"
 #include "Scenes/DynamicWorldLight.h"

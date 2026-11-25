@@ -1,4 +1,4 @@
-#include "Render/Models/IModelLibrary.h"
+#include "Models/IModelLibrary.h"
 #include "World/GameModelEffects.h"
 
 #include "Core/Expected.h"
@@ -17,9 +17,9 @@
 #include "Scenes/WorldMap.h"
 #include "World/IFishStepServices.h"
 #include "Data/Terrain/TerrainAttributes.h"
-#include "Render/Models/OriginalRetainedMath.h"
-#include "Render/Models/OriginalRotation.h"
-#include "Render/Models/Skeleton.h"
+#include "Math/OriginalRetainedMath.h"
+#include "Math/OriginalRotation.h"
+#include "Models/Skeleton.h"
 #include "World/KalimaWorld.h"
 #include "World/ModelEffects.h"
 #include "World/Particles.h"

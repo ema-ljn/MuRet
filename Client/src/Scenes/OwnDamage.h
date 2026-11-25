@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Core/Expected.h"
-#include "Data/Tables/SkillTable.h"
+#include "Tables/SkillTable.h"
 
 #include <cstdint>
 #include <string>

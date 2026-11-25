@@ -1,8 +1,8 @@
 #pragma once
 
 #include "Core/Expected.h"
-#include "Data/Text/DialogTable.h"
-#include "Data/Text/TextTable.h"
+#include "Tables/DialogTable.h"
+#include "Tables/TextTable.h"
 #include "UI/Dialogs.h"
 #include "UI/Widget.h"
 #include "World/ItemState.h"

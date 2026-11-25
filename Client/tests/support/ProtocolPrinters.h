@@ -5,8 +5,8 @@
 
 #include "Protocol/Character/CharacterList.h"
 #include "Protocol/Dispatcher.h"
-#include "Protocol/PacketFields.h"
-#include "Protocol/ProtocolError.h"
+#include "Network/PacketFields.h"
+#include "Network/ProtocolError.h"
 
 #include <ostream>
 

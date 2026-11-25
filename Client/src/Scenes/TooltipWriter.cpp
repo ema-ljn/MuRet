@@ -1,6 +1,6 @@
 #include "Scenes/TooltipWriter.h"
 
-#include "Data/Text/TextTable.h"
+#include "Tables/TextTable.h"
 #include "Scenes/TooltipLines.h"
 #include "UI/GameText.h"
 

@@ -1,13 +1,13 @@
 #include "Scenes/GameInventoryHud.h"
 #include "Math/X87.h"
-#include "Render/Models/RoundedMath.h"
+#include "Math/RoundedMath.h"
 #include "Scenes/CastleWindows.h"
 
 #include "Core/Expected.h"
 #include "Core/PixelSize.h"
 #include "Math/FloatConstants.h"
-#include "Render/Models/LogicalAccess.h"
-#include "Render/Models/PassColors.h"
+#include "Models/LogicalAccess.h"
+#include "Models/PassColors.h"
 #include "Render/OriginalQuad.h"
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
@@ -37,7 +37,7 @@
 #include "UI/GameText.h"
 #include "UI/HudPrimitives.h"
 #include "UI/PanelRegistry.h"
-#include "UI/SprintfFormat.h"
+#include "Crt/SprintfFormat.h"
 #include "World/ItemState.h"
 
 #include <algorithm>

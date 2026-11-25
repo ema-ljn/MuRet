@@ -2,7 +2,7 @@
 
 #include "Render/SpriteBatch.h"
 #include "Render/TextureSlot.h"
-#include "Scenes/ITextDrawer.h"
+#include "Render/Frame/ITextDrawer.h"
 
 #include <string_view>
 

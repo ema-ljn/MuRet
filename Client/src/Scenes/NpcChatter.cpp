@@ -4,7 +4,7 @@
 #include "Crt/CrtRandom.h"
 #include "Data/Models/PlayerModels.h"
 #include "Maps/MapId.h"
-#include "Render/Models/Animation.h"
+#include "Models/Animation.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterStep.h"
 #include "Scenes/ChatBubbles.h"

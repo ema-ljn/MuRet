@@ -3,10 +3,10 @@
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Data/Models/PlayerModels.h"
-#include "Data/Tables/ItemTable.h"
-#include "Render/Models/Animation.h"
+#include "Tables/ItemTable.h"
+#include "Models/Animation.h"
 #include "Scenes/ActorState.h"
-#include "Scenes/MonsterSounds.h"
+#include "Sound/MonsterSounds.h"
 #include "Scenes/PlayerActionSpeeds.h"
 #include "Scenes/WorldRuntime.h"
 

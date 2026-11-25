@@ -5,9 +5,9 @@
 
 #include "Core/PixelSize.h"
 #include "Data/Terrain/TerrainGrid.h"
-#include "Data/Tables/ItemTable.h"
-#include "Data/Tables/SkillTable.h"
-#include "Data/Text/TextTable.h"
+#include "Tables/ItemTable.h"
+#include "Tables/SkillTable.h"
+#include "Tables/TextTable.h"
 #include "Data/Textures/TextureSet.h"
 #include "Render/ModelBatch.h"
 #include "Render/ModelVertex.h"
@@ -16,7 +16,7 @@
 
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
-#include "Render/Models/Cloth.h"
+#include "Models/Cloth.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/GameScene.h"
 #include "Scenes/SceneCameras.h"

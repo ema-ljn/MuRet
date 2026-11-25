@@ -2,7 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
-#include "Render/Models/LogicalAccess.h"
+#include "Models/LogicalAccess.h"
 #include "World/ModelEffects.h"
 
 #include <glm/ext/vector_float3.hpp>

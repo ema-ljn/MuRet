@@ -1,7 +1,7 @@
 #include "Network/Xor32Packet.h"
 #include "Protocol/Duel.h"
 #include "Protocol/Party.h"
-#include "Protocol/ProtocolError.h"
+#include "Network/ProtocolError.h"
 #include "Protocol/Trade.h"
 
 #include "Network/Delivery.h"

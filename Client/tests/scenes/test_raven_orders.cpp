@@ -4,7 +4,7 @@
 #include "Core/Log.h"
 #include "Crt/CrtRandom.h"
 #include "Protocol/Pet/PetOrders.h"
-#include "Render/Models/Cloth.h"
+#include "Models/Cloth.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/DarkSpirit.h"
 #include "Scenes/LoginModels.h"

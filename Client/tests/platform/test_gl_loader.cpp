@@ -1,6 +1,6 @@
-#include "Platform/GlLoader.h"
+#include "Platform/Sdl/GlLoader.h"
 
-#include "Platform/GlFunctionList.h"
+#include "Platform/Sdl/GlFunctionList.h"
 
 #include <gtest/gtest.h>
 

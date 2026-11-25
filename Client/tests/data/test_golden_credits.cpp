@@ -1,4 +1,4 @@
-#include "Data/Text/Credits.h"
+#include "Tables/Credits.h"
 
 #include "support/FileBytes.h"
 #include "support/GoldenDir.h"

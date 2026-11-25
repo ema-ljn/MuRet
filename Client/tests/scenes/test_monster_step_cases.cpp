@@ -3,13 +3,13 @@
 #include "Core/Expected.h"
 #include "Data/Models/PlayerModels.h"
 #include "Data/Terrain/TerrainGrid.h"
-#include "Render/Models/Skeleton.h"
+#include "Models/Skeleton.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/GameCharacters.h"
 #include "Scenes/MonsterCreation.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldTexts.h"
-#include "World/TerrainWalls.h"
+#include "Pathfinding/TerrainWalls.h"
 #include "support/SceneDataFiles.h"
 
 #include <gtest/gtest.h>

@@ -1,9 +1,9 @@
 #include "Scenes/LandOfTrialsObjectServices.h"
 
 #include "Crt/CrtRandom.h"
-#include "Render/Models/HalfLifeMath.h"
-#include "Render/Models/OriginalRetainedMath.h"
-#include "Render/Models/OriginalRotation.h"
+#include "Math/HalfLifeMath.h"
+#include "Math/OriginalRetainedMath.h"
+#include "Math/OriginalRotation.h"
 #include "Scenes/FaunaDrawing.h"
 #include "Scenes/WorldObjectsDrawing.h"
 #include "World/Particles.h"

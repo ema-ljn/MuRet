@@ -1,6 +1,6 @@
 #include "UI/GameText.h"
 
-#include "Data/Text/TextTable.h"
+#include "Tables/TextTable.h"
 
 #include <algorithm>
 #include <cstddef>

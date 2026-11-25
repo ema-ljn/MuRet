@@ -1,4 +1,4 @@
-#include "Data/Tables/MonsterSkillTable.h"
+#include "Tables/MonsterSkillTable.h"
 
 #include "support/FileBytes.h"
 #include "support/GoldenDir.h"

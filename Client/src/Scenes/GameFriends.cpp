@@ -7,7 +7,7 @@
 #include "Protocol/Friends.h"
 #include "Protocol/Letters.h"
 #include "Protocol/Outgoing.h"
-#include "Render/Models/LogicalAccess.h"
+#include "Models/LogicalAccess.h"
 #include "Scenes/ChatReceive.h"
 #include "Scenes/GameMessages.h"
 #include "Scenes/GameUi.h"
@@ -21,7 +21,7 @@
 #include "UI/MessageArea.h"
 #include "UI/OldWindows.h"
 #include "UI/SlideBanner.h"
-#include "UI/SprintfFormat.h"
+#include "Crt/SprintfFormat.h"
 
 #include <cstddef>
 #include <cstdint>

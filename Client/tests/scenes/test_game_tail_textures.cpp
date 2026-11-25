@@ -16,7 +16,7 @@
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/FaunaObject.h"
 #include "Scenes/GameDrawTail.h"
-#include "Scenes/TextureMetadata.h"
+#include "Models/TextureMetadata.h"
 #include "World/IFishStepServices.h"
 #include "World/Sprites.h"
 

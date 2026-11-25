@@ -1,7 +1,7 @@
 #include "UI/ServerListWindow.h"
 
 #include "Core/PixelSize.h"
-#include "Data/Text/TextTable.h"
+#include "Tables/TextTable.h"
 #include "Input/InputState.h"
 #include "Protocol/Connection/ServerList.h"
 #include "Render/SpriteBatch.h"

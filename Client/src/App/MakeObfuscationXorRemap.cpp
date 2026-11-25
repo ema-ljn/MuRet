@@ -2,7 +2,7 @@
 
 #include "App/LabXorRemapTables.h"
 #include "Network/IObfuscation.h"
-#include "Network/XorRemapObfuscation.h"
+#include "Network/XorRemap/XorRemapObfuscation.h"
 
 #include <memory>
 

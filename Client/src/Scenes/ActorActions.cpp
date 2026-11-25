@@ -3,18 +3,18 @@
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Data/Models/PlayerModels.h"
-#include "Data/Tables/ItemTable.h"
+#include "Tables/ItemTable.h"
 #include "Data/Terrain/TerrainGrid.h"
 #include "Maps/MapId.h"
 #include "Protocol/Movement.h"
-#include "Render/Models/Animation.h"
-#include "Render/Models/LogicalAccess.h"
+#include "Models/Animation.h"
+#include "Models/LogicalAccess.h"
 #include "Scenes/ActionSend.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/WorldRuntime.h"
-#include "World/Ftol.h"
-#include "World/TerrainWalls.h"
+#include "Math/Ftol.h"
+#include "Pathfinding/TerrainWalls.h"
 
 #include <algorithm>
 #include <array>

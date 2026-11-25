@@ -17,7 +17,7 @@
 #include "Scenes/GameHud.h"
 #include "Scenes/GameMovementState.h"
 #include "Scenes/GuildState.h"
-#include "Scenes/ITextDrawer.h"
+#include "Render/Frame/ITextDrawer.h"
 #include "Scenes/JewelBundleList.h"
 #include "Scenes/NpcWindowState.h"
 #include "Scenes/SocialState.h"
@@ -33,7 +33,7 @@
 #include "UI/OldWindowBase.h"
 #include "UI/OldWindowDraw.h"
 #include "UI/OldWindowDrawParts.h"
-#include "UI/SprintfFormat.h"
+#include "Crt/SprintfFormat.h"
 #include "UI/Widget.h"
 #include "World/ItemState.h"
 

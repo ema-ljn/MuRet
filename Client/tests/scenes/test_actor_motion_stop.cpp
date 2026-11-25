@@ -9,7 +9,7 @@
 #include "Scenes/PlayerActionSpeeds.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/WorldRuntime.h"
-#include "World/TerrainWalls.h"
+#include "Pathfinding/TerrainWalls.h"
 #include "support/PlayerActors.h"
 
 #include <gtest/gtest.h>

@@ -3,7 +3,7 @@
 #include "Core/Expected.h"
 #include "Data/Models/PlayerModels.h"
 #include "GameLogic/CharacterAppearance.h"
-#include "Render/Models/LogicalAccess.h"
+#include "Models/LogicalAccess.h"
 #include "Scenes/ActorActions.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/FullSetScan.h"

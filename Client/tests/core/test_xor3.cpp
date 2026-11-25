@@ -1,4 +1,4 @@
-#include "Core/Xor3.h"
+#include "Crypto/Xor3.h"
 
 #include "support/BytePattern.h"
 

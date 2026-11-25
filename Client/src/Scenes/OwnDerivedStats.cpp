@@ -2,8 +2,8 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
-#include "Data/Tables/ItemTable.h"
-#include "Render/Models/LogicalAccess.h"
+#include "Tables/ItemTable.h"
+#include "Models/LogicalAccess.h"
 #include "Scenes/FullSetScan.h"
 #include "Scenes/ItemSetOptionList.h"
 #include "Scenes/ItemSetState.h"

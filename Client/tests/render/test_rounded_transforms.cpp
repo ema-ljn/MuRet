@@ -1,6 +1,6 @@
-#include "Render/Models/RoundedTransforms.h"
+#include "Math/RoundedTransforms.h"
 
-#include "Render/Models/RoundedMath.h"
+#include "Math/RoundedMath.h"
 
 #include "support/FloatBits.h"
 #include "support/Fnv1a.h"

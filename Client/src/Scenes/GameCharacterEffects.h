@@ -2,7 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Core/IClock.h"
-#include "Render/Models/HalfLifeMath.h"
+#include "Math/HalfLifeMath.h"
 #include "Scenes/FullSetScan.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/SocialState.h"

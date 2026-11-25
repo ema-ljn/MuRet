@@ -1,7 +1,8 @@
 # Client: la reimplementación del main.exe de MU Online 1.02.
 #
-# ClientLib tiene todo el código que no ve SDL3, ClientPlatform lo que sí (src/Platform/, CL3.1),
-# ClientRender lo que habla con OpenGL (src/Render/Gl/, CL5.1) y Main es el ejecutable (CL0.2). Los
+# ClientLib tiene todo el código que no ve SDL3, ClientPlatform lo que sí (src/engine/Platform/Sdl/ y
+# src/engine/Audio/Sdl/, CL3.1), ClientRender lo que habla con OpenGL (src/engine/Render/Gl/, CL5.1) y Main es
+# el ejecutable (CL0.2). Los
 # tests van en tests/, un ejecutable por archivo como en sven-n/MuMain (tests/CMakeLists.txt). Las
 # capas (Core, Data, Network, Protocol, Render, Scenes) van entrando a ClientLib ola por ola.
 
@@ -11,7 +12,7 @@ find_package(SDL3_mixer CONFIG REQUIRED)
 # cualquier libjpeg (find_package(JPEG)): es la que se comparó con la 6b del original.
 find_package(libjpeg-turbo CONFIG REQUIRED)
 # glm (vcpkg.json, desde la CL5.0): la matriz del 2D de ClientRender (pregunta 6 de la CL5) y, desde
-# la CL6.2, los cuaterniones y las matrices de Render/Models/ en ClientLib. Solo los headers: el
+# la CL6.2, los cuaterniones y las matrices de Models/ en ClientLib. Solo los headers: el
 # puerto también arma una biblioteca (glm::glm), que no hace falta.
 find_package(glm CONFIG REQUIRED)
 # FreeType (vcpkg.json, desde la CL5.3): el texto en un bit de Render/Text/FreeTypeRasterizer.cpp
@@ -22,15 +23,17 @@ find_package(Freetype REQUIRED)
 find_package(CLI11 CONFIG REQUIRED)
 
 # Los fuentes de src/ se juntan solos, como en MuMain: un .cpp nuevo entra al reconfigurar
-# (CONFIGURE_DEPENDS lo mira en cada build). main.cpp es de Main, no de la biblioteca, src/Platform/
-# es de ClientPlatform y src/Render/Gl/ de ClientRender: ClientLib no enlaza SDL3 ni ve GL (como
+# (CONFIGURE_DEPENDS lo mira en cada build). main.cpp es de Main, no de la biblioteca, src/engine/Platform/Sdl/
+# y src/engine/Audio/Sdl/ son de ClientPlatform y src/engine/Render/Gl/ de ClientRender: ClientLib no enlaza SDL3
+# ni ve GL (como
 # los list(FILTER MU_CLIENT_SOURCES EXCLUDE REGEX ...) de src/CMakeLists.txt en MuMain).
 file(GLOB_RECURSE client_sources CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
 list(FILTER client_sources EXCLUDE REGEX "/src/main\\.cpp$")
-list(FILTER client_sources EXCLUDE REGEX "/src/Platform/")
-list(FILTER client_sources EXCLUDE REGEX "/src/Render/Gl/")
+list(FILTER client_sources EXCLUDE REGEX "/src/engine/Platform/Sdl/")
+list(FILTER client_sources EXCLUDE REGEX "/src/engine/Audio/Sdl/")
+list(FILTER client_sources EXCLUDE REGEX "/src/engine/Render/Gl/")
 # ClientRoundedMath, with its own compile options.
-list(FILTER client_sources EXCLUDE REGEX "/src/Render/Models/RoundedMath/")
+list(FILTER client_sources EXCLUDE REGEX "/src/engine/Math/RoundedMath/")
 # Each system's command line syntax (App/CommandLineSystem.h).
 list(FILTER client_sources EXCLUDE REGEX "/src/App/CommandLine(Posix|Windows)\\.cpp$")
 if(WIN32)
@@ -39,10 +42,10 @@ else()
     list(APPEND client_sources "${CMAKE_CURRENT_SOURCE_DIR}/src/App/CommandLinePosix.cpp")
 endif()
 # The XOR and remap layer is its own target, and MU_XOR_REMAP picks Main's MakeObfuscation (below).
-list(FILTER client_sources EXCLUDE REGEX "/src/Network/XorRemapObfuscation\\.cpp$")
+list(FILTER client_sources EXCLUDE REGEX "/src/engine/Network/XorRemap/XorRemapObfuscation\\.cpp$")
 list(FILTER client_sources EXCLUDE REGEX "/src/App/MakeObfuscation[^/]*\\.cpp$")
 add_library(ClientLib STATIC ${client_sources})
-target_include_directories(ClientLib PUBLIC src)
+target_include_directories(ClientLib PUBLIC src src/engine src/game)
 target_compile_features(ClientLib PUBLIC cxx_std_20)
 # En vcpkg, libjpeg-turbo es estática en Linux y dinámica en Windows: el target cambia de nombre.
 target_link_libraries(ClientLib PRIVATE
@@ -50,10 +53,10 @@ target_link_libraries(ClientLib PRIVATE
 # Sus headers quedan en FreeTypeRasterizer.cpp: nadie más los ve.
 target_link_libraries(ClientLib PRIVATE Freetype::Freetype)
 target_link_libraries(ClientLib PRIVATE CLI11::CLI11)
-# PUBLIC: los headers de Render/Models/ usan sus tipos (pregunta 4 del plan de la CL6). Sin
+# PUBLIC: los headers de Models/ usan sus tipos (pregunta 4 del plan de la CL6). Sin
 # GLM_FORCE_* ni GLM_ENABLE_EXPERIMENTAL, así el precompiled header no cambia.
 target_link_libraries(ClientLib PUBLIC glm::glm-header-only)
-add_subdirectory(src/Render/Models/RoundedMath)
+add_subdirectory(src/engine/Math/RoundedMath)
 target_link_libraries(ClientLib PUBLIC ClientRoundedMath)
 # Los sockets de Network/SocketApi.cpp (CL4.1): en Windows son de Winsock 2, ws2_32. En Linux están
 # en la libc.
@@ -73,7 +76,7 @@ mu_precompile_headers(ClientLib)
 # MSVC avisa de cualquier setjmp en C++ (C4611: longjmp no corre destructores); los dos archivos
 # están armados para que no haya ninguno en el medio (Decompress y Compress).
 if(MSVC)
-    set_source_files_properties(src/Data/Textures/JpegImage.cpp src/Data/Textures/JpegWriter.cpp
+    set_source_files_properties(src/engine/Data/Textures/JpegImage.cpp src/engine/Data/Textures/JpegWriter.cpp
         PROPERTIES COMPILE_OPTIONS /wd4611)
 endif()
 # MSVC: App/ServerSession.cpp, con los handlers que suman las ventanas de los NPC (hito 6 de la CL9) y el asedio
@@ -85,11 +88,12 @@ endif()
 
 # Platform (CL3.1): lo único que ve SDL3. La ventana, el contexto GL, el loader, el intervalo de
 # swap y la traducción de eventos. Sus tests (tests/platform/) lo enlazan aparte.
-file(GLOB_RECURSE platform_sources CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/Platform/*.cpp")
+file(GLOB_RECURSE platform_sources CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/engine/Platform/Sdl/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/engine/Audio/Sdl/*.cpp")
 add_library(ClientPlatform STATIC ${platform_sources})
 target_link_libraries(ClientPlatform PUBLIC ClientLib SDL3::SDL3
     $<IF:$<TARGET_EXISTS:SDL3_mixer::SDL3_mixer>,SDL3_mixer::SDL3_mixer,SDL3_mixer::SDL3_mixer-static>)
-# El registro de Platform/SystemFonts.cpp (CL5.3): en Windows, advapi32, que MSVC ya enlaza por
+# El registro de Platform/Sdl/SystemFonts.cpp (CL5.3): en Windows, advapi32, que MSVC ya enlaza por
 # defecto; va explícito, como ws2_32.
 if(WIN32)
     target_link_libraries(ClientPlatform PRIVATE advapi32)
@@ -107,7 +111,7 @@ mu_precompile_headers(ClientPlatform)
 # el framebuffer de los tests y el pipeline del 2D. Llama a GL por la tabla de ClientPlatform
 # (GlFunctions), así que la enlaza; lo que arma qué dibujar (Render/ sin Gl/) queda en ClientLib y
 # se prueba sin ventana (pregunta 4 del plan de la CL5). Sus tests, en tests/render_gl/.
-file(GLOB_RECURSE render_gl_sources CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/Render/Gl/*.cpp")
+file(GLOB_RECURSE render_gl_sources CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/engine/Render/Gl/*.cpp")
 add_library(ClientRender STATIC ${render_gl_sources})
 target_link_libraries(ClientRender PUBLIC ClientPlatform PRIVATE glm::glm-header-only)
 mu_set_warnings(ClientRender)
@@ -117,7 +121,7 @@ mu_reuse_precompiled_headers(ClientRender ClientPlatform)
 # App/MakeObfuscation.h for the first two.
 option(MU_XOR_REMAP "Build the XOR and remap layer the lab server expects" ON)
 if(MU_XOR_REMAP)
-    add_library(XorRemap STATIC src/Network/XorRemapObfuscation.cpp)
+    add_library(XorRemap STATIC src/engine/Network/XorRemap/XorRemapObfuscation.cpp)
     target_link_libraries(XorRemap PUBLIC ClientLib)
     mu_set_warnings(XorRemap)
     set(MU_MAKE_OBFUSCATION_SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/src/App/MakeObfuscationXorRemap.cpp")

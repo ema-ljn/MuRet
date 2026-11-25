@@ -1,8 +1,8 @@
 #include "Scenes/Emote.h"
 
 #include "Core/Expected.h"
-#include "Render/Models/Animation.h"
-#include "Render/Models/IModelLibrary.h"
+#include "Models/Animation.h"
+#include "Models/IModelLibrary.h"
 #include "Scenes/ActionSend.h"
 #include "Scenes/ActorState.h"
 #include "UI/Emotes.h"

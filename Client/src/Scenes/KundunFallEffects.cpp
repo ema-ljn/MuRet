@@ -5,7 +5,7 @@
 #include "Math/Angles.h"
 #include "Math/FloatConstants.h"
 #include "Math/X87.h"
-#include "Render/Models/OriginalRetainedMath.h"
+#include "Math/OriginalRetainedMath.h"
 #include "Scenes/HighEffectEmitters.h"
 #include "Scenes/HighModelEffects.h"
 #include "Scenes/WizardEffects.h"

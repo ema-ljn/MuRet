@@ -1,7 +1,7 @@
 #include "Scenes/QuestWindow.h"
 
 #include "Core/Expected.h"
-#include "Data/Tables/QuestTable.h"
+#include "Tables/QuestTable.h"
 #include "Math/X87.h"
 #include "Render/OriginalQuad.h"
 #include "Render/SpriteBatch.h"

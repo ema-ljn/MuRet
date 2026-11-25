@@ -2,9 +2,9 @@
 
 #include "Crt/CrtRandom.h"
 #include "Math/X87.h"
-#include "Render/Models/HalfLifeMath.h"
-#include "Render/Models/OriginalRotation.h"
-#include "Render/Models/RoundedMath.h"
+#include "Math/HalfLifeMath.h"
+#include "Math/OriginalRotation.h"
+#include "Math/RoundedMath.h"
 #include "Scenes/FaunaDrawing.h"
 #include "Scenes/WorldObjectsDrawing.h"
 #include "World/ModelEffects.h"

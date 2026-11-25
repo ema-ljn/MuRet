@@ -1,6 +1,6 @@
 #include "Crt/CrtRandom.h"
 #include "Scenes/CrywolfMissileDrawing.h"
-#include "Render/Models/HalfLifeMath.h"
+#include "Math/HalfLifeMath.h"
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
 #include "World/ParticleOwner.h"

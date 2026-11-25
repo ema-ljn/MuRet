@@ -1,5 +1,5 @@
 #include "Crt/CrtRandom.h"
-#include "Render/Models/ObjectState.h"
+#include "Models/ObjectState.h"
 #include "World/DungeonObjectStep.h"
 #include "World/ModelEffects.h"
 #include "World/ObjectModelStepState.h"

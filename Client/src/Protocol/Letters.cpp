@@ -6,8 +6,8 @@
 #include "Network/PacketWriter.h"
 #include "Network/Xor32Packet.h"
 #include "Protocol/Outgoing.h"
-#include "Protocol/PacketFields.h"
-#include "Protocol/ProtocolError.h"
+#include "Network/PacketFields.h"
+#include "Network/ProtocolError.h"
 
 #include <algorithm>
 #include <cstddef>

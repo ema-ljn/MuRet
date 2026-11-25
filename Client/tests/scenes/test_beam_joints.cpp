@@ -2,7 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
-#include "Render/Models/OriginalRotation.h"
+#include "Math/OriginalRotation.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/GameDrawTail.h"
 #include "World/IFishStepServices.h"

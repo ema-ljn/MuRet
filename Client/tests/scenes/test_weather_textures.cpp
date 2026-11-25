@@ -5,7 +5,7 @@
 #include "Data/Textures/TextureSet.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/ModelTextureTable.h"
-#include "Scenes/TextureMetadata.h"
+#include "Models/TextureMetadata.h"
 #include "World/WorldTerrain.h"
 #include "support/FakeTextureStore.h"
 #include "support/GoldenDir.h"

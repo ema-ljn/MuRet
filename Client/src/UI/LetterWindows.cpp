@@ -12,7 +12,7 @@
 #include "UI/OldWindowDrawParts.h"
 #include "UI/OldWindowSteps.h"
 #include "UI/OldWindows.h"
-#include "UI/SprintfFormat.h"
+#include "Crt/SprintfFormat.h"
 #include "UI/TextField.h"
 
 #include <algorithm>

@@ -2,8 +2,8 @@
 
 #include "Crt/CrtRandom.h"
 #include "Data/Models/PlayerModels.h"
-#include "Data/Tables/ItemTable.h"
-#include "Render/Models/Skeleton.h"
+#include "Tables/ItemTable.h"
+#include "Models/Skeleton.h"
 #include "Scenes/ActorState.h"
 #include "support/TableFiles.h"
 

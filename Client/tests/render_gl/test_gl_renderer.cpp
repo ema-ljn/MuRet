@@ -3,7 +3,7 @@
 #include "Core/Expected.h"
 #include "Core/PixelSize.h"
 #include "Data/Textures/Texture.h"
-#include "Platform/GlLoader.h"
+#include "Platform/Sdl/GlLoader.h"
 #include "Render/Gl/GlFramebuffer.h"
 #include "Render/Gl/GlTexture.h"
 #include "Render/SpriteVertex.h"

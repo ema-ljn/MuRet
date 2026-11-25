@@ -1,7 +1,7 @@
 #include "World/ItemState.h"
 
-#include "Data/Tables/ItemTable.h"
-#include "Scenes/GameData.h"
+#include "Tables/ItemTable.h"
+#include "Tables/GameData.h"
 #include "support/GoldenDir.h"
 
 #include "support/SystemCrashReports.h"

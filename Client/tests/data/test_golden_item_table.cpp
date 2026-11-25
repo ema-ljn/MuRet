@@ -1,4 +1,4 @@
-#include "Data/Tables/ItemTable.h"
+#include "Tables/ItemTable.h"
 
 #include "support/FileBytes.h"
 #include "support/GoldenDir.h"

@@ -3,9 +3,9 @@
 #include "Core/Expected.h"
 #include "Core/IClock.h"
 #include "Data/Models/PlayerModels.h"
-#include "Render/Models/ObjectState.h"
-#include "Render/Models/OriginalRetainedMath.h"
-#include "Render/Models/Skinning.h"
+#include "Models/ObjectState.h"
+#include "Math/OriginalRetainedMath.h"
+#include "Models/Skinning.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/GameItemSpecialDrawing.h"
 

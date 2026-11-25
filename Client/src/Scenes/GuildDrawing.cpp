@@ -13,7 +13,7 @@
 #include "Scenes/GameWindowDrawing.h"
 #include "Scenes/GuildMarks.h"
 #include "Scenes/GuildState.h"
-#include "Scenes/ITextDrawer.h"
+#include "Render/Frame/ITextDrawer.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/GameText.h"
@@ -25,7 +25,7 @@
 #include "UI/PanelDialog.h"
 #include "UI/PanelRegistry.h"
 #include "UI/PanelTimerFrame.h"
-#include "UI/SprintfFormat.h"
+#include "Crt/SprintfFormat.h"
 #include "UI/Widget.h"
 
 #include <algorithm>

@@ -4,7 +4,7 @@
 // IWYU pragma: always_keep
 
 #include "Network/CloseReason.h"
-#include "Network/Crypto/CryptoError.h"
+#include "Crypto/CryptoError.h"
 #include "Network/Delivery.h"
 #include "Network/ISocket.h"
 #include "Network/LinkState.h"

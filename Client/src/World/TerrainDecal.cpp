@@ -7,10 +7,10 @@
 #include "Math/X87.h"
 #include "Render/ModelBatch.h"
 #include "Render/ModelVertex.h"
-#include "Render/Models/OriginalRotation.h"
+#include "Math/OriginalRotation.h"
 #include "Render/SpriteVertex.h"
 #include "Render/TextureSlot.h"
-#include "World/Ftol.h"
+#include "Math/Ftol.h"
 #include "World/TerrainCells.h"
 
 #include <glm/ext/vector_float2.hpp>

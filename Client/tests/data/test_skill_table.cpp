@@ -1,4 +1,4 @@
-#include "Data/Tables/SkillTable.h"
+#include "Tables/SkillTable.h"
 
 #include "Data/DataError.h"
 #include "Data/Tables/TableChecksum.h"

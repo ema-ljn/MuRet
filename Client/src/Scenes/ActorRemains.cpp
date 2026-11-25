@@ -2,9 +2,9 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
-#include "Render/Models/HalfLifeMath.h"
-#include "Render/Models/OriginalRotation.h"
-#include "Render/Models/Skeleton.h"
+#include "Math/HalfLifeMath.h"
+#include "Math/OriginalRotation.h"
+#include "Models/Skeleton.h"
 #include "Scenes/ActorState.h"
 #include "World/GroundMarks.h"
 #include "World/ModelEffects.h"

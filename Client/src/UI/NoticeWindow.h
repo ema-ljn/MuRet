@@ -1,10 +1,10 @@
 #pragma once
 
 #include "Core/PixelSize.h"
-#include "Data/Text/TextTable.h"
+#include "Tables/TextTable.h"
 #include "Input/InputState.h"
 #include "Render/SpriteBatch.h"
-#include "Scenes/ITextDrawer.h"
+#include "Render/Frame/ITextDrawer.h"
 #include "UI/Button.h"
 #include "UI/NewUi.h"
 #include "UI/Notices.h"

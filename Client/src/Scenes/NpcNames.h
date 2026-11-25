@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Data/Text/NpcNames.h"
+#include "Tables/NpcNames.h"
 
 #include <cstddef>
 #include <cstdint>

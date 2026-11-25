@@ -1,6 +1,6 @@
 #include "Core/ByteReader.h"
-#include "Network/Crypto/SimpleModulus.h"
-#include "Network/Crypto/SimpleModulusKeyFile.h"
+#include "Crypto/SimpleModulus.h"
+#include "Crypto/SimpleModulusKeyFile.h"
 #include "Network/EncryptedPacket.h"
 #include "Network/Packet.h"
 #include "Network/PacketSerials.h"

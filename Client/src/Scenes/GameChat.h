@@ -2,9 +2,9 @@
 
 #include "Core/Expected.h"
 #include "Core/PixelSize.h"
-#include "Data/Tables/ItemSetTables.h"
-#include "Data/Tables/ItemTable.h"
-#include "Data/Text/TextTable.h"
+#include "Tables/ItemSetTables.h"
+#include "Tables/ItemTable.h"
+#include "Tables/TextTable.h"
 #include "Input/TextInputEvent.h"
 #include "Protocol/Outgoing.h"
 #include "UI/ChatInput.h"

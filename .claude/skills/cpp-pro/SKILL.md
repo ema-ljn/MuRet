@@ -42,7 +42,7 @@ que instaló vcpkg gana sobre la documentación.
 
 | `references/` dice | En MuRet |
 | --- | --- |
-| C++20/23 | Solo C++20 (`CMAKE_CXX_STANDARD 20`, sin extensiones). Nada de C++23: ni `std::expected`, ni `std::print`, ni deducing this. Los errores van con `std::optional` y `std::error_code`, como en `Client/src/Data/DataPath.h`, o con el `Expected` propio del camino de aprendizaje. |
+| C++20/23 | Solo C++20 (`CMAKE_CXX_STANDARD 20`, sin extensiones). Nada de C++23: ni `std::expected`, ni `std::print`, ni deducing this. Los errores van con `std::optional` y `std::error_code`, como en `Client/src/engine/Data/DataPath.h`, o con el `Expected` propio del camino de aprendizaje. |
 | Dependencias con `FetchContent` o Conan | Solo `vcpkg.json` en modo manifiesto, con la `builtin-baseline` fija. Una dependencia nueva se justifica (regla 10) y, si pesa, lleva un ADR. |
 | Tests con Catch2 | GoogleTest y CTest (`gtest_discover_tests`). Primero el test en rojo (regla 13). |
 | Nombres en `snake_case`, miembros con `_` al final | Tipos, funciones y constantes en `PascalCase`; variables, parámetros y campos públicos de un `struct` en `camelCase`; miembros privados y protegidos con `m_` (`m_buffer`), interfaces con `I` (`IObfuscation`) y estáticos con `s_` (regla 7). Tests en `test_<snake_case>.cpp`, un ejecutable por archivo. |

@@ -3,8 +3,8 @@
 #include "Core/Expected.h"
 #include "Data/Models/Model.h"
 #include "Maps/ClothWind.h"
-#include "Render/Models/Cloth.h"
-#include "Render/Models/Skinning.h"
+#include "Models/Cloth.h"
+#include "Models/Skinning.h"
 #include "Scenes/ClothCarry.h"
 
 #include <glm/ext/vector_float3.hpp>

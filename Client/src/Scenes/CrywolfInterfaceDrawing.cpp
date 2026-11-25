@@ -16,9 +16,9 @@
 #include "Scenes/WorldState.h"
 #include "UI/GameText.h"
 #include "UI/HudPrimitives.h"
-#include "UI/OriginalFormat.h"
+#include "Crt/OriginalFormat.h"
 #include "UI/Widget.h"
-#include "World/Ftol.h"
+#include "Math/Ftol.h"
 
 #include <array>
 #include <cstddef>

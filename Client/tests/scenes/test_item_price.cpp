@@ -1,7 +1,7 @@
 #include "Scenes/ItemPrice.h"
 
 #include "Core/Expected.h"
-#include "Data/Tables/ItemTable.h"
+#include "Tables/ItemTable.h"
 #include "World/ItemState.h"
 #include "support/FileBytes.h"
 #include "support/GoldenDir.h"

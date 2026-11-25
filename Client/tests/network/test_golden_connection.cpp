@@ -1,6 +1,6 @@
 #include "Network/Connection.h"
 
-#include "Network/Crypto/SimpleModulus.h"
+#include "Crypto/SimpleModulus.h"
 #include "Network/EncryptedPacket.h"
 #include "Network/IdentityObfuscation.h"
 #include "Network/Packet.h"

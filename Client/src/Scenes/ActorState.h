@@ -1,10 +1,10 @@
 #pragma once
 
 #include "GameLogic/CharacterAppearance.h"
-#include "GameLogic/Path.h"
+#include "Pathfinding/Path.h"
 #include "Protocol/Character/Opcodes.h"
-#include "Render/Models/HalfLifeMath.h"
-#include "Render/Models/Pose.h"
+#include "Math/HalfLifeMath.h"
+#include "Models/Pose.h"
 #include "Scenes/CharacterHead.h"
 #include "Scenes/DarkSpirit.h"
 

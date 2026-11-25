@@ -6,7 +6,7 @@
 #include "Math/FloatConstants.h"
 #include "Math/X87.h"
 #include "Protocol/Events.h"
-#include "Render/Models/OriginalRetainedMath.h"
+#include "Math/OriginalRetainedMath.h"
 #include "Scenes/WorldObjectsDrawing.h"
 #include "Scenes/WorldRuntime.h"
 #include "World/KalimaParticleKernels.h"

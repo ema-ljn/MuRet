@@ -1,7 +1,7 @@
 #include "support/AppPrinters.h"
 
 #include "App/Credentials.h"
-#include "App/Resolution.h"
+#include "Platform/Resolution.h"
 #include "App/SessionState.h"
 
 #include <gtest/gtest.h>

@@ -1,5 +1,5 @@
 #include "Math/X87.h"
-#include "Render/Models/IModelLibrary.h"
+#include "Models/IModelLibrary.h"
 #include "Scenes/CrywolfObjectServices.h"
 
 #include "Core/Expected.h"
@@ -9,7 +9,7 @@
 #include "Render/ModelBatch.h"
 #include "Render/ModelVertex.h"
 #include "Render/Pass3D.h"
-#include "Render/Models/Skeleton.h"
+#include "Models/Skeleton.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/WorldObjectsDrawing.h"

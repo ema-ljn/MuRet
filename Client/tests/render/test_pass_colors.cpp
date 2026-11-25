@@ -1,7 +1,7 @@
-#include "Render/Models/PassColors.h"
+#include "Models/PassColors.h"
 
-#include "Render/Models/RoundedMath.h"
-#include "Render/Models/Shine.h"
+#include "Math/RoundedMath.h"
+#include "Models/Shine.h"
 #include "Render/SpriteVertex.h"
 
 #include <gtest/gtest.h>

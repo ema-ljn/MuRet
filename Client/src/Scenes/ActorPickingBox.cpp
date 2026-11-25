@@ -1,6 +1,6 @@
 #include "Scenes/ActorPickingBox.h"
 
-#include "Render/Models/RayPicking.h"
+#include "Models/RayPicking.h"
 #include "Scenes/ActorState.h"
 
 #include <array>

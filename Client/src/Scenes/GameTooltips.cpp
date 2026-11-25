@@ -2,10 +2,10 @@
 
 #include "Core/Expected.h"
 #include "Core/PixelSize.h"
-#include "Data/Tables/ItemSetTables.h"
-#include "Data/Text/TextTable.h"
+#include "Tables/ItemSetTables.h"
+#include "Tables/TextTable.h"
 #include "Math/X87.h"
-#include "Render/Models/LogicalAccess.h"
+#include "Models/LogicalAccess.h"
 #include "Render/ScreenScale.h"
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
@@ -28,7 +28,7 @@
 #include "UI/GameText.h"
 #include "UI/GameUiState.h"
 #include "UI/PanelRegistry.h"
-#include "UI/SprintfFormat.h"
+#include "Crt/SprintfFormat.h"
 #include "World/ItemState.h"
 
 #include <array>

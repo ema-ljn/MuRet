@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Render/Models/OriginalRotation.h"
+#include "Math/OriginalRotation.h"
 
 #include <glm/ext/vector_float3.hpp>
 

@@ -1,5 +1,5 @@
 #include "GameLogic/MovePath.h"
-#include "GameLogic/Path.h"
+#include "Pathfinding/Path.h"
 #include <glm/ext/vector_float3.hpp>
 #include <gtest/gtest.h>
 #include <array>

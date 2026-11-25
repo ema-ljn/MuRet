@@ -1,17 +1,17 @@
 #include "Assets/ModelIds.h"
 #include "Maps/MapId.h"
-#include "Render/Models/IModelLibrary.h"
+#include "Models/IModelLibrary.h"
 #include "Scenes/FaunaStep.h"
 
 #include "Math/Angles.h"
 #include "Math/X87.h"
-#include "Render/Models/Cloth.h"
-#include "Render/Models/OriginalRetainedMath.h"
-#include "Render/Models/OriginalRotation.h"
+#include "Models/Cloth.h"
+#include "Math/OriginalRetainedMath.h"
+#include "Math/OriginalRotation.h"
 #include "Scenes/FaunaMotion.h"
 #include "Scenes/FaunaObject.h"
 #include "Scenes/FaunaState.h"
-#include "World/Ftol.h"
+#include "Math/Ftol.h"
 #include "World/IBirdStepServices.h"
 
 #include <glm/ext/vector_float3.hpp>

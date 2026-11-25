@@ -1,8 +1,8 @@
 #include "Scenes/ItemDrawResources.h"
 
 #include "Core/Expected.h"
-#include "Render/Models/HalfLifeMath.h"
-#include "Render/Models/OriginalRotation.h"
+#include "Math/HalfLifeMath.h"
+#include "Math/OriginalRotation.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/FaunaDrawing.h"
 #include "Scenes/FaunaEffects.h"

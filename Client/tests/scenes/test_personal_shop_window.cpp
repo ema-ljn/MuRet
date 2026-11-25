@@ -3,8 +3,8 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
-#include "Data/Tables/ItemTable.h"
-#include "Data/Text/TextTable.h"
+#include "Tables/ItemTable.h"
+#include "Tables/TextTable.h"
 #include "Input/InputState.h"
 #include "Network/Delivery.h"
 #include "Protocol/Inventory.h"

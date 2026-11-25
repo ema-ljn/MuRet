@@ -2,10 +2,10 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
-#include "Data/Tables/SkillTable.h"
+#include "Tables/SkillTable.h"
 #include "Maps/MapId.h"
 #include "Protocol/Pet/PetOrders.h"
-#include "Render/Models/LogicalAccess.h"
+#include "Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/GameMovementState.h"
 #include "Scenes/HeroAttack.h"
@@ -19,9 +19,9 @@
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/GameUiState.h"
-#include "World/Ftol.h"
+#include "Math/Ftol.h"
 #include "World/ItemState.h"
-#include "World/TerrainWalls.h"
+#include "Pathfinding/TerrainWalls.h"
 #include "World/WorldTerrain.h"
 
 #include <glm/ext/vector_float3.hpp>

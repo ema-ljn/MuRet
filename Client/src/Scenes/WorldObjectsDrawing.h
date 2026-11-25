@@ -4,7 +4,7 @@
 #include "Core/IClock.h"
 #include "Crt/CrtRandom.h"
 #include "Render/ModelBatch.h"
-#include "Render/Models/IModelLibrary.h"
+#include "Models/IModelLibrary.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/ModelPoseCallbacks.h"
 #include "World/TerrainCulling.h"
@@ -15,7 +15,7 @@
 #include "World/ParticleDrawing.h"
 #include "World/Particles.h"
 #include "World/Sprites.h"
-#include "Render/Models/OriginalRotation.h"
+#include "Math/OriginalRotation.h"
 #include "World/TerrainLighting.h"
 #include "World/WorldObjects.h"
 

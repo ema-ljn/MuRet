@@ -2,7 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Protocol/Outgoing.h"
-#include "Protocol/ProtocolError.h"
+#include "Network/ProtocolError.h"
 
 #include <cstdint>
 

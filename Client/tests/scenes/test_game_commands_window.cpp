@@ -3,7 +3,7 @@
 #include "Core/Expected.h"
 #include "Core/PixelSize.h"
 #include "Crt/CrtRandom.h"
-#include "Data/Text/TextTable.h"
+#include "Tables/TextTable.h"
 #include "Input/InputEvent.h"
 #include "Input/InputState.h"
 #include "Input/Key.h"

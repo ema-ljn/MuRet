@@ -1,9 +1,9 @@
 #pragma once
 
 #include "Core/Expected.h"
-#include "Data/Tables/ItemSetTables.h"
-#include "Data/Tables/ItemTable.h"
-#include "Data/Text/TextTable.h"
+#include "Tables/ItemSetTables.h"
+#include "Tables/ItemTable.h"
+#include "Tables/TextTable.h"
 #include "UI/ChatInput.h"
 #include "UI/ChatLog.h"
 

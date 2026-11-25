@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Data/Text/TextTable.h"
+#include "Tables/TextTable.h"
 
 #include <cstddef>
 #include <cstdint>

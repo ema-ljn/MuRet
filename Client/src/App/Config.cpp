@@ -5,7 +5,7 @@
 #include "App/LoopTiming.h"
 #include "App/PacingMode.h"
 #include "App/ServerAddress.h"
-#include "App/VSyncMode.h"
+#include "Platform/VSyncMode.h"
 #include "Core/Ascii.h"
 #include "Core/Expected.h"
 #include "Core/PathText.h"

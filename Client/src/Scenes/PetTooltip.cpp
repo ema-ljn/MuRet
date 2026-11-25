@@ -2,13 +2,13 @@
 
 #include "Core/Expected.h"
 #include "Protocol/Pet/PetInfo.h"
-#include "Render/Models/LogicalAccess.h"
+#include "Models/LogicalAccess.h"
 #include "Render/ScreenScale.h"
 #include "Render/SpriteBatch.h"
 #include "Scenes/GameHud.h"
 #include "Scenes/GamePanels.h"
 #include "Scenes/GameTooltips.h"
-#include "Scenes/ITextDrawer.h"
+#include "Render/Frame/ITextDrawer.h"
 #include "Scenes/ItemTooltipParts.h"
 #include "Scenes/ItemPrice.h"
 #include "Scenes/ZenText.h"
@@ -21,7 +21,7 @@
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/PanelRegistry.h"
-#include "World/Ftol.h"
+#include "Math/Ftol.h"
 #include "World/ItemState.h"
 
 #include <array>

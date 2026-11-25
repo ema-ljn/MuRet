@@ -1,5 +1,5 @@
 #include "Audio/ISoundCatalog.h"
-#include "Audio/SoundCatalog.h"
+#include "Sound/SoundCatalog.h"
 
 #include <gtest/gtest.h>
 

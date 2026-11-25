@@ -1,6 +1,6 @@
-#include "Data/Text/DialogTable.h"
+#include "Tables/DialogTable.h"
 
-#include "Core/Xor3.h"
+#include "Crypto/Xor3.h"
 #include "Data/DataError.h"
 
 #include <gtest/gtest.h>

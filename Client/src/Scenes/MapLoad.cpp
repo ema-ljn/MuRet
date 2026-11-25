@@ -1,14 +1,14 @@
 #include "Scenes/MapLoad.h"
 
-#include "Audio/SoundCatalog.h"
+#include "Sound/SoundCatalog.h"
 #include "Audio/SoundDefinition.h"
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainGrid.h"
 #include "Data/Terrain/TerrainObjects.h"
-#include "Data/WorldFolder.h"
-#include "Data/WorldLoadIdentity.h"
+#include "Maps/WorldFolder.h"
+#include "Maps/WorldLoadIdentity.h"
 #include "Maps/MapId.h"
 #include "Protocol/Events.h"
 #include "Scenes/ActorCreation.h"

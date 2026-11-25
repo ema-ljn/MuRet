@@ -1,7 +1,7 @@
 #include "Scenes/ClothCarry.h"
 
-#include "Render/Models/Cloth.h"
-#include "Render/Models/HalfLifeMath.h"
+#include "Models/Cloth.h"
+#include "Math/HalfLifeMath.h"
 
 #include <glm/ext/matrix_float3x3.hpp>
 #include <glm/ext/vector_float3.hpp>

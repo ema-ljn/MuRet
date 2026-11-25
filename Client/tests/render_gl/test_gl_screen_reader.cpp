@@ -1,7 +1,7 @@
 #include "Render/Gl/GlScreenReader.h"
 
 #include "Core/PixelSize.h"
-#include "Platform/GlLoader.h"
+#include "Platform/Sdl/GlLoader.h"
 
 #include <gtest/gtest.h>
 

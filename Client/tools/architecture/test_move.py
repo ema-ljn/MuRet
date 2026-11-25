@@ -14,6 +14,8 @@ NAMED_VALUES_BASELINE = 'Client/tools/architecture/named-values-baseline.tsv'
 MOVES = 'Client/docs/research/coverage/referencia/entradas/moves.tsv'
 WINDOW = 'Client/src/Scenes/GuildWindow.cpp'
 WINDOW_TEXT = '#include "Scenes/GuildState.h"\n#include "Core/Expected.h"\n\nint Draw(); // Scenes/GuildState.h\n'
+LAB = 'labs/cl5.0-pipeline/gl/LabGuild.h'
+LAB_TEXT = '#include "LabGl.h"\n#include "Scenes/GuildState.h"\n'
 
 
 class MoveTest(unittest.TestCase):
@@ -23,6 +25,7 @@ class MoveTest(unittest.TestCase):
         self.repo.write(WINDOW, WINDOW_TEXT)
         self.repo.write('Client/src/Core/Expected.h', '#pragma once\n')
         self.repo.write('Client/tests/scenes/test_guild.cpp', '#include "Scenes/GuildState.h"\n')
+        self.repo.write(LAB, LAB_TEXT)
         self.repo.write('Client/CMakeLists.txt',
                         'set_source_files_properties(src/Scenes/GuildState.h PROPERTIES HEADER_FILE_ONLY ON)\n'
                         'list(FILTER sources EXCLUDE REGEX "/src/Scenes/GuildStateX\\\\.h$")\n')
@@ -67,6 +70,11 @@ class MoveTest(unittest.TestCase):
         self.assertIn('Client/CMakeLists.txt:1', output)
         self.assertIn('/src/Scenes/', output)
         self.assertIn('Client/src/game is new', output)
+
+    def test_move_rewrites_includes_in_the_labs(self):
+        code, output = self.move('--modules', 'game/Guild')
+        self.assertEqual(code, 0, output)
+        self.assertEqual(self.repo.read(LAB), '#include "LabGl.h"\n#include "Guild/GuildState.h"\n')
 
     def test_move_keeps_includes_when_only_root_changes(self):
         code, output = self.move('--root', 'engine')

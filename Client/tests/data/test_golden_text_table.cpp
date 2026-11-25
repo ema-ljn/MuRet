@@ -1,4 +1,4 @@
-#include "Data/Text/TextTable.h"
+#include "Tables/TextTable.h"
 
 #include "support/FileBytes.h"
 #include "support/GoldenDir.h"

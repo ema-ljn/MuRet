@@ -4,7 +4,7 @@
 #include "Data/Terrain/TerrainLight.h"
 #include "Data/Terrain/TerrainMapping.h"
 #include "Math/X87.h"
-#include "Render/Models/OriginalRotation.h"
+#include "Math/OriginalRotation.h"
 #include "World/CrywolfWater.h"
 #include "World/GameModelEffects.h"
 #include "World/IParticleTrigonometry.h"

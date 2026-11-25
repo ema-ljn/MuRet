@@ -4,7 +4,7 @@
 #include "Crt/CrtRandom.h"
 #include "Math/FloatConstants.h"
 #include "Math/X87.h"
-#include "Render/Models/OriginalRotation.h"
+#include "Math/OriginalRotation.h"
 #include "Scenes/HighEffectEmitters.h"
 #include "Scenes/HighModelEffects.h"
 #include "Scenes/WorldRuntime.h"

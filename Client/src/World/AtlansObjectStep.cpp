@@ -4,8 +4,8 @@
 #include "Crt/CrtRandom.h"
 #include "Math/FloatConstants.h"
 #include "Math/X87.h"
-#include "Render/Models/ObjectState.h"
-#include "Render/Models/OriginalRetainedMath.h"
+#include "Models/ObjectState.h"
+#include "Math/OriginalRetainedMath.h"
 #include "World/Particles.h"
 #include "World/WorldObjects.h"
 

@@ -1,7 +1,7 @@
 #include "GameLogic/MovePath.h"
 
-#include "GameLogic/Path.h"
-#include "Render/Models/OriginalAngles.h"
+#include "Pathfinding/Path.h"
+#include "Math/OriginalAngles.h"
 
 #include <glm/ext/vector_float2.hpp>
 

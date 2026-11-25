@@ -8,7 +8,7 @@
 #include "Render/Text/TextLayout.h"
 #include "Render/Text/TextStyle.h"
 #include "Render/TextureSlot.h"
-#include "Scenes/ITextDrawer.h"
+#include "Render/Frame/ITextDrawer.h"
 
 #include <algorithm>
 #include <cstdint>

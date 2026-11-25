@@ -5,11 +5,11 @@
 #include "Data/Models/Model.h"
 #include "Data/Models/ModelTextureCalls.h"
 #include "Render/ITextureStore.h"
-#include "Render/Models/IModelLibrary.h"
-#include "Render/Models/ModelTextureSlots.h"
-#include "Render/Models/Skeleton.h"
+#include "Models/IModelLibrary.h"
+#include "Models/ModelTextureSlots.h"
+#include "Models/Skeleton.h"
 #include "Render/TextureSlot.h"
-#include "Scenes/TextureMetadata.h"
+#include "Models/TextureMetadata.h"
 
 #include <glm/ext/vector_float2.hpp>
 

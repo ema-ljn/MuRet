@@ -2,9 +2,9 @@
 
 #include "Core/Expected.h"
 #include "Core/IClock.h"
-#include "Render/Models/HalfLifeMath.h"
-#include "Render/Models/Skinning.h"
-#include "Render/Models/Pose.h"
+#include "Math/HalfLifeMath.h"
+#include "Models/Skinning.h"
+#include "Models/Pose.h"
 
 #include <span>
 #include <vector>

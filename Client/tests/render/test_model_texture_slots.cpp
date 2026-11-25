@@ -1,4 +1,4 @@
-#include "Render/Models/ModelTextureSlots.h"
+#include "Models/ModelTextureSlots.h"
 
 #include "Data/Models/Model.h"
 #include "Data/Textures/Sampling.h"

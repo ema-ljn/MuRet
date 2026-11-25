@@ -3,12 +3,12 @@
 #include "Core/Expected.h"
 #include "Core/PixelSize.h"
 #include "Crt/CrtRandom.h"
-#include "Data/Tables/ItemTable.h"
+#include "Tables/ItemTable.h"
 #include "Math/X87.h"
 #include "Render/ModelBatch.h"
-#include "Render/Models/ObjectState.h"
-#include "Render/Models/Pose.h"
-#include "Render/Models/RoundedTransforms.h"
+#include "Models/ObjectState.h"
+#include "Models/Pose.h"
+#include "Math/RoundedTransforms.h"
 #include "Render/Pass3D.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/FaunaDrawing.h"
@@ -16,7 +16,7 @@
 #include "Scenes/GameItemSpecialDrawing.h"
 #include "Scenes/GameProjection.h"
 #include "UI/Widget.h"
-#include "World/Ftol.h"
+#include "Math/Ftol.h"
 
 #include <glm/ext/matrix_float4x4.hpp>
 #include <glm/ext/vector_float3.hpp>

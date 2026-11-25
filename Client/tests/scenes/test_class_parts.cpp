@@ -2,7 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
-#include "Render/Models/Skeleton.h"
+#include "Models/Skeleton.h"
 #include "Scenes/ActorActions.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/SceneId.h"

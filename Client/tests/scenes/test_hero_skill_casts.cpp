@@ -2,7 +2,7 @@
 #include "Scenes/HeroSkillCasts.h"
 
 #include "Crt/CrtRandom.h"
-#include "Data/Tables/SkillTable.h"
+#include "Tables/SkillTable.h"
 #include "Core/Expected.h"
 #include "Network/Delivery.h"
 #include "Protocol/Outgoing.h"

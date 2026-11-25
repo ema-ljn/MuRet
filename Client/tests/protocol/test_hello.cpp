@@ -1,7 +1,7 @@
 #include "Protocol/Connection/Hello.h"
 
 #include "Protocol/BuildConstants.h"
-#include "Protocol/ProtocolError.h"
+#include "Network/ProtocolError.h"
 
 #include "support/Bytes.h"
 #include "support/ExpectedError.h"

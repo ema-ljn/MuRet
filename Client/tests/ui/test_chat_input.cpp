@@ -2,7 +2,7 @@
 
 #include "UI/OldWindowBase.h"
 #include "UI/OldEditInput.h"
-#include "UI/IClipboard.h"
+#include "Platform/IClipboard.h"
 
 #include <gtest/gtest.h>
 

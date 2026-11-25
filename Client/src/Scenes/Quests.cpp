@@ -1,8 +1,8 @@
 #include "Scenes/Quests.h"
 
 #include "Core/Expected.h"
-#include "Data/Tables/QuestTable.h"
-#include "Render/Models/LogicalAccess.h"
+#include "Tables/QuestTable.h"
+#include "Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnInventory.h"

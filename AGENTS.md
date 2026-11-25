@@ -90,7 +90,7 @@ The client is moving to modules ([ADR 0023](docs/adr/0023-client-module-architec
    its row in the opcode table, in place of its `Unported{va}` row.
 5. A module that is being moved gets no port work that day; its design and port work on it do not
    run at the same time.
-6. A sine, a cosine or any function the C library rounds comes from `Render/Models/RoundedMath.h`,
+6. A sine, a cosine or any function the C library rounds comes from `Math/RoundedMath.h`,
    and a rotation or a projection from `RoundedTransforms.h`
    ([ADR 0027](docs/adr/0027-correctly-rounded-math.md), `CODING_RULES.md` §10). In CI,
    `check_rounded_math.py` rejects `std::sin`, `sinf`, `glm::rotate` and their kind.

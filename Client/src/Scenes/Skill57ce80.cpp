@@ -6,7 +6,7 @@
 #include "Scenes/HeroSkills.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
-#include "World/Ftol.h"
+#include "Math/Ftol.h"
 
 #include <glm/ext/vector_float3.hpp>
 

@@ -2,8 +2,8 @@
 
 #include "Core/Expected.h"
 
-#include "Render/Models/Cloth.h"
-#include "Render/Models/LogicalAccess.h"
+#include "Models/Cloth.h"
+#include "Models/LogicalAccess.h"
 #include "Scenes/CameraTour.h"
 #include "Scenes/EventPackets.h"
 #include "Scenes/GameDrawTail.h"

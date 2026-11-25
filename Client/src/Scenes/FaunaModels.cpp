@@ -1,8 +1,8 @@
 #include "Scenes/FaunaModels.h"
 
 #include "Audio/Playback.h"
-#include "Render/Models/IModelLibrary.h"
-#include "Scenes/MonsterSounds.h"
+#include "Models/IModelLibrary.h"
+#include "Sound/MonsterSounds.h"
 
 #include "Core/Expected.h"
 #include "Core/Log.h"
@@ -11,13 +11,13 @@
 #include "Data/Textures/Sampling.h"
 #include "Data/Textures/TextureSet.h"
 #include "Render/ITextureStore.h"
-#include "Render/Models/ModelTextureSlots.h"
-#include "Render/Models/Skeleton.h"
+#include "Models/ModelTextureSlots.h"
+#include "Models/Skeleton.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/ConstructedBmdPrefix.h"
 #include "Scenes/ModelTextureTable.h"
 #include "Scenes/MonsterModelTable.h"
-#include "Scenes/TextureMetadata.h"
+#include "Models/TextureMetadata.h"
 
 #include <algorithm>
 #include <array>

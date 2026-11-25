@@ -1,6 +1,6 @@
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
-#include "Render/Models/HalfLifeMath.h"
+#include "Math/HalfLifeMath.h"
 #include "Scenes/FaunaDrawing.h"
 #include "Scenes/NoriaObjectServices.h"
 #include "Scenes/WorldObjectsDrawing.h"

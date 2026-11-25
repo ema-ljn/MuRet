@@ -4,7 +4,7 @@
 #include "Math/X87.h"
 #include "Protocol/Events.h"
 #include "Protocol/Outgoing.h"
-#include "Render/Models/LogicalAccess.h"
+#include "Models/LogicalAccess.h"
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
 #include "Render/Text/FontSet.h"
@@ -21,7 +21,7 @@
 #include "Scenes/WorldState.h"
 #include "UI/GameDialogs.h"
 #include "UI/GameText.h"
-#include "UI/OriginalFormat.h"
+#include "Crt/OriginalFormat.h"
 #include "UI/PanelRegistry.h"
 #include "World/ItemState.h"
 

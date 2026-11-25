@@ -3,7 +3,7 @@
 #include "App/GameLoop.h"
 #include "App/LoopTiming.h"
 #include "App/PacingMode.h"
-#include "App/WindowState.h"
+#include "Platform/WindowState.h"
 #include "Input/InputState.h"
 #include "support/FakeClock.h"
 #include "support/RecordingClient.h"

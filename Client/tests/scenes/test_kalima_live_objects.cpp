@@ -2,7 +2,7 @@
 
 #include "Crt/CrtRandom.h"
 #include "Scenes/GameScene.h"
-#include "Scenes/GameData.h"
+#include "Tables/GameData.h"
 #include "Scenes/GameItemRenderState.h"
 #include "Scenes/LoadingScene.h"
 #include "Scenes/SceneContext.h"
@@ -22,7 +22,7 @@
 #include <algorithm>
 #include "World/Particles.h"
 #include "World/ParticleOwner.h"
-#include "Render/Models/Skinning.h"
+#include "Models/Skinning.h"
 #include <glm/ext/vector_float2.hpp>
 #include "World/KalimaWorld.h"
 #include "Scenes/FaunaState.h"
@@ -38,10 +38,10 @@
 #include "World/SphereFrustum.h"
 #include "World/ModelEffects.h"
 #include "Scenes/GameParticles.h"
-#include "Scenes/TextureMetadata.h"
+#include "Models/TextureMetadata.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Render/Pass3D.h"
-#include "Render/Models/OriginalRotation.h"
+#include "Math/OriginalRotation.h"
 #include <array>
 #include <span>
 #include <optional>

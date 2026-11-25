@@ -15,7 +15,7 @@
 #include "Network/SystemResolver.h"
 #include "Network/SystemSocket.h"
 #include "Network/Xor32Packet.h"
-#include "Network/XorRemapObfuscation.h"
+#include "Network/XorRemap/XorRemapObfuscation.h"
 #include "Protocol/Character/CharacterSelect.h"
 #include "Protocol/Connection/Login.h"
 

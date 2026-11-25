@@ -1,5 +1,5 @@
 #include "Core/Expected.h"
-#include "Render/Models/LogicalAccess.h"
+#include "Models/LogicalAccess.h"
 #include "Scenes/GameHud.h"
 #include "Scenes/HudItems.h"
 #include "Scenes/ItemTooltipParts.h"

@@ -6,7 +6,7 @@
 #include "Render/SpriteVertex.h"
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Render/Text/TextStyle.h"
-#include "Scenes/ITextDrawer.h"
+#include "Render/Frame/ITextDrawer.h"
 #include "UI/ChatLog.h"
 #include "UI/FriendWindowsDraw.h"
 #include "UI/LetterModel.h"
@@ -17,7 +17,7 @@
 #include "UI/OldWindowDrawParts.h"
 #include "UI/OldWindowSteps.h"
 #include "UI/OldWindows.h"
-#include "UI/SprintfFormat.h"
+#include "Crt/SprintfFormat.h"
 
 #include <algorithm>
 #include <cstddef>

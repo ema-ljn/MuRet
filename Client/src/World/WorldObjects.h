@@ -2,9 +2,9 @@
 
 #include "Core/Expected.h"
 #include "Data/Terrain/TerrainObjects.h"
-#include "Render/Models/ObjectState.h"
-#include "Render/Models/Pose.h"
-#include "Render/Models/Skeleton.h"
+#include "Models/ObjectState.h"
+#include "Models/Pose.h"
+#include "Models/Skeleton.h"
 #include "World/WorldObjectRegistrations.h"
 
 #include <glm/ext/vector_float3.hpp>

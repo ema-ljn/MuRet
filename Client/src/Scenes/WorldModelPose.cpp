@@ -2,14 +2,14 @@
 
 #include "Core/Expected.h"
 
-#include "Render/Models/HalfLifeMath.h"
-#include "Render/Models/Pose.h"
-#include "Render/Models/Skeleton.h"
+#include "Math/HalfLifeMath.h"
+#include "Models/Pose.h"
+#include "Models/Skeleton.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/FaunaDrawing.h"
 #include "Scenes/FaunaModels.h"
 #include "Scenes/WorldState.h"
-#include "World/Ftol.h"
+#include "Math/Ftol.h"
 
 #include <glm/ext/vector_float3.hpp>
 

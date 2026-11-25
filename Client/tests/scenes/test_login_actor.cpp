@@ -3,7 +3,7 @@
 #include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainHeights.h"
-#include "Render/Models/Cloth.h"
+#include "Models/Cloth.h"
 #include "Scenes/ActorConstruction.h"
 #include "Scenes/ActorCreation.h"
 #include "Scenes/ActorState.h"

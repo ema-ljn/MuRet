@@ -10,7 +10,7 @@
 #include "Protocol/CastleSiege.h"
 #include "Protocol/NpcWindows.h"
 #include "Protocol/Outgoing.h"
-#include "Render/Models/LogicalAccess.h"
+#include "Models/LogicalAccess.h"
 #include "Scenes/GamePanels.h"
 #include "Scenes/CastleWindows.h"
 #include "Scenes/CastleSiegeReceive.h"

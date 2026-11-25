@@ -4,13 +4,13 @@
 #include "Data/Textures/Texture.h"
 #include "Render/ModelBatch.h"
 #include "Render/ModelBatchParticleState.h"
-#include "Render/Models/IModelLibrary.h"
+#include "Models/IModelLibrary.h"
 #include "Render/Pass3D.h"
 #include "Data/Models/Model.h"
-#include "Render/Models/Skeleton.h"
+#include "Models/Skeleton.h"
 #include "Render/TextureEnvMode.h"
 #include "Render/TextureSlot.h"
-#include "Scenes/TextureMetadata.h"
+#include "Models/TextureMetadata.h"
 
 #include <gtest/gtest.h>
 

@@ -7,7 +7,7 @@
 #include "Core/PixelSize.h"
 #include "Core/StderrSink.h"
 #include "Crt/CrtRandom.h"
-#include "Data/Text/TextTable.h"
+#include "Tables/TextTable.h"
 #include "Input/InputState.h"
 #include "Protocol/OptionData.h"
 #include "Protocol/Outgoing.h"

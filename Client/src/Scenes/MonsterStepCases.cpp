@@ -2,15 +2,15 @@
 
 #include "Core/Expected.h"
 #include "Data/Models/PlayerModels.h"
-#include "Data/Text/TextTable.h"
+#include "Tables/TextTable.h"
 #include "Maps/MapId.h"
 #include "Math/X87.h"
-#include "Render/Models/Animation.h"
+#include "Models/Animation.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/MonsterCreation.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldTexts.h"
-#include "UI/SprintfFormat.h"
+#include "Crt/SprintfFormat.h"
 
 #include <glm/ext/vector_float3.hpp>
 

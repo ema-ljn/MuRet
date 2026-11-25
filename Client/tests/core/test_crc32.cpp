@@ -1,4 +1,4 @@
-#include "Core/Crash/Crc32.h"
+#include "Diagnostics/Crc32.h"
 
 #include <gtest/gtest.h>
 

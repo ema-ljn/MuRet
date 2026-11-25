@@ -1,7 +1,7 @@
 #include "Scenes/GameDrawTail.h"
 #include "Maps/MapId.h"
 #include "Math/X87.h"
-#include "Render/Models/IModelLibrary.h"
+#include "Models/IModelLibrary.h"
 #include "Scenes/VertexEffects.h"
 #include "Scenes/CrywolfMissileDrawing.h"
 #include "Scenes/KalimaObjectServices.h"
@@ -11,7 +11,7 @@
 #include "World/ChaosCastle.h"
 
 #include "Core/IClock.h"
-#include "Render/Models/ObjectState.h"
+#include "Models/ObjectState.h"
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
@@ -20,7 +20,7 @@
 #include "Render/Billboard.h"
 #include "Render/ModelBatch.h"
 #include "Render/ModelVertex.h"
-#include "Render/Models/OriginalRotation.h"
+#include "Math/OriginalRotation.h"
 #include "Render/SpriteVertex.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/CharacterDrawing.h"

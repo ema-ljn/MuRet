@@ -1,6 +1,6 @@
-#include "Data/Text/FilterWords.h"
+#include "Tables/FilterWords.h"
 
-#include "Core/Xor3.h"
+#include "Crypto/Xor3.h"
 #include "Data/DataError.h"
 #include "Data/Tables/TableChecksum.h"
 

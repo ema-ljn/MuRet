@@ -1,9 +1,9 @@
-#include "Render/Models/Attachment.h"
+#include "Models/Attachment.h"
 
-#include "Render/Models/HalfLifeMath.h"
-#include "Render/Models/Pose.h"
-#include "Render/Models/RoundedMath.h"
-#include "Render/Models/Skeleton.h"
+#include "Math/HalfLifeMath.h"
+#include "Models/Pose.h"
+#include "Math/RoundedMath.h"
+#include "Models/Skeleton.h"
 
 #include <gtest/gtest.h>
 

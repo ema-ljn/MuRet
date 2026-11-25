@@ -2,9 +2,9 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
-#include "Data/Tables/ItemSetTables.h"
-#include "Data/Tables/ItemTable.h"
-#include "Render/Models/LogicalAccess.h"
+#include "Tables/ItemSetTables.h"
+#include "Tables/ItemTable.h"
+#include "Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/ItemSetOptionList.h"
 #include "Scenes/ItemSetState.h"

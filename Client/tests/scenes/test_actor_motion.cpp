@@ -1,19 +1,19 @@
 #include "Scenes/ActorMotion.h"
 
-#include "Render/Models/LogicalAccess.h"
+#include "Models/LogicalAccess.h"
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
-#include "GameLogic/Path.h"
-#include "GameLogic/PathFinder.h"
+#include "Pathfinding/Path.h"
+#include "Pathfinding/PathFinder.h"
 #include "Data/Terrain/TerrainGrid.h"
-#include "Render/Models/Skeleton.h"
+#include "Models/Skeleton.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/ActorWalk.h"
 #include "Scenes/PlayerActionSpeeds.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/WorldRuntime.h"
-#include "World/TerrainWalls.h"
+#include "Pathfinding/TerrainWalls.h"
 #include "support/PlayerActors.h"
 
 #include <gtest/gtest.h>

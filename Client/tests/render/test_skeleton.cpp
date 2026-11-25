@@ -1,9 +1,9 @@
-#include "Render/Models/Skeleton.h"
+#include "Models/Skeleton.h"
 
 #include "Data/Models/Model.h"
 #include "Data/Models/PlayerActions.h"
 #include "Data/Models/PlayerModels.h"
-#include "Render/Models/HalfLifeMath.h"
+#include "Math/HalfLifeMath.h"
 #include "support/SyntheticModels.h"
 
 #include <gtest/gtest.h>

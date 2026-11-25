@@ -1,6 +1,6 @@
-#include "Platform/SwapInterval.h"
+#include "Platform/Sdl/SwapInterval.h"
 
-#include "App/VSyncMode.h"
+#include "Platform/VSyncMode.h"
 
 #include <gtest/gtest.h>
 

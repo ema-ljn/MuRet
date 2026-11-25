@@ -1,8 +1,8 @@
 #pragma once
 
 #include "Core/Expected.h"
-#include "Data/Tables/QuestTable.h"
-#include "Data/Text/TextTable.h"
+#include "Tables/QuestTable.h"
+#include "Tables/TextTable.h"
 #include "Scenes/QuestState.h"
 
 #include <cstddef>

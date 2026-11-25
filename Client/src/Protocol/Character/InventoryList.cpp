@@ -4,8 +4,8 @@
 #include "Core/Expected.h"
 #include "Network/Packet.h"
 #include "Protocol/Character/Opcodes.h"
-#include "Protocol/PacketFields.h"
-#include "Protocol/ProtocolError.h"
+#include "Network/PacketFields.h"
+#include "Network/ProtocolError.h"
 
 #include <algorithm>
 #include <cstddef>

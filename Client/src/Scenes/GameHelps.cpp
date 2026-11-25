@@ -1,7 +1,7 @@
 #include "Scenes/GameHelps.h"
 
 #include "Core/Expected.h"
-#include "Data/Text/TextTable.h"
+#include "Tables/TextTable.h"
 #include "Render/SpriteBatch.h"
 #include "Scenes/GameHud.h"
 #include "Scenes/GameTooltips.h"

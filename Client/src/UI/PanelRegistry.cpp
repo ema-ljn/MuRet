@@ -3,7 +3,7 @@
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Maps/MapId.h"
-#include "Render/Models/LogicalAccess.h"
+#include "Models/LogicalAccess.h"
 #include "UI/Dialogs.h"
 #include "UI/PanelDialog.h"
 

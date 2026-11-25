@@ -6,8 +6,8 @@
 #include "Network/PacketWriter.h"
 #include "Protocol/Outgoing.h"
 #include "Protocol/Connection/Opcodes.h"
-#include "Protocol/PacketFields.h"
-#include "Protocol/ProtocolError.h"
+#include "Network/PacketFields.h"
+#include "Network/ProtocolError.h"
 
 #include <cstddef>
 #include <cstdint>

@@ -1,4 +1,4 @@
-#include "Data/Text/MoveRequirements.h"
+#include "Tables/MoveRequirements.h"
 
 #include "support/FileBytes.h"
 #include "support/GoldenDir.h"

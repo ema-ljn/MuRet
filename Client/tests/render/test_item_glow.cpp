@@ -1,6 +1,6 @@
-#include "Render/Models/ItemGlow.h"
+#include "Models/ItemGlow.h"
 
-#include "Render/Models/Shine.h"
+#include "Models/Shine.h"
 
 #include <gtest/gtest.h>
 

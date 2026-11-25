@@ -1,4 +1,4 @@
-#include "Data/Text/NpcNames.h"
+#include "Tables/NpcNames.h"
 
 #include "support/FileBytes.h"
 #include "support/GoldenDir.h"

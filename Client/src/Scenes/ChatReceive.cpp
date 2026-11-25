@@ -3,7 +3,7 @@
 #include "Core/Expected.h"
 #include "Protocol/Messages.h"
 #include "Protocol/OptionData.h"
-#include "Render/Models/LogicalAccess.h"
+#include "Models/LogicalAccess.h"
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/ChatBubbles.h"

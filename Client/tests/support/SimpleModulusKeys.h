@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Network/Crypto/SimpleModulus.h"
+#include "Crypto/SimpleModulus.h"
 
 #include <gtest/gtest.h>
 

@@ -11,7 +11,7 @@
 #include "Render/Text/TextStyle.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/GameHud.h"
-#include "Scenes/ITextDrawer.h"
+#include "Render/Frame/ITextDrawer.h"
 #include "Scenes/WorldRuntime.h"
 #include "UI/HudPrimitives.h"
 #include "UI/Widget.h"

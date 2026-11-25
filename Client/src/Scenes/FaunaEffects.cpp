@@ -10,8 +10,8 @@
 #include "World/Particles.h"
 #include "World/Sprites.h"
 #include "World/TerrainLighting.h"
-#include "Render/Models/Cloth.h"
-#include "Render/Models/OriginalRetainedMath.h"
+#include "Models/Cloth.h"
+#include "Math/OriginalRetainedMath.h"
 #include <algorithm>
 #include <array>
 #include <bit>

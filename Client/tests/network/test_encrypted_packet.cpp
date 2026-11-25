@@ -1,8 +1,8 @@
 #include "Network/EncryptedPacket.h"
 
 #include "Core/Expected.h"
-#include "Network/Crypto/CryptoError.h"
-#include "Network/Crypto/SimpleModulus.h"
+#include "Crypto/CryptoError.h"
+#include "Crypto/SimpleModulus.h"
 #include "Network/IObfuscation.h"
 #include "Network/ObfuscationError.h"
 #include "Network/Packet.h"

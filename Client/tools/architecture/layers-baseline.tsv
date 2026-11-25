@@ -361,8 +361,8 @@ Scenes/GameCommandsWindow.cpp	Scenes/SocialState.h	game/Hud	game/Social
 Scenes/GameCommandsWindow.cpp	UI/ChatCommands.h	game/Hud	game/Chat
 Scenes/GameCommandsWindow.cpp	UI/ChatInput.h	game/Hud	game/Chat
 Scenes/GameCommandsWindow.h	UI/ChatCommands.h	game/Hud	game/Chat
-Scenes/GameData.cpp	UI/MacroFile.h	game/Tables	game/Chat
-Scenes/GameData.h	UI/MacroFile.h	game/Tables	game/Chat
+game/Tables/GameData.cpp	UI/MacroFile.h	game/Tables	game/Chat
+game/Tables/GameData.h	UI/MacroFile.h	game/Tables	game/Chat
 Scenes/GameDialogDrawing.cpp	Scenes/ActorState.h	game/Hud	game/Actors
 Scenes/GameDialogDrawing.cpp	Scenes/ChatBubbles.h	game/Hud	game/Chat
 Scenes/GameDialogDrawing.cpp	Scenes/EventDrawing.h	game/Hud	game/Events
@@ -1238,7 +1238,7 @@ Scenes/WorldRuntime.h	Scenes/GuildState.h	game/Kernel	game/Guild
 Scenes/WorldRuntime.h	Scenes/HudItems.h	game/Kernel	game/Items
 Scenes/WorldRuntime.h	Scenes/ItemHelpLevels.h	game/Kernel	game/Tooltips
 Scenes/WorldRuntime.h	Scenes/MapBanner.h	game/Kernel	game/Hud
-Scenes/WorldRuntime.h	Scenes/MonsterSounds.h	game/Kernel	game/Sound
+Scenes/WorldRuntime.h	game/Sound/MonsterSounds.h	game/Kernel	game/Sound
 Scenes/WorldRuntime.h	Scenes/NpcNames.h	game/Kernel	game/Monsters
 Scenes/WorldRuntime.h	Scenes/NpcWindowState.h	game/Kernel	game/Npc
 Scenes/WorldRuntime.h	Scenes/QuestState.h	game/Kernel	game/Quests

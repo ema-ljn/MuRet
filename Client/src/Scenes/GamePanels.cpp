@@ -9,7 +9,7 @@
 #include "Protocol/Connection/Logout.h"
 #include "Protocol/Outgoing.h"
 #include "Protocol/Pet/PetInfo.h"
-#include "Render/Models/LogicalAccess.h"
+#include "Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/GameUi.h"
 #include "Scenes/GuildPanels.h"

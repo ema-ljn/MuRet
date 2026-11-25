@@ -1,10 +1,10 @@
 #include "Scenes/GameCharacterHud.h"
 
 #include "Core/Expected.h"
-#include "Data/Tables/ItemTable.h"
+#include "Tables/ItemTable.h"
 #include "Math/X87.h"
-#include "Render/Models/LogicalAccess.h"
-#include "Render/Models/RoundedMath.h"
+#include "Models/LogicalAccess.h"
+#include "Math/RoundedMath.h"
 #include "Render/OriginalQuad.h"
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
@@ -25,7 +25,7 @@
 #include "UI/GameText.h"
 #include "UI/HudPrimitives.h"
 #include "UI/ServerListModel.h"
-#include "UI/SprintfFormat.h"
+#include "Crt/SprintfFormat.h"
 #include "World/ItemState.h"
 
 #include <algorithm>

@@ -2,7 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Data/Terrain/TerrainAttributes.h"
-#include "Render/Models/Cloth.h"
+#include "Models/Cloth.h"
 #include "Scenes/ActorState.h"
 #include "World/TerrainCulling.h"
 #include "World/WorldTerrain.h"

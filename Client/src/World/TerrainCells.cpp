@@ -5,7 +5,7 @@
 #include "Data/Terrain/TerrainGrid.h"
 #include "Render/ModelBatch.h"
 #include "Render/ModelVertex.h"
-#include "Render/Models/RoundedMath.h"
+#include "Math/RoundedMath.h"
 #include "Render/SpriteVertex.h"
 #include "Render/TextureSlot.h"
 

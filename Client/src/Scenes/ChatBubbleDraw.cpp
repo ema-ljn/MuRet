@@ -11,7 +11,7 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/ChatBubbles.h"
 #include "Scenes/GameProjection.h"
-#include "Scenes/ITextDrawer.h"
+#include "Render/Frame/ITextDrawer.h"
 #include "Scenes/PersonalShopTitles.h"
 #include "Scenes/ShopSigns.h"
 #include "Scenes/WorldRuntime.h"

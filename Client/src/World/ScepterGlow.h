@@ -1,8 +1,8 @@
 #pragma once
 
 #include "Core/IClock.h"
-#include "Render/Models/Animation.h"
-#include "Render/Models/OriginalRotation.h"
+#include "Models/Animation.h"
+#include "Math/OriginalRotation.h"
 
 #include <glm/ext/vector_float3.hpp>
 

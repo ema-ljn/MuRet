@@ -3,8 +3,8 @@
 #include "LabGl.h"
 
 #include "Core/Expected.h"
-#include "Platform/SdlContext.h"
-#include "Platform/Window.h"
+#include "Platform/Sdl/SdlContext.h"
+#include "Platform/Sdl/Window.h"
 
 #include <SDL3/SDL_video.h>
 

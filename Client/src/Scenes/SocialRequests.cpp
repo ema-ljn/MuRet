@@ -7,7 +7,7 @@
 #include "Protocol/Party.h"
 #include "Protocol/PersonalShop.h"
 #include "Protocol/Trade.h"
-#include "Render/Models/LogicalAccess.h"
+#include "Models/LogicalAccess.h"
 #include "Scenes/ActionSend.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/ChatBubbles.h"
@@ -20,7 +20,7 @@
 #include "UI/GameText.h"
 #include "UI/MessageArea.h"
 #include "UI/PanelRegistry.h"
-#include "UI/SprintfFormat.h"
+#include "Crt/SprintfFormat.h"
 
 #include <algorithm>
 #include <cstddef>

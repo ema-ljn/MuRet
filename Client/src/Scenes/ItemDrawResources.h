@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Core/IClock.h"
-#include "Render/Models/ItemGlow.h"
+#include "Models/ItemGlow.h"
 #include "Scenes/GameDrawTail.h"
 
 #include <cstdint>

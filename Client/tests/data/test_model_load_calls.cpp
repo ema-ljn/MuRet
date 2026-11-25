@@ -4,7 +4,7 @@
 #include "Data/Models/ModelFiles.h"
 #include "Data/Models/ModelTextureCalls.h"
 #include "Data/Textures/TextureSet.h"
-#include "Render/Models/ModelTextureSlots.h"
+#include "Models/ModelTextureSlots.h"
 #include "Render/TextureSlot.h"
 
 #include <gtest/gtest.h>

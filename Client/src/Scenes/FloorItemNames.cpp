@@ -2,7 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Core/PixelSize.h"
-#include "Data/Tables/ItemTable.h"
+#include "Tables/ItemTable.h"
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
 #include "Render/Text/FontSet.h"
@@ -12,14 +12,14 @@
 #include "Scenes/GameHud.h"
 #include "Scenes/HudItems.h"
 #include "Scenes/HudText.h"
-#include "Scenes/ITextDrawer.h" // IWYU pragma: keep (ITextDrawer como ITextMeasure)
+#include "Render/Frame/ITextDrawer.h" // IWYU pragma: keep (ITextDrawer como ITextMeasure)
 #include "Scenes/ItemNames.h"
 #include "Scenes/ItemTooltipParts.h"
 #include "Scenes/NpcNames.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/GameText.h"
-#include "UI/SprintfFormat.h"
+#include "Crt/SprintfFormat.h"
 
 #include <array>
 #include <cstddef>

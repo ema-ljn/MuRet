@@ -1,8 +1,8 @@
-#include "Render/Models/IModelLibrary.h"
+#include "Models/IModelLibrary.h"
 #include "Scenes/MovementReplies.h"
 
 #include "Crt/CrtRandom.h"
-#include "Render/Models/LogicalAccess.h"
+#include "Models/LogicalAccess.h"
 
 #include "Core/Expected.h"
 #include "Core/ILogSink.h"
@@ -12,9 +12,9 @@
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainGrid.h"
 #include "Protocol/Movement.h"
-#include "Render/Models/Cloth.h"
-#include "Render/Models/OriginalAngles.h"
-#include "Render/Models/Skeleton.h"
+#include "Models/Cloth.h"
+#include "Math/OriginalAngles.h"
+#include "Models/Skeleton.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterDrawing.h"

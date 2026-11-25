@@ -3,7 +3,7 @@
 #include "Core/Expected.h"
 
 #include "Crt/CrtRandom.h"
-#include "Render/Models/Skeleton.h"
+#include "Models/Skeleton.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterStep.h"
 #include "Scenes/GameDrawTail.h"

@@ -6,8 +6,8 @@
 #include "Data/Terrain/TerrainGrid.h"
 #include "Maps/MapId.h"
 #include "Protocol/Combat.h"
-#include "Render/Models/LogicalAccess.h"
-#include "Render/Models/OriginalAngles.h"
+#include "Models/LogicalAccess.h"
+#include "Math/OriginalAngles.h"
 #include "Scenes/ActorCombat.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/ChatReceive.h"
@@ -17,8 +17,8 @@
 #include "Scenes/WorldState.h"
 #include "UI/GameText.h"
 #include "UI/MessageArea.h"
-#include "UI/SprintfFormat.h"
-#include "World/Ftol.h"
+#include "Crt/SprintfFormat.h"
+#include "Math/Ftol.h"
 
 #include <glm/ext/vector_float3.hpp>
 

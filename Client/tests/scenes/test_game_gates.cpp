@@ -3,8 +3,8 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
-#include "Data/Tables/GateRecord.h"
-#include "Data/Tables/GateTable.h"
+#include "Tables/GateRecord.h"
+#include "Tables/GateTable.h"
 #include "GameLogic/GateDecision.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/OwnCharacterRecord.h"

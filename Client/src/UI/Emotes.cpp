@@ -1,6 +1,6 @@
 #include "UI/Emotes.h"
 
-#include "Data/Text/TextTable.h"
+#include "Tables/TextTable.h"
 #include "UI/NameChecks.h"
 
 #include <array>

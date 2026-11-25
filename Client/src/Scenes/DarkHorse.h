@@ -1,8 +1,8 @@
 #pragma once
 
-#include "Render/Models/Animation.h"
-#include "Render/Models/Pose.h"
-#include "Render/Models/Skeleton.h"
+#include "Models/Animation.h"
+#include "Models/Pose.h"
+#include "Models/Skeleton.h"
 #include "Scenes/CharacterDrawing.h"
 
 #include <cstdint>

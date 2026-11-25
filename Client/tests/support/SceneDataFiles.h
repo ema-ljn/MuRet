@@ -1,9 +1,9 @@
 #pragma once
 
-#include "Core/Xor3.h"
+#include "Crypto/Xor3.h"
 #include "Data/Tables/TableChecksum.h"
-#include "Data/Text/FilterWords.h"
-#include "Data/Text/TextTable.h"
+#include "Tables/FilterWords.h"
+#include "Tables/TextTable.h"
 #include "Data/Textures/TextureSet.h"
 #include "support/JpegVectors.h"
 #include "support/TextureFiles.h"

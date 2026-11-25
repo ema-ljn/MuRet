@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Core/Expected.h"
-#include "Render/Models/Skeleton.h"
+#include "Models/Skeleton.h"
 
 #include <cstdint>
 #include <optional>

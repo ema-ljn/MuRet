@@ -3,7 +3,7 @@
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Math/X87.h"
-#include "Render/Models/OriginalRotation.h"
+#include "Math/OriginalRotation.h"
 #include "World/ParticleDrawing.h"
 #include "World/PortableParticleTrigonometry.h"
 #include "World/TerrainLighting.h"

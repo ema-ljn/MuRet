@@ -1,7 +1,7 @@
 #include "UI/ServerListWindow.h"
 
 #include "Core/PixelSize.h"
-#include "Data/Text/TextTable.h"
+#include "Tables/TextTable.h"
 #include "Input/InputState.h"
 #include "Protocol/Connection/ServerList.h"
 #include "Render/SpriteBatch.h"
@@ -10,7 +10,7 @@
 #include "Render/Text/TextStyle.h"
 #include "Render/TextureSlot.h"
 #include "Render/UiImage.h"
-#include "Scenes/ITextDrawer.h"
+#include "Render/Frame/ITextDrawer.h"
 #include "Scenes/SceneTextures.h"
 #include "UI/Button.h"
 #include "UI/GameText.h"

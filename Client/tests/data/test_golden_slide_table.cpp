@@ -1,4 +1,4 @@
-#include "Data/Text/SlideTable.h"
+#include "Tables/SlideTable.h"
 
 #include "support/FileBytes.h"
 #include "support/GoldenDir.h"

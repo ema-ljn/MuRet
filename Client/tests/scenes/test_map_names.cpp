@@ -1,4 +1,4 @@
-#include "Scenes/MapNames.h"
+#include "Maps/MapNames.h"
 
 #include <gtest/gtest.h>
 

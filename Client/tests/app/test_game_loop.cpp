@@ -1,7 +1,7 @@
 #include "App/GameLoop.h"
 
 #include "App/PacingMode.h"
-#include "App/WindowState.h"
+#include "Platform/WindowState.h"
 #include "Core/Expected.h"
 #include "Core/IClock.h"
 #include "Core/ILogSink.h"
@@ -10,7 +10,7 @@
 #include "Input/InputState.h"
 #include "Input/Key.h"
 #include "Scenes/IScene.h"
-#include "Scenes/SceneCanvas.h"
+#include "Render/Frame/SceneCanvas.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/SceneManager.h"
 #include "support/FakeClock.h"

@@ -1,5 +1,5 @@
 #include "Crt/CrtRandom.h"
-#include "Render/Models/OriginalRotation.h"
+#include "Math/OriginalRotation.h"
 #include "support/ParticleDrawRecorder.h"
 #include "World/ParticleOwner.h"
 #include "World/Particles.h"

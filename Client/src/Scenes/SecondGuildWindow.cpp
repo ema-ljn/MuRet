@@ -20,7 +20,7 @@
 #include "Scenes/GuildPanels.h"
 #include "Scenes/GuildState.h"
 #include "Scenes/GuildWindow.h"
-#include "Scenes/ITextDrawer.h"
+#include "Render/Frame/ITextDrawer.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/ChatInput.h"

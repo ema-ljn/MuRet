@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Data/Tables/GateRecord.h"
-#include "Data/Tables/GateTable.h"
+#include "Tables/GateRecord.h"
+#include "Tables/GateTable.h"
 #include "support/TableFiles.h"
 
 #include <array>

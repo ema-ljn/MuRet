@@ -4,7 +4,7 @@
 #include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainGrid.h"
 #include "Data/Terrain/TerrainMapping.h"
-#include "Render/Models/LogicalAccess.h"
+#include "Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/ActorPickingBox.h"
 #include "Scenes/GameDrawTail.h"

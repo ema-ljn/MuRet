@@ -25,7 +25,7 @@ Es la base del proyecto: no hace falta otra copia (2026-11-04). Los tests la lee
 `MU_CLIENT_GOLDEN_DIR` (D-C9). A `Main` se le pasa como cualquier carpeta de datos:
 
 ```bash
-./build/linux-x64-debug/Client/Main --data Client/assets/Data
+./build/linux-x64-debug/bin/main --data Client/assets/Data
 ```
 
 O en `muret-client.ini`, con `[Data] Path`. Una ruta relativa ahí se toma desde la carpeta del

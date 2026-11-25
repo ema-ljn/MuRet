@@ -3,7 +3,8 @@
 **Status** · Accepted. Emanuel decided the shape on 2026-11-25: the first draft proposed one library per engine
 module, 14 files, and he rejected it (14 DLLs make no sense); of the second draft's options he chose the three
 libraries together with `Audio`. Task 8 of the [AR1 plan](../superpowers/plans/2026-11-22-ar1-engine-apart.md) builds
-it.
+it; ["What building it changed"](#what-building-it-changed-task-8-2026-11-25) lists where the build differs from this
+text.
 
 ## Context
 
@@ -149,6 +150,22 @@ loses the only guard that keeps SDL in one place.
   keeps the home that plan gives it, in `Engine` behind its port; what gets a library here is the backend.
 - What would reopen it: a measured cost in frame time or start-up that `MU_MONOLITHIC` does not cover, a second
   graphics or audio backend, or a module inside `Engine` whose boundary the include check does not hold.
+
+## What building it changed (Task 8, 2026-11-25)
+
+- **The macro follows the linker.** A class or a free function carries its library's macro when it is defined in a
+  `.cpp` and another binary links it. A script reads the build's objects for the symbols one target defines and
+  another asks for: 525, on 55 classes and 241 free functions in 131 of the 196 headers. An interface that lives whole
+  in its header carries no macro, which narrows "interfaces included" above: it exports no symbol, so nothing would
+  check its macro. With this rule a missing macro is always a link error, on both systems.
+- **No engine header defines mutable state.** A script read the 196 headers and found none, so no declaration moved.
+- **A test links what its includes reach,** not what its folder says, because the test folders are mixed (in
+  `tests/data`, 35 files see only the engine and 30 reach the game). 151 of the 755 test files link `Engine` and
+  `EngineTestSupport` without the game; the estimate above was 181 of 756.
+- **`bin/` holds the client's binaries and the labs'.** The DataServer links none of these libraries and keeps its
+  paths.
+- **Who links `Platform` sees SDL's headers and does not link SDL.** `Platform`'s headers name SDL's types, so it
+  passes on `SDL3::Headers`; a binary that calls SDL itself (the executable, the backends' tests) links `SDL3::SDL3`.
 
 ## Open questions
 

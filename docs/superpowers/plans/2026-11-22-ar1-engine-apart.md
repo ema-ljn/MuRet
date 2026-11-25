@@ -85,6 +85,9 @@ Measured on `refactor/client` at 75c33064 (2026-11-22). AR1.3, the command line,
 | the SDL and OpenGL files are rows of `engine/Platform` and `engine/Render` | each backend is a module and a folder of its own, `engine/Platform/Sdl`, `engine/Audio/Sdl` and `engine/Render/Gl`, and their map rows change before the move (Task 7) | found writing ADR 0028: `move.py` places a file by its row, so `Render/Gl/` would land flat in `engine/Render/`, and `Platform`'s six files without SDL (`WindowState`, `Resolution`, `VSyncMode`, `IClipboard`), which the game uses, would land in the SDL library |
 | the map rows of `Data/Models`, `Data/Tables`, `Data/Terrain`, `Data/Textures`, `Render/Text` and `RoundedMath` name only their module, so the move would put them flat in `engine/Data`, `engine/Render` and `engine/Math` | their target is the subfolder they have today (Task 7, Step 0) | found running Task 7: those folders already are their namespaces (`Client::Data::Textures`, `Client::Render::Text`), and flat they would rewrite 1,340 include lines in 634 files and rename those namespaces in Task 9 |
 | SDL3 static on Linux (vcpkg's `x64-linux`) | SDL3 shared on Linux too, from a triplet of the repo (Task 8) | ADR 0028: `Platform` and `Audio` both use SDL, and a static copy in each would be two SDLs in one process |
+| ADR 0028: a class or a free function another binary uses carries its library's macro, interfaces included | the macro goes on what is defined in a `.cpp` and another binary links: 55 classes and 241 free functions in 131 of the 196 headers; an interface that lives whole in its header carries none (Task 8) | found building Task 8: the script marks the 525 symbols the linker asks for, so a missing macro is a link error on both systems; a header-only interface exports no symbol, and nothing would check its macro |
+| ADR 0028: the tests of the engine's folders link `Engine` without the game (181 of 756 files) | each test file links what its includes reach: 151 of the 755 files link `Engine` and `EngineTestSupport` without the game (Task 8) | found building Task 8: the test folders are mixed (in `tests/data`, 35 files see only the engine and 30 reach the game), so a rule by folder would leave every one of them linking the game |
+| ADR 0028: every binary goes to `bin/` | the client's binaries and the labs' go to `bin/`; the DataServer's stay where they were (Task 8) | the DataServer links none of the engine's libraries, and its paths are not this plan's |
 | `MuRetTables`, `MuRetMaps`, `MuRetSound` targets in AR1.2 | the three game modules move in AR1.2 but stay in `ClientLib` | the game's library shape (one `Game` or a few) is the ADR's AR4 question |
 | `MURET_`/`muret_` options, functions, macros and environment variables | `MU_`/`mu_`, and `MU_CLIENT_` for the client's own (Task 1b) | Emanuel, 2026-11-23: MuRet was a mistaken name; `cmake/` is shared with the DataServer, so the prefix names the game, not the client |
 | `MuRetFoxAnti`, an optional library inside Network | `XorRemap`, a static target that only `main.exe` links, never a DLL (Task 6) | Emanuel, 2026-11-23: easy to remove, but not shipped as a DLL that says what it is |
@@ -593,16 +596,17 @@ PR `build(AR1.2): build the engine as shared libraries`, branch `refactor/ar1.2-
 **Interfaces:**
 - Consumes: the folders `engine/Platform/Sdl/`, `engine/Audio/Sdl/` and `engine/Render/Gl/` and their module rows,
   from Task 7.
-- Produces: `mu_add_library(<target> SOURCES <files>… [LINK <targets>…])` in `cmake/AddLibrary.cmake`: `SHARED`, or
-  `STATIC` with `MU_MONOLITHIC`; `FILE_SET HEADERS` with the include root `Client/src/engine`,
-  `VERIFY_INTERFACE_HEADER_SETS ON`; `generate_export_header` with `EXPORT_MACRO_NAME` `<TARGET>_API` (`STATIC_DEFINE`
-  set when monolithic), its header in a second `FILE_SET`; hidden visibility; `--no-undefined` on Linux;
-  `mu_set_fidelity_flags`; `mu_reuse_precompiled_headers(<target> StdPch)`.
+- Produces: `mu_add_library(<target> SOURCES <files>… HEADERS <files>… [LINK <targets>…])` in
+  `cmake/AddLibrary.cmake`: `SHARED`, or `STATIC` with `MU_MONOLITHIC`; `FILE_SET HEADERS` with the include root
+  `Client/src/engine`, `VERIFY_INTERFACE_HEADER_SETS ON`; `generate_export_header` with `EXPORT_MACRO_NAME`
+  `<TARGET>_API` (empty for a static target, so the monolithic build needs no `STATIC_DEFINE`), its header
+  `<Target>Api.h` in a second `FILE_SET`; hidden visibility; `--no-undefined` on Linux; `mu_set_fidelity_flags`;
+  `mu_reuse_precompiled_headers(<target> StdPch)`.
 - Produces: four libraries (target name = file name, no prefix), each a glob of folders. `Engine`: everything under
   `Client/src/engine/` outside `Platform/Sdl/`, `Audio/Sdl/`, `Render/Gl/` and `Network/XorRemap/`, with libjpeg-turbo,
-  FreeType and `ws2_32` private. `Platform`: `engine/Platform/Sdl/`; it links `Engine` and SDL3. `OpenGL`:
-  `engine/Render/Gl/`; it links `Engine` and `Platform`, and gets SDL's headers as `SDL3::Headers`. `Audio`:
-  `engine/Audio/Sdl/`; it links `Engine` and SDL3, with SDL3_mixer private.
+  FreeType and `ws2_32` private. `Platform`: `engine/Platform/Sdl/`; it links `Engine`, gives SDL's headers to who
+  links it (`SDL3::Headers`) and links SDL3 itself privately. `OpenGL`: `engine/Render/Gl/`; it links `Engine` and
+  `Platform`. `Audio`: `engine/Audio/Sdl/`; it links `Engine`, with SDL3 and SDL3_mixer private.
 - Produces: SDL3 shared on Linux: an overlay triplet in the repo that sets `VCPKG_LIBRARY_LINKAGE dynamic` for the
   port `sdl3` alone (vcpkg's per-port customization; read its triplet documentation again first), named in the Linux
   presets, with `libSDL3.so` copied to `bin/` and the triplet file in CI's vcpkg cache key.

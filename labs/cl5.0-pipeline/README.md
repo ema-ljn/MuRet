@@ -23,7 +23,7 @@ final.
 
 Las tres misiones van en la biblioteca `MuRetLabsCl50`, sin GL (desde la CL5.2 enlaza `ClientLib`,
 donde quedaron las cuentas del quad), y sus tests y el jefe en `LabCl50Tests`, con el prefijo
-`LabCl50.` en CTest: son 20. Lo de `gl/` va en `MuRetLabsCl50Gl`, que enlaza `ClientPlatform`, y sus
+`LabCl50.` en CTest: son 20. Lo de `gl/` va en `MuRetLabsCl50Gl`, que enlaza `Platform`, y sus
 tests en `LabCl50GlTests`, con el prefijo `LabCl50Gl.` y la etiqueta `gl`: son 11, y 4 de ellos
 abren GL. Sin pantalla esos 4 se saltean, y con `MU_CLIENT_REQUIRE_GL=1` fallan (la pregunta 9
 del plan); el CI los corre en Xvfb con la variable:
@@ -40,7 +40,7 @@ en el fallo.
 
 ## Lo que `gl/` toma del cliente
 
-La ventana escondida (`HiddenGlWindow`) usa lo que ya está en `ClientPlatform`: `SdlContext` para
+La ventana escondida (`HiddenGlWindow`) usa lo que ya está en `Platform`: `SdlContext` para
 `SDL_Init` y `SDL_Quit`, los deleters de la ventana y del contexto de `Platform/Sdl/Window.h`,
 `LoadGlFunctions` y la versión pedida (`GlMajorVersion`, `GlMinorVersion` y `GlVersionText`). No
 usa `Window::Create`, porque esa ventana se muestra, es de 640 × 480 y pide VSync, que un test no

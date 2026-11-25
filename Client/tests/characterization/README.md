@@ -11,9 +11,9 @@ writes the golden again and says so in its description.
 
 ```bash
 # From the build folder: compare, write the goldens again, or print what each frame did.
-./Client/tests/characterization/test_characterization
-MU_CHARACTERIZATION_WRITE=1 ./Client/tests/characterization/test_characterization
-MU_CHARACTERIZATION_TRACE=1 ./Client/tests/characterization/test_characterization --gtest_filter=*LoginToLorencia
+./bin/test_characterization
+MU_CHARACTERIZATION_WRITE=1 ./bin/test_characterization
+MU_CHARACTERIZATION_TRACE=1 ./bin/test_characterization --gtest_filter=*LoginToLorencia
 ```
 
 ## A scene

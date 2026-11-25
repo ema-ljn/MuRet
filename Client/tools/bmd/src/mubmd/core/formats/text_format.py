@@ -14,7 +14,7 @@ from mubmd.core.documents.text_table import (
 from mubmd.core.errors import ErrorCode, MubmdError
 from mubmd.core.findings import Finding
 from mubmd.core.json_types import JsonObject, JsonValue
-from mubmd.core.ports import CatalogFile, FieldInfo
+from mubmd.core.ports import CatalogFile, FieldInfo, Summary
 
 VIEW_VERSION: Final = 1
 TEXT_TABLE_SIZE: Final = TEXT_RECORD_COUNT * TEXT_RECORD_SIZE
@@ -118,3 +118,6 @@ class TextFormat:
                 "Client/docs/research/05-formatos-de-datos.md#tablas-bmd",
             ),
         )
+
+    def summarize(self, document: TextTable) -> Summary:
+        return Summary("XOR3", len(document.records), sum(1 for record in document.records if any(record)))

@@ -21,6 +21,13 @@ class FieldInfo:
     reference: str
 
 
+@dataclass(frozen=True, slots=True)
+class Summary:
+    cipher: str
+    records: int
+    used_records: int
+
+
 class FormatCodec[D](Protocol):
     name: str
 
@@ -35,6 +42,8 @@ class FormatCodec[D](Protocol):
     def check(self, document: D, original: D | None) -> tuple[Finding, ...]: ...
 
     def describe_fields(self) -> tuple[FieldInfo, ...]: ...
+
+    def summarize(self, document: D) -> Summary: ...
 
 
 class FileStore(Protocol):

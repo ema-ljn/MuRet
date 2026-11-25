@@ -100,3 +100,8 @@ def test_the_fields_point_to_the_research() -> None:
     (field,) = CODEC.describe_fields()
     assert field.pointer == "/texts/<0..2047>"
     assert field.reference == "Client/docs/research/05-formatos-de-datos.md#tablas-bmd"
+
+
+def test_the_summary_counts_used_records(reference_data: Path) -> None:
+    summary = CODEC.summarize(decode(reference_data, "Text.bmd"))
+    assert (summary.cipher, summary.records, summary.used_records) == ("XOR3", 2048, 1645)

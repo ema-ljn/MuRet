@@ -1,6 +1,6 @@
 #include "Scenes/CastleWeaponEffects.h"
 #include "Core/Expected.h"
-#include "Data/Models/PlayerModels.h"
+#include "Tables/PlayerModels.h"
 #include "Network/PacketWriter.h"
 #include "Protocol/Movement.h"
 #include "Protocol/Outgoing.h"

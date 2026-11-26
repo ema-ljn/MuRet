@@ -4,7 +4,7 @@
 #include "Core/IClock.h"
 #include "Crt/CrtRandom.h"
 #include "Data/Models/Model.h"
-#include "Data/Models/PlayerModels.h"
+#include "Tables/PlayerModels.h"
 #include "Render/ModelBatch.h"
 #include "Math/HalfLifeMath.h"
 #include "Models/IModelLibrary.h"

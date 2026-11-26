@@ -8,7 +8,7 @@
 
 #include "Core/Expected.h"
 #include "Core/PixelSize.h"
-#include "Data/Models/PlayerModels.h"
+#include "Tables/PlayerModels.h"
 #include "Tables/ItemTable.h"
 #include "Tables/SkillTable.h"
 #include "Models/LogicalAccess.h"

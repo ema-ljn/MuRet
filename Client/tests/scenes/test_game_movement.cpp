@@ -10,7 +10,7 @@
 #include "Scenes/WorldState.h"
 #include "Models/Skeleton.h"
 #include "Render/TextureSlot.h"
-#include "Data/Models/PlayerModels.h"
+#include "Tables/PlayerModels.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainHeights.h"
 #include "Data/Terrain/TerrainMapping.h"

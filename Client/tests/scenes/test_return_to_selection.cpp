@@ -8,7 +8,7 @@
 #include "UI/PanelDialog.h"
 #include "support/LetterMeasure.h"
 #include "support/SceneDataFiles.h"
-#include "Data/Models/PlayerModels.h"
+#include "Tables/PlayerModels.h"
 #include "Tables/ItemSetTables.h"
 #include "Tables/ItemTable.h"
 #include "Protocol/Character/CharacterSelectResult.h"

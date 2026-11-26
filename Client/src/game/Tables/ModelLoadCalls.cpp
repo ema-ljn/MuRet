@@ -1,7 +1,7 @@
-#include "Data/Models/ModelLoadCalls.h"
+#include "Tables/ModelLoadCalls.h"
 
 #include "Data/Models/ModelFiles.h"
-#include "Data/Models/ModelTextureCalls.h"
+#include "Tables/ModelTextureCalls.h"
 
 #include <array>
 #include <span>

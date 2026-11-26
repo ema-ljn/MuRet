@@ -2,7 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Core/IClock.h"
-#include "Data/Models/PlayerModels.h"
+#include "Tables/PlayerModels.h"
 #include "Maps/MapId.h"
 #include "Protocol/World.h"
 #include "Models/Cloth.h"

@@ -8,7 +8,7 @@
 #include "Core/Log.h"
 #include "Crt/CrtRandom.h"
 #include "Data/Models/Model.h"
-#include "Data/Models/PlayerModels.h"
+#include "Tables/PlayerModels.h"
 #include "Tables/TextTable.h"
 #include "Input/TextInputEvent.h"
 #include "Protocol/Outgoing.h"

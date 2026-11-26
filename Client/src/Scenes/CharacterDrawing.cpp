@@ -6,7 +6,7 @@
 #include "Core/IClock.h"
 #include "Core/Expected.h"
 #include "Data/Models/Model.h"
-#include "Data/Models/PlayerModels.h"
+#include "Tables/PlayerModels.h"
 #include "Data/Models/ModelTextures.h"
 #include "Data/Textures/TextureSet.h"
 #include "GameLogic/CharacterAppearance.h"

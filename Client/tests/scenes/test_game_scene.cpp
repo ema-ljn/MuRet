@@ -14,7 +14,7 @@
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
 #include "Data/Models/Model.h"
-#include "Data/Models/PlayerModels.h"
+#include "Tables/PlayerModels.h"
 #include "Tables/GateRecord.h"
 #include "Tables/GateTable.h"
 #include "Data/Terrain/TerrainAttributes.h"

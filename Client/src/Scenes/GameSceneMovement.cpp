@@ -1,7 +1,7 @@
 #include "Pathfinding/PathCell.h"
 #include "Scenes/GameScene.h"
 #include "Core/Expected.h"
-#include "Data/Models/PlayerModels.h"
+#include "Tables/PlayerModels.h"
 #include "Input/InputState.h"
 #include "Input/Key.h"
 #include "Protocol/Outgoing.h"

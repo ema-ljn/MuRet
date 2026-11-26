@@ -2,7 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Core/IClock.h"
-#include "Data/Models/PlayerModels.h"
+#include "Tables/PlayerModels.h"
 #include "Models/ObjectState.h"
 #include "Math/OriginalRetainedMath.h"
 #include "Models/Skinning.h"

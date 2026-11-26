@@ -2,8 +2,8 @@
 
 #include "Core/Expected.h"
 #include "Data/Models/Model.h"
-#include "Data/Models/PlayerActions.h"
-#include "Data/Models/PlayerModels.h"
+#include "Tables/PlayerActions.h"
+#include "Tables/PlayerModels.h"
 #include "Models/Skeleton.h"
 
 #include <cstddef>

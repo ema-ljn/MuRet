@@ -123,16 +123,16 @@ engine/Data/Models/Bmd.h	75	engine/Data/Models	engine/Data/Models	high	engine or
 engine/Data/Models/Model.h	105	engine/Data/Models	engine/Data/Models	high	engine or protocol layer, no game state
 engine/Data/Models/ModelFiles.cpp	106	engine/Data/Models	engine/Data/Models	high	engine or protocol layer, no game state
 engine/Data/Models/ModelFiles.h	68	engine/Data/Models	engine/Data/Models	high	engine or protocol layer, no game state
-engine/Data/Models/ModelLoadCalls.cpp	51	engine/Data/Models	game/Tables	high	which file main.exe loads into which slot is MU's content, not the engine's (item vocabulary)
-engine/Data/Models/ModelLoadCalls.h	18	engine/Data/Models	game/Tables	high	which file main.exe loads into which slot is MU's content, not the engine's (item vocabulary)
-engine/Data/Models/ModelTextureCalls.cpp	240	engine/Data/Models	game/Tables	high	which file main.exe loads into which slot is MU's content, not the engine's (item vocabulary)
-engine/Data/Models/ModelTextureCalls.h	51	engine/Data/Models	game/Tables	high	which file main.exe loads into which slot is MU's content, not the engine's (item vocabulary)
+game/Tables/ModelLoadCalls.cpp	51	game/Tables	game/Tables	high	which file main.exe loads into which slot is MU's content, not the engine's (item vocabulary)
+game/Tables/ModelLoadCalls.h	18	game/Tables	game/Tables	high	which file main.exe loads into which slot is MU's content, not the engine's (item vocabulary)
+game/Tables/ModelTextureCalls.cpp	240	game/Tables	game/Tables	high	which file main.exe loads into which slot is MU's content, not the engine's (item vocabulary)
+game/Tables/ModelTextureCalls.h	51	game/Tables	game/Tables	high	which file main.exe loads into which slot is MU's content, not the engine's (item vocabulary)
 engine/Data/Models/ModelTextures.cpp	114	engine/Data/Models	engine/Data/Models	high	engine or protocol layer, no game state
 engine/Data/Models/ModelTextures.h	42	engine/Data/Models	engine/Data/Models	high	engine or protocol layer, no game state
-engine/Data/Models/PlayerActions.cpp	83	engine/Data/Models	game/Tables	high	which file main.exe loads into which slot is MU's content, not the engine's (item vocabulary)
-engine/Data/Models/PlayerActions.h	35	engine/Data/Models	game/Tables	high	which file main.exe loads into which slot is MU's content, not the engine's (item vocabulary)
-engine/Data/Models/PlayerModels.cpp	610	engine/Data/Models	game/Tables	high	which file main.exe loads into which slot is MU's content, not the engine's (item vocabulary)
-engine/Data/Models/PlayerModels.h	72	engine/Data/Models	game/Tables	high	which file main.exe loads into which slot is MU's content, not the engine's (item vocabulary)
+game/Tables/PlayerActions.cpp	83	game/Tables	game/Tables	high	which file main.exe loads into which slot is MU's content, not the engine's (item vocabulary)
+game/Tables/PlayerActions.h	35	game/Tables	game/Tables	high	which file main.exe loads into which slot is MU's content, not the engine's (item vocabulary)
+game/Tables/PlayerModels.cpp	610	game/Tables	game/Tables	high	which file main.exe loads into which slot is MU's content, not the engine's (item vocabulary)
+game/Tables/PlayerModels.h	72	game/Tables	game/Tables	high	which file main.exe loads into which slot is MU's content, not the engine's (item vocabulary)
 game/Tables/GateRecord.cpp	24	game/Tables	game/Tables	high	a MU data table; the generic reader stays in engine/Data (2026-11-21 review)
 game/Tables/GateRecord.h	29	game/Tables	game/Tables	high	a MU data table; the generic reader stays in engine/Data (2026-11-21 review)
 game/Tables/GateTable.cpp	19	game/Tables	game/Tables	high	a MU data table; the generic reader stays in engine/Data (2026-11-21 review)

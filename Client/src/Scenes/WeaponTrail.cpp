@@ -3,7 +3,7 @@
 #include "Core/Expected.h"
 #include "Math/X87.h"
 
-#include "Data/Models/PlayerModels.h"
+#include "Tables/PlayerModels.h"
 #include "Math/HalfLifeMath.h"
 #include "Math/OriginalRotation.h"
 #include "Models/Pose.h"

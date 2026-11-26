@@ -1,6 +1,6 @@
 #include "Scenes/WorldState.h"
 
-#include "Data/Models/PlayerModels.h"
+#include "Tables/PlayerModels.h"
 
 #include "Crt/CrtRandom.h"
 #include "Protocol/Character/CharacterList.h"

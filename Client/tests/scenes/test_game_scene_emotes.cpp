@@ -4,7 +4,7 @@
 #include "App/ServerSession.h"
 #include "App/SessionState.h"
 #include "Core/Expected.h"
-#include "Data/Models/PlayerModels.h"
+#include "Tables/PlayerModels.h"
 #include "Tables/TextTable.h"
 #include "Input/InputEvent.h"
 #include "Input/InputState.h"

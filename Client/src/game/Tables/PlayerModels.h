@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Data/Models/ModelFiles.h"
-#include "EngineApi.h"
 
 #include <array>
 #include <cstddef>
@@ -40,14 +39,14 @@ inline constexpr std::array<std::uint16_t, 5> HelmsWithMask{0x1012, 0x1017, 0x10
 
 // The 213 loads of 0x60dbe0 in the Data\ mode: Player.bmd, each class's parts, the equipment's and Shadow01.bmd. All
 // are in the lab's Data\.
-[[nodiscard]] ENGINE_API std::span<const ModelFile> PlayerModelFiles();
+[[nodiscard]] std::span<const ModelFile> PlayerModelFiles();
 
 // The 243 of 0x60ff50, each a different model: weapons, shields, items and Player\'s four pets (Helper01 to 04). The
 // lab lacks only the three giftbox (09), which the original skips silently.
-[[nodiscard]] ENGINE_API std::span<const ModelFile> ItemModelFiles();
+[[nodiscard]] std::span<const ModelFile> ItemModelFiles();
 
 // The 106 loads of 0x615700 in the Data branch, in native order. ManyFlag is optional and may be missing.
-[[nodiscard]] ENGINE_API std::span<const ModelFile> SkillModelFiles();
+[[nodiscard]] std::span<const ModelFile> SkillModelFiles();
 
 struct ModelMesh
 {

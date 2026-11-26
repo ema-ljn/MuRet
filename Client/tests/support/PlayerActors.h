@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Crt/CrtRandom.h"
-#include "Data/Models/PlayerModels.h"
+#include "Tables/PlayerModels.h"
 #include "Tables/ItemTable.h"
 #include "Models/Skeleton.h"
 #include "Scenes/ActorState.h"

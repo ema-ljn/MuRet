@@ -3,7 +3,7 @@
 #include "Core/Expected.h"
 #include "Core/Log.h"
 #include "Data/Models/Model.h"
-#include "Data/Models/ModelTextureCalls.h"
+#include "Tables/ModelTextureCalls.h"
 #include "Render/ITextureStore.h"
 #include "Models/IModelLibrary.h"
 #include "Models/ModelTextureSlots.h"

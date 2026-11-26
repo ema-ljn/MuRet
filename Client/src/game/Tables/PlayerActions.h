@@ -1,7 +1,5 @@
 #pragma once
 
-#include "EngineApi.h"
-
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -23,10 +21,10 @@ struct ActionSpeedWrite
 
 // The 181 writes, in the original's order and grouped as it writes them: 47 instructions. Later ones overwrite
 // earlier ones.
-[[nodiscard]] ENGINE_API std::span<const ActionSpeedWrite> PlayerActionSpeeds();
+[[nodiscard]] std::span<const ActionSpeedWrite> PlayerActionSpeeds();
 
 // std::nullopt if no write touches `action`: 57 of the 205 keep whatever was on the heap (Q-C87, P-C14 a).
-[[nodiscard]] ENGINE_API std::optional<float> PlayerActionSpeed(std::size_t action);
+[[nodiscard]] std::optional<float> PlayerActionSpeed(std::size_t action);
 
 // The ones that do not repeat and stay on the last key: 0x60dbe0 sets their +0 to 1 (0x60f54c..0x60f585), in this
 // order.

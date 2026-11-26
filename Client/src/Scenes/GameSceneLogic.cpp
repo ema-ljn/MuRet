@@ -22,7 +22,7 @@
 #include "Core/Expected.h"
 #include "Core/IClock.h"
 #include "Crt/CrtRandom.h"
-#include "Data/Models/PlayerModels.h"
+#include "Tables/PlayerModels.h"
 #include "Protocol/Outgoing.h"
 #include "Models/Skeleton.h"
 #include "Scenes/CameraTour.h"

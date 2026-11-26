@@ -1,7 +1,7 @@
 #include "Scenes/MonsterStepCases.h"
 
 #include "Core/Expected.h"
-#include "Data/Models/PlayerModels.h"
+#include "Tables/PlayerModels.h"
 #include "Data/Terrain/TerrainGrid.h"
 #include "Models/Skeleton.h"
 #include "Scenes/ActorState.h"

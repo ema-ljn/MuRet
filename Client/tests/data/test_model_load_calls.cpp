@@ -1,8 +1,8 @@
-#include "Data/Models/ModelLoadCalls.h"
+#include "Tables/ModelLoadCalls.h"
 
 #include "Data/Models/Model.h"
 #include "Data/Models/ModelFiles.h"
-#include "Data/Models/ModelTextureCalls.h"
+#include "Tables/ModelTextureCalls.h"
 #include "Data/Textures/TextureSet.h"
 #include "Models/ModelTextureSlots.h"
 #include "Render/TextureSlot.h"

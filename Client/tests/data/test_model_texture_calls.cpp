@@ -1,7 +1,7 @@
-#include "Data/Models/ModelTextureCalls.h"
+#include "Tables/ModelTextureCalls.h"
 
 #include "Data/Models/ModelFiles.h"
-#include "Data/Models/PlayerModels.h"
+#include "Tables/PlayerModels.h"
 #include "Data/Textures/Sampling.h"
 #include "Data/Textures/TextureSet.h"
 

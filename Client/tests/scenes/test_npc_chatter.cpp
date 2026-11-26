@@ -2,7 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
-#include "Data/Models/PlayerModels.h"
+#include "Tables/PlayerModels.h"
 #include "Tables/TextTable.h"
 #include "Models/Skeleton.h"
 #include "Render/Text/FontSet.h"

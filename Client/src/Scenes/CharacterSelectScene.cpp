@@ -8,7 +8,7 @@
 #include "App/ServerSession.h"
 #include "App/SessionState.h"
 #include "Core/Expected.h"
-#include "Data/Models/PlayerModels.h"
+#include "Tables/PlayerModels.h"
 #include "Data/Textures/TextureSet.h"
 #include "GameLogic/CharacterAppearance.h"
 #include "Input/InputState.h"

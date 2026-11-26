@@ -93,7 +93,7 @@ Core::Expected<bool, std::string> HitTheTargetsAround(const SkillHitsRequest& re
     // 0x517af8..0x517b3f: en el 30 con el asedio (0x4294b0), el bit 0x100 de la celda del punto (0x5f82c0) sale con 0;
     // sin él, un jugador entra aunque no tenga la clave.
     bool siegePlayers = false;
-    if (runtime.map == CastleSiegeMap && runtime.siegeActive)
+    if (runtime.map == CastleSiegeMap && runtime.castleSiege.siegeActive)
     {
         const auto& attributes = world.Map().terrain.attributes;
         if (!attributes)

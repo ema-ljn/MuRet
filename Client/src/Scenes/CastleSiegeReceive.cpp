@@ -554,14 +554,14 @@ Core::Expected<void, std::string> ApplyMinimapPoints(const Castle::MinimapPoints
                                                      const CastleReceiveContext& context)
 {
     constexpr std::uint8_t MinimapPanelKind = 2;
-    if (context.world.Runtime().siegePanelKind != MinimapPanelKind)
+    if (context.world.Runtime().castleSiege.siegePanelKind != MinimapPanelKind)
     {
         return {};
     }
     // 0x411e80: borra el vector antes del loop, incluso sin puntos; +0x20 vuelve a1.
     auto& runtime = context.world.Runtime();
-    runtime.siegePanel.members.clear();
-    runtime.siegePanel.membersHidden = 1;
+    runtime.castleSiege.siegePanel.members.clear();
+    runtime.castleSiege.siegePanel.membersHidden = 1;
     for (const auto& point : points.points)
         AppendSiegePanelMember(runtime, 0, point.x, point.y);
     return {};

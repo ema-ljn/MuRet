@@ -424,7 +424,7 @@ Result DrawTheBody(MonsterFrame& frame, const Models::Skeleton& skeleton, std::u
                           .worldClock = frame.worldClock,
                           .random = frame.random,
                           .cloth = *frame.pass.clothWorld,
-                          .siegeActive = frame.world.Runtime().siegeActive,
+                          .siegeActive = frame.world.Runtime().castleSiege.siegeActive,
                           .soundRequest = [&runtime = frame.world.Runtime()](std::int32_t sound)
                           { runtime.RequestSound(sound); },
                           .originalFrame = frame.originalFrame,
@@ -863,7 +863,7 @@ GameHangingPass HangingPassOf(MonsterFrame& frame, const Models::IModelLibrary& 
                            .worldClock = frame.worldClock,
                            .map = frame.map,
                            .heroByte1a1 = frame.world.Hero().byte1a1,
-                           .siegeActive = frame.world.Runtime().siegeActive,
+                           .siegeActive = frame.world.Runtime().castleSiege.siegeActive,
                            .logicSteps = pass.clothWorld->logicSteps,
                            .originalFrame = frame.originalFrame,
                            .modelOrigin = frame.modelOrigin};
@@ -1218,7 +1218,7 @@ KalimaSiegeHelperPass HelperPassOf(MonsterFrame& frame)
                     : std::function<void(std::int32_t)>{},
             .worldClock = frame.worldClock,
             .map = frame.map,
-            .siegeActive = frame.world.Runtime().siegeActive,
+            .siegeActive = frame.world.Runtime().castleSiege.siegeActive,
             .modelOrigin = frame.modelOrigin};
 }
 

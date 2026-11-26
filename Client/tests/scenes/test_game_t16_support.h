@@ -198,8 +198,8 @@ protected:
     // HUD corta en su dibujo (0x40f850, el minimapa con los personajes, de la CL9.5; GameHudTest lo prueba).
     void HideTheSiegePanel()
     {
-        if (m_world->Runtime().siegePanelKind == std::uint8_t{0})
-            m_world->Runtime().siegePanel.visible = 0;
+        if (m_world->Runtime().castleSiege.siegePanelKind == std::uint8_t{0})
+            m_world->Runtime().castleSiege.siegePanel.visible = 0;
     }
 
     void OpenScene()

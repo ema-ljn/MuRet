@@ -191,7 +191,7 @@ Core::Expected<void, std::string> GameScene::DrawTheTail(Render::Frame::SceneCan
     effectResources.sprites = &FrameSpritesForDraw();
     effectResources.dynamicLighting = &FrameLighting();
     effectResources.attributes = &attributes;
-    effectResources.siegeActive = runtime.siegeActive;
+    effectResources.siegeActive = runtime.castleSiege.siegeActive;
     effectResources.random = &FrameCloth().random;
     effectResources.itemContext = &itemContext;
     effectResources.kalimaPass = &kalimaPass;

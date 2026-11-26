@@ -554,8 +554,8 @@ Core::Expected<void, std::string> GameScene::StepTheObjects()
     {
         // timeGetTime (0x6b8544) es el reloj de la escena en ms; sin reloj, el preludio corta en 0x42b557.
         World::CastleSiegePrelude prelude{
-            .siegeActive = world.Runtime().siegeActive,
-            .musicTime = &world.Runtime().siegeMusicTime,
+            .siegeActive = world.Runtime().castleSiege.siegeActive,
+            .musicTime = &world.Runtime().castleSiege.siegeMusicTime,
             .sound = [&world](std::int32_t id) { world.Runtime().RequestSound(id); },
             .random = &m_context.cloth->random,
             .logicSteps = m_context.cloth->logicSteps,
@@ -659,8 +659,8 @@ Core::Expected<void, std::string> GameScene::StepTheObjects()
                        : 0U;
         },
         .trialsAmbientTime = &world.Runtime().trialsAmbientTime,
-        .siegeActive = &world.Runtime().siegeActive,
-        .siegeCrownFlags = &world.Runtime().castleFlags7239e4};
+        .siegeActive = &world.Runtime().castleSiege.siegeActive,
+        .siegeCrownFlags = &world.Runtime().castleSiege.castleFlags7239e4};
     AfterObjectStep after;
     if (icarus)
         after = [&](World::WorldObject& object)
@@ -677,7 +677,7 @@ Core::Expected<void, std::string> GameScene::StepTheObjects()
         after = [&](World::WorldObject& object)
         {
             return World::StepCastleSiegeSeenObject(
-                object, world.Runtime().siegeActive, worldClock,
+                object, world.Runtime().castleSiege.siegeActive, worldClock,
                 World::CastleGateCollapseServices{
                     .emit = [&world](const World::ModelEffectArguments& arguments) -> Core::Expected<void, std::string>
                     {
@@ -1163,7 +1163,7 @@ Core::Expected<void, std::string> GameScene::DrawTheWorldPass(Render::Frame::Sce
                                                                          CameraState().fixedHeight));
                     },
                     .chaosCastleArea = world.Runtime().chaosCastleArea,
-                    .siegeActive = world.Runtime().siegeActive,
+                    .siegeActive = world.Runtime().castleSiege.siegeActive,
                     .objectDrawCounter = &world.Runtime().objectDrawCounter,
                     .crywolf = &world.Runtime().crywolf});
             !objects.HasValue())

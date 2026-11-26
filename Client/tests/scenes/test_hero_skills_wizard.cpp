@@ -1008,7 +1008,7 @@ TEST(HeroSkillsWizardTest, TeleportAllyMovesTheChosenNextToTheHero)
     {
         SCOPED_TRACE(castle);
         const auto tested = AWizard(0xf, Wizard, 30);
-        tested->world.Runtime().siegeActive = true;
+        tested->world.Runtime().castleSiege.siegeActive = true;
         tested->ChooseAnAlly();
         if (castle)
             tested->Hero().cellY = 0xc0;
@@ -1029,7 +1029,7 @@ TEST(HeroSkillsWizardTest, TeleportAllyMovesTheChosenNextToTheHero)
     {
         // Con 0x576794c, lo baja y nada.
         const auto tested = AWizard(0xf, Wizard, 30);
-        tested->world.Runtime().siegeActive = true;
+        tested->world.Runtime().castleSiege.siegeActive = true;
         tested->ChooseAnAlly();
         tested->Movement().gateRequestBlocked = 1;
         ASSERT_TRUE(tested->Use().HasValue());
@@ -1039,7 +1039,7 @@ TEST(HeroSkillsWizardTest, TeleportAllyMovesTheChosenNextToTheHero)
     {
         // Con las ocho celdas de al lado tapadas fuera del castillo, nada después de 11 celdas tapadas.
         const auto tested = AWizard(0xf, Wizard, 30);
-        tested->world.Runtime().siegeActive = true;
+        tested->world.Runtime().castleSiege.siegeActive = true;
         tested->ChooseAnAlly();
         auto& cells = tested->world.Map().terrain.attributes->cells;
         for (std::uint32_t y = 114; y <= 116; ++y)

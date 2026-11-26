@@ -110,7 +110,7 @@ bool FinishTheCastleObject(ActorState& actor, const Models::Skeleton& skeleton, 
             PutTheAction(actor, OpenedAction);
             constexpr std::uint8_t Opened = 2;
             constexpr std::int32_t OpenedTime = 0x12c;
-            runtime.castleByte7239d8 = Opened;
+            runtime.castleSiege.castleByte7239d8 = Opened;
             actor.byte110 = 1;
             actor.dword100 = OpenedTime;
             return true;

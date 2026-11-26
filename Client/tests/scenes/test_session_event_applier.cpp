@@ -579,9 +579,9 @@ TEST(SessionEventApplierTest, TheMapJoinResetsTheWorldBeforeTheAuthenticationRan
     auto& runtime = tested.world.Runtime();
     runtime.map = 30;
     runtime.events.soccer.active = true;
-    runtime.siegeBattleUi.clock.hours = 3;
-    runtime.siegeBattleUi.clock.minutes = 7;
-    runtime.siegeBattleUi.clock.tick = 99;
+    runtime.castleSiege.siegeBattleUi.clock.hours = 3;
+    runtime.castleSiege.siegeBattleUi.clock.minutes = 7;
+    runtime.castleSiege.siegeBattleUi.clock.tick = 99;
     tested.world.Actors()[1].alive = true;
     tested.world.Actors()[1].key = 123;
     tested.world.Actors()[2].alive = true;
@@ -592,10 +592,10 @@ TEST(SessionEventApplierTest, TheMapJoinResetsTheWorldBeforeTheAuthenticationRan
     EXPECT_TRUE(tested.world.Actors()[2].alive);
     EXPECT_EQ(runtime.map, -1);
     EXPECT_FALSE(runtime.events.soccer.active);
-    EXPECT_EQ(runtime.siegeBattleUi.clock.blink, 1);
-    EXPECT_EQ(runtime.siegeBattleUi.clock.hours, 3u);
-    EXPECT_EQ(runtime.siegeBattleUi.clock.minutes, 7u);
-    EXPECT_EQ(runtime.siegeBattleUi.clock.tick, 99u);
+    EXPECT_EQ(runtime.castleSiege.siegeBattleUi.clock.blink, 1);
+    EXPECT_EQ(runtime.castleSiege.siegeBattleUi.clock.hours, 3u);
+    EXPECT_EQ(runtime.castleSiege.siegeBattleUi.clock.minutes, 7u);
+    EXPECT_EQ(runtime.castleSiege.siegeBattleUi.clock.tick, 99u);
     EXPECT_EQ(tested.cloth.random.State(), Client::Tests::AfterDraws(1, 0xf08).State());
     applied = tested.applier.ApplyWorld(Client::App::MapServerAuthenticationPrepared{}, online.session);
     ASSERT_TRUE(applied.HasValue()) << applied.Error();

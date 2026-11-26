@@ -52,7 +52,7 @@ World::WizardEffectServices WizardEffectServicesOf(WorldState& world, Crt::CrtRa
         .terrainAttributes = terrain != nullptr ? terrain->attributes.get() : nullptr,
         .map = &runtime.map,
         .cameraShake = parts.cameraShake,
-        .siegeActive = runtime.siegeActive,
+        .siegeActive = runtime.castleSiege.siegeActive,
         .sound = parts.sound,
         .joint = [&world, &random,
                   joints = parts.joints](const World::FishEffectRequest& request) -> Core::Expected<void, std::string>

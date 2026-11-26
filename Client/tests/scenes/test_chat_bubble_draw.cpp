@@ -472,7 +472,7 @@ TEST_F(ChatBubbleDrawTest, SomeOwnersHaveNoBubble)
     owner.flags78 = 0x4000u;
     owner.byte360 = 10;
     m_world->Actors()[0].byte360 = 9;
-    m_world->Runtime().siegeActive = true;
+    m_world->Runtime().castleSiege.siegeActive = true;
     ASSERT_TRUE(Draw().HasValue());
     EXPECT_TRUE(Texts().empty());
 

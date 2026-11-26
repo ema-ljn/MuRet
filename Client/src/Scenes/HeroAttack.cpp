@@ -489,7 +489,7 @@ Core::Expected<bool, std::string> AttackableTarget(const WorldState& world, cons
         return guild.warOn == 0 || guild.warType != 0;
     if (target.byte88 != PlayerObject)
         return false;
-    if (runtime.siegeActive)
+    if (runtime.castleSiege.siegeActive)
     {
         if (const auto decided = SiegeDecides(hero, target))
             return *decided;

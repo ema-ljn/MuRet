@@ -660,7 +660,7 @@ TEST_F(HeroAttackTest, ARivalKeyFrom0x8000NeverMatches)
 // 0x4000 del elegido.
 TEST_F(HeroAttackTest, InTheSiegeTheSidesDecideByTheShield)
 {
-    Runtime().siegeActive = true;
+    Runtime().castleSiege.siegeActive = true;
     Hero().byte360 = 9;
     ActorState& player = Chosen(20);
     player = Client::Tests::UnarmedPlayer();
@@ -680,7 +680,7 @@ TEST_F(HeroAttackTest, InTheSiegeTheSidesDecideByTheShield)
 // 0x558c5b..0x558c7e: también el defensor puede atacar al atacante; el escudo 0x4000 del blanco bloquea ambos sentidos.
 TEST_F(HeroAttackTest, InTheSiegeDefendersCanAttackUnshieldedAttackers)
 {
-    Runtime().siegeActive = true;
+    Runtime().castleSiege.siegeActive = true;
     Hero().byte360 = 13;
     ActorState& player = Chosen(20);
     player = Client::Tests::UnarmedPlayer();
@@ -695,7 +695,7 @@ TEST_F(HeroAttackTest, InTheSiegeDefendersCanAttackUnshieldedAttackers)
 // fuera del asedio. El 0x40000 del héroe es una regla aparte cuando no tiene una de esas tres marcas.
 TEST_F(HeroAttackTest, SiegeMarksUseTheShieldAndBothMarkedSidesContinue)
 {
-    Runtime().siegeActive = true;
+    Runtime().castleSiege.siegeActive = true;
     ActorState& player = Chosen(20);
     player = Client::Tests::UnarmedPlayer();
     player.byte88 = 1;

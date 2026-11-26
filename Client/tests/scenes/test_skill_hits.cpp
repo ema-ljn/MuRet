@@ -220,7 +220,7 @@ TEST(SkillHitsTest, WithoutTheSessionTheDeliveryStillDraws)
 TEST(SkillHitsTest, TheSiegeRequiresAttributesAndTheOutOfRangePointCuts)
 {
     HitsWorld siege(30, 0x18);
-    siege.world.Runtime().siegeActive = true;
+    siege.world.Runtime().castleSiege.siegeActive = true;
     siege.Put(5, 2, 0x1005, 1.0f);
     const auto cut = siege.Hit(Request(100.0f));
     ASSERT_FALSE(cut.HasValue());
@@ -265,7 +265,7 @@ TEST(SkillHitsTest, OnlyTheFourHundredNativeSlotsCanBeHitOrMarked)
 TEST(SkillHitsTest, WarIncludesOtherPlayersAndAttribute100StopsBeforeCollectingTargets)
 {
     HitsWorld tested(30, 0x18);
-    tested.world.Runtime().siegeActive = true;
+    tested.world.Runtime().castleSiege.siegeActive = true;
     tested.world.Map().terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
     tested.Put(5, 1, 0x1005, 1.0f);
     const auto hit = tested.Hit(Request(100.0f));

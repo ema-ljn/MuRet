@@ -85,8 +85,8 @@ struct CreationServices
 using EffectHit = std::function<Core::Expected<void, std::string>(World::ModelEffect&)>;
 
 // Lo que el 0x613/0, /5 y /0x13 de ancho 80 leen después de soltar su 0xd0 (0x539a50..0x539add): el asedio de
-// 0x4294b0 ([0x7239ec], WorldRuntime::siegeActive), los atributos de 0x5f82c0 (0x7d0d348) y los blancos del héroe de
-// 0x517a20 (Scenes::HitTheTargetsAround).
+// 0x4294b0 ([0x7239ec], CastleSiegeState::siegeActive), los atributos de 0x5f82c0 (0x7d0d348) y los blancos del héroe
+// de 0x517a20 (Scenes::HitTheTargetsAround).
 struct VolleyServices
 {
     bool siegeActive = false;

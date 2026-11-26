@@ -1601,7 +1601,7 @@ TEST_F(GameHudTest, TheSwitchHoldersDrawOneLinePerShownHalfInsideTheZone)
         SCOPED_TRACE(map);
         world.Runtime() = Client::Scenes::WorldRuntime{};
         world.Runtime().map = map;
-        world.Runtime().castleSiegeInfo = SwitchHolders();
+        world.Runtime().castleSiege.castleSiegeInfo = SwitchHolders();
         Hero().cellX = 150;
         Hero().cellY = 230;
         // El bit 0x80000 con el bando 2 de la primera mitad: con el nombre; la segunda (4 sin 0x800000), sin él.
@@ -1622,15 +1622,15 @@ TEST_F(GameHudTest, TheSwitchHoldersDrawOneLinePerShownHalfInsideTheZone)
         EXPECT_EQ(text.texts[0].y, 150);
         EXPECT_EQ(text.texts[1].text, std::string(*title) + "2 / Pinos");
         EXPECT_EQ(text.texts[1].y, 165);
-        EXPECT_TRUE(world.Runtime().castleSiegeInfo.has_value());
+        EXPECT_TRUE(world.Runtime().castleSiege.castleSiegeInfo.has_value());
     }
 }
 
 // Las otras dos parejas de bit y bando, y una mitad con +6 en 0, que no se dibuja.
 TEST_F(GameHudTest, TheSwitchHoldersMatchEachSideWithItsFlag)
 {
-    world.Runtime().castleSiegeInfo = SwitchHolders();
-    auto& holders = *world.Runtime().castleSiegeInfo;
+    world.Runtime().castleSiege.castleSiegeInfo = SwitchHolders();
+    auto& holders = *world.Runtime().castleSiege.castleSiegeInfo;
     holders[6] = 0;
     Hero().cellX = 200;
     Hero().cellY = 180;
@@ -1659,7 +1659,7 @@ TEST_F(GameHudTest, TheSwitchHoldersAreFreedOutsideTheZone)
          std::array<std::array<std::uint8_t, 2>, 4>{{{149, 200}, {201, 200}, {170, 179}, {170, 231}}})
     {
         SCOPED_TRACE(static_cast<int>(x) * 1000 + y);
-        world.Runtime().castleSiegeInfo = SwitchHolders();
+        world.Runtime().castleSiege.castleSiegeInfo = SwitchHolders();
         Hero().cellX = x;
         Hero().cellY = y;
         text.texts.clear();
@@ -1667,12 +1667,12 @@ TEST_F(GameHudTest, TheSwitchHoldersAreFreedOutsideTheZone)
         const CrtRandom expected = Advanced(random, HudBaseDraws + 2 * SmallLogicalCloseRandoms);
 
         ASSERT_TRUE(Hud(true).HasValue());
-        EXPECT_TRUE(world.Runtime().castleSiegeInfo.has_value());
+        EXPECT_TRUE(world.Runtime().castleSiege.castleSiegeInfo.has_value());
 
         random = CrtRandom(Seed);
         ASSERT_TRUE(Hud().HasValue());
         EXPECT_EQ(random.State(), expected.State());
-        EXPECT_FALSE(world.Runtime().castleSiegeInfo.has_value());
+        EXPECT_FALSE(world.Runtime().castleSiege.castleSiegeInfo.has_value());
         EXPECT_TRUE(text.texts.empty());
     }
 }
@@ -1680,8 +1680,8 @@ TEST_F(GameHudTest, TheSwitchHoldersAreFreedOutsideTheZone)
 // Un %s sin 0 antes del final de los 0x36 bytes seguiría leyendo el heap (Q-C1403): corta con la dirección.
 TEST_F(GameHudTest, ASwitchHolderTextWithoutItsZeroCuts)
 {
-    world.Runtime().castleSiegeInfo = SwitchHolders();
-    auto& holders = *world.Runtime().castleSiegeInfo;
+    world.Runtime().castleSiege.castleSiegeInfo = SwitchHolders();
+    auto& holders = *world.Runtime().castleSiege.castleSiegeInfo;
     for (std::size_t at = 0x1b + 8; at < holders.size(); ++at)
         holders.at(at) = 'z';
     Hero().cellX = 170;

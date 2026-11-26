@@ -1,16 +1,13 @@
 #pragma once
 
+#include "Kernel/ActorSpirit.h"
 #include "Math/HalfLifeMath.h"
-#include "Math/OriginalRotation.h"
-#include "Models/Pose.h"
 #include "Scenes/CharacterDrawing.h"
 
 #include <glm/ext/vector_float3.hpp>
 
-#include <cstddef>
 #include <cstdint>
 #include <span>
-#include <vector>
 
 namespace Client::Crt
 {
@@ -39,54 +36,7 @@ namespace Client::Scenes
 {
 inline constexpr std::uint16_t DarkSpiritModel = 0xc0;
 
-struct DarkSpirit
-{
-    float scale = 0.7f;     // +0xc (0x4167b0)
-    glm::vec3 position{};   // +0x10
-    glm::vec3 angles{};     // +0x1c, en grados: x el cabeceo, z el rumbo
-    std::int32_t far = 0;   // +0x60, los pasos lejos del dueño
-    glm::vec3 direction{};  // +0xcc, la velocidad en sus ejes
-    float speed = 1.0f;     // +0xd8
-    glm::vec3 light{0.5f};  // +0xf4
-    std::uint8_t state = 0; // +0x110: 0 rápido (dirección y < −12), 1 lento, 2 volviendo, 3 posado, 4 bajando, 5 el
-                            // ataque, 6 el grito
-    Models::AnimationState animation; // +0x111 la acción, +0x114 el frame
-    float alpha = 1.0f;               // +0x174: aparece de golpe
-    // Lo que escriben las órdenes que llegan (Scenes/PetOrders, CL9 hito 4), con el offset del objeto y, entre
-    // paréntesis, el del CHARACTER de +0xc. Qué deja en cada uno 0x4167b0, sin leer: quedan en 0 hasta la primera.
-    // +0x45c: la orden del A7 (0x416510). La lee el estado 5 del paso (0x417a9d): con la 3, +0x1ad queda en 1.
-    std::uint8_t order = 0;
-    // +0x1ad (+0x1a1): en 1 con la orden 3 del A7 y con el estado 5 del A8. En 1, el vuelo va hacia el blanco de +8 y
-    // no hacia el dueño (0x4177b1); los estados 0 y 1 lo ponen en 0 (0x417b33).
-    std::uint8_t byte1ad = 0;
-    // +8: el personaje del blanco (0x416510 con la orden 3 y 0x416570), el lugar del pool; el 400 si la clave no está.
-    std::size_t target = 0;
-    // +0x3b0 (+0x3a4): el lugar del blanco del A8, que lee el paso (0x416a73, con signo); 0xffff después del aviso.
-    std::uint16_t target3b0 = 0;
-    // +0x38d (+0x381): el A8 lo pone en 0; el paso lo sube hasta 15 en los estados 5 y 6 (0x417e15) y 0x418920 lo
-    // lee.
-    std::uint8_t byte38d = 0;
-    // +0xf0 (+0xe4): el A8 con el estado 5 lo pone en 0,5; es la aceleración del ataque, que sube 0,2 por paso.
-    float floatF0 = 0.0f;
-    // Lo que escribe 0x417f30 (la vtable + 8) con el A9 del cuervo (0x421db0, Scenes/PetInfo.h): el nivel en +0x1e2
-    // (+0x1d6) y +0x450, la experiencia, la que sigue, la durabilidad del lugar 1 del registro propio (+0xbce) y lo que
-    // sale del nivel y del liderazgo, como las del cuervo de 0x4221d0.
-    std::uint16_t word1e2 = 0;
-    std::uint32_t experience = 0;     // +0x448
-    std::uint32_t nextExperience = 0; // +0x44c
-    std::uint16_t level = 0;          // +0x450
-    std::uint16_t durability = 0;     // +0x452
-    std::uint16_t word454 = 0;
-    std::uint16_t word456 = 0;
-    std::uint16_t word458 = 0;
-    std::uint16_t word45a = 0;
-    // La posición antes del último paso, para dibujarlo entre dos pasos (D-C4); el salto junto al dueño
-    // la pisa con la nueva.
-    glm::vec3 previousPosition{};
-    // +0x120: sus huesos como los dejó el último dibujo, en el mundo (0x602e90 con el segundo argumento
-    // en 0). Antes del primero, vacío (Q-C133).
-    std::vector<Math::OriginalMatrix> pose;
-};
+using Kernel::DarkSpirit;
 
 // Lo que el paso lee del dueño: su posición (+0x10) y sus banderas (+0x78). Con 0x1000 el paso no hace
 // nada; con 0x4000 no hay chispa. En la zona segura (+0x3e2 en 1), además, sus ángulos (+0x1c), sus huesos

@@ -4,6 +4,7 @@
 #include "Core/Log.h"
 #include "Crt/CrtRandom.h"
 #include "Protocol/Pets/PetOrders.h"
+#include "Kernel/ActorSpirit.h"
 #include "Models/Cloth.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/DarkSpirit.h"
@@ -28,10 +29,10 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Kernel::DarkSpirit;
 using Client::Protocol::Pets::PetAttack;
 using Client::Protocol::Pets::PetOrder;
 using Client::Scenes::ActorState;
-using Client::Scenes::DarkSpirit;
 
 constexpr std::uint16_t LordKey = 0x0101;
 constexpr std::uint16_t MonsterKey = 0x0202;

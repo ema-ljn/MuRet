@@ -3,6 +3,7 @@
 #include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainHeights.h"
+#include "Kernel/ActorSpirit.h"
 #include "Math/X87.h"
 #include "Math/HalfLifeMath.h"
 #include "Math/OriginalRotation.h"
@@ -36,7 +37,7 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Scenes::DarkSpirit;
+using Client::Kernel::DarkSpirit;
 
 constexpr std::size_t Bones = 77;
 const glm::vec3 OwnerPosition{10603.0f, 14112.0f, 580.0f};

@@ -1,12 +1,12 @@
 #pragma once
 
 #include "GameLogic/CharacterAppearance.h"
+#include "Kernel/ActorSpirit.h"
 #include "Pathfinding/Path.h"
 #include "Math/HalfLifeMath.h"
 #include "Models/Pose.h"
 #include "Protocol/FrontEnd/CharacterName.h"
 #include "Scenes/CharacterHead.h"
-#include "Scenes/DarkSpirit.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -191,7 +191,7 @@ struct ActorState
     // del primer dibujo, vacío (Q-C318). Lo lee la burbuja de Atlans (0x506d25).
     std::vector<Math::BoneTransform> bodyPose;
     // +0x430: el cuervo que 0x420d60 crea y 0x420dd0 mueve dentro del cuerpo de este dueño.
-    std::optional<DarkSpirit> darkSpirit;
+    std::optional<Kernel::DarkSpirit> darkSpirit;
     // +0x360: con 5, la capa de los GM, que 0x413fe0 pone en cada dibujo de un GM; del 1 al 3, el arma del
     // evento de Blood Castle (0x50de84). El 4 (y el 0) lo escriben 0x513430, 0x5139f0, 0x5bc740 y 0x5be150, y del
     // 6 al 13 los paquetes (el 0x12 en 0x4c89e1, 0x40c140, y 0x42ab40, 0x42ad50 y 0x42ae60 con banderas de

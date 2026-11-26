@@ -3,6 +3,7 @@
 #include "Math/Angles.h"
 #include "Math/FloatConstants.h"
 #include "Math/X87.h"
+#include "Models/Cloth.h"
 #include "Models/LogicalAccess.h"
 #include "Math/OriginalAngles.h"
 #include "Math/OriginalRetainedMath.h"

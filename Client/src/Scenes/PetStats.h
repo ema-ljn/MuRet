@@ -20,10 +20,14 @@ class CrtRandom;
 // Lo que llega con el A9 de las mascotas (CL9 hito 4): la tabla de 0x723960 (WorldRuntime::pets), el cuervo del héroe
 // y el caballo del registro propio. Contrato: Client/docs/research/06-render-escenas-y-ui.md, "El A9 de las mascotas".
 // Cada acceso al registro propio gasta sus 3.848 rand() al cerrarlo en 0.
+namespace Client::Kernel
+{
+struct DarkSpirit;
+} // namespace Client::Kernel
+
 namespace Client::Scenes
 {
 class WorldState;
-struct DarkSpirit;
 struct WorldEntryResources;
 
 // 0x420cd0, desde 0x657670 en la vuelta a la selección: 0x723910 (la pestaña), 0x723911 (UI::DelegatedPanels::pet)
@@ -42,7 +46,7 @@ void UpdatePetStats(std::uint8_t pet, const WorldState& world, std::array<PetSta
 
 // 0x417f30(nivel, experiencia), la vtable + 8 del cuervo: dos accesos al registro propio (el liderazgo y la
 // durabilidad del lugar 1, +0xbce) y lo que sale de ellos en el cuervo (DarkSpirit::word1e2 a word45a).
-void ApplyRavenInfo(DarkSpirit& raven, std::uint8_t level, std::uint32_t experience, WorldState& world,
+void ApplyRavenInfo(Kernel::DarkSpirit& raven, std::uint8_t level, std::uint32_t experience, WorldState& world,
                     Crt::CrtRandom& random);
 
 // 0x4e4ca1: 0x421db0(tipo, clase, casilla, nivel, experiencia) y, con el registro propio abierto, 0x550d10. Con la

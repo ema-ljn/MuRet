@@ -1,6 +1,7 @@
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Math/X87.h"
+#include "Models/Cloth.h"
 #include "Models/LogicalAccess.h"
 #include "Math/OriginalRetainedMath.h"
 #include "Math/OriginalRotation.h"

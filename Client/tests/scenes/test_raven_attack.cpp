@@ -1,6 +1,7 @@
 #include "Scenes/DarkSpirit.h"
 
 #include "Crt/CrtRandom.h"
+#include "Kernel/ActorSpirit.h"
 #include "Math/OriginalAngles.h"
 #include "Models/Skeleton.h"
 #include "World/Particles.h"
@@ -19,7 +20,7 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Scenes::DarkSpirit;
+using Client::Kernel::DarkSpirit;
 using Client::Scenes::DarkSpiritOwner;
 using Client::Scenes::DarkSpiritTargets;
 

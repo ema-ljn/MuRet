@@ -26,3 +26,16 @@ def test_the_main_screen(
         await pilot.pause()
 
     assert snap_compare(app, terminal_size=(100, 30), run_before=show_text)
+
+
+def test_a_record_table(snap_compare: SnapCompare, working_copy: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("HOME", str(working_copy.parent))
+    app = MubmdApp(LocalFileStore(), working_copy)
+
+    async def show_dialog(pilot: Pilot[Any]) -> None:
+        await app.open_path(working_copy / "Local" / "Dialog.bmd")
+        await pilot.pause()
+        app.select_index(53)
+        await pilot.pause()
+
+    assert snap_compare(app, terminal_size=(120, 40), run_before=show_dialog)

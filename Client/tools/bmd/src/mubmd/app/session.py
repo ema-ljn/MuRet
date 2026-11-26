@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 from mubmd.app.documents import EditResult, OpenDocument, open_document, parse_value, save_view, touches
 from mubmd.core.errors import MubmdError
@@ -8,7 +9,7 @@ from mubmd.core.json_types import JsonObject, JsonValue
 from mubmd.core.leaves import leaf_text
 from mubmd.core.patch import Change, PatchOp, apply_patch, diff_views
 from mubmd.core.pointer import resolve
-from mubmd.core.ports import FileStore, Summary
+from mubmd.core.ports import FieldInfo, FileStore, Summary
 
 
 @dataclass(frozen=True, slots=True)
@@ -25,6 +26,7 @@ class EditSession:
         self._opened = opened
         self._history: list[JsonObject] = [opened.view]
         self._position = 0
+        self._checked: tuple[JsonObject, Any, tuple[Finding, ...]] | None = None
 
     @classmethod
     def open(cls, store: FileStore, path: Path) -> "EditSession":
@@ -55,9 +57,20 @@ class EditSession:
         return self._opened.read_only
 
     @property
+    def fields(self) -> tuple[FieldInfo, ...]:
+        return self._opened.identified.format.codec.describe_fields()
+
+    def _check(self) -> tuple[Any, tuple[Finding, ...]]:
+        view = self.view
+        if self._checked is None or self._checked[0] is not view:
+            codec = self._opened.identified.format.codec
+            document = codec.from_view(view)
+            self._checked = (view, document, codec.check(document, self._opened.document))
+        return self._checked[1], self._checked[2]
+
+    @property
     def summary(self) -> Summary:
-        codec = self._opened.identified.format.codec
-        return codec.summarize(codec.from_view(self.view))
+        return self._opened.identified.format.codec.summarize(self._check()[0])
 
     @property
     def changes(self) -> tuple[Change, ...]:
@@ -69,16 +82,12 @@ class EditSession:
 
     @property
     def findings(self) -> tuple[Finding, ...]:
-        return self._findings(self.view)
+        return self._check()[1]
 
     @property
     def warnings(self) -> tuple[Finding, ...]:
         changes = self.changes
         return tuple(finding for finding in self.findings if touches(finding, changes))
-
-    def _findings(self, view: JsonObject) -> tuple[Finding, ...]:
-        codec = self._opened.identified.format.codec
-        return codec.check(codec.from_view(view), self._opened.document)
 
     def value(self, pointer: str) -> JsonValue:
         return resolve(self.view, pointer)

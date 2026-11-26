@@ -6,7 +6,7 @@
 #include <span>
 #include <string_view>
 
-namespace Client::Data::Models
+namespace Client::Tables
 {
 namespace
 {
@@ -18,7 +18,7 @@ constexpr std::string_view BloodCastleFolder = "Object12\\";
 constexpr std::string_view EffectFolder = "Effect\\";
 
 // Each call to 0x60da30 from 0x60dbe0 in the Data\ mode, from 0x60e8fc, with the call's address (a loop's repeat).
-constexpr std::array<ModelFile, 213> PlayerFiles = {{
+constexpr std::array<Data::Models::ModelFile, 213> PlayerFiles = {{
     {0x20a, PlayerFolder, "Player", -1},         // 0x60e90d
     {0x2212, PlayerFolder, "HelmClass", 1},      // 0x60e980
     {0x221a, PlayerFolder, "ArmorClass", 1},     // 0x60e991
@@ -235,7 +235,7 @@ constexpr std::array<ModelFile, 213> PlayerFiles = {{
 }};
 
 // 0x60ff50's, in the Data\ mode, from 0x610906.
-constexpr std::array<ModelFile, 243> ItemFiles = {{
+constexpr std::array<Data::Models::ModelFile, 243> ItemFiles = {{
     {0x212, ItemFolder, "Sword", 1},              // 0x61091d
     {0x213, ItemFolder, "Sword", 2},              // 0x61091d
     {0x214, ItemFolder, "Sword", 3},              // 0x61091d
@@ -482,7 +482,7 @@ constexpr std::array<ModelFile, 243> ItemFiles = {{
 }};
 
 // 0x615700: the Data branch's loads in ASM order. ManyFlag is optional.
-constexpr std::array<ModelFile, 106> SkillFiles = {{
+constexpr std::array<Data::Models::ModelFile, 106> SkillFiles = {{
     {0xc1, SkillFolder, "Ice", 1},                 // 0x615d20
     {0xca, SkillFolder, "Ice", 2},                 // 0x615d36
     {0xc2, SkillFolder, "Fire", 1},                // 0x615d4c
@@ -592,18 +592,18 @@ constexpr std::array<ModelFile, 106> SkillFiles = {{
 }};
 } // namespace
 
-std::span<const ModelFile> PlayerModelFiles()
+std::span<const Data::Models::ModelFile> PlayerModelFiles()
 {
     return PlayerFiles;
 }
 
-std::span<const ModelFile> ItemModelFiles()
+std::span<const Data::Models::ModelFile> ItemModelFiles()
 {
     return ItemFiles;
 }
 
-std::span<const ModelFile> SkillModelFiles()
+std::span<const Data::Models::ModelFile> SkillModelFiles()
 {
     return SkillFiles;
 }
-} // namespace Client::Data::Models
+} // namespace Client::Tables

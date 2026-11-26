@@ -79,7 +79,7 @@ void HitSound(const ActorState& actor, const WorldEntryResources& resources)
         requestSound(0x7b);
         return;
     }
-    if (actor.type == Data::Models::PlayerSkeletonModel)
+    if (actor.type == Tables::PlayerSkeletonModel)
     {
         PlayerHitSound(actor, resources);
         return;
@@ -135,7 +135,7 @@ Core::Expected<void, std::string> SetActorShock(ActorState& actor, std::uint16_t
 {
     if (IgnoresShock(actor, damage))
         return {};
-    if (actor.type != Data::Models::PlayerSkeletonModel)
+    if (actor.type != Tables::PlayerSkeletonModel)
     {
         // 0x4f5475..0x4f5480: 0x4ea030(c, 5) con las acciones del modelo del monstruo (el que cargó su alta, no
         // Player.bmd); un modelo que no está es el registro sin acciones y no pone nada.

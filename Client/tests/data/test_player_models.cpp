@@ -17,18 +17,18 @@
 
 namespace
 {
-using Client::Data::Models::FirstItemModel;
-using Client::Data::Models::HelmsWithMask;
-using Client::Data::Models::ItemModel;
-using Client::Data::Models::ItemModelFiles;
-using Client::Data::Models::MaskHelmOffset;
-using Client::Data::Models::MeshesWithoutShine;
 using Client::Data::Models::ModelFile;
-using Client::Data::Models::ModelMesh;
-using Client::Data::Models::ModelTableSize;
-using Client::Data::Models::PlayerModelFiles;
-using Client::Data::Models::PlayerSkeletonModel;
-using Client::Data::Models::SkillModelFiles;
+using Client::Tables::FirstItemModel;
+using Client::Tables::HelmsWithMask;
+using Client::Tables::ItemModel;
+using Client::Tables::ItemModelFiles;
+using Client::Tables::MaskHelmOffset;
+using Client::Tables::MeshesWithoutShine;
+using Client::Tables::ModelMesh;
+using Client::Tables::ModelTableSize;
+using Client::Tables::PlayerModelFiles;
+using Client::Tables::PlayerSkeletonModel;
+using Client::Tables::SkillModelFiles;
 
 std::vector<ModelFile> Named(std::span<const ModelFile> files, std::string_view name)
 {

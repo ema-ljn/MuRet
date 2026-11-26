@@ -179,10 +179,9 @@ DrawnCharacter CharacterToDraw(ActorState& actor, std::size_t slot, CharacterClo
     // 0x511290 le da al personaje su buffer de huesos (+0x11c en 1 en 0x511bf7, +0x120): 0x5ffdf0 posa ahí el
     // cuerpo, que arranca de lo que dejó el dibujo anterior (actor.bodyPose, Q-C318), y no del global.
     if (pass.poseBones)
-        character.poseBones = [&actor, global = pass.poseBones](std::uint16_t model)
-        {
-            return model == Data::Models::PlayerSkeletonModel ? std::span<const Math::BoneTransform>(actor.bodyPose)
-                                                              : global(model);
+        character.poseBones = [&actor, global = pass.poseBones](std::uint16_t model) {
+            return model == Tables::PlayerSkeletonModel ? std::span<const Math::BoneTransform>(actor.bodyPose)
+                                                        : global(model);
         };
     return character;
 }
@@ -392,8 +391,7 @@ Core::Expected<void, std::string> DrawTheGuildMark(Render::ModelBatch& batch, co
                                                    const GameCharacterPass& pass, const GuildState& guild)
 {
     const auto index = static_cast<std::int16_t>(actor.word1f2);
-    if (IsChaosCastle(character.map) || index < 0 || actor.type != Data::Models::PlayerSkeletonModel ||
-        actor.alpha == 0.0f)
+    if (IsChaosCastle(character.map) || index < 0 || actor.type != Tables::PlayerSkeletonModel || actor.alpha == 0.0f)
         return {};
     if (index != CreatingGuildIndex)
     {
@@ -591,7 +589,7 @@ Core::Expected<void, std::string> DrawOne(Render::ModelBatch& batch, const Model
         return {};
     // 0x50ba65..0x50ba87: sin acciones en el modelo del tipo (+0x26), nada. Player.bmd para el 0x20a; el de los
     // monstruos y los NPC, el que cargó el alta (WorldState::FaunaResources, con la biblioteca del mapa detrás).
-    const bool player = actor.type == Data::Models::PlayerSkeletonModel;
+    const bool player = actor.type == Tables::PlayerSkeletonModel;
     const Models::Skeleton* skeleton =
         player ? models.SkeletonOf(actor.type) : world.FaunaResources().SkeletonOf(actor.type);
     if (skeleton == nullptr || skeleton->actions.empty())
@@ -613,7 +611,7 @@ Core::Expected<void, std::string> DrawOne(Render::ModelBatch& batch, const Model
         character.onPose = [global = pass.onPose](std::uint16_t model, std::span<const Math::BoneTransform> bones,
                                                   const Models::ObjectTransform& transform, bool translated)
         {
-            if (model != Data::Models::PlayerSkeletonModel && model != ChaosCastleBodyModel)
+            if (model != Tables::PlayerSkeletonModel && model != ChaosCastleBodyModel)
                 global(model, bones, transform, translated);
         };
     // 0x50bbf7: 0x6001b0 copia la posición al registro del 0x20a (0x600247..0x600256) antes de las guardas de la sombra
@@ -672,8 +670,8 @@ Core::Expected<void, std::string> DrawThePool(Render::ModelBatch& batch, const M
             return Core::Unexpected(std::format("{}, en el personaje {}", drawn.Error(), slot));
         // 0x510ea9..0x510eb3: con el 0x20a, 0x42afe0, que solo en el 30, con el asedio y con +0x16c llama a
         // 0x42ddb0(personaje, 380); sin el asedio no hace nada.
-        if (world.Runtime().map == 30 && actor.type == Data::Models::PlayerSkeletonModel &&
-            world.Runtime().siegeActive && actor.seen && originalFrame)
+        if (world.Runtime().map == 30 && actor.type == Tables::PlayerSkeletonModel && world.Runtime().siegeActive &&
+            actor.seen && originalFrame)
         {
             if (pass.clothWorld == nullptr || pass.particles == nullptr)
                 return Core::Unexpected(std::string("0x42de7f: faltan partículas o CRT para la bendición del asedio"));

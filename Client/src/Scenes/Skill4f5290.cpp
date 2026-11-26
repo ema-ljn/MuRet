@@ -33,7 +33,7 @@ Core::Expected<void, std::string> SetTheActorAction(ActorState& actor, std::uint
                                                     const ActorCombatContext& context)
 {
     const Models::Skeleton* skeleton = nullptr;
-    if (actor.type == Data::Models::PlayerSkeletonModel)
+    if (actor.type == Tables::PlayerSkeletonModel)
         skeleton = context.playerSkeleton;
     else if (context.models != nullptr)
         skeleton = context.models->SkeletonOf(actor.type);
@@ -45,7 +45,7 @@ Core::Expected<void, std::string> SetTheActorAction(ActorState& actor, std::uint
 
 Core::Expected<void, std::string> SetTheHitAction(ActorState& actor, const ActorCombatContext& context)
 {
-    if (actor.type != Data::Models::PlayerSkeletonModel)
+    if (actor.type != Tables::PlayerSkeletonModel)
     {
         // 0x4f5334..0x4f5369: IDIV del byte +0x38f por 3.
         const std::uint8_t action = actor.attackCount % 3 == 0 ? std::uint8_t{3} : std::uint8_t{4};

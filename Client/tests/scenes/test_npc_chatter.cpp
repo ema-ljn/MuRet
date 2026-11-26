@@ -209,8 +209,8 @@ TEST_F(NpcChatterTest, AnEvenRandomSaysTheLineOfTheType)
         Case{0x1cd, 0, "pociones"},
         Case{0x1d3, 0, "alas"},
         Case{0x1d5, 0, "gremio"},
-        Case{Client::Data::Models::PlayerSkeletonModel, 0x101, "fuerza"},
-        Case{Client::Data::Models::PlayerSkeletonModel, 0x100, std::nullopt},
+        Case{Client::Tables::PlayerSkeletonModel, 0x101, "fuerza"},
+        Case{Client::Tables::PlayerSkeletonModel, 0x100, std::nullopt},
         Case{0x1d4, 0, std::nullopt},
         Case{0x1cc, 0, std::nullopt},
     };

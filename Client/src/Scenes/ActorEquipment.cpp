@@ -55,9 +55,9 @@ constexpr std::uint8_t DarkKnightClass = 1;
 constexpr std::uint8_t ElfClass = 2;
 constexpr std::uint8_t MagicGladiatorClass = 3;
 constexpr std::uint8_t DarkLordClass = 4;
-constexpr std::uint16_t EventSwordModel = Data::Models::ItemModel(0, 16);
-constexpr std::uint16_t EventCrossbowModel = Data::Models::ItemModel(4, 19);
-constexpr std::uint16_t EventStaffModel = Data::Models::ItemModel(5, 5);
+constexpr std::uint16_t EventSwordModel = Tables::ItemModel(0, 16);
+constexpr std::uint16_t EventCrossbowModel = Tables::ItemModel(4, 19);
+constexpr std::uint16_t EventStaffModel = Tables::ItemModel(5, 5);
 static_assert(EventSwordModel == 0x222 && EventCrossbowModel == 0xa25 && EventStaffModel == 0xc17);
 
 bool InNoStopMaps(std::int32_t map)
@@ -71,7 +71,7 @@ std::uint16_t ModelOf(const World::ItemState& item, std::uint16_t empty)
     {
         return empty;
     }
-    return static_cast<std::uint16_t>(item.id + Data::Models::FirstItemModel);
+    return static_cast<std::uint16_t>(item.id + Tables::FirstItemModel);
 }
 
 std::uint8_t LevelOf(const World::ItemState& item)
@@ -207,7 +207,7 @@ void ApplyHeadAndScale(ActorState& actor)
 Core::Expected<ActorStopResult, std::string> ApplyActorEquipment(ActorState& actor,
                                                                  const ActorEquipmentContext& context)
 {
-    if (actor.type != Data::Models::PlayerSkeletonModel)
+    if (actor.type != Tables::PlayerSkeletonModel)
     {
         return ActorStopResult{};
     }

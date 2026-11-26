@@ -439,8 +439,7 @@ Result StrikeTheGroundOf1a4(MonsterHelperPass& pass)
     const glm::vec3 white(1.0f);
     for (const ActorState& other : pass.world.Actors().first<SearchedPlayers>())
     {
-        if (other.byte88 != PlayerClass || other.type != Data::Models::PlayerSkeletonModel || !other.seen ||
-            !other.alive)
+        if (other.byte88 != PlayerClass || other.type != Tables::PlayerSkeletonModel || !other.seen || !other.alive)
             continue;
         const double dx = static_cast<double>(other.position.x) - static_cast<double>(point.x);
         const double dy = static_cast<double>(other.position.y) - static_cast<double>(point.y);

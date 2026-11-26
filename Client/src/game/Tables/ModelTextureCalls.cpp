@@ -10,7 +10,7 @@
 #include <span>
 #include <string_view>
 
-namespace Client::Data::Models
+namespace Client::Tables
 {
 namespace
 {
@@ -156,14 +156,14 @@ constexpr std::array<ModelTextureCall, 45> SkillCalls{{{0x145, "Skill\\"},
                                                        {0x108, "Skill\\"},
                                                        {0x111, "Skill\\"},
                                                        {0x112, "Skill\\"},
-                                                       {0x113, "Skill\\", Textures::Wrap::Clamp},
+                                                       {0x113, "Skill\\", Data::Textures::Wrap::Clamp},
                                                        {0x114, "Skill\\"},
                                                        {0x115, "Skill\\"},
                                                        {0x116, "Skill\\"},
                                                        {0x118, "Skill\\"},
                                                        {0x119, "Skill\\"},
-                                                       {0x11a, "Skill\\", Textures::Wrap::Clamp},
-                                                       {0x11b, "Skill\\", Textures::Wrap::Clamp},
+                                                       {0x11a, "Skill\\", Data::Textures::Wrap::Clamp},
+                                                       {0x11b, "Skill\\", Data::Textures::Wrap::Clamp},
                                                        {0x129, "Skill\\"},
                                                        {0x12a, "Skill\\"},
                                                        {0x12b, "Npc\\"},
@@ -194,8 +194,8 @@ constexpr std::array<ModelTextureCall, 5> FenrirCalls{{
 }};
 
 // 0x2600 and 0x2900 in all thirteen.
-constexpr Textures::Sampling FixedSampling{Textures::Filter::Nearest, Textures::Wrap::Clamp};
-constexpr std::array<Textures::TextureSetEntry, 13> FixedTextures{{
+constexpr Data::Textures::Sampling FixedSampling{Data::Textures::Filter::Nearest, Data::Textures::Wrap::Clamp};
+constexpr std::array<Data::Textures::TextureSetEntry, 13> FixedTextures{{
     {"Player\\skin_barbarian_01.jpg", 0x12e, FixedSampling},
     {"Player\\level_man022.jpg", 0x12f, FixedSampling},
     {"Player\\skin_wizard_01.jpg", 0x130, FixedSampling},
@@ -232,8 +232,8 @@ std::span<const ModelTextureCall> FenrirTextureCalls()
     return FenrirCalls;
 }
 
-std::span<const Textures::TextureSetEntry> PlayerFixedTextures()
+std::span<const Data::Textures::TextureSetEntry> PlayerFixedTextures()
 {
     return FixedTextures;
 }
-} // namespace Client::Data::Models
+} // namespace Client::Tables

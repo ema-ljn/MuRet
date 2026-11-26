@@ -582,7 +582,7 @@ protected:
         ASSERT_TRUE(npcs.HasValue());
         m_world.Runtime().npcNames = Client::Scenes::NpcNameTableOf(npcs.Value());
 
-        m_models.Set(Client::Data::Models::PlayerSkeletonModel, {}, Client::Tests::PlayerActionsSkeleton(), {});
+        m_models.Set(Client::Tables::PlayerSkeletonModel, {}, Client::Tests::PlayerActionsSkeleton(), {});
         m_world.OwnCharacter().ClearEquipmentForEntry();
         m_world.Inventory().ClearForInventoryReply();
         m_world.Runtime().hero = HeroSlot;

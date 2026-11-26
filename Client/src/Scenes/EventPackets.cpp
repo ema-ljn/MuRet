@@ -467,7 +467,7 @@ private:
         for (std::size_t index = 0; index < ActorsSearched; ++index)
         {
             ActorState& actor = actors[index];
-            if (!actor.alive || actor.type != Data::Models::PlayerSkeletonModel)
+            if (!actor.alive || actor.type != Tables::PlayerSkeletonModel)
                 continue;
             actor.angles = {0.0f, 0.0f, GateAngle};
             Models::SetAction(actor.animation, *m_context.playerSkeleton, GateAction);

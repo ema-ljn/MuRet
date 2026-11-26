@@ -77,7 +77,7 @@ TEST(ModelIdsTest, TarkanAndAidaLoadTheSecondBugInTheSlotOfTheFirstFish)
 
 TEST(ModelIdsTest, TheRidingSpearIsASkillModel)
 {
-    EXPECT_EQ(FileIn(Client::Data::Models::SkillModelFiles(), Assets::RidingSpearModel), "Skill\\RidingSpear01.bmd");
+    EXPECT_EQ(FileIn(Client::Tables::SkillModelFiles(), Assets::RidingSpearModel), "Skill\\RidingSpear01.bmd");
 }
 
 TEST(ModelIdsTest, AMonsterModelIsNamedByTheNumberOfItsFile)

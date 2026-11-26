@@ -49,7 +49,7 @@ Core::Expected<void, std::string> GameScene::StepTheHero(const Input::InputState
     HeroMovementContext context{
         .world = world,
         .random = m_context.cloth->random,
-        .playerSkeleton = m_models ? m_models->SkeletonOf(Data::Models::PlayerSkeletonModel) : nullptr,
+        .playerSkeleton = m_models ? m_models->SkeletonOf(Tables::PlayerSkeletonModel) : nullptr,
         .items = m_items,
         .skills = m_skills,
         .gates = m_gates,

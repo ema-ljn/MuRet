@@ -2092,7 +2092,7 @@ TEST_F(MonsterAttackCasesTest, AFullModelPoolCreatesTheTailLightningOfTheTarget)
         EXPECT_EQ(joint.light, glm::vec3(1.0f, std::bit_cast<float>(0x3dcccccdu), 0.0f));
         const ActorState& victim = game->world.Actors()[0];
         EXPECT_EQ(joint.ownerContext, &victim);
-        const auto player = game->world.ModelPlacement(Client::Data::Models::PlayerSkeletonModel);
+        const auto player = game->world.ModelPlacement(Client::Tables::PlayerSkeletonModel);
         const Client::Math::BoneTransform chest =
             victim.bodyPose.size() > 33 ? victim.bodyPose[33] : Client::Math::BoneTransform(0.0f);
         EXPECT_EQ(joint.targetPosition,
@@ -2246,7 +2246,7 @@ TEST_F(MonsterAttackCasesTest, ThunderSkillThreeUsesItsNativeBoneOffsetAndLocalL
     };
     const std::array cases{
         Case{3, std::nullopt, std::uint16_t{0x27}, {0.0f, -130.0f, 0.0f}},
-        Case{3, Client::Data::Models::PlayerSkeletonModel, std::nullopt, {0.0f, 0.0f, 0.0f}},
+        Case{3, Client::Tables::PlayerSkeletonModel, std::nullopt, {0.0f, 0.0f, 0.0f}},
     };
     for (const Case& probe : cases)
     {

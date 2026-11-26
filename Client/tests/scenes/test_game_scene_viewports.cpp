@@ -170,7 +170,7 @@ protected:
         ASSERT_EQ(publisher.calls, 1);
         ASSERT_EQ(m_world.Runtime().hero, static_cast<std::size_t>(m_world.Runtime().heroSlot));
         // El actor viene de 0x511290/0x512a30; el doble solo aporta las 205 acciones de Player.bmd.
-        ASSERT_EQ(Hero().type, Client::Data::Models::PlayerSkeletonModel);
+        ASSERT_EQ(Hero().type, Client::Tables::PlayerSkeletonModel);
         ASSERT_EQ(Hero().word376, 0xffff);
         ASSERT_TRUE(Hero().alive);
         EXPECT_EQ(Hero().position.x, static_cast<float>(entry.x) * 100.0f + 50.0f);

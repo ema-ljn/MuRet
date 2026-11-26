@@ -49,7 +49,7 @@ bool IsMagicGladiator(std::uint8_t characterClass)
 // el resto con signo de 512, que en C++ es el %.
 int ItemIndexOf(std::uint16_t model)
 {
-    return (static_cast<std::int16_t>(model) - Data::Models::FirstItemModel) % int{Data::Models::ItemModelsPerGroup};
+    return (static_cast<std::int16_t>(model) - Tables::FirstItemModel) % int{Tables::ItemModelsPerGroup};
 }
 
 int LevelOf(const ScannedPart& part)

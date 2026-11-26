@@ -83,7 +83,7 @@ struct Returning
     Returning(std::filesystem::path root, std::uint32_t seed)
         : dataRoot(std::move(root)), cloth{.random = CrtRandom(seed)}
     {
-        models.Set(Client::Data::Models::PlayerSkeletonModel, {}, Client::Tests::PlayerActionsSkeleton(), {});
+        models.Set(Client::Tables::PlayerSkeletonModel, {}, Client::Tests::PlayerActionsSkeleton(), {});
         world.OwnCharacter().ClearEquipmentForEntry();
     }
 

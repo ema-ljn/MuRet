@@ -543,11 +543,11 @@ public:
     }
     const Client::Data::Models::Model* Find(std::uint16_t type) const override
     {
-        return type == Client::Data::Models::PlayerShadowModel ? &model : nullptr;
+        return type == Client::Tables::PlayerShadowModel ? &model : nullptr;
     }
     const Client::Models::Skeleton* SkeletonOf(std::uint16_t type) const override
     {
-        return type == Client::Data::Models::PlayerShadowModel ? &skeleton : nullptr;
+        return type == Client::Tables::PlayerShadowModel ? &skeleton : nullptr;
     }
     std::span<const Client::Render::TextureSlot> MeshTextures(std::uint16_t) const override
     {
@@ -735,7 +735,7 @@ TEST(StormJointsTest, TheOwnedFallingSubtypesShedTheShellsOfTheShadow)
     {
         SCOPED_TRACE(subtype);
         auto world = std::make_unique<Client::Scenes::WorldState>();
-        world->PlaceModel(Client::Data::Models::PlayerShadowModel, {.scale = 2.0f, .origin = origin, .action = 0});
+        world->PlaceModel(Client::Tables::PlayerShadowModel, {.scale = 2.0f, .origin = origin, .action = 0});
         Falling owned;
         owned.ground = 5000.0;
         owned.target.position = {9000.0f, 9000.0f, 9000.0f};
@@ -828,7 +828,7 @@ TEST(StormJointsTest, TheShellsOfTheShadowTurnWithTheOwnerAndTheRootBone)
     {
         SCOPED_TRACE(::testing::Message() << probe.angles.x << ", " << probe.angles.y << ", " << probe.angles.z);
         auto world = std::make_unique<Client::Scenes::WorldState>();
-        world->PlaceModel(Client::Data::Models::PlayerShadowModel,
+        world->PlaceModel(Client::Tables::PlayerShadowModel,
                           {.scale = 2.0f, .origin = {100.0f, 200.0f, 300.0f}, .action = 0});
         Falling owned;
         owned.ground = 5000.0;

@@ -67,7 +67,7 @@ public:
     }
     const Client::Models::Skeleton* SkeletonOf(std::uint16_t model) const override
     {
-        if (model == Client::Data::Models::PlayerSkeletonModel)
+        if (model == Client::Tables::PlayerSkeletonModel)
             return &player;
         if (model == SmallModel)
             return &small;

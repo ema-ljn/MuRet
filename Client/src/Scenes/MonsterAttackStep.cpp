@@ -294,7 +294,7 @@ JointKernels::CreationServices JointServices(const CharacterStepContext& context
             {
                 const Math::BoneTransform matrix =
                     bone < bones.bodyPose.size() ? bones.bodyPose[bone] : Math::BoneTransform(0.0f);
-                const SharedModelPlacement placement = context.world.ModelPlacement(Data::Models::PlayerSkeletonModel);
+                const SharedModelPlacement placement = context.world.ModelPlacement(Tables::PlayerSkeletonModel);
                 return Math::OriginalTransformPosition(Math::OriginalMatrixOf(matrix), offset, placement.scale,
                                                        placement.origin);
             },
@@ -507,7 +507,7 @@ Core::Expected<void, std::string> CastTheHandLightning(ActorState& actor, ActorS
     constexpr std::uint32_t ThinOffset = 0x23;    // 0x4f8f07 → 0x4f8f2a, 0x4f8fef → 0x4f9012
     constexpr std::uint32_t ThunderOffset = 0x45; // → 0x4f8f4c, → 0x4f9034
     const auto model = static_cast<std::uint16_t>(actor.type);
-    const glm::vec3& offset = model == Data::Models::PlayerSkeletonModel ? Offset20A : OtherOffset;
+    const glm::vec3& offset = model == Tables::PlayerSkeletonModel ? Offset20A : OtherOffset;
     const glm::vec3 point = BonePoint(actor, actor.hands[0].bone, offset, context);
     const glm::vec3 angles{Tilt, 0.0f, actor.angles.z};
     if (auto made = CreateTheJoint(target, context, wideAddress, 0x614, 0, point, target.position, angles, WideWidth);
@@ -1798,7 +1798,7 @@ Core::Expected<void, std::string> StepTheTail(ActorState& actor, std::size_t slo
         std::size_t boneCount = 0;
         const auto model = static_cast<std::uint16_t>(actor.type);
         const Models::Skeleton* skeleton = context.world.FaunaResources().SkeletonOf(model);
-        if (model == Data::Models::PlayerSkeletonModel && context.playerSkeleton != nullptr)
+        if (model == Tables::PlayerSkeletonModel && context.playerSkeleton != nullptr)
             skeleton = context.playerSkeleton;
         if (skeleton == nullptr && context.models != nullptr)
             skeleton = context.models->SkeletonOf(model);

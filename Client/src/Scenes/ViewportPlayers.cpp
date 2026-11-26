@@ -178,7 +178,7 @@ Core::Expected<void, std::string> ApplyPlayerRecord(const Protocol::Viewport::Pl
     // 0x4c8968..0x4c8992.
     const ActorConstructionContext construction{world.Map().terrain, runtime.map, World::CullingScene::Game,
                                                 resources.camera.fixedHeight};
-    const auto created = CreateActor(world, record.key, Data::Models::PlayerSkeletonModel, {record.x, record.y, 0.0f},
+    const auto created = CreateActor(world, record.key, Tables::PlayerSkeletonModel, {record.x, record.y, 0.0f},
                                      construction, resources.cloth);
     if (!created.HasValue())
         return Core::Unexpected(created.Error());
@@ -201,7 +201,7 @@ Core::Expected<void, std::string> ApplyPlayerRecord(const Protocol::Viewport::Pl
     }
     else if (const auto action = StateAction(state, actor.characterClass))
     {
-        const auto* skeleton = resources.models.SkeletonOf(Data::Models::PlayerSkeletonModel);
+        const auto* skeleton = resources.models.SkeletonOf(Tables::PlayerSkeletonModel);
         if (skeleton == nullptr)
             return Core::Unexpected(std::string("0x4ea030: falta Player.bmd para la acción del 0x12"));
         Models::SetAction(actor.animation, *skeleton, *action);

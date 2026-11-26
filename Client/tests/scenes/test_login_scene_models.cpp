@@ -732,7 +732,7 @@ void EnterTheLoginWithItsWorld(Harness& tested, Client::Scenes::WorldState& worl
 // dibujo intermedio tampoco.
 TEST(LoginSceneModelsTest, TheRealBranchPlacesTheShadowModelBehindItsGuards)
 {
-    constexpr std::uint16_t Shadow = Client::Data::Models::PlayerShadowModel;
+    constexpr std::uint16_t Shadow = Client::Tables::PlayerShadowModel;
     auto world = std::make_unique<Client::Scenes::WorldState>();
     Harness tested;
     Client::Models::ClothWorld cloth;
@@ -802,7 +802,7 @@ TEST(LoginSceneModelsTest, TheBodyGoesToItsOwnBonesAndNeverToTheGlobalPose)
 
     static_cast<void>(tested.ModelsOfAFrame());
 
-    EXPECT_FALSE(world.PoseCarry().models.contains(Client::Data::Models::PlayerSkeletonModel));
+    EXPECT_FALSE(world.PoseCarry().models.contains(Client::Tables::PlayerSkeletonModel));
     ASSERT_EQ(actor.bodyPose.size(), 48u);
     actor.bodyPose[0][3] = {7, 8, 9};
     // Q-C412: 0x6001b0 deja su escala y su posición en el modelo compartido de Player.bmd.
@@ -811,7 +811,7 @@ TEST(LoginSceneModelsTest, TheBodyGoesToItsOwnBonesAndNeverToTheGlobalPose)
 
     static_cast<void>(tested.ModelsOfAFrame());
 
-    EXPECT_FALSE(world.PoseCarry().models.contains(Client::Data::Models::PlayerSkeletonModel));
+    EXPECT_FALSE(world.PoseCarry().models.contains(Client::Tables::PlayerSkeletonModel));
     EXPECT_EQ(actor.bodyPose[0][3], glm::vec3(7, 8, 9));
     EXPECT_EQ(tested.scene->Failure(), std::nullopt);
 }

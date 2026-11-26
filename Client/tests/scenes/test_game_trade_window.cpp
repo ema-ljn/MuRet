@@ -71,13 +71,13 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Data::Models::PlayerSkeletonModel;
 using Client::Math::RoundedSin;
 using Client::Render::Color;
 using Client::Render::SpriteBatch;
 using Client::Render::Text::FontKind;
 using Client::Scenes::ActorState;
 using Client::Scenes::GameHudContext;
+using Client::Tables::PlayerSkeletonModel;
 using Client::Tests::ViewportPlayerRecord;
 
 constexpr std::uint32_t Seed = 0x7ade;

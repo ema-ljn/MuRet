@@ -82,12 +82,12 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Data::Models::PlayerSkeletonModel;
 using Client::GameLogic::BodyPart;
 using Client::GameLogic::ClassPartModel;
 using Client::Scenes::ActorState;
 using Client::Scenes::LetterPortrait;
 using Client::Scenes::NoItemModel;
+using Client::Tables::PlayerSkeletonModel;
 using Client::Tests::AfterDraws;
 
 constexpr std::uint32_t Seed = 0x1e77e5;
@@ -157,8 +157,7 @@ public:
 
     [[nodiscard]] const Client::Data::Models::Model* Find(std::uint16_t model) const override
     {
-        const bool drawn = model == Client::Scenes::DarkHorseModel ||
-                           model == Client::Data::Models::PlayerShadowModel ||
+        const bool drawn = model == Client::Scenes::DarkHorseModel || model == Client::Tables::PlayerShadowModel ||
                            model == ClassPartModel(BodyPart::Armor, DarkKnight);
         return drawn ? &m_triangle : nullptr;
     }

@@ -99,7 +99,7 @@ struct ArrivingHero
         world.Map().terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
         auto& hero = Hero();
         hero.alive = true;
-        hero.type = Client::Data::Models::PlayerSkeletonModel;
+        hero.type = Client::Tables::PlayerSkeletonModel;
         hero.characterClass = ElfClass;
         hero.cellX = 182;
         hero.cellY = 115;

@@ -55,7 +55,7 @@ public:
 private:
     [[nodiscard]] Core::Expected<void, std::string> LoadResources(const std::filesystem::path& dataRoot,
                                                                   Render::ITextureStore& textures, Core::Log& log);
-    void AssignTextures(std::span<const Data::Models::ModelTextureCall> calls);
+    void AssignTextures(std::span<const Tables::ModelTextureCall> calls);
 
     std::map<std::uint16_t, Data::Models::Model> m_models;
     std::map<std::uint16_t, Models::Skeleton> m_skeletons;

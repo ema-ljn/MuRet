@@ -54,7 +54,7 @@ using Client::Scenes::WorldState;
 constexpr std::uint32_t Seed = 0x2468ace1u;
 constexpr std::size_t HeroSlot = 42;
 constexpr std::size_t VictimSlot = 7;
-constexpr std::uint16_t Player = Client::Data::Models::PlayerSkeletonModel;
+constexpr std::uint16_t Player = Client::Tables::PlayerSkeletonModel;
 constexpr std::uint16_t NoTarget = 0xffff;
 // El registro propio cerrado en 0: los 3.848 de 0x40b4d0.
 constexpr int OwnRecord = Client::Models::OwnRecordCloseRandoms;

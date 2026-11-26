@@ -90,7 +90,7 @@ using Client::Tests::AfterDraws;
 
 constexpr std::uint32_t Seed = 0x1234;
 constexpr std::uint16_t PlayerKey = 5;
-constexpr std::uint16_t Player = Client::Data::Models::PlayerSkeletonModel;
+constexpr std::uint16_t Player = Client::Tables::PlayerSkeletonModel;
 // 599f41..599ffd: Gate.bmd real, una lectura lógica (4 rand) por comparación
 // alcanzada, con cortocircuito X>=x1, Y>=y1, X<=x2, Y<=y2. Al entrar al rectángulo
 // se consulta además la espera: estos fixtures conservan el contador positivo.
@@ -377,7 +377,7 @@ TEST_F(WorldEntryTest, TheOldRecordDressesTheHeroBeforeItIsEmptied)
 
     static_cast<void>(ApplyWorldEntry(CableReply(), PlayerKey, tested.Resources(), publisher));
 
-    constexpr std::uint16_t Sword = 5 + Client::Data::Models::FirstItemModel;
+    constexpr std::uint16_t Sword = 5 + Client::Tables::FirstItemModel;
     EXPECT_EQ(tested.Hero().hands[0].model, Sword);
     EXPECT_EQ(tested.world.OwnCharacter().equipment[0].id, 5);
 

@@ -30,7 +30,7 @@ bool StepCharacterAnimation(CharacterAnimation& animation, const GameLogic::Char
                             const Models::IModelLibrary& models, Models::AnimationScene scene)
 {
     bool finished = false;
-    const Models::Skeleton* skeleton = models.SkeletonOf(Data::Models::PlayerSkeletonModel);
+    const Models::Skeleton* skeleton = models.SkeletonOf(Tables::PlayerSkeletonModel);
     if (skeleton != nullptr && animation.body.action < skeleton->actions.size())
     {
         const Models::ActionInfo& action = skeleton->actions[animation.body.action];
@@ -65,7 +65,7 @@ void StepCharacterAttachments(CharacterAnimation& animation, const GameLogic::Ch
 Models::AnimationState BodyBetweenSteps(const CharacterAnimation& animation, const Models::IModelLibrary& models,
                                         float alpha, const PlayerActionSpeeds* speeds)
 {
-    const Models::Skeleton* skeleton = models.SkeletonOf(Data::Models::PlayerSkeletonModel);
+    const Models::Skeleton* skeleton = models.SkeletonOf(Tables::PlayerSkeletonModel);
     if (skeleton == nullptr || animation.body.action >= skeleton->actions.size())
     {
         return animation.body;

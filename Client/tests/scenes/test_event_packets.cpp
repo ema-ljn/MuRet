@@ -173,7 +173,7 @@ public:
 
     [[nodiscard]] const Client::Models::Skeleton* SkeletonOf(std::uint16_t model) const override
     {
-        if (model == Client::Data::Models::PlayerSkeletonModel)
+        if (model == Client::Tables::PlayerSkeletonModel)
             return &m_player;
         return model == TransformedModel ? &transformed : nullptr;
     }
@@ -221,7 +221,7 @@ protected:
             action.keyCount = 4;
         Runtime().hero = 0;
         Hero().alive = true;
-        Hero().type = Client::Data::Models::PlayerSkeletonModel;
+        Hero().type = Client::Tables::PlayerSkeletonModel;
         Hero().key = 0x0123;
     }
 
@@ -1053,7 +1053,7 @@ TEST_F(EventPacketsTest, TheBloodCastlePlayStateTurnsThePlayersAndGivesTheWeapon
         Runtime().eventObject = EventMapObject{.kind = EventMapKind::BloodCastle};
         Client::Scenes::ActorState& other = world.Actors()[7];
         other.alive = true;
-        other.type = Client::Data::Models::PlayerSkeletonModel;
+        other.type = Client::Tables::PlayerSkeletonModel;
         other.key = 0x0456;
         other.byte360 = 3;
         Client::Scenes::ActorState& monster = world.Actors()[8];

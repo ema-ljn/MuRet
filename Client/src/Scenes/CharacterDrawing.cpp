@@ -127,11 +127,11 @@ bool IsMaskedClass(std::uint8_t characterClass)
 std::uint16_t DrawnPartModel(GameLogic::BodyPart part, std::uint16_t model, std::uint8_t characterClass)
 {
     if (part != GameLogic::BodyPart::Helm || !IsMaskedClass(characterClass) ||
-        std::ranges::find(Data::Models::HelmsWithMask, model) == Data::Models::HelmsWithMask.end())
+        std::ranges::find(Tables::HelmsWithMask, model) == Tables::HelmsWithMask.end())
     {
         return model;
     }
-    return static_cast<std::uint16_t>(model + Data::Models::MaskHelmOffset);
+    return static_cast<std::uint16_t>(model + Tables::MaskHelmOffset);
 }
 
 Render::TextureSlot PassSlot(Models::ShinePass pass)
@@ -206,8 +206,8 @@ MeshRole RoleOf(std::uint16_t model, const Data::Models::Mesh& mesh, std::size_t
         role.scrollScript = script->scrollUv;
         role.shines = !script->withoutShine;
     }
-    const Data::Models::ModelMesh marked{model, static_cast<std::uint16_t>(index)};
-    if (std::ranges::find(Data::Models::MeshesWithoutShine, marked) != Data::Models::MeshesWithoutShine.end())
+    const Tables::ModelMesh marked{model, static_cast<std::uint16_t>(index)};
+    if (std::ranges::find(Tables::MeshesWithoutShine, marked) != Tables::MeshesWithoutShine.end())
     {
         role.shines = false;
     }
@@ -521,7 +521,7 @@ struct ModelUse
 {
     const Models::ItemGlow& glow;
     bool outlined = false;
-    std::uint16_t objectType = Data::Models::PlayerSkeletonModel;
+    std::uint16_t objectType = Tables::PlayerSkeletonModel;
     ObjectState object;
     float outlineLight = 1.0f;
     bool hanging = false;
@@ -702,7 +702,7 @@ void DrawShadow(const CharacterFrame& frame, std::span<const BoneTransform> body
     {
         return;
     }
-    const Data::Models::Model* model = frame.models.Find(Data::Models::PlayerShadowModel);
+    const Data::Models::Model* model = frame.models.Find(Tables::PlayerShadowModel);
     if (model == nullptr)
     {
         return;
@@ -794,7 +794,7 @@ void DrawParts(const CharacterFrame& frame, std::span<const BoneTransform> body)
         const PartLight partLight = LightOf(part, light, characterClass, frame.clock);
         light = partLight.body;
         DrawModel(frame, part.model, body,
-                  ModelUse{part.glow, frame.character.outlined, Data::Models::PlayerSkeletonModel,
+                  ModelUse{part.glow, frame.character.outlined, Tables::PlayerSkeletonModel,
                            ObjectState{Models::NoBlendMesh, light, {}, Models::NoHiddenMesh}, partLight.outline});
     }
 }
@@ -1046,7 +1046,7 @@ std::size_t HangingRandomCount(std::uint16_t model)
 
 std::vector<BoneTransform> PoseCharacterBody(const Models::IModelLibrary& models, const DrawnCharacter& character)
 {
-    const Models::Skeleton* skeleton = models.SkeletonOf(Data::Models::PlayerSkeletonModel);
+    const Models::Skeleton* skeleton = models.SkeletonOf(Tables::PlayerSkeletonModel);
     if (skeleton == nullptr)
     {
         return {};
@@ -1054,7 +1054,7 @@ std::vector<BoneTransform> PoseCharacterBody(const Models::IModelLibrary& models
     std::vector<BoneTransform> body(skeleton->bones.size(), BoneTransform(character.poseBones ? 0.0f : 1.0f));
     if (character.poseBones)
     {
-        const auto retained = character.poseBones(Data::Models::PlayerSkeletonModel);
+        const auto retained = character.poseBones(Tables::PlayerSkeletonModel);
         std::copy_n(retained.begin(), std::min(retained.size(), body.size()), body.begin());
     }
     if (!Models::PoseSkeleton(*skeleton, character.body, character.object, character.headAngles, body))
@@ -1073,7 +1073,7 @@ void DrawCharacter(Render::ModelBatch& batch, const Models::IModelLibrary& model
         return;
     }
     if (character.onPose)
-        character.onPose(Data::Models::PlayerSkeletonModel, body, character.object, false);
+        character.onPose(Tables::PlayerSkeletonModel, body, character.object, false);
     const GameLogic::CharacterAppearance& appearance = character.appearance;
     std::minstd_rand random(RandomSeedOf(frameClock));
     const CharacterFrame frame{batch, models, character, frameClock, random};
@@ -1112,7 +1112,7 @@ Core::Expected<void, std::string> DrawChaosCastleBody(Render::ModelBatch& batch,
     if (body.empty())
         return {};
     if (character.onPose)
-        character.onPose(Data::Models::PlayerSkeletonModel, body, character.object, false);
+        character.onPose(Tables::PlayerSkeletonModel, body, character.object, false);
     const Data::Models::Model* model = angelModels.Find(ChaosCastleBodyModel);
     if (model == nullptr)
     {
@@ -1805,7 +1805,7 @@ Core::Expected<void, std::string> DrawSkeletonBody(Render::ModelBatch& batch, co
     if (body.empty())
         return {};
     if (character.onPose)
-        character.onPose(Data::Models::PlayerSkeletonModel, body, character.object, false);
+        character.onPose(Tables::PlayerSkeletonModel, body, character.object, false);
     const Data::Models::Model* found = models.Find(model);
     if (found == nullptr)
     {

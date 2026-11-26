@@ -146,7 +146,7 @@ bool PlayerNear(const ActorState& object, std::span<const ActorState> pool, std:
     for (std::size_t slot = 0; slot < std::min(pool.size(), Pool); ++slot)
     {
         const ActorState& player = pool[slot];
-        if (player.byte88 != PlayerKind || player.type != Data::Models::PlayerSkeletonModel || !player.seen)
+        if (player.byte88 != PlayerKind || player.type != Tables::PlayerSkeletonModel || !player.seen)
             continue;
         const double dx = D(object.position.x) - D(player.position.x);
         const double dy = D(object.position.y) - D(player.position.y);

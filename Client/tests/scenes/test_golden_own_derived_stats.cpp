@@ -30,9 +30,9 @@
 // aparte.
 namespace
 {
-using Client::Data::Models::FirstItemModel;
-using Client::Data::Models::ItemModel;
 using Client::Scenes::OwnCharacterRecord;
+using Client::Tables::FirstItemModel;
+using Client::Tables::ItemModel;
 using Client::World::ItemState;
 
 constexpr std::string_view ItemFile = "Local\\Item.bmd";

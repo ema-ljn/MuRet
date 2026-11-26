@@ -218,7 +218,7 @@ TEST_F(MapLoadTest, CreatingAnActorInAFreeSlotDropsItsClothAndLiveKeyRecreationK
                                                                 Client::World::CullingScene::Game, 450.0f};
     Client::Models::ClothWorld actorClothWorld{.random = CrtRandom(Seed)};
 
-    const auto first = Client::Scenes::CreateActor(world, PlayerKey, Client::Data::Models::PlayerSkeletonModel,
+    const auto first = Client::Scenes::CreateActor(world, PlayerKey, Client::Tables::PlayerSkeletonModel,
                                                    {100, 100, 0.0f}, construction, actorClothWorld);
     ASSERT_TRUE(first.HasValue()) << first.Error();
     ASSERT_EQ(first.Value(), 0u);
@@ -226,7 +226,7 @@ TEST_F(MapLoadTest, CreatingAnActorInAFreeSlotDropsItsClothAndLiveKeyRecreationK
 
     buildCloth(world.ActorCloths()[0]);
     ASSERT_FALSE(world.ActorCloths()[0].Cloths().empty());
-    const auto liveRecreation = Client::Scenes::CreateActor(world, PlayerKey, Client::Data::Models::PlayerSkeletonModel,
+    const auto liveRecreation = Client::Scenes::CreateActor(world, PlayerKey, Client::Tables::PlayerSkeletonModel,
                                                             {100, 100, 0.0f}, construction, actorClothWorld);
     ASSERT_TRUE(liveRecreation.HasValue()) << liveRecreation.Error();
     EXPECT_EQ(liveRecreation.Value(), first.Value());
@@ -234,7 +234,7 @@ TEST_F(MapLoadTest, CreatingAnActorInAFreeSlotDropsItsClothAndLiveKeyRecreationK
 
     Client::Scenes::RemoveActor(world, PlayerKey);
     EXPECT_TRUE(world.ActorCloths()[0].Cloths().empty());
-    const auto afterLeave = Client::Scenes::CreateActor(world, PlayerKey, Client::Data::Models::PlayerSkeletonModel,
+    const auto afterLeave = Client::Scenes::CreateActor(world, PlayerKey, Client::Tables::PlayerSkeletonModel,
                                                         {100, 100, 0.0f}, construction, actorClothWorld);
     ASSERT_TRUE(afterLeave.HasValue()) << afterLeave.Error();
     EXPECT_EQ(afterLeave.Value(), first.Value());

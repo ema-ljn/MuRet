@@ -173,7 +173,7 @@ ActorState Player(glm::vec3 position)
     ActorState player;
     player.alive = true;
     player.byte88 = 1;
-    player.type = Client::Data::Models::PlayerSkeletonModel;
+    player.type = Client::Tables::PlayerSkeletonModel;
     player.seen = true;
     player.position = position;
     return player;

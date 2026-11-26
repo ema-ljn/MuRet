@@ -51,7 +51,7 @@ public:
     }
     const Client::Models::Skeleton* SkeletonOf(std::uint16_t model) const override
     {
-        if (model == Client::Data::Models::PlayerSkeletonModel)
+        if (model == Client::Tables::PlayerSkeletonModel)
             return &player;
         return model == Monster ? &monster : nullptr;
     }
@@ -92,7 +92,7 @@ TEST(WizardEffectsTest, TheFallingFirePushesWhoIsClose)
         actor.animation.frame = 2.0f;
         return actor;
     };
-    const std::uint16_t player = Client::Data::Models::PlayerSkeletonModel;
+    const std::uint16_t player = Client::Tables::PlayerSkeletonModel;
     ActorState& justThere = place(7, player, 1000.0f, 1200.0f); // a 200 justo
     ActorState& rider = place(8, player, 1120.0f, 1160.0f);     // la raíz de 120² + 160²
     rider.pet.model = 0x1c37;

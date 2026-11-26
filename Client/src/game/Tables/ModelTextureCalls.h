@@ -11,19 +11,20 @@
 // (Client/docs/research/06-render-escenas-y-ui.md, "El modelo en el binario"). Each loader picks which models get
 // textures, in which order and from which folder, not always the .bmd's (Player\'s Helpers take them from Item\;
 // 0x1c16, from Skill\). An emulation of both loaders on main.exe c32bbd5f gives the same 505 calls in the same order.
-namespace Client::Data::Models
+namespace Client::Tables
 {
 // A call to 0x60d5f0; the folder keeps its trailing slash.
 struct ModelTextureCall
 {
     std::uint16_t model = 0;
     std::string_view folder;
-    Textures::Wrap wrap = Textures::Wrap::Repeat;
+    Data::Textures::Wrap wrap = Data::Textures::Wrap::Repeat;
 };
 
 // The default: 0x2901 and 0x2600, repeating and unfiltered. OZTs are always unfiltered (0x60d5f0 passes 0x2600 to
 // 0x63bd00).
-inline constexpr Textures::Sampling ModelTextureSampling{Textures::Filter::Nearest, Textures::Wrap::Repeat};
+inline constexpr Data::Textures::Sampling ModelTextureSampling{Data::Textures::Filter::Nearest,
+                                                               Data::Textures::Wrap::Repeat};
 
 // The 214 of 0x60f7d0, after its 0x60d530(0x138), all with Player\.
 [[nodiscard]] std::span<const ModelTextureCall> PlayerTextureCalls();
@@ -44,5 +45,5 @@ inline constexpr Textures::Sampling ModelTextureSampling{Textures::Filter::Neare
 // What 0x60f7d0 uploads by hand with 0x63b870 and 0x63bd00, unfiltered and clamped, in fixed slots that neither keep
 // the name nor advance the next slot: each class's skin and second level and the hair (0x12e to 0x137; 0x12d and 0x135
 // stay empty) and the four layers (0x250, 0x251, 0x252 and 0x257).
-[[nodiscard]] std::span<const Textures::TextureSetEntry> PlayerFixedTextures();
-} // namespace Client::Data::Models
+[[nodiscard]] std::span<const Data::Textures::TextureSetEntry> PlayerFixedTextures();
+} // namespace Client::Tables

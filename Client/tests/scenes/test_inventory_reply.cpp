@@ -156,7 +156,7 @@ public:
     Stage(std::filesystem::path root, const Client::Tables::ItemTable* itemTable)
         : dataRoot(std::move(root)), cloth{.random = CrtRandom(Seed)}, items(itemTable)
     {
-        models.Set(Client::Data::Models::PlayerSkeletonModel, {}, Client::Tests::PlayerActionsSkeleton(), {});
+        models.Set(Client::Tables::PlayerSkeletonModel, {}, Client::Tests::PlayerActionsSkeleton(), {});
         world.OwnCharacter().ClearEquipmentForEntry();
     }
 
@@ -239,7 +239,7 @@ protected:
 
 std::uint16_t ModelOf(std::uint16_t type)
 {
-    return static_cast<std::uint16_t>(type + Client::Data::Models::FirstItemModel);
+    return static_cast<std::uint16_t>(type + Client::Tables::FirstItemModel);
 }
 
 // 0x54b3a0: el byte 0, el bit 0x80 del byte 3 como bit 8 y los cuatro de arriba del byte 5 como bits 9 a 12.

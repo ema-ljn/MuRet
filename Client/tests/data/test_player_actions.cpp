@@ -13,10 +13,10 @@
 // The speeds 0x60dbe0 sets on Player.bmd's actions (06 § Cuánto avanza la animación).
 namespace
 {
-using Client::Data::Models::ActionSpeedWrite;
-using Client::Data::Models::PlayerActionSpeed;
-using Client::Data::Models::PlayerActionSpeeds;
-using Client::Data::Models::PlayerActionsWithoutRepeat;
+using Client::Tables::ActionSpeedWrite;
+using Client::Tables::PlayerActionSpeed;
+using Client::Tables::PlayerActionSpeeds;
+using Client::Tables::PlayerActionsWithoutRepeat;
 
 // (05)
 constexpr std::size_t PlayerActions = 205;

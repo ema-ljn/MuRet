@@ -200,7 +200,7 @@ Core::Expected<void, std::string> ShootTheArrow(ActorState& caster, std::uint8_t
 {
     if (auto attacked = AttackWith(caster, context); !attacked.HasValue())
         return attacked;
-    if (caster.type == Data::Models::PlayerSkeletonModel || (skill == 0x18 && caster.byte88 == 1))
+    if (caster.type == Tables::PlayerSkeletonModel || (skill == 0x18 && caster.byte88 == 1))
         return {};
     std::uint8_t carried = 0;
     {
@@ -501,7 +501,7 @@ Core::Expected<void, std::string> CastTheSkillAtTheTarget(ActorState& caster, Ac
     SendTheSkillPacket(context, std::move(turn.Value()));
     // 0x55bcf2..0x55bde3.
     caster.movement = 0;
-    if (hero.type == Data::Models::PlayerSkeletonModel)
+    if (hero.type == Tables::PlayerSkeletonModel)
     {
         RefreshCombatActionSpeeds(world, context.random);
         if (const auto action = PlayerActionOf(skill, caster, runtime))
@@ -637,7 +637,7 @@ Core::Expected<bool, std::string> UseTheWeaponOptions(ActorState& hero, const Wo
         {
             // 0x55abfa..0x55b45a: la acción, y el 19 sobre el héroe publicado.
             hero.movement = 0;
-            if (hero.type == Data::Models::PlayerSkeletonModel)
+            if (hero.type == Tables::PlayerSkeletonModel)
             {
                 if (auto set = SetPlayerAction(hero, 0x98, context, "0x55ac12"); !set.HasValue())
                     return Core::Unexpected(set.Error());

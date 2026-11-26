@@ -615,7 +615,7 @@ public:
     }
     [[nodiscard]] const Client::Models::Skeleton* SkeletonOf(std::uint16_t model) const override
     {
-        if (model == Client::Data::Models::PlayerSkeletonModel)
+        if (model == Client::Tables::PlayerSkeletonModel)
         {
             return &m_player;
         }

@@ -122,7 +122,7 @@ protected:
         Place(Hero, HeroKey, "Tejon");
         Place(Seller, SellerKey, "Brezal");
         // 0x5be150 viste al héroe al final (0x512a30), que lee las acciones de Player.bmd.
-        m_models.Set(Client::Data::Models::PlayerSkeletonModel, {}, Client::Tests::PlayerActionsSkeleton(), {});
+        m_models.Set(Client::Tables::PlayerSkeletonModel, {}, Client::Tests::PlayerActionsSkeleton(), {});
         world.OwnCharacter().ClearEquipmentForEntry();
         // El registro propio abierto alrededor de todo: 0x5bc740 con el último argumento en 0 lo abre y lo cierra en
         // cada ítem (3.848 rand() si queda sin accesos), y acá solo cuentan los paneles y los envíos.

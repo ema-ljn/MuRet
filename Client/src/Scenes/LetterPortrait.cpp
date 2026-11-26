@@ -116,7 +116,7 @@ ActorState& HeroOf(const WorldEntryResources& resources)
 
 const Models::Skeleton* PlayerSkeleton(const WorldEntryResources& resources)
 {
-    return resources.models.SkeletonOf(Data::Models::PlayerSkeletonModel);
+    return resources.models.SkeletonOf(Tables::PlayerSkeletonModel);
 }
 
 ActorStopContext StopContextOf(const WorldEntryResources& resources, const Models::Skeleton& player)
@@ -165,7 +165,7 @@ Core::Expected<void, std::string> StopThePortrait(ActorState& actor, const World
 // 0x513100 sobre el personaje del retrato (0x4977d0 y 0x496575).
 Core::Expected<void, std::string> ApplyTheClassParts(ActorState& actor, const WorldEntryResources& resources)
 {
-    if (actor.type != Data::Models::PlayerSkeletonModel)
+    if (actor.type != Tables::PlayerSkeletonModel)
         return {};
     const std::uint8_t action = actor.animation.action;
     const bool emote = action >= FirstEmoteAction && action <= LastEmoteAction;
@@ -216,14 +216,14 @@ bool SameAsItem(const ActorItemPart& part, const World::ItemState& item, std::in
 {
     const std::int32_t model = static_cast<std::int16_t>(part.model);
     const std::int32_t expected =
-        item.id == NoItemModel ? empty : static_cast<std::int16_t>(item.id) + Data::Models::FirstItemModel;
+        item.id == NoItemModel ? empty : static_cast<std::int16_t>(item.id) + Tables::FirstItemModel;
     return model == expected && part.level == LevelOf(item) && part.flags1b == item.flags1b;
 }
 
 // 0x4964f0(parte, ítem, el de la clase): el modelo (el word de `empty` sin ítem), el nivel y el byte +3; el +4 queda.
 void FillFromItem(ActorItemPart& part, const World::ItemState& item, std::uint16_t empty)
 {
-    part.model = item.id == NoItemModel ? empty : static_cast<std::uint16_t>(item.id + Data::Models::FirstItemModel);
+    part.model = item.id == NoItemModel ? empty : static_cast<std::uint16_t>(item.id + Tables::FirstItemModel);
     part.level = LevelOf(item);
     part.flags1b = item.flags1b;
 }
@@ -481,8 +481,8 @@ Core::Expected<void, std::string> BuildThePortrait(LetterPortrait& portrait, con
     WorldState& world = resources.world;
     const ActorConstructionContext construction{world.Map().terrain, world.Runtime().map, World::CullingScene::Game,
                                                 resources.camera.fixedHeight};
-    if (auto built = ConstructActor(actor, Data::Models::PlayerSkeletonModel, {cell.x, cell.y, 0.0f}, construction,
-                                    resources.cloth);
+    if (auto built =
+            ConstructActor(actor, Tables::PlayerSkeletonModel, {cell.x, cell.y, 0.0f}, construction, resources.cloth);
         !built.HasValue())
         return built;
     actor.position = {HiddenCoordinate, HiddenCoordinate, HiddenCoordinate};

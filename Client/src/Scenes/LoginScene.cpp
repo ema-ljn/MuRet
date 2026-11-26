@@ -729,7 +729,7 @@ Core::Expected<void, std::string> LoginScene::PlaceTheCharacter()
         // Los tests de UI sin WorldState pueden dibujar sus fondos sin cargar un mundo.
         if (m_context.world == nullptr)
         {
-            if (const auto* skeleton = m_models.SkeletonOf(Data::Models::PlayerSkeletonModel))
+            if (const auto* skeleton = m_models.SkeletonOf(Tables::PlayerSkeletonModel))
             {
                 PrepareLoginPresentationActor(world.Actors()[LoginActorSlot], *skeleton);
             }
@@ -737,7 +737,7 @@ Core::Expected<void, std::string> LoginScene::PlaceTheCharacter()
         }
         terrain = &missingTerrain;
     }
-    const Models::Skeleton* skeleton = m_models.SkeletonOf(Data::Models::PlayerSkeletonModel);
+    const Models::Skeleton* skeleton = m_models.SkeletonOf(Tables::PlayerSkeletonModel);
     // Un modelo todavía sin cargar tiene cero acciones: 0x4ea030 no cambia la acción, y el paso corta
     // donde necesita Player.bmd (0x4f9580). Así los tests de carga pueden inspeccionar las texturas.
     const Models::Skeleton empty;
@@ -832,7 +832,7 @@ Core::Expected<void, std::string> LoginScene::StepTheCharacters()
     {
         // Los fixtures de UI/modelos no tienen un TerrainWall que pueda pasar 0x508f00.
         ActorState& actor = CharacterWorld().Actors()[LoginActorSlot];
-        const auto* skeleton = m_models.SkeletonOf(Data::Models::PlayerSkeletonModel);
+        const auto* skeleton = m_models.SkeletonOf(Tables::PlayerSkeletonModel);
         if (actor.alive && skeleton != nullptr && actor.animation.action < skeleton->actions.size())
         {
             const auto& action = skeleton->actions[actor.animation.action];
@@ -852,7 +852,7 @@ Core::Expected<void, std::string> LoginScene::StepTheCharacters()
         {.world = CharacterWorld(),
          .random = cloth.random,
          .scene = SceneId::Login,
-         .playerSkeleton = m_models.SkeletonOf(Data::Models::PlayerSkeletonModel),
+         .playerSkeleton = m_models.SkeletonOf(Tables::PlayerSkeletonModel),
          .terrain = m_terrain.Terrain(),
          .darkSpiritSkeleton = m_models.SkeletonOf(DarkSpiritModel),
          .particles = &CharacterWorld().Particles(),
@@ -865,7 +865,7 @@ Core::Expected<void, std::string> LoginScene::StepTheCharacters()
 
 void LoginScene::StepTheWorld()
 {
-    const Models::Skeleton* player = m_models.SkeletonOf(Data::Models::PlayerSkeletonModel);
+    const Models::Skeleton* player = m_models.SkeletonOf(Tables::PlayerSkeletonModel);
     if (m_context.clock != nullptr && player != nullptr)
     {
         // 0x634cca: el gesto va antes de las olas y de todo el paso del mundo.
@@ -1688,7 +1688,7 @@ void LoginScene::ReportParticleFailure(const World::ParticleDrawingFailure& fail
 // esqueleto.
 FullSetScan LoginScene::ScanTheCharacter(const GameLogic::CharacterAppearance& appearance, int frames)
 {
-    if (m_context.cloth == nullptr || m_models.SkeletonOf(Data::Models::PlayerSkeletonModel) == nullptr)
+    if (m_context.cloth == nullptr || m_models.SkeletonOf(Tables::PlayerSkeletonModel) == nullptr)
     {
         return {};
     }
@@ -1701,7 +1701,7 @@ DrawnCharacter LoginScene::TheCharacterToDraw(float alpha)
     DrawnCharacter character;
     character.appearance = actor.alive ? AppearanceOfActor(actor) : LoginCharacter();
     character.body = actor.animation;
-    if (const auto* skeleton = m_models.SkeletonOf(Data::Models::PlayerSkeletonModel);
+    if (const auto* skeleton = m_models.SkeletonOf(Tables::PlayerSkeletonModel);
         skeleton != nullptr && actor.animation.action < skeleton->actions.size())
     {
         const auto& action = skeleton->actions[actor.animation.action];
@@ -1745,13 +1745,13 @@ void LoginScene::DrawTheModels(Render::Frame::SceneCanvas& canvas, float alpha)
     // que arranca de lo que dejó su dibujo anterior y no del global; al global (0x68b181c) sólo va lo que cuelga.
     character.poseBones = [&](std::uint16_t model)
     {
-        return model == Data::Models::PlayerSkeletonModel ? std::span<const Math::BoneTransform>(actor.bodyPose)
-                                                          : std::span<const Math::BoneTransform>(carry.bones);
+        return model == Tables::PlayerSkeletonModel ? std::span<const Math::BoneTransform>(actor.bodyPose)
+                                                    : std::span<const Math::BoneTransform>(carry.bones);
     };
     character.onPose = [&](std::uint16_t model, std::span<const Math::BoneTransform> bones,
                            const Models::ObjectTransform& transform, bool translated)
     {
-        if (model == Data::Models::PlayerSkeletonModel)
+        if (model == Tables::PlayerSkeletonModel)
             return;
         if (auto result = PublishFaunaPoseRaw(carry, m_models, model, bones, transform, translated); !result.HasValue())
             m_failure = result.Error();
@@ -1763,7 +1763,7 @@ void LoginScene::DrawTheModels(Render::Frame::SceneCanvas& canvas, float alpha)
                              m_fullSetScanFrames.FramesAt(canvas.frameClock, OriginalFramePaceOf(m_context.pacing)));
         // Con el flujo global y Player.bmd, el mismo 0x50ba30 que el juego: el cuerpo, las partes y la tela, y
         // después lo que cuelga y los efectos (0x50db57..0x510a7a), que no miran la escena salvo 0x510ef0.
-        const Models::Skeleton* skeleton = m_models.SkeletonOf(Data::Models::PlayerSkeletonModel);
+        const Models::Skeleton* skeleton = m_models.SkeletonOf(Tables::PlayerSkeletonModel);
         if (m_context.cloth != nullptr && skeleton != nullptr && !skeleton->actions.empty())
         {
             DrawCharacter(canvas.models, m_models, character, canvas.frameClock, CharacterDrawPass::Body);

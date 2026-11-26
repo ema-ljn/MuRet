@@ -67,9 +67,9 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Data::Models::PlayerSkeletonModel;
 using Client::Scenes::ActorState;
 using Client::Scenes::EmptyOwnItemId;
+using Client::Tables::PlayerSkeletonModel;
 using Client::Tests::ViewportPlayerRecord;
 using Client::World::ItemState;
 

@@ -58,15 +58,15 @@ namespace
 {
 using Client::Core::Log;
 using Client::Core::LogLevel;
-using Client::Data::Models::ItemModelFiles;
-using Client::Data::Models::ModelTextureSampling;
-using Client::Data::Models::PlayerFixedTextures;
-using Client::Data::Models::PlayerModelFiles;
-using Client::Data::Models::SkillModelFiles;
 using Client::Render::TextureSlot;
 using Client::Scenes::ClothTextureSet;
 using Client::Scenes::GameModels;
 using Client::Scenes::GlowTextureSet;
+using Client::Tables::ItemModelFiles;
+using Client::Tables::ModelTextureSampling;
+using Client::Tables::PlayerFixedTextures;
+using Client::Tables::PlayerModelFiles;
+using Client::Tables::SkillModelFiles;
 using Client::Tests::FakeTextureStore;
 using Client::Tests::ReadFileBytes;
 using Client::Tests::RecordingSink;
@@ -100,10 +100,10 @@ TEST_F(NativeSkillLoadTest, TheLoadedSkillTexturesFollowEveryReachedNativeCallIn
             bindings[call.model] =
                 native.Assign(*model, call.folder, {Client::Data::Textures::Filter::Nearest, call.wrap});
     };
-    for (const auto& call : Client::Data::Models::PlayerTextureCalls())
+    for (const auto& call : Client::Tables::PlayerTextureCalls())
         query({call.model, call.folder});
     native.SetNext(TextureSlot{0x25a});
-    for (const auto& call : Client::Data::Models::ItemTextureCalls())
+    for (const auto& call : Client::Tables::ItemTextureCalls())
         query({call.model, call.folder, Wrap::Repeat, call.model != 0xdb});
     ASSERT_EQ(native.Next(), TextureSlot{0x371});
     for (const Call& call : std::to_array<Call>({{0x14a, "Skill\\"},

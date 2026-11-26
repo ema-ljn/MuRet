@@ -23,8 +23,8 @@
 // sin él (06 lo da como *inferido*). El nombre es el comienzo del registro: sin nombre, su primer byte es 0.
 namespace
 {
-using Client::Data::Models::FirstItemModel;
-using Client::Data::Models::ItemModel;
+using Client::Tables::FirstItemModel;
+using Client::Tables::ItemModel;
 
 constexpr std::string_view ItemFile = "Local\\Item.bmd";
 constexpr std::uint8_t MagicGladiator = 3;
@@ -68,7 +68,7 @@ TEST_F(GoldenFullSetScan, TheArmorsThatKeepTheBonusAreTheNamedOnesWithoutAHelm)
     const auto items = LoadItems();
     ASSERT_TRUE(items.has_value());
     int kept = 0;
-    for (std::uint16_t index = 0; index < Client::Data::Models::ItemModelsPerGroup; ++index)
+    for (std::uint16_t index = 0; index < Client::Tables::ItemModelsPerGroup; ++index)
     {
         SCOPED_TRACE(index);
         // La clase 3 con el conjunto +13 de ese índice, sin casco, y su armadura en el registro.

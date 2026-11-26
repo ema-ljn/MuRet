@@ -43,7 +43,7 @@ namespace
 using Crt::CrtRandom;
 using Models::LogicalAccess;
 
-constexpr std::uint16_t PlayerType = Data::Models::PlayerSkeletonModel;
+constexpr std::uint16_t PlayerType = Tables::PlayerSkeletonModel;
 // 0x4fdbf1: el valor al que vuelve +0x381 cuando corre la habilidad, y el 15 de 0x4f97b0 (0x4fb0df).
 constexpr std::uint8_t AttackDone = 15;
 constexpr std::int16_t NoTarget = -1;

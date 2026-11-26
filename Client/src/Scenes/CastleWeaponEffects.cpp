@@ -81,7 +81,7 @@ Result KnockDownTheActors(const glm::vec3& point, float radius, const WorldEntry
     for (std::size_t slot = 0; slot < 400; ++slot)
     {
         auto& actor = actors[slot];
-        if (!actor.alive || actor.byte88 != 0x80 || actor.type != Data::Models::PlayerSkeletonModel ||
+        if (!actor.alive || actor.byte88 != 0x80 || actor.type != Tables::PlayerSkeletonModel ||
             actor.animation.action == 137 || !InRange(point, actor.position, radius))
             continue;
         if (auto set = SetMonsterAction(actor, 137, 0x429e40, resources); !set.HasValue())

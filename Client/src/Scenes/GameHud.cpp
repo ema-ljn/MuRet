@@ -723,8 +723,7 @@ Core::Expected<std::int32_t, std::string> DrawTheHelper(Frame& frame, bool arrow
         }
         else
         {
-            auto record =
-                ItemRecordOf(frame, pet - static_cast<std::int32_t>(Data::Models::FirstItemModel), "0x5ab2f0");
+            auto record = ItemRecordOf(frame, pet - static_cast<std::int32_t>(Tables::FirstItemModel), "0x5ab2f0");
             if (!record.HasValue())
                 return Core::Unexpected(record.Error());
             name = ItemRecordName(record.Value());

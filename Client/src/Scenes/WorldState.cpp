@@ -171,7 +171,7 @@ void WorldState::PlacePlayerModel(const ActorState& actor)
 
 void WorldState::PlacePlayerModel(const ActorState& actor, const glm::vec3& origin)
 {
-    if (actor.type != Data::Models::PlayerSkeletonModel)
+    if (actor.type != Tables::PlayerSkeletonModel)
     {
         return;
     }
@@ -182,10 +182,10 @@ void WorldState::PlacePlayerModel(const ActorState& actor, const glm::vec3& orig
 
 void WorldState::PlaceShadowModel(const ActorState& actor)
 {
-    SharedModelPlacement placement = ModelPlacement(Data::Models::PlayerShadowModel);
+    SharedModelPlacement placement = ModelPlacement(Tables::PlayerShadowModel);
     placement.scale = actor.scale;
     placement.origin = actor.position;
-    PlaceModel(Data::Models::PlayerShadowModel, placement);
+    PlaceModel(Tables::PlayerShadowModel, placement);
 }
 
 void WorldState::PlaceModel(const ActorState& actor)
@@ -196,7 +196,7 @@ void WorldState::PlaceModel(const ActorState& actor)
 
 void WorldState::PlaceModel(std::uint16_t type, const SharedModelPlacement& placement)
 {
-    if (type == Data::Models::PlayerSkeletonModel)
+    if (type == Tables::PlayerSkeletonModel)
     {
         m_playerModel = placement;
         return;
@@ -206,7 +206,7 @@ void WorldState::PlaceModel(std::uint16_t type, const SharedModelPlacement& plac
 
 SharedModelPlacement WorldState::ModelPlacement(std::uint16_t type) const
 {
-    if (type == Data::Models::PlayerSkeletonModel)
+    if (type == Tables::PlayerSkeletonModel)
         return m_playerModel;
     const auto found = m_modelPlacements.find(type);
     return found != m_modelPlacements.end() ? found->second : SharedModelPlacement{};

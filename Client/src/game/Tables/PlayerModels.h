@@ -10,7 +10,7 @@
 // As the original loads them: 0x60dbe0 (load step 1 of 0x61ccb0) and 0x60ff50 (step 3)
 // (Client/docs/research/06-render-escenas-y-ui.md, "El modelo en el binario"). Each row is a call to 0x60da30, in the
 // original's order and with its address: the tables come from emulating both loaders on main.exe c32bbd5f.
-namespace Client::Data::Models
+namespace Client::Tables
 {
 // The skeleton (0x60e90d).
 inline constexpr std::uint16_t PlayerSkeletonModel = 0x20a;
@@ -39,14 +39,14 @@ inline constexpr std::array<std::uint16_t, 5> HelmsWithMask{0x1012, 0x1017, 0x10
 
 // The 213 loads of 0x60dbe0 in the Data\ mode: Player.bmd, each class's parts, the equipment's and Shadow01.bmd. All
 // are in the lab's Data\.
-[[nodiscard]] std::span<const ModelFile> PlayerModelFiles();
+[[nodiscard]] std::span<const Data::Models::ModelFile> PlayerModelFiles();
 
 // The 243 of 0x60ff50, each a different model: weapons, shields, items and Player\'s four pets (Helper01 to 04). The
 // lab lacks only the three giftbox (09), which the original skips silently.
-[[nodiscard]] std::span<const ModelFile> ItemModelFiles();
+[[nodiscard]] std::span<const Data::Models::ModelFile> ItemModelFiles();
 
 // The 106 loads of 0x615700 in the Data branch, in native order. ManyFlag is optional and may be missing.
-[[nodiscard]] std::span<const ModelFile> SkillModelFiles();
+[[nodiscard]] std::span<const Data::Models::ModelFile> SkillModelFiles();
 
 struct ModelMesh
 {
@@ -65,4 +65,4 @@ inline constexpr std::array<ModelMesh, 5> MeshesWithoutShine{{
     {0x618, 1},  // Mace07
     {0x2243, 1}, // MagicBox07
 }};
-} // namespace Client::Data::Models
+} // namespace Client::Tables

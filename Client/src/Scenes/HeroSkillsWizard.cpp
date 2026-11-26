@@ -73,7 +73,7 @@ bool InRange(std::int32_t value, std::int32_t first, std::int32_t last)
 
 bool IsPlayer(const ActorState& actor)
 {
-    return actor.type == Data::Models::PlayerSkeletonModel;
+    return actor.type == Tables::PlayerSkeletonModel;
 }
 
 Core::Expected<void, std::string> Act(ActorState& actor, std::uint8_t action, const HeroSkillContext& context)

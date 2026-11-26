@@ -59,7 +59,7 @@ ConstructionBox BoxOf(std::uint16_t type)
     case 0x198:
     case 0x199:
     case 0x19a:
-    case Data::Models::PlayerSkeletonModel:
+    case Tables::PlayerSkeletonModel:
         return {Floor, 40.0f, 40.0f, 120.0f}; // 0x5122d4
     case 0x154:
     case 0x158:
@@ -249,7 +249,7 @@ void SetTheHandBones(ActorState& actor, std::uint16_t type)
 // 0x4ec200 no corre acá: 0x511290 deja las dos acciones en 1 y el frame en 0.
 void ResetTheAnimation(ActorState& actor)
 {
-    const std::uint8_t action = actor.type == Data::Models::PlayerSkeletonModel ? PlayerStartAction : 0;
+    const std::uint8_t action = actor.type == Tables::PlayerSkeletonModel ? PlayerStartAction : 0;
     actor.animation.action = action;
     actor.animation.previousAction = action;
     actor.animation.frame = 0.0f;

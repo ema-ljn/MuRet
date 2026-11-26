@@ -125,7 +125,7 @@ struct ElfHero
         world.Map().terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
         auto& hero = Hero();
         hero.alive = true;
-        hero.type = Client::Data::Models::PlayerSkeletonModel;
+        hero.type = Client::Tables::PlayerSkeletonModel;
         hero.characterClass = ElfClass;
         hero.cellX = 182;
         hero.cellY = 115;
@@ -162,7 +162,7 @@ struct ElfHero
     void ChooseAnAlly()
     {
         auto& chosen = Chosen();
-        chosen.type = Client::Data::Models::PlayerSkeletonModel;
+        chosen.type = Client::Tables::PlayerSkeletonModel;
         chosen.byte88 = 1;
         chosen.byte370 = 0;
         chosen.hands[0].model = chosen.hands[1].model = Client::Scenes::NoItemModel;

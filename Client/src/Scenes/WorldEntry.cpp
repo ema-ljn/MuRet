@@ -119,8 +119,8 @@ Core::Expected<void, std::string> BuildTheHero(const Protocol::Character::Charac
                                                 .map = world.Runtime().map,
                                                 .scene = World::CullingScene::Game,
                                                 .fixedHeight = resources.camera.fixedHeight};
-    const auto built = ConstructActor(hero, Data::Models::PlayerSkeletonModel, {reply.x, reply.y, angle}, construction,
-                                      resources.cloth);
+    const auto built =
+        ConstructActor(hero, Tables::PlayerSkeletonModel, {reply.x, reply.y, angle}, construction, resources.cloth);
     if (!built.HasValue())
     {
         return built;
@@ -270,7 +270,7 @@ Core::Expected<void, std::string> StopTheHero(const WorldEntryResources& resourc
 
 Core::Expected<const Models::Skeleton*, std::string> PlayerSkeletonOf(const WorldEntryResources& resources)
 {
-    const Models::Skeleton* player = resources.models.SkeletonOf(Data::Models::PlayerSkeletonModel);
+    const Models::Skeleton* player = resources.models.SkeletonOf(Tables::PlayerSkeletonModel);
     if (player == nullptr)
     {
         return Core::Unexpected(std::string("la entrada al mundo necesita Player.bmd (0x20a) para 0x4f2250"));

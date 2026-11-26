@@ -74,7 +74,7 @@ struct Transition
 {
     Transition()
     {
-        models.Set(Client::Data::Models::PlayerSkeletonModel, {}, Client::Tests::PlayerActionsSkeleton(), {});
+        models.Set(Client::Tables::PlayerSkeletonModel, {}, Client::Tests::PlayerActionsSkeleton(), {});
         world.Runtime().hero = 7;
         world.Runtime().heroSlot = 7;
         world.Runtime().map = 0;
@@ -84,7 +84,7 @@ struct Transition
         world.OwnCharacter().ClearEquipmentForEntry();
         Hero().alive = true;
         Hero().key = PlayerKey;
-        Hero().type = Client::Data::Models::PlayerSkeletonModel;
+        Hero().type = Client::Tables::PlayerSkeletonModel;
         Hero().pet.model = Client::Scenes::NoItemModel;
     }
     Client::Scenes::ActorState& Hero()

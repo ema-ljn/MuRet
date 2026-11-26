@@ -185,7 +185,7 @@ Core::Expected<void, std::string> ApplyTheSet(const PetTarget& target, GameLogic
     WorldState& world = resources.world;
     ActorState& actor = target.actor;
     // 0x513a12: solo los jugadores.
-    if (actor.type != Data::Models::PlayerSkeletonModel)
+    if (actor.type != Tables::PlayerSkeletonModel)
         return {};
     const GameLogic::CharacterAppearance appearance =
         GameLogic::AppearanceOf(actor.characterClass, actor.skin, equipment);

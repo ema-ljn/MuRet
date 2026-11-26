@@ -73,9 +73,9 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Data::Models::PlayerSkeletonModel;
 using Client::Protocol::Viewport::Players;
 using Client::Scenes::ActorState;
+using Client::Tables::PlayerSkeletonModel;
 using Client::Tests::AfterDraws;
 using Client::Tests::ViewportPlayerRecord;
 

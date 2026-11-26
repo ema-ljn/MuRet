@@ -2325,7 +2325,7 @@ Core::Expected<void, std::string> ApplyEquipmentChange(const Protocol::Inventory
     // 0x5139f0 con el índice de 0x5110d0 (el 400 sin ninguno, que en el arreglo de 401 existe) mira el tipo (+2) y,
     // si no es un jugador, vuelve sin tocar nada (0x513a12).
     const std::size_t index = ActorWithKey(resources.world, change.key);
-    if (resources.world.Actors()[index].type != Data::Models::PlayerSkeletonModel)
+    if (resources.world.Actors()[index].type != Tables::PlayerSkeletonModel)
         return {};
     return ApplyCharacterSet(index, change.equipment, resources);
 }

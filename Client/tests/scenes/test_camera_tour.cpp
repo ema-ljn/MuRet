@@ -69,7 +69,7 @@ struct Tour
     Tour()
     {
         world.FaunaResources().TextureTable().Bind(store);
-        models.Set(Client::Data::Models::PlayerSkeletonModel, {}, Client::Tests::PlayerActionsSkeleton(), {});
+        models.Set(Client::Tables::PlayerSkeletonModel, {}, Client::Tests::PlayerActionsSkeleton(), {});
         ActorState& hero = world.Actors()[0];
         hero = Client::Tests::UnarmedPlayer();
         hero.alive = true;

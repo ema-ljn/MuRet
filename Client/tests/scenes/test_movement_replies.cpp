@@ -55,7 +55,7 @@ public:
     }
     const Client::Models::Skeleton* SkeletonOf(std::uint16_t model) const override
     {
-        if (model == 0x186 || model == Client::Data::Models::PlayerSkeletonModel)
+        if (model == 0x186 || model == Client::Tables::PlayerSkeletonModel)
             return &skeleton;
         return model == 0x154 ? &transformed : nullptr;
     }
@@ -77,11 +77,11 @@ struct Replies
 {
     Replies()
     {
-        models.Set(Client::Data::Models::PlayerSkeletonModel, {}, Client::Tests::PlayerActionsSkeleton(), {});
+        models.Set(Client::Tables::PlayerSkeletonModel, {}, Client::Tests::PlayerActionsSkeleton(), {});
         world.Runtime().hero = 7;
         Hero().alive = true;
         Hero().key = PlayerKey;
-        Hero().type = Client::Data::Models::PlayerSkeletonModel;
+        Hero().type = Client::Tables::PlayerSkeletonModel;
         Hero().pet.model = Client::Scenes::NoItemModel;
     }
     Client::Scenes::ActorState& Hero()

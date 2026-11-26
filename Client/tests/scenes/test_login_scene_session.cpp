@@ -788,7 +788,7 @@ TEST(LoginSceneSessionTest, TheLoginWritesItsStepsInTheMessageArea)
     const auto row = [&area](std::int32_t back) -> const Client::UI::MessageAreaRow&
     { return area.rows[static_cast<std::size_t>(area.count - back)]; };
 
-    tested.models.Set(Client::Data::Models::PlayerSkeletonModel, Client::Data::Models::Model{},
+    tested.models.Set(Client::Tables::PlayerSkeletonModel, Client::Data::Models::Model{},
                       Client::Tests::PlayerActionsSkeleton(), {});
     const auto entered = tested.scene->Enter();
     ASSERT_TRUE(entered.HasValue()) << entered.Error();

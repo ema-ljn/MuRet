@@ -61,7 +61,7 @@ struct NpcLine
 constexpr std::array<NpcLine, 4> NpcLines{{{0x1cd, 1974, 0x4fc7fc},
                                            {0x1d3, 1975, 0x4fc81a},
                                            {0x1d5, 1976, 0x4fc838},
-                                           {Data::Models::PlayerSkeletonModel, 1827, 0x4fc861}}};
+                                           {Tables::PlayerSkeletonModel, 1827, 0x4fc861}}};
 
 // 0x4fc8f0..0x4fcb05: cada tramo del sorteo, su mensaje en Devias (0x388 o 0x389, con el SETNZ, DEC y AND), de a
 // cuánto es el segundo rand() y la acción.
@@ -109,7 +109,7 @@ bool HasTheMessageName(const ActorState& actor)
 bool TurnTheNpc(ActorState& actor, std::int32_t map)
 {
     if (actor.byte88 != NpcKind || (map != LorenciaMap && map != DeviasMap) ||
-        actor.type != Data::Models::PlayerSkeletonModel || actor.subtype < FirstTurnedSubtype ||
+        actor.type != Tables::PlayerSkeletonModel || actor.subtype < FirstTurnedSubtype ||
         actor.subtype > LastTurnedSubtype)
         return false;
     actor.angles = {0.0f, 0.0f, map == LorenciaMap ? LorenciaTurn : 0.0f};
@@ -131,7 +131,7 @@ Core::Expected<void, std::string> SayTheNpcLine(const ActorState& actor, std::si
             continue;
         if (line.type == NpcLines[0].type && map == CastleMap)
             return {};
-        if (line.type == Data::Models::PlayerSkeletonModel && actor.word376 != TalkingNpcClass)
+        if (line.type == Tables::PlayerSkeletonModel && actor.word376 != TalkingNpcClass)
             return {};
         return Say(actor, slot, line.text, context, line.address);
     }

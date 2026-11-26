@@ -32,7 +32,7 @@ using Client::Scenes::ConstructActor;
 using Client::Scenes::NoItemModel;
 
 constexpr std::uint32_t Seed = 0xc0ffee;
-constexpr std::uint16_t Player = Client::Data::Models::PlayerSkeletonModel;
+constexpr std::uint16_t Player = Client::Tables::PlayerSkeletonModel;
 constexpr std::uint16_t SafeBit = 1;
 constexpr float FixedHeight = 1200.0f;
 

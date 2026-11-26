@@ -46,7 +46,7 @@ struct Skeleton
 {
     std::vector<SkeletonBone> bones;
     std::vector<ActionInfo> actions;
-    // +0x54: −1 as 0x4f1f20(0) leaves it; the character's is set by 0x60dbe0 (Data::Models::PlayerHeadBone).
+    // +0x54: −1 as 0x4f1f20(0) leaves it; the character's is set by 0x60dbe0 (Tables::PlayerHeadBone).
     std::int16_t headBone = -1;
 };
 

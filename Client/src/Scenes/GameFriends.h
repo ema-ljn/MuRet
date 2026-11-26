@@ -2,7 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Core/PixelSize.h"
-#include "Protocol/Friends.h"
+#include "Protocol/Messenger/Friends.h"
 #include "Protocol/Outgoing.h"
 #include "Render/Text/IGlyphRasterizer.h"
 #include "UI/OldWindows.h"

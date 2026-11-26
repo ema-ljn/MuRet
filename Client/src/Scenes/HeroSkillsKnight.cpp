@@ -6,7 +6,7 @@
 #include "Pathfinding/PathFinder.h"
 #include "Maps/MapId.h"
 #include "Math/Angles.h"
-#include "Protocol/Skill.h"
+#include "Protocol/Skills/Skill.h"
 #include "Models/Animation.h"
 #include "Models/LogicalAccess.h"
 #include "Math/OriginalAngles.h"

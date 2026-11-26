@@ -1,7 +1,7 @@
 #include "Scenes/OwnCharacterRecord.h"
 
 #include "Core/Log.h"
-#include "Protocol/Character/CharacterSelectResult.h"
+#include "Protocol/FrontEnd/CharacterSelectResult.h"
 #include "World/ItemState.h"
 
 #include <cstddef>

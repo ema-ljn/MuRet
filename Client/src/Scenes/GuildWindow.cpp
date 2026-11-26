@@ -4,7 +4,7 @@
 #include "Core/PixelSize.h"
 #include "Tables/TextTable.h"
 #include "Math/X87.h"
-#include "Protocol/Guild.h"
+#include "Protocol/Guild/Guild.h"
 #include "Render/OriginalQuad.h"
 #include "Render/ScreenScale.h"
 #include "Render/SpriteBatch.h"

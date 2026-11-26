@@ -254,9 +254,6 @@ number	Scenes/Skill4e9920.cpp	NegativeHundredth	f64-from-f32:0xbc23d70a
 number	Scenes/SpiritJoints.cpp	Third	0x6f4
 number	World/DungeonObjectStep.cpp	NegativeThousandth	f64-from-f32:0xba83126f
 number	World/GameModelEffects.cpp	Pi	f64:0x400921fafc8b007a
-player-action	Protocol/Combat.h	AttackAction	0x78
-player-action	Protocol/Movement.h	FacingAction	0x7a
-player-action	Protocol/Movement.h	SittingAction	0x82
 player-action	Scenes/ActionReply.cpp	FirstStopAction	0x7a
 player-action	Scenes/ActionReply.cpp	FirstStrikeAction	0x78
 player-action	Scenes/ActorActions.cpp	DefaultModelStandAction	0x0
@@ -359,6 +356,9 @@ player-action	World/KalimaParticleKernels.cpp	ShakingAction	0x1
 player-action	World/ModelEffects.cpp	NoAction	0xff
 player-action	World/SiegeStoneStep.cpp	NoAction	0xff
 player-action	World/WizardModelEffects.cpp	NoAction	0xff
+player-action	game/Protocol/Combat/Combat.h	AttackAction	0x78
+player-action	game/Protocol/Movement/Movement.h	FacingAction	0x7a
+player-action	game/Protocol/Movement/Movement.h	SittingAction	0x82
 skill	Scenes/ActorCombat.cpp	FirstActionSkill	0x32
 skill	Scenes/ActorCombat.cpp	FirstKalimaSkill	0x1
 skill	Scenes/ActorCombat.cpp	KalimaSkill	0x11

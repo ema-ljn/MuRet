@@ -8,7 +8,7 @@
 #include "Input/InputEvent.h"
 #include "Input/InputState.h"
 #include "Input/Key.h"
-#include "Protocol/OptionData.h"
+#include "Protocol/Player/OptionData.h"
 #include "Protocol/Outgoing.h"
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"

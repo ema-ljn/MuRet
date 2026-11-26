@@ -4,7 +4,7 @@
 #include "Core/PixelSize.h"
 #include "Crt/CrtRandom.h"
 #include "Tables/TextTable.h"
-#include "Protocol/Friends.h"
+#include "Protocol/Messenger/Friends.h"
 #include "Protocol/Outgoing.h"
 #include "Models/LogicalAccess.h"
 #include "Render/Text/FontSet.h"

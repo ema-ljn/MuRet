@@ -6,7 +6,7 @@
 #include "Input/Key.h"
 #include "Input/MouseMessageState.h"
 #include "Network/Xor32Packet.h"
-#include "Protocol/FloorItems.h"
+#include "Protocol/Items/FloorItems.h"
 #include "Protocol/Outgoing.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"

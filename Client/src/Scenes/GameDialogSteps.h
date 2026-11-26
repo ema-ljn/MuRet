@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Core/Expected.h"
-#include "Protocol/OptionData.h"
+#include "Protocol/Player/OptionData.h"
 
 #include <cstdint>
 #include <optional>

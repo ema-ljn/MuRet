@@ -1,5 +1,5 @@
-#include "Protocol/FriendChat.h"
-#include "Protocol/Letters.h"
+#include "Protocol/Messenger/FriendChat.h"
+#include "Protocol/Messenger/Letters.h"
 
 #include "Network/Delivery.h"
 #include "Protocol/Outgoing.h"

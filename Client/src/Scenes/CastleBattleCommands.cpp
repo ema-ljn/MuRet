@@ -1,7 +1,7 @@
 #include "Scenes/CastleBattleCommands.h"
 
 #include "Core/Expected.h"
-#include "Protocol/CastleBattle.h"
+#include "Protocol/CastleSiege/CastleBattle.h"
 #include "Scenes/ActorEffectFlags.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/CastleBattleActors.h"

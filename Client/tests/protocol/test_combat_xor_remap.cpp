@@ -1,4 +1,4 @@
-#include "Protocol/Combat.h"
+#include "Protocol/Combat/Combat.h"
 
 #include "App/LabXorRemapTables.h"
 #include "Network/XorRemap/XorRemapObfuscation.h"

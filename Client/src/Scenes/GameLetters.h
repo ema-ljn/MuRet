@@ -4,8 +4,8 @@
 #include "App/WorldEvent.h"
 #include "Core/Expected.h"
 #include "Network/Packet.h"
-#include "Protocol/FriendChat.h"
-#include "Protocol/Letters.h"
+#include "Protocol/Messenger/FriendChat.h"
+#include "Protocol/Messenger/Letters.h"
 
 #include <cstdint>
 #include <string>

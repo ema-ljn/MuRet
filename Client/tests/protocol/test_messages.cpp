@@ -1,7 +1,7 @@
 #include "Network/Xor32Packet.h"
-#include "Protocol/Messages.h"
+#include "Protocol/Chat/Messages.h"
 #include "Network/Delivery.h"
-#include "Protocol/OptionData.h"
+#include "Protocol/Player/OptionData.h"
 
 #include "Network/ProtocolError.h"
 

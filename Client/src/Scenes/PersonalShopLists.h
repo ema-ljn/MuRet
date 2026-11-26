@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Core/Expected.h"
-#include "Protocol/PersonalShop.h"
+#include "Protocol/PersonalShop/PersonalShop.h"
 #include "Scenes/SocialEvents.h"
 #include "Scenes/SocialState.h"
 #include "UI/PanelRegistry.h"

@@ -3,7 +3,7 @@
 #include "Core/Expected.h"
 #include "Core/Log.h"
 #include "Crt/CrtRandom.h"
-#include "Protocol/Quest.h"
+#include "Protocol/Quests/Quest.h"
 #include "Models/LogicalAccess.h"
 #include "Scenes/ActorActions.h"
 #include "Scenes/ActorState.h"

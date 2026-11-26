@@ -11,7 +11,7 @@
 #include "Tables/PlayerModels.h"
 #include "Tables/ItemSetTables.h"
 #include "Tables/ItemTable.h"
-#include "Protocol/Character/CharacterSelectResult.h"
+#include "Protocol/FrontEnd/CharacterSelectResult.h"
 #include "Models/Cloth.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/DarkHorse.h"

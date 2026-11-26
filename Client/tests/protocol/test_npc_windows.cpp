@@ -1,5 +1,5 @@
 #include "Network/Xor32Packet.h"
-#include "Protocol/NpcWindows.h"
+#include "Protocol/Npc/NpcWindows.h"
 
 #include "Network/Delivery.h"
 #include "Network/ProtocolError.h"

@@ -7,7 +7,7 @@
 #include "Crt/CrtRandom.h"
 #include "Math/Angles.h"
 #include "Math/FloatConstants.h"
-#include "Protocol/Events.h"
+#include "Protocol/Events/Events.h"
 #include "Scenes/ActorCreation.h"
 #include "Scenes/ActorMotion.h"
 #include "Scenes/ActorState.h"

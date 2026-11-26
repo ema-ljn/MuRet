@@ -14,7 +14,7 @@
 #include "GameLogic/CharacterAppearance.h"
 #include "Input/DoubleClick.h"
 #include "Input/InputState.h"
-#include "Protocol/Character/CharacterList.h"
+#include "Protocol/FrontEnd/CharacterList.h"
 #include "Models/ModelTextureSlots.h"
 #include "Models/Pose.h"
 #include "Render/Pass3D.h"

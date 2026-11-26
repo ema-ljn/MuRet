@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Core/Expected.h"
-#include "Protocol/Connection/Login.h"
+#include "Protocol/Session/Login.h"
 
 #include <cstddef>
 #include <functional>

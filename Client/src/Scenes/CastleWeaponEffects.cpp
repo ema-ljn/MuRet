@@ -2,7 +2,7 @@
 #include "Core/Expected.h"
 #include "Tables/PlayerModels.h"
 #include "Network/PacketWriter.h"
-#include "Protocol/Movement.h"
+#include "Protocol/Movement/Movement.h"
 #include "Protocol/Opcodes.h"
 #include "Protocol/Outgoing.h"
 #include "Models/Cloth.h"

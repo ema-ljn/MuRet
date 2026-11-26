@@ -1,7 +1,7 @@
 #include "Scenes/WorldState.h"
 
 #include "Crt/CrtRandom.h"
-#include "Protocol/Character/CharacterList.h"
+#include "Protocol/FrontEnd/CharacterList.h"
 #include "Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/ItemSetOptionList.h"

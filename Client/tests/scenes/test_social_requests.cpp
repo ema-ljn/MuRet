@@ -15,7 +15,7 @@
 #include "Tables/TextTable.h"
 #include "Network/Delivery.h"
 #include "Protocol/Outgoing.h"
-#include "Protocol/Viewport.h"
+#include "Protocol/Actors/Viewport.h"
 #include "Input/InputState.h"
 #include "Models/Cloth.h"
 #include "Models/LogicalAccess.h"

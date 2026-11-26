@@ -1,8 +1,8 @@
 #include "Network/Xor32Packet.h"
-#include "Protocol/FloorItems.h"
+#include "Protocol/Items/FloorItems.h"
 
 #include "Network/Delivery.h"
-#include "Protocol/Inventory.h"
+#include "Protocol/Items/Inventory.h"
 #include "Network/ProtocolError.h"
 
 #include "support/Bytes.h"

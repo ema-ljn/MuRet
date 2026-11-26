@@ -1,5 +1,5 @@
 #include "Network/Xor32Packet.h"
-#include "Protocol/Character/CharacterDelete.h"
+#include "Protocol/FrontEnd/CharacterDelete.h"
 
 #include "Network/Delivery.h"
 #include "Protocol/Outgoing.h"

@@ -1,6 +1,6 @@
 #include "UI/ServerListModel.h"
 
-#include "Protocol/Connection/ServerList.h"
+#include "Protocol/Session/ServerList.h"
 
 #include <array>
 #include <cstddef>

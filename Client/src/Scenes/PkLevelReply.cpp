@@ -2,7 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Core/PixelSize.h"
-#include "Protocol/Character/PkLevel.h"
+#include "Protocol/Player/PkLevel.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/ChatBubbles.h"
 #include "Scenes/ChatReceive.h"

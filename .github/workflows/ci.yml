@@ -212,7 +212,7 @@ jobs:
             --baseline Client/tools/architecture/named-values-baseline.tsv --clean-root engine
           python3 -I Client/docs/research/scripts/tools/dispatcher_cases.py check \
             --cases Client/docs/research/coverage/dispatcher-cases.tsv \
-            --lists Client/src/Protocol/Opcodes.h Client/src/Protocol/Connection/Opcodes.h
+            --lists Client/src/game/Protocol/Opcodes.h Client/src/game/Protocol/Session/Opcodes.h
 
       # ADR 0027: math that the C library or glm rounds, called by name instead of through RoundedMath.h, fails.
       - name: Client rounded math

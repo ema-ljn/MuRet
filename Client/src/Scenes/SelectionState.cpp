@@ -4,7 +4,7 @@
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainAttributes.h"
-#include "Protocol/Character/CharacterList.h"
+#include "Protocol/FrontEnd/CharacterList.h"
 #include "Models/Cloth.h"
 #include "Models/Skeleton.h"
 #include "Scenes/ActorConstruction.h"

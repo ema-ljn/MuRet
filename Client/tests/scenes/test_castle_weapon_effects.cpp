@@ -6,7 +6,7 @@
 #include "Core/Log.h"
 #include "Data/Models/Model.h"
 #include "Network/Packet.h"
-#include "Protocol/CastleBattle.h"
+#include "Protocol/CastleSiege/CastleBattle.h"
 #include "Protocol/Outgoing.h"
 #include "Models/Cloth.h"
 #include "Models/Skeleton.h"

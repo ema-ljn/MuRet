@@ -1,5 +1,5 @@
 #include "Network/Xor32Packet.h"
-#include "Protocol/JewelMix.h"
+#include "Protocol/ChaosMix/JewelMix.h"
 
 #include "Network/Delivery.h"
 

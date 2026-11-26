@@ -13,7 +13,7 @@
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainHeights.h"
 #include "Network/PacketSerials.h"
-#include "Protocol/World.h"
+#include "Protocol/Movement/World.h"
 #include "Protocol/Outgoing.h"
 #include "Models/Cloth.h"
 #include "Render/Text/FontSet.h"

@@ -1,5 +1,5 @@
 #include "Network/Xor32Packet.h"
-#include "Protocol/Pet/PetInfo.h"
+#include "Protocol/Pets/PetInfo.h"
 
 #include "Network/Delivery.h"
 #include "Protocol/Outgoing.h"

@@ -1,5 +1,5 @@
 #include "Network/Xor32Packet.h"
-#include "Protocol/Connection/Keepalive.h"
+#include "Protocol/Session/Keepalive.h"
 
 #include "Network/Delivery.h"
 #include "Network/EncryptedPacket.h"

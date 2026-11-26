@@ -6,7 +6,7 @@
 #include "Network/Packet.h"
 #include "Network/PacketSerials.h"
 #include "Network/Xor32Packet.h"
-#include "Protocol/BuildConstants.h"
+#include "Protocol/Session/BuildConstants.h"
 
 #include "support/Bytes.h"
 #include "support/CharacterPackets.h"

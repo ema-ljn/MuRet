@@ -1,4 +1,4 @@
-#include "Protocol/Connection/ServerList.h"
+#include "Protocol/Session/ServerList.h"
 
 #include "Network/Delivery.h"
 #include "Network/Packet.h"

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Core/Expected.h"
-#include "Protocol/Character/InventoryList.h"
+#include "Protocol/Items/InventoryList.h"
 #include "Scenes/ActorActions.h"
 
 #include <cstddef>

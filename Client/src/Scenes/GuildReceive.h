@@ -2,7 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Core/PixelSize.h"
-#include "Protocol/Guild.h"
+#include "Protocol/Guild/Guild.h"
 #include "Scenes/GuildPanels.h"
 
 #include <cstdint>

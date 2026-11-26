@@ -1,11 +1,11 @@
 #pragma once
 
 #include "Core/Expected.h"
-#include "Protocol/Duel.h"
+#include "Protocol/Social/Duel.h"
 #include "Protocol/Outgoing.h"
-#include "Protocol/Party.h"
-#include "Protocol/PersonalShop.h"
-#include "Protocol/Trade.h"
+#include "Protocol/Party/Party.h"
+#include "Protocol/PersonalShop/PersonalShop.h"
+#include "Protocol/Social/Trade.h"
 
 #include <cstddef>
 #include <cstdint>

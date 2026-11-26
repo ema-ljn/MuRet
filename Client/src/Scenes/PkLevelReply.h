@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Core/Expected.h"
-#include "Protocol/Character/PkLevel.h"
+#include "Protocol/Player/PkLevel.h"
 #include "Scenes/WorldEntry.h"
 
 #include <string>

@@ -2,7 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Math/X87.h"
-#include "Protocol/Events.h"
+#include "Protocol/Events/Events.h"
 #include "Render/OriginalQuad.h"
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"

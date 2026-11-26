@@ -2,7 +2,7 @@
 
 #include "Network/Packet.h"
 #include "Network/XorRemap/XorRemapTables.h"
-#include "Protocol/Connection/Opcodes.h"
+#include "Protocol/Session/Opcodes.h"
 #include "Protocol/Opcodes.h"
 
 #include <cstddef>

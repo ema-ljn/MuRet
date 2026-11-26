@@ -9,7 +9,7 @@
 #include "Tables/TextTable.h"
 #include "Network/Packet.h"
 #include "Protocol/Outgoing.h"
-#include "Protocol/Pet/PetInfo.h"
+#include "Protocol/Pets/PetInfo.h"
 #include "Models/LogicalAccess.h"
 #include "Render/SpriteBatch.h"
 #include "Scenes/ActorState.h"

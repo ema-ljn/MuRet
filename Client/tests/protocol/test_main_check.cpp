@@ -1,5 +1,5 @@
 #include "Network/Xor32Packet.h"
-#include "Protocol/Connection/MainCheck.h"
+#include "Protocol/Session/MainCheck.h"
 
 #include "Network/Delivery.h"
 #include "Network/Packet.h"

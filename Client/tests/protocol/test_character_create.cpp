@@ -1,9 +1,9 @@
 #include "Network/Xor32Packet.h"
-#include "Protocol/Character/CharacterCreate.h"
+#include "Protocol/FrontEnd/CharacterCreate.h"
 
 #include "Network/Delivery.h"
-#include "Protocol/Character/CharacterList.h"
-#include "Protocol/Character/CharacterName.h"
+#include "Protocol/FrontEnd/CharacterList.h"
+#include "Protocol/FrontEnd/CharacterName.h"
 #include "Protocol/Outgoing.h"
 #include "Network/ProtocolError.h"
 

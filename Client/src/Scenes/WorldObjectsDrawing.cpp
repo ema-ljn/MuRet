@@ -3,7 +3,7 @@
 #include "Models/IModelLibrary.h"
 #include "Scenes/VertexEffects.h"
 
-#include "Protocol/Events.h"
+#include "Protocol/Events/Events.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/FaunaDrawing.h"
 #include "Scenes/AidaObjectServices.h"

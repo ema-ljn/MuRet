@@ -1,5 +1,5 @@
 #include "Network/Xor32Packet.h"
-#include "Protocol/Inventory.h"
+#include "Protocol/Items/Inventory.h"
 
 #include "Network/Delivery.h"
 #include "Network/ProtocolError.h"

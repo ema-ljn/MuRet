@@ -12,9 +12,9 @@
 #include "Network/Packet.h"
 #include "Network/PacketSerials.h"
 #include "Network/Xor32Packet.h"
-#include "Protocol/BuildConstants.h"
-#include "Protocol/Character/CharacterSelectResult.h"
-#include "Protocol/Character/InventoryList.h"
+#include "Protocol/Session/BuildConstants.h"
+#include "Protocol/FrontEnd/CharacterSelectResult.h"
+#include "Protocol/Items/InventoryList.h"
 
 #include "support/Bytes.h"
 #include "support/CharacterPackets.h"

@@ -5,10 +5,10 @@
 #include "Scenes/CastleWindows.h"
 
 #include "Core/Expected.h"
-#include "Protocol/CastleSiege.h"
-#include "Protocol/Connection/Logout.h"
+#include "Protocol/CastleSiege/CastleSiege.h"
+#include "Protocol/Session/Logout.h"
 #include "Protocol/Outgoing.h"
-#include "Protocol/Pet/PetInfo.h"
+#include "Protocol/Pets/PetInfo.h"
 #include "Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/GameUi.h"

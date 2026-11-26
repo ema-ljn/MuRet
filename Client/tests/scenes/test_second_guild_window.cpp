@@ -5,7 +5,7 @@
 #include "Core/PixelSize.h"
 #include "Crt/CrtRandom.h"
 #include "Tables/TextTable.h"
-#include "Protocol/Guild.h"
+#include "Protocol/Guild/Guild.h"
 #include "Protocol/Outgoing.h"
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"

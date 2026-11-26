@@ -1,8 +1,8 @@
 #include "Scenes/GuildReceive.h"
 
 #include "Core/Expected.h"
-#include "Protocol/Guild.h"
-#include "Protocol/Movement.h"
+#include "Protocol/Guild/Guild.h"
+#include "Protocol/Movement/Movement.h"
 #include "Protocol/Outgoing.h"
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Scenes/ActionSend.h"

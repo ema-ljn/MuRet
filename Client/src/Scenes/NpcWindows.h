@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Core/Expected.h"
-#include "Protocol/NpcWindows.h"
+#include "Protocol/Npc/NpcWindows.h"
 #include "Protocol/Outgoing.h"
 #include "Scenes/InventoryMoves.h"
 #include "Scenes/NpcWindowState.h"

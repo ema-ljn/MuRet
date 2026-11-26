@@ -2,7 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Math/X87.h"
-#include "Protocol/Guild.h"
+#include "Protocol/Guild/Guild.h"
 #include "Protocol/Outgoing.h"
 #include "Render/OriginalQuad.h"
 #include "Render/ScreenScale.h"

@@ -8,7 +8,7 @@
 #include "Core/PixelSize.h"
 #include "Crt/CrtRandom.h"
 #include "Tables/TextTable.h"
-#include "Protocol/CastleSiege.h"
+#include "Protocol/CastleSiege/CastleSiege.h"
 #include "Protocol/Outgoing.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"

@@ -2,7 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
-#include "Protocol/Movement.h"
+#include "Protocol/Movement/Movement.h"
 #include "Models/LogicalAccess.h"
 #include "Scenes/ActorCombat.h"
 #include "Scenes/ActorState.h"

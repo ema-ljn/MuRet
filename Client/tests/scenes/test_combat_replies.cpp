@@ -9,7 +9,7 @@
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainGrid.h"
 #include "Tables/TextTable.h"
-#include "Protocol/Combat.h"
+#include "Protocol/Combat/Combat.h"
 #include "Math/OriginalAngles.h"
 #include "Models/Skeleton.h"
 #include "Render/Text/FontSet.h"

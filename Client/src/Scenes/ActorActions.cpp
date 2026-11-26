@@ -6,7 +6,7 @@
 #include "Tables/ItemTable.h"
 #include "Data/Terrain/TerrainGrid.h"
 #include "Maps/MapId.h"
-#include "Protocol/Movement.h"
+#include "Protocol/Movement/Movement.h"
 #include "Models/Animation.h"
 #include "Models/LogicalAccess.h"
 #include "Scenes/ActionSend.h"

@@ -1,4 +1,4 @@
-#include "Protocol/CastleBattle.h"
+#include "Protocol/CastleSiege/CastleBattle.h"
 
 #include "Network/ProtocolError.h"
 

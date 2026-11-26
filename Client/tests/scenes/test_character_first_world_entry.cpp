@@ -10,7 +10,7 @@
 #include "App/WorldEvent.h"
 #include "Network/PacketSerials.h"
 #include "Network/LinkState.h"
-#include "Protocol/Character/CharacterList.h"
+#include "Protocol/FrontEnd/CharacterList.h"
 #include "Models/Cloth.h"
 #include "Render/SpriteBatch.h"
 #include "Tables/GameData.h"

@@ -2,7 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Tables/PlayerModels.h"
-#include "Protocol/Movement.h"
+#include "Protocol/Movement/Movement.h"
 #include "Models/Animation.h"
 #include "Models/Cloth.h"
 #include "Models/Skeleton.h"

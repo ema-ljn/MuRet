@@ -1,5 +1,5 @@
 #include "Network/Xor32Packet.h"
-#include "Protocol/Character/LevelUpPoint.h"
+#include "Protocol/Player/LevelUpPoint.h"
 
 #include "Network/Delivery.h"
 #include "Protocol/Outgoing.h"

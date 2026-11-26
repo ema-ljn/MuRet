@@ -4,7 +4,7 @@
 #include "Crt/CrtRandom.h"
 #include "Tables/PlayerModels.h"
 #include "Pathfinding/PathFinder.h"
-#include "Protocol/Movement.h"
+#include "Protocol/Movement/Movement.h"
 #include "Models/LogicalAccess.h"
 #include "Math/OriginalAngles.h"
 #include "Models/Skeleton.h"

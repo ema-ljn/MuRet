@@ -1,4 +1,4 @@
-#include "Protocol/Pet/PetOrders.h"
+#include "Protocol/Pets/PetOrders.h"
 
 #include "Network/Delivery.h"
 #include "Network/ProtocolError.h"

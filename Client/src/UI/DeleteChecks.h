@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Tables/TextTable.h"
-#include "Protocol/Character/CharacterList.h"
+#include "Protocol/FrontEnd/CharacterList.h"
 #include "UI/Notices.h"
 
 #include <cstdint>

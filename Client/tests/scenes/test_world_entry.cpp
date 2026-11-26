@@ -16,7 +16,7 @@
 #include "Tables/TextTable.h"
 #include "Input/InputState.h"
 #include "Network/PacketSerials.h"
-#include "Protocol/Character/CharacterSelectResult.h"
+#include "Protocol/FrontEnd/CharacterSelectResult.h"
 #include "Render/ModelBatch.h"
 #include "Models/Cloth.h"
 #include "Models/LogicalAccess.h"

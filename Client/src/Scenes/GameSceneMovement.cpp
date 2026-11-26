@@ -12,7 +12,7 @@
 #include "Scenes/GameMovement.h"
 #include "Scenes/GameDialogSteps.h"
 #include "Tables/GameData.h"
-#include "Protocol/Character/CharacterList.h"
+#include "Protocol/FrontEnd/CharacterList.h"
 #include "UI/MacroFile.h"
 #include "Core/Log.h"
 #include "Scenes/InventoryMoves.h"

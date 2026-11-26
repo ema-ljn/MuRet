@@ -8,7 +8,7 @@
 #include "Data/Models/Model.h"
 #include "Tables/PlayerModels.h"
 #include "Tables/TextTable.h"
-#include "Protocol/Guild.h"
+#include "Protocol/Guild/Guild.h"
 #include "Protocol/Outgoing.h"
 #include "Models/Cloth.h"
 #include "Models/Skeleton.h"

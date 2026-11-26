@@ -1,7 +1,7 @@
 #include "UI/MessageArea.h"
 
 #include "Core/PixelSize.h"
-#include "Protocol/Events.h"
+#include "Protocol/Events/Events.h"
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
 #include "Render/Text/FontSet.h"

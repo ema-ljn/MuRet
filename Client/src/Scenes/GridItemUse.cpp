@@ -3,7 +3,7 @@
 #include "Core/Expected.h"
 #include "Tables/ItemTable.h"
 #include "Models/LogicalAccess.h"
-#include "Protocol/Events.h"
+#include "Protocol/Events/Events.h"
 #include "Scenes/InventoryMoves.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnInventory.h"

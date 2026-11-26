@@ -6,7 +6,7 @@
 #include "Core/Log.h"
 #include "Data/Models/Model.h"
 #include "Tables/PlayerModels.h"
-#include "Protocol/Movement.h"
+#include "Protocol/Movement/Movement.h"
 #include "Models/Cloth.h"
 #include "Math/OriginalAngles.h"
 #include "Models/Skeleton.h"

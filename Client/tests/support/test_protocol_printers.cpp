@@ -1,6 +1,6 @@
 #include "support/ProtocolPrinters.h"
 
-#include "Protocol/Character/CharacterList.h"
+#include "Protocol/FrontEnd/CharacterList.h"
 
 #include "support/CharacterPackets.h"
 

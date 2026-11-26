@@ -1,7 +1,7 @@
 #include "Scenes/Skill55cbc0.h"
 
 #include "Core/Expected.h"
-#include "Protocol/Skill.h"
+#include "Protocol/Skills/Skill.h"
 #include "Models/LogicalAccess.h"
 #include "Math/OriginalAngles.h"
 #include "Scenes/ActorCombat.h"

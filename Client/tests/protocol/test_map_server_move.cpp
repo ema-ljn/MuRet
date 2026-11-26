@@ -1,9 +1,9 @@
 #include "Network/Xor32Packet.h"
-#include "Protocol/Connection/MapServerMove.h"
+#include "Protocol/Session/MapServerMove.h"
 
 #include "Network/Delivery.h"
 #include "Network/Packet.h"
-#include "Protocol/BuildConstants.h"
+#include "Protocol/Session/BuildConstants.h"
 #include "Protocol/Outgoing.h"
 #include "Network/ProtocolError.h"
 

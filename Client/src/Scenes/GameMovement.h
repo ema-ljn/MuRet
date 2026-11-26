@@ -7,7 +7,7 @@
 #include "Tables/SkillTable.h"
 #include "Tables/TextTable.h"
 #include "Pathfinding/PathCell.h"
-#include "Protocol/Movement.h"
+#include "Protocol/Movement/Movement.h"
 #include "Protocol/Outgoing.h"
 #include "Scenes/ActionSend.h"
 

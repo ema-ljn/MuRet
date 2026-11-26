@@ -9,7 +9,7 @@
 #include "Network/LinkState.h"
 #include "Network/PacketSerials.h"
 #include "Network/ProtocolError.h"
-#include "Protocol/World.h"
+#include "Protocol/Movement/World.h"
 #include "Models/Cloth.h"
 #include "Scenes/LoginModels.h"
 #include "Scenes/SelectionState.h"

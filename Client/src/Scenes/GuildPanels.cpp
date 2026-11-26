@@ -3,7 +3,7 @@
 
 #include "Core/Expected.h"
 #include "Core/PixelSize.h"
-#include "Protocol/Guild.h"
+#include "Protocol/Guild/Guild.h"
 #include "Protocol/Outgoing.h"
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Scenes/ActorState.h"

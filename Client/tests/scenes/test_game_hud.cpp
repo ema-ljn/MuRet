@@ -5,7 +5,7 @@
 #include "Crt/CrtRandom.h"
 #include "Tables/ItemTable.h"
 #include "Tables/SkillTable.h"
-#include "Protocol/Inventory.h"
+#include "Protocol/Items/Inventory.h"
 #include "Models/LogicalAccess.h"
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"

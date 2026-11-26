@@ -47,3 +47,12 @@ b7e0e91f2514d5aa32376f495c24dc6de9d77f50
 
 # refactor(AR1.2): move MU's model catalog to the Tables namespace (#493)
 736b554483c8a88100e7316164ba29487dc47302
+
+# refactor(AR2.1): move the protocol to Client/src/game (#502)
+65bc2bef3fc3c9d735c4ff25dd6d36ab37b38cf5
+
+# refactor(AR2.1): name the protocol's namespaces after their folders (#503)
+2b810f46618454fc885aad410f352f5d3356c9af
+
+# refactor(AR2.2): move the session to Client/src/game (#515)
+e901a4fd80cc38a1638131062b649d0526157b80

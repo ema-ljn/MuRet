@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Kernel/CharacterClass.h"
 #include "Maps/MapId.h"
 #include "Math/Angles.h"
 #include "Math/FloatConstants.h"
@@ -79,7 +80,6 @@ constexpr float MageShinyFactor = std::bit_cast<float>(0x3ecccccdu); // 0x6b87b4
 constexpr std::uint8_t LightningAction = 0x94;
 constexpr std::uint8_t FirstEffectAction = 0x51;
 constexpr std::uint8_t SecondEffectAction = 0x5b;
-constexpr std::uint8_t DarkLordClass = 4;
 using Math::Tenth;                                                       // 0x6b87b8, 0,1f
 constexpr float FirstLightningScale = std::bit_cast<float>(0x3e99999au); // 0x6b89dc, 0,3f
 constexpr float ThirdLightningScale = 2.5f;                              // 0x6b89a8
@@ -305,7 +305,7 @@ Core::Expected<AfterTheActions, std::string> Actions(Tail& tail)
     if (action != LightningAction && action != FirstEffectAction && action != SecondEffectAction)
         return Rest;
     const float frame = actor.animation.frame;
-    if ((actor.characterClass & 7u) != DarkLordClass && action == LightningAction)
+    if (Kernel::BaseClassOf(actor.characterClass) != Kernel::CharacterClass::DarkLord && action == LightningAction)
     {
         if ((actor.flags78 & HiddenAttachmentFlag) != 0)
             return Rest;

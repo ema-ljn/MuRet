@@ -26,6 +26,7 @@
 #include "UI/HudPrimitives.h"
 #include "UI/ServerListModel.h"
 #include "Crt/SprintfFormat.h"
+#include "Kernel/CharacterClass.h"
 #include "World/ItemState.h"
 
 #include <algorithm>
@@ -42,6 +43,8 @@ namespace Client::Scenes
 {
 namespace
 {
+using Kernel::BaseClassOf;
+using Kernel::CharacterClass;
 using Render::BlendMode;
 using Render::Color;
 using Render::Text::FontKind;
@@ -90,12 +93,6 @@ constexpr std::uint32_t LineColor = 0xffffffffu;
 constexpr std::uint32_t PointsLineColor = 0xffff9664u;
 constexpr std::uint32_t LevelUpBackground = 0xffc86e1eu;
 constexpr std::uint32_t LevelUpColor = 0xff000000u;
-
-// La clase del héroe (+0x1d4 & 7).
-constexpr std::uint32_t WizardClass = 0;
-constexpr std::uint32_t KnightClass = 1;
-constexpr std::uint32_t GladiatorClass = 3;
-constexpr std::uint32_t DarkLordClass = 4;
 
 // Los bits de +0x78 del héroe que suman al ataque y a la defensa (*inferido*: un buff).
 constexpr std::uint32_t AgilityBonusFlag = 0x400;
@@ -238,7 +235,7 @@ struct Window
     const OwnCharacterRecord& own;
     const ActorState& hero;
     // local_28: la clase del héroe.
-    std::uint32_t heroClass = 0;
+    CharacterClass heroClass = CharacterClass::DarkWizard;
     std::int32_t x = WindowX;
     std::int32_t y = WindowY;
 };
@@ -308,7 +305,7 @@ Core::Expected<void, std::string> DrawTheHeader(Window& window)
     DrawCentered(context, x + 0x16, y + 0x16, server, BoxPixels(context, 150));
     sprites.SetColor(White);
     // 0x5ee786..0x5ee7f0: [0x6c9330] botones y uno más de fondos, de 60 en 60.
-    const std::int32_t backs = (window.heroClass == DarkLordClass ? 5 : 4) + 1;
+    const std::int32_t backs = (window.heroClass == CharacterClass::DarkLord ? 5 : 4) + 1;
     const float backLeft = F32(static_cast<double>(left) + 19.0 - 6.0);
     const float backTop = F32(static_cast<double>(top) + 60.0 - 4.0);
     for (std::int32_t i = 0; i < backs; ++i)
@@ -447,7 +444,7 @@ Core::Expected<bool, std::string> DrawTheStrength(Window& window)
         const auto access = OwnAccess(context);
         const World::ItemState& item = own.equipment[slot];
         const bool empty = TypeOf(item) == -1;
-        const bool helmOptional = window.heroClass == GladiatorClass && slot == FirstArmorSlot;
+        const bool helmOptional = window.heroClass == CharacterClass::MagicGladiator && slot == FirstArmorSlot;
         if ((empty && !helmOptional) || (!empty && item.durability == 0))
         {
             fullSet = false;
@@ -462,7 +459,7 @@ Core::Expected<bool, std::string> DrawTheStrength(Window& window)
         const auto access = OwnAccess(context);
         std::int32_t reference = 0;
         bool compare = true;
-        if (window.heroClass == GladiatorClass)
+        if (window.heroClass == CharacterClass::MagicGladiator)
         {
             const std::int32_t armor = TypeOf(own.equipment[3]);
             if (std::ranges::find(GladiatorSetArmors, armor) == std::end(GladiatorSetArmors))
@@ -531,7 +528,8 @@ Core::Expected<void, std::string> DrawTheAgility(Window& window, bool fullSet)
     SetColors(context, LineColor, LineBackground);
     DrawFromLeft(context, x + 0x18, y + 200, text, BoxPixels(context, 130));
     // 0x5f006f..0x5f007f: la clase del registro (+0xb), no la del héroe; la 0 lee la de la magia.
-    const std::uint32_t speed = (own.characterClass & 7u) == WizardClass ? own.magicSpeed : own.attackSpeed;
+    const std::uint32_t speed =
+        BaseClassOf(own.characterClass) == CharacterClass::DarkWizard ? own.magicSpeed : own.attackSpeed;
     text = Sprintf(speedFormat.Value(), speed);
     DrawFromLeft(context, x + 0x18, y + 0xd7, text, BoxPixels(context, 130));
     return {};
@@ -650,23 +648,24 @@ Core::Expected<void, std::string> DrawTheVitality(Window& window)
     text = Sprintf(manaFormat.Value(), static_cast<std::uint32_t>(own.mana), static_cast<std::uint32_t>(own.maxMana));
     SetColors(context, LineColor, LineBackground);
     DrawFromLeft(context, x + 0x18, y + 0x140, text, BoxPixels(context, 130));
-    if (window.heroClass == WizardClass || window.heroClass == GladiatorClass)
+    if (window.heroClass == CharacterClass::DarkWizard || window.heroClass == CharacterClass::MagicGladiator)
     {
         if (auto magic = DrawTheMagic(window); !magic.HasValue())
             return magic;
     }
     // 0x5f0633..0x5f06f2: el daño de la skill del Dark Knight y el Dark Lord por la energía; el de la clase 3, fijo y
     // un renglón más abajo.
-    if (window.heroClass == KnightClass || window.heroClass == GladiatorClass || window.heroClass == DarkLordClass)
+    if (window.heroClass == CharacterClass::DarkKnight || window.heroClass == CharacterClass::MagicGladiator ||
+        window.heroClass == CharacterClass::DarkLord)
     {
         auto format = TextOf(context, SkillDamageText, "0x5f065a");
         if (!format.HasValue())
             return Core::Unexpected(format.Error());
         std::uint32_t percent = 200;
         int line = y + 0x14f;
-        if (window.heroClass == KnightClass)
+        if (window.heroClass == CharacterClass::DarkKnight)
             percent = energy / 10u + 200u;
-        else if (window.heroClass == DarkLordClass)
+        else if (window.heroClass == CharacterClass::DarkLord)
             percent = energy / 20u + 200u;
         else
             line = y + 0x15e;
@@ -683,7 +682,7 @@ Core::Expected<void, std::string> DrawTheVitality(Window& window)
         text = Sprintf(format.Value(), static_cast<std::uint32_t>(own.levelUpPoints));
         SetColors(context, LevelUpColor, LevelUpBackground);
         DrawCentered(context, x + 0x5f, y + 0x32, text, BoxPixels(context, 80));
-        const std::int32_t buttons = window.heroClass == DarkLordClass ? 5 : 4;
+        const std::int32_t buttons = window.heroClass == CharacterClass::DarkLord ? 5 : 4;
         const float left = F32(static_cast<double>(static_cast<float>(x)) + 125.0);
         for (std::int32_t i = 0; i < buttons; ++i)
         {
@@ -784,7 +783,8 @@ Core::Expected<void, std::string> DrawTheCharacterWindow(GameHudContext& context
 {
     WorldState& world = context.world;
     const ActorState& hero = world.Hero();
-    Window window{.context = context, .own = world.OwnCharacter(), .hero = hero, .heroClass = hero.characterClass & 7u};
+    Window window{
+        .context = context, .own = world.OwnCharacter(), .hero = hero, .heroClass = BaseClassOf(hero.characterClass)};
     context.hud.characterX = window.x;
     context.hud.characterY = window.y;
     if (auto header = DrawTheHeader(window); !header.HasValue())
@@ -798,7 +798,7 @@ Core::Expected<void, std::string> DrawTheCharacterWindow(GameHudContext& context
         return agility;
     if (auto vitality = DrawTheVitality(window); !vitality.HasValue())
         return vitality;
-    if (window.heroClass == DarkLordClass)
+    if (window.heroClass == CharacterClass::DarkLord)
     {
         if (auto command = DrawTheCommand(window); !command.HasValue())
             return command;

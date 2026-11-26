@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Kernel/CharacterClass.h"
 #include "Tables/PlayerModels.h"
 #include "Models/Animation.h"
 #include "Models/IModelLibrary.h"
@@ -20,8 +21,6 @@ namespace
 constexpr std::uint16_t UniriaModel = 0x1c14;
 constexpr std::uint16_t DinorantModel = 0x1c15;
 constexpr std::uint16_t FenrirModel = 0x1c37;
-constexpr std::uint8_t ElfClass = 2;
-constexpr std::uint8_t ClassMask = 7;
 
 // 0x4f52b5..0x4f52c3: la montura de +0x318 fuera de la zona segura (+0x3e2).
 bool Riding(const ActorState& actor, std::uint16_t mount)
@@ -60,7 +59,7 @@ Core::Expected<void, std::string> SetTheHitAction(ActorState& actor, const Actor
         return SetTheActorAction(actor, 0x97, context);
     if (Riding(actor, FenrirModel))
         return SetTheActorAction(actor, 0x5d, context);
-    if ((actor.characterClass & ClassMask) == ElfClass)
+    if (Kernel::BaseClassOf(actor.characterClass) == Kernel::CharacterClass::Elf)
         return SetTheActorAction(actor, 0x92, context);
     // 0x4f5311..0x4f5322: rand() con el resto con signo, que con un rand() de 0 a 0x7fff es el bit 0.
     const int bit = context.random.Next() & 1;

@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainAttributes.h"
+#include "Kernel/CharacterClass.h"
 #include "Pathfinding/PathFinder.h"
 #include "Maps/MapId.h"
 #include "Math/Angles.h"
@@ -46,7 +47,6 @@ namespace Client::Scenes
 namespace
 {
 constexpr std::uint16_t PlayerType = 0x20a;
-constexpr std::uint8_t LordClass = 4;
 constexpr std::int16_t NoWeapon = -1;
 constexpr std::int16_t FirstStaffModel = 0xc12;
 constexpr std::int16_t StaffModelsEnd = 0xe12;
@@ -159,7 +159,7 @@ bool UsableHere(std::uint8_t skill, const ActorState& published, const HeroSkill
 
 // 0x581b70..0x58236f: el maná, la stamina, la espera, la energía y, el Dark Lord, el liderazgo. Vacío: termina sin
 // mirar si se podía (0x582364).
-Core::Expected<std::optional<bool>, std::string> PaysForTheSkill(std::uint8_t heroClass, std::uint8_t skill,
+Core::Expected<std::optional<bool>, std::string> PaysForTheSkill(Kernel::CharacterClass heroClass, std::uint8_t skill,
                                                                  const SkillCost& costs, bool usable,
                                                                  const HeroSkillContext& context)
 {
@@ -191,7 +191,7 @@ Core::Expected<std::optional<bool>, std::string> PaysForTheSkill(std::uint8_t he
         return Core::Unexpected(energy.Error());
     if (energy.Value() > static_cast<std::int32_t>(own.word30) + static_cast<std::int32_t>(own.energy))
         usable = false;
-    if (heroClass == LordClass)
+    if (heroClass == Kernel::CharacterClass::DarkLord)
     {
         const auto leadership = SkillDelayRequirement(skill, delays);
         if (!leadership.HasValue())
@@ -680,8 +680,8 @@ Core::Expected<void, std::string> UseTheSkill(ActorState& hero, std::uint8_t ski
 }
 } // namespace
 
-Core::Expected<void, std::string> UseTheKnightSkill(ActorState& hero, std::uint8_t heroClass, std::uint8_t skill,
-                                                    const HeroSkillContext& context)
+Core::Expected<void, std::string> UseTheKnightSkill(ActorState& hero, Kernel::CharacterClass heroClass,
+                                                    std::uint8_t skill, const HeroSkillContext& context)
 {
     // 0x581894: el registro propio queda abierto hasta 0x5854be..0x5897a2, donde se cierra (3.848 rand() en 0).
     const auto own = OwnAccess(context);

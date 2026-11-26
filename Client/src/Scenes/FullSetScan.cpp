@@ -3,6 +3,7 @@
 #include "Crt/CrtRandom.h"
 #include "Tables/PlayerModels.h"
 #include "GameLogic/CharacterAppearance.h"
+#include "Kernel/CharacterClass.h"
 #include "Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/OwnCharacterRecord.h"
@@ -23,8 +24,6 @@ namespace
 static_assert(ScannedPartCount == GameLogic::BodyPartCount);
 
 // 0x50582c..0x505846: la clase 3 empieza por la armadura (ecx = 2); las otras, por el casco (ecx = 1).
-constexpr std::uint8_t ClassBits = 7;
-constexpr std::uint8_t MagicGladiatorClass = 3;
 constexpr std::size_t HelmPart = 0;
 constexpr std::size_t ArmorPart = 1;
 // +0x298, la última parte: los dos lazos van de ella para abajo, y su índice es el que comparan.
@@ -42,7 +41,7 @@ constexpr std::array<std::uint16_t, 4> ArmorsThatKeepTheBonus{0x100f, 0x1014, 0x
 
 bool IsMagicGladiator(std::uint8_t characterClass)
 {
-    return (characterClass & ClassBits) == MagicGladiatorClass;
+    return Kernel::BaseClassOf(characterClass) == Kernel::CharacterClass::MagicGladiator;
 }
 
 // (movsx(modelo) − 0x212), con and 0x800001ff y el ajuste de jns (0x505871..0x505893 y 0x5058b6..0x5058ce):

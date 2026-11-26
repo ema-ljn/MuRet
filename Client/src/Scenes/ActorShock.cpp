@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Kernel/CharacterClass.h"
 #include "Tables/PlayerModels.h"
 #include "Models/Animation.h"
 #include "Models/IModelLibrary.h"
@@ -51,16 +52,13 @@ void PlayerHitSound(const ActorState& actor, const WorldEntryResources& resource
     auto& random = resources.cloth.random;
     const auto requestSound = [&actor, &resources](std::int32_t id)
     { resources.world.Runtime().RequestSound(id, actor.position); };
-    constexpr std::uint8_t ClassMask = 7;
-    constexpr std::uint8_t ElfClass = 2;
-    constexpr std::uint8_t DarkLordClass = 4;
-    const auto characterClass = actor.characterClass & ClassMask;
-    if (characterClass == ElfClass)
+    const Kernel::CharacterClass characterClass = Kernel::BaseClassOf(actor.characterClass);
+    if (characterClass == Kernel::CharacterClass::Elf)
     {
         requestSound(0x6d + (random.Next() & 1));
         return;
     }
-    if (characterClass == DarkLordClass && random.Next() % 5 != 0)
+    if (characterClass == Kernel::CharacterClass::DarkLord && random.Next() % 5 != 0)
     {
         requestSound(0x1c6);
         return;

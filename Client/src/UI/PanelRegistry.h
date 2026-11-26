@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/Expected.h"
+#include "Kernel/CharacterClass.h"
 #include "UI/Dialogs.h"
 #include "UI/PanelDialog.h"
 
@@ -179,7 +180,7 @@ struct PanelContext
     std::int32_t cursorItemCount = 0;
     // +0x1d4 & 7 del héroe: con 4 (Dark Lord), abrir el inventario pide el cuervo y el caballo (petRequests,
     // 0x65c039).
-    std::uint8_t heroClass = 0;
+    Kernel::CharacterClass heroClass = Kernel::CharacterClass::DarkWizard;
     // 0x576793c: la salida pedida desde el menú de Esc (hito 6). Con 1, Open no abre.
     bool logoutRequested = false;
     // 0x6689d0, el héroe con +0x1f2 ≥ 0 y +0x368 en 0x80: solo lo lee el ancho del mundo con la lista de CS abierta.

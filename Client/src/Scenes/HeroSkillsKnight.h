@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/Expected.h"
+#include "Kernel/CharacterClass.h"
 
 #include <cstdint>
 #include <string>
@@ -23,6 +24,6 @@ struct HeroSkillContext;
 // dos como C3 (dos rand() antes de mirar el socket) y sin "webzen" en el nombre del héroe publicado; las celdas lógicas
 // del héroe cuestan cuatro rand() cada una. Las demás, nada. No dibuja: los efectos los ponen las respuestas. El Magic
 // Gladiator sigue después en la rama del Wizard (0x5897b7), que corta quien llama.
-[[nodiscard]] Core::Expected<void, std::string> UseTheKnightSkill(ActorState& hero, std::uint8_t heroClass,
+[[nodiscard]] Core::Expected<void, std::string> UseTheKnightSkill(ActorState& hero, Kernel::CharacterClass heroClass,
                                                                   std::uint8_t skill, const HeroSkillContext& context);
 } // namespace Client::Scenes

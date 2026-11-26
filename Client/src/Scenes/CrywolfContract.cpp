@@ -9,6 +9,7 @@
 #include "Scenes/WorldState.h"
 #include "UI/GameText.h"
 #include "Crt/OriginalFormat.h"
+#include "Kernel/CharacterClass.h"
 
 #include <algorithm>
 #include <array>
@@ -60,8 +61,6 @@ constexpr std::array<std::uint16_t, 3> RefusedPets{0x1c14, 0x1c15, 0x1c37};
 // 0x567b36..0x567b5b: los altares en el viewport y la clase de la elfa.
 constexpr std::uint16_t FirstAltarType = 0x204;
 constexpr std::uint16_t LastAltarType = 0x208;
-constexpr std::uint8_t ClassBits = 7;
-constexpr std::uint8_t ElfClass = 2;
 
 bool Inside(const Box& box, std::int32_t x, std::int32_t y)
 {
@@ -213,7 +212,7 @@ Core::Expected<AltarClick, std::string> ClickTheCrywolfAltar(WorldRuntime& runti
         return AltarClick::NotAnAltar;
     if (target.type < FirstAltarType || target.type > LastAltarType)
         return AltarClick::NotAnAltar;
-    if ((hero.characterClass & ClassBits) != ElfClass)
+    if (Kernel::BaseClassOf(hero.characterClass) != Kernel::CharacterClass::Elf)
         return AltarClick::Talk;
     const std::size_t altar = target.type - FirstAltarType;
     const CrywolfInterface& ui = runtime.crywolf.ui;

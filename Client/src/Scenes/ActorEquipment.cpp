@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Tables/PlayerModels.h"
 #include "GameLogic/CharacterAppearance.h"
+#include "Kernel/CharacterClass.h"
 #include "Models/LogicalAccess.h"
 #include "Scenes/ActorActions.h"
 #include "Scenes/ActorState.h"
@@ -49,12 +50,6 @@ constexpr std::uint16_t HeightOffsetPet = 0x1c15;
 // Las armas que 0x4053f0 pone en los mapas 18 a 23 según +0x1d4 & 7 (0x40540c..0x405472), con su
 // nombre en Item.bmd: el 0 16 (Sword of Destruction) en las dos manos de las clases 1, 3 y 4, el 4 19
 // (Great Reign Crossbow) en la derecha de la 2 y el 5 5 (Legendary Staff) en la derecha de la 0.
-constexpr std::uint8_t ClassBits = 7;
-constexpr std::uint8_t DarkWizardClass = 0;
-constexpr std::uint8_t DarkKnightClass = 1;
-constexpr std::uint8_t ElfClass = 2;
-constexpr std::uint8_t MagicGladiatorClass = 3;
-constexpr std::uint8_t DarkLordClass = 4;
 constexpr std::uint16_t EventSwordModel = Tables::ItemModel(0, 16);
 constexpr std::uint16_t EventCrossbowModel = Tables::ItemModel(4, 19);
 constexpr std::uint16_t EventStaffModel = Tables::ItemModel(5, 5);
@@ -171,17 +166,17 @@ void ArmForTheEventMaps(ActorState& actor, std::int32_t map)
     }
     ClearCarried(actor);
     ActorItemPart& right = actor.hands[0];
-    switch (actor.characterClass & ClassBits)
+    switch (Kernel::BaseClassOf(actor.characterClass))
     {
-    case DarkWizardClass:
+    case Kernel::CharacterClass::DarkWizard:
         right.model = EventStaffModel;
         break;
-    case ElfClass:
+    case Kernel::CharacterClass::Elf:
         right.model = EventCrossbowModel;
         break;
-    case DarkKnightClass:
-    case MagicGladiatorClass:
-    case DarkLordClass:
+    case Kernel::CharacterClass::DarkKnight:
+    case Kernel::CharacterClass::MagicGladiator:
+    case Kernel::CharacterClass::DarkLord:
         right.model = EventSwordModel;
         actor.hands[1].model = EventSwordModel;
         break;

@@ -13,6 +13,7 @@
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainGrid.h"
 #include "GameLogic/CharacterAppearance.h"
+#include "Kernel/CharacterClass.h"
 #include "Render/ModelBatch.h"
 #include "Render/ModelVertex.h"
 #include "Render/TextureSlot.h"
@@ -243,14 +244,14 @@ Core::Expected<void, std::string> DressForSoccer(const WorldState& world, const 
 Core::Expected<ClothLook, std::string> LookOfTheCloth(const WorldState& world, const ActorState& actor,
                                                       std::int32_t map)
 {
-    constexpr std::uint8_t MagicGladiator = 3;
-    constexpr std::uint8_t DarkLord = 4;
     constexpr std::int32_t FirstClothlessMap = 0x12;
     constexpr std::int32_t LastClothlessMap = 0x17;
     ClothLook look;
-    const auto base = static_cast<std::uint8_t>(actor.characterClass & 7u);
+    const Kernel::CharacterClass base = Kernel::BaseClassOf(actor.characterClass);
     constexpr std::uint16_t ClothMonster = 0x37;
-    look.wears = ((base == MagicGladiator || base == DarkLord) && actor.byte3e3 == 0) || actor.word376 == ClothMonster;
+    look.wears = ((base == Kernel::CharacterClass::MagicGladiator || base == Kernel::CharacterClass::DarkLord) &&
+                  actor.byte3e3 == 0) ||
+                 actor.word376 == ClothMonster;
     if (map >= FirstClothlessMap && map <= LastClothlessMap)
         look.wears = false;
     if (auto war = DressForTheWar(world, actor, look); !war.HasValue())

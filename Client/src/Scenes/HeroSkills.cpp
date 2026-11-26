@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Kernel/CharacterClass.h"
 #include "Tables/SkillTable.h"
 #include "Maps/MapId.h"
 #include "Protocol/Pets/PetOrders.h"
@@ -42,17 +43,13 @@ constexpr std::uint32_t FrozenHeroFlag = 0x1000;
 constexpr std::uint32_t HiddenHeroFlag = 0x4000;
 constexpr std::uint32_t PartySkillFlag = 0x200;
 constexpr std::uint16_t PlayerType = 0x20a;
-constexpr std::uint8_t ClassMask = 7;
-constexpr std::uint8_t WizardClass = 0;
-constexpr std::uint8_t KnightClass = 1;
-constexpr std::uint8_t ElfClass = 2;
-constexpr std::uint8_t GladiatorClass = 3;
-constexpr std::uint8_t LordClass = 4;
 constexpr float TeleportFade = 0.1f;
 constexpr float CellReciprocal = std::bit_cast<float>(std::uint32_t{0x3c23d70a});        // [0x6b86c0], 0,01
 constexpr float SecondsPerMillisecond = std::bit_cast<float>(std::uint32_t{0x3a83126f}); // [0x6ba128], 0,001
 constexpr double MaximumHoldSeconds = 3600.0;                                            // [0x6ba43c]
 constexpr std::int32_t SpectatorMap = 6;
+using Kernel::BaseClassOf;
+using Kernel::CharacterClass;
 using Maps::CastleSiegeMap;
 using Maps::FirstBloodCastleMap;
 using Maps::IsChaosCastle;
@@ -95,26 +92,26 @@ bool UsableInTheSafeZone(std::uint8_t skill)
 
 // 0x57d3cf..0x57d458: con el ataque automático, el otro elegido (0x6c8e38) por la clase y la skill: −1 con las que no
 // lo siguen y 2 con las demás.
-std::int32_t AutoTargetOf(std::uint8_t heroClass, std::uint8_t skill)
+std::int32_t AutoTargetOf(CharacterClass heroClass, std::uint8_t skill)
 {
     constexpr std::int32_t NoAutoTarget = -1;
     constexpr std::int32_t FollowsTheChosen = 2;
-    if (heroClass == ElfClass)
+    if (heroClass == CharacterClass::Elf)
     {
         if (skill != 0x18 && skill != 0x19 && skill != 0x34 && skill != 0x36 && skill != 0x4c)
             return NoAutoTarget;
     }
-    else if (heroClass == KnightClass)
+    else if (heroClass == CharacterClass::DarkKnight)
     {
         if (skill == 0x30)
             return NoAutoTarget;
     }
-    else if (heroClass == LordClass)
+    else if (heroClass == CharacterClass::DarkLord)
     {
         if (skill == 0x40 || skill == 0x3f)
             return NoAutoTarget;
     }
-    else if (heroClass == WizardClass)
+    else if (heroClass == CharacterClass::DarkWizard)
     {
         if (skill == 0x3a || skill == 0x28)
             return NoAutoTarget;
@@ -333,7 +330,7 @@ Core::Expected<bool, std::string> UseTheWeaponSkill(ActorState& hero, const Worl
 // 0x57d532..0x57d758: por cada mano (+0xb6c y +0xbb4), la skill de su arma. La tabla 0x599d70 (por la skill − 0x2b)
 // deja montado solo las 0x2b, 0x2f, 0x31, 0x3c a 0x3e, 0x41, 0x4a y 0x4c. True: la usó (0x57df46, el registro cerrado
 // y nada más).
-Core::Expected<bool, std::string> UseTheWeaponSkills(ActorState& hero, std::uint8_t heroClass, std::uint8_t skill,
+Core::Expected<bool, std::string> UseTheWeaponSkills(ActorState& hero, CharacterClass heroClass, std::uint8_t skill,
                                                      const HeroSkillContext& context)
 {
     static constexpr std::array<std::uint8_t, 0x22> MountedSkills{0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
@@ -341,7 +338,8 @@ Core::Expected<bool, std::string> UseTheWeaponSkills(ActorState& hero, std::uint
     WorldRuntime& runtime = context.world.Runtime();
     for (std::size_t hand = 0; hand < WeaponHands; ++hand)
     {
-        if (heroClass == KnightClass || heroClass == GladiatorClass || heroClass == LordClass)
+        if (heroClass == CharacterClass::DarkKnight || heroClass == CharacterClass::MagicGladiator ||
+            heroClass == CharacterClass::DarkLord)
         {
             const std::uint32_t index = static_cast<std::uint32_t>(skill) - 0x2bu;
             const bool skipped = Mounted(hero) && (index >= MountedSkills.size() || MountedSkills[index] != 0);
@@ -361,7 +359,7 @@ Core::Expected<bool, std::string> UseTheWeaponSkills(ActorState& hero, std::uint
                     return used;
             }
         }
-        if (heroClass == ElfClass)
+        if (heroClass == CharacterClass::Elf)
         {
             const auto own = OwnAccess(context);
             const auto used = UseTheElfWeaponOptions(hero, context.world.OwnCharacter().equipment[hand], context);
@@ -374,20 +372,21 @@ Core::Expected<bool, std::string> UseTheWeaponSkills(ActorState& hero, std::uint
 
 // 0x57d787..0x58188e y 0x5897aa..0x5897b1: la rama de la clase. Las 0x43 a 0x48 (0x5808da, HeroSkillsTail) son de
 // todas.
-Core::Expected<void, std::string> UseTheClassSkill(ActorState& hero, std::uint8_t heroClass, std::uint8_t skill,
+Core::Expected<void, std::string> UseTheClassSkill(ActorState& hero, CharacterClass heroClass, std::uint8_t skill,
                                                    const HeroSkillContext& context)
 {
-    if (heroClass == ElfClass)
+    if (heroClass == CharacterClass::Elf)
         return UseTheElfSkill(hero, skill, context);
-    if (heroClass == KnightClass || heroClass == GladiatorClass || heroClass == LordClass)
+    if (heroClass == CharacterClass::DarkKnight || heroClass == CharacterClass::MagicGladiator ||
+        heroClass == CharacterClass::DarkLord)
     {
         if (auto used = UseTheKnightSkill(hero, heroClass, skill, context); !used.HasValue())
             return used;
         // 0x5897a7..0x5897b1: el Magic Gladiator sigue en la rama del Wizard, que repite la prueba de la clase.
-        if (heroClass == GladiatorClass)
+        if (heroClass == CharacterClass::MagicGladiator)
             return UseTheWizardSkill(hero, skill, context);
     }
-    if (heroClass == WizardClass)
+    if (heroClass == CharacterClass::DarkWizard)
         return UseTheWizardSkill(hero, skill, context);
     // 0x5897b1: las clases 1, 4 y 5 a 7, a 0x5808da (las 0x43 a 0x48).
     return UseTheSharedTail(hero, skill, context);
@@ -442,7 +441,7 @@ Core::Expected<void, std::string> UseTheHeroSkill(ActorState& hero, const HeroSk
     // 0x57cfe2..0x57d00f.
     if (state.inputBlocked || ui.mouseOnUi != 0 || (hero.flags78 & FrozenHeroFlag) == FrozenHeroFlag)
         return {};
-    const auto heroClass = static_cast<std::uint8_t>(hero.characterClass & ClassMask);
+    const CharacterClass heroClass = BaseClassOf(hero.characterClass);
     if (hero.byte80 == 1)
     {
         // 0x57d02b..0x57d04a: fst conserva el resultado extendido para la comparación.
@@ -538,7 +537,7 @@ Core::Expected<void, std::string> UseTheHeroSkill(ActorState& hero, const HeroSk
     case ActionGate::Stops:
         return {};
     }
-    if (heroClass != WizardClass)
+    if (heroClass != CharacterClass::DarkWizard)
     {
         // 0x57d4be..0x57d51f: el blanco y, desde la celda lógica (la Y antes que la X), si se lo ve. La línea que sale
         // de TerrainWall (0x55886d lee fuera de los 65.536 WORD) MuRet la toma como sin línea (08, P-C256).

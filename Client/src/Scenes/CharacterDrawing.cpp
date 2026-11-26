@@ -10,6 +10,7 @@
 #include "Data/Models/ModelTextures.h"
 #include "Data/Textures/TextureSet.h"
 #include "GameLogic/CharacterAppearance.h"
+#include "Kernel/CharacterClass.h"
 #include "Maps/MapId.h"
 #include "Render/ModelBatch.h"
 #include "Render/ModelVertex.h"
@@ -114,12 +115,11 @@ constexpr Render::Color ShadowColor{0.0f, 0.0f, 0.0f, 1.0f};
 constexpr std::array<std::uint16_t, 2> PetsWithoutShadow{0x1c14, 0x1c15};
 
 // La clase 4 en el lazo de las partes de 0x50ba30: (+0x1d4 & 7) en 4.
-constexpr std::uint8_t MaskedClass = 4;
-constexpr std::uint8_t ClassMask = 7;
+constexpr Kernel::CharacterClass MaskedClass = Kernel::CharacterClass::DarkLord;
 
 bool IsMaskedClass(std::uint8_t characterClass)
 {
-    return (characterClass & ClassMask) == MaskedClass;
+    return Kernel::BaseClassOf(characterClass) == MaskedClass;
 }
 
 // El modelo con que 0x50ba30 dibuja la parte `part`: el casco de la clase 4, si tiene máscara, con

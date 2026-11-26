@@ -4,6 +4,7 @@
 #include "Crt/CrtRandom.h"
 #include "Tables/PlayerModels.h"
 #include "Data/Terrain/TerrainAttributes.h"
+#include "Kernel/CharacterClass.h"
 #include "Pathfinding/PathCell.h"
 #include "Pathfinding/PathFinder.h"
 #include "Maps/MapId.h"
@@ -63,8 +64,6 @@ constexpr float HalfCell = std::bit_cast<float>(std::uint32_t{0x42480000});     
 constexpr float CastReach = std::bit_cast<float>(std::uint32_t{0x42f00001});      // [0x6ba448], 120,0000076
 constexpr float WalkReach = std::bit_cast<float>(std::uint32_t{0x3f99999a});      // [0x6b8bb0], 1,2
 constexpr float CellReciprocal = std::bit_cast<float>(std::uint32_t{0x3c23d70a}); // [0x6b86c0], 0,01
-constexpr std::uint8_t ElfClass = 2;
-constexpr std::uint8_t ClassMask = 7;
 // 0x6c8ff0: el nombre con el que el héroe no manda el D7.
 constexpr std::string_view NoAttackName = "webzen";
 
@@ -453,7 +452,7 @@ Core::Expected<void, std::string> AttackOnArrival(ActorState& hero, const HeroAr
     if (distance > limit)
     {
         // 0x565349..0x5653b6: fuera de alcance sólo el elfo se acerca, con el camino hasta el alcance (0x566271).
-        if ((hero.characterClass & ClassMask) != ElfClass)
+        if (Kernel::BaseClassOf(hero.characterClass) != Kernel::CharacterClass::Elf)
             return {};
         return WalkIntoRange(hero, *cellX, *cellY, range, context);
     }

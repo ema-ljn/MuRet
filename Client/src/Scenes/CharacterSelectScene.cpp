@@ -75,6 +75,7 @@
 #include "Scenes/DynamicWorldLight.h"
 #include "Scenes/WorldMap.h"
 #include "Data/Terrain/TerrainLight.h"
+#include "Kernel/CharacterClass.h"
 #include "Scenes/GameParticles.h"
 #include "World/Particles.h"
 #include "World/PortableParticleTrigonometry.h"
@@ -410,7 +411,7 @@ bool CharacterSelectScene::PrepareTheCharacters()
                                                 .map = m_context.world->Runtime().map,
                                                 .scene = World::CullingScene::CharacterSelect,
                                                 .fixedHeight = CameraState().fixedHeight};
-    constexpr std::uint8_t DefaultPreviewClass = 1;
+    constexpr std::uint8_t DefaultPreviewClass = Kernel::ClassNumberOf(Kernel::CharacterClass::DarkKnight);
     constexpr std::uint16_t DefaultPreviewModel = FirstNewFaceModel + DefaultPreviewClass;
     auto first = ConstructActor(Preview(), DefaultPreviewModel, {}, construction, *m_context.cloth);
     if (!first.HasValue())

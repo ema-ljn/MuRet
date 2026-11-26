@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Core/PixelSize.h"
 #include "Crt/CrtRandom.h"
+#include "Kernel/CharacterClass.h"
 #include "Tables/MoveRequirements.h"
 #include "Models/LogicalAccess.h"
 #include "Render/SpriteBatch.h"
@@ -51,9 +52,8 @@ constexpr std::int32_t FirstRowText = 0x1b;
 constexpr std::uint8_t OutlawPk = 6;
 // 0x6b8c64: 2/3 del nivel para las clases 3 y 4 (+0xb del registro propio, & 7).
 constexpr float LevelFactor = 0.6666666865348816f;
-constexpr std::uint8_t ClassMask = 7;
-constexpr std::uint8_t FirstScaledClass = 3;
-constexpr std::uint8_t SecondScaledClass = 4;
+constexpr Kernel::CharacterClass FirstScaledClass = Kernel::CharacterClass::MagicGladiator;
+constexpr Kernel::CharacterClass SecondScaledClass = Kernel::CharacterClass::DarkLord;
 // Los colores de 0x6c8e5c.
 constexpr std::uint32_t TitleColor = 0xff1accffu;
 constexpr std::uint32_t ColumnColor = 0xffffb27fu;
@@ -122,7 +122,7 @@ MoveCheck CheckTheMove(WorldState& world, std::uint8_t& ownRecordDepth, Crt::Crt
         const OwnCharacterRecord& record = world.OwnCharacter();
         money = record.zen;
         level = record.level;
-        const auto characterClass = static_cast<std::uint8_t>(record.characterClass & ClassMask);
+        const Kernel::CharacterClass characterClass = Kernel::BaseClassOf(record.characterClass);
         // 0x448707..0x448715: FILD, FMUL con el float y ftol.
         if (characterClass == FirstScaledClass || characterClass == SecondScaledClass)
             check.level = static_cast<std::int32_t>(static_cast<double>(move.level) * static_cast<double>(LevelFactor));

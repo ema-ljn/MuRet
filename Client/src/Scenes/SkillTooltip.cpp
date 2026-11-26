@@ -1,6 +1,7 @@
 #include "Scenes/SkillTooltip.h"
 
 #include "Core/Expected.h"
+#include "Kernel/CharacterClass.h"
 #include "Tables/SkillTable.h"
 #include "Models/LogicalAccess.h"
 #include "Render/ScreenScale.h"
@@ -36,13 +37,8 @@ namespace Client::Scenes
 {
 namespace
 {
-// +0x1d4 del héroe & 7: la clase.
-constexpr std::uint8_t ClassBits = 7;
-constexpr std::uint32_t WizardClass = 0;
-constexpr std::uint32_t KnightClass = 1;
-constexpr std::uint32_t ElfClass = 2;
-constexpr std::uint32_t GladiatorClass = 3;
-constexpr std::uint32_t DarkLordClass = 4;
+using Kernel::BaseClassOf;
+using Kernel::CharacterClass;
 
 // 0x421c1a..0x421c3d: los lugares de los cuatro comandos del cuervo, con el Dark Lord.
 constexpr std::int32_t FirstCommand = 0x78;
@@ -157,7 +153,7 @@ struct SkillFrame
     const OwnCharacterRecord& own;
     const ActorState& hero;
     std::uint8_t skill = 0;
-    std::uint32_t heroClass = 0;
+    CharacterClass heroClass = CharacterClass::DarkWizard;
     std::int32_t siegeSkill = 0;
     std::uint32_t strength = 0;
     std::uint32_t agility = 0;
@@ -241,9 +237,9 @@ Core::Expected<void, std::string> DrawTheBoxAbove(GameHudContext& context, std::
 // dos "\n" y su ayuda, y la caja; devuelve 1. Solo escribe el color del renglón 1 y el color y la negrita del 0: los
 // otros quedan como estaban (Q-C720).
 Core::Expected<bool, std::string> DrawTheCommandTooltip(GameHudContext& context, std::int32_t x, std::int32_t y,
-                                                        std::int32_t slot, std::uint32_t heroClass)
+                                                        std::int32_t slot, CharacterClass heroClass)
 {
-    if (slot < FirstCommand || slot >= FirstCommand + CommandCount || heroClass != DarkLordClass)
+    if (slot < FirstCommand || slot >= FirstCommand + CommandCount || heroClass != CharacterClass::DarkLord)
         return false;
     const auto command = static_cast<std::size_t>(slot - FirstCommand);
     std::int32_t count = 0;
@@ -338,7 +334,7 @@ Core::Expected<void, std::string> WriteTheAbsorption(SkillFrame& frame)
 Core::Expected<void, std::string> WriteTheDamage(SkillFrame& frame)
 {
     TooltipWriter& lines = frame.lines;
-    if (frame.heroClass == WizardClass)
+    if (frame.heroClass == CharacterClass::DarkWizard)
     {
         if (frame.skill == AbsorbSkill)
             return WriteTheAbsorption(frame);
@@ -349,8 +345,8 @@ Core::Expected<void, std::string> WriteTheDamage(SkillFrame& frame)
         lines.Line(TooltipWhite, MagicDamageText, frame.magic.min, frame.magic.max);
         return Checked(lines);
     }
-    if (frame.heroClass != KnightClass && frame.heroClass != ElfClass && frame.heroClass != GladiatorClass &&
-        frame.heroClass != DarkLordClass)
+    if (frame.heroClass != CharacterClass::DarkKnight && frame.heroClass != CharacterClass::Elf &&
+        frame.heroClass != CharacterClass::MagicGladiator && frame.heroClass != CharacterClass::DarkLord)
         return {};
     if (frame.skill == PetSkill)
     {
@@ -380,13 +376,13 @@ Core::Expected<void, std::string> WriteTheStatDamage(SkillFrame& frame)
     const std::uint32_t vitality = frame.vitality;
     const std::uint32_t energy = frame.energy;
     std::int32_t damage = frame.damageMin;
-    if (frame.heroClass == KnightClass || frame.heroClass == GladiatorClass)
+    if (frame.heroClass == CharacterClass::DarkKnight || frame.heroClass == CharacterClass::MagicGladiator)
         damage = Wrapped(strength / 3 + agility / 5 + vitality / 5 + energy / 7 + added);
-    else if (frame.heroClass == WizardClass)
+    else if (frame.heroClass == CharacterClass::DarkWizard)
         damage = Wrapped(strength / 5 + agility / 5 + vitality / 7 + energy / 3 + added);
-    else if (frame.heroClass == ElfClass)
+    else if (frame.heroClass == CharacterClass::Elf)
         damage = Wrapped(strength / 5 + agility / 3 + vitality / 7 + energy / 5 + added);
-    else if (frame.heroClass == DarkLordClass)
+    else if (frame.heroClass == CharacterClass::DarkLord)
         damage = Wrapped(strength / 5 + agility / 5 + vitality / 7 + energy / 3 + frame.leadership / 3 + added);
     const std::int32_t maximum = Wrapped(static_cast<std::uint32_t>(damage) + StatDamageSpread);
     TooltipWriter& lines = frame.lines;
@@ -398,7 +394,7 @@ Core::Expected<void, std::string> WriteTheStatDamage(SkillFrame& frame)
 // 0x5b97ed..0x5b98d4: lo de la energía en las tres de la elfa.
 Core::Expected<void, std::string> WriteTheElfLines(SkillFrame& frame)
 {
-    if (frame.heroClass != ElfClass)
+    if (frame.heroClass != CharacterClass::Elf)
         return {};
     TooltipWriter& lines = frame.lines;
     const auto energy = static_cast<std::int32_t>(frame.energy);
@@ -441,7 +437,7 @@ bool IsComboSkill(std::uint8_t skill)
 // más y una skill del combo.
 Core::Expected<void, std::string> WriteTheKnightLines(SkillFrame& frame)
 {
-    if (frame.heroClass != KnightClass)
+    if (frame.heroClass != CharacterClass::DarkKnight)
         return {};
     TooltipWriter& lines = frame.lines;
     if (frame.skill == NotMountedSkill)
@@ -537,7 +533,7 @@ Core::Expected<void, std::string> WriteTheOrigin(SkillFrame& frame)
 Core::Expected<void, std::string> WriteTheTail(SkillFrame& frame)
 {
     TooltipWriter& lines = frame.lines;
-    if (frame.heroClass == DarkLordClass && frame.skill == PartySkill && frame.context.hud.partyCount <= 0)
+    if (frame.heroClass == CharacterClass::DarkLord && frame.skill == PartySkill && frame.context.hud.partyCount <= 0)
     {
         lines.At("0x5ba403");
         lines.Line(TooltipWhiteOnBlue, PartyText);
@@ -557,7 +553,7 @@ Core::Expected<void, std::string> WriteTheTail(SkillFrame& frame)
 
 // 0x5b91a1..0x5ba4d2, con el registro propio abierto: los daños, la entrada y los tramos.
 Core::Expected<void, std::string> WriteTheSkill(GameHudContext& context, TooltipWriter& lines, const ActorState& hero,
-                                                std::uint32_t heroClass, std::int32_t slot, std::int32_t siegeSkill)
+                                                CharacterClass heroClass, std::int32_t slot, std::int32_t siegeSkill)
 {
     WorldState& world = context.world;
     WorldRuntime& runtime = world.Runtime();
@@ -621,7 +617,7 @@ Core::Expected<void, std::string> DrawTheSkillTooltip(GameHudContext& context, s
 {
     WorldState& world = context.world;
     const ActorState& hero = world.Hero();
-    const std::uint32_t heroClass = hero.characterClass & ClassBits;
+    const CharacterClass heroClass = BaseClassOf(hero.characterClass);
     auto command = DrawTheCommandTooltip(context, x, y, slot, heroClass);
     if (!command.HasValue())
         return Core::Unexpected(command.Error());

@@ -4,6 +4,7 @@
 #include "Tables/GateTable.h"
 #include "GameLogic/GateCheckState.h"
 #include "GameLogic/GateDecision.h"
+#include "Kernel/CharacterClass.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -37,11 +38,8 @@ constexpr std::uint32_t TeleportCooldownMs = 3000;
 
 std::uint16_t RequiredLevel(const Tables::GateRecord& gate, std::uint8_t characterClass)
 {
-    constexpr std::uint8_t BaseClassMask = 7;
-    constexpr std::uint8_t MagicGladiatorClass = 3;
-    constexpr std::uint8_t DarkLordClass = 4;
-    const std::uint8_t baseClass = characterClass & BaseClassMask;
-    return baseClass == MagicGladiatorClass || baseClass == DarkLordClass
+    const Kernel::CharacterClass baseClass = Kernel::BaseClassOf(characterClass);
+    return baseClass == Kernel::CharacterClass::MagicGladiator || baseClass == Kernel::CharacterClass::DarkLord
                ? static_cast<std::uint16_t>(gate.level * 2 / 3)
                : gate.level;
 }

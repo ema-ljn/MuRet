@@ -24,6 +24,7 @@
 #include "UI/OldWindowDraw.h"
 #include "UI/OldWindowDrawParts.h"
 #include "Crt/SprintfFormat.h"
+#include "Kernel/CharacterClass.h"
 
 #include <array>
 #include <cstddef>
@@ -67,7 +68,7 @@ constexpr std::size_t NoticeTitleText = 1323;
 constexpr std::size_t MasterLeaveText = 188;
 constexpr std::size_t LeaveText = 189;
 // 0x650047..0x650098: la clase 4 (+0xb & 7) suma el liderazgo (+0x20) / 10 al nivel (+0xe) / 10, hasta 0x50.
-constexpr std::uint8_t LeadingClass = 4;
+constexpr Kernel::CharacterClass LeadingClass = Kernel::CharacterClass::DarkLord;
 constexpr std::int32_t LevelsPerMember = 10;
 constexpr std::int32_t MostMembers = 0x50;
 // 0x6502a1: la lista del aviso de 0x88 × 0x50.
@@ -407,7 +408,7 @@ std::int32_t MostMembersOf(GameHudContext& context)
     const Models::LogicalAccess own(context.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
     const OwnCharacterRecord& record = context.world.OwnCharacter();
     const std::int32_t levels = static_cast<std::int32_t>(record.level) / LevelsPerMember;
-    if ((record.characterClass & 7u) != LeadingClass)
+    if (Kernel::BaseClassOf(record.characterClass) != LeadingClass)
         return levels;
     const std::int32_t most = static_cast<std::int32_t>(record.leadership) / LevelsPerMember + levels;
     return most > MostMembers ? MostMembers : most;

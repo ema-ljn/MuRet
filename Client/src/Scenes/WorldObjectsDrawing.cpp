@@ -24,6 +24,7 @@
 #include "Core/Expected.h"
 #include "Core/IClock.h"
 #include "Crt/CrtRandom.h"
+#include "Kernel/CharacterClass.h"
 #include "Math/FloatConstants.h"
 #include "Render/ModelBatch.h"
 #include "Render/ModelBatchParticleBackend.h"
@@ -480,9 +481,8 @@ constexpr std::int16_t DeviasLeveledObject = 0x64;
 // 0x600d04..0x600d0e: los dos que llevan sombra en 11 a 17.
 constexpr std::int16_t BloodCastleShadowedFirst = 0x1c;
 constexpr std::int16_t BloodCastleShadowedSecond = 0x1d;
-constexpr std::uint8_t ClassMask = 7;
-constexpr std::uint8_t FirstLowLevelClass = 3;
-constexpr std::uint8_t SecondLowLevelClass = 4;
+constexpr Kernel::CharacterClass FirstLowLevelClass = Kernel::CharacterClass::MagicGladiator;
+constexpr Kernel::CharacterClass SecondLowLevelClass = Kernel::CharacterClass::DarkLord;
 constexpr int LowLevelThreshold = 0x35;
 constexpr int LevelThreshold = 0x50;
 
@@ -491,7 +491,7 @@ constexpr int LevelThreshold = 0x50;
 // En un dibujo intermedio de MuRet no hay frame del original y no se abre.
 bool OwnLevelAllows(const GameObjectPass& pass)
 {
-    const std::uint8_t heroClass = pass.heroClass & ClassMask;
+    const Kernel::CharacterClass heroClass = Kernel::BaseClassOf(pass.heroClass);
     const int threshold =
         heroClass == FirstLowLevelClass || heroClass == SecondLowLevelClass ? LowLevelThreshold : LevelThreshold;
     if (pass.originalFrame && pass.random != nullptr && pass.ownRecordDepth != nullptr)

@@ -6,6 +6,7 @@
 #include "Data/Terrain/TerrainGrid.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainMapping.h"
+#include "Kernel/CharacterClass.h"
 #include "Pathfinding/Path.h"
 #include "Pathfinding/PathCell.h"
 #include "Pathfinding/PathFinder.h"
@@ -376,9 +377,8 @@ bool InHalfOpenRange(std::int32_t value, std::int32_t first, std::int32_t end)
 // manda su celda lógica, la Y (+0x420) leída antes que la X (+0x41c): C1 05 DF X Y. Vacío, no manda.
 Core::Expected<void, std::string> SendTheElfCell(ActorState& hero, const HeroMovementContext& context)
 {
-    constexpr std::uint8_t ClassMask = 7;
-    constexpr std::uint8_t ElfClass = 2;
-    if (hero.movement == 0 || hero.movementType != 0 || (hero.characterClass & ClassMask) != ElfClass)
+    if (hero.movement == 0 || hero.movementType != 0 ||
+        Kernel::BaseClassOf(hero.characterClass) != Kernel::CharacterClass::Elf)
         return {};
     const auto [right, left] = OwnHands(context);
     const bool shoots = InHalfOpenRange(right, 0x808, 0x80f) || InHalfOpenRange(right, 0x810, 0xa00) ||

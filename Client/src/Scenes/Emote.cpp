@@ -1,6 +1,7 @@
 #include "Scenes/Emote.h"
 
 #include "Core/Expected.h"
+#include "Kernel/CharacterClass.h"
 #include "Models/Animation.h"
 #include "Models/IModelLibrary.h"
 #include "Scenes/ActionSend.h"
@@ -20,8 +21,6 @@ constexpr std::uint8_t FirstStandAction = 1;
 constexpr std::uint8_t LastStandAction = 0xc;
 constexpr std::uint8_t MarkedSpecialStand = 0x8a;
 // 0x576a9d..0x576abc: el elfo (+0x1d4 & 7 == 2) y las animaciones sin la del elfo, de 0xb7 a 0xc0 (CMP con signo).
-constexpr std::uint8_t ClassMask = 7;
-constexpr std::uint8_t ElfClass = 2;
 constexpr std::uint8_t FirstSharedAnimation = 0xb7;
 constexpr std::uint8_t LastSharedAnimation = 0xc0;
 
@@ -32,7 +31,7 @@ bool IsStanding(std::uint8_t action)
 
 std::uint8_t AnimationFor(const ActorState& actor, std::uint8_t animation)
 {
-    const bool elf = (actor.characterClass & ClassMask) == ElfClass;
+    const bool elf = Kernel::BaseClassOf(actor.characterClass) == Kernel::CharacterClass::Elf;
     const bool shared = animation >= FirstSharedAnimation && animation <= LastSharedAnimation;
     return elf && !shared ? static_cast<std::uint8_t>(animation + 1) : animation;
 }

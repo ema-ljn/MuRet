@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Kernel/CharacterClass.h"
 #include "Maps/MapId.h"
 #include "Models/LogicalAccess.h"
 #include "UI/Dialogs.h"
@@ -44,8 +45,6 @@ constexpr std::uint8_t BlockingQuestState = 1;
 // 0x6598d4..0x6598e4: los amigos y los comandos no se abren en Chaos Castle (18 a 23).
 using Maps::FirstChaosCastleMap;
 using Maps::LastChaosCastleMap;
-// 0x65c01d: el Dark Lord pide su mascota al abrir el inventario.
-constexpr std::uint8_t DarkLordClass = 4;
 // 0x65ca72..0x65ca88 y 0x65cc2c..0x65cc3a: los dos sonidos de abrir y cerrar.
 constexpr std::int32_t FirstPanelSound = 0x19;
 constexpr std::int32_t SecondPanelSound = 0x1c;
@@ -240,7 +239,7 @@ Core::Expected<bool, std::string> PanelRegistry::Open(PanelId id, std::uint32_t 
             // 0x65c020..0x65c033: 0x7d53708 en 1 y, con un Dark Lord, los pedidos del cuervo y del caballo.
             m_state.inventory = 1;
             // 0x65c039: arma el C1 A9 que pide la mascota; el plan pone el A9 en el hito 4 (CL9.2, 08 P-C195).
-            if (m_context.heroClass == DarkLordClass)
+            if (m_context.heroClass == Kernel::CharacterClass::DarkLord)
             {
                 if (!m_context.petRequests)
                     return Core::Unexpected(

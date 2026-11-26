@@ -36,6 +36,7 @@
 #include "UI/MessageArea.h"
 #include "UI/PanelRegistry.h"
 #include "Crt/SprintfFormat.h"
+#include "Kernel/CharacterClass.h"
 #include "Math/Ftol.h"
 #include "World/ItemState.h"
 
@@ -173,11 +174,6 @@ constexpr std::int32_t BlessDialogText = 0x749;
 constexpr std::int32_t BlessDialog = 0xa9;
 
 // 0x5bee04..0x5bf2a0, la prueba del equipo.
-constexpr std::uint8_t ElfClass = 2;
-constexpr std::uint8_t MagicGladiatorClass = 3;
-constexpr std::uint8_t DarkLordClass = 4;
-constexpr std::uint8_t DarkWizardClass = 0;
-constexpr std::uint8_t ClassMask = 7;
 constexpr std::uint8_t ClassUpperMask = 0xf8;
 constexpr std::int32_t FirstBow = 0x800;
 constexpr std::int32_t BowsEnd = 0xa00;
@@ -394,7 +390,7 @@ Core::Expected<std::int32_t, std::string> FindTheArrows(const InventoryMoveConte
     {
         const Models::LogicalAccess own(world.Runtime().ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
         const OwnCharacterRecord& record = world.OwnCharacter();
-        if ((record.characterClass & ClassMask) != ElfClass)
+        if (Kernel::BaseClassOf(record.characterClass) != Kernel::CharacterClass::Elf)
             return NoArrowCell;
         right = Signed(record.equipment[RightHandSlot].id);
         left = Signed(record.equipment[LeftHandSlot].id);
@@ -470,7 +466,8 @@ Core::Expected<void, std::string> UpdateTheArrows(const InventoryMoveContext& co
     bool equips = false;
     {
         const Models::LogicalAccess own(runtime.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
-        equips = (world.OwnCharacter().characterClass & ClassMask) == ElfClass && runtime.cursorItemCount == 0;
+        equips = Kernel::BaseClassOf(world.OwnCharacter().characterClass) == Kernel::CharacterClass::Elf &&
+                 runtime.cursorItemCount == 0;
     }
     if (!equips)
         return {};
@@ -729,7 +726,7 @@ Core::Expected<bool, std::string> FitsTheSlot(const InventoryMoveContext& contex
     const std::int32_t right = Signed(own.equipment[RightHandSlot].id);
     const std::int32_t left = Signed(own.equipment[LeftHandSlot].id);
     const std::int32_t type = Signed(cursor.id);
-    const auto heroClass = static_cast<std::uint8_t>(hero.characterClass & ClassMask);
+    const Kernel::CharacterClass heroClass = Kernel::BaseClassOf(hero.characterClass);
     const auto isBowOrCrossbow = [](std::int32_t hand)
     { return hand >= FirstBow && hand < BowsEnd && hand != Arrows && hand != Bolts; };
     bool ok = true;
@@ -738,11 +735,13 @@ Core::Expected<bool, std::string> FitsTheSlot(const InventoryMoveContext& contex
         ok = false;
     else
     {
-        ok = heroClass != DarkLordClass || std::to_integer<std::uint8_t>(record.Value()[ItemDarkLordOffset]) != 0;
+        ok = heroClass != Kernel::CharacterClass::DarkLord ||
+             std::to_integer<std::uint8_t>(record.Value()[ItemDarkLordOffset]) != 0;
         bool failed = (slot == LeftHandSlot && equipSlot != NoEquipSlot && equipSlot != LeftHandSlot) ||
                       (slot == SecondRingSlot && equipSlot != FirstRingSlot && equipSlot != SecondRingSlot);
-        if (!failed && (heroClass == DarkLordClass || heroClass == DarkWizardClass) && slot != RightHandSlot &&
-            equipSlot == NoEquipSlot)
+        if (!failed &&
+            (heroClass == Kernel::CharacterClass::DarkLord || heroClass == Kernel::CharacterClass::DarkWizard) &&
+            slot != RightHandSlot && equipSlot == NoEquipSlot)
             failed = true;
         if (failed)
             ok = false;
@@ -751,10 +750,10 @@ Core::Expected<bool, std::string> FitsTheSlot(const InventoryMoveContext& contex
             ok = false;
             skipToTheRequirements = true;
         }
-        else if (heroClass == ElfClass && slot != RightHandSlot && equipSlot == NoEquipSlot &&
+        else if (heroClass == Kernel::CharacterClass::Elf && slot != RightHandSlot && equipSlot == NoEquipSlot &&
                  (type < FirstBow || type > BowsEnd))
             ok = false;
-        else if (cursor.id != Arrows && cursor.id != Bolts && heroClass != MagicGladiatorClass &&
+        else if (cursor.id != Arrows && cursor.id != Bolts && heroClass != Kernel::CharacterClass::MagicGladiator &&
                  (slot == RightHandSlot || slot == LeftHandSlot))
         {
             if (isBowOrCrossbow(right))
@@ -911,8 +910,11 @@ Core::Expected<bool, std::string> CheckTheEntryTicket(const InventoryMoveContext
     constexpr std::int32_t FirstEventMap = 24;
     constexpr std::int32_t LastEventMap = 29;
     constexpr std::int32_t FinalEventMap = 36;
-    const std::uint8_t heroClass = world.Hero().characterClass & ClassMask;
-    const std::size_t offset = heroClass == 3 || heroClass == 4 ? SpecialClassOffset : 0;
+    const Kernel::CharacterClass heroClass = Kernel::BaseClassOf(world.Hero().characterClass);
+    const std::size_t offset =
+        heroClass == Kernel::CharacterClass::MagicGladiator || heroClass == Kernel::CharacterClass::DarkLord
+            ? SpecialClassOffset
+            : 0;
     const std::int32_t level = world.OwnCharacter().level;
     if (level < TicketLowerLevels[offset + LevelOf(runtime.cursorItem)] ||
         InRange(runtime.map, FirstEventMap, LastEventMap) || runtime.map == FinalEventMap)
@@ -1507,9 +1509,10 @@ Core::Expected<void, std::string> DropOnTheEquipment(const InventoryMoveContext&
     if (!record.HasValue())
         return Core::Unexpected(record.Error());
     const ActorState& hero = HeroOf(world);
-    const auto heroClass = static_cast<std::uint8_t>(hero.characterClass & ClassMask);
+    const Kernel::CharacterClass heroClass = Kernel::BaseClassOf(hero.characterClass);
     if (std::to_integer<std::uint8_t>(record.Value()[ItemEquipSlotOffset]) == PetSlot && cursor.id == HornOfDoom &&
-        heroClass != MagicGladiatorClass && heroClass != DarkLordClass && (hero.characterClass & ClassUpperMask) == 0)
+        heroClass != Kernel::CharacterClass::MagicGladiator && heroClass != Kernel::CharacterClass::DarkLord &&
+        (hero.characterClass & ClassUpperMask) == 0)
     {
         if (auto warned = Message(context.services, FenrirText, UI::ErrorMessage, "0x5bf279"); !warned.HasValue())
             return warned;

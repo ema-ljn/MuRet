@@ -6,6 +6,7 @@
 #include "Core/IClock.h"
 #include "Data/Models/Model.h"
 #include "GameLogic/CharacterAppearance.h"
+#include "Kernel/CharacterClass.h"
 #include "Models/ObjectState.h"
 #include "Models/Pose.h"
 #include "Models/Skeleton.h"
@@ -44,7 +45,7 @@ constexpr float LogoLightAfterTheFade = 1.5f;
 constexpr float TerrainLightShare = 0.1f;
 
 // 0x517270 en la escena 2.
-constexpr std::uint8_t LoginClass = 4;
+constexpr std::uint8_t LoginClass = Kernel::ClassNumberOf(Kernel::CharacterClass::DarkLord);
 constexpr std::uint8_t PartLevel = 7;
 constexpr std::uint8_t WeaponLevel = 13;
 constexpr std::array<std::uint16_t, GameLogic::BodyPartCount> SetParts{0x102e, 0x122e, 0x142e, 0x162e, 0x182e};

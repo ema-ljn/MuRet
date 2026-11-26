@@ -503,6 +503,17 @@ TEST_F(GridItemUseTest, TheFourthFruitIsForTheFourthClassAndTheDialogReceivesIts
     dialog(0, 1, "( cielo )");
 }
 
+// 0x5c8245: the fruit compares the whole class byte (+0xb), not its `& 7`: the fourth class with a bit above its three
+// low bits is not the fourth class.
+TEST_F(GridItemUseTest, TheFourthFruitComparesTheWholeClassByte)
+{
+    world.OwnCharacter().level = 200;
+    world.OwnCharacter().characterClass = 4 | 8;
+    Put(Fruit, 0, 7, 4u << 3);
+    ASSERT_TRUE(RightClick(0, 7).HasValue());
+    EXPECT_EQ(Client::UI::DialogRow(world.Runtime().dialogBox, 0), "solo una clase");
+}
+
 // 0x5c8448..0x5c8473: el 0x1a0b de nivel 0 se usa; el de nivel 1 no con el héroe maestro del gremio (+0x368 en 0x80);
 // el de nivel 2, nunca. El uso es el de la grilla: dos rand(), sin el registro propio.
 TEST_F(GridItemUseTest, The1a0bOfLevelZeroOrOneIsUsed)

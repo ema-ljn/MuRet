@@ -1,5 +1,6 @@
 #include "Scenes/PartyActors.h"
 
+#include "Kernel/CharacterClass.h"
 #include "Math/X87.h"
 #include "Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
@@ -41,9 +42,6 @@ constexpr double HoverLeft = 3.0;
 constexpr double HoverRight = 50.0;
 // 0x5e444b..0x5e4462: las skills que eligen desde la lista.
 constexpr std::array<std::uint8_t, 5> ListSkills{0x1a, 0x1b, 0x1c, 0x0f, 0x10};
-// 0x5e417f: el Dark Wizard (0) y el Elf (2).
-constexpr std::uint8_t DarkWizard = 0;
-constexpr std::uint8_t Elf = 2;
 // 0x6c8e30.
 constexpr std::size_t ChosenTarget = 2;
 
@@ -141,7 +139,7 @@ bool PickFromThePartyList(const FramePickingContext& context, UI::PanelRegistry&
     WorldRuntime& runtime = world.Runtime();
     const std::int32_t width = panels.WorldWidth();
     const ActorState& hero = world.Hero();
-    const auto heroClass = static_cast<std::uint8_t>(hero.characterClass & 7u);
+    const Kernel::CharacterClass heroClass = Kernel::BaseClassOf(hero.characterClass);
     const float left = F32(static_cast<double>(width) - ListFromTheRight);
     const auto mouseX = static_cast<double>(context.mouse.x);
     const auto mouseY = static_cast<double>(context.mouse.y);
@@ -157,7 +155,8 @@ bool PickFromThePartyList(const FramePickingContext& context, UI::PanelRegistry&
             slot.actorIndex = NotSearched;
             continue;
         }
-        if (heroClass == Elf || heroClass == DarkWizard)
+        // 0x5e417f: the Dark Wizard and the Elf.
+        if (heroClass == Kernel::CharacterClass::Elf || heroClass == Kernel::CharacterClass::DarkWizard)
         {
             std::uint8_t skill = 0;
             {

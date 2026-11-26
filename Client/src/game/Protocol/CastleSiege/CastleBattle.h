@@ -3,7 +3,6 @@
 #include "Core/Expected.h"
 #include "Network/Packet.h"
 #include "Network/ProtocolError.h"
-#include "Protocol/Opcodes.h"
 
 #include <array>
 #include <cstddef>
@@ -21,17 +20,6 @@
 // reads and did not arrive is TooShort; extra bytes are ignored.
 namespace Client::Protocol::CastleSiege
 {
-inline constexpr std::array<Network::Subcode, 4> BattleSubcodes{
-    CastleInfo::NpcLevelSubcode, CastleInfo::OwnerMarkSubcode, CastleInfo::HuntZoneInfoSubcode,
-    CastleInfo::HuntZoneEntrySubcode};
-inline constexpr std::array<Network::Subcode, 3> WeaponSubcodes{Network::Subcode{0}, Network::Subcode{1},
-                                                                Network::Subcode{2}};
-// The B2 20, in the B2's table 0x4e6140 (CastleSiege.h).
-inline constexpr std::array<Network::Subcode, 12> CastleSubcodes{
-    Network::Subcode{0x11}, Network::Subcode{0x12}, Network::Subcode{0x13}, Network::Subcode{0x14},
-    Network::Subcode{0x15}, Network::Subcode{0x16}, Network::Subcode{0x17}, Network::Subcode{0x18},
-    Network::Subcode{0x19}, Network::Subcode{0x1d}, Network::Subcode{0x1e}, Castle::SwitchHolderSubcode};
-
 // 0x4e55c5..0x4e5776: the battle's cases of the B2 table 0x4e6140.
 struct GateOpen
 {

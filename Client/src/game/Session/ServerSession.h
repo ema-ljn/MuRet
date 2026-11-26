@@ -18,6 +18,7 @@
 #include "Protocol/Session/MapServerMove.h"
 #include "Protocol/Session/ServerList.h"
 #include "Session/Dispatcher.h"
+#include "Session/OpcodeTable.h"
 #include "Protocol/Items/FloorItems.h"
 #include "Protocol/Items/Inventory.h"
 #include "Protocol/Movement/Movement.h"
@@ -404,16 +405,42 @@ public:
     [[nodiscard]] std::optional<std::uint8_t> DeleteResult() const;
 
 private:
-    void RegisterConnectServerHandlers();
-    void RegisterGameServerHandlers();
-    [[nodiscard]] bool RegisterCastleSiegeHandlers();
-    [[nodiscard]] bool RegisterGuildHandlers();
-    // El comercio, la party y el duelo (CL9 hito 7), aparte para que cada ola sume los suyos sin tocar la cadena.
-    void RegisterSocialHandlers();
+    // The rows name the handlers below.
+    friend std::span<const Session::OpcodeRow> Session::GameServerOpcodes();
+    friend std::span<const Session::OpcodeRow> Session::ConnectServerOpcodes();
+
+    // Each row with a handler, and its copy to the ring before it.
+    void RegisterTheRows(Protocol::Dispatcher& dispatcher, std::span<const Session::OpcodeRow> rows);
     // Un paquete de mundo que se lee con `read` y se aplica tal cual; `what` es lo que dice el aviso si no se lee.
     template <typename Read> void ApplyWorldPacket(const Network::Packet& packet, Read read, std::string_view what);
+    // The trade, the party, the duel (CL9 hito 7) and the personal shops (3F).
     void OnTradeRequest(const Network::Packet& packet);
-    [[nodiscard]] bool RegisterCastleBattleHandlers();
+    void OnTradeResponse(const Network::Packet& packet);
+    void OnTradeItemRemoved(const Network::Packet& packet);
+    void OnTradeItemAdded(const Network::Packet& packet);
+    void OnTradeMoney(const Network::Packet& packet);
+    void OnTradeOtherMoney(const Network::Packet& packet);
+    void OnTradeOkButton(const Network::Packet& packet);
+    void OnTradeResult(const Network::Packet& packet);
+    void OnPartyRequest(const Network::Packet& packet);
+    void OnPartyRequestResult(const Network::Packet& packet);
+    void OnPartyList(const Network::Packet& packet);
+    void OnPartyLeave(const Network::Packet& packet);
+    void OnPartyLife(const Network::Packet& packet);
+    void OnDuelStart(const Network::Packet& packet);
+    void OnDuelEnd(const Network::Packet& packet);
+    void OnDuelRequest(const Network::Packet& packet);
+    void OnDuelScore(const Network::Packet& packet);
+    void OnShopTitles(const Network::Packet& packet);
+    void OnPriceResult(const Network::Packet& packet);
+    void OnShopCreated(const Network::Packet& packet);
+    void OnShopClosed(const Network::Packet& packet);
+    void OnShopItemList(const Network::Packet& packet);
+    void OnShopPurchase(const Network::Packet& packet);
+    void OnShopNotice(const Network::Packet& packet);
+    void OnShopTitle(const Network::Packet& packet);
+    void OnShopOwnerLeft(const Network::Packet& packet);
+    void OnShopRefresh(const Network::Packet& packet);
 
     // Los eventos de la conexión, en orden, hasta que un handler cambie o cierre la conexión.
     void HandleEvents();
@@ -426,7 +453,7 @@ private:
     void OnConnectHello(const Network::Packet& packet);
     void OnServerList(const Network::Packet& packet);
     void OnServerAddress(const Network::Packet& packet);
-    void OnServerBusy();
+    void OnServerBusy(const Network::Packet& packet);
 
     void OnGameHello(const Network::Packet& packet);
     void OnLoginResult(const Network::Packet& packet);
@@ -457,8 +484,7 @@ private:
     void OnTeleport(const Network::Packet& packet);
     void OnRegen(const Network::Packet& packet);
     void OnChat(const Network::Packet& packet);
-    // CL9 hito 11, los eventos (04 § Los eventos): los registra juntos y los lee con Protocol::Events::ReadEventPacket.
-    [[nodiscard]] bool RegisterTheEventPackets();
+    // CL9 hito 11, los eventos (04 § Los eventos): los lee con Protocol::Events::ReadEventPacket.
     void OnEventPacket(const Network::Packet& packet);
     void OnKeyChat(const Network::Packet& packet);
     void OnWhisper(const Network::Packet& packet);
@@ -494,7 +520,6 @@ private:
     // CL9 hito 8: los 18 paquetes del gremio, de la alianza y de la guerra (Protocol::Guild::ReadGuildPacket).
     void OnGuild(const Network::Packet& packet);
     // CL9 hito 4: las skills (04 § Las skills).
-    void RegisterSkillHandlers();
     void OnMagicAttack(const Network::Packet& packet);
     void OnDurationMagic(const Network::Packet& packet);
     void OnMagicCancel(const Network::Packet& packet);

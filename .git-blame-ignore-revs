@@ -5,3 +5,39 @@
 
 # refactor(AR1.2): move the engine to Client/src/engine (#466)
 9b1c810fc68e4a4845c83f30d87a1caef7ac5ce5
+
+# refactor(AR1.2): name the namespaces of Crt, Crypto and Diagnostics after their folders (#471)
+a0819faae8617e4f686dea2383abeb8336a0e902
+
+# refactor(AR1.2): name engine/Math's namespace after its folder (#472)
+7866af7cbab37e09c92e60ea4650e540793c91c4
+
+# refactor(AR1.2): name engine/Models' namespace after its folder (#473)
+d7f08a585b3916542d4dbfd41f268798b5b687fa
+
+# refactor(AR1.2): name the namespaces of Network and Pathfinding after their folders (#474)
+797284e1235e1f03743ca349801a7d11284fa090
+
+# refactor(AR1.2): name the namespaces of Platform and Render/Frame after their folders (#475)
+eab7bc0fdc9f9f90daa2f437011527e3607de749
+
+# refactor(AR1.2): name the namespaces of the game's Maps, Sound and Tables after their folders (#476)
+c8c0a6aa92eb5b3ff9ae8e50bf32e6b3d7b76418
+
+# docs(AR1.2): trim and translate the comments of engine/Data and its tests (#478)
+44dde1e2d6e73ae5a343c03463dd22d4e956e2b4
+
+# docs(AR1.2): trim and translate the comments of engine/Render and its tests (#479)
+3152ea55f3085e8f8f6f55bfb64663c69b661677
+
+# docs(AR1.2): trim and translate the comments of engine/Models and engine/Math and their tests (#480)
+be1f7372821cc9c3f3a5cf49236b9eebdf360345
+
+# docs(AR1.2): trim and translate the comments of engine/Network, Crypto, Crt and Pathfinding and their tests (#481)
+f6a1b98af1a183a6380bfdb6807bc9a339e82c98
+
+# docs(AR1.2): trim and translate the comments of engine/Platform, Diagnostics, Core, Input and Audio and their tests (#482)
+4e200f0adac578d626be6422ed872a033b3352bf
+
+# docs(AR1.2): trim and translate the comments of game/Tables, Sound and Maps and their tests (#483)
+bec0485b493a0d7bb39c95372c2367a4f7ad5e98

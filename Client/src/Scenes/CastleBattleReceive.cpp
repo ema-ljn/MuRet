@@ -26,7 +26,7 @@ namespace Client::Scenes
 {
 namespace
 {
-namespace Battle = Protocol::CastleBattle;
+namespace Battle = Protocol::CastleSiege;
 
 // B9 01, 0x4e0750: también en el registro 400 cuando la clave no está.
 void ApplyNpcLevel(const Battle::NpcLevel& level, WorldState& world)
@@ -106,7 +106,7 @@ void ForgetTheSwitchHolder(WorldRuntime& runtime, std::uint16_t key)
     }
 }
 
-Core::Expected<void, std::string> ApplyCastleBattlePacket(const Protocol::CastleBattle::CastleBattlePacket& packet,
+Core::Expected<void, std::string> ApplyCastleBattlePacket(const Protocol::CastleSiege::CastleBattlePacket& packet,
                                                           const CastleReceiveContext& context)
 {
     return std::visit(

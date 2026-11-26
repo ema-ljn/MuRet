@@ -420,7 +420,7 @@ TEST_F(SelectionPipelineTest, RecreatingAndDeletingBeforeAStepSurvivesTheRealLog
     const glm::vec3 constructed = m_state.Slots()[0].position;
 
     m_online.session.ChooseCharacter(std::uint8_t{0});
-    m_online.session.DeleteCharacter(Client::Protocol::Character::DeleteCodeFromText("1234"));
+    m_online.session.DeleteCharacter(Client::Protocol::FrontEnd::DeleteCodeFromText("1234"));
     m_online.socket.reads = {Client::Tests::Bytes({0xc1, 0x05, 0xf3, 0x02, 0x01})};
     m_manager->Poll();
     ASSERT_EQ(m_online.session.State(), SessionState::ChoosingCharacter);

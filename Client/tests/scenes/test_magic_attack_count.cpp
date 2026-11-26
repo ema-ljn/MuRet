@@ -195,7 +195,7 @@ protected:
                                                             .models = m_models,
                                                             .log = m_log};
         return Client::Scenes::ApplyMagicAttackCount(
-            Client::Protocol::Viewport::MagicAttackCount{.key = caster, .magic = Magic, .targets = std::move(targets)},
+            Client::Protocol::Actors::MagicAttackCount{.key = caster, .magic = Magic, .targets = std::move(targets)},
             PlayerKey, resources);
     }
 

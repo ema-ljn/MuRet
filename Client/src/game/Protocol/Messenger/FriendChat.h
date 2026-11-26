@@ -17,7 +17,7 @@
 // a 0x4dd1b0..0x4dd540) y lo que manda la ventana del chat (la entrada, 0x493530; el mensaje, 0x4944c0; la salida,
 // 0x493a70). La reconstrucción del GameServer 0.97 no tiene nada de esto: el oráculo es el ASM del cliente
 // (*estático*). Los handlers del servidor del chat leen el paquete por su lugar desde pkt[0], sea C1 o C2.
-namespace Client::Protocol::FriendChat
+namespace Client::Protocol::Messenger
 {
 // Los del servidor del chat.
 inline constexpr Network::Opcode RoomJoinOpcode{0x00};
@@ -129,4 +129,4 @@ void FlipChatText(std::vector<std::byte>& bytes);
 [[nodiscard]] Outgoing WriteLeave();
 // 0x4a6550, cada 15 s (el timer 1002 de 0x48e470): C1 03 05, que sale como está.
 [[nodiscard]] Outgoing WritePing();
-} // namespace Client::Protocol::FriendChat
+} // namespace Client::Protocol::Messenger

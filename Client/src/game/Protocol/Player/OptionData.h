@@ -14,7 +14,7 @@
 // distintos → WrongPacket; sin los 0x13 bytes → TooShort. Los bytes sobrantes se ignoran.
 //
 // La vuelta (CL8 hito 6): 0x61c210 guarda las opciones con un C1 1C F3 30 de 24 bytes, que el GS no contesta.
-namespace Client::Protocol::OptionData
+namespace Client::Protocol::Player
 {
 inline constexpr std::size_t SkillKeyCount = 10;
 inline constexpr std::size_t QuickSlotCount = 3;
@@ -41,4 +41,4 @@ using OptionBody = std::array<std::uint8_t, OptionBodySize>;
 // 0x61c210: C1 1C F3 30 y `body`, con el XOR32 desde el byte 3 y en claro: lo manda con send (Ordinal_19) sin pasar
 // por el cifrado del C3.
 [[nodiscard]] Outgoing WriteOptionData(const OptionBody& body);
-} // namespace Client::Protocol::OptionData
+} // namespace Client::Protocol::Player

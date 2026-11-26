@@ -73,7 +73,7 @@ void PutAppearance(ActorState& actor, const GameLogic::CharacterAppearance& appe
 }
 
 Core::Expected<void, std::string> EquipSelectionActor(WorldState& world, ActorState& actor,
-                                                      const Protocol::Character::CharacterEntry& entry,
+                                                      const Protocol::FrontEnd::CharacterEntry& entry,
                                                       Models::ClothWorld& cloth,
                                                       const ActorConstructionContext& construction)
 {
@@ -110,7 +110,7 @@ Core::Expected<void, std::string> EquipSelectionActor(WorldState& world, ActorSt
 } // namespace
 
 Core::Expected<void, std::string> ConstructSelectionActor(WorldState& world,
-                                                          const Protocol::Character::CharacterEntry& entry,
+                                                          const Protocol::FrontEnd::CharacterEntry& entry,
                                                           const ActorConstructionContext& construction,
                                                           Models::ClothWorld& cloth, const Models::Skeleton& skeleton)
 {
@@ -131,7 +131,7 @@ Core::Expected<void, std::string> ConstructSelectionActor(WorldState& world,
     actor.light = glm::vec3(CharacterOwnLight);
     actor.flags78 = 0;
     actor.flags7c = 0;
-    const auto characterClass = Protocol::Character::CharacterClassOf(entry.classByte);
+    const auto characterClass = Protocol::FrontEnd::CharacterClassOf(entry.classByte);
     PutAppearance(actor, GameLogic::ClassAppearance(characterClass, 0));
     // 0x51736f, antes de 0x5139f0: las partes de la clase base, aun para una segunda clase.
     constexpr std::uint8_t ClassMask = 7;

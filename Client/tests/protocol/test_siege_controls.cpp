@@ -13,7 +13,7 @@
 
 namespace
 {
-namespace Controls = Client::Protocol::SiegeControls;
+namespace Controls = Client::Protocol::CastleSiege;
 using Client::Network::Xor32Decode;
 using Client::Tests::Bytes;
 using Client::Tests::SameBytes;

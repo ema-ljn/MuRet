@@ -209,7 +209,7 @@ Core::Expected<bool, std::string> CloseTheTrainer(WorldState& world, const Inven
     UI::DelegatedPanels& delegated = world.Runtime().panels.delegated;
     delegated.field724584 = 0;
     delegated.trainer = 0;
-    if (auto sent = Send(send, Protocol::Connection::WriteWindowClose(), "0x449ad1: el C1 03 31"); !sent.HasValue())
+    if (auto sent = Send(send, Protocol::Session::WriteWindowClose(), "0x449ad1: el C1 03 31"); !sent.HasValue())
         return Core::Unexpected(std::move(sent).Error());
     return true;
 }
@@ -388,9 +388,9 @@ Core::Expected<void, std::string> StepThePetRecovery(const GameUiContext& contex
         return {};
     // 0x44ba9d..0x44c627: C1 05 34 <lugar> <el byte bajo del precio> en C3 (Q-C948).
     context.random.Discard(C3SendRandoms);
-    if (auto sent = Send(context.sendNpcWindow,
-                         Protocol::NpcWindows::WriteRepair(pet.slot, static_cast<std::uint8_t>(price & 0xffu)),
-                         "0x44c3c4: el C1 05 34 del entrenador");
+    if (auto sent =
+            Send(context.sendNpcWindow, Protocol::Npc::WriteRepair(pet.slot, static_cast<std::uint8_t>(price & 0xffu)),
+                 "0x44c3c4: el C1 05 34 del entrenador");
         !sent.HasValue())
         return sent;
     // 0x44c62e: 0x4499b0, sin mirar si cerró. 0x44c633: 0x421d90.
@@ -415,7 +415,7 @@ Core::Expected<void, std::string> StepTheTrainerBox(const GameUiContext& context
         {
             // 0x44d0c7..0x44d363 y 0x44d379..0x44d608: el C1 04 86 armado de a un byte con el XOR32, en claro.
             if (auto sent = Send(context.sendNpcWindow,
-                                 Protocol::NpcWindows::WriteChaosMix(kind == HorseMix ? HorseMixKind : RavenMixKind),
+                                 Protocol::Npc::WriteChaosMix(kind == HorseMix ? HorseMixKind : RavenMixKind),
                                  "0x44d29c: el C1 04 86 del entrenador");
                 !sent.HasValue())
                 return sent;

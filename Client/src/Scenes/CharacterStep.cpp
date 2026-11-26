@@ -963,9 +963,9 @@ Core::Expected<void, std::string> StepTheRaven(ActorState& actor, std::size_t sl
     // 0x416fc8 y 0x4175de: el A7 que corta el ataque, por send(); sin la sesión, no sale.
     if (stepped.stopsTheAttack && context.send)
     {
-        context.send(Protocol::Pet::WritePetCommand({.pet = Protocol::Pet::RavenPet,
-                                                     .command = Protocol::Pet::StopTheAttackCommand,
-                                                     .key = Protocol::Pet::NoTargetKey}));
+        context.send(Protocol::Pets::WritePetCommand({.pet = Protocol::Pets::RavenPet,
+                                                      .command = Protocol::Pets::StopTheAttackCommand,
+                                                      .key = Protocol::Pets::NoTargetKey}));
     }
     // 0x417e67: 0x41ed10(0x1d1) (CL10).
     if (stepped.shouts && context.soundRequest)

@@ -23,10 +23,10 @@ constexpr Network::XorRemap::XorRemapTables LabXorRemapTables()
         // encode_outbound, 0x341540
         .clearRemaps = {{{Network::ByteOf(Protocol::WalkOpcode), 0xA3},
                          {Network::ByteOf(Protocol::AttackOpcode), 0xA4}}},
-        .serverOpcode = Protocol::Connection::ServerListOpcode,
-        .labServerListSub = Protocol::Connection::ServerListRequestSubcode,
-        .serverListSub = Protocol::Connection::ServerListSubcode,
-        .serverSelectSub = Protocol::Connection::ServerSelectSubcode,
+        .serverOpcode = Protocol::Session::ServerListOpcode,
+        .labServerListSub = Protocol::Session::ServerListRequestSubcode,
+        .serverListSub = Protocol::Session::ServerListSubcode,
+        .serverSelectSub = Protocol::Session::ServerSelectSubcode,
         .characterOpcode = Protocol::CharacterOpcode,
         .skillListSub = Protocol::Character::SkillListSubcode,
         // parse_f4_02's deltas by (code + 1) / 11, 0x34129C

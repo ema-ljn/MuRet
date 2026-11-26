@@ -87,7 +87,7 @@ std::vector<std::byte> AddressReply(std::uint16_t port)
 std::vector<std::byte> GameHello()
 {
     std::vector<std::byte> bytes = Bytes({0xC1, 0x0C, 0xF1, 0x00, 0x01, 0x00, PlayerIndex});
-    const std::span<const std::byte> version = BytesOf(Protocol::ClientVersion);
+    const std::span<const std::byte> version = BytesOf(Protocol::Session::ClientVersion);
     bytes.insert(bytes.end(), version.begin(), version.end());
     return bytes;
 }

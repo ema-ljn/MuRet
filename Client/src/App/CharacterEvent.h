@@ -10,12 +10,12 @@ namespace Client::App
 {
 struct CharacterListReceived
 {
-    Protocol::Character::CharacterList list;
+    Protocol::FrontEnd::CharacterList list;
 };
 
 struct CharacterCreated
 {
-    Protocol::Character::CharacterEntry entry;
+    Protocol::FrontEnd::CharacterEntry entry;
 };
 
 struct CharacterDeleted

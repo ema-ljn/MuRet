@@ -10,7 +10,7 @@
 
 #include <gtest/gtest.h>
 
-// Client::Protocol::Pet, las órdenes del cuervo que llegan (A7 y A8, CL9 hito 4) y el A7 que sale, con claves
+// Client::Protocol::Pets, las órdenes del cuervo que llegan (A7 y A8, CL9 hito 4) y el A7 que sale, con claves
 // inventadas.
 namespace
 {
@@ -18,7 +18,7 @@ using Client::Network::ProtocolError;
 using Client::Tests::Bytes;
 using Client::Tests::ErrorOf;
 using Client::Tests::PacketOf;
-namespace Pet = Client::Protocol::Pet;
+namespace Pet = Client::Protocol::Pets;
 
 // 0x4e4c0a: la orden en pkt[4] y la clave en pkt[5..6], sin mirar pkt[3].
 TEST(PetOrdersTest, TheOrderReadsAfterTheUnreadByte)

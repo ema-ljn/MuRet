@@ -25,7 +25,7 @@ using Client::Tests::Bytes;
 using Client::Tests::ErrorOf;
 using Client::Tests::PacketOf;
 using Client::Tests::SameBytes;
-namespace NpcWindows = Client::Protocol::NpcWindows;
+namespace NpcWindows = Client::Protocol::Npc;
 
 // Un ítem inventado: el byte 0, el nivel y las opciones, la durabilidad, los dos de opciones, el grupo y el último.
 constexpr NpcWindows::ItemData InventedItem{std::byte{0x03}, std::byte{0x18}, std::byte{0x20}, std::byte{0x00},

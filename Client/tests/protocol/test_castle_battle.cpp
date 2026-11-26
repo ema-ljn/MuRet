@@ -20,7 +20,7 @@
 // inventados.
 namespace
 {
-namespace Battle = Client::Protocol::CastleBattle;
+namespace Battle = Client::Protocol::CastleSiege;
 using Client::Network::ProtocolError;
 using Client::Tests::Bytes;
 using Client::Tests::ErrorOf;

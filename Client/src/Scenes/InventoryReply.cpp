@@ -31,7 +31,7 @@ void ClearForInventoryReply(const WorldEntryResources& resources)
     world.Inventory().ClearForInventoryReply();
 }
 
-Core::Expected<InventoryReplyResult, std::string> ApplyInventory(const Protocol::Character::InventoryList& list,
+Core::Expected<InventoryReplyResult, std::string> ApplyInventory(const Protocol::Items::InventoryList& list,
                                                                  const WorldEntryResources& resources)
 {
     ClearForInventoryReply(resources);
@@ -42,7 +42,7 @@ Core::Expected<InventoryReplyResult, std::string> ApplyInventory(const Protocol:
     InventoryReplyResult result;
     for (std::size_t index = 0; index < list.items.size(); ++index)
     {
-        const Protocol::Character::InventoryEntry& entry = list.items[index];
+        const Protocol::Items::InventoryEntry& entry = list.items[index];
         const auto placed = PlaceInventoryItem(entry.slot, entry.item, resources);
         if (!placed.HasValue())
         {

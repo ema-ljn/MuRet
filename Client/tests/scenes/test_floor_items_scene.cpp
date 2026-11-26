@@ -78,9 +78,9 @@ namespace
 using Client::Core::Expected;
 using Client::Crt::CrtRandom;
 using Client::Network::Xor32Decode;
-using Client::Protocol::FloorItems::FloorItemEntry;
-using Client::Protocol::FloorItems::FloorItemsCreate;
-using Client::Protocol::Inventory::ItemData;
+using Client::Protocol::Items::FloorItemEntry;
+using Client::Protocol::Items::FloorItemsCreate;
+using Client::Protocol::Items::ItemData;
 using Client::Scenes::FloorItemState;
 using Client::Scenes::WorldEntryResources;
 using Client::Scenes::WorldState;
@@ -406,7 +406,7 @@ TEST(FloorItemsSceneTest, TheDeleteTurnsOffEachKey)
 {
     auto stage = StageIn(0);
     ASSERT_TRUE(Scenes::ApplyFloorItemsCreate(ThreeItems(), stage->Resources()).HasValue());
-    Scenes::ApplyFloorItemsDelete(Client::Protocol::FloorItems::FloorItemsDelete{.keys = {5, 1500}}, stage->world);
+    Scenes::ApplyFloorItemsDelete(Client::Protocol::Items::FloorItemsDelete{.keys = {5, 1500}}, stage->world);
     EXPECT_FALSE(stage->Item(5).alive);
     EXPECT_FALSE(stage->Item(0).alive);
     EXPECT_TRUE(stage->Item(7).alive);
@@ -488,7 +488,7 @@ TEST(FloorItemsSceneTest, ArrivingPicksUpTheChosenItemByteByByte)
         ASSERT_TRUE(Scenes::PickUpTheFloorItem(stage->Moves(), {1100.0f, 2100.0f, 0.0f}, 1200.0f).HasValue());
         EXPECT_EQ(stage->cloth.random.State(), expected.State());
         ASSERT_EQ(sent.size(), 1u);
-        const auto packet = Client::Protocol::FloorItems::WritePickUp(sent.front());
+        const auto packet = Client::Protocol::Items::WritePickUp(sent.front());
         EXPECT_TRUE(SameBytes(Xor32Decode(packet.packet).Bytes(), Bytes({0xc1, 0x05, 0x22, 0x00, 0x07})));
         EXPECT_EQ(runtime.floor.pendingPickUp, 7);
         EXPECT_EQ(runtime.movement.mouseUpdateTimeMax, 6);

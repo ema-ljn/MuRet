@@ -15,7 +15,7 @@
 // al cliente a otro (0x4e5056 → 0x412b30) y el B1 01 con que el cliente se presenta en el nuevo cuando saluda
 // (0x4c1e20 → 0x412bb0). El GameServer 0.97 del laboratorio no tiene ninguno de los dos: cada byte sale del ASM del
 // cliente, *estático*.
-namespace Client::Protocol::Connection
+namespace Client::Protocol::Session
 {
 // 0x4e5073..0x4e5080: los 0x24 bytes desde pkt+4 que 0x412aa0 copia a +0x18 del objeto de 0x6eed7c: el host en
 // +0x18 (pkt+4), el puerto en +0x28 (pkt+0x14) y los cuatro dwords de +0x2c..+0x3b (pkt+0x18..0x27) que 0x412bb0
@@ -58,4 +58,4 @@ struct MapServerAuth
 // XOR32 y para cifrar como C3. FieldTooLong con una cuenta de más de 10 bytes: el strcpy del original pisaría lo que
 // sigue en su pila (la del login no pasa de 10).
 [[nodiscard]] Core::Expected<Outgoing, Network::ProtocolError> WriteMapServerAuth(const MapServerAuth& auth);
-} // namespace Client::Protocol::Connection
+} // namespace Client::Protocol::Session

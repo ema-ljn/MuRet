@@ -351,7 +351,7 @@ Core::Expected<void, std::string> PressTheEscapeMenuButton(const GameUiContext& 
             return saved;
         if (ChaosBoxOpen(context))
             return SayTheChaosBoxIsOpen(context, "0x624093");
-        return RequestTheLogout(context, Protocol::Connection::LogoutQuitsTheGame, "0x62411c");
+        return RequestTheLogout(context, Protocol::Session::LogoutQuitsTheGame, "0x62411c");
     }
     case AnotherServerButton:
     {
@@ -364,7 +364,7 @@ Core::Expected<void, std::string> PressTheEscapeMenuButton(const GameUiContext& 
             if (auto said = SayTheChaosBoxIsOpen(context, "0x624844"); !said.HasValue())
                 return said;
         }
-        else if (auto logout = RequestTheLogout(context, Protocol::Connection::LogoutReturnsToServerList, "0x624851");
+        else if (auto logout = RequestTheLogout(context, Protocol::Session::LogoutReturnsToServerList, "0x624851");
                  !logout.HasValue())
             return logout;
         return SaveTheOptions(context, "0x624ed5");
@@ -378,7 +378,7 @@ Core::Expected<void, std::string> PressTheEscapeMenuButton(const GameUiContext& 
             return saved;
         if (ChaosBoxOpen(context))
             return SayTheChaosBoxIsOpen(context, "0x624f45");
-        return RequestTheLogout(context, Protocol::Connection::LogoutReturnsToSelection, "0x624f4a");
+        return RequestTheLogout(context, Protocol::Session::LogoutReturnsToSelection, "0x624f4a");
     }
     case OptionsButton:
         // 0x625538: con un diálogo abierto (el menú), las opciones esperan y 0x6240a1 las abre; sin ninguno, se abren
@@ -656,12 +656,12 @@ Core::Expected<void, std::string> OfferTheTypedMoney(const GameUiContext& contex
     {
         trade.ownOk = 0;
         context.random.Discard(C3Randoms);
-        requests.Value()->SendGamePacket(Protocol::Trade::WriteTradeOkButton(0));
+        requests.Value()->SendGamePacket(Protocol::Social::WriteTradeOkButton(0));
     }
     if (static_cast<std::int32_t>(trade.ownMoney) > 0)
         trade.okWait = TradeOkWait;
     trade.sentMoney = typed;
-    requests.Value()->SendGamePacket(Protocol::Trade::WriteTradeMoney(typed));
+    requests.Value()->SendGamePacket(Protocol::Social::WriteTradeMoney(typed));
     UI::PushDialog(runtime.dialogs, 0);
     return {};
 }
@@ -778,11 +778,11 @@ std::array<std::int32_t, 2> StepTheWarningButtons(const GameUiContext& context, 
 Core::Expected<void, std::string> UseTheDialogItem(const GameUiContext& context, const InventoryUse& use)
 {
     InventoryServices services = context.inventory != nullptr ? *context.inventory : InventoryServices{};
-    services.sendUseItem = [&context, where = use.where](const Protocol::FloorItems::UseItem& item)
+    services.sendUseItem = [&context, where = use.where](const Protocol::Items::UseItem& item)
     {
         if (!context.sendNpcWindow)
             return Core::Expected<void, std::string>(Core::Unexpected(std::format("{}: el 26 sin la sesión", where)));
-        return context.sendNpcWindow(Protocol::FloorItems::WriteUseItem(item));
+        return context.sendNpcWindow(Protocol::Items::WriteUseItem(item));
     };
     GamePanels panels(context.world, context.random, GamePanelTables{.texts = context.texts});
     const auto used =
@@ -816,8 +816,8 @@ Core::Expected<void, std::string> AnswerTheChaosCastle(const GameUiContext& cont
         return {};
     const auto level = static_cast<std::uint8_t>((item >> ItemLevelShift) & ItemLevelMask);
     const auto slot = static_cast<std::uint8_t>(runtime.slot78a6758 & 0xff);
-    if (auto sent = SendTheAnswer(context, Protocol::DialogAnswers::WriteChaosCastleEntry(level, slot),
-                                  "0x6289b9: el C1 06 AF 01");
+    if (auto sent =
+            SendTheAnswer(context, Protocol::Npc::WriteChaosCastleEntry(level, slot), "0x6289b9: el C1 06 AF 01");
         !sent.HasValue())
         return sent;
     CloseTheDialog(runtime);
@@ -848,7 +848,7 @@ Core::Expected<void, std::string> AnswerTheNotice(const GameUiContext& context, 
     WorldRuntime& runtime = context.world.Runtime();
     if (entry == 0)
     {
-        if (auto sent = SendTheAnswer(context, Protocol::DialogAnswers::WriteNoticeYes(), "0x62a65a: el C1 04 D0 00");
+        if (auto sent = SendTheAnswer(context, Protocol::Npc::WriteNoticeYes(), "0x62a65a: el C1 04 D0 00");
             !sent.HasValue())
             return sent;
     }
@@ -957,7 +957,7 @@ Core::Expected<void, std::string> Answer(const GameUiContext& context, std::int3
         requests.Value()->SendGamePacket(Protocol::Party::WritePartyRequestResult(accepted, key));
         return {};
     }
-    requests.Value()->SendGamePacket(Protocol::Trade::WriteTradeResponse(accepted));
+    requests.Value()->SendGamePacket(Protocol::Social::WriteTradeResponse(accepted));
     return {};
 }
 
@@ -1022,11 +1022,11 @@ Core::Expected<void, std::string> SendTheWarehouseConfirmation(const GameUiConte
     const auto password = static_cast<std::uint16_t>(static_cast<std::uint32_t>(AtoiLikeTheCrt(std::string_view(
                                                          reinterpret_cast<const char*>(typed.data()), typed.size()))) &
                                                      0xffff);
-    Protocol::NpcWindows::WarehouseNumber number{};
+    Protocol::Npc::WarehouseNumber number{};
     for (std::size_t index = 0; index < number.size(); ++index)
         number[index] = static_cast<std::byte>(runtime.chat.input.messageBuffer[index]);
     context.random.Discard(C3Randoms);
-    requests.Value()->SendGamePacket(Protocol::NpcWindows::WriteWarehousePassword(1, password, number));
+    requests.Value()->SendGamePacket(Protocol::Npc::WriteWarehousePassword(1, password, number));
     ClearTheTypedNumber(context.world.Runtime().chat.input);
     return {};
 }
@@ -1162,14 +1162,14 @@ Core::Expected<void, std::string> StepTheOpenDialog(const GameUiContext& context
     return Core::Unexpected(std::format("{}: el diálogo {:#x} es de la {}", route.address, id, route.wave));
 }
 
-Core::Expected<Protocol::OptionData::OptionBody, std::string> OptionBodyOf(WorldState& world, Crt::CrtRandom& random,
-                                                                           std::optional<std::uint8_t> chosenSlot)
+Core::Expected<Protocol::Player::OptionBody, std::string> OptionBodyOf(WorldState& world, Crt::CrtRandom& random,
+                                                                       std::optional<std::uint8_t> chosenSlot)
 {
     WorldRuntime& runtime = world.Runtime();
     if (!chosenSlot || *chosenSlot >= OwnSkillKeyPlaces)
         return Core::Unexpected(std::string("0x61c2c6: sin elegido (0x6d5edc), el F3 30 lee fuera de las teclas de "
                                             "las skills (+0x16c del registro propio)"));
-    Protocol::OptionData::OptionBody body{};
+    Protocol::Player::OptionBody body{};
     {
         const Models::LogicalAccess own(runtime.ownRecordDepth, random, Models::OwnRecordCloseRandoms);
         const OwnCharacterRecord& record = world.OwnCharacter();

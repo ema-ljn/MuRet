@@ -14,7 +14,7 @@
 // Crear un personaje: el pedido (F3 01, C->S) y su respuesta (F3 01, S->C).
 // Contrato: Client/docs/research/04-protocolo.md, "La selección de personaje (F3)", y el plan de la
 // CL6 (CL6.5, "Contrato").
-namespace Client::Protocol::Character
+namespace Client::Protocol::FrontEnd
 {
 // C1 0F F3 01, los 10 bytes del nombre y un byte con la clase de la vista previa por 16 más su piel,
 // con el XOR32 y en claro (0x63d990). El nombre va hasta su primer cero y con ceros hasta 10
@@ -44,4 +44,4 @@ struct CharacterCreateResult
 // algo: 0x4c2290 no mira el largo y leería fuera.
 [[nodiscard]] Core::Expected<CharacterCreateResult, Network::ProtocolError>
 ReadCharacterCreateResult(const Network::Packet& packet);
-} // namespace Client::Protocol::Character
+} // namespace Client::Protocol::FrontEnd

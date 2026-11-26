@@ -36,7 +36,7 @@ using Client::Network::LinkState;
 using Client::Network::Packet;
 using Client::Network::PacketSerials;
 using Client::Network::XorRemap::XorRemapObfuscation;
-using Client::Protocol::Connection::WriteServerSelect;
+using Client::Protocol::Session::WriteServerSelect;
 using Client::Tests::AsTheGameServerReceives;
 using Client::Tests::Bytes;
 using Client::Tests::FromTheGameServer;

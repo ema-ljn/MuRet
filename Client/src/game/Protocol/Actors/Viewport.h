@@ -15,7 +15,7 @@
 // (0x4c8380) y el 0xDF (0x4c6b40), como los lee el dispatcher 0x4e2b10, sin guardas de escena ni del flag de cifrado.
 // Contrato: Client/docs/research/04-protocolo.md, "Los otros jugadores en el viewport". Los layouts son los del ASM
 // del 1.02 (*estático*); el GS 0.97 arma otros (08, P-C160).
-namespace Client::Protocol::Viewport
+namespace Client::Protocol::Actors
 {
 // 0x4c926c y 0x4c9773: lo que avanza cada registro del 0x12 y del 0x45.
 inline constexpr std::size_t PlayerRecordSize = 0x2c;
@@ -37,11 +37,11 @@ struct PlayerRecord
     // +4: el nibble de abajo es el estado (1 a 4) y los de arriba la clase, ((b & 0x10) | (b >> 4)) >> 1 (0x4c89f3).
     std::uint8_t classAndState = 0;
     // +5..+0x15: el equipo que lee 0x5139f0 (el de la lista de personajes).
-    std::array<std::byte, Character::EquipmentSize> equipment{};
+    std::array<std::byte, FrontEnd::EquipmentSize> equipment{};
     // +0x18, little-endian: las banderas de 0x4e6380 y 0x42ab40.
     std::uint32_t effects = 0;
     // +0x1c..+0x25: el nombre, sin terminador si lo llena.
-    std::array<std::byte, Character::NameSize> name{};
+    std::array<std::byte, FrontEnd::NameSize> name{};
     // +0x26 y +0x27: adónde va (0x4eac00).
     std::uint8_t targetX = 0;
     std::uint8_t targetY = 0;
@@ -76,7 +76,7 @@ struct TransformedRecord
     // +8, little-endian.
     std::uint32_t effects = 0;
     // +0xc..+0x15.
-    std::array<std::byte, Character::NameSize> name{};
+    std::array<std::byte, FrontEnd::NameSize> name{};
     // +0x16 y +0x17.
     std::uint8_t targetX = 0;
     std::uint8_t targetY = 0;
@@ -96,7 +96,7 @@ struct Transformed
 struct EquipmentShown
 {
     std::uint16_t key = 0;
-    std::array<std::byte, Character::InventoryItemDataSize> item{};
+    std::array<std::byte, Items::InventoryItemDataSize> item{};
 };
 
 // El C1 0xDF: la clave en pkt[3..4], entera, y la celda en pkt[5] y pkt[6].
@@ -155,7 +155,7 @@ struct SummonRecord
     // +0xc: la dirección arriba y el PK abajo.
     std::uint8_t directionAndPk = 0;
     // +0xd..+0x16: el nombre del dueño, sin terminador si lo llena.
-    std::array<std::byte, Character::NameSize> owner{};
+    std::array<std::byte, FrontEnd::NameSize> owner{};
 };
 
 struct Summons
@@ -175,7 +175,7 @@ struct ObjectRecord
     std::uint8_t x = 0; // +5
     std::uint8_t y = 0; // +6
     // +7..+0x17, los 17 bytes del equipo (0x5139f0).
-    std::array<std::byte, Character::EquipmentSize> equipment{};
+    std::array<std::byte, FrontEnd::EquipmentSize> equipment{};
     std::uint32_t effects = 0; // +0x18..+0x1b
 };
 
@@ -206,4 +206,4 @@ struct MagicAttackCount
 // TooShort sin la cuenta o sin el último byte de la última clave (pkt[8 + 2 · cuenta]).
 [[nodiscard]] Core::Expected<MagicAttackCount, Network::ProtocolError>
 ReadMagicAttackCount(const Network::Packet& packet);
-} // namespace Client::Protocol::Viewport
+} // namespace Client::Protocol::Actors

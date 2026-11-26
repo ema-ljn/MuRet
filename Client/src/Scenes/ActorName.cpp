@@ -13,7 +13,7 @@ namespace Client::Scenes
 {
 bool ActorNameContains(const ActorState& actor, std::string_view word)
 {
-    std::array<char, Protocol::Character::NameSize + 1> name{};
+    std::array<char, Protocol::FrontEnd::NameSize + 1> name{};
     for (std::size_t index = 0; index < actor.name.size(); ++index)
         name[index] = static_cast<char>(actor.name[index]);
     name[actor.name.size()] = static_cast<char>(actor.byte1e3);

@@ -9,8 +9,8 @@
 // Client::Protocol::BuildConstants: la versión y el serial del build c32bbd5f.
 namespace
 {
-using Client::Protocol::ClientVersion;
-using Client::Protocol::VersionSize;
+using Client::Protocol::Session::ClientVersion;
+using Client::Protocol::Session::VersionSize;
 
 // 0x6c8284 guarda la versión con cada byte más su índice más 1, y 0x4c1e20 compara el byte i del
 // saludo con el guardado menos i menos 1: 0x32 - 0 - 1 es '1', 0x32 - 1 - 1 es '0', y así.

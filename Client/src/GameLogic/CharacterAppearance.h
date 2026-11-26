@@ -40,7 +40,7 @@ struct WornItem
 
 struct CharacterAppearance
 {
-    // La clase en los bits 0 a 2 y la segunda clase en el 3 (Protocol::Character::CharacterClassOf).
+    // La clase en los bits 0 a 2 y la segunda clase en el 3 (Protocol::FrontEnd::CharacterClassOf).
     std::uint8_t characterClass = 0;
     // El tercer argumento de 0x517270: 0 desde la lista (0x4c20a0).
     std::uint8_t skin = 0;
@@ -55,7 +55,7 @@ struct CharacterAppearance
     float scale = 0.9f;
 };
 
-using Equipment = std::span<const std::byte, Protocol::Character::EquipmentSize>;
+using Equipment = std::span<const std::byte, Protocol::FrontEnd::EquipmentSize>;
 
 // El modelo de `part` de la clase: HelmClass a BootClass (0x2212, 0x221a, 0x2222, 0x222a y 0x2232)
 // más (clase >> 3) · 5 + (clase & 7).

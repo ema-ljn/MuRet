@@ -15,7 +15,7 @@
 // orden 20, 16, 15, 14, 13, 11, 19, 18, 17, 10, 9, ..., 0 y 12.
 namespace
 {
-using Client::Protocol::Connection::ServerEntry;
+using Client::Protocol::Session::ServerEntry;
 using Client::UI::GroupNameText;
 using Client::UI::GroupOf;
 using Client::UI::GroupServers;

@@ -20,7 +20,7 @@
 #include <string_view>
 #include <vector>
 
-// Client::Protocol::Connection, el keepalive 0E: el ajuste de las velocidades y los cinco fixtures
+// Client::Protocol::Session, el keepalive 0E: el ajuste de las velocidades y los cinco fixtures
 // de mu-client.
 namespace
 {
@@ -30,10 +30,10 @@ using Client::Network::Packet;
 using Client::Network::PacketSerials;
 using Client::Network::Xor32Decode;
 using Client::Protocol::Outgoing;
-using Client::Protocol::Connection::KeepaliveAdjust20;
-using Client::Protocol::Connection::KeepaliveAdjust25;
-using Client::Protocol::Connection::KeepaliveSpeed;
-using Client::Protocol::Connection::WriteKeepalive;
+using Client::Protocol::Session::KeepaliveAdjust20;
+using Client::Protocol::Session::KeepaliveAdjust25;
+using Client::Protocol::Session::KeepaliveSpeed;
+using Client::Protocol::Session::WriteKeepalive;
 using Client::Tests::Adjust25WrapTick;
 using Client::Tests::Bytes;
 using Client::Tests::FixtureTick;

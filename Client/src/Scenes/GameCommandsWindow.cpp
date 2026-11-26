@@ -436,9 +436,9 @@ Core::Expected<void, std::string> CommandADuel(const GameUiContext& context, con
         .world = context.world, .random = context.random, .texts = *chat.texts, .send = chat.send};
     const std::uint8_t active = runtime.social.duel.active;
     if (active == 0)
-        return SendInC3(requests, Protocol::Duel::WriteDuelStart(target.key, target.name), "0x4079b3");
+        return SendInC3(requests, Protocol::Social::WriteDuelStart(target.key, target.name), "0x4079b3");
     if (active == 1 && IsTheDuelRival(context.world, index))
-        return SendInC3(requests, Protocol::Duel::WriteDuelEnd(), "0x408141");
+        return SendInC3(requests, Protocol::Social::WriteDuelEnd(), "0x408141");
     return Refuse(chat, runtime.panels.delegated.commandsWindow, UI::DuelBusyText, UI::ErrorMessage, "0x4085b1");
 }
 

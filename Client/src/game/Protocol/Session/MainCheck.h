@@ -16,7 +16,7 @@
 // tres segundos no llega la respuesta, cierra la conexión (gObjSecondProc, `CheckSumTime`).
 // Contrato: Client/docs/research/04-protocolo.md, "La suma del ejecutable (03)", y Q-C319 en
 // 07-quirks-y-bugs.md. Estático, ASM c32bbd5f.
-namespace Client::Protocol::Connection
+namespace Client::Protocol::Session
 {
 // La clave: C1 06 03, un byte de relleno y la clave (u16 little-endian) en pkt[4..5], que 0x4e16c0
 // lee sin mirar el tamaño (0x4e1843..0x4e1846). WrongPacket si no es un C1 03, y TooShort si no
@@ -44,4 +44,4 @@ namespace Client::Protocol::Connection
 // La respuesta, 0x4e16c0: C1 08 03, el byte 0 que alinea la suma y la suma (u32 little-endian), con
 // el XOR32 y para cifrar (sale como C3, 0x4e1ad6).
 [[nodiscard]] Outgoing WriteMainCheckReply(std::uint32_t sum);
-} // namespace Client::Protocol::Connection
+} // namespace Client::Protocol::Session

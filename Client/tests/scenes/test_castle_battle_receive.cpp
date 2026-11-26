@@ -42,7 +42,7 @@
 // del rand() se compara para ver que ninguno saca.
 namespace
 {
-namespace Battle = Client::Protocol::CastleBattle;
+namespace Battle = Client::Protocol::CastleSiege;
 using Client::Crt::CrtRandom;
 using Client::Scenes::CastleReceiveContext;
 using Client::Scenes::WorldState;
@@ -317,11 +317,11 @@ TEST_P(CastleBattleReceiveTest, AViewportLeaveClearsTheReceivedHolderUsingTheFul
 {
     Apply(Holder(0x013d, 0x10));
     Apply(Holder(0x0002, 0x60));
-    Client::Scenes::ApplyViewportLeave(Client::Protocol::Viewport::Leave{.keys = {0x813d}}, *m_world);
+    Client::Scenes::ApplyViewportLeave(Client::Protocol::Actors::Leave{.keys = {0x813d}}, *m_world);
     auto& holders = *m_world->Runtime().castleSiegeInfo;
     EXPECT_EQ(holders[6], 0x16);
     EXPECT_EQ(holders[0x1b + 6], 0);
-    Client::Scenes::ApplyViewportLeave(Client::Protocol::Viewport::Leave{.keys = {0x013d}}, *m_world);
+    Client::Scenes::ApplyViewportLeave(Client::Protocol::Actors::Leave{.keys = {0x013d}}, *m_world);
     EXPECT_EQ(holders[6], 0);
     ExpectNoRandom();
 }

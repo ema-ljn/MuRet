@@ -11,7 +11,7 @@
 // 04 § Las misiones y los NPC (CL9 hito 2): los 9F y A0..A3 que llegan, y el A0, el A2 y el 30 que salen. Los
 // handlers del original (0x4ddaa0, 0x4ddad0, 0x4ddb00, 0x4ddb40 y 0x4ddb80, desde 0x4e2b10) leen del buffer sin mirar
 // el largo; acá un paquete corto es TooShort y la sesión lo ignora con un aviso, como los demás.
-namespace Client::Protocol::Quest
+namespace Client::Protocol::Quests
 {
 // C1 05 9F índice valor (0x4e4b3a → 0x4ddaa0): con índice de 0 a 3, el valor va a +6 + índice de [0x710148].
 struct QuestFlag
@@ -70,4 +70,4 @@ struct QuestResult
 [[nodiscard]] Outgoing WriteSetQuest(std::uint8_t quest, std::uint8_t state);
 // 0x567c2d..: C1 05 30 claveH claveL (+0x1f4 del NPC, el byte alto con SAR), con el XOR32 y entrega C3.
 [[nodiscard]] Outgoing WriteTalk(std::int16_t key);
-} // namespace Client::Protocol::Quest
+} // namespace Client::Protocol::Quests

@@ -14,7 +14,7 @@
 // Los ítems del piso, levantar, tirar y usar (CL9 hito 5; 04 § Los ítems del piso): el 20 y el
 // 21 (C2), el 22, el 23 y el 2C que llegan, y los C1 22, 23 y 26 que salen con el XOR32 y en C3. Los largos son los
 // que lee el cliente, que es el oráculo: el GameServer 0.97 manda ítems de 5 bytes y un 2C de un byte (07 Q-C1240).
-namespace Client::Protocol::FloorItems
+namespace Client::Protocol::Items
 {
 inline constexpr Network::Opcode UseItemOpcode = LifeOpcode;
 // 0x4d0cc0: pkt[3] en 0xff no levanta nada, en 0xfe es el zen y en 0xfd un ítem que no va a la grilla.
@@ -31,7 +31,7 @@ struct FloorItemEntry
     std::uint16_t key = 0;
     std::uint8_t x = 0;
     std::uint8_t y = 0;
-    Inventory::ItemData item{};
+    Items::ItemData item{};
 };
 
 // El 20, C2 (0x4d0ba0): la cuenta en pkt[4] y las entradas.
@@ -58,7 +58,7 @@ struct PickUpResult
 {
     std::uint8_t result = 0;
     std::uint32_t zen = 0;
-    Inventory::ItemData item{};
+    Items::ItemData item{};
 };
 
 [[nodiscard]] Core::Expected<PickUpResult, Network::ProtocolError> ReadPickUpResult(const Network::Packet& packet);
@@ -142,4 +142,4 @@ struct UseItem
 };
 
 [[nodiscard]] Outgoing WriteUseItem(const UseItem& use);
-} // namespace Client::Protocol::FloorItems
+} // namespace Client::Protocol::Items

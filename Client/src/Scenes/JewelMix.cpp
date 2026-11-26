@@ -174,7 +174,7 @@ Core::Expected<void, std::string> CloseTheJewelMix(WorldState& world, const Jewe
     WorldRuntime& runtime = world.Runtime();
     ResetTheJewelMix(runtime.npcWindows);
     UI::PushDialog(runtime.dialogs, 0);
-    return Send(send, Protocol::Connection::WriteWindowClose(), "0x402f91: el C1 03 31");
+    return Send(send, Protocol::Session::WriteWindowClose(), "0x402f91: el C1 03 31");
 }
 
 Core::Expected<void, std::string> CloseTheJewelMix(const GameUiContext& context)
@@ -290,12 +290,12 @@ Core::Expected<void, std::string> SendTheJewelMix(const GameUiContext& context)
     {
         // 0x40276b..0x402794: el paquete con signo / 10, hacia el cero, menos 1, en un byte.
         const auto bundle = static_cast<std::uint8_t>(static_cast<std::int8_t>(jewels.count) / JewelsPerBundle - 1);
-        return Send(context, Protocol::JewelMix::WriteJewelMix(jewels.kind, bundle), "0x402500: el BC 00");
+        return Send(context, Protocol::ChaosMix::WriteJewelMix(jewels.kind, bundle), "0x402500: el BC 00");
     }
     // 0x401f4e..0x401f5a: la casilla queda como lugar en el global.
     jewels.cell += InventorySlotBase;
     return Send(context,
-                Protocol::JewelMix::WriteJewelUnmix(jewels.kind, static_cast<std::uint8_t>(jewels.level),
+                Protocol::ChaosMix::WriteJewelUnmix(jewels.kind, static_cast<std::uint8_t>(jewels.level),
                                                     static_cast<std::uint8_t>(jewels.cell)),
                 "0x401f30: el BC 01");
 }

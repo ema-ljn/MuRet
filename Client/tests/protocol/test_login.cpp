@@ -26,7 +26,7 @@
 #include <utility>
 #include <vector>
 
-// Client::Protocol::Connection, el login: el pedido F1 01 contra los fixtures de mu-client, su
+// Client::Protocol::Session, el login: el pedido F1 01 contra los fixtures de mu-client, su
 // respuesta y el aviso F1 03. Solo con las credenciales sintéticas de mu-client.
 namespace
 {
@@ -36,16 +36,16 @@ using Client::Network::Packet;
 using Client::Network::PacketSerials;
 using Client::Network::ProtocolError;
 using Client::Network::Xor32Decode;
-using Client::Protocol::ClientSerial;
-using Client::Protocol::ClientVersion;
 using Client::Protocol::Outgoing;
-using Client::Protocol::Connection::CredentialSize;
-using Client::Protocol::Connection::LoginAccepted;
-using Client::Protocol::Connection::LoginRequest;
-using Client::Protocol::Connection::ReadLoginResult;
-using Client::Protocol::Connection::WriteClearWorldEntryReport;
-using Client::Protocol::Connection::WriteDecryptErrorReport;
-using Client::Protocol::Connection::WriteLoginRequest;
+using Client::Protocol::Session::ClientSerial;
+using Client::Protocol::Session::ClientVersion;
+using Client::Protocol::Session::CredentialSize;
+using Client::Protocol::Session::LoginAccepted;
+using Client::Protocol::Session::LoginRequest;
+using Client::Protocol::Session::ReadLoginResult;
+using Client::Protocol::Session::WriteClearWorldEntryReport;
+using Client::Protocol::Session::WriteDecryptErrorReport;
+using Client::Protocol::Session::WriteLoginRequest;
 using Client::Tests::Bytes;
 using Client::Tests::BytesOf;
 using Client::Tests::ErrorOf;

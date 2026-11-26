@@ -374,7 +374,7 @@ std::optional<ServerClick> ServerListWindow::Step(const Input::InputState& input
         {
             continue;
         }
-        const Protocol::Connection::ServerEntry& server = group->servers[i];
+        const Protocol::Session::ServerEntry& server = group->servers[i];
         if (server.load < BusyLoad)
         {
             Close();
@@ -510,7 +510,7 @@ void ServerListWindow::Select(std::size_t index)
     m_serverButtons.clear();
     const std::optional<std::string_view> name = TextAt(m_texts, GroupNameText(group.group));
     const bool single = group.servers.size() <= 1;
-    for (const Protocol::Connection::ServerEntry& server : group.servers)
+    for (const Protocol::Session::ServerEntry& server : group.servers)
     {
         Button button(ServerButtonSlot, ServerButtonWidth, ButtonHeight);
         const int number = ServerNumber(server.code);

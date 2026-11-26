@@ -7,7 +7,7 @@
 #include <cstdint>
 #include <string>
 
-namespace Client::Protocol::Pet
+namespace Client::Protocol::Pets
 {
 struct PetInfoReply;
 }
@@ -53,6 +53,6 @@ void ApplyRavenInfo(DarkSpirit& raven, std::uint8_t level, std::uint32_t experie
 // escribir la tabla (la ventana cerrada sin ítem en el cartel, o con el entrenador), solo el acceso de 0x4221d0. Corta
 // con la dirección del original: los joints del cuervo con 0xfe y 0xff (0x418390 y 0x418400, CL11) y lo que corta
 // 0x550d10.
-[[nodiscard]] Core::Expected<void, std::string> ApplyPetInfo(const Protocol::Pet::PetInfoReply& reply,
+[[nodiscard]] Core::Expected<void, std::string> ApplyPetInfo(const Protocol::Pets::PetInfoReply& reply,
                                                              const WorldEntryResources& resources);
 } // namespace Client::Scenes

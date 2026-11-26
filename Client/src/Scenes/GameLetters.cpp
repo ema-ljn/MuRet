@@ -207,7 +207,7 @@ void RefreshTheTab(UI::OldWindowManager& manager)
 // anota, no sale nada y el lugar queda tomado (Q-C1005). En MuRet conecta sin esperar: la sala se anota al empezar,
 // el C1 10 00 espera en la cola y, si el connect falla, ApplyChatRoomClosed la olvida.
 Core::Expected<void, std::string> JoinTheRoom(const ChatReceiveContext& context, UI::OldWindow& chat,
-                                              const Protocol::FriendChat::RoomAnswer& answer)
+                                              const Protocol::Messenger::RoomAnswer& answer)
 {
     UI::OldWindowManager& manager = context.world.Runtime().oldWindows;
     chat.chat.room = answer.room;
@@ -217,7 +217,7 @@ Core::Expected<void, std::string> JoinTheRoom(const ChatReceiveContext& context,
         return Core::Unexpected(std::string("0x49de50: la conexión de la sala del chat con un amigo, sin la sesión"));
     context.rooms->OpenChatRoom(answer.room, chat.base.id, answer.address);
     manager.chatRooms.rooms.try_emplace(answer.room, UI::ChatRoom{.room = answer.room, .window = chat.base.id});
-    context.rooms->SendToChatRoom(answer.room, Protocol::FriendChat::WriteJoin(answer.room, answer.ticket));
+    context.rooms->SendToChatRoom(answer.room, Protocol::Messenger::WriteJoin(answer.room, answer.ticket));
     return {};
 }
 
@@ -231,7 +231,7 @@ UI::OldWindow* ChatOf(UI::OldWindowManager& manager, std::int32_t id)
 }
 } // namespace
 
-Core::Expected<void, std::string> ApplyLetterSendResult(const Protocol::Letters::LetterSendResult& result,
+Core::Expected<void, std::string> ApplyLetterSendResult(const Protocol::Messenger::LetterSendResult& result,
                                                         const ChatReceiveContext& context)
 {
     UI::OldWindowManager& manager = context.world.Runtime().oldWindows;
@@ -280,7 +280,7 @@ Core::Expected<void, std::string> ApplyLetterSendResult(const Protocol::Letters:
     return Notice(context, text, "0x4dc840");
 }
 
-Core::Expected<void, std::string> ApplyLetterRow(const Protocol::Letters::LetterRow& row,
+Core::Expected<void, std::string> ApplyLetterRow(const Protocol::Messenger::LetterRow& row,
                                                  const ChatReceiveContext& context)
 {
     WorldRuntime& runtime = context.world.Runtime();
@@ -314,7 +314,7 @@ Core::Expected<void, std::string> ApplyLetterRow(const Protocol::Letters::Letter
     return {};
 }
 
-Core::Expected<void, std::string> ApplyLetterRead(const Protocol::Letters::LetterRead& letter,
+Core::Expected<void, std::string> ApplyLetterRead(const Protocol::Messenger::LetterRead& letter,
                                                   const ChatReceiveContext& context)
 {
     UI::OldWindowManager& manager = context.world.Runtime().oldWindows;
@@ -386,7 +386,7 @@ Core::Expected<void, std::string> ApplyLetterRead(const Protocol::Letters::Lette
     return UI::Steps::PostAndStep(manager, *read, UI::ToTheEndMessage, windows.Globals(), windows.View());
 }
 
-Core::Expected<void, std::string> ApplyLetterDeleteResult(const Protocol::Letters::LetterDeleteResult& result,
+Core::Expected<void, std::string> ApplyLetterDeleteResult(const Protocol::Messenger::LetterDeleteResult& result,
                                                           const ChatReceiveContext& context)
 {
     UI::OldWindowManager& manager = context.world.Runtime().oldWindows;
@@ -404,7 +404,7 @@ Core::Expected<void, std::string> ApplyLetterDeleteResult(const Protocol::Letter
     return {};
 }
 
-Core::Expected<void, std::string> ApplyRoomAnswer(const Protocol::FriendChat::RoomAnswer& answer,
+Core::Expected<void, std::string> ApplyRoomAnswer(const Protocol::Messenger::RoomAnswer& answer,
                                                   const ChatReceiveContext& context)
 {
     UI::OldWindowManager& manager = context.world.Runtime().oldWindows;
@@ -469,7 +469,7 @@ Core::Expected<void, std::string> ApplyRoomAnswer(const Protocol::FriendChat::Ro
     return {};
 }
 
-Core::Expected<void, std::string> ApplyInviteResult(const Protocol::FriendChat::InviteResult& result,
+Core::Expected<void, std::string> ApplyInviteResult(const Protocol::Messenger::InviteResult& result,
                                                     const ChatReceiveContext& context)
 {
     UI::OldWindowManager& manager = context.world.Runtime().oldWindows;
@@ -513,16 +513,16 @@ Core::Expected<void, std::string> ApplyRoomPacket(std::int32_t window, const Net
 {
     WorldRuntime& runtime = context.world.Runtime();
     UI::OldWindowManager& manager = runtime.oldWindows;
-    namespace Chat = Protocol::FriendChat;
+    namespace Chat = Protocol::Messenger;
     const std::optional<Network::Opcode> opcode = packet.Opcode();
     if (!opcode)
         return {};
     const OldWindowsFromAPacket windows(context);
     // Uno más corto que lo que lee su handler no se aplica (Q-C1011): ServerSession lo ignora antes, con su aviso
-    // (Protocol::FriendChat::CheckRoomPacket), y acá tampoco cierra nada.
+    // (Protocol::Messenger::CheckRoomPacket), y acá tampoco cierra nada.
     switch (Network::ByteOf(*opcode))
     {
-    case Network::ByteOf(Protocol::FriendChat::RoomJoinOpcode):
+    case Network::ByteOf(Protocol::Messenger::RoomJoinOpcode):
     {
         auto join = Chat::ReadJoinResult(packet);
         if (!join.HasValue())
@@ -531,7 +531,7 @@ Core::Expected<void, std::string> ApplyRoomPacket(std::int32_t window, const Net
             return {};
         return Notice(context, JoinFailedText, "0x4dd1b0");
     }
-    case Network::ByteOf(Protocol::FriendChat::RoomMemberOpcode):
+    case Network::ByteOf(Protocol::Messenger::RoomMemberOpcode):
     {
         // 0x4dd1e0.
         auto member = Chat::ReadMember(packet);
@@ -582,7 +582,7 @@ Core::Expected<void, std::string> ApplyRoomPacket(std::int32_t window, const Net
             UI::FillTheInvites(manager, *chat, windows.View().heroName);
         return {};
     }
-    case Network::ByteOf(Protocol::FriendChat::RoomMembersOpcode):
+    case Network::ByteOf(Protocol::Messenger::RoomMembersOpcode):
     {
         // 0x4dd350: 0x490a00 y 0x493c90 sin mirar que la ventana esté.
         auto members = Chat::ReadMembers(packet);
@@ -600,7 +600,7 @@ Core::Expected<void, std::string> ApplyRoomPacket(std::int32_t window, const Net
         }
         return {};
     }
-    case Network::ByteOf(Protocol::FriendChat::RoomMessageOpcode):
+    case Network::ByteOf(Protocol::Messenger::RoomMessageOpcode):
     {
         // 0x4dd3d0.
         auto message = Chat::ReadMessage(packet);
@@ -627,7 +627,7 @@ Core::Expected<void, std::string> ApplyRoomPacket(std::int32_t window, const Net
         return UI::AddAChatLine(manager, *chat, message.Value().index, message.Value().text, MemberLine, 0,
                                 windows.Measure());
     }
-    case Network::ByteOf(Protocol::FriendChat::RoomNoticeOpcode):
+    case Network::ByteOf(Protocol::Messenger::RoomNoticeOpcode):
     {
         // 0x4dd549: pkt[0x68] = 0 y, si hay texto, al chat.
         auto notice = Chat::ReadNotice(packet);
@@ -673,14 +673,14 @@ void FlushTheChatRoomOrders(UI::ChatRooms& rooms, App::IChatRoomLinks* links)
         switch (order.kind)
         {
         case UI::ChatRoomOrder::Kind::Message:
-            links->SendToChatRoom(order.room, Protocol::FriendChat::WriteMessage(order.text));
+            links->SendToChatRoom(order.room, Protocol::Messenger::WriteMessage(order.text));
             break;
         case UI::ChatRoomOrder::Kind::Leave:
-            links->SendToChatRoom(order.room, Protocol::FriendChat::WriteLeave());
+            links->SendToChatRoom(order.room, Protocol::Messenger::WriteLeave());
             links->CloseChatRoom(order.room);
             break;
         case UI::ChatRoomOrder::Kind::Ping:
-            links->SendToChatRoom(order.room, Protocol::FriendChat::WritePing());
+            links->SendToChatRoom(order.room, Protocol::Messenger::WritePing());
             break;
         }
     }

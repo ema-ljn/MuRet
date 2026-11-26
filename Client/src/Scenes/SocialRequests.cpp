@@ -156,7 +156,7 @@ Core::Expected<UI::ChatCommandOutcome, std::string> SendATradeRequest(const Soci
     if (!NoShopOpen(context) || !context.world.Runtime().drawingEnabled)
         return Handled();
     const std::uint16_t key = context.world.Actors()[index].key;
-    if (auto sent = SendInC3(context, Protocol::Trade::WriteTradeRequest(key), where); !sent.HasValue())
+    if (auto sent = SendInC3(context, Protocol::Social::WriteTradeRequest(key), where); !sent.HasValue())
         return Core::Unexpected(sent.Error());
     auto notice = NamedNotice(context, TradeRequestedText, key, where);
     if (!notice.HasValue())
@@ -323,7 +323,7 @@ Core::Expected<void, std::string> RequestADuel(const SocialRequestContext& conte
         return {};
     // 0x56d9b8..0x56e06b y 0x56e2df..0x56e9ec: el AA con la clave y los diez bytes de +0x1d9.
     const ActorState& actor = context.world.Actors()[*other];
-    return SendInC3(context, Protocol::Duel::WriteDuelStart(actor.key, actor.name), "0x56d9b8");
+    return SendInC3(context, Protocol::Social::WriteDuelStart(actor.key, actor.name), "0x56d9b8");
 }
 
 Core::Expected<UI::ChatCommandOutcome, std::string> RequestAParty(const SocialRequestContext& context)

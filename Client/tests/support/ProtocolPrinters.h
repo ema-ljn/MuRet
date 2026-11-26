@@ -34,11 +34,11 @@ inline void PrintTo(DispatchResult result, std::ostream* out)
 }
 } // namespace Client::Protocol
 
-namespace Client::Protocol::Character
+namespace Client::Protocol::FrontEnd
 {
 inline void PrintTo(const CharacterEntry& entry, std::ostream* out)
 {
     *out << "CharacterEntry{lugar " << int{entry.slot} << ", nombre de " << Network::TextField(entry.name).size()
          << " bytes}";
 }
-} // namespace Client::Protocol::Character
+} // namespace Client::Protocol::FrontEnd

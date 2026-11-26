@@ -107,9 +107,9 @@ std::uint8_t Byte(int value)
     return static_cast<std::uint8_t>(value);
 }
 
-Client::Protocol::Trade::Name NameOf(std::string_view text)
+Client::Protocol::Social::Name NameOf(std::string_view text)
 {
-    Client::Protocol::Trade::Name name{};
+    Client::Protocol::Social::Name name{};
     for (std::size_t at = 0; at < name.size(); ++at)
         name[at] = at < text.size() ? static_cast<std::byte>(text[at]) : std::byte{0};
     return name;
@@ -117,7 +117,7 @@ Client::Protocol::Trade::Name NameOf(std::string_view text)
 
 // Los siete bytes de un ítem del 24 y del 39 (0x5bc740): el tipo en el byte 0, el nivel en el 1, la durabilidad, el
 // bit 8 del tipo en el 0x80 del 3 y los de arriba en el 5.
-Client::Protocol::Inventory::ItemData ItemBytes(std::uint16_t type, std::uint8_t level)
+Client::Protocol::Items::ItemData ItemBytes(std::uint16_t type, std::uint8_t level)
 {
     return {static_cast<std::byte>(type & 0xff),
             static_cast<std::byte>(level << 3),
@@ -212,9 +212,9 @@ protected:
         TradeWithTheOther();
         services.items = &game->items;
         services.dressTheHero = [] { return Client::Core::Expected<void, std::string>{}; };
-        services.sendItemMove = [this](const Client::Protocol::Inventory::ItemMove& move)
+        services.sendItemMove = [this](const Client::Protocol::Items::ItemMove& move)
         {
-            sent.push_back(PlainOf(Client::Protocol::Inventory::WriteItemMove(move)));
+            sent.push_back(PlainOf(Client::Protocol::Items::WriteItemMove(move)));
             return Client::Core::Expected<void, std::string>{};
         };
         services.sendGamePacket = [this](Client::Protocol::Outgoing packet) { sent.push_back(PlainOf(packet)); };
@@ -262,7 +262,7 @@ protected:
                                                             .name = "Brezal",
                                                             .targetX = Byte(x + 1),
                                                             .targetY = y}}};
-        auto read = Client::Protocol::Viewport::ReadPlayers(Client::Tests::ViewportPlayersPacket(records));
+        auto read = Client::Protocol::Actors::ReadPlayers(Client::Tests::ViewportPlayersPacket(records));
         ASSERT_TRUE(read.HasValue());
         const auto applied = Client::Scenes::ApplyViewportPlayers(read.Value(), game->Resources());
         ASSERT_TRUE(applied.HasValue()) << applied.Error();

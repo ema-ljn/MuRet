@@ -159,7 +159,7 @@ class RecordingRequests final : public Client::Scenes::IGameUiRequests
 {
 public:
     explicit RecordingRequests(std::vector<Sent>& sent) : m_sent(sent) {}
-    void SendOptionData(const Client::Protocol::OptionData::OptionBody& /*body*/) override {}
+    void SendOptionData(const Client::Protocol::Player::OptionBody& /*body*/) override {}
     void RequestLogout(std::uint8_t /*kind*/) override {}
     void RequestPartyList() override {}
     void SendGamePacket(Client::Protocol::Outgoing outgoing) override
@@ -241,9 +241,9 @@ protected:
             messages.emplace_back(index, type);
             return Client::Core::Expected<void, std::string>{};
         };
-        services.sendItemMove = [this](const Client::Protocol::Inventory::ItemMove& move)
+        services.sendItemMove = [this](const Client::Protocol::Items::ItemMove& move)
         {
-            sent.push_back(PlainOf(Client::Protocol::Inventory::WriteItemMove(move)));
+            sent.push_back(PlainOf(Client::Protocol::Items::WriteItemMove(move)));
             return Client::Core::Expected<void, std::string>{};
         };
         services.sendGamePacket = [this](Client::Protocol::Outgoing packet) { sent.push_back(PlainOf(packet)); };

@@ -180,7 +180,7 @@ Core::Expected<void, std::string> ElfBranch::SendTheMagicAttack(std::string_view
     if (!passes.HasValue())
         return Core::Unexpected(passes.Error());
     if (passes.Value())
-        SendTheSkillPacket(m_context, Protocol::Skill::WriteMagicAttack(m_skill, m_context.playerKey));
+        SendTheSkillPacket(m_context, Protocol::Skills::WriteMagicAttack(m_skill, m_context.playerKey));
     return {};
 }
 
@@ -266,7 +266,7 @@ Core::Expected<void, std::string> ElfBranch::Shoot()
     // 0x57e224..0x57e25d: el rumbo hacia +0x3a8 y la clave de 0x558eb0 con 0x7758588, o 0xffff sin él.
     m_hero.angles.z = static_cast<float>(
         Math::CreateAngle(m_hero.position.x, m_hero.position.y, m_hero.attackPosition.x, m_hero.attackPosition.y));
-    std::uint16_t key = Protocol::Skill::NoSkillTargetKey;
+    std::uint16_t key = Protocol::Skills::NoSkillTargetKey;
     if (m_state.weaponSkill.target != -1)
     {
         const auto chosen =
@@ -284,7 +284,7 @@ Core::Expected<void, std::string> ElfBranch::Shoot()
         if (!direction)
             return Core::Unexpected(std::string("0x57e668: el rumbo del 1E fuera del perfil ftol"));
         SendTheSkillPacket(m_context,
-                           Protocol::Skill::WriteDurationMagic(
+                           Protocol::Skills::WriteDurationMagic(
                                {.skill = ShotSkill, .x = cell.x, .y = cell.y, .direction = *direction, .key = key}));
     }
     // 0x57ef5f..0x57ef71: 0x4f4a10. La flecha de 0x53e2b0 (0x57ef77..0x57f002) es de quien no es un jugador, que
@@ -496,7 +496,7 @@ Core::Expected<void, std::string> ElfBranch::CastTheSkill4c()
             return Core::Unexpected(std::string("0x580e90: el rumbo del 1E fuera del perfil ftol"));
         const std::uint8_t magicKey = NextMagicKey(m_state, m_hero.magicKey);
         SendTheSkillPacket(m_context,
-                           Protocol::Skill::WriteDurationMagic(
+                           Protocol::Skills::WriteDurationMagic(
                                {.skill = m_skill,
                                 .x = cell.x,
                                 .y = cell.y,

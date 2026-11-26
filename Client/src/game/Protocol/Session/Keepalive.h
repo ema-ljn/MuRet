@@ -15,7 +15,7 @@
 // no está decidido. El GS del repack tiene esa comparación anulada: 0x41529b y 0x4152b6 saltan
 // siempre al else (repack_patches.tsv). Antes de mandarlas, el original les resta 20 o 25 según
 // dos bits del personaje (0x4bee60 y el WM_TIMER de 0x4af4e0).
-namespace Client::Protocol::Connection
+namespace Client::Protocol::Session
 {
 // Los bits de personaje+0x3C que cambian las velocidades del keepalive. Qué son, el research no lo
 // nombró todavía.
@@ -36,4 +36,4 @@ struct Keepalive
 // 0E: C1 0C 0E 00, el tick (u32 little-endian) y las dos velocidades (u16 little-endian); con el
 // XOR32 y para cifrar. El 00 alinea el tick a 4 bytes en el struct del GameServer.
 [[nodiscard]] Outgoing WriteKeepalive(const Keepalive& keepalive);
-} // namespace Client::Protocol::Connection
+} // namespace Client::Protocol::Session

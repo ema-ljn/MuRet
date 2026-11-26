@@ -46,7 +46,7 @@ using WindowDrawing::DrawText;
 using WindowDrawing::Quad;
 using WindowDrawing::SelectFont;
 
-namespace Npc = Protocol::NpcWindows;
+namespace Npc = Protocol::Npc;
 
 constexpr Render::Color White{1.0f, 1.0f, 1.0f, 1.0f};
 
@@ -214,9 +214,9 @@ std::int32_t TypedValue(const std::array<std::uint8_t, 11>& typed)
     return value;
 }
 
-Protocol::NpcWindows::WarehouseNumber NumberOf(std::span<const std::uint8_t> bytes)
+Protocol::Npc::WarehouseNumber NumberOf(std::span<const std::uint8_t> bytes)
 {
-    Protocol::NpcWindows::WarehouseNumber number{};
+    Protocol::Npc::WarehouseNumber number{};
     for (std::size_t at = 0; at < number.size(); ++at)
         number[at] = static_cast<std::byte>(bytes[at]);
     return number;
@@ -274,8 +274,7 @@ Core::Expected<void, std::string> Confirm(const GameUiContext& context, UI::Pane
     case 6:
     {
         // 0x5e8552..0x5e86ee: C1 03 31 en claro, sin rand(); 0x5e86f4..0x5e8701: 0x657a90; 0x5e8706..: el 99.
-        if (auto sent = Send(context, Protocol::Connection::WriteWindowClose(), "0x5e8552: el C1 03 31");
-            !sent.HasValue())
+        if (auto sent = Send(context, Protocol::Session::WriteWindowClose(), "0x5e8552: el C1 03 31"); !sent.HasValue())
             return sent;
         if (auto closed = panels.CloseAll(); !closed.HasValue())
             return closed;
@@ -287,7 +286,7 @@ Core::Expected<void, std::string> Confirm(const GameUiContext& context, UI::Pane
         // el atoi de lo tecleado (0x5e9491) y el número, los diez primeros bytes del buffer del mensaje del chat
         // (0x7798bf8, 0x5e95b1..0x5e95d2; Q-C924).
         const auto chat = std::as_bytes(std::span(runtime.chat.input.messageBuffer));
-        Protocol::NpcWindows::WarehouseNumber number{};
+        Protocol::Npc::WarehouseNumber number{};
         std::ranges::copy_n(chat.begin(), static_cast<std::ptrdiff_t>(number.size()), number.begin());
         const auto type = static_cast<std::uint8_t>((mode - 1) & 0xff);
         const auto password = static_cast<std::uint16_t>(TypedValue(npc.typedNumber) & 0xffff);

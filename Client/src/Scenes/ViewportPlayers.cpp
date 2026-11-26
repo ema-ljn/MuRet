@@ -61,7 +61,7 @@ constexpr float CellSize = 100.0f;                // 0x6b86b4
 constexpr float CellCenter = 0.5f;                // 0x6b882c
 constexpr float DirectionDegrees = 45.0f;         // 0x6b8848, con el 1 de 0x6b87d4
 
-using Name = std::array<std::byte, Protocol::Character::NameSize>;
+using Name = std::array<std::byte, Protocol::FrontEnd::NameSize>;
 
 // Los diez bytes del nombre con el 0 de -0x4a (0x4c88b7) o de -0x12 (0x4c92e2) detrás.
 std::string NameText(const Name& name)
@@ -157,7 +157,7 @@ std::uint8_t ClassOf(std::uint8_t classAndState)
         static_cast<std::uint8_t>((classAndState & EvolutionBit) | (classAndState >> ClassShift)) >> 1);
 }
 
-Core::Expected<void, std::string> ApplyPlayerRecord(const Protocol::Viewport::PlayerRecord& record,
+Core::Expected<void, std::string> ApplyPlayerRecord(const Protocol::Actors::PlayerRecord& record,
                                                     std::span<const std::byte> packet,
                                                     const WorldEntryResources& resources)
 {
@@ -430,11 +430,11 @@ Core::Expected<void, std::string> WalkToTheTarget(ActorState& actor, std::uint8_
     return {};
 }
 
-Core::Expected<void, std::string> ApplyViewportPlayers(const Protocol::Viewport::Players& players,
+Core::Expected<void, std::string> ApplyViewportPlayers(const Protocol::Actors::Players& players,
                                                        const WorldEntryResources& resources)
 {
     // La copia del dispatcher (0x4e372e..0x4e37b8) ya la hizo la sesión, antes del lector (CopyToPacketRing).
-    for (const Protocol::Viewport::PlayerRecord& record : players.records)
+    for (const Protocol::Actors::PlayerRecord& record : players.records)
     {
         // 0x4c88d2..0x4c88dc.
         if (IsHidden(record.name))
@@ -445,13 +445,13 @@ Core::Expected<void, std::string> ApplyViewportPlayers(const Protocol::Viewport:
     return {};
 }
 
-void ApplyViewportLeave(const Protocol::Viewport::Leave& leave, WorldState& world)
+void ApplyViewportLeave(const Protocol::Actors::Leave& leave, WorldState& world)
 {
     for (const std::uint16_t word : leave.keys)
     {
         ForgetTheSwitchHolder(world.Runtime(), word);
         // 0x4ca7e1..0x4ca7e8.
-        const auto key = static_cast<std::int32_t>(word & Protocol::Viewport::KeyMask);
+        const auto key = static_cast<std::int32_t>(word & Protocol::Actors::KeyMask);
         RemoveActor(world, key);
         // 0x4ca7f0..0x4ca809: el cartel de la tienda con la clave, si hay (CL9 hito 7, fase 3).
         PersonalShopState& shops = world.Runtime().social.personalShop;
@@ -460,10 +460,10 @@ void ApplyViewportLeave(const Protocol::Viewport::Leave& leave, WorldState& worl
     }
 }
 
-Core::Expected<void, std::string> ApplyTransformed(const Protocol::Viewport::Transformed& transformed,
+Core::Expected<void, std::string> ApplyTransformed(const Protocol::Actors::Transformed& transformed,
                                                    const WorldEntryResources& resources)
 {
-    for (const Protocol::Viewport::TransformedRecord& record : transformed.records)
+    for (const Protocol::Actors::TransformedRecord& record : transformed.records)
     {
         // 0x4c9307..0x4c9311.
         if (IsHidden(record.name))
@@ -481,7 +481,7 @@ Core::Expected<void, std::string> ApplyTransformed(const Protocol::Viewport::Tra
 }
 
 Core::Expected<void, std::string> FinishTheTransformed(std::size_t index,
-                                                       const Protocol::Viewport::TransformedRecord& record,
+                                                       const Protocol::Actors::TransformedRecord& record,
                                                        std::uint8_t heroClass, const WorldEntryResources& resources)
 {
     WorldState& world = resources.world;
@@ -536,7 +536,7 @@ Core::Expected<void, std::string> FinishTheTransformed(std::size_t index,
     return DressTransitionHero(PublishedHero(resources), resources);
 }
 
-Core::Expected<void, std::string> ApplyEquipmentShown(const Protocol::Viewport::EquipmentShown& shown,
+Core::Expected<void, std::string> ApplyEquipmentShown(const Protocol::Actors::EquipmentShown& shown,
                                                       const WorldEntryResources& resources)
 {
     WorldState& world = resources.world;
@@ -590,7 +590,7 @@ Core::Expected<void, std::string> ApplyEquipmentShown(const Protocol::Viewport::
     return {};
 }
 
-Core::Expected<void, std::string> ApplyViewportPosition(const Protocol::Viewport::Position& position,
+Core::Expected<void, std::string> ApplyViewportPosition(const Protocol::Actors::Position& position,
                                                         const WorldEntryResources& resources)
 {
     WorldState& world = resources.world;

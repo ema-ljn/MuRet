@@ -29,7 +29,7 @@ namespace Client::Scenes
 class WorldState;
 struct WorldEntryResources;
 
-using InventoryItemBytes = std::span<const std::byte, Protocol::Character::InventoryItemDataSize>;
+using InventoryItemBytes = std::span<const std::byte, Protocol::Items::InventoryItemDataSize>;
 
 // 0x5bc75d: con este tipo 0x5bc740 vuelve sin tocar nada.
 inline constexpr std::uint16_t NoInventoryItem = 0x1fff;

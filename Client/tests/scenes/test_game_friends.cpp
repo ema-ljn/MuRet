@@ -40,12 +40,12 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Protocol::Friends::FriendAddResult;
-using Client::Protocol::Friends::FriendDeleteResult;
-using Client::Protocol::Friends::FriendList;
-using Client::Protocol::Friends::FriendRequest;
-using Client::Protocol::Friends::FriendRow;
-using Client::Protocol::Friends::FriendState;
+using Client::Protocol::Messenger::FriendAddResult;
+using Client::Protocol::Messenger::FriendDeleteResult;
+using Client::Protocol::Messenger::FriendList;
+using Client::Protocol::Messenger::FriendRequest;
+using Client::Protocol::Messenger::FriendRow;
+using Client::Protocol::Messenger::FriendState;
 using Client::Render::Text::FontKind;
 using Client::Render::Text::ITextMeasure;
 using Client::Render::Text::TextExtent;
@@ -460,14 +460,14 @@ TEST_F(GameFriendsTest, EachSendBecomesItsPacket)
     { return std::vector<std::byte>(sent.packet.Bytes().begin(), sent.packet.Bytes().end()); };
     using Client::Scenes::FriendPacketOf;
     EXPECT_EQ(bytesOf(FriendPacketOf(FriendSend{.kind = FriendSendKind::ListRequest, .value = 0, .name = {}})),
-              bytesOf(Client::Protocol::Friends::WriteFriendListRequest()));
+              bytesOf(Client::Protocol::Messenger::WriteFriendListRequest()));
     EXPECT_EQ(bytesOf(FriendPacketOf(FriendSend{.kind = FriendSendKind::Add, .value = 0, .name = "Tero"})),
-              bytesOf(Client::Protocol::Friends::WriteFriendAdd("Tero")));
+              bytesOf(Client::Protocol::Messenger::WriteFriendAdd("Tero")));
     EXPECT_EQ(bytesOf(FriendPacketOf(FriendSend{.kind = FriendSendKind::Answer, .value = 1, .name = "Tero"})),
-              bytesOf(Client::Protocol::Friends::WriteFriendAnswer(1, "Tero")));
+              bytesOf(Client::Protocol::Messenger::WriteFriendAnswer(1, "Tero")));
     EXPECT_EQ(bytesOf(FriendPacketOf(FriendSend{.kind = FriendSendKind::Delete, .value = 0, .name = "Tero"})),
-              bytesOf(Client::Protocol::Friends::WriteFriendDelete("Tero")));
+              bytesOf(Client::Protocol::Messenger::WriteFriendDelete("Tero")));
     EXPECT_EQ(bytesOf(FriendPacketOf(FriendSend{.kind = FriendSendKind::State, .value = 1, .name = {}})),
-              bytesOf(Client::Protocol::Friends::WriteFriendState(1)));
+              bytesOf(Client::Protocol::Messenger::WriteFriendState(1)));
 }
 } // namespace

@@ -15,7 +15,7 @@
 // Borrar un personaje: el pedido (F3 02, C->S) y su respuesta (F3 02, S->C).
 // Contrato: Client/docs/research/04-protocolo.md, "La selección de personaje (F3)", y el plan de la
 // CL6 (CL6.5, "Contrato").
-namespace Client::Protocol::Character
+namespace Client::Protocol::FrontEnd
 {
 // Los bytes del campo de la ventana de borrar que van en el pedido: en otras versiones, un número
 // personal de la cuenta. Se tratan como la clave: nunca en el log.
@@ -38,4 +38,4 @@ inline constexpr std::uint8_t CharacterDeleted = 1;
 // La respuesta: C1, F3 02 y pkt[4]. TooShort sin pkt[4].
 [[nodiscard]] Core::Expected<std::uint8_t, Network::ProtocolError>
 ReadCharacterDeleteResult(const Network::Packet& packet);
-} // namespace Client::Protocol::Character
+} // namespace Client::Protocol::FrontEnd

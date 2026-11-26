@@ -2072,7 +2072,7 @@ TEST_F(GoldenLoginWorld, ARecreatedSlotZeroSuppliesTheFirstLoginEmbersWithoutAno
     selected.Present();
     EXPECT_EQ(cameraInput.hero.z, Client::Scenes::CharacterSlotHeight);
     camera.fixedHeight = 2000.0f;
-    Client::Protocol::Character::CharacterEntry recreated;
+    Client::Protocol::FrontEnd::CharacterEntry recreated;
     recreated.withoutEquipment = true;
     const std::array<Client::App::CharacterEvent, 1> events{Client::App::CharacterCreated{recreated}};
     ASSERT_TRUE(state.Apply(events, camera, cameraInput).HasValue());

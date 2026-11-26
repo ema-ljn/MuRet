@@ -45,42 +45,42 @@ using GamePacketSender = std::function<void(Protocol::Outgoing)>;
 // 0x78aba26 en 0, el nombre en 0x78aba1c, el diálogo 0x78 (0x6236f0) y, con un ítem en el cursor, 0x5be150. Con alguna
 // abierta, el C1 04 37 00 que devuelve para mandar en claro, sin tocar nada.
 [[nodiscard]] Core::Expected<std::optional<Protocol::Outgoing>, std::string>
-ApplyTradeRequest(const Protocol::Trade::TradeRequest& request, const WorldEntryResources& resources);
+ApplyTradeRequest(const Protocol::Social::TradeRequest& request, const WorldEntryResources& resources);
 
 // 0x4d4b22..0x4d5238, el 36 en claro: el aviso C1 06 F1 03 00 36 en C3, con sus dos rand() (el relleno y el serial).
 [[nodiscard]] Protocol::Outgoing ApplyClearTradeRequest(Crt::CrtRandom& random);
 
 // 0x4d5570: 0 el texto 492 y 2 el 493 (tipo 2); con 1, Open(0x20), el pedido de SetCursorPos, los zen y los OK en 0,
 // 0x5bbdf0 si 0x78abaa5 está en 0 y el nombre cambió (strcmp), y el nombre, el gremio y el nivel del otro.
-[[nodiscard]] Core::Expected<void, std::string> ApplyTradeResponse(const Protocol::Trade::TradeResponse& response,
+[[nodiscard]] Core::Expected<void, std::string> ApplyTradeResponse(const Protocol::Social::TradeResponse& response,
                                                                    const WorldEntryResources& resources);
 
 // 0x4e3d6a: 0x5bd750(lugar, 0x78a5a20, 8) (con 0x5bc5e0 antes y 0x5bc470 después) y el sonido 0x1d. Un lugar desde 32
 // (que no sea 0xff), una huella que pasa la grilla o un undécimo ítem igual a su copia (Q-C961) llevan al original
 // fuera de la grilla o de la pila: se descarta el paquete entero, sin sonido, con un aviso en el log (Q-C200).
-[[nodiscard]] Core::Expected<void, std::string> ApplyTradeItemRemoved(const Protocol::Trade::TradeItemRemoved& removed,
+[[nodiscard]] Core::Expected<void, std::string> ApplyTradeItemRemoved(const Protocol::Social::TradeItemRemoved& removed,
                                                                       const WorldEntryResources& resources);
 
 // 0x4e3d99: 0x5bc740(0x78a5a20, 8, 4, lugar, ítem, 1), con 0x5bc470 al final, y el sonido 0x1d. Una huella que pasa la
 // casilla 31 (Q-C200) se descarta antes de escribir y de los rand() de 0x54bf40; un duodécimo ítem igual a su copia
 // (0x5bc545, Q-C961), después de ponerlo en una copia del comercio, que se tira con los rand() que sacó. Los dos, sin
 // sonido y con un aviso en el log. El undécimo se pierde de la lista y en su lugar se compara el 1 de la cuenta.
-[[nodiscard]] Core::Expected<void, std::string> ApplyTradeItemAdded(const Protocol::Trade::TradeItemAdded& added,
+[[nodiscard]] Core::Expected<void, std::string> ApplyTradeItemAdded(const Protocol::Social::TradeItemAdded& added,
                                                                     const WorldEntryResources& resources);
 
 // 0x4e3dd0: 0x78abab8 con el zen mandado (0x57678ac) si lo aceptó, o 0.
-void ApplyTradeMoneyResult(const Protocol::Trade::TradeMoneyResult& result, WorldState& world);
+void ApplyTradeMoneyResult(const Protocol::Social::TradeMoneyResult& result, WorldState& world);
 
 // 0x4e3df3: el zen del otro en 0x78abab4.
-void ApplyTradeOtherMoney(const Protocol::Trade::TradeOtherMoney& money, WorldState& world);
+void ApplyTradeOtherMoney(const Protocol::Social::TradeOtherMoney& money, WorldState& world);
 
 // 0x4e3e0a: 0 apaga el OK del otro, 1 lo prende y 2 apaga el propio; siempre el sonido 0x19.
-void ApplyTradeOkState(const Protocol::Trade::TradeOkState& state, WorldState& world);
+void ApplyTradeOkState(const Protocol::Social::TradeOkState& state, WorldState& world);
 
 // 0x4d57f0: con la traba 0x78abb39, lo guarda para 0x4d1400 (una vez); si no, los textos 494 (con 0x5bc5e0 en cada
 // ítem del otro), 495 y 496 (con el diálogo 0), la cuenta del cursor en 0, el cierre del diálogo 0x73 y
 // Close(0x20, 1), sin el 3D.
-[[nodiscard]] Core::Expected<void, std::string> ApplyTradeResult(const Protocol::Trade::TradeResult& result,
+[[nodiscard]] Core::Expected<void, std::string> ApplyTradeResult(const Protocol::Social::TradeResult& result,
                                                                  const WorldEntryResources& resources);
 
 // 0x5bc107..0x5bc13f, la cola de 0x5bbe10 (desde 0x633f20, al entrar a la selección, antes de cualquier comercio):
@@ -119,19 +119,19 @@ void ApplyPartyLife(const Protocol::Party::PartyLife& life, WorldState& world, C
 
 // 0x4dac90: con el resultado, el duelo en curso, la clave, el nombre, el texto 912 con el nombre (tipo 2) y el sonido
 // 0x8d; sin él, el nombre y el texto 913.
-[[nodiscard]] Core::Expected<void, std::string> ApplyDuelStart(const Protocol::Duel::DuelStart& start,
+[[nodiscard]] Core::Expected<void, std::string> ApplyDuelStart(const Protocol::Social::DuelStart& start,
                                                                const WorldEntryResources& resources);
 
 // 0x4e4d10: el duelo terminado, la clave, el nombre, el texto 914 (tipo 2) y, con el tiempo del F3 22 del tipo 2
 // (0x5767814), el tiempo en 0 (0x5767816): 0x5a7eb0 deja de dibujarlo.
-[[nodiscard]] Core::Expected<void, std::string> ApplyDuelEnd(const Protocol::Duel::DuelEnd& end,
+[[nodiscard]] Core::Expected<void, std::string> ApplyDuelEnd(const Protocol::Social::DuelEnd& end,
                                                              const WorldEntryResources& resources);
 
 // 0x4e4d75: con el diálogo 0x9a abierto, nada; si no, la clave, el nombre, el pedido (0x78abad9) y el sonido 0x8c.
-void ApplyDuelRequest(const Protocol::Duel::DuelRequest& request, WorldState& world);
+void ApplyDuelRequest(const Protocol::Social::DuelRequest& request, WorldState& world);
 
 // 0x4e4dd1: los puntos según cuál de las dos claves es la del rival; con ninguna, nada.
-void ApplyDuelScore(const Protocol::Duel::DuelScore& score, WorldState& world);
+void ApplyDuelScore(const Protocol::Social::DuelScore& score, WorldState& world);
 
 // 0x4dae80 (3F 00): por cada entrada, el personaje de la clave (0x5110d0); del 0 al 399, AddShopTitle con la clave, el
 // personaje y el título.

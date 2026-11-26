@@ -148,7 +148,7 @@ TEST(SessionEventApplierTest, AnEmptyInventoryGoesToTheNativeApplier)
     tested.world.OwnCharacter().equipment[3].id = 7;
     tested.world.Inventory().cells[5].id = 7;
     tested.world.Inventory().secondCells[2].id = 7;
-    const Client::App::WorldEvent event = Client::Protocol::Character::InventoryList{};
+    const Client::App::WorldEvent event = Client::Protocol::Items::InventoryList{};
 
     const auto result = tested.applier.ApplyWorld(event, online.session);
 
@@ -189,7 +189,7 @@ TEST(SessionEventApplierTest, TheWorldEntryGoesToTheNativeApplier)
     auto owned = std::make_unique<Applier>();
     Applier& tested = *owned;
     Client::Tests::LoggedInSession online;
-    Client::Protocol::Character::CharacterSelectResult reply;
+    Client::Protocol::FrontEnd::CharacterSelectResult reply;
     reply.zen = 1234;
     const Client::App::WorldEvent event = reply;
 
@@ -250,19 +250,19 @@ TEST(SessionEventApplierTest, TheSkillsReachTheirAppliers)
 {
     auto tested = std::make_unique<Applier>();
     Client::Tests::LoggedInSession online;
-    const Client::App::WorldEvent summon = Client::Protocol::Skill::SummonLife{0x42};
-    const Client::App::WorldEvent cancel = Client::Protocol::Skill::MagicCancel{0x1b, 0x0777};
-    const Client::App::WorldEvent attack = Client::Protocol::Skill::MagicAttack{0x13, 0x0777, 0x0888, false};
+    const Client::App::WorldEvent summon = Client::Protocol::Skills::SummonLife{0x42};
+    const Client::App::WorldEvent cancel = Client::Protocol::Skills::MagicCancel{0x1b, 0x0777};
+    const Client::App::WorldEvent attack = Client::Protocol::Skills::MagicAttack{0x13, 0x0777, 0x0888, false};
     EXPECT_TRUE(tested->applier.ApplyWorld(summon, online.session).HasValue());
     EXPECT_EQ(tested->world.Runtime().hud.summonLife, 0x42);
     EXPECT_TRUE(tested->applier.ApplyWorld(cancel, online.session).HasValue());
     EXPECT_TRUE(tested->applier.ApplyWorld(attack, online.session).HasValue());
     // El A8 sin el cuervo del dueño no hace nada.
-    const Client::App::WorldEvent raven = Client::Protocol::Pet::PetAttack{1, 0x0777, 0x0888};
+    const Client::App::WorldEvent raven = Client::Protocol::Pets::PetAttack{1, 0x0777, 0x0888};
     EXPECT_TRUE(tested->applier.ApplyWorld(raven, online.session).HasValue());
     // F3 11 sin Skill.bmd corta en la cuenta.
     const Client::App::WorldEvent list =
-        Client::Protocol::Skill::SkillList{.count = 0xfe, .list = 0, .slot = 0, .skill = 0x11, .entries = {}};
+        Client::Protocol::Skills::SkillList{.count = 0xfe, .list = 0, .slot = 0, .skill = 0x11, .entries = {}};
     const auto counted = tested->applier.ApplyWorld(list, online.session);
     ASSERT_FALSE(counted.HasValue());
     EXPECT_NE(counted.Error().find("0x4c54ed"), std::string::npos) << counted.Error();
@@ -329,7 +329,7 @@ TEST(SessionEventApplierTest, The00InTheLoginAsksForTheListThroughTheGameServer)
         .models = tested.models,
         .log = tested.log,
         .scene = [] { return std::optional<Client::Scenes::SceneId>(Client::Scenes::SceneId::Login); }}};
-    const Client::App::WorldEvent event = Client::Protocol::Messages::Chat{};
+    const Client::App::WorldEvent event = Client::Protocol::Chat::Chat{};
 
     ASSERT_TRUE(inTheLogin.ApplyWorld(event, online.session).HasValue());
     const std::vector<std::byte> request(online.socket.sent.begin() + static_cast<std::ptrdiff_t>(sent),
@@ -366,7 +366,7 @@ TEST(SessionEventApplierTest, TeleportUsesTheCursorGuardBeforeTouchingTheHero)
     Applier& tested = *owned;
     Client::Tests::LoggedInSession online;
     tested.world.Runtime().cursorItemCount = 1;
-    const Client::App::WorldEvent event = Client::Protocol::World::Teleport{23, 0, 30, 31, 0};
+    const Client::App::WorldEvent event = Client::Protocol::Movement::Teleport{23, 0, 30, 31, 0};
     const auto result = tested.applier.ApplyWorld(event, online.session);
     ASSERT_FALSE(result.HasValue());
     EXPECT_NE(result.Error().find("0x5be150"), std::string::npos);
@@ -498,7 +498,7 @@ TEST(SessionEventApplierTest, ALogoutDoesNotSkipACursorReturnFailureBeforeReleas
 
 TEST(SessionEventApplierTest, TheShortFloorItemRepliesReachTheirReleases)
 {
-    namespace FloorItems = Client::Protocol::FloorItems;
+    namespace FloorItems = Client::Protocol::Items;
     const auto tested = std::make_unique<Applier>();
     Client::Tests::LoggedInSession online;
     Client::Scenes::WorldRuntime& runtime = tested->world.Runtime();

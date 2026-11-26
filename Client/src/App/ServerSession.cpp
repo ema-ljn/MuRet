@@ -106,7 +106,7 @@ template <typename... Handlers> Overloaded(Handlers...) -> Overloaded<Handlers..
 
 // La versión del saludo como texto para el log: viene del servidor, y un byte que no se ve (un \0,
 // un salto de línea) sale como '?', así la línea sigue siendo una.
-std::string VersionText(const std::array<char, Protocol::VersionSize>& version)
+std::string VersionText(const std::array<char, Protocol::Session::VersionSize>& version)
 {
     std::string text(version.begin(), version.end());
     std::ranges::replace_if(text, [](char value) { return value < ' ' || value > '~'; }, '?');
@@ -160,13 +160,13 @@ bool DeservesTheReport(const Network::Undecryptable& undecryptable)
 
 // 0x4c20a0 construye en orden sobre pool[slot]: la última entrada reemplaza la anterior.
 // La vista UI es única por slot; el evento conserva aparte todas las construcciones recibidas.
-void KeepLastCharacterPerSlot(Protocol::Character::CharacterList& list)
+void KeepLastCharacterPerSlot(Protocol::FrontEnd::CharacterList& list)
 {
-    std::vector<Protocol::Character::CharacterEntry> unique;
+    std::vector<Protocol::FrontEnd::CharacterEntry> unique;
     unique.reserve(list.characters.size());
     for (auto entry = list.characters.rbegin(); entry != list.characters.rend(); ++entry)
     {
-        if (std::ranges::find(unique, entry->slot, &Protocol::Character::CharacterEntry::slot) == unique.end())
+        if (std::ranges::find(unique, entry->slot, &Protocol::FrontEnd::CharacterEntry::slot) == unique.end())
         {
             unique.push_back(*entry);
         }
@@ -215,11 +215,11 @@ ServerSession::ServerSession(Network::Connection& connection, Core::IClock& cloc
 
 void ServerSession::RegisterConnectServerHandlers()
 {
-    using Protocol::Connection::ConnectHelloOpcode;
-    using Protocol::Connection::ServerBusySubcode;
-    using Protocol::Connection::ServerListOpcode;
-    using Protocol::Connection::ServerListSubcode;
-    using Protocol::Connection::ServerSelectSubcode;
+    using Protocol::Session::ConnectHelloOpcode;
+    using Protocol::Session::ServerBusySubcode;
+    using Protocol::Session::ServerListOpcode;
+    using Protocol::Session::ServerListSubcode;
+    using Protocol::Session::ServerSelectSubcode;
     // Un Dispatcher recién hecho no tiene nada: registrar no puede fallar.
     [[maybe_unused]] const bool registered =
         m_connectServer.On(ConnectHelloOpcode, [this](const Network::Packet& packet) { OnConnectHello(packet); }) &&
@@ -373,7 +373,7 @@ void ServerSession::RegisterGameServerHandlers()
 void ServerSession::RegisterSkillHandlers()
 {
     using Protocol::CharacterOpcode;
-    namespace Skill = Protocol::Skill;
+    namespace Skill = Protocol::Skills;
     [[maybe_unused]] const bool registered =
         m_gameServer.On(Protocol::MagicAttackOpcode,
                         [this](const Network::Packet& packet) { OnMagicAttack(packet); }) &&
@@ -474,9 +474,9 @@ bool ServerSession::RegisterGuildHandlers()
 // 04 § El comercio, § La party y § El duelo (CL9 hito 7): los casos de 0x4e2b10 que los leen, sin mirar la escena.
 void ServerSession::RegisterSocialHandlers()
 {
-    namespace Trade = Protocol::Trade;
+    namespace Trade = Protocol::Social;
     namespace Party = Protocol::Party;
-    namespace Duel = Protocol::Duel;
+    namespace Duel = Protocol::Social;
     namespace Shop = Protocol::PersonalShop;
     using Network::Packet;
     [[maybe_unused]] const bool registered =
@@ -568,10 +568,10 @@ void ServerSession::OnTradeRequest(const Network::Packet& packet)
     {
         // El aviso C3 saca sus dos rand() de la CRT del mundo: lo manda el sink (Scenes::ApplyClearTradeRequest).
         m_log.Warning("el pedido de comercio (36) no llegó cifrado: se le avisa al GameServer (F1 03)");
-        static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(Protocol::Trade::ClearTradeRequest{}, *this)));
+        static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(Protocol::Social::ClearTradeRequest{}, *this)));
         return;
     }
-    ApplyWorldPacket(packet, Protocol::Trade::ReadTradeRequest, "el pedido de comercio (36)");
+    ApplyWorldPacket(packet, Protocol::Social::ReadTradeRequest, "el pedido de comercio (36)");
 }
 
 void ServerSession::SendGamePacket(Protocol::Outgoing packet)
@@ -606,7 +606,7 @@ bool ServerSession::RegisterCastleSiegeHandlers()
 // (0x4e572d).
 bool ServerSession::RegisterCastleBattleHandlers()
 {
-    namespace Battle = Protocol::CastleBattle;
+    namespace Battle = Protocol::CastleSiege;
     const auto onBattle = [this](const Network::Packet& packet) { OnCastleBattle(packet); };
     for (const Network::Subcode subcode : Battle::BattleSubcodes)
     {
@@ -751,7 +751,7 @@ std::uint32_t ServerSession::StartCount() const
     return m_starts;
 }
 
-std::span<const Protocol::Connection::ServerEntry> ServerSession::ServerList() const
+std::span<const Protocol::Session::ServerEntry> ServerSession::ServerList() const
 {
     return m_serverList;
 }
@@ -766,7 +766,7 @@ void ServerSession::ChooseServer(std::uint16_t code)
     }
     m_log.Info("se elige un servidor: se pide su dirección");
     m_chosenServer = code;
-    Protocol::Outgoing choice = Protocol::Connection::WriteServerSelect(code);
+    Protocol::Outgoing choice = Protocol::Session::WriteServerSelect(code);
     m_connection.Send(std::move(choice.packet), choice.delivery);
     SetState(SessionState::WaitingServerAddress);
 }
@@ -792,13 +792,13 @@ void ServerSession::SubmitCredentials(const Credentials& credentials)
         m_log.Warning("se ignoran la cuenta y la clave: el GameServer ya no está conectado");
         return;
     }
-    const Protocol::Connection::LoginRequest request{credentials.account, credentials.password,
-                                                     TickCountMs(m_clock.Now())};
-    auto login = Protocol::Connection::WriteLoginRequest(request);
+    const Protocol::Session::LoginRequest request{credentials.account, credentials.password,
+                                                  TickCountMs(m_clock.Now())};
+    auto login = Protocol::Session::WriteLoginRequest(request);
     if (!login.HasValue())
     {
         m_log.Error("no se puede escribir el login: la cuenta o la clave pasan de {} bytes",
-                    Protocol::Connection::CredentialSize);
+                    Protocol::Session::CredentialSize);
         Fail(SessionFailure::CredentialsTooLong);
         return;
     }
@@ -842,12 +842,12 @@ void ServerSession::RequestCharacterList()
         return;
     }
     m_log.Info("se pide la lista de personajes");
-    Protocol::Outgoing request = Protocol::Character::WriteCharacterListRequest();
+    Protocol::Outgoing request = Protocol::FrontEnd::WriteCharacterListRequest();
     m_connection.Send(std::move(request.packet), request.delivery);
     SetState(SessionState::WaitingCharacterList);
 }
 
-const std::optional<Protocol::Character::CharacterList>& ServerSession::Characters() const
+const std::optional<Protocol::FrontEnd::CharacterList>& ServerSession::Characters() const
 {
     return m_characters;
 }
@@ -866,14 +866,14 @@ void ServerSession::ChooseCharacter(std::optional<std::uint8_t> slot)
     }
 }
 
-const Protocol::Character::CharacterEntry* ServerSession::ChosenCharacter() const
+const Protocol::FrontEnd::CharacterEntry* ServerSession::ChosenCharacter() const
 {
     if (!m_characters || !m_chosenSlot)
     {
         return nullptr;
     }
     const auto& characters = m_characters->characters;
-    const auto chosen = std::ranges::find(characters, *m_chosenSlot, &Protocol::Character::CharacterEntry::slot);
+    const auto chosen = std::ranges::find(characters, *m_chosenSlot, &Protocol::FrontEnd::CharacterEntry::slot);
     return chosen == characters.end() ? nullptr : &*chosen;
 }
 
@@ -886,14 +886,14 @@ void ServerSession::EnterWorld()
         m_log.Warning("se ignora la entrada al mundo: {}", NotAwaited);
         return;
     }
-    const Protocol::Character::CharacterEntry* chosen = ChosenCharacter();
+    const Protocol::FrontEnd::CharacterEntry* chosen = ChosenCharacter();
     if (chosen == nullptr)
     {
         m_log.Warning("no se entra al mundo: no hay un personaje elegido");
         return;
     }
     m_log.Info("se entra al mundo con el personaje del lugar {}", chosen->slot);
-    Protocol::Outgoing select = Protocol::Character::WriteCharacterSelect(chosen->name);
+    Protocol::Outgoing select = Protocol::FrontEnd::WriteCharacterSelect(chosen->name);
     m_connection.Send(std::move(select.packet), select.delivery);
     SetState(SessionState::EnteringWorld);
 }
@@ -907,15 +907,15 @@ void ServerSession::CreateCharacter(std::string_view name, std::uint8_t characte
         m_log.Warning("se ignora el pedido de crear un personaje: {}", NotAwaitedMasculine);
         return;
     }
-    const std::optional<std::array<std::byte, Protocol::Character::NameSize>> bytes =
-        Protocol::Character::NameFromText(name);
+    const std::optional<std::array<std::byte, Protocol::FrontEnd::NameSize>> bytes =
+        Protocol::FrontEnd::NameFromText(name);
     if (!bytes)
     {
         m_log.Warning("no se crea el personaje: el nombre no entra en 10 bytes");
         return;
     }
     m_log.Info("se pide crear un personaje de la clase {}", characterClass);
-    Protocol::Outgoing create = Protocol::Character::WriteCharacterCreate(*bytes, characterClass);
+    Protocol::Outgoing create = Protocol::FrontEnd::WriteCharacterCreate(*bytes, characterClass);
     m_connection.Send(std::move(create.packet), create.delivery);
     m_createResult.reset();
     SetState(SessionState::WaitingCreateResult);
@@ -928,21 +928,21 @@ std::optional<std::uint8_t> ServerSession::CreateResult() const
 
 // 0x643740 manda el F3 02 con el nombre del elegido y el campo de la ventana. El código es como la
 // clave: no va al log.
-void ServerSession::DeleteCharacter(std::span<const std::byte, Protocol::Character::DeleteCodeSize> code)
+void ServerSession::DeleteCharacter(std::span<const std::byte, Protocol::FrontEnd::DeleteCodeSize> code)
 {
     if (m_state != SessionState::ChoosingCharacter)
     {
         m_log.Warning("se ignora el pedido de borrar un personaje: {}", NotAwaitedMasculine);
         return;
     }
-    const Protocol::Character::CharacterEntry* chosen = ChosenCharacter();
+    const Protocol::FrontEnd::CharacterEntry* chosen = ChosenCharacter();
     if (chosen == nullptr)
     {
         m_log.Warning("no se borra un personaje: no hay uno elegido");
         return;
     }
     m_log.Info("se pide borrar el personaje del lugar {}", chosen->slot);
-    Protocol::Outgoing request = Protocol::Character::WriteCharacterDelete(chosen->name, code);
+    Protocol::Outgoing request = Protocol::FrontEnd::WriteCharacterDelete(chosen->name, code);
     m_connection.Send(std::move(request.packet), request.delivery);
     m_deletingSlot = chosen->slot;
     m_deleteResult.reset();
@@ -957,7 +957,7 @@ void ServerSession::RequestLogout(std::uint8_t kind)
         return;
     }
     m_log.Info("se pide la salida al GameServer (F1 02 con {})", kind);
-    Protocol::Outgoing request = Protocol::Connection::WriteLogoutRequest(kind);
+    Protocol::Outgoing request = Protocol::Session::WriteLogoutRequest(kind);
     m_connection.Send(std::move(request.packet), request.delivery);
 }
 
@@ -973,7 +973,7 @@ void ServerSession::OnOpened()
     if (m_state == SessionState::ConnectingConnectServer)
     {
         m_log.Info("conectó con el ConnectServer");
-        Protocol::Outgoing request = Protocol::Pet::WritePetInfoRequest(Protocol::Pet::LoginScenePetInfoRequest);
+        Protocol::Outgoing request = Protocol::Pets::WritePetInfoRequest(Protocol::Pets::LoginScenePetInfoRequest);
         m_connection.Send(std::move(request.packet), request.delivery);
         SetState(SessionState::WaitingConnectHello);
         return;
@@ -999,7 +999,7 @@ void ServerSession::OnUndecryptable(const Network::Undecryptable& undecryptable)
         return;
     }
     m_log.Info("un C3/C4 del GameServer no se descifró: se le avisa al GameServer (F1 03)");
-    Protocol::Outgoing report = Protocol::Connection::WriteDecryptErrorReport();
+    Protocol::Outgoing report = Protocol::Session::WriteDecryptErrorReport();
     m_connection.Send(std::move(report.packet), report.delivery);
 }
 
@@ -1019,7 +1019,7 @@ void ServerSession::OnConnectHello([[maybe_unused]] const Network::Packet& packe
         return;
     }
     m_log.Info("el ConnectServer saludó: se pide la lista de servidores");
-    Protocol::Outgoing request = Protocol::Connection::WriteServerListRequest();
+    Protocol::Outgoing request = Protocol::Session::WriteServerListRequest();
     m_connection.Send(std::move(request.packet), request.delivery);
     SetState(SessionState::WaitingServerList);
 }
@@ -1034,13 +1034,13 @@ void ServerSession::OnServerList(const Network::Packet& packet)
         m_log.Warning("se ignora la lista de servidores (F4 06): {}", OutOfTurn);
         return;
     }
-    const auto list = Protocol::Connection::ReadServerList(packet);
+    const auto list = Protocol::Session::ReadServerList(packet);
     if (!list.HasValue())
     {
         m_log.Warning("se ignora la lista de servidores (F4 06): {}", Unreadable);
         return;
     }
-    const std::vector<Protocol::Connection::ServerEntry>& entries = list.Value();
+    const std::vector<Protocol::Session::ServerEntry>& entries = list.Value();
     if (entries.empty())
     {
         m_log.Error("la lista de servidores está vacía: no hay a qué GameServer conectarse");
@@ -1061,7 +1061,7 @@ void ServerSession::OnServerAddress(const Network::Packet& packet)
         m_log.Warning("se ignora la dirección del GameServer (F4 03): {}", OutOfTurn);
         return;
     }
-    const auto address = Protocol::Connection::ReadServerAddress(packet);
+    const auto address = Protocol::Session::ReadServerAddress(packet);
     if (!address.HasValue())
     {
         m_log.Warning("se ignora la dirección del GameServer (F4 03): {}", Unreadable);
@@ -1086,7 +1086,7 @@ void ServerSession::OnServerBusy()
     }
     m_log.Warning("el servidor elegido está ocupado: se pide la lista otra vez");
     m_chosenServer.reset();
-    Protocol::Outgoing request = Protocol::Connection::WriteServerListRequest();
+    Protocol::Outgoing request = Protocol::Session::WriteServerListRequest();
     m_connection.Send(std::move(request.packet), request.delivery);
     SetState(SessionState::WaitingServerList);
 }
@@ -1106,13 +1106,13 @@ void ServerSession::OnGameHello(const Network::Packet& packet)
         m_log.Warning("se ignora el saludo del GameServer (F1 00): {}", OutOfTurn);
         return;
     }
-    const auto hello = Protocol::Connection::ReadServerHello(packet);
+    const auto hello = Protocol::Session::ReadServerHello(packet);
     if (!hello.HasValue())
     {
         m_log.Warning("se ignora el saludo del GameServer (F1 00): {}", Unreadable);
         return;
     }
-    if (hello.Value().result != Protocol::Connection::HelloAccepted)
+    if (hello.Value().result != Protocol::Session::HelloAccepted)
     {
         m_log.Error("el GameServer rechazó la conexión (resultado {})", hello.Value().result);
         Fail(SessionFailure::HelloRejected);
@@ -1121,10 +1121,10 @@ void ServerSession::OnGameHello(const Network::Packet& packet)
     // 0x4c1ec0 guarda la clave con el resultado 1, antes de comparar la versión.
     m_playerIndex = hello.Value().playerIndex;
     const std::string_view version(hello.Value().version.data(), hello.Value().version.size());
-    if (version != Protocol::ClientVersion)
+    if (version != Protocol::Session::ClientVersion)
     {
         m_log.Error("el GameServer tiene la versión {} y este cliente la {}: no se manda el login",
-                    VersionText(hello.Value().version), Protocol::ClientVersion);
+                    VersionText(hello.Value().version), Protocol::Session::ClientVersion);
         Fail(SessionFailure::VersionMismatch);
         return;
     }
@@ -1154,12 +1154,12 @@ void ServerSession::OnGameHelloAfterLogin(const Network::Packet& packet)
         static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(GuildTableReset{}, *this)));
         return;
     }
-    const Protocol::Character::CharacterEntry* chosen = ChosenCharacter();
+    const Protocol::FrontEnd::CharacterEntry* chosen = ChosenCharacter();
     const std::string name = chosen != nullptr ? Network::TextField(chosen->name) : std::string{};
     if (!CheckApplication(m_eventSink.ApplyWorld(MapServerJoined{}, *this)))
         return;
     // 0x4133cb: el reloj se lee después del reseteo y sus dos cierres, antes del relleno y el serial.
-    auto auth = Protocol::Connection::WriteMapServerAuth(Protocol::Connection::MapServerAuth{
+    auto auth = Protocol::Session::WriteMapServerAuth(Protocol::Session::MapServerAuth{
         .account = m_account, .character = name, .codes = m_mapServerMove->codes, .tick = TickCountMs(m_clock.Now())});
     if (!auth.HasValue())
     {
@@ -1182,7 +1182,7 @@ void ServerSession::OnGameHelloAfterLogin(const Network::Packet& packet)
 // que pone [0x5767918] en 1 si conectó). En cualquier estado, como el original.
 void ServerSession::OnMapServerMove(const Network::Packet& packet)
 {
-    auto move = Protocol::Connection::ReadMapServerMove(packet);
+    auto move = Protocol::Session::ReadMapServerMove(packet);
     if (!move.HasValue())
     {
         m_log.Warning("se ignora el cambio de servidor del mapa (B1 00): {}", Unreadable);
@@ -1221,14 +1221,14 @@ void ServerSession::OnLoginResult(const Network::Packet& packet)
         m_log.Warning("se ignora el resultado del login (F1 01): {}", OutOfTurn);
         return;
     }
-    const auto result = Protocol::Connection::ReadLoginResult(packet);
+    const auto result = Protocol::Session::ReadLoginResult(packet);
     if (!result.HasValue())
     {
         m_log.Warning("se ignora el resultado del login (F1 01): {}", Unreadable);
         return;
     }
     m_loginResult = result.Value();
-    if (result.Value() != Protocol::Connection::LoginAccepted)
+    if (result.Value() != Protocol::Session::LoginAccepted)
     {
         // El GS queda abierto: el aviso de la escena, y otra vez la cuenta (0x643560).
         m_log.Warning("el GameServer rechazó el login (resultado {}): se espera otra vez la cuenta y la clave",
@@ -1251,14 +1251,14 @@ void ServerSession::OnCharacterList(const Network::Packet& packet)
         m_log.Warning("se ignora la lista de personajes (F3 00): {}", OutOfTurn);
         return;
     }
-    auto list = Protocol::Character::ReadCharacterList(packet);
+    auto list = Protocol::FrontEnd::ReadCharacterList(packet);
     if (!list.HasValue())
     {
         m_log.Warning("se ignora la lista de personajes (F3 00): {}", Unreadable);
         return;
     }
     auto received = std::move(list).Value();
-    Protocol::Character::CharacterList view = received;
+    Protocol::FrontEnd::CharacterList view = received;
     KeepLastCharacterPerSlot(view);
     m_characters = std::move(view);
     m_chosenSlot.reset();
@@ -1282,39 +1282,38 @@ void ServerSession::OnCreateResult(const Network::Packet& packet)
         m_log.Warning("se ignora la respuesta de crear un personaje (F3 01): {}", OutOfTurn);
         return;
     }
-    auto read = Protocol::Character::ReadCharacterCreateResult(packet);
+    auto read = Protocol::FrontEnd::ReadCharacterCreateResult(packet);
     if (!read.HasValue())
     {
         m_log.Warning("se ignora la respuesta de crear un personaje (F3 01): {}", Unreadable);
         return;
     }
-    const Protocol::Character::CharacterCreateResult& created = read.Value();
-    if (created.result != Protocol::Character::CharacterCreated &&
-        created.result != Protocol::Character::CreateRefused &&
-        created.result != Protocol::Character::CreateRefusedOther)
+    const Protocol::FrontEnd::CharacterCreateResult& created = read.Value();
+    if (created.result != Protocol::FrontEnd::CharacterCreated && created.result != Protocol::FrontEnd::CreateRefused &&
+        created.result != Protocol::FrontEnd::CreateRefusedOther)
     {
         m_log.Warning("se ignora la respuesta de crear un personaje (F3 01): el resultado {} no lo atiende el original",
                       created.result);
         return;
     }
     m_createResult = created.result;
-    if (created.result == Protocol::Character::CharacterCreated)
+    if (created.result == Protocol::FrontEnd::CharacterCreated)
     {
-        if (created.slot > Protocol::Character::MaxCharacterSlot || !m_characters)
+        if (created.slot > Protocol::FrontEnd::MaxCharacterSlot || !m_characters)
         {
             m_log.Warning("el personaje creado no se suma: el lugar {} no está en la selección", created.slot);
         }
         else
         {
-            Protocol::Character::CharacterEntry entry;
+            Protocol::FrontEnd::CharacterEntry entry;
             entry.slot = created.slot;
             entry.name = created.name;
             entry.level = created.level;
             entry.classByte = created.classByte;
             entry.withoutEquipment = true;
-            entry.guildStatus = Protocol::Character::NoGuildStatus;
-            std::vector<Protocol::Character::CharacterEntry>& characters = m_characters->characters;
-            const auto same = std::ranges::find(characters, entry.slot, &Protocol::Character::CharacterEntry::slot);
+            entry.guildStatus = Protocol::FrontEnd::NoGuildStatus;
+            std::vector<Protocol::FrontEnd::CharacterEntry>& characters = m_characters->characters;
+            const auto same = std::ranges::find(characters, entry.slot, &Protocol::FrontEnd::CharacterEntry::slot);
             if (same != characters.end())
             {
                 *same = entry;
@@ -1346,16 +1345,16 @@ void ServerSession::OnDeleteResult(const Network::Packet& packet)
         m_log.Warning("se ignora la respuesta de borrar un personaje (F3 02): {}", OutOfTurn);
         return;
     }
-    auto read = Protocol::Character::ReadCharacterDeleteResult(packet);
+    auto read = Protocol::FrontEnd::ReadCharacterDeleteResult(packet);
     if (!read.HasValue())
     {
         m_log.Warning("se ignora la respuesta de borrar un personaje (F3 02): {}", Unreadable);
         return;
     }
     m_deleteResult = read.Value();
-    if (*m_deleteResult == Protocol::Character::CharacterDeleted && m_characters && m_deletingSlot)
+    if (*m_deleteResult == Protocol::FrontEnd::CharacterDeleted && m_characters && m_deletingSlot)
     {
-        std::erase_if(m_characters->characters, [this](const Protocol::Character::CharacterEntry& entry)
+        std::erase_if(m_characters->characters, [this](const Protocol::FrontEnd::CharacterEntry& entry)
                       { return entry.slot == *m_deletingSlot; });
         if (!CheckApplication(m_eventSink.ApplyCharacter(CharacterDeleted{*m_deletingSlot}, *this)))
         {
@@ -1379,11 +1378,11 @@ void ServerSession::OnWorldEntryReply(const Network::Packet& packet)
     {
         // 0x4c396a: sin cifrar no entra al mundo y le avisa al GameServer con el F1 03 00 F3.
         m_log.Warning("la respuesta de entrada al mundo (F3 03) no llegó cifrada: se le avisa al GameServer (F1 03)");
-        Protocol::Outgoing report = Protocol::Connection::WriteClearWorldEntryReport();
+        Protocol::Outgoing report = Protocol::Session::WriteClearWorldEntryReport();
         m_connection.Send(std::move(report.packet), report.delivery);
         return;
     }
-    auto reply = Protocol::Character::ReadCharacterSelectResult(packet);
+    auto reply = Protocol::FrontEnd::ReadCharacterSelectResult(packet);
     if (!reply.HasValue())
     {
         m_log.Warning("se ignora la respuesta de entrada al mundo (F3 03): {}", Unreadable);
@@ -1409,11 +1408,11 @@ void ServerSession::OnInventoryReply(const Network::Packet& packet)
         {
             return;
         }
-        Protocol::Outgoing report = Protocol::Connection::WriteClearWorldEntryReport();
+        Protocol::Outgoing report = Protocol::Session::WriteClearWorldEntryReport();
         m_connection.Send(std::move(report.packet), report.delivery);
         return;
     }
-    auto reply = Protocol::Character::ReadInventoryList(packet);
+    auto reply = Protocol::Items::ReadInventoryList(packet);
     if (!reply.HasValue())
     {
         m_log.Warning("se ignora el inventario (F3 10): {}", Unreadable);
@@ -1441,7 +1440,7 @@ void ServerSession::OnEventPacket(const Network::Packet& packet)
 // 0x4e36b5: sin guarda de escena, estado de login ni procedencia cifrada. La Connection ya normalizó C3.
 void ServerSession::OnWeather(const Network::Packet& packet)
 {
-    auto weather = Protocol::World::ReadWeather(packet);
+    auto weather = Protocol::Movement::ReadWeather(packet);
     if (!weather.HasValue())
     {
         m_log.Warning("se ignora el clima (0F): {}", Unreadable);
@@ -1454,7 +1453,7 @@ void ServerSession::OnWeather(const Network::Packet& packet)
 // ni el flag de cifrado. Los avisos del log no llevan el nombre ni el texto.
 void ServerSession::OnChat(const Network::Packet& packet)
 {
-    const auto chat = Protocol::Messages::ReadChat(packet);
+    const auto chat = Protocol::Chat::ReadChat(packet);
     if (!chat.HasValue())
     {
         m_log.Warning("se ignora el chat (00): {}", Unreadable);
@@ -1465,7 +1464,7 @@ void ServerSession::OnChat(const Network::Packet& packet)
 
 void ServerSession::OnKeyChat(const Network::Packet& packet)
 {
-    const auto chat = Protocol::Messages::ReadKeyChat(packet);
+    const auto chat = Protocol::Chat::ReadKeyChat(packet);
     if (!chat.HasValue())
     {
         m_log.Warning("se ignora el chat por clave (01): {}", Unreadable);
@@ -1476,7 +1475,7 @@ void ServerSession::OnKeyChat(const Network::Packet& packet)
 
 void ServerSession::OnWhisper(const Network::Packet& packet)
 {
-    const auto whisper = Protocol::Messages::ReadWhisper(packet);
+    const auto whisper = Protocol::Chat::ReadWhisper(packet);
     if (!whisper.HasValue())
     {
         m_log.Warning("se ignora el susurro (02): {}", Unreadable);
@@ -1487,7 +1486,7 @@ void ServerSession::OnWhisper(const Network::Packet& packet)
 
 void ServerSession::OnWhisperResult(const Network::Packet& packet)
 {
-    const auto result = Protocol::Messages::ReadWhisperResult(packet);
+    const auto result = Protocol::Chat::ReadWhisperResult(packet);
     if (!result.HasValue())
     {
         m_log.Warning("se ignora el resultado del susurro (0C): {}", Unreadable);
@@ -1509,7 +1508,7 @@ void ServerSession::OnGuild(const Network::Packet& packet)
 
 void ServerSession::OnFriendList(const Network::Packet& packet)
 {
-    const auto list = Protocol::Friends::ReadFriendList(packet);
+    const auto list = Protocol::Messenger::ReadFriendList(packet);
     if (!list.HasValue())
     {
         m_log.Warning("se ignora la lista de amigos (C0): {}", Unreadable);
@@ -1520,7 +1519,7 @@ void ServerSession::OnFriendList(const Network::Packet& packet)
 
 void ServerSession::OnFriendAddResult(const Network::Packet& packet)
 {
-    const auto result = Protocol::Friends::ReadFriendAddResult(packet);
+    const auto result = Protocol::Messenger::ReadFriendAddResult(packet);
     if (!result.HasValue())
     {
         m_log.Warning("se ignora el resultado de agregar un amigo (C1): {}", Unreadable);
@@ -1531,7 +1530,7 @@ void ServerSession::OnFriendAddResult(const Network::Packet& packet)
 
 void ServerSession::OnFriendRequest(const Network::Packet& packet)
 {
-    const auto request = Protocol::Friends::ReadFriendRequest(packet);
+    const auto request = Protocol::Messenger::ReadFriendRequest(packet);
     if (!request.HasValue())
     {
         m_log.Warning("se ignora el pedido de amistad (C2): {}", Unreadable);
@@ -1542,7 +1541,7 @@ void ServerSession::OnFriendRequest(const Network::Packet& packet)
 
 void ServerSession::OnFriendDeleteResult(const Network::Packet& packet)
 {
-    const auto result = Protocol::Friends::ReadFriendDeleteResult(packet);
+    const auto result = Protocol::Messenger::ReadFriendDeleteResult(packet);
     if (!result.HasValue())
     {
         m_log.Warning("se ignora el resultado de borrar un amigo (C3): {}", Unreadable);
@@ -1553,7 +1552,7 @@ void ServerSession::OnFriendDeleteResult(const Network::Packet& packet)
 
 void ServerSession::OnFriendState(const Network::Packet& packet)
 {
-    const auto state = Protocol::Friends::ReadFriendState(packet);
+    const auto state = Protocol::Messenger::ReadFriendState(packet);
     if (!state.HasValue())
     {
         m_log.Warning("se ignora el estado de un amigo (C4): {}", Unreadable);
@@ -1564,7 +1563,7 @@ void ServerSession::OnFriendState(const Network::Packet& packet)
 
 void ServerSession::OnLetterSendResult(const Network::Packet& packet)
 {
-    const auto read = Protocol::Letters::ReadLetterSendResult(packet);
+    const auto read = Protocol::Messenger::ReadLetterSendResult(packet);
     if (!read.HasValue())
     {
         m_log.Warning("se ignora el resultado de mandar una carta (C5): {}", Unreadable);
@@ -1575,7 +1574,7 @@ void ServerSession::OnLetterSendResult(const Network::Packet& packet)
 
 void ServerSession::OnLetterRow(const Network::Packet& packet)
 {
-    const auto read = Protocol::Letters::ReadLetterRow(packet);
+    const auto read = Protocol::Messenger::ReadLetterRow(packet);
     if (!read.HasValue())
     {
         m_log.Warning("se ignora una carta de la lista (C6): {}", Unreadable);
@@ -1586,7 +1585,7 @@ void ServerSession::OnLetterRow(const Network::Packet& packet)
 
 void ServerSession::OnLetterRead(const Network::Packet& packet)
 {
-    const auto read = Protocol::Letters::ReadLetterRead(packet);
+    const auto read = Protocol::Messenger::ReadLetterRead(packet);
     if (!read.HasValue())
     {
         m_log.Warning("se ignora la carta para leer (C7): {}", Unreadable);
@@ -1597,7 +1596,7 @@ void ServerSession::OnLetterRead(const Network::Packet& packet)
 
 void ServerSession::OnLetterDeleteResult(const Network::Packet& packet)
 {
-    const auto read = Protocol::Letters::ReadLetterDeleteResult(packet);
+    const auto read = Protocol::Messenger::ReadLetterDeleteResult(packet);
     if (!read.HasValue())
     {
         m_log.Warning("se ignora el resultado de borrar una carta (C8): {}", Unreadable);
@@ -1608,7 +1607,7 @@ void ServerSession::OnLetterDeleteResult(const Network::Packet& packet)
 
 void ServerSession::OnRoomAnswer(const Network::Packet& packet)
 {
-    const auto read = Protocol::FriendChat::ReadRoomAnswer(packet);
+    const auto read = Protocol::Messenger::ReadRoomAnswer(packet);
     if (!read.HasValue())
     {
         m_log.Warning("se ignora la sala del chat con un amigo (CA): {}", Unreadable);
@@ -1619,7 +1618,7 @@ void ServerSession::OnRoomAnswer(const Network::Packet& packet)
 
 void ServerSession::OnInviteResult(const Network::Packet& packet)
 {
-    const auto read = Protocol::FriendChat::ReadInviteResult(packet);
+    const auto read = Protocol::Messenger::ReadInviteResult(packet);
     if (!read.HasValue())
     {
         m_log.Warning("se ignora el resultado de invitar al chat (CB): {}", Unreadable);
@@ -1630,7 +1629,7 @@ void ServerSession::OnInviteResult(const Network::Packet& packet)
 
 void ServerSession::OnNotice(const Network::Packet& packet)
 {
-    const auto notice = Protocol::Messages::ReadNotice(packet);
+    const auto notice = Protocol::Chat::ReadNotice(packet);
     if (!notice.HasValue())
     {
         m_log.Warning("se ignora el aviso (0D): {}", Unreadable);
@@ -1652,7 +1651,7 @@ void ServerSession::OnCastleSiege(const Network::Packet& packet)
 
 void ServerSession::OnCastleBattle(const Network::Packet& packet)
 {
-    auto battle = Protocol::CastleBattle::ReadCastleBattlePacket(packet);
+    auto battle = Protocol::CastleSiege::ReadCastleBattlePacket(packet);
     if (!battle.HasValue())
     {
         m_log.Warning("se ignora el paquete de la batalla del castillo: {}", Unreadable);
@@ -1663,7 +1662,7 @@ void ServerSession::OnCastleBattle(const Network::Packet& packet)
 
 void ServerSession::OnOptionData(const Network::Packet& packet)
 {
-    const auto options = Protocol::OptionData::ReadOptionData(packet);
+    const auto options = Protocol::Player::ReadOptionData(packet);
     if (!options.HasValue())
     {
         m_log.Warning("se ignoran las opciones (F3 30): {}", Unreadable);
@@ -1681,11 +1680,11 @@ void ServerSession::OnItemMove(const Network::Packet& packet)
     if (!packet.WasDecrypted())
     {
         m_log.Warning("el movimiento de ítem (24) no llegó cifrado: se le avisa al GameServer (F1 03)");
-        Protocol::Outgoing report = Protocol::Inventory::WriteClearItemMoveReport();
+        Protocol::Outgoing report = Protocol::Items::WriteClearItemMoveReport();
         m_connection.Send(std::move(report.packet), report.delivery);
         return;
     }
-    const auto result = Protocol::Inventory::ReadItemMoveResult(packet);
+    const auto result = Protocol::Items::ReadItemMoveResult(packet);
     if (!result.HasValue())
     {
         m_log.Warning("se ignora el movimiento de ítem (24): {}", Unreadable);
@@ -1700,11 +1699,11 @@ void ServerSession::OnTalkResult(const Network::Packet& packet)
     if (!packet.WasDecrypted())
     {
         m_log.Warning("lo que abre el NPC (30) no llegó cifrado: se le avisa al GameServer (F1 03)");
-        Protocol::Outgoing report = Protocol::NpcWindows::WriteClearTalkReport();
+        Protocol::Outgoing report = Protocol::Npc::WriteClearTalkReport();
         m_connection.Send(std::move(report.packet), report.delivery);
         return;
     }
-    const auto talk = Protocol::NpcWindows::ReadTalkResult(packet);
+    const auto talk = Protocol::Npc::ReadTalkResult(packet);
     if (!talk.HasValue())
     {
         m_log.Warning("se ignora lo que abre el NPC (30): {}", Unreadable);
@@ -1725,7 +1724,7 @@ template <typename Value> std::optional<WorldEvent> EventOf(const Core::Expected
 // El dispatcher 0x4e2b10 (0x4e3c2a..0x4e3d24 y 0x4e4692..0x4e4862) no mira si llegaron cifrados.
 std::optional<WorldEvent> ReadNpcWindowEvent(const Network::Packet& packet)
 {
-    namespace Npc = Protocol::NpcWindows;
+    namespace Npc = Protocol::Npc;
     switch (Network::ByteOf(packet.Opcode().value_or(Network::Opcode{})))
     {
     case Network::ByteOf(Protocol::NpcItemListOpcode):
@@ -1764,7 +1763,7 @@ void ServerSession::OnNpcWindow(const Network::Packet& packet)
 // y 0x4d3820 no miran cuál es.
 void ServerSession::OnLifeRefill(const Network::Packet& packet)
 {
-    const auto refill = Protocol::Inventory::ReadLifeRefill(packet);
+    const auto refill = Protocol::Items::ReadLifeRefill(packet);
     if (!refill.HasValue())
     {
         m_log.Warning("se ignora la vida (26): {}", Unreadable);
@@ -1775,7 +1774,7 @@ void ServerSession::OnLifeRefill(const Network::Packet& packet)
 
 void ServerSession::OnManaRefill(const Network::Packet& packet)
 {
-    const auto refill = Protocol::Inventory::ReadManaRefill(packet);
+    const auto refill = Protocol::Items::ReadManaRefill(packet);
     if (!refill.HasValue())
     {
         m_log.Warning("se ignora el maná (27): {}", Unreadable);
@@ -1786,7 +1785,7 @@ void ServerSession::OnManaRefill(const Network::Packet& packet)
 
 void ServerSession::OnItemDelete(const Network::Packet& packet)
 {
-    const auto deleted = Protocol::Inventory::ReadItemDelete(packet);
+    const auto deleted = Protocol::Items::ReadItemDelete(packet);
     if (!deleted.HasValue())
     {
         m_log.Warning("se ignora el borrado de ítem (28): {}", Unreadable);
@@ -1799,7 +1798,7 @@ void ServerSession::OnDurability(const Network::Packet& packet)
 {
     // 0x4e3ace..0x4e3b53: la copia en la cola, antes del lector, incluso si está corto.
     m_eventSink.CopyToPacketRing(packet.Bytes());
-    const auto durability = Protocol::Inventory::ReadDurability(packet);
+    const auto durability = Protocol::Items::ReadDurability(packet);
     if (!durability.HasValue())
     {
         m_log.Warning("se ignora la durabilidad (2A): {}", Unreadable);
@@ -1810,7 +1809,7 @@ void ServerSession::OnDurability(const Network::Packet& packet)
 
 void ServerSession::OnEquipmentChange(const Network::Packet& packet)
 {
-    const auto change = Protocol::Inventory::ReadEquipmentChange(packet);
+    const auto change = Protocol::Items::ReadEquipmentChange(packet);
     if (!change.HasValue())
     {
         m_log.Warning("se ignora el equipo de otro (F3 13): {}", Unreadable);
@@ -1821,7 +1820,7 @@ void ServerSession::OnEquipmentChange(const Network::Packet& packet)
 
 void ServerSession::OnItemPut(const Network::Packet& packet)
 {
-    const auto put = Protocol::Inventory::ReadItemPut(packet);
+    const auto put = Protocol::Items::ReadItemPut(packet);
     if (!put.HasValue())
     {
         m_log.Warning("se ignora el ítem puesto (F3 14): {}", Unreadable);
@@ -1830,15 +1829,15 @@ void ServerSession::OnItemPut(const Network::Packet& packet)
     static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(put.Value(), *this)));
 }
 
-Core::Expected<void, std::string> ServerSession::SendItemMove(const Protocol::Inventory::ItemMove& move)
+Core::Expected<void, std::string> ServerSession::SendItemMove(const Protocol::Items::ItemMove& move)
 {
-    return SendWorldPacket(Protocol::Inventory::WriteItemMove(move));
+    return SendWorldPacket(Protocol::Items::WriteItemMove(move));
 }
 
 // 04 § Los ítems del piso (CL9 hito 5).
 void ServerSession::OnFloorItemsCreate(const Network::Packet& packet)
 {
-    const auto created = Protocol::FloorItems::ReadFloorItemsCreate(packet);
+    const auto created = Protocol::Items::ReadFloorItemsCreate(packet);
     if (!created.HasValue())
     {
         m_log.Warning("se ignoran los ítems del piso (20): {}", Unreadable);
@@ -1849,7 +1848,7 @@ void ServerSession::OnFloorItemsCreate(const Network::Packet& packet)
 
 void ServerSession::OnFloorItemsDelete(const Network::Packet& packet)
 {
-    const auto deleted = Protocol::FloorItems::ReadFloorItemsDelete(packet);
+    const auto deleted = Protocol::Items::ReadFloorItemsDelete(packet);
     if (!deleted.HasValue())
     {
         m_log.Warning("se ignora el borrado de ítems del piso (21): {}", Unreadable);
@@ -1860,12 +1859,12 @@ void ServerSession::OnFloorItemsDelete(const Network::Packet& packet)
 
 void ServerSession::OnPickUpResult(const Network::Packet& packet)
 {
-    const auto result = Protocol::FloorItems::ReadPickUpResult(packet);
+    const auto result = Protocol::Items::ReadPickUpResult(packet);
     if (!result.HasValue())
     {
         // 07 Q-C1240: el C3 08 22 FE del GameServer 0.97 (el zen al comprar, vender o reparar) trae el zen, aunque no
         // los siete bytes que el sonido lee desde pkt[4].
-        if (const auto zen = Protocol::FloorItems::ReadShortZenPickUp(packet);
+        if (const auto zen = Protocol::Items::ReadShortZenPickUp(packet);
             result.Error() == Network::ProtocolError::TooShort && zen.HasValue())
         {
             m_log.Debug("el 22 con el zen llegó corto: se aplica el zen, sin el sonido (07 Q-C1240)");
@@ -1875,8 +1874,7 @@ void ServerSession::OnPickUpResult(const Network::Packet& packet)
         m_log.Warning("se ignora lo levantado del piso (22): {}", Unreadable);
         // 07 Q-C1240: 0x4d0cc0 no mira el largo y suelta el pedido (0x4d10b9) en todos sus caminos.
         if (result.Error() == Network::ProtocolError::TooShort)
-            static_cast<void>(
-                CheckApplication(m_eventSink.ApplyWorld(Protocol::FloorItems::ShortPickUpResult{}, *this)));
+            static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(Protocol::Items::ShortPickUpResult{}, *this)));
         return;
     }
     static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(result.Value(), *this)));
@@ -1884,12 +1882,12 @@ void ServerSession::OnPickUpResult(const Network::Packet& packet)
 
 void ServerSession::OnDropResult(const Network::Packet& packet)
 {
-    const auto result = Protocol::FloorItems::ReadDropResult(packet);
+    const auto result = Protocol::Items::ReadDropResult(packet);
     if (!result.HasValue())
     {
         m_log.Warning("se ignora lo tirado al piso (23): {}", Unreadable);
         // 07 Q-C1240: 0x4d10d0 suelta el lugar tirado (0x4d13d1 y 0x4d13e5) en todos sus caminos.
-        const auto unread = Protocol::FloorItems::ReadShortDropResult(packet);
+        const auto unread = Protocol::Items::ReadShortDropResult(packet);
         if (result.Error() == Network::ProtocolError::TooShort && unread.HasValue())
             static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(unread.Value(), *this)));
         return;
@@ -1899,13 +1897,13 @@ void ServerSession::OnDropResult(const Network::Packet& packet)
 
 void ServerSession::OnStatFruit(const Network::Packet& packet)
 {
-    const auto fruit = Protocol::FloorItems::ReadStatFruit(packet);
+    const auto fruit = Protocol::Items::ReadStatFruit(packet);
     if (!fruit.HasValue())
     {
         m_log.Warning("se ignora la fruta de stats (2C): {}", Unreadable);
         // 07 Q-C1240: 0x4de500 no mira el largo y termina la espera del uso (0x4deb0e) en todos sus caminos.
         if (fruit.Error() == Network::ProtocolError::TooShort)
-            static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(Protocol::FloorItems::ShortStatFruit{}, *this)));
+            static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(Protocol::Items::ShortStatFruit{}, *this)));
         return;
     }
     static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(fruit.Value(), *this)));
@@ -1913,23 +1911,23 @@ void ServerSession::OnStatFruit(const Network::Packet& packet)
 
 Core::Expected<void, std::string> ServerSession::SendPickUp(std::uint16_t index)
 {
-    return SendWorldPacket(Protocol::FloorItems::WritePickUp(index));
+    return SendWorldPacket(Protocol::Items::WritePickUp(index));
 }
 
-Core::Expected<void, std::string> ServerSession::SendDrop(const Protocol::FloorItems::Drop& drop)
+Core::Expected<void, std::string> ServerSession::SendDrop(const Protocol::Items::Drop& drop)
 {
-    return SendWorldPacket(Protocol::FloorItems::WriteDrop(drop));
+    return SendWorldPacket(Protocol::Items::WriteDrop(drop));
 }
 
-Core::Expected<void, std::string> ServerSession::SendUseItem(const Protocol::FloorItems::UseItem& use)
+Core::Expected<void, std::string> ServerSession::SendUseItem(const Protocol::Items::UseItem& use)
 {
-    return SendWorldPacket(Protocol::FloorItems::WriteUseItem(use));
+    return SendWorldPacket(Protocol::Items::WriteUseItem(use));
 }
 
 void ServerSession::ResendServerListRequest()
 {
     m_log.Info("el 00 llegó en el login: se pide la lista de servidores por el GameServer");
-    static_cast<void>(SendWorldPacket(Protocol::Connection::WriteServerListRequest()));
+    static_cast<void>(SendWorldPacket(Protocol::Session::WriteServerListRequest()));
 }
 
 void ServerSession::SendCreditsNotice()
@@ -1940,7 +1938,7 @@ void ServerSession::SendCreditsNotice()
         return;
     }
     m_log.Info("los créditos mandan el F4 06 al {}", ServerName());
-    Protocol::Outgoing notice = Protocol::Connection::WriteCreditsNotice();
+    Protocol::Outgoing notice = Protocol::Session::WriteCreditsNotice();
     m_connection.Send(std::move(notice.packet), notice.delivery);
 }
 
@@ -1987,24 +1985,24 @@ Core::Expected<void, std::string> ServerSession::SendElfCell(std::uint8_t x, std
     return SendWorldPacket(Protocol::Combat::WriteElfCell(x, y));
 }
 
-Core::Expected<void, std::string> ServerSession::SendOptionData(const Protocol::OptionData::OptionBody& body)
+Core::Expected<void, std::string> ServerSession::SendOptionData(const Protocol::Player::OptionBody& body)
 {
-    return SendWorldPacket(Protocol::OptionData::WriteOptionData(body));
+    return SendWorldPacket(Protocol::Player::WriteOptionData(body));
 }
 
 void ServerSession::RequestGate(std::uint8_t gate)
 {
-    static_cast<void>(SendWorldPacket(Protocol::World::WriteGateRequest(gate)));
+    static_cast<void>(SendWorldPacket(Protocol::Movement::WriteGateRequest(gate)));
 }
 
 void ServerSession::ConfirmTeleport()
 {
-    static_cast<void>(SendWorldPacket(Protocol::World::WriteTeleportDone()));
+    static_cast<void>(SendWorldPacket(Protocol::Movement::WriteTeleportDone()));
 }
 
 void ServerSession::RequestCrywolfState()
 {
-    static_cast<void>(SendWorldPacket(Protocol::World::WriteCrywolfState()));
+    static_cast<void>(SendWorldPacket(Protocol::Movement::WriteCrywolfState()));
 }
 
 void ServerSession::SendChat(Protocol::Outgoing packet)
@@ -2014,7 +2012,7 @@ void ServerSession::SendChat(Protocol::Outgoing packet)
 
 void ServerSession::RequestCastleSiegeState()
 {
-    static_cast<void>(SendWorldPacket(Protocol::World::WriteCastleSiegeState()));
+    static_cast<void>(SendWorldPacket(Protocol::Movement::WriteCastleSiegeState()));
 }
 
 Core::Expected<void, std::string> ServerSession::SendNpcWindowPacket(Protocol::Outgoing packet)
@@ -2039,22 +2037,22 @@ void ServerSession::SendGuildPacket(Protocol::Outgoing packet)
 
 void ServerSession::RequestQuestList()
 {
-    static_cast<void>(SendWorldPacket(Protocol::Quest::WriteQuestListRequest()));
+    static_cast<void>(SendWorldPacket(Protocol::Quests::WriteQuestListRequest()));
 }
 
 void ServerSession::SendSetQuest(std::uint8_t quest, std::uint8_t state)
 {
-    static_cast<void>(SendWorldPacket(Protocol::Quest::WriteSetQuest(quest, state)));
+    static_cast<void>(SendWorldPacket(Protocol::Quests::WriteSetQuest(quest, state)));
 }
 
 void ServerSession::SendTalk(std::int16_t key)
 {
-    static_cast<void>(SendWorldPacket(Protocol::Quest::WriteTalk(key)));
+    static_cast<void>(SendWorldPacket(Protocol::Quests::WriteTalk(key)));
 }
 
 void ServerSession::SendWindowClose()
 {
-    static_cast<void>(SendWorldPacket(Protocol::Connection::WriteWindowClose()));
+    static_cast<void>(SendWorldPacket(Protocol::Session::WriteWindowClose()));
 }
 
 Core::Expected<void, std::string> ServerSession::SendEventWindowLeave()
@@ -2070,7 +2068,7 @@ Core::Expected<void, std::string> ServerSession::SendChaosCastleReposition(std::
 // 0x4e4b3a..0x4e4bf2: las misiones, sin guarda de escena ni del flag de cifrado (CL9 hito 2).
 void ServerSession::OnQuestFlag(const Network::Packet& packet)
 {
-    const auto flag = Protocol::Quest::ReadQuestFlag(packet);
+    const auto flag = Protocol::Quests::ReadQuestFlag(packet);
     if (!flag.HasValue())
     {
         m_log.Warning("se ignora el 9F de las misiones: {}", Unreadable);
@@ -2081,7 +2079,7 @@ void ServerSession::OnQuestFlag(const Network::Packet& packet)
 
 void ServerSession::OnQuestList(const Network::Packet& packet)
 {
-    auto list = Protocol::Quest::ReadQuestList(packet);
+    auto list = Protocol::Quests::ReadQuestList(packet);
     if (!list.HasValue())
     {
         m_log.Warning("se ignora la lista de las misiones (A0): {}", Unreadable);
@@ -2092,7 +2090,7 @@ void ServerSession::OnQuestList(const Network::Packet& packet)
 
 void ServerSession::OnQuestState(const Network::Packet& packet)
 {
-    const auto state = Protocol::Quest::ReadQuestState(packet);
+    const auto state = Protocol::Quests::ReadQuestState(packet);
     if (!state.HasValue())
     {
         m_log.Warning("se ignora el estado de una misión (A1): {}", Unreadable);
@@ -2103,7 +2101,7 @@ void ServerSession::OnQuestState(const Network::Packet& packet)
 
 void ServerSession::OnSetQuestResult(const Network::Packet& packet)
 {
-    const auto result = Protocol::Quest::ReadSetQuestResult(packet);
+    const auto result = Protocol::Quests::ReadSetQuestResult(packet);
     if (!result.HasValue())
     {
         m_log.Warning("se ignora la respuesta del A2: {}", Unreadable);
@@ -2114,7 +2112,7 @@ void ServerSession::OnSetQuestResult(const Network::Packet& packet)
 
 void ServerSession::OnQuestResult(const Network::Packet& packet)
 {
-    const auto result = Protocol::Quest::ReadQuestResult(packet);
+    const auto result = Protocol::Quests::ReadQuestResult(packet);
     if (!result.HasValue())
     {
         m_log.Warning("se ignora el premio de una misión (A3): {}", Unreadable);
@@ -2210,7 +2208,7 @@ void ServerSession::PollTheChatRooms()
             {
                 // Los handlers de 0x4e2a60 leen cada paquete por su lugar sin mirar su largo: uno más corto que lo que
                 // lee su handler no se aplica, y la sesión sigue (Q-C1011). El aviso no lleva el texto.
-                if (!Protocol::FriendChat::CheckRoomPacket(*packet).HasValue())
+                if (!Protocol::Messenger::CheckRoomPacket(*packet).HasValue())
                 {
                     m_log.Warning("se ignora el {:02X} de la sala {} del chat con un amigo: {}",
                                   Network::ByteOf(packet->Opcode().value_or(Network::Opcode{})), room, Unreadable);
@@ -2261,11 +2259,11 @@ void ServerSession::OnMagicAttack(const Network::Packet& packet)
     if (!packet.WasDecrypted())
     {
         m_log.Warning("la skill (19) no llegó cifrada: se le avisa al GameServer (F1 03)");
-        Protocol::Outgoing report = Protocol::Skill::WriteClearSkillReport(Protocol::MagicAttackOpcode);
+        Protocol::Outgoing report = Protocol::Skills::WriteClearSkillReport(Protocol::MagicAttackOpcode);
         m_connection.Send(std::move(report.packet), report.delivery);
         return;
     }
-    const auto attack = Protocol::Skill::ReadMagicAttack(packet);
+    const auto attack = Protocol::Skills::ReadMagicAttack(packet);
     if (!attack.HasValue())
     {
         m_log.Warning("se ignora la skill (19): {}", Unreadable);
@@ -2280,11 +2278,11 @@ void ServerSession::OnDurationMagic(const Network::Packet& packet)
     if (!packet.WasDecrypted())
     {
         m_log.Warning("la skill con duración (1E) no llegó cifrada: se le avisa al GameServer (F1 03)");
-        Protocol::Outgoing report = Protocol::Skill::WriteClearSkillReport(Protocol::DurationMagicOpcode);
+        Protocol::Outgoing report = Protocol::Skills::WriteClearSkillReport(Protocol::DurationMagicOpcode);
         m_connection.Send(std::move(report.packet), report.delivery);
         return;
     }
-    const auto magic = Protocol::Skill::ReadDurationMagic(packet);
+    const auto magic = Protocol::Skills::ReadDurationMagic(packet);
     if (!magic.HasValue())
     {
         m_log.Warning("se ignora la skill con duración (1E): {}", Unreadable);
@@ -2295,7 +2293,7 @@ void ServerSession::OnDurationMagic(const Network::Packet& packet)
 
 void ServerSession::OnMagicCancel(const Network::Packet& packet)
 {
-    const auto cancel = Protocol::Skill::ReadMagicCancel(packet);
+    const auto cancel = Protocol::Skills::ReadMagicCancel(packet);
     if (!cancel.HasValue())
     {
         m_log.Warning("se ignora el fin de la skill (1B): {}", Unreadable);
@@ -2306,7 +2304,7 @@ void ServerSession::OnMagicCancel(const Network::Packet& packet)
 
 void ServerSession::OnActorState(const Network::Packet& packet)
 {
-    const auto state = Protocol::Skill::ReadActorState(packet);
+    const auto state = Protocol::Skills::ReadActorState(packet);
     if (!state.HasValue())
     {
         m_log.Warning("se ignora el estado del personaje (07): {}", Unreadable);
@@ -2317,7 +2315,7 @@ void ServerSession::OnActorState(const Network::Packet& packet)
 
 void ServerSession::OnActorEffect(const Network::Packet& packet)
 {
-    const auto effect = Protocol::Skill::ReadActorEffect(packet);
+    const auto effect = Protocol::Skills::ReadActorEffect(packet);
     if (!effect.HasValue())
     {
         m_log.Warning("se ignora el efecto del personaje (48): {}", Unreadable);
@@ -2328,7 +2326,7 @@ void ServerSession::OnActorEffect(const Network::Packet& packet)
 
 void ServerSession::OnSkillTarget(const Network::Packet& packet)
 {
-    const auto target = Protocol::Skill::ReadSkillTarget(packet);
+    const auto target = Protocol::Skills::ReadSkillTarget(packet);
     if (!target.HasValue())
     {
         m_log.Warning("se ignora el blanco de la skill (69): {}", Unreadable);
@@ -2343,13 +2341,13 @@ void ServerSession::OnReport73(const Network::Packet& packet)
     if (packet.WasDecrypted())
         return;
     m_log.Warning("el 73 no llegó cifrado: se le avisa al GameServer (F1 03)");
-    Protocol::Outgoing report = Protocol::Skill::WriteClearSkillReport(Protocol::Skill::Report73Head);
+    Protocol::Outgoing report = Protocol::Skills::WriteClearSkillReport(Protocol::Skills::Report73Head);
     m_connection.Send(std::move(report.packet), report.delivery);
 }
 
 void ServerSession::OnSkillList(const Network::Packet& packet)
 {
-    const auto list = Protocol::Skill::ReadSkillList(packet);
+    const auto list = Protocol::Skills::ReadSkillList(packet);
     if (!list.HasValue())
     {
         m_log.Warning("se ignora la lista de skills (F3 11): {}", Unreadable);
@@ -2360,7 +2358,7 @@ void ServerSession::OnSkillList(const Network::Packet& packet)
 
 void ServerSession::OnLevelUp(const Network::Packet& packet)
 {
-    const auto reply = Protocol::Skill::ReadLevelUp(packet);
+    const auto reply = Protocol::Skills::ReadLevelUp(packet);
     if (!reply.HasValue())
     {
         m_log.Warning("se ignora la subida de nivel (F3 05): {}", Unreadable);
@@ -2371,7 +2369,7 @@ void ServerSession::OnLevelUp(const Network::Packet& packet)
 
 void ServerSession::OnLevelUpPointResult(const Network::Packet& packet)
 {
-    const auto reply = Protocol::Character::ReadLevelUpPointResult(packet);
+    const auto reply = Protocol::Player::ReadLevelUpPointResult(packet);
     if (!reply.HasValue())
     {
         m_log.Warning("se ignora el punto de subir de nivel (F3 06): {}", Unreadable);
@@ -2382,7 +2380,7 @@ void ServerSession::OnLevelUpPointResult(const Network::Packet& packet)
 
 void ServerSession::OnPkLevel(const Network::Packet& packet)
 {
-    const auto level = Protocol::Character::ReadPkLevel(packet);
+    const auto level = Protocol::Player::ReadPkLevel(packet);
     if (!level.HasValue())
     {
         m_log.Warning("se ignora el estado de PK (F3 08): {}", Unreadable);
@@ -2393,7 +2391,7 @@ void ServerSession::OnPkLevel(const Network::Packet& packet)
 
 void ServerSession::OnSummonLife(const Network::Packet& packet)
 {
-    const auto summon = Protocol::Skill::ReadSummonLife(packet);
+    const auto summon = Protocol::Skills::ReadSummonLife(packet);
     if (!summon.HasValue())
     {
         m_log.Warning("se ignora la vida del invocado (F3 20): {}", Unreadable);
@@ -2405,7 +2403,7 @@ void ServerSession::OnSummonLife(const Network::Packet& packet)
 // 0x4e4c0a: la orden del cuervo del héroe, sin mirar el cifrado.
 void ServerSession::OnPetOrder(const Network::Packet& packet)
 {
-    const auto order = Protocol::Pet::ReadPetOrder(packet);
+    const auto order = Protocol::Pets::ReadPetOrder(packet);
     if (!order.HasValue())
     {
         m_log.Warning("se ignora la orden del cuervo (A7): {}", Unreadable);
@@ -2417,7 +2415,7 @@ void ServerSession::OnPetOrder(const Network::Packet& packet)
 // 0x4e4c42: el ataque del cuervo de un Dark Lord, sin mirar el cifrado.
 void ServerSession::OnPetAttack(const Network::Packet& packet)
 {
-    const auto attack = Protocol::Pet::ReadPetAttack(packet);
+    const auto attack = Protocol::Pets::ReadPetAttack(packet);
     if (!attack.HasValue())
     {
         m_log.Warning("se ignora el ataque del cuervo (A8): {}", Unreadable);
@@ -2429,7 +2427,7 @@ void ServerSession::OnPetAttack(const Network::Packet& packet)
 // 0x4e4ca1: la información de una mascota, sin mirar el cifrado.
 void ServerSession::OnPetInfo(const Network::Packet& packet)
 {
-    const auto info = Protocol::Pet::ReadPetInfoReply(packet);
+    const auto info = Protocol::Pets::ReadPetInfoReply(packet);
     if (!info.HasValue())
     {
         m_log.Warning("se ignora la información de la mascota (A9): {}", Unreadable);
@@ -2504,7 +2502,7 @@ void ServerSession::OnViewportPlayers(const Network::Packet& packet)
 {
     // 0x4e372e..0x4e37b8: la copia en la cola, antes del lector, incluso si está corto.
     m_eventSink.CopyToPacketRing(packet.Bytes());
-    const auto players = Protocol::Viewport::ReadPlayers(packet);
+    const auto players = Protocol::Actors::ReadPlayers(packet);
     if (!players.HasValue())
     {
         m_log.Warning("se ignoran los jugadores del viewport (12): {}", Unreadable);
@@ -2515,7 +2513,7 @@ void ServerSession::OnViewportPlayers(const Network::Packet& packet)
 
 void ServerSession::OnViewportLeave(const Network::Packet& packet)
 {
-    const auto leave = Protocol::Viewport::ReadLeave(packet);
+    const auto leave = Protocol::Actors::ReadLeave(packet);
     if (!leave.HasValue())
     {
         m_log.Warning("se ignoran las bajas del viewport (14): {}", Unreadable);
@@ -2526,7 +2524,7 @@ void ServerSession::OnViewportLeave(const Network::Packet& packet)
 
 void ServerSession::OnTransformed(const Network::Packet& packet)
 {
-    const auto transformed = Protocol::Viewport::ReadTransformed(packet);
+    const auto transformed = Protocol::Actors::ReadTransformed(packet);
     if (!transformed.HasValue())
     {
         m_log.Warning("se ignoran los transformados del viewport (45): {}", Unreadable);
@@ -2537,7 +2535,7 @@ void ServerSession::OnTransformed(const Network::Packet& packet)
 
 void ServerSession::OnEquipmentShown(const Network::Packet& packet)
 {
-    const auto shown = Protocol::Viewport::ReadEquipmentShown(packet);
+    const auto shown = Protocol::Actors::ReadEquipmentShown(packet);
     if (!shown.HasValue())
     {
         m_log.Warning("se ignora el equipo de otro (25): {}", Unreadable);
@@ -2548,7 +2546,7 @@ void ServerSession::OnEquipmentShown(const Network::Packet& packet)
 
 void ServerSession::OnViewportPosition(const Network::Packet& packet)
 {
-    const auto position = Protocol::Viewport::ReadPosition(packet);
+    const auto position = Protocol::Actors::ReadPosition(packet);
     if (!position.HasValue())
     {
         m_log.Warning("se ignora la posición de otro (DF): {}", Unreadable);
@@ -2560,7 +2558,7 @@ void ServerSession::OnViewportPosition(const Network::Packet& packet)
 // 0x4e37d1, 0x4e37e9 y 0x4e4643: el 13, el 1F y el 68, sin guarda de escena ni del flag de cifrado (CL9 hito 2).
 void ServerSession::OnViewportMonsters(const Network::Packet& packet)
 {
-    const auto monsters = Protocol::Viewport::ReadMonsters(packet);
+    const auto monsters = Protocol::Actors::ReadMonsters(packet);
     if (!monsters.HasValue())
     {
         m_log.Warning("se ignoran los monstruos del viewport (13): {}", Unreadable);
@@ -2571,7 +2569,7 @@ void ServerSession::OnViewportMonsters(const Network::Packet& packet)
 
 void ServerSession::OnSummons(const Network::Packet& packet)
 {
-    const auto summons = Protocol::Viewport::ReadSummons(packet);
+    const auto summons = Protocol::Actors::ReadSummons(packet);
     if (!summons.HasValue())
     {
         m_log.Warning("se ignoran los invocados del viewport (1F): {}", Unreadable);
@@ -2582,7 +2580,7 @@ void ServerSession::OnSummons(const Network::Packet& packet)
 
 void ServerSession::OnMagicAttackCount(const Network::Packet& packet)
 {
-    const auto attack = Protocol::Viewport::ReadMagicAttackCount(packet);
+    const auto attack = Protocol::Actors::ReadMagicAttackCount(packet);
     if (!attack.HasValue())
     {
         m_log.Warning("se ignora la skill que pega a varios (1A): {}", Unreadable);
@@ -2593,7 +2591,7 @@ void ServerSession::OnMagicAttackCount(const Network::Packet& packet)
 
 void ServerSession::OnViewportObjects(const Network::Packet& packet)
 {
-    const auto objects = Protocol::Viewport::ReadObjects(packet);
+    const auto objects = Protocol::Actors::ReadObjects(packet);
     if (!objects.HasValue())
     {
         m_log.Warning("se ignoran los objetos del viewport (68): {}", Unreadable);
@@ -2610,11 +2608,11 @@ void ServerSession::OnTeleport(const Network::Packet& packet)
     if (!packet.WasDecrypted())
     {
         m_log.Warning("el warp (1C) no llegó cifrado: se le avisa al GameServer (F1 03)");
-        Protocol::Outgoing report = Protocol::World::WriteRejectedTeleport();
+        Protocol::Outgoing report = Protocol::Movement::WriteRejectedTeleport();
         m_connection.Send(std::move(report.packet), report.delivery);
         return;
     }
-    const auto teleport = Protocol::World::ReadTeleport(packet);
+    const auto teleport = Protocol::Movement::ReadTeleport(packet);
     if (!teleport.HasValue())
     {
         m_log.Warning("se ignora el warp (1C): {}", Unreadable);
@@ -2626,7 +2624,7 @@ void ServerSession::OnTeleport(const Network::Packet& packet)
 // 0x4c4b80 recibe sólo el paquete: no mira el flag de cifrado.
 void ServerSession::OnRegen(const Network::Packet& packet)
 {
-    const auto regen = Protocol::World::ReadRegen(packet);
+    const auto regen = Protocol::Movement::ReadRegen(packet);
     if (!regen.HasValue())
     {
         m_log.Warning("se ignora la reaparición (F3 04): {}", Unreadable);
@@ -2643,24 +2641,24 @@ void ServerSession::OnRegen(const Network::Packet& packet)
 // lectura) no se recorre (Q-C106). El 1 tampoco mira el estado ni la escena (ReturnToSelection).
 void ServerSession::OnLogoutResult(const Network::Packet& packet)
 {
-    const auto result = Protocol::Connection::ReadLogoutResult(packet);
+    const auto result = Protocol::Session::ReadLogoutResult(packet);
     if (!result.HasValue())
     {
         m_log.Warning("se ignora la orden de salida del GameServer (F1 02): {}", Unreadable);
         return;
     }
     m_eventSink.ClearLogoutRequest(); // 0x4c273f, antes del switch y del guard de cifrado.
-    if (result.Value() == Protocol::Connection::LogoutReturnsToSelection)
+    if (result.Value() == Protocol::Session::LogoutReturnsToSelection)
     {
         ReturnToSelection(packet.WasDecrypted());
         return;
     }
-    if (result.Value() == Protocol::Connection::LogoutReturnsToServerList)
+    if (result.Value() == Protocol::Session::LogoutReturnsToServerList)
     {
         ReturnToServerList(packet.WasDecrypted());
         return;
     }
-    if (result.Value() != Protocol::Connection::LogoutQuitsTheGame)
+    if (result.Value() != Protocol::Session::LogoutQuitsTheGame)
     {
         // Con otro resultado, el original no hace nada.
         m_log.Warning("se ignora la orden de salida del GameServer (F1 02 con {}): motivo desconocido", result.Value());
@@ -2680,7 +2678,7 @@ void ServerSession::ReturnToServerList(bool encrypted)
     if (!encrypted)
     {
         m_log.Warning("la orden de volver a los servidores (F1 02 con 2) no llegó cifrada: se avisa al GameServer");
-        Protocol::Outgoing report = Protocol::Connection::WriteClearLogoutReport();
+        Protocol::Outgoing report = Protocol::Session::WriteClearLogoutReport();
         m_connection.Send(std::move(report.packet), report.delivery);
         return;
     }
@@ -2711,7 +2709,7 @@ void ServerSession::ReturnToSelection(bool encrypted)
     {
         m_log.Warning("la orden de volver a la selección (F1 02 con 1) no llegó cifrada: se le avisa al GameServer "
                       "(F1 03) y se sigue igual");
-        Protocol::Outgoing report = Protocol::Connection::WriteClearLogoutReport();
+        Protocol::Outgoing report = Protocol::Session::WriteClearLogoutReport();
         m_connection.Send(std::move(report.packet), report.delivery);
         return;
     }
@@ -2722,7 +2720,7 @@ void ServerSession::ReturnToSelection(bool encrypted)
     m_log.Info("el GameServer ordenó volver a la selección (F1 02 con 1): se pide la lista de personajes");
     m_characters.reset();
     m_chosenSlot.reset();
-    Protocol::Outgoing request = Protocol::Character::WriteCharacterListRequest();
+    Protocol::Outgoing request = Protocol::FrontEnd::WriteCharacterListRequest();
     m_connection.Send(std::move(request.packet), request.delivery);
     // 0x4c3900 precede al reset; sus envíos31 se producen desde el mundo en sus sitios nativos.
     SetState(SessionState::WaitingCharacterList);
@@ -2736,18 +2734,18 @@ void ServerSession::ReturnToSelection(bool encrypted)
 // un ejecutable en uso no se abre así en Windows, y MuRet sólo lo lee (Q-C319).
 void ServerSession::OnMainCheck(const Network::Packet& packet)
 {
-    const auto key = Protocol::Connection::ReadMainCheckKey(packet);
+    const auto key = Protocol::Session::ReadMainCheckKey(packet);
     if (!key.HasValue())
     {
         m_log.Warning("se ignora la clave de la suma del ejecutable (03): {}", Unreadable);
         return;
     }
-    const std::uint16_t table = Protocol::Connection::MainCheckTable(key.Value());
+    const std::uint16_t table = Protocol::Session::MainCheckTable(key.Value());
     std::uint32_t sum = 0;
     const std::optional<std::vector<std::byte>> image = ReadWholeFile(m_settings.mainCheckFile);
     if (image)
     {
-        const auto summed = Protocol::Connection::MainCheckSum(*image, table);
+        const auto summed = Protocol::Session::MainCheckSum(*image, table);
         if (!summed.HasValue())
         {
             static_cast<void>(CheckApplication(Core::Unexpected(summed.Error())));
@@ -2760,7 +2758,7 @@ void ServerSession::OnMainCheck(const Network::Packet& packet)
         m_log.Warning("la suma del ejecutable (03) va en 0: no se abre \"{}\" (0x4aec28)",
                       m_settings.mainCheckFile.string());
     }
-    Protocol::Outgoing reply = Protocol::Connection::WriteMainCheckReply(sum);
+    Protocol::Outgoing reply = Protocol::Session::WriteMainCheckReply(sum);
     m_connection.Send(std::move(reply.packet), reply.delivery);
     m_log.Info("se contestó la suma del ejecutable (03)");
 }
@@ -2768,11 +2766,11 @@ void ServerSession::OnMainCheck(const Network::Packet& packet)
 // El tick es el de GetTickCount en el original (0x4bee60), y las velocidades van con su ajuste.
 void ServerSession::SendKeepalive(Core::Duration now)
 {
-    using Protocol::Connection::KeepaliveSpeed;
-    const Protocol::Connection::Keepalive keepalive{TickCountMs(now),
-                                                    KeepaliveSpeed(m_speeds.attackSpeed, m_speeds.characterFlags),
-                                                    KeepaliveSpeed(m_speeds.magicSpeed, m_speeds.characterFlags)};
-    Protocol::Outgoing outgoing = Protocol::Connection::WriteKeepalive(keepalive);
+    using Protocol::Session::KeepaliveSpeed;
+    const Protocol::Session::Keepalive keepalive{TickCountMs(now),
+                                                 KeepaliveSpeed(m_speeds.attackSpeed, m_speeds.characterFlags),
+                                                 KeepaliveSpeed(m_speeds.magicSpeed, m_speeds.characterFlags)};
+    Protocol::Outgoing outgoing = Protocol::Session::WriteKeepalive(keepalive);
     m_connection.Send(std::move(outgoing.packet), outgoing.delivery);
     if (m_connection.State() == Network::LinkState::Open)
     {

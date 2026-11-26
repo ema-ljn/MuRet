@@ -387,14 +387,14 @@ TEST(SweepJointsTest, TheHeroSweepHitsTheTargetsAroundEveryFiveTurns)
     }
     EXPECT_EQ(tested.random.State(), replay.State());
     ASSERT_EQ(hero.sent.size(), 2u);
-    Client::Protocol::Skill::SkillHitsSend first{.skill = Skill, .x = 9, .y = 18, .volley = Volley, .hits = 1};
+    Client::Protocol::Skills::SkillHitsSend first{.skill = Skill, .x = 9, .y = 18, .volley = Volley, .hits = 1};
     first.keys = {0x1005, 0, 0, 0, 0};
     EXPECT_TRUE(Client::Tests::SameBytes(hero.sent[0].packet.Bytes(),
-                                         Client::Protocol::Skill::WriteSkillHits(first).packet.Bytes()));
-    Client::Protocol::Skill::SkillHitsSend second{.skill = Skill, .x = 8, .y = 18, .volley = Volley, .hits = 1};
+                                         Client::Protocol::Skills::WriteSkillHits(first).packet.Bytes()));
+    Client::Protocol::Skills::SkillHitsSend second{.skill = Skill, .x = 8, .y = 18, .volley = Volley, .hits = 1};
     second.keys = {0x1006, 0, 0, 0, 0};
     EXPECT_TRUE(Client::Tests::SameBytes(hero.sent[1].packet.Bytes(),
-                                         Client::Protocol::Skill::WriteSkillHits(second).packet.Bytes()));
+                                         Client::Protocol::Skills::WriteSkillHits(second).packet.Bytes()));
 }
 
 // 0x517a44..0x517af3: 0x517a20 abre y cierra el registro propio al entrar, haya blancos o no: el cierre (3.848 rand(),
@@ -431,10 +431,10 @@ TEST(SweepJointsTest, AHeroSweepCallWithoutTargetsStillClosesTheOwnRecord)
     }
     EXPECT_EQ(tested.random.State(), replay.State());
     ASSERT_EQ(hero.sent.size(), 1u);
-    Client::Protocol::Skill::SkillHitsSend first{.skill = Skill, .x = 9, .y = 18, .volley = Volley, .hits = 1};
+    Client::Protocol::Skills::SkillHitsSend first{.skill = Skill, .x = 9, .y = 18, .volley = Volley, .hits = 1};
     first.keys = {0x1005, 0, 0, 0, 0};
     EXPECT_TRUE(Client::Tests::SameBytes(hero.sent[0].packet.Bytes(),
-                                         Client::Protocol::Skill::WriteSkillHits(first).packet.Bytes()));
+                                         Client::Protocol::Skills::WriteSkillHits(first).packet.Bytes()));
 }
 
 // 0x53b56e..0x53b583 y 0x53b5cb..0x53b5e6: con el asedio prendido (0x4294b0) y el bit 0x100 en el atributo de la celda

@@ -128,12 +128,12 @@ void GamePanels::LendTheSiegeControls(WorldState& world, std::function<void(Prot
             // 0x44f120: primero baja los campos, después sale el 31.
             runtime.panels.delegated.siegeGate = 0;
             runtime.siegeBattleUi.gateKey = 0;
-            send(Protocol::Connection::WriteWindowClose());
+            send(Protocol::Session::WriteWindowClose());
         }
         else
         {
             // 0x657ba7..0x657daf y 0x657dc1..0x657f8e: el registro manda el 31 antes de 0x44dcf0.
-            send(Protocol::Connection::WriteWindowClose());
+            send(Protocol::Session::WriteWindowClose());
             runtime.panels.delegated.siegeWeapon = 0;
             runtime.siegeBattleUi.weaponChoice = 0;
         }
@@ -165,7 +165,7 @@ void GamePanels::LendTheCastleRequests(WorldState& world, std::function<void(Pro
         if (opened != 0)
         {
             // 0x64b200..0x64b3db: el estado se modifica después de intentar el envío.
-            send(Protocol::Connection::WriteWindowClose());
+            send(Protocol::Session::WriteWindowClose());
             opened = 0;
             world.Runtime().castleSiege.registration.tab = 0;
         }
@@ -290,9 +290,9 @@ void GamePanels::LendThePetRequests(std::function<void(Protocol::Outgoing)> send
     {
         if (!send)
             return;
-        send(Protocol::Pet::WritePetInfoRequest(Protocol::Pet::LoginScenePetInfoRequest));
-        send(Protocol::Pet::WritePetInfoRequest(
-            {Protocol::Pet::DarkHorsePet, Protocol::Pet::InventoryPlace, Protocol::Pet::PetSlot}));
+        send(Protocol::Pets::WritePetInfoRequest(Protocol::Pets::LoginScenePetInfoRequest));
+        send(Protocol::Pets::WritePetInfoRequest(
+            {Protocol::Pets::DarkHorsePet, Protocol::Pets::InventoryPlace, Protocol::Pets::PetSlot}));
     };
 }
 

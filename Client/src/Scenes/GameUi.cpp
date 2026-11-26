@@ -710,7 +710,7 @@ Core::Expected<GridHover, std::string> BuyTheGridItem(const GameUiContext& conte
     context.random.Discard(C3SendRandoms);
     if (!context.sendNpcWindow)
         return Core::Unexpected(std::string("0x5c4bdc: el C1 04 32 sin la sesión"));
-    if (auto sent = context.sendNpcWindow(Protocol::NpcWindows::WriteBuy(static_cast<std::uint8_t>(topLeft & 0xff)));
+    if (auto sent = context.sendNpcWindow(Protocol::Npc::WriteBuy(static_cast<std::uint8_t>(topLeft & 0xff)));
         !sent.HasValue())
         return Core::Unexpected(std::move(sent).Error());
     npc.buyLock = static_cast<std::int32_t>(price.Value());
@@ -770,7 +770,7 @@ Core::Expected<void, std::string> AfterThePickUp(const GameUiContext& context, U
         const InventoryServices& services = ServicesOf(context);
         if (!services.sendGamePacket)
             return Core::Unexpected(std::string("0x5c5396: el C1 04 3C sin la sesión"));
-        services.sendGamePacket(Protocol::Trade::WriteTradeOkButton(0));
+        services.sendGamePacket(Protocol::Social::WriteTradeOkButton(0));
     }
     runtime.RequestSound(ItemMoveSound);
     return {};
@@ -1186,8 +1186,8 @@ Core::Expected<void, std::string> StepTheCharacterWindow(const GameUiContext& co
                 if (!InRect(context, x + 0x7d, top, x + 0x95, top + 0x18) || !movement.pendingClick)
                     continue;
                 movement.pendingClick = false;
-                if (auto sent = SendRaw(
-                        context, Protocol::Character::WriteLevelUpPoint(static_cast<std::uint8_t>(button)), "0x5e494b");
+                if (auto sent = SendRaw(context, Protocol::Player::WriteLevelUpPoint(static_cast<std::uint8_t>(button)),
+                                        "0x5e494b");
                     !sent.HasValue())
                     return sent;
                 runtime.RequestSound(ButtonSound);
@@ -1262,9 +1262,9 @@ Core::Expected<void, std::string> StepThePetButton(const GameUiContext& context,
     }
     if (pet == 0)
     {
-        const Protocol::Pet::PetInfoRequest horse{Protocol::Pet::DarkHorsePet, Protocol::Pet::InventoryPlace,
-                                                  Protocol::Pet::PetSlot};
-        if (auto sent = SendRaw(context, Protocol::Pet::WritePetInfoRequest(horse), "0x424610"); !sent.HasValue())
+        const Protocol::Pets::PetInfoRequest horse{Protocol::Pets::DarkHorsePet, Protocol::Pets::InventoryPlace,
+                                                   Protocol::Pets::PetSlot};
+        if (auto sent = SendRaw(context, Protocol::Pets::WritePetInfoRequest(horse), "0x424610"); !sent.HasValue())
             return sent;
         pet = 1;
     }
@@ -2358,7 +2358,7 @@ void LendTheGameHooks(UI::OldWindowStepView& view, const GameUiContext& context,
                          texts = context.texts, chosenSlot = context.chosenSlot, worldEntry = context.worldEntry](
                             const std::vector<std::byte>& copy) -> Core::Expected<void, std::string>
     {
-        auto letter = Protocol::Letters::ReadLetterCopy(copy);
+        auto letter = Protocol::Messenger::ReadLetterCopy(copy);
         if (!letter.HasValue())
             return Core::Unexpected(std::string("0x4a11b0(2): la carta guardada no se lee"));
         const ChatReceiveContext receive{.world = world,

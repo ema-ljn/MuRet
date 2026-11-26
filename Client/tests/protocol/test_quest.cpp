@@ -24,7 +24,7 @@ using Client::Tests::Bytes;
 using Client::Tests::ErrorOf;
 using Client::Tests::PacketOf;
 using Client::Tests::SameBytes;
-namespace Quest = Client::Protocol::Quest;
+namespace Quest = Client::Protocol::Quests;
 
 // 0x63693a y 0x5676a6: C1 03 A0, con el XOR32 (nada que cifrar después de pkt[2]) y entrega C3.
 TEST(QuestProtocolTest, TheListRequestIsAnEncryptedC1OfThreeBytes)

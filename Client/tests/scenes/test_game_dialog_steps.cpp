@@ -122,7 +122,7 @@ struct Request
 class RecordingRequests final : public Client::Scenes::IGameUiRequests
 {
 public:
-    void SendOptionData(const Client::Protocol::OptionData::OptionBody& body) override
+    void SendOptionData(const Client::Protocol::Player::OptionBody& body) override
     {
         requests.push_back({"F3 30", {body.begin(), body.end()}, {}});
     }
@@ -257,7 +257,7 @@ TEST(GameDialogStepsTest, TheOptionBodyCarriesTheKeysTheFlagsTheSlotsAndTheChatW
     ASSERT_TRUE(body.HasValue()) << body.Error();
     EXPECT_EQ(tested.random.State(), expected.State());
     EXPECT_EQ(runtime.ownRecordDepth, 0);
-    const Client::Protocol::OptionData::OptionBody& bytes = body.Value();
+    const Client::Protocol::Player::OptionBody& bytes = body.Value();
     EXPECT_EQ(bytes[3], 0x11);
     EXPECT_EQ(bytes[0], 0x33);
     EXPECT_EQ(bytes[1], 0);
@@ -312,7 +312,7 @@ TEST(GameDialogStepsTest, ExitingTheGameSavesTheOptionsAndAsksToQuit)
         EXPECT_EQ(tested.random.State(), expected.State());
         EXPECT_EQ(tested.requests.Kinds(), (std::vector<std::string>{"log", "F3 30", "Macro.txt", "F1 02"}));
         EXPECT_EQ(tested.requests.Of("F1 02").bytes,
-                  std::vector<std::uint8_t>{Client::Protocol::Connection::LogoutQuitsTheGame});
+                  std::vector<std::uint8_t>{Client::Protocol::Session::LogoutQuitsTheGame});
         EXPECT_EQ(tested.requests.Of("F3 30").bytes[3], 0x11);
         EXPECT_EQ(tested.requests.Of("Macro.txt").text, "hola\r\n\r\n\r\nchau\r\n\r\n\r\n\r\n\r\n\r\n\r\n");
         EXPECT_TRUE(runtime.ui.logoutRequested);
@@ -335,7 +335,7 @@ TEST(GameDialogStepsTest, AnotherServerAsksToLeaveBeforeSavingTheOptions)
         EXPECT_EQ(tested.random.State(), expected.State());
         EXPECT_EQ(tested.requests.Kinds(), (std::vector<std::string>{"log", "F1 02", "F3 30", "Macro.txt"}));
         EXPECT_EQ(tested.requests.Of("F1 02").bytes,
-                  std::vector<std::uint8_t>{Client::Protocol::Connection::LogoutReturnsToServerList});
+                  std::vector<std::uint8_t>{Client::Protocol::Session::LogoutReturnsToServerList});
     }
 }
 
@@ -346,7 +346,7 @@ TEST(GameDialogStepsTest, AnotherCharacterSavesTheOptionsAndAsksForTheSelection)
     ASSERT_TRUE(tested.Click(MenuX, AnotherCharacterY).HasValue());
     EXPECT_EQ(tested.requests.Kinds(), (std::vector<std::string>{"log", "F3 30", "Macro.txt", "F1 02"}));
     EXPECT_EQ(tested.requests.Of("F1 02").bytes,
-              std::vector<std::uint8_t>{Client::Protocol::Connection::LogoutReturnsToSelection});
+              std::vector<std::uint8_t>{Client::Protocol::Session::LogoutReturnsToSelection});
 }
 
 // Con la caja del caos abierta, el 592 de error en vez del F1 02, sin sus dos rand().

@@ -60,10 +60,10 @@ using Network::PacketType;
 using Network::SerialCheck;
 using Network::Xor32Decode;
 using Protocol::CharacterOpcode;
-using Protocol::ClientVersion;
 using Protocol::KeepaliveOpcode;
-using Protocol::Character::CharacterSelectResult;
-using Protocol::Character::InventoryList;
+using Protocol::FrontEnd::CharacterSelectResult;
+using Protocol::Items::InventoryList;
+using Protocol::Session::ClientVersion;
 
 using std::chrono::milliseconds;
 

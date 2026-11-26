@@ -64,36 +64,36 @@ struct ChatReceiveContext
 // al aviso del gremio (@@, tipo 6), al del gremio (@, tipo 5), solo a un globo que también va al registro (#,
 // 0x557560 con 1) o a un globo y al chat normal (0x557560 con 0 y el tipo 3). Cada rama copia 59, 58, 59, 59 o 60
 // bytes a un buffer de 61 en cero.
-[[nodiscard]] Core::Expected<void, std::string> ApplyChat(const Protocol::Messages::Chat& chat,
+[[nodiscard]] Core::Expected<void, std::string> ApplyChat(const Protocol::Chat::Chat& chat,
                                                           const ChatReceiveContext& context);
 
 // 0x4e33fc: el personaje de la clave (0x5110d0, el 401 si no hay) y su globo (0x557170 con 0 y sin color). Con el
 // héroe en +0x368 = 0x80 y ese personaje llamado "길드 마스터" (0x6c8404), sin globo, 0x4e3450: abre la ventana 2 del
 // gremio (0x6599a0(0x40000, 0)), prende el campo del alta (0x77f3b68), cierra el del chat (0x6c8e68), vacía los
 // buffers (0x553570(0)), deja la cuenta de Tab (0x6c8e6c) en 0 y, al héroe sin gremio (+0x1f2 en −1), le da el 1999.
-[[nodiscard]] Core::Expected<void, std::string> ApplyKeyChat(const Protocol::Messages::KeyChat& chat,
+[[nodiscard]] Core::Expected<void, std::string> ApplyKeyChat(const Protocol::Chat::KeyChat& chat,
                                                              const ChatReceiveContext& context);
 
 // 0x4e34ea: con 0x77f3b98 en 0, el emisor a la lista de 0x554d20 (un acceso al registro propio, 3.848 rand() al
 // cerrarlo), el sonido 0x26 con 0x77f3b78 y el susurro (0x555190 con el tipo 0) con 60 bytes desde pkt[0xd].
-[[nodiscard]] Core::Expected<void, std::string> ApplyWhisper(const Protocol::Messages::Whisper& whisper,
+[[nodiscard]] Core::Expected<void, std::string> ApplyWhisper(const Protocol::Chat::Whisper& whisper,
                                                              const ChatReceiveContext& context);
 
 // 0x4e366f: con pkt[3] en 0, el error del susurro (0x555190 con el destino del último, 0x57678c4, el texto 482 y el
 // tipo 2).
-[[nodiscard]] Core::Expected<void, std::string> ApplyWhisperResult(const Protocol::Messages::WhisperResult& result,
+[[nodiscard]] Core::Expected<void, std::string> ApplyWhisperResult(const Protocol::Chat::WhisperResult& result,
                                                                    const ChatReceiveContext& context);
 
 // 0x4c65b0: 0, un aviso centrado (0x554610 sin resaltar); 1, fuera de la selección, un mensaje de sistema y, en ella,
 // el primero va a la franja de la barra (0x63eda0) y los demás al chat; 2, el aviso del gremio (el 483 con el texto,
 // resaltado) y su ventana (0x651680, CL9.4: corta); 10 a 15 con texto, en la escena 5, a las colas del cartel de
 // Slide.bmd (0x46b720, UI::QueueTheSlide).
-[[nodiscard]] Core::Expected<void, std::string> ApplyNotice(const Protocol::Messages::Notice& notice,
+[[nodiscard]] Core::Expected<void, std::string> ApplyNotice(const Protocol::Chat::Notice& notice,
                                                             const ChatReceiveContext& context);
 
 // 0x4dd570: con un acceso al registro propio (3.848 rand() al cerrarlo), las teclas de las skills del elegido; después,
 // el ataque automático, el sonido de los avisos, los carteles, Q, W y E, y los renglones y la transparencia del
 // registro del chat. Sin elegido, corta antes de abrir el registro (escribiría en +0x16c).
-[[nodiscard]] Core::Expected<void, std::string> ApplyOptionData(const Protocol::OptionData::OptionData& data,
+[[nodiscard]] Core::Expected<void, std::string> ApplyOptionData(const Protocol::Player::OptionData& data,
                                                                 const ChatReceiveContext& context);
 } // namespace Client::Scenes

@@ -76,7 +76,7 @@ public:
     void DrawSelection(World::GameCameraInput& input);
 
 private:
-    [[nodiscard]] Core::Expected<void, std::string> Construct(const Protocol::Character::CharacterEntry& entry,
+    [[nodiscard]] Core::Expected<void, std::string> Construct(const Protocol::FrontEnd::CharacterEntry& entry,
                                                               const World::GameCamera& camera,
                                                               World::GameCameraInput& input, Models::ClothWorld& cloth,
                                                               const Models::Skeleton& playerSkeleton);

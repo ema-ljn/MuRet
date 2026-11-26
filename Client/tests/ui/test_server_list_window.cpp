@@ -34,7 +34,7 @@ namespace
 {
 using Client::Core::PixelSize;
 using Client::Input::InputState;
-using Client::Protocol::Connection::ServerEntry;
+using Client::Protocol::Session::ServerEntry;
 using Client::Render::TextureSlot;
 using Client::Render::UiImage;
 using Client::Render::Text::FontKind;

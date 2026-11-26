@@ -11,7 +11,7 @@
 // A7 que sale. Lo que hacen con el cuervo es de Scenes (PetOrders). El GameServer 0.97 no los manda ni los lee (08,
 // P-C262): el oráculo es el cliente. WrongPacket con otro tipo u opcode y TooShort si faltan campos; el original no
 // mira el largo.
-namespace Client::Protocol::Pet
+namespace Client::Protocol::Pets
 {
 // 0x4e4c0a: C1 07 A7 [?] [orden] [clave H L]. pkt[3] no lo lee.
 struct PetOrder
@@ -50,4 +50,4 @@ inline constexpr std::uint16_t NoTargetKey = 0xffff;
 [[nodiscard]] Core::Expected<PetOrder, Network::ProtocolError> ReadPetOrder(const Network::Packet& packet);
 [[nodiscard]] Core::Expected<PetAttack, Network::ProtocolError> ReadPetAttack(const Network::Packet& packet);
 [[nodiscard]] Outgoing WritePetCommand(const PetCommand& command);
-} // namespace Client::Protocol::Pet
+} // namespace Client::Protocol::Pets

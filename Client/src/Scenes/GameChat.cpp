@@ -280,7 +280,7 @@ Core::Expected<UI::ChatCommandOutcome, std::string> RunTheCommand(const GameChat
                 return Core::Unexpected(std::string("0x56ea6c: /duelend sin el cable"));
             // El relleno y el serial del C3.
             context.random.Discard(2);
-            context.send(Protocol::Duel::WriteDuelEnd());
+            context.send(Protocol::Social::WriteDuelEnd());
             return {};
         },
         .requestATrade = [&context]() { return RequestATrade(SocialRequestsOf(context)); },

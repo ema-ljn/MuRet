@@ -13,7 +13,7 @@
 #include <optional>
 #include <span>
 
-namespace Client::Protocol::OptionData
+namespace Client::Protocol::Player
 {
 Core::Expected<OptionData, Network::ProtocolError> ReadOptionData(const Network::Packet& packet)
 {
@@ -53,4 +53,4 @@ Outgoing WriteOptionData(const OptionBody& body)
     return Xor32C1(Network::PacketWriter::C1(CharacterOpcode, Character::OptionDataSubcode)
                        .PutBytes(std::as_bytes(std::span<const std::uint8_t>(body))));
 }
-} // namespace Client::Protocol::OptionData
+} // namespace Client::Protocol::Player

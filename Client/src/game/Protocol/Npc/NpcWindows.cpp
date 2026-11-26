@@ -14,7 +14,7 @@
 #include <optional>
 #include <span>
 
-namespace Client::Protocol::NpcWindows
+namespace Client::Protocol::Npc
 {
 namespace
 {
@@ -256,4 +256,4 @@ Outgoing WriteChaosRateRequest()
 {
     return Xor32C1(Network::PacketWriter::C1(CrywolfOpcode, Crywolf::ChaosBoxSubcode));
 }
-} // namespace Client::Protocol::NpcWindows
+} // namespace Client::Protocol::Npc

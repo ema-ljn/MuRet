@@ -33,7 +33,7 @@ inline constexpr std::string_view PasswordVariable = "MU_CLIENT_PASSWORD";
 
 // Lo que mide como mucho cada una: el campo del login. Con más, WriteLoginRequest daría
 // FieldTooLong.
-inline constexpr std::size_t MaxCredentialBytes = Protocol::Connection::CredentialSize;
+inline constexpr std::size_t MaxCredentialBytes = Protocol::Session::CredentialSize;
 
 // Lee una variable: std::nullopt si no está. La de main.cpp es SystemEnvironment; la de los tests,
 // un mapa.

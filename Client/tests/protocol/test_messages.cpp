@@ -23,14 +23,14 @@
 namespace
 {
 using Client::Network::ProtocolError;
-using Client::Protocol::Messages::ReadChat;
-using Client::Protocol::Messages::ReadKeyChat;
-using Client::Protocol::Messages::ReadNotice;
-using Client::Protocol::Messages::ReadWhisper;
-using Client::Protocol::Messages::ReadWhisperResult;
-using Client::Protocol::OptionData::OptionBody;
-using Client::Protocol::OptionData::ReadOptionData;
-using Client::Protocol::OptionData::WriteOptionData;
+using Client::Protocol::Chat::ReadChat;
+using Client::Protocol::Chat::ReadKeyChat;
+using Client::Protocol::Chat::ReadNotice;
+using Client::Protocol::Chat::ReadWhisper;
+using Client::Protocol::Chat::ReadWhisperResult;
+using Client::Protocol::Player::OptionBody;
+using Client::Protocol::Player::ReadOptionData;
+using Client::Protocol::Player::WriteOptionData;
 using Client::Tests::Bytes;
 using Client::Tests::ErrorOf;
 using Client::Tests::PacketOf;
@@ -48,7 +48,7 @@ std::vector<std::byte> Spoken(int opcode, std::string_view name, std::string_vie
     return bytes;
 }
 
-std::string NameOf(const Client::Protocol::Messages::SpokenText& spoken)
+std::string NameOf(const Client::Protocol::Chat::SpokenText& spoken)
 {
     std::string name;
     for (const std::byte value : spoken.name)

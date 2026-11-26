@@ -7,7 +7,7 @@
 // La respuesta del F3 06 (0x4d3200, desde 0x4e30cd en el sub-dispatcher del F3): el punto de subir de nivel que se
 // pidió con los botones de la ventana del personaje (Protocol/Character/LevelUpPoint, 0x5e468e). Contrato:
 // Client/docs/research/04-protocolo.md, "El F3 06 que llega".
-namespace Client::Protocol::Character
+namespace Client::Protocol::Player
 {
 struct LevelUpPointResult;
 }
@@ -23,5 +23,5 @@ struct WorldEntryResources;
 // BP máximo (+0x3a) de pkt[8..9] (0x4d3356). Lo cierra (como 0x40b4d0: 3.848 rand() si queda sin accesos). Después,
 // siempre (0x4d341a..0x4d34ed), lo abre, corre 0x550d10 (RecalculateOwnStats) y lo cierra.
 [[nodiscard]] Core::Expected<void, std::string>
-ApplyLevelUpPointResult(const Protocol::Character::LevelUpPointResult& reply, const WorldEntryResources& resources);
+ApplyLevelUpPointResult(const Protocol::Player::LevelUpPointResult& reply, const WorldEntryResources& resources);
 } // namespace Client::Scenes

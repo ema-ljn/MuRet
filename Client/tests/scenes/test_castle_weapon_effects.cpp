@@ -122,7 +122,7 @@ TEST_F(CastleWeaponEffectsTest, ThePacketAimsTheIceProjectileAndKeepsBothKeyByte
     source.type = 0x19c;
     source.position = {100, 200, 300};
     const auto wire = Client::Tests::PacketOf(Client::Tests::Bytes({0xc1, 10, 0xb7, 1, 1, 0x12, 0x34, 2, 20, 30}));
-    const auto read = Client::Protocol::CastleBattle::ReadCastleBattlePacket(wire);
+    const auto read = Client::Protocol::CastleSiege::ReadCastleBattlePacket(wire);
     ASSERT_TRUE(read.HasValue());
     const auto resources = Resources();
     const auto applied = Client::Scenes::ApplyCastleBattlePacket(

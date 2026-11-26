@@ -62,15 +62,15 @@ struct InventoryServices
     // 0x78abb44, 0x78abb60 a 0x78abb6c) son buffers que nadie escribe: van vacíos (*inferido*, 08 P-C72).
     std::function<Core::Expected<void, std::string>(std::size_t index, std::int32_t type)> systemMessage{};
     // El C1 0E 24 en C3 por la sesión (ServerSession::SendItemMove), después de los dos rand() del envío.
-    std::function<Core::Expected<void, std::string>(const Protocol::Inventory::ItemMove&)> sendItemMove{};
+    std::function<Core::Expected<void, std::string>(const Protocol::Items::ItemMove&)> sendItemMove{};
     // CL9 hito 5. Text.bmd, para los textos que se arman con sprintf.
     const Tables::TextTable* texts = nullptr;
     // 0x555190 con un texto ya armado (sprintf con un texto de Text.bmd como formato) y el nombre vacío.
     std::function<Core::Expected<void, std::string>(std::string_view text, std::int32_t type)> chatLine{};
     // El C1 06 23, el C1 05 22 y el C1 06 26 en C3 por la sesión, después de los dos rand() del envío.
-    std::function<Core::Expected<void, std::string>(const Protocol::FloorItems::Drop&)> sendDrop{};
+    std::function<Core::Expected<void, std::string>(const Protocol::Items::Drop&)> sendDrop{};
     std::function<Core::Expected<void, std::string>(std::uint16_t index)> sendPickUp{};
-    std::function<Core::Expected<void, std::string>(const Protocol::FloorItems::UseItem&)> sendUseItem{};
+    std::function<Core::Expected<void, std::string>(const Protocol::Items::UseItem&)> sendUseItem{};
     // 0x5fc260(1) y 0x5fac90 con el rayo del mouse, como MoveHero (0x59de04..0x59de78): la celda del terreno bajo el
     // mouse (0x7d366e0 y 0x7d366e4 · 0,01) o nada.
     std::function<Core::Expected<std::optional<Pathfinding::PathCell>, std::string>()> pickTheGround{};
@@ -139,7 +139,7 @@ struct InventoryMoveContext
 // almacén, 0x78a7070) y con 3 (la caja del caos, 0x7d2d380).
 [[nodiscard]] Core::Expected<void, std::string> PlaceMovedItemInOtherGrid(std::span<World::ItemState> cells,
                                                                           std::int32_t columns, std::uint8_t slot,
-                                                                          const Protocol::Inventory::ItemData& item,
+                                                                          const Protocol::Items::ItemData& item,
                                                                           const WorldEntryResources& resources,
                                                                           std::string_view where);
 
@@ -339,48 +339,48 @@ struct InventoryUse
 
 // 0x5bc740(0x78a9bb0, 8, 8, lugar, ítem, 0) (0x5bcd0b.. y su cola): el ítem en su lugar y, con el registro abierto,
 // los ayudantes sin mascota, el cuervo sin el lugar 1 y la capa sin el anillo de nivel 3. Un tipo 0x1fff no pone nada.
-[[nodiscard]] Core::Expected<void, std::string>
-PlaceMovedItem(std::uint8_t slot, const Protocol::Inventory::ItemData& item, const WorldEntryResources& resources);
+[[nodiscard]] Core::Expected<void, std::string> PlaceMovedItem(std::uint8_t slot, const Protocol::Items::ItemData& item,
+                                                               const WorldEntryResources& resources);
 
 // 0x4d1400, el 24 cifrado: suelta la traba; con 0xff, 0x5be150; si no, los precios de las tiendas personales
 // (0x4d1b76..0x4d1c7d), la cuenta en 0 y, en el inventario (0) o en la grilla propia del comercio (1, CL9 hito 7),
 // 0x5bc740 con el último argumento en 0 y el sonido 0x1d. Al final, el 3D que guardó la traba (0x4d1d70).
-[[nodiscard]] Core::Expected<void, std::string> ApplyItemMoveResult(const Protocol::Inventory::ItemMoveResult& result,
+[[nodiscard]] Core::Expected<void, std::string> ApplyItemMoveResult(const Protocol::Items::ItemMoveResult& result,
                                                                     const WorldEntryResources& resources);
 // 0x4c5ec0, el 28: 0x5bd750 con el lugar y el fin de la espera. Desde el 0x4c (la tienda personal), con 0x6c931c en 2
 // en la copia de la grilla propia (0x78a6768); si no, con el ítem del cursor levantado de esa casilla de 0x78ab0b8,
 // 0x5be150 antes.
-[[nodiscard]] Core::Expected<void, std::string> ApplyItemDelete(const Protocol::Inventory::ItemDelete& deleted,
+[[nodiscard]] Core::Expected<void, std::string> ApplyItemDelete(const Protocol::Items::ItemDelete& deleted,
                                                                 const WorldEntryResources& resources);
 // 0x4d3cc0, el 2A: la durabilidad del lugar del equipo, con el registro abierto, o de toda la huella en la grilla, y
 // el fin de la espera.
-[[nodiscard]] Core::Expected<void, std::string> ApplyDurability(const Protocol::Inventory::Durability& durability,
+[[nodiscard]] Core::Expected<void, std::string> ApplyDurability(const Protocol::Items::Durability& durability,
                                                                 const WorldEntryResources& resources);
 // 0x4d3510, el 26, con el registro propio abierto (3.848 rand() al cerrarlo si queda sin accesos): 0xfd, el fin de
 // la espera (0x5767954 en 0); 0xfe, la vida máxima (+0x26); 0xff, la vida (+0x22); otro, la poción del lugar: la
 // durabilidad (+0x1a) de la casilla lugar − 12 de la grilla baja 1 si no es 0 y, en 0, la casilla queda vacía (tipo
 // 0xffff y +0x3c en 0). Fuera de la grilla el original escribe igual: MuRet corta (0x4d35f6).
-[[nodiscard]] Core::Expected<void, std::string> ApplyLifeRefill(const Protocol::Inventory::LifeRefill& refill,
+[[nodiscard]] Core::Expected<void, std::string> ApplyLifeRefill(const Protocol::Items::LifeRefill& refill,
                                                                 WorldState& world, Crt::CrtRandom& random);
 // 0x4d3820, el 27, con el registro propio abierto: 0xfe, el maná máximo (+0x28) y el BP máximo (+0x3a); 0xff, el
 // maná (+0x24) y el BP (+0x38); otro, el maná y la poción del lugar, como el 26 (0x4d3917). El 0xfd no es el fin de
 // la espera: es un lugar más.
-[[nodiscard]] Core::Expected<void, std::string> ApplyManaRefill(const Protocol::Inventory::ManaRefill& refill,
+[[nodiscard]] Core::Expected<void, std::string> ApplyManaRefill(const Protocol::Items::ManaRefill& refill,
                                                                 WorldState& world, Crt::CrtRandom& random);
 // 0x4e31a3, el F3 14: la cuenta del cursor en 0, 0x5bc740 con el último argumento en 0 y el sonido 0x45.
-[[nodiscard]] Core::Expected<void, std::string> ApplyItemPut(const Protocol::Inventory::ItemPut& put,
+[[nodiscard]] Core::Expected<void, std::string> ApplyItemPut(const Protocol::Items::ItemPut& put,
                                                              const WorldEntryResources& resources);
 // 0x4d10d0, el 23 (CL9 hito 5): con 0, 0x5be150; si no, con un lugar del equipo (menos de 12), con el registro propio
 // abierto (3.848 rand() al cerrarlo sin accesos), el cuervo (0x421d60) si es el 0x1a05 del lugar 1, el tipo en
 // 0xffff, +0x3c y +0x44 en 0, 0x512a30 y, en el 8, los ayudantes (0x443d40); con otro, 0x5bd750. Después la cuenta
 // del cursor en 0. Siempre, 0x6c82ec en −1.
-[[nodiscard]] Core::Expected<void, std::string> ApplyDropResult(const Protocol::FloorItems::DropResult& result,
+[[nodiscard]] Core::Expected<void, std::string> ApplyDropResult(const Protocol::Items::DropResult& result,
                                                                 const WorldEntryResources& resources);
 // Un 23 corto (07 Q-C1240): de 0x4d10d0, el lugar tirado (0x6c82ec) en −1, que escribe en todos los caminos, y con
 // pkt[3] distinto de 0 el cursor vacío (0x7879fbc en 0, 0x4d13c7), también en todos los que leen pkt[4].
-void ApplyShortDropResult(const Protocol::FloorItems::ShortDropResult& result, WorldState& world);
+void ApplyShortDropResult(const Protocol::Items::ShortDropResult& result, WorldState& world);
 // 0x4e316e, el F3 13: el personaje de la clave (0x5110d0) y, si es un jugador, su equipo (0x5139f0, CL9.2): corta.
 // Si no lo es, o sin ninguno, nada.
-[[nodiscard]] Core::Expected<void, std::string> ApplyEquipmentChange(const Protocol::Inventory::EquipmentChange& change,
+[[nodiscard]] Core::Expected<void, std::string> ApplyEquipmentChange(const Protocol::Items::EquipmentChange& change,
                                                                      const WorldEntryResources& resources);
 } // namespace Client::Scenes

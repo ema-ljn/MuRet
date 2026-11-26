@@ -69,7 +69,7 @@ using Client::Scenes::NpcWindowState;
 using Client::Scenes::WorldEntryResources;
 using Client::Tests::Bytes;
 using Client::Tests::SameBytes;
-namespace Npc = Client::Protocol::NpcWindows;
+namespace Npc = Client::Protocol::Npc;
 namespace UI = Client::UI;
 
 class NpcPlayback final : public Client::Audio::IPlayback

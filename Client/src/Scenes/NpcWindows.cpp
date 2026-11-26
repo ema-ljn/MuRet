@@ -46,7 +46,7 @@ namespace Client::Scenes
 {
 namespace
 {
-namespace Npc = Protocol::NpcWindows;
+namespace Npc = Protocol::Npc;
 
 // 0x41ed10 (CL10): lo que dejan en WorldRuntime::lastSoundId.
 constexpr std::int32_t FirstTalkSound = 0x19;    // 0x4d2899
@@ -246,7 +246,7 @@ Core::Expected<bool, std::string> NpcWindowClosing(const NpcWindowContext& conte
     }
     case UI::NpcShopPanel:
     {
-        if (auto sent = Send(context.send, Protocol::Connection::WriteWindowClose(), "0x659063: el C1 03 31");
+        if (auto sent = Send(context.send, Protocol::Session::WriteWindowClose(), "0x659063: el C1 03 31");
             !sent.HasValue())
             return Core::Unexpected(sent.Error());
         EmptyTheGrid(npc.grid);
@@ -413,7 +413,7 @@ Core::Expected<void, std::string> ApplyBuyResult(const Npc::BuyResult& result, c
     WorldRuntime& runtime = resources.world.Runtime();
     if (result.slot != Npc::BuyRejected)
     {
-        const Protocol::Inventory::ItemData& item = result.item;
+        const Protocol::Items::ItemData& item = result.item;
         if (auto placed = PlaceMovedItem(result.slot, item, resources); !placed.HasValue())
         {
             runtime.npcWindows.buyLock = 0;
@@ -535,8 +535,8 @@ Core::Expected<void, std::string> ApplyWarehouseState(const Npc::WarehouseState&
             // 0x4e47b0..0x4e47c6: 0x449d80(origen, lugar, destino, lugar) con los cuatro, el 24 del ítem del cursor
             // en C3 por la misma sesión.
             InventoryServices services = InventoryServicesOf(resources);
-            services.sendItemMove = [&resources](const Protocol::Inventory::ItemMove& move) {
-                return Send(resources.sendNpcWindowPacket, Protocol::Inventory::WriteItemMove(move),
+            services.sendItemMove = [&resources](const Protocol::Items::ItemMove& move) {
+                return Send(resources.sendNpcWindowPacket, Protocol::Items::WriteItemMove(move),
                             "0x4e47c6: el C1 0E 24");
             };
             const auto byte = [](std::int32_t value) { return static_cast<std::uint8_t>(value & 0xff); };

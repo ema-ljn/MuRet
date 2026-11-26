@@ -144,35 +144,35 @@ Protocol::Outgoing FriendPacketOf(const UI::FriendSend& send)
     switch (send.kind)
     {
     case UI::FriendSendKind::Add:
-        return Protocol::Friends::WriteFriendAdd(send.name);
+        return Protocol::Messenger::WriteFriendAdd(send.name);
     case UI::FriendSendKind::Answer:
-        return Protocol::Friends::WriteFriendAnswer(send.value, send.name);
+        return Protocol::Messenger::WriteFriendAnswer(send.value, send.name);
     case UI::FriendSendKind::Delete:
-        return Protocol::Friends::WriteFriendDelete(send.name);
+        return Protocol::Messenger::WriteFriendDelete(send.name);
     case UI::FriendSendKind::State:
-        return Protocol::Friends::WriteFriendState(send.value);
+        return Protocol::Messenger::WriteFriendState(send.value);
     // CL9 hito 10.
     case UI::FriendSendKind::RoomRequest:
-        return Protocol::FriendChat::WriteRoomRequest(send.name);
+        return Protocol::Messenger::WriteRoomRequest(send.name);
     case UI::FriendSendKind::Invite:
-        return Protocol::FriendChat::WriteInvite(send.name, send.room, static_cast<std::uint32_t>(send.window));
+        return Protocol::Messenger::WriteInvite(send.name, send.room, static_cast<std::uint32_t>(send.window));
     case UI::FriendSendKind::LetterSend:
-        return Protocol::Letters::WriteLetterSend(
-            Protocol::Letters::LetterToSend{.window = static_cast<std::uint32_t>(send.window),
-                                            .name = send.name,
-                                            .subject = send.subject,
-                                            .direction = send.value,
-                                            .action = send.action,
-                                            .body = send.body});
+        return Protocol::Messenger::WriteLetterSend(
+            Protocol::Messenger::LetterToSend{.window = static_cast<std::uint32_t>(send.window),
+                                              .name = send.name,
+                                              .subject = send.subject,
+                                              .direction = send.value,
+                                              .action = send.action,
+                                              .body = send.body});
     case UI::FriendSendKind::LetterRead:
-        return Protocol::Letters::WriteLetterReadRequest(send.index);
+        return Protocol::Messenger::WriteLetterReadRequest(send.index);
     case UI::FriendSendKind::LetterDelete:
-        return Protocol::Letters::WriteLetterDelete(send.index);
+        return Protocol::Messenger::WriteLetterDelete(send.index);
     case UI::FriendSendKind::LetterList:
-        return Protocol::Letters::WriteLetterListRequest();
+        return Protocol::Messenger::WriteLetterListRequest();
     case UI::FriendSendKind::ListRequest:
     default:
-        return Protocol::Friends::WriteFriendListRequest();
+        return Protocol::Messenger::WriteFriendListRequest();
     }
 }
 
@@ -225,13 +225,13 @@ Core::Expected<void, std::string> OpenTheFriends(const FriendsOpenContext& conte
     return {};
 }
 
-Core::Expected<void, std::string> ApplyFriendList(const Protocol::Friends::FriendList& list,
+Core::Expected<void, std::string> ApplyFriendList(const Protocol::Messenger::FriendList& list,
                                                   const ChatReceiveContext& context)
 {
     WorldRuntime& runtime = context.world.Runtime();
     UI::OldWindowManager& manager = runtime.oldWindows;
     UI::ClearTheFriends(manager.friendModel);
-    for (const Protocol::Friends::FriendRow& row : list.friends)
+    for (const Protocol::Messenger::FriendRow& row : list.friends)
         UI::AddAFriend(manager.friendModel, row.name, 0, row.state);
     UI::SortTheFriends(manager.friendModel, UI::ByNameSort);
     UI::SortTheFriends(manager.friendModel, UI::ByStateSort);
@@ -250,7 +250,7 @@ Core::Expected<void, std::string> ApplyFriendList(const Protocol::Friends::Frien
     return SystemMessage(runtime, context.measure, context.screen, text, "0x4dc3b5");
 }
 
-Core::Expected<void, std::string> ApplyFriendAddResult(const Protocol::Friends::FriendAddResult& result,
+Core::Expected<void, std::string> ApplyFriendAddResult(const Protocol::Messenger::FriendAddResult& result,
                                                        const ChatReceiveContext& context)
 {
     WorldRuntime& runtime = context.world.Runtime();
@@ -301,7 +301,7 @@ Core::Expected<void, std::string> ApplyFriendAddResult(const Protocol::Friends::
     return Notice(context, text.Value(), "0x4dc581");
 }
 
-Core::Expected<void, std::string> ApplyFriendRequest(const Protocol::Friends::FriendRequest& request,
+Core::Expected<void, std::string> ApplyFriendRequest(const Protocol::Messenger::FriendRequest& request,
                                                      const ChatReceiveContext& context)
 {
     WorldRuntime& runtime = context.world.Runtime();
@@ -318,7 +318,7 @@ Core::Expected<void, std::string> ApplyFriendRequest(const Protocol::Friends::Fr
     return {};
 }
 
-Core::Expected<void, std::string> ApplyFriendDeleteResult(const Protocol::Friends::FriendDeleteResult& result,
+Core::Expected<void, std::string> ApplyFriendDeleteResult(const Protocol::Messenger::FriendDeleteResult& result,
                                                           const ChatReceiveContext& context)
 {
     WorldRuntime& runtime = context.world.Runtime();
@@ -336,7 +336,7 @@ Core::Expected<void, std::string> ApplyFriendDeleteResult(const Protocol::Friend
     return {};
 }
 
-Core::Expected<void, std::string> ApplyFriendState(const Protocol::Friends::FriendState& state,
+Core::Expected<void, std::string> ApplyFriendState(const Protocol::Messenger::FriendState& state,
                                                    const ChatReceiveContext& context)
 {
     WorldRuntime& runtime = context.world.Runtime();

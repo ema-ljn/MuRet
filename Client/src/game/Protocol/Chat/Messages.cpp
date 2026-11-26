@@ -11,7 +11,7 @@
 #include <span>
 #include <string>
 
-namespace Client::Protocol::Messages
+namespace Client::Protocol::Chat
 {
 namespace
 {
@@ -114,4 +114,4 @@ Core::Expected<Notice, Network::ProtocolError> ReadNotice(const Network::Packet&
                   .speed = *speed,
                   .text = RawText(reader, reader.Remaining())};
 }
-} // namespace Client::Protocol::Messages
+} // namespace Client::Protocol::Chat

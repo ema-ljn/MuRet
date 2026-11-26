@@ -88,7 +88,7 @@ class IGameUiRequests
 public:
     virtual ~IGameUiRequests() = default;
     // 0x61c210: el C1 1C F3 30 con `body`, en claro.
-    virtual void SendOptionData(const Protocol::OptionData::OptionBody& body) = 0;
+    virtual void SendOptionData(const Protocol::Player::OptionBody& body) = 0;
     // 0x62411c..: el C3 F1 02 con `kind`. Los dos rand() del C3 (el relleno y el serial) los saca el paso.
     virtual void RequestLogout(std::uint8_t kind) = 0;
     // 0x6599a0(4): el C1 03 42 en claro, el pedido de la lista de la party al abrir su ventana.
@@ -102,7 +102,7 @@ public:
     virtual void SendWindowClose() = 0;
     // 0x419bd0 y 0x41a9e0: el C3 A2 con la misión y el estado. Los dos rand() del C3 los saca el paso.
     virtual void SendSetQuest(std::uint8_t quest, std::uint8_t state) = 0;
-    // CL9 hito 9: lo que mandan la ventana de amigos y sus cajas (Protocol::Friends, por Scenes::FriendPacketOf).
+    // CL9 hito 9: lo que mandan la ventana de amigos y sus cajas (Protocol::Messenger, por Scenes::FriendPacketOf).
     virtual void SendFriendPacket(Protocol::Outgoing packet) = 0;
     // 0x61c170("Data\\Macro.txt"): `content` (UI::WrittenMacros) en el archivo.
     [[nodiscard]] virtual Core::Expected<void, std::string> SaveMacros(std::string_view content) = 0;

@@ -147,7 +147,7 @@ protected:
         m_world.Runtime().terrainPolygon = SelectedPolygon;
         m_camera.farPlane = SelectionFar;
         m_camera.lastFrameDistance = 1000.0f;
-        Client::Protocol::Character::CharacterSelectResult reply;
+        Client::Protocol::FrontEnd::CharacterSelectResult reply;
         reply.map = entry.map;
         reply.x = entry.x;
         reply.y = entry.y;

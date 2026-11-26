@@ -18,11 +18,11 @@
 #include <span>
 #include <string_view>
 
-namespace Client::Protocol::Character
+namespace Client::Protocol::FrontEnd
 {
 namespace
 {
-constexpr Network::PacketKind DeleteKind{Network::PacketType::C1, CharacterOpcode, DeleteSubcode};
+constexpr Network::PacketKind DeleteKind{Network::PacketType::C1, CharacterOpcode, Character::DeleteSubcode};
 } // namespace
 
 std::array<std::byte, DeleteCodeSize> DeleteCodeFromText(std::string_view text)
@@ -36,8 +36,9 @@ std::array<std::byte, DeleteCodeSize> DeleteCodeFromText(std::string_view text)
 Outgoing WriteCharacterDelete(std::span<const std::byte, NameSize> name,
                               std::span<const std::byte, DeleteCodeSize> code)
 {
-    return Xor32C1(
-        Network::PacketWriter::C1(CharacterOpcode, DeleteSubcode).PutBytes(NameUpToItsEnd(name)).PutBytes(code));
+    return Xor32C1(Network::PacketWriter::C1(CharacterOpcode, Character::DeleteSubcode)
+                       .PutBytes(NameUpToItsEnd(name))
+                       .PutBytes(code));
 }
 
 Core::Expected<std::uint8_t, Network::ProtocolError> ReadCharacterDeleteResult(const Network::Packet& packet)
@@ -54,4 +55,4 @@ Core::Expected<std::uint8_t, Network::ProtocolError> ReadCharacterDeleteResult(c
     }
     return *result;
 }
-} // namespace Client::Protocol::Character
+} // namespace Client::Protocol::FrontEnd

@@ -166,8 +166,9 @@ public:
 
 Outgoing DarkHorseRequest()
 {
-    return Client::Protocol::Pet::WritePetInfoRequest(
-        {Client::Protocol::Pet::DarkHorsePet, Client::Protocol::Pet::InventoryPlace, Client::Protocol::Pet::PetSlot});
+    return Client::Protocol::Pets::WritePetInfoRequest({Client::Protocol::Pets::DarkHorsePet,
+                                                        Client::Protocol::Pets::InventoryPlace,
+                                                        Client::Protocol::Pets::PetSlot});
 }
 
 // 0x65c94b..0x65ca72: la C abre el personaje, pone en 0 lo de los tooltips del set y corre 0x550d10 con el registro
@@ -316,8 +317,8 @@ TEST(GameCharacterWindowTest, TheStatButtonsSendTheirPoint)
                     continue;
                 }
                 ASSERT_EQ(tested.sent.size(), 1u) << button;
-                EXPECT_TRUE(SamePacket(
-                    tested.sent[0], Client::Protocol::Character::WriteLevelUpPoint(static_cast<std::uint8_t>(button))));
+                EXPECT_TRUE(SamePacket(tested.sent[0],
+                                       Client::Protocol::Player::WriteLevelUpPoint(static_cast<std::uint8_t>(button))));
                 EXPECT_EQ(tested.world.Runtime().lastSoundId, 0x19);
                 EXPECT_FALSE(tested.world.Runtime().movement.pendingClick);
             }
@@ -372,8 +373,8 @@ TEST(GameCharacterWindowTest, ThePetWindowOpensChoosesItsTabAndCloses)
         ASSERT_TRUE(tested.Step(0x220, 0x190).HasValue());
         EXPECT_EQ(runtime.panels.delegated.pet, 2);
         ASSERT_EQ(tested.sent.size(), 2u);
-        EXPECT_TRUE(SamePacket(tested.sent[0], Client::Protocol::Pet::WritePetInfoRequest(
-                                                   Client::Protocol::Pet::LoginScenePetInfoRequest)));
+        EXPECT_TRUE(SamePacket(tested.sent[0], Client::Protocol::Pets::WritePetInfoRequest(
+                                                   Client::Protocol::Pets::LoginScenePetInfoRequest)));
         EXPECT_TRUE(SamePacket(tested.sent[1], DarkHorseRequest()));
 
         tested.Click();

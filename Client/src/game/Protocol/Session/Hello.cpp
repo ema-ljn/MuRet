@@ -15,7 +15,7 @@
 #include <cstddef>
 #include <cstdint>
 
-namespace Client::Protocol::Connection
+namespace Client::Protocol::Session
 {
 namespace
 {
@@ -39,4 +39,4 @@ Core::Expected<ServerHello, Network::ProtocolError> ReadServerHello(const Networ
 {
     return Network::ReadPacket(packet, HelloLayout, ReadHello);
 }
-} // namespace Client::Protocol::Connection
+} // namespace Client::Protocol::Session

@@ -11,7 +11,7 @@
 #include <optional>
 #include <span>
 
-namespace Client::Protocol::CastleBattle
+namespace Client::Protocol::CastleSiege
 {
 namespace
 {
@@ -398,4 +398,4 @@ Core::Expected<CastleBattlePacket, Network::ProtocolError> ReadCastleBattlePacke
         return Core::Unexpected(Network::ProtocolError::WrongPacket);
     }
 }
-} // namespace Client::Protocol::CastleBattle
+} // namespace Client::Protocol::CastleSiege

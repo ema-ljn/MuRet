@@ -82,7 +82,7 @@ public:
     }
 };
 
-Client::Protocol::Inventory::ItemData ItemBytes(std::uint16_t type, std::uint8_t level = 0)
+Client::Protocol::Items::ItemData ItemBytes(std::uint16_t type, std::uint8_t level = 0)
 {
     return {static_cast<std::byte>(type & 0xff),
             static_cast<std::byte>(level << 3),
@@ -428,7 +428,7 @@ TEST_P(PersonalShopListsTest, TheDeleteOfAShopSlotLooksAtTheMode)
     shops.ownGridBackup[10].gridRow = 1;
     shops.ownGridBackup[18] = shops.ownGridBackup[10];
     shops.mode = Client::Scenes::OtherShopView;
-    namespace Inventory = Client::Protocol::Inventory;
+    namespace Inventory = Client::Protocol::Items;
     ASSERT_TRUE(Client::Scenes::ApplyItemDelete(Inventory::ItemDelete{.slot = FirstShopSlot + 10, .endsTheWait = 0},
                                                 Resources())
                     .HasValue());

@@ -17,18 +17,18 @@
 #include <optional>
 #include <span>
 
-namespace Client::Protocol::Character
+namespace Client::Protocol::FrontEnd
 {
 namespace
 {
-constexpr Network::PacketKind CreateKind{Network::PacketType::C1, CharacterOpcode, CreateSubcode};
+constexpr Network::PacketKind CreateKind{Network::PacketType::C1, CharacterOpcode, Character::CreateSubcode};
 // 0x63d990: DAT_07437224 · 16 + DAT_07437225.
 constexpr std::uint8_t ClassShift = 4;
 } // namespace
 
 Outgoing WriteCharacterCreate(std::span<const std::byte, NameSize> name, std::uint8_t characterClass)
 {
-    return Xor32C1(Network::PacketWriter::C1(CharacterOpcode, CreateSubcode)
+    return Xor32C1(Network::PacketWriter::C1(CharacterOpcode, Character::CreateSubcode)
                        .PutBytes(NameUpToItsEnd(name))
                        .PutU8(static_cast<std::uint8_t>(characterClass << ClassShift)));
 }
@@ -66,4 +66,4 @@ Core::Expected<CharacterCreateResult, Network::ProtocolError> ReadCharacterCreat
     created.classByte = *classByte;
     return created;
 }
-} // namespace Client::Protocol::Character
+} // namespace Client::Protocol::FrontEnd

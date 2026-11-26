@@ -316,9 +316,9 @@ struct CompleteFrameResources
 };
 
 // La respuesta del cable: la celda (133, 127) del mapa 0 con la dirección 0, el PK 4 y el CtlCode 0x20.
-Client::Protocol::Character::CharacterSelectResult CableReply()
+Client::Protocol::FrontEnd::CharacterSelectResult CableReply()
 {
-    Client::Protocol::Character::CharacterSelectResult reply;
+    Client::Protocol::FrontEnd::CharacterSelectResult reply;
     reply.x = 133;
     reply.y = 127;
     reply.map = 0;
@@ -584,7 +584,7 @@ TEST_F(WorldEntryTest, TheEntryReadsWhatTheSelectionDrawingLeft)
     const Client::Tables::ItemSetTables sets = NoSets();
     WorldEntryResources resources = tested.Resources();
     resources.itemSetTables = &sets;
-    Client::Protocol::Character::CharacterSelectResult reply = CableReply();
+    Client::Protocol::FrontEnd::CharacterSelectResult reply = CableReply();
     reply.agility = 400;
     RecordingPublisher publisher;
 
@@ -836,10 +836,10 @@ FirstObjectPass FirstObjectPassOf(const ReferenceMap& map, const CrtRandom& rand
 }
 
 // La respuesta del cable en la celda (x, y) de `map`, con `direction`.
-Client::Protocol::Character::CharacterSelectResult ReplyAt(std::uint8_t map, std::uint8_t x, std::uint8_t y,
-                                                           std::uint8_t direction)
+Client::Protocol::FrontEnd::CharacterSelectResult ReplyAt(std::uint8_t map, std::uint8_t x, std::uint8_t y,
+                                                          std::uint8_t direction)
 {
-    Client::Protocol::Character::CharacterSelectResult reply = CableReply();
+    Client::Protocol::FrontEnd::CharacterSelectResult reply = CableReply();
     reply.map = map;
     reply.x = x;
     reply.y = y;

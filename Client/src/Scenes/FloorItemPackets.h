@@ -64,28 +64,28 @@ struct FloorItemCreation
 // velocidad 20 (las medallas de plata y de oro, los modelos 0x2242 y 0x2243, crean antes las grietas 0x100 y 0xfe con
 // la medalla de dueño, sin rand(), y quedan a 3 con la velocidad 50); si no, en el terreno. Termina con 0x607fb0.
 [[nodiscard]] Core::Expected<void, std::string> CreateFloorItem(FloorItemState& item,
-                                                                const Protocol::Inventory::ItemData& bytes,
+                                                                const Protocol::Items::ItemData& bytes,
                                                                 const glm::vec3& position, bool dropped,
                                                                 const FloorItemCreation& creation);
 
 // 0x4d0ba0: cada entrada en (x + 0,5, y + 0,5) · 100, en orden; el 0x54b3a0 que sigue no deja nada.
-[[nodiscard]] Core::Expected<void, std::string>
-ApplyFloorItemsCreate(const Protocol::FloorItems::FloorItemsCreate& create, const WorldEntryResources& resources);
+[[nodiscard]] Core::Expected<void, std::string> ApplyFloorItemsCreate(const Protocol::Items::FloorItemsCreate& create,
+                                                                      const WorldEntryResources& resources);
 
 // 0x4e3849: apaga (+0x4c en 0) la entrada de cada clave, con las de 1000 o más en la 0.
-void ApplyFloorItemsDelete(const Protocol::FloorItems::FloorItemsDelete& deleted, WorldState& world);
+void ApplyFloorItemsDelete(const Protocol::Items::FloorItemsDelete& deleted, WorldState& world);
 
 // 0x4d0cc0: con 0xfe, el zen en el registro propio (3.848 rand() al cerrarlo sin accesos) y, con el elegido
 // (0x77f27b0) vivo, el aviso "%d %s %s" con su valor y los textos 224 y 918; con un lugar, 0x5bc740 (salvo 0xfd) y el
 // aviso "%s %s" con el nombre del elegido (0x5b1c70) y el 918. Después el sonido por el tipo de pkt[4..] (0x45 o 0x1d,
 // CL10) y, también con 0xff, el pedido (0x6c82e8) en −1.
-[[nodiscard]] Core::Expected<void, std::string> ApplyPickUpResult(const Protocol::FloorItems::PickUpResult& result,
+[[nodiscard]] Core::Expected<void, std::string> ApplyPickUpResult(const Protocol::Items::PickUpResult& result,
                                                                   const WorldEntryResources& resources);
 
 // El 22 con 0xfe y corto (07 Q-C1240, el GCMoneySend del GameServer 0.97): de 0x4d0cc0, lo que no lee más allá de
 // pkt[7], en su orden: el zen con el registro propio abierto (0x4d0d9b), el aviso con el elegido vivo (0x4d0f5f) y el
 // pedido en −1 (0x4d10b9). El sonido (0x4d1051) no sale: su tipo cae en pkt[8..10], fuera del paquete.
-[[nodiscard]] Core::Expected<void, std::string> ApplyShortZenPickUp(const Protocol::FloorItems::ShortZenPickUp& result,
+[[nodiscard]] Core::Expected<void, std::string> ApplyShortZenPickUp(const Protocol::Items::ShortZenPickUp& result,
                                                                     const WorldEntryResources& resources);
 
 // Un 22 corto (07 Q-C1240): de 0x4d0cc0, solo el pedido (0x6c82e8) en −1, que 0x4d10b9 escribe en todos los caminos.
@@ -95,7 +95,7 @@ void ApplyShortPickUpResult(WorldState& world);
 // 0x4de500, el 2C: con 0 y un stat de 0 a 4, el stat del registro propio y +0x44 suben los puntos; con 3, el stat baja
 // y +0x68 y +0x48 suben; cada uno con su aviso (0x632e30) armado con los textos 379, el del stat y 1412 o 1903. Los
 // resultados 1, 2, 4, 5, 0x10, 0x21, 0x25 y 0x26 abren su aviso. Siempre, 0x5767954 en 0.
-[[nodiscard]] Core::Expected<void, std::string> ApplyStatFruit(const Protocol::FloorItems::StatFruit& fruit,
+[[nodiscard]] Core::Expected<void, std::string> ApplyStatFruit(const Protocol::Items::StatFruit& fruit,
                                                                WorldState& world, Crt::CrtRandom& random,
                                                                const Tables::TextTable* texts);
 

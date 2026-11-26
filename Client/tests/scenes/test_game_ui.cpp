@@ -57,7 +57,7 @@ using Client::Input::InputState;
 using Client::Input::Key;
 using Client::Input::MouseButton;
 using Client::Network::Xor32Decode;
-using Client::Protocol::FloorItems::UseItem;
+using Client::Protocol::Items::UseItem;
 using Client::Scenes::FramePickingContext;
 using Client::Scenes::GameUiContext;
 using Client::Scenes::WorldState;
@@ -412,7 +412,7 @@ TEST(GameUiTest, TheQuickSlotKeysUseTheirPotions)
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         EXPECT_EQ(tested.random.State(), expected.State());
         ASSERT_EQ(sink.sent.size(), 1u);
-        const auto packet = Client::Protocol::FloorItems::WriteUseItem(sink.sent.front());
+        const auto packet = Client::Protocol::Items::WriteUseItem(sink.sent.front());
         EXPECT_TRUE(SameBytes(Xor32Decode(packet.packet).Bytes(), Bytes({0xc1, 0x06, 0x26, 9 + 12, 0, 0})));
         EXPECT_EQ(tested.world.Runtime().lastSoundId, slot.sound);
         EXPECT_EQ(tested.Ui().field5767954, 10);

@@ -40,7 +40,7 @@ Core::Expected<void, std::string> SendCommand(const GameUiContext& context)
         return Core::Unexpected(std::string("0x4108a7: sin cable para la orden del minimapa"));
     const UI::SiegePanelState& panel = context.world.Runtime().siegePanel;
     context.requests->SendGamePacket(
-        Protocol::SiegeControls::WriteCommand(panel.selected, panel.targetX, panel.targetY, panel.command));
+        Protocol::CastleSiege::WriteCommand(panel.selected, panel.targetX, panel.targetY, panel.command));
     return {};
 }
 

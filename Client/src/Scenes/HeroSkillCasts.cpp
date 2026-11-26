@@ -355,11 +355,10 @@ Core::Expected<void, std::string> UseAManaPotion(const HeroSkillContext& context
     {
         // 0x5af520 saca el relleno y el serial antes del send. UseInventoryItem ya conserva esos dos rand(),
         // incluso con el socket en −1: acá se presta sólo el envío, sin pasar otra vez por SendTheSkillPacket.
-        inventory.sendUseItem =
-            [&context](const Protocol::FloorItems::UseItem& use) -> Core::Expected<void, std::string>
+        inventory.sendUseItem = [&context](const Protocol::Items::UseItem& use) -> Core::Expected<void, std::string>
         {
             if (context.send)
-                context.send(Protocol::FloorItems::WriteUseItem(use));
+                context.send(Protocol::Items::WriteUseItem(use));
             return {};
         };
     }
@@ -534,7 +533,7 @@ Core::Expected<void, std::string> CastTheSkillAtTheTarget(ActorState& caster, Ac
         if (!passes.HasValue())
             return Core::Unexpected(passes.Error());
         if (passes.Value())
-            SendTheSkillPacket(context, Protocol::Skill::WriteMagicAttack(skill, target.Value()->key));
+            SendTheSkillPacket(context, Protocol::Skills::WriteMagicAttack(skill, target.Value()->key));
     }
     // 0x55c62c..0x55c662.
     caster.byte381 = 1;
@@ -653,7 +652,7 @@ Core::Expected<bool, std::string> UseTheWeaponOptions(ActorState& hero, const Wo
                 if (!passes.HasValue())
                     return Core::Unexpected(passes.Error());
                 if (passes.Value())
-                    SendTheSkillPacket(context, Protocol::Skill::WriteMagicAttack(skill, self.key));
+                    SendTheSkillPacket(context, Protocol::Skills::WriteMagicAttack(skill, self.key));
             }
             used = true;
         }
@@ -729,7 +728,7 @@ Core::Expected<bool, std::string> UseTheElfWeaponOptions(ActorState& hero, const
         // 0x562995..0x5629b0 y 0x563e6c..0x563e92: el rumbo de c hacia +0x3a8.
         hero.angles.z = static_cast<float>(
             Math::CreateAngle(hero.position.x, hero.position.y, hero.attackPosition.x, hero.attackPosition.y));
-        Protocol::Skill::DurationMagicSend send{.skill = skill};
+        Protocol::Skills::DurationMagicSend send{.skill = skill};
         if (skill == 0x36)
         {
             // 0x5629b6..0x562a69: la celda lógica de c (la Y antes que la X), hacia el blanco y la espalda.
@@ -769,7 +768,7 @@ Core::Expected<bool, std::string> UseTheElfWeaponOptions(ActorState& hero, const
             if (!direction.HasValue())
                 return Core::Unexpected(direction.Error());
             send.direction = direction.Value();
-            SendTheSkillPacket(context, Protocol::Skill::WriteDurationMagic(send));
+            SendTheSkillPacket(context, Protocol::Skills::WriteDurationMagic(send));
         }
         if (auto shot =
                 ShootTheArrow(hero, skill, skill == 0x36 ? std::uint8_t{0x36 - 0x34} : std::uint8_t{1}, context);

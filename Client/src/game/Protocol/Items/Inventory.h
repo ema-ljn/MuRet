@@ -12,9 +12,9 @@
 // 04 § Mover y equipar ítems: el 24 en los dos sentidos, el 28, el 2A y los F3 13 y F3 14; y 04 § La vida y el maná:
 // el 26 y el 27. Network entrega los C3 que llegan ya descifrados como C1, con WasDecrypted; la escena decide cuándo
 // mandar el 24.
-namespace Client::Protocol::Inventory
+namespace Client::Protocol::Items
 {
-// Los siete bytes de un ítem, como en el F3 10 (Protocol::Character::InventoryItemDataSize).
+// Los siete bytes de un ítem, como en el F3 10 (Protocol::Items::InventoryItemDataSize).
 inline constexpr std::size_t ItemDataSize = 7;
 // 0x4d167f: el byte que cierra el aviso del 24 sin cifrar.
 inline constexpr std::uint8_t ClearItemMoveHead = 0x16;
@@ -121,4 +121,4 @@ struct ItemPut
 };
 
 [[nodiscard]] Core::Expected<ItemPut, Network::ProtocolError> ReadItemPut(const Network::Packet& packet);
-} // namespace Client::Protocol::Inventory
+} // namespace Client::Protocol::Items

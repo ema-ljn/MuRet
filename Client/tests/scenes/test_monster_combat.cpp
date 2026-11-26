@@ -200,7 +200,7 @@ protected:
             ++x;
         const std::array<MonsterRecordBytes, 1> records{
             {{.key = MonsterKey, .typeHigh = 0x00, .typeLow = type, .x = x, .y = y, .targetX = x, .targetY = y}}};
-        auto read = Client::Protocol::Viewport::ReadMonsters(Client::Tests::MonstersPacket(records));
+        auto read = Client::Protocol::Actors::ReadMonsters(Client::Tests::MonstersPacket(records));
         EXPECT_TRUE(read.HasValue());
         const auto applied = Client::Scenes::ApplyViewportMonsters(read.Value(), game->Resources());
         EXPECT_TRUE(applied.HasValue()) << (applied.HasValue() ? "" : applied.Error());

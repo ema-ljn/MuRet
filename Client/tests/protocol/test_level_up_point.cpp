@@ -15,20 +15,20 @@
 
 #include <cstdint>
 
-// Client::Protocol::Character, el pedido de poner un punto de los de subir de nivel (F3 06), C->S.
+// Client::Protocol::Player, el pedido de poner un punto de los de subir de nivel (F3 06), C->S.
 namespace
 {
 using Client::Network::Delivery;
 using Client::Network::ProtocolError;
 using Client::Network::Xor32Decode;
 using Client::Protocol::Outgoing;
-using Client::Protocol::Character::AgilityPoint;
-using Client::Protocol::Character::CommandPoint;
-using Client::Protocol::Character::EnergyPoint;
-using Client::Protocol::Character::ReadLevelUpPointResult;
-using Client::Protocol::Character::StrengthPoint;
-using Client::Protocol::Character::VitalityPoint;
-using Client::Protocol::Character::WriteLevelUpPoint;
+using Client::Protocol::Player::AgilityPoint;
+using Client::Protocol::Player::CommandPoint;
+using Client::Protocol::Player::EnergyPoint;
+using Client::Protocol::Player::ReadLevelUpPointResult;
+using Client::Protocol::Player::StrengthPoint;
+using Client::Protocol::Player::VitalityPoint;
+using Client::Protocol::Player::WriteLevelUpPoint;
 using Client::Tests::Bytes;
 using Client::Tests::ErrorOf;
 using Client::Tests::PacketOf;

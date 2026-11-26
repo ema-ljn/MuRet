@@ -22,7 +22,7 @@ using Client::Tests::Bytes;
 using Client::Tests::ErrorOf;
 using Client::Tests::PacketOf;
 using Client::Tests::SameBytes;
-namespace Inventory = Client::Protocol::Inventory;
+namespace Inventory = Client::Protocol::Items;
 
 // Un ítem inventado: el byte 0, el nivel y las opciones, la durabilidad, los dos de opciones, el grupo y el último.
 constexpr Inventory::ItemData InventedItem{std::byte{0x21}, std::byte{0x0b}, std::byte{0x2c}, std::byte{0x00},

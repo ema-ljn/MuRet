@@ -14,7 +14,7 @@
 // La lista de personajes de la cuenta: pedirla (F3 00, C->S) y leerla (F3 00, S->C).
 // Contrato: Client/docs/research/04-protocolo.md, "La selección de personaje (F3)", y el plan de la
 // CL6 (CL6.3, "Contrato").
-namespace Client::Protocol::Character
+namespace Client::Protocol::FrontEnd
 {
 // C1 04 F3 00, sin cuerpo, con el XOR32 y en claro (0x634e0e, en el mismo paso en que 0x634c60 pasa
 // a la escena 4).
@@ -72,4 +72,4 @@ struct CharacterList
 {
     return static_cast<std::uint8_t>(((classByte & 0x10) | (classByte >> 4)) >> 1);
 }
-} // namespace Client::Protocol::Character
+} // namespace Client::Protocol::FrontEnd

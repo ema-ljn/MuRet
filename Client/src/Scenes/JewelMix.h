@@ -8,7 +8,7 @@
 
 // La mezcla de joyas (CL9 hito 6, fase 3b; 06 § Los diálogos del juego, "La mezcla de joyas"): los diálogos que abre
 // el 30 con 9 (0x4d25aa) desde 0xa1 y lo que hacen en el paso de 0x623e70, con las funciones de 0x402a10..0x402eb0 y
-// el BC (Protocol::JewelMix). Ninguno saca rand(): el inventario (0x78a9bb0) no está en la tabla de protección y el BC
+// el BC (Protocol::ChaosMix). Ninguno saca rand(): el inventario (0x78a9bb0) no está en la tabla de protección y el BC
 // y el 31 salen en claro. Los dibujos van en Scenes/GameDialogDrawing; la lista de 0x6e5660 del 0xa4, en
 // Scenes/JewelBundleList.
 namespace Client::Scenes

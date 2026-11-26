@@ -14,9 +14,9 @@
 // 04 § El comercio: del 36 al 3D en los dos sentidos (CL9 hito 7). Los lectores son los campos que leen 0x4d4af0
 // (36), 0x4d5570 (37) y los casos en línea del dispatcher 0x4e2b10 (38 a 3C, 0x4e3d6a..0x4e3e7f; el 3D va a 0x4d57f0);
 // los escritores, lo que arman 0x406050 y 0x56c440 (36), 0x623e70 (37, 3A y 3C), 0x5ecde0 (3C y 3D) y 0x657ab0 (3D).
-namespace Client::Protocol::Trade
+namespace Client::Protocol::Social
 {
-using Name = std::array<std::byte, Character::NameSize>;
+using Name = std::array<std::byte, FrontEnd::NameSize>;
 
 // El 36 del GS (0x4d4af0): C1 0D 36 y el nombre del que pide, 10 bytes desde pkt[3].
 struct TradeRequest
@@ -58,7 +58,7 @@ ReadTradeItemRemoved(const Network::Packet& packet);
 struct TradeItemAdded
 {
     std::uint8_t slot = 0;
-    Inventory::ItemData item{};
+    Items::ItemData item{};
 };
 
 [[nodiscard]] Core::Expected<TradeItemAdded, Network::ProtocolError> ReadTradeItemAdded(const Network::Packet& packet);
@@ -121,4 +121,4 @@ struct TradeResult
 // El aviso del 36 que no llegó cifrado (0x4d4af0, 0x4d4b22..0x4d5238): C1 06 F1 03 00 36 con el XOR32 y en C3, como
 // el del 24 (Inventory::WriteClearItemMoveReport).
 [[nodiscard]] Outgoing WriteClearTradeRequestReport();
-} // namespace Client::Protocol::Trade
+} // namespace Client::Protocol::Social

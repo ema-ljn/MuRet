@@ -6,7 +6,7 @@
 
 #include <cstdint>
 
-namespace Client::Protocol::Connection
+namespace Client::Protocol::Session
 {
 namespace
 {
@@ -47,4 +47,4 @@ Outgoing WriteKeepalive(const Keepalive& keepalive)
         .PutU16Le(keepalive.magicSpeed);
     return EncryptedC1(writer);
 }
-} // namespace Client::Protocol::Connection
+} // namespace Client::Protocol::Session

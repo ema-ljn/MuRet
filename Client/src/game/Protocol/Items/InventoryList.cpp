@@ -14,12 +14,12 @@
 #include <span>
 #include <vector>
 
-namespace Client::Protocol::Character
+namespace Client::Protocol::Items
 {
 namespace
 {
 // C4 rearmado como C2 por el transporte de MuRet (ADR0003), no por 0x4c55a0.
-constexpr Network::PacketKind InventoryKind{Network::PacketType::C2, CharacterOpcode, InventoryListSubcode};
+constexpr Network::PacketKind InventoryKind{Network::PacketType::C2, CharacterOpcode, Character::InventoryListSubcode};
 } // namespace
 
 Core::Expected<InventoryList, Network::ProtocolError> ReadInventoryList(const Network::Packet& packet)
@@ -48,4 +48,4 @@ Core::Expected<InventoryList, Network::ProtocolError> ReadInventoryList(const Ne
     }
     return list;
 }
-} // namespace Client::Protocol::Character
+} // namespace Client::Protocol::Items

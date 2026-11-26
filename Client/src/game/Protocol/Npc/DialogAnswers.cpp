@@ -6,7 +6,7 @@
 
 #include <cstdint>
 
-namespace Client::Protocol::DialogAnswers
+namespace Client::Protocol::Npc
 {
 Outgoing WriteChaosCastleEntry(std::uint8_t level, std::uint8_t slot)
 {
@@ -17,4 +17,4 @@ Outgoing WriteNoticeYes()
 {
     return Xor32C1(Network::PacketWriter::C1(NoticeAnswerOpcode, NoticeAnswer::YesSubcode));
 }
-} // namespace Client::Protocol::DialogAnswers
+} // namespace Client::Protocol::Npc

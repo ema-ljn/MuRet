@@ -55,7 +55,7 @@ using Client::Tests::SameBytes;
 class Requests final : public Client::Scenes::IGameUiRequests
 {
 public:
-    void SendOptionData(const Client::Protocol::OptionData::OptionBody&) override {}
+    void SendOptionData(const Client::Protocol::Player::OptionBody&) override {}
     void RequestLogout(std::uint8_t) override {}
     void RequestPartyList() override {}
     void SendGuildPacket(Client::Protocol::Outgoing packet) override

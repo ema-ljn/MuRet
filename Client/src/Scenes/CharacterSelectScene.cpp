@@ -148,7 +148,7 @@ constexpr std::uint8_t BlockedAccountFlag = 0x10;
 constexpr std::int32_t SelectionWorldWidth = 640;
 
 // Si la entrada es la misma que dio el personaje: un crear en un lugar ocupado lo pisa.
-bool SameEntry(const Protocol::Character::CharacterEntry& one, const Protocol::Character::CharacterEntry& other)
+bool SameEntry(const Protocol::FrontEnd::CharacterEntry& one, const Protocol::FrontEnd::CharacterEntry& other)
 {
     return one.slot == other.slot && one.name == other.name && one.classByte == other.classByte &&
            one.equipment == other.equipment && one.withoutEquipment == other.withoutEquipment;
@@ -320,7 +320,7 @@ bool CharacterSelectScene::WaitingForTheList() const
 }
 
 CharacterSelectScene::Character
-CharacterSelectScene::MakeCharacter(const Protocol::Character::CharacterEntry& entry) const
+CharacterSelectScene::MakeCharacter(const Protocol::FrontEnd::CharacterEntry& entry) const
 {
     Character character;
     character.slot = entry.slot;
@@ -329,7 +329,7 @@ CharacterSelectScene::MakeCharacter(const Protocol::Character::CharacterEntry& e
         character.revision = m_context.selection->Slots()[entry.slot].revision;
     }
     character.entry = entry;
-    const std::uint8_t characterClass = Protocol::Character::CharacterClassOf(entry.classByte);
+    const std::uint8_t characterClass = Protocol::FrontEnd::CharacterClassOf(entry.classByte);
     // El que armó la respuesta de crear sale sin equipo (0x517270 sin 0x5139f0, Q-C103).
     character.appearance = entry.withoutEquipment ? GameLogic::ClassAppearance(characterClass, 0)
                                                   : GameLogic::AppearanceOf(characterClass, 0, entry.equipment);
@@ -346,11 +346,11 @@ void CharacterSelectScene::SyncTheCharacters()
     {
         return;
     }
-    const std::vector<Protocol::Character::CharacterEntry>& entries = m_session->Characters()->characters;
+    const std::vector<Protocol::FrontEnd::CharacterEntry>& entries = m_session->Characters()->characters;
     bool changed = !m_tookTheList || entries.size() != m_characters.size();
     std::vector<Character> synced;
     synced.reserve(entries.size());
-    for (const Protocol::Character::CharacterEntry& entry : entries)
+    for (const Protocol::FrontEnd::CharacterEntry& entry : entries)
     {
         const SelectionState* selection = m_context.selection;
         const auto same =
@@ -377,7 +377,7 @@ void CharacterSelectScene::SyncTheCharacters()
     {
         m_tookTheList = true;
         // 0x63e820, una vez: algún personaje de los cinco lugares con el bit 0x10 de las banderas.
-        m_bar.SetBlockedAccount(std::ranges::any_of(entries, [](const Protocol::Character::CharacterEntry& entry)
+        m_bar.SetBlockedAccount(std::ranges::any_of(entries, [](const Protocol::FrontEnd::CharacterEntry& entry)
                                                     { return (entry.flags & BlockedAccountFlag) != 0; }));
         // 0x4c20a0 → 0x622b20 → 0x63d7c0: las clases de la 0 a pkt[4].
         m_create.EnableClasses(m_session->Characters()->creatableClasses);
@@ -805,11 +805,11 @@ void CharacterSelectScene::EnableTheBar()
     bool aFreeSlot = true;
     if (m_session != nullptr && m_session->Characters())
     {
-        const std::vector<Protocol::Character::CharacterEntry>& entries = m_session->Characters()->characters;
+        const std::vector<Protocol::FrontEnd::CharacterEntry>& entries = m_session->Characters()->characters;
         aFreeSlot = false;
-        for (std::uint8_t slot = 0; slot <= Protocol::Character::MaxCharacterSlot; ++slot)
+        for (std::uint8_t slot = 0; slot <= Protocol::FrontEnd::MaxCharacterSlot; ++slot)
         {
-            if (std::ranges::find(entries, slot, &Protocol::Character::CharacterEntry::slot) == entries.end())
+            if (std::ranges::find(entries, slot, &Protocol::FrontEnd::CharacterEntry::slot) == entries.end())
             {
                 aFreeSlot = true;
                 break;
@@ -841,7 +841,7 @@ void CharacterSelectScene::OnTheBar(UI::SelectionBarClick click)
 
 void CharacterSelectScene::AskToDelete()
 {
-    const Protocol::Character::CharacterEntry* chosen = m_session != nullptr ? m_session->ChosenCharacter() : nullptr;
+    const Protocol::FrontEnd::CharacterEntry* chosen = m_session != nullptr ? m_session->ChosenCharacter() : nullptr;
     if (chosen == nullptr)
     {
         return;
@@ -851,7 +851,7 @@ void CharacterSelectScene::AskToDelete()
     m_context.log.Info("borrar el personaje del lugar {} abre el aviso {:#04x}", chosen->slot,
                        static_cast<int>(notice));
     // El nombre va en el %s del texto 1712 del 0x5e (0x6431b0); no va al log.
-    OpenNotice(notice, Protocol::Character::NameAsText(chosen->name));
+    OpenNotice(notice, Protocol::FrontEnd::NameAsText(chosen->name));
 }
 
 void CharacterSelectScene::SendTheDeletion()
@@ -861,7 +861,7 @@ void CharacterSelectScene::SendTheDeletion()
         return;
     }
     // El código, como la clave, no va al log, y no se queda en la ventana.
-    m_session->DeleteCharacter(Protocol::Character::DeleteCodeFromText(m_notice.TakeCode()));
+    m_session->DeleteCharacter(Protocol::FrontEnd::DeleteCodeFromText(m_notice.TakeCode()));
     if (m_session->State() == App::SessionState::WaitingDeleteResult)
     {
         m_waitingForTheDeletion = true;
@@ -1110,7 +1110,7 @@ void CharacterSelectScene::JoinAnotherServer()
         }
         if (m_session != nullptr)
         {
-            m_session->RequestLogout(Protocol::Connection::LogoutReturnsToServerList);
+            m_session->RequestLogout(Protocol::Session::LogoutReturnsToServerList);
         }
     }
     m_ui.Close(m_escape);
@@ -1148,12 +1148,12 @@ void CharacterSelectScene::TryToEnter()
     {
         return;
     }
-    const Protocol::Character::CharacterEntry* chosen = m_session->ChosenCharacter();
+    const Protocol::FrontEnd::CharacterEntry* chosen = m_session->ChosenCharacter();
     if (chosen == nullptr)
     {
         return;
     }
-    if (Protocol::Character::IsLocked(*chosen))
+    if (Protocol::FrontEnd::IsLocked(*chosen))
     {
         OpenNotice(UI::LockedCharacterNotice);
         return;
@@ -1340,7 +1340,7 @@ std::array<UI::BalloonRecord, UI::BalloonCount> CharacterSelectScene::BalloonRec
     {
         return records;
     }
-    const Protocol::Character::CharacterList* list =
+    const Protocol::FrontEnd::CharacterList* list =
         m_session != nullptr && m_session->Characters() ? &*m_session->Characters() : nullptr;
     for (std::size_t slot = 0; slot < UI::BalloonCount; ++slot)
     {
@@ -1348,13 +1348,13 @@ std::array<UI::BalloonRecord, UI::BalloonCount> CharacterSelectScene::BalloonRec
         const bool listed =
             m_session == nullptr ||
             (list != nullptr &&
-             std::ranges::any_of(list->characters, [slot](const Protocol::Character::CharacterEntry& entry)
+             std::ranges::any_of(list->characters, [slot](const Protocol::FrontEnd::CharacterEntry& entry)
                                  { return entry.slot == slot; }));
         records[slot] = UI::BalloonRecord{.alive = actor.alive && listed,
                                           .characterClass = actor.characterClass,
                                           .level = actor.level,
                                           .controlCode = actor.controlCode,
-                                          .name = Protocol::Character::NameAsText(actor.name),
+                                          .name = Protocol::FrontEnd::NameAsText(actor.name),
                                           .guildStatus = actor.guildStatus};
     }
     return records;
@@ -1469,7 +1469,7 @@ void CharacterSelectScene::DrawTheWorldAndTheCharacters(Render::Frame::SceneCanv
                                     .flushModels = canvas.flushModels};
     // 0x6347e9..0x63483e: el elegido vivo lleva su luz a (1, 1, 1) y la suma al buffer dinámico en su lugar,
     // con radio 1 (0x5f9780), entre 0x620a90 y 0x620980.
-    const Protocol::Character::CharacterEntry* chosen = m_session != nullptr ? m_session->ChosenCharacter() : nullptr;
+    const Protocol::FrontEnd::CharacterEntry* chosen = m_session != nullptr ? m_session->ChosenCharacter() : nullptr;
     ActorState* chosenActor =
         chosen != nullptr && chosen->slot < SelectionActorCount ? &world.Actors()[chosen->slot] : nullptr;
     if (chosenActor != nullptr && !chosenActor->alive)
@@ -1573,7 +1573,7 @@ void CharacterSelectScene::DrawTheWorldAndTheCharacters(Render::Frame::SceneCanv
 void CharacterSelectScene::DrawTheCharacters(Render::Frame::SceneCanvas& canvas, float alpha, std::uint8_t map,
                                              FaunaDrawCarry* poseCarry, int scanFrames)
 {
-    const Protocol::Character::CharacterEntry* chosen = m_session != nullptr ? m_session->ChosenCharacter() : nullptr;
+    const Protocol::FrontEnd::CharacterEntry* chosen = m_session != nullptr ? m_session->ChosenCharacter() : nullptr;
     const std::size_t hero = m_context.world != nullptr ? m_context.world->Runtime().hero : 0;
     for (Character& character : m_characters)
     {

@@ -14,7 +14,7 @@
 #include <optional>
 #include <span>
 
-namespace Client::Protocol::World
+namespace Client::Protocol::Movement
 {
 namespace
 {
@@ -97,4 +97,4 @@ Outgoing WriteCastleSiegeState()
 {
     return Xor32C1(Network::PacketWriter::C1(CastleInfoOpcode, CastleInfo::OwnerMarkSubcode));
 }
-} // namespace Client::Protocol::World
+} // namespace Client::Protocol::Movement

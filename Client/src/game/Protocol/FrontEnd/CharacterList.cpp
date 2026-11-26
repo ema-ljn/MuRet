@@ -17,12 +17,12 @@
 #include <span>
 #include <vector>
 
-namespace Client::Protocol::Character
+namespace Client::Protocol::FrontEnd
 {
 namespace
 {
 // La lista es un C1: con cinco personajes mide 7 + 5 · 0x22 = 177.
-constexpr Network::PacketKind ListKind{Network::PacketType::C1, CharacterOpcode, ListSubcode};
+constexpr Network::PacketKind ListKind{Network::PacketType::C1, CharacterOpcode, Character::ListSubcode};
 
 // Dónde va cada campo en una entrada.
 constexpr std::size_t NameOffset = 1;
@@ -50,7 +50,7 @@ CharacterEntry ReadEntry(std::span<const std::byte, EntrySize> bytes)
 
 Outgoing WriteCharacterListRequest()
 {
-    return Xor32C1(Network::PacketWriter::C1(CharacterOpcode, ListSubcode));
+    return Xor32C1(Network::PacketWriter::C1(CharacterOpcode, Character::ListSubcode));
 }
 
 Core::Expected<CharacterList, Network::ProtocolError> ReadCharacterList(const Network::Packet& packet)
@@ -82,4 +82,4 @@ Core::Expected<CharacterList, Network::ProtocolError> ReadCharacterList(const Ne
     }
     return list;
 }
-} // namespace Client::Protocol::Character
+} // namespace Client::Protocol::FrontEnd

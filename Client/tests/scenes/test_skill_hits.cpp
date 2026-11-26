@@ -141,10 +141,10 @@ TEST(SkillHitsTest, TheMonstersAroundAndThePlayerOfTheKeyAreHit)
         EXPECT_TRUE(hit.Value());
         EXPECT_EQ(DrawsSince(Seed, tested.random), OwnRecord + Delivery);
         ASSERT_EQ(tested.sent.size(), 1u);
-        Client::Protocol::Skill::SkillHitsSend expected{.skill = 0x18, .x = 123, .y = 67, .volley = 0x0c, .hits = 3};
+        Client::Protocol::Skills::SkillHitsSend expected{.skill = 0x18, .x = 123, .y = 67, .volley = 0x0c, .hits = 3};
         expected.keys = {0x1005, 0x0222, 0x100d, 0, 0};
         EXPECT_TRUE(Client::Tests::SameBytes(tested.sent[0].packet.Bytes(),
-                                             Client::Protocol::Skill::WriteSkillHits(expected).packet.Bytes()));
+                                             Client::Protocol::Skills::WriteSkillHits(expected).packet.Bytes()));
     }
 }
 
@@ -164,10 +164,10 @@ TEST(SkillHitsTest, FiveAtMostAndTheEighthAndNinthSkillsMark)
 
         ASSERT_TRUE(hit.HasValue()) << hit.Error();
         ASSERT_EQ(tested.sent.size(), 1u);
-        Client::Protocol::Skill::SkillHitsSend expected{.skill = skill, .x = 123, .y = 67, .volley = 0x0c, .hits = 5};
+        Client::Protocol::Skills::SkillHitsSend expected{.skill = skill, .x = 123, .y = 67, .volley = 0x0c, .hits = 5};
         expected.keys = {0x2014, 0x2015, 0x2016, 0x2017, 0x2018};
         EXPECT_TRUE(Client::Tests::SameBytes(tested.sent[0].packet.Bytes(),
-                                             Client::Protocol::Skill::WriteSkillHits(expected).packet.Bytes()));
+                                             Client::Protocol::Skills::WriteSkillHits(expected).packet.Bytes()));
         const bool marks = skill != 0x33;
         for (std::size_t slot = 20; slot < 26; ++slot)
         {

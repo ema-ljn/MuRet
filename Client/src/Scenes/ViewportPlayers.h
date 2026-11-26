@@ -6,7 +6,7 @@
 #include <cstdint>
 #include <string>
 
-namespace Client::Protocol::Viewport
+namespace Client::Protocol::Actors
 {
 struct Players;
 struct Leave;
@@ -14,7 +14,7 @@ struct Transformed;
 struct TransformedRecord;
 struct EquipmentShown;
 struct Position;
-} // namespace Client::Protocol::Viewport
+} // namespace Client::Protocol::Actors
 
 // Los otros jugadores entran y salen del viewport (CL9 hito 1): el 0x12, el 0x14, el 0x45, el 0x25 y el 0xDF. Contrato:
 // Client/docs/research/06-render-escenas-y-ui.md, "Los otros jugadores en el viewport". Todo *estático*, del ASM. Lo
@@ -62,18 +62,18 @@ WalkToTheTarget(ActorState& actor, std::uint8_t targetX, std::uint8_t targetY, c
 // lugar de 0x5110d0), el nombre y +0x1e3 en 0, con el estado 1 otra vez +0x360 y +0x78, Castle Siege (0x42ab40) y el
 // panel (0x412140). Cada celda escrita o leída gasta 4 rand() al cerrarse; el alta, los 28 de 0x511290 y los de sus
 // ayudantes.
-[[nodiscard]] Core::Expected<void, std::string> ApplyViewportPlayers(const Protocol::Viewport::Players& players,
+[[nodiscard]] Core::Expected<void, std::string> ApplyViewportPlayers(const Protocol::Actors::Players& players,
                                                                      const WorldEntryResources& resources);
 
 // 0x4ca780: por cada clave, con la información del asedio (0x5767924), la entera 0x13d pone sus bytes 4..6 en 0 y
 // cualquier otra los 0x1f..0x21 (Q-C802); 0x510ff0 (RemoveActor) con la clave sin el bit 15; y 0x451630 busca el
 // cartel de la tienda personal de esa clave en el mapa de 0x7245c8 (el primero en su orden) y 0x451430 lo saca.
-void ApplyViewportLeave(const Protocol::Viewport::Leave& leave, WorldState& world);
+void ApplyViewportLeave(const Protocol::Actors::Leave& leave, WorldState& world);
 
 // 0x4c92a0: con "webzen" en el nombre, el registro no hace nada. Si no, la clase del héroe publicado (0x4c9328), el
 // alta del transformado o del monstruo de tipo +4 (CreateMonster, 0x5141e0, sin mirar si devuelve 0) y
 // FinishTheTransformed.
-[[nodiscard]] Core::Expected<void, std::string> ApplyTransformed(const Protocol::Viewport::Transformed& transformed,
+[[nodiscard]] Core::Expected<void, std::string> ApplyTransformed(const Protocol::Actors::Transformed& transformed,
                                                                  const WorldEntryResources& resources);
 
 // 0x4c9356..0x4c9762, lo que 0x4c92a0 hace con el personaje `index` que devolvió 0x5141e0: con +0x376 en 7 la escala
@@ -81,9 +81,10 @@ void ApplyViewportLeave(const Protocol::Viewport::Leave& leave, WorldState& worl
 // las banderas (0x4e6380 y 0x42ab40); la celda protegida, +0x39a/+0x39b y el ángulo. Recién llegado, la posición, el
 // alpha en 0, el círculo 0xec (0x4c965c) y el rayo 0x5d5/2 que lo sigue (0x4c9674), los dos con él de dueño; si no, el
 // camino (0x4eac00) con la Y leída antes que la X. Después, el nombre, +0x1e3 en 0 y 0x512a30 sobre el héroe publicado.
-[[nodiscard]] Core::Expected<void, std::string>
-FinishTheTransformed(std::size_t index, const Protocol::Viewport::TransformedRecord& record, std::uint8_t heroClass,
-                     const WorldEntryResources& resources);
+[[nodiscard]] Core::Expected<void, std::string> FinishTheTransformed(std::size_t index,
+                                                                     const Protocol::Actors::TransformedRecord& record,
+                                                                     std::uint8_t heroClass,
+                                                                     const WorldEntryResources& resources);
 
 // 0x4c8380: el personaje de la clave entera (0x5110d0, el 400 si no hay) y el ítem de pkt[5..]: el tipo (0x54b3a0) en
 // el lugar del nibble de arriba de pkt[6], con 0x1fff sin ítem. Las manos (0, 1) con el nivel (0x513340 del nibble de
@@ -92,7 +93,7 @@ FinishTheTransformed(std::size_t index, const Protocol::Viewport::TransformedRec
 // la parte de la clase. Las alas (7) con el nivel en 0. La mascota (8): vacía, 0x443d40; si no, el ayudante por tipo
 // (0x1a00, 0x1a02, 0x1a03, 0x1a04 y Fenrir 0x1a25 con +0x31b en el excelente) con 0x443fa0. Del 9 al 15, nada. Al
 // final, 0x4053f0 y 0x512930.
-[[nodiscard]] Core::Expected<void, std::string> ApplyEquipmentShown(const Protocol::Viewport::EquipmentShown& shown,
+[[nodiscard]] Core::Expected<void, std::string> ApplyEquipmentShown(const Protocol::Actors::EquipmentShown& shown,
                                                                     const WorldEntryResources& resources);
 
 // 0x4c6b40: el personaje de la clave entera (0x5110d0). Con el tipo 0xf1 (el que crea 0x5141e0 para los tipos 160,
@@ -100,6 +101,6 @@ FinishTheTransformed(std::size_t index, const Protocol::Viewport::TransformedRec
 // diferencias por 400 y el sonido 0x1b (WorldRuntime::lastSoundId, CL10); 0x51fe10(posición, 0) intenta veinte
 // partículas 5c5/2 a Z+80, con dos sorteos por intento aun con el pool lleno y cinco adicionales por alta. Si no, la
 // celda protegida en pkt[5] y pkt[6], +0x39a/+0x39b y +0x399 en 1.
-[[nodiscard]] Core::Expected<void, std::string> ApplyViewportPosition(const Protocol::Viewport::Position& position,
+[[nodiscard]] Core::Expected<void, std::string> ApplyViewportPosition(const Protocol::Actors::Position& position,
                                                                       const WorldEntryResources& resources);
 } // namespace Client::Scenes

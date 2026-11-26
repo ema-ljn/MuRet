@@ -18,18 +18,18 @@
 #include <array>
 #include <cstddef>
 
-// Client::Protocol::Character, borrar un personaje (F3 02: 0x643740 y 0x4e2b10), con un nombre y un
+// Client::Protocol::FrontEnd, borrar un personaje (F3 02: 0x643740 y 0x4e2b10), con un nombre y un
 // código sintéticos.
 namespace
 {
 using Client::Network::Delivery;
 using Client::Network::ProtocolError;
 using Client::Network::Xor32Decode;
-using Client::Protocol::Character::CharacterDeleted;
-using Client::Protocol::Character::DeleteCodeFromText;
-using Client::Protocol::Character::DeleteCodeSize;
-using Client::Protocol::Character::ReadCharacterDeleteResult;
-using Client::Protocol::Character::WriteCharacterDelete;
+using Client::Protocol::FrontEnd::CharacterDeleted;
+using Client::Protocol::FrontEnd::DeleteCodeFromText;
+using Client::Protocol::FrontEnd::DeleteCodeSize;
+using Client::Protocol::FrontEnd::ReadCharacterDeleteResult;
+using Client::Protocol::FrontEnd::WriteCharacterDelete;
 using Client::Tests::Bytes;
 using Client::Tests::ErrorOf;
 using Client::Tests::NameBytes;

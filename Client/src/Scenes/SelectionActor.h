@@ -4,7 +4,7 @@
 
 #include <string>
 
-namespace Client::Protocol::Character
+namespace Client::Protocol::FrontEnd
 {
 struct CharacterEntry;
 }
@@ -21,8 +21,9 @@ namespace Client::Scenes
 struct ActorConstructionContext;
 class WorldState;
 
-[[nodiscard]] Core::Expected<void, std::string>
-ConstructSelectionActor(WorldState& world, const Protocol::Character::CharacterEntry& entry,
-                        const ActorConstructionContext& construction, Models::ClothWorld& cloth,
-                        const Models::Skeleton& skeleton);
+[[nodiscard]] Core::Expected<void, std::string> ConstructSelectionActor(WorldState& world,
+                                                                        const Protocol::FrontEnd::CharacterEntry& entry,
+                                                                        const ActorConstructionContext& construction,
+                                                                        Models::ClothWorld& cloth,
+                                                                        const Models::Skeleton& skeleton);
 } // namespace Client::Scenes

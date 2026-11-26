@@ -116,7 +116,7 @@ private:
     {
         std::uint8_t slot = 0;
         std::uint64_t revision = 0;
-        Protocol::Character::CharacterEntry entry;
+        Protocol::FrontEnd::CharacterEntry entry;
         GameLogic::CharacterAppearance appearance;
         CharacterAnimation animation;
         // Su tela (0x50ba30 la arma desde el primer frame en que se dibuja).
@@ -128,7 +128,7 @@ private:
     // La lista de la sesión a los personajes: la primera vez, todos, y el +0x543 de la barra; después,
     // cada construcción recibida recrea su visual, aunque tenga los mismos bytes que el anterior.
     void SyncTheCharacters();
-    [[nodiscard]] Character MakeCharacter(const Protocol::Character::CharacterEntry& entry) const;
+    [[nodiscard]] Character MakeCharacter(const Protocol::FrontEnd::CharacterEntry& entry) const;
     [[nodiscard]] bool PrepareTheCharacters();
     // 0x63420a: con alguno de los dos números de pkt[5] de la lista, el 1240 en el área de mensajes.
     [[nodiscard]] Core::Expected<void, std::string> AddTheAccountNotice();

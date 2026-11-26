@@ -19,7 +19,7 @@
 // Como en el hito 12 (Protocol/CastleSiege.h), el subcódigo del B9 y del B2 es pkt[3] en un C1 y pkt[4] en los demás,
 // y después cada handler lee a desplazamientos fijos desde el primer byte, sin mirar el tipo ni el largo. Lo que el
 // caso lee y no llegó es TooShort; los bytes sobrantes se ignoran.
-namespace Client::Protocol::CastleBattle
+namespace Client::Protocol::CastleSiege
 {
 inline constexpr std::array<Network::Subcode, 4> BattleSubcodes{
     CastleInfo::NpcLevelSubcode, CastleInfo::OwnerMarkSubcode, CastleInfo::HuntZoneInfoSubcode,
@@ -182,4 +182,4 @@ using CastleBattlePacket =
 // (el 04 y desde el 06 caen al default, 0x4e58c8) o del B2: WrongPacket.
 [[nodiscard]] Core::Expected<CastleBattlePacket, Network::ProtocolError>
 ReadCastleBattlePacket(const Network::Packet& packet);
-} // namespace Client::Protocol::CastleBattle
+} // namespace Client::Protocol::CastleSiege

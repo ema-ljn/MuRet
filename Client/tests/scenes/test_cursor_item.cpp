@@ -42,8 +42,8 @@ using Client::Core::Expected;
 using Client::Crt::CrtRandom;
 using Client::Network::Xor32Decode;
 using Client::Pathfinding::PathCell;
-using Client::Protocol::FloorItems::Drop;
-using Client::Protocol::Inventory::ItemMove;
+using Client::Protocol::Items::Drop;
+using Client::Protocol::Items::ItemMove;
 using Client::Scenes::EmptyOwnItemId;
 using Client::Scenes::InventoryMoveContext;
 using Client::Scenes::InventoryServices;
@@ -448,9 +448,8 @@ TEST_F(CursorItemTest, DroppingOnAFreePlaceOfTheGridSendsTheMove)
     EXPECT_EQ(move.sourceSlot, 12 + 1 * 8 + 2);
     EXPECT_EQ(move.targetFlag, 0);
     EXPECT_EQ(move.targetSlot, 12 + 4 * 8 + 6);
-    const Client::Protocol::Inventory::ItemData bytes{std::byte{0x01}, std::byte{0x0b}, std::byte{0x2c},
-                                                      std::byte{0x00}, std::byte{0x00}, std::byte{0x00},
-                                                      std::byte{0x00}};
+    const Client::Protocol::Items::ItemData bytes{std::byte{0x01}, std::byte{0x0b}, std::byte{0x2c}, std::byte{0x00},
+                                                  std::byte{0x00}, std::byte{0x00}, std::byte{0x00}};
     EXPECT_EQ(move.item, bytes);
     for (const std::int32_t row : {4, 5, 6})
         EXPECT_EQ(Cell(6, row).warning, 2) << row;
@@ -629,7 +628,7 @@ TEST_F(CursorItemTest, TradeAndShopItemsUseTheTradeSourceWhenDroppedOnEquipment)
                 runtime.social.trade.ownOk = ownOk;
                 runtime.social.trade.okWait = 7;
                 outside.sent.clear();
-                services.sendItemMove = [&](const Client::Protocol::Inventory::ItemMove& move)
+                services.sendItemMove = [&](const Client::Protocol::Items::ItemMove& move)
                 {
                     EXPECT_EQ(runtime.social.trade.okWait, ownOk == 0 ? 150 : 7);
                     outside.sent.push_back(move);
@@ -895,7 +894,7 @@ TEST_F(CursorItemTest, TheDropSendsTheCellAndTheSlotByteByByte)
     ASSERT_TRUE(dropped.HasValue()) << dropped.Error();
     EXPECT_EQ(random.State(), expected.State());
     ASSERT_EQ(sent.size(), 1u);
-    const auto packet = Client::Protocol::FloorItems::WriteDrop(sent.front());
+    const auto packet = Client::Protocol::Items::WriteDrop(sent.front());
     EXPECT_TRUE(SameBytes(Xor32Decode(packet.packet).Bytes(), Bytes({0xc1, 0x06, 0x23, 130, 121, 22})));
     EXPECT_EQ(world.Runtime().floor.pendingDrop, 22);
     EXPECT_EQ(world.Runtime().movement.mouseUpdateTime, 0);

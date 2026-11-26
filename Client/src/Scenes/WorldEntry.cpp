@@ -73,7 +73,7 @@ ActorStopContext StopContextOf(const WorldEntryResources& resources, const Model
 }
 
 // 0x4c40cb..0x4c41c4: abre el registro propio, copia los stats y lo cierra (el primer cierre en línea).
-void ApplyTheStats(const Protocol::Character::CharacterSelectResult& reply, const WorldEntryResources& resources)
+void ApplyTheStats(const Protocol::FrontEnd::CharacterSelectResult& reply, const WorldEntryResources& resources)
 {
     WorldState& world = resources.world;
     const Models::LogicalAccess access(world.Runtime().ownRecordDepth, resources.cloth.random,
@@ -107,7 +107,7 @@ Core::Expected<void, std::string> LoadTheWorld(std::uint8_t map, std::uint16_t p
 // 0x4c44ad..0x4c4516: el lugar del héroe, su construcción y la clave del jugador. Una segunda respuesta
 // sortea otro lugar sin mirar el del héroe anterior, que tiene la misma clave y sobrevive a 0x510f70 en
 // el suyo (Q-C196); si cae en el mismo, 0x511290 lo reconstruye ahí.
-Core::Expected<void, std::string> BuildTheHero(const Protocol::Character::CharacterSelectResult& reply,
+Core::Expected<void, std::string> BuildTheHero(const Protocol::FrontEnd::CharacterSelectResult& reply,
                                                std::uint16_t playerKey, const WorldEntryResources& resources)
 {
     WorldState& world = resources.world;
@@ -131,7 +131,7 @@ Core::Expected<void, std::string> BuildTheHero(const Protocol::Character::Charac
 
 // 0x4c4522..0x4c470b: la clase del registro propio y la piel en 0 (el segundo cierre en línea), y
 // después el PK, el CtlCode y +0x88.
-void CopyTheIdentity(const Protocol::Character::CharacterSelectResult& reply, const WorldEntryResources& resources)
+void CopyTheIdentity(const Protocol::FrontEnd::CharacterSelectResult& reply, const WorldEntryResources& resources)
 {
     WorldState& world = resources.world;
     ActorState& hero = HeroOf(resources);
@@ -279,7 +279,7 @@ Core::Expected<const Models::Skeleton*, std::string> PlayerSkeletonOf(const Worl
 }
 } // namespace
 
-Core::Expected<WorldEntryResult, std::string> ApplyWorldEntry(const Protocol::Character::CharacterSelectResult& reply,
+Core::Expected<WorldEntryResult, std::string> ApplyWorldEntry(const Protocol::FrontEnd::CharacterSelectResult& reply,
                                                               std::uint16_t playerKey,
                                                               const WorldEntryResources& resources,
                                                               IWorldEntryPublisher& publisher)

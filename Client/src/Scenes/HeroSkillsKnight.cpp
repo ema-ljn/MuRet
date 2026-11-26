@@ -343,14 +343,14 @@ void SendTheDurationMagic(ActorState& hero, std::uint8_t skill, const DurationBy
     context.world.Runtime().lastShotSkill = skill;
     const Cells cells = ReadTheCells(hero, context.random);
     // Un C3: el relleno (0x69fd70) y el serial (0x40ae60 y 0x40b0a0) sacan dos rand() antes de mirar el socket.
-    SendTheSkillPacket(context, Protocol::Skill::WriteDurationMagic({.skill = skill,
-                                                                     .x = cells.x,
-                                                                     .y = cells.y,
-                                                                     .direction = bytes.direction,
-                                                                     .towards = bytes.towards,
-                                                                     .back = bytes.back,
-                                                                     .key = bytes.key,
-                                                                     .magicKey = bytes.magicKey}));
+    SendTheSkillPacket(context, Protocol::Skills::WriteDurationMagic({.skill = skill,
+                                                                      .x = cells.x,
+                                                                      .y = cells.y,
+                                                                      .direction = bytes.direction,
+                                                                      .towards = bytes.towards,
+                                                                      .back = bytes.back,
+                                                                      .key = bytes.key,
+                                                                      .magicKey = bytes.magicKey}));
 }
 
 // El 19 (0x584dde..0x5854b4 y los demás): sin "webzen" y con el freno de 300 ms, la skill y la clave del jugador
@@ -365,7 +365,7 @@ Core::Expected<void, std::string> SendTheMagicAttack(std::uint8_t skill, const H
         return Core::Unexpected(brake.Error());
     if (!brake.Value())
         return {};
-    SendTheSkillPacket(context, Protocol::Skill::WriteMagicAttack(skill, context.playerKey));
+    SendTheSkillPacket(context, Protocol::Skills::WriteMagicAttack(skill, context.playerKey));
     return {};
 }
 

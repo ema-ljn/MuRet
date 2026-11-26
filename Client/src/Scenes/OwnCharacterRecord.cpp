@@ -53,7 +53,7 @@ void OwnCharacterRecord::SetSkillAt(std::size_t index, std::uint8_t skill)
     word = (word & ~(0xffu << shift)) | (static_cast<std::uint32_t>(skill) << shift);
 }
 
-void OwnCharacterRecord::ApplyStats(const Protocol::Character::CharacterSelectResult& reply, Core::Log& log)
+void OwnCharacterRecord::ApplyStats(const Protocol::FrontEnd::CharacterSelectResult& reply, Core::Log& log)
 {
     experience = reply.experience;
     nextExperience = reply.nextExperience;

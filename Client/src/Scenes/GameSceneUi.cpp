@@ -144,7 +144,7 @@ public:
     {
     }
 
-    void SendOptionData(const Protocol::OptionData::OptionBody& body) override
+    void SendOptionData(const Protocol::Player::OptionBody& body) override
     {
         if (m_session == nullptr)
         {
@@ -277,7 +277,7 @@ Core::Expected<void, std::string> GameScene::StepTheDialogs(const Input::InputSt
     std::optional<std::uint8_t> chosenSlot;
     if (m_session != nullptr)
     {
-        if (const Protocol::Character::CharacterEntry* chosen = m_session->ChosenCharacter(); chosen != nullptr)
+        if (const Protocol::FrontEnd::CharacterEntry* chosen = m_session->ChosenCharacter(); chosen != nullptr)
             chosenSlot = chosen->slot;
     }
     const InventoryServices inventory = InventoryContext();
@@ -366,13 +366,12 @@ InventoryServices GameScene::InventoryContext()
     }
     if (App::ServerSession* session = m_session; session != nullptr)
     {
-        services.sendItemMove = [session](const Protocol::Inventory::ItemMove& move)
+        services.sendItemMove = [session](const Protocol::Items::ItemMove& move)
         { return session->SendItemMove(move); };
         // CL9 hito 5: el 23, el 22 y el 26.
-        services.sendDrop = [session](const Protocol::FloorItems::Drop& drop) { return session->SendDrop(drop); };
+        services.sendDrop = [session](const Protocol::Items::Drop& drop) { return session->SendDrop(drop); };
         services.sendPickUp = [session](std::uint16_t index) { return session->SendPickUp(index); };
-        services.sendUseItem = [session](const Protocol::FloorItems::UseItem& use)
-        { return session->SendUseItem(use); };
+        services.sendUseItem = [session](const Protocol::Items::UseItem& use) { return session->SendUseItem(use); };
         // CL9 hito 7: el 3C del comercio que mandan levantar y soltar en su grilla.
         services.sendGamePacket = [session](Protocol::Outgoing packet) { session->SendGamePacket(std::move(packet)); };
     }
@@ -626,7 +625,7 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(Render::Frame::Sce
     std::optional<std::uint8_t> drawChosenSlot;
     if (m_session != nullptr)
     {
-        if (const Protocol::Character::CharacterEntry* chosen = m_session->ChosenCharacter(); chosen != nullptr)
+        if (const Protocol::FrontEnd::CharacterEntry* chosen = m_session->ChosenCharacter(); chosen != nullptr)
             drawChosenSlot = chosen->slot;
     }
     LendTheGameHooks(drawStep,

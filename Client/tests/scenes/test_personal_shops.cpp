@@ -311,7 +311,7 @@ TEST_P(PersonalShopsTest, StaleTitlesLeave)
     m_world->Actors()[Buyer].byte88 = 1;
     Client::Scenes::ApplyShopTitles(Shop::ShopTitles{{{BuyerKey, "Joyas"}}}, *m_world);
     ASSERT_TRUE(Client::Scenes::HasShopTitle(Shops(), Buyer));
-    Client::Scenes::ApplyViewportLeave(Client::Protocol::Viewport::Leave{{BuyerKey}}, *m_world);
+    Client::Scenes::ApplyViewportLeave(Client::Protocol::Actors::Leave{{BuyerKey}}, *m_world);
     EXPECT_FALSE(Client::Scenes::HasShopTitle(Shops(), Buyer));
 }
 

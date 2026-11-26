@@ -491,7 +491,7 @@ Core::Expected<void, std::string> SeniorCraft(const GameUiContext& context)
         !Click(context, context.world.Runtime().castleSiege.senior.buttons[6]))
         return {};
     if (HasCraftSpace(context.world))
-        return Send(context, Protocol::NpcWindows::WriteChaosMix(0x12));
+        return Send(context, Protocol::Npc::WriteChaosMix(0x12));
     auto text = CastleUi::Text(context.texts, 0x7735740);
     if (!text.HasValue())
         return Core::Unexpected(std::move(text).Error());

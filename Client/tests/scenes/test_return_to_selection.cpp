@@ -440,7 +440,7 @@ TEST(ReturnToSelectionWithoutDataTest, TheReturnRestartsTheSiegeClockAndKeepsThe
     runtime.castleSiege.castleMarkX = 9.0f;
     runtime.castleSiege.castleMarkY = 10.0f;
     runtime.castleSiege.castleFlags7239e4 = 0x20000;
-    runtime.castleSiege.siegePanelKind = 1;
+    runtime.castleSiege.siegePanelKind = std::uint8_t{1};
     runtime.castleSiege.siegePanel.selected = 11;
     runtime.castleSiege.castleSiegeInfo.emplace();
     runtime.castleSiege.data.bytes[0] = 12;

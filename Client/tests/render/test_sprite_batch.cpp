@@ -18,13 +18,12 @@
 #include <span>
 #include <vector>
 
-// Client::Render::SpriteBatch: las primitivas 2D del original pasadas a vértices y tramos (06 §
-// Primitivas 2D), con el estado de GL que dejan (Q-C57, Q-C75). Los números del login son los del
-// paso 1 de la CL5.2, calculados a mano con las fórmulas de 0x621b60 y 0x622000; son *estáticos*
-// hasta la traza de P-C13.
+// The original's 2D primitives turned into vertices and spans (06 § Primitivas 2D), with the GL state they leave
+// (Q-C57, Q-C75). The login numbers are those of step 1 of CL5.2, computed by hand with the formulas of 0x621b60 and
+// 0x622000; they are *static* until the P-C13 trace.
 namespace Client::Render
 {
-// Para los mensajes de GoogleTest: (r, g, b, a) y el slot en hexadecimal, como el research.
+// For GoogleTest messages: (r, g, b, a) and the slot in hex, like the research.
 void PrintTo(const Color& color, std::ostream* out)
 {
     *out << "(" << color.red << ", " << color.green << ", " << color.blue << ", " << color.alpha << ")";
@@ -59,9 +58,9 @@ constexpr Color Red{.red = 1.0f, .green = 0.0f, .blue = 0.0f, .alpha = 1.0f};
 constexpr TextureSlot SlotA{0x15};
 constexpr TextureSlot SlotB{0x16};
 
-// Los dos fondos del login, 0x621b60(0x15, 0, 25, 320, 320, 0, 0, 1, 1, 1, 1, 0) y el 0x16 en
-// x = 320, y las dos arenas, 0x622000(0x5c2, 0, 25, 640, 430, u, 0, 0,3, 0,3) y
-// 0x622000(0x5c3, 0, 25, 640, 430, u, 0, 3, 2), con el u del reloj en 0 (06 § El login, el dibujo).
+// The two login backgrounds, 0x621b60(0x15, 0, 25, 320, 320, 0, 0, 1, 1, 1, 1, 0) and 0x16 at x = 320, and the two
+// sands, 0x622000(0x5c2, 0, 25, 640, 430, u, 0, 0.3, 0.3) and 0x622000(0x5c3, 0, 25, 640, 430, u, 0, 3, 2), with the
+// clock's u at 0 (06 § El login, el dibujo).
 constexpr OriginalQuad LoginLeftBackground{
     .slot = {0x15}, .x = 0, .y = 25, .width = 320, .height = 320, .scaleSize = true, .scalePosition = true};
 constexpr OriginalQuad LoginRightBackground{
@@ -71,17 +70,16 @@ constexpr OriginalSkewedQuad FirstSand{
 constexpr OriginalSkewedQuad SecondSand{
     .slot = {0x5c3}, .x = 0, .y = 25, .width = 640, .height = 430, .u = 0, .v = 0, .du = 3, .dv = 2};
 
-// Un quad cualquiera en píxeles, con su slot.
 OriginalQuad PixelQuad(TextureSlot slot, float alpha = 0.0f)
 {
     return OriginalQuad{.slot = slot, .x = 10, .y = 20, .width = 30, .height = 40, .alpha = alpha};
 }
 
-// Las cuatro de (x, y, u, v), en el orden del fan.
+// The four (x, y, u, v), in fan order.
 using Corners = std::array<std::array<float, 4>, 4>;
 
-// Los seis vértices del quad `index` del lote. Si el lote no llega a ese quad, es un fallo del test
-// y no hay vértices: subspan fuera del lote sería comportamiento indefinido.
+// If the batch does not reach that quad, the test fails and there are no vertices: a subspan beyond the batch would be
+// undefined behavior.
 std::span<const SpriteVertex> QuadVertices(const SpriteBatch& batch, std::size_t index)
 {
     const std::span<const SpriteVertex> vertices = batch.Vertices();
@@ -93,8 +91,8 @@ std::span<const SpriteVertex> QuadVertices(const SpriteBatch& batch, std::size_t
     return vertices.subspan(index * 6, 6);
 }
 
-// Las esquinas del quad `index` del lote: cada uno son seis vértices, los triángulos (0, 1, 2) y
-// (0, 2, 3) del fan (TheFanIsTwoTrianglesInOrder), así que las cuatro son el 0, el 1, el 2 y el 5.
+// Each quad is six vertices, the fan's triangles (0, 1, 2) and (0, 2, 3) (TheFanIsTwoTrianglesInOrder), so the four
+// corners are 0, 1, 2 and 5.
 std::array<SpriteVertex, 4> CornersOf(const SpriteBatch& batch, std::size_t index)
 {
     const std::span<const SpriteVertex> six = QuadVertices(batch, index);
@@ -118,7 +116,6 @@ void ExpectCorners(const SpriteBatch& batch, std::size_t index, const Corners& e
     }
 }
 
-// Los colores de los seis vértices del quad `index`.
 std::vector<Color> ColorsOf(const SpriteBatch& batch, std::size_t index)
 {
     std::vector<Color> colors;
@@ -134,7 +131,7 @@ std::vector<Color> SixOf(Color color)
     return std::vector<Color>(6, color);
 }
 
-// El fondo, la arena y las imágenes de la carga, en un lote nuevo de `screen`.
+// The background, the sand and the loading images, in a new batch for `screen`.
 SpriteBatch LoginBatch(PixelSize screen)
 {
     SpriteBatch batch;
@@ -147,9 +144,9 @@ SpriteBatch LoginBatch(PixelSize screen)
     return batch;
 }
 
-// Paso 1 de la CL5.2, en 640 × 480: los fondos van de 455 a 134,99997 (H − y − h sin redondear
-// H − y; 25 escalado es 25,000002), y la arena, de 455 a 24,999968, porque el 430 escalado es
-// 430,00003. Las UV de la arena se inclinan: un cuarto de dv a la izquierda.
+// Step 1 of CL5.2, at 640 × 480: the backgrounds go from 455 to 134.99997 (H − y − h without rounding H − y; 25 scaled
+// is 25.000002), and the sand from 455 to 24.999968, because the scaled 430 is 430.00003. The sand's UVs skew: a
+// quarter of dv on the left.
 TEST(SpriteBatchTest, PlacesTheLoginBackgroundLikeTheOriginal)
 {
     const SpriteBatch batch = LoginBatch(Screen640);
@@ -174,8 +171,8 @@ TEST(SpriteBatchTest, PlacesTheLoginBackgroundLikeTheOriginal)
                            {640, 455, 3, 0}}});
 }
 
-// Y en 1024 × 768: cada eje por su lado, 1,6 los dos. Los fondos dan enteros (728 y 216), y la
-// arena termina en 39,999935.
+// And at 1024 × 768: each axis on its own, 1.6 both. The backgrounds give integers (728 and 216), and the sand ends at
+// 39.999935.
 TEST(SpriteBatchTest, PlacesTheLoginBackgroundLikeTheOriginalIn1024x768)
 {
     const SpriteBatch batch = LoginBatch(Screen1024);
@@ -194,8 +191,8 @@ TEST(SpriteBatchTest, PlacesTheLoginBackgroundLikeTheOriginalIn1024x768)
                            {1024, 728, 3, 0}}});
 }
 
-// Sin banderas, el quad va en píxeles; con una sola, solo esa parte se escala: la posición pasa a
-// (512, 40) y el tamaño sigue en 320, o la esquina sigue en (320, 25) y el tamaño pasa a 512.
+// Without flags the quad is in pixels; with only one, only that part is scaled: the position becomes (512, 40) and the
+// size stays at 320, or the corner stays at (320, 25) and the size becomes 512.
 TEST(SpriteBatchTest, WithoutTheScaleFlagsItIsInPixels)
 {
     OriginalQuad quad{.slot = SlotB, .x = 320, .y = 25, .width = 320, .height = 320};
@@ -214,8 +211,8 @@ TEST(SpriteBatchTest, WithoutTheScaleFlagsItIsInPixels)
     ExpectCorners(batch, 2, Corners{{{320, 743, 0, 0}, {320, 231, 0, 1}, {832, 231, 1, 1}, {832, 743, 1, 0}}});
 }
 
-// Un fan de 4 son los triángulos (0, 1, 2) y (0, 2, 3): los seis vértices repiten la esquina 0 y la
-// 2, en ese orden. Con la y para arriba, los dos giran al revés de las agujas del reloj.
+// A fan of 4 is the triangles (0, 1, 2) and (0, 2, 3): the six vertices repeat corners 0 and 2, in that order. With y
+// up, both wind counterclockwise.
 TEST(SpriteBatchTest, TheFanIsTwoTrianglesInOrder)
 {
     SpriteBatch batch;
@@ -235,7 +232,7 @@ TEST(SpriteBatchTest, TheFanIsTwoTrianglesInOrder)
     }
 }
 
-// Con el alfa en más de 0, cada vértice va con (1, 1, 1, alfa), aunque el color de GL sea otro.
+// With alpha above 0, each vertex gets (1, 1, 1, alpha), even if the GL color is another.
 TEST(SpriteBatchTest, AnAlphaAboveZeroIsTheVertexColor)
 {
     SpriteBatch batch;
@@ -247,8 +244,8 @@ TEST(SpriteBatchTest, AnAlphaAboveZeroIsTheVertexColor)
     EXPECT_EQ(ColorsOf(batch, 0), SixOf(Color{.red = 1.0f, .green = 1.0f, .blue = 1.0f, .alpha = 0.5f}));
 }
 
-// Q-C57: el quad con alfa deja el color de GL en (1, 1, 1, 1), así que el siguiente sin alfa sale
-// blanco aunque antes se haya pedido rojo.
+// Q-C57: the quad with alpha leaves the GL color at (1, 1, 1, 1), so the next one without alpha comes out white even
+// if red was requested before.
 TEST(SpriteBatchTest, AQuadWithAlphaLeavesTheColorWhite)
 {
     SpriteBatch batch;
@@ -261,7 +258,7 @@ TEST(SpriteBatchTest, AQuadWithAlphaLeavesTheColorWhite)
     EXPECT_EQ(ColorsOf(batch, 1), SixOf(White));
 }
 
-// Con alfa 0 el quad usa el color que haya, y lo deja como estaba.
+// With alpha 0 the quad uses the current color, and leaves it as it was.
 TEST(SpriteBatchTest, AZeroAlphaUsesTheCurrentColor)
 {
     SpriteBatch batch;
@@ -275,8 +272,8 @@ TEST(SpriteBatchTest, AZeroAlphaUsesTheCurrentColor)
     EXPECT_EQ(ColorsOf(batch, 1), SixOf(Red));
 }
 
-// La función fija recorta el color a [0, 1] (06 § Primitivas 2D): 1,34 queda en 1 y -0,5 en 0, y el
-// alfa de un quad y el color de una imagen, también.
+// The fixed function clamps the color to [0, 1] (06 § Primitivas 2D): 1.34 becomes 1 and -0.5 becomes 0, and so do a
+// quad's alpha and an image's color.
 TEST(SpriteBatchTest, TheColorIsClampedToOne)
 {
     SpriteBatch batch;
@@ -297,8 +294,8 @@ TEST(SpriteBatchTest, TheColorIsClampedToOne)
     EXPECT_EQ(ColorsOf(batch, 2), SixOf(Color{.red = 1.0f, .green = 0.0f, .blue = 0.5f, .alpha = 1.0f}));
 }
 
-// Los quads seguidos con la misma textura, la misma mezcla y el mismo alpha test son un tramo: el
-// color va en cada vértice y no corta.
+// Consecutive quads with the same texture, the same blend and the same alpha test are one span: the color goes in each
+// vertex and does not split it.
 TEST(SpriteBatchTest, QuadsOfTheSameTextureAreOneCommand)
 {
     SpriteBatch batch;
@@ -318,8 +315,8 @@ TEST(SpriteBatchTest, QuadsOfTheSameTextureAreOneCommand)
     EXPECT_EQ(command.vertexCount, 18u);
 }
 
-// Otra mezcla corta el tramo aunque la textura sea la misma, y la aditiva va sin alpha test; volver
-// a la normal lo prende. Pedir la misma mezcla otra vez no corta.
+// Another blend splits the span even if the texture is the same, and the additive one goes without alpha test; going
+// back to the normal one turns it on. Requesting the same blend again does not split.
 TEST(SpriteBatchTest, ADifferentBlendStartsACommand)
 {
     SpriteBatch batch;
@@ -346,9 +343,8 @@ TEST(SpriteBatchTest, ADifferentBlendStartsACommand)
     EXPECT_EQ(commands[2].firstVertex, 18u);
 }
 
-// El quad sin textura apaga el alpha test con las dos mezclas: dos seguidos, uno con la normal y
-// otro con la aditiva, tienen la misma textura (ninguna) y el mismo alpha test, y solo la mezcla
-// los separa.
+// The untextured quad turns the alpha test off with both blends: two in a row, one with the normal blend and one with
+// the additive, have the same texture (none) and the same alpha test, and only the blend separates them.
 TEST(SpriteBatchTest, ADifferentBlendStartsACommandWithTheSameAlphaTest)
 {
     SpriteBatch batch;
@@ -365,8 +361,7 @@ TEST(SpriteBatchTest, ADifferentBlendStartsACommandWithTheSameAlphaTest)
     EXPECT_EQ(commands[0].alphaTest, commands[1].alphaTest);
 }
 
-// A, B, A son tres tramos, en ese orden: con la mezcla normal, juntar las dos A cambiaría qué tapa
-// a qué.
+// A, B, A are three spans, in that order: with the normal blend, merging the two As would change what covers what.
 TEST(SpriteBatchTest, TheOrderIsKept)
 {
     SpriteBatch batch;
@@ -390,9 +385,8 @@ TEST(SpriteBatchTest, TheOrderIsKept)
     }
 }
 
-// 0x621aa0(x, y, w, h) va siempre escalado, del color que haya y sin textura: en 1024 × 768,
-// (0, 0, 320, 240) es el cuarto de arriba a la izquierda (240 escalado da 384,00003, así que el
-// borde de abajo queda en 383,99997). Sus UV quedan en 0.
+// 0x621aa0(x, y, w, h) is always scaled, in the current color and without texture: at 1024 × 768, (0, 0, 320, 240)
+// is the top-left quarter (240 scaled gives 384.00003, so the bottom edge ends at 383.99997). Its UVs stay at 0.
 TEST(SpriteBatchTest, AColorQuadIsScaledAndHasNoTexture)
 {
     SpriteBatch batch;
@@ -410,9 +404,9 @@ TEST(SpriteBatchTest, AColorQuadIsScaledAndHasNoTexture)
     EXPECT_FALSE(batch.Commands()[0].alphaTest);
 }
 
-// Q-C75: 0x621aa0 apaga la textura y el alpha test (0x620910(0)) y nadie los prende hasta la
-// próxima mezcla. Un quad con textura que viene justo después sale sin textura y sin alpha test, en
-// el mismo tramo que el rectángulo; después de SetBlend vuelve a tener las dos.
+// Q-C75: 0x621aa0 turns the texture and the alpha test off (0x620910(0)) and nobody turns them on until the next
+// blend. A textured quad that comes right after goes without texture and without alpha test, in the same span as the
+// rectangle; after SetBlend it has both again.
 TEST(SpriteBatchTest, AColorQuadLeavesTheTextureAndTheAlphaTestOff)
 {
     SpriteBatch batch;
@@ -432,8 +426,7 @@ TEST(SpriteBatchTest, AColorQuadLeavesTheTextureAndTheAlphaTestOff)
     EXPECT_TRUE(commands[1].alphaTest);
 }
 
-// La arena no tiene alfa: usa el color que haya, el (0,25; 0,1; 0,1) que pone el login antes, y
-// lo deja.
+// The sand has no alpha: it uses the current color, the (0.25; 0.1; 0.1) the login sets before, and leaves it.
 TEST(SpriteBatchTest, ASkewedQuadUsesTheCurrentColor)
 {
     constexpr Color SandColor{.red = 0.25f, .green = 0.1f, .blue = 0.1f, .alpha = 1.0f};
@@ -453,8 +446,8 @@ TEST(SpriteBatchTest, ASkewedQuadUsesTheCurrentColor)
     EXPECT_EQ(batch.Commands()[1].blend, BlendMode::Additive);
 }
 
-// Las cinco imágenes de la carga (0x65eeb0): el tamaño, el slot y el lugar en 800 × 600 de 06 §
-// La carga, y el buffer de lados potencia de 2 de cada una (05 § Texturas).
+// The five loading images (0x65eeb0): the size, the slot and the place at 800 × 600 from 06 § La carga, and each
+// one's power-of-2 buffer (05 § Texturas).
 struct LoadingImage
 {
     std::uint16_t slot = 0;
@@ -493,10 +486,9 @@ SpriteBatch LoadingBatch(PixelSize screen)
     return batch;
 }
 
-// La UI de la carga no es el quad de 0x621b60: va en 800 × 600 con la y desde arriba, cada
-// esquina por fx = W / 800 y fy = H / 600, y las UV a medio téxel (0x647650). En 640 × 480, fx es
-// 0,79999995: la imagen de la derecha termina en 639,99994. Las cuentas, como las de la x87 en el
-// paso 1.
+// The loading UI is not the quad of 0x621b60: it goes in 800 × 600 with y from the top, each corner by fx = W / 800 and
+// fy = H / 600, and the UVs at half a texel (0x647650). At 640 × 480, fx is 0.79999995: the right image ends at
+// 639.99994. The math, like the x87's in step 1.
 TEST(SpriteBatchTest, PlacesTheLoadingImagesLikeTheOriginal)
 {
     const SpriteBatch batch = LoadingBatch(Screen640);
@@ -524,7 +516,7 @@ TEST(SpriteBatchTest, PlacesTheLoadingImagesLikeTheOriginal)
                            {395.1999816894531f, 300, 0.728515625f, 0.001953125f}}});
 }
 
-// Y en 1024 × 768: fx = fy = 1,28 (un poco menos), y la de la derecha sí llega a 1024.
+// And at 1024 × 768: fx = fy = 1.28 (slightly less), and the right one does reach 1024.
 TEST(SpriteBatchTest, PlacesTheLoadingImagesLikeTheOriginalIn1024x768)
 {
     const SpriteBatch batch = LoadingBatch(Screen1024);
@@ -546,8 +538,8 @@ TEST(SpriteBatchTest, PlacesTheLoadingImagesLikeTheOriginalIn1024x768)
                            {632.3200073242188f, 480, 0.728515625f, 0.001953125f}}});
 }
 
-// Q-C75: la imagen pone su color con glColor4ub y lo deja como el de GL: el quad siguiente sin alfa
-// sale de ese color, no del que se pidió antes.
+// Q-C75: the image sets its color with glColor4ub and leaves it as GL's: the next quad without alpha comes out in that
+// color, not in the one requested before.
 TEST(SpriteBatchTest, AnImageLeavesItsColor)
 {
     constexpr Color Shade{.red = 0.5f, .green = 0.5f, .blue = 1.0f, .alpha = 1.0f};
@@ -562,10 +554,10 @@ TEST(SpriteBatchTest, AnImageLeavesItsColor)
     EXPECT_EQ(ColorsOf(batch, 1), SixOf(Shade));
 }
 
-// Q-C75: una imagen sin slot apaga la textura y una con slot la prende; la mezcla y el alpha test
-// quedan como estaban. Después de una sin slot, el quad sale sin textura. Y Q-C64: el último quad
-// es del slot A, el último que ató 0x620780, y la imagen ató el B sin pasar por ahí; el original no
-// vuelve a atar el A y lo dibuja con el B, y MuRet lo dibuja con el suyo.
+// Q-C75: an image without a slot turns the texture off and one with a slot turns it on; the blend and the alpha test
+// stay as they were. After one without a slot, the quad comes out untextured. And Q-C64: the last quad is from slot A,
+// the last one 0x620780 bound, and the image bound B without going through it; the original does not bind A again and
+// draws it with B, and MuRet draws it with its own.
 TEST(SpriteBatchTest, AnImageTurnsTheTextureOnByItsSlot)
 {
     SpriteBatch batch;
@@ -590,8 +582,8 @@ TEST(SpriteBatchTest, AnImageTurnsTheTextureOnByItsSlot)
     EXPECT_FALSE(commands[2].alphaTest);
 }
 
-// 0x647650 no toca el alpha test: con la mezcla normal la imagen va con él, y después del quad sin
-// textura va sin él, aunque prenda la textura.
+// 0x647650 does not touch the alpha test: with the normal blend the image goes with it, and after the untextured quad
+// it goes without it, even though it turns the texture on.
 TEST(SpriteBatchTest, AnImageKeepsTheAlphaTest)
 {
     const UiImage image{.slot = SlotA, .width = 4, .height = 4, .textureWidth = 4, .textureHeight = 4};
@@ -611,9 +603,9 @@ TEST(SpriteBatchTest, AnImageKeepsTheAlphaTest)
     EXPECT_FALSE(commands[2].alphaTest);
 }
 
-// El alpha test solo también corta el tramo: el quad sin textura lo apaga, SetBlend lo prende con
-// la misma mezcla, y la imagen sin slot vuelve a ir sin textura. Los dos van sin textura y con la
-// normal, pero uno descarta lo que tiene un alfa de 0,25 o menos y el otro no.
+// The alpha test alone also splits the span: the untextured quad turns it off, SetBlend turns it on with the same
+// blend, and the image without a slot goes untextured again. Both go untextured with the normal blend, but one
+// discards an alpha of 0.25 or less and the other does not.
 TEST(SpriteBatchTest, AnotherAlphaTestStartsACommand)
 {
     SpriteBatch batch;
@@ -633,8 +625,8 @@ TEST(SpriteBatchTest, AnotherAlphaTestStartsACommand)
     EXPECT_EQ(commands[1].firstVertex, 6u);
 }
 
-// Begin vacía el frame y toma la pantalla nueva, pero el estado de GL pasa al frame siguiente como
-// en el original: el color, la mezcla y la textura apagada.
+// Begin empties the frame and takes the new screen, but the GL state carries over to the next frame as in the
+// original: the color, the blend and the texture off.
 TEST(SpriteBatchTest, BeginEmptiesTheFrameAndKeepsTheState)
 {
     SpriteBatch batch;
@@ -657,8 +649,7 @@ TEST(SpriteBatchTest, BeginEmptiesTheFrameAndKeepsTheState)
     EXPECT_FALSE(batch.Commands()[0].alphaTest);
 }
 
-// Un lote nuevo empieza como el login (06 § El login, el dibujo): mezcla normal con alpha test,
-// textura prendida y blanco.
+// A new batch starts like the login (06 § El login, el dibujo): normal blend with alpha test, texture on and white.
 TEST(SpriteBatchTest, StartsLikeTheLogin)
 {
     SpriteBatch batch;
@@ -673,7 +664,7 @@ TEST(SpriteBatchTest, StartsLikeTheLogin)
     EXPECT_TRUE(batch.Commands()[0].alphaTest);
 }
 
-// 0x620980: sin mezcla y sin alpha test, con la textura prendida. La barra de abajo del juego (0x5a9290).
+// 0x620980: no blend and no alpha test, with the texture on. The game's bottom bar (0x5a9290).
 TEST(SpriteBatchTest, TheOpaqueBlendKeepsTheTextureAndTurnsTheAlphaTestOff)
 {
     SpriteBatch batch;
@@ -690,8 +681,8 @@ TEST(SpriteBatchTest, TheOpaqueBlendKeepsTheTextureAndTurnsTheAlphaTestOff)
     EXPECT_FALSE(batch.Commands()[0].alphaTest);
 }
 
-// glEnable(GL_TEXTURE_2D) suelto (0x5544ed): después de un rectángulo, la textura vuelve sin el alpha test y sin
-// cambiar la mezcla.
+// A bare glEnable(GL_TEXTURE_2D) (0x5544ed): after a rectangle, the texture comes back without the alpha test and
+// without changing the blend.
 TEST(SpriteBatchTest, EnablingTheTextureLeavesTheAlphaTestOff)
 {
     SpriteBatch batch;
@@ -710,9 +701,9 @@ TEST(SpriteBatchTest, EnablingTheTextureLeavesTheAlphaTestOff)
     EXPECT_EQ(batch.Blend(), BlendMode::Additive);
 }
 
-// 0x621cc0(slot, 100, 200, 24, 24, grados): centrado en (100, 200) de 640 × 480, siempre escalado, con las UV
-// (0, 0), (0, 1), (1, 1) y (1, 0). Sin giro, las esquinas son (−w/2, h/2), (−w/2, −h/2), (w/2, −h/2) y (w/2, h/2)
-// alrededor del centro, con la y de GL.
+// 0x621cc0(slot, 100, 200, 24, 24, degrees): centered at (100, 200) of 640 × 480, always scaled, with the UVs
+// (0, 0), (0, 1), (1, 1) and (1, 0). Without rotation the corners are (−w/2, h/2), (−w/2, −h/2), (w/2, −h/2) and
+// (w/2, h/2) around the center, with GL's y.
 TEST(SpriteBatchTest, ARotatedQuadIsCenteredAndScaled)
 {
     SpriteBatch batch;
@@ -735,8 +726,8 @@ TEST(SpriteBatchTest, ARotatedQuadIsCenteredAndScaled)
     EXPECT_NEAR(scaled[2].y, 768.0f - 320.0f - 19.2f, 1e-4f);
 }
 
-// El giro de 0x5fc8f0 con (0, 0, grados) y 0x5fcbd0 es el de las agujas al revés en la pantalla de GL: con 90°, la
-// esquina 0 va donde estaba la 1, y así; las UV siguen a su esquina.
+// The rotation of 0x5fc8f0 with (0, 0, degrees) and 0x5fcbd0 is counterclockwise on the GL screen: at 90°, corner 0
+// goes where 1 was, and so on; the UVs follow their corner.
 TEST(SpriteBatchTest, ARotatedQuadTurnsAroundItsCenter)
 {
     SpriteBatch batch;

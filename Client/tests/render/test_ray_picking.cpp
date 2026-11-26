@@ -8,9 +8,8 @@
 #include <cstddef>
 #include <optional>
 
-// Client::Models::RayPicking: el segmento del mouse contra la caja de cada personaje, como
-// 0x622900 (una separación en 6 ejes) y 0x59e700 (gana el de menor distancia² de la cámara a su
-// origen), con la caja del jugador corrida de Q-C100 (06 § El picking).
+// The mouse segment against each character's box, like 0x622900 (a separation on 6 axes) and 0x59e700 (the smallest
+// distance² from the camera to its origin wins), with the shifted player box of Q-C100 (06 § El picking).
 namespace
 {
 using Client::Models::Box;
@@ -18,7 +17,6 @@ using Client::Models::NearestHit;
 using Client::Models::PlayerBoxAt;
 using Client::Models::SegmentHitsBox;
 
-// Un cubo de 10 de lado centrado en el origen.
 constexpr Box UnitBox{{-5.0f, -5.0f, -5.0f}, {5.0f, 5.0f, 5.0f}};
 
 TEST(RayPickingTest, HitsTheBoxInFront)
@@ -32,11 +30,11 @@ TEST(RayPickingTest, MissesBeside)
 {
     EXPECT_FALSE(SegmentHitsBox({6, 0, 100}, {6, 0, -100}, UnitBox));
     EXPECT_FALSE(SegmentHitsBox({-100, 6, -100}, {100, 6, 100}, UnitBox));
-    // En diagonal, al lado de una arista: solo lo separa un eje producto.
+    // Diagonally, beside an edge: only a cross-product axis separates it.
     EXPECT_FALSE(SegmentHitsBox({-100, 112, 0}, {100, -88, 0}, UnitBox));
 }
 
-// Es un segmento: lo que queda detrás de su fin, o antes de su origen, no se toca.
+// It is a segment: what lies past its end, or before its origin, is not touched.
 TEST(RayPickingTest, TheSegmentEndsWhereItEnds)
 {
     EXPECT_FALSE(SegmentHitsBox({0, 0, 100}, {0, 0, 10}, UnitBox));
@@ -44,8 +42,8 @@ TEST(RayPickingTest, TheSegmentEndsWhereItEnds)
     EXPECT_TRUE(SegmentHitsBox({0, 0, 100}, {0, 0, 4}, UnitBox));
 }
 
-// Q-C100: la caja del 0x20a va de (−60, −60, 0) a (40, 40, 120) desde la posición, sin girar con el
-// personaje.
+// Q-C100: the 0x20a box goes from (−60, −60, 0) to (40, 40, 120) from the position, without rotating with the
+// character.
 TEST(RayPickingTest, ThePlayerBoxIsOffCentre)
 {
     const glm::vec3 position{1000.0f, 2000.0f, 163.0f};
@@ -53,28 +51,27 @@ TEST(RayPickingTest, ThePlayerBoxIsOffCentre)
 
     EXPECT_EQ(box.min, glm::vec3(940.0f, 1940.0f, 163.0f));
     EXPECT_EQ(box.max, glm::vec3(1040.0f, 2040.0f, 283.0f));
-    // Un segmento vertical en x + 45 pasa al lado, y uno en x − 55, adentro.
+    // A vertical segment at x + 45 passes beside it, and one at x − 55, inside.
     EXPECT_FALSE(SegmentHitsBox(position + glm::vec3(45, 0, 500), position + glm::vec3(45, 0, -500), box));
     EXPECT_TRUE(SegmentHitsBox(position + glm::vec3(-55, 0, 500), position + glm::vec3(-55, 0, -500), box));
 }
 
-// 0x59e700: de los que toca el segmento, el de menor distancia² de la cámara (el origen) a su
-// posición, no al punto donde lo toca. Sin ninguno, std::nullopt.
+// 0x59e700: of those the segment touches, the one with the smallest distance² from the camera (the origin) to its
+// position, not to the point where it is touched. With none, std::nullopt.
 TEST(RayPickingTest, TheNearestIsByOriginDistance)
 {
     const glm::vec3 camera{0.0f, 0.0f, 1000.0f};
     const glm::vec3 end{0.0f, 0.0f, -1000.0f};
-    // El 0 y el 2 están debajo de la cámara; el 2 más cerca. El 1, al lado.
+    // 0 and 2 are below the camera; 2 closer. 1, beside it.
     const std::array<glm::vec3, 3> positions = {glm::vec3{10, 10, 0}, glm::vec3{500, 0, 0}, glm::vec3{10, 10, 300}};
 
     EXPECT_EQ(NearestHit(camera, end, positions), std::optional<std::size_t>{2});
     EXPECT_EQ(NearestHit(camera, end, std::array<glm::vec3, 1>{glm::vec3{500, 0, 0}}), std::nullopt);
 }
 
-// Gana el origen más cerca aunque el segmento entre antes en otra caja. La cámara mira a lo largo de
-// x a la altura 60: entra en la caja de B (de x 0 a 100, z de −59 a 61) enseguida, y en la de A (x
-// de 40 a 140) más adelante, pero el origen de A está a 100² + 60² de la cámara y el de B a 60² +
-// 119².
+// The nearest origin wins even if the segment enters another box first. The camera looks along x at height 60: it
+// enters B's box (x from 0 to 100, z from −59 to 61) right away, and A's (x from 40 to 140) further on, but A's origin
+// is 100² + 60² from the camera and B's 60² + 119².
 TEST(RayPickingTest, TheNearestIsNotWhereTheSegmentEnters)
 {
     const glm::vec3 camera{0.0f, 0.0f, 60.0f};

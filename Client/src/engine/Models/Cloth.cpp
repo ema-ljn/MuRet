@@ -20,44 +20,44 @@
 #include <span>
 #include <vector>
 
-// Contrato: Client/docs/research/06-render-escenas-y-ui.md, "La tela de la clase 4". F() es el FSTP
-// float del original; todo lo demás va en double, como la pila de la x87 con la precisión en 53 bits
-// (la palabra de control 0x27F). Las constantes son los floats del archivo, con su dirección.
+// Contract: Client/docs/research/06-render-escenas-y-ui.md, "La tela de la clase 4". F() is the original's float
+// FSTP; everything else is double, like the x87 stack at 53-bit precision (control word 0x27F). The constants are the
+// file's floats, with their addresses.
 namespace Client::Models
 {
 namespace
 {
-// Los floats del archivo, con sus bits: 0x6b8cf4 es 0x3ecccccc, no el 0,4f del compilador
-// (0x3ecccccd), y da otra grilla.
+// The file's floats, by their bits: 0x6b8cf4 is 0x3ecccccc, not the compiler's 0.4f (0x3ecccccd), and gives a
+// different grid.
 constexpr float Bits(std::uint32_t bits)
 {
     return std::bit_cast<float>(bits);
 }
-constexpr float WidthGrowth = Bits(0x3ecccccc);        // 0x6b8cf4: 0,4 (el ancho de la fila crece)
-constexpr float WidthStart = Bits(0x3f19999a);         // 0x6b8a20: 0,6
-using Math::Half;                                      // 0x6b882c: 0,5
+constexpr float WidthGrowth = Bits(0x3ecccccc);        // 0x6b8cf4: 0.4 (the row width grows)
+constexpr float WidthStart = Bits(0x3f19999a);         // 0x6b8a20: 0.6
+using Math::Half;                                      // 0x6b882c: 0.5
 constexpr float ArchDepth = Bits(0x41200000);          // 0x6b87a8: 10
-constexpr float Twenty = Bits(0x41a00000);             // 0x6b86d0 y el inmediato de la grilla
-constexpr float ShortFactor = Bits(0x3f4ccccd);        // 0x6b8a38: 0,8
-using Math::Hundredth;                                 // 0x6b88d4 y 0x6b86c0: 0,01
-using Math::Tenth;                                     // 0x6b87b8: 0,1
+constexpr float Twenty = Bits(0x41a00000);             // 0x6b86d0 and the grid's immediate
+constexpr float ShortFactor = Bits(0x3f4ccccd);        // 0x6b8a38: 0.8
+using Math::Hundredth;                                 // 0x6b88d4 and 0x6b86c0: 0.01
+using Math::Tenth;                                     // 0x6b87b8: 0.1
 constexpr float GravityScale = Bits(0x42c80000);       // 0x6b86b4: 100
 constexpr float OneEighty = Bits(0x43340000);          // 0x6b86bc: 180
 constexpr float RandomizedWindStep = Bits(0x3ca3d70a); // 0x6b89e4: 0.02
-constexpr float Degree = Math::DegreesToRadians;       // 0x6b8cf8 y 0x6ba360: π/180
-using Math::Thousandth;                                // 0x6b89c8: 0,001
+constexpr float Degree = Math::DegreesToRadians;       // 0x6b8cf8 and 0x6ba360: π/180
+using Math::Thousandth;                                // 0x6b89c8: 0.001
 constexpr float ThirtySecond = Bits(0x3d000000);       // 0x6b8880: 1/32
 constexpr float Three = Bits(0x40400000);              // 0x6b86b8: 3
-constexpr float Gravity = Bits(0x411ccccd);            // 0x6c7a40, en la .data: 9,8
-constexpr float GravityFactor = Bits(0x3b23d70a);      // 0x6c7a44: 0,0025
+constexpr float Gravity = Bits(0x411ccccd);            // 0x6c7a40, in .data: 9.8
+constexpr float GravityFactor = Bits(0x3b23d70a);      // 0x6c7a44: 0.0025
 constexpr float InverseMass = Bits(0x43c80000);        // 0x6c7a48: 400
-constexpr float GlowBase = Bits(0x3ecccccd);           // 0x6b87b4: 0,4
-using Math::Fifth;                                     // 0x6b8854 y 0x6b8cfc: 0,2
-constexpr float LastRow = Bits(0x3f7d70a4);            // 0x6b8d00: 0,99
-constexpr float WindFloor = Bits(0xbe4ccccd);          // 0x6b8d3c: −0,2
+constexpr float GlowBase = Bits(0x3ecccccd);           // 0x6b87b4: 0.4
+using Math::Fifth;                                     // 0x6b8854 and 0x6b8cfc: 0.2
+constexpr float LastRow = Bits(0x3f7d70a4);            // 0x6b8d00: 0.99
+constexpr float WindFloor = Bits(0xbe4ccccd);          // 0x6b8d3c: −0.2
 constexpr float WindCeiling = Bits(0x3f800000);        // 0x6b87d4: 1
-constexpr double MeshSpringSpan = 10.0;                // 0x6b8d30, un double
-constexpr float MeshNeighbourReach = Bits(0x3f99999a); // 0x6b8bb0: 1,2
+constexpr double MeshSpringSpan = 10.0;                // 0x6b8d30, a double
+constexpr float MeshNeighbourReach = Bits(0x3f99999a); // 0x6b8bb0: 1.2
 
 constexpr std::uint32_t WindModeMask = 0x300;
 constexpr std::uint32_t WindRises = 0x100;
@@ -81,13 +81,13 @@ constexpr float F(double value)
     return static_cast<float>(value);
 }
 
-// HL m[fila][columna] es glm m[columna][fila] (HalfLifeMath.h).
+// HL m[row][column] is glm m[column][row] (HalfLifeMath.h).
 float At(const Math::BoneTransform& m, int row, int column)
 {
     return m[column][row];
 }
 
-// 0x5fc8f0, con los ángulos en grados: el coseno del ángulo 2 queda en double.
+// 0x5fc8f0, angles in degrees: the cosine of angle 2 stays in double.
 Math::BoneTransform OriginalAngleMatrix(const glm::vec3& angles)
 {
     const double a2 = D(angles.z) * D(Degree);
@@ -114,7 +114,7 @@ Math::BoneTransform OriginalAngleMatrix(const glm::vec3& angles)
     return m;
 }
 
-// 0x5fccc0, con el orden de las sumas de cada fila.
+// 0x5fccc0, with each row's sum order.
 glm::vec3 OriginalVectorTransform(const glm::vec3& v, const Math::BoneTransform& m)
 {
     const float x = F(((D(At(m, 0, 1)) * D(v.y) + D(At(m, 0, 2)) * D(v.z)) + D(v.x) * D(At(m, 0, 0))) + D(At(m, 0, 3)));
@@ -123,8 +123,8 @@ glm::vec3 OriginalVectorTransform(const glm::vec3& v, const Math::BoneTransform&
     return {x, y, z};
 }
 
-// 0x4ec110 con su cuarto argumento en 1: la escala del modelo después de la traslación del hueso, sin
-// redondear s · tx antes de sumar el origen (las otras dos, sí).
+// 0x4ec110 with its fourth argument at 1: the model scale after the bone translation, without rounding s · tx before
+// adding the origin (the other two are rounded).
 glm::vec3 TransformPosition(const Math::BoneTransform& m, const glm::vec3& v, const ClothBody& body)
 {
     const glm::vec3 t = OriginalVectorTransform(v, m);
@@ -132,8 +132,8 @@ glm::vec3 TransformPosition(const Math::BoneTransform& m, const glm::vec3& v, co
             F(D(F(D(body.scale) * D(t.z))) + D(body.position.z))};
 }
 
-// 0x4543c0: la diferencia en floats y la raíz de (dx² + dy²) + dz² en double, con el mínimo de 0,001
-// que usan quienes la llaman.
+// 0x4543c0: the difference in floats and the root of (dx² + dy²) + dz² in double, with the 0.001 minimum its callers
+// use.
 struct Separation
 {
     glm::vec3 delta{};
@@ -157,7 +157,7 @@ Separation ClampedDistance(const ClothParticle& a, const ClothParticle& b)
     return separation;
 }
 
-// 0x454570: el promedio de las correcciones; una anclada solo las borra.
+// 0x454570: the average of the corrections; an anchored particle only clears them.
 void ApplyTheCorrections(ClothParticle& particle)
 {
     if (particle.anchored)
@@ -178,14 +178,14 @@ void ApplyTheCorrections(ClothParticle& particle)
     }
 }
 
-// t = |i / (columnas − 1) − 0,5| · 2, del arco de la bandera 1.
+// t = |i / (columns − 1) − 0.5| · 2, from the arch of flag 1.
 double ArchOf(std::int32_t column, std::int32_t columns)
 {
     return std::abs(static_cast<double>(column) / static_cast<double>(columns - 1) - D(Half)) * 2.0;
 }
 
-// 0x4563c0(malla, a, b, c): el primer triángulo de la malla que recorre el lado (b, a), con el tercer vértice
-// distinto de `c`, da ese tercero; ninguno, −1. Cada triángulo, lado por lado: (v0, v1), (v1, v2), (v2, v0).
+// 0x4563c0(mesh, a, b, c): the first mesh triangle that walks the edge (b, a) with a third vertex other than `c` gives
+// that third vertex; none, −1. Each triangle, edge by edge: (v0, v1), (v1, v2), (v2, v0).
 std::int32_t NeighbourAcross(const Data::Models::Mesh& mesh, std::int32_t a, std::int32_t b, std::int32_t c)
 {
     for (const Data::Models::Triangle& triangle : mesh.triangles)
@@ -224,10 +224,10 @@ void StepTheClothWorld(ClothWorld& world)
     {
         WalkTheWind(world);
     }
-    // 637d5a..637d7c, sin CRT, después de los cinco paseos y antes del contador.
+    // 637d5a..637d7c, no CRT, after the five walks and before the counter.
     constexpr std::uint32_t WaterTextureFrames = 32;
     world.waterTextureFrame = (world.waterTextureFrame + 1u) % WaterTextureFrames;
-    // El ADD de 0x637f91 guarda los 32 bits antes de volver a leer el contador con signo.
+    // The ADD at 0x637f91 stores the 32 bits before the counter is read back as signed.
     const std::uint32_t nextLogicStepsBits = static_cast<std::uint32_t>(world.logicSteps) + 1u;
     world.logicSteps = std::bit_cast<std::int32_t>(nextLogicStepsBits);
     if (world.openCounterAccesses == 0)
@@ -283,7 +283,7 @@ void Cloth::BuildOnTheMesh(const Data::Models::Mesh& mesh, std::int32_t meshInde
     m_flags |= flags;
     m_columns = 0;
     m_rows = 0;
-    // 0x455f06..0x455ff2: una partícula por vértice, en la posición de 0x5786f9c, anclada con el hueso de la tela.
+    // 0x455f06..0x455ff2: one particle per vertex, at its position in 0x5786f9c, anchored with the cloth's bone.
     m_particles.assign(mesh.vertices.size(), ClothParticle{});
     m_vertexBones.resize(mesh.vertices.size());
     for (std::size_t vertex = 0; vertex < mesh.vertices.size(); ++vertex)
@@ -293,7 +293,7 @@ void Cloth::BuildOnTheMesh(const Data::Models::Mesh& mesh, std::int32_t meshInde
         m_vertexBones[vertex] = mesh.vertices[vertex].bone;
         particle.anchored = mesh.vertices[vertex].bone == bone;
     }
-    // 0x455ff6..0x4561aa: los resortes de los lados y de los vecinos; reserva seis por triángulo.
+    // 0x455ff6..0x4561aa: the springs of the edges and of the neighbours; reserves six per triangle.
     m_springs.clear();
     const auto count = static_cast<std::int32_t>(m_particles.size());
     const auto within = [count](std::int32_t vertex) { return vertex >= 0 && vertex < count; };
@@ -317,11 +317,11 @@ void Cloth::BuildOnTheMesh(const Data::Models::Mesh& mesh, std::int32_t meshInde
             const ClothParticle& first = m_particles[static_cast<std::size_t>(a)];
             const ClothParticle& second = m_particles[static_cast<std::size_t>(b)];
             const float rest = F(Distance(first, second).length);
-            // 0x456094..0x4560b1: FSUB de los dos floats en la x87, sin redondear, contra el double 10.
+            // 0x456094..0x4560b1: FSUB of the two floats on the x87, unrounded, against the double 10.
             const bool wide = std::abs(D(first.position.x) - D(second.position.x)) > MeshSpringSpan;
             const auto springFlags = static_cast<std::uint8_t>(wide ? (Relaxes | Pulls) : (Restrains | Pulls));
             add(a, b, rest, springFlags);
-            // 0x4560f8..0x456170: el vecino que comparte el lado, con el largo sin redondear contra L · 1,2f.
+            // 0x4560f8..0x456170: the neighbour sharing the edge, with the unrounded length against L · 1.2f.
             const std::int32_t d = NeighbourAcross(mesh, a, b, c);
             if (d <= 0 || !within(d))
                 continue;
@@ -354,7 +354,7 @@ void Cloth::Build(const ClothShape& shape, const ClothBody& body)
     m_dx = F(D(m_width) / static_cast<double>(m_columns - 1));
     m_dy = F(D(m_height) / static_cast<double>(m_rows - 1));
 
-    // La grilla provisoria, con los ángulos del objeto y la traslación del hueso.
+    // The provisional grid, with the object's angles and the bone's translation.
     Math::BoneTransform m = OriginalAngleMatrix(body.angles);
     const bool hasTheBone = static_cast<std::size_t>(m_bone) < body.bones.size();
     if (hasTheBone)
@@ -393,7 +393,7 @@ void Cloth::Build(const ClothShape& shape, const ClothBody& body)
         }
     }
 
-    // Los resortes, medidos en la grilla provisoria.
+    // The springs, measured in the provisional grid.
     const bool rises = (m_flags & WindModeMask) == WindRises;
     const std::uint8_t pull = rises ? 0 : Restrains;
     const std::uint8_t diagonal = rises ? 0 : Relaxes;
@@ -423,7 +423,7 @@ void Cloth::Build(const ClothShape& shape, const ClothBody& body)
                 {
                     add(k, k + m_columns + 1, diagonal);
                 }
-                // Entre las filas 0 y 1 no hay esta diagonal (j > 1, no j > 0).
+                // No such diagonal between rows 0 and 1 (j > 1, not j > 0).
                 if (j > 1)
                 {
                     add(k, k - m_columns + 1, diagonal);
@@ -431,14 +431,14 @@ void Cloth::Build(const ClothShape& shape, const ClothBody& body)
             }
         }
     }
-    // La fila 0, anclada en esa misma matriz y no en el hueso: en el primer paso salta a él.
+    // Row 0, anchored to this same matrix and not to the bone: it jumps to the bone on the first step.
     if (hasTheBone)
     {
         AnchorTheTopRow(m, body);
     }
 }
 
-// 0x455020: cada partícula de la fila 0 a TransformPosition(m, (z, −y', xᵢ)), anclada.
+// 0x455020: each particle of row 0 to TransformPosition(m, (z, −y', xᵢ)), anchored.
 void Cloth::AnchorTheTopRow(const Math::BoneTransform& matrix, const ClothBody& body)
 {
     const bool tapers = (m_flags & TaperMask) == Tapers;
@@ -483,10 +483,10 @@ bool Cloth::Step(float dt, const ClothBody& body, ClothWorld& world, ClothWindSo
     {
         return true;
     }
-    // El viento (0x4551d0).
+    // The wind (0x4551d0).
     if ((m_flags & WindModeMask) == WindFromBytes)
     {
-        // El original divide por el byte sin mirarlo: 0x50ba30 nunca lo deja en 0.
+        // The original divides by the byte without checking it: 0x50ba30 never leaves it at 0.
         const int range = m_windRange == 0 ? 1 : m_windRange;
         m_wind = F(static_cast<double>(world.random.Next() % range + m_windMinimum) * D(Hundredth));
     }
@@ -502,8 +502,8 @@ bool Cloth::Step(float dt, const ClothBody& body, ClothWorld& world, ClothWindSo
     world.wind.x = F(Math::RoundedSin(angle) * D(m_wind));
     world.wind.y = F(-(Math::RoundedCos(angle) * D(m_wind)));
 
-    // 0x4555d0: las fuerzas (+0x14), los resortes, el anclaje (+0xc) y la integración; las de la vtable
-    // 0x6b8d04, sobre la malla.
+    // 0x4555d0: the forces (+0x14), the springs, the anchoring (+0xc) and the integration; the ones of vtable 0x6b8d04,
+    // on the mesh.
     if (onTheMesh)
     {
         AddForcesOnTheMesh(world);
@@ -517,7 +517,7 @@ bool Cloth::Step(float dt, const ClothBody& body, ClothWorld& world, ClothWindSo
         AnchorTheTopRow(body.bones[static_cast<std::size_t>(m_bone)], body);
     }
 
-    // 0x454350: Euler semi-implícito con la masa 1/400; la posición con la velocidad sin redondear.
+    // 0x454350: semi-implicit Euler with mass 1/400; the position uses the unrounded velocity.
     for (ClothParticle& particle : m_particles)
     {
         if (particle.anchored)
@@ -534,10 +534,10 @@ bool Cloth::Step(float dt, const ClothBody& body, ClothWorld& world, ClothWindSo
     return Constrain(body);
 }
 
-// 0x4552a0 y 0x454240 por partícula.
+// 0x4552a0 and 0x454240 per particle.
 void Cloth::AddForces(ClothWorld& world)
 {
-    // La protección de 0x7d3a0f0: al cerrar el acceso vuelve a cifrar el contador y lo pisa con rand().
+    // The protection of 0x7d3a0f0: closing the access encrypts the counter again and overwrites it with rand().
     if (world.openCounterAccesses == 0)
     {
         for (int i = 0; i < ProtectionRandoms; ++i)
@@ -550,7 +550,7 @@ void Cloth::AddForces(ClothWorld& world)
     {
         return;
     }
-    // El centro del viento: ((V / 10) · 101) mod N, con las divisiones de la x86 y el producto en 32 bits.
+    // The wind center: ((V / 10) · 101) mod N, with the x86 divisions and the product in 32 bits.
     const auto product = static_cast<std::uint32_t>(world.logicSteps / 10) * 101u;
     const std::int32_t center = static_cast<std::int32_t>(product) % count;
     for (std::int32_t i = 0; i < count; ++i)
@@ -571,7 +571,7 @@ void Cloth::PushTheParticle(ClothParticle& particle, std::int32_t distance, cons
     }
     const double gravity = D(GravityFactor) * D(Gravity);
     const std::uint32_t windMode = m_flags & WindModeMask;
-    // u = 5 − d sin signo: d ≤ 1 → 6, 2 → 5, 3 → 4, 4 → 3, 5 → 0, y d ≥ 6 da la vuelta y vuelve a 6.
+    // u = 5 − d unsigned: d ≤ 1 → 6, 2 → 5, 3 → 4, 4 → 3, 5 → 0, and d ≥ 6 wraps around back to 6.
     const auto u = static_cast<std::uint32_t>(5 - distance);
     const int weight = u >= 4 ? 6 : (u == 0 ? 0 : static_cast<int>(u) + 2);
     for (int k = 0; k < 3; ++k)
@@ -590,8 +590,8 @@ void Cloth::PushTheParticle(ClothParticle& particle, std::int32_t distance, cons
     particle.force.z = F(D(particle.force.z) - gravity * pull);
 }
 
-// 0x4565f0 sin 0x10000000: el mismo acceso al contador (4 rand() al cerrarlo), y la misma distancia para todas,
-// |c % 10| con c = ((V / 10) · 101) mod N (0x4568af..0x4568c0).
+// 0x4565f0 without 0x10000000: the same counter access (4 rand() on close), and the same distance for all,
+// |c % 10| with c = ((V / 10) · 101) mod N (0x4568af..0x4568c0).
 void Cloth::AddForcesOnTheMesh(ClothWorld& world)
 {
     if (world.openCounterAccesses == 0)
@@ -615,7 +615,7 @@ void Cloth::AddForcesOnTheMesh(ClothWorld& world)
     }
 }
 
-// 0x4564c0 sin 0x10000000: cada vértice del hueso de la tela a su posición de 0x5786f9c, anclado (0x454210).
+// 0x4564c0 without 0x10000000: each vertex of the cloth's bone to its position in 0x5786f9c, anchored (0x454210).
 void Cloth::AnchorTheMesh(const ClothBody& body)
 {
     for (std::size_t vertex = 0; vertex < m_particles.size() && vertex < m_vertexBones.size(); ++vertex)
@@ -641,7 +641,7 @@ void Cloth::WriteTheMesh(std::span<glm::vec3> vertices) const
     }
 }
 
-// 0x4555d0: los resortes con la bandera 2 solo tiran, cuando pasan de L + 0,01.
+// 0x4555d0: springs with flag 2 only pull, when they exceed L + 0.01.
 void Cloth::PullTheSprings()
 {
     for (const ClothSpring& spring : m_springs)
@@ -684,8 +684,8 @@ void Cloth::PullTheSprings()
     }
 }
 
-// 0x455770: las esferas, la relajación (Jacobi) y la restricción sobre la partícula de abajo
-// (Gauss-Seidel), que rompe la tela si un resorte pasa de 20 veces su largo.
+// 0x455770: the spheres, the relaxation (Jacobi) and the constraint on the particle below (Gauss-Seidel), which tears
+// the cloth if a spring exceeds 20 times its length.
 bool Cloth::Constrain(const ClothBody& body)
 {
     for (ClothSphere& sphere : m_spheres)
@@ -702,7 +702,7 @@ bool Cloth::Constrain(const ClothBody& body)
         {
             for (ClothParticle& particle : m_particles)
             {
-                // 0x4547f0: la z con un factor sin redondear.
+                // 0x4547f0: z with an unrounded factor.
                 float dx = F(D(particle.position.x) - D(sphere.world.x));
                 float dy = F(D(particle.position.y) - D(sphere.world.y));
                 const double exactZ = D(particle.position.z) - D(sphere.world.z);

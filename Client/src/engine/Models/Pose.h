@@ -10,64 +10,59 @@
 #include <cstdint>
 #include <span>
 
-// La pose de un esqueleto como 0x4eb860 (Client/docs/research/06-render-escenas-y-ui.md, "El modelo
-// en el binario" y "Cuánto avanza la animación").
+// A skeleton's pose like 0x4eb860 (Client/docs/research/06-render-escenas-y-ui.md, "El modelo en el binario" and
+// "Cuánto avanza la animación").
 namespace Client::Models
 {
-// Lo que el objeto guarda de su animación (+0x111, +0x114, +0x112 y +0x118 del objeto).
+// What the object stores of its animation (+0x111, +0x114, +0x112 and +0x118 of the object).
 struct AnimationState
 {
     std::uint8_t action = 0;
-    // Con la parte fraccionaria: la pose interpola con ella.
+    // With the fractional part: the pose interpolates with it.
     float frame = 0.0f;
-    // La acción y la key que guardó el avance al cruzar una (0x4ec200). El original guarda el frame
-    // anterior en un float, y la pose lo trunca.
+    // The action and key the advance stored when crossing one (0x4ec200). The original stores the previous frame in a
+    // float, and the pose truncates it.
     std::uint8_t previousAction = 0;
     std::int16_t previousKey = 0;
 };
 
-// Lo que el modelo copia del objeto antes de posar (0x6001b0 en un personaje, 0x5ffdf0 en un monstruo
-// o un NPC).
+// What the model copies from the object before posing (0x6001b0 for a character, 0x5ffdf0 for a monster or an NPC).
 struct ObjectTransform
 {
     glm::vec3 position{};
-    // En grados: el giro de la raíz (+0x78 del modelo, 0x5fc8f0).
+    // In degrees: the root rotation (model +0x78, 0x5fc8f0).
     glm::vec3 angles{};
     float scale = 1.0f;
-    // +0x84 del modelo: se suma a la z de la raíz con lock_positions. Los que posan un objeto lo ponen
-    // en 0 antes.
+    // Model +0x84: added to the root's z with lock_positions. Callers that pose an object set it to 0 first.
     float lockedRootHeight = 0.0f;
 };
 
-// 0x4eb860, como lo llama 0x6001b0 para el cuerpo de un personaje (0x50ba30 → 0x6001b0(objeto, 1, …),
-// con el último argumento de la pose en 0): la raíz gira con los ángulos del objeto, y la escala y la
-// posición las pone SkinMesh en cada vértice.
-// Escribe un BoneTransform por hueso en `bones`, del tamaño del esqueleto; los dummy no se tocan.
-//   - Interpola entre la key de la acción anterior (previousKey) y la de ahora (el frame truncado),
-//     con la parte fraccionaria del frame: el slerp de 0x5fce90 entre los cuaterniones, salvo que
-//     0x5fc700 los dé iguales, y lineal entre las posiciones. Una acción o una key que no existe es
-//     la 0.
-//   - El hueso de la cabeza (Skeleton::headBone) resta headAngles.x a su ángulo x y headAngles.y a su
-//     z, en grados, y pasa a cuaternión en el momento.
-//   - El hueso 0, si la acción anterior o la de ahora tiene lock_positions, toma x e y de la key 0 de
-//     la de ahora, y suma lockedRootHeight a la z interpolada.
-// Sin acciones en el esqueleto no hace nada. Devuelve false, sin escribir, si `bones` no es del
-// tamaño del esqueleto, si a un hueso que se posa le falta una de las dos keys, o si su padre no es
-// −1 ni un hueso de antes (un Skeleton armado a mano, que no pasó por MakeSkeleton).
+// 0x4eb860 as 0x6001b0 calls it for a character's body (0x50ba30 → 0x6001b0(object, 1, …), with the pose's last
+// argument at 0): the root rotates with the object's angles, and SkinMesh applies scale and position on each vertex.
+// Writes one BoneTransform per bone into `bones`, sized like the skeleton; dummies are left untouched.
+//   - Interpolates between the previous action's key (previousKey) and the current one (the truncated frame), with
+//     the frame's fractional part: the 0x5fce90 slerp between the quaternions, unless 0x5fc700 finds them equal, and
+//     linear between the positions. A missing action or key is 0.
+//   - The head bone (Skeleton::headBone) subtracts headAngles.x from its x angle and headAngles.y from its z, in
+//     degrees, and converts to a quaternion on the spot.
+//   - Bone 0, if the previous or the current action has lock_positions, takes x and y from key 0 of the current one,
+//     and adds lockedRootHeight to the interpolated z.
+// Does nothing without actions in the skeleton. Returns false, without writing, if `bones` is not the skeleton's
+// size, if a posed bone lacks one of the two keys, or if its parent is neither −1 nor an earlier bone (a hand-built
+// Skeleton that did not go through MakeSkeleton).
 [[nodiscard]] ENGINE_API bool PoseSkeleton(const Skeleton& skeleton, const AnimationState& animation,
                                            const ObjectTransform& object, const glm::vec2& headAngles,
                                            std::span<Math::BoneTransform> bones);
 
-// La raíz de 0x4eb860 con flags (0, 1): rota y escala su base con el objeto, y toma su posición sin
-// escalarla. El resto de la pose y sus condiciones de error son las de PoseSkeleton.
+// The root of 0x4eb860 with flags (0, 1): rotates and scales its base with the object, and takes its position
+// unscaled. The rest of the pose and its error conditions are PoseSkeleton's.
 [[nodiscard]] ENGINE_API bool PoseWorldSkeleton(const Skeleton& skeleton, const AnimationState& animation,
                                                 const ObjectTransform& object, const glm::vec2& headAngles,
                                                 std::span<Math::BoneTransform> bones);
 
-// 0x4eb860 con su séptimo argumento en 1, como posa 0x509340 lo que cuelga del personaje
-// (Attachment.h): los huesos sin padre van con `root`, la que dejó quien llama en 0x68c4a1c, y no
-// con el giro del objeto. Sin ángulos de cabeza y con +0x84 en 0. Devuelve false como
-// PoseSkeleton.
+// 0x4eb860 with its seventh argument at 1, as 0x509340 poses what hangs from the character (Attachment.h): the
+// parentless bones use `root`, the one the caller left in 0x68c4a1c, not the object's rotation. No head angles and
+// +0x84 at 0. Returns false like PoseSkeleton.
 [[nodiscard]] ENGINE_API bool PoseAttached(const Skeleton& skeleton, const AnimationState& animation,
                                            const Math::BoneTransform& root, std::span<Math::BoneTransform> bones);
 } // namespace Client::Models

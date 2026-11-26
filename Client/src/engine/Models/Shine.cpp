@@ -14,12 +14,11 @@ namespace Client::Models
 {
 namespace
 {
-// Los floats de 0x4ecc30: 0,0001 (0x6b8a94), 0,001 (0x6b89c8), 0,002 (0x6b89bc), 3 (0x6b86b8),
-// 0,5 (0x6b882c), 0,2 (0x6b8854) y 1 (0x6b87d4). El seno y el coseno van en la x87, con el reloj y el
-// factor en float: acá en double, con los mismos floats.
+// The floats of 0x4ecc30: 0.0001 (0x6b8a94), 0.001 (0x6b89c8), 0.002 (0x6b89bc), 3 (0x6b86b8), 0.5 (0x6b882c), 0.2
+// (0x6b8854) and 1 (0x6b87d4). The sine and cosine go on the x87, with the clock and the factor in float: here in
+// double, with the same floats.
 constexpr std::int64_t ClockPeriod = 10000;
-// Los de 0x200 y 0x800 (06, *estáticos*): el reloj de 5 s, su escala y su corrimiento, el 0,8 y la
-// luz de 0x800.
+// Those of 0x200 and 0x800 (06, *static*): the 5 s clock, its scale and offset, the 0.8 and the light of 0x800.
 constexpr std::int64_t Chrome2Period = 5000;
 constexpr float Chrome2Scale = 0.00024f;
 constexpr float Chrome2Offset = 0.4f;
@@ -33,7 +32,7 @@ constexpr float Three = 3.0f;
 using Math::Half;
 constexpr float ShinyOffset = 0.2f;
 constexpr float One = 1.0f;
-// Los de 0x4000 (0x4ed25e..0x4ed2b2): 2,5 (0x6b89a8) a nz en la v y 5 (0x6b87f8) a s en la u.
+// Those of 0x4000 (0x4ed25e..0x4ed2b2): 2.5 (0x6b89a8) on nz in v and 5 (0x6b87f8) on s in u.
 constexpr double Chrome5Normal = 2.5;
 constexpr double Chrome5Sine = 5.0;
 } // namespace
@@ -61,7 +60,7 @@ glm::vec2 ShineTexCoords(ShinePass pass, const glm::vec3& worldNormal, Core::Dur
         const auto clock = static_cast<double>(ms);
         const auto c = static_cast<float>(Math::RoundedCos(clock * static_cast<double>(CosineScale)));
         const auto s = static_cast<float>(Math::RoundedSin(clock * static_cast<double>(SineScale)));
-        // Como 0x4ed1f5..: la suma de las tres, su complemento menos t·3 y nz·0,5, y a la u ny·0,5 y s·3.
+        // Like 0x4ed1f5..: the sum of the three, its complement minus t·3 and nz·0.5, and to u ny·0.5 and s·3.
         const float sum = s * ny + c * nx + nz;
         const float v = (One - sum) - (t * Three + nz * Half);
         const float u = ny * Half + s * Three + sum;
@@ -84,8 +83,8 @@ glm::vec2 ShineTexCoords(ShinePass pass, const glm::vec3& worldNormal, Core::Dur
             static_cast<double>(static_cast<float>(Math::RoundedCos(clock * static_cast<double>(CosineScale))));
         const auto s =
             static_cast<double>(static_cast<float>(Math::RoundedSin(clock * static_cast<double>(SineScale))));
-        // 0x4ed25e..0x4ed2b2: la suma de las tres va a la u; la v es su complemento menos nz·2,5 y t; después la u
-        // suma s·5 y ny·3 al float que guardó.
+        // 0x4ed25e..0x4ed2b2: the sum of the three goes to u; v is its complement minus nz·2.5 and t; then u adds s·5
+        // and ny·3 to the float it stored.
         const double sum = c * nx + s * ny + nz;
         const auto u = static_cast<float>(sum);
         const auto v = static_cast<float>((1.0 - sum) - (nz * Chrome5Normal + static_cast<double>(t)));

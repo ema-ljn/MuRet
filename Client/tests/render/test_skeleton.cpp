@@ -14,8 +14,8 @@
 #include <cstddef>
 #include <cstdint>
 
-// Client::Models::MakeSkeleton: el esqueleto como lo deja 0x4f13d0, sobre el modelo
-// sintético de support/SyntheticModels.h (una raíz, un hijo y un dummy; dos acciones).
+// The skeleton as 0x4f13d0 leaves it, on the synthetic model of support/SyntheticModels.h (a root, a child and a
+// dummy; two actions).
 namespace
 {
 using Client::Data::Models::Action;
@@ -36,7 +36,7 @@ glm::vec3 ToVec3(const std::array<float, 3>& value)
     return {value[0], value[1], value[2]};
 }
 
-// 0x4f13d0 calcula el cuaternión de cada key con 0x5fcd20, y guarda la posición y los ángulos.
+// 0x4f13d0 computes each key's quaternion with 0x5fcd20, and stores the position and the angles.
 TEST(SkeletonTest, EveryKeyHasItsQuaternion)
 {
     const Model model = SampleModel();
@@ -64,7 +64,7 @@ TEST(SkeletonTest, EveryKeyHasItsQuaternion)
     }
 }
 
-// Los padres y los dummy, como vienen. Un dummy no tiene keys.
+// Parents and dummies, as they come. A dummy has no keys.
 TEST(SkeletonTest, KeepsTheParentsAndTheDummies)
 {
     const auto skeleton = MakeSkeleton(SampleModel());
@@ -78,8 +78,8 @@ TEST(SkeletonTest, KeepsTheParentsAndTheDummies)
     EXPECT_TRUE(made.bones[2].actions.empty());
 }
 
-// Cada acción con sus keys y su lock_positions; +0 en 0 (repite) y sin velocidad, como 0x4f13d0, y
-// sin hueso de la cabeza, como 0x4f1f20(0).
+// Each action with its keys and its lock_positions; +0 at 0 (repeats) and no speed, like 0x4f13d0, and no head bone,
+// like 0x4f1f20(0).
 TEST(SkeletonTest, TheActionsAreThoseOfTheReader)
 {
     const auto skeleton = MakeSkeleton(SampleModel());
@@ -99,8 +99,8 @@ TEST(SkeletonTest, TheActionsAreThoseOfTheReader)
     EXPECT_EQ(made.headBone, -1);
 }
 
-// Un padre que no es −1 ni un hueso de antes: el mismo hueso, uno de después (Q-C108), uno que no
-// existe o un negativo. El error dice cuál.
+// A parent that is neither −1 nor an earlier bone: the same bone, a later one (Q-C108), one that does not exist or a
+// negative one. The error says which.
 TEST(SkeletonTest, AParentAfterItsChildIsAnError)
 {
     for (const int parent : {1, 2, 7, -2})
@@ -116,7 +116,7 @@ TEST(SkeletonTest, AParentAfterItsChildIsAnError)
     }
 }
 
-// Un modelo con las 205 acciones de Player.bmd, de dos keys cada una, y un hueso.
+// A model with the 205 actions of Player.bmd, two keys each, and one bone.
 Model PlayerLikeModel(std::size_t actions)
 {
     Model model;
@@ -128,8 +128,8 @@ Model PlayerLikeModel(std::size_t actions)
     return model;
 }
 
-// 0x60dbe0: la velocidad de cada acción, la de la última escritura que la toca; las 57 sin ninguna
-// quedan en 0 (Q-C87). Las cuatro de +0 en 1 no repiten.
+// 0x60dbe0: each action's speed, from the last write that touches it; the 57 without any stay at 0 (Q-C87). The four
+// with +0 at 1 do not repeat.
 TEST(SkeletonTest, MakePlayerSkeletonSetsTheSpeeds)
 {
     const auto skeleton = MakePlayerSkeleton(PlayerLikeModel(205));
@@ -151,7 +151,7 @@ TEST(SkeletonTest, MakePlayerSkeletonSetsTheSpeeds)
     EXPECT_TRUE(actions[67].repeats);
 }
 
-// La cabeza del personaje es el hueso 20 (0x60f301); la de cualquier otro modelo, ninguna.
+// The character's head is bone 20 (0x60f301); any other model's, none.
 TEST(SkeletonTest, ThePlayerHeadIsBoneTwenty)
 {
     const auto player = MakePlayerSkeleton(PlayerLikeModel(205));
@@ -163,7 +163,6 @@ TEST(SkeletonTest, ThePlayerHeadIsBoneTwenty)
     EXPECT_EQ(other.Value().headBone, -1);
 }
 
-// Con menos acciones que las de la tabla, pone las que hay.
 TEST(SkeletonTest, MakePlayerSkeletonSetsWhatTheModelHas)
 {
     const auto skeleton = MakePlayerSkeleton(PlayerLikeModel(4));
@@ -173,7 +172,6 @@ TEST(SkeletonTest, MakePlayerSkeletonSetsWhatTheModelHas)
     EXPECT_EQ(skeleton.Value().actions[3].speed, 0.26f);
 }
 
-// Un padre de después también es un error para el personaje.
 TEST(SkeletonTest, MakePlayerSkeletonKeepsTheErrors)
 {
     Model model = SampleModel();

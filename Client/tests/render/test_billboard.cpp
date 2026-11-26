@@ -19,9 +19,8 @@
 #include <sstream>
 #include <string>
 
-// Client::Render::MakeBillboard contra 0x621400 del código real del main.exe, en 300 casos al azar
-// (tests/vectors/world55/billboard.txt, make_billboard_vectors.py): las cuatro esquinas, sus UV y el
-// color de GL, bit a bit.
+// Against 0x621400 of the real main.exe code, in 300 random cases (tests/vectors/world55/billboard.txt,
+// make_billboard_vectors.py): the four corners, their UVs and the GL color, bit for bit.
 namespace
 {
 using Client::Math::Bits;
@@ -100,7 +99,7 @@ TEST(BillboardTest, ThreeHundredCasesMatchTheBinary)
                 EXPECT_EQ(Bits(billboard.color.red), value()) << where;
                 EXPECT_EQ(Bits(billboard.color.green), value()) << where;
                 EXPECT_EQ(Bits(billboard.color.blue), value()) << where;
-                // glColor3fv deja el alpha de GL en 1.
+                // glColor3fv leaves GL's alpha at 1.
                 EXPECT_EQ(billboard.color.alpha, 1.0f) << where;
             }
             else if (name == "glColor4f")
@@ -133,7 +132,7 @@ TEST(BillboardTest, ThreeHundredCasesMatchTheBinary)
     EXPECT_EQ(cases, 300u);
 }
 
-// 621451–62145c: FCOMP marca C3 tanto para cero como para unordered.
+// 621451–62145c: FCOMP sets C3 for both zero and unordered.
 TEST(BillboardTest, NanRotationUsesTheUnrotatedGeometry)
 {
     const Client::Math::OriginalMatrix view{1, 0, 0, 10, 0, 1, 0, 20, 0, 0, 1, 30};
@@ -151,7 +150,7 @@ TEST(BillboardTest, NanRotationUsesTheUnrotatedGeometry)
     EXPECT_EQ(nan[2].position, glm::vec3(15, 27, 34));
 }
 
-// La vista de 0x620370: por filas, la traspuesta de la de glm.
+// The view of 0x620370: by rows, the transpose of glm's.
 TEST(BillboardTest, TheViewGoesByRows)
 {
     glm::mat4 view(1.0f);

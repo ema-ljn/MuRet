@@ -27,10 +27,9 @@
 #include <utility>
 #include <vector>
 
-// Client::Render::Text::FreeTypeRasterizer: las fuentes de WinMain con FreeType en un bit
-// (pregunta 7 del plan de la CL5). Los tests con fuente leen MU_CLIENT_FONT_FILE (en CI, una
-// fuente del runner) y se saltean sin la variable; no se comparan con GDI, sino consigo mismos
-// (Q-C76). Los de abrir un archivo que no es una fuente corren siempre.
+// WinMain's fonts with FreeType at one bit (question 7 of the CL5 plan). The tests with a font read
+// MU_CLIENT_FONT_FILE (in CI, a font of the runner) and are skipped without the variable; they are compared with
+// themselves, not with GDI (Q-C76). The ones that open a file that is not a font always run.
 namespace
 {
 using Client::Render::Text::FontHeightFor;
@@ -73,8 +72,8 @@ protected:
     }
 };
 
-// Sin suavizado: cada píxel de la tinta es 0 o 0xff, y en la caja cada píxel es del color del texto
-// o del fondo. Con FT_RENDER_MODE_NORMAL habría grises.
+// No antialiasing: each ink pixel is 0 or 0xff, and in the box each pixel is the text or the background color. With
+// FT_RENDER_MODE_NORMAL there would be grays.
 TEST_F(FreeTypeRasterizerTest, RendersWithoutAntialiasing)
 {
     const auto rasterizer = OpenFont(1024);
@@ -108,7 +107,7 @@ TEST_F(FreeTypeRasterizerTest, RendersWithoutAntialiasing)
     EXPECT_GT(text, 0u);
 }
 
-// Como GetTextExtentPointA, sin kerning: el ancho de un texto es la suma de los avances.
+// Like GetTextExtentPointA, no kerning: a text's width is the sum of the advances.
 TEST_F(FreeTypeRasterizerTest, MeasuresTheAdvance)
 {
     const auto rasterizer = OpenFont(640);
@@ -124,7 +123,7 @@ TEST_F(FreeTypeRasterizerTest, MeasuresTheAdvance)
     EXPECT_EQ(rasterizer->Measure(FontKind::Normal, "").width, 0);
 }
 
-// El alto es el de la celda que pide CreateFontA, para cada fuente y cada ancho, también sin texto.
+// The height is that of the cell CreateFontA requests, for each font and each width, also without text.
 TEST_F(FreeTypeRasterizerTest, TheCellHeightIsTheFontHeight)
 {
     for (const int width : {640, 800, 1024, 1280})
@@ -139,9 +138,8 @@ TEST_F(FreeTypeRasterizerTest, TheCellHeightIsTheFontHeight)
     }
 }
 
-// El alto es el de la celda (el ascenso más el descenso de Windows), no el del em, que es lo que
-// pediría FT_Set_Pixel_Sizes: el em queda más chico. En DejaVu Sans es 2.048 / 2.384 de la celda,
-// y en Arial, 2.048 / 2.288.
+// The height is the cell's (Windows ascent plus descent), not the em's, which is what FT_Set_Pixel_Sizes would request:
+// the em ends up smaller. In DejaVu Sans it is 2048 / 2384 of the cell, and in Arial, 2048 / 2288.
 TEST_F(FreeTypeRasterizerTest, TheEmIsSmallerThanTheCell)
 {
     for (const int width : {640, 1280})
@@ -157,8 +155,7 @@ TEST_F(FreeTypeRasterizerTest, TheEmIsSmallerThanTheCell)
     }
 }
 
-// Las mayúsculas caen dentro de la celda, con la celda arriba (TA_TOP): las filas de la tinta van
-// de 0 al alto de la celda.
+// Capitals fall inside the cell, with the cell at the top (TA_TOP): the ink rows go from 0 to the cell height.
 TEST_F(FreeTypeRasterizerTest, TheLettersAreInsideTheCell)
 {
     const auto rasterizer = OpenFont(1280);
@@ -181,10 +178,9 @@ TEST_F(FreeTypeRasterizerTest, TheLettersAreInsideTheCell)
     }
 }
 
-// FT_PIXEL_MODE_MONO: el píxel de la izquierda de cada byte es su bit alto, y una fila empieza
-// `pitch` bytes después de la anterior. La "L" lo muestra: la fila de arriba es el palo, del lado
-// izquierdo de la letra, y la de abajo, el pie, que llega más a la derecha. Con los bits leídos al
-// revés, o con otro paso entre filas, la letra sale espejada o corrida.
+// FT_PIXEL_MODE_MONO: the left pixel of each byte is its high bit, and a row starts `pitch` bytes after the previous
+// one. The "L" shows it: the top row is the stem, on the left side of the letter, and the bottom one, the foot, reaches
+// further right. With the bits read backwards, or another row stride, the letter comes out mirrored or shifted.
 TEST_F(FreeTypeRasterizerTest, TheLeftPixelOfAByteIsItsHighBit)
 {
     for (const int width : {640, 1024, 1280})
@@ -193,7 +189,7 @@ TEST_F(FreeTypeRasterizerTest, TheLeftPixelOfAByteIsItsHighBit)
         ASSERT_NE(rasterizer, nullptr);
         const auto ink = InkOf(*rasterizer, FontKind::Normal, "L");
 
-        // La primera y la última columna con tinta de cada fila.
+        // The first and the last inked column of each row.
         std::vector<std::pair<int, int>> rows;
         int left = TextBoxWidth;
         for (int row = 0; row < 32; ++row)
@@ -223,8 +219,8 @@ TEST_F(FreeTypeRasterizerTest, TheLeftPixelOfAByteIsItsHighBit)
     }
 }
 
-// Una caja de un texto ancho dibuja desde su columna: la segunda caja de un texto de 300 columnas
-// es la tinta de la primera corrida 256 columnas.
+// A box of a wide text draws from its column: the second box of a 300-column text is the first one's ink shifted 256
+// columns.
 TEST_F(FreeTypeRasterizerTest, DrawsFromTheFirstColumn)
 {
     const auto rasterizer = OpenFont(640);
@@ -248,7 +244,6 @@ TEST_F(FreeTypeRasterizerTest, DrawsFromTheFirstColumn)
     }
 }
 
-// Sin BoldFontFile la negrita es la normal ensanchada: un píxel más por letra, y más tinta.
 TEST_F(FreeTypeRasterizerTest, WithoutABoldFileTheBoldIsOnePixelWiderPerLetter)
 {
     const auto rasterizer = OpenFont(640);
@@ -259,8 +254,8 @@ TEST_F(FreeTypeRasterizerTest, WithoutABoldFileTheBoldIsOnePixelWiderPerLetter)
               InkCount(InkOf(*rasterizer, FontKind::Normal, "abc")));
 }
 
-// Con BoldFontFile la negrita es esa cara, sin ensanchar: con la misma fuente en las dos claves, la
-// negrita mide y dibuja como la normal.
+// With BoldFontFile the bold is that face, not widened: with the same font in both keys, the bold measures and draws
+// like the normal one.
 TEST_F(FreeTypeRasterizerTest, WithABoldFileThereIsNoSyntheticBold)
 {
     const auto rasterizer = OpenFont(640, m_fontFile);
@@ -270,7 +265,7 @@ TEST_F(FreeTypeRasterizerTest, WithABoldFileThereIsNoSyntheticBold)
     EXPECT_EQ(InkOf(*rasterizer, FontKind::Bold, "abc"), InkOf(*rasterizer, FontKind::Normal, "abc"));
 }
 
-// El byte E9 pertenece a Latin-1 y CP1252; ambos lo representan como e con tilde.
+// Byte E9 belongs to Latin-1 and CP1252; both represent it as e with an acute accent.
 TEST_F(FreeTypeRasterizerTest, ReadsWesternAccentedByte)
 {
     const auto rasterizer = OpenFont(1024);
@@ -301,12 +296,12 @@ TEST(FreeTypeRasterizerOpenTest, DecodesEuroByteBeforeLoadingTheGlyph)
     const std::vector<std::uint8_t> euroInk = InkOf(rasterizer, FontKind::Normal, euroByte);
     const std::vector<std::uint8_t> underscoreInk = InkOf(rasterizer, FontKind::Normal, "_");
     const std::vector<std::uint8_t> undefinedInk = InkOf(rasterizer, FontKind::Normal, undefinedByte);
-    // Compara contra glifos del mismo cmap: el hinting mono puede añadir píxeles a contornos finos.
+    // Compares against glyphs of the same cmap: mono hinting can add pixels to thin outlines.
     EXPECT_EQ(euroInk, underscoreInk);
     EXPECT_NE(euroInk, undefinedInk);
 }
 
-// El intérprete v35, el de Windows 98, y no el v40 que FreeType usa por defecto.
+// The v35 interpreter, the one of Windows 98, and not the v40 FreeType uses by default.
 TEST_F(FreeTypeRasterizerTest, UsesTheInterpreterOfWindows98)
 {
     const auto rasterizer = OpenFont(640);
@@ -326,7 +321,7 @@ TEST_F(FreeTypeRasterizerTest, AMissingBoldFileSaysItsPath)
     EXPECT_NE(opened.Error().find(Client::Core::PathText(missing)), std::string::npos) << opened.Error();
 }
 
-// Sin fuente: el error nombra el archivo, falte o no sea una fuente.
+// The error names the file, whether it is missing or not a font.
 TEST(FreeTypeRasterizerOpenTest, AMissingFileSaysItsPath)
 {
     const Client::Tests::TemporaryFolder folder("freetype");
@@ -353,10 +348,10 @@ TEST(FreeTypeRasterizerOpenTest, AFileThatIsNotAFontSaysItsPath)
     EXPECT_NE(opened.Error().find(Client::Core::PathText(notAFont)), std::string::npos) << opened.Error();
 }
 
-// Una letra sin área, como el guion bajo que el hinting deja en una línea en algunas fuentes:
-// FT_Outline_EmboldenXY no la puede ensanchar (FT_ORIENTATION_NONE) y devuelve un error, que no
-// tiene que hacer fallar Open. La negrita simulada la deja como está, con su píxel de avance. Usa
-// la fuente mínima de support/, sin OS/2 (la celda sale de la hhea): corre sin la variable.
+// A letter without area, like the underscore that hinting leaves as a line in some fonts: FT_Outline_EmboldenXY cannot
+// widen it (FT_ORIENTATION_NONE) and returns an error, which must not make Open fail. The simulated bold leaves it as
+// is, with its advance pixel. Uses the minimal font of support/, without OS/2 (the cell comes from hhea): runs without
+// the variable.
 TEST(FreeTypeRasterizerOpenTest, ALetterWithoutAreaIsBoldToo)
 {
     const Client::Tests::TemporaryFolder folder("freetype");

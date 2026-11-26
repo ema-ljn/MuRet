@@ -4,8 +4,8 @@
 
 #include <gtest/gtest.h>
 
-// Client::Render::ScaleX y ScaleY: 0x620d50 y 0x620d80, de 640 × 480 a la pantalla, cada eje por
-// su lado y multiplicando por la inversa en float (06 § Primitivas 2D).
+// 0x620d50 and 0x620d80, from 640 × 480 to the screen, each axis on its own and multiplying by the inverse in float
+// (06 § Primitivas 2D).
 namespace
 {
 using Client::Core::PixelSize;
@@ -16,9 +16,9 @@ constexpr PixelSize Screen640{640, 480};
 constexpr PixelSize Screen1024{1024, 768};
 constexpr PixelSize Screen1920{1920, 1080};
 
-// x va por W / 640 e y por H / 480: en 1024 × 768 los dos factores son 1,6, y en 1920 × 1080, 3 y
-// 2,25, así que una pantalla ancha estira lo escalado (pregunta 10 del plan de la CL5). Los 25 dan
-// un ULP arriba (MultipliesByTheInverseOfTheSize): EXPECT_FLOAT_EQ deja hasta 4.
+// x goes by W / 640 and y by H / 480: at 1024 × 768 both factors are 1.6, and at 1920 × 1080, 3 and 2.25, so a wide
+// screen stretches what is scaled (question 10 of the CL5 plan). The 25s come out one ULP up
+// (MultipliesByTheInverseOfTheSize): EXPECT_FLOAT_EQ allows up to 4.
 TEST(ScreenScaleTest, ScalesEachAxisApart)
 {
     EXPECT_FLOAT_EQ(ScaleX(320, Screen1024), 512.0f);
@@ -28,8 +28,8 @@ TEST(ScreenScaleTest, ScalesEachAxisApart)
     EXPECT_FLOAT_EQ(ScaleY(320, Screen1920), 720.0f);
 }
 
-// Las inversas de 0x6ba070 y 0x6ba06c no son exactas: 25 en 480 da 25,000002, en 768 da 40,000004
-// y en 1080, 56,250004. Dividiendo por 480 darían 25, 40 y 56,25 justos. 320 en 1024 sí da 512.
+// The inverses at 0x6ba070 and 0x6ba06c are not exact: 25 at 480 gives 25.000002, at 768 40.000004 and at 1080
+// 56.250004. Dividing by 480 would give exactly 25, 40 and 56.25. 320 at 1024 does give 512.
 TEST(ScreenScaleTest, MultipliesByTheInverseOfTheSize)
 {
     EXPECT_EQ(ScaleY(25, Screen640), 25.000001907348633f);
@@ -39,7 +39,7 @@ TEST(ScreenScaleTest, MultipliesByTheInverseOfTheSize)
     EXPECT_EQ(ScaleX(320, Screen1024), 512.0f);
 }
 
-// Con 640 × 480 no hay atajo: el original escala igual, y 0 sigue en 0.
+// At 640 × 480 there is no shortcut: the original scales all the same, and 0 stays at 0.
 TEST(ScreenScaleTest, In640x480ItStillScales)
 {
     EXPECT_NE(ScaleY(25, Screen640), 25.0f);

@@ -11,8 +11,7 @@
 #include <chrono>
 #include <cstdint>
 
-// Client::Models::ShineTexCoords: las UV de los tres pases de brillo de 0x4ecc30, contra las
-// fórmulas del 06.
+// The UVs of the three glow passes of 0x4ecc30, against 06's formulas.
 namespace
 {
 using Client::Core::Duration;
@@ -35,7 +34,7 @@ void ExpectNear(const glm::vec2& actual, const glm::vec2& expected)
     EXPECT_NEAR(actual.y, expected.y, Tolerance);
 }
 
-// 0x8, la textura 115: la mitad de la normal, sin el reloj.
+// 0x8, texture 115: half the normal, without the clock.
 TEST(ShineTest, TheShinyPassIsHalfTheNormal)
 {
     for (const std::int64_t ms : {std::int64_t{0}, std::int64_t{12345}, std::int64_t{26437420}})
@@ -45,7 +44,7 @@ TEST(ShineTest, TheShinyPassIsHalfTheNormal)
     }
 }
 
-// 0x4, la 120: corre con t = (T mod 10000) · 0,0001, y vuelve cada 10 s.
+// 0x4, texture 120: runs with t = (T mod 10000) · 0.0001, and wraps every 10 s.
 TEST(ShineTest, TheChromePassRunsWithTheClock)
 {
     const float t = 2345 * 0.0001f;
@@ -55,7 +54,7 @@ TEST(ShineTest, TheChromePassRunsWithTheClock)
                ShineTexCoords(ShinePass::Chrome, Normal, Milliseconds(12345)));
 }
 
-// 0x1000, la 141: con c = cos(0,001·T) y s = sin(0,002·T), y t.
+// 0x1000, texture 141: with c = cos(0.001·T) and s = sin(0.002·T), and t.
 TEST(ShineTest, TheChrome4PassUsesSinAndCos)
 {
     const auto c = static_cast<float>(RoundedCos(1000 * 0.001));
@@ -66,8 +65,8 @@ TEST(ShineTest, TheChrome4PassUsesSinAndCos)
                {c * 0.2f + (s + 0.5f) * -0.4f + 0.6f + 3 * s, 1 - c * 0.2f - s * -0.4f - 1.5f * 0.6f - 3 * t});
 }
 
-// 0x200 (los niveles 11 y 12, slot 0x620): u = (nz + nx) · 0,8 + 2f y v = nx + ny + 3f, con
-// f = (T mod 5000) · 0,00024 − 0,4. A los 6.234 ms, T mod 5000 es 1.234.
+// 0x200 (levels 11 and 12, slot 0x620): u = (nz + nx) · 0.8 + 2f and v = nx + ny + 3f, with
+// f = (T mod 5000) · 0.00024 − 0.4. At 6234 ms, T mod 5000 is 1234.
 TEST(ShineTest, TheChrome2PassRunsWithAFiveSecondClock)
 {
     const float f = 1234 * 0.00024f - 0.4f;
@@ -76,8 +75,8 @@ TEST(ShineTest, TheChrome2PassRunsWithAFiveSecondClock)
                {(0.6f + 0.2f) * 0.8f + 2 * f, 0.2f - 0.4f + 3 * f});
 }
 
-// 0x800 (un ítem de set, slot 0x620): la luz L = (0; −0,1; −0,8) contra la normal, u = L·n y
-// v = 1 − L·n, sin el reloj.
+// 0x800 (a set item, slot 0x620): the light L = (0; −0.1; −0.8) against the normal, u = L·n and v = 1 − L·n, without
+// the clock.
 TEST(ShineTest, TheChrome3PassIsTheLightAgainstTheNormal)
 {
     const float dot = -0.1f * -0.4f - 0.8f * 0.6f;
@@ -86,8 +85,8 @@ TEST(ShineTest, TheChrome3PassIsTheLightAgainstTheNormal)
     ExpectNear(ShineTexCoords(ShinePass::Chrome3, Normal, Milliseconds(7777)), {dot, 1 - dot});
 }
 
-// 0x4000 (el camino del 10 de 0x6002e0, con la textura forzada 0x620): con c = cos(0,001·T), s = sin(0,002·T) y t,
-// u = c·nx + s·ny + nz + 5s + 3ny y v = 1 − (c·nx + s·ny + nz) − (2,5·nz + t) (0x4ed25e..0x4ed2b2).
+// 0x4000 (the 10 path of 0x6002e0, with the forced texture 0x620): with c = cos(0.001·T), s = sin(0.002·T) and t,
+// u = c·nx + s·ny + nz + 5s + 3ny and v = 1 − (c·nx + s·ny + nz) − (2.5·nz + t) (0x4ed25e..0x4ed2b2).
 TEST(ShineTest, TheChrome5PassUsesSinAndCosWithItsOwnWeights)
 {
     const auto c = static_cast<float>(RoundedCos(1000 * 0.001));
@@ -100,8 +99,8 @@ TEST(ShineTest, TheChrome5PassUsesSinAndCosWithItsOwnWeights)
     ExpectNear(ShineTexCoords(ShinePass::Chrome5, Normal, Milliseconds(0)), {0.8f - 1.2f, 1 - 0.8f - 1.5f});
 }
 
-// Q-C22: el original guarda T en un float, y en 2²⁴ + 1 ms ya no cuenta de a uno. Acá T es el reloj
-// entero desde que arranca el cliente: un ms más corre la u del pase 120 lo de un ms.
+// Q-C22: the original stores T in a float, and at 2²⁴ + 1 ms it no longer counts by one. Here T is the integer clock
+// since the client started: one more ms moves the u of the 120 pass by one ms's worth.
 TEST(ShineTest, TheClockCountsFromTheStart)
 {
     constexpr std::int64_t Late = std::int64_t{1} << 24;
@@ -112,7 +111,6 @@ TEST(ShineTest, TheClockCountsFromTheStart)
     EXPECT_NEAR(after.x - before.x, 0.0001f, 1e-6f);
 }
 
-// Un reloj negativo cuenta 0.
 TEST(ShineTest, ANegativeClockCountsZero)
 {
     ExpectNear(ShineTexCoords(ShinePass::Chrome, Normal, Milliseconds(-5)),

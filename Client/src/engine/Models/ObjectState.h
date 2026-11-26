@@ -9,20 +9,19 @@
 #include <cstdint>
 #include <optional>
 
-// Lo que un objeto le pasa a RenderBody (0x4ef0c0) en cada pase de 0x60b3d0, y quién lo escribe
-// (Client/docs/research/06-render-escenas-y-ui.md, "El script en un personaje" y "Lo que cuelga").
+// What an object passes to RenderBody (0x4ef0c0) in each pass of 0x60b3d0, and who writes it
+// (Client/docs/research/06-render-escenas-y-ui.md, "El script en un personaje" and "Lo que cuelga").
 namespace Client::Models
 {
-// Sin blendMesh: ninguna malla va por esa rama de 0x4ecc30, salvo las de R.
+// No blendMesh: no mesh goes down that branch of 0x4ecc30, except R's.
 inline constexpr std::int16_t NoBlendMesh = -1;
-// Un blendMesh menor que −1: 0x4ecc30 pasa todas las mallas por la rama del blendMesh.
+// A blendMesh below −1: 0x4ecc30 sends every mesh down the blendMesh branch.
 inline constexpr std::int16_t EveryMeshBlends = -2;
-// Sin malla oculta.
 inline constexpr std::int16_t NoHiddenMesh = -1;
 
-// El +0x64 (el blendMesh: 0x4ecc30 lo compara con la textura de cada malla), el +0x68 (su luz), el
-// +0x6c y el +0x70 (la U y la V que se suman a las UV) y el +0x58 (la malla que el pase base no
-// dibuja) del objeto. Los de un jugador, los de siempre (0x511290).
+// The object's +0x64 (the blendMesh: 0x4ecc30 compares it with each mesh's texture), +0x68 (its light), +0x6c and
+// +0x70 (the U and V added to the UVs) and +0x58 (the mesh the base pass does not draw). A player's are the usual ones
+// (0x511290).
 struct ObjectState
 {
     std::int16_t blendMesh = NoBlendMesh;
@@ -33,24 +32,23 @@ struct ObjectState
     friend bool operator==(const ObjectState&, const ObjectState&) = default;
 };
 
-// Los dos rand() que puede llamar 0x607b60, en su orden (de 0 a 32767, como el de MSVC).
+// The two rand() 0x607b60 may call, in order (0 to 32767, like MSVC's).
 using ObjectRandoms = std::array<int, 2>;
 
-// El objeto que 0x509340 le arma, en cada frame, a lo que cuelga: 0x607b60 con el tipo `type` (el
-// modelo del ítem) y lo que 0x60b3d0 le escribe por su tipo antes de dibujarlo (la luz de Wing05,
-// Wing06 y Staff12).
-// 607b60 sin las luces posteriores de60b3d0.
+// The object 0x509340 builds every frame for what hangs: 0x607b60 with type `type` (the item's model) and what
+// 0x60b3d0 writes for its type before drawing it (the light of Wing05, Wing06 and Staff12).
+// 607b60 without the later lights of 60b3d0.
 [[nodiscard]] ENGINE_API ObjectState NativeItemObjectState(std::uint16_t type, Core::Duration clock,
                                                            ObjectRandoms randoms);
 
 [[nodiscard]] ENGINE_API ObjectState HangingObjectState(std::uint16_t type, Core::Duration clock,
                                                         ObjectRandoms randoms);
 
-// La luz que 0x60b3d0 le escribe al objeto que dibuja, por el modelo: la de los FShoots_R de
-// PantMale25 y HelmMale25 late, y las Test20 la vuelven a 1. Las demás no la tocan.
+// The light 0x60b3d0 writes on the object it draws, by model: the FShoots_R one of PantMale25 and HelmMale25 pulses,
+// and the Test20 ones set it back to 1. The rest leave it alone.
 [[nodiscard]] ENGINE_API std::optional<float> ModelLightOf(std::uint16_t model, Core::Duration clock);
 
-// La luz que 0x50ba30 le pone al personaje de la clase 4 en la parte del casco: sin(0,001 · T) ·
-// 0,1 + 0,7, con los floats de 0x6b89c8, 0x6b87b8 y 0x6b8a5c.
+// The light 0x50ba30 gives the class 4 character on the helmet part: sin(0.001 · T) · 0.1 + 0.7, with the floats of
+// 0x6b89c8, 0x6b87b8 and 0x6b8a5c.
 [[nodiscard]] ENGINE_API float MaskedClassLightAt(Core::Duration clock);
 } // namespace Client::Models

@@ -12,15 +12,15 @@ namespace Client::Models
 {
 namespace
 {
-// Los floats de 0x4ec200: 0 (0x6b86a0), 1 (0x6b87d4), el + 2 de la selección (0x6b8818) y el 0,01 de
-// una acción que no repite (0x6b88d4).
+// The floats of 0x4ec200: 0 (0x6b86a0), 1 (0x6b87d4), the selection's + 2 (0x6b8818) and the 0.01 of a
+// non-repeating action (0x6b88d4).
 constexpr float Zero = 0.0f;
 constexpr float One = 1.0f;
 constexpr float SelectionLookAhead = 2.0f;
 constexpr float HoldBeforeTheEnd = 0.01f;
 
-// El __ftol del original: trunca hacia 0. Fuera de lo que entra en un int, el original da los 32 bits
-// de abajo de su entero de 64 (FISTP qword); acá el int más chico. Un frame no llega ahí.
+// The original's __ftol truncates towards 0. Outside the int range the original gives the low 32 bits of its 64-bit
+// integer (FISTP qword); here, the smallest int. A frame never gets there.
 int Truncate(float value)
 {
     const float whole = std::trunc(value);

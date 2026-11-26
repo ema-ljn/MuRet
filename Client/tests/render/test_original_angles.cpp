@@ -16,9 +16,9 @@ struct AngularCase
     std::array<std::uint32_t, 4> arguments;
     double expected;
 };
-// Valores numéricos PC53/RN; no contiene registros ni bytes del ejecutable.
-// Primeros 133: run3, SHA256 salida: 5b4d0c36cc15bd2496d3f5382f5614c35a50c1ab7c3f8125e82910d8bfba5e0e.
-// Tres qNaN adicionales: run4, SHA256 e6481dc2b83c8dae0b579dbb21cffcec14c53b340371667625fc8e5e46775a7b.
+// PC53/RN numeric values; no registers or bytes of the executable.
+// First 133: run3, output SHA256: 5b4d0c36cc15bd2496d3f5382f5614c35a50c1ab7c3f8125e82910d8bfba5e0e.
+// Three extra qNaNs: run4, SHA256 e6481dc2b83c8dae0b579dbb21cffcec14c53b340371667625fc8e5e46775a7b.
 constexpr std::array Cases{
     AngularCase{0x4e93f0u, {0x00000000u, 0x00000000u, 0xbf800000u, 0xbf800000u}, 0x1.3affffd68c14ap+8},
     AngularCase{0x4e93f0u, {0x00000000u, 0x00000000u, 0xbf800000u, 0x3f800000u}, 0x1.c2000052e7d6cp+7},
@@ -189,7 +189,7 @@ TEST(OriginalAnglesTest, OnlyModeOneChangesTheSign)
     EXPECT_EQ(AngleDistance(270.0f, 90.0f, static_cast<std::uint8_t>(255)), -180.0);
     EXPECT_EQ(AngleDistance(270.0f, 90.0f, static_cast<std::uint8_t>(1)), 180.0);
 }
-// Cambiar Q a float, o eliminar el spill de P, rompe respectivamente estas dos expectativas.
+// Changing Q to float, or removing P's spill, breaks these two expectations respectively.
 TEST(OriginalAnglesTest, TurnKeepsQButSpillsP)
 {
     using Client::Math::TurnAngle;
@@ -231,7 +231,7 @@ TEST(OriginalAnglesTest, OnlyOneNegativeAdjustmentAndAsymmetricAntipodes)
     EXPECT_EQ(TurnAngle(10, 5, -1), 11.0);
     EXPECT_EQ(TurnAngle(10, 20, -1000), -990.0);
 }
-// TEST AH,1 incluye unordered. Usar < como sustituto cambia estos tres resultados de gameplay.
+// TEST AH,1 includes unordered. Using < instead changes these three gameplay results.
 TEST(OriginalAnglesTest, NaNCurrentReturnsTheTarget)
 {
     const float nan = std::bit_cast<float>(0x7fc00001u);
@@ -293,7 +293,7 @@ TEST(OriginalAnglesTest, HostRoundingMatchesTheDeclaredNearestProfile)
 }
 } // namespace
 
-// R5: sólo valores numéricos archivados, sin registros ni volcados (ADR0014).
+// R5: only archived numeric values, no registers or dumps (ADR0014).
 TEST(OriginalAnglesTest, RetainsPhiThroughNativeNonunitProducts)
 {
     struct Case
@@ -354,9 +354,9 @@ TEST(OriginalAnglesTest, RetainsPhiThroughNativeNonunitProducts)
     }
 }
 
-// ADR0014: phi64 es el atan64 bien redondeado, no el FPATAN de la x87. Desde (0,0) hasta estos destinos
-// enteros, la x87 medida (un Xeon) deja 1 ULP de double de diferencia; el store f32 es el mismo. Los
-// valores del modelo se verificaron con Boost 1.83 cpp_bin_float<113> y con mpmath a 400 bits.
+// ADR0014: phi64 is the correctly rounded atan64, not the x87 FPATAN. From (0,0) to these integer targets the measured
+// x87 (a Xeon) differs by 1 double ULP; the f32 store is the same. The model's values were verified with Boost 1.83
+// cpp_bin_float<113> and with mpmath at 400 bits.
 TEST(OriginalAnglesTest, KeepsTheRoundedAtanModelWhereFpatanDiffers)
 {
     struct Case

@@ -13,9 +13,8 @@
 
 using namespace std::string_view_literals;
 
-// Client::Render::Text::ParseInlineColors e InlineColor: los cambios de color 0x02 de 0x4667a0 y la
-// tabla de 0x4665d0. Los textos son los cinco del paso 2 del plan de la CL5 (CL5.3): sin 0x02, uno
-// al principio, dos seguidos, uno al final y diez.
+// The 0x02 color changes of 0x4667a0 and the table of 0x4665d0. The texts are the five of step 2 of the CL5 plan
+// (CL5.3): no 0x02, one at the start, two in a row, one at the end and ten.
 namespace
 {
 using Client::Render::Text::ColorRun;
@@ -25,14 +24,14 @@ using Client::Render::Text::MaxInlineColors;
 using Client::Render::Text::ParseInlineColors;
 using Client::Render::Text::TextColors;
 
-// Los colores del login (0x6350b0): texto blanco y fondo negro con alfa 0x80.
+// The login colors (0x6350b0): white text and black background with alpha 0x80.
 constexpr TextColors Scene{0xffffffff, 0x80000000};
 constexpr InlineColorContext Context{Scene};
 
 constexpr TextColors Red{0xff0000ff, 0};
 constexpr TextColors White{0xffffffff, 0};
 
-// Un 0x02 con su código. Así una letra de la a a la f que sigue no entra en el \x del código.
+// A 0x02 with its code, so that a following letter from a to f does not enter the code's \x.
 std::string Pair(std::uint8_t code)
 {
     return std::string{Client::Render::Text::InlineColorMarker, static_cast<char>(code)};
@@ -53,8 +52,8 @@ TEST(InlineColorsTest, StripsTheMarkerAndItsCode)
     EXPECT_EQ(ParseInlineColors("ab" + Pair(0xf0) + Pair(0xf1) + "cd", Context).text, "abcd");
 }
 
-// El tramo empieza en el texto limpio: la posición del 0x02 menos dos por cada par de antes. Dos
-// seguidos empiezan en el mismo lugar, y el segundo es el que vale.
+// The span starts in the clean text: the position of the 0x02 minus two for each earlier pair. Two in a row start at
+// the same place, and the second one counts.
 TEST(InlineColorsTest, RecordsWhereEachColorStarts)
 {
     const auto atTheStart = ParseInlineColors(Pair(0xf4) + "abc", Context);
@@ -71,8 +70,8 @@ TEST(InlineColorsTest, RecordsWhereEachColorStarts)
     EXPECT_EQ(apart.text, "abcd");
 }
 
-// 0x4665d0: 0x01 y 0xf4 rojo, de 0xf2 a 0xf8 los de su tabla sin fondo, y cualquier otro blanco sin
-// fondo (también el 0, el 0x02 y los de arriba de 0xf8).
+// 0x4665d0: 0x01 and 0xf4 red, 0xf2 to 0xf8 those of its table without background, and any other white without
+// background (also 0, 0x02 and those above 0xf8).
 TEST(InlineColorsTest, TheCodeIsAColorOfTheTable)
 {
     EXPECT_EQ(InlineColor(0x01, Context), Red);
@@ -91,8 +90,8 @@ TEST(InlineColorsTest, TheCodeIsAColorOfTheTable)
     }
 }
 
-// 0xf0 deja los dos colores de la escena (DAT_006c8e5c y DAT_006c8e64) y 0xf1 los cruza: el texto
-// con el color del fondo y el fondo con el del texto.
+// 0xf0 keeps both scene colors (DAT_006c8e5c and DAT_006c8e64) and 0xf1 swaps them: the text with the background
+// color and the background with the text's.
 TEST(InlineColorsTest, F0AndF1SwapTheSceneColors)
 {
     const InlineColorContext context{TextColors{0x11223344, 0x55667788}};
@@ -101,7 +100,7 @@ TEST(InlineColorsTest, F0AndF1SwapTheSceneColors)
     EXPECT_EQ(InlineColor(0xf1, context), (TextColors{0x55667788, 0x11223344}));
 }
 
-// Con DAT_006c7a88 en 0, 0xf8 lleva fondo: negro con alfa 0x96.
+// With DAT_006c7a88 at 0, 0xf8 has a background: black with alpha 0x96.
 TEST(InlineColorsTest, F8HasABackgroundWhenTheFlagIsOff)
 {
     const InlineColorContext withBackground{Scene, false};
@@ -110,8 +109,8 @@ TEST(InlineColorsTest, F8HasABackgroundWhenTheFlagIsOff)
     EXPECT_EQ(InlineColor(0xf4, withBackground), Red);
 }
 
-// Nueve tramos y no más: el décimo par sale del texto igual, sin tramo, así que la "j" sigue con el
-// color del noveno.
+// Nine spans and no more: the tenth pair leaves the text all the same, without a span, so the "j" keeps the ninth's
+// color.
 TEST(InlineColorsTest, KeepsAtMostNineColors)
 {
     constexpr std::array<std::uint8_t, 10> Codes = {0x01, 0xf2, 0xf3, 0xf4, 0xf5, 0xf6, 0xf7, 0xf8, 0xf0, 0xf1};
@@ -134,8 +133,8 @@ TEST(InlineColorsTest, KeepsAtMostNineColors)
     EXPECT_EQ(parsed.runs.back().colors, Scene);
 }
 
-// Un 0x02 al final toma como código el 0 que termina el texto: un tramo blanco sin fondo que
-// empieza donde termina el texto limpio, y no pinta nada.
+// A 0x02 at the end takes the 0 that ends the text as its code: a white span without background that starts where the
+// clean text ends, and paints nothing.
 TEST(InlineColorsTest, AMarkerAtTheEndHasNoCode)
 {
     const auto parsed = ParseInlineColors("ab\x02", Context);
@@ -144,7 +143,7 @@ TEST(InlineColorsTest, AMarkerAtTheEndHasNoCode)
     EXPECT_EQ(parsed.runs, (std::vector<ColorRun>{{2, 0x00, White}}));
 }
 
-// El código es el byte que sigue, aunque sea otro 0x02: "\x02\x02" es un par, no dos marcas.
+// The code is the next byte, even if it is another 0x02: "\x02\x02" is a pair, not two markers.
 TEST(InlineColorsTest, TheByteAfterTheMarkerIsAlwaysTheCode)
 {
     const auto parsed = ParseInlineColors("a" + Pair(0x02) + "b", Context);
@@ -153,7 +152,7 @@ TEST(InlineColorsTest, TheByteAfterTheMarkerIsAlwaysTheCode)
     EXPECT_EQ(parsed.runs, (std::vector<ColorRun>{{1, 0x02, White}}));
 }
 
-// Como strlen: lo que va después del primer 0 no es del texto.
+// Like strlen: what follows the first 0 is not part of the text.
 TEST(InlineColorsTest, StopsAtTheFirstNul)
 {
     const auto parsed = ParseInlineColors(std::string("ab\0"sv) + Pair(0xf4) + "c", Context);
@@ -162,9 +161,9 @@ TEST(InlineColorsTest, StopsAtTheFirstNul)
     EXPECT_TRUE(parsed.runs.empty());
 }
 
-// 0x4667a0 copia el texto a un buffer de 256 bytes de su pila y lo reescribe desde ahí en el del
-// que llama: de un texto más largo, lo que pasa del 256 sale de la pila (Q-C77). MuRet arma el
-// texto limpio aparte, sin tope, y no toca el del que llama.
+// 0x4667a0 copies the text to a 256-byte buffer on its stack and rewrites it from there into the caller's: for a longer
+// text, what goes past 256 comes off the stack (Q-C77). MuRet builds the clean text separately, without a cap, and
+// does not touch the caller's.
 TEST(InlineColorsTest, ALongTextKeepsItsTail)
 {
     std::string tail;

@@ -9,9 +9,8 @@
 #include <array>
 #include <cstddef>
 
-// Client::Render::UiImageCorners y DesignScale: la imagen de la UI nueva (0x647050, 0x6472e0 y
-// 0x647650), con la y desde arriba en su propio espacio, cada esquina por fx y fy, y las UV a medio
-// téxel (06 § La carga). Lo que hace el SpriteBatch con ella, en test_sprite_batch.cpp.
+// The new UI's image (0x647050, 0x6472e0 and 0x647650), with y from the top in its own space, each corner by fx and fy,
+// and the UVs at half a texel (06 § La carga).
 namespace
 {
 using Client::Core::PixelSize;
@@ -24,7 +23,7 @@ using Client::Render::UiImageCorners;
 constexpr PixelSize Screen640{640, 480};
 constexpr PixelSize Screen1024{1024, 768};
 
-// Las cuatro de (x, y, u, v), en el orden del fan.
+// The four (x, y, u, v), in fan order.
 using Expected = std::array<std::array<float, 4>, 4>;
 
 void ExpectCorners(const QuadCorners& corners, const Expected& expected)
@@ -39,9 +38,8 @@ void ExpectCorners(const QuadCorners& corners, const Expected& expected)
     }
 }
 
-// Una imagen de 329 × 245 en píxeles, del tamaño del fondo de la ventana de la cuenta (0x13, en un
-// buffer de 512 × 256), ubicada como esa ventana en 640 × 480: ((W − w) / 2, (H − h) · 2 / 3), que
-// es (155, 156) (06 § Las ventanas de la UI nueva).
+// A 329 × 245 image in pixels, the size of the account window's background (0x13, in a 512 × 256 buffer), placed like
+// that window at 640 × 480: ((W − w) / 2, (H − h) · 2 / 3), which is (155, 156) (06 § Las ventanas de la UI nueva).
 constexpr UiImage AccountSizedImage{.slot = TextureSlot{0x13},
                                     .x = 155,
                                     .y = 156,
@@ -50,9 +48,9 @@ constexpr UiImage AccountSizedImage{.slot = TextureSlot{0x13},
                                     .textureWidth = 512,
                                     .textureHeight = 256};
 
-// Con fx = fy = 1 la imagen va en píxeles, y la y sale de H: el borde de arriba es 480 − 156 = 324
-// y el de abajo, 324 − 245 = 79. Las UV van a medio téxel de cada borde: 0,5 / 512 y
-// (329 − 0,5) / 512 en u, 0,5 / 256 y (245 − 0,5) / 256 en v, con la fila 0 arriba.
+// With fx = fy = 1 the image is in pixels, and y comes from H: the top edge is 480 − 156 = 324 and the bottom one,
+// 324 − 245 = 79. The UVs go half a texel from each edge: 0.5 / 512 and (329 − 0.5) / 512 in u, 0.5 / 256 and
+// (245 − 0.5) / 256 in v, with row 0 at the top.
 TEST(UiImageTest, InPixelsTheYGoesDownFromTheHeight)
 {
     ExpectCorners(UiImageCorners(AccountSizedImage, Screen640), Expected{{{155, 324, 0.0009765625f, 0.001953125f},
@@ -61,7 +59,7 @@ TEST(UiImageTest, InPixelsTheYGoesDownFromTheHeight)
                                                                           {484, 324, 0.6416015625f, 0.001953125f}}});
 }
 
-// En otra pantalla, la misma imagen en píxeles no cambia de tamaño: solo la y, que sale de H.
+// On another screen, the same image in pixels does not change size: only y, which comes from H.
 TEST(UiImageTest, InPixelsTheSizeDoesNotScale)
 {
     const QuadCorners corners = UiImageCorners(AccountSizedImage, Screen1024);
@@ -71,9 +69,9 @@ TEST(UiImageTest, InPixelsTheSizeDoesNotScale)
     EXPECT_EQ(corners[2].x - corners[1].x, 329.0f);
 }
 
-// En la carga, diseñada en 800 × 600, fx es 640 · (1/800 en float) = 0,79999995 y fy, 0,8 justos
-// más un poco: el borde de arriba es H / fy = 600 menos la y, por fy. El fondo 0x71f, de 288 × 478
-// en (512, 60), va de x = 409,59998 a 639,99994, un poco antes del borde de la pantalla.
+// While loading, designed at 800 × 600, fx is 640 · (1/800 in float) = 0.79999995 and fy, exactly 0.8 plus a bit: the
+// top edge is H / fy = 600 minus y, times fy. The background 0x71f, 288 × 478 at (512, 60), goes from x = 409.59998 to
+// 639.99994, a bit before the screen edge.
 TEST(UiImageTest, EachCornerGoesByItsScale)
 {
     const UiImage right{.slot = TextureSlot{0x71f},
@@ -93,7 +91,7 @@ TEST(UiImageTest, EachCornerGoesByItsScale)
                             {639.9999389648438f, 432, 0.5615234375f, 0.0009765625f}}});
 }
 
-// Sin slot (el -1 del original) 0x647050 deja las UV en 0: la imagen es solo su color.
+// Without a slot (the original's -1) 0x647050 leaves the UVs at 0: the image is only its color.
 TEST(UiImageTest, WithoutASlotTheUvIsZero)
 {
     UiImage colorOnly = AccountSizedImage;
@@ -106,11 +104,10 @@ TEST(UiImageTest, WithoutASlotTheUvIsZero)
     }
 }
 
-// La barra de la carga (0x6402d0 y 0x640580): 0x647370 le cambia el ancho y el alto después de
-// armarla, y con ellos la u de la derecha (ancho / tw, 0x6473dd) y la v de abajo (alto / th,
-// 0x647457), sin medio téxel; la izquierda y la de arriba siguen a medio téxel. Con una barra de
-// 328 de ancho (la mitad de 656) y 15 de alto en un buffer de 4 × 16, la u llega a 82: con
-// GL_REPEAT, la textura se repite a lo largo.
+// The loading bar (0x6402d0 and 0x640580): 0x647370 changes its width and height after building it, and with them the
+// right u (width / tw, 0x6473dd) and the bottom v (height / th, 0x647457), without the half texel; the left and top
+// ones stay at half a texel. With a bar 328 wide (half of 656) and 15 high in a 4 × 16 buffer, u reaches 82: with
+// GL_REPEAT, the texture repeats along it.
 TEST(UiImageTest, AResizedImageEndsItsUvOnItsSize)
 {
     const UiImage bar{.slot = TextureSlot{0x723},
@@ -129,7 +126,7 @@ TEST(UiImageTest, AResizedImageEndsItsUvOnItsSize)
                                                             {400, -2, 82.0f, 0.03125f}}});
 }
 
-// Cada eje por su lado: solo el ancho cambiado deja la v de abajo a medio téxel.
+// Each axis on its own: changing only the width leaves the bottom v at half a texel.
 TEST(UiImageTest, OnlyTheResizedSideLosesTheHalfTexel)
 {
     UiImage bar{.slot = TextureSlot{0x723},
@@ -152,10 +149,10 @@ TEST(UiImageTest, OnlyTheResizedSideLosesTheHalfTexel)
     EXPECT_EQ(corners[2].v, 15.0f / 16.0f);
 }
 
-// Los cuadros de un botón (CL5.5): 0x63c330 los apila para abajo, cada uno a k · h téxeles, y
-// 0x647560(k) corre las UV: la de arriba a (k · h + 0,5) / th, y la de abajo, la de arriba más lo
-// que medía la imagen en v. Un botón de servidor de 193 × 26 (server_b2_all, en un buffer de
-// 256 × 128), en el cuadro 1: la v va de 26,5 / 128 a 51,5 / 128, y la u no cambia.
+// A button's frames (CL5.5): 0x63c330 stacks them downwards, each at k · h texels, and 0x647560(k) shifts the UVs: the
+// top one to (k · h + 0.5) / th, and the bottom one, the top one plus what the image measured in v. A 193 × 26 server
+// button (server_b2_all, in a 256 × 128 buffer), at frame 1: v goes from 26.5 / 128 to 51.5 / 128, and u does not
+// change.
 TEST(UiImageTest, AFrameMovesTheUvDown)
 {
     const UiImage button{.slot = TextureSlot{0xd},
@@ -173,10 +170,9 @@ TEST(UiImageTest, AFrameMovesTheUvDown)
                                                                {193, 480, 0.751953125f, 0.20703125f}}});
 }
 
-// Una imagen que empieza en otro lugar de su textura (0x647260, la lista de 0x647050 con un solo
-// cuadro): la segunda pieza del marco de la lista, de 68 × 95 desde (68, 0) de server_deco_all (159
-// × 95, en un buffer de 256 × 128). La u va de 68,5 / 256 a 135,5 / 256, y la v, de 0,5 / 128 a
-// 94,5 / 128.
+// An image that starts elsewhere in its texture (0x647260, the list of 0x647050 with a single frame): the second piece
+// of the list frame, 68 × 95 from (68, 0) of server_deco_all (159 × 95, in a 256 × 128 buffer). u goes from
+// 68.5 / 256 to 135.5 / 256, and v from 0.5 / 128 to 94.5 / 128.
 TEST(UiImageTest, AFrameCanStartToTheRight)
 {
     const UiImage piece{.slot = TextureSlot{0xf},
@@ -195,9 +191,9 @@ TEST(UiImageTest, AFrameCanStartToTheRight)
                                                               {68, 480, 0.529296875f, 0.00390625f}}});
 }
 
-// El lado derecho de la caja de la descripción (0x66a1c0): 3 × 4 desde (3, 0) de server_ex02 (un
-// buffer de 8 × 4), con cuadros, y 0x66a4e0 le pone 40 de alto sin mover las UV (+0x98 en 0). Las
-// esquinas van de 480 a 440 y la v, de 0,5 / 4 a 3,5 / 4: la textura se estira.
+// The right side of the description box (0x66a1c0): 3 × 4 from (3, 0) of server_ex02 (an 8 × 4 buffer), with frames,
+// and 0x66a4e0 sets its height to 40 without moving the UVs (+0x98 at 0). The corners go from 480 to 440 and v from
+// 0.5 / 4 to 3.5 / 4: the texture stretches.
 TEST(UiImageTest, AHeightChangeCanKeepTheUv)
 {
     const UiImage side{.slot = TextureSlot{0x19},
@@ -217,7 +213,7 @@ TEST(UiImageTest, AHeightChangeCanKeepTheUv)
                                                              {3, 480, 0.6875f, 0.125f}}});
 }
 
-// El cuadro 0 es la imagen sin cuadros: 0x647050 llama a 0x647560(0) al armarla.
+// Frame 0 is the image without frames: 0x647050 calls 0x647560(0) when building it.
 TEST(UiImageTest, FrameZeroIsTheImage)
 {
     UiImage framed = AccountSizedImage;
@@ -233,8 +229,8 @@ TEST(UiImageTest, FrameZeroIsTheImage)
     }
 }
 
-// 0x65eeb0: W · (1/800 en float) y H · (1/600 en float), guardados en float. Ninguna inversa es
-// exacta: en 640 × 480, 0,79999995 y 0,80000001; en 800 × 600, 1 justo.
+// 0x65eeb0: W · (1/800 in float) and H · (1/600 in float), stored as float. Neither inverse is exact: at 640 × 480,
+// 0.79999995 and 0.80000001; at 800 × 600, exactly 1.
 TEST(DesignScaleTest, MultipliesByTheInverseOfTheDesign)
 {
     EXPECT_EQ(DesignScale(640, 800), 0.7999999523162842f);

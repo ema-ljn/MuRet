@@ -18,9 +18,8 @@
 #include <sstream>
 #include <string>
 
-// Client::Math::OriginalAngleMatrix y OriginalVectorRotate contra 0x5fc8f0 y 0x5fcbd0 del
-// código real del main.exe, en 400 casos al azar (tests/vectors/world55/rotation.txt,
-// make_rotation_vectors.py): cada float bit a bit.
+// Against 0x5fc8f0 and 0x5fcbd0 of the real main.exe code, in 400 random cases (tests/vectors/world55/rotation.txt,
+// make_rotation_vectors.py): every float bit for bit.
 namespace
 {
 TEST(OriginalRotationTest, FourHundredCasesMatchTheBinary)
@@ -82,7 +81,7 @@ TEST(OriginalRotationTest, FourHundredCasesMatchTheBinary)
     EXPECT_EQ(cases, 400u);
 }
 
-// La transpuesta y el signo fijan estos dos componentes del offset histórico de la cámara.
+// The transpose and the sign fix these two components of the camera's historical offset.
 TEST(OriginalRotationTest, TheInverseRotatePreservesTheHistoricalCameraOffset)
 {
     using Client::Math::OriginalAngleMatrix;
@@ -92,7 +91,7 @@ TEST(OriginalRotationTest, TheInverseRotatePreservesTheHistoricalCameraOffset)
     EXPECT_EQ(std::bit_cast<std::uint32_t>(static_cast<float>(12050.0 + static_cast<double>(offset.y))), 0x46313b93u);
 }
 
-// Salidas de 0x5fcc30 real: el fixture fija la expectativa sin repetir la fórmula de la implementación.
+// Outputs of the real 0x5fcc30: the fixture fixes the expectation without repeating the implementation's formula.
 TEST(OriginalRotationTest, FourHundredAndThreeInverseCasesMatchTheBinary)
 {
     std::ifstream file(Client::Tests::World55VectorsDir().parent_path() / "game" / "inverse_rotation.txt");
@@ -138,8 +137,8 @@ TEST(OriginalRotationTest, FourHundredAndThreeInverseCasesMatchTheBinary)
     EXPECT_EQ(cases, 403u);
 }
 
-// En double, (2^70 + 1) - 2^70 da 0; (2^70 - 2^70) + 1 da 1. Cada par aísla una
-// componente y rechaza las otras dos asociaciones: los vectores al azar no alcanzan esa cancelación.
+// In double, (2^70 + 1) - 2^70 gives 0; (2^70 - 2^70) + 1 gives 1. Each pair isolates one component and rejects the
+// other two associations: random vectors do not reach that cancellation.
 TEST(OriginalRotationTest, TheInverseRotateKeepsTheBinarySumOrderWhenProductsCancel)
 {
     using Client::Math::OriginalMatrix;
@@ -161,8 +160,8 @@ TEST(OriginalRotationTest, TheInverseRotateKeepsTheBinarySumOrderWhenProductsCan
     EXPECT_EQ(std::bit_cast<std::uint32_t>(OriginalVectorIRotate({1.0f, -Huge, Huge}, zMatrix).z), 0u);
 }
 
-// Una BoneTransform de glm (m[columna][fila]) pasa a la 3 × 4 por filas del original: con doce valores
-// distintos, cada uno va a su lugar, la traslación en la columna 3 de cada fila (m[3] de glm).
+// A glm BoneTransform (m[column][row]) becomes the original's row-major 3 × 4: with twelve distinct values each one
+// goes to its place, the translation in column 3 of each row (glm's m[3]).
 TEST(OriginalRotationTest, ABoneTransformGoesByRows)
 {
     Client::Math::BoneTransform bone{};
@@ -178,14 +177,14 @@ TEST(OriginalRotationTest, ABoneTransformGoesByRows)
     {
         EXPECT_EQ(rows[k], static_cast<float>(((k / 4) * 10) + (k % 4))) << k;
     }
-    // Y un punto pasa por las dos igual: el giro y la traslación de glm son los del original.
+    // And a point goes through both alike: glm's rotation and translation are the original's.
     const glm::vec3 point{3.0f, -5.0f, 7.0f};
     EXPECT_EQ(Client::Math::OriginalVectorTransform(point, rows), Client::Math::VectorTransform(point, bone));
 }
-// 0x5fca90 por el ASM: la segunda y la tercera fila suman desde la columna 2, (a6·b8 + a5·b4) + a4·b0.
-// Con a4·b0 apenas sobre 1 y a6·b8 apenas bajo −1, el término chico se redondea en otra grilla según el
-// orden: el del binario da −0x1.48808ap−29 y el natural, (a4·b0 + a5·b4) + a6·b8, −0x1.48808cp−29
-// (búsqueda en Python con productos exactos en double y FSTP a float). La primera fila es 1 · b.
+// 0x5fca90 per the ASM: the second and third rows sum from column 2, (a6·b8 + a5·b4) + a4·b0. With a4·b0 just above 1
+// and a6·b8 just below −1, the small term rounds on another grid depending on the order: the binary's gives
+// −0x1.48808ap−29 and the natural one, (a4·b0 + a5·b4) + a6·b8, −0x1.48808cp−29 (search in Python with exact products
+// in double and FSTP to float). The first row is 1 · b.
 TEST(OriginalRotationTest, TheConcatSumsTheLowerRowsFromTheThirdColumn)
 {
     using Client::Math::OriginalMatrix;
@@ -208,7 +207,6 @@ TEST(OriginalRotationTest, TheConcatSumsTheLowerRowsFromTheThirdColumn)
     }
 }
 
-// BoneTransformOf deshace OriginalMatrixOf: la 3 × 4 vuelve por filas, cada valor a su lugar.
 TEST(OriginalRotationTest, ARowMatrixGoesBackToTheBoneTransform)
 {
     Client::Math::OriginalMatrix rows{};
@@ -222,8 +220,8 @@ TEST(OriginalRotationTest, ARowMatrixGoesBackToTheBoneTransform)
 }
 } // namespace
 
-// 0x5fcbd0 con la entrada y la salida en el mismo vector (0x605edc de Icarus): cada fila se guarda antes de
-// que la siguiente relea, así que la y gira con la x nueva y la z con las dos.
+// 0x5fcbd0 with input and output in the same vector (0x605edc of Icarus): each row is stored before the next one
+// rereads, so y rotates with the new x and z with both.
 TEST(OriginalRotationTest, TheInPlaceRotateReadsEachStoredRow)
 {
     const auto matrix = Client::Math::OriginalAngleMatrix({0.0f, 0.0f, -45.0f});

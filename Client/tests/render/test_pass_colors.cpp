@@ -15,9 +15,8 @@
 #include <optional>
 #include <ratio>
 
-// Client::Models::ShineColorOf, MetalFactorOf, SetColorOf y ExcellentColorAt: el color de
-// cada pase de brillo de 0x60b3d0, con las tablas que salen de emular 0x608e00, 0x6093d0 y 0x609560
-// sobre el main.exe (06 § Los pases de brillo).
+// The color of each glow pass of 0x60b3d0, with the tables from emulating 0x608e00, 0x6093d0 and 0x609560 on main.exe
+// (06 § Los pases de brillo).
 namespace
 {
 using Client::Math::RoundedSin;
@@ -39,8 +38,8 @@ void ExpectColor(const Color& color, float red, float green, float blue)
     EXPECT_FLOAT_EQ(color.blue, blue);
 }
 
-// 0x608e00, el de los pases 0x44 y 0x48: un color por ítem, que no mira la luz. El de las Male17 de
-// la traza (el caso 10) y el de Sword17, el de siempre.
+// 0x608e00, the one of passes 0x44 and 0x48: one color per item, ignoring the light. That of the trace's Male17 (case
+// 10) and that of Sword17, the usual one.
 TEST(PassColorsTest, TheShinePassesHaveTheColorOfTheirItem)
 {
     ExpectColor(ShineColorOf(0x1222), 0.75f, 0.65f, 0.5f);
@@ -49,8 +48,8 @@ TEST(PassColorsTest, TheShinePassesHaveTheColorOfTheirItem)
     ExpectColor(ShineColorOf(0x175), 1.0f, 1.0f, 1.0f);
 }
 
-// 0x6093d0, el de los pases 0x240 y 0x1040: multiplica el color base, que es la luz por el factor
-// del nivel. Casi todos por 1.
+// 0x6093d0, the one of passes 0x240 and 0x1040: multiplies the base color, which is the light times the level factor.
+// Almost all by 1.
 TEST(PassColorsTest, TheMetalPassesKeepTheBase)
 {
     EXPECT_EQ(MetalFactorOf(0x1222), glm::vec3(1.0f, 1.0f, 1.0f));
@@ -58,14 +57,14 @@ TEST(PassColorsTest, TheMetalPassesKeepTheBase)
     EXPECT_EQ(MetalFactorOf(0x220), glm::vec3(0.0f, 0.5f, 1.0f));
 }
 
-// 0x609560, el del pase de set (0x840): azul, salvo 15 partes doradas.
+// 0x609560, the set pass one (0x840): blue, except 15 golden parts.
 TEST(PassColorsTest, TheSetPassIsBlueOrGold)
 {
     ExpectColor(SetColorOf(0x1222), 0.1f, 0.6f, 1.0f);
     ExpectColor(SetColorOf(0x1015), 1.0f, 0.7f, 0.2f);
 }
 
-// 0x60b3d0, el 0x42 del excelente: k = (sin(0,002 · T) + 1) · 0,5, y (k, 0,3k, 1 − k).
+// 0x60b3d0, the 0x42 of the excellent item: k = (sin(0.002 · T) + 1) · 0.5, and (k, 0.3k, 1 − k).
 TEST(PassColorsTest, TheExcellentColorPulses)
 {
     ExpectColor(ExcellentColorAt(std::chrono::milliseconds{0}), 0.5f, 0.15f, 0.5f);
@@ -76,16 +75,16 @@ TEST(PassColorsTest, TheExcellentColorPulses)
     EXPECT_NEAR(brightest.blue, 0.0f, 1e-5f);
 }
 
-// 0x60b3d0 llama al pase de set con el alpha sin(0,001 · T) · 0,5 + 0,4.
+// 0x60b3d0 calls the set pass with alpha sin(0.001 · T) · 0.5 + 0.4.
 TEST(PassColorsTest, TheSetAlphaPulses)
 {
     EXPECT_FLOAT_EQ(SetAlphaAt(std::chrono::milliseconds{0}), 0.4f);
     EXPECT_FLOAT_EQ(SetAlphaAt(std::chrono::milliseconds{250}), RoundedSin(0.25f) * 0.5f + 0.4f);
 }
 
-// 0x60cc19..0x60cc1c: el alpha es el pulso guardado en un float, pero el rand() del set lo decide el pulso de la x87
-// sin redondear (FCOMP contra el 0,01f). A los 4.036.258.298 ns el pulso pasa el 0,01f por 2,7e−10 y su float ya es
-// 0,01f; dos nanosegundos después queda debajo.
+// 0x60cc19..0x60cc1c: the alpha is the pulse stored in a float, but the set's rand() is decided by the unrounded x87
+// pulse (FCOMP against 0.01f). At 4036258298 ns the pulse exceeds 0.01f by 2.7e−10 and its float is already 0.01f;
+// two nanoseconds later it is below.
 TEST(PassColorsTest, TheSetPulseIsComparedBeforeItBecomesAFloat)
 {
     const auto at = [](std::int64_t nanoseconds)
@@ -98,9 +97,9 @@ TEST(PassColorsTest, TheSetPulseIsComparedBeforeItBecomesAFloat)
     EXPECT_EQ(SetAlphaAt(std::chrono::nanoseconds{4036258298}), static_cast<float>(above));
 }
 
-// La malla que 0x60b130 (los pases 0x48 y 0x44) y 0x60b300 (0x240, 0x1040 y el set) le pasan a
-// RenderBody como la oculta: la 1 de 0xc17 y 0x226 y la 0 de 0x227 en todos, y la 2 de 0x619 solo
-// en los de 0x60b130. Las demás, ninguna, aunque su objeto oculte una.
+// The mesh 0x60b130 (passes 0x48 and 0x44) and 0x60b300 (0x240, 0x1040 and set) pass to RenderBody as hidden: 1 for
+// 0xc17 and 0x226 and 0 for 0x227 in all, and 2 for 0x619 only in those of 0x60b130. The rest, none, even if their
+// object hides one.
 TEST(PassColorsTest, SomeItemsHideAMeshInTheirPasses)
 {
     for (const ShinePass pass :
@@ -117,7 +116,7 @@ TEST(PassColorsTest, SomeItemsHideAMeshInTheirPasses)
     EXPECT_EQ(PassHiddenMesh(0x619, ShinePass::Chrome4, 2), std::nullopt);
 }
 
-// 0x60b130 les pasa el +0x58 del objeto a 0x231, 0x81c y 0xe22 y a 0x61a..0x61f; 0x60b300, no.
+// 0x60b130 passes the object's +0x58 to 0x231, 0x81c and 0xe22 and to 0x61a..0x61f; 0x60b300 does not.
 TEST(PassColorsTest, SomeItemsHideTheMeshOfTheirObjectInTheShinePasses)
 {
     for (const std::uint16_t model :

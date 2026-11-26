@@ -15,7 +15,7 @@ namespace Client::Math
 {
 namespace
 {
-// ADR0012: evaluación nominal del port; el PC53 original es evidencia, no un modo del compilador.
+// ADR0012: the port evaluates nominally; the original's PC53 is evidence, not a compiler mode.
 static_assert(std::numeric_limits<float>::is_iec559 && std::numeric_limits<float>::digits == 24 &&
               std::numeric_limits<float>::max_exponent == 128);
 static_assert(std::numeric_limits<double>::is_iec559 && std::numeric_limits<double>::digits == 53 &&
@@ -31,14 +31,14 @@ constexpr double Turn = 360.0;
 
 using Math::F32;
 
-// TEST AH,1 consume C0: menor O unordered. La conservación entre comparación y lectura
-// diferida es la premisa observada de ADR0012; no es una garantía de la ISA.
+// TEST AH,1 reads C0: less than OR unordered. C0 surviving between the compare and the deferred read is the observed
+// premise of ADR0012, not an ISA guarantee.
 bool LessOrUnordered(double left, double right)
 {
     return !(left >= right);
 }
 
-// fld, fadd 360 y fstp: una única suma; puede quedar negativo o resultar 360.
+// fld, fadd 360 and fstp: a single sum; the result can stay negative or become 360.
 double Positive(float angle)
 {
     const auto value = static_cast<double>(angle);
@@ -127,21 +127,21 @@ double TurnAngle(float from, float to, float step)
 
 double MoveToward(const glm::vec3& position, glm::vec3& angles, const glm::vec3& target, float step)
 {
-    // 0x4e982d..0x4e9849: el rumbo, guardado en float antes de girar.
+    // 0x4e982d..0x4e9849: the heading, stored as a float before turning.
     const float heading = F32(CreateAngle(position.x, position.y, target.x, target.y));
     angles.z = F32(TurnAngle(angles.z, heading, step));
-    // 0x4e984c..0x4e988e: dx y dy quedan en la pila; dz y los dos cuadrados se guardan en float, y el largo
-    // en el plano también (fstp al argumento de 0x4e93f0).
+    // 0x4e984c..0x4e988e: dx and dy stay on the x87 stack; dz and both squares are stored as floats, and so is the flat
+    // length (fstp to the argument of 0x4e93f0).
     const double dx = static_cast<double>(position.x) - static_cast<double>(target.x);
     const double dy = static_cast<double>(position.y) - static_cast<double>(target.y);
     const float dz = F32(static_cast<double>(position.z) - static_cast<double>(target.z));
     const float dy2 = F32(dy * dy);
     const float dx2 = F32(dx * dx);
     const float flat = F32(std::sqrt(static_cast<double>(dx2) + static_cast<double>(dy2)));
-    // 0x4e9897: fsubr de 360 (0x6b869c) y fstp antes de girar.
+    // 0x4e9897: fsubr from 360 (0x6b869c) and fstp before turning.
     const float pitch = F32(Turn - CreateAngle(position.z, flat, target.z, 0.0f));
     angles.x = F32(TurnAngle(angles.x, pitch, step));
-    // 0x4e98b2..0x4e98c4: dz·dz + dx² + dy², en ese orden, y fsqrt.
+    // 0x4e98b2..0x4e98c4: dz·dz + dx² + dy², in that order, and fsqrt.
     return std::sqrt(((static_cast<double>(dz) * static_cast<double>(dz)) + static_cast<double>(dx2)) +
                      static_cast<double>(dy2));
 }
@@ -153,7 +153,7 @@ double AngleDistance(float from, float to, std::uint8_t mode)
     double distance = b - a;
     if (LessOrUnordered(a, HalfTurn))
     {
-        // 0x4e9744: fadd 180, fcomp `to` y `test ah, 0x41`: sigue con la resta si a + 180 > b.
+        // 0x4e9744: fadd 180, fcomp `to` and `test ah, 0x41`: keeps the subtraction if a + 180 > b.
         if (!(a + HalfTurn > b))
         {
             distance = (Turn - b) + a;
@@ -161,7 +161,7 @@ double AngleDistance(float from, float to, std::uint8_t mode)
     }
     else if (a - HalfTurn > b)
     {
-        // 0x4e9764: fsub 180, fcomp `to` y `test ah, 0x41` con jne: la vuelta solo si a − 180 > b.
+        // 0x4e9764: fsub 180, fcomp `to` and `test ah, 0x41` with jne: wraps only if a − 180 > b.
         distance = (Turn - a) + b;
     }
     if (mode == 1 && LessOrUnordered(distance, 0.0))

@@ -22,8 +22,8 @@ using Data::Textures::Filter;
 using Data::Textures::Sampling;
 using Data::Textures::TextureLoader;
 
-// La ruta que se pide para una textura de modelo: la carpeta, el nombre hasta el primer punto y la
-// extensión que Data::Textures::TextureLoaderOf lee como el cargador que eligió el original.
+// The path requested for a model texture: the folder, the name up to the first dot and the extension that
+// Data::Textures::TextureLoaderOf reads as the loader the original chose.
 std::string RequestPath(std::string_view folder, std::string_view name, TextureLoader loader)
 {
     std::string path(folder);
@@ -114,7 +114,7 @@ void ModelTextureSlots::SetName(Render::TextureSlot slot, std::string_view name)
         m_names[slot.value] = name;
 }
 
-// 0x60d550: del slot 0 al próximo libre, sin contar este.
+// 0x60d550: from slot 0 to the next free one, not counting it.
 std::optional<Render::TextureSlot> ModelTextureSlots::Find(std::string_view name) const
 {
     for (std::size_t slot = 0; slot < m_next && slot < m_names.size(); ++slot)

@@ -7,9 +7,8 @@
 #include <array>
 #include <cstddef>
 
-// Client::Render::Text::FontStepFor, FontHeightFor e IsBold: las cuatro fuentes de WinMain
-// (0x4ba6af..0x4ba813) y el paso de la letra por el ancho de la pantalla (pregunta 10 del plan de
-// la CL5, Q-C59).
+// The four fonts of WinMain (0x4ba6af..0x4ba813) and the letter step by screen width (question 10 of the CL5 plan,
+// Q-C59).
 namespace
 {
 using Client::Render::Text::FontHeightFor;
@@ -17,9 +16,9 @@ using Client::Render::Text::FontKind;
 using Client::Render::Text::FontStepFor;
 using Client::Render::Text::IsBold;
 
-// Los cuatro anchos de la tabla de WinMain, y el escalón para los demás: el paso del más grande de
-// los cuatro que no pasa al ancho, y 12 por debajo de 800. Con 1600, el original deja el paso en
-// 0 y las letras en -1 y -2 (Q-C59); MuRet da 15.
+// The four widths of WinMain's table, and the step for the rest: the step of the largest of the four that does not
+// exceed the width, and 12 below 800. With 1600 the original leaves the step at 0 and the letters at -1 and -2
+// (Q-C59); MuRet gives 15.
 TEST(FontSetTest, TheStepFollowsTheWidth)
 {
     EXPECT_EQ(FontStepFor(640), 12);
@@ -36,8 +35,8 @@ TEST(FontSetTest, TheStepFollowsTheWidth)
     EXPECT_EQ(FontStepFor(1920), 15);
 }
 
-// Las resoluciones que valen (Platform::IsValidResolution) son las cinco del original o un modo del
-// monitor, de cualquier ancho: las cinco con su paso, y unos modos de monitor de hoy.
+// The valid resolutions (Platform::IsValidResolution) are the original's five or a monitor mode, of any width: the
+// five with their step, and some of today's monitor modes.
 TEST(FontSetTest, EveryValidResolutionHasAStep)
 {
     constexpr std::array<int, 5> OriginalSteps = {12, 13, 14, 15, 15};
@@ -52,8 +51,8 @@ TEST(FontSetTest, EveryValidResolutionHasAStep)
     EXPECT_EQ(FontStepFor(3840), 15);
 }
 
-// CreateFontA con n − 1 la normal y la negrita, 2 (n − 1) la negrita grande y 12 fijo la de la otra
-// cara (0x4ba737, 0x4ba777, 0x4ba7b9 y 0x4ba813).
+// CreateFontA with n − 1 for the normal and the bold, 2 (n − 1) for the big bold and a fixed 12 for the other face
+// (0x4ba737, 0x4ba777, 0x4ba7b9 and 0x4ba813).
 TEST(FontSetTest, EachFontHasItsHeight)
 {
     EXPECT_EQ(FontHeightFor(FontKind::Normal, 640), 11);
@@ -67,8 +66,8 @@ TEST(FontSetTest, EachFontHasItsHeight)
     EXPECT_EQ(FontHeightFor(FontKind::OtherFace12, 1920), 12);
 }
 
-// La de los créditos (0x63f21c..0x63f2e7): 14, 18 y 24 con 800, 1024 y 1280 justos, y 10 con cualquier
-// otro ancho, también 640 y 1600.
+// The credits font (0x63f21c..0x63f2e7): 14, 18 and 24 at exactly 800, 1024 and 1280, and 10 at any other width,
+// 640 and 1600 included.
 TEST(FontSetTest, TheCreditsFontGoesByTheExactWidth)
 {
     EXPECT_EQ(FontHeightFor(FontKind::Credits, 800), 14);
@@ -79,7 +78,7 @@ TEST(FontSetTest, TheCreditsFontGoesByTheExactWidth)
     EXPECT_EQ(FontHeightFor(FontKind::Credits, 1600), 10);
 }
 
-// Peso 700 la negrita, la negrita grande y la de los créditos; 400 las otras dos.
+// Weight 700 for the bold, the big bold and the credits font; 400 for the other two.
 TEST(FontSetTest, OnlyTheBoldOnesAreBold)
 {
     EXPECT_FALSE(IsBold(FontKind::Normal));

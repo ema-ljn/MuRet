@@ -9,7 +9,7 @@ namespace Client::Models
 {
 namespace
 {
-// Los factores del color base de la tabla de 0x60b3d0.
+// The base color factors of the table in 0x60b3d0.
 constexpr float SevenFactor = 0.8f;
 constexpr float NineFactor = 0.9f;
 } // namespace
@@ -45,7 +45,7 @@ ItemGlow ItemGlowOf(std::uint8_t level, bool excellent, bool ancient, std::uint8
     default:
         break;
     }
-    // 0x60b3d0 vuelve después del 0x42 (LAB_0060cb3b): el de set va solo sin excelente.
+    // 0x60b3d0 returns after the 0x42 (LAB_0060cb3b): the set one only comes without excellent.
     if (excellent)
     {
         glow.passes.push_back(GlowPass{});

@@ -7,13 +7,11 @@
 
 #include <cstdint>
 
-// Lo que cuelga de un personaje: las dos manos, las alas y la mascota, cada una de un hueso de
-// Player.bmd con un desplazamiento (0x511290 y 0x50ba30), como las cuelga 0x509340 con la bandera en
-// 0: la raíz de 0x4ec190 y la pose de 0x4eb860 con su séptimo argumento en 1 (PoseAttached). Los
-// vértices van después con SkinMesh y el objeto del personaje, como las partes del cuerpo.
-// Contrato: Client/docs/research/06-render-escenas-y-ui.md, "El modelo en el binario". La espada en
-// el 33 y la mascota en el 34 están **verificadas** contra la traza de la selección; las alas,
-// *estáticas*.
+// Hands, wings and pet hang from a Player.bmd bone with an offset (0x511290 and 0x50ba30), as 0x509340 hangs them with
+// the flag at 0: the root of 0x4ec190 and the pose of 0x4eb860 with its seventh argument at 1 (PoseAttached). The
+// vertices go later through SkinMesh and the character's object, like the body parts.
+// Contract: Client/docs/research/06-render-escenas-y-ui.md, "El modelo en el binario". The sword on 33 and the pet on
+// 34 are **verified** against the selection trace; the wings, *static*.
 namespace Client::Models
 {
 enum class AttachmentSlot : std::uint8_t
@@ -30,46 +28,42 @@ struct Attachment
     glm::vec3 offset{};
 };
 
-// La mano derecha en el hueso 33 y la izquierda en el 42, sin desplazamiento; las alas en el 47 con
-// (0, 0, 15); la mascota en el 34 con (20, 0, 0).
+// Right hand on bone 33 and left on 42, no offset; wings on 47 with (0, 0, 15); pet on 34 with (20, 0, 0).
 [[nodiscard]] ENGINE_API Attachment AttachmentOf(AttachmentSlot slot);
 
-// Q-C98: de las mascotas, solo 0x1c13 (Helper02) se dibuja en este camino.
+// Q-C98: of the pets, only 0x1c13 (Helper02) is drawn on this path.
 inline constexpr std::uint16_t DrawnPet = 0x1c13;
 [[nodiscard]] constexpr bool DrawsThePet(std::uint16_t model)
 {
     return model == DrawnPet;
 }
 
-// 0x509340 sale sin dibujar con la capa del Dark Lord (0x509363: CMP EDI,0x1c30 y JZ al final), en
-// cualquier lugar del que cuelgue: DarkLordRobe.bmd es el plano del inventario, y lo que se ve es la
-// tela de 0x50ba30.
+// 0x509340 exits without drawing for the Dark Lord's cape (0x509363: CMP EDI,0x1c30 and JZ to the end), wherever it
+// hangs from: DarkLordRobe.bmd is the inventory plane, and what shows is the cloth of 0x50ba30.
 inline constexpr std::uint16_t LordsCape = 0x1c30;
 [[nodiscard]] constexpr bool HangsAsAModel(std::uint16_t model)
 {
     return model != LordsCape;
 }
 
-// 0x4ec190: el hueso del que cuelga, con el desplazamiento girado por él y sumado a su traslación.
-// La escala del personaje no: va en cada vértice (verificado: con ella, la mascota cae a 1,8).
+// 0x4ec190: the bone it hangs from, with the offset rotated by it and added to its translation. Not the character's
+// scale: it goes on each vertex (verified: with it, the pet drops to 1.8).
 [[nodiscard]] ENGINE_API Math::BoneTransform AttachmentRoot(const Math::BoneTransform& parent, const glm::vec3& offset);
 
-// El camino de 0x509340 con su bandera (el byte bajo: un modelo de 0x212 a 0x1011, un arma): un
-// AngleMatrix por modelo, en grados (0x5fc8f0), con su traslación, encadenado al hueso
-// (R_ConcatTransforms, 0x5fca90).
+// The 0x509340 path with its flag (the low byte: a model from 0x212 to 0x1011, a weapon): one AngleMatrix per model, in
+// degrees (0x5fc8f0), with its translation, chained to the bone (R_ConcatTransforms, 0x5fca90).
 struct HangingPlacement
 {
     glm::vec3 angles{};
     glm::vec3 translation{};
 };
 
-// El del carcaj, las saetas (0xa19) y las flechas (0xa21), que 0x50ba30 cuelga a la espalda del
-// hueso de las alas: (70, 0, 90) y (−10, 5, 10) (0x509535..0x5095bf).
+// The quiver's, for bolts (0xa19) and arrows (0xa21), which 0x50ba30 hangs on the back from the wings' bone:
+// (70, 0, 90) and (−10, 5, 10) (0x509535..0x5095bf).
 inline constexpr HangingPlacement QuiverPlacement{{70.0f, 0.0f, 90.0f}, {-10.0f, 5.0f, 10.0f}};
 
-// La raíz de lo que cuelga por ese camino: el hueso por la matriz de su lugar, con los bits de la x87
-// (OriginalAngleMatrix y OriginalConcatTransforms). Como en el otro, la escala del personaje va en cada
-// vértice.
+// The root of what hangs by that path: the bone times its place's matrix, with the x87's bits (OriginalAngleMatrix and
+// OriginalConcatTransforms). As in the other path, the character's scale goes on each vertex.
 [[nodiscard]] ENGINE_API Math::BoneTransform PlacedRoot(const Math::BoneTransform& parent,
                                                         const HangingPlacement& placement);
 } // namespace Client::Models

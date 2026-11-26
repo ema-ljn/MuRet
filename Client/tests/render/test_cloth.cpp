@@ -21,9 +21,8 @@
 #include <string>
 #include <vector>
 
-// Client::Models::Cloth: la tela de la vtable 0x6b8cd8 contra el código real del main.exe,
-// emulado (tests/vectors/cloth): cada paso de cada tela, partícula por partícula y bit a bit, las
-// caras, los sprites del brillo y los rand() que saca.
+// The cloth of vtable 0x6b8cd8 against the real main.exe code, emulated (tests/vectors/cloth): each step of each
+// cloth, particle by particle and bit for bit, the faces, the glow sprites and the rand() it draws.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -68,7 +67,7 @@ ClothBody BodyOf(const ClothVectorFrame& frame)
     return ClothBody{.bones = frame.bones, .angles = frame.angles, .scale = frame.scale, .position = frame.origin};
 }
 
-// El frame del mundo antes de las telas: los globales de la entrada y el paseo del viento.
+// The world's frame before the cloths: the input's globals and the wind walk.
 void PrepareTheWorld(ClothWorld& world, const ClothVectorFrame& frame)
 {
     if (frame.windBase)
@@ -125,7 +124,7 @@ std::string NameOf(ClothBlend blend)
     return "?";
 }
 
-// Lo que dibuja una tela, en el orden de 0x455930: los sprites del brillo y las dos caras.
+// What a cloth draws, in the order of 0x455930: the glow sprites and both faces.
 void ExpectTheDrawing(const Cloth& cloth, const std::vector<ClothVectorEvent>& events, std::size_t& next,
                       const ClothVectorFrame& frame, std::string& previousBlend, const std::string& where)
 {
@@ -158,14 +157,14 @@ void ExpectTheDrawing(const Cloth& cloth, const std::vector<ClothVectorEvent>& e
         const std::string name = blend == ClothBlend::Previous ? previousBlend : NameOf(blend);
         EXPECT_EQ(name, face.blend) << where;
         previousBlend = face.blend;
-        // 0x620780 ata un slot negativo como el nombre de GL −slot; el vector guarda el nombre atado.
+        // 0x620780 binds a negative slot as GL name −slot; the vector stores the bound name.
         const auto slot = static_cast<std::int16_t>((front ? cloth.Front() : cloth.Back()).value);
         EXPECT_EQ(slot < 0 ? -slot : slot, face.texture) << where;
         ExpectSameBits(color, face.color, where + " color");
         const std::vector<ClothCorner> corners = cloth.Corners(front);
         ASSERT_EQ(corners.size(), face.corners.size()) << where;
-        // El vector nombra cada vértice por la primera partícula con su posición (dos pueden coincidir):
-        // se comparan las posiciones.
+        // The vector names each vertex by the first particle at its position (two can coincide): positions are
+        // compared.
         const auto particles = cloth.Particles();
         for (std::size_t c = 0; c < corners.size(); ++c)
         {
@@ -179,8 +178,8 @@ void ExpectTheDrawing(const Cloth& cloth, const std::vector<ClothVectorEvent>& e
     }
 }
 
-// El modo directo del oráculo: las telas de la entrada, armadas en el primer frame, cada una con sus
-// cinco pasos y su dibujo, frame por frame.
+// The oracle's direct mode: the input's cloths, built on the first frame, each with its five steps and its drawing,
+// frame by frame.
 void ExpectTheDirectCase(const std::string& name)
 {
     const ClothVectors vectors = Read(name);
@@ -261,7 +260,7 @@ void ExpectTheDirectCase(const std::string& name)
     }
 }
 
-// 0x69fd70: los primeros valores desde la semilla 1, los de la CRT de MSVC.
+// 0x69fd70: the first values from seed 1, those of MSVC's CRT.
 TEST(ClothTest, TheRandomIsTheOneOfTheCrt)
 {
     CrtRandom random(1);
@@ -270,8 +269,8 @@ TEST(ClothTest, TheRandomIsTheOneOfTheCrt)
     EXPECT_EQ(random.Next(), 6334);
 }
 
-// Discard salta lo mismo que Next() repetido, con cualquier cantidad: 0, potencias de 2 y los 3.848 del
-// registro propio, y una cuenta grande que pasa por todos los bits bajos.
+// Discard skips the same as repeated Next(), with any count: 0, powers of 2 and the own record's 3848, and a large
+// count that goes through every low bit.
 TEST(ClothTest, DiscardingIsTheSameAsDrawingOneByOne)
 {
     for (const std::uint32_t count : {0u, 1u, 2u, 3u, 64u, 3848u, 46177u, 73189u})
@@ -285,28 +284,28 @@ TEST(ClothTest, DiscardingIsTheSameAsDrawingOneByOne)
     }
 }
 
-// Las banderas que 0x50ba30 no usa: 0x100, 0x20000000, 0x2000 y 0x3000 con brillo, 0x400 y 0x800, los
-// arcos 2 y 3 y el ancho que no crece, contra el binario.
+// The flags 0x50ba30 does not use: 0x100, 0x20000000, 0x2000 and 0x3000 with glow, 0x400 and 0x800, arches 2 and 3
+// and the width that does not grow, against the binary.
 TEST(ClothTest, TheDirectFlagsMatchTheBinaryStepByStep)
 {
     ExpectTheDirectCase("f_direct_flags.txt");
 }
 
-// Las distancias mínimas (0,001 y 0,01), la restricción que separa, la rotura por el mínimo y el
-// color nulo, contra el binario.
+// The minimum distances (0.001 and 0.01), the constraint that separates, breaking by the minimum and the null color,
+// against the binary.
 TEST(ClothTest, TheEdgesMatchTheBinaryStepByStep)
 {
     ExpectTheDirectCase("g_direct_edges.txt");
 }
 
-// Los ángulos x e y del objeto distintos de 0: el cos del ángulo 2 de 0x5fc8f0, que queda en double,
-// entra en la grilla y en el anclaje.
+// Nonzero object x and y angles: the cos of angle 2 of 0x5fc8f0, which stays in double, enters the grid and the
+// anchoring.
 TEST(ClothTest, TheObjectAnglesMatchTheBinaryStepByStep)
 {
     ExpectTheDirectCase("h_direct_angles.txt");
 }
 
-// Un resorte estirado entre 10 y 20 veces su largo no rompe la tela: la restricción lo trae.
+// A spring stretched between 10 and 20 times its length does not tear the cloth: the constraint pulls it back.
 TEST(ClothTest, AStretchUnderTwentyTimesIsPulledBack)
 {
     ExpectTheDirectCase("i_direct_stretch.txt");
@@ -373,7 +372,6 @@ TEST(ClothTest, AnInvalidGridBoneLeavesWindAndRandomStateAlone)
     EXPECT_EQ(world.random.State(), 7u);
 }
 
-// Un renglón roto en un archivo de vectores da un error con el renglón, no una excepción.
 TEST(ClothTest, ABrokenVectorFileIsAnError)
 {
     const std::filesystem::path path = std::filesystem::temp_directory_path() / "muret-cloth-roto.txt";
@@ -388,7 +386,7 @@ TEST(ClothTest, ABrokenVectorFileIsAnError)
     EXPECT_NE(error->find("rand abc"), std::string::npos) << *error;
 }
 
-// El paseo del viento base (0x456b10): a 0,001 por cada rand() % 200 − 100, entre −0,2 y 1.
+// The base wind walk (0x456b10): 0.001 per rand() % 200 − 100, between −0.2 and 1.
 TEST(ClothTest, TheWindBaseWalksBetweenItsLimits)
 {
     ClothWorld world;
@@ -402,8 +400,7 @@ TEST(ClothTest, TheWindBaseWalksBetweenItsLimits)
     }
 }
 
-// 0x637700 en un paso de lógica: cinco paseos y el contador más 1, con los 4 rand() de su
-// protección.
+// 0x637700 in a logic step: five walks and the counter plus 1, with the 4 rand() of its protection.
 TEST(ClothTest, ALogicStepWalksFiveTimesAndCounts)
 {
     ClothWorld world{.random = CrtRandom(7)};
@@ -422,7 +419,7 @@ TEST(ClothTest, ALogicStepWalksFiveTimesAndCounts)
     EXPECT_EQ(world.random.State(), walked.random.State());
 }
 
-// 0x637f91 suma en 32 bits; el contador se sigue leyendo con signo después del guardado.
+// 0x637f91 adds in 32 bits; the counter is still read as signed after the store.
 TEST(ClothTest, ALogicStepWrapsTheCounterAt32Bits)
 {
     struct Transition

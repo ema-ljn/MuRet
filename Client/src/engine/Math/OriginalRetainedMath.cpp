@@ -9,15 +9,14 @@
 #include <optional>
 #include <span>
 
-// ADR0014: aritmética binaria propia, sin bibliotecas. Un valor intermedio es signo, exponente y
-// una mantisa de 256 bits en limbs de 32: cada producto parcial entra en uint64, así que no hace
-// falta __int128, long double ni ninguna operación de punto flotante. Todo es entero y truncado,
-// con error relativo menor que 2^-250; sólo el paso a 64 bits redondea al más cercano.
+// ADR0014: own binary arithmetic, no libraries. An intermediate value is sign, exponent and a 256-bit mantissa in
+// 32-bit limbs: every partial product fits in uint64, so no __int128, long double or floating-point operation is
+// needed. All integer and truncated, relative error below 2^-250; only the step to 64 bits rounds to nearest.
 namespace Client::Math::Detail
 {
 namespace
 {
-// Constantes binary32 archivadas de las dos Waves y 0x4e9481 (ADR0014).
+// Archived binary32 constants of both Waves and 0x4e9481 (ADR0014).
 constexpr float FirstFrequency = std::bit_cast<float>(0x3a83126fU);
 constexpr float SecondFrequency = std::bit_cast<float>(0x3a03126fU);
 constexpr float SecondPhase = 50.0f;
@@ -31,8 +30,8 @@ constexpr std::size_t LimbCount = 8;
 constexpr int MantissaBits = LimbBits * static_cast<int>(LimbCount);
 using Limbs = std::array<std::uint32_t, LimbCount>;
 
-// (-1)^negative · mantissa · 2^(exponent - 256), limbs del menos al más significativo. Distinto de
-// cero, el bit 255 está prendido y el valor queda en [2^(exponent - 1), 2^exponent).
+// (-1)^negative · mantissa · 2^(exponent - 256), limbs from least to most significant. When nonzero, bit 255 is set
+// and the value lies in [2^(exponent - 1), 2^exponent).
 struct Wide
 {
     Limbs mantissa;
@@ -40,7 +39,6 @@ struct Wide
     bool negative;
 };
 
-// Las constantes se escriben del limb más significativo al menos, como se lee el hexadecimal.
 constexpr Wide Constant(const Limbs& mostSignificantFirst, int exponent)
 {
     Wide result{{}, exponent, false};
@@ -54,11 +52,10 @@ constexpr Wide Constant(const Limbs& mostSignificantFirst, int exponent)
 constexpr Wide Zero{{}, 0, false};
 constexpr Wide One = Constant({0x80000000U, 0U, 0U, 0U, 0U, 0U, 0U, 0U}, 1);
 
-// Tablas generadas con enteros de Python, sin flotantes: pi por Machin, 16·atan(1/5) - 4·atan(1/239),
-// en punto fijo de 1664 bits con su cota de error, y atan(k/8) por la serie de Euler en el mismo
-// punto fijo. Cada palabra sale igual con las dos puntas del intervalo y coincide con mpmath 1.4.1
-// a 2000 bits. TwoOverPi es floor(2^385 / pi): los primeros 384 bits de 2/pi. El resto, redondeado
-// al más cercano a 256 bits.
+// Tables generated with Python integers, no floats: pi by Machin, 16·atan(1/5) - 4·atan(1/239), and atan(k/8) by
+// Euler's series, in 1664-bit fixed point with an error bound. Each word is equal at both ends of the interval and
+// matches mpmath 1.4.1 at 2000 bits. TwoOverPi is floor(2^385 / pi): the first 384 bits of 2/pi. The rest, rounded to
+// nearest at 256 bits.
 constexpr int TwoOverPiBits = 384;
 constexpr std::array<std::uint32_t, 12> TwoOverPi{
     0xa2f9836eU, 0x4e441529U, 0xfc2757d1U, 0xf534ddc0U, 0xdb629599U, 0x3c439041U,
@@ -67,7 +64,6 @@ constexpr std::array<std::uint32_t, 12> TwoOverPi{
 constexpr Limbs HalfPiDigits{0xc90fdaa2U, 0x2168c234U, 0xc4c6628bU, 0x80dc1cd1U,
                              0x29024e08U, 0x8a67cc74U, 0x020bbea6U, 0x3b139b22U};
 constexpr Wide HalfPi = Constant(HalfPiDigits, 1);
-// atan(k/8) para k = 1..8; el último es pi/4.
 constexpr std::array<Wide, 8> ArctangentOfEighths{
     Constant({0xfeadd4d5U, 0x617b6e32U, 0xc897989fU, 0x3e888ef7U, 0x8b3957d9U, 0x5d9ad922U, 0xec93577dU, 0xfb6c1769U},
              -3),
@@ -86,13 +82,13 @@ constexpr std::array<Wide, 8> ArctangentOfEighths{
     Constant(HalfPiDigits, 0),
 };
 
-// Un término de serie menor que 2^-262 ya no mueve el redondeo a 64 bits de una suma cercana a uno.
+// A series term below 2^-262 no longer moves the 64-bit rounding of a sum close to one.
 constexpr int NegligibleExponent = -262;
-// Con |r| <= pi/4 o |u| <= 1/16 las series cortan antes del término 34; es sólo una cota dura.
+// With |r| <= pi/4 or |u| <= 1/16 the series stop before term 34; this is only a hard bound.
 constexpr std::uint32_t SeriesTermLimit = 64;
-// Newton duplica los bits de la semilla de 30: 60, 120, 240 y el límite de la mantisa.
+// Newton doubles the seed's 30 bits: 60, 120, 240 and the mantissa limit.
 constexpr int ReciprocalSteps = 4;
-// Debajo de 1/2 el seno se evalúa sin reducir; atan reduce con k/8 desde 1/16.
+// Below 1/2 the sine is evaluated without reduction; atan reduces with k/8 from 1/16.
 constexpr double DirectSineLimit = 0.5;
 constexpr int EighthsShift = 3;
 
@@ -121,7 +117,7 @@ std::uint32_t LimbAt(std::span<const std::uint32_t> limbs, int index)
     return limbs[static_cast<std::size_t>(index)];
 }
 
-// Los 32 bits [position, position + 32) del entero; fuera del arreglo valen cero.
+// Bits [position, position + 32) of the integer; zero outside the array.
 std::uint32_t BitsAt(std::span<const std::uint32_t> limbs, int position)
 {
     const int index = position >= 0 ? position / LimbBits : -((LimbBits - 1 - position) / LimbBits);
@@ -146,7 +142,7 @@ int BitLength(std::span<const std::uint32_t> limbs)
     return 0;
 }
 
-// integer · 2^scale normalizado a 256 bits; los bits que sobran abajo se truncan.
+// integer · 2^scale normalized to 256 bits; extra low bits are truncated.
 Wide FromInteger(std::span<const std::uint32_t> integer, int scale, bool negative)
 {
     const int length = BitLength(integer);
@@ -200,8 +196,8 @@ bool MagnitudeBelow(const Wide& left, const Wide& right)
     return false;
 }
 
-// Alinea el sumando menor con un limb de guarda y trunca lo que cae debajo. Con signos distintos
-// resta el menor del mayor, así que el resultado nunca pasa por negativo.
+// Aligns the smaller addend with a guard limb and truncates what falls below. With different signs it subtracts the
+// smaller from the larger, so the result never goes negative.
 Wide Add(const Wide& left, const Wide& right)
 {
     if (IsZero(left) || IsZero(right))
@@ -224,7 +220,7 @@ Wide Add(const Wide& left, const Wide& right)
         const std::uint64_t largerLimb = index == 0 ? 0U : larger.mantissa[index - 1];
         const std::uint64_t alignedLimb =
             BitsAt(smaller.mantissa, static_cast<int>(index) * LimbBits - LimbBits + shift);
-        // carry es el acarreo de la suma o el préstamo de la resta.
+        // carry is the sum's carry or the subtraction's borrow.
         const std::uint64_t operand = alignedLimb + carry;
         const std::uint64_t digit = subtract ? largerLimb - operand : largerLimb + operand;
         sum[index] = static_cast<std::uint32_t>(digit);
@@ -248,7 +244,7 @@ Wide MultiplySmall(const Wide& value, std::uint32_t factor)
     return FromInteger(product, value.exponent - MantissaBits, value.negative);
 }
 
-// División larga por un entero chico, con un limb más de cociente como guarda.
+// Long division by a small integer, with one extra quotient limb as guard.
 Wide DivideSmall(const Wide& value, std::uint32_t divisor)
 {
     std::array<std::uint32_t, LimbCount + 1> quotient{};
@@ -263,7 +259,7 @@ Wide DivideSmall(const Wide& value, std::uint32_t divisor)
     return FromInteger(quotient, value.exponent - MantissaBits - LimbBits, value.negative);
 }
 
-// 1/value por Newton, y ← y + y·(1 - value·y), desde una semilla entera con los 32 bits altos.
+// 1/value by Newton, y ← y + y·(1 - value·y), from an integer seed with the top 32 bits.
 Wide Reciprocal(const Wide& value)
 {
     const std::uint64_t top = value.mantissa[LimbCount - 1];
@@ -282,7 +278,7 @@ bool Negligible(const Wide& term)
     return IsZero(term) || term.exponent < NegligibleExponent;
 }
 
-// sin(r) = r · Σ (-1)^k r^(2k) / (2k + 1)!, con |r| <= pi/4.
+// sin(r) = r · Σ (-1)^k r^(2k) / (2k + 1)!, with |r| <= pi/4.
 Wide SineSeries(const Wide& angle)
 {
     const Wide square = Multiply(angle, angle);
@@ -300,7 +296,7 @@ Wide SineSeries(const Wide& angle)
     return Multiply(angle, sum);
 }
 
-// cos(r) = Σ (-1)^k r^(2k) / (2k)!, con |r| <= pi/4.
+// cos(r) = Σ (-1)^k r^(2k) / (2k)!, with |r| <= pi/4.
 Wide CosineSeries(const Wide& angle)
 {
     const Wide square = Multiply(angle, angle);
@@ -318,7 +314,7 @@ Wide CosineSeries(const Wide& angle)
     return sum;
 }
 
-// atan(u) = u · Σ (-1)^n u^(2n) / (2n + 1), con |u| <= 1/16.
+// atan(u) = u · Σ (-1)^n u^(2n) / (2n + 1), with |u| <= 1/16.
 Wide ArctangentSeries(const Wide& value)
 {
     const Wide square = Multiply(value, value);
@@ -371,7 +367,7 @@ struct BinaryParts
     bool negative;
 };
 
-// |value| = significand · 2^exponent para un binario IEEE finito, subnormales incluidos.
+// |value| = significand · 2^exponent for a finite IEEE binary, subnormals included.
 template <class Float, class Bits> BinaryParts Decompose(Float value)
 {
     constexpr int FractionBits = std::numeric_limits<Float>::digits - 1;
@@ -410,10 +406,10 @@ struct Reduced
     std::uint32_t quadrant;
 };
 
-// Payne-Hanek: |x| = significand · 2^exponent con 1/2 <= |x| < 2^63, así que exponent <= 10. El
-// producto entero por TwoOverPi da x·2/pi = n + f con error menor que 2^63 · 2^-384 = 2^-321.
-// Para todo double en ese rango |f| >= 2^-61.14 (cota por fracciones continuas, ADR0014), y la
-// mantisa de f queda con más de 256 bits exactos. Devuelve r = f·pi/2 y n mod 4, con |f| <= 1/2.
+// Payne-Hanek: |x| = significand · 2^exponent with 1/2 <= |x| < 2^63, so exponent <= 10. The integer product by
+// TwoOverPi gives x·2/pi = n + f with error below 2^63 · 2^-384 = 2^-321. For every double in that range
+// |f| >= 2^-61.14 (continued-fraction bound, ADR0014), and the mantissa of f keeps more than 256 exact bits. Returns
+// r = f·pi/2 and n mod 4, with |f| <= 1/2.
 Reduced ReduceQuarterTurns(const BinaryParts& magnitude)
 {
     std::array<std::uint32_t, TwoOverPi.size() + 2> product{};
@@ -436,7 +432,7 @@ Reduced ReduceQuarterTurns(const BinaryParts& magnitude)
     KeepLowBits(product, point);
     if (upperHalf)
     {
-        // f >= 1/2: se toma f - 1, negativo, y el cuadrante siguiente.
+        // f >= 1/2: take f - 1, negative, and the next quadrant.
         NegateInteger(product);
         KeepLowBits(product, point);
         ++quadrant;
@@ -445,7 +441,7 @@ Reduced ReduceQuarterTurns(const BinaryParts& magnitude)
     return {Multiply(fraction, HalfPi), quadrant & 3U};
 }
 
-// Redondeo a 64 bits, al más cercano con empate a par, a la forma canónica del retenido.
+// Rounds to 64 bits, to nearest with ties to even, into the canonical retained form.
 Retained64 ToRetained(const Wide& value)
 {
     if (IsZero(value))
@@ -474,7 +470,7 @@ Retained64 ToRetained(const Wide& value)
     return {significand, exponent, RetainedClass::Finite, value.negative};
 }
 
-// sin o cos de un double finito, distinto de cero y con |x| < 2^63.
+// sin or cos of a finite, nonzero double with |x| < 2^63.
 Retained64 RetainedSineOrCosine(double argument, bool cosine)
 {
     const BinaryParts parts = DecomposeDouble(argument);
@@ -483,15 +479,15 @@ Retained64 RetainedSineOrCosine(double argument, bool cosine)
     {
         reduced = ReduceQuarterTurns(parts);
     }
-    // cos(x) = sin(x + pi/2); sin(-x) = -sin(x) y cos(-x) = cos(x).
+    // cos(x) = sin(x + pi/2); sin(-x) = -sin(x) and cos(-x) = cos(x).
     const std::uint32_t quadrant = reduced.quadrant + (cosine ? 1U : 0U);
     Wide value = (quadrant & 1U) != 0U ? CosineSeries(reduced.angle) : SineSeries(reduced.angle);
     const bool negate = ((quadrant & 2U) != 0U) != (!cosine && parts.negative);
     return ToRetained(negate ? Negate(value) : value);
 }
 
-// round(8t) para 0 < t <= 1, con los 64 bits altos de t. Un desempate distinto en el borde no
-// importa: |t - k/8| sigue acotado por 1/16 + 2^-60.
+// round(8t) for 0 < t <= 1, from the top 64 bits of t. A different tie-break at the edge does not matter:
+// |t - k/8| stays bounded by 1/16 + 2^-60.
 std::uint32_t NearestEighths(const Wide& value)
 {
     if (value.exponent < -EighthsShift)
@@ -504,7 +500,7 @@ std::uint32_t NearestEighths(const Wide& value)
     return static_cast<std::uint32_t>(((top >> (shift - 1)) + 1U) >> 1);
 }
 
-// atan(t) con 0 < t <= 1: atan(k/8) + atan((t - k/8) / (1 + t·k/8)).
+// atan(t) for 0 < t <= 1: atan(k/8) + atan((t - k/8) / (1 + t·k/8)).
 Wide ArctangentUnit(const Wide& value)
 {
     const std::uint32_t eighths = NearestEighths(value);
@@ -520,7 +516,7 @@ Wide ArctangentUnit(const Wide& value)
     return Add(ArctangentOfEighths[eighths - 1], ArctangentSeries(reduced));
 }
 
-// atan de un double distinto de NaN; atan(±inf) = ±pi/2 y atan(±0) = ±0.
+// atan of a non-NaN double; atan(±inf) = ±pi/2 and atan(±0) = ±0.
 Retained64 RetainedArctangent(double quotient)
 {
     if (quotient == 0.0)
@@ -543,7 +539,7 @@ Retained64 RetainedArctangent(double quotient)
     return ToRetained(angle);
 }
 
-// mantissa · 2^exponent, con mantissa < 2^53: el R53 con exponente sin límite, antes del double.
+// mantissa · 2^exponent with mantissa < 2^53: the R53 with an unbounded exponent, before the double.
 struct Rounded53
 {
     std::uint64_t mantissa;
@@ -558,7 +554,7 @@ constexpr int DoubleFractionBits = DoubleDigits - 1;
 constexpr std::uint64_t DoubleSignBit = std::uint64_t{1} << 63;
 constexpr std::uint64_t DoubleInfinityBits = std::bit_cast<std::uint64_t>(std::numeric_limits<double>::infinity());
 
-// value · 2^-count al entero más cercano, empate a par. count <= 0 desplaza a la izquierda.
+// value · 2^-count to the nearest integer, ties to even. count <= 0 shifts left.
 std::uint64_t ShiftNearestEven(std::uint64_t value, std::int64_t count)
 {
     constexpr int WordBits = 64;
@@ -578,8 +574,8 @@ std::uint64_t ShiftNearestEven(std::uint64_t value, std::int64_t count)
     return kept + (up ? 1U : 0U);
 }
 
-// Un solo redondeo de mantissa · 2^exponent a la grilla de double, al más cercano con empate a par:
-// subnormales con menos bits y desborde a infinito, como convert_to<double>.
+// A single rounding of mantissa · 2^exponent to the double grid, to nearest with ties to even: subnormals with fewer
+// bits and overflow to infinity, like convert_to<double>.
 double NearestDouble(std::uint64_t mantissa, std::int64_t exponent, bool negative)
 {
     const std::uint64_t sign = negative ? DoubleSignBit : 0U;
@@ -613,7 +609,7 @@ double NearestDouble(std::uint64_t mantissa, std::int64_t exponent, bool negativ
     return std::bit_cast<double>(sign | (biased << DoubleFractionBits) | (integer & fractionMask));
 }
 
-// El producto exacto retenido64 × f32 (hasta 88 bits) y un único redondeo a 53 bits.
+// The exact retained64 × f32 product (up to 88 bits) and a single rounding to 53 bits.
 Rounded53 RoundedProduct(const Retained64& value, float multiplier)
 {
     const BinaryParts factor = DecomposeFloat(multiplier);
@@ -644,7 +640,7 @@ Rounded53 RoundedProduct(const Retained64& value, float multiplier)
     return {mantissa, exponent + drop, value.negative};
 }
 
-// El double sólo si representa el R53 sin otro redondeo: ni subnormal que pierde bits ni desborde.
+// The double only if it represents the R53 without another rounding: no subnormal that loses bits, no overflow.
 std::optional<double> ExactDouble(const Rounded53& value)
 {
     if (value.mantissa != 0U)
@@ -683,14 +679,13 @@ LeafSine EvaluateLeafArgument(double argument)
 }
 } // namespace
 
-// Producto de dos binary32: 48 bits de significando, exacto en double. No hay redondeo que una FMA
-// pueda contraer.
+// Product of two binary32: 48 significand bits, exact in double. There is no rounding an FMA could contract.
 LeafSine FirstLeafSine(float time)
 {
     return EvaluateLeafArgument(static_cast<double>(time) * static_cast<double>(FirstFrequency));
 }
 
-// Con el producto exacto, la suma es el único redondeo R53; una FMA daría el mismo valor.
+// With the exact product, the sum is the only R53 rounding; an FMA would give the same value.
 LeafSine SecondLeafSine(float time)
 {
     const double product = static_cast<double>(time) * static_cast<double>(SecondFrequency);
@@ -713,7 +708,7 @@ SignedConversion TruncateLeafSine(const Retained64& value)
         const auto magnitude = static_cast<std::int64_t>(value.significand >> -value.exponent);
         return {value.negative ? -magnitude : magnitude, true};
     }
-    // |valor| = significand · 2^exponent: entra si es menor que 2^63, o igual con signo negativo.
+    // |value| = significand · 2^exponent: fits if below 2^63, or equal with a negative sign.
     if (value.exponent > SignedMagnitudeBits)
     {
         return Invalid;
@@ -737,8 +732,7 @@ double AtanDegreesProductPC53(double quotient)
     {
         return std::numeric_limits<double>::quiet_NaN();
     }
-    // atan → phi64 → producto exacto por K24 → R53 → double; el último paso sólo redondea de nuevo
-    // si el resultado es subnormal.
+    // atan → phi64 → exact product by K24 → R53 → double; the last step rounds again only if the result is subnormal.
     const Rounded53 product = RoundedProduct(RetainedArctangent(quotient), Degrees);
     return NearestDouble(product.mantissa, product.exponent, product.negative);
 }
@@ -784,10 +778,10 @@ std::optional<double> RetainedProductPC53(const Retained64& value, float multipl
     }
     if (value.classification != RetainedClass::Finite)
     {
-        // Una clase fuera del enum se carga como finita y se convierte sin el factor, como antes.
+        // A class outside the enum loads as finite and converts without the factor.
         return NearestDouble(value.significand, value.exponent, value.negative);
     }
-    // Fuera de este margen ni un factor f32 (2^-149 .. <2^128) puede dar double exacto.
+    // Outside this margin not even an f32 factor (2^-149 .. <2^128) can give an exact double.
     constexpr int ExponentMargin = 2 * std::numeric_limits<double>::max_exponent;
     if (value.significand != 0 && (value.exponent < -ExponentMargin || value.exponent > ExponentMargin))
     {
@@ -808,7 +802,7 @@ std::optional<double> CosineProductPC53(double argument, float multiplier)
 
 namespace
 {
-// El R53 de un Wide normalizado: los 53 bits altos, al más cercano con empate a par.
+// The R53 of a normalized Wide: the top 53 bits, to nearest with ties to even.
 std::optional<double> Nearest53(const Wide& value, bool negative)
 {
     const std::uint64_t high =
@@ -841,7 +835,7 @@ std::optional<double> PairProduct(double sineArgument, bool firstCosine, double 
     const bool negative = sine.negative != cosine.negative;
     if (sine.significand == 0 || cosine.significand == 0)
         return NearestDouble(0, 0, negative);
-    // 128 bits exactos caben en Wide; no hay R64 intermedio del producto.
+    // 128 exact bits fit in Wide; no intermediate R64 of the product.
     const Wide product = Multiply(FromInteger(SplitLimbs(sine.significand), sine.exponent, sine.negative),
                                   FromInteger(SplitLimbs(cosine.significand), cosine.exponent, cosine.negative));
     return Nearest53(product, negative);
@@ -859,7 +853,7 @@ std::optional<double> SineSumPC53(double argument, double addend)
     const Retained64 sine = argument == 0 ? Retained64{0, 0, RetainedClass::Finite, std::signbit(argument)}
                                           : RetainedSineOrCosine(argument, false);
     const BinaryParts parts = DecomposeDouble(addend);
-    // Con |seno| <= 1 y un sumando double, la suma exacta cabe en Wide: un solo R53, como el FADD.
+    // With |sine| <= 1 and a double addend the exact sum fits in Wide: a single R53, like the FADD.
     const Wide sum = Add(FromInteger(SplitLimbs(sine.significand), sine.exponent, sine.negative),
                          FromInteger(SplitLimbs(parts.significand), parts.exponent, parts.negative));
     if (IsZero(sum))
@@ -880,7 +874,7 @@ std::optional<double> DoubleTrigonometricProduct(double argument, double multipl
     const bool negative = value.negative != parts.negative;
     if (value.significand == 0 || parts.significand == 0)
         return NearestDouble(0, 0, negative);
-    // 64 + 53 bits exactos caben en Wide: el producto sin R64 intermedio, como el FMUL de la x87 en PC53.
+    // 64 + 53 exact bits fit in Wide: the product with no intermediate R64, like the x87 FMUL under PC53.
     const Wide product = Multiply(FromInteger(SplitLimbs(value.significand), value.exponent, value.negative),
                                   FromInteger(SplitLimbs(parts.significand), parts.exponent, parts.negative));
     return Nearest53(product, negative);
@@ -897,8 +891,8 @@ std::optional<double> CosineDoubleProductPC53(double argument, double multiplier
 
 namespace
 {
-// FSTP DWORD de un retenido64 finito: un solo redondeo de los 64 bits a los 24 de float, al más cercano con empate a
-// par. Para un seno nunca hay subnormales de float ni desborde, así que ldexp y la conversión a float son exactas.
+// FSTP DWORD of a finite retained64: a single rounding from 64 bits to the float's 24, to nearest with ties to even.
+// A sine never gives float subnormals or overflow, so ldexp and the float conversion are exact.
 float NearestFloat(const Retained64& value)
 {
     if (value.significand == 0)
@@ -911,7 +905,7 @@ float NearestFloat(const Retained64& value)
     return value.negative ? -magnitude : magnitude;
 }
 
-// 0x53642d..0x53642f (y 0x53d260): FSIN y FSTP DWORD, el seno de 64 bits directo a float, sin pasar por 53 bits.
+// 0x53642d..0x53642f (and 0x53d260): FSIN and FSTP DWORD, the 64-bit sine straight to float, never through 53 bits.
 std::optional<float> SineSpill(double argument)
 {
     if (!ValidParticleInputs(argument, 1))
@@ -921,8 +915,8 @@ std::optional<float> SineSpill(double argument)
     return NearestFloat(RetainedSineOrCosine(argument, false));
 }
 
-// 0x53d1f9..0x53d231: la frecuencia de la x (0,048 · escala) queda en la x87 sin guardarse (el producto de dos float
-// cabe en 53 bits); las de la y y la z se guardan en float.
+// 0x53d1f9..0x53d231: the x frequency (0.048 · scale) stays on the x87 unstored (the product of two floats fits in 53
+// bits); the y and z ones are stored as floats.
 std::optional<std::array<float, 4>> DirectionPC53(std::int32_t phase, float rate)
 {
     const auto wrapped = [](std::int32_t value, std::uint32_t add)

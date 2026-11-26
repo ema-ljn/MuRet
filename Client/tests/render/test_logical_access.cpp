@@ -7,11 +7,10 @@
 #include <array>
 #include <cstdint>
 
-// Client::Models::LogicalAccess: un acceso a una entrada de la tabla de protección del
-// original (06 § La tabla de protección, Q-C125 y Q-C183). Los rand() que se esperan son los de la
-// lectura estática del research: 4 al cerrar una variable de 4 bytes (0x412890, y en línea en
-// 0x40b570 y 0x40b800) y 3.848 al cerrar el registro propio (0x40b4d0, uno por cada byte de los 0xf08). La
-// entrada lleva en un byte cuántos accesos la tienen abierta, y gasta el cierre que la deja en 0.
+// One access to an entry of the original's protection table (06 § La tabla de protección, Q-C125 and Q-C183). The
+// expected rand() calls are those of the research's static reading: 4 when closing a 4-byte variable (0x412890, and
+// inline at 0x40b570 and 0x40b800) and 3848 when closing the own record (0x40b4d0, one per byte of the 0xf08). The
+// entry keeps in a byte how many accesses hold it open, and the close that leaves it at 0 spends.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -20,11 +19,11 @@ using Client::Models::OwnRecordCloseRandoms;
 using Client::Models::SmallLogicalCloseRandoms;
 
 constexpr std::uint32_t Seed = 0x2f1d;
-// Lo que gasta cada cierre según el research, escrito aparte de las constantes que se prueban.
+// What each close spends according to the research, written apart from the constants under test.
 constexpr int SmallVariableRandoms = 4;
 constexpr int OwnRecordRandoms = 3848;
 
-// Cada clase de cierre: la constante que recibe el acceso y lo que fija el research.
+// Each kind of close: the constant the access receives and what the research fixes.
 struct CloseCost
 {
     std::uint16_t closeRandoms;
@@ -33,7 +32,6 @@ struct CloseCost
 constexpr std::array CloseCosts{CloseCost{SmallLogicalCloseRandoms, SmallVariableRandoms},
                                 CloseCost{OwnRecordCloseRandoms, OwnRecordRandoms}};
 
-// El estado de la CRT después de `count` rand() desde Seed.
 std::uint32_t StateAfter(int count)
 {
     CrtRandom random(Seed);
@@ -55,7 +53,7 @@ TEST(LogicalAccessTest, TheLastCloseSpendsItsRandoms)
         CrtRandom random(Seed);
         {
             const LogicalAccess access(depth, random, cost.closeRandoms);
-            // Abrir no gasta: el research cuenta por cada abrir y cerrar solo el cierre.
+            // Opening costs nothing: for each open and close the research counts only the close.
             EXPECT_EQ(depth, 1);
             EXPECT_EQ(random.State(), Seed);
         }
@@ -64,8 +62,8 @@ TEST(LogicalAccessTest, TheLastCloseSpendsItsRandoms)
     }
 }
 
-// Un cierre que no deja la cuenta en 0 no vuelve a cifrar: el registro propio adentro de otro acceso
-// suyo, y una variable que otro ya tenía abierta (la tela con el contador abierto, Q-C125).
+// A close that does not leave the count at 0 does not encrypt again: the own record inside another access of its own,
+// and a variable someone else already had open (the cloth with the counter open, Q-C125).
 TEST(LogicalAccessTest, NestedClosesSpendNothing)
 {
     std::uint8_t recordDepth = 0;
@@ -92,8 +90,8 @@ TEST(LogicalAccessTest, NestedClosesSpendNothing)
     EXPECT_EQ(untouched.State(), Seed);
 }
 
-// La cuenta es un byte: con 255, abrir la deja en 0 y cerrar la vuelve a 255 sin gastar. Gasta el
-// cierre que la deja en 0, aunque no sea el de más afuera.
+// The count is a byte: with 255, opening leaves it at 0 and closing takes it back to 255 without spending. The close
+// that leaves it at 0 spends, even if it is not the outermost one.
 TEST(LogicalAccessTest, TheDepthByteWraps)
 {
     std::uint8_t depth = 255;
@@ -113,8 +111,8 @@ TEST(LogicalAccessTest, TheDepthByteWraps)
     EXPECT_EQ(random.State(), StateAfter(SmallVariableRandoms));
 }
 
-// 0x4128e2..0x4128f9 (CL9 hito 2): el cierre que deja la cuenta en 0 pone en cada byte de la variable el rand() & 0xff
-// de su vuelta, el primero abajo; uno que no la deja en 0 la deja en claro.
+// 0x4128e2..0x4128f9 (CL9 milestone 2): the close that leaves the count at 0 puts in each byte of the variable the
+// rand() & 0xff of its turn, the first one lowest; one that does not leave it at 0 leaves it in the clear.
 TEST(LogicalAccessTest, TheLastCloseLeavesItsRandomBytes)
 {
     std::uint8_t depth = 0;

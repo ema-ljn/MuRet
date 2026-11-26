@@ -9,51 +9,49 @@
 #include <cstdint>
 #include <optional>
 
-// Cuánto avanza la animación de un modelo (Client/docs/research/06-render-escenas-y-ui.md, "Cuánto
-// avanza la animación"): el cuerpo por paso de lógica con la velocidad de su acción, y la mascota y
-// las alas por tiempo, a la velocidad que tienen a 21,33 FPS (Q-C20 corregido).
+// How far a model's animation advances (Client/docs/research/06-render-escenas-y-ui.md, "Cuánto avanza la
+// animación"): the body per logic step at its action's speed, and the pet and the wings by time, at the speed they
+// have at 21.33 FPS (Q-C20 corrected).
 namespace Client::Models
 {
-// La escena 4 decide "terminó" con el frame + 2 (Q-C21); las demás, con el real.
+// Scene 4 decides "finished" with frame + 2 (Q-C21); the others, with the real frame.
 enum class AnimationScene : std::uint8_t
 {
     Other,
     CharacterSelect,
 };
 
-// 0x4ec200 con `speed` (la de la acción, o la que le pase quien llama), sobre la acción de ahora, que
-// es `action`. Con una key o ninguna no hace nada. Si no: suma la velocidad; si cambió la key entera,
-// guarda la vieja y su acción como anteriores; con el frame en 0 o menos le suma las keys menos 1; y
-// al pasar la última, si la acción repite, vuelve con el módulo (las keys, o las keys menos 1 con
-// lock_positions), y si no, se queda en las keys menos 0,01. Devuelve si terminó: en la selección lo
-// decide el frame + 2, pero el módulo usa el real.
+// 0x4ec200 with `speed` (the action's, or the caller's). With one key or none it does nothing. Otherwise it adds the
+// speed; if the whole key changed, stores the old one and its action as previous; with the frame at 0 or less adds
+// keys minus 1; past the last key, a repeating action wraps with the modulo (keys, or keys minus 1 with
+// lock_positions) and any other stays at keys minus 0.01. Returns whether it finished: in the selection frame + 2
+// decides, but the modulo uses the real frame.
 ENGINE_API bool AdvanceAnimation(AnimationState& state, const ActionInfo& action, float speed, AnimationScene scene);
 
-// 0x4ea030: nada con una acción que `skeleton` no tiene o con la misma; si no, la de ahora y su key
-// (el original guarda el frame tal cual, y la pose lo trunca) pasan a anteriores y el frame a 0.
+// 0x4ea030: nothing for an action `skeleton` lacks or for the same one; otherwise the current one and its key (the
+// original stores the frame as is, and the pose truncates it) become previous and the frame goes to 0.
 ENGINE_API void SetAction(AnimationState& state, const Skeleton& skeleton, std::uint8_t action);
 
-// 1 / 21,33 FPS: el frame del modo fiel de la CL3 (64 frames cada 3 s).
+// 1 / 21.33 FPS: the frame of CL3's faithful mode (64 frames every 3 s).
 inline constexpr Core::Duration OriginalFrameTime = std::chrono::microseconds{46'875};
 
-// Cómo cuenta los frames del original lo que el original corre una vez por cada frame que dibuja (la tela,
-// Q-C124, y el brillo del cetro): por el reloj (Decoupled, Q-C124 y Q-C20 corregidos), o uno por dibujo
-// (Faithful, como el original).
+// How what the original runs once per drawn frame (the cloth, Q-C124, and the scepter glow) counts the original's
+// frames: by the clock (Decoupled, Q-C124 and Q-C20 corrected), or one per draw (Faithful, like the original).
 enum class OriginalFramePace : std::uint8_t
 {
     ByTheClock,
     OncePerDraw,
 };
 
-// Lo más que corre un dibujo de una vez: 3 s del original.
+// The most a draw runs at once: 3 s of the original.
 inline constexpr int MaxOriginalFramesPerDraw = 64;
 
-// Los frames del original que corren en cada dibujo de MuRet. Por el reloj: el primero corre uno; después,
-// uno por cada OriginalFrameTime que pasó desde el dibujo anterior, con lo que sobra para el siguiente; un
-// reloj que vuelve no suma; un salto de más de MaxOriginalFramesPerDraw corre esos y descarta lo que
-// sobra. Uno por dibujo en el modo fiel: su frame dura uno del original, pero no justo 46,875 ms (los pasos
-// y la latencia lo corren), y por el reloj el que llega antes que el primero correría 0 y el siguiente 2.
-// Así tampoco pone al día lo que no se dibujó, como el original.
+// The original frames that run in each MuRet draw. By the clock: the first draw runs one; then one per
+// OriginalFrameTime elapsed since the previous draw, carrying the remainder; a clock that goes back adds nothing; a
+// jump beyond MaxOriginalFramesPerDraw runs that many and drops the rest. One per draw in faithful mode: its frame
+// lasts one of the original's, but not exactly 46.875 ms (steps and latency shift it), and by the clock the draw
+// arriving before the first frame would run 0 and the next 2. It also does not catch up on what was not drawn, like the
+// original.
 class ENGINE_API OriginalFrameCarry
 {
 public:
@@ -67,20 +65,20 @@ private:
 // 0x50ba30: Helper02 (0x1c13, character + 0x318) advances by half a key per original frame.
 inline constexpr float PetKeysPerOriginalFrame = 0.5f;
 
-// Una animación que avanza por tiempo: el estado, y lo que todavía no llega a un frame del original.
+// The state, and the remainder that does not reach an original frame yet.
 struct TimedAnimation
 {
     AnimationState state;
     Core::Duration carry{};
 };
 
-// Q-C20 corregido: `keysPerOriginalFrame` cada OriginalFrameTime de `elapsed`, con la regla de
-// AdvanceAnimation. Un `elapsed` negativo cuenta 0.
+// Q-C20 corrected: `keysPerOriginalFrame` every OriginalFrameTime of `elapsed`, with AdvanceAnimation's rule. A
+// negative `elapsed` counts as 0.
 ENGINE_API void AdvanceByTime(TimedAnimation& animation, const ActionInfo& action, float keysPerOriginalFrame,
                               Core::Duration elapsed);
 
-// La copia que posa el render entre dos pasos: `alpha` de un paso más, con la misma regla, así las
-// keys que cruza guardan su anterior como en el paso.
+// The copy the renderer poses between two steps: `alpha` of one more step, with the same rule, so the keys it crosses
+// keep their previous one as in the step.
 [[nodiscard]] ENGINE_API AnimationState Interpolated(const AnimationState& state, const ActionInfo& action, float speed,
                                                      float alpha);
 } // namespace Client::Models

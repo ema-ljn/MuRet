@@ -12,8 +12,8 @@
 #include <cstdint>
 #include <vector>
 
-// La tela sobre la malla (la vtable 0x6b8d04: 0x455ea0, 0x4564c0, 0x4565f0 y 0x4568f0), con vectores literales del
-// ASM de c32bbd5f, sin ejecutar el original (08 P-C330).
+// The mesh cloth (vtable 0x6b8d04: 0x455ea0, 0x4564c0, 0x4565f0 and 0x4568f0), with literal vectors from the ASM of
+// c32bbd5f, without running the original (08 P-C330).
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -26,7 +26,7 @@ using Client::Models::ClothWorld;
 constexpr std::int32_t Bone = 0x12;
 constexpr std::uint32_t StrongGravity = 0x400;
 
-// Un cuadrado de dos triángulos: los vértices 1 y 2 del hueso de la tela, el 0 y el 3 de otro.
+// A square of two triangles: vertices 1 and 2 on the cloth's bone, 0 and 3 on another.
 Client::Data::Models::Mesh Square()
 {
     Client::Data::Models::Mesh mesh;
@@ -47,7 +47,7 @@ void ExpectSpring(const ClothSpring& spring, std::int16_t a, std::int16_t b, flo
     EXPECT_EQ(spring.flags, flags);
 }
 
-// 0x455ea0: una partícula por vértice, anclada la del hueso 0x12, y los resortes en el orden de los lados.
+// 0x455ea0: one particle per vertex, the one on bone 0x12 anchored, and the springs in edge order.
 TEST(MeshClothTest, TheBuildTakesOneParticlePerVertexAndTheSidesInOrder)
 {
     Cloth cloth;
@@ -63,9 +63,9 @@ TEST(MeshClothTest, TheBuildTakesOneParticlePerVertexAndTheSidesInOrder)
     EXPECT_TRUE(particles[2].anchored);
     EXPECT_FALSE(particles[3].anchored);
     EXPECT_EQ(particles[2].position, glm::vec3(12.0f, 0.0f, 10.0f));
-    // El primer triángulo: (1, 2) con |Δx| = 12 > 10 (3), (2, 3) con 0 (6) y (3, 1); su vecino por (1, 3) es el
-    // vértice 0, que 0x456101 (JLE) no liga (Q-C861). El segundo: (1, 3) y su vecino por (3, 1) en el primero, el 2,
-    // que da (0, 2) con las banderas del lado; (3, 0) y (0, 1).
+    // The first triangle: (1, 2) with |Δx| = 12 > 10 (3), (2, 3) with 0 (6) and (3, 1); its neighbour across (1, 3) is
+    // vertex 0, which 0x456101 (JLE) does not link (Q-C861). The second: (1, 3) and its neighbour across (3, 1) in the
+    // first, 2, which gives (0, 2) with the edge's flags; (3, 0) and (0, 1).
     const float diagonal = std::sqrt(244.0f);
     const auto springs = cloth.Springs();
     ASSERT_EQ(springs.size(), 7u);
@@ -78,15 +78,15 @@ TEST(MeshClothTest, TheBuildTakesOneParticlePerVertexAndTheSidesInOrder)
     ExpectSpring(springs[6], 0, 1, 10.0f, 6);
 }
 
-// 0x456470 mira solo (c, d): un vecino que ya tiene su resorte en ese sentido no se repite; y uno que pasa de
-// L · 1,2f (0x6b8bb0) no se liga.
+// 0x456470 only looks at (c, d): a neighbour that already has its spring in that direction is not repeated; and one
+// beyond L · 1.2f (0x6b8bb0) is not linked.
 TEST(MeshClothTest, ANeighbourIsLinkedOnceAndOnlyWhenClose)
 {
     Client::Data::Models::Mesh mesh = Square();
     mesh.triangles.push_back(mesh.triangles[1]);
     Cloth repeated;
     repeated.BuildOnTheMesh(mesh, 2, Bone, StrongGravity, SquareVertices);
-    // El tercer triángulo repite los lados del segundo, pero (0, 2) ya está.
+    // The third triangle repeats the second's edges, but (0, 2) is already there.
     EXPECT_EQ(repeated.Springs().size(), 10u);
 
     std::vector<glm::vec3> stretched = SquareVertices;
@@ -96,7 +96,8 @@ TEST(MeshClothTest, ANeighbourIsLinkedOnceAndOnlyWhenClose)
     EXPECT_EQ(far.Springs().size(), 6u);
 }
 
-// Q-C861: sin el vértice 0, los dos triángulos se ligan los vecinos, y 0x456470 no ve el (2, 4) al buscar el (4, 2).
+// Q-C861: without vertex 0, the two triangles link each other as neighbours, and 0x456470 does not see (2, 4) when
+// looking for (4, 2).
 TEST(MeshClothTest, TheReverseNeighbourIsLinkedAgain)
 {
     Client::Data::Models::Mesh mesh;
@@ -116,8 +117,8 @@ TEST(MeshClothTest, TheReverseNeighbourIsLinkedAgain)
     ExpectSpring(springs[5], 4, 2, diagonal, 3);
 }
 
-// Un paso: las 4 de la protección del contador (0x4565f0), la misma fuerza para todas las partículas sueltas con
-// |c % 10| (V = 30, N = 4: c = 303 % 4 = 3, el peso 4), la gravedad fuerte (· 180) y el anclaje a 0x5786f9c.
+// One step: the 4 of the counter protection (0x4565f0), the same force for all loose particles with |c % 10| (V = 30,
+// N = 4: c = 303 % 4 = 3, weight 4), the strong gravity (· 180) and the anchoring to 0x5786f9c.
 TEST(MeshClothTest, AStepPushesEveryParticleAlikeAndAnchorsToTheMesh)
 {
     Cloth cloth;
@@ -140,8 +141,7 @@ TEST(MeshClothTest, AStepPushesEveryParticleAlikeAndAnchorsToTheMesh)
     const auto particles = cloth.Particles();
     EXPECT_EQ(particles[1].position, moved[1]);
     EXPECT_EQ(particles[2].position, moved[2]);
-    // Con el ángulo 90, el viento va todo en x (−0,5). 400 · (4 · viento) · 0,005 = 8 · viento, en las dos sueltas
-    // por igual.
+    // With angle 90 the wind is all in x (−0.5). 400 · (4 · wind) · 0.005 = 8 · wind, on both loose ones alike.
     EXPECT_FLOAT_EQ(world.wind.x, -0.5f);
     EXPECT_NEAR(particles[0].velocity.x, 8.0f * world.wind.x, 1e-5f);
     EXPECT_FLOAT_EQ(particles[0].velocity.x, particles[3].velocity.x);
@@ -150,7 +150,7 @@ TEST(MeshClothTest, AStepPushesEveryParticleAlikeAndAnchorsToTheMesh)
     EXPECT_FLOAT_EQ(particles[0].velocity.z, static_cast<float>(400.0 * -gravity * 0.005));
 }
 
-// 0x4568f0: cada partícula a su vértice; con menos vértices, nada.
+// 0x4568f0: each particle to its vertex; with fewer vertices, nothing.
 TEST(MeshClothTest, TheDrawWritesTheParticlesOverTheMesh)
 {
     Cloth cloth;
@@ -163,7 +163,6 @@ TEST(MeshClothTest, TheDrawWritesTheParticlesOverTheMesh)
     EXPECT_EQ(shorter[0], glm::vec3(-1.0f));
 }
 
-// La de la grilla no cambia con la de la malla: Mesh() es −1.
 TEST(MeshClothTest, TheGridClothIsNotOnAMesh)
 {
     const Cloth cloth;

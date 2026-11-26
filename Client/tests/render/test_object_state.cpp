@@ -11,9 +11,8 @@
 #include <ios>
 #include <optional>
 
-// Client::Models::HangingObjectState, ModelLightOf y MaskedClassLightAt: lo que el objeto le
-// pasa a RenderBody (+0x64, +0x68, +0x6c, +0x70 y +0x58), con la tabla que sale de emular 0x607b60
-// sobre el main.exe con T = 1000 y 2500 y rand() en 7 (06 § Lo que cuelga).
+// What the object passes to RenderBody (+0x64, +0x68, +0x6c, +0x70 and +0x58), with the table from emulating 0x607b60
+// on main.exe with T = 1000 and 2500 and rand() at 7 (06 § Lo que cuelga).
 namespace
 {
 using Client::Math::RoundedSin;
@@ -28,7 +27,7 @@ using Client::Models::ObjectState;
 
 constexpr ObjectRandoms Sevens{7, 7};
 
-// Una fila de la emulación: el tipo, el +0x58, el +0x64, el +0x68 y la U y la V.
+// An emulation row: the type, +0x58, +0x64, +0x68 and the U and V.
 struct Emulated
 {
     std::uint16_t type;
@@ -50,8 +49,8 @@ void ExpectEmulated(const Emulated& row, int milliseconds)
     EXPECT_NEAR(state.uv.y, row.v, Rounding) << std::hex << row.type;
 }
 
-// 0x607b60 a los 1000 ms: el objeto de siempre (−1, −1, 1, 0, 0) y los tipos que cambian algo, con
-// los que alcanza un personaje. Los de 0x60b3d0 por tipo (Wing05, Wing06 y Staff12) van aparte.
+// 0x607b60 at 1000 ms: the usual object (−1, −1, 1, 0, 0) and the types that change something, those a character
+// reaches. Those of 0x60b3d0 by type (Wing05, Wing06 and Staff12) are separate.
 TEST(ObjectStateTest, WhatHangsHasTheObjectOf0x607b60)
 {
     for (const Emulated& row : {
@@ -77,7 +76,7 @@ TEST(ObjectStateTest, WhatHangsHasTheObjectOf0x607b60)
     }
 }
 
-// Lo que late va con el reloj: la misma emulación a los 2500 ms.
+// What pulses goes with the clock: the same emulation at 2500 ms.
 TEST(ObjectStateTest, ItsLightAndItsVGoWithTheClock)
 {
     for (const Emulated& row : {
@@ -91,8 +90,8 @@ TEST(ObjectStateTest, ItsLightAndItsVGoWithTheClock)
     }
 }
 
-// Los rand() de 0x607b60: la U de Sword15, la U y la V de Staff06 y Shield15 van de 0 a 0,9 con el
-// rand() % 10, y la luz de Staff08 de 0 a 1 con el % 11.
+// The rand() of 0x607b60: Sword15's U and the U and V of Staff06 and Shield15 go from 0 to 0.9 with rand() % 10, and
+// Staff08's light from 0 to 1 with % 11.
 TEST(ObjectStateTest, SomeTakeTheirUVOrTheirLightFromRand)
 {
     constexpr auto Clock = std::chrono::milliseconds{0};
@@ -104,8 +103,8 @@ TEST(ObjectStateTest, SomeTakeTheirUVOrTheirLightFromRand)
     EXPECT_FLOAT_EQ(HangingObjectState(0xc19, Clock, randoms).light, 1.0f * 0.1f);
 }
 
-// 0x60b3d0 escribe la luz por el tipo del objeto antes de dibujar: Wing05 en sin(0,001 · T) + 1,1,
-// Wing06 en (sin(0,001 · T) + 1) · 0,25 y Staff12 en sin(0,004 · T) · 0,3 + 0,7.
+// 0x60b3d0 writes the light by object type before drawing: Wing05 at sin(0.001 · T) + 1.1, Wing06 at
+// (sin(0.001 · T) + 1) · 0.25 and Staff12 at sin(0.004 · T) · 0.3 + 0.7.
 TEST(ObjectStateTest, SomeTypesGetTheirLightFrom0x60b3d0)
 {
     constexpr auto Clock = std::chrono::milliseconds{1000};
@@ -117,7 +116,7 @@ TEST(ObjectStateTest, SomeTypesGetTheirLightFrom0x60b3d0)
     EXPECT_EQ(HangingObjectState(0x1a16, Clock, Sevens).blendMesh, NoBlendMesh);
 }
 
-// −2 es "todas las mallas" para 0x4ecc30 (menor que −1); −1, ninguna.
+// −2 is "every mesh" for 0x4ecc30 (below −1); −1, none.
 TEST(ObjectStateTest, TheBlendMeshHasTwoSpecialValues)
 {
     EXPECT_EQ(EveryMeshBlends, -2);
@@ -126,9 +125,8 @@ TEST(ObjectStateTest, TheBlendMeshHasTwoSpecialValues)
     EXPECT_EQ(ObjectState{}, (ObjectState{NoBlendMesh, 1.0f, {}, NoHiddenMesh}));
 }
 
-// 0x60b3d0 escribe también la luz del objeto del personaje con el modelo de la parte: los FShoots_R
-// de PantMale25 y HelmMale25 laten en sin(0,001 · T) · 0,4 + 0,6, y las Test20 la vuelven a 1. Las
-// demás no la tocan.
+// 0x60b3d0 also writes the light of the character's object by the part's model: the FShoots_R of PantMale25 and
+// HelmMale25 pulse at sin(0.001 · T) · 0.4 + 0.6, and the Test20 ones set it back to 1. The rest leave it alone.
 TEST(ObjectStateTest, SomePartsWriteTheLightOfTheCharacter)
 {
     constexpr auto Clock = std::chrono::milliseconds{1000};
@@ -147,7 +145,7 @@ TEST(ObjectStateTest, SomePartsWriteTheLightOfTheCharacter)
     EXPECT_EQ(ModelLightOf(0x1a16, Clock), std::nullopt);
 }
 
-// La de la clase 4 en la parte del casco (0x50ba30): sin(0,001 · T) · 0,1 + 0,7.
+// The class 4 one, on the helmet part (0x50ba30): sin(0.001 · T) · 0.1 + 0.7.
 TEST(ObjectStateTest, TheMaskedClassLightPulses)
 {
     EXPECT_FLOAT_EQ(MaskedClassLightAt(std::chrono::milliseconds{250}), RoundedSin(0.25f) * 0.1f + 0.7f);

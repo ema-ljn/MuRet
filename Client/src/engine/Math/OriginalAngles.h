@@ -6,30 +6,26 @@
 
 #include <cstdint>
 
-// Perfil de valores PC53/RN + conservación C0 observada + constantes de archivo (ADR 0012).
-// C0 incluye menor o unordered: NaN puede devolver valores finitos. No acredita una sesión XP,
-// status/ABI x87, payloads NaN ni equivalencia universal FPATAN/libm.
-// Callers: Scenes/DarkSpirit (también MoveToward) y CharacterHead; fixtures world55/raven.txt,
-// raven_safe_zone.txt y head.txt.
+// PC53/RN value profile + observed C0 preservation + file constants (ADR 0012). C0 includes less than or unordered:
+// NaN can return finite values. Does not attest an XP session, x87 status/ABI, NaN payloads or universal FPATAN/libm
+// equivalence.
 namespace Client::Math
 {
-// 0x4e93f0: el rumbo de (x1, y1) a (x2, y2), en grados, como lo deja en la pila de la x87.
+// 0x4e93f0: the heading from (x1, y1) to (x2, y2), in degrees, as left on the x87 stack.
 [[nodiscard]] ENGINE_API double CreateAngle(float x1, float y1, float x2, float y2);
 
-// 0x4e9560: giro de `from` hacia `to` según sus ramas asimétricas. Conserva el signo de `step`;
-// un paso negativo puede alejarse del objetivo. Distingue P derramado de Q retenido.
+// 0x4e9560: turns `from` towards `to` along its asymmetric branches. Keeps the sign of `step`; a negative step can move
+// away from the target. Distinguishes spilled P from retained Q.
 [[nodiscard]] ENGINE_API double TurnAngle(float from, float to, float step);
 
-// 0x4e96f0: una suma de360 y store f32 si C0 (negativo o unordered), sin normalización completa.
-// De base devuelve to-from. Con from<180 o unordered usa (360-to)+from si from+180 no es mayor
-// ordenado que to; con from>=180 usa (360-from)+to sólo si from-180>to. Son ramas asimétricas.
-// El byte mode exactamente1 niega el resultado menor que cero o unordered.
+// 0x4e96f0: one add of 360 and an f32 store if C0 (negative or unordered), no full normalization. Returns to-from, or
+// (360-to)+from if from<180 or unordered and from+180 is not ordered-greater than to, or (360-from)+to only if
+// from>=180 and from-180>to. A mode byte of exactly 1 negates a result below zero or unordered.
 [[nodiscard]] ENGINE_API double AngleDistance(float from, float to, std::uint8_t mode);
 
-// 0x4e9810: gira `angles` hacia `target` desde `position` de a `step` grados: el rumbo (z) con 0x4e93f0 en
-// el plano y 0x4e9560, y el cabeceo (x) con 360 menos 0x4e93f0 de (z, largo en el plano) a (z del objetivo,
-// 0). No mueve `position`. Devuelve la distancia en la x87, sin guardar en float: la raíz de dz² más los
-// cuadrados de dx y dy que guardó en float.
+// 0x4e9810: turns `angles` towards `target` from `position` by `step` degrees: heading (z) with 0x4e93f0 in the plane
+// and 0x4e9560, pitch (x) with 360 minus 0x4e93f0 from (z, flat length) to (target z, 0). Returns the distance on the
+// x87, not stored as float: the root of dz² plus the squares of dx and dy that it stored as floats.
 [[nodiscard]] ENGINE_API double MoveToward(const glm::vec3& position, glm::vec3& angles, const glm::vec3& target,
                                            float step);
 } // namespace Client::Math

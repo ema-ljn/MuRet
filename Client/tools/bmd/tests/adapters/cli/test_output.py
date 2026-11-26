@@ -8,6 +8,7 @@ from mubmd.adapters.cli import commands as cli_commands
 from mubmd.adapters.cli.describe import describe
 from mubmd.adapters.tui.app import MubmdApp
 from tests.adapters.cli.conftest import Cli
+from tests.conftest import TABLE_FILES
 
 
 def commands(text: Path, reference: Path, tmp_path: Path) -> dict[str, list[str | Path]]:
@@ -98,7 +99,8 @@ def test_ndjson_streams_one_finding_per_line(cli: Cli, text: Path) -> None:
         "message": first["message"],
     }
     assert lines[-1]["command"] == "validate"
-    assert lines[-1]["data"] == {"files": [], "checked": 3, "skipped": 0}
+    in_the_folder = sum(1 for name in TABLE_FILES if name.startswith("Local/"))
+    assert lines[-1]["data"] == {"files": [], "checked": in_the_folder, "skipped": 0}
 
 
 def test_human_output_is_not_json(cli: Cli, text: Path) -> None:

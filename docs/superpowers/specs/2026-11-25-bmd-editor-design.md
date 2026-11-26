@@ -145,8 +145,11 @@ Details (which XOR3 key, where the count goes, which parity the checksum uses) c
 readers named there. Every byte of a record belongs to exactly one field; a field the research has not named yet is
 `raw_0xNN` (its offset) with its bytes, and a test checks that each schema covers its record size with no gap or
 overlap. Files the client does not read (the `test` twins, `TKOU`, `n380`) are opened with the layout they match and
-marked "not read by the client". Files that match no layout (`Data/Item/item.bmd`, `Data/Item/Itemtest.bmd`,
-`Data/skill/skill.bmd`) open read-only as raw bytes.
+marked "not read by the client". Their encodings come from the files: the `test` twins of items, skills, item set
+options, the slide, dialogs and quests are Korean (`cp949`); `movereqtest.bmd`, `TKOUREQ.bmd` and `n380.bmd` are
+Chinese (`gb2312`); `Texttest.bmd` and `credittest.bmd` are `cp1252`. Files that
+share a table's name and are something else (`Data/Item/item.bmd`, `Data/Item/Itemtest.bmd`, `Data/skill/skill.bmd`)
+answer `UNKNOWN_FORMAT`, in any letter case, for reads and writes.
 
 ### Saving
 
@@ -154,8 +157,9 @@ marked "not read by the client". Files that match no layout (`Data/Item/item.bmd
 2. Decode the new bytes and compare with the document; a mismatch aborts (write-verify).
 3. Check that the file on disk still has the SHA-256 it had when it was read; if someone changed it meanwhile (the TUI
    open while an agent ran `set`), stop with `STALE_FILE` instead of overwriting their change.
-4. Write to a temporary file in the target folder and `os.replace` it, keeping the old file as `<name>.bak` the first
-   time.
+4. Write to a temporary file in the target folder and `os.replace` it, keeping the old file as `<name>.orig` the
+   first time. It is not `<name>.bak` because the game's own folder already has `item.bmd.bak`, `skill.bmd.bak`,
+   `Filter.bmd.bak` and `Movereq.bmd.bak`.
 
 What the writer recomputes after an edit: counts (from list lengths), the encrypted block's size, and the checksum of
 a table whose records changed. An unedited table keeps its stored checksum, even a wrong one (Q-C01: the lab's
@@ -178,7 +182,11 @@ fail with an error that names the way out. Edits happen in a working copy, a ful
 Records are decoded as CP1252, the client's western profile (`Client/docs/research/12-codificacion.md`). The catalog
 gives each text file its encoding: `TKOU.bmd` decodes entirely as GB2312 (1,671 records, checked 2026-11-25), and
 `--encoding` overrides it. A record that its encoding cannot decode, or that has bytes after its first `0`, is shown
-and kept as hex. On edit, the tool checks that the text encodes in the file's encoding and fits the record's 300 bytes.
+and kept as hex. In the record tables such bytes are common (36 of `Dialog.bmd`'s 75 dialogs, 278 of `n380.bmd`'s 399
+item names), so a text field with bytes after its first `0` reads as `{"text": "...", "tail": "<hex>"}`: the text
+stays readable, searchable and editable, an untouched field keeps every byte, and writing a plain string drops the
+tail, which the client never reads. There `{"hex": ...}` is left for a text with no `0` or that its encoding cannot
+read. On edit, the tool checks that the text encodes in the file's encoding and fits the record's 300 bytes.
 A text that fills all 300, with no `0` left, is a warning and not an error: record 7 of `Text.bmd` is like that
 (Q-C07), and the client reads such a text into the next record. `printf` specifiers (`%d`, `%s`) are highlighted, and changing their number or order is a warning: the client
 passes some texts to `sprintf`.
@@ -276,7 +284,7 @@ mubmd tui [<folder|file>]                   the console UI
 - What is valid but unusual is a warning, not an error, so the agent keeps its work: changing a text's `printf`
   specifiers, a parent bone after its child, a texture name that no file in the folder has.
 - The reference folder is never written (`REFERENCE_READ_ONLY`, with the `workspace init` suggestion).
-- Writes go only to files the catalog knows, after write-verify, with the first `.bak` kept.
+- Writes go only to files the catalog knows, after write-verify, with the original kept as `.orig`.
 - `workspace init` into a folder that is not empty needs `--yes`.
 
 **Self-description.**
@@ -313,9 +321,10 @@ red for errors and unsaved marks, parchment-colored text. A light variant exists
 
 - **Left:** the folder as a tree with only `.bmd` files, an icon per kind and a dot on unsaved files.
 - **Right:** the document. Text and record tables are data tables with search, filters (non-empty, changed, with
-  findings) and an editor below that counts bytes as you type and flags characters CP1252 cannot hold. Item records are
-  grouped in their 16 sections. Models show a tree of meshes, actions and bones with their counts and names; names,
-  texture names, a mesh's texture and a bone's parent are editable there, the rest through JSON.
+  findings) and an editor below that counts bytes as you type and flags characters CP1252 cannot hold. A record table
+  lists the fields of the selected record under the table, and item rows show their section. Models show a tree of
+  meshes, actions and bones with their counts and names; names, texture names, a mesh's texture and a bone's parent
+  are editable there, the rest through JSON.
 - **The surprise:** a model's wireframe in the terminal, drawn with braille characters and slowly turning, posed with
   the first key of its first action (Half-Life's angle-to-quaternion order, as research 05 describes). Character parts
   borrow `player/Player.bmd`'s skeleton. It is a preview in float64, not the client's x87 math.
@@ -384,7 +393,9 @@ leaves its own checks green, and the workflow lands with the first code PR.
 2. **Texts end to end:** the package, XOR3, the catalog, the text codec, JSON, every CLI command for texts, the TUI
    with its theme and the text editor, the `muret-bmd` skill with its executable recipes and its agent check, the
    workflow. After this PR an agent or a person can edit `Text.bmd`.
-3. **Every table:** K16-free formats first, then the checksummed ones; schemas with the research's field names.
+3. **Every table:** K16-free formats first, then the checksummed ones; schemas with the research's field names. Its
+   plan, with the decisions the real files forced, is
+   [`2026-11-26-bmd-editor-tables.md`](../plans/2026-11-26-bmd-editor-tables.md).
 4. **Models:** the lossless model codec with K16, validation, the model view in the TUI.
 5. **The wireframe preview.**
 

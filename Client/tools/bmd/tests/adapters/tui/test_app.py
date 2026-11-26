@@ -60,7 +60,9 @@ async def test_selecting_a_file_in_the_tree_opens_it(working_copy: Path) -> None
     async with app.run_test(size=SIZE) as pilot:
         tree = app.query_one(BmdTree)
         tree.focus()
-        await pilot.press("down", "enter", "down", "enter")
+        await pilot.press("down", "enter")
+        tree.move_cursor(tree.nodes[text_of(working_copy)])
+        await pilot.press("enter")
         await pilot.pause()
         assert app.query_one(RecordTableView).row_count == 2048
         assert "Local/Text.bmd" in str(app.query_one(RecordTableView).border_title)

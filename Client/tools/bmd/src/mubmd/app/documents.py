@@ -10,6 +10,7 @@ from mubmd.core.documents.text_table import is_text_encoding
 from mubmd.core.errors import ErrorCode, MubmdError
 from mubmd.core.findings import Finding
 from mubmd.core.json_types import JsonObject, JsonValue
+from mubmd.core.leaves import leaf_text
 from mubmd.core.patch import Change, diff_views
 from mubmd.core.ports import FileStore
 
@@ -71,6 +72,20 @@ def parse_json(data: bytes, source: str) -> JsonValue:
     return value
 
 
+def parse_value(raw: str, current: JsonValue, pointer: str) -> JsonValue:
+    if leaf_text(current) is not None:
+        return raw
+    try:
+        value: JsonValue = json.loads(raw)
+    except json.JSONDecodeError as error:
+        raise MubmdError(
+            ErrorCode.INVALID_VALUE,
+            f"The value at {pointer} is not a text, so the new value is JSON; got {raw!r}",
+            pointer=pointer,
+        ) from error
+    return value
+
+
 def load_view(store: FileStore, path: Path, *, encoding: str | None = None) -> JsonObject:
     if path.suffix.casefold() == ".json":
         view = parse_json(store.read(path), str(path))
@@ -126,6 +141,7 @@ def save_view(store: FileStore, opened: OpenDocument, view: JsonObject, *, dry_r
     unchanged = EditResult(opened.path, changed=False, dry_run=dry_run, changes=(), warnings=())
     refuse_header_changes(diff_views(opened.view, view))
     if view == opened.view:
+        opened.identified.format.codec.from_view(view)
         return unchanged
     refuse_reference(store, opened.path)
     document, data, written = encode_verified(opened.identified, view)

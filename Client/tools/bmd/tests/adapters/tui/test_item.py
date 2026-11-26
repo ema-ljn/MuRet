@@ -3,13 +3,14 @@ from pathlib import Path
 
 import pytest
 from textual.pilot import Pilot
-from textual.widgets import DataTable
 
 from mubmd.adapters.storage import LocalFileStore
 from mubmd.adapters.tui.app import MubmdApp
 from mubmd.adapters.tui.widgets.bmd_tree import BmdTree
 from mubmd.adapters.tui.widgets.diff_screen import DiffScreen
+from mubmd.adapters.tui.widgets.field_list import FieldList
 from mubmd.adapters.tui.widgets.record_editor import RecordEditor
+from mubmd.adapters.tui.widgets.record_table_view import RecordTableView
 from mubmd.adapters.tui.widgets.status_line import StatusLine
 from mubmd.core.ciphers.xor3 import xor3
 
@@ -26,9 +27,13 @@ def item_file(working_copy: Path, reference_data: Path) -> Path:
 
 
 async def edit_name(app: MubmdApp, pilot: Pilot[None]) -> RecordEditor:
-    table = app.query_one(DataTable)
+    table = app.query_one(RecordTableView)
     table.move_cursor(row=table.get_row_index(str(JEWEL_OF_CREATION)))
     table.focus()
+    await pilot.press("enter")
+    await pilot.pause()
+    fields = app.query_one(FieldList)
+    fields.move_cursor(row=fields.get_row_index("name"))
     await pilot.press("enter")
     await pilot.pause()
     return app.query_one(RecordEditor)
@@ -37,7 +42,7 @@ async def edit_name(app: MubmdApp, pilot: Pilot[None]) -> RecordEditor:
 async def test_item_names_are_searchable_by_name(item_file: Path) -> None:
     app = MubmdApp(LocalFileStore(), item_file)
     async with app.run_test(size=SIZE) as pilot:
-        table = app.query_one(DataTable)
+        table = app.query_one(RecordTableView)
         assert table.row_count == 8192
         assert "item · XOR3" in str(table.border_title)
         assert str(table.get_cell(str(JEWEL_OF_CREATION), "section")) == "14"
@@ -45,7 +50,7 @@ async def test_item_names_are_searchable_by_name(item_file: Path) -> None:
         await pilot.press("slash", *"jewel of creation", "enter")
         await pilot.pause()
         assert table.row_count == 1
-        await pilot.press("enter")
+        await pilot.press("enter", "enter")
         await pilot.pause()
         assert app.query_one(RecordEditor).value == "Jewel of Creation"
         assert app.query_one(StatusLine).text == JEWEL_NAME
@@ -112,7 +117,7 @@ async def test_switching_from_an_item_to_text_keeps_the_pending_name_in_its_file
         await app.open_path(item_file.with_name("Text.bmd"))
         await pilot.pause()
         assert editor.disabled
-        assert app.query_one(DataTable).row_count == 2048
+        assert app.query_one(RecordTableView).row_count == 2048
         await app.open_path(item_file)
         editor = await edit_name(app, pilot)
         assert editor.value == "Joya de Creación"
@@ -129,7 +134,7 @@ async def test_invalid_item_name_keeps_the_tree_on_the_open_file(item_file: Path
         tree.move_cursor(tree.nodes[other_file])
         await pilot.press("enter")
         await pilot.pause()
-        assert app.query_one(DataTable).row_count == 8192
+        assert app.query_one(RecordTableView).row_count == 8192
         assert editor.pointer == JEWEL_NAME
         assert editor.value == "é" * 30
         assert tree.cursor_node is tree.nodes[item_file]

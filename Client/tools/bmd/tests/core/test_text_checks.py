@@ -1,4 +1,4 @@
-from mubmd.core.checks.text_checks import check_text_table, printf_specifiers
+from mubmd.core.checks.text_checks import check_text_record, check_text_table, printf_specifiers
 from mubmd.core.documents.text_table import TEXT_RECORD_COUNT, TEXT_RECORD_SIZE, TextTable
 
 
@@ -39,3 +39,11 @@ def test_bytes_after_the_end_of_a_text_are_a_tail() -> None:
 
 def test_bytes_the_encoding_cannot_read_are_not_decodable() -> None:
     assert findings_of_record(b"\x81") == [("TEXT_NOT_DECODABLE", "/texts/9")]
+
+
+def test_one_record_is_checked_against_its_bytes_before() -> None:
+    before = b"Aumenta %d%% de Dano".ljust(TEXT_RECORD_SIZE, b"\0")
+    after = b"Aumenta %s%% de Dano".ljust(TEXT_RECORD_SIZE, b"\0")
+    assert [finding.code for finding in check_text_record(577, after, before, "cp1252")] == ["PRINTF_CHANGED"]
+    assert check_text_record(577, after, None, "cp1252") == ()
+    assert check_text_record(577, after, after, "cp1252") == ()

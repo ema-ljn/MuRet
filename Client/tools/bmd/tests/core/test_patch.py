@@ -1,7 +1,7 @@
 import pytest
 
 from mubmd.core.errors import ErrorCode, MubmdError
-from mubmd.core.json_types import JsonObject
+from mubmd.core.json_types import JsonObject, JsonValue
 from mubmd.core.patch import Change, PatchOp, apply_patch, diff_views, parse_patch
 
 
@@ -24,6 +24,17 @@ def test_a_failing_test_changes_nothing() -> None:
     assert caught.value.code is ErrorCode.TEST_FAILED
     assert caught.value.pointer == "/texts/1"
     assert original == view()
+
+
+@pytest.mark.parametrize(("stored", "expected"), [(1, True), (0, False), (True, 1), ([1, 0], [True, 0])])
+def test_a_test_tells_a_boolean_from_a_number(stored: JsonValue, expected: JsonValue) -> None:
+    with pytest.raises(MubmdError) as caught:
+        apply_patch({"value": stored}, (PatchOp("test", "/value", expected),))
+    assert caught.value.code is ErrorCode.TEST_FAILED
+
+
+def test_a_test_takes_a_whole_number_for_its_float() -> None:
+    assert apply_patch({"speed": 60.0}, (PatchOp("test", "/speed", 60),)) == {"speed": 60.0}
 
 
 def test_apply_never_mutates_its_input() -> None:

@@ -1,21 +1,21 @@
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
-from mubmd.app.documents import EditResult, OpenDocument, open_document, save_view, touches
-from mubmd.core.documents.item_table import ITEM_NAME_SIZE
-from mubmd.core.documents.text_table import TEXT_RECORD_SIZE, encode_fixed_text
+from mubmd.app.documents import EditResult, OpenDocument, open_document, parse_value, save_view, touches
 from mubmd.core.errors import MubmdError
 from mubmd.core.findings import Finding
 from mubmd.core.json_types import JsonObject, JsonValue
+from mubmd.core.leaves import leaf_text
 from mubmd.core.patch import Change, PatchOp, apply_patch, diff_views
 from mubmd.core.pointer import resolve
-from mubmd.core.ports import FileStore, Summary
+from mubmd.core.ports import FieldInfo, FileStore, Summary
 
 
 @dataclass(frozen=True, slots=True)
 class Measure:
     size: int | None
-    limit: int
+    limit: int | None
     error: MubmdError | None
     warnings: tuple[Finding, ...] = ()
 
@@ -26,6 +26,7 @@ class EditSession:
         self._opened = opened
         self._history: list[JsonObject] = [opened.view]
         self._position = 0
+        self._checked: tuple[JsonObject, Any, tuple[Finding, ...]] | None = None
 
     @classmethod
     def open(cls, store: FileStore, path: Path) -> "EditSession":
@@ -56,9 +57,20 @@ class EditSession:
         return self._opened.read_only
 
     @property
+    def fields(self) -> tuple[FieldInfo, ...]:
+        return self._opened.identified.format.codec.describe_fields()
+
+    def _check(self) -> tuple[Any, tuple[Finding, ...]]:
+        view = self.view
+        if self._checked is None or self._checked[0] is not view:
+            codec = self._opened.identified.format.codec
+            document = codec.from_view(view)
+            self._checked = (view, document, codec.check(document, self._opened.document))
+        return self._checked[1], self._checked[2]
+
+    @property
     def summary(self) -> Summary:
-        codec = self._opened.identified.format.codec
-        return codec.summarize(codec.from_view(self.view))
+        return self._opened.identified.format.codec.summarize(self._check()[0])
 
     @property
     def changes(self) -> tuple[Change, ...]:
@@ -69,13 +81,13 @@ class EditSession:
         return bool(self.changes)
 
     @property
+    def findings(self) -> tuple[Finding, ...]:
+        return self._check()[1]
+
+    @property
     def warnings(self) -> tuple[Finding, ...]:
         changes = self.changes
-        return tuple(finding for finding in self._findings(self.view) if touches(finding, changes))
-
-    def _findings(self, view: JsonObject) -> tuple[Finding, ...]:
-        codec = self._opened.identified.format.codec
-        return codec.check(codec.from_view(view), self._opened.document)
+        return tuple(finding for finding in self.findings if touches(finding, changes))
 
     def value(self, pointer: str) -> JsonValue:
         return resolve(self.view, pointer)
@@ -85,22 +97,25 @@ class EditSession:
         self._opened.identified.format.codec.from_view(view)
         return view
 
-    def measure(self, pointer: str, text: str) -> Measure:
-        item_name = self.format_name == "item" and pointer.startswith("/records/") and pointer.endswith("/name")
-        limit = ITEM_NAME_SIZE - 1 if item_name else TEXT_RECORD_SIZE
+    def parse(self, pointer: str, raw: str) -> JsonValue:
+        return parse_value(raw, self.value(pointer), pointer)
+
+    def _encoded_size(self, value: JsonValue) -> int | None:
+        text = leaf_text(value)
         try:
-            size: int | None = len(text.encode(self.encoding))
+            return None if text is None else len(text.encode(self.encoding))
         except UnicodeEncodeError:
-            size = None
+            return None
+
+    def measure(self, pointer: str, value: JsonValue) -> Measure:
+        codec = self._opened.identified.format.codec
+        size = self._encoded_size(value)
+        limit = None
         try:
-            if item_name:
-                self.value(pointer)
-                encode_fixed_text(text, self.encoding, ITEM_NAME_SIZE, pointer, "name", require_terminator=True)
-                return Measure(size, limit, None)
-            view = self._edited(pointer, text)
+            limit = codec.check_value(pointer, self.value(pointer), self._opened.document).limit
+            warnings = codec.check_value(pointer, value, self._opened.document).warnings
         except MubmdError as error:
             return Measure(size, limit, error)
-        warnings = tuple(finding for finding in self._findings(view) if finding.pointer == pointer)
         return Measure(size, limit, None, warnings)
 
     def set(self, pointer: str, value: JsonValue) -> None:

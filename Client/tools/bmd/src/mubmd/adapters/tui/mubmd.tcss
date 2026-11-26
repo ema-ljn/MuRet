@@ -16,7 +16,7 @@ TitleBar {
 }
 
 BmdTree {
-    width: 28;
+    width: 30;
     border: round $primary 60%;
     border-title-color: $primary;
     border-title-style: bold;
@@ -48,6 +48,7 @@ RecordTableView {
     border: round $primary 60%;
     border-title-color: $primary;
     border-title-style: bold;
+    border-subtitle-color: $secondary;
     background: $background;
     scrollbar-size-vertical: 1;
 }
@@ -65,6 +66,32 @@ RecordTableView > .datatable--header {
 RecordTableView > .datatable--cursor {
     background: $primary 30%;
     color: $foreground;
+}
+
+FieldList {
+    display: none;
+    height: 1fr;
+    border: round $primary 60%;
+    border-title-color: $primary;
+    background: $background;
+    scrollbar-size-vertical: 1;
+}
+
+FieldList.-visible {
+    display: block;
+}
+
+FieldList:focus {
+    border: round $primary;
+}
+
+FieldList > .datatable--cursor {
+    background: $primary 12%;
+    color: $foreground;
+}
+
+FieldList:focus > .datatable--cursor {
+    background: $primary 30%;
 }
 
 RecordEditor {

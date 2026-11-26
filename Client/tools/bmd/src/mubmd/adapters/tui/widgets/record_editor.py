@@ -2,18 +2,21 @@ from textual.widgets import Input
 
 from mubmd.app.session import Measure
 
+RECORD_HINT = "select a record and press enter"
+FIELD_HINT = "select a field and press enter"
+
 
 class RecordEditor(Input):
     def __init__(self) -> None:
-        super().__init__(placeholder="select a record and press enter", disabled=True)
+        super().__init__(placeholder=RECORD_HINT, disabled=True)
         self.pointer: str | None = None
         self.loaded = ""
 
-    def load(self, pointer: str, index: int, value: str) -> None:
+    def load(self, pointer: str, title: str, value: str) -> None:
         self.pointer = pointer
         self.loaded = value
         self.disabled = False
-        self.border_title = f"record {index}"
+        self.border_title = title
         self.value = value
 
     def show_value(self, value: str) -> None:
@@ -42,4 +45,5 @@ class RecordEditor(Input):
             self.border_subtitle = f"✗ {measure.error.code}"
             return
         codes = "".join(f" · ⚠ {warning.code}" for warning in measure.warnings)
-        self.border_subtitle = f"{measure.size}/{measure.limit} bytes{codes}"
+        size = "number" if measure.limit is None else f"{measure.size}/{measure.limit} bytes"
+        self.border_subtitle = f"{size}{codes}"

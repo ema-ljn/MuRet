@@ -105,3 +105,31 @@ def test_the_fields_point_to_the_research() -> None:
 def test_the_summary_counts_used_records(reference_data: Path) -> None:
     summary = CODEC.summarize(decode(reference_data, "Text.bmd"))
     assert (summary.cipher, summary.records, summary.used_records) == ("XOR3", 2048, 1645)
+
+
+def test_text_check_value_warns_of_a_text_that_fills_its_record(reference_data: Path) -> None:
+    result = CODEC.check_value("/texts/5", "a" * 300, decode(reference_data, "Text.bmd"))
+    assert result.limit == 300
+    assert [(finding.code, finding.pointer) for finding in result.warnings] == [("TEXT_FILLS_RECORD", "/texts/5")]
+
+
+def test_text_check_value_refuses_what_set_would_refuse(reference_data: Path) -> None:
+    with pytest.raises(MubmdError) as caught:
+        CODEC.check_value("/texts/5", "a" * 301, decode(reference_data, "Text.bmd"))
+    assert caught.value.code is ErrorCode.TEXT_TOO_LONG
+    assert caught.value.pointer == "/texts/5"
+
+
+def test_text_check_value_compares_with_the_text_before(reference_data: Path) -> None:
+    table = decode(reference_data, "Text.bmd")
+    assert table.text(577) == "Aumenta %d%% de Daño"
+    result = CODEC.check_value("/texts/577", "Aumenta %s%% de Daño", table)
+    assert [finding.code for finding in result.warnings] == ["PRINTF_CHANGED"]
+
+
+@pytest.mark.parametrize("pointer", ["/texts/2048", "/texts", "/texts/5/0", "/encoding", "/trailing", ""])
+def test_text_check_value_needs_a_text_of_the_table(reference_data: Path, pointer: str) -> None:
+    with pytest.raises(MubmdError) as caught:
+        CODEC.check_value(pointer, "a", decode(reference_data, "Text.bmd"))
+    assert caught.value.code is ErrorCode.POINTER_NOT_FOUND
+    assert caught.value.pointer == pointer

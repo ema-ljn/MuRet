@@ -1,14 +1,15 @@
 import re
-from collections.abc import Iterator
+from collections.abc import Iterator, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
 from mubmd.app.documents import open_document
 from mubmd.app.paging import DEFAULT_LIMIT, Page, page
-from mubmd.core.catalog import all_formats, format_by_name
+from mubmd.core.catalog import FormatSpec, all_formats, format_by_name
 from mubmd.core.errors import ErrorCode, MubmdError
-from mubmd.core.json_types import JsonValue
-from mubmd.core.pointer import format_pointer, resolve
+from mubmd.core.json_types import JsonObject, JsonValue
+from mubmd.core.leaves import Tokens, leaf_text, leaves
+from mubmd.core.pointer import format_pointer, parse_pointer, resolve
 from mubmd.core.ports import CatalogFile, FieldInfo, FileStore
 
 
@@ -45,7 +46,7 @@ class GetResult:
 @dataclass(frozen=True, slots=True)
 class FormatInfo:
     name: str
-    size: int
+    size: int | None
     files: tuple[CatalogFile, ...]
 
 
@@ -73,15 +74,31 @@ def info(store: FileStore, path: Path, *, encoding: str | None = None) -> InfoRe
     )
 
 
-def _string_leaves(value: JsonValue, tokens: list[str | int]) -> Iterator[tuple[list[str | int], str]]:
-    if isinstance(value, str):
-        yield tokens, value
-    elif isinstance(value, list):
-        for index, item in enumerate(value):
-            yield from _string_leaves(item, [*tokens, index])
-    elif isinstance(value, dict) and value.keys() != {"hex"}:
-        for key, item in value.items():
-            yield from _string_leaves(item, [*tokens, key])
+def _field_name(tokens: Sequence[str | int]) -> str | None:
+    return next((token for token in reversed(tokens) if isinstance(token, str)), None)
+
+
+def _texts(view: JsonObject, field: str | None) -> Iterator[tuple[Tokens, str]]:
+    for key, value in view.items():
+        if not isinstance(value, list):
+            continue
+        for tokens, leaf in leaves(value, (key,)):
+            text = leaf_text(leaf)
+            if text is not None and field in (None, _field_name(tokens)):
+                yield tokens, text
+
+
+def _described_field(info: FieldInfo) -> str:
+    return next(token for token in reversed(parse_pointer(info.pointer)) if not token.startswith("<"))
+
+
+def _check_field(spec: FormatSpec, field: str) -> None:
+    if field not in map(_described_field, spec.codec.describe_fields()):
+        raise MubmdError(
+            ErrorCode.INVALID_VALUE,
+            f"A {spec.name} table has no field {field!r}",
+            suggestion=f"mubmd schema {spec.name}",
+        )
 
 
 def _matcher(query: str, regex: bool) -> re.Pattern[str]:
@@ -97,20 +114,20 @@ def find(
     query: str,
     *,
     regex: bool = False,
+    field: str | None = None,
     limit: int = DEFAULT_LIMIT,
     offset: int = 0,
     encoding: str | None = None,
 ) -> Page[Match]:
     pattern = _matcher(query, regex)
-    view = open_document(store, path, encoding=encoding).view
+    opened = open_document(store, path, encoding=encoding)
+    if field is not None:
+        _check_field(opened.identified.format, field)
     matches: list[Match] = []
-    for key, value in view.items():
-        if not isinstance(value, list):
-            continue
-        for tokens, text in _string_leaves(value, [key]):
-            if pattern.search(text):
-                index = next(token for token in tokens if isinstance(token, int))
-                matches.append(Match(index, format_pointer(tokens), text))
+    for tokens, text in _texts(opened.view, field):
+        if pattern.search(text):
+            index = next(token for token in tokens if isinstance(token, int))
+            matches.append(Match(index, format_pointer(tokens), text))
     return page(matches, limit, offset)
 
 

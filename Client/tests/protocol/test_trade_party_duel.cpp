@@ -8,6 +8,7 @@
 
 #include "support/Bytes.h"
 #include "support/ExpectedError.h"
+#include "support/MinimumSize.h"
 #include "support/Packets.h"
 #include "support/SameBytes.h"
 
@@ -215,5 +216,52 @@ TEST(DuelProtocolTest, TheThreeWriters)
     EXPECT_EQ(answer.delivery, Delivery::Encrypted);
     EXPECT_TRUE(SameBytes(Xor32Decode(answer.packet).Bytes(),
                           Bytes({0xc1, 0x10, 0xac, 0x00, 0x01, 0x02, 'A', 'r', 'b', 'u', 's', 't', 'o', 0, 0, 0})));
+}
+
+TEST(TradeProtocolTest, ReadsEachMinimumSizeAndNotOneByteLess)
+{
+    std::vector<std::byte> request = Bytes({0xc1, 0x0d, 0x36});
+    request.resize(0x0d);
+    std::vector<std::byte> response = Bytes({0xc1, 0x14, 0x37});
+    response.resize(0x14);
+    std::vector<std::byte> added = Bytes({0xc1, 0x0b, 0x39});
+    added.resize(0x0b);
+    Client::Tests::ExpectMinimumSize(Trade::ReadTradeRequest, request);
+    Client::Tests::ExpectMinimumSize(Trade::ReadTradeResponse, response);
+    Client::Tests::ExpectMinimumSize(Trade::ReadTradeItemRemoved, Bytes({0xc1, 0x04, 0x38, 0x05}));
+    Client::Tests::ExpectMinimumSize(Trade::ReadTradeItemAdded, added);
+    Client::Tests::ExpectMinimumSize(Trade::ReadTradeMoneyResult, Bytes({0xc1, 0x04, 0x3a, 0x01}));
+    Client::Tests::ExpectMinimumSize(Trade::ReadTradeOtherMoney,
+                                     Bytes({0xc1, 0x08, 0x3b, 0x00, 0x10, 0x27, 0x00, 0x00}));
+    Client::Tests::ExpectMinimumSize(Trade::ReadTradeOkState, Bytes({0xc1, 0x04, 0x3c, 0x01}));
+    Client::Tests::ExpectMinimumSize(Trade::ReadTradeResult, Bytes({0xc1, 0x04, 0x3d, 0x01}));
+}
+
+// 0x4d67e0 reads the count and 0x18 bytes per member; the 44, one byte per member.
+TEST(PartyProtocolTest, ReadsEachMinimumSizeAndNotOneByteLess)
+{
+    std::vector<std::byte> oneMember = Bytes({0xc1, 0x1d, 0x42, 0x01, 0x01});
+    oneMember.resize(0x1d);
+    Client::Tests::ExpectMinimumSize(Party::ReadPartyRequest, Bytes({0xc1, 0x05, 0x40, 0x00, 0x05}));
+    Client::Tests::ExpectMinimumSize(Party::ReadPartyRequestResult, Bytes({0xc1, 0x04, 0x41, 0x01}));
+    Client::Tests::ExpectMinimumSize(Party::ReadPartyList, Bytes({0xc1, 0x05, 0x42, 0x01, 0x00}));
+    Client::Tests::ExpectMinimumSize(Party::ReadPartyList, oneMember);
+    Client::Tests::ExpectMinimumSize(Party::ReadPartyLife, Bytes({0xc1, 0x04, 0x44, 0x00}));
+    Client::Tests::ExpectMinimumSize(Party::ReadPartyLife, Bytes({0xc1, 0x06, 0x44, 0x02, 0x15, 0x26}));
+}
+
+TEST(DuelProtocolTest, ReadsEachMinimumSizeAndNotOneByteLess)
+{
+    std::vector<std::byte> start = Bytes({0xc1, 0x10, 0xaa, 0x01});
+    start.resize(0x10);
+    std::vector<std::byte> end = Bytes({0xc1, 0x0f, 0xab});
+    end.resize(0x0f);
+    std::vector<std::byte> request = Bytes({0xc1, 0x0f, 0xac});
+    request.resize(0x0f);
+    Client::Tests::ExpectMinimumSize(Duel::ReadDuelStart, start);
+    Client::Tests::ExpectMinimumSize(Duel::ReadDuelEnd, end);
+    Client::Tests::ExpectMinimumSize(Duel::ReadDuelRequest, request);
+    Client::Tests::ExpectMinimumSize(Duel::ReadDuelScore,
+                                     Bytes({0xc1, 0x09, 0xad, 0x00, 0x01, 0x00, 0x02, 0x03, 0x04}));
 }
 } // namespace

@@ -1,14 +1,16 @@
 #include "Protocol/Social/Trade.h"
 
-#include "Core/ByteReader.h"
 #include "Core/Expected.h"
+#include "Network/Field.h"
+#include "Network/LayoutReader.h"
 #include "Network/Packet.h"
+#include "Network/PacketLayout.h"
 #include "Network/PacketWriter.h"
+#include "Network/ProtocolError.h"
 #include "Protocol/FrontEnd/CharacterName.h"
 #include "Protocol/Items/Inventory.h"
-#include "Protocol/Outgoing.h"
-#include "Network/ProtocolError.h"
 #include "Protocol/Opcodes.h"
+#include "Protocol/Outgoing.h"
 
 #include <algorithm>
 #include <cstddef>
@@ -19,128 +21,100 @@ namespace Client::Protocol::Social
 {
 namespace
 {
-// 0x626bd8: el byte que va antes del zen en el 3A.
+// 0x626bd8: the byte before the zen in the 3A.
 constexpr std::uint8_t MoneyPad = 0;
+
+using RequesterName = Network::Field<FrontEnd::NameBytes, 3>;
+constexpr Network::PacketLayout TradeRequestLayout{
+    {Network::PacketType::C1, TradeRequestOpcode, std::nullopt}, RequesterName::End, 0x4d4af0};
+
+using Response = Network::Field<std::uint8_t, 3>;
+using ResponderName = Network::Field<FrontEnd::NameBytes, 4>;
+using ResponderLevel = Network::Field<std::uint16_t, 0xe>;
+using ResponderGuild = Network::Field<std::uint32_t, 0x10>;
+constexpr Network::PacketLayout TradeResponseLayout{
+    {Network::PacketType::C1, TradeResponseOpcode, std::nullopt}, ResponderGuild::End, 0x4d5570};
+
+// The 38, the GS's 3A, the 3C and the 3D: one byte at pkt[3].
+using TheByte = Network::Field<std::uint8_t, 3>;
+constexpr Network::PacketLayout TradeItemRemovedLayout{
+    {Network::PacketType::C1, TradeItemRemovedOpcode, std::nullopt}, TheByte::End, 0x4e3d6a};
+constexpr Network::PacketLayout TradeMoneyResultLayout{
+    {Network::PacketType::C1, TradeMoneyOpcode, std::nullopt}, TheByte::End, 0x4e3dd0};
+constexpr Network::PacketLayout TradeOkStateLayout{
+    {Network::PacketType::C1, TradeOkButtonOpcode, std::nullopt}, TheByte::End, 0x4e3e0a};
+constexpr Network::PacketLayout TradeResultLayout{
+    {Network::PacketType::C1, TradeResultOpcode, std::nullopt}, TheByte::End, 0x4d57f0};
 constexpr std::size_t ResultHeadSize = 4;
 
-// Un C1 de `opcode`: el lector desde pkt[3].
-Core::Expected<Core::ByteReader, Network::ProtocolError> FieldsOf(const Network::Packet& packet, Network::Opcode opcode)
-{
-    if (packet.Type() != Network::PacketType::C1 || packet.Opcode() != opcode)
-        return Core::Unexpected(Network::ProtocolError::WrongPacket);
-    return Core::ByteReader(packet.Bytes().subspan(Network::MinPacketSize(Network::PacketType::C1)));
-}
+using AddedSlot = Network::Field<std::uint8_t, 3>;
+using AddedItem = Network::Field<Items::ItemData, 4>;
+constexpr Network::PacketLayout TradeItemAddedLayout{
+    {Network::PacketType::C1, TradeItemAddedOpcode, std::nullopt}, AddedItem::End, 0x4e3d99};
 
-std::optional<FrontEnd::NameBytes> ReadName(Core::ByteReader& reader)
-{
-    const auto bytes = reader.ReadBytes(FrontEnd::NameSize);
-    if (!bytes)
-        return std::nullopt;
-    FrontEnd::NameBytes name{};
-    std::ranges::copy(*bytes, name.begin());
-    return name;
-}
-
-// Un byte desde pkt[3]: el 38, el 3A del GS y el 3C del GS.
-Core::Expected<std::uint8_t, Network::ProtocolError> ReadTheByte(const Network::Packet& packet, Network::Opcode opcode)
-{
-    auto fields = FieldsOf(packet, opcode);
-    if (!fields.HasValue())
-        return Core::Unexpected(fields.Error());
-    const auto value = fields.Value().ReadU8();
-    if (!value)
-        return Core::Unexpected(Network::ProtocolError::TooShort);
-    return *value;
-}
+// Nobody reads pkt[3].
+using OtherMoney = Network::Field<std::uint32_t, 4>;
+constexpr Network::PacketLayout TradeOtherMoneyLayout{
+    {Network::PacketType::C1, TradeOtherMoneyOpcode, std::nullopt}, OtherMoney::End, 0x4e3df3};
 } // namespace
 
 Core::Expected<TradeRequest, Network::ProtocolError> ReadTradeRequest(const Network::Packet& packet)
 {
-    auto fields = FieldsOf(packet, TradeRequestOpcode);
-    if (!fields.HasValue())
-        return Core::Unexpected(fields.Error());
-    const auto name = ReadName(fields.Value());
-    if (!name)
-        return Core::Unexpected(Network::ProtocolError::TooShort);
-    return TradeRequest{*name};
+    return Network::ReadPacket(packet, TradeRequestLayout, [](Network::LayoutReader& reader)
+                               { return TradeRequest{reader.Read<RequesterName>()}; });
 }
 
 Core::Expected<TradeResponse, Network::ProtocolError> ReadTradeResponse(const Network::Packet& packet)
 {
-    auto fields = FieldsOf(packet, TradeResponseOpcode);
-    if (!fields.HasValue())
-        return Core::Unexpected(fields.Error());
-    Core::ByteReader& reader = fields.Value();
-    const auto response = reader.ReadU8();
-    const auto name = ReadName(reader);
-    const auto level = reader.ReadU16Le();
-    const auto guild = reader.ReadU32Le();
-    if (!response || !name || !level || !guild)
-        return Core::Unexpected(Network::ProtocolError::TooShort);
-    return TradeResponse{*response, *name, *level, *guild};
+    return Network::ReadPacket(packet, TradeResponseLayout,
+                               [](Network::LayoutReader& reader)
+                               {
+                                   return TradeResponse{reader.Read<Response>(), reader.Read<ResponderName>(),
+                                                        reader.Read<ResponderLevel>(), reader.Read<ResponderGuild>()};
+                               });
 }
 
 Core::Expected<TradeItemRemoved, Network::ProtocolError> ReadTradeItemRemoved(const Network::Packet& packet)
 {
-    const auto slot = ReadTheByte(packet, TradeItemRemovedOpcode);
-    if (!slot.HasValue())
-        return Core::Unexpected(slot.Error());
-    return TradeItemRemoved{slot.Value()};
+    return Network::ReadPacket(packet, TradeItemRemovedLayout,
+                               [](Network::LayoutReader& reader) { return TradeItemRemoved{reader.Read<TheByte>()}; });
 }
 
 Core::Expected<TradeItemAdded, Network::ProtocolError> ReadTradeItemAdded(const Network::Packet& packet)
 {
-    auto fields = FieldsOf(packet, TradeItemAddedOpcode);
-    if (!fields.HasValue())
-        return Core::Unexpected(fields.Error());
-    Core::ByteReader& reader = fields.Value();
-    const auto slot = reader.ReadU8();
-    const auto bytes = reader.ReadBytes(Items::ItemDataSize);
-    if (!slot || !bytes)
-        return Core::Unexpected(Network::ProtocolError::TooShort);
-    TradeItemAdded added{.slot = *slot};
-    std::ranges::copy(*bytes, added.item.begin());
-    return added;
+    return Network::ReadPacket(
+        packet, TradeItemAddedLayout, [](Network::LayoutReader& reader)
+        { return TradeItemAdded{.slot = reader.Read<AddedSlot>(), .item = reader.Read<AddedItem>()}; });
 }
 
 Core::Expected<TradeMoneyResult, Network::ProtocolError> ReadTradeMoneyResult(const Network::Packet& packet)
 {
-    const auto accepted = ReadTheByte(packet, TradeMoneyOpcode);
-    if (!accepted.HasValue())
-        return Core::Unexpected(accepted.Error());
-    return TradeMoneyResult{accepted.Value()};
+    return Network::ReadPacket(packet, TradeMoneyResultLayout,
+                               [](Network::LayoutReader& reader) { return TradeMoneyResult{reader.Read<TheByte>()}; });
 }
 
 Core::Expected<TradeOtherMoney, Network::ProtocolError> ReadTradeOtherMoney(const Network::Packet& packet)
 {
-    auto fields = FieldsOf(packet, TradeOtherMoneyOpcode);
-    if (!fields.HasValue())
-        return Core::Unexpected(fields.Error());
-    Core::ByteReader& reader = fields.Value();
-    const auto pad = reader.ReadU8();
-    const auto money = reader.ReadU32Le();
-    if (!pad || !money)
-        return Core::Unexpected(Network::ProtocolError::TooShort);
-    return TradeOtherMoney{*money};
+    return Network::ReadPacket(packet, TradeOtherMoneyLayout, [](Network::LayoutReader& reader)
+                               { return TradeOtherMoney{reader.Read<OtherMoney>()}; });
 }
 
 Core::Expected<TradeOkState, Network::ProtocolError> ReadTradeOkState(const Network::Packet& packet)
 {
-    const auto state = ReadTheByte(packet, TradeOkButtonOpcode);
-    if (!state.HasValue())
-        return Core::Unexpected(state.Error());
-    return TradeOkState{state.Value()};
+    return Network::ReadPacket(packet, TradeOkStateLayout,
+                               [](Network::LayoutReader& reader) { return TradeOkState{reader.Read<TheByte>()}; });
 }
 
 Core::Expected<TradeResult, Network::ProtocolError> ReadTradeResult(const Network::Packet& packet)
 {
-    const auto result = ReadTheByte(packet, TradeResultOpcode);
-    if (!result.HasValue())
-        return Core::Unexpected(result.Error());
-    TradeResult read{.result = result.Value()};
-    const auto bytes = packet.Bytes().first(ResultHeadSize);
-    std::ranges::transform(bytes, read.head.begin(), [](std::byte b) { return std::to_integer<std::uint8_t>(b); });
-    return read;
+    return Network::ReadPacket(packet, TradeResultLayout,
+                               [](Network::LayoutReader& reader)
+                               {
+                                   TradeResult read{.result = reader.Read<TheByte>()};
+                                   std::ranges::transform(reader.Bytes(0, ResultHeadSize), read.head.begin(),
+                                                          [](std::byte b) { return std::to_integer<std::uint8_t>(b); });
+                                   return read;
+                               });
 }
 
 Outgoing WriteTradeRequest(std::uint16_t key)

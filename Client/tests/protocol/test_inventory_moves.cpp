@@ -6,12 +6,14 @@
 
 #include "support/Bytes.h"
 #include "support/ExpectedError.h"
+#include "support/MinimumSize.h"
 #include "support/Packets.h"
 #include "support/SameBytes.h"
 
 #include <gtest/gtest.h>
 
 #include <cstddef>
+#include <vector>
 
 namespace
 {
@@ -132,5 +134,26 @@ TEST(InventoryProtocolTest, ReadsTheItemPut)
     ASSERT_TRUE(put.HasValue());
     EXPECT_EQ(put.Value().slot, 0x20);
     EXPECT_EQ(put.Value().item, InventedItem);
+}
+
+// Each reader reads up to its last field: the 26 and the 27 read the values only from 0xfe and 0xff on.
+TEST(InventoryMovesProtocolTest, ReadsEachMinimumSizeAndNotOneByteLess)
+{
+    std::vector<std::byte> move = Bytes({0xc1, 0x0c, 0x24});
+    move.resize(0x0c);
+    std::vector<std::byte> change = Bytes({0xc1, 0x18, 0xf3, 0x13});
+    change.resize(0x18);
+    std::vector<std::byte> put = Bytes({0xc1, 0x0c, 0xf3, 0x14});
+    put.resize(0x0c);
+    Client::Tests::ExpectMinimumSize(Inventory::ReadItemMoveResult, move);
+    Client::Tests::ExpectMinimumSize(Inventory::ReadItemDelete, Bytes({0xc1, 0x05, 0x28, 0x0c, 0x01}));
+    Client::Tests::ExpectMinimumSize(Inventory::ReadLifeRefill, Bytes({0xc1, 0x04, 0x26, 0x0c}));
+    Client::Tests::ExpectMinimumSize(Inventory::ReadLifeRefill, Bytes({0xc1, 0x06, 0x26, 0xff, 0x01, 0x2c}));
+    Client::Tests::ExpectMinimumSize(Inventory::ReadManaRefill, Bytes({0xc1, 0x06, 0x27, 0x0c, 0x00, 0x10}));
+    Client::Tests::ExpectMinimumSize(Inventory::ReadManaRefill,
+                                     Bytes({0xc1, 0x08, 0x27, 0xfe, 0x00, 0x10, 0x00, 0x20}));
+    Client::Tests::ExpectMinimumSize(Inventory::ReadDurability, Bytes({0xc1, 0x06, 0x2a, 0x00, 0x10, 0x00}));
+    Client::Tests::ExpectMinimumSize(Inventory::ReadEquipmentChange, change);
+    Client::Tests::ExpectMinimumSize(Inventory::ReadItemPut, put);
 }
 } // namespace

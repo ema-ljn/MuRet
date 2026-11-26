@@ -7,6 +7,7 @@
 
 #include "support/Bytes.h"
 #include "support/ExpectedError.h"
+#include "support/MinimumSize.h"
 #include "support/Packets.h"
 #include "support/SameBytes.h"
 
@@ -15,6 +16,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <vector>
 
 namespace
 {
@@ -230,5 +232,33 @@ TEST(NpcWindowsProtocolTest, TheTrainerMixReadsItsItem)
     const auto refused = NpcWindows::ReadChaosMixResult(PacketOf(Bytes({0xc1, 0x05, 0x86, 2, 3})));
     ASSERT_TRUE(refused.HasValue());
     EXPECT_EQ(refused.Value().item, NpcWindows::ItemData{});
+}
+
+// Each reader reads up to its last field; the 30's case 12 reads pkt[4] too (0x4d25bc).
+TEST(NpcWindowsProtocolTest, ReadsEachMinimumSizeAndNotOneByteLess)
+{
+    std::vector<std::byte> listed = Bytes({0xc2, 0x00, 0x0e, 0x31, 0x00, 0x01});
+    listed.resize(0x0e);
+    std::vector<std::byte> bought = Bytes({0xc1, 0x0b, 0x32, 0x0c});
+    bought.resize(0x0b);
+    std::vector<std::byte> mixed = Bytes({0xc1, 0x0b, 0x86, 0x01});
+    mixed.resize(0x0b);
+    Client::Tests::ExpectMinimumSize(NpcWindows::ReadTalkResult, Bytes({0xc1, 0x04, 0x30, 0x01}));
+    Client::Tests::ExpectMinimumSize(NpcWindows::ReadTalkResult, Bytes({0xc1, 0x05, 0x30, 0x0c, 0x01}));
+    Client::Tests::ExpectMinimumSize(NpcWindows::ReadItemList, Bytes({0xc2, 0x00, 0x06, 0x31, 0x00, 0x00}));
+    Client::Tests::ExpectMinimumSize(NpcWindows::ReadItemList, listed);
+    Client::Tests::ExpectMinimumSize(NpcWindows::ReadBuyResult, Bytes({0xc1, 0x04, 0x32, 0xff}));
+    Client::Tests::ExpectMinimumSize(NpcWindows::ReadBuyResult, bought);
+    Client::Tests::ExpectMinimumSize(NpcWindows::ReadSellResult, Bytes({0xc1, 0x04, 0x33, 0x00}));
+    Client::Tests::ExpectMinimumSize(NpcWindows::ReadSellResult,
+                                     Bytes({0xc1, 0x08, 0x33, 0x01, 0x10, 0x27, 0x00, 0x00}));
+    Client::Tests::ExpectMinimumSize(NpcWindows::ReadRepairResult,
+                                     Bytes({0xc1, 0x08, 0x34, 0x00, 0x10, 0x27, 0x00, 0x00}));
+    Client::Tests::ExpectMinimumSize(NpcWindows::ReadWarehouseMoney, Bytes({0xc1, 0x04, 0x81, 0x00}));
+    Client::Tests::ExpectMinimumSize(NpcWindows::ReadWarehouseMoney,
+                                     Bytes({0xc1, 0x0c, 0x81, 0x01, 0, 0, 0, 0, 0, 0, 0, 0}));
+    Client::Tests::ExpectMinimumSize(NpcWindows::ReadWarehouseState, Bytes({0xc1, 0x04, 0x83, 0x01}));
+    Client::Tests::ExpectMinimumSize(NpcWindows::ReadChaosMixResult, Bytes({0xc1, 0x04, 0x86, 0x00}));
+    Client::Tests::ExpectMinimumSize(NpcWindows::ReadChaosMixResult, mixed);
 }
 } // namespace

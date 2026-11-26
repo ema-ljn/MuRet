@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Protocol/FrontEnd/CharacterName.h"
 #include "Protocol/Social/Duel.h"
 #include "Protocol/Outgoing.h"
 #include "Protocol/Social/Trade.h"
@@ -133,9 +134,9 @@ Core::Expected<void, std::string> PressTheCancelButton(const GameUiContext& cont
     return {};
 }
 
-Protocol::Social::Name RivalName(const DuelState& duel)
+Protocol::FrontEnd::NameBytes RivalName(const DuelState& duel)
 {
-    Protocol::Social::Name name{};
+    Protocol::FrontEnd::NameBytes name{};
     std::ranges::copy(std::span(duel.rivalName).first(name.size()), name.begin());
     return name;
 }

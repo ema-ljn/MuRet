@@ -9,6 +9,7 @@
 
 #include "support/Bytes.h"
 #include "support/ExpectedError.h"
+#include "support/MinimumSize.h"
 #include "support/Packets.h"
 #include "support/SameBytes.h"
 #include "support/SimpleModulusKeys.h"
@@ -304,5 +305,13 @@ TEST(WorldProtocolTest, CastleSiegeStateWritesTwoWithXor32AndWithoutC3)
     EXPECT_EQ(request.delivery, Delivery::Clear);
     EXPECT_TRUE(SameBytes(Xor32Decode(request.packet).Bytes(), Bytes({0xc1, 4, 0xb9, 2})));
     EXPECT_TRUE(SameBytes(request.packet.Bytes(), Bytes({0xc1, 4, 0xb9, 0x32})));
+}
+
+TEST(WorldProtocolTest, ReadsEachMinimumSizeAndNotOneByteLess)
+{
+    Client::Tests::ExpectMinimumSize(ReadTeleport, Bytes({0xc1, 0x08, 0x1c, 0x01, 0x00, 0x82, 0x84, 0x02}));
+    std::vector<std::byte> regen = Bytes({0xc1, 0x18, 0xf3, 0x04});
+    regen.resize(0x18);
+    Client::Tests::ExpectMinimumSize(ReadRegen, regen);
 }
 } // namespace

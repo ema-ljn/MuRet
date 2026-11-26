@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-// Campos de F3/03 sin transformar: Client/docs/research/04-protocolo.md, "La entrada al mundo".
+// F3 03's fields as they come (04, "La entrada al mundo").
 namespace Client::Protocol::FrontEnd
 {
 struct CharacterSelectResult
@@ -29,7 +29,7 @@ struct CharacterSelectResult
     std::uint8_t controlCode = 0;
     std::uint16_t addedPoints = 0;
     std::uint16_t maxAddedPoints = 0;
-    // Q-C144: el original lee 0x32..0x33, aunque sean padding del struct del GameServer.
+    // Q-C144: the original reads 0x32..0x33, padding of the GameServer's struct.
     std::uint16_t leadership = 0;
 };
 } // namespace Client::Protocol::FrontEnd

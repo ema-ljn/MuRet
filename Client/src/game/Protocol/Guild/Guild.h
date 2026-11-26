@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Network/Packet.h"
+#include "Protocol/FrontEnd/CharacterName.h"
 #include "Protocol/Outgoing.h"
 #include "Network/ProtocolError.h"
 
@@ -27,14 +28,13 @@ inline constexpr std::uint8_t UnionKickKind = 1;
 // Los nombres de gremio: 8 bytes sin terminador (el original los copia con dos DWORD y pone el cero él).
 inline constexpr std::size_t GuildNameSize = 8;
 // Los nombres de personaje: 10 bytes.
-inline constexpr std::size_t CharacterNameSize = 10;
+inline constexpr std::size_t CharacterNameSize = FrontEnd::NameSize;
 // La marca: 32 bytes, dos nibbles por byte (el alto primero).
 inline constexpr std::size_t MarkBytes = 32;
 // 0x4d7b60: 80 lugares de 0xe bytes en 0x787a5e8, hasta la tabla de los gremios (0x787aa48).
 inline constexpr std::size_t MaxMembers = 80;
 
 using GuildName = std::array<std::byte, GuildNameSize>;
-using CharacterName = std::array<std::byte, CharacterNameSize>;
 // 0x62a878: los diez bytes del número que escribió el jugador (0x7798bf8).
 inline constexpr std::size_t LeaveNumberSize = 10;
 using LeaveNumber = std::array<std::byte, LeaveNumberSize>;
@@ -67,7 +67,7 @@ struct WarRequestResult
 // Una entrada del 52: 0xd bytes desde pkt[0x18].
 struct MemberEntry
 {
-    CharacterName name{};
+    FrontEnd::NameBytes name{};
     std::uint8_t number = 0; // +0xa
     std::uint8_t server = 0; // +0xb: el bit 7 prendido, conectado en el servidor de los 7 de abajo
     std::uint8_t status = 0; // +0xc: el puesto (0x80 el maestro)
@@ -264,7 +264,7 @@ using GuildPacket =
 
 // 0x64def0: C1 0F E1 [tipo] [puesto] [nombre, 10 bytes], con el XOR32 y en claro. Quitarle el cargo a un miembro manda
 // el tipo 3 con el puesto 0.
-[[nodiscard]] Outgoing WriteAssignStatus(std::uint8_t type, std::uint8_t status, const CharacterName& name);
+[[nodiscard]] Outgoing WriteAssignStatus(std::uint8_t type, std::uint8_t status, const FrontEnd::NameBytes& name);
 
 // 0x650830 (la respuesta 8 del diálogo de la pestaña de la alianza): C1 0C EB 01 [nombre del gremio, 8 bytes de
 // 0x7d535a8], con el XOR32 y en claro. El GS 0.97 no tiene el EB: lo que dice el cliente es el ASM.
@@ -273,7 +273,7 @@ using GuildPacket =
 // 0x62a878 (el sí del diálogo 0x7d del juego): C1 17 53 [nombre, 10 bytes del lugar 0x6d5e2c de 0x787a5e8] [número,
 // 10 bytes de 0x7798bf8], con el XOR32 y en claro. El GS (0x420bf0, CGGuildDelUser) lee el nombre en +3 y el número en
 // +0xd: el maestro con su propio nombre disuelve el gremio, con otro lo echa; el que no es maestro sale.
-[[nodiscard]] Outgoing WriteLeave(const CharacterName& name, const LeaveNumber& number);
+[[nodiscard]] Outgoing WriteLeave(const FrontEnd::NameBytes& name, const LeaveNumber& number);
 
 // 0x62b39c (el sí del diálogo 0x7f del juego, el pedido de guerra del 61) y 0x62c5c2 (el no): C1 04 61 [1 o 0], con el
 // XOR32 y en claro por el socket, sin rand(). El GS (CGGuildWarRequestResultRecv, 0x422020) lee la respuesta en pkt[3].

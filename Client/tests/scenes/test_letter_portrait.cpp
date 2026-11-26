@@ -1,4 +1,5 @@
 #include "Models/IModelLibrary.h"
+#include "Protocol/FrontEnd/CharacterList.h"
 #include "Scenes/LetterPortrait.h"
 
 #include "Core/ILogSink.h"
@@ -12,7 +13,6 @@
 #include "Tables/ItemSetTables.h"
 #include "Tables/ItemTable.h"
 #include "GameLogic/CharacterAppearance.h"
-#include "Protocol/FrontEnd/Opcodes.h"
 #include "Render/ModelBatch.h"
 #include "Models/Cloth.h"
 #include "Math/HalfLifeMath.h"

@@ -1,6 +1,6 @@
 #include "Scenes/ActorName.h"
 
-#include "Protocol/FrontEnd/Opcodes.h"
+#include "Protocol/FrontEnd/CharacterName.h"
 #include "Scenes/ActorState.h"
 #include "UI/NameChecks.h"
 

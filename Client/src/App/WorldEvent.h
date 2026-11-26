@@ -29,6 +29,7 @@
 #include "Protocol/Social/Trade.h"
 #include "Protocol/Actors/Viewport.h"
 #include "Protocol/Movement/World.h"
+#include "Protocol/Weather/Weather.h"
 
 #include <cstdint>
 #include <variant>
@@ -113,7 +114,7 @@ struct ChatRoomPingDue
 using WorldEvent = std::variant<
     Protocol::FrontEnd::CharacterSelectResult, Protocol::Items::InventoryList, ClearInventoryReceived,
     ReturnToSelectionReceived, SelectionWorldReset, ServerListLogoutCleanup, ReturnToServerListReceived,
-    Protocol::Movement::Weather, Protocol::Movement::Walk, Protocol::Movement::Damage, Protocol::Movement::Teleport,
+    Protocol::Weather::Weather, Protocol::Movement::Walk, Protocol::Movement::Damage, Protocol::Movement::Teleport,
     Protocol::Movement::Regen, Protocol::Chat::Chat, Protocol::Chat::KeyChat, Protocol::Chat::Whisper,
     Protocol::Chat::WhisperResult, Protocol::Chat::Notice, Protocol::Player::OptionData,
     Protocol::Items::ItemMoveResult, Protocol::Items::ItemDelete, Protocol::Items::Durability,

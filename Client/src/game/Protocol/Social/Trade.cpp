@@ -4,7 +4,7 @@
 #include "Core/Expected.h"
 #include "Network/Packet.h"
 #include "Network/PacketWriter.h"
-#include "Protocol/FrontEnd/Opcodes.h"
+#include "Protocol/FrontEnd/CharacterName.h"
 #include "Protocol/Items/Inventory.h"
 #include "Protocol/Outgoing.h"
 #include "Network/ProtocolError.h"
@@ -31,12 +31,12 @@ Core::Expected<Core::ByteReader, Network::ProtocolError> FieldsOf(const Network:
     return Core::ByteReader(packet.Bytes().subspan(Network::MinPacketSize(Network::PacketType::C1)));
 }
 
-std::optional<Name> ReadName(Core::ByteReader& reader)
+std::optional<FrontEnd::NameBytes> ReadName(Core::ByteReader& reader)
 {
     const auto bytes = reader.ReadBytes(FrontEnd::NameSize);
     if (!bytes)
         return std::nullopt;
-    Name name{};
+    FrontEnd::NameBytes name{};
     std::ranges::copy(*bytes, name.begin());
     return name;
 }

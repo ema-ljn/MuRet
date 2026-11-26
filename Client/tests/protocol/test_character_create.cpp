@@ -10,6 +10,7 @@
 #include "support/Bytes.h"
 #include "support/CharacterPackets.h"
 #include "support/ExpectedError.h"
+#include "support/MinimumSize.h"
 #include "support/NetworkPrinters.h"
 #include "support/Packets.h"
 #include "support/ProtocolPrinters.h"
@@ -126,5 +127,14 @@ TEST(CharacterCreateTest, AShortReplyIsTooShort)
               ProtocolError::TooShort);
     EXPECT_EQ(ErrorOf(ReadCharacterCreateResult(PacketOf(Bytes({0xC1, 0x05, 0xF3, 0x02, 0x01})))),
               ProtocolError::WrongPacket);
+}
+
+// 0x4c2290 reads pkt[4] and, for a new character, up to its class at pkt[0x12].
+TEST(CharacterCreateTest, ReadsItsMinimumSizeAndNotOneByteLess)
+{
+    Client::Tests::ExpectMinimumSize(ReadCharacterCreateResult, Bytes({0xC1, 0x05, 0xF3, 0x01, 0x00}));
+    Client::Tests::ExpectMinimumSize(ReadCharacterCreateResult,
+                                     Bytes({0xC1, 0x13, 0xF3, 0x01, 0x01, 'c', 'h', 'a', 'r', '0', '0', '0', '2', 0x00,
+                                            0x00, 0x03, 0x2C, 0x01, 0x40}));
 }
 } // namespace

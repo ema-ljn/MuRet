@@ -15,7 +15,7 @@ namespace Client::Protocol::Chat
 {
 namespace
 {
-// El texto como lo copia el original: hasta ChatTextBytes, con el '\0' si entra.
+// The text as the original copies it: ChatTextBytes of it, with the '\0' if it fits.
 Outgoing WriteSaid(Network::Opcode opcode, std::span<const std::byte, ChatNameSize> name, std::string_view text)
 {
     std::string said(text.substr(0, text.find('\0')));

@@ -1,51 +1,43 @@
 #include "Protocol/Items/InventoryList.h"
 
-#include "Core/ByteReader.h"
 #include "Core/Expected.h"
+#include "Network/Field.h"
+#include "Network/LayoutReader.h"
 #include "Network/Packet.h"
-#include "Network/PacketFields.h"
+#include "Network/PacketLayout.h"
 #include "Network/ProtocolError.h"
+#include "Network/ReadList.h"
 #include "Protocol/Opcodes.h"
 
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
-#include <optional>
 #include <span>
-#include <vector>
 
 namespace Client::Protocol::Items
 {
 namespace
 {
-// C4 rearmado como C2 por el transporte de MuRet (ADR0003), no por 0x4c55a0.
-constexpr Network::PacketKind InventoryKind{Network::PacketType::C2, CharacterOpcode, Character::InventoryListSubcode};
+using EntryCount = Network::Field<std::uint8_t, 5>;
+// MuRet's transport rebuilds the C4 as a C2 (ADR 0003), not 0x4c55a0.
+constexpr Network::PacketLayout InventoryLayout{
+    {Network::PacketType::C2, CharacterOpcode, Character::InventoryListSubcode}, EntryCount::End, 0x4c55a0};
+
+InventoryEntry ReadEntry(std::span<const std::byte, InventoryEntrySize> bytes)
+{
+    InventoryEntry entry{.slot = std::to_integer<std::uint8_t>(bytes[0])};
+    std::ranges::copy(bytes.subspan<1, InventoryItemDataSize>(), entry.item.begin());
+    return entry;
+}
 } // namespace
 
 Core::Expected<InventoryList, Network::ProtocolError> ReadInventoryList(const Network::Packet& packet)
 {
-    auto fields = Network::FieldsAfterSubcode(packet, InventoryKind);
-    if (!fields.HasValue())
-    {
-        return Core::Unexpected(fields.Error());
-    }
-    Core::ByteReader& reader = fields.Value();
-    const std::optional<std::uint8_t> count = reader.ReadU8();
-    if (!count || *count > reader.Remaining() / InventoryEntrySize)
-    {
-        return Core::Unexpected(Network::ProtocolError::TooShort);
-    }
-    InventoryList list;
-    list.items.reserve(*count);
-    // Se comprobó toda la lista antes de reservar: ninguna lectura puede quedar incompleta.
-    for (std::size_t index = 0; index < *count; ++index)
-    {
-        InventoryEntry entry;
-        entry.slot = *reader.ReadU8();
-        const std::span<const std::byte> item = *reader.ReadBytes(InventoryItemDataSize);
-        std::ranges::copy(item, entry.item.begin());
-        list.items.push_back(entry);
-    }
-    return list;
+    return Network::ReadPacket(packet, InventoryLayout,
+                               [](Network::LayoutReader& reader)
+                               {
+                                   return InventoryList{Network::ReadList<InventoryEntrySize>(
+                                       reader, EntryCount::End, reader.Read<EntryCount>(), ReadEntry)};
+                               });
 }
 } // namespace Client::Protocol::Items

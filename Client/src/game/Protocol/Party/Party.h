@@ -2,11 +2,10 @@
 
 #include "Core/Expected.h"
 #include "Network/Packet.h"
-#include "Protocol/FrontEnd/Opcodes.h"
+#include "Protocol/FrontEnd/CharacterName.h"
 #include "Protocol/Outgoing.h"
 #include "Network/ProtocolError.h"
 
-#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <vector>
@@ -18,8 +17,6 @@ namespace Client::Protocol::Party
 {
 // 0x4d67e0: cada miembro ocupa 0x18 bytes desde pkt[5].
 inline constexpr std::size_t MemberWireSize = 0x18;
-
-using Name = std::array<std::byte, FrontEnd::NameSize>;
 
 // 0x659aa6..0x659b94: C1 03 42 armado en la pila y mandado con send si el socket de 0x6c82a0 (+0xc) no es −1. No
 // pasa por el XOR32 ni por el cifrado del C3: va en claro.
@@ -46,7 +43,7 @@ ReadPartyRequestResult(const Network::Packet& packet);
 // que 0x4d67e0 no copia, la vida (+0x10) y la vida máxima (+0x14), los dos DWORD en little-endian.
 struct PartyMember
 {
-    Name name{};
+    FrontEnd::NameBytes name{};
     std::uint8_t number = 0;
     std::uint8_t map = 0;
     std::uint8_t x = 0;

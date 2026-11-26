@@ -318,7 +318,6 @@ game/Protocol/Items/InventoryList.cpp	51	game/Protocol/Items	game/Protocol/Items
 game/Protocol/Items/InventoryList.h	38	game/Protocol/Items	game/Protocol/Items	high	the packets of Items
 game/Protocol/Player/LevelUpPoint.cpp	44	game/Protocol/Player	game/Protocol/Player	high	the packets of Player
 game/Protocol/Player/LevelUpPoint.h	39	game/Protocol/Player	game/Protocol/Player	high	the packets of Player
-game/Protocol/FrontEnd/Opcodes.h	30	game/Protocol/FrontEnd	game/Protocol/FrontEnd	high	the packets of FrontEnd
 game/Protocol/Player/PkLevel.cpp	25	game/Protocol/Player	game/Protocol/Player	high	the packets of Player
 game/Protocol/Player/PkLevel.h	21	game/Protocol/Player	game/Protocol/Player	high	the packets of Player
 game/Protocol/Chat/ChatSend.cpp	42	game/Protocol/Chat	game/Protocol/Chat	high	the packets of Chat
@@ -402,6 +401,8 @@ game/Protocol/Actors/Viewport.cpp	362	game/Protocol/Actors	game/Protocol/Actors	
 game/Protocol/Actors/Viewport.h	219	game/Protocol/Actors	game/Protocol/Actors	high	the packets of Actors
 game/Protocol/Movement/World.cpp	101	game/Protocol/Movement	game/Protocol/Movement	high	the packets of Movement
 game/Protocol/Movement/World.h	75	game/Protocol/Movement	game/Protocol/Movement	high	the packets of Movement
+game/Protocol/Weather/Weather.cpp	29	game/Protocol/Weather	game/Protocol/Weather	high	the weather's packet, out of World (AR2.1)
+game/Protocol/Weather/Weather.h	20	game/Protocol/Weather	game/Protocol/Weather	high	the weather's packet, out of World (AR2.1)
 engine/Render/Billboard.cpp	115	engine/Render	engine/Render	high	engine or protocol layer, no game state
 engine/Render/Billboard.h	52	engine/Render	engine/Render	high	engine or protocol layer, no game state
 engine/Render/Frame/IScreenReader.h	19	engine/Render/Frame	engine/Render/Frame	high	the screenshot's read of the drawn frame, implemented by GL (AR1.1)

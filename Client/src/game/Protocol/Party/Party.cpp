@@ -4,7 +4,7 @@
 #include "Core/Expected.h"
 #include "Network/Packet.h"
 #include "Network/PacketWriter.h"
-#include "Protocol/FrontEnd/Opcodes.h"
+#include "Protocol/FrontEnd/CharacterName.h"
 #include "Protocol/Outgoing.h"
 #include "Network/ProtocolError.h"
 #include "Protocol/Opcodes.h"

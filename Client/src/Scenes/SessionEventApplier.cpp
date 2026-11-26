@@ -38,6 +38,7 @@
 #include "Protocol/Social/Trade.h"
 #include "Protocol/Actors/Viewport.h"
 #include "Protocol/Movement/World.h"
+#include "Protocol/Weather/Weather.h"
 #include "Models/Cloth.h"
 #include "Models/IModelLibrary.h"
 #include "Scenes/ActionReply.h"
@@ -97,7 +98,7 @@ namespace Client::Scenes
 {
 namespace
 {
-void ApplyWeather(const Protocol::Movement::Weather& received, World::LeafWeather& weather)
+void ApplyWeather(const Protocol::Weather::Weather& received, World::LeafWeather& weather)
 {
     // 0x4e36c4/0x4e36ed: sólo target; el default de 0x4e5b4a no escribe nada ni pide rand().
     constexpr std::uint8_t NibbleShift = 4;
@@ -550,7 +551,7 @@ std::optional<Core::Expected<void, std::string>> SessionEventApplier::ApplyViewp
 Core::Expected<void, std::string> SessionEventApplier::ApplyWorldContent(const App::WorldEvent& event,
                                                                          App::ServerSession& session)
 {
-    if (const auto* weather = std::get_if<Protocol::Movement::Weather>(&event))
+    if (const auto* weather = std::get_if<Protocol::Weather::Weather>(&event))
     {
         ApplyWeather(*weather, m_resources.world.Runtime().leafWeather);
         return {};

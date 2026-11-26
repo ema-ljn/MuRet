@@ -7,6 +7,7 @@
 
 #include "support/Bytes.h"
 #include "support/ExpectedError.h"
+#include "support/MinimumSize.h"
 #include "support/NetworkPrinters.h"
 #include "support/Packets.h"
 #include "support/SameBytes.h"
@@ -75,5 +76,13 @@ TEST(LevelUpPointTest, ReadsTheReplyOfTheServer)
     EXPECT_EQ(ErrorOf(ReadLevelUpPointResult(PacketOf(Bytes({0xc1, 0x04, 0xf3, 0x06})))), ProtocolError::TooShort);
     EXPECT_EQ(ErrorOf(ReadLevelUpPointResult(PacketOf(Bytes({0xc1, 0x05, 0xf3, 0x05, 0x10})))),
               ProtocolError::WrongPacket);
+}
+
+// 0x4d3200 reads pkt[4] and, with a point added, up to the BP at pkt[8..9].
+TEST(LevelUpPointTest, ReadsItsMinimumSizeAndNotOneByteLess)
+{
+    Client::Tests::ExpectMinimumSize(ReadLevelUpPointResult, Bytes({0xc1, 0x05, 0xf3, 0x06, 0x00}));
+    Client::Tests::ExpectMinimumSize(ReadLevelUpPointResult,
+                                     Bytes({0xc1, 0x0a, 0xf3, 0x06, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00}));
 }
 } // namespace

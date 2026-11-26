@@ -2,7 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Network/Packet.h"
-#include "Protocol/FrontEnd/Opcodes.h"
+#include "Protocol/FrontEnd/CharacterName.h"
 #include "Protocol/Items/Inventory.h"
 #include "Protocol/Outgoing.h"
 #include "Network/ProtocolError.h"
@@ -25,8 +25,6 @@ inline constexpr std::uint8_t ListedResult = 1;
 
 // 0x4dae80 y 0x4dafe0: el título, de 36 bytes con el terminador en el 37 de la pila.
 inline constexpr std::size_t TitleSize = 36;
-
-using Name = std::array<std::byte, FrontEnd::NameSize>;
 
 // Una entrada de 0x26 bytes del 3F 00 (0x4dae80): la clave en big-endian y el título.
 struct ShopTitleEntry
@@ -63,7 +61,7 @@ struct ShopClosed
 // El 3F 08 (0x4e4f5d): el nombre de pkt[5..14].
 struct ShopNotice
 {
-    Name name{};
+    FrontEnd::NameBytes name{};
 };
 
 [[nodiscard]] Core::Expected<ShopNotice, Network::ProtocolError> ReadShopNotice(const Network::Packet& packet);
@@ -73,7 +71,7 @@ struct ShopTitle
 {
     std::uint16_t key = 0;
     std::string title;
-    Name name{};
+    FrontEnd::NameBytes name{};
 };
 
 [[nodiscard]] Core::Expected<ShopTitle, Network::ProtocolError> ReadShopTitle(const Network::Packet& packet);
@@ -159,14 +157,14 @@ struct ShopPurchase
 
 // El 3F 06 (0x5d9c9e..): C1 11 3F 06, la clave del dueño (0x78a6514) en big-endian, su nombre (0x78a64f9, 10 bytes) y
 // el lugar ([0x78a6758], el byte bajo), con el XOR32 y en C3.
-[[nodiscard]] Outgoing WriteBuyItem(std::uint16_t key, const Name& name, std::uint8_t slot);
+[[nodiscard]] Outgoing WriteBuyItem(std::uint16_t key, const FrontEnd::NameBytes& name, std::uint8_t slot);
 
 // El 3F 07 de 0x5eb020, al cerrar la tienda de otro con su clave (0x78a6514) distinta de 0: C1 10 3F 07, la clave en
 // big-endian y el nombre (0x78a64f9, 10 bytes), con el XOR32 y en C3.
-[[nodiscard]] Outgoing WriteViewClosed(std::uint16_t key, const Name& name);
+[[nodiscard]] Outgoing WriteViewClosed(std::uint16_t key, const FrontEnd::NameBytes& name);
 
 // El 3F 05 del cliente (0x406050 desde 0x406b02, el comando 2 de la ventana de comandos, el texto 1124): C1 10 3F 05,
 // la clave del otro en big-endian (+0x1f4) y su nombre (+0x1d9, 10 bytes), con el XOR32 y en C3. Lo que contesta el
 // servidor es el 3F 05 de arriba (ReadShopItemList).
-[[nodiscard]] Outgoing WriteShopItemsRequest(std::uint16_t key, const Name& name);
+[[nodiscard]] Outgoing WriteShopItemsRequest(std::uint16_t key, const FrontEnd::NameBytes& name);
 } // namespace Client::Protocol::PersonalShop

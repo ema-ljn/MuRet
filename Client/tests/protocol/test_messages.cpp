@@ -7,6 +7,7 @@
 
 #include "support/Bytes.h"
 #include "support/ExpectedError.h"
+#include "support/MinimumSize.h"
 #include "support/Packets.h"
 #include "support/SameBytes.h"
 
@@ -161,5 +162,20 @@ TEST(MessagesProtocolTest, WritesTheOptionData)
     for (const std::uint8_t value : body)
         expected.push_back(std::byte{value});
     EXPECT_TRUE(SameBytes(Client::Network::Xor32Decode(outgoing.packet).Bytes(), expected));
+}
+
+// The 00 and the 02 read what arrived of the name (Q-C510): their header is their minimum.
+TEST(MessagesProtocolTest, ReadsEachMinimumSizeAndNotOneByteLess)
+{
+    EXPECT_TRUE(ReadChat(PacketOf(Bytes({0xc1, 0x03, 0x00}))).HasValue());
+    EXPECT_TRUE(ReadWhisper(PacketOf(Bytes({0xc1, 0x03, 0x02}))).HasValue());
+    Client::Tests::ExpectMinimumSize(ReadKeyChat, Bytes({0xc1, 0x05, 0x01, 0x12, 0x34}));
+    Client::Tests::ExpectMinimumSize(ReadWhisperResult, Bytes({0xc1, 0x04, 0x0c, 0x00}));
+    std::vector<std::byte> notice = Bytes({0xc1, 0x0d, 0x0d});
+    notice.resize(0x0d);
+    Client::Tests::ExpectMinimumSize(ReadNotice, notice);
+    std::vector<std::byte> options = Bytes({0xc1, 0x13, 0xf3, 0x30});
+    options.resize(0x13);
+    Client::Tests::ExpectMinimumSize(ReadOptionData, options);
 }
 } // namespace

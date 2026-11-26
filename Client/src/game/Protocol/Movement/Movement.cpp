@@ -1,12 +1,14 @@
 #include "Protocol/Movement/Movement.h"
 
-#include "Core/ByteReader.h"
 #include "Core/Expected.h"
+#include "Network/Field.h"
+#include "Network/LayoutReader.h"
 #include "Network/Packet.h"
+#include "Network/PacketLayout.h"
 #include "Network/PacketWriter.h"
-#include "Protocol/Outgoing.h"
 #include "Network/ProtocolError.h"
 #include "Protocol/Opcodes.h"
+#include "Protocol/Outgoing.h"
 
 #include <algorithm>
 #include <array>
@@ -21,7 +23,7 @@ namespace Client::Protocol::Movement
 {
 namespace
 {
-// 04 § Caminar y pegar; tabla de ocho pares int32 en 0x6c82a4.
+// 04, "Caminar y pegar": eight int32 pairs at 0x6c82a4.
 struct Delta
 {
     int x;
@@ -31,7 +33,7 @@ constexpr std::array<Delta, 8> Directions{{{-1, -1}, {0, -1}, {1, -1}, {1, 0}, {
 constexpr std::uint8_t DirectionMask = 7;
 constexpr unsigned int DirectionShift = 4;
 constexpr std::size_t MaxPackedBytes = 1 + MaxWireWalkCells / 2;
-// 0x56b0b7..0x56b0cc: FADD 0x6b87dc, FMUL 0x6b87d8, FADD 0x6b87d4; sin FSTP.
+// 0x56b0b7..0x56b0cc: FADD 0x6b87dc, FMUL 0x6b87d8, FADD 0x6b87d4, with no FSTP.
 constexpr double AngleHalfStep = 22.5;
 constexpr double AngleScale = std::bit_cast<float>(std::uint32_t{0x3cb60b61});
 constexpr double AngleBias = 1.0;
@@ -42,11 +44,30 @@ constexpr std::uint16_t ShockMask = 0x8000;
 constexpr std::uint8_t DamageTypeMask = 0x3f;
 constexpr std::uint8_t DamageFlagMask = 0x80;
 constexpr std::uint8_t DamageDoubleHitMask = 0x40;
-// 0x56ad1d..0x56ad4f: MouseUpdateTimeMax antes de limitar el wire.
+// 0x56ad1d..0x56ad4f: MouseUpdateTimeMax before the wire's limit.
 constexpr std::size_t ShortPathCells = 3;
 constexpr std::uint32_t ShortPathWait = 5;
 constexpr std::uint32_t WaitPerCell = 3;
 constexpr std::uint32_t WaitBias = 4;
+
+using WalkId = Network::Field<std::uint16_t, 3, std::endian::big>;
+using WalkX = Network::Field<std::uint8_t, 5>;
+using WalkY = Network::Field<std::uint8_t, 6>;
+using WalkDirection = Network::Field<std::uint8_t, 7>;
+constexpr Network::PacketLayout WalkLayout{
+    {Network::PacketType::C1, WalkOpcode, std::nullopt}, WalkDirection::End, 0x4c6790};
+
+using DamageId = Network::Field<std::uint16_t, 3, std::endian::big>;
+using DamageAmount = Network::Field<std::uint16_t, 5, std::endian::big>;
+using DamageType = Network::Field<std::uint8_t, 7>;
+constexpr Network::PacketLayout DamageLayout{
+    {Network::PacketType::C1, AttackOpcode, std::nullopt}, DamageType::End, 0x4caae0};
+
+using ActionKey = Network::Field<std::uint16_t, 3, std::endian::big>;
+using ActionDirection = Network::Field<std::uint8_t, 5>;
+using ActionKind = Network::Field<std::uint8_t, 6>;
+constexpr Network::PacketLayout ActionLayout{
+    {Network::PacketType::C1, ActionOpcode, std::nullopt}, ActionKind::End, 0x4cb750};
 
 std::optional<std::uint8_t> DirectionBetween(Cell from, Cell to)
 {
@@ -114,47 +135,37 @@ Core::Expected<std::uint32_t, WalkWriteError> WalkUpdateTimeMax(std::size_t path
 
 Core::Expected<Walk, Network::ProtocolError> ReadWalk(const Network::Packet& packet)
 {
-    if (packet.Type() != Network::PacketType::C1 || packet.Opcode() != WalkOpcode)
-        return Core::Unexpected(Network::ProtocolError::WrongPacket);
-    Core::ByteReader reader(packet.Bytes().subspan(Network::MinPacketSize(Network::PacketType::C1)));
-    const auto id = reader.ReadU16Be();
-    const auto x = reader.ReadU8();
-    const auto y = reader.ReadU8();
-    const auto direction = reader.ReadU8();
-    if (!id || !x || !y || !direction)
-        return Core::Unexpected(Network::ProtocolError::TooShort);
-    return Walk{*id, {*x, *y}, static_cast<std::uint8_t>(*direction >> DirectionShift)};
+    return Network::ReadPacket(packet, WalkLayout,
+                               [](Network::LayoutReader& reader)
+                               {
+                                   return Walk{
+                                       reader.Read<WalkId>(),
+                                       {reader.Read<WalkX>(), reader.Read<WalkY>()},
+                                       static_cast<std::uint8_t>(reader.Read<WalkDirection>() >> DirectionShift)};
+                               });
 }
 
 Core::Expected<Damage, Network::ProtocolError> ReadDamage(const Network::Packet& packet)
 {
-    if (packet.Type() != Network::PacketType::C1 || packet.Opcode() != AttackOpcode)
-        return Core::Unexpected(Network::ProtocolError::WrongPacket);
-    Core::ByteReader reader(packet.Bytes().subspan(Network::MinPacketSize(Network::PacketType::C1)));
-    const auto id = reader.ReadU16Be();
-    const auto amount = reader.ReadU16Be();
-    const auto type = reader.ReadU8();
-    if (!id || !amount || !type)
-        return Core::Unexpected(Network::ProtocolError::TooShort);
-    return Damage{static_cast<std::uint16_t>(*id & CharacterIdMask),
-                  (*id & ShockMask) != 0,
-                  *amount,
-                  static_cast<std::uint8_t>(*type & DamageTypeMask),
-                  (*type & DamageFlagMask) != 0,
-                  (*type & DamageDoubleHitMask) != 0};
+    return Network::ReadPacket(packet, DamageLayout,
+                               [](Network::LayoutReader& reader)
+                               {
+                                   const std::uint16_t id = reader.Read<DamageId>();
+                                   const std::uint8_t type = reader.Read<DamageType>();
+                                   return Damage{static_cast<std::uint16_t>(id & CharacterIdMask),
+                                                 (id & ShockMask) != 0,
+                                                 reader.Read<DamageAmount>(),
+                                                 static_cast<std::uint8_t>(type & DamageTypeMask),
+                                                 (type & DamageFlagMask) != 0,
+                                                 (type & DamageDoubleHitMask) != 0};
+                               });
 }
 
 Core::Expected<Action, Network::ProtocolError> ReadAction(const Network::Packet& packet)
 {
-    if (packet.Type() != Network::PacketType::C1 || packet.Opcode() != ActionOpcode)
-        return Core::Unexpected(Network::ProtocolError::WrongPacket);
-    Core::ByteReader reader(packet.Bytes().subspan(Network::MinPacketSize(Network::PacketType::C1)));
-    const auto key = reader.ReadU16Be();
-    const auto direction = reader.ReadU8();
-    const auto action = reader.ReadU8();
-    if (!key || !direction || !action)
-        return Core::Unexpected(Network::ProtocolError::TooShort);
-    return Action{*key, *direction, *action};
+    return Network::ReadPacket(
+        packet, ActionLayout, [](Network::LayoutReader& reader)
+        { return Action{reader.Read<ActionKey>(), reader.Read<ActionDirection>(), reader.Read<ActionKind>()}; });
 }
 
 Outgoing WriteAction(std::uint8_t direction, std::uint8_t action)

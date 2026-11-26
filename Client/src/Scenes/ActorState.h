@@ -2,9 +2,9 @@
 
 #include "GameLogic/CharacterAppearance.h"
 #include "Pathfinding/Path.h"
-#include "Protocol/FrontEnd/Opcodes.h"
 #include "Math/HalfLifeMath.h"
 #include "Models/Pose.h"
+#include "Protocol/FrontEnd/CharacterName.h"
 #include "Scenes/CharacterHead.h"
 #include "Scenes/DarkSpirit.h"
 

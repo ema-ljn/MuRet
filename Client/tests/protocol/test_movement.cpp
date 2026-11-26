@@ -6,6 +6,7 @@
 
 #include "support/Bytes.h"
 #include "support/ExpectedError.h"
+#include "support/MinimumSize.h"
 #include "support/Packets.h"
 #include "support/SameBytes.h"
 
@@ -430,5 +431,12 @@ TEST(MovementTest, TheAltarActionUsesTheFacingOfTheAngle)
         ASSERT_TRUE(read.HasValue());
         EXPECT_EQ(read.Value(), direction);
     }
+}
+
+TEST(MovementTest, ReadsEachMinimumSizeAndNotOneByteLess)
+{
+    Client::Tests::ExpectMinimumSize(ReadWalk, Bytes({0xc1, 0x08, 0xd3, 0x00, 0x01, 0x02, 0x03, 0x40}));
+    Client::Tests::ExpectMinimumSize(ReadDamage, Bytes({0xc1, 0x08, 0xd7, 0x00, 0x01, 0x00, 0x02, 0x03}));
+    Client::Tests::ExpectMinimumSize(ReadAction, Bytes({0xc1, 0x07, 0x18, 0x00, 0x01, 0x02, 0x03}));
 }
 } // namespace

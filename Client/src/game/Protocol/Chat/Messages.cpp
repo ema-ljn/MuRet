@@ -1,13 +1,18 @@
 #include "Protocol/Chat/Messages.h"
 
-#include "Core/ByteReader.h"
 #include "Core/Expected.h"
+#include "Network/Field.h"
+#include "Network/LayoutReader.h"
 #include "Network/Packet.h"
+#include "Network/PacketLayout.h"
 #include "Network/ProtocolError.h"
 #include "Protocol/Opcodes.h"
 
 #include <algorithm>
+#include <bit>
 #include <cstddef>
+#include <cstdint>
+#include <optional>
 #include <span>
 #include <string>
 
@@ -15,103 +20,92 @@ namespace Client::Protocol::Chat
 {
 namespace
 {
-// El C1 del opcode, con el lector parado en pkt[3].
-Core::Expected<Core::ByteReader, Network::ProtocolError> FieldsOf(const Network::Packet& packet, Network::Opcode opcode)
-{
-    if (packet.Type() != Network::PacketType::C1 || packet.Opcode() != opcode)
-        return Core::Unexpected(Network::ProtocolError::WrongPacket);
-    return Core::ByteReader(packet.Bytes().subspan(Network::MinPacketSize(Network::PacketType::C1)));
-}
+constexpr std::size_t SpeakerNameAt = 3;
+constexpr Network::PacketLayout ChatLayout{
+    {Network::PacketType::C1, ChatOpcode, std::nullopt}, SpeakerNameAt, 0x4c6070};
+constexpr Network::PacketLayout WhisperLayout{
+    {Network::PacketType::C1, WhisperOpcode, std::nullopt}, SpeakerNameAt, 0x4e34ea};
 
-// Los bytes crudos que siguen, hasta `limit` o hasta el final del paquete, con sus '\0'.
-std::string RawText(Core::ByteReader& reader, std::size_t limit)
+// 0x4e3403..0x4e340c: pkt[3] << 8 + pkt[4].
+using ChatKey = Network::Field<std::uint16_t, 3, std::endian::big>;
+constexpr Network::PacketLayout KeyChatLayout{
+    {Network::PacketType::C1, KeyChatOpcode, std::nullopt}, ChatKey::End, 0x4e33fc};
+
+using Result = Network::Field<std::uint8_t, 3>;
+constexpr Network::PacketLayout WhisperResultLayout{
+    {Network::PacketType::C1, WhisperResultOpcode, std::nullopt}, Result::End, 0x4e366f};
+
+using NoticeType = Network::Field<std::uint8_t, 3>;
+using Byte4 = Network::Field<std::uint8_t, 4>;
+// 0x4c66a4 and 0x4c667d: x86 WORD and DWORD loads, with no byte swap.
+using Word6 = Network::Field<std::uint16_t, 6>;
+using Color = Network::Field<std::uint32_t, 8>;
+using Speed = Network::Field<std::uint8_t, 0xc>;
+constexpr Network::PacketLayout NoticeLayout{
+    {Network::PacketType::C1, NoticeOpcode, std::nullopt}, Speed::End, 0x4c65b0};
+
+// The raw bytes from `at`, up to `limit` or to the packet's end, with their '\0'. `at` is within the layout's minimum.
+std::string RawText(Network::LayoutReader& reader, std::size_t at, std::size_t limit)
 {
-    const std::size_t count = std::min(limit, reader.Remaining());
-    const auto bytes = reader.ReadBytes(count);
+    const std::span<const std::byte> bytes = reader.Bytes(at, std::min(limit, reader.Size() - at));
     std::string text;
-    if (!bytes)
-        return text;
-    text.reserve(bytes->size());
-    for (const std::byte value : *bytes)
+    text.reserve(bytes.size());
+    for (const std::byte value : bytes)
+    {
         text.push_back(std::to_integer<char>(value));
+    }
     return text;
 }
 
-template <typename Spoken>
-Core::Expected<Spoken, Network::ProtocolError> ReadSpoken(const Network::Packet& packet, Network::Opcode opcode)
+// 0x4c6098: in scene 2, 0x4c6070 asks for the list without reading the packet, and a short 00 arrives too. The name
+// that did not arrive stays '\0' and, without the whole name, there is no text (Q-C510).
+template <typename Spoken> Spoken ReadSpoken(Network::LayoutReader& reader)
 {
-    auto fields = FieldsOf(packet, opcode);
-    if (!fields.HasValue())
-        return Core::Unexpected(fields.Error());
-    Core::ByteReader& reader = fields.Value();
-    // 0x4c6098: en la escena 2, 0x4c6070 pide la lista sin leer el paquete; un 00 corto también llega. El nombre que
-    // no llegó queda en '\0' y, sin el nombre entero, no hay texto (Q-C510).
-    const bool wholeName = reader.Remaining() >= SpeakerNameSize;
-    const auto name = reader.ReadBytes(std::min(SpeakerNameSize, reader.Remaining()));
-    if (!name)
-        return Core::Unexpected(Network::ProtocolError::TooShort);
+    const std::size_t arrived = std::min(SpeakerNameSize, reader.Size() - SpeakerNameAt);
     Spoken spoken;
-    std::copy(name->begin(), name->end(), spoken.name.begin());
-    if (wholeName)
-        spoken.text = RawText(reader, SpokenTextSize);
+    std::ranges::copy(reader.Bytes(SpeakerNameAt, arrived), spoken.name.begin());
+    if (arrived == SpeakerNameSize)
+    {
+        spoken.text = RawText(reader, SpokenTextOffset, SpokenTextSize);
+    }
     return spoken;
 }
 } // namespace
 
 Core::Expected<Chat, Network::ProtocolError> ReadChat(const Network::Packet& packet)
 {
-    return ReadSpoken<Chat>(packet, ChatOpcode);
+    return Network::ReadPacket(packet, ChatLayout, ReadSpoken<Chat>);
 }
 
 Core::Expected<Whisper, Network::ProtocolError> ReadWhisper(const Network::Packet& packet)
 {
-    return ReadSpoken<Whisper>(packet, WhisperOpcode);
+    return Network::ReadPacket(packet, WhisperLayout, ReadSpoken<Whisper>);
 }
 
 Core::Expected<KeyChat, Network::ProtocolError> ReadKeyChat(const Network::Packet& packet)
 {
-    auto fields = FieldsOf(packet, KeyChatOpcode);
-    if (!fields.HasValue())
-        return Core::Unexpected(fields.Error());
-    Core::ByteReader& reader = fields.Value();
-    // 0x4e3403..0x4e340c: pkt[3] << 8 + pkt[4].
-    const auto key = reader.ReadU16Be();
-    if (!key)
-        return Core::Unexpected(Network::ProtocolError::TooShort);
-    return KeyChat{.key = *key, .text = RawText(reader, reader.Remaining())};
+    return Network::ReadPacket(
+        packet, KeyChatLayout, [](Network::LayoutReader& reader)
+        { return KeyChat{.key = reader.Read<ChatKey>(), .text = RawText(reader, ChatKey::End, reader.Size())}; });
 }
 
 Core::Expected<WhisperResult, Network::ProtocolError> ReadWhisperResult(const Network::Packet& packet)
 {
-    auto fields = FieldsOf(packet, WhisperResultOpcode);
-    if (!fields.HasValue())
-        return Core::Unexpected(fields.Error());
-    const auto result = fields.Value().ReadU8();
-    if (!result)
-        return Core::Unexpected(Network::ProtocolError::TooShort);
-    return WhisperResult{*result};
+    return Network::ReadPacket(packet, WhisperResultLayout,
+                               [](Network::LayoutReader& reader) { return WhisperResult{reader.Read<Result>()}; });
 }
 
 Core::Expected<Notice, Network::ProtocolError> ReadNotice(const Network::Packet& packet)
 {
-    auto fields = FieldsOf(packet, NoticeOpcode);
-    if (!fields.HasValue())
-        return Core::Unexpected(fields.Error());
-    Core::ByteReader& reader = fields.Value();
-    const auto type = reader.ReadU8();
-    const auto byte4 = reader.ReadU8();
-    const auto byte5 = reader.ReadU8();
-    // 0x4c66a4 y 0x4c667d: cargas x86 de WORD y DWORD, sin invertir bytes.
-    const auto word6 = reader.ReadU16Le();
-    const auto color = reader.ReadU32Le();
-    const auto speed = reader.ReadU8();
-    if (!type || !byte4 || !byte5 || !word6 || !color || !speed)
-        return Core::Unexpected(Network::ProtocolError::TooShort);
-    return Notice{.type = *type,
-                  .byte4 = *byte4,
-                  .word6 = *word6,
-                  .color = *color,
-                  .speed = *speed,
-                  .text = RawText(reader, reader.Remaining())};
+    return Network::ReadPacket(packet, NoticeLayout,
+                               [](Network::LayoutReader& reader)
+                               {
+                                   return Notice{.type = reader.Read<NoticeType>(),
+                                                 .byte4 = reader.Read<Byte4>(),
+                                                 .word6 = reader.Read<Word6>(),
+                                                 .color = reader.Read<Color>(),
+                                                 .speed = reader.Read<Speed>(),
+                                                 .text = RawText(reader, Speed::End, reader.Size())};
+                               });
 }
 } // namespace Client::Protocol::Chat

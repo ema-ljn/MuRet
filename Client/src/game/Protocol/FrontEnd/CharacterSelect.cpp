@@ -1,29 +1,51 @@
 #include "Protocol/FrontEnd/CharacterSelect.h"
 
-#include "Core/ByteReader.h"
 #include "Core/Expected.h"
+#include "Network/Field.h"
+#include "Network/LayoutReader.h"
 #include "Network/Packet.h"
+#include "Network/PacketLayout.h"
 #include "Network/PacketWriter.h"
-#include "Protocol/FrontEnd/CharacterSelectResult.h"
-#include "Protocol/FrontEnd/Opcodes.h"
-#include "Protocol/Outgoing.h"
-#include "Network/PacketFields.h"
 #include "Network/ProtocolError.h"
+#include "Protocol/FrontEnd/CharacterName.h"
+#include "Protocol/FrontEnd/CharacterSelectResult.h"
 #include "Protocol/Opcodes.h"
+#include "Protocol/Outgoing.h"
 
 #include <cstddef>
-#include <optional>
+#include <cstdint>
 #include <span>
 
 namespace Client::Protocol::FrontEnd
 {
 namespace
 {
-constexpr Network::PacketKind SelectKind{Network::PacketType::C1, CharacterOpcode, Character::SelectSubcode};
-// 04-protocolo, "La entrada al mundo": 0x34 bytes en total, 0x30 después del subcódigo.
-// Q-C144: Leadership ocupa los últimos dos; los WORD fuera de ese paquete no son campos.
-constexpr std::size_t SelectResultFieldsSize = 0x30;
-constexpr std::size_t SelectResultPaddingSize = 2; // pkt[0x26..0x27], antes del zen.
+using X = Network::Field<std::uint8_t, 4>;
+using Y = Network::Field<std::uint8_t, 5>;
+using Map = Network::Field<std::uint8_t, 6>;
+using Direction = Network::Field<std::uint8_t, 7>;
+using Experience = Network::Field<std::uint32_t, 8>;
+using NextExperience = Network::Field<std::uint32_t, 0xc>;
+using LevelUpPoints = Network::Field<std::uint16_t, 0x10>;
+using Strength = Network::Field<std::uint16_t, 0x12>;
+using Agility = Network::Field<std::uint16_t, 0x14>;
+using Vitality = Network::Field<std::uint16_t, 0x16>;
+using Energy = Network::Field<std::uint16_t, 0x18>;
+using Life = Network::Field<std::uint16_t, 0x1a>;
+using MaxLife = Network::Field<std::uint16_t, 0x1c>;
+using Mana = Network::Field<std::uint16_t, 0x1e>;
+using MaxMana = Network::Field<std::uint16_t, 0x20>;
+using Bp = Network::Field<std::uint16_t, 0x22>;
+using MaxBp = Network::Field<std::uint16_t, 0x24>;
+using Zen = Network::Field<std::uint32_t, 0x28>;
+using Pk = Network::Field<std::uint8_t, 0x2c>;
+using ControlCode = Network::Field<std::uint8_t, 0x2d>;
+using AddedPoints = Network::Field<std::uint16_t, 0x2e>;
+using MaxAddedPoints = Network::Field<std::uint16_t, 0x30>;
+// Q-C144: the original reads it from two bytes the GameServer's struct leaves as padding.
+using Leadership = Network::Field<std::uint16_t, 0x32>;
+constexpr Network::PacketLayout SelectResultLayout{
+    {Network::PacketType::C1, CharacterOpcode, Character::SelectSubcode}, Leadership::End, 0x4c3940};
 } // namespace
 
 Outgoing WriteCharacterSelect(std::span<const std::byte, NameSize> name)
@@ -33,41 +55,32 @@ Outgoing WriteCharacterSelect(std::span<const std::byte, NameSize> name)
 
 Core::Expected<CharacterSelectResult, Network::ProtocolError> ReadCharacterSelectResult(const Network::Packet& packet)
 {
-    auto fields = Network::FieldsAfterSubcode(packet, SelectKind);
-    if (!fields.HasValue())
-    {
-        return Core::Unexpected(fields.Error());
-    }
-    Core::ByteReader& reader = fields.Value();
-    if (reader.Remaining() < SelectResultFieldsSize)
-    {
-        return Core::Unexpected(Network::ProtocolError::TooShort);
-    }
-    CharacterSelectResult result;
-    result.x = *reader.ReadU8();
-    result.y = *reader.ReadU8();
-    result.map = *reader.ReadU8();
-    result.direction = *reader.ReadU8();
-    result.experience = *reader.ReadU32Le();
-    result.nextExperience = *reader.ReadU32Le();
-    result.levelUpPoints = *reader.ReadU16Le();
-    result.strength = *reader.ReadU16Le();
-    result.agility = *reader.ReadU16Le();
-    result.vitality = *reader.ReadU16Le();
-    result.energy = *reader.ReadU16Le();
-    result.life = *reader.ReadU16Le();
-    result.maxLife = *reader.ReadU16Le();
-    result.mana = *reader.ReadU16Le();
-    result.maxMana = *reader.ReadU16Le();
-    result.bp = *reader.ReadU16Le();
-    result.maxBp = *reader.ReadU16Le();
-    static_cast<void>(reader.ReadBytes(SelectResultPaddingSize));
-    result.zen = *reader.ReadU32Le();
-    result.pk = *reader.ReadU8();
-    result.controlCode = *reader.ReadU8();
-    result.addedPoints = *reader.ReadU16Le();
-    result.maxAddedPoints = *reader.ReadU16Le();
-    result.leadership = *reader.ReadU16Le();
-    return result;
+    return Network::ReadPacket(packet, SelectResultLayout,
+                               [](Network::LayoutReader& reader)
+                               {
+                                   return CharacterSelectResult{.x = reader.Read<X>(),
+                                                                .y = reader.Read<Y>(),
+                                                                .map = reader.Read<Map>(),
+                                                                .direction = reader.Read<Direction>(),
+                                                                .experience = reader.Read<Experience>(),
+                                                                .nextExperience = reader.Read<NextExperience>(),
+                                                                .levelUpPoints = reader.Read<LevelUpPoints>(),
+                                                                .strength = reader.Read<Strength>(),
+                                                                .agility = reader.Read<Agility>(),
+                                                                .vitality = reader.Read<Vitality>(),
+                                                                .energy = reader.Read<Energy>(),
+                                                                .life = reader.Read<Life>(),
+                                                                .maxLife = reader.Read<MaxLife>(),
+                                                                .mana = reader.Read<Mana>(),
+                                                                .maxMana = reader.Read<MaxMana>(),
+                                                                .bp = reader.Read<Bp>(),
+                                                                .maxBp = reader.Read<MaxBp>(),
+                                                                .zen = reader.Read<Zen>(),
+                                                                .pk = reader.Read<Pk>(),
+                                                                .controlCode = reader.Read<ControlCode>(),
+                                                                .addedPoints = reader.Read<AddedPoints>(),
+                                                                .maxAddedPoints = reader.Read<MaxAddedPoints>(),
+                                                                .leadership = reader.Read<Leadership>()};
+                               });
 }
 } // namespace Client::Protocol::FrontEnd

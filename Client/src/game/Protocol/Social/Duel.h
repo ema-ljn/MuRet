@@ -2,12 +2,10 @@
 
 #include "Core/Expected.h"
 #include "Network/Packet.h"
-#include "Protocol/FrontEnd/Opcodes.h"
+#include "Protocol/FrontEnd/CharacterName.h"
 #include "Protocol/Outgoing.h"
 #include "Network/ProtocolError.h"
 
-#include <array>
-#include <cstddef>
 #include <cstdint>
 
 // 04 § El duelo: del AA al AD en los dos sentidos (CL9 hito 7). El GameServer 0.97 no los tiene (08 P-C200): el
@@ -16,15 +14,13 @@
 // y 0x5ebca0 (AC).
 namespace Client::Protocol::Social
 {
-using Name = std::array<std::byte, FrontEnd::NameSize>;
-
 // El AA del GS (0x4dac90): C1 10 AA, el resultado en pkt[3] (distinto de 0, empezó), la clave del rival en pkt[4..5]
 // (big-endian) y su nombre en pkt[6..15]. Con 0 solo lee el nombre.
 struct DuelStart
 {
     std::uint8_t result = 0;
     std::uint16_t key = 0;
-    Name name{};
+    FrontEnd::NameBytes name{};
 };
 
 [[nodiscard]] Core::Expected<DuelStart, Network::ProtocolError> ReadDuelStart(const Network::Packet& packet);
@@ -33,7 +29,7 @@ struct DuelStart
 struct DuelEnd
 {
     std::uint16_t key = 0;
-    Name name{};
+    FrontEnd::NameBytes name{};
 };
 
 [[nodiscard]] Core::Expected<DuelEnd, Network::ProtocolError> ReadDuelEnd(const Network::Packet& packet);
@@ -42,7 +38,7 @@ struct DuelEnd
 struct DuelRequest
 {
     std::uint16_t key = 0;
-    Name name{};
+    FrontEnd::NameBytes name{};
 };
 
 [[nodiscard]] Core::Expected<DuelRequest, Network::ProtocolError> ReadDuelRequest(const Network::Packet& packet);
@@ -60,12 +56,12 @@ struct DuelScore
 
 // El AA del cliente (0x406050 desde 0x4079e3; /duelstart en 0x56c440): C1 0F AA, la clave del otro en big-endian y su
 // nombre (+0x1d9, 10 bytes), con el XOR32 y en C3.
-[[nodiscard]] Outgoing WriteDuelStart(std::uint16_t key, const Name& name);
+[[nodiscard]] Outgoing WriteDuelStart(std::uint16_t key, const FrontEnd::NameBytes& name);
 
 // El AB del cliente (0x406050 desde 0x408141; /duelend en 0x56c440): C1 03 AB, en C3.
 [[nodiscard]] Outgoing WriteDuelEnd();
 
 // El AC del cliente (0x5ebca0: sí 0x5ebd3f, no 0x5ec55d): C1 10 AC, la respuesta (1 sí, 0 no), la clave de 0x78abadc
 // en big-endian y el nombre de 0x78abae0, con el XOR32 y en C3.
-[[nodiscard]] Outgoing WriteDuelAnswer(std::uint8_t accepted, std::uint16_t key, const Name& name);
+[[nodiscard]] Outgoing WriteDuelAnswer(std::uint8_t accepted, std::uint16_t key, const FrontEnd::NameBytes& name);
 } // namespace Client::Protocol::Social

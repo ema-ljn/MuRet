@@ -5,7 +5,7 @@
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Data/Models/ModelFiles.h"
-#include "Data/Models/PlayerModels.h"
+#include "Tables/PlayerModels.h"
 #include "Tables/ItemTable.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainGrid.h"

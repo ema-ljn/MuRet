@@ -2,7 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Core/PixelSize.h"
-#include "Data/Models/PlayerModels.h"
+#include "Tables/PlayerModels.h"
 #include "Tables/DialogTable.h"
 #include "Tables/TextTable.h"
 #include "Maps/MapId.h"

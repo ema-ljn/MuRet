@@ -1,7 +1,7 @@
 #include "Network/Xor32Packet.h"
 #include "Scenes/GameScene.h"
 
-#include "Data/Models/PlayerModels.h"
+#include "Tables/PlayerModels.h"
 #include "Tables/MoveRequirements.h"
 #include "Tables/TextTable.h"
 #include "Input/InputEvent.h"

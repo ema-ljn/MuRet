@@ -6,7 +6,7 @@
 #include "Data/Models/Model.h"
 #include "Data/Models/ModelFiles.h"
 #include "Data/Models/ModelTextures.h"
-#include "Data/Models/PlayerModels.h"
+#include "Tables/PlayerModels.h"
 #include "GameLogic/CharacterAppearance.h"
 #include "Render/ModelBatch.h"
 #include "Render/ModelVertex.h"

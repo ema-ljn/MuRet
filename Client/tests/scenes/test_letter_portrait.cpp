@@ -6,7 +6,7 @@
 #include "Core/PixelSize.h"
 #include "Crt/CrtRandom.h"
 #include "Data/Models/Model.h"
-#include "Data/Models/PlayerModels.h"
+#include "Tables/PlayerModels.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainGrid.h"
 #include "Tables/ItemSetTables.h"

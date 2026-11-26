@@ -3,7 +3,7 @@
 #include "Scenes/Emote.h"
 
 #include "Data/Models/Model.h"
-#include "Data/Models/PlayerModels.h"
+#include "Tables/PlayerModels.h"
 #include "Network/Delivery.h"
 #include "Protocol/Movement.h"
 #include "Protocol/Outgoing.h"

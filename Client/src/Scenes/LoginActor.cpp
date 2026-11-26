@@ -1,7 +1,7 @@
 #include "Scenes/LoginActor.h"
 
 #include "Core/Expected.h"
-#include "Data/Models/PlayerModels.h"
+#include "Tables/PlayerModels.h"
 #include "GameLogic/CharacterAppearance.h"
 #include "Models/Cloth.h"
 #include "Models/Animation.h"

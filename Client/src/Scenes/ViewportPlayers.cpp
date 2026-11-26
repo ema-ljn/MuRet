@@ -5,7 +5,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
-#include "Data/Models/PlayerModels.h"
+#include "Tables/PlayerModels.h"
 #include "GameLogic/CharacterAppearance.h"
 #include "Pathfinding/PathFinder.h"
 #include "Protocol/Character/Opcodes.h"

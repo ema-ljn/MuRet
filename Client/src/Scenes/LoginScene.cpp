@@ -19,7 +19,7 @@
 #include "Data/Models/Model.h"
 #include "Data/Models/ModelFiles.h"
 #include "Data/Terrain/TerrainObjects.h"
-#include "Data/Models/PlayerModels.h"
+#include "Tables/PlayerModels.h"
 #include "Data/Textures/TextureSet.h"
 #include "GameLogic/CharacterAppearance.h"
 #include "Input/InputState.h"

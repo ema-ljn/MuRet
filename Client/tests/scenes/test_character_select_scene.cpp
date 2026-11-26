@@ -9,7 +9,7 @@
 #include "Crt/CrtRandom.h"
 #include "Data/Models/Bmd.h"
 #include "Data/Models/Model.h"
-#include "Data/Models/PlayerModels.h"
+#include "Tables/PlayerModels.h"
 #include "Tables/FilterWords.h"
 #include "Input/InputState.h"
 #include "Input/Key.h"

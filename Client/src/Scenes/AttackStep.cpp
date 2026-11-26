@@ -4,7 +4,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
-#include "Data/Models/PlayerModels.h"
+#include "Tables/PlayerModels.h"
 #include "Maps/MapId.h"
 #include "Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"

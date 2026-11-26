@@ -3,7 +3,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
-#include "Data/Models/PlayerModels.h"
+#include "Tables/PlayerModels.h"
 #include "Tables/SkillTable.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Network/Delivery.h"

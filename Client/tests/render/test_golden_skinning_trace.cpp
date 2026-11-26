@@ -1,7 +1,7 @@
 #include "Data/Models/Model.h"
 #include "Data/Models/ModelFiles.h"
 #include "Data/Models/ModelTextures.h"
-#include "Data/Models/PlayerModels.h"
+#include "Tables/PlayerModels.h"
 #include "Models/Attachment.h"
 #include "Math/HalfLifeMath.h"
 #include "Models/Pose.h"

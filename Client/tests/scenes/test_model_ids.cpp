@@ -1,7 +1,7 @@
 #include "Assets/ModelIds.h"
 
 #include "Data/Models/ModelFiles.h"
-#include "Data/Models/PlayerModels.h"
+#include "Tables/PlayerModels.h"
 #include "Maps/MapId.h"
 #include "Scenes/WorldSpecialModels.h"
 

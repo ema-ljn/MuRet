@@ -1,7 +1,7 @@
 #include "Scenes/HeroSkillsTail.h"
 
 #include "Core/Expected.h"
-#include "Data/Models/PlayerModels.h"
+#include "Tables/PlayerModels.h"
 #include "Protocol/Skill.h"
 #include "Models/LogicalAccess.h"
 #include "Math/OriginalAngles.h"

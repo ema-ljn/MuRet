@@ -3,7 +3,7 @@
 #include "Core/IClock.h"
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
-#include "Data/Models/PlayerModels.h"
+#include "Tables/PlayerModels.h"
 #include "Tables/ItemTable.h"
 #include "Input/InputState.h"
 #include "Input/Key.h"

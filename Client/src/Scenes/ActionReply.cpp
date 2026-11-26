@@ -1,7 +1,7 @@
 #include "Scenes/ActionReply.h"
 
 #include "Core/Expected.h"
-#include "Data/Models/PlayerModels.h"
+#include "Tables/PlayerModels.h"
 #include "Protocol/Movement.h"
 #include "Models/Animation.h"
 #include "Models/Cloth.h"

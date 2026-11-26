@@ -1,4 +1,4 @@
-#include "Data/Models/ModelTextureCalls.h"
+#include "Tables/ModelTextureCalls.h"
 
 #include "Data/Textures/Sampling.h"
 #include "Data/Textures/TextureSet.h"

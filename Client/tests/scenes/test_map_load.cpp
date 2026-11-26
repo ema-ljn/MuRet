@@ -23,7 +23,7 @@
 #include "World/WorldObjectRegistrations.h"
 #include "World/WorldTerrain.h"
 #include "World/TerrainCulling.h"
-#include "Data/Models/PlayerModels.h"
+#include "Tables/PlayerModels.h"
 
 #include "support/FileBytes.h"
 #include "support/GoldenDir.h"

@@ -6,7 +6,7 @@
 #include "Core/Expected.h"
 #include "Core/Log.h"
 #include "Crt/CrtRandom.h"
-#include "Data/Models/PlayerModels.h"
+#include "Tables/PlayerModels.h"
 #include "Tables/GateRecord.h"
 #include "Tables/GateTable.h"
 #include "Tables/ItemSetTables.h"

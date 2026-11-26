@@ -5,7 +5,7 @@
 #include "Core/Log.h"
 #include "Core/PixelSize.h"
 #include "Crt/CrtRandom.h"
-#include "Data/Models/PlayerModels.h"
+#include "Tables/PlayerModels.h"
 #include "Tables/ItemTable.h"
 #include "Input/InputEvent.h"
 #include "Input/InputState.h"

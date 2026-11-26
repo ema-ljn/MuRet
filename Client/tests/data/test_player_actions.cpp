@@ -1,4 +1,4 @@
-#include "Data/Models/PlayerActions.h"
+#include "Tables/PlayerActions.h"
 
 #include <gtest/gtest.h>
 

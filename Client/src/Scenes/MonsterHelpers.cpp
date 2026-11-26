@@ -23,7 +23,7 @@
 #include "Scenes/MeteorEffects.h"
 #include "Scenes/WorldModelPose.h"
 #include "Scenes/WorldRuntime.h"
-#include "Data/Models/PlayerModels.h"
+#include "Tables/PlayerModels.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/WorldState.h"
 #include "Scenes/WorldMap.h"

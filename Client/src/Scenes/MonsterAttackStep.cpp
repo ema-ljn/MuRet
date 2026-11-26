@@ -2,7 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
-#include "Data/Models/PlayerModels.h"
+#include "Tables/PlayerModels.h"
 #include "Math/Angles.h"
 #include "Math/HalfLifeMath.h"
 #include "Models/LogicalAccess.h"

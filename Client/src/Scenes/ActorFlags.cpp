@@ -1,6 +1,6 @@
 #include "Scenes/ActorFlags.h"
 
-#include "Data/Models/PlayerModels.h"
+#include "Tables/PlayerModels.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/WorldMap.h"

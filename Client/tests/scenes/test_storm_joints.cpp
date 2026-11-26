@@ -5,7 +5,7 @@
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Data/Models/Model.h"
-#include "Data/Models/PlayerModels.h"
+#include "Tables/PlayerModels.h"
 #include "Math/OriginalRotation.h"
 #include "Models/Skeleton.h"
 #include "Render/TextureSlot.h"

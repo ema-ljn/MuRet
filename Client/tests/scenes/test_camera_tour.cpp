@@ -4,7 +4,7 @@
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
 #include "Crt/CrtRandom.h"
-#include "Data/Models/PlayerModels.h"
+#include "Tables/PlayerModels.h"
 #include "Models/Cloth.h"
 #include "Scenes/ActorMotion.h"
 #include "Scenes/ActorState.h"

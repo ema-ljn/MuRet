@@ -1,4 +1,4 @@
-#include "Data/Models/PlayerModels.h"
+#include "Tables/PlayerModels.h"
 
 #include "Data/Models/ModelFiles.h"
 

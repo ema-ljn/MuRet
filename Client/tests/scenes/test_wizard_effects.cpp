@@ -3,7 +3,7 @@
 
 #include "Crt/CrtRandom.h"
 #include "Data/Models/Model.h"
-#include "Data/Models/PlayerModels.h"
+#include "Tables/PlayerModels.h"
 #include "Models/Skeleton.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/ActorState.h"

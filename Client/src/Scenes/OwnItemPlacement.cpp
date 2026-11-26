@@ -3,7 +3,7 @@
 #include "Core/Expected.h"
 #include "Core/Log.h"
 #include "Crt/CrtRandom.h"
-#include "Data/Models/PlayerModels.h"
+#include "Tables/PlayerModels.h"
 #include "Tables/ItemTable.h"
 #include "Maps/MapId.h"
 #include "Models/LogicalAccess.h"

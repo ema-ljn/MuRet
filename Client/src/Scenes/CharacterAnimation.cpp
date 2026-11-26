@@ -1,7 +1,7 @@
 #include "Scenes/CharacterAnimation.h"
 
 #include "App/LoopTiming.h"
-#include "Data/Models/PlayerModels.h"
+#include "Tables/PlayerModels.h"
 #include "GameLogic/CharacterAppearance.h"
 #include "Models/Animation.h"
 #include "Models/IModelLibrary.h"

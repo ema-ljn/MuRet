@@ -8,7 +8,7 @@
 #include "Core/IClock.h"
 #include "Core/Log.h"
 #include "Core/PixelSize.h"
-#include "Data/Models/PlayerModels.h"
+#include "Tables/PlayerModels.h"
 #include "Protocol/CastleBattle.h"
 #include "Protocol/CastleSiege.h"
 #include "Protocol/Character/CharacterList.h"

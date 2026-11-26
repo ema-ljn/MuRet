@@ -25,12 +25,12 @@ namespace Client::Render
 namespace
 {
 constexpr std::int32_t MultiplicativeMode = 1;       // 620c90: ZERO / SRC_COLOR.
-constexpr std::int32_t AlphaMode = 2;                // 620a00: modo raw32, distinto de ModelBlend.
+constexpr std::int32_t AlphaMode = 2;                // 620a00: raw32 mode, distinct from ModelBlend.
 constexpr std::int32_t AdditiveMode = 3;             // 620a90.
 constexpr std::int32_t SubtractiveMode = 4;          // 620b10: ZERO / ONE_MINUS_SRC_COLOR.
 constexpr std::int32_t InverseColorAdditiveMode = 5; // 620b90.
 constexpr std::int32_t BlendedMode = 6;              // 620c10: SRC_ALPHA / ONE_MINUS_SRC_ALPHA.
-// 621320 no recibe UV: el paquete L5 siempre contiene estos cuatro literales.
+// 621320 takes no UV: the L5 package always holds these four literals.
 constexpr std::array<glm::vec2, 4> WorldQuadUv{glm::vec2{0, 1}, glm::vec2{1, 1}, glm::vec2{1, 0}, glm::vec2{0, 0}};
 IParticleDrawBackend::Result Unsupported()
 {
@@ -50,7 +50,7 @@ std::uint8_t PreserveCompatibleByte(std::uint8_t previous, std::uint8_t requeste
     return (previous != 0) == (requested != 0) ? previous : requested;
 }
 
-// Sólo lo que GlModelRenderer::SetDrawState/uniform alphaTest demuestra en el perfil actual.
+// Only what GlModelRenderer::SetDrawState/the alphaTest uniform proves in the current profile.
 Core::Expected<RasterState, std::error_code> RasterOf(ModelBlend blend)
 {
     switch (blend)
@@ -92,8 +92,8 @@ Core::Expected<ModelBlend, std::error_code> BlendOf(const ModelBatchParticleStat
     case InverseColorAdditiveMode:
         return ModelBlend::InverseColorAdditive;
     case BlendedMode:
-        // Los factores de 0x620c10 son los de BlendedShadow; el cull, la máscara, el alpha test y la textura
-        // viajan aparte en ModelDrawState.
+        // 0x620c10's factors are BlendedShadow's; cull, mask, alpha test and texture travel separately in
+        // ModelDrawState.
         return ModelBlend::BlendedShadow;
     }
     return Core::Unexpected(std::make_error_code(std::errc::function_not_supported));
@@ -109,7 +109,7 @@ ModelBatchParticleBackend::ModelBatchParticleBackend(std::reference_wrapper<Mode
 
 ModelBatchParticleBackend::~ModelBatchParticleBackend()
 {
-    // El scratch nunca se publicó: abandonar su marca no fabrica End ni borra geometría completa.
+    // The scratch was never published: dropping its mark neither fabricates End nor erases complete geometry.
     if (m_ownsPrimitive)
         m_batch.get().EndPrimitive();
 }
@@ -237,8 +237,8 @@ IParticleDrawBackend::Result ModelBatchParticleBackend::MaterialTail(bool alphaT
         if (!changed.HasValue())
             return changed;
     }
-    // 620a00/620b10 consultan una política separada de la niebla regional después de estos stores.
-    // Los stores directos de 0x07d368a0 del binario analizado la dejan en cero.
+    // 620a00/620b10 query a separate regional fog policy after these stores. The analyzed binary's direct stores to
+    // 0x07d368a0 leave it at zero.
     if (enableFog && m_state.fogPolicy != 0)
         return Unsupported();
     return {};
@@ -266,7 +266,7 @@ IParticleDrawBackend::Result ModelBatchParticleBackend::Type620850()
         return prepared;
     if (m_state.depthTest)
         return {};
-    m_state.depthTest = true; // 62085e: caché antes del glEnable(GL_DEPTH_TEST).
+    m_state.depthTest = true; // 62085e: cache before glEnable(GL_DEPTH_TEST).
     return PublishOperation(ModelStateOperation::DepthTest);
 }
 IParticleDrawBackend::Result ModelBatchParticleBackend::Type620870()
@@ -276,14 +276,14 @@ IParticleDrawBackend::Result ModelBatchParticleBackend::Type620870()
         return prepared;
     if (!m_state.depthTest)
         return {};
-    m_state.depthTest = false; // 62087e: caché antes del glDisable(GL_DEPTH_TEST).
+    m_state.depthTest = false; // 62087e: cache before glDisable(GL_DEPTH_TEST).
     return PublishOperation(ModelStateOperation::DepthTest);
 }
 
 IParticleDrawBackend::Result ModelBatchParticleBackend::TextureEnv(TextureEnvMode mode)
 {
-    // glTexEnvi entre glBegin y glEnd es un error de GL; 0x5489eb lo llama fuera del quad. No es del material:
-    // publica su propio eje sin cambiar el serial del material.
+    // glTexEnvi between glBegin and glEnd is a GL error; 0x5489eb calls it outside the quad. Not part of the material:
+    // it publishes its own axis without changing the material serial.
     if (IsDrawing())
         return Core::Unexpected(std::make_error_code(std::errc::operation_in_progress));
     m_batch.get().SetTextureEnv(mode);
@@ -299,8 +299,8 @@ IParticleDrawBackend::Result ModelBatchParticleBackend::BindTexture(std::int32_t
         return synchronized;
     if (m_state.textureSelector == selector)
         return {};
-    // 620780 escribe la clave ANTES de resolver nombre/bind. Un fallo conserva ese store y
-    // el binding anterior; un hit posterior no reintenta el lookup ni invalida por metadata.
+    // 620780 writes the key BEFORE resolving name/bind. A failure keeps that store and the previous binding; a later
+    // hit neither retries the lookup nor invalidates by metadata.
     m_state.textureSelector = selector;
     if (selector < 0)
     {
@@ -308,7 +308,7 @@ IParticleDrawBackend::Result ModelBatchParticleBackend::BindTexture(std::int32_t
         m_state.rawTextureName = std::uint32_t{0} - static_cast<std::uint32_t>(selector);
         return PublishOperation(ModelStateOperation::Binding);
     }
-    // La tabla pública conserva raw32 completo; los negativos ya tomaron la frontera NEG32.
+    // The public table keeps the full raw32; negatives already took the NEG32 boundary.
     const auto slot = m_textures.get().TextureSlotOf(static_cast<std::uint32_t>(selector));
     if (!slot)
         return Core::Unexpected(std::make_error_code(std::errc::no_such_file_or_directory));
@@ -342,8 +342,8 @@ IParticleDrawBackend::Result ModelBatchParticleBackend::SynchronizeBatch()
         return {};
     if (IsDrawing())
         return Core::Unexpected(std::make_error_code(std::errc::state_not_recoverable));
-    // Otro productor o Begin del lote no demuestra qué selector raw usó620780. Se pierde
-    // conocimiento, no se asigna un valor nativo ni se deduce la identidad desde un slot físico.
+    // Another producer or the batch's Begin does not prove which raw selector 620780 used. Knowledge is lost; no native
+    // value is assigned and no identity is inferred from a physical slot.
     m_state.textureSelector.reset();
     m_state.texture.reset();
     m_state.rawTextureName.reset();
@@ -354,8 +354,8 @@ IParticleDrawBackend::Result ModelBatchParticleBackend::SynchronizeBatch()
     if (!raster.HasValue())
         return Core::Unexpected(raster.Error());
     m_state.blendMode = raster.Value().blend;
-    // Un descriptor publica habilitación, no un byte nativo. Si el byte explícito ya representa
-    // ese estado, conservar sus bits no canónicos; sólo corregir una contradicción de capacidad.
+    // A descriptor publishes enablement, not a native byte. If the explicit byte already represents that state, keep
+    // its non-canonical bits; only fix a capability contradiction.
     m_state.cullEnabled = PreserveCompatibleByte(
         m_state.cullEnabled, static_cast<std::uint8_t>(draw.cullEnabled.value_or(raster.Value().cull != 0)));
     m_state.depthWrite = PreserveCompatibleByte(
@@ -367,7 +367,7 @@ IParticleDrawBackend::Result ModelBatchParticleBackend::SynchronizeBatch()
     m_state.depthTest = draw.depthTest;
     m_state.texture = draw.texture;
     m_state.rawTextureName = draw.rawTextureName;
-    // ModelDrawState no publica color/UV/fogPolicy ni el cache texture2d nativo: no inventarlos.
+    // ModelDrawState does not publish color/UV/fogPolicy or the native texture2d cache: do not invent them.
     m_observedSerial = serial;
     return {};
 }
@@ -413,7 +413,7 @@ IParticleDrawBackend::Result ModelBatchParticleBackend::Color3(const glm::vec3& 
     const auto checked = CheckPrimitiveState();
     if (!checked.HasValue())
         return checked;
-    // glColor3fv establece también alpha1. No recortar: lo hace el shader existente.
+    // glColor3fv also sets alpha 1. No clamping: the existing shader does it.
     m_state.color = {light.x, light.y, light.z, 1};
     return {};
 }
@@ -501,7 +501,7 @@ IParticleDrawBackend::Result ModelBatchParticleBackend::Translate(float x, float
 {
     if (IsDrawing())
         return Core::Unexpected(std::make_error_code(std::errc::operation_in_progress));
-    // M*T para este perfil de traslaciones: reutiliza el único kernel acreditado de transformación.
+    // M*T for this translation profile: reuses the only proven transform kernel.
     const glm::vec3 position = Math::OriginalVectorTransform(glm::vec3{x, y, z}, m_model);
     m_model[3] = position.x;
     m_model[7] = position.y;

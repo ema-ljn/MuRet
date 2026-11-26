@@ -35,10 +35,6 @@
 #include <utility>
 #include <vector>
 
-// Client::Render::Gl::GlFrameTarget: el frame de una escena en GL (CL5.4), en el framebuffer de
-// 64 × 64 de GlDrawTest. Limpia en negro, dibuja lo del lote en el fin del 2D y en el Present, en
-// orden, presenta una vez por frame, el texto sale de la tabla de texturas y GL no queda con un
-// error.
 namespace
 {
 using Client::Core::PixelSize;
@@ -71,10 +67,9 @@ constexpr TextureSlot WhiteSlot{0x1};
 constexpr auto Side = static_cast<float>(FramebufferSide);
 constexpr auto Half = Side / 2.0f;
 
-// El texto en blanco sobre un fondo transparente.
 constexpr TextStyle WhiteText{FontKind::Normal, TextColors{0xffffffff, 0x00000000}};
 
-// Un quad en píxeles, sin banderas: [left, right) × [bottom, top) con la y para arriba.
+// A pixel quad without flags: [left, right) × [bottom, top) with y up.
 OriginalQuad PixelQuad(float left, float bottom, float right, float top)
 {
     return OriginalQuad{.slot = WhiteSlot, .x = left, .y = Side - top, .width = right - left, .height = top - bottom};
@@ -109,7 +104,7 @@ protected:
 
     void TearDown() override
     {
-        // Ningún frame deja un error de GL para lo que sube después.
+        // No frame may leave a GL error for what uploads later.
         if (m_context)
         {
             EXPECT_EQ(Gl().getError(), static_cast<GLenum>(GL_NO_ERROR));
@@ -132,7 +127,7 @@ protected:
         return value;
     }
 
-    // El rasterizador falso, con la letra de un octavo del ancho, y los anchos con que se abrió.
+    // The fake rasterizer, with letters an eighth of the width wide, and the widths it was opened with.
     RasterizerFactory Fonts()
     {
         return [this](int screenWidth) -> Client::Core::Expected<std::unique_ptr<IGlyphRasterizer>, std::string>
@@ -142,7 +137,7 @@ protected:
         };
     }
 
-    // Lo de antes de m_target muere después: la tabla vive más que el frame y su caché.
+    // Members before m_target die after it: the table outlives the frame and its cache.
     Client::Tests::RecordingSink m_sink;
     Client::Core::Log m_log{m_sink, Client::Core::LogLevel::Debug};
     std::optional<TextureTable> m_textures;
@@ -152,7 +147,7 @@ protected:
     std::unique_ptr<GlFrameTarget> m_target;
 };
 
-// El framebuffer de GlDrawTest empieza transparente: el frame lo limpia en negro opaco.
+// GlDrawTest's framebuffer starts transparent: the frame clears it to opaque black.
 TEST_F(GlFrameTargetTest, ClearsToBlack)
 {
     ASSERT_EQ(Cells(1, 1)[0], Transparent);
@@ -163,7 +158,6 @@ TEST_F(GlFrameTargetTest, ClearsToBlack)
     EXPECT_EQ(Cells(2, 2), (std::vector<std::optional<Rgba8>>(4, Black)));
 }
 
-// Lo del lote sale en el Present, no antes, y el Present presenta una vez.
 TEST_F(GlFrameTargetTest, DrawsTheBatchOnPresent)
 {
     SceneCanvas& canvas = m_target->BeginFrame(std::chrono::milliseconds{40});
@@ -177,8 +171,7 @@ TEST_F(GlFrameTargetTest, DrawsTheBatchOnPresent)
     EXPECT_EQ(m_presents, 1);
 }
 
-// El fin del 2D dibuja lo de antes y vacía el lote con su estado: el color rojo sigue, y lo de
-// después va encima.
+// The end of the 2D empties the batch but keeps its state: the red color stays, and what comes after goes on top.
 TEST_F(GlFrameTargetTest, TheEndOfTheTwoDimensionsDrawsWhatCameBefore)
 {
     SceneCanvas& canvas = m_target->BeginFrame(std::chrono::milliseconds{40});
@@ -196,7 +189,6 @@ TEST_F(GlFrameTargetTest, TheEndOfTheTwoDimensionsDrawsWhatCameBefore)
     EXPECT_EQ(m_presents, 1);
 }
 
-// El fin del pase 3D dibuja los modelos con su profundidad, y el 2D que sigue va encima (CL6.3).
 TEST_F(GlFrameTargetTest, TheEndOfTheModelsDrawsThePassAndTheTwoDGoesOver)
 {
     SceneCanvas& canvas = m_target->BeginFrame(std::chrono::milliseconds{40});
@@ -236,7 +228,7 @@ TEST_F(GlFrameTargetTest, StateOnlyModelCommandsReachGlWhenTheBatchHasNoVertices
     m_target->Present();
 }
 
-// 548a06/548a4a: el restore posterior al último dibujo también llega al shader.
+// 548a06/548a4a: the restore after the last draw also reaches the shader.
 TEST_F(GlFrameTargetTest, TrailingTextureEnvRestoreReachesGlThroughAnEmptyContinuation)
 {
     SceneCanvas& canvas = m_target->BeginFrame(std::chrono::milliseconds{40});
@@ -334,8 +326,8 @@ TEST_F(GlFrameTargetTest, ContinuationKeepsPartialMaterialAndANewWorldPassRestor
     m_target->Present();
 }
 
-// La mezcla aditiva deja la máscara de la profundidad apagada, y el glClear de la profundidad la
-// respeta: el frame siguiente la limpia igual, y un modelo más lejos que el de antes se dibuja.
+// The additive blend leaves the depth mask off, and the depth glClear honors it: the next frame clears it anyway, and a
+// model farther than the previous one is drawn.
 TEST_F(GlFrameTargetTest, EachFrameClearsTheDepth)
 {
     SceneCanvas& first = m_target->BeginFrame(std::chrono::milliseconds{40});
@@ -356,7 +348,6 @@ TEST_F(GlFrameTargetTest, EachFrameClearsTheDepth)
     EXPECT_EQ(Cells(1, 1)[0], White);
 }
 
-// El lienzo trae el reloj y la pantalla del frame.
 TEST_F(GlFrameTargetTest, TheCanvasHasTheClockAndTheScreen)
 {
     const SceneCanvas& canvas = m_target->BeginFrame(std::chrono::milliseconds{1234});
@@ -368,8 +359,7 @@ TEST_F(GlFrameTargetTest, TheCanvasHasTheClockAndTheScreen)
     m_target->Present();
 }
 
-// El texto sube su caja a la tabla de las escenas y sale con el lote: la primera letra (la tinta
-// de 3 × 4 arriba a la izquierda del rasterizador falso) queda en blanco.
+// The first letter (the fake rasterizer's 3 × 4 ink at the top left) comes out white.
 TEST_F(GlFrameTargetTest, DrawsTheTextFromTheTable)
 {
     SceneCanvas& canvas = m_target->BeginFrame(std::chrono::milliseconds{40});
@@ -383,7 +373,6 @@ TEST_F(GlFrameTargetTest, DrawsTheTextFromTheTable)
     EXPECT_TRUE(m_sink.lines.empty());
 }
 
-// Las fuentes son las del ancho de cada frame: con otra pantalla, otras.
 TEST_F(GlFrameTargetTest, TheFontsFollowTheScreenWidth)
 {
     const SceneCanvas& first = m_target->BeginFrame(std::chrono::milliseconds{40});

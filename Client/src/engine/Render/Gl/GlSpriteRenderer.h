@@ -12,24 +12,20 @@
 #include <set>
 #include <string>
 
-// El SpriteBatch de un frame en GL (CL5.2): sube sus vértices una vez y corre sus tramos en orden,
-// cada uno con un glDrawArrays, la mezcla de 0x620a00 o 0x620a90, la textura de su slot (o ninguna)
-// y el alpha test del original, el glAlphaFunc(GL_GREATER, 0,25) que el shader hace con un discard
-// (06 § Primitivas 2D). Prende la mezcla y la deja prendida, como esas dos funciones, y apaga la
-// profundidad y el culling que deja un pase 3D (0x6219b0 → 0x620870). Se mueve y no se copia, y
-// necesita el contexto vivo.
+// Draws a frame's SpriteBatch ranges in order, each with 0x620a00's or 0x620a90's blend, its slot's texture (or none)
+// and the original's glAlphaFunc(GL_GREATER, 0.25) as a shader discard (06 § Primitivas 2D). Leaves the blend on, like
+// those two functions, and turns off the depth and culling a 3D pass leaves (0x6219b0 → 0x620870). Needs a live
+// context.
 namespace Client::Render::Gl
 {
 class OPENGL_API GlSpriteRenderer
 {
 public:
-    // El pipeline de GlRenderer: el error trae el log del compilador de GLSL o el uniform que
-    // falta.
+    // The error carries the GLSL compiler log or the missing uniform.
     [[nodiscard]] static Core::Expected<GlSpriteRenderer, std::string> Create(const Platform::Sdl::GlFunctions& gl);
 
-    // Dibuja `batch` en el framebuffer que esté atado, con el viewport y la matriz de su pantalla.
-    // Un tramo con un slot que `textures` no tiene no se dibuja, y el slot sale una vez en `log`
-    // como aviso: el lote se dibuja en cada frame, y avisar en cada uno llenaría el log.
+    // Into the bound framebuffer. A range whose slot `textures` lacks is skipped and its slot is warned once in `log`:
+    // the batch is drawn every frame, and warning in each one would flood the log.
     void Draw(const SpriteBatch& batch, const TextureTable& textures, Core::Log& log);
 
 private:
@@ -37,7 +33,6 @@ private:
 
     const Platform::Sdl::GlFunctions* m_gl;
     GlRenderer m_renderer;
-    // Los slots que ya se avisaron.
     std::set<std::uint16_t> m_warnedSlots;
 };
 } // namespace Client::Render::Gl

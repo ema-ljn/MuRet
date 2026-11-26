@@ -5,13 +5,11 @@
 #include "Render/QuadCorner.h"
 #include "Render/TextureSlot.h"
 
-// El quad de 0x622000, el de la arena que corre en el login (06 § Primitivas 2D y § El login, el
-// dibujo): el de 0x621b60 siempre escalado desde 640 × 480, sin alfa, y con la v corrida un cuarto
-// de dv del lado izquierdo, así que la textura se inclina. Lo arma el SpriteBatch.
+// 0x622000's quad, the login's running sand (06 § Primitivas 2D and § El login, el dibujo): 0x621b60's, always scaled
+// from 640 × 480, without alpha, and with the left side's v shifted a quarter of dv, so the texture slants.
 namespace Client::Render
 {
-// Los nueve argumentos de 0x622000, en su orden: 0x622000(slot, x, y, w, h, u, v, du, dv), con x,
-// y, w y h en 640 × 480.
+// 0x622000's nine arguments in order: 0x622000(slot, x, y, w, h, u, v, du, dv), with x, y, w and h in 640 × 480.
 struct OriginalSkewedQuad
 {
     TextureSlot slot{};
@@ -25,8 +23,8 @@ struct OriginalSkewedQuad
     float dv = 1.0f;
 };
 
-// Las cuatro esquinas de 0x622000: las posiciones de 0x621b60 con las dos banderas prendidas, y las
-// UV (u, v + 0,25 dv), (u, v + 0,75 dv), (u + du, v + dv) y (u + du, v). La de abajo a la izquierda
-// sale de v + dv sin redondear menos 0,25 dv (0x6220b7..0x6220c2), no de v + 0,75 dv.
+// 0x622000's corners: 0x621b60's positions with both flags on, and UVs (u, v + 0.25 dv), (u, v + 0.75 dv),
+// (u + du, v + dv) and (u + du, v). Bottom left comes from the unrounded v + dv minus 0.25 dv (0x6220b7..0x6220c2),
+// not from v + 0.75 dv.
 [[nodiscard]] ENGINE_API QuadCorners SkewedFanCorners(const OriginalSkewedQuad& quad, Core::PixelSize screen);
 } // namespace Client::Render

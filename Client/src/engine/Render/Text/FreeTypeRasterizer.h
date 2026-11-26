@@ -12,30 +12,24 @@
 #include <string>
 #include <string_view>
 
-// El texto con FreeType (pregunta 7 del plan de la CL5): lo más cerca de las fuentes de GDI sin
-// suavizado (NONANTIALIASED_QUALITY) que hay fuera de Windows. Cada letra se carga con el hinting
-// de TrueType para un bit (FT_LOAD_TARGET_MONO) y se rasteriza en un bit (FT_RENDER_MODE_MONO),
-// con el intérprete v35, el del rasterizador de Windows 98 (no el v40 que FreeType usa por
-// defecto, que en mono deja todo al programa de la fuente y es otro). Píxel a píxel no es GDI: el
-// alto de la celda, el peso y que no haya suavizado sí (Q-C76).
+// FreeType text, the closest thing outside Windows to GDI's fonts without antialiasing (NONANTIALIASED_QUALITY): each
+// letter is loaded with TrueType one-bit hinting (FT_LOAD_TARGET_MONO) and rendered in one bit (FT_RENDER_MODE_MONO)
+// with the v35 interpreter, Windows 98's rasterizer's (not FreeType's default v40, which in mono leaves everything to
+// the font program). Not GDI pixel for pixel, but the cell height, the weight and no antialiasing match (Q-C76).
 //
-// - Las cuatro fuentes de FontSet.h, con el alto de FontHeightFor para el ancho de la pantalla: el
-//   alto de la celda (ascenso más descenso), que es lo que pide CreateFontA con un alto positivo.
-// - La negrita sale de `bold`, si se da; si no, de la normal ensanchada un píxel
-//   (FT_Outline_EmboldenXY) con un píxel más de avance por letra, como la negrita que GDI simula
-//   cuando no hay una cara negrita (*inferido*).
-// - Cada byte del texto se decodifica como Windows-1252 antes de cargar el glifo: Text.bmd es de un
-//   byte por letra (Q-C67; 12-codificacion.md). Sin kerning, como GetTextExtentPointA.
-// - Solo el contorno: no usa los bitmaps que traiga la fuente (FT_LOAD_NO_BITMAP).
+// - Bold comes from `bold` if given; otherwise from the regular one widened one pixel (FT_Outline_EmboldenXY) with one
+//   more advance pixel per letter, like the bold GDI simulates when there is no bold face (*inferred*).
+// - Each byte is decoded as Windows-1252 before loading the glyph: Text.bmd is one byte per letter (Q-C67;
+//   12-codificacion.md). No kerning, like GetTextExtentPointA.
+// - Outlines only: the font's own bitmaps are not used (FT_LOAD_NO_BITMAP).
 //
-// FreeType es de la FTL (el crédito va en el README del cliente). Sus headers no salen de acá.
+// FreeType is under the FTL (credited in the client README). Its headers do not leave here.
 namespace Client::Render::Text
 {
 class ENGINE_API FreeTypeRasterizer final : public IGlyphRasterizer
 {
 public:
-    // Abre las fuentes para una pantalla de `screenWidth` de ancho. Error con la ruta si un archivo
-    // no se puede leer o FreeType no lo abre, o si una fuente no da letras de un bit.
+    // Error with the path if a file cannot be read or FreeType does not open it, or if a font gives no one-bit letters.
     [[nodiscard]] static Core::Expected<std::unique_ptr<FreeTypeRasterizer>, std::string>
     Open(const std::filesystem::path& regular, const std::optional<std::filesystem::path>& bold, int screenWidth);
 
@@ -48,11 +42,11 @@ public:
     [[nodiscard]] TextExtent Measure(FontKind font, std::string_view text) const override;
     void DrawInk(FontKind font, std::string_view text, int firstColumn, InkMask ink) const override;
 
-    // La versión del intérprete de TrueType que quedó en FreeType: 35.
+    // The TrueType interpreter version FreeType ended up with: 35.
     [[nodiscard]] unsigned InterpreterVersion() const;
 
-    // Los píxeles del em de la fuente (y_ppem) a su alto. La celda de CreateFontA es el ascenso
-    // más el descenso, que en una fuente de texto pasan del em: el em queda más chico que la celda.
+    // The font's em pixels (y_ppem) at its height. CreateFontA's cell is the ascent plus the descent, which in a text
+    // font exceed the em: the em is smaller than the cell.
     [[nodiscard]] int PixelsPerEm(FontKind font) const;
 
 private:

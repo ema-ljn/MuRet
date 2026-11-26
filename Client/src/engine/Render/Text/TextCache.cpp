@@ -30,7 +30,7 @@ namespace Client::Render::Text
 {
 namespace
 {
-// Las cajas de un texto de `width` columnas: una por cada 256, la última con lo que sobra.
+// One box per 256 columns, the last with the remainder.
 std::size_t BoxesFor(int width)
 {
     if (width <= 0)
@@ -40,7 +40,6 @@ std::size_t BoxesFor(int width)
     return static_cast<std::size_t>((width + TextBoxWidth - 1) / TextBoxWidth);
 }
 
-// Si un tramo de `batch` dibuja con una de `boxes`.
 bool BatchUses(const SpriteBatch& batch, const std::vector<TextureSlot>& boxes)
 {
     return std::ranges::any_of(batch.Commands(),
@@ -49,7 +48,7 @@ bool BatchUses(const SpriteBatch& batch, const std::vector<TextureSlot>& boxes)
                                });
 }
 
-// Los slots de la caché que entran en un std::uint16_t desde `firstSlot`.
+// The cache slots from `firstSlot` that fit in a std::uint16_t.
 std::size_t SlotsThatFit(TextureSlot firstSlot, std::size_t slotCount)
 {
     const std::size_t room = std::size_t{std::numeric_limits<std::uint16_t>::max()} + 1 - firstSlot.value;
@@ -61,8 +60,8 @@ TextCache::TextCache(const IGlyphRasterizer& rasterizer, ITextureStore& store, T
                      std::size_t slotCount)
     : m_rasterizer(&rasterizer), m_store(&store), m_slotCount(SlotsThatFit(firstSlot, slotCount))
 {
-    // Una pila: el de atrás es el próximo que se da. Arranca con el primero atrás, así los slots
-    // salen en orden, y uno que se suelta es el próximo que se da.
+    // A stack: the back is the next one given. It starts with the first at the back, so slots come out in order, and a
+    // released one is the next given.
     m_freeSlots.reserve(m_slotCount);
     for (std::size_t i = m_slotCount; i > 0; --i)
     {
@@ -102,7 +101,7 @@ Core::Expected<void, std::string> TextCache::DrawClippedAtLeft(SpriteBatch& batc
     {
         return {};
     }
-    // 0x4670f9..0x46711c: el ancho es cx + x, en 0 si da negativo, y la x pasa a 0.
+    // 0x4670f9..0x46711c: the width is cx + x, 0 if negative, and x becomes 0.
     if (m_rasterizer->Measure(style.font, text).width + x <= 0)
     {
         return {};
@@ -119,12 +118,12 @@ Core::Expected<void, std::string> TextCache::DrawClippedAtLeft(SpriteBatch& batc
 Core::Expected<void, std::string> TextCache::DrawColumns(SpriteBatch& batch, int x, int y, std::string_view text,
                                                          const TextStyle& style, int firstColumn, int columns)
 {
-    // 0x4671b4..0x4671cf: con menos de 0 columnas, el rep stos de la limpieza del DIB lleva 3 · columnas / 4 en ecx,
-    // que sin signo es enorme.
+    // 0x4671b4..0x4671cf: below 0 columns, the rep stos clearing the DIB gets 3 · columns / 4 in ecx, which unsigned is
+    // huge.
     if (columns < 0)
         return Core::Unexpected(
             std::format("0x4671cf: la caja de {} columnas: el rep stos limpiaría fuera del DIB", columns));
-    // 0x467289: sin columnas no hay tramos.
+    // 0x467289: no columns, no pieces.
     if (columns == 0)
         return {};
     const Core::Expected<Entries::iterator, std::string> found =
@@ -237,7 +236,7 @@ Core::Expected<TextCache::Entries::iterator, std::string> TextCache::Find(const 
 {
     if (const auto indexed = m_index.find(key); indexed != m_index.end())
     {
-        // El que se dibuja pasa adelante. splice no mueve el nodo: el índice sigue valiendo.
+        // The drawn one moves to the front. splice does not move the node: the index stays valid.
         m_entries.splice(m_entries.begin(), m_entries, indexed->second);
         return indexed->second;
     }
@@ -245,20 +244,20 @@ Core::Expected<TextCache::Entries::iterator, std::string> TextCache::Find(const 
     const bool boxed = key.box.width > 0;
     TextExtent extent = m_rasterizer->Measure(key.font, key.text);
     extent.width = std::max(extent.width - key.skipped, 0);
-    // 0x4670ba..0x4670d0: el alto de un texto vacío es el de "0".
+    // 0x4670ba..0x4670d0: an empty text's height is that of "0".
     if (key.columns > 0)
         extent = TextExtent{.width = key.columns,
                             .height = m_rasterizer->Measure(key.font, key.text.empty() ? "0" : key.text).height};
     if (boxed)
         extent = TextExtent{.width = key.box.width, .height = key.box.rows};
-    // La caja de un globo es una sola: el quad muestra más de 256 columnas con la última repetida.
+    // A bubble's box is a single one: the quad shows more than 256 columns by repeating the last.
     const std::size_t boxes = boxed ? 1 : BoxesFor(extent.width);
     if (boxes > m_slotCount)
     {
         return Core::Unexpected(std::format("el texto pide {} cajas y la caché tiene {} slots", boxes, m_slotCount));
     }
-    // Con menos slots libres que cajas hay alguno ocupado, así que hay una entrada atrás. Si esa ya
-    // está en el lote, las de adelante se dibujaron después, en el mismo frame: no se busca más.
+    // With fewer free slots than boxes some slot is taken, so there is an entry at the back. If it is already in the
+    // batch, the ones ahead were drawn later in the same frame: stop looking.
     while (m_freeSlots.size() < boxes)
     {
         if (BatchUses(batch, m_entries.back().boxes))
@@ -295,7 +294,7 @@ Core::Expected<TextCache::Entries::iterator, std::string> TextCache::Find(const 
             PaintTextBox(*m_rasterizer, style, key.text, drawnColumn,
                          std::min(TextBoxWidth, extent.width - firstColumn), rows,
                          TextBoxPixels(texture.pixels.data(), TextBoxBytes));
-        // Como 0x63bd00 sube la FontInput.tga del slot 0: GL_NEAREST y GL_CLAMP.
+        // Like 0x63bd00 uploads FontInput.tga in slot 0: GL_NEAREST and GL_CLAMP.
         textures.push_back(Data::Textures::LoadedTexture{
             slot.value, Data::Textures::Sampling{Data::Textures::Filter::Nearest, Data::Textures::Wrap::Clamp},
             std::move(texture)});
@@ -303,7 +302,7 @@ Core::Expected<TextCache::Entries::iterator, std::string> TextCache::Find(const 
 
     if (const Core::Expected<void, std::string> loaded = m_store->Load(textures); !loaded.HasValue())
     {
-        // Las que sí subió quedan en la tabla: se sueltan, y los slots vuelven a la pila.
+        // The ones it did upload stay in the table: release them, and their slots go back to the stack.
         for (auto slot = entry.boxes.rbegin(); slot != entry.boxes.rend(); ++slot)
         {
             m_store->Release(*slot);
@@ -327,7 +326,7 @@ void TextCache::EvictOldest()
     }
     const Entry& oldest = m_entries.back();
     m_index.erase(Key{oldest.font, oldest.colors, oldest.text, oldest.skipped, oldest.box, oldest.columns});
-    // Al revés, para que la pila los vuelva a dar en el orden en que estaban.
+    // Reversed, so the stack gives them back in their order.
     for (auto slot = oldest.boxes.rbegin(); slot != oldest.boxes.rend(); ++slot)
     {
         m_store->Release(*slot);

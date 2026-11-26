@@ -23,10 +23,10 @@ namespace Client::Render
 {
 namespace
 {
-// El fan (0, 1, 2, 3) de un quad son los triángulos (0, 1, 2) y (0, 2, 3): seis vértices por quad.
+// A quad's fan (0, 1, 2, 3) is triangles (0, 1, 2) and (0, 2, 3): six vertices per quad.
 constexpr std::array<std::size_t, 6> FanTriangles{0, 1, 2, 0, 2, 3};
 
-// Un canal como lo usa la función fija: recortado a [0, 1].
+// Clamped to [0, 1], as the fixed function uses a channel.
 float Clamped(float channel)
 {
     return std::clamp(channel, 0.0f, 1.0f);
@@ -57,8 +57,7 @@ void SpriteBatch::Begin(Core::PixelSize screen)
 
 void SpriteBatch::SetBlend(BlendMode blend)
 {
-    // 0x620a00 y 0x620a90 cambian la mezcla solo si es otra, pero el alpha test y GL_TEXTURE_2D los
-    // ponen siempre.
+    // 0x620a00 and 0x620a90 change the blend only if it differs, but always set the alpha test and GL_TEXTURE_2D.
     m_blend = blend;
     m_textureOn = true;
     m_alphaTest = blend == BlendMode::Alpha;
@@ -66,8 +65,8 @@ void SpriteBatch::SetBlend(BlendMode blend)
 
 void SpriteBatch::SetBlendWithoutAlphaTest()
 {
-    // 0x620c10: el modo 6 en 0x7d366dc con los factores de 0x620a00, 0x6208f0, 0x6208b0 (glDepthMask(0), que el 2D no
-    // usa), glDisable(GL_ALPHA_TEST) y glEnable(GL_TEXTURE_2D).
+    // 0x620c10: mode 6 at 0x7d366dc with 0x620a00's factors, 0x6208f0, 0x6208b0 (glDepthMask(0), which the 2D does not
+    // use), glDisable(GL_ALPHA_TEST) and glEnable(GL_TEXTURE_2D).
     m_blend = BlendMode::Alpha;
     m_textureOn = true;
     m_alphaTest = false;
@@ -90,8 +89,8 @@ void SpriteBatch::SetColor(Color color)
 
 void SpriteBatch::Quad(const OriginalQuad& quad)
 {
-    // 0x621c3f..0x621ca4: con el alfa en más de 0, glColor4f(1, 1, 1, alfa) antes de cada vértice y
-    // glColor4f(1, 1, 1, 1) después (Q-C57).
+    // 0x621c3f..0x621ca4: with alpha above 0, glColor4f(1, 1, 1, alpha) before each vertex and glColor4f(1, 1, 1, 1)
+    // after (Q-C57).
     if (quad.alpha > 0.0f)
     {
         const Color vertexColor = Clamped(Color{.alpha = quad.alpha});
@@ -109,10 +108,10 @@ void SpriteBatch::SkewedQuad(const OriginalSkewedQuad& quad)
 
 void SpriteBatch::ColorQuad(float x, float y, float width, float height)
 {
-    // 0x620910(0): sin textura y sin alpha test, hasta que alguien los vuelva a prender (Q-C75).
+    // 0x620910(0): no texture and no alpha test, until someone turns them back on (Q-C75).
     m_textureOn = false;
     m_alphaTest = false;
-    // 0x621aa0 hace las cuentas de 0x621b60 con las dos banderas, y no manda UV.
+    // 0x621aa0 does 0x621b60's math with both flags, and sends no UV.
     const OriginalQuad rectangle{.x = x,
                                  .y = y,
                                  .width = width,
@@ -126,8 +125,7 @@ void SpriteBatch::ColorQuad(float x, float y, float width, float height)
 
 void SpriteBatch::Image(const UiImage& image)
 {
-    // 0x647650: GL_TEXTURE_2D prendido con un slot y apagado sin él, y glColor4ub con el suyo, que
-    // queda (Q-C75).
+    // 0x647650: GL_TEXTURE_2D on with a slot and off without one, and glColor4ub with its color, which stays (Q-C75).
     m_textureOn = image.slot.has_value();
     m_color = Clamped(image.color);
     Append(UiImageCorners(image, m_screen), FourOf(m_color), image.slot);
@@ -135,13 +133,13 @@ void SpriteBatch::Image(const UiImage& image)
 
 void SpriteBatch::RotatedQuad(TextureSlot slot, float x, float y, float width, float height, float degrees)
 {
-    // 0x621cc0..0x621d31: el centro y el tamaño en píxeles, con la y dada vuelta (H − y en la x87).
+    // 0x621cc0..0x621d31: the center and size in pixels, with y flipped (H − y on the x87).
     const float centerX = ScaleX(x, m_screen);
     const float centerY = F32(static_cast<double>(m_screen.height) - static_cast<double>(ScaleY(y, m_screen)));
     const float pixelWidth = ScaleX(width, m_screen);
     const float pixelHeight = ScaleY(height, m_screen);
-    // 0x621d34..0x621d82: las esquinas (−w/2, h/2), (−w/2, −h/2), (w/2, −h/2) y (w/2, h/2), con el −0,5 de
-    // 0x6ba298 y el 0,5 de 0x6b882c, y z en 0.
+    // 0x621d34..0x621d82: corners (−w/2, h/2), (−w/2, −h/2), (w/2, −h/2) and (w/2, h/2), with 0x6ba298's −0.5 and
+    // 0x6b882c's 0.5, and z at 0.
     const float left = F32(static_cast<double>(pixelWidth) * -0.5);
     const float right = F32(static_cast<double>(pixelWidth) * 0.5);
     const float top = F32(static_cast<double>(pixelHeight) * 0.5);
@@ -153,7 +151,7 @@ void SpriteBatch::RotatedQuad(TextureSlot slot, float x, float y, float width, f
     QuadCorners corners{};
     for (std::size_t k = 0; k < corners.size(); ++k)
     {
-        // 0x621de3..0x621e01: cada esquina girada (0x5fcbd0), más el centro.
+        // 0x621de3..0x621e01: each corner rotated (0x5fcbd0), plus the center.
         const glm::vec3 rotated = Math::OriginalVectorRotate(local[k], spin);
         corners[k] = QuadCorner{.x = F32(static_cast<double>(centerX) + static_cast<double>(rotated.x)),
                                 .y = F32(static_cast<double>(centerY) + static_cast<double>(rotated.y)),
@@ -181,7 +179,7 @@ std::span<const DrawCommand> SpriteBatch::Commands() const
 void SpriteBatch::Append(const QuadCorners& corners, const std::array<Color, 4>& colors,
                          std::optional<TextureSlot> texture)
 {
-    // Con GL_TEXTURE_2D apagado, la textura atada no se usa (Q-C75).
+    // With GL_TEXTURE_2D off, the bound texture is unused (Q-C75).
     const std::optional<TextureSlot> used = m_textureOn ? texture : std::nullopt;
     const std::size_t first = m_vertices.size();
     for (const std::size_t corner : FanTriangles)

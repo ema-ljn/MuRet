@@ -10,8 +10,7 @@
 #include <string>
 #include <string_view>
 
-// Client::Render::Gl::GlShader: compilar y enlazar el GLSL 330 del 2D (Shaders.h), y lo que dice
-// cuando no compila o no enlaza. El log es el del driver: los tests miran de quién es, no qué dice.
+// The log is the driver's: the tests check whose it is, not what it says.
 namespace
 {
 using Client::Render::Gl::GlShader;
@@ -20,7 +19,7 @@ using Client::Render::Gl::SpriteVertexShader;
 
 using GlShaderTest = Client::Tests::GlTest;
 
-// Un vertex shader que nombra una variable que no existe: no compila.
+// Names a variable that does not exist: does not compile.
 constexpr std::string_view BrokenVertexShader = R"(#version 330 core
 void main()
 {
@@ -28,7 +27,7 @@ void main()
 }
 )";
 
-// Uno que compila y le pasa a la etapa siguiente un vec2.
+// Compiles and hands a vec2 to the next stage.
 constexpr std::string_view HandoverVertexShader = R"(#version 330 core
 out vec2 handover;
 void main()
@@ -38,8 +37,7 @@ void main()
 }
 )";
 
-// Un fragment shader que lee la misma salida como un vec3: los dos compilan, pero los tipos no
-// coinciden y el programa no enlaza.
+// Reads the same output as a vec3: both compile, but the types differ and the program does not link.
 constexpr std::string_view MismatchedFragmentShader = R"(#version 330 core
 in vec3 handover;
 out vec4 color;
@@ -49,14 +47,13 @@ void main()
 }
 )";
 
-// El error empieza con `prefix` y trae algo después: el log de GL.
+// The error starts with `prefix` and carries something after it: GL's log.
 void ExpectLogAfter(const std::string& error, std::string_view prefix)
 {
     EXPECT_TRUE(error.starts_with(prefix)) << error;
     EXPECT_GT(error.size(), prefix.size()) << error;
 }
 
-// El shader del 2D compila y enlaza, y tiene la matriz que le pone GlRenderer.
 TEST_F(GlShaderTest, CompilesTheSpriteShader)
 {
     const Client::Core::Expected<GlShader, std::string> shader =
@@ -67,7 +64,6 @@ TEST_F(GlShaderTest, CompilesTheSpriteShader)
     EXPECT_EQ(Gl().getError(), static_cast<GLenum>(GL_NO_ERROR));
 }
 
-// El error dice cuál de los dos no compiló y trae el log de glGetShaderInfoLog.
 TEST_F(GlShaderTest, ABadShaderSaysItsLog)
 {
     const Client::Core::Expected<GlShader, std::string> vertex =
@@ -81,7 +77,6 @@ TEST_F(GlShaderTest, ABadShaderSaysItsLog)
     ExpectLogAfter(fragment.Error(), "no compiló el fragment shader: ");
 }
 
-// Los dos compilan y no enlazan: el error trae el log de glGetProgramInfoLog.
 TEST_F(GlShaderTest, ABadLinkSaysItsLog)
 {
     const Client::Core::Expected<GlShader, std::string> shader =

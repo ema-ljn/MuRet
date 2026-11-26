@@ -8,43 +8,41 @@
 #include <system_error>
 namespace Client::Render
 {
-// Fronteras obligatorias del contexto, sin estado inicial ni implementaciones vacías.
-// D3 debe aportar caches/binder raw32 y envío real: esta interfaz no acredita GL productivo.
+// Mandatory context boundaries, with no initial state or empty implementations. D3 must supply the raw32
+// caches/binder and the real submission: this interface does not prove production GL.
 class IParticleDrawBackend
 {
 public:
     using Result = Core::Expected<void, std::error_code>;
     virtual ~IParticleDrawBackend() = default;
-    [[nodiscard]] virtual Result Additive() = 0;          // 620a90 completo.
-    [[nodiscard]] virtual Result AlphaInheritDepth() = 0; // 620a00(raw0), sin forzar máscara.
-    // Cuerpo propio620b10: prefijo modo4/blend; dos helpers OPACOS, en orden; cola alpha/textura/fog.
-    // Prefix/Tail deben releer su estado en el momento acreditado, no usar snapshot entre helpers.
-    // Prefix: si modo32!=4, store4 antes de enableBLEND y factoresZERO/ONE_MINUS_SRC_COLOR;
-    // un hit omite ambos calls. Tail: alpha no0→store0/disable, textura0→store1/enable,
-    // fog no0→enable sin store; cada lectura ocurre después de las fronteras anteriores.
-    // Los dos helpers siguientes siguen opacos: no sustituirlos por efectos supuestos.
+    [[nodiscard]] virtual Result Additive() = 0;          // 620a90, complete.
+    [[nodiscard]] virtual Result AlphaInheritDepth() = 0; // 620a00(raw0), without forcing the mask.
+    // 620b10's own body: mode-4/blend prefix; two OPAQUE helpers in order (never replace them with assumed effects);
+    // alpha/texture/fog tail. Prefix and Tail reread their state after the previous boundaries, never a snapshot across
+    // helpers. Prefix: if mode32 != 4, store 4 before enabling BLEND and factors ZERO/ONE_MINUS_SRC_COLOR; a hit skips
+    // both calls. Tail: alpha nonzero → store 0/disable, texture 0 → store 1/enable, fog nonzero → enable without
+    // store.
 
     [[nodiscard]] virtual Result SubtractivePrefix() = 0;
     [[nodiscard]] virtual Result Helper6208f0() = 0;
     [[nodiscard]] virtual Result Helper6208b0() = 0;
     [[nodiscard]] virtual Result SubtractiveTail() = 0;
-    // 0x620c10: el mismo cuerpo con el modo 6 y los factores SRC_ALPHA / ONE_MINUS_SRC_ALPHA; la cola es la de
-    // 0x620b10.
+    // 0x620c10: the same body with mode 6 and factors SRC_ALPHA / ONE_MINUS_SRC_ALPHA; the tail is 0x620b10's.
     [[nodiscard]] virtual Result BlendedPrefix() = 0;
     [[nodiscard]] virtual Result BlendedTail() = 0;
     [[nodiscard]] virtual Result Type620850() = 0;
     [[nodiscard]] virtual Result Type620870() = 0;
-    // glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, modo), fuera de un quad: 0x5489eb lo pone en GL_ADD antes de
-    // 0x620c10 y lo devuelve a GL_MODULATE después del billboard.
+    // glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, mode), outside a quad: 0x5489eb sets GL_ADD before 0x620c10 and
+    // restores GL_MODULATE after the billboard.
     [[nodiscard]] virtual Result TextureEnv(TextureEnvMode mode) = 0;
-    // 620780: selector32 es la clave; hit/miss/nombre/NEG32 pertenecen al contexto durable D3.
+    // 620780: selector32 is the key; hit/miss/name/NEG32 belong to the durable D3 context.
     [[nodiscard]] virtual Result BindTexture(std::int32_t selector) = 0;
     [[nodiscard]] virtual Result Begin() = 0;
     [[nodiscard]] virtual Result Color3(const glm::vec3& light) = 0;
     [[nodiscard]] virtual Result Color4(const Color& color) = 0;
     [[nodiscard]] virtual Result TexCoord(glm::vec2 uv) = 0;
     [[nodiscard]] virtual Result Vertex(const glm::vec3& position) = 0;
-    // No publicar un quad incompleto si una frontera anterior falló; tampoco simular rollback.
+    // Never publish an incomplete quad if an earlier boundary failed; never simulate a rollback either.
     [[nodiscard]] virtual Result End() = 0;
 };
 } // namespace Client::Render

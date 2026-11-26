@@ -20,8 +20,7 @@ namespace
 {
 using Math::F32;
 
-// 0x5fccc0: el punto por la matriz de 3 × 4, cada componente en 53 bits con el orden de sus sumas, más
-// la traslación.
+// 0x5fccc0: the point times the 3 × 4 matrix plus the translation, each component in 53 bits with its sums' order.
 glm::vec3 VectorTransform(const glm::vec3& v, const Math::OriginalMatrix& m)
 {
     const auto at = [&m](std::size_t k) { return static_cast<double>(m[k]); };
@@ -55,12 +54,12 @@ std::array<BillboardCorner, 4> MakeBillboardGeometry(const Math::OriginalMatrix&
                                                      glm::vec2 uvSize)
 {
     const glm::vec3 eye = VectorTransform(position, view);
-    // El medio ancho queda en la x87 (exacto) y también se guarda en float; el medio alto, en float.
+    // The half width stays on the x87 stack (exact) and is also stored as float; the half height, as float.
     const double halfWidth = static_cast<double>(width) * Half;
     const float halfWidthFloat = F32(halfWidth);
     const float halfHeight = F32(static_cast<double>(height) * Half);
     std::array<BillboardCorner, 4> corners{};
-    // 621451–62145c: TEST AH,40 toma la ruta sin giro también para unordered.
+    // 621451–62145c: TEST AH,40 also takes the no-rotation path for unordered.
     if (rotation == 0.0f || std::isnan(rotation))
     {
         const float left = F32(static_cast<double>(eye.x) - halfWidth);

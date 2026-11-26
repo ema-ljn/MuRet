@@ -9,8 +9,6 @@
 #include <string>
 #include <type_traits>
 
-// Client::Tests::GlTestContext y la regla de MU_CLIENT_REQUIRE_GL (la pregunta 9 del plan de la
-// CL5), como los de HiddenGlWindow en el lab de la CL5.0.
 namespace
 {
 using Client::Tests::GlTestContext;
@@ -18,14 +16,14 @@ using Client::Tests::IsGlRequired;
 
 using GlTestContextTest = Client::Tests::GlTest;
 
-// Los nombres de GL guardan un puntero a Gl(): si el contexto se pudiera mover o copiar, quedaría
-// colgado. Por eso Create lo da en un unique_ptr.
+// GL names keep a pointer to Gl(): if the context could be moved or copied, it would dangle. So Create returns it in a
+// unique_ptr.
 static_assert(!std::is_move_constructible_v<GlTestContext>);
 static_assert(!std::is_move_assignable_v<GlTestContext>);
 static_assert(!std::is_copy_constructible_v<GlTestContext>);
 static_assert(!std::is_copy_assignable_v<GlTestContext>);
 
-// Solo "1" hace fallar a un test sin GL: sin la variable, vacía o con otro valor, se saltea.
+// Only "1" fails a test without GL: unset, empty or any other value skips it.
 TEST(GlRequirementTest, OnlyOneRequiresGl)
 {
     EXPECT_TRUE(IsGlRequired(std::string("1")));
@@ -36,8 +34,7 @@ TEST(GlRequirementTest, OnlyOneRequiresGl)
     EXPECT_FALSE(IsGlRequired(std::string(" 1")));
 }
 
-// El contexto es 3.3 o más nuevo (Mesa da 4.5), con el perfil core, y es el actual: se le puede
-// preguntar sin error.
+// The context is 3.3 or newer (Mesa gives 4.5), core profile, and current: it can be queried without error.
 TEST_F(GlTestContextTest, OpensAThreeThreeCoreContext)
 {
     GLint major = 0;
@@ -51,7 +48,6 @@ TEST_F(GlTestContextTest, OpensAThreeThreeCoreContext)
     EXPECT_EQ(Gl().getError(), static_cast<GLenum>(GL_NO_ERROR));
 }
 
-// Cada función de la tabla quedó pedida: ninguna en nulo.
 TEST_F(GlTestContextTest, LoadsEveryFunction)
 {
     const Client::Platform::Sdl::GlFunctions& gl = Gl();

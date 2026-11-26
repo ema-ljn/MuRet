@@ -11,8 +11,8 @@
 
 namespace Client::Render
 {
-// Estado persistente de servicios/conocimiento del adapter. ModelBatch es la autoridad raster;
-// SynchronizeBatch importa sus cambios ajenos. No son globals nativos observados.
+// The adapter's persistent service/knowledge state. ModelBatch is the raster authority; SynchronizeBatch imports its
+// foreign changes. These are not observed native globals.
 struct ENGINE_API ModelBatchParticleState
 {
     std::int32_t blendMode;
@@ -28,10 +28,9 @@ struct ENGINE_API ModelBatchParticleState
     std::optional<TextureSlot> texture;
     std::optional<std::uint32_t> rawTextureName;
 
-    // BeginPass del renderer actual: cull/depth/write activos, shader sin alpha/fog.
-    // El perfil portado empieza color blanco/UV0 y SIN conocimiento del binding anterior.
-    // Es sólo un perfil de construcción. El primer servicio y cada cambio ajeno consultan el
-    // MISMO ModelBatch. No reconstruirlo por frame ni atribuir a Begin una restauración GL.
+    // The current renderer's BeginPass: cull/depth/write on, shader without alpha/fog. The ported profile starts with
+    // white color/UV0 and NO knowledge of the previous binding; it is only a construction profile. The first service
+    // and each foreign change query the SAME ModelBatch. Do not rebuild it per frame or credit Begin with a GL restore.
     [[nodiscard]] static ModelBatchParticleState ForModelPass();
 };
 } // namespace Client::Render

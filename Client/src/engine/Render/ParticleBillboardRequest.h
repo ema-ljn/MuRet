@@ -5,8 +5,8 @@
 #include <functional>
 namespace Client::Render
 {
-// Escalares capturados por valor al entrar al servicio; P/C siguen siendo préstamos vivos.
-// No retener el request, P/C ni scratch tras retornar.
+// Scalars captured by value on entering the service; P/C stay live borrows. Do not keep the request, P/C or scratch
+// after returning.
 struct ParticleBillboardRequest
 {
     std::int32_t selector;

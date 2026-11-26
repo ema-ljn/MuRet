@@ -4,42 +4,38 @@
 
 #include <cstdint>
 
-// Las cuatro fuentes de WinMain (02 § Resolución, fuentes y texto): cuatro CreateFontA sin
-// suavizado (NONANTIALIASED_QUALITY) en 0x4ba737, 0x4ba777, 0x4ba7b9 y 0x4ba813, con un alto que
-// crece de a un punto con el ancho de la pantalla. Lo que MuRet saca de acá son los altos y el
-// peso; la cara la elige la config ([Video] FontFile y BoldFontFile, pregunta 8 del plan de la
-// CL5), porque el original la pide por nombre al sistema.
+// WinMain's four fonts (02 § Resolución, fuentes y texto): four CreateFontA without antialiasing
+// (NONANTIALIASED_QUALITY) at 0x4ba737, 0x4ba777, 0x4ba7b9 and 0x4ba813, with a height that grows one point with the
+// screen width. MuRet takes the heights and the weight from here; the face comes from the config ([Video] FontFile and
+// BoldFontFile), because the original asks the system for it by name.
 namespace Client::Render::Text
 {
 enum class FontKind : std::uint8_t
 {
-    // DAT_05763554, peso 400 y alto n − 1, con la cara del texto 0 de Text.bmd: la del login.
+    // DAT_05763554, weight 400 and height n − 1, with the face of Text.bmd text 0: the login's.
     Normal,
-    // DAT_05763558, peso 700 y alto n − 1: la de los avisos (0x554810).
+    // DAT_05763558, weight 700 and height n − 1: the notices' (0x554810).
     Bold,
-    // DAT_0576355c, peso 700 y alto 2 (n − 1).
+    // DAT_0576355c, weight 700 and height 2 (n − 1).
     BigBold,
-    // DAT_05763560, peso 400 y alto 12 fijo, con otra cara (el texto 18 de Text.bmd). MuRet usa la
-    // de [Video] FontFile, como las otras.
+    // DAT_05763560, weight 400 and fixed height 12, with another face (Text.bmd text 18). MuRet uses [Video]
+    // FontFile's, like the others.
     OtherFace12,
-    // +0x60c de los créditos (0x63f31e, CL8 hito 8): peso 700, con la cara del texto 0, y el alto por el
-    // ancho exacto de la pantalla, 14 con 800, 18 con 1024, 24 con 1280 y 10 con cualquier otro (640
-    // también).
+    // +0x60c of the credits (0x63f31e): weight 700, with text 0's face, and the height by the exact screen width: 14 at
+    // 800, 18 at 1024, 24 at 1280 and 10 at any other (640 too).
     Credits,
 };
 
-// n, el paso de la letra (DAT_07758568): WinMain lo escribe en 0x4ba6af..0x4ba6d3 con 12 para un
-// ancho de 640, 13 con 800, 14 con 1024 y 15 con 1280. Con otro ancho no lo escribe, y como está
-// en la .bss queda en 0: con 1600 las letras piden un alto de -1 y -2 (Q-C59). MuRet da el paso
-// del más grande de esos cuatro anchos que no pasa a `screenWidth`, y 12 por debajo de 800
-// (pregunta 10 del plan de la CL5): con 1600 o con un modo del monitor más ancho, 15. Vale para
-// cualquier ancho, como los modos del monitor que acepta Platform::IsValidResolution.
+// n, the letter step (DAT_07758568): WinMain writes it at 0x4ba6af..0x4ba6d3, 12 for a width of 640, 13 for 800, 14 for
+// 1024 and 15 for 1280. For any other width it is not written and, being in .bss, stays 0: at 1600 the letters ask for
+// heights -1 and -2 (Q-C59). MuRet gives the step of the largest of those four widths not above `screenWidth`, and 12
+// below 800: at 1600 or a wider monitor mode, 15.
 [[nodiscard]] ENGINE_API int FontStepFor(int screenWidth);
 
-// El alto de la celda que pide CreateFontA (positivo: la celda, no la letra): n − 1 la normal y la
-// negrita, 2 (n − 1) la negrita grande, 12 la otra cara y la de los créditos según el ancho.
+// The cell height CreateFontA asks for (positive: the cell, not the letter): n − 1 for normal and bold, 2 (n − 1) for
+// big bold, 12 for the other face, and the credits' by width.
 [[nodiscard]] ENGINE_API int FontHeightFor(FontKind font, int screenWidth);
 
-// Si CreateFontA la pide con peso 700 (FW_BOLD) y no 400 (FW_NORMAL).
+// Whether CreateFontA asks for weight 700 (FW_BOLD) rather than 400 (FW_NORMAL).
 [[nodiscard]] ENGINE_API bool IsBold(FontKind font);
 } // namespace Client::Render::Text

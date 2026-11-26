@@ -26,9 +26,6 @@
 #include <utility>
 #include <vector>
 
-// Client::Render::Gl::GlSpriteRenderer: el SpriteBatch de un frame en GL, con la mezcla de cada
-// tramo (0x620a00 y 0x620a90), el alpha test del original como un discard en 0,25, la textura
-// apagada del quad sin textura y los slots que la tabla no tiene (06 § Primitivas 2D).
 namespace
 {
 using Client::Core::PixelSize;
@@ -51,20 +48,17 @@ constexpr Rgba8 Green{0, 255, 0, 255};
 constexpr Rgba8 Blue{0, 0, 255, 255};
 constexpr Rgba8 White{255, 255, 255, 255};
 
-// Los slots de las texturas de prueba: un téxel blanco, uno verde y el fondo de 2 × 2. Ninguno es
-// de una escena del original.
+// A white texel, a green one and the 2 × 2 background. None is from an original scene.
 constexpr TextureSlot WhiteSlot{0x1};
 constexpr TextureSlot GreenSlot{0x2};
 constexpr TextureSlot BackgroundSlot{0x3};
-// Uno que la tabla no tiene.
 constexpr TextureSlot MissingSlot{0x2a};
 
 constexpr PixelSize Screen{FramebufferSide, FramebufferSide};
 constexpr auto Side = static_cast<float>(FramebufferSide);
 constexpr float Half = Side / 2.0f;
 
-// Una textura RGBA de `width` × `height`, con los téxeles en el orden del buffer: la fila 0
-// primero.
+// Texels in buffer order: row 0 first.
 LoadedTexture Rgba(TextureSlot slot, int width, int height, std::vector<std::uint8_t> pixels)
 {
     return {slot.value,
@@ -77,33 +71,31 @@ LoadedTexture Rgba(TextureSlot slot, int width, int height, std::vector<std::uin
                     .pixels = std::move(pixels)}};
 }
 
-// Un quad en píxeles, sin banderas: el rectángulo [left, right) × [bottom, top) con la y para
-// arriba, que en el espacio del original (la y desde arriba) empieza en H − top.
+// A pixel quad without flags: [left, right) × [bottom, top) with y up, which in the original's space (y from the top)
+// starts at H − top.
 OriginalQuad PixelQuad(TextureSlot slot, float left, float bottom, float right, float top, float alpha = 0.0f)
 {
     return OriginalQuad{
         .slot = slot, .x = left, .y = Side - top, .width = right - left, .height = top - bottom, .alpha = alpha};
 }
 
-// Si la celda se dibujó: es de un solo color y no es el transparente del framebuffer recién limpio.
+// Whether the cell was drawn: a single color, and not the freshly cleared framebuffer's transparent.
 bool Drawn(const std::optional<Rgba8>& cell)
 {
     return cell.has_value() && !(*cell == Transparent);
 }
 
-// La mezcla en 8 bits redondea como quiere el driver: cada canal, a uno de lo que da la cuenta.
+// 8-bit blending rounds as the driver likes: each channel within one of the computed value.
 void ExpectNear(const std::optional<Rgba8>& cell, Rgba8 expected)
 {
     ASSERT_TRUE(cell.has_value());
-    // No se llama `near`: windows.h lo define como una macro vacía.
+    // Not named `near`: windows.h defines it as an empty macro.
     const auto withinOne = [](std::uint8_t actual, std::uint8_t wanted) { return std::abs(actual - wanted) <= 1; };
     EXPECT_TRUE(withinOne(cell->red, expected.red) && withinOne(cell->green, expected.green) &&
                 withinOne(cell->blue, expected.blue) && withinOne(cell->alpha, expected.alpha))
         << ::testing::PrintToString(*cell) << " contra " << ::testing::PrintToString(expected);
 }
 
-// Con el framebuffer y el contexto de GlDrawTest: la tabla con las texturas de prueba, el renderer
-// y un log que guarda lo que escribe.
 class GlSpriteRendererTest : public Client::Tests::GlDrawTest
 {
 protected:
@@ -118,7 +110,7 @@ protected:
         ASSERT_TRUE(renderer.HasValue()) << renderer.Error();
         m_sprites.emplace(std::move(renderer).Value());
         m_textures.emplace(Gl());
-        // El fondo: rojo y verde en la fila 0, azul y blanco en la 1.
+        // The background: red and green in row 0, blue and white in row 1.
         const std::array<LoadedTexture, 3> textures{
             Rgba(WhiteSlot, 1, 1, {255, 255, 255, 255}), Rgba(GreenSlot, 1, 1, {0, 255, 0, 255}),
             Rgba(BackgroundSlot, 2, 2, {255, 0, 0, 255, 0, 255, 0, 255, 0, 0, 255, 255, 255, 255, 255, 255})};
@@ -127,7 +119,6 @@ protected:
         m_batch.Begin(Screen);
     }
 
-    // Dibuja el lote en el framebuffer.
     void DrawBatch()
     {
         m_sprites->Draw(m_batch, *m_textures, m_log);
@@ -141,8 +132,8 @@ protected:
     Client::Core::Log m_log{m_sink, Client::Core::LogLevel::Debug};
 };
 
-// El fondo del login es un quad de 640 × 480 escalado a la pantalla, con la v de la fila 0 en el
-// borde de arriba: la primera fila del buffer queda arriba, como en el original.
+// The login background is a 640 × 480 quad scaled to the screen, with row 0's v on the top edge: the buffer's first row
+// ends up at the top, as in the original.
 TEST_F(GlSpriteRendererTest, TheFirstRowIsAtTheTop)
 {
     m_batch.Quad(
@@ -153,9 +144,9 @@ TEST_F(GlSpriteRendererTest, TheFirstRowIsAtTheTop)
     EXPECT_EQ(Cells(2, 2), (std::vector<std::optional<Rgba8>>{Red, Green, Blue, White}));
 }
 
-// El viewport y la matriz son los de la pantalla del lote, W × H y no H × W: con una de 64 × 32, el
-// quad de 640 × 480 escalado llena la mitad de abajo del framebuffer, como el viewport (0, 0, W, H)
-// y gluOrtho2D(0, W, 0, H) de 0x6219b0. Con una pantalla cuadrada no se vería si se cambian.
+// The viewport and the matrix are the batch's screen, W × H and not H × W: with a 64 × 32 one, the scaled 640 × 480
+// quad fills the bottom half of the framebuffer, like 0x6219b0's viewport (0, 0, W, H) and gluOrtho2D(0, W, 0, H). A
+// square screen would not show them swapped.
 TEST_F(GlSpriteRendererTest, TheScreenIsWidthByHeight)
 {
     m_batch.Begin(PixelSize{FramebufferSide, FramebufferSide / 2});
@@ -167,10 +158,9 @@ TEST_F(GlSpriteRendererTest, TheScreenIsWidthByHeight)
     EXPECT_EQ(Cells(2, 2), (std::vector<std::optional<Rgba8>>{Transparent, Transparent, White, White}));
 }
 
-// La aditiva de 0x620a90 suma (GL_ONE, GL_ONE) sin mirar el alfa: el verde con 0,6 sobre el rojo
-// da amarillo entero. La normal de 0x620a00 mezcla por el alfa (GL_SRC_ALPHA,
-// GL_ONE_MINUS_SRC_ALPHA): el azul con 0,6 sobre el rojo da (0,4 · 255, 0, 0,6 · 255), y el alfa,
-// 0,6 · 0,6 + 0,4 · 1 = 0,76 de 255.
+// 0x620a90's additive adds (GL_ONE, GL_ONE) ignoring alpha: green at 0.6 over red gives full yellow. 0x620a00's normal
+// blend mixes by alpha (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA): blue at 0.6 over red gives (0.4 · 255, 0, 0.6 · 255),
+// and alpha 0.6 · 0.6 + 0.4 · 1 = 0.76 of 255.
 TEST_F(GlSpriteRendererTest, AdditiveAddsAndAlphaBlends)
 {
     m_batch.SetColor(Color{.red = 1.0f, .green = 0.0f, .blue = 0.0f});
@@ -189,8 +179,8 @@ TEST_F(GlSpriteRendererTest, AdditiveAddsAndAlphaBlends)
     ExpectNear(cells[1], Rgba8{102, 0, 153, 194});
 }
 
-// glAlphaFunc(GL_GREATER, 0,25): con la normal, el quad con alfa 0,25 no se dibuja y el de 0,26 sí.
-// La aditiva apaga el alpha test, y dibuja los dos.
+// glAlphaFunc(GL_GREATER, 0.25): with the normal blend, the quad with alpha 0.25 is not drawn and the one with 0.26 is.
+// The additive turns the alpha test off and draws both.
 TEST_F(GlSpriteRendererTest, TheAlphaTestDropsAQuarter)
 {
     m_batch.Quad(PixelQuad(WhiteSlot, 0, Half, Half, Side, 0.25f));
@@ -208,9 +198,9 @@ TEST_F(GlSpriteRendererTest, TheAlphaTestDropsAQuarter)
     EXPECT_TRUE(Drawn(cells[3])) << ::testing::PrintToString(cells[3]);
 }
 
-// El quad sin textura de 0x621aa0 es solo el color, sin el alpha test: el rojo con alfa 0,2 sobre
-// la mitad de la izquierda se mezcla con el verde de abajo aunque quede atada la textura verde, y
-// aunque 0,2 no pase el alpha test. Muestreando la textura daría (0, 0, 0, 0,2) y no se vería rojo.
+// 0x621aa0's untextured quad is only the color, without the alpha test: red at alpha 0.2 over the left half blends with
+// the green below even though the green texture stays bound and 0.2 fails the alpha test. Sampling the texture would
+// give (0, 0, 0, 0.2) and no red would show.
 TEST_F(GlSpriteRendererTest, AColorQuadHasNoTextureNorAlphaTest)
 {
     m_batch.Quad(PixelQuad(GreenSlot, 0, 0, Side, Side));
@@ -224,8 +214,8 @@ TEST_F(GlSpriteRendererTest, AColorQuadHasNoTextureNorAlphaTest)
     EXPECT_EQ(cells[1], Green);
 }
 
-// Un slot que la tabla no tiene es un aviso, con el slot en hexadecimal como lo nombra el research,
-// y su tramo no se dibuja; los que siguen, sí.
+// A slot missing from the table is a warning, with the slot in hex as the research names it, and its range is not
+// drawn; the following ones are.
 TEST_F(GlSpriteRendererTest, AMissingSlotIsSkippedWithAWarning)
 {
     m_batch.Quad(PixelQuad(MissingSlot, 0, 0, Half, Side));
@@ -239,7 +229,6 @@ TEST_F(GlSpriteRendererTest, AMissingSlotIsSkippedWithAWarning)
     EXPECT_NE(m_sink.lines[0].find("0x2a"), std::string::npos) << m_sink.lines[0];
 }
 
-// El lote se dibuja en cada frame: el aviso sale una vez por slot y no en cada frame.
 TEST_F(GlSpriteRendererTest, AMissingSlotIsWarnedOnce)
 {
     m_batch.Quad(PixelQuad(MissingSlot, 0, 0, Half, Side));

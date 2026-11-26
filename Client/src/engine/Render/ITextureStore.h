@@ -7,9 +7,8 @@
 #include <span>
 #include <string>
 
-// Dónde sube y suelta sus texturas una escena, sin ver GL: las escenas viven en ClientLib, que no
-// enlaza OpenGL. Lo implementa Gl::TextureTable, en la biblioteca OpenGL, y en los tests de las
-// escenas (CL5.4), un falso de tests/support/.
+// Where a scene uploads and releases its textures without seeing GL: scenes live in ClientLib, which does not link
+// OpenGL.
 namespace Client::Render
 {
 class ITextureStore
@@ -17,12 +16,12 @@ class ITextureStore
 public:
     virtual ~ITextureStore() = default;
 
-    // Sube `textures`, cada una en su slot, en orden. Un slot ocupado se reemplaza. La primera que
-    // no se sube corta, con un error que dice su slot; las de antes quedan.
+    // In order; an occupied slot is replaced. The first one that fails stops with an error naming its slot; the earlier
+    // ones stay.
     [[nodiscard]] virtual Core::Expected<void, std::string>
     Load(std::span<const Data::Textures::LoadedTexture> textures) = 0;
 
-    // Suelta la de `slot`, como 0x63c150(slot). Uno vacío no hace nada.
+    // Like 0x63c150(slot). An empty one does nothing.
     virtual void Release(TextureSlot slot) = 0;
 };
 } // namespace Client::Render

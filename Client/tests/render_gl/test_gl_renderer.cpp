@@ -17,9 +17,6 @@
 #include <string>
 #include <vector>
 
-// Client::Render::Gl::GlRenderer: el 2D del original en el pipeline programable (06 § Primitivas
-// 2D): la y para arriba de gluOrtho2D(0, W, 0, H), el viewport de la pantalla entera y la textura
-// por el color del vértice, como el GL_MODULATE de la función fija.
 namespace
 {
 using Client::Data::Textures::PixelFormat;
@@ -34,7 +31,6 @@ using GlRendererTest = Client::Tests::GlDrawTest;
 constexpr Rgba8 Transparent{0, 0, 0, 0};
 constexpr Rgba8 White{255, 255, 255, 255};
 
-// Una textura de un téxel RGBA.
 Texture OneTexel(std::uint8_t red, std::uint8_t green, std::uint8_t blue, std::uint8_t alpha)
 {
     return Texture{.width = 1,
@@ -45,8 +41,8 @@ Texture OneTexel(std::uint8_t red, std::uint8_t green, std::uint8_t blue, std::u
                    .pixels = {red, green, blue, alpha}};
 }
 
-// El rectángulo de y = 32 a 64 es la mitad de arriba de la pantalla: con gluOrtho2D, la y crece
-// hacia arriba, y el original da vuelta la suya (H − y) para dibujar desde arriba.
+// The rectangle from y = 32 to 64 is the top half of the screen: with gluOrtho2D y grows upward, and the original flips
+// its own (H − y) to draw from the top.
 TEST_F(GlRendererTest, TheYGoesUpLikeGluOrtho2D)
 {
     const Client::Core::Expected<GlTexture, std::string> white =
@@ -58,8 +54,8 @@ TEST_F(GlRendererTest, TheYGoesUpLikeGluOrtho2D)
     EXPECT_EQ(Cells(1, 2), (std::vector<std::optional<Rgba8>>{White, Transparent}));
 }
 
-// La textura por el color del vértice, canal por canal: el amarillo por (1, 0, 1, 0,6) da rojo, y
-// el alfa, 0,6 × 255 = 153. Sin mezcla, el alfa queda tal cual en el framebuffer.
+// Channel by channel: yellow times (1, 0, 1, 0.6) gives red, and alpha 0.6 × 255 = 153. Without blending, the alpha
+// stays as is in the framebuffer.
 TEST_F(GlRendererTest, ModulatesTheTextureByTheVertexColor)
 {
     const Client::Core::Expected<GlTexture, std::string> yellow =
@@ -71,8 +67,8 @@ TEST_F(GlRendererTest, ModulatesTheTextureByTheVertexColor)
     EXPECT_EQ(Cells(1, 1), (std::vector<std::optional<Rgba8>>{Rgba8{255, 0, 0, 153}}));
 }
 
-// La pantalla que recibe Draw es el viewport y la matriz: con una de 32 × 32, el rectángulo que la
-// cubre llena el cuarto de abajo a la izquierda del framebuffer de 64 × 64, no el framebuffer.
+// Draw's screen is the viewport and the matrix: with a 32 × 32 one, the rectangle covering it fills the bottom-left
+// quarter of the 64 × 64 framebuffer, not the whole framebuffer.
 TEST_F(GlRendererTest, TheViewportIsTheScreen)
 {
     const Client::Core::Expected<GlTexture, std::string> white =
@@ -88,11 +84,9 @@ TEST_F(GlRendererTest, TheViewportIsTheScreen)
     EXPECT_EQ(Cells(2, 2), (std::vector<std::optional<Rgba8>>{Transparent, Transparent, White, Transparent}));
 }
 
-// Cada tres vértices son un triángulo suelto (GL_TRIANGLES), así que en un solo Draw van varios
-// quads que no se tocan, como los que juntará el SpriteBatch de la CL5.2: uno en la celda de abajo
-// a la izquierda y otro en la de arriba a la derecha de una grilla de 4 × 4, y el resto queda sin
-// dibujar. Un abanico o una tira armarían triángulos entre los vértices de los dos y llenarían algo
-// del medio.
+// Every three vertices are a separate triangle (GL_TRIANGLES), so one Draw holds several non-touching quads: one in the
+// bottom-left cell and one in the top-right cell of a 4 × 4 grid, the rest undrawn. A fan or a strip would build
+// triangles between the two quads' vertices and fill some of the middle.
 TEST_F(GlRendererTest, EachThreeVerticesAreATriangle)
 {
     const Client::Core::Expected<GlTexture, std::string> white =
@@ -110,8 +104,8 @@ TEST_F(GlRendererTest, EachThreeVerticesAreATriangle)
     ASSERT_EQ(Gl().getError(), static_cast<GLenum>(GL_NO_ERROR));
 
     std::vector<std::optional<Rgba8>> expected(16, Transparent);
-    expected[3] = White;  // la fila de arriba, a la derecha
-    expected[12] = White; // la de abajo, a la izquierda
+    expected[3] = White;  // top row, right
+    expected[12] = White; // bottom row, left
     EXPECT_EQ(Cells(4, 4), expected);
 }
 } // namespace

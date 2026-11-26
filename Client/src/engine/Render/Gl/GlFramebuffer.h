@@ -10,15 +10,11 @@
 #include <string>
 #include <vector>
 
-// Un framebuffer para dibujar sin pantalla y leer lo dibujado, el de los tests de render_gl/
-// (CL5.1; en el lab de la CL5.0, LabFramebuffer): una textura GL_RGBA8 como color y una
-// GL_DEPTH_COMPONENT16 como profundidad (CL6.3: los 16 bits que pide el original, cDepthBits en
-// 0x4b8e10, y la ventana), atadas a un framebuffer object. Lo que se dibuja con él atado va a la
-// textura, y glReadPixels lo lee de ahí. Se mueve y no se copia, como sus GlName, y necesita el
-// contexto vivo.
+// An offscreen framebuffer for the render_gl/ tests. Depth is GL_DEPTH_COMPONENT16: the 16 bits the original asks for
+// (cDepthBits at 0x4b8e10), and the window's. Move-only; needs a live context.
 namespace Client::Render::Gl
 {
-// Un píxel leído con glReadPixels en GL_RGBA y GL_UNSIGNED_BYTE.
+// A pixel as glReadPixels returns it with GL_RGBA and GL_UNSIGNED_BYTE.
 struct Rgba8
 {
     std::uint8_t red = 0;
@@ -32,17 +28,16 @@ struct Rgba8
 class OPENGL_API GlFramebuffer
 {
 public:
-    // Crea el framebuffer de `width` × `height`, lo deja atado, en (0, 0, 0, 0) y con la profundidad
-    // en 1: lo que GL reserva sin datos no tiene un valor fijo. Un lado de 0 o menos no llega a GL.
+    // Leaves it bound, cleared to (0, 0, 0, 0) with depth 1: what GL allocates without data has no fixed value. A side
+    // of 0 or less never reaches GL.
     [[nodiscard]] static Core::Expected<GlFramebuffer, std::string> Create(const Platform::Sdl::GlFunctions& gl,
                                                                            int width, int height);
 
     [[nodiscard]] int Width() const;
     [[nodiscard]] int Height() const;
-    // El tamaño, como la pantalla que recibe GlRenderer::Draw.
     [[nodiscard]] Core::PixelSize Size() const;
 
-    // glReadPixels de todo el framebuffer: las filas van desde la de abajo, como las da GL.
+    // Rows start at the bottom, as GL returns them.
     [[nodiscard]] std::vector<Rgba8> ReadPixels() const;
 
 private:

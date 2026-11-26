@@ -13,7 +13,7 @@ namespace Client::Render::Gl
 {
 namespace
 {
-// El largo de GL_INFO_LOG_LENGTH cuenta el NUL del final; el texto es lo que dice `written`.
+// GL_INFO_LOG_LENGTH counts the trailing NUL; the text is what `written` says.
 std::string ShaderLog(const Platform::Sdl::GlFunctions& gl, GLuint shader)
 {
     GLint length = 0;

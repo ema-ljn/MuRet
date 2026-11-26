@@ -4,7 +4,7 @@ namespace Client::Render::Text
 {
 int FontStepFor(int screenWidth)
 {
-    // Los cuatro de WinMain (0x4ba6af..0x4ba6d3) como escalones: cada uno vale desde su ancho.
+    // WinMain's four (0x4ba6af..0x4ba6d3) as steps: each one applies from its width up.
     if (screenWidth < 800)
     {
         return 12;
@@ -33,7 +33,7 @@ int FontHeightFor(FontKind font, int screenWidth)
     case FontKind::OtherFace12:
         return 12;
     case FontKind::Credits:
-        // 0x63f21c..0x63f2e7: solo esos tres anchos, comparados con ==.
+        // 0x63f21c..0x63f2e7: only those three widths, compared with ==.
         switch (screenWidth)
         {
         case 800:

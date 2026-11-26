@@ -11,7 +11,6 @@
 #include <string>
 #include <vector>
 
-// Client::Render::Gl::GlFramebuffer: dónde dibujan los tests de render_gl/ y de dónde leen.
 namespace
 {
 using Client::Render::Gl::GlFramebuffer;
@@ -19,7 +18,7 @@ using Client::Render::Gl::Rgba8;
 
 using GlFramebufferTest = Client::Tests::GlTest;
 
-// Un tamaño de cero o negativo no llega a GL: se prueba con una tabla vacía, sin contexto.
+// A zero or negative size never reaches GL, so an empty table without a context is enough.
 TEST(GlFramebufferRulesTest, RefusesAnEmptySize)
 {
     const Client::Platform::Sdl::GlFunctions noGl{};
@@ -29,8 +28,8 @@ TEST(GlFramebufferRulesTest, RefusesAnEmptySize)
     EXPECT_FALSE(GlFramebuffer::Create(noGl, 64, -1).HasValue());
 }
 
-// Lo que GL reserva sin datos no tiene un valor fijo: Create lo deja en (0, 0, 0, 0), y el test que
-// dibuja sabe qué hay donde no dibujó.
+// What GL allocates without data has no fixed value: Create leaves it at (0, 0, 0, 0), so a drawing test knows what is
+// where it did not draw.
 TEST_F(GlFramebufferTest, StartsTransparentBlack)
 {
     Client::Core::Expected<GlFramebuffer, std::string> framebuffer = GlFramebuffer::Create(Gl(), 64, 32);

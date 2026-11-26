@@ -28,17 +28,16 @@ namespace Client::Render::Gl
 {
 namespace
 {
-// El VBO es una copia de los ModelVertex tal cual: nueve floats seguidos, sin relleno.
+// The VBO is a raw copy of the ModelVertex array: nine packed floats.
 static_assert(std::is_standard_layout_v<Render::ModelVertex>);
 static_assert(sizeof(Render::ModelVertex) == 9 * sizeof(float));
 
-// glVertexAttribPointer recibe el desplazamiento dentro del VBO como si fuera un puntero.
+// glVertexAttribPointer takes the offset inside the VBO as a pointer.
 const void* BufferOffset(std::size_t bytes)
 {
     return reinterpret_cast<const void*>(bytes);
 }
 
-// El formato de ModelVertex para el VAO: tres floats de posición, dos de UV y cuatro de color.
 void DescribeVertices(const Platform::Sdl::GlFunctions& gl)
 {
     constexpr auto stride = static_cast<GLsizei>(sizeof(Render::ModelVertex));
@@ -133,7 +132,7 @@ void GlModelRenderer::Draw(const ModelBatch& batch, const TextureTable& textures
         if (command.state.texture.has_value())
         {
             texture = textures.Find(*command.state.texture);
-            // insert dice si el slot es nuevo: solo entonces se avisa.
+            // Warn once per slot: insert reports whether it is new.
             if (texture == nullptr && m_warnedSlots.insert(command.state.texture->value).second)
             {
                 log.Warning("el slot {:#x} no tiene textura: lo que lo usa sale sin textura (Q-C29)",
@@ -168,7 +167,7 @@ void GlModelRenderer::Draw(const ModelBatch& batch, const TextureTable& textures
     }
 }
 
-// Matrices/VBO de cada lote. Sólo el pase620db0 reinicia material;6213e0 y los flush no.
+// Matrices/VBO of each batch. Only the 620db0 pass resets the material; 6213e0 and the flushes do not.
 void GlModelRenderer::BeginPass(const ModelBatch& batch) const
 {
     const Pass3D& pass = batch.Pass();
@@ -176,22 +175,21 @@ void GlModelRenderer::BeginPass(const ModelBatch& batch) const
     m_gl->useProgram(m_shader.Program());
     m_gl->bindVertexArray(m_vertexArray.Get());
     m_gl->bindBuffer(GL_ARRAY_BUFFER, m_vertexBuffer.Get());
-    // El VBO se llena de nuevo en cada pase, como el lote en cada frame.
     m_gl->bufferData(GL_ARRAY_BUFFER, static_cast<GLsizeiptr>(batch.Vertices().size_bytes()), batch.Vertices().data(),
                      GL_STREAM_DRAW);
     SetViewProjection(batch, ModelCoordinateSpace::World);
     if (batch.InitializesMaterial())
     {
-        // 620eea..620f4c: alpha off; textura/depth/cull on; escritura y LEQUAL.
+        // 620eea..620f4c: alpha off; texture/depth/cull on; depth write and LEQUAL.
         m_gl->uniform1i(m_uniforms.alphaTest, 0);
         m_gl->uniform1i(m_uniforms.textured, 1);
-        // 620f52..620fa5: política cero desactiva fog incluso en un pase vacío.
+        // 620f52..620fa5: the zero policy disables fog even in an empty pass.
         m_gl->uniform1i(m_uniforms.fog, 0);
         m_gl->enable(GL_DEPTH_TEST);
         m_gl->depthFunc(GL_LEQUAL);
         m_gl->enable(GL_CULL_FACE);
         m_gl->depthMask(GL_TRUE);
-        // 0x495949: el retrato de las cartas borra la profundidad con la máscara ya prendida (0x620890).
+        // 0x495949: the card portrait clears depth with the mask already on (0x620890).
         if (pass.clearDepth)
             m_gl->clear(GL_DEPTH_BUFFER_BIT);
     }
@@ -201,10 +199,10 @@ void GlModelRenderer::SetViewProjection(const ModelBatch& batch, ModelCoordinate
 {
     const Pass3D& pass = batch.Pass();
     const glm::mat4 matrix = space == ModelCoordinateSpace::Eye ? pass.projection : pass.projection * pass.view;
-    // GL_FALSE: GLM es column-major. El espacio pertenece al comando, incluso en World/Eye/World.
+    // GL_FALSE: GLM is column-major. The space belongs to the command, even in World/Eye/World.
     m_gl->uniformMatrix4fv(m_uniforms.viewProjection, 1, GL_FALSE, glm::value_ptr(matrix));
-    // Q-C391: |z| del ojo también en ortográfica, donde clip.w es siempre 1.
-    // GLM indexa columna/fila; el pase Eye ya trae la vista aplicada a sus vértices.
+    // Q-C391: eye |z| also in orthographic, where clip.w is always 1.
+    // GLM indexes column/row; the Eye pass already has the view applied to its vertices.
     if (space == ModelCoordinateSpace::Eye)
     {
         m_gl->uniform3f(m_uniforms.eyeDepthAxis, 0.0f, 0.0f, 1.0f);
@@ -215,8 +213,8 @@ void GlModelRenderer::SetViewProjection(const ModelBatch& batch, ModelCoordinate
     m_gl->uniform1f(m_uniforms.eyeDepthOffset, pass.view[3][2]);
 }
 
-// glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE) y glFog (0x42b0a0) o glDisable(GL_FOG): el comando trae los dos,
-// y sin niebla el color, el inicio y el fin no se usan.
+// glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE) and glFog (0x42b0a0) or glDisable(GL_FOG): the command carries both,
+// and without fog the color, start and end are unused.
 void GlModelRenderer::SetTextureEnvAndFog(const ModelDrawCommand& command) const
 {
     m_gl->uniform1i(m_uniforms.textureAdd, command.textureEnv == TextureEnvMode::Add ? 1 : 0);
@@ -237,8 +235,7 @@ void GlModelRenderer::SetFog(const std::optional<ModelFog>& fog) const
     m_gl->uniform1f(m_uniforms.fogEnd, enabled.end);
 }
 
-// 0x620980, 0x620a00(1), 0x620a90, las dos sombras de 0x4eff40, 0x620b10 y 0x620870 con la bandera
-// 0x2000.
+// 0x620980, 0x620a00(1), 0x620a90, the two shadows of 0x4eff40, 0x620b10 and 0x620870 with flag 0x2000.
 void GlModelRenderer::SetDrawState(const ModelDrawState& state) const
 {
     SetBlend(state.blend);
@@ -256,7 +253,7 @@ void GlModelRenderer::SetDrawState(const ModelDrawState& state) const
         m_gl->disable(GL_DEPTH_TEST);
     }
 }
-// Los factores son los mismos del camino legacy; las operaciones parciales no tocan cull/write.
+// Same factors as the legacy path; the partial operations do not touch cull/write.
 void GlModelRenderer::SetBlend(ModelBlend blend) const
 {
     switch (blend)

@@ -4,15 +4,14 @@
 
 #include <cstdint>
 
-// Lo que el original deja en globales antes de dibujar un texto con 0x554180: la fuente elegida
-// con SelectObject, el color del texto (DAT_006c8e5c) y el del fondo (DAT_006c8e64). MuRet los
-// pasa en cada llamada (06 § Texto). El ancho de la caja que también escribe el login
-// (DAT_006c8e70 = 0x100) no va: 0x467060, el texto del login, no lo lee; lo lee solo 0x553ae0
-// (en 0x553bef), que el login no llama.
+// What the original leaves in globals before drawing a text with 0x554180: the font chosen with SelectObject, the text
+// color (DAT_006c8e5c) and the background (DAT_006c8e64). MuRet passes them in each call (06 § Texto). The box width
+// the login also writes (DAT_006c8e70 = 0x100) is left out: 0x467060, the login's text, does not read it; only
+// 0x553ae0 does (at 0x553bef), which the login does not call.
 namespace Client::Render::Text
 {
-// Los colores en el formato del original, 0xAABBGGRR: el byte de abajo es el rojo, como lo deja
-// 0x465a00 en el buffer RGBA de 0x554000 (un dword por píxel). 0x80000000 es negro con alfa 0x80.
+// Colors in the original's 0xAABBGGRR format: the low byte is red, as 0x465a00 leaves it in 0x554000's RGBA buffer (one
+// dword per pixel). 0x80000000 is black with alpha 0x80.
 struct TextColors
 {
     std::uint32_t text = 0xffffffff;

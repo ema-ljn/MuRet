@@ -16,93 +16,77 @@
 #include <span>
 #include <vector>
 
-// El 2D de un frame como datos, sin GL (CL5.2): las primitivas del original (06 § Primitivas 2D)
-// pasadas a vértices en píxeles de la pantalla, y los tramos que Gl::GlSpriteRenderer dibuja cada
-// uno con un glDrawArrays. El original manda cada quad con un glBegin(GL_TRIANGLE_FAN); acá cada
-// quad son los dos triángulos de su fan, (0, 1, 2) y (0, 2, 3), y los quads seguidos con la misma
-// textura, la misma mezcla y el mismo alpha test van en un solo tramo. Nunca se reordena: con la
-// mezcla normal, lo que va después tapa lo de antes.
-//
-// Guarda lo del estado de GL que cambian esas primitivas, y lo deja como lo dejaría el original:
-// el color (glColor), la mezcla (0x620a00 y 0x620a90), si la textura está prendida
-// (GL_TEXTURE_2D) y el alpha test. Un quad con alfa deja el color en blanco (Q-C57), el quad sin
-// textura apaga la textura y el alpha test, la imagen de la UI nueva deja su color y prende o apaga
-// la textura según su slot (Q-C75), y Begin no toca nada de eso: como en el original, el estado
-// pasa de un frame al siguiente.
+// A frame's 2D as data, without GL (06 § Primitivas 2D). Consecutive quads with the same texture, blend and alpha test
+// share a range; nothing is reordered: with the normal blend, what comes later covers what came before. The GL state
+// the primitives change (glColor, the blend, GL_TEXTURE_2D, the alpha test) is left as the original would leave it,
+// and Begin does not reset it: as in the original, the state carries over from one frame to the next.
 namespace Client::Render
 {
 enum class BlendMode : std::uint8_t
 {
-    // 0x620a00: (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA), y prende el alpha test.
+    // 0x620a00: (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA), and turns the alpha test on.
     Alpha,
-    // 0x620a90: (GL_ONE, GL_ONE), y apaga el alpha test.
+    // 0x620a90: (GL_ONE, GL_ONE), and turns the alpha test off.
     Additive,
-    // 0x620980: sin mezcla (glDisable(GL_BLEND)), sin alpha test y con la textura prendida: lo que se
-    // dibuja tapa lo de abajo con su color, sin mirar el alfa. La barra de abajo del juego (0x5a9290).
+    // 0x620980: no blend (glDisable(GL_BLEND)), no alpha test, texture on: what is drawn covers what is below with its
+    // color, ignoring alpha. The game's bottom bar (0x5a9290).
     Opaque,
 };
 
-// Un tramo de vértices que se dibuja de una vez, con el mismo estado.
 struct DrawCommand
 {
-    // La textura, o ninguna: el quad sin textura de 0x621aa0, una imagen sin slot, o un quad que
-    // llegó con la textura apagada (Q-C75).
+    // None for 0x621aa0's untextured quad, an image without a slot, or a quad that came with the texture off (Q-C75).
     std::optional<TextureSlot> texture;
     BlendMode blend = BlendMode::Alpha;
-    // El glAlphaFunc(GL_GREATER, 0,25) de la cámara (06 § Cámara): con él, lo que tiene un alfa de
-    // 0,25 o menos no se dibuja.
+    // The camera's glAlphaFunc(GL_GREATER, 0.25) (06 § Cámara): with it, alpha of 0.25 or less is not drawn.
     bool alphaTest = true;
     std::size_t firstVertex = 0;
-    // De a 6: dos triángulos por quad.
+    // In sixes: two triangles per quad.
     std::size_t vertexCount = 0;
 };
 
 class ENGINE_API SpriteBatch
 {
 public:
-    // Empieza el 2D de un frame en una pantalla de `screen` píxeles, como 0x6219b0: vacía los
-    // vértices y los tramos, y no toca el estado de GL que guarda.
+    // Like 0x6219b0: empties the vertices and ranges, and does not touch the GL state it tracks.
     void Begin(Core::PixelSize screen);
 
-    // 0x620a00(1), 0x620a90 o 0x620980: la mezcla, y con ella la textura prendida y el alpha test
-    // prendido (Alpha) o apagado (Additive y Opaque). Corre aunque la mezcla sea la misma, como el
-    // original.
+    // 0x620a00(1), 0x620a90 or 0x620980: the blend, and with it texture on and the alpha test on (Alpha) or off
+    // (Additive and Opaque). Runs even if the blend is the same, like the original.
     void SetBlend(BlendMode blend);
 
-    // 0x620c10: la mezcla de 0x620a00 (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA) con la textura prendida, pero con el alpha
-    // test apagado: lo de alfa bajo también se mezcla. La caja del diálogo de los paneles (0x6576a0). Blend() da Alpha.
+    // 0x620c10: 0x620a00's blend (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA) with texture on but the alpha test off, so low
+    // alpha also blends. The panels' dialog box (0x6576a0). Blend() returns Alpha.
     void SetBlendWithoutAlphaTest();
 
-    // La mezcla que dejó el último SetBlend: la que guarda 0x7d366dc y vuelve a poner la ayuda del HUD (0x554340).
+    // The blend the last SetBlend left: the one 0x7d366dc stores and the HUD help (0x554340) sets back.
     [[nodiscard]] BlendMode Blend() const;
 
-    // glEnable(GL_TEXTURE_2D) suelto, sin tocar la mezcla ni el alpha test: la ayuda del HUD (0x5544ed) antes de su
-    // texto, después de sus quads sin textura.
+    // A bare glEnable(GL_TEXTURE_2D), not touching the blend or the alpha test: the HUD help (0x5544ed) before its
+    // text, after its untextured quads.
     void EnableTexture();
 
-    // glColor4f: el color de los vértices que siguen, recortado a [0, 1] como lo usa la función
-    // fija (06 § Primitivas 2D).
+    // glColor4f: the color of the following vertices, clamped to [0, 1] as the fixed function uses it (06 § Primitivas
+    // 2D).
     void SetColor(Color color);
 
     // 0x621b60 (OriginalQuad.h).
     void Quad(const OriginalQuad& quad);
 
-    // 0x622000 (OriginalSkewedQuad.h), con el color que haya.
+    // 0x622000 (OriginalSkewedQuad.h), with the current color.
     void SkewedQuad(const OriginalSkewedQuad& quad);
 
-    // 0x621aa0(x, y, w, h): el rectángulo en 640 × 480, siempre escalado, del color que haya y sin
-    // textura. Antes, como 0x620910(0), apaga la textura y el alpha test, y quedan apagados
-    // (Q-C75).
+    // 0x621aa0(x, y, w, h): the rectangle in 640 × 480, always scaled, in the current color and untextured. First, like
+    // 0x620910(0), it turns texture and alpha test off, and they stay off (Q-C75).
     void ColorQuad(float x, float y, float width, float height);
 
-    // 0x647650 (UiImage.h): pone su color como el de GL y prende la textura si tiene slot, o la
-    // apaga si no (Q-C75); la mezcla y el alpha test quedan como estaban.
+    // 0x647650 (UiImage.h): sets its color as GL's and turns the texture on if it has a slot, off if not (Q-C75); the
+    // blend and the alpha test stay as they were.
     void Image(const UiImage& image);
 
-    // 0x621cc0(slot, x, y, w, h, grados): el cuadro de `width` × `height` de 640 × 480, siempre
-    // escalado, centrado en (x, y) y girado `degrees` alrededor de la pantalla (0x5fc8f0 con (0, 0,
-    // grados) y 0x5fcbd0), con las UV (0, 0), (0, 1), (1, 1) y (1, 0) y el color que haya. El cursor
-    // de reparar que gira (0x5ac2d0).
+    // 0x621cc0(slot, x, y, w, h, degrees): the `width` × `height` box of 640 × 480, always scaled, centered at (x, y)
+    // and rotated `degrees` about the screen (0x5fc8f0 with (0, 0, degrees) and 0x5fcbd0), with UVs (0, 0), (0, 1), (1,
+    // 1) and (1, 0) and the current color. The spinning repair cursor (0x5ac2d0).
     void RotatedQuad(TextureSlot slot, float x, float y, float width, float height, float degrees);
 
     [[nodiscard]] Core::PixelSize Screen() const;
@@ -110,13 +94,13 @@ public:
     [[nodiscard]] std::span<const DrawCommand> Commands() const;
 
 private:
-    // Los dos triángulos de `corners`, cada vértice con su color, en el tramo de `texture` (si la
-    // textura está prendida) con la mezcla y el alpha test de ahora.
+    // The two triangles of `corners`, in `texture`'s range (if the texture is on) with the current blend and alpha
+    // test.
     void Append(const QuadCorners& corners, const std::array<Color, 4>& colors, std::optional<TextureSlot> texture);
 
     Core::PixelSize m_screen;
-    // Lo que deja 0x620a00(1) con glColor4f(1, 1, 1, 1), como empieza a dibujar el login (06 § El
-    // login, el dibujo): las escenas ponen el suyo.
+    // What 0x620a00(1) with glColor4f(1, 1, 1, 1) leaves, as the login starts drawing (06 § El login, el dibujo):
+    // scenes set their own.
     Color m_color{};
     BlendMode m_blend = BlendMode::Alpha;
     bool m_textureOn = true;

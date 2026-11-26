@@ -49,7 +49,7 @@ GlName::~GlName()
     Release();
 }
 
-// std::exchange deja el de origen en 0: su destructor no borra nada.
+// std::exchange leaves the source at 0, so its destructor deletes nothing.
 GlName::GlName(GlName&& other) noexcept
     : m_gl(other.m_gl), m_deleter(other.m_deleter), m_name(std::exchange(other.m_name, 0))
 {

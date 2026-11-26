@@ -9,15 +9,14 @@
 #include <cstdint>
 #include <vector>
 
-// Client::Render::Gl::GlScreenReader: el glReadPixels de la captura (0x62031f), con un driver falso sin contexto,
-// como el de test_gl_texture.cpp. El driver escribe las filas con el GL_PACK_ALIGNMENT que tiene al leer, como GL, y
-// anota cuántos bytes pidió.
+// The screenshot glReadPixels (0x62031f) with a fake driver and no context. The driver writes the rows with its current
+// GL_PACK_ALIGNMENT, like GL, and records how many bytes it was asked for.
 namespace
 {
 using Client::Core::PixelSize;
 using Client::Render::Gl::GlScreenReader;
 
-// El GL_PACK_ALIGNMENT con el que GL arranca.
+// GL's initial GL_PACK_ALIGNMENT.
 constexpr GLint GlPackAlignment = 4;
 
 struct ReadCall
@@ -28,13 +27,13 @@ struct ReadCall
     GLsizei height = 0;
     GLenum format = 0;
     GLenum type = 0;
-    // El GL_PACK_ALIGNMENT de ese momento y los bytes que GL escribió con él: las filas menos la última con su
-    // relleno, y la última sin él.
+    // The GL_PACK_ALIGNMENT at that moment and the bytes GL wrote with it: every row but the last with its padding, the
+    // last without.
     GLint alignment = 0;
     std::size_t written = 0;
 };
 
-// Estado global porque la tabla es de punteros a función, sin captura; el fixture lo deja limpio antes de cada test.
+// Global because the table holds captureless function pointers; the fixture clears it before each test.
 struct FakeReadDriver
 {
     GLint packAlignment = GlPackAlignment;
@@ -55,7 +54,7 @@ void GLAPIENTRY FakePixelStorei(GLenum name, GLint value)
         s_driver.packAlignment = value;
 }
 
-// Cada fila r, con su byte i, vale r + i: lo que lee el test tiene que ser eso, fila tras fila y sin relleno.
+// Row r's byte i is r + i: what the test reads must be that, row after row, without padding.
 void GLAPIENTRY FakeReadPixels(GLint x, GLint y, GLsizei width, GLsizei height, GLenum format, GLenum type,
                                GLvoid* pixels)
 {
@@ -93,8 +92,8 @@ protected:
     Client::Platform::Sdl::GlFunctions m_gl{};
 };
 
-// 13 × 11: una fila de 39 bytes, que con el 4 de GL llevaría relleno. La lectura es de toda la pantalla desde (0, 0),
-// en GL_RGB y GL_UNSIGNED_BYTE, con el alineado en 1: los 13 × 11 × 3 bytes, sin pasar el final (Q-C631).
+// 13 × 11: a 39-byte row, which GL's 4 would pad. The read is the whole screen from (0, 0), GL_RGB and
+// GL_UNSIGNED_BYTE, with alignment 1: the 13 × 11 × 3 bytes, without overrunning the end (Q-C631).
 TEST_F(GlScreenReaderTest, ReadsTheWholeScreenAsRgbRowsWithoutPadding)
 {
     GlScreenReader reader(m_gl);
@@ -117,7 +116,7 @@ TEST_F(GlScreenReaderTest, ReadsTheWholeScreenAsRgbRowsWithoutPadding)
     }
 }
 
-// Lo que suba o lea otro después no cambia: el alineado vuelve al que estaba.
+// So whatever uploads or reads later is unaffected: the alignment goes back to what it was.
 TEST_F(GlScreenReaderTest, LeavesThePackAlignmentAsItWas)
 {
     GlScreenReader reader(m_gl);
@@ -130,7 +129,6 @@ TEST_F(GlScreenReaderTest, LeavesThePackAlignmentAsItWas)
     EXPECT_EQ(s_driver.reads[1].alignment, 1);
 }
 
-// Sin área, nada que leer.
 TEST_F(GlScreenReaderTest, AnEmptyScreenReadsNothing)
 {
     GlScreenReader reader(m_gl);

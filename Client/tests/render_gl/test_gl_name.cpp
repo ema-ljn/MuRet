@@ -7,14 +7,12 @@
 #include <utility>
 #include <vector>
 
-// Client::Render::Gl::GlName, el RAII sobre un nombre de GL, sin GL: un borrador falso anota qué
-// nombres borró. Viene del lab de la CL5.0 (labs/cl5.0-pipeline/gl/test_gl_name.cpp).
 namespace
 {
 using Client::Render::Gl::GlName;
 
-// Los nombres que borró RecordDelete, en orden. Es estado global porque un Deleter es un puntero a
-// función, sin captura; el fixture lo vacía antes de cada test.
+// The names RecordDelete deleted, in order. Global because a Deleter is a captureless function pointer; the fixture
+// clears it before each test.
 std::vector<GLuint> s_deleted;
 
 void RecordDelete(const Client::Platform::Sdl::GlFunctions& /*gl*/, GLuint name)
@@ -30,7 +28,7 @@ protected:
         s_deleted.clear();
     }
 
-    // Una tabla vacía: RecordDelete no la usa.
+    // An empty table: RecordDelete does not use it.
     const Client::Platform::Sdl::GlFunctions m_gl{};
 };
 
@@ -44,19 +42,18 @@ TEST_F(GlNameTest, DeletesItsNameOnce)
     EXPECT_EQ(s_deleted, (std::vector<GLuint>{7}));
 }
 
-// Mover pasa el nombre: el de origen queda en 0 y no borra nada, y el nuevo dueño lo borra una vez.
 TEST_F(GlNameTest, AMovedNameIsDeletedByItsNewOwner)
 {
     {
         GlName first(m_gl, RecordDelete, 7);
         const GlName second(std::move(first));
-        EXPECT_EQ(first.Get(), 0u); // NOLINT(bugprone-use-after-move): el test mira el de origen
+        EXPECT_EQ(first.Get(), 0u); // NOLINT(bugprone-use-after-move): the test checks the source
         EXPECT_EQ(second.Get(), 7u);
     }
     EXPECT_EQ(s_deleted, (std::vector<GLuint>{7}));
 }
 
-// Asignar por movimiento borra primero el que tenía, y después el que recibió, cuando muere.
+// The old name is deleted first, and the received one when it dies.
 TEST_F(GlNameTest, MoveAssignmentDeletesTheOldName)
 {
     {
@@ -69,7 +66,7 @@ TEST_F(GlNameTest, MoveAssignmentDeletesTheOldName)
     EXPECT_EQ(s_deleted, (std::vector<GLuint>{8, 7}));
 }
 
-// Uno por defecto, o con el 0 que da glCreateShader cuando falla, no llama a GL.
+// Default, or holding the 0 glCreateShader returns on failure: no GL call.
 TEST_F(GlNameTest, AnEmptyNameDeletesNothing)
 {
     {

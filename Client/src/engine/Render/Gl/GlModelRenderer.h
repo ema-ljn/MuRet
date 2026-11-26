@@ -15,30 +15,22 @@
 #include <set>
 #include <string>
 
-// El ModelBatch de un pase en GL (CL6.3): el shader del 3D de Shaders.h, un VAO con el formato de
-// ModelVertex y el VBO que se llena en cada pase. Pone el estado de 0x620db0 (el viewport, la
-// perspectiva y la vista, el depth test con GL_LEQUAL, el culling y la profundidad escrita) y corre
-// los tramos en orden, cada uno con la mezcla de 0x4ecc30 (06 § El modelo en el binario) y un
-// glDrawArrays. Deja el estado como lo deja el último tramo, como el original: el 2D que sigue
-// (GlSpriteRenderer) apaga la profundidad y el culling. GL arranca con GL_BACK y GL_CCW, y el
-// original no llama a glCullFace ni a glFrontFace: quedan como vienen. Se mueve y no se copia, y
-// necesita el contexto vivo.
+// Sets 0x620db0's state (viewport, perspective and view, GL_LEQUAL depth test, culling, depth write) and draws each
+// range in order with 0x4ecc30's blend (06 § El modelo en el binario). Like the original, it leaves the last range's
+// state (the 2D turns depth and culling off) and never calls glCullFace or glFrontFace: GL's GL_BACK and GL_CCW stay.
 namespace Client::Render::Gl
 {
 class OPENGL_API GlModelRenderer
 {
 public:
-    // Compila y enlaza el shader y arma el VAO. El error trae el log del compilador de GLSL o el
-    // uniform que falta.
+    // The error carries the GLSL compiler log or the missing uniform.
     [[nodiscard]] static Core::Expected<GlModelRenderer, std::string> Create(const Platform::Sdl::GlFunctions& gl);
 
-    // Dibuja `batch` en el framebuffer que esté atado. Un tramo con un slot que `textures` no tiene
-    // sale sin textura, con el color de sus vértices (Q-C29: el original ata el nombre 0 de un slot
-    // que nunca tuvo textura), y el slot sale una vez en `log` como aviso.
+    // Into the bound framebuffer. A range whose slot `textures` lacks draws untextured with its vertex colors (Q-C29:
+    // the original binds name 0 for a slot that never had a texture), and the slot is warned once in `log`.
     void Draw(const ModelBatch& batch, const TextureTable& textures, Core::Log& log);
 
 private:
-    // Dónde están los uniforms del shader.
     struct Uniforms
     {
         GLint viewProjection = -1;
@@ -56,14 +48,13 @@ private:
     GlModelRenderer(const Platform::Sdl::GlFunctions& gl, GlShader shader, GlName vertexArray, GlName vertexBuffer,
                     Uniforms uniforms);
 
-    // El estado de 0x620db0 para el pase de `batch`, con sus vértices subidos.
+    // 0x620db0's state for `batch`'s pass, with its vertices uploaded.
     void BeginPass(const ModelBatch& batch) const;
-    // La mezcla, el culling, la máscara y el depth test de un tramo.
     void SetDrawState(const ModelDrawState& state) const;
     void SetBlend(ModelBlend blend) const;
     void SetOperation(const ModelDrawState& state, ModelStateOperation operation) const;
     void SetViewProjection(const ModelBatch& batch, ModelCoordinateSpace space) const;
-    // El modo de la textura y la niebla de un tramo que dibuja: no son del material, van en cada comando.
+    // Not part of the material: they come with each command.
     void SetTextureEnvAndFog(const ModelDrawCommand& command) const;
     void SetFog(const std::optional<ModelFog>& fog) const;
 
@@ -72,7 +63,6 @@ private:
     GlName m_vertexArray;
     GlName m_vertexBuffer;
     Uniforms m_uniforms;
-    // Los slots que ya se avisaron.
     std::set<std::uint16_t> m_warnedSlots;
 };
 } // namespace Client::Render::Gl

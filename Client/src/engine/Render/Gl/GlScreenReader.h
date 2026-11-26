@@ -8,20 +8,20 @@
 #include <cstdint>
 #include <vector>
 
-// La lectura de la captura de pantalla (CL8 hito 6; 0x6202e0): lo dibujado en el framebuffer de la ventana, el de
-// atrás, después del dibujo del frame y antes del swap. Necesita el contexto vivo.
+// The screenshot read (0x6202e0): the window's back buffer, after the frame is drawn and before the swap. Needs a live
+// context.
 namespace Client::Render::Gl
 {
 class OPENGL_API GlScreenReader final : public Frame::IScreenReader
 {
 public:
-    // La tabla de GL vive más.
+    // The GL table outlives it.
     explicit GlScreenReader(const Platform::Sdl::GlFunctions& gl);
 
-    // 0x62031f: glReadPixels(0, 0, ancho, alto, GL_RGB, GL_UNSIGNED_BYTE) a un búfer de ancho × alto × 3. El original
-    // no toca GL_PACK_ALIGNMENT, que GL trae en 4: con un ancho que no es múltiplo de 4, GL escribiría filas con
-    // relleno y pasaría el final del búfer. MuRet lo pone en 1 mientras lee y lo deja como estaba; con los anchos del
-    // original, múltiplos de 4, los bytes son los mismos (Q-C631).
+    // 0x62031f: glReadPixels(0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE) into a width × height × 3 buffer. The
+    // original leaves GL_PACK_ALIGNMENT at GL's 4, so a width not a multiple of 4 would pad rows and overrun the
+    // buffer; MuRet sets it to 1 while reading and restores it. With the original's widths, multiples of 4, the bytes
+    // match (Q-C631).
     [[nodiscard]] std::vector<std::uint8_t> ReadTheScreen(Core::PixelSize screen) override;
 
 private:

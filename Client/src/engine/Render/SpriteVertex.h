@@ -1,11 +1,10 @@
 #pragma once
 
-// Un vértice del 2D: lo que el SpriteBatch (CL5.2) arma por cada esquina de un quad del original, y
-// lo que Gl::GlRenderer sube al VBO tal cual, en este orden (su VAO lo describe así).
+// Gl::GlRenderer uploads it to the VBO as is, in this order (its VAO describes it so).
 namespace Client::Render
 {
-// Un color de GL en floats, como el de glColor4f, que el shader multiplica por la textura (el
-// GL_MODULATE de la función fija).
+// A GL color in floats, like glColor4f's, which the shader multiplies by the texture (the fixed function's
+// GL_MODULATE).
 struct Color
 {
     float red = 1.0f;
@@ -18,12 +17,12 @@ struct Color
 
 struct SpriteVertex
 {
-    // En píxeles de la pantalla, con la y hacia arriba, como los deja gluOrtho2D(0, W, 0, H) (06 §
-    // Primitivas 2D): el original da vuelta la suya, H − y, en cada vértice.
+    // In screen pixels with y up, as gluOrtho2D(0, W, 0, H) leaves them (06 § Primitivas 2D): the original flips its
+    // own, H − y, at each vertex.
     float x = 0.0f;
     float y = 0.0f;
-    // En la textura: (0, 0) es el principio de la fila 0 del buffer, la primera que sube
-    // glTexImage2D, y v crece hacia las filas siguientes.
+    // In the texture: (0, 0) is the start of buffer row 0, the first one glTexImage2D uploads, and v grows toward the
+    // following rows.
     float u = 0.0f;
     float v = 0.0f;
     Color color{};

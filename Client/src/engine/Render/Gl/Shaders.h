@@ -2,25 +2,19 @@
 
 #include <string_view>
 
-// El GLSL 330 core del 2D (D-C3; la CL5.0 lo armó en el lab, labs/cl5.0-pipeline/gl/). Hace lo que
-// en el original hacían la función fija y la pila de matrices (06 § Primitivas 2D): el vertex
-// shader lleva cada vértice, en píxeles de la pantalla, al clip con la matriz de gluOrtho2D, y el
-// fragment shader multiplica la textura por el color del vértice, el GL_MODULATE de glTexEnv. Con
-// la textura apagada (GL_TEXTURE_2D en el original, la bandera `textured` acá) el fragmento es el
-// color solo, y con el alpha test prendido descarta lo que tiene un alfa de 0,25 o menos, como
-// glAlphaFunc(GL_GREATER, 0,25) (06 § Cámara). La mezcla no es del shader: es glBlendFunc, de
-// GlSpriteRenderer.
+// The 2D GLSL 330 core (D-C3), replacing the original's fixed function and matrix stack (06 § Primitivas 2D): the
+// gluOrtho2D matrix, texture × vertex color as glTexEnv's GL_MODULATE, and an alpha test that discards alpha ≤ 0.25
+// like glAlphaFunc(GL_GREATER, 0.25) (06 § Cámara). Blending is glBlendFunc's, in GlSpriteRenderer.
 namespace Client::Render::Gl
 {
-// Las location de los atributos, las de SpriteVertex en el VAO de GlRenderer.
+// SpriteVertex's attribute locations in GlRenderer's VAO.
 inline constexpr unsigned SpritePositionLocation = 0;
 inline constexpr unsigned SpriteUvLocation = 1;
 inline constexpr unsigned SpriteColorLocation = 2;
 
-// El uniform de la matriz, en column-major como la da glm::value_ptr.
+// Column-major, as glm::value_ptr gives it.
 inline constexpr const char* SpriteProjectionUniform = "projection";
-// Las dos banderas del fragment shader, que GL guarda como int (glUniform1i, 0 o 1): si se
-// muestrea la textura y si va el alpha test.
+// Fragment shader flags, which GL stores as int (glUniform1i, 0 or 1).
 inline constexpr const char* SpriteTexturedUniform = "textured";
 inline constexpr const char* SpriteAlphaTestUniform = "alphaTest";
 
@@ -59,15 +53,10 @@ void main()
 }
 )";
 
-// El par del 3D (CL6.3): lo mismo para un ModelVertex, con la posición en el mundo llevada al clip
-// por la perspectiva y la vista del pase (projection · view), y el color recortado a [0, 1] antes de
-// la textura, como la función fija recorta el glColor del vértice (la luz del original pasa de 1:
-// 1,34 en la selección, hasta 3,45 con la luz por vértice). Con `textureAdd` la textura se combina
-// como con GL_ADD (la 6ac/2, 0x5489eb): el color es téxel + color recortado a [0, 1] y el alfa,
-// téxel · color. Después va la niebla de GL_LINEAR (Render/ModelFog.h, la de 0x42b0a0): la distancia
-// es |z| del ojo, calculada con la fila z de la vista e interpolada en el
-// triángulo; el factor (fin − d) / (fin − inicio), recortado a [0, 1], mezcla el color con el de la
-// niebla y deja el alfa. El alpha test no depende de la niebla: la niebla no toca el alfa.
+// The 3D counterpart for a ModelVertex. The color is clamped to [0, 1] before the texture, as the fixed function clamps
+// the vertex glColor (the original's light exceeds 1: 1.34 in the selection, up to 3.45 with per-vertex light). With
+// `textureAdd`, GL_ADD (6ac/2, 0x5489eb): texel + color clamped to [0, 1], alpha texel · color. Then GL_LINEAR fog
+// (Render/ModelFog.h, 0x42b0a0) on eye |z|; the alpha test does not depend on fog, which leaves alpha alone.
 inline constexpr unsigned ModelPositionLocation = 0;
 inline constexpr unsigned ModelUvLocation = 1;
 inline constexpr unsigned ModelColorLocation = 2;
@@ -77,8 +66,8 @@ inline constexpr const char* ModelEyeDepthAxisUniform = "eyeDepthAxis";
 inline constexpr const char* ModelEyeDepthOffsetUniform = "eyeDepthOffset";
 inline constexpr const char* ModelTexturedUniform = "textured";
 inline constexpr const char* ModelAlphaTestUniform = "alphaTest";
-// Las del modo de la textura y la niebla: la bandera de GL_ADD y la de GL_FOG como int (glUniform1i, 0 o 1), el
-// color (glUniform3f) y el inicio y el fin (glUniform1f).
+// Texture env and fog: the GL_ADD and GL_FOG flags as int (glUniform1i, 0 or 1), the color (glUniform3f), and start
+// and end (glUniform1f).
 inline constexpr const char* ModelTextureAddUniform = "textureAdd";
 inline constexpr const char* ModelFogUniform = "fog";
 inline constexpr const char* ModelFogColorUniform = "fogColor";

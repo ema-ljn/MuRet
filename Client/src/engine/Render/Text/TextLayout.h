@@ -9,78 +9,74 @@
 #include <string_view>
 #include <vector>
 
-// Dónde va un texto (06 § Texto). El que llama da la x y la y de 0x554180 en 640 × 480; 0x467060
-// las pasa a píxeles, corta el texto en cajas de 256 columnas y dibuja cada una con 0x554000, que
-// arma el quad de 0x621b60 en píxeles. *Estático*, de 0x6350b0, 0x467060 y 0x554000.
+// Where a text goes (06 § Texto). The caller gives 0x554180's x and y in 640 × 480; 0x467060 converts them to pixels,
+// cuts the text into 256-column boxes and draws each with 0x554000, which builds 0x621b60's quad in pixels. *Static*,
+// from 0x6350b0, 0x467060 and 0x554000.
 namespace Client::Render::Text
 {
-// 0x6350b0, el texto 454 del login: termina en `x`, de 640 × 480. Pasa el ancho a 640 × 480 con
-// cx · 640 / W en enteros de 32 bits sin signo, como el original (lea, shl y div en 0x6353d1): la
-// cuenta se trunca, y con un cx de 6.710.887 o más el producto da la vuelta.
+// 0x6350b0, login text 454: ends at `x`, in 640 × 480. Converts the width to 640 × 480 with cx · 640 / W in unsigned
+// 32-bit integers, like the original (lea, shl and div at 0x6353d1): the math truncates, and with a cx of 6710887 or
+// more the product wraps.
 [[nodiscard]] ENGINE_API int RightAlignedAt(int x, TextExtent extent, Core::PixelSize screen);
 
-// 0x467060 con el modo 4 (0x467146..0x46715e), el de los textos del HUD que terminan en `x` (el ayudante, los
-// avisos de durabilidad): fild de x, fild de cx, fdiv por rx (W por la inversa de 640, en float: DAT_05762ea8),
-// la resta en la x87 y _ftol, que trunca hacia el 0. No es la cuenta de RightAlignedAt: esta va en flotante.
-// Sin pantalla, la x tal cual.
+// 0x467060 in mode 4 (0x467146..0x46715e), for HUD texts ending at `x` (the helper, durability notices): fild of x,
+// fild of cx, fdiv by rx (W times the inverse of 640, as float: DAT_05762ea8), the subtraction on the x87 and _ftol,
+// which truncates toward 0. Not RightAlignedAt's math: this one is floating point. Without a screen, x as is.
 [[nodiscard]] ENGINE_API int EndingAt(int x, TextExtent extent, Core::PixelSize screen);
 
-// 0x623690: el texto centrado en `x`, de 640 × 480: x − (cx · 640 / W) / 2, con la misma división
-// en 32 bits sin signo y el shr de la mitad (los textos 436 y 437 de la selección).
+// 0x623690: the text centered at `x`, of 640 × 480: x − (cx · 640 / W) / 2, with the same unsigned 32-bit division and
+// the halving shr (selection texts 436 and 437).
 [[nodiscard]] ENGINE_API int CenteredAt(int x, TextExtent extent, Core::PixelSize screen);
 
-// Los tres textos del login se apoyan en `y`: y − cy · 480 / H, con la misma división. El original
-// resta cy · 640 / W (0x6353b9), que en una pantalla que no es 4:3 da otra cosa: en 1280 × 1024 el
-// texto queda un punto más arriba (Q-C60). MuRet usa el alto.
+// The three login texts sit on `y`: y − cy · 480 / H, with the same division. The original subtracts cy · 640 / W
+// (0x6353b9), which differs on a non-4:3 screen: at 1280 × 1024 the text sits one point higher (Q-C60). MuRet uses the
+// height.
 [[nodiscard]] ENGINE_API int BottomAlignedAt(int y, TextExtent extent, Core::PixelSize screen);
 
-// De un píxel de la pantalla a 640 × 480, como las ventanas de la UI nueva le pasan sus textos a
-// 0x5542f0 (0x641aa1..0x641ad6, CL5.5): fild del píxel, fdiv por rx o ry (W o H por la inversa
-// de 640 o 480, en float: DAT_05762ea8 y DAT_05762eac) y _ftol, que trunca hacia el 0. La vuelta
-// de TextPieces puede perder un píxel: en 1024 × 768, el 240 da 149 y vuelve como 238. Sin
-// pantalla (un lado en 0), el píxel tal cual, como RightAlignedAt.
+// From a screen pixel to 640 × 480, as the new UI's windows pass their texts to 0x5542f0 (0x641aa1..0x641ad6): fild of
+// the pixel, fdiv by rx or ry (W or H times the inverse of 640 or 480, as float: DAT_05762ea8 and DAT_05762eac) and
+// _ftol, which truncates toward 0. The round trip through TextPieces can lose a pixel: at 1024 × 768, 240 gives 149 and
+// comes back as 238. Without a screen (a side at 0), the pixel as is, like RightAlignedAt.
 [[nodiscard]] ENGINE_API int DesignX(int pixelX, Core::PixelSize screen);
 [[nodiscard]] ENGINE_API int DesignY(int pixelY, Core::PixelSize screen);
 
-// Una caja de un texto y el quad que la muestra.
 struct TextPiece
 {
-    // La columna del texto donde empieza la caja: 256 k para la caja k.
+    // The text column where the box starts: 256 k for box k.
     int firstColumn = 0;
-    // Las columnas y las filas de la caja que se ven, desde arriba a la izquierda.
+    // The box's visible columns and rows, from the top left.
     int width = 0;
     int rows = 0;
-    // El de 0x554000: en píxeles, sin escalar nada, con du = (w + 0,01) / 256 y dv = (filas + 0,01)
-    // / 32. El slot es el 0, el de FontInput.tga en el original; el que dibuja pone el suyo.
+    // 0x554000's: in pixels, unscaled, with du = (w + 0.01) / 256 and dv = (rows + 0.01) / 32. The slot is 0, the
+    // original's FontInput.tga; the drawer sets its own.
     OriginalQuad quad;
 };
 
-// 0x467060 con el modo 1 y sin tope, el del login (0x554180(x, y, texto, 0, 0, 0)), para un texto
-// que mide `extent`:
-//   - las filas son las de la celda, hasta 32;
-//   - si el texto pasa de 256 columnas y del borde derecho, se corta en el borde, truncado: x · rx
-//     + ancho contra W, con rx = W / 640 en float (DAT_05762ea8);
-//   - una caja por cada 256 columnas, la última con lo que sobra;
-//   - la caja k va en x · rx + 256 k y en y · ry, truncadas (_ftol), y 0x554000 la corre: una x
-//     negativa va a 0, y una caja que pasa del borde derecho va contra él.
-// Un texto de ancho 0 no da ninguna caja; el original no dibuja un texto vacío.
+// 0x467060 in mode 1 without a cap, the login's (0x554180(x, y, text, 0, 0, 0)), for a text measuring `extent`:
+//   - the rows are the cell's, up to 32;
+//   - if the text exceeds 256 columns and the right edge, it is cut at the edge, truncated: x · rx + width against W,
+//     with rx = W / 640 as float (DAT_05762ea8);
+//   - one box per 256 columns, the last with the remainder;
+//   - box k goes at x · rx + 256 k and y · ry, truncated (_ftol), and 0x554000 shifts it: a negative x goes to 0, and a
+//     box past the right edge goes against it.
+// A 0-wide text gives no box; the original does not draw an empty text.
 [[nodiscard]] ENGINE_API std::vector<TextPiece> TextPieces(int x, int y, TextExtent extent, Core::PixelSize screen);
 
-// Como TextPieces, pero `pixelX` y `pixelY` ya están en píxeles y no vuelven por 640 × 480.
+// Like TextPieces, but `pixelX` and `pixelY` are already pixels and do not go through 640 × 480.
 [[nodiscard]] ENGINE_API std::vector<TextPiece> TextPiecesAtPixels(int pixelX, int pixelY, TextExtent extent,
                                                                    Core::PixelSize screen);
 
-// 0x467060 con el modo 2 (0x46711b..0x467132), el de 0x554180(x, y, texto, caja, 1, ·) y 0x5542f0(·, caja, 2, ·):
-// el texto centrado en una caja de `boxWidth` columnas, para un texto de `textWidth` (cx). Se dibuja con
-// Render::Frame::ITextDrawer::DrawColumns, con −textColumn de primera columna y `width` columnas.
+// 0x467060 in mode 2 (0x46711b..0x467132), that of 0x554180(x, y, text, box, 1, ·) and 0x5542f0(·, box, 2, ·): the text
+// centered in a `boxWidth`-column box, for a `textWidth` (cx) text. Drawn with Render::Frame::ITextDrawer::DrawColumns,
+// with −textColumn as first column and `width` columns.
 struct CenteredInBox
 {
-    // La columna del DIB donde TextOutA pone el texto (0x46720a): (caja − cx) / 2 con la división de C (cdq, sub y
-    // sar, que trunca hacia el 0). Con un texto más ancho que la caja es negativa, y TextOutA corta la izquierda.
+    // The DIB column where TextOutA puts the text (0x46720a): (box − cx) / 2 with C division (cdq, sub and sar,
+    // truncating toward 0). With a text wider than the box it is negative, and TextOutA cuts the left.
     int textColumn = 0;
-    // Las columnas de la caja (lea en 0x46712c): cx + 2 · textColumn, que es la caja, o una menos si caja − cx es
-    // impar y positiva, o una más si es impar y negativa. 0x4671b4 limpia el DIB en todo este ancho (el fondo), y lo
-    // que sigue (el corte en W pasados los 256, las cajas y sus quads) es el de TextPieces con este ancho.
+    // The box columns (lea at 0x46712c): cx + 2 · textColumn, which is the box, or one less if box − cx is odd and
+    // positive, or one more if odd and negative. 0x4671b4 clears the DIB across this whole width (the background), and
+    // the rest (the cut at W past 256, the boxes and their quads) is TextPieces' with this width.
     int width = 0;
 
     friend bool operator==(const CenteredInBox&, const CenteredInBox&) = default;
@@ -88,14 +84,14 @@ struct CenteredInBox
 
 [[nodiscard]] ENGINE_API CenteredInBox CenterInBox(int boxWidth, int textWidth);
 
-// CenterInBox con el cx de GetTextExtentPointA para `text` en `font`: uno vacío mide el "0" de 0x6c7ae4
-// (0x4670ba..0x4670d0), y vacío y sin caja no da ninguna columna (0x467077..0x467082: sale sin dibujar).
+// CenterInBox with GetTextExtentPointA's cx for `text` in `font`: an empty one measures 0x6c7ae4's "0"
+// (0x4670ba..0x4670d0), and empty without a box gives no columns (0x467077..0x467082: returns without drawing).
 [[nodiscard]] ENGINE_API CenteredInBox CenterInBox(const ITextMeasure& measure, FontKind font, std::string_view text,
                                                    int boxWidth);
 
-// 0x554000(x, y, ancho, filas, …, 0, 0x280) de un renglón de un globo (0x555b00), en píxeles: una x negativa va a 0 y
-// una caja que pasa de W va contra el borde; con 0x77f3b66 prendido (`clampY`), una y negativa va a 0 y una caja que
-// pasa de H − H · 47 / 640 (con IDIV) sube hasta ahí. El quad muestra `width` columnas de la caja de 256 (con GL_CLAMP,
-// las que pasan repiten la última, Q-C521) y `rows` filas.
+// 0x554000(x, y, width, rows, …, 0, 0x280) for a bubble line (0x555b00), in pixels: a negative x goes to 0 and a box
+// past W goes against the edge; with 0x77f3b66 on (`clampY`), a negative y goes to 0 and a box past H − H · 47 / 640
+// (with IDIV) moves up to there. The quad shows `width` columns of the 256 box (with GL_CLAMP, those past it repeat the
+// last, Q-C521) and `rows` rows.
 [[nodiscard]] ENGINE_API OriginalQuad BoxedQuad(int x, int y, int width, int rows, bool clampY, Core::PixelSize screen);
 } // namespace Client::Render::Text

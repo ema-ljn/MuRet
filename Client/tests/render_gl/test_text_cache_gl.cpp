@@ -25,9 +25,8 @@
 #include <utility>
 #include <vector>
 
-// Client::Render::Text::TextCache con la tabla de verdad (CL5.3): las cajas suben a la
-// TextureTable en los slots del texto, como la caja de 256 × 32 RGBA que 0x554000 sube al slot 0, y
-// GlSpriteRenderer las dibuja con la fila 0 arriba.
+// The boxes go to the real TextureTable in the text slots, like the 256 × 32 RGBA box 0x554000 uploads to slot 0, and
+// GlSpriteRenderer draws them with row 0 at the top.
 namespace
 {
 using Client::Core::PixelSize;
@@ -48,11 +47,9 @@ using Client::Tests::PixelIndex;
 constexpr Rgba8 Transparent{0, 0, 0, 0};
 constexpr Rgba8 Red{255, 0, 0, 255};
 constexpr Rgba8 Green{0, 255, 0, 255};
-// En el formato del original, 0xAABBGGRR: el texto rojo sobre un fondo verde, los dos opacos.
+// In the original's 0xAABBGGRR format: red text on a green background, both opaque.
 constexpr TextStyle RedOnGreen{FontKind::Normal, TextColors{0xff0000ff, 0xff00ff00}};
 
-// Con el framebuffer y el contexto de GlDrawTest: la tabla, el renderer y un lote del tamaño del
-// framebuffer.
 class TextCacheGlTest : public Client::Tests::GlDrawTest
 {
 protected:
@@ -70,7 +67,7 @@ protected:
         m_batch.Begin(PixelSize{FramebufferSide, FramebufferSide});
     }
 
-    // El color del píxel (x, y) del framebuffer, con la y desde arriba, como el original.
+    // The color of framebuffer pixel (x, y), y from the top like the original.
     [[nodiscard]] Rgba8 PixelAt(const std::vector<Rgba8>& pixels, int x, int y) const
     {
         return pixels[PixelIndex(x, FramebufferSide - 1 - y, FramebufferSide)];
@@ -83,15 +80,13 @@ protected:
     Client::Core::Log m_log{m_sink, Client::Core::LogLevel::Debug};
 };
 
-// Cada caja es una textura de 256 × 32 en el slot que le toca, desde el primero del texto, y la
-// caché la suelta de la tabla al vaciarse.
 TEST_F(TextCacheGlTest, UploadsTheBoxOf256By32)
 {
     const FakeGlyphRasterizer rasterizer;
     TextCache cache(rasterizer, *m_textures);
     const TextureSlot second{static_cast<std::uint16_t>(Client::Render::FirstTextTextureSlot.value + 1)};
 
-    // 50 letras de 6 columnas: 300, dos cajas.
+    // 50 letters of 6 columns: 300, two boxes.
     const Client::Core::Expected<void, std::string> drawn = cache.Draw(m_batch, 0, 0, std::string(50, 'x'), RedOnGreen);
 
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
@@ -107,12 +102,11 @@ TEST_F(TextCacheGlTest, UploadsTheBoxOf256By32)
     EXPECT_EQ(m_textures->Find(second), nullptr);
 }
 
-// La fila 0 de la caja va arriba del quad: el texto en (0, 0) deja la tinta de cada letra (el
-// bloque de 3 × 4 del rasterizador falso) en la esquina de arriba a la izquierda de su celda, el
-// fondo en el resto de las 32 filas, y nada debajo.
+// Box row 0 goes at the top of the quad: text at (0, 0) leaves each letter's ink (the fake rasterizer's 3 × 4 block) at
+// the top left of its cell, background in the rest of the 32 rows, and nothing below.
 TEST_F(TextCacheGlTest, TheTextIsAtTheTopLeftOfTheBox)
 {
-    // Dos letras de 32 columnas y una celda de 32 filas: la caja llena la mitad de arriba.
+    // Two 32-column letters and a 32-row cell: the box fills the top half.
     const FakeGlyphRasterizer rasterizer(32, 32);
     TextCache cache(rasterizer, *m_textures);
 

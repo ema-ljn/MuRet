@@ -3,6 +3,10 @@ import re
 import shlex
 import subprocess
 import sys
+from collections.abc import Iterator
+from functools import partial
+from itertools import takewhile
+from operator import ne
 from pathlib import Path
 from string import Template
 
@@ -15,6 +19,7 @@ SKILL = REPO / ".claude" / "skills" / "muret-bmd" / "SKILL.md"
 MUBMD = Path(sys.executable).parent / "mubmd"
 RECIPE = re.compile(r"<!-- recipe: (?P<name>[\w-]+) -->\n+```bash\n(?P<body>.*?)```", re.DOTALL)
 EXPECTED_EXIT = re.compile(r"#\s*exit (\d+)\s*$")
+HEREDOC = re.compile(r"\s*<<'(\w+)'\s*$")
 
 
 def recipes() -> dict[str, list[str]]:
@@ -22,11 +27,23 @@ def recipes() -> dict[str, list[str]]:
     return {match["name"]: match["body"].strip().splitlines() for match in RECIPE.finditer(text)}
 
 
-def run_line(line: str, variables: dict[str, str]) -> None:
+def commands(lines: list[str]) -> Iterator[tuple[str, str | None]]:
+    rows = iter(lines)
+    for line in rows:
+        heredoc = HEREDOC.search(line)
+        if heredoc is not None:
+            yield line[: heredoc.start()], "\n".join(takewhile(partial(ne, heredoc[1]), rows))
+        elif line.strip() and not line.lstrip().startswith("#"):
+            yield line, None
+
+
+def run_line(line: str, variables: dict[str, str], stdin: str | None) -> None:
     expected = EXPECTED_EXIT.search(line)
     command = [Template(word).substitute(variables) for word in shlex.split(line, comments=True)]
     assert command[0] == "mubmd", line
-    result = subprocess.run([str(MUBMD), *command[1:]], capture_output=True, text=True, encoding="utf-8", check=False)
+    result = subprocess.run(
+        [str(MUBMD), *command[1:]], input=stdin, capture_output=True, text=True, encoding="utf-8", check=False
+    )
     assert result.returncode == (int(expected[1]) if expected else 0), f"{line}\n{result.stdout}\n{result.stderr}"
     envelope = json.loads(result.stdout)
     assert envelope["ok"] is True
@@ -40,9 +57,8 @@ def test_the_skill_has_recipes() -> None:
 @pytest.mark.parametrize("name", sorted(recipes()) if SKILL.exists() else [])
 def test_every_recipe_runs(name: str, working_copy: Path, reference_data: Path, tmp_path: Path) -> None:
     variables = {"WORK": str(working_copy), "REF": str(reference_data), "TMP": str(tmp_path)}
-    for line in recipes()[name]:
-        if line.strip() and not line.lstrip().startswith("#"):
-            run_line(line, variables)
+    for line, stdin in commands(recipes()[name]):
+        run_line(line, variables, stdin)
 
 
 def test_brief_matches_the_skill() -> None:

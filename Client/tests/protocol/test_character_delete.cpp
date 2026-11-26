@@ -8,6 +8,7 @@
 #include "support/Bytes.h"
 #include "support/CharacterPackets.h"
 #include "support/ExpectedError.h"
+#include "support/MinimumSize.h"
 #include "support/NetworkPrinters.h"
 #include "support/Packets.h"
 #include "support/ProtocolPrinters.h"
@@ -95,5 +96,10 @@ TEST(CharacterDeleteTest, TheReplyIsItsResult)
     EXPECT_EQ(ErrorOf(ReadCharacterDeleteResult(PacketOf(Bytes({0xC1, 0x04, 0xF3, 0x02})))), ProtocolError::TooShort);
     EXPECT_EQ(ErrorOf(ReadCharacterDeleteResult(PacketOf(Bytes({0xC1, 0x05, 0xF3, 0x01, 0x01})))),
               ProtocolError::WrongPacket);
+}
+
+TEST(CharacterDeleteTest, ReadsItsMinimumSizeAndNotOneByteLess)
+{
+    Client::Tests::ExpectMinimumSize(ReadCharacterDeleteResult, Bytes({0xC1, 0x05, 0xF3, 0x02, 0x01}));
 }
 } // namespace

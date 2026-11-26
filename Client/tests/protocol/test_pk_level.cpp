@@ -4,6 +4,7 @@
 
 #include "support/Bytes.h"
 #include "support/ExpectedError.h"
+#include "support/MinimumSize.h"
 #include "support/Packets.h"
 
 #include <gtest/gtest.h>
@@ -33,5 +34,10 @@ TEST(PkLevelProtocolTest, NeedsSevenBytesAndTheSubcode08)
               ProtocolError::TooShort);
     EXPECT_EQ(ErrorOf(Player::ReadPkLevel(PacketOf(Bytes({0xc1, 0x07, 0xf3, 0x06, 0x12, 0x34, 0x05})))),
               ProtocolError::WrongPacket);
+}
+
+TEST(PkLevelProtocolTest, ReadsItsMinimumSizeAndNotOneByteLess)
+{
+    Client::Tests::ExpectMinimumSize(Player::ReadPkLevel, Bytes({0xc1, 0x07, 0xf3, 0x08, 0x12, 0x34, 0x05}));
 }
 } // namespace

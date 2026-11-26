@@ -8,6 +8,7 @@
 #include "support/Bytes.h"
 #include "support/CharacterPackets.h"
 #include "support/ExpectedError.h"
+#include "support/MinimumSize.h"
 #include "support/NetworkPrinters.h"
 #include "support/Packets.h"
 #include "support/ProtocolPrinters.h"
@@ -236,5 +237,13 @@ TEST(CharacterSelectTest, ReadsZeroAndMaximumSelectResultFields)
         EXPECT_EQ(result.maxAddedPoints, word);
         EXPECT_EQ(result.leadership, word);
     }
+}
+
+// 0x4c3940 reads up to the leadership at pkt[0x32..0x33].
+TEST(CharacterSelectTest, ReadsItsMinimumSizeAndNotOneByteLess)
+{
+    std::vector<std::byte> exact = Bytes({0xC1, 0x34, 0xF3, 0x03});
+    exact.resize(0x34);
+    Client::Tests::ExpectMinimumSize(ReadCharacterSelectResult, exact);
 }
 } // namespace

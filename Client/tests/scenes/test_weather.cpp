@@ -22,6 +22,7 @@
 
 #include "support/Bytes.h"
 #include "support/ExpectedError.h"
+#include "support/MinimumSize.h"
 #include "support/Packets.h"
 #include "support/RecordingSink.h"
 #include "support/SessionHarness.h"
@@ -309,5 +310,10 @@ TEST(WeatherSessionTest, AppliesThePacketBeforeARemoteCloseAlreadyObservedByTheP
     EXPECT_EQ(tested.world.Runtime().leafWeather.target, 42);
     EXPECT_EQ(tested.targets, (std::vector<std::int32_t>{42}));
     EXPECT_EQ(tested.online.session.Failure(), Client::App::SessionFailure::GameServerLost);
+}
+
+TEST(WeatherProtocolTest, ReadsItsMinimumSizeAndNotOneByteLess)
+{
+    Client::Tests::ExpectMinimumSize(Client::Protocol::Movement::ReadWeather, Bytes({0xc1, 0x04, 0x0f, 0x10}));
 }
 } // namespace

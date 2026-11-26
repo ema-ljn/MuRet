@@ -9,6 +9,7 @@
 #include "support/Bytes.h"
 #include "support/CharacterPackets.h"
 #include "support/ExpectedError.h"
+#include "support/MinimumSize.h"
 #include "support/NetworkPrinters.h"
 #include "support/Packets.h"
 #include "support/ProtocolPrinters.h"
@@ -187,5 +188,14 @@ TEST(CharacterListTest, ASlotAboveFourIsDropped)
     EXPECT_EQ(list.characters[0].slot, 0);
     EXPECT_EQ(list.characters[1].slot, 4);
     EXPECT_EQ(list.characters[1].name, NameBytes("char0003"));
+}
+
+// 0x4c20a0 reads up to the count at pkt[6], then 0x22 bytes per entry.
+TEST(CharacterListTest, ReadsItsMinimumSizeAndNotOneByteLess)
+{
+    Client::Tests::ExpectMinimumSize(ReadCharacterList, Bytes({0xC1, 0x07, 0xF3, 0x00, 0x00, 0x00, 0x00}));
+    std::vector<std::byte> oneEntry = Bytes({0xC1, 0x29, 0xF3, 0x00, 0x00, 0x00, 0x01});
+    oneEntry.resize(0x29);
+    Client::Tests::ExpectMinimumSize(ReadCharacterList, oneEntry);
 }
 } // namespace

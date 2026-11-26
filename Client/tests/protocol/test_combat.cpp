@@ -7,6 +7,7 @@
 
 #include "support/Bytes.h"
 #include "support/ExpectedError.h"
+#include "support/MinimumSize.h"
 #include "support/Packets.h"
 #include "support/SameBytes.h"
 #include "Protocol/Opcodes.h"
@@ -113,5 +114,15 @@ TEST(CombatProtocolTest, ReadsTheDeathWithOrWithoutTheKiller)
     EXPECT_EQ(server.Value().skill, 0);
     EXPECT_EQ(server.Value().killer, 0);
     EXPECT_EQ(ErrorOf(Combat::ReadDeath(PacketOf(Bytes({0xc1, 4, 0x17, 0x00})))), ProtocolError::TooShort);
+}
+
+// 0x4d0a30 reads the killer only if it arrived: the key is the death's minimum.
+TEST(CombatProtocolTest, ReadsEachMinimumSizeAndNotOneByteLess)
+{
+    Client::Tests::ExpectMinimumSize(Combat::ReadKillExperience,
+                                     Bytes({0xc1, 0x09, 0x16, 0x00, 0x01, 0x00, 0x02, 0x00, 0x03}));
+    Client::Tests::ExpectMinimumSize(Combat::ReadExtendedKillExperience,
+                                     Bytes({0xc1, 0x0c, 0x9c, 0x00, 0x01, 0x00, 0x02, 0x00, 0x03, 0x00, 0x00, 0x04}));
+    Client::Tests::ExpectMinimumSize(Combat::ReadDeath, Bytes({0xc1, 0x05, 0x17, 0x00, 0x01}));
 }
 } // namespace

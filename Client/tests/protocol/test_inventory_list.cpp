@@ -5,6 +5,7 @@
 
 #include "support/Bytes.h"
 #include "support/ExpectedError.h"
+#include "support/MinimumSize.h"
 #include "support/Packets.h"
 #include "support/ProtocolPrinters.h"
 
@@ -302,5 +303,14 @@ TEST(InventoryListTest, DecryptionMetadataDoesNotChangeThePureReader)
                                      std::byte{0x52}, std::byte{0x63}, std::byte{0x74}};
         EXPECT_EQ(list.Value().items[0].item, expected);
     }
+}
+
+// 0x4c55a0 reads up to the count at pkt[5], then eight bytes per entry.
+TEST(InventoryListTest, ReadsItsMinimumSizeAndNotOneByteLess)
+{
+    Client::Tests::ExpectMinimumSize(ReadInventoryList, Bytes({0xC2, 0x00, 0x06, 0xF3, 0x10, 0x00}));
+    std::vector<std::byte> oneEntry = Bytes({0xC2, 0x00, 0x0e, 0xF3, 0x10, 0x01});
+    oneEntry.resize(0x0e);
+    Client::Tests::ExpectMinimumSize(ReadInventoryList, oneEntry);
 }
 } // namespace

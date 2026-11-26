@@ -5,7 +5,10 @@ set "OUT=build\mydll-vc6"
 if not exist "%SRC%\build_vc6.bat" exit /b 2
 if not exist "%OUT%" mkdir "%OUT%"
 if not exist "%OUT%" exit /b 2
-set "FLAGS=/nologo /MT /W4 /WX /Od /D_WIN32_WINNT=0x0502 /I%SRC%\src /Fo%OUT%\"
+set "FLAGS_BASE=/nologo /MT /W4 /WX /Od /D_WIN32_WINNT=0x0502 /I%SRC%\src"
+set "FLAGS=%FLAGS_BASE% /Fo%OUT%\"
+set "PROTOCOL=%SRC%\src\Protocol\Selection.cpp %SRC%\src\Protocol\SelectionList.cpp"
+set "BOOT=%SRC%\src\Init.cpp %SRC%\src\BootHooks.cpp %SRC%\src\HostBoot.cpp %SRC%\src\GameServer102i.cpp %SRC%\src\BootOutcome.cpp %SRC%\src\Observer.cpp"
 if "%~1"=="hooks-red" goto hooks_red
 if "%~1"=="hooks" goto hooks
 if "%~1"=="host-red" goto host_red
@@ -15,7 +18,9 @@ if "%~1"=="log" goto log
 if "%~1"=="observer-red" goto observer_red
 if "%~1"=="observer" goto observer
 if "%~1"=="dll" goto dll
-echo Usage: Server\MyDll\build_vc6.bat dll^|hooks^|host^|load^|log^|observer
+if "%~1"=="selection" goto selection
+if "%~1"=="selection-tests" goto selection_tests
+echo Usage: Server\MyDll\build_vc6.bat dll^|hooks^|host^|load^|log^|observer^|selection^|selection-tests
 exit /b 2
 
 :hooks_red
@@ -51,5 +56,19 @@ cl %FLAGS% "%SRC%\tests\test_observer.cpp" "%SRC%\src\Observer.cpp" "%SRC%\src\B
 exit /b %ERRORLEVEL%
 
 :dll
-cl %FLAGS% /LD "%SRC%\src\Init.cpp" "%SRC%\src\BootHooks.cpp" "%SRC%\src\HostBoot.cpp" "%SRC%\src\GameServer102i.cpp" "%SRC%\src\BootOutcome.cpp" "%SRC%\src\Observer.cpp" /link /INCREMENTAL:NO /BASE:0x20000000 /DEF:"%SRC%\src\MyDll.def" /OUT:"%OUT%\MyDll.dll" /IMPLIB:"%OUT%\MyDll.lib"
+cl %FLAGS% /LD %BOOT% /link /INCREMENTAL:NO /BASE:0x20000000 /DEF:"%SRC%\src\MyDll.def" /OUT:"%OUT%\MyDll.dll" /IMPLIB:"%OUT%\MyDll.lib"
+exit /b %ERRORLEVEL%
+
+:selection
+if not exist "%OUT%\selection" mkdir "%OUT%\selection"
+if not exist "%OUT%\selection" exit /b 2
+cl %FLAGS_BASE% /Fo%OUT%\selection\ /DMYDLL_SELECTION /LD %BOOT% "%SRC%\src\SelectionGateway.cpp" "%SRC%\src\TerrainBoot.cpp" %PROTOCOL% /link /INCREMENTAL:NO /BASE:0x20000000 /DEF:"%SRC%\src\MyDll.def" /OUT:"%OUT%\selection\MyDll.dll" /IMPLIB:"%OUT%\selection\MyDll.lib" /MAP:"%OUT%\selection\MyDll.map"
+exit /b %ERRORLEVEL%
+
+:selection_tests
+cl %FLAGS% "%SRC%\tests\test_selection.cpp" %PROTOCOL% /Fe"%OUT%\test_selection.exe"
+if errorlevel 1 exit /b %ERRORLEVEL%
+cl %FLAGS% "%SRC%\tests\test_selection_gateway.cpp" "%SRC%\src\SelectionGateway.cpp" "%SRC%\src\GameServer102i.cpp" "%SRC%\src\Observer.cpp" "%SRC%\src\BootHooks.cpp" %PROTOCOL% /Fe"%OUT%\test_selection_gateway.exe"
+if errorlevel 1 exit /b %ERRORLEVEL%
+cl %FLAGS% "%SRC%\tests\test_terrain_boot.cpp" "%SRC%\src\TerrainBoot.cpp" "%SRC%\src\BootOutcome.cpp" /Fe"%OUT%\test_terrain_boot.exe"
 exit /b %ERRORLEVEL%

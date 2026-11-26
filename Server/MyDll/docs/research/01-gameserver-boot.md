@@ -127,6 +127,10 @@ An independent raw stack probe failed when the charlist callback was built with
 the old PID-only marker and verified that a blocked publication path exits `2`
 without presenting a new active marker.
 
-These results are from the VC6 toolchain under isolated Wine, not a real
-GameServer run. The native bootstrap, observed pre-images at `Init`, stock
-map-loader fallback and post-map milestone remain unverified.
+These fixture results are from the VC6 toolchain under isolated Wine. The
+[isolated Windows probe](02-observation.md#isolated-windows-server-2003-r2-probe)
+later reached native `Init`, but did not establish sustained boot or the
+stock map-loader milestone for the closed control. The separate
+[selection trial](04-character-selection.md#native-boot-result-selection-9dd9dd10)
+passed startup with its eight-slot profile; that result does not validate the
+seven-slot control.

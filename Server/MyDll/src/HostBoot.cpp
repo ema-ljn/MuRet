@@ -101,12 +101,12 @@ bool CheckWord(BootFailure& failure, const char* stage, DWORD address, DWORD exp
     return Fault(failure, stage, address, row);
 }
 
-bool CheckSlots(const HostLayout& layout, BootFailure& failure)
+bool CheckSlots(const HostLayout& layout, const BootSession& session, BootFailure& failure)
 {
     for (unsigned i = 0; i < SlotCount; ++i)
     {
         const DWORD address = layout.slots[i];
-        if ((address % WordSize) != 0 || !CanAccess(layout, address, WordSize, i != NativeMapSlot))
+        if ((address % WordSize) != 0 || !CanAccess(layout, address, WordSize, i != NativeMapSlot || session.terrain))
             return Fault(failure, "slot_access", address, i);
         if (!CheckWord(failure, "slot_occupied", address, 0, i))
             return false;
@@ -133,7 +133,7 @@ bool Preflight(const HostLayout& layout, const BootSession& session, BootFailure
         if (!CheckWord(failure, "operand_preimage", entry.operandAddress, entry.expectedValue, row))
             return false;
     }
-    return CheckSlots(layout, failure);
+    return CheckSlots(layout, session, failure);
 }
 
 bool Prepare(PrepareResources prepareResources, BootFailure& failure)
@@ -203,17 +203,21 @@ bool Relocate(const HostLayout& layout, const BootSession& session, BootFailure&
 
 bool Publish(const HostLayout& layout, const BootSession& session, BootFailure& failure)
 {
-    if (!CheckSlots(layout, failure))
+    if (!CheckSlots(layout, session, failure))
         return false;
-    const DWORD hooks[NativeMapSlot] = {reinterpret_cast<DWORD>(&AreaStub),
-                                        reinterpret_cast<DWORD>(&DiscardCharacterList),
-                                        reinterpret_cast<DWORD>(&RejectSetCharacter),
-                                        reinterpret_cast<DWORD>(session.receive ? session.receive : &DiscardReceive),
-                                        reinterpret_cast<DWORD>(&NoDuel),
-                                        reinterpret_cast<DWORD>(session.send ? session.send : &DiscardSend),
-                                        reinterpret_cast<DWORD>(&LeaveBytesUnchanged)};
-    for (unsigned i = 0; i < NativeMapSlot; ++i)
+    const DWORD hooks[SlotCount] = {
+        reinterpret_cast<DWORD>(&AreaStub),
+        reinterpret_cast<DWORD>(session.characterList ? session.characterList : &DiscardCharacterList),
+        reinterpret_cast<DWORD>(&RejectSetCharacter),
+        reinterpret_cast<DWORD>(session.receive ? session.receive : &DiscardReceive),
+        reinterpret_cast<DWORD>(&NoDuel),
+        reinterpret_cast<DWORD>(session.send ? session.send : &DiscardSend),
+        reinterpret_cast<DWORD>(session.wire ? session.wire : &LeaveBytesUnchanged),
+        reinterpret_cast<DWORD>(session.terrain)};
+    for (unsigned i = 0; i < SlotCount; ++i)
     {
+        if (!hooks[i])
+            continue;
         const DWORD address = layout.slots[i];
         PVOID const old =
             InterlockedCompareExchange(reinterpret_cast<PVOID*>(address), reinterpret_cast<PVOID>(hooks[i]), NULL);
@@ -226,7 +230,7 @@ bool Publish(const HostLayout& layout, const BootSession& session, BootFailure& 
     }
     for (unsigned check = 0; check < SlotCount; ++check)
     {
-        if (!CheckWord(failure, "slot_readback", layout.slots[check], check == NativeMapSlot ? 0 : hooks[check], check))
+        if (!CheckWord(failure, "slot_readback", layout.slots[check], hooks[check], check))
             return false;
     }
     return true;

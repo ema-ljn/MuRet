@@ -82,11 +82,10 @@ public:
         memset(&layout, 0, sizeof(layout));
         memset(&invocation, 0, sizeof(invocation));
         memset(&failure, 0, sizeof(failure));
+        memset(&session, 0, sizeof(session));
         session.state = Cold;
         session.backing = m_backing;
         session.backingSize = sizeof(m_backing);
-        session.receive = NULL;
-        session.send = NULL;
         s_prepareAllowed = true;
         s_prepareCount = 0;
         s_protectCalls = 0;
@@ -198,23 +197,35 @@ DWORD __cdecl FixtureSend(int, char*, DWORD)
     return 1;
 }
 
-bool CheckInstall(bool overrideReceive, bool overrideSend)
+void __stdcall FixtureList(DWORD) {}
+
+void __stdcall FixtureWire(unsigned char*, int) {}
+
+void __cdecl FixtureTerrain() {}
+
+bool CheckInstall(bool overrideReceive, bool overrideSend, bool selection)
 {
     Fixture fixture;
     if (overrideReceive)
         fixture.session.receive = &FixtureReceive;
     if (overrideSend)
         fixture.session.send = &FixtureSend;
+    if (selection)
+    {
+        fixture.session.characterList = &FixtureList;
+        fixture.session.wire = &FixtureWire;
+        fixture.session.terrain = &FixtureTerrain;
+    }
     if (!fixture.Seal() || fixture.Install() != Installed || s_prepareCount != 1)
         return false;
     const DWORD hooks[] = {reinterpret_cast<DWORD>(&AreaStub),
-                           reinterpret_cast<DWORD>(&DiscardCharacterList),
+                           reinterpret_cast<DWORD>(selection ? &FixtureList : &DiscardCharacterList),
                            reinterpret_cast<DWORD>(&RejectSetCharacter),
                            reinterpret_cast<DWORD>(overrideReceive ? &FixtureReceive : &DiscardReceive),
                            reinterpret_cast<DWORD>(&NoDuel),
                            reinterpret_cast<DWORD>(overrideSend ? &FixtureSend : &DiscardSend),
-                           reinterpret_cast<DWORD>(&LeaveBytesUnchanged),
-                           0};
+                           reinterpret_cast<DWORD>(selection ? &FixtureWire : &LeaveBytesUnchanged),
+                           selection ? reinterpret_cast<DWORD>(&FixtureTerrain) : 0};
     for (unsigned i = 0; i < SlotCount; ++i)
     {
         if (Read(fixture.layout.slots[i]) != hooks[i] || Read(fixture.layout.slots[i] + 4) != Canary)
@@ -363,7 +374,8 @@ int main(int argc, char* argv[])
     (void)argc;
     (void)argv;
 #endif
-    if (!CheckInstall(false, false) || !CheckInstall(true, false) || !CheckInstall(false, true))
+    if (!CheckInstall(false, false, false) || !CheckInstall(true, false, false) || !CheckInstall(false, true, false) ||
+        !CheckInstall(true, true, true))
     {
         puts("FAIL host boot installation");
         return 1;

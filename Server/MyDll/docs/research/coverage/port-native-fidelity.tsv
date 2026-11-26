@@ -1,0 +1,3 @@
+original_function_id	host_slot	port_symbol	reference_bytes	reference_body_sha256	linked_fidelity	behavior_evidence	native_acceptance
+mydll!0x0002c651	f60	MyDll::Protocol::XorWire	56	af160fd2da87e4bd534001751690111a77ec0cad0c219a3bd0b2165b17d870a9	exact_56_of_56	test_selection.cpp; test_selection_gateway.cpp; verify_selection_native.py	pending
+mydll!0x00028580	f48	MyDll::Boot::LoadGameServerTerrain	649	f59513df3e43a7becb3907ac5a407407600c321b5a1d0695084eab2a42cda48e	intentional_prologue_and_body_difference	test_terrain_boot.cpp; 04-character-selection.md#native-boot-result-selection-9dd9dd10	passed_29_maps_9dd9dd10

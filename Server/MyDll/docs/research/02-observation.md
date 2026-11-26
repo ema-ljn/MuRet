@@ -3,8 +3,8 @@
 ## Boundary
 
 `f28` (`0x00414170`) and `f34` (`0x00440230`) are the audited GS's receive and
-send selectors. The optional wrappers observe their arguments and delegate
-only to the existing closed stubs. The wrappers preserve the buffer, return
+send selectors. In the boot-only profile the optional wrappers observe their
+arguments and delegate only to the existing closed stubs. They preserve the buffer, return
 value and `LastError`; `f60` and the other hooks are unchanged. They neither
 dispatch to stock handlers nor examine whether a stock handler would succeed.
 
@@ -48,3 +48,25 @@ payload privacy, return values and `LastError`. The synthetic host fixture
 checks that only selected slots are replaced. A separate VC6 test process
 checks that the INI and log follow its executable, not its working directory.
 This is not a real client trace or a native Windows Server 2003 R2 boot.
+
+### Isolated Windows Server 2003 R2 probe
+
+The `3d83e064` build (`699bb797…d604`, built with VC6 under Wine and
+verified by read-back) ran once in `C:\mx_debug_mydll_490\GameServer`.
+The clone had no NIC, MU backends, or client. `Enabled`, `Receive`, and `Send`
+were all `1`. The audited GS was `b2a4521b…7d5e`.
+
+- `MYDLL_BOOT_ACTIVE PID=2484 START=01dd7d69788ba07c RELOC=2814 SLOTS=7`.
+  Boot marker SHA-256: `aceb9d221cf90374000ed5b57330fa3eb35fd1cc6d2d22828722b7250f2b9aa8`.
+- The TSV was opened and contained 15 `TX` attempts with the same shape
+  (`C1`, `9B`, 14 bytes), all `BLOCKED_BY_STUB`, and no `RX` rows.
+  TSV SHA-256: `a6ce32c988940bcd927c5e2918faec5eac65a7dd01a09331390cd4ac71de4c7d`.
+- The GS was already absent at the first process sample and was absent at the
+  second. No exit cause or stock startup milestone was established. This
+verifies native `Init` and observer output, not a sustained boot or any
+client action. The original laboratory server was not modified.
+
+See the [original-stack character creation baseline](03-character-create-baseline.md)
+for the later controlled VMXP action. That run did not load this observer.
+The [selection trial](04-character-selection.md#native-boot-result-selection-9dd9dd10)
+records the distinct `BLOCKED_BY_PROFILE` outcomes from its native boot.

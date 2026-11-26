@@ -1,4 +1,5 @@
 #include "Observer.h"
+#include "ExecutableDirectory.h"
 #include "RunIdentity.h"
 
 #include <excpt.h>
@@ -197,7 +198,20 @@ void HexField(int value, char (&text)[4])
         sprintf(text, "%02X", static_cast<unsigned>(value));
 }
 
-void WriteRow(const char* direction, DWORD length, const Metadata& metadata)
+const char* DecisionName(ObservationDecision decision)
+{
+    switch (decision)
+    {
+    case Delegated:
+        return "DELEGATED_TO_GS";
+    case BlockedByProfile:
+        return "BLOCKED_BY_PROFILE";
+    default:
+        return "BLOCKED_BY_STUB";
+    }
+}
+
+void WriteRow(const char* direction, DWORD length, const Metadata& metadata, ObservationDecision decision)
 {
     char frame[4], opcode[4], subcode[4];
     HexField(metadata.frame, frame);
@@ -205,8 +219,8 @@ void WriteRow(const char* direction, DWORD length, const Metadata& metadata)
     HexField(metadata.subcode, subcode);
     char row[144];
     const LONG lost = InterlockedExchange(&s_busyDrops, 0);
-    const int size = sprintf(row, "%u\t%s\tBLOCKED_BY_STUB\t%s\t%s\t%s\t%lu\t%s\t%ld\r\n", s_rows + 1, direction, frame,
-                             opcode, subcode, length, StateName(metadata.state), lost);
+    const int size = sprintf(row, "%u\t%s\t%s\t%s\t%s\t%s\t%lu\t%s\t%ld\r\n", s_rows + 1, direction,
+                             DecisionName(decision), frame, opcode, subcode, length, StateName(metadata.state), lost);
     if (size <= 0 || !WriteAll(s_file, row, static_cast<DWORD>(size)))
     {
         CloseObserver();
@@ -216,7 +230,7 @@ void WriteRow(const char* direction, DWORD length, const Metadata& metadata)
     ++s_rows;
 }
 
-void Record(bool receive, DWORD packet, DWORD length)
+void Record(bool receive, DWORD packet, DWORD length, ObservationDecision decision)
 {
     if (!(receive ? s_options.receive : s_options.send))
         return;
@@ -229,22 +243,11 @@ void Record(bool receive, DWORD packet, DWORD length)
     {
         const Metadata metadata = ReadMetadata(packet, length, s_options.includeSubcode);
         if (metadata.state == Parsed || metadata.state == Opaque || s_options.logMalformed)
-            WriteRow(receive ? "RX" : "TX", length, metadata);
+            WriteRow(receive ? "RX" : "TX", length, metadata, decision);
     }
     InterlockedExchange(&s_writer, 0);
 }
 
-bool GameServerPath(char (&path)[MAX_PATH], DWORD& directoryLength)
-{
-    const DWORD length = GetModuleFileNameA(NULL, path, sizeof(path));
-    if (!length || length >= sizeof(path))
-        return false;
-    const char* const separator = strrchr(path, '\\');
-    if (!separator)
-        return false;
-    directoryLength = static_cast<DWORD>(separator - path + 1);
-    return true;
-}
 } // namespace
 
 ObserverOptions ReadObserverOptions(const char* ini)
@@ -293,11 +296,11 @@ void CloseObserver()
     s_file = INVALID_HANDLE_VALUE;
 }
 
-void ConfigureObserver(BootSession& session)
+void ConfigureObserver(BootSession& session, bool installClosedHooks)
 {
     char path[MAX_PATH];
     DWORD directoryLength;
-    if (!GameServerPath(path, directoryLength) || sizeof(IniName) > sizeof(path) - directoryLength)
+    if (!ExecutableDirectory(path, directoryLength) || sizeof(IniName) > sizeof(path) - directoryLength)
         return;
     memcpy(path + directoryLength, IniName, sizeof(IniName));
     const DWORD attributes = GetFileAttributesA(path);
@@ -316,27 +319,33 @@ void ConfigureObserver(BootSession& session)
         strcpy(path + directoryLength, basename);
         if (OpenObserver(path, options))
         {
-            session.receive = options.receive ? &ObserveReceive : NULL;
-            session.send = options.send ? &ObserveSend : NULL;
+            if (installClosedHooks)
+            {
+                session.receive = options.receive ? &ObserveReceive : NULL;
+                session.send = options.send ? &ObserveSend : NULL;
+            }
             return;
         }
     }
     OutputDebugStringA("MyDll observer was requested but its log could not be opened.");
 }
 
-DWORD __cdecl ObserveReceive(DWORD proto, DWORD packet, DWORD length, int index, DWORD encrypted, DWORD serial)
+void RecordObservation(bool receive, DWORD packet, DWORD length, ObservationDecision decision)
 {
     const DWORD lastError = GetLastError();
-    Record(true, packet, length);
+    Record(receive, packet, length, decision);
     SetLastError(lastError);
+}
+
+DWORD __cdecl ObserveReceive(DWORD proto, DWORD packet, DWORD length, int index, DWORD encrypted, DWORD serial)
+{
+    RecordObservation(true, packet, length, BlockedByStub);
     return DiscardReceive(proto, packet, length, index, encrypted, serial);
 }
 
 DWORD __cdecl ObserveSend(int index, char* packet, DWORD length)
 {
-    const DWORD lastError = GetLastError();
-    Record(false, reinterpret_cast<DWORD>(packet), length);
-    SetLastError(lastError);
+    RecordObservation(false, reinterpret_cast<DWORD>(packet), length, BlockedByStub);
     return DiscardSend(index, packet, length);
 }
 } // namespace Boot

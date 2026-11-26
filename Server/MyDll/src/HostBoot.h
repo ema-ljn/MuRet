@@ -71,6 +71,9 @@ enum BootState
 
 typedef DWORD(__cdecl* ReceiveHook)(DWORD, DWORD, DWORD, int, DWORD, DWORD);
 typedef DWORD(__cdecl* SendHook)(int, char*, DWORD);
+typedef void(__stdcall* CharacterListHook)(DWORD);
+typedef void(__stdcall* WireHook)(unsigned char*, int);
+typedef void(__cdecl* TerrainHook)();
 
 struct BootSession
 {
@@ -79,6 +82,9 @@ struct BootSession
     DWORD backingSize;
     ReceiveHook receive;
     SendHook send;
+    CharacterListHook characterList;
+    WireHook wire;
+    TerrainHook terrain;
 };
 
 struct BootFailure
@@ -95,6 +101,7 @@ typedef bool(__cdecl* PrepareResources)();
 BootResult InstallBoot(const HostLayout&, const BootInvocation&, BootSession&, PrepareResources, BootFailure&);
 const HostLayout& GameServer102iLayout();
 unsigned char* GameServer102iBacking(DWORD& size);
+const unsigned char* GameServer102iObjects();
 
 #ifdef MYDLL_HOST_TEST
 typedef BOOL(WINAPI* ProtectMemory)(LPVOID, DWORD, DWORD, PDWORD);

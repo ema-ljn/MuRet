@@ -1,5 +1,9 @@
 #include "BootOutcome.h"
 #include "Observer.h"
+#ifdef MYDLL_SELECTION
+#include "SelectionGateway.h"
+#include "TerrainBoot.h"
+#endif
 
 #include <string.h>
 
@@ -60,7 +64,13 @@ bool __cdecl PrepareBoot()
 {
     if (!PinOwnModule())
         return false;
+#ifdef MYDLL_SELECTION
+    if (!PrepareTerrain() || !ConfigureSelection(s_boot))
+        return false;
+    ConfigureObserver(s_boot, false);
+#else
     ConfigureObserver(s_boot);
+#endif
     return true;
 }
 
@@ -74,9 +84,12 @@ BOOL __cdecl RunBoot(DWORD returnAddress)
                                        reinterpret_cast<DWORD>(GetProcAddress(s_module, "Init"))};
     if (!s_boot.backing)
         s_boot.backing = GameServer102iBacking(s_boot.backingSize);
+#ifdef MYDLL_SELECTION
+    s_boot.terrain = &LoadGameServerTerrain;
+#endif
     BootFailure failure;
     const BootResult result = InstallBoot(layout, invocation, s_boot, &PrepareBoot, failure);
-    return CompleteBoot(result, failure, layout.relocationCount);
+    return CompleteBoot(result, failure, layout.relocationCount, s_boot.terrain ? SlotCount : NativeMapSlot);
 }
 } // namespace
 

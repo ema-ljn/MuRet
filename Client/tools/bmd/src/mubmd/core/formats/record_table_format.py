@@ -1,22 +1,15 @@
 from dataclasses import dataclass
 from hashlib import sha256
-from typing import Literal
 
 from mubmd.core.ciphers.table_checksum import CHECKSUM_WORD, WORD_MASK, table_checksum
 from mubmd.core.ciphers.xor3 import xor3
 from mubmd.core.documents.record_table import RecordTable
-from mubmd.core.documents.text_table import decode_text, encode_fixed_text, is_text_encoding
+from mubmd.core.documents.text_table import is_text_encoding
 from mubmd.core.errors import ErrorCode, MubmdError
 from mubmd.core.findings import Finding, Severity
+from mubmd.core.formats.record_fields import RecordField, describe, fields_bytes, fields_view, invalid, read_hex, span
 from mubmd.core.json_types import VIEW_VERSION, JsonObject, JsonValue
 from mubmd.core.ports import CatalogFile, FieldInfo, Summary
-
-
-@dataclass(frozen=True, slots=True)
-class RecordField:
-    name: str
-    size: int
-    kind: Literal["text", "bytes", "uint"]
 
 
 @dataclass(frozen=True, slots=True)
@@ -30,73 +23,20 @@ class RecordTableSchema:
     reference: str
 
 
-def _invalid(message: str, pointer: str) -> MubmdError:
-    return MubmdError(ErrorCode.INVALID_VALUE, message, pointer=pointer)
-
-
-def _read_hex(value: JsonValue, pointer: str, size: int | None = None) -> bytes:
-    try:
-        decoded = bytes.fromhex(value) if isinstance(value, str) else None
-    except ValueError:
-        decoded = None
-    if decoded is None or (size is not None and len(decoded) != size):
-        limit = "a hex string" if size is None else f"a hex string of {size} bytes"
-        raise _invalid(f"Expected {limit}", pointer)
-    return decoded
-
-
-def _field_view(field: RecordField, data: bytes, encoding: str) -> JsonValue:
-    if field.kind == "uint":
-        return int.from_bytes(data, "little")
-    if field.kind == "text" and b"\0" in data:
-        text = decode_text(data, encoding)
-        if text is not None:
-            return text
-    return {"hex": data.hex()}
-
-
-def _field_bytes(field: RecordField, value: JsonValue, encoding: str, pointer: str) -> bytes:
-    if field.kind == "uint":
-        if type(value) is not int or not 0 <= value < 1 << (8 * field.size):
-            raise _invalid(f"Expected an unsigned {8 * field.size}-bit integer", pointer)
-        return value.to_bytes(field.size, "little")
-    if field.kind == "text" and isinstance(value, str):
-        return encode_fixed_text(value, encoding, field.size, pointer, field.name, require_terminator=True)
-    if not isinstance(value, dict) or value.keys() != {"hex"}:
-        raise _invalid("Expected a hex object" if field.kind == "bytes" else "Expected a string or hex object", pointer)
-    return _read_hex(value["hex"], pointer, field.size)
-
-
-def _record_view(fields: tuple[RecordField, ...], record: bytes, encoding: str) -> JsonObject:
-    result: JsonObject = {}
-    offset = 0
-    for field in fields:
-        result[field.name] = _field_view(field, record[offset : offset + field.size], encoding)
-        offset += field.size
-    return result
-
-
-def _record_bytes(fields: tuple[RecordField, ...], value: JsonValue, encoding: str, index: int) -> bytes:
-    pointer = f"/records/{index}"
-    if not isinstance(value, dict) or value.keys() != {field.name for field in fields}:
-        raise _invalid("The record must contain exactly the fields in its schema", pointer)
-    return b"".join(_field_bytes(field, value[field.name], encoding, f"{pointer}/{field.name}") for field in fields)
-
-
 def _view_encoding(view: JsonObject, name: str) -> str:
     if type(view.get("format_version")) is not int or view["format_version"] != VIEW_VERSION:
-        raise _invalid(f"This tool reads format_version {VIEW_VERSION} views", "/format_version")
+        raise invalid(f"This tool reads format_version {VIEW_VERSION} views", "/format_version")
     if view.get("format") != name:
-        raise _invalid(f"Not a {name} view", "/format")
+        raise invalid(f"Not a {name} view", "/format")
     encoding = view.get("encoding")
     if not isinstance(encoding, str) or not is_text_encoding(encoding):
-        raise _invalid("The view needs a text encoding", "/encoding")
+        raise invalid("The view needs a text encoding", "/encoding")
     return encoding
 
 
 class RecordTableFormat:
     def __init__(self, schema: RecordTableSchema) -> None:
-        if sum(field.size for field in schema.fields) != schema.record_size:
+        if sum(map(span, schema.fields)) != schema.record_size:
             raise ValueError(f"The {schema.name} fields do not cover its record size")
         self.name = schema.name
         self._schema = schema
@@ -121,7 +61,7 @@ class RecordTableFormat:
 
     def to_view(self, document: RecordTable) -> JsonObject:
         records: list[JsonValue] = [
-            _record_view(self._schema.fields, record, document.encoding) for record in document.records
+            fields_view(self._schema.fields, record, document.encoding) for record in document.records
         ]
         return {
             "format_version": VIEW_VERSION,
@@ -137,22 +77,24 @@ class RecordTableFormat:
         encoding = _view_encoding(view, self.name)
         values = view.get("records")
         if not isinstance(values, list) or len(values) != self._schema.count:
-            raise _invalid(f"The table must contain {self._schema.count} records", "/records")
+            raise invalid(f"The table must contain {self._schema.count} records", "/records")
         fields = self._schema.fields
-        records = tuple(_record_bytes(fields, value, encoding, index) for index, value in enumerate(values))
-        trailing = _read_hex(view.get("trailing"), "/trailing")
+        records = tuple(
+            fields_bytes(fields, value, encoding, f"/records/{index}") for index, value in enumerate(values)
+        )
+        trailing = read_hex(view.get("trailing"), "/trailing")
         checksum = self._view_checksum(view, records)
         if checksum is None and len(trailing) >= CHECKSUM_WORD.size:
-            raise _invalid("Bytes after the records must follow the checksum", "/trailing")
+            raise invalid("Bytes after the records must follow the checksum", "/trailing")
         return RecordTable(records, encoding, checksum, trailing)
 
     def _view_checksum(self, view: JsonObject, records: tuple[bytes, ...]) -> int | None:
-        digest = _read_hex(view.get("records_sha256"), "/records_sha256", sha256().digest_size)
+        digest = read_hex(view.get("records_sha256"), "/records_sha256", sha256().digest_size)
         if "stored_checksum" not in view:
-            raise _invalid("The view needs a stored checksum or null", "/stored_checksum")
+            raise invalid("The view needs a stored checksum or null", "/stored_checksum")
         stored = view["stored_checksum"]
         if stored is not None and (type(stored) is not int or not 0 <= stored <= WORD_MASK):
-            raise _invalid("Expected an unsigned 32-bit checksum or null", "/stored_checksum")
+            raise invalid("Expected an unsigned 32-bit checksum or null", "/stored_checksum")
         if sha256(b"".join(records)).digest() != digest:
             return self._checksum(records)
         return stored
@@ -175,11 +117,7 @@ class RecordTableFormat:
         return (Finding("CHECKSUM_MISMATCH", Severity.WARNING, "/stored_checksum", message),)
 
     def describe_fields(self) -> tuple[FieldInfo, ...]:
-        prefix = f"/records/<0..{self._schema.count - 1}>"
-        return tuple(
-            FieldInfo(f"{prefix}/{field.name}", field.kind, f"{field.size} bytes", self._schema.reference)
-            for field in self._schema.fields
-        )
+        return describe(self._schema.fields, f"/records/<0..{self._schema.count - 1}>", self._schema.reference)
 
     def summarize(self, document: RecordTable) -> Summary:
         return Summary("XOR3 per record", len(document.records), sum(1 for record in document.records if any(record)))

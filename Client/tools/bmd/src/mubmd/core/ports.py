@@ -19,6 +19,7 @@ class FieldInfo:
     type: str
     limit: str
     reference: str
+    offset: int = 0
 
 
 @dataclass(frozen=True, slots=True)

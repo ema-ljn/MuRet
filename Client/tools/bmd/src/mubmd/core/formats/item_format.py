@@ -2,7 +2,8 @@ from typing import Final
 
 from mubmd.core.ciphers.table_checksum import CHECKSUM_WORD
 from mubmd.core.documents.item_table import ITEM_CHECKSUM_KEY, ITEM_COUNT, ITEM_NAME_SIZE, ITEM_RECORD_SIZE
-from mubmd.core.formats.record_table_format import RecordField, RecordTableFormat, RecordTableSchema
+from mubmd.core.formats.record_fields import RecordField
+from mubmd.core.formats.record_table_format import RecordTableFormat, RecordTableSchema
 
 ITEM_TABLE_SIZE: Final = ITEM_COUNT * ITEM_RECORD_SIZE + CHECKSUM_WORD.size
 ITEM_FORMAT: Final = RecordTableFormat(

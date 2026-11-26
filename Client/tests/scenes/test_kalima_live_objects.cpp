@@ -6,7 +6,7 @@
 #include "Scenes/GameItemRenderState.h"
 #include "Scenes/LoadingScene.h"
 #include "Scenes/SceneContext.h"
-#include "Scenes/SessionEventApplier.h"
+#include "Session/SessionEventApplier.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldMap.h"
 #include "Scenes/WorldState.h"

@@ -233,7 +233,6 @@ map	World/WorldObjectMapCreation.cpp	FirstChaosCastle	0x12
 map	World/WorldObjectMapCreation.cpp	LastChaosCastle	0x17
 map	World/WorldObjects.cpp	FirstBloodCastleMap	0xb
 map	World/WorldObjects.cpp	LastBloodCastleMap	0x11
-model	Scenes/MapLoad.cpp	SpearmanModel	0x19f
 model	Scenes/ModelBody.cpp	DungeonModel	0x28
 model	Scenes/ModelBody.cpp	FirstMonsterModel	0x152
 model	Scenes/UiItemDrawing.cpp	PlayerModel	0x20a
@@ -241,6 +240,7 @@ model	World/BlastModelEffects.cpp	FirstAnimatedModel	0xad
 model	World/BlastModelEffects.cpp	LastAnimatedModel	0x151
 model	World/GameModelEffects.cpp	FirstAnimatedModel	0xad
 model	World/GameModelEffects.cpp	LastAnimatedModel	0x151
+model	game/Session/MapLoad.cpp	SpearmanModel	0x19f
 model	game/Tables/PlayerModels.h	PlayerSkeletonModel	0x20a
 number	Scenes/AttackSkillCases.cpp	Half	2.0
 number	Scenes/DarkSpirit.cpp	MinusTenth	f64-from-f32:-0.1f
@@ -455,7 +455,6 @@ sound	Scenes/SocialEvents.cpp	TradeItemSound	0x1d
 sound	Scenes/SocialEvents.cpp	TradeOkSound	0x19
 sound	Scenes/StormJoints.cpp	BlazeSound	0x40
 sound	Scenes/WarehouseKeypad.cpp	KeySound	0x19
-sound	Scenes/WorldTransitionSupport.cpp	TeleportSound	0x76
 sound	UI/ChatLog.h	ChatButtonSound	0x19
 sound	UI/ChatLog.h	ChatFilterSound	0x26
 sound	UI/FriendWindows.cpp	ButtonSound	0x19
@@ -468,6 +467,7 @@ sound	UI/PanelRegistry.cpp	FirstPanelSound	0x19
 sound	UI/PanelRegistry.cpp	SecondPanelSound	0x1c
 sound	World/BlastModelEffects.cpp	TrailSound	0x7a
 sound	World/GameModelEffects.cpp	ExplosionSound	0x40
+sound	game/Session/WorldTransitionSupport.cpp	TeleportSound	0x76
 text	Scenes/ChaosBoxDrawing.cpp	CreateText	0x584
 text	Scenes/ChaosBoxDrawing.cpp	JewelSecondText	0x24b
 text	Scenes/ChaosBoxDrawing.cpp	JewelText	0x24a

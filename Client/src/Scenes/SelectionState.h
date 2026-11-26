@@ -1,6 +1,6 @@
 #pragma once
 
-#include "App/CharacterEvent.h"
+#include "Session/CharacterEvent.h"
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Protocol/FrontEnd/CharacterList.h"

@@ -33,7 +33,7 @@
 #include "Scenes/GameMovement.h"
 #include "Scenes/GameMovementState.h"
 #include "Scenes/GameUi.h"
-#include "Scenes/WorldEntry.h"
+#include "Session/WorldEntry.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "World/GameCamera.h"

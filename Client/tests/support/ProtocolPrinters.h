@@ -4,7 +4,7 @@
 // IWYU pragma: always_keep
 
 #include "Protocol/FrontEnd/CharacterList.h"
-#include "Protocol/Dispatcher.h"
+#include "Session/Dispatcher.h"
 #include "Network/PacketFields.h"
 #include "support/NetworkPrinters.h"
 

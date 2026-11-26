@@ -19,7 +19,7 @@
 #include "Scenes/GameMessages.h"
 #include "Scenes/SkullEffects.h"
 #include "Scenes/WizardEffects.h"
-#include "Scenes/WorldEntry.h"
+#include "Session/WorldEntry.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 

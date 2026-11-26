@@ -22,11 +22,11 @@
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/SkullEffects.h"
-#include "Scenes/WorldEntry.h"
+#include "Session/WorldEntry.h"
 #include "Scenes/WorldMap.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
-#include "Scenes/WorldTransitionSupport.h"
+#include "Session/WorldTransitionSupport.h"
 #include "UI/GameUiState.h"
 #include "World/ModelEffects.h"
 

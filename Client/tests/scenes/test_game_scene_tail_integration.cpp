@@ -16,7 +16,7 @@
 #include "Scenes/GameModels.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/GameItemRenderState.h"
-#include "Scenes/MapLoad.h"
+#include "Session/MapLoad.h"
 #include "Scenes/WorldState.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/DynamicWorldLight.h"

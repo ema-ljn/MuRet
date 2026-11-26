@@ -24,7 +24,7 @@
 #include "Scenes/SocialEvents.h"
 #include "Scenes/SocialState.h"
 #include "Scenes/ViewportPlayers.h"
-#include "Scenes/WorldEntry.h"
+#include "Session/WorldEntry.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/Widget.h"

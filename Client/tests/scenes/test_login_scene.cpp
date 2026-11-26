@@ -4,7 +4,7 @@
 #include "Scenes/SceneCameras.h"
 
 #include "App/ServerAddress.h"
-#include "App/ServerSession.h"
+#include "Session/ServerSession.h"
 #include "App/SessionState.h"
 #include "Core/ILogSink.h"
 #include "Core/Log.h"

@@ -1,10 +1,10 @@
 #pragma once
 
-#include "App/CharacterEvent.h"
-#include "App/ISessionEventSink.h"
-#include "App/WorldEvent.h"
+#include "Session/CharacterEvent.h"
+#include "Session/ISessionEventSink.h"
+#include "Session/WorldEvent.h"
 #include "Core/Expected.h"
-#include "Scenes/WorldEntry.h"
+#include "Session/WorldEntry.h"
 
 #include <cstddef>
 #include <optional>

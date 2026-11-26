@@ -1,6 +1,6 @@
 #include "Scenes/SelectionState.h"
 
-#include "App/CharacterEvent.h"
+#include "Session/CharacterEvent.h"
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainAttributes.h"

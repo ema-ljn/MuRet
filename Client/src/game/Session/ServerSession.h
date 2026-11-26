@@ -1,6 +1,6 @@
 #pragma once
 
-#include "App/Credentials.h"
+#include "Session/Credentials.h"
 #include "App/IChatRoomLinks.h"
 #include "App/ServerAddress.h"
 #include "App/SessionState.h"
@@ -17,7 +17,7 @@
 #include "Protocol/FrontEnd/CharacterList.h"
 #include "Protocol/Session/MapServerMove.h"
 #include "Protocol/Session/ServerList.h"
-#include "Protocol/Dispatcher.h"
+#include "Session/Dispatcher.h"
 #include "Protocol/Items/FloorItems.h"
 #include "Protocol/Items/Inventory.h"
 #include "Protocol/Movement/Movement.h"

@@ -20,7 +20,7 @@
 #include "Scenes/MonsterAttackStep.h"
 #include "Scenes/MonsterCreation.h"
 #include "Scenes/SelectionState.h"
-#include "Scenes/WorldEntry.h"
+#include "Session/WorldEntry.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "World/GameCamera.h"

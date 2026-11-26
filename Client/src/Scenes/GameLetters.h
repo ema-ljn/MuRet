@@ -1,7 +1,7 @@
 #pragma once
 
 #include "App/IChatRoomLinks.h"
-#include "App/WorldEvent.h"
+#include "Session/WorldEvent.h"
 #include "Core/Expected.h"
 #include "Network/Packet.h"
 #include "Protocol/Messenger/FriendChat.h"

@@ -17,7 +17,7 @@
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "Scenes/SelectionInventory.h"
-#include "Scenes/WorldEntry.h"
+#include "Session/WorldEntry.h"
 #include "Scenes/SelectionState.h"
 #include "Scenes/LoginModels.h"
 #include "World/GameCamera.h"

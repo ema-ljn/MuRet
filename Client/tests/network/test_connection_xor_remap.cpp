@@ -7,7 +7,7 @@
 #include "Network/PacketSerials.h"
 #include "Network/XorRemap/XorRemapObfuscation.h"
 #include "Protocol/Session/ServerList.h"
-#include "Protocol/Dispatcher.h"
+#include "Session/Dispatcher.h"
 #include "Protocol/Outgoing.h"
 
 #include "support/Bytes.h"

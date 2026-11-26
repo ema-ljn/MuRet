@@ -11,7 +11,7 @@
 #include "Audio/Music.h"
 #include "Audio/Playback.h"
 #include "App/ServerAddress.h"
-#include "App/ServerSession.h"
+#include "Session/ServerSession.h"
 #include "App/SessionState.h"
 #include "Core/Expected.h"
 #include "Core/IClock.h"

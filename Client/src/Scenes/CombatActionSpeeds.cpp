@@ -3,7 +3,7 @@
 #include "Crt/CrtRandom.h"
 #include "Models/LogicalAccess.h"
 #include "Scenes/PlayerActionSpeeds.h"
-#include "Scenes/WorldEntry.h"
+#include "Session/WorldEntry.h"
 #include "Scenes/WorldState.h"
 
 #include <cstddef>

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "App/ServerSession.h"
+#include "Session/ServerSession.h"
 #include "Core/PixelSize.h"
 #include "Tables/GateTable.h"
 #include "Tables/ItemSetTables.h"

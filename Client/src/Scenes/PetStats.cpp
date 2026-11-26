@@ -14,7 +14,7 @@
 #include "Scenes/OwnDerivedStats.h"
 #include "Scenes/OwnItemPlacement.h"
 #include "Scenes/OwnStatHelpers.h"
-#include "Scenes/WorldEntry.h"
+#include "Session/WorldEntry.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/PanelRegistry.h"

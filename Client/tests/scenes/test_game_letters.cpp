@@ -1,7 +1,7 @@
 #include "Scenes/GameLetters.h"
 
 #include "App/IChatRoomLinks.h"
-#include "App/WorldEvent.h"
+#include "Session/WorldEvent.h"
 #include "Core/Expected.h"
 #include "Core/PixelSize.h"
 #include "Crt/CrtRandom.h"

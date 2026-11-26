@@ -2,8 +2,8 @@
 
 #include "App/AutoLogin.h"
 #include "App/ILoopClient.h"
-#include "App/ISessionEventSink.h"
-#include "App/ServerSession.h"
+#include "Session/ISessionEventSink.h"
+#include "Session/ServerSession.h"
 #include "App/SessionState.h"
 #include "Core/Expected.h"
 #include "Core/IClock.h"

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "App/CharacterEvent.h"
-#include "App/WorldEvent.h"
+#include "Session/CharacterEvent.h"
+#include "Session/WorldEvent.h"
 #include "Core/Expected.h"
 
 #include <cstddef>

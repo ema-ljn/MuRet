@@ -5,7 +5,7 @@
 #include <span>
 
 #include "App/LoopTiming.h"
-#include "App/ServerSession.h"
+#include "Session/ServerSession.h"
 #include "App/SessionState.h"
 #include "Core/Expected.h"
 #include "Tables/PlayerModels.h"
@@ -50,7 +50,7 @@
 #include "Scenes/GameItemSpecialDrawing.h"
 #include "Scenes/GameMessages.h"
 #include "Scenes/GamePanels.h"
-#include "Scenes/WorldEntry.h"
+#include "Session/WorldEntry.h"
 #include "Protocol/Outgoing.h"
 #include "UI/PanelRegistry.h"
 #include "Scenes/ItemDrawResources.h"

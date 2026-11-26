@@ -1,4 +1,4 @@
-#include "Scenes/ReturnToSelection.h"
+#include "Session/ReturnToSelection.h"
 
 #include "Core/Expected.h"
 
@@ -10,7 +10,7 @@
 #include "Scenes/GuildState.h"
 #include "Scenes/GuildWindow.h"
 #include "Scenes/InventoryMoves.h"
-#include "Scenes/MapLoad.h"
+#include "Session/MapLoad.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/PersonalShopLists.h"
 #include "Scenes/PetStats.h"
@@ -22,7 +22,7 @@
 #include "Scenes/SceneId.h"
 #include "Scenes/SiegeBattleUi.h"
 #include "Scenes/SelectionState.h"
-#include "Scenes/WorldEntry.h"
+#include "Session/WorldEntry.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/WhisperSenders.h"

@@ -7,7 +7,7 @@
 #include "Scenes/ChatBubbles.h"
 #include "Scenes/ChatReceive.h"
 #include "Scenes/GameMessages.h"
-#include "Scenes/WorldEntry.h"
+#include "Session/WorldEntry.h"
 #include "Scenes/WorldState.h"
 #include "UI/GameText.h"
 #include "UI/MessageArea.h"

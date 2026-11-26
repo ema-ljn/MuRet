@@ -12,7 +12,7 @@
 #include "Scenes/HandShine.h"
 #include "Scenes/MonsterCreation.h"
 #include "Scenes/OwnCharacterRecord.h"
-#include "Scenes/WorldEntry.h"
+#include "Session/WorldEntry.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 

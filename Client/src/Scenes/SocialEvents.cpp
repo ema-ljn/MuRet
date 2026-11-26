@@ -20,7 +20,7 @@
 #include "Scenes/OwnItemPlacement.h"
 #include "Scenes/PersonalShopTitles.h"
 #include "Scenes/SocialState.h"
-#include "Scenes/WorldEntry.h"
+#include "Session/WorldEntry.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/ChatInput.h"

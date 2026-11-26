@@ -1,9 +1,9 @@
 #pragma once
 
-#include "App/Credentials.h"
-#include "App/ServerSession.h"
+#include "Session/Credentials.h"
+#include "Session/ServerSession.h"
 #include "App/SessionState.h"
-#include "App/WorldEvent.h"
+#include "Session/WorldEvent.h"
 #include "Core/IClock.h"
 #include "Core/ILogSink.h"
 #include "Core/Log.h"

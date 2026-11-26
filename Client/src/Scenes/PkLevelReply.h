@@ -2,7 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Protocol/Player/PkLevel.h"
-#include "Scenes/WorldEntry.h"
+#include "Session/WorldEntry.h"
 
 #include <string>
 

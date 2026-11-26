@@ -15,7 +15,7 @@
 #include "Sound/MonsterSounds.h"
 #include "Scenes/SkillBurstEffects.h"
 #include "Scenes/WizardEffects.h"
-#include "Scenes/WorldEntry.h"
+#include "Session/WorldEntry.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "World/ModelEffects.h"

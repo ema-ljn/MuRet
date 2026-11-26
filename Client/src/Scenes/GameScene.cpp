@@ -43,7 +43,7 @@
 #include "Scenes/KalimaObjectStep.h"
 #include "World/GameModelEffects.h"
 
-#include "App/ServerSession.h"
+#include "Session/ServerSession.h"
 #include "App/SessionState.h"
 #include "Core/Expected.h"
 #include "Tables/ItemTable.h"

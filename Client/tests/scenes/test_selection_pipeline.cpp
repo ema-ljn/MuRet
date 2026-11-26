@@ -1,7 +1,7 @@
 #include "Scenes/SelectionState.h"
-#include "Scenes/SessionEventApplier.h"
+#include "Session/SessionEventApplier.h"
 
-#include "App/ServerSession.h"
+#include "Session/ServerSession.h"
 #include "App/SessionState.h"
 #include "Core/Expected.h"
 #include "Core/ILogSink.h"
@@ -32,7 +32,7 @@
 #include "Scenes/SceneId.h"
 #include "Scenes/SceneManager.h"
 #include "Scenes/WorldLoadingScene.h"
-#include "Scenes/WorldEntry.h"
+#include "Session/WorldEntry.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/GameText.h"

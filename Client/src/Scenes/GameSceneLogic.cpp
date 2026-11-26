@@ -18,7 +18,7 @@
 #include "World/ModelEffects.h"
 #include "World/ParticleOwner.h"
 
-#include "App/ServerSession.h"
+#include "Session/ServerSession.h"
 #include "Core/Expected.h"
 #include "Core/IClock.h"
 #include "Crt/CrtRandom.h"

@@ -1,4 +1,4 @@
-#include "Scenes/MapServerMoveApply.h"
+#include "Session/MapServerMoveApply.h"
 
 #include "Core/Expected.h"
 #include "Core/Log.h"
@@ -6,9 +6,9 @@
 #include "Models/LogicalAccess.h"
 #include "Tables/GameData.h"
 #include "Scenes/GameDialogSteps.h"
-#include "Scenes/MapLoad.h"
-#include "Scenes/ReturnToSelection.h"
-#include "Scenes/WorldEntry.h"
+#include "Session/MapLoad.h"
+#include "Session/ReturnToSelection.h"
+#include "Session/WorldEntry.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/MacroFile.h"

@@ -3,7 +3,7 @@
 // ve. Por eso cada include de este header se queda.
 // IWYU pragma: always_keep
 
-#include "App/Credentials.h"
+#include "Session/Credentials.h"
 #include "Platform/Resolution.h"
 #include "App/SessionState.h"
 

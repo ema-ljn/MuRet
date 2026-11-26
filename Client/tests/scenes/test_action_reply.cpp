@@ -16,7 +16,7 @@
 #include "Scenes/FaunaModels.h"
 #include "Scenes/ModelBody.h"
 #include "Scenes/SelectionState.h"
-#include "Scenes/WorldEntry.h"
+#include "Session/WorldEntry.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/Emotes.h"

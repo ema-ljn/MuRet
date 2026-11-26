@@ -1,10 +1,10 @@
 #pragma once
 
-#include "App/CharacterEvent.h"
-#include "App/ISessionEventSink.h"
-#include "App/ServerSession.h"
+#include "Session/CharacterEvent.h"
+#include "Session/ISessionEventSink.h"
+#include "Session/ServerSession.h"
 #include "App/SessionState.h"
-#include "App/WorldEvent.h"
+#include "Session/WorldEvent.h"
 #include "Core/Expected.h"
 #include "Protocol/FrontEnd/CharacterSelectResult.h"
 

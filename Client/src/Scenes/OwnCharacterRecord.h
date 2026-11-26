@@ -67,10 +67,10 @@ struct OwnCharacterRecord
     void SetSkillAt(std::size_t index, std::uint8_t skill);
 
     // 06, "La lógica": lo copia la selección (0x6342c0) y la respuesta no lo cambia.
-    std::array<std::byte, Protocol::FrontEnd::NameSize + 1> name{};  // +0, hasta la clase
-    std::uint8_t characterClass = 0;                                 // +0xb
-    std::uint8_t skin = 0;                                           // +0xc
-    std::uint16_t level = 0;                                         // +0xe
+    std::array<std::byte, Protocol::FrontEnd::NameSize + 1> name{}; // +0, hasta la clase
+    std::uint8_t characterClass = 0;                                // +0xb
+    std::uint8_t skin = 0;                                          // +0xc
+    std::uint16_t level = 0;                                        // +0xe
 
     // 04, la tabla de la respuesta del F3 03: adónde va cada campo.
     std::uint32_t experience = 0;     // +0x10

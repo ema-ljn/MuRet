@@ -5,6 +5,7 @@
 
 #include "support/Bytes.h"
 #include "support/ExpectedError.h"
+#include "support/MinimumSize.h"
 #include "support/Packets.h"
 #include "support/ViewportPackets.h"
 
@@ -312,5 +313,35 @@ TEST(ViewportTest, ObjectsReadTheKindAndTheEquipment)
     EXPECT_EQ(record.y, 41);
     EXPECT_EQ(std::to_integer<std::uint8_t>(record.equipment[0]), 0x12);
     EXPECT_EQ(record.effects, 0x10u);
+}
+
+// The lists need their count and every record, the last one only up to the last byte its reader reads.
+TEST(ViewportTest, ReadsEachMinimumSizeAndNotOneByteLess)
+{
+    std::vector<std::byte> players = Bytes({0xc2, 0x00, 0x2e, 0x12, 0x01});
+    players.resize(0x2e);
+    std::vector<std::byte> transformed = Bytes({0xc2, 0x00, 0x1e, 0x45, 0x01});
+    transformed.resize(0x1e);
+    std::vector<std::byte> monsters = Bytes({0xc2, 0x00, 0x12, 0x13, 0x01});
+    monsters.resize(0x12);
+    std::vector<std::byte> summons = Bytes({0xc2, 0x00, 0x1c, 0x1f, 0x01});
+    summons.resize(0x1c);
+    std::vector<std::byte> objects = Bytes({0xc2, 0x00, 0x21, 0x68, 0x01});
+    objects.resize(0x21);
+    Client::Tests::ExpectMinimumSize(ReadPlayers, Bytes({0xc2, 0x00, 0x05, 0x12, 0x00}));
+    Client::Tests::ExpectMinimumSize(ReadPlayers, players);
+    Client::Tests::ExpectMinimumSize(ReadLeave, Bytes({0xc1, 0x04, 0x14, 0x00}));
+    Client::Tests::ExpectMinimumSize(ReadLeave, Bytes({0xc1, 0x08, 0x14, 0x02, 0x00, 0x01, 0x00, 0x02}));
+    Client::Tests::ExpectMinimumSize(ReadTransformed, transformed);
+    Client::Tests::ExpectMinimumSize(ReadEquipmentShown, Bytes({0xc1, 0x0b, 0x25, 0x00, 0x01, 1, 2, 3, 4, 5, 6}));
+    Client::Tests::ExpectMinimumSize(ReadPosition, Bytes({0xc1, 0x07, 0xdf, 0x00, 0x01, 0x02, 0x03}));
+    Client::Tests::ExpectMinimumSize(ReadMonsters, monsters);
+    Client::Tests::ExpectMinimumSize(ReadSummons, summons);
+    Client::Tests::ExpectMinimumSize(ReadObjects, Bytes({0xc2, 0x00, 0x05, 0x68, 0x00}));
+    Client::Tests::ExpectMinimumSize(ReadObjects, objects);
+    Client::Tests::ExpectMinimumSize(ReadMagicAttackCount,
+                                     Bytes({0xc1, 0x09, 0x1a, 0x00, 0x01, 0x02, 0x03, 0x04, 0x00}));
+    Client::Tests::ExpectMinimumSize(ReadMagicAttackCount,
+                                     Bytes({0xc1, 0x0b, 0x1a, 0x00, 0x01, 0x02, 0x03, 0x04, 0x01, 0x00, 0x05}));
 }
 } // namespace

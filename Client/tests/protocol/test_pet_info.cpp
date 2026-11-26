@@ -7,6 +7,7 @@
 
 #include "support/Bytes.h"
 #include "support/ExpectedError.h"
+#include "support/MinimumSize.h"
 #include "support/NetworkPrinters.h"
 #include "support/Packets.h"
 #include "support/SameBytes.h"
@@ -70,5 +71,11 @@ TEST(PetInfoTest, TheReplyReadsEachFieldAndTheExperienceInLittleEndian)
     EXPECT_EQ(ErrorOf(Client::Protocol::Pets::ReadPetInfoReply(
                   Client::Tests::PacketOf(Bytes({0xc1, 12, 0xa8, 1, 0xfe, 8, 42, 0xee, 0x78, 0x56, 0x34, 0x12})))),
               ProtocolError::WrongPacket);
+}
+
+TEST(PetInfoTest, TheReplyReadsItsMinimumSizeAndNotOneByteLess)
+{
+    Client::Tests::ExpectMinimumSize(Client::Protocol::Pets::ReadPetInfoReply,
+                                     Bytes({0xc1, 0x0c, 0xa9, 0x00, 0x00, 0x01, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00}));
 }
 } // namespace

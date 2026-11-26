@@ -7,6 +7,7 @@
 
 #include "support/Bytes.h"
 #include "support/ExpectedError.h"
+#include "support/MinimumSize.h"
 #include "support/Packets.h"
 #include "support/SameBytes.h"
 
@@ -375,5 +376,36 @@ TEST(FriendChatTest, TheRoomPacketsThatEndBeforeTheirReadsAreNotRead)
     // Otro opcode no lo lee nadie.
     EXPECT_TRUE(Chat::CheckRoomPacket(PacketOf(Bytes({0xc1, 0x03, 0x07}))).HasValue());
     EXPECT_FALSE(Chat::CheckRoomPacket(PacketOf(Bytes({0xc1, 0x03, 0x00}))).HasValue());
+}
+
+// The room's names and the notice need their '\0' inside the packet, or all the bytes up to their cap.
+TEST(LettersTest, ReadsEachMinimumSizeAndNotOneByteLess)
+{
+    std::vector<std::byte> answer = Bytes({0xc1, 0x24, 0xca});
+    answer.resize(0x24);
+    std::vector<std::byte> row = Bytes({0xc1, 0x4f, 0xc6});
+    row.resize(0x4f);
+    std::vector<std::byte> letter = Bytes({0xc2, 0x00, 0x1c, 0xc7});
+    letter.resize(0x1c);
+    std::vector<std::byte> withBody = Bytes({0xc2, 0x00, 0x1e, 0xc7, 0x00, 0x00, 0x02, 0x00});
+    withBody.resize(0x1e);
+    Client::Tests::ExpectMinimumSize(Chat::ReadRoomAnswer, answer);
+    Client::Tests::ExpectMinimumSize(Chat::ReadInviteResult, Bytes({0xc1, 0x08, 0xcb, 0x01, 0x00, 0x00, 0x00, 0x00}));
+    Client::Tests::ExpectMinimumSize(Chat::ReadJoinResult, Bytes({0xc1, 0x04, 0x00, 0x01}));
+    Client::Tests::ExpectMinimumSize(Chat::ReadMember, Bytes({0xc1, 0x07, 0x01, 0x00, 0x02, 0x41, 0x00}));
+    Client::Tests::ExpectMinimumSize(Chat::ReadMember, Bytes({0xc1, 0x0f, 0x01, 0x00, 0x02, 0x41, 0x41, 0x41, 0x41,
+                                                              0x41, 0x41, 0x41, 0x41, 0x41, 0x41}));
+    Client::Tests::ExpectMinimumSize(Chat::ReadMembers, Bytes({0xc1, 0x07, 0x02, 0x00, 0x00, 0x00, 0x00}));
+    Client::Tests::ExpectMinimumSize(Chat::ReadMembers,
+                                     Bytes({0xc1, 0x0b, 0x02, 0x00, 0x00, 0x00, 0x01, 0x00, 0x03, 0x41, 0x00}));
+    Client::Tests::ExpectMinimumSize(Chat::ReadMessage, Bytes({0xc1, 0x05, 0x04, 0x00, 0x65}));
+    Client::Tests::ExpectMinimumSize(Chat::ReadMessage, Bytes({0xc1, 0x07, 0x04, 0x00, 0x02, 0x41, 0x42}));
+    Client::Tests::ExpectMinimumSize(Chat::ReadNotice, Bytes({0xc1, 0x07, 0x0d, 0x00, 0x00, 0x41, 0x00}));
+    Client::Tests::ExpectMinimumSize(Letters::ReadLetterSendResult,
+                                     Bytes({0xc1, 0x08, 0xc5, 0x01, 0x00, 0x00, 0x00, 0x00}));
+    Client::Tests::ExpectMinimumSize(Letters::ReadLetterRow, row);
+    Client::Tests::ExpectMinimumSize(Letters::ReadLetterRead, letter);
+    Client::Tests::ExpectMinimumSize(Letters::ReadLetterRead, withBody);
+    Client::Tests::ExpectMinimumSize(Letters::ReadLetterDeleteResult, Bytes({0xc1, 0x06, 0xc8, 0x01, 0x00, 0x00}));
 }
 } // namespace

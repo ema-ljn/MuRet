@@ -6,6 +6,7 @@
 
 #include "support/Bytes.h"
 #include "support/ExpectedError.h"
+#include "support/MinimumSize.h"
 #include "support/Packets.h"
 #include "support/SameBytes.h"
 
@@ -106,5 +107,14 @@ TEST(QuestProtocolTest, ReadsTheResultWithTheKeyWithoutItsTopBit)
     EXPECT_EQ(result.Value().value, 0x10);
     EXPECT_EQ(ErrorOf(Quest::ReadQuestResult(PacketOf(Bytes({0xc1, 0x06, 0xa3, 0x81, 0x02, 0xc9})))),
               ProtocolError::TooShort);
+}
+
+TEST(QuestProtocolTest, ReadsEachMinimumSizeAndNotOneByteLess)
+{
+    Client::Tests::ExpectMinimumSize(Quest::ReadQuestFlag, Bytes({0xc1, 0x05, 0x9f, 0x00, 0x01}));
+    Client::Tests::ExpectMinimumSize(Quest::ReadQuestList, Bytes({0xc1, 0x04, 0xa0, 0x00}));
+    Client::Tests::ExpectMinimumSize(Quest::ReadQuestState, Bytes({0xc1, 0x05, 0xa1, 0x00, 0x01}));
+    Client::Tests::ExpectMinimumSize(Quest::ReadSetQuestResult, Bytes({0xc1, 0x06, 0xa2, 0x00, 0x00, 0x01}));
+    Client::Tests::ExpectMinimumSize(Quest::ReadQuestResult, Bytes({0xc1, 0x07, 0xa3, 0x00, 0x05, 0xc8, 0x01}));
 }
 } // namespace

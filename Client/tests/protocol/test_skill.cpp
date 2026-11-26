@@ -7,6 +7,7 @@
 
 #include "support/Bytes.h"
 #include "support/ExpectedError.h"
+#include "support/MinimumSize.h"
 #include "support/Packets.h"
 #include "support/SameBytes.h"
 #include "Protocol/Opcodes.h"
@@ -354,5 +355,29 @@ TEST(SkillProtocolTest, TheDurationMagicIs1EWithNineBytes)
     EXPECT_EQ(magic.delivery, Delivery::Encrypted);
     EXPECT_TRUE(SameBytes(Xor32Decode(magic.packet).Bytes(),
                           Bytes({0xc1, 0x0c, 0x1e, 0x4c, 0xb6, 0x73, 0x9f, 0xaa, 0x77, 0x0a, 0x1b, 0x05})));
+}
+
+// The F3 11 reads pkt[6] only with FF, FE or the list at 2 and a count, pkt[7] only with FE, and each entry up to its
+// skill; the F3 05 reads its last two words only if they arrived.
+TEST(SkillProtocolTest, ReadsEachMinimumSizeAndNotOneByteLess)
+{
+    std::vector<std::byte> levelUp = Bytes({0xc1, 0x12, 0xf3, 0x05});
+    levelUp.resize(0x12);
+    Client::Tests::ExpectMinimumSize(Skill::ReadMagicAttack, Bytes({0xc1, 0x08, 0x19, 0x01, 0x00, 0x02, 0x00, 0x03}));
+    Client::Tests::ExpectMinimumSize(Skill::ReadDurationMagic,
+                                     Bytes({0xc1, 0x09, 0x1e, 0x01, 0x00, 0x02, 0x03, 0x04, 0x05}));
+    Client::Tests::ExpectMinimumSize(Skill::ReadMagicCancel, Bytes({0xc1, 0x06, 0x1b, 0x01, 0x00, 0x02}));
+    Client::Tests::ExpectMinimumSize(Skill::ReadActorState,
+                                     Bytes({0xc1, 0x0a, 0x07, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02}));
+    Client::Tests::ExpectMinimumSize(Skill::ReadActorEffect, Bytes({0xc1, 0x06, 0x48, 0x00, 0x02, 0x01}));
+    Client::Tests::ExpectMinimumSize(Skill::ReadSkillTarget, Bytes({0xc1, 0x08, 0x69, 0x01, 0x02, 0x00, 0x03, 0x00}));
+    Client::Tests::ExpectMinimumSize(Skill::ReadSkillList, Bytes({0xc1, 0x06, 0xf3, 0x11, 0x00, 0x02}));
+    Client::Tests::ExpectMinimumSize(Skill::ReadSkillList, Bytes({0xc1, 0x06, 0xf3, 0x11, 0x00, 0x00}));
+    Client::Tests::ExpectMinimumSize(Skill::ReadSkillList, Bytes({0xc1, 0x07, 0xf3, 0x11, 0xff, 0x00, 0x05}));
+    Client::Tests::ExpectMinimumSize(Skill::ReadSkillList, Bytes({0xc1, 0x08, 0xf3, 0x11, 0xfe, 0x00, 0x05, 0x10}));
+    Client::Tests::ExpectMinimumSize(Skill::ReadSkillList,
+                                     Bytes({0xc1, 0x0b, 0xf3, 0x11, 0x02, 0x00, 0x00, 0x01, 0x00, 0x02, 0x03}));
+    Client::Tests::ExpectMinimumSize(Skill::ReadLevelUp, levelUp);
+    Client::Tests::ExpectMinimumSize(Skill::ReadSummonLife, Bytes({0xc1, 0x05, 0xf3, 0x20, 0x10}));
 }
 } // namespace

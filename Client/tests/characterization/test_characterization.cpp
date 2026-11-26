@@ -743,6 +743,11 @@ TEST_F(CharacterizationTest, EventEntry)
     ExpectTheGolden("EventEntry");
 }
 
+TEST_F(CharacterizationTest, IdleKeepalive)
+{
+    ExpectTheGolden("IdleKeepalive");
+}
+
 TEST_F(CharacterizationTest, IsDeterministic)
 {
     const std::vector<FrameDigest> first = Run("LoginToLorencia");

@@ -49,6 +49,7 @@ because the view moves; and the client takes some packets only encrypted (`0x16`
 | `WalkAndFight` | a walk, a skill on a spider that dies and the pick-up of its drop |
 | `InventoryShopAndChat` | an item moved in the inventory, a potion bought from Amy's shop and a whisper |
 | `EventEntry` | the Devil Square notice, Charon's window, the entry with an invitation and the countdown on map 9 |
+| `IdleKeepalive` | the login of `LoginToLorencia`, then idle in Lorencia until the first keepalive in the world, with the own character's speeds (frame 500, 20 seconds after the session started) |
 
 ## What the harness changes from `main.cpp`
 

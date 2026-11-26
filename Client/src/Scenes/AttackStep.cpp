@@ -297,7 +297,7 @@ Core::Expected<void, std::string> StrikeTheTarget(ActorState& actor, std::size_t
         constexpr std::int32_t CastleMap = Maps::CastleSiegeMap;
         if (runtime.map == CastleMap && (victim.type == 0x19b || victim.type == 0x19c))
         {
-            const auto heroFlags = context.world.Actors()[runtime.hero].flags78;
+            const auto heroFlags = context.world.Hero().flags78;
             if (auto hit = EmitTheCastleAttackHit(
                     victim, heroFlags, context.random,
                     [&](const World::ModelEffectArguments& arguments) -> Core::Expected<void, std::string>

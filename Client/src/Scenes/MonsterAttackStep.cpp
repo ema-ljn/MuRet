@@ -699,8 +699,8 @@ Core::Expected<Helped, std::string> StepKalima(ActorState& actor, const KindCase
                 return Core::Unexpected(std::format("{:#x}: falta el pool de partículas para 0x600/1", address));
             const auto target = std::bit_cast<std::int16_t>(actor.attackTarget);
             const auto actors = context.world.Actors();
-            const ActorState& ringed = target >= 0 && target < PoolSlots ? actors[static_cast<std::size_t>(target)]
-                                                                         : actors[context.world.Runtime().hero];
+            const ActorState& ringed =
+                target >= 0 && target < PoolSlots ? actors[static_cast<std::size_t>(target)] : context.world.Hero();
             const glm::vec3 position{ringed.position.x, ringed.position.y,
                                      static_cast<float>(static_cast<double>(ringed.position.z) + RingHeight)};
             const auto created =
@@ -798,7 +798,7 @@ Core::Expected<Helped, std::string> StepKalima(ActorState& actor, const KindCase
                     const int offset = context.random.Next() % Spread - Centre;
                     return static_cast<float>(static_cast<double>(offset) + static_cast<double>(axis));
                 };
-                const ActorState& hero = context.world.Actors()[context.world.Runtime().hero];
+                const ActorState& hero = context.world.Hero();
                 glm::vec3 point{};
                 point.x = around(hero.position.x);
                 point.y = around(hero.position.y);

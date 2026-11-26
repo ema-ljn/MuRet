@@ -5,6 +5,7 @@
 #include <gtest/gtest.h>
 
 #include <cstddef>
+#include <utility>
 
 namespace
 {
@@ -40,5 +41,13 @@ TEST(GameContextTest, TheWorldStateForwardsTheSharedCoreToItsContext)
     EXPECT_EQ(&world.Inventory(), &context.Inventory());
     EXPECT_EQ(&world.Map(), &context.Map());
     EXPECT_EQ(&world.Runtime(), &context.Runtime());
+}
+
+TEST(GameContextTest, TheWorldStatesHeroIsItsContextsHero)
+{
+    Client::Scenes::WorldState world;
+    world.Context().SetHero(3);
+    EXPECT_EQ(&world.Hero(), &world.Context().Hero());
+    EXPECT_EQ(&std::as_const(world).Hero(), &world.Actors()[3]);
 }
 } // namespace

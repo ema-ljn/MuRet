@@ -230,7 +230,7 @@ public:
     Result Step()
     {
         WorldState& world = m_context.world;
-        if (MoveTheCamera(m_tour, world.Actors()[world.Runtime().hero]))
+        if (MoveTheCamera(m_tour, world.Hero()))
             return {};
         switch (m_tour.scriptStage)
         {

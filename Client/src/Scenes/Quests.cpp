@@ -44,7 +44,7 @@ QuestState& QuestOf(WorldState& world)
 
 ActorState& HeroOf(WorldState& world)
 {
-    return world.Actors()[world.Runtime().hero];
+    return world.Hero();
 }
 
 // +0x390 del héroe: 0 y, con la misión 3 terminada, 1 (0x418e76..0x418e8d y 0x418f0e..0x418f25).

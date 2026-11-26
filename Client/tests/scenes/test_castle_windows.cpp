@@ -128,7 +128,7 @@ protected:
     Client::Core::Expected<void, std::string> Draw(Client::Core::PixelSize screen = {640, 480})
     {
         auto& runtime = m_world->Runtime();
-        auto& hero = m_world->Actors()[runtime.hero];
+        auto& hero = m_world->Hero();
         m_sprites.Begin(screen);
         Client::Scenes::GameHudContext context{.world = *m_world,
                                                .random = m_random,

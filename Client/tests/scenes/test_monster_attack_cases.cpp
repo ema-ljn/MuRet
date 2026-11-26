@@ -2657,7 +2657,7 @@ TEST_F(MonsterAttackCasesTest, TheMonsterWizardEffectsKeepTheirArguments)
     {
         Load(24);
         ActorState& monster = Prepare(Probe{.name = "0x95 con 1", .type = 0x95, .step = 14, .skill = 1});
-        ActorState& hero = game->world.Actors()[game->world.Runtime().hero];
+        ActorState& hero = game->world.Hero();
         hero.position = glm::vec3(3000.0f, 4000.0f, 250.0f);
         ASSERT_TRUE(Step(monster).HasValue());
         const auto fires = alive(Client::World::FireEffect);

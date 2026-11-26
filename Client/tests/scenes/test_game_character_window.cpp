@@ -304,7 +304,7 @@ TEST(GameCharacterWindowTest, TheStatButtonsSendTheirPoint)
             {
                 SteppingCharacter tested(map);
                 tested.OpenTheWindow();
-                tested.world.Actors()[tested.world.Runtime().hero].characterClass = heroClass;
+                tested.world.Hero().characterClass = heroClass;
                 tested.world.OwnCharacter().levelUpPoints = 2;
                 tested.Click();
                 const CrtRandom expected = Advanced(tested.random, BaseStepRandoms + OwnRecordCloseRandoms);

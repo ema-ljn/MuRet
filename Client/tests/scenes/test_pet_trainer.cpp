@@ -447,7 +447,7 @@ TEST(PetTrainerTest, TheSecondMenuButtonOpensTheBoxWithTheInventory)
 TEST(PetTrainerTest, TheDarkLordInventoryStillCuts)
 {
     PetTrainer trainer(2, Client::Scenes::TrainerMenuMode);
-    trainer.world->Actors()[trainer.Runtime().hero].characterClass = DarkLord;
+    trainer.world->Hero().characterClass = DarkLord;
     const auto stepped = trainer.Step(ButtonX, MenuY + MenuStep);
     ASSERT_FALSE(stepped.HasValue());
     EXPECT_NE(stepped.Error().find("0x65c039"), std::string::npos);

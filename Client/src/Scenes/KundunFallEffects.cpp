@@ -407,7 +407,7 @@ Core::Expected<void, std::string> StepTheKundunEcho(World::ModelEffect& effect, 
     const WorldRuntime& runtime = context.world.Runtime();
     if (runtime.hero >= context.world.Actors().size())
         return Core::Unexpected(std::string("0x527919: el héroe publicado ([0x743a170]) no está en el pool"));
-    const glm::vec3& hero = context.world.Actors()[runtime.hero].position;
+    const glm::vec3& hero = context.world.Hero().position;
     constexpr double Margin = 300.0; // 0x6b8900
     // 0x527919..0x5279e1: cuatro comparaciones con lo que dejó la anterior; las dos de C0 siguen también sin orden.
     if (D(hero.x) + Margin > D(position.x))

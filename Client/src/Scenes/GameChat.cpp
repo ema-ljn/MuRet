@@ -216,7 +216,7 @@ bool StartsWithTheCommand(std::string_view said, std::string_view command)
 // salen por `send`, como el chat.
 Core::Expected<void, std::string> DoTheEmotes(const GameChatContext& context, std::string_view said)
 {
-    ActorState& hero = context.world.Actors()[context.world.Runtime().hero];
+    ActorState& hero = context.world.Hero();
     if (hero.pet.model >= FirstMountModel && hero.pet.model <= LastMountModel && hero.safeZone == 0)
         return {};
     if (context.texts == nullptr)
@@ -354,7 +354,7 @@ Core::Expected<void, std::string> SayInTheChat(const GameChatContext& context, s
 {
     WorldRuntime& runtime = context.world.Runtime();
     UI::ChatInputState& input = runtime.chat.input;
-    const ActorState& hero = context.world.Actors()[runtime.hero];
+    const ActorState& hero = context.world.Hero();
     if (input.brake > BrakeLimit)
         return {};
     if (input.brake > 0 && input.lastSaid == said)
@@ -435,7 +435,7 @@ Core::Expected<void, std::string> WhisperIt(const GameChatContext& context, std:
         return {};
     WorldRuntime& runtime = context.world.Runtime();
     UI::ChatInputState& input = runtime.chat.input;
-    const ActorState& hero = context.world.Actors()[runtime.hero];
+    const ActorState& hero = context.world.Hero();
     if (!UI::ContainsLikeTheOriginal(HeroNameOf(hero), WebzenWord))
     {
         std::array<std::byte, Protocol::Chat::ChatNameSize> target{};
@@ -624,7 +624,7 @@ Core::Expected<void, std::string> PressEnterInTheGame(const GameChatContext& con
     WorldRuntime& runtime = context.world.Runtime();
     UI::GameUiState& ui = runtime.ui;
     UI::ChatInputState& input = runtime.chat.input;
-    const ActorState& hero = context.world.Actors()[runtime.hero];
+    const ActorState& hero = context.world.Hero();
     // 0x4b50c0..0x4b5106: en Chaos Castle fuera de la zona segura, nada; si no, 0x5763588 en 1, el Enter que leen los
     // diálogos (0x6263df y 0x62da58). La escena es la 5; con 0x77f3b68, el campo del alta del gremio (CL9 hito 8),
     // nada más (0x4b5115).

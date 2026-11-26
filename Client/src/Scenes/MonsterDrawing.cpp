@@ -322,7 +322,7 @@ Result DrawTheBody(MonsterFrame& frame, const Models::Skeleton& skeleton, std::u
     ActorState& actor = frame.actor;
     const bool cloth = WearsClothOnTheMesh(actor.word376);
     // 0x5ffdf0: en Chaos Castle, con +0x1a1 del héroe, el alpha guardado baja 0,15f.
-    if (IsChaosCastle(frame.map) && frame.world.Actors()[frame.world.Runtime().hero].byte1a1 != 0)
+    if (IsChaosCastle(frame.map) && frame.world.Hero().byte1a1 != 0)
         actor.alpha = F32(D(actor.alpha) - D(ChaosCastleFade));
     if (actor.alpha < DrawnAlpha)
     {
@@ -862,7 +862,7 @@ GameHangingPass HangingPassOf(MonsterFrame& frame, const Models::IModelLibrary& 
                            .frameClock = pass.frameClock,
                            .worldClock = frame.worldClock,
                            .map = frame.map,
-                           .heroByte1a1 = frame.world.Actors()[frame.world.Runtime().hero].byte1a1,
+                           .heroByte1a1 = frame.world.Hero().byte1a1,
                            .siegeActive = frame.world.Runtime().siegeActive,
                            .logicSteps = pass.clothWorld->logicSteps,
                            .originalFrame = frame.originalFrame,
@@ -1384,7 +1384,7 @@ Result DrawTheTail(MonsterFrame& frame, const glm::vec3& terrainLight)
                                        .carry = pass.poseCarry,
                                        .frameClock = pass.frameClock,
                                        .map = frame.map,
-                                       .heroByte1a1 = frame.world.Actors()[frame.world.Runtime().hero].byte1a1,
+                                       .heroByte1a1 = frame.world.Hero().byte1a1,
                                        .originalFrame = frame.originalFrame});
 }
 } // namespace

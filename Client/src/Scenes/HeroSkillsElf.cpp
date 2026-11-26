@@ -142,7 +142,7 @@ private:
     }
     ActorState& Published() const
     {
-        return m_world.Actors()[m_runtime.hero];
+        return m_world.Hero();
     }
     Core::Expected<ActorState*, std::string> ActorAt(std::int32_t index, std::string_view where) const;
     Core::Expected<void, std::string> SendTheMagicAttack(std::string_view brake);

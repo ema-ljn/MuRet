@@ -80,7 +80,7 @@ bool FrameIsZero(const ActorState& actor)
 }
 bool IsHero(const ActorState& actor, const WorldState& world)
 {
-    return &actor == &world.Actors()[world.Runtime().hero];
+    return &actor == &world.Hero();
 }
 
 Core::Expected<bool, std::string> IsMarked(int model, const ActorCombatContext& context)

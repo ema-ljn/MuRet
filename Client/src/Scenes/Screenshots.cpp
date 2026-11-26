@@ -112,8 +112,8 @@ Core::Expected<void, std::string> Screenshots::BeforeTheDraw(const ScreenshotFra
     WorldRuntime& runtime = world.Runtime();
     const std::string_view format = UI::TextAt(context.texts, ScreenshotText).value_or(std::string_view{});
     std::string fileName = ScreenshotFileName(time.Value(), m_state.counter);
-    std::string message = ScreenshotMessage(format, fileName, GroupNameOf(context.texts, context.chosenServer),
-                                            HeroNameOf(world.Actors()[runtime.hero]));
+    std::string message =
+        ScreenshotMessage(format, fileName, GroupNameOf(context.texts, context.chosenServer), HeroNameOf(world.Hero()));
     // 0x6382f9..0x63835a: sin Shift, el mensaje va antes del dibujo y sale en la captura.
     if (!context.shiftDown)
     {

@@ -688,7 +688,7 @@ Core::Expected<void, std::string> DrawThePetWindow(GameHudContext& context, UI::
 {
     WorldState& world = context.world;
     WorldRuntime& runtime = world.Runtime();
-    const ActorState& hero = world.Actors()[runtime.hero];
+    const ActorState& hero = world.Hero();
     auto pet = DrawTheButtonAndFrame(context, panels);
     if (!pet.HasValue())
         return Core::Unexpected(std::move(pet).Error());

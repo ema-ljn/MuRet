@@ -90,7 +90,7 @@ void ConsumeClick(WorldRuntime& runtime)
 
 bool HeroCanRegister(WorldState& world, Crt::CrtRandom& random)
 {
-    if (world.Actors()[world.Runtime().hero].guildStatus != Master)
+    if (world.Hero().guildStatus != Master)
         return false;
     const Models::LogicalAccess access(world.Runtime().ownRecordDepth, random, Models::OwnRecordCloseRandoms);
     return world.OwnCharacter().level >= 200;
@@ -123,7 +123,7 @@ std::int32_t FirstMark(WorldState& world, Crt::CrtRandom& random, std::uint8_t& 
 
 Core::Expected<std::pair<std::string_view, std::string_view>, std::string> GuildNames(const WorldState& world)
 {
-    const auto index = static_cast<std::int16_t>(world.Actors()[world.Runtime().hero].word1f2);
+    const auto index = static_cast<std::int16_t>(world.Hero().word1f2);
     const auto& state = world.Runtime().guild;
     const auto guild = GuildNameAt(state, index);
     const auto alliance = UnionNameAt(state, index);
@@ -135,7 +135,7 @@ Core::Expected<std::pair<std::string_view, std::string_view>, std::string> Guild
 
 Core::Expected<bool, std::string> HeroCanEditTaxes(const WorldState& world)
 {
-    if (world.Actors()[world.Runtime().hero].guildStatus != Master)
+    if (world.Hero().guildStatus != Master)
         return false;
     auto names = GuildNames(world);
     if (!names.HasValue())

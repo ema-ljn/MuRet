@@ -490,7 +490,7 @@ Core::Expected<void, std::string> CastTheSkillAtTheTarget(ActorState& caster, Ac
     }
     // 0x55b803..0x55bc0c: C1 06 D3 X Y (rumbo << 4) con la celda lógica del héroe publicado, X antes que Y, por el
     // socket.
-    ActorState& published = world.Actors()[runtime.hero];
+    ActorState& published = world.Hero();
     const std::uint8_t x = ReadCell(published.cellXAccesses, published.cellX, context.random);
     const std::uint8_t y = ReadCell(published.cellYAccesses, published.cellY, context.random);
     const std::array<Protocol::Movement::Cell, 1> cell{{{x, y}}};
@@ -611,7 +611,7 @@ Core::Expected<bool, std::string> UseTheWeaponOptions(ActorState& hero, const Wo
     for (std::uint8_t option = 0; option < item.optionCount; ++option)
     {
         const std::uint8_t skill = item.OptionTag(option);
-        const ActorState& published = world.Actors()[world.Runtime().hero];
+        const ActorState& published = world.Hero();
         if (OwnSkillByte(world.OwnCharacter(), published.skillIndex) != skill)
             continue;
         // 0x55a368..0x55a3b0: el costo y, sin maná, la poción o la opción que sigue.
@@ -645,7 +645,7 @@ Core::Expected<bool, std::string> UseTheWeaponOptions(ActorState& hero, const Wo
             {
                 return Core::Unexpected(attacked.Error());
             }
-            const ActorState& self = world.Actors()[world.Runtime().hero];
+            const ActorState& self = world.Hero();
             if (!NamedWebzen(self))
             {
                 const auto passes = PassesTheSkillBrake(skill, context, "0x55ac98");
@@ -684,7 +684,7 @@ Core::Expected<bool, std::string> UseTheElfWeaponOptions(ActorState& hero, const
     for (std::uint8_t option = 0; option < item.optionCount; ++option)
     {
         const std::uint8_t skill = item.OptionTag(option);
-        const ActorState& published = world.Actors()[runtime.hero];
+        const ActorState& published = world.Hero();
         if (OwnSkillByte(world.OwnCharacter(), published.skillIndex) != skill)
             continue;
         // 0x562024..0x562092: el costo y, sin maná, la poción o la opción que sigue.
@@ -753,7 +753,7 @@ Core::Expected<bool, std::string> UseTheElfWeaponOptions(ActorState& hero, const
         }
         send.key = static_cast<std::uint16_t>(static_cast<std::uint32_t>(key) & 0xffffu);
         // 0x562a8a..0x562af3 y 0x563eae..0x563f17: con "webzen" en el nombre del héroe publicado, no sale (sin freno).
-        if (!NamedWebzen(world.Actors()[runtime.hero]))
+        if (!NamedWebzen(world.Hero()))
         {
             // 0x562af5..0x563b78 y 0x563f19..0x564e84: 0x5767948, la celda lógica otra vez y el 1E.
             context.world.Runtime().lastShotSkill = skill;

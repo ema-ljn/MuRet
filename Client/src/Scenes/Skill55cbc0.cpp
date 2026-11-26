@@ -78,7 +78,7 @@ std::optional<std::uint8_t> LowByteOf(double value)
 // cerrada, y el D3 de girar con su ángulo.
 Core::Expected<void, std::string> TurnThePublishedHero(const HeroSkillContext& context, std::string_view where)
 {
-    ActorState& published = context.world.Actors()[context.world.Runtime().hero];
+    ActorState& published = context.world.Hero();
     const std::uint8_t x = ReadTheSkillCell(published.cellXAccesses, published.cellX, context.random);
     const std::uint8_t y = ReadTheSkillCell(published.cellYAccesses, published.cellY, context.random);
     return SendTheTurn(x, y, published.angles.z, context, where);
@@ -116,7 +116,7 @@ Core::Expected<void, std::string> UseTheSkillOnItsTarget(ActorState& user, Actor
     if (skill == ThrustSkill)
     {
         // 0x55ccb1..0x55cccc: el CMP de WORD con signo.
-        const auto right = static_cast<std::int16_t>(world.Actors()[runtime.hero].hands[0].model);
+        const auto right = static_cast<std::int16_t>(world.Hero().hands[0].model);
         if (right < 0xc12 || right >= 0xe12)
             return {};
     }

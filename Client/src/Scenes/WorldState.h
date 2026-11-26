@@ -76,6 +76,9 @@ public:
     [[nodiscard]] const Kernel::GameContext& Context() const;
     [[nodiscard]] std::span<ActorState, ActorPoolSize> Actors();
     [[nodiscard]] std::span<const ActorState, ActorPoolSize> Actors() const;
+    // The hero's actor, as GameContext::Hero reads it.
+    [[nodiscard]] ActorState& Hero();
+    [[nodiscard]] const ActorState& Hero() const;
     [[nodiscard]] std::span<CharacterCloth, ActorPoolSize> ActorCloths();
     [[nodiscard]] std::span<const CharacterCloth, ActorPoolSize> ActorCloths() const;
     [[nodiscard]] OwnCharacterRecord& OwnCharacter();

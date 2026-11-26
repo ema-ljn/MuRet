@@ -410,7 +410,7 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(Render::Frame::Sce
         return uploaded;
     // 0x637646..0x6376e6: la pasada 2D, en este orden (06 § El dibujo del juego). Un dibujo intermedio de MuRet dibuja
     // con las copias: el rand(), las cuentas de accesos, los globales del HUD, el humo de Crywolf y el sonido.
-    ActorState& hero = m_context.world->Actors()[runtime.hero];
+    ActorState& hero = m_context.world->Hero();
     GameHudContext hud{
         .world = *m_context.world,
         .random = FrameCloth().random,

@@ -111,7 +111,7 @@ Core::Expected<void, std::string> UseTheElfSkillOnItsTarget(ActorState& user, Ac
     const WeaponSkillRequest request = runtime.movement.weaponSkill;
     // 0x55fac2..0x55ffcf: el D3 de girar, antes que todo, con el ángulo del héroe publicado de ahora.
     {
-        ActorState& published = world.Actors()[runtime.hero];
+        ActorState& published = world.Hero();
         const std::uint8_t x = ReadTheSkillCell(published.cellXAccesses, published.cellX, context.random);
         const std::uint8_t y = ReadTheSkillCell(published.cellYAccesses, published.cellY, context.random);
         if (auto sent = SendTheTurn(x, y, published.angles.z, context, "0x55fd72"); !sent.HasValue())

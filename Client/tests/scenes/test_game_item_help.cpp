@@ -225,7 +225,7 @@ protected:
         Client::Scenes::WorldRuntime& runtime = m_world->Runtime();
         runtime.map = GetParam();
         runtime.panels.overlayMode = Client::UI::ItemHelpMode;
-        m_world->Actors()[runtime.hero].characterClass = 0;
+        m_world->Hero().characterClass = 0;
         Client::Scenes::OwnCharacterRecord& own = m_world->OwnCharacter();
         own.level = 10;
         own.strength = 50;
@@ -237,7 +237,7 @@ protected:
     GameHudContext Context()
     {
         Client::Scenes::WorldRuntime& runtime = m_world->Runtime();
-        Client::Scenes::ActorState& hero = m_world->Actors()[runtime.hero];
+        Client::Scenes::ActorState& hero = m_world->Hero();
         return GameHudContext{.world = *m_world,
                               .random = m_random,
                               .ownRecordDepth = runtime.ownRecordDepth,

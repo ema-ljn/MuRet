@@ -114,7 +114,7 @@ bool CastleSeniorBusy(const WorldState& world)
 
 bool HeroCanCraftAtTheCastle(const WorldState& world)
 {
-    const auto& hero = world.Actors()[world.Runtime().hero];
+    const auto& hero = world.Hero();
     return static_cast<std::int16_t>(hero.word1f2) >= 0 && hero.guildStatus == GuildMaster;
 }
 

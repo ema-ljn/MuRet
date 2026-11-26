@@ -570,7 +570,7 @@ Core::Expected<void, std::string> ApplyMinimapPoints(const Castle::MinimapPoints
 // B8 01, 0x4e0700 sobre el héroe ([0x743a170]).
 void ApplyKillCount(const Castle::KillCount& count, WorldState& world)
 {
-    ActorState& hero = world.Actors()[world.Runtime().hero];
+    ActorState& hero = world.Hero();
     if (count.value != 0)
     {
         hero.byte372 = count.value;

@@ -102,7 +102,7 @@ TEST(GameSceneEmoteTest, ATransformedHeroSendsBothActionsAndTheChatBeforeTheFirs
     const auto* skeleton = world->FaunaResources().SkeletonOf(TransformedModel);
     ASSERT_NE(skeleton, nullptr);
     ASSERT_EQ(skeleton->actions.size(), 8u);
-    auto& hero = world->Actors()[world->Runtime().hero];
+    auto& hero = world->Hero();
     hero = Client::Tests::UnarmedPlayer();
     hero.alive = true;
     hero.type = TransformedModel;

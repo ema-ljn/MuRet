@@ -70,7 +70,7 @@ Core::Expected<void, std::string> ApplyLevelUpPointResult(const Player::LevelUpP
     return RecalculateOwnStats(world.OwnCharacter(), OwnStatsContext{.itemSetTables = resources.itemSetTables,
                                                                      .itemSets = &world.ItemSets(),
                                                                      .items = resources.items,
-                                                                     .publishedHero = world.Actors()[runtime.hero],
+                                                                     .publishedHero = world.Hero(),
                                                                      .ownRecordAccesses = runtime.ownRecordDepth,
                                                                      .random = random,
                                                                      .held = HeldItemOf(runtime),

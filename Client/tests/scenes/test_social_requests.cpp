@@ -692,7 +692,7 @@ protected:
 
     ActorState& Hero()
     {
-        return game->world.Actors()[game->world.Runtime().hero];
+        return game->world.Hero();
     }
 
     Client::Core::Expected<void, std::string> RightClickWithModels(std::int32_t command, std::int32_t chosen)

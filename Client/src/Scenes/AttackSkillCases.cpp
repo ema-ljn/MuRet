@@ -438,7 +438,7 @@ Core::Expected<void, std::string> RingTheSpirits(ActorState& actor, std::size_t 
 // 500141/501147/501867/50202e: sólo el héroe publica la tanda; el cierre conserva sus 3848 rand().
 void CountHeroVolley(const ActorState& actor, const CharacterStepContext& context)
 {
-    if (&actor != &context.world.Actors()[context.world.Runtime().hero])
+    if (&actor != &context.world.Hero())
         return;
     const Models::LogicalAccess own(context.world.Runtime().ownRecordDepth, context.random,
                                     Models::OwnRecordCloseRandoms);
@@ -563,7 +563,7 @@ Core::Expected<void, std::string> CastTheFlame(ActorState& actor, const Characte
                                                 .byte89 = static_cast<std::uint8_t>(index & 0xff)};
     static_cast<void>(world.Map().effects.CreateOwnedFlameJet(arguments, runtime.ownRecordDepth,
                                                               world.OwnCharacter().bytef04, context.random));
-    if (&actor == &world.Actors()[runtime.hero])
+    if (&actor == &world.Hero())
     {
         const Models::LogicalAccess own(runtime.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
         ++world.OwnCharacter().bytef04;

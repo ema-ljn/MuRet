@@ -1280,7 +1280,7 @@ private:
     Applied On(const Events::CrywolfContract& packet)
     {
         constexpr std::uint32_t SittingFlag = 0x200000;
-        ActorState& hero = m_world.Actors()[m_runtime.hero];
+        ActorState& hero = m_world.Hero();
         if (packet.result == ContractFailed)
         {
             // 0x4e1050..0x4e106e: el héroe se para.
@@ -1356,9 +1356,9 @@ private:
         static_cast<void>(m_world.Map().effects.CreateCrywolfMissile({.type = 0xee,
                                                                       .position = position,
                                                                       .angles = target,
-                                                                      .light = m_world.Actors()[m_runtime.hero].light,
+                                                                      .light = m_world.Hero().light,
                                                                       .subtype = subtype,
-                                                                      .owner = &m_world.Actors()[m_runtime.hero]}));
+                                                                      .owner = &m_world.Hero()}));
         return {};
     }
 
@@ -1476,7 +1476,7 @@ private:
         soccer.active = packet.firstScore != NoSoccerScore;
         m_runtime.guild.ourScore = packet.firstScore;
         m_runtime.guild.theirScore = packet.secondScore;
-        const ActorState& hero = m_world.Actors()[m_runtime.hero];
+        const ActorState& hero = m_world.Hero();
         // 0x4d9f78/94: FILD directo, sin abrir las dos entradas protegidas.
         return FireworkAt(std::bit_cast<std::int32_t>(hero.cellXLeft), std::bit_cast<std::int32_t>(hero.cellYLeft));
     }

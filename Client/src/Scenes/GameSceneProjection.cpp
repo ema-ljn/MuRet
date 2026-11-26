@@ -41,7 +41,7 @@ void GameScene::PrepareDrawProjection(int frames)
     for (const ActorState& actor : world.Actors())
         m_projection->actorPickingBoxes.push_back(PickingBoxOf(actor));
     m_projection->kalima = world.Map().kalima ? world.Map().kalima->CloneForFrame() : nullptr;
-    const auto& hero = world.Actors()[world.Runtime().hero];
+    const auto& hero = world.Hero();
     m_projection->heroXDepth = hero.cellXAccesses;
     m_projection->heroYDepth = hero.cellYAccesses;
     m_projection->ownRecordDepth = world.Runtime().ownRecordDepth;
@@ -92,7 +92,7 @@ World::KalimaWorld* GameScene::FrameKalima()
 }
 std::uint8_t GameScene::ReadFrameHeroCell(bool x)
 {
-    auto& hero = m_context.world->Actors()[m_context.world->Runtime().hero];
+    auto& hero = m_context.world->Hero();
     auto& depth = m_projectingFrame ? (x ? m_projection->heroXDepth : m_projection->heroYDepth)
                                     : (x ? hero.cellXAccesses : hero.cellYAccesses);
     const Models::LogicalAccess access(depth, FrameCloth().random, Models::SmallLogicalCloseRandoms);

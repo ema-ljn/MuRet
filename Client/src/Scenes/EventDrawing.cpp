@@ -269,7 +269,7 @@ Result DrawTheDevilSquareRanking(GameHudContext& context, const EventMapObject& 
         return Core::Unexpected(std::move(title).Error());
     DrawLine(context, RankingTitleLeft, 0x46, title.Value());
     // 0x40be3a..0x40be6e: wsprintfA con el nombre del héroe (+0x1d9 de [0x743a170]).
-    const ActorState& hero = context.world.Actors()[context.world.Runtime().hero];
+    const ActorState& hero = context.world.Hero();
     const std::string heroName = ChatNameOf(hero);
     const std::array<Crt::FormatArgument, 1> nameArguments{Crt::StringArgument{.text = heroName}};
     auto honor = FormattedText(context, Wsprintf, RankingHonorText, nameArguments, CastleTextBuffer, "0x40be5c");

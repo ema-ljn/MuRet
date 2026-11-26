@@ -74,7 +74,7 @@ bool InMap(float x, float y, float left, float top)
 Core::Expected<void, std::string> DrawBase(GameHudContext& context, UI::SiegePanelState& panel, std::uint8_t kind)
 {
     WorldRuntime& runtime = context.world.Runtime();
-    ActorState& hero = context.world.Actors()[runtime.hero];
+    ActorState& hero = context.world.Hero();
     Render::SpriteBatch& sprites = context.sprites;
     sprites.SetColor({1.0f, 1.0f, 1.0f, panel.alpha});
     const std::int32_t heroX = ReadCell(hero, context.random, true, context.cellXDepth) / panel.page;

@@ -8,7 +8,6 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/HighEffectEmitters.h"
 #include "Scenes/HighModelEffects.h"
-#include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "World/ModelEffects.h"
 #include "World/ParticleOwner.h"
@@ -222,7 +221,7 @@ Core::Expected<void, std::string> StepTheGuildMark(World::ModelEffect& effect, c
     }
     // 0x529fe7..0x52a0aa: 0x4ec110 con el hueso 20 del dueño y el modelo como lo dejó el paso de su personaje.
     const glm::vec3 point = ActorBonePoint(*owner, GuildMarkBone, glm::vec3(0.0f), context.world);
-    const ActorState& hero = context.world.Actors()[context.world.Runtime().hero];
+    const ActorState& hero = context.world.Hero();
     glm::vec3& position = effect.transform.position;
     position.x = F32((D(owner->position.x) - D(hero.position.x)) + D(point.x));
     position.y = F32((D(owner->position.y) - D(hero.position.y)) + D(point.y));

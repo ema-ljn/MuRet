@@ -129,7 +129,7 @@ protected:
     GameHudContext Context(bool projecting = false)
     {
         Client::Scenes::WorldRuntime& runtime = world->Runtime();
-        Client::Scenes::ActorState& hero = world->Actors()[runtime.hero];
+        Client::Scenes::ActorState& hero = world->Hero();
         return GameHudContext{.world = *world,
                               .random = random,
                               .ownRecordDepth = runtime.ownRecordDepth,
@@ -514,7 +514,7 @@ void PutRecord(EventMapObject& event, std::size_t record, std::string_view name,
 
 void NameTheHero(WorldState& world, std::string_view name)
 {
-    Client::Scenes::ActorState& hero = world.Actors()[world.Runtime().hero];
+    Client::Scenes::ActorState& hero = world.Hero();
     hero.name = {};
     for (std::size_t at = 0; at < name.size(); ++at)
         hero.name[at] = static_cast<std::byte>(name[at]);

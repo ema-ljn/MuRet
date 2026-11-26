@@ -284,7 +284,7 @@ Core::Expected<void, std::string> DrawTheMembers(GameHudContext& context, std::i
     Render::SpriteBatch& sprites = context.sprites;
     WorldState& world = context.world;
     const PartyState& party = world.Runtime().social.party;
-    const std::string_view hero = NameView(world.Actors()[world.Runtime().hero].name);
+    const std::string_view hero = NameView(world.Hero().name);
     const bool leader = NameView(party.slots[0].name) == hero;
     for (std::size_t at = 0; at < counted.Value(); ++at)
     {
@@ -350,7 +350,7 @@ Core::Expected<void, std::string> StepTheKickButtons(const GameUiContext& contex
         return Core::Unexpected(
             std::format("0x5e3d03: {} miembros pasan los cinco lugares de 0x77f3cd0 (Q-C960)", count));
     const PartyState& party = runtime.social.party;
-    const std::string_view hero = NameView(world.Actors()[runtime.hero].name);
+    const std::string_view hero = NameView(world.Hero().name);
     const std::string_view leader = NameView(party.slots[0].name);
     for (std::int32_t at = 0; at < count; ++at)
     {

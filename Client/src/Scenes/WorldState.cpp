@@ -52,6 +52,16 @@ std::span<const ActorState, ActorPoolSize> WorldState::Actors() const
     return m_context.Actors();
 }
 
+ActorState& WorldState::Hero()
+{
+    return m_context.Hero();
+}
+
+const ActorState& WorldState::Hero() const
+{
+    return m_context.Hero();
+}
+
 std::span<CharacterCloth, ActorPoolSize> WorldState::ActorCloths()
 {
     return *m_actorCloths;

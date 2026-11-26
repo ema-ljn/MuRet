@@ -221,7 +221,7 @@ protected:
     GameLettersTest()
         : m_world(std::make_unique<WorldState>()), m_random(Seed), m_texts(Client::Tests::MakeTextTable(LetterTexts()))
     {
-        auto& name = m_world->Actors()[Runtime().hero].name;
+        auto& name = m_world->Hero().name;
         for (std::size_t at = 0; at < Hero.size(); ++at)
             name[at] = static_cast<std::byte>(Hero[at]);
         Manager().letterLimit = 50;

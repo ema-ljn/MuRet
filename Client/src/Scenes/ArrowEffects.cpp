@@ -197,7 +197,7 @@ void BeginTheSiegeArrow(World::ModelEffect& effect, WorldState& world, CrtRandom
     effect.life = SiegeArrowLife;
     effect.transform.scale = SiegeArrowScale;
     effect.turnDirection = F32(static_cast<double>((random.Next() % TurnSpan) + TurnBase) * TurnStep);
-    effect.start = world.Actors()[world.Runtime().hero].position;
+    effect.start = world.Hero().position;
     if (effect.subtype == 3)
     {
         constexpr int SpeedSpan = 30, PitchSpan = 20;
@@ -558,7 +558,7 @@ Core::Expected<void, std::string> ShootTheArrows(ActorState& actor, ActorState* 
     // registro propio (+0xb6c y +0xbb4, MOVSX) más 0x212, con el registro abierto y cerrado en línea.
     std::int32_t right = ToInt16(actor.hands[0].model);
     std::int32_t left = ToInt16(actor.hands[1].model);
-    if (&actor == &context.world.Actors()[runtime.hero])
+    if (&actor == &context.world.Hero())
     {
         const LogicalAccess own(runtime.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
         const auto& equipment = context.world.OwnCharacter().equipment;
@@ -701,7 +701,7 @@ Core::Expected<void, std::string> HitWithTheMarkedArrow(World::ModelEffect& effe
     if ((context.random.Next() & 1) != 0)
         return {};
     // 0x520204..0x520211: solo con el héroe ([0x743a170]) de dueño (+0x108).
-    const ActorState& hero = world.Actors()[runtime.hero];
+    const ActorState& hero = world.Hero();
     if (effect.ownerContext != static_cast<const void*>(&hero))
         return {};
     // 0x520217..0x520415: la skill del lugar +0x89, con el registro propio abierto y cerrado en línea.
@@ -809,7 +809,7 @@ Core::Expected<void, std::string> HitWithTheArrow(World::ModelEffect& effect, co
     constexpr float HitRadius = 100.0f;
     if (runtime.hero >= context.world.Actors().size())
         return Core::Unexpected(std::string("0x517850: el héroe publicado ([0x743a170]) no está en el pool"));
-    if (!HitsSomeone(effect, context.world, context.world.Actors()[runtime.hero], HitRadius, 0))
+    if (!HitsSomeone(effect, context.world, context.world.Hero(), HitRadius, 0))
         return {};
     // 0x5205cd..0x5207d1: el registro propio abierto y cerrado en línea para leer la skill del lugar +0x89.
     std::uint8_t skill = 0;
@@ -1149,7 +1149,7 @@ Core::Expected<void, std::string> StepAquagoldArrow(World::ModelEffect& effect, 
         if (runtime.hero >= context.world.Actors().size())
             return Core::Unexpected(std::string("0x5243d3: el héroe publicado ([0x743a170]) no está en el pool"));
         constexpr std::int32_t MarkedSubtype = 0x63;
-        if (effect.ownerContext == &context.world.Actors()[runtime.hero] && effect.subtype != MarkedSubtype)
+        if (effect.ownerContext == &context.world.Hero() && effect.subtype != MarkedSubtype)
         {
             const SkillHitsRequest hits{.skillIndex = effect.byte89,
                                         .point = position,

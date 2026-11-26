@@ -599,7 +599,7 @@ std::int32_t ReadHeroCell(std::uint8_t value, std::uint8_t& depth, Crt::CrtRando
 Core::Expected<void, std::string> ReportTheHeroCell(const CharacterStepContext& context)
 {
     WorldRuntime& runtime = context.world.Runtime();
-    ActorState& hero = context.world.Actors()[runtime.hero];
+    ActorState& hero = context.world.Hero();
     Crt::CrtRandom& random = context.random;
     if (ReadHeroCell(hero.cellX, hero.cellXAccesses, random) == runtime.reportedCellX &&
         ReadHeroCell(hero.cellY, hero.cellYAccesses, random) == runtime.reportedCellY)

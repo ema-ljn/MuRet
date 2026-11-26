@@ -187,7 +187,7 @@ Core::Expected<void, std::string> SharedTail::PayForTheSkill(const SkillCost& co
     if (static_cast<std::int32_t>(cost.stamina) > static_cast<std::int32_t>(record.bp))
         return {};
     // 0x593fca..0x593fdd: 0x552c50 con +0x425 del héroe publicado; el resultado no lo mira nadie.
-    const auto started = TryStartSkillDelay(m_world.Actors()[m_runtime.hero].skillIndex, Delays());
+    const auto started = TryStartSkillDelay(m_world.Hero().skillIndex, Delays());
     if (!started.HasValue())
         return Core::Unexpected(started.Error());
     return {};

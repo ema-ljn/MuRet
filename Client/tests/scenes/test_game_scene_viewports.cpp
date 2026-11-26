@@ -219,7 +219,7 @@ protected:
 
     [[nodiscard]] Client::Scenes::ActorState& Hero()
     {
-        return m_world.Actors()[m_world.Runtime().hero];
+        return m_world.Hero();
     }
 
     void ExpectSelectedPolygon() const

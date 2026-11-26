@@ -156,7 +156,7 @@ protected:
     GameHudContext Context(std::int32_t x, std::int32_t y, bool projecting = false, bool leftDown = false)
     {
         Client::Scenes::WorldRuntime& runtime = Runtime();
-        Client::Scenes::ActorState& hero = m_world->Actors()[runtime.hero];
+        Client::Scenes::ActorState& hero = m_world->Hero();
         return GameHudContext{.world = *m_world,
                               .random = m_random,
                               .ownRecordDepth = runtime.ownRecordDepth,

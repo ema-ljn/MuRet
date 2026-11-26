@@ -89,7 +89,7 @@ SkillDelayContext DelaysOf(const HeroSkillContext& context)
 
 const ActorState& PublishedHero(const HeroSkillContext& context)
 {
-    return context.world.Actors()[context.world.Runtime().hero];
+    return context.world.Hero();
 }
 
 // 0x558eb0 compara el puntero con [0x743a170]: el lugar de `hero` en la tabla, o uno de más si no está.

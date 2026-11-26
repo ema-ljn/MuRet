@@ -280,7 +280,7 @@ Result DrawTheBloodCastleWindow(GameHudContext& context)
     for (std::size_t bridge = 0; bridge < BridgeCount; ++bridge)
     {
         // 0x5f5e68..0x5f5e98: la tabla por la clase del héroe (+0x1d4), y el nivel del registro propio (+0xe).
-        const ActorState& hero = context.world.Actors()[runtime.hero];
+        const ActorState& hero = context.world.Hero();
         const std::size_t row = bridge + (SecondClass(hero.characterClass) ? BridgeCount : 0);
         const LevelRange& levels = BridgeLevels[row];
         bool open = true;
@@ -397,7 +397,7 @@ Result StepTheBloodCastleWindow(const GameUiContext& context)
     for (std::size_t bridge = 0; bridge < BridgeCount; ++bridge)
     {
         // 0x5e5f61..0x5e6080: cada puente abre y cierra el registro propio para su nivel antes de mirar el mouse.
-        const ActorState& hero = context.world.Actors()[runtime.hero];
+        const ActorState& hero = context.world.Hero();
         const LevelRange& levels = BridgeLevels[bridge + (SecondClass(hero.characterClass) ? BridgeCount : 0)];
         bool open = true;
         {

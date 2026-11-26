@@ -223,7 +223,7 @@ Core::Expected<void, std::string> DrawTheGuildWarScore(GameHudContext& context, 
     Render::SpriteBatch& sprites = context.sprites;
     WorldState& world = context.world;
     const GuildState& guild = world.Runtime().guild;
-    const auto heroGuild = static_cast<std::int16_t>(world.Actors()[world.Runtime().hero].word1f2);
+    const auto heroGuild = static_cast<std::int16_t>(world.Hero().word1f2);
     if (guild.warOn == 0 || heroGuild == NoGuildIndex)
         return {};
     if (context.guildMarks == nullptr)

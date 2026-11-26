@@ -42,7 +42,7 @@ void PlayKalimaSound(WorldState& world, std::int32_t sound)
 
 void RegionSoundOf(WorldState& world, Models::ClothWorld& cloth)
 {
-    ActorState& hero = world.Actors()[world.Runtime().hero];
+    ActorState& hero = world.Hero();
     const auto x = [&]
     {
         const Models::LogicalAccess access(hero.cellXAccesses, cloth.random, Models::SmallLogicalCloseRandoms,
@@ -64,7 +64,7 @@ void OwnRecordSound(WorldState& world, Models::ClothWorld& cloth)
 {
     const Models::LogicalAccess access(world.Runtime().ownRecordDepth, cloth.random, Models::OwnRecordCloseRandoms);
     constexpr std::uint8_t LastLevel = 7;
-    const auto& hero = world.Actors()[world.Runtime().hero];
+    const auto& hero = world.Hero();
     if (KalimaLevelOf(hero.characterClass, world.OwnCharacter().level) == LastLevel)
         RegionSoundOf(world, cloth);
 }
@@ -98,7 +98,7 @@ Core::Expected<std::int32_t, std::string> StepKalimaObjectPrelude(WorldState& wo
     if (cloth.random.Next() % ParticleGate != 0)
         return std::int32_t{0};
     // 438947..4389ca: ambos sorteos preceden al creador, aun con pool lleno.
-    const ActorState& hero = world.Actors()[world.Runtime().hero];
+    const ActorState& hero = world.Hero();
     constexpr double SpreadCenter = 400, ParticleHeight = 50, EffectHeight = 800;
     constexpr int EffectGate = 15;
     const glm::vec3 light{0.3f, 0.8f, 1};

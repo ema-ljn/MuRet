@@ -1010,7 +1010,7 @@ Core::Expected<void, std::string> LoginScene::StepTheModelEffects()
         },
         .publishAction = publishAction,
         .soundAt = [&world](std::int32_t id, const glm::vec3& origin) { world.Runtime().RequestSound(id, origin); },
-        .hero = &world.Actors()[world.Runtime().hero]};
+        .hero = &world.Hero()};
     World::WizardEffectServices wizard =
         WizardEffectServicesOf(world, cloth.random,
                                WizardSceneParts{.particles = &world.Particles(),

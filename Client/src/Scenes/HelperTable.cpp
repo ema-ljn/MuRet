@@ -259,7 +259,7 @@ Core::Expected<void, std::string> LeaveTheEarthquakeRibbon(const HelperStepConte
     {
         return Core::Unexpected(second.Error());
     }
-    ActorState& hero = context.world.Actors()[context.world.Runtime().hero];
+    ActorState& hero = context.world.Hero();
     const auto created =
         CreateRibbon(context.world.DrawTail().ribbons, RibbonCreateRequest{.ownerContext = &hero,
                                                                            .ownerEquipment = &hero.level,
@@ -783,8 +783,7 @@ Core::Expected<void, std::string> DrawHelper(HelperState& helper, const ActorSta
     // 0x602e90 → 0x5ffdf0: en los mapas 18 a 23, con +0x1a1 del héroe, el alpha baja 0,15f y queda guardado, una
     // vez por frame del original.
     if (context.originalFrame)
-        helper.horse.alpha =
-            World::ChaosCastlePoseAlpha(runtime.map, world.Actors()[runtime.hero].byte1a1, helper.horse.alpha);
+        helper.horse.alpha = World::ChaosCastlePoseAlpha(runtime.map, world.Hero().byte1a1, helper.horse.alpha);
     // 0x5ffe2a..0x5ffe3b: por debajo de 0,01 (o sin orden) no lo dibuja.
     if (helper.horse.alpha >= DrawnAlpha)
     {

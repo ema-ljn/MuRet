@@ -214,7 +214,7 @@ Core::Expected<void, std::string> CloseTheSecondGuildWindow(WorldState& world, c
     if (delegated.secondGuild == 0)
         return {};
     delegated.secondGuild = 0;
-    ActorState& hero = world.Actors()[runtime.hero];
+    ActorState& hero = world.Hero();
     if (static_cast<std::int16_t>(hero.word1f2) == CreatingGuildIndex)
         hero.word1f2 = static_cast<std::uint16_t>(NoGuildIndex);
     runtime.RequestSound(GuildCloseSound); // 0x41ed10 (CL10)

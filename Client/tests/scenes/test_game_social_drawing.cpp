@@ -115,7 +115,7 @@ protected:
     {
         m_sprites.Begin(Screen640);
         Runtime().map = GetParam();
-        Write(m_world->Actors()[Runtime().hero].name, "Tejon");
+        Write(m_world->Hero().name, "Tejon");
         Write(Runtime().social.duel.rivalName, "Brezal");
     }
 
@@ -127,7 +127,7 @@ protected:
     GameHudContext Context(std::int32_t x = 0, std::int32_t y = 0)
     {
         Client::Scenes::WorldRuntime& runtime = Runtime();
-        Client::Scenes::ActorState& hero = m_world->Actors()[runtime.hero];
+        Client::Scenes::ActorState& hero = m_world->Hero();
         return GameHudContext{.world = *m_world,
                               .random = m_random,
                               .ownRecordDepth = runtime.ownRecordDepth,

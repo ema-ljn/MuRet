@@ -162,7 +162,7 @@ void DrawTheDuelScore(GameHudContext& context, UI::PanelRegistry& panels)
     // 0x5a6dd8..0x5a6e02: sprintf("%d") de los dos puntos.
     const std::string ownPoints = std::format("{}", duel.ownScore);
     const std::string rivalPoints = std::format("{}", duel.rivalScore);
-    const std::string_view hero = NameView(context.world.Actors()[runtime.hero].name);
+    const std::string_view hero = NameView(context.world.Hero().name);
     const std::string_view rival = NameView(duel.rivalName);
     SelectFont(context, FontKind::BigBold);
     context.hud.textColors.background = 0;

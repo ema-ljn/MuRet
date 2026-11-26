@@ -126,7 +126,7 @@ protected:
         m_world->OwnCharacter().ClearEquipmentForEntry();
         Runtime().pets[Client::Scenes::DarkHorsePetStats].level = 3;
         Runtime().field78abb10 = 1;
-        auto& name = m_world->Actors()[Runtime().hero].name;
+        auto& name = m_world->Hero().name;
         const std::string_view hero = "Domador";
         for (std::size_t i = 0; i < hero.size(); ++i)
             name[i] = static_cast<std::byte>(hero[i]);
@@ -142,7 +142,7 @@ protected:
     {
         Client::Scenes::WorldRuntime& runtime = Runtime();
         runtime.panels.delegated.trainer = mode;
-        Client::Scenes::ActorState& hero = m_world->Actors()[runtime.hero];
+        Client::Scenes::ActorState& hero = m_world->Hero();
         GameHudContext context{.world = *m_world,
                                .random = m_random,
                                .ownRecordDepth = runtime.ownRecordDepth,

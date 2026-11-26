@@ -308,7 +308,7 @@ std::optional<glm::vec3> OwnerBonePointOf(WorldState& world, const World::Partic
         return point;
     }
     // 0x53fe20..0x53fe42: el subtipo and 0x80000001 con la corrección del signo.
-    const ActorState& hero = actors[world.Runtime().hero];
+    const ActorState& hero = world.Hero();
     std::uint8_t bone = 0;
     switch (particle.subtype % 2)
     {

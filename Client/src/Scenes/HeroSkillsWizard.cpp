@@ -290,7 +290,7 @@ Core::Expected<bool, std::string> WizardBranch::PassesTheHead()
     }
     // 0x58a071..0x58a08a: la espera de la skill del lugar del héroe publicado, con el registro abierto.
     const auto ready =
-        TryStartSkillDelay(m_world.Actors()[m_runtime.hero].skillIndex,
+        TryStartSkillDelay(m_world.Hero().skillIndex,
                            SkillDelayContext{.world = m_world, .random = m_context.random, .skills = m_context.skills});
     if (!ready.HasValue())
         return Core::Unexpected(ready.Error());
@@ -408,7 +408,7 @@ Core::Expected<void, std::string> WizardBranch::RaiseTheSoulBarrier()
         // publicado (+0x425, sin el registro propio) y el elegido.
         m_hero.attackTarget = static_cast<std::uint16_t>(chosen);
         m_state.weaponSkill.active = 1;
-        m_state.weaponSkill.slot = m_world.Actors()[m_runtime.hero].skillIndex;
+        m_state.weaponSkill.slot = m_world.Hero().skillIndex;
         m_state.weaponSkill.target = chosen;
         if (!InReach(m_hero, m_state))
         {
@@ -505,7 +505,7 @@ Core::Expected<void, std::string> WizardBranch::CastTheSkill4c()
     m_hero.angles.z = static_cast<float>(
         Math::CreateAngle(m_hero.position.x, m_hero.position.y, m_hero.attackPosition.x, m_hero.attackPosition.y));
     if (auto delayed = StartSkillDelay(
-            m_world.Actors()[m_runtime.hero].skillIndex,
+            m_world.Hero().skillIndex,
             SkillDelayContext{.world = m_world, .random = m_context.random, .skills = m_context.skills});
         !delayed.HasValue())
         return delayed;
@@ -546,7 +546,7 @@ Core::Expected<void, std::string> WizardBranch::UseByReach()
     {
         // 0x58c16e..0x58c1b1.
         m_state.weaponSkill.active = 1;
-        m_state.weaponSkill.slot = m_world.Actors()[m_runtime.hero].skillIndex;
+        m_state.weaponSkill.slot = m_world.Hero().skillIndex;
         const auto attackable = Attackable();
         if (!attackable.HasValue())
             return Core::Unexpected(attackable.Error());
@@ -769,7 +769,7 @@ Core::Expected<void, std::string> WizardBranch::TeleportTheAlly()
     if (m_runtime.siegeActive)
     {
         // 0x5925f3..0x5926c8: el puesto del asedio (+0x360) del héroe publicado y el del héroe, en el mismo par.
-        const std::uint8_t published = m_world.Actors()[m_runtime.hero].byte360;
+        const std::uint8_t published = m_world.Hero().byte360;
         const std::uint8_t own = m_hero.byte360;
         const auto pairOf = [](std::uint8_t role) -> int
         {
@@ -835,7 +835,7 @@ Core::Expected<void, std::string> WizardBranch::TeleportTheAlly()
         if (m_runtime.map == CastleSiegeMap)
         {
             // 0x59283b..0x5928de: la X (0x412810/0x40b800) y la Y (0x4e7e40) del héroe publicado.
-            ActorState& published = m_world.Actors()[m_runtime.hero];
+            ActorState& published = m_world.Hero();
             const std::uint8_t x = ReadTheSkillCell(published.cellXAccesses, published.cellX, m_context.random);
             const std::uint8_t y = ReadTheSkillCell(published.cellYAccesses, published.cellY, m_context.random);
             if (InRange(x, 0x96, 0xc8) && InRange(y, 0xb4, 0xe6))

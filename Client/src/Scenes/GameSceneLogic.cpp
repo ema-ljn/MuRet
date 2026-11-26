@@ -184,7 +184,7 @@ GameScene::StepTheModelEffects(float worldClock, const std::function<double(floa
         { m_context.world->Runtime().RequestSound(id, origin); },
         // 0x52ae2a (CL9 hito 4): el chorro de la Flame con el héroe de dueño manda los blancos con 0x517a20(+0x89, la
         // posición, 150, el byte +0x8c, +0x8a, 0), como el choque de las flechas de skill.
-        .hero = &m_context.world->Actors()[m_context.world->Runtime().hero],
+        .hero = &m_context.world->Hero(),
         .skillHits = [this](const World::ModelEffect& flame, float radius) -> Core::Expected<void, std::string>
         {
             const SkillHitsRequest request{.skillIndex = flame.byte89,

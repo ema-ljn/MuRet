@@ -856,10 +856,7 @@ Core::Expected<void, std::string> ApplyActorState(const Protocol::Skills::ActorS
     {
         // 0x4cbe47: sin todas, 0x4e6380(máscara, personaje) (Scenes::ApplyEffectFlags, CL9 hito 1).
         if (!lit)
-        {
-            WorldRuntime& runtime = world.Runtime();
-            return ApplyEffectFlags(actor, state.mask, &actor == &world.Actors()[runtime.hero], resources);
-        }
+            return ApplyEffectFlags(actor, state.mask, &actor == &world.Hero(), resources);
         // 0x4cbe52..0x4cbe72: el NEG/SBB deja +0x7c entero en 0x200000 si lo tenía y en 0 si no (Q-C1202).
         constexpr std::uint32_t Sitting = 0x200000;
         actor.flags7c = (actor.flags7c & Sitting) == Sitting ? Sitting : 0u;
@@ -943,7 +940,7 @@ Core::Expected<void, std::string> ApplyLevelUp(const Protocol::Skills::LevelUp& 
             own.nextExperience += 1000u * (extra + 9u) * extra * extra;
         }
     }
-    return LevelUpEffect(world.Actors()[runtime.hero], resources);
+    return LevelUpEffect(world.Hero(), resources);
 }
 
 Core::Expected<void, std::string> ApplySkillList(const SkillList& list, const WorldEntryResources& resources)
@@ -974,7 +971,7 @@ Core::Expected<void, std::string> ApplySkillList(const SkillList& list, const Wo
             }
             for (const Protocol::Skills::SkillListEntry& entry : list.entries)
                 own.SetSkillAt(entry.slot, entry.skill);
-            if ((world.Actors()[runtime.hero].characterClass & 7u) == SummonerLikeClass)
+            if ((world.Hero().characterClass & 7u) == SummonerLikeClass)
             {
                 for (std::uint8_t order = 0; order < 4; ++order)
                     own.SetSkillAt(0x78u + order, static_cast<std::uint8_t>(0x78 + order));
@@ -1008,7 +1005,7 @@ Core::Expected<void, std::string> ApplySkillList(const SkillList& list, const Wo
         if (hidden == 1)
             ++own.byte6b;
     }
-    ActorState& hero = world.Actors()[runtime.hero];
+    ActorState& hero = world.Hero();
     if (hero.skillIndex >= own.byte6a)
         hero.skillIndex = 0;
     if (own.byte6a == 1)

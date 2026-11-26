@@ -201,7 +201,7 @@ Core::Expected<void, std::string> HitTheTarget(ActorState& hero, std::int32_t ta
     hero.angles.z = static_cast<float>(
         Math::CreateAngle(hero.position.x, hero.position.y, hero.attackPosition.x, hero.attackPosition.y));
     // 0x56544c..0x56548b: la celda del héroe publicado, X con 0x40b570/0x40b800 e Y con 0x4e7e40.
-    ActorState& published = world.Actors()[runtime.hero];
+    ActorState& published = world.Hero();
     const std::uint8_t x = ReadTheCell(published.cellXAccesses, published.cellX, random);
     const std::uint8_t y = ReadTheCell(published.cellYAccesses, published.cellY, random);
     // 0x56548b..0x565954: C1 06 D3 X Y (rumbo << 4), el giro de un paso, por el socket.
@@ -346,7 +346,7 @@ Core::Expected<void, std::string> UseTheSkillOnArrival(ActorState& hero, const H
     ArrivalSkillKind kind = ArrivalSkillKindOf(skill);
     if (kind == ArrivalSkillKind::OnUniria)
     {
-        if (world.Actors()[runtime.hero].pet.model != UniriaModel)
+        if (world.Hero().pet.model != UniriaModel)
             return {};
         kind = ArrivalSkillKind::AtTheTarget;
     }
@@ -480,7 +480,7 @@ Core::Expected<bool, std::string> AttackableTarget(const WorldState& world, cons
                                                    std::string_view guildCompare)
 {
     const WorldRuntime& runtime = world.Runtime();
-    const ActorState& hero = world.Actors()[runtime.hero];
+    const ActorState& hero = world.Hero();
     const bool isHero = &target == &hero;
     const GuildState& guild = runtime.guild;
     if (runtime.map >= FirstChaosCastleMap && runtime.map <= LastChaosCastleMap && !isHero)

@@ -79,7 +79,7 @@ World::WizardEffectServices WizardEffectServicesOf(WorldState& world, Crt::CrtRa
             }
             return std::nullopt;
         },
-        .hero = &world.Actors()[runtime.hero],
+        .hero = &world.Hero(),
         .skillHits = [&world, &random, send = parts.send](const World::ModelEffect& effect,
                                                           float radius) -> Core::Expected<void, std::string>
         {
@@ -119,7 +119,7 @@ World::WizardEffectServices WizardEffectServicesOf(WorldState& world, Crt::CrtRa
             WorldRuntime& state = world.Runtime();
             const World::BlastEffectServices services{.ownRecordDepth = &state.ownRecordDepth,
                                                       .ownRecordCount = &world.OwnCharacter().bytef04,
-                                                      .hero = &world.Actors()[state.hero],
+                                                      .hero = &world.Hero(),
                                                       .sound = sound};
             const auto created = World::CreateBlastModelEffect(
                 world.Map().effects, arguments, World::ModelEffectOwner{.effect = &*owner}, random, services);

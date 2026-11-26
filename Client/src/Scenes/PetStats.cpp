@@ -100,7 +100,7 @@ Core::Expected<void, std::string> RecalculateTheStats(const WorldEntryResources&
     return RecalculateOwnStats(world.OwnCharacter(), OwnStatsContext{.itemSetTables = resources.itemSetTables,
                                                                      .itemSets = &world.ItemSets(),
                                                                      .items = resources.items,
-                                                                     .publishedHero = world.Actors()[runtime.hero],
+                                                                     .publishedHero = world.Hero(),
                                                                      .ownRecordAccesses = runtime.ownRecordDepth,
                                                                      .random = random,
                                                                      .held = HeldItemOf(runtime),
@@ -114,7 +114,7 @@ Core::Expected<void, std::string> WithTheWindowOpen(const Protocol::Pets::PetInf
     WorldState& world = resources.world;
     WorldRuntime& runtime = world.Runtime();
     Crt::CrtRandom& random = resources.cloth.random;
-    ActorState& hero = world.Actors()[runtime.hero];
+    ActorState& hero = world.Hero();
     if (hero.darkSpirit && reply.pet == RavenPetStats)
         ApplyRavenInfo(*hero.darkSpirit, reply.level, reply.experience, world, random);
     // ApplyPetInfo ya descartó la mascota de fuera de la tabla.
@@ -137,7 +137,7 @@ void TheHorse(const Protocol::Pets::PetInfoReply& reply, const WorldEntryResourc
     horse.durability = OwnDurability(world, random, HorseEquipmentSlot);
     horse.experience = reply.experience;
     if (reply.kind == LevelUpKind || reply.kind == LastKind)
-        world.Actors()[runtime.hero].byte8 = static_cast<std::uint8_t>(reply.kind + KindToRiderByte);
+        world.Hero().byte8 = static_cast<std::uint8_t>(reply.kind + KindToRiderByte);
     UpdatePetStats(DarkHorsePetStats, world, random);
     const Models::LogicalAccess access(runtime.ownRecordDepth, random, Models::OwnRecordCloseRandoms);
     World::ItemState& item = world.OwnCharacter().equipment[HorseEquipmentSlot];
@@ -190,7 +190,7 @@ Core::Expected<void, std::string> WithTheWindowClosed(const Protocol::Pets::PetI
         return {};
     if (reply.pet == RavenPetStats)
     {
-        ActorState& hero = world.Actors()[runtime.hero];
+        ActorState& hero = world.Hero();
         if (reply.slot != RavenSlot || !hero.darkSpirit)
             return {};
         ApplyRavenInfo(*hero.darkSpirit, reply.level, reply.experience, world, random);

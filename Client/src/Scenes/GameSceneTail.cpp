@@ -195,7 +195,7 @@ Core::Expected<void, std::string> GameScene::DrawTheTail(Render::Frame::SceneCan
     effectResources.random = &FrameCloth().random;
     effectResources.itemContext = &itemContext;
     effectResources.kalimaPass = &kalimaPass;
-    effectResources.heroByte1a1 = world.Actors()[runtime.hero].byte1a1;
+    effectResources.heroByte1a1 = world.Hero().byte1a1;
     effectResources.originalFrame = frames > 0;
     effectResources.effects = &FrameEffects();
     effectResources.particles = &FrameParticles();

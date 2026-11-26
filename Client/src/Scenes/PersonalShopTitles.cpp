@@ -120,7 +120,7 @@ void CheckTheShopKeys(WorldState& world)
 
 void KeepTheHeroShopTitle(WorldState& world)
 {
-    const std::int32_t heroKey = KeyOf(world.Actors()[world.Runtime().hero]);
+    const std::int32_t heroKey = KeyOf(world.Hero());
     PersonalShopState& shops = world.Runtime().social.personalShop;
     for (auto shop = shops.titles.begin(); shop != shops.titles.end();)
     {

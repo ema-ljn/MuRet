@@ -1043,7 +1043,7 @@ TEST_F(WorldEntryTest, TheSecondEntryRecalculatesThe358OfThePreviousHero)
     resources.itemSetTables = &sets;
     RecordingPublisher publisher;
     ASSERT_TRUE(ApplyWorldEntry(CableReply(), PlayerKey, resources, publisher).HasValue());
-    ActorState& previous = tested.world.Actors()[tested.world.Runtime().hero];
+    ActorState& previous = tested.world.Hero();
     previous.byte358 = 1;
     const std::size_t secondSlot = NextHeroSlot(tested.cloth.random);
     ASSERT_NE(secondSlot, tested.world.Runtime().hero);

@@ -861,7 +861,7 @@ TEST_F(InventoryReplyTest, TheFiveCableSlotsDressTheHeroInTheSamePoll)
     ASSERT_EQ(online.session.State(), Client::App::SessionState::InWorld);
     const Client::Scenes::WorldRuntime& runtime = tested.world.Runtime();
     ASSERT_EQ(runtime.hero, static_cast<std::size_t>(runtime.heroSlot));
-    const ActorState& hero = tested.world.Actors()[runtime.hero];
+    const ActorState& hero = tested.world.Hero();
     EXPECT_EQ(hero.hands[0].model, ModelOf(Kris));
     EXPECT_EQ(tested.world.OwnCharacter().equipment[0].id, Kris);
     EXPECT_EQ(tested.world.OwnCharacter().equipment[1].id, EmptyOwnItemId);

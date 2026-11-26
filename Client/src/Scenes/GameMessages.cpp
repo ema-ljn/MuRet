@@ -97,7 +97,7 @@ void DrawTheMessages(const WorldState& world, HudState& hud, Render::SpriteBatch
     UI::DrawTheNotices(runtime.chat.area, hud.messageFrame, context, runtime.ui.chatModes.placement);
     if (runtime.ui.chatModes.placement != 1 && inTheGame)
         return;
-    const ActorState& hero = world.Actors()[runtime.hero];
+    const ActorState& hero = world.Hero();
     const UI::MessageAreaView view{.mouseX = mouse.x,
                                    .mouseY = mouse.y,
                                    .chatOpen = runtime.ui.chatOpen,

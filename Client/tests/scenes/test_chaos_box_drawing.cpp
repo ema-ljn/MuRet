@@ -133,7 +133,7 @@ protected:
     Client::Core::Expected<void, std::string> Draw(std::int32_t x = 0, std::int32_t y = 0, bool leftDown = false)
     {
         Client::Scenes::WorldRuntime& runtime = Runtime();
-        Client::Scenes::ActorState& hero = m_world->Actors()[runtime.hero];
+        Client::Scenes::ActorState& hero = m_world->Hero();
         GameHudContext context{.world = *m_world,
                                .random = m_random,
                                .ownRecordDepth = runtime.ownRecordDepth,

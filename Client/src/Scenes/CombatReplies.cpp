@@ -165,7 +165,7 @@ Core::Expected<void, std::string> DieInTheCastle(ActorState& actor, const ActorC
         PushOffTheBridge(actor, cell, attributes->cells, random);
     }
     // 0x4d0a0c..0x4d0a25: el héroe con el objeto del evento lo vuelve a 0x40ba20.
-    if (&actor == &combat.world.Actors()[runtime.hero] && runtime.eventObject)
+    if (&actor == &combat.world.Hero() && runtime.eventObject)
     {
         runtime.eventObject->field10 = 0;
         runtime.eventObject->field14 = {-1, -1, -1, -1};
@@ -187,7 +187,7 @@ Core::Expected<void, std::string> ApplyKillExperience(const Protocol::Combat::Ki
     }
     else
     {
-        ActorState& hero = world.Actors()[world.Runtime().hero];
+        ActorState& hero = world.Hero();
         hero.byte380 = KillerOnRecord;
         hero.word382 = reply.damage;
         hero.attackTarget = static_cast<std::uint16_t>(index);

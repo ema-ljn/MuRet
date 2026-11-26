@@ -256,7 +256,7 @@ protected:
 
     Client::Scenes::ActorState& Hero()
     {
-        return m_world->Actors()[Runtime().hero];
+        return m_world->Hero();
     }
 
     GuildState& Guild()

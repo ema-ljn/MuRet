@@ -59,7 +59,7 @@ Core::Expected<void, std::string> OpenTheCharacter(WorldState& world, Crt::CrtRa
     return RecalculateOwnStats(own, OwnStatsContext{.itemSetTables = tables.itemSetTables,
                                                     .itemSets = &sets,
                                                     .items = tables.items,
-                                                    .publishedHero = world.Actors()[runtime.hero],
+                                                    .publishedHero = world.Hero(),
                                                     .ownRecordAccesses = runtime.ownRecordDepth,
                                                     .random = random,
                                                     .held = HeldItemOf(runtime),
@@ -69,7 +69,7 @@ Core::Expected<void, std::string> OpenTheCharacter(WorldState& world, Crt::CrtRa
 UI::PanelContext ContextOf(WorldState& world, Crt::CrtRandom& random, GamePanelTables tables)
 {
     WorldRuntime& runtime = world.Runtime();
-    const ActorState& hero = world.Actors()[runtime.hero];
+    const ActorState& hero = world.Hero();
     UI::PanelContext context{.random = random, .dialogs = runtime.dialogs};
     context.map = runtime.map;
     context.cursorItemCount = runtime.cursorItemCount;

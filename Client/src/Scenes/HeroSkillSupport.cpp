@@ -8,7 +8,6 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/HeroSkillCasts.h"
 #include "Scenes/HeroSkills.h"
-#include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 
 #include <array>
@@ -29,7 +28,7 @@ constexpr std::string_view SilentName = "webzen";
 bool HasTheSilentName(const WorldState& world)
 {
     // El nombre como lo ve el strlen de 0x58a15d: los diez bytes de +0x1d9, +0x1e3 y, como MuRet no tiene +0x1e4, un 0.
-    const ActorState& published = world.Actors()[world.Runtime().hero];
+    const ActorState& published = world.Hero();
     std::string name;
     bool ended = false;
     for (const std::byte letter : published.name)

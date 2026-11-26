@@ -347,7 +347,7 @@ TEST(SessionEventApplierTest, TheCastlePacketsReachTheirApplierAndSendThroughThe
     ASSERT_NO_FATAL_FAILURE(online.LogIn());
     const Client::App::WorldEvent count = Castle::CastleSiegePacket{Castle::KillCount{.value = 6}};
     ASSERT_TRUE(tested->applier.ApplyWorld(count, online.session).HasValue());
-    EXPECT_EQ(tested->world.Actors()[tested->world.Runtime().hero].byte372, 6);
+    EXPECT_EQ(tested->world.Hero().byte372, 6);
 
     const std::size_t sent = online.socket.sent.size();
     const Client::App::WorldEvent giveUp = Castle::CastleSiegePacket{Castle::GiveUpResult{.result = 1}};

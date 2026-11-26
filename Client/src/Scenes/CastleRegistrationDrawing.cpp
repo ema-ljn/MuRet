@@ -6,7 +6,6 @@
 #include "Scenes/CastleWindowSupport.h"
 #include "Scenes/GameHud.h"
 #include "Scenes/GameWindowDrawing.h"
-#include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/CastleSiegeState.h"
 #include "UI/OldWindowDrawParts.h"
@@ -65,7 +64,7 @@ Core::Expected<void, std::string> StatePage(GameHudContext& context, const UI::S
 Core::Expected<void, std::string> RegisterPage(GameHudContext& context, UI::SiegeRegistrationWindow& window)
 {
     WindowDrawing::SelectFont(context, Render::Text::FontKind::Normal);
-    const auto post = context.world.Actors()[context.world.Runtime().hero].guildStatus;
+    const auto post = context.world.Hero().guildStatus;
     if (window.state == 1)
     {
         if (post != CastleUi::Master)
@@ -150,7 +149,7 @@ Core::Expected<void, std::string> ListPage(GameHudContext& context, UI::SiegeReg
         if (auto text = Text(context, Left, ContentTop + 20, 0x7726bb4); !text.HasValue())
             return text;
     }
-    const auto post = context.world.Actors()[context.world.Runtime().hero].guildStatus;
+    const auto post = context.world.Hero().guildStatus;
     const bool enabled = window.registered == 1 && window.state > 0 && window.state < 4 && post == CastleUi::Master;
     return Button(context, window.button, Left + 70, ContentTop + 262, 0x772e918, enabled ? 0 : CastleUi::Disabled);
 }

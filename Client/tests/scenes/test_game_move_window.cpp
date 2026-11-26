@@ -145,7 +145,7 @@ protected:
     Client::Core::Expected<void, std::string> Draw(std::int32_t x, std::int32_t y)
     {
         Client::Scenes::WorldRuntime& runtime = m_world->Runtime();
-        Client::Scenes::ActorState& hero = m_world->Actors()[runtime.hero];
+        Client::Scenes::ActorState& hero = m_world->Hero();
         GameHudContext context{.world = *m_world,
                                .random = m_random,
                                .ownRecordDepth = runtime.ownRecordDepth,
@@ -175,7 +175,7 @@ protected:
     // Lo que manda el chat con "/mover " y el nombre, con el nombre del héroe.
     [[nodiscard]] bool Said(std::string_view text) const
     {
-        const Client::Scenes::ActorState& hero = m_world->Actors()[m_world->Runtime().hero];
+        const Client::Scenes::ActorState& hero = m_world->Hero();
         const Client::Protocol::Outgoing expected = Client::Protocol::Chat::WriteChat(hero.name, text);
         return m_sent.size() == 1 && std::ranges::equal(m_sent[0].packet.Bytes(), expected.packet.Bytes());
     }
@@ -243,9 +243,9 @@ TEST_F(GameMoveWindowTest, TheZenThePkAndTheEdgesKeepTheWindow)
 {
     HoldTheButton();
     ASSERT_TRUE(Step(50, 70).HasValue());
-    m_world->Actors()[m_world->Runtime().hero].pk = 6;
+    m_world->Hero().pk = 6;
     ASSERT_TRUE(Step(50, 40).HasValue());
-    m_world->Actors()[m_world->Runtime().hero].pk = 5;
+    m_world->Hero().pk = 5;
     ASSERT_TRUE(Step(2, 40).HasValue());
     ASSERT_TRUE(Step(188, 40).HasValue());
     EXPECT_TRUE(m_sent.empty());

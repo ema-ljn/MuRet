@@ -295,7 +295,7 @@ Core::Expected<void, std::string> UseTheLaterGridItem(const InventoryMoveContext
         const std::uint32_t level = (hovered.scalar1Low >> LevelShift) & LevelMask;
         if (level > 1)
             return {};
-        if (level == 1 && world.Actors()[world.Runtime().hero].guildStatus == GuildMaster)
+        if (level == 1 && world.Hero().guildStatus == GuildMaster)
             return {};
         return UseInventoryItemOn(context, panels,
                                   InventoryUse{.slot = cell + FirstGridSlot, .where = Item1a0bRefusal});

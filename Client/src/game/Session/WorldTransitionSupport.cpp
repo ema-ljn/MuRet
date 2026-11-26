@@ -45,7 +45,7 @@ namespace Client::Scenes
 {
 ActorState& PublishedHero(const WorldEntryResources& resources)
 {
-    return resources.world.Actors()[resources.world.Runtime().hero];
+    return resources.world.Hero();
 }
 Core::Expected<ActorStopContext, std::string> TransitionStopContext(const ActorState& actor,
                                                                     const WorldEntryResources& resources)

@@ -59,7 +59,7 @@ void WriteWait(std::int32_t value, const GameGateContext& context)
 GameLogic::GateDecision DecideGate(std::size_t index, const Tables::GateRecord& gate, const GameGateContext& context)
 {
     const WorldRuntime& runtime = context.world.Runtime();
-    const ActorState& hero = context.world.Actors()[runtime.hero];
+    const ActorState& hero = context.world.Hero();
     const OwnCharacterRecord& own = context.world.OwnCharacter();
     const GameLogic::GateCheckState state{.x = hero.cellX,
                                           .y = hero.cellY,
@@ -181,7 +181,7 @@ Core::Expected<GameLogic::GateDecision, std::string> CheckGameGates(const GameGa
     {
         return Core::Unexpected(std::string("0x599ef0: el héroe publicado no está en el pool"));
     }
-    ActorState& hero = context.world.Actors()[runtime.hero];
+    ActorState& hero = context.world.Hero();
     GameLogic::GateDecision result;
     for (std::size_t index = 0; index < Tables::GateCount && index < context.gates.Count(); ++index)
     {

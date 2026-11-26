@@ -267,8 +267,7 @@ Core::Expected<std::string, std::string> TheNameLine(const GameHudContext& conte
     auto format = TextOf(context, NameText, where);
     if (!format.HasValue())
         return Core::Unexpected(format.Error());
-    const WorldRuntime& runtime = context.world.Runtime();
-    const std::string_view name = HeroNameOf(context.world.Actors()[runtime.hero]);
+    const std::string_view name = HeroNameOf(context.world.Hero());
     return Fits(Crt::Sprintf(format.Value(), name), LineRoom, where);
 }
 

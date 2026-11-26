@@ -172,7 +172,7 @@ Core::Expected<void, std::string> GameScene::StepTheFauna()
     WorldState& world = *m_context.world;
     if (auto loaded = LoadTheObjectModels(world.Runtime().map); !loaded.HasValue())
         return loaded;
-    auto& hero = world.Actors()[world.Runtime().hero];
+    auto& hero = world.Hero();
     const float time =
         m_context.clock ? static_cast<float>(std::chrono::duration<double, std::milli>(m_context.clock->Now()).count())
                         : 0;
@@ -218,7 +218,7 @@ Core::Expected<void, std::string> GameScene::StepTheLeaves()
     const auto& terrain = StepTerrain();
     if (!terrain.heights || !terrain.attributes)
         return Core::Unexpected(std::string("0x530490: falta terreno para el paso de hojas"));
-    auto& hero = world.Actors()[world.Runtime().hero];
+    auto& hero = world.Hero();
     const float time =
         m_context.clock ? static_cast<float>(std::chrono::duration<double, std::milli>(m_context.clock->Now()).count())
                         : 0;

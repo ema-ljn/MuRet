@@ -36,7 +36,7 @@ Result Fire(std::uint8_t kind, const glm::vec3& origin, const glm::vec3& target,
 {
     if (kind != 1 && kind != 2)
         return {};
-    auto& hero = resources.world.Actors()[resources.world.Runtime().hero];
+    auto& hero = resources.world.Hero();
     const World::ModelEffectArguments arguments{.type =
                                                     kind == 1 ? World::SiegeStoneEffect : World::SiegeIceStoneEffect,
                                                 .position = origin,
@@ -60,7 +60,7 @@ bool InRange(const glm::vec3& a, const glm::vec3& b, float radius)
 }
 Result KnockDownTheHero(const glm::vec3& point, float radius, const WorldEntryResources& resources)
 {
-    auto& hero = resources.world.Actors()[resources.world.Runtime().hero];
+    auto& hero = resources.world.Hero();
     constexpr std::uint8_t Knockdown = 137;
     if (hero.animation.action == Knockdown || !InRange(point, hero.position, radius))
         return {};
@@ -115,10 +115,10 @@ Core::Expected<void, std::string> ApplyTheSiegeWeaponImpact(std::uint8_t kind, s
 {
     const glm::vec3 target{static_cast<float>(x * 100), static_cast<float>(y * 100), 100};
     if (auto fired = Fire(kind, kind == 1 ? glm::vec3{9200, 3000, 500} : glm::vec3{9400, 19000, 500}, target,
-                          resources.world.Actors()[resources.world.Runtime().hero].light, 0, 0, 0, resources);
+                          resources.world.Hero().light, 0, 0, 0, resources);
         !fired.HasValue())
         return fired;
-    auto& hero = resources.world.Actors()[resources.world.Runtime().hero];
+    auto& hero = resources.world.Hero();
     const World::ModelEffectArguments wave{.type = World::ShockWaveEffect,
                                            .position = target,
                                            .angles = hero.angles,
@@ -134,7 +134,7 @@ World::SiegeStoneStepServices SiegeStoneServicesOf(const WorldEntryResources& re
     World::SiegeStoneStepServices services{
         .effects = &world.Map().effects,
         .lighting = &world.DynamicLighting().Lighting(),
-        .hero = &world.Actors()[world.Runtime().hero],
+        .hero = &world.Hero(),
         .cameraTarget = &resources.cameraInput.effectTarget,
         .cameraShake = &resources.cameraInput.shake,
         .collide = [&world](World::ModelEffect& projectile, float radius, float height, bool mark)

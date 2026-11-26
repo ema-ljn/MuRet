@@ -4,6 +4,7 @@
 
 #include "support/Bytes.h"
 #include "support/ExpectedError.h"
+#include "support/MinimumSize.h"
 #include "support/Packets.h"
 
 #include <gtest/gtest.h>
@@ -305,5 +306,55 @@ TEST(CastleBattleProtocolTest, WeaponMessagesReadTheirDistinctLayoutsAndRejectio
     EXPECT_EQ(ErrorReading(Bytes({0xc1, 9, 0xb7, 1, 1, 1, 2, 3, 4})), ProtocolError::TooShort);
     EXPECT_EQ(ErrorReading(Bytes({0xc1, 6, 0xb7, 2, 1, 2})), ProtocolError::TooShort);
     EXPECT_TRUE(Battle::ReadCastleBattlePacket(PacketOf(Bytes({0xc1, 5, 0xb7, 0, 255}))).HasValue());
+}
+
+// Each case reads what it always reads and, with the value that opens it, the rest.
+TEST(CastleBattleProtocolTest, ReadsEachMinimumSizeAndNotOneByteLess)
+{
+    std::vector<std::byte> mark = Bytes({0xc1, 0x24, 0xb9, 0x02});
+    mark.resize(0x24);
+    std::vector<std::byte> zone = Bytes({0xc1, 0x14, 0xb9, 0x03, 0x01});
+    zone.resize(0x14);
+    std::vector<std::byte> owner = Bytes({0xc1, 0x0d, 0xb2, 0x18, 0x01});
+    owner.resize(0x0d);
+    std::vector<std::byte> holder = Bytes({0xc1, 0x1b, 0xb2, 0x20});
+    holder.resize(0x1b);
+    Client::Tests::ExpectMinimumSize(Battle::ReadCastleBattlePacket, Bytes({0xc1, 0x07, 0xb9, 0x01, 0x00, 0x01, 0x02}));
+    Client::Tests::ExpectMinimumSize(Battle::ReadCastleBattlePacket, mark);
+    Client::Tests::ExpectMinimumSize(Battle::ReadCastleBattlePacket, Bytes({0xc1, 0x05, 0xb9, 0x03, 0x00}));
+    Client::Tests::ExpectMinimumSize(Battle::ReadCastleBattlePacket, zone);
+    Client::Tests::ExpectMinimumSize(Battle::ReadCastleBattlePacket, Bytes({0xc1, 0x05, 0xb9, 0x05, 0x01}));
+    Client::Tests::ExpectMinimumSize(Battle::ReadCastleBattlePacket, Bytes({0xc1, 0x06, 0xba, 0x00, 0x01, 0x00}));
+    Client::Tests::ExpectMinimumSize(Battle::ReadCastleBattlePacket, Bytes({0xc1, 0x07, 0xba, 0x00, 0x01, 0x28, 0x05}));
+    Client::Tests::ExpectMinimumSize(Battle::ReadCastleBattlePacket, Bytes({0xc1, 0x05, 0xbb, 0x00, 0x00}));
+    Client::Tests::ExpectMinimumSize(Battle::ReadCastleBattlePacket,
+                                     Bytes({0xc1, 0x08, 0xbb, 0x00, 0x01, 0x01, 0x02, 0x03}));
+    Client::Tests::ExpectMinimumSize(Battle::ReadCastleBattlePacket, Bytes({0xc1, 0x05, 0xb2, 0x11, 0x00}));
+    Client::Tests::ExpectMinimumSize(Battle::ReadCastleBattlePacket, Bytes({0xc1, 0x07, 0xb2, 0x11, 0x01, 0x00, 0x01}));
+    Client::Tests::ExpectMinimumSize(Battle::ReadCastleBattlePacket, Bytes({0xc1, 0x05, 0xb2, 0x12, 0x00}));
+    Client::Tests::ExpectMinimumSize(Battle::ReadCastleBattlePacket,
+                                     Bytes({0xc1, 0x08, 0xb2, 0x12, 0x01, 0x01, 0x00, 0x01}));
+    Client::Tests::ExpectMinimumSize(Battle::ReadCastleBattlePacket, Bytes({0xc1, 0x07, 0xb2, 0x13, 0x01, 0x00, 0x01}));
+    Client::Tests::ExpectMinimumSize(Battle::ReadCastleBattlePacket,
+                                     Bytes({0xc1, 0x09, 0xb2, 0x14, 0x00, 0x01, 0x00, 0x02, 0x03}));
+    Client::Tests::ExpectMinimumSize(Battle::ReadCastleBattlePacket, Bytes({0xc1, 0x05, 0xb2, 0x15, 0x01}));
+    Client::Tests::ExpectMinimumSize(Battle::ReadCastleBattlePacket,
+                                     Bytes({0xc1, 0x0c, 0xb2, 0x15, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00}));
+    Client::Tests::ExpectMinimumSize(Battle::ReadCastleBattlePacket, Bytes({0xc1, 0x05, 0xb2, 0x16, 0x01}));
+    Client::Tests::ExpectMinimumSize(Battle::ReadCastleBattlePacket, Bytes({0xc1, 0x05, 0xb2, 0x17, 0x01}));
+    Client::Tests::ExpectMinimumSize(Battle::ReadCastleBattlePacket, Bytes({0xc1, 0x05, 0xb2, 0x18, 0x02}));
+    Client::Tests::ExpectMinimumSize(Battle::ReadCastleBattlePacket, owner);
+    Client::Tests::ExpectMinimumSize(Battle::ReadCastleBattlePacket, Bytes({0xc1, 0x05, 0xb2, 0x19, 0x01}));
+    Client::Tests::ExpectMinimumSize(Battle::ReadCastleBattlePacket,
+                                     Bytes({0xc1, 0x08, 0xb2, 0x1d, 0x01, 0x02, 0x03, 0x04}));
+    Client::Tests::ExpectMinimumSize(Battle::ReadCastleBattlePacket, Bytes({0xc1, 0x06, 0xb2, 0x1e, 0x01, 0x02}));
+    Client::Tests::ExpectMinimumSize(Battle::ReadCastleBattlePacket, holder);
+    Client::Tests::ExpectMinimumSize(Battle::ReadCastleBattlePacket, Bytes({0xc1, 0x05, 0xb7, 0x00, 0x00}));
+    Client::Tests::ExpectMinimumSize(Battle::ReadCastleBattlePacket,
+                                     Bytes({0xc1, 0x08, 0xb7, 0x00, 0x01, 0x01, 0x00, 0x01}));
+    Client::Tests::ExpectMinimumSize(Battle::ReadCastleBattlePacket, Bytes({0xc1, 0x05, 0xb7, 0x01, 0x00}));
+    Client::Tests::ExpectMinimumSize(Battle::ReadCastleBattlePacket,
+                                     Bytes({0xc1, 0x0a, 0xb7, 0x01, 0x01, 0x00, 0x01, 0x02, 0x03, 0x04}));
+    Client::Tests::ExpectMinimumSize(Battle::ReadCastleBattlePacket, Bytes({0xc1, 0x07, 0xb7, 0x02, 0x01, 0x02, 0x03}));
 }
 } // namespace

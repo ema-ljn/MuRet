@@ -8,6 +8,7 @@
 
 #include "support/Bytes.h"
 #include "support/ExpectedError.h"
+#include "support/MinimumSize.h"
 #include "support/Packets.h"
 #include "support/SameBytes.h"
 
@@ -390,5 +391,66 @@ TEST(CastleSiegeProtocolTest, EveryWriterSendsItsBytesWithXor32)
         EXPECT_TRUE(SameBytes(each.packet.packet.Bytes(), each.sent));
         EXPECT_TRUE(SameBytes(Xor32Decode(PacketOf(each.sent)).Bytes(), each.clear));
     }
+}
+
+// Each case reads pkt[4] and, with the value that opens it, the rest; a list needs its count and every record.
+TEST(CastleSiegeProtocolTest, ReadsEachMinimumSizeAndNotOneByteLess)
+{
+    std::vector<std::byte> state = Bytes({0xc1, 0x2e, 0xb2, 0x00, 0x01});
+    state.resize(0x2e);
+    std::vector<std::byte> registration = Bytes({0xc1, 0x12, 0xb2, 0x03, 0x01});
+    registration.resize(0x12);
+    std::vector<std::byte> mark = Bytes({0xc1, 0x11, 0xb2, 0x04, 0x01});
+    mark.resize(0x11);
+    std::vector<std::byte> buy = Bytes({0xc1, 0x10, 0xb2, 0x05, 0x01});
+    buy.resize(0x10);
+    std::vector<std::byte> repair = Bytes({0xc1, 0x18, 0xb2, 0x06, 0x01});
+    repair.resize(0x18);
+    std::vector<std::byte> upgrade = Bytes({0xc1, 0x14, 0xb2, 0x07, 0x01});
+    upgrade.resize(0x14);
+    std::vector<std::byte> tax = Bytes({0xc1, 0x0f, 0xb2, 0x08, 0x01});
+    tax.resize(0x0f);
+    std::vector<std::byte> money = Bytes({0xc1, 0x0d, 0xb2, 0x10, 0x01});
+    money.resize(0x0d);
+    std::vector<std::byte> noNpcs = Bytes({0xc2, 0x00, 0x0c, 0xb3, 0x01});
+    noNpcs.resize(0x0c);
+    std::vector<std::byte> npcs = Bytes({0xc2, 0x00, 0x28, 0xb3, 0x01, 0x00, 0x00, 0x00, 0x01});
+    npcs.resize(0x28);
+    std::vector<std::byte> siegeGuilds = Bytes({0xc2, 0x00, 0x1a, 0xb4, 0x01, 0x00, 0x00, 0x00, 0x01});
+    siegeGuilds.resize(0x1a);
+    std::vector<std::byte> registered = Bytes({0xc2, 0x00, 0x16, 0xb5, 0x01, 0x00, 0x00, 0x00, 0x01});
+    registered.resize(0x16);
+    Client::Tests::ExpectMinimumSize(Castle::ReadCastleSiegePacket, Bytes({0xc1, 0x05, 0xb2, 0x00, 0x00}));
+    Client::Tests::ExpectMinimumSize(Castle::ReadCastleSiegePacket, state);
+    Client::Tests::ExpectMinimumSize(Castle::ReadCastleSiegePacket, Bytes({0xc1, 0x05, 0xb2, 0x01, 0x00}));
+    Client::Tests::ExpectMinimumSize(Castle::ReadCastleSiegePacket, Bytes({0xc1, 0x05, 0xb2, 0x02, 0x00}));
+    Client::Tests::ExpectMinimumSize(Castle::ReadCastleSiegePacket, Bytes({0xc1, 0x05, 0xb2, 0x03, 0x00}));
+    Client::Tests::ExpectMinimumSize(Castle::ReadCastleSiegePacket, registration);
+    Client::Tests::ExpectMinimumSize(Castle::ReadCastleSiegePacket, mark);
+    Client::Tests::ExpectMinimumSize(Castle::ReadCastleSiegePacket, buy);
+    Client::Tests::ExpectMinimumSize(Castle::ReadCastleSiegePacket, repair);
+    Client::Tests::ExpectMinimumSize(Castle::ReadCastleSiegePacket, upgrade);
+    Client::Tests::ExpectMinimumSize(Castle::ReadCastleSiegePacket,
+                                     Bytes({0xc1, 0x18, 0xb2, 0x07, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                                            0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}));
+    Client::Tests::ExpectMinimumSize(Castle::ReadCastleSiegePacket, tax);
+    Client::Tests::ExpectMinimumSize(Castle::ReadCastleSiegePacket, Bytes({0xc1, 0x06, 0xb2, 0x09, 0x01, 0x00}));
+    Client::Tests::ExpectMinimumSize(Castle::ReadCastleSiegePacket,
+                                     Bytes({0xc1, 0x0a, 0xb2, 0x09, 0x01, 0x01, 0x00, 0x00, 0x00, 0x05}));
+    Client::Tests::ExpectMinimumSize(Castle::ReadCastleSiegePacket, money);
+    Client::Tests::ExpectMinimumSize(Castle::ReadCastleSiegePacket, Bytes({0xc1, 0x05, 0xb2, 0x1a, 0x00}));
+    Client::Tests::ExpectMinimumSize(Castle::ReadCastleSiegePacket, Bytes({0xc1, 0x06, 0xb2, 0x1a, 0x01, 0x01}));
+    Client::Tests::ExpectMinimumSize(Castle::ReadCastleSiegePacket, Bytes({0xc1, 0x05, 0xb2, 0x1f, 0x00}));
+    Client::Tests::ExpectMinimumSize(Castle::ReadCastleSiegePacket, Bytes({0xc1, 0x06, 0xb2, 0x1f, 0x01, 0x01}));
+    Client::Tests::ExpectMinimumSize(Castle::ReadCastleSiegePacket, Bytes({0xc2, 0x00, 0x05, 0xb3, 0x00}));
+    Client::Tests::ExpectMinimumSize(Castle::ReadCastleSiegePacket, noNpcs);
+    Client::Tests::ExpectMinimumSize(Castle::ReadCastleSiegePacket, npcs);
+    Client::Tests::ExpectMinimumSize(Castle::ReadCastleSiegePacket, siegeGuilds);
+    Client::Tests::ExpectMinimumSize(Castle::ReadCastleSiegePacket, registered);
+    Client::Tests::ExpectMinimumSize(Castle::ReadCastleSiegePacket,
+                                     Bytes({0xc2, 0x00, 0x08, 0xb6, 0x00, 0x00, 0x00, 0x00}));
+    Client::Tests::ExpectMinimumSize(Castle::ReadCastleSiegePacket,
+                                     Bytes({0xc2, 0x00, 0x0a, 0xb6, 0x01, 0x00, 0x00, 0x00, 0x05, 0x06}));
+    Client::Tests::ExpectMinimumSize(Castle::ReadCastleSiegePacket, Bytes({0xc1, 0x05, 0xb8, 0x01, 0x07}));
 }
 } // namespace

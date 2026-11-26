@@ -41,3 +41,9 @@ f6a1b98af1a183a6380bfdb6807bc9a339e82c98
 
 # docs(AR1.2): trim and translate the comments of game/Tables, Sound and Maps and their tests (#483)
 bec0485b493a0d7bb39c95372c2367a4f7ad5e98
+
+# refactor(AR1.2): move MU's model catalog to Client/src/game/Tables (#491)
+b7e0e91f2514d5aa32376f495c24dc6de9d77f50
+
+# refactor(AR1.2): move MU's model catalog to the Tables namespace (#493)
+736b554483c8a88100e7316164ba29487dc47302
